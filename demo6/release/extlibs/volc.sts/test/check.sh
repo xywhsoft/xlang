@@ -23,4 +23,5 @@ for name in test/test_sts examples/assume_role; do
         "$work/core.o" "$work/xrt.o" -Wl,--gc-sections -lm -ldl -o "$output"
     timeout 60s "$output"
 done
-printf 'volc.sts Linux ASan/UBSan gate: PASS\n'
+python3 release/extlibs/volc.sts/test/check_response.py
+printf 'volc.sts Linux ASan/UBSan and response JIT/AOT gate: PASS\n'

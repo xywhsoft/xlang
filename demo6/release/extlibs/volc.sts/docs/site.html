@@ -24,12 +24,12 @@
     <table class="ext-kv"><thead><tr><th>入口</th><th>用途</th></tr></thead><tbody>
       <tr><td><code>preview_assume_role / preview_assume_role_spec</code></td><td>固定输入下离线预览签名，不联网</td></tr>
       <tr><td><code>assume_role / assume_role_trn / assume_role_spec</code></td><td>在线请求，未验收</td></tr>
-      <tr><td><code>credentials_json / projection_credentials_json</code></td><td>当前以文本切分响应，不适合不可信 JSON</td></tr>
+      <tr><td><code>credentials_json / projection_credentials_json</code></td><td>解析 Result.Credentials；必需凭据缺失或类型错误会报错，联网请求未验收</td></tr>
     </tbody></table>
     <h2>示例</h2>
     <pre><code>import volc.sts
 string preview = volc.sts.preview_assume_role("AKID", "SECRET", "123456789", "demo", "demo-session", 900, "20240102T030405Z")</code></pre>
-    <p>直参入口直接传递字段，角色 TRN 与会话名中的换行会在发送前拒绝；自行编写的 <code>*_spec</code> 声明文本没有值转义。声明中的时长/超时只有省略或留空才取默认值，显式坏数字在签名或发送前拒绝。C 对照见 <code>examples/assume_role.c</code>；Windows 严格 GCC/C 门禁见 <code>test/check.ps1</code>，Linux ASan/UBSan 见 <code>test/check.sh</code>。使用固定测试凭据，不发送请求。XLang 导入仍被独立维护的 <code>xhttp.client</code> 阻断，发布版脚本运行还受 ownership catalog 初始化故障阻断；响应助手不是结构化 JSON 解析器。详细限制和待验收项见包内 README。</p>
+    <p>直参入口直接传递字段，角色 TRN 与会话名中的换行会在发送前拒绝；自行编写的 <code>*_spec</code> 声明文本没有值转义。声明中的时长/超时只有省略或留空才取默认值，显式坏数字在签名或发送前拒绝。C 对照见 <code>examples/assume_role.c</code>；Windows 与 Linux 门禁分别为 <code>test/check.ps1</code> 和 <code>test/check.sh</code>，均包含离线响应 JIT/AOT。固定测试凭据不会用于联网请求。响应助手使用标准 JSON 解析，只读取 <code>Result.Credentials</code>；完整 STS 导入仍被独立维护的 <code>xhttp.client</code> 阻断，在线请求尚未验收。详细限制见包内 README。</p>
   </section>
 </main>
 </body>

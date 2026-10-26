@@ -1,0 +1,58 @@
+func main(...) as int
+    string raw = `{"AccessKeyId":"wrong","Result":{"Credentials":{"AccessKeyId":"a\"b","SecretAccessKey":"s\\k","SessionToken":"token","ExpiredTime":"2030-01-01T00:00:00Z","CurrentTime":"2024-01-02T03:04:05Z"},"AccessKeyId":"also wrong"}}`
+    assert json_string_field(raw, "AccessKeyId") == "a\"b"
+    assert access_key_id(raw) == "a\"b"
+    assert secret_access_key(raw) == "s\\k"
+    assert session_token(raw) == "token"
+    assert expired_time(raw) == "2030-01-01T00:00:00Z"
+    assert current_time(raw) == "2024-01-02T03:04:05Z"
+    assert json_string_field(raw, "Missing") == ""
+
+    var credentials = json.parse(credentials_json(raw))
+    assert credentials["access_key"] == "a\"b"
+    assert credentials["secret_key"] == "s\\k"
+    assert credentials["session_token"] == "token"
+    var projection = json.parse(projection_credentials_json(raw, "p\"1", "pod\\2"))
+    assert projection["product_id"] == "p\"1"
+    assert projection["pod_id"] == "pod\\2"
+
+    string without_times = `{"Result":{"Credentials":{"AccessKeyId":"ak","SecretAccessKey":"sk","SessionToken":"token"}}}`
+    var minimal = json.parse(credentials_json(without_times))
+    assert minimal["expired_time"] == ""
+    assert minimal["current_time"] == ""
+
+    int rejected = 0
+    try
+        credentials_json(`{"Credentials":{"AccessKeyId":"ak","SecretAccessKey":"sk","SessionToken":"token"}}`)
+    catch ValueError error
+        rejected += 1
+    end
+    try
+        credentials_json(`{"Result":{"Credentials":{"AccessKeyId":"ak","SecretAccessKey":"sk"}}}`)
+    catch ValueError error
+        rejected += 1
+    end
+    try
+        credentials_json(`{"Result":{"Credentials":{"AccessKeyId":"","SecretAccessKey":"sk","SessionToken":"token"}}}`)
+    catch ValueError error
+        rejected += 1
+    end
+    try
+        json_string_field(`{"Result":{"Credentials":{"AccessKeyId":7}}}`, "AccessKeyId")
+    catch ValueError error
+        rejected += 1
+    end
+    try
+        json_string_field(`{"Result":{"Credentials":"bad"}}`, "AccessKeyId")
+    catch ValueError error
+        rejected += 1
+    end
+    try
+        json_string_field(`{broken`, "AccessKeyId")
+    catch ValueError error
+        rejected += 1
+    end
+    assert rejected == 6
+    println("volc.sts response: PASS")
+    return 0
+end

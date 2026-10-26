@@ -1,0 +1,70 @@
+func __sts_credentials(string raw) as var
+    var root = json.parse(raw)
+    if (type(root) != dict or type(root?.Result) != dict or
+        type(root?.Result?.Credentials) != dict) then
+        throw ValueError "volc.sts: Result.Credentials must be an object"
+    end
+    return root.Result.Credentials
+end
+
+func __sts_field(var credentials, string key, bool required) as string
+    var value = credentials[key]
+    if value == null then
+        if required then throw ValueError "volc.sts: missing credential field " + key end
+        return ""
+    end
+    if type(value) != string then
+        throw ValueError "volc.sts: credential field must be a string: " + key
+    end
+    string text = string(value)
+    if required and text == "" then
+        throw ValueError "volc.sts: empty credential field " + key
+    end
+    return text
+end
+
+func __sts_projection(string raw) as var
+    var credentials = __sts_credentials(raw)
+    return {
+        "access_key": __sts_field(credentials, "AccessKeyId", true),
+        "secret_key": __sts_field(credentials, "SecretAccessKey", true),
+        "session_token": __sts_field(credentials, "SessionToken", true),
+        "expired_time": __sts_field(credentials, "ExpiredTime", false),
+        "current_time": __sts_field(credentials, "CurrentTime", false)
+    }
+end
+
+export func json_string_field(string raw, string key) as string
+    return __sts_field(__sts_credentials(raw), key, false)
+end
+
+export func access_key_id(string assume_role_json) as string
+    return json_string_field(assume_role_json, "AccessKeyId")
+end
+
+export func secret_access_key(string assume_role_json) as string
+    return json_string_field(assume_role_json, "SecretAccessKey")
+end
+
+export func session_token(string assume_role_json) as string
+    return json_string_field(assume_role_json, "SessionToken")
+end
+
+export func expired_time(string assume_role_json) as string
+    return json_string_field(assume_role_json, "ExpiredTime")
+end
+
+export func current_time(string assume_role_json) as string
+    return json_string_field(assume_role_json, "CurrentTime")
+end
+
+export func credentials_json(string assume_role_json) as string
+    return json.stringify(__sts_projection(assume_role_json))
+end
+
+export func projection_credentials_json(string assume_role_json, string product_id, string pod_id) as string
+    var projection = __sts_projection(assume_role_json)
+    projection["product_id"] = product_id
+    projection["pod_id"] = pod_id
+    return json.stringify(projection)
+end

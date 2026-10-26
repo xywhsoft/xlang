@@ -10,7 +10,8 @@
 
                                   ],
                      "xlSources":  [
-                                       "src/sts.xl"
+                                       "src/sts.xl",
+                                       "src/response.xl"
                                    ]
                  },
     "links":  [

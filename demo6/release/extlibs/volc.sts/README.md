@@ -1,5 +1,14 @@
 # volc.sts
 
+2026-10-27 响应边界收口：`json_string_field` 和凭据投影不再按文本
+切分 JSON，而是解析后只访问 `Result.Credentials`。转义字符、其他层级
+的同名键不会误取；必需的 AK/SK/Token 缺失、为空或类型错误会抛
+`ValueError`，可选时间字段缺失仍输出空串。完整投影只解析一次响应，
+序列化交给标准 JSON 库。响应实现拆为独立包源码，Windows/Linux
+离线 JIT/AOT 测试通过，并已加入双平台 C 门禁。整包导入仍先在
+独立维护的 `xhttp.client` 报构造器/成员解析错误；联网请求、mock
+和整包 XLang AOT 尚未验收，不能据离线测试签收发布级。
+
 2026-10-26 当前发布版检查 `examples/extlibs/volc_sts.xl`，
 首先在独立维护的 `xhttp.client` 报构造器、
 `NetEngine.nativeHandle()` 和 `TlsConfig` 解析错误。离线 C
@@ -28,9 +37,12 @@ string preview = volc.sts.preview_assume_role(
 C `int` 范围的值会在签名前返回空结果，`last_error()` 为
 `invalid duration_seconds`，不会默默使用默认时长。在线 `timeout_ms`
 遵循 `volc.core` 相同的严格解析规则；错误值在发请求前拒绝。
-`json_string_field`、`credentials_json` 等响应助手目前按文本切分 JSON，
-不能正确处理转义引号、嵌套同名字段等一般 JSON 响应；完成结构化解析和
-离线响应测试前，不应将它们用于不可信响应。
+`json_string_field(raw, key)` 只读取 `Result.Credentials` 下的字符串字段；
+缺失返回空串，字段存在但不是字符串则报 `ValueError`。结构缺失或 JSON
+畸形也报错。`credentials_json` / `projection_credentials_json` 要求
+`AccessKeyId`、`SecretAccessKey`、`SessionToken` 为非空字符串，
+`ExpiredTime` 与 `CurrentTime` 可省略；结果由标准 JSON 库转义。
+这只验证响应形状，不替代联网服务、凭据安全存储与过期检查。
 
 ## C 对照
 
@@ -47,9 +59,10 @@ C 调用方包含依赖包的 `volc_core_native.h`，直接调用
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/volc.sts/test/check.ps1
 ```
 
-该门禁包含 Windows 严格 GCC 语法、C 边界及 C 范例，**不发网络请求**。
+该门禁包含 Windows 严格 GCC 语法、C 边界及 C 范例，并用响应源码
+直接构建运行离线 XLang JIT/AOT 测试；**不发网络请求**。
 Linux 可运行 `bash release/extlibs/volc.sts/test/check.sh`，以 ASan/UBSan
-复验同一离线 C 路径。Linux 测试宿主为了与 HTTP 依赖头的编译特性一致
+复验同一离线 C 路径及响应 JIT/AOT。Linux 测试宿主为了与 HTTP 依赖头的编译特性一致
 启用完整 XRT 模块，链接时丢弃未用代码；测试宿主不在包 manifest 中，
 不增加发布产物的代码量。
 直参签名和请求入口的换行拒绝、失败后成功预览的恢复已进入 C 边界门禁；
@@ -61,5 +74,5 @@ XLang 直参包装改为直接调用定型入口，尚待依赖导入恢复后�
 `cstring`，`xhttp.client` 同样不认识该类型；旧记录中的
 `xhttp.multipart` / `Buffer.appendBytes` 不是当前首个阻断。原始复现见
 `dev/extlib_blockers/volc_sts_xhttp_multipart_import.md`。依赖修复后还需
-重跑 XLang 范例、补结构化 JSON 响应解析、mock/沙箱请求、C/XL
+重跑 XLang 范例、补 mock/沙箱请求、C/XL
 同输出及完整 AOT。本包尚未达到发布验收。

@@ -20,6 +20,9 @@ try {
 
     & $runC -Package volc.sts -Source release/extlibs/volc.sts/examples/assume_role.c
     if ($LASTEXITCODE -ne 0) { throw 'volc.sts C example failed' }
+
+    & python release/extlibs/volc.sts/test/check_response.py
+    if ($LASTEXITCODE -ne 0) { throw 'volc.sts response JIT/AOT failed' }
 }
 finally {
     Pop-Location
