@@ -1,0 +1,84 @@
+// FIPS 197 and RFC 8439 normal public vectors; not a security test campaign.
+bytes block = codec.hexDecode("00112233445566778899aabbccddeeff")
+bytes key128 = codec.hexDecode("000102030405060708090a0b0c0d0e0f")
+auto aes128 = cryptoAdvanced.aes(key128)
+auto cipher128 = aes128.encryptBlock(block)
+assert codec.hexEncode(cipher128) == "69c4e0d86a7b0430d8cdb78070b4c55a"
+assert aes128.decryptBlock(cipher128) == block
+assert aes128.encryptBlock(block) == cipher128
+auto aes192 = AesBlockCipher(codec.hexDecode("000102030405060708090a0b0c0d0e0f1011121314151617"))
+assert codec.hexEncode(aes192.encryptBlock(block)) == "dda97ca4864cdfe06eaf70a0ec0d7191"
+assert aes192.decryptBlock(aes192.encryptBlock(block)) == block
+auto aes256 = cryptoAdvanced.aes(codec.hexDecode("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"))
+assert codec.hexEncode(aes256.encryptBlock(block)) == "8ea2b7ca516745bfeafc49904b496089"
+assert aes256.decryptBlock(aes256.encryptBlock(block)) == block
+auto blockBuffer = Buffer(block)
+assert aes128.encryptBlockBuffer(blockBuffer) == cipher128
+auto cipherBuffer = Buffer(cipher128)
+assert aes128.decryptBlockBuffer(cipherBuffer) == block
+assert blockBuffer.toBytes() == block
+
+bytes key = codec.hexDecode("85d6be7857556d337f4452fe42d506a80103808afb0db2fd4abff6af4149f51b")
+string message = "Cryptographic Forum Research Group"
+bytes tag = codec.hexDecode("a8061dc1305136c6c22b8baf0c0127a9")
+assert cryptoAdvanced.poly1305(key, message) == tag
+assert cryptoAdvanced.poly1305(key, encoding.encodeUtf8(message)) == tag
+assert cryptoAdvanced.poly1305(key, message, 999) == tag
+auto messageBuffer = Buffer(message)
+assert cryptoAdvanced.poly1305Buffer(key, messageBuffer, 999) == tag
+auto stream = cryptoAdvanced.poly1305Stream(key)
+stream.update("Cryptographic ")
+stream.update(b"Forum ")
+stream.updateBuffer(Buffer("Research Group"), 999)
+assert stream.final() == tag
+assert stream.final() == tag
+
+// Fixed test keys only: production must use a new one-time key for each
+// distinct message. Reset never silently restores the old key.
+bytes nextKey = b"0123456789abcdef0123456789abcdef"
+stream.reset(nextKey)
+stream.update("a\0b", 999)
+assert stream.final() == cryptoAdvanced.poly1305(nextKey, b"a\0b")
+assert cryptoAdvanced.poly1305(nextKey, "a\0b", 1) == cryptoAdvanced.poly1305(nextKey, b"a")
+assert cryptoAdvanced.poly1305Buffer(nextKey, Buffer("a\0b"), 1) == cryptoAdvanced.poly1305(nextKey, b"a")
+auto empty = Poly1305(nextKey)
+assert empty.final() == cryptoAdvanced.poly1305(nextKey, b"", 0)
+int errors = 0
+try
+    cryptoAdvanced.aes(b"short")
+catch e
+    errors += 1
+end
+try
+    aes128.encryptBlock(b"short")
+catch e
+    errors += 1
+end
+try
+    cryptoAdvanced.poly1305(b"short", message)
+catch e
+    errors += 1
+end
+try
+    stream.reset(b"short")
+catch e
+    errors += 1
+end
+try
+    stream.update(b"x", -2)
+catch e
+    errors += 1
+end
+try
+    cryptoAdvanced.poly1305(nextKey, b"x", -2)
+catch e
+    errors += 1
+end
+assert errors == 6
+assert stream.final() == cryptoAdvanced.poly1305(nextKey, b"a\0b")
+assert cryptoAdvanced.poly1305(nextKey, "你\0好") == cryptoAdvanced.poly1305(nextKey, encoding.encodeUtf8("你\0好"))
+// Ordinary coexistence with the default AEAD API; no tampering test.
+auto aead = AesGcm(key128)
+bytes nonce = b"123456789012"
+assert aead.open(aead.seal(b"a\0b", nonce), nonce) == b"a\0b"
+print("advanced-blocks=ok")

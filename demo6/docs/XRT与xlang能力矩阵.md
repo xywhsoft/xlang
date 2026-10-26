@@ -9,7 +9,7 @@
 - 低层能力：3910 个函数全部进入 TCC 符号面，可通过显式 `extern "xrt..."` 使用。
 - 头文件内联辅助函数单独记录于 `headerInlineReferences`，不增加外部符号数量；未声明的新引用仍报错。
 - 显式扩展产品的 42 项 API 引用单列于 `externalProductReferences`，核对真实公共声明、提供方和指定使用方，不增加核心 API／符号或延期数量；引用不代表功能验收。
-- 语言内核或标准库已直接使用：2479 个函数。其余 1431 个保留为低层能力，不视为功能丢失。
+- 语言内核或标准库已直接使用：2487 个函数。其余 1423 个保留为低层能力，不视为功能丢失。
 - 已迁出核心但尚待扩展库适配的旧引用：0，仅包含 xhttp=0、xws=0、xregex=0。
 
 逐 API 详情可执行 `python tools/gen_xrt_xlang_matrix.py --report build/reports/xrt_xlang_api_matrix.json` 生成。
@@ -33,7 +33,7 @@
 | xrt | `include/xrt/core.h` | 16 | 12 | 4 |
 | xrt | `include/xrt/coroutine.h` | 51 | 0 | 51 |
 | xrt | `include/xrt/crc32.h` | 2 | 1 | 1 |
-| xrt | `include/xrt/crypto.h` | 122 | 104 | 18 |
+| xrt | `include/xrt/crypto.h` | 122 | 112 | 10 |
 | xrt | `include/xrt/environment.h` | 4 | 4 | 0 |
 | xrt | `include/xrt/error.h` | 36 | 33 | 3 |
 | xrt | `include/xrt/error_format.h` | 1 | 0 | 1 |

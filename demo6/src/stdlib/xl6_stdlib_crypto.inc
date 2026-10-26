@@ -1,4 +1,45 @@
 /* Resident, value-facing crypto declarations. Weak hashes are explicit legacy. */
+static const char xl6StdResidentAesBlock[] =
+    "extern \"xl6CryptoAesBlockCreateV1\" @nonblocking func __xl_std_cryptoAdvanced_aes(bytes key) as AesBlockCipher\n"
+    "extern \"xl6CryptoAesBlockCreateSpanV1\" @nonblocking func __xl_std_cryptoAdvanced_aes(cbytes key) as AesBlockCipher\n";
+static const char xl6StdResidentPoly1305Stream[] =
+    "extern \"xl6CryptoPoly1305CreateV1\" @nonblocking func __xl_std_cryptoAdvanced_poly1305Stream(bytes key) as Poly1305\n"
+    "extern \"xl6CryptoPoly1305CreateSpanV1\" @nonblocking func __xl_std_cryptoAdvanced_poly1305Stream(cbytes key) as Poly1305\n";
+static const char xl6StdResidentPoly1305Text[] =
+    "extern \"xl6CryptoPoly1305TextV1\" @pure @nonblocking func __xl_std_cryptoAdvanced_poly1305(bytes key, string data, int size = -1) as bytes\n"
+    "extern \"xl6CryptoPoly1305TextSpanV1\" @pure @nonblocking func __xl_std_cryptoAdvanced_poly1305(cbytes key, string data, int size = -1) as bytes\n";
+static const char xl6StdResidentPoly1305Bytes[] =
+    "extern \"xl6CryptoPoly1305BytesV1\" @pure @nonblocking func __xl_std_cryptoAdvanced_poly1305(bytes key, bytes data, int size = -1) as bytes\n"
+    "extern \"xl6CryptoPoly1305BytesSpanV1\" @pure @nonblocking func __xl_std_cryptoAdvanced_poly1305(cbytes key, cbytes data, int size = -1) as bytes\n";
+static const char xl6StdResidentPoly1305Buffer[] =
+    "extern \"xl6CryptoPoly1305BufferV1\" @nonblocking func __xl_std_cryptoAdvanced_poly1305Buffer(bytes key, Buffer data, int size = -1) as bytes\n"
+    "extern \"xl6CryptoPoly1305BufferSpanV1\" @nonblocking func __xl_std_cryptoAdvanced_poly1305Buffer(cbytes key, Buffer data, int size = -1) as bytes\n";
+const char* xl6StdlibCryptoAdvancedClassSource =
+    "class AesBlockCipher\n"
+    "    private native point handle\n"
+    "    extern \"xl6CryptoAesBlockCreateV1\" @nonblocking create(bytes key)\n"
+    "    extern \"xl6CryptoAesBlockCreateSpanV1\" @nonblocking create(cbytes key)\n"
+    "    extern \"xl6CryptoAesBlockDestroyV1\" @no_raise @nonblocking destroy()\n"
+    "    extern \"xl6CryptoAesBlockEncryptV1\" @pure @nonblocking func encryptBlock(bytes block) as bytes\n"
+    "    extern \"xl6CryptoAesBlockEncryptSpanV1\" @pure @nonblocking func encryptBlock(cbytes block) as bytes\n"
+    "    extern \"xl6CryptoAesBlockDecryptV1\" @pure @nonblocking func decryptBlock(bytes block) as bytes\n"
+    "    extern \"xl6CryptoAesBlockDecryptSpanV1\" @pure @nonblocking func decryptBlock(cbytes block) as bytes\n"
+    "    extern \"xl6CryptoAesBlockEncryptBufferV1\" @nonblocking func encryptBlockBuffer(Buffer block) as bytes\n"
+    "    extern \"xl6CryptoAesBlockDecryptBufferV1\" @nonblocking func decryptBlockBuffer(Buffer block) as bytes\n"
+    "end\n"
+    "class Poly1305\n"
+    "    private native point handle\n"
+    "    extern \"xl6CryptoPoly1305CreateV1\" @nonblocking create(bytes key)\n"
+    "    extern \"xl6CryptoPoly1305CreateSpanV1\" @nonblocking create(cbytes key)\n"
+    "    extern \"xl6CryptoPoly1305DestroyV1\" @no_raise @nonblocking destroy()\n"
+    "    extern \"xl6CryptoPoly1305ResetV1\" @nonblocking func reset(bytes key)\n"
+    "    extern \"xl6CryptoPoly1305ResetSpanV1\" @nonblocking func reset(cbytes key)\n"
+    "    extern \"xl6CryptoPoly1305UpdateTextV1\" @nonblocking func update(string data, int size = -1)\n"
+    "    extern \"xl6CryptoPoly1305UpdateBytesV1\" @nonblocking func update(bytes data, int size = -1)\n"
+    "    extern \"xl6CryptoPoly1305UpdateBytesSpanV1\" @nonblocking func update(cbytes data, int size = -1)\n"
+    "    extern \"xl6CryptoPoly1305UpdateBufferV1\" @nonblocking func updateBuffer(Buffer data, int size = -1)\n"
+    "    extern \"xl6CryptoPoly1305FinalV1\" @nonblocking func final() as bytes\n"
+    "end\n";
 static const char xl6StdResidentChaCha20Text[] =
     "extern \"xl6CryptoChaCha20TextV1\" @pure @nonblocking func __xl_std_cryptoAdvanced_chacha20(bytes key, bytes nonce, string data, int counter = 1, int size = -1) as bytes\n"
     "extern \"xl6CryptoChaCha20TextSpanV1\" @pure @nonblocking func __xl_std_cryptoAdvanced_chacha20(cbytes key, cbytes nonce, string data, int counter = 1, int size = -1) as bytes\n";

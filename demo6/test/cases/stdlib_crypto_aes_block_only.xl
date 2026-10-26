@@ -1,0 +1,3 @@
+auto cipher = cryptoAdvanced.aes(b"0123456789abcdef")
+bytes block = b"a\0bcdefghijklmno"
+assert cipher.decryptBlock(cipher.encryptBlock(block)) == block

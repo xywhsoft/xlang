@@ -10,6 +10,12 @@
   },
   "Decisions": [
     {
+      "Id": "crypto-raw-aes-poly1305",
+      "Modules": ["crypto_aes", "crypto_poly1305"],
+      "State": "approved-2026-10-26",
+      "Decision": "Expose raw AES blocks and standalone Poly1305 in the explicit cryptoAdvanced surface; default APIs continue to prefer AEAD. Only fixed normal offline vectors and ordinary ABI/lifecycle checks, no attack or network-security test campaigns. Approval is not implementation or acceptance."
+    },
+    {
       "Id": "tls-verifier-revocation-mode",
       "Modules": ["tls_verify", "x509_crl_policy"],
       "State": "approved-2026-10-26",
@@ -22,17 +28,7 @@
       "Decision": "Add the necessary XRT Verifier owning-graph, active-call and checked-retirement APIs, selectively synchronize the xlang snapshot and preserve both independent time ABIs. Language closures must remain reachable through native consumers. Approval does not constitute implementation or acceptance."
     }
   ],
-  "OpenQuestions": [
-    {
-      "Id": "crypto-raw-aes-poly1305",
-      "Modules": [
-        "crypto_aes",
-        "crypto_poly1305"
-      ],
-      "State": "awaiting-api-scope-confirmation",
-      "Question": "Whether to expose raw AES blocks and standalone Poly1305 in cryptoAdvanced or retain them as AEAD internals."
-    }
-  ],
+  "OpenQuestions": [],
   "Profiles": {
     "tls-core": {
       "Surface": [
@@ -1816,6 +1812,22 @@
       ],
       "AcceptanceBoundary": "Selected ordinary public-product cases; role review is not full semantic, race, cryptographic-security or goal acceptance"
     },
+    "aes-block-advanced": {
+      "Surface": ["cryptoAdvanced.aes", "AesBlockCipher.encryptBlock/decryptBlock/encryptBlockBuffer/decryptBlockBuffer"],
+      "Reason": "Explicit advanced raw AES single-block primitive; immutable expanded 16/24/32-byte key, exact 16-byte block, no mode/padding/authentication. Buffer adapters are independent prunable units; no generated algorithm or dispatch body.",
+      "SourceWitnesses": ["src/runtime/xl6_crypto_aes_block.c", "src/runtime/xl6_crypto_aes_block_buffer.c", "src/runtime/xl6_crypto_aes_block_domain.c", "src/ir/xl6_ir_crypto_contracts.inc"],
+      "NormalProductCases": ["stdlib_crypto_advanced_blocks", "stdlib_crypto_aes_block_only"],
+      "DecisionWitnesses": ["docs/crypto-advanced-blocks.md"],
+      "AcceptanceBoundary": "Role mapping and selected actual-source ABI/IR/JIT/module/AOT evidence only. Named normal shipping cases remain to be run on the latest ordinary products; no cryptographic-security or full-goal acceptance claim."
+    },
+    "poly1305-advanced": {
+      "Surface": ["cryptoAdvanced.poly1305/poly1305Buffer/poly1305Stream", "Poly1305.update/updateBuffer/reset(key)/final"],
+      "Reason": "Explicit advanced standalone MAC, complete 32-byte one-time key, actual message length and optional clamped prefix. XRT snapshot-final semantics preserved; no saved initial key or parameterless reset/clone. Managed mutable state keeps creator-thread identity and securely clears on release.",
+      "SourceWitnesses": ["src/runtime/xl6_crypto_poly1305.c", "src/runtime/xl6_crypto_poly1305_buffer.c", "src/runtime/xl6_crypto_poly1305_stream.c", "src/runtime/xl6_crypto_poly1305_stream_buffer.c", "src/runtime/xl6_crypto_poly1305_domain.c", "src/ir/xl6_ir_crypto_contracts.inc"],
+      "NormalProductCases": ["stdlib_crypto_advanced_blocks", "stdlib_crypto_poly1305_only"],
+      "DecisionWitnesses": ["docs/crypto-advanced-blocks.md"],
+      "AcceptanceBoundary": "Role mapping and selected actual-source ABI/IR/JIT/module/AOT evidence only. Named normal shipping cases remain to be run on the latest ordinary products; one-time-key uniqueness is a caller contract, not a runtime guarantee or cryptographic-security acceptance."
+    },
     "aes-gcm": {
       "Surface": [
         "AesGcm.seal/open"
@@ -2886,9 +2898,9 @@
     {
       "Group": "crypto_asn1",
       "Module": "crypto_poly1305",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-namespace",
+      "Profile": "poly1305-advanced",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
@@ -2900,9 +2912,9 @@
     {
       "Group": "crypto_asn1",
       "Module": "crypto_aes",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "aes-block-advanced",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",

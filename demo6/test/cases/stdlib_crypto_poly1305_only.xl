@@ -1,0 +1,2 @@
+bytes tag = cryptoAdvanced.poly1305(b"0123456789abcdef0123456789abcdef", b"a\0b")
+assert tag.length == 16

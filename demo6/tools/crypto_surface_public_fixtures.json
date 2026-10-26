@@ -1,6 +1,31 @@
 {
   "Cases": [
     {
+      "Name": "stdlib_crypto_advanced_blocks",
+      "Source": "test/cases/stdlib_crypto_advanced_blocks.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_crypto_aes_block_only",
+      "Source": "test/cases/stdlib_crypto_aes_block_only.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_crypto_poly1305_only",
+      "Source": "test/cases/stdlib_crypto_poly1305_only.xl",
+      "Negative": false
+    },
+    {
+      "Name": "bad_stdlib_crypto_advanced_default",
+      "Source": "test/cases/bad_stdlib_crypto_advanced_default.xl",
+      "Negative": true
+    },
+    {
+      "Name": "bad_stdlib_crypto_poly1305_reset",
+      "Source": "test/cases/bad_stdlib_crypto_poly1305_reset.xl",
+      "Negative": true
+    },
+    {
       "Name": "stdlib_crypto_normal_public",
       "Source": "test/cases/stdlib_crypto_normal_public.xl",
       "Negative": false
