@@ -12,7 +12,7 @@
 
 static int test_error_contract(void)
 {
-    static void* (*const text_functions[])(const char*) = {
+    static char* (*const text_functions[])(const char*) = {
         xsemver_prerelease, xsemver_build, xsemver_clean
     };
     size_t i;

@@ -1,5 +1,11 @@
 # volc.core
 
+2026-10-26 当前发布版的 `xl check extlibs/volc.core/src/volc_core.xl`
+仍在独立维护的 `xhttp.client` 失败：`TcpStream`/`TlsStream` 构造、
+`NetEngine.nativeHandle()` 和 `TlsConfig` 类型均未解析。离线 C
+门禁不能代替 XLang/在线验收；详细复现和修复边界见
+`../../../dev/extlib_blockers/volc_phone_import_chain.md`。
+
 2026-10-25 从当前源码重建发布版后，旧 `cstring` 未知类型已不再是
 首个阻断。`xl check` 现在停在独立维护的 `xhttp.client`：
 `HttpResult.takeTls()` 的 `TlsStream(stream)` 无匹配构造，以及

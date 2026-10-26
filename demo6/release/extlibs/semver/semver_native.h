@@ -13,9 +13,9 @@ bool xsemver_valid(const char *version);
 int64_t xsemver_major(const char *version);
 int64_t xsemver_minor(const char *version);
 int64_t xsemver_patch(const char *version);
-void *xsemver_prerelease(const char *version);
-void *xsemver_build(const char *version);
-void *xsemver_clean(const char *version);
+char *xsemver_prerelease(const char *version);
+char *xsemver_build(const char *version);
+char *xsemver_clean(const char *version);
 int64_t xsemver_compare(const char *a, const char *b);
 bool xsemver_satisfies(const char *version, const char *range);
 

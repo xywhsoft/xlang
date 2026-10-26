@@ -192,7 +192,7 @@ int64_t xcron_next(const char *text, size_t size, int64_t after) {
     return -1;
 }
 
-void *xcron_describe(const char *text, size_t size) {
+char *xcron_describe(const char *text, size_t size) {
     XcronExpr expr;
     static const char *labels[5] = {"minute", "hour", "day", "month", "weekday"};
     char *result;

@@ -332,19 +332,19 @@ int64_t xsemver_patch(const char *v) {
     return parsed.patch;
 }
 
-void *xsemver_prerelease(const char *v) {
+char *xsemver_prerelease(const char *v) {
     SemVer parsed;
     xrtClearError();
     return semver_dup(semver_parse(v, &parsed) ? parsed.pre : "");
 }
 
-void *xsemver_build(const char *v) {
+char *xsemver_build(const char *v) {
     SemVer parsed;
     xrtClearError();
     return semver_dup(semver_parse(v, &parsed) ? parsed.build : "");
 }
 
-void *xsemver_clean(const char *v) {
+char *xsemver_clean(const char *v) {
     SemVer parsed;
     const char *p = v;
     char *trimmed;

@@ -1,5 +1,10 @@
 # volc.phone
 
+2026-10-26 最小导入复验仍停在 `xhttp.client`；除构造器和
+`NetEngine.nativeHandle()`，还报 `TlsConfig` 未知类型。
+详见 `../../../dev/extlib_blockers/volc_phone_import_chain.md`。
+本包尚未进入自身语言与在线验收，不增加包侧兼容回退。
+
 2026-10-25 当前发布版已越过旧 `cstring` 未知类型诊断，但
 `xl check dev/extlib_blockers/volc_phone_import_chain.xl` 仍在
 `xhttp.client` 的 `TlsStream` 构造和 `NetEngine.nativeHandle()` 成员
