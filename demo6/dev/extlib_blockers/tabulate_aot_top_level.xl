@@ -1,0 +1,5 @@
+import tabulate
+
+tabulate.Table table = tabulate.create()
+println("created")
+println(table.render())
