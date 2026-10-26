@@ -14,6 +14,7 @@ input_paths() {
         test/cases/extlib_codec_file_allocation.c tools/check_extlib_gzip.sh \
         tools/check_extlib_gzip_interop.py release/xl \
         test/cases/extlib_gzip.xl test/cases/extlib_gzip_progress.xl \
+        release/examples/extlibs/gzip.xl \
         release/examples/extlibs/gzip_basic.xl release/examples/extlibs/gzip_basic.expected.txt \
         release/examples/extlibs/gzip_c.c
     if [[ -n ${XRT_INCLUDE:-} ]]; then printf '%s\0' "$XRT_INCLUDE/xrt.h" "$XRT_INCLUDE/xruntime.h"; fi
@@ -79,3 +80,25 @@ timeout 90s ./release/xl run release/examples/extlibs/gzip_basic.xl > "$work/bas
 diff -u release/examples/extlibs/gzip_basic.expected.txt "$work/basic-xl.log"
 diff -u "$work/basic.log" "$work/basic-xl.log"
 timeout 90s ./release/xl run test/cases/extlib_gzip.xl
+timeout 90s ./release/xl run release/examples/extlibs/gzip.xl > "$work/gzip-xl.log"
+printf 'gzip example: PASS\n' > "$work/gzip-expected.log"
+diff -u "$work/gzip-expected.log" "$work/gzip-xl.log"
+
+for source in test/cases/extlib_gzip.xl test/cases/extlib_gzip_progress.xl \
+    "$pkg/test/file_ops.xl" "$pkg/test/error_dispatch.xl"; do
+    name=$(basename "${source%.xl}")
+    timeout 90s ./release/xl build "$source" -o "$work/$name-aot"
+    timeout 60s "$work/$name-aot"
+done
+for source in release/examples/extlibs/gzip.xl \
+    release/examples/extlibs/gzip_basic.xl "$pkg/examples/basic.c"; do
+    name=$(basename "${source%.*}")
+    timeout 90s ./release/xl build "$source" -o "$work/$name-aot"
+    timeout 60s "$work/$name-aot" > "$work/$name-aot.log"
+    if [[ $name == gzip ]]; then
+        diff -u "$work/gzip-expected.log" "$work/$name-aot.log"
+    else
+        diff -u release/examples/extlibs/gzip_basic.expected.txt \
+            "$work/$name-aot.log"
+    fi
+done
