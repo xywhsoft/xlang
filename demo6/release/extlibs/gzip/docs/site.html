@@ -25,7 +25,7 @@
   <header class="extlib-head">
     <p><a href="../extlibs.html">扩展库</a> / gzip</p>
     <div class="extlib-title-row"><h1>gzip</h1><span class="extlib-cat-badge">压缩</span></div>
-    <p>2026-10-24 使用更新后的 Windows 发布版复验，默认包门禁全部通过，含 C/zlib 互通、分配故障、文件事务、完整语言用例及双语 JIT/AOT。Linux C ASan/UBSan、互通和 XLang 文件用例通过；现有 Linux <code>release/xl</code> 运行完整语言用例仍报 typed XLIR 错误，需重建 Linux 发布版再验收。以下早期验证记录中的 Windows 阻断描述属于旧发布二进制。</p>
+    <p>2026-10-26 当前 Windows/Linux 发布版的完整包门禁均通过：严格 C、Linux ASan/UBSan、139 项 zlib 互通、文件事务、语言核心与错误边界，以及双语范例独立 EXE 同输出。旧 Linux typed XLIR 与 AOT 缺符号问题在本次发布物中未复现；下方早期失败记录只反映当时的构建。不把本次检查外推为超大文件、并发压力、断电恢复或性能认证。</p>
     <p class="extlib-lead">UTF-8 文本、二进制、增量流与事务文件压缩。直接复用宿主 XRT 的 gzip 编解码器和校验，无额外压缩 DLL。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api">
@@ -99,17 +99,17 @@ assert gzip.decompressText(output) == "leftright"</code></pre>
     使用相同输入与黄金输出；C 范例可从发布目录直接运行 <code>./xl run extlibs/gzip/examples/basic.c</code>。
     单文件路径仅包含所用的包实现，正式构建仍分离编译。<code>examples/extlibs/gzip.xl</code>
     覆盖增量、mtime、串联成员和文件回调；文件段使用独占临时目录，
-    但综合范例目前仍在此前的 typed XLIR 字节 XOR 处编译失败，不能视为已完整运行。</p>
+    其 JIT 与独立 EXE 在当前双平台门禁均完整运行并输出 <code>gzip example: PASS</code>。</p>
     <h2 id="verification">验证范围</h2>
     <p>2026-09-27：Windows 固定快照专项 34 项通过，含 C/xlang JIT/AOT、22 个生成原型、
     139 项 Python/zlib 双向验证、9 个分配故障点、UTF-8 路径、取消和异常、同路径替换及原目标保留。
     WSL Linux C 路径通过相同互通测试及 ASan/UBSan/泄漏检查；包内 <code>test/file_ops.xl</code> 在 Windows/Linux 通过 UTF-8 文件往返、取消与失败目标保护。</p>
     <p>可重复门禁为 <code>tools/check_extlib_gzip.ps1</code> 和 <code>tools/check_extlib_gzip.sh</code>。
-    2026-10-16 Linux xlang 基础范例已运行通过；2026-10-17 包内文件用例加入 Linux 门禁。现有 Linux 发布二进制的完整语言用例仍受 Buffer 字节索引异或的 XLIR 错误阻断。完整 Linux JIT/AOT、超大文件、并发压力、性能基准和断电恢复尚未验收。
+    2026-10-26 Linux 门禁另构建运行核心、进度、文件、错误和 C/XLang 范例独立 EXE，并核对黄金输出；超大文件、并发压力、性能基准和断电恢复尚未验收。
     不把有日期、有范围的通过记录当作所有平台生产认证。</p>
     <p>2026-10-19：C 范例单文件直跑、独立构建和包运行器输出一致；Linux
     ASan/UBSan、139 项 zlib 互通、文件事务及 C/XLang 范例对照通过。
-    共享 XLIR 阻断不变，整包发布级尚未签收。</p>
+    当时共享 XLIR 阻断仍在，整包尚未签收；当前状态以上方 2026-10-26 复验为准。</p>
   </section>
 </main>
 <script src="../main.js"></script>

@@ -1,5 +1,10 @@
 # 共享主线阻断：Buffer 索引读取后参与异或赋值时 XLIR 失败
 
+2026-10-26 当前 Windows/Linux 发布版分别运行本文件最小复现均退出 0；
+`gzip` 完整双平台门禁也通过，包含 Linux 核心、文件/错误边界及双语
+范例独立 EXE。下文报错与 blocked-upstream 状态仅是当时构建的历史，
+此问题不再阻断当前发布版；保留最小用例供未来编译器回归验证。
+
 - 发现日期：2026-10-12；使用当前 `demo6/release/xl.exe`。
 - 在 `demo6/release` 执行 `xl run ../dev/extlib_blockers/gzip_buffer_index_xor.xl`。
 - 期望：`data[0]` 从 1 翻转为 0，程序退出码为 0。

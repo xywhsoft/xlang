@@ -1,5 +1,13 @@
 # gzip
 
+2026-10-26 当前发布版的 Windows 完整门禁及 Linux 联合门禁均退出 0。
+Windows 覆盖 C/zlib 互通、分配故障、文件事务、生成 ABI 与双语 JIT/AOT；
+Linux 覆盖严格 C ASan/UBSan、139 项独立 zlib 互通、语言完整用例、
+文件/错误边界，以及 C/XLang 范例的独立 EXE 与黄金输出。此前 Linux
+Buffer 字节异或的 typed XLIR 错误及旧 AOT 缺符号均未在当前发布物复现。
+按本包公开合同签收；不把它外推为超大文件、并发压力、断电恢复或
+性能的认证。旧版失败记录留在下方，仅作历史。
+
 标准 gzip 字节流与事务文件压缩。编解码、CRC32 和 ISIZE 校验复用宿主 XRT，
 包内不再重复实现 gzip 封装。无额外压缩 DLL 依赖。
 
@@ -159,7 +167,7 @@ Python 3 在 PATH 中。Linux 联合门禁为 `bash tools/check_extlib_gzip.sh`�
 同路径文件替换、原目标保留和临时文件清理。WSL Linux GCC 的 C 路径、同组互通、
 分配测试和双语黄金输出通过 ASan/UBSan/泄漏检查。
 
-完整 Linux xlang JIT/AOT、超大文件、并发压力、断电恢复和性能基准不在本批验证范围；
+超大文件、并发压力、断电恢复和性能基准不在本批验证范围；
 源码与发布二进制升级后需要重跑，不把本记录称为所有平台的生产认证。
 
 以下为历史验证记录；其中 Windows 的 XLIR/链接阻断指当时的旧发布版。
