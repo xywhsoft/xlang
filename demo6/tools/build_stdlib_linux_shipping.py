@@ -3,6 +3,7 @@ This records build provenance; it is not runtime or full53 acceptance.
 """
 from pathlib import Path
 import argparse, hashlib, json, os, shutil, subprocess
+from stdlib_manifest_inputs import local_manifest_inputs
 
 def sha(path): return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
@@ -21,6 +22,7 @@ def main():
         selected=shutil.which(name); assert selected; files.add(Path(selected).resolve())
     for folder in ('src','lib','tools','res','docs','release/include','include'):
         files.update(path for path in (root/folder).rglob('*') if path.is_file())
+    files.update(local_manifest_inputs(root))
     inputs=[{'Path':str(path),'Sha256':sha(path)} for path in sorted(files)]
     out.mkdir(); tmp=out/'tmp'; tmp.mkdir()
     env=dict(os.environ,XL6_LINUX_BUILD_DIR=str(build),TMPDIR=str(tmp),TEMP=str(tmp),TMP=str(tmp),
