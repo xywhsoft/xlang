@@ -1,0 +1,28 @@
+import zip
+
+func main(...) as int
+    zip.ZipArchive writer = zip.create()
+    writer.add("empty.txt", "")
+    writer.add("text.txt", "A\0B你好")
+    Buffer invalid = Buffer()
+    invalid.appendByte(255)
+    writer.add("invalid.txt", invalid)
+
+    Buffer packed = writer.finish()
+    zip.ZipArchive reader = zip.open(packed)
+    assert reader.readText("empty.txt") == ""
+    string text = reader.readText("text.txt")
+    assert text == "A\0B你好" and string.byteLen(text) == 9
+    reader.close()
+    assert text == "A\0B你好"
+
+    zip.ZipArchive invalidReader = zip.open(packed)
+    bool rejected = false
+    try
+        invalidReader.readText("invalid.txt")
+    catch ArchiveError error
+        rejected = true
+    end
+    assert rejected
+    return 0
+end

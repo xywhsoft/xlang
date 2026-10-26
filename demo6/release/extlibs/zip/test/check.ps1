@@ -53,6 +53,7 @@ try {
         'release/extlibs/_libzip/platform/zip_source_file_xrt.c')
     Run 'Python/C ZIP interop' 'python' @(
         'release/extlibs/zip/test/interop.py') 'zip Python/C interop: PASS'
+    Run 'XLang text transfer' $xl @('run', 'release/extlibs/zip/test/text_transfer.xl')
     Run 'XLang boundary' $xl @('run', 'release/extlibs/zip/test/boundaries.xl')
     RunNegative 'Native member access' 'release/extlibs/zip/test/private_native_negative.xl' 'addNative'
     Run 'XLang example' $xl @('run', 'release/examples/extlibs/zip.xl') 'zip C/XL example: PASS'
@@ -66,6 +67,10 @@ try {
         Run 'XLang core AOT build' $xl @('build',
             'release/extlibs/zip/test/aot_core.xl', '-o', $output)
         Run 'XLang core AOT call' $output @() ''
+        $textAot = Join-Path $work 'zip_aot_text_transfer.exe'
+        Run 'XLang text transfer AOT build' $xl @('build',
+            'release/extlibs/zip/test/text_transfer.xl', '-o', $textAot)
+        Run 'XLang text transfer AOT' $textAot @() ''
         $boundaryAot = Join-Path $work 'zip_aot_boundaries.exe'
         Run 'XLang boundaries AOT build' $xl @('build',
             'release/extlibs/zip/test/boundaries.xl', '-o', $boundaryAot)

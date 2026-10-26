@@ -71,6 +71,8 @@ gcc "${flags[@]}" "${objects[@]}" "$work/interop.o" -lm -ldl -pthread \
 XL_ZIP_INTEROP_RUNNER="$work/interop_zip" \
     ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1 \
     python3 release/extlibs/zip/test/interop.py
+printf '[zip] XLang text transfer\n'
+timeout 180s ./release/xl run release/extlibs/zip/test/text_transfer.xl
 printf '[zip] XLang boundary\n'
 if timeout 180s ./release/xl run release/extlibs/zip/test/boundaries.xl \
     > "$work/boundary_jit.txt" 2>&1; then
@@ -107,6 +109,7 @@ grep -Fq 'access' "$work/private_native.txt"
 printf '[zip] independent EXE\n'
 for source in \
     release/extlibs/zip/test/aot_core.xl \
+    release/extlibs/zip/test/text_transfer.xl \
     release/extlibs/zip/test/boundaries.xl \
     release/examples/extlibs/zip.xl; do
     name=$(basename "$source" .xl)
@@ -115,6 +118,7 @@ for source in \
     timeout 30s "$work/$name" > "$work/$name.txt"
 done
 test ! -s "$work/aot_core.txt"
+test ! -s "$work/text_transfer.txt"
 printf 'zip boundaries: ok\n' > "$work/boundaries_expected.txt"
 cmp "$work/boundaries_expected.txt" "$work/boundaries.txt"
 cmp "$work/expected.txt" "$work/zip.txt"

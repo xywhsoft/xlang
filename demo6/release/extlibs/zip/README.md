@@ -1,5 +1,16 @@
 # zip
 
+2026-10-27：`ZipArchive.readText(name)` 现返回带长度的 `cstring`，
+直接接管原生读取缓冲的 XRT 分配；内嵌 NUL 不截断，关闭归档后结果仍独立有效。
+读取文本要求有效 UTF-8，无效字节抛 `ArchiveError`；任意二进制继续使用
+`read(name)` 的 `Buffer`。为 `cstring` 写入尾部终止字节时，如果读取缓冲
+没有富余容量，XRT 可能扩容，因此不承诺每次物理地址都不移动。
+新增 C/XLang 文本所有权测试，XLang JIT 与独立 EXE 已通过；包外私有
+构造器及并发提取路径的共享阻断仍未解除，不据此签收整包发布级。
+Windows 全包门禁通过。Linux C ASan/UBSan、格式互通及新增 XLang
+JIT/独立 EXE 用例通过；随后旧 `boundaries.xl` 在 180 秒阶段限时内
+超时，故本次 Linux 全包门禁未完成，不能按完整跨平台验收报告。
+
 2026-10-26：当前 Windows/Linux 发布物的功能门禁均退出 0。
 两平台覆盖 C 边界、语言 JIT/AOT、私有成员负例及公开 C/XLang 范例；
 Python `zipfile` 与 C 接口双向验证 UTF-8、DEFLATE/STORED、
