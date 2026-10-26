@@ -67,6 +67,27 @@ int main(void)
     type->cAbi=physical;
     assert(rejected==8 && xl6IrVerifyModule(&ir,&parse.diags));
     xl6IrModuleFree(&ir);xl6ParseResultFree(&parse);
-    puts("task composition ABI: 8 mutations rejected before C/header emission");
+    xl6ParseResultInit(&parse);xl6IrModuleInit(&ir);
+    assert(xl6ParseFile("test/cases/extern_owned_task_nullable.xl",&parse));
+    assert(xl6StdlibExpandModule(parse.root,&parse.diags));
+    assert(xl6SemCheckModule(parse.root,&parse.diags,"task_nullable_proof"));
+    assert(xl6IrBuildModuleFromAst(&ir,parse.root,&parse.diags));
+    assert(xl6IrLowerModule(&ir,&parse.diags));
+    assert(xl6IrVerifyModule(&ir,&parse.diags));
+    XL6_IrNode* proven=NULL;
+    for(size_t i=0;i<ir.intrinsicCallCount;++i) {
+        XL6_IrIntrinsicCall* item=&ir.intrinsicCalls[i];
+        if(item->kind!=XL6_IR_INTRINSIC_TASK_SPAWN || !item->operandCount)continue;
+        XL6_IrNode* source=&ir.nodes[ir.intrinsicOperands[item->firstOperand].expression-1];
+        if(source->type!=source->storageType) { proven=source;break; }
+    }
+    assert(proven);
+    XL6_IrTypeId proof=proven->type;
+    proven->type=proven->storageType;
+    reject(&ir,"task nullable callable lost its materialized non-null proof",0);
+    proven->type=proof;
+    assert(rejected==9 && xl6IrVerifyModule(&ir,&parse.diags));
+    xl6IrModuleFree(&ir);xl6ParseResultFree(&parse);
+    puts("task composition ABI: 9 mutations rejected before C/header emission");
     return 0;
 }
