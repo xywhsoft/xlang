@@ -34,7 +34,7 @@ bar.advance(5)
 println(bar.render())
 bar.set(3)
 println(bar.current, bar.total, bar.percent)</code></pre>
-    <p>不自动写终端；百分比和进度格数按精确整数阈值向下取整，即使总量接近 int64 上限也不提前进位。C 总量、步进和当前值使用与 XLang <code>int</code> 一致的 <code>int64_t</code> ABI。C 操作成功后清除前一次错误，析构不擦除调用方诊断。边界、C 所有权与测试证据见包内 README。</p>
+    <p>不自动写终端；百分比和进度格数按精确整数阈值向下取整，即使总量接近 int64 上限也不提前进位。C 总量、步进和当前值使用与 XLang <code>int</code> 一致的 <code>int64_t</code> ABI。C 渲染结果是需用 <code>xrtFree</code> 释放的独立 <code>char*</code>；XLang <code>render()</code> 直接接管其所有权，不复制正文，但仍需扫描一次取得长度。C 操作成功后清除前一次错误，析构不擦除调用方诊断。边界与测试证据见包内 README。</p>
     <p>双语范例覆盖绝对设置、状态读取和超量饱和。当前 Windows/Linux 默认门禁均通过严格 C、Linux ASan/UBSan、语言边界与分配故障、私有入口拒绝，以及公开 XLang/C 范例的独立 EXE。C 范例在 GCC、<code>xl run</code>、<code>xl build</code> 三条路径均与固定黄金输出一致。能力限任务计数与单行文本渲染，不含终端自动绘制；命令和边界见包内 README。</p>
   </section>
 </main>

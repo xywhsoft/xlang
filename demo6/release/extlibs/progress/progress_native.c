@@ -152,7 +152,7 @@ int64_t xprog_total(void *handle) {
     return progress->total;
 }
 
-void *xprog_render(void *handle) {
+char *xprog_render(void *handle) {
     XProg *progress = (XProg *)handle;
     char *output;
     size_t position, capacity;

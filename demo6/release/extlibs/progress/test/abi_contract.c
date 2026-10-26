@@ -7,3 +7,4 @@ extern int xprog_advance(void *handle, int64_t count);
 extern int xprog_set(void *handle, int64_t current);
 extern int64_t xprog_current(void *handle);
 extern int64_t xprog_total(void *handle);
+extern char *xprog_render(void *handle);

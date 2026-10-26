@@ -1,5 +1,12 @@
 # progress
 
+2026-10-27：`xprog_render` 的 C 原型明确为 XRT 自有 `char*`，
+`ProgressBar.render()` 通过私有 native 方法的 `@owned string` 直接接管，
+去掉手工 `point` / `takeCstr` 分支。生成 C 不复制渲染正文，仍扫描一次
+取得长度，并在失败时释放已交出的指针。公开 API 与销毁后访问、OOM
+语义不变；Windows 严格 C/ABI、边界、故障注入、双语 JIT/AOT 和
+Linux C ASan/UBSan、XLang JIT/AOT 包级门禁均通过。
+
 2026-10-26 发布物复验：Windows 默认 `test/check.ps1` 与 Linux 默认
 `test/check.sh` 均退出 0。C 边界、Linux ASan/UBSan、语言边界与
 分配故障、私有入口拒绝、公开 XLang/C 范例及其独立 EXE 均通过；

@@ -19,7 +19,7 @@ int xprog_is_done(void *handle);
 int64_t xprog_current(void *handle);
 int64_t xprog_total(void *handle);
 /* 独立缓冲；调用方使用 xrtFree。 */
-void *xprog_render(void *handle);
+char *xprog_render(void *handle);
 
 #ifdef __cplusplus
 }
