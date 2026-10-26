@@ -488,6 +488,12 @@ XRT_API bool xrtTarWriterAdd(xrttarwriter* pWriter, const xrttarentry* pEntry,
 			"invalid TAR entry input");
 		return false;
 	}
+	if ( pEntry->iType != XRT_TAR_ENTRY_FILE &&
+		(iSize != 0u || pEntry->iSizeBytes != 0u) ) {
+		__xrtTarSetWriterError(pWriter, XRT_TAR_ERROR_ARGUMENT,
+			"TAR metadata entry cannot contain file data");
+		return false;
+	}
 	iDataSize = pEntry->iType == XRT_TAR_ENTRY_FILE ? iSize : 0u;
 	if ( pWriter->Options.tLimits.iMaxInputBytes != 0u &&
 		(iDataSize > pWriter->Options.tLimits.iMaxInputBytes ||

@@ -781,6 +781,19 @@ static int testRecoveryAndStreaming(void)
 		xrtTarWriterError(pWriter)->iCode == XRT_TAR_ERROR_STATE,
 		"TAR buffer was taken before close");
 	xrtTarEntryInit(&tEntry);
+	tEntry.sName = "folder/";
+	tEntry.iType = XRT_TAR_ENTRY_DIRECTORY;
+	tEntry.iSizeBytes = 3u;
+	bOk &= check(!xrtTarWriterAdd(pWriter, &tEntry, "bad", 3u) &&
+		xrtTarWriterError(pWriter)->iCode == XRT_TAR_ERROR_ARGUMENT,
+		"TAR metadata entry silently discarded its input bytes");
+	bOk &= check(!xrtTarWriterAdd(pWriter, &tEntry, NULL, 0u) &&
+		xrtTarWriterError(pWriter)->iCode == XRT_TAR_ERROR_ARGUMENT,
+		"TAR metadata entry silently discarded its declared size");
+	tEntry.iSizeBytes = 0u;
+	bOk &= check(!xrtTarWriterAdd(pWriter, &tEntry, "bad", 3u) &&
+		xrtTarWriterError(pWriter)->iCode == XRT_TAR_ERROR_ARGUMENT,
+		"TAR metadata entry accepted unexpected input bytes");
 	tEntry.sName = "../unsafe.txt";
 	tEntry.iType = XRT_TAR_ENTRY_FILE;
 	bOk &= check(!xrtTarWriterAdd(pWriter, &tEntry, "bad", 3u) &&
