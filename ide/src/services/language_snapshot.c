@@ -175,7 +175,10 @@ done:
 }
 static int nativeAnalysis(xide_language_check* q,char** json,int* code,xls_semantic_check** checked,xls_semantic_completion** completed,xide_model_error* e)
 {
- if(q->retainedSnapshots) for(size_t i=0;i<q->snapshotCount;++i) {
+ if(q->retainedSnapshots && q->referenceMode){
+  const char* paths[64];for(size_t i=0;i<q->snapshotCount;++i)paths[i]=q->snapshots[i].path;
+  if(!xidePathsDistinct(paths,q->snapshotCount,nativeCancelled,q))return fail(e,"Retained source paths are cancelled or resolve to the same physical file.");
+ } else if(q->retainedSnapshots) for(size_t i=0;i<q->snapshotCount;++i) {
   if(cancelled(q)) return 0;
   for(size_t j=0;j<i;++j) if(xidePathEqual(q->snapshots[i].path,q->snapshots[j].path)) return fail(e,"Retained source paths resolve to the same physical file.");
  }
@@ -648,7 +651,16 @@ analysed:
   for(size_t i=0;i<graph.count;++i) { int64 kind=0; xrtValueGetInt(get(graph.items[i].report,"kind"),&kind); sources[i]=(xide_semantic_source){graph.items[i].path,graph.items[i].original,(int)kind,graph.items[i].overlay>=0 && strlen(q->snapshots[graph.items[i].overlay].text)>=3 && !memcmp(q->snapshots[graph.items[i].overlay].text,"\xef\xbb\xbf",3) ? 1 : 0}; }
   result=xideSemanticCompletion(get(raw,"completion"),sources,graph.count,q->queryPath,q->queryOffset,q->queryVersion,okay,e); if(!result) goto done;
  } else {
+#ifdef XLS_COMPILER_XRT
+  /* A successful reference capture has no diagnostic consumer. Avoid
+     normalizing/hashing every open body for an empty diagnostic array.
+     Nonempty or malformed diagnostics still use the original validator. */
+  const xvalue* diagnostics=get(raw,"diagnostics");
+  int diagnosticsBuilt=q->referenceMode && nativeCheck && okay && diagnostics && xrtValueType(diagnostics)==XVALUE_ARRAY && !xrtValueCount(diagnostics);
+  result=xrtValueObject(); if(!result || (!diagnosticsBuilt && !buildDiagnostics(q,raw,&graph,result,e)) || (!okay && !xrtValueCount(get(result,"diagnostics")))) { if(!e->code) fail(e,"检查失败但没有可验证的分文件诊断。"); goto done; }
+#else
   result=xrtValueObject(); if(!result || !buildDiagnostics(q,raw,&graph,result,e) || (!okay && !xrtValueCount(get(result,"diagnostics")))) { if(!e->code) fail(e,"检查失败但没有可验证的分文件诊断。"); goto done; }
+#endif
  }
  if(indexed) {
   const xvalue* index=get(raw,"semanticIndex");
@@ -682,6 +694,7 @@ analysed:
  }
  if(!q->queryPath && !q->nativeBridge && !put(result,"semanticDefinitions",xrtValueBool(q->definitions!=NULL))) goto done;
 #ifdef XLS_COMPILER_XRT
+ if(q->referenceMode)goto nativeValidation;
  if(retainedNative(q) && q->queryPath) {
   xvalue* stats=xrtValueObject();
   int okayStats=stats && put(stats,"builds",xrtValueInt((int64)q->completionStats.builds)) &&
@@ -782,6 +795,7 @@ analysed:
   int valid=stats && navigation && put(navigation,"builds",xrtValueInt(q->navigationWork.built)) && put(navigation,"cacheHits",xrtValueInt(q->navigationWork.hit)) && put(navigation,"bytes",xrtValueInt((int64)q->navigationWork.bytes)) && put(navigation,"residentBytes",xrtValueInt((int64)cached.bytes)) && put(navigation,"limit",xrtValueInt((int64)cached.limit));
   if(!valid){xrtValueRelease(navigation);goto done;}if(!put(stats,"navigation",navigation))goto done;
  }
+nativeValidation:
  if(nativeCheck && !xlsSemanticCheckValidate(nativeCheck)) { fail(e,"原生分析的输入在发布前已改变。"); goto done; }
  if(q->configuredEntry && (!put(result,"retainedEntry",xrtValueBool(retainedNative(q))) ||
     !put(result,"entryOpen",xrtValueBool(q->semanticTarget!=NULL)))) goto done;

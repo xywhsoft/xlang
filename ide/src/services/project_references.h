@@ -5,14 +5,17 @@
 #include "analysis/module_store.h"
 typedef struct xide_project_references xide_project_references;
 typedef struct xide_reference_query xide_reference_query;
-typedef struct xide_project_reference_stats {size_t roots,captured,reused,locations,records,chargedBytes;uint64_t thread;} xide_project_reference_stats;
+typedef struct xide_project_reference_stats {size_t roots,captured,reused,locations,records,chargedBytes;
+ size_t keyActorBuilds,keyActorHits,keyActorSessions,keyNavigationBuilds,keyNavigationHits;uint64_t thread;} xide_project_reference_stats;
 enum xide_reference_query_state {XIDE_REFERENCES_FAILED=-1,XIDE_REFERENCES_PENDING=0,XIDE_REFERENCES_READY=1,XIDE_REFERENCES_CANCELLED=2};
-/* One independent XRT actor/analysis worker;borrowed toolchain cache outlives
+/* One independent XRT actor with separate retained key/member workers;borrowed toolchain cache outlives
  * Destroy. Context membership defines ALL xlang roots,including unopened and
  * unimported members. Derived compiler contexts preserve every semantic build
  * option;the scheduler retains membership once,not in every compiler child.
  * Up to65538 byte-budgeted LRU shards,64 shared immutable scopes,
- *128MiB known retained charge,8 queued requests. Charged source
+ *128MiB known shard charge,8 queued requests. Key worker keeps at most2
+ * sessions/64MiB known inputs;member worker retains its default8/64MiB.
+ * Each worker also owns a bounded navigation projection. Charged source
  * payloads/context/encoded reports are not a process RSS/transient budget.
  * Destroy cancels/joins work;retained READY result values survive the store. */
 xide_project_references* xideProjectReferencesCreate(xide_toolchains* cache,const char* compiler,xls_module_store* modules);

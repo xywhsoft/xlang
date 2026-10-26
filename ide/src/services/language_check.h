@@ -54,8 +54,8 @@ xide_language_check* xideLanguageCheckStartRetainedInContext(xls_context* contex
  xide_model_error* error);
 /* Configured project root with an open triggering document. context.entry may
    be another overlay or an unopened disk entry; disk reads/proofs stay on the
-   worker. The reply version belongs to trigger. An open entry uses the actor;
-   a disk entry currently uses the original one-shot native frontend. */
+   worker. The reply version belongs to trigger. Both open and disk entries
+   use the retained actor,without inventing a disk overlay. */
 xide_language_check* xideLanguageCheckStartConfigured(xls_context* context,
  xide_toolchains* cache,const char* compiler,xls_worker* actor,
  const xls_analysis_document* documents,size_t count,const char* trigger,
@@ -73,6 +73,11 @@ xide_language_check* xideLanguageCheckStartReferenceCapture(xls_context* context
  const xls_analysis_document* documents,size_t count,const char* trigger,
  const char* keyPath,int line,int character,const xide_language_analysis_options* options,xide_model_error* error);
 int xideLanguageCheckCaptureReferences(xide_language_check* check,xide_reference_shard** shard,xide_reference_key** key);
+/* Read-only work snapshots for the actual successful reference capture.
+ * Check counters are cumulative worker totals,not per-request full-function
+ * work;navigation counts describe this capture. No JSON,hashing or I/O. */
+int xideLanguageCheckReferenceWork(xide_language_check* check,xls_check_stats* work,
+ xls_worker_cache_stats* sessions,xide_navigation_work* navigation);
 /* Independent native signature query. Mode/options are fixed before starting
    the adapter thread. Configured roots may be unopened; trigger stays open. */
 xide_language_check* xideLanguageCheckStartSignature(xls_context* context,int configured,

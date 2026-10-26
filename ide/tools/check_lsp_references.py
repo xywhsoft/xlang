@@ -55,7 +55,7 @@ def main():
     def start(config=True):
         c=Client(server,out/'absent-xl.exe',root);clients.append(c);options=dict(checkOnSave=False,automaticDiagnostics=False)
         if config:options['analysisConfiguration']=packet(1)
-        c.send('initialize',dict(capabilities={},initializationOptions=options),1);r,_=c.reply(1);assert r['result']['serverInfo']['version']=='0.77' and r['result']['capabilities']['referencesProvider'] is True,r;c.send('initialized',{});c.open(entry,main_text,1);return c
+        c.send('initialize',dict(capabilities={},initializationOptions=options),1);r,_=c.reply(1);assert r['result']['serverInfo']['version']=='0.78' and r['result']['capabilities']['referencesProvider'] is True,r;c.send('initialized',{});c.open(entry,main_text,1);return c
     def params(path=entry,text=main_text,include=True,needle='compute(7)',**extra):return dict(textDocument=dict(uri=path.as_uri()),position=position(text,text.index(needle)),context=dict(includeDeclaration=include),**extra)
     def location(path,text,at,size=7):return dict(uri=path.as_uri(),range=dict(start=position(text,at),end=position(text,at+size)))
     def expected(other_body=other_text,dep_body=body,include=True,with_other=True):
@@ -105,8 +105,8 @@ def main():
         for index in range(40):
             member=root/f'member-{index}.xl';member.write_bytes(one.encode());wide['lists']['members'].append(member.as_posix());extra_locations.append(location(member,one,one.index('compute(')))
         call(c,'xlang/configureAnalysis',packet(5,wide));want=sorted(expected(edited,changed)+extra_locations,key=lambda r:(unquote(r['uri']).casefold(),r['range']['start']['line'],r['range']['start']['character']))
-        references(c,want);stats=call(c,'xlang/referenceStats',{});assert (stats['roots'],stats['captured'],stats['reused'])==(44,44,0),stats;done('beyond-32-members-complete-cold-query',work=stats)
-        references(c,want);stats=call(c,'xlang/referenceStats',{});assert (stats['roots'],stats['captured'],stats['reused'])==(44,1,43),stats;done('beyond-32-members-hot-query-keeps-all-shards',work=stats)
+        references(c,want);stats=call(c,'xlang/referenceStats',{});assert (stats['roots'],stats['captured'],stats['reused'])==(44,44,0),stats;cold=stats;done('beyond-32-members-complete-cold-query',work=stats)
+        references(c,want);stats=call(c,'xlang/referenceStats',{});assert (stats['roots'],stats['captured'],stats['reused'])==(44,1,43),stats;assert stats['keyActorBuilds']==cold['keyActorBuilds'] and stats['keyActorHits']>cold['keyActorHits'] and stats['keyActorSessions']<=2 and stats['keyNavigationHits']==1 and stats['keyNavigationBuilds']==0,stats;done('beyond-32-members-hot-query-keeps-all-shards-and-key-worker',work=stats)
         other.write_bytes(heavy.encode());a=send(c,'textDocument/references',params());started=time.perf_counter();b=send(c,'textDocument/completion',dict(textDocument=dict(uri=entry.as_uri()),position=position(main_text,main_text.index('compute(7)')+4)))
         rows=collect(c,[a,b]);assert 'error' not in rows[a] and 'error' not in rows[b],rows;assert any(v['label']=='compute' for v in rows[b]['result']['items']),rows[b]
         want=sorted(expected(heavy,changed)+extra_locations,key=lambda r:(unquote(r['uri']).casefold(),r['range']['start']['line'],r['range']['start']['character']));assert rows[a]['result']==want,rows[a];done('foreground-semantic-completion-during-project-analysis',combinedMs=(time.perf_counter()-started)*1000)

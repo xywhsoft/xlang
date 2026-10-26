@@ -20,6 +20,13 @@ char* xidePathDirectory(const char* absolutePath);
 char* xidePathRelative(const char* baseDirectory, const char* absolutePath);
 const char* xidePathFilename(const char* path);
 int xidePathEqual(const char* left, const char* right);
+#ifdef XLS_COMPILER_XRT
+/* Same physical-identity/missing-path policy as pairwise xidePathEqual.
+   Bounded request-local handles,one capture and one verification per path;
+   uncertain or changing identities fall back to the original pairwise check.
+   No persistent filesystem cache or atomic filesystem snapshot is implied. */
+int xidePathsDistinct(const char* const* paths,size_t count,int (*cancelled)(void*),void* user);
+#endif
 /* Compiler overlays use absolute lexical, Unicode case-insensitive paths. */
 int xidePathLexicalEqual(const char* left,const char* right);
 int xidePathExists(const char* path);

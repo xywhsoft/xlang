@@ -710,6 +710,7 @@ static void referenceStats(server* s,const xvalue* id)
  xide_project_reference_stats* stats=&s->referenceStats;xvalue* out=xrtValueObject();int okay=out!=NULL;
 #define REF_STAT(field) okay=okay && put(out,#field,xrtValueInt((int64)stats->field))
  REF_STAT(roots);REF_STAT(captured);REF_STAT(reused);REF_STAT(locations);REF_STAT(records);REF_STAT(chargedBytes);REF_STAT(thread);
+ REF_STAT(keyActorBuilds);REF_STAT(keyActorHits);REF_STAT(keyActorSessions);REF_STAT(keyNavigationBuilds);REF_STAT(keyNavigationHits);
 #undef REF_STAT
  if(okay)response(s,id,out,0,NULL);else{ xrtValueRelease(out);response(s,id,NULL,-32603,"Cannot encode reference work counters.");}
 }
@@ -790,7 +791,7 @@ static void dispatch(server* s,const xvalue* message)
 #ifdef XLS_COMPILER_XRT
   if(!s->cliCompletion && !s->cliDiagnostics)put(cap,"referencesProvider",xrtValueBool(true));
 #endif
-  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.77"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
+  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.78"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
  }
  if(!s->initialized) { if(id) response(s,id,NULL,-32002,"Server not initialized."); return; }
  if(s->shutdown) { if(id) response(s,id,NULL,-32600,"Server has shut down."); return; }
