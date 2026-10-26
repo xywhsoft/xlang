@@ -9,9 +9,9 @@ extern "C" {
 int xmd4c_available(void);
 const char* xmd4c_version(void);
 const char* xmd4c_last_error(void);
-void* xmd4c_html(const char* markdown);
-void* xmd4c_html_flags(const char* markdown, int parser_flags, int renderer_flags);
-void* xmd4c_file_html(const char* path, int parser_flags, int renderer_flags);
+char* xmd4c_html(const char* markdown);
+char* xmd4c_html_flags(const char* markdown, int parser_flags, int renderer_flags);
+char* xmd4c_file_html(const char* path, int parser_flags, int renderer_flags);
 int xmd4c_commonmark_flags(void);
 int xmd4c_github_flags(void);
 int xmd4c_xhtml_flag(void);

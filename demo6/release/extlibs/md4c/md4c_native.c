@@ -66,15 +66,15 @@ static void xmd4c_append_html(const MD_CHAR* text, MD_SIZE size, void* userdata)
 	}
 }
 
-static void* xmd4c_store_result(xbuffer* buffer)
+static char* xmd4c_store_result(xbuffer* buffer)
 {
-	void* result;
+	char* result;
 	if ( !xrtBufferAppendByte(buffer, 0u) ) {
 		xmd4c_fail(XERR_MEMORY, "could not terminate HTML output");
 		xrtBufferUnit(buffer);
 		return NULL;
 	}
-	result = xrtBufferTake(buffer, NULL, NULL);
+	result = (char*)xrtBufferTake(buffer, NULL, NULL);
 	xrtBufferUnit(buffer);
 	if ( result == NULL ) {
 		xmd4c_fail(XERR_MEMORY, "could not take HTML output");
@@ -84,7 +84,7 @@ static void* xmd4c_store_result(xbuffer* buffer)
 	return result;
 }
 
-static void* xmd4c_render(const char* markdown, size_t size, unsigned parser_flags, unsigned renderer_flags)
+static char* xmd4c_render(const char* markdown, size_t size, unsigned parser_flags, unsigned renderer_flags)
 {
 	xmd4c_output output;
 	int rc;
@@ -137,7 +137,7 @@ XMD4C_EXPORT const char* xmd4c_last_error(void)
 	return error != NULL ? xrtErrorMessage(error) : "";
 }
 
-static void* xmd4c_render_string(const char* markdown, int parser_flags, int renderer_flags)
+static char* xmd4c_render_string(const char* markdown, int parser_flags, int renderer_flags)
 {
 	size_t size = 0u;
 	xrtClearError();
@@ -148,21 +148,21 @@ static void* xmd4c_render_string(const char* markdown, int parser_flags, int ren
 		(unsigned)parser_flags, (unsigned)renderer_flags);
 }
 
-XMD4C_EXPORT void* xmd4c_html(const char* markdown)
+XMD4C_EXPORT char* xmd4c_html(const char* markdown)
 {
 	return xmd4c_render_string(markdown, MD_DIALECT_COMMONMARK, 0u);
 }
 
-XMD4C_EXPORT void* xmd4c_html_flags(const char* markdown, int parser_flags, int renderer_flags)
+XMD4C_EXPORT char* xmd4c_html_flags(const char* markdown, int parser_flags, int renderer_flags)
 {
 	return xmd4c_render_string(markdown, parser_flags, renderer_flags);
 }
 
-XMD4C_EXPORT void* xmd4c_file_html(const char* path, int parser_flags, int renderer_flags)
+XMD4C_EXPORT char* xmd4c_file_html(const char* path, int parser_flags, int renderer_flags)
 {
 	bytes data;
 	size_t size;
-	void* result;
+	char* result;
 
 	xrtClearError();
 	if ( !xmd4c_flags_valid(parser_flags, renderer_flags) ) return NULL;

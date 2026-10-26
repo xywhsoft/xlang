@@ -57,14 +57,14 @@ if (html != NULL) {
     /* 使用 html */
     xrtFree(html);
 }</code></pre>
-    <p>C 渲染结果归调用方所有，失败返回 <code>NULL</code>，可通过线程内 <code>xmd4c_last_error()</code> 取错误。XLang 文本和路径包含内嵌 NUL 时抛出 <code>ValueError</code>；文件内容中的 NUL 以及内存或文件内容中的非法 UTF-8 都会被拒绝，而非截断或生成非法 HTML。</p>
+    <p>C 渲染结果归调用方所有，失败返回 <code>NULL</code>，可通过线程内 <code>xmd4c_last_error()</code> 取错误。XLang 通过 <code>@owned string</code> 直接接管 XRT 缓冲，无需复制正文；接管时仍需扫描一次取得长度。XLang 文本和路径包含内嵌 NUL 时抛出 <code>ValueError</code>；文件内容中的 NUL 以及内存或文件内容中的非法 UTF-8 都会被拒绝，而非截断或生成非法 HTML。</p>
   </section>
   <section id="verify">
     <h2>验证与边界</h2>
     <pre><code>xl run release/extlibs/md4c/examples/md4c_c.c
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/md4c/test/check.ps1
 bash release/extlibs/md4c/test/check.sh</code></pre>
-    <p>2026-10-26 当前发布物的 Windows/Linux 默认门禁均通过：严格 C、Linux ASan/UBSan、XLang 边界/分配故障与公开范例 JIT/AOT，以及公开 C 单文件范例的 GCC、TCC、独立 EXE AOT 同输出。三个 HTML 返回由 XRT 分配、XLang 直接接管，不复制正文；旧版 <code>xl6ValueDataSnapshotV1</code> 缺符号已解除。<code>no_html_flag</code> 不是完整 HTML 安全净化策略。这些是包级证据，不代表整个 xlang 发布版签收。</p>
+    <p>2026-10-27 Windows/Linux 包级门禁通过：严格 C、Linux ASan/UBSan、XLang 边界/分配故障、双语范例 JIT/AOT 与独立 EXE 同输出。三个 HTML 返回直接声明为 <code>@owned string</code>。<code>no_html_flag</code> 不是完整 HTML 安全净化策略。这些是包级证据，不代表整个 xlang 发布版签收。</p>
   </section>
 </main>
 <script src="../main.js"></script>

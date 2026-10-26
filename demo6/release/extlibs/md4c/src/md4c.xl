@@ -22,35 +22,23 @@ func __md4c_text(string value)
     end
 end
 
-extern "xmd4c_html" func __xl6_native_md4c_html(string markdown) as point
+extern "xmd4c_html" @owned func __xl6_native_md4c_html(string markdown) as string
 
 export func html(string markdown) as string
     __md4c_text(markdown)
-    point result = __xl6_native_md4c_html(markdown)
-    if result == null then
-        throw ValueError "md4c: render failed: " + last_error()
-    end
-    return __xl_runtime.takeCstr(result)
+    return __xl6_native_md4c_html(markdown)
 end
-extern "xmd4c_html_flags" func __xl6_native_md4c_html_flags(string markdown, c_int parser_flags, c_int renderer_flags) as point
+extern "xmd4c_html_flags" @owned func __xl6_native_md4c_html_flags(string markdown, c_int parser_flags, c_int renderer_flags) as string
 
 export func html_flags(string markdown, c_int parser_flags, c_int renderer_flags) as string
     __md4c_text(markdown)
-    point result = __xl6_native_md4c_html_flags(markdown, parser_flags, renderer_flags)
-    if result == null then
-        throw ValueError "md4c: render failed: " + last_error()
-    end
-    return __xl_runtime.takeCstr(result)
+    return __xl6_native_md4c_html_flags(markdown, parser_flags, renderer_flags)
 end
-extern "xmd4c_file_html" func __xl6_native_md4c_file_html(string path, c_int parser_flags, c_int renderer_flags) as point
+extern "xmd4c_file_html" @owned func __xl6_native_md4c_file_html(string path, c_int parser_flags, c_int renderer_flags) as string
 
 export func file_html(string path, c_int parser_flags, c_int renderer_flags) as string
     __md4c_text(path)
-    point result = __xl6_native_md4c_file_html(path, parser_flags, renderer_flags)
-    if result == null then
-        throw IOError "md4c: file render failed: " + last_error()
-    end
-    return __xl_runtime.takeCstr(result)
+    return __xl6_native_md4c_file_html(path, parser_flags, renderer_flags)
 end
 extern "xmd4c_commonmark_flags" func __xl6_native_md4c_commonmark_flags() as c_int
 

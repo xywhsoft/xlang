@@ -1,5 +1,12 @@
 # md4c
 
+2026-10-27：三个 HTML 结果现以 `char*` + `@owned string` 声明，直接将
+XRT 缓冲所有权交给普通 XLang 字符串；删除手工 `point` / `takeCstr` 接管
+分支，公开 `html`、`html_flags`、`file_html` 写法不变。生成的 C 在接管处
+不复制正文，但仍需一次 `strlen` 获取长度，并保留错误检查及失败释放。
+Windows 包级严格 C、错误边界、分配故障、双语对照与 JIT/AOT 门禁通过；
+Linux C ASan/UBSan、XLang JIT/AOT 与双语对照也通过。
+
 2026-10-26 新发布物复验：Windows 默认 `test/check.ps1` 和 Linux
 `test/check.sh` 均通过；严格 C、Linux ASan/UBSan、语言边界与分配故障
 JIT/AOT、公开 XLang 范例 AOT 及 C 单文件范例 AOT 都已覆盖。C 范例
