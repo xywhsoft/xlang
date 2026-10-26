@@ -15,11 +15,16 @@ extern "variadic_clear_failure" @no_raise func clearFailure()
 extern "variadic_scalar_failed" func scalarFailed(c_int mode,c_vararg) as c_int
 extern "variadic_reset_stats" @no_raise func resetStats()
 extern "variadic_one_allocation" @no_raise func oneAllocation(string value) as bool
+extern "variadic_text_span" @no_raise func textSpan(cstring value,c_vararg) as c_int
+extern "variadic_byte_span" @no_raise func byteSpan(cbytes value,c_vararg) as c_int
 
 // A structural native variadic signature can cross an ordinary function
 // boundary. C tail values stay typed until the final C call site.
 func forward(func(c_int, c_vararg) as string producer, string input) as string
     return producer(c_int(1),input,c_short(7),float32(2.5))
+end
+func factory() as func(c_int,c_vararg) as string
+    return required
 end
 
 func check(string input)
@@ -56,6 +61,12 @@ func check(string input)
     action(c_int(1),input)
     auto fixed=fixedText
     assert fixed(input,c_int(7))==10
+    auto span=textSpan
+    assert span(input,c_int(7))==10
+    auto binary=byteSpan
+    assert binary(b"\0\xff",c_int(7))==9
+    string temporary=factory()(c_int(1),input,c_short(7),float32(2.5))
+    assert temporary==input and original(temporary)
     auto before=calls()
     bool caught=false
     try
@@ -89,6 +100,7 @@ func allocations()
     string second=producer(c_int(1),"abc")
     auto alias=producer
     string third=alias(c_int(1),"abc")
+    string fourth=factory()(c_int(1),"abc",c_short(7),float32(2.5))
 end
 async func worker() as string
     auto producer=required
@@ -100,14 +112,19 @@ assert fromWorker=="abc"
 allocations()
 assert debug()
 int prefix=0
+int accepted=0
+int rejected=0
 while prefix<32
     auto before=live()
     failAfter(prefix)
     try
         allocations()
+        accepted+=1
     catch error
+        rejected+=1
     end
     clearFailure()
     assert live()==before
     prefix+=1
 end
+assert accepted>0 and rejected>0

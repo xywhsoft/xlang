@@ -94,3 +94,16 @@ bool variadic_one_allocation(const char* text)
     return text==last && stats.MallocCalls==1 && stats.CallocCalls==0 &&
         stats.ReallocCalls==0 && stats.MemDupCalls==0 && stats.FreeCalls==0;
 }
+int variadic_text_span(xstrview value, ...)
+{
+    va_list args; va_start(args,value);
+    int result=(int)value.Size+va_arg(args,int);
+    va_end(args); return result;
+}
+int variadic_byte_span(xbytesview value, ...)
+{
+    if(value.Size!=2 || value.Data[0]!=0 || value.Data[1]!=255) return -1;
+    va_list args; va_start(args,value);
+    int result=(int)value.Size+va_arg(args,int);
+    va_end(args); return result;
+}
