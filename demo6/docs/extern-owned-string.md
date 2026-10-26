@@ -78,6 +78,8 @@ Store.LoadAccount/LoadCert/LoadCertCa 直接声明上游 xrtAcmeStoreLoad*，没
 
 ## 验证与范例
 
+本批双端验收与性能边界见 [专项验收](extern-owned-string-acceptance.md)。
+
 可运行示例：release/examples/extern_owned_string.xl 及其 native C 文件。
 测试入口 tools/check_extern_owned_string.py；使用 --driver 指定 Windows
 公共源码驱动，或 --cli 指定正常 xl CLI，并提供全新的 --directory。
