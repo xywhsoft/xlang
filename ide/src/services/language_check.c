@@ -499,6 +499,15 @@ int xideLanguageCheckCaptureReferences(xide_language_check* q,xide_reference_sha
  EnterCriticalSection(&q->lock);int okay=q->referenceMode && q->state==XIDE_CHECK_READY && q->guardState==XIDE_GUARD_RUNNING && !cancelled(q) && q->referenceShard;
  if(okay){*shard=xideSemanticReferenceShardRetain(q->referenceShard);*key=xideSemanticReferenceKeyRetain(q->referenceKey);}LeaveCriticalSection(&q->lock);return okay;
 }
+int xideLanguageCheckReferenceWork(xide_language_check* q,xls_check_stats* work,xls_worker_cache_stats* sessions,xide_navigation_work* navigation)
+{
+ if(work)memset(work,0,sizeof(*work));
+ if(sessions)memset(sessions,0,sizeof(*sessions));
+ if(navigation)memset(navigation,0,sizeof(*navigation));
+ if(!q || !work || !sessions || !navigation)return 0;
+ EnterCriticalSection(&q->lock);int okay=q->referenceMode && q->state==XIDE_CHECK_READY && q->guardState==XIDE_GUARD_RUNNING && !cancelled(q) && q->referenceShard;
+ if(okay){*work=q->semanticStats;*sessions=q->sessionCache;*navigation=q->navigationWork;}LeaveCriticalSection(&q->lock);return okay;
+}
 int xideLanguageCheckMatchesContext(const xide_language_check* check,const xls_context* context)
 { return check && xlsFrontendContextsEqual(check->context,context); }
 xide_language_check* xideLanguageCheckStartRetained(xide_toolchains* cache,const char* compiler,

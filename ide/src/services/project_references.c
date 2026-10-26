@@ -14,7 +14,7 @@
 #define RESULT_WIRE_BYTES (XIDE_LSP_BODY_BYTES-1024u*1024u)
 #define PROOF_BYTES (128u*1024u*1024u)
 typedef struct reference_record {xls_context* scope;xide_reference_shard* shard;xide_language_input_guard* guard;char** overlays;wchar_t* key;size_t count,bytes;uint64_t used;} reference_record;
-struct xide_project_references {xtaskpool* pool;xls_worker* analysis;xide_toolchains* cache;char* compiler;xarray records;struct {xls_context* context;size_t count;} scopes[64];size_t bytes;uint64_t clock;};
+struct xide_project_references {xtaskpool* pool;xls_worker *analysis,*keys;xide_toolchains* cache;char* compiler;xarray records;struct {xls_context* context;size_t count;} scopes[64];size_t bytes;uint64_t clock;};
 struct xide_reference_query {xfuture* future;xfuturewatch watch;int initialized,linked;void (*wake)(void*);void* user;};
 typedef struct reference_input {xide_project_references* store;xls_context* scope;xls_analysis_document docs[64];size_t count;char *trigger,*path;int line,character,include;} reference_input;
 typedef struct reference_output {xvalue* locations;xide_project_reference_stats stats;char error[512];} reference_output;
@@ -105,12 +105,17 @@ static reference_record* analyze(reference_input* in,const char* path,int keyWan
     metadata,not an implicit compiler import;keep it out of every child copy.
     Every semantic option and the project/configuration identity are retained. */
  xls_context_spec spec=*xlsContextSpec(in->scope);spec.entry=path;spec.lists[XLS_CONTEXT_MEMBERS]=(xls_context_strings){0};xls_context* context=xlsContextCreate(&spec,16u*1024u*1024u,NULL);xevent* event=xrtEventCreate(false,false);xide_model_error error={0};xide_language_analysis_options options={1,childWake,event};reference_record* r=NULL;
- xide_language_check* check=context && event ? xideLanguageCheckStartReferenceCapture(context,in->store->cache,in->store->compiler,in->store->analysis,in->docs,in->count,in->trigger,keyWanted?in->path:NULL,in->line,in->character,&options,&error) : NULL;xlsContextRelease(context);
+ xide_language_check* check=context && event ? xideLanguageCheckStartReferenceCapture(context,in->store->cache,in->store->compiler,keyWanted?in->store->keys:in->store->analysis,in->docs,in->count,in->trigger,keyWanted?in->path:NULL,in->line,in->character,&options,&error) : NULL;xlsContextRelease(context);
  if(!check){fail(out,"Cannot start a configured member reference analysis.");goto done;}
  while(xideLanguageCheckState(check,NULL,0)==XIDE_CHECK_RUNNING && !stopped(cancel))xrtEventWaitFor(event,10000);
  if(stopped(cancel)){xideLanguageCheckCancel(check);goto done;}
  r=xrtCalloc(1,sizeof(*r));xide_reference_key* captured=NULL;
  if(!r || !xideLanguageCheckCaptureReferences(check,&r->shard,&captured)){fail(out,"A configured member did not produce complete verified reference facts.");goto failed;}
+ if(keyWanted){xls_check_stats work;xls_worker_cache_stats sessions;xide_navigation_work navigation;
+  if(!xideLanguageCheckReferenceWork(check,&work,&sessions,&navigation)){xideSemanticReferenceKeyRelease(captured);fail(out,"Cannot capture verified key worker work.");goto failed;}
+  out->stats.keyActorBuilds=work.builds;out->stats.keyActorHits=work.hits;out->stats.keyActorSessions=sessions.sessions;
+  out->stats.keyNavigationBuilds=(size_t)navigation.built;out->stats.keyNavigationHits=(size_t)navigation.hit;
+ }
  if(keyWanted)*key=captured;else xideSemanticReferenceKeyRelease(captured);
  r->guard=xideLanguageCheckCaptureInputGuard(check,&error);r->scope=xlsContextRetain(in->scope);r->key=xidePathNativeWide(path);r->count=in->count;r->overlays=xrtCalloc(r->count,sizeof(char*));r->bytes=sizeof(*r)+r->count*sizeof(char*);int okay=r->guard && r->overlays && r->key && charge(&r->bytes,(wcslen(r->key)+1)*sizeof(wchar_t),SIZE_MAX) && charge(&r->bytes,xideSemanticReferenceShardBytes(r->shard),SIZE_MAX) && charge(&r->bytes,xideLanguageInputGuardReportBytes(r->guard),SIZE_MAX);
  for(size_t i=0;okay && i<r->count;++i){r->overlays[i]=xrtStrDup(in->docs[i].path);okay=r->overlays[i] && charge(&r->bytes,strlen(r->overlays[i])+1,SIZE_MAX);}
@@ -172,10 +177,14 @@ done:
 xide_project_references* xideProjectReferencesCreate(xide_toolchains* cache,const char* compiler,xls_module_store* modules)
 {
  if(!cache || !compiler)return NULL;
- xide_project_references* store=xrtCalloc(1,sizeof(*store));if(!store)return NULL;store->cache=cache;store->compiler=xrtStrDup(compiler);store->analysis=modules ? xlsWorkerCreateWithModules(NULL,8,NULL,modules) : xlsWorkerCreate(NULL,8);xtaskpoolconfig config={.Threads=1,.QueueLimit=8};store->pool=xrtTaskPoolCreate(&config);int initialized=xrtArrayInit(&store->records,sizeof(reference_record*));if(!initialized || !store->compiler || !store->analysis || !store->pool){xideProjectReferencesDestroy(store);return NULL;}return store;
+ xide_project_references* store=xrtCalloc(1,sizeof(*store));if(!store)return NULL;store->cache=cache;store->compiler=xrtStrDup(compiler);store->analysis=modules ? xlsWorkerCreateWithModules(NULL,8,NULL,modules) : xlsWorkerCreate(NULL,8);
+ /* Member traversal must not evict the requested entry or replace its typed
+    navigation table. Separate bounded workers share neutral module assets. */
+ xls_worker_cache_limits keyLimits={2,64u*1024u*1024u};store->keys=xlsWorkerCreateWithModules(NULL,8,&keyLimits,modules);
+ xtaskpoolconfig config={.Threads=1,.QueueLimit=8};store->pool=xrtTaskPoolCreate(&config);int initialized=xrtArrayInit(&store->records,sizeof(reference_record*));if(!initialized || !store->compiler || !store->analysis || !store->keys || !store->pool){xideProjectReferencesDestroy(store);return NULL;}return store;
 }
 void xideProjectReferencesDestroy(xide_project_references* store)
-{if(!store)return;if(store->pool){xrtTaskPoolCancel(store->pool);xrtTaskPoolDestroy(store->pool);}for(size_t i=0;i<store->records.Count;++i)releaseRecord(records(store)[i]);xrtArrayUnit(&store->records);xlsWorkerDestroy(store->analysis);xrtFree(store->compiler);xrtFree(store);}
+{if(!store)return;if(store->pool){xrtTaskPoolCancel(store->pool);xrtTaskPoolDestroy(store->pool);}for(size_t i=0;i<store->records.Count;++i)releaseRecord(records(store)[i]);xrtArrayUnit(&store->records);xlsWorkerDestroy(store->analysis);xlsWorkerDestroy(store->keys);xrtFree(store->compiler);xrtFree(store);}
 xide_reference_query* xideProjectReferencesSubmit(xide_project_references* store,xls_context* context,const xls_analysis_document* docs,size_t count,const char* trigger,const char* path,int line,int character,int include)
 {
  if(!store || !context || !docs || !count || count>64 || !trigger || !path || line<0 || character<0 || (include!=0 && include!=1))return NULL;

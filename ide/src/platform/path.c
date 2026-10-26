@@ -227,6 +227,50 @@ int xidePathEqual(const char* left,const char* right)
     if(second!=INVALID_HANDLE_VALUE) CloseHandle(second);
     free(a); free(b); return result;
 }
+#ifdef XLS_COMPILER_XRT
+#ifndef XIDE_PATH_BATCH_OPEN
+#define XIDE_PATH_BATCH_OPEN openIdentity
+#endif
+#ifndef XIDE_PATH_BATCH_INFO
+#define XIDE_PATH_BATCH_INFO GetFileInformationByHandle
+#endif
+typedef struct path_identity {wchar_t* name;HANDLE handle;BY_HANDLE_FILE_INFORMATION info;} path_identity;
+static int identityEqual(const BY_HANDLE_FILE_INFORMATION* a,const BY_HANDLE_FILE_INFORMATION* b)
+{return a->dwVolumeSerialNumber==b->dwVolumeSerialNumber && a->nFileIndexHigh==b->nFileIndexHigh && a->nFileIndexLow==b->nFileIndexLow;}
+static int pathsDistinctFallback(const char* const* paths,size_t count,int (*cancelled)(void*),void* user)
+{
+ for(size_t i=0;i<count;++i){if((cancelled && cancelled(user)) || !paths[i])return 0;
+  for(size_t j=0;j<i;++j){if(cancelled && cancelled(user))return 0;if(xidePathEqual(paths[i],paths[j]))return 0;}}
+ return !(cancelled && cancelled(user));
+}
+int xidePathsDistinct(const char* const* paths,size_t count,int (*cancelled)(void*),void* user)
+{
+ if((!paths && count) || (cancelled && cancelled(user)))return 0;
+ if(count>64)return pathsDistinctFallback(paths,count,cancelled,user);
+ path_identity rows[64]={0};size_t captured=0;int result=1,fallback=0;
+ for(size_t i=0;i<count;++i){if((cancelled && cancelled(user)) || !paths[i]){result=0;goto done;}
+  path_identity* row=rows+i;row->handle=INVALID_HANDLE_VALUE;captured=i+1;row->name=wide(paths[i]);
+  if(!row->name){fallback=1;goto done;}row->handle=XIDE_PATH_BATCH_OPEN(row->name);
+  if(row->handle!=INVALID_HANDLE_VALUE && !XIDE_PATH_BATCH_INFO(row->handle,&row->info)){fallback=1;goto done;}
+ }
+ for(size_t i=0;i<count;++i)for(size_t j=0;j<i;++j){if(cancelled && cancelled(user)){result=0;goto done;}
+  int equal=!strcmp(paths[i],paths[j]);
+  if(!equal)equal=rows[i].handle!=INVALID_HANDLE_VALUE && rows[j].handle!=INVALID_HANDLE_VALUE ? identityEqual(&rows[i].info,&rows[j].info) : CompareStringOrdinal(rows[i].name,-1,rows[j].name,-1,FALSE)==CSTR_EQUAL;
+  if(equal){result=0;goto done;}
+ }
+ /* Keep first handles open with the same share flags as xidePathEqual.
+    Reopening detects name replacement/existence changes before acceptance. */
+ for(size_t i=0;i<count;++i){if(cancelled && cancelled(user)){result=0;goto done;}
+  HANDLE current=XIDE_PATH_BATCH_OPEN(rows[i].name);BY_HANDLE_FILE_INFORMATION info;int present=current!=INVALID_HANDLE_VALUE;
+  int stable=present==(rows[i].handle!=INVALID_HANDLE_VALUE) && (!present || (XIDE_PATH_BATCH_INFO(current,&info) && identityEqual(&info,&rows[i].info)));
+  if(present)CloseHandle(current);
+  if(!stable){fallback=1;goto done;}
+ }
+done:
+ for(size_t i=0;i<captured;++i){if(rows[i].handle!=INVALID_HANDLE_VALUE)CloseHandle(rows[i].handle);free(rows[i].name);}
+ return fallback ? pathsDistinctFallback(paths,count,cancelled,user) : result;
+}
+#endif
 int xidePathLexicalEqual(const char* left,const char* right)
 {
     char *a=xidePathResolveLexical(NULL,left),*b=xidePathResolveLexical(NULL,right);
