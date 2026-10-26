@@ -1,5 +1,13 @@
 # singleinstance
 
+2026-10-26 当前 Windows 默认门禁的严格 C、双模块互斥、中央/边界
+语言 JIT 与 AOT、C/XLang 范例独立 EXE 和固定输出全部通过。
+Linux 门禁也通过 C ASan/UBSan、中文名称跨进程/双模块和相同
+双语 AOT 路径；随后运行真实双 `XL_Context` 有界测试时，第二个
+上下文仍不能在第一个脚本执行期间返回，默认门禁保持红色。
+见 `dev/extlib_blockers/singleinstance_context_execution.md`。
+这条共享 DLL 执行边界解除前不签收整包发布级。
+
 `singleinstance` 为当前用户提供非阻塞实例锁。同名锁在另一进程或
 同一进程的另一包实例持有时，`acquire(name)` 返回 `false`；输入或 IO
 失败会抛异常，不会伪装为“另一实例正在运行”。一个包实例只能持有一个锁，

@@ -77,12 +77,23 @@ try {
     if ($cOutput -cne $xlOutput -or $direct -cne $cOutput -or $directBuilt -cne $cOutput) {
         throw "C/XLang outputs differ:`nC:`n$cOutput`nXL:`n$xlOutput`nDirect:`n$direct`nBuilt:`n$directBuilt"
     }
+    $expectedPath = Join-Path $root 'release/extlibs/singleinstance/test/singleinstance.expected.txt'
+    $expected = [IO.File]::ReadAllText($expectedPath).Replace("`r`n", "`n").TrimEnd("`n")
+    if ($cOutput -cne $expected) { throw 'singleinstance example differs from fixed output' }
     Write-Host '[singleinstance] C/XLang parity: PASS'
     if (-not $SkipAot) {
+        foreach ($source in @('test/cases/extlib_singleinstance.xl',
+            'release/extlibs/singleinstance/test/boundaries.xl')) {
+            $name = [IO.Path]::GetFileNameWithoutExtension($source)
+            $binary = Join-Path $work "$name.exe"
+            $null = Run "$name build" $xl @('build', $source, '-o', $binary)
+            $null = Run "$name AOT" $binary @()
+        }
         $target = Join-Path $work 'singleinstance.exe'
         $null = Run 'XLang example build' $xl @('build',
             'release/examples/extlibs/singleinstance.xl', '-o', $target)
-        $null = Run 'XLang example AOT' $target @()
+        $aotOutput = Run 'XLang example AOT' $target @()
+        if ($aotOutput -cne $expected) { throw 'XLang AOT example differs from fixed output' }
     }
 } finally {
     Pop-Location

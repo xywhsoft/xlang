@@ -54,4 +54,24 @@ timeout 90s ./release/xl run release/extlibs/singleinstance/test/boundaries.xl
 timeout 90s ./release/xl run release/examples/extlibs/singleinstance.xl \
     > "$work/xl_example.txt"
 diff -u "$work/c_example.txt" "$work/xl_example.txt"
-printf 'singleinstance Linux C ASan/UBSan and XLang parity gate: PASS\n'
+diff -u release/extlibs/singleinstance/test/singleinstance.expected.txt \
+    "$work/c_example.txt"
+for source in test/cases/extlib_singleinstance.xl \
+    release/extlibs/singleinstance/test/boundaries.xl; do
+    name=$(basename "$source" .xl)
+    timeout 120s ./release/xl build "$source" -o "$work/$name"
+    timeout 90s "$work/$name"
+done
+timeout 120s ./release/xl build release/examples/extlibs/singleinstance.xl \
+    -o "$work/example_xl"
+timeout 30s "$work/example_xl" > "$work/example_xl.txt"
+diff -u release/extlibs/singleinstance/test/singleinstance.expected.txt \
+    "$work/example_xl.txt"
+timeout 120s ./release/xl build \
+    release/extlibs/singleinstance/examples/singleinstance_c.c \
+    -o "$work/example_c_aot"
+timeout 30s "$work/example_c_aot" > "$work/example_c_aot.txt"
+diff -u release/extlibs/singleinstance/test/singleinstance.expected.txt \
+    "$work/example_c_aot.txt"
+sh release/extlibs/singleinstance/test/check_contexts.sh
+printf 'singleinstance Linux C ASan/UBSan and bilingual AOT gate: PASS\n'

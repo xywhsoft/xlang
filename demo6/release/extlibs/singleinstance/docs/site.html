@@ -18,7 +18,7 @@
 <main class="extlib-layout" id="main-content">
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / singleinstance</p><h1>singleinstance</h1>
     <p class="extlib-lead">按名称互斥的实例锁；同名进程与同进程的独立包实例不能同时持有。</p>
-    <p>支持 UTF-8 名称与进程退出自动解锁。Windows 使用 XRT 文件锁，POSIX 使用按打开句柄隔离的文件锁。Windows/Linux 的 ASCII 与中文名称子进程互斥、Linux 独立包实例、XLang JIT 及双语范例输出对照已通过；门禁使用隔离主目录。当前 Windows 公开范例 AOT 已通过；深主目录长路径及两个 XL_Context 同时执行仍待主线收口。</p>
+    <p>支持 UTF-8 名称与进程退出自动解锁。Windows 使用 XRT 文件锁，POSIX 使用按打开句柄隔离的文件锁。2026-10-26 Windows/Linux 的严格 C、中文名称子进程互斥、Linux 独立包实例及双语范例独立 EXE AOT 均通过固定输出门禁；测试使用隔离主目录。但真实双 XL_Context 并发执行在 Linux 有界测试中仍被共享 DLL 执行边界阻断，Linux 默认门禁保持红色，整包不签收发布级。深主目录长路径也尚待收口。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>入口</th><th>用途</th></tr></thead><tbody>

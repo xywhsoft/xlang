@@ -1,0 +1,4 @@
+Acquired single instance lock
+isAcquired: true
+Released lock
+singleinstance example: PASS
