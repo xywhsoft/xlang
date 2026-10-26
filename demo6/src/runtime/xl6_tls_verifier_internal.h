@@ -15,7 +15,8 @@ typedef struct XL6_TlsVerificationPolicyV1 {
 } XL6_TlsVerificationPolicyV1;
 /* policy is borrowed from value's independently owned immutable Context.
  * Retaining value therefore also retains this metadata, including when a
- * native session outlives the language wrapper. No caller or module callback. */
+ * native session outlives the language wrapper. The native Context owns the
+ * complete optional policy capability; the facade never owns it separately. */
 typedef struct XL6_TlsVerifierV1 {
     struct xtlsverifier* value;
     const XL6_TlsVerificationPolicyV1* policy;

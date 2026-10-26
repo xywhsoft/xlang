@@ -101,7 +101,7 @@ static bool trace(const void* raw,xrtownershipvisitor visit,void* context)
 {
     const XL6_TlsSessionV1* self=raw;size_t references;
     return visit&&count(self,&references)&&(!self->native||
-        xrtTlsSessionBufferOwnershipTrace(self->native,visit,context))&&
+        xrtTlsSessionOwnershipTrace(self->native,visit,context))&&
         (!self->selector.data||visit(self->selector.ops->Ownership(self->selector.data),context))&&
         (!self->resumeLookup.data||visit(self->resumeLookup.ops->Ownership(self->resumeLookup.data),context));
 }

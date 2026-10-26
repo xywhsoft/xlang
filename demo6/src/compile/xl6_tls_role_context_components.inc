@@ -1,6 +1,6 @@
     {"src/runtime/xl6_tls_protocols.c",D(R(TLS_VALUE)),{"XRT_MODULE_VALUE"}},
     {"src/runtime/xl6_tls_protocols_input.c",D(R(TLS_PROTOCOLS),R(ARRAY_INPUT),R(FOREIGN_ERROR)),{NULL}},
-    {"src/runtime/xl6_tls_client_context.c",D(R(TLS_PROTOCOLS),R(TLS_PARAMETERS),R(TLS_VERIFIER)),{NULL}},
+    {"src/runtime/xl6_tls_client_context.c",D(R(TLS_PROTOCOLS),R(TLS_PARAMETERS),R(TLS_VERIFIER),R(OWNERSHIP_DOMAIN_TLS_VERIFIER)),{NULL}},
     {"src/runtime/xl6_tls_server_context.c",D(R(TLS_PROTOCOLS),R(TLS_PARAMETERS),R(TLS_IDENTITY)),{NULL}},
     {"src/runtime/xl6_tls_client_context_protocols.c",D(R(TLS_CLIENT_CONTEXT),R(TLS_PROTOCOLS_INPUT)),{NULL}},
     {"src/runtime/xl6_tls_server_context_protocols.c",D(R(TLS_SERVER_CONTEXT),R(TLS_PROTOCOLS_INPUT)),{NULL}},

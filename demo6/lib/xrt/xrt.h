@@ -23514,6 +23514,22 @@ XRT_API bool xrtTlsSessionBufferOwnershipTrace(
 	ptr pContext
 );
 
+/* Managed-owner graph of a uniquely owned, quiescent built-in session:
+ * the four buffer queues AND the verified-client role's actual Verifier slot.
+ * Inert native parameters, built-in key material, DER and resume bytes have
+ * no outgoing callback/language owners, even when shared by native references.
+ * A server's opaque external signer REFUSES this walk; it is not a leaf.
+ * Raw internal base sessions have no role-owned counted references.
+ * Borrowed server selector/resume callback data are NOT owning slots and must
+ * remain covered by the embedding owner's own graph and code residency.
+ * Same freeze/visitor/failure rules as BufferOwnershipTrace. This does not
+ * admit the reported children: an opaque legacy Verifier remains opaque. */
+XRT_API bool xrtTlsSessionOwnershipTrace(
+	const xtlssession* pSession,
+	xrtownershipvisitor pVisit,
+	ptr pContext
+);
+
 
 
 /* 返回会话的客户端或服务端角色；失败返回零并设置错误。 */
@@ -52007,6 +52023,16 @@ xtlssession* __xrtTlsSessionCreateSized(
 /* 返回会话尾部角色状态；普通会话返回 NULL。 */
 ptr __xrtTlsSessionRoleData(xtlssession* pSession);
 
+#if defined(XRT_FEATURE_TLS_CLIENT_VERIFY)
+/* Exact built-in role identity is checked BEFORE reading its tail layout.
+ * Called only while the containing session is quiescent and frozen. */
+bool __xrtTlsClientVerifierOwnershipTrace(
+	const xtlssession*, xrtownershipvisitor, ptr);
+#endif
+#if defined(XRT_FEATURE_TLS_SERVER)
+bool __xrtTlsServerIdentityOwnershipLeaf(const xtlssession*);
+#endif
+
 
 
 /* 按公开生命周期图推进状态；FAILED 可以从任意非终态进入。 */
@@ -53140,6 +53166,15 @@ struct xtlsidentity {
 	xtlsidentityreleaseproc ExternalRelease;
 	ptr ExternalContext;
 };
+
+/* Built-in key material is inert native storage. The public custom signer
+ * adopts an opaque Context and can execute external cleanup: never infer its
+ * graph from Type, a NULL Context, or a caller's transport Data policy. */
+static inline bool __xrtTlsIdentityOwnershipLeaf(const xtlsidentity* pIdentity)
+{
+	return pIdentity && !pIdentity->ExternalSupports && !pIdentity->ExternalSign &&
+		!pIdentity->ExternalRelease && !pIdentity->ExternalContext;
+}
 
 
 
@@ -148970,6 +149005,21 @@ XRT_API bool xrtTlsSessionBufferOwnershipTrace(
 
 
 
+XRT_API bool xrtTlsSessionOwnershipTrace(
+	const xtlssession* pSession, xrtownershipvisitor pVisit, ptr pContext
+)
+{
+	if (!xrtTlsSessionBufferOwnershipTrace(pSession, pVisit, pContext)) return false;
+	#if defined(XRT_FEATURE_TLS_CLIENT_VERIFY)
+		if (pSession->Role == XTLS_CLIENT &&
+			!__xrtTlsClientVerifierOwnershipTrace(pSession, pVisit, pContext)) return false;
+	#endif
+	#if defined(XRT_FEATURE_TLS_SERVER)
+		if (pSession->Role == XTLS_SERVER && !__xrtTlsServerIdentityOwnershipLeaf(pSession)) return false;
+	#endif
+	return true;
+}
+
 /* 返回会话角色。 */
 XRT_API xtlsrole xrtTlsSessionRole(const xtlssession* pSession)
 {
@@ -153844,6 +153894,21 @@ static void __xrtTlsClientClean(xtlssession* pSession, ptr pRole)
 }
 
 
+
+#if defined(XRT_FEATURE_TLS_CLIENT_VERIFY)
+bool __xrtTlsClientVerifierOwnershipTrace(
+	const xtlssession* pSession, xrtownershipvisitor pVisit, ptr pContext
+)
+{
+	if (!pSession || !pVisit || pSession->Role != XTLS_CLIENT) return false;
+	/* Internal base sessions have no role tail. Never infer a layout from the
+	 * Role enum alone, nor follow an unknown internal cleanup callback. */
+	if (!pSession->Clean) return true;
+	if (pSession->Clean != __xrtTlsClientClean) return false;
+	const xtlsclientstate* pState = (const xtlsclientstate*)(pSession + 1);
+	return !pState->Verifier || pVisit(xrtTlsVerifierOwnership(pState->Verifier), pContext);
+}
+#endif
 
 /* 初始化不借用任何外部资源的客户端配置。 */
 XRT_API void xrtTlsClientConfigInit(xtlsclientconfig* pConfig)
@@ -163320,6 +163385,15 @@ static void __xrtTlsServerClean(xtlssession* pSession, ptr pRole)
 	pState->Identity = NULL;
 }
 
+bool __xrtTlsServerIdentityOwnershipLeaf(const xtlssession* pSession)
+{
+	if (!pSession || pSession->Role != XTLS_SERVER) return false;
+	if (!pSession->Clean) return true;
+	if (pSession->Clean != __xrtTlsServerClean) return false;
+	const xtlsserverstate* pState = (const xtlsserverstate*)(pSession + 1);
+	return !pState->Identity || __xrtTlsIdentityOwnershipLeaf(pState->Identity);
+}
+
 
 
 /* 初始化不借用任何外部资源的服务端配置。 */
@@ -170089,7 +170163,7 @@ static bool __xrtTlsStreamOwnershipCount(const void* pData, size_t* pCount)
 	if (xrtNetStreamState(tcp) != XNET_STREAM_CLOSED &&
 		(!tcp->EventOwner || tcp->EventOwner->Data != s ||
 		 tcp->EventOwner->Policy != xrtTlsStreamTransportOwnershipV1Get())) return false;
-	if (!xrtTlsSessionBufferOwnershipTrace(s->Session, __xrtTlsStreamValidateBufferEdge, NULL)) return false;
+	if (!xrtTlsSessionOwnershipTrace(s->Session, __xrtTlsStreamValidateBufferEdge, NULL)) return false;
 	int32 refs = __xrtAtomicRefLoad(&s->References);
 	if (refs <= 0) return false;
 	*pCount = (size_t)refs; return true;
@@ -170103,7 +170177,7 @@ static bool __xrtTlsStreamOwnershipTrace(const void* pData, xrtownershipvisitor 
 		(s->OwnershipEngineHeld && !visit(xrtNetEngineOwnership(s->OwnershipEngine), context)) ||
 		!visit(xrtNetStreamOwnership(xrtAtomicPtrLoad(&s->Transport, XMEMORY_ACQUIRE)), context) ||
 		!visit((xrtownershipref){xrtAtomicPtrLoad(&s->Data, XMEMORY_ACQUIRE), s->OwnershipPolicy->Ops}, context) ||
-		!xrtTlsSessionBufferOwnershipTrace(s->Session, visit, context)) return false;
+		!xrtTlsSessionOwnershipTrace(s->Session, visit, context)) return false;
 	#if defined(XRT_FEATURE_TLS_STREAM_FUTURE)
 		if (!__xrtTlsStreamAsyncOwnershipWalk(s, visit, context)) return false;
 	#endif
@@ -171700,7 +171774,7 @@ static bool __xrtTlsDialOwnedTrace(const void* data, xrtownershipvisitor visit, 
 	#endif
 	return (!tcp || visit(xrtNetDialOwnership(tcp), context)) &&
 		(!d->OwnedStream || visit(xrtTlsStreamOwnership(d->OwnedStream), context)) &&
-		(!d->OwnedSession || xrtTlsSessionBufferOwnershipTrace(d->OwnedSession, visit, context)) &&
+		(!d->OwnedSession || xrtTlsSessionOwnershipTrace(d->OwnedSession, visit, context)) &&
 		(!d->Error || visit(xrtErrorOwnership(d->Error), context));
 }
 static const xrtownershipops __xrtTlsDialOwnershipOps = {__xrtTlsDialOwnedCount, __xrtTlsDialOwnedTrace};
@@ -175356,6 +175430,7 @@ static bool __xrtTlsListenerOwnershipCount(const void* data, size_t* count)
 	if (!l || !count || !l->OwnershipPolicy || !l->OwnershipDataHeld || !l->Data || !l->OwnershipStorageHeld ||
 		!l->Engine || __xrtTlsListenerOwnershipBusy(l) ||
 		(xrtAtomic32Load(&l->OwnershipState, XMEMORY_ACQUIRE) & XRT_TLS_LISTENER_OWN_CLEARED)) return false;
+	if (l->Tls.Identity && !__xrtTlsIdentityOwnershipLeaf(l->Tls.Identity)) return false;
 	if (l->RuntimeHeld) {
 		if (!l->OwnershipEngineHeld || l->RuntimeOwner.Data != l || !l->RuntimeOwner.Previous ||
 			l->RuntimeOwner.Engine != l->Engine || l->RuntimeOwner.Policy != xrtTlsListenerRuntimeOwnershipV1Get()) return false;
