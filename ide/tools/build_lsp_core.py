@@ -58,7 +58,7 @@ CORE_TESTS = ("analysis_cursor_memo_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_call_candidates_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_cursor_source_memo_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_completion_annotations_test", *CORE_TESTS)
-CORE_TESTS = ("analysis_ast_storage_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_ast_leaf_failure_test", "analysis_ast_leaf_test", "analysis_ast_storage_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_plan_direct_test", "analysis_check_materialize_test", "analysis_ast_materialize_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_call_context_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_signature_test", *CORE_TESTS)
@@ -528,14 +528,24 @@ def prepare_native_ast(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     if source.count(old) != 1:
         raise ValueError('shared AST free seam changed')
     source = source.replace('#include "src/ast/xl6_ast.h"', '#include "src/ast/xl6_ast.h"\n#include "analysis/ast_storage.h"')
+    old_free = 'void xl6AstFree(XL6_AstNode* node)\n{\n    size_t i;\n\n    if ( node == NULL ) {\n        return;\n    }'
+    if source.count(old_free) != 1:
+        raise ValueError('shared AST early leaf-release seam changed')
+    source = source.replace(old_free, old_free+'\n    if (xlsAstSharedLeafRelease(node)) return;')
     source = source.replace(old, '    xl6AstReleaseSource(node->source);\n'
         '    if (node->xlsStorage) xlsAstStorageFreeNode(node); else xrtFree(node);')
     text = header.read_text(encoding='utf8')
     old = '    size_t childCapacity;\n} XL6_AstNode;'
     if text.count(old) != 1:
         raise ValueError('shared AST private ownership seam changed')
-    text = text.replace('#define XL6_AST_H', '#define XL6_AST_H\n#define XLS_NATIVE_AST_STORAGE 1')
+    text = text.replace('#define XL6_AST_H', '#define XL6_AST_H\n#define XLS_NATIVE_AST_STORAGE 1\n#define XLS_NATIVE_AST_LEAF_REFS 1')
     text = text.replace(old, '    size_t childCapacity;\n    struct xls_ast_storage* xlsStorage;\n} XL6_AstNode;')
+    identity = '    uint32 semanticTypeId;\n    uint64 semanticTypeAbiId;'
+    if text.count(identity) != 1:
+        raise ValueError('shared AST private leaf-reference seam changed')
+    # Occupy the existing uint32-to-uint64 alignment hole on 64-bit targets.
+    # Native consumers still rebuild; private refs never come from old objects.
+    text = text.replace(identity, '    uint32 semanticTypeId;\n    uint32_t xlsLeafReferences;\n    uint64 semanticTypeAbiId;')
     compiled = output / 'frontend/xl6_ast.c'
     compiled_header = output / 'frontend/src/ast/xl6_ast.h'
     compiled_header.parent.mkdir(parents=True, exist_ok=True)
@@ -544,8 +554,8 @@ def prepare_native_ast(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     return original, compiled, dict(source=str(original), sourceSha256=sha(original),
         compiledSource=str(compiled), compiledSha256=sha(compiled), headerSource=str(header),
         headerSourceSha256=sha(header), compiledHeader=str(compiled_header), compiledHeaderSha256=sha(compiled_header),
-        runtimeSource=str(runtime), runtimeSourceSha256=sha(runtime), auditedSeams=3,
-        change='append private node storage owner and dispatch only final node release;all language fields and field/source destruction rules retained;all native translation units rebuilt')
+        runtimeSource=str(runtime), runtimeSourceSha256=sha(runtime), auditedSeams=5,
+        change='private storage owner plus within-forest bare fact-type leaf edge references;early release retains fields until last edge,then original field/source/final pool release;all native translation units rebuilt')
 
 
 def main() -> None:
