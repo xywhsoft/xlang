@@ -1,5 +1,17 @@
 # 当前源码的 var 容器传入原生扩展失败
 
+2026-10-26 `clipboard.set_files` 提供相邻的 foreign 数组 ABI 证据：
+隔离 window station 中，原生 C 用真实 XRT `xvalue` 字符串数组写入
+成功；`release/extlibs/clipboard/test/file_list_projection.xl` 创建
+同形语言 `array`，`type(paths) == array` 成立，调用公开入口却返回
+false 和 `clipboard: invalid input or data`。Windows 默认门禁先通过
+C、图形快照和只读语言测试，再在这条正例报红。包内外部声明
+`array` 改成 `var` 的受控试验同样失败，现已恢复原签名；无证据
+支持包侧重新编码/私有句柄探测。主线应核对 `array`/`var` 实参
+到 `xvalue*` 的物理投影、元素类型和所有权，修复后重跑隔离
+正例及完整门禁。该症状与其他 foreign 容器问题同形，尚未证明
+底层完全同根。
+
 2026-10-26 当前发布物的 `bson` Windows 默认门禁先通过严格 C、
 原生边界和 C 范例，随后首个 XLang 字典编码报
 `ValueError: bson: encode requires a table (var dict)`。
