@@ -53,7 +53,7 @@ engine.release()</code></pre>
     <h2>验证与现状</h2>
     <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File extlibs/rapidocr/test/check.ps1 -SkipAot</code></pre>
     <p>固定测试图已真实识别为 <code>HELLO123</code>；当前 Windows 默认门禁通过严格 GCC、缺图/缺模型、真实推理 JIT/AOT、回退流水线与测试桥接的隐式句柄清理 JIT/AOT，以及 C/XLang 后处理对照。XLang 的路径与传入原生接口的 JSON 均拒绝内嵌 NUL。结果组装、三条检测框路径、识别与分类解码、字符表信息和 OCR 条目转换入口返回独立的 XRT 字符串，C 调用方以 <code>xrtFree</code> 释放；长文本、转义字符与错误输入已有定向测试。资源定位与可选 DLL 加载支持 UTF-8 路径；检测框几何使用结构化 JSON 解析。包级错误按线程隔离，可选后端首次加载使用 once。测试专用完整桥接层验证 C/XLang 成功、失败、恢复和释放，残缺桥接层被拒绝；这只证明公开 ABI 转发。包内 OpenCV/ONNX 调用链已验证；桥接实现与压力矩阵由插件独立维护。C 完整推理仍需真实桥接层。</p>
-    <p>2026-10-21：Windows 门禁将图片、测试 DLL 和可执行文件写入每次独占的 <code>build/test/rapidocr/run_&lt;id&gt;</code> 并在退出时清理；Linux C 门禁使用独占系统临时目录。既有固定目录文件不再被覆盖。Windows 真实模型 <code>HELLO123</code>、完整/残缺测试桥接调用和 Linux C 公开调用均复验通过；本轮未重跑压力模式，完整 AOT 与缺源码插件内部仍未签收。</p>
+    <p>2026-10-21：Windows 门禁将图片、测试 DLL 和可执行文件写入每次独占的 <code>build/test/rapidocr/run_&lt;id&gt;</code> 并在退出时清理；Linux C 门禁使用独占系统临时目录。既有固定目录文件不再被覆盖。Windows 真实模型 <code>HELLO123</code>、完整/残缺测试桥接调用和 Linux C 公开调用均复验通过；本轮未重跑压力模式，当时完整 AOT 未签收；2026-10-26 当前 Windows 默认门禁的真实 XLang 推理与句柄清理 AOT 已通过，C 完整推理桥接仍待补。</p>
   </section>
 </main>
 <script src="../main.js"></script>

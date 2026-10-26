@@ -1,5 +1,10 @@
 # onnxruntime 扩展库
 
+2026-10-26 当前 Windows 默认包门禁退出 0：真实模型 C/XLang 调用、
+UTF-8 DLL 路径、残缺桥接拒绝、隐式句柄清理、C 单文件构建，以及
+语言推理与两份公开范例 AOT 均通过。按插件调用层边界签收；
+`onnxruntime_xlang.dll` 内部算法及可复现构建由插件单独维护。
+
 通过 `onnxruntime_xlang.dll` 桥接 ONNX Runtime 的 CPU 推理。XLang 的
 `SessionOptions`、`InferenceSession`、`TensorObject` 和 `RunResult` 包装会话、
 张量及结果；`src/onnxruntime_artifact.c` 负责加载桥接 DLL 并暴露原生入口。
