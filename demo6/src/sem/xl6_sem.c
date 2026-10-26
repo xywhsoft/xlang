@@ -1565,6 +1565,7 @@ static int xl6SemCheckType(XL6_SemContext* ctx, XL6_AstNode* typeNode)
 static int xl6SemCheckExpr(XL6_SemContext* ctx, XL6_AstNode* node);
 static int xl6SemCheckNameExpr(XL6_SemContext* ctx, XL6_AstNode* node);
 static int xl6SemCaptureCompletion(XL6_SemContext* ctx,XL6_AstNode* node);
+static int xl6SemIsCompletionNode(const XL6_SemContext* ctx,const XL6_AstNode* node);
 static int xl6SemCheckStmt(XL6_SemContext* ctx, XL6_AstNode* node);
 static int xl6SemCheckChildrenExpr(XL6_SemContext* ctx, XL6_AstNode* node);
 static int xl6SemCheckChildrenExprFrom(XL6_SemContext* ctx, XL6_AstNode* node, size_t firstChild);
@@ -8009,6 +8010,7 @@ static int xl6SemBindUniqueNamedFunctionValue(
     int ok;
 
     if ( ctx == NULL || expr == NULL ||
+         xl6SemIsCompletionNode(ctx, expr) ||
          (expr->kind != XL6_AST_NAME &&
           !(expr->kind==XL6_AST_MEMBER && expr!=ctx->directCallCallee &&
             xl6SemClassDeclFromTypeMemberReceiver(ctx,expr)))) {
@@ -25538,10 +25540,18 @@ static void xl6SemCompletionMembers(XL6_SemContext* ctx,XL6_AstNode* queryNode)
 done:
  xl6AstFree(owned);
 }
+static int xl6SemIsCompletionNode(const XL6_SemContext* ctx,const XL6_AstNode* node)
+{
+ const XL6_CompletionQuery* q=ctx?ctx->completionQuery:NULL;
+ return q&&node&&node->source&&node->source->completionQuery&&node->text&&
+     !strcmp(node->text,XL6_COMPLETION_MARKER)&&node->tokenRange.known&&
+     node->tokenRange.startOffset==node->source->completionStart&&
+     node->tokenRange.endOffset==node->source->completionEnd;
+}
 static int xl6SemCaptureCompletion(XL6_SemContext* ctx,XL6_AstNode* node)
 {
- XL6_CompletionQuery* q=ctx?ctx->completionQuery:NULL;
- if (!q||!node||!node->source||!node->source->completionQuery||!node->text||strcmp(node->text,XL6_COMPLETION_MARKER)||!node->tokenRange.known||node->tokenRange.startOffset!=node->source->completionStart||node->tokenRange.endOffset!=node->source->completionEnd) return 0;
+ if (!xl6SemIsCompletionNode(ctx,node)) return 0;
+ XL6_CompletionQuery* q=ctx->completionQuery;
  q->reached++;
  if (q->reached!=1) {q->error="query expression is checked more than once";return 1;}
  if (q->error||(ctx->diags&&ctx->diags->count)) {if (!q->error) q->error="semantic prerequisites contain errors";return 1;}
