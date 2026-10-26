@@ -41,6 +41,9 @@ try {
     & $gcc -std=c11 -Wall -Wextra -Werror -fsyntax-only `
         '-I../lib/xrt' examples/extlibs/ui_auto_c.c
     if ($LASTEXITCODE -ne 0) { throw 'ui.auto C example GCC syntax check failed' }
+    & $gcc -std=c11 -Wall -Wextra -Werror -fsyntax-only `
+        '-I../lib/xrt' extlibs/ui.auto/examples/screenshot_c.c
+    if ($LASTEXITCODE -ne 0) { throw 'ui.auto C screenshot GCC syntax check failed' }
     $xlExample = @()
     foreach ($file in @(
         'examples/extlibs/ui_auto.xl',
@@ -67,6 +70,17 @@ try {
     }
     Write-Host 'ui.auto C/XLang example parity: PASS'
     Confirm-Screenshot $imagePath
+    Push-Location $work
+    try {
+        $cScreenshot = @(& (Join-Path $release '../tools/run_extlib_c.ps1') -Package ui.auto `
+            -Source 'release/extlibs/ui.auto/examples/screenshot_c.c')
+        if ($LASTEXITCODE -ne 0 -or [string]::Join("`n", $cScreenshot) -cne 'ui.auto C screenshot ok') {
+            throw "ui.auto C screenshot failed: $cScreenshot"
+        }
+    } finally {
+        Pop-Location
+    }
+    Confirm-Screenshot (Join-Path $work 'screenshot_c.png')
     if (-not $SkipAot) {
         $coreExe = Join-Path $work 'ui_auto_core.exe'
         & $xl build extlibs/ui.auto/test/named_type.xl -o $coreExe

@@ -22,6 +22,10 @@ Windows 桌面自动化组合层，底层为 `uia`，截图依赖 `opencv`。通
 文本定位条件与 `type_text` 经 `uia` 进入 C 前拒绝内嵌 NUL，
 不会把前缀误当作完整条件或静默截断输入。
 `locator_from_json` 接受这些字段及 UIA 生成的定位信息，但
+`strategy` 若存在，只允许 `automationId`、`classNameName`、
+`processClassPath`；未知值会报 `ValueError`，不会静默改用其他字段定位。
+显式选择前两种策略时分别必须提供 `automationId` 或 `className`；
+缺少必要字段同样报错，不会退化成仅按进程或名称搜索。
 `processClassPath` 会沿 UIA Control View 的类名、控件类型及同签名兄弟序号
 逐段定位；可与进程、名称、类名、自动化 ID、控件类型一并取交集，
 不会退化为宽泛的进程匹配。路径不在 `within` 的根下、目标消失或
@@ -46,6 +50,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File extlibs/ui.auto/test/check.p
 
 对照 C 范例为 `examples/extlibs/ui_auto_c.c`，直接使用 `uia` 的 C API
 组合控件类、类型与进程条件，并与 XLang 范例一样完成输入、读取和按钮点击。
+`extlibs/ui.auto/examples/screenshot_c.c` 则只调用 `uia`、`opencv` 的公开 C API，
+截取目标控件、保存 PNG 并回读验证尺寸；包级门禁同时检查截图中的文字像素。
 包级门禁以严格 GCC 检查 C 范例，并逐行比较两份范例的输出。
 包级门禁覆盖自建窗口上的成功/缺失/错误进程定位、生成的定位器
 JSON 往返、类路径往返与相互矛盾的筛选条件、输入读取与含固定文字
