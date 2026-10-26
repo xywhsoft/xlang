@@ -35,6 +35,7 @@
 - [核心契约守卫与产品析构依赖](core-contract-guards-2026-10-26.md)：旧生成实现断言迁移、闭合 ABI 析构依赖及双端 304 阶段源码验收；发布总门继续。
 
 - [C 字符串和二进制生命周期载体](c_owned_ffi.md)：`cstring` / `cbytes` 的同步局部接管、只读借用、普通值复制边界与释放合同。
+- [C 自有字符串直接返回普通 string](extern-owned-string.md)：`@owned` 声明、XRT 堆合同、C 导出、失败回滚、性能边界及验证。
 
 - [并发与安全标准库接入](并发与安全标准库接入.md)：已批准的并发、crypto/ASN.1、X.509、TLS 边界；首批摘要/MAC/KDF/AEAD/DER/PEM 接口与后续待办，不代表四组已完成。
 

@@ -942,14 +942,11 @@ static unsigned int xl6PExternContractFlag(
     if ( xl6PTokenTextEquals(token, "no_raise") ) {
         return XL6_AST_FLAG_FOREIGN_NO_RAISE;
     }
-    if ( xl6PTokenTextEquals(token, "nonblocking") ) {
-        return XL6_AST_FLAG_FOREIGN_NONBLOCKING;
-    }
-    if ( xl6PTokenTextEquals(token, "owned") ) {
+    if ( xl6PTokenTextEquals(token, "nonblocking") ) return XL6_AST_FLAG_FOREIGN_NONBLOCKING;
+    if ( xl6PTokenTextEquals(token, "owned") )
         return XL6_AST_FLAG_FOREIGN_OWNED_STRING;
-    }
     xl6PDiag(ctx, token,
-        "unknown extern contract; expected @pure, @no_raise, @nonblocking, or @owned");
+        "unknown extern effect contract; expected @pure, @no_raise, @nonblocking, or @owned");
     return 0;
 }
 

@@ -159,7 +159,6 @@ $requiredArtifactSubstrings = @{
     "sem_export_duplicate.err.txt" = (Join-CodePoints @(0x91CD, 0x590D, 0x7684)) + " C export symbol"
     "sem_export_optional.err.txt" = "C ABI export " + (Join-CodePoints @(0x4E0D, 0x652F, 0x6301, 0x53EF, 0x9009, 0x53C2, 0x6570))
     "sem_export_vararg.err.txt" = "C ABI export " + (Join-CodePoints @(0x4E0D, 0x652F, 0x6301, 0x53EF, 0x53D8, 0x53C2, 0x6570))
-    "sem_export_string_return.err.txt" = (Join-CodePoints @(0x8BE5, 0x8FD4, 0x56DE, 0x7C7B, 0x578B, 0x4E0D, 0x80FD, 0x76F4, 0x63A5, 0x8FDB, 0x5165, 0x7B2C, 0x4E8C, 0x9636, 0x6BB5)) + " C ABI export"
     "sem_export_generic.err.txt" = $diagSyntaxError
     "sem_extern_c_symbol_mismatch.err.txt" = "extern C symbol declared with incompatible ABI"
     "sem_extern_c_symbol_kind_mismatch.err.txt" = "extern C symbol declared with incompatible ABI"

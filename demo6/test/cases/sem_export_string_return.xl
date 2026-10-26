@@ -1,3 +1,4 @@
-export "bad_string_return" func bad() as string
+export "export_string_return" func text() as string
     return "x"
 end
+assert text()=="x"
