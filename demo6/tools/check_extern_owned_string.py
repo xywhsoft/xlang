@@ -18,6 +18,8 @@ def main():
     binary=(args.driver or args.cli).resolve();checks=[]
     env=os.environ.copy();env['XLANG_PACKAGE_PATH']=os.pathsep.join([str(ROOT/'test/fixtures'),str(ROOT/'release/extlibs')])
     def run(name,argv,expected=True,diagnostic=None):
+        if args.cli and argv[0]==binary:
+            argv=[*argv,'--inc-path',ROOT/'release/include']
         result=subprocess.run([str(s) for s in argv],cwd=ROOT,env=env,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,timeout=300)
         log=result.stdout.decode('utf-8',errors='replace');(work/(name+'.log')).write_text(log,encoding='utf-8')
         passed=(result.returncode==0)==expected and (diagnostic is None or diagnostic in log)
@@ -28,9 +30,11 @@ def main():
         ('extern_owned_string','test/cases/extern_owned_string.xl',['test/cases/extern_owned_string_host.c'],['owned_text','owned_empty','owned_null','owned_optional']),
         ('extern_owned_string_package','test/cases/extern_owned_string_package.xl',[],['owned_package_text','owned_package_optional']),
         ('extern_owned_string_export','test/cases/extern_owned_string_export.xl',['test/cases/extern_owned_string_host.c'],['owned_text']),
+        ('extern_owned_string_forward','test/cases/extern_owned_string_forward.xl',['test/cases/extern_owned_string_host.c'],['owned_optional']),
         ('example','release/examples/extern_owned_string.xl',['release/examples/extern_owned_string_native.c'],['example_owned_text']),
         ('cstring-regression','test/cases/xlir_c_owned_basic.xl',['test/cases/xlir_c_owned_native.c'],[]),
         ('cstring-package-regression','test/cases/xlir_c_owned_import_exports.xl',[],[]),
+        ('ordinary-string-export-regression','test/cases/sem_export_string_return.xl',[],[]),
     ]
     sha=lambda path:hashlib.sha256(Path(path).read_bytes()).hexdigest()
     inputs=[ROOT/source for _,source,_,_ in cases]+[ROOT/path for _,_,paths,_ in cases for path in paths]
@@ -63,7 +67,10 @@ def main():
                 ' xl6_foreign_error_scope scope={0}; if(!xl6ForeignCallBegin(&scope)) return false;\n'
                 ' xlir_string value=owned_export_text(); xl6_foreign_error_result outcome=xl6ForeignCallEnd(&scope);\n'
                 ' bool ok=outcome.ok && value.Data && value.Size==10 && owned_original(value.Data);\n'
-                ' xrtFree((void*)value.Data); xrtErrorFree(outcome.error); return ok; }\n',encoding='utf-8')
+                ' xrtFree((void*)value.Data); xrtErrorFree(outcome.error);\n'
+                ' if(!xl6ForeignCallBegin(&scope)) return false;\n'
+                ' value=owned_export_optional(); outcome=xl6ForeignCallEnd(&scope);\n'
+                ' ok=ok && outcome.ok && !value.Data && !value.Size; xrtErrorFree(outcome.error); return ok; }\n',encoding='utf-8')
             entry=work/'export-entry.xl'
             program=source.read_text(encoding='utf-8')
             assert '    return 0\n' in program
@@ -74,10 +81,18 @@ def main():
             run('export-C-consumer-aot-build',[binary,'build',entry,*extra,'-o',work/'consumer-aot']
                 if args.cli else [binary,entry,'exe',work/'consumer-aot',*extra])
             run('export-C-consumer-aot',[(work/'consumer-aot').with_suffix('.exe' if os.name=='nt' else '')])
-    for name,message in {'integer':'@owned requires','product':'@owned requires','constructor':'@owned requires',
-                         'no_raise':'@owned @no_raise requires','conflict':'incompatible ABI',
-                         'member_conflict':'conflicting string ownership','registered':'bridge'}.items():
-        source=ROOT/'test/cases'/('bad_extern_owned_'+name+'.xl')
+    negatives={
+        'test/cases/bad_extern_owned_integer.xl':'@owned requires',
+        'test/cases/bad_extern_owned_product.xl':'@owned requires',
+        'test/cases/bad_extern_owned_constructor.xl':'@owned requires',
+        'test/cases/bad_extern_owned_no_raise.xl':'@owned @no_raise requires',
+        'test/cases/bad_extern_owned_conflict.xl':'incompatible ABI',
+        'test/cases/bad_extern_owned_member_conflict.xl':'conflicting string ownership',
+        'test/cases/bad_extern_owned_registered.xl':'bridge',
+        'test/cases/bad_extern_owned_unknown.xl':'unknown extern effect contract',
+    }
+    for relative,message in negatives.items():
+        source=ROOT/relative;name=source.stem.removeprefix('bad_extern_owned_')
         run('reject-'+name,[binary,'cgen',source,'--emit',work/('reject-'+name+'.c')] if args.cli else [binary,source,'emit',work/('reject-'+name)],False,message)
     run('reject-raw-C-callback-string',[binary,'check',ROOT/'test/cases/sem_c_callback_string_return_invalid.xl']
         if args.cli else [binary,ROOT/'test/cases/sem_c_callback_string_return_invalid.xl','emit',work/'reject-callback'],False)

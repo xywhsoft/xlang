@@ -166,7 +166,7 @@ function Get-CheckScriptWiringFiles()
     $files = New-Object System.Collections.Generic.List[string]
 
     $rootPath = (Resolve-Path -LiteralPath $script:Root).Path
-    foreach ( $scriptFile in @(Get-VersionedFilesUnder "tools" @(".ps1", ".sh") "check_*") ) {
+    foreach ( $scriptFile in @(Get-VersionedFilesUnder "tools" @(".ps1", ".sh", ".py") "check_*") ) {
         $files.Add($scriptFile.FullName.Substring($rootPath.Length + 1)) | Out-Null
     }
 

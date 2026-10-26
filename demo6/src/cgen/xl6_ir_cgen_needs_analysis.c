@@ -1205,6 +1205,14 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
     if (module->exportCount != 0) {
         needs->needsForeignErrorRuntime = 1;
         needs->needsErrorRuntime = 1;
+        /* Entry rollback releases a pending string even when the body only
+         * forwards a no-raise owned result and emits no string operations. */
+        for (i = 0; i < module->exportCount; ++i) {
+            const XL6_IrType* result = xl6IrTypeGet(&module->types,
+                module->exports[i].returnType);
+            if (result != NULL && result->cAbi == XL6_IR_C_ABI_MANAGED_STRING)
+                needs->needsStringRuntime = 1;
+        }
     }
     if ( !xl6IrCgenAnalyzeCallTargetNeeds(module, needs, diags) )
         return 0;
