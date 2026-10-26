@@ -16,7 +16,8 @@ try {
     $package=Join-Path $out 'package'
     New-Item -ItemType Directory -Path $package | Out-Null
     Copy-Item -LiteralPath "$public/build.json" -Destination "$package/build.json"
-    $shell=(Get-Command powershell.exe).Source
+    # Keep the parent's tested PowerShell edition and module environment.
+    $shell=(Get-Process -Id $PID).Path
     function Parallel-Stage([string]$name) {
         $children=@()
         try {
