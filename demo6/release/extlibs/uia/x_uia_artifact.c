@@ -1397,9 +1397,8 @@ XL_EXPORT int x_uia_events_subscribe_property_changed(void* handle, void* elemen
 	return 1;
 }
 
-XL_EXPORT const char* x_uia_events_poll_json(void* handle, int timeout_ms)
+static const char* x_uia_events_poll_json_live(XUiaEvents* queue, int timeout_ms)
 {
-	XUiaEvents* queue = x_uia_events_from_handle(handle);
 	XUiaEventRecord rec;
 	XUiaJsonBuilder json;
 	int has_event = 0;
@@ -1410,13 +1409,14 @@ XL_EXPORT const char* x_uia_events_poll_json(void* handle, int timeout_ms)
 	DWORD wait_result;
 	MSG msg;
 
-	if ( queue == NULL ) {
-		x_uia_set_error("events.poll_json: invalid queue");
-		return "{}";
-	}
 	started = GetTickCount();
 	for ( ;; ) {
 		EnterCriticalSection(&queue->lock);
+		if ( InterlockedCompareExchange(&queue->closing, 0, 0) != 0 ) {
+			LeaveCriticalSection(&queue->lock);
+			x_uia_set_error("");
+			return "{}";
+		}
 		has_event = queue->count > 0;
 		LeaveCriticalSection(&queue->lock);
 		if ( has_event ) {
@@ -1458,6 +1458,11 @@ XL_EXPORT const char* x_uia_events_poll_json(void* handle, int timeout_ms)
 		return "{}";
 	}
 	EnterCriticalSection(&queue->lock);
+	if ( InterlockedCompareExchange(&queue->closing, 0, 0) != 0 ) {
+		LeaveCriticalSection(&queue->lock);
+		x_uia_set_error("");
+		return "{}";
+	}
 	if ( queue->count > 0 ) {
 		rec = queue->records[queue->head];
 		queue->head = (queue->head + 1) % X_UIA_EVENT_QUEUE_CAPACITY;
@@ -1486,6 +1491,21 @@ XL_EXPORT const char* x_uia_events_poll_json(void* handle, int timeout_ms)
 	return x_uia_json_finish(&json, "events.poll_json: output limit exceeded");
 }
 
+XL_EXPORT const char* x_uia_events_poll_json(void* handle, int timeout_ms)
+{
+	XUiaEvents* queue = x_uia_events_from_handle(handle);
+	const char* result;
+	if ( queue == NULL ) {
+		x_uia_set_error("events.poll_json: invalid queue");
+		return "{}";
+	}
+	/* 宿主消息可以重入 release；轮询结束前保持队列有效。 */
+	InterlockedIncrement(&queue->ref_count);
+	result = x_uia_events_poll_json_live(queue, timeout_ms);
+	x_uia_events_drop_ref(queue);
+	return result;
+}
+
 XL_EXPORT int x_uia_events_release(void* handle)
 {
 	XUiaEvents* queue = x_uia_events_from_handle(handle);
@@ -1495,6 +1515,7 @@ XL_EXPORT int x_uia_events_release(void* handle)
 		return 0;
 	}
 	InterlockedExchange(&queue->closing, 1);
+	SetEvent(queue->signal);
 	if ( queue->property_subscribed ) {
 		hr = g_x_uia->lpVtbl->RemovePropertyChangedEventHandler(
 			g_x_uia, queue->property_element,

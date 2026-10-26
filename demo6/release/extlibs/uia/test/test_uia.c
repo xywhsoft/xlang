@@ -36,6 +36,19 @@ static HRESULT STDMETHODCALLTYPE x_uia_test_failed_name(IUIAutomationElement* el
 	return E_FAIL;
 }
 
+static void* g_x_uia_poll_release_queue;
+static int g_x_uia_poll_release_result;
+
+static VOID CALLBACK x_uia_test_release_during_poll(HWND hwnd, UINT message, UINT_PTR timer, DWORD time)
+{
+	(void)hwnd;
+	(void)message;
+	(void)time;
+	KillTimer(NULL, timer);
+	g_x_uia_poll_release_result = x_uia_events_release(g_x_uia_poll_release_queue);
+	if ( g_x_uia_poll_release_result ) { g_x_uia_poll_release_queue = NULL; }
+}
+
 int main(void)
 {
 	void* pWindow = x_uia_test_window_create();
@@ -52,6 +65,8 @@ int main(void)
 	XUiaThreadCheck threadCheck;
 	HANDLE worker = NULL;
 	MSG quit_message;
+	DWORD poll_started;
+	UINT_PTR poll_timer;
 	int iResult = 1;
 
 	if ( pWindow == NULL || !x_uia_test_window_valid(pWindow) ) { goto cleanup; }
@@ -292,11 +307,31 @@ int main(void)
 	PeekMessageA(&quit_message, NULL, WM_QUIT, WM_QUIT, PM_REMOVE);
 	if ( !x_uia_events_release(pEvents) ) { goto cleanup; }
 	pEvents = NULL;
+	/* 消息回调在轮询中释放队列后，轮询必须及时安全地返回。 */
+	pEvents = x_uia_events_create();
+	if ( pEvents == NULL ) { goto cleanup; }
+	g_x_uia_poll_release_queue = pEvents;
+	g_x_uia_poll_release_result = 0;
+	poll_timer = SetTimer(NULL, 0u, 1u, x_uia_test_release_during_poll);
+	if ( poll_timer == 0u ) {
+		fprintf(stderr, "UIA reentrant release timer failed: %lu\n", (unsigned long)GetLastError());
+		goto cleanup;
+	}
+	poll_started = GetTickCount();
+	if ( strcmp(x_uia_events_poll_json(pEvents, 2000), "{}") != 0 ||
+		g_x_uia_poll_release_result != 1 || GetTickCount() - poll_started > 1000u ) {
+		fprintf(stderr, "UIA event poll did not survive reentrant release\n");
+		KillTimer(NULL, poll_timer);
+		if ( g_x_uia_poll_release_result ) { pEvents = NULL; }
+		goto cleanup;
+	}
+	pEvents = NULL;
 	pChildren = x_uia_element_children(pRoot);
 	if ( pChildren == NULL || xrtValueType(pChildren) != XVALUE_ARRAY ||
 		xrtValueCount(pChildren) == 0u ||
 		!xrtValueGetPointer(xrtValueArrayGet(pChildren, 0u), &pChild) ||
 		pChild == NULL ) {
+		fprintf(stderr, "UIA element read after event poll failed: %s\n", x_uia_last_error());
 		if ( pChildren != NULL ) { xrtValueRelease(pChildren); }
 		goto cleanup;
 	}

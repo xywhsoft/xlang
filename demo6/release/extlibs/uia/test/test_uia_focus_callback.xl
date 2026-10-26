@@ -17,21 +17,25 @@ func main(...) as int
     assert events.valid(), "event queue creation failed"
     assert events.poll_callback(onFocus, 0) == 0, "empty queue invoked callback"
     assert events.subscribe_focus_changed(), "focus subscription failed"
+    auto rejectingEvents = uia.events()
+    assert rejectingEvents.valid(), "rejecting event queue creation failed"
+    assert rejectingEvents.subscribe_focus_changed(), "rejecting focus subscription failed"
 
     // 先聚焦输入框，再切到按钮，保证测试产生一次真实焦点变化。
     assert window.focus_edit(), "edit focus failed"
     assert window.focus_button(), "button focus failed"
     assert events.poll_callback(onFocus, 1000) == 42, "XLang callback result was lost"
 
-    assert window.focus_edit(), "second edit focus failed"
     bool rejected = false
+    // 两个队列接收同一次真实焦点变化，避免依赖第二次桌面焦点通知。
     try
-        events.poll_callback(rejectFocus, 1000)
+        rejectingEvents.poll_callback(rejectFocus, 1000)
     catch ValueError e
         rejected = true
     end
     assert rejected, "callback error was not propagated"
 
+    assert rejectingEvents.release(), "rejecting event queue release failed"
     assert events.release(), "event queue release failed"
     assert window.release(), "window release failed"
     assert uia.shutdown(), "uia shutdown failed"

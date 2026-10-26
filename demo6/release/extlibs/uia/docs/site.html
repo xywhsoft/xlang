@@ -44,7 +44,7 @@ uia.shutdown()</code></pre>
       <tr><td><code>Element.find_class_path</code></td><td>按生成定位器的 Control View 类名、控件类型和兄弟序号精确查找；C 入口为 <code>x_uia_element_find_class_path</code>。</td></tr>
       <tr><td><code>Element.value / text / set_value / invoke / toggle</code></td><td>使用目标控件支持的 UIA 协议；不支持的协议会报告失败。</td></tr>
       <tr><td><code>Element.snapshot_json / locator_json</code></td><td>获取元素快照与可复用定位信息。</td></tr>
-      <tr><td><code>events().poll_json(timeout_ms)</code></td><td>轮询焦点或属性事件；无事件返回 <code>{}</code>。等待期间处理当前线程窗口消息；收到 <code>WM_QUIT</code> 时保留退出码并交还给宿主。</td></tr>
+      <tr><td><code>events().poll_json(timeout_ms)</code></td><td>轮询焦点或属性事件；无事件返回 <code>{}</code>。等待期间处理当前线程窗口消息；收到 <code>WM_QUIT</code> 时保留退出码并交还给宿主。消息回调重入释放队列时，轮询安全返回 <code>{}</code>。</td></tr>
       <tr><td><code>Events.poll_callback(handler, timeout_ms)</code></td><td>从事件队列取出 JSON，调用 XLang 函数并返回其结果。</td></tr>
     </tbody></table>
     <p>对象自动析构，也可调用 <code>release()</code> 提前释放。C 使用 <code>extlibs/uia/include/uia.h</code>；C 调用方须释放拥有型句柄及元素数组内的每个原生句柄，返回文本仅短暂借用。BSTR 文本转换按需扩容；内嵌 NUL、无效 UTF-16 与分配失败明确报错，缓冲在 <code>shutdown()</code> 时释放。快照与事件 JSON 完整输出上限为 16 MiB，超限返回错误，不返回截断结果。</p>

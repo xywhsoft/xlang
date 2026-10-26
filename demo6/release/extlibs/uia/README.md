@@ -10,6 +10,7 @@ Windows UI Automation 扩展库。C 桥接源代码和公开头文件分别为
 - `Element` 支持属性读取、快照、条件查询、Value/Invoke/Toggle/Text 等 UIA 协议。目标控件不支持的协议会报告错误，不能把失败当作普通布尔值忽略。
 - `uia.events()` 提供焦点与属性事件。无事件时 `poll_json(0)` 返回 `{}`，不设置 XRT 错误。
 - `poll_json` 等待事件时会处理当前线程的窗口消息；收到宿主的 `WM_QUIT` 时返回 `{}`，并将原退出码重新投递给宿主，不吞掉退出请求。
+- 当前线程的消息回调若在 `poll_json` 等待期间调用 `release()`，轮询会被唤醒并安全返回 `{}`；轮询期间队列保持有效，不会访问已释放内存。
 - `Events.poll_callback(handler, timeout_ms)` 从 UIA 事件队列取出 JSON，再调用 XLang 函数；回调返回值原样传回。`test/test_uia_focus_callback.xl` 演示具名函数处理真实焦点变化。
 - `Process`、`TestWindow`、`Condition`、`Element`、`Events` 是拥有型句柄；XLang 自动析构，`release()` 可提前释放且再次调用返回 false。C 调用方必须使用对应的 `x_uia_*_release`；`xvalue` 元素数组中的每个原生句柄也须单独释放。
 - UIA 上下文绑定首次使用它的线程；`Element`、`Condition`、`Events` 句柄及所有 UIA 操作只能在该线程使用。其他线程的调用会拒绝；如需交接，请在原线程释放所有句柄并调用 `uia.shutdown()`，再由新线程初始化。
