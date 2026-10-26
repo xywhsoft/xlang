@@ -35,16 +35,33 @@ void xlsFrontendSemStorageBegin(xls_sem_storage_control* control,size_t bytes);
 void xlsFrontendSemStorageEnd(xls_sem_storage_control* control,xls_sem_storage_work* work);
 size_t xlsFrontendSemStorageBudget(void);
 typedef struct xls_sem_tail xls_sem_tail;
-typedef struct xls_sem_tail_work { uint64_t deferred,materialized,retainedBytes; } xls_sem_tail_work;
-/* Completion replies do not consume final IR annotations. A private result may
- * retain the exact registry and materialize the original passes once, before
- * exposing its full AST. Ordinary/fresh checking remains eager. */
-void xlsFrontendSemTailMaterialize(xls_sem_tail* tail);
+typedef struct xls_sem_tail_work {
+    uint64_t deferred,materialized,retainedBytes;
+    uint64_t bodyFunctions,bodyMaterialized,bodyBytes,bodyFailures,bodyRetries;
+} xls_sem_tail_work;
+/* Completion/signature replies consume validated immutable function facts,
+ * not their expanded body ASTs or final IR annotations. A private result may
+ * retain independent unit/coordinate views and its exact type registry, then
+ * materialize all bodies and the original passes before exposing its AST.
+ * The two local quotas are registry<=8MiB and body views/jobs<=64MiB; neither
+ * bounds the full model, temporary allocation, AST storage, or process RSS.
+ * Ordinary/fresh checking remains eager. */
+/* Returns zero on a temporary body materialization allocation failure. No
+ * incomplete AST is exposed; query facts remain valid and a caller may retry. */
+int xlsFrontendSemTailMaterialize(xls_sem_tail* tail);
 void xlsFrontendSemTailDestroy(xls_sem_tail* tail);
 xls_sem_tail_work xlsFrontendSemTailWork(const xls_sem_tail* tail);
 typedef struct xls_sem_tail_control { struct xls_sem_tail_control* previous;size_t bytes; } xls_sem_tail_control;
 void xlsFrontendSemTailBegin(xls_sem_tail_control* control,size_t bytes);
 void xlsFrontendSemTailEnd(xls_sem_tail_control* control);
+
+typedef struct xls_sem_body_control {struct xls_sem_body_control* previous;size_t bytes;} xls_sem_body_control;
+/* Optional immutable function-view retention, at most 64 MiB of known data.
+ * This includes each referenced unit/position capacity in full, plus jobs;
+ * allocator/transient/whole-process storage is outside this local quota.
+ * Zero retains the original eager fact restoration. Nested limits only shrink. */
+void xlsFrontendSemBodyBegin(xls_sem_body_control* control,size_t bytes);
+void xlsFrontendSemBodyEnd(xls_sem_body_control* control);
 typedef struct xls_sem_work { uint64_t checked,reused,contextHits,bytes; } xls_sem_work;
 typedef struct xls_sem_read_work {
     uint64_t contexts,contextHits,recorded,negative,matched,rejected,reused,bytes;

@@ -67,6 +67,15 @@ typedef struct xls_sem_unit {
     xls_sem_reads* reads;
 } xls_sem_unit;
 typedef struct xls_sem_position { XL6_AstRange range,token; int line,column; } xls_sem_position;
+
+/* One immutable coordinate view owns its unit independently of any result or
+ * earlier memo. Entry aliases below never own the view's unit/array twice. */
+typedef struct xls_sem_view {
+    xatomic32 references;
+    xls_sem_unit* unit;
+    xarray positions;
+    size_t bytes;
+} xls_sem_view;
 typedef struct xls_sem_entry {
     xstrbuf key;
     XL6_AstRange lexicalRange;
@@ -75,7 +84,16 @@ typedef struct xls_sem_entry {
     XL6_SymbolId start,end;
     XL6_TypeId typeStart,typeEnd;
     size_t typeNodes,typeBytes;
+    xls_sem_view* view;
 } xls_sem_entry;
+
+typedef struct xls_sem_body_job {
+    xls_sem_view* view;
+    XL6_AstNode* function; /* same private result, never an old result */
+    XL6_AstRange lexicalRange;
+    XL6_SymbolId start;
+    int shifted;
+} xls_sem_body_job;
 struct xls_sem_memo {
     char* path;
     xstrbuf context;
@@ -101,6 +119,9 @@ typedef struct xls_sem_moves {
 } xls_sem_moves;
 typedef struct xls_sem_build {
     struct xls_sem_build* previous;
+    xarray bodyJobs;
+    size_t bodyBytes;
+    int bodyFailure;
     const xls_sem_memo* baseline;
     xls_sem_memo* memo;
     xmap slots,sources;
@@ -484,6 +505,8 @@ static void xlsSemUnitRelease(xls_sem_unit* unit)
         xrtFree(unit);
     }
 }
+
+#include "analysis/frontend_sem_view.inc"
 typedef struct xls_sem_type_copy {
     const XL6_AstNode* root;
     xls_ast_clone_options options;
@@ -677,11 +700,9 @@ static int xlsSemApplyCursorSource(const XL6_AstSource* in,const XL6_AstSource* 
         !strcmp(apply->previousCursor.path,apply->currentCursor.path) &&
         xlsSemCursorSource(in,&apply->previousCursor) && xlsSemCursorSource(target,&apply->currentCursor);
 }
-static int xlsSemApplyFacts(const xls_sem_entry* entry,const xarray* nodes,const xls_sem_moves* moves,const xmap* sources,
+static xls_sem_apply xlsSemApplyBegin(const xls_sem_entry* entry,const xls_sem_moves* moves,const xmap* sources,
     xarray* positions,const XL6_AstNode* function,const xls_sem_cursor* cursor,XL6_SymbolId symbolStart,int symbolsChanged)
 {
-    if(!entry->unit || entry->unit->facts.Count!=nodes->Count) return 0;
-    xarray staged={0}; size_t owned=0;
     xls_sem_apply apply={.moves=moves,.previous=&entry->positions,.positions=positions,.sources=sources,
         .previousCursor=entry->unit->cursor,.currentCursor=*cursor,.symbols=&entry->unit->symbols,
         .symbolStart=symbolStart,.symbolsChanged=symbolsChanged};
@@ -705,6 +726,14 @@ static int xlsSemApplyFacts(const xls_sem_entry* entry,const xarray* nodes,const
         apply.anchor.start=apply.anchor.end=before.startOffset+move->oldSkip;
         apply.anchor.delta=(int64_t)(after.startOffset+move->newSkip)-(int64_t)apply.anchor.start;
     }
+    return apply;
+}
+static int xlsSemApplyFacts(const xls_sem_entry* entry,const xarray* nodes,const xls_sem_moves* moves,const xmap* sources,
+    xarray* positions,const XL6_AstNode* function,const xls_sem_cursor* cursor,XL6_SymbolId symbolStart,int symbolsChanged)
+{
+    if(!entry->unit || entry->unit->facts.Count!=nodes->Count) return 0;
+    xarray staged={0}; size_t owned=0;
+    xls_sem_apply apply=xlsSemApplyBegin(entry,moves,sources,positions,function,cursor,symbolStart,symbolsChanged);
     if(!xrtArrayInit(&staged,sizeof(xls_sem_fact)) || !xrtArrayResize(&staged,nodes->Count) || !xrtArrayInit(positions,sizeof(xls_sem_position))) goto failed;
     /* Stage every owned type before touching the fresh tree. On resource or
      * coordinate failure the original checker sees its untouched input. */
@@ -742,6 +771,7 @@ static int xlsSemApplyFacts(const xls_sem_entry* entry,const xarray* nodes,const
     xlsSemFactsFree(&staged); return 1;
 failed: xlsSemFactsFree(&staged); xrtArrayUnit(positions); return 0;
 }
+#include "analysis/frontend_sem_body.inc"
 static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
 {
     if(xlsFrontendCancelPoint(XLS_CANCEL_SEM_FUNCTION,1))return 0;
@@ -800,7 +830,7 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
        old->end>=old->start && old->end-old->start==old->unit->symbols.end-old->unit->symbols.start &&
        (!symbolsChanged || old->unit->symbols.local) &&
        old->typeNodes<=65536u-ctx->queryTypeNodes && old->typeBytes<=4u*1024u*1024u-ctx->queryTypeBytes) {
-        if(xlsSemApplyFacts(old,&raw,&build->moves,&build->sources,&entry->positions,node,&build->queryCursor,entry->start,symbolsChanged)) {
+        if(xlsSemApplyFactsDemand(old,&raw,&build->moves,&build->sources,&entry->positions,node,&build->queryCursor,entry->start,symbolsChanged)) {
             ctx->nextSymbolId=symbolEnd; ctx->types.nextId=old->typeEnd;
             ctx->queryTypeNodes+=old->typeNodes; ctx->queryTypeBytes+=old->typeBytes;
             okay=reused=1; ++build->work.reused;if(!build->compatible)++m->readWork.reused;xlsSemReadOwnChanged(build,node);
@@ -821,11 +851,18 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
        entry->key.Capacity<=XLS_SEM_MEMO_BYTES-m->bytes) {
         m->bytes+=entry->key.Capacity; size_t owned=0;
         size_t positions=entry->positions.Capacity*sizeof(xls_sem_position);
-        if(reused && positions<=XLS_SEM_MEMO_BYTES-m->bytes && old->unit->bytes<=XLS_SEM_MEMO_BYTES-m->bytes-positions) {
+        size_t viewBytes=entry->view ? sizeof(xls_sem_view) : 0;
+        if(reused && positions<=XLS_SEM_MEMO_BYTES-m->bytes && viewBytes<=XLS_SEM_MEMO_BYTES-m->bytes-positions &&
+           old->unit->bytes<=XLS_SEM_MEMO_BYTES-m->bytes-positions-viewBytes) {
             /* Immutable values share across versions; a compact position
              * table carries current coordinates. Neither keeps old text or
              * an old memo/check alive. Published AST types remain private. */
-            entry->unit=xlsSemUnitRetain(old->unit); m->bytes+=old->unit->bytes+positions;
+            if(!entry->view)entry->unit=xlsSemUnitRetain(old->unit);
+            m->bytes+=old->unit->bytes+positions+viewBytes;
+        } else if(entry->view) {
+            /* A queued independent view still owns the result's body facts.
+             * Do not capture an incomplete body into a replacement unit. */
+            xlsSemEntryFactsClear(entry);
         } else if(sizeof(xls_sem_unit)<XLS_SEM_MEMO_BYTES-m->bytes) {
             xrtArrayUnit(&entry->positions);
             xls_sem_unit* unit=xrtCalloc(1,sizeof(*unit));
@@ -845,14 +882,14 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
                 } else xlsSemUnitRelease(unit);
             }
         }
-        if(!entry->unit) { m->bytes-=entry->key.Capacity; xrtStrBufFree(&entry->key); xrtArrayUnit(&entry->positions); }
-    } else { xrtStrBufFree(&entry->key); xrtArrayUnit(&entry->positions); }
+        if(!entry->unit) { m->bytes-=entry->key.Capacity; xrtStrBufFree(&entry->key); xlsSemEntryFactsClear(entry); }
+    } else { xrtStrBufFree(&entry->key); xlsSemEntryFactsClear(entry); }
     xlsSemReadsDestroy(capturedReads);xrtArrayUnit(&raw); xrtStrBufFree(&state); xrtStrBufFree(&after); return okay;
 }
 void xlsFrontendSemMemoDestroy(xls_sem_memo* memo)
 {
     if(!memo) return;
-    for(size_t i=0;i<memo->entries.Count;++i) { xls_sem_entry* e=xrtArrayGet(&memo->entries,i); xrtStrBufFree(&e->key); xrtArrayUnit(&e->positions); xlsSemUnitRelease(e->unit); }
+    for(size_t i=0;i<memo->entries.Count;++i) { xls_sem_entry* e=xrtArrayGet(&memo->entries,i); xrtStrBufFree(&e->key); xlsSemEntryFactsClear(e); }
     xrtArrayUnit(&memo->entries); xrtStrBufFree(&memo->context);xlsSemReadContextRelease(memo->readContext);xrtFree(memo->path); xrtFree(memo);
 }
 xls_ast_intern_work xlsFrontendSemMemoTypes(const xls_sem_memo* memo)
@@ -931,9 +968,14 @@ static int xlsSemCheckMemo(XL6_AstNode* root,XL6_DiagList* diags,const char* mod
     build.memo=memo; xlsActiveSemBuild=&build;
     if(memo && previous && !xlsSemMovesBuild(&build.moves,previousSources,sources)) build.baseline=NULL;
     int okay=xl6SemCheckModuleWithQuery(root,diags,module,captureIndex,query);
+    xlsSemBodyJobsFree(&build.bodyJobs);
     xlsActiveSemBuild=build.previous; xrtMapUnit(&build.slots); xrtMapUnit(&build.sources);
     xrtMapUnit(&build.readCache);
     xrtMapUnit(&build.moves.paths); xrtArrayUnit(&build.moves.changedSources);
+    if(build.bodyFailure){
+        xlsFrontendSemMemoDestroy(memo);memo=NULL;build.memo=NULL;build.enabled=0;
+        okay=-1;
+    }
     build.work.bytes=memo && build.enabled ? memo->bytes : 0;
     if(memo && build.enabled && !query)for(size_t i=0;i<memo->entries.Count;++i){
         const xls_sem_entry* entry=xrtArrayConstGet(&memo->entries,i);if(!entry->unit)continue;

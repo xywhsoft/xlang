@@ -59,10 +59,7 @@ static int source(clone_context* c,const XL6_AstSource* in,XL6_AstNode* out)
     if(c->options.targetSource) {
         XL6_AstSource* target=c->options.targetSource(in,c->options.user);
         if(target) {
-            if(target==in || !target->references || !!target->path!=!!in->path ||
-               (in->path && strcmp(target->path,in->path)) || target->completionQuery!=in->completionQuery) return 0;
-            if((target->completionStart!=in->completionStart || target->completionEnd!=in->completionEnd) &&
-               (in->completionQuery!=1 || !c->cursorPolicy || !c->cursorPolicy(in,target,c->policyUser))) return 0;
+            if(!xlsAstCloneSourceTargetValid(in,target,c->cursorPolicy,c->policyUser))return 0;
             if(!xrtMapSet(&c->sources,key,&target)) return 0;
             out->source=target; ++target->references; return 1;
         }

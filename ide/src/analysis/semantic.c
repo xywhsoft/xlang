@@ -33,6 +33,7 @@ struct xls_semantic_completion {
     xls_sem_work semanticWork;
     xls_sem_call_work callWork;
     xls_sem_tail* tail;
+    uint64_t bodyRetries;
     xls_sem_storage_work storageWork;
     xls_ast_materialize_work materializationWork;
     xls_signature_data* signature;
@@ -76,9 +77,10 @@ void xlsSemanticCompletionDestroy(xls_semantic_completion* r)
 static xls_semantic_completion* createBody(xls_context* context,const char* entry,const char* queryPath,
     size_t offset,const xls_semantic_input* inputs,size_t count,const xls_syntax* syntax,
     xls_semantic_completion* previous,int memoEnabled,
-    int (*cancelled)(void*),void* user,char* error,size_t capacity,xls_signature_scope* signature)
+    int (*cancelled)(void*),void* user,char* error,size_t capacity,xls_signature_scope* signature,int* bodyRetry)
 {
     xls_semantic_completion* r=NULL;
+    *bodyRetry=0;
     if(error && capacity) *error=0;
     if(!absolute(entry) || !absolute(queryPath) || !inputs || !count || count>XL6_SOURCE_OVERLAY_FILES) {
         fail(error,capacity,"semantic completion requires absolute paths and 1..64 overlays"); return NULL;
@@ -140,6 +142,7 @@ static xls_semantic_completion* createBody(xls_context* context,const char* entr
     if(stopped(cancelled,user)) goto cancel;
     /* A successful cursor projection intentionally stops semantic checking
      * early. Its available/reached flags, not full-check return, are decisive. */
+    int retry=0;
     if(okay) {
         /* Match the compiler's module identity without borrowing its mutable
          * CompileUnit/IR pipeline. XRT already provides path decomposition. */
@@ -154,11 +157,16 @@ static xls_semantic_completion* createBody(xls_context* context,const char* entr
             int compatible=previous && previous->memo && !strcmp(previous->path,r->path) &&
                 xlsFrontendContextsEqual(previous->context,context) && xlsSemanticCompletionValidate(previous) &&
                 xlsInputTopologyOverlayCompatible(xlsSemanticCompletionTopology(previous),&previous->overlay,&r->overlay);
-            xlsFrontendSemCheckCursorDeferred(r->parse.root,&r->parse.diags,module,&r->query,entry,&r->report,
-                compatible ? &previous->report : NULL,compatible ? previous->memo : NULL,&r->memo,&r->semanticWork,&r->tail);
+            retry=xlsFrontendSemCheckCursorDeferred(r->parse.root,&r->parse.diags,module,&r->query,entry,&r->report,
+                compatible ? &previous->report : NULL,compatible ? previous->memo : NULL,&r->memo,&r->semanticWork,&r->tail)<0;
         } else xl6SemCheckModuleWithQuery(r->parse.root,&r->parse.diags,module,0,&r->query);
         xlsFrontendSemCallsEnd(&calls,&r->callWork);
         xlsFrontendSemStorageEnd(&storage,&r->storageWork);
+    }
+    if(retry){
+        *bodyRetry=1;
+        if(signature){xlsSignatureDataResetCaptured(signature->data);r->signature=NULL;signature->adopted=0;}
+        xlsSemanticCompletionDestroy(r);return NULL;
     }
     if(stopped(cancelled,user)) goto cancel;
     r->available=r->query.available && !r->query.error &&
@@ -189,21 +197,41 @@ static xls_semantic_completion* create(xls_context* context,xls_entry_cache* cac
     xls_input_topology_scope topology;xlsInputTopologyBegin(&topology,memoEnabled ? 8u*1024u*1024u : 0);
     xls_module_graph_scope modules;xlsModuleGraphBegin(&modules,memoEnabled ? xlsModuleScopeCurrent() : NULL,context,8u*1024u*1024u);
     xls_frontend_cancel_scope cancellation;xlsFrontendCancelBegin(&cancellation,cancelled,user);
-    xls_semantic_completion* result=createBody(context,entry,queryPath,offset,inputs,count,syntax,previous,memoEnabled,cancelled,user,error,capacity,signatureData ? &signature : NULL);
+    int bodyRetry=0;
+    xls_semantic_completion* result=createBody(context,entry,queryPath,offset,inputs,count,syntax,previous,memoEnabled,cancelled,user,error,capacity,signatureData ? &signature : NULL,&bodyRetry);
     uint64_t used=0;int known=xlsFrontendInputUsageEnd(&usage,&used);
     xls_input_topology* captured=xlsInputTopologyEnd(&topology);
     if(result && known)result->topology=captured;else xlsInputTopologyDestroy(captured);
     xls_module_graph* graph=xlsModuleGraphEnd(&modules,result ? &result->report : NULL);
     if(result)result->modules=graph;else xlsModuleGraphRelease(graph);
-    if(signatureData){if(!signature.adopted)xlsSignatureDataDestroy(signatureData);xlsSignatureScopeEnd(&signature);if(signature.cancelObserved){xlsSemanticCompletionDestroy(result);result=NULL;fail(error,capacity,"signature query cancelled");}}
-    if(entryScope.cursorFailed) {xlsSemanticCompletionDestroy(result);result=NULL;fail(error,capacity,"cannot own exact imported cursor syntax");}
+    if(signatureData){
+        if(!signature.adopted && !bodyRetry)xlsSignatureDataDestroy(signatureData);
+        xlsSignatureScopeEnd(&signature);
+        if(signature.cancelObserved){
+            if(bodyRetry)xlsSignatureDataDestroy(signatureData);
+            bodyRetry=0;xlsSemanticCompletionDestroy(result);result=NULL;fail(error,capacity,"signature query cancelled");
+        }
+    }
+    if(entryScope.cursorFailed) {
+        if(bodyRetry && signatureData)xlsSignatureDataDestroy(signatureData);
+        bodyRetry=0;xlsSemanticCompletionDestroy(result);result=NULL;fail(error,capacity,"cannot own exact imported cursor syntax");
+    }
+    if(bodyRetry && stopped(cancelled,user)){
+        xlsSignatureDataDestroy(signatureData);bodyRetry=0;fail(error,capacity,"semantic completion cancelled");
+    }
     if(result && stopped(cancelled,user)) {xlsSemanticCompletionDestroy(result);result=NULL;fail(error,capacity,"semantic completion cancelled");}
     xlsFrontendCancelEnd(&cancellation,NULL);
     int scoped=xlsFrontendContextEnd(&scope);
     xls_completion_entry_work work=xlsFrontendEntryEnd(&entryScope,result && scoped);
     xls_ast_materialize_work materializationWork;xlsAstMaterializeEnd(&materialization,&materializationWork);
     if(!scoped) {
+        if(bodyRetry)xlsSignatureDataDestroy(signatureData);
         xlsSemanticCompletionDestroy(result); fail(error,capacity,(scope.failed&2) ? "cannot retain bounded completion namespace" : "cannot resolve native context path or package environment"); return NULL;
+    }
+    if(bodyRetry){
+        result=create(context,NULL,entry,queryPath,offset,inputs,count,syntax,NULL,0,cancelled,user,error,capacity,signatureData);
+        if(result)++result->bodyRetries;
+        return result;
     }
     if(result) {result->entryWork=work;result->moduleWork=entryScope.moduleWork;result->cursorSyntaxApplied|=entryScope.cursorApplied;result->materializationWork=materializationWork;result->usedInputs=used;result->usageKnown=known && result->report.complete && result->report.count && result->overlay.count==count;}
     return result;
@@ -236,14 +264,14 @@ const XL6_AstNode* xlsSemanticCompletionAst(const xls_semantic_completion* resul
 {
     xls_semantic_completion* r=(xls_semantic_completion*)result;
     if(!r || !xrtMutexLock(&r->lock))return NULL;
-    xlsFrontendSemTailMaterialize(r->tail);
-    const XL6_AstNode* root=r->parse.root;xrtMutexUnlock(&r->lock);return root;
+    int materialized=xlsFrontendSemTailMaterialize(r->tail);
+    const XL6_AstNode* root=materialized ? r->parse.root : NULL;xrtMutexUnlock(&r->lock);return root;
 }
 xls_sem_tail_work xlsSemanticCompletionTailWork(const xls_semantic_completion* result)
 {
     xls_semantic_completion* r=(xls_semantic_completion*)result;
     if(!r || !xrtMutexLock(&r->lock))return (xls_sem_tail_work){0};
-    xls_sem_tail_work work=xlsFrontendSemTailWork(r->tail);xrtMutexUnlock(&r->lock);return work;
+    xls_sem_tail_work work=xlsFrontendSemTailWork(r->tail);work.bodyRetries=r->bodyRetries;xrtMutexUnlock(&r->lock);return work;
 }
 xls_semantic_completion* xlsSemanticCompletionCreateIncrementalInContext(xls_context* context,xls_entry_cache* cache,
     const char* entry,const char* queryPath,size_t offset,const xls_semantic_input* inputs,size_t count,const xls_syntax* syntax,

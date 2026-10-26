@@ -47,6 +47,9 @@ void xlsSignatureScopeEnd(xls_signature_scope* scope);
 xls_signature_scope* xlsSignatureScopeCurrent(const XL6_CompletionQuery* query);
 int xlsSignatureScopeCancelled(xls_signature_scope* scope);
 void xlsSignatureDataDestroy(xls_signature_data* data);
+/* Drop only captured output/private parse cache before an infrastructure
+ * retry. Keep the immutable source/call index and original query site. */
+void xlsSignatureDataResetCaptured(xls_signature_data* data);
 /* Append consumes owned record label/parameter allocations on success/failure;
  * names/docs borrow the same private AST held by the eventual result. */
 int xlsSignatureAppend(xls_signature_scope* scope,xls_signature_record record);

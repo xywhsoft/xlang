@@ -10,6 +10,14 @@ void xlsSignatureDataDestroy(xls_signature_data* data)
     for(size_t i=0;i<data->records.Count;++i){xls_signature_record* r=xrtArrayGet(&data->records,i);xrtFree(r->label);xrtFree(r->parameters);}
     xrtArrayUnit(&data->records);xlsSyntaxRelease(data->syntax);xlsCallContextRelease(data->index);xrtFree(data->path);xrtFree(data);
 }
+void xlsSignatureDataResetCaptured(xls_signature_data* data)
+{
+    if(!data)return;
+    for(size_t i=0;i<data->records.Count;++i){xls_signature_record* r=xrtArrayGet(&data->records,i);xrtFree(r->label);xrtFree(r->parameters);}
+    data->records.Count=0;data->active=SIZE_MAX;data->error=NULL;data->projected=0;
+    data->bytes=sizeof(*data)+data->records.Capacity*sizeof(xls_signature_record);
+    xlsSyntaxRelease(data->syntax);data->syntax=NULL;data->parseWork.cacheBytes=0;
+}
 int xlsSignatureAppend(xls_signature_scope* scope,xls_signature_record record)
 {
     xls_signature_data* data=scope ? scope->data : NULL;size_t bytes=record.labelCapacity;

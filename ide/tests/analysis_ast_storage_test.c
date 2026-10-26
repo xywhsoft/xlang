@@ -95,6 +95,7 @@ static int32 readCopies(void* user)
 }
 static int rollbackPositions(void)
 {
+ xls_sem_body_control bodies;xlsFrontendSemBodyBegin(&bodies,0);
  char* path=xrtPathAbs("ast-storage-position-rollback.xl");CHECK(path);
  xls_completion_session* session=xlsCompletionSessionCreate(NULL);CHECK(session);xls_analysis_document doc={"entry",path,NULL,71,0};
  for(unsigned i=0;i<4;++i){
@@ -112,10 +113,13 @@ static int rollbackPositions(void)
   xls_semantic_input input={path,body.Data,body.Size};xls_semantic_completion* fresh=xlsSemanticCompletionCreate(path,path,offset,&input,1,NULL,NULL,NULL,0);CHECK(fresh && equal(xlsSemanticCompletionAst(fresh),xlsSemanticCompletionAst(result),1));
   char *a=xlsSemanticCompletionJson(result,NULL),*b=xlsSemanticCompletionJson(fresh,NULL);CHECK(a && b && !strcmp(a,b));xlsSemanticStringFree(a);xlsSemanticStringFree(b);xlsSemanticCompletionDestroy(fresh);xlsSemanticCompletionDestroy(result);xrtStrBufFree(&body);
  }
- xlsCompletionSessionDestroy(session);xlsTextRelease(doc.text);xrtFree(path);return 1;
+ xlsCompletionSessionDestroy(session);xlsTextRelease(doc.text);xrtFree(path);xlsFrontendSemBodyEnd(&bodies);return 1;
 }
 static int semanticCases(void)
 {
+ /* Exercise actual eager pool construction/rollback; demand views have
+  * separate complete-model and allocation-failure fixtures. */
+ xls_sem_body_control bodies;xlsFrontendSemBodyBegin(&bodies,0);
  char* path=xrtPathAbs("ast-storage-completion.xl");CHECK(path);xls_semantic_completion* held=NULL;
  size_t budgets[]={0,1,4096,64u*1024u*1024u};
  for(unsigned b=0;b<4;++b){xls_completion_session* session=xlsCompletionSessionCreate(NULL);CHECK(session);xls_analysis_document doc={"entry",path,NULL,11,0};xls_sem_storage_control outer;xlsFrontendSemStorageBegin(&outer,budgets[b]);
@@ -129,7 +133,7 @@ static int semanticCases(void)
   }
   xls_sem_storage_work total;xlsFrontendSemStorageEnd(&outer,&total);CHECK(total.chargedBytes<=budgets[b]);if(b==3)CHECK(total.nodes && total.pages);xlsCompletionSessionDestroy(session);xlsTextRelease(doc.text);
  }
- CHECK(held && xlsSemanticCompletionStorageWork(held).nodes && xlsSemanticCompletionAst(held));char* json=xlsSemanticCompletionJson(held,NULL);CHECK(json);xlsSemanticStringFree(json);xlsSemanticCompletionDestroy(held);xrtFree(path);return 1;
+ CHECK(held && xlsSemanticCompletionStorageWork(held).nodes && xlsSemanticCompletionAst(held));char* json=xlsSemanticCompletionJson(held,NULL);CHECK(json);xlsSemanticStringFree(json);xlsSemanticCompletionDestroy(held);xrtFree(path);xlsFrontendSemBodyEnd(&bodies);return 1;
 }
 static int run(void)
 {
