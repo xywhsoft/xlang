@@ -7,6 +7,8 @@ func check()
     assert native.Original(value) and value=="package text"
     func() as string stored=text
     assert native.Original(stored())
+    auto staticProducer=native.Factory.Text
+    assert native.Original(staticProducer())
     assert native.Optional()==null
     string? optional=native.Optional(true)
     assert optional!=null and optional=="package text"

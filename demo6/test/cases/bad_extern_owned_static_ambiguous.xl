@@ -1,0 +1,9 @@
+class Factory
+    static func Pick(int value) as int
+        return value
+    end
+    static func Pick(string value) as string
+        return value
+    end
+end
+auto producer=Factory.Pick

@@ -1,0 +1,4 @@
+class Hidden
+    private static extern "owned_text" @owned func Text() as string
+end
+auto producer=Hidden.Text

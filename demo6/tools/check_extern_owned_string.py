@@ -40,6 +40,8 @@ def main():
         ('C-variadic-no-raise-text','test/cases/extern_c_variadic_text.xl',['test/cases/extern_c_variadic_text_host.c'],['variadic_text']),
         ('C-variadic-function-value','test/cases/extern_c_variadic_value.xl',['test/cases/extern_c_variadic_text_host.c'],[]),
         ('borrowed-string-failure','test/cases/extern_borrowed_string_failure.xl',['test/cases/extern_borrowed_string_failure_host.c'],[]),
+        ('static-method-function-value','test/cases/extern_owned_static_callable.xl',
+            ['test/cases/extern_owned_string_host.c','test/cases/extern_c_variadic_text_host.c','test/cases/extern_owned_static_callable_host.c'],[]),
     ]
     sha=lambda path:hashlib.sha256(Path(path).read_bytes()).hexdigest()
     inputs=[ROOT/source for _,source,_,_ in cases]+[ROOT/path for _,_,paths,_ in cases for path in paths]
@@ -105,6 +107,9 @@ def main():
         'test/cases/bad_extern_owned_unknown.xl':'unknown extern effect contract',
         'test/cases/bad_extern_owned_variadic_tail.xl':'native variadic function value tail',
         'test/cases/bad_extern_owned_variadic_signature.xl':'native variadic func requires',
+        'test/cases/bad_extern_owned_static_private.xl':'explicit func signature',
+        'test/cases/bad_extern_owned_static_ambiguous.xl':'explicit func signature',
+        'test/cases/bad_extern_owned_static_instance.xl':'explicit func signature',
     }
     for relative,message in negatives.items():
         source=ROOT/relative;name=source.stem.removeprefix('bad_extern_owned_')

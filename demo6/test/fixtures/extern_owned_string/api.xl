@@ -2,3 +2,7 @@
 export extern "owned_package_text" @owned func Text() as string
 export extern "owned_package_optional" @owned @no_raise func Optional(bool present = false) as string?
 export extern "owned_package_original" @no_raise func Original(string value) as bool
+
+export class Factory
+    static extern "owned_package_text" @owned func Text() as string
+end

@@ -7857,32 +7857,42 @@ static XL6_AstNode* xl6SemFindFunctionValueFunc(XL6_SemContext* ctx, const char*
         return NULL;
     }
 
-    for ( i = 0; i < ctx->root->childCount; ++i ) {
-        XL6_AstNode* func = ctx->root->children[i];
-        if ( func == NULL ||
-             (func->kind != XL6_AST_FUNC && func->kind != XL6_AST_ASYNC_FUNC &&
-              func->kind != XL6_AST_EXTERN_FUNC && func->kind != XL6_AST_EXPORT_FUNC) ||
-             xl6SemFuncIsGeneric(func) ||
-             !xl6TextEquals(xl6SemFuncName(func), name) ) {
-            continue;
+    XL6_AstNode* owner = atNode && atNode->kind==XL6_AST_MEMBER
+        ? xl6SemClassDeclFromTypeMemberReceiver(ctx,(XL6_AstNode*)atNode) : NULL;
+    for (size_t depth=0; depth<64; ++depth) {
+        XL6_AstNode* scope=owner ? (owner->childCount>1 ? owner->children[1] : NULL) : ctx->root;
+        for ( i = 0; scope && i < scope->childCount; ++i ) {
+            XL6_AstNode* func = scope->children[i];
+            if ( func == NULL ||
+                 (func->kind != XL6_AST_FUNC && func->kind != XL6_AST_ASYNC_FUNC &&
+                  func->kind != XL6_AST_EXTERN_FUNC && func->kind != XL6_AST_EXPORT_FUNC &&
+                  !(owner && func->kind==XL6_AST_NATIVE_EXTERN_FUNC)) ||
+                 (owner && (!(func->flags & XL6_AST_FLAG_STATIC) || !xl6SemCanAccessClassMember(ctx,owner,func))) ||
+                 xl6SemFuncIsGeneric(func) ||
+                 !xl6TextEquals(xl6SemFuncName(func), name) ) {
+                continue;
+            }
+            candidateCount += 1;
+            XL6_AstNode* invocationReturns=func->kind==XL6_AST_ASYNC_FUNC ?
+                xl6SemCloneInvocationReturnTypes(ctx,NULL,NULL,func,NULL,atNode) : NULL;
+            if (func->kind==XL6_AST_ASYNC_FUNC && !invocationReturns) return NULL;
+            int matches=functionType->childCount == 0 ||
+                 xl6SemFunctionTypeMatchesParts(ctx,
+                                                 functionType,
+                                                 func->childCount > 1 ? func->children[1] : NULL,
+                                                 invocationReturns ? invocationReturns : func->childCount > 2 ? func->children[2] : NULL) ||
+                 (functionType->childCount==2 && func->kind!=XL6_AST_ASYNC_FUNC &&
+                  xl6SemCallableParamListMatchesFunctionParams(ctx,functionType->children[0],xl6SemCallableParams(func)) &&
+                  xl6SemCOwnedResultListMatches(ctx,functionType->children[1],xl6SemCallableReturns(func)));
+            xl6AstFree(invocationReturns);
+            if (matches) {
+                selected = func;
+                matchCount += 1;
+            }
         }
-        candidateCount += 1;
-        XL6_AstNode* invocationReturns=func->kind==XL6_AST_ASYNC_FUNC ?
-            xl6SemCloneInvocationReturnTypes(ctx,NULL,NULL,func,NULL,atNode) : NULL;
-        if (func->kind==XL6_AST_ASYNC_FUNC && !invocationReturns) return NULL;
-        int matches=functionType->childCount == 0 ||
-             xl6SemFunctionTypeMatchesParts(ctx,
-                                             functionType,
-                                             func->childCount > 1 ? func->children[1] : NULL,
-                                             invocationReturns ? invocationReturns : func->childCount > 2 ? func->children[2] : NULL) ||
-             (functionType->childCount==2 && func->kind!=XL6_AST_ASYNC_FUNC &&
-              xl6SemCallableParamListMatchesFunctionParams(ctx,functionType->children[0],xl6SemCallableParams(func)) &&
-              xl6SemCOwnedResultListMatches(ctx,functionType->children[1],xl6SemCallableReturns(func)));
-        xl6AstFree(invocationReturns);
-        if (matches) {
-            selected = func;
-            matchCount += 1;
-        }
+        if (!owner || matchCount) break;
+        owner=xl6SemBaseClassDecl(ctx,owner);
+        if (!owner) break;
     }
 
     if ( matchCount == 1 ) {
@@ -7998,7 +8008,10 @@ static int xl6SemBindUniqueNamedFunctionValue(
     XL6_AstNode* selected;
     int ok;
 
-    if ( ctx == NULL || expr == NULL || expr->kind != XL6_AST_NAME ) {
+    if ( ctx == NULL || expr == NULL ||
+         (expr->kind != XL6_AST_NAME &&
+          !(expr->kind==XL6_AST_MEMBER && expr!=ctx->directCallCallee &&
+            xl6SemClassDeclFromTypeMemberReceiver(ctx,expr)))) {
         return 0;
     }
     unconstrainedType = xl6AstNewText(XL6_AST_TYPE, "function", 8, NULL);
@@ -8146,8 +8159,11 @@ static int xl6SemExprCanMatchFunctionTypeEx(XL6_SemContext* ctx, const XL6_AstNo
                                               expr->childCount > 0 ? expr->children[0] : NULL,
                                               expr->childCount > 1 ? expr->children[1] : NULL);
     }
-    if ( expr->kind == XL6_AST_NAME ) {
-        sym = xl6ScopeFind(ctx->scope, expr->text);
+    XL6_AstNode* staticOwner=expr->kind==XL6_AST_MEMBER
+        ? xl6SemClassDeclFromTypeMemberReceiver(ctx,(XL6_AstNode*)expr) : NULL;
+    if (staticOwner && xl6SemFindStaticClassFieldNode(ctx,staticOwner,expr->text,NULL)) staticOwner=NULL;
+    if ( expr->kind == XL6_AST_NAME || staticOwner ) {
+        sym = expr->kind==XL6_AST_NAME ? xl6ScopeFind(ctx->scope, expr->text) : NULL;
         if ( sym != NULL && sym->type != NULL && xl6TextEquals(sym->type->text, "function") ) {
             if ( typeNode->childCount == 0 ) {
                 return 1;
@@ -8157,7 +8173,7 @@ static int xl6SemExprCanMatchFunctionTypeEx(XL6_SemContext* ctx, const XL6_AstNo
                                                    sym->type->childCount > 0 ? sym->type->children[0] : NULL,
                                                    sym->type->childCount > 1 ? sym->type->children[1] : NULL);
         }
-        if ( sym != NULL && sym->kind == XL6_SYM_FUNC ) {
+        if ( staticOwner || (sym != NULL && sym->kind == XL6_SYM_FUNC) ) {
             XL6_AstNode* selected = xl6SemFindFunctionValueFunc(
                 ctx,
                 expr->text,
@@ -14387,6 +14403,9 @@ static XL6_AstNode* xl6SemInferAutoTypeNodeRaw(XL6_SemContext* ctx, XL6_AstNode*
         if ( memberType != NULL ) {
             return memberType;
         }
+        if (expr!=ctx->directCallCallee && xl6SemClassDeclFromTypeMemberReceiver(ctx,expr) &&
+            xl6SemBindUniqueNamedFunctionValue(ctx,expr,0))
+            return xl6SemCloneTypeNode(expr->inferredType);
         if ( expr->childCount > 0 ) {
             XL6_AstNode* receiverType = xl6SemInferAutoTypeNode(ctx, expr->children[0]);
             int dynamicReceiver = xl6SemSafeMemberKeyReceiverIsDynamic(ctx, receiverType);
@@ -16891,6 +16910,12 @@ static int xl6SemDeclareVarWithKind(
              !xl6SemBindUniqueNamedFunctionValue(ctx, initExpr, 1) ) {
             ok = 0;
         }
+    }
+    if(initExpr && initExpr->kind==XL6_AST_MEMBER && declaredType &&
+       xl6TextEquals(declaredType->text,"auto")) {
+        XL6_AstNode* owner=xl6SemClassDeclFromTypeMemberReceiver(ctx,initExpr);
+        if(owner && !xl6SemFindStaticClassFieldNode(ctx,owner,initExpr->text,NULL) &&
+           !xl6SemBindUniqueNamedFunctionValue(ctx,initExpr,1)) ok=0;
     }
 
     if ( declaredType != NULL ) {
