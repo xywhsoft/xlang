@@ -78,6 +78,25 @@ i64/f64 归一化或动态装箱。字符串接管、Future 发布/读取和错�
 执行默认提升。字符串尾参借用原缓冲，通过 NUL 检查后传指针；检查失败时
 不进入 C，即使 C 入口标记了 `@no_raise`。
 
+固定签名的 extern 默认参数也可以收窄为较短的函数值签名，例如：
+
+```xlang
+extern "native_text" @owned func Text(c_int mode=7) as string
+func() as string producer=Text
+assert await task.spawn(producer)=="native text"
+```
+
+默认表达式在每次调用时计算；失败时跳过 C 生产者并执行普通清理。泛型函数
+中的 task.spawn/all/race/whenAny 在具体化后重新验证参数、结果和拥有权合同，
+不增加运行时泛型分派。可空函数值在已有非空流证明下可直接交给 task.spawn，
+包括 typedef 别名；未检查或赋值后证明失效的可空函数仍拒绝。
+
+task.all 支持原生 C 标量 Future 的字面量列表和 array<future<T>>。它沿用已有
+结果数组的装箱语义，使用原生标量 profile 和类型身份，保留无符号全范围与
+平台相关宽度；c_bool 沿用动态存储中的共享 bool 单例规则，类型化读取返回
+c_bool。聚合的结果数组、元素装箱和 Future 读取仍有原有成本，不能称为整个
+聚合过程零复制或与手写 C 等速。
+
 `auto producer = Class.Func` 与顶层具名函数值使用相同绑定路径，支持闭合的
 完整签名、显式签名选择重载、继承和包导入，不增加实例接收者或动态方法层。
 固定参数签名沿用既有适配，C 可变参数保留原生入口。泛型函数值继续遵循
