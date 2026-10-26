@@ -122,9 +122,6 @@ static int __xrtTarType(unsigned char iType)
 static bool __xrtTarSetString(str* pTarget, const unsigned char* pValue, size_t iLength)
 {
 	str sValue;
-	while ( iLength != 0u && (pValue[iLength - 1u] == 0u || pValue[iLength - 1u] == '\n') ) {
-		--iLength;
-	}
 	if ( memchr(pValue, 0, iLength) != NULL ||
 		!xrtUtf8Valid((xstrview){ (const char*)pValue, iLength }, NULL) ) { return false; }
 	sValue = xrtStrDupN((const char*)pValue, iLength);
@@ -132,6 +129,15 @@ static bool __xrtTarSetString(str* pTarget, const unsigned char* pValue, size_t 
 	xrtFree(*pTarget);
 	*pTarget = sValue;
 	return true;
+}
+
+/* GNU 长名称以 NUL 或换行结尾；PAX 值则由记录长度精确界定。 */
+static bool __xrtTarSetGnuString(str* pTarget, const unsigned char* pValue, size_t iLength)
+{
+	while ( iLength != 0u && (pValue[iLength - 1u] == 0u || pValue[iLength - 1u] == '\n') ) {
+		--iLength;
+	}
+	return __xrtTarSetString(pTarget, pValue, iLength);
 }
 
 static bool __xrtTarPaxNumber(const unsigned char* pValue, size_t iLength,
@@ -501,11 +507,11 @@ XRT_API bool xrtTarReaderNext(xrttarreader* pReader, xrttarentry* pEntry)
 					(const unsigned char*)pExtension->Data, pExtension->Size);
 			}
 			else if ( sHeader[156u] == 'L' ) {
-				bResult = __xrtTarSetString(&sLongName,
+				bResult = __xrtTarSetGnuString(&sLongName,
 					(const unsigned char*)pExtension->Data, pExtension->Size);
 			}
 			else {
-				bResult = __xrtTarSetString(&sLongLink,
+				bResult = __xrtTarSetGnuString(&sLongLink,
 					(const unsigned char*)pExtension->Data, pExtension->Size);
 			}
 			xrtBufferDestroy(pExtension);
