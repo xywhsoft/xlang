@@ -38,7 +38,7 @@ assert querySet != null, xfeat.last_error()
 println(xfeat.locate_json(engine, querySet, targetImagePath))
 xfeat.release_query(querySet)
 xfeat.close(engine)</code></pre>
-    <p>正常未找到返回包含 <code>"found":false</code> 的 JSON；JSON 序列化失败会抛错，不伪装为空对象。定位器会拒绝宽或高超过目标图一半的框，整图对自身不是正例。包内 <code>examples/live_model.xl</code> 从目标图生成局部查询裁块；<code>examples/live_model_c.c</code> 用公开 C API 做相同的六尺度定位。Windows 门禁覆盖图片保存及失败路径，Linux 门禁覆盖 C 核心和无模型 XLang 调用，暂不验收 Linux OpenCV 桥接。设置 <code>XFEAT_MODEL</code> 后，门禁用包内固定正负图片验证找到与未找到路径，并逐行核对 C/XLang 正例输出；<code>XFEAT_TEST_IMAGE</code> 可覆盖正例图片。另可加 <code>-ParallelLive</code> 做两线程独立定位。模型权重仍由调用者提供；完整 AOT 与插件内部长期并发稳定性未验收，当前不标记为生产发布完成。</p>
+    <p>正常未找到返回包含 <code>"found":false</code> 的 JSON；JSON 序列化失败会抛错，不伪装为空对象。定位器会拒绝宽或高超过目标图一半的框，整图对自身不是正例。包内 <code>examples/live_model.xl</code> 从目标图生成局部查询裁块；<code>examples/live_model_c.c</code> 用公开 C API 做相同的六尺度定位。Windows 门禁覆盖图片保存及失败路径，Linux 门禁覆盖 C 核心和无模型 XLang 调用，暂不验收 Linux OpenCV 桥接。设置 <code>XFEAT_MODEL</code> 后，门禁用包内固定正负图片验证找到与未找到路径，并逐行核对 C/XLang 正例输出；<code>XFEAT_TEST_IMAGE</code> 可覆盖正例图片。另可加 <code>-ParallelLive</code> 做两线程独立定位。模型权重仍由调用者提供；2026-10-26 当前 Windows 门禁已验证真实模型 XLang 独立 EXE 与 C/JIT 同输出及双线程短轮次定位。按 Windows 公开调用层验收；Linux OpenCV 图像桥接与插件内部长期稳定性不在此次签收范围。</p>
   </section>
 </main>
 </body>

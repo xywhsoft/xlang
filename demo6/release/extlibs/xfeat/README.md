@@ -1,5 +1,16 @@
 # xfeat
 
+2026-10-26 当前 Windows 发布版设置 `XFEAT_MODEL` 后，默认门禁及
+`-ParallelLive` 均退出 0。固定目标图的局部查询得到 177 次匹配、
+63 个内点，C/XLang JIT 与真实模型独立 EXE 输出逐行一致；不相关
+图片两端均报告未找到，双线程短轮次定位通过。使用的外部
+`xfeat.onnx` SHA-256 为
+`BE15502E8132C065C6368C5763723E21D4BCACCD352EE96779272012A589EFAB`，
+权重不进入发布包。Linux C ASan/UBSan 与无模型语言门禁也通过，
+但 Linux OpenCV 图像桥接尚未提供，不声称其图片推理可用。
+本任务按 Windows 公开 C/XLang 调用层签收；插件内部长期稳定性
+仍由插件维护者负责。
+
 2026-10-24 从当前源码重建 Windows 发布版后，默认
 `test/check.ps1` 完整通过严格 C、匹配核心、UTF-8 桥接、真实
 ONNX 会话所有权、XLang 图片保存与参数边界、核心及公开范例 AOT。
@@ -9,7 +20,7 @@ ONNX 会话所有权、XLang 图片保存与参数边界、核心及公开范例
 
 XFeat 特征匹配扩展库：通过 OpenCV 读取图片、ONNX Runtime 提取特征，使用双向描述子匹配和 RANSAC 仿射估计定位目标。
 
-**尚未达到完整发布级验收。** 本机已有兼容的外部 XFeat 模型，真实图片局部定位已通过；权重不随本包分发。包内 `test/assets/target.png` 与 `unrelated.png` 来自本仓库 IDE 文档截图，分别提供可分发的正例目标和不相关负例。创建引擎必须显式提供 `xfeat.open(query_model_path, target_model_path)`；无模型的假默认入口已删除。`release/examples/extlibs/xfeat.xl` 只验证 ABI 与失败路径，`examples/live_model.xl` 才运行真实定位。
+Windows 真实模型调用层已按上述范围验收；这不是 Linux 图像后端或插件内部的发布认证。权重不随本包分发。包内 `test/assets/target.png` 与 `unrelated.png` 来自本仓库 IDE 文档截图，分别提供可分发的正例目标和不相关负例。创建引擎必须显式提供 `xfeat.open(query_model_path, target_model_path)`；无模型的假默认入口已删除。`release/examples/extlibs/xfeat.xl` 只验证 ABI 与失败路径，`examples/live_model.xl` 才运行真实定位。
 
 `include/xfeat.h` 提供 C 接口。JSON 结果是独立持有的 XRT 字符串：C 调用 `xfeat_stats_json_native` 或 `xfeat_location_json_native` 后以 `xrtFree` 释放；失败返回 `NULL`，不能当作空 JSON。XLang 包装层自动接管成功结果，失败时抛 `RuntimeError`；正常未找到则返回包含 `"found":false` 的 JSON。`last_error` 借用当前线程的错误槽，不应跨线程保存。统计桶为进程共享状态，读写由 XRT 互斥锁保护。
 
@@ -39,7 +50,7 @@ Linux 脚本同时运行无模型 `test/aot_core.xl`，核对 XLang 包导入与
 
 `test/test_loader.c` 在测试版 XRT 上遍历 JSON 内存故障点，确认 C 层不把失败伪装为有效结果；Windows/Linux 同时运行 `test/json_failure.xl`。Windows 另用真实图片夹具运行 `test/save_result.xl`，覆盖保存成功、缺输入不改写已有输出和写盘失败。Linux 当前未提供可加载的 OpenCV 桥接，因此不把图片保存的 XLang 测试列入 Linux 门禁；它不能作为 Linux 图片保存能力的验收依据。
 
-设置 `XFEAT_MODEL` 后，Windows 门禁自动使用包内两张图片，运行 C/XLang 的真实定位正例和不相关图片负例；可用 `XFEAT_TEST_IMAGE` 覆盖默认正例，此时跳过只针对固定夹具的负例。加 `-ParallelLive` 时，两条线程各自创建引擎和查询集，独立定位同一目标，均需成功。模型仍由调用者提供；完整 AOT 尚未验收，插件内部长期并发稳定性由插件维护者验收。`docs/site.html` 已作为官网详情页的可维护源文件接入，页面明确标注这些边界。
+设置 `XFEAT_MODEL` 后，Windows 门禁自动使用包内两张图片，运行 C/XLang 的真实定位正例和不相关图片负例，并构建真实模型 XLang 独立 EXE 核对同输出；可用 `XFEAT_TEST_IMAGE` 覆盖默认正例，此时跳过只针对固定夹具的负例。加 `-ParallelLive` 时，两条线程各自创建引擎和查询集，独立定位同一目标，均需成功。模型仍由调用者提供；插件内部长期并发稳定性由插件维护者验收。`docs/site.html` 已作为官网详情页的可维护源文件接入，页面明确标注这些边界。
 
 C 范例现在与 XLang `prepare_query` 一样提取 0.70、0.85、1.00、1.15、1.30、1.50 六个尺度，并按相同得分选最佳定位；真实模型门禁逐行比较两种语言的正例输出，而非仅核对 `found=true`。不相关图片继续分别验证未找到路径。
 
