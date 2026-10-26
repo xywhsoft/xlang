@@ -1980,6 +1980,42 @@ static const XL6_AstNode* xl6SemClassNativeHandleField(
 static int xl6SemClassDeclHasNativeHandle(XL6_SemContext* ctx, const XL6_AstNode* classNode)
 { return xl6SemClassNativeHandleField(ctx,classNode,NULL) != NULL; }
 
+/* Match the IR's non-null native-resource default rule, independently of
+ * whether a unique implicit point-binding constructor exists. Ambiguous
+ * native storage must not accidentally make a zero/default factory valid.
+ * Builtin resources with declared defaults retain their own type contracts. */
+static int xl6SemNativeTypeRequiresInitializer(
+    XL6_SemContext* ctx, const XL6_AstNode* typeNode)
+{
+    const XL6_AstNode* concrete = xl6SemResolveAliasType(ctx, typeNode);
+    const XL6_TypeInfo* info;
+    const XL6_AstNode* owner;
+    size_t depth;
+    if (!concrete || xl6SemTypeIsNullable(concrete) || !concrete->text) return 0;
+    concrete = xl6SemClassValueType(ctx, concrete);
+    if (!concrete || !concrete->text) return 0;
+    info = xl6TypeRegistryFind(&ctx->types, concrete->text);
+    if (!info || info->kind != XL6_TYPE_CLASS) return 0;
+    owner = info->decl;
+    for (depth = 0; owner && depth <= ctx->types.count; ++depth) {
+        const XL6_AstNode* body;
+        if (owner->kind != XL6_AST_CLASS || owner->childCount < 2) return 0;
+        body = owner->children[1];
+        for (size_t i = 0; body && i < body->childCount; ++i) {
+            const XL6_AstNode* field = body->children[i];
+            const XL6_AstNode* fieldType;
+            if (!field || field->kind != XL6_AST_FIELD || !field->childCount ||
+                !xl6SemAstHasFlag(field, XL6_AST_FLAG_NATIVE) ||
+                xl6SemAstHasFlag(field, XL6_AST_FLAG_STATIC)) continue;
+            fieldType = xl6SemResolveAliasType(ctx, field->children[0]);
+            if (xl6SemTypeIsNullable(fieldType)) fieldType = xl6SemNullableInnerType(fieldType);
+            if (fieldType && xl6TextEquals(fieldType->text, "point")) return 1;
+        }
+        owner = xl6SemBaseClassDecl(ctx, owner);
+    }
+    return 0;
+}
+
 static int xl6SemBodyHasDerive(const XL6_AstNode* body, const char* ability)
 {
     size_t i;
@@ -16944,6 +16980,11 @@ static int xl6SemDeclareVarWithKind(
             xl6SemErrorNode(ctx, node,
                 "不可空队列声明必须包含初始化表达式；延迟创建请使用 nullable 队列");
             ok = 0;
+        } else if (declaredTypeOk && initExpr == NULL && node->kind != XL6_AST_EXTERN_VAR &&
+                   xl6SemNativeTypeRequiresInitializer(ctx, declaredType)) {
+            xl6SemErrorNode(ctx, node,
+                "non-null native resource needs explicit initialization or nullable storage");
+            ok = 0;
         }
     }
     if ( !xl6ScopeAddTyped(ctx, nameNode, xl6SemVarDeclIsConst(node) ? constKind : valueKind, symbolType) ) {
@@ -21278,6 +21319,11 @@ static int xl6SemCheckField(XL6_SemContext* ctx, XL6_AstNode* field)
                     xl6SemQueueTypeRequiresInitializer(ctx, field->children[0]) ) {
             xl6SemErrorNode(ctx, field,
                 "不可空队列声明必须包含初始化表达式；延迟创建请使用 nullable 队列");
+            ok = 0;
+        } else if (defaultExpr == NULL &&
+                   xl6SemNativeTypeRequiresInitializer(ctx, field->children[0])) {
+            xl6SemErrorNode(ctx, field,
+                "non-null native resource needs explicit initialization or nullable storage");
             ok = 0;
         }
     }
