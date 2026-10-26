@@ -23,6 +23,8 @@
 {"xl6X509RevocationCheckCreateV1",T,V,1,{V},.resultOwner="xl6X509RevocationCheckDestroyV1",.parameterOwners={"xl6X509CertificateDestroyV1"},.nonblocking=1},
 {"xl6X509RevocationCheckWithCrlV1",T,V,2,{V,V},.resultOwner="xl6X509RevocationCheckDestroyV1",.parameterOwners={"xl6X509RevocationCheckDestroyV1","xl6X509ValidatedCrlDestroyV1"},.pure=1,.nonblocking=1},
 {"xl6X509RevocationCheckWithSetV1",T,V,2,{V,V},.resultOwner="xl6X509RevocationCheckDestroyV1",.parameterOwners={"xl6X509RevocationCheckDestroyV1","xl6X509CrlSetDestroyV1"},.pure=1,.nonblocking=1},
+{"xl6X509RevocationCheckWithCrlPathV1",T,V,3,{V,V,V},.resultOwner="xl6X509RevocationCheckDestroyV1",.parameterOwners={"xl6X509RevocationCheckDestroyV1","xl6X509ValidatedCrlDestroyV1","xl6X509PathDestroyV1"},.pure=1,.nonblocking=1},
+{"xl6X509RevocationCheckWithSetPathV1",T,V,3,{V,V,V},.resultOwner="xl6X509RevocationCheckDestroyV1",.parameterOwners={"xl6X509RevocationCheckDestroyV1","xl6X509CrlSetDestroyV1","xl6X509PathDestroyV1"},.pure=1,.nonblocking=1},
 {"xl6X509RevocationCheckResultV1",T,V,1,{V},.resultOwner="xl6X509RevocationDestroyV1",.parameterOwners={"xl6X509RevocationCheckDestroyV1"},.pure=1,.nonblocking=1},
 {"xl6X509RevocationCheckDeterminedV1",T,B,1,{V},.parameterOwners={"xl6X509RevocationCheckDestroyV1"},.pure=1,.nonblocking=1},
 {"xl6X509CrlCriticalCreateV1",T,V,0,{0},.resultOwner="xl6X509CrlCriticalDestroyV1",.nonblocking=1},

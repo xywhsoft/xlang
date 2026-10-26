@@ -14,13 +14,16 @@ static bool verify(void* raw,const xtlsverifiedpeer* peer)
     return accepted;
 }
 static const XL6_TlsPeerPolicyOpsV1 operations={ref,drop,ownership,verify};
-void* xl6TlsVerifierCreateCallbackV1(XL6_NativeClassResultContextV1 context,
-    void* trust,void* policy,XL6_Closure* callback)
+void* xl6TlsVerifierCreateCallbackOwnerInternalV1(XL6_NativeClassResultContextV1 context,
+    void* trust,void* policy,XL6_Closure* callback,XL6_TlsPeerPolicyV1 revocation)
 {
     if(xrtGetError())return NULL;
     if(context.field.policy!=xl6TlsVerifiedPeerHandlePolicyV1Get()){
         xl6TlsFailV1(XERR_TYPE,"TLS predicate needs the sealed TlsVerifiedPeer recipe");return NULL;}
     XL6_Closure* driver=xl6NativeClassPredicateCreateV1(context,callback);if(!driver)return NULL;
-    void* result=xl6TlsVerifierCreatePeerPolicyInternalV1(trust,policy,(XL6_TlsPeerPolicyV1){driver,&operations});
+    void* result=xl6TlsVerifierCreatePoliciesInternalV1(trust,policy,(XL6_TlsPeerPolicyV1){driver,&operations},revocation);
     drop(driver);return result;
 }
+void* xl6TlsVerifierCreateCallbackV1(XL6_NativeClassResultContextV1 context,
+    void* trust,void* policy,XL6_Closure* callback)
+{return xl6TlsVerifierCreateCallbackOwnerInternalV1(context,trust,policy,callback,(XL6_TlsPeerPolicyV1){0});}

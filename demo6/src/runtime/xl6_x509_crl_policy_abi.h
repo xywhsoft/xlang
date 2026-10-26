@@ -25,6 +25,8 @@ XL6_TEXT_API void* xl6X509RevocationEntryV1(void*);
 XL6_TEXT_API void* xl6X509RevocationCheckCreateV1(void*);
 XL6_TEXT_API void* xl6X509RevocationCheckWithCrlV1(void*,void*);
 XL6_TEXT_API void* xl6X509RevocationCheckWithSetV1(void*,void*);
+XL6_TEXT_API void* xl6X509RevocationCheckWithCrlPathV1(void*,void*,void*);
+XL6_TEXT_API void* xl6X509RevocationCheckWithSetPathV1(void*,void*,void*);
 XL6_TEXT_API void* xl6X509RevocationCheckResultV1(void*);
 XL6_TEXT_API bool xl6X509RevocationCheckDeterminedV1(void*);
 XL6_TEXT_API void* xl6X509CrlCriticalCreateV1(void);

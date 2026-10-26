@@ -141,6 +141,7 @@ extern const char* xl6StdlibTlsParametersSource;
 extern const char* xl6StdlibTlsVerificationPolicySource;
 extern const char* xl6StdlibTlsVerifierSource;
 extern const char* xl6StdlibTlsVerifiedPeerSource;
+extern const char* xl6StdlibTlsRevocationSource;
 extern const char* xl6StdlibTlsSessionEnumsSource;
 extern const char* xl6StdlibTlsClientContextSource;
 extern const char* xl6StdlibTlsServerContextSource;

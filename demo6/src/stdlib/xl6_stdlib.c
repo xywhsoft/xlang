@@ -1762,7 +1762,9 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     /* Both managed role constructors share the session declaration. Close
      * its transitive declaration island once, before VFS and type injection;
      * an unused declaration still does not select executable runtime code. */
-    needsX509PathIsland=needsTlsManagedSession||xl6StdlibUsesX509PathClasses(root);
+    needsX509PathIsland=needsTlsManagedSession||xl6StdlibUsesX509PathClasses(root)||
+        xl6StdlibUsesX509CrlPolicyClasses(root)||xl6StdlibNodeUsesTypeName(root,"TlsRevocationPolicy")||
+        xl6StdlibNodeUsesTypeName(root,"TlsRevocationRequest");
     needsCoreClass = xl6StdlibNodeDefinesClass(root) ||
         xl6StdlibNodeUsesTypeName(root, "object") ||
         xl6StdlibNodeUsesTypeName(root, "DynamicFields");
@@ -1996,7 +1998,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsTlsResumeRequest=needsTlsServerContext||xl6StdlibNodeUsesTypeName(root,"TlsResumeRequest");
     needsTlsSelector=needsTlsServerContext||xl6StdlibNodeUsesTypeName(root,"TlsServerRequest")||xl6StdlibNodeUsesTypeName(root,"TlsServerChoice");
     needsTlsIdentity = needsTlsSelector || xl6StdlibNodeUsesTypeName(root,"TlsIdentity") || xl6StdlibNodeUsesTypeName(root,"TlsIdentityKind");
-    needsTlsVerifier=needsTlsClientContext || xl6StdlibNodeUsesTypeName(root,"TlsVerifier");
+    needsTlsVerifier=needsTlsClientContext || xl6StdlibNodeUsesTypeName(root,"TlsVerifier")||
+        xl6StdlibNodeUsesTypeName(root,"TlsRevocationPolicy")||xl6StdlibNodeUsesTypeName(root,"TlsRevocationRequest");
     needsTlsVerifiedPeer=needsTlsVerifier||xl6StdlibNodeUsesTypeName(root,"TlsVerifiedPeer");
     needsTlsVerificationPolicy=needsTlsVerifier || xl6StdlibNodeUsesTypeName(root,"TlsVerificationPolicy");
     needsX509Island=needsTlsIdentity||needsTlsVerifiedPeer||xl6StdlibNeedsX509(root,used);
@@ -2368,11 +2371,11 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibBuilderAppend(&builder,xl6StdlibX509ProfilesSource);
         xl6StdlibBuilderAppend(&builder,xl6StdlibX509CrlProfilesSource);
         xl6StdlibBuilderAppend(&builder,xl6StdlibX509SignatureStatusSource);
-        if(xl6StdlibUsesX509CrlPolicyClasses(root) ||
+        if(needsTlsVerifier || xl6StdlibUsesX509CrlPolicyClasses(root) ||
             xl6StdlibNodeUsesTypeName(root,"X509CrlPolicyFlags") ||
             xl6StdlibNodeUsesTypeName(root,"X509RevocationStatus"))
             xl6StdlibBuilderAppend(&builder,xl6StdlibX509CrlPolicyEnumsSource);
-        if(xl6StdlibUsesX509CrlPolicyClasses(root))
+        if(needsTlsVerifier || xl6StdlibUsesX509CrlPolicyClasses(root))
             xl6StdlibBuilderAppend(&builder,xl6StdlibX509CrlPolicySource);
         if(needsX509PathIsland || xl6StdlibNodeUsesTypeName(root,"X509PathFlags") ||
             xl6StdlibNodeUsesTypeName(root,"X509ValidationStatus") || xl6StdlibNodeUsesTypeName(root,"X509PathReason"))
@@ -2386,6 +2389,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if(needsTlsVerificationPolicy)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsVerificationPolicySource);
     if(needsTlsManagedSession||needsTlsVerifiedPeer)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsSessionEnumsSource);
     if(needsTlsVerifiedPeer)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsVerifiedPeerSource);
+    if(needsTlsVerifier)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsRevocationSource);
     if(needsTlsVerifier)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsVerifierSource);
     if(needsTlsClientContext)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsClientContextSource);
     if(needsTlsResume)xl6StdlibBuilderAppend(&builder,xl6StdlibTlsResumeSource);
