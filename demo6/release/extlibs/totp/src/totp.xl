@@ -1,6 +1,6 @@
-extern "xtotp_generate" func __totp_generate(string secret, c_longlong secretLength, c_int timeStep, c_int digits) as point
-extern "xtotp_generate_at" func __totp_generate_at(string secret, c_longlong secretLength, c_longlong timestamp, c_int timeStep, c_int digits) as point
-extern "xtotp_hotp" func __totp_hotp(string secret, c_longlong secretLength, c_longlong counter, c_int digits) as point
+extern "xtotp_generate" @owned func __totp_generate(string secret, c_longlong secretLength, c_int timeStep, c_int digits) as string?
+extern "xtotp_generate_at" @owned func __totp_generate_at(string secret, c_longlong secretLength, c_longlong timestamp, c_int timeStep, c_int digits) as string?
+extern "xtotp_hotp" @owned func __totp_hotp(string secret, c_longlong secretLength, c_longlong counter, c_int digits) as string?
 extern "xtotp_verify" func __totp_verify(string secret, c_longlong secretLength, string code, c_longlong codeLength, c_int timeStep, c_int digits, c_int window) as c_int
 extern "xtotp_verify_at" func __totp_verify_at(string secret, c_longlong secretLength, string code, c_longlong codeLength, c_longlong timestamp, c_int timeStep, c_int digits, c_int window) as c_int
 extern "xl6_xrt_last_error_text" func __totp_error() as string
@@ -9,27 +9,27 @@ export func generate(string secret, int timeStep = 30, int digits = 6) as string
     if timeStep <= 0 or timeStep > 2147483647 or digits < 6 or digits > 9 then
         throw ValueError "time step must be positive and digits 6..9"
     end
-    point result = __totp_generate(secret, c_longlong(string.byteLen(secret)), c_int(timeStep), c_int(digits))
+    string? result = __totp_generate(secret, c_longlong(string.byteLen(secret)), c_int(timeStep), c_int(digits))
     if result == null then throw ValueError __totp_error() end
-    return __xl_runtime.takeCstr(result)
+    return result
 end
 
 export func generateAt(string secret, int timestamp, int timeStep = 30, int digits = 6) as string
     if timestamp < 0 or timeStep <= 0 or timeStep > 2147483647 or digits < 6 or digits > 9 then
         throw ValueError "timestamp, time step or digits is invalid"
     end
-    point result = __totp_generate_at(secret, c_longlong(string.byteLen(secret)), c_longlong(timestamp), c_int(timeStep), c_int(digits))
+    string? result = __totp_generate_at(secret, c_longlong(string.byteLen(secret)), c_longlong(timestamp), c_int(timeStep), c_int(digits))
     if result == null then throw ValueError __totp_error() end
-    return __xl_runtime.takeCstr(result)
+    return result
 end
 
 export func hotp(string secret, int counter, int digits = 6) as string
     if counter < 0 or digits < 6 or digits > 9 then
         throw ValueError "counter or digits is invalid"
     end
-    point result = __totp_hotp(secret, c_longlong(string.byteLen(secret)), c_longlong(counter), c_int(digits))
+    string? result = __totp_hotp(secret, c_longlong(string.byteLen(secret)), c_longlong(counter), c_int(digits))
     if result == null then throw ValueError __totp_error() end
-    return __xl_runtime.takeCstr(result)
+    return result
 end
 
 export func verify(string secret, string code, int timeStep = 30, int digits = 6, int window = 1) as bool

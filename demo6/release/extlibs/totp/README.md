@@ -1,5 +1,11 @@
 # totp
 
+2026-10-27 所有权收口：三条验证码生成入口的 C 原型明确为拥有型
+`char*`，XLang 以 `@owned string?` 直接接管 XRT 分配，不再经过
+`point` / `takeCstr`。无效参数、时钟失败及分配故障仍由原有门禁
+检查；生成 C 门禁另固定三条原生调用直接写入字符串存储，且不
+复制正文。接管仍需一次 `strlen` 取得字节长度。
+
 2026-10-26 当前 Windows/Linux 发布物复验：默认 `test/check.ps1` 与
 `test/check.sh` 均退出 0。严格 C、Linux ASan/UBSan、RFC 向量、
 线程、时钟故障注入、语言中央/边界/分配/公开范例独立 EXE，以及

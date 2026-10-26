@@ -144,7 +144,7 @@ static bool xtotp_options(int time_step, int digits)
     return true;
 }
 
-static void* xtotp_format(uint32 code, int digits)
+static char* xtotp_format(uint32 code, int digits)
 {
     char* result = (char*)xrtMalloc((size_t)digits + 1u);
     int i;
@@ -157,13 +157,13 @@ static void* xtotp_format(uint32 code, int digits)
     return result;
 }
 
-void* xtotp_hotp(const char* secret_text, long long secret_length,
+char* xtotp_hotp(const char* secret_text, long long secret_length,
     long long counter, int digits)
 {
     unsigned char secret[XTOTP_MAX_SECRET_BYTES] = {0};
     size_t secret_size = 0u;
     uint32 code;
-    void* result = NULL;
+    char* result = NULL;
     xrtClearError();
     if (counter < 0 || !xtotp_options(30, digits)) {
         if (counter < 0) xtotp_error(XERR_RANGE, "counter must be nonnegative");
@@ -176,7 +176,7 @@ void* xtotp_hotp(const char* secret_text, long long secret_length,
     return result;
 }
 
-void* xtotp_generate_at(const char* secret, long long secret_length,
+char* xtotp_generate_at(const char* secret, long long secret_length,
     long long timestamp, int time_step, int digits)
 {
     xrtClearError();
@@ -188,7 +188,7 @@ void* xtotp_generate_at(const char* secret, long long secret_length,
     return xtotp_hotp(secret, secret_length, timestamp / time_step, digits);
 }
 
-void* xtotp_generate(const char* secret, long long secret_length,
+char* xtotp_generate(const char* secret, long long secret_length,
     int time_step, int digits)
 {
     long long timestamp;

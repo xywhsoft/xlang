@@ -51,6 +51,21 @@ try {
         $xlOutputs[$source] = [string]::Join("`n", $lines)
     }
 
+    [IO.Directory]::CreateDirectory($work) | Out-Null
+    $generated = Join-Path $work 'owned_text.c'
+    & $xl cgen release/extlibs/totp/test/boundaries.xl --emit $generated
+    if ($LASTEXITCODE -ne 0) { throw 'totp direct-text cgen failed' }
+    $generatedText = [IO.File]::ReadAllText($generated)
+    foreach ($name in @('xtotp_generate', 'xtotp_generate_at', 'xtotp_hotp')) {
+        if ($generatedText -cnotmatch "\bv\d+\.Data\s*=\s*$name\s*\(") {
+            throw "$name must adopt the native C string directly"
+        }
+    }
+    if ($generatedText.Contains('xl6_xrt_take_cstr(') -or
+        $generatedText.Contains('xl6CStringCopyV1')) {
+        throw 'totp must not copy or re-adopt native text'
+    }
+
     $xlLines = @(& $xl run release/examples/extlibs/totp.xl)
     if ($LASTEXITCODE -ne 0) { throw 'totp XLang example failed' }
     Confirm-Output 'XLang example' $xlLines

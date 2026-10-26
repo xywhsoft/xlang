@@ -6,11 +6,11 @@ extern "C" {
 #endif
 
 /* 返回独立的 XRT 字符串，C 调用方用 xrtFree 释放；失败返回 NULL。 */
-void* xtotp_hotp(const char* secret, long long secret_length,
+char* xtotp_hotp(const char* secret, long long secret_length,
     long long counter, int digits);
-void* xtotp_generate_at(const char* secret, long long secret_length,
+char* xtotp_generate_at(const char* secret, long long secret_length,
     long long timestamp, int time_step, int digits);
-void* xtotp_generate(const char* secret, long long secret_length,
+char* xtotp_generate(const char* secret, long long secret_length,
     int time_step, int digits);
 
 /* 1 匹配，0 不匹配，-1 输入或内部错误；窗口限 0..10。 */
