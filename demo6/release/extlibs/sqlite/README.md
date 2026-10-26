@@ -7,6 +7,7 @@
 专项门禁也已重新运行。此处的 Linux 证据使用当前 `release/xl`，
 不再沿用下面 2026-10-25 的旧构建阻断结论；断电恢复、网络文件
 系统、跨进程 WAL 故障矩阵、32 位/ARM 和长期压力仍未验收。
+当前 Win/Linux x64 已公开包装能力按上述门禁签收发布候选范围。
 
 2026-10-25 C 薄接口收紧：`open/open_v2` 的 `NULL` 文件名立即报告
 `XERR_ARGUMENT`；`exec` 的 `NULL` SQL 返回 `SQLITE_MISUSE`，不再作为
