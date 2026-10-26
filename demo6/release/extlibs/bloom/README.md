@@ -1,5 +1,10 @@
 # bloom
 
+2026-10-27 所有权收口：两种 `serialize_owned` 的 C 类型改为拥有型
+`char*`，XLang native-backed class 的 `serialize()` 用 `@owned string?`
+直接接管。生成 C 门禁检查原生指针直接保存，避免多一次正文复制；
+仍需一次 `strlen` 获取长度。失败仍按现有 MemoryError 路径报告。
+
 全局位数组 Bloom 与 4-bit Counting Bloom，复用 XRT 的内存、hash64、临时区和错误机制。
 对象没有内部锁；同一对象的修改与读取由调用方串行化。
 

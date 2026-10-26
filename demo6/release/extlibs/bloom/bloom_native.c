@@ -356,7 +356,7 @@ const char *xbloom_serialize(void *ptr) {
     return text ? text : "";
 }
 
-void *xbloom_serialize_owned(void *ptr) {
+char *xbloom_serialize_owned(void *ptr) {
     return bloom_serialize(ptr, 1);
 }
 
@@ -696,7 +696,7 @@ const char *xcounting_bloom_serialize(void *ptr) {
     return text ? text : "";
 }
 
-void *xcounting_bloom_serialize_owned(void *ptr) {
+char *xcounting_bloom_serialize_owned(void *ptr) {
     return counting_bloom_serialize(ptr, 1);
 }
 
