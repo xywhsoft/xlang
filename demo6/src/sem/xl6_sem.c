@@ -20236,6 +20236,16 @@ static int xl6SemIsCAbiReturnType(const char* name)
            xl6TextEquals(name, "time") || xl6TextEquals(name, "type");
 }
 
+/* Public language exports have an explicit owned Data/Size carrier, unlike
+ * raw C callbacks. Do not open string results in the callback ABI predicate. */
+static int xl6SemIsOwnedExportStringType(XL6_SemContext* ctx,const XL6_AstNode* type)
+{
+    type=xl6SemResolveAliasType(ctx,type);
+    const XL6_AstNode* inner=xl6SemNullableInnerType(type);
+    if(inner)type=xl6SemResolveAliasType(ctx,inner);
+    return type && !type->childCount && xl6TextEquals(type->text,"string");
+}
+
 static int xl6SemIsCAbiCallbackValueType(
     XL6_SemContext* ctx,
     const XL6_AstNode* typeNode,
@@ -20497,6 +20507,7 @@ static int xl6SemCheckExportCAbi(XL6_SemContext* ctx, XL6_AstNode* node)
                   !xl6SemIsCAbiTypedContainerType(ctx, typeNode) &&
                   !xl6SemIsCAbiTaggedNullableScalar(ctx, typeNode) &&
                    !xl6SemCOwnedTypeBase(typeNode) &&
+                   !xl6SemIsOwnedExportStringType(ctx,typeNode) &&
                   (typeNode->childCount > 0 ||
                     (!xl6SemIsCAbiReturnType(typeNode->text) && !xl6SemIsCAbiRecordType(ctx, typeNode)))) ) {
                 xl6SemErrorNode(ctx, typeNode, "该返回类型不能直接进入第二阶段 C ABI export");

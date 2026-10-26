@@ -1,0 +1,30 @@
+import extern_owned_string as native
+from extern_owned_string import Text as text
+
+// All three forms preserve the C allocation at the import/call boundary.
+func check()
+    string value=text()
+    assert native.Original(value) and value=="package text"
+    func() as string stored=text
+    assert native.Original(stored())
+    assert native.Optional()==null
+    string? optional=native.Optional(true)
+    assert optional!=null and optional=="package text"
+    var erased=xcall(text)
+    assert erased()=="package text"
+end
+
+async func workers()
+    assert await task.spawn(text)=="package text"
+    auto stored=text
+    assert await task.spawn(stored)=="package text"
+    assert await task.spawn(native.Optional,false)==null
+    string value=await task.spawn(native.Text)
+    assert value=="package text"
+    auto capture=func() as string => value
+    assert capture()=="package text"
+end
+
+check()
+await workers()
+println("extern owned string: package and worker paths ok")

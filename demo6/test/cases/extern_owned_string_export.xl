@@ -1,0 +1,17 @@
+extern "owned_text" @owned func text() as string
+extern "owned_original" @no_raise func original(string value) as bool
+
+// The public export retains the ordinary language string ABI. Only the
+// imported C producer has char* ABI and the @owned admission contract.
+export "owned_export_text" func Text() as string
+    return text()
+end
+
+func check()
+    string value=Text()
+    assert original(value) and value=="owned text"
+end
+func main(...) as int
+    check()
+    return 0
+end

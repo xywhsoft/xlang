@@ -1,0 +1,14 @@
+class First
+    native point handle
+    extern "open_first" create()
+    extern "same_member" @owned func Text() as string
+end
+class Second
+    native point handle
+    extern "open_second" create()
+    extern "same_member" func Text() as string
+end
+auto first=First()
+auto second=Second()
+first.Text()
+second.Text()

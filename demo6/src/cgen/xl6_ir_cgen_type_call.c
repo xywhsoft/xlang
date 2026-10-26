@@ -922,7 +922,8 @@ static int xl6IrCgenEmitDirectCall(
         (unsigned)module->operands[instruction->firstOperand+nativeValue.inputParameter-1]);
     /* A failed scope entry skips the native call, so its owned physical
      * result must be empty on every invocation, not merely at function entry. */
-    if ((target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE ||
+    if (((target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE &&
+          target->errorPhysicalAbi==XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE) ||
          target->preparationFailureAbi == XL6_IR_CALL_PREPARATION_RETIRE_OWNED_REVERSE ||
          target->nativeResultAbi==XL6_IR_CALL_NATIVE_RESULT_VALUE_SLOT_V1) &&
         instruction->result != XL6_IR_VALUE_INVALID &&

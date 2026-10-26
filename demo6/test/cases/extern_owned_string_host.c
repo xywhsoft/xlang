@@ -1,12 +1,12 @@
 /* The returned address is the XRT allocation itself. No library adapter or
  * C-string owner participates. Counters measure actual runtime allocations. */
-#include "xruntime_decl.h"
+#include <__xl_runtime/xruntime_decl.h>
 void xl6ForeignCallbackFail(void);
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
 bool owned_verify(bool value,int64_t line)
-{if(!value)fprintf(stderr,"owned string assertion at line %lld\n",(long long)line);return value;}
+{if(!value)fprintf(stderr,"owned string assertion case %lld\n",(long long)line);return value;}
 static char* last;
 char* owned_text(void)
 {
@@ -30,9 +30,6 @@ char* owned_failed_without_diagnostic(void)
     xl6ForeignCallbackFail();xrtClearError();return last;
 }
 bool owned_original(const char* text){return text==last;}
-bool owned_original_value(xvalue* value)
-{xstrview text={0};bool ok=xrtValueGetString(value,&text)&&text.Data==last;
- if(!ok)fprintf(stderr,"owned original=%p observed=%p\n",(void*)last,(void*)text.Data);return ok;}
 void owned_reset(void){xrtMemStatsEnable(true);xrtMemStatsReset();}
 bool owned_one_allocation(const char* text)
 {
@@ -41,7 +38,10 @@ bool owned_one_allocation(const char* text)
         stats.ReallocCalls==0&&stats.MemDupCalls==0&&stats.FreeCalls==0;
 }
 int64_t owned_frees(void){xmemstats s={0};xrtMemStatsGet(&s);return s.FreeCalls;}
-int64_t owned_allocations(void){xmemstats s={0};xrtMemStatsGet(&s);return s.MallocCalls+s.CallocCalls+s.ReallocCalls+s.MemDupCalls;}
+bool owned_debug(void){return xrtMemDebugEnabled()||xrtMemDebugEnable(true);}
+void owned_fail_after(int64_t count){xrtMemDebugFailAfter((uint64_t)count);}
+void owned_clear_failure(void){xrtMemDebugFailClear();xrtClearError();}
+int64_t owned_outstanding(void){xmemdebugsnapshot s={0};xrtMemDebugSnapshot(&s);return s.LiveCount;}
 /* Borrowed immortal receiver: this test isolates string-return ownership. */
 void* owned_open(void){static int receiver;return &receiver;}
 char* owned_member(void* self){return self?owned_text():NULL;}

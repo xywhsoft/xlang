@@ -6,12 +6,14 @@ extern "owned_failed" @owned func failed() as string
 extern "owned_failed_without_diagnostic" @owned func failedWithoutDiagnostic() as string
 extern "owned_optional" @owned @no_raise func optional() as string?
 extern "owned_original" @no_raise func original(string value) as bool
-extern "owned_original_value" @no_raise func originalValue(var value) as bool
 extern "owned_reset" @no_raise func reset()
 extern "owned_one_allocation" @no_raise func oneAllocation(string value) as bool
 extern "owned_frees" @no_raise func frees() as int
-extern "owned_allocations" @no_raise func allocations() as int
 extern "owned_borrowed" func borrowed() as string
+extern "owned_debug" @no_raise func debug() as bool
+extern "owned_fail_after" @no_raise func failAfter(int count)
+extern "owned_clear_failure" @no_raise func clearFailure()
+extern "owned_outstanding" @no_raise func outstanding() as int
 
 func direct()
     reset()
@@ -115,6 +117,26 @@ end
 func main(...) as int
     check()
     methods()
+    assert debug()
+    int count=0
+    int rejected=0
+    int accepted=0
+    while count<16
+        int before=outstanding()
+        failAfter(count)
+        try
+            string value=text()
+            assert original(value)
+            accepted+=1
+        catch error
+            rejected+=1
+        finally
+            clearFailure()
+        end
+        assert verify(outstanding()==before, 200+count)
+        count+=1
+    end
+    assert rejected>0 and accepted>0
     println("extern owned string: direct, callable, dynamic, nullable, cleanup ok")
     return 0
 end
