@@ -1,5 +1,16 @@
 # 当前源码的 var 容器传入原生扩展失败
 
+2026-10-26 重建发布版后复验 `toml`：Windows 默认
+`release/extlibs/toml/test/check.ps1` 的严格 C 和原生边界先通过，
+随后 `boundaries.xl` 在 `stringify(var literalDict)` 报
+`TypeError: TOML document root must be a dict`。现有最小源
+`release/extlibs/toml/test/root_argument_repro.xl` 在 Windows/Linux
+均退出 1；同一源中，`toml.parse` 返回的原生字典可正常写出，
+语言字典字面量传到相同入口却失败。修复应位于语言容器到
+foreign `var`/`xvalue*` 的共享投影边界，保留类型和所有权，
+不能在 TOML 包内识别编译器私有句柄。修复后先跑该最小源，
+再跑两平台默认包门禁、双语输出和独立 EXE AOT；当前未执行后续阶段。
+
 2026-10-26 新发布物复验 `netrc`：Windows 默认包门禁的严格 C、
 原生边界、TLS、C/XLang 公开范例、UTF-8 文件往返与 Python
 `.netrc` 互通，以及中央/包内语言边界均通过；具名类型用例
