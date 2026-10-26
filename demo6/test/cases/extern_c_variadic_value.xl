@@ -100,7 +100,9 @@ func allocations()
     string second=producer(c_int(1),"abc")
     auto alias=producer
     string third=alias(c_int(1),"abc")
-    string fourth=factory()(c_int(1),"abc",c_short(7),float32(2.5))
+    // Both the callable and its string argument are temporary owners. Each
+    // allocation prefix must retire whichever operands were already built.
+    string fourth=factory()(c_int(1),forward(required,"abc"),c_short(7),float32(2.5))
 end
 async func worker() as string
     auto producer=required
