@@ -48,7 +48,7 @@ def main():
                     automaticDiagnostics=False, checkOnSave=False)), 1)
                 reply, _ = client.reply(1)
                 init = reply['result']
-                assert init['serverInfo']['version'] == '0.82', init
+                assert init['serverInfo']['version'] == '0.83', init
                 assert init['capabilities']['signatureHelpProvider'] == dict(
                     triggerCharacters=['(', ','], retriggerCharacters=[')']), init
                 client.send('initialized', {})
@@ -148,6 +148,7 @@ def main():
                         assert analysis['signatureReusedDeclarations'] == 25 and analysis['signatureParsedBytes'] < len(body.encode('utf8'))/4, analysis
                         assert analysis['signatureSyntaxFallbacks'] == 0, analysis
                         assert analysis['reused'] >= 24, analysis
+                        assert analysis['signatureProofHits'] >= 24 and analysis['signatureProofNodes'] > analysis['signatureProofHits'], analysis
                         # Query-neutral bodies retain independent immutable
                         # facts; this response must not construct their types.
                         # Full AST and eager pool paths have native oracles.

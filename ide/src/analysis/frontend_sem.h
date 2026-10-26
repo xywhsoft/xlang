@@ -62,7 +62,15 @@ typedef struct xls_sem_body_control {struct xls_sem_body_control* previous;size_
  * Zero retains the original eager fact restoration. Nested limits only shrink. */
 void xlsFrontendSemBodyBegin(xls_sem_body_control* control,size_t bytes);
 void xlsFrontendSemBodyEnd(xls_sem_body_control* control);
-typedef struct xls_sem_work { uint64_t checked,reused,contextHits,bytes; } xls_sem_work;
+typedef struct xls_sem_work { uint64_t checked,reused,contextHits,bytes,proofHits,proofNodes; } xls_sem_work;
+/* Optional immutable restoration certificates, at most 4 KiB per function.
+ * Actual capacities are charged to the existing semantic-unit quota. A
+ * compact ordered list retains every located type; current source/cursor,
+ * coordinate and symbol guards still run. Zero uses the complete recursive proof. Nested limits
+ * only shrink. This is not a source-freshness cache or process memory limit. */
+typedef struct xls_sem_proof_control {struct xls_sem_proof_control* previous;size_t bytes;} xls_sem_proof_control;
+void xlsFrontendSemProofBegin(xls_sem_proof_control* control,size_t bytes);
+void xlsFrontendSemProofEnd(xls_sem_proof_control* control);
 typedef struct xls_sem_read_work {
     uint64_t contexts,contextHits,recorded,negative,matched,rejected,reused,bytes;
     uint64_t observations,typedComparisons,scratchReuses,scratchBytes,valueBytes;

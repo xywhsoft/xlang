@@ -559,6 +559,7 @@ static int nativeSignatureRun(xide_language_check* q,xvalue** output,xide_model_
   put(stats,"inputScopeHits",xrtValueInt((int64)q->signatureStats.inputScopeHits)) &&
   put(stats,"workerThreadId",xrtValueInt((int64)q->semanticThread)) && put(stats,"captureThreadId",xrtValueInt((int64)q->captureThread)) &&
   put(stats,"checked",xrtValueInt((int64)sem.checked)) && put(stats,"reused",xrtValueInt((int64)sem.reused)) &&
+  put(stats,"signatureProofHits",xrtValueInt((int64)sem.proofHits)) && put(stats,"signatureProofNodes",xrtValueInt((int64)sem.proofNodes)) &&
   put(stats,"signatureFullParses",xrtValueInt((int64)parse.full)) && put(stats,"signatureFragmentParses",xrtValueInt((int64)parse.fragments)) &&
   put(stats,"signatureReusedDeclarations",xrtValueInt((int64)parse.reused)) && put(stats,"signatureParsedBytes",xrtValueInt((int64)parse.bytes)) &&
   put(stats,"signatureParseExactHits",xrtValueInt((int64)parse.exactHits)) && put(stats,"signatureSyntaxCacheBytes",xrtValueInt((int64)parse.cacheBytes)) &&
@@ -735,7 +736,8 @@ analysed:
   xvalue* semWork=xrtValueObject();
   okayStats=okayStats && semWork && put(semWork,"checked",xrtValueInt((int64)work.checked)) &&
    put(semWork,"reused",xrtValueInt((int64)work.reused)) && put(semWork,"contextHits",xrtValueInt((int64)work.contextHits)) &&
-   put(semWork,"bytes",xrtValueInt((int64)work.bytes));
+   put(semWork,"bytes",xrtValueInt((int64)work.bytes)) && put(semWork,"proofHits",xrtValueInt((int64)work.proofHits)) &&
+   put(semWork,"proofNodes",xrtValueInt((int64)work.proofNodes));
   if(okayStats) {okayStats=put(stats,"lastBuildSemantics",semWork);semWork=NULL;}
   xrtValueRelease(semWork);
   xls_sem_call_work calls=xlsSemanticCompletionCallWork(nativeCompletion);
