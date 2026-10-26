@@ -20,4 +20,12 @@ void* xl6TlsVerifierPolicyV1(void* raw)
     if(!self || !self->value || !self->policy){xl6TlsFailV1(XERR_ARGUMENT,"missing TLS verifier");return NULL;}
     return xl6TlsVerificationPolicyCopyV1(self->policy);
 }
-XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6TlsVerifierHandlePolicyV1Get,xl6TlsVerifierDestroyV1)
+static bool trace(const xvalue* value,xrtownershipvisitor visit,void* context)
+{
+    void* raw=NULL;void* user=NULL;const xvaluehandleops* actual=NULL;
+    if(!visit||!xrtValueGetHandle(value,&raw,&actual,&user)||!raw||user||
+        actual!=xl6TlsVerifierHandlePolicyV1Get()->Ops)return false;
+    const XL6_TlsVerifierV1* self=raw;
+    return self->value&&visit(xrtTlsVerifierOwnership(self->value),context);
+}
+XL6_DEFINE_NATIVE_HANDLE_POLICY(xl6TlsVerifierHandlePolicyV1Get,xl6TlsVerifierDestroyV1,trace)
