@@ -93,6 +93,18 @@ try {
         $case = "test/cases/extlib_$name.xl"
         $module = Join-Path $work "$name.c"
         $null = Check "$name-cgen" $xl @('cgen',$case,'--emit',$module)
+        if ($name -eq 'bloom') {
+            $generatedText = [IO.File]::ReadAllText($module)
+            foreach ($symbol in @('xbloom_serialize_owned', 'xcounting_bloom_serialize_owned')) {
+                if ($generatedText -cnotmatch "\bv\d+\.Data\s*=\s*$symbol\s*\(") {
+                    throw "$symbol must adopt the native C string directly"
+                }
+            }
+            if ($generatedText.Contains('xl6_xrt_take_cstr(') -or
+                $generatedText.Contains('xl6CStringCopyV1')) {
+                throw 'bloom serialization must not copy or re-adopt native text'
+            }
+        }
         $header = if ($name -eq 'argon2') { 'argon2_native.h' } else { 'bloom.h' }
         $prefix = if ($name -eq 'argon2') { 'xargon2_' } else { '(?:xbloom_|xcounting_bloom_)' }
         $decls = @(Get-Content $module -Encoding UTF8 | Where-Object { $_ -match "^extern .*\b${prefix}[a-z_]+\(" })
