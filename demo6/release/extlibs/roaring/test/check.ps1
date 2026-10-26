@@ -86,6 +86,13 @@ try {
         if (($aotOutput -join "`n") -cne $expected) {
             throw 'roaring example AOT output differs'
         }
+        $cExample = Join-Path $work 'roaring_c_example.exe'
+        & $xl build release/extlibs/roaring/examples/roaring.c -o $cExample
+        if ($LASTEXITCODE -ne 0) { throw 'roaring C example AOT build failed' }
+        $cAotOutput = & $cExample
+        if ($LASTEXITCODE -ne 0 -or ($cAotOutput -join "`n") -cne $expected) {
+            throw 'roaring C example AOT output differs'
+        }
     }
 
     Write-Output $(if ($SkipAot) { 'roaring Windows C/XLang focused gate: PASS' }

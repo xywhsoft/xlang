@@ -51,4 +51,8 @@ timeout 120s ./release/xl build release/examples/extlibs/roaring.xl \
     -o "$work/roaring_example_xl"
 timeout 30s "$work/roaring_example_xl" > "$work/xl_aot.txt"
 diff -u "$work/c_example.txt" "$work/xl_aot.txt"
-printf 'roaring Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\n'
+timeout 120s ./release/xl build release/extlibs/roaring/examples/roaring.c \
+    -o "$work/roaring_example_c"
+timeout 30s "$work/roaring_example_c" > "$work/c_aot.txt"
+diff -u "$work/c_example.txt" "$work/c_aot.txt"
+printf 'roaring Linux C ASan/UBSan, XLang JIT and bilingual AOT gate: PASS\n'

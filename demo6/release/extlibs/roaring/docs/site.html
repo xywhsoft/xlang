@@ -39,7 +39,7 @@ roaring.RoaringBitmap both = ids.unionWith(other)
 println(both.count)</code></pre>
     <p>范围为 0..4294967295。集合运算不修改输入，差集是左集合减右集合；没有 Roaring 二进制格式互操作。C 接口和验证范围见包内 README。</p>
     <p><code>toArray()</code> 按数值升序返回独立快照；C 接口 <code>xroaring_to_array</code> 的结果由调用方用 <code>xrtValueRelease</code> 释放。集合归并使用 <code>xroaring_combine_into</code>，先构造结果再替换输出，允许句柄别名。C 侧空句柄返回参数错误，与合法空集合或成员未命中区分；分配失败抛 <code>MemoryError</code>，原集合不变。</p>
-    <p>从 demo6 目录可直接运行 <code>xl run release/extlibs/roaring/examples/roaring.c</code>；Windows 包级 <code>test/check.ps1</code> 与 Linux <code>test/check.sh</code> 同时验证单文件 C、分离编译 C 和 XLang 范例的固定输出。当前 Windows 默认门禁的核心与公开范例独立 EXE 均通过；<code>-SkipAot</code> 仅作聚焦检查。Linux 独立 EXE 尚未用新版发布物验收。</p>
+     <p>从 demo6 目录可直接运行 <code>xl run release/extlibs/roaring/examples/roaring.c</code>。2026-10-26 重建发布物后，Windows/Linux x64 默认包门禁均通过严格 C、Linux ASan/UBSan、桶升级/故障回滚、私有入口负例、C/XLang 固定输出，以及核心和双语范例独立 EXE AOT；<code>-SkipAot</code> 仅作聚焦检查。旧 VFS/共享快照阻断不再复现。本包只提供文档化的 uint32 内存集合，不提供标准 Roaring 二进制格式。</p>
   </section>
 </main>
 </body>
