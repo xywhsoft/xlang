@@ -1,0 +1,10 @@
+{
+  "Cases": [
+    {
+      "Name": "stdlib_x509_public_path_policy_values",
+      "Source": "test/cases/x509_public/path_policy_values.xl",
+      "Negative": false
+    }
+  ],
+  "Support": []
+}

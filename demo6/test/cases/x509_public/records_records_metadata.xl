@@ -1,0 +1,10 @@
+// Offline valid public fixtures; ordinary ownership/API checks, no network traffic.
+auto algorithm = X509Algorithm.fromDer(b"\x30\x3c\x06\x09\x2a\x86\x48\x86\xf7\x0d\x01\x01\x0a\x30\x2f\xa0\x0f\x30\x0d\x06\x09\x60\x86\x48\x01\x65\x03\x04\x02\x01\x05\x00\xa1\x1c\x30\x1a\x06\x09\x2a\x86\x48\x86\xf7\x0d\x01\x01\x08\x30\x0d\x06\x09\x60\x86\x48\x01\x65\x03\x04\x02\x02\x05\x00")
+auto info = algorithm.signatureInfo()
+assert info != null
+if info != null
+ assert info.kind == X509SignatureKind.rsaPss
+ assert info.digest == X509Digest.sha256
+ assert info.maskDigest == X509Digest.sha384
+ assert info.saltBytes == 20
+end

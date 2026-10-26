@@ -1,0 +1,17 @@
+// Offline valid public fixtures; ordinary ownership/API checks, no network traffic.
+assert x509.parseSubjectKeyId(b"\x04\x14\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13") == b"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13"
+assert x509.parseCrlNumber(b"\x02\x02\x00\x80") == b"\x80"
+assert x509.parseCrlNumber(b"\x02\x01\x00") == b"\x00"
+assert x509.parseCrlNumber(b"\x02\x15\x01\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13") == b"\x01\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13"
+assert x509.parseCrlReason(b"\x0a\x01\x01") == X509CrlReason.keyCompromise
+assert x509.parseInvalidityDate(b"\x18\x0f\x32\x30\x32\x33\x31\x32\x33\x31\x30\x30\x30\x30\x30\x30\x5a") == time(1703980800000000)
+assert x509.parseCrlReason(b"\x0a\x01\x00") == X509CrlReason.unspecified
+assert x509.parseCrlReason(b"\x0a\x01\x01") == X509CrlReason.keyCompromise
+assert x509.parseCrlReason(b"\x0a\x01\x02") == X509CrlReason.caCompromise
+assert x509.parseCrlReason(b"\x0a\x01\x03") == X509CrlReason.affiliationChanged
+assert x509.parseCrlReason(b"\x0a\x01\x04") == X509CrlReason.superseded
+assert x509.parseCrlReason(b"\x0a\x01\x05") == X509CrlReason.cessationOfOperation
+assert x509.parseCrlReason(b"\x0a\x01\x06") == X509CrlReason.certificateHold
+assert x509.parseCrlReason(b"\x0a\x01\x08") == X509CrlReason.removeFromCrl
+assert x509.parseCrlReason(b"\x0a\x01\x09") == X509CrlReason.privilegeWithdrawn
+assert x509.parseCrlReason(b"\x0a\x01\x0a") == X509CrlReason.aaCompromise

@@ -1,0 +1,3 @@
+// Offline valid public fixtures; ordinary ownership/API checks, no network traffic.
+assert DerReader(b"\x17\x0d200101000000Z").read().asTime() == time(1577836800000000)
+assert DerReader(b"\x18\x0f20200101000000Z").read().asTime() == time(1577836800000000)

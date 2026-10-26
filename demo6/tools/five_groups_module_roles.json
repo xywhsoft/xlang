@@ -20,6 +20,402 @@
     }
   ],
   "Profiles": {
+    "x509-certificate": {
+      "Surface": [
+        "Certificate.fromDer/fromPem",
+        "Certificate data, names, algorithms, public keys and extensions"
+      ],
+      "Reason": "完整不可变拥有证书、独立字段/记录、预算和可搬移输出；读取或 validAt 不等于信任认证。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_x509.inc",
+        "src/runtime/xl6_x509_certificate.c",
+        "src/runtime/xl6_x509_certificate_inputs.c",
+        "src/runtime/xl6_x509_certificate_unique_ids.c",
+        "src/runtime/xl6_x509_abi.h"
+      ],
+      "NormalProductCases": [
+        "stdlib_x509_public_data_x509_all",
+        "stdlib_x509_public_records_records_all"
+      ],
+      "DecisionWitnesses": [
+        "docs/x509-managed.md",
+        "docs/x509-surface-audit.md"
+      ],
+      "AcceptanceBoundary": "Selected offline valid-material product cases; role review is not full functional, trust-policy, cryptographic-security or goal acceptance"
+    },
+    "x509-crl": {
+      "Surface": [
+        "CertificateRevocationList.fromDer/fromPem",
+        "CRL data, owned entries and serial queries"
+      ],
+      "Reason": "完整 CRL 数据、可缺省 nextUpdate、独立条目/索引，查询存在性不冒充撤销或信任结论。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_x509.inc",
+        "src/runtime/xl6_x509_crl.c",
+        "src/runtime/xl6_x509_crl_find.c",
+        "src/runtime/xl6_x509_crl_entry_list.c",
+        "src/runtime/xl6_x509_abi.h"
+      ],
+      "NormalProductCases": [
+        "stdlib_x509_public_data_x509_all",
+        "stdlib_x509_public_crl_crl_parent",
+        "stdlib_x509_public_crl_crl_entries"
+      ],
+      "DecisionWitnesses": [
+        "docs/x509-managed.md",
+        "docs/x509-surface-audit.md"
+      ],
+      "AcceptanceBoundary": "Selected offline valid-material product cases; role review is not full functional, trust-policy, cryptographic-security or goal acceptance"
+    },
+    "x509-signature-info": {
+      "Surface": [
+        "X509Algorithm.signatureInfo",
+        "X509SignatureInfo; X509SignatureKind/X509Digest"
+      ],
+      "Reason": "保留完整方案、摘要、MGF、盐长和 trailer，未知 OID 不猜测；解析元信息和后端支持分别报告。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_x509_records.inc",
+        "src/runtime/xl6_x509_algorithm.c",
+        "src/runtime/xl6_x509_signature_info.c",
+        "src/runtime/xl6_x509_records_abi.h"
+      ],
+      "NormalProductCases": [
+        "stdlib_x509_public_records_records_all",
+        "stdlib_x509_public_records_records_metadata",
+        "stdlib_x509_public_verify_verify_messages"
+      ],
+      "DecisionWitnesses": [
+        "docs/x509-managed.md",
+        "docs/x509-surface-audit.md"
+      ],
+      "AcceptanceBoundary": "Selected offline valid-material product cases; role review is not full functional, trust-policy, cryptographic-security or goal acceptance"
+    },
+    "x509-verification-backends": {
+      "Surface": [],
+      "Reason": "验证摘要与 RSA/EC/Ed25519 后端由统一签名检查/路径能力复用，不再导出第二套数学/算法对象；真实不支持的签名返回 typed unsupported。",
+      "SourceWitnesses": [
+        "lib/xrt/xrt.h",
+        "src/runtime/xl6_x509_verify_internal.h",
+        "src/runtime/xl6_x509_signature_verify.c",
+        "src/runtime/xl6_x509_verify_abi.h"
+      ],
+      "NormalProductCases": [
+        "stdlib_x509_public_verify_verify_certificates",
+        "stdlib_x509_public_verify_verify_messages"
+      ],
+      "DecisionWitnesses": [
+        "docs/x509-managed.md",
+        "docs/x509-signatures.md"
+      ],
+      "AcceptanceBoundary": "Selected offline valid-material product cases; role review is not full functional, trust-policy, cryptographic-security or goal acceptance"
+    },
+    "x509-signature-check": {
+      "Surface": [
+        "Certificate/CertificateRevocationList.checkSignature/verifySignature",
+        "checkSignatureWithKey/verifySignatureWithKey",
+        "X509SignatureInfo.check/verify"
+      ],
+      "Reason": "完整拥有 key/方案/签名，区分 valid/rejected/unsupported 与 checked 资源错误；单次签名通过不等于路径、用途或信任通过。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_x509_certificate_verify.inc",
+        "src/stdlib/xl6_stdlib_x509_crl_verify.inc",
+        "src/runtime/xl6_x509_certificate_verify.c",
+        "src/runtime/xl6_x509_crl_verify.c",
+        "src/runtime/xl6_x509_signature_verify.c"
+      ],
+      "NormalProductCases": [
+        "stdlib_x509_public_verify_verify_certificates",
+        "stdlib_x509_public_verify_verify_messages",
+        "stdlib_x509_public_verify_verify_interop"
+      ],
+      "DecisionWitnesses": [
+        "docs/x509-managed.md",
+        "docs/x509-signatures.md"
+      ],
+      "AcceptanceBoundary": "Selected offline valid-material product cases; role review is not full functional, trust-policy, cryptographic-security or goal acceptance"
+    },
+    "x509-profile": {
+      "Surface": [
+        "X509GeneralNames/GeneralName",
+        "X509Oids/KeyUsage/BasicConstraints/AuthorityKeyIdentifier",
+        "Certificate profile methods"
+      ],
+      "Reason": "typed SAN/IAN、KU/EKU、SKI/AKI、BasicConstraints、OID 与独立 DER 读取；拥有式可空属性，不泄露原生游标。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_x509_profiles.inc",
+        "src/stdlib/xl6_stdlib_x509_certificate_profiles.inc",
+        "src/runtime/xl6_x509_profiles_abi.h",
+        "src/runtime/xl6_x509_certificate_subject_key_id.c"
+      ],
+      "NormalProductCases": [
+        "stdlib_x509_public_profiles_profiles_all",
+        "stdlib_x509_public_profiles_profiles_general",
+        "stdlib_x509_public_profiles_profiles_nullable"
+      ],
+      "DecisionWitnesses": [
+        "docs/x509-managed.md",
+        "docs/x509-profiles.md"
+      ],
+      "AcceptanceBoundary": "Selected offline valid-material product cases; role review is not full functional, trust-policy, cryptographic-security or goal acceptance"
+    },
+    "x509-name": {
+      "Surface": [
+        "X509Name/X509NameAttribute",
+        "find/findOid/equal/within"
+      ],
+      "Reason": "保留 RDN 索引与 ASN.1 值标签；原生 Unicode 规范化比较与已解析属性索引复用，不重新解析或返回悬空视图。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_x509_records.inc",
+        "src/runtime/xl6_x509_name.c",
+        "src/runtime/xl6_x509_name_compare.c",
+        "src/runtime/xl6_x509_attribute.c"
+      ],
+      "NormalProductCases": [
+        "stdlib_x509_public_records_records_all",
+        "stdlib_x509_public_records_records_reads",
+        "stdlib_x509_public_records_records_compare"
+      ],
+      "DecisionWitnesses": [
+        "docs/x509-managed.md",
+        "docs/x509-surface-audit.md"
+      ],
+      "AcceptanceBoundary": "Selected offline valid-material product cases; role review is not full functional, trust-policy, cryptographic-security or goal acceptance"
+    },
+    "x509-distribution": {
+      "Surface": [
+        "X509DistributionPoints/X509DistributionPoint",
+        "Certificate CRL distribution/freshest methods"
+      ],
+      "Reason": "完整/相对名称、理由及 CRL issuer 都是独立拥有记录；支持原生完整表达而不公开裸 C 列表。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_x509_profiles.inc",
+        "src/runtime/xl6_x509_distribution_points.c",
+        "src/runtime/xl6_x509_distribution_point.c",
+        "src/runtime/xl6_x509_distribution_point_names.c"
+      ],
+      "NormalProductCases": [
+        "stdlib_x509_public_profiles_profiles_all",
+        "stdlib_x509_public_profiles_profiles_distribution"
+      ],
+      "DecisionWitnesses": [
+        "docs/x509-managed.md",
+        "docs/x509-profiles.md"
+      ],
+      "AcceptanceBoundary": "Selected offline valid-material product cases; role review is not full functional, trust-policy, cryptographic-security or goal acceptance"
+    },
+    "x509-crl-profile": {
+      "Surface": [
+        "X509CrlEntries/X509CrlEntry/X509IssuingDistributionPoint",
+        "CRL numbers, delta base, AKI and entry profile methods"
+      ],
+      "Reason": "编号、delta base、IDP、理由/失效时间/issuer 的完整拥有投影和独立 DER 读取；本层不伪造间接 issuer 继承或撤销结论。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_x509_crl_profiles.inc",
+        "src/runtime/xl6_x509_crl_profiles_abi.h",
+        "src/runtime/xl6_x509_crl_entry_profile.c",
+        "src/runtime/xl6_x509_crl_issuing_point.c"
+      ],
+      "NormalProductCases": [
+        "stdlib_x509_public_crl_crl_entries",
+        "stdlib_x509_public_crl_crl_issuing",
+        "stdlib_x509_public_crl_crl_parent",
+        "stdlib_x509_public_crl_crl_utilities"
+      ],
+      "DecisionWitnesses": [
+        "docs/x509-managed.md",
+        "docs/x509-crl-profiles.md"
+      ],
+      "AcceptanceBoundary": "Selected offline valid-material product cases; role review is not full functional, trust-policy, cryptographic-security or goal acceptance"
+    },
+    "x509-crl-policy": {
+      "Surface": [
+        "X509ValidatedCrl/X509CrlSet",
+        "X509RevocationResult/X509RevocationCheck"
+      ],
+      "Reason": "明确时间/flags、complete/delta 与部分覆盖，绑定目标的不可变结果归并及 checked 关键扩展回调；不把 CRL 结论当完整路径验证。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_x509_crl_policy.inc",
+        "src/runtime/xl6_x509_crl_policy_abi.h",
+        "src/runtime/xl6_x509_crl_validate.c",
+        "src/runtime/xl6_x509_crl_validate_callback.c",
+        "src/runtime/xl6_x509_revocation_update.c"
+      ],
+      "NormalProductCases": [
+        "stdlib_x509_public_policy_policy_normal",
+        "stdlib_x509_public_policy_policy_partial",
+        "stdlib_x509_public_policy_policy_callback",
+        "stdlib_x509_public_policy_policy_empty"
+      ],
+      "DecisionWitnesses": [
+        "docs/x509-managed.md",
+        "docs/x509-crl-policy.md"
+      ],
+      "AcceptanceBoundary": "Selected offline valid-material product cases; role review is not full functional, trust-policy, cryptographic-security or goal acceptance"
+    },
+    "x509-name-constraints": {
+      "Surface": [
+        "X509NameConstraints/GeneralSubtrees/GeneralSubtree",
+        "GeneralName.within and constraint checks"
+      ],
+      "Reason": "permitted/excluded 子树及名称类型完整保留，复用原生基点/证书检查，不静默忽略未知能力；不单独声称信任认证。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_x509_profiles.inc",
+        "src/runtime/xl6_x509_name_constraints.c",
+        "src/runtime/xl6_x509_name_constraints_check.c",
+        "src/runtime/xl6_x509_general_name_within.c"
+      ],
+      "NormalProductCases": [
+        "stdlib_x509_public_profiles_profiles_all",
+        "stdlib_x509_public_profiles_profiles_constraints"
+      ],
+      "DecisionWitnesses": [
+        "docs/x509-managed.md",
+        "docs/x509-profiles.md"
+      ],
+      "AcceptanceBoundary": "Selected offline valid-material product cases; role review is not full functional, trust-policy, cryptographic-security or goal acceptance"
+    },
+    "x509-path": {
+      "Surface": [
+        "X509TrustAnchor/PathPolicy/PathOutcome/Path",
+        "X509Path.check and owned successful path"
+      ],
+      "Reason": "有序证书、独立锚、时间/用途/critical 策略、拥有式结果与 checked 回调；PathCheck 保留 typed status/reason/depth，不退化为裸 bool。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_x509_path.inc",
+        "src/runtime/xl6_x509_path_abi.h",
+        "src/runtime/xl6_x509_path_check.c",
+        "src/runtime/xl6_x509_path_check_callback.c",
+        "src/runtime/xl6_x509_path_policy.c"
+      ],
+      "NormalProductCases": [
+        "stdlib_x509_public_path_path_normal",
+        "stdlib_x509_public_path_path_callback",
+        "stdlib_x509_public_path_policy_values"
+      ],
+      "DecisionWitnesses": [
+        "docs/x509-managed.md",
+        "docs/x509-path-owned.md"
+      ],
+      "AcceptanceBoundary": "Selected offline valid-material product cases; role review is not full functional, trust-policy, cryptographic-security or goal acceptance"
+    },
+    "x509-path-build": {
+      "Surface": [
+        "Certificate.matchesIssuer",
+        "X509Path.build",
+        "immutable depth/work/candidate/anchor budgets"
+      ],
+      "Reason": "在稳定 trust snapshot 上使用有界原生建链；保留搜索预算与成功路径拥有权，不选择无工作量上限的便利函数。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_x509_path.inc",
+        "src/runtime/xl6_x509_issuer_match.c",
+        "src/runtime/xl6_x509_path_build.c",
+        "src/runtime/xl6_x509_path_build_callback.c",
+        "src/runtime/xl6_x509_path_build_core.c"
+      ],
+      "NormalProductCases": [
+        "stdlib_x509_public_path_build_issuer",
+        "stdlib_x509_public_path_build_normal",
+        "stdlib_x509_public_path_build_callback",
+        "stdlib_x509_public_path_build_work"
+      ],
+      "DecisionWitnesses": [
+        "docs/x509-managed.md",
+        "docs/x509-path-build.md"
+      ],
+      "AcceptanceBoundary": "Selected offline valid-material product cases; role review is not full functional, trust-policy, cryptographic-security or goal acceptance"
+    },
+    "x509-store": {
+      "Surface": [
+        "TrustStore",
+        "TrustStoreSnapshot"
+      ],
+      "Reason": "导入/去重/合并、独立可变 clone、不可变稳定版本及拥有投影；anchor 从同一版本证书建立，不泄露 store 内部指针。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_x509_store.inc",
+        "src/runtime/xl6_x509_store_abi.h",
+        "src/runtime/xl6_x509_store_update.c",
+        "src/runtime/xl6_x509_store_version.c",
+        "src/runtime/xl6_x509_store_items.c"
+      ],
+      "NormalProductCases": [
+        "stdlib_x509_public_store_store_empty",
+        "stdlib_x509_public_store_store_versions",
+        "stdlib_x509_public_store_store_pem",
+        "stdlib_x509_public_store_store_lifetime",
+        "stdlib_x509_public_store_store_encoded"
+      ],
+      "DecisionWitnesses": [
+        "docs/x509-managed.md",
+        "docs/x509-path-owned.md"
+      ],
+      "AcceptanceBoundary": "Selected offline valid-material product cases; role review is not full functional, trust-policy, cryptographic-security or goal acceptance"
+    },
+    "x509-store-file": {
+      "Surface": [
+        "TrustStore.fromFile/fromVfs",
+        "TrustStore.addFile/addVfs"
+      ],
+      "Reason": "锁外硬限额读取，再用共用原生 StoreAddData 事务导入；稳定快照、失败不发布。不沿用没有读取预算的原生 AddFile 便利形式。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_x509_store.inc",
+        "src/runtime/xl6_x509_store_file.c",
+        "src/runtime/xl6_x509_store_vfs.c",
+        "src/runtime/xl6_x509_store_data.c"
+      ],
+      "NormalProductCases": [
+        "stdlib_x509_public_store_store_sources_file",
+        "stdlib_x509_public_store_store_sources_vfs"
+      ],
+      "DecisionWitnesses": [
+        "docs/x509-managed.md",
+        "docs/x509-trust-sources.md"
+      ],
+      "AcceptanceBoundary": "Selected offline valid-material product cases; role review is not full functional, trust-policy, cryptographic-security or goal acceptance"
+    },
+    "x509-store-system": {
+      "Surface": [
+        "TrustStore/TrustStoreSnapshot.fromSystem",
+        "TrustStore.addSystem"
+      ],
+      "Reason": "显式只读 OS 信任来源，锁外建立再事务合并；不写 OS 根库、不隐式信任、不联网补链，旧版本仍稳定。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_x509_store.inc",
+        "src/runtime/xl6_x509_store_system.c",
+        "src/runtime/xl6_x509_store_system_update.c"
+      ],
+      "NormalProductCases": [
+        "stdlib_x509_public_store_store_sources_system"
+      ],
+      "DecisionWitnesses": [
+        "docs/x509-managed.md",
+        "docs/x509-trust-sources.md"
+      ],
+      "AcceptanceBoundary": "Selected offline valid-material product cases; role review is not full functional, trust-policy, cryptographic-security or goal acceptance"
+    },
+    "x509-identity": {
+      "Surface": [
+        "x509.matchesDns",
+        "Certificate.matchesHost/matchHost"
+      ],
+      "Reason": "DNS/SAN DNS-ID/IP-ID 的原生本地匹配，显式字节长度；布尔零分配或独立拥有可空命中记录，不触发 DNS 查询。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_x509_identity.inc",
+        "src/stdlib/xl6_stdlib_x509_certificate_identity.inc",
+        "src/runtime/xl6_x509_identity_dns.c",
+        "src/runtime/xl6_x509_identity_host.c",
+        "src/runtime/xl6_x509_identity_match.c"
+      ],
+      "NormalProductCases": [
+        "stdlib_x509_public_identity_identity_dns",
+        "stdlib_x509_public_identity_identity_bool",
+        "stdlib_x509_public_identity_identity_owned"
+      ],
+      "DecisionWitnesses": [
+        "docs/x509-managed.md",
+        "docs/x509-identity.md"
+      ],
+      "AcceptanceBoundary": "Selected offline valid-material product cases; role review is not full functional, trust-policy, cryptographic-security or goal acceptance"
+    },
     "asn1": {
       "Surface": [
         "asn1.parse",
@@ -1548,149 +1944,149 @@
     {
       "Group": "x509",
       "Module": "x509_parse",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "x509-certificate",
+      "Review": "role-reviewed"
     },
     {
       "Group": "x509",
       "Module": "x509_crl",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "x509-crl",
+      "Review": "role-reviewed"
     },
     {
       "Group": "x509",
       "Module": "x509_signature",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "x509-signature-info",
+      "Review": "role-reviewed"
     },
     {
       "Group": "x509",
       "Module": "x509_digest",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "x509-verification-backends",
+      "Review": "role-reviewed"
     },
     {
       "Group": "x509",
       "Module": "x509_verify",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "x509-signature-check",
+      "Review": "role-reviewed"
     },
     {
       "Group": "x509",
       "Module": "x509_crl_verify",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "x509-signature-check",
+      "Review": "role-reviewed"
     },
     {
       "Group": "x509",
       "Module": "x509_verify_rsa",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "x509-verification-backends",
+      "Review": "role-reviewed"
     },
     {
       "Group": "x509",
       "Module": "x509_verify_ecdsa",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "x509-verification-backends",
+      "Review": "role-reviewed"
     },
     {
       "Group": "x509",
       "Module": "x509_verify_ed25519",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "x509-verification-backends",
+      "Review": "role-reviewed"
     },
     {
       "Group": "x509",
       "Module": "x509_profile",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "x509-profile",
+      "Review": "role-reviewed"
     },
     {
       "Group": "x509",
       "Module": "x509_name",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "x509-name",
+      "Review": "role-reviewed"
     },
     {
       "Group": "x509",
       "Module": "x509_distribution",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "x509-distribution",
+      "Review": "role-reviewed"
     },
     {
       "Group": "x509",
       "Module": "x509_crl_profile",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "x509-crl-profile",
+      "Review": "role-reviewed"
     },
     {
       "Group": "x509",
       "Module": "x509_crl_policy",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "x509-crl-policy",
+      "Review": "role-reviewed"
     },
     {
       "Group": "x509",
       "Module": "x509_name_constraints",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "x509-name-constraints",
+      "Review": "role-reviewed"
     },
     {
       "Group": "x509",
       "Module": "x509_path",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "x509-path",
+      "Review": "role-reviewed"
     },
     {
       "Group": "x509",
       "Module": "x509_path_build",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "x509-path-build",
+      "Review": "role-reviewed"
     },
     {
       "Group": "x509",
       "Module": "x509_store",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "x509-store",
+      "Review": "role-reviewed"
     },
     {
       "Group": "x509",
       "Module": "x509_store_file",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "x509-store-file",
+      "Review": "role-reviewed"
     },
     {
       "Group": "x509",
       "Module": "x509_store_system",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "x509-store-system",
+      "Review": "role-reviewed"
     },
     {
       "Group": "x509",
       "Module": "x509_identity",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-namespace",
+      "Profile": "x509-identity",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",

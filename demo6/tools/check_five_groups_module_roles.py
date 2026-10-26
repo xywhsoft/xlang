@@ -157,7 +157,8 @@ def main() -> int:
     root = Path(__file__).resolve().parents[1]
     parser.add_argument("--roles", type=Path, default=root / "tools/five_groups_module_roles.json")
     parser.add_argument("--fixtures", type=Path, nargs="+", default=[
-        root / "tools/concurrency_public_fixtures.json", root / "tools/crypto_surface_public_fixtures.json"])
+        root / "tools/concurrency_public_fixtures.json", root / "tools/crypto_surface_public_fixtures.json",
+        root / "tools/x509_public_fixtures.json", root / "tools/x509_policy_public_fixtures.json"])
     parser.add_argument("--report", type=Path)
     parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args()
