@@ -1,6 +1,16 @@
 # semver
 
-2026-10-26 Windows/Linux 默认包门禁再次通过；两侧新增中央语言用例和
+2026-10-26 源码驱动验证：三个文本结果的 C 原型现明确为 `char*`，
+XLang 外部声明使用 `@owned ... as string` 直接接管同一 XRT 堆分配，
+删除了仅负责 `point` 转交的包装函数。生成 C 代码直接保存返回指针，
+计算一次长度；这不承诺后续普通字符串赋值也都不复制。
+Windows 严格 C/ABI、C 范例通过；从当前源码隔离编出的公共驱动
+运行中央、边界、分配故障与公开范例，并构建运行四份独立 EXE，
+范例输出与黄金文件一致。现有 `release/xl.exe` 尚不识别 `@owned`，
+标准 `build.bat` 又被 XRT/xruntime 快照不一致挡住，因此**新版包尚未
+完成发布物及 Linux 全门禁复验**；下述双平台签收仅对应迁移前版本。
+
+此前 2026-10-26 Windows/Linux 默认包门禁再次通过；两侧新增中央语言用例和
 C 单文件范例的独立 EXE AOT，C/GCC、C/TCC、C/AOT 与 XLang
 JIT/AOT 均逐字节匹配同一黄金输出。三个 C 字符串结果由
 `takeCstr` 直接接管 XRT 分配，无需为使用 `cstring` 再复制正文。
@@ -42,8 +52,9 @@ assert semver.satisfies("1.5.0", "^1.2.0")
 | `compare(a, b)` | `xsemver_compare` | `-1/0/1`；非法输入返回 `-2` |
 | `satisfies(version, range)` | `xsemver_satisfies` | 是否满足范围 |
 
-C 字符串结果是独立分配的内存，由调用方使用 `xrtFree` 释放。XLang 接口自动转成
-`string` 并释放原缓冲区。其余 C 接口返回值无需释放。`semver_native.h` 给出完整 C 声明。
+C 字符串结果是独立分配的内存，由 C 调用方使用 `xrtFree` 释放。
+XLang 的 `@owned` 外部声明直接接管同一内存，之后按普通 `string`
+生命周期释放。其余 C 接口返回值无需释放。`semver_native.h` 给出完整 C 声明。
 
 四个整数结果使用 `int64_t`，与 XLang `int` 的 C ABI 一致；C 输出可使用 `<inttypes.h>` 的 `PRId64`。
 九个 C 入口在调用开始时清除旧的 XRT 线程错误；正常返回和合法的不匹配不会遗留上次失败。

@@ -43,14 +43,14 @@ assert semver.satisfies("1.2.2", "&lt;=1.2.3")</code></pre>
       <tr><td><code>satisfies(version, range)</code></td><td>匹配常用依赖范围；非法范围返回 <code>false</code>。</td></tr>
     </tbody></table>
     <p>范围支持完整/部分版本、<code>x</code>/<code>*</code> 通配、比较运算符、<code>~</code>、<code>^</code>、空格交集、<code>||</code> 并集及 <code>A - B</code> 区间。比较符与版本号间可有空格/tab，例如 <code>&gt;= 1.2.3 &lt; 2.0.0</code>；区间的 <code>-</code> 两侧可有多个空格/tab。区间还能与同一分支的其他条件取交集，例如 <code>1.2.3 - 2.3.4 &gt;=2.0.0</code>。空范围或只含空格/tab 的范围匹配正式版本；空的 <code>||</code> 分支及只有运算符而无版本号的范围均属非法。需要显式通配时使用 <code>*</code>。prerelease 需要同一主次修订元组的显式 prerelease 比较器才会参与匹配。这是所列语法的实现，不宣称与 node-semver 的全部 API 或宽松解析模式等价。</p>
-    <p>C 端包含 <code>extlibs/semver/semver_native.h</code>；四个整数结果使用与 XLang <code>int</code> 一致的 <code>int64_t</code>。字符串结果由调用方用 <code>xrtFree</code> 释放。九个 C 入口不会带出陈旧 XRT 错误；三个字符串入口分配失败返回 <code>NULL</code> 并保留 <code>XERR_MEMORY</code>，XLang 对应入口抛出 <code>MemoryError</code>。版本分量受非负 64 位整数限制，单个 prerelease/build 字段最长 255 字节，范围文本最长 511 字节；每个 <code>||</code> 分支展开后最多容纳 32 个基础比较器，<code>^</code>、<code>~</code> 等简写可能占用两个。XLang 输入含内嵌 NUL 时按各接口的失败值返回，不会只检查前缀。</p>
+    <p>C 端包含 <code>extlibs/semver/semver_native.h</code>；四个整数结果使用与 XLang <code>int</code> 一致的 <code>int64_t</code>。三个文本入口返回 XRT 堆分配的 <code>char*</code>：C 调用方用 <code>xrtFree</code> 释放，XLang 的 <code>@owned</code> 声明直接接管。九个 C 入口不会带出陈旧 XRT 错误；三个字符串入口分配失败返回 <code>NULL</code> 并保留 <code>XERR_MEMORY</code>，XLang 对应入口抛出 <code>MemoryError</code>。版本分量受非负 64 位整数限制，单个 prerelease/build 字段最长 255 字节，范围文本最长 511 字节；每个 <code>||</code> 分支展开后最多容纳 32 个基础比较器，<code>^</code>、<code>~</code> 等简写可能占用两个。XLang 输入含内嵌 NUL 时按各接口的失败值返回，不会只检查前缀。</p>
   </section>
   <section id="verify">
     <h2>验证与边界</h2>
     <pre><code>xl run release/extlibs/semver/examples/semver_c.c
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/semver/test/check.ps1
 bash release/extlibs/semver/test/check.sh</code></pre>
-    <p>严格版本与范围解析在格式上限内检查 C 字符串终止符；超限输入不会继续无界扫描。C/XLang 验证了范围长度和元数据字段的恰好上限；C 范例可直接用 xl 单文件运行。完整版本的 <code>&lt;=</code> 按包含式上界处理。2026-10-26 使用现有发布版复验，Windows/Linux 默认包门禁包含 C ABI、严格 GCC、Linux ASan/UBSan、双语黄金输出、中央/边界/分配故障/公开范例的语言 AOT 及 C 单文件范例 AOT，全部通过。C 字符串结果由 <code>takeCstr</code> 直接接管分配的正文；旧发布版的 <code>xl6ValueDataSnapshotV1</code> 缺符号阻断已解除。更新后的工作树重建发布版仍受主线能力矩阵快照校验阻断，须同步后复验新发布物。本页只签收当前包级范围。</p>
+    <p>严格版本与范围解析在格式上限内检查 C 字符串终止符；超限输入不会继续无界扫描。C/XLang 验证了范围长度和元数据字段的恰好上限；C 范例可直接用 xl 单文件运行。完整版本的 <code>&lt;=</code> 按包含式上界处理。2026-10-26 迁移前版本的 Windows/Linux 默认包门禁通过。迁移后的 Windows 严格 C、公共源码驱动 JIT、中央/边界/分配故障/范例的独立 EXE 及黄金输出通过；生成 C 直接保存字符串指针，仅扫描一次长度，不经 <code>takeCstr</code> 包装。现有发布版尚不认识 <code>@owned</code>，新发布构建被 XRT/xruntime 快照一致性校验挡住；新版尚待发布物与 Linux 全门禁复验。本页不把源码驱动结果写作新发布版签收。</p>
   </section>
 </main>
 <script src="../main.js"></script>
