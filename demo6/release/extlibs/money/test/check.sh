@@ -40,4 +40,13 @@ timeout 90s "$xl" run release/extlibs/money/test/allocations.xl
 timeout 90s "$xl" run release/examples/extlibs/money.xl > "$work/money_xl.txt"
 diff -u release/extlibs/money/examples/money.expected.txt "$work/money_c.txt"
 diff -u "$work/money_c.txt" "$work/money_xl.txt"
+
+timeout 90s "$xl" build release/extlibs/money/test/aot_core.xl -o "$work/money_core"
+timeout 30s "$work/money_core"
+timeout 90s "$xl" build release/examples/extlibs/money.xl -o "$work/money_xl_aot"
+timeout 30s "$work/money_xl_aot" > "$work/money_xl_aot.txt"
+diff -u "$work/money_c.txt" "$work/money_xl_aot.txt"
+timeout 90s "$xl" build release/extlibs/money/examples/money.c -o "$work/money_c_aot"
+timeout 30s "$work/money_c_aot" > "$work/money_c_aot.txt"
+diff -u "$work/money_c.txt" "$work/money_c_aot.txt"
 printf 'money Linux C/XL ASan/UBSan gate: PASS\n'

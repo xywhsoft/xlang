@@ -26,12 +26,12 @@ for operation in range(2)
         end
         bool triggered = failTriggered()
         failClear()
-        assert not wrongCaught and memoryCaught == triggered
+        assert not wrongCaught and memoryCaught == triggered, "money fault error kind"
         if triggered then failures += 1 else successes += 1 end
-        assert money.format(123, "USD") == "$1.23"
-        assert money.split(101, 3) == [34, 34, 33]
+        assert money.format(123, "USD") == "$1.23", "money format recovery"
+        assert money.split(101, 3) == [34, 34, 33], "money foreign array equality after recovery"
     end
-    assert failures > 0 and successes > 0
+    assert failures > 0 and successes > 0, "money fault scan coverage"
 end
 
 println("money allocation: PASS")

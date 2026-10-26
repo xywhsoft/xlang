@@ -53,6 +53,17 @@ try {
             throw 'money example AOT differs from fixed output'
         }
         Write-Host '[money] example AOT: PASS'
+
+        $cFull = Join-Path $work 'money_c_example.exe'
+        & $xl build release/extlibs/money/examples/money.c -o $cFull
+        if ($LASTEXITCODE -ne 0) { throw 'money C example AOT build failed' }
+        $cFullLines = @(& $cFull)
+        if ($LASTEXITCODE -ne 0 -or
+            ([string]::Join("`n", @($cFullLines | ForEach-Object { $_ -replace "`r$", '' }))) -cne
+            ([string]::Join("`n", $expected))) {
+            throw 'money C example AOT differs from fixed output'
+        }
+        Write-Host '[money] C example AOT: PASS'
     }
 
     Write-Output 'money Windows C/XLang gate: PASS'
