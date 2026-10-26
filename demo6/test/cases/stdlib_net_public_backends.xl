@@ -1,0 +1,60 @@
+// Real backend selection, not only compiled metadata. Own literal loopback only.
+func exchangeBackend(NetEngine engine, int family)
+    auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(family)))
+    auto client = TcpStream(engine, listener.localAddress())
+    auto peer = listener.accept(5000)
+    assert client.wait(TcpWait.open, 5000) == NetStatus.ok
+    assert client.send("a\0你", 99) == NetStatus.ok
+    bytes received = b""
+    while received.length < 5
+        auto part = peer.recv(5 - received.length, 5000)
+        assert part.length > 0
+        received = received + part
+    end
+    assert received == b"a\0\xe4\xbd\xa0"
+    client.abort()
+    peer.abort()
+    listener.close()
+
+    auto receiver = UdpSocket(engine, NetAddress.loopback(family))
+    assert receiver.wait(UdpWait.open, 5000) == NetStatus.ok
+    auto sender = udp.connect(engine, receiver.localAddress())
+    assert sender.wait(UdpWait.open, 5000) == NetStatus.ok
+    assert sender.send(b"d\0g", 99) == NetStatus.ok
+    auto packet = receiver.recv(5000)
+    assert packet.bytes() == b"d\0g" and packet.remote.family == family
+    assert sender.send(b"") == NetStatus.ok
+    assert receiver.recv(5000).length == 0
+    sender.close()
+    receiver.close()
+    assert sender.wait(UdpWait.close, 5000) == NetStatus.ok
+    assert receiver.wait(UdpWait.close, 5000) == NetStatus.ok
+end
+
+func exerciseBackend(NetBackend backend)
+    auto engine = NetEngine(NetEngineOptions().withWorkers(2).withBackend(backend))
+    engine.start()
+    try
+        assert engine.backend(0) == backend and engine.backend(1) == backend
+        assert engine.capabilities(0) == net.backendCapabilities(backend)
+        exchangeBackend(engine, 4)
+        exchangeBackend(engine, 6)
+        assert engine.failureCount == 0
+        println("network backend: " + net.backendName(backend))
+    finally
+        engine.close()
+        assert engine.wait(10000)
+    end
+end
+
+int exercised = 0
+array<NetBackend> backends = [NetBackend.select, NetBackend.iocp, NetBackend.epoll, NetBackend.ioUring, NetBackend.kqueue]
+for backend in backends
+    if net.backendCompiled(backend)
+        // Never silently substitute automatic/select if explicit startup fails.
+        exerciseBackend(backend)
+        exercised += 1
+    end
+end
+assert exercised >= 2
+println("explicit backends: real IPv4/IPv6 TCP/UDP, NUL, empty packet and checked close")

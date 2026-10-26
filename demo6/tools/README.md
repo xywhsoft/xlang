@@ -2,6 +2,11 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`check_network_public_shipping.py --manifest tools/network_surface_public_fixtures.json`
+selects 43 normal network positives and four compile negatives, including actual
+explicit backend switching and owned unique-path NetFile I/O. Role inventory
+checks read this manifest by default. See [network module roles and product scope](../docs/network-surface-closure-2026-10-26.md).
+
 `check_tls_verified_peer_packet.py --products <ordinary-release> --build-report <build.shipping.json> --out <fresh-directory>`
 tests the private post-verification snapshot against real baseline libraries.
 The new packet and unchanged private TLS diagnostic helper are the compiled

@@ -32,6 +32,559 @@
     }
   ],
   "Profiles": {
+    "network-address": {
+      "Surface": [
+        "NetAddress numeric factories, exact endpoints, equality and owned transformations"
+      ],
+      "Reason": "原生地址是不可变语言拥有值；容量查询和 sockaddr 指针互操留在内部，不复制解析或地址分类算法。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_net_address.inc",
+        "src/runtime/xl6_net_address.c",
+        "src/runtime/xl6_net_address_abi.h"
+      ],
+      "NormalProductCases": [
+        "net_surface_address",
+        "net_surface_address_list"
+      ],
+      "DecisionWitnesses": [
+        "docs/NetAddress标准库接入.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary product checks on valid offline data, local metadata and owned literal loopback. Not exhaustive per-entry execution, security testing, BSD/macOS validation or full goal acceptance"
+    },
+    "network-interfaces": {
+      "Surface": [
+        "NetInterfaceList/NetInterface/NetInterfaceAddress immutable owned snapshots"
+      ],
+      "Reason": "枚举一致快照及独立子结果；本机接口不是默认路由，也不将共享 OS 状态说成语言快照。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_net_interfaces.inc",
+        "src/runtime/xl6_net_interfaces.c"
+      ],
+      "NormalProductCases": [
+        "net_surface_interfaces",
+        "net_surface_interface_owned"
+      ],
+      "DecisionWitnesses": [
+        "docs/NetInterface标准库接入.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary product checks on valid offline data, local metadata and owned literal loopback. Not exhaustive per-entry execution, security testing, BSD/macOS validation or full goal acceptance"
+    },
+    "network-interface-text": {
+      "Surface": [
+        "net.interfaceIndex/interfaceName/hostName/localAddress/localIP/localHardware/localMAC"
+      ],
+      "Reason": "按实际长度提供独立 string/bytes，显式区分无硬件地址与空值；不公开裸输出缓冲或容量重试。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_net_interface_query.c",
+        "src/runtime/xl6_net_interface_local.c",
+        "src/runtime/xl6_net_interfaces_text.c"
+      ],
+      "NormalProductCases": [
+        "net_surface_interface_queries"
+      ],
+      "DecisionWitnesses": [
+        "docs/NetInterface标准库接入.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary product checks on valid offline data, local metadata and owned literal loopback. Not exhaustive per-entry execution, security testing, BSD/macOS validation or full goal acceptance"
+    },
+    "network-dns": {
+      "Surface": [
+        "net.resolve/resolveAll and NetAddress/NetAddressList host constructors"
+      ],
+      "Reason": "同步系统解析与纯数字解析分开；普通产品仅走数字快路径，不据此声称公网 DNS 已测试。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_net_address_list_resolve.c",
+        "src/stdlib/xl6_stdlib_net_resolver.inc"
+      ],
+      "NormalProductCases": [
+        "net_surface_resolver_numeric",
+        "net_surface_address_list"
+      ],
+      "DecisionWitnesses": [
+        "docs/Resolver与拥有型地址列表.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary product checks on valid offline data, local metadata and owned literal loopback. Not exhaustive per-entry execution, security testing, BSD/macOS validation or full goal acceptance"
+    },
+    "network-resolver": {
+      "Surface": [
+        "NetResolver options/cache/requests/snapshots/checked close"
+      ],
+      "Reason": "复用原生解析器与拥有型请求；持久快照、独立结果与缓存配置均保持语言拥有。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_net_resolver.inc",
+        "src/runtime/xl6_net_resolver_language.c",
+        "src/runtime/xl6_net_resolver_config.c"
+      ],
+      "NormalProductCases": [
+        "net_surface_resolver_numeric",
+        "net_surface_resolver_options",
+        "net_surface_resolver_owned"
+      ],
+      "DecisionWitnesses": [
+        "docs/Resolver与拥有型地址列表.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary product checks on valid offline data, local metadata and owned literal loopback. Not exhaustive per-entry execution, security testing, BSD/macOS validation or full goal acceptance"
+    },
+    "network-resolver-future": {
+      "Surface": [
+        "NetResolveOperation.waitAsync; NetResolver.resolveAsync/resolveAsyncCancel"
+      ],
+      "Reason": "实际请求的 Future 与取消注册组合，不为每次解析分配协程栈或隐藏线程池。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_net_resolver.inc",
+        "src/runtime/xl6_net_resolver_language.c"
+      ],
+      "NormalProductCases": [
+        "net_surface_resolver_numeric"
+      ],
+      "DecisionWitnesses": [
+        "docs/Resolver与拥有型地址列表.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary product checks on valid offline data, local metadata and owned literal loopback. Not exhaustive per-entry execution, security testing, BSD/macOS validation or full goal acceptance"
+    },
+    "network-socket": {
+      "Surface": [
+        "NetSocket lifecycle/control, scalar/vector/batch I/O and typed datagram metadata"
+      ],
+      "Reason": "受管 OS 句柄及明确状态/拥有输出；多播 API 已声明，当前无组成员流量测试；错误队列仅空队列常规调用。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_net_socket.inc",
+        "src/stdlib/xl6_stdlib_net_vector.inc",
+        "src/stdlib/xl6_stdlib_net_batch.inc",
+        "src/runtime/xl6_net_socket_abi.h"
+      ],
+      "NormalProductCases": [
+        "net_surface_socket_tcp",
+        "net_surface_socket_udp",
+        "net_surface_socket_vector",
+        "net_surface_socket_batch",
+        "net_surface_datagram",
+        "net_surface_empty_error_queue"
+      ],
+      "DecisionWitnesses": [
+        "docs/NetSocket基础接入.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary product checks on valid offline data, local metadata and owned literal loopback. Not exhaustive per-entry execution, security testing, BSD/macOS validation or full goal acceptance"
+    },
+    "network-buffer": {
+      "Surface": [
+        "NetBuffer and immutable NetBytes retain/move/copy operations"
+      ],
+      "Reason": "复用原生分块存储和独立拥有数据；精确 size/offset 与 NUL 不经过 C 字符串推断。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_net_buffer.inc",
+        "src/runtime/xl6_net_buffer_ref.c",
+        "src/runtime/xl6_net_buffer.c"
+      ],
+      "NormalProductCases": [
+        "net_surface_buffer_ref"
+      ],
+      "DecisionWitnesses": [
+        "docs/NetBuffer与增量分帧.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary product checks on valid offline data, local metadata and owned literal loopback. Not exhaustive per-entry execution, security testing, BSD/macOS validation or full goal acceptance"
+    },
+    "network-frame": {
+      "Surface": [
+        "NetFrameResult status, metadata and independent bytes/text/copyInto"
+      ],
+      "Reason": "安全拥有的帧结果取代裸 span 视图，原生预检/消费能力由 line/length 组合复用。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_net_frame_result.c",
+        "src/runtime/xl6_net_frame_text.c",
+        "src/runtime/xl6_net_frame_buffer.c"
+      ],
+      "NormalProductCases": [
+        "net_surface_frames_owned",
+        "net_surface_frames_values"
+      ],
+      "DecisionWitnesses": [
+        "docs/NetBuffer与增量分帧.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary product checks on valid offline data, local metadata and owned literal loopback. Not exhaustive per-entry execution, security testing, BSD/macOS validation or full goal acceptance"
+    },
+    "network-line-frame": {
+      "Surface": [
+        "NetLineFramer incremental append/ref/move/next/nextInto/clear"
+      ],
+      "Reason": "完整分隔符与分帧配置由原生维护；语言仅提供拥有输出，不新增协议解析。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_net_frame_line.c",
+        "src/runtime/xl6_net_frame_line_value.c"
+      ],
+      "NormalProductCases": [
+        "net_surface_frames_owned",
+        "net_surface_frames_values",
+        "net_surface_frames_defaults"
+      ],
+      "DecisionWitnesses": [
+        "docs/NetBuffer与增量分帧.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary product checks on valid offline data, local metadata and owned literal loopback. Not exhaustive per-entry execution, security testing, BSD/macOS validation or full goal acceptance"
+    },
+    "network-length-frame": {
+      "Surface": [
+        "NetLengthFramer incremental length-field framing and owned results"
+      ],
+      "Reason": "保留长度字段宽度/偏移/端序/预算，复用 XRT 分帧，不由 Cgen 扫描帧数据。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_net_frame_length.c",
+        "src/runtime/xl6_net_frame_length_value.c"
+      ],
+      "NormalProductCases": [
+        "net_surface_frames_owned",
+        "net_surface_frames_values",
+        "net_surface_frames_defaults"
+      ],
+      "DecisionWitnesses": [
+        "docs/NetBuffer与增量分帧.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary product checks on valid offline data, local metadata and owned literal loopback. Not exhaustive per-entry execution, security testing, BSD/macOS validation or full goal acceptance"
+    },
+    "network-proxy": {
+      "Surface": [
+        "NetProxy immutable typed endpoint and exact credential bytes"
+      ],
+      "Reason": "复用 XRT 配置/持有/释放，凭据允许精确二进制，控制主机名不接受 NUL 截断。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_net_proxy.inc",
+        "src/runtime/xl6_net_proxy.c",
+        "src/runtime/xl6_net_proxy_value.c"
+      ],
+      "NormalProductCases": [
+        "net_surface_proxy_values",
+        "net_surface_proxy_owned"
+      ],
+      "DecisionWitnesses": [
+        "docs/代理端点与独立协议协商.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary product checks on valid offline data, local metadata and owned literal loopback. Not exhaustive per-entry execution, security testing, BSD/macOS validation or full goal acceptance"
+    },
+    "network-proxy-handshake": {
+      "Surface": [
+        "NetProxyHandshake sans-I/O state/step/output/sent/append/remaining/bound"
+      ],
+      "Reason": "协商不启动网络；底层借用 output 经驻留投影为独立拥有数据，保留应用尾部。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_net_proxy.inc",
+        "src/runtime/xl6_net_proxy_handshake.c",
+        "src/runtime/xl6_net_proxy_handshake_buffer.c"
+      ],
+      "NormalProductCases": [
+        "net_surface_socks5",
+        "net_surface_http_connect",
+        "net_surface_proxy_credentials",
+        "net_surface_proxy_owned"
+      ],
+      "DecisionWitnesses": [
+        "docs/代理端点与独立协议协商.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary product checks on valid offline data, local metadata and owned literal loopback. Not exhaustive per-entry execution, security testing, BSD/macOS validation or full goal acceptance"
+    },
+    "network-proxy-protocols": {
+      "Surface": [
+        "NetProxyType.socks5/httpConnect select the native handshake implementation"
+      ],
+      "Reason": "这两个模块本来是统一协商器的协议实现，不另造两套语言解析对象；正常离线成功协商不代表安全审计。",
+      "SourceWitnesses": [
+        "lib/xrt/xrt.h",
+        "src/runtime/xl6_net_proxy_handshake.c"
+      ],
+      "NormalProductCases": [
+        "net_surface_socks5",
+        "net_surface_http_connect",
+        "net_surface_proxy_credentials"
+      ],
+      "DecisionWitnesses": [
+        "docs/代理端点与独立协议协商.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary product checks on valid offline data, local metadata and owned literal loopback. Not exhaustive per-entry execution, security testing, BSD/macOS validation or full goal acceptance"
+    },
+    "network-proxy-dial": {
+      "Surface": [
+        "TcpStream.dialProxy/dialProxyAsync cancellation/deadline/options variants"
+      ],
+      "Reason": "代理连接组合原生 Resolver/Dial/handshake/Stream；目标域名只是自有代理中的协议载荷，不发往外网。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_tcp_proxy.inc",
+        "src/runtime/xl6_tcp_proxy_dial_sync.c",
+        "src/runtime/xl6_tcp_proxy_dial_future.c"
+      ],
+      "NormalProductCases": [
+        "net_surface_proxy_dial_sync",
+        "net_surface_proxy_dial_async"
+      ],
+      "DecisionWitnesses": [
+        "docs/标准库TCP代理拨号接入验收.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary product checks on valid offline data, local metadata and owned literal loopback. Not exhaustive per-entry execution, security testing, BSD/macOS validation or full goal acceptance"
+    },
+    "network-backends": {
+      "Surface": [
+        "NetBackend/net.backendCompiled/backendName/backendCapabilities; NetEngineOptions.withBackend"
+      ],
+      "Reason": "按批准方案只允许切换真实后端，不公开原生 Port/重叠 I/O 缓冲；Windows/Linux 实测不冒充 Kqueue/BSD 验收，显式失败不自动回退。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_net_backends.inc",
+        "src/runtime/xl6_net_backends.c",
+        "src/runtime/xl6_net_engine_language.c"
+      ],
+      "NormalProductCases": [
+        "net_surface_backends"
+      ],
+      "DecisionWitnesses": [
+        "docs/NetBackend标准库接入.md",
+        "docs/五组标准库接入长期任务.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary product checks on valid offline data, local metadata and owned literal loopback. Not exhaustive per-entry execution, security testing, BSD/macOS validation or full goal acceptance"
+    },
+    "network-engine": {
+      "Surface": [
+        "NetEngine immutable options/stats, workers/post/timer/start/stop/checked close"
+      ],
+      "Reason": "实际工作线程、拥有图和首个错误记录，固定配置选择驱动；状态快照不替代物理关闭。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_net_engine.inc",
+        "src/runtime/xl6_net_engine_language.c",
+        "src/runtime/xl6_net_engine_stats.c"
+      ],
+      "NormalProductCases": [
+        "net_surface_engine",
+        "net_surface_engine_options",
+        "net_surface_engine_timers",
+        "net_surface_engine_errors",
+        "net_surface_backends"
+      ],
+      "DecisionWitnesses": [
+        "docs/NetEngine标准库接入.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary product checks on valid offline data, local metadata and owned literal loopback. Not exhaustive per-entry execution, security testing, BSD/macOS validation or full goal acceptance"
+    },
+    "network-file": {
+      "Surface": [
+        "NetFile positioned bytes I/O, snapshots, cancellation and physical close Future"
+      ],
+      "Reason": "复用 IOCP/io_uring 的真实文件操作；无隐式线程池，私有读缓冲只转交一次并保留 Future 拥有值。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_net_file.inc",
+        "src/runtime/xl6_net_file_language.c",
+        "src/runtime/xl6_net_file_future.c"
+      ],
+      "NormalProductCases": [
+        "net_surface_file"
+      ],
+      "DecisionWitnesses": [
+        "docs/net-file-owned.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary product checks on valid offline data, local metadata and owned literal loopback. Not exhaustive per-entry execution, security testing, BSD/macOS validation or full goal acceptance"
+    },
+    "network-task": {
+      "Surface": [
+        "NetEngine.submit/submitCancel/submitAfter/submitUntil and typed result profiles"
+      ],
+      "Reason": "复用已批准原生 TaskNet 拥有链，在 Engine 工作者执行；不转投计算池，TaskGroup 仍走既有独立组合。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_net_engine.inc",
+        "src/runtime/xl6_net_engine_language.c"
+      ],
+      "NormalProductCases": [
+        "net_surface_task_results",
+        "net_surface_task_pending"
+      ],
+      "DecisionWitnesses": [
+        "docs/net-engine-tasks.md",
+        "docs/XLIR原生网络任务拥有链.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary product checks on valid offline data, local metadata and owned literal loopback. Not exhaustive per-entry execution, security testing, BSD/macOS validation or full goal acceptance"
+    },
+    "network-tcp": {
+      "Surface": [
+        "TcpStream/TcpListener configuration, backpressure, bytes, addresses and close"
+      ],
+      "Reason": "实际传输拥有 Engine，显式 close 排空与未关闭自动中止分开；不因语言引用消失而伪造物理完成。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_tcp.inc",
+        "src/runtime/xl6_tcp_language.c",
+        "src/runtime/xl6_tcp_stats.c"
+      ],
+      "NormalProductCases": [
+        "net_surface_tcp_sync",
+        "net_surface_tcp_async",
+        "net_surface_backends"
+      ],
+      "DecisionWitnesses": [
+        "docs/tcp-managed-transport.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary product checks on valid offline data, local metadata and owned literal loopback. Not exhaustive per-entry execution, security testing, BSD/macOS validation or full goal acceptance"
+    },
+    "network-tcp-file": {
+      "Surface": [
+        "TcpStream.sendFile with independent native handle and explicit byte range"
+      ],
+      "Reason": "原生复制文件权利及独立位置，语言 File 提前关闭仍可发送；不宣称所有后端 OS 零拷贝。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_tcp_data.inc",
+        "src/runtime/xl6_tcp_file.c"
+      ],
+      "NormalProductCases": [
+        "net_surface_tcp_file"
+      ],
+      "DecisionWitnesses": [
+        "docs/tcp-data-paths.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary product checks on valid offline data, local metadata and owned literal loopback. Not exhaustive per-entry execution, security testing, BSD/macOS validation or full goal acceptance"
+    },
+    "network-server": {
+      "Surface": [
+        "TcpServer aggregate endpoints/options/snapshots/poll/close"
+      ],
+      "Reason": "这是实际多监听器聚合 Server，不保留旧 Listener 的错误别名，结果拥有实际 Stream。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_tcp_server.inc",
+        "src/runtime/xl6_tcp_server_language.c"
+      ],
+      "NormalProductCases": [
+        "net_surface_server_sync",
+        "net_surface_server_async"
+      ],
+      "DecisionWitnesses": [
+        "docs/tcp-server-language.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary product checks on valid offline data, local metadata and owned literal loopback. Not exhaustive per-entry execution, security testing, BSD/macOS validation or full goal acceptance"
+    },
+    "network-server-waits": {
+      "Surface": [
+        "TcpServer.accept/acceptAsync and cancel/until variants"
+      ],
+      "Reason": "同一原生 Server 的同步/Future 等待，显式期限和取消，不为每次 accept 新建系统线程。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_tcp_server.inc",
+        "src/runtime/xl6_tcp_server_sync.c",
+        "src/runtime/xl6_tcp_server_future.c"
+      ],
+      "NormalProductCases": [
+        "net_surface_server_sync",
+        "net_surface_server_async"
+      ],
+      "DecisionWitnesses": [
+        "docs/tcp-server-language.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary product checks on valid offline data, local metadata and owned literal loopback. Not exhaustive per-entry execution, security testing, BSD/macOS validation or full goal acceptance"
+    },
+    "network-sync-core": {
+      "Surface": [
+        "Shared native wait/deadline infrastructure used by TCP/UDP sync methods"
+      ],
+      "Reason": "同步层是公共方法的底层策略，保留同 Worker 阻塞拒绝，不新增平行语言 NetSync 对象。",
+      "SourceWitnesses": [
+        "lib/xrt/xrt.h",
+        "src/runtime/xl6_tcp_sync.c"
+      ],
+      "NormalProductCases": [
+        "net_surface_tcp_sync",
+        "net_surface_udp_sync"
+      ],
+      "DecisionWitnesses": [
+        "docs/tcp-managed-transport.md",
+        "docs/udp-managed-migration.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary product checks on valid offline data, local metadata and owned literal loopback. Not exhaustive per-entry execution, security testing, BSD/macOS validation or full goal acceptance"
+    },
+    "network-dial": {
+      "Surface": [
+        "tcp.dial and TcpStream.dial with immutable address lists and resolver"
+      ],
+      "Reason": "原生拨号竞赛/配置/结果拥有图由统一 Dial 复用；Cgen 不猜测连接类型。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_tcp.inc",
+        "src/runtime/xl6_tcp_dial.c"
+      ],
+      "NormalProductCases": [
+        "net_surface_dial_sync",
+        "net_surface_dial_async"
+      ],
+      "DecisionWitnesses": [
+        "docs/tcp-dial-public-api.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary product checks on valid offline data, local metadata and owned literal loopback. Not exhaustive per-entry execution, security testing, BSD/macOS validation or full goal acceptance"
+    },
+    "network-dial-waits": {
+      "Surface": [
+        "Dial synchronous/Future with exact cancellation and deadline overloads"
+      ],
+      "Reason": "共享真实拥有型 Dial 激活，取消不等于内核完成，成功仅转交一次 Stream。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_tcp_dial_sync.c",
+        "src/runtime/xl6_tcp_dial_future.c"
+      ],
+      "NormalProductCases": [
+        "net_surface_dial_sync",
+        "net_surface_dial_async"
+      ],
+      "DecisionWitnesses": [
+        "docs/tcp-dial-public-api.md",
+        "docs/tcp-dial-deadlines.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary product checks on valid offline data, local metadata and owned literal loopback. Not exhaustive per-entry execution, security testing, BSD/macOS validation or full goal acceptance"
+    },
+    "network-tcp-waits": {
+      "Surface": [
+        "TcpStream wait/recv/accept synchronous and Future projections"
+      ],
+      "Reason": "保留实际 Future 及拥有 bytes/Class 的精确结果合同，不将通用 xvalue 外壳等同任意返回类型。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_tcp.inc",
+        "src/runtime/xl6_tcp_sync.c",
+        "src/runtime/xl6_tcp_future.c"
+      ],
+      "NormalProductCases": [
+        "net_surface_tcp_sync",
+        "net_surface_tcp_async"
+      ],
+      "DecisionWitnesses": [
+        "docs/tcp-managed-transport.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary product checks on valid offline data, local metadata and owned literal loopback. Not exhaustive per-entry execution, security testing, BSD/macOS validation or full goal acceptance"
+    },
+    "network-udp": {
+      "Surface": [
+        "UdpSocket/UdpConfig/UdpPacket/UdpBatch/UdpMessage and typed transfer controls"
+      ],
+      "Reason": "复用真实 datagram 原生拥有图，包/批次独立拥有，空报文与 EOF 区分，保留拷贝/ref/move 和批量进度。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_udp.inc",
+        "src/stdlib/xl6_stdlib_udp_transfer.inc",
+        "src/runtime/xl6_udp_abi.h"
+      ],
+      "NormalProductCases": [
+        "net_surface_udp_sync",
+        "net_surface_udp_async",
+        "net_surface_udp_transfer",
+        "net_surface_backends"
+      ],
+      "DecisionWitnesses": [
+        "docs/udp-managed-migration.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary product checks on valid offline data, local metadata and owned literal loopback. Not exhaustive per-entry execution, security testing, BSD/macOS validation or full goal acceptance"
+    },
+    "network-udp-waits": {
+      "Surface": [
+        "UdpSocket wait/recv/recvBatch synchronous and Future with cancellation"
+      ],
+      "Reason": "原生 MPMC 等待/生产者与精确包拥有投影，取消请求后仍保存活动权利直至真实完成。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_udp_future.inc",
+        "src/runtime/xl6_udp_future.c"
+      ],
+      "NormalProductCases": [
+        "net_surface_udp_sync",
+        "net_surface_udp_async"
+      ],
+      "DecisionWitnesses": [
+        "docs/udp-managed-migration.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary product checks on valid offline data, local metadata and owned literal loopback. Not exhaustive per-entry execution, security testing, BSD/macOS validation or full goal acceptance"
+    },
     "x509-certificate": {
       "Surface": [
         "Certificate.fromDer/fromPem",
@@ -2432,177 +2985,177 @@
     {
       "Group": "network",
       "Module": "net",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "network-address",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "net_interface",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "network-interfaces",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "net_interface_text",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-namespace",
+      "Profile": "network-interface-text",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "net_dns",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "composition",
+      "Profile": "network-dns",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "net_resolver",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "network-resolver",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "net_resolver_future",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "composition",
+      "Profile": "network-resolver-future",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "net_socket",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "network-socket",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "net_buffer",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "network-buffer",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "net_frame",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "composition",
+      "Profile": "network-frame",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "net_frame_line",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "network-line-frame",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "net_frame_length",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "network-length-frame",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "net_proxy",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "network-proxy",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "net_proxy_handshake",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "network-proxy-handshake",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "net_proxy_socks5",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "network-proxy-protocols",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "net_proxy_http_connect",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "network-proxy-protocols",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "net_proxy_dial",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "composition",
+      "Profile": "network-proxy-dial",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "net_port",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "network-backends",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "net_port_select",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "network-backends",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "net_port_epoll",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "network-backends",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "net_port_uring",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "network-backends",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "net_port_kqueue",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "network-backends",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "net_port_iocp",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "network-backends",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "net_engine",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "network-engine",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "net_file",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "network-file",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "task_net",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "composition",
+      "Profile": "network-task",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
@@ -2614,100 +3167,100 @@
     {
       "Group": "network",
       "Module": "net_tcp",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "network-tcp",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "net_tcp_file",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "composition",
+      "Profile": "network-tcp-file",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "net_tcp_server",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "network-server",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "net_tcp_server_future",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "composition",
+      "Profile": "network-server-waits",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "net_tcp_server_sync",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "composition",
+      "Profile": "network-server-waits",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "net_sync",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "network-sync-core",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "net_tcp_dial",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-namespace",
+      "Profile": "network-dial",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "net_tcp_dial_future",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "composition",
+      "Profile": "network-dial-waits",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "net_tcp_future",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "composition",
+      "Profile": "network-tcp-waits",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "net_tcp_sync",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "composition",
+      "Profile": "network-tcp-waits",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "net_tcp_dial_sync",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "composition",
+      "Profile": "network-dial-waits",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "net_udp",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "network-udp",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "net_udp_future",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "composition",
+      "Profile": "network-udp-waits",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
       "Module": "net_udp_sync",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "composition",
+      "Profile": "network-udp-waits",
+      "Review": "role-reviewed"
     }
   ]
 }
