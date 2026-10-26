@@ -35,4 +35,13 @@ timeout 30s ./release/xl run release/extlibs/ansi/examples/ansi_c.c > "$work/dir
 timeout 90s ./release/xl run release/extlibs/ansi/examples/ansi.xl > "$work/xl.txt"
 diff -u "$work/c.txt" "$work/direct.txt"
 diff -u "$work/c.txt" "$work/xl.txt"
-printf 'ansi Linux C ASan/UBSan and XLang parity gate: PASS\n'
+
+timeout 90s ./release/xl build release/extlibs/ansi/examples/ansi.xl -o "$work/ansi_xl_aot"
+timeout 30s "$work/ansi_xl_aot" > "$work/xl_aot.txt"
+diff -u "$work/c.txt" "$work/xl_aot.txt"
+timeout 90s ./release/xl build release/extlibs/ansi/test/boundaries.xl -o "$work/ansi_boundaries_aot"
+timeout 30s "$work/ansi_boundaries_aot"
+timeout 90s ./release/xl build release/extlibs/ansi/examples/ansi_c.c -o "$work/ansi_c_aot"
+timeout 30s "$work/ansi_c_aot" > "$work/c_aot.txt"
+diff -u "$work/c.txt" "$work/c_aot.txt"
+printf 'ansi Linux C ASan/UBSan, XLang parity and bilingual AOT gate: PASS\n'

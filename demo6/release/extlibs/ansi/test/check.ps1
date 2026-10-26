@@ -74,6 +74,13 @@ try {
             $null = Run 'XLang boundaries build' $xl @('build',
                 'extlibs/ansi/test/boundaries.xl', '-o', $target)
             $null = Run 'XLang boundaries AOT' $target @()
+            $cAot = Join-Path $work 'ansi_c_example.exe'
+            $null = Run 'C example AOT build' $xl @('build',
+                'extlibs/ansi/examples/ansi_c.c', '-o', $cAot)
+            $cAotOutput = Run 'C example AOT' $cAot @()
+            if ($cAotOutput -cne $cOutput) {
+                throw 'ANSI C AOT example output differs from C'
+            }
         }
     } finally {
         Pop-Location
