@@ -204,7 +204,7 @@ export class Store
         return __Save(root, domain, chain, "", directory, 1)
     end
     static extern "xrtAcmeStoreLoadCert" @owned func LoadCert(string root, string domain) as string
-    static extern "xrtAcmeStoreLoadCertCa" @owned func LoadCertCa(string root, string domain) as string
+    static extern "xrtAcmeStoreLoadCertCa" @owned func LoadCertCa(string root, string domain) as string?
     static func SaveGrant(string root, string domain, string chain, string key, string directory = "") as bool
         return __Save(root, domain, chain, key, directory, 2)
     end

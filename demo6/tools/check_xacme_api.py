@@ -35,7 +35,7 @@ for name,value in re.findall(r'#define (XACME_DIRECTORY_\w+) \\\n\s*"([^"]+)"',s
 constants['XACME_DNS_CAP_PROPAGATE']=1
 result={'upstreamRevision':json.loads((package/'upstream/source.json').read_text())['revision'],
  'functions':{f:mapping[f.removeprefix('xrtAcme')] for f in functions},'constants':constants,
- 'rules':{'ownedText':'AccountPem/LoadAccount/LoadCert/LoadCertCa: ordinary string, direct XRT allocation adoption',
+ 'rules':{'ownedText':'AccountPem/LoadAccount/LoadCert: string; LoadCertCa: string? (NULL without error is absent provenance); direct XRT allocation adoption',
  'grant':'(cstring,cstring) or (cstring,cstring,bool); transactional transfer, xrtFree',
  'borrowedEngine':'typed NetEngine overload; retained runtime owner and native entry per call',
  'cleanup':'false/nonzero retains native owner and all dependencies for explicit retry',
@@ -43,8 +43,8 @@ result={'upstreamRevision':json.loads((package/'upstream/source.json').read_text
 api=package/'api-map.json';const='\n// Upstream public constants. Values audited by tools/check_xacme_api.py.\n'
 const+=''.join(f'export const {"string" if isinstance(v,str) else "int"} {k} = {json.dumps(v)}\n' for k,v in sorted(constants.items()))
 facade=package/'src/xacme.xl';text=facade.read_text(encoding='utf-8')
-for symbol,method in [('xrtAcmeStoreLoadAccount','LoadAccount'),('xrtAcmeStoreLoadCert','LoadCert'),('xrtAcmeStoreLoadCertCa','LoadCertCa')]:
- assert re.search(r'static extern "'+symbol+r'" @owned func '+method+r'\([^\n]+\) as string',text),symbol+' must be declaration-only'
+for symbol,method,result_type in [('xrtAcmeStoreLoadAccount','LoadAccount','string'),('xrtAcmeStoreLoadCert','LoadCert','string'),('xrtAcmeStoreLoadCertCa','LoadCertCa','string?')]:
+ assert re.search(r'static extern "'+symbol+r'" @owned func '+method+r'\([^\n]+\) as '+re.escape(result_type)+r'\s*$',text,re.M),symbol+' must preserve its exact nullable declaration-only contract'
 assert 'extern "xl6AcmeAccountPemV1" @owned func AccountPem() as string' in text
 text=re.split(r'\nexport const XACME_DIRECTORY_',text,1)[0]
 text=text.split('\n// Upstream public constants.')[0]

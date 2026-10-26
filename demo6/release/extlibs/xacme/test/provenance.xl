@@ -1,0 +1,23 @@
+import xacme
+
+// A legacy certificate can legitimately have no CA directory provenance.
+// Keep absence distinct from both an empty allocated string and an IO error.
+func main(...) as int
+    string root = (env.get("XACME_LANGUAGE_ROOT") ?? "") + "/provenance"
+    assert root != "/provenance"
+    assert xacme.Store.SaveCert(root, "example.test", "test chain", "")
+    assert xacme.Store.LoadCertCa(root, "example.test") == null
+    string directory = "https://ca.example.test/directory"
+    assert xacme.Store.SaveCert(root, "example.test", "test chain", directory)
+    auto loaded = xacme.Store.LoadCertCa(root, "example.test")
+    assert loaded != null and loaded == directory
+    bool failed = false
+    try
+        xacme.Store.LoadCertCa(root, "missing.example.test")
+    catch error
+        failed = true
+    end
+    assert failed
+    println("xacme optional provenance and genuine IO failure ok")
+    return 0
+end

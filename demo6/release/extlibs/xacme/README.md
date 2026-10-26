@@ -6,6 +6,10 @@
 38 个业务常量见 [api-map.json](api-map.json)。快照只包含 XACME，没有第二套 XRT 核心。
 快照比较和 SHA-256 使用 LF 规范化，避免 Windows Git 行尾转换造成误报。
 
+`Store.LoadCertCa` 返回 `string?`：没有 CA 溯源时是正常的 null，文件系统等
+真实错误仍通过异常传播；非空返回直接接管 XRT 分配。`test/provenance.xl`
+覆盖无溯源、已有溯源和读取错误，不需要 CA 或 DNS 服务。
+
 ```xl
 import xacme
 

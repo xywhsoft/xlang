@@ -86,7 +86,7 @@
     "XACME_DNS_CAP_PROPAGATE": 1
   },
   "rules": {
-    "ownedText": "AccountPem/LoadAccount/LoadCert/LoadCertCa: ordinary string, direct XRT allocation adoption",
+    "ownedText": "AccountPem/LoadAccount/LoadCert: string; LoadCertCa: string? (NULL without error is absent provenance); direct XRT allocation adoption",
     "grant": "(cstring,cstring) or (cstring,cstring,bool); transactional transfer, xrtFree",
     "borrowedEngine": "typed NetEngine overload; retained runtime owner and native entry per call",
     "cleanup": "false/nonzero retains native owner and all dependencies for explicit retry",
