@@ -32,7 +32,7 @@ void* xl6TlsVerifierCreatePoliciesInternalV1(void* rawTrust,const XL6_TlsVerific
     const xtlsverifiercontextownershipv1* ownership=xl6TlsVerifierContextNativePolicyV1Get();
     config.Context=context;config.Release=ownership->Drop;config.AllowSha1=policy->allowSha1;
     config.Time=ownership->Time;config.Policy=ownership->Policy;
-    xtlsverifier* value=xrtTlsVerifierCreateOwnedV1(&config,&limits,ownership);
+    xtlsverifier* value=xrtTlsVerifierCreateOwnedFlagsV1(&config,&limits,ownership,XTLS_VERIFY_RESUME_PEER_V1);
     if(!value){xerror* error=xrtTakeError();xl6TlsVerifierContextDropV1(context);xrtSetErrorTake(error);return NULL;}
     XL6_TlsVerifierV1* self=xrtMalloc(sizeof(*self));
     if(!self){xerror* error=xrtTakeError();xrtTlsVerifierRelease(value);xrtSetErrorTake(error);return NULL;}

@@ -28986,6 +28986,11 @@ typedef struct xtlsverifylimits {
 	size_t MaxTrustBytes;
 } xtlsverifylimits;
 
+/* Recheck the actual saved certificate chain with this verifier whenever a
+ * server selects a resumption PSK. A missing chain falls back to a full
+ * handshake, unless the client explicitly requires resumption. */
+#define XTLS_VERIFY_RESUME_PEER_V1 UINT32_C(1)
+
 
 
 XRT_EXTERN_C_BEGIN
@@ -29024,6 +29029,21 @@ XRT_API xtlsverifier* xrtTlsVerifierCreateOwnedV1(
 	const xtlsverifylimits* pLimits,
 	const xtlsverifiercontextownershipv1* pPolicy
 );
+
+/* Immutable verification options; unknown bits fail before adopting Context.
+ * The existing factories retain their flags=0 behavior. Limits is required. */
+XRT_API xtlsverifier* xrtTlsVerifierCreateFlagsV1(
+	const xtlsverifierconfig* pConfig,
+	const xtlsverifylimits* pLimits,
+	uint32 iFlags
+);
+XRT_API xtlsverifier* xrtTlsVerifierCreateOwnedFlagsV1(
+	const xtlsverifierconfig* pConfig,
+	const xtlsverifylimits* pLimits,
+	const xtlsverifiercontextownershipv1* pPolicy,
+	uint32 iFlags
+);
+XRT_API uint32 xrtTlsVerifierFlagsV1(const xtlsverifier* pVerifier);
 
 /* Read under the complete graph's freeze. Admission requires the exact
  * registered resident policy identity BEFORE its fields are followed. Opaque
@@ -29357,7 +29377,8 @@ XRT_API xtlsresult xrtTlsClientDrive(xtlssession* pSession);
 
 #if defined(XRT_FEATURE_TLS_CLIENT_VERIFY)
 
-/* 返回完整握手中已经深复制并验证的对端证书数量。 */
+/* 返回完整握手的证书链，或恢复票据共享的只读证书链数量。
+ * RESUME_PEER 验证器在接受恢复时重新验证该链；握手成功仍须检查 Ready。 */
 XRT_API size_t xrtTlsClientCertificateCount(
 	const xtlssession* pSession
 );
@@ -29389,6 +29410,25 @@ XRT_API bool xrtTlsClientResumed(const xtlssession* pSession);
 
 
 #if defined(XRT_FEATURE_TLS_CLIENT_RESUME)
+
+/* Make a NEW immutable credential with an owned copy of the supplied chain.
+ * Only Raw DER is read; parsed fields and PeerIdentity do not establish trust.
+ * Limits is required; only MaxPeerCertificates/MaxPeerBytes apply (0=unlimited).
+ * The current RESUME_PEER verifier rechecks this chain during resumption.
+ * Neither the original credential nor the input certificate views are changed. */
+XRT_API xtlsresume* xrtTlsResumeWithPeerCertificatesV1(
+	const xtlsresume* pResume,
+	const xbytesview* pCertificates,
+	size_t iCount,
+	const xtlsverifylimits* pLimits
+);
+
+/* Views borrow the immutable credential. Missing chains have count=0; an
+ * out-of-range index fails checked. No certificate getter makes a trust claim. */
+XRT_API size_t xrtTlsResumePeerCertificateCountV1(const xtlsresume* pResume);
+XRT_API const xx509cert* xrtTlsResumePeerCertificateV1(
+	const xtlsresume* pResume, size_t iIndex
+);
 
 /* 返回等待调用方接管的恢复对象数量。 */
 XRT_API size_t xrtTlsClientResumeCount(const xtlssession* pSession);
