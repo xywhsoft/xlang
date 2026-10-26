@@ -2,6 +2,12 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`check_tls_verified_peer_packet.py --products <ordinary-release> --build-report <build.shipping.json> --out <fresh-directory>`
+tests the private post-verification snapshot against real baseline libraries.
+The new packet and unchanged private TLS diagnostic helper are the compiled
+subject; this does not claim public callbacks, CRL, or rebuilt-product acceptance.
+See [the real verifier gap and owned preparation](../docs/tls-verification-callback-gap-2026-10-26.md).
+
 `check_network_public_shipping.py --manifest tools/x509_public_fixtures.json`
 selects 40 offline valid-material positives and four private-field compile negatives
 (245 product stages per OS). `tools/x509_policy_public_fixtures.json` adds seven

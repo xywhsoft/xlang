@@ -10,6 +10,18 @@
   },
   "OpenQuestions": [
     {
+      "Id": "tls-verifier-revocation-mode",
+      "Modules": ["tls_verify", "x509_crl_policy"],
+      "State": "awaiting-api-scope-confirmation",
+      "Question": "When CRL checking is explicitly enabled, require complete known coverage or allow unknown while rejecting revoked? No CRL checking remains the unconfigured default."
+    },
+    {
+      "Id": "tls-verifier-native-ownership",
+      "Modules": ["tls_verify"],
+      "State": "awaiting-api-scope-confirmation",
+      "Question": "Approve necessary XRT Verifier ownership, active-call and checked-retirement APIs before retaining language policy/CRL closures; preserve the independent time ABIs."
+    },
+    {
       "Id": "crypto-raw-aes-poly1305",
       "Modules": [
         "crypto_aes",
