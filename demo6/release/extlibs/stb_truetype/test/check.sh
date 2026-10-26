@@ -46,4 +46,43 @@ fi
     timeout 90s ./xl run examples/extlibs/stb_truetype.xl > "$work/xlang.out"
 )
 diff -u "$work/c.out" "$work/xlang.out"
-printf 'stb_truetype Linux C ASan/UBSan, XLang JIT and bilingual gate: PASS\n'
+
+timeout 180s "$xl" build release/extlibs/stb_truetype/test/boundaries.xl \
+    -o "$work/stb_truetype_boundaries"
+timeout 90s "$work/stb_truetype_boundaries"
+timeout 180s "$xl" build release/examples/extlibs/stb_truetype.xl \
+    -o "$work/stb_truetype_xlang"
+timeout 90s "$work/stb_truetype_xlang" \
+    "$root/release/extlibs/stb_truetype/test/assets/DejaVuSans-test.ttf" \
+    > "$work/xlang_aot.out"
+diff -u "$work/c.out" "$work/xlang_aot.out"
+timeout 180s "$xl" build release/examples/extlibs/stb_truetype_c.c \
+    -o "$work/stb_truetype_c"
+timeout 90s "$work/stb_truetype_c" \
+    "$root/release/extlibs/stb_truetype/test/assets/DejaVuSans-test.ttf" \
+    > "$work/c_aot.out"
+diff -u "$work/c.out" "$work/c_aot.out"
+printf 'stb_truetype Linux C ASan/UBSan, XLang JIT/AOT and bilingual gate: PASS\n'
+
+access_failures=0
+for type in font bitmap; do
+    diagnostic="$work/private_${type}.txt"
+    if timeout 90s "$xl" check \
+        "release/extlibs/stb_truetype/test/private_${type}_constructor_negative.xl" \
+        > "$diagnostic" 2>&1; then
+        printf 'stb_truetype: private %s constructor was accepted\n' "$type" >&2
+        cat "$diagnostic" >&2
+        access_failures=$((access_failures + 1))
+        continue
+    fi
+    if ! grep -Fiq "$type" "$diagnostic" ||
+       ! grep -Fq 'access' "$diagnostic"; then
+        cat "$diagnostic" >&2
+        printf 'stb_truetype: expected private %s access diagnostic\n' "$type" >&2
+        access_failures=$((access_failures + 1))
+    fi
+done
+if (( access_failures != 0 )); then
+    exit 1
+fi
+printf 'stb_truetype Linux private constructor gate: PASS\n'

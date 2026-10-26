@@ -1,5 +1,13 @@
 # stb_truetype
 
+2026-10-26 当前 Linux 发布版的包级门禁补齐边界 XLang 独立 EXE、
+公开 XLang 与 C 范例独立 EXE，并与 GCC、TCC/JIT 输出逐字节比较；
+C ASan/UBSan、语言 JIT 和上述 AOT 阶段均通过。门禁最后对
+`Font(point)` 与 `Bitmap(point)` 的包外只编译负例仍得到 `ok`，
+与 Windows 发布版相同。两个私有构造器的访问控制由主线修复，
+本包不执行伪造非空句柄，也不以功能阶段通过冒充发布级签收；
+见 `../../../dev/extlib_blockers/stb_truetype_private_handle_constructor.md`。
+
 `stb_truetype` 使用 stb_truetype 1.26 读取 TrueType/OpenType 字体指标并
 生成单字形灰度位图。XLang 公开自动析构的 `Font` 和 `Bitmap`：
 
