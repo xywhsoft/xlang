@@ -23,7 +23,8 @@ static bool admit_future(xrtownershipref ref, void* unused)
 {
     (void)unused;
     const XL6_OwnershipAdapterV1* adapter=NULL;const xrtownershippreparationv1* preparation=NULL;
-    if(xlModuleResolveOwnershipV2(ref,NULL,&adapter,&preparation))return true;
+    const XL6_OwnershipFinishV1* completion=NULL;
+    if(xlModuleResolveOwnershipV3(ref,module,&adapter,&preparation,&completion))return true;
     const char* family = ref.Ops == xrtFutureOwnership((const xfuture*)1).Ops ? "future" :
         ref.Ops == xrtCancelOwnership((const xcancel*)1).Ops ? "cancel" : "other";
     fprintf(stderr,"Future retirement refused family=%s data=%p ops=%p\n",family,ref.Data,(const void*)ref.Ops);

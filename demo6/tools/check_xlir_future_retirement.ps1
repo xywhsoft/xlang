@@ -3,6 +3,7 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$Directory,[string]$Tcc='E:/software/tcc/tcc.exe')
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
+. (Join-Path $PSScriptRoot 'xlir_resident_closure.ps1')
 $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
 try {
@@ -33,15 +34,16 @@ try {
     }
     foreach($ext in @('c','h','json')){if((Get-FileHash "$prefix.generated.$ext").Hash -ne (Get-FileHash "$prefix.repeat.$ext").Hash){throw 'Future retirement emission changed'}}
     $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32');$rows=@()
-    # Compile the complete resident closure of FUTURE_PAYLOAD.  Its policy
-    # table can destroy and trace generator payloads even when this fixture
-    # exercises only the other policy rows, so a smaller ad-hoc link would not
-    # represent the production artifact graph.  FOREIGN_ERROR is already part
-    # of the selected single-header XRT implementation TU in every lane.
-    $sources=@('test/cases/xlir_future_plan_runtime.c','src/runtime/xl6_closure.c','src/runtime/xl6_cell.c',
+    # Close the actual artifact registry from the fixture's physical roots.
+    # Future payloads include generator/array and V2 capture policies even when
+    # a selected case does not instantiate each policy. Never guess their link
+    # dependencies or compile FOREIGN_ERROR twice with the native composite.
+    $closure=Get-XlirResidentClosure -Root $rootPath -Directory "$outputPath/resident-closure" -Sources @('src/runtime/xl6_closure.c','src/runtime/xl6_cell.c',
         'src/runtime/xl6_code_lease.c','src/runtime/xl6_code_finalizer.c','src/runtime/xl6_ownership_plan.c',
         'src/runtime/xl6_future_payload.c','src/runtime/xl6_capture.c','src/runtime/xl6_value_iterator.c',
-        'src/runtime/xl6_generator.c')
+        'src/runtime/xl6_generator.c') -NativeProvider 'tools/xrt_single_header_impl.c'
+    $inputs+=@($closure.Inputs)
+    $sources=@('test/cases/xlir_future_plan_runtime.c')+@($closure.Sources)
     foreach($lane in @('gcc-O0','gcc-O2','tcc')){
         $binary="$outputPath/plan-$lane.exe"
         if($lane -eq 'tcc'){
@@ -82,7 +84,7 @@ try {
         }
     }
     $unchanged=@($inputs | Where-Object {(Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256}).Count -eq 0
-    [IO.File]::WriteAllText("$outputPath/results.json",([pscustomobject]@{Inputs=$inputs;InputsUnchanged=$unchanged;Deterministic=$true;Lanes=$rows;
+    [IO.File]::WriteAllText("$outputPath/results.json",([pscustomobject]@{Inputs=$inputs;InputsUnchanged=$unchanged;Deterministic=$true;Lanes=$rows;ResidentClosure=$closure;
         Scope='Additive source-XLIR Future/class/closure real TCC retirement: six modes x25 on host O0/O2, plus three physical-plan lanes. Existing gate populations unchanged. Unknown waiter/task/native policies remain refused; no Linux, default backend or release/VFS acceptance.'} | ConvertTo-Json -Depth 7),[Text.UTF8Encoding]::new($false))
     if(!$unchanged -or @($rows | Where-Object {!$_.Complete}).Count){throw 'Future retirement failures collected'}
 } finally {Pop-Location}

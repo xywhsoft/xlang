@@ -5,7 +5,7 @@ $Root = (Resolve-Path -LiteralPath $Root).Path
 # Focused regression fixtures, not another parameterized-worker inventory.
 $workers = @('aggregate_strict_source', 'callable_contextual', 'capture_ownership',
     'code_finalizer', 'frame_ownership', 'future_aggregate_ownership',
-    'future_ownership', 'generator_ownership', 'generator_public_source', 'terminal_source_runtime')
+    'future_ownership', 'generator_ownership', 'generator_public_source', 'terminal_source_runtime', 'string_join')
 $paths = @($PSCommandPath) + @($workers | ForEach-Object { Join-Path $Root "tools/check_xlir_$_.ps1" })
 $inputs = @($paths | ForEach-Object {
     [ordered]@{Path=$_;Sha256=(Get-FileHash -LiteralPath $_).Hash}
@@ -23,21 +23,24 @@ try {
         $tokens=$null; $errors=$null
         $ast=[Management.Automation.Language.Parser]::ParseFile($path,[ref]$tokens,[ref]$errors)
         if ($errors.Count) { throw "Invalid worker syntax: $worker" }
+        $variable = if ($worker -eq 'string_join') { '$work' } else { '$outputPath' }
         $assignments = @($ast.FindAll({param($node)
-            $node -is [Management.Automation.Language.AssignmentStatementAst] -and $node.Left.Extent.Text -eq '$outputPath'
+            $node -is [Management.Automation.Language.AssignmentStatementAst] -and $node.Left.Extent.Text -eq $variable
         }, $true) | Sort-Object { $_.Extent.StartOffset })
         if (!$assignments.Count) { throw "Missing output-path assignment: $worker" }
         $actualAssignment = [scriptblock]::Create($assignments[0].Extent.Text)
         foreach ($Directory in $cases) {
+            $WorkDirectory = $Directory
             $expected = [IO.Path]::GetFullPath([IO.Path]::Combine($Root, $Directory))
-            $outputPath = $null; $errorText = $null
+            $outputPath = $null; $work = $null; $errorText = $null
             try { . $actualAssignment } catch { $errorText = $_.Exception.Message }
-            $passed = !$errorText -and $outputPath -ceq $expected
-            $row = [ordered]@{Worker=$worker;Directory=$Directory;Expected=$expected;Actual=$outputPath;Error=$errorText;Passed=$passed}
+            $actual = if ($worker -eq 'string_join') { $work } else { $outputPath }
+            $passed = !$errorText -and $actual -ceq $expected
+            $row = [ordered]@{Worker=$worker;Directory=$Directory;Expected=$expected;Actual=$actual;Error=$errorText;Passed=$passed}
             $rows += $row
             if (!$passed) { $failures += $row }
         }
-        $Directory = 'invalid' + [char]0 + 'path'; $rejected = $false
+        $Directory = 'invalid' + [char]0 + 'path'; $WorkDirectory = $Directory; $rejected = $false
         try { . $actualAssignment } catch { $rejected = $true }
         $row = [ordered]@{Worker=$worker;InvalidNul=$true;Passed=$rejected}
         $rows += $row
