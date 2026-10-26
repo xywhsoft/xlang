@@ -93,6 +93,20 @@ func main(...) as int
 		rejected = true
 	end
 	assert rejected, "unknown locator strategy must not be ignored"
+	rejected = false
+	try
+		ui.auto.locator_from_json("{\"strategy\":\"automationId\",\"processId\":1}")
+	catch ValueError e
+		rejected = true
+	end
+	assert rejected, "automationId strategy requires an automation ID"
+	rejected = false
+	try
+		ui.auto.locator_from_json("{\"strategy\":\"classNameName\",\"name\":\"hello\"}")
+	catch ValueError e
+		rejected = true
+	end
+	assert rejected, "classNameName strategy requires a class name"
 	auto by_id_strategy = ui.auto.locator_from_json(
 		"{\"strategy\":\"automationId\",\"automationId\":\"edit\"}")
 	assert by_id_strategy.automation_id == "edit", "automationId strategy must remain valid"

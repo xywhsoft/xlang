@@ -45,7 +45,7 @@ uiauto.shutdown()</code></pre>
       <tr><td><code>by_automation_id / by_class_name / by_name / by_control_type / by_process_id</code></td><td>构造定位器。</td></tr>
       <tr><td><code>uiauto.Locator</code></td><td>导出的定位器类型，可用于参数和变量声明；<code>import ui.auto as uiauto</code>。</td></tr>
       <tr><td><code>within / with_timeout</code></td><td>限定窗口与等待时间；缺失目标是正常的 false/空文本结果。</td></tr>
-      <tr><td><code>locator_from_json</code></td><td>读取定位信息；策略只接受 <code>automationId</code>、<code>classNameName</code>、<code>processClassPath</code>，未知策略报错。类路径沿 UIA Control View 的路径与序号精确匹配，并与其他条件取交集。</td></tr>
+      <tr><td><code>locator_from_json</code></td><td>读取定位信息；策略只接受 <code>automationId</code>、<code>classNameName</code>、<code>processClassPath</code>。前两种分别要求对应 ID 或类名，未知策略或缺少必要字段均报错。类路径沿 UIA Control View 的路径与序号精确匹配，并与其他条件取交集。</td></tr>
       <tr><td><code>wait_exists / click / type_text / read</code></td><td>基础交互。</td></tr>
       <tr><td><code>screenshot(locator, path)</code></td><td>将目标区域保存为图像；依赖 OpenCV 后端。</td></tr>
     </tbody></table>
