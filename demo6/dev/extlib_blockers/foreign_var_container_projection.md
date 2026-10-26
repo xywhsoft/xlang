@@ -1,5 +1,15 @@
 # 当前源码的 var 容器传入原生扩展失败
 
+2026-10-26 当前发布物复验 `srt`：Windows 默认
+`release/extlibs/srt/test/check.ps1` 的严格 C、C 边界及 C 范例通过，
+中央 `test/cases/extlib_srt.xl` 在 `srt.build(var made)` 报
+`ValueError: cues must be an array`，后续边界和 AOT 未运行。
+最小源 `dev/extlib_blockers/srt_build_var_array_projection.xl`
+在 Windows/Linux 都先完成原生 `parse` 数组的 `build` 往返，再由
+语言数组字面量触发同一错误。修复应在共享 foreign `var` 容器
+投影边界保留 `XVALUE_ARRAY` 及嵌套字典/数组，不在 SRT 包内
+识别私有句柄；修复后复验最小源和两平台默认包门禁。
+
 2026-10-26 重建发布版后复验 `toml`：Windows 默认
 `release/extlibs/toml/test/check.ps1` 的严格 C 和原生边界先通过，
 随后 `boundaries.xl` 在 `stringify(var literalDict)` 报
