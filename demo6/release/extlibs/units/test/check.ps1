@@ -78,6 +78,13 @@ try {
         if ($aotOutput -cne $cOutput) {
             throw 'XLang AOT example output differs from C'
         }
+        $cExampleAot = Join-Path $work 'units_c_example.exe'
+        $null = Run 'C example AOT build' $xl @('build',
+            'release/extlibs/units/examples/units_c.c', '-o', $cExampleAot)
+        $cAotOutput = Run 'C example AOT' $cExampleAot @()
+        if ($cAotOutput -cne $cOutput) {
+            throw 'C AOT example output differs from GCC'
+        }
     }
 } finally {
     Pop-Location

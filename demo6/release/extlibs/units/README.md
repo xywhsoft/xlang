@@ -1,5 +1,11 @@
 # units
 
+2026-10-26 完整重建 Windows/Linux 发布物后，本包在两平台 x64
+包级范围签收：默认门禁通过严格 C/ABI、Linux ASan/UBSan、线程、
+语言边界与分配故障、C/XLang 固定输出，以及核心、XLang 范例和
+C 单文件范例的独立 EXE AOT。旧 VFS 头路径和带文本 AOT 缺符号
+记录均属历史发布物；不外推为全产品发布准入、其他架构或长时负载验收。
+
 2026-10-25 新 Windows 发布版：从 `demo6` 根目录运行默认
 `test/check.ps1`，严格 C/ABI、线程、XLang 边界与分配故障、C/XLang
 同输出及核心/范例 AOT 全通过。下方同日 VFS 缺头失败是旧发布物
@@ -65,8 +71,8 @@ C/XLang 同输出及核心/公开范例 AOT 均通过。同轮 WSL
 
 在 `demo6/release` 运行 `xl run extlibs/units/test/boundaries.xl`；在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package units -Source release/extlibs/units/test/test_units.c`。
 
-Linux 可在 `demo6` 目录运行 `bash release/extlibs/units/test/check.sh`，以严格 GCC 和 ASan/UBSan 复验 C 边界、四线程并发与 C 范例，并运行中央及包内 XLang 用例、逐字节比较双语范例输出。2026-10-14 修复整数显示中的负零；C/XLang 正负舍入边界、双语范例和无输出 AOT 核心均已复跑通过。
-Windows 可在同目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/units/test/check.ps1`，联合验证严格 GCC、C ABI/边界/四线程、中央与包内 XLang 用例、双语范例同输出及无输出核心 AOT；`-SkipAot` 仅跳过最后的核心 AOT。每次门禁使用独占构建目录并在退出时清理，不写入发布目录临时文件。
+Linux 可在 `demo6` 目录运行 `bash release/extlibs/units/test/check.sh`，以严格 GCC 和 ASan/UBSan 复验 C 边界、四线程并发与 C 范例，运行中央及包内 XLang 用例、逐字节比较双语范例输出，并构建运行核心与双语范例独立 EXE。2026-10-14 修复整数显示中的负零；C/XLang 正负舍入边界、双语范例和无输出 AOT 核心均已复跑通过。
+Windows 可在同目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/units/test/check.ps1`，联合验证严格 GCC、C ABI/边界/四线程、中央与包内 XLang 用例、双语范例同输出以及核心与双语范例独立 EXE；`-SkipAot` 仅供聚焦开发，跳过全部 AOT。每次门禁使用独占构建目录并在退出时清理，不写入发布目录临时文件。
 同日补齐舍入后升档边界；Windows C/XLang 与 Linux ASan/UBSan 已通过。
 
 2026-10-15 原先仅使用 XRT 基础分配和错误接口，空模块集下无输出核心 AOT 为 681,984 字节。现为区域无关的固定小数位写出声明 `XRT_MODULE_NUMBER_FORMAT`，同一核心 AOT 为 700,928 字节且运行通过；Windows C 边界、线程、XLang 边界和双语同输出范例通过。完整边界 AOT 仍缺共享符号 `xl6ValueDataSnapshotV1`，该阻断未变。

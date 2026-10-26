@@ -35,4 +35,13 @@ diff -u "$work/c.txt" "$work/c_direct.txt"
 ./release/xl run release/extlibs/units/test/allocations.xl
 ./release/xl run release/examples/extlibs/units.xl > "$work/xl.txt"
 diff -u "$work/c.txt" "$work/xl.txt"
-printf 'units Linux C ASan/UBSan, threads and XLang gate: PASS\n'
+
+timeout 90s ./release/xl build test/cases/extlib_units.xl -o "$work/units_core"
+timeout 30s "$work/units_core"
+timeout 90s ./release/xl build release/examples/extlibs/units.xl -o "$work/units_xl_aot"
+timeout 30s "$work/units_xl_aot" > "$work/xl_aot.txt"
+diff -u "$work/c.txt" "$work/xl_aot.txt"
+timeout 90s ./release/xl build release/extlibs/units/examples/units_c.c -o "$work/units_c_aot"
+timeout 30s "$work/units_c_aot" > "$work/c_aot.txt"
+diff -u "$work/c.txt" "$work/c_aot.txt"
+printf 'units Linux C ASan/UBSan, threads and bilingual AOT gate: PASS\n'
