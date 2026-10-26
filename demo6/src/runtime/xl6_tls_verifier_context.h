@@ -8,10 +8,13 @@
 typedef struct XL6_TlsVerifierContextV1 XL6_TlsVerifierContextV1;
 XL6_TlsVerifierContextV1* xl6TlsVerifierContextCreateV1(
     const XL6_TlsVerificationPolicyV1*,XL6_TlsPeerPolicyV1);
+XL6_TlsVerifierContextV1* xl6TlsVerifierContextCreatePoliciesV1(
+    const XL6_TlsVerificationPolicyV1*,XL6_TlsPeerPolicyV1,XL6_TlsPeerPolicyV1);
 const XL6_TlsVerificationPolicyV1* xl6TlsVerifierContextPolicyV1(const XL6_TlsVerifierContextV1*);
 void xl6TlsVerifierContextDropV1(void*);
 const xtlsverifiercontextownershipv1* xl6TlsVerifierContextNativePolicyV1Get(void);
 const xrtownershipquiescencev1* xl6TlsVerifierContextQuiescenceV1Get(void);
 const xrtownershipadapterv1* xl6TlsVerifierContextOwnershipAdapterV1(xrtownershipref);
 void* xl6TlsVerifierCreatePeerPolicyInternalV1(void*,const XL6_TlsVerificationPolicyV1*,XL6_TlsPeerPolicyV1);
+void* xl6TlsVerifierCreatePoliciesInternalV1(void*,const XL6_TlsVerificationPolicyV1*,XL6_TlsPeerPolicyV1,XL6_TlsPeerPolicyV1);
 #endif

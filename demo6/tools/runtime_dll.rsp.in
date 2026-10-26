@@ -666,6 +666,7 @@
     src\runtime\xl6_x509_signature_verify_buffer.c
     src\runtime\xl6_x509_crl_policy_value.c
     src\runtime\xl6_x509_crl_policy.c
+    src\runtime\xl6_x509_validated_crl_owner.c
     src\runtime\xl6_x509_crl_set.c
     src\runtime\xl6_x509_revocation.c
     src\runtime\xl6_x509_crl_query.c
@@ -718,6 +719,12 @@
     src\runtime\xl6_tls_verifier_context.c
     src\runtime\xl6_tls_verified_peer.c
     src\runtime\xl6_tls_peer_policy.c
+    src\runtime\xl6_tls_revocation_request.c
+    src\runtime\xl6_tls_revocation_check.c
+    src\runtime\xl6_tls_revocation_policy.c
+    src\runtime\xl6_tls_verifier_revocation.c
+    src\runtime\xl6_ownership_domain_tls_revocation.c
+    src\runtime\xl6_ownership_domain_tls_revocation_request.c
     src\runtime\xl6_ownership_domain_tls_verified_peer.c
     src\runtime\xl6_tls_verifier_create.c
     src\runtime\xl6_tls_verifier_verify.c

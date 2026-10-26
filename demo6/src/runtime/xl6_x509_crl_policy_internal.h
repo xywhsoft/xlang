@@ -37,15 +37,31 @@ typedef struct XL6_X509RevocationTargetV1 {
     xx509cert value;
     uint8 data[];
 } XL6_X509RevocationTargetV1;
+
+struct XL6_X509PathV1;
+/* Actual immutable evidence, not a claimed status/issuer token. Shared prefixes
+ * retain every applicable validated source and optional real signer path. */
+typedef struct XL6_X509RevocationEvidenceV1 {
+    xatomic64 references;
+    struct XL6_X509RevocationEvidenceV1* previous;
+    XL6_X509ValidatedCrlV1 *base,*delta;
+    struct XL6_X509PathV1* signerPath;
+    size_t count;
+} XL6_X509RevocationEvidenceV1;
 typedef struct XL6_X509RevocationCheckV1 {
     XL6_X509RevocationTargetV1* target;
     xx509revocationcheck value;
     XL6_X509RevocationV1* result;
+    XL6_X509RevocationEvidenceV1* evidence;
     bool hasPolicy;
     xtime time;
     uint64 skew;
     uint32 flags;
 } XL6_X509RevocationCheckV1;
+XL6_X509RevocationEvidenceV1* xl6X509RevocationEvidenceRefV1(XL6_X509RevocationEvidenceV1*);
+void xl6X509RevocationEvidenceDropV1(XL6_X509RevocationEvidenceV1*);
+XL6_X509RevocationEvidenceV1* xl6X509RevocationEvidenceAddV1(
+    XL6_X509RevocationEvidenceV1*,void*,bool,struct XL6_X509PathV1*);
 
 bool xl6X509PolicyRetainV1(xatomic64*);
 bool xl6X509CrlPolicyConfigV1(int64_t,int64_t,uint64_t,xx509crlcriticalproc,void*,xx509crlconfig*);
@@ -71,6 +87,8 @@ void* xl6X509RevocationEntryV1(void*);
 void* xl6X509RevocationCheckCreateV1(void*);
 void* xl6X509RevocationCheckWithCrlV1(void*,void*);
 void* xl6X509RevocationCheckWithSetV1(void*,void*);
+void* xl6X509RevocationCheckWithCrlPathV1(void*,void*,void*);
+void* xl6X509RevocationCheckWithSetPathV1(void*,void*,void*);
 void* xl6X509RevocationCheckResultV1(void*);
 bool xl6X509RevocationCheckDeterminedV1(void*);
 void xl6X509RevocationCheckDestroyV1(void*);

@@ -335,6 +335,7 @@ const char* xl6StdlibXidClassSource =
 #include "xl6_stdlib_tls_parameters.inc"
 #include "xl6_stdlib_tls_verifier.inc"
 #include "xl6_stdlib_tls_verified_peer.inc"
+#include "xl6_stdlib_tls_revocation.inc"
 #include "xl6_stdlib_tls_role_context.inc"
 #include "xl6_stdlib_tls_selector.inc"
 #include "xl6_stdlib_tls_resume.inc"

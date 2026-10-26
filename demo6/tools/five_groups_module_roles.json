@@ -280,7 +280,7 @@
       "Surface": [
         "TlsClientContext(TlsVerifier) and default chain/name verification in complete handshakes"
       ],
-      "Reason": "默认建链/名称/时间/用途已有真实接线；此角色复核不关闭 tls_verify 中明确缺失的 CRL/附加策略回调。",
+      "Reason": "默认建链/名称/时间/用途、拥有式附加谓词与严格 CRL 已分批接线；源门不等于最新普通产品与恢复凭据/策略新鲜度验收，tls_verify 继续 pending。",
       "SourceWitnesses": [
         "src/runtime/xl6_tls_session_client.c",
         "src/runtime/xl6_tls_verifier_create.c"
@@ -294,7 +294,8 @@
       ],
       "DecisionWitnesses": [
         "docs/tls-managed.md",
-        "docs/tls-verification-callback-gap-2026-10-26.md"
+        "docs/tls-verification-callback-gap-2026-10-26.md",
+        "docs/tls-revocation-policy-2026-10-26.md"
       ],
       "AcceptanceBoundary": "Normal fixed-material public-product evidence only. Role review is not exhaustive runtime coverage, CRL/additional-verifier integration, TLS security certification or full goal acceptance"
     },

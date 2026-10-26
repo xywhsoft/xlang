@@ -64,6 +64,8 @@ const char* xl6StdlibX509CrlPolicySource=
     "    extern \"xl6X509RevocationCheckDestroyV1\" @no_raise @nonblocking destroy()\n"
     "    extern \"xl6X509RevocationCheckWithCrlV1\" @pure @nonblocking func withCrl(X509ValidatedCrl crl) as X509RevocationCheck\n"
     "    extern \"xl6X509RevocationCheckWithSetV1\" @pure @nonblocking func withSet(X509CrlSet source) as X509RevocationCheck\n"
+    "    extern \"xl6X509RevocationCheckWithCrlPathV1\" @pure @nonblocking func withCrl(X509ValidatedCrl crl, X509Path signerPath) as X509RevocationCheck\n"
+    "    extern \"xl6X509RevocationCheckWithSetPathV1\" @pure @nonblocking func withSet(X509CrlSet source, X509Path signerPath) as X509RevocationCheck\n"
     "    extern \"xl6X509RevocationCheckResultV1\" @pure @nonblocking get result() as X509RevocationResult\n"
     "    extern \"xl6X509RevocationCheckDeterminedV1\" @pure @nonblocking get determined() as bool\n"
     "end\n";
