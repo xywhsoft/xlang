@@ -1,4 +1,5 @@
 #include "xl6_x509_crl_policy_internal.h"
+#include "xl6_x509_path_internal.h"
 #include "src/api/xl_foreign_error.h"
 
 static void targetDrop(XL6_X509RevocationTargetV1* target)
@@ -6,7 +7,37 @@ static void targetDrop(XL6_X509RevocationTargetV1* target)
 void xl6X509RevocationCheckDestroyV1(void* raw)
 {
     XL6_X509RevocationCheckV1* self=raw;
-    if(self){targetDrop(self->target);xl6X509RevocationDestroyV1(self->result);xl6X509FreeV1(self);}
+    if(self){targetDrop(self->target);xl6X509RevocationDestroyV1(self->result);
+        xl6X509RevocationEvidenceDropV1(self->evidence);xl6X509FreeV1(self);}
+}
+XL6_X509RevocationEvidenceV1* xl6X509RevocationEvidenceRefV1(XL6_X509RevocationEvidenceV1* self)
+{return self&&xl6X509PolicyRetainV1(&self->references)?self:NULL;}
+void xl6X509RevocationEvidenceDropV1(XL6_X509RevocationEvidenceV1* self)
+{
+    /* Iterative release: a long persistent aggregation cannot overflow the C
+     * stack. No evidence can point forward or contain a language callback. */
+    while(self&&xrtAtomic64FetchSub(&self->references,1,XMEMORY_ACQ_REL)==1){
+        XL6_X509RevocationEvidenceV1* previous=self->previous;
+        xl6X509ValidatedCrlDestroyV1(self->base);xl6X509ValidatedCrlDestroyV1(self->delta);
+        xl6X509PathDestroyV1(self->signerPath);xl6X509FreeV1(self);self=previous;
+    }
+}
+XL6_X509RevocationEvidenceV1* xl6X509RevocationEvidenceAddV1(
+    XL6_X509RevocationEvidenceV1* previous,void* raw,bool set,XL6_X509PathV1* path)
+{
+    if(!raw){xl6X509FailV1(XERR_ARGUMENT,"revocation evidence needs a validated source");return NULL;}
+    const XL6_X509CrlSetV1* pair=set?raw:NULL;
+    size_t added=set?2:1;
+    if(previous&&previous->count>SIZE_MAX-added){xl6X509FailV1(XERR_RANGE,"revocation source count overflows");return NULL;}
+    XL6_X509RevocationEvidenceV1* self=xrtCalloc(1,sizeof(*self));if(!self)return NULL;
+    xrtAtomic64Init(&self->references,1);self->count=(previous?previous->count:0)+added;
+    if(previous&&!(self->previous=xl6X509RevocationEvidenceRefV1(previous)))goto fail;
+    self->base=xl6X509ValidatedCrlRefV1(set?(void*)pair->base:raw);if(!self->base)goto fail;
+    if(set&&!(self->delta=xl6X509ValidatedCrlRefV1(pair->delta)))goto fail;
+    if(path&&!(self->signerPath=xl6X509PathRefV1(path)))goto fail;
+    return self;
+fail:
+    xl6X509RevocationEvidenceDropV1(self);return NULL;
 }
 void* xl6X509RevocationCheckCreateV1(void* certificate)
 {

@@ -95,6 +95,7 @@ static int equal(const XL6_AstNode* a,const XL6_AstNode* b)
     /* Allocation ownership differs between pooled cached checks and fresh
      * heap trees. All language/source fields below still compare exactly. */
     x.xlsStorage=y.xlsStorage=NULL;
+    x.xlsLeafReferences=y.xlsLeafReferences=0;
     if(memcmp(&x,&y,sizeof(x)) || !same(a->text,b->text) || !same(a->doc,b->doc) || !!a->literalData!=!!b->literalData ||
        (a->literalSize && memcmp(a->literalData,b->literalData,a->literalSize)) || !!a->source!=!!b->source ||
        (a->source && (!same(a->source->path,b->source->path) || a->source==b->source || a->source->completionQuery!=b->source->completionQuery ||

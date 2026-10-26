@@ -3,7 +3,7 @@
 struct XL6_TlsVerifierContextV1 {
     volatile int32 refs;
     XL6_TlsVerificationPolicyV1 policy;
-    XL6_TlsPeerPolicyV1 callback;
+    XL6_TlsPeerPolicyV1 callback,revocation;
     const void* claim;
     bool cleared,finishing,finished,failed;
     xerror* failure;
@@ -21,15 +21,17 @@ static bool trace(const void* raw,xrtownershipvisitor visit,void* data)
 {
     const XL6_TlsVerifierContextV1* self=raw;size_t refs;
     return visit&&count(self,&refs)&&(!self->callback.data||
-        visit(self->callback.ops->Ownership(self->callback.data),data));
+        visit(self->callback.ops->Ownership(self->callback.data),data))&&(!self->revocation.data||
+        visit(self->revocation.ops->Ownership(self->revocation.data),data));
 }
 static const xrtownershipops ops={count,trace};
-XL6_TlsVerifierContextV1* xl6TlsVerifierContextCreateV1(
-    const XL6_TlsVerificationPolicyV1* policy,XL6_TlsPeerPolicyV1 callback)
+static bool complete(XL6_TlsPeerPolicyV1 value)
+{return value.data?(value.ops&&value.ops->Ref&&value.ops->Drop&&value.ops->Ownership&&value.ops->Verify):!value.ops;}
+XL6_TlsVerifierContextV1* xl6TlsVerifierContextCreatePoliciesV1(
+    const XL6_TlsVerificationPolicyV1* policy,XL6_TlsPeerPolicyV1 callback,XL6_TlsPeerPolicyV1 revocation)
 {
     if(xrtGetError())return NULL;
-    if(!policy||(!callback.data&&callback.ops)||(callback.data&&(!callback.ops||!callback.ops->Ref||
-        !callback.ops->Drop||!callback.ops->Ownership||!callback.ops->Verify))){
+    if(!policy||!complete(callback)||!complete(revocation)){
         xl6TlsFailV1(XERR_ARGUMENT,"TLS verifier needs a complete resident policy owner");return NULL;}
 #define XL6_TLS_VERIFY_LIMIT(Field,Name) if(policy->limits.Field<0||(uint64_t)policy->limits.Field>SIZE_MAX){xl6TlsFailV1(XERR_RANGE,"TLS verification budget exceeds its native range");return NULL;}
 #include "xl6_tls_verification_policy_fields.inc"
@@ -40,8 +42,19 @@ XL6_TlsVerifierContextV1* xl6TlsVerifierContextCreateV1(
         self->callback=(XL6_TlsPeerPolicyV1){callback.ops->Ref(callback.data),callback.ops};
         if(!self->callback.data){xl6TlsOutcomeV1(false);xrtFree(self);return NULL;}
     }
+    if(revocation.data){
+        self->revocation=(XL6_TlsPeerPolicyV1){revocation.ops->Ref(revocation.data),revocation.ops};
+        if(!self->revocation.data){
+            xl6TlsOutcomeV1(false);xl6_error_scope cleanup={0};
+            if(!xl6ErrorScopeBeginCleanup(&cleanup,true))abort();
+            xl6TlsVerifierContextDropV1(self);xl6_error_result failure=xl6ErrorScopeEnd(&cleanup);
+            xl6ErrorScopePropagateFailure(failure);return NULL;}
+    }
     return self;
 }
+XL6_TlsVerifierContextV1* xl6TlsVerifierContextCreateV1(
+    const XL6_TlsVerificationPolicyV1* policy,XL6_TlsPeerPolicyV1 callback)
+{return xl6TlsVerifierContextCreatePoliciesV1(policy,callback,(XL6_TlsPeerPolicyV1){0});}
 const XL6_TlsVerificationPolicyV1* xl6TlsVerifierContextPolicyV1(const XL6_TlsVerifierContextV1* self)
 {return self?&self->policy:NULL;}
 static bool cleanup(XL6_TlsVerifierContextV1* self)
@@ -53,14 +66,16 @@ static bool cleanup(XL6_TlsVerifierContextV1* self)
         if(failure&&!xrtGetError())xrtSetError(failure);
         return !failed;
     }
-    self->finishing=true;XL6_TlsPeerPolicyV1 callback=self->callback;
-    self->callback=(XL6_TlsPeerPolicyV1){0};end(&mutation);
+    self->finishing=true;XL6_TlsPeerPolicyV1 callback=self->callback,revocation=self->revocation;
+    self->callback=self->revocation=(XL6_TlsPeerPolicyV1){0};end(&mutation);
     /* Judge this duty's own outcome. Inheriting an unrelated earlier failure
      * would permanently poison an otherwise successful Context retirement. */
     xl6_error_result result={true,NULL};
-    if(callback.data){
+    if(callback.data||revocation.data){
         xl6_error_scope scope={0};if(!xl6ErrorScopeBegin(&scope))abort();
-        callback.ops->Drop(callback.data);result=xl6ErrorScopeEnd(&scope);
+        if(callback.data)callback.ops->Drop(callback.data);
+        if(revocation.data)revocation.ops->Drop(revocation.data);
+        result=xl6ErrorScopeEnd(&scope);
     }
     begin(&mutation);self->failed=!result.ok;self->failure=result.error;
     self->finishing=false;self->finished=true;end(&mutation);
@@ -85,7 +100,8 @@ static xtime clockValue(void* raw)
 static bool verify(const xtlsverifiedpeer* peer,void* raw)
 {
     const XL6_TlsVerifierContextV1* self=raw;
-    return !self->callback.data||self->callback.ops->Verify(self->callback.data,peer);
+    return (!self->revocation.data||self->revocation.ops->Verify(self->revocation.data,peer))&&
+        (!self->callback.data||self->callback.ops->Verify(self->callback.data,peer));
 }
 const xtlsverifiercontextownershipv1* xl6TlsVerifierContextNativePolicyV1Get(void)
 {

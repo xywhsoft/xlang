@@ -74,6 +74,8 @@ try {
             'release/extlibs/floatEnv/test/boundaries.xl', '-o', $boundsOut) | Out-Null
         Run 'AOT boundaries' $boundsOut @() | Out-Null
     }
+    RunNegative 'Snapshot constructor access' `
+        'release/extlibs/floatEnv/test/private_adopt_constructor_negative.xl' 'Snapshot'
 } finally {
     Pop-Location
     if (Test-Path -LiteralPath $out -PathType Leaf) {

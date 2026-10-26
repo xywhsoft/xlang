@@ -1,5 +1,5 @@
 #include "xl6_x509_crl_policy_internal.h"
-static void* with(void* raw,void* crl,bool set)
+static void* with(void* raw,void* crl,bool set,void* signerPath)
 {
     const XL6_X509RevocationCheckV1* self=raw;
     if(!self || !crl){xl6X509FailV1(XERR_ARGUMENT,"revocation update needs check and validated source");return NULL;}
@@ -26,6 +26,12 @@ static void* with(void* raw,void* crl,bool set)
     if(!xl6X509PolicyRetainV1(&self->target->references)){xl6X509FreeV1(copy);return NULL;}
     copy->target=self->target;copy->value=next;copy->hasPolicy=true;
     copy->time=policy->time;copy->skew=policy->skew;copy->flags=policy->flags;
+    if(queried==X509_VALUE){
+        copy->evidence=xl6X509RevocationEvidenceAddV1(self->evidence,crl,set,signerPath);
+        if(!copy->evidence){xl6X509RevocationCheckDestroyV1(copy);return NULL;}
+    }else if(self->evidence&&!(copy->evidence=xl6X509RevocationEvidenceRefV1(self->evidence))){
+        xl6X509RevocationCheckDestroyV1(copy);return NULL;
+    }
     if(next.Determined) {
         xx509revocation result={0};
         if(!xl6X509OutcomeV1(xrtX509RevocationResult(&next,&result)==X509_VALUE) ||
@@ -36,5 +42,9 @@ static void* with(void* raw,void* crl,bool set)
     }
     return copy;
 }
-void* xl6X509RevocationCheckWithCrlV1(void* raw,void* crl){return with(raw,crl,false);}
-void* xl6X509RevocationCheckWithSetV1(void* raw,void* set){return with(raw,set,true);}
+void* xl6X509RevocationCheckWithCrlV1(void* raw,void* crl){return with(raw,crl,false,NULL);}
+void* xl6X509RevocationCheckWithSetV1(void* raw,void* set){return with(raw,set,true,NULL);}
+void* xl6X509RevocationCheckWithCrlPathV1(void* raw,void* crl,void* path)
+{if(!path){xl6X509FailV1(XERR_ARGUMENT,"missing CRL signer path");return NULL;}return with(raw,crl,false,path);}
+void* xl6X509RevocationCheckWithSetPathV1(void* raw,void* set,void* path)
+{if(!path){xl6X509FailV1(XERR_ARGUMENT,"missing CRL signer path");return NULL;}return with(raw,set,true,path);}

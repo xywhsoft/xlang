@@ -5,7 +5,9 @@
 初始逐模块核对发现 `tls_verify` 有以下实质接入缺口。后续已交付
 [原生拥有权与消费者图](tls-verifier-consumer-ownership-2026-10-26.md)，并接入
 [拥有式 peer／附加谓词](tls-peer-policy-2026-10-26.md)；下面保留原始基线，
-不再把其中已修项目描述为当前缺陷。CRL 与恢复策略绑定仍未交付：
+不再把其中已修项目描述为当前缺陷。CRL 的后续接入见
+[严格撤销策略](tls-revocation-policy-2026-10-26.md)；恢复策略绑定及普通产品
+整合仍未交付。以下仅为初始缺口记录：
 
 - `xl6_stdlib_tls_verifier.inc` 只公开默认信任库／策略构造及离线 verifyServer／
   verifyClient，没有 CRL 提供者或附加验证回调。

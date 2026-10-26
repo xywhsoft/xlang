@@ -30,3 +30,4 @@
 #undef VG
 #undef VP
 #undef VV
+#include "xl6_ir_tls_revocation_contracts.inc"
