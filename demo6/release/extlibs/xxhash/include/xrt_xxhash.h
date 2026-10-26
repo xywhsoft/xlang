@@ -59,6 +59,11 @@ XRT_API bool xrtXxhash64(const void* pData, size_t iSize, uint64 iSeed, uint64* 
 	xrtxxhasherror* pError);
 XRT_API bool xrtXxhash32(const void* pData, size_t iSize, uint32 iSeed, uint32* pHash,
 	xrtxxhasherror* pError);
+/* XXH3-128 按高、低 64 位返回；失败时不改写输出。 */
+XRT_API bool xrtXxhash3_64(const void* pData, size_t iSize, uint64 iSeed, uint64* pHash,
+	xrtxxhasherror* pError);
+XRT_API bool xrtXxhash3_128(const void* pData, size_t iSize, uint64 iSeed,
+	uint64* pHigh, uint64* pLow, xrtxxhasherror* pError);
 
 /* 借用 Reader 的当前游标，成功才写输出；包含空流及末尾进度通知。 */
 XRT_API bool xrtXxhashFile64(xreader* pReader, uint64 iSeed, const xrtresourcelimits* pLimits,

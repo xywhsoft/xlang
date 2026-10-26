@@ -12,6 +12,7 @@ int main(void)
     xrtxxhashoptions options;
     xrtxxhashhasher* h = NULL;
     uint64 h64;
+    uint64 high, low;
     uint32 h32;
     int status = 1;
     if (!xrtXxhash64(NULL, 0, 0, &h64, NULL)) goto done;
@@ -20,6 +21,11 @@ int main(void)
     printf("abc32=%08x\n", (unsigned int)h32);
     if (!xrtXxhash64("abc", 3, 1, &h64, NULL)) goto done;
     printf("seeded64=%016llx\n", (unsigned long long)h64);
+    if (!xrtXxhash3_64("abc", 3, 0, &h64, NULL)) goto done;
+    printf("abc3_64=%016llx\n", (unsigned long long)h64);
+    if (!xrtXxhash3_128("abc", 3, 0, &high, &low, NULL)) goto done;
+    printf("abc3_128=%016llx%016llx\n", (unsigned long long)high,
+        (unsigned long long)low);
     xrtXxhashOptionsInit(&options);
     h = xrtXxhashHasherCreate(&options);
     if (h == NULL || !xrtXxhashHasherUpdate(h, "a", 1) ||

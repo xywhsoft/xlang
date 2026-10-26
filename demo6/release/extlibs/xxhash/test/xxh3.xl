@@ -1,0 +1,21 @@
+import xxhash
+
+func main(...) as int
+    Buffer empty = Buffer()
+    Buffer bytes = Buffer()
+    bytes.append("a")
+    bytes.appendByte(0)
+    bytes.append("b")
+    uint64 highSeed = uint64(9223372036854775807) + uint64(1)
+
+    assert xxhash.hash3_64("") == uint64(0x2d06800538d394c2)
+    assert xxhash.hash3_64(empty) == xxhash.hash3_64("")
+    assert xxhash.hash3_64Hex("abc") == "78af5f94892f3950"
+    assert xxhash.hash3_128Hex("") == "99aa06d3014798d86001c324468d497f"
+    assert xxhash.hash3_64(bytes, highSeed) == xxhash.hash3_64("a\0b", highSeed)
+    assert xxhash.hash3_64Hex(bytes, highSeed) == xxhash.hash3_64Hex("a\0b", highSeed)
+    assert xxhash.hash3_128Hex(bytes, highSeed) == xxhash.hash3_128Hex("a\0b", highSeed)
+    assert string.byteLen(xxhash.hash3_128Hex(bytes)) == 32
+    assert xxhash.hash3_64("abc", highSeed) != xxhash.hash3_64("abc")
+    return 0
+end

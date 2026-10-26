@@ -59,6 +59,39 @@ static void known_answers(void)
     }
 }
 
+static void xxh3_answers(void)
+{
+    static const size_t sizes[] = {0, 1, 3, 16, 17, 240, 241, 4096};
+    static const uint64 seeds[] = {0, 1, UINT64_MAX};
+    uint8 data[4096];
+    uint64 hash, high, low;
+    xrtxxhasherror error;
+    size_t i, j, k;
+    for (i = 0; i < sizeof(data); ++i) data[i] = (uint8)(i * 131u);
+    for (j = 0; j < sizeof(seeds) / sizeof(seeds[0]); ++j) {
+        for (k = 0; k < sizeof(sizes) / sizeof(sizes[0]); ++k) {
+            const void* input = sizes[k] == 0 ? NULL : data;
+            XXH128_hash_t expected = XXH3_128bits_withSeed(input, sizes[k], seeds[j]);
+            assert(xrtXxhash3_64(input, sizes[k], seeds[j], &hash, &error));
+            assert(error.iCode == XRT_XXHASH_OK &&
+                hash == XXH3_64bits_withSeed(input, sizes[k], seeds[j]));
+            assert(xrtXxhash3_128(input, sizes[k], seeds[j], &high, &low, &error));
+            assert(error.iCode == XRT_XXHASH_OK && high == expected.high64 && low == expected.low64);
+        }
+    }
+    assert(xrtXxhash3_64(NULL, 0, 0, &hash, NULL) && hash == UINT64_C(0x2d06800538d394c2));
+    assert(xrtXxhash3_128(NULL, 0, 0, &high, &low, NULL) &&
+        high == UINT64_C(0x99aa06d3014798d8) && low == UINT64_C(0x6001c324468d497f));
+    hash = high = low = 42;
+    assert(!xrtXxhash3_64(NULL, 1, 0, &hash, &error) && hash == 42 &&
+        error.iCode == XRT_XXHASH_ERROR_ARGUMENT);
+    assert(!xrtXxhash3_128(NULL, 1, 0, &high, &low, &error) &&
+        high == 42 && low == 42);
+    assert(!xrtXxhash3_64(NULL, 0, 0, NULL, NULL));
+    assert(!xrtXxhash3_128(NULL, 0, 0, NULL, &low, NULL) && low == 42);
+    assert(!xrtXxhash3_128(NULL, 0, 0, &high, NULL, NULL) && high == 42);
+}
+
 static void state_boundaries(void)
 {
     xrtxxhashoptions options;
@@ -244,6 +277,7 @@ static void multiply_boundary(void)
 int main(void)
 {
     known_answers();
+    xxh3_answers();
     state_boundaries();
     reader_boundaries();
     multiply_boundary();

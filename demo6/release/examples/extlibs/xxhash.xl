@@ -25,6 +25,11 @@ func main(...) as int
     println("XXH64(\"hello\") = ", xxhash.hash64Hex("hello"))
     println("XXH32(\"hello\") = ", xxhash.hash32Hex("hello"))
 
+    // XXH3 提供 64 位整数与 128 位十六进制摘要；不是密码学哈希。
+    println("XXH3-64(\"hello\") = ", xxhash.hash3_64Hex("hello"))
+    println("XXH3-128(\"hello\") = ", xxhash.hash3_128Hex("hello"))
+    assert string.byteLen(xxhash.hash3_128Hex(data)) == 32
+
     // ─── 2. 种子调优：改变种子得到不同的哈希分布 ───
     assert xxhash.hash64(data, 1) != h64, "xxhash seed should change digest"
     println("换种子(1)后 XXH64 = ", xxhash.hash64Hex(data, 1))

@@ -94,6 +94,15 @@ try {
     $null = Check 'core-c-package-runner' (Get-Process -Id $PID).Path @('-NoProfile','-ExecutionPolicy','Bypass','-File','tools/run_extlib_c.ps1','-Package','xxhash','-Source',$core)
     $null = Check 'seeded-boundaries-jit' $xl @('run','release/extlibs/xxhash/test/seeded_boundaries.xl')
     $null = Check 'stream-limit-jit' $xl @('run','release/extlibs/xxhash/test/stream_limit.xl')
+    $null = Check 'xxh3-jit' $xl @('run','release/extlibs/xxhash/test/xxh3.xl')
+    if (!$SkipAot) {
+        $xxh3Binary = Join-Path $work 'xxh3.exe'
+        $null = Check 'xxh3-build' $xl @('build','release/extlibs/xxhash/test/xxh3.xl','-o',$xxh3Binary)
+        $null = Check 'xxh3-aot' $xxh3Binary @()
+    }
+    $xxh3Module = Join-Path $work 'xxh3.c'
+    $null = Check 'xxh3-cgen' $xl @('cgen','release/extlibs/xxhash/test/xxh3.xl','--emit',$xxh3Module)
+    $decls += @(Get-Content $xxh3Module -Encoding UTF8 | Where-Object { $_ -match '^extern .*\bxxxhash_[a-z0-9_]+\(' })
     foreach ($name in $cases) {
         $case = "test/cases/$name.xl"; $binary = Join-Path $work "$name.exe"; $module = Join-Path $work "$name.c"
         $null = Check "$name-jit" $xl @('run',$case)
@@ -150,9 +159,9 @@ try {
     }
     $outcome = 'passed'
 } finally {
-    $scope = 'XXH32/XXH64: 124 independent vectors, native ABI, UTF-8, state/readers/callbacks, allocation failures, independent threads, C/XL JIT/GCC examples'
+    $scope = 'XXH32/XXH64 plus one-shot XXH3-64/128: 124 independent classic vectors, XXH3 boundary differential, native ABI, UTF-8, state/readers/callbacks, allocation failures, independent threads, C/XL JIT/GCC examples'
     if (!$SkipAot) { $scope += ', Windows AOT' } else { $scope += '; AOT skipped' }
-    $scope += '; not XXH3 language API, Linux XL AOT, 32-bit/ARM or performance certification'
+    $scope += '; not XXH3 streaming/file API, 32-bit/ARM or performance certification'
     $report = [ordered]@{date=(Get-Date).ToString('o');outcome=$outcome;scope=$scope;generatedPrototypes=$decls.Count;inputs=$hashes;checks=@($checks.ToArray())}
     try {
         [IO.File]::WriteAllText((Join-Path $workRoot ('results_' + $runId + '.json')),

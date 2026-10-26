@@ -182,6 +182,30 @@ XRT_API bool xrtXxhash32(const void* data, size_t size, uint32 seed, uint32* has
     return true;
 }
 
+XRT_API bool xrtXxhash3_64(const void* data, size_t size, uint64 seed, uint64* hash, xrtxxhasherror* error)
+{
+    xrtClearError();
+    xrtXxhashErrorInit(error);
+    if (hash == NULL || (data == NULL && size != 0))
+        return xxhash_fail(error, XRT_XXHASH_ERROR_ARGUMENT, 0, "invalid xxhash input or output");
+    *hash = XXH3_64bits_withSeed(data, size, seed);
+    return true;
+}
+
+XRT_API bool xrtXxhash3_128(const void* data, size_t size, uint64 seed,
+    uint64* high, uint64* low, xrtxxhasherror* error)
+{
+    XXH128_hash_t result;
+    xrtClearError();
+    xrtXxhashErrorInit(error);
+    if (high == NULL || low == NULL || (data == NULL && size != 0))
+        return xxhash_fail(error, XRT_XXHASH_ERROR_ARGUMENT, 0, "invalid xxhash input or output");
+    result = XXH3_128bits_withSeed(data, size, seed);
+    *high = result.high64;
+    *low = result.low64;
+    return true;
+}
+
 // -------------------------------- 借用 Reader --------------------------------
 
 /* 复制可选详细诊断，不覆盖 Reader/用户回调产生的原始 XRT 异常。 */

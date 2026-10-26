@@ -1,6 +1,6 @@
 # xxhash
 
-XXH32/XXH64 非密码哈希，支持 UTF-8 文本、Buffer、增量对象和带进度/取消的文件读取。
+XXH32/XXH64/XXH3 非密码哈希，支持 UTF-8 文本、Buffer；XXH64 另有增量对象和带进度/取消的文件读取。
 使用随包 C 后端，复用 XRT 的资源、文件和错误设施，无额外 xxHash DLL。
 不用于口令、签名或防恶意篡改；来源和许可证见 [VENDOR.md](VENDOR.md)。
 
@@ -30,6 +30,9 @@ assert h.inputBytes == uint64(3)
 | `hash64Hex(Buffer|string data, uint64 seed = 0) as string` | 16 个小写 hex 字符 |
 | `hash32(Buffer|string data, uint32 seed = 0) as uint32` | 完整 32 位摘要 |
 | `hash32Hex(Buffer|string data, uint32 seed = 0) as string` | 8 个小写 hex 字符 |
+| `hash3_64(Buffer|string data, uint64 seed = 0) as uint64` | 一次性 XXH3 64 位摘要 |
+| `hash3_64Hex(Buffer|string data, uint64 seed = 0) as string` | 16 个小写 hex 字符 |
+| `hash3_128Hex(Buffer|string data, uint64 seed = 0) as string` | 32 个小写 hex 字符，高 64 位在前 |
 | `hashFile64(string path, uint64 seed = 0, int maxInput = 268435456, (func(int, int, int) as bool)? onProgress = null) as uint64` | 文件摘要 |
 | `hashFile64Hex(...) as string` | 与 hashFile64 相同参数，返回 hex |
 | `hasher(uint64 seed = 0, int maxInput = 268435456) as Xxhash64Hasher` | 增量 XXH64 对象 |
@@ -38,6 +41,7 @@ assert h.inputBytes == uint64(3)
 种子必须在对应无符号类型的范围内，不隐式截断高位或把负数当作无符号种子。
 语言层的 `maxInput` 必须为正，默认为 256 MiB；不是 CPU 时限、峰值内存或文件快照保证。
 一次性函数不另设输入预算，因为输入已由调用方持有。
+XXH3 本轮只提供一次性接口；增量对象和文件接口仍采用 XXH64，不会按名称自动切换算法。
 
 ## 增量对象
 
@@ -82,9 +86,10 @@ uint64 sum = xxhash.hashFile64("data.bin",
 ## C API
 
 核心头：[include/xrt_xxhash.h](include/xrt_xxhash.h)。
-提供 OptionsInit、LimitsInit、ErrorInit、32/64、HasherCreate/Update/Digest/Reset/InputBytes/Error/Destroy、
+提供 OptionsInit、LimitsInit、ErrorInit、32/64、3_64/3_128、HasherCreate/Update/Digest/Reset/InputBytes/Error/Destroy、
 File64，统一前缀为 `xrtXxhash`。所有失败进入 XRT 错误系统，可选详细 error 记录辅助定位。
 一次性和 Reader 接口失败时不写调用方摘要输出。错误后不能仅依赖零摘要判断失败。
+`xrtXxhash3_128` 将结果写入高、低两个 `uint64` 输出参数；两个都必须非空。
 
 `xrtXxhashFile64` **借用** reader，从当前游标读到 EOF，不关闭、不回退；
 总长度是剩余字节，不是整个文件长度。可寻址且超预算时，在读之前拒绝。
@@ -107,21 +112,29 @@ hex 返回值借用当前 XRT 临时区，临时区清理/回退后失效；长�
 
 ## 范例与验证
 
+2026-10-27：新增一次性 XXH3-64/128 接口后，当前 Windows 默认包门禁
+与 Linux 默认包门禁均通过。C 核心对照上游实现的 0、1、3、16、17、
+240、241、4096 字节边界和三种种子，另固定空输入已知值；原生层
+覆盖无效指针、嵌入 NUL、临时文本分配故障，语言层覆盖 JIT/AOT、
+高位种子与双语八行黄金输出。增量与文件接口仍仅为 XXH64；
+本次不宣称 32 位/ARM 或长时性能验收。
+
 - [xlang 教学范例](../../examples/extlibs/xxhash.xl)：文件、回调、二进制、错误、增量。
   文件段在 XRT 独占系统临时目录运行，并在异常路径清理；缺失文件负例引用清理后的路径，
   不写入固定的 `build/test` 文件。
 - [xlang 对照范例](../../examples/extlibs/xxhash_basic.xl) 与 [C 对照范例](examples/basic.c)。
 - [共同固定输出](../../examples/extlibs/xxhash_basic.expected.txt)。
 C 对照范例的一次性哈希、增量更新及 reset 均显式执行；Windows/Linux 包门禁
-以 `-DNDEBUG` 构建运行并核对六行黄金输出，避免 Release 模式打印未初始化结果。
+以 `-DNDEBUG` 构建运行并核对八行黄金输出，避免 Release 模式打印未初始化结果。
 - [核心 C 边界](test/test_xxhash.c)、[原生层/分配故障/线程](test/test_xxhash_native.c)。
 - [高位种子与空输入](test/seeded_boundaries.xl)：公开 32 位已知向量、空 Buffer、64 位高位种子及增量对象；登记在包清单的 `coverage.tests`。
+- [XXH3 边界](test/xxh3.xl)：空输入、嵌入 NUL、高位种子及 64/128 位文本结果；登记在包清单的 `coverage.tests`。
 - [增量限额与恢复](test/stream_limit.xl)：超限报错、失败状态、保留计数及 reset 后重用；登记在包清单的 `coverage.tests`。
 - [原生入口访问负例](test/private_update_negative.xl)、[字符串长度访问负例](test/private_string_length_negative.xl)：只做编译检查，不执行伪造指针或长度。
 - [负数种子拒绝](test/invalid_seed_negative.xl)、[32 位种子溢出拒绝](test/invalid_seed32_overflow.xl)：
   预期语义错误的负例，不能当作成功运行的范例。
 - `tools/check_extlib_xxhash.ps1`：严格 GCC、124 条独立向量、实际生成声明、JIT/AOT、双语输出；`-SkipAot` 仅供开发时缩短反馈。
-- `tools/check_extlib_xxhash.sh`：Linux 独立 C ASan/UBSan、私有入口/种子负例、语言 JIT、七条独立 EXE AOT 与双语范例输出对照。
+- `tools/check_extlib_xxhash.sh`：Linux 独立 C ASan/UBSan、私有入口/种子负例、语言 JIT、八条独立 EXE AOT 与双语范例输出对照。
 - `bash tools/check_extlib_linux_xl.sh xxhash`：Linux XLang JIT 的普通、边界、文件进度用例及双语范例固定输出；不替代 C sanitizer 或 AOT 门禁。
 - `bash release/extlibs/xxhash/test/check.sh`：组合上述 Linux C/XLang 门禁，验证包内正例与原生入口访问负例。
 
@@ -145,7 +158,7 @@ Linux x64 的 XXH32/XXH64 短时门禁；XXH3/128 语言 API 未公开，
 以及 Linux 独立 C ASan/UBSan/泄漏检查。种子负数/超宽负例在语义阶段拒绝；
 非法输入预算在文件打开前拒绝。C 和 xlang 对照范例的六行输出完全一致。
 TCC 适配也检查系统头包含顺序，不依赖目标宏提前定义，不要求额外的 xxHash DLL。
-当前语言公开面是 XXH32 一次性、XXH64 一次性/流式/文件；没有宣称 XXH3/128 语言 API、
+当时语言公开面是 XXH32 一次性、XXH64 一次性/流式/文件；没有宣称 XXH3/128 语言 API、
 XXH32 流式对象、Linux xlang AOT、32 位/ARM、共享可变 hasher 并发或性能认证。
 原生后端保留上游函数；不能把上游 API 存在当作对应语言包装已实现。
 2026-10-15 当前正式 `xl.exe` 的 C/XL JIT 与双语对照通过；完整 AOT

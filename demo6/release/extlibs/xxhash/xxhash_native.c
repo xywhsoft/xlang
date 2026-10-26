@@ -33,6 +33,14 @@ static const char* xxhash_hex(uint64 value, bool wide)
     return text;
 }
 
+static const char* xxhash_hex128(uint64 high, uint64 low)
+{
+    char* text = xrtTemp(33);
+    if (text == NULL) return "";
+    snprintf(text, 33, "%016llx%016llx", (unsigned long long)high, (unsigned long long)low);
+    return text;
+}
+
 unsigned long long xxxhash_hash64(void* data, size_t size, unsigned long long seed)
 {
     uint64 hash = 0;
@@ -63,6 +71,31 @@ const char* xxxhash_hash32_hex(void* data, size_t size, unsigned int seed)
 }
 const char* xxxhash_hash32_str_hex(const char* data, size_t size, unsigned int seed)
 { return xxxhash_hash32_hex((void*)data, size, seed); }
+
+// -------------------------------- XXH3 一次性接口 --------------------------------
+
+unsigned long long xxxhash_hash3_64(void* data, size_t size, unsigned long long seed)
+{
+    uint64 hash = 0;
+    xrtXxhash3_64(data, size, seed, &hash, NULL);
+    return (unsigned long long)hash;
+}
+unsigned long long xxxhash_hash3_64_str(const char* data, size_t size, unsigned long long seed)
+{ return xxxhash_hash3_64((void*)data, size, seed); }
+const char* xxxhash_hash3_64_hex(void* data, size_t size, unsigned long long seed)
+{
+    uint64 hash;
+    return xrtXxhash3_64(data, size, seed, &hash, NULL) ? xxhash_hex(hash, true) : "";
+}
+const char* xxxhash_hash3_64_str_hex(const char* data, size_t size, unsigned long long seed)
+{ return xxxhash_hash3_64_hex((void*)data, size, seed); }
+const char* xxxhash_hash3_128_hex(void* data, size_t size, unsigned long long seed)
+{
+    uint64 high, low;
+    return xrtXxhash3_128(data, size, seed, &high, &low, NULL) ? xxhash_hex128(high, low) : "";
+}
+const char* xxxhash_hash3_128_str_hex(const char* data, size_t size, unsigned long long seed)
+{ return xxxhash_hash3_128_hex((void*)data, size, seed); }
 
 // -------------------------------- 文件与回调 --------------------------------
 

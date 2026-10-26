@@ -8,6 +8,12 @@ extern "xxxhash_hash32" func __hash32(point data, c_size size, c_uint seed) as c
 extern "xxxhash_hash32_str" func __hash32str(string data, c_size size, c_uint seed) as c_uint
 extern "xxxhash_hash32_hex" func __hex32(point data, c_size size, c_uint seed) as string
 extern "xxxhash_hash32_str_hex" func __hex32str(string data, c_size size, c_uint seed) as string
+extern "xxxhash_hash3_64" func __hash3_64(point data, c_size size, c_ulonglong seed) as c_ulonglong
+extern "xxxhash_hash3_64_str" func __hash3_64str(string data, c_size size, c_ulonglong seed) as c_ulonglong
+extern "xxxhash_hash3_64_hex" func __hex3_64(point data, c_size size, c_ulonglong seed) as string
+extern "xxxhash_hash3_64_str_hex" func __hex3_64str(string data, c_size size, c_ulonglong seed) as string
+extern "xxxhash_hash3_128_hex" func __hex3_128(point data, c_size size, c_ulonglong seed) as string
+extern "xxxhash_hash3_128_str_hex" func __hex3_128str(string data, c_size size, c_ulonglong seed) as string
 extern "xxxhash_file64" func __file64(string path, c_ulonglong seed, c_ulonglong maximum, var callback) as c_ulonglong
 extern "xxxhash_file64_hex" func __fileHex(string path, c_ulonglong seed, c_ulonglong maximum, var callback) as string
 
@@ -41,6 +47,26 @@ export func hash32Hex(Buffer data, uint32 seed = uint32(0)) as string
 end
 export func hash32Hex(string text, uint32 seed = uint32(0)) as string
     return __hex32str(text, c_size(string.byteLen(text)), c_uint(seed))
+end
+
+// XXH3 的 128 位结果使用固定 32 位小写十六进制文本，不引入 uint128 类型。
+export func hash3_64(Buffer data, uint64 seed = uint64(0)) as uint64
+    return uint64(__hash3_64(data.data(), c_size(data.len()), c_ulonglong(seed)))
+end
+export func hash3_64(string text, uint64 seed = uint64(0)) as uint64
+    return uint64(__hash3_64str(text, c_size(string.byteLen(text)), c_ulonglong(seed)))
+end
+export func hash3_64Hex(Buffer data, uint64 seed = uint64(0)) as string
+    return __hex3_64(data.data(), c_size(data.len()), c_ulonglong(seed))
+end
+export func hash3_64Hex(string text, uint64 seed = uint64(0)) as string
+    return __hex3_64str(text, c_size(string.byteLen(text)), c_ulonglong(seed))
+end
+export func hash3_128Hex(Buffer data, uint64 seed = uint64(0)) as string
+    return __hex3_128(data.data(), c_size(data.len()), c_ulonglong(seed))
+end
+export func hash3_128Hex(string text, uint64 seed = uint64(0)) as string
+    return __hex3_128str(text, c_size(string.byteLen(text)), c_ulonglong(seed))
 end
 
 func __limit(int maximum)

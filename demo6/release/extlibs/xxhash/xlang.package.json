@@ -26,7 +26,7 @@
     "dependencies":  [
 
                      ],
-    "coverage": { "mode": "suite", "tests": ["test/seeded_boundaries.xl", "test/stream_limit.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/seeded_boundaries.xl", "test/stream_limit.xl", "test/xxh3.xl"] },
     "native":  {
                    "singleton":  false,
                    "loadName":  "",

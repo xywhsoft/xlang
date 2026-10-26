@@ -63,18 +63,18 @@ done
 for name in extlib_xxhash extlib_xxhash_boundaries extlib_xxhash_progress; do
     timeout 90s ./release/xl run "test/cases/$name.xl"
 done
-for name in seeded_boundaries stream_limit; do
+for name in seeded_boundaries stream_limit xxh3; do
     timeout 90s ./release/xl run "$pkg/test/$name.xl"
 done
 timeout 90s ./release/xl run release/examples/extlibs/xxhash.xl > "$work/full_jit.log"
 timeout 90s ./release/xl run release/examples/extlibs/xxhash_basic.xl > "$work/basic_jit.log"
 diff -u "$work/basic.log" "$work/basic_jit.log"
 printf '[xxhash] XLang AOT gate\n'
-for name in extlib_xxhash extlib_xxhash_boundaries extlib_xxhash_progress seeded_boundaries stream_limit xxhash xxhash_basic; do
+for name in extlib_xxhash extlib_xxhash_boundaries extlib_xxhash_progress seeded_boundaries stream_limit xxh3 xxhash xxhash_basic; do
     printf '[xxhash] AOT %s\n' "$name"
     case "$name" in
         extlib_*) source="test/cases/$name.xl" ;;
-        seeded_boundaries|stream_limit) source="$pkg/test/$name.xl" ;;
+        seeded_boundaries|stream_limit|xxh3) source="$pkg/test/$name.xl" ;;
         *) source="release/examples/extlibs/$name.xl" ;;
     esac
     timeout 180s ./release/xl build "$source" -o "$work/$name"

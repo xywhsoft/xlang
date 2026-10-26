@@ -37,8 +37,18 @@ static void boundaries(void)
     assert(xxxhash_available() && strcmp(xxxhash_version(), "0.8.3") == 0);
     assert(xxxhash_hash64(NULL, 0, 0) == UINT64_C(0xef46db3751d8e999));
     assert(xxxhash_hash32(NULL, 0, 0) == 0x02cc5d05U);
+    assert(xxxhash_hash3_64(NULL, 0, 0) == UINT64_C(0x2d06800538d394c2));
+    assert(strcmp(xxxhash_hash3_64_str_hex("abc", 3, 0), "78af5f94892f3950") == 0);
+    assert(strcmp(xxxhash_hash3_128_hex(NULL, 0, 0),
+        "99aa06d3014798d86001c324468d497f") == 0);
+    assert(xxxhash_hash3_64_str("a\0b", 3, 1) ==
+        xxxhash_hash3_64((void*)"a\0b", 3, 1));
+    assert(strcmp(xxxhash_hash3_128_str_hex("a\0b", 3, 1),
+        xxxhash_hash3_128_hex((void*)"a\0b", 3, 1)) == 0);
     assert(!xxxhash_hash64_hex(NULL, 1, 0)[0] && xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
     assert(!xxxhash_hash32_hex(NULL, 1, 0)[0] && xxxhash_last_error()[0]);
+    assert(!xxxhash_hash3_64_hex(NULL, 1, 0)[0] && xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
+    assert(!xxxhash_hash3_128_hex(NULL, 1, 0)[0] && xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
     assert(!xxxhash_file64_hex(NULL, 0, 0, NULL)[0] && xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
     assert(!xxxhash_file64_hex("", 0, 0, NULL)[0]);
     assert(!xxxhash_file64_hex("__xxhash_missing_file__", 0, 0, NULL)[0] && xrtErrorKind(xrtGetError()) == XERR_NOT_FOUND);
@@ -69,7 +79,7 @@ static void allocations(void)
     assert(file_hash[0] && xrtTempClear() && xrtTempTrim(xrtTempCurrent(), 0));
     xrtClearError();
     xrtMemDebugSnapshot(&before);
-    for (kind = 0; kind < 5; ++kind) {
+    for (kind = 0; kind < 7; ++kind) {
         unsigned int bad = 0, good = 0;
         bool ordinary = kind == 0 || kind == 3;
         for (i = 0; i < 12; ++i) {
@@ -84,6 +94,8 @@ static void allocations(void)
             } else {
                 if (kind == 1) text = xxxhash_hash64_str_hex("abc", 3, 0);
                 else if (kind == 2) text = xxxhash_hash32_str_hex("abc", 3, 0);
+                else if (kind == 5) text = xxxhash_hash3_64_str_hex("abc", 3, 0);
+                else if (kind == 6) text = xxxhash_hash3_128_str_hex("abc", 3, 0);
                 else text = xxxhash_file64_hex(path, 0, 0, NULL);
                 ok = text[0] != 0;
             }
@@ -92,7 +104,12 @@ static void allocations(void)
             fail_after = -1;
             if (ok) {
                 assert(!injected && xrtGetError() == NULL);
-                if (kind > 0) assert(strcmp(text, kind == 1 ? "44bc2cf5ad770999" : kind == 2 ? "32d153ff" : file_hash) == 0);
+                if (kind > 0) {
+                    const char* expected = kind == 1 ? "44bc2cf5ad770999" :
+                        kind == 2 ? "32d153ff" : kind == 5 ? "78af5f94892f3950" :
+                        kind == 6 ? "06b05ab6733a618578af5f94892f3950" : file_hash;
+                    assert(strcmp(text, expected) == 0);
+                }
                 ++good; ++successes;
             } else {
                 assert(injected && xrtErrorKind(xrtGetError()) == XERR_MEMORY);
