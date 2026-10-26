@@ -72,6 +72,8 @@ def main():
                 assert not materialization['heapCopies'] and not materialization['poolFallbacks'], result
                 assert storage['chargedBytes'] <= 64*1024*1024, result
                 if result['analysis']['lastBuildSemantics']['reused']:
+                    if result['analysis']['lastBuildSemantics']['reused'] >= 32:
+                        assert result['analysis']['lastBuildSemantics']['proofHits'] > 0, result
                     if storage['nodes']:
                         assert storage['nodes'] > storage['pages'] > 0 and storage['chargedBytes'] > 0, result
                     else:

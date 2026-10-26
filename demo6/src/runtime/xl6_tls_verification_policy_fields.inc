@@ -1,6 +1,0 @@
-XL6_TLS_VERIFY_LIMIT(MaxPeerCertificates,maxPeerCertificates)
-XL6_TLS_VERIFY_LIMIT(MaxPeerBytes,maxPeerBytes)
-XL6_TLS_VERIFY_LIMIT(MaxPathCertificates,maxPathCertificates)
-XL6_TLS_VERIFY_LIMIT(MaxSearchSteps,maxSearchSteps)
-XL6_TLS_VERIFY_LIMIT(MaxTrustCertificates,maxTrustCertificates)
-XL6_TLS_VERIFY_LIMIT(MaxTrustBytes,maxTrustBytes)

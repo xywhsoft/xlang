@@ -1,4 +1,5 @@
 #define XRT_MODULE_STRING
+#define XRT_MODULE_UNICODE
 #ifndef XRT_MODULE_VALUE_CONTAINER
 #define XRT_MODULE_VALUE_CONTAINER
 #endif
@@ -270,6 +271,34 @@ XZIP_EXPORT void* xzip_archive_read_at(void* pHandle, int64_t iIndex)
 	}
 	pData = xrtZipArchiveReadAt(pArchive, (uint64)iIndex);
 	if ( pData == NULL ) { xzip_publish_error(pArchive); }
+	return pData;
+}
+
+/* 接管读取缓冲；长度单独保留，文本中的 NUL 不会被截断。 */
+XZIP_EXPORT size_t xzip_text_size(void* pBuffer)
+{
+	return pBuffer != NULL ? ((const xbuffer*)pBuffer)->Size : 0u;
+}
+
+XZIP_EXPORT void* xzip_text_take(void* pBuffer)
+{
+	xbuffer* pText = (xbuffer*)pBuffer;
+	void* pData;
+	if ( pText == NULL ) { return NULL; }
+	if ( !xrtUtf8Valid((xstrview){ (const char*)pText->Data, pText->Size }, NULL) ) {
+		xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.zip", XRT_ZIP_ERROR_FORMAT,
+			"ZIP entry is not valid UTF-8 text");
+		xrtBufferDestroy(pText);
+		return NULL;
+	}
+	if ( !xrtBufferAppendByte(pText, 0u) ) {
+		xrtSetErrorInfo(XERR_MEMORY, "xlang.extlib.zip", XRT_ZIP_ERROR_MEMORY,
+			"cannot terminate ZIP text result");
+		xrtBufferDestroy(pText);
+		return NULL;
+	}
+	pData = xrtBufferTake(pText, NULL, NULL);
+	xrtBufferDestroy(pText);
 	return pData;
 }
 

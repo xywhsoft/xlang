@@ -71,6 +71,7 @@ CORE_TESTS = ("analysis_ast_intern_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_frontend_cancel_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_memo_test", "analysis_projection_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_completion_body_failure_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_semantic_proof_test", *CORE_TESTS)
 HOST_TESTS += ("navigation_cache_test", "semantic_reference_shard_test", "project_references_test", "project_reference_budget_test", "reference_path_index_test")
 HOST_TESTS += ("path_identity_batch_test", "reference_capture_test")
 

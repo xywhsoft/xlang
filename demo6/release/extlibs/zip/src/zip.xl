@@ -1,5 +1,8 @@
 extern "xzip_last_error" @no_raise func __zip_error_text() as string
 extern "xzip_last_error_is_memory" @no_raise func __zip_memory_error() as bool
+extern "xzip_text_size" @no_raise func __zip_text_size(point result) as c_size
+extern "xzip_text_take" @no_raise func __zip_text_take(point result) as point
+extern "xrtFree" @no_raise func __zip_text_free(point text)
 
 // 原生内存失败仍是 MemoryError，其他 ZIP 错误由调用处转为 ArchiveError。
 func __zip_error() as string
@@ -195,8 +198,18 @@ export class ZipArchive
         return self.read(index)
     end
 
-    func readText(string name) as string
-        return self.read(name).text()
+    func readText(string name) as cstring
+        __zip_cstr(name)
+        int index = self.locateNative(name)
+        if index < 0 then
+            throw KeyError "ZIP entry does not exist: " + name
+        end
+        point result = self.readNative(index)
+        if result == null then throw ArchiveError __zip_error() end
+        c_size length = __zip_text_size(result)
+        point text = __zip_text_take(result)
+        if text == null then throw ArchiveError __zip_error() end
+        return cstring.take(text, length, __zip_text_free)
     end
 
     func add(string name, Buffer data, bool overwrite = false,

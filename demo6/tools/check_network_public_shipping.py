@@ -17,11 +17,13 @@ def main():
     for name in ('root','build-report','out'):parser.add_argument('--'+name,type=Path,required=True)
     parser.add_argument('--jobs',type=int,default=2)
     parser.add_argument('--manifest',type=Path,help='Explicit ordinary fixtures and .xl support; default network batch is unchanged')
+    parser.add_argument('--controls',type=Path,help='Explicit immutable fixture root; never a runtime/compiler provider')
     args=parser.parse_args();root,out=args.root.resolve(),args.out.resolve()
     assert not out.exists() and args.jobs>0
     build=json.loads(args.build_report.read_text(encoding='utf-8-sig'))
     assert build['Complete'] and build['InputsUnchanged'] and build['Exit']==0
-    controls=Path(__file__).resolve().parents[1];windows=os.name=='nt'
+    controls=args.controls.resolve() if args.controls else Path(__file__).resolve().parents[1];windows=os.name=='nt'
+    assert controls.is_dir()
     names=('xl.exe','xl.dll','xlc.dll') if windows else ('xl','libxl.so','libxlc.so')
     originals=[root/'release'/name for name in names]
     recorded={Path(row['Path']).resolve():row['Sha256'] for row in build['Products']}

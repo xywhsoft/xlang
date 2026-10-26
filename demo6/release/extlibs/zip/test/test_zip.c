@@ -15,6 +15,9 @@ void* xzip_archive_open_file_value(xvalue* pPath, int iMode, int iMethod,
 	int iLevel, unsigned long long iMaxInput, unsigned long long iMaxOutput,
 	unsigned long long iMaxItem, unsigned long long iMaxEntries,
 	unsigned int iMaxRatio);
+void* xzip_archive_read_at(void* pHandle, int64_t iIndex);
+size_t xzip_text_size(void* pBuffer);
+void* xzip_text_take(void* pBuffer);
 
 
 
@@ -91,6 +94,37 @@ static xbuffer* makeArchive(cstr sName, const void* pData, size_t iSize)
 	}
 	xrtZipArchiveDestroy(pWriter);
 	return pResult;
+}
+
+static int testTextTransfer(void)
+{
+	const char sText[] = "A\0B\xE4\xBD\xA0\xE5\xA5\xBD";
+	const unsigned char sInvalid[] = { 0xFFu };
+	xbuffer* pPacked = makeArchive("text.txt", sText, sizeof(sText) - 1u);
+	xrtziparchive* pArchive = pPacked != NULL ?
+		xrtZipArchiveOpenMemory(pPacked->Data, pPacked->Size, false, NULL) : NULL;
+	xbuffer* pRead = pArchive != NULL ? xzip_archive_read_at(pArchive, 0) : NULL;
+	size_t iSize = xzip_text_size(pRead);
+	char* sOwned = pRead != NULL ? (char*)xzip_text_take(pRead) : NULL;
+	int bOk = check(sOwned != NULL && iSize == sizeof(sText) - 1u &&
+		sOwned[iSize] == 0 && memcmp(sOwned, sText, iSize) == 0,
+		"ZIP text transfer lost length or embedded NUL");
+	xrtZipArchiveDestroy(pArchive);
+	xrtBufferDestroy(pPacked);
+	bOk &= check(sOwned != NULL && memcmp(sOwned, sText, iSize) == 0,
+		"ZIP text transfer did not own its data");
+	xrtFree(sOwned);
+
+	pPacked = makeArchive("invalid.txt", sInvalid, sizeof(sInvalid));
+	pArchive = pPacked != NULL ?
+		xrtZipArchiveOpenMemory(pPacked->Data, pPacked->Size, false, NULL) : NULL;
+	pRead = pArchive != NULL ? xzip_archive_read_at(pArchive, 0) : NULL;
+	bOk &= check(pRead != NULL && xzip_text_take(pRead) == NULL &&
+		xrtErrorKind(xrtGetError()) == XERR_ARGUMENT,
+		"ZIP text transfer accepted invalid UTF-8");
+	xrtZipArchiveDestroy(pArchive);
+	xrtBufferDestroy(pPacked);
+	return bOk;
 }
 
 
@@ -672,6 +706,7 @@ int main(void)
 		bOk = 0;
 	} else {
 		bOk = testMemoryArchive();
+		bOk &= testTextTransfer();
 		bOk &= testLimitsAndCorruption();
 		bOk &= testUnsafeExtractionAndOverwrite();
 		bOk &= testUtf8FileAndExtract();

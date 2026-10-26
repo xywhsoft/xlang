@@ -51,6 +51,13 @@ typedef struct xls_sem_cursor {
 } xls_sem_cursor;
 typedef struct xls_sem_reads xls_sem_reads;
 typedef struct xls_sem_read_context xls_sem_read_context;
+typedef struct xls_sem_proof {
+    xarray sources; /* borrowed from this owning immutable unit */
+    xarray located; /* every located type edge in exact clone preorder */
+    size_t bytes,cloneBytes,facts;
+    uint64_t nodes;
+    int shiftSafe;
+} xls_sem_proof;
 typedef struct xls_sem_unit {
     xatomic32 references;
     xls_sem_symbol_span symbols; /* immutable allocation origin,not current view */
@@ -65,6 +72,7 @@ typedef struct xls_sem_unit {
      * cursor units; their payload role and independent fact route stay. */
     union {char* cursorPath;xls_ast_intern* types;};
     xls_sem_reads* reads;
+    xls_sem_proof* proof;
 } xls_sem_unit;
 typedef struct xls_sem_position { XL6_AstRange range,token; int line,column; } xls_sem_position;
 
@@ -496,9 +504,11 @@ static void xlsSemFactsFree(xarray* facts)
 }
 static xls_sem_unit* xlsSemUnitRetain(xls_sem_unit* unit)
 { if(unit) xrtAtomic32FetchAdd(&unit->references,1,XMEMORY_RELAXED); return unit; }
+static void xlsSemProofDestroy(xls_sem_proof* proof);
 static void xlsSemUnitRelease(xls_sem_unit* unit)
 {
     if(unit && xrtAtomic32FetchSub(&unit->references,1,XMEMORY_ACQ_REL)==1){
+        xlsSemProofDestroy(unit->proof);
         if(!unit->cursor.path && unit->types){xrtArrayUnit(&unit->facts);xlsAstInternDestroy(unit->types);}
         else{xlsSemFactsFree(&unit->facts);if(unit->cursor.path)xrtFree(unit->cursorPath);}
         xlsSemReadsDestroy(unit->reads);
@@ -607,6 +617,8 @@ static int xlsSemCaptureFacts(const xarray* nodes,xls_sem_unit* unit,size_t limi
         xlsSemCopyFactTypes(facts,&(xls_ast_clone_options){.bytes=limit-*bytes},&owned);
     *bytes+=owned; return okay;
 }
+
+#include "analysis/frontend_sem_proof.inc"
 
 typedef struct xls_sem_apply {
     const xls_sem_moves* moves;
@@ -877,6 +889,10 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
                 if(markerBytes<=XLS_SEM_MEMO_BYTES-m->bytes-sizeof(*unit) && (!markerBytes || unit->cursor.path) &&
                    xlsSemCaptureFacts(&raw,unit,XLS_SEM_MEMO_BYTES-m->bytes-sizeof(*unit)-markerBytes,&owned,build->deferredQuery==NULL)) {
                     unit->bytes=owned+sizeof(*unit)+markerBytes;
+                    if(build->deferredQuery){
+                        unit->proof=xlsSemProofCreate(unit,XLS_SEM_MEMO_BYTES-m->bytes-unit->bytes);
+                        if(unit->proof)unit->bytes+=unit->proof->bytes;
+                    }
                     if(capturedReads && capturedReads->complete && capturedReads->bytes<=XLS_SEM_MEMO_BYTES-m->bytes-unit->bytes){unit->reads=capturedReads;unit->bytes+=capturedReads->bytes;capturedReads=NULL;}
                     entry->unit=unit; m->bytes+=unit->bytes;
                 } else xlsSemUnitRelease(unit);

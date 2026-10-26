@@ -34,7 +34,7 @@ Buffer packed = writer.finish()
 zip.ZipArchive reader = zip.open(packed)
 println(reader.readText("hello.txt"))
 reader.close()</code></pre>
-    <p>输出 <code>你好</code>。二进制数据使用 <code>add(name, Buffer)</code> 与 <code>read(name) as Buffer</code>；不要将二进制内容交给 <code>readText</code>。</p>
+    <p>输出 <code>你好</code>。<code>readText</code> 接管独立读取缓冲并按长度保存 UTF-8 文本，内嵌 NUL 不截断；无效 UTF-8 会被拒绝。二进制数据使用 <code>add(name, Buffer)</code> 与 <code>read(name) as Buffer</code>。</p>
   </section>
   <section id="api">
     <h2>接口</h2>
@@ -75,7 +75,7 @@ int main(void)
     <pre><code>xl run extlibs/zip/test/boundaries.xl
 xl run examples/extlibs/zip.xl
 powershell -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package zip -Source release/extlibs/zip/test/test_zip.c</code></pre>
-    <p>2026-10-26 当前 Windows/Linux 功能门禁均通过 C/XLang JIT/AOT 与双语范例。两平台用 Python 标准库 <code>zipfile</code> 与 C 接口双向交换 ZIP，验证 UTF-8 文件名、DEFLATE/STORED、二进制正文及损坏时的 CRC 拒绝。C 独立 EXE 通过显式导入 <code>zip</code> 的 XLang 文件与 C 源同编；旧 TCC VFS 头路径阻断未在当前发布物复现。危险路径、缺失条目等失败由包装层抛出 <code>ArchiveError</code>；原生内存故障仍保留 <code>MemoryError</code>。</p>
+    <p>2026-10-27 Windows 全包门禁通过；Linux 的 C ASan/UBSan、格式互通及新增文本接管 JIT/AOT 用例通过，旧边界用例在本机的 180 秒限时内超时，因此本次 Linux 全包门禁未签收。两平台用 Python 标准库 <code>zipfile</code> 与 C 接口双向交换 ZIP，验证 UTF-8 文件名、DEFLATE/STORED、二进制正文及损坏时的 CRC 拒绝。C 独立 EXE 通过显式导入 <code>zip</code> 的 XLang 文件与 C 源同编。危险路径、缺失条目等失败由包装层抛出 <code>ArchiveError</code>；原生内存故障仍保留 <code>MemoryError</code>。</p>
     <p>自定义 C Writer 的流式条目输出区分内存故障和普通 I/O；文件提取的 Writer 阶段也有写入、刷新、关闭与复合失败的注入回归，保留最先失败阶段的错误类别。Linux C ASan/UBSan 与符号链接专项通过。当前编译器仍允许包外调用私有内存构造器，发布单头也尚未提供包内根锚定 rename；不可信或可并发修改的解压目录不属于已签收安全范围。</p>
   </section>
 </main>

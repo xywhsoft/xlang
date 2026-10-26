@@ -28,7 +28,7 @@ xls_signature_help* xlsSignatureCreateInContext(xls_context* context,const char*
 xls_signature_help* xlsSignatureRetain(xls_signature_help* result);
 void xlsSignatureRelease(xls_signature_help* result);
 int xlsSignatureValidate(xls_signature_help* result);
-typedef struct xls_signature_work { uint64_t checked,reused; } xls_signature_work;
+typedef struct xls_signature_work { uint64_t checked,reused,proofHits,proofNodes; } xls_signature_work;
 xls_signature_work xlsSignatureWork(const xls_signature_help* result);
 /* Work creating the immutable model, also returned by cached/caret views.
  * Counts query-file parse work only; cacheBytes charges the retained snapshot.
