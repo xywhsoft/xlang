@@ -1,0 +1,7 @@
+extern "owned_task_text" @owned func Text(c_int mode) as string
+typedef Producer=func(c_int) as string
+Producer? callback=Text
+if callback!=null
+    callback=null // Assignment invalidates the proof before capture.
+    task.spawn(callback,c_int(7))
+end

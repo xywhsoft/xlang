@@ -1,0 +1,71 @@
+// Specialization must rebuild task payload policies for both trivial and
+// managed T. It must never inherit the template's unresolved payload ABI.
+extern "owned_task_text" @owned func Text(c_int mode) as string
+func echo<T>(T value) as T
+    return value
+end
+func submit<T>(func(T) as T callback,T value) as future<T>
+    return task.spawn(callback,value)
+end
+func text<T>(func(T) as string callback,T value) as future<string>
+    return task.spawn(callback,value)
+end
+func collect<T>(future<T> first,future<T> second) as future<array<T>>
+    return task.all([first,second])
+end
+func collectArray<T>(array<future<T>> jobs) as future<array<T>>
+    return task.all(jobs)
+end
+func race<T>(future<T> first,future<T> second) as future<T>
+    return task.race([first,second])
+end
+func any<T>(array<future<T>> jobs) as future<int>
+    return task.whenAny(jobs)
+end
+func raceArray<T>(array<future<T>> jobs) as future<T>
+    return task.race(jobs)
+end
+func anyLiteral<T>(future<T> first,future<T> second) as future<int>
+    return task.whenAny([first,second])
+end
+func intEcho(int value) as int
+    return value
+end
+func nativeEcho(c_ulonglong value) as c_ulonglong
+    return value
+end
+func stringEcho(string value) as string
+    return value
+end
+assert await submit::<int>(intEcho,7)==7
+c_ulonglong maximum=c_ulonglong(uint64(18446744073709551615))
+auto first=submit::<c_ulonglong>(nativeEcho,maximum)
+auto second=submit::<c_ulonglong>(nativeEcho,c_ulonglong(9))
+assert await first==maximum
+auto values=await collect::<c_ulonglong>(first,second)
+assert values.length==2 and values[0]==maximum and values[1]==c_ulonglong(9)
+array<future<c_ulonglong>> jobs=[first,second]
+auto again=await collectArray::<c_ulonglong>(jobs)
+assert again[0]==maximum and again[1]==c_ulonglong(9)
+auto winner=await race::<c_ulonglong>(first,second)
+assert winner==maximum or winner==c_ulonglong(9)
+auto arrayWinner=await raceArray::<c_ulonglong>(jobs)
+assert arrayWinner==maximum or arrayWinner==c_ulonglong(9)
+int index=await any::<c_ulonglong>(jobs)
+assert index==0 or index==1
+int literalIndex=await anyLiteral::<c_ulonglong>(first,second)
+assert literalIndex==0 or literalIndex==1
+assert await submit::<string>(stringEcho,"managed")=="managed"
+assert await text::<c_int>(Text,c_int(7))=="native text"
+auto text1=text::<c_int>(Text,c_int(7))
+auto text2=text::<c_int>(Text,c_int(7))
+auto strings=await collect::<string>(text1,text2)
+assert strings[0]=="native text" and strings[1]=="native text"
+bool caught=false
+try
+    await text::<c_int>(Text,c_int(-1))
+catch error
+    caught=true
+end
+assert caught
+assert await text::<c_int>(Text,c_int(7))=="native text"

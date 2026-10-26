@@ -16,6 +16,19 @@ static int xl6IrCgenEmitFuturePayloadBoxer(
         "    if (payload == NULL) return NULL;\n",
         (unsigned int)instruction->payloadType);
     switch ( instruction->asyncResultAbi ) {
+    case XL6_IR_ASYNC_RESULT_COPY_C_SCALAR:
+        {
+            const XL6_IrType* type = xl6IrTypeGet(&module->types, instruction->payloadType);
+            XL6_NativeScalarProfileV1 profile = type
+                ? xl6IrNativeScalarProfileForCAbi(type->cAbi) : XL6_NATIVE_SCALAR_NONE;
+            if (!type || !type->typeValueId || profile == XL6_NATIVE_SCALAR_NONE)
+                return xl6IrCgenDiag(diags, module, instruction->origin,
+                    "XLIR task.all native scalar has no exact profile and identity");
+            xl6OutputPrintf(out,
+                "    return xl6ValueBoxNativeScalarV1(payload, %u, 0x%016llXULL);\n",
+                (unsigned)profile, (unsigned long long)type->typeValueId);
+        }
+        break;
     case XL6_IR_ASYNC_RESULT_COPY_BOOL:
         xl6OutputPuts(
             "    return xrtValueRetain(xrtValueBool(*(const bool*)payload));\n", out);

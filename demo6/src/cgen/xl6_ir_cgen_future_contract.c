@@ -218,6 +218,7 @@ static int xl6IrCgenFuturePayloadBoxerAbiSupported(
     XL6_IrAsyncResultAbi abi)
 {
     switch ( abi ) {
+    case XL6_IR_ASYNC_RESULT_COPY_C_SCALAR:
     case XL6_IR_ASYNC_RESULT_COPY_BOOL:
     case XL6_IR_ASYNC_RESULT_COPY_CHAR:
     case XL6_IR_ASYNC_RESULT_COPY_I64:

@@ -12252,6 +12252,9 @@ static int xl6IrLowerTaskAllPayloadBoxerSupported(
     if ( type == NULL || abi != xl6IrLowerAsyncResultAbi(module, typeId) )
         return 0;
     switch ( abi ) {
+    case XL6_IR_ASYNC_RESULT_COPY_C_SCALAR:
+        return type->typeValueId != 0 &&
+            xl6IrNativeScalarProfileForCAbi(type->cAbi) != XL6_NATIVE_SCALAR_NONE;
     case XL6_IR_ASYNC_RESULT_COPY_BOOL:
     case XL6_IR_ASYNC_RESULT_COPY_CHAR:
     case XL6_IR_ASYNC_RESULT_COPY_I64:
@@ -16838,6 +16841,14 @@ static int xl6IrLowerIntrinsicAdmissionSupported(
     if (xl6IrPersistenceInvocationIntrinsic(intrinsic->kind) != NULL)
         return xl6IrPersistenceInvocationIntrinsicAbi(module, intrinsic);
     switch ( intrinsic->kind ) {
+    case XL6_IR_INTRINSIC_TASK_ALL:
+    case XL6_IR_INTRINSIC_TASK_RACE:
+    case XL6_IR_INTRINSIC_TASK_ALL_ARRAY:
+    case XL6_IR_INTRINSIC_TASK_RACE_ARRAY:
+    case XL6_IR_INTRINSIC_TASK_WHEN_ANY:
+    case XL6_IR_INTRINSIC_TASK_WHEN_ANY_ARRAY:
+    case XL6_IR_INTRINSIC_TASK_SPAWN:
+        return xl6IrTaskIntrinsicCompatible(module, intrinsic);
     case XL6_IR_INTRINSIC_WEAK_LOCK:
         return call->callKind == XL6_SEM_CALL_RUNTIME_INTRINSIC &&
             intrinsic->operandCount == 1 && source != NULL && result != NULL &&
@@ -17460,6 +17471,20 @@ static int xl6IrLowerSpecializationCloneIntrinsicCalls(
             target->scalarConversionAbi =
                 xl6IrClassifyScalarConversionAbi(
                     concreteSource, concreteResult);
+        }
+        /* Payload destruction/copy policy depends on the concrete T, never
+         * on the template's unresolved ABI. All task forms are revalidated. */
+        switch (target->kind) {
+        case XL6_IR_INTRINSIC_TASK_ALL:
+        case XL6_IR_INTRINSIC_TASK_RACE:
+        case XL6_IR_INTRINSIC_TASK_ALL_ARRAY:
+        case XL6_IR_INTRINSIC_TASK_RACE_ARRAY:
+        case XL6_IR_INTRINSIC_TASK_WHEN_ANY:
+        case XL6_IR_INTRINSIC_TASK_WHEN_ANY_ARRAY:
+        case XL6_IR_INTRINSIC_TASK_SPAWN:
+            target->payloadAbi = xl6IrLowerAsyncResultAbi(module, target->payloadType);
+            break;
+        default: break;
         }
         /* Recheck the concrete candidate, not the source template's pending
          * admission. Closed validators must not inherit generic-dependent
@@ -25588,18 +25613,18 @@ static XL6_IrValueId xl6IrLowerTaskSpawnArrayTail(
         const XL6_IrNode* item = xl6IrNodeGet(
             ctx->module, binding->expression);
         const XL6_IrType* itemType = item != NULL
-            ? xl6IrTypeGet(&ctx->module->types, item->storageType) : NULL;
+            ? xl6IrTypeGet(&ctx->module->types, binding->type) : NULL;
         XL6_IrValueId boxed;
         XL6_IrValueId appended;
         XL6_IrValueId operands[2];
         if ( item == NULL || itemType == NULL ||
-             binding->type != item->storageType ||
+             binding->type != xl6IrNodeMaterializedValueType(ctx->module, item) ||
              binding->abi !=
                  (itemType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED
                       ? XL6_IR_INTRINSIC_OPERAND_BORROW
                       : XL6_IR_INTRINSIC_OPERAND_VALUE) ||
              !xl6IrTypeCanBoxRuntimeXValue(
-                 ctx->module, item->storageType) )
+                 ctx->module, binding->type) )
             return XL6_IR_VALUE_INVALID;
         boxed = xl6IrLowerCollectionItemAsRuntimeXValue(
             ctx, origin, binding->expression, item);
@@ -25839,14 +25864,15 @@ static int xl6IrLowerIntrinsicTaskSpawn(
         const XL6_IrNode* source = xl6IrNodeGet(
             ctx->module, binding->expression);
         const XL6_IrType* sourceType = source != NULL
-            ? xl6IrTypeGet(&ctx->module->types, source->storageType) : NULL;
+            ? xl6IrTypeGet(&ctx->module->types,
+                xl6IrNodeMaterializedValueType(ctx->module, source)) : NULL;
         const XL6_IrType* expectedType = i == 0 ? callable :
             xl6IrTypeGet(&ctx->module->types, callable->params[i - 1]);
         XL6_IrParameterAbi parameterAbi = i == 0
             ? XL6_IR_PARAMETER_ABI_BORROW
             : callable->parameterAbis[i - 1];
         if ( source == NULL || sourceType == NULL || expectedType == NULL ||
-             binding->type != source->storageType ||
+             binding->type != xl6IrNodeMaterializedValueType(ctx->module, source) ||
              (i == 0
                   ? binding->type != callableBinding->type
                   : !xl6IrTaskSpawnArgumentCanBind(
@@ -27702,7 +27728,8 @@ static XL6_IrClosureTarget* xl6IrLowerRegisterNamedAdapter(
         if ( xl6IrLowerNamedAdapterSignatureParameter(
                  signature, target, i) != SIZE_MAX ) continue;
         if ( parameter == NULL || parameter->kind != XL6_IR_NODE_PARAM_DECL ||
-             parameter->symbol == 0 || parameter->childCount < 2 ) {
+             (parameter->symbol == 0 && target->kind != XL6_IR_CALL_TARGET_EXTERN_C) ||
+             parameter->childCount < 2 ) {
             xl6IrLowerDiag(ctx, origin,
                             "XLIR named function adapter requires explicit typed default arguments");
             return NULL;
@@ -32980,7 +33007,12 @@ static int xl6IrLowerNamedAdapterBody(
             XL6_IrNodeId defaultId;
             const XL6_IrNode* expression;
             XL6_IrValueId loaded;
-            if ( sourceParameter->symbol == 0 || sourceParameter->childCount < 2 ) goto done;
+            /* Extern declarations have no parameter-local symbols. Their
+             * checked defaults still use the ordinary evaluation transaction;
+             * only language defaults need a binding for later defaults. */
+            if ( (sourceParameter->symbol == 0 &&
+                  target->kind != XL6_IR_CALL_TARGET_EXTERN_C) ||
+                 sourceParameter->childCount < 2 ) goto done;
             defaultId = ctx->module->children[sourceParameter->firstChild + 1];
             expression = xl6IrNodeGet(ctx->module, defaultId);
             operands[parameter] = xl6IrLowerNodeAsType(
@@ -32999,8 +33031,9 @@ static int xl6IrLowerNamedAdapterBody(
                  !xl6IrLowerEmit(ctx, XL6_IR_INSTR_LOAD, defaultId,
                                   target->parameterTypes[parameter],
                                   defaultStorages[parameter], NULL, 0, &loaded) ||
-                 !xl6IrLowerAddPromotedParameter(
-                      ctx, sourceParameter->symbol, defaultStorages[parameter]) ) goto done;
+                 (sourceParameter->symbol != 0 &&
+                  !xl6IrLowerAddPromotedParameter(
+                      ctx, sourceParameter->symbol, defaultStorages[parameter])) ) goto done;
             operands[parameter] = loaded;
             if (xl6IrTypeHasStorageReleaseAbi(ctx->module, target->parameterTypes[parameter]) &&
                 !xl6IrLowerProtectEvaluationStorage(ctx, defaultId, defaultStorages[parameter], loaded,

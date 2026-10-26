@@ -44,6 +44,14 @@ def main():
             ['test/cases/extern_owned_string_host.c','test/cases/extern_c_variadic_text_host.c','test/cases/extern_owned_static_callable_host.c'],[]),
         ('task-C-scalar-parameters','test/cases/extern_owned_task_scalars.xl',
             ['test/cases/extern_owned_task_scalars_host.c'],['owned_task_text','owned_task_scalars']),
+        ('task-extern-defaults','test/cases/extern_owned_task_defaults.xl',
+            ['test/cases/extern_owned_task_scalars_host.c','test/cases/extern_owned_task_composition_host.c'],['owned_task_text']),
+        ('task-generic-composition','test/cases/extern_owned_task_generic.xl',
+            ['test/cases/extern_owned_task_scalars_host.c'],['owned_task_text']),
+        ('task-nullable-flow','test/cases/extern_owned_task_nullable.xl',
+            ['test/cases/extern_owned_task_scalars_host.c'],['owned_task_text']),
+        ('task-all-C-scalars','test/cases/extern_owned_task_all_scalars.xl',
+            ['test/cases/extern_owned_task_scalars_host.c','test/cases/extern_owned_task_composition_host.c'],[]),
     ]
     sha=lambda path:hashlib.sha256(Path(path).read_bytes()).hexdigest()
     inputs=[ROOT/source for _,source,_,_ in cases]+[ROOT/path for _,_,paths,_ in cases for path in paths]
@@ -78,6 +86,13 @@ def main():
         if case=='extern_owned_string':
             assert re.search(r'const char\* borrowed_raw_\d+ = owned_borrowed\(',generated),'borrowed C prototype changed'
             assert 'xlir_string_from_cstr(borrowed_raw_' in generated,'borrowed default changed'
+        if case=='task-all-C-scalars':
+            # Aggregation already produces an xvalue array. Its scalar boxer
+            # must use the native profile and identity, never signed i64.
+            boxers=re.findall(r'static xvalue\* xlir_future_payload_box_t\d+\(const void\* payload\)\s*\{(.*?)\n\}',generated,re.S)
+            assert len(boxers)==20,len(boxers)
+            assert all('xl6ValueBoxNativeScalarV1(payload,' in body for body in boxers)
+            assert all('xrtValueInt(' not in body for body in boxers)
         if case=='extern_owned_string_export':
             # Reentrant C sidecar integration. The compiler injects an ABI
             # header here; independent-header coverage is a separate gate.
@@ -123,6 +138,8 @@ def main():
         'test/cases/bad_extern_owned_static_ambiguous.xl':'explicit func signature',
         'test/cases/bad_extern_owned_static_instance.xl':'explicit func signature',
         'test/cases/bad_extern_owned_task_variadic.xl':'task.spawn argument type does not match func signature',
+        'test/cases/bad_extern_owned_task_nullable.xl':'task.spawn first argument must be a func value',
+        'test/cases/bad_extern_owned_task_nullable_invalidated.xl':'task.spawn first argument must be a func value',
     }
     for relative,message in negatives.items():
         source=ROOT/relative;name=source.stem.removeprefix('bad_extern_owned_')
