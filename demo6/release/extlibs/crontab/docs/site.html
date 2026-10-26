@@ -31,7 +31,7 @@
     <pre><code>import crontab
 int nextRun = crontab.next("*/15 * * * *", 1700000000)
 println(nextRun)</code></pre>
-    <p>DOM 与 DOW 都不以 <code>*</code> 开头时采用 OR；任一字段以 <code>*</code> 开头时按实际位图取 AND，<code>*/2</code> 仍保留步长约束。Linux 固定时区测试覆盖纽约的一小时跳时、Lord Howe 的半小时跳时与重复分钟，以及历史秒级时差与标准时切换；这些边界同时运行 C 与 XLang 用例。<code>next</code> 返回本地整分钟，不要求 Unix 秒数为 60 的倍数。<code>describe</code> 返回 XRT 堆分配的 <code>char*</code>；C 使用 <code>xrtFree</code> 释放，XLang 以 <code>@owned</code> 直接接管。分配失败在 C 中保留 <code>XERR_MEMORY</code>，在 XLang 中抛 <code>MemoryError</code>，清除故障后可重试。迁移前 Windows/Linux 默认门禁均通过；迁移后 Windows 严格 C、源码驱动 JIT 与范例/边界/分配故障独立 EXE 通过，公开范例输出与 C 一致。当前发布二进制尚未支持 <code>@owned</code>，重建受 XRT/xruntime 快照失配阻断，新版还需发布物及 Linux 门禁复验。验收限包内五字段语法及已测时区样例，不代表全部时区历史。</p>
+    <p>DOM 与 DOW 都不以 <code>*</code> 开头时采用 OR；任一字段以 <code>*</code> 开头时按实际位图取 AND，<code>*/2</code> 仍保留步长约束。Linux 固定时区测试覆盖纽约的一小时跳时、Lord Howe 的半小时跳时与重复分钟，以及历史秒级时差与标准时切换；这些边界同时运行 C 与 XLang 用例。<code>next</code> 返回本地整分钟，不要求 Unix 秒数为 60 的倍数。<code>describe</code> 返回 XRT 堆分配的 <code>char*</code>；C 使用 <code>xrtFree</code> 释放，XLang 以 <code>@owned</code> 直接接管。分配失败在 C 中保留 <code>XERR_MEMORY</code>，在 XLang 中抛 <code>MemoryError</code>，清除故障后可重试。2026-10-26 从当前源码重建 Windows/Linux 发布物后，两平台默认包门禁均通过严格 C、XLang JIT/AOT 和 C/XLang 范例同输出；Linux 另通过 ASan/UBSan 与固定时区边界。验收限包内五字段语法及已测时区样例，不代表全部时区历史。</p>
   </section>
 </main>
 </body>
