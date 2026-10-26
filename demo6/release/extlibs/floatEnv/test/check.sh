@@ -77,4 +77,17 @@ fi
 timeout 45s ./release/xl run release/extlibs/floatEnv/test/allocations.xl
 timeout 45s ./release/xl run release/examples/extlibs/floatEnv.xl > "$work/xl.txt"
 diff -u "$work/c.txt" "$work/xl.txt"
+if timeout 45s ./release/xl check \
+    release/extlibs/floatEnv/test/private_adopt_constructor_negative.xl \
+    > "$work/private_constructor.txt" 2>&1; then
+    printf 'floatEnv: private Snapshot constructor is accessible outside the package\n' >&2
+    exit 1
+else
+    status=$?
+    if [[ $status -ne 1 ]] || ! grep -q 'Snapshot' "$work/private_constructor.txt" ||
+        ! grep -q 'access' "$work/private_constructor.txt"; then
+        cat "$work/private_constructor.txt" >&2
+        exit 1
+    fi
+fi
 printf 'floatEnv Linux C ASan/UBSan and XLang parity gate: PASS\n'
