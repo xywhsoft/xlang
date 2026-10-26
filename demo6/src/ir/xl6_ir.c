@@ -39,6 +39,7 @@ static const char* xl6IrInstructionKindName(XL6_IrInstructionKind kind);
 static XL6_IrErrorAbi xl6IrNodeConstructionErrorAbi(const XL6_IrModule* module, XL6_IrNodeId id)
 {
     const XL6_IrNode* node = xl6IrNodeGet(module, id);
+    if (xl6IrCVarargCallSiteHasText(module, id)) return XL6_IR_ERROR_ABI_MAY_RAISE;
     if(node && node->kind==XL6_IR_NODE_ASSIGN && node->childCount==2) {
         const XL6_IrNode* target=xl6IrNodeGet(module,module->children[node->firstChild]);
         if(target && xl6IrTypeIsCOwned(xl6IrTypeGet(&module->types,target->storageType)))return XL6_IR_ERROR_ABI_MAY_RAISE;
@@ -22570,11 +22571,40 @@ static int xl6IrPrimitiveSequenceRuntimeSignatureValid(
     }
 }
 
+int xl6IrCVarargCallSiteHasText(const XL6_IrModule* module, XL6_IrNodeId origin)
+{
+    const XL6_IrCallSite* site = xl6IrCallSiteGet(module, origin);
+    if (!site || site->variadicAbi != XL6_IR_CALL_VARIADIC_C) return 0;
+    for (size_t i = site->fixedParameterCount; i < site->argumentCount; ++i) {
+        const XL6_IrNode* value = xl6IrNodeGet(module,
+            module->callArguments[site->firstArgument + i].expression);
+        if (value && xl6IrCVarargPhysicalAbi(module, value->storageType) ==
+                XL6_IR_C_VARARG_PHYSICAL_C_TEXT_BORROW) return 1;
+    }
+    return 0;
+}
+
+static int xl6IrCVarargInstructionHasText(
+    const XL6_IrModule* module, const XL6_IrInstruction* instruction)
+{
+    const XL6_IrCallTarget* target = instruction && instruction->kind == XL6_IR_INSTR_CALL
+        ? xl6IrCallTargetGet(module, instruction->targetSymbol) : NULL;
+    if (!target || target->variadicAbi != XL6_IR_CALL_VARIADIC_C) return 0;
+    for (size_t i = target->parameterCount; i < instruction->operandCount; ++i) {
+        const XL6_IrInstruction* value = xl6IrValueDefinition(module,
+            module->operands[instruction->firstOperand + i], NULL);
+        if (value && xl6IrCVarargPhysicalAbi(module, value->type) ==
+                XL6_IR_C_VARARG_PHYSICAL_C_TEXT_BORROW) return 1;
+    }
+    return 0;
+}
+
 XL6_IrErrorAbi xl6IrCallInstructionErrorAbi(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction)
 {
     const XL6_IrCallTarget* target;
     if (module == NULL || instruction == NULL) return XL6_IR_ERROR_ABI_INVALID;
+    if (xl6IrCVarargInstructionHasText(module, instruction)) return XL6_IR_ERROR_ABI_MAY_RAISE;
 
     if (instruction->kind == XL6_IR_INSTR_CLOSURE_MAKE || instruction->kind == XL6_IR_INSTR_CELL_NEW)
         return XL6_IR_ERROR_ABI_MAY_RAISE;
@@ -22604,6 +22634,7 @@ XL6_IrCallErrorPhysicalAbi xl6IrCallInstructionErrorPhysicalAbi(
 {
     const XL6_IrCallTarget* target;
     if (module == NULL || instruction == NULL) return XL6_IR_CALL_ERROR_PHYSICAL_INVALID;
+    if (xl6IrCVarargInstructionHasText(module, instruction)) return XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE;
     if (instruction->kind == XL6_IR_INSTR_CLOSURE_MAKE || instruction->kind == XL6_IR_INSTR_CELL_NEW)
         return XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT;
     if (instruction->kind == XL6_IR_INSTR_RUNTIME_CALL)
@@ -22646,7 +22677,7 @@ static int xl6IrIsVoidErrorCarrierCall(
     target = xl6IrCallTargetGet(module, instruction->targetSymbol);
     return target != NULL && target->kind != XL6_IR_CALL_TARGET_INTERNAL_ASYNC &&
            target->returnType == XL6_IR_TYPE_INVALID &&
-           target->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE;
+           xl6IrCallInstructionErrorAbi(module, instruction) == XL6_IR_ERROR_ABI_MAY_RAISE;
 }
 
 const XL6_IrExport* xl6IrExportGet(const XL6_IrModule* module, XL6_SymbolId symbol)
@@ -46020,7 +46051,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             source == &module->instructions[block->firstInstruction + j - 1]) ||
                            (source->kind == XL6_IR_INSTR_CALL && source->targetSymbol == instruction->targetSymbol &&
                             target != NULL && target->kind != XL6_IR_CALL_TARGET_INTERNAL_ASYNC &&
-                            target->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE && j > 0 &&
+                            xl6IrCallInstructionErrorAbi(module, source) == XL6_IR_ERROR_ABI_MAY_RAISE && j > 0 &&
                             source == &module->instructions[block->firstInstruction + j - 1]) ||
                            (source->kind == XL6_IR_INSTR_CLOSURE_CALL &&
                             instruction->targetSymbol == 0 && j > 0 &&
@@ -46983,7 +47014,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             : callee->parameterCount != instruction->operandCount) ||
                           (callee->returnType == XL6_IR_TYPE_INVALID
                                ? instruction->type != XL6_IR_TYPE_INVALID ||
-                                 (callee->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE
+                                 (xl6IrCallInstructionErrorAbi(module, instruction) == XL6_IR_ERROR_ABI_MAY_RAISE
                                      ? instruction->result == XL6_IR_VALUE_INVALID
                                      : instruction->result != XL6_IR_VALUE_INVALID)
                                : physicalResult == XL6_IR_TYPE_INVALID ||
@@ -47104,7 +47135,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                              "XLIR C variadic call tail has no verified native value ABI");
                         if ( xl6IrCVarargPhysicalAbi(module, argument->type) ==
                                  XL6_IR_C_VARARG_PHYSICAL_C_TEXT_BORROW &&
-                             callee->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE )
+                             xl6IrCallInstructionErrorPhysicalAbi(module, instruction) != XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE )
                             return xl6IrDiag(diags, xl6IrNodeGet(module, instruction->origin),
                                 "XLIR C variadic string requires a checked C-text foreign scope");
                     }

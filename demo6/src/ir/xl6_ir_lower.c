@@ -31210,28 +31210,15 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
                         xrtFree(operands); xrtFree(borrowedTemps);
                         return XL6_IR_VALUE_INVALID;
                     }
-                    if ( xl6IrTypeGet(&ctx->module->types, expression->storageType)->ownershipAbi ==
-                             XL6_IR_OWNERSHIP_ABI_MANAGED ) {
-                        XL6_IrValueId loaded;
-                        borrowedTemps[operandIndex] = xl6IrLowerNewTempStorage(
-                            ctx, expression->storageType, id);
-                        if ( borrowedTemps[operandIndex] == 0 ||
-                             !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, binding->expression,
-                                              expression->storageType, borrowedTemps[operandIndex],
-                                              &operands[operandIndex], 1, NULL) ||
-                             !xl6IrLowerEmit(ctx, XL6_IR_INSTR_LOAD, binding->expression,
-                                              expression->storageType, borrowedTemps[operandIndex],
-                                              NULL, 0, &loaded) ) {
-                            xrtFree(operands); xrtFree(borrowedTemps);
-                            return XL6_IR_VALUE_INVALID;
-                        }
-                        operands[operandIndex] = loaded;
-                        if ( !xl6IrLowerProtectEvaluationStorage(
-                                 ctx, binding->expression, borrowedTemps[operandIndex],
-                                 loaded, 0, 0) ) {
-                            xrtFree(operands); xrtFree(borrowedTemps);
-                            return XL6_IR_VALUE_INVALID;
-                        }
+                    operands[operandIndex] = xl6IrLowerAnchorResolvedCallBorrow(
+                        ctx, id, binding->expression, expression, expression->storageType,
+                        XL6_IR_PARAMETER_ABI_BORROW, operands[operandIndex], &borrowedTemps[operandIndex]);
+                    if (operands[operandIndex] == XL6_IR_VALUE_INVALID ||
+                        (borrowedTemps[operandIndex] != 0 && !xl6IrLowerProtectEvaluationStorage(
+                            ctx, binding->expression, borrowedTemps[operandIndex],
+                            operands[operandIndex], 0, 0))) {
+                        xrtFree(operands); xrtFree(borrowedTemps);
+                        return XL6_IR_VALUE_INVALID;
                     }
                     continue;
                 }
@@ -31429,7 +31416,8 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
                      target->kind == XL6_IR_CALL_TARGET_INTERNAL_GENERATOR ? XL6_IR_INSTR_GENERATOR_START : XL6_IR_INSTR_CALL),
                 id, physicalReturnType, dispatchSlot != SIZE_MAX ? 0 : node->targetSymbol, operands, operandCount,
                 physicalReturnType == XL6_IR_TYPE_INVALID &&
-                    xl6IrLowerSelectedCallErrorAbi(ctx->module,target,dispatchSlot)!=XL6_IR_ERROR_ABI_MAY_RAISE
+                    xl6IrLowerSelectedCallErrorAbi(ctx->module,target,dispatchSlot)!=XL6_IR_ERROR_ABI_MAY_RAISE &&
+                    !xl6IrCVarargCallSiteHasText(ctx->module,id)
                     ? NULL : &result);
             if(callEmitted && dispatchSlot!=SIZE_MAX)
                 ctx->module->instructions[ctx->module->instructionCount-1].dispatchSlot=(uint32)(dispatchSlot+1);

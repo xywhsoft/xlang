@@ -7847,6 +7847,9 @@ const XL6_IrExternGlobal* xl6IrExternGlobalGet(const XL6_IrModule* module, XL6_S
  * the invoked operation, not an arbitrary implementation of a dispatch slot. */
 XL6_IrErrorAbi xl6IrCallInstructionErrorAbi(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction);
+/* Argument preparation belongs to the call site, independently of the
+ * producer's @no_raise contract. No payload conversion or allocation. */
+int xl6IrCVarargCallSiteHasText(const XL6_IrModule*, XL6_IrNodeId);
 XL6_IrCallErrorPhysicalAbi xl6IrCallInstructionErrorPhysicalAbi(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction);
 /* Optional native Future observation can allocate and must be checked. */

@@ -319,7 +319,7 @@ static int xl6IrCgenIsVoidErrorCarrierCall(
     target = xl6IrCallTargetGet(module, instruction->targetSymbol);
     return target != NULL && target->kind != XL6_IR_CALL_TARGET_INTERNAL_ASYNC &&
            target->returnType == XL6_IR_TYPE_INVALID &&
-           target->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE;
+           xl6IrCallInstructionErrorAbi(module, instruction) == XL6_IR_ERROR_ABI_MAY_RAISE;
 }
 
 /* These SSA markers have no addressable payload: checked void outcomes,
@@ -914,6 +914,7 @@ static int xl6IrCgenEmitDirectCall(
 {
     const XL6_IrCallTarget* target = instruction != NULL
         ? xl6IrCallTargetGet(module, instruction->targetSymbol) : NULL;
+    XL6_IrCallErrorPhysicalAbi errorPhysicalAbi = xl6IrCallInstructionErrorPhysicalAbi(module, instruction);
     size_t argument;
     size_t textCount = 0;
     XL6_IrNativeCallValuePlan nativeValue={0};
@@ -932,7 +933,7 @@ static int xl6IrCgenEmitDirectCall(
     /* A failed scope entry skips the native call, so its owned physical
      * result must be empty on every invocation, not merely at function entry. */
     if (((target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE &&
-          target->errorPhysicalAbi==XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE) ||
+          errorPhysicalAbi==XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE) ||
          target->preparationFailureAbi == XL6_IR_CALL_PREPARATION_RETIRE_OWNED_REVERSE ||
          target->nativeResultAbi==XL6_IR_CALL_NATIVE_RESULT_VALUE_SLOT_V1) &&
         instruction->result != XL6_IR_VALUE_INVALID &&
@@ -943,7 +944,7 @@ static int xl6IrCgenEmitDirectCall(
             "XLIR preparation failure result has no empty physical representation");
         xl6OutputPrintf(out, "    v%u = (%s){0};\n", (unsigned int)instruction->result, type);
     }
-    if ( target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE )
+    if ( errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE )
         xl6OutputPrintf(out,
             "    xl6_foreign_error_scope fs%lu = {0}; xl6_foreign_error_result fr%lu = {false, NULL};\n"
             "    if (xl6ForeignCallBegin(&fs%lu)) {\n",
@@ -954,7 +955,7 @@ static int xl6IrCgenEmitDirectCall(
             module->operands[instruction->firstOperand + argument], NULL);
         if (value == NULL) return 0;
         if (xl6IrCVarargPhysicalAbi(module, value->type) != XL6_IR_C_VARARG_PHYSICAL_C_TEXT_BORROW) continue;
-        if (target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE)
+        if (errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE)
             return xl6IrCgenDiag(diags, module, instruction->origin,
                 "XLIR C text variadic preparation requires a checked foreign outcome");
         xl6OutputPrintf(out, "    const char* ct%lu_%lu = xlir_string_cstr(v%u);\n",
@@ -975,7 +976,7 @@ static int xl6IrCgenEmitDirectCall(
     }
     if (!xl6IrCgenNativeCallValueBegin(out,module,&nativeValue,
             nativeValue.inputParameter?nativeInput:NULL,nativeScope)) return 0;
-    if ( target->errorPhysicalAbi ==
+    if ( errorPhysicalAbi ==
              XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER )
         xl6OutputPrintf(out, "    %s r%lu = ",
             xl6IrCgenErrorResultType(module, target->returnType),
@@ -1040,11 +1041,11 @@ static int xl6IrCgenEmitDirectCall(
         snprintf(place,sizeof(place),"v%u",(unsigned)instruction->result);
         snprintf(failed,sizeof(failed),"fs%lu.failed",(unsigned long)instructionIndex);
         xl6IrCgenEmitOwnedStringAdmission(out,module,target,place,
-            target->errorPhysicalAbi==XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE ? failed : NULL);
+            errorPhysicalAbi==XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE ? failed : NULL);
     }
     if (!xl6IrCgenNativeCallValueEnd(out,module,&nativeValue,nativeResult,nativeScope)) return 0;
     if (textCount != 0) xl6OutputPuts("    }\n", out);
-    if ( target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE ) {
+    if ( errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE ) {
         int owned = 0;
         for (argument = 0; argument < target->parameterCount; ++argument)
             if (target->parameterAbis[argument] == XL6_IR_PARAMETER_ABI_OWNED) owned = 1;
