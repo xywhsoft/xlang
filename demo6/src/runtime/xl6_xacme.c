@@ -355,7 +355,11 @@ void* xl6AcmeStoreLoadV1(xstrview root,xstrview domain,int64_t what)
 }
 bool xl6AcmeStoreSaveV1(xstrview root,xstrview domain,xstrview chain,xstrview key,xstrview directory,int64_t what)
 {
-    const char* values[5]={0};xstrview views[]={root,domain,chain,key,directory};bool ok=false;
+    const char* values[5]={0};xstrview views[5];
+    /* Keep aggregate copies explicit: the embedded TCC cannot initialize a
+     * local struct array from struct-valued parameters (initializer overflow). */
+    views[0]=root;views[1]=domain;views[2]=chain;views[3]=key;views[4]=directory;
+    bool ok=false;
     for(size_t i=0;i<5;++i){if(!validText(views[i]))goto done;values[i]=views[i].Data?views[i].Data:"";}
     xacmeissuegrant grant={(str)values[2],(str)values[3]};
     if(what==0)ok=xrtAcmeStoreSaveAccount(values[0],values[1],values[2]);
