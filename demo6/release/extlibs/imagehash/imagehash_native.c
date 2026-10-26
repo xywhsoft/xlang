@@ -97,7 +97,7 @@ static xbuffer *xihash_pixels(const char *path, int width, int height) {
     return resized;
 }
 
-static void *xihash_format(uint64_t value) {
+static char *xihash_format(uint64_t value) {
     char *result = xrtMalloc(17);
     if (result == NULL) {
         xihash_set_error("out of memory");
@@ -193,7 +193,7 @@ const char *xihash_last_error(void) {
     return buffer != NULL ? buffer : "";
 }
 
-void *xihash_ahash(const char *path) {
+char *xihash_ahash(const char *path) {
     xbuffer *pixels;
     uint64_t value;
     xrtClearError();
@@ -204,7 +204,7 @@ void *xihash_ahash(const char *path) {
     return xihash_format(value);
 }
 
-void *xihash_dhash(const char *path) {
+char *xihash_dhash(const char *path) {
     xbuffer *pixels;
     uint64_t value;
     xrtClearError();
@@ -215,7 +215,7 @@ void *xihash_dhash(const char *path) {
     return xihash_format(value);
 }
 
-void *xihash_phash(const char *path) {
+char *xihash_phash(const char *path) {
     xbuffer *pixels;
     uint64_t value;
     xrtClearError();

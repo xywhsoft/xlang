@@ -1,9 +1,9 @@
 extern "xihash_available" func __imagehash_available() as bool
 extern "xihash_version" func __imagehash_version() as string
 extern "xihash_last_error" func __imagehash_error() as string
-extern "xihash_ahash" func __imagehash_ahash(string path) as point
-extern "xihash_dhash" func __imagehash_dhash(string path) as point
-extern "xihash_phash" func __imagehash_phash(string path) as point
+extern "xihash_ahash" @owned func __imagehash_ahash(string path) as string?
+extern "xihash_dhash" @owned func __imagehash_dhash(string path) as string?
+extern "xihash_phash" @owned func __imagehash_phash(string path) as string?
 extern "xihash_hamming" func __imagehash_hamming(string left, c_size leftLen,
     string right, c_size rightLen) as c_int
 extern "xihash_valid" func __imagehash_valid(string hash, c_size length) as bool
@@ -28,29 +28,29 @@ end
 
 export func ahash(string path) as string
     __imagehash_path(path)
-    point result = __imagehash_ahash(path)
+    string? result = __imagehash_ahash(path)
     if result == null then
         throw RuntimeError __imagehash_error()
     end
-    return __xl_runtime.takeCstr(result)
+    return result
 end
 
 export func dhash(string path) as string
     __imagehash_path(path)
-    point result = __imagehash_dhash(path)
+    string? result = __imagehash_dhash(path)
     if result == null then
         throw RuntimeError __imagehash_error()
     end
-    return __xl_runtime.takeCstr(result)
+    return result
 end
 
 export func phash(string path) as string
     __imagehash_path(path)
-    point result = __imagehash_phash(path)
+    string? result = __imagehash_phash(path)
     if result == null then
         throw RuntimeError __imagehash_error()
     end
-    return __xl_runtime.takeCstr(result)
+    return result
 end
 
 export func hamming(string left, string right) as int

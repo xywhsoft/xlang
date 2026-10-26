@@ -59,6 +59,25 @@ try {
     }
     $work = Join-Path $root 'build/test'
     [IO.Directory]::CreateDirectory($work) | Out-Null
+    $generated = Join-Path $work ("imagehash_owned_{0}.c" -f [guid]::NewGuid().ToString('N'))
+    try {
+        $null = Run 'direct-text cgen' $xl @('cgen',
+            'test/cases/extlib_imagehash.xl', '--emit', $generated)
+        $generatedText = [IO.File]::ReadAllText($generated)
+        foreach ($name in @('xihash_ahash', 'xihash_dhash', 'xihash_phash')) {
+            if ($generatedText -cnotmatch "\bv\d+\.Data\s*=\s*$name\s*\(") {
+                throw "$name must adopt the native C string directly"
+            }
+        }
+        if ($generatedText.Contains('xl6_xrt_take_cstr(') -or
+            $generatedText.Contains('xl6CStringCopyV1')) {
+            throw 'imagehash must not copy or re-adopt native text'
+        }
+    } finally {
+        if (Test-Path -LiteralPath $generated -PathType Leaf) {
+            Remove-Item -LiteralPath $generated -Force
+        }
+    }
     $directExe = Join-Path $work ("imagehash_direct_{0}.exe" -f [guid]::NewGuid().ToString('N'))
     try {
         $null = Run 'C example direct AOT build' $xl @('build', $directSource, '-o', $directExe)

@@ -68,7 +68,7 @@ int main(void) {
     CHECK(xihash_hamming(a, 16, a, 16) == 0);
     CHECK(strcmp(xihash_last_error(), "") == 0);
     {
-        void *(*functions[])(const char *) = {
+        char *(*functions[])(const char *) = {
             xihash_ahash, xihash_dhash, xihash_phash
         };
         const char *expected[] = {a, d, p};
