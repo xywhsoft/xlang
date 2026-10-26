@@ -3,6 +3,7 @@ param(
     [string]$NativeRoot = '',
     [string]$Tcc = '',
     [string]$OutputRoot = '',
+    [string]$ReusePublicDirectory = '',
     [ValidateRange(1, 8)][int]$MaxParallel = 3,
     [switch]$ListOnly
 )
@@ -153,6 +154,7 @@ if (Test-Path -LiteralPath $outputPath) { throw "Refusing to reuse XLIR scenario
 [IO.Directory]::CreateDirectory($outputPath) | Out-Null
 
 $publicDirectory = [IO.Path]::GetFullPath((Join-Path $Root "build/test/xlir_parameterized_${runId}_public"))
+if ($ReusePublicDirectory) { $publicDirectory = (Resolve-Path -LiteralPath $ReusePublicDirectory).Path }
 $runtimeDirectory = [IO.Path]::GetFullPath((Join-Path $Root "build/test/xlir_parameterized_${runId}_runtime"))
 $contractDirectory = [IO.Path]::GetFullPath((Join-Path $Root "build/test/xlir_parameterized_${runId}_contracts"))
 $phaseOneDirectory = Join-Path $OutputRoot 'phase1'
@@ -327,6 +329,7 @@ $report = [ordered]@{
     ArgumentsReport = Join-Path $outputPath 'arguments.json'
     OutputPathsReport = Join-Path $outputPath 'output-paths.json'
     PhaseReports = @()
+    PublicReuseProof = $null
     Error = $null
 }
 $reportPath = Join-Path $outputPath 'results.json'
@@ -342,8 +345,23 @@ try {
     if (!$?) { throw 'Parameterized argument roles failed before source builds' }
     & (Join-Path $toolsDirectory 'check_xlir_worker_output_paths.ps1') -Root $Root -Report $report.OutputPathsReport
     if (!$?) { throw 'Worker output paths failed before source builds' }
-    Invoke-CheckedScript (Join-Path $toolsDirectory 'build_xlir_public_source_driver.ps1') @{
-        Directory = $publicDirectory
+    if ($ReusePublicDirectory) {
+        # Reuse only a fully rehashed source compiler/object cohort. All
+        # scenario workers, contracts, dependency phases and links still run.
+        $python = (Get-Command python -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+        $proof = Join-Path $outputPath 'public-source-reuse.json'
+        & $python (Join-Path $PSScriptRoot 'xlir_public_build_inputs.py') --root $Root --public $publicDirectory --out $proof
+        if ($LASTEXITCODE -ne 0 -or !(Test-Path -LiteralPath $proof -PathType Leaf)) { throw 'Public source reuse verification failed' }
+        $reuse = Get-Content -LiteralPath $proof -Raw | ConvertFrom-Json
+        if (!$reuse.Complete -or $reuse.RuntimeOnly -or $reuse.EnableExeCompiler -ne 1 -or $reuse.WorkerResultsReused) {
+            throw 'Public source reuse has the wrong compiler role'
+        }
+        $report.PublicReuseProof = [ordered]@{Path=$proof;Sha256=(Get-FileHash -LiteralPath $proof).Hash}
+        Save-Report
+    } else {
+        Invoke-CheckedScript (Join-Path $toolsDirectory 'build_xlir_public_source_driver.ps1') @{
+            Directory = $publicDirectory
+        }
     }
     Invoke-CheckedScript (Join-Path $toolsDirectory 'build_xlir_public_source_driver.ps1') @{
         Directory = $runtimeDirectory
