@@ -65,9 +65,9 @@ def contained_file(root: Path, relative: str) -> Path:
 
 
 def validate(data: dict, fixtures: dict, root: Path) -> dict:
-    require(set(data) == {"SchemaVersion", "Purpose", "RequiredGroups", "OpenQuestions", "Profiles", "Modules"},
+    require(set(data) == {"SchemaVersion", "Purpose", "RequiredGroups", "Decisions", "OpenQuestions", "Profiles", "Modules"},
             "unknown inventory fields; role inventory must not claim runtime acceptance")
-    require(type(data.get("SchemaVersion")) is int and data["SchemaVersion"] == 1, "unsupported schema")
+    require(type(data.get("SchemaVersion")) is int and data["SchemaVersion"] == 2, "unsupported schema")
     require(isinstance(data.get("Purpose"), str) and bool(data["Purpose"].strip()), "missing purpose")
     require(data.get("RequiredGroups") == COUNTS, "approved group counts changed")
     rows = data.get("Modules", [])
@@ -111,6 +111,7 @@ def validate(data: dict, fixtures: dict, root: Path) -> dict:
             used.add(row["Profile"])
     require(used == set(profiles), "unused profile")
     questions = data.get("OpenQuestions", [])
+    require(isinstance(questions, list), "questions must be an array")
     question_ids = [q["Id"] for q in questions]
     require(len(set(question_ids)) == len(question_ids), "duplicate open question")
     modules = {module for _, module in EXPECTED}
@@ -119,10 +120,23 @@ def validate(data: dict, fixtures: dict, root: Path) -> dict:
         require(bool(question.get("Question", "").strip()), "empty open question")
         require(question.get("State") == "awaiting-api-scope-confirmation", "unknown question state")
         require(bool(question.get("Modules")) and set(question["Modules"]) <= modules, "unknown question module")
+    decisions = data.get("Decisions")
+    require(isinstance(decisions, list), "decisions must be an array")
+    decision_ids = [d["Id"] for d in decisions]
+    require(len(set(decision_ids)) == len(decision_ids), "duplicate decision")
+    require(not set(decision_ids) & set(question_ids), "approved decision remains an open question")
+    for decision in decisions:
+        require(set(decision) == {"Id", "Modules", "State", "Decision"}, "unknown decision fields")
+        require(isinstance(decision.get("Id"), str) and bool(decision["Id"].strip()), "empty decision id")
+        require(isinstance(decision.get("Decision"), str) and bool(decision["Decision"].strip()), "empty decision")
+        require(decision.get("State") == "approved-2026-10-26", "unknown decision state")
+        selected = decision.get("Modules")
+        require(isinstance(selected, list) and bool(selected) and len(set(selected)) == len(selected)
+                and set(selected) <= modules, "unknown or duplicate decision module")
     return dict(InventoryValid=True, RequestedModules=len(rows), Groups=COUNTS,
                 RoleReviews=dict(Counter(row["Review"] for row in rows)),
                 Dispositions=dict(Counter(row["Disposition"] for row in rows)),
-                Profiles=len(profiles), OpenQuestions=question_ids,
+                Profiles=len(profiles), OpenQuestions=question_ids, ApprovedDecisions=decision_ids,
                 RuntimeAcceptanceEvaluated=False, FullFiveGroupsAccepted=False, FullGoalComplete=False)
 
 
@@ -150,6 +164,11 @@ def self_test(data: dict, fixtures: dict, root: Path) -> int:
     check("missing witness", lambda d: d["Profiles"][first].__setitem__("SourceWitnesses", ["not_present.c"]))
     check("escaping witness", lambda d: d["Profiles"][first].__setitem__("SourceWitnesses", ["../README.md"]))
     check("runtime acceptance claim", lambda d: d.__setitem__("Complete", True))
+    check("duplicate decision", lambda d: d["Decisions"].append(d["Decisions"][0]))
+    check("decision claims completion", lambda d: d["Decisions"][0].__setitem__("State", "complete"))
+    check("unknown decision module", lambda d: d["Decisions"][0].__setitem__("Modules", ["not_approved"]))
+    check("empty decision", lambda d: d["Decisions"][0].__setitem__("Decision", " "))
+    check("approved question still open", lambda d: d["OpenQuestions"][0].__setitem__("Id", d["Decisions"][0]["Id"]))
     return len(mutations)
 
 
