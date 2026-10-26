@@ -35,7 +35,10 @@ def main():
     save()
     try:
         with (out/'build.log').open('wb') as log:
-            process=subprocess.run(command,cwd=root,env=env,stdout=log,stderr=subprocess.STDOUT,timeout=1800)
+            # Keep a healthy ordinary build alive until its actual exit. The
+            # caller supervises this process; do not orphan compiler children by
+            # terminating the shell at an arbitrary overall wall-clock limit.
+            process=subprocess.run(command,cwd=root,env=env,stdout=log,stderr=subprocess.STDOUT)
         report['Exit']=process.returncode; assert process.returncode==0
         assert all(path.is_file() for path in products)
         for name in ('tcc','xrt.o','tcc_builtin_resources.c','tcc_builtin_resources_runtime.c'):

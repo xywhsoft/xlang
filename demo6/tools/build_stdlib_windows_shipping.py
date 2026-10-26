@@ -38,7 +38,10 @@ def main():
     save()
     try:
         with (out/'build.log').open('wb') as log:
-            process=subprocess.run(command,cwd=root,env=env,stdout=log,stderr=subprocess.STDOUT,timeout=1800)
+            # The caller supervises the live build process. A fixed wall-clock
+            # kill can orphan gcc after stopping cmd.exe, invalidating genuine
+            # in-progress work under CPU/I/O contention. Accept actual exit only.
+            process=subprocess.run(command,cwd=root,env=env,stdout=log,stderr=subprocess.STDOUT)
         report['Exit']=process.returncode; assert process.returncode==0
         assert all(path.is_file() for path in products)
         outputs=[root/'build/tmp'/name for name in ('tcc_bootstrap.exe','xrt.o',
