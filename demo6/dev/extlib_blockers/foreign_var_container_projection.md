@@ -1,5 +1,25 @@
 # 当前源码的 var 容器传入原生扩展失败
 
+2026-10-26 `com.invoke` 新增确定性夹具最小复现：
+`dev/extlib_blockers/com_foreign_array_projection.xl` 显式同编
+`release/extlibs/com/test/boundaries.c`，创建测试 `IDispatch` 后调用
+`com.invoke(handle, "LongText", array[])`；Windows JIT 与独立 EXE
+均报 `ValueError: arguments must be an array`。同一发布物的 COM
+原生 C 边界通过，包级门禁在此之前还通过隐式清理的 JIT/AOT。
+诊断来自 `x_com_artifact.c` 对传入 `xvalue*` 的 `XVALUE_ARRAY` 检查；
+与其他 foreign 容器问题同形，但尚未证明底层完全同根。主线应检查
+外部 C 调用参数中语言 `array`/`var` 到 XRT 值的类型、元素和所有权
+投影；修复后先跑该最小源，再跑 COM 完整边界与 C/XLang 范例，
+不得在 COM 包内解读编译器私有数组句柄。
+
+从 `demo6/release` 执行：
+
+```powershell
+./xl.exe run ../dev/extlib_blockers/com_foreign_array_projection.xl extlibs/com/test/boundaries.c
+./xl.exe build ../dev/extlib_blockers/com_foreign_array_projection.xl extlibs/com/test/boundaries.c -o ../build/test/com_foreign_array_repro.exe
+../build/test/com_foreign_array_repro.exe
+```
+
 2026-10-26 `clipboard.set_files` 提供相邻的 foreign 数组 ABI 证据：
 隔离 window station 中，原生 C 用真实 XRT `xvalue` 字符串数组写入
 成功；`release/extlibs/clipboard/test/file_list_projection.xl` 创建

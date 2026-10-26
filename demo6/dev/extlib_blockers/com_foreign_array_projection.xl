@@ -1,0 +1,15 @@
+import com
+
+extern "x_com_test_object" func x_com_test_object() as point
+
+func main(...) as int
+    point handle = com.attach(x_com_test_object())
+    try
+        var text = com.invoke(handle, "LongText", array[])
+        assert string.byteLen(string(text)) == 6006
+    finally
+        com.release(handle)
+    end
+    println("com argument projection: PASS")
+    return 0
+end
