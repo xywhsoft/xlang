@@ -274,12 +274,17 @@
     },
     "tls-client-verification": {
       "Surface": [
-        "TlsClientContext(TlsVerifier) and default chain/name verification in complete handshakes"
+        "TlsVerifier and TlsClientContext: chain/name/time/usage, owned additional predicates and explicit strict CRL policy in full and resumed handshakes"
       ],
-      "Reason": "默认建链/名称/时间/用途、拥有式附加谓词与严格 CRL 已分批接线；源门不等于最新普通产品与恢复凭据/策略新鲜度验收，tls_verify 继续 pending。",
+      "Reason": "共享只读证书链的恢复握手重新执行当前验证器、CRL 和附加谓词；已完成源级拥有图/checked 退役及分配故障门，并通过两端常规产品的现行策略夹具。此处封闭模块呈现职责，不宣称完整联合验收或密码安全认证。",
       "SourceWitnesses": [
         "src/runtime/xl6_tls_session_client.c",
-        "src/runtime/xl6_tls_verifier_create.c"
+        "src/runtime/xl6_tls_verifier_create.c",
+        "src/runtime/xl6_tls_verifier_domain.c",
+        "src/runtime/xl6_tls_verifier_revocation.c",
+        "src/runtime/xl6_tls_revocation_check.c",
+        "src/runtime/xl6_tls_resume_peer.c",
+        "tools/tls_resume_peer_fixtures.py"
       ],
       "NormalProductCases": [
         "tls_surface_tls_verifier_rsa",
@@ -291,15 +296,17 @@
       "DecisionWitnesses": [
         "docs/tls-managed.md",
         "docs/tls-verification-callback-gap-2026-10-26.md",
-        "docs/tls-revocation-policy-2026-10-26.md"
+        "docs/tls-revocation-policy-2026-10-26.md",
+        "docs/tls-resume-peer-policy-2026-10-26.md",
+        "docs/five-groups-product-acceptance-2026-10-27.md"
       ],
-      "AcceptanceBoundary": "Normal fixed-material public-product evidence only. Role review is not exhaustive runtime coverage, CRL/additional-verifier integration, TLS security certification or full goal acceptance"
+      "AcceptanceBoundary": "Role classification plus fixed valid offline material and ordinary public-product current-policy evidence. Not exhaustive callback/CRL/path coverage, TLS security certification, final query-repair product acceptance or full 74-worker joint acceptance"
     },
     "tls-client-resume": {
       "Surface": [
         "TlsClientContext withResume/withRequiredResume/ticketCapacity and ticket consumption"
       ],
-      "Reason": "显式绑定凭据，参数/协议复制保留；显式 verifier 重绑清除凭据并恢复完整握手。未来 CRL 回调的恢复绑定仍未实现，不能借此冒称逐次撤销检查。",
+      "Reason": "显式绑定凭据，参数/协议复制保留；显式 verifier 重绑清除凭据。拥有只读证书链的凭据在真实 PSK 恢复时重新执行当前信任、时间、CRL 与附加谓词；导入缺链时可选恢复退回完整握手，required 恢复 checked 拒绝。",
       "SourceWitnesses": [
         "src/runtime/xl6_tls_client_context.c",
         "src/runtime/xl6_tls_client_context_resume.c",
@@ -313,7 +320,9 @@
         "tls_surface_trust_rebind"
       ],
       "DecisionWitnesses": [
-        "docs/TLS恢复票据.md"
+        "docs/TLS恢复票据.md",
+        "docs/tls-resume-peer-policy-2026-10-26.md",
+        "docs/five-groups-product-acceptance-2026-10-27.md"
       ],
       "AcceptanceBoundary": "Normal fixed-material public-product evidence only. Role review is not exhaustive runtime coverage, CRL/additional-verifier integration, TLS security certification or full goal acceptance"
     },
@@ -3325,9 +3334,9 @@
     {
       "Group": "tls",
       "Module": "tls_verify",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "tls-client-verification",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
