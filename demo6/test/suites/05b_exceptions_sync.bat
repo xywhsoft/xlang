@@ -169,6 +169,8 @@ release\xl.exe run test\cases\sem_export_string_return.xl >nul
 if errorlevel 1 exit /b 1
 python tools\check_extern_owned_string.py --directory build\test\extern-owned-string-%RANDOM%-%RANDOM% --cli release\xl.exe
 if errorlevel 1 exit /b 1
+release\xl.exe run release\examples\extern_owned_string.xl release\examples\extern_owned_string_native.c >nul
+if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\sem_export_generic.xl >nul 2> build\test\sem_export_generic.err.txt
 if not errorlevel 1 (
