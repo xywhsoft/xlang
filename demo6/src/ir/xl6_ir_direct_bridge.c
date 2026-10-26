@@ -88,6 +88,8 @@ typedef struct XL6_IrDirectBridgeContract {
     const char* resultOwner;
     const char* parameterOwners[XL6_IR_DIRECT_BRIDGE_PARAMETER_CAPACITY];
     int nullableResult;
+    /* Physical char* owns an XRT heap allocation; @owned admits string. */
+    int ownedStringResult;
     int noRaise;
     XL6_IrNativeProductAbi resultProductAbi;
     /* Exact synchronous checked closure profiles. A closure pointer alone is
@@ -1037,6 +1039,9 @@ const char* xl6IrRuntimeNativeHandlePolicyForName(const char* name)
 
 int xl6IrRuntimeDirectBridgeFactory(const char* name)
 { const XL6_IrDirectBridgeContract* c = xl6IrDirectBridgeContract(name); return c && c->resultOwner; }
+int xl6IrRuntimeDirectBridgeOwnsString(const char* name)
+{ const XL6_IrDirectBridgeContract* c=xl6IrDirectBridgeContract(name);
+  return c && c->ownedStringResult && c->result==XL6_IR_C_ABI_RAW_POINTER && !c->resultOwner; }
 XL6_IrErrorAbi xl6IrRuntimeDirectBridgeErrorAbi(const char* name)
 {
     const XL6_IrDirectBridgeContract* c = xl6IrDirectBridgeContract(name);
@@ -1479,7 +1484,12 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
     } else if (contract->result == XL6_IR_C_ABI_VOID) {
         if (target->returnType != XL6_IR_TYPE_INVALID) return 0;
     } else if (!contract->resultOwner) {
-        if(contract->resultEnum) {
+        const XL6_IrNode* declaration=xl6IrNodeGet(module,target->declaration);
+        if (declaration && (declaration->flags & XL6_AST_FLAG_FOREIGN_OWNED_STRING)) {
+            if (!xl6IrRuntimeDirectBridgeOwnsString(target->cName) || !result ||
+                result->kind!=XL6_IR_TYPE_BUILTIN || result->cAbi!=XL6_IR_C_ABI_MANAGED_STRING ||
+                result->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED) return 0;
+        } else if(contract->resultEnum) {
             if(contract->nullableResult||contract->resultProductAbi||contract->resultArrayItemAbi||
                 contract->resultFutureElementAbi||contract->resultFutureAbi||
                 contract->resultNativeValueAbi||contract->resultEnum->cAbi!=contract->result||

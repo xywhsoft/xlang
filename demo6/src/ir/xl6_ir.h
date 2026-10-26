@@ -6997,6 +6997,7 @@ int xl6IrRuntimeIoBridgeTargetMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target);
 int xl6IrRuntimeDirectBridgeTargetMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target);
+int xl6IrRuntimeDirectBridgeOwnsString(const char* name);
 int xl6IrRuntimeXlangBridgeName(const char* name);
 XL6_IrErrorAbi xl6IrRuntimeXlangBridgeErrorAbi(const char* name);
 int xl6IrRuntimeXlangBridgeTargetMatches(

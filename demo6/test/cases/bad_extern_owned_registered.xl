@@ -1,0 +1,3 @@
+// This registered producer returns an owned Data/Size carrier, not char*.
+extern "xl6TextLowerV1" @owned func wrong(string value, int size) as string
+wrong("text", -1)

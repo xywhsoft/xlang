@@ -21682,6 +21682,7 @@ static int xl6IrNativeCStringResultArity(const XL6_IrCallTarget* target)
 XL6_IrCallResultCAbi xl6IrCallResultCAbiForTarget(const XL6_IrCallTarget* target)
 {
     return (target && target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE) ||
+           (target && xl6IrRuntimeDirectBridgeOwnsString(target->cName)) ||
            xl6IrNativeCStringResultArity(target)>=0
         ? XL6_IR_CALL_RESULT_C_ABI_CHAR_POINTER : XL6_IR_CALL_RESULT_C_ABI_STORAGE;
 }
@@ -21695,11 +21696,19 @@ int xl6IrCallResultCAbiMatches(const XL6_IrModule* module, const XL6_IrCallTarge
         const XL6_IrNode* declaration=xl6IrNodeGet(module,target->declaration);
         result=xl6IrTypeGet(&module->types,target->returnType);
         return declaration && (declaration->flags & XL6_AST_FLAG_FOREIGN_OWNED_STRING) &&
-            target->kind==XL6_IR_CALL_TARGET_EXTERN_C && target->runtimeBridge==XL6_IR_RUNTIME_BRIDGE_NONE &&
+            target->kind==XL6_IR_CALL_TARGET_EXTERN_C &&
+            (target->runtimeBridge==XL6_IR_RUNTIME_BRIDGE_NONE ||
+             (xl6IrRuntimeDirectBridgeOwnsString(target->cName) && xl6IrRuntimeDirectBridgeTargetMatches(module,target))) &&
             target->resultPhysicalAbi==XL6_IR_CALL_RESULT_PHYSICAL_DIRECT && result &&
             result->cAbi==XL6_IR_C_ABI_MANAGED_STRING && result->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED &&
             (result->kind==XL6_IR_TYPE_BUILTIN || result->kind==XL6_IR_TYPE_NULLABLE) &&
             (!(declaration->flags & XL6_AST_FLAG_FOREIGN_NO_RAISE) || result->kind==XL6_IR_TYPE_NULLABLE);
+    }
+    if (xl6IrRuntimeDirectBridgeOwnsString(target->cName)) {
+        result=xl6IrTypeGet(&module->types,target->returnType);
+        return result && result->cAbi==XL6_IR_C_ABI_RAW_POINTER &&
+            target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_DIRECT &&
+            xl6IrRuntimeDirectBridgeTargetMatches(module,target);
     }
     if (target->resultCAbi==XL6_IR_CALL_RESULT_C_ABI_STORAGE) return 1;
     arity=xl6IrNativeCStringResultArity(target);
@@ -38495,6 +38504,17 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
         }
         if (!xl6IrCallResultCAbiMatches(module,target))
             return xl6IrDiag(diags,NULL,"XLIR call target has no exact native C result signature");
+        if (target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE) {
+            /* Includes imported and class declarations, which are not all
+             * siblings in the semantic root's extern conflict check. */
+            for(size_t other=0;other<module->callTargetCount;++other) {
+                const XL6_IrCallTarget* peer=&module->callTargets[other];
+                if(peer!=target && peer->kind==XL6_IR_CALL_TARGET_EXTERN_C && peer->cName &&
+                    !strcmp(peer->cName,target->cName) &&
+                    peer->resultConversionAbi!=XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE)
+                    return xl6IrDiag(diags,declaration,"extern C symbol has conflicting string ownership");
+            }
+        }
         if ( target->resultConversionAbi !=
                  xl6IrCallResultConversionForTarget(module, target) )
             return xl6IrDiag(diags, NULL,

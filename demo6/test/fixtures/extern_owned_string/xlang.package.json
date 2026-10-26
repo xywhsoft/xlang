@@ -1,0 +1,8 @@
+{
+  "format": "xlang-package-1",
+  "name": "extern_owned_string",
+  "version": "1.0.0",
+  "abiVersion": "1",
+  "kind": "source",
+  "artifact": {"kind": "source", "xlSources": ["api.xl"], "cSources": ["native.c"]}
+}

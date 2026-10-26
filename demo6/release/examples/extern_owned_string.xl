@@ -1,0 +1,16 @@
+// Run from demo6:
+// xl run release/examples/extern_owned_string.xl release/examples/extern_owned_string_native.c
+// @owned transfers an XRT-allocated char* into an ordinary string. The C
+// function remains unchanged by this declaration; no C wrapper is needed.
+extern "example_owned_text" @owned func Text() as string
+
+func demonstrate()
+    string text=Text()
+    assert text=="hello from C"
+    println(text)
+    // Ordinary string value rules apply after admission. Replacing text
+    // releases the original allocation automatically, using xrtFree.
+    text="replacement"
+    assert text=="replacement"
+end
+demonstrate()
