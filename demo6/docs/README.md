@@ -30,6 +30,8 @@
 
 - [高级 AES／Poly1305 原语](crypto-advanced-blocks.md)：显式 cryptoAdvanced、不可变 AES 单块对象、一次性密钥与分块 MAC、声明式拥有合同及独立 Buffer 裁剪；不作为默认 AEAD 替代。
 
+- [参数化驻留闭包](parameterized-resident-closure-2026-10-27.md)：从正式登记表选择 Future 专项测试依赖，保留原工作负载，显式去重组合 provider，不引入替代宿主或隐藏符号。
+
 - [参数化守卫与统一合同编译 cohort](contract-cohort-2026-10-26.md)：完整源码归档取代部分前端清单，37 个合同构建和三项 C-owned worker 实测；74 项总门继续。
 
 - [TLS 显式关闭与最后引用](tls-close-lifetime-2026-10-26.md)：复用 native 发送排空／协议关闭，43 原生阶段、双端 406 新普通产品阶段及 checked 退役；五组总门继续。
