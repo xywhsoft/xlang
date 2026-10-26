@@ -1,5 +1,12 @@
 # pinyin
 
+2026-10-27 所有权收口：`convert`、`initials` 的原生结果改为
+`@owned string` 直接接管 XRT 分配的 `char*`，不再通过 `point` 和
+`takeCstr` 转发。公开签名、输入长度校验及 ValueError/MemoryError
+分类不变。生成 C 只需一次 `strlen` 确定结果长度；不新增文本载荷复制，
+也不据此宣称整个调用与手写 C 等速。Windows/Linux 包门禁均覆盖
+边界、分配故障与双语输出。
+
 2026-10-26 当前 Windows/Linux 发布物复验：默认 `test/check.ps1` 与
 `test/check.sh` 均退出 0。严格 C、Linux ASan/UBSan、语言边界和
 分配故障、中央/边界/分配/公开范例独立 EXE，以及新增 C 单文件

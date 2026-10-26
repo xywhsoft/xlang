@@ -1,16 +1,12 @@
-extern "xpinyin_convert_n" func __pinyin_convert(string text, c_size size) as point
-extern "xpinyin_initials_n" func __pinyin_initials(string text, c_size size) as point
+extern "xpinyin_convert_n" @owned func __pinyin_convert(string text, c_size size) as string
+extern "xpinyin_initials_n" @owned func __pinyin_initials(string text, c_size size) as string
 
 
 
 export func convert(string text) as string
-    point result = __pinyin_convert(text, c_size(string.byteLen(text)))
-    if result == null then throw ValueError "pinyin: invalid UTF-8 text" end
-    return __xl_runtime.takeCstr(result)
+    return __pinyin_convert(text, c_size(string.byteLen(text)))
 end
 
 export func initials(string text) as string
-    point result = __pinyin_initials(text, c_size(string.byteLen(text)))
-    if result == null then throw ValueError "pinyin: invalid UTF-8 text" end
-    return __xl_runtime.takeCstr(result)
+    return __pinyin_initials(text, c_size(string.byteLen(text)))
 end

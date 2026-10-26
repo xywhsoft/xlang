@@ -111,7 +111,7 @@ static int py_append(xbuffer *output, const char *text, size_t size) {
 }
 
 /* 共享解码和输出路径；initials 只改变映射字符的表示方式。 */
-static void *py_convert(const char *text, size_t size, int initials) {
+static char *py_convert(const char *text, size_t size, int initials) {
     xbuffer output;
     size_t offset = 0;
     int previousKind = 0;
@@ -155,21 +155,21 @@ static void *py_convert(const char *text, size_t size, int initials) {
         offset += read;
     }
     if (!xrtBufferAppendByte(&output, 0)) goto fail;
-    return xrtBufferTake(&output, NULL, NULL);
+    return (char *)xrtBufferTake(&output, NULL, NULL);
 fail:
     xrtBufferUnit(&output);
     return NULL;
 }
 
-void *xpinyin_convert_n(const char *text, size_t size) {
+char *xpinyin_convert_n(const char *text, size_t size) {
     return py_convert(text, size, 0);
 }
-void *xpinyin_initials_n(const char *text, size_t size) {
+char *xpinyin_initials_n(const char *text, size_t size) {
     return py_convert(text, size, 1);
 }
-void *xpinyin_convert(const char *text) {
+char *xpinyin_convert(const char *text) {
     return xpinyin_convert_n(text, text ? strlen(text) : 0);
 }
-void *xpinyin_initials(const char *text) {
+char *xpinyin_initials(const char *text) {
     return xpinyin_initials_n(text, text ? strlen(text) : 0);
 }
