@@ -1,5 +1,25 @@
 # 当前源码的 var 容器传入原生扩展失败
 
+## 已定位的数组物理表示边界（2026-10-26）
+
+从 `demo6/release` 执行
+`./xl.exe cgen ../dev/extlib_blockers/foreign_var_array_container.xl --backend xlir`
+可见语言字面量 `[2, 4]` 首先由 `xl6SequenceReferenceCreateV1` 建立，
+再经过 `xl6ArrayProjectionTakeV1` 和 `xl6ArrayValueAppendTakeV1`；
+`statistics.sum(values)` 最终把保留的同一个 `xvalue*` 直接交给
+`xstat_sum(v12)`，调用前没有转换为 XRT 原生数组的步骤。
+`src/runtime/xl6_sequence.c` 的 `xl6SequenceWrapAsV1` 使用
+`xrtValueHandleTake` 包装这一序列，因此实参的物理类型是
+`XVALUE_HANDLE`，而 `xstat_sum` 要求 `XVALUE_ARRAY`。语言侧
+`type(values) == array` 与 C 侧 `xrtValueType(values) == XVALUE_ARRAY`
+并不是同一个判断。这条链路已解释 `statistics` 的最小复现，
+不能据此断言下文所有字典或嵌套容器故障都已证明完全同根。
+
+主线应在**外部调用 ABI 边界**按期望的 XRT 容器形态投影元素与所有权，
+而非只把 `XVALUE_HANDLE` 的指针交给 C，或让各扩展库认识编译器私有
+序列句柄。投影须覆盖嵌套容器、失败回滚和重复调用；修复后用本文件
+列出的最小复现及包级 JIT/AOT 门禁验证。普通扩展库任务不修改该边界。
+
 2026-10-26 `com.invoke` 新增确定性夹具最小复现：
 `dev/extlib_blockers/com_foreign_array_projection.xl` 显式同编
 `release/extlibs/com/test/boundaries.c`，创建测试 `IDispatch` 后调用

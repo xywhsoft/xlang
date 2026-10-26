@@ -1,5 +1,18 @@
 # volc.phone 的 HTTP 导入链阻断
 
+2026-10-26 当前发布物复验：从 `demo6/release` 分别执行
+`./xl.exe check ../dev/extlib_blockers/volc_phone_import_chain.xl`、
+`./xl.exe check extlibs/volc.core/src/volc_core.xl`，
+以及 `./xl.exe check examples/extlibs/volc_sts.xl`，均停在独立维护的
+`xhttp.client/src/xlang/xhttp_client.xl`。889、903 行的 `TcpStream` /
+`TlsStream` 构造无匹配重载，946、969 行的
+`NetEngine.nativeHandle()` 无匹配成员；956、963 行还报告
+`TlsConfig` 未知类型。三个上层包均未进入自身语义或在线调用。
+HTTP 维护上下文须按当前网络类型声明核对这三组 API，并以
+`import xhttp.client`、三个上层导入和包级回归验收；不能在 Volc
+包装层添加旧构造器、成员或类型的兼容回退。下文的 multipart
+和 cstring 错误均为旧发布物记录，不是当前首个阻断。
+
 2026-10-25 当前发布物更新：从 `demo6/release` 执行
 `xl.exe check ..\dev\extlib_blockers\volc_phone_import_chain.xl`，
 旧 `xhttp.multipart`/`cstring` 诊断已不复现；现于独立维护的
