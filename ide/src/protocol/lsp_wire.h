@@ -1,5 +1,6 @@
 #ifndef XLANG_IDE_LSP_WIRE_H
 #define XLANG_IDE_LSP_WIRE_H
+#define XIDE_LSP_BODY_BYTES (8u*1024u*1024u)
 #include "model/workspace.h"
 typedef struct xide_lsp_stream { char* bytes; size_t length,capacity,body,header; int failed; } xide_lsp_stream;
 typedef int (*xide_lsp_message_proc)(const xvalue* message,void* user);

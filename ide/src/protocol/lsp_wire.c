@@ -7,7 +7,7 @@
 #include <ctype.h>
 #include <limits.h>
 #define HEADER_LIMIT 8192u
-#define BODY_LIMIT (8u*1024u*1024u)
+#define BODY_LIMIT XIDE_LSP_BODY_BYTES
 #define BUFFER_LIMIT (2u*BODY_LIMIT+HEADER_LIMIT)
 static int fail(xide_model_error* e,const char* s) { if(e) { e->code=XIDE_MODEL_INVALID; snprintf(e->message,sizeof(e->message),"%s",s); } return 0; }
 static int utf8(const char* s,size_t n) { return s && n<=INT_MAX && !memchr(s,0,n) && (!n || MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,s,(int)n,NULL,0)); }

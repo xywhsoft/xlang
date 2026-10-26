@@ -336,7 +336,8 @@ void xideLanguageCheckDestroy(xide_language_check* q)
   free((char*)q->snapshots[i].text);
  }
 #ifdef XLS_COMPILER_XRT
- free(q->semanticTarget); xlsContextRelease(q->context);
+ free(q->semanticTarget); xlsContextRelease(q->context);free(q->referencePath);
+ xideSemanticReferenceShardRelease(q->referenceShard);xideSemanticReferenceKeyRelease(q->referenceKey);
 #endif
  free(q->snapshots); if(q->stopEvent) CloseHandle(q->stopEvent); xrtValueRelease(q->guardFiles); xrtValueRelease(q->guardResolution);
 #ifdef XLS_COMPILER_XRT
@@ -403,7 +404,7 @@ xide_language_check* xideLanguageCheckStartCompletionSnapshotsEx(xide_toolchains
 #ifdef XLS_COMPILER_XRT
 static int retainedLabel(const char* s)
 { size_t n=s ? strlen(s) : 0; return n && n<=262144 && xrtUtf8Valid((xstrview){s,n},NULL); }
-static xide_language_check* startRetained(xls_context* context,int configured,int signatureMode,unsigned signatureFlags,xide_toolchains* cache,const char* compiler,
+static xide_language_check* startRetained(xls_context* context,int configured,int signatureMode,unsigned signatureFlags,int references,const char* keyPath,xide_toolchains* cache,const char* compiler,
  const char* directory,xls_worker* actor,const xls_analysis_document* documents,size_t count,
  const char* target,const char* queryPath,int line,int character,
  const xide_language_analysis_options* options,xide_model_error* e)
@@ -416,6 +417,8 @@ static xide_language_check* startRetained(xls_context* context,int configured,in
  InitializeCriticalSection(&q->lock); q->cache=cache; q->nativeSemantic=q->retainedSnapshots=1; q->semanticActor=actor;
  q->context=xlsContextRetain(context);q->configuredEntry=configured;
  q->signatureMode=signatureMode;q->signatureFlags=signatureFlags;
+ q->referenceMode=references;q->referenceLine=line;q->referenceCharacter=character;
+ if(keyPath){q->referencePath=copy(keyPath);if(!q->referencePath)goto invalid;}
  q->compiler=xidePathResolveLexical(NULL,compiler); q->directory=xidePathResolveLexical(NULL,directory);
  q->semanticTarget=configured ? NULL : copy(target);q->path=configured ? copy(xlsContextSpec(context)->entry) : NULL;
  q->snapshots=calloc(count,sizeof(*q->snapshots)); q->captureThread=xrtThreadCurrentId();
@@ -469,11 +472,11 @@ xide_language_check* xideLanguageCheckStartRetainedInContext(xls_context* contex
  const char* directory,xls_worker* actor,const xls_analysis_document* documents,size_t count,
  const char* target,const char* queryPath,int line,int character,
  const xide_language_analysis_options* options,xide_model_error* error)
-{ return startRetained(context,0,0,0,cache,compiler,directory,actor,documents,count,target,queryPath,line,character,options,error); }
+{ return startRetained(context,0,0,0,0,NULL,cache,compiler,directory,actor,documents,count,target,queryPath,line,character,options,error); }
 xide_language_check* xideLanguageCheckStartConfigured(xls_context* context,xide_toolchains* cache,const char* compiler,
  xls_worker* actor,const xls_analysis_document* documents,size_t count,const char* target,const char* queryPath,int line,int character,
  const xide_language_analysis_options* options,xide_model_error* error)
-{ return startRetained(context,1,0,0,cache,compiler,context ? xlsContextSpec(context)->directory : NULL,actor,documents,count,target,queryPath,line,character,options,error); }
+{ return startRetained(context,1,0,0,0,NULL,cache,compiler,context ? xlsContextSpec(context)->directory : NULL,actor,documents,count,target,queryPath,line,character,options,error); }
 xide_language_check* xideLanguageCheckStartSignature(xls_context* context,int configured,
  xide_toolchains* cache,const char* compiler,const char* directory,xls_worker* actor,
  const xls_analysis_document* documents,size_t count,const char* trigger,
@@ -481,7 +484,20 @@ xide_language_check* xideLanguageCheckStartSignature(xls_context* context,int co
  const xide_language_analysis_options* options,xide_model_error* error)
 {
  if(!queryPath || !actor || (flags&~3u)){fail(error,"Invalid signature query mode/options.");return NULL;}
- return startRetained(context,configured,1,flags,cache,compiler,directory,actor,documents,count,trigger,queryPath,line,character,options,error);
+ return startRetained(context,configured,1,flags,0,NULL,cache,compiler,directory,actor,documents,count,trigger,queryPath,line,character,options,error);
+}
+xide_language_check* xideLanguageCheckStartReferenceCapture(xls_context* context,
+ xide_toolchains* cache,const char* compiler,xls_worker* actor,
+ const xls_analysis_document* documents,size_t count,const char* trigger,
+ const char* keyPath,int line,int character,const xide_language_analysis_options* options,xide_model_error* error)
+{ return startRetained(context,1,0,0,1,keyPath,cache,compiler,context ? xlsContextSpec(context)->directory : NULL,actor,documents,count,trigger,NULL,line,character,options,error); }
+int xideLanguageCheckCaptureReferences(xide_language_check* q,xide_reference_shard** shard,xide_reference_key** key)
+{
+ if(shard)*shard=NULL;
+ if(key)*key=NULL;
+ if(!q || !shard || !key)return 0;
+ EnterCriticalSection(&q->lock);int okay=q->referenceMode && q->state==XIDE_CHECK_READY && q->guardState==XIDE_GUARD_RUNNING && !cancelled(q) && q->referenceShard;
+ if(okay){*shard=xideSemanticReferenceShardRetain(q->referenceShard);*key=xideSemanticReferenceKeyRetain(q->referenceKey);}LeaveCriticalSection(&q->lock);return okay;
 }
 int xideLanguageCheckMatchesContext(const xide_language_check* check,const xls_context* context)
 { return check && xlsFrontendContextsEqual(check->context,context); }

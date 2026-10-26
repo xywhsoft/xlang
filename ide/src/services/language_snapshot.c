@@ -671,6 +671,13 @@ analysed:
 #endif
    q->definitions=xideSemanticDefinitionsCreate(index,sources,graph.count,e);
    if(!q->definitions) goto done;
+#ifdef XLS_COMPILER_XRT
+   if(q->referenceMode){
+    q->referenceShard=xideSemanticReferenceShardCreate(xlsWorkerProjectionStore(q->semanticActor),nativeCheck,sources,graph.count,XIDE_REFERENCE_BYTES,e);
+    if(!q->referenceShard)goto done;
+    if(q->referencePath){xide_model_error keyError={0};q->referenceKey=xideSemanticReferenceKeyCreate(xlsWorkerProjectionStore(q->semanticActor),nativeCheck,sources,graph.count,q->referencePath,q->referenceLine,q->referenceCharacter,XIDE_REFERENCE_BYTES,&keyError);if(keyError.code){*e=keyError;goto done;}}
+   }
+#endif
   }
  }
  if(!q->queryPath && !q->nativeBridge && !put(result,"semanticDefinitions",xrtValueBool(q->definitions!=NULL))) goto done;
