@@ -1,0 +1,155 @@
+{
+  "Cases": [
+    {
+      "Name": "stdlib_crypto_normal_public",
+      "Source": "test/cases/stdlib_crypto_normal_public.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_crypto_key_format_values",
+      "Source": "test/cases/stdlib_crypto_key_format_values.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_crypto_digest_values",
+      "Source": "test/cases/stdlib_crypto_digest_values.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_crypto_ed25519_import_only",
+      "Source": "test/cases/stdlib_crypto_ed25519_import_only.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_crypto_ed25519_public_only",
+      "Source": "test/cases/stdlib_crypto_ed25519_public_only.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_crypto_ed25519_seed_sign_only",
+      "Source": "test/cases/stdlib_crypto_ed25519_seed_sign_only.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_crypto_ed25519_verify_only",
+      "Source": "test/cases/stdlib_crypto_ed25519_verify_only.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_crypto_p256_import_only",
+      "Source": "test/cases/stdlib_crypto_p256_import_only.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_crypto_p384_import_only",
+      "Source": "test/cases/stdlib_crypto_p384_import_only.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_crypto_p256_verify_only",
+      "Source": "test/cases/stdlib_crypto_p256_verify_only.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_crypto_p384_verify_only",
+      "Source": "test/cases/stdlib_crypto_p384_verify_only.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_crypto_nist_public_only",
+      "Source": "test/cases/stdlib_crypto_nist_public_only.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_crypto_nist_der_only",
+      "Source": "test/cases/stdlib_crypto_nist_der_only.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_crypto_nist_raw_only",
+      "Source": "test/cases/stdlib_crypto_nist_raw_only.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_crypto_rsa_public_import_only",
+      "Source": "test/cases/stdlib_crypto_rsa_public_import_only.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_crypto_rsa_private_import_only",
+      "Source": "test/cases/stdlib_crypto_rsa_private_import_only.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_crypto_rsa_public_projection_only",
+      "Source": "test/cases/stdlib_crypto_rsa_public_projection_only.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_crypto_rsa_pss_verify_only",
+      "Source": "test/cases/stdlib_crypto_rsa_pss_verify_only.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_crypto_rsa_pss_sign_only",
+      "Source": "test/cases/stdlib_crypto_rsa_pss_sign_only.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_crypto_rsa_pss_salt_only",
+      "Source": "test/cases/stdlib_crypto_rsa_pss_salt_only.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_crypto_rsa_pkcs1_verify_only",
+      "Source": "test/cases/stdlib_crypto_rsa_pkcs1_verify_only.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_crypto_rsa_raw_only",
+      "Source": "test/cases/stdlib_crypto_rsa_raw_only.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_crypto_x25519_import_only",
+      "Source": "test/cases/stdlib_crypto_x25519_import_only.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_crypto_x448_import_only",
+      "Source": "test/cases/stdlib_crypto_x448_import_only.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_crypto_xdh_raw_only",
+      "Source": "test/cases/stdlib_crypto_xdh_raw_only.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_crypto_chacha20_only",
+      "Source": "test/cases/stdlib_crypto_chacha20_only.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_crypto_sha256_only",
+      "Source": "test/cases/stdlib_crypto_sha256_only.xl",
+      "Negative": false
+    },
+    {
+      "Name": "bad_stdlib_crypto_private_handle",
+      "Source": "test/cases/bad_stdlib_crypto_private_handle.xl",
+      "Negative": true
+    },
+    {
+      "Name": "bad_stdlib_der_private_handle",
+      "Source": "test/cases/bad_stdlib_der_private_handle.xl",
+      "Negative": true
+    },
+    {
+      "Name": "bad_stdlib_pem_private_handle",
+      "Source": "test/cases/bad_stdlib_pem_private_handle.xl",
+      "Negative": true
+    }
+  ],
+  "Support": []
+}

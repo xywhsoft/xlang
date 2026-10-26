@@ -2,6 +2,13 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`check_network_public_shipping.py --manifest tools/crypto_surface_public_fixtures.json`
+selects 27 ordinary crypto/key-format positives and three compile-time negatives
+(166 product stages per OS), including actual calls of all 74 key-format ABIs.
+The role-inventory checker reads both concurrency and crypto-surface manifests by
+default; `--fixtures` can explicitly provide a list. Inventory validity is not
+runtime acceptance. See [crypto public surface](../docs/crypto-public-surface-2026-10-26.md).
+
 `check_network_public_shipping.py --manifest tools/concurrency_public_fixtures.json`
 selects 24 concurrent positives and eight compile-time negatives (153 ordinary
 product stages per OS). `check_five_groups_module_roles.py --self-test` separately
