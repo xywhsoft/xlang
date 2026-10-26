@@ -13,10 +13,10 @@ typedef struct xgeohash_bounds {
 } xgeohash_bounds;
 
 /* 文本结果由 XRT 独立分配；调用方用 xrtFree 释放。 */
-void* xgeohash_encode(double lat, double lon, int precision);
-void* xgeohash_bbox(const char* hash);
+char* xgeohash_encode(double lat, double lon, int precision);
+char* xgeohash_bbox(const char* hash);
 /* direction：0 北、1 南、2 东、3 西；极点方向失败，经度方向环绕。 */
-void* xgeohash_neighbor(const char* hash, int direction);
+char* xgeohash_neighbor(const char* hash, int direction);
 
 /* 成功为 1，失败为 0；失败不修改 output。 */
 int xgeohash_decode_bounds(const char* hash, xgeohash_bounds* output);

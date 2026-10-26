@@ -87,7 +87,7 @@ static void xgeo_cell_text(const xgeo_cell* cell, char output[13])
     output[cell->precision] = '\0';
 }
 
-void* xgeohash_encode(double lat, double lon, int precision)
+char* xgeohash_encode(double lat, double lon, int precision)
 {
     double lat_min = -90.0, lat_max = 90.0;
     double lon_min = -180.0, lon_max = 180.0;
@@ -160,7 +160,7 @@ double xgeohash_decode_lon(const char* hash)
     return (bounds.min_lon + bounds.max_lon) / 2.0;
 }
 
-void* xgeohash_bbox(const char* hash)
+char* xgeohash_bbox(const char* hash)
 {
     xgeohash_bounds bounds;
     char numbers[4][40];
@@ -178,7 +178,7 @@ void* xgeohash_bbox(const char* hash)
         numbers[2], numbers[3]);
 }
 
-void* xgeohash_neighbor(const char* hash, int direction)
+char* xgeohash_neighbor(const char* hash, int direction)
 {
     xgeo_cell cell;
     uint32 lat_count, lon_count;

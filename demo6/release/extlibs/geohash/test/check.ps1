@@ -50,10 +50,11 @@ try {
     $null = Run 'direct-text cgen' $xl @('cgen',
         'release/extlibs/geohash/test/boundaries.xl', '--emit', $generated)
     $generatedText = [IO.File]::ReadAllText($generated)
-    $adoptions = [regex]::Matches($generatedText,
-        '\bxl6_xrt_take_cstr\s*\(').Count
-    if ($adoptions -lt 7 -or $generatedText.Contains('xl6CStringCopyV1')) {
-        throw "geohash returns must transfer C allocations without copying"
+    $direct = [regex]::Matches($generatedText,
+        '\bv\d+\.Data\s*=\s*xgeohash_(?:encode|bbox|neighbor)\s*\(').Count
+    if ($direct -lt 6 -or $generatedText.Contains('xl6_xrt_take_cstr(') -or
+        $generatedText.Contains('xl6CStringCopyV1')) {
+        throw 'geohash returns must adopt native C strings directly'
     }
     Write-Host '[geohash] direct string adoption: PASS'
     $null = Run 'XLang allocations' $xl @('run',
