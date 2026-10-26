@@ -65,9 +65,26 @@ def main():
     work = args.directory.resolve()
     work.mkdir(parents=True, exist_ok=False)
     if os.name == 'nt': shutil.copy2(tool_runtime, work/'xl.dll')
+    else:
+        # The Linux compiler embeds this versioned private include tree in
+        # VFS. A separate GCC consumer needs its physical SDK mirror; copying
+        # headers supplies include files, never implicit C declarations.
+        include_root = work/'include'
+        private = include_root/'__xl_runtime'
+        private.mkdir(parents=True)
+        for path in (ROOT/'src/runtime').rglob('*'):
+            if path.is_file() and path.suffix in ('.h', '.inc'):
+                target = private/path.relative_to(ROOT/'src/runtime')
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(path,target)
+                inputs[path] = sha(path)
+        runtime_header = ROOT/'release/include/xruntime_decl.h'
+        shutil.copy2(runtime_header,private/runtime_header.name)
+        inputs[runtime_header] = sha(runtime_header)
+        includes.append(include_root)
     source = ROOT/'test/cases/extern_owned_string_public.xl'
     native = [ROOT/'test/cases/extern_owned_string_host.c', ROOT/'test/cases/extern_owned_string_public_host.c']
-    template = ROOT/'test/cases/extern_owned_string_public_consumer.c.in'
+    template = ROOT/'test/cases/extern_owned_string_public_consumer.in'
     for path in [source, *native, template]: inputs[path] = sha(path)
     checks = []
 
