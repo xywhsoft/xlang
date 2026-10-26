@@ -7,26 +7,35 @@ static int xl6IrCgenDynamicMethodNeeded(
 {
     const XL6_IrDynamicMethod* method;
     const XL6_IrCallTarget* target;
+    size_t siteIndex;
     size_t instructionIndex;
     if ( module == NULL || methodIndex >= module->dynamicMethodCount ) return 0;
     method = &module->dynamicMethods[methodIndex];
+    if ( method->adapterAbi != XL6_IR_DYNAMIC_METHOD_ADAPTER_VERIFIED ) return 0;
+    /* Most declared methods have no erased call site. Consult that canonical
+     * IR set before repeatedly scanning the instruction arena or validating a
+     * native target. This is only a necessary condition; an actual reachable
+     * matching instruction and the complete target contract remain required. */
+    for ( siteIndex = 0; siteIndex < module->dynamicCallSiteCount; ++siteIndex )
+        if ( xl6IrDynamicMethodMatchesCallSite(
+                 &module->dynamicCallSites[siteIndex], method) ) break;
+    if ( siteIndex == module->dynamicCallSiteCount ) return 0;
     target = xl6IrCallTargetGet(module, method->targetSymbol);
-    if ( method->adapterAbi != XL6_IR_DYNAMIC_METHOD_ADAPTER_VERIFIED ||
-         target == NULL || !xl6IrDynamicMethodCallTargetSupported(module, target) ||
-         target->reachability == XL6_IR_REACHABILITY_UNREACHABLE ) return 0;
+    if ( target == NULL || target->reachability == XL6_IR_REACHABILITY_UNREACHABLE ||
+         !xl6IrDynamicMethodCallTargetSupported(module, target) ) return 0;
     for ( instructionIndex = 0;
           instructionIndex < module->instructionCount; ++instructionIndex ) {
         const XL6_IrInstruction* instruction =
             &module->instructions[instructionIndex];
         const XL6_IrDynamicCallSite* site;
-        if ( !xl6IrCgenInstructionIsReachable(module, instructionIndex) ||
-             instruction->kind != XL6_IR_INSTR_RUNTIME_CALL ||
+        if ( instruction->kind != XL6_IR_INSTR_RUNTIME_CALL ||
              instruction->runtimeOp !=
                  XL6_IR_RUNTIME_XVALUE_DYNAMIC_METHOD_CALL ||
              instruction->dynamicCallSite >= module->dynamicCallSiteCount )
             continue;
         site = &module->dynamicCallSites[instruction->dynamicCallSite];
-        if ( xl6IrDynamicMethodMatchesCallSite(site, method) ) return 1;
+        if ( xl6IrDynamicMethodMatchesCallSite(site, method) &&
+             xl6IrCgenInstructionIsReachable(module, instructionIndex) ) return 1;
     }
     return 0;
 }

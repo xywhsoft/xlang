@@ -88,22 +88,35 @@ int main(int argc, char** argv)
         call->runtimeOp = XL6_IR_RUNTIME_XVALUE_DYNAMIC_FIELD_GET_LITERAL; reject(&ir); *call = saved;
     }
     {
-        size_t mutableLaunchOnly = 0;
+        size_t mutableLaunchOnly = 0, futureLaunchOnly = 0;
         for (i = 0; i < ir.asyncMachineFrameSlotCount; ++i) {
             XL6_IrAsyncMachineFrameSlot* frame = &ir.asyncMachineFrameSlots[i];
             XL6_IrAsyncMachineFrameSlot saved = *frame;
             if (frame->residence != XL6_IR_ASYNC_FRAME_RESIDENCE_LAUNCH_PARAMETER ||
                 frame->firstLiveState != UINT32_MAX) continue;
-            ++mutableLaunchOnly;
             assert(frame->lastLiveState == UINT32_MAX && frame->parameter != SIZE_MAX);
-            assert(frame->transferAbi == XL6_IR_ASYNC_FRAME_TRANSFER_RETAIN_XVALUE);
+            const XL6_IrType* type = xl6IrTypeGet(&ir.types, frame->type);
+            assert(type && frame->initBit != SIZE_MAX);
+            if (type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR) {
+                ++mutableLaunchOnly;
+                assert(frame->parameter == 0 &&
+                    frame->transferAbi == XL6_IR_ASYNC_FRAME_TRANSFER_RETAIN_XVALUE &&
+                    frame->destroyAbi == XL6_IR_ASYNC_FRAME_DESTROY_RELEASE_XVALUE &&
+                    frame->traceAbi == XL6_IR_FRAME_TRACE_XVALUE);
+            } else {
+                ++futureLaunchOnly;
+                assert(type->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR && frame->parameter == 1 &&
+                    frame->transferAbi == XL6_IR_ASYNC_FRAME_TRANSFER_RETAIN_FUTURE &&
+                    frame->destroyAbi == XL6_IR_ASYNC_FRAME_DESTROY_DESTROY_FUTURE &&
+                    frame->traceAbi == XL6_IR_FRAME_TRACE_FUTURE);
+            }
             frame->transferAbi = XL6_IR_ASYNC_FRAME_TRANSFER_NONE; reject(&ir); *frame = saved;
             frame->destroyAbi = XL6_IR_ASYNC_FRAME_DESTROY_NONE; reject(&ir); *frame = saved;
             frame->firstLiveState = 0; reject(&ir); *frame = saved;
             frame->parameter = SIZE_MAX; reject(&ir); *frame = saved;
             frame->storageSymbol = 0; reject(&ir); *frame = saved;
         }
-        assert(mutableLaunchOnly == 1);
+        assert(mutableLaunchOnly == 1 && futureLaunchOnly == 1);
     }
     assert(reads >= 7 && bindings >= 7 && inherited >= 1 && unsupported == 0 && valueMethod == 1 && mutations >= 80);
     assert(xl6IrVerifyModule(&ir, &parse.diags));

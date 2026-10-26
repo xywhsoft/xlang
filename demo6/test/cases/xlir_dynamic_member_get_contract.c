@@ -19,7 +19,7 @@ static void reject(const XL6_IrModule* ir)
 int main(int argc, char** argv)
 {
     XL6_ParseResult parse; XL6_IrModule ir; XL6_Output out;
-    size_t i, reads = 0, getters = 0, inherited = 0, unsupported = 0; XL6_SymbolId pending = 0;
+    size_t i, reads = 0, namedReads = 0, getters = 0, inherited = 0, unsupported = 0; XL6_SymbolId pending = 0;
     xl6ParseResultInit(&parse); xl6IrModuleInit(&ir);
     assert(xl6ParseFile(argc == 3 ? argv[1] : "test/cases/xlir_dynamic_member_get.xl", &parse));
     assert(xl6StdlibExpandModule(parse.root, &parse.diags));
@@ -59,6 +59,24 @@ int main(int argc, char** argv)
     }
     for (i = 0; i < ir.instructionCount; ++i) {
         XL6_IrInstruction* call = &ir.instructions[i]; XL6_IrInstruction saved;
+        if (call->kind == XL6_IR_INSTR_RUNTIME_CALL &&
+            call->runtimeOp == XL6_IR_RUNTIME_NAMED_READ_LITERAL_COPY) {
+            /* `inner` has no method/property row. Its verified named-read
+             * plan replaces the former sixth erased getter dispatch. */
+            size_t site;
+            for (site = 0; site < ir.dynamicCallSiteCount; ++site)
+                if (ir.dynamicCallSites[site].origin == call->origin) break;
+            assert(site < ir.dynamicCallSiteCount &&
+                !strcmp(ir.dynamicCallSites[site].memberName, "inner") &&
+                xl6IrDynamicMemberNamedOnly(&ir, &ir.dynamicCallSites[site]));
+            assert(call->operandCount == 1 &&
+                xl6IrValueOwnershipGet(&ir, call->result) == XL6_IR_OWNERSHIP_MOVE);
+            assert(i + 1 < ir.instructionCount && ir.instructions[i + 1].kind == XL6_IR_INSTR_ERROR_TEST);
+            ++namedReads;
+            saved = *call; call->runtimeOp = XL6_IR_RUNTIME_XVALUE_DYNAMIC_METHOD_CALL;
+            reject(&ir); *call = saved;
+            continue;
+        }
         if (call->kind != XL6_IR_INSTR_RUNTIME_CALL || call->runtimeOp != XL6_IR_RUNTIME_XVALUE_DYNAMIC_METHOD_CALL)
             continue;
         assert(call->dynamicCallSite < ir.dynamicCallSiteCount);
@@ -72,7 +90,7 @@ int main(int argc, char** argv)
         call->dynamicCallResultAbi = XL6_IR_DYNAMIC_CALL_RESULT_INVALID; reject(&ir); *call = saved;
         call->runtimeOp = XL6_IR_RUNTIME_XVALUE_DYNAMIC_FIELD_GET_LITERAL; reject(&ir); *call = saved;
     }
-    assert(reads >= 6 && getters == 4 && inherited == 1 && unsupported == 1 && mutations >= 50);
+    assert(reads == 5 && namedReads == 1 && getters == 4 && inherited == 1 && unsupported == 1 && mutations >= 50);
     assert(xl6IrVerifyModule(&ir, &parse.diags));
     assert(argc == 4 && xl6OutputOpenFile(&out, argv[1]));
     if (!xl6IrCgenEmitC(&out, &ir, &parse.diags)) goto failed;
