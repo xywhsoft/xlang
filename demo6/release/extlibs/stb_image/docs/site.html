@@ -18,7 +18,7 @@
 <main class="extlib-layout" id="main-content">
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / stb_image</p><h1>stb_image</h1>
     <p class="extlib-lead">从 UTF-8 路径或内存 Buffer 解码图片。</p>
-    <p>基于 stb_image 2.30；XRT 负责文件读取，StbImage 自动释放像素内存。输入上限 128 MiB，解码像素上限 256 MiB；XLang 入口拒绝通道数回绕和路径内嵌 NUL。当前 Windows 的 C/XLang 正例与独立 EXE 已通过，但编译器仍允许包外调用私有的原生句柄构造器；这涉及无效句柄释放风险，发布级访问安全尚未签收。旧版 AOT 缺符号故障已不再复现。</p>
+    <p>基于 stb_image 2.30；XRT 负责文件读取，StbImage 自动释放像素内存。输入上限 128 MiB，解码像素上限 256 MiB；XLang 入口拒绝通道数回绕和路径内嵌 NUL。当前 Windows/Linux 的 C/XLang 正例与独立 EXE 已通过；Linux C 边界还通过 ASan/UBSan。但编译器仍允许包外调用私有的原生句柄构造器，这涉及无效句柄释放风险，发布级访问安全尚未签收。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>函数或类型</th><th>用途</th></tr></thead><tbody>
