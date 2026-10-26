@@ -63,7 +63,7 @@ extern string 返回继续复制借用内容。重复 C 符号不能声明冲突
 | 普通赋值、捕获、容器、任务结果 | 普通 string 既有值语义，不承诺全部零拷贝 |
 | 普通字符串槽位搬移 | 继续使用既有 Slot runtime 发布/清空协议，不能把普通生命周期调用算作已消除 |
 
-C 的 `c_vararg` 可以保存为函数值，也可以用 `func(c_int, c_vararg) as string`
+顶层 extern C 的 `c_vararg` 可以保存为函数值，也可以用 `func(c_int, c_vararg) as string`
 这样的完整类型传参。每个调用点直接展开 C 实参，执行一次原生间接调用，
 不使用 va_list 转发 thunk、装箱数组或额外的字符串 owner。整数/float 由 C
 执行默认提升。字符串尾参借用原缓冲，通过 NUL 检查后传指针；检查失败时
