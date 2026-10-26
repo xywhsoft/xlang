@@ -4,7 +4,8 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [string]$Tcc='E:/software/tcc/tcc.exe')
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
-$outputPath=[IO.Path]::GetFullPath((Join-Path (Get-Location) $Directory))
+$outputPath=if ([IO.Path]::IsPathRooted($Directory)) { [IO.Path]::GetFullPath($Directory) }
+    else { [IO.Path]::GetFullPath((Join-Path (Get-Location) $Directory)) }
 if (Test-Path -LiteralPath $outputPath) { throw 'Use a new terminal evidence directory' }
 $manifest=Get-Content -LiteralPath (Join-Path $PublicDirectory 'build.json') -Raw | ConvertFrom-Json
 $runtimeObject=@($manifest.Objects|Where-Object {[IO.Path]::GetFileName($_.Path) -eq 'xrt_single_header_impl.o'})

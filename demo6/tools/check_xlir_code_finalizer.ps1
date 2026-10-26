@@ -4,7 +4,8 @@ $ErrorActionPreference='Stop'
 $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
 try {
-    $outputPath=[IO.Path]::GetFullPath((Join-Path $rootPath $Directory))
+    $outputPath=if ([IO.Path]::IsPathRooted($Directory)) { [IO.Path]::GetFullPath($Directory) }
+        else { [IO.Path]::GetFullPath((Join-Path $rootPath $Directory)) }
     if (Test-Path -LiteralPath $outputPath) { throw 'Keep prior evidence; choose a fresh directory' }
     New-Item -ItemType Directory -Path $outputPath | Out-Null
     $build=Get-Content (Join-Path $PublicDirectory 'build.json') -Raw | ConvertFrom-Json

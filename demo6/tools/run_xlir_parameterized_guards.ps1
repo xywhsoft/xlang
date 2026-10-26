@@ -325,6 +325,7 @@ $report = [ordered]@{
     RuntimeDirectory = $runtimeDirectory
     ContractDirectory = $contractDirectory
     ArgumentsReport = Join-Path $outputPath 'arguments.json'
+    OutputPathsReport = Join-Path $outputPath 'output-paths.json'
     PhaseReports = @()
     Error = $null
 }
@@ -339,6 +340,8 @@ try {
     Set-Location $Root
     & (Join-Path $toolsDirectory 'check_xlir_parameterized_arguments.ps1') -Root $Root -Report $report.ArgumentsReport
     if (!$?) { throw 'Parameterized argument roles failed before source builds' }
+    & (Join-Path $toolsDirectory 'check_xlir_worker_output_paths.ps1') -Root $Root -Report $report.OutputPathsReport
+    if (!$?) { throw 'Worker output paths failed before source builds' }
     Invoke-CheckedScript (Join-Path $toolsDirectory 'build_xlir_public_source_driver.ps1') @{
         Directory = $publicDirectory
     }

@@ -2,7 +2,8 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$Directory)
 $ErrorActionPreference='Stop'
 $manifest=Get-Content -LiteralPath (Join-Path $PublicDirectory 'build.json') -Raw | ConvertFrom-Json
-$outputPath=[IO.Path]::GetFullPath((Join-Path (Get-Location) $Directory))
+$outputPath=if ([IO.Path]::IsPathRooted($Directory)) { [IO.Path]::GetFullPath($Directory) }
+    else { [IO.Path]::GetFullPath((Join-Path (Get-Location) $Directory)) }
 if (Test-Path -LiteralPath $outputPath) { throw 'Preserve prior public generator evidence' }
 $cases=@('cgen_generator','xlir_generator_ownership_public','sem_task_spawn_return_generator')
 $filePaths=@($PSCommandPath)+@($cases | ForEach-Object {"test/cases/$_.xl"})

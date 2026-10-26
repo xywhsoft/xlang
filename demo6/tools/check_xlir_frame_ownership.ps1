@@ -4,7 +4,8 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [string]$Tcc='E:/software/tcc/tcc.exe')
 $ErrorActionPreference='Stop'
 $rootPath=(Get-Location).Path
-$outputPath=[IO.Path]::GetFullPath((Join-Path $rootPath $Directory))
+$outputPath=if ([IO.Path]::IsPathRooted($Directory)) { [IO.Path]::GetFullPath($Directory) }
+    else { [IO.Path]::GetFullPath((Join-Path $rootPath $Directory)) }
 if (Test-Path -LiteralPath $outputPath) { throw 'Use a new frame evidence directory' }
 $manifest=Get-Content -LiteralPath (Join-Path $PublicDirectory 'build.json') -Raw | ConvertFrom-Json
 $contracts=Get-Content -LiteralPath (Join-Path (Split-Path -Parent $ContractDriver) 'build.json') -Raw | ConvertFrom-Json
