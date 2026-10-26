@@ -5,6 +5,15 @@
 `TcpStream`，由 `command` 组合 `send`、`wait`、`recv` 完成命令调用。
 不包含连接池、自动重连、订阅模式或事务编排。
 
+2026-10-26 完整重建 Windows/Linux 发布物后，两平台默认包门禁退出 0：
+严格 C、Linux ASan/UBSan、语言边界和分配故障、离线 TCP 分片/错误/
+超时/复用、核心及回环 AOT，以及公开 C/XLang 范例的独立 EXE AOT
+同输出。脚本自管理的临时 Redis 真服务在两平台调用路径通过；
+Windows 路径另通过四连接各 10,000 轮真实服务压力和同连接
+100,000 次离线请求。测试结束后无 Redis 进程残留。本包按当前
+Windows/Linux x64 短时 RC 范围签收；数小时耐久、集群、自动重连及
+未列出的 RESP 模式不在合同内，也不等于整个 xlang 产品发布准入。
+
 2026-10-25 复验：Windows 默认 `test/check.ps1` 全通过，包括严格 C、
 分配故障、线程、XLang 网络边界、三条 TCP 路径及双语范例的独立 EXE
 构建和运行。`test/check_live.sh --windows-xl` 在 WSL 自管理 Redis 上
@@ -114,7 +123,7 @@ C 接口见 `include/redis_native.h`，输入 `xvalue*` 仅借用；
   全局分配失败注入。
 - `test/check.ps1` 是不依赖真实服务的 Windows 包级门禁；普通模式包含
   C 边界/分配故障/线程、XL 边界与分配故障、TCP 回环和双语范例对照，
-  并构建运行核心及完整范例 AOT，将后者输出与 C 范例对照。
+  并构建运行核心及 C/XLang 范例 AOT，将后两者输出与 GCC C 对照。
   `-SkipAot` 只运行离线 C/JIT 快测，不表示发布签收。`-Stress` 另跑
   `test/reuse_loopback.xl` 的十万次同连接请求（每 17 次有一个 Redis
   error 回复）；2026-10-24 本机 500、10,000、100,000 次均通过。
@@ -127,7 +136,8 @@ C 接口见 `include/redis_native.h`，输入 `xvalue*` 仅借用；
   清除故障后生成的文本 RESP 与固定字节向量一致。
   `sh release/extlibs/redis/test/check.sh` 在独立 Linux 进程中运行这三组
   C 测试并启用 ASan/UBSan 泄漏检查，还运行中央及包内 XLang 边界、500 次本地
-  TCP 回环复用及 C/XLang 范例逐字节对照；默认无需 Redis 服务。
+  TCP 回环复用及 C/XLang 范例逐字节对照；默认还验证核心、回环及
+  C/XLang 公开范例独立 EXE，且无需 Redis 服务。
   2026-10-16 Linux 完整离线门禁通过。
   `test/allocations.xl` 对文本和二进制编码/解码分别注入前 32 个分配故障点，
   要求触发时抛 `MemoryError`、清除故障后仍能完成四种操作；它同时进入

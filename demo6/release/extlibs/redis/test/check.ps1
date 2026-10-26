@@ -38,6 +38,11 @@ try {
         'redis', 'release/extlibs/redis/test/test_redis_threads.c')
     $cExample = Run 'C example' (Join-Path $root 'tools/run_extlib_c.ps1') @(
         'redis', 'release/examples/extlibs/redis_c.c')
+    $cDirect = Run 'C example xl run' $xl @('run',
+        'release/examples/extlibs/redis_c.c')
+    if ($cDirect -cne $cExample) {
+        throw '[redis] C xl run example output differs from GCC'
+    }
     Push-Location $release
     try {
         $null = Run 'XLang boundaries' $xl @('run', 'extlibs/redis/test/boundaries.xl')
@@ -86,6 +91,13 @@ try {
             $aotExample = Run 'XLang example AOT' $example @()
             if ($aotExample -cne $cExample) {
                 throw '[redis] C/XLang AOT example output differs'
+            }
+            $cTarget = Join-Path $work 'redis_c_example.exe'
+            $null = Run 'C example AOT build' $xl @('build',
+                'examples/extlibs/redis_c.c', '-o', $cTarget)
+            $cAotExample = Run 'C example AOT' $cTarget @()
+            if ($cAotExample -cne $cExample) {
+                throw '[redis] C AOT example output differs from GCC'
             }
         }
     } finally { Pop-Location }

@@ -25,6 +25,8 @@ done
 "$cc" "${flags[@]}" release/examples/extlibs/redis_c.c \
     "$work/xrt_runtime.o" -lm -ldl -o "$work/example"
 timeout 30s "$work/example" > "$work/c.txt"
+timeout 30s ./release/xl run release/examples/extlibs/redis_c.c > "$work/c_direct.txt"
+diff -u "$work/c.txt" "$work/c_direct.txt"
 if [[ ${REDIS_LIVE:-0} == 1 ]]; then
     "$cc" "${flags[@]}" release/examples/extlibs/redis_live_c.c \
         "$work/xrt_runtime.o" -lm -ldl -o "$work/live_example_c"
@@ -92,6 +94,10 @@ timeout 240s ./release/xl build release/examples/extlibs/redis.xl \
     -o "$work/redis_example"
 timeout 45s "$work/redis_example" > "$work/example_aot.txt"
 diff -u "$work/c.txt" "$work/example_aot.txt"
+timeout 240s ./release/xl build release/examples/extlibs/redis_c.c \
+    -o "$work/redis_c_example"
+timeout 45s "$work/redis_c_example" > "$work/c_example_aot.txt"
+diff -u "$work/c.txt" "$work/c_example_aot.txt"
 if [[ ${REDIS_LIVE:-0} == 1 ]]; then
     timeout 240s ./release/xl build release/examples/extlibs/redis_live.xl \
         -o "$work/redis_live_example"
