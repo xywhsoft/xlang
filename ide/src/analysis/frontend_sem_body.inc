@@ -47,10 +47,35 @@ static int xlsSemBodyProofType(const XL6_AstNode* in,xls_sem_apply* apply,size_t
 }
 static int xlsSemBodyPrepare(const xls_sem_entry* old,const xarray* nodes,const xls_sem_moves* moves,
     const xmap* sources,xarray* positions,const XL6_AstNode* function,const xls_sem_cursor* cursor,
-    XL6_SymbolId start,int shifted)
+    XL6_SymbolId start,int shifted,uint64_t* certifiedNodes)
 {
+    *certifiedNodes=0;
     if(!old->unit || old->unit->facts.Count!=nodes->Count ||
        !xrtArrayInit(positions,sizeof(xls_sem_position)))return 0;
+    const xls_sem_proof* proof=old->unit->proof;
+    if(proof && proof->bytes<=xlsSemProofBudget() &&
+       proof->facts==nodes->Count && proof->cloneBytes<=XLS_SEM_MEMO_BYTES && (!shifted || proof->shiftSafe)){
+        /* All node/scalar symbol fields were classified against the immutable
+         * origin. The caller has proved the current local interval fits.
+         * All located edges retain the exact original preorder and run the
+         * unchanged coordinate callback. Unlocated types need no relocation. */
+        xls_sem_apply apply=xlsSemApplyBegin(old,moves,sources,positions,function,cursor,start,shifted);
+        int okay=1;
+        for(size_t i=0;okay && i<proof->sources.Count;++i){
+            const XL6_AstSource* source=*(const XL6_AstSource* const*)xrtArrayConstGet(&proof->sources,i);
+            XL6_AstSource* target=xlsSemApplySource(source,&apply);
+            if(target && !xlsAstCloneSourceTargetValid(source,target,xlsSemApplyCursorSource,&apply))okay=0;
+        }
+        if(!okay)return 0;
+        for(size_t i=0;i<proof->located.Count;++i){
+            const XL6_AstNode* node=*(const XL6_AstNode* const*)xrtArrayConstGet(&proof->located,i);
+            XL6_AstNode positioned=*node;
+            if(!xlsSemApplyPosition(node,&positioned,&apply))return 0;
+        }
+        if(old->positions.Count && old->positions.Count!=apply.visited)return 0;
+        if(!apply.different)xrtArrayUnit(positions);
+        *certifiedNodes=proof->nodes;return 1;
+    }
     size_t bytes=sizeof(XL6_AstNode);
     if(old->unit->facts.Count>XLS_SEM_MEMO_BYTES/(2*sizeof(XL6_AstNode*)) ||
        !xlsSemBodyCharge(&bytes,2*old->unit->facts.Count*sizeof(XL6_AstNode*)))return 0;
@@ -127,13 +152,13 @@ static int xlsSemApplyFactsDemand(const xls_sem_entry* old,const xarray* nodes,c
     const xmap* sources,xarray* positions,const XL6_AstNode* function,const xls_sem_cursor* cursor,
     XL6_SymbolId start,int shifted)
 {
-    xls_sem_build* build=xlsActiveSemBuild;xls_sem_view* view=NULL;xarray current={0};size_t limit=xlsSemBodyBudget();
+    xls_sem_build* build=xlsActiveSemBuild;xls_sem_view* view=NULL;xarray current={0};size_t limit=xlsSemBodyBudget();uint64_t certifiedNodes=0;
     if(!build || !build->deferred || !build->deferredQuery || build->deferredQuery->error ||
        !limit || !xlsSemTailAllowsBodies() || function->childCount<4)goto eager;
     const size_t* slot=xrtMapConstGet(&build->slots,(xbytesview){(const unsigned char*)&function,sizeof(function)});
     xls_sem_entry* entry=slot ? xrtArrayGet(&build->memo->entries,*slot) : NULL;
     if(!entry || entry->unit || entry->view || entry->positions.Count ||
-       !xlsSemBodyPrepare(old,nodes,moves,sources,&current,function,cursor,start,shifted))goto eager;
+       !xlsSemBodyPrepare(old,nodes,moves,sources,&current,function,cursor,start,shifted,&certifiedNodes))goto eager;
     if(!xlsSemBodyJobsReserve(build,limit))goto eager;
     size_t jobs=build->bodyJobs.Capacity*sizeof(xls_sem_body_job);
     if(build->bodyBytes>limit-jobs)goto eager;
@@ -147,6 +172,7 @@ static int xlsSemApplyFactsDemand(const xls_sem_entry* old,const xarray* nodes,c
     size_t at=build->bodyJobs.Count++;
     *(xls_sem_body_job*)xrtArrayGet(&build->bodyJobs,at)=job;
     build->bodyBytes+=view->bytes;entry->view=view;entry->unit=view->unit;*positions=view->positions;
+    if(certifiedNodes){++build->work.proofHits;build->work.proofNodes+=certifiedNodes;}
     return 1;
 eager:
     xlsSemViewRelease(view);xrtArrayUnit(&current);

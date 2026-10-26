@@ -17,7 +17,8 @@ int64_t xl6TlsServerStatsStateV1(const void* raw)
 #define XL6_TLS_STATS_UINT(Field,Name) \
 uint64_t xl6TlsServerStats##Field##V1(const void* raw) \
 {const xtlslistenerstats* value=checked(raw);return value?value->Field:0;}
-#include "xl6_tls_metadata_fields.inc"
+#include "xl6_tls_metadata_fields.h"
+XL6_TLS_METADATA_FIELDS()
 #undef XL6_TLS_INFO_ENUM
 #undef XL6_TLS_INFO_INT
 #undef XL6_TLS_INFO_UINT

@@ -16,7 +16,8 @@ typedef struct XL6_TlsInfoV1 {
 #define XL6_TLS_INFO_BYTES(Field,Name) xbytesview Name;
 #define XL6_TLS_INFO_TEXT(Field,Name) xstrview Name;
 #define XL6_TLS_STATS_UINT(Field,Name)
-#include "xl6_tls_metadata_fields.inc"
+#include "xl6_tls_metadata_fields.h"
+XL6_TLS_METADATA_FIELDS()
 #undef XL6_TLS_INFO_ENUM
 #undef XL6_TLS_INFO_INT
 #undef XL6_TLS_INFO_UINT

@@ -4,7 +4,8 @@ const char* xl6StdlibTlsVerificationPolicySource=
     "    extern \"xl6TlsVerificationPolicyCreateV1\" @pure @nonblocking create(int maxPeerCertificates = 64, int maxPeerBytes = 16777216, int maxPathCertificates = 64, int maxSearchSteps = 100000, int maxTrustCertificates = 4096, int maxTrustBytes = 67108864, bool allowSha1 = false)\n"
     "    extern \"xl6TlsVerificationPolicyDestroyV1\" @no_raise @nonblocking destroy()\n"
 #define XL6_TLS_VERIFY_LIMIT(Field,Name) "    extern \"xl6TlsVerificationPolicy" #Field "V1\" @pure @nonblocking get " #Name "() as int\n"
-#include "src/runtime/xl6_tls_verification_policy_fields.inc"
+#include "src/runtime/xl6_tls_verification_policy_fields.h"
+XL6_TLS_VERIFICATION_POLICY_FIELDS()
 #undef XL6_TLS_VERIFY_LIMIT
     "    extern \"xl6TlsVerificationPolicyAllowsSha1V1\" @pure @nonblocking get allowsSha1() as bool\n"
     "    extern \"xl6TlsVerificationPolicyUsesCurrentTimeV1\" @pure @nonblocking get usesCurrentTime() as bool\n"

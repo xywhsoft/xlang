@@ -70,6 +70,8 @@ func resumeClient() as TlsClientContext
  auto credential=TlsResume.fromParts(TlsVersion.v13,TlsCipherSuite.aes128GcmSha256,
   b"ticket\0\xff",b"01234567890123456789012345678901",time.now(),120,
   uint64(1),"localhost",b"h2")
+ auto identity=makeServer().identity
+ credential=credential.withPeerCertificates([identity.at(0),identity.at(1)])
  return makeClient().withProtocols([b"h2",b"x\0\xff"]).withResume(credential)
 end
 func transfer(TlsSession source,TlsSession target)

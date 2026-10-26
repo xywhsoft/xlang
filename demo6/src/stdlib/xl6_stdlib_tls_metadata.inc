@@ -15,7 +15,8 @@ const char* xl6StdlibTlsMetadataSource=
 #define XL6_TLS_INFO_BYTES(Field,Name) XL6_TLS_INFO_ENUM(Field,Name,bytes)
 #define XL6_TLS_INFO_TEXT(Field,Name) XL6_TLS_INFO_ENUM(Field,Name,string)
 #define XL6_TLS_STATS_UINT(Field,Name)
-#include "src/runtime/xl6_tls_metadata_fields.inc"
+#include "src/runtime/xl6_tls_metadata_fields.h"
+XL6_TLS_METADATA_FIELDS()
 #undef XL6_TLS_INFO_ENUM
 #undef XL6_TLS_INFO_INT
 #undef XL6_TLS_INFO_UINT
@@ -38,7 +39,8 @@ const char* xl6StdlibTlsMetadataSource=
 #define XL6_TLS_INFO_BYTES(Field,Name)
 #define XL6_TLS_INFO_TEXT(Field,Name)
 #define XL6_TLS_STATS_UINT(Field,Name) "    extern \"xl6TlsServerStats" #Field "V1\" @pure @nonblocking get " #Name "() as uint64\n"
-#include "src/runtime/xl6_tls_metadata_fields.inc"
+#include "src/runtime/xl6_tls_metadata_fields.h"
+XL6_TLS_METADATA_FIELDS()
 #undef XL6_TLS_INFO_ENUM
 #undef XL6_TLS_INFO_INT
 #undef XL6_TLS_INFO_UINT

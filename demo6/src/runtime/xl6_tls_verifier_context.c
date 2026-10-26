@@ -34,7 +34,8 @@ XL6_TlsVerifierContextV1* xl6TlsVerifierContextCreatePoliciesV1(
     if(!policy||!complete(callback)||!complete(revocation)){
         xl6TlsFailV1(XERR_ARGUMENT,"TLS verifier needs a complete resident policy owner");return NULL;}
 #define XL6_TLS_VERIFY_LIMIT(Field,Name) if(policy->limits.Field<0||(uint64_t)policy->limits.Field>SIZE_MAX){xl6TlsFailV1(XERR_RANGE,"TLS verification budget exceeds its native range");return NULL;}
-#include "xl6_tls_verification_policy_fields.inc"
+#include "xl6_tls_verification_policy_fields.h"
+XL6_TLS_VERIFICATION_POLICY_FIELDS()
 #undef XL6_TLS_VERIFY_LIMIT
     XL6_TlsVerifierContextV1* self=xrtCalloc(1,sizeof(*self));if(!self)return NULL;
     self->refs=1;self->policy=*policy;
