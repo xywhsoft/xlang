@@ -54,6 +54,8 @@ auto credential = TlsResume.fromParts(TlsVersion.v13, TlsCipherSuite.aes128GcmSh
     uint64(1), "localhost", b"h2")
 auto state = ResumeRebindState()
 auto originalServer = makeServer().withProtocols([b"h2"], true)
+auto resumeIdentity = originalServer.identity
+credential = credential.withPeerCertificates([resumeIdentity.at(0), resumeIdentity.at(1)])
 auto server = originalServer.withResumeLookup(func(TlsResumeRequest request) as TlsResume?
     state.calls += 1
     state.saved = request
