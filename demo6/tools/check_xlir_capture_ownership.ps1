@@ -3,6 +3,8 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [string]$Directory = 'build/test/xlir_capture_ownership_batch',
     [string]$Tcc = 'E:/software/tcc/tcc.exe')
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
+. (Join-Path $PSScriptRoot 'xlir_resident_closure.ps1')
 $rootPath = (Get-Location).Path
 $outputPath = if ([IO.Path]::IsPathRooted($Directory)) { [IO.Path]::GetFullPath($Directory) }
     else { [IO.Path]::GetFullPath((Join-Path $rootPath $Directory)) }
@@ -33,22 +35,24 @@ foreach ($suffix in @('c','h','json')) {
 $includePath = [IO.Path]::GetFullPath((Join-Path $PublicDirectory 'include'))
 $strict = @('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable',
     '-Wno-unused-parameter','-Wno-unused-label','-Wno-unused-but-set-variable','-Wno-missing-field-initializers',
-    '-Wno-pointer-sign','-Wno-format-truncation',"-I$includePath","-I$outputPath",'-I.')
+    '-Wno-pointer-sign','-Wno-format-truncation',"-I$includePath","-I$outputPath",'-I.','-Irelease','-Irelease/include')
 $libs = @('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
 $residentSources = @('src/runtime/xl6_closure.c','src/runtime/xl6_cell.c','src/runtime/xl6_slot.c','src/runtime/xl6_frame_storage.c','src/runtime/xl6_continuation_frame.c','src/runtime/xl6_future_wait.c','src/runtime/xl6_task.c','src/runtime/xl6_task_frame.c','src/runtime/xl6_task_pool.c','src/runtime/xl6_capture.c','src/runtime/xl6_value_iterator.c','src/runtime/xl6_future_callback.c','src/runtime/xl6_generator.c',
     'src/runtime/xl6_code_lease.c','src/runtime/xl6_code_finalizer.c','src/runtime/xl6_future_payload.c','src/runtime/xl6_continuation_queue.c')
+$closure = Get-XlirResidentClosure -Root $rootPath -Directory "$outputPath/resident-closure" -Sources $residentSources -Symbols @('xl6ValueCloneV1') -NativeProvider 'tools/xrt_single_header_impl.c' -PublicDirectory $PublicDirectory -Fixtures @('test/cases/xlir_capture_ownership.xl')
+$residentSources = @($closure.Sources); $records += @($closure.Inputs)
 foreach ($optimization in @('O0','O2')) {
     $binary = "$outputPath/gcc-$optimization.exe"
-    & gcc @strict "-$optimization" test/cases/xlir_capture_ownership_host.c @residentSources $runtimeObject[0].Path @libs -o $binary *> "$outputPath/gcc-$optimization.build.log"
-    $buildExit = $LASTEXITCODE; $runExit = $null
+    $buildExit = Invoke-XlirGccToLog ($strict + @("-$optimization",'test/cases/xlir_capture_ownership_host.c') + $residentSources + @($runtimeObject[0].Path) + $libs + @('-o',$binary)) "$outputPath/gcc-$optimization.build.log"
+    $runExit = $null
     if ($buildExit -eq 0) { & $binary *> "$outputPath/gcc-$optimization.run.log"; $runExit = $LASTEXITCODE }
     $results += [pscustomobject]@{Lane="gcc-$optimization";Build=$buildExit;Run=$runExit}
 }
 # Standalone TinyCC uses legacy CRT imports by default; explicitly link the
 # system UCRT for standard strtoll/strtoull, without source substitutions.
 $binary = "$outputPath/tcc.exe"
-& $Tcc -std=c11 "-I$includePath" "-I$outputPath" -I. test/cases/xlir_capture_ownership_host.c @residentSources tools/xrt_single_header_impl.c C:/Windows/System32/ucrtbase.dll @libs -o $binary *> "$outputPath/tcc.build.log"
-$buildExit = $LASTEXITCODE; $runExit = $null
+$buildExit = Invoke-XlirTccToLog $Tcc (@('-std=c11',"-I$includePath","-I$outputPath",'-I.','-Irelease','-Irelease/include','test/cases/xlir_capture_ownership_host.c') + $residentSources + @('tools/xrt_single_header_impl.c','C:/Windows/System32/ucrtbase.dll') + $libs + @('-o',$binary)) "$outputPath/tcc.build.log"
+$runExit = $null
 if ($buildExit -eq 0) { & $binary *> "$outputPath/tcc.run.log"; $runExit = $LASTEXITCODE }
 $results += [pscustomobject]@{Lane='tcc';Build=$buildExit;Run=$runExit}
 $unchanged = @($records | Where-Object { (Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256 }).Count -eq 0

@@ -12,6 +12,7 @@
 #endif
 #include XLIR_GENERATOR_OWNERSHIP_BINDING
 #include "src/runtime/xl6_sequence.h"
+#include "src/runtime/xl6_continuation_future.h"
 #include <assert.h>
 #include <stdio.h>
 
@@ -64,6 +65,13 @@ static bool count_edge(xrtownershipref ref, void* context)
 {
     assert(ref.Data && ref.Ops); ++*(size_t*)context; return true;
 }
+typedef struct FrameEdgeProbe { xrtownershipref target; size_t count; } FrameEdgeProbe;
+static bool frame_edge(xrtownershipref ref, void* context)
+{
+    FrameEdgeProbe* probe = context;
+    if (ref.Data == probe->target.Data && ref.Ops == probe->target.Ops) ++probe->count;
+    return true;
+}
 static void native_array_graph(const xrtownershipref* anchors, size_t anchorCount,
     const xrtownershipref* slots, size_t slotCount, bool nativeShared)
 {
@@ -75,6 +83,7 @@ static void native_array_graph(const xrtownershipref* anchors, size_t anchorCoun
      * direct cases deliberately pass a host-created wire Value Array. */
     xrtownershipsnapshot* snapshot = NULL;
     size_t sequences = 0, sequenceEdges = 0, iterators = 0, iteratorEdges = 0;
+    xrtownershipref frameNodes[2]; size_t frameCount = 0;
     assert(xrtOwnershipSnapshotCreate(anchors, anchorCount, slots, slotCount, NULL, NULL, &snapshot));
     for (size_t i = 0; i < xrtOwnershipSnapshotNodeCount(snapshot); ++i) {
         xrtownershipnode node; assert(xrtOwnershipSnapshotNode(snapshot, i, &node));
@@ -83,6 +92,22 @@ static void native_array_graph(const xrtownershipref* anchors, size_t anchorCoun
         }
         if (xl6ValueIteratorOwnershipAdapterV1(node.Reference)) {
             ++iterators; assert(node.Reference.Ops->Trace(node.Reference.Data, count_edge, &iteratorEdges));
+        }
+        if (nativeShared) {
+            const xrtownershippreparationv1* preparation = NULL;
+            if (xl6ContinuationFrameOwnershipAdapterV1(node.Reference, &preparation)) {
+                assert(preparation && frameCount < 2); frameNodes[frameCount++] = node.Reference;
+            }
+        }
+    }
+    if (nativeShared) {
+        /* The stable producer and its current physical frame own each other.
+         * Neither edge is a synthetic external root or a historical frame. */
+        assert(frameCount == 2 && frameNodes[0].Ops != frameNodes[1].Ops);
+        for (size_t i = 0; i < 2; ++i) {
+            FrameEdgeProbe probe = {frameNodes[1-i], 0};
+            assert(frameNodes[i].Ops->Trace(frameNodes[i].Data, frame_edge, &probe));
+            assert(probe.count == 1);
         }
     }
     xrtOwnershipSnapshotDestroy(snapshot);
@@ -260,9 +285,9 @@ static void direct_case(unsigned round, unsigned kind, unsigned outcome)
 }
 static void async_graph(unsigned round, unsigned mode, unsigned stage)
 {
-    /* Native Array snapshot: +1 physical node/+3 edges versus the retired
-     * wire cursor. The real queue execution root remains independent. */
-    static const size_t nodes[2] = {17,19}, edges[2] = {29,33};
+    /* Current native Array/iterator storage plus the resident producer/frame
+     * cycle, checked structurally below. Keep every real duplicate edge. */
+    static const size_t nodes[2] = {17,19}, edges[2] = {30,34};
     xrtownershipref anchors[4], slots[5]; xrtownershipresult result; bool live[4];
     anchors[0] = xrtFutureOwnership(sources[0]); anchors[1] = xrtFutureOwnership(sources[1]);
     anchors[2] = xrtValueOwnership(captured); anchors[3] = xrtFutureOwnership(xrtValueGetFuture(captured));
@@ -286,6 +311,10 @@ static void async_case(unsigned round, unsigned mode, unsigned outcome)
     for (unsigned i = 0; i < 2; ++i) { producers[i] = xrtPromiseCreate(&sources[i], NULL); assert(producers[i]); }
     generator_graph_build(mode); assert(captured && roots == 1 && !xrtGetError());
     output = xrtValueGetFuture(captured); assert(output && xrtFutureState(output) == XFUTURE_PENDING);
+    /* Launch now queues the initial activation too. Deliver it explicitly
+     * before inspecting the original first-await graph; no worker may race
+     * this host-controlled queue, and no extra ready work may remain. */
+    assert(xl6ContinuationRunOne(queue) && !xl6ContinuationRunOne(queue));
     async_graph(round || outcome, mode, 0);
     xl6ContinuationQueueClose(queue); resolve(producers[0]); assert(xl6ContinuationRunOne(queue));
     assert(xrtFutureState(output) == XFUTURE_PENDING && roots == 1); async_graph(round || outcome, mode, 1);

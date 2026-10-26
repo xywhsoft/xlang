@@ -2,6 +2,8 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$Directory,
     [string]$Tcc = 'E:/software/tcc/tcc.exe')
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
+. (Join-Path $PSScriptRoot 'xlir_resident_closure.ps1')
 $outputPath=if ([IO.Path]::IsPathRooted($Directory)) { [IO.Path]::GetFullPath($Directory) }
     else { [IO.Path]::GetFullPath((Join-Path (Get-Location) $Directory)) }
 if (Test-Path -LiteralPath $outputPath) { throw 'Use a new evidence directory' }
@@ -18,6 +20,8 @@ $records=@($manifest.Inputs)+@($manifest.Headers)+@($runtimeObject)+
 if ((Get-FileHash $manifest.Driver).Hash -ne $manifest.DriverSha256 -or
     @($records|Where-Object {(Get-FileHash $_.Path).Hash -ne $_.Sha256}).Count) { throw 'Stale Future graph inputs' }
 New-Item -ItemType Directory -Path $outputPath | Out-Null
+$closure=Get-XlirResidentClosure -Root (Get-Location).Path -Directory "$outputPath/resident-closure" -Sources $runtimeSources -NativeProvider 'tools/xrt_single_header_impl.c' -PublicDirectory $PublicDirectory -Fixtures @('test/cases/xlir_future_ownership.xl')
+$runtimeSources=@($closure.Sources);$records+=@($closure.Inputs)
 $prefix=Join-Path $outputPath 'xlir_future_ownership'
 foreach ($pass in @('','.repeat')) {
     & $manifest.Driver test/cases/xlir_future_ownership.xl emit "$prefix$pass" *> "$outputPath/emit$pass.log"
@@ -29,7 +33,7 @@ foreach ($suffix in @('c','h','json')) {
 $includePath=[IO.Path]::GetFullPath((Join-Path $PublicDirectory 'include'))
 $strict=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable',
     '-Wno-unused-parameter','-Wno-unused-label','-Wno-unused-but-set-variable','-Wno-missing-field-initializers',
-    '-Wno-pointer-sign','-Wno-format-truncation',"-I$includePath","-I$outputPath",'-I.')
+    '-Wno-pointer-sign','-Wno-format-truncation',"-I$includePath","-I$outputPath",'-I.','-Irelease','-Irelease/include')
 $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
 $results=@()
 foreach ($lane in @('gcc-O0','gcc-O2','tcc')) {
@@ -38,12 +42,12 @@ foreach ($lane in @('gcc-O0','gcc-O2','tcc')) {
         $sources=if ($fixture -eq 'graphs') { @('test/cases/xlir_future_ownership_host.c')+$runtimeSources }
             else { @('test/cases/xlir_future_payload_contract.c')+$runtimeSources }
         if ($lane -eq 'tcc') {
-            & $Tcc -std=c11 "-I$includePath" "-I$outputPath" -I. @sources tools/xrt_single_header_impl.c C:/Windows/System32/ucrtbase.dll @libs -o $binary *> "$outputPath/$name.build.log"
+            $buildExit=Invoke-XlirTccToLog $Tcc (@('-std=c11',"-I$includePath","-I$outputPath",'-I.','-Irelease','-Irelease/include')+$sources+@('tools/xrt_single_header_impl.c','C:/Windows/System32/ucrtbase.dll')+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
         } else {
             $optimization=if ($lane -eq 'gcc-O0') {'-O0'} else {'-O2'}
-            & gcc @strict $optimization @sources $runtimeObject[0].Path @libs -o $binary *> "$outputPath/$name.build.log"
+            $buildExit=Invoke-XlirGccToLog ($strict+@($optimization)+$sources+@($runtimeObject[0].Path)+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
         }
-        $buildExit=$LASTEXITCODE; $runExit=$null; $complete=$false
+        $runExit=$null; $complete=$false
         if ($buildExit -eq 0) {
             & $binary *> "$outputPath/$name.run.log"; $runExit=$LASTEXITCODE
             $marker=if ($fixture -eq 'graphs') {'Future ownership: 700 generated graphs'} else {'Future payload: 1500 accepted/rejected/empty cases'}

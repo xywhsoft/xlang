@@ -3,6 +3,8 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$Directory,
     [string]$Tcc='E:/software/tcc/tcc.exe')
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
+. (Join-Path $PSScriptRoot 'xlir_resident_closure.ps1')
 $outputPath=if ([IO.Path]::IsPathRooted($Directory)) { [IO.Path]::GetFullPath($Directory) }
     else { [IO.Path]::GetFullPath((Join-Path (Get-Location) $Directory)) }
 if (Test-Path -LiteralPath $outputPath) { throw 'Use a new aggregate evidence directory' }
@@ -35,22 +37,24 @@ $contractComplete=$contractComplete -and [bool](Select-String -LiteralPath "$out
 $includePath=[IO.Path]::GetFullPath((Join-Path $PublicDirectory 'include'))
 $strict=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
     '-Wno-unused-label','-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-Wno-pointer-sign','-Wno-format-truncation')
-$includes=@("-I$includePath","-I$outputPath",'-I.','-Irelease','-DXL_STATIC_EMBED')
+$includes=@("-I$includePath","-I$outputPath",'-I.','-Irelease','-Irelease/include','-DXL_STATIC_EMBED')
 $sources=@('test/cases/xlir_future_aggregate_ownership_host.c','src/api/xl_future_bridge.c','src/runtime/xl6_future_aggregate.c','src/runtime/xl6_future_aggregate_array.c','src/runtime/xl6_array_input.c','src/runtime/xl6_sequence.c','src/runtime/xl6_future_payload.c',
     'src/runtime/xl6_closure.c','src/runtime/xl6_cell.c','src/runtime/xl6_code_lease.c','src/runtime/xl6_slot.c',
     'src/runtime/xl6_frame_storage.c','src/runtime/xl6_continuation_frame.c','src/runtime/xl6_future_wait.c','src/runtime/xl6_task.c','src/runtime/xl6_task_frame.c','src/runtime/xl6_task_pool.c','src/runtime/xl6_capture.c','src/runtime/xl6_value_iterator.c','src/runtime/xl6_future_callback.c','src/runtime/xl6_generator.c',
     'src/runtime/xl6_continuation_queue.c','src/runtime/xl6_continuation_executor.c','src/runtime/xl6_continuation_future.c',
     'src/runtime/xl6_value_admission.c','src/runtime/xl6_future_metadata.c')
+$closure=Get-XlirResidentClosure -Root (Get-Location).Path -Directory "$outputPath/resident-closure" -Sources @($sources|Where-Object {$_ -like 'src/*'}) -NativeProvider 'tools/xrt_single_header_impl.c' -PublicDirectory $PublicDirectory -Fixtures @('test/cases/xlir_future_aggregate_ownership.xl')
+$sources=@($sources|Where-Object {$_ -notlike 'src/*'})+@($closure.Sources);$records+=@($closure.Inputs)
 $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32'); $lanes=@()
 foreach ($lane in @('gcc-O0','gcc-O2','tcc')) {
     $binary="$outputPath/$lane.exe"
     if ($lane -eq 'tcc') {
-        & $Tcc -std=c11 @includes @sources tools/xrt_single_header_impl.c C:/Windows/System32/ucrtbase.dll @libs -o $binary *> "$outputPath/$lane.build.log"
+        $build=Invoke-XlirTccToLog $Tcc (@('-std=c11')+$includes+$sources+@('tools/xrt_single_header_impl.c','C:/Windows/System32/ucrtbase.dll')+$libs+@('-o',$binary)) "$outputPath/$lane.build.log"
     } else {
         $optimization=if ($lane -eq 'gcc-O0') {'-O0'} else {'-O2'}
-        & gcc @strict $optimization @includes @sources $runtimeObject[0].Path @libs -o $binary *> "$outputPath/$lane.build.log"
+        $build=Invoke-XlirGccToLog ($strict+@($optimization)+$includes+$sources+@($runtimeObject[0].Path)+$libs+@('-o',$binary)) "$outputPath/$lane.build.log"
     }
-    $build=$LASTEXITCODE; $run=$null; $complete=$false
+    $run=$null; $complete=$false
     if ($build -eq 0) {
         & $binary *> "$outputPath/$lane.run.log"; $run=$LASTEXITCODE
         $complete=[bool](Select-String -LiteralPath "$outputPath/$lane.run.log" -SimpleMatch 'Future aggregate ownership: 3500 generated transactions' -Quiet) -and
