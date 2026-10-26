@@ -158,6 +158,16 @@ def prepare_native_ir(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
             '         i = xlsIrNextCallCandidate(module, origin, i)) {\n'
             '        const XL6_IrCallSite* site = &module->callSites[i];\n'
             '        const XL6_IrNode *declaration, *parameters = NULL, *receiver;',
+        'for ( prior = 0; prior < i; ++prior )\n'
+        '                if ( module->callSites[prior].origin == site->origin )':
+            'for ( prior = xlsIrFirstCallCandidate(module, site->origin); prior < i;\n'
+            '                  prior = xlsIrNextCallCandidate(module, site->origin, prior) )\n'
+            '                if ( module->callSites[prior].origin == site->origin )',
+        'for ( prior = 0; prior < module->callSiteCount; ++prior )\n'
+        '                if ( module->callSites[prior].origin == site->origin )':
+            'for ( prior = xlsIrFirstCallCandidate(module, site->origin); prior < module->callSiteCount;\n'
+            '                  prior = xlsIrNextCallCandidate(module, site->origin, prior) )\n'
+            '                if ( module->callSites[prior].origin == site->origin )',
         'static int xl6IrVerifyScopeExitActions(\n    const XL6_IrModule* module, const XL6_IrExitPlan* plan)\n{':
             'static int xlsIrVerifyScopeExitActionsOriginal(\n    const XL6_IrModule* module, const XL6_IrExitPlan* plan)\n{',
         'for ( i = afterScope ? scope->childCount + 1 : (size_t)plan->origin - 1; i > 0; --i ) {':
@@ -199,6 +209,7 @@ def prepare_native_ir(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
         change='bounded nominal-declaration candidates, cleanup/plan/call-origin indexes and per-verification scope proofs; shared rules retained',
         rawFunctionRegions='lexical-relative keys with zero sentinel;current AST region/target rebinding;exact fact-type trees',
         initializerLookup='phase-local lazy nondecreasing declaration proof;lower-bound first match;original unordered/absent-scope fallback;no allocation or cached ABI results',
+        callOriginVerification='existing phase-local sorted origin/physical-index candidates; preserve prior-index limit, original predicates and first diagnostics; original linear fallback',
         auditedDependencies={str(type_model):type_sha,str(type_ids):type_ids_sha},
         lexicalSymbols='source/range-proven per-function declaration slots;separate entity/global NAME identities;tagged raw nodes/dependencies/writes bind current original IDs;fact types and type-pool prefix exact',
         cancellation='cooperative node/phase/verify points; partial child lists and owned incoming counts unwind through audited cleanup',

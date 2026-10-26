@@ -31,6 +31,60 @@ static int compareVerify(XL6_IrModule* ir,int accepted)
     CHECK(a==b && (accepted<0 || a==accepted) && sameDiagnostics(&indexed,&reference));
     xl6DiagFree(&indexed); xl6DiagFree(&reference); return 1;
 }
+static int compareCallOrigins(XL6_IrModule* ir,int accepted,const char* message)
+{
+    XL6_DiagList reference; xl6DiagInit(&reference);
+    CHECK(xlsFrontendIrReferenceVerify(ir,&reference)==accepted);
+    if(message) CHECK(reference.count && strstr(reference.items[0].message,message));
+    const size_t budgets[]={8u*1024u*1024u,0,1};
+    for(size_t i=0;i<sizeof(budgets)/sizeof(budgets[0]);++i) {
+        XL6_DiagList actual; xl6DiagInit(&actual); xlsFrontendIrCallScanReset();
+        CHECK(xlsFrontendIrVerifyPlanBudget(ir,&actual,budgets[i])==accepted && sameDiagnostics(&actual,&reference));
+        xls_ir_call_scan_work work=xlsFrontendIrCallScanWork();
+        if(!budgets[i] || budgets[i]==1) CHECK(!work.indexes && !work.indexedVisits);
+        if(accepted && budgets[i]>1) CHECK(work.queries>=ir->callSiteCount && work.indexes==1 && !work.linearVisits);
+        xl6DiagFree(&actual);
+    }
+    xl6DiagFree(&reference); return 1;
+}
+static int callOrigins(void)
+{
+    xstrbuf source={0}; CHECK(xrtStrBufAppend(&source,xrtStrView("func zero() as int\n return 1\nend\nfunc resolved() as int\n int result=0\n")));
+    for(unsigned i=0;i<128;++i) CHECK(xrtStrBufAppend(&source,xrtStrView(" result=zero()\n")));
+    CHECK(xrtStrBufAppend(&source,xrtStrView(" return result\nend\nfunc dynamic(var item) as var\n return item.fetch()\nend\n")));
+    XL6_ParseResult parsed; xl6ParseResultInit(&parsed); XL6_IrModule ir; xl6IrModuleInit(&ir);
+    int okay=xl6ParseSource(source.Data,"call-origins.xl",&parsed) && xl6StdlibExpandModule(parsed.root,&parsed.diags) &&
+        xl6SemCheckModuleWithIndex(parsed.root,&parsed.diags,"origins",1) && xl6IrBuildModuleFromAst(&ir,parsed.root,&parsed.diags);
+    if(!okay) xl6DiagPrintText(&parsed.diags,"call-origins.xl");
+    CHECK(okay && !parsed.diags.count && ir.callSiteCount==128 && ir.dynamicCallSiteCount==1 && !ir.callArgumentCount);
+    CHECK(compareCallOrigins(&ir,1,NULL));
+    size_t count=ir.callSiteCount,capacity=ir.callSiteCapacity; XL6_IrCallSite* original=ir.callSites;
+    XL6_IrCallSite* edited=xrtCalloc(count+1,sizeof(*edited)); CHECK(edited);
+    ir.callSites=edited; ir.callSiteCapacity=count+1;
+    /* A later duplicate must never reject an earlier descriptor. Physical
+     * order is authoritative, including when origin IDs are unsorted. */
+    for(size_t position=1;position<=count;position=position==1?count/2:position==count/2?count:count+1) {
+        memcpy(edited,original,position*sizeof(*edited)); edited[position]=original[0];
+        memcpy(edited+position+1,original+position,(count-position)*sizeof(*edited)); ir.callSiteCount=count+1;
+        CHECK(compareCallOrigins(&ir,0,"duplicate canonical call sites"));
+        edited[position].firstArgument=ir.callArgumentCount+1;
+        CHECK(compareCallOrigins(&ir,0,"canonical target, receiver, result or argument slice"));
+    }
+    ir.callSiteCount=count;
+    for(size_t i=0;i<count;++i) edited[i]=original[count-1-i];
+    CHECK(compareCallOrigins(&ir,1,NULL));
+    const XL6_IrNodeId invalid[]={0,UINT32_MAX,ir.root};
+    for(size_t i=0;i<sizeof(invalid)/sizeof(invalid[0]);++i) {
+        memcpy(edited,original,count*sizeof(*edited)); edited[count/2].origin=invalid[i];
+        CHECK(compareCallOrigins(&ir,0,NULL));
+    }
+    memcpy(edited,original,count*sizeof(*edited)); ir.callSiteCapacity=count-1;
+    CHECK(compareCallOrigins(&ir,0,NULL)); ir.callSiteCapacity=count+1;
+    ir.callSites=NULL; CHECK(compareCallOrigins(&ir,0,NULL));
+    ir.callSites=original; ir.callSiteCount=count; ir.callSiteCapacity=capacity; xrtFree(edited);
+    CHECK(compareCallOrigins(&ir,1,NULL));
+    xl6IrModuleFree(&ir); xl6ParseResultFree(&parsed); xrtStrBufFree(&source); return 1;
+}
 static int initializerValidationFence(XL6_IrModule* ir)
 {
     if(!ir->valueInitializerCount)return 1;
@@ -329,6 +383,7 @@ static int initializerLookups(void)
 }
 static int run(void)
 {
+    CHECK(callOrigins());
     CHECK(initializerLookups());
     CHECK(aliasScopes());
     const char* sources[]={
