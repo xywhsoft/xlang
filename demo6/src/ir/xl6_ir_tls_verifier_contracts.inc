@@ -4,7 +4,8 @@
 {"xl6TlsVerificationPolicyCreateV1",T,V,7,{I,I,I,I,I,I,B},.resultOwner=VP,VG},
 {"xl6TlsVerificationPolicyDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={VP},.nativeHandlePolicy="xl6TlsVerificationPolicyHandlePolicyV1Get",.noRaise=1,.nonblocking=1},
 #define XL6_TLS_VERIFY_LIMIT(Field,Name) {"xl6TlsVerificationPolicy" #Field "V1",T,I,1,{V},.parameterOwners={VP},VG},
-#include "src/runtime/xl6_tls_verification_policy_fields.inc"
+#include "src/runtime/xl6_tls_verification_policy_fields.h"
+XL6_TLS_VERIFICATION_POLICY_FIELDS()
 #undef XL6_TLS_VERIFY_LIMIT
 {"xl6TlsVerificationPolicyAllowsSha1V1",T,B,1,{V},.parameterOwners={VP},VG},
 {"xl6TlsVerificationPolicyUsesCurrentTimeV1",T,B,1,{V},.parameterOwners={VP},VG},

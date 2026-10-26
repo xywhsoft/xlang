@@ -34,7 +34,8 @@ xstrview xl6TlsInfo##Field##V1(const void* raw) { \
     text[v->Name.Size]=0; \
     return (xstrview){text,v->Name.Size}; }
 #define XL6_TLS_STATS_UINT(Field,Name)
-#include "xl6_tls_metadata_fields.inc"
+#include "xl6_tls_metadata_fields.h"
+XL6_TLS_METADATA_FIELDS()
 #undef XL6_TLS_INFO_ENUM
 #undef XL6_TLS_INFO_INT
 #undef XL6_TLS_INFO_UINT

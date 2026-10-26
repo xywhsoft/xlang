@@ -1,7 +1,8 @@
 XL6_TEXT_EXPORT(xl6TlsVerificationPolicyCreateV1,TLS_VERIFICATION_POLICY)
 XL6_TEXT_EXPORT(xl6TlsVerificationPolicyDestroyV1,TLS_VERIFICATION_POLICY)
 #define XL6_TLS_VERIFY_LIMIT(Field,Name) XL6_TEXT_EXPORT(xl6TlsVerificationPolicy##Field##V1,TLS_VERIFICATION_POLICY)
-#include "xl6_tls_verification_policy_fields.inc"
+#include "xl6_tls_verification_policy_fields.h"
+XL6_TLS_VERIFICATION_POLICY_FIELDS()
 #undef XL6_TLS_VERIFY_LIMIT
 XL6_TEXT_EXPORT(xl6TlsVerificationPolicyAllowsSha1V1,TLS_VERIFICATION_POLICY)
 XL6_TEXT_EXPORT(xl6TlsVerificationPolicyUsesCurrentTimeV1,TLS_VERIFICATION_POLICY)
