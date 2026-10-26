@@ -4,6 +4,7 @@ This creates evidence, not a commit or any source/shipping acceptance claim.
 """
 from pathlib import Path
 import argparse, hashlib, json, shutil, subprocess
+from stdlib_manifest_inputs import index_manifest_inputs
 
 def sha(path): return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
@@ -33,20 +34,30 @@ def main():
     parser.add_argument('--runtime-root',type=Path)
     args=parser.parse_args(); project=Path(__file__).resolve().parents[2]
     out=args.out.resolve(); runtime=args.runtime_root.resolve() if args.runtime_root else None
-    assert not out.exists()
+    assert not out.exists() and not out.is_relative_to(project)
     assert runtime is None or (runtime/'release/xl.dll').is_file()
-    paths=['demo6/'+name for name in ('src','lib','tools','docs','test/cases','test/support','test/suites',
-        'test/fixtures/native_stack_batch_rejected',
-        'test/test_linux_embedded_resources.py',
+    paths=['demo6/'+name for name in ('src','lib','tools','docs','test',
         'res','release/include','include','build.bat','build_dll.bat','build_linux.sh','.gitattributes','.gitignore')]
     # The ordinary Windows build compiles its committed host examples too.
     # Export source fixtures, never old binaries or extension packages.
     paths.append('demo6/release/examples/*.c')
     paths.append('demo6/release/examples/*.xl')
-    files=subprocess.check_output(['git','ls-files','-z','--',*paths],cwd=project)
-    names=[path.decode('utf-8') for path in files.split(b'\0') if path]; assert names
     index=subprocess.check_output(['git','write-tree'],cwd=project,text=True).strip()
     base=subprocess.check_output(['git','rev-parse','HEAD'],cwd=project,text=True).strip()
+    files=subprocess.check_output(['git','ls-files','-z','--',*paths],cwd=project)
+    names={path.decode('utf-8') for path in files.split(b'\0') if path};assert names
+    all_files=subprocess.check_output(['git','ls-files','-z','--','demo6'],cwd=project)
+    relative=[path.decode('utf-8')[len('demo6/'):] for path in all_files.split(b'\0') if path]
+    def indexed_text(name):
+        return subprocess.check_output(['git','show',':demo6/'+name],cwd=project).decode('utf-8-sig')
+    manifest_sources,manifest_closure=index_manifest_inputs(relative,indexed_text)
+    names=sorted(names|{'demo6/'+name for name in manifest_sources})
+    files=b''.join(name.encode('utf8')+b'\0' for name in names)
+    stages=subprocess.check_output(['git','ls-files','--stage','-z','--','demo6'],cwd=project)
+    modes={row.split(b'\t',1)[1].decode('utf8'):row.split(b' ',1)[0]
+        for row in stages.split(b'\0') if row}
+    assert all(modes[name] in (b'100644',b'100755') for name in names),'Only regular source files may be exported'
+    assert subprocess.check_output(['git','write-tree'],cwd=project,text=True).strip()==index
     out.mkdir(parents=True); frozen=out/'frozen'; frozen.mkdir()
     subprocess.run(['git','-c','core.autocrlf=false','checkout-index','--stdin','-z',
         '--prefix='+frozen.as_posix()+'/'],cwd=project,input=files,check=True)
@@ -81,6 +92,7 @@ def main():
     assert subprocess.check_output(['git','write-tree'],cwd=project,text=True).strip()==index
     (out/'freeze.json').write_text(json.dumps({'Scope':__doc__,'Complete':True,
         'IndexTree':index,'Base':base,'Files':rows,'CopiedRuntimeCandidates':products,
+        'ManifestSourceClosure':manifest_closure,'CompleteIndexedTestControls':True,
         'ShippingLibraryAcceptance':False,'Full53Acceptance':False},indent=2)+'\n',encoding='utf-8')
     print('Exported '+str(len(rows))+' isolated index inputs to '+str(frozen),flush=True)
 if __name__=='__main__': main()

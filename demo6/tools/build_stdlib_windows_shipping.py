@@ -5,6 +5,7 @@ build evidence, not runtime, pruning, release promotion or full53 acceptance.
 """
 from pathlib import Path
 import argparse, hashlib, json, os, shutil, subprocess
+from stdlib_manifest_inputs import local_manifest_inputs
 
 def sha(path): return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def normalized_sha(path): return hashlib.sha256(Path(path).read_bytes().replace(b'\r\n',b'\n')).hexdigest()
@@ -22,6 +23,7 @@ def main():
         selected=shutil.which(name); assert selected; files.add(Path(selected).resolve())
     for folder in ('src','lib','tools','res','docs','release/include','include','release/examples','test/cases'):
         files.update(path for path in (root/folder).rglob('*') if path.is_file())
+    files.update(local_manifest_inputs(root))
     generated={root/'src/api/xl_xrt_symbols.inc',root/'src/stdlib/xl6_stdlib_func_index.inc'}
     inputs=[{'Path':str(path),'Sha256':sha(path),**({'NormalizedSha256':normalized_sha(path)} if path in generated else {})}
         for path in sorted(files)]
