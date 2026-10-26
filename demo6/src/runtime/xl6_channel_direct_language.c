@@ -14,7 +14,10 @@ static void* publish(void* frame)
         xl6ChannelFutureCoreDiscardV1(frame);frame=NULL;
         xl6_error_result result=xl6ErrorScopeEnd(&scope);xl6ErrorScopePropagateFailure(result);
     }
-    if(!frame)failed();return frame;
+    if (!frame) {
+        failed();
+    }
+    return frame;
 }
 void xl6ChannelSendFutureBuilderDestroyV1(void* frame) {xl6ChannelFutureBuilderDestroyV1(frame);}
 void xl6ChannelReceiveFutureBuilderDestroyV1(void* frame) {xl6ChannelFutureBuilderDestroyV1(frame);}
