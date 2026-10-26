@@ -1,0 +1,4 @@
+class Wrong
+    native point handle
+    extern "wrong" @owned create()
+end

@@ -1,0 +1,1 @@
+extern "wrong" @owned @no_raise func wrong() as string
