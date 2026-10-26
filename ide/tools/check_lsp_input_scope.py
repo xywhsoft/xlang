@@ -61,7 +61,7 @@ def main():
             clients.append(c)
             c.send('initialize', dict(capabilities={}, initializationOptions=options), 1)
             initialized, _ = c.reply(1)
-            assert initialized['result']['serverInfo']['version'] == '0.76', initialized
+            assert initialized['result']['serverInfo']['version'] == '0.77', initialized
             c.send('initialized', {})
             versions, bodies = {}, {}
             def opened(path, text, version=1):

@@ -35,7 +35,7 @@ FRONTEND_SOURCES = (
 SERVER_SOURCES = (
     "src/protocol/analysis_context_wire.c", "src/protocol/signature_help.c", "src/services/analysis_catalog.c",
     "src/protocol/lsp_wire.c", "src/services/language_check.c", "src/services/language_snapshot.c", "src/services/diagnostic_store.c",
-    "src/services/semantic_definition.c", "src/services/semantic_completion.c", "src/services/c_bridge_map.c",
+    "src/services/semantic_definition.c", "src/services/project_references.c", "src/services/semantic_completion.c", "src/services/c_bridge_map.c",
     "src/services/toolchain.c", "src/platform/file_rename.c", "src/platform/file_io.c",
     "src/platform/text_file.c", "src/platform/process.c", "src/platform/path.c", "src/editor/coordinates.c",
     "src/server/xlang_ls.c",
@@ -69,7 +69,7 @@ CORE_TESTS = ("analysis_worker_cache_fault_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ast_intern_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_frontend_cancel_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_memo_test", "analysis_projection_test", *CORE_TESTS)
-HOST_TESTS += ("navigation_cache_test", "semantic_reference_shard_test")
+HOST_TESTS += ("navigation_cache_test", "semantic_reference_shard_test", "project_references_test", "project_reference_budget_test")
 
 
 def sha(path: Path) -> str:
@@ -724,7 +724,8 @@ def main() -> None:
                 extra += [str(objects[Path(source).stem]) for source in SERVER_SOURCES
                           if Path(source).stem != "xlang_ls" and
                           not (name == "snapshot_report_test" and Path(source).stem == "language_snapshot") and
-                          not (name in ("semantic_lookup_test", "semantic_reference_shard_test") and Path(source).stem == "semantic_definition")]
+                          not (name in ("semantic_lookup_test", "semantic_reference_shard_test") and Path(source).stem == "semantic_definition") and
+                          not (name == "project_reference_budget_test" and Path(source).stem == "project_references")]
             if name in CLIENT_TESTS:
                 # The stream fixture privately owns its actor for deterministic
                 # gates. Other client fixtures need only the pure decoders.

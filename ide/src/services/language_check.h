@@ -63,6 +63,16 @@ xide_language_check* xideLanguageCheckStartConfigured(xls_context* context,
  xide_model_error* error);
 /* Immutable context match, without disk work; caller keeps check alive. */
 int xideLanguageCheckMatchesContext(const xide_language_check* check,const xls_context* context);
+#include "services/semantic_reference_shard.h"
+/* Dedicated project-query capture,never completion or ordinary diagnostics.
+ * A NULL keyPath captures only a shard. trigger remains an open document even
+ * when context.entry is an unopened member. Uses the original checked source
+ * and publication guards. NULL key with a successful capture is no symbol. */
+xide_language_check* xideLanguageCheckStartReferenceCapture(xls_context* context,
+ xide_toolchains* cache,const char* compiler,xls_worker* actor,
+ const xls_analysis_document* documents,size_t count,const char* trigger,
+ const char* keyPath,int line,int character,const xide_language_analysis_options* options,xide_model_error* error);
+int xideLanguageCheckCaptureReferences(xide_language_check* check,xide_reference_shard** shard,xide_reference_key** key);
 /* Independent native signature query. Mode/options are fixed before starting
    the adapter thread. Configured roots may be unopened; trigger stays open. */
 xide_language_check* xideLanguageCheckStartSignature(xls_context* context,int configured,

@@ -17,6 +17,8 @@ struct xide_language_check {
  xvalue *guardFiles,*guardResolution; xide_toolchain_stamp guardToolchain;
  xide_semantic_definitions* definitions;
 #ifdef XLS_COMPILER_XRT
+ char* referencePath;int referenceLine,referenceCharacter,referenceMode;
+ struct xide_reference_shard* referenceShard;struct xide_reference_key* referenceKey;
  xls_projection* navigationProjection;xide_navigation_work navigationWork;
  xls_context* context;
  int signatureMode; unsigned signatureFlags; xls_signature_stats signatureStats;
