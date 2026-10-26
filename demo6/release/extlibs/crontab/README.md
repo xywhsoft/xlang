@@ -1,14 +1,23 @@
 # crontab
 
+2026-10-26 新版 Windows/Linux 发布物验收：两平台均从当前源码重建
+`xl` 后运行默认包门禁，全部退出 0。`xcron_describe` 返回的 XRT
+分配由 `@owned string` 直接接管；Windows 验证严格 C、边界、
+分配故障、C/XLang 同输出与核心/范例/边界/分配/C 范例独立 EXE。
+Linux 另以 ASan/UBSan 验证 C，覆盖纽约及 Lord Howe 夏令时、历史
+秒级时差、远期日期与相同的语言/AOT 路径。此前的发布物不识别
+`@owned`、快照失配等记录属于旧构建；本轮仍只签收本文的五字段
+语法、8 年搜索窗口与已测时区，不宣称所有历史时区均正确。
+
 2026-10-26 源码级更新：`xcron_describe` 的 C 返回类型明确为 `char*`，
 XLang 外部声明以 `@owned ... as string` 直接接管同一 XRT 堆内存，
 删去仅负责 `point` 转交的包装分支。生成 C 代码直接保存指针并扫描
 一次长度；普通字符串后续操作仍遵守原有值语义。
 Windows 严格 C/边界/长时域/C 范例通过；当前源码编成的公共驱动
 运行中央、边界、分配故障与公开范例，后面三项的独立 EXE 也通过，
-公开范例输出与 C 路径及 C 单文件独立 EXE 一致。现有 `release/xl.exe` 不认识 `@owned`，
-新发布构建被 XRT/xruntime 快照失配挡住，**新版尚待发布物与 Linux
-完整门禁复验**。以下双平台签收对应迁移前的发布物。
+公开范例输出与 C 路径及 C 单文件独立 EXE 一致。当时的 `release/xl.exe`
+不认识 `@owned`，新发布构建被 XRT/xruntime 快照失配挡住；该阻断已由
+上方的新发布物构建和双平台门禁关闭。以下双平台记录对应迁移前的发布物。
 
 此前 2026-10-26 发布物复验：Windows 默认 `test/check.ps1` 与 Linux
 默认 `test/check.sh` 均退出 0。两平台验证 C/XLang 范例同输出、
