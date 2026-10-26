@@ -1,0 +1,2 @@
+extern "owned_task_variadic" @owned func producer(c_int mode,c_vararg) as string
+await task.spawn(producer,c_int(1),"text")

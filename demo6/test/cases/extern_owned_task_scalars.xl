@@ -1,0 +1,91 @@
+// Native C parameters keep their exact type in the task capture frame.
+// The producer is submitted directly; no language proxy changes its ABI.
+extern "owned_task_text" @owned func Text(c_int mode) as string
+extern "owned_task_optional" @owned @no_raise func Optional(c_int mode) as string?
+extern "owned_task_scalars" @owned func Scalars(c_char a, c_schar b, c_uchar c,
+    c_short d, c_ushort e, c_int f, c_uint g, c_long h, c_ulong i,
+    c_longlong j, c_ulonglong k, c_size l, c_ssize m, c_ptrdiff n,
+    c_intptr o, c_uintptr p, c_bool q, c_float r, c_double s, c_wchar t) as string
+extern "owned_task_char_min" @no_raise func charMin() as c_char
+extern "owned_task_long_min" @no_raise func longMin() as c_long
+extern "owned_task_ulong_max" @no_raise func ulongMax() as c_ulong
+extern "owned_task_size_max" @no_raise func sizeMax() as c_size
+extern "owned_task_ssize_min" @no_raise func ssizeMin() as c_ssize
+extern "owned_task_ptrdiff_min" @no_raise func ptrdiffMin() as c_ptrdiff
+extern "owned_task_intptr_min" @no_raise func intptrMin() as c_intptr
+extern "owned_task_uintptr_max" @no_raise func uintptrMax() as c_uintptr
+extern "owned_task_wchar_max" @no_raise func wcharMax() as c_wchar
+extern "owned_task_visit" @no_raise func visit(c_bool enabled, c_double value)
+extern "owned_task_visits" @no_raise func visits() as c_int
+extern "owned_task_debug" @no_raise func debug() as bool
+extern "owned_task_fail" @no_raise func failAfter(int prefix)
+extern "owned_task_clear" @no_raise func clearFailure()
+
+class Factory
+    static extern "owned_task_text" @owned func Text(c_int mode) as string
+end
+
+// Platform limits are supplied with the matching C return type. In
+// particular, long/wchar_t differ between Windows and Linux.
+assert debug()
+auto scalarProducer=Scalars
+assert await task.spawn(scalarProducer, charMin(), c_schar(-128), c_uchar(255),
+    c_short(-32768), c_ushort(65535), c_int(-2147483647), c_uint(4294967295),
+    longMin(), ulongMax(), c_longlong(-9223372036854775807),
+    c_ulonglong(uint64(18446744073709551615)), sizeMax(), ssizeMin(),
+    ptrdiffMin(), intptrMin(), uintptrMax(), c_bool(false), c_float(-1.25),
+    c_double(-2.5), wcharMax())=="native scalars"
+
+// Ordinary typed language functions share the same exact scalar frame ABI.
+func echo(c_ulonglong value) as c_ulonglong
+    return value
+end
+assert await task.spawn(echo,c_ulonglong(uint64(18446744073709551615)))==c_ulonglong(uint64(18446744073709551615))
+auto action=visit
+await task.spawn(action,c_bool(true),c_double(2.5))
+assert visits()==1
+
+assert await task.spawn(Text,c_int(7))=="native text"
+auto producer=Factory.Text
+auto result=task.spawn(producer,c_int(7))
+assert await result=="native text"
+assert await result=="native text" // The Future retains its completed value.
+assert await task.spawn(Optional,c_int(0))==null
+auto optional=await task.spawn(Optional,c_int(7))
+if optional!=null
+    assert optional=="native text"
+else
+    assert false
+end
+
+// NULL, an unreadable failed payload, producer OOM, and a failure without a
+// diagnostic must all reach the task's failure path rather than strlen.
+for mode in [0,-1,-2,-3]
+    bool caught=false
+    try
+        await task.spawn(producer,c_int(mode))
+    catch error
+        caught=true
+    end
+    assert caught
+end
+
+func exercise() as future<string>
+    auto value=Factory.Text
+    return task.spawn(value,c_int(7))
+end
+assert await exercise()=="native text" // Warm the pool before allocation injection.
+int accepted=0
+int rejected=0
+for prefix in range(32)
+    failAfter(prefix) // Allocation injection applies only to the caller thread.
+    try
+        assert await exercise()=="native text"
+        accepted+=1
+    catch error
+        rejected+=1
+    end
+    clearFailure()
+end
+assert accepted>0 and rejected>0
+assert await exercise()=="native text" // A failed submission must not poison reuse.

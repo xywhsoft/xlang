@@ -10911,7 +10911,11 @@ int xl6IrTaskSpawnParameterAbiSupported(
         abi != xl6IrParameterAbiForMode(type, mode)) return 0;
     if ( type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
          abi == XL6_IR_PARAMETER_ABI_VALUE ) {
-        return type->cAbi == XL6_IR_C_ABI_BOOL ||
+        /* Callback frames store and invoke these with their exact C type.
+         * Reuse the foreign scalar family rather than normalizing through
+         * language i64/f64 (which loses unsigned range and platform widths). */
+        return xl6IrBuildCAbiIsForeignScalar(type->cAbi) ||
+               type->cAbi == XL6_IR_C_ABI_BOOL ||
                type->cAbi == XL6_IR_C_ABI_CHAR_U32 ||
                type->cAbi == XL6_IR_C_ABI_I64 ||
                type->cAbi == XL6_IR_C_ABI_U64 ||
