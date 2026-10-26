@@ -1,0 +1,11 @@
+import srt
+
+func main(...) as int
+    var parsed = srt.parse("1\n00:00:00,000 --> 00:00:01,000\nhi\n")
+    assert srt.build(parsed).contains("hi"), "native array round trip"
+    println("native roundtrip: PASS")
+
+    var literal = [{"startMs": 0, "endMs": 1000, "lines": ["hi"]}]
+    srt.build(literal)
+    return 0
+end
