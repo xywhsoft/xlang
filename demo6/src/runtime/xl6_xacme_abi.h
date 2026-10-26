@@ -8,7 +8,11 @@ XL6_TEXT_API void xl6AcmeConfigEngineV1(void*,void*);
 XL6_TEXT_API void* xl6AcmeClientCreateV1(void*);
 XL6_TEXT_API void xl6AcmeDropV1(void*);
 XL6_TEXT_API bool xl6AcmeCleanupV1(void*);
-XL6_TEXT_API void* xl6AcmeAccountPemV1(void*);
+XL6_TEXT_API char* xl6AcmeAccountPemV1(void*);
+/* Canonical upstream functions: no native or language forwarding layer. */
+XL6_TEXT_API char* xrtAcmeStoreLoadAccount(const char*,const char*);
+XL6_TEXT_API char* xrtAcmeStoreLoadCert(const char*,const char*);
+XL6_TEXT_API char* xrtAcmeStoreLoadCertCa(const char*,const char*);
 XL6_TEXT_API void* xl6AcmeProviderCustomV1(xstrview,int64_t,const xvalue*,const xvalue*,const xvalue*);
 XL6_TEXT_API void* xl6AcmeProviderCreateV1(int64_t,const xvalue*,void*);
 XL6_TEXT_API bool xl6AcmeProviderValidateV1(void*);

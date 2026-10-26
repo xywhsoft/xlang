@@ -223,7 +223,7 @@ bool xl6AcmeCleanupV1(void* raw)
     if(!o||!enter(o,o->kind,true,&scope)){failed();return false;}
     bool ok=cleanupProgress(o);leave(o,&scope);return ok;
 }
-void* xl6AcmeAccountPemV1(void* raw)
+char* xl6AcmeAccountPemV1(void* raw)
 {
     AcmeOwner* o=raw;XL6_ExecutionScopeV1 scope={0};
     if(!enter(o,AC_CLIENT,false,&scope)){failed();return NULL;}
