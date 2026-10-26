@@ -13,7 +13,7 @@ function Get-XlirTextHash([string]$Text) {
 
 function New-XlirCBuildContext {
     param([string]$Root, [string]$Directory, [string]$CacheDirectory = '', [switch]$NoCache)
-    $compiler = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
+    $compiler = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
     $rootPath = (Resolve-Path -LiteralPath $Root).Path
     $directoryPath = [IO.Path]::GetFullPath($Directory)
     if (!$CacheDirectory) { $CacheDirectory = Join-Path $rootPath 'build/cache/xlir-c-objects-v1' }
@@ -25,7 +25,7 @@ function New-XlirCBuildContext {
         if (![IO.Path]::IsPathRooted($programPath)) {
             $adjacent = Join-Path (Split-Path -Parent $compiler) ($programPath + '.exe')
             $programPath = if (Test-Path -LiteralPath $adjacent -PathType Leaf) { $adjacent } else {
-                (Get-Command $programPath -CommandType Application -ErrorAction Stop).Source
+                (Get-Command $programPath -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
             }
         }
         $programs += (Resolve-Path -LiteralPath $programPath).Path
