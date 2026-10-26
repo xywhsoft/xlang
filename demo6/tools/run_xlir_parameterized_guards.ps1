@@ -247,7 +247,7 @@ function New-ScenarioGate([string]$Name, [string]$PhaseDirectory) {
             'ContractDirectory' { $arguments[$required] = $contractDirectory }
             'Directory' { $arguments[$required] = Join-Path $PhaseDirectory $slug }
             'SourceDriver' { $arguments[$required] = $sourceDriver }
-            'PublicDriver' { $arguments[$required] = $sourceDriver }
+            'PublicDriver' { $arguments[$required] = Join-Path $publicDirectory 'public_source.exe' }
             'Compiler' {
                 if (!$contractDrivers.ContainsKey($Name)) { throw "No reviewed compiler driver for $Name" }
                 $arguments[$required] = Join-Path $contractDirectory $contractDrivers[$Name]
@@ -324,6 +324,7 @@ $report = [ordered]@{
     PublicDirectory = $publicDirectory
     RuntimeDirectory = $runtimeDirectory
     ContractDirectory = $contractDirectory
+    ArgumentsReport = Join-Path $outputPath 'arguments.json'
     PhaseReports = @()
     Error = $null
 }
@@ -336,6 +337,8 @@ Save-Report
 $previousLocation = Get-Location
 try {
     Set-Location $Root
+    & (Join-Path $toolsDirectory 'check_xlir_parameterized_arguments.ps1') -Root $Root -Report $report.ArgumentsReport
+    if (!$?) { throw 'Parameterized argument roles failed before source builds' }
     Invoke-CheckedScript (Join-Path $toolsDirectory 'build_xlir_public_source_driver.ps1') @{
         Directory = $publicDirectory
     }
