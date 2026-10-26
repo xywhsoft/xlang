@@ -32,7 +32,7 @@ static int equal(const XL6_AstNode* a,const XL6_AstNode* b,int sources)
     left.text=right.text=left.doc=right.doc=NULL; left.literalData=right.literalData=NULL;
     left.children=right.children=NULL; left.inferredType=right.inferredType=left.semanticDeclaredType=right.semanticDeclaredType=NULL;
     left.xlsStorage=right.xlsStorage=NULL;
-    left.source=right.source=NULL; left.childCapacity=right.childCapacity=0;
+    left.xlsLeafReferences=right.xlsLeafReferences=0; left.source=right.source=NULL; left.childCapacity=right.childCapacity=0;
     if(memcmp(&left,&right,sizeof(left)) || !same(a->text,b->text) || !same(a->doc,b->doc) || !!a->literalData!=!!b->literalData ||
        (a->literalSize && memcmp(a->literalData,b->literalData,a->literalSize))) return 0;
     if(sources && a->source) {

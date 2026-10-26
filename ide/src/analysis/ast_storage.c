@@ -3,6 +3,9 @@
 #ifndef XLS_NATIVE_AST_STORAGE
 #error Native AST storage requires the audited private header in every native translation unit
 #endif
+#ifndef XLS_NATIVE_AST_LEAF_REFS
+#error Native AST leaf reference layout requires every consumer to be rebuilt
+#endif
 #define XLS_AST_PAGE_NODES 64u
 struct xls_ast_storage { xpool pool;size_t budget,bytes;uint64_t nodes,pages;int pinned; };
 xls_ast_storage* xlsAstStorageCreate(size_t budget)
