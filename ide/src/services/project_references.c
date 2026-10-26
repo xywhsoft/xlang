@@ -14,10 +14,12 @@
  * envelope fit the reserved1MiB;reject oversized results before framing. */
 #define RESULT_WIRE_BYTES (XIDE_LSP_BODY_BYTES-1024u*1024u)
 #define PROOF_BYTES (128u*1024u*1024u)
-typedef struct reference_record {xls_context* scope;xide_reference_shard* shard;xide_language_input_guard* guard;char** overlays;wchar_t* key;size_t count,bytes;uint64_t used;} reference_record;
+typedef struct path_slot {wchar_t* key;size_t index;} path_slot;
+typedef struct path_index {path_slot* slots;size_t count;} path_index;
+typedef struct reference_record {xls_context* scope;xide_reference_shard* shard;xide_language_input_guard* guard;char** overlays;path_index paths;wchar_t* key;size_t count,bytes;uint64_t used;} reference_record;
 struct xide_project_references {xtaskpool* pool;xls_worker *analysis,*keys;xide_toolchains* cache;char* compiler;xarray records;struct {xls_context* context;size_t count;} scopes[64];size_t bytes;uint64_t clock;};
 struct xide_reference_query {xfuture* future;xfuturewatch watch;int initialized,linked;void (*wake)(void*);void* user;};
-typedef struct reference_input {xide_project_references* store;xls_context* scope;xls_analysis_document docs[64];size_t count;char *trigger,*path;int line,character,include,proof;} reference_input;
+typedef struct reference_input {xide_project_references* store;xls_context* scope;xls_analysis_document docs[64];path_index paths;size_t count;char *trigger,*path;int line,character,include,proof;} reference_input;
 typedef struct reference_output {xvalue* locations;xide_project_reference_stats stats;char error[512];} reference_output;
 typedef struct root {char* path;wchar_t* key;} root;
 typedef struct result_row {char* path;wchar_t* key;xide_lsp_position start,end;const xvalue* proof;} result_row;
@@ -29,10 +31,38 @@ static int same(const char* a,const char* b){return a && b && (!strcmp(a,b) || x
 static int stopped(void* user){return xrtCancelRequested(user);}
 static int fail(reference_output* out,const char* message){snprintf(out->error,sizeof(out->error),"%s",message);return 0;}
 static int charge(size_t* bytes,size_t add,size_t limit){if(*bytes>limit || add>limit-*bytes)return 0;*bytes+=add;return 1;}
+static void pathIndexUnit(path_index* index)
+{for(size_t i=0;i<index->count;++i)free(index->slots[i].key);xrtFree(index->slots);*index=(path_index){0};}
+static int comparePathSlot(const void* a,const void* b)
+{const path_slot *x=a,*y=b;int order=xidePathNativeKeyCompare(x->key,y->key);return order ? order : (x->index>y->index)-(x->index<y->index);}
+static int absolutePath(const char* path)
+{return path && ((path[0] && (path[0]=='/' || path[0]=='\\') && path[1]==path[0]) || (((path[0]>='a' && path[0]<='z') || (path[0]>='A' && path[0]<='Z')) && path[1]==':' && (path[2]=='/' || path[2]=='\\')));}
+static int pathIndexBuild(path_index* index,const char* const* paths,size_t count)
+{
+ if(!count || count>64)return 0;
+ /* Retained relative keys would depend on a past CWD. Preserve the original
+    comparator on relative/unsupported paths or any preparation failure. */
+ for(size_t i=0;i<count;++i)if(!absolutePath(paths[i]))return 0;
+ index->slots=xrtCalloc(count,sizeof(*index->slots));if(!index->slots)return 0;index->count=count;
+ for(size_t i=0;i<count;++i){index->slots[i]=(path_slot){xidePathLexicalWide(paths[i]),i};if(!index->slots[i].key){pathIndexUnit(index);return 0;}}
+ qsort(index->slots,count,sizeof(*index->slots),comparePathSlot);return 1;
+}
+static int pathIndexClone(path_index* index,const path_index* source)
+{
+ if(!source->count)return 0;
+ index->slots=xrtCalloc(source->count,sizeof(*index->slots));if(!index->slots)return 0;index->count=source->count;
+ for(size_t i=0;i<source->count;++i){size_t size=(wcslen(source->slots[i].key)+1)*sizeof(wchar_t);index->slots[i]=(path_slot){malloc(size),source->slots[i].index};if(!index->slots[i].key){pathIndexUnit(index);return 0;}memcpy(index->slots[i].key,source->slots[i].key,size);}return 1;
+}
+static int pathIndexFind(const path_index* index,const wchar_t* key)
+{
+ if(!key || !index->count)return -1;
+ size_t lo=0,hi=index->count;while(lo<hi){size_t mid=lo+(hi-lo)/2;if(xidePathNativeKeyCompare(index->slots[mid].key,key)<0)lo=mid+1;else hi=mid;}
+ return lo<index->count && !xidePathNativeKeyCompare(index->slots[lo].key,key) ? (int)index->slots[lo].index : -1;
+}
 static void releaseRecord(reference_record* r)
-{if(!r)return;if(r->overlays)for(size_t i=0;i<r->count;++i)xrtFree(r->overlays[i]);xrtFree(r->overlays);free(r->key);xlsContextRelease(r->scope);xideSemanticReferenceShardRelease(r->shard);xideLanguageInputGuardRelease(r->guard);xrtFree(r);}
+{if(!r)return;pathIndexUnit(&r->paths);if(r->overlays)for(size_t i=0;i<r->count;++i)xrtFree(r->overlays[i]);xrtFree(r->overlays);free(r->key);xlsContextRelease(r->scope);xideSemanticReferenceShardRelease(r->shard);xideLanguageInputGuardRelease(r->guard);xrtFree(r);}
 static void freeInput(void* data,void* user)
-{(void)user;reference_input* in=data;for(size_t i=0;i<in->count;++i){xrtFree((char*)in->docs[i].key);xrtFree((char*)in->docs[i].path);xlsTextRelease(in->docs[i].text);}xlsContextRelease(in->scope);xrtFree(in->trigger);xrtFree(in->path);xrtFree(in);}
+{(void)user;reference_input* in=data;pathIndexUnit(&in->paths);for(size_t i=0;i<in->count;++i){xrtFree((char*)in->docs[i].key);xrtFree((char*)in->docs[i].path);xlsTextRelease(in->docs[i].text);}xlsContextRelease(in->scope);xrtFree(in->trigger);xrtFree(in->path);xrtFree(in);}
 static void freeOutput(void* data,void* user){(void)user;reference_output* out=data;xrtValueRelease(out->locations);xrtFree(out);}
 static int compareRoot(const void* a,const void* b){return xidePathNativeKeyCompare(((const root*)a)->key,((const root*)b)->key);}
 static int compareRow(const void* a,const void* b)
@@ -45,18 +75,25 @@ static int addRoot(xarray* roots,const char* directory,const char* path,size_t* 
 }
 static int hasOverlay(const reference_record* r,const char* path){for(size_t i=0;i<r->count;++i)if(same(r->overlays[i],path))return 1;return 0;}
 static int currentDocument(const reference_input* in,const char* path){for(size_t i=0;i<in->count;++i)if(same(in->docs[i].path,path))return (int)i;return -1;}
+static int indexedDocument(const reference_input* in,const char* path)
+{wchar_t* key=in->paths.count ? xidePathLexicalWide(path) : NULL;if(!key)return currentDocument(in,path);int at=pathIndexFind(&in->paths,key);free(key);return at;}
 static int overlayCurrent(const reference_record* r,const reference_input* in,xcancel* cancel)
 {
  const xvalue* files=xideLanguageInputGuardFiles(r->guard);
- for(size_t i=0;i<xrtValueCount(files);++i){if(stopped(cancel))return 0;const xvalue* row=xrtValueArrayGet(files,i);const char *path=string(get(row,"path")),*origin=string(get(row,"origin"));if(!path || !origin)return 0;int at=currentDocument(in,path),overlay=!strcmp(origin,"overlay");
+ for(size_t i=0;i<xrtValueCount(files);++i){if(stopped(cancel))return 0;const xvalue* row=xrtValueArrayGet(files,i);const char *path=string(get(row,"path")),*origin=string(get(row,"origin"));if(!path || !origin)return 0;int at=indexedDocument(in,path),overlay=!strcmp(origin,"overlay");
   if(overlay!=(at>=0))return 0;
   if(overlay){int found=0;for(size_t j=0;j<xideSemanticReferenceShardSources(r->shard);++j){xide_semantic_source source;if(!xideSemanticReferenceShardSource(r->shard,j,&source))return 0;if(!same(source.path,path))continue;const char* text=xlsTextData(in->docs[at].text);size_t size=xlsTextSize(in->docs[at].text),bom=size>=3 && !memcmp(text,"\xef\xbb\xbf",3)?3:0;found=source.utf16Prefix==(int)(bom!=0) && strlen(source.text)==size-bom && !memcmp(source.text,text+bom,size-bom);break;}if(!found)return 0;}
  }
  /* Overlay topology can change a previously negative import candidate even
     though the candidate's disk existence is unchanged. Unused body edits do
     not invalidate a shard whose actual binding/existence reads are unchanged. */
- for(size_t i=0;i<in->count;++i)if(!hasOverlay(r,in->docs[i].path) && xideLanguageInputGuardTouches(r->guard,in->docs[i].path))return 0;
- for(size_t i=0;i<r->count;++i)if(currentDocument(in,r->overlays[i])<0 && xideLanguageInputGuardTouches(r->guard,r->overlays[i]))return 0;
+ if(in->paths.count && r->paths.count){
+  for(size_t i=0;i<in->paths.count;++i)if(pathIndexFind(&r->paths,in->paths.slots[i].key)<0 && xideLanguageInputGuardTouches(r->guard,in->docs[in->paths.slots[i].index].path))return 0;
+  for(size_t i=0;i<r->paths.count;++i)if(pathIndexFind(&in->paths,r->paths.slots[i].key)<0 && xideLanguageInputGuardTouches(r->guard,r->overlays[r->paths.slots[i].index]))return 0;
+ }else{
+  for(size_t i=0;i<in->count;++i)if(!hasOverlay(r,in->docs[i].path) && xideLanguageInputGuardTouches(r->guard,in->docs[i].path))return 0;
+  for(size_t i=0;i<r->count;++i)if(currentDocument(in,r->overlays[i])<0 && xideLanguageInputGuardTouches(r->guard,r->overlays[i]))return 0;
+ }
  xide_model_error error={0};return xideLanguageInputGuardValidate(r->guard,stopped,cancel,&error);
 }
 static reference_record** records(xide_project_references* store){return (reference_record**)store->records.Data;}
@@ -120,6 +157,9 @@ static reference_record* analyze(reference_input* in,const char* path,int keyWan
  if(keyWanted)*key=captured;else xideSemanticReferenceKeyRelease(captured);
  r->guard=xideLanguageCheckCaptureInputGuard(check,&error);r->scope=xlsContextRetain(in->scope);r->key=xidePathNativeWide(path);r->count=in->count;r->overlays=xrtCalloc(r->count,sizeof(char*));r->bytes=sizeof(*r)+r->count*sizeof(char*);int okay=r->guard && r->overlays && r->key && charge(&r->bytes,(wcslen(r->key)+1)*sizeof(wchar_t),SIZE_MAX) && charge(&r->bytes,xideSemanticReferenceShardBytes(r->shard),SIZE_MAX) && charge(&r->bytes,xideLanguageInputGuardReportBytes(r->guard),SIZE_MAX);
  for(size_t i=0;okay && i<r->count;++i){r->overlays[i]=xrtStrDup(in->docs[i].path);okay=r->overlays[i] && charge(&r->bytes,strlen(r->overlays[i])+1,SIZE_MAX);}
+ pathIndexClone(&r->paths,&in->paths);
+ okay=okay && charge(&r->bytes,r->paths.count*sizeof(path_slot),SIZE_MAX);
+ for(size_t i=0;okay && i<r->paths.count;++i)okay=charge(&r->bytes,(wcslen(r->paths.slots[i].key)+1)*sizeof(wchar_t),SIZE_MAX);
  if(!okay || !overlayCurrent(r,in,cancel)){fail(out,"Member input proofs changed during reference capture.");goto failed;}++out->stats.captured;goto done;
 failed:releaseRecord(r);r=NULL;
 done:xideLanguageCheckDestroy(check);if(event)xrtEventDestroy(event);return r;
@@ -132,7 +172,7 @@ static const xvalue* sourceProof(reference_input* in,const reference_record* r,c
  *index=SIZE_MAX;const xvalue* input=NULL;const xvalue* files=xideLanguageInputGuardFiles(r->guard);
  for(size_t i=0;i<xrtValueCount(files);++i){const xvalue* file=xrtValueArrayGet(files,i);if(same(string(get(file,"path")),path)){input=file;break;}}
  const char* origin=string(get(input,"origin"));if(!origin)return NULL;
- int overlay=!strcmp(origin,"overlay"),at=currentDocument(in,path);if(overlay!=(at>=0) || (!overlay && strcmp(origin,"disk")))return NULL;
+ int overlay=!strcmp(origin,"overlay"),at=indexedDocument(in,path);if(overlay!=(at>=0) || (!overlay && strcmp(origin,"disk")))return NULL;
  if(overlay && in->docs[at].revision>UINT_MAX)return NULL;
  xvalue* document=NULL;
  for(size_t i=0;i<xideSemanticReferenceShardSources(r->shard);++i){xide_semantic_source source;if(!xideSemanticReferenceShardSource(r->shard,i,&source))return NULL;if(same(source.path,path)){document=xideLanguageReferenceDocument(&source,overlay?(int)((int64_t)in->docs[at].revision+INT_MIN):0,overlay?NULL:input);break;}}
@@ -164,6 +204,7 @@ static int locations(xarray* rows,reference_output* out)
 static xtaskoutcome execute(xcancel* cancel,void* data,xtaskvalue* value)
 {
  reference_input* in=data;reference_output* out=xrtCalloc(1,sizeof(*out));if(!out)return XTASK_FAILED;out->stats.thread=xrtThreadCurrentId();xarray roots={0},rows={0},guards={0},proofs={0};xmap known={0};size_t rootBytes=0,rowBytes=0,proofBytes=0;xide_reference_key* key=NULL;reference_record* transient=NULL;
+ const char* paths[64];for(size_t i=0;i<in->count;++i)paths[i]=in->docs[i].path;pathIndexBuild(&in->paths,paths,in->count);
  if(!xrtArrayInit(&roots,sizeof(root)) || !xrtArrayInit(&rows,sizeof(result_row)) || !xrtArrayInit(&guards,sizeof(xide_language_input_guard*)) || !xrtArrayInit(&proofs,sizeof(xvalue*)) || !xrtMapInit(&known,sizeof(size_t)))goto failed;
  const xls_context_spec* scope=xlsContextSpec(in->scope);if(!addRoot(&roots,scope->directory,in->path,&rootBytes) || !addRoot(&roots,scope->directory,scope->entry,&rootBytes))goto failed;
  for(size_t i=0;i<scope->lists[XLS_CONTEXT_MEMBERS].count;++i){if(stopped(cancel))goto done;if(!addRoot(&roots,scope->directory,scope->lists[XLS_CONTEXT_MEMBERS].items[i],&rootBytes))goto failed;}

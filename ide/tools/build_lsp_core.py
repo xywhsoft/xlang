@@ -69,7 +69,7 @@ CORE_TESTS = ("analysis_worker_cache_fault_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ast_intern_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_frontend_cancel_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_memo_test", "analysis_projection_test", *CORE_TESTS)
-HOST_TESTS += ("navigation_cache_test", "semantic_reference_shard_test", "project_references_test", "project_reference_budget_test")
+HOST_TESTS += ("navigation_cache_test", "semantic_reference_shard_test", "project_references_test", "project_reference_budget_test", "reference_path_index_test")
 HOST_TESTS += ("path_identity_batch_test", "reference_capture_test")
 
 
@@ -727,7 +727,7 @@ def main() -> None:
                           not (name in ("snapshot_report_test", "reference_capture_test") and Path(source).stem == "language_snapshot") and
                           not (name == "path_identity_batch_test" and Path(source).stem == "path") and
                           not (name in ("semantic_lookup_test", "semantic_reference_shard_test") and Path(source).stem == "semantic_definition") and
-                          not (name == "project_reference_budget_test" and Path(source).stem == "project_references")]
+                          not (name in ("project_reference_budget_test", "reference_path_index_test") and Path(source).stem == "project_references")]
             if name in CLIENT_TESTS:
                 # The stream fixture privately owns its actor for deterministic
                 # gates. Other client fixtures need only the pure decoders.
