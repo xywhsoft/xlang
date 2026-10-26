@@ -36,8 +36,8 @@ string sheet = "h1 { color: navy; }"
 assert css.get(sheet, "h1", "color") == "navy"
 assert css.countRules(sheet) == 1</code></pre>
     <h2 id="c-api">C</h2>
-    <p>包含 <code>include/css_native.h</code>。计数结果与索引参数使用与 XLang <code>int</code> 一致的 <code>int64_t</code>。文本结果由 C 调用方持有，必须使用 <code>xrtFree</code>；XLang 直接接管结果，不复制正文。输入的 NUL 校验也不复制整份样式表。失败时返回 NULL 并保留 XRT 错误。C 范例可直接运行 <code>xl run examples/extlibs/css_c.c</code>。</p>
-    <p>2026-10-26 当前发布物的 Windows/Linux 默认门禁均通过：严格 C、ABI、线程、边界与分配故障、C/XLang 双语输出，以及公开 C 与 XLang 范例的独立 EXE AOT 对照；Linux 另含 ASan/UBSan 和四条 XLang AOT 路径。六个公开 XLang 入口的分配故障测试检查内存错误类别和恢复。64/65 层嵌套已有双语回归；合法嵌套样本的逐字符替换矩阵检查 validate、countRules 和 get 的判断与错误状态一致。固定矩阵不代表完整 fuzz，也不意味着完整浏览器 CSS 语义。Linux 门禁为 <code>bash release/extlibs/css/test/check.sh</code>。</p>
+    <p>包含 <code>include/css_native.h</code>。计数结果与索引参数使用与 XLang <code>int</code> 一致的 <code>int64_t</code>。文本结果由 C 调用方持有，必须使用 <code>xrtFree</code>；XLang 通过 <code>@owned string</code> 直接接管，不在交接处复制正文，但仍需扫描一次取得长度。输入的 NUL 校验也不复制整份样式表。失败时返回 NULL 并保留 XRT 错误。C 范例可直接运行 <code>xl run examples/extlibs/css_c.c</code>。</p>
+    <p>2026-10-27 当前发布物的 Windows/Linux 默认门禁均通过：严格 C、ABI、线程、边界与分配故障、C/XLang 双语输出，以及公开 C 与 XLang 范例的独立 EXE AOT 对照；Linux 另含 ASan/UBSan 和四条 XLang AOT 路径。六个公开 XLang 入口的分配故障测试检查内存错误类别和恢复。64/65 层嵌套已有双语回归；合法嵌套样本的逐字符替换矩阵检查 validate、countRules 和 get 的判断与错误状态一致。固定矩阵不代表完整 fuzz，也不意味着完整浏览器 CSS 语义。Linux 门禁为 <code>bash release/extlibs/css/test/check.sh</code>。</p>
     <p>2026-10-19：名称后缀注释的 C/XLang 红绿用例与双语公开范例通过 Windows 和 Linux 包级门禁；注释仅构成属性名的旧拒绝行为也已固定。完整带输出 AOT 未签收。</p>
   </section>
 </main>

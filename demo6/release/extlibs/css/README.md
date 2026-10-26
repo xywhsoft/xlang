@@ -1,5 +1,14 @@
 # css
 
+2026-10-27：`get`、`selectorAt`、`stripComments` 的 C 结果明确为 XRT
+自有 `char*`，XLang 以 `@owned string` 直接接管，移除语言侧
+`point/takeCstr` 中转。生成 C 门禁逐项检查直接赋给字符串 `Data`；
+交接处不复制正文，仍需一次 `strlen` 获取长度。公开写法、NUL 检查、
+空结果与错误类别不变。Windows 严格 C/ABI、线程、分配故障和 JIT/AOT
+与 Linux C ASan/UBSan、XLang JIT/AOT、双语输出均通过。Linux 门禁
+首次在 WSL 挂载盘 I/O 较慢时触及 120 秒 AOT 构建限额；单独构建和
+运行成功后，将有界限额设为 240 秒并重跑完整门禁通过。
+
 2026-10-26 发布物复验：Windows 默认 `test/check.ps1` 与 Linux
 `test/check.sh` 均通过。两平台均验证公开 C 范例的 GCC/TCC 运行和
 `xl build` 独立 EXE 输出一致；Windows 另补分配故障 AOT，Linux 保留
@@ -41,8 +50,8 @@ XLang 的样式表、选择器和属性名若含内嵌 NUL，会在进入零结�
 原生 C 六个公开入口也要求整份样式表为有效 UTF-8，查询用的选择器和属性名同样须有效；注释中的非法字节不会因被跳过而获准进入，失败报告 `XERR_VALUE`。合法中文文本与名称可正常查询。
 
 C 接口见 `include/css_native.h`。文本结果是**独立拥有型**内存，
-调用者必须以 `xrtFree` 释放；`NULL` 表示错误。XL 包装层用
-`takeCstr` 直接接管结果，不复制正文。没有全局或线程局部复用结果槽。
+调用者必须以 `xrtFree` 释放；`NULL` 表示错误。XL 包装层通过
+`@owned string` 直接接管结果，不复制正文。没有全局或线程局部复用结果槽。
 计数结果与 `selectorAt` 索引参数使用 `int64_t`，与 XLang `int` 的
 C ABI 一致；C 输出计数可使用 `<inttypes.h>` 的 `PRId64`。
 

@@ -1,9 +1,9 @@
-extern "xcss_get" func __css_get(string css, string sel, string prop) as point
+extern "xcss_get" @owned func __css_get(string css, string sel, string prop) as string
 extern "xcss_count_rules" func __css_crules(string css) as int
 extern "xcss_count_props" func __css_cprops(string css, string sel) as int
-extern "xcss_selector_at" func __css_selat(string css, int idx) as point
+extern "xcss_selector_at" @owned func __css_selat(string css, int idx) as string
 extern "xcss_validate" func __css_valid(string css) as bool
-extern "xcss_strip_comments" func __css_strip(string css) as point
+extern "xcss_strip_comments" @owned func __css_strip(string css) as string
 
 // 原生解析器使用零结尾 C 字符串，不能忽略内嵌 NUL 后的样式表。
 func __css_text(string value)
@@ -18,7 +18,7 @@ export func get(string css, string selector, string property) as string
     __css_text(css)
     __css_text(selector)
     __css_text(property)
-    return __xl_runtime.takeCstr(__css_get(css, selector, property))
+    return __css_get(css, selector, property)
 end
 
 export func countRules(string css) as int
@@ -34,7 +34,7 @@ end
 
 export func selectorAt(string css, int idx) as string
     __css_text(css)
-    return __xl_runtime.takeCstr(__css_selat(css, idx))
+    return __css_selat(css, idx)
 end
 
 export func validate(string css) as bool
@@ -44,5 +44,5 @@ end
 
 export func stripComments(string css) as string
     __css_text(css)
-    return __xl_runtime.takeCstr(__css_strip(css))
+    return __css_strip(css)
 end

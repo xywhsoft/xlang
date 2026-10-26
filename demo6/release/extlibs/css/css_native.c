@@ -529,7 +529,7 @@ static bool xcss_prop_count_visit(xcssinput Input, xcssspan Selector, xcssspan B
 
 
 
-static void* xcss_empty(void)
+static char* xcss_empty(void)
 {
     char* pResult = (char*)xrtMalloc(1u);
     if (pResult == NULL) xcss_error(XERR_MEMORY, "could not allocate CSS result text");
@@ -539,17 +539,17 @@ static void* xcss_empty(void)
 
 
 
-static void* xcss_store(xcssinput Input, xcssspan Span)
+static char* xcss_store(xcssinput Input, xcssspan Span)
 {
     xbuffer Output;
-    void* pResult;
+    char* pResult;
 
     (void)xrtBufferInit(&Output);
     Span = xcss_trim(Input, Span);
     if (!xrtBufferAppend(&Output, (xbytesview){
             (cbytes)(Input.Data + Span.Begin), Span.End - Span.Begin }) ||
         !xrtBufferAppendByte(&Output, 0u)) goto Memory;
-    pResult = xrtBufferTake(&Output, NULL, NULL);
+    pResult = (char*)xrtBufferTake(&Output, NULL, NULL);
     if (pResult != NULL) return pResult;
 
 Memory:
@@ -560,7 +560,7 @@ Memory:
 
 
 
-void* xcss_get(cstr sCss, cstr sSelector, cstr sProperty)
+char* xcss_get(cstr sCss, cstr sSelector, cstr sProperty)
 {
     xcssinput Input = xcss_input(sCss);
     xcssgetcontext Context;
@@ -620,7 +620,7 @@ int64_t xcss_count_props(cstr sCss, cstr sSelector)
 
 
 
-void* xcss_selector_at(cstr sCss, int64_t iIndex)
+char* xcss_selector_at(cstr sCss, int64_t iIndex)
 {
     xcssselectorcontext Context;
     xcssinput Input = xcss_input(sCss);
@@ -657,11 +657,11 @@ bool xcss_validate(cstr sCss)
 
 
 
-void* xcss_strip_comments(cstr sCss)
+char* xcss_strip_comments(cstr sCss)
 {
     xcssinput Input = xcss_input(sCss);
     xbuffer Output;
-    void* pResult;
+    char* pResult;
     size_t i = 0u;
 
     xrtClearError();
@@ -687,7 +687,7 @@ void* xcss_strip_comments(cstr sCss)
     }
     if (!xrtBufferAppendByte(&Output, 0u)) goto Failed;
     xrtClearError();
-    pResult = xrtBufferTake(&Output, NULL, NULL);
+    pResult = (char*)xrtBufferTake(&Output, NULL, NULL);
     if (pResult != NULL) return pResult;
 
 Failed:

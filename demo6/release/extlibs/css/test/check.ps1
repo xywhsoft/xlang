@@ -49,6 +49,20 @@ try {
     if ($cOutput -cne $directCOutput) {
         throw 'direct CSS C example output differs'
     }
+    $generated = Join-Path $work 'css_owned.c'
+    $null = Run 'XLang direct string cgen' $xl @('cgen',
+        'release/extlibs/css/test/boundaries.xl', '--emit', $generated)
+    $generatedText = [IO.File]::ReadAllText($generated)
+    foreach ($symbol in @('xcss_get', 'xcss_selector_at',
+            'xcss_strip_comments')) {
+        if ($generatedText -notmatch ('\.Data\s*=\s*' + $symbol + '\s*\(')) {
+            throw "css $symbol must adopt the owned C result directly"
+        }
+    }
+    if ($generatedText.Contains('xl6_xrt_take_cstr(') -or
+        $generatedText.Contains('xl6CStringCopyV1')) {
+        throw 'CSS results must not use legacy transfer or copying'
+    }
 
     Push-Location (Join-Path $root 'release')
     try {
