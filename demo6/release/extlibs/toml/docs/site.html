@@ -73,7 +73,7 @@ int main(void)
     <h2>验证状态</h2>
     <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/toml/test/check.ps1 -SkipAot
 bash release/extlibs/toml/test/check.sh</code></pre>
-    <p>Windows 包级门禁覆盖严格 GCC 语法/ABI、C/XLang 边界与双语范例逐字对照，并用 Python 3.11+ 标准库 <code>tomllib</code> 独立解析两侧同字节写出的文件；默认模式还依次检查核心 AOT 与带输出范例 AOT，并对照 C 输出。Linux 包级脚本同次运行 C ASan/UBSan、中央与包内 XLang 边界、双语输出及 <code>tomllib</code> 格式检查。C 测试覆盖解析器分配器和逐点内存故障。历史构建的无输出核心 AOT 曾通过，但当前 Windows/Linux 发布物均在 <code>xl6NativeHandleTraceLeaf</code> 缺符号处停止；新增的带输出 AOT 阶段尚不能运行，不能签收 AOT。<code>-SkipAot</code> 仅供聚焦开发；32 位与长期负载尚未验收。</p>
+    <p>Windows 包级门禁覆盖严格 GCC 语法/ABI、C/XLang 边界与双语范例逐字对照，并用 Python 3.11+ 标准库 <code>tomllib</code> 独立解析两侧同字节写出的文件；默认模式还依次检查核心 AOT 与带输出范例 AOT，并对照 C 输出。Linux 包级脚本同次运行 C ASan/UBSan、中央与包内 XLang 边界、双语输出及 <code>tomllib</code> 格式检查。C 测试覆盖解析器分配器和逐点内存故障。2026-10-26 重建发布物后，Windows 默认门禁在语言字典字面量传给 <code>stringify(var)</code> 时先报根节点不是 dict；同一最小源在 Linux 也复现。原生 <code>parse</code> 返回的字典可写出，表明当前首阻断是共享 foreign <code>var</code> 容器投影，而非先前的 AOT 缺符号记录。后续双语/AOT 尚未执行，不能签收；<code>-SkipAot</code> 也不能绕过这一语义故障。</p>
     <p>NUL 路径边界用例使用独占系统临时目录并在失败或成功时清理，不覆盖固定 <code>build/test</code> 文件。2026-10-20 Windows 聚焦门禁和 Linux C ASan/UBSan、XLang、<code>tomllib</code> 对照复跑通过；完整 AOT 的共享阻断不变。</p>
     <p>2026-10-21：C 原子保存和流写入的分配失败回归先复现错误被标为 IO，修复后均保持内存错误分类；XLang 对 <code>parse/stringify/load/save</code> 逐点注入并验证恢复。Windows 聚焦门禁、Linux C ASan/UBSan、XLang 与 <code>tomllib</code> 对照通过；完整 AOT 仍未签收。</p>
     <p>可选的 TOML 1.0 上游语料审计同时比较官方预期 JSON、Python <code>tomllib</code> 解析原文，以及本包写回后的解析值；固定语料 208 个合法与 501 个非法文件的接受结果、合法文件的可观察类型和值均一致。这不是内部 <code>xvalue</code> 每个节点的直接检查，也不替代 C/XLang 包级门禁。</p>
