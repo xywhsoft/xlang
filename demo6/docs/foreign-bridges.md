@@ -1,6 +1,8 @@
 # C 扩展的资源和数据桥接
 
-`cstring/cbytes` 继续处理文本与二进制结果。下面两个独立入口解决 C
+XRT 分配、可由 `xrtFree` 释放的单一 `char*` 返回值可用
+[`@owned` 直接声明为普通 string](extern-owned-string.md)，接管时不复制内容。
+`cstring/cbytes` 继续处理其他释放器的文本与二进制结果。下面两个独立入口解决 C
 资源生命周期和容器表示；不会改变普通字符串读取或所有 `extern var` 的语义。
 
 ## 原生资源
