@@ -33,7 +33,7 @@ skiplist.SkipList table = skiplist.create()
 table.set("a", "first")
 table.set("b", "second")
 println(table.range("a", "b").length)  // 2</code></pre>
-    <p>区间两端均包含；每个实例由 XRT 系统随机源独立播种 XRT RNG 层级序列，不回退到可预测固定种子。创建、插入、覆盖、读取及结果遍历的分配故障已用 C/XLang 定向验证，失败的写入保持原值。2026-10-25 Windows 默认门禁通过 C 独立模型、包外原生方法访问拒绝、XLang 用例、双语固定输出及核心/公开范例 AOT；语言阶段从发布目录运行，项目根目录的共享 VFS 问题仍未修复。Linux 门禁通过 C ASan/UBSan、熵源故障、语言用例与双语对照，独立 Linux EXE 尚未验收。C 计数返回 <code>int64_t</code>，可在 LP64 平台直接与 XLang <code>int</code> 互通。C 所有权及复杂度见包内 README。</p>
+    <p>区间两端均包含；每个实例由 XRT 系统随机源独立播种 XRT RNG 层级序列，不回退到可预测固定种子。创建、插入、覆盖、读取及结果遍历的分配故障已用 C/XLang 定向验证，失败的写入保持原值。2026-10-26 Windows/Linux 复验已通过 C、语言 JIT、核心及双语公开范例 AOT；Linux 还通过 ASan/UBSan。但顶层分配故障用例的独立 EXE 在两平台退出阶段均报 RuntimeError，默认包门禁保持红色，尚不签收发布级；不可把顶层对象移入 main 绕过。C 计数返回 <code>int64_t</code>，可在 LP64 平台直接与 XLang <code>int</code> 互通。C 所有权及复杂度见包内 README。</p>
   </section>
 </main>
 </body>

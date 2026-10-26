@@ -81,6 +81,19 @@ try {
         $aotLines = @(& $exampleExe)
         if ($LASTEXITCODE -ne 0) { throw 'skiplist AOT example failed' }
         Confirm-Output 'AOT example' $aotLines
+
+        $cExe = Join-Path $work 'c-example.exe'
+        & $xl build examples/extlibs/skiplist_c.c -o $cExe
+        if ($LASTEXITCODE -ne 0) { throw 'skiplist C AOT example build failed' }
+        $cAotLines = @(& $cExe)
+        if ($LASTEXITCODE -ne 0) { throw 'skiplist C AOT example failed' }
+        Confirm-Output 'C AOT example' $cAotLines
+
+        $allocExe = Join-Path $work 'allocations.exe'
+        & $xl build extlibs/skiplist/test/allocations.xl -o $allocExe
+        if ($LASTEXITCODE -ne 0) { throw 'skiplist allocation AOT build failed' }
+        & $allocExe
+        if ($LASTEXITCODE -ne 0) { throw 'skiplist top-level allocation AOT failed' }
     }
 
     if ($SkipAot) {

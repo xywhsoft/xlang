@@ -1,5 +1,12 @@
 # skiplist
 
+2026-10-26 当前默认门禁暂不签收发布级。Windows 与 Linux 均已
+通过 C/ABI、语言 JIT、核心及 C/XLang 公开范例独立 EXE，Linux
+另通过 ASan/UBSan；两平台在顶层 `test/allocations.xl` 的独立
+EXE 退出阶段均报 `RuntimeError: operation is not valid in the current state`。
+最小复现见 `dev/extlib_blockers/skiplist_aot_top_level.xl`，问题
+已登记到共享顶层 native-backed class 退役边界；不在包内规避。
+
 2026-10-25 复验：Windows 默认 `test/check.ps1` 的 C/ABI、随机源
 故障、有序模型、语言边界、私有入口、双语范例及核心/公开范例的
 独立 EXE 均通过。脚本在 `release` 工作目录运行语言阶段；项目

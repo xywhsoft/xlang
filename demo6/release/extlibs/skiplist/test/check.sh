@@ -44,4 +44,25 @@ fi
 timeout 90s ./release/xl run release/examples/extlibs/skiplist.xl \
     > "$work/xl_example.txt"
 diff -u "$work/c_example.txt" "$work/xl_example.txt"
-printf 'skiplist Linux C ASan/UBSan and XLang parity gate: PASS\n'
+for source in release/extlibs/skiplist/test/aot_core.xl \
+    test/cases/extlib_skiplist.xl; do
+    name=$(basename "$source" .xl)
+    printf 'skiplist Linux AOT: %s\n' "$source"
+    timeout 120s ./release/xl build "$source" -o "$work/$name"
+    timeout 90s "$work/$name"
+done
+printf 'skiplist Linux AOT: XLang example\n'
+timeout 120s ./release/xl build release/examples/extlibs/skiplist.xl \
+    -o "$work/skiplist_xl"
+timeout 30s "$work/skiplist_xl" > "$work/skiplist_xl.txt"
+diff -u "$work/c_example.txt" "$work/skiplist_xl.txt"
+printf 'skiplist Linux AOT: C example\n'
+timeout 120s ./release/xl build release/examples/extlibs/skiplist_c.c \
+    -o "$work/skiplist_c"
+timeout 30s "$work/skiplist_c" > "$work/skiplist_c.txt"
+diff -u "$work/c_example.txt" "$work/skiplist_c.txt"
+printf 'skiplist Linux AOT: top-level allocation boundaries\n'
+timeout 120s ./release/xl build release/extlibs/skiplist/test/allocations.xl \
+    -o "$work/allocations"
+timeout 90s "$work/allocations"
+printf 'skiplist Linux C ASan/UBSan and bilingual AOT gate: PASS\n'

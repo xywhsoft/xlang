@@ -1,0 +1,4 @@
+import skiplist
+
+skiplist.SkipList table = skiplist.create()
+println("created")
