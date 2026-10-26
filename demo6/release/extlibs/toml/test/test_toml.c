@@ -390,6 +390,63 @@ static int testParseAndRoundTrip(void)
 	return bOk;
 }
 
+static int tomlTextEquals(xvalue* pObject, const char* sKey, const char* sExpected)
+{
+	xstrview Text;
+	size_t iLength = strlen(sExpected);
+	return pObject != NULL &&
+		xrtValueGetString(xrtValueObjectGet(pObject, xrtStrView(sKey)), &Text) &&
+		Text.Size == iLength && memcmp(Text.Data, sExpected, iLength) == 0;
+}
+
+/* 数组表嵌套节之后再开始下一元素，字段不能归到前一个元素。 */
+static int testNestedArrayTables(const char* sOutputPath)
+{
+	static const char sSource[] =
+		"[[fruit]]\nname = \"apple\"\n"
+		"[fruit.physical]\ncolor = \"red\"\n"
+		"[[fruit.variety]]\nname = \"red delicious\"\n"
+		"[[fruit]]\nname = \"banana\"\n"
+		"[fruit.physical]\ncolor = \"yellow\"\n";
+	xrttomlerror tError;
+	xvalue* pRoot = xrtTomlParseMemory(sSource, sizeof(sSource) - 1u,
+		NULL, &tError);
+	xbuffer* pEncoded = pRoot != NULL ? xrtTomlStringify(pRoot, NULL, &tError) : NULL;
+	xvalue* pAgain = pEncoded != NULL ? xrtTomlParseMemory(pEncoded->Data,
+		pEncoded->Size, NULL, &tError) : NULL;
+	xvalue* pFruits = pAgain != NULL ? xrtValueObjectGet(pAgain,
+		xrtStrView("fruit")) : NULL;
+	xvalue* pApple = pFruits != NULL ? xrtValueArrayGet(pFruits, 0u) : NULL;
+	xvalue* pBanana = pFruits != NULL ? xrtValueArrayGet(pFruits, 1u) : NULL;
+	xvalue* pApplePhysical = pApple != NULL ? xrtValueObjectGet(pApple,
+		xrtStrView("physical")) : NULL;
+	xvalue* pBananaPhysical = pBanana != NULL ? xrtValueObjectGet(pBanana,
+		xrtStrView("physical")) : NULL;
+	xvalue* pVarieties = pApple != NULL ? xrtValueObjectGet(pApple,
+		xrtStrView("variety")) : NULL;
+	int bOk = check(pFruits != NULL && xrtValueType(pFruits) == XVALUE_ARRAY &&
+		xrtValueCount(pFruits) == 2u && pApple != NULL && pBanana != NULL &&
+		tomlTextEquals(pApple, "name", "apple") &&
+		tomlTextEquals(pApplePhysical, "color", "red") &&
+		pVarieties != NULL && xrtValueType(pVarieties) == XVALUE_ARRAY &&
+		xrtValueCount(pVarieties) == 1u &&
+		tomlTextEquals(xrtValueArrayGet(pVarieties, 0u),
+			"name", "red delicious") &&
+		tomlTextEquals(pBanana, "name", "banana") &&
+		tomlTextEquals(pBananaPhysical, "color", "yellow") &&
+		xrtValueObjectGet(pBanana, xrtStrView("variety")) == NULL,
+		"nested array-of-tables lost its element scope on encode");
+	if ( bOk && sOutputPath != NULL ) {
+		bOk &= check(xrtFileWriteAll(sOutputPath,
+			(xbytesview){ pEncoded->Data, pEncoded->Size }),
+			"cannot save nested array-of-tables for external check");
+	}
+	xrtValueRelease(pAgain);
+	xrtBufferDestroy(pEncoded);
+	xrtValueRelease(pRoot);
+	return bOk;
+}
+
 static int testExcessFraction(void)
 {
 	static const char sSource[] =
@@ -1223,13 +1280,14 @@ static int testWriterArrayTableShapeLimits(void)
 	return bOk;
 }
 
-int main(void)
+int main(int argc, char** argv)
 {
 	int bOk;
 	bOk = testParserAllocator();
 	bOk &= testDateAllocationOwnership();
 	bOk &= testParseAllocationFailures();
 	bOk &= testParseAndRoundTrip();
+	bOk &= testNestedArrayTables(argc > 1 ? argv[1] : NULL);
 	bOk &= testExcessFraction();
 	bOk &= testErrorsAndLimits();
 	bOk &= testDateTimeProbe();

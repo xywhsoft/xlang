@@ -14,6 +14,7 @@ export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
 
 "$cc" "${flags[@]}" release/extlibs/toml/test/test_toml.c \
     -lm -ldl -o "$work/test_toml"
-timeout 90s "$work/test_toml"
+timeout 90s "$work/test_toml" "$work/nested.toml"
+python3 -I release/extlibs/toml/test/check_external.py --nested "$work/nested.toml"
 bash release/extlibs/toml/test/check_xlang.sh --skip-aot
 printf 'toml Linux C ASan/UBSan and XLang format gate: PASS\n'

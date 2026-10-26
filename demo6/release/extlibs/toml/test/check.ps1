@@ -34,7 +34,13 @@ try {
 
     Push-Location $release
     try {
-        $null = Run 'C boundaries' $xl @('run', 'extlibs/toml/test/test_toml.c')
+        $nestedFile = Join-Path $work 'nested.toml'
+        $null = Run 'C boundaries' $xl @(
+            'run', 'extlibs/toml/test/test_toml.c', '--', $nestedFile)
+        $python = Get-Command python -CommandType Application -ErrorAction Stop |
+            Select-Object -First 1 -ExpandProperty Source
+        $null = Run 'Python nested tables' $python @(
+            'extlibs/toml/test/check_external.py', '--nested', $nestedFile)
         $null = Run 'XLang boundaries' $xl @('run', 'extlibs/toml/test/boundaries.xl')
         $null = Run 'XLang allocation failures' $xl @('run', 'extlibs/toml/test/allocations.xl')
         $xlangOutput = Run 'XLang example' $xl @('run', 'examples/extlibs/toml.xl')
@@ -55,8 +61,6 @@ try {
             (Get-FileHash -LiteralPath $cFile -Algorithm SHA256).Hash) {
             throw 'C/XLang TOML file examples differ'
         }
-        $python = Get-Command python -CommandType Application -ErrorAction Stop |
-            Select-Object -First 1 -ExpandProperty Source
         $null = Run 'Python tomllib availability' $python @('-c', 'import tomllib')
         $null = Run 'Python TOML file interop' $python @(
             'extlibs/toml/test/check_external.py', $cFile, $xlFile)

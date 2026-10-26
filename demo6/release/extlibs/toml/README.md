@@ -1,5 +1,11 @@
 # toml
 
+2026-10-26：新增数组表元素下嵌套普通表和数组表的 C 往返回归，
+验证第二个元素不会继承第一个元素的子表；Windows 原生门禁与
+Linux C ASan/UBSan 均通过，两个平台还把实际写出内容交给 Python
+`tomllib` 独立解析并核对结构。后续 XLang 门禁仍在已记录的
+语言字典传入 `stringify` 的 foreign `var` 投影处失败，本次不签收整包。
+
 2026-10-26 重建 Windows/Linux 发布版后复验：Windows 默认门禁的严格 C
 语法和 C 边界通过，
 默认 `test/check.ps1` 在 XLang 边界的字典字面量写出路径失败，

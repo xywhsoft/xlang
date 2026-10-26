@@ -26,7 +26,23 @@ def check_version_10_syntax():
         raise ValueError("tomllib rejected a quoted Unicode key")
 
 
+def check_nested(path: Path):
+    expected = {
+        "fruit": [
+            {"name": "apple", "physical": {"color": "red"},
+             "variety": [{"name": "red delicious"}]},
+            {"name": "banana", "physical": {"color": "yellow"}},
+        ]
+    }
+    if tomllib.loads(path.read_text(encoding="utf-8")) != expected:
+        raise ValueError("nested array-of-tables scope changed on encode")
+
+
 def main():
+    if len(sys.argv) == 3 and sys.argv[1] == "--nested":
+        check_nested(Path(sys.argv[2]))
+        print("tomllib nested tables: PASS")
+        return
     if len(sys.argv) != 3:
         raise SystemExit("usage: check_external.py C.toml XL.toml")
     c_path, xl_path = map(Path, sys.argv[1:])
