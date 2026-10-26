@@ -1,9 +1,10 @@
 # 普通 string 接管 C 返回分配：专项验收
 
-日期：2026-10-26。本轮补齐 XACME 可空溯源返回、no_raise 可变参数文本准备、
-原生可变参数函数值与独立 C 消费者门禁。编译器源码构建冻结于
-`f184dccc84d8854f72989686c67d781b4c58b8b8`；随后只追加测试和文档。
-后续合入的 ui.auto 调整不改变这两个构建回执的编译器输入哈希。
+日期：2026-10-26。本轮修复可变参数函数值的编译期 OOM 清理、借用返回的
+no_raise 复制失败传播，并补齐静态方法函数值。此前的 XACME 可空溯源返回、
+C 可变参数文本准备、原生函数值与独立 C 消费者门禁继续保留。
+源码构建冻结于 `e79b786d8`，包含主线 TLS peer-chain 更新；随后只追加文档
+及旧调用测试夹具的 int64_t 可移植性修正，不改变编译器输入哈希。
 实际输入与对象以各 receipt 的 SHA-256 为准，不能用既有 release 产物替代。
 
 ## 构建与运行
@@ -14,22 +15,22 @@ Windows 使用公共源码驱动，Linux 使用实际 CLI；均执行 JIT、AOT 
 
 | 项目 | Windows | Linux / WSL |
 | --- | --- | --- |
-| 当前源码构建 | driver-27/build.json，1286 编译单元 | linux-11/result.json，1288 编译单元 |
-| 字符串专项 | accept-27-final/result.json，55 项 | accept-linux-11-final/result.json，55 项 |
-| 独立 C/XLIR 合同 | accept-27-final/independent-C/result.json，15 项 | accept-linux-11-final/independent-C/result.json，15 项 |
-| XACME 原生与语言专项 | xacme-27/result.json，50 项 | xacme-linux-11/result.json，50 项 |
-| 普通 cstring/cbytes 回归 | regression-26/result.json，36 用例 JIT/AOT、4 项所有权合同 | regression-linux-10/result.json，同一组 116 项检查 |
+| 当前源码构建 | driver-33/build.json，1287 编译单元 | linux-12/result.json，1289 编译单元 |
+| 字符串专项 | accept-33/result.json，66 项 | accept-linux-12/result.json，66 项 |
+| 独立 C/XLIR 合同 | accept-33/independent-C/result.json，17 项 | accept-linux-12/independent-C/result.json，17 项 |
+| XACME 原生与语言专项 | xacme-33/result.json，50 项 | xacme-linux-12/result.json，50 项 |
+| 普通 cstring/cbytes 回归 | regression-33/result.json，36 用例 JIT/AOT、4 项所有权合同 | regression-linux-12/result.json，同一组 116 项检查 |
+| 旧函数值和静态调用 | static-regression-33-portable/result.json，7 用例、21 项 | static-regression-linux-12-final/result.json，同组 21 项 |
 
-36 用例回归在合入后续 TLS 提交之前的 `6f1d4457eadaac12d46cf0fd772536e2192754bc`
-完成；最终源码构建又执行上表字符串和 XACME 专项。语法差分见
+上表均使用本轮冻结的源码候选。本次未改语法；此前语法差分见
 parser-diff-3/xlir_parser_corpus.results.json：3533 个用例，没有接受状态或匿名函数 AST 数退化。
 
 Windows 驱动 SHA-256：
-`41f4e0815b1b54a84bfdcaccd8bbe4f3fa0bf3fab6e58707ac958527aeb0a960`。
+`ebd4b37ca78008ddff3c6769683ea523cee7a24eef139315b8bc9b7ee06fa089`。
 Linux CLI SHA-256：
 `feaadad13ae1929547d4d9e8a8d5c67bb4e7a4dcd841a13700d66e43fd1732c5`；
 其共享编译库 SHA-256：
-`2c46638f2cdd6d46a199779f7d57f238f0021a7983b542c30acf7adf3e7b77b0`。
+`ecaf594d284ca454524365d21e6518e6766424c9f817fcef5161273d1c8b4186`。
 输入与对象哈希均核对；Windows resident 对象为 O0，Linux 为 Os。
 没有替换主工作区 release 二进制；正式产品使用须正常重建。
 
@@ -38,16 +39,24 @@ Linux CLI SHA-256：
 显式镜像与 VFS 同版本的私有头文件。O0/O2 分别验证可空非空值、空缺值、
 普通 string、多返回值、两种生产者失败及 120 个 OOM 前缀，存活数恢复基线。
 另有 6 项 XLIR 入口/签名/元数据/捕获/回调擦除/实参扰动，均在 C 和头文件输出前拒绝。
+编译期 OOM 用真实解析/语义/Lowering 模块定点注入：四个调用元数据数组和
+首个参数名分别分配失败，均正常回滚；通用释放器也接受名称数组尚未分配的模块。
 
 专项覆盖：原指针见证、生产者一次分配且接管零额外分配、一次释放、普通
 借用返回不变、NULL 与空字符串、非终止失败载荷、无诊断失败、16 个 OOM
 前缀及存活数恢复、函数值、实例方法/getter、协议与动态分派、包公开声明、
 导入和 worker、公开 C 消费者的成功/可空/两类失败结果。另验证只转发可空
 结果、无任何字符串操作的最小导出单元，确保回滚释放依赖不会缺失。
-旧 cstring 与跨包用例、普通字符串公开返回回归和 11 项拒绝检查均在同一门中。
+旧 cstring 与跨包用例、普通字符串公开返回回归和 14 项拒绝检查均在同一门中。
 新增原生可变参数函数值还覆盖传参、别名、重绑定、临时函数值与临时字符串
 实参、worker、C 默认提升、文本/二进制 span 和 32 个 OOM 前缀。计数检查
 证明已构造函数值的接管调用只有生产者的一次 malloc，没有额外 owner/装箱/复制分配。
+新增静态方法值覆盖普通/原生/async 方法、默认参数、显式重载选择、继承、
+包导入、原生 C 回调和 32 个 OOM 前缀；固定和 C 可变参数自有返回保持原指针，
+调用点只有生产者分配。private、歧义和缺少接收者的实例方法在生成 C 前拒绝。
+借用返回的 OOM 覆盖直接调用、转发、固定/可变参数函数值、协议、getter 和
+动态方法；失败不向后续 C 观察者传入 Data=NULL 的非空字符串，存活数恢复基线。
+失败借用生产者返回地址 1，带诊断或无诊断时均先检查结果，不读取该地址。
 
 XACME 使用 `D:/GIT/xrt-xacme-bridge` 的本地模拟 CA/DNS，无云凭据。
 覆盖基本接口、自有结果、模块退役、签发/续期/存储流程、旧证书缺失 CA 溯源
@@ -91,6 +100,10 @@ test-wiring-current.log、example-wiring-2.log、docs-index-final.log；
 本轮 source-wiring-26.log、test-wiring-26.log 和 c-fixture-wiring-final.log
 仍报告全局既有索引缺项，例如 stdlib_xson_c.c 过期引用。本轮新增文件的
 对应引用已登记，未出现在这些缺项中；不据此宣称全项目总门通过。
+本轮 test-wiring-33.log 仍报告既有 dynamic/primitive 前缀、过期 stdlib_xson
+及 x509_public 等登记缺项。额外旧 cgen_c_callback_interop 夹具的
+callback_box_destroy C 原型冲突在旧 driver-27 也可复现（callback-baseline-27.log），
+未计入 7 个通过的旧调用用例。新静态 C 回调由独立的可移植夹具验证。
 
 重跑专项使用 `tools/check_extern_owned_string.py --directory 新目录`，
 Windows 配 `--driver`，正常 CLI 配 `--cli`。XACME 使用 tools/check_xacme.py，
