@@ -1,4 +1,4 @@
-param([string]$Root = '', [string]$Directory = '')
+param([string]$Root = '', [string]$Directory = '', [string]$Tcc = '')
 $ErrorActionPreference = 'Stop'
 if (!$Root) { $Root = Split-Path -Parent $PSScriptRoot }
 $Root = (Resolve-Path -LiteralPath $Root).Path
@@ -8,7 +8,9 @@ $out = [IO.Path]::GetFullPath($Directory)
 if (Test-Path -LiteralPath $out) { throw 'Preserve prior response-file evidence' }
 [IO.Directory]::CreateDirectory($out) | Out-Null
 $fixture = Join-Path $Root 'test/cases/xlir_native_response_contract.c'
-$inputs = @($PSCommandPath,$script:XlirNativeProcessImplementation,$fixture,(Get-Command gcc -CommandType Application | Select-Object -First 1).Source) |
+$compilerName = if ($Tcc) {'TCC'} else {'GCC'}
+$compiler = (Get-Command $(if ($Tcc) {$Tcc} else {'gcc'}) -CommandType Application | Select-Object -First 1).Source
+$inputs = @($PSCommandPath,$script:XlirNativeProcessImplementation,$fixture,$compiler) |
     ForEach-Object { [ordered]@{Path=$_;Sha256=(Get-FileHash -LiteralPath $_).Hash} }
 $unicode = -join ([char]0x6D4B,[char]0x8BD5)
 $values = @('', 'path with spaces', 'D:\backslash path\', 'trailing space ', 'embedded "quote" and backslash \', $unicode)
@@ -21,7 +23,8 @@ try {
         $literal = '"' + $value.Replace('\','\\').Replace('"','\"') + '"'
         $expected = [Text.Encoding]::UTF8.GetBytes($value)
         if ($index -eq 6) { $literal='"a\0b"'; $expected=[byte[]]@(97,0,98) }
-        $flags = @('-std=c11','-Wall','-Wextra')
+        $flags = @('-std=c11','-Wall')
+        if (!$Tcc) { $flags += '-Wextra' }
         if ($index -ne 8) { $flags += '-Werror' }
         $define = '-DXL6_NATIVE_DEFINE=' + $literal
         if ($index -lt 4 -or $index -eq 5) {
@@ -40,11 +43,15 @@ try {
         $logicalLength = (Join-XlirWindowsCommandLine $arguments).Length
         if ($index -eq 7 -and $logicalLength -le 32767) { throw 'The actual long command did not exceed the Windows limit' }
         if ($index -ge 8) {
-            $native = Invoke-XlirGccToLog $arguments $log -PassThru
+            $native = if ($Tcc) {Invoke-XlirTccToLog $compiler $arguments $log -PassThru}
+                else {Invoke-XlirGccToLog $arguments $log -PassThru}
             $code = $native.exitCode
             $expectedStatus = if ($index -eq 8) {'pass'} else {'fail'}
             if ($native.status -cne $expectedStatus -or !$native.stderr -or $native.stdout) { throw 'Structured compiler result changed native streams or status' }
-        } else { $code = Invoke-XlirGccToLog $arguments $log }
+        } else {
+            $code = if ($Tcc) {Invoke-XlirTccToLog $compiler $arguments $log}
+                else {Invoke-XlirGccToLog $arguments $log}
+        }
         $receipt = [IO.File]::ReadAllText($log+'.command.json', [Text.Encoding]::UTF8) | ConvertFrom-Json
         if (!$receipt.Complete -or $receipt.Exit -ne $code -or @($receipt.Arguments).Count -ne $arguments.Count) { throw 'Incomplete compiler command receipt' }
         for ($argumentIndex=0; $argumentIndex -lt $arguments.Count; ++$argumentIndex) {
@@ -65,21 +72,28 @@ try {
     }
     foreach ($bad in @("bad$([char]0)argument","bad`nargument","bad`rargument",'@nested.rsp')) {
         $refused=$false
-        try { [void](Invoke-XlirGccToLog @($bad) (Join-Path $out "rejected-$rejected.log")) } catch { $refused=$true }
+        try {
+            if ($Tcc) {[void](Invoke-XlirTccToLog $compiler @($bad) (Join-Path $out "rejected-$rejected.log"))}
+            else {[void](Invoke-XlirGccToLog @($bad) (Join-Path $out "rejected-$rejected.log"))}
+        } catch { $refused=$true }
         if (!$refused) { throw 'Invalid response argument was admitted' }
         if (Test-Path -LiteralPath (Join-Path $out "rejected-$rejected.log.rsp")) { throw 'Rejected arguments wrote a response file' }
         ++$rejected
     }
     $refused=$false
-    try { [void](Invoke-XlirGccToLog @('--version') (Join-Path $out 'case-0.build.log')) } catch { $refused=$true }
+    try {
+        if ($Tcc) {[void](Invoke-XlirTccToLog $compiler @('--version') (Join-Path $out 'case-0.build.log'))}
+        else {[void](Invoke-XlirGccToLog @('--version') (Join-Path $out 'case-0.build.log'))}
+    } catch { $refused=$true }
     if (!$refused) { throw 'Existing compiler evidence was overwritten' }
     ++$rejected
     foreach ($record in $inputs) {
         if ((Get-FileHash -LiteralPath $record.Path).Hash -cne $record.Sha256) { throw "Response input changed: $($record.Path)" }
     }
     $result=[ordered]@{Complete=$true;Edition=$PSVersionTable.PSEdition;Inputs=@($inputs);Cases=$rows;Rejected=$rejected;
-        LongCommandLength=$rows[7].LogicalCommandLength;ActualGccExecutions=10;ActualProgramsRun=9;
+        LongCommandLength=$rows[7].LogicalCommandLength;Compiler=$compilerName;ActualCompilerExecutions=10;
+        ActualGccExecutions=$(if ($Tcc) {0} else {10});ActualProgramsRun=9;
         FullParameterizedAccepted=$false;FullGoalComplete=$false}
     [IO.File]::WriteAllText((Join-Path $out 'results.json'),($result | ConvertTo-Json -Depth 7),[Text.UTF8Encoding]::new($false))
-    Write-Output "GCC response transport: ten actual builds, nine exact-byte executions, five refusals; $($PSVersionTable.PSEdition)"
+    Write-Output "$compilerName response transport: ten actual builds, nine exact-byte executions, five refusals; $($PSVersionTable.PSEdition)"
 } finally { Set-Location $previous }

@@ -23,7 +23,7 @@ try {
     $lanes=@()
     foreach($compiler in @('gcc-O0','gcc-O2','tcc')){
         $binary="$out/oracle-$compiler.exe"
-        if($compiler-eq'tcc'){$build=Invoke-XlirNativeToLog $Tcc (@('-std=c11')+$includes+@($case)+$resident+@('tools/xrt_single_header_impl.c','C:/Windows/System32/ucrtbase.dll')+$libs+@('-o',$binary)) "$binary.build.log"}
+        if($compiler-eq'tcc'){$build=Invoke-XlirTccToLog $Tcc (@('-std=c11')+$includes+@($case)+$resident+@('tools/xrt_single_header_impl.c','C:/Windows/System32/ucrtbase.dll')+$libs+@('-o',$binary)) "$binary.build.log"}
         else{$build=Invoke-XlirGccToLog ($strict+@("-$($compiler.Substring(4))")+$includes+@($case)+$resident+@($runtime[0].Path)+$libs+@('-o',$binary)) "$binary.build.log"}
         $run=$null;$complete=$false
         if($build-eq0){
