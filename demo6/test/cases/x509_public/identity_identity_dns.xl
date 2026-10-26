@@ -1,0 +1,11 @@
+// Offline valid public fixtures; ordinary ownership/API checks, no network traffic.
+if not x509.matchesDns("localhost","LOCALHOST") then throw RuntimeError "DNS match" end
+if x509.matchesDns("localhost","other.test") then throw RuntimeError "different DNS" end
+if not x509.matchesDns("localhost","localhost",1000,1000) then throw RuntimeError "clamped views" end
+auto caught=false
+try
+    x509.matchesDns("localhost","localhost",-2)
+catch RangeError error
+    caught=true
+end
+if not caught then throw RuntimeError "pure call can still raise" end

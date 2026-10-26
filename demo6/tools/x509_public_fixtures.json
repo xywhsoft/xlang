@@ -1,0 +1,225 @@
+{
+  "Cases": [
+    {
+      "Name": "stdlib_x509_public_data_x509_all",
+      "Source": "test/cases/x509_public/data_x509_all.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_records_records_all",
+      "Source": "test/cases/x509_public/records_records_all.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_records_records_reads",
+      "Source": "test/cases/x509_public/records_records_reads.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_records_records_compare",
+      "Source": "test/cases/x509_public/records_records_compare.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_records_records_metadata",
+      "Source": "test/cases/x509_public/records_records_metadata.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_records_records_time",
+      "Source": "test/cases/x509_public/records_records_time.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_profiles_profiles_all",
+      "Source": "test/cases/x509_public/profiles_profiles_all.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_profiles_profiles_general",
+      "Source": "test/cases/x509_public/profiles_profiles_general.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_profiles_profiles_distribution",
+      "Source": "test/cases/x509_public/profiles_profiles_distribution.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_profiles_profiles_constraints",
+      "Source": "test/cases/x509_public/profiles_profiles_constraints.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_profiles_profiles_nullable",
+      "Source": "test/cases/x509_public/profiles_profiles_nullable.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_crl_crl_entries",
+      "Source": "test/cases/x509_public/crl_crl_entries.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_crl_crl_issuing",
+      "Source": "test/cases/x509_public/crl_crl_issuing.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_crl_crl_parent",
+      "Source": "test/cases/x509_public/crl_crl_parent.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_crl_crl_nullable",
+      "Source": "test/cases/x509_public/crl_crl_nullable.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_crl_crl_utilities",
+      "Source": "test/cases/x509_public/crl_crl_utilities.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_policy_policy_normal",
+      "Source": "test/cases/x509_public/policy_policy_normal.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_policy_policy_partial",
+      "Source": "test/cases/x509_public/policy_policy_partial.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_policy_policy_callback",
+      "Source": "test/cases/x509_public/policy_policy_callback.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_policy_policy_empty",
+      "Source": "test/cases/x509_public/policy_policy_empty.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_verify_verify_certificates",
+      "Source": "test/cases/x509_public/verify_verify_certificates.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_verify_verify_messages",
+      "Source": "test/cases/x509_public/verify_verify_messages.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_verify_verify_interop",
+      "Source": "test/cases/x509_public/verify_verify_interop.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_path_path_normal",
+      "Source": "test/cases/x509_public/path_path_normal.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_path_path_callback",
+      "Source": "test/cases/x509_public/path_path_callback.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_path_build_issuer",
+      "Source": "test/cases/x509_public/path_build_issuer.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_path_build_normal",
+      "Source": "test/cases/x509_public/path_build_normal.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_path_build_callback",
+      "Source": "test/cases/x509_public/path_build_callback.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_path_build_work",
+      "Source": "test/cases/x509_public/path_build_work.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_store_store_empty",
+      "Source": "test/cases/x509_public/store_store_empty.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_store_store_versions",
+      "Source": "test/cases/x509_public/store_store_versions.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_store_store_pem",
+      "Source": "test/cases/x509_public/store_store_pem.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_store_store_lifetime",
+      "Source": "test/cases/x509_public/store_store_lifetime.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_store_store_encoded",
+      "Source": "test/cases/x509_public/store_store_encoded.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_store_store_sources_vfs",
+      "Source": "test/cases/x509_public/store_store_sources_vfs.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_store_store_sources_system",
+      "Source": "test/cases/x509_public/store_store_sources_system.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_store_store_sources_file",
+      "Source": "test/cases/x509_public/store_store_sources_file.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_identity_identity_dns",
+      "Source": "test/cases/x509_public/identity_identity_dns.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_identity_identity_bool",
+      "Source": "test/cases/x509_public/identity_identity_bool.xl",
+      "Negative": false
+    },
+    {
+      "Name": "stdlib_x509_public_identity_identity_owned",
+      "Source": "test/cases/x509_public/identity_identity_owned.xl",
+      "Negative": false
+    },
+    {
+      "Name": "bad_stdlib_x509_public_certificate_handle",
+      "Source": "test/cases/x509_public/bad_certificate_handle.xl",
+      "Negative": true
+    },
+    {
+      "Name": "bad_stdlib_x509_public_crl_handle",
+      "Source": "test/cases/x509_public/bad_crl_handle.xl",
+      "Negative": true
+    },
+    {
+      "Name": "bad_stdlib_x509_public_store_handle",
+      "Source": "test/cases/x509_public/bad_store_handle.xl",
+      "Negative": true
+    },
+    {
+      "Name": "bad_stdlib_x509_public_snapshot_handle",
+      "Source": "test/cases/x509_public/bad_snapshot_handle.xl",
+      "Negative": true
+    }
+  ],
+  "Support": []
+}

@@ -1,0 +1,10 @@
+// Offline valid public fixtures; ordinary ownership/API checks, no network traffic.
+auto snapshot=TrustStoreSnapshot.fromSystem()
+if snapshot.count <= 0 or snapshot.byteCount <= 0 then throw RuntimeError "OS roots" end
+auto root=snapshot.at(0).toDer()
+auto store=TrustStore.fromSystem()
+if store.count <= 0 or store.byteCount <= 0 then throw RuntimeError "mutable OS roots" end
+auto imported=TrustStore()
+if imported.addSystem() <= 0 or imported.count <= 0 then throw RuntimeError "explicit system merge" end
+store.clear()
+if snapshot.at(0).toDer() != root then throw RuntimeError "detached OS snapshot" end

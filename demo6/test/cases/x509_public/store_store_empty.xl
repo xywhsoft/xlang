@@ -1,0 +1,7 @@
+// Offline valid public fixtures; ordinary ownership/API checks, no network traffic.
+auto store=TrustStore()
+if store.count != 0 or store.byteCount != 0 then throw RuntimeError "empty store" end
+auto snapshot=store.snapshot()
+if snapshot.count != 0 or snapshot.byteCount != 0 then throw RuntimeError "empty snapshot" end
+auto copy=store.clone()
+if copy.count != 0 then throw RuntimeError "empty clone" end

@@ -1,0 +1,3 @@
+func inspect(Certificate value)
+    auto raw=value.handle
+end

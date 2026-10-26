@@ -2,6 +2,12 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`check_network_public_shipping.py --manifest tools/x509_public_fixtures.json`
+selects 40 offline valid-material positives and four private-field compile negatives
+(245 product stages per OS). `tools/x509_policy_public_fixtures.json` adds seven
+targeted policy-value stages without repeating the unchanged batch. The inventory
+checker reads both X.509 manifests by default. See [X.509 public closure](../docs/x509-public-closure-2026-10-26.md).
+
 `check_network_public_shipping.py --manifest tools/crypto_surface_public_fixtures.json`
 selects 27 ordinary crypto/key-format positives and three compile-time negatives
 (166 product stages per OS), including actual calls of all 74 key-format ABIs.
