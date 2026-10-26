@@ -1,3 +1,26 @@
+/* Emit admission at the call site: no runtime thunk, owner allocation or
+ * allocator tag. A non-NULL physical return is owned even on a failed call.
+ * Observe the error BEFORE strlen; failed producers need not terminate data. */
+static void xl6IrCgenEmitOwnedStringAdmission(XL6_Output* out,
+    const XL6_IrModule* module, const XL6_IrCallTarget* target,
+    const char* place, const char* failed)
+{
+    const XL6_IrType* type=xl6IrTypeGet(&module->types,target->returnType);
+    if (failed) {
+        xl6OutputPrintf(out,"    if (%s || xrtGetError() != NULL) {\n"
+            "        xerror* saved_error = xrtTakeError(); xrtFree((void*)%s.Data);\n"
+            "        %s = (xlir_string){0}; xrtSetErrorTake(saved_error);\n"
+            "    } else {\n",failed,place,place);
+    }
+    xl6OutputPrintf(out,"    %s.Size = %s.Data != NULL ? strlen(%s.Data) : 0;\n",place,place,place);
+    if (target->errorAbi==XL6_IR_ERROR_ABI_MAY_RAISE) {
+        xl6OutputPrintf(out,"    if (%s.Size > INT64_MAX) { xrtFree((void*)%s.Data); %s = (xlir_string){0}; xrtSetErrorKind(XERR_RANGE); }\n",place,place,place);
+        if (type->kind!=XL6_IR_TYPE_NULLABLE)
+            xl6OutputPrintf(out,"    else if (%s.Data == NULL) xrtSetErrorKind(XERR_VALUE);\n",place);
+    }
+    if(failed)xl6OutputPuts("    }\n",out);
+}
+
 static int xl6IrCgenTypeSelected(
     const XL6_IrModule* module, XL6_IrTypeId type,
     const unsigned char* selectedTypes)
@@ -899,7 +922,8 @@ static int xl6IrCgenEmitDirectCall(
         (unsigned)module->operands[instruction->firstOperand+nativeValue.inputParameter-1]);
     /* A failed scope entry skips the native call, so its owned physical
      * result must be empty on every invocation, not merely at function entry. */
-    if ((target->preparationFailureAbi == XL6_IR_CALL_PREPARATION_RETIRE_OWNED_REVERSE ||
+    if ((target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE ||
+         target->preparationFailureAbi == XL6_IR_CALL_PREPARATION_RETIRE_OWNED_REVERSE ||
          target->nativeResultAbi==XL6_IR_CALL_NATIVE_RESULT_VALUE_SLOT_V1) &&
         instruction->result != XL6_IR_VALUE_INVALID &&
         !xl6IrCgenIsControlCarrier(module, instruction) &&
@@ -949,7 +973,8 @@ static int xl6IrCgenEmitDirectCall(
     else if ( target->nativeResultAbi==XL6_IR_CALL_NATIVE_RESULT_NONE &&
               instruction->result != XL6_IR_VALUE_INVALID &&
               !xl6IrCgenIsControlCarrier(module, instruction) )
-        xl6OutputPrintf(out, "    v%u = ", (unsigned int)instruction->result);
+        xl6OutputPrintf(out, "    v%u%s = ", (unsigned int)instruction->result,
+            target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE ? ".Data" : "");
     else
         xl6OutputPuts("    ", out);
     if ( target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY )
@@ -1000,6 +1025,13 @@ static int xl6IrCgenEmitDirectCall(
     if ( target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY )
         xl6OutputPuts(")", out);
     xl6OutputPuts(");\n", out);
+    if(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE) {
+        char place[40],failed[64];
+        snprintf(place,sizeof(place),"v%u",(unsigned)instruction->result);
+        snprintf(failed,sizeof(failed),"fs%lu.failed",(unsigned long)instructionIndex);
+        xl6IrCgenEmitOwnedStringAdmission(out,module,target,place,
+            target->errorPhysicalAbi==XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE ? failed : NULL);
+    }
     if (!xl6IrCgenNativeCallValueEnd(out,module,&nativeValue,nativeResult,nativeScope)) return 0;
     if (textCount != 0) xl6OutputPuts("    }\n", out);
     if ( target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE ) {

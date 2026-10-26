@@ -167,9 +167,13 @@ static int xl6IrCgenEmitDispatchWitness(
         if (!xl6IrCgenEmitPreparationRollback(out, module, target, NULL, 1, "outcome", diags)) return 0;
         xl6OutputPuts("        xrtSetErrorTake(outcome.error); return result;\n"
             "    }\n    ", out);
-        if (returnType != XL6_IR_TYPE_INVALID) xl6OutputPuts("result.value = ", out);
+        if (returnType != XL6_IR_TYPE_INVALID) xl6OutputPuts(
+            target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE
+                ? "result.value.Data = " : "result.value = ", out);
         xl6IrCgenEmitDispatchTargetCall(out, target, externReceiverField, parameterCount);
         xl6OutputPuts(";\n", out);
+        if(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE)
+            xl6IrCgenEmitOwnedStringAdmission(out,module,target,"result.value","scope.failed");
         if (returnType != XL6_IR_TYPE_INVALID) {
             xl6OutputPuts("    if (scope.failed || xrtGetError() != NULL) {\n"
                 "        xl6ErrorScopeCaptureFailure(&scope);\n", out);
@@ -185,12 +189,19 @@ static int xl6IrCgenEmitDispatchWitness(
         target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER)
         return xl6IrCgenDiag(diags, module, target->declaration,
             "XLIR dispatch witness outcome adapter is unresolved");
+    int owned=target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE;
     if (lift) {
         xl6OutputPrintf(out, "%s result = {true}; ", xl6IrCgenErrorResultType(module, returnType));
-        if (returnType != XL6_IR_TYPE_INVALID) xl6OutputPuts("result.value = ", out);
+        if (returnType != XL6_IR_TYPE_INVALID) xl6OutputPuts(owned ? "result.value.Data = " : "result.value = ", out);
+    } else if(owned) {
+        xl6OutputPuts("xlir_string owned_result = {0}; owned_result.Data = ",out);
     } else if (returnType != XL6_IR_TYPE_INVALID || carrier) xl6OutputPuts("return ", out);
     xl6IrCgenEmitDispatchTargetCall(out, target, externReceiverField, parameterCount);
     xl6OutputPuts("; ", out);
+    if(owned) {
+        xl6IrCgenEmitOwnedStringAdmission(out,module,target,lift ? "result.value" : "owned_result",NULL);
+        if(!lift)xl6OutputPuts("return owned_result; ",out);
+    }
     if (lift) xl6OutputPuts("return result; ", out);
     else if (returnType == XL6_IR_TYPE_INVALID && !carrier) xl6OutputPuts("return; ", out);
     return !xl6OutputHasFailed(out);
