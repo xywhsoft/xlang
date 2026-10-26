@@ -508,6 +508,11 @@ int xideLanguageCheckReferenceWork(xide_language_check* q,xls_check_stats* work,
  EnterCriticalSection(&q->lock);int okay=q->referenceMode && q->state==XIDE_CHECK_READY && q->guardState==XIDE_GUARD_RUNNING && !cancelled(q) && q->referenceShard;
  if(okay){*work=q->semanticStats;*sessions=q->sessionCache;*navigation=q->navigationWork;}LeaveCriticalSection(&q->lock);return okay;
 }
+uint64_t xideLanguageCheckReferenceThread(xide_language_check* q)
+{
+ if(!q)return 0;
+ EnterCriticalSection(&q->lock);uint64_t thread=q->referenceMode && q->state==XIDE_CHECK_READY && q->guardState==XIDE_GUARD_RUNNING && !cancelled(q) && q->referenceShard ? q->semanticThread : 0;LeaveCriticalSection(&q->lock);return thread;
+}
 int xideLanguageCheckMatchesContext(const xide_language_check* check,const xls_context* context)
 { return check && xlsFrontendContextsEqual(check->context,context); }
 xide_language_check* xideLanguageCheckStartRetained(xide_toolchains* cache,const char* compiler,

@@ -55,7 +55,7 @@ def main():
     def start(config=True):
         c=Client(server,out/'absent-xl.exe',root);clients.append(c);options=dict(checkOnSave=False,automaticDiagnostics=False)
         if config:options['analysisConfiguration']=packet(1)
-        c.send('initialize',dict(capabilities={},initializationOptions=options),1);r,_=c.reply(1);assert r['result']['serverInfo']['version']=='0.84' and r['result']['capabilities']['referencesProvider'] is True,r;c.send('initialized',{});c.open(entry,main_text,1);return c
+        c.send('initialize',dict(capabilities={},initializationOptions=options),1);r,_=c.reply(1);assert r['result']['serverInfo']['version']=='0.85' and r['result']['capabilities']['referencesProvider'] is True,r;c.send('initialized',{});c.open(entry,main_text,1);return c
     def params(path=entry,text=main_text,include=True,needle='compute(7)',**extra):return dict(textDocument=dict(uri=path.as_uri()),position=position(text,text.index(needle)),context=dict(includeDeclaration=include),**extra)
     def location(path,text,at,size=7):return dict(uri=path.as_uri(),range=dict(start=position(text,at),end=position(text,at+size)))
     def expected(other_body=other_text,dep_body=body,include=True,with_other=True):
@@ -71,8 +71,8 @@ def main():
     def references(c,want,**kw):
         got=call(c,'textDocument/references',params(**kw));assert got==want,(got,want);return got
     try:
-        c=start();references(c,expected());stats=call(c,'xlang/referenceStats',{});assert (stats['roots'],stats['captured'],stats['reused'],stats['locations'])==(4,4,0,4),stats;done('cold-complete-unopened-unimported-project',work=stats)
-        references(c,expected(include=False),include=False);stats=call(c,'xlang/referenceStats',{});assert (stats['captured'],stats['reused'])==(1,3),stats;done('exclude-declaration-and-retained-shards',work=stats)
+        c=start();references(c,expected());stats=call(c,'xlang/referenceStats',{});assert (stats['roots'],stats['captured'],stats['reused'],stats['locations'])==(4,4,0,4),stats;assert (stats['memberWorkers'],stats['memberTasks'],stats['memberPeak'],stats['memberThreads'])==(4,3,3,3),stats;done('cold-complete-unopened-unimported-project',work=stats)
+        references(c,expected(include=False),include=False);stats=call(c,'xlang/referenceStats',{});assert (stats['captured'],stats['reused'])==(1,3),stats;assert not any(stats[k] for k in ['memberTasks','memberPeak','memberThreads']),stats;done('exclude-declaration-and-retained-shards',work=stats)
         other.write_bytes(edited.encode());references(c,expected(edited));stats=call(c,'xlang/referenceStats',{});assert (stats['captured'],stats['reused'])==(2,2),stats;done('unopened-member-disk-edit',work=stats)
         replacement=root/'replacement.tmp';replacement.write_bytes(edited.encode());os.replace(replacement,other);references(c,expected(edited));stats=call(c,'xlang/referenceStats',{});assert (stats['captured'],stats['reused'])==(2,2),stats;done('same-byte-disk-identity-replacement',work=stats)
         c.open(other,one,3);references(c,expected(one));done('unsaved-unimported-member-overlay')
