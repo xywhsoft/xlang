@@ -1,5 +1,15 @@
 # tabulate
 
+2026-10-26：当前发布版的 Windows 默认包门禁新增顶层对象边界 AOT，
+在严格 C、线程、XLang JIT 和核心 AOT 通过后，独立 EXE 于退出清理
+阶段报 `RuntimeError: operation is not valid in the current state`；
+Linux 默认包门禁的 C ASan/UBSan、线程与语言 JIT 亦通过，随后
+在同一边界 EXE 打印 PASS 后报同错并退出 1。
+Windows/Linux 最小复现均证明顶层 `Table` 的 JIT 正常、独立 EXE
+退出失败；详见 `demo6/dev/extlib_blockers/tabulate_aot_top_level.xl`
+及 `global_native_class_aot_fini.md`。此包暂不签收完整发布级；
+保留红色边界门禁，不在包内改写顶层对象生命周期。
+
 2026-10-25：从当前源码完整重建 Windows 发布版后，默认
 `test/check.ps1` 通过严格 C/ABI、线程、XLang 边界与分配故障、
 私有入口负例、C/XLang 固定输出及核心/公开范例 AOT。

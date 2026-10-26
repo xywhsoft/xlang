@@ -1,5 +1,18 @@
 # 顶层 native-backed class 在独立 EXE 退出时失败
 
+2026-10-26 当前发布物复验 `tabulate`：Windows 默认包门禁的严格 C、
+线程、XLang JIT、私有入口负例及无输出核心 AOT 通过，新增的
+`release/extlibs/tabulate/test/boundaries.xl` 独立 EXE 在退出阶段报
+`RuntimeError: operation is not valid in the current state`，门禁退出 1。
+Linux 默认 `test/check.sh` 也在 C ASan/UBSan、线程与 XLang JIT 通过后，
+于同一边界 EXE 打印 PASS 后退出 1。最小源
+`dev/extlib_blockers/tabulate_aot_top_level.xl` 在 Windows/Linux
+均先打印 `created`，JIT 退出 0，独立 EXE 则在模块清理时报同错并退出 1。
+同一表对象操作放在 `main` 局部时，Windows 独立 EXE 可正常退出；
+症状指向顶层 native-backed class 退役顺序，但未证明与其他包同根。
+主线应检查模块退役时原生析构及错误作用域，修复后重跑两平台默认
+包门禁；不能把顶层边界用例挪进函数以换取绿色结果。
+
 2026-10-26 `hyperloglog` 新门禁复验：Windows 当前发布版的严格 C、
 线程、XLang JIT、私有入口负例、双语黄金输出，以及中央/公开范例
 AOT 已通过；新增 `release/extlibs/hyperloglog/test/boundaries.xl` AOT

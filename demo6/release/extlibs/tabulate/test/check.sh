@@ -58,4 +58,20 @@ fi
 timeout 90s ./release/xl run release/examples/extlibs/tabulate.xl \
     > "$work/xl_example.txt"
 diff -u "$work/c_example.txt" "$work/xl_example.txt"
-printf 'tabulate Linux C ASan/UBSan and XLang parity gate: PASS\n'
+for source in \
+    test/cases/extlib_tabulate.xl \
+    release/extlibs/tabulate/test/boundaries.xl \
+    release/extlibs/tabulate/test/allocations.xl; do
+    name=$(basename "$source" .xl)
+    timeout 90s ./release/xl build "$source" -o "$work/$name"
+    timeout 30s "$work/$name"
+done
+timeout 90s ./release/xl build release/examples/extlibs/tabulate.xl \
+    -o "$work/tabulate_xlang"
+timeout 30s "$work/tabulate_xlang" > "$work/xlang_aot.txt"
+diff -u release/extlibs/tabulate/test/tabulate.expected.txt "$work/xlang_aot.txt"
+timeout 90s ./release/xl build release/extlibs/tabulate/examples/tabulate_c.c \
+    -o "$work/tabulate_c"
+timeout 30s "$work/tabulate_c" > "$work/c_aot.txt"
+diff -u release/extlibs/tabulate/test/tabulate.expected.txt "$work/c_aot.txt"
+printf 'tabulate Linux C ASan/UBSan and bilingual AOT gate: PASS\n'

@@ -71,12 +71,27 @@ try {
         & $core
         if ($LASTEXITCODE -ne 0) { throw 'tabulate XLang core AOT failed' }
 
+        foreach ($case in @('boundaries', 'allocations')) {
+            $caseExe = Join-Path $work "tabulate_$case.exe"
+            & $xl build "release/extlibs/tabulate/test/$case.xl" -o $caseExe
+            if ($LASTEXITCODE -ne 0) { throw "tabulate $case AOT build failed" }
+            & $caseExe
+            if ($LASTEXITCODE -ne 0) { throw "tabulate $case AOT failed" }
+        }
+
         $example = Join-Path $work 'tabulate_example.exe'
         & $xl build release/examples/extlibs/tabulate.xl -o $example
         if ($LASTEXITCODE -ne 0) { throw 'tabulate XLang example AOT build failed' }
         $aotLines = @(& $example)
         if ($LASTEXITCODE -ne 0) { throw 'tabulate XLang example AOT failed' }
         Confirm-Output 'XLang example AOT' $aotLines
+
+        $cExample = Join-Path $work 'tabulate_c_example.exe'
+        & $xl build release/extlibs/tabulate/examples/tabulate_c.c -o $cExample
+        if ($LASTEXITCODE -ne 0) { throw 'tabulate C example AOT build failed' }
+        $cAotLines = @(& $cExample)
+        if ($LASTEXITCODE -ne 0) { throw 'tabulate C example AOT failed' }
+        Confirm-Output 'C example AOT' $cAotLines
     }
 
     if ($SkipAot) {
