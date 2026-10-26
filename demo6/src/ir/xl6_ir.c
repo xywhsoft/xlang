@@ -4212,6 +4212,13 @@ static XL6_IrNodeId xl6IrBuildAstNode(
     memset(node, 0, sizeof(*node));
     node->unionField = SIZE_MAX;
     node->kind = xl6IrNodeKindFromAst(source->kind); node->sourceKind = source->kind; node->flags = source->flags;
+    /* A semantically selected static method value has no runtime receiver.
+     * Normalize its qualified spelling to the existing named-callable node;
+     * sourceKind/span retain the original member expression for diagnostics. */
+    if(source->kind==XL6_AST_MEMBER && source->semanticCallKind==XL6_SEM_CALL_NONE &&
+       source->semanticTargetSymbolId && source->inferredType &&
+       source->inferredType->text && !strcmp(source->inferredType->text,"function"))
+        node->kind=XL6_IR_NODE_NAME;
     node->opcode = xl6IrOpcodeFromAst(source);
     if(source->semanticCallKind==XL6_SEM_CALL_C_OWNED_COMPARE) {
         node->cOwnedCompareOp=xl6IrCOwnedCompareOp(source->text);
@@ -9147,8 +9154,10 @@ static XL6_IrNodeId xl6IrNamedCallableDeclaration(
          (declaration->sourceKind != XL6_AST_FUNC &&
           declaration->sourceKind != XL6_AST_ASYNC_FUNC &&
           declaration->sourceKind != XL6_AST_EXPORT_FUNC &&
-          declaration->sourceKind != XL6_AST_EXTERN_FUNC) ||
-         xl6IrBuildEnclosingClass(module, declarationId) != XL6_IR_NODE_INVALID )
+          declaration->sourceKind != XL6_AST_EXTERN_FUNC &&
+          declaration->sourceKind != XL6_AST_NATIVE_EXTERN_FUNC) ||
+         (xl6IrBuildEnclosingClass(module, declarationId) != XL6_IR_NODE_INVALID &&
+          !(declaration->flags & XL6_AST_FLAG_STATIC)) )
         return XL6_IR_NODE_INVALID;
     return declarationId;
 }

@@ -269,3 +269,5 @@ pop/take、动态分派和全部 Array source carrier 切换仍需后续完成�
 - `xlir_native_variadic_oom.c`: source-object fault injection for all four native variadic metadata arrays and the first parameter name, plus partial-module disposal; run by `tools/check_extern_owned_string_public.py`.
 
 - `extern_borrowed_string_failure.xl` / `extern_borrowed_string_failure_host.c`: borrowed C return admission, no-raise producer plus copy OOM, direct/fixed/native-variadic/protocol/getter/dynamic paths, and unreadable failed payloads.
+
+- `extern_owned_static_callable.xl` / `extern_owned_static_callable_host.c`: static C/ordinary/async function values, exact owned pointer and allocation witnesses, overload/default/inherited/raw-callback paths and 32 OOM prefixes; negative static private/ambiguous/instance cases reject before C emission. The extern_owned_string package fixture also exports Factory.Text for imported static binding.

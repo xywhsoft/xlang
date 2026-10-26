@@ -27618,7 +27618,8 @@ static XL6_IrClosureTarget* xl6IrLowerRegisterNamedAdapter(
     if (variadicAbi == XL6_IR_CALL_VARIADIC_C) {
         if (!xl6IrCVariadicNativeTargetSupported(ctx->module, target, signature) ||
             !parameters || parameters->childCount != signature->paramCount ||
-            xl6IrLowerEnclosingClass(ctx->module, target->declaration) != XL6_IR_NODE_INVALID) {
+            (xl6IrLowerEnclosingClass(ctx->module, target->declaration) != XL6_IR_NODE_INVALID &&
+             !(declaration->flags & XL6_AST_FLAG_STATIC))) {
             xl6IrLowerDiag(ctx, origin, "native variadic function value requires an exact source-C signature; bind an ordinary signature for adapted native results or parameters");
             return NULL;
         }
@@ -27670,8 +27671,10 @@ static XL6_IrClosureTarget* xl6IrLowerRegisterNamedAdapter(
          (declaration->sourceKind != XL6_AST_FUNC &&
           declaration->sourceKind != XL6_AST_ASYNC_FUNC &&
           declaration->sourceKind != XL6_AST_EXPORT_FUNC &&
-          declaration->sourceKind != XL6_AST_EXTERN_FUNC) ||
-         xl6IrLowerEnclosingClass(ctx->module, target->declaration) != XL6_IR_NODE_INVALID ||
+          declaration->sourceKind != XL6_AST_EXTERN_FUNC &&
+          declaration->sourceKind != XL6_AST_NATIVE_EXTERN_FUNC) ||
+         (xl6IrLowerEnclosingClass(ctx->module, target->declaration) != XL6_IR_NODE_INVALID &&
+          !(declaration->flags & XL6_AST_FLAG_STATIC)) ||
          parameters == NULL || parameters->kind != XL6_IR_NODE_LIST ||
          parameters->childCount != target->parameterCount ||
          target->parameterCount < signature->paramCount ||

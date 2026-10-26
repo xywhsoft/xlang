@@ -1,0 +1,97 @@
+extern "owned_original" @no_raise func original(string value) as bool
+extern "owned_one_allocation" @no_raise func oneAllocation(string value) as bool
+extern "owned_reset" @no_raise func reset()
+extern "owned_debug" @no_raise func debug() as bool
+extern "owned_fail_after" @no_raise func failAfter(int count)
+extern "owned_clear_failure" @no_raise func clearFailure()
+extern "owned_outstanding" @no_raise func outstanding() as int
+extern "variadic_original" @no_raise func variadicOriginal(string value) as bool
+extern "variadic_one_allocation" @no_raise func variadicOneAllocation(string value) as bool
+extern "static_callable_apply" func apply(c_callback func(c_int) as c_int callback,c_int value) as c_int
+
+class Factory
+    static int Number=42
+    static extern "owned_text" @owned func Text() as string
+    static extern "owned_borrowed" @no_raise func Borrowed() as string
+    static extern "variadic_required" @owned func Format(c_int mode,c_vararg) as string
+    static func Add(int left,int right=1) as int
+        return left+right
+    end
+    static func Pick(int value) as int
+        return value+1
+    end
+    static func Pick(string value) as string
+        return value
+    end
+    static func CAdd(c_int value) as c_int
+        return value+c_int(1)
+    end
+    static async func Later(int value) as int
+        return value+1
+    end
+end
+class Derived extends Factory
+end
+
+func forward(func(c_int,c_vararg) as string producer) as string
+    return producer(c_int(1),"abc",c_int(7),2.5)
+end
+func factory() as func() as string
+    return Factory.Text
+end
+func check()
+    auto number=Factory.Number // Static fields retain their normal read ABI.
+    assert number==42
+    auto producer=Factory.Text
+    reset()
+    string text=producer()
+    assert oneAllocation(text) and original(text)
+    producer=Factory.Borrowed
+    assert producer()=="borrowed"
+    auto inherited=Derived.Text
+    assert original(inherited())
+    assert original(factory()())
+    string input="abc"
+    auto variadic=Factory.Format
+    reset()
+    string formatted=variadic(c_int(1),input,c_int(7),2.5)
+    assert variadicOneAllocation(formatted) and variadicOriginal(formatted)
+    assert variadicOriginal(forward(Factory.Format))
+    func(int) as int one=Factory.Add
+    func(int,int) as int two=Factory.Add
+    assert one(41)==42 and two(20,22)==42
+    func(int) as int pick=Factory.Pick
+    func(string) as string pickText=Factory.Pick
+    assert pick(41)==42 and pickText("abc")=="abc"
+    auto erased=xcall(Factory.CAdd)
+    assert c_int(erased(c_int(41)))==42
+    assert apply(Factory.CAdd,c_int(41))==42
+end
+func allocations()
+    auto text=Factory.Text
+    string first=text()
+    auto variadic=Factory.Format
+    string second=forward(variadic)
+end
+check()
+auto later=Factory.Later
+assert await later(41)==42
+assert debug()
+allocations()
+int prefix=0
+int accepted=0
+int rejected=0
+while prefix<32
+    int before=outstanding()
+    failAfter(prefix)
+    try
+        allocations()
+        accepted+=1
+    catch error
+        rejected+=1
+    end
+    clearFailure()
+    assert outstanding()==before
+    prefix+=1
+end
+assert accepted>0 and rejected>0

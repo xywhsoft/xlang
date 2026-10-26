@@ -1,0 +1,5 @@
+class Factory
+    private native point handle
+    extern "owned_member" @owned func Text() as string
+end
+auto producer=Factory.Text
