@@ -8541,7 +8541,8 @@ static int xl6SemExternCDeclsCompatible(XL6_SemContext* ctx, const XL6_AstNode* 
         return 0;
     }
     if ( a->kind == XL6_AST_EXTERN_FUNC ) {
-        return xl6SemTypeListEquals(ctx, xl6SemExternFuncParams(a), xl6SemExternFuncParams(b), 1) &&
+        return ((a->flags ^ b->flags) & XL6_AST_FLAG_FOREIGN_OWNED_STRING) == 0 &&
+               xl6SemTypeListEquals(ctx, xl6SemExternFuncParams(a), xl6SemExternFuncParams(b), 1) &&
                xl6SemTypeListEquals(ctx, xl6SemExternFuncReturns(a), xl6SemExternFuncReturns(b), 0);
     }
     if ( a->kind == XL6_AST_EXTERN_VAR ) {
@@ -20663,6 +20664,23 @@ static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node)
     }
 
     returns = node->childCount > 2 ? node->children[2] : NULL;
+    if (node->flags & XL6_AST_FLAG_FOREIGN_OWNED_STRING) {
+        const XL6_AstNode* type = returns && returns->childCount == 1
+            ? xl6SemResolveAliasType(ctx, returns->children[0]) : NULL;
+        const XL6_AstNode* inner = xl6SemNullableInnerType(type);
+        const XL6_AstNode* text = xl6SemResolveAliasType(ctx, inner ? inner : type);
+        if (!text || text->childCount || !xl6TextEquals(text->text,"string") ||
+            (node->kind != XL6_AST_EXTERN_FUNC && node->kind != XL6_AST_NATIVE_EXTERN_FUNC &&
+             !(node->kind == XL6_AST_GET && (node->flags & XL6_AST_FLAG_EXTERN)))) {
+            xl6SemErrorNode(ctx,node,"@owned requires an extern function or getter returning string or string?");
+            return 0;
+        }
+        if (!inner && (node->flags & XL6_AST_FLAG_FOREIGN_NO_RAISE)) {
+            xl6SemErrorNode(ctx,node,"@owned @no_raise requires string?; admitting NULL as string can fail");
+            return 0;
+        }
+        return ok;
+    }
     if ( returns != NULL && returns->childCount > 1 &&
          !xl6SemIsCAbiProductReturns(ctx, returns) ) {
         xl6SemErrorNode(ctx, returns->children[1] != NULL ? returns->children[1] : returns,

@@ -4137,7 +4137,8 @@ typedef enum XL6_IrCallResultCAbi {
  * SSA 结果已经是语言拥有值，C 返回的借用地址不得逃出这条调用边界。 */
 typedef enum XL6_IrCallResultConversionAbi {
     XL6_IR_CALL_RESULT_CONVERSION_DIRECT = 0,
-    XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY
+    XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY,
+    XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE
 } XL6_IrCallResultConversionAbi;
 
 /* Compiler-private resident producers receive the verified owner/element

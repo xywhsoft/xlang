@@ -1,0 +1,1 @@
+extern "wrong" @owned func wrong() as (string,int)

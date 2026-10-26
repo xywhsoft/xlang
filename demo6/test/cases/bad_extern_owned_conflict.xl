@@ -1,0 +1,2 @@
+extern "same_symbol" @owned func first() as string
+extern "same_symbol" func second() as string
