@@ -309,10 +309,6 @@ str xjson5_get_text_len(const char* text, size_t size, const char* path) {
     return result;
 }
 
-void* xjson5_get_text_abi(const char* text, size_t size, const char* path) {
-    return xjson5_get_text_len(text, size, path);
-}
-
 bool xjson5_has_error(void) { return xrtGetError() != NULL; }
 
 cstr xjson5_error_message(void) {

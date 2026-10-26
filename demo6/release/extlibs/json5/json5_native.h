@@ -12,7 +12,6 @@ xvalue* xjson5_parse_len(const char* text, size_t size);
 bool xjson5_valid_len(const char* text, size_t size);
 xvalue* xjson5_get_value_len(const char* text, size_t size, const char* path);
 str xjson5_get_text_len(const char* text, size_t size, const char* path);
-void* xjson5_get_text_abi(const char* text, size_t size, const char* path);
 bool xjson5_has_error(void);
 cstr xjson5_error_message(void);
 

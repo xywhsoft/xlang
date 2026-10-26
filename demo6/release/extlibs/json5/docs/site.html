@@ -36,7 +36,7 @@ println(config["host"])
 println(json5.valid(source))
 println(json5.getValue(source, "workers"))
 println(json5.get(source, "host"))</code></pre>
-    <p>点号路径不适用于含点或解码后含 NUL 的键；此时先解析再用索引访问。路径查询先校验整份文档，尾部垃圾不会因提前命中而漏检；路径内嵌 NUL 会被拒绝。原始 NUL 源字节无效，字符串中的 <code>\u0000</code> 转义会按完整长度保留；<code>getValue</code> 可读取含 NUL 的值，<code>get</code> 不会返回截断文本。字符串中的 UTF-16 代理对合成为 UTF-8 字符，孤立代理项拒绝。显式 Infinity/NaN 可解析，有限数字字面量溢出 float64 时拒绝，不静默转换成无穷大。官方 JSON5 2.2.3 的可选对照曾覆盖 474 个固定解析样本，其中 286 个还核对解析值；这不是完整规范认证。2026-10-26 当前 Windows/Linux 默认包门禁通过严格 C、Linux ASan/UBSan、语言边界/分配故障及公开范例 AOT，并新增 C 单文件范例独立 EXE 与 GCC/XLang 输出对照。C/XLang 范例、资源限额、所有权和验证命令见包内 README。</p>
+    <p>点号路径不适用于含点或解码后含 NUL 的键；此时先解析再用索引访问。路径查询先校验整份文档，尾部垃圾不会因提前命中而漏检；路径内嵌 NUL 会被拒绝。原始 NUL 源字节无效，字符串中的 <code>\u0000</code> 转义会按完整长度保留；<code>getValue</code> 可读取含 NUL 的值，<code>get</code> 不会返回截断文本。字符串中的 UTF-16 代理对合成为 UTF-8 字符，孤立代理项拒绝。显式 Infinity/NaN 可解析，有限数字字面量溢出 float64 时拒绝，不静默转换成无穷大。<code>get</code> 的原生结果由 <code>@owned string</code> 直接接管；C 内部仍会构造标量文本，不承诺整条查询零复制。官方 JSON5 2.2.3 的可选对照曾覆盖 474 个固定解析样本，其中 286 个还核对解析值；这不是完整规范认证。2026-10-27 当前 Windows/Linux 默认包门禁通过严格 C、Linux ASan/UBSan、语言边界/分配故障及公开范例 AOT，C 单文件范例独立 EXE 与 GCC/XLang 输出一致。C/XLang 范例、资源限额、所有权和验证命令见包内 README。</p>
     <p><code>examples/json5_c.c</code> 同时包含包内解析器与原生桥，可直接用 <code>xl run release/extlibs/json5/examples/json5_c.c</code> 运行；Windows/Linux 包门禁将输出与严格 C 编译结果逐字比较。</p>
   </section>
 </main>

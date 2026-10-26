@@ -119,6 +119,13 @@ func main(...) as int
     assert rejected, "missing path error"
     rejected = false
     try
+        json5.get(source, "missing")
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "text path missing error"
+    rejected = false
+    try
         json5.getValue("{a:1}", "a\0ignored")
     catch ValueError e
         rejected = true

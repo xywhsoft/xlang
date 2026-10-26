@@ -1,5 +1,13 @@
 # JSON5 扩展库
 
+2026-10-27：`json5.get` 直接声明已有的 C `xjson5_get_text_len`
+为 `@owned string`，删除只转发指针的 `xjson5_get_text_abi` 和语言侧
+`point/takeCstr` 中转。标量文本仍在 C 查询内部按值构造；优化只消除
+跨语言交接处的冗余包装，不声称整条查询零复制。门禁补查生成 C 的
+直接接管和文本路径缺失时的 `ValueError`；Windows 严格 C、错误边界、
+分配故障、JIT/AOT、双语范例及 Linux C ASan/UBSan、XLang JIT/AOT
+与双语对照均通过。
+
 2026-10-26 新发布物复验：Windows 默认 `test/check.ps1` 与 Linux
 `test/check.sh` 均通过。两平台补齐分配故障、公开 XLang 范例及 C
 单文件范例的独立 EXE AOT；C/GCC、TCC、C AOT 与 XLang JIT/AOT

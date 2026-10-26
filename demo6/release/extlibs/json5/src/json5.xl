@@ -2,7 +2,7 @@
 extern "xjson5_parse_len" func __parse(string text, c_size size) as var
 extern "xjson5_valid_len" func __valid(string text, c_size size) as bool
 extern "xjson5_get_value_len" func __get_value(string text, c_size size, string path) as var
-extern "xjson5_get_text_abi" func __get_text(string text, c_size size, string path) as point
+extern "xjson5_get_text_len" @owned func __get_text(string text, c_size size, string path) as string
 extern "xjson5_has_error" func __has_error() as bool
 extern "xjson5_error_message" func __error() as string
 
@@ -41,9 +41,5 @@ end
 
 export func get(string text, string path) as string
     __json5_path(path)
-    point result = __get_text(text, c_size(string.byteLen(text)), path)
-    if result == null then
-        throw ValueError __error()
-    end
-    return __xl_runtime.takeCstr(result)
+    return __get_text(text, c_size(string.byteLen(text)), path)
 end

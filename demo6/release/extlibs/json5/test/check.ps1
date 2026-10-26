@@ -59,6 +59,15 @@ try {
     if ($directCOutput -cne $cOutput) {
         throw 'direct C example output differs'
     }
+    $generated = Join-Path $work 'json5_owned.c'
+    $null = Run 'XLang direct string cgen' $xl @('cgen',
+        'release/extlibs/json5/test/boundaries.xl', '--emit', $generated)
+    $generatedText = [IO.File]::ReadAllText($generated)
+    if ($generatedText -notmatch '\.Data\s*=\s*xjson5_get_text_len\s*\(' -or
+        $generatedText.Contains('xjson5_get_text_abi') -or
+        $generatedText.Contains('xl6_xrt_take_cstr(')) {
+        throw 'json5.get must adopt the original owned C string directly'
+    }
 
     Push-Location (Join-Path $root 'release')
     try {
