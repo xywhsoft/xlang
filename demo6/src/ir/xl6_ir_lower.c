@@ -15035,7 +15035,8 @@ static void xl6IrLowerClearCallTargets(XL6_IrModule* module)
         for ( parameter = 0;
               parameter < module->closureTargets[i].callParameterCount;
               ++parameter ) {
-            xrtFree(module->closureTargets[i].callParameterNames[parameter]);
+            if ( module->closureTargets[i].callParameterNames != NULL )
+                xrtFree(module->closureTargets[i].callParameterNames[parameter]);
             if ( module->closureTargets[i].callParameterDefaultLiterals != NULL )
                 xrtFree(module->closureTargets[i].callParameterDefaultLiterals[parameter]);
         }

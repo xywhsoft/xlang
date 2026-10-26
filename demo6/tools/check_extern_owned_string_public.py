@@ -86,7 +86,8 @@ def main():
     native = [ROOT/'test/cases/extern_owned_string_host.c', ROOT/'test/cases/extern_owned_string_public_host.c']
     template = ROOT/'test/cases/extern_owned_string_public_consumer.in'
     contract = ROOT/'test/cases/xlir_native_variadic_contract.c'
-    for path in [source, *native, template, contract, ROOT/'test/cases/xlir_owner_consumption_contract.c',
+    oom_contract = ROOT/'test/cases/xlir_native_variadic_oom.c'
+    for path in [source, *native, template, contract, oom_contract, ROOT/'test/cases/xlir_owner_consumption_contract.c',
                  ROOT/'test/cases/extern_c_variadic_value.xl']:
         inputs[path] = sha(path)
     checks = []
@@ -132,6 +133,17 @@ def main():
          '-Wno-unused-parameter', '-Wno-missing-field-initializers', contract, *links, '-o', output]), encoding='utf-8')
     run('native-variadic-contract-build', [cc, '@'+str(response)])
     assert '6 mutations rejected' in run('native-variadic-contract', [output])
+    # GNU wrapping must reach calls inside the compiler, so link its verified
+    # source objects on Linux too, rather than wrapping the shared-library API.
+    oom_links = links if 'Inputs' in build else [
+        *[row['object'] for row in build['objects']], '-pthread', '-ldl', '-lm']
+    output = work/('native-variadic-oom'+('.exe' if os.name == 'nt' else ''))
+    response = work/'native-variadic-oom.rsp'
+    response.write_text('\n'.join('"'+str(value).replace('\\', '/')+'"' for value in
+        [*flags, '-O2', '-Wall', '-Wextra', '-Werror', oom_contract, *oom_links,
+         '-Wl,--wrap=xrtCallocAt,--wrap=xrtStrDup', '-o', output]), encoding='utf-8')
+    run('native-variadic-oom-build', [cc, '@'+str(response)])
+    assert '5 allocation failures and partial disposal safe' in run('native-variadic-oom', [output])
     assert all(sha(path) == digest for path, digest in inputs.items()), 'source or runtime changed during gate'
     (work/'result.json').write_text(json.dumps({'complete': True, 'platform': sys.platform,
         'independentTranslationUnit': True, 'checks': checks,
