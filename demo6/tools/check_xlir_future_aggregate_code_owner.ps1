@@ -24,9 +24,9 @@ try {
     $lanes=@();$marker='Aggregate code ownership: 100 real DLL parent/child lifetimes after Close, 100 cross-thread admission refusals, 500 scoped box calls, 300 fully admitted physical graphs, 100 legacy policy refusals; exact memory and no synthetic code roots'
     foreach($compiler in @('gcc-O0','gcc-O2','tcc')){
         $dll="$out/box-$compiler.dll";$binary="$out/owner-$compiler.exe"
-        if($compiler-eq'tcc'){$dllExit=Invoke-XlirNativeToLog $Tcc (@('-std=c11','-shared')+$includes+@($dllCase,'-o',$dll)) "$dll.build.log"}
+        if($compiler-eq'tcc'){$dllExit=Invoke-XlirTccToLog $Tcc (@('-std=c11','-shared')+$includes+@($dllCase,'-o',$dll)) "$dll.build.log"}
         else{$dllExit=Invoke-XlirGccToLog ($strict+@("-$($compiler.Substring(4))",'-shared')+$includes+@($dllCase,'-o',$dll)) "$dll.build.log"}
-        if($compiler-eq'tcc'){$build=Invoke-XlirNativeToLog $Tcc (@('-std=c11')+$includes+@($case)+$resident+@('tools/xrt_single_header_impl.c','C:/Windows/System32/ucrtbase.dll')+$libs+@('-o',$binary)) "$binary.build.log"}
+        if($compiler-eq'tcc'){$build=Invoke-XlirTccToLog $Tcc (@('-std=c11')+$includes+@($case)+$resident+@('tools/xrt_single_header_impl.c','C:/Windows/System32/ucrtbase.dll')+$libs+@('-o',$binary)) "$binary.build.log"}
         else{$build=Invoke-XlirGccToLog ($strict+@("-$($compiler.Substring(4))")+$includes+@($case)+$resident+@($runtime[0].Path)+$libs+@('-o',$binary)) "$binary.build.log"}
         $run=$null;$complete=$false
         if($dllExit-eq0-and$build-eq0){
