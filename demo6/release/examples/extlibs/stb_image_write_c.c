@@ -10,9 +10,10 @@
 
 int main(int argc, char** argv)
 {
-    str AppDir = xrtPathAppDir();
-    str Source = AppDir != NULL ? xrtPathJoin(AppDir,
+    str AppDir = argc > 2 ? NULL : xrtPathAppDir();
+    str DefaultSource = AppDir != NULL ? xrtPathJoin(AppDir,
         "examples/extlibs/assets/tiny.png") : NULL;
+    const char* Source = argc > 2 ? argv[2] : DefaultSource;
     char* WorkDir = argc > 1 ? NULL : xrtDirTemp(NULL, "xlang_stbiw_example_", NULL);
     const char* OutDir = argc > 1 ? argv[1] : WorkDir;
     void* Image = Source != NULL ? xstbi_load(Source, 4) : NULL;
@@ -86,7 +87,7 @@ int main(int argc, char** argv)
     }
     for (int i = 0; i < 5; ++i) xrtFree(Destinations[i]);
     xrtFree(WorkDir);
-    xrtFree(Source);
+    xrtFree(DefaultSource);
     xrtFree(AppDir);
     if (Ok) puts("stb_image_write C/XL example: PASS");
     return Ok ? 0 : 2;

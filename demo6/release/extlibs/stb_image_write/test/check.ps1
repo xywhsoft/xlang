@@ -65,6 +65,7 @@ try {
     if (-not $SkipAot) {
         $core = Join-Path $work 'stbiw_core.exe'
         $example = Join-Path $work 'stbiw_example.exe'
+        $cExample = Join-Path $work 'stbiw_c_example.exe'
         & $xl build test/cases/extlib_stb_image_write.xl -o $core
         if ($LASTEXITCODE -ne 0) { throw 'stb_image_write core AOT build failed' }
         & $core
@@ -88,13 +89,27 @@ try {
                 throw "stb_image_write AOT image differs: $name"
             }
         }
+        & $xl build release/examples/extlibs/stb_image_write_c.c -o $cExample
+        if ($LASTEXITCODE -ne 0) { throw 'stb_image_write C example AOT build failed' }
+        $cAotDir = Join-Path $work 'c_aot'
+        New-Item -ItemType Directory -Path $cAotDir | Out-Null
+        $cAotOutput = & $cExample $cAotDir $asset
+        if ($LASTEXITCODE -ne 0 -or ($cAotOutput -join "`n") -cne $expected) {
+            throw 'stb_image_write C example AOT failed'
+        }
+        foreach ($name in @('tiny.png', 'tiny.jpg', 'tiny.bmp', 'tiny.tga', 'tiny.hdr')) {
+            if ((Get-FileHash -LiteralPath (Join-Path $cAotDir $name) -Algorithm SHA256).Hash -cne
+                (Get-FileHash -LiteralPath (Join-Path $xlDir $name) -Algorithm SHA256).Hash) {
+                throw "stb_image_write C AOT image differs: $name"
+            }
+        }
     }
 
     Write-Output 'stb_image_write Windows C/XLang gate: PASS'
 } finally {
     Pop-Location
     if ($work -ne $null) {
-        foreach ($dirName in @('c', 'xl', 'aot')) {
+        foreach ($dirName in @('c', 'xl', 'aot', 'c_aot')) {
             $dir = Join-Path $work $dirName
             foreach ($name in @('tiny.png', 'tiny.jpg', 'tiny.bmp', 'tiny.tga', 'tiny.hdr')) {
                 $output = Join-Path $dir $name
@@ -102,7 +117,7 @@ try {
             }
             if (Test-Path -LiteralPath $dir) { Remove-Item -LiteralPath $dir -Force }
         }
-        foreach ($name in @('stbiw_core.exe', 'stbiw_example.exe')) {
+        foreach ($name in @('stbiw_core.exe', 'stbiw_example.exe', 'stbiw_c_example.exe')) {
             $output = Join-Path $work $name
             if (Test-Path -LiteralPath $output) { Remove-Item -LiteralPath $output -Force }
         }

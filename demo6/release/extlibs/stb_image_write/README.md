@@ -1,6 +1,14 @@
 # stb_image_write
 
-2026-10-25 在 WSL 中运行现有 `test/check.sh` 全通过：严格 GCC、
+2026-10-26 重建 Windows/Linux x64 发布物后，两平台默认包门禁
+均退出 0：严格 C、Linux ASan/UBSan、尺寸/路径/分配故障与
+64 MiB 输出限额、C/XLang 五格式文件逐字节对照，以及核心和
+双语范例独立 EXE AOT。C 范例现接受显式素材路径，独立产物
+无需与发布目录共址。旧共享 AOT 缺符号不再复现。本包只签收
+有界 Buffer 编码/原子写出范围，不替代 `stb_image` 私有构造器
+访问控制修复，也不承诺断电持久性或其他架构。
+
+2026-10-25 历史记录：当时在 WSL 中运行 `test/check.sh` 全通过：严格 GCC、
 C 边界 ASan/UBSan、XLang 边界/分配故障/输出限额，以及 PNG、JPEG、
 BMP、TGA、HDR 五份 C/XLang 范例输出逐文件字节对照。本次语言用例
 使用现有 Linux `release/xl`；未重建 Linux 发布版或运行 Linux
@@ -59,19 +67,20 @@ HDR 回调实现；JPEG 位缓冲使用无符号移位；最终 PNG 缓冲申请
 - `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/stb_image_write/test/check.ps1`：
   Windows 严格 GCC、C 边界、中央与包内 XLang、输出限额和双语范例联合门禁；
   C/XLang 范例的五个实际输出文件分别做 SHA-256 逐一核对。默认还构建运行
-  核心与公开范例 AOT 并对照五个文件；`-SkipAot` 只执行 C/JIT 聚焦快测。
+  核心与 C/XLang 公开范例 AOT 并对照五个文件；`-SkipAot` 只执行
+  C/JIT 聚焦快测。
 - `.\release\xl.exe run release/examples/extlibs/stb_image_write.xl`
 - `.\release\xl.exe run release/extlibs/stb_image_write/test/boundaries.xl`
 - `.\release\xl.exe run release/extlibs/stb_image_write/test/allocations.xl`
 - `.\release\xl.exe run release/extlibs/stb_image_write/test/output_limit.xl`
 - `tools/run_extlib_c.ps1 -Package 'stb_image_write,stb_image' -Source release/examples/extlibs/stb_image_write_c.c`
 - `release` 目录下可直接 `xl run examples/extlibs/stb_image_write_c.c`；
-  C 范例直接包含解码和编码实现。C/XL 范例都从 `xl.exe` 所在目录定位
-  输入图片，不依赖启动时的当前工作目录。
+  C 范例直接包含解码和编码实现。C/XL 范例默认从 `xl.exe` 所在目录
+  定位输入图片，不依赖启动时的当前工作目录；独立 EXE 可显式传素材路径。
 - 同命令改用 `release/extlibs/stb_image_write/test/test_stb_image_write.c`
-- `wsl bash release/extlibs/stb_image_write/test/check.sh` 可复跑 Linux 严格 GCC/ASan/UBSan C 测试、中央 API 用例、XLang 边界与 64 MiB 输出限额专项测试，并逐字节核对 C/XLang 发布范例。限额专项仍不进入普通目录 smoke。
+- `wsl bash release/extlibs/stb_image_write/test/check.sh` 可复跑 Linux 严格 GCC/ASan/UBSan C 测试、中央 API 用例、XLang 边界与 64 MiB 输出限额专项测试，并逐字节核对 C/XLang JIT 与独立 EXE 的五种格式。限额专项仍不进入普通目录 smoke。
 - 公开范例默认在各自独立的临时目录写文件并清理；显式指定输出目录时保留
-  五种格式。XLang 范例还可传第二个参数指定源图片路径，供独立 AOT 运行。
+  五种格式。C/XLang 范例均可传第二个参数指定源图片路径，供独立 AOT 运行。
 - C/XL 范例的成功文本和五种编码文件一致。C 边界测试覆盖五种格式、往返解码、中文路径、
   参数/尺寸/长度拒绝，并对每种格式扫描前 64 个分配故障点；XLang 对五种
   格式各扫描前 128 点，验证异常分类、成功输出及清除故障后的恢复，边界
@@ -82,7 +91,7 @@ HDR 回调实现；JPEG 位缓冲使用无符号移位；最终 PNG 缓冲申请
 `xl6NativeHandleTraceLeaf`，见
 `demo6/dev/extlib_blockers/native_handle_trace_aot.md`；带输出程序也曾
 缺少共享 `xl6ValueDataSnapshotV1`，见 `text_snapshot_link.md`。
-当前 Windows AOT 结果见本页开头；Linux 独立 EXE 仍须另行验收。
+2026-10-26 两平台默认包门禁已验证上述缺符号不再复现。
 
 2026-10-15：中央 `test/cases/extlib_stb_image_write.xl` 删除已不存在的 `last_error()` 调用，改验当前 API 的无文件副作用负例；C 测试补失败后成功的错误状态回归并修复原生入口。清单显式声明 XRT Buffer/整文件模块。中央无输出 AOT 构建运行通过（714,240 字节），C/XL 边界、双语范例及新增 Linux ASan/UBSan 门禁通过；带输出完整 AOT 仍缺共享快照符号。
 
