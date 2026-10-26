@@ -34,16 +34,15 @@ try {
         if((Get-FileHash "$prefix.$ext").Hash -ne (Get-FileHash "$prefix.repeat.$ext").Hash){$deterministic=$false}
     }}
     $flags=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
-        '-Wno-pointer-sign','-Wno-format-truncation','-Wno-missing-field-initializers',"-I$outputPath",'-I.','-Irelease','-Ilib/tcc',
-        '-DJOINT_SOURCE_XRT','-DXL_ENABLE_EXE_COMPILER=1',(New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $outputPath.Replace('\','/')))
+        '-Wno-pointer-sign','-Wno-format-truncation','-Wno-missing-field-initializers',"-I$outputPath",'-I.','-Irelease','-Irelease/include','-Ilib/tcc',
+        '-DJOINT_SOURCE_XRT','-DXL_ENABLE_EXE_COMPILER=1',(New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $outputPath.Replace('\','/') -RawArgument))
     $excluded=@('xl_api.o','xl_api_path.o','xl6_console.o','xlir_public_source_driver.o')
     $dependencies=@($build.Objects | Where-Object {[IO.Path]::GetFileName($_.Path) -notin $excluded} | ForEach-Object Path)
     $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32');$rows=@()
     foreach($level in $Levels){
         $binary="$outputPath/tcc-host-$level.exe";$buildExit=$null
         if($deterministic){
-            & gcc @flags "-$level" test/cases/xlir_pending_module_preparation_tcc_host.c @dependencies release/xl.dll @libs -o $binary *> "$outputPath/tcc-host-$level.build.log"
-            $buildExit=$LASTEXITCODE
+            $buildExit=Invoke-XlirGccToLog ($flags+@("-$level",'test/cases/xlir_pending_module_preparation_tcc_host.c')+$dependencies+@('release/xl.dll')+$libs+@('-o',$binary)) "$outputPath/tcc-host-$level.build.log"
         }
         foreach($mode in $Modes){
             $run=$null;$complete=$false;$log="$outputPath/tcc-host-$level-mode$mode"

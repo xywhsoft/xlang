@@ -4,6 +4,7 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [string]$ProcessChild = '',
     [string]$Root = '')
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
 $rootPath=if($Root){[IO.Path]::GetFullPath($Root)}else{Split-Path -Parent $PSScriptRoot}
 Push-Location $rootPath
 $priorProcessChild=$env:XL6_PROCESS_CHILD
@@ -45,10 +46,8 @@ try {
         '-Wno-unused-label','-Wno-unused-but-set-variable','-Wno-unused-const-variable','-Wno-pointer-sign','-Wno-format-truncation',
         '-Wno-missing-field-initializers','-DXL_STATIC_EMBED','-I.','-Irelease','-Irelease/include','-Ilib/tcc')
     $libs=@('release/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
-    & gcc @flags src/driver/xl6_xlc_shell.c @objects @libs -o "$outputPath/xl.exe" *> "$outputPath/cli-build.log"
-    $cliBuild=$LASTEXITCODE
-    & gcc @flags test/cases/xlir_artifact_runtime_contract.c @objects @libs -o "$outputPath/contract.exe" *> "$outputPath/contract-build.log"
-    $contractBuild=$LASTEXITCODE
+    $cliBuild=Invoke-XlirGccToLog ($flags+@('src/driver/xl6_xlc_shell.c')+$objects+$libs+@('-o',"$outputPath/xl.exe")) "$outputPath/cli-build.log"
+    $contractBuild=Invoke-XlirGccToLog ($flags+@('test/cases/xlir_artifact_runtime_contract.c')+$objects+$libs+@('-o',"$outputPath/contract.exe")) "$outputPath/contract-build.log"
     $rows=@();$catalog=@();$linkage=@();$nativeLinkage=@();$contractRun=$null;$catalogRun=$null
     if($contractBuild-eq0){
         & "$outputPath/contract.exe" @fixtures 1> "$outputPath/contract.log" 2> "$outputPath/contract.err.log"
@@ -63,8 +62,8 @@ try {
     $symbolOwners=@{};$componentObjects=@()
     foreach($component in $catalog){
         $object="$outputPath/component-$($component.Id).o"
-        & gcc @flags -c $component.Source -o $object *> "$outputPath/component-$($component.Id).log"
-        $componentBuild=$LASTEXITCODE;$defined=@();$undefined=@();$nativeUndefined=@()
+        $componentBuild=Invoke-XlirGccToLog ($flags+@('-c',$component.Source,'-o',$object)) "$outputPath/component-$($component.Id).log"
+        $defined=@();$undefined=@();$nativeUndefined=@()
         if($componentBuild-eq0){
             # Test oracle only: include xlSync checked host exports and BSS/
             # weak definitions too. Production uses exact registered names.
@@ -572,10 +571,8 @@ $process=Start-Process @start
                         }
                     }
                 }
-                & gcc @flags "-I$includes" -Ilib/xruntime -c "$prefix.native.c" -o "$prefix.native.o" *> "$prefix.native-build.log"
-                $nativeBuild=$LASTEXITCODE
-                & gcc @flags "-I$includes" -c "$prefix.c" -o "$prefix.generated.o" *> "$prefix.generated-build.log"
-                $generatedBuild=$LASTEXITCODE
+                $nativeBuild=Invoke-XlirGccToLog ($flags+@("-I$includes",'-Ilib/xruntime','-c',"$prefix.native.c",'-o',"$prefix.native.o")) "$prefix.native-build.log"
+                $generatedBuild=Invoke-XlirGccToLog ($flags+@("-I$includes",'-c',"$prefix.c",'-o',"$prefix.generated.o")) "$prefix.generated-build.log"
                 if($nativeBuild-eq0-and$generatedBuild-eq0){
                     $defined=@(& nm -g --defined-only "$prefix.native.o"|ForEach-Object {if($_-match '\b[TRD] (xrt\w+)$'){$Matches[1]}})
                     $required=@(& nm -u "$prefix.generated.o" "$prefix.native.o"|ForEach-Object {if($_-match '\bU (xrt\w+)$'){$Matches[1]}})+

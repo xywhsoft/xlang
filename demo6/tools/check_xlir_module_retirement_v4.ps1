@@ -1,6 +1,7 @@
 param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$Directory)
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
 $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
 $saved=@{}
@@ -21,9 +22,9 @@ try {
     $objects=@($build.Objects|Where-Object {[IO.Path]::GetFileName($_.Path)-notin @('xlir_public_source_driver.o','xl_api.o')}|ForEach-Object Path)
     $flags=@('-std=c11','-O0','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
         '-Wno-unused-label','-Wno-unused-but-set-variable','-Wno-unused-const-variable','-Wno-pointer-sign','-Wno-format-truncation',
-        '-Wno-missing-field-initializers','-I.','-Irelease','-Ilib/tcc')
-    & $compiler @flags test/cases/xlir_module_retirement_v4_host.c @objects release/xl.dll -lws2_32 -liphlpapi -lshell32 -lole32 -ladvapi32 -o "$out/host.exe" *> "$out/build.log"
-    $buildExit=$LASTEXITCODE;$run=$null
+        '-Wno-missing-field-initializers','-I.','-Irelease','-Irelease/include','-Ilib/tcc')
+    $buildExit=Invoke-XlirGccToLog ($flags+@('test/cases/xlir_module_retirement_v4_host.c')+$objects+@('release/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32','-o',"$out/host.exe")) "$out/build.log"
+    $run=$null
     $profile=@{
         XL6_TCC_DLL='release/xl.dll';XL6_TCC_ROOT='res/tcc/win64/x86_64';XL6_TCC_LIB='res/tcc/win64/x86_64/lib';
         XL6_TCC_INCLUDE='lib/tcc/include';XL6_TCC_WIN_INCLUDE='res/tcc/win64/x86_64/include';

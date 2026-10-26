@@ -31,8 +31,8 @@ try {
     }
     foreach($ext in @('c','h','json')){if((Get-FileHash "$prefix.generated.$ext").Hash -ne (Get-FileHash "$prefix.repeat.$ext").Hash){throw 'Nondeterministic module preparation emission'}}
     $flags=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
-        '-Wno-pointer-sign','-Wno-format-truncation','-Wno-missing-field-initializers',"-I$outputPath",'-I.','-Irelease','-Ilib/tcc',
-        '-DJOINT_SOURCE_XRT','-DXL_ENABLE_EXE_COMPILER=1',(New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $outputPath.Replace('\','/')))
+        '-Wno-pointer-sign','-Wno-format-truncation','-Wno-missing-field-initializers',"-I$outputPath",'-I.','-Irelease','-Irelease/include','-Ilib/tcc',
+        '-DJOINT_SOURCE_XRT','-DXL_ENABLE_EXE_COMPILER=1',(New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $outputPath.Replace('\','/') -RawArgument))
     $excluded=@('xl_api.o','xl_api_path.o','xl6_console.o','xlir_public_source_driver.o')
     $dependencies=@($build.Objects | Where-Object {[IO.Path]::GetFileName($_.Path) -notin $excluded} | ForEach-Object Path)
     $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32');$rows=@()
@@ -42,8 +42,7 @@ try {
         $laneName=if($version-eq2){"tcc-host-$level"}else{"tcc-owned-host-$level"}
         $versionFlags=@();if($version-eq2){$versionFlags=@('-DMODULE_PREPARE_LEGACY_V2')}
         $binary="$outputPath/$laneName.exe"
-        & gcc @flags @versionFlags "-$level" test/cases/xlir_module_prepare_tcc_host.c @dependencies release/xl.dll @libs -o $binary *> "$outputPath/$laneName.build.log"
-        $buildExit=$LASTEXITCODE
+        $buildExit=Invoke-XlirGccToLog ($flags+$versionFlags+@("-$level",'test/cases/xlir_module_prepare_tcc_host.c')+$dependencies+@('release/xl.dll')+$libs+@('-o',$binary)) "$outputPath/$laneName.build.log"
         foreach($mode in $Modes){
             if($mode -lt 0 -or $mode -gt 17){throw 'Unknown preparation mode'}
             $run=$null;$complete=$false;$log="$outputPath/$laneName-mode$mode"

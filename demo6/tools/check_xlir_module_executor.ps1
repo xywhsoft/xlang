@@ -52,15 +52,14 @@ try {
         $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
         foreach($kind in @('tcc','dll')){foreach($level in @(0,2)){
             $name="$kind-O$level";$binary="$outputPath/$name.exe";$dllExit=$null
-            $extra=@('-DJOINT_SOURCE_XRT',(New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $outputPath.Replace('\','/')))
+            $extra=@('-DJOINT_SOURCE_XRT',(New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $outputPath.Replace('\','/') -RawArgument))
             if($kind-eq'dll'){$extra=@('-DMODULE_EXECUTOR_DLL','-DXL_BUILD_DLL',
-                (New-XlirCStringDefine 'JOINT_DLL_PATH' ($outputPath.Replace('\','/')+"/executor-O$level.dll")),
-                (New-XlirCStringDefine 'JOINT_DLL_NAME' "executor-O$level.dll"),"-Wl,--out-implib,$outputPath/$name.a",'-Wl,--export-all-symbols')}
-            & gcc @flags "-O$level" @extra test/cases/xlir_module_executor_host.c @dependencies release/xl.dll @libs -o $binary *> "$outputPath/$name.build.log"
-            $buildExit=$LASTEXITCODE;$run=$null;$complete=$false;$actualOom=0
+                (New-XlirCStringDefine 'JOINT_DLL_PATH' ($outputPath.Replace('\','/')+"/executor-O$level.dll") -RawArgument),
+                (New-XlirCStringDefine 'JOINT_DLL_NAME' "executor-O$level.dll" -RawArgument),"-Wl,--out-implib,$outputPath/$name.a",'-Wl,--export-all-symbols')}
+            $buildExit=Invoke-XlirGccToLog ($flags+@("-O$level")+$extra+@('test/cases/xlir_module_executor_host.c')+$dependencies+@('release/xl.dll')+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
+            $run=$null;$complete=$false;$actualOom=0
             if(!$buildExit -and $kind-eq'dll'){
-                & gcc @flags "-O$level" -shared -DXL6_BUILD_SHARED test/cases/xlir_module_executor_artifact.c "$outputPath/$name.a" '-Wl,--export-all-symbols' -o "$outputPath/executor-O$level.dll" *> "$outputPath/$name.dll.log"
-                $dllExit=$LASTEXITCODE
+                $dllExit=Invoke-XlirGccToLog ($flags+@("-O$level",'-shared','-DXL6_BUILD_SHARED','test/cases/xlir_module_executor_artifact.c',"$outputPath/$name.a",'-Wl,--export-all-symbols','-o',"$outputPath/executor-O$level.dll")) "$outputPath/$name.dll.log"
             }
             if(!$buildExit -and ($kind-ne'dll' -or $dllExit-eq0)){
 $process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath -RedirectStandardOutput "$outputPath/$name.out.log" -RedirectStandardError "$outputPath/$name.err.log"
@@ -102,15 +101,14 @@ $process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingD
             $mixedFlags=@("-I$mixed")+$flags
             foreach($kind in @('tcc','dll')){foreach($level in @(0,2)){
                 $name="mixed-$kind-O$level";$binary="$outputPath/$name.exe";$dllExit=$null
-                $extra=@('-DJOINT_SOURCE_XRT',(New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $mixed.Replace('\','/')))
+                $extra=@('-DJOINT_SOURCE_XRT',(New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $mixed.Replace('\','/') -RawArgument))
                 if($kind-eq'dll'){$extra=@('-DMODULE_EXECUTOR_DLL','-DXL_BUILD_DLL',
-                    (New-XlirCStringDefine 'JOINT_DLL_PATH' ($mixed.Replace('\','/')+"/mixed-executor-O$level.dll")),
-                    (New-XlirCStringDefine 'JOINT_DLL_NAME' "mixed-executor-O$level.dll"),"-Wl,--out-implib,$outputPath/$name.a",'-Wl,--export-all-symbols')}
-                & gcc @mixedFlags "-O$level" @extra test/cases/xlir_module_executor_mixed_host.c @dependencies release/xl.dll @libs -o $binary *> "$outputPath/$name.build.log"
-                $buildExit=$LASTEXITCODE;$run=$null;$complete=$false
+                    (New-XlirCStringDefine 'JOINT_DLL_PATH' ($mixed.Replace('\','/')+"/mixed-executor-O$level.dll") -RawArgument),
+                    (New-XlirCStringDefine 'JOINT_DLL_NAME' "mixed-executor-O$level.dll" -RawArgument),"-Wl,--out-implib,$outputPath/$name.a",'-Wl,--export-all-symbols')}
+                $buildExit=Invoke-XlirGccToLog ($mixedFlags+@("-O$level")+$extra+@('test/cases/xlir_module_executor_mixed_host.c')+$dependencies+@('release/xl.dll')+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
+                $run=$null;$complete=$false
                 if(!$buildExit -and $kind-eq'dll'){
-                    & gcc @mixedFlags "-O$level" -shared -DXL6_BUILD_SHARED test/cases/xlir_module_executor_artifact.c "$outputPath/$name.a" '-Wl,--export-all-symbols' -o "$mixed/mixed-executor-O$level.dll" *> "$outputPath/$name.dll.log"
-                    $dllExit=$LASTEXITCODE
+                    $dllExit=Invoke-XlirGccToLog ($mixedFlags+@("-O$level",'-shared','-DXL6_BUILD_SHARED','test/cases/xlir_module_executor_artifact.c',"$outputPath/$name.a",'-Wl,--export-all-symbols','-o',"$mixed/mixed-executor-O$level.dll")) "$outputPath/$name.dll.log"
                 }
                 if(!$buildExit -and ($kind-ne'dll' -or $dllExit-eq0)){
 $process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath -RedirectStandardOutput "$outputPath/$name.out.log" -RedirectStandardError "$outputPath/$name.err.log"

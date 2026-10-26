@@ -45,13 +45,13 @@ try {
     foreach($lane in @('gcc-O0','gcc-O2','tcc')){
         $binary="$outputPath/plan-$lane.exe"
         if($lane -eq 'tcc'){
-            $arguments=@('-std=c11','-Wall','-Werror','-I.')+$sources+
+            $arguments=@('-std=c11','-Wall','-Werror','-I.','-Irelease','-Irelease/include')+$sources+
                 @('tools/xrt_single_header_impl.c','C:/Windows/System32/ucrtbase.dll')+$libs+@('-o',$binary)
             $buildExit=Invoke-XlirNativeToLog $Tcc $arguments "$outputPath/plan-$lane.build.log"
         } else {
-            $arguments=@('-std=c11','-Wall','-Wextra','-Werror',"-$($lane.Substring(4))",'-I.')+$sources+
+            $arguments=@('-std=c11','-Wall','-Wextra','-Werror',"-$($lane.Substring(4))",'-I.','-Irelease','-Irelease/include')+$sources+
                 @($runtime[0].Path)+$libs+@('-o',$binary)
-            $buildExit=Invoke-XlirNativeToLog (Get-Command gcc).Source $arguments "$outputPath/plan-$lane.build.log"
+            $buildExit=Invoke-XlirGccToLog $arguments "$outputPath/plan-$lane.build.log"
         }
         $run=$null;$complete=$false
         if(!$buildExit){
@@ -62,15 +62,15 @@ try {
         Write-Output "plan-$lane build=$buildExit run=$run complete=$complete"
     }
     $flags=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
-        '-Wno-pointer-sign','-Wno-format-truncation','-Wno-missing-field-initializers',"-I$outputPath",'-I.','-Irelease','-Ilib/tcc',
-        '-DJOINT_SOURCE_XRT','-DXL_ENABLE_EXE_COMPILER=1',(New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $outputPath.Replace('\','/')))
+        '-Wno-pointer-sign','-Wno-format-truncation','-Wno-missing-field-initializers',"-I$outputPath",'-I.','-Irelease','-Irelease/include','-Ilib/tcc',
+        '-DJOINT_SOURCE_XRT','-DXL_ENABLE_EXE_COMPILER=1',(New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $outputPath.Replace('\','/') -RawArgument))
     $excluded=@('xl_api.o','xl_api_path.o','xl6_console.o','xlir_public_source_driver.o')
     $dependencies=@($build.Objects | Where-Object {[IO.Path]::GetFileName($_.Path) -notin $excluded} | ForEach-Object Path)
     foreach($level in @('O0','O2')){
         $binary="$outputPath/tcc-host-$level.exe"
         $arguments=$flags+@("-$level",'test/cases/xlir_future_retirement_tcc_host.c')+$dependencies+
             @('release/xl.dll')+$libs+@('-o',$binary)
-        $buildExit=Invoke-XlirNativeToLog (Get-Command gcc).Source $arguments "$outputPath/tcc-host-$level.build.log"
+        $buildExit=Invoke-XlirGccToLog $arguments "$outputPath/tcc-host-$level.build.log"
         foreach($mode in 0..5){
             $run=$null;$complete=$false;$log="$outputPath/tcc-host-$level-mode$mode.run.log"
             if(!$buildExit){
