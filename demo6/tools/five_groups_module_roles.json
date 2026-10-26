@@ -1,0 +1,1803 @@
+{
+  "SchemaVersion": 1,
+  "Purpose": "Preserve the complete approved 198-module scope and explicit per-module role review. Review is not proof of full implementation or acceptance.",
+  "RequiredGroups": {
+    "concurrency": 33,
+    "crypto_asn1": 57,
+    "x509": 21,
+    "tls": 47,
+    "network": 40
+  },
+  "OpenQuestions": [
+    {
+      "Id": "crypto-raw-aes-poly1305",
+      "Modules": [
+        "crypto_aes",
+        "crypto_poly1305"
+      ],
+      "State": "awaiting-api-scope-confirmation",
+      "Question": "Whether to expose raw AES blocks and standalone Poly1305 in cryptoAdvanced or retain them as AEAD internals."
+    }
+  ],
+  "Profiles": {
+    "atomic": {
+      "Surface": [
+        "AtomicInt32",
+        "AtomicUInt32",
+        "AtomicInt64",
+        "AtomicUInt64",
+        "AtomicBool"
+      ],
+      "Reason": "显式 concurrent 的五种定宽对象；保留精确 CAS 与内存顺序，不公开裸原子地址。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_atomic.inc",
+        "src/runtime/xl6_atomic_abi.h",
+        "src/ir/xl6_ir_atomic_contracts.inc"
+      ],
+      "NormalProductCases": [
+        "stdlib_atomics"
+      ],
+      "DecisionWitnesses": [
+        "docs/并发基础标准库.md",
+        "docs/并发与安全标准库接入.md"
+      ],
+      "AcceptanceBoundary": "Selected normal product cases; not full semantic, race or goal acceptance"
+    },
+    "spin": {
+      "Surface": [],
+      "Reason": "只作 Channel 等运行时内部同步；批准方案不增加公开 SpinLock。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_channel.c"
+      ],
+      "NormalProductCases": [
+        "stdlib_channel_owned_future"
+      ],
+      "DecisionWitnesses": [
+        "docs/并发基础标准库.md",
+        "docs/并发与安全标准库接入.md"
+      ],
+      "AcceptanceBoundary": "Selected normal product cases; not full semantic, race or goal acceptance"
+    },
+    "channel": {
+      "Surface": [
+        "channel<T>",
+        "ChannelCase",
+        "ChannelSelection",
+        "ChannelReceiveResult<T>"
+      ],
+      "Reason": "统一 typed 消息、取消和原子选择；异步等待使用拥有式 Future 订阅，不复制一套队列。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_concurrent.inc",
+        "src/runtime/xl6_channel_language_abi.h",
+        "src/runtime/xl6_channel_case_abi.h",
+        "src/ir/xl6_ir_channel_case_contracts.inc"
+      ],
+      "NormalProductCases": [
+        "stdlib_channel_finite_select",
+        "stdlib_channel_owned_future",
+        "stdlib_channel_finite_ready"
+      ],
+      "DecisionWitnesses": [
+        "docs/并发基础标准库.md",
+        "docs/并发与安全标准库接入.md"
+      ],
+      "AcceptanceBoundary": "Selected normal product cases; not full semantic, race or goal acceptance"
+    },
+    "native-coroutines": {
+      "Surface": [
+        "async/await"
+      ],
+      "Reason": "批准方案不公开七个有栈协程模块；语言使用 XLIR 帧与固定工作线程＋就绪队列，不增加第二套执行模型。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_continuation_executor.c",
+        "src/runtime/xl6_continuation_frame.c"
+      ],
+      "NormalProductCases": [
+        "xlir_future_ready_language",
+        "stdlib_channel_finite_select"
+      ],
+      "DecisionWitnesses": [
+        "docs/并发基础标准库.md",
+        "docs/并发与安全标准库接入.md"
+      ],
+      "AcceptanceBoundary": "Selected normal product cases; not full semantic, race or goal acceptance"
+    },
+    "wait": {
+      "Surface": [
+        "await",
+        "future<T>.wait/waitTimeout"
+      ],
+      "Reason": "等待保留值和代码租约；不向语言公开原生短生命周期 waiter 指针。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_future_wait.c",
+        "src/runtime/xl6_continuation_future.c"
+      ],
+      "NormalProductCases": [
+        "future_duplicate_cancel",
+        "stdlib_task_group_configured"
+      ],
+      "DecisionWitnesses": [
+        "docs/并发基础标准库.md",
+        "docs/并发与安全标准库接入.md"
+      ],
+      "AcceptanceBoundary": "Selected normal product cases; not full semantic, race or goal acceptance"
+    },
+    "once": {
+      "Surface": [
+        "Once"
+      ],
+      "Reason": "成功执行一次，false/异常可重试；不保留无关回调或新增初始化引擎。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_once.c",
+        "src/ir/xl6_ir_concurrent_contracts.inc"
+      ],
+      "NormalProductCases": [
+        "stdlib_once"
+      ],
+      "DecisionWitnesses": [
+        "docs/并发基础标准库.md",
+        "docs/并发与安全标准库接入.md"
+      ],
+      "AcceptanceBoundary": "Selected normal product cases; not full semantic, race or goal acceptance"
+    },
+    "event": {
+      "Surface": [
+        "Event"
+      ],
+      "Reason": "自动／手动复位与 checked 期限；复用 Sync 生命周期和可恢复退役。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_sync.c",
+        "src/ir/xl6_ir_concurrent_contracts.inc"
+      ],
+      "NormalProductCases": [
+        "stdlib_event",
+        "stdlib_executor_control"
+      ],
+      "DecisionWitnesses": [
+        "docs/并发基础标准库.md",
+        "docs/并发与安全标准库接入.md"
+      ],
+      "AcceptanceBoundary": "Selected normal product cases; not full semantic, race or goal acceptance"
+    },
+    "thread-local": {
+      "Surface": [
+        "ThreadLocal<T>"
+      ],
+      "Reason": "typed TLS 槽拥有值与模块租约，原生 thread key 不交给语言。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_thread_local.c",
+        "src/ir/xl6_ir_concurrent_contracts.inc"
+      ],
+      "NormalProductCases": [
+        "stdlib_thread_local"
+      ],
+      "DecisionWitnesses": [
+        "docs/并发基础标准库.md",
+        "docs/并发与安全标准库接入.md"
+      ],
+      "AcceptanceBoundary": "Selected normal product cases; not full semantic, race or goal acceptance"
+    },
+    "thread": {
+      "Surface": [
+        "thread"
+      ],
+      "Reason": "显式线程与拥有式语言回调；不把每次 await 映射为系统线程。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_thread.c",
+        "src/stdlib/xl6_stdlib_data.c"
+      ],
+      "NormalProductCases": [
+        "cgen_sync"
+      ],
+      "DecisionWitnesses": [
+        "docs/并发基础标准库.md",
+        "docs/并发与安全标准库接入.md"
+      ],
+      "AcceptanceBoundary": "Selected normal product cases; not full semantic, race or goal acceptance"
+    },
+    "sync-base": {
+      "Surface": [
+        "mutex/cond/sem/rwlock/Event 的共同生命周期"
+      ],
+      "Reason": "原生 Sync 资源与 checked 退役基础；不再暴露一套可互换的裸句柄。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_sync.c"
+      ],
+      "NormalProductCases": [
+        "stdlib_sync_resident",
+        "cgen_sync"
+      ],
+      "DecisionWitnesses": [
+        "docs/并发基础标准库.md",
+        "docs/并发与安全标准库接入.md"
+      ],
+      "AcceptanceBoundary": "Selected normal product cases; not full semantic, race or goal acceptance"
+    },
+    "sync": {
+      "Surface": [
+        "mutex",
+        "cond",
+        "sem",
+        "rwlock"
+      ],
+      "Reason": "保留手动解锁及既定等待语义；活动操作有 pin，清理失败可由宿主 checked 恢复，不 abort。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_sync.c",
+        "src/runtime/xl6_mutex.c",
+        "src/runtime/xl6_cond.c",
+        "src/runtime/xl6_rwlock.c"
+      ],
+      "NormalProductCases": [
+        "stdlib_sync_resident",
+        "cgen_sync"
+      ],
+      "DecisionWitnesses": [
+        "docs/并发基础标准库.md",
+        "docs/并发与安全标准库接入.md"
+      ],
+      "AcceptanceBoundary": "Selected normal product cases; not full semantic, race or goal acceptance"
+    },
+    "cancel": {
+      "Surface": [
+        "CancellationSource",
+        "CancellationToken",
+        "CancellationRegistration"
+      ],
+      "Reason": "保留父取消、可追踪回调及 checked 生命周期；取消请求不冒称物理清理已完成。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_cancellation_source.c",
+        "src/runtime/xl6_cancellation_registration.c",
+        "src/ir/xl6_ir_concurrent_contracts.inc"
+      ],
+      "NormalProductCases": [
+        "stdlib_task_group_configured",
+        "stdlib_channel_finite_select",
+        "stdlib_promise_terminal"
+      ],
+      "DecisionWitnesses": [
+        "docs/并发基础标准库.md",
+        "docs/并发与安全标准库接入.md"
+      ],
+      "AcceptanceBoundary": "Selected normal product cases; not full semantic, race or goal acceptance"
+    },
+    "future": {
+      "Surface": [
+        "future<T>",
+        "Promise<T>",
+        "then/catch/finally",
+        "task.all/race/whenAny"
+      ],
+      "Reason": "typed 生产端、值桥接、继续与聚合属于语言 Future 模型；原生 FutureBridge 不作为第二个语言对象导出。",
+      "SourceWitnesses": [
+        "src/api/xl_future_bridge.c",
+        "src/runtime/xl6_promise.c",
+        "src/runtime/xl6_future_aggregate.c",
+        "src/runtime/xl6_future_callback.c",
+        "src/ir/xl6_ir_concurrent_contracts.inc"
+      ],
+      "NormalProductCases": [
+        "stdlib_promise_values",
+        "stdlib_promise_terminal",
+        "xlir_future_ready_language",
+        "stdlib_future_aggregate_array_only",
+        "stdlib_future_aggregate_variadic_only",
+        "future_duplicate_cancel"
+      ],
+      "DecisionWitnesses": [
+        "docs/并发基础标准库.md",
+        "docs/并发与安全标准库接入.md"
+      ],
+      "AcceptanceBoundary": "Selected normal product cases; not full semantic, race or goal acceptance"
+    },
+    "task": {
+      "Surface": [
+        "task 执行与语言异步根"
+      ],
+      "Reason": "复用原生任务和已有 typed 帧／拥有图；Cgen 只生成用户代码与静态签名封送，不重新实现调度器。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_task.c",
+        "src/runtime/xl6_task_frame.c",
+        "src/runtime/xl6_ownership_domain_task.c"
+      ],
+      "NormalProductCases": [
+        "stdlib_task_pool_results",
+        "xlir_future_ready_language"
+      ],
+      "DecisionWitnesses": [
+        "docs/并发基础标准库.md",
+        "docs/并发与安全标准库接入.md"
+      ],
+      "AcceptanceBoundary": "Selected normal product cases; not full semantic, race or goal acceptance"
+    },
+    "task-group": {
+      "Surface": [
+        "TaskGroup",
+        "TaskGroupSnapshot"
+      ],
+      "Reason": "精确计数、策略、父取消、拥有式等待和原子 start；拒绝时不调用生产工厂。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_task_group.inc",
+        "src/api/xl_task_group_bridge.c",
+        "src/runtime/xl6_task_group_start.c"
+      ],
+      "NormalProductCases": [
+        "stdlib_task_group_methods",
+        "stdlib_task_group_configured",
+        "stdlib_task_group_start"
+      ],
+      "DecisionWitnesses": [
+        "docs/并发基础标准库.md",
+        "docs/并发与安全标准库接入.md"
+      ],
+      "AcceptanceBoundary": "Selected normal product cases; not full semantic, race or goal acceptance"
+    },
+    "task-group-pool": {
+      "Surface": [
+        "TaskGroup.start + TaskPool.submit"
+      ],
+      "Reason": "原子预留后调用已有拥有式生产端；不复制一套仅供 group 使用的池提交／调度后端。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_task_group.inc",
+        "src/stdlib/xl6_stdlib_task_pool.inc",
+        "src/runtime/xl6_task_group_start.c"
+      ],
+      "NormalProductCases": [
+        "stdlib_task_group_pool_composition"
+      ],
+      "DecisionWitnesses": [
+        "docs/并发基础标准库.md",
+        "docs/并发与安全标准库接入.md"
+      ],
+      "AcceptanceBoundary": "Selected normal product cases; not full semantic, race or goal acceptance"
+    },
+    "task-pool": {
+      "Surface": [
+        "TaskPool",
+        "TaskPoolSnapshot"
+      ],
+      "Reason": "有界显式执行、拥有式 typed Future、失败与取消、真实 worker-exit 等待。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_task_pool.inc",
+        "src/runtime/xl6_task_pool_language.c",
+        "src/runtime/xl6_task_pool_exit.c",
+        "src/ir/xl6_ir_task_pool_contracts.inc"
+      ],
+      "NormalProductCases": [
+        "stdlib_task_pool_results",
+        "stdlib_task_pool_control"
+      ],
+      "DecisionWitnesses": [
+        "docs/并发基础标准库.md",
+        "docs/并发与安全标准库接入.md"
+      ],
+      "AcceptanceBoundary": "Selected normal product cases; not full semantic, race or goal acceptance"
+    },
+    "executor": {
+      "Surface": [
+        "Executor",
+        "ExecutorSnapshot"
+      ],
+      "Reason": "脱离式回调保留首个错误和失败计数；wait/throwIfFailed 显式报告，拥有图／静止检查与清理保留真实资源。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_executor_language.c",
+        "src/ir/xl6_ir_executor_contracts.inc"
+      ],
+      "NormalProductCases": [
+        "stdlib_executor",
+        "stdlib_executor_control"
+      ],
+      "DecisionWitnesses": [
+        "docs/并发基础标准库.md",
+        "docs/并发与安全标准库接入.md"
+      ],
+      "AcceptanceBoundary": "Selected normal product cases; not full semantic, race or goal acceptance"
+    },
+    "task-group-net": {
+      "Surface": [
+        "TaskGroup.start + NetEngine.submit/submitAfter/submitUntil"
+      ],
+      "Reason": "与池组合共享原子预留和拥有式 Future；取消到达实际网络任务，不制造已就绪包装 Future。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_task_group.inc",
+        "src/stdlib/xl6_stdlib_net_engine.inc",
+        "src/runtime/xl6_task_group_start.c"
+      ],
+      "NormalProductCases": [
+        "stdlib_task_group_net_composition"
+      ],
+      "DecisionWitnesses": [
+        "docs/并发基础标准库.md",
+        "docs/并发与安全标准库接入.md"
+      ],
+      "AcceptanceBoundary": "Selected normal product cases; not full semantic, race or goal acceptance"
+    }
+  },
+  "Modules": [
+    {
+      "Group": "concurrency",
+      "Module": "atomic",
+      "Disposition": "public-type",
+      "Profile": "atomic",
+      "Review": "role-reviewed"
+    },
+    {
+      "Group": "concurrency",
+      "Module": "spin",
+      "Disposition": "internal",
+      "Profile": "spin",
+      "Review": "role-reviewed"
+    },
+    {
+      "Group": "concurrency",
+      "Module": "channel",
+      "Disposition": "language-mechanism",
+      "Profile": "channel",
+      "Review": "role-reviewed"
+    },
+    {
+      "Group": "concurrency",
+      "Module": "channel_cancel",
+      "Disposition": "language-mechanism",
+      "Profile": "channel",
+      "Review": "role-reviewed"
+    },
+    {
+      "Group": "concurrency",
+      "Module": "channel_select",
+      "Disposition": "language-mechanism",
+      "Profile": "channel",
+      "Review": "role-reviewed"
+    },
+    {
+      "Group": "concurrency",
+      "Module": "channel_select_cancel",
+      "Disposition": "language-mechanism",
+      "Profile": "channel",
+      "Review": "role-reviewed"
+    },
+    {
+      "Group": "concurrency",
+      "Module": "channel_coroutine",
+      "Disposition": "internal",
+      "Profile": "native-coroutines",
+      "Review": "role-reviewed"
+    },
+    {
+      "Group": "concurrency",
+      "Module": "wait",
+      "Disposition": "language-mechanism",
+      "Profile": "wait",
+      "Review": "role-reviewed"
+    },
+    {
+      "Group": "concurrency",
+      "Module": "once",
+      "Disposition": "public-type",
+      "Profile": "once",
+      "Review": "role-reviewed"
+    },
+    {
+      "Group": "concurrency",
+      "Module": "thread_key",
+      "Disposition": "public-type",
+      "Profile": "thread-local",
+      "Review": "role-reviewed"
+    },
+    {
+      "Group": "concurrency",
+      "Module": "thread",
+      "Disposition": "language-mechanism",
+      "Profile": "thread",
+      "Review": "role-reviewed"
+    },
+    {
+      "Group": "concurrency",
+      "Module": "sync",
+      "Disposition": "internal",
+      "Profile": "sync-base",
+      "Review": "role-reviewed"
+    },
+    {
+      "Group": "concurrency",
+      "Module": "mutex",
+      "Disposition": "public-type",
+      "Profile": "sync",
+      "Review": "role-reviewed"
+    },
+    {
+      "Group": "concurrency",
+      "Module": "cond",
+      "Disposition": "public-type",
+      "Profile": "sync",
+      "Review": "role-reviewed"
+    },
+    {
+      "Group": "concurrency",
+      "Module": "cancel",
+      "Disposition": "public-type",
+      "Profile": "cancel",
+      "Review": "role-reviewed"
+    },
+    {
+      "Group": "concurrency",
+      "Module": "future",
+      "Disposition": "language-mechanism",
+      "Profile": "future",
+      "Review": "role-reviewed"
+    },
+    {
+      "Group": "concurrency",
+      "Module": "future_bridge",
+      "Disposition": "language-mechanism",
+      "Profile": "future",
+      "Review": "role-reviewed"
+    },
+    {
+      "Group": "concurrency",
+      "Module": "future_continue",
+      "Disposition": "language-mechanism",
+      "Profile": "future",
+      "Review": "role-reviewed"
+    },
+    {
+      "Group": "concurrency",
+      "Module": "future_combine",
+      "Disposition": "language-mechanism",
+      "Profile": "future",
+      "Review": "role-reviewed"
+    },
+    {
+      "Group": "concurrency",
+      "Module": "task",
+      "Disposition": "language-mechanism",
+      "Profile": "task",
+      "Review": "role-reviewed"
+    },
+    {
+      "Group": "concurrency",
+      "Module": "task_group",
+      "Disposition": "public-type",
+      "Profile": "task-group",
+      "Review": "role-reviewed"
+    },
+    {
+      "Group": "concurrency",
+      "Module": "task_pool",
+      "Disposition": "public-type",
+      "Profile": "task-pool",
+      "Review": "role-reviewed"
+    },
+    {
+      "Group": "concurrency",
+      "Module": "executor",
+      "Disposition": "public-type",
+      "Profile": "executor",
+      "Review": "role-reviewed"
+    },
+    {
+      "Group": "concurrency",
+      "Module": "task_group_pool",
+      "Disposition": "composition",
+      "Profile": "task-group-pool",
+      "Review": "role-reviewed"
+    },
+    {
+      "Group": "concurrency",
+      "Module": "coroutine",
+      "Disposition": "internal",
+      "Profile": "native-coroutines",
+      "Review": "role-reviewed"
+    },
+    {
+      "Group": "concurrency",
+      "Module": "coroutine_scheduler",
+      "Disposition": "internal",
+      "Profile": "native-coroutines",
+      "Review": "role-reviewed"
+    },
+    {
+      "Group": "concurrency",
+      "Module": "coroutine_event",
+      "Disposition": "internal",
+      "Profile": "native-coroutines",
+      "Review": "role-reviewed"
+    },
+    {
+      "Group": "concurrency",
+      "Module": "future_coroutine",
+      "Disposition": "internal",
+      "Profile": "native-coroutines",
+      "Review": "role-reviewed"
+    },
+    {
+      "Group": "concurrency",
+      "Module": "task_coroutine",
+      "Disposition": "internal",
+      "Profile": "native-coroutines",
+      "Review": "role-reviewed"
+    },
+    {
+      "Group": "concurrency",
+      "Module": "task_group_coroutine",
+      "Disposition": "internal",
+      "Profile": "native-coroutines",
+      "Review": "role-reviewed"
+    },
+    {
+      "Group": "concurrency",
+      "Module": "sem",
+      "Disposition": "public-type",
+      "Profile": "sync",
+      "Review": "role-reviewed"
+    },
+    {
+      "Group": "concurrency",
+      "Module": "rwlock",
+      "Disposition": "public-type",
+      "Profile": "sync",
+      "Review": "role-reviewed"
+    },
+    {
+      "Group": "concurrency",
+      "Module": "event",
+      "Disposition": "public-type",
+      "Profile": "event",
+      "Review": "role-reviewed"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "asn1_der",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "pem",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_core",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_int31",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_rsa",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_rsa_private",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_rsa_pss",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_rsa_pss_sign",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_rsa_pkcs1",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_rsa_pkcs1_sign",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_ecdsa_core",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_ecdsa_der",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_nist",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_p256",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_p384",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_nist_keypair",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_p256_keypair",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_p384_keypair",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_ecdsa_math",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_ecdsa_verify",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_ecdsa_p256",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_ecdsa_p384",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_ecdsa_verify_der",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_ecdsa_p256_der",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_ecdsa_p384_der",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_ecdsa_sign",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_ecdsa_p256_sign",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_ecdsa_p384_sign",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_ecdsa_sign_der",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_ecdsa_p256_sign_der",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_ecdsa_p384_sign_der",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_sha1",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_sha256",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_sha224",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_sha512",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_sha512_256",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_md5",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_hmac_sha256",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_hmac_sha512",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_pbkdf2_sha256",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_pbkdf2_sha512",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_hkdf_sha256",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_hkdf_sha512",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_chacha20",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_poly1305",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_chacha20_poly1305",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_aes",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_aes_gcm",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_curve25519",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_x25519",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_ed25519",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_ed25519_sign",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_ed25519_verify",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_ed25519_keypair",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_x448",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_x25519_keypair",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "crypto_asn1",
+      "Module": "crypto_x448_keypair",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "x509",
+      "Module": "x509_parse",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "x509",
+      "Module": "x509_crl",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "x509",
+      "Module": "x509_signature",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "x509",
+      "Module": "x509_digest",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "x509",
+      "Module": "x509_verify",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "x509",
+      "Module": "x509_crl_verify",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "x509",
+      "Module": "x509_verify_rsa",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "x509",
+      "Module": "x509_verify_ecdsa",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "x509",
+      "Module": "x509_verify_ed25519",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "x509",
+      "Module": "x509_profile",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "x509",
+      "Module": "x509_name",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "x509",
+      "Module": "x509_distribution",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "x509",
+      "Module": "x509_crl_profile",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "x509",
+      "Module": "x509_crl_policy",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "x509",
+      "Module": "x509_name_constraints",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "x509",
+      "Module": "x509_path",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "x509",
+      "Module": "x509_path_build",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "x509",
+      "Module": "x509_store",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "x509",
+      "Module": "x509_store_file",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "x509",
+      "Module": "x509_store_system",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "x509",
+      "Module": "x509_identity",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_resume",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_handshake",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_handshake_reader",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_hello",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_negotiate",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_hello_write",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_psk",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_psk_write",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_key_exchange",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_policy",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_context",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_key_exchange_x25519",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_key_exchange_x448",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_key_exchange_p256",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_key_exchange_p384",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_messages",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_messages_write",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_auth_messages",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_auth_messages_write",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_schedule",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_schedule_sha256",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_schedule_sha384",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_record",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_record_aes",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_record_chacha",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_session",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_verify",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_client",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_client_verify",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_client_resume",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_identity",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_identity_rsa",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_identity_ec",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_identity_p256",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_identity_p384",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_identity_ed25519",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_server",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_server_resume",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_stream",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_stream_future",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_stream_listener",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_stream_listener_future",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_stream_listener_sync",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_stream_dial",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_stream_dial_proxy",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "tls",
+      "Module": "tls_stream_dial_future",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net_interface",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net_interface_text",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net_dns",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net_resolver",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net_resolver_future",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net_socket",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net_buffer",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net_frame",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net_frame_line",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net_frame_length",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net_proxy",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net_proxy_handshake",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net_proxy_socks5",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net_proxy_http_connect",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net_proxy_dial",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net_port",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net_port_select",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net_port_epoll",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net_port_uring",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net_port_kqueue",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net_port_iocp",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net_engine",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net_file",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "task_net",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "task_group_net",
+      "Disposition": "composition",
+      "Profile": "task-group-net",
+      "Review": "role-reviewed"
+    },
+    {
+      "Group": "network",
+      "Module": "net_tcp",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net_tcp_file",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net_tcp_server",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net_tcp_server_future",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net_tcp_server_sync",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net_sync",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net_tcp_dial",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net_tcp_dial_future",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net_tcp_future",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net_tcp_sync",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net_tcp_dial_sync",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net_udp",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net_udp_future",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    },
+    {
+      "Group": "network",
+      "Module": "net_udp_sync",
+      "Disposition": "pending",
+      "Profile": null,
+      "Review": "pending"
+    }
+  ]
+}
