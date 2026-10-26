@@ -83,6 +83,14 @@ Store.LoadAccount/LoadCert/LoadCertCa 直接声明上游 xrtAcmeStoreLoad*，没
 可运行示例：release/examples/extern_owned_string.xl 及其 native C 文件。
 测试入口 tools/check_extern_owned_string.py；使用 --driver 指定 Windows
 公共源码驱动，或 --cli 指定正常 xl CLI，并提供全新的 --directory。
+源码驱动自动读取相邻 build.json；正常 CLI 的完整验收还须用
+--runtime-build 指定对应源码运行时的构建回执。缺少回执时结果明确标记
+independentCConsumer=false，不能视为独立 C 头文件验收。
+
+tools/check_extern_owned_string_public.py 将生成的 C、原生生产者和 C 消费者
+作为独立翻译单元编译。消费者只包含真正输出的头文件，不经过 C sidecar
+注入；覆盖可空非空值、多返回值、普通 string、无诊断失败以及 120 个
+OOM 前缀，并分别运行 O0/O2 产品。
 
 门禁覆盖原指针、分配/释放计数、空字符串与 NULL、无诊断失败、失败非终止
 载荷、OOM 前缀、函数值、动态/协议方法、包导入、worker、JIT/AOT 与生成原型。

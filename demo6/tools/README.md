@@ -1250,3 +1250,5 @@ This boundary batch does not complete Array carrier migration or the 53-module g
 `runtime_sources.py` reads the shared physical runtime translation units from `runtime_dll.rsp.in`; Linux release builds consume this list, including source bundles, instead of maintaining a second list.
 
 `check_foreign_bridges.ps1` verifies shared C resource ownership and native data snapshots, including allocation failures and JIT/AOT cleanup.
+
+`check_extern_owned_string.py` 验证自有 C 字符串接管及 C 可变参数文本；`check_extern_owned_string_public.py` 使用源码运行时回执，将真实公开头文件消费者作为独立 C 翻译单元编译，覆盖可空、多返回值及 OOM 生命周期。

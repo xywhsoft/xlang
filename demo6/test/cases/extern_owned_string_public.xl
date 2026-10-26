@@ -1,0 +1,20 @@
+extern "owned_public_native" @owned func text(bool present) as string?
+extern "owned_text" @owned func required() as string
+extern "owned_failed" @owned func failed() as string
+extern "owned_failed_without_diagnostic" @owned func silentFailure() as string
+
+export "owned_public_optional" func Optional(bool present) as string?
+    return text(present)
+end
+export "owned_public_pair" func Pair(bool present) as (string?, int)
+    return text(present), 42
+end
+export "owned_public_required" func Required() as string
+    return required()
+end
+export "owned_public_failed" func Failed() as string
+    return failed()
+end
+export "owned_public_silent_failure" func SilentFailure() as string
+    return silentFailure()
+end
