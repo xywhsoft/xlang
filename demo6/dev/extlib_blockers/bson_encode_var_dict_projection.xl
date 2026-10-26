@@ -1,0 +1,5 @@
+import bson
+
+var document = {"a": 1}
+assert type(document) == dict
+bson.encode(document)
