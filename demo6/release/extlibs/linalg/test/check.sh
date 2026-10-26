@@ -34,4 +34,12 @@ diff -u "$work/c_example.txt" "$work/xl_example.txt"
 timeout 90s ./release/xl run release/examples/extlibs/linalg_c.c \
     > "$work/c_direct.txt"
 diff -u "$work/c_example.txt" "$work/c_direct.txt"
-printf 'linalg Linux C ASan/UBSan and XLang parity gate: PASS\n'
+timeout 90s ./release/xl build release/extlibs/linalg/test/aot_core.xl -o "$work/linalg_core"
+timeout 30s "$work/linalg_core"
+timeout 90s ./release/xl build release/examples/extlibs/linalg.xl -o "$work/linalg_xl_aot"
+timeout 30s "$work/linalg_xl_aot" > "$work/xl_aot.txt"
+diff -u "$work/c_example.txt" "$work/xl_aot.txt"
+timeout 90s ./release/xl build release/examples/extlibs/linalg_c.c -o "$work/linalg_c_aot"
+timeout 30s "$work/linalg_c_aot" > "$work/c_aot.txt"
+diff -u "$work/c_example.txt" "$work/c_aot.txt"
+printf 'linalg Linux C ASan/UBSan, XLang parity and bilingual AOT gate: PASS\n'

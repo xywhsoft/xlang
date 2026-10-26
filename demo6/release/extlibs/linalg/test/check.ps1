@@ -58,6 +58,12 @@ try {
         $aotLines = @(& $example)
         if ($LASTEXITCODE -ne 0) { throw 'linalg example AOT run failed' }
         Confirm-Output 'XLang example AOT' $aotLines
+        $cExample = Join-Path $work 'linalg_c_example.exe'
+        & $xl build release/examples/extlibs/linalg_c.c -o $cExample
+        if ($LASTEXITCODE -ne 0) { throw 'linalg C example AOT build failed' }
+        $cAotLines = @(& $cExample)
+        if ($LASTEXITCODE -ne 0) { throw 'linalg C example AOT run failed' }
+        Confirm-Output 'C example AOT' $cAotLines
     }
 
     Write-Output $(if ($SkipAot) { 'linalg Windows C/XLang focused gate: PASS' }

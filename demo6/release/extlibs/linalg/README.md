@@ -1,10 +1,11 @@
 # linalg
 
-2026-10-24 当前 Windows 发布版默认 `test/check.ps1` 全通过：
-严格 C、256 组固定整数向量所在的边界用例、XLang 边界与分配、
-C/XLang 三条范例路径固定输出，以及核心和公开范例的独立
-EXE AOT 构建、运行与输出核对。旧 `xl6ValueIndexReadCopyV1`
-缺符号记录属于历史发布物；本轮未重建 Linux 独立 EXE。
+2026-10-26 完整重建 Windows/Linux 发布物后，本包在两平台 x64 的
+包级范围签收。默认门禁通过严格 C、Linux ASan/UBSan、数值边界、
+XLang 边界与分配故障、十三项公开函数的双语固定输出，并在两平台
+构建运行核心、XLang 范例和 C 单文件范例的独立 EXE。旧
+`xl6ValueIndexReadCopyV1` 缺符号记录属于历史发布物；本结论不代替
+全产品回归，也不外推 32 位/ARM 或长时性能。
 
 `linalg` 是小型二维/三维向量和 2×2 矩阵工具，不是任意维 BLAS。
 XLang 使用普通 `float` 与多返回值，C 使用输出参数；两者计算路径相同。
@@ -39,7 +40,7 @@ ia, ib, ic, id = linalg.inverse2(1.0, 2.0, 3.0, 4.0)
 保留近乎平行或反向向量约 `1e-8` 弧度的差异。
 求逆边界测试还覆盖元素为 `1e308`、原行列式超出 `double` 范围但
 逆矩阵有限的非对角矩阵；不能仅凭直接计算的行列式是否溢出判断可逆性。
-2026-10-25：这一边界的 C、XLang JIT 与独立 EXE 在 Windows 通过，
+2026-10-25 历史验证：这一边界的 C、XLang JIT 与独立 EXE 在 Windows 通过，
 Linux 包级 C ASan/UBSan、XLang 和双语门禁通过。Windows 根目录的
 整包门禁仍被共享 VFS 头文件查找问题阻断；从 `release` 目录运行的
 成功结果不替代该项发布验收。
@@ -61,7 +62,7 @@ IEEE 浮点传播规则；成功的标量调用会清除当前线程的旧 XRT �
   仅在 TCC 单文件路径包含包原生实现，正式包仍由清单分离编译。
 - `release/extlibs/linalg/test/check.ps1`：Windows 严格 GCC、C/XLang 边界及
   包运行器 C、单文件 C、XLang 三条范例路径的固定数值输出；默认还需
-  构建运行核心与公开范例 AOT，后者须匹配同一固定输出。`-SkipAot`
+  构建运行核心、XLang 和 C 范例 AOT，后两者须匹配同一固定输出。`-SkipAot`
   仅运行 C/JIT 聚焦门禁，不是发布验收。
 - `xl run extlibs/linalg/test/boundaries.xl`
 - `tools/smoke_extlib_catalog.ps1 -Package linalg`：包清单登记的边界、
@@ -69,7 +70,7 @@ IEEE 浮点传播规则；成功的标量调用会清除当前线程的旧 XRT �
   标量函数由 `test/cases/stdlib_math.xl` 单独验证。
 - `xl run extlibs/linalg/test/allocations.xl`：`normalize2`、`cross3`、`inverse2`、`multiply2` 各自逐点注入多返回值分配失败，核对 `MemoryError` 与解除故障后的再次调用。
 - `tools/run_extlib_c.ps1 -Package linalg -Source release/extlibs/linalg/test/test_linalg.c`
-- `bash release/extlibs/linalg/test/check.sh`：Linux 严格 GCC 与 ASan/UBSan C 测试、中央和包内 XLang 用例，以及 C/XLang 范例逐字节对照。
+- `bash release/extlibs/linalg/test/check.sh`：Linux 严格 GCC 与 ASan/UBSan C 测试、中央和包内 XLang 用例，以及 C/XLang 范例逐字节对照；默认还构建运行核心、XLang 和 C 范例独立 EXE。
 - 边界覆盖极小/极大向量、相差 600 个数量级的矩阵行、奇异/近奇异矩阵、
   非有限输入、近乎平行/反向角度、失败时输出参数保持不变、XRT `xvalue` 多返回桥及逐点分配失败。
   异号极值端点的插值与轻微外推也有 C/XLang 回归；C 回归另覆盖失败后八个标量入口的错误状态复位，XLang 回归覆盖捕获异常后的继续调用。
@@ -86,16 +87,17 @@ Windows C 定向用例和 Linux 严格 GCC/ASan/UBSan、XLang 与双语范例
 13 个公开函数均有成对调用，包含多返回值的向量叉积、矩阵求逆与乘法。
 Windows 两份范例和 Linux 包级逐字节输出对照通过；示例不改变 API。
 
-当前 `release/xl.exe` 的 AOT 构建仍缺少共享符号
+2026-10-18 当时 `release/xl.exe` 的 AOT 构建缺少共享符号
 `xl6ValueDataSnapshotV1`，见 `demo6/dev/extlib_blockers/text_snapshot_link.md`；
-暂不标记发布验收完成。
+该阻断在 2026-10-26 发布物复验中已不再出现。
 2026-10-18：中央用例删除三个不再由本包导出的旧标量断言；原失败
 `[import] import package has no such exported symbol` 先复现，随后
 Windows 目录 smoke 3/3 和 Linux 包级 C ASan/UBSan、语言与双语门禁通过。
 没有恢复旧别名，也没有改变 `linalg` 计算实现。
 清单只声明 Math 与 Value Container 两个原生直接依赖；Linux C 测试
-宿主按这两个模块编译，另仅为故障注入启用 Memory Debug。当前最小
-`test/aot_core.xl` 仍缺 `xl6ValueIndexReadCopyV1`，不能报告 AOT 体积收益。
+宿主按这两个模块编译，另仅为故障注入启用 Memory Debug。2026-10-18
+最小 `test/aot_core.xl` 曾缺 `xl6ValueIndexReadCopyV1`；当前发布物
+已可独立构建运行。AOT 体积收益未单独测量。
 
 2026-10-19：新增 Windows `test/check.ps1` 与覆盖十三项公开函数的固定数值输出；Linux `test/check.sh` 同步核对预期。两平台 C 边界、XLang 边界和三条 C/XLang 范例路径通过，Linux 包含 ASan/UBSan。数值算法未改，完整 AOT 的共享缺符号阻断仍在，不签收发布级。
 

@@ -18,7 +18,7 @@
 <main class="extlib-layout" id="main-content">
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / linalg</p><h1>linalg</h1>
     <p class="extlib-lead">二维、三维向量与 2×2 矩阵的轻量计算。</p>
-    <p>复用 XRT 的稳定长度计算；多返回值适配 XLang，C 提供输出参数。夹角以缩放后的叉积和点积计算，保留近乎平行或反向的微小角度；异号极大端点插值避免中间差值溢出。多返回值分配失败按内存错误报告，恢复后可继续调用。C/XL 包级测试、Linux sanitizer 与包内 XLang 边界已通过；当前 XL AOT 仍受共享缺符号阻断。</p>
+    <p>复用 XRT 的稳定长度计算；多返回值适配 XLang，C 提供输出参数。夹角以缩放后的叉积和点积计算，保留近乎平行或反向的微小角度；异号极大端点插值避免中间差值溢出。多返回值分配失败按内存错误报告，恢复后可继续调用。2026-10-26 重建发布物后的 Windows/Linux x64 包级门禁均通过；旧 AOT 缺符号阻断已解除。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>
@@ -34,7 +34,7 @@ float y = 0.0
 x, y = linalg.normalize2(3.0, 4.0)</code></pre>
     <h2 id="c-api">C</h2>
     <p>包含 <code>include/linalg_native.h</code>。组合结果使用 <code>_into</code> 输出参数；各输出指针必须非空且互异，失败返回 0，不覆盖原输出。完整参数及数值边界见包内 README。</p>
-    <p>Windows 包级门禁 <code>release/extlibs/linalg/test/check.ps1</code> 与 Linux <code>test/check.sh</code> 均验证 C/XLang 边界、分配失败和十三项公开函数的固定范例输出；Linux 另有 C ASan/UBSan。Windows 默认门禁还要求核心与公开范例 AOT 构建运行；<code>-SkipAot</code> 仅作聚焦检查。中央测试已按当前接口更新，不恢复移至标准库的旧标量 API；默认门禁目前在核心 AOT 的共享缺符号处失败，未签收发布级。</p>
+    <p>Windows 包级门禁 <code>release/extlibs/linalg/test/check.ps1</code> 与 Linux <code>test/check.sh</code> 均验证 C/XLang 边界、分配失败和十三项公开函数的固定范例输出；Linux 另有 C ASan/UBSan。两平台默认门禁构建运行核心、XLang 范例及 C 单文件范例的独立 EXE，并核对双语输出；<code>-SkipAot</code> 仅作 Windows 聚焦检查。中央测试已按当前接口更新，不恢复移至标准库的旧标量 API。包级签收不代表全产品回归或其他架构的发布准入。</p>
   </section>
 </main>
 </body>
