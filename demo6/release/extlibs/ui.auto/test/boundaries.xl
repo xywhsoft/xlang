@@ -88,6 +88,19 @@ func main(...) as int
 	assert rejected, "class path strategy requires a path"
 	rejected = false
 	try
+		ui.auto.locator_from_json("{\"strategy\":\"processClasPath\",\"name\":\"hello\"}")
+	catch ValueError e
+		rejected = true
+	end
+	assert rejected, "unknown locator strategy must not be ignored"
+	auto by_id_strategy = ui.auto.locator_from_json(
+		"{\"strategy\":\"automationId\",\"automationId\":\"edit\"}")
+	assert by_id_strategy.automation_id == "edit", "automationId strategy must remain valid"
+	auto by_class_strategy = ui.auto.locator_from_json(
+		"{\"strategy\":\"classNameName\",\"className\":\"Edit\"}")
+	assert by_class_strategy.class_name == "Edit", "classNameName strategy must remain valid"
+	rejected = false
+	try
 		ui.auto.locator_from_json(json.stringify({"strategy": "processClassPath",
 			"classPath": class_path, "index": sibling_index + 1}))
 	catch ValueError e

@@ -100,10 +100,15 @@ func x_ui_auto_locator_from_json(string text) as Locator
 	loc.class_path = json_string(obj, "classPath")
 	loc.control_type = json_int(obj, "controlType")
 	loc.process_id = json_int(obj, "processId")
+	string strategy = json_string(obj, "strategy")
+	if (strategy != "" and strategy != "automationId" and
+		strategy != "classNameName" and strategy != "processClassPath") then
+		throw ValueError "unknown locator strategy"
+	end
 	if loc.control_type < 0 or loc.process_id < 0 then
 		throw ValueError "locator IDs must not be negative"
 	end
-	if json_string(obj, "strategy") == "processClassPath" and loc.class_path == "" then
+	if strategy == "processClassPath" and loc.class_path == "" then
 		throw ValueError "processClassPath locator requires classPath"
 	end
 	var index_value = obj?["index"]

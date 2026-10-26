@@ -22,6 +22,8 @@ Windows 桌面自动化组合层，底层为 `uia`，截图依赖 `opencv`。通
 文本定位条件与 `type_text` 经 `uia` 进入 C 前拒绝内嵌 NUL，
 不会把前缀误当作完整条件或静默截断输入。
 `locator_from_json` 接受这些字段及 UIA 生成的定位信息，但
+`strategy` 若存在，只允许 `automationId`、`classNameName`、
+`processClassPath`；未知值会报 `ValueError`，不会静默改用其他字段定位。
 `processClassPath` 会沿 UIA Control View 的类名、控件类型及同签名兄弟序号
 逐段定位；可与进程、名称、类名、自动化 ID、控件类型一并取交集，
 不会退化为宽泛的进程匹配。路径不在 `within` 的根下、目标消失或
