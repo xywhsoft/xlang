@@ -1,0 +1,3 @@
+func bad(TlsClientContext value)
+ auto result=value.withResume(b"not-a-credential")
+end

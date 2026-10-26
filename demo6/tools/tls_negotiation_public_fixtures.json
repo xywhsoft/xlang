@@ -1,0 +1,5 @@
+{
+  "Cases": [
+    {"Name":"tls_surface_restricted_negotiation","Source":"test/cases/tls_public/restricted_negotiation.xl","Negative":false}
+  ]
+}

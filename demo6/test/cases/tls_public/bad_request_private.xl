@@ -1,0 +1,3 @@
+func bad(TlsResumeRequest value)
+ auto raw=value.handle
+end

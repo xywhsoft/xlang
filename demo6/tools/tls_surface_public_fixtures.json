@@ -1,0 +1,259 @@
+{
+  "Cases": [
+    {
+      "Name": "tls_surface_tls_identity_rsa",
+      "Source": "test/cases/tls_public/tls_identity_rsa.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_tls_identity_p256",
+      "Source": "test/cases/tls_public/tls_identity_p256.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_tls_identity_p384",
+      "Source": "test/cases/tls_public/tls_identity_p384.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_tls_identity_ed25519",
+      "Source": "test/cases/tls_public/tls_identity_ed25519.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_tls_identity_owned",
+      "Source": "test/cases/tls_public/tls_identity_owned.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_tls_identity_chain",
+      "Source": "test/cases/tls_public/tls_identity_chain.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_tls_context_rsa",
+      "Source": "test/cases/tls_public/tls_context_rsa.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_tls_context_p256",
+      "Source": "test/cases/tls_public/tls_context_p256.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_tls_context_p384",
+      "Source": "test/cases/tls_public/tls_context_p384.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_tls_context_ed25519",
+      "Source": "test/cases/tls_public/tls_context_ed25519.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_tls_context_owned",
+      "Source": "test/cases/tls_public/tls_context_owned.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_tls_verifier_rsa",
+      "Source": "test/cases/tls_public/tls_verifier_rsa.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_tls_verifier_p256",
+      "Source": "test/cases/tls_public/tls_verifier_p256.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_tls_verifier_p384",
+      "Source": "test/cases/tls_public/tls_verifier_p384.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_tls_verifier_ed25519",
+      "Source": "test/cases/tls_public/tls_verifier_ed25519.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_tls_verifier_deep",
+      "Source": "test/cases/tls_public/tls_verifier_deep.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_tls_verifier_owned",
+      "Source": "test/cases/tls_public/tls_verifier_owned.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_tls_verifier_configure",
+      "Source": "test/cases/tls_public/tls_verifier_configure.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_tls_session_rsa",
+      "Source": "test/cases/tls_public/tls_session_rsa.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_tls_session_p256",
+      "Source": "test/cases/tls_public/tls_session_p256.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_tls_session_p384",
+      "Source": "test/cases/tls_public/tls_session_p384.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_tls_session_ed25519",
+      "Source": "test/cases/tls_public/tls_session_ed25519.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_tls_session_client_live",
+      "Source": "test/cases/tls_public/tls_session_client_live.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_tls_session_server_live",
+      "Source": "test/cases/tls_public/tls_session_server_live.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_tls_selector_rsa",
+      "Source": "test/cases/tls_public/tls_selector_rsa.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_tls_selector_p256",
+      "Source": "test/cases/tls_public/tls_selector_p256.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_tls_selector_p384",
+      "Source": "test/cases/tls_public/tls_selector_p384.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_tls_selector_ed25519",
+      "Source": "test/cases/tls_public/tls_selector_ed25519.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_tls_listener_selector",
+      "Source": "test/cases/tls_public/tls_listener_selector.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_tls_listener_selector_namespace",
+      "Source": "test/cases/tls_public/tls_listener_selector_namespace.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_tls_resume_lookup",
+      "Source": "test/cases/tls_public/tls_resume_lookup.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_tls_resume_lookup_listener",
+      "Source": "test/cases/tls_public/tls_resume_lookup_listener.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_tls_client_resume",
+      "Source": "test/cases/tls_public/tls_client_resume.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_tls_client_resume_stream",
+      "Source": "test/cases/tls_public/tls_client_resume_stream.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_tls_ticket_session",
+      "Source": "test/cases/tls_public/tls_ticket_session.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_tls_transport_tickets",
+      "Source": "test/cases/tls_public/tls_transport_tickets.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_tls_key_update",
+      "Source": "test/cases/tls_public/tls_key_update.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_public_tls_dial",
+      "Source": "test/cases/tls_public/public_tls_dial.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_public_tls_proxy",
+      "Source": "test/cases/tls_public/public_tls_proxy.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_public_tls_data",
+      "Source": "test/cases/tls_public/public_tls_data.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_public_tls_metadata",
+      "Source": "test/cases/tls_public/public_tls_metadata.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_trust_rebind",
+      "Source": "test/cases/tls_public/trust_rebind.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_stdlib_tls_parameters",
+      "Source": "test/cases/stdlib_tls_parameters.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_stdlib_tls_parameters_owned",
+      "Source": "test/cases/stdlib_tls_parameters_owned.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_stdlib_tls_parameters_array_regression",
+      "Source": "test/cases/stdlib_tls_parameters_array_regression.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_stdlib_tls_verification_policy",
+      "Source": "test/cases/stdlib_tls_verification_policy.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_stdlib_tls_resume",
+      "Source": "test/cases/stdlib_tls_resume.xl",
+      "Negative": false
+    },
+    {
+      "Name": "tls_surface_bad_resume_private",
+      "Source": "test/cases/tls_public/bad_resume_private.xl",
+      "Negative": true
+    },
+    {
+      "Name": "tls_surface_bad_context_private",
+      "Source": "test/cases/tls_public/bad_context_private.xl",
+      "Negative": true
+    },
+    {
+      "Name": "tls_surface_bad_request_private",
+      "Source": "test/cases/tls_public/bad_request_private.xl",
+      "Negative": true
+    },
+    {
+      "Name": "tls_surface_bad_wrong_resume",
+      "Source": "test/cases/tls_public/bad_wrong_resume.xl",
+      "Negative": true
+    }
+  ]
+}

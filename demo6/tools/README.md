@@ -2,6 +2,12 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`check_network_public_shipping.py --manifest tools/tls_surface_public_fixtures.json`
+selects 47 ordinary TLS positives and four semantic negatives; the separate
+`tools/tls_negotiation_public_fixtures.json` exercises twelve restricted policies.
+Fixtures own their peers; old generated templates requiring a provisioning driver
+must not be run as self-contained cases. See [TLS product scope and remaining callbacks](../docs/tls-surface-closure-2026-10-26.md).
+
 `check_network_public_shipping.py --manifest tools/network_surface_public_fixtures.json`
 selects 43 normal network positives and four compile negatives, including actual
 explicit backend switching and owned unique-path NetFile I/O. Role inventory

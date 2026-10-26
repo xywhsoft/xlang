@@ -32,6 +32,471 @@
     }
   ],
   "Profiles": {
+    "tls-core": {
+      "Surface": [
+        "TlsResult/TlsRole/TlsState and typed session/transport outcomes"
+      ],
+      "Reason": "协议公共词汇和内部支撑由受管 Session/Stream 使用；观察枚举成员不冒充未支持协议/算法的执行能力。",
+      "SourceWitnesses": [
+        "src/abi/xl6_tls_numeric_enums.inc",
+        "src/abi/xl6_tls_session_enums.inc",
+        "src/stdlib/xl6_stdlib_tls_session.inc"
+      ],
+      "NormalProductCases": [
+        "tls_surface_tls_session_p256",
+        "tls_surface_public_tls_data"
+      ],
+      "DecisionWitnesses": [
+        "docs/tls-managed.md"
+      ],
+      "AcceptanceBoundary": "Normal fixed-material public-product evidence only. Role review is not exhaustive runtime coverage, CRL/additional-verifier integration, TLS security certification or full goal acceptance"
+    },
+    "tls-protocol": {
+      "Surface": [
+        "TlsSession drive/feed/takeCipher and authenticated client/server roles"
+      ],
+      "Reason": "握手编解码、协商与认证消息是受管会话的原生协议实现，不公开临时借用结构或协议密钥；完整握手与正常 PSK 恢复复用同一底座。",
+      "SourceWitnesses": [
+        "lib/xrt/xrt.h",
+        "src/runtime/xl6_tls_session_client.c",
+        "src/runtime/xl6_tls_session_server.c",
+        "src/runtime/xl6_tls_session_state.c"
+      ],
+      "NormalProductCases": [
+        "tls_surface_tls_session_rsa",
+        "tls_surface_tls_session_p256",
+        "tls_surface_tls_session_p384",
+        "tls_surface_tls_session_ed25519",
+        "tls_surface_tls_ticket_session"
+      ],
+      "DecisionWitnesses": [
+        "docs/tls-managed.md",
+        "docs/TLS恢复票据.md"
+      ],
+      "AcceptanceBoundary": "Normal fixed-material public-product evidence only. Role review is not exhaustive runtime coverage, CRL/additional-verifier integration, TLS security certification or full goal acceptance"
+    },
+    "tls-exchange": {
+      "Surface": [
+        "TlsPolicy group preferences executed by native handshake"
+      ],
+      "Reason": "四个已支持组通过受限偏好配置完成正常会话，XRT 提供 ECDHE，不再导出一套会话私钥函数；没有可读 group 结果时不伪造协商组遥测。",
+      "SourceWitnesses": [
+        "lib/xrt/xrt.h",
+        "src/stdlib/xl6_stdlib_tls_parameters.inc",
+        "src/runtime/xl6_tls_policy_preferences.c"
+      ],
+      "NormalProductCases": [
+        "tls_surface_restricted_negotiation"
+      ],
+      "DecisionWitnesses": [
+        "docs/tls-managed.md"
+      ],
+      "AcceptanceBoundary": "Normal fixed-material public-product evidence only. Role review is not exhaustive runtime coverage, CRL/additional-verifier integration, TLS security certification or full goal acceptance"
+    },
+    "tls-schedule": {
+      "Surface": [
+        "Native TLS traffic-key schedule selected by explicit cipher suite"
+      ],
+      "Reason": "密钥派生/转录摘要由 XRT 协议层执行；普通会话明确选 AES256/SHA384 及 SHA256 套件，不将内部 traffic secrets 导出。",
+      "SourceWitnesses": [
+        "lib/xrt/xrt.h",
+        "src/stdlib/xl6_stdlib_tls_session.inc"
+      ],
+      "NormalProductCases": [
+        "tls_surface_restricted_negotiation",
+        "tls_surface_tls_key_update"
+      ],
+      "DecisionWitnesses": [
+        "docs/tls-managed.md"
+      ],
+      "AcceptanceBoundary": "Normal fixed-material public-product evidence only. Role review is not exhaustive runtime coverage, CRL/additional-verifier integration, TLS security certification or full goal acceptance"
+    },
+    "tls-records": {
+      "Surface": [
+        "Session and Stream authenticated records, application data and KeyUpdate"
+      ],
+      "Reason": "AES128/AES256 GCM 与 ChaChaPoly 记录后端复用 XRT；公开接口交付拥有的明/密文 bytes 和状态，不暴露可变协议密钥。",
+      "SourceWitnesses": [
+        "lib/xrt/xrt.h",
+        "src/runtime/xl6_tls_session_input.c",
+        "src/runtime/xl6_tls_session_output.c"
+      ],
+      "NormalProductCases": [
+        "tls_surface_restricted_negotiation",
+        "tls_surface_tls_key_update",
+        "tls_surface_public_tls_data"
+      ],
+      "DecisionWitnesses": [
+        "docs/tls-managed.md",
+        "docs/TLS传输标准库.md"
+      ],
+      "AcceptanceBoundary": "Normal fixed-material public-product evidence only. Role review is not exhaustive runtime coverage, CRL/additional-verifier integration, TLS security certification or full goal acceptance"
+    },
+    "tls-policy": {
+      "Surface": [
+        "TlsPolicy typed ordered versions/ciphers/groups/signatures and key-share policy"
+      ],
+      "Reason": "不可变完整偏好列表与精确枚举数组，单次校验而不是一系列暂时不一致 setter；词汇范围与执行支持明确分开。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_tls_parameters.inc",
+        "src/runtime/xl6_tls_policy_preferences.c"
+      ],
+      "NormalProductCases": [
+        "tls_surface_stdlib_tls_parameters",
+        "tls_surface_restricted_negotiation"
+      ],
+      "DecisionWitnesses": [
+        "docs/tls-managed.md"
+      ],
+      "AcceptanceBoundary": "Normal fixed-material public-product evidence only. Role review is not exhaustive runtime coverage, CRL/additional-verifier integration, TLS security certification or full goal acceptance"
+    },
+    "tls-parameters": {
+      "Surface": [
+        "TlsParameters/TlsLimits immutable native context snapshots"
+      ],
+      "Reason": "共享策略、队列硬预算和原生参数自包含拥有，不借用语言列表/参数；构造参数不建立连接或暗中分配全部队列。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_tls_parameters.inc",
+        "src/runtime/xl6_tls_parameters.c"
+      ],
+      "NormalProductCases": [
+        "tls_surface_stdlib_tls_parameters_owned",
+        "tls_surface_tls_context_owned"
+      ],
+      "DecisionWitnesses": [
+        "docs/tls-managed.md"
+      ],
+      "AcceptanceBoundary": "Normal fixed-material public-product evidence only. Role review is not exhaustive runtime coverage, CRL/additional-verifier integration, TLS security certification or full goal acceptance"
+    },
+    "tls-session": {
+      "Surface": [
+        "TlsSession sans-I/O lifecycle, bytes, peer certificates, metadata and KeyUpdate"
+      ],
+      "Reason": "实际会话 gate、拥有图、明确 drive 与独立输出；dispose/销毁可能释放闭包，不谎称 no-raise/nonblocking。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_tls_session.inc",
+        "src/runtime/xl6_tls_session_core.c",
+        "src/runtime/xl6_tls_session_internal.h"
+      ],
+      "NormalProductCases": [
+        "tls_surface_tls_session_rsa",
+        "tls_surface_tls_session_p256",
+        "tls_surface_tls_session_p384",
+        "tls_surface_tls_session_ed25519"
+      ],
+      "DecisionWitnesses": [
+        "docs/tls-managed.md"
+      ],
+      "AcceptanceBoundary": "Normal fixed-material public-product evidence only. Role review is not exhaustive runtime coverage, CRL/additional-verifier integration, TLS security certification or full goal acceptance"
+    },
+    "tls-resume": {
+      "Surface": [
+        "TlsResume opaque immutable owned credentials, explicit import/export and validity"
+      ],
+      "Reason": "凭据完整复制、秘密显式导出，普通数据副本不改变凭据；fromParts 是明确提供 PSK 能力，不是默认跳过证书校验。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_tls_resume.inc",
+        "src/runtime/xl6_tls_resume.c"
+      ],
+      "NormalProductCases": [
+        "tls_surface_stdlib_tls_resume",
+        "tls_surface_tls_ticket_session"
+      ],
+      "DecisionWitnesses": [
+        "docs/TLS恢复票据.md"
+      ],
+      "AcceptanceBoundary": "Normal fixed-material public-product evidence only. Role review is not exhaustive runtime coverage, CRL/additional-verifier integration, TLS security certification or full goal acceptance"
+    },
+    "tls-identity": {
+      "Surface": [
+        "TlsIdentity.fromRsa/fromP256/fromP384/fromEd25519 and independent certificates"
+      ],
+      "Reason": "已有证书与相应私钥生成自包含原生身份，核对密钥一致性和完整预算；不提供签发/CSR 或自造密钥算法。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_tls_identity.inc",
+        "src/runtime/xl6_tls_identity_abi.h"
+      ],
+      "NormalProductCases": [
+        "tls_surface_tls_identity_rsa",
+        "tls_surface_tls_identity_p256",
+        "tls_surface_tls_identity_p384",
+        "tls_surface_tls_identity_ed25519",
+        "tls_surface_tls_identity_owned",
+        "tls_surface_tls_identity_chain"
+      ],
+      "DecisionWitnesses": [
+        "docs/tls-managed.md"
+      ],
+      "AcceptanceBoundary": "Normal fixed-material public-product evidence only. Role review is not exhaustive runtime coverage, CRL/additional-verifier integration, TLS security certification or full goal acceptance"
+    },
+    "tls-identity-algorithms": {
+      "Surface": [
+        "Algorithm-named TlsIdentity factories over existing managed key types"
+      ],
+      "Reason": "算法类型在工厂和私钥参数中确定，不按长度猜测；共享 EC 支撑不新增平行 EC 身份类。四种固定有效身份和真实会话各有见证。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_tls_identity.inc",
+        "src/runtime/xl6_tls_identity_rsa.c",
+        "src/runtime/xl6_tls_identity_p256.c",
+        "src/runtime/xl6_tls_identity_p384.c",
+        "src/runtime/xl6_tls_identity_ed25519.c"
+      ],
+      "NormalProductCases": [
+        "tls_surface_tls_identity_rsa",
+        "tls_surface_tls_identity_p256",
+        "tls_surface_tls_identity_p384",
+        "tls_surface_tls_identity_ed25519",
+        "tls_surface_tls_session_rsa",
+        "tls_surface_tls_session_p384"
+      ],
+      "DecisionWitnesses": [
+        "docs/tls-managed.md"
+      ],
+      "AcceptanceBoundary": "Normal fixed-material public-product evidence only. Role review is not exhaustive runtime coverage, CRL/additional-verifier integration, TLS security certification or full goal acceptance"
+    },
+    "tls-client": {
+      "Surface": [
+        "TlsClientContext plus client TlsSession/TlsStream construction"
+      ],
+      "Reason": "角色分离且要求显式信任验证器；原生握手复用相同参数，不开放 raw callback/no-verify 默认后门。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_tls_role_context.inc",
+        "src/runtime/xl6_tls_session_client.c",
+        "src/runtime/xl6_tls_client_context.c"
+      ],
+      "NormalProductCases": [
+        "tls_surface_tls_context_rsa",
+        "tls_surface_tls_context_p256",
+        "tls_surface_tls_session_p256"
+      ],
+      "DecisionWitnesses": [
+        "docs/tls-managed.md"
+      ],
+      "AcceptanceBoundary": "Normal fixed-material public-product evidence only. Role review is not exhaustive runtime coverage, CRL/additional-verifier integration, TLS security certification or full goal acceptance"
+    },
+    "tls-client-verification": {
+      "Surface": [
+        "TlsClientContext(TlsVerifier) and default chain/name verification in complete handshakes"
+      ],
+      "Reason": "默认建链/名称/时间/用途已有真实接线；此角色复核不关闭 tls_verify 中明确缺失的 CRL/附加策略回调。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_tls_session_client.c",
+        "src/runtime/xl6_tls_verifier_create.c"
+      ],
+      "NormalProductCases": [
+        "tls_surface_tls_verifier_rsa",
+        "tls_surface_tls_verifier_p256",
+        "tls_surface_tls_verifier_p384",
+        "tls_surface_tls_verifier_ed25519",
+        "tls_surface_trust_rebind"
+      ],
+      "DecisionWitnesses": [
+        "docs/tls-managed.md",
+        "docs/tls-verification-callback-gap-2026-10-26.md"
+      ],
+      "AcceptanceBoundary": "Normal fixed-material public-product evidence only. Role review is not exhaustive runtime coverage, CRL/additional-verifier integration, TLS security certification or full goal acceptance"
+    },
+    "tls-client-resume": {
+      "Surface": [
+        "TlsClientContext withResume/withRequiredResume/ticketCapacity and ticket consumption"
+      ],
+      "Reason": "显式绑定凭据，参数/协议复制保留；显式 verifier 重绑清除凭据并恢复完整握手。未来 CRL 回调的恢复绑定仍未实现，不能借此冒称逐次撤销检查。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_tls_client_context.c",
+        "src/runtime/xl6_tls_client_context_resume.c",
+        "src/stdlib/xl6_stdlib_tls_role_context.inc"
+      ],
+      "NormalProductCases": [
+        "tls_surface_tls_client_resume",
+        "tls_surface_tls_client_resume_stream",
+        "tls_surface_tls_ticket_session",
+        "tls_surface_tls_transport_tickets",
+        "tls_surface_trust_rebind"
+      ],
+      "DecisionWitnesses": [
+        "docs/TLS恢复票据.md"
+      ],
+      "AcceptanceBoundary": "Normal fixed-material public-product evidence only. Role review is not exhaustive runtime coverage, CRL/additional-verifier integration, TLS security certification or full goal acceptance"
+    },
+    "tls-server": {
+      "Surface": [
+        "TlsServerContext static identity or typed owned selector; server session role"
+      ],
+      "Reason": "独立身份/参数/ALPN 与精确请求/选择回调；请求独立拥有，握手线程同步调用，异常经 checked 边界传播。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_tls_role_context.inc",
+        "src/stdlib/xl6_stdlib_tls_selector.inc",
+        "src/runtime/xl6_tls_session_server.c"
+      ],
+      "NormalProductCases": [
+        "tls_surface_tls_selector_rsa",
+        "tls_surface_tls_selector_p256",
+        "tls_surface_tls_selector_p384",
+        "tls_surface_tls_selector_ed25519"
+      ],
+      "DecisionWitnesses": [
+        "docs/TLS类型化服务端选择器.md"
+      ],
+      "AcceptanceBoundary": "Normal fixed-material public-product evidence only. Role review is not exhaustive runtime coverage, CRL/additional-verifier integration, TLS security certification or full goal acceptance"
+    },
+    "tls-server-resume": {
+      "Surface": [
+        "TlsServerContext.withResumeLookup; TlsResumeRequest; owned ticket issue/lookup"
+      ],
+      "Reason": "查找有类型化拥有回调和 checked 结果，true+null 才是缓存未命中；保留实际 code lease、完整图及最后原生 Data 信用。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_tls_resume_request.inc",
+        "src/runtime/xl6_tls_resume_lookup.c",
+        "src/runtime/xl6_tls_resume_request.c"
+      ],
+      "NormalProductCases": [
+        "tls_surface_tls_resume_lookup",
+        "tls_surface_tls_resume_lookup_listener",
+        "tls_surface_tls_ticket_session",
+        "tls_surface_tls_transport_tickets"
+      ],
+      "DecisionWitnesses": [
+        "docs/TLS恢复票据.md"
+      ],
+      "AcceptanceBoundary": "Normal fixed-material public-product evidence only. Role review is not exhaustive runtime coverage, CRL/additional-verifier integration, TLS security certification or full goal acceptance"
+    },
+    "tls-stream": {
+      "Surface": [
+        "TlsStream verified managed TCP composition, bytes/data/metadata/close and KeyUpdate"
+      ],
+      "Reason": "实际 TCP/Engine/角色拥有边、Worker 操作和物理关闭；显式 close 排空与自动未关闭中止区分，不伪造完成。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_tls_transport.inc",
+        "src/stdlib/xl6_stdlib_tls_metadata.inc",
+        "src/runtime/xl6_tls_transport_abi.h"
+      ],
+      "NormalProductCases": [
+        "tls_surface_public_tls_data",
+        "tls_surface_public_tls_metadata",
+        "tls_surface_tls_key_update"
+      ],
+      "DecisionWitnesses": [
+        "docs/TLS传输标准库.md",
+        "docs/tls-close-lifetime-2026-10-26.md"
+      ],
+      "AcceptanceBoundary": "Normal fixed-material public-product evidence only. Role review is not exhaustive runtime coverage, CRL/additional-verifier integration, TLS security certification or full goal acceptance"
+    },
+    "tls-stream-future": {
+      "Surface": [
+        "TlsStream typed wait/recv/send/control/metadata/ticket Futures"
+      ],
+      "Reason": "实际 native 激活与精确 bytes/枚举/拥有类投影，取消不等于资源物理释放；同一对象的 Future 方法，不另造平行流。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_tls_io_abi.h",
+        "src/runtime/xl6_tls_data_abi.h",
+        "src/stdlib/xl6_stdlib_tls_transport.inc"
+      ],
+      "NormalProductCases": [
+        "tls_surface_public_tls_data",
+        "tls_surface_public_tls_metadata",
+        "tls_surface_tls_key_update",
+        "tls_surface_tls_transport_tickets"
+      ],
+      "DecisionWitnesses": [
+        "docs/TLS传输标准库.md"
+      ],
+      "AcceptanceBoundary": "Normal fixed-material public-product evidence only. Role review is not exhaustive runtime coverage, CRL/additional-verifier integration, TLS security certification or full goal acceptance"
+    },
+    "tls-listener": {
+      "Surface": [
+        "TlsServer aggregate managed listener and tls.listen namespace"
+      ],
+      "Reason": "选择器/恢复回调和真实 Engine 拥有图，活跃握手保留实际原生信用；关闭不能提前释放仍可被调用的捕获。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_tls_transport.inc",
+        "src/runtime/xl6_tls_transport_abi.h",
+        "src/runtime/xl6_tls_selector_owner.h"
+      ],
+      "NormalProductCases": [
+        "tls_surface_tls_listener_selector",
+        "tls_surface_tls_listener_selector_namespace",
+        "tls_surface_tls_resume_lookup_listener"
+      ],
+      "DecisionWitnesses": [
+        "docs/TLS类型化服务端选择器.md",
+        "docs/TLS传输标准库.md"
+      ],
+      "AcceptanceBoundary": "Normal fixed-material public-product evidence only. Role review is not exhaustive runtime coverage, CRL/additional-verifier integration, TLS security certification or full goal acceptance"
+    },
+    "tls-listener-waits": {
+      "Surface": [
+        "TlsServer accept/acceptAsync timeout/cancel/deadline variants"
+      ],
+      "Reason": "同一原生 Listener 的同步/Future 方法，共用预先建立的拥有结果载体，不在 I/O Worker 临时重建语言对象。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_tls_transport.inc",
+        "src/runtime/xl6_tls_io_abi.h"
+      ],
+      "NormalProductCases": [
+        "tls_surface_public_tls_dial",
+        "tls_surface_public_tls_proxy",
+        "tls_surface_tls_listener_selector"
+      ],
+      "DecisionWitnesses": [
+        "docs/TLS传输标准库.md"
+      ],
+      "AcceptanceBoundary": "Normal fixed-material public-product evidence only. Role review is not exhaustive runtime coverage, CRL/additional-verifier integration, TLS security certification or full goal acceptance"
+    },
+    "tls-dial": {
+      "Surface": [
+        "TlsStream.dial with explicit Engine/Resolver/context/TlsDialOptions"
+      ],
+      "Reason": "原生 Dial 组合解析/拨号/握手，SNI 与验证参考名分别表达，取消/期限/结果只由精确声明投影。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_tls_dial_options.inc",
+        "src/stdlib/xl6_stdlib_tls_transport.inc",
+        "src/runtime/xl6_tls_dial_abi.h"
+      ],
+      "NormalProductCases": [
+        "tls_surface_public_tls_dial",
+        "tls_surface_tls_transport_tickets"
+      ],
+      "DecisionWitnesses": [
+        "docs/TLS传输标准库.md"
+      ],
+      "AcceptanceBoundary": "Normal fixed-material public-product evidence only. Role review is not exhaustive runtime coverage, CRL/additional-verifier integration, TLS security certification or full goal acceptance"
+    },
+    "tls-proxy-dial": {
+      "Surface": [
+        "TlsStream.dialProxy synchronous/Future overloads"
+      ],
+      "Reason": "先通过自有代理，再以独立 TLS 名称/信任配置握手；测试域名仅是自有代理协议载荷，不做外部 DNS 或连接。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_tls_transport.inc",
+        "src/runtime/xl6_tls_dial_abi.h"
+      ],
+      "NormalProductCases": [
+        "tls_surface_public_tls_proxy"
+      ],
+      "DecisionWitnesses": [
+        "docs/TLS传输标准库.md"
+      ],
+      "AcceptanceBoundary": "Normal fixed-material public-product evidence only. Role review is not exhaustive runtime coverage, CRL/additional-verifier integration, TLS security certification or full goal acceptance"
+    },
+    "tls-dial-future": {
+      "Surface": [
+        "TlsStream.dialAsync/dialProxyAsync with exact owned Stream Future"
+      ],
+      "Reason": "复用原生拥有式 Dial 激活，不为每次网络等待分配协程栈，保留 resolver/engine 和取消桥至真实终态。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_tls_transport.inc",
+        "src/runtime/xl6_tls_dial_abi.h"
+      ],
+      "NormalProductCases": [
+        "tls_surface_public_tls_dial",
+        "tls_surface_public_tls_proxy",
+        "tls_surface_tls_transport_tickets"
+      ],
+      "DecisionWitnesses": [
+        "docs/TLS传输标准库.md"
+      ],
+      "AcceptanceBoundary": "Normal fixed-material public-product evidence only. Role review is not exhaustive runtime coverage, CRL/additional-verifier integration, TLS security certification or full goal acceptance"
+    },
     "network-address": {
       "Surface": [
         "NetAddress numeric factories, exact endpoints, equality and owned transformations"
@@ -2656,191 +3121,191 @@
     {
       "Group": "tls",
       "Module": "tls",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "tls-core",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_resume",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "tls-resume",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_handshake",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "tls-protocol",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_handshake_reader",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "tls-protocol",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_hello",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "tls-protocol",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_negotiate",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "tls-protocol",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_hello_write",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "tls-protocol",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_psk",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "tls-protocol",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_psk_write",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "tls-protocol",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_key_exchange",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "tls-exchange",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_policy",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "tls-policy",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_context",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "tls-parameters",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_key_exchange_x25519",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "tls-exchange",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_key_exchange_x448",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "tls-exchange",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_key_exchange_p256",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "tls-exchange",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_key_exchange_p384",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "tls-exchange",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_messages",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "tls-protocol",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_messages_write",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "tls-protocol",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_auth_messages",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "tls-protocol",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_auth_messages_write",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "tls-protocol",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_schedule",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "tls-schedule",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_schedule_sha256",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "tls-schedule",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_schedule_sha384",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "tls-schedule",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_record",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "tls-records",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_record_aes",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "tls-records",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_record_chacha",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "tls-records",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_session",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "tls-session",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
@@ -2852,135 +3317,135 @@
     {
       "Group": "tls",
       "Module": "tls_client",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "composition",
+      "Profile": "tls-client",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_client_verify",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "composition",
+      "Profile": "tls-client-verification",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_client_resume",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "composition",
+      "Profile": "tls-client-resume",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_identity",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "tls-identity",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_identity_rsa",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "composition",
+      "Profile": "tls-identity-algorithms",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_identity_ec",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "composition",
+      "Profile": "tls-identity-algorithms",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_identity_p256",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "composition",
+      "Profile": "tls-identity-algorithms",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_identity_p384",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "composition",
+      "Profile": "tls-identity-algorithms",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_identity_ed25519",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "composition",
+      "Profile": "tls-identity-algorithms",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_server",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "composition",
+      "Profile": "tls-server",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_server_resume",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "composition",
+      "Profile": "tls-server-resume",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_stream",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "tls-stream",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_stream_future",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "composition",
+      "Profile": "tls-stream-future",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_stream_listener",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "tls-listener",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_stream_listener_future",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "composition",
+      "Profile": "tls-listener-waits",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_stream_listener_sync",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "composition",
+      "Profile": "tls-listener-waits",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_stream_dial",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "composition",
+      "Profile": "tls-dial",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_stream_dial_proxy",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "composition",
+      "Profile": "tls-proxy-dial",
+      "Review": "role-reviewed"
     },
     {
       "Group": "tls",
       "Module": "tls_stream_dial_future",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "composition",
+      "Profile": "tls-dial-future",
+      "Review": "role-reviewed"
     },
     {
       "Group": "network",
