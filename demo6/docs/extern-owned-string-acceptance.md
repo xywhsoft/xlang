@@ -150,3 +150,48 @@ Linux 共享编译库 SHA-256：
 全部编译输入、对象和测试输入哈希已核对，汇总见 task-final-review-38.json。
 本次未测量或声称整个任务调用与手写 C 等速；普通任务的既有捕获、发布和
 字符串复制边界不变。主工作区 release 二进制未替换，正式使用须正常重建。
+
+## 2026-10-27：原生函数值与任务组合的四项补齐
+
+实现提交 `37a6d76ef`，合同与说明提交 `fbd336012`。验收源码包含主线
+`17c270dc2` 的已提交内容；不读取其他线程未提交的实现。
+
+- 顶层和 static extern 的省略默认参数可以绑定为较短函数值签名。extern
+  参数没有局部符号时只省略参数重绑定，仍走普通默认表达式、拥有者和错误
+  事务。验证原生/普通整数、借用字符串、多个默认值、每次调用执行以及失败
+  时跳过生产者；没有给扩展库增加代理函数。
+- 泛型 task.spawn/all/race/whenAny 在特化后重算载荷 ABI，使用与 Typed XLIR
+  相同的合同校验。七种 spawn/聚合形式均覆盖，包括字面量列表和已存储数组、
+  uint64 全范围、托管字符串及生产者失败后的复用。
+- 非空流证明在解析 typedef 后继续传入任务绑定和 lowering。函数值、普通
+  捕获参数和可变参数尾部消费已经物化的值类型；无证明或赋值后证明失效的
+  可空函数必须拒绝。损坏 IR 时删除该证明也必须在 C/头文件输出前拒绝。
+- task.all 使用既有 native scalar codec 聚合全部 20 种 C 标量，保留宽度、
+  符号、平台限制和动态身份。c_bool 沿用共享 bool 单例，类型化投影仍返回
+  c_bool。另以 C 端位模式检查负零、quiet NaN 载荷及无穷值。
+
+| 验收 | Windows | Linux / WSL |
+| --- | --- | --- |
+| 源码候选 | driver-43/build.json，1295 编译单元，O0 | linux-16/result.json，1297 编译单元，Os |
+| 字符串专项 | accept-windows-43/result.json，89 项 | accept-linux-local-43/result.json，89 项 |
+| 独立 C/XLIR 合同 | accept-windows-43/independent-C/result.json，21 项 | accept-linux-local-43/independent-C/result.json，21 项 |
+| 已有任务回归 | task-regression-windows-43-focused/result.json，18 项 | task-regression-linux-local-43-focused/result.json，18 项 |
+
+独立 C 门继续运行 O0/O2、120 个分配失败前缀、六项原生可变参数合同、六项
+任务标量合同和五项元数据分配/部分销毁控制，并新增九项任务/载荷/非空证明
+破坏控制。未用 Future 就绪时的全局分配计数推断后台任务已经退休。
+
+Windows 候选 SHA-256：
+`6bff1ecc2d1a7ed6aac896c932d51ac8334670eb18c24871bc91805953ac9217`；
+Linux 共享编译库 SHA-256：
+`5b822de3066b5121990815331c0010cf653d212b25cae94fae452404f0183dba`。
+编译输入、对象、暂存头文件和测试输入重新核验，见 task-final-windows-43.json
+及 task-final-linux-43.json。Linux 最终运行使用本地临时目录中的同字节程序和
+9518 个同字节源码/测试文件，逐一比对原工作树及归档哈希，证明见
+linux-core-43a-verified.json。之前挂载盘运行的超时记录保留，不计入通过项。
+
+没有为普通 string 增加分支，也没有修改 xrt 或增加运行时泛型分派。
+task.all 的结果数组和元素装箱仍有既有成本；本轮不是整条任务调用零开销的
+性能测量。全局 test-wiring 仍报告既有 x509_public 登记、dynamic/primitive
+前缀及过期 stdlib_xson 引用，新增用例没有登记缺项；不宣称全仓总门通过。
+本轮不替换主工作区发布二进制，正式使用须正常重建。
