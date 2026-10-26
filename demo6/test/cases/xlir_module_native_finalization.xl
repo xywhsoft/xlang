@@ -7,7 +7,7 @@ class Handle
 end
 
 Handle first = Handle(nativeOpen(1))
-Handle empty
+Handle? empty
 if shouldFail() then
     throw "native module initialization failed"
 end
