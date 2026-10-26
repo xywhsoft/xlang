@@ -55,6 +55,7 @@ try {
         New-Item -ItemType Directory -Path $work | Out-Null
         $core = Join-Path $work 'stb_resize2_core.exe'
         $example = Join-Path $work 'stb_resize2_example.exe'
+        $cExample = Join-Path $work 'stb_resize2_c_example.exe'
         & $xl build test/cases/extlib_stb_image_resize2.xl -o $core
         if ($LASTEXITCODE -ne 0) { throw 'stb_image_resize2 core AOT build failed' }
         & $core
@@ -67,13 +68,20 @@ try {
         if (($aotOutput -join "`n") -cne $expected) {
             throw 'stb_image_resize2 AOT example output differs'
         }
+        & $xl build release/examples/extlibs/stb_image_resize2_c.c -o $cExample
+        if ($LASTEXITCODE -ne 0) { throw 'stb_image_resize2 C example AOT build failed' }
+        $cAotOutput = & $cExample $asset
+        if ($LASTEXITCODE -ne 0 -or ($cAotOutput -join "`n") -cne $expected) {
+            throw 'stb_image_resize2 C example AOT output differs'
+        }
     }
 
     Write-Output 'stb_image_resize2 Windows C/XLang gate: PASS'
 } finally {
     Pop-Location
     if ($work -ne $null) {
-        foreach ($name in @('stb_resize2_core.exe', 'stb_resize2_example.exe')) {
+        foreach ($name in @('stb_resize2_core.exe', 'stb_resize2_example.exe',
+                'stb_resize2_c_example.exe')) {
             $output = Join-Path $work $name
             if (Test-Path -LiteralPath $output) { Remove-Item -LiteralPath $output -Force }
         }

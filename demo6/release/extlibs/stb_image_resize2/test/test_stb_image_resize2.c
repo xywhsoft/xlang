@@ -44,6 +44,19 @@ int main(void)
     CHECK(memcmp(FromStride->Data, Srgb->Data, Srgb->Size) == 0);
 
     {
+        unsigned char BlackWhite[2] = {0, 255};
+        xbuffer* SrgbMid = (xbuffer*)xstbir_resize(BlackWhite,
+            sizeof(BlackWhite), 2, 1, 1, 1, 1, 0, 0);
+        xbuffer* LinearMid = (xbuffer*)xstbir_resize(BlackWhite,
+            sizeof(BlackWhite), 2, 1, 1, 1, 1, 0, 1);
+        CHECK(SrgbMid != NULL && LinearMid != NULL);
+        CHECK(SrgbMid->Size == 1u && LinearMid->Size == 1u);
+        CHECK(SrgbMid->Data[0] == 188u && LinearMid->Data[0] == 128u);
+        xrtBufferDestroy(LinearMid);
+        xrtBufferDestroy(SrgbMid);
+    }
+
+    {
         unsigned char Gray[96u * 56u];
         xbuffer* Downscaled;
         int x, y;

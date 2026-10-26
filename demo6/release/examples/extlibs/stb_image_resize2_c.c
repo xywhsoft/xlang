@@ -8,11 +8,12 @@
 #include <stdio.h>
 #include <string.h>
 
-int main(void)
+int main(int argc, char** argv)
 {
-    str AppDir = xrtPathAppDir();
-    str Path = AppDir != NULL ? xrtPathJoin(AppDir,
+    str AppDir = argc > 1 ? NULL : xrtPathAppDir();
+    str DefaultPath = AppDir != NULL ? xrtPathJoin(AppDir,
         "examples/extlibs/assets/tiny.png") : NULL;
+    const char* Path = argc > 1 ? argv[1] : DefaultPath;
     void* Image = Path != NULL ? xstbi_load(Path, 4) : NULL;
     xbuffer* Srgb = NULL;
     xbuffer* Linear = NULL;
@@ -53,7 +54,7 @@ int main(void)
     xrtBufferDestroy(Linear);
     xrtBufferDestroy(Srgb);
     xstbi_image_release(Image);
-    xrtFree(Path);
+    xrtFree(DefaultPath);
     xrtFree(AppDir);
     return Ok ? 0 : 2;
 }

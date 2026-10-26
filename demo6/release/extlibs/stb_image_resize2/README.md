@@ -1,6 +1,14 @@
 # stb_image_resize2
 
-2026-10-25 在 WSL 中运行现有 `test/check.sh` 全通过：严格 GCC、
+2026-10-26 重建 Windows/Linux x64 发布物后，两平台默认包门禁
+均退出 0：严格 C、Linux ASan/UBSan、尺寸/步长/内存故障边界、
+黑白中点的 sRGB 188 与 linear 128 像素断言、C/XLang 固定输出，
+以及核心和双语图片范例的独立 EXE AOT。C 范例现接受显式图片路径，
+不再要求独立产物与发布目录共址。旧共享 AOT 缺符号不再复现。
+本次仅签收有界 Buffer 缩放接口，不替代依赖包 `stb_image` 的
+私有构造器访问控制修复，也不承诺全部格式/滤镜或其他架构。
+
+2026-10-25 历史记录：当时在 WSL 中运行 `test/check.sh` 全通过：严格 GCC、
 C 边界 ASan/UBSan、XLang 边界与分配故障、C/XLang 三路范例的
 固定输出对照。本次语言用例使用现有 Linux `release/xl`；没有
 重建 Linux 发布版或运行 Linux 独立 EXE，因此不计作 Linux AOT
@@ -48,12 +56,12 @@ stb 工作区使用 XRT 分配器，内存不足时返回 `XERR_MEMORY`，不误
 - 从 `demo6` 目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File
   release/extlibs/stb_image_resize2/test/check.ps1`，执行 Windows 严格 GCC、
   C 边界、中央与包内 XLang 用例、三种范例入口的固定输出对照，默认还
-  构建并运行中央及公开范例 AOT；`-SkipAot` 只做 C/JIT 聚焦快测。
+  构建并运行中央与 C/XLang 公开范例 AOT；`-SkipAot` 只做 C/JIT 聚焦快测。
 - 在 `release` 目录运行 `xl run examples/extlibs/stb_image_resize2.xl` 或
   `xl run examples/extlibs/stb_image_resize2_c.c`；C 范例直接包含解码与
-  缩放实现，两个范例都从 `xl.exe` 所在目录定位素材，并对照 RGBA 与
-  灰度+alpha 缩放结果。XLang 范例可在 `--` 后传入图片绝对路径，供
-  独立 AOT 可执行文件使用。
+  缩放实现，两个范例不传路径时从 `xl.exe` 所在目录定位素材，并对照
+  RGBA 与灰度+alpha 缩放结果。独立 AOT 可执行文件应显式传入图片路径；
+  C 范例接收首个命令行参数，XLang 范例在 `--` 后传入。
 - 从 `demo6` 目录运行 `xl run release/extlibs/stb_image_resize2/test/boundaries.xl`
   和 `xl run release/extlibs/stb_image_resize2/test/allocations.xl`；两项已登记
   到包级测试套件，后者对 sRGB/linear 各扫描前 128 个分配点，确认故障在
@@ -62,17 +70,18 @@ stb 工作区使用 XRT 分配器，内存不足时返回 `XERR_MEMORY`，不误
 - C 边界测试使用 `-Package stb_image_resize2` 和
   `release/extlibs/stb_image_resize2/test/test_stb_image_resize2.c`
 - `wsl bash release/extlibs/stb_image_resize2/test/check.sh` 可复跑 Linux 严格编译、
-  ASan/UBSan C 边界、中央与包内 XLang 用例及 C/XLang 图片范例固定输出。
+  ASan/UBSan C 边界、中央与包内 XLang 用例，以及核心和双语范例独立
+  EXE 的固定输出。
 - 覆盖 sRGB/linear、同尺寸保持、带填充步长、短缓冲、逐点内存故障注入、
   C 整数收窄及参数/尺寸拒绝；
   C/XL 范例输出一致；Windows GCC `-Wall -Wextra -Werror` 与 Linux
   ASan/UBSan 已通过。
 
-当前 Windows 默认门禁在中央核心 AOT 构建处因主线缺少
-`xl6NativeHandleTraceLeaf` 而非零退出，见
-`demo6/dev/extlib_blockers/native_handle_trace_aot.md`；带输出的完整 XL AOT
-还可能遇到共享 `xl6ValueDataSnapshotV1` 缺符号，见
-`demo6/dev/extlib_blockers/text_snapshot_link.md`。暂不标记发布验收完成。
+历史阻断：旧 Windows 发布物的中央核心 AOT 曾缺少
+`xl6NativeHandleTraceLeaf`，见
+`demo6/dev/extlib_blockers/native_handle_trace_aot.md`；带输出范例也曾缺少
+`xl6ValueDataSnapshotV1`，见 `demo6/dev/extlib_blockers/text_snapshot_link.md`。
+2026-10-26 两平台默认包门禁已验证不再复现。
 
 2026-10-23：Windows 聚焦门禁、Linux C ASan/UBSan 与 XLang 双语门禁均
 退出 0，Linux 范例已与固定黄金输出逐字节核对。Windows 默认门禁在中央

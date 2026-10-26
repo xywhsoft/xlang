@@ -35,4 +35,13 @@ printf 'sRGB bytes:  64\nlinear bytes:  36\ngray-alpha bytes:  2\nstb_image_resi
     > "$work/expected.txt"
 diff -u "$work/expected.txt" "$work/example_c.txt"
 diff -u "$work/example_c.txt" "$work/example_xl.txt"
-printf 'stb_image_resize2 Linux C ASan/UBSan and XLang parity gate: PASS\n'
+
+timeout 90s release/xl build test/cases/extlib_stb_image_resize2.xl -o "$work/resize_core"
+timeout 30s "$work/resize_core"
+timeout 90s release/xl build release/examples/extlibs/stb_image_resize2.xl -o "$work/resize_xl_aot"
+timeout 30s "$work/resize_xl_aot" release/examples/extlibs/assets/tiny.png > "$work/xl_aot.txt"
+diff -u "$work/expected.txt" "$work/xl_aot.txt"
+timeout 90s release/xl build release/examples/extlibs/stb_image_resize2_c.c -o "$work/resize_c_aot"
+timeout 30s "$work/resize_c_aot" release/examples/extlibs/assets/tiny.png > "$work/c_aot.txt"
+diff -u "$work/expected.txt" "$work/c_aot.txt"
+printf 'stb_image_resize2 Linux C ASan/UBSan, pixel and bilingual AOT gate: PASS\n'
