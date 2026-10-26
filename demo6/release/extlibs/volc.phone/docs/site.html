@@ -18,7 +18,7 @@
 <main class="extlib-layout" id="main-content">
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / volc.phone</p><h1>volc.phone</h1>
     <p class="extlib-lead">火山引擎云手机 ACEP 客户端草案。</p>
-    <p><strong>当前不可用于生产请求。</strong> XLang 导入链仍被独立维护的 <code>xhttp.multipart</code> 语义错误阻断；在线请求、响应解析和完整 AOT 均未验收。</p>
+    <p><strong>当前不可用于生产请求。</strong> XLang 导入链仍被独立维护的 <code>xhttp.client</code> 构造器及成员解析错误阻断；在线请求和整包 AOT 未验收。响应解析分片的 Windows/Linux 离线 JIT/AOT 已通过。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">当前源码范围</h2>
     <table class="ext-kv"><thead><tr><th>入口</th><th>用途与状态</th></tr></thead><tbody>
@@ -28,7 +28,7 @@
       <tr><td><code>product_body / pod_body / create_pod_body</code></td><td>请求体构造草案；待离线夹具核对</td></tr>
     </tbody></table>
     <h2>待完成的边界</h2>
-    <p>响应助手仍按文本搜索 JSON，不能正确处理嵌套同名字段及转义内容；字节切片与 UTF-8 字符索引混用；逐行 spec 拼接尚未对换行字段建立安全合同。包内 C 文件只是字符串切片辅助，不是等价的 C 客户端。依赖导入恢复后，需先修正这些包内问题，再做离线 mock、双语范例和真实服务验收。</p>
+    <p>响应助手使用结构化 JSON，仅按 <code>ResponseMetadata</code> 和 <code>Result</code> 的明确层级读取；离线对象、转义和错误输入已测。定型请求仍把值拼入逐行 spec，换行字段尚无安全合同。该包目前没有等价 C 客户端；依赖导入恢复后，还需完成请求入口、离线 mock、双语范例和真实服务验收。</p>
     <p>复现命令：在 <code>demo6</code> 目录运行 <code>release/xl.exe check dev/extlib_blockers/volc_phone_import_chain.xl</code>。详细现状和限制见包内 README；示例代码目前仅作草案，不应填入真实密钥运行。</p>
   </section>
 </main>

@@ -1,0 +1,86 @@
+func main(...) as int
+    string ok = `{"ResponseMetadata":{"RequestId":"request-1","Action":"ListPod","Code":"decoy"},"Result":{"Message":"hello \"phone\"","TaskResult":100,"Nested":{"RequestId":"wrong"}}}`
+    var fields = __phone_response_fields(ok)
+    assert fields["error"] == false
+    assert fields["request_id"] == "request-1"
+    assert fields["code"] == ""
+    assert fields["result_json"] != ""
+    assert json.parse(string(fields["result_json"]))["Message"] == "hello \"phone\""
+    assert json_string_field(ok, "Message") == "hello \"phone\""
+    assert json_int_field(ok, "TaskResult") == 100
+    assert task_state(ok) == "success"
+    Response success = __phone_normalize_response("ListPod", ok, 200, "")
+    assert success.ok()
+    assert success.request_id() == "request-1"
+    assert success.code() == ""
+    assert json.parse(success.result_json())["TaskResult"] == 100
+    assert json.parse(success.to_json())["status"] == 200
+    assert not __phone_normalize_response("ListPod", ok, 0, "").ok()
+    assert not __phone_normalize_response("ListPod", ok, 500, "").ok()
+    Response transport = __phone_normalize_response("ListPod", "", 0, "offline")
+    assert not transport.ok()
+    assert transport.code() == "transport_error"
+    assert transport.message() == "offline"
+    assert task_state(`{"ResponseMetadata":{},"Result":{"TaskResult":10}}`) == "running"
+    assert json_string_field(`{"Message":"direct"}`, "Message") == "direct"
+    assert json.parse(json_section(ok, "Result"))["TaskResult"] == 100
+
+    string failed = `{"ResponseMetadata":{"RequestId":"request-2","Error":{"Code":"Denied","CodeN":42,"Message":"bad \"key\""}},"Result":{"Code":"wrong","TaskResult":100}}`
+    var failure = __phone_response_fields(failed)
+    assert failure["error"] == true
+    assert failure["request_id"] == "request-2"
+    assert failure["code"] == "Denied"
+    assert failure["code_n"] == 42
+    assert failure["message"] == "bad \"key\""
+    assert task_state(failed) == "failed"
+    Response failure_response = __phone_normalize_response("ListPod", failed, 200, "")
+    assert not failure_response.ok()
+    assert failure_response.code() == "Denied"
+    assert failure_response.code_n() == 42
+    assert failure_response.message() == "bad \"key\""
+
+    int rejected = 0
+    try
+        __phone_response_fields(`{"ResponseMetadata":{}}`)
+    catch ValueError error
+        rejected += 1
+    end
+    try
+        __phone_response_fields(`{"ResponseMetadata":[]}`)
+    catch ValueError error
+        rejected += 1
+    end
+    try
+        __phone_response_fields(`{"ResponseMetadata":{"Error":"bad"}}`)
+    catch ValueError error
+        rejected += 1
+    end
+    try
+        __phone_response_fields(`{"ResponseMetadata":{"Error":{"CodeN":"42"}}}`)
+    catch ValueError error
+        rejected += 1
+    end
+    try
+        json_string_field(`{"Result":{"Message":7}}`, "Message")
+    catch ValueError error
+        rejected += 1
+    end
+    try
+        json_int_field(`{"Result":{"TaskResult":true}}`, "TaskResult")
+    catch ValueError error
+        rejected += 1
+    end
+    try
+        json_string_field(`{"Result":[1]}`, "Message")
+    catch ValueError error
+        rejected += 1
+    end
+    try
+        __phone_response_fields(`{broken`)
+    catch ValueError error
+        rejected += 1
+    end
+    assert rejected == 8
+    println("volc.phone response: PASS")
+    return 0
+end

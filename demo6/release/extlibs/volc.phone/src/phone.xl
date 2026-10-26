@@ -13,92 +13,6 @@ func bool_text(bool value) as string
 	end
 	return "false"
 end
-class Response
-	bool ok_value
-	string action_value
-	int status_value
-	string request_id_value
-	string code_value
-	int code_n_value
-	string message_value
-	string result_value
-	string raw_value
-
-	create()
-		self.ok_value = false
-		self.action_value = ""
-		self.status_value = 0
-		self.request_id_value = ""
-		self.code_value = ""
-		self.code_n_value = 0
-		self.message_value = ""
-		self.result_value = ""
-		self.raw_value = ""
-	end
-
-	create(bool ok_value, string action_value, int status_value, string request_id_value, string code_value, int code_n_value, string message_value, string result_value, string raw_value)
-		self.ok_value = ok_value
-		self.action_value = action_value
-		self.status_value = status_value
-		self.request_id_value = request_id_value
-		self.code_value = code_value
-		self.code_n_value = code_n_value
-		self.message_value = message_value
-		self.result_value = result_value
-		self.raw_value = raw_value
-	end
-
-	func ok() as bool
-		return self.ok_value
-	end
-
-	func action() as string
-		return self.action_value
-	end
-
-	func status() as int
-		return self.status_value
-	end
-
-	func request_id() as string
-		return self.request_id_value
-	end
-
-	func code() as string
-		return self.code_value
-	end
-
-	func code_n() as int
-		return self.code_n_value
-	end
-
-	func message() as string
-		return self.message_value
-	end
-
-	func result_json() as string
-		return self.result_value
-	end
-
-	func raw_json() as string
-		return self.raw_value
-	end
-
-	func to_json() as string
-		return json.stringify({
-			"ok": self.ok_value,
-			"status": self.status_value,
-			"action": self.action_value,
-			"request_id": self.request_id_value,
-			"code": self.code_value,
-			"code_n": self.code_n_value,
-			"message": self.message_value,
-			"result": self.result_value,
-			"raw": self.raw_value
-		})
-	end
-end
-
 class Client
 	string access_key
 	string secret_key
@@ -371,85 +285,12 @@ end
 
 export func normalize_response(string action, string raw) as Response
 	int status = volc.core.last_status()
-	if raw == "" then
-		return Response(false, action, status, "", "transport_error", 0, volc.core.last_error(), "", raw)
-	end
-	string request_id = json_string_field(raw, "RequestId")
-	string code_value = json_string_field(raw, "Code")
-	string message_value = json_string_field(raw, "Message")
-	int code_n_value = json_int_field(raw, "CodeN")
-	bool ok_value = true
-	if string.contains(raw, "\"Error\"") or code_value != "" or status >= 400 then
-		ok_value = false
-	end
-	return Response(ok_value, action, status, request_id, code_value, code_n_value, message_value, json_section(raw, "Result"), raw)
+	return __phone_normalize_response(action, raw, status, volc.core.last_error())
 end
 
 export func response_json(string action, string raw) as string
 	Response response = normalize_response(action, raw)
 	return response.to_json()
-end
-
-export func json_string_field(string raw, string key) as string
-	string pattern = "\"" + key + "\":\""
-	int start = string.indexOf(raw, pattern)
-	if start < 0 then
-		pattern = "\"" + key + "\": \""
-		start = string.indexOf(raw, pattern)
-	end
-	if start < 0 then
-		return ""
-	end
-	start = start + string.len(pattern)
-	string rest = string.slice(raw, start, string.len(raw) - start)
-	int end_pos = string.indexOf(rest, "\"")
-	if end_pos < 0 then
-		return ""
-	end
-	return string.slice(rest, 0, end_pos)
-end
-
-export func json_int_field(string raw, string key) as int
-	string pattern = "\"" + key + "\":"
-	int start = string.indexOf(raw, pattern)
-	if start < 0 then
-		pattern = "\"" + key + "\": "
-		start = string.indexOf(raw, pattern)
-	end
-	if start < 0 then
-		return 0
-	end
-	start = start + string.len(pattern)
-	string rest = string.slice(raw, start, string.len(raw) - start)
-	int comma = string.indexOf(rest, ",")
-	int brace = string.indexOf(rest, "}")
-	int end_pos = comma
-	if end_pos < 0 or (brace >= 0 and brace < end_pos) then
-		end_pos = brace
-	end
-	if end_pos < 0 then
-		end_pos = string.len(rest)
-	end
-	string token = string.trim(string.slice(rest, 0, end_pos))
-	if token == "" then
-		return 0
-	end
-	return int(token)
-end
-
-export func json_section(string raw, string key) as string
-	string pattern = "\"" + key + "\":"
-	int start = string.indexOf(raw, pattern)
-	if start < 0 then
-		pattern = "\"" + key + "\": "
-		start = string.indexOf(raw, pattern)
-	end
-	if start < 0 then
-		return ""
-	end
-	start = start + string.len(pattern)
-	string rest = string.slice(raw, start, string.len(raw) - start)
-	return rest
 end
 
 export func list_pod(string access_key, string secret_key, string session_token, string product_id, int timeout_ms) as string
@@ -519,19 +360,6 @@ end
 export func get_task_info(string access_key, string secret_key, string session_token, string product_id, string task_id, int timeout_ms) as string
 	string body = "{\"ProductId\":" + volc.core.json_string(product_id) + ",\"TaskId\":" + volc.core.json_string(task_id) + "}"
 	return call_default(access_key, secret_key, session_token, "GetTaskInfo", body, timeout_ms)
-end
-
-export func task_state(string task_info_json) as string
-	if string.contains(task_info_json, "\"TaskResult\":100") or string.contains(task_info_json, "\"TaskResult\": 100") then
-		return "success"
-	end
-	if string.contains(task_info_json, "\"TaskResult\":10") or string.contains(task_info_json, "\"TaskResult\": 10") then
-		return "running"
-	end
-	if string.contains(task_info_json, "\"Error\"") then
-		return "error"
-	end
-	return "unknown"
 end
 
 export func wait_task(string access_key, string secret_key, string session_token, string product_id, string task_id, int timeout_ms, int poll_interval_ms) as string

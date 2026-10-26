@@ -1,5 +1,17 @@
 # volc.phone
 
+2026-10-27 离线响应边界收口：`Response` 模型与 JSON 解析从网络
+入口拆出。响应只从 `ResponseMetadata` 读取 `RequestId`、`Error`
+及其 `Code/CodeN/Message`；`Result` 由 JSON 库序列化，不再截取
+原文尾部。公开字段助手只读 `Result` 的直接字段，或调用方传入的
+结果对象直接字段；缺失返回空串/零，类型错误抛 `ValueError`。
+`task_state` 依据真实整数 `TaskResult` 和元数据错误判定，错误返回
+`failed`，可让 `wait_task` 结束。Windows/Linux 离线 JIT/AOT 用例
+见 `test/check_response.py`，覆盖对象模型、转义和畸形输入。
+整包导入仍在独立维护的 `xhttp.client` 失败，网络、C 对照和完整
+XLang 运行尚未验收，不能把离线通过记作发布完成。响应结构遵循
+[云手机 OpenAPI 调用说明](https://docs.volcengine.com/docs/Cloudphone/OpenAPICallInstructions?lang=zh)。
+
 2026-10-26 最小导入复验仍停在 `xhttp.client`；除构造器和
 `NetEngine.nativeHandle()`，还报 `TlsConfig` 未知类型。
 详见 `../../../dev/extlib_blockers/volc_phone_import_chain.md`。
@@ -30,7 +42,6 @@ cd demo6
 
 这个依赖阻断不能通过包内兼容回退掩盖。依赖恢复后，本包还需要完成以下自身问题，才能进入发布验收：
 
-- 响应助手目前按文本搜索 JSON；转义引号、嵌套同名字段及字符串中的键名可能产生错误结果。必须改用结构化 JSON 解析，再用离线响应夹具验证。
 - 定型请求把凭据与 JSON 请求体拼入逐行 spec；值中出现换行会改变声明边界。定型入口应直接调用 `volc.core` 的定型请求/预览 API，`*_spec` 只留给明确使用该格式的调用方。
 
 原有字节偏移切片和进程共享八槽缓存已移除，改用 XLang 字符切片；
