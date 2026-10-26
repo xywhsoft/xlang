@@ -1,5 +1,11 @@
 # 当前源码的 var 容器传入原生扩展失败
 
+2026-10-27 从当前工作树执行 `demo6/build.bat` 成功后复验：
+`release/xl.exe run dev/extlib_blockers/ical_build_var_object_projection.xl`
+先输出 `native roundtrip: PASS`，随后语言字典调用 `ical.build` 仍抛
+`ValueError: invalid calendar fields or output exceeds 8 MiB`。这确认问题
+并非只存在于 2026-10-26 的旧发布物；本轮未修改主线或包侧 ABI。
+
 ## 已定位的数组物理表示边界（2026-10-26）
 
 从 `demo6/release` 执行
