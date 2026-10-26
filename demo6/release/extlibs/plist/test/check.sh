@@ -56,4 +56,26 @@ diff -u "$work/example_c.txt" "$work/example_xl.txt"
 diff -u "$work/example_c_files.txt" "$work/example_xl_files.txt"
 python3 "$pkg/test/check_external.py" "$work/c.xml" "$work/xl.xml" \
     "$work/c.bplist" "$work/xl.bplist"
-printf 'plist Linux C/XLang ASan/UBSan and parity gate: PASS\n'
+for source in \
+    "$pkg/test/smoke.xl" \
+    "$pkg/test/boundaries.xl" \
+    "$pkg/test/allocations.xl"; do
+    name=$(basename "$source" .xl)
+    timeout 90s ./release/xl build "$source" -o "$work/$name"
+    timeout 30s "$work/$name"
+done
+timeout 90s ./release/xl build release/examples/extlibs/plist.xl \
+    -o "$work/plist_xlang"
+timeout 30s "$work/plist_xlang" "$work/aot.xml" "$work/aot.bplist" \
+    > "$work/example_xlang_aot.txt"
+diff -u "$work/example_c_files.txt" "$work/example_xlang_aot.txt"
+python3 "$pkg/test/check_external.py" "$work/c.xml" "$work/aot.xml" \
+    "$work/c.bplist" "$work/aot.bplist"
+timeout 90s ./release/xl build release/examples/extlibs/plist_c.c \
+    -o "$work/plist_c"
+timeout 30s "$work/plist_c" "$work/c_aot.xml" "$work/c_aot.bplist" \
+    > "$work/example_c_aot.txt"
+diff -u "$work/example_c_files.txt" "$work/example_c_aot.txt"
+python3 "$pkg/test/check_external.py" "$work/c.xml" "$work/c_aot.xml" \
+    "$work/c.bplist" "$work/c_aot.bplist"
+printf 'plist Linux C/XLang ASan/UBSan and bilingual AOT gate: PASS\n'

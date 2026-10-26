@@ -1,5 +1,13 @@
 # plist
 
+2026-10-26：当前 Windows/Linux 发布物的默认包门禁均通过 C 边界、
+Linux ASan/UBSan、语言边界/分配故障 JIT 与 AOT、私有原生类型负例、
+公开 C/XLang 范例独立 EXE。两平台分别生成 XML 与 binary plist，
+由 Python 标准库 `plistlib` 独立读回并核对 C、JIT、AOT 的内容。
+旧日期的共享 AOT 缺符号和序列策略记录仅描述当时发布物。
+此验收限于本包明确支持的 XML 1.0 / `bplist00` 值类型、资源上限
+与时间精度，不外推为所有 Apple 私有扩展或任意大型文件兼容性。
+
 2026-10-24 当前 Windows 发布版默认 `test/check.ps1` 通过：C 本体与
 桥接测试、XLang 边界/分配故障、包外私有类型负例、双语范例同输出，
 以及最小导入和公开范例 AOT。门禁现让 C/JIT/AOT 分别写出 XML 与

@@ -57,6 +57,14 @@ try {
         & $core
         if ($LASTEXITCODE -ne 0) { throw 'plist import AOT run failed' }
 
+        foreach ($case in @('boundaries', 'allocations')) {
+            $caseExe = Join-Path $work "plist_$case.exe"
+            & $xl build "release/extlibs/plist/test/$case.xl" -o $caseExe
+            if ($LASTEXITCODE -ne 0) { throw "plist $case AOT build failed" }
+            & $caseExe
+            if ($LASTEXITCODE -ne 0) { throw "plist $case AOT failed" }
+        }
+
         $example = Join-Path $work 'plist_example.exe'
         $aotXml = Join-Path $work 'aot.xml'
         $aotBinary = Join-Path $work 'aot.bplist'
@@ -68,6 +76,18 @@ try {
         }
         & python -I release/extlibs/plist/test/check_external.py $cXml $aotXml $cBinary $aotBinary
         if ($LASTEXITCODE -ne 0) { throw 'plist AOT plistlib interop failed' }
+
+        $cAot = Join-Path $work 'plist_c_example.exe'
+        $cAotXml = Join-Path $work 'c_aot.xml'
+        $cAotBinary = Join-Path $work 'c_aot.bplist'
+        & $xl build release/examples/extlibs/plist_c.c -o $cAot
+        if ($LASTEXITCODE -ne 0) { throw 'plist C example AOT build failed' }
+        $cAotOutput = & $cAot $cAotXml $cAotBinary
+        if ($LASTEXITCODE -ne 0 -or ($cAotOutput -join "`n") -cne ($cOutput -join "`n")) {
+            throw 'plist C example AOT output differs'
+        }
+        & python -I release/extlibs/plist/test/check_external.py $cXml $cAotXml $cBinary $cAotBinary
+        if ($LASTEXITCODE -ne 0) { throw 'plist C AOT plistlib interop failed' }
     }
     if ($SkipAot) {
         Write-Output 'plist Windows C/XLang (AOT skipped) gate: PASS'
