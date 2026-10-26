@@ -85,7 +85,10 @@ def main():
     source = ROOT/'test/cases/extern_owned_string_public.xl'
     native = [ROOT/'test/cases/extern_owned_string_host.c', ROOT/'test/cases/extern_owned_string_public_host.c']
     template = ROOT/'test/cases/extern_owned_string_public_consumer.in'
-    for path in [source, *native, template]: inputs[path] = sha(path)
+    contract = ROOT/'test/cases/xlir_native_variadic_contract.c'
+    for path in [source, *native, template, contract, ROOT/'test/cases/xlir_owner_consumption_contract.c',
+                 ROOT/'test/cases/extern_c_variadic_value.xl']:
+        inputs[path] = sha(path)
     checks = []
 
     def run(name, command):
@@ -122,6 +125,13 @@ def main():
             [*objects, *links, '-o', output]), encoding='utf-8')
         run(optimization+'-link', [cc, '@'+str(response)])
         assert '120 OOM prefixes balanced' in run(optimization+'-run', [output])
+    output = work/('native-variadic-contract'+('.exe' if os.name == 'nt' else ''))
+    response = work/'native-variadic-contract.rsp'
+    response.write_text('\n'.join('"'+str(value).replace('\\', '/')+'"' for value in
+        [*flags, '-O2', '-Wall', '-Wextra', '-Werror', '-Wno-unused-function', '-Wno-unused-variable',
+         '-Wno-unused-parameter', '-Wno-missing-field-initializers', contract, *links, '-o', output]), encoding='utf-8')
+    run('native-variadic-contract-build', [cc, '@'+str(response)])
+    assert '6 mutations rejected' in run('native-variadic-contract', [output])
     assert all(sha(path) == digest for path, digest in inputs.items()), 'source or runtime changed during gate'
     (work/'result.json').write_text(json.dumps({'complete': True, 'platform': sys.platform,
         'independentTranslationUnit': True, 'checks': checks,

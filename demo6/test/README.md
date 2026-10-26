@@ -263,3 +263,5 @@ pop/take、动态分派和全部 Array source carrier 切换仍需后续完成�
 自有字符串专项：`extern_c_variadic_text.xl` 配合 `extern_c_variadic_text_host.c` 覆盖 no_raise 实参准备与 C 默认提升；`extern_owned_string_public.xl`、`extern_owned_string_public_host.c`、`extern_owned_string_public_consumer.in` 由 `tools/check_extern_owned_string_public.py` 验证独立 C 头文件及 120 个 OOM 前缀。
 
 `extern_c_variadic_value.xl` 验证原生可变参数函数值的传参、重绑定、worker、默认提升和 32 个 OOM 前缀；`bad_extern_owned_variadic_tail.xl` 与 `bad_extern_owned_variadic_signature.xl` 验证无物理 ABI 的尾参与无固定参数签名被拒绝。
+
+`xlir_native_variadic_contract.c` 使用实际可变参数函数值程序构建 XLIR，扰动入口、签名、元数据偏移、捕获、回调擦除与调用实参，要求六种错误在 C/头文件输出之前被拒绝。
