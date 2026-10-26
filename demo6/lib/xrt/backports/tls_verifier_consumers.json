@@ -1,0 +1,209 @@
+{
+  "Schema": 1,
+  "Purpose": "Actual TLS verifier owning slots in Session/Stream/pending Dial and opaque signer graph refusal",
+  "CanonicalCommit": "7d0c24a314562c4226d0bb0e117e7f633e0f47fc",
+  "WholeSnapshotUpgrade": false,
+  "TimeAbiPreserved": true,
+  "ExistingPublicStructLayoutsPreserved": true,
+  "ExistingFunctionSignaturesPreserved": true,
+  "Consumers": [
+    {
+      "Path": "lib/xrt/xrt.h",
+      "BeforeSha256": "2a5f81ca00734592de686e097d88b40f6b50d7b96c151d66cfd9207368f86980",
+      "AfterSha256": "7cd90d9f2bf3f2b92ef6220d8d6d9c8c6ac7a1a3cf044711739a39628cdaf0ff",
+      "DeltaStages": [
+        {
+          "Sections": [
+            [
+              "public",
+              "include/xrt/tls_session.h"
+            ],
+            [
+              "internal",
+              "src/internal/xrt_tls_session.h"
+            ],
+            [
+              "source",
+              "src/tls/session.c"
+            ],
+            [
+              "source",
+              "src/tls/client.c"
+            ],
+            [
+              "source",
+              "src/tls/stream.c"
+            ],
+            [
+              "source",
+              "src/tls/stream_dial.c"
+            ]
+          ],
+          "AfterSha256": "19f3acdecacce7bfc228d4423065ce21de9b737e3a451b7b09b9ed6111d943c5"
+        },
+        {
+          "Sections": [
+            [
+              "public",
+              "include/xrt/tls_session.h"
+            ],
+            [
+              "internal",
+              "src/internal/xrt_tls_session.h"
+            ],
+            [
+              "internal",
+              "src/internal/xrt_tls_identity.h"
+            ],
+            [
+              "source",
+              "src/tls/session.c"
+            ],
+            [
+              "source",
+              "src/tls/server.c"
+            ],
+            [
+              "source",
+              "src/tls/stream_listener.c"
+            ]
+          ],
+          "AfterSha256": "7cd90d9f2bf3f2b92ef6220d8d6d9c8c6ac7a1a3cf044711739a39628cdaf0ff"
+        }
+      ],
+      "UnselectedBytesPreserved": true
+    },
+    {
+      "Path": "lib/xruntime/xruntime.h",
+      "BeforeSha256": "c2618a575c95540d5247fb17ba864d0f935ed46aba165a9cda86f6fd4d8d72a5",
+      "AfterSha256": "8b2091a4c9d9b00c5747c709f3942b3d0044a7e8a7ae4491d39b5ba85b2559de",
+      "DeltaStages": [
+        {
+          "Sections": [
+            [
+              "public",
+              "include/xrt/tls_session.h"
+            ],
+            [
+              "internal",
+              "src/internal/xrt_tls_session.h"
+            ],
+            [
+              "source",
+              "src/tls/session.c"
+            ],
+            [
+              "source",
+              "src/tls/client.c"
+            ],
+            [
+              "source",
+              "src/tls/stream.c"
+            ],
+            [
+              "source",
+              "src/tls/stream_dial.c"
+            ]
+          ],
+          "AfterSha256": "4a74845902f5b5716abfcd564ee2e0201bf7306e149e079c843eca16ecb685ab"
+        },
+        {
+          "Sections": [
+            [
+              "public",
+              "include/xrt/tls_session.h"
+            ],
+            [
+              "internal",
+              "src/internal/xrt_tls_session.h"
+            ],
+            [
+              "internal",
+              "src/internal/xrt_tls_identity.h"
+            ],
+            [
+              "source",
+              "src/tls/session.c"
+            ],
+            [
+              "source",
+              "src/tls/server.c"
+            ],
+            [
+              "source",
+              "src/tls/stream_listener.c"
+            ]
+          ],
+          "AfterSha256": "8b2091a4c9d9b00c5747c709f3942b3d0044a7e8a7ae4491d39b5ba85b2559de"
+        }
+      ],
+      "UnselectedBytesPreserved": true
+    },
+    {
+      "Path": "release/include/xrt_decl.h",
+      "BeforeSha256": "e550be20b3adebad17fbb5d70c606ce9ddd657a29a43a6471519f6b139dd3417",
+      "AfterSha256": "a8b3999ab5bf787ccc953dd8bd81d807ce2416b355fb4897c64130461d6a1186",
+      "DeltaStages": [
+        {
+          "Sections": [
+            [
+              "public",
+              "include/xrt/tls_session.h"
+            ]
+          ],
+          "AfterSha256": "dffabfe1ff4f67a7211016ab96357b6d5ee2c18ea77d12cb79e59a9355d04598"
+        },
+        {
+          "Sections": [
+            [
+              "public",
+              "include/xrt/tls_session.h"
+            ]
+          ],
+          "AfterSha256": "a8b3999ab5bf787ccc953dd8bd81d807ce2416b355fb4897c64130461d6a1186"
+        }
+      ],
+      "UnselectedBytesPreserved": true
+    },
+    {
+      "Path": "release/include/xruntime_decl.h",
+      "BeforeSha256": "fd6b8045f3ef68484bfab5d2b9aedcfbeafd704263d29d74811d4d23a2b9e846",
+      "AfterSha256": "4fec9524a4ec86d988d28a69623ff69d8559047f77a405a930c674654fdbf06f",
+      "DeltaStages": [
+        {
+          "Sections": [
+            [
+              "public",
+              "include/xrt/tls_session.h"
+            ]
+          ],
+          "AfterSha256": "312206cf83b30c35337e2f67eee307a33b360278439d50dda36a17585e03f09d"
+        },
+        {
+          "Sections": [
+            [
+              "public",
+              "include/xrt/tls_session.h"
+            ]
+          ],
+          "AfterSha256": "4fec9524a4ec86d988d28a69623ff69d8559047f77a405a930c674654fdbf06f"
+        }
+      ],
+      "UnselectedBytesPreserved": true
+    }
+  ],
+  "Acceptance": {
+    "NativeConfigurations": 12,
+    "NativeBuildRunStages": 24,
+    "ResidentPlatforms": [
+      "Windows GCC O0/O2 and TCC",
+      "Linux GCC O0/O2, TCC and ASan+UBSan"
+    ],
+    "ActualManagedCycles": 3,
+    "FourCertificateFamiliesRegression": true,
+    "RealRuntimeBadImplementationsRejected": 5,
+    "PublicLanguageCallbacksAccepted": false,
+    "FullTlsAccepted": false,
+    "ShippingAccepted": false
+  }
+}

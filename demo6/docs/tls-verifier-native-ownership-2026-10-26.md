@@ -62,11 +62,12 @@ include 路由、测试线程等待的毫秒→微秒适配，并断言固定快
 
 ## 仍必须完成
 
-当前语言包装尚未使用新的拥有式构造，`TlsVerifier`／`TlsClientContext` 仍有
-native leaf 合同需要迁移。必须补齐所有消费者的实际 Verifier 引用、目录接纳、
-活动发布与 checked 清理，再公开附加策略／CRL 闭包；不能只让包装对象持有它们。
-随后接通拥有式 verified peer、语言异常、CRL 目标／issuer／时间／完整覆盖，
-并证明恢复凭据与策略绑定及实际普通产品路径。
+后续批次已迁移语言默认工厂、Verifier／ClientContext／Session 的实际引用，
+并组合原生 Stream／pending Dial 图，见
+[消费者图迁移和验收边界](tls-verifier-consumer-ownership-2026-10-26.md)。
+这不等于公开附加策略／CRL 闭包已完成；仍须接通拥有式 verified peer、
+语言异常、CRL 目标／issuer／时间／完整覆盖，并证明恢复凭据与策略绑定及
+实际普通产品路径。
 
 CRL 默认关闭；显式开启后未知结果严格拒绝的用户决策保持有效，但本批尚未
 交付语言 CRL 开关或回调。`tls_verify` 仍 pending，不把前置接口和这组测试

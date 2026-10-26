@@ -1,0 +1,8 @@
+class CleanupProbe
+    int value = 1
+end
+
+func main(...) as int
+    CleanupProbe probe = CleanupProbe()
+    return probe.value - 1
+end
