@@ -336,6 +336,7 @@ static int xl6ParserMatchFuncTypeParam(const XL6_ParseTokenStream* stream, size_
         return 0;
     }
     if ( stream->tokens[index].kind == XL6_TK_ELLIPSIS ||
+         stream->tokens[index].kind == XL6_KW_C_VARARG ||
          stream->tokens[index].kind == XL6_TK_TRIPLE_STAR ) {
         *outNext = index + 1;
         return 1;
@@ -534,7 +535,7 @@ static int xl6ParserVMatchFuncTypeParam(const XL6_ParseTokenStream* stream, XL6_
     int kind;
 
     kind = xl6ParserVKindAt(stream, pos);
-    if ( kind == XL6_TK_ELLIPSIS || kind == XL6_TK_TRIPLE_STAR ) {
+    if ( kind == XL6_TK_ELLIPSIS || kind == XL6_TK_TRIPLE_STAR || kind == XL6_KW_C_VARARG ) {
         *outNext = xl6ParserVNext(stream, pos);
         return 1;
     }

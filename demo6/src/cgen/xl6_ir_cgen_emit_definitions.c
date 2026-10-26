@@ -113,7 +113,8 @@ static int xl6IrCgenEmitModuleDefinitions(
         xl6OutputPrintf(out,
             "static const xlir_call_default xlir_closure_call_defaults_%u[%lu] = {",
             (unsigned int)closure->targetSymbol,
-            (unsigned long)closure->callParameterCount);
+            (unsigned long)(closure->callParameterCount +
+                (closure->kind == XL6_IR_CLOSURE_TARGET_C_VARIADIC_NATIVE ? 1u : 0u)));
         for ( parameter = 0; parameter < closure->callParameterCount; ++parameter ) {
             XL6_IrDynamicMethodDefaultAbi abi =
                 closure->callParameterDefaultAbis[parameter];
@@ -161,6 +162,16 @@ static int xl6IrCgenEmitModuleDefinitions(
                 xl6OutputPrintf(out, "xlir_default_c%u_p%lu", (unsigned)closure->targetSymbol, (unsigned long)parameter);
             else xl6OutputPuts("NULL", out);
             xl6OutputPuts("}", out);
+        }
+        if (closure->kind == XL6_IR_CLOSURE_TARGET_C_VARIADIC_NATIVE) {
+            const XL6_IrCallTarget* native = xl6IrCallTargetGet(module,closure->adaptedTargetSymbol);
+            /* One immutable profile follows the fixed parameter rows. The
+             * resident runtime sees only callParameterCount and never reads
+             * this compiler-owned sentinel. No per-value environment exists. */
+            xl6OutputPrintf(out,", {.boolean_value=%s, .i64_value=%d}",
+                native->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE ? "true" : "false",
+                native->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE ||
+                native->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY ? 1 : 0);
         }
         xl6OutputPuts("};\n", out);
     }

@@ -9961,7 +9961,6 @@ static int xl6IrBuildFunctionValueCallSite(
     variadicAbi = xl6IrBuildCallableVariadicAbi(
         signature->callableErasureAbi);
     if ( variadicAbi == (XL6_IrCallVariadicAbi)-1 ||
-         variadicAbi == XL6_IR_CALL_VARIADIC_C ||
          (variadicAbi != XL6_IR_CALL_VARIADIC_NONE &&
           signature->paramCount == 0) ) return 1;
     fixedParameterCount = variadicAbi == XL6_IR_CALL_VARIADIC_NONE
@@ -10028,10 +10027,11 @@ static int xl6IrBuildFunctionValueCallSite(
                     break;
                 }
                 parameter = positional++;
-            } else if ( variadicAbi == XL6_IR_CALL_VARIADIC_ARRAY ) {
+            } else if ( variadicAbi == XL6_IR_CALL_VARIADIC_ARRAY || variadicAbi == XL6_IR_CALL_VARIADIC_C ) {
                 size_t binding = fixedParameterCount + tailCount++;
                 expressions[binding] = module->children[wrapper->firstChild];
-                sources[binding] = XL6_IR_CALL_ARGUMENT_ARRAY_VARARG_ITEM;
+                sources[binding] = variadicAbi == XL6_IR_CALL_VARIADIC_C
+                    ? XL6_IR_CALL_ARGUMENT_C_VARARG_ITEM : XL6_IR_CALL_ARGUMENT_ARRAY_VARARG_ITEM;
                 continue;
             }
         }
@@ -10459,7 +10459,9 @@ static int xl6IrCallHasExactClosureCallee(
         signature->cAbi == XL6_IR_C_ABI_CLOSURE_PTR &&
         signature->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
         signature->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL &&
-        arguments->childCount == signature->paramCount &&
+        (signature->callableErasureAbi == XL6_IR_CALLABLE_ERASURE_C_VARIADIC
+            ? arguments->childCount + 1 >= signature->paramCount
+            : arguments->childCount == signature->paramCount) &&
         signature->callableResultType == call->storageType;
 }
 
@@ -22571,6 +22573,42 @@ static int xl6IrPrimitiveSequenceRuntimeSignatureValid(
     }
 }
 
+int xl6IrCVariadicNativeTargetSupported(const XL6_IrModule* module,
+    const XL6_IrCallTarget* target, const XL6_IrType* signature)
+{
+    const XL6_IrType* result;
+    if (!module || !target || !signature || signature->kind != XL6_IR_TYPE_FUNCTION ||
+        signature->cAbi != XL6_IR_C_ABI_CLOSURE_PTR ||
+        signature->callableErasureAbi != XL6_IR_CALLABLE_ERASURE_C_VARIADIC ||
+        target->kind != XL6_IR_CALL_TARGET_EXTERN_C || !target->cName ||
+        target->variadicAbi != XL6_IR_CALL_VARIADIC_C || !target->parameterCount ||
+        signature->paramCount != target->parameterCount + 1 ||
+        target->returnType != signature->callableResultType ||
+        target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_NONE ||
+        target->nativeServicesRequired || target->nativeContextAbi ||
+        target->nativeResultAbi || target->nativeArrayResultAbi ||
+        !target->parameterPhysicalAbis || !target->parameterAbis ||
+        !target->parameterTypes || !signature->params || !signature->parameterAbis)
+        return 0;
+    result = xl6IrTypeGet(&module->types, target->returnType);
+    if (result && result->cAbi == XL6_IR_C_ABI_MANAGED_STRING) {
+        if (target->resultConversionAbi != XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE &&
+            target->resultConversionAbi != XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY) return 0;
+    } else if ((result && result->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL) ||
+               target->resultConversionAbi != XL6_IR_CALL_RESULT_CONVERSION_DIRECT) return 0;
+    for (size_t i = 0; i < target->parameterCount; ++i) {
+        const XL6_IrType* type = xl6IrTypeGet(&module->types, target->parameterTypes[i]);
+        if (!type || target->parameterTypes[i] != signature->params[i] ||
+            target->parameterAbis[i] != signature->parameterAbis[i] ||
+            (target->parameterAbis[i] != XL6_IR_PARAMETER_ABI_VALUE &&
+             target->parameterAbis[i] != XL6_IR_PARAMETER_ABI_BORROW) ||
+            (target->parameterPhysicalAbis[i] != XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT &&
+             !(target->parameterPhysicalAbis[i] == XL6_IR_CALL_PARAMETER_PHYSICAL_C_SPAN_BORROW &&
+               xl6IrTypeIsCOwned(type)))) return 0;
+    }
+    return 1;
+}
+
 int xl6IrCVarargCallSiteHasText(const XL6_IrModule* module, XL6_IrNodeId origin)
 {
     const XL6_IrCallSite* site = xl6IrCallSiteGet(module, origin);
@@ -27713,6 +27751,8 @@ static int xl6IrBuildReachabilityFacts(
         for (size_t c = 0; c < module->closureTargetCount; ++c) {
             const XL6_IrClosureTarget* closure = &module->closureTargets[c];
             if (facts->closureTargets[c] == XL6_IR_REACHABILITY_UNREACHABLE) continue;
+            if (closure->kind == XL6_IR_CLOSURE_TARGET_C_VARIADIC_NATIVE)
+                changed |= xl6IrReachabilityMarkSymbol(module,facts,closure->adaptedTargetSymbol,XL6_IR_REACHABILITY_TRANSITIVE);
             for (size_t p = 0; p < closure->callParameterCount; ++p) {
                 uint32 function = closure->callParameterDefaultFunctions ? closure->callParameterDefaultFunctions[p] : 0;
                 if (!function) continue;
@@ -39924,6 +39964,37 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
     }
     for ( i = 0; i < module->closureTargetCount; ++i ) {
         const XL6_IrClosureTarget* closure = &module->closureTargets[i];
+        if (closure->kind == XL6_IR_CLOSURE_TARGET_C_VARIADIC_NATIVE) {
+            const XL6_IrNode* name = xl6IrNodeGet(module,closure->declaration);
+            const XL6_IrCallTarget* native = xl6IrCallTargetGet(module,closure->adaptedTargetSymbol);
+            const XL6_IrType* signature = xl6IrTypeGet(&module->types,closure->signatureType);
+            const XL6_IrNode* declaration = native ? xl6IrNodeGet(module,native->declaration) : NULL;
+            const XL6_IrNode* parameters = declaration && declaration->childCount > 1
+                ? xl6IrNodeGet(module,module->children[declaration->firstChild + 1]) : NULL;
+            if (module->stage != XL6_IR_STAGE_LOWERED || !name || name->kind != XL6_IR_NODE_NAME ||
+                name->namedCallableAbi != XL6_IR_NAMED_CALLABLE_CAPTURE_FREE_ADAPTER ||
+                name->namedCallableTargetSymbol != closure->adaptedTargetSymbol ||
+                name->namedCallableSignatureType != closure->signatureType ||
+                !closure->targetSymbol || !xl6IrCVariadicNativeTargetSupported(module,native,signature) ||
+                !parameters || parameters->childCount != signature->paramCount ||
+                closure->captureCount || closure->forwardCallMetadata ||
+                closure->firstCapture > module->closureCaptureCount ||
+                closure->rawCallbackAbi != XL6_IR_CLOSURE_RAW_CALLBACK_NONE ||
+                closure->rawExecutionAbi != XL6_IR_CLOSURE_RAW_EXECUTION_NONE ||
+                closure->callParameterCount != native->parameterCount ||
+                !closure->callParameterNames || !closure->callParameterDefaultAbis ||
+                !closure->callParameterDefaultLiterals || !closure->callParameterDefaultFunctions)
+                return xl6IrDiag(diags,name,"native variadic closure has no exact leased entry and physical ABI");
+            for (size_t p = 0; p < closure->callParameterCount; ++p) {
+                const XL6_IrNode* parameter = xl6IrNodeGet(module,module->children[parameters->firstChild + p]);
+                if (!parameter || !parameter->text || !closure->callParameterNames[p] ||
+                    strcmp(parameter->text,closure->callParameterNames[p]) ||
+                    closure->callParameterDefaultAbis[p] != XL6_IR_DYNAMIC_METHOD_DEFAULT_NONE ||
+                    closure->callParameterDefaultLiterals[p] || closure->callParameterDefaultFunctions[p])
+                    return xl6IrDiag(diags,name,"native variadic closure parameter metadata is inconsistent");
+            }
+            continue;
+        }
         const XL6_IrNode* declaration = xl6IrNodeGet(module, closure->declaration);
         const XL6_IrCallTarget* target = xl6IrCallTargetGet(
             module, closure->kind == XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER
@@ -46513,10 +46584,12 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     const XL6_IrInstruction* callee = instruction->operandCount > 0
                         ? xl6IrValueDefinition(module, module->operands[instruction->firstOperand], NULL) : NULL;
                     size_t closureOperand;
+                    int nativeVariadic = signature && signature->callableErasureAbi == XL6_IR_CALLABLE_ERASURE_C_VARIADIC;
+                    size_t fixedCount = signature ? signature->paramCount - (nativeVariadic ? 1u : 0u) : 0;
                     if ( signature == NULL || signature->kind != XL6_IR_TYPE_FUNCTION ||
                          signature->cAbi != XL6_IR_C_ABI_CLOSURE_PTR || callee == NULL ||
                          callee->type != instruction->calleeType || instruction->targetSymbol != 0 ||
-                         instruction->operandCount != signature->paramCount + 1 ||
+                         (nativeVariadic ? instruction->operandCount < signature->paramCount : instruction->operandCount != signature->paramCount + 1) ||
                          (signature->paramCount != 0 &&
                           (signature->parameterModes == NULL ||
                            signature->parameterAbis == NULL)) ||
@@ -46528,7 +46601,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                          (signature->callableResultType != XL6_IR_TYPE_INVALID &&
                           instruction->type != signature->callableResultType) )
                         return xl6IrDiag(diags, NULL, "XLIR closure call has no exact invocation ABI");
-                    for ( closureOperand = 0; closureOperand < signature->paramCount; ++closureOperand ) {
+                    for ( closureOperand = 0; closureOperand < fixedCount; ++closureOperand ) {
                         const XL6_IrInstruction* argument = xl6IrValueDefinition(
                             module, module->operands[instruction->firstOperand + closureOperand + 1],
                             NULL);
@@ -46555,6 +46628,12 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             return xl6IrDiag(diags, xl6IrNodeGet(module, instruction->origin),
                                              "XLIR closure call argument type does not match its signature ABI");
                         }
+                    }
+                    for (closureOperand = fixedCount + 1; nativeVariadic && closureOperand < instruction->operandCount; ++closureOperand) {
+                        const XL6_IrInstruction* item = xl6IrValueDefinition(module,
+                            module->operands[instruction->firstOperand + closureOperand],NULL);
+                        if (!item || !xl6IrTypeSupportsCVararg(module,item->type))
+                            return xl6IrDiag(diags,NULL,"native variadic closure tail has no promoted C ABI");
                     }
                 }
                 if ( instruction->kind == XL6_IR_INSTR_RETAIN ) {
@@ -47146,7 +47225,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     if ( signature == NULL )
                         return xl6IrDiag(diags, xl6IrNodeGet(module, instruction->origin),
                                          "XLIR closure call signature ABI is missing");
-                    for ( operand = 0; operand < signature->paramCount; ++operand ) {
+                    for ( operand = 0; operand < signature->paramCount - (signature->callableErasureAbi == XL6_IR_CALLABLE_ERASURE_C_VARIADIC ? 1u : 0u); ++operand ) {
                         size_t argumentIndex = SIZE_MAX;
                         const XL6_IrInstruction* argument = xl6IrValueDefinition(
                             module, module->operands[instruction->firstOperand + operand + 1],

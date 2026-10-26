@@ -464,6 +464,7 @@ static int xl6IrCgenEmitClosureInvokePrototype(
     XL6_Output* out, const XL6_IrModule* module,
     const XL6_IrClosureTarget* closure, XL6_DiagList* diags)
 {
+    if (closure && closure->kind == XL6_IR_CLOSURE_TARGET_C_VARIADIC_NATIVE) return 1;
     const XL6_IrType* signature = closure != NULL
         ? xl6IrTypeGet(&module->types, closure->signatureType) : NULL;
     const char* resultType = NULL;
@@ -577,6 +578,7 @@ static int xl6IrCgenEmitRawCallbackEntry(
 static int xl6IrCgenEmitClosureInvoke(
     XL6_Output* out, const XL6_IrModule* module, const XL6_IrClosureTarget* closure, XL6_DiagList* diags)
 {
+    if (closure && closure->kind == XL6_IR_CLOSURE_TARGET_C_VARIADIC_NATIVE) return 1;
     const XL6_IrCallTarget* target;
     const XL6_IrFunction* function;
     const XL6_IrType* signature;

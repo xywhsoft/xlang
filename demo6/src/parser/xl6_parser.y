@@ -2607,3 +2607,7 @@ call_arg(A) ::= name_tok(N) ASSIGN expr(E). {
     A = xl6AstNew(XL6_AST_NAMED_ARG, &N);
     xl6AstAddChild(A, E);
 }
+
+func_type_param(A) ::= KW_C_VARARG(T). {
+    A = xl6AstNewText(XL6_AST_TYPE, "c_vararg", 8, &T);
+}

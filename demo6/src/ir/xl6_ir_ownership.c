@@ -513,6 +513,8 @@ XL6_IrOperandOwnership xl6IrInstructionOperandOwnership(
     case XL6_IR_INSTR_CLOSURE_CALL:
         if (operand == 0) return XL6_IR_OPERAND_OWNERSHIP_OBSERVE;
         signature = xl6IrTypeGet(&module->types, instruction->calleeType);
+        if (signature && signature->callableErasureAbi == XL6_IR_CALLABLE_ERASURE_C_VARIADIC &&
+            operand >= signature->paramCount) return XL6_IR_OPERAND_OWNERSHIP_OBSERVE;
         if (signature == NULL || operand - 1 >= signature->paramCount || signature->parameterAbis == NULL)
             return XL6_IR_OPERAND_OWNERSHIP_INVALID;
         return signature->parameterAbis[operand - 1] == XL6_IR_PARAMETER_ABI_OWNED

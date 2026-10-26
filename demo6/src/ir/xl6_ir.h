@@ -4627,7 +4627,11 @@ typedef struct XL6_IrClosureCapture {
 typedef enum XL6_IrClosureTargetKind {
     XL6_IR_CLOSURE_TARGET_INVALID = 0,
     XL6_IR_CLOSURE_TARGET_ANONYMOUS,
-    XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER
+    XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER,
+    /* C ... cannot be forwarded through a va_list thunk. The closure lease
+     * retains the native entry and value-specific string ownership metadata;
+     * each typed call site expands its own native argument list. */
+    XL6_IR_CLOSURE_TARGET_C_VARIADIC_NATIVE
 } XL6_IrClosureTargetKind;
 
 typedef enum XL6_IrClosureRawCallbackAbi {
@@ -4651,10 +4655,10 @@ typedef enum XL6_IrClosureRawExecutionAbi {
     XL6_IR_CLOSURE_RAW_EXECUTION_RESIDENT_BORROWED_ACTIVITY_V1
 } XL6_IrClosureRawExecutionAbi;
 
-/* A closure target names the independently lowered body plus the complete
- * function signature and capture slice needed to construct its environment.
- * This is deliberately not a C function pointer: it is verified XLIR that a
- * backend renders through the uniform bool + optional out-result thunk ABI. */
+/* Ordinary targets name independently lowered bool + out-result bodies.
+ * C_VARIADIC_NATIVE instead names a verified C entry; its immutable native
+ * outcome profile follows the fixed parameter metadata rows. The resident
+ * closure retains code/metadata lifetime without a second environment. */
 typedef struct XL6_IrClosureTarget {
     XL6_IrClosureTargetKind kind;
     XL6_IrNodeId declaration;
@@ -7850,6 +7854,8 @@ XL6_IrErrorAbi xl6IrCallInstructionErrorAbi(
 /* Argument preparation belongs to the call site, independently of the
  * producer's @no_raise contract. No payload conversion or allocation. */
 int xl6IrCVarargCallSiteHasText(const XL6_IrModule*, XL6_IrNodeId);
+int xl6IrCVariadicNativeTargetSupported(const XL6_IrModule*,
+    const XL6_IrCallTarget*, const XL6_IrType*);
 XL6_IrCallErrorPhysicalAbi xl6IrCallInstructionErrorPhysicalAbi(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction);
 /* Optional native Future observation can allocate and must be checked. */

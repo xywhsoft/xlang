@@ -20,7 +20,7 @@ try {
     Copy-Item release/xl.dll "$Directory/xl.dll" -Force
     $inputs = @('test/cases/xlir_parser_corpus.c',
         'src/lexer/xl6_lexer_api.c','src/lexer/xl6_lexer_gen.c','src/lexer/xl6_token.c','src/diag/xl6_diag.c',
-        'src/ast/xl6_ast.c','src/common/xl6_output.c','src/common/xl6_console.c')
+        'src/ast/xl6_ast.c','src/common/xl6_output.c','src/common/xl6_console.c','src/sem/xl6_completion.c')
     $paths = @(Get-ChildItem test/cases -File -Filter '*.xl' | Sort-Object Name | ForEach-Object FullName)
     $outputs = @{}
     $passes = if ($BaselineParser) { @('baseline','current') } else { @('current') }

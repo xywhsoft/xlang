@@ -945,7 +945,9 @@ static int xl6IrCgenVerifyInstructions(
                      (signature->paramCount != 0 &&
                       (signature->parameterModes == NULL ||
                        signature->parameterAbis == NULL)) ||
-                     instruction->operandCount != signature->paramCount + 1 ||
+                     (signature->callableErasureAbi == XL6_IR_CALLABLE_ERASURE_C_VARIADIC
+                        ? instruction->operandCount < signature->paramCount
+                        : instruction->operandCount != signature->paramCount + 1) ||
                      instruction->result == XL6_IR_VALUE_INVALID ||
                      (signature->callableResultType == XL6_IR_TYPE_INVALID &&
                       instruction->type != XL6_IR_TYPE_INVALID) ||
