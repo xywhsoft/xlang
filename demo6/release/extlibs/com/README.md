@@ -1,5 +1,13 @@
 # com
 
+2026-10-26 当前 Windows 发布物的默认包门禁通过公开头、C 边界、
+C 范例和隐式对象清理的 JIT/AOT，随后在 XLang 边界调用
+`com.invoke(..., array[])` 时报告 `ValueError: arguments must be an array`。
+最小 JIT/独立 EXE 复现见
+`../../../dev/extlib_blockers/com_foreign_array_projection.xl`，
+需同编 `test/boundaries.c` 提供确定性 COM 夹具。此处与共享 foreign
+容器投影问题同形；完整双语范例和 COM 边界 AOT 尚未签收。
+
 Windows-only IDispatch late binding for XLang and C. This package exposes a
 small COM automation surface, not arbitrary interface/vtable binding. It does
 not implement event sinks or cross-apartment marshaling.
