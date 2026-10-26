@@ -1,5 +1,16 @@
 # dinov3
 
+2026-10-26 当前 Windows 发布版设置 `DINOV3_MODEL` 与
+`DINOV3_TEST_IMAGE` 后，完整门禁及 `-ParallelLive` 均退出 0。
+真实图片的 384 维嵌入在 C、XLang JIT、XLang 独立 EXE 间逐项
+误差不超过 `1e-5`，两线程各自建会话推理通过；严格 C、桥接装载、
+失败路径与公开范例 AOT 亦通过。所用外部权重
+`dinov3-vits16plus_fp32.onnx` SHA-256 为
+`B0D0DB6ECA35DAABC39CAE1131B3922ED5F26FC18609737BB1A23E200C661923`，
+不随包分发。Linux C ASan/UBSan 与无模型语言边界门禁通过；
+Linux 图像后端和第三方插件内部长期稳定性不在本次验收范围。
+本任务按 Windows 公开 C/XLang 调用链签收。
+
 2026-10-24 发布版复验：Windows 默认门禁通过严格 C、真实 ONNX
 桥接装载、XLang 缺模型/名称/无效结果负例，以及核心、公开范例和
 两份负例的独立 AOT 构建与执行。旧共享 AOT 链接阻断不再复现。
@@ -10,7 +21,7 @@
 
 DinoV3 图片嵌入扩展库使用 OpenCV 预处理和 ONNX Runtime 执行模型。创建模型必须传入实际权重文件路径：`dinov3.DinoV3(modelPath)`。本包不携带权重，也不提供假默认模型。输入/输出名称、尺寸和归一化参数必须与所用模型匹配。
 
-**当前发布物未完成真实模型的同轮复验。** 权重不属于本包，也不随发布物分发。此前 C/XLang 同图输出及两条独立线程各一次推理已核对；本轮 AOT 和公开调用负例已签收。ONNX 桥接 DLL 只验调用链，其内部算法由插件自身维护。`release/examples/extlibs/dinov3.xl` 是缺模型负例和 ABI smoke；真实推理范例在 `examples/live_model.xl` 和 `examples/live_model_c.c`。
+Windows 真实模型调用链已按上述范围复验；权重不属于本包，也不随发布物分发。ONNX 桥接 DLL 只验调用链，其内部算法由插件自身维护。`release/examples/extlibs/dinov3.xl` 是缺模型负例和 ABI smoke；真实推理范例在 `examples/live_model.xl` 和 `examples/live_model_c.c`。
 
 ## 接口和所有权
 
@@ -20,20 +31,20 @@ DinoV3 图片嵌入扩展库使用 OpenCV 预处理和 ONNX Runtime 执行模型
 
 包内 C 结果处理直接复用 `onnxruntime` 的公开 C ABI，不再额外加载一份桥接 DLL。结果 shape 必须为非空维度数组，元素乘积与结果数一致，最多 100000 个浮点值；非有限值拒绝输出。JSON 使用 XRT 结构化写入，路径不受旧固定缓冲区限制。
 
-`docs/site.html` 是官网详情页的可维护源文件，当前页面公开使用方法和待验收边界，不代表包已签收生产发布。
+`docs/site.html` 是官网详情页的可维护源文件，公开使用方法及 Windows 调用链的验收边界，不代表其他平台或插件内部均已验收。
 
 ## 当前测试
 
 Windows：`powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/dinov3/test/check.ps1`
 
-只运行 C、真实桥接和 XLang JIT 聚焦检查时可加 `-SkipAot`；当前主线
-AOT 阻断期间，带真实模型或 `-ParallelLive` 的独立验证也应加此开关。
+只运行 C、真实桥接和 XLang JIT 聚焦检查时可加 `-SkipAot`；
+签收真实模型调用链时应提供模型与图片，并保留默认 AOT 检查。
 默认门禁在无输出核心 AOT 之后还构建并运行公开的缺模型范例、
 名称校验和无效结果负例，核对固定输出或退出状态。
 
 Linux：`sh release/extlibs/dinov3/test/check.sh`
 
-两套门禁以链接期五函数测试桩验证 C 结果处理：嵌入向量、shape/count、NaN、长度错误、长路径 JSON 和独立所有权；Linux C 使用 ASan/UBSan。两套门禁均运行 XLang 输入/输出名称 NUL 和无效输出负例。Windows 另以发布目录的真实 `onnxruntime_xlang.dll` 验证 C 桥接装载，并运行 XLang 导入与缺模型负例。设置 `DINOV3_MODEL` 和 `DINOV3_TEST_IMAGE` 后，Windows 门禁额外运行 C/XLang 同图真实模型范例，要求 384 维输出且全部元素逐项误差不超过 `1e-5`；模型与图片路径均由调用方提供。加 `-ParallelLive` 时，再让两条线程各自创建会话、推理并对照串行结果。测试桩和两线程 smoke 均不代替后端长期稳定性认证；完整 AOT 仍待复核。
+两套门禁以链接期五函数测试桩验证 C 结果处理：嵌入向量、shape/count、NaN、长度错误、长路径 JSON 和独立所有权；Linux C 使用 ASan/UBSan。两套门禁均运行 XLang 输入/输出名称 NUL 和无效输出负例。Windows 另以发布目录的真实 `onnxruntime_xlang.dll` 验证 C 桥接装载，并运行 XLang 导入与缺模型负例。设置 `DINOV3_MODEL` 和 `DINOV3_TEST_IMAGE` 后，Windows 门禁额外运行 C/XLang 同图真实模型范例及 XLang 独立 EXE，要求 384 维输出且全部元素逐项误差不超过 `1e-5`；模型与图片路径均由调用方提供。加 `-ParallelLive` 时，再让两条线程各自创建会话、推理并对照串行结果。测试桩和两线程 smoke 均不代替后端长期稳定性认证。
 
 门禁每次使用独占临时构建目录并在退出时清理，不复用上次构建的可执行文件。
 

@@ -36,6 +36,11 @@ try {
     }
     $implicit = Invoke-Checked 'XLang implicit handles' @('run',
         'extlibs/uia/test/test_uia_implicit_handles.xl')
+    $focus = Invoke-Checked 'XLang focus callback' @('run',
+        'extlibs/uia/test/test_uia_focus_callback.xl')
+    if ($focus -cne 'uia focus callback: PASS') {
+        throw 'XLang focus callback output differs'
+    }
     $full = Invoke-Checked 'XLang full example' @('run', 'examples/extlibs/uia.xl')
     if ($full -ne 'uia extlib ok') { throw 'unexpected full example output' }
 
@@ -64,6 +69,13 @@ try {
         $implicitOutput = & $implicitAot 2>&1
         if ($LASTEXITCODE -ne 0 -or ($implicitOutput | Out-String).Trim() -cne $implicit) {
             throw 'XLang implicit handles AOT output differs from JIT'
+        }
+        $focusAot = Join-Path $work 'focus_callback.exe'
+        [void](Invoke-Checked 'XLang focus callback AOT build' @('build',
+            'extlibs/uia/test/test_uia_focus_callback.xl', '-o', $focusAot))
+        $focusOutput = & $focusAot 2>&1
+        if ($LASTEXITCODE -ne 0 -or ($focusOutput | Out-String).Trim() -cne $focus) {
+            throw 'XLang focus callback AOT output differs from JIT'
         }
         $aot = Join-Path $work 'aot_core.exe'
         [void](Invoke-Checked 'XLang core AOT build' @('build', 'extlibs/uia/test/aot_core.xl', '-o', $aot))

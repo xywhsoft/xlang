@@ -12,7 +12,7 @@ from check_language_definitions import position
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--server',type=Path,required=True);parser.add_argument('--baseline',type=Path,required=True);parser.add_argument('--output',type=Path,required=True)
-    parser.add_argument('--baseline-version',choices=['0.53','0.54','0.55','0.56','0.57','0.58','0.59','0.60','0.61','0.62','0.63','0.64','0.65','0.66','0.67','0.68','0.69','0.70','0.71','0.72','0.73','0.74','0.75','0.76','0.77','0.78'],default='0.78')
+    parser.add_argument('--baseline-version',choices=['0.53','0.54','0.55','0.56','0.57','0.58','0.59','0.60','0.61','0.62','0.63','0.64','0.65','0.66','0.67','0.68','0.69','0.70','0.71','0.72','0.73','0.74','0.75','0.76','0.77','0.78','0.79'],default='0.79')
     args=parser.parse_args();server=args.server.resolve(strict=True);baseline=args.baseline.resolve(strict=True);out=args.output.resolve();out.mkdir(parents=True,exist_ok=False)
     sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest()
     body=source(16,0,True).split('export func compute(')[0]+('func choose(int left,string right) as int\r\n return left\r\nend\r\n'
@@ -45,7 +45,7 @@ def main():
                 cases.append(dict(method=method,variant=variant,target=index,version=version,analysis=a));return dict(a,memoTypes=types)
             try:
                 c.send('initialize',dict(capabilities={},initializationOptions=dict(automaticDiagnostics=False,checkOnSave=False)),1)
-                init,_=c.reply(1);assert init['result']['serverInfo']['version']==(args.baseline_version if variant=='before' else '0.79');c.send('initialized',{})
+                init,_=c.reply(1);assert init['result']['serverInfo']['version']==(args.baseline_version if variant=='before' else '0.80');c.send('initialized',{})
                 for p in paths:c.open(p,body,1)
                 a=call(0);assert a['builds']==1
                 again=call(0);assert again['builds']==1 and again['cacheHits']==1 and again['memoTypes']==a['memoTypes']

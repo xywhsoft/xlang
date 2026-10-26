@@ -120,6 +120,24 @@ try {
                 }
             }
             Write-Host '[dinov3] C/XLang live model: PASS'
+            if (-not $SkipAot) {
+                $liveExe = Join-Path $build 'live_model_xl.exe'
+                Run 'XLang live model AOT build' (Join-Path $release 'xl.exe') @(
+                    'build', 'extlibs/dinov3/examples/live_model.xl', '-o', $liveExe)
+                $aotResult = & $liveExe $model $image
+                if ($LASTEXITCODE -ne 0) { throw 'XLang live model AOT failed' }
+                $aotEmbedding = $aotResult | ConvertFrom-Json
+                if ($aotEmbedding.count -ne 384 -or $aotEmbedding.embedding.Count -ne 384) {
+                    throw 'XLang live model AOT embedding shape differs'
+                }
+                for ($i = 0; $i -lt 384; $i++) {
+                    if ([math]::Abs([double]$aotEmbedding.embedding[$i] -
+                            [double]$cEmbedding[$i]) -gt 0.00001) {
+                        throw "C/XLang AOT embedding differs at index $i"
+                    }
+                }
+                Write-Host '[dinov3] C/XLang live model AOT: PASS'
+            }
             if ($ParallelLive) {
                 Run 'two-thread live model calls' (Join-Path $release 'xl.exe') @(
                     'run', 'extlibs/dinov3/test/parallel_model.xl', '--', $model, $image)

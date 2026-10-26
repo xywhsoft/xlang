@@ -1,0 +1,72 @@
+{
+  "Schema": 1,
+  "Purpose": "TLS verifier context graph, active calls and checked retirement",
+  "CanonicalCommit": "2b6a95876aea8e2c13cdd28c0f72628f011012b1",
+  "WholeSnapshotUpgrade": false,
+  "TimeAbiPreserved": true,
+  "ExistingPublicStructLayoutsPreserved": true,
+  "ExistingFunctionSignaturesPreserved": true,
+  "Consumers": [
+    {
+      "Path": "lib/xrt/xrt.h",
+      "Before": "F:\\xlang-validation\\five-groups-20261026\\p7-tls-verifier-owned\\pinned-before-owned-xrt.h.bin",
+      "BeforeSha256": "9d3ae5f92012d8c0f2b48ff58641275161bab76703a823fd2fa63c7378aea849",
+      "AfterSha256": "2a5f81ca00734592de686e097d88b40f6b50d7b96c151d66cfd9207368f86980",
+      "Sections": [
+        [
+          "public",
+          "include/xrt/tls_verify.h"
+        ],
+        [
+          "source",
+          "src/tls/verify.c"
+        ]
+      ],
+      "UnselectedBytesPreserved": true
+    },
+    {
+      "Path": "lib/xruntime/xruntime.h",
+      "Before": "F:\\xlang-validation\\five-groups-20261026\\p7-tls-verifier-owned\\pinned-before-owned-xruntime.h-runtime.bin",
+      "BeforeSha256": "e767f0e468d99b9beb84a9d993d47c82d49f25d77b73cf273088f29d81708cbd",
+      "AfterSha256": "c2618a575c95540d5247fb17ba864d0f935ed46aba165a9cda86f6fd4d8d72a5",
+      "Sections": [
+        [
+          "public",
+          "include/xrt/tls_verify.h"
+        ],
+        [
+          "source",
+          "src/tls/verify.c"
+        ]
+      ],
+      "UnselectedBytesPreserved": true
+    },
+    {
+      "Path": "release/include/xrt_decl.h",
+      "Before": "F:\\xlang-validation\\five-groups-20261026\\p7-tls-verifier-owned\\pinned-before-owned-xrt_decl.h.bin",
+      "BeforeSha256": "3f0f13f67a47a298187e7b8db84e2bdfec2431c81b441033f7d0c3bc9baa50e5",
+      "AfterSha256": "e550be20b3adebad17fbb5d70c606ce9ddd657a29a43a6471519f6b139dd3417",
+      "Sections": [
+        [
+          "public",
+          "include/xrt/tls_verify.h"
+        ]
+      ],
+      "UnselectedBytesPreserved": true
+    },
+    {
+      "Path": "release/include/xruntime_decl.h",
+      "Before": "F:\\xlang-validation\\five-groups-20261026\\p7-tls-verifier-owned\\pinned-before-owned-xruntime_decl.h-runtime.bin",
+      "BeforeSha256": "b98222a6638a28db21c39f51059eb8e62bea1db7d937f2afc280a0a93c4b5b9d",
+      "AfterSha256": "fd6b8045f3ef68484bfab5d2b9aedcfbeafd704263d29d74811d4d23a2b9e846",
+      "Sections": [
+        [
+          "public",
+          "include/xrt/tls_verify.h"
+        ]
+      ],
+      "UnselectedBytesPreserved": true
+    }
+  ],
+  "PublicLanguageCallbacksAccepted": false
+}

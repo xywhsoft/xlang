@@ -130,6 +130,7 @@ XRT_API xrttarwriter* xrtTarWriterCreateMemory(const xrttaroptions* pOptions);
 XRT_API xrttarwriter* xrtTarWriterOpenFile(cstr sPath, const xrttaroptions* pOptions);
 XRT_API xrttarwriter* xrtTarWriterOpenAppend(cstr sPath, const xrttaroptions* pOptions);
 XRT_API const xrttarerror* xrtTarWriterError(const xrttarwriter* pWriter);
+/* 非文件条目不得携带正文，iSize 与 iSizeBytes 都必须为零。 */
 XRT_API bool xrtTarWriterAdd(xrttarwriter* pWriter, const xrttarentry* pEntry,
 	const void* pData, uint64 iSize);
 XRT_API bool xrtTarWriterAddFrom(xrttarwriter* pWriter,

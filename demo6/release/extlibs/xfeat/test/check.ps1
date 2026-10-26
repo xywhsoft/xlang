@@ -134,6 +134,16 @@ try {
                 throw 'C and XLang live localization results differ'
             }
             Write-Host '[xfeat] C/XLang live output parity: PASS'
+            if (-not $SkipAot) {
+                $liveExe = Join-Path $build 'live_model_xl.exe'
+                Run 'XLang live model AOT build' (Join-Path $release 'xl.exe') @(
+                    'build', 'extlibs/xfeat/examples/live_model.xl', '-o', $liveExe)
+                $aotLive = & $liveExe $model $image $query
+                if ($LASTEXITCODE -ne 0 -or ($aotLive -join "`n") -cne ($cLive -join "`n")) {
+                    throw 'XLang live AOT result differs from C/JIT'
+                }
+                Write-Host '[xfeat] C/XLang live AOT parity: PASS'
+            }
             if (-not $env:XFEAT_TEST_IMAGE) {
                 Run 'XLang unrelated image rejection' (Join-Path $release 'xl.exe') @(
                     'run', 'extlibs/xfeat/test/live_negative.xl', '--', $model, $unrelated, $image)

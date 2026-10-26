@@ -1,0 +1,40 @@
+import uia
+
+func onFocus(string eventJson) as int
+    assert string.contains(eventJson, "\"type\":\"focus\""), "focus event was not delivered"
+    return 42
+end
+
+func rejectFocus(string eventJson) as int
+    assert string.contains(eventJson, "\"type\":\"focus\""), "focus event was not delivered"
+    throw ValueError "focus callback rejected event"
+end
+
+func main(...) as int
+    auto window = uia.test_window()
+    assert window.valid(), "test window unavailable"
+    auto events = uia.events()
+    assert events.valid(), "event queue creation failed"
+    assert events.poll_callback(onFocus, 0) == 0, "empty queue invoked callback"
+    assert events.subscribe_focus_changed(), "focus subscription failed"
+
+    // 先聚焦输入框，再切到按钮，保证测试产生一次真实焦点变化。
+    assert window.focus_edit(), "edit focus failed"
+    assert window.focus_button(), "button focus failed"
+    assert events.poll_callback(onFocus, 1000) == 42, "XLang callback result was lost"
+
+    assert window.focus_edit(), "second edit focus failed"
+    bool rejected = false
+    try
+        events.poll_callback(rejectFocus, 1000)
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "callback error was not propagated"
+
+    assert events.release(), "event queue release failed"
+    assert window.release(), "window release failed"
+    assert uia.shutdown(), "uia shutdown failed"
+    println("uia focus callback: PASS")
+    return 0
+end

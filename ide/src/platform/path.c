@@ -278,6 +278,12 @@ int xidePathLexicalEqual(const char* left,const char* right)
     int equal=wa && wb && CompareStringOrdinal(wa,-1,wb,-1,TRUE)==CSTR_EQUAL;
     free(a); free(b); free(wa); free(wb); return equal;
 }
+wchar_t* xidePathLexicalWide(const char* path)
+{
+    char* resolved=xidePathResolveLexical(NULL,path);
+    wchar_t* result=resolved ? wide(resolved) : NULL;
+    free(resolved); return result;
+}
 char* xidePathRelative(const char* base,const char* path)
 {
     if(!base || !path) return NULL;
