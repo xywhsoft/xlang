@@ -1,14 +1,21 @@
 # semver
 
+2026-10-26 新版 Windows/Linux 发布物验收：两平台均以当前源码构建的
+`xl` 运行默认包门禁，全部退出 0。`prerelease/build/clean` 的
+`@owned string` 返回在新发布物上直接接管 XRT 分配；严格 C/ABI、
+边界、分配故障、C/XLang 黄金输出及中央/边界/分配/双语范例独立
+EXE 均通过，Linux 另通过 ASan/UBSan。可选的 node-semver 7.8.5
+外部差分本轮未运行，不将包级门禁扩大称为完整规范认证。
+
 2026-10-26 源码驱动验证：三个文本结果的 C 原型现明确为 `char*`，
 XLang 外部声明使用 `@owned ... as string` 直接接管同一 XRT 堆分配，
 删除了仅负责 `point` 转交的包装函数。生成 C 代码直接保存返回指针，
 计算一次长度；这不承诺后续普通字符串赋值也都不复制。
 Windows 严格 C/ABI、C 范例通过；从当前源码隔离编出的公共驱动
 运行中央、边界、分配故障与公开范例，并构建运行四份独立 EXE，
-范例输出与黄金文件一致。现有 `release/xl.exe` 尚不识别 `@owned`，
-标准 `build.bat` 又被 XRT/xruntime 快照不一致挡住，因此**新版包尚未
-完成发布物及 Linux 全门禁复验**；下述双平台签收仅对应迁移前版本。
+范例输出与黄金文件一致。当时的 `release/xl.exe` 尚不识别 `@owned`，
+标准 `build.bat` 又被 XRT/xruntime 快照不一致挡住；上方新发布物构建
+与双平台门禁已关闭该阻断。下述双平台记录仅对应迁移前版本。
 
 此前 2026-10-26 Windows/Linux 默认包门禁再次通过；两侧新增中央语言用例和
 C 单文件范例的独立 EXE AOT，C/GCC、C/TCC、C/AOT 与 XLang
