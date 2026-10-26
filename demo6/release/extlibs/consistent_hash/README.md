@@ -1,5 +1,13 @@
 # consistent_hash
 
+2026-10-26 当前 Windows/Linux 默认门禁均通过严格 C、Linux ASan/UBSan、
+语言 JIT、核心 AOT，以及 C/XLang 公开范例的独立 EXE 与固定映射对照。
+两平台的顶层 `Ring` 边界 EXE 都先打印 PASS，再在模块退出清理期报
+`RuntimeError: operation is not valid in the current state` 并退出 1。
+Linux 门禁现同样执行这条 AOT 边界，保持红色直至主线生命周期修复；
+不能仅凭公开范例通过签收整包。最小原因范围见
+`dev/extlib_blockers/global_native_class_aot_fini.md`。
+
 基于 XRT 确定性 64 位非密码哈希的虚拟节点环。用途是把任意字符串键稳定分派到一组节点；它不是加密散列，也不提供网络、节点健康探测或自动数据迁移。
 
 ## 行为合同
@@ -47,7 +55,8 @@ the current state`；同文件 JIT 退出 0，局部对象的公开范例 AOT �
 Linux 可在 `demo6` 运行 `bash release/extlibs/consistent_hash/test/check.sh`，
 用严格 GCC + ASan/UBSan 检查 C 边界、并发及 C 范例，同时运行中央与
 包内 XLang 用例，并将双语范例与 `examples/consistent_hash.expected.txt`
-的固定映射逐字节比较。
+的固定映射逐字节比较。默认门禁还构建运行中央核心、C/XLang 范例和
+顶层边界的独立 EXE；当前在最后一项按上述生命周期阻断退出 1。
 Windows 可在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/consistent_hash/test/check.ps1 -SkipAot`，一并检查严格 GCC、C 故障与线程、中央和包内 XLang、原生入口私有性及双语黄金输出。去掉 `-SkipAot` 会依次构建运行核心、带输出范例及边界 AOT；当前边界 EXE 在顶层对象退役时失败，详见上文。C 教学范例内含包的原生实现，可在两平台直接 `xl run release/extlibs/consistent_hash/examples/consistent_hash_c.c`；正式包仍按清单分别编译该原生源码。
 
 以下 2026-10-23 及更早记录中的共享缺符号描述均为旧发布版历史，不代表当前构建状态。

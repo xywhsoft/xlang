@@ -55,4 +55,21 @@ timeout 90s "$xl" run release/examples/extlibs/consistent_hash.xl > \
     "$work/consistent_hash_xl.txt"
 diff -u release/extlibs/consistent_hash/examples/consistent_hash.expected.txt \
     "$work/consistent_hash_xl.txt"
+timeout 90s "$xl" build test/cases/extlib_consistent_hash.xl \
+    -o "$work/consistent_hash_core"
+timeout 30s "$work/consistent_hash_core" > "$work/consistent_hash_core.txt"
+test ! -s "$work/consistent_hash_core.txt"
+timeout 90s "$xl" build release/examples/extlibs/consistent_hash.xl \
+    -o "$work/consistent_hash_xl_aot"
+timeout 30s "$work/consistent_hash_xl_aot" > "$work/consistent_hash_xl_aot.txt"
+diff -u release/extlibs/consistent_hash/examples/consistent_hash.expected.txt \
+    "$work/consistent_hash_xl_aot.txt"
+timeout 90s "$xl" build release/extlibs/consistent_hash/examples/consistent_hash_c.c \
+    -o "$work/consistent_hash_c_aot"
+timeout 30s "$work/consistent_hash_c_aot" > "$work/consistent_hash_c_aot.txt"
+diff -u release/extlibs/consistent_hash/examples/consistent_hash.expected.txt \
+    "$work/consistent_hash_c_aot.txt"
+timeout 90s "$xl" build release/extlibs/consistent_hash/test/boundaries.xl \
+    -o "$work/consistent_hash_boundaries"
+timeout 30s "$work/consistent_hash_boundaries"
 printf 'consistent_hash Linux C/XL ASan/UBSan gate: PASS\n'
