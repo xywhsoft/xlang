@@ -1,5 +1,12 @@
 # cuckoo
 
+2026-10-26 重建 Windows/Linux x64 发布物后，两平台默认包门禁
+均退出 0：严格 C、Linux ASan/UBSan、同双桶碰撞与高装载、
+分配故障/失败回滚、私有原生入口负例、C/XLang 固定输出，
+以及核心、XLang 范例和 C 单文件范例的独立 EXE AOT。
+旧共享快照缺符号与 Linux AOT 缺口不再复现；本次仅签收
+这些短时包级路径，不承诺零假阳性、并发共享实例或其他架构。
+
 16 位指纹、每桶 4 项的内存 Cuckoo Filter。支持 `add`、`contains`、`remove`、`clear` 与 `count`，适合大量短键的近似成员查询。该结构**可能产生假阳性**；在未执行删除时，成功插入的键不会产生假阴性。但按指纹删除可能删除一个与查询键碰撞的项，因此不应把它当成精确集合或安全授权表。
 
 ```xlang
@@ -24,10 +31,11 @@ seen.remove("session:abc123")
 
 ## 验证
 
-2026-10-25：当前 Windows 发布版默认门禁再次通过严格 C、语言边界、
+2026-10-25 历史验收记录：当时 Windows 发布版默认门禁再次通过严格 C、语言边界、
 分配故障、私有入口拒绝、双语输出及核心/公开范例 AOT；WSL Linux
 门禁通过 C ASan/UBSan、高装载、语言边界/分配故障和 C/XLang 对照。
-Linux 语言侧使用尚未重建的 `release/xl`，独立 Linux EXE 未验收。
+当时 Linux 语言侧使用尚未重建的 `release/xl`，独立 Linux EXE 未验收；
+当前结果以文首 2026-10-26 的两平台默认门禁为准。
 双语范例现展示删除、清空与复用，Windows/Linux 门禁均将其输出
 与独立的固定预期文件对照，而非仅比较两种实现彼此相同。
 
@@ -55,7 +63,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_extlib_c.ps1 -Pack
 bash release/extlibs/cuckoo/test/check.sh
 ```
 
-C 测试构造落在同一对桶的 9 个不同指纹，验证第 9 次失败后原 8 项仍可查询，移除一项后仍能插入。另覆盖容量、空键及内嵌 NUL。Windows 严格 GCC、Linux ASan/UBSan、XLang JIT 和无输出 AOT 核心已通过；完整带输出范例 AOT 仍受共享 `xl6ValueDataSnapshotV1` 缺符号阻断，见 `demo6/dev/extlib_blockers/text_snapshot_link.md`。默认 Windows 门禁现在也检查范例 AOT，不再只凭核心通过返回成功；`-SkipAot` 仅用于聚焦 C/XLang 验证。发布级验收暂不签收。
+C 测试构造落在同一对桶的 9 个不同指纹，验证第 9 次失败后原 8 项仍可查询，移除一项后仍能插入。另覆盖容量、空键及内嵌 NUL。旧发布物的完整带输出范例 AOT 曾受共享 `xl6ValueDataSnapshotV1` 缺符号阻断，见 `demo6/dev/extlib_blockers/text_snapshot_link.md`；2026-10-26 两平台默认门禁已验证解除。`-SkipAot` 仅用于聚焦 C/XLang 快测，不用于签收。
 包内 `test/high_load.xl` 已登记到 `coverage.tests`。C 与 XLang 都用
 容量 3000 的确定性多桶序列验证高装载插入：首次失败或容量耗尽后计数
 不变，全部先前成功插入的键仍可查询。这是无删除条件下的无假阴性回归，

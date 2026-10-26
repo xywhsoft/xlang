@@ -54,4 +54,13 @@ timeout 90s "$xl" run release/examples/extlibs/cuckoo.xl > "$work/xl_example.txt
 diff -u "$work/c_example.txt" "$work/xl_example.txt"
 timeout 90s "$xl" run release/extlibs/cuckoo/examples/cuckoo.c > "$work/direct_c_example.txt"
 diff -u "$work/c_example.txt" "$work/direct_c_example.txt"
-printf 'cuckoo Linux C ASan/UBSan and XLang parity gate: PASS\n'
+
+timeout 90s "$xl" build release/extlibs/cuckoo/test/aot_core.xl -o "$work/cuckoo_core"
+timeout 30s "$work/cuckoo_core"
+timeout 90s "$xl" build release/examples/extlibs/cuckoo.xl -o "$work/cuckoo_xl_aot"
+timeout 30s "$work/cuckoo_xl_aot" > "$work/xl_aot.txt"
+diff -u "$work/expected.txt" "$work/xl_aot.txt"
+timeout 90s "$xl" build release/extlibs/cuckoo/examples/cuckoo.c -o "$work/cuckoo_c_aot"
+timeout 30s "$work/cuckoo_c_aot" > "$work/c_aot.txt"
+diff -u "$work/expected.txt" "$work/c_aot.txt"
+printf 'cuckoo Linux C ASan/UBSan, XLang parity and bilingual AOT gate: PASS\n'

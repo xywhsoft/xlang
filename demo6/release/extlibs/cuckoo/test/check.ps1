@@ -7,6 +7,7 @@ $runner = Join-Path $root 'tools/run_extlib_c.ps1'
 $aotDirectory = Join-Path $root 'build/test'
 $aot = Join-Path $aotDirectory ("cuckoo_aot_core_$([guid]::NewGuid().ToString('N')).exe")
 $exampleAot = Join-Path $aotDirectory ("cuckoo_aot_example_$([guid]::NewGuid().ToString('N')).exe")
+$cExampleAot = Join-Path $aotDirectory ("cuckoo_aot_c_example_$([guid]::NewGuid().ToString('N')).exe")
 
 Push-Location $root
 try {
@@ -77,6 +78,13 @@ try {
             ($aotOutput -join "`n") -cne $expected) {
             throw 'cuckoo example AOT differs from expected output'
         }
+        & $xl build release/extlibs/cuckoo/examples/cuckoo.c -o $cExampleAot
+        if ($LASTEXITCODE -ne 0) { throw 'cuckoo C example AOT build failed' }
+        $cAotOutput = & $cExampleAot
+        if ($LASTEXITCODE -ne 0 -or
+            ($cAotOutput -join "`n") -cne $expected) {
+            throw 'cuckoo C example AOT differs from expected output'
+        }
     }
 
     Write-Output 'cuckoo Windows C/XLang gate: PASS'
@@ -87,5 +95,8 @@ try {
     }
     if (Test-Path -LiteralPath $exampleAot -PathType Leaf) {
         Remove-Item -LiteralPath $exampleAot -Force
+    }
+    if (Test-Path -LiteralPath $cExampleAot -PathType Leaf) {
+        Remove-Item -LiteralPath $cExampleAot -Force
     }
 }
