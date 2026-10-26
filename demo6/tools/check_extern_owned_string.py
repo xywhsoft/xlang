@@ -70,7 +70,13 @@ def main():
                 ' xrtFree((void*)value.Data); xrtErrorFree(outcome.error);\n'
                 ' if(!xl6ForeignCallBegin(&scope)) return false;\n'
                 ' value=owned_export_optional(); outcome=xl6ForeignCallEnd(&scope);\n'
-                ' ok=ok && outcome.ok && !value.Data && !value.Size; xrtErrorFree(outcome.error); return ok; }\n',encoding='utf-8')
+                ' ok=ok && outcome.ok && !value.Data && !value.Size; xrtErrorFree(outcome.error);\n'
+                ' if(!xl6ForeignCallBegin(&scope)) return false;\n'
+                ' value=owned_export_failed(); outcome=xl6ForeignCallEnd(&scope);\n'
+                ' ok=ok && !outcome.ok && outcome.error && !value.Data && !value.Size; xrtErrorFree(outcome.error);\n'
+                ' if(!xl6ForeignCallBegin(&scope)) return false;\n'
+                ' value=owned_export_failed_without_diagnostic(); outcome=xl6ForeignCallEnd(&scope);\n'
+                ' ok=ok && !outcome.ok && !value.Data && !value.Size; xrtErrorFree(outcome.error); return ok; }\n',encoding='utf-8')
             entry=work/'export-entry.xl'
             program=source.read_text(encoding='utf-8')
             assert '    return 0\n' in program

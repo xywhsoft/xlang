@@ -1,6 +1,8 @@
 extern "owned_text" @owned func text() as string
 extern "owned_original" @no_raise func original(string value) as bool
 extern "owned_optional" @owned @no_raise func optional() as string?
+extern "owned_failed" @owned func failed() as string
+extern "owned_failed_without_diagnostic" @owned func failedWithoutDiagnostic() as string
 
 // The public export retains the ordinary language string ABI. Only the
 // imported C producer has char* ABI and the @owned admission contract.
@@ -9,6 +11,12 @@ export "owned_export_text" func Text() as string
 end
 export "owned_export_optional" func Optional() as string?
     return optional()
+end
+export "owned_export_failed" func Failed() as string
+    return failed()
+end
+export "owned_export_failed_without_diagnostic" func FailedWithoutDiagnostic() as string
+    return failedWithoutDiagnostic()
 end
 
 func check()
