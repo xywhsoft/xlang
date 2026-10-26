@@ -68,7 +68,7 @@ int main(void)
     <h2>验证状态</h2>
     <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/fix/test/check.ps1 -SkipAot
 bash release/extlibs/fix/test/check.sh</code></pre>
-    <p>Windows 严格 GCC、C 范例单文件 <code>xl run</code>、C/XLang 边界与双语同输出已通过；Linux 同次覆盖 C ASan/UBSan、C 范例单文件运行、中央及包内 XLang 边界、分配失败，以及 C/XLang 范例逐字节对照。两平台还用独立检查器按报文字节重算 <code>9=BodyLength</code> 与 <code>10=CheckSum</code> 并核对字段顺序，不只依赖本包的 <code>validate</code>；包门禁需要 Python 3。最大应用字段数、逗号小数点区域设置，以及四个公开入口的首次分配失败与恢复已有回归。C 的 <code>validate</code> 在内存不足时保留 XRT 内存错误，其他格式错误仍按谓词返回；XLang 的四个入口将分配失败报告为 <code>MemoryError</code>。当前完整 AOT 在共享符号 <code>xl6ValueDataSnapshotV1</code> 处阻断；尚未签收完整发布门禁。</p>
+    <p>此前 Windows 严格 GCC、C 范例单文件 <code>xl run</code>、C/XLang 边界与双语同输出已通过；Linux 同次覆盖 C ASan/UBSan、C 范例单文件运行、中央及包内 XLang 边界、分配失败，以及 C/XLang 范例逐字节对照。两平台还用独立检查器按报文字节重算 <code>9=BodyLength</code> 与 <code>10=CheckSum</code> 并核对字段顺序，不只依赖本包的 <code>validate</code>；包门禁需要 Python 3。最大应用字段数、逗号小数点区域设置，以及四个公开入口的首次分配失败与恢复已有回归。C 的 <code>validate</code> 在内存不足时保留 XRT 内存错误，其他格式错误仍按谓词返回；XLang 的四个入口将分配失败报告为 <code>MemoryError</code>。当前发布版的最小 XLang 用例在将语言数组传给 <code>fix.build</code> 时抛 <code>ValueError</code>：原生入口未收到预期数组类型；独立 EXE 与完整包级门禁仍待共享 foreign <code>var</code> 容器投影修复后复验。旧版 <code>xl6ValueDataSnapshotV1</code> 缺符号不是当前阻断，历史双语通过记录不能签收本版。详情见包内 README 和阻断复现。</p>
   </section>
 </main>
 <script src="../main.js"></script>
