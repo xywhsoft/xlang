@@ -59,6 +59,7 @@ CORE_TESTS = ("analysis_call_candidates_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_cursor_source_memo_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_completion_annotations_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ast_leaf_failure_test", "analysis_ast_leaf_test", "analysis_ast_storage_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_completion_body_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_plan_direct_test", "analysis_check_materialize_test", "analysis_ast_materialize_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_call_context_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_signature_test", *CORE_TESTS)
@@ -69,6 +70,7 @@ CORE_TESTS = ("analysis_worker_cache_fault_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ast_intern_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_frontend_cancel_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_memo_test", "analysis_projection_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_completion_body_failure_test", *CORE_TESTS)
 HOST_TESTS += ("navigation_cache_test", "semantic_reference_shard_test", "project_references_test", "project_reference_budget_test", "reference_path_index_test")
 HOST_TESTS += ("path_identity_batch_test", "reference_capture_test")
 
@@ -355,8 +357,7 @@ def prepare_native_sem(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     tail = source[start:end]
     if tail.count('xl6SemAnnotateExecutionPlans(root, &planState);') != 1:
         raise ValueError('shared final semantic annotation block changed; audit')
-    source = source[:start] + ('    if (!xlsSemDeferAnnotations(&ctx, root))\n'
-                              '        xlsSemFinalizeAnnotations(&ctx, root);\n') + source[end:]
+    source = source[:start] + '    xlsSemFinishAnnotations(&ctx, root);\n' + source[end:]
     seam = 'int xl6SemCheckModuleWithQuery('
     if source.count(seam) != 1:
         raise ValueError('shared deferred annotation include seam changed; audit')
@@ -369,11 +370,12 @@ def prepare_native_sem(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     compiled.write_text(source, encoding='utf-8', newline='\n')
     return original, compiled, dict(source=str(original), sourceSha256=hashlib.sha256(body).hexdigest(),
         compiledSource=str(compiled), compiledSha256=sha(compiled),
-        change='bounded ordered conflict/completion and root-body call candidates,namespace/alias filters,original full-context and observed-declaration function memos and private lazy cursor IR annotations;original predicates/diagnostics and full AST annotations retained on demand;ordinary/fresh eager unchanged',
+        change='bounded ordered conflict/completion and root-body call candidates,namespace/alias filters,original full-context and observed-declaration memos,independent immutable cursor/signature function-body views and lazy IR annotations;complete source/coordinate/symbol admission precedes views,original bodies/annotations materialize atomically on demand;ordinary/fresh eager unchanged',
         cancellation='cooperative module/function/statement/expression points; ordinary scope/type/call-index cleanup retained',
         symbolAllocations='observe original allocator unchanged;source/range-proven function interval,immutable origin,current scalar/type-fact staging;predeclared IDs exact,foreign dynamic/type/nonfunction boundaries decline',
         auditedSeams=len(changes)+len(conflict_changes)+len(completion_changes)+16, memoBytes=64 * 1024 * 1024,
         deferredRegistryBytes=8 * 1024 * 1024,
+        deferredBodyViewBytes=64 * 1024 * 1024,
         overloadCandidateBytes=8 * 1024 * 1024,
         syntheticTypeOrigins='eight explicit at-node constructors retain original AST source/ranges;original type rules unchanged',
         observedTypeQueries=62,

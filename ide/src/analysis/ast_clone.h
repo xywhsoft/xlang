@@ -2,6 +2,7 @@
 #define XLANG_ANALYSIS_AST_CLONE_H
 #include "src/ast/xl6_ast.h"
 #include "analysis/ast_storage.h"
+#include <string.h>
 /* Private representation copy, never a second parser/semantic rule set.
  * Sources are copied into the new tree, without touching non-atomic source
  * references in an immutable snapshot owned by another thread. */
@@ -23,6 +24,16 @@ XL6_AstNode* xlsAstClone(const XL6_AstNode* input,const xls_ast_clone_options* o
  * ONLY a start/end difference with cursor flag=1 on both sides may be admitted;
  * default cloning and the existing options layout stay unchanged. */
 typedef int (*xls_ast_cursor_source_policy)(const XL6_AstSource* input,const XL6_AstSource* target,void* user);
+/* Shared exact admission for eager clones and immutable demand views. The
+ * caller separately guarantees that target belongs to its private result. */
+static inline int xlsAstCloneSourceTargetValid(const XL6_AstSource* input,const XL6_AstSource* target,
+    xls_ast_cursor_source_policy policy,void* user)
+{
+    if(!input || !target || target==input || !target->references || !!target->path!=!!input->path ||
+       (input->path && strcmp(target->path,input->path)) || target->completionQuery!=input->completionQuery)return 0;
+    return (target->completionStart==input->completionStart && target->completionEnd==input->completionEnd) ||
+        (input->completionQuery==1 && policy && policy(input,target,user));
+}
 XL6_AstNode* xlsAstCloneWithCursorSource(const XL6_AstNode* input,const xls_ast_clone_options* options,
     xls_ast_cursor_source_policy policy,void* user,size_t* bytes);
 /* Optional native representation optimization. Same transform/source contract;

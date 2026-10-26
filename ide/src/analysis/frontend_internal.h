@@ -94,6 +94,9 @@ xls_sem_storage_work xlsSemanticCompletionStorageWork(const xls_semantic_complet
 xls_ast_materialize_work xlsSemanticCompletionMaterializationWork(const xls_semantic_completion* result);
 /* One mutex-protected materialization precedes full AST exposure. Query JSON,
  * items and immutable semantic units never require or observe partial IR data. */
+/* Completes independently owned function body views and original annotations
+ * under the result lock. A temporary allocation failure returns NULL without
+ * exposing an incomplete tree; immutable query facts remain usable/retryable. */
 const XL6_AstNode* xlsSemanticCompletionAst(const xls_semantic_completion* result);
 xls_sem_tail_work xlsSemanticCompletionTailWork(const xls_semantic_completion* result);
 /* Private mutable copy for compiler semantic passes. Destination must be

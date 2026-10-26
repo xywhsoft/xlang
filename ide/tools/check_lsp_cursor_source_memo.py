@@ -72,7 +72,12 @@ def main():
                 assert not materialization['heapCopies'] and not materialization['poolFallbacks'], result
                 assert storage['chargedBytes'] <= 64*1024*1024, result
                 if result['analysis']['lastBuildSemantics']['reused']:
-                    assert storage['nodes'] > storage['pages'] > 0 and storage['chargedBytes'] > 0, result
+                    if storage['nodes']:
+                        assert storage['nodes'] > storage['pages'] > 0 and storage['chargedBytes'] > 0, result
+                    else:
+                        # Independently retained body facts need no restored
+                        # type nodes. Conservative eager fallback stays valid.
+                        assert storage['pages'] == storage['chargedBytes'] == 0 and annotations['deferred'], result
                 assert not annotations['materialized'] and annotations['retainedBytes'] <= 8*1024*1024, result
                 if available:
                     assert annotations['deferred'] == 1 and annotations['retainedBytes'] > 0, result
