@@ -88,7 +88,9 @@ def main():
     contract = ROOT/'test/cases/xlir_native_variadic_contract.c'
     oom_contract = ROOT/'test/cases/xlir_native_variadic_oom.c'
     task_scalar_contract = ROOT/'test/cases/xlir_task_c_scalar_contract.c'
-    for path in [source, *native, template, contract, oom_contract, task_scalar_contract,
+    task_composition_contract = ROOT/'test/cases/xlir_task_composition_contract.c'
+    for path in [source, *native, template, contract, oom_contract, task_scalar_contract, task_composition_contract,
+            ROOT/'test/cases/extern_owned_task_generic.xl',
             ROOT/'test/cases/extern_owned_task_scalars.xl', ROOT/'test/cases/xlir_owner_consumption_contract.c',
                  ROOT/'test/cases/extern_c_variadic_value.xl']:
         inputs[path] = sha(path)
@@ -142,6 +144,13 @@ def main():
          '-Wno-unused-parameter', '-Wno-missing-field-initializers', task_scalar_contract, *links, '-o', output]), encoding='utf-8')
     run('task-c-scalar-contract-build', [cc, '@'+str(response)])
     assert '6 mutations rejected' in run('task-c-scalar-contract', [output])
+    output = work/('task-composition-contract'+('.exe' if os.name == 'nt' else ''))
+    response = work/'task-composition-contract.rsp'
+    response.write_text('\n'.join('"'+str(value).replace('\\', '/')+'"' for value in
+        [*flags, '-O2', '-Wall', '-Wextra', '-Werror', '-Wno-unused-function', '-Wno-unused-variable',
+         '-Wno-unused-parameter', '-Wno-missing-field-initializers', task_composition_contract, *links, '-o', output]), encoding='utf-8')
+    run('task-composition-contract-build', [cc, '@'+str(response)])
+    assert '8 mutations rejected' in run('task-composition-contract', [output])
     # GNU wrapping must reach calls inside the compiler, so link its verified
     # source objects on Linux too, rather than wrapping the shared-library API.
     oom_links = links if 'Inputs' in build else [

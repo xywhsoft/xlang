@@ -10880,6 +10880,9 @@ static int xl6IrTaskAllPayloadBoxerSupported(
     if ( type == NULL || abi != xl6IrBuildAsyncResultAbi(module, typeId) )
         return 0;
     switch ( abi ) {
+    case XL6_IR_ASYNC_RESULT_COPY_C_SCALAR:
+        return type->typeValueId != 0 &&
+            xl6IrNativeScalarProfileForCAbi(type->cAbi) != XL6_NATIVE_SCALAR_NONE;
     case XL6_IR_ASYNC_RESULT_COPY_BOOL:
     case XL6_IR_ASYNC_RESULT_COPY_CHAR:
     case XL6_IR_ASYNC_RESULT_COPY_I64:
@@ -15888,7 +15891,8 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
             const XL6_IrNode* callableNode = xl6IrNodeGet(
                 module, operandExpressions[0]);
             const XL6_IrType* callable = callableNode != NULL
-                ? xl6IrTypeGet(&module->types, callableNode->storageType) : NULL;
+                ? xl6IrTypeGet(&module->types,
+                    xl6IrNodeMaterializedValueType(module, callableNode)) : NULL;
             XL6_IrTypeId payloadType =
                 result->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR &&
                 result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
@@ -15933,7 +15937,7 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
                     xl6IrTaskSpawnParameterAbiSupported(
                         parameter, callable->parameterModes[i], callable->parameterAbis[i]) &&
                     xl6IrTaskSpawnArgumentCanBind(
-                        module, argument->storageType, callable->params[i]);
+                        module, xl6IrNodeMaterializedValueType(module, argument), callable->params[i]);
             }
             if ( valid && arrayVariadic ) {
                 const XL6_IrType* tail = xl6IrTypeGet(
@@ -15954,7 +15958,7 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
                         module, operandExpressions[i]);
                     valid = argument != NULL &&
                         xl6IrTypeCanBoxRuntimeXValue(
-                            module, argument->storageType);
+                            module, xl6IrNodeMaterializedValueType(module, argument));
                 }
             }
             intrinsic.payloadType = payloadType;
@@ -16093,6 +16097,7 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
                 ? xl6IrPersistenceInvocationInputType(module, &module->nodes[operandExpressions[i] - 1])
              : (intrinsic.kind == XL6_IR_INTRINSIC_ARRAY_APPEND ||
               intrinsic.kind == XL6_IR_INTRINSIC_SET_ADD ||
+              intrinsic.kind == XL6_IR_INTRINSIC_TASK_SPAWN ||
               intrinsic.kind == XL6_IR_INTRINSIC_RUNTIME_RESOURCE)
                 ? xl6IrNodeMaterializedValueType(
                     module, &module->nodes[operandExpressions[i] - 1])
@@ -16129,6 +16134,364 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
                 : XL6_IR_INTRINSIC_OPERAND_VALUE;
     }
     xrtFree(operands);
+    return 1;
+}
+
+/* Typed verification and concrete generic admission share the same task
+ * contract. Substitution supplies types; it cannot grant ABI authority. */
+int xl6IrTaskIntrinsicCompatible(
+    const XL6_IrModule* module, const XL6_IrIntrinsicCall* intrinsic)
+{
+    const XL6_IrNode* call;
+    const XL6_IrType* result;
+    size_t operandIndex;
+    if (!module || !intrinsic ||
+        intrinsic->firstOperand > module->intrinsicOperandCount ||
+        intrinsic->operandCount > module->intrinsicOperandCount-intrinsic->firstOperand ||
+        !(call=xl6IrNodeGet(module,intrinsic->origin)) ||
+        !(result=xl6IrTypeGet(&module->types,intrinsic->resultType)) ||
+        intrinsic->resultAbi != XL6_IR_INTRINSIC_RESULT_OWNED ||
+        intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
+        intrinsic->integerTarget != XL6_IR_INTEGER_TARGET_INVALID) return 0;
+    switch(intrinsic->kind) {
+    case XL6_IR_INTRINSIC_TASK_ALL:
+    case XL6_IR_INTRINSIC_TASK_RACE:
+        {
+            const XL6_IrType* payload = xl6IrTypeGet(
+                &module->types, intrinsic->payloadType);
+            const XL6_IrType* resultFuture = result;
+            XL6_IrTypeId publicPayload = resultFuture != NULL &&
+                resultFuture->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR &&
+                resultFuture->paramCount == 1 && resultFuture->params != NULL
+                    ? resultFuture->params[0] : XL6_IR_TYPE_INVALID;
+            int isVoid = intrinsic->payloadAbi ==
+                XL6_IR_ASYNC_RESULT_VOID;
+            int shapeMatches = payload != NULL && publicPayload != XL6_IR_TYPE_INVALID;
+            if ( shapeMatches && intrinsic->kind ==
+                 XL6_IR_INTRINSIC_TASK_ALL && !isVoid ) {
+                const XL6_IrType* resultArray =
+                    xl6IrTypeGet(&module->types, publicPayload);
+                shapeMatches = resultArray != NULL &&
+                    resultArray->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
+                    resultArray->paramCount == 1 && resultArray->params != NULL &&
+                    (resultArray->params[0] == intrinsic->payloadType ||
+                     xl6IrCallableTypesCompatible(
+                         module, resultArray->params[0], intrinsic->payloadType));
+            } else if ( shapeMatches ) {
+                shapeMatches = publicPayload == intrinsic->payloadType ||
+                    xl6IrCallableTypesCompatible(
+                        module, publicPayload, intrinsic->payloadType);
+            }
+             if ( intrinsic->operandCount == 0 || !shapeMatches ||
+                  intrinsic->payloadAbi != xl6IrBuildAsyncResultAbi(
+                      module, intrinsic->payloadType) ||
+                  intrinsic->payloadAbi == XL6_IR_ASYNC_RESULT_INVALID ||
+                  (intrinsic->kind == XL6_IR_INTRINSIC_TASK_ALL &&
+                   !isVoid &&
+                   !xl6IrTaskAllPayloadBoxerSupported(
+                       module, intrinsic->payloadType,
+                       intrinsic->payloadAbi)) ||
+                  intrinsic->resultAbi != XL6_IR_INTRINSIC_RESULT_OWNED ||
+                 intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
+                 intrinsic->integerTarget != XL6_IR_INTEGER_TARGET_INVALID )
+                return 0;
+            for ( operandIndex = 0;
+                  operandIndex < intrinsic->operandCount; ++operandIndex ) {
+                const XL6_IrIntrinsicOperand* operand =
+                    &module->intrinsicOperands[
+                        intrinsic->firstOperand + operandIndex];
+                const XL6_IrType* future =
+                    xl6IrTypeGet(&module->types, operand->type);
+                if ( operand->abi != XL6_IR_INTRINSIC_OPERAND_BORROW ||
+                     future == NULL ||
+                     future->cAbi != XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
+                     future->paramCount != 1 || future->params == NULL ||
+                     (future->params[0] != intrinsic->payloadType &&
+                      !xl6IrCallableTypesCompatible(
+                          module, future->params[0], intrinsic->payloadType)) )
+                    return 0;
+            }
+        }
+        break;
+    case XL6_IR_INTRINSIC_TASK_ALL_ARRAY:
+    case XL6_IR_INTRINSIC_TASK_RACE_ARRAY:
+        {
+            const XL6_IrType* payload = xl6IrTypeGet(
+                &module->types, intrinsic->payloadType);
+            const XL6_IrType* resultFuture = result;
+            XL6_IrTypeId publicPayload = resultFuture != NULL &&
+                resultFuture->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR &&
+                resultFuture->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
+                resultFuture->paramCount == 1 && resultFuture->params != NULL
+                    ? resultFuture->params[0] : XL6_IR_TYPE_INVALID;
+            const XL6_IrIntrinsicOperand* operand =
+                intrinsic->operandCount == 1
+                    ? &module->intrinsicOperands[intrinsic->firstOperand]
+                    : NULL;
+            const XL6_IrType* arrayType = operand != NULL
+                ? xl6IrTypeGet(&module->types, operand->type) : NULL;
+            const XL6_IrType* inputFuture = arrayType != NULL &&
+                arrayType->paramCount == 1 && arrayType->params != NULL
+                    ? xl6IrTypeGet(&module->types, arrayType->params[0]) : NULL;
+            int shapeMatches = payload != NULL &&
+                publicPayload != XL6_IR_TYPE_INVALID;
+            if ( shapeMatches && intrinsic->kind ==
+                 XL6_IR_INTRINSIC_TASK_ALL_ARRAY &&
+                 intrinsic->payloadAbi != XL6_IR_ASYNC_RESULT_VOID ) {
+                const XL6_IrType* resultArray =
+                    xl6IrTypeGet(&module->types, publicPayload);
+                shapeMatches = resultArray != NULL &&
+                    resultArray->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
+                    resultArray->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
+                    resultArray->collectionAbi == XL6_IR_COLLECTION_ARRAY &&
+                    resultArray->paramCount == 1 && resultArray->params != NULL &&
+                    (resultArray->params[0] == intrinsic->payloadType ||
+                     xl6IrCallableTypesCompatible(
+                         module, resultArray->params[0],
+                         intrinsic->payloadType));
+            } else if ( shapeMatches ) {
+                shapeMatches = publicPayload == intrinsic->payloadType ||
+                    xl6IrCallableTypesCompatible(
+                        module, publicPayload, intrinsic->payloadType);
+            }
+            if ( intrinsic->operandCount != 1 || operand == NULL ||
+                 operand->abi != XL6_IR_INTRINSIC_OPERAND_BORROW ||
+                 !shapeMatches ||
+                  intrinsic->payloadAbi != xl6IrBuildAsyncResultAbi(
+                      module, intrinsic->payloadType) ||
+                  intrinsic->payloadAbi == XL6_IR_ASYNC_RESULT_INVALID ||
+                  (intrinsic->kind == XL6_IR_INTRINSIC_TASK_ALL_ARRAY &&
+                   intrinsic->payloadAbi != XL6_IR_ASYNC_RESULT_VOID &&
+                   !xl6IrTaskAllPayloadBoxerSupported(
+                       module, intrinsic->payloadType,
+                       intrinsic->payloadAbi)) ||
+                  intrinsic->resultAbi != XL6_IR_INTRINSIC_RESULT_OWNED ||
+                 intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
+                 intrinsic->integerTarget != XL6_IR_INTEGER_TARGET_INVALID ||
+                 arrayType == NULL ||
+                 arrayType->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+                 arrayType->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
+                 arrayType->collectionAbi != XL6_IR_COLLECTION_ARRAY ||
+                 arrayType->paramCount != 1 || arrayType->params == NULL ||
+                 inputFuture == NULL ||
+                 inputFuture->cAbi != XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
+                 inputFuture->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
+                 inputFuture->paramCount != 1 || inputFuture->params == NULL ||
+                 inputFuture->params[0] != intrinsic->payloadType )
+                return 0;
+        }
+        break;
+    case XL6_IR_INTRINSIC_TASK_WHEN_ANY:
+        {
+            const XL6_IrType* resultFuture = result;
+            XL6_IrTypeId publicPayload = resultFuture != NULL &&
+                resultFuture->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR &&
+                resultFuture->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
+                resultFuture->paramCount == 1 && resultFuture->params != NULL
+                    ? resultFuture->params[0] : XL6_IR_TYPE_INVALID;
+            const XL6_IrType* payload = xl6IrTypeGet(
+                &module->types, intrinsic->payloadType);
+            if ( intrinsic->operandCount == 0 ||
+                 publicPayload == XL6_IR_TYPE_INVALID ||
+                 intrinsic->payloadType != publicPayload ||
+                 payload == NULL || payload->cAbi != XL6_IR_C_ABI_I64 ||
+                 payload->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
+                 intrinsic->payloadAbi != XL6_IR_ASYNC_RESULT_COPY_I64 ||
+                 intrinsic->resultAbi != XL6_IR_INTRINSIC_RESULT_OWNED ||
+                 intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
+                 intrinsic->integerTarget != XL6_IR_INTEGER_TARGET_INVALID )
+                return 0;
+            for ( operandIndex = 0;
+                  operandIndex < intrinsic->operandCount; ++operandIndex ) {
+                const XL6_IrIntrinsicOperand* operand =
+                    &module->intrinsicOperands[
+                        intrinsic->firstOperand + operandIndex];
+                const XL6_IrType* future =
+                    xl6IrTypeGet(&module->types, operand->type);
+                if ( operand->abi != XL6_IR_INTRINSIC_OPERAND_BORROW ||
+                     future == NULL ||
+                     future->cAbi != XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
+                     future->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
+                     future->paramCount != 1 || future->params == NULL ||
+                     xl6IrTypeGet(&module->types, future->params[0]) == NULL )
+                    return 0;
+            }
+        }
+        break;
+    case XL6_IR_INTRINSIC_TASK_WHEN_ANY_ARRAY:
+        {
+            const XL6_IrType* resultFuture = result;
+            XL6_IrTypeId publicPayload = resultFuture != NULL &&
+                resultFuture->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR &&
+                resultFuture->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
+                resultFuture->paramCount == 1 && resultFuture->params != NULL
+                    ? resultFuture->params[0] : XL6_IR_TYPE_INVALID;
+            const XL6_IrType* payload = xl6IrTypeGet(
+                &module->types, intrinsic->payloadType);
+            const XL6_IrIntrinsicOperand* operand =
+                intrinsic->operandCount == 1
+                    ? &module->intrinsicOperands[intrinsic->firstOperand]
+                    : NULL;
+            const XL6_IrType* arrayType = operand != NULL
+                ? xl6IrTypeGet(&module->types, operand->type) : NULL;
+            const XL6_IrType* elementFuture = arrayType != NULL &&
+                arrayType->paramCount == 1 && arrayType->params != NULL
+                    ? xl6IrTypeGet(&module->types, arrayType->params[0]) : NULL;
+            if ( intrinsic->operandCount != 1 || operand == NULL ||
+                 operand->abi != XL6_IR_INTRINSIC_OPERAND_BORROW ||
+                 publicPayload == XL6_IR_TYPE_INVALID ||
+                 intrinsic->payloadType != publicPayload ||
+                 payload == NULL || payload->cAbi != XL6_IR_C_ABI_I64 ||
+                 payload->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
+                 intrinsic->payloadAbi != XL6_IR_ASYNC_RESULT_COPY_I64 ||
+                 intrinsic->resultAbi != XL6_IR_INTRINSIC_RESULT_OWNED ||
+                 intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
+                 intrinsic->integerTarget != XL6_IR_INTEGER_TARGET_INVALID ||
+                 arrayType == NULL ||
+                 arrayType->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+                 arrayType->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
+                 arrayType->collectionAbi != XL6_IR_COLLECTION_ARRAY ||
+                 arrayType->paramCount != 1 || arrayType->params == NULL ||
+                 elementFuture == NULL ||
+                 elementFuture->cAbi != XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
+                 elementFuture->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
+                 elementFuture->paramCount != 1 ||
+                 elementFuture->params == NULL ||
+                 xl6IrTypeGet(&module->types,
+                     elementFuture->params[0]) == NULL )
+                return 0;
+        }
+        break;
+    case XL6_IR_INTRINSIC_TASK_SPAWN:
+        {
+            const XL6_IrIntrinsicOperand* callableOperand =
+                intrinsic->operandCount >= 1
+                    ? &module->intrinsicOperands[
+                          intrinsic->firstOperand] : NULL;
+            const XL6_IrType* callable = callableOperand != NULL
+                ? xl6IrTypeGet(
+                      &module->types, callableOperand->type) : NULL;
+            const XL6_IrType* resultFuture = result;
+            XL6_IrTypeId publicPayload = resultFuture != NULL &&
+                resultFuture->cAbi ==
+                    XL6_IR_C_ABI_RUNTIME_FUTURE_PTR &&
+                resultFuture->ownershipAbi ==
+                    XL6_IR_OWNERSHIP_ABI_MANAGED &&
+                resultFuture->paramCount == 1 &&
+                resultFuture->params != NULL
+                    ? resultFuture->params[0]
+                    : XL6_IR_TYPE_INVALID;
+            int arrayVariadic = callable != NULL &&
+                callable->callableErasureAbi ==
+                    XL6_IR_CALLABLE_ERASURE_ARRAY_VARIADIC;
+            size_t fixedParameterCount = arrayVariadic &&
+                    callable->paramCount != 0
+                ? callable->paramCount - 1
+                : callable != NULL ? callable->paramCount : SIZE_MAX;
+            int valid = callable != NULL &&
+                callableOperand->abi ==
+                    XL6_IR_INTRINSIC_OPERAND_BORROW &&
+                callable->kind == XL6_IR_TYPE_FUNCTION &&
+                callable->cAbi == XL6_IR_C_ABI_CLOSURE_PTR &&
+                callable->ownershipAbi ==
+                    XL6_IR_OWNERSHIP_ABI_MANAGED &&
+                (callable->callableErasureAbi ==
+                     XL6_IR_CALLABLE_ERASURE_FIXED ||
+                 callable->callableErasureAbi == XL6_IR_CALLABLE_ERASURE_DICT_VARIADIC ||
+                 arrayVariadic) &&
+                (!arrayVariadic
+                     ? callable->paramCount + 1 ==
+                           intrinsic->operandCount
+                     : callable->paramCount != 0 &&
+                       intrinsic->operandCount >=
+                           fixedParameterCount + 1) &&
+                publicPayload == intrinsic->payloadType &&
+                ((intrinsic->payloadAbi ==
+                      XL6_IR_ASYNC_RESULT_VOID &&
+                  callable->returnCount == 0 &&
+                  callable->callableResultType ==
+                      XL6_IR_TYPE_INVALID) ||
+                 (intrinsic->payloadAbi !=
+                      XL6_IR_ASYNC_RESULT_VOID &&
+                  callable->returnCount == 1 &&
+                  callable->callableResultType ==
+                      intrinsic->payloadType)) &&
+                (callable->paramCount == 0 ||
+                 (callable->parameterModes != NULL &&
+                  callable->parameterAbis != NULL)) &&
+                intrinsic->payloadAbi == xl6IrBuildAsyncResultAbi(
+                    module, intrinsic->payloadType) &&
+                intrinsic->payloadAbi !=
+                    XL6_IR_ASYNC_RESULT_INVALID &&
+                intrinsic->resultAbi ==
+                    XL6_IR_INTRINSIC_RESULT_OWNED &&
+                intrinsic->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE;
+            for ( operandIndex = 0;
+                  valid && operandIndex < fixedParameterCount;
+                  ++operandIndex ) {
+                const XL6_IrIntrinsicOperand* argument =
+                    &module->intrinsicOperands[
+                        intrinsic->firstOperand + operandIndex + 1];
+                const XL6_IrType* argumentType = xl6IrTypeGet(
+                    &module->types, argument->type);
+                const XL6_IrType* parameter = xl6IrTypeGet(
+                    &module->types, callable->params[operandIndex]);
+                valid = argumentType != NULL && parameter != NULL &&
+                    xl6IrTaskSpawnParameterAbiSupported(
+                        parameter, callable->parameterModes[operandIndex],
+                        callable->parameterAbis[operandIndex]) &&
+                    argument->abi ==
+                        (argumentType->ownershipAbi ==
+                             XL6_IR_OWNERSHIP_ABI_MANAGED
+                             ? XL6_IR_INTRINSIC_OPERAND_BORROW
+                             : XL6_IR_INTRINSIC_OPERAND_VALUE) &&
+                    xl6IrTaskSpawnArgumentCanBind(
+                        module, argument->type,
+                        callable->params[operandIndex]);
+            }
+            if(valid && callable->callableErasureAbi==XL6_IR_CALLABLE_ERASURE_DICT_VARIADIC) {
+                const XL6_IrNode* arguments=xl6IrNodeGet(module,module->children[call->firstChild+1]);
+                const XL6_IrNode* wrapper=arguments && arguments->childCount ?
+                    xl6IrNodeGet(module,module->children[arguments->firstChild+arguments->childCount-1]) : NULL;
+                valid=xl6IrTaskSpawnDictPackArgument(module,call,callable->paramCount,wrapper);
+            }
+            if ( valid && arrayVariadic ) {
+                const XL6_IrType* tail = xl6IrTypeGet(
+                    &module->types,
+                    callable->params[fixedParameterCount]);
+                valid = tail != NULL &&
+                    tail->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
+                    tail->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
+                    tail->collectionAbi == XL6_IR_COLLECTION_ARRAY &&
+                    callable->parameterModes[fixedParameterCount] ==
+                        XL6_IR_PARAMETER_MODE_DEFAULT &&
+                    xl6IrTaskSpawnParameterAbiSupported(
+                        tail, callable->parameterModes[fixedParameterCount],
+                        callable->parameterAbis[fixedParameterCount]);
+                for ( operandIndex = fixedParameterCount + 1;
+                      valid && operandIndex < intrinsic->operandCount;
+                      ++operandIndex ) {
+                    const XL6_IrIntrinsicOperand* argument =
+                        &module->intrinsicOperands[
+                            intrinsic->firstOperand + operandIndex];
+                    const XL6_IrType* argumentType = xl6IrTypeGet(
+                        &module->types, argument->type);
+                    valid = argumentType != NULL &&
+                        argument->abi ==
+                            (argumentType->ownershipAbi ==
+                                 XL6_IR_OWNERSHIP_ABI_MANAGED
+                                 ? XL6_IR_INTRINSIC_OPERAND_BORROW
+                                 : XL6_IR_INTRINSIC_OPERAND_VALUE) &&
+                        xl6IrTypeCanBoxRuntimeXValue(
+                            module, argument->type);
+                }
+            }
+            if ( !valid )
+                return 0;
+        }
+        break;
+    default: return 0;
+    }
     return 1;
 }
 
@@ -36053,6 +36416,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                      operand->type == xl6IrPersistenceInvocationInputType(module, expression)) ||
                     ((intrinsic->kind == XL6_IR_INTRINSIC_ARRAY_APPEND ||
                      intrinsic->kind == XL6_IR_INTRINSIC_SET_ADD ||
+                     intrinsic->kind == XL6_IR_INTRINSIC_TASK_SPAWN ||
                      intrinsic->kind == XL6_IR_INTRINSIC_RUNTIME_RESOURCE) &&
                     operand->type == xl6IrNodeMaterializedValueType(
                         module, expression));
@@ -37653,346 +38017,14 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 break;
             case XL6_IR_INTRINSIC_TASK_ALL:
             case XL6_IR_INTRINSIC_TASK_RACE:
-                {
-                    const XL6_IrType* payload = xl6IrTypeGet(
-                        &module->types, intrinsic->payloadType);
-                    const XL6_IrType* resultFuture = result;
-                    XL6_IrTypeId publicPayload = resultFuture != NULL &&
-                        resultFuture->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR &&
-                        resultFuture->paramCount == 1 && resultFuture->params != NULL
-                            ? resultFuture->params[0] : XL6_IR_TYPE_INVALID;
-                    int isVoid = intrinsic->payloadAbi ==
-                        XL6_IR_ASYNC_RESULT_VOID;
-                    int shapeMatches = payload != NULL && publicPayload != XL6_IR_TYPE_INVALID;
-                    if ( shapeMatches && intrinsic->kind ==
-                         XL6_IR_INTRINSIC_TASK_ALL && !isVoid ) {
-                        const XL6_IrType* resultArray =
-                            xl6IrTypeGet(&module->types, publicPayload);
-                        shapeMatches = resultArray != NULL &&
-                            resultArray->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
-                            resultArray->paramCount == 1 && resultArray->params != NULL &&
-                            (resultArray->params[0] == intrinsic->payloadType ||
-                             xl6IrCallableTypesCompatible(
-                                 module, resultArray->params[0], intrinsic->payloadType));
-                    } else if ( shapeMatches ) {
-                        shapeMatches = publicPayload == intrinsic->payloadType ||
-                            xl6IrCallableTypesCompatible(
-                                module, publicPayload, intrinsic->payloadType);
-                    }
-                     if ( intrinsic->operandCount == 0 || !shapeMatches ||
-                          intrinsic->payloadAbi != xl6IrBuildAsyncResultAbi(
-                              module, intrinsic->payloadType) ||
-                          intrinsic->payloadAbi == XL6_IR_ASYNC_RESULT_INVALID ||
-                          (intrinsic->kind == XL6_IR_INTRINSIC_TASK_ALL &&
-                           !isVoid &&
-                           !xl6IrTaskAllPayloadBoxerSupported(
-                               module, intrinsic->payloadType,
-                               intrinsic->payloadAbi)) ||
-                          intrinsic->resultAbi != XL6_IR_INTRINSIC_RESULT_OWNED ||
-                         intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
-                         intrinsic->integerTarget != XL6_IR_INTEGER_TARGET_INVALID )
-                        return xl6IrDiag(diags, call,
-                            "XLIR task aggregate intrinsic has no exact payload and result Future ABI");
-                    for ( operandIndex = 0;
-                          operandIndex < intrinsic->operandCount; ++operandIndex ) {
-                        const XL6_IrIntrinsicOperand* operand =
-                            &module->intrinsicOperands[
-                                intrinsic->firstOperand + operandIndex];
-                        const XL6_IrType* future =
-                            xl6IrTypeGet(&module->types, operand->type);
-                        if ( operand->abi != XL6_IR_INTRINSIC_OPERAND_BORROW ||
-                             future == NULL ||
-                             future->cAbi != XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
-                             future->paramCount != 1 || future->params == NULL ||
-                             (future->params[0] != intrinsic->payloadType &&
-                              !xl6IrCallableTypesCompatible(
-                                  module, future->params[0], intrinsic->payloadType)) )
-                            return xl6IrDiag(diags, call,
-                                "XLIR task aggregate operand has no borrowed compatible Future payload ABI");
-                    }
-                }
-                break;
             case XL6_IR_INTRINSIC_TASK_ALL_ARRAY:
             case XL6_IR_INTRINSIC_TASK_RACE_ARRAY:
-                {
-                    const XL6_IrType* payload = xl6IrTypeGet(
-                        &module->types, intrinsic->payloadType);
-                    const XL6_IrType* resultFuture = result;
-                    XL6_IrTypeId publicPayload = resultFuture != NULL &&
-                        resultFuture->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR &&
-                        resultFuture->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
-                        resultFuture->paramCount == 1 && resultFuture->params != NULL
-                            ? resultFuture->params[0] : XL6_IR_TYPE_INVALID;
-                    const XL6_IrIntrinsicOperand* operand =
-                        intrinsic->operandCount == 1
-                            ? &module->intrinsicOperands[intrinsic->firstOperand]
-                            : NULL;
-                    const XL6_IrType* arrayType = operand != NULL
-                        ? xl6IrTypeGet(&module->types, operand->type) : NULL;
-                    const XL6_IrType* inputFuture = arrayType != NULL &&
-                        arrayType->paramCount == 1 && arrayType->params != NULL
-                            ? xl6IrTypeGet(&module->types, arrayType->params[0]) : NULL;
-                    int shapeMatches = payload != NULL &&
-                        publicPayload != XL6_IR_TYPE_INVALID;
-                    if ( shapeMatches && intrinsic->kind ==
-                         XL6_IR_INTRINSIC_TASK_ALL_ARRAY &&
-                         intrinsic->payloadAbi != XL6_IR_ASYNC_RESULT_VOID ) {
-                        const XL6_IrType* resultArray =
-                            xl6IrTypeGet(&module->types, publicPayload);
-                        shapeMatches = resultArray != NULL &&
-                            resultArray->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
-                            resultArray->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
-                            resultArray->collectionAbi == XL6_IR_COLLECTION_ARRAY &&
-                            resultArray->paramCount == 1 && resultArray->params != NULL &&
-                            (resultArray->params[0] == intrinsic->payloadType ||
-                             xl6IrCallableTypesCompatible(
-                                 module, resultArray->params[0],
-                                 intrinsic->payloadType));
-                    } else if ( shapeMatches ) {
-                        shapeMatches = publicPayload == intrinsic->payloadType ||
-                            xl6IrCallableTypesCompatible(
-                                module, publicPayload, intrinsic->payloadType);
-                    }
-                    if ( intrinsic->operandCount != 1 || operand == NULL ||
-                         operand->abi != XL6_IR_INTRINSIC_OPERAND_BORROW ||
-                         !shapeMatches ||
-                          intrinsic->payloadAbi != xl6IrBuildAsyncResultAbi(
-                              module, intrinsic->payloadType) ||
-                          intrinsic->payloadAbi == XL6_IR_ASYNC_RESULT_INVALID ||
-                          (intrinsic->kind == XL6_IR_INTRINSIC_TASK_ALL_ARRAY &&
-                           intrinsic->payloadAbi != XL6_IR_ASYNC_RESULT_VOID &&
-                           !xl6IrTaskAllPayloadBoxerSupported(
-                               module, intrinsic->payloadType,
-                               intrinsic->payloadAbi)) ||
-                          intrinsic->resultAbi != XL6_IR_INTRINSIC_RESULT_OWNED ||
-                         intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
-                         intrinsic->integerTarget != XL6_IR_INTEGER_TARGET_INVALID ||
-                         arrayType == NULL ||
-                         arrayType->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
-                         arrayType->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
-                         arrayType->collectionAbi != XL6_IR_COLLECTION_ARRAY ||
-                         arrayType->paramCount != 1 || arrayType->params == NULL ||
-                         inputFuture == NULL ||
-                         inputFuture->cAbi != XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
-                         inputFuture->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
-                         inputFuture->paramCount != 1 || inputFuture->params == NULL ||
-                         inputFuture->params[0] != intrinsic->payloadType )
-                        return xl6IrDiag(diags, call,
-                            "XLIR task all/race array intrinsic has no exact borrowed array<Future<T>>, payload and result ABI");
-                }
-                break;
             case XL6_IR_INTRINSIC_TASK_WHEN_ANY:
-                {
-                    const XL6_IrType* resultFuture = result;
-                    XL6_IrTypeId publicPayload = resultFuture != NULL &&
-                        resultFuture->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR &&
-                        resultFuture->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
-                        resultFuture->paramCount == 1 && resultFuture->params != NULL
-                            ? resultFuture->params[0] : XL6_IR_TYPE_INVALID;
-                    const XL6_IrType* payload = xl6IrTypeGet(
-                        &module->types, intrinsic->payloadType);
-                    if ( intrinsic->operandCount == 0 ||
-                         publicPayload == XL6_IR_TYPE_INVALID ||
-                         intrinsic->payloadType != publicPayload ||
-                         payload == NULL || payload->cAbi != XL6_IR_C_ABI_I64 ||
-                         payload->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
-                         intrinsic->payloadAbi != XL6_IR_ASYNC_RESULT_COPY_I64 ||
-                         intrinsic->resultAbi != XL6_IR_INTRINSIC_RESULT_OWNED ||
-                         intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
-                         intrinsic->integerTarget != XL6_IR_INTEGER_TARGET_INVALID )
-                        return xl6IrDiag(diags, call,
-                            "XLIR task.whenAny intrinsic has no exact Future<I64> index result ABI");
-                    for ( operandIndex = 0;
-                          operandIndex < intrinsic->operandCount; ++operandIndex ) {
-                        const XL6_IrIntrinsicOperand* operand =
-                            &module->intrinsicOperands[
-                                intrinsic->firstOperand + operandIndex];
-                        const XL6_IrType* future =
-                            xl6IrTypeGet(&module->types, operand->type);
-                        if ( operand->abi != XL6_IR_INTRINSIC_OPERAND_BORROW ||
-                             future == NULL ||
-                             future->cAbi != XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
-                             future->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
-                             future->paramCount != 1 || future->params == NULL ||
-                             xl6IrTypeGet(&module->types, future->params[0]) == NULL )
-                            return xl6IrDiag(diags, call,
-                                "XLIR task.whenAny operand has no borrowed heterogeneous Future payload ABI");
-                    }
-                }
-                break;
             case XL6_IR_INTRINSIC_TASK_WHEN_ANY_ARRAY:
-                {
-                    const XL6_IrType* resultFuture = result;
-                    XL6_IrTypeId publicPayload = resultFuture != NULL &&
-                        resultFuture->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR &&
-                        resultFuture->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
-                        resultFuture->paramCount == 1 && resultFuture->params != NULL
-                            ? resultFuture->params[0] : XL6_IR_TYPE_INVALID;
-                    const XL6_IrType* payload = xl6IrTypeGet(
-                        &module->types, intrinsic->payloadType);
-                    const XL6_IrIntrinsicOperand* operand =
-                        intrinsic->operandCount == 1
-                            ? &module->intrinsicOperands[intrinsic->firstOperand]
-                            : NULL;
-                    const XL6_IrType* arrayType = operand != NULL
-                        ? xl6IrTypeGet(&module->types, operand->type) : NULL;
-                    const XL6_IrType* elementFuture = arrayType != NULL &&
-                        arrayType->paramCount == 1 && arrayType->params != NULL
-                            ? xl6IrTypeGet(&module->types, arrayType->params[0]) : NULL;
-                    if ( intrinsic->operandCount != 1 || operand == NULL ||
-                         operand->abi != XL6_IR_INTRINSIC_OPERAND_BORROW ||
-                         publicPayload == XL6_IR_TYPE_INVALID ||
-                         intrinsic->payloadType != publicPayload ||
-                         payload == NULL || payload->cAbi != XL6_IR_C_ABI_I64 ||
-                         payload->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
-                         intrinsic->payloadAbi != XL6_IR_ASYNC_RESULT_COPY_I64 ||
-                         intrinsic->resultAbi != XL6_IR_INTRINSIC_RESULT_OWNED ||
-                         intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
-                         intrinsic->integerTarget != XL6_IR_INTEGER_TARGET_INVALID ||
-                         arrayType == NULL ||
-                         arrayType->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
-                         arrayType->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
-                         arrayType->collectionAbi != XL6_IR_COLLECTION_ARRAY ||
-                         arrayType->paramCount != 1 || arrayType->params == NULL ||
-                         elementFuture == NULL ||
-                         elementFuture->cAbi != XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
-                         elementFuture->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
-                         elementFuture->paramCount != 1 ||
-                         elementFuture->params == NULL ||
-                         xl6IrTypeGet(&module->types,
-                             elementFuture->params[0]) == NULL )
-                        return xl6IrDiag(diags, call,
-                            "XLIR task.whenAny array intrinsic has no exact borrowed array<Future<T>> and Future<I64> ABI");
-                }
-                break;
             case XL6_IR_INTRINSIC_TASK_SPAWN:
-                {
-                    const XL6_IrIntrinsicOperand* callableOperand =
-                        intrinsic->operandCount >= 1
-                            ? &module->intrinsicOperands[
-                                  intrinsic->firstOperand] : NULL;
-                    const XL6_IrType* callable = callableOperand != NULL
-                        ? xl6IrTypeGet(
-                              &module->types, callableOperand->type) : NULL;
-                    const XL6_IrType* resultFuture = result;
-                    XL6_IrTypeId publicPayload = resultFuture != NULL &&
-                        resultFuture->cAbi ==
-                            XL6_IR_C_ABI_RUNTIME_FUTURE_PTR &&
-                        resultFuture->ownershipAbi ==
-                            XL6_IR_OWNERSHIP_ABI_MANAGED &&
-                        resultFuture->paramCount == 1 &&
-                        resultFuture->params != NULL
-                            ? resultFuture->params[0]
-                            : XL6_IR_TYPE_INVALID;
-                    int arrayVariadic = callable != NULL &&
-                        callable->callableErasureAbi ==
-                            XL6_IR_CALLABLE_ERASURE_ARRAY_VARIADIC;
-                    size_t fixedParameterCount = arrayVariadic &&
-                            callable->paramCount != 0
-                        ? callable->paramCount - 1
-                        : callable != NULL ? callable->paramCount : SIZE_MAX;
-                    int valid = callable != NULL &&
-                        callableOperand->abi ==
-                            XL6_IR_INTRINSIC_OPERAND_BORROW &&
-                        callable->kind == XL6_IR_TYPE_FUNCTION &&
-                        callable->cAbi == XL6_IR_C_ABI_CLOSURE_PTR &&
-                        callable->ownershipAbi ==
-                            XL6_IR_OWNERSHIP_ABI_MANAGED &&
-                        (callable->callableErasureAbi ==
-                             XL6_IR_CALLABLE_ERASURE_FIXED ||
-                         callable->callableErasureAbi == XL6_IR_CALLABLE_ERASURE_DICT_VARIADIC ||
-                         arrayVariadic) &&
-                        (!arrayVariadic
-                             ? callable->paramCount + 1 ==
-                                   intrinsic->operandCount
-                             : callable->paramCount != 0 &&
-                               intrinsic->operandCount >=
-                                   fixedParameterCount + 1) &&
-                        publicPayload == intrinsic->payloadType &&
-                        ((intrinsic->payloadAbi ==
-                              XL6_IR_ASYNC_RESULT_VOID &&
-                          callable->returnCount == 0 &&
-                          callable->callableResultType ==
-                              XL6_IR_TYPE_INVALID) ||
-                         (intrinsic->payloadAbi !=
-                              XL6_IR_ASYNC_RESULT_VOID &&
-                          callable->returnCount == 1 &&
-                          callable->callableResultType ==
-                              intrinsic->payloadType)) &&
-                        (callable->paramCount == 0 ||
-                         (callable->parameterModes != NULL &&
-                          callable->parameterAbis != NULL)) &&
-                        intrinsic->payloadAbi == xl6IrBuildAsyncResultAbi(
-                            module, intrinsic->payloadType) &&
-                        intrinsic->payloadAbi !=
-                            XL6_IR_ASYNC_RESULT_INVALID &&
-                        intrinsic->resultAbi ==
-                            XL6_IR_INTRINSIC_RESULT_OWNED &&
-                        intrinsic->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE;
-                    for ( operandIndex = 0;
-                          valid && operandIndex < fixedParameterCount;
-                          ++operandIndex ) {
-                        const XL6_IrIntrinsicOperand* argument =
-                            &module->intrinsicOperands[
-                                intrinsic->firstOperand + operandIndex + 1];
-                        const XL6_IrType* argumentType = xl6IrTypeGet(
-                            &module->types, argument->type);
-                        const XL6_IrType* parameter = xl6IrTypeGet(
-                            &module->types, callable->params[operandIndex]);
-                        valid = argumentType != NULL && parameter != NULL &&
-                            xl6IrTaskSpawnParameterAbiSupported(
-                                parameter, callable->parameterModes[operandIndex],
-                                callable->parameterAbis[operandIndex]) &&
-                            argument->abi ==
-                                (argumentType->ownershipAbi ==
-                                     XL6_IR_OWNERSHIP_ABI_MANAGED
-                                     ? XL6_IR_INTRINSIC_OPERAND_BORROW
-                                     : XL6_IR_INTRINSIC_OPERAND_VALUE) &&
-                            xl6IrTaskSpawnArgumentCanBind(
-                                module, argument->type,
-                                callable->params[operandIndex]);
-                    }
-                    if(valid && callable->callableErasureAbi==XL6_IR_CALLABLE_ERASURE_DICT_VARIADIC) {
-                        const XL6_IrNode* arguments=xl6IrNodeGet(module,module->children[call->firstChild+1]);
-                        const XL6_IrNode* wrapper=arguments && arguments->childCount ?
-                            xl6IrNodeGet(module,module->children[arguments->firstChild+arguments->childCount-1]) : NULL;
-                        valid=xl6IrTaskSpawnDictPackArgument(module,call,callable->paramCount,wrapper);
-                    }
-                    if ( valid && arrayVariadic ) {
-                        const XL6_IrType* tail = xl6IrTypeGet(
-                            &module->types,
-                            callable->params[fixedParameterCount]);
-                        valid = tail != NULL &&
-                            tail->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
-                            tail->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
-                            tail->collectionAbi == XL6_IR_COLLECTION_ARRAY &&
-                            callable->parameterModes[fixedParameterCount] ==
-                                XL6_IR_PARAMETER_MODE_DEFAULT &&
-                            xl6IrTaskSpawnParameterAbiSupported(
-                                tail, callable->parameterModes[fixedParameterCount],
-                                callable->parameterAbis[fixedParameterCount]);
-                        for ( operandIndex = fixedParameterCount + 1;
-                              valid && operandIndex < intrinsic->operandCount;
-                              ++operandIndex ) {
-                            const XL6_IrIntrinsicOperand* argument =
-                                &module->intrinsicOperands[
-                                    intrinsic->firstOperand + operandIndex];
-                            const XL6_IrType* argumentType = xl6IrTypeGet(
-                                &module->types, argument->type);
-                            valid = argumentType != NULL &&
-                                argument->abi ==
-                                    (argumentType->ownershipAbi ==
-                                         XL6_IR_OWNERSHIP_ABI_MANAGED
-                                         ? XL6_IR_INTRINSIC_OPERAND_BORROW
-                                         : XL6_IR_INTRINSIC_OPERAND_VALUE) &&
-                                xl6IrTypeCanBoxRuntimeXValue(
-                                    module, argument->type);
-                        }
-                    }
-                    if ( !valid )
-                        return xl6IrDiag(diags, call,
-                            "XLIR task spawn intrinsic has no exact borrowed closure, canonical argument and Future payload ABI");
-                }
+                if (!xl6IrTaskIntrinsicCompatible(module, intrinsic))
+                    return xl6IrDiag(diags, call,
+                        "XLIR task intrinsic has no exact callable, operands and Future payload ABI");
                 break;
              default:
                  return xl6IrDiag(diags, call, "XLIR intrinsic kind is invalid");

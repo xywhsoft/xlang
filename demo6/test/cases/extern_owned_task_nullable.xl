@@ -1,0 +1,38 @@
+extern "owned_task_text" @owned func Text(c_int mode) as string
+typedef Producer=func(c_int) as string
+typedef Alias=Producer
+Alias? callback=Text
+bool entered=false
+if callback!=null
+    entered=true
+    assert callback(c_int(7))=="native text"
+    // The proven non-null expression has an ordinary closure signature.
+    assert await task.spawn(callback,c_int(7))=="native text"
+end
+assert entered
+callback=null
+if callback!=null
+    assert false
+    task.spawn(callback,c_int(7))
+end
+callback=Text
+if callback==null
+    assert false
+else
+    assert await task.spawn(callback,c_int(7))=="native text"
+end
+// Aliases of an already non-null callable do not require a flow guard.
+Producer fixed=Text
+assert await task.spawn(fixed,c_int(7))=="native text"
+// Every captured argument consumes its materialized, flow-proven value too.
+func echo(string value) as string
+    return value
+end
+func tail(...) as string
+    return string(arg[0])
+end
+string? value="borrowed"
+if value!=null
+    assert await task.spawn(echo,value)=="borrowed"
+    assert await task.spawn(tail,value)=="borrowed"
+end

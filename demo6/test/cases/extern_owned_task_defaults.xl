@@ -1,0 +1,47 @@
+// Extern defaults have no parameter-local symbols. Narrowing a callable must
+// evaluate each omitted default at invocation, using the exact native type.
+extern "owned_task_text" @owned func Text(c_int mode=7) as string
+extern "owned_task_text" @owned func Explicit(c_int mode=c_int(7)) as string
+extern "owned_task_default_i64" @owned func Wide(int mode=7) as string
+extern "owned_task_default_next" func next() as c_int
+extern "owned_task_default_count" @no_raise func count() as c_int
+extern "owned_task_default_calls" @no_raise func calls() as c_int
+extern "owned_task_default_fail" @no_raise func setFailure(bool fail)
+extern "owned_task_default_text" @owned func Dynamic(c_int mode=next()) as string
+extern "owned_task_default_label" @owned func Label(string label="native text") as string
+extern "owned_task_default_pair" @owned func Pair(c_int a=7,c_uint b=c_uint(9)) as string
+class Factory
+    static extern "owned_task_text" @owned func Text(c_int mode=7) as string
+end
+func() as string simple=Text
+func() as string explicit=Explicit
+func() as string wide=Wide
+func() as string member=Factory.Text
+func() as string dynamic=Dynamic
+assert simple()=="native text" and explicit()=="native text"
+assert wide()=="native text" and member()=="native text"
+assert await task.spawn(simple)=="native text"
+assert await task.spawn(member)=="native text"
+assert count()==0 and calls()==0 // Binding must not evaluate a default.
+assert dynamic()=="native text" and count()==1
+assert dynamic()=="native text" and count()==2
+setFailure(true)
+bool caught=false
+try
+    dynamic()
+catch error
+    caught=true
+end
+assert caught and count()==3 and calls()==2 // Failure must skip the C target.
+setFailure(false)
+assert await task.spawn(dynamic)=="native text"
+assert count()==4 and calls()==3
+// Full signatures and direct default calls still use the same producer.
+func(c_int) as string full=Factory.Text
+assert full(c_int(7))=="native text" and Text()=="native text"
+// Managed borrowed defaults use the same owner transaction as ordinary calls.
+func() as string label=Label
+func() as string pair=Pair
+assert label()=="native text" and pair()=="pair"
+assert await task.spawn(label)=="native text"
+assert await task.spawn(pair)=="pair"

@@ -7168,6 +7168,7 @@ int xl6IrDynamicMethodSourceSupported(const XL6_IrModule*, const XL6_IrDynamicMe
 int xl6IrRefreshReachability(XL6_IrModule* module);
 /* Derive suspension boundaries and cross-suspension liveness exclusively from
  * verified Lowered XLIR blocks/instructions. */
+int xl6IrTaskIntrinsicCompatible(const XL6_IrModule* module, const XL6_IrIntrinsicCall* intrinsic);
 int xl6IrTaskSpawnParameterAbiSupported(const XL6_IrType* type, XL6_IrParameterMode mode, XL6_IrParameterAbi abi);
 int xl6IrTaskSpawnArgumentCanBind(const XL6_IrModule* module, XL6_IrTypeId actualType, XL6_IrTypeId parameterType);
 int xl6IrBuildCallableBridges(XL6_IrModule* module, XL6_DiagList* diags);

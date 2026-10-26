@@ -1,0 +1,286 @@
+// Every native scalar keeps its identity and bits through both task.all forms.
+extern "owned_task_char_min" @no_raise func charMin() as c_char
+extern "owned_task_long_min" @no_raise func longMin() as c_long
+extern "owned_task_ulong_max" @no_raise func ulongMax() as c_ulong
+extern "owned_task_size_max" @no_raise func sizeMax() as c_size
+extern "owned_task_ssize_min" @no_raise func ssizeMin() as c_ssize
+extern "owned_task_ptrdiff_min" @no_raise func ptrdiffMin() as c_ptrdiff
+extern "owned_task_intptr_min" @no_raise func intptrMin() as c_intptr
+extern "owned_task_uintptr_max" @no_raise func uintptrMax() as c_uintptr
+extern "owned_task_wchar_max" @no_raise func wcharMax() as c_wchar
+func echo0(c_char value) as c_char
+    return value
+end
+c_char input0=charMin()
+auto first0=task.spawn(echo0,input0)
+auto second0=task.spawn(echo0,input0)
+auto literal0=await task.all([first0,second0])
+assert literal0.length==2 and literal0[0]==input0 and literal0[1]==input0
+array<future<c_char>> jobs0=[first0,second0]
+auto array0=await task.all(jobs0)
+assert array0[0]==input0 and array0[1]==input0
+var boxed0=array0[0]
+assert type(boxed0)==type(input0)
+func echo1(c_schar value) as c_schar
+    return value
+end
+c_schar input1=c_schar(-128)
+auto first1=task.spawn(echo1,input1)
+auto second1=task.spawn(echo1,input1)
+auto literal1=await task.all([first1,second1])
+assert literal1.length==2 and literal1[0]==input1 and literal1[1]==input1
+array<future<c_schar>> jobs1=[first1,second1]
+auto array1=await task.all(jobs1)
+assert array1[0]==input1 and array1[1]==input1
+var boxed1=array1[0]
+assert type(boxed1)==type(input1)
+func echo2(c_uchar value) as c_uchar
+    return value
+end
+c_uchar input2=c_uchar(255)
+auto first2=task.spawn(echo2,input2)
+auto second2=task.spawn(echo2,input2)
+auto literal2=await task.all([first2,second2])
+assert literal2.length==2 and literal2[0]==input2 and literal2[1]==input2
+array<future<c_uchar>> jobs2=[first2,second2]
+auto array2=await task.all(jobs2)
+assert array2[0]==input2 and array2[1]==input2
+var boxed2=array2[0]
+assert type(boxed2)==type(input2)
+func echo3(c_short value) as c_short
+    return value
+end
+c_short input3=c_short(-32768)
+auto first3=task.spawn(echo3,input3)
+auto second3=task.spawn(echo3,input3)
+auto literal3=await task.all([first3,second3])
+assert literal3.length==2 and literal3[0]==input3 and literal3[1]==input3
+array<future<c_short>> jobs3=[first3,second3]
+auto array3=await task.all(jobs3)
+assert array3[0]==input3 and array3[1]==input3
+var boxed3=array3[0]
+assert type(boxed3)==type(input3)
+func echo4(c_ushort value) as c_ushort
+    return value
+end
+c_ushort input4=c_ushort(65535)
+auto first4=task.spawn(echo4,input4)
+auto second4=task.spawn(echo4,input4)
+auto literal4=await task.all([first4,second4])
+assert literal4.length==2 and literal4[0]==input4 and literal4[1]==input4
+array<future<c_ushort>> jobs4=[first4,second4]
+auto array4=await task.all(jobs4)
+assert array4[0]==input4 and array4[1]==input4
+var boxed4=array4[0]
+assert type(boxed4)==type(input4)
+func echo5(c_int value) as c_int
+    return value
+end
+c_int input5=c_int(-2147483647)
+auto first5=task.spawn(echo5,input5)
+auto second5=task.spawn(echo5,input5)
+auto literal5=await task.all([first5,second5])
+assert literal5.length==2 and literal5[0]==input5 and literal5[1]==input5
+array<future<c_int>> jobs5=[first5,second5]
+auto array5=await task.all(jobs5)
+assert array5[0]==input5 and array5[1]==input5
+var boxed5=array5[0]
+assert type(boxed5)==type(input5)
+func echo6(c_uint value) as c_uint
+    return value
+end
+c_uint input6=c_uint(4294967295)
+auto first6=task.spawn(echo6,input6)
+auto second6=task.spawn(echo6,input6)
+auto literal6=await task.all([first6,second6])
+assert literal6.length==2 and literal6[0]==input6 and literal6[1]==input6
+array<future<c_uint>> jobs6=[first6,second6]
+auto array6=await task.all(jobs6)
+assert array6[0]==input6 and array6[1]==input6
+var boxed6=array6[0]
+assert type(boxed6)==type(input6)
+func echo7(c_long value) as c_long
+    return value
+end
+c_long input7=longMin()
+auto first7=task.spawn(echo7,input7)
+auto second7=task.spawn(echo7,input7)
+auto literal7=await task.all([first7,second7])
+assert literal7.length==2 and literal7[0]==input7 and literal7[1]==input7
+array<future<c_long>> jobs7=[first7,second7]
+auto array7=await task.all(jobs7)
+assert array7[0]==input7 and array7[1]==input7
+var boxed7=array7[0]
+assert type(boxed7)==type(input7)
+func echo8(c_ulong value) as c_ulong
+    return value
+end
+c_ulong input8=ulongMax()
+auto first8=task.spawn(echo8,input8)
+auto second8=task.spawn(echo8,input8)
+auto literal8=await task.all([first8,second8])
+assert literal8.length==2 and literal8[0]==input8 and literal8[1]==input8
+array<future<c_ulong>> jobs8=[first8,second8]
+auto array8=await task.all(jobs8)
+assert array8[0]==input8 and array8[1]==input8
+var boxed8=array8[0]
+assert type(boxed8)==type(input8)
+func echo9(c_longlong value) as c_longlong
+    return value
+end
+c_longlong input9=c_longlong(-9223372036854775807)
+auto first9=task.spawn(echo9,input9)
+auto second9=task.spawn(echo9,input9)
+auto literal9=await task.all([first9,second9])
+assert literal9.length==2 and literal9[0]==input9 and literal9[1]==input9
+array<future<c_longlong>> jobs9=[first9,second9]
+auto array9=await task.all(jobs9)
+assert array9[0]==input9 and array9[1]==input9
+var boxed9=array9[0]
+assert type(boxed9)==type(input9)
+func echo10(c_ulonglong value) as c_ulonglong
+    return value
+end
+c_ulonglong input10=c_ulonglong(uint64(18446744073709551615))
+auto first10=task.spawn(echo10,input10)
+auto second10=task.spawn(echo10,input10)
+auto literal10=await task.all([first10,second10])
+assert literal10.length==2 and literal10[0]==input10 and literal10[1]==input10
+array<future<c_ulonglong>> jobs10=[first10,second10]
+auto array10=await task.all(jobs10)
+assert array10[0]==input10 and array10[1]==input10
+var boxed10=array10[0]
+assert type(boxed10)==type(input10)
+func echo11(c_size value) as c_size
+    return value
+end
+c_size input11=sizeMax()
+auto first11=task.spawn(echo11,input11)
+auto second11=task.spawn(echo11,input11)
+auto literal11=await task.all([first11,second11])
+assert literal11.length==2 and literal11[0]==input11 and literal11[1]==input11
+array<future<c_size>> jobs11=[first11,second11]
+auto array11=await task.all(jobs11)
+assert array11[0]==input11 and array11[1]==input11
+var boxed11=array11[0]
+assert type(boxed11)==type(input11)
+func echo12(c_ssize value) as c_ssize
+    return value
+end
+c_ssize input12=ssizeMin()
+auto first12=task.spawn(echo12,input12)
+auto second12=task.spawn(echo12,input12)
+auto literal12=await task.all([first12,second12])
+assert literal12.length==2 and literal12[0]==input12 and literal12[1]==input12
+array<future<c_ssize>> jobs12=[first12,second12]
+auto array12=await task.all(jobs12)
+assert array12[0]==input12 and array12[1]==input12
+var boxed12=array12[0]
+assert type(boxed12)==type(input12)
+func echo13(c_ptrdiff value) as c_ptrdiff
+    return value
+end
+c_ptrdiff input13=ptrdiffMin()
+auto first13=task.spawn(echo13,input13)
+auto second13=task.spawn(echo13,input13)
+auto literal13=await task.all([first13,second13])
+assert literal13.length==2 and literal13[0]==input13 and literal13[1]==input13
+array<future<c_ptrdiff>> jobs13=[first13,second13]
+auto array13=await task.all(jobs13)
+assert array13[0]==input13 and array13[1]==input13
+var boxed13=array13[0]
+assert type(boxed13)==type(input13)
+func echo14(c_intptr value) as c_intptr
+    return value
+end
+c_intptr input14=intptrMin()
+auto first14=task.spawn(echo14,input14)
+auto second14=task.spawn(echo14,input14)
+auto literal14=await task.all([first14,second14])
+assert literal14.length==2 and literal14[0]==input14 and literal14[1]==input14
+array<future<c_intptr>> jobs14=[first14,second14]
+auto array14=await task.all(jobs14)
+assert array14[0]==input14 and array14[1]==input14
+var boxed14=array14[0]
+assert type(boxed14)==type(input14)
+func echo15(c_uintptr value) as c_uintptr
+    return value
+end
+c_uintptr input15=uintptrMax()
+auto first15=task.spawn(echo15,input15)
+auto second15=task.spawn(echo15,input15)
+auto literal15=await task.all([first15,second15])
+assert literal15.length==2 and literal15[0]==input15 and literal15[1]==input15
+array<future<c_uintptr>> jobs15=[first15,second15]
+auto array15=await task.all(jobs15)
+assert array15[0]==input15 and array15[1]==input15
+var boxed15=array15[0]
+assert type(boxed15)==type(input15)
+func echo16(c_bool value) as c_bool
+    return value
+end
+c_bool input16=c_bool(true)
+auto first16=task.spawn(echo16,input16)
+auto second16=task.spawn(echo16,input16)
+auto literal16=await task.all([first16,second16])
+assert literal16.length==2 and literal16[0]==input16 and literal16[1]==input16
+array<future<c_bool>> jobs16=[first16,second16]
+auto array16=await task.all(jobs16)
+assert array16[0]==input16 and array16[1]==input16
+var boxed16=array16[0]
+// The existing native scalar codec deliberately uses the shared bool singleton
+// in var/container storage. The typed projection still returns c_bool.
+assert type(boxed16)==type(true)
+func echo17(c_float value) as c_float
+    return value
+end
+c_float input17=c_float(-1.25)
+auto first17=task.spawn(echo17,input17)
+auto second17=task.spawn(echo17,input17)
+auto literal17=await task.all([first17,second17])
+assert literal17.length==2 and literal17[0]==input17 and literal17[1]==input17
+array<future<c_float>> jobs17=[first17,second17]
+auto array17=await task.all(jobs17)
+assert array17[0]==input17 and array17[1]==input17
+var boxed17=array17[0]
+assert type(boxed17)==type(input17)
+func echo18(c_double value) as c_double
+    return value
+end
+c_double input18=c_double(-2.5)
+auto first18=task.spawn(echo18,input18)
+auto second18=task.spawn(echo18,input18)
+auto literal18=await task.all([first18,second18])
+assert literal18.length==2 and literal18[0]==input18 and literal18[1]==input18
+array<future<c_double>> jobs18=[first18,second18]
+auto array18=await task.all(jobs18)
+assert array18[0]==input18 and array18[1]==input18
+var boxed18=array18[0]
+assert type(boxed18)==type(input18)
+func echo19(c_wchar value) as c_wchar
+    return value
+end
+c_wchar input19=wcharMax()
+auto first19=task.spawn(echo19,input19)
+auto second19=task.spawn(echo19,input19)
+auto literal19=await task.all([first19,second19])
+assert literal19.length==2 and literal19[0]==input19 and literal19[1]==input19
+array<future<c_wchar>> jobs19=[first19,second19]
+auto array19=await task.all(jobs19)
+assert array19[0]==input19 and array19[1]==input19
+var boxed19=array19[0]
+assert type(boxed19)==type(input19)
+
+// Check floating bit patterns, including negative zero and a quiet NaN payload.
+extern "owned_task_float" @no_raise func floatValue(c_int kind) as c_float
+extern "owned_task_double" @no_raise func doubleValue(c_int kind) as c_double
+extern "owned_task_float_check" @no_raise func checkFloat(c_float value,c_int kind) as bool
+extern "owned_task_double_check" @no_raise func checkDouble(c_double value,c_int kind) as bool
+for kind in range(3)
+    c_int mode=c_int(kind)
+    auto floats=await task.all([task.spawn(echo17,floatValue(mode)),task.spawn(echo17,floatValue(mode))])
+    assert checkFloat(floats[0],mode) and checkFloat(floats[1],mode)
+    array<future<c_double>> doubles=[task.spawn(echo18,doubleValue(mode)),task.spawn(echo18,doubleValue(mode))]
+    auto results=await task.all(doubles)
+    assert checkDouble(results[0],mode) and checkDouble(results[1],mode)
+end

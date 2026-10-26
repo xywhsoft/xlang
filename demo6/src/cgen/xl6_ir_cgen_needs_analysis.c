@@ -984,6 +984,8 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
                      XL6_IR_RUNTIME_FUTURE_ALL_XVALUES_ARRAY ) {
                 needs->needsFutureAggregateAll = 1;
                 needs->needsXValueRuntime = 1;
+                if (module->instructions[i].asyncResultAbi == XL6_IR_ASYNC_RESULT_COPY_C_SCALAR)
+                    needs->needsCallableNativeScalarCodec = 1;
                 if ( module->instructions[i].runtimeOp ==
                      XL6_IR_RUNTIME_FUTURE_ALL_XVALUES_ARRAY )
                     needs->needsFutureAggregateAllArray = 1;

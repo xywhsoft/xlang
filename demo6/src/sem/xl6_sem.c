@@ -13421,6 +13421,16 @@ static int xl6SemTaskArgIsFutureCollection(XL6_SemContext* ctx, XL6_AstNode* arg
     return result;
 }
 
+/* Preserve the expression's flow proof, then resolve an alias to the proven
+ * callable. Resolving the declared nullable type would lose that proof. */
+static XL6_AstNode* xl6SemTaskCallableType(XL6_SemContext* ctx, XL6_AstNode* expression)
+{
+    XL6_AstNode* inferred = xl6SemInferAutoTypeNode(ctx, expression);
+    XL6_AstNode* result = xl6SemCloneTypeNode(xl6SemResolveAliasType(ctx, inferred));
+    xl6AstFree(inferred);
+    return result;
+}
+
 static XL6_AstNode* xl6SemCloneTaskCallType(XL6_SemContext* ctx, XL6_AstNode* call)
 {
     const char* name;
@@ -13448,7 +13458,7 @@ static XL6_AstNode* xl6SemCloneTaskCallType(XL6_SemContext* ctx, XL6_AstNode* ca
         const XL6_AstNode* returns;
 
         argExpr = xl6SemCallArgExprAt(call, 0);
-        funcType = xl6SemInferAutoTypeNode(ctx, argExpr);
+        funcType = xl6SemTaskCallableType(ctx, argExpr);
         if ( funcType == NULL || !xl6TextEquals(funcType->text, "function") || funcType->childCount < 2 ) {
             xl6AstFree(funcType);
             return NULL;
@@ -13567,14 +13577,14 @@ static int xl6SemCheckTaskSpawnCall(XL6_SemContext* ctx, XL6_AstNode* node)
 
     args = node != NULL && node->childCount > 1 ? node->children[1] : NULL;
     fnExpr = xl6SemCallArgExprAt(node, 0);
-    fnType = xl6SemInferAutoTypeNode(ctx, fnExpr);
+    fnType = xl6SemTaskCallableType(ctx, fnExpr);
     if ( fnType == NULL || !xl6TextEquals(fnType->text, "function") || fnType->childCount < 2 ) {
         xl6SemErrorNode(ctx, fnExpr != NULL ? fnExpr : node, "task.spawn first argument must be a func value with a complete signature");
         xl6AstFree(fnType);
         return 0;
     }
     if(!xl6SemCOwnedSpawn(ctx,node,fnExpr)){xl6AstFree(fnType);return 0;}
-    xl6AstFree(fnType);fnType=xl6SemInferAutoTypeNode(ctx,fnExpr);
+    xl6AstFree(fnType);fnType=xl6SemTaskCallableType(ctx,fnExpr);
     if(!fnType)return 0;
 
     params = fnType->children[0];
