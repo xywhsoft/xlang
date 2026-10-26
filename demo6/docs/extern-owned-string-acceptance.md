@@ -1,6 +1,6 @@
 # 普通 string 接管 C 返回分配：专项验收
 
-日期：2026-10-26。本轮修复可变参数函数值的编译期 OOM 清理、借用返回的
+上一批验收日期：2026-10-26；2026-10-27 的任务 C 标量补充见文末。该批修复可变参数函数值的编译期 OOM 清理、借用返回的
 no_raise 复制失败传播，并补齐静态方法函数值。此前的 XACME 可空溯源返回、
 C 可变参数文本准备、原生函数值与独立 C 消费者门禁继续保留。
 源码构建冻结于 `e79b786d8`，包含主线 TLS peer-chain 更新；随后只追加文档
@@ -111,3 +111,42 @@ Windows 配 `--driver`，正常 CLI 配 `--cli`。XACME 使用 tools/check_xacme
 Windows 公共源码驱动使用 build.json；本轮 Linux CLI 使用 result.json。
 无回执的功能检查会标记 independentCConsumer=false，不能当作独立 C 验收。
 全部证据保留失败日志，不覆盖旧目录；早期 Linux 缺少物理 SDK 的失败也保留。
+
+## 2026-10-27：task.spawn 原生 C 标量参数
+
+修复提交 `cc6b3bf55`，源码基线 `fc216d5aa`。共享任务参数准入复用既有的
+20 种 C 标量分类，保留 DEFAULT/BYVAL、VALUE 和 trivial ownership 限制。
+已有帧生成、调用、释放和校验程序直接消费这些类型；未修改运行时布局、
+provider 或 Cgen，也未为此引入单库代理函数。
+
+| 验收 | Windows | Linux / WSL |
+| --- | --- | --- |
+| 完整源码候选 | driver-38/build.json，1295 编译单元，O0 | linux-13/result.json，1297 编译单元，Os |
+| 字符串专项 JIT/AOT/生成代码及拒绝项 | accept-38-final/result.json，71 项 | accept-linux-13/result.json，71 项 |
+| 独立 C/XLIR 合同 | accept-38-final/independent-C/result.json，19 项 | accept-linux-13/independent-C/result.json，19 项 |
+| 原始复现及已有任务回归 | task-regression-windows-38-focused/result.json，18 项 | task-regression-linux-38-focused/result.json，18 项 |
+
+任务用例验证全部 20 种 C 标量，包含 uint64 全范围、带符号负值、平台相关的
+long/size_t/ptrdiff_t/wchar_t 边界和 float/double。另检查实际生成帧的 20 个
+字段均为对应 C 类型，避免仅凭数值往返误认归一化传输为精确原生传输。
+固定 extern 和类静态 @owned 生产者均直接提交；覆盖可空结果、void、Future
+复读、失败非终止载荷、无诊断失败、worker OOM 和 32 个调用线程分配前缀。
+这些任务前缀检查失败传播和后续复用，不以 Future 就绪时的全局 LiveCount
+宣称后台任务已经静默；原有独立 C 门的 120 个分配前缀继续验证字符串准入的
+分配平衡。六种损坏签名/捕获合同，包括 byref/out 调用者存储，均在 C/头文件
+输出前拒绝；原生 C 可变参数函数值也保持禁止直接提交的边界。
+
+额外回归为原始自有返回复现、普通 c_int 返回、任务闭包参数 ABI、20 种
+原生 Future 结果、f-string 中任务实参和共享闭包并发释放，均执行 JIT/AOT。
+大型旧用例 cgen_task_spawn.xl 在新候选双端报告 TypeError；修改前的冻结
+driver-33 复现相同错误（task-spawn-baseline-33.log），未计入通过项。
+全局 test-wiring 仍有既存 dynamic/primitive 前缀、x509_public 登记和过期
+stdlib_xson 引用问题，不能将本专项表述为全仓发布总门通过。
+
+Windows 候选 SHA-256：
+`2cfc299ee39914e8253691e2a46c5c6be2b790399574ea58080c0f3f34951972`；
+Linux 共享编译库 SHA-256：
+`4a8bc65400ad70c3cf27539d8c907ec5a5172af14e48bedb8e4bb4dab7ebfbb0`。
+全部编译输入、对象和测试输入哈希已核对，汇总见 task-final-review-38.json。
+本次未测量或声称整个任务调用与手写 C 等速；普通任务的既有捕获、发布和
+字符串复制边界不变。主工作区 release 二进制未替换，正式使用须正常重建。
