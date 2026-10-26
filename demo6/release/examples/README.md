@@ -10,6 +10,7 @@
 
 ## 根目录语言范例
 
+- `extern_owned_string.xl`：C 自有字符串直接进入普通 string；配套 `extern_owned_string_native.c`，由 `tools/check_extern_owned_string.py` 验证 JIT/AOT 和自动释放。
 - `hello.xl`：最小程序、CLI 基础阶段示例；回归：`lex`、`parse`、`check`、`cgen`、`ir`。
 - `literals.xl`：数字、字符串、time 等字面量基础示例；回归：`lex`、`parse`。
 - `containers.xl`：容器字面量、索引和基础操作；回归：`check`、`run`。
