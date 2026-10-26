@@ -1178,9 +1178,11 @@ int xl6IrNativeClassCallbackPlanBuild(const XL6_IrModule* module,const XL6_IrCal
     XL6_IrNativeClassCallbackPlan* output)
 {
     const XL6_IrDirectBridgeContract* c=target?xl6IrDirectBridgeContract(target->cName):NULL;
-    if(!module||!c||c->nativeContext!=XL6_IR_CALL_NATIVE_CONTEXT_CLASS_CALLBACK_V1||
+    if(!module||!c||!xl6IrNativeContextIsClassCallback(c->nativeContext)||
         !c->nativeClassCallbackParameter||c->nativeClassCallbackParameter>target->parameterCount||
-        !target->parameterTypes||!c->nativeClassCallbackArgumentOwner||!c->nativeClassCallbackResultOwner)return 0;
+        !target->parameterTypes||!c->nativeClassCallbackArgumentOwner)return 0;
+    int predicate=c->nativeContext==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_PREDICATE_V1;
+    if(predicate?c->nativeClassCallbackResultOwner!=NULL:c->nativeClassCallbackResultOwner==NULL)return 0;
     XL6_IrTypeId signature=target->parameterTypes[c->nativeClassCallbackParameter-1];
     const XL6_IrType* f=xl6IrTypeGet(&module->types,signature);
     if(!f||f->kind!=XL6_IR_TYPE_FUNCTION||f->cAbi!=XL6_IR_C_ABI_CLOSURE_PTR||
@@ -1191,6 +1193,16 @@ int xl6IrNativeClassCallbackPlanBuild(const XL6_IrModule* module,const XL6_IrCal
         f->returnCount!=1||!f->returns||f->callableResultType!=f->returns[0]||
         f->callableErasureAbi!=XL6_IR_CALLABLE_ERASURE_FIXED)return 0;
     const XL6_IrType* r=xl6IrTypeGet(&module->types,f->returns[0]);
+    if(predicate){
+        if(!r||r->kind!=XL6_IR_TYPE_BUILTIN||r->cAbi!=XL6_IR_C_ABI_BOOL||
+            r->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_TRIVIAL||r->nullAbi!=XL6_IR_NULL_ABI_NONE||
+            r->paramCount||r->returnCount||r->collectionAbi!=XL6_IR_COLLECTION_NONE)return 0;
+        XL6_IrNativeClassCallbackPlan plan={signature,f->params[0],f->returns[0],
+            xl6IrNativeCallbackClassField(module,f->params[0],c->nativeClassCallbackArgumentOwner),NULL};
+        if(!plan.argumentField)return 0;
+        if(output)*output=plan;
+        return 1;
+    }
     if(!r||r->kind!=XL6_IR_TYPE_NULLABLE||r->paramCount!=1||!r->params||
         r->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR||r->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED||
         r->nullAbi!=XL6_IR_NULL_ABI_XVALUE_SENTINEL||r->collectionAbi!=XL6_IR_COLLECTION_NONE)return 0;
@@ -1261,7 +1273,7 @@ int xl6IrRuntimeDirectBridgeContext(const XL6_IrModule* module,const XL6_IrCallT
     *context=XL6_IR_CALL_NATIVE_CONTEXT_NONE;*type=XL6_IR_TYPE_INVALID;*payload=XL6_IR_ASYNC_RESULT_INVALID;
     const XL6_IrDirectBridgeContract* c=xl6IrDirectBridgeContract(target->cName);
     if(!c || !c->nativeContext)return 1;
-    if(c->nativeContext==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_CALLBACK_V1){
+    if(xl6IrNativeContextIsClassCallback(c->nativeContext)){
         XL6_IrNativeClassCallbackPlan plan={0};
         if(!xl6IrNativeClassCallbackPlanBuild(module,target,&plan))return 0;
         *context=c->nativeContext;*type=plan.signature;return 1;

@@ -432,10 +432,11 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
     for(size_t t=0;t<module->callTargetCount;++t) {
         const XL6_IrCallTarget* target=&module->callTargets[t];
         if(target->reachability==XL6_IR_REACHABILITY_UNREACHABLE)continue;
-        if(target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_CALLBACK_V1){
+        if(xl6IrNativeContextIsClassCallback(target->nativeContextAbi)){
             XL6_IrNativeClassCallbackPlan plan={0};
             if(!xl6IrNativeClassCallbackPlanBuild(module,target,&plan)||
-                !visitor(context,plan.argumentField->nativeHandlePolicyCName)||
+                !visitor(context,plan.argumentField->nativeHandlePolicyCName))return 0;
+            if(target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_CALLBACK_V1&&
                 !visitor(context,plan.resultField->nativeHandlePolicyCName))return 0;
             continue;
         }

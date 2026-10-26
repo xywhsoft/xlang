@@ -529,9 +529,18 @@ static int xl6IrCgenEmitNativeServices(XL6_Output* out,const XL6_IrCallTarget* t
 
 static int xl6IrCgenEmitNativeContext(XL6_Output* out,const XL6_IrModule* module,const XL6_IrCallTarget* target)
 {
-    if(target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_CALLBACK_V1){
+    if(xl6IrNativeContextIsClassCallback(target->nativeContextAbi)){
         XL6_IrNativeClassCallbackPlan plan={0};
         if(!xl6IrNativeClassCallbackPlanBuild(module,target,&plan))return 0;
+        if(target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_PREDICATE_V1){
+            xl6OutputPuts("(XL6_NativeClassResultContextV1){{",out);
+            xl6IrCgenEmitCStringLiteral(out,plan.argumentField->name);
+            xl6OutputPrintf(out,", %lu, %s()}, %s, &xlir_native_result_schema_t%u}",
+                (unsigned long)strlen(plan.argumentField->name),plan.argumentField->nativeHandlePolicyCName,
+                module->abi.codeOwnerAbi==XL6_IR_MODULE_CODE_OWNER_BIND_BEFORE_INIT?
+                    "(xlir_code_owner.size != 0 ? &xlir_code_owner : NULL)":"NULL",(unsigned)plan.argument);
+            return !xl6OutputHasFailed(out);
+        }
         const XL6_IrClassIdentityPlan* result=xl6IrClassIdentityPlanGet(module,plan.result);
         if(!result)return 0;
         xl6OutputPuts("(XL6_NativeClassCallbackContextV1){{{",out);

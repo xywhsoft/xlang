@@ -6,7 +6,7 @@
 #define TG .pure=1,.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE
 {"xl6TlsClientContextDefaultV1",T,V,1,{V},.parameterOwners={TV},.resultOwner=TC,TG},
 {"xl6TlsClientContextCreateV1",T,V,2,{V,V},.parameterOwners={TP,TV},.resultOwner=TC,TG},
-{"xl6TlsClientContextDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={TC},.nativeHandlePolicy="xl6TlsClientContextHandlePolicyV1Get",.noRaise=1,.nonblocking=1},
+{"xl6TlsClientContextDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={TC},.nativeHandlePolicy="xl6TlsClientContextHandlePolicyV1Get",.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
 {"xl6TlsClientContextParametersV1",T,V,1,{V},.parameterOwners={TC},.resultOwner=TP,TG},
 {"xl6TlsClientContextVerifierV1",T,V,1,{V},.parameterOwners={TC},.resultOwner=TV,TG},
 {"xl6TlsClientContextWithParametersV1",T,V,2,{V,V},.parameterOwners={TC,TP},.resultOwner=TC,TG},

@@ -15,4 +15,11 @@ XL6_CODE_LEASE_API XL6_Closure* xl6NativeClassCallbackCreateV1(
  * This checked result does not itself publish a native callback failure. */
 XL6_CODE_LEASE_API bool xl6NativeClassCallbackInvokeTakeV1(
     XL6_Closure*,void** argument,struct xvalue** result);
+/* A separate, compiler-sealed checked (owned native class) -> bool profile.
+ * false is an ordinary predicate value, not an invocation failure. The bool
+ * output is published only on checked success. Same lease/take rules above. */
+XL6_CODE_LEASE_API XL6_Closure* xl6NativeClassPredicateCreateV1(
+    XL6_NativeClassResultContextV1,XL6_Closure*);
+XL6_CODE_LEASE_API bool xl6NativeClassPredicateInvokeTakeV1(
+    XL6_Closure*,void** argument,bool* result);
 #endif

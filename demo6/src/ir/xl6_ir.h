@@ -4157,8 +4157,11 @@ typedef enum XL6_IrCallNativeContextAbi {
     XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1,
     XL6_IR_CALL_NATIVE_CONTEXT_NULLARY_VOID_ARRAY_V1,
     XL6_IR_CALL_NATIVE_CONTEXT_CLASS_RESULT_V1,
-    XL6_IR_CALL_NATIVE_CONTEXT_CLASS_CALLBACK_V1
+    XL6_IR_CALL_NATIVE_CONTEXT_CLASS_CALLBACK_V1,
+    XL6_IR_CALL_NATIVE_CONTEXT_CLASS_PREDICATE_V1
 } XL6_IrCallNativeContextAbi;
+static inline int xl6IrNativeContextIsClassCallback(XL6_IrCallNativeContextAbi abi)
+{return abi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_CALLBACK_V1||abi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_PREDICATE_V1;}
 
 /* Orthogonal to the immutable native descriptor shape. Only canonical
  * resident entries may request module-owned services; arbitrary externs

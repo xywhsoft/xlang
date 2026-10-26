@@ -3,7 +3,7 @@ const char* xl6StdlibTlsClientContextSource=
     "    private native point handle\n"
     "    extern \"xl6TlsClientContextDefaultV1\" @pure @nonblocking create(TlsVerifier verifier)\n"
     "    extern \"xl6TlsClientContextCreateV1\" @pure @nonblocking create(TlsParameters parameters, TlsVerifier verifier)\n"
-    "    extern \"xl6TlsClientContextDestroyV1\" @no_raise @nonblocking destroy()\n"
+    "    extern \"xl6TlsClientContextDestroyV1\" destroy()\n"
     "    extern \"xl6TlsClientContextParametersV1\" @pure @nonblocking get parameters() as TlsParameters\n"
     "    extern \"xl6TlsClientContextVerifierV1\" @pure @nonblocking get verifier() as TlsVerifier\n"
     "    extern \"xl6TlsClientContextWithParametersV1\" @pure @nonblocking func withParameters(TlsParameters parameters) as TlsClientContext\n"
