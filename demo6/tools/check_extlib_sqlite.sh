@@ -14,6 +14,8 @@ cc=${CC:-gcc}
 pkg=release/extlibs/sqlite
 mapfile -d '' inputs < <(find "$pkg" -type f \( -name '*.c' -o -name '*.h' -o -name '*.json' -o -name '*.xl' \) -print0 | sort -z)
 inputs+=(lib/xrt/xrt.h test/support/extlib_sqlite_runtime.c tools/check_extlib_sqlite.sh
+         test/cases/extlib_sqlite.xl release/examples/extlibs/sqlite.xl
+         release/examples/extlibs/sqlite_basic.xl
          release/examples/extlibs/sqlite_basic.expected.txt)
 flags=(-std=c11 -D_GNU_SOURCE -O1 -g -Ilib/xrt -fsanitize=address,undefined
        -fno-omit-frame-pointer -fno-pie -no-pie -pthread)
@@ -37,6 +39,30 @@ timeout 30s "$work/basic" > "$work/basic.log"
 diff -u release/examples/extlibs/sqlite_basic.expected.txt "$work/basic.log"
 timeout 30s ./release/xl run "$pkg/examples/basic.c" > "$work/basic_direct.log"
 diff -u "$work/basic.log" "$work/basic_direct.log"
+
+xl=./release/xl
+for source in test/cases/extlib_sqlite.xl "$pkg/test/boundaries.xl" \
+    "$pkg/test/file.xl"; do
+    name=$(basename "$source" .xl)
+    timeout 90s "$xl" run "$source" > "$work/$name.jit.log"
+    timeout 120s "$xl" build "$source" -o "$work/$name"
+    timeout 30s "$work/$name" > "$work/$name.aot.log"
+    diff -u "$work/$name.jit.log" "$work/$name.aot.log"
+done
+for name in sqlite sqlite_basic; do
+    source="release/examples/extlibs/$name.xl"
+    timeout 90s "$xl" run "$source" > "$work/$name.jit.log"
+    timeout 120s "$xl" build "$source" -o "$work/$name"
+    timeout 30s "$work/$name" > "$work/$name.aot.log"
+    diff -u "$work/$name.jit.log" "$work/$name.aot.log"
+done
+diff -u release/examples/extlibs/sqlite_basic.expected.txt \
+    "$work/sqlite_basic.aot.log"
+diff -u "$work/basic.log" "$work/sqlite_basic.aot.log"
+timeout 120s "$xl" build "$pkg/examples/basic.c" -o "$work/basic_c_aot"
+timeout 30s "$work/basic_c_aot" > "$work/basic_c_aot.log"
+diff -u "$work/basic.log" "$work/basic_c_aot.log"
+
 sha256sum "${inputs[@]}" > "$work/inputs.after.sha256"
 diff -u "$work/inputs.before.sha256" "$work/inputs.after.sha256"
-printf 'SQLite Linux C ASan/UBSan gate: PASS\n'
+printf 'SQLite Linux C ASan/UBSan and bilingual AOT gate: PASS\n'
