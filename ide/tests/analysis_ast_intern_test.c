@@ -34,7 +34,7 @@ static int sameAst(const XL6_AstNode* a,const XL6_AstNode* b)
  if(!a || !b)return a==b;
  XL6_AstNode left=*a,right=*b;
  left.text=right.text=left.doc=right.doc=NULL;left.literalData=right.literalData=NULL;left.children=right.children=NULL;
- left.inferredType=right.inferredType=left.semanticDeclaredType=right.semanticDeclaredType=NULL;left.source=right.source=NULL;
+ left.inferredType=right.inferredType=left.semanticDeclaredType=right.semanticDeclaredType=NULL;left.xlsLeafReferences=right.xlsLeafReferences=0; left.source=right.source=NULL;
  left.childCapacity=right.childCapacity=0;left.xlsStorage=right.xlsStorage=NULL;
  if(memcmp(&left,&right,sizeof(left)) || !sameText(a->text,b->text) || !sameText(a->doc,b->doc) || !!a->literalData!=!!b->literalData ||
   (a->literalData && memcmp(a->literalData,b->literalData,a->literalSize)) || !!a->source!=!!b->source)return 0;

@@ -496,7 +496,7 @@ static int xlsSemTypeTransform(const XL6_AstNode* in,XL6_AstNode* out,void* user
 static XL6_AstSource* xlsSemTypeSource(const XL6_AstSource* in,void* user)
 { xls_sem_type_copy* copy=user; return copy->options.targetSource(in,copy->options.user); }
 static int xlsSemCopyFactTypesWithCursor(xarray* facts,const xls_ast_clone_options* options,
-    xls_ast_cursor_source_policy policy,void* policyUser,size_t* bytes,int pooled,int* attempted)
+    xls_ast_cursor_source_policy policy,void* policyUser,size_t* bytes,int pooled,int* attempted,int shareLeaves)
 {
     if(attempted)*attempted=0;
     /* Borrow input type pointers only while gathering. Clear them before any
@@ -519,11 +519,17 @@ static int xlsSemCopyFactTypesWithCursor(xarray* facts,const xls_ast_clone_optio
     XL6_AstNode* owned=NULL;int triedPool=0;
     if(options->bytes && pooled && xlsActiveStorage){
         size_t budget=xlsFrontendSemStorageBudget();xls_ast_pool_work work={0};
-        if(budget){triedPool=1;if(attempted)*attempted=1;owned=xlsAstClonePooled(&root,&cloneOptions,policy,policyUser,budget,&work,bytes);}
+        if(budget){
+            triedPool=1;if(attempted)*attempted=1;
+            owned=shareLeaves ? xlsAstCloneFactTypes(&root,&cloneOptions,policy,policyUser,budget,&work,NULL,bytes) :
+                xlsAstClonePooled(&root,&cloneOptions,policy,policyUser,budget,&work,bytes);
+        }
         if(owned){xlsActiveStorage->work.nodes+=work.nodes;xlsActiveStorage->work.pages+=work.pages;xlsActiveStorage->work.chargedBytes+=work.bytes;}
         else ++xlsActiveStorage->work.heapFallbacks;
     }
-    if(options->bytes && !owned && !triedPool)owned=xlsAstCloneWithCursorSource(&root,&cloneOptions,policy,policyUser,bytes);
+    if(options->bytes && !owned && !triedPool)owned=shareLeaves ?
+        xlsAstCloneFactTypes(&root,&cloneOptions,policy,policyUser,0,NULL,NULL,bytes) :
+        xlsAstCloneWithCursorSource(&root,&cloneOptions,policy,policyUser,bytes);
     int copied=owned!=NULL;
     if(owned) {
         for(size_t i=0;i<slots.Count;++i) {
@@ -534,7 +540,7 @@ static int xlsSemCopyFactTypesWithCursor(xarray* facts,const xls_ast_clone_optio
     xrtArrayUnit(&types); xrtArrayUnit(&slots); return copied;
 }
 static int xlsSemCopyFactTypes(xarray* facts,const xls_ast_clone_options* options,size_t* bytes)
-{return xlsSemCopyFactTypesWithCursor(facts,options,NULL,NULL,bytes,0,NULL);}
+{return xlsSemCopyFactTypesWithCursor(facts,options,NULL,NULL,bytes,0,NULL,0);}
 static int xlsSemCaptureTypes(xls_sem_unit* unit,size_t limit,size_t* bytes)
 {
     xarray types={0},slots={0};xarray* facts=&unit->facts;*bytes=0;
@@ -705,7 +711,7 @@ static int xlsSemApplyFacts(const xls_sem_entry* entry,const xarray* nodes,const
     for(size_t i=0;i<staged.Count;++i) *(xls_sem_fact*)xrtArrayGet(&staged,i)=*(const xls_sem_fact*)xrtArrayConstGet(&entry->unit->facts,i);
     xls_ast_clone_options options={xlsSemApplyPosition,&apply,XLS_SEM_MEMO_BYTES,0,xlsSemApplySource};
     xls_sem_apply original=apply;size_t positionsBefore=positions->Count;int attempted=0;
-    int copied=xlsSemCopyFactTypesWithCursor(&staged,&options,xlsSemApplyCursorSource,&apply,&owned,1,&attempted);
+    int copied=xlsSemCopyFactTypesWithCursor(&staged,&options,xlsSemApplyCursorSource,&apply,&owned,1,&attempted,1);
     if(!copied && attempted){
         /* Clone callbacks advance the coordinate cursor and staged positions.
          * The failed tree already released its types/sources. Restore every
@@ -713,7 +719,7 @@ static int xlsSemApplyFacts(const xls_sem_entry* entry,const xarray* nodes,const
          * retry;never continue from a partially consumed position table. */
         apply=original;positions->Count=positionsBefore;
         for(size_t i=0;i<staged.Count;++i)*(xls_sem_fact*)xrtArrayGet(&staged,i)=*(const xls_sem_fact*)xrtArrayConstGet(&entry->unit->facts,i);
-        copied=xlsSemCopyFactTypesWithCursor(&staged,&options,xlsSemApplyCursorSource,&apply,&owned,0,NULL);
+        copied=xlsSemCopyFactTypesWithCursor(&staged,&options,xlsSemApplyCursorSource,&apply,&owned,0,NULL,1);
     }
     if(!copied) goto failed;
     if(entry->positions.Count && entry->positions.Count!=apply.visited) goto failed;

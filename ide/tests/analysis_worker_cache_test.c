@@ -46,7 +46,7 @@ static int sameAst(const XL6_AstNode* a,const XL6_AstNode* b)
  if(!a || !b)return a==b;
  XL6_AstNode x=*a,y=*b;x.text=y.text=x.doc=y.doc=NULL;x.literalData=y.literalData=NULL;
  x.children=y.children=NULL;x.inferredType=y.inferredType=x.semanticDeclaredType=y.semanticDeclaredType=NULL;
- x.xlsStorage=y.xlsStorage=NULL;x.source=y.source=NULL;x.childCapacity=y.childCapacity=0;
+ x.xlsStorage=y.xlsStorage=NULL;x.xlsLeafReferences=y.xlsLeafReferences=0;x.source=y.source=NULL;x.childCapacity=y.childCapacity=0;
  if(memcmp(&x,&y,sizeof(x)) || !sameString(a->text,b->text) || !sameString(a->doc,b->doc) || !!a->literalData!=!!b->literalData ||
     (a->literalSize && memcmp(a->literalData,b->literalData,a->literalSize)) || !!a->source!=!!b->source)return 0;
  if(a->source && (a->source==b->source || !sameString(a->source->path,b->source->path) || a->source->completionQuery!=b->source->completionQuery ||

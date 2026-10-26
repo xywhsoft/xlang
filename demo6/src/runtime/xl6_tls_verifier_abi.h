@@ -1,6 +1,7 @@
 #ifndef XL6_TLS_VERIFIER_ABI_H
 #define XL6_TLS_VERIFIER_ABI_H
 #include "xl6_native_class_abi.h"
+#include "xl6_tls_revocation_abi.h"
 struct xlir_closure;
 XL6_TEXT_API void xl6TlsVerificationPolicyDestroyV1(void*);
 XL6_TEXT_API void* xl6TlsVerificationPolicyCreateV1(int64_t,int64_t,int64_t,int64_t,int64_t,int64_t,bool);

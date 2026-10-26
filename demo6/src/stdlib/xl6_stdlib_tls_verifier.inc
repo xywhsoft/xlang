@@ -18,6 +18,8 @@ const char* xl6StdlibTlsVerifierSource=
     "    extern \"xl6TlsVerifierCreateV1\" @pure @nonblocking create(TrustStoreSnapshot trust)\n"
     "    extern \"xl6TlsVerifierCreatePolicyV1\" @pure @nonblocking create(TrustStoreSnapshot trust, TlsVerificationPolicy policy)\n"
     "    extern \"xl6TlsVerifierCreateCallbackV1\" @pure @nonblocking create(TrustStoreSnapshot trust, TlsVerificationPolicy policy, func(TlsVerifiedPeer) as bool additionalPolicy)\n"
+    "    extern \"xl6TlsVerifierCreateRevocationV1\" @pure @nonblocking create(TrustStoreSnapshot trust, TlsVerificationPolicy policy, TlsRevocationPolicy revocation)\n"
+    "    extern \"xl6TlsVerifierCreateCallbackRevocationV1\" @pure @nonblocking create(TrustStoreSnapshot trust, TlsVerificationPolicy policy, func(TlsVerifiedPeer) as bool additionalPolicy, TlsRevocationPolicy revocation)\n"
     "    extern \"xl6TlsVerifierDestroyV1\" destroy()\n"
     "    extern \"xl6TlsVerifierPolicyV1\" @pure @nonblocking get policy() as TlsVerificationPolicy\n"
     "    extern \"xl6TlsVerifierServerV1\" func verifyServer(array<Certificate> certificates, string name, int size = -1)\n"

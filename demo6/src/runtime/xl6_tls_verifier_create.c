@@ -11,7 +11,8 @@ bool xl6TlsVerificationPolicyInitV1(XL6_TlsVerificationPolicyV1* policy)
 #undef XL6_TLS_VERIFY_LIMIT
     return true;
 }
-void* xl6TlsVerifierCreatePeerPolicyInternalV1(void* rawTrust,const XL6_TlsVerificationPolicyV1* policy,XL6_TlsPeerPolicyV1 callback)
+void* xl6TlsVerifierCreatePoliciesInternalV1(void* rawTrust,const XL6_TlsVerificationPolicyV1* policy,
+    XL6_TlsPeerPolicyV1 callback,XL6_TlsPeerPolicyV1 revocation)
 {
     if(xrtGetError())return NULL;
     const XL6_X509StoreVersionV1* trust=rawTrust;
@@ -22,7 +23,7 @@ void* xl6TlsVerifierCreatePeerPolicyInternalV1(void* rawTrust,const XL6_TlsVerif
     if((uint64_t)trust->bytes>SIZE_MAX){xl6TlsFailV1(XERR_RANGE,"TLS trust bytes exceed native size range");return NULL;}
     if(!xl6TlsLimitV1(count,(int64_t)policy->limits.MaxTrustCertificates,"TLS trust certificate count exceeds its budget") ||
         !xl6TlsLimitV1((size_t)trust->bytes,(int64_t)policy->limits.MaxTrustBytes,"TLS trust bytes exceed their budget"))return NULL;
-    XL6_TlsVerifierContextV1* context=xl6TlsVerifierContextCreateV1(policy,callback);if(!context)return NULL;
+    XL6_TlsVerifierContextV1* context=xl6TlsVerifierContextCreatePoliciesV1(policy,callback,revocation);if(!context)return NULL;
     xtlsverifylimits limits;
 #define XL6_TLS_VERIFY_LIMIT(Field,Name) limits.Field=(size_t)policy->limits.Field;
 #include "xl6_tls_verification_policy_fields.inc"
@@ -37,6 +38,8 @@ void* xl6TlsVerifierCreatePeerPolicyInternalV1(void* rawTrust,const XL6_TlsVerif
     if(!self){xerror* error=xrtTakeError();xrtTlsVerifierRelease(value);xrtSetErrorTake(error);return NULL;}
     *self=(XL6_TlsVerifierV1){value,xl6TlsVerifierContextPolicyV1(context)};return self;
 }
+void* xl6TlsVerifierCreatePeerPolicyInternalV1(void* trust,const XL6_TlsVerificationPolicyV1* policy,XL6_TlsPeerPolicyV1 callback)
+{return xl6TlsVerifierCreatePoliciesInternalV1(trust,policy,callback,(XL6_TlsPeerPolicyV1){0});}
 void* xl6TlsVerifierCreateV1(void* trust)
 {XL6_TlsVerificationPolicyV1 policy;if(!xl6TlsVerificationPolicyInitV1(&policy))return NULL;return xl6TlsVerifierCreatePeerPolicyInternalV1(trust,&policy,(XL6_TlsPeerPolicyV1){0});}
 void* xl6TlsVerifierCreatePolicyV1(void* trust,void* policy)
