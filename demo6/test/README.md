@@ -270,4 +270,6 @@ pop/take、动态分派和全部 Array source carrier 切换仍需后续完成�
 
 - `extern_borrowed_string_failure.xl` / `extern_borrowed_string_failure_host.c`: borrowed C return admission, no-raise producer plus copy OOM, direct/fixed/native-variadic/protocol/getter/dynamic paths, and unreadable failed payloads.
 
+- `extern_owned_task_scalars.xl` / `extern_owned_task_scalars_host.c`: all 20 exact C scalar task arguments, platform limits, ordinary/static extern callables, nullable/void results, failed nonterminated payloads, worker OOM and 32 caller allocation prefixes. `xlir_task_c_scalar_contract.c` rejects six corrupted frame/signature contracts, including byref/out storage, before C/header emission. The owned-string gates also reject `bad_extern_owned_task_variadic.xl`.
+
 - `extern_owned_static_callable.xl` / `extern_owned_static_callable_host.c`: static C/ordinary/async function values, exact owned pointer and allocation witnesses, overload/default/inherited/raw-callback paths and 32 OOM prefixes; negative static private/ambiguous/instance cases reject before C emission. The extern_owned_string package fixture also exports Factory.Text for imported static binding.

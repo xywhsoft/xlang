@@ -42,6 +42,8 @@ def main():
         ('borrowed-string-failure','test/cases/extern_borrowed_string_failure.xl',['test/cases/extern_borrowed_string_failure_host.c'],[]),
         ('static-method-function-value','test/cases/extern_owned_static_callable.xl',
             ['test/cases/extern_owned_string_host.c','test/cases/extern_c_variadic_text_host.c','test/cases/extern_owned_static_callable_host.c'],[]),
+        ('task-C-scalar-parameters','test/cases/extern_owned_task_scalars.xl',
+            ['test/cases/extern_owned_task_scalars_host.c'],['owned_task_text','owned_task_scalars']),
     ]
     sha=lambda path:hashlib.sha256(Path(path).read_bytes()).hexdigest()
     inputs=[ROOT/source for _,source,_,_ in cases]+[ROOT/path for _,_,paths,_ in cases for path in paths]
@@ -63,6 +65,16 @@ def main():
             assert 'xlir_string_from_cstr('+symbol+'(' not in generated,symbol+' was copied'
             assert '.Data = '+symbol+'(' in generated,symbol+' was not adopted at its call site'
         if symbols:assert 'xl6CStringTakeV1' not in generated and 'XL6_COwnerV1' not in generated
+        if case=='task-C-scalar-parameters':
+            # Values alone can survive a widen/narrow round trip. Also require
+            # the actual task frame to retain every exact C representation.
+            frames=re.findall(r'typedef struct xlir_task_spawn_frame_(\d+) \{(.*?)\} xlir_task_spawn_frame_\1;',generated,re.S)
+            native=next(body for _,body in frames if ' p19;' in body)
+            types=['char','signed char','unsigned char','short','unsigned short',
+                'int','unsigned int','long','unsigned long','long long','unsigned long long',
+                'size_t','intptr_t','ptrdiff_t','intptr_t','uintptr_t','bool','float','double','wchar_t']
+            for index,ctype in enumerate(types):
+                assert '    '+ctype+' p'+str(index)+';' in native,(index,ctype,'task frame type changed')
         if case=='extern_owned_string':
             assert re.search(r'const char\* borrowed_raw_\d+ = owned_borrowed\(',generated),'borrowed C prototype changed'
             assert 'xlir_string_from_cstr(borrowed_raw_' in generated,'borrowed default changed'
@@ -110,6 +122,7 @@ def main():
         'test/cases/bad_extern_owned_static_private.xl':'explicit func signature',
         'test/cases/bad_extern_owned_static_ambiguous.xl':'explicit func signature',
         'test/cases/bad_extern_owned_static_instance.xl':'explicit func signature',
+        'test/cases/bad_extern_owned_task_variadic.xl':'task.spawn argument type does not match func signature',
     }
     for relative,message in negatives.items():
         source=ROOT/relative;name=source.stem.removeprefix('bad_extern_owned_')
