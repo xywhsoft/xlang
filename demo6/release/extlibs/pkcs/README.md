@@ -1,12 +1,19 @@
 # pkcs
 
-2026-10-25 当前 `xl.exe` 从 `demo6` 根目录运行默认包门禁：公开头、
+2026-10-26 重建 Windows/Linux x64 发布物后，两平台默认包门禁
+均退出 0：公开 C 头、严格 GCC、Linux ASan/UBSan、C/XLang 边界
+与分配故障、双语固定输出、边界及 C/XLang 范例独立 EXE AOT。
+Linux 还由 OpenSSL 独立解析生成的 DER。旧 VFS 缺头与共享快照
+缺符号不再复现；签收仅限常用 ASN.1/DER 构件，不代表完整
+PKCS 协议、证书/密钥管理、其他架构或全产品发布准入。
+
+2026-10-25 历史阻断：当时 `xl.exe` 从 `demo6` 根目录运行默认包门禁，公开头、
 严格 GCC、C 边界与 C 范例通过；首个 XLang 范例在包代码执行前报
 `include/xruntime_decl.h` 未找到，后续语言与 AOT 门禁未运行。
 这是已记录的共享 VFS 头路径问题，最小复现和修复方向见
 `../../../dev/extlib_blockers/tcc_vfs_runtime_decl_include.md`。
-不能沿用下方先前发布物的通过记录签收当前发布版，也不在包内
-增加 include 映射或改变工作目录来掩盖故障。
+当时不能沿用先前发布物的通过记录签收，也没有在包内
+增加 include 映射或改变工作目录来掩盖故障。当前状态以文首为准。
 
 2026-10-25 先前发布物的边界补测：OID `2.999.3` 的首个合并子标识符
 `80 + 999 = 1079` 需要多字节 base-128 编码。C 与 XLang 均固定
@@ -56,7 +63,7 @@ C 范例可直接 `xl run` 单文件运行；仅该路径在 TCC 下编入包内
 
 双语范例覆盖全部 16 个公开 XLang 构件：编码、解析、DER 组合、标签与子项偏移；C 范例逐次检查返回值再使用，失败路径释放已分配结果。范例中的 SET 包含两个按完整 DER 字节排序的 INTEGER；若顺序相反，`wrapSet` 报错，不会静默重排。SEQUENCE 则保留调用者给出的子项顺序。
 
-在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/pkcs/test/check.ps1 -SkipAot`，执行严格 GCC、C/XLang 边界与双语范例对照。Linux 使用 `bash release/extlibs/pkcs/test/check.sh`，同次运行严格 GCC/ASan/UBSan C 测试、中央与包内 XLang 边界，并逐字节核对 C/XLang 范例输出。Linux 门禁还需 `openssl` 和 `xxd`，以 OpenSSL 独立解析范例生成的算法标识、INTEGER 和 OCTET STRING，核对标签与值。2026-10-17 增强后的 Linux 门禁通过。
+在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/pkcs/test/check.ps1`，执行严格 GCC、C/XLang 边界、分配故障、双语范例及独立 AOT；`-SkipAot` 只供聚焦快测。Linux 使用 `bash release/extlibs/pkcs/test/check.sh`，同次运行严格 GCC/ASan/UBSan C 测试、中央与包内 XLang 边界、双语范例及边界/C/XLang 范例独立 EXE。Linux 门禁还需 `openssl` 和 `xxd`，以 OpenSSL 独立解析范例生成的 DER，核对标签与值。
 2026-10-16 将包内 XLang `test/boundaries.xl` 登记到 `coverage.tests`；从
 `demo6` 工作目录单独运行通过。本轮未重跑 C/Linux/AOT 门禁。
 
@@ -64,7 +71,7 @@ C 范例可直接 `xl run` 单文件运行；仅该路径在 TCC 下编入包内
 
 同日补 `wrapSequence`/`wrapSet` 构造阶段的分配故障注入：内存失败保留 `XERR_MEMORY`，只有 DER 内容不规范才报告 `XERR_VALUE`；故障清除后可继续调用。`bash release/extlibs/pkcs/test/check.sh` 在 Linux 运行本包严格 GCC 与 ASan/UBSan C 门禁，本轮通过。
 
-不加 `-SkipAot` 的 Windows 门禁还会构建并运行 XLang 边界与范例；较早发布物曾在共享符号 `xl6ValueDataSnapshotV1` 处停止，阻断记录见 `dev/extlib_blockers/text_snapshot_link.md`。当前发布物的首个失败点已变为页首所述 VFS 头路径，仍未完成 AOT 验收。
+旧发布物的 Windows AOT 曾在共享符号 `xl6ValueDataSnapshotV1` 处停止，阻断记录见 `dev/extlib_blockers/text_snapshot_link.md`；2026-10-26 两平台默认门禁已验证此问题与 VFS 头路径问题均不再复现。
 2026-10-17 修复公开头在未预先启用 XRT value 模块时无法独立包含的问题；
 Windows/Linux 严格 C 门禁均固定无模块和显式模块两种编译方式，C/XLang
 边界、双语范例及 Linux ASan/UBSan 包级门禁复跑通过。AOT 阻断不变。

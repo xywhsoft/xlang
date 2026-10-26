@@ -69,4 +69,13 @@ grep -q 'INTEGER.*:01' "$work/set.txt"
 grep -q 'INTEGER.*:3039' "$work/set.txt"
 grep -q 'BIT STRING' "$work/bit_string.txt"
 grep -q 'OBJECT.*2.999.3' "$work/large_first_arc.txt"
-printf 'pkcs Linux C ASan/UBSan and XLang parity gate: PASS\n'
+
+timeout 90s ./release/xl build release/extlibs/pkcs/test/boundaries.xl -o "$work/pkcs_boundaries"
+timeout 30s "$work/pkcs_boundaries"
+timeout 90s ./release/xl build release/examples/extlibs/pkcs.xl -o "$work/pkcs_xl_aot"
+timeout 30s "$work/pkcs_xl_aot" > "$work/xl_aot.txt"
+diff -u "$work/c_example.txt" "$work/xl_aot.txt"
+timeout 90s ./release/xl build release/extlibs/pkcs/examples/pkcs_c.c -o "$work/pkcs_c_aot"
+timeout 30s "$work/pkcs_c_aot" > "$work/c_aot.txt"
+diff -u "$work/c_example.txt" "$work/c_aot.txt"
+printf 'pkcs Linux C ASan/UBSan, OpenSSL interop and bilingual AOT gate: PASS\n'

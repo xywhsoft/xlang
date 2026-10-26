@@ -60,6 +60,11 @@ try {
             'release/examples/extlibs/pkcs.xl', '-o', $example)
         $aotOutput = Run 'XLang example AOT' $example @()
         if ($aotOutput -cne $cOutput) { throw 'C/XLang AOT output differs' }
+        $cExampleAot = Join-Path $work 'c_example.exe'
+        $null = Run 'C example build' $xl @('build',
+            'release/extlibs/pkcs/examples/pkcs_c.c', '-o', $cExampleAot)
+        $cAotOutput = Run 'C example AOT' $cExampleAot @()
+        if ($cAotOutput -cne $cOutput) { throw 'C AOT output differs' }
     }
 } finally {
     Pop-Location
