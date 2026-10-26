@@ -86,4 +86,12 @@ int64_t xl6TlsClientContextTicketCapacityV1(void* raw)
 {const XL6_TlsClientContextV1* self=checked(raw);return self?self->ticketCapacity:0;}
 bool xl6TlsClientContextResumeRequiredV1(void* raw)
 {const XL6_TlsClientContextV1* self=checked(raw);return self&&self->resumeRequired;}
-XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6TlsClientContextHandlePolicyV1Get,xl6TlsClientContextDestroyV1)
+static bool trace(const xvalue* value,xrtownershipvisitor visit,void* context)
+{
+    void* raw=NULL;void* user=NULL;const xvaluehandleops* actual=NULL;
+    if(!visit||!xrtValueGetHandle(value,&raw,&actual,&user)||!raw||user||
+        actual!=xl6TlsClientContextHandlePolicyV1Get()->Ops)return false;
+    const XL6_TlsClientContextV1* self=raw;
+    return self->verifier.value&&visit(xrtTlsVerifierOwnership(self->verifier.value),context);
+}
+XL6_DEFINE_NATIVE_HANDLE_POLICY(xl6TlsClientContextHandlePolicyV1Get,xl6TlsClientContextDestroyV1,trace)

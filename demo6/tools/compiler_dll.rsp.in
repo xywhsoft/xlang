@@ -715,6 +715,7 @@
     src\runtime\xl6_tls_parameters_domain.c
     src\runtime\xl6_tls_verification_policy.c
     src\runtime\xl6_tls_verifier.c
+    src\runtime\xl6_tls_verifier_context.c
     src\runtime\xl6_tls_verifier_create.c
     src\runtime\xl6_tls_verifier_verify.c
     src\runtime\xl6_tls_verification_policy_domain.c

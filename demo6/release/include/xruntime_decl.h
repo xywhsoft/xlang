@@ -26573,6 +26573,22 @@ XRT_API bool xrtTlsSessionBufferOwnershipTrace(
 	ptr pContext
 );
 
+/* Managed-owner graph of a uniquely owned, quiescent built-in session:
+ * the four buffer queues AND the verified-client role's actual Verifier slot.
+ * Inert native parameters, built-in key material, DER and resume bytes have
+ * no outgoing callback/language owners, even when shared by native references.
+ * A server's opaque external signer REFUSES this walk; it is not a leaf.
+ * Raw internal base sessions have no role-owned counted references.
+ * Borrowed server selector/resume callback data are NOT owning slots and must
+ * remain covered by the embedding owner's own graph and code residency.
+ * Same freeze/visitor/failure rules as BufferOwnershipTrace. This does not
+ * admit the reported children: an opaque legacy Verifier remains opaque. */
+XRT_API bool xrtTlsSessionOwnershipTrace(
+	const xtlssession* pSession,
+	xrtownershipvisitor pVisit,
+	ptr pContext
+);
+
 
 
 /* 返回会话的客户端或服务端角色；失败返回零并设置错误。 */
