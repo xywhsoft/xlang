@@ -9,14 +9,18 @@ from pathlib import Path
 
 
 def main():
-    if sys.platform != "win32":
-        raise SystemExit("this gate uses the Windows package C runner")
     root = Path(__file__).resolve().parents[4]
-    command = [
-        "powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
-        "tools/run_extlib_c.ps1", "-Package", "zip", "-Source",
-        "release/extlibs/zip/test/interop.c",
-    ]
+    runner = os.environ.get("XL_ZIP_INTEROP_RUNNER")
+    if runner:
+        command = [runner]
+    elif sys.platform == "win32":
+        command = [
+            "powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+            "tools/run_extlib_c.ps1", "-Package", "zip", "-Source",
+            "release/extlibs/zip/test/interop.c",
+        ]
+    else:
+        raise SystemExit("set XL_ZIP_INTEROP_RUNNER to the native C test")
 
     def run(mode, hex_data=""):
         env = os.environ.copy()

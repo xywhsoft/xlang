@@ -74,6 +74,11 @@ try {
         Run 'XLang example AOT build' $xl @('build',
             'release/examples/extlibs/zip.xl', '-o', $exampleAot)
         Run 'XLang example AOT' $exampleAot @() 'zip C/XL example: PASS'
+        $cExampleAot = Join-Path $work 'zip_c_example.exe'
+        Run 'C example AOT build' $xl @('build',
+            'release/extlibs/zip/test/c_aot_import.xl',
+            'release/examples/extlibs/zip_c.c', '-o', $cExampleAot)
+        Run 'C example AOT' $cExampleAot @() 'zip C/XL example: PASS'
     }
 } finally {
     Pop-Location

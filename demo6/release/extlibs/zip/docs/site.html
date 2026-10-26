@@ -75,8 +75,8 @@ int main(void)
     <pre><code>xl run extlibs/zip/test/boundaries.xl
 xl run examples/extlibs/zip.xl
 powershell -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package zip -Source release/extlibs/zip/test/test_zip.c</code></pre>
-    <p>2026-10-25 使用 Python 标准库 <code>zipfile</code> 与 C 接口双向交换 ZIP，验证 UTF-8 文件名、DEFLATE/STORED、二进制正文及损坏时的 CRC 拒绝；可运行 <code>python release/extlibs/zip/test/interop.py</code> 复验。此前发布版的包级 C/XLang/AOT 门禁曾通过，但当前新构建的 XLang 导入受共享 TCC VFS 头文件路径问题阻断，本次不能签收 JIT/AOT。危险路径、缺失条目等失败由包装层抛出 <code>ArchiveError</code>；原生内存故障仍保留 <code>MemoryError</code>。</p>
-    <p>自定义 C Writer 的流式条目输出区分内存故障和普通 I/O；文件提取的 Writer 阶段也有写入、刷新、关闭与复合失败的注入回归，保留最先失败阶段的错误类别。Linux C ASan/UBSan 与符号链接专项曾通过，但本次包更新尚未在 Linux XLang 发布版复验。真实文件句柄的操作系统刷新/关闭失败仍未注入；包外私有构造器和并发修改目标目录的安全边界仍未签收，不能视为最终发布签收。</p>
+    <p>2026-10-26 当前 Windows/Linux 功能门禁均通过 C/XLang JIT/AOT 与双语范例。两平台用 Python 标准库 <code>zipfile</code> 与 C 接口双向交换 ZIP，验证 UTF-8 文件名、DEFLATE/STORED、二进制正文及损坏时的 CRC 拒绝。C 独立 EXE 通过显式导入 <code>zip</code> 的 XLang 文件与 C 源同编；旧 TCC VFS 头路径阻断未在当前发布物复现。危险路径、缺失条目等失败由包装层抛出 <code>ArchiveError</code>；原生内存故障仍保留 <code>MemoryError</code>。</p>
+    <p>自定义 C Writer 的流式条目输出区分内存故障和普通 I/O；文件提取的 Writer 阶段也有写入、刷新、关闭与复合失败的注入回归，保留最先失败阶段的错误类别。Linux C ASan/UBSan 与符号链接专项通过。当前编译器仍允许包外调用私有内存构造器，发布单头也尚未提供包内根锚定 rename；不可信或可并发修改的解压目录不属于已签收安全范围。</p>
   </section>
 </main>
 <script src="../main.js"></script>

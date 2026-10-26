@@ -1,5 +1,17 @@
 # zip
 
+2026-10-26：当前 Windows/Linux 发布物的功能门禁均退出 0。
+两平台覆盖 C 边界、语言 JIT/AOT、私有成员负例及公开 C/XLang 范例；
+Python `zipfile` 与 C 接口双向验证 UTF-8、DEFLATE/STORED、
+二进制内容和 CRC。Linux 另通过 C ASan/UBSan 与符号链接边界。
+C 范例单独 `xl build zip_c.c` 不会自动导入包；混编 AOT 用
+`test/c_aot_import.xl` 显式 `import zip` 后与 C 源同编。
+Linux 完整门禁的重型编译/运行设有 180/240 秒单阶段上限。
+但当前 `xl check test/private_memory_constructor_negative.xl` 仍返回
+`ok`，且发布单头尚无 `xrtRootFileRename`、包内未接入根锚定提交；
+因此只确认功能门禁，不签收包外构造器与不可信并发目录的安全边界。
+下方旧 TCC VFS 头路径失败记录只描述当时发布物。
+
 2026-10-25 独立格式互通：新增 `test/interop.c` / `test/interop.py`，
 由 Python 标准库 `zipfile` 读取 C 创建的归档，再由 C 读取 Python 创建的
 归档。目录、UTF-8 文件名、DEFLATE/STORED、二进制正文及 CRC 均通过；
