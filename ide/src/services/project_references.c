@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <wchar.h>
+#include <limits.h>
 #define RECORDS 65538u
 #define RETAINED_BYTES (128u*1024u*1024u)
 #define RESULT_BYTES (32u*1024u*1024u)
@@ -16,10 +17,10 @@
 typedef struct reference_record {xls_context* scope;xide_reference_shard* shard;xide_language_input_guard* guard;char** overlays;wchar_t* key;size_t count,bytes;uint64_t used;} reference_record;
 struct xide_project_references {xtaskpool* pool;xls_worker *analysis,*keys;xide_toolchains* cache;char* compiler;xarray records;struct {xls_context* context;size_t count;} scopes[64];size_t bytes;uint64_t clock;};
 struct xide_reference_query {xfuture* future;xfuturewatch watch;int initialized,linked;void (*wake)(void*);void* user;};
-typedef struct reference_input {xide_project_references* store;xls_context* scope;xls_analysis_document docs[64];size_t count;char *trigger,*path;int line,character,include;} reference_input;
+typedef struct reference_input {xide_project_references* store;xls_context* scope;xls_analysis_document docs[64];size_t count;char *trigger,*path;int line,character,include,proof;} reference_input;
 typedef struct reference_output {xvalue* locations;xide_project_reference_stats stats;char error[512];} reference_output;
 typedef struct root {char* path;wchar_t* key;} root;
-typedef struct result_row {char* path;wchar_t* key;xide_lsp_position start,end;} result_row;
+typedef struct result_row {char* path;wchar_t* key;xide_lsp_position start,end;const xvalue* proof;} result_row;
 static xstrview sv(const char* s){return (xstrview){s,strlen(s)};}
 static const xvalue* get(const xvalue* v,const char* key){return v && xrtValueType(v)==XVALUE_OBJECT ? xrtValueObjectGet(v,sv(key)) : NULL;}
 static const char* string(const xvalue* v){xstrview s={0};return v && xrtValueGetString(v,&s) && !memchr(s.Data,0,s.Size) ? s.Data : NULL;}
@@ -123,10 +124,28 @@ static reference_record* analyze(reference_input* in,const char* path,int keyWan
 failed:releaseRecord(r);r=NULL;
 done:xideLanguageCheckDestroy(check);if(event)xrtEventDestroy(event);return r;
 }
-static int appendRows(xarray* rows,const reference_record* r,const xide_reference_key* key,int include,size_t* textBytes,reference_output* out)
+static bool countProof(xbytesview data,void* user){return charge(user,data.Size,PROOF_BYTES);}
+static const xvalue* sourceProof(reference_input* in,const reference_record* r,const char* path,xmap* known,xarray* proofs,size_t* proofBytes)
+{
+ bool added=false;size_t* index=xrtMapGetOrAdd(known,(xbytesview){(const unsigned char*)path,strlen(path)},&added);if(!index)return NULL;
+ if(!added)return *index<proofs->Count ? ((xvalue**)proofs->Data)[*index] : NULL;
+ *index=SIZE_MAX;const xvalue* input=NULL;const xvalue* files=xideLanguageInputGuardFiles(r->guard);
+ for(size_t i=0;i<xrtValueCount(files);++i){const xvalue* file=xrtValueArrayGet(files,i);if(same(string(get(file,"path")),path)){input=file;break;}}
+ const char* origin=string(get(input,"origin"));if(!origin)return NULL;
+ int overlay=!strcmp(origin,"overlay"),at=currentDocument(in,path);if(overlay!=(at>=0) || (!overlay && strcmp(origin,"disk")))return NULL;
+ if(overlay && in->docs[at].revision>UINT_MAX)return NULL;
+ xvalue* document=NULL;
+ for(size_t i=0;i<xideSemanticReferenceShardSources(r->shard);++i){xide_semantic_source source;if(!xideSemanticReferenceShardSource(r->shard,i,&source))return NULL;if(same(source.path,path)){document=xideLanguageReferenceDocument(&source,overlay?(int)((int64_t)in->docs[at].revision+INT_MIN):0,overlay?NULL:input);break;}}
+ xvalue* proof=xrtValueObject();int okay=document && proof && put(proof,"schema",xrtValueInt(1));
+ if(okay){okay=put(proof,"document",document);document=NULL;}xrtValueRelease(document);
+ xjsonwriteconfig config;xrtJsonWriteConfigInit(&config);config.MaxOutputBytes=PROOF_BYTES;
+ okay=okay && charge(proofBytes,strlen(path)*2+4*sizeof(void*),PROOF_BYTES) && xrtJsonWrite(proof,&config,countProof,proofBytes);
+ if(!okay || !xrtArrayPush(proofs,&proof)){xrtValueRelease(proof);return NULL;}*index=proofs->Count-1;return proof;
+}
+static int appendRows(reference_input* in,xarray* rows,const reference_record* r,const xide_reference_key* key,int include,size_t* textBytes,xmap* known,xarray* proofs,size_t* proofBytes,reference_output* out)
 {
  xide_reference_shard_view view;enum xide_reference_match match=xideSemanticReferenceShardQuery(r->shard,key,include,&view);if(match!=XIDE_REFERENCE_MATCH)return fail(out,"Declaration source changed between independently analyzed members.");
- for(size_t i=0;i<view.count;++i){xide_semantic_reference at;if(!xideSemanticReferenceShardAt(&view,i,&at))return fail(out,"Invalid captured reference range.");result_row row={xrtStrDup(at.path),xidePathNativeWide(at.path),at.start,at.end};if(!row.path || !row.key){xrtFree(row.path);free(row.key);return fail(out,"Cannot retain reference locations.");}size_t add=strlen(row.path)+1+(wcslen(row.key)+1)*sizeof(wchar_t);
+ for(size_t i=0;i<view.count;++i){xide_semantic_reference at;if(!xideSemanticReferenceShardAt(&view,i,&at))return fail(out,"Invalid captured reference range.");result_row row={.path=xrtStrDup(at.path),.key=xidePathNativeWide(at.path),.start=at.start,.end=at.end};if(in->proof)row.proof=sourceProof(in,r,at.path,known,proofs,proofBytes);if(!row.path || !row.key || (in->proof && !row.proof)){xrtFree(row.path);free(row.key);return fail(out,"Cannot retain verified reference locations.");}size_t add=strlen(row.path)+1+(wcslen(row.key)+1)*sizeof(wchar_t);
   if(!charge(textBytes,add,RESULT_BYTES) || rows->Count>=RESULT_BYTES/(2*sizeof(result_row)) || !xrtArrayPush(rows,&row)){xrtFree(row.path);free(row.key);return fail(out,"Reference location budget exceeded.");}
   if(rows->Capacity>RESULT_BYTES/sizeof(result_row) || *textBytes>RESULT_BYTES-rows->Capacity*sizeof(result_row))return fail(out,"Reference location storage budget exceeded.");
  }return 1;
@@ -138,14 +157,14 @@ static int locations(xarray* rows,reference_output* out)
  if(!xrtArraySort(rows,compareRow))return 0;
  out->locations=xrtValueArray();if(!out->locations)return 0;result_row* items=(result_row*)rows->Data;
  for(size_t i=0;i<rows->Count;++i){if(i && !compareRow(items+i-1,items+i))continue;char* uri=xideLspPathToUri(items[i].path,NULL);xvalue *location=xrtValueObject(),*range=xrtValueObject();int okay=uri && location && range && put(range,"start",wirePosition(items[i].start)) && put(range,"end",wirePosition(items[i].end));
-  if(okay){okay=put(location,"range",range);range=NULL;}if(okay)okay=put(location,"uri",xrtValueString(sv(uri)));if(okay){okay=xrtValueArrayAppendNew(out->locations,location);location=NULL;}xrtValueRelease(location);xrtValueRelease(range);free(uri);if(!okay)return 0;
+  if(okay){okay=put(location,"range",range);range=NULL;}if(okay)okay=put(location,"uri",xrtValueString(sv(uri)));if(okay && items[i].proof)okay=xrtValueObjectSet(location,sv("xlang"),items[i].proof);if(okay){okay=xrtValueArrayAppendNew(out->locations,location);location=NULL;}xrtValueRelease(location);xrtValueRelease(range);free(uri);if(!okay)return 0;
  }
  xjsonwriteconfig config;xrtJsonWriteConfigInit(&config);config.MaxOutputBytes=RESULT_WIRE_BYTES;size_t bytes=0;out->stats.locations=xrtValueCount(out->locations);return xrtJsonWrite(out->locations,&config,countWire,&bytes);
 }
 static xtaskoutcome execute(xcancel* cancel,void* data,xtaskvalue* value)
 {
- reference_input* in=data;reference_output* out=xrtCalloc(1,sizeof(*out));if(!out)return XTASK_FAILED;out->stats.thread=xrtThreadCurrentId();xarray roots={0},rows={0},guards={0};size_t rootBytes=0,rowBytes=0,proofBytes=0;xide_reference_key* key=NULL;reference_record* transient=NULL;
- if(!xrtArrayInit(&roots,sizeof(root)) || !xrtArrayInit(&rows,sizeof(result_row)) || !xrtArrayInit(&guards,sizeof(xide_language_input_guard*)))goto failed;
+ reference_input* in=data;reference_output* out=xrtCalloc(1,sizeof(*out));if(!out)return XTASK_FAILED;out->stats.thread=xrtThreadCurrentId();xarray roots={0},rows={0},guards={0},proofs={0};xmap known={0};size_t rootBytes=0,rowBytes=0,proofBytes=0;xide_reference_key* key=NULL;reference_record* transient=NULL;
+ if(!xrtArrayInit(&roots,sizeof(root)) || !xrtArrayInit(&rows,sizeof(result_row)) || !xrtArrayInit(&guards,sizeof(xide_language_input_guard*)) || !xrtArrayInit(&proofs,sizeof(xvalue*)) || !xrtMapInit(&known,sizeof(size_t)))goto failed;
  const xls_context_spec* scope=xlsContextSpec(in->scope);if(!addRoot(&roots,scope->directory,in->path,&rootBytes) || !addRoot(&roots,scope->directory,scope->entry,&rootBytes))goto failed;
  for(size_t i=0;i<scope->lists[XLS_CONTEXT_MEMBERS].count;++i){if(stopped(cancel))goto done;if(!addRoot(&roots,scope->directory,scope->lists[XLS_CONTEXT_MEMBERS].items[i],&rootBytes))goto failed;}
  if(!xrtArraySort(&roots,compareRoot))goto failed;
@@ -157,7 +176,7 @@ static xtaskoutcome execute(xcancel* cancel,void* data,xtaskvalue* value)
   if(!record){record=analyze(in,all[i].path,!step,cancel,&key,out);if(!record)goto done;transient=record;}else ++out->stats.reused;
   ++out->stats.roots;if(!step && !key){out->locations=xrtValueArray();if(!out->locations)goto failed;goto done;}
   size_t charged=xideLanguageInputGuardReportBytes(record->guard);if(charged==SIZE_MAX || !charge(&proofBytes,charged,PROOF_BYTES))goto failed;xide_language_input_guard* guard=xideLanguageInputGuardRetain(record->guard);if(!xrtArrayPush(&guards,&guard)){xideLanguageInputGuardRelease(guard);goto failed;}
-  if(!appendRows(&rows,record,key,in->include,&rowBytes,out))goto done;
+  if(!appendRows(in,&rows,record,key,in->include,&rowBytes,&known,&proofs,&proofBytes,out))goto done;
   if(fresh && cacheRecord(in->store,record))transient=NULL;else if(fresh){releaseRecord(transient);transient=NULL;}
  }
  for(size_t i=0;i<guards.Count;++i){xide_model_error error={0};if(!xideLanguageInputGuardValidate(((xide_language_input_guard**)guards.Data)[i],stopped,cancel,&error)){fail(out,"Project source/resolution inputs changed before publication.");goto done;}}
@@ -170,6 +189,8 @@ done:
  for(size_t i=0;i<rows.Count;++i){result_row* r=(result_row*)rows.Data+i;xrtFree(r->path);free(r->key);}xrtArrayUnit(&rows);
  for(size_t i=0;i<guards.Count;++i)xideLanguageInputGuardRelease(((xide_language_input_guard**)guards.Data)[i]);
  xrtArrayUnit(&guards);
+ for(size_t i=0;i<proofs.Count;++i)xrtValueRelease(((xvalue**)proofs.Data)[i]);
+ xrtArrayUnit(&proofs);xrtMapUnit(&known);
  out->stats.chargedBytes=in->store->bytes+in->store->records.Capacity*sizeof(reference_record*)+sizeof(*in->store);out->stats.records=in->store->records.Count;
  if(stopped(cancel)){freeOutput(out,NULL);return XTASK_CANCELLED;}
  if(*out->error){xrtValueRelease(out->locations);out->locations=NULL;}*value=(xtaskvalue){out,freeOutput,NULL};return XTASK_SUCCESS;
@@ -185,13 +206,15 @@ xide_project_references* xideProjectReferencesCreate(xide_toolchains* cache,cons
 }
 void xideProjectReferencesDestroy(xide_project_references* store)
 {if(!store)return;if(store->pool){xrtTaskPoolCancel(store->pool);xrtTaskPoolDestroy(store->pool);}for(size_t i=0;i<store->records.Count;++i)releaseRecord(records(store)[i]);xrtArrayUnit(&store->records);xlsWorkerDestroy(store->analysis);xlsWorkerDestroy(store->keys);xrtFree(store->compiler);xrtFree(store);}
-xide_reference_query* xideProjectReferencesSubmit(xide_project_references* store,xls_context* context,const xls_analysis_document* docs,size_t count,const char* trigger,const char* path,int line,int character,int include)
+xide_reference_query* xideProjectReferencesSubmitWithProof(xide_project_references* store,xls_context* context,const xls_analysis_document* docs,size_t count,const char* trigger,const char* path,int line,int character,int include,int proof)
 {
- if(!store || !context || !docs || !count || count>64 || !trigger || !path || line<0 || character<0 || (include!=0 && include!=1))return NULL;
- reference_input* in=xrtCalloc(1,sizeof(*in));xide_reference_query* q=xrtCalloc(1,sizeof(*q));if(!in || !q){xrtFree(in);xrtFree(q);return NULL;}in->store=store;in->scope=xlsContextRetain(context);in->trigger=xrtStrDup(trigger);in->path=xrtStrDup(path);in->line=line;in->character=character;in->include=include;int okay=in->trigger && in->path;
+ if(!store || !context || !docs || !count || count>64 || !trigger || !path || line<0 || character<0 || (include!=0 && include!=1) || (proof!=0 && proof!=1))return NULL;
+ reference_input* in=xrtCalloc(1,sizeof(*in));xide_reference_query* q=xrtCalloc(1,sizeof(*q));if(!in || !q){xrtFree(in);xrtFree(q);return NULL;}in->store=store;in->scope=xlsContextRetain(context);in->trigger=xrtStrDup(trigger);in->path=xrtStrDup(path);in->line=line;in->character=character;in->include=include;in->proof=proof;int okay=in->trigger && in->path;
  for(size_t i=0;okay && i<count;++i){in->docs[i]=docs[i];in->docs[i].key=docs[i].key ? xrtStrDup(docs[i].key) : NULL;in->docs[i].path=docs[i].path ? xrtStrDup(docs[i].path) : NULL;in->docs[i].text=xlsTextRetain(docs[i].text);++in->count;okay=in->docs[i].key && in->docs[i].path && in->docs[i].text;}
  xtaskargs args={.Destroy=freeInput};if(okay)q->future=xrtTaskSubmit(store->pool,execute,in,&args);if(!q->future){freeInput(in,NULL);xrtFree(q);return NULL;}return q;
 }
+xide_reference_query* xideProjectReferencesSubmit(xide_project_references* store,xls_context* context,const xls_analysis_document* docs,size_t count,const char* trigger,const char* path,int line,int character,int include)
+{return xideProjectReferencesSubmitWithProof(store,context,docs,count,trigger,path,line,character,include,0);}
 enum xide_reference_query_state xideProjectReferencesResult(xide_reference_query* q,const xvalue** locationsOut,xide_project_reference_stats* stats,char* error,size_t capacity)
 {
  if(locationsOut)*locationsOut=NULL;

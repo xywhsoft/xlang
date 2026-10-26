@@ -32,7 +32,7 @@ typedef struct semantic_request {
 } semantic_request;
 typedef struct server {
  CRITICAL_SECTION lock; HANDLE reader,event; volatile LONG stop; message *head,*tail; size_t queueBytes,queueCount,queueInputs; int eof,readFailed;
- int initialized,shutdown,exitRequested,exitCode,writeFailed,checkOnSave,cliCompletion,cliDiagnostics,definitionInputProof; char *compiler,*directory; xide_toolchains* cache;
+ int initialized,shutdown,exitRequested,exitCode,writeFailed,checkOnSave,cliCompletion,cliDiagnostics,definitionInputProof,referenceInputProof; char *compiler,*directory; xide_toolchains* cache;
  document docs[DOC_LIMIT]; size_t textBytes; unsigned long long generation; xide_language_check* check; xvalue* checkId;
  int checkDocument,checkVersion,cancelCode,pending; unsigned long long checkGeneration; const char* cancelReason;
  int snapshotMode; unsigned long long checkBatchGeneration; xvalue* publishedGroups;
@@ -690,7 +690,7 @@ static void requestReferences(server* s,const xvalue* id,const xvalue* params)
  if(!context){package=xrtEnvGet("XLANG_PACKAGE_PATH");xls_context_spec spec={.kind=XLS_CONTEXT_XLANG,.entry=s->docs[i].path,.directory=s->directory,.analysisProfile="xlang-ls/compiler-xrt-v1",.targetKind="exe",.packagePath=package};context=xlsContextCreate(&spec,16u*1024u*1024u,NULL);}xrtFree(package);
  xls_analysis_document docs[DOC_LIMIT];size_t count=0;for(size_t j=0;j<DOC_LIMIT;++j)if(s->docs[j].uri){document* d=s->docs+j;docs[count++]=(xls_analysis_document){d->uri,d->path,d->content,d->identity,(uint64_t)((int64_t)d->version-INT_MIN)};}
  if(!s->references)s->references=xideProjectReferencesCreate(s->cache,s->compiler,s->modules);
- xvalue* captured=xrtValueDeepClone(id);xide_reference_query* query=context && captured ? xideProjectReferencesSubmit(s->references,context,docs,count,s->docs[i].uri,s->docs[i].path,line,character,include) : NULL;xlsContextRelease(context);
+ xvalue* captured=xrtValueDeepClone(id);xide_reference_query* query=context && captured ? xideProjectReferencesSubmitWithProof(s->references,context,docs,count,s->docs[i].uri,s->docs[i].path,line,character,include,s->referenceInputProof) : NULL;xlsContextRelease(context);
  if(!query || !xideProjectReferencesSetWake(query,nativeWake,s)){xideProjectReferencesCancel(query);xideProjectReferencesQueryDestroy(query);xrtValueRelease(captured);response(s,id,NULL,-32603,"Cannot start background project references.");return;}
  s->referenceRequests[slot].query=query;s->referenceRequests[slot].id=captured;s->referenceRequests[slot].document=i;s->referenceRequests[slot].version=version;s->referenceRequests[slot].identity=s->docs[i].identity;s->referenceRequests[slot].serial=s->inputSerial;s->referenceRequests[slot].epoch=s->configurationEpoch;
 }
@@ -752,6 +752,8 @@ static void dispatch(server* s,const xvalue* message)
   }
   automatic=automatic || conditional;
   const xvalue* definitionProofSupport=get(get(get(params,"capabilities"),"experimental"),"definitionInputProof");
+  const xvalue* referenceProofSupport=get(get(get(params,"capabilities"),"experimental"),"referenceInputProof");bool referenceProof=false;
+  if(referenceProofSupport && !xrtValueGetBool(referenceProofSupport,&referenceProof)){response(s,id,NULL,-32602,"referenceInputProof must be boolean.");return;}
   if(definitionProofSupport && !xrtValueGetBool(definitionProofSupport,&definitionProof)) { response(s,id,NULL,-32602,"Definition input proof capability must be boolean."); return; }
   const xvalue* rangeLimit=get(get(get(get(params,"capabilities"),"textDocument"),"foldingRange"),"rangeLimit"); int64 limit=65536;
   if(rangeLimit && (!xrtValueGetInt(rangeLimit,&limit) || limit<0 || limit>UINT32_MAX)) { response(s,id,NULL,-32602,"Folding rangeLimit must be a nonnegative 32-bit integer."); return; }
@@ -759,7 +761,7 @@ static void dispatch(server* s,const xvalue* message)
   const xvalue* configuration=get(options,"analysisConfiguration");xide_model_error configurationError={0};
   if(configuration && !configureAnalysis(s,configuration,&configurationError)) {response(s,id,NULL,-32602,configurationError.message);return;}
   if(automatic && !s->diagnostics && !(s->diagnostics=xideDiagnosticStoreCreateWithDependencies(NULL,dependencyProof))) { response(s,id,NULL,-32603,"Unable to create the automatic diagnostic actor."); return; }
-  s->automaticDiagnostics=automatic; s->diagnosticVersions=versions; s->diagnosticInputProof=inputProof; s->diagnosticDependencyProof=dependencyProof;s->diagnosticOverlayProof=overlayProof; s->definitionInputProof=definitionProof; s->diagnosticDelay=delay; s->diagnosticSweepAt=GetTickCount64()+1000;
+  s->automaticDiagnostics=automatic; s->diagnosticVersions=versions; s->diagnosticInputProof=inputProof; s->diagnosticDependencyProof=dependencyProof;s->diagnosticOverlayProof=overlayProof; s->definitionInputProof=definitionProof;s->referenceInputProof=referenceProof; s->diagnosticDelay=delay; s->diagnosticSweepAt=GetTickCount64()+1000;
   xvalue *result=xrtValueObject(),*cap=xrtValueObject(),*sync=xrtValueObject(),*save=xrtValueObject(),*info=xrtValueObject(),*scope=xrtValueObject();
   put(cap,"positionEncoding",xrtValueString(sv("utf-16"))); put(sync,"openClose",xrtValueBool(true)); put(sync,"change",xrtValueInt(2)); put(save,"includeText",xrtValueBool(true)); put(sync,"save",save); put(cap,"textDocumentSync",sync);
   put(cap,"foldingRangeProvider",xrtValueBool(true)); put(scope,"residentSyntax",xrtValueBool(true)); put(scope,"analysisRuntime",xrtValueString(sv("compiler-xrt")));
@@ -777,6 +779,7 @@ static void dispatch(server* s,const xvalue* message)
   put(scope,"diagnosticOverlayProof",xrtValueBool(true));
   put(scope,"inputState",xrtValueBool(true));
   put(scope,"definitionInputProof",xrtValueBool(true));
+  put(scope,"referenceInputProof",xrtValueBool(!s->cliCompletion && !s->cliDiagnostics));
   put(scope,"nativeSnapshotDiagnostics",xrtValueBool(!s->cliDiagnostics)); put(scope,"diagnosticsBackend",xrtValueString(sv(s->cliDiagnostics ? "cli" : "native")));
   put(scope,"retainedSemanticChecks",xrtValueBool(!s->cliDiagnostics)); put(scope,"retainedNativeInputs",xrtValueBool(!s->cliDiagnostics || !s->cliCompletion));
   put(scope,"incrementalEntrySyntax",xrtValueBool(!s->cliDiagnostics));
@@ -791,7 +794,7 @@ static void dispatch(server* s,const xvalue* message)
 #ifdef XLS_COMPILER_XRT
   if(!s->cliCompletion && !s->cliDiagnostics)put(cap,"referencesProvider",xrtValueBool(true));
 #endif
-  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.78"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
+  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.79"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
  }
  if(!s->initialized) { if(id) response(s,id,NULL,-32002,"Server not initialized."); return; }
  if(s->shutdown) { if(id) response(s,id,NULL,-32600,"Server has shut down."); return; }

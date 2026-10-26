@@ -42,8 +42,8 @@ SERVER_SOURCES = (
 )
 CORE_TESTS = ("analysis_context_fault_test", "analysis_context_resolution_test", "analysis_input_view_test", "analysis_context_test", "analysis_check_test", "analysis_check_session_test", "analysis_incremental_check_test", "analysis_semantic_memo_test", "analysis_check_worker_test", "analysis_index_test", "analysis_index_limit_test", "analysis_ir_scan_test", "analysis_stdlib_scan_test", "analysis_overload_scan_test", "analysis_completion_candidates_test", "analysis_ast_clone_test", "analysis_semantic_test", "analysis_completion_session_test", "analysis_folding_test", "analysis_worker_test", "analysis_session_test", "analysis_incremental_syntax_test", "analysis_cursor_syntax_test", "analysis_text_test", "document_sync_test")
 HOST_TESTS = ("signature_help_test", "analysis_catalog_test", "language_context_test", "semantic_lookup_test", "analysis_index_view_test", "language_input_guard_test", "diagnostic_store_test", "language_definition_proof_test", "snapshot_report_test")
-CLIENT_TESTS = ("diagnostic_dependencies_test", "diagnostic_notice_test", "diagnostic_stream_test")
-CLIENT_TEST_SOURCES = ("src/services/diagnostic_dependencies.c", "src/services/diagnostic_notice.c", "src/services/diagnostic_stream.c")
+CLIENT_TESTS = ("diagnostic_dependencies_test", "diagnostic_notice_test", "diagnostic_stream_test", "reference_results_test")
+CLIENT_TEST_SOURCES = ("src/services/diagnostic_dependencies.c", "src/services/diagnostic_notice.c", "src/services/diagnostic_stream.c", "src/services/reference_results.c")
 HOST_TESTS += CLIENT_TESTS
 HOST_TESTS += ("diagnostic_reverse_fault_test",)
 NATIVE_INDEX_BYTES = 32 * 1024 * 1024
@@ -732,7 +732,8 @@ def main() -> None:
                 # The stream fixture privately owns its actor for deterministic
                 # gates. Other client fixtures need only the pure decoders.
                 extra += [str(objects[Path(source).stem]) for source in CLIENT_TEST_SOURCES
-                          if Path(source).stem != "diagnostic_stream"]
+                          if Path(source).stem != "diagnostic_stream" and
+                          not (name == "reference_results_test" and Path(source).stem == "reference_results")]
             run([str(cc), str(objects[name]), *extra, str(core), "-Wl,--gc-sections", *libraries, "-o", str(program)], name + "-link")
             result = run([str(program)], name + "-run", 30)
             if b"passed:" not in result.stdout:

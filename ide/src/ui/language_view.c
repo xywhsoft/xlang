@@ -7,6 +7,7 @@
 #include "services/language_client.h"
 #include "services/language_check.h"
 #include "services/highlight_result.h"
+#include "services/reference_results.h"
 #include "services/sync_plan.h"
 #include "services/diagnostic_stream.h"
 #include "platform/file_watch.h"
@@ -29,10 +30,11 @@ typedef struct semantic_editor_binding { struct semantic_editor_binding* next; x
 typedef struct highlight_intent { xide_document* document; uint64_t id,stamp; uint32_t version; int offset,check,wire; } highlight_intent;
 typedef struct outline_item { const xvalue* symbol; int parent; char* title; } outline_item;
 struct xide_language_view {
+ struct xide_reference_view* references;
  xide_app* app; document_binding inputs[SNAPSHOT_DOCS]; size_t inputCount;
  annotation_binding annotations[SNAPSHOT_GROUPS]; size_t annotationCount;
  char* packagePath; int packageCaptured,lastSnapshotId,retryInputs,retryFailures;
- xvalue* snapshotResult; int snapshotMode,snapshotSupported,syncKind,nativeBackend; xls_sync* sync; uint64_t recheckAt,observedEdits;
+ xvalue *snapshotResult,*analysisCatalog; int snapshotMode,snapshotSupported,syncKind,nativeBackend; xls_sync* sync; uint64_t recheckAt,observedEdits;
  int onDemandMode,onDemandSupported,receiptRequest,receiptReady,checkRetries; char receiptDigest[65]; size_t receiptDocuments; uint64_t semanticRefreshAt,checkRetryAt,preemptDeadline;
  xide_language_client* client; char *compiler,*directory,*uri,*path; xide_document *document,*pendingSave;
  xvalue* diagnostics; uint64_t documentId; uint32_t version; int wireVersion,requestId,nextId,initialized,busy,waitingInitialize,invalidated,automatic;
@@ -119,6 +121,16 @@ static void cancelSyncPlan(xide_language_view* v);
 static void pollSyncPlan(xide_app* app);
 static int beginSyncPlan(xide_app* app,int mode);
 static int createOutline(xide_app* app);
+static int createReferences(xide_app* app);
+static void resetReferences(xide_language_view* v);
+static void cancelReferences(xide_language_view* v);
+static void destroyReferences(xide_language_view* v);
+static void pollReferences(xide_app* app);
+static int requestReferences(xide_app* app);
+static int referencesBusy(xide_language_view* v);
+static void referencesCapabilities(xide_language_view* v,const xvalue* cap);
+static int referenceReceiverInstall(xide_language_view* v);
+static int takeReferences(xide_language_view* v,xvalue* message);
 static void pollSemantic(xide_app* app);
 static void applyOutline(xide_app* app,const xvalue* result,const xvalue* error);
 static void applyHover(xide_app* app,const xvalue* result,const xvalue* error);
@@ -165,7 +177,7 @@ static void closeDocument(xide_language_view* v)
 static void reset(xide_app* app)
 {
  ++app->languageView->highlightSession;
- xide_language_view* v=app->languageView;automaticReset(v); clearDiagnostics(app); xideLanguageClientStop(v->client); v->client=NULL; free(v->compiler); free(v->directory); free(v->uri); free(v->path);
+ xide_language_view* v=app->languageView;resetReferences(v);automaticReset(v); clearDiagnostics(app); xideLanguageClientStop(v->client); v->client=NULL;xrtValueRelease(v->analysisCatalog);v->analysisCatalog=NULL; free(v->compiler); free(v->directory); free(v->uri); free(v->path);
  v->compiler=v->directory=v->uri=v->path=NULL; free(v->packagePath); v->packagePath=NULL; v->packageCaptured=0; freeInputs(v); xlsSyncDestroy(v->sync); v->sync=NULL; v->snapshotSupported=v->syncKind=v->nativeBackend=0; v->onDemandMode=v->onDemandSupported=v->definitionProofSupported=0; v->semanticRefreshAt=v->checkRetryAt=v->preemptDeadline=0; v->initialized=v->busy=v->waitingInitialize=0; v->invalidated=1; v->document=NULL; v->requestId=0; v->automatic=0; v->recheckAt=0; v->highlightSupported=v->highlightPreparing=0;
  v->autoEnabled=v->autoProbed=v->autoManual=0;
  v->analysisRequired=0;
@@ -174,6 +186,11 @@ void xideLanguageViewConfigurationChanged(xide_app* app)
 {
  if(!app || !app->languageView) return;
  xide_language_view* v=app->languageView;
+ /* A tree/status refresh can accompany a source change without changing
+    any semantic configuration. Compare the complete canonical catalog,not
+    an epoch/hash or display metadata,before discarding a live client. Disk
+    sources and import probes continue through their original guards. */
+ if(v->analysisCatalog){char* package=NULL;xide_model_error error={0};xvalue* packet=xideLanguageCheckPackagePath(&package,&error) ? xideAnalysisConfigurationPacket(&app->workspaceModel,app->selectedProject,app->configurationId,package,1,&error) : NULL;free(package);int same=packet && xrtValueEqual(v->analysisCatalog,get(packet,"catalog"));xrtValueRelease(packet);if(same)return;}
  if(v->client || v->snapshotResult || v->autoProbed) reset(app);
  xgeRenderRequest();
 }
@@ -261,8 +278,10 @@ static int connectClient(xide_app* app,xide_document* d)
   v->client=program && v->compiler && v->directory ? xideLanguageClientStart(program,compiler,directory,&e) : NULL; free(program);
   if(!v->client) { snprintf(v->message,sizeof(v->message),"%s",*e.message ? e.message : "无法启动 xlang-ls；请重新构建 IDE。"); free(directory); return 0; }
   xideLanguageClientSetWake(v->client,languageWake,app);
+  if(!referenceReceiverInstall(v)){reset(app);free(directory);return 0;}
   xvalue* configuration=xideAnalysisConfigurationPacket(&app->workspaceModel,app->selectedProject,app->configurationId,v->packagePath,1,&e);
   if(!configuration) {snprintf(v->message,sizeof(v->message),"%s",*e.message ? e.message : "无法准备工程分析配置。");reset(app);free(directory);return 0;}
+  v->analysisCatalog=xrtValueRetain(get(configuration,"catalog"));
   v->analysisRequired=xrtValueCount(get(get(configuration,"catalog"),"projects"))>0;
   xvalue *p=xrtValueObject(),*options=xrtValueObject(),*capabilities=xrtValueObject(),*experimental=xrtValueObject();
   if(!p || !options || !capabilities || !experimental) {xrtValueRelease(configuration);xrtValueRelease(p);xrtValueRelease(options);xrtValueRelease(capabilities);xrtValueRelease(experimental);reset(app);free(directory);return 0;}
@@ -272,7 +291,7 @@ static int connectClient(xide_app* app,xide_document* d)
    put(experimental,"diagnosticInputProof",xrtValueBool(true));put(experimental,"diagnosticDependencyProof",xrtValueBool(true));put(experimental,"diagnosticOverlayProof",xrtValueBool(true));
    put(options,"automaticDiagnosticsIfSupported",xrtValueBool(true));
   }
-  put(experimental,"definitionInputProof",xrtValueBool(true)); put(capabilities,"experimental",experimental); put(p,"capabilities",capabilities);
+  put(experimental,"definitionInputProof",xrtValueBool(true));put(experimental,"referenceInputProof",xrtValueBool(true)); put(capabilities,"experimental",experimental); put(p,"capabilities",capabilities);
   put(options,"checkOnSave",xrtValueBool(false)); put(options,"automaticDiagnostics",xrtValueBool(false)); put(p,"initializationOptions",options);
   if(!sendMessage(v,"initialize",p,1)) { free(directory); return 0; } v->waitingInitialize=1;
  }
@@ -370,9 +389,9 @@ static void pollSyncPlan(xide_app* app)
  } else okay=mode==1 ? finishSnapshotSync(app) : mode==2 ? finishOnDemandSync(app) : finishSavedSync(app);
  if(!okay) failSyncPlan(app);
 }
-static int prepareSymbols(xide_app* app)
+static int prepareSymbolsDocument(xide_app* app,xide_document* d)
 {
- xide_language_view* v=app ? app->languageView : NULL; xide_document* d=app ? app->activeDocument : NULL;
+ xide_language_view* v=app ? app->languageView : NULL;
  if(!v || v->busy || !canSnapshot(app,d) || !xideTaskViewCompiler(app)) return 0;
  if(v->autoEnabled) return automaticPrepare(app,0);
  if(v->snapshotMode && current(v)) {
@@ -388,6 +407,7 @@ static int prepareSymbols(xide_app* app)
  snprintf(v->message,sizeof(v->message),"正在准备 xlang 悬停与大纲…");
  xgeRenderRequest(); return 1;
 }
+static int prepareSymbols(xide_app* app){return prepareSymbolsDocument(app,app ? app->activeDocument : NULL);}
 static int check(xide_app* app) { return checkMode(app,0,app->activeDocument); }
 int xideLanguageViewCreate(xide_app* app)
 {
@@ -395,11 +415,11 @@ int xideLanguageViewCreate(xide_app* app)
  if(!v) return XUI_ERROR_OUT_OF_MEMORY;
  v->app=app; v->highlightDecoder=xideHighlightDecoderCreate(languageWake,app);v->syncPlanner=xideSyncPlannerCreate(languageWake,app);
  if(!v->highlightDecoder || !v->syncPlanner || !automaticCreate(v) || !QueryPerformanceFrequency(&v->highlightClock)) return XUI_ERROR_OUT_OF_MEMORY;
- return createOutline(app);
+ int created=createOutline(app);return created==XUI_OK ? createReferences(app) : created;
 }
 void xideLanguageViewStop(xide_app* app) { if(app->languageView) {automaticPause(app->languageView); suppressHighlights(app->languageView); reset(app); } }
 void xideLanguageViewDestroy(xide_app* app)
-{ xide_language_view* v=app->languageView; if(v) { xideLanguageClientStop(v->client);automaticDestroy(v); xideSyncPlannerDestroy(v->syncPlanner);xideSyncResultRelease(v->syncReady);xideHighlightDecoderDestroy(v->highlightDecoder); xrtValueRelease(v->deferredMessage); xideHighlightResultRelease(v->highlightResult); xlsSyncDestroy(v->sync); free(v->compiler); free(v->directory); free(v->uri); free(v->path); free(v->packagePath); xrtValueRelease(v->diagnostics); xrtValueRelease(v->snapshotResult); freeInputs(v); while(v->bindings) { semantic_editor_binding* next=v->bindings->next; free(v->bindings); v->bindings=next; } free(v); app->languageView=NULL; } }
+{ xide_language_view* v=app->languageView; if(v) { xideLanguageClientStop(v->client);automaticDestroy(v); xideSyncPlannerDestroy(v->syncPlanner);xideSyncResultRelease(v->syncReady);destroyReferences(v);xideHighlightDecoderDestroy(v->highlightDecoder); xrtValueRelease(v->deferredMessage); xideHighlightResultRelease(v->highlightResult); xlsSyncDestroy(v->sync); free(v->compiler); free(v->directory); free(v->uri); free(v->path); free(v->packagePath); xrtValueRelease(v->diagnostics); xrtValueRelease(v->snapshotResult);xrtValueRelease(v->analysisCatalog); freeInputs(v); while(v->bindings) { semantic_editor_binding* next=v->bindings->next; free(v->bindings); v->bindings=next; } free(v); app->languageView=NULL; } }
 int xideLanguageViewCanCheck(xide_app* app) { return app && app->languageView && !app->languageView->busy && eligible(app->activeDocument) && xideTaskViewCompiler(app); }
 int xideLanguageViewCanCheckCurrent(xide_app* app) { if(app && app->activeDocument && !strcmp(app->activeDocument->language,"c")) return xideCLanguageViewCanCheck(app); return app && app->languageView && !app->languageView->busy && canSnapshot(app,app->activeDocument) && xideTaskViewCompiler(app); }
 int xideLanguageViewCanDefine(xide_app* app)
@@ -452,12 +472,13 @@ static void pollDefinition(xide_app* app)
   else if(!sendDefinition(app)) v->definitionPending=0;
  }
 }
-int xideLanguageViewCanCancel(xide_app* app) { xide_language_view* v=app ? app->languageView : NULL; return xideCLanguageViewCanCancel(app) || (v && (v->autoEnabled || v->syncMode || v->highlightRequest || v->highlightDecoding || v->highlightApplied || v->highlightResult || v->busy || (v->snapshotMode && v->automatic) || v->recheckAt || v->semanticRefreshAt || (v->onDemandMode && (v->waitingInitialize || v->receiptRequest || v->definitionPending || v->definitionRequest || v->hoverRequest || v->outlineRequest)))); }
+int xideLanguageViewCanCancel(xide_app* app) { xide_language_view* v=app ? app->languageView : NULL; return xideCLanguageViewCanCancel(app) || referencesBusy(v) || (v && (v->autoEnabled || v->syncMode || v->highlightRequest || v->highlightDecoding || v->highlightApplied || v->highlightResult || v->busy || (v->snapshotMode && v->automatic) || v->recheckAt || v->semanticRefreshAt || (v->onDemandMode && (v->waitingInitialize || v->receiptRequest || v->definitionPending || v->definitionRequest || v->hoverRequest || v->outlineRequest)))); }
 int xideLanguageViewBusy(xide_app* app) { return app && app->languageView && app->languageView->busy; }
 static int showOutline(xide_app* app);
 static int requestCaretHover(xide_app* app);
 int xideLanguageViewAction(xide_app* app,int action)
 {
+ if(action==XIDE_ACTION_FIND_REFERENCES)return requestReferences(app);
  if(action==XIDE_ACTION_CANCEL_CHECK) xideCLanguageViewAction(app,action);
  if(app && app->activeDocument && !strcmp(app->activeDocument->language,"c") && action!=XIDE_ACTION_CHECK_SAVED && action!=XIDE_ACTION_CANCEL_CHECK) return xideCLanguageViewAction(app,action);
  if(action==XIDE_ACTION_OUTLINE) return showOutline(app);
@@ -465,7 +486,7 @@ int xideLanguageViewAction(xide_app* app,int action)
  if(action==XIDE_ACTION_DEFINITION) return requestDefinition(app);
  if(action==XIDE_ACTION_CHECK_CURRENT) { if(app->languageView) app->languageView->retryInputs=app->languageView->retryFailures=0; return checkMode(app,1,app->activeDocument); }
  if(action==XIDE_ACTION_CHECK_SAVED) return check(app);
- if(action==XIDE_ACTION_CANCEL_CHECK && app->languageView) { xide_language_view* v=app->languageView; v->pendingSave=NULL; v->automatic=0; v->recheckAt=v->semanticRefreshAt=v->preemptDeadline=0;
+ if(action==XIDE_ACTION_CANCEL_CHECK && app->languageView) { xide_language_view* v=app->languageView; cancelReferences(v); v->pendingSave=NULL; v->automatic=0; v->recheckAt=v->semanticRefreshAt=v->preemptDeadline=0;
   if(v->autoEnabled) {automaticPause(v);reset(app);snprintf(v->message,sizeof(v->message),"已暂停 xlang 自动检查；修改源码或再次查询可恢复。");return 1;}
   suppressHighlights(v);
   if(v->checkRetryAt) { v->checkRetryAt=0; v->busy=0; }
@@ -609,10 +630,10 @@ static void publishedInvalidation(xide_app* app,const xvalue* params)
 }
 static int jumpRange(xide_app* app,const char* path,const xvalue* range);
 static int selectRange(xide_app* app,xide_document* target,const xvalue* range);
-static int jumpDefinitionProof(xide_app* app,const char* path,const xvalue* range,const xvalue* proof)
+static int jumpDocumentProof(xide_app* app,const char* path,const xvalue* range,const xvalue* proof,int ready)
 {
  xide_language_view* v=app->languageView; int size=0,version=0;
- if(!v || !v->onDemandMode || !v->receiptReady || !current(v)) return 0;
+ if(!v || !ready || !current(v)) return 0;
  const char *declared=string(get(proof,"path")),*origin=string(get(proof,"origin"));
  if(!path || !declared || !origin || !xidePathLexicalEqual(path,declared) || !number(get(proof,"normalizedSize"),&size) || (size_t)size>TEXT_LIMIT || !hexDigest(get(proof,"normalizedSha256"))) return 0;
  document_binding* binding=inputPath(v,path); xide_document* target=openPath(app,path); int wasOpen=target!=NULL;
@@ -630,6 +651,8 @@ static int jumpDefinitionProof(xide_app* app,const char* path,const xvalue* rang
  if(!wasOpen && namedXlang(target)) v->semanticRefreshAt=GetTickCount64()+75;
  return 1;
 }
+static int jumpDefinitionProof(xide_app* app,const char* path,const xvalue* range,const xvalue* proof)
+{xide_language_view* v=app->languageView;return jumpDocumentProof(app,path,range,proof,v && v->onDemandMode && v->receiptReady);}
 static void applyDefinition(xide_app* app,const xvalue* result,const xvalue* error)
 {
  xide_language_view* v=app->languageView; v->definitionRequest=v->definitionPending=0;
@@ -733,14 +756,15 @@ void xideLanguageViewPoll(xide_app* app)
       bool onDemand=false,inputState=false; v->onDemandSupported=xrtValueGetBool(get(get(cap,"experimental"),"automaticSemanticQueries"),&onDemand) && onDemand && xrtValueGetBool(get(get(cap,"experimental"),"inputState"),&inputState) && inputState;
       bool highlights=false; const xvalue* highlight=get(cap,"documentHighlightProvider");
       v->highlightSupported=(xrtValueGetBool(highlight,&highlights) && highlights) || xrtValueType(highlight)==XVALUE_OBJECT;
-      v->initialized=1;
+      referencesCapabilities(v,cap);v->initialized=1;
       if(!v->busy && v->highlightPreparing && !v->highlightSupported) { v->onDemandMode=0; v->invalidated=1; v->highlightPreparing=0; }
       int manual=v->busy ? (v->snapshotMode ? 1 : 2) : 0;
       if(!sendMessage(v,"initialized",xrtValueObject(),0) || (v->autoEnabled ? !automaticPrepare(app,manual) : (v->busy && !beginCheck(app)) || (!v->busy && v->onDemandMode && !beginOnDemand(app)))) { v->busy=0; if(!v->invalidated) reset(app); }
       else v->waitingInitialize=0;
      }
     }
-   } else if(v->receiptRequest && id==v->receiptRequest) applyInputState(app,result,error);
+   } else if(takeReferences(v,m)>0) {m=NULL;}
+   else if(v->receiptRequest && id==v->receiptRequest) applyInputState(app,result,error);
    else if(v->definitionRequest && id==v->definitionRequest) applyDefinition(app,result,error);
    else if(v->outlineRequest && id==v->outlineRequest) applyOutline(app,result,error);
    else if(v->hoverRequest && id==v->hoverRequest) applyHover(app,result,error);
@@ -782,7 +806,7 @@ void xideLanguageViewPoll(xide_app* app)
  if(v->checkRetryAt && GetTickCount64()>=v->checkRetryAt) { v->checkRetryAt=0; if(!current(v) || !beginCheck(app)) { v->busy=0; v->preemptDeadline=0; } }
  if(v->snapshotMode && v->automatic && v->recheckAt && !v->busy && GetTickCount64()>=v->recheckAt && v->document && v->document->open && v->document->id==v->documentId && canSnapshot(app,v->document)) checkMode(app,1,v->document);
  if(v->onDemandMode && v->semanticRefreshAt && !v->busy && GetTickCount64()>=v->semanticRefreshAt && canSnapshot(app,app->activeDocument)) { v->semanticRefreshAt=0; prepareSymbols(app); }
- pollSyncPlan(app);automaticPoll(app);pollDefinition(app); pollSemantic(app); pollHighlights(app);
+ pollSyncPlan(app);automaticPoll(app);pollDefinition(app); pollSemantic(app); pollHighlights(app);pollReferences(app);
  if(*v->message && (v->busy || app->activeDocument==v->document)) xuiStatusBarSetItemText(app->statusBar,0,v->message);
  if(v->busy || v->recheckAt || (v->semanticRefreshAt && canSnapshot(app,app->activeDocument))) xgeRenderRequest();
  xideActionsRefresh(app);
@@ -874,7 +898,7 @@ static int showOutline(xide_app* app)
  xui_dock_window_info_t info={.iSize=sizeof(info)}; if(xuiDockPanelGetWindowInfo(app->dock,app->windows[XIDE_OUTLINE],&info)!=XUI_OK) return 0;
  if(info.iState==XUI_DOCK_PANEL_WINDOW_FLOATING) { xuiSetFocusWidget(app->context,app->languageView->outline); return 1; }
  int pane=info.iState==XUI_DOCK_PANEL_WINDOW_DOCKED ? info.iPane : -1;
- for(int i=XIDE_HELP;i<=XIDE_TASKS && pane<0;++i) { xui_dock_window_info_t b={.iSize=sizeof(b)}; if(xuiDockPanelGetWindowInfo(app->dock,app->windows[i],&b)==XUI_OK && b.iState==XUI_DOCK_PANEL_WINDOW_DOCKED) pane=b.iPane; }
+ for(int i=XIDE_HELP;i<=XIDE_USAGES && pane<0;++i) { xui_dock_window_info_t b={.iSize=sizeof(b)}; if(xuiDockPanelGetWindowInfo(app->dock,app->windows[i],&b)==XUI_OK && b.iState==XUI_DOCK_PANEL_WINDOW_DOCKED) pane=b.iPane; }
  if(pane<0) { int editor=app->activeDocument ? app->activeDocument->window : app->windows[XIDE_XLANG_DEMO]; if(xuiDockPanelGetWindowInfo(app->dock,editor,&info)!=XUI_OK || info.iState!=XUI_DOCK_PANEL_WINDOW_DOCKED || xuiDockPanelDockWindowToPaneSide(app->dock,app->windows[XIDE_OUTLINE],info.iPane,XUI_DOCK_PANEL_SIDE_BOTTOM,0.28f,&pane)!=XUI_OK) return 0; }
  else if(xuiDockPanelDockWindowToPane(app->dock,app->windows[XIDE_OUTLINE],pane)!=XUI_OK) return 0;
  return xuiDockPanelSetPaneActiveWindow(app->dock,pane,app->windows[XIDE_OUTLINE])==XUI_OK;
@@ -1141,3 +1165,4 @@ static void pollHighlights(xide_app* app)
 }
 
 #include "automatic_diagnostics.inc"
+#include "language_references.inc"

@@ -29,6 +29,11 @@ void xideProjectReferencesDestroy(xide_project_references* store);
 xide_reference_query* xideProjectReferencesSubmit(xide_project_references* store,xls_context* context,
  const xls_analysis_document* documents,size_t count,const char* trigger,
  const char* path,int line,int character,int includeDeclaration);
+/* Optional negotiated Location.xlang {schema:1,document:...},using the same
+ * document proof as guarded definitions. Zero preserves standard locations. */
+xide_reference_query* xideProjectReferencesSubmitWithProof(xide_project_references* store,xls_context* context,
+ const xls_analysis_document* documents,size_t count,const char* trigger,
+ const char* path,int line,int character,int includeDeclaration,int inputProof);
 enum xide_reference_query_state xideProjectReferencesResult(xide_reference_query* query,
  const xvalue** locations,xide_project_reference_stats* stats,char* error,size_t capacity);
 xvalue* xideProjectReferencesTake(xide_reference_query* query);

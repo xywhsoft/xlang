@@ -6,7 +6,7 @@ static void clearRows(xarray* rows)
 static int fill(xarray* rows,const char* path,size_t count)
 {
  if(!xrtArrayInit(rows,sizeof(result_row)) || !xrtArrayReserve(rows,count))return 0;
- for(size_t i=0;i<count;++i){result_row r={xrtStrDup(path),xidePathNativeWide(path),{(int)i,0,(int)i},{(int)i,1,(int)i+1}};if(!r.path || !r.key || !xrtArrayPush(rows,&r)){xrtFree(r.path);free(r.key);return 0;}}return 1;
+ for(size_t i=0;i<count;++i){result_row r={.path=xrtStrDup(path),.key=xidePathNativeWide(path),.start={(int)i,0,(int)i},.end={(int)i,1,(int)i+1}};if(!r.path || !r.key || !xrtArrayPush(rows,&r)){xrtFree(r.path);free(r.key);return 0;}}return 1;
 }
 static int receiveBudget(const xvalue* v,void* user)
 {int* okay=user;xstrview id={0};*okay=xrtValueGetString(get(v,"id"),&id) && id.Size==65535 && id.Data[0]==1 && id.Data[65534]==1 && xrtValueCount(get(v,"result"))==512;return *okay;}

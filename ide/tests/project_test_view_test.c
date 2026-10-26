@@ -61,7 +61,7 @@ static int verify(void* data)
     app.hidden=1; app.noSession=1; app.highDpi=1; app.dpiOverride=1.25f; app.settingsPath=settings;
     CHECK(xideAppCreate(&app)==XUI_OK && xgeBegin()==XGE_OK); began=1;
     CHECK(xideWorkspaceCreate(&app.workspaceModel,"项目测试工作空间",&error) && xideWorkspaceAddProject(&app.workspaceModel,manifest,"alpha",&error) && xideWorkspaceAddProject(&app.workspaceModel,beta,"beta",&error) && xideWorkspaceSetStartup(&app.workspaceModel,"beta",&error) && xideWorkspaceViewRefresh(&app)==XUI_OK && xideWorkspaceViewSelectProject(&app,"alpha"));
-    CHECK(!xideTasksCount(app.tasks) && !xideActionQuery(&app,XIDE_ACTION_TEST).enabled && xideActionNamed("task.test")->id==78 && xideActionCount()==74);
+    CHECK(!xideTasksCount(app.tasks) && !xideActionQuery(&app,XIDE_ACTION_TEST).enabled && xideActionNamed("task.test")->id==78 && xideActionCount()==75);
     CHECK(xideEditorOpen(&app,entry,&error)); xide_document* xl=app.activeDocument; CHECK(xuiCodeDocumentInsert(xuiCodeEditGetDocument(xl->editor),xuiCodeDocumentGetLength(xuiCodeEditGetDocument(xl->editor)),"// 未保存 xl\n")==XUI_OK);
     CHECK(xideEditorOpen(&app,native,&error)); xide_document* c=app.activeDocument; CHECK(xuiCodeDocumentInsert(xuiCodeEditGetDocument(c->editor),xuiCodeDocumentGetLength(xuiCodeEditGetDocument(c->editor)),"// 未保存 C\n")==XUI_OK && settle(&app) && c->dirty && xl->dirty);
     xide_project* selected=xideWorkspaceFindProject(&app.workspaceModel,"alpha"); before=xideProjectConfigurationsJson(selected); CHECK(before);

@@ -47,7 +47,7 @@ static int show(xide_app* app,int id)
 {
     int current=pane(app,id);
     if(current<0) {
-        for(int i=XIDE_HELP;i<=XIDE_OUTLINE && current<0;++i) current=pane(app,i);
+        for(int i=XIDE_HELP;i<=XIDE_USAGES && current<0;++i) current=pane(app,i);
         if(current>=0) TRY(xuiDockPanelDockWindowToPane(app->dock,app->windows[id],current));
         else { int editor=app->activeDocument ? app->activeDocument->window : app->windows[XIDE_XLANG_DEMO]; xui_dock_window_info_t info={0}; info.iSize=sizeof(info);
             TRY(xuiDockPanelGetWindowInfo(app->dock,editor,&info));

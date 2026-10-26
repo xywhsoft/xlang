@@ -287,7 +287,7 @@ static int cvshowOutline(xide_c_language_view* v)
  if(xuiDockPanelGetWindowInfo(app->dock,app->windows[XIDE_OUTLINE],&info)!=XUI_OK) return 0;
  if(info.iState==XUI_DOCK_PANEL_WINDOW_FLOATING) return xuiSetFocusWidget(app->context,v->outline)==XUI_OK;
  int pane=info.iState==XUI_DOCK_PANEL_WINDOW_DOCKED ? info.iPane : -1;
- for(int i=XIDE_HELP;i<=XIDE_TASKS && pane<0;++i) { xui_dock_window_info_t b={.iSize=sizeof(b)}; if(xuiDockPanelGetWindowInfo(app->dock,app->windows[i],&b)==XUI_OK && b.iState==XUI_DOCK_PANEL_WINDOW_DOCKED) pane=b.iPane; }
+ for(int i=XIDE_HELP;i<=XIDE_USAGES && pane<0;++i) { xui_dock_window_info_t b={.iSize=sizeof(b)}; if(xuiDockPanelGetWindowInfo(app->dock,app->windows[i],&b)==XUI_OK && b.iState==XUI_DOCK_PANEL_WINDOW_DOCKED) pane=b.iPane; }
  if(pane<0) { int editor=app->activeDocument ? app->activeDocument->window : app->windows[XIDE_XLANG_DEMO]; if(xuiDockPanelGetWindowInfo(app->dock,editor,&info)!=XUI_OK || info.iState!=XUI_DOCK_PANEL_WINDOW_DOCKED || xuiDockPanelDockWindowToPaneSide(app->dock,app->windows[XIDE_OUTLINE],info.iPane,XUI_DOCK_PANEL_SIDE_BOTTOM,0.28f,&pane)!=XUI_OK) return 0; }
  else if(xuiDockPanelDockWindowToPane(app->dock,app->windows[XIDE_OUTLINE],pane)!=XUI_OK) return 0;
  return xuiDockPanelSetPaneActiveWindow(app->dock,pane,app->windows[XIDE_OUTLINE])==XUI_OK;

@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
-static const char* ids[]={"commands","workspace","properties","xlang_demo","c_demo","command_help","problems","build_output","terminal","tasks","outline"};
+static const char* ids[]={"commands","workspace","properties","xlang_demo","c_demo","command_help","problems","build_output","terminal","tasks","outline","usages"};
 _Static_assert(sizeof(ids)/sizeof(ids[0])==XIDE_WINDOW_COUNT,"Every IDE panel needs a stable layout ID.");
 static xstrview sv(const char* s) { return (xstrview){s,strlen(s)}; }
 static xvalue* get(const xvalue* v,const char* key) { return xrtValueObjectGet(v,sv(key)); }
