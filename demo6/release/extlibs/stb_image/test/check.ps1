@@ -50,8 +50,6 @@ try {
         '-Source', 'release/examples/extlibs/stb_image_c.c')
     Run 'XLang boundaries' $xl @('run', 'release/extlibs/stb_image/test/boundaries.xl') | Out-Null
     Run 'XLang allocations' $xl @('run', 'release/extlibs/stb_image/test/allocations.xl') | Out-Null
-    RunNativeAccessNegative 'release/extlibs/stb_image/test/private_native_status_negative.xl' @('validNative', 'floatNative')
-    RunNativeAccessNegative 'release/extlibs/stb_image/test/private_adopt_constructor_negative.xl' @('StbImage')
     Push-Location (Join-Path $root 'release')
     try {
         $xlang = Run 'XLang example' $xl @('run', 'examples/extlibs/stb_image.xl')
@@ -81,12 +79,32 @@ try {
         if (($c -join "`n") -cne ($aot -join "`n")) {
             throw 'C/XLang AOT example output differs'
         }
+        $cExampleAot = Join-Path $work 'stb_image_example_c.exe'
+        Run 'C example AOT build' $xl @('build', 'release/examples/extlibs/stb_image_c.c', '-o', $cExampleAot) | Out-Null
+        $cAot = Run 'C example AOT' $cExampleAot @($asset)
+        if (($c -join "`n") -cne ($cAot -join "`n")) {
+            throw 'C example AOT output differs'
+        }
         Write-Host '[stb_image] C/XLang AOT output parity: PASS'
+    }
+    $accessFailures = @()
+    foreach ($check in @(
+        @{ Source = 'release/extlibs/stb_image/test/private_native_status_negative.xl'; Members = @('validNative', 'floatNative') },
+        @{ Source = 'release/extlibs/stb_image/test/private_adopt_constructor_negative.xl'; Members = @('StbImage') }
+    )) {
+        try {
+            RunNativeAccessNegative $check.Source $check.Members
+        } catch {
+            $accessFailures += $_.Exception.Message
+        }
+    }
+    if ($accessFailures.Count -ne 0) {
+        throw ($accessFailures -join "`n")
     }
 } finally {
     Pop-Location
     if ($work -ne $null) {
-        foreach ($name in @('stb_image_core.exe', 'stb_image_example.exe')) {
+        foreach ($name in @('stb_image_core.exe', 'stb_image_example.exe', 'stb_image_example_c.exe')) {
             $output = Join-Path $work $name
             if (Test-Path -LiteralPath $output) { Remove-Item -LiteralPath $output -Force }
         }

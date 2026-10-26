@@ -1,5 +1,12 @@
 # stb_image
 
+2026-10-26 当前 Windows/Linux 发布版的默认包门禁均通过原生 C、
+语言 JIT、核心与公开 XLang 范例 AOT；新增公开 C 范例的独立 EXE，
+借显式图片路径使用同一夹具，GCC、C/AOT 与 XLang JIT/AOT 输出一致。
+Linux 保留 C ASan/UBSan 与线程回归。两平台最后的包外
+`StbImage(point)` 私有构造器负例仍被编译器接受为 `ok`，因此
+门禁保持红色，完整发布级尚未签收。原生类实现与公开 API 未改。
+
 `stb_image` 将 stb_image 2.30 的图片解码能力以 C/XL 双语接口公开。
 文件读取交给 XRT，因此 Windows 上的 UTF-8 中文路径与其他平台使用
 同一入口；stb 的 stdio 代码未编进包。也支持直接解码 `Buffer` 中的
@@ -49,17 +56,19 @@ C 接口见 `include/stb_image_native.h`。C 调用者对返回的图像句柄�
 
 - `powershell -NoProfile -ExecutionPolicy Bypass -File extlibs/stb_image/test/check.ps1`
   默认运行严格 GCC、C/XL 边界、多线程、固定输出与双语范例检查，
-  然后构建运行核心和公开范例 AOT；`-SkipAot` 仅做 C/JIT 聚焦快测。
+  然后构建运行核心、XLang 范例与 C 范例 AOT，最后检查包外访问边界；
+  `-SkipAot` 仅做 C/JIT 聚焦快测，仍检查访问边界。
   AOT 产物放在独占系统临时目录，失败时同样清理，不把快测通过当作
   发布级签收。
 - Linux 上运行 `bash release/extlibs/stb_image/test/check.sh`，执行 C 边界与
   多线程的 ASan/UBSan 检查、XLang 中央与包内边界，并逐字节比较
-  C/XLang 范例输出。该门禁不覆盖完整 AOT。
+  C/XLang JIT 和独立 EXE 范例输出；最后检查包外构造器访问。
 - 在 `release` 目录运行 `xl run examples/extlibs/stb_image.xl` 或
   `xl run examples/extlibs/stb_image_c.c`，两者输出一致。C 范例直接包含
   包实现，无需额外列出源文件；两个范例都从 `xl.exe` 所在目录定位素材，
   从 `demo6` 根目录调用发布版 `xl.exe` 也可运行。XLang 范例可在 `--`
-  后指定图片绝对路径，供独立 AOT 可执行文件使用。
+  后指定图片绝对路径，供独立 AOT 可执行文件使用；C 范例将路径
+  作为第一个命令行参数传入。
 - 从 `demo6` 目录运行 `xl run release/extlibs/stb_image/test/boundaries.xl`，
   包括通道数回绕及路径内嵌 NUL 负例；该用例已登记到包级测试套件。
 - 用 `tools/run_extlib_c.ps1 -Package stb_image -Source ...` 运行

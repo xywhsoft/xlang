@@ -50,4 +50,32 @@ fi
     timeout 90s ./xl run examples/extlibs/stb_image.xl > "$work/xlang.out"
 )
 diff -u "$work/c.out" "$work/xlang.out"
-printf 'stb_image Linux C ASan/UBSan, XLang JIT and bilingual gate: PASS\n'
+
+asset="$root/release/examples/extlibs/assets/tiny.png"
+timeout 180s "$xl" build test/cases/extlib_stb_image.xl \
+    -o "$work/stb_image_core"
+timeout 90s "$work/stb_image_core"
+timeout 180s "$xl" build release/examples/extlibs/stb_image.xl \
+    -o "$work/stb_image_xlang"
+timeout 90s "$work/stb_image_xlang" "$asset" > "$work/xlang_aot.out"
+diff -u "$work/c.out" "$work/xlang_aot.out"
+timeout 180s "$xl" build release/examples/extlibs/stb_image_c.c \
+    -o "$work/stb_image_c"
+timeout 90s "$work/stb_image_c" "$asset" > "$work/c_aot.out"
+diff -u "$work/c.out" "$work/c_aot.out"
+printf 'stb_image Linux C ASan/UBSan, XLang JIT/AOT and bilingual gate: PASS\n'
+
+if timeout 90s "$xl" check \
+    release/extlibs/stb_image/test/private_adopt_constructor_negative.xl \
+    > "$work/private_constructor.txt" 2>&1; then
+    printf 'stb_image: private StbImage constructor was accepted\n' >&2
+    cat "$work/private_constructor.txt" >&2
+    exit 1
+fi
+if ! grep -Fq 'StbImage' "$work/private_constructor.txt" ||
+   ! grep -Fq 'access' "$work/private_constructor.txt"; then
+    cat "$work/private_constructor.txt" >&2
+    printf 'stb_image: expected private constructor access diagnostic\n' >&2
+    exit 1
+fi
+printf 'stb_image Linux private constructor gate: PASS\n'
