@@ -1,5 +1,12 @@
 # procps
 
+2026-10-26 重建 Windows/Linux x64 发布物后，两平台默认包门禁
+均退出 0：严格 C/ABI、Linux ASan/UBSan、异常 `/proc` 数据与
+非法 UTF-8 名称、C/XLang 固定输出、中央/边界独立 EXE，以及
+C/XLang 单文件范例独立 AOT。旧共享快照缺符号不再复现。
+这只签收包级短时可见进程查询合同；不保证进程在跨调用期间
+保持存在、具备读取权限，或其他平台/架构的行为。
+
 2026-10-25 在 WSL 中运行现有 `test/check.sh` 全通过：严格 GCC、
 C 边界 ASan/UBSan、长可执行路径、畸形 `/proc` 数据、非法 UTF-8
 进程名，以及 XLang 边界与 C/XLang 固定输出对照。本次语言用例
@@ -69,10 +76,11 @@ release/xl.exe run release/examples/extlibs/procps.xl
 wsl bash release/extlibs/procps/test/check.sh
 ```
 
-Windows 默认包门禁在 C/JIT 之后构建并运行中央无输出用例与公开 XLang
-范例的 AOT 产物，后者逐行对照固定事实输出；`-SkipAot` 仅运行聚焦
-C/JIT 检查。AOT 文件放在独占系统临时目录，退出时只清理本次产物。
-共享主线符号缺失时默认门禁必须非零退出，聚焦模式通过不代表发布签收。
+Windows 默认包门禁在 C/JIT 之后构建并运行中央用例、公开 XLang
+范例和 C 单文件范例的 AOT 产物，后两者逐行对照固定事实输出；
+Linux 默认包门禁另构建并运行中央、边界及双语范例的独立 EXE。
+`-SkipAot` 仅运行 Windows 聚焦 C/JIT 检查，不代表发布签收。
+AOT 文件放在独占系统临时目录，退出时只清理本次产物。
 
 Windows 独立 GCC、Linux GCC + ASan/UBSan、XL JIT 和 C/XL 范例已通过。
 Windows 包级脚本还逐一核对包运行器 C、单文件 C 与 XLang 范例的固定事实输出；单文件 C 范例只在 TCC 路径包含原生实现，正式包仍按清单分离编译。
@@ -85,9 +93,9 @@ Linux 包级脚本运行包内及中央 XLang 用例，并逐字比较 C/XL 范�
 Linux 门禁还按 manifest 传入 XRT 模块宏做严格 GCC 编译，并运行一个以非 UTF-8 文件名命名的真实进程，验证错误分类。
 另以链接器夹具注入跨缓冲的 `/proc/pid/exe` 目标，验证完整名称和重读路径。
 双语范例对照可复查 `examples/procps_c.c`；输出使用布尔事实，不把
-动态 PID/进程数写死。当前 XL AOT 构建仍缺少共享主线符号
+动态 PID/进程数写死。旧发布物的 XL AOT 曾缺少共享主线符号
 `xl6ValueDataSnapshotV1`，见 `demo6/dev/extlib_blockers/text_snapshot_link.md`；
-暂不标记发布验收完成。
+2026-10-26 两平台默认包门禁已验证不再复现。
 
 2026-10-17：中央用例的旧 `listPids()` 调用在导入阶段复现失败，按主线
 测试边界记录并交其维护者修正，不恢复旧 API。Linux 门禁追加 C/XL

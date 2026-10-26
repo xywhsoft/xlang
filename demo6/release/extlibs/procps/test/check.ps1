@@ -61,6 +61,7 @@ try {
         New-Item -ItemType Directory -Path $work | Out-Null
         $core = Join-Path $work 'procps_core.exe'
         $example = Join-Path $work 'procps_example.exe'
+        $cExample = Join-Path $work 'procps_c_example.exe'
         Build-Aot 'test/cases/extlib_procps.xl' $core
         & $core
         if ($LASTEXITCODE -ne 0) { throw 'procps core AOT failed' }
@@ -68,6 +69,10 @@ try {
         $aotLines = @(& $example)
         if ($LASTEXITCODE -ne 0) { throw 'procps example AOT failed' }
         Confirm-Output 'XLang AOT example' $aotLines
+        Build-Aot 'release/extlibs/procps/examples/procps_c.c' $cExample
+        $cAotLines = @(& $cExample)
+        if ($LASTEXITCODE -ne 0) { throw 'procps C example AOT failed' }
+        Confirm-Output 'C AOT example' $cAotLines
     }
 
     if ($SkipAot) {
@@ -78,7 +83,7 @@ try {
 } finally {
     Pop-Location
     if ($work -ne $null) {
-        foreach ($output in @('procps_core.exe', 'procps_example.exe')) {
+        foreach ($output in @('procps_core.exe', 'procps_example.exe', 'procps_c_example.exe')) {
             $file = Join-Path $work $output
             if (Test-Path -LiteralPath $file) { Remove-Item -LiteralPath $file -Force }
         }
