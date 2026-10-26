@@ -2,6 +2,7 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$Directory,[string]$Tcc='E:/software/tcc/tcc.exe')
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
+. (Join-Path $PSScriptRoot 'xlir_resident_closure.ps1')
 $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
 try {
@@ -10,7 +11,6 @@ try {
     $public=Get-Content -LiteralPath (Join-Path $PublicDirectory 'build.json') -Raw|ConvertFrom-Json
     $runtime=@($public.Objects|Where-Object {[IO.Path]::GetFileName($_.Path)-eq'xrt_single_header_impl.o'})
     if(!$public.SourceXrt-or$runtime.Count-ne1){throw 'Current source runtime required'}
-    $resident=@($public.Sources|Where-Object {$_.StartsWith('src/runtime/')})+@('src/api/xl_future_bridge.c','src/api/xl_task_group_bridge.c')
     $case='test/cases/xlir_future_aggregate_code_owner_runtime.c'
     $dllCase='test/cases/xlir_future_aggregate_code_owner_box.c'
     $files=Get-Item -LiteralPath $PSCommandPath,$case,$dllCase,'test/cases/xlir_future_aggregate_code_owner_box.h',
@@ -18,6 +18,10 @@ try {
     $inputs=@($public.Inputs)+@($public.Headers)+@($runtime)+@($files|ForEach-Object {[pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})
     foreach($row in $inputs){if((Get-FileHash -LiteralPath $row.Path).Hash-ne$row.Sha256){throw "Stale aggregate code owner input: $($row.Path)"}}
     New-Item -ItemType Directory -Path $out|Out-Null
+    $closure=Get-XlirResidentClosure -Root $rootPath -Directory "$out/resident-closure" -Symbols @(
+        'xl6FutureAggregateAllArrayV2','xl6FutureAggregateRaceV2','xl6FutureAggregateWhenAnyIndexV2',
+        'xl6FutureAllXValues','xl6OwnershipPlanTryCreateV2') -NativeProvider 'tools/xrt_single_header_impl.c'
+    $resident=@($closure.Sources);$inputs+=@($closure.Inputs)
     $strict=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
         '-Wno-unused-label','-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-Wno-pointer-sign','-Wno-format-truncation')
     $includes=@('-I.','-Irelease','-Irelease/include','-DXL_STATIC_EMBED');$libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
@@ -43,7 +47,7 @@ $process=Start-Process -FilePath $binary -ArgumentList @('"'+$dll+'"') -WindowSt
     }
     $unchanged=@($inputs|Where-Object {(Get-FileHash -LiteralPath $_.Path).Hash-ne$_.Sha256}).Count-eq0
     $artifacts=@(Get-ChildItem -LiteralPath $out -File|ForEach-Object {[pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})
-    $report=[pscustomobject]@{Inputs=$inputs;InputsUnchanged=$unchanged;Lanes=$lanes;Artifacts=$artifacts;Marker=$marker;
+    $report=[pscustomobject]@{Inputs=$inputs;InputsUnchanged=$unchanged;Lanes=$lanes;Artifacts=$artifacts;Marker=$marker;ResidentClosure=$closure;
         Scope='Actual resident bridge and DLL boxer parent/child scopes, after-Close same-thread inheritance and unrelated-thread refusal, complete physical adapter admission, legacy rejection, real unmapping, and owned-map array/direct OOM. GCC O2 optimizes resident code and boxer; native runtime object comes from strict O0 source build. Not language multi-input wait solving or generated module cycle retirement.'}
     [IO.File]::WriteAllText("$out/results.json",($report|ConvertTo-Json -Depth 6),[Text.UTF8Encoding]::new($false))
     if(!$unchanged-or@($lanes|Where-Object {!$_.Complete}).Count){throw 'Aggregate code owner batch collected failures'}
