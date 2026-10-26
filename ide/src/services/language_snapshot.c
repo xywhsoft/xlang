@@ -489,6 +489,16 @@ static xvalue* group(const char* path,const char* text,int version,const xvalue*
  xvalue* out=xrtValueObject(); int okay=out && put(out,"path",xrtValueString(sv(path))) && put(out,"diagnostics",xrtValueArray()) && put(out,"origin",xrtValueString(sv(disk ? "disk" : "overlay"))) && put(out,"normalizedSize",xrtValueInt((int64)length)) && put(out,"normalizedSha256",xrtValueString(sv(hex))) && (disk ? put(out,"input",xrtValueDeepClone(disk)) : put(out,"version",xrtValueInt(version)));
  if(!okay) { xrtValueRelease(out); return NULL; } return out;
 }
+#ifdef XLS_COMPILER_XRT
+xvalue* xideLanguageReferenceDocument(const xide_semantic_source* source,int version,const xvalue* disk)
+{
+ if(!source || !source->path || !source->text || (source->utf16Prefix!=0 && source->utf16Prefix!=1))return NULL;
+ size_t size=strlen(source->text);if(size>8u*1024u*1024u)return NULL;
+ char* text=normalized(source->text,size);if(!text)return NULL;
+ if(!disk && source->utf16Prefix){size_t length=strlen(text);char* prefixed=malloc(length+4);if(!prefixed){free(text);return NULL;}memcpy(prefixed,"\xef\xbb\xbf",3);memcpy(prefixed+3,text,length+1);free(text);text=prefixed;}
+ xvalue* out=group(source->path,text,version,disk);free(text);if(out && !xrtValueObjectRemove(out,sv("diagnostics"))){xrtValueRelease(out);out=NULL;}return out;
+}
+#endif
 static int buildDiagnostics(xide_language_check* q,const xvalue* raw,source_graph* g,xvalue* result,xide_model_error* e)
 {
  const xvalue* list=get(raw,"diagnostics"); if(!list || xrtValueType(list)!=XVALUE_ARRAY || xrtValueCount(list)>4096) return fail(e,"诊断数组无效或超过限制。");

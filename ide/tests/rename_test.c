@@ -80,7 +80,7 @@ static int verify(void* user)
  imageXl=xidePathResolve(root,"native-rename-xlang.png"); imageC=xidePathResolve(root,"native-rename-c.png"); imageLarge=xidePathResolve(root,"native-rename-large-font.png"); blocked=xidePathResolve(root,"已存在.c"); wrong=xidePathResolve(root,"错误.txt"); alias=xidePathResolve(root,"共享硬链接.c"); resource=xidePathResolve(root,"资源.json"); newResource=xidePathResolve(root,"新资源.xlon"); independent=xidePathResolve(root,"独立.c"); changedSyntax=xidePathResolve(root,"独立.xl");
  CHECK(settings && sessions && workspace && imageXl && imageC && imageLarge && blocked && wrong && alias && resource && newResource && independent && changedSyntax);
  app.hidden=1; app.maxFrames=1; app.highDpi=1; app.dpiOverride=1.25f; app.settingsPath=settings; app.sessionRoot=sessions;
- CHECK(xideAppCreate(&app)==XUI_OK && xgeBegin()==XGE_OK); began=1; CHECK(xideActionCount()==74 && !xideActionQuery(&app,XIDE_ACTION_RENAME_FILE).enabled);
+ CHECK(xideAppCreate(&app)==XUI_OK && xgeBegin()==XGE_OK); began=1; CHECK(xideActionCount()==75 && !xideActionQuery(&app,XIDE_ACTION_RENAME_FILE).enabled);
  CHECK(xideWorkspaceCreate(&app.workspaceModel,"重命名验证",&error));
  plan=xideTemplatePlanPrepare(root,"原项目😀","mixed-c",&error); CHECK(plan && xideTemplatePlanCommit(&app.workspaceModel,plan,1,&first,&error)); xideTemplatePlanDestroy(plan); plan=NULL;
  plan=xideTemplatePlanPrepare(root,"共享项目","mixed-c",&error); CHECK(plan && xideTemplatePlanCommit(&app.workspaceModel,plan,0,&second,&error)); xideTemplatePlanDestroy(plan); plan=NULL;

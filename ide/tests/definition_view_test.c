@@ -56,7 +56,7 @@ static int verify(void* user)
  const char *saved="func main(...) as int\n    return 0\nend\n",*overload="func pick(int value) as int\n    return value\nend\nfunc pick(string value) as int\n    return 2\nend\nfunc main(...) as int\n    string 中文 = \"😀\"; auto second = pick(\"x\")\n    return second - 2\nend\n",*helper="export func answer() as int\n    return 42\nend\n",*overlay="\n\nexport func answer() as int\n    return 42\nend\n",*imported="import helper\nfunc main(...) as int\n    return helper.answer() - 42\nend\n";
  CHECK(root && entry && dep && native && light && dark && diskPath && diskImage && xrtDirCreateAll(root) && writeText(entry,saved) && writeText(dep,helper) && writeText(native,"int helper(void) { return 1; }\n") && writeText(diskPath,helper));
  app.hidden=1; app.noSession=1; app.compilerPath=f->compiler; CHECK(xideAppCreate(&app)==XUI_OK && xgeBegin()==XGE_OK); began=1;
- CHECK(xideActionCount()==74 && xideActionNamed("language.definition")->id==69 && !xideActionQuery(&app,XIDE_ACTION_DEFINITION).enabled);
+ CHECK(xideActionCount()==75 && xideActionNamed("language.definition")->id==69 && !xideActionQuery(&app,XIDE_ACTION_DEFINITION).enabled);
  CHECK(xideEditorOpen(&app,entry,&error) && xideEditorOpen(&app,dep,&error) && xideEditorOpen(&app,native,&error) && settle(&app)); xide_document *xl=xideDocumentsFind(&app.documents,entry),*dependency=xideDocumentsFind(&app.documents,dep),*c=app.activeDocument;
  CHECK(!strcmp(c->language,"c") && !xideActionQuery(&app,XIDE_ACTION_DEFINITION).enabled && !strcmp(xl->language,"xlang"));
  if(!f->legacy) {

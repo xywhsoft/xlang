@@ -78,6 +78,10 @@ int xideLanguageCheckCaptureReferences(xide_language_check* check,xide_reference
  * work;navigation counts describe this capture. No JSON,hashing or I/O. */
 int xideLanguageCheckReferenceWork(xide_language_check* check,xls_check_stats* work,
  xls_worker_cache_stats* sessions,xide_navigation_work* navigation);
+/* Worker-only compact document proof from a verified captured source. Reuses
+ * diagnostic newline/hash/origin conventions;disk report is borrowed during
+ * construction. Overlay BOM is restored for editor UTF-16/text identity. */
+xvalue* xideLanguageReferenceDocument(const xide_semantic_source* source,int version,const xvalue* disk);
 /* Independent native signature query. Mode/options are fixed before starting
    the adapter thread. Configured roots may be unopened; trigger stays open. */
 xide_language_check* xideLanguageCheckStartSignature(xls_context* context,int configured,
