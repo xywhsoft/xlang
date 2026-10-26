@@ -142,6 +142,7 @@ rows.close()</code></pre>
     <p>2026-10-16 复跑：Linux 独立 C 的 ASan/UBSan/泄漏检查、454 项 Python 互操作，以及 Linux XLang 中央与包内用例、固定输出范例 JIT 均通过。默认语言门禁的无输出核心 AOT 在当前发布构建缺 <code>xl6NativeHandleTraceLeaf</code>；独立 Buffer 最小程序同样复现。旧构建核心 AOT 通过记录不代表当前产物已通过；<code>test/check_xlang.sh --skip-aot</code> 只用于明确验收 JIT，默认仍要求 AOT。Linux 全路径及 TSan 尚未验收。
     当前页面是包能力与限定验证记录，不宣称完整 CLI/DLL、32 位/ARM 或长期负载已达到发布准入。</p>
     <p>2026-10-17 Linux 包级门禁同次通过 C ASan/UBSan、Python 独立互操作 454 项、中央及包内 XLang JIT 用例、三份语言范例和两组 C/XLang 黄金输出逐字节对照。完整 AOT 的共享缺符号阻断不变。</p>
+    <p>当前发布版复验：七组独立 C 用例和 454 项 Python CSV 互通通过后，中央 XLang 用例在 <code>array&lt;array&lt;string&gt;&gt;.append(array[...])</code> 报 <code>TypeError</code>；不导入 CSV 的最小文件也能复现。上述缺符号记录仅描述旧发布物，当前完整语言与 AOT 门禁仍需等主线嵌套数组写入修复后复跑，不能据历史通过记录签收本版。</p>
     <p>门禁：tools/check_extlib_csv.ps1、tools/check_extlib_csv.sh、release/extlibs/csv/test/check_xlang.sh；每次源码或构建变更均应重新验证。</p>
   </section>
 </main>
