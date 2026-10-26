@@ -520,7 +520,7 @@ static bool xhcl_walk_scope(xhclinput Input, size_t Begin, size_t End,
 
 
 
-static void* xhcl_empty(void)
+static char* xhcl_empty(void)
 {
     char* pResult = (char*)xrtMalloc(1u);
     if (pResult == NULL) xhcl_error(XERR_MEMORY, "could not allocate HCL result text");
@@ -530,10 +530,10 @@ static void* xhcl_empty(void)
 
 
 
-static void* xhcl_store(xhclinput Input, xhclspan Span, bool bDecodeString)
+static char* xhcl_store(xhclinput Input, xhclspan Span, bool bDecodeString)
 {
     xbuffer Output;
-    void* pResult;
+    char* pResult;
     size_t i;
 
     (void)xrtBufferInit(&Output);
@@ -573,7 +573,7 @@ static void* xhcl_store(xhclinput Input, xhclspan Span, bool bDecodeString)
         goto Memory;
     }
     if (!xrtBufferAppendByte(&Output, 0u)) goto Memory;
-    pResult = xrtBufferTake(&Output, NULL, NULL);
+    pResult = (char*)xrtBufferTake(&Output, NULL, NULL);
     if (pResult != NULL) return pResult;
 
 Memory:
@@ -651,7 +651,7 @@ static void xhcl_count_attribute_visit(xhclinput Input, xhclspan Name,
 
 
 
-void* xhcl_get(cstr sHcl, cstr sKey)
+char* xhcl_get(cstr sHcl, cstr sKey)
 {
     xhclinput Input = xhcl_input(sHcl);
     xhclattributecontext Context;
@@ -674,7 +674,7 @@ void* xhcl_get(cstr sHcl, cstr sKey)
 
 
 
-void* xhcl_get_raw(cstr sHcl, cstr sKey)
+char* xhcl_get_raw(cstr sHcl, cstr sKey)
 {
     xhclinput Input = xhcl_input(sHcl);
     xhclattributecontext Context;
@@ -801,7 +801,7 @@ int64_t xhcl_count_blocks(cstr sHcl, cstr sType)
 
 
 
-void* xhcl_block_label(cstr sHcl, cstr sType, int64_t iIndex)
+char* xhcl_block_label(cstr sHcl, cstr sType, int64_t iIndex)
 {
     xhclinput Input = xhcl_input(sHcl);
     xhclblockcontext Context;
@@ -845,7 +845,7 @@ int64_t xhcl_block_label_count(cstr sHcl, cstr sType, int64_t iIndex)
 
 
 
-void* xhcl_block_label_at(cstr sHcl, cstr sType, int64_t iIndex, int64_t iLabel)
+char* xhcl_block_label_at(cstr sHcl, cstr sType, int64_t iIndex, int64_t iLabel)
 {
     xhclinput Input = xhcl_input(sHcl);
     xhclblockcontext Context;

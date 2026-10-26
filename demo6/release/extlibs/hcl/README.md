@@ -1,5 +1,13 @@
 # hcl
 
+2026-10-27：四个文本查询的 C 原型明确为 XRT 自有 `char*`，XLang
+`extern @owned string` 直接接管结果；公开查询写法、缺失属性返回空串、
+错误分类和 NUL 输入检查不变。生成 C 门禁逐一核对四个原生调用直接
+赋给字符串 `Data`，不再依赖 `takeCstr` 中转；接管处不复制正文，仍需
+一次 `strlen` 获取长度。Windows 严格 C/线程/分配故障/双语 AOT 与
+Linux C ASan/UBSan、XLang JIT/AOT、双语输出门禁均通过。先前偶发的
+Linux 无诊断退出根因仍未知，本次通过不等于消除该历史风险。
+
 2026-10-26 当前发布物再次复验：Windows 默认门禁退出 0；Linux 默认
 门禁连续两次退出 0，均覆盖 C ASan/UBSan、XLang JIT/AOT、分配故障
 与 C/XLang 范例逐字节对照。包按下述受限查询合同签收。历史上一次

@@ -41,9 +41,15 @@ try {
     & $xl cgen release/extlibs/hcl/test/boundaries.xl --emit $generated
     if ($LASTEXITCODE -ne 0) { throw 'hcl direct-text cgen failed' }
     $generatedText = [IO.File]::ReadAllText($generated)
-    $adoptions = [regex]::Matches($generatedText, '\bxl6_xrt_take_cstr\s*\(').Count
-    if ($adoptions -lt 5 -or $generatedText.Contains('xl6CStringCopyV1')) {
-        throw 'hcl text results must transfer C allocations without copying'
+    foreach ($symbol in @('xhcl_get', 'xhcl_get_raw', 'xhcl_block_label',
+            'xhcl_block_label_at')) {
+        if ($generatedText -notmatch ('\.Data\s*=\s*' + $symbol + '\s*\(')) {
+            throw "hcl $symbol must adopt the owned C result directly"
+        }
+    }
+    if ($generatedText.Contains('xl6_xrt_take_cstr(') -or
+        $generatedText.Contains('xl6CStringCopyV1')) {
+        throw 'hcl text results must not use legacy transfer or copying'
     }
     Write-Output 'hcl direct string adoption: PASS'
 

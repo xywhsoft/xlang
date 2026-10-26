@@ -1,14 +1,14 @@
 // HCL 语法感知查询。表达式保持原文，不会在本库内执行 Terraform 求值。
-extern "xhcl_get" func __get(string hcl, string key) as point
-extern "xhcl_get_raw" func __get_raw(string hcl, string key) as point
+extern "xhcl_get" @owned func __get(string hcl, string key) as string
+extern "xhcl_get_raw" @owned func __get_raw(string hcl, string key) as string
 extern "xhcl_get_int" func __get_int(string hcl, string key) as int
 extern "xhcl_get_float" func __get_float(string hcl, string key) as float
 extern "xhcl_get_bool" func __get_bool(string hcl, string key) as bool
 extern "xhcl_has" func __has(string hcl, string key) as bool
 extern "xhcl_count_blocks" func __count_blocks(string hcl, string blockType) as int
-extern "xhcl_block_label" func __block_label(string hcl, string blockType, int index) as point
+extern "xhcl_block_label" @owned func __block_label(string hcl, string blockType, int index) as string
 extern "xhcl_block_label_count" func __label_count(string hcl, string blockType, int index) as int
-extern "xhcl_block_label_at" func __label_at(string hcl, string blockType, int index, int labelIndex) as point
+extern "xhcl_block_label_at" @owned func __label_at(string hcl, string blockType, int index, int labelIndex) as string
 extern "xhcl_validate" func __validate(string hcl) as bool
 extern "xhcl_count_attrs" func __count_attrs(string hcl) as int
 
@@ -22,13 +22,13 @@ end
 export func get(string hcl, string key) as string
     __hcl_cstr(hcl)
     __hcl_cstr(key)
-    return __xl_runtime.takeCstr(__get(hcl, key))
+    return __get(hcl, key)
 end
 
 export func getRaw(string hcl, string key) as string
     __hcl_cstr(hcl)
     __hcl_cstr(key)
-    return __xl_runtime.takeCstr(__get_raw(hcl, key))
+    return __get_raw(hcl, key)
 end
 
 export func getInt(string hcl, string key) as int
@@ -64,7 +64,7 @@ end
 export func blockLabel(string hcl, string blockType, int index) as string
     __hcl_cstr(hcl)
     __hcl_cstr(blockType)
-    return __xl_runtime.takeCstr(__block_label(hcl, blockType, index))
+    return __block_label(hcl, blockType, index)
 end
 
 export func blockLabelCount(string hcl, string blockType, int index) as int
@@ -76,7 +76,7 @@ end
 export func blockLabelAt(string hcl, string blockType, int index, int labelIndex) as string
     __hcl_cstr(hcl)
     __hcl_cstr(blockType)
-    return __xl_runtime.takeCstr(__label_at(hcl, blockType, index, labelIndex))
+    return __label_at(hcl, blockType, index, labelIndex)
 end
 
 export func validate(string hcl) as bool
