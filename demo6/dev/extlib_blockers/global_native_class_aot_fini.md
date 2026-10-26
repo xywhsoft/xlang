@@ -1,5 +1,18 @@
 # 顶层 native-backed class 在独立 EXE 退出时失败
 
+2026-10-26 `skiplist` 加入同症状回归：Windows 当前发布版
+`release/extlibs/skiplist/test/check.ps1` 先通过 C/ABI、JIT、双语输出、
+核心及 C/XLang 公开范例 AOT，再在顶层分配故障用例 AOT 退出时报
+`RuntimeError: operation is not valid in the current state`，门禁返回 1。
+Linux `test/check.sh` 的 C ASan/UBSan、语言 JIT、核心/中央用例及
+双语公开范例 AOT 也先通过，随后在同一顶层用例退出时报同错。
+`dev/extlib_blockers/skiplist_aot_top_level.xl` 只导入包、在顶层
+创建一个 `SkipList` 并打印 `created`；Windows `xl run` 退出 0，
+独立 EXE 打印该行后退出 1。该包的 `extern destroy` 与其他受影响
+包相似，但仅凭症状不能断言完全同根；主线应核查模块退役顺序、
+原生析构和错误作用域，修复后重跑双平台默认门禁。不得把顶层对象
+搬入 `main` 以换取绿色结果。
+
 2026-10-26 当前发布物复验 `tabulate`：Windows 默认包门禁的严格 C、
 线程、XLang JIT、私有入口负例及无输出核心 AOT 通过，新增的
 `release/extlibs/tabulate/test/boundaries.xl` 独立 EXE 在退出阶段报
