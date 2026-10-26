@@ -76,11 +76,12 @@ try {
         $null = Run 'direct-text cgen' $xl @('cgen',
             'extlibs/sysinfo/test/boundaries.xl', '--emit', $generated)
         $generatedText = [IO.File]::ReadAllText($generated)
-        $adoptions = [regex]::Matches($generatedText, '\bxl6_xrt_take_cstr\s*\(').Count
-        if ($adoptions -lt 6 -or $generatedText.Contains('xl6CStringCopyV1')) {
-            throw 'sysinfo text results must transfer C allocations without copying'
+        foreach ($name in @('os_name', 'os_version', 'arch', 'hostname', 'cpu_name')) {
+            if ($generatedText -notmatch "(?m)\.Data\s*=\s*xsysinfo_$name\s*\(") {
+                throw "owned sysinfo result was not captured directly: xsysinfo_$name"
+            }
         }
-        Write-Host '[sysinfo] direct string adoption: PASS'
+        Write-Host '[sysinfo] owned string adoption: PASS'
         $xlOutput = Run 'XLang example' $xl @('run', 'extlibs/sysinfo/examples/basic.xl')
         if ($cOutput -cne $xlOutput) {
             throw 'C/XLang system information differs on the same machine'

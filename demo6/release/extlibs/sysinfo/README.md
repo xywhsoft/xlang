@@ -1,5 +1,11 @@
 # sysinfo
 
+2026-10-27：五个文本入口的 C 原型明确为 `char*`，XLang 以
+`@owned string` 直接接管 XRT 分配，删除 `point`/`takeCstr` 转发。
+包门禁检查生成 C 直接保存原生指针；接管仍需一次 `strlen`，
+不将整个查询路径宣称为零开销。Windows 默认包门禁与 Linux
+C ASan/UBSan、XLang JIT/AOT、双语同机输出门禁均通过。
+
 2026-10-26 新发布物复验：Windows 默认 `test/check.ps1` 与 Linux
 `test/check.sh` 均通过。两平台补齐 C 基础信息和动态指标范例的
 `xl build` 独立 EXE；基础信息与 GCC/XLang 同机输出一致，瞬时指标

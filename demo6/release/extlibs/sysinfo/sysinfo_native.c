@@ -53,7 +53,7 @@ static char *xsys_utf8(const WCHAR *text)
 }
 #endif
 
-void *xsysinfo_os_name(void)
+char *xsysinfo_os_name(void)
 {
     xrtClearError();
 #ifdef _WIN32
@@ -64,7 +64,7 @@ void *xsysinfo_os_name(void)
 #endif
 }
 
-void *xsysinfo_os_version(void)
+char *xsysinfo_os_version(void)
 {
     xrtClearError();
 #ifdef _WIN32
@@ -87,7 +87,7 @@ void *xsysinfo_os_version(void)
 #endif
 }
 
-void *xsysinfo_arch(void)
+char *xsysinfo_arch(void)
 {
     xrtClearError();
 #ifdef _WIN32
@@ -106,7 +106,7 @@ void *xsysinfo_arch(void)
 #endif
 }
 
-void *xsysinfo_hostname(void)
+char *xsysinfo_hostname(void)
 {
     xrtClearError();
 #ifdef _WIN32
@@ -249,7 +249,7 @@ int64_t xsysinfo_uptime(void)
 #endif
 }
 
-void *xsysinfo_cpu_name(void)
+char *xsysinfo_cpu_name(void)
 {
     xrtClearError();
 #ifdef _WIN32

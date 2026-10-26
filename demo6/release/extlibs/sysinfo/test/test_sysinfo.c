@@ -35,7 +35,7 @@ static long long linux_mem_available(void)
     return 1; \
 } } while (0)
 
-static int check_text_error_reset(void* (*query)(void))
+static int check_text_error_reset(char* (*query)(void))
 {
     void* result;
     int clean;
@@ -105,7 +105,7 @@ int main(void)
 
     /* 每个文本查询都要区分内存不足与探测不可用，且清除故障后可重试。 */
     {
-        void* (*queries[])(void) = {
+        char* (*queries[])(void) = {
             xsysinfo_os_name, xsysinfo_os_version, xsysinfo_arch,
             xsysinfo_hostname, xsysinfo_cpu_name
         };
