@@ -1,0 +1,82 @@
+extern "borrowed_checked_text" @no_raise func text() as string
+extern "borrowed_checked_variadic" @no_raise func variadic(c_int mode,c_vararg) as string
+extern "borrowed_checked_missing" @no_raise func missing() as string
+extern "borrowed_checked_failed" func failed(bool silent) as string
+extern "borrowed_checked_observe" @no_raise func observe(string value)
+extern "borrowed_checked_observations" @no_raise func observations() as c_int
+extern "borrowed_checked_debug" @no_raise func debug() as bool
+extern "borrowed_checked_fail" @no_raise func failAfter(int prefix)
+extern "borrowed_checked_clear" @no_raise func clearFailure()
+extern "borrowed_checked_live" @no_raise func live() as int
+
+protocol TextApi
+    func Text() as string
+end
+class NativeText
+    private native point handle
+    extern "borrowed_checked_open" @no_raise create()
+    extern "borrowed_checked_member" @no_raise func Text() as string
+    extern "borrowed_checked_get" @no_raise get Value() as string
+end
+
+func forward() as string
+    return text()
+end
+func() as string stored=text
+auto nativeVariadic=variadic
+auto object=NativeText()
+TextApi protocolView=object
+var dynamicView=object
+
+func exercise(int mode)
+    if mode==0
+        observe(text())
+    elseif mode==1
+        observe(forward())
+    elseif mode==2
+        observe(stored())
+    elseif mode==3
+        observe(variadic(c_int(1)))
+    elseif mode==4
+        observe(nativeVariadic(c_int(1)))
+    elseif mode==5
+        observe(protocolView.Text())
+    elseif mode==6
+        observe(object.Value)
+    elseif mode==7
+        observe(string(dynamicView.Text()))
+    end
+end
+
+assert debug()
+int mode=0
+while mode<8
+    exercise(mode) // Warm the runtime before injecting application OOM.
+    int before=live()
+    auto seen=observations()
+    bool caught=false
+    failAfter(0)
+    try
+        exercise(mode)
+    catch error
+        caught=true
+    end
+    clearFailure()
+    assert caught and observations()==seen and live()==before
+    mode+=1
+end
+mode=0
+while mode<3
+    bool caught=false
+    try
+        if mode==0
+            missing()
+        else
+            failed(mode==2)
+        end
+    catch error
+        caught=true
+    end
+    assert caught
+    mode+=1
+end

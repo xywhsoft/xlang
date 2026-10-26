@@ -38536,7 +38536,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
              target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NONE &&
              target->errorAbi != (declaration != NULL &&
                  xl6IrDeclarationAllowsForeignContract(declaration->sourceKind, declaration->flags) &&
-                 (declaration->flags & XL6_AST_FLAG_FOREIGN_NO_RAISE) != 0
+                 (declaration->flags & XL6_AST_FLAG_FOREIGN_NO_RAISE) != 0 &&
+                 target->resultConversionAbi != XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY
                     ? XL6_IR_ERROR_ABI_NO_RAISE : XL6_IR_ERROR_ABI_MAY_RAISE) )
             return xl6IrDiag(diags, NULL,
                 "XLIR extern call target failure contract disagrees with its declaration");
