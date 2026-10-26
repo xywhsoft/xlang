@@ -31,7 +31,7 @@
 string a = imagehash.phash("photo.png")
 string b = imagehash.phash("thumbnail.png")
 println(imagehash.hamming(a, b))</code></pre>
-<p>不是密码学哈希；不同算法的结果不可互比。图片缺失或损坏抛 <code>RuntimeError</code>，内存不足抛 <code>MemoryError</code>；C 接口失败返回 <code>NULL</code>，可查询线程局部诊断与 XRT 内存错误。五个操作入口会清除旧 XRT 错误，普通格式/图片错误不会误报为上次内存故障。默认 Windows 门禁现检查完整 XLang 范例 AOT，当前仍因共享缺符号失败；<code>-SkipAot</code> 只作聚焦快测。C 接口、资源归属、算法范围与发布验收状态见包内 README。</p>
+<p>不是密码学哈希；不同算法的结果不可互比。图片缺失或损坏抛 <code>RuntimeError</code>，内存不足抛 <code>MemoryError</code>；C 接口失败返回 <code>NULL</code>，可查询线程局部诊断与 XRT 内存错误。五个操作入口会清除旧 XRT 错误，普通格式/图片错误不会误报为上次内存故障。当前 Windows/Linux 默认门禁均通过固定图像向量、线程与分配故障、C/XLang 双语输出及核心/分配故障/公开范例独立 EXE；Linux 另通过 C ASan/UBSan。旧共享缺符号仅属历史发布物；<code>-SkipAot</code> 只作 Windows 聚焦快测。C 接口、资源归属及算法范围见包内 README。</p>
   </section>
 </main>
 </body>

@@ -83,6 +83,16 @@ try {
                 Remove-Item -LiteralPath $aot -Force
             }
         }
+        $allocationExe = Join-Path $work ("imagehash_allocations_{0}.exe" -f [guid]::NewGuid().ToString('N'))
+        try {
+            $null = Run 'allocations AOT build' $xl @('build',
+                'release/extlibs/imagehash/test/allocations.xl', '-o', $allocationExe)
+            $null = Run 'allocations AOT run' $allocationExe @()
+        } finally {
+            if (Test-Path -LiteralPath $allocationExe -PathType Leaf) {
+                Remove-Item -LiteralPath $allocationExe -Force
+            }
+        }
         $exampleExe = Join-Path $work ("imagehash_example_{0}.exe" -f [guid]::NewGuid().ToString('N'))
         try {
             $null = Run 'XLang example AOT build' $xl @('build',

@@ -25,6 +25,14 @@ int distance = imagehash.hamming(a, b)
 
 ## 验证
 
+2026-10-26：当前 Windows/Linux 发布物的默认包门禁均退出 0。
+两平台均检查固定图像向量、线程错误隔离、XLang 中央/分配故障
+JIT、核心/分配故障/公开范例独立 EXE，以及 C 范例单文件
+`xl run`/`xl build` 与 XLang 范例的固定输出对照；Linux 另通过
+C ASan/UBSan。旧日期的共享快照缺符号仅描述当时的发布物。
+此验收不延伸为与第三方 pHash 位布局互通、不同算法交叉比较，
+或任意图像输入的性能保证。
+
 2026-10-25：WSL 复跑 `test/check.sh`，线程错误隔离、完整图片链路的
 C ASan/UBSan、XLang JIT、分配故障以及 C/XLang 范例对照全部通过。
 当前 Linux `release/xl` 是旧发布物；本次没有验证新版 Linux XL 的
