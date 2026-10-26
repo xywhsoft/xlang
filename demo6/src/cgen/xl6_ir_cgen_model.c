@@ -409,7 +409,7 @@ static XL6_IrTypeId xl6IrCgenPhysicalResultType(
     return xl6IrCallTargetPhysicalResultType(module,target);
 }
 
-/* CALL result identity is completely described by its verified CallTarget.
+/* CALL result identity includes argument preparation as well as CallTarget.
  * A MAY_RAISE void call is the one non-value case with an SSA result: that id
  * names the control/error carrier consumed by ERROR_TEST and deliberately has
  * no physical TypeId.  Keep this rule in one Cgen predicate so emittability
@@ -422,7 +422,7 @@ static int xl6IrCgenCallResultAbiIsExact(
     if ( module == NULL || target == NULL || instruction == NULL ) return 0;
     if ( target->returnType == XL6_IR_TYPE_INVALID )
         return instruction->type == XL6_IR_TYPE_INVALID &&
-            (target->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE
+            (xl6IrCallInstructionErrorAbi(module, instruction) == XL6_IR_ERROR_ABI_MAY_RAISE
                 ? instruction->result != XL6_IR_VALUE_INVALID
                 : instruction->result == XL6_IR_VALUE_INVALID);
     physicalResult = xl6IrCgenPhysicalResultType(module, target);

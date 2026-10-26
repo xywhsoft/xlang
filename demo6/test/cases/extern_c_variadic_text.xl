@@ -1,0 +1,39 @@
+extern "variadic_text" @owned @no_raise func text(c_int mode, c_vararg) as string?
+extern "variadic_length" @no_raise func length(c_int mode, c_vararg) as c_int
+extern "variadic_visit" @no_raise func visit(c_int mode, c_vararg)
+extern "variadic_calls" @no_raise func calls() as c_int
+extern "variadic_original" @no_raise func original(string value) as bool
+
+// The producer promises success. Preparing a C text argument is a separate
+// checked operation: embedded NUL must fail before entering native code.
+func check(string input)
+    auto value=text(c_int(1), input, c_short(7), float32(2.5))
+    assert value!=null and value==input and original(value)
+    assert text(c_int(0))==null
+    assert length(c_int(1),input)==3
+    visit(c_int(1),input)
+end
+
+func reject(string input)
+    auto before=calls()
+    int caught=0
+    try
+        text(c_int(1),input,c_int(7),2.5)
+    catch error
+        caught+=1
+    end
+    try
+        length(c_int(1),input)
+    catch error
+        caught+=1
+    end
+    try
+        visit(c_int(1),input)
+    catch error
+        caught+=1
+    end
+    assert caught==3 and calls()==before
+end
+
+check("abc")
+reject("a\0b")
