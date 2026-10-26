@@ -1,5 +1,13 @@
 # SQLite
 
+2026-10-26 当前发布物复验：Linux 包级门禁现覆盖 C ASan/UBSan、
+149 个分配故障点、线程、中央/边界/文件 XLang JIT 与独立 EXE AOT、
+两份公开 XLang 范例及 C 范例的 `xl run`/`xl build`。成对范例与
+独立 GCC 程序的固定输出一致，输入文件前后哈希一致。Windows
+专项门禁也已重新运行。此处的 Linux 证据使用当前 `release/xl`，
+不再沿用下面 2026-10-25 的旧构建阻断结论；断电恢复、网络文件
+系统、跨进程 WAL 故障矩阵、32 位/ARM 和长期压力仍未验收。
+
 2026-10-25 C 薄接口收紧：`open/open_v2` 的 `NULL` 文件名立即报告
 `XERR_ARGUMENT`；`exec` 的 `NULL` SQL 返回 `SQLITE_MISUSE`，不再作为
 成功的空操作；`prepare` 对 `NULL` SQL 明确报告参数错误。合法的空字符串
@@ -109,7 +117,7 @@ Statement：
 
 ## 验证与范围
 
-门禁：`tools/check_extlib_sqlite.ps1`，Linux 独立 C：`tools/check_extlib_sqlite.sh`。
+门禁：`tools/check_extlib_sqlite.ps1`，Linux C 与双语 AOT：`tools/check_extlib_sqlite.sh`。
 覆盖 ABI/常量、64 位值、UTF-8、二进制/NUL、状态与生命周期、事务/文件锁、分配故障、
 独立线程，以及 C/xlang 的 JIT/AOT/GCC 范例。每次通过仅证明对应固定输入与平台。
 
@@ -131,7 +139,7 @@ C 范例在 TCC 单文件路径先包含 SQLite amalgamation，再包含包内�
 与一份启用了对应模块的 XRT 实现。先包含独立 `sqlite3.h` 会使
 amalgamation 的 `sqlite3_version` 定义被头文件保护宏跳过。
 
-- 本批不宣称验证 Linux xlang、32 位/ARM、断电恢复、网络文件系统、跨进程 WAL
+- 本批不宣称验证 32 位/ARM、断电恢复、网络文件系统、跨进程 WAL
   故障矩阵或吞吐性能。上游数据库引擎不是本包装逐行重审的对象。
 - 包装不提供数据库加密、异步线程池、自动事务重试、备份/增量 BLOB、高级回调或
   用户自定义 SQL 函数。这些上游能力不能仅因 vendor 源码存在就算作 xlang API 已开放。
