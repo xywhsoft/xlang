@@ -2,6 +2,12 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`check_network_public_shipping.py --manifest tools/concurrency_public_fixtures.json`
+selects 24 concurrent positives and eight compile-time negatives (153 ordinary
+product stages per OS). `check_five_groups_module_roles.py --self-test` separately
+lints the fixed 198-module role inventory; it does not establish runtime coverage.
+See [concurrency product regression](../docs/concurrency-public-closure-2026-10-26.md).
+
 `check_network_public_shipping.py --manifest tools/crypto_public_fixtures.json`
 selects five ordinary crypto positives and two compile-time negatives (33 stages
 per OS) on rebuilt source-free products; the default network batch is unchanged.
