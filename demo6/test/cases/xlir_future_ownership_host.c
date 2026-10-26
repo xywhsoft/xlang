@@ -29,11 +29,11 @@ static void invoke_value(xvalue* callable)
 }
 int main(void)
 {
-    /* Task language transport adds a forwarding Future and a child cancel
-     * token; Value-callable boxing adds callable/closure nodes. Resumed,
-     * continuation and direct task results publish into one terminal Future. */
-    static const size_t expected_nodes[] = {6,8,3,8,4,4,4};
-    static const size_t expected_edges[] = {7,9,3,9,4,4,4};
+    /* Async roots now use the common resident frame launch and one terminal
+     * Future, rather than the former task forwarding Future/child token.
+     * Value-callable boxing still adds its two real wrapper nodes/edges. */
+    static const size_t expected_nodes[] = {4,6,3,6,4,4,4};
+    static const size_t expected_edges[] = {4,6,3,6,4,4,4};
     unsigned round, mode;
     assert(xrtMemDebugEnable(true));
     for (round = 0; round < 100; ++round) {
@@ -81,7 +81,10 @@ int main(void)
                 xfuture* future = xrtValueGetFuture(alias); void* payload;
                 assert(future && xrtFutureState(future) == XFUTURE_RESOLVED); payload = xrtFutureValue(future); assert(payload);
                 if (mode == 1) invoke_value(*(xvalue**)payload);
-                else if (mode == 2) assert(strcmp(*(char**)payload, "resident") == 0);
+                else if (mode == 2) {
+                    const xstrview* text = payload;
+                    assert(text->Size == 8 && !memcmp(text->Data, "resident", 8));
+                }
                 else invoke_closure(*(xlir_closure**)payload);
             }
             xrtValueRelease(alias); xrtValueRelease(roots[mode]);

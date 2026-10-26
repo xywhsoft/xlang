@@ -2,6 +2,7 @@
  * The whole graph is quiescent and generated code remains mapped throughout.
  * This tests graph integration, not module automatic code pinning. */
 #include "xlir_capture_ownership.c"
+#include "src/runtime/xl6_array_erased.h"
 #include <assert.h>
 #include <string.h>
 
@@ -28,8 +29,11 @@ static void inspect(unsigned mode, unsigned round)
     /* The bound class receiver (mode 4) owns a resident finalizer record.
      * That physical node/edge already exists in the frozen v168 producer;
      * it is not an external root and must not be hidden from this count. */
-    static const size_t nodes[] = {6,12,7,7,7,9,9};
-    static const size_t edges[] = {5,12,6,7,6,8,8};
+    /* Primitive native Array storage owns an unboxed int64 slot, not the
+     * former wire Array's separate integer Value node and edge. */
+    /* The bound receiver also owns its ordinary runtime-type Value field. */
+    static const size_t nodes[] = {5,11,6,6,8,8,8};
+    static const size_t edges[] = {4,11,5,6,7,7,7};
     xrtownershipref root = xrtValueOwnership(captured);
     xrtownershipresult result = {0}; bool reachable = true;
     xvalue* alias;
@@ -47,14 +51,20 @@ static void inspect(unsigned mode, unsigned round)
     assert(result.ExternalRootCount == 1 && reachable);
     xrtValueRelease(alias);
     if (mode == 1) {
-        /* Independent shell / shared backing, not just the same-shell alias. */
-        alias = xrtValueClone(captured); assert(alias != captured);
+        /* Raw XRT handles preserve identity; language shallow clone copies
+         * native Array storage and keeps each callable element reference. */
+        alias = xrtValueClone(captured); assert(alias == captured);
+        xrtValueRelease(alias);
+        alias = xl6ValueCloneV1(captured); assert(alias != captured);
         assert(xrtOwnershipInspectReachable(&root, 1, &root, 1, &reachable, &result, NULL, NULL));
-        assert(result.ExternalRootCount == 1);
-        /* The external backing reaches children, not the original shell. */
+        assert(result.ExternalRootCount == 2);
+        /* Both shared callable elements are external roots; the cloned
+         * storage does not keep the original container shell reachable. */
         assert(!reachable);
-        invoke(xrtValueArrayGet(alias, 0), 43);
-        invoke(xrtValueArrayGet(captured, 1), 43);
+        xvalue* first = xl6ArrayErasedReadV1(alias, 0);
+        assert(first && !xrtGetError()); invoke(first, 43); xrtValueRelease(first);
+        xvalue* second = xl6ArrayErasedReadV1(captured, 1);
+        assert(second && !xrtGetError()); invoke(second, 43); xrtValueRelease(second);
         xrtValueRelease(alias);
     } else invoke(captured, mode == 3 ? 84 : 42);
     assert(xrtOwnershipInspectReachable(&root, 1, &root, 1, &reachable, &result, NULL, NULL));

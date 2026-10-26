@@ -3,6 +3,8 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$Directory,
     [string]$Tcc='E:/software/tcc/tcc.exe')
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
+. (Join-Path $PSScriptRoot 'xlir_resident_closure.ps1')
 $rootPath=(Get-Location).Path
 $outputPath=if ([IO.Path]::IsPathRooted($Directory)) { [IO.Path]::GetFullPath($Directory) }
     else { [IO.Path]::GetFullPath((Join-Path $rootPath $Directory)) }
@@ -28,24 +30,30 @@ foreach ($suffix in @('c','h','json','bind.h')) {
     if ((Get-FileHash "$prefix.$suffix").Hash -ne (Get-FileHash "$prefix.repeat.$suffix").Hash) { throw "Nondeterministic generator $suffix" }
 }
 $includePath=[IO.Path]::GetFullPath((Join-Path $PublicDirectory 'include'))
-$includes=@("-I$includePath","-I$outputPath",'-I.')
+$includes=@("-I$includePath","-I$outputPath",'-I.','-Irelease','-Irelease/include')
 $strict=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable',
     '-Wno-unused-parameter','-Wno-unused-label','-Wno-unused-but-set-variable','-Wno-missing-field-initializers',
     '-Wno-pointer-sign','-Wno-format-truncation')
 $sources=@('test/cases/xlir_generator_ownership_host.c','src/runtime/xl6_continuation_queue.c',
     'src/runtime/xl6_continuation_executor.c','src/runtime/xl6_continuation_future.c','src/runtime/xl6_future_payload.c',
     'src/runtime/xl6_closure.c','src/runtime/xl6_cell.c','src/runtime/xl6_slot.c','src/runtime/xl6_frame_storage.c','src/runtime/xl6_continuation_frame.c','src/runtime/xl6_future_wait.c','src/runtime/xl6_task.c','src/runtime/xl6_task_frame.c','src/runtime/xl6_task_pool.c','src/runtime/xl6_capture.c','src/runtime/xl6_value_iterator.c','src/runtime/xl6_future_callback.c','src/runtime/xl6_generator.c','src/runtime/xl6_code_lease.c','src/runtime/xl6_code_finalizer.c')
+$closure=Get-XlirResidentClosure -Root $rootPath -Directory "$outputPath/resident-closure" -Sources @($sources|Where-Object {$_ -like 'src/*'}) -NativeProvider 'tools/xrt_single_header_impl.c' -PublicDirectory $PublicDirectory -Fixtures @('test/cases/xlir_generator_ownership.xl')
+$frameProbe='test/cases/xlir_generator_ownership_frame.c'
+$sources=@($sources|Where-Object {$_ -notlike 'src/*'})+@($closure.Sources|ForEach-Object {
+    if($_-eq'src/runtime/xl6_continuation_frame.c'){$frameProbe}else{$_}
+});$inputs+=@($closure.Inputs)
+$inputs+=@([pscustomobject]@{Path=[IO.Path]::GetFullPath($frameProbe);Sha256=(Get-FileHash -LiteralPath $frameProbe).Hash})
 $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
 $lanes=@()
 foreach ($compiler in @('gcc-O0','gcc-O2','tcc')) {
     $binary="$outputPath/$compiler.exe"
     if ($compiler -eq 'tcc') {
-        & $Tcc -std=c11 @includes @sources tools/xrt_single_header_impl.c C:/Windows/System32/ucrtbase.dll @libs -o $binary *> "$outputPath/$compiler.build.log"
+        $build=Invoke-XlirTccToLog $Tcc (@('-std=c11')+$includes+$sources+@('tools/xrt_single_header_impl.c','C:/Windows/System32/ucrtbase.dll')+$libs+@('-o',$binary)) "$outputPath/$compiler.build.log"
     } else {
         $optimization=if ($compiler -eq 'gcc-O0') {'-O0'} else {'-O2'}
-        & gcc @strict $optimization @includes @sources $runtimeObject[0].Path @libs -o $binary *> "$outputPath/$compiler.build.log"
+        $build=Invoke-XlirGccToLog ($strict+@($optimization)+$includes+$sources+@($runtimeObject[0].Path)+$libs+@('-o',$binary)) "$outputPath/$compiler.build.log"
     }
-    $build=$LASTEXITCODE; $run=$null; $complete=$false
+    $run=$null; $complete=$false
     if ($build -eq 0) {
 $process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath `
             -RedirectStandardOutput "$outputPath/$compiler.run.log" -RedirectStandardError "$outputPath/$compiler.err.log"
