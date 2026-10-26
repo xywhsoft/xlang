@@ -1,0 +1,21 @@
+import volc.phone
+
+func main(...) as int
+    // 仅显式设置测试环境变量后调用只读 ListPod；不在命令行传密钥。
+    string access_key = env.get("VOLC_ACCESS_KEY") ?? ""
+    string secret_key = env.get("VOLC_SECRET_KEY") ?? ""
+    string product_id = env.get("VOLC_PRODUCT_ID") ?? ""
+    string session_token = env.get("VOLC_SESSION_TOKEN") ?? ""
+    if access_key == "" or secret_key == "" or product_id == "" then
+        println("VOLC_ACCESS_KEY, VOLC_SECRET_KEY and VOLC_PRODUCT_ID are required")
+        return 2
+    end
+    volc.phone.Client client = volc.phone.client_token(access_key, secret_key, session_token, product_id)
+    volc.phone.Response response = client.list_pods()
+    println("status=", response.status(), " request_id=", response.request_id())
+    if not response.ok() then
+        println("code=", response.code(), " message=", response.message())
+        return 1
+    end
+    return 0
+end

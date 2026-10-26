@@ -13,7 +13,7 @@ func bool_text(bool value) as string
 	end
 	return "false"
 end
-class Client
+export class Client
 	string access_key
 	string secret_key
 	string session_token
@@ -65,18 +65,15 @@ class Client
 	end
 
 	func list_pods() as Response
-		string spec = "action=ListPod\nversion=2023-10-30\naccess_key=" + self.access_key + "\nsecret_key=" + self.secret_key + "\nsession_token=" + self.session_token + "\nbody=" + product_body(self.product_id) + "\ntimeout_ms=" + string.format(self.timeout_ms, "")
-		return normalize_response("ListPod", phone_request_acep_spec(spec))
+		return self.call_default("ListPod", product_body(self.product_id))
 	end
 
 	func list_hosts() as Response
-		string spec = "action=ListHost\nversion=2023-10-30\naccess_key=" + self.access_key + "\nsecret_key=" + self.secret_key + "\nsession_token=" + self.session_token + "\nbody=" + product_body(self.product_id) + "\ntimeout_ms=" + string.format(self.timeout_ms, "")
-		return normalize_response("ListHost", phone_request_acep_spec(spec))
+		return self.call_default("ListHost", product_body(self.product_id))
 	end
 
 	func list_dcs() as Response
-		string spec = "action=ListDc\nversion=2023-10-30\naccess_key=" + self.access_key + "\nsecret_key=" + self.secret_key + "\nsession_token=" + self.session_token + "\nbody=" + product_body(self.product_id) + "\ntimeout_ms=" + string.format(self.timeout_ms, "")
-		return normalize_response("ListDc", phone_request_acep_spec(spec))
+		return self.call_default("ListDc", product_body(self.product_id))
 	end
 
 	func detail_pod(string pod_id) as Response
@@ -184,29 +181,20 @@ export func version() as string
 	return "0.1.0"
 end
 
-func phone_spec_dry_run(string spec) as bool
-	if string.contains(spec, "dry_run=true") or string.contains(spec, "dry_run=1") then
-		return true
-	end
-	if string.contains(spec, "timeout_ms=0") or string.contains(spec, "timeout_ms=-") then
-		return true
-	end
-	return false
-end
-
-func phone_request_acep_spec(string spec) as string
-	if phone_spec_dry_run(spec) then
-		return volc.core.sign_preview_acep_spec(spec)
-	end
-	return volc.core.request_acep_spec(spec)
-end
-
 export func call_spec(string spec) as Response
-	return normalize_response("ACEP", phone_request_acep_spec(spec))
+	return normalize_response("ACEP", volc.core.request_acep_spec(spec))
 end
 
 export func raw_spec(string spec) as string
-	return phone_request_acep_spec(spec)
+	return volc.core.request_acep_spec(spec)
+end
+
+export func preview_spec(string spec) as string
+	return volc.core.sign_preview_acep_spec(spec)
+end
+
+export func preview_call(string access_key, string secret_key, string session_token, string action, string version, string body, string x_date) as string
+	return volc.core.sign_preview_acep(action, version, access_key, secret_key, session_token, body, x_date)
 end
 
 export func client(string access_key, string secret_key, string product_id) as Client
@@ -218,8 +206,7 @@ export func client_token(string access_key, string secret_key, string session_to
 end
 
 export func raw_call(string access_key, string secret_key, string session_token, string action, string version, string body, int timeout_ms) as string
-	string spec = "action=" + action + "\nversion=" + version + "\naccess_key=" + access_key + "\nsecret_key=" + secret_key + "\nsession_token=" + session_token + "\nbody=" + body + "\ntimeout_ms=" + string.format(timeout_ms, "")
-	return phone_request_acep_spec(spec)
+	return volc.core.request_acep(action, version, access_key, secret_key, session_token, body, timeout_ms)
 end
 
 export func call(string access_key, string secret_key, string session_token, string action, string version, string body, int timeout_ms) as string
@@ -288,24 +275,25 @@ export func normalize_response(string action, string raw) as Response
 	return __phone_normalize_response(action, raw, status, volc.core.last_error())
 end
 
-export func response_json(string action, string raw) as string
-	Response response = normalize_response(action, raw)
+export func parse_response(string action, string raw, int status) as Response
+	return __phone_normalize_response(action, raw, status, "")
+end
+
+export func response_json(string action, string raw, int status) as string
+	Response response = parse_response(action, raw, status)
 	return response.to_json()
 end
 
 export func list_pod(string access_key, string secret_key, string session_token, string product_id, int timeout_ms) as string
-	string spec = "action=ListPod\nversion=2023-10-30\naccess_key=" + access_key + "\nsecret_key=" + secret_key + "\nsession_token=" + session_token + "\nbody=" + product_body(product_id) + "\ntimeout_ms=" + string.format(timeout_ms, "")
-	return phone_request_acep_spec(spec)
+	return call_default(access_key, secret_key, session_token, "ListPod", product_body(product_id), timeout_ms)
 end
 
 export func list_host(string access_key, string secret_key, string session_token, string product_id, int timeout_ms) as string
-	string spec = "action=ListHost\nversion=2023-10-30\naccess_key=" + access_key + "\nsecret_key=" + secret_key + "\nsession_token=" + session_token + "\nbody=" + product_body(product_id) + "\ntimeout_ms=" + string.format(timeout_ms, "")
-	return phone_request_acep_spec(spec)
+	return call_default(access_key, secret_key, session_token, "ListHost", product_body(product_id), timeout_ms)
 end
 
 export func list_dc(string access_key, string secret_key, string session_token, string product_id, int timeout_ms) as string
-	string spec = "action=ListDc\nversion=2023-10-30\naccess_key=" + access_key + "\nsecret_key=" + secret_key + "\nsession_token=" + session_token + "\nbody=" + product_body(product_id) + "\ntimeout_ms=" + string.format(timeout_ms, "")
-	return phone_request_acep_spec(spec)
+	return call_default(access_key, secret_key, session_token, "ListDc", product_body(product_id), timeout_ms)
 end
 
 export func detail_pod(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string

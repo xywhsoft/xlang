@@ -1,5 +1,17 @@
 # volc.phone
 
+2026-10-27 定型请求收口：`raw_call`、资源操作及 `Client`
+只经 `volc.core.request_acep` 的定型参数调用，不再把凭据、正文
+或超时拼成逐行 spec。`raw_spec/call_spec` 只处理调用方显式编写
+的 spec；预览分别使用 `preview_call/preview_spec`，`timeout_ms=0`
+不再暗中切换成预览。响应离线使用 `parse_response(action, raw, status)`，
+`response_json` 也显式接受状态码。`Client` 与 `Response` 已导出。
+公开离线范例不发网络请求，联网只读范例在
+`release/examples/extlibs/volc_phone_live.xl`，必须先配置环境变量。
+Windows/Linux `test/check_offline.ps1/.sh` 均通过 C 签名预览和
+响应 XLang JIT/AOT；仍不能代替被 `xhttp.client` 阻断的整包导入、
+在线 mock 和真实服务验收。
+
 2026-10-27 离线响应边界收口：`Response` 模型与 JSON 解析从网络
 入口拆出。响应只从 `ResponseMetadata` 读取 `RequestId`、`Error`
 及其 `Code/CodeN/Message`；`Result` 由 JSON 库序列化，不再截取
@@ -24,7 +36,7 @@ XLang 运行尚未验收，不能把离线通过记作发布完成。响应结�
 `examples/hello.xl`；全局 ownership catalog 故障不再是当前阻断。
 该包仍不能进入 XLang 运行验收。
 
-火山引擎云手机 ACEP 的 XLang 客户端草案，复用 `volc.core` 的签名和请求能力。当前提供请求体构造、资源/任务操作、响应查询及 `Client` / `Response` 类；`raw_spec` 和 `call_spec` 接收调用方编写的逐行声明。本包不再有原生 C 辅助函数，C 客户端能力不由此包提供。
+火山引擎云手机 ACEP 的 XLang 客户端草案，复用 `volc.core` 的签名和请求能力。当前提供请求体构造、资源/任务操作、响应查询及 `Client` / `Response` 类；`raw_spec` 和 `call_spec` 接收调用方编写的逐行声明。本包不另造 C 客户端，C 对照范例直接使用 `volc.core` 的公开定型签名接口。
 
 ## 当前状态
 
@@ -42,9 +54,9 @@ cd demo6
 
 这个依赖阻断不能通过包内兼容回退掩盖。依赖恢复后，本包还需要完成以下自身问题，才能进入发布验收：
 
-- 定型请求把凭据与 JSON 请求体拼入逐行 spec；值中出现换行会改变声明边界。定型入口应直接调用 `volc.core` 的定型请求/预览 API，`*_spec` 只留给明确使用该格式的调用方。
+- 当前没有联网 mock 或沙箱服务的成功/失败验证；在线入口的完整行为、超时和凭据边界仍待依赖恢复后验收。
 
 原有字节偏移切片和进程共享八槽缓存已移除，改用 XLang 字符切片；
 中文离线用例已添加到范例，待导入链恢复后执行验证。
 
-更细的复现与修复顺序见 [`dev/extlib_blockers/volc_phone_import_and_response.md`](../../../dev/extlib_blockers/volc_phone_import_and_response.md) 和 [`dev/extlib_blockers/volc_phone_import_chain.md`](../../../dev/extlib_blockers/volc_phone_import_chain.md)。仓库已有离线 [XLang 用例](../../examples/extlibs/volc_phone.xl)，但当前不能执行；C 对照范例、mock HTTP 成功/失败、结果所有权及真实服务验收尚未完成。测试凭据不得替换为真实密钥并提交到仓库。
+历史问题与当前依赖复现见 [`dev/extlib_blockers/volc_phone_import_and_response.md`](../../../dev/extlib_blockers/volc_phone_import_and_response.md) 和 [`dev/extlib_blockers/volc_phone_import_chain.md`](../../../dev/extlib_blockers/volc_phone_import_chain.md)。公开 [XLang 离线范例](../../examples/extlibs/volc_phone.xl) 因依赖导入阻断尚不能执行；[C 定型预览范例](examples/preview.c) 和独立响应分片已通过两平台离线门禁。mock HTTP 成功/失败、完整包 XLang/C 同输出及真实服务验收尚未完成。测试凭据不得替换为真实密钥并提交到仓库。

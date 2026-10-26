@@ -1,4 +1,4 @@
-class Response
+export class Response
     bool ok_value
     string action_value
     int status_value
