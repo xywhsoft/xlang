@@ -29,6 +29,10 @@ int xidePathsDistinct(const char* const* paths,size_t count,int (*cancelled)(voi
 #endif
 /* Compiler overlays use absolute lexical, Unicode case-insensitive paths. */
 int xidePathLexicalEqual(const char* left,const char* right);
+/* Exact prepared spelling used by LexicalEqual, including device prefixes.
+   Compare with NativeKeyCompare; malloc/free. Retain only for absolute paths,
+   since relative normalization depends on the process current directory. */
+wchar_t* xidePathLexicalWide(const char* path);
 int xidePathExists(const char* path);
 int xidePathIsDirectory(const char* path);
 int xidePathHasExtension(const char* path, const char* extension);
