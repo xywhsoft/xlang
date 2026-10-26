@@ -1,0 +1,107 @@
+extern "variadic_text" @owned @no_raise func text(c_int mode, c_vararg) as string?
+extern "variadic_required" @owned func required(c_int mode, c_vararg) as string
+extern "variadic_borrowed" @no_raise func borrowed(c_int mode, c_vararg) as string
+extern "variadic_failed" @owned func failed(c_int mode, c_vararg) as string
+extern "variadic_length" @no_raise func length(c_int mode, c_vararg) as c_int
+extern "variadic_visit" @no_raise func visit(c_int mode, c_vararg)
+extern "variadic_original" @no_raise func original(string value) as bool
+extern "variadic_calls" @no_raise func calls() as c_int
+extern "variadic_silent_failure" @owned func silentFailure(c_int mode,c_vararg) as string
+extern "variadic_fixed_text" @no_raise func fixedText(string format,c_vararg) as c_int
+extern "variadic_debug" @no_raise func debug() as bool
+extern "variadic_live" @no_raise func live() as int
+extern "variadic_fail_after" @no_raise func failAfter(int count)
+extern "variadic_clear_failure" @no_raise func clearFailure()
+extern "variadic_scalar_failed" func scalarFailed(c_int mode,c_vararg) as c_int
+
+// A structural native variadic signature can cross an ordinary function
+// boundary. C tail values stay typed until the final C call site.
+func forward(func(c_int, c_vararg) as string producer, string input) as string
+    return producer(c_int(1),input,c_short(7),float32(2.5))
+end
+
+func check(string input)
+    auto optional=text
+    assert optional(c_int(0))==null
+    auto producer=required
+    auto alias=producer
+    auto value=producer(c_int(1),input,c_short(7),float32(2.5))
+    assert value==input and original(value)
+    producer=borrowed
+    assert producer(c_int(1),input)=="borrowed"
+    value=alias(c_int(1),input,c_short(7),float32(2.5))
+    assert original(value)
+    value=forward(alias,input)
+    assert original(value)
+    producer=required
+    value=producer(c_int(1),input,c_short(7),float32(2.5))
+    assert original(value)
+    auto size=length
+    assert size(c_int(1),input)==3
+    size=scalarFailed
+    bool scalarCaught=false
+    try
+        size(c_int(1))
+    catch error
+        scalarCaught=true
+    end
+    assert scalarCaught
+    auto action=visit
+    action(c_int(1),input)
+    auto fixed=fixedText
+    assert fixed(input,c_int(7))==10
+    auto before=calls()
+    bool caught=false
+    try
+        producer(c_int(1),"a\0b",c_int(7),2.5)
+    catch error
+        caught=true
+    end
+    assert caught and calls()==before
+    producer=failed
+    caught=false
+    try
+        producer(c_int(1),input)
+    catch error
+        caught=true
+    end
+    assert caught
+    producer=silentFailure
+    caught=false
+    try
+        producer(c_int(1))
+    catch error
+        caught=true
+    end
+    assert caught
+end
+
+func allocations()
+    auto producer=required
+    string first=producer(c_int(1),"abc",c_short(7),float32(2.5))
+    producer=borrowed
+    string second=producer(c_int(1),"abc")
+    auto alias=producer
+    string third=alias(c_int(1),"abc")
+end
+async func worker() as string
+    auto producer=required
+    return producer(c_int(1),"abc",c_short(7),float32(2.5))
+end
+check("abc")
+auto fromWorker=await worker()
+assert fromWorker=="abc"
+allocations()
+assert debug()
+int prefix=0
+while prefix<32
+    auto before=live()
+    failAfter(prefix)
+    try
+        allocations()
+    catch error
+    end
+    clearFailure()
+    assert live()==before
+    prefix+=1
+end

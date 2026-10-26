@@ -602,6 +602,16 @@ static int xl6IrCgenEmitClosureMakeInstruction(
         ? xl6IrCgenClosureTargetGet(module, instruction->targetSymbol) : NULL;
     const XL6_IrType* signature = target != NULL
         ? xl6IrTypeGet(&module->types, target->signatureType) : NULL;
+    if (target && target->kind == XL6_IR_CLOSURE_TARGET_C_VARIADIC_NATIVE) {
+        const XL6_IrCallTarget* native = xl6IrCallTargetGet(module,target->adaptedTargetSymbol);
+        if (!xl6IrCVariadicNativeTargetSupported(module,native,signature))
+            return xl6IrCgenDiag(diags,module,instruction->origin,"native variadic closure physical ABI is unresolved");
+        xl6OutputPrintf(out,
+            "    v%u = xlir_closure_new((void (*)(void))%s, NULL, NULL, NULL, xlir_closure_call_names_%u, xlir_closure_call_defaults_%u, %lu);\n",
+            (unsigned)instruction->result,native->cName,(unsigned)target->targetSymbol,
+            (unsigned)target->targetSymbol,(unsigned long)target->callParameterCount);
+        return !xl6OutputHasFailed(out);
+    }
     size_t capture;
     int needsCopies = 0;
     int conditionCount = 0;
@@ -812,7 +822,9 @@ static int xl6IrCgenClosureCallAbi(
          (signature->parameterModes != NULL &&
           signature->parameterAbis != NULL)) &&
         instruction->targetSymbol == 0 &&
-        instruction->operandCount == signature->paramCount + 1 &&
+        (signature->callableErasureAbi == XL6_IR_CALLABLE_ERASURE_C_VARIADIC
+            ? instruction->operandCount >= signature->paramCount
+            : instruction->operandCount == signature->paramCount + 1) &&
         instruction->result != XL6_IR_VALUE_INVALID &&
         ((signature->callableResultType == XL6_IR_TYPE_INVALID &&
           instruction->type == XL6_IR_TYPE_INVALID) ||
@@ -820,6 +832,8 @@ static int xl6IrCgenClosureCallAbi(
           instruction->type == signature->callableResultType &&
           xl6IrCgenType(module, instruction->type) != NULL));
 }
+
+#include "src/cgen/xl6_ir_cgen_native_variadic.c"
 
 static int xl6IrCgenEmitClosureCallInstruction(
     XL6_Output* out, const XL6_IrModule* module,
@@ -834,6 +848,8 @@ static int xl6IrCgenEmitClosureCallInstruction(
         return xl6IrCgenDiag(diags, module,
             instruction != NULL ? instruction->origin : XL6_IR_NODE_INVALID,
             "XLIR C emitter closure invoke ABI is unresolved");
+    if (signature->callableErasureAbi == XL6_IR_CALLABLE_ERASURE_C_VARIADIC)
+        return xl6IrCgenEmitNativeVariadicCall(out,module,instruction,instructionIndex,diags);
     if ( signature->callableResultType != XL6_IR_TYPE_INVALID ) {
         resultType = xl6IrCgenType(module, signature->callableResultType);
         if ( resultType == NULL )

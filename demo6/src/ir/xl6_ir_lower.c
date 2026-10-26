@@ -26351,6 +26351,7 @@ static XL6_IrValueId xl6IrLowerFunctionValueCall(
     XL6_IrTypeId signatureType = XL6_IR_TYPE_INVALID;
     XL6_IrCallVariadicAbi variadicAbi;
     size_t fixedParameterCount;
+    size_t operandCount;
     const XL6_IrExitPlan* errorPlan;
     XL6_IrValueId* operands = NULL;
     XL6_SymbolId* borrowedTemps = NULL;
@@ -26401,15 +26402,15 @@ static XL6_IrValueId xl6IrLowerFunctionValueCall(
          site->receiver != ctx->module->children[node->firstChild] ||
          site->resultType != node->storageType ||
          variadicAbi == (XL6_IrCallVariadicAbi)-1 ||
-         variadicAbi == XL6_IR_CALL_VARIADIC_C ||
          site->variadicAbi != variadicAbi ||
          site->fixedParameterCount != fixedParameterCount ||
          signature->callableResultType != node->storageType || errorPlan == NULL ) {
         xl6IrLowerDiag(ctx, id, "XLIR closure call has no exact signature and result ABI");
         return XL6_IR_VALUE_INVALID;
     }
-    operands = (XL6_IrValueId*)xrtCalloc(
-        signature->paramCount + 1, sizeof(*operands));
+    operandCount = variadicAbi == XL6_IR_CALL_VARIADIC_C
+        ? site->argumentCount + 1 : signature->paramCount + 1;
+    operands = (XL6_IrValueId*)xrtCalloc(operandCount, sizeof(*operands));
     if ( signature->paramCount != 0 )
         borrowedTemps = (XL6_SymbolId*)xrtCalloc(
             signature->paramCount, sizeof(*borrowedTemps));
@@ -26488,6 +26489,23 @@ static XL6_IrValueId xl6IrLowerFunctionValueCall(
                         ctx, argumentId, borrowedTemps[i], operands[i + 1], 0, 0) )
             goto done;
     }
+    if (variadicAbi == XL6_IR_CALL_VARIADIC_C) {
+        for (i = fixedParameterCount; i < site->argumentCount; ++i) {
+            const XL6_IrCallArgument* binding = &ctx->module->callArguments[site->firstArgument + i];
+            const XL6_IrNode* expression = xl6IrNodeGet(ctx->module, binding->expression);
+            XL6_SymbolId temporary = 0;
+            if (binding->source != XL6_IR_CALL_ARGUMENT_C_VARARG_ITEM || !expression ||
+                !xl6IrTypeSupportsCVararg(ctx->module, expression->storageType)) {
+                xl6IrLowerDiag(ctx,id,"native variadic function value tail requires C scalar, pointer or checked string");
+                goto done;
+            }
+            operands[i + 1] = xl6IrLowerNode(ctx,binding->expression);
+            operands[i + 1] = xl6IrLowerAnchorResolvedCallBorrow(ctx,id,binding->expression,
+                expression,expression->storageType,XL6_IR_PARAMETER_ABI_BORROW,operands[i + 1],&temporary);
+            if (operands[i + 1] == XL6_IR_VALUE_INVALID || (temporary &&
+                !xl6IrLowerProtectEvaluationStorage(ctx,binding->expression,temporary,operands[i + 1],0,0))) goto done;
+        }
+    }
     if ( variadicAbi == XL6_IR_CALL_VARIADIC_ARRAY ||
          variadicAbi == XL6_IR_CALL_VARIADIC_DICT ) {
         size_t parameter = fixedParameterCount;
@@ -26510,7 +26528,7 @@ static XL6_IrValueId xl6IrLowerFunctionValueCall(
     }
     if ( !xl6IrLowerCommitEvaluationOwners(ctx, id, evaluationOwnerFirst) ||
          !xl6IrLowerEmit(ctx, XL6_IR_INSTR_CLOSURE_CALL, id, node->storageType, 0,
-                         operands, signature->paramCount + 1, &result) ) {
+                         operands, operandCount, &result) ) {
         result = XL6_IR_VALUE_INVALID;
         goto done;
     }
@@ -27463,7 +27481,8 @@ static XL6_IrClosureTarget* xl6IrLowerNamedAdapterGet(
     if ( module == NULL || adaptedTarget == 0 || signatureType == XL6_IR_TYPE_INVALID ) return NULL;
     for ( i = 0; i < module->closureTargetCount; ++i ) {
         XL6_IrClosureTarget* closure = &module->closureTargets[i];
-        if ( closure->kind == XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER &&
+        if ( (closure->kind == XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER ||
+              closure->kind == XL6_IR_CLOSURE_TARGET_C_VARIADIC_NATIVE) &&
              closure->adaptedTargetSymbol == adaptedTarget &&
              closure->signatureType == signatureType ) return closure;
     }
@@ -27594,6 +27613,44 @@ static XL6_IrClosureTarget* xl6IrLowerRegisterNamedAdapter(
     parameters = declaration != NULL && declaration->kind == XL6_IR_NODE_FUNC_DECL &&
                  declaration->sourceKind != XL6_AST_ANON_FUNC && declaration->childCount > 1
         ? xl6IrNodeGet(ctx->module, ctx->module->children[declaration->firstChild + 1]) : NULL;
+    if (variadicAbi == XL6_IR_CALL_VARIADIC_C) {
+        if (!xl6IrCVariadicNativeTargetSupported(ctx->module, target, signature) ||
+            !parameters || parameters->childCount != signature->paramCount ||
+            xl6IrLowerEnclosingClass(ctx->module, target->declaration) != XL6_IR_NODE_INVALID) {
+            xl6IrLowerDiag(ctx, origin, "native variadic function value requires an exact source-C signature; bind an ordinary signature for adapted native results or parameters");
+            return NULL;
+        }
+        if (!xl6IrLowerGrow((void**)&ctx->module->closureTargets,
+            &ctx->module->closureTargetCapacity, ctx->module->closureTargetCount,
+            sizeof(*ctx->module->closureTargets))) { ctx->failed = 1; return NULL; }
+        closure = &ctx->module->closureTargets[ctx->module->closureTargetCount++];
+        memset(closure, 0, sizeof(*closure));
+        closure->kind = XL6_IR_CLOSURE_TARGET_C_VARIADIC_NATIVE;
+        closure->declaration = origin;
+        closure->targetSymbol = xl6IrLowerNewSyntheticSymbol(ctx);
+        closure->adaptedTargetSymbol = target->symbol;
+        closure->signatureType = name->namedCallableSignatureType;
+        closure->rawCallbackAbi = XL6_IR_CLOSURE_RAW_CALLBACK_NONE;
+        closure->firstCapture = ctx->module->closureCaptureCount;
+        closure->callParameterCount = target->parameterCount;
+        closure->callParameterNames = xrtCalloc(target->parameterCount, sizeof(char*));
+        closure->callParameterDefaultAbis = xrtCalloc(target->parameterCount, sizeof(*closure->callParameterDefaultAbis));
+        closure->callParameterDefaultLiterals = xrtCalloc(target->parameterCount, sizeof(char*));
+        closure->callParameterDefaultFunctions = xrtCalloc(target->parameterCount, sizeof(*closure->callParameterDefaultFunctions));
+        if (!closure->targetSymbol || !closure->callParameterNames || !closure->callParameterDefaultAbis ||
+            !closure->callParameterDefaultLiterals || !closure->callParameterDefaultFunctions) {
+            ctx->failed = 1; return NULL;
+        }
+        for (i = 0; i < target->parameterCount; ++i) {
+            const XL6_IrNode* parameter = xl6IrNodeGet(ctx->module,
+                ctx->module->children[parameters->firstChild + i]);
+            if (!parameter || !parameter->text || !parameter->text[0]) { ctx->failed = 1; return NULL; }
+            closure->callParameterNames[i] = xrtStrDup(parameter->text);
+            closure->callParameterDefaultAbis[i] = XL6_IR_DYNAMIC_METHOD_DEFAULT_NONE;
+            if (!closure->callParameterNames[i]) { ctx->failed = 1; return NULL; }
+        }
+        return closure;
+    }
     if ( signature == NULL || signature->kind != XL6_IR_TYPE_FUNCTION ||
          signature->cAbi != XL6_IR_C_ABI_CLOSURE_PTR ||
          (signature->paramCount != 0 &&
@@ -33478,6 +33535,7 @@ int xl6IrLowerModule(XL6_IrModule* module, XL6_DiagList* diags)
      * closure arena; capture-bearing bodies will receive frame storage rather
      * than sharing their creator's C locals. */
     for ( i = 0; !ctx.failed && i < module->closureTargetCount; ++i ) {
+        if (module->closureTargets[i].kind == XL6_IR_CLOSURE_TARGET_C_VARIADIC_NATIVE) continue;
         if (!xl6IrLowerClosureDefaultPrograms(&ctx, i)) { ctx.failed = 1; break; }
         XL6_IrClosureTarget closure = module->closureTargets[i];
         const XL6_IrNode* node = xl6IrNodeGet(module, closure.declaration);

@@ -1,0 +1,3 @@
+extern "variadic_required" @owned func text(c_int mode,c_vararg) as string
+auto producer=text
+auto invalid=producer(c_int(1),[1,2])

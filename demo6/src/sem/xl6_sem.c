@@ -1394,8 +1394,11 @@ static int xl6SemCheckType(XL6_SemContext* ctx, XL6_AstNode* typeNode)
                     ok = 0;
                 }
                 if ( xl6SemTypeIsCVararg(paramType) ) {
-                    xl6SemErrorNode(ctx, paramType, "c_vararg 只能用于 extern C 函数声明");
-                    ok = 0;
+                    if (i == 0 || i + 1 != params->childCount || seenVararg) {
+                        xl6SemErrorNode(ctx, paramType, "native variadic func requires fixed parameters and one final c_vararg");
+                        ok = 0;
+                    }
+                    seenVararg = 1;
                 } else if ( xl6SemTypeIsVararg(paramType) ) {
                     if ( seenVararg ) {
                         xl6SemErrorNode(ctx, paramType, "func 类型最多只能声明一个可变参数");
@@ -7770,6 +7773,7 @@ static int xl6SemCallableParamListMatchesFunctionParams(XL6_SemContext* ctx, con
     size_t expectedFixed;
     int expectedHasArrayVararg;
     int expectedHasDictVararg;
+    int expectedHasCVararg;
     int actualHasVararg;
     int actualFixed;
     int actualRequired;
@@ -7785,12 +7789,13 @@ static int xl6SemCallableParamListMatchesFunctionParams(XL6_SemContext* ctx, con
     expectedCount = expected != NULL ? expected->childCount : 0;
     expectedHasArrayVararg = expectedCount > 0 && xl6SemTypeIsArrayVararg(expected->children[expectedCount - 1]);
     expectedHasDictVararg = expectedCount > 0 && xl6SemTypeIsDictVararg(expected->children[expectedCount - 1]);
-    expectedFixed = (expectedHasArrayVararg || expectedHasDictVararg) ? expectedCount - 1 : expectedCount;
+    expectedHasCVararg = expectedCount > 0 && xl6SemTypeIsCVararg(expected->children[expectedCount - 1]);
+    expectedFixed = (expectedHasArrayVararg || expectedHasDictVararg || expectedHasCVararg) ? expectedCount - 1 : expectedCount;
     actualFixed = xl6SemFixedParamCount(params);
     actualRequired = xl6SemParamRequiredCount(params);
     actualHasVararg = params != NULL && params->childCount > (size_t)actualFixed;
 
-    if ( expectedHasArrayVararg || expectedHasDictVararg ) {
+    if ( expectedHasArrayVararg || expectedHasDictVararg || expectedHasCVararg ) {
         const XL6_AstNode* actualVararg;
 
         if ( !actualHasVararg || expectedFixed < (size_t)actualRequired || expectedFixed > (size_t)actualFixed ) {
@@ -7803,6 +7808,7 @@ static int xl6SemCallableParamListMatchesFunctionParams(XL6_SemContext* ctx, con
         if ( expectedHasDictVararg && !xl6SemParamIsDictVararg(actualVararg) ) {
             return 0;
         }
+        if (expectedHasCVararg && (!xl6SemParamIsCVararg(actualVararg) || expectedFixed != (size_t)actualFixed)) return 0;
         return xl6SemCallableParamPrefixMatches(ctx, expected, params, expectedFixed);
     }
 
@@ -8718,6 +8724,7 @@ static int xl6SemCheckFunctionValueCall(
     size_t i;
     int hasArrayVararg;
     int hasDictVararg;
+    int hasCVararg;
     int seenNamed;
     int hasUnsupportedNamed;
     int countMismatch;
@@ -8760,7 +8767,8 @@ static int xl6SemCheckFunctionValueCall(
     paramCount = params != NULL ? params->childCount : 0;
     hasArrayVararg = paramCount > 0 && xl6SemTypeIsArrayVararg(params->children[paramCount - 1]);
     hasDictVararg = paramCount > 0 && xl6SemTypeIsDictVararg(params->children[paramCount - 1]);
-    fixedCount = (hasArrayVararg || hasDictVararg) ? paramCount - 1 : paramCount;
+    hasCVararg = paramCount > 0 && xl6SemTypeIsCVararg(params->children[paramCount - 1]);
+    fixedCount = (hasArrayVararg || hasDictVararg || hasCVararg) ? paramCount - 1 : paramCount;
     /* Synthetic result adapters already receive their variadic pack. Prove
      * the whole physical signature instead of treating that pack as an item. */
     for(size_t a=0;args && a<args->childCount;++a) {
@@ -8802,7 +8810,7 @@ static int xl6SemCheckFunctionValueCall(
         xl6SemCountMismatchError(ctx, call, "func 调用实参数量和签名不匹配", fixedCount, positionalArgCount);
         countMismatch = 1;
         ok = 0;
-    } else if ( !hasUnsupportedNamed && positionalArgCount > fixedCount && !hasArrayVararg ) {
+    } else if ( !hasUnsupportedNamed && positionalArgCount > fixedCount && !hasArrayVararg && !hasCVararg ) {
         xl6SemCountMismatchError(ctx, call, "func 调用实参数量和签名不匹配", fixedCount, positionalArgCount);
         countMismatch = 1;
         ok = 0;
@@ -8835,7 +8843,7 @@ static int xl6SemCheckFunctionValueCall(
             }
             paramIndex = positionalIndex;
             positionalIndex += 1;
-            if ( paramIndex >= fixedCount && !hasArrayVararg ) {
+            if ( paramIndex >= fixedCount && !hasArrayVararg && !hasCVararg ) {
                 if ( !countMismatch ) {
                     xl6SemCountMismatchError(ctx, argExpr, "func 调用实参数量和签名不匹配", fixedCount, positionalArgCount);
                 }

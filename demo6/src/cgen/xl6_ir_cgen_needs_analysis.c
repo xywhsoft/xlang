@@ -223,6 +223,19 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
         const XL6_IrType* instructionType;
         if ( !xl6IrCgenInstructionIsReachable(module, i) ) continue;
         instructionType = xl6IrTypeGet(&module->types, module->instructions[i].type);
+        if (module->instructions[i].kind == XL6_IR_INSTR_CLOSURE_CALL) {
+            const XL6_IrType* signature = xl6IrTypeGet(&module->types,module->instructions[i].calleeType);
+            if (signature && signature->callableErasureAbi == XL6_IR_CALLABLE_ERASURE_C_VARIADIC) {
+                needs->needsClosureRuntime = needs->needsForeignErrorRuntime = needs->needsErrorRuntime = 1;
+                if (instructionType && instructionType->cAbi == XL6_IR_C_ABI_MANAGED_STRING) needs->needsStringRuntime = 1;
+                for (size_t p = signature->paramCount; p < module->instructions[i].operandCount; ++p) {
+                    const XL6_IrInstruction* value = xl6IrCgenValueDefinition(module,
+                        module->operands[module->instructions[i].firstOperand + p],NULL);
+                    if (value && xl6IrCVarargPhysicalAbi(module,value->type) == XL6_IR_C_VARARG_PHYSICAL_C_TEXT_BORROW)
+                        needs->needsStringRuntime = 1;
+                }
+            }
+        }
         if(module->instructions[i].asyncResultAbi==XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE ||
             module->instructions[i].sourceAsyncResultAbi==XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE)
             needs->needsNativeFuturePayloadRuntime=1;
@@ -1259,6 +1272,13 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
     for ( i = 0; i < module->closureTargetCount; ++i ) {
         const XL6_IrClosureTarget* closure = &module->closureTargets[i];
         if ( closure->reachability == XL6_IR_REACHABILITY_UNREACHABLE ) continue;
+        if (closure->kind == XL6_IR_CLOSURE_TARGET_C_VARIADIC_NATIVE) {
+            needs->needsForeignErrorRuntime = 1;
+            needs->needsErrorRuntime = 1;
+            const XL6_IrType* signature = xl6IrTypeGet(&module->types,closure->signatureType);
+            const XL6_IrType* result = signature ? xl6IrTypeGet(&module->types,signature->callableResultType) : NULL;
+            if (result && result->cAbi == XL6_IR_C_ABI_MANAGED_STRING) needs->needsStringRuntime = 1;
+        }
         needs->needsClosureRuntime = 1;
         if ( closure->rawCallbackAbi == XL6_IR_CLOSURE_RAW_CALLBACK_FOREIGN_SCOPE_THUNK ) {
             needs->needsForeignErrorRuntime = 1;

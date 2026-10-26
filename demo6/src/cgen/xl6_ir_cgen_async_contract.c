@@ -795,7 +795,9 @@ static int xl6IrCgenAsyncMachineProgramSupported(
                         xl6IrTypeGet(&module->types, instruction->calleeType);
                     if ( signature == NULL || signature->kind != XL6_IR_TYPE_FUNCTION ||
                          signature->cAbi != XL6_IR_C_ABI_CLOSURE_PTR ||
-                         instruction->operandCount != signature->paramCount + 1 )
+                         (signature->callableErasureAbi == XL6_IR_CALLABLE_ERASURE_C_VARIADIC
+                            ? instruction->operandCount < signature->paramCount
+                            : instruction->operandCount != signature->paramCount + 1) )
                         return xl6IrCgenAsyncProgramUnsupported(unsupportedReason,
                             "XLIR async closure-call ABI is not admitted");
                 }
