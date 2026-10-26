@@ -590,6 +590,65 @@ done:
 	return bOk;
 }
 
+/* PAX 值由记录长度界定；值末尾的换行不是 GNU 长名称终止符。 */
+static int testPaxTrailingNewline(void)
+{
+	static const char sPax[] =
+		"13 path=foo\n\n"
+		"17 linkpath=foo\n\n"
+		"16 uname=alice\n\n"
+		"16 gname=group\n\n";
+	static const char sGnuName[] = "gnu/name\n";
+	xbuffer* pOriginal = makeArchive("original", "x", 1u);
+	xbuffer* pPacked = xrtBufferCreate();
+	xrttarreader* pReader = NULL;
+	xrttarentry Entry;
+	int bOk = 0;
+	if ( pOriginal == NULL || pPacked == NULL ||
+		!xrtBufferResize(pPacked, pOriginal->Size + 1024u) ) { goto done; }
+	memset(pPacked->Data, 0, 1024u);
+	memcpy(pPacked->Data, pOriginal->Data, 512u);
+	pPacked->Data[156u] = 'x';
+	snprintf((char*)pPacked->Data + 124u, 12u, "%011o", (unsigned int)(sizeof(sPax) - 1u));
+	updateHeaderChecksum(pPacked->Data);
+	memcpy(pPacked->Data + 512u, sPax, sizeof(sPax) - 1u);
+	memcpy(pPacked->Data + 1024u, pOriginal->Data, pOriginal->Size);
+	pReader = xrtTarReaderOpenMemory(pPacked->Data, pPacked->Size, NULL);
+	bOk = pReader != NULL && xrtTarReaderNext(pReader, &Entry) &&
+		strcmp(Entry.sName, "foo\n") == 0 &&
+		strcmp(Entry.sLinkName, "foo\n") == 0 &&
+		strcmp(Entry.sUserName, "alice\n") == 0 &&
+		strcmp(Entry.sGroupName, "group\n") == 0 &&
+		!__xrtTarEntryPathSafe(Entry.sName, false, NULL, 0u);
+	if ( !bOk ) { fprintf(stderr, "PAX trailing newline was changed or accepted as a safe path\n"); }
+	xrtTarReaderDestroy(pReader);
+	pReader = xrtTarReaderOpenMemory(pPacked->Data, pPacked->Size, NULL);
+	if ( pReader == NULL || xrtTarReaderExtractAll(pReader, "pax_extract", false) ||
+		xrtTarReaderError(pReader)->iCode != XRT_TAR_ERROR_UNSAFE_PATH ||
+		xrtFileExists("pax_extract/foo") ) {
+		fprintf(stderr, "unsafe PAX name was extracted under a changed filename\n");
+		bOk = 0;
+	}
+	xrtTarReaderDestroy(pReader);
+	pReader = NULL;
+	memset(pPacked->Data + 512u, 0, 512u);
+	memcpy(pPacked->Data + 512u, sGnuName, sizeof(sGnuName));
+	pPacked->Data[156u] = 'L';
+	snprintf((char*)pPacked->Data + 124u, 12u, "%011o", (unsigned int)sizeof(sGnuName));
+	updateHeaderChecksum(pPacked->Data);
+	pReader = xrtTarReaderOpenMemory(pPacked->Data, pPacked->Size, NULL);
+	if ( pReader == NULL || !xrtTarReaderNext(pReader, &Entry) ||
+		strcmp(Entry.sName, "gnu/name") != 0 ) {
+		fprintf(stderr, "GNU long name terminator was not removed\n");
+		bOk = 0;
+	}
+done:
+	xrtTarReaderDestroy(pReader);
+	xrtBufferDestroy(pPacked);
+	xrtBufferDestroy(pOriginal);
+	return bOk;
+}
+
 static int testSecurityAndLimits(void)
 {
 	cstr sRoot = "build/tmp/tar_安全_test";
@@ -1516,6 +1575,7 @@ int main(void)
 		bOk &= testMemoryAndPax();
 		bOk &= testSeekedReaderLimit();
 		bOk &= testMalformedPaxFields();
+		bOk &= testPaxTrailingNewline();
 		bOk &= testSecurityAndLimits();
 		bOk &= testLinksAndSpecialEntries();
 		bOk &= testRecoveryAndStreaming();
