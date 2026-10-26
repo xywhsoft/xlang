@@ -51,6 +51,7 @@ int main(void)
 	ptr pChild = NULL;
 	XUiaThreadCheck threadCheck;
 	HANDLE worker = NULL;
+	MSG quit_message;
 	int iResult = 1;
 
 	if ( pWindow == NULL || !x_uia_test_window_valid(pWindow) ) { goto cleanup; }
@@ -276,6 +277,20 @@ int main(void)
 		!x_uia_test_window_focus_button(pWindow) ||
 		strstr(x_uia_events_poll_json(pEvents, 1000), "\"type\":\"focus\"") == NULL ||
 		!x_uia_events_release(pEvents) ) { goto cleanup; }
+	pEvents = NULL;
+	/* 事件轮询不能吞掉宿主线程请求退出的 WM_QUIT。 */
+	pEvents = x_uia_events_create();
+	if ( pEvents == NULL ) { goto cleanup; }
+	PeekMessageA(&quit_message, NULL, 0u, 0u, PM_NOREMOVE);
+	PostQuitMessage(7);
+	if ( strcmp(x_uia_events_poll_json(pEvents, 100), "{}") != 0 ||
+		!PeekMessageA(&quit_message, NULL, WM_QUIT, WM_QUIT, PM_NOREMOVE) ||
+		quit_message.wParam != 7u ) {
+		fprintf(stderr, "UIA event poll consumed the host quit message\n");
+		goto cleanup;
+	}
+	PeekMessageA(&quit_message, NULL, WM_QUIT, WM_QUIT, PM_REMOVE);
+	if ( !x_uia_events_release(pEvents) ) { goto cleanup; }
 	pEvents = NULL;
 	pChildren = x_uia_element_children(pRoot);
 	if ( pChildren == NULL || xrtValueType(pChildren) != XVALUE_ARRAY ||

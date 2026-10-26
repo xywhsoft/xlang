@@ -1438,6 +1438,12 @@ XL_EXPORT const char* x_uia_events_poll_json(void* handle, int timeout_ms)
 		}
 		if ( wait_result == WAIT_OBJECT_0 + 1u ) {
 			while ( PeekMessageA(&msg, NULL, 0u, 0u, PM_REMOVE) ) {
+				/* 内层消息泵必须把退出请求交还给宿主。 */
+				if ( msg.message == WM_QUIT ) {
+					PostQuitMessage((int)msg.wParam);
+					x_uia_set_error("");
+					return "{}";
+				}
 				TranslateMessage(&msg);
 				DispatchMessageA(&msg);
 			}
