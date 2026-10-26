@@ -37,6 +37,14 @@ timeout 30s release/xl run release/extlibs/epub/examples/basic.c -- \
     "$work/c_direct.epub" > "$work/example_c_direct.txt"
 diff -u "$work/example_c.txt" "$work/example_c_direct.txt"
 cmp "$work/c.epub" "$work/c_direct.epub"
+timeout 180s release/xl build release/extlibs/epub/examples/basic.c -o "$work/c_aot"
+timeout 30s "$work/c_aot" "$work/c_aot.epub" > "$work/example_c_aot.txt"
+diff -u "$work/example_c.txt" "$work/example_c_aot.txt"
+if ! command -v python3 >/dev/null; then
+    printf 'python3 is required for the EPUB ZIP/XML gate\n' >&2
+    exit 1
+fi
+python3 -I release/extlibs/epub/test/check_external.py "$work/c.epub" "$work/c_aot.epub"
 timeout 90s release/xl run test/cases/extlib_epub.xl
 timeout 90s release/xl run test/cases/extlib_epub_boundaries.xl
 timeout 90s release/xl run release/extlibs/epub/test/ffi_boundaries.xl
@@ -44,9 +52,5 @@ timeout 90s release/xl run release/extlibs/epub/test/output_limit.xl
 timeout 90s release/xl run release/examples/extlibs/epub.xl -- "$work/xlang.epub" > "$work/example_xl.txt"
 diff -u "$work/example_c.txt" "$work/example_xl.txt"
 
-if ! command -v python3 >/dev/null; then
-    printf 'python3 is required for the EPUB ZIP/XML gate\n' >&2
-    exit 1
-fi
 python3 -I release/extlibs/epub/test/check_external.py "$work/c.epub" "$work/xlang.epub"
 printf 'epub Linux C ASan/UBSan, XLang and ZIP/XML gate: PASS\n'

@@ -33,6 +33,21 @@ try {
 
     & $runner -Package epub -Source release/extlibs/epub/test/test_epub.c
     if ($LASTEXITCODE -ne 0) { throw 'epub C boundaries failed' }
+    [void][IO.Directory]::CreateDirectory($work)
+    $cLines = @(& $xl run release/extlibs/epub/examples/basic.c -- $cBook)
+    if ($LASTEXITCODE -ne 0) { throw 'epub direct C example failed' }
+    Confirm-Output 'C example' $cLines
+    if (-not $SkipAot) {
+        $cAot = Join-Path $work 'c_aot.exe'
+        $cAotBook = Join-Path $work 'c_aot.epub'
+        & $xl build release/extlibs/epub/examples/basic.c -o $cAot
+        if ($LASTEXITCODE -ne 0) { throw 'epub C example AOT build failed' }
+        $cAotLines = @(& $cAot $cAotBook)
+        if ($LASTEXITCODE -ne 0) { throw 'epub C example AOT run failed' }
+        Confirm-Output 'C AOT example' $cAotLines
+        & $python -I release/extlibs/epub/test/check_external.py $cBook $cAotBook
+        if ($LASTEXITCODE -ne 0) { throw 'epub C AOT ZIP/XML check failed' }
+    }
     foreach ($source in @(
         'test/cases/extlib_epub.xl',
         'test/cases/extlib_epub_boundaries.xl',
@@ -43,10 +58,6 @@ try {
         if ($LASTEXITCODE -ne 0) { throw "epub XLang test failed: $source" }
     }
 
-    [void][IO.Directory]::CreateDirectory($work)
-    $cLines = @(& $xl run release/extlibs/epub/examples/basic.c -- $cBook)
-    if ($LASTEXITCODE -ne 0) { throw 'epub direct C example failed' }
-    Confirm-Output 'C example' $cLines
     $xlLines = @(& $xl run release/examples/extlibs/epub.xl -- $xlBook)
     if ($LASTEXITCODE -ne 0) { throw 'epub XLang example failed' }
     Confirm-Output 'XLang example' $xlLines

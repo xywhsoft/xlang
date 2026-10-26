@@ -1,5 +1,13 @@
 # epub
 
+2026-10-26：Windows/Linux 默认门禁现将公开 C 范例的独立 EXE
+构建、运行和 Python `zipfile`/XML 检查放在 XLang 用例之前。
+两平台的严格 C 边界、C 直跑与 C AOT 均通过；生成 EPUB
+逐字节一致，外部检查覆盖 mimetype、目录、元数据、spine、
+导航及章节。随后首个 XLang 用例仍因语言创建的 `var` 字典和
+章节数组无法投影到原生 `xvalue` 而失败。此改动只补 C 发布路径
+的验收，不解除完整双语/AOT 阻断。
+
 **当前发布门禁未通过。** 2026-10-24 从当前源码重建 Windows 发布版后，
 默认 `test/check.ps1` 的严格 C 边界通过，但首个 XLang 用例
 `test/cases/extlib_epub.xl` 在把合法的语言字典和章节数组传给
