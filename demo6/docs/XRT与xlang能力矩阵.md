@@ -4,12 +4,12 @@
 
 ## 契约结论
 
-- XRT 核心公共函数：3434。
-- xruntime 产品公共函数：3899，其中扩展自有 465。
-- 低层能力：3899 个函数全部进入 TCC 符号面，可通过显式 `extern "xrt..."` 使用。
+- XRT 核心公共函数：3445。
+- xruntime 产品公共函数：3910，其中扩展自有 465。
+- 低层能力：3910 个函数全部进入 TCC 符号面，可通过显式 `extern "xrt..."` 使用。
 - 头文件内联辅助函数单独记录于 `headerInlineReferences`，不增加外部符号数量；未声明的新引用仍报错。
 - 显式扩展产品的 42 项 API 引用单列于 `externalProductReferences`，核对真实公共声明、提供方和指定使用方，不增加核心 API／符号或延期数量；引用不代表功能验收。
-- 语言内核或标准库已直接使用：2472 个函数。其余 1427 个保留为低层能力，不视为功能丢失。
+- 语言内核或标准库已直接使用：2479 个函数。其余 1431 个保留为低层能力，不视为功能丢失。
 - 已迁出核心但尚待扩展库适配的旧引用：0，仅包含 xhttp=0、xws=0、xregex=0。
 
 逐 API 详情可执行 `python tools/gen_xrt_xlang_matrix.py --report build/reports/xrt_xlang_api_matrix.json` 生成。
@@ -35,7 +35,7 @@
 | xrt | `include/xrt/crc32.h` | 2 | 1 | 1 |
 | xrt | `include/xrt/crypto.h` | 122 | 104 | 18 |
 | xrt | `include/xrt/environment.h` | 4 | 4 | 0 |
-| xrt | `include/xrt/error.h` | 36 | 32 | 4 |
+| xrt | `include/xrt/error.h` | 36 | 33 | 3 |
 | xrt | `include/xrt/error_format.h` | 1 | 0 | 1 |
 | xrt | `include/xrt/executor.h` | 19 | 14 | 5 |
 | xrt | `include/xrt/file.h` | 100 | 94 | 6 |
@@ -96,13 +96,13 @@
 | xrt | `include/xrt/thread.h` | 23 | 18 | 5 |
 | xrt | `include/xrt/time.h` | 58 | 46 | 12 |
 | xrt | `include/xrt/tls.h` | 140 | 9 | 131 |
-| xrt | `include/xrt/tls_client.h` | 10 | 10 | 0 |
+| xrt | `include/xrt/tls_client.h` | 13 | 13 | 0 |
 | xrt | `include/xrt/tls_identity.h` | 13 | 5 | 8 |
 | xrt | `include/xrt/tls_resume.h` | 7 | 6 | 1 |
 | xrt | `include/xrt/tls_server.h` | 10 | 10 | 0 |
-| xrt | `include/xrt/tls_session.h` | 30 | 22 | 8 |
+| xrt | `include/xrt/tls_session.h` | 31 | 22 | 9 |
 | xrt | `include/xrt/tls_stream.h` | 105 | 72 | 33 |
-| xrt | `include/xrt/tls_verify.h` | 11 | 6 | 5 |
+| xrt | `include/xrt/tls_verify.h` | 18 | 9 | 9 |
 | xrt | `include/xrt/udp.h` | 95 | 72 | 23 |
 | xrt | `include/xrt/value.h` | 159 | 130 | 29 |
 | xrt | `include/xrt/vfs.h` | 31 | 23 | 8 |

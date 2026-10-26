@@ -3,6 +3,7 @@
  * ownership remain verified from these same descriptors before emission. */
 #include "xl6_x509_path_collection_contracts.inc"
 #include "xl6_tls_identity_collection_contracts.inc"
+#include "xl6_tls_resume_collection_contracts.inc"
 #include "xl6_tls_parameters_collection_contracts.inc"
 #include "xl6_tls_verifier_collection_contracts.inc"
 #include "xl6_tls_role_context_collection_contracts.inc"

@@ -17,6 +17,8 @@
 {"xl6TlsResumeExpiresAtV1",T,M,1,{V},TRP},
 {"xl6TlsResumeValidAtV1",T,B,2,{V,M},TRP},
 {"xl6TlsResumeTicketAgeV1",T,U,2,{V,M},TRP},
+{"xl6TlsResumePeerCertificateCountV1",T,I,1,{V},TRP},
+{"xl6TlsResumePeerCertificateV1",T,V,2,{V,I},.resultOwner="xl6X509CertificateDestroyV1",TRP},
 #undef TRP
 #undef TRG
 #undef TR

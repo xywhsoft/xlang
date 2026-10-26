@@ -1252,3 +1252,8 @@ This boundary batch does not complete Array carrier migration or the 53-module g
 `check_foreign_bridges.ps1` verifies shared C resource ownership and native data snapshots, including allocation failures and JIT/AOT cleanup.
 
 `check_extern_owned_string.py` 验证自有 C 字符串接管及 C 可变参数文本；`check_extern_owned_string_public.py` 使用源码运行时回执，将真实公开头文件消费者作为独立 C 翻译单元编译，覆盖可空、多返回值及 OOM 生命周期。
+
+`check_tls_resume_peer_source.py` 以完整源码驱动器验收正常内存握手／恢复、当前
+CRL 和附加谓词、显式补链和缺链分流、IR／C／JIT／module／独立 AOT 与基础
+凭据裁剪。`check_tls_resume_peer_runtime.py` 验收实际 sealed Certificate 数组
+捕获、短／堆视图、独立输出和 256 个导入回滚位置；不代替普通产品或 TLS 总验收。

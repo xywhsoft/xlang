@@ -17,4 +17,7 @@ XL6_TEXT_API int64_t xl6TlsResumeIssuedAtV1(const void*);
 XL6_TEXT_API int64_t xl6TlsResumeExpiresAtV1(const void*);
 XL6_TEXT_API bool xl6TlsResumeValidAtV1(const void*,int64_t);
 XL6_TEXT_API uint64_t xl6TlsResumeTicketAgeV1(const void*,int64_t);
+XL6_TEXT_API int64_t xl6TlsResumePeerCertificateCountV1(const void*);
+XL6_TEXT_API void* xl6TlsResumePeerCertificateV1(const void*,int64_t);
+XL6_TEXT_API void* xl6TlsResumeWithPeerCertificatesV1(XL6_NativeClassArrayContextV1,void*,const xvalue*,int64_t,int64_t);
 #endif
