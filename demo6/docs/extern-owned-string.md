@@ -45,6 +45,11 @@ extern "optional_text" @owned @no_raise func Optional() as string?
 extern string 返回继续复制借用内容。重复 C 符号不能声明冲突的拥有权。
 注册过的 resident 桥接还须由其封闭合同明确允许自有 char*，属性不能覆盖它。
 
+包公开声明使用 `export extern "foo" @owned func Foo() as string`，导入方直接
+调用原 C 符号。语言函数的 `export "public_text" func Text() as string` 则
+保留普通语言字符串的 Data/Size 导出 ABI；C 调用方应包含实际生成的头文件，
+消费完成后用同一 XRT 的 xrtFree 释放 Data。二者不能互相猜测为 char* ABI。
+
 ## 性能边界
 
 | 路径 | 行为与成本 |
