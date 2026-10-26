@@ -330,6 +330,7 @@ $report = [ordered]@{
     OutputPathsReport = Join-Path $outputPath 'output-paths.json'
     PhaseReports = @()
     PublicReuseProof = $null
+    TccDistribution = $null
     Error = $null
 }
 $reportPath = Join-Path $outputPath 'results.json'
@@ -345,6 +346,24 @@ try {
     if (!$?) { throw 'Parameterized argument roles failed before source builds' }
     & (Join-Path $toolsDirectory 'check_xlir_worker_output_paths.ps1') -Root $Root -Report $report.OutputPathsReport
     if (!$?) { throw 'Worker output paths failed before source builds' }
+    # A source-built bootstrap has no adjacent headers or import libraries.
+    # Give every worker one complete, pinned standalone layout instead of
+    # relying on the selected executable's installation or ambient headers.
+    $python = (Get-Command python -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+    $tccDistribution = Join-Path $outputPath 'standalone-tcc'
+    & $python (Join-Path $PSScriptRoot 'prepare_xlir_tcc_distribution.py') --root $Root --compiler $Tcc --out $tccDistribution
+    if ($LASTEXITCODE -ne 0) { throw 'Standalone selected TCC preparation failed' }
+    $tccManifest = Join-Path $tccDistribution 'distribution.json'
+    $preparedTcc = Get-Content -LiteralPath $tccManifest -Raw | ConvertFrom-Json
+    if (!$preparedTcc.Complete -or !$preparedTcc.InputsUnchanged -or $preparedTcc.WorkerResultsReused -or
+        $preparedTcc.SelectedCompiler -ne $Tcc -or
+        (Get-FileHash -LiteralPath $preparedTcc.Compiler).Hash -ne $preparedTcc.CompilerSha256) {
+        throw 'Invalid standalone TCC compiler/SDK evidence'
+    }
+    $Tcc = $preparedTcc.Compiler
+    $report.Tcc = $Tcc
+    $report.TccDistribution = [ordered]@{Path=$tccManifest;Sha256=(Get-FileHash -LiteralPath $tccManifest).Hash}
+    Save-Report
     if ($ReusePublicDirectory) {
         # Reuse only a fully rehashed source compiler/object cohort. All
         # scenario workers, contracts, dependency phases and links still run.
