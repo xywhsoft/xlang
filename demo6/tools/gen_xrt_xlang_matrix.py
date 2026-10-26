@@ -25,7 +25,7 @@ EXTERNAL_API_PRODUCTS = {
     "xacme": {
         "declarations": "release/extlibs/xacme/upstream/xacme.h",
         "provider": "release/extlibs/xacme/native/xacme_impl.c",
-        "consumers": ("src/runtime/xl6_xacme.c",),
+        "consumers": ("src/runtime/xl6_xacme.c", "src/runtime/xl6_xacme_abi.h"),
     },
 }
 PUBLIC_SECTION = re.compile(r"/\* public: ([^*\r\n]+?) \*/")

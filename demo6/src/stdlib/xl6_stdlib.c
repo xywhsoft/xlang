@@ -2002,7 +2002,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibNodeUsesTypeName(root,"TlsRevocationPolicy")||xl6StdlibNodeUsesTypeName(root,"TlsRevocationRequest");
     needsTlsVerifiedPeer=needsTlsVerifier||xl6StdlibNodeUsesTypeName(root,"TlsVerifiedPeer");
     needsTlsVerificationPolicy=needsTlsVerifier || xl6StdlibNodeUsesTypeName(root,"TlsVerificationPolicy");
-    needsX509Island=needsTlsIdentity||needsTlsVerifiedPeer||xl6StdlibNeedsX509(root,used);
+    needsX509Island=needsTlsIdentity||needsTlsVerifiedPeer||needsTlsResume||xl6StdlibNeedsX509(root,used);
     needsTlsParameters=needsTlsResume || needsTlsClientContext || needsTlsServerContext || xl6StdlibNodeUsesTypeName(root,"TlsParameters") || xl6StdlibNodeUsesTypeName(root,"TlsPolicy") ||
         xl6StdlibNodeUsesTypeName(root,"TlsLimits") || xl6StdlibNodeUsesTypeName(root,"TlsVersion") ||
         xl6StdlibNodeUsesTypeName(root,"TlsCipherSuite") || xl6StdlibNodeUsesTypeName(root,"TlsGroup") ||

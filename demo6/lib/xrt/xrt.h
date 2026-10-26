@@ -25927,6 +25927,11 @@ typedef struct xtlsverifylimits {
 	size_t MaxTrustBytes;
 } xtlsverifylimits;
 
+/* Recheck the actual saved certificate chain with this verifier whenever a
+ * server selects a resumption PSK. A missing chain falls back to a full
+ * handshake, unless the client explicitly requires resumption. */
+#define XTLS_VERIFY_RESUME_PEER_V1 UINT32_C(1)
+
 
 
 XRT_EXTERN_C_BEGIN
@@ -25965,6 +25970,21 @@ XRT_API xtlsverifier* xrtTlsVerifierCreateOwnedV1(
 	const xtlsverifylimits* pLimits,
 	const xtlsverifiercontextownershipv1* pPolicy
 );
+
+/* Immutable verification options; unknown bits fail before adopting Context.
+ * The existing factories retain their flags=0 behavior. Limits is required. */
+XRT_API xtlsverifier* xrtTlsVerifierCreateFlagsV1(
+	const xtlsverifierconfig* pConfig,
+	const xtlsverifylimits* pLimits,
+	uint32 iFlags
+);
+XRT_API xtlsverifier* xrtTlsVerifierCreateOwnedFlagsV1(
+	const xtlsverifierconfig* pConfig,
+	const xtlsverifylimits* pLimits,
+	const xtlsverifiercontextownershipv1* pPolicy,
+	uint32 iFlags
+);
+XRT_API uint32 xrtTlsVerifierFlagsV1(const xtlsverifier* pVerifier);
 
 /* Read under the complete graph's freeze. Admission requires the exact
  * registered resident policy identity BEFORE its fields are followed. Opaque
@@ -26298,7 +26318,8 @@ XRT_API xtlsresult xrtTlsClientDrive(xtlssession* pSession);
 
 #if defined(XRT_FEATURE_TLS_CLIENT_VERIFY)
 
-/* 返回完整握手中已经深复制并验证的对端证书数量。 */
+/* 返回完整握手的证书链，或恢复票据共享的只读证书链数量。
+ * RESUME_PEER 验证器在接受恢复时重新验证该链；握手成功仍须检查 Ready。 */
 XRT_API size_t xrtTlsClientCertificateCount(
 	const xtlssession* pSession
 );
@@ -26330,6 +26351,25 @@ XRT_API bool xrtTlsClientResumed(const xtlssession* pSession);
 
 
 #if defined(XRT_FEATURE_TLS_CLIENT_RESUME)
+
+/* Make a NEW immutable credential with an owned copy of the supplied chain.
+ * Only Raw DER is read; parsed fields and PeerIdentity do not establish trust.
+ * Limits is required; only MaxPeerCertificates/MaxPeerBytes apply (0=unlimited).
+ * The current RESUME_PEER verifier rechecks this chain during resumption.
+ * Neither the original credential nor the input certificate views are changed. */
+XRT_API xtlsresume* xrtTlsResumeWithPeerCertificatesV1(
+	const xtlsresume* pResume,
+	const xbytesview* pCertificates,
+	size_t iCount,
+	const xtlsverifylimits* pLimits
+);
+
+/* Views borrow the immutable credential. Missing chains have count=0; an
+ * out-of-range index fails checked. No certificate getter makes a trust claim. */
+XRT_API size_t xrtTlsResumePeerCertificateCountV1(const xtlsresume* pResume);
+XRT_API const xx509cert* xrtTlsResumePeerCertificateV1(
+	const xtlsresume* pResume, size_t iIndex
+);
 
 /* 返回等待调用方接管的恢复对象数量。 */
 XRT_API size_t xrtTlsClientResumeCount(const xtlssession* pSession);
@@ -51052,6 +51092,19 @@ bool __xrtNetSyncWait(
 
 #if defined(XRT_FEATURE_TLS)
 
+/* Optional peer ownership is private to client resumption. Keeping the owner
+ * opaque here lets the base credential implementation remain independent of
+ * client/session layouts, and absent entirely from resume-only builds. */
+#if defined(XRT_FEATURE_TLS_CLIENT_RESUME)
+struct xtlsclientpeer;
+void __xrtTlsClientPeerRelease(struct xtlsclientpeer* pPeer);
+struct xtlsclientpeer* __xrtTlsClientPeerRetain(struct xtlsclientpeer* pPeer);
+struct xtlsclientpeer* __xrtTlsResumePeer(const xtlsresume* pResume);
+/* Only an unpublished, uniquely owned ticket may be attached. Borrows Peer;
+ * success takes a new reference, failure leaves the ticket unchanged. */
+bool __xrtTlsResumePeerAttach(xtlsresume* pResume, struct xtlsclientpeer* pPeer);
+#endif
+
 /* 设置带可选输入偏移的 TLS 结构化错误。 */
 void __xrtTlsError(
 	xerrkind Kind,
@@ -52359,10 +52412,18 @@ typedef enum xtlsclientstep {
 
 /* 已验证对端证书只保留一份精确分配和指向该分配的解析视图。 */
 typedef struct xtlsclientpeer {
+	#if defined(XRT_FEATURE_TLS_CLIENT_RESUME)
+		volatile int32 RefCount;
+	#endif
 	xx509cert* Certificates;
 	size_t CertificateCount;
 	xx509pubkey PublicKey;
 } xtlsclientpeer;
+
+/* Immutable one-allocation DER owner. Refcounting exists only in builds that
+ * enable tickets. No language references or policy decision is stored here. */
+void __xrtTlsClientPeerRelease(xtlsclientpeer* pPeer);
+xtlsclientpeer* __xrtTlsClientPeerAllocate(size_t iCount, size_t iBytes);
 
 #endif
 
@@ -153874,7 +153935,7 @@ static void __xrtTlsClientClean(xtlssession* pSession, ptr pRole)
 		__xrtTlsTranscriptClear(&pState->Transcript);
 		__xrtTlsRecordKeyClear(&pState->PendingReadKey);
 		#if defined(XRT_FEATURE_TLS_CLIENT_VERIFY)
-			xrtFree(pState->Peer);
+			__xrtTlsClientPeerRelease(pState->Peer);
 			xrtTlsVerifierRelease(pState->Verifier);
 		#endif
 		if ( pState->RetryStorage != NULL ) {
@@ -154073,6 +154134,20 @@ XRT_API xtlssession* xrtTlsClientCreate(
 			&Config, &ResumeProtocol, &ResumeInfo, &iResumeAge
 		) ) {
 			return NULL;
+		}
+		if (Config.Resume && Config.Verifier &&
+			(xrtTlsVerifierFlagsV1(Config.Verifier) & XTLS_VERIFY_RESUME_PEER_V1) &&
+			!__xrtTlsResumePeer(Config.Resume)) {
+			if (Config.ResumeOnly) {
+				(void)__xrtTlsClientError(XERR_STATE, XTLS_ERROR_RESUME,
+					"create-tls-client", "Required TLS resume has no peer certificate chain");
+				return NULL;
+			}
+			/* Keep inherited name/ALPN, but do not offer this PSK. The normal
+			 * certificate flight will make the current trust decision. */
+			Config.Resume = NULL;
+			memset(&ResumeInfo, 0, sizeof(ResumeInfo));
+			iResumeAge = 0;
 		}
 	#endif
 	if ( !__xrtTlsClientConfigValid(pConfig, &iProtocolBytes) ) {
@@ -154864,6 +154939,9 @@ static xtlsresult __xrtTlsClient13ServerHelloCommit(
 	xbytesview Encoded;
 	bool bResumed;
 	bool bCommitted = false;
+	#if defined(XRT_FEATURE_TLS_CLIENT_RESUME)
+		xtlsclientpeer* pResumePeer = NULL;
+	#endif
 
 	memset(&Next, 0, sizeof(Next));
 	if ( !__xrtTlsClientServerHello(
@@ -154879,6 +154957,26 @@ static xtlsresult __xrtTlsClient13ServerHelloCommit(
 		);
 		goto cleanup;
 	}
+	#if defined(XRT_FEATURE_TLS_CLIENT_RESUME)
+		if (bResumed) {
+			pResumePeer = __xrtTlsResumePeer(pState->OfferResume);
+			if (pState->Verifier &&
+				(xrtTlsVerifierFlagsV1(pState->Verifier) & XTLS_VERIFY_RESUME_PEER_V1)) {
+				if (!pResumePeer || !xrtTlsVerifierVerify(pState->Verifier,
+					XTLS_SERVER, (xstrview){(cstr)pState->ServerName.Data, pState->ServerName.Size},
+					pResumePeer->Certificates, pResumePeer->CertificateCount)) {
+					if (!xrtGetError()) (void)__xrtTlsClientError(XERR_STATE, XTLS_ERROR_RESUME,
+						"process-server-hello", "TLS resume peer certificate chain is missing");
+					pResumePeer = NULL;
+					goto cleanup;
+				}
+			}
+			if (pResumePeer) {
+				pResumePeer = __xrtTlsClientPeerRetain(pResumePeer);
+				if (!pResumePeer) goto cleanup;
+			}
+		}
+	#endif
 	Encoded.Data = pMessage->Body.Data - XTLS_HANDSHAKE_HEADER_SIZE;
 	Encoded.Size = pMessage->EncodedSize;
 	if ( !__xrtTlsClientServerKeys(
@@ -154916,12 +155014,17 @@ static xtlsresult __xrtTlsClient13ServerHelloCommit(
 	pState->Version = XTLS_VERSION_13;
 	#if defined(XRT_FEATURE_TLS_CLIENT_RESUME)
 		pState->Resumed = Next.Resumed;
+		pState->Peer = pResumePeer;
+		pResumePeer = NULL;
 	#endif
 	pState->Step = XTLS_CLIENT_WAIT_ENCRYPTED_EXTENSIONS;
 	xrtSecureZero(pState->PrivateKey, pState->PrivateKeySize);
 	bCommitted = __xrtTlsClientWait(pSession, true);
 
 cleanup:
+	#if defined(XRT_FEATURE_TLS_CLIENT_RESUME)
+		__xrtTlsClientPeerRelease(pResumePeer);
+	#endif
 	__xrtTlsTranscriptClear(&Next.Transcript);
 	xrtSecureZero(&Next, sizeof(Next));
 	return bCommitted ? XTLS_OK : __xrtTlsClientFailed(pSession);
@@ -155218,12 +155321,30 @@ static bool __xrtTlsClientCertificateMeasure(
 
 
 
-/* 分配并深复制完整对端证书链，所有解析视图都指向稳定 DER。 */
-static xtlsclientpeer* __xrtTlsClientCertificateCopy(
-	const xtlscertificatemessage* pCertificate,
-	size_t iCount,
-	size_t iBytes
-)
+/* One precise allocation, shared by sessions and tickets only when resumption
+ * is enabled. Published certificate views never change. */
+void __xrtTlsClientPeerRelease(xtlsclientpeer* pPeer)
+{
+	if (!pPeer) return;
+	#if defined(XRT_FEATURE_TLS_CLIENT_RESUME)
+		if (xrtRefRelease(&pPeer->RefCount) != 0) return;
+	#endif
+	xrtFree(pPeer);
+}
+
+#if defined(XRT_FEATURE_TLS_CLIENT_RESUME)
+xtlsclientpeer* __xrtTlsClientPeerRetain(xtlsclientpeer* pPeer)
+{
+	if (!pPeer || xrtRefRetain(&pPeer->RefCount) < 0) {
+		(void)__xrtTlsClientError(XERR_STATE, XTLS_ERROR_STATE,
+			"retain-tls-client-peer", "TLS certificate owner reference is invalid");
+		return NULL;
+	}
+	return pPeer;
+}
+#endif
+
+xtlsclientpeer* __xrtTlsClientPeerAllocate(size_t iCount, size_t iBytes)
 {
 	const size_t iCertificateAlignment =
 		XRT_INTERNAL_ALIGNOF(xx509cert);
@@ -155234,13 +155355,7 @@ static xtlsclientpeer* __xrtTlsClientCertificateCopy(
 	size_t iCertificates;
 	size_t iTotal;
 	xtlsclientpeer* pPeer;
-	xtlscertificatecursor Cursor;
-	xtlscertificateentry Entry;
-	xtlsitemresult Result;
-	bytes pData;
-	size_t i = 0;
-
-	if ( iCount > (SIZE_MAX / sizeof(xx509cert)) ) {
+	if ( (iCount == 0) || (iCount > (SIZE_MAX / sizeof(xx509cert))) ) {
 		(void)__xrtTlsClientError(
 			XERR_RANGE, XTLS_ERROR_LIMIT,
 			"process-server-certificate",
@@ -155268,8 +155383,28 @@ static xtlsclientpeer* __xrtTlsClientCertificateCopy(
 		return NULL;
 	}
 	memset(pPeer, 0, iHeader + iCertificates);
+	#if defined(XRT_FEATURE_TLS_CLIENT_RESUME)
+		pPeer->RefCount = 1;
+	#endif
 	pPeer->Certificates = (xx509cert*)((bytes)pPeer + iHeader);
 	pPeer->CertificateCount = iCount;
+	return pPeer;
+}
+
+/* 分配并深复制完整对端证书链，所有解析视图都指向稳定 DER。 */
+static xtlsclientpeer* __xrtTlsClientCertificateCopy(
+	const xtlscertificatemessage* pCertificate,
+	size_t iCount,
+	size_t iBytes
+)
+{
+	xtlsclientpeer* pPeer = __xrtTlsClientPeerAllocate(iCount, iBytes);
+	xtlscertificatecursor Cursor;
+	xtlscertificateentry Entry;
+	xtlsitemresult Result;
+	bytes pData;
+	size_t i = 0;
+	if (!pPeer) return NULL;
 	pData = (bytes)(pPeer->Certificates + iCount);
 	if ( !xrtTlsCertificateEntries(pCertificate, &Cursor) ) {
 		xrtFree(pPeer);
@@ -182782,6 +182917,7 @@ struct xtlsverifier {
 	ptr Context;
 	bool AllowSha1;
 	bool Limited;
+	uint32 Flags;
 	xtlsverifylimits Limits;
 	const xtlsverifiercontextownershipv1* OwnershipPolicy;
 	xatomicptr OwnershipClaim;
@@ -183173,12 +183309,18 @@ XRT_API void xrtTlsVerifierConfigInit(xtlsverifierconfig* pConfig)
 /* 创建深复制信任库并接管自定义上下文的共享验证器。 */
 static xtlsverifier* __xrtTlsVerifierCreate(
 	const xtlsverifierconfig* pConfig,
-	const xtlsverifylimits* pLimits
+	const xtlsverifylimits* pLimits,
+	uint32 iFlags
 )
 {
 	xtlsverifier* pVerifier;
 	xx509store* pStore;
 
+	if ( (iFlags & ~XTLS_VERIFY_RESUME_PEER_V1) != 0 ) {
+		(void)__xrtTlsVerifyError(XERR_ARGUMENT, "create-tls-verifier",
+			"TLS verifier flags contain unsupported bits");
+		return NULL;
+	}
 	if ( (pConfig == NULL) ||
 		((pConfig->Store == NULL) && (pConfig->Verify == NULL)) ) {
 		(void)__xrtTlsVerifyError(
@@ -183223,6 +183365,7 @@ static xtlsverifier* __xrtTlsVerifierCreate(
 	pVerifier->Context = pConfig->Context;
 	pVerifier->AllowSha1 = pConfig->AllowSha1;
 	pVerifier->Limited = pLimits != NULL;
+	pVerifier->Flags = iFlags;
 	if ( pLimits != NULL ) {
 		pVerifier->Limits = *pLimits;
 	}
@@ -183232,7 +183375,7 @@ static xtlsverifier* __xrtTlsVerifierCreate(
 
 XRT_API xtlsverifier* xrtTlsVerifierCreate(const xtlsverifierconfig* pConfig)
 {
-	return __xrtTlsVerifierCreate(pConfig, NULL);
+	return __xrtTlsVerifierCreate(pConfig, NULL, 0);
 }
 
 
@@ -183245,13 +183388,23 @@ XRT_API xtlsverifier* xrtTlsVerifierCreateLimited(
 		(void)__xrtTlsVerifyError(XERR_ARGUMENT, "create-tls-verifier", "TLS verification limits are null");
 		return NULL;
 	}
-	return __xrtTlsVerifierCreate(pConfig, pLimits);
+	return __xrtTlsVerifierCreate(pConfig, pLimits, 0);
 }
 
 XRT_API xtlsverifier* xrtTlsVerifierCreateOwnedV1(
 	const xtlsverifierconfig* pConfig,
 	const xtlsverifylimits* pLimits,
 	const xtlsverifiercontextownershipv1* pPolicy
+)
+{
+	return xrtTlsVerifierCreateOwnedFlagsV1(pConfig, pLimits, pPolicy, 0);
+}
+
+XRT_API xtlsverifier* xrtTlsVerifierCreateOwnedFlagsV1(
+	const xtlsverifierconfig* pConfig,
+	const xtlsverifylimits* pLimits,
+	const xtlsverifiercontextownershipv1* pPolicy,
+	uint32 iFlags
 )
 {
 	if (!pConfig || !pLimits || !pPolicy || pPolicy->size != sizeof(*pPolicy) ||
@@ -183263,13 +183416,37 @@ XRT_API xtlsverifier* xrtTlsVerifierCreateOwnedV1(
 			"TLS verifier needs an exact resident context ownership policy");
 		return NULL;
 	}
-	xtlsverifier* pVerifier = __xrtTlsVerifierCreate(pConfig, pLimits);
+	xtlsverifier* pVerifier = __xrtTlsVerifierCreate(pConfig, pLimits, iFlags);
 	if (pVerifier) {
 		pVerifier->OwnershipPolicy = pPolicy;
 		xrtAtomicPtrInit(&pVerifier->OwnershipClaim, NULL);
 		xrtAtomic32Init(&pVerifier->OwnershipActive, 0);
 	}
 	return pVerifier;
+}
+
+XRT_API xtlsverifier* xrtTlsVerifierCreateFlagsV1(
+	const xtlsverifierconfig* pConfig,
+	const xtlsverifylimits* pLimits,
+	uint32 iFlags
+)
+{
+	if (!pLimits) {
+		(void)__xrtTlsVerifyError(XERR_ARGUMENT, "create-tls-verifier",
+			"TLS verification limits are null");
+		return NULL;
+	}
+	return __xrtTlsVerifierCreate(pConfig, pLimits, iFlags);
+}
+
+XRT_API uint32 xrtTlsVerifierFlagsV1(const xtlsverifier* pVerifier)
+{
+	if (!pVerifier) {
+		(void)__xrtTlsVerifyError(XERR_ARGUMENT, "get-tls-verifier-flags",
+			"TLS verifier is null");
+		return 0;
+	}
+	return pVerifier->Flags;
 }
 
 
@@ -236516,6 +236693,9 @@ struct xtlsresume {
 	volatile int32 RefCount;
 	xtlsresumeinfo Info;
 	size_t AllocationSize;
+	#if defined(XRT_FEATURE_TLS_CLIENT_RESUME)
+		struct xtlsclientpeer* Peer;
+	#endif
 };
 
 
@@ -236814,9 +236994,32 @@ XRT_API void xrtTlsResumeRelease(xtlsresume* pResume)
 		return;
 	}
 	iSize = pResume->AllocationSize;
+	#if defined(XRT_FEATURE_TLS_CLIENT_RESUME)
+		__xrtTlsClientPeerRelease(pResume->Peer);
+	#endif
 	xrtSecureZero(pResume, iSize);
 	xrtFree(pResume);
 }
+
+#if defined(XRT_FEATURE_TLS_CLIENT_RESUME)
+struct xtlsclientpeer* __xrtTlsResumePeer(const xtlsresume* pResume)
+{
+	return pResume ? pResume->Peer : NULL;
+}
+
+bool __xrtTlsResumePeerAttach(xtlsresume* pResume, struct xtlsclientpeer* pPeer)
+{
+	if (!pResume || pResume->Peer || !pPeer ||
+		pResume->RefCount != 1) {
+		return __xrtTlsResumeError(XERR_STATE, XTLS_ERROR_STATE,
+			"attach-tls-resume-peer", "TLS resume peer requires an unpublished ticket");
+	}
+	struct xtlsclientpeer* pHeld = __xrtTlsClientPeerRetain(pPeer);
+	if (!pHeld) return false;
+	pResume->Peer = pHeld;
+	return true;
+}
+#endif
 
 
 
@@ -237482,8 +237685,103 @@ bool __xrtTlsClientResumePublish(
 		}
 		return false;
 	}
+	if (pState->Peer && !__xrtTlsResumePeerAttach(pResume, pState->Peer)) {
+		xrtTlsResumeRelease(pResume);
+		return false;
+	}
 	__xrtTlsClientResumeQueue(pState, pResume);
 	return true;
+}
+
+XRT_API size_t xrtTlsResumePeerCertificateCountV1(const xtlsresume* pResume)
+{
+	if (!pResume) {
+		(void)__xrtTlsClientError(XERR_ARGUMENT, XTLS_ERROR_ARGUMENT,
+			"count-tls-resume-peer-certificates", "TLS resume is null");
+		return 0;
+	}
+	const xtlsclientpeer* pPeer = __xrtTlsResumePeer(pResume);
+	return pPeer ? pPeer->CertificateCount : 0;
+}
+
+XRT_API const xx509cert* xrtTlsResumePeerCertificateV1(
+	const xtlsresume* pResume, size_t iIndex)
+{
+	const xtlsclientpeer* pPeer = __xrtTlsResumePeer(pResume);
+	if (!pResume || !pPeer || iIndex >= pPeer->CertificateCount) {
+		(void)__xrtTlsClientError(pResume ? XERR_RANGE : XERR_ARGUMENT,
+			XTLS_ERROR_ARGUMENT, "get-tls-resume-peer-certificate",
+			"TLS resume peer certificate index is invalid");
+		return NULL;
+	}
+	return &pPeer->Certificates[iIndex];
+}
+
+XRT_API xtlsresume* xrtTlsResumeWithPeerCertificatesV1(
+	const xtlsresume* pResume, const xbytesview* pCertificates,
+	size_t iCount, const xtlsverifylimits* pLimits)
+{
+	if (!pResume || !pCertificates || !pLimits || !iCount) {
+		(void)__xrtTlsClientError(XERR_ARGUMENT, XTLS_ERROR_ARGUMENT,
+			"copy-tls-resume-peer", "TLS resume, nonempty chain and limits are required");
+		return NULL;
+	}
+	if (iCount > SIZE_MAX / sizeof(xx509cert) ||
+		(pLimits->MaxPeerCertificates && iCount > pLimits->MaxPeerCertificates)) {
+		(void)__xrtTlsClientError(XERR_RANGE, XTLS_ERROR_LIMIT,
+			"copy-tls-resume-peer", "TLS resume certificate count exceeds its budget");
+		return NULL;
+	}
+	size_t iBytes = 0;
+	for (size_t i = 0; i < iCount; i++) {
+		xbytesview Raw = pCertificates[i];
+		if (!Raw.Data || !Raw.Size || Raw.Size > SIZE_MAX - iBytes) {
+			(void)__xrtTlsClientError(XERR_ARGUMENT, XTLS_ERROR_CERTIFICATE,
+				"copy-tls-resume-peer", "TLS resume certificate DER view is invalid");
+			return NULL;
+		}
+		iBytes += Raw.Size;
+		if (pLimits->MaxPeerBytes && iBytes > pLimits->MaxPeerBytes) {
+			(void)__xrtTlsClientError(XERR_RANGE, XTLS_ERROR_LIMIT,
+				"copy-tls-resume-peer", "TLS resume certificate bytes exceed their budget");
+			return NULL;
+		}
+	}
+	xtlsclientpeer* pPeer = __xrtTlsClientPeerAllocate(iCount, iBytes);
+	if (!pPeer) return NULL;
+	bytes pData = (bytes)(pPeer->Certificates + iCount);
+	for (size_t i = 0; i < iCount; i++) {
+		xbytesview Raw = pCertificates[i];
+		memcpy(pData, Raw.Data, Raw.Size);
+		if (!xrtX509Parse(pData, Raw.Size, &pPeer->Certificates[i])) {
+			__xrtTlsClientPeerRelease(pPeer);
+			return NULL;
+		}
+		pData += Raw.Size;
+	}
+	if (!xrtX509PublicKey(&pPeer->Certificates[0], &pPeer->PublicKey)) {
+		__xrtTlsClientPeerRelease(pPeer);
+		return NULL;
+	}
+	xtlsresumeinfo Info;
+	if (!xrtTlsResumeInfo(pResume, &Info)) {
+		__xrtTlsClientPeerRelease(pPeer);
+		return NULL;
+	}
+	xtlsresumeconfig Config = {0};
+	Config.Version = Info.Version; Config.Cipher = Info.Cipher;
+	Config.Ticket = Info.Ticket; Config.Secret = Info.Secret;
+	Config.ServerName = Info.ServerName; Config.Protocol = Info.Protocol;
+	Config.PeerIdentity = Info.PeerIdentity; Config.Lifetime = Info.Lifetime;
+	Config.AgeAdd = Info.AgeAdd; Config.MaxEarlyData = Info.MaxEarlyData;
+	Config.IssuedAt = Info.IssuedAt;
+	xtlsresume* pResult = xrtTlsResumeCreate(&Config);
+	if (pResult && !__xrtTlsResumePeerAttach(pResult, pPeer)) {
+		xrtTlsResumeRelease(pResult);
+		pResult = NULL;
+	}
+	__xrtTlsClientPeerRelease(pPeer);
+	return pResult;
 }
 
 

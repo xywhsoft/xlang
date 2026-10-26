@@ -16,4 +16,7 @@ const char* xl6StdlibTlsResumeSource=
     "    extern \"xl6TlsResumeExpiresAtV1\" @pure @nonblocking get expiresAt() as time\n"
     "    extern \"xl6TlsResumeValidAtV1\" @pure @nonblocking func validAt(time at) as bool\n"
     "    extern \"xl6TlsResumeTicketAgeV1\" @pure @nonblocking func ticketAge(time at) as uint64\n"
+    "    extern \"xl6TlsResumePeerCertificateCountV1\" @pure @nonblocking get peerCertificateCount() as int\n"
+    "    extern \"xl6TlsResumePeerCertificateV1\" @pure @nonblocking func peerCertificateAt(int index) as Certificate\n"
+    "    extern \"xl6TlsResumeWithPeerCertificatesV1\" @pure @nonblocking func withPeerCertificates(array<Certificate> certificates, int maxCertificates = 64, int maxCertificateBytes = 16777216) as TlsResume\n"
     "end\n";
