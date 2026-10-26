@@ -14606,7 +14606,8 @@ static int xl6IrLowerPrecomputeCallTargetErrorAbis(XL6_IrLowerContext* ctx)
                 target->errorAbi = target->kind == XL6_IR_CALL_TARGET_EXTERN_C &&
                                    declaration != NULL &&
                                    xl6IrDeclarationAllowsForeignContract(declaration->sourceKind, declaration->flags) &&
-                                   (declaration->flags & XL6_AST_FLAG_FOREIGN_NO_RAISE) != 0
+                                   (declaration->flags & XL6_AST_FLAG_FOREIGN_NO_RAISE) != 0 &&
+                                   target->resultConversionAbi != XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY
                     ? XL6_IR_ERROR_ABI_NO_RAISE : XL6_IR_ERROR_ABI_MAY_RAISE;
             }
             continue;

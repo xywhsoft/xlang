@@ -4,7 +4,7 @@ Use --driver for a Windows public source driver or --cli for a normal xl CLI.
 Each run owns a fresh evidence directory; compiled artifacts are never reused.
 """
 from pathlib import Path
-import argparse, hashlib, json, os, subprocess, sys
+import argparse, hashlib, json, os, re, subprocess, sys
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -39,6 +39,7 @@ def main():
         ('ordinary-string-export-regression','test/cases/sem_export_string_return.xl',[],[]),
         ('C-variadic-no-raise-text','test/cases/extern_c_variadic_text.xl',['test/cases/extern_c_variadic_text_host.c'],['variadic_text']),
         ('C-variadic-function-value','test/cases/extern_c_variadic_value.xl',['test/cases/extern_c_variadic_text_host.c'],[]),
+        ('borrowed-string-failure','test/cases/extern_borrowed_string_failure.xl',['test/cases/extern_borrowed_string_failure_host.c'],[]),
     ]
     sha=lambda path:hashlib.sha256(Path(path).read_bytes()).hexdigest()
     inputs=[ROOT/source for _,source,_,_ in cases]+[ROOT/path for _,_,paths,_ in cases for path in paths]
@@ -60,7 +61,9 @@ def main():
             assert 'xlir_string_from_cstr('+symbol+'(' not in generated,symbol+' was copied'
             assert '.Data = '+symbol+'(' in generated,symbol+' was not adopted at its call site'
         if symbols:assert 'xl6CStringTakeV1' not in generated and 'XL6_COwnerV1' not in generated
-        if case=='extern_owned_string':assert 'xlir_string_from_cstr(owned_borrowed(' in generated,'borrowed default changed'
+        if case=='extern_owned_string':
+            assert re.search(r'const char\* borrowed_raw_\d+ = owned_borrowed\(',generated),'borrowed C prototype changed'
+            assert 'xlir_string_from_cstr(borrowed_raw_' in generated,'borrowed default changed'
         if case=='extern_owned_string_export':
             # Reentrant C sidecar integration. The compiler injects an ABI
             # header here; independent-header coverage is a separate gate.

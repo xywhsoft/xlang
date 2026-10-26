@@ -275,13 +275,13 @@ static int xl6IrCgenEmitDynamicNativeWitness(
     }
     if (!xl6IrCgenNativeCallValueBegin(out,module,&valuePlan,input,"nativeScope")) return 0;
     xl6OutputPuts("      ", out);
-    if ( target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER )
+    if (target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY)
+        xl6OutputPuts("const char* borrowed_raw = ",out);
+    else if ( target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER )
         xl6OutputPuts("callResult = ", out);
     else if ( target->returnType != XL6_IR_TYPE_INVALID && target->nativeResultAbi==XL6_IR_CALL_NATIVE_RESULT_NONE )
         xl6OutputPuts(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE
             ? "callResult.value.Data = " : "callResult.value = ", out);
-    if ( target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY )
-        xl6OutputPuts("xlir_string_from_cstr(", out);
     xl6OutputPrintf(out, "%s(", target->cName);
     if(target->nativeServicesRequired) {
         if(!xl6IrCgenEmitNativeServices(out,target))return 0;
@@ -309,8 +309,9 @@ static int xl6IrCgenEmitDynamicNativeWitness(
         xl6OutputPuts(encoded&&valuePlan.output?"&native_value_output":"&callResult.value",out);
     }
     xl6OutputPuts(")", out);
-    if ( target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY ) xl6OutputPuts(")", out);
     xl6OutputPuts(";\n", out);
+    if(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY)
+        xl6IrCgenEmitBorrowedStringAdmission(out,module,target,"callResult.value","borrowed_raw","nativeScope");
     if(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE)
         xl6IrCgenEmitOwnedStringAdmission(out,module,target,"callResult.value","nativeScope.failed");
     /* OWNED inputs are consumed only by actual native entry. Nulling the local

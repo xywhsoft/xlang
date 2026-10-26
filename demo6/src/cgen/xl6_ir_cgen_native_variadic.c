@@ -98,9 +98,9 @@ static int xl6IrCgenEmitNativeVariadicCall(XL6_Output* out,
             "        if (owned) { xerror* saved=xrtTakeError(); xrtFree((void*)raw); xrtSetErrorTake(saved); }\n"
             "    } else {\n"
             "        if (owned) v%u=(xlir_string){raw,raw ? strlen(raw) : 0};\n"
-            "        else v%u=xlir_string_from_cstr(raw);\n"
+            "        else { v%u=xlir_string_from_cstr(raw); if (raw && !v%u.Data) xl6ErrorScopeCaptureFailure(&fs%lu); }\n"
             "        if (v%u.Size > INT64_MAX) { xrtFree((void*)v%u.Data); v%u=(xlir_string){0}; xrtSetErrorKind(XERR_RANGE); }\n",
-            (unsigned long)index,value,value,value,value,value);
+            (unsigned long)index,value,value,value,(unsigned long)index,value,value,value);
         if (result->kind != XL6_IR_TYPE_NULLABLE)
             xl6OutputPrintf(out,"        else if (!v%u.Data && !xrtGetError()) xrtSetErrorKind(XERR_VALUE);\n",value);
         xl6OutputPuts("    }\n",out);

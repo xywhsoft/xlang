@@ -43,6 +43,8 @@ extern "optional_text" @owned @no_raise func Optional() as string?
 属性只用于单一 string/string? 的 extern 函数、native 方法或 extern getter。
 不用于构造器、其他返回类型、输出参数或任意多结果 C ABI。未标注的现有
 extern string 返回继续复制借用内容。重复 C 符号不能声明冲突的拥有权。
+借用返回即使标记 `@no_raise`，接收复制仍可能分配失败，完整语言调用保留
+可失败结果；只在 C 调用成功后读取载荷，复制失败不会形成无效的普通 string。
 注册过的 resident 桥接还须由其封闭合同明确允许自有 char*，属性不能覆盖它。
 
 包公开声明使用 `export extern "foo" @owned func Foo() as string`，导入方直接

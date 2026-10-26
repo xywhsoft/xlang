@@ -21,6 +21,23 @@ static void xl6IrCgenEmitOwnedStringAdmission(XL6_Output* out,
     if(failed)xl6OutputPuts("    }\n",out);
 }
 
+/* A no-raise C producer can still require a fallible language copy. Keep
+ * the raw pointer until its outcome is known; an absent nullable result and
+ * a failed nonempty copy have different outcomes, even without a diagnostic. */
+static void xl6IrCgenEmitBorrowedStringAdmission(XL6_Output* out,
+    const XL6_IrModule* module, const XL6_IrCallTarget* target,
+    const char* place, const char* raw, const char* scope)
+{
+    const XL6_IrType* type=xl6IrTypeGet(&module->types,target->returnType);
+    xl6OutputPrintf(out,"    if (!%s.failed && xrtGetError() == NULL) {\n"
+        "        %s = xlir_string_from_cstr(%s);\n"
+        "        if (%s != NULL && %s.Data == NULL) xl6ErrorScopeCaptureFailure(&%s);\n",
+        scope,place,raw,raw,place,scope);
+    if(type->kind!=XL6_IR_TYPE_NULLABLE)
+        xl6OutputPrintf(out,"        else if (%s == NULL) { xrtSetErrorKind(XERR_VALUE); xl6ErrorScopeCaptureFailure(&%s); }\n",raw,scope);
+    xl6OutputPuts("    }\n",out);
+}
+
 static int xl6IrCgenTypeSelected(
     const XL6_IrModule* module, XL6_IrTypeId type,
     const unsigned char* selectedTypes)
@@ -932,7 +949,8 @@ static int xl6IrCgenEmitDirectCall(
         (unsigned)module->operands[instruction->firstOperand+nativeValue.inputParameter-1]);
     /* A failed scope entry skips the native call, so its owned physical
      * result must be empty on every invocation, not merely at function entry. */
-    if (((target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE &&
+    if ((((target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE ||
+           target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY) &&
           errorPhysicalAbi==XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE) ||
          target->preparationFailureAbi == XL6_IR_CALL_PREPARATION_RETIRE_OWNED_REVERSE ||
          target->nativeResultAbi==XL6_IR_CALL_NATIVE_RESULT_VALUE_SLOT_V1) &&
@@ -976,7 +994,9 @@ static int xl6IrCgenEmitDirectCall(
     }
     if (!xl6IrCgenNativeCallValueBegin(out,module,&nativeValue,
             nativeValue.inputParameter?nativeInput:NULL,nativeScope)) return 0;
-    if ( errorPhysicalAbi ==
+    if (target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY)
+        xl6OutputPrintf(out,"    const char* borrowed_raw_%lu = ",(unsigned long)instructionIndex);
+    else if ( errorPhysicalAbi ==
              XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER )
         xl6OutputPrintf(out, "    %s r%lu = ",
             xl6IrCgenErrorResultType(module, target->returnType),
@@ -988,8 +1008,6 @@ static int xl6IrCgenEmitDirectCall(
             target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE ? ".Data" : "");
     else
         xl6OutputPuts("    ", out);
-    if ( target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY )
-        xl6OutputPuts("xlir_string_from_cstr(", out);
     if ( target->kind == XL6_IR_CALL_TARGET_INTERNAL )
         xl6OutputPrintf(out, "xlir_fn_%u(",
                         (unsigned int)instruction->targetSymbol);
@@ -1033,9 +1051,13 @@ static int xl6IrCgenEmitDirectCall(
         if (encoded && nativeValue.output) xl6OutputPuts("&native_value_output",out);
         else xl6OutputPrintf(out,"&v%u",(unsigned)instruction->result);
     }
-    if ( target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY )
-        xl6OutputPuts(")", out);
     xl6OutputPuts(");\n", out);
+    if (target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY) {
+        char place[40],raw[48];
+        snprintf(place,sizeof(place),"v%u",(unsigned)instruction->result);
+        snprintf(raw,sizeof(raw),"borrowed_raw_%lu",(unsigned long)instructionIndex);
+        xl6IrCgenEmitBorrowedStringAdmission(out,module,target,place,raw,nativeScope);
+    }
     if(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE) {
         char place[40],failed[64];
         snprintf(place,sizeof(place),"v%u",(unsigned)instruction->result);

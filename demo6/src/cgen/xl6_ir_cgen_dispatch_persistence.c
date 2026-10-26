@@ -125,8 +125,6 @@ static void xl6IrCgenEmitDispatchTargetCall(
     const XL6_IrClassField* externReceiverField, size_t parameterCount)
 {
     size_t p;
-    if (target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY)
-        xl6OutputPuts("xlir_string_from_cstr(", out);
     if (target->kind == XL6_IR_CALL_TARGET_INTERNAL_ASYNC)
         xl6OutputPrintf(out, "xlir_async_start_%u(receiver", (unsigned int)target->symbol);
     else if (target->kind == XL6_IR_CALL_TARGET_INTERNAL_GENERATOR)
@@ -142,8 +140,6 @@ static void xl6IrCgenEmitDispatchTargetCall(
     for (p = 0; p < parameterCount; ++p)
         xl6OutputPrintf(out, ", a%lu", (unsigned long)p);
     xl6OutputPuts(")", out);
-    if (target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY)
-        xl6OutputPuts(")", out);
 }
 
 /* A dispatch boundary joins effects, not implementation bodies. Non-raising
@@ -167,11 +163,15 @@ static int xl6IrCgenEmitDispatchWitness(
         if (!xl6IrCgenEmitPreparationRollback(out, module, target, NULL, 1, "outcome", diags)) return 0;
         xl6OutputPuts("        xrtSetErrorTake(outcome.error); return result;\n"
             "    }\n    ", out);
-        if (returnType != XL6_IR_TYPE_INVALID) xl6OutputPuts(
+        if (target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY)
+            xl6OutputPuts("const char* borrowed_raw = ",out);
+        else if (returnType != XL6_IR_TYPE_INVALID) xl6OutputPuts(
             target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE
                 ? "result.value.Data = " : "result.value = ", out);
         xl6IrCgenEmitDispatchTargetCall(out, target, externReceiverField, parameterCount);
         xl6OutputPuts(";\n", out);
+        if(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY)
+            xl6IrCgenEmitBorrowedStringAdmission(out,module,target,"result.value","borrowed_raw","scope");
         if(target->resultConversionAbi==XL6_IR_CALL_RESULT_CONVERSION_OWNED_STRING_TAKE)
             xl6IrCgenEmitOwnedStringAdmission(out,module,target,"result.value","scope.failed");
         if (returnType != XL6_IR_TYPE_INVALID) {
