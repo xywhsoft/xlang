@@ -1,5 +1,12 @@
 # barcode
 
+2026-10-27 字符串接管收口：SVG 与 ASCII 的四个公开入口由
+`@owned string?` 直接接管 XRT 分配的 `char*`，不再经 `point`/
+`takeCstr` 转发。NULL 仍走失败路径，包内恢复测试分别确认四个
+非法输入抛 `ValueError`。原路径已经不复制文本；本次减少的是接管
+包装，不宣称消除了文本复制。生成 C 仍需一次 `strlen` 获取长度。
+Windows/Linux 完整包门禁及收紧后的两平台恢复测试通过。
+
 2026-10-26 完整重建 Windows/Linux 发布物后，两平台 x64 默认包门禁
 均退出 0：严格 C、Linux ASan/UBSan、独立校验位与 95 位编码参照、
 语言边界/分配故障/恢复、C/XLang 固定输出，以及核心、XLang 范例

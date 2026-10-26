@@ -18,8 +18,8 @@ xvalue *xb_ean13(const char *digits, size_t size);
 xvalue *xb_upc_a(const char *digits, size_t size);
 
 /* 返回的 XRT 内存由调用方用 xrtFree 释放；失败返回 NULL。 */
-void *xb_svg(const char *digits, size_t size, bool upc, int64_t height, int64_t scale);
-void *xb_ascii(const char *digits, size_t size, bool upc);
+char *xb_svg(const char *digits, size_t size, bool upc, int64_t height, int64_t scale);
+char *xb_ascii(const char *digits, size_t size, bool upc);
 
 #ifdef __cplusplus
 }

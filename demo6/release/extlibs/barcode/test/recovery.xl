@@ -1,13 +1,28 @@
 import barcode
 
 func main(...) as int
-    bool caught = false
+    int caught = 0
     try
         barcode.ean13Svg("bad", 60, 3)
-    catch e
-        caught = true
+    catch ValueError e
+        caught += 1
     end
-    assert caught
+    try
+        barcode.upcASvg("bad", 60, 3)
+    catch ValueError e
+        caught += 1
+    end
+    try
+        barcode.ean13Ascii("bad")
+    catch ValueError e
+        caught += 1
+    end
+    try
+        barcode.upcAAscii("bad")
+    catch ValueError e
+        caught += 1
+    end
+    assert caught == 4
     assert barcode.checksumEan("400638133393") == 1
     assert barcode.validateEan("4006381333931")
     assert barcode.ean13Ascii("4006381333931").length == 95

@@ -142,7 +142,7 @@ static int xb_append(xbuffer *output, const char *text) {
     return xrtBufferAppend(output, (xbytesview){(const uint8 *)text, strlen(text)});
 }
 
-void *xb_svg(const char *digits, size_t size, bool upc, int64_t height, int64_t scale) {
+char *xb_svg(const char *digits, size_t size, bool upc, int64_t height, int64_t scale) {
     char normalized[14], modules[96], part[256];
     xbuffer output;
     const int quiet_left = upc ? 9 : 11;
@@ -171,13 +171,13 @@ void *xb_svg(const char *digits, size_t size, bool upc, int64_t height, int64_t 
         if (count < 0 || (size_t)count >= sizeof(part) || !xb_append(&output, part)) goto fail;
     }
     if (!xb_append(&output, "\"/>\n</svg>\n") || !xrtBufferAppendByte(&output, 0)) goto fail;
-    return xrtBufferTake(&output, NULL, NULL);
+    return (char *)xrtBufferTake(&output, NULL, NULL);
 fail:
     xrtBufferUnit(&output);
     return NULL;
 }
 
-void *xb_ascii(const char *digits, size_t size, bool upc) {
+char *xb_ascii(const char *digits, size_t size, bool upc) {
     char normalized[14], modules[96], ascii[96];
     int i;
     xrtClearError();

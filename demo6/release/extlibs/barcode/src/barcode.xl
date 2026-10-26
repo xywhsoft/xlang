@@ -2,8 +2,8 @@ extern "xb_ean13" func __b_ean13(string digits, c_size length) as var
 extern "xb_upc_a" func __b_upc_a(string digits, c_size length) as var
 extern "xb_checksum_ean" func __b_checksum_ean(string digits, c_size length) as int
 extern "xb_validate_ean" func __b_validate_ean(string code, c_size length) as bool
-extern "xb_svg" func __b_svg(string digits, c_size length, bool isUpcA, int height, int scale) as point
-extern "xb_ascii" func __b_ascii(string digits, c_size length, bool isUpcA) as point
+extern "xb_svg" @owned func __b_svg(string digits, c_size length, bool isUpcA, int height, int scale) as string?
+extern "xb_ascii" @owned func __b_ascii(string digits, c_size length, bool isUpcA) as string?
 
 
 
@@ -38,35 +38,35 @@ end
 
 // ean13Svg 生成矢量条形图
 export func ean13Svg(string digits, int height, int scale) as string
-    point result = __b_svg(digits, c_size(string.byteLen(digits)), false, height, scale)
+    string? result = __b_svg(digits, c_size(string.byteLen(digits)), false, height, scale)
     if result == null then
         throw ValueError "barcode: invalid EAN-13 or SVG size"
     end
-    return __xl_runtime.takeCstr(result)
+    return result
 end
 
 // upcASvg 生成 UPC-A 矢量条形图
 export func upcASvg(string digits, int height, int scale) as string
-    point result = __b_svg(digits, c_size(string.byteLen(digits)), true, height, scale)
+    string? result = __b_svg(digits, c_size(string.byteLen(digits)), true, height, scale)
     if result == null then
         throw ValueError "barcode: invalid UPC-A or SVG size"
     end
-    return __xl_runtime.takeCstr(result)
+    return result
 end
 
 // ean13Ascii 用明暗字符渲染条码
 export func ean13Ascii(string digits) as string
-    point result = __b_ascii(digits, c_size(string.byteLen(digits)), false)
+    string? result = __b_ascii(digits, c_size(string.byteLen(digits)), false)
     if result == null then
         throw ValueError "barcode: invalid EAN-13"
     end
-    return __xl_runtime.takeCstr(result)
+    return result
 end
 
 export func upcAAscii(string digits) as string
-    point result = __b_ascii(digits, c_size(string.byteLen(digits)), true)
+    string? result = __b_ascii(digits, c_size(string.byteLen(digits)), true)
     if result == null then
         throw ValueError "barcode: invalid UPC-A"
     end
-    return __xl_runtime.takeCstr(result)
+    return result
 end
