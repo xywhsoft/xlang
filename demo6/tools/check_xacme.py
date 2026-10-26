@@ -38,7 +38,7 @@ def main():
     parser.add_argument('--reuse-native',type=Path,help='An already built native executable; receipt records reuse explicitly')
     parser.add_argument('--cc',default='gcc')
     parser.add_argument('--source-head',help='Explicit revision for WSL reading a Windows-managed Git worktree')
-    parser.add_argument('--cases',nargs='+',choices=['basic','owned','retirement','flow','read_account'],default=['basic','owned','retirement','flow','read_account'])
+    parser.add_argument('--cases',nargs='+',choices=['basic','owned','retirement','flow','provenance','read_account'],default=['basic','owned','retirement','flow','provenance','read_account'])
     args=parser.parse_args();work=args.directory.resolve()
     work.mkdir(parents=True,exist_ok=False);records=[];inputs={}
     env=os.environ.copy();env['XLANG_PACKAGE_PATH']=str(ROOT/'release/extlibs')
