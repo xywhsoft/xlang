@@ -1,0 +1,97 @@
+// Public fixed test keys only. Ordinary complete DER/PEM round trips; no malformed inputs.
+func checkRsaFormats()
+    auto publicKey = RsaPublicKey(b"\xa8\x5c\x1f\x27\x9c\xc3\xb3\x27\x43\x76\x5c\x4e\xb7\x63\x72\x45\x80\x8d\xde\xa6\x90\x24\x91\x36\x19\xcb\xc7\x15\xe5\xf5\xd8\x62\x08\x36\x23\x6b\x50\xaf\x06\xeb\xea\xa4\xce\xb7\xf3\xc3\x12\x83\x62\x06\x42\x22\x90\xb1\xaf\x89\x26\xd2\x75\xc3\x4f\xb6\xb0\xc7\xbf\xce\xcc\x7e\xa2\x30\x11\x3a\xbc\x03\x90\xb1\x62\xfc\x80\x88\x31\x3b\x74\x97\x7c\x07\xd2\xfb\x11\xe1\x11\x49\x38\x13\xdb\x89\xc3\x22\x36\xed\x32\x29\x51\x29\xc4\x23\xdf\x60\x31\xe0\x6b\x5f\x02\x90\x7c\x14\x03\x8f\xc9\xc7\xc1\xb5\xcd\x69\xe1\xaa\x46\xd9",b"\x01\x00\x01")
+    auto privateKey = RsaPrivateKey(b"\xa8\x5c\x1f\x27\x9c\xc3\xb3\x27\x43\x76\x5c\x4e\xb7\x63\x72\x45\x80\x8d\xde\xa6\x90\x24\x91\x36\x19\xcb\xc7\x15\xe5\xf5\xd8\x62\x08\x36\x23\x6b\x50\xaf\x06\xeb\xea\xa4\xce\xb7\xf3\xc3\x12\x83\x62\x06\x42\x22\x90\xb1\xaf\x89\x26\xd2\x75\xc3\x4f\xb6\xb0\xc7\xbf\xce\xcc\x7e\xa2\x30\x11\x3a\xbc\x03\x90\xb1\x62\xfc\x80\x88\x31\x3b\x74\x97\x7c\x07\xd2\xfb\x11\xe1\x11\x49\x38\x13\xdb\x89\xc3\x22\x36\xed\x32\x29\x51\x29\xc4\x23\xdf\x60\x31\xe0\x6b\x5f\x02\x90\x7c\x14\x03\x8f\xc9\xc7\xc1\xb5\xcd\x69\xe1\xaa\x46\xd9",b"\x01\x00\x01",b"\x2e\xbf\xd5\xce\xd4\x12\xeb\x6e\x5d\xa7\x42\x1e\x81\x81\xd5\xbb\x42\xe5\x22\x0c\x32\x3e\x55\x2c\x26\xa1\x95\x18\x99\x90\x58\x93\x70\x20\x48\x59\x86\x3f\xf3\xb6\x12\xa3\xcc\xda\xfb\x8f\x11\x56\xf6\x23\x32\xbe\x12\x5b\xa4\x98\x7a\xf5\x39\xca\x10\x1a\x74\x9f\xaf\x3a\x62\x5d\xc0\x22\x72\xaf\xc1\xe8\xd1\x02\xce\x1b\x4e\xfa\xf9\x20\xad\x86\x82\xe4\x9c\xfd\x2a\x63\xa7\xdc\xa6\x06\xd3\x37\x60\xa6\x44\x4a\x58\x20\x13\xa1\xa6\x96\x5b\x8b\x97\x62\x1f\xad\x99\x53\x68\x46\x68\xe9\x67\x50\xc9\x46\x9b\x82\x37\xe2\xab\x79",b"\xdc\xae\x97\xbc\xe2\x44\xaa\x4f\x02\x67\xc1\xbe\x85\x72\x7b\x84\x11\xcb\x65\xe5\x6d\x94\x24\x90\x0f\xe8\x88\x50\x45\x92\x64\x23\x00\xf8\x5e\xdd\x6f\x7b\x09\xc3\xb5\x04\xec\x60\xff\xe1\x00\x45\x91\x5d\x4e\x1d\x94\x65\xf2\xba\x1d\xe8\x2e\x00\x66\x5d\xba\x9f",b"\xc3\x4d\xdf\xf4\xc7\x8a\x93\xfd\x78\x45\x6b\xce\x71\x6a\x36\x38\x5e\x2f\x00\x0c\x72\xbc\xb8\xa9\x88\x46\x8c\xbc\xfe\x46\x07\x23\xda\xfb\xc6\x1a\x55\x57\xa7\x9f\xc2\xc3\x33\x01\x2e\x08\xe2\x89\x43\xb8\x3c\x41\xfc\xf0\x29\x01\xfb\xd1\x61\xba\x84\xd3\x03\x87",b"\xc5\x43\x33\xd3\xdd\x96\x6f\x7e\x4c\xb2\x1e\x97\x85\x85\xfe\x2e\xe2\x11\x24\xb6\x5e\xab\x2b\xbb\xb2\xdc\xb2\xec\xbe\x23\xcb\x6b\x16\xb4\xed\x67\x96\xfd\x2e\x8f\x48\x42\x6c\x61\x90\x98\xb9\xbb\x75\xe3\x27\xae\x7d\x36\x5c\x30\x4e\x07\x7b\x07\x54\x79\xb8\x15",b"\x1e\x80\xff\x45\xc0\x14\xc8\xe0\x81\xf4\x75\xce\x1c\xb0\xb6\x1f\x3f\xb6\x9f\x8f\x52\x2c\x5f\xbb\x3a\xe9\xa9\xf9\xaa\xcd\x4d\x38\x30\x6f\xba\x95\x4a\x57\x12\x7b\x45\x74\x2f\x77\x33\xb5\x77\x8c\x70\xe3\x49\xa6\x14\xd7\x7d\xd0\x2d\x80\x9a\x7f\x03\x57\xe1\xe9",b"\x19\x1a\x55\x2c\x1a\x82\x3f\x41\x33\x45\xc0\xff\xf7\xa1\x4f\x68\xd1\xa9\xa9\xc5\x7a\x0f\x34\xb9\xea\xbb\xf7\x5d\xb2\xb4\x1e\x74\xef\x44\x10\x5b\xb6\x51\x5a\xff\xe6\x74\xe0\xf5\x98\xc1\x7f\x62\x02\x42\xaa\x62\x30\xc2\xa9\x5b\xf2\x74\x84\xbb\x9f\xea\x05\xfc")
+    assert RsaPublicKey.fromSpki(publicKey.toSpki()).modulus == publicKey.modulus
+    assert RsaPublicKey.fromSpkiPem(publicKey.toSpkiPem()).exponent == publicKey.exponent
+    assert RsaPublicKey.fromPkcs1(publicKey.toPkcs1()).modulus == publicKey.modulus
+    assert RsaPublicKey.fromPkcs1Pem(publicKey.toPkcs1Pem()).exponent == publicKey.exponent
+    bytes expected = privateKey.exportPart(RsaPrivatePart.privateExponent)
+    assert RsaPrivateKey.fromPkcs8(privateKey.toPkcs8()).exportPart(RsaPrivatePart.privateExponent) == expected
+    assert RsaPrivateKey.fromPkcs8(privateKey.toPkcs8(true)).publicKey.modulus == publicKey.modulus
+    assert RsaPrivateKey.fromPkcs8Pem(privateKey.toPkcs8Pem()).exportPart(RsaPrivatePart.privateExponent) == expected
+    assert RsaPrivateKey.fromPkcs8Pem(privateKey.toPkcs8Pem(true)).publicKey.modulus == publicKey.modulus
+    assert RsaPrivateKey.fromPkcs1(privateKey.toPkcs1()).exportPart(RsaPrivatePart.privateExponent) == expected
+    assert RsaPrivateKey.fromPkcs1Pem(privateKey.toPkcs1Pem()).publicKey.exponent == publicKey.exponent
+end
+
+func checkP256KeyFormats()
+    auto key = P256Key(codec.hexDecode("0000000000000000000000000000000000000000000000000000000000000001"))
+    bytes expected = key.exportPrivate()
+    assert P256Key.fromPkcs8(key.toPkcs8()).exportPrivate() == expected
+    assert P256Key.fromPkcs8(key.toPkcs8(true)).publicKey == key.publicKey
+    assert P256Key.fromPkcs8Pem(key.toPkcs8Pem()).exportPrivate() == expected
+    assert P256Key.fromPkcs8Pem(key.toPkcs8Pem(true)).publicKey == key.publicKey
+    assert crypto.p256PublicFromSpki(key.publicSpki()) == key.publicKey
+    assert crypto.p256PublicFromSpkiPem(key.publicSpkiPem()) == key.publicKey
+    assert crypto.p256PublicFromSpki(crypto.p256PublicToSpki(key.publicKey)) == key.publicKey
+    assert crypto.p256PublicFromSpkiPem(crypto.p256PublicToSpkiPem(key.publicKey)) == key.publicKey
+    assert P256Key.fromSec1(key.toSec1()).exportPrivate() == expected
+    assert P256Key.fromSec1(key.toSec1(false)).publicKey == key.publicKey
+    assert P256Key.fromSec1Pem(key.toSec1Pem()).exportPrivate() == expected
+    assert P256Key.fromSec1Pem(key.toSec1Pem(false)).publicKey == key.publicKey
+end
+
+func checkP384KeyFormats()
+    auto key = P384Key(codec.hexDecode("000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001"))
+    bytes expected = key.exportPrivate()
+    assert P384Key.fromPkcs8(key.toPkcs8()).exportPrivate() == expected
+    assert P384Key.fromPkcs8(key.toPkcs8(true)).publicKey == key.publicKey
+    assert P384Key.fromPkcs8Pem(key.toPkcs8Pem()).exportPrivate() == expected
+    assert P384Key.fromPkcs8Pem(key.toPkcs8Pem(true)).publicKey == key.publicKey
+    assert crypto.p384PublicFromSpki(key.publicSpki()) == key.publicKey
+    assert crypto.p384PublicFromSpkiPem(key.publicSpkiPem()) == key.publicKey
+    assert crypto.p384PublicFromSpki(crypto.p384PublicToSpki(key.publicKey)) == key.publicKey
+    assert crypto.p384PublicFromSpkiPem(crypto.p384PublicToSpkiPem(key.publicKey)) == key.publicKey
+    assert P384Key.fromSec1(key.toSec1()).exportPrivate() == expected
+    assert P384Key.fromSec1(key.toSec1(false)).publicKey == key.publicKey
+    assert P384Key.fromSec1Pem(key.toSec1Pem()).exportPrivate() == expected
+    assert P384Key.fromSec1Pem(key.toSec1Pem(false)).publicKey == key.publicKey
+end
+
+func checkEd25519KeyFormats()
+    auto key = Ed25519Key(codec.hexDecode("9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60"))
+    bytes expected = key.exportSeed()
+    assert Ed25519Key.fromPkcs8(key.toPkcs8()).exportSeed() == expected
+    assert Ed25519Key.fromPkcs8(key.toPkcs8(true)).publicKey == key.publicKey
+    assert Ed25519Key.fromPkcs8Pem(key.toPkcs8Pem()).exportSeed() == expected
+    assert Ed25519Key.fromPkcs8Pem(key.toPkcs8Pem(true)).publicKey == key.publicKey
+    assert crypto.ed25519PublicFromSpki(key.publicSpki()) == key.publicKey
+    assert crypto.ed25519PublicFromSpkiPem(key.publicSpkiPem()) == key.publicKey
+    assert crypto.ed25519PublicFromSpki(crypto.ed25519PublicToSpki(key.publicKey)) == key.publicKey
+    assert crypto.ed25519PublicFromSpkiPem(crypto.ed25519PublicToSpkiPem(key.publicKey)) == key.publicKey
+end
+
+func checkX25519KeyFormats()
+    auto key = X25519Key(codec.hexDecode("0101010101010101010101010101010101010101010101010101010101010101"))
+    bytes expected = key.exportPrivate()
+    assert X25519Key.fromPkcs8(key.toPkcs8()).exportPrivate() == expected
+    assert X25519Key.fromPkcs8(key.toPkcs8(true)).publicKey == key.publicKey
+    assert X25519Key.fromPkcs8Pem(key.toPkcs8Pem()).exportPrivate() == expected
+    assert X25519Key.fromPkcs8Pem(key.toPkcs8Pem(true)).publicKey == key.publicKey
+    assert crypto.x25519PublicFromSpki(key.publicSpki()) == key.publicKey
+    assert crypto.x25519PublicFromSpkiPem(key.publicSpkiPem()) == key.publicKey
+    assert crypto.x25519PublicFromSpki(crypto.x25519PublicToSpki(key.publicKey)) == key.publicKey
+    assert crypto.x25519PublicFromSpkiPem(crypto.x25519PublicToSpkiPem(key.publicKey)) == key.publicKey
+end
+
+func checkX448KeyFormats()
+    auto key = X448Key(codec.hexDecode("0101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101"))
+    bytes expected = key.exportPrivate()
+    assert X448Key.fromPkcs8(key.toPkcs8()).exportPrivate() == expected
+    assert X448Key.fromPkcs8(key.toPkcs8(true)).publicKey == key.publicKey
+    assert X448Key.fromPkcs8Pem(key.toPkcs8Pem()).exportPrivate() == expected
+    assert X448Key.fromPkcs8Pem(key.toPkcs8Pem(true)).publicKey == key.publicKey
+    assert crypto.x448PublicFromSpki(key.publicSpki()) == key.publicKey
+    assert crypto.x448PublicFromSpkiPem(key.publicSpkiPem()) == key.publicKey
+    assert crypto.x448PublicFromSpki(crypto.x448PublicToSpki(key.publicKey)) == key.publicKey
+    assert crypto.x448PublicFromSpkiPem(crypto.x448PublicToSpkiPem(key.publicKey)) == key.publicKey
+end
+
+checkRsaFormats()
+checkP256KeyFormats()
+checkP384KeyFormats()
+checkEd25519KeyFormats()
+checkX25519KeyFormats()
+checkX448KeyFormats()
+println("managed key formats: all seven owners, explicit DER/PEM and public encodings: ok")

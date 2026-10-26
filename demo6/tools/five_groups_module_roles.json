@@ -20,6 +20,508 @@
     }
   ],
   "Profiles": {
+    "asn1": {
+      "Surface": [
+        "asn1.parse",
+        "DerValue",
+        "DerReader",
+        "DerBuilder"
+      ],
+      "Reason": "完整 DER 值、独立 reader/builder 与拥有式字节；裸视图、长度预检及输出指针封闭在驻留实现中。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_asn1.inc",
+        "src/runtime/xl6_der_value.c",
+        "src/runtime/xl6_der_reader.c",
+        "src/runtime/xl6_der_builder.c",
+        "src/ir/xl6_ir_asn1_contracts.inc"
+      ],
+      "NormalProductCases": [
+        "stdlib_crypto_normal_public"
+      ],
+      "DecisionWitnesses": [
+        "docs/并发与安全标准库接入.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary public-product cases; role review is not full semantic, race, cryptographic-security or goal acceptance"
+    },
+    "pem": {
+      "Surface": [
+        "pem.encode/parse/decode",
+        "PemBlock",
+        "PemReader"
+      ],
+      "Reason": "完整块和多块读取；直接使用有界输出与语言拥有数据，不再导出返回原生分配指针的 EncodeNew/DecodeNew 便利函数。",
+      "SourceWitnesses": [
+        "src/stdlib/xl6_stdlib_asn1.inc",
+        "src/runtime/xl6_pem_block.c",
+        "src/runtime/xl6_pem_reader.c"
+      ],
+      "NormalProductCases": [
+        "stdlib_crypto_normal_public",
+        "stdlib_crypto_key_format_values"
+      ],
+      "DecisionWitnesses": [
+        "docs/并发与安全标准库接入.md",
+        "docs/crypto-key-formats.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary public-product cases; role review is not full semantic, race, cryptographic-security or goal acceptance"
+    },
+    "crypto-core": {
+      "Surface": [
+        "crypto.timingSafeEqual",
+        "shared hash selection"
+      ],
+      "Reason": "公开长度、等长内容的原生比较和共享摘要枚举；内部擦除／清理不构成新的语言内存 API。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_crypto_equal.c",
+        "src/runtime/xl6_crypto_rsa_public_internal.h",
+        "src/runtime/xl6_crypto_abi.h",
+        "src/ir/xl6_ir_crypto_contracts.inc"
+      ],
+      "NormalProductCases": [
+        "stdlib_crypto_normal_public"
+      ],
+      "DecisionWitnesses": [
+        "docs/并发与安全标准库接入.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary public-product cases; role review is not full semantic, race, cryptographic-security or goal acceptance"
+    },
+    "crypto-internal-arithmetic": {
+      "Surface": [],
+      "Reason": "这些模块没有独立 C 公共函数，提供原生大整数、曲线及通用参数化签名／验证／随机支撑；由明确命名的曲线／密钥入口复用，不另造语言数学或裸状态对象。",
+      "SourceWitnesses": [
+        "lib/xrt/xrt.h",
+        "src/runtime/xl6_crypto_nist_internal.h",
+        "src/runtime/xl6_crypto_ed25519_internal.h",
+        "src/runtime/xl6_crypto_rsa_private_internal.h"
+      ],
+      "NormalProductCases": [
+        "stdlib_crypto_normal_public",
+        "stdlib_crypto_rsa_raw_only",
+        "stdlib_crypto_nist_raw_only"
+      ],
+      "DecisionWitnesses": [
+        "docs/crypto-nist-managed.md",
+        "docs/crypto-rsa-managed.md",
+        "docs/crypto-ed25519-managed.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary public-product cases; role review is not full semantic, race, cryptographic-security or goal acceptance"
+    },
+    "rsa-owners": {
+      "Surface": [
+        "RsaPublicKey",
+        "RsaPrivateKey",
+        "cryptoAdvanced.rsaPublic/rsaPrivate"
+      ],
+      "Reason": "完整 n/e/d 或完整 CRT 组件、独立 bytes、原生盲化及 checked 错误；不伪造缺失 CRT，不声称 keygen/OAEP。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_crypto_rsa_public.c",
+        "src/runtime/xl6_crypto_rsa_private.c",
+        "src/runtime/xl6_crypto_rsa_public_raw.c",
+        "src/runtime/xl6_crypto_rsa_private_raw.c",
+        "src/runtime/xl6_crypto_abi.h",
+        "src/ir/xl6_ir_crypto_contracts.inc"
+      ],
+      "NormalProductCases": [
+        "stdlib_crypto_normal_public",
+        "stdlib_crypto_key_format_values",
+        "stdlib_crypto_rsa_raw_only"
+      ],
+      "DecisionWitnesses": [
+        "docs/crypto-rsa-managed.md",
+        "docs/crypto-key-formats.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary public-product cases; role review is not full semantic, race, cryptographic-security or goal acceptance"
+    },
+    "rsa-pss": {
+      "Surface": [
+        "RsaPublicKey.verifyPssHash/WithMask/AnySalt/AnySaltWithMask",
+        "RsaPrivateKey.signPssHash/WithMask/Salt/SaltWithMask"
+      ],
+      "Reason": "显式摘要、MGF 与完整盐；默认严格、任意盐显式分名；保留安全随机及盲化，不误标私钥计算为 pure/nonblocking。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_crypto_rsa_pss_verify.c",
+        "src/runtime/xl6_crypto_rsa_pss_sign.c",
+        "src/runtime/xl6_crypto_rsa_pss_sign_salt.c",
+        "src/runtime/xl6_crypto_abi.h",
+        "src/ir/xl6_ir_crypto_contracts.inc"
+      ],
+      "NormalProductCases": [
+        "stdlib_crypto_normal_public",
+        "stdlib_crypto_rsa_pss_verify_only",
+        "stdlib_crypto_rsa_pss_sign_only",
+        "stdlib_crypto_rsa_pss_salt_only"
+      ],
+      "DecisionWitnesses": [
+        "docs/crypto-rsa-managed.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary public-product cases; role review is not full semantic, race, cryptographic-security or goal acceptance"
+    },
+    "rsa-pkcs1": {
+      "Surface": [
+        "RsaPublicKey.verifyPkcs1Hash",
+        "RsaPrivateKey.signPkcs1Hash"
+      ],
+      "Reason": "明确是完整摘要的 PKCS1 v1.5 签名／验证，不是加密；RsaHash 选择算法，拥有式原始签名保留 checked 错误。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_crypto_rsa_pkcs1_verify.c",
+        "src/runtime/xl6_crypto_rsa_pkcs1_sign.c",
+        "src/runtime/xl6_crypto_abi.h",
+        "src/ir/xl6_ir_crypto_contracts.inc"
+      ],
+      "NormalProductCases": [
+        "stdlib_crypto_normal_public",
+        "stdlib_crypto_rsa_pkcs1_verify_only"
+      ],
+      "DecisionWitnesses": [
+        "docs/crypto-rsa-managed.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary public-product cases; role review is not full semantic, race, cryptographic-security or goal acceptance"
+    },
+    "ecdsa-der": {
+      "Surface": [
+        "crypto.ecdsaP256ToDer/FromDer",
+        "crypto.ecdsaP384ToDer/FromDer"
+      ],
+      "Reason": "规范 raw r||s 与 DER 转换独立裁剪，不为编码引入曲线对象、签名、验证或 RNG。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_crypto_nist_der.c",
+        "src/runtime/xl6_crypto_abi.h",
+        "src/ir/xl6_ir_crypto_contracts.inc"
+      ],
+      "NormalProductCases": [
+        "stdlib_crypto_nist_der_only",
+        "stdlib_crypto_normal_public"
+      ],
+      "DecisionWitnesses": [
+        "docs/crypto-nist-managed.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary public-product cases; role review is not full semantic, race, cryptographic-security or goal acceptance"
+    },
+    "nist-keys": {
+      "Surface": [
+        "P256Key/P384Key",
+        "crypto.p256PublicKey/p384PublicKey",
+        "cryptoAdvanced.p256Valid/Multiply/Add",
+        "cryptoAdvanced.p384Valid/Multiply/Add"
+      ],
+      "Reason": "明确曲线的完整私钥、公钥、ECDH 和高级点操作，独立 bytes 与真实 resident leaf，不增加泛型曲线猜测。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_crypto_p256.c",
+        "src/runtime/xl6_crypto_p384.c",
+        "src/runtime/xl6_crypto_p256_shared.c",
+        "src/runtime/xl6_crypto_p384_shared.c",
+        "src/runtime/xl6_crypto_p256_raw.c",
+        "src/runtime/xl6_crypto_p384_raw.c",
+        "src/runtime/xl6_crypto_abi.h",
+        "src/ir/xl6_ir_crypto_contracts.inc"
+      ],
+      "NormalProductCases": [
+        "stdlib_crypto_normal_public",
+        "stdlib_crypto_key_format_values",
+        "stdlib_crypto_nist_raw_only"
+      ],
+      "DecisionWitnesses": [
+        "docs/crypto-nist-managed.md",
+        "docs/crypto-key-formats.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary public-product cases; role review is not full semantic, race, cryptographic-security or goal acceptance"
+    },
+    "nist-keypair": {
+      "Surface": [
+        "crypto.p256KeyPair/p384KeyPair"
+      ],
+      "Reason": "原生 OS 安全随机创建既有受管理密钥；分别裁剪，不返回 HEX／字典，不新增密钥生命周期。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_crypto_p256_generate.c",
+        "src/runtime/xl6_crypto_p384_generate.c",
+        "src/runtime/xl6_crypto_abi.h",
+        "src/ir/xl6_ir_crypto_contracts.inc"
+      ],
+      "NormalProductCases": [
+        "stdlib_crypto_normal_public"
+      ],
+      "DecisionWitnesses": [
+        "docs/crypto-nist-managed.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary public-product cases; role review is not full semantic, race, cryptographic-security or goal acceptance"
+    },
+    "ecdsa-operations": {
+      "Surface": [
+        "P256Key/P384Key.signHash",
+        "crypto.ecdsaP256VerifyHash/ecdsaP384VerifyHash"
+      ],
+      "Reason": "SignatureHash 明确 RFC6979 摘要选择，原生 low-S 与定宽签名；精确验证拒绝和 checked 错误区分，不猜曲线。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_crypto_p256_sign.c",
+        "src/runtime/xl6_crypto_p384_sign.c",
+        "src/runtime/xl6_crypto_p256_verify.c",
+        "src/runtime/xl6_crypto_p384_verify.c",
+        "src/runtime/xl6_crypto_abi.h",
+        "src/ir/xl6_ir_crypto_contracts.inc"
+      ],
+      "NormalProductCases": [
+        "stdlib_crypto_normal_public"
+      ],
+      "DecisionWitnesses": [
+        "docs/crypto-nist-managed.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary public-product cases; role review is not full semantic, race, cryptographic-security or goal acceptance"
+    },
+    "ecdsa-operations_der": {
+      "Surface": [
+        "P256Key/P384Key.signHashDer",
+        "crypto.ecdsaP256VerifyHashDer/ecdsaP384VerifyHashDer"
+      ],
+      "Reason": "DER 签名／验证独立命名，签名只执行一次并在有界暂存中输出；不混用 raw 编码。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_crypto_p256_sign_der.c",
+        "src/runtime/xl6_crypto_p384_sign_der.c",
+        "src/runtime/xl6_crypto_p256_verify_der.c",
+        "src/runtime/xl6_crypto_p384_verify_der.c",
+        "src/runtime/xl6_crypto_abi.h",
+        "src/ir/xl6_ir_crypto_contracts.inc"
+      ],
+      "NormalProductCases": [
+        "stdlib_crypto_normal_public"
+      ],
+      "DecisionWitnesses": [
+        "docs/crypto-nist-managed.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary public-product cases; role review is not full semantic, race, cryptographic-security or goal acceptance"
+    },
+    "digests": {
+      "Surface": [
+        "crypto.sha224/sha256/sha384/sha512/sha512_256",
+        "cryptoLegacy.md5/sha1",
+        "*Hex/*Buffer/*Stream; update/final/hex/clone/reset"
+      ],
+      "Reason": "有界消息与完整二字段 string/bytes，拥有式输出和独立流快照；遗留摘要放 cryptoLegacy。SHA384 属于原生 SHA512 模块，没有遗漏。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_crypto_sha1.c",
+        "src/runtime/xl6_crypto_sha1_stream.c",
+        "src/runtime/xl6_crypto_sha256.c",
+        "src/runtime/xl6_crypto_sha256_stream.c",
+        "src/runtime/xl6_crypto_sha224.c",
+        "src/runtime/xl6_crypto_sha224_stream.c",
+        "src/runtime/xl6_crypto_sha512.c",
+        "src/runtime/xl6_crypto_sha512_stream.c",
+        "src/runtime/xl6_crypto_sha512_256.c",
+        "src/runtime/xl6_crypto_sha512_256_stream.c",
+        "src/runtime/xl6_crypto_md5.c",
+        "src/runtime/xl6_crypto_md5_stream.c",
+        "src/runtime/xl6_crypto_abi.h",
+        "src/ir/xl6_ir_crypto_contracts.inc"
+      ],
+      "NormalProductCases": [
+        "stdlib_crypto_digest_values"
+      ],
+      "DecisionWitnesses": [
+        "docs/并发与安全标准库接入.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary public-product cases; role review is not full semantic, race, cryptographic-security or goal acceptance"
+    },
+    "hmac": {
+      "Surface": [
+        "crypto.hmacSha256/hmacSha384/hmacSha512",
+        "*Hex/*Buffer/*Stream"
+      ],
+      "Reason": "完整 key 与有界消息分离；复用原生一次性和流式算法，快照、独立 clone/reset 与状态擦除不暴露指针。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_crypto_hmac_sha256.c",
+        "src/runtime/xl6_crypto_hmac_sha256_stream.c",
+        "src/runtime/xl6_crypto_hmac_sha384.c",
+        "src/runtime/xl6_crypto_hmac_sha384_stream.c",
+        "src/runtime/xl6_crypto_hmac_sha512.c",
+        "src/runtime/xl6_crypto_hmac_sha512_stream.c",
+        "src/runtime/xl6_crypto_abi.h",
+        "src/ir/xl6_ir_crypto_contracts.inc"
+      ],
+      "NormalProductCases": [
+        "stdlib_crypto_digest_values"
+      ],
+      "DecisionWitnesses": [
+        "docs/并发与安全标准库接入.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary public-product cases; role review is not full semantic, race, cryptographic-security or goal acceptance"
+    },
+    "kdf": {
+      "Surface": [
+        "crypto.pbkdf2Sha256/384/512",
+        "crypto.hkdfSha256/384/512",
+        "hkdf*Extract/*Expand"
+      ],
+      "Reason": "完整密码、IKM、salt、info；显式迭代／输出预算、HKDF 255 块边界，PBKDF2 不误标 nonblocking；SHA384 与 SHA512 共享原生模块。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_crypto_pbkdf2_sha256.c",
+        "src/runtime/xl6_crypto_pbkdf2_sha384.c",
+        "src/runtime/xl6_crypto_pbkdf2_sha512.c",
+        "src/runtime/xl6_crypto_hkdf_sha256.c",
+        "src/runtime/xl6_crypto_hkdf_sha384.c",
+        "src/runtime/xl6_crypto_hkdf_sha512.c",
+        "src/runtime/xl6_crypto_abi.h",
+        "src/ir/xl6_ir_crypto_contracts.inc"
+      ],
+      "NormalProductCases": [
+        "stdlib_crypto_normal_public"
+      ],
+      "DecisionWitnesses": [
+        "docs/并发与安全标准库接入.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary public-product cases; role review is not full semantic, race, cryptographic-security or goal acceptance"
+    },
+    "chacha20-advanced": {
+      "Surface": [
+        "cryptoAdvanced.chacha20/chacha20Buffer"
+      ],
+      "Reason": "显式 raw 流密码，不是 AEAD；完整 key/nonce、字节前缀、无回绕 uint32 计数器，旧断链 HEX 包装已退出。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_crypto_chacha20.c",
+        "src/runtime/xl6_crypto_abi.h",
+        "src/ir/xl6_ir_crypto_contracts.inc"
+      ],
+      "NormalProductCases": [
+        "stdlib_crypto_chacha20_only"
+      ],
+      "DecisionWitnesses": [
+        "docs/crypto-chacha20-advanced.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary public-product cases; role review is not full semantic, race, cryptographic-security or goal acceptance"
+    },
+    "aes-gcm": {
+      "Surface": [
+        "AesGcm.seal/open"
+      ],
+      "Reason": "缓存不可变展开密钥，固定已批准的 12-byte nonce/16-byte tag 与 cipher||tag；分离输出指针的 Encrypt/Decrypt 不另导出。GMAC 由空消息 seal 和 AAD 组合，不重造算法。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_crypto_aes_gcm.c",
+        "src/runtime/xl6_crypto_aes_gcm_domain.c",
+        "src/runtime/xl6_crypto_abi.h",
+        "src/ir/xl6_ir_crypto_contracts.inc"
+      ],
+      "NormalProductCases": [
+        "stdlib_crypto_normal_public"
+      ],
+      "DecisionWitnesses": [
+        "docs/并发与安全标准库接入.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary public-product cases; role review is not full semantic, race, cryptographic-security or goal acceptance"
+    },
+    "chacha-aead": {
+      "Surface": [
+        "ChaCha20Poly1305.seal/open"
+      ],
+      "Reason": "完整 key/nonce、独立消息/AAD 前缀、cipher||tag，认证成功才交付拥有式明文；Seal/Open 覆盖分离输出指针的 Encrypt/Decrypt 便利函数。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_crypto_chacha_aead.c",
+        "src/runtime/xl6_crypto_chacha_aead_domain.c",
+        "src/runtime/xl6_crypto_abi.h",
+        "src/ir/xl6_ir_crypto_contracts.inc"
+      ],
+      "NormalProductCases": [
+        "stdlib_crypto_normal_public"
+      ],
+      "DecisionWitnesses": [
+        "docs/并发与安全标准库接入.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary public-product cases; role review is not full semantic, race, cryptographic-security or goal acceptance"
+    },
+    "xdh-keys": {
+      "Surface": [
+        "X25519Key/X448Key.publicKey/exportPrivate/sharedSecret",
+        "cryptoAdvanced.x25519/x448"
+      ],
+      "Reason": "完整私钥复制、缓存公钥、独立共享秘密与显式 raw；统一受管理叶，不公开 HEX／字典或可见借用。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_crypto_x25519.c",
+        "src/runtime/xl6_crypto_x25519_raw.c",
+        "src/runtime/xl6_crypto_x25519_domain.c",
+        "src/runtime/xl6_crypto_x448.c",
+        "src/runtime/xl6_crypto_x448_raw.c",
+        "src/runtime/xl6_crypto_x448_domain.c",
+        "src/runtime/xl6_crypto_abi.h",
+        "src/ir/xl6_ir_crypto_contracts.inc"
+      ],
+      "NormalProductCases": [
+        "stdlib_crypto_normal_public",
+        "stdlib_crypto_key_format_values",
+        "stdlib_crypto_x25519_import_only",
+        "stdlib_crypto_x448_import_only"
+      ],
+      "DecisionWitnesses": [
+        "docs/crypto-xdh-managed.md",
+        "docs/crypto-key-formats.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary public-product cases; role review is not full semantic, race, cryptographic-security or goal acceptance"
+    },
+    "ed25519": {
+      "Surface": [
+        "Ed25519Key.publicKey/exportSeed",
+        "sign/signContext/signPrehash + Buffer methods",
+        "crypto.ed25519PublicKey/Sign/Verify/VerifyContext/VerifyPrehash + Buffer variants"
+      ],
+      "Reason": "完整 seed 复制和缓存展开密钥；pure/context/prehash 分名。统一用原生 Ex 模式，SignKey/Verify 的 pure 便利函数无需重复导出；typed 错误分类不吞 OOM。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_crypto_ed25519.c",
+        "src/runtime/xl6_crypto_ed25519_public.c",
+        "src/runtime/xl6_crypto_ed25519_sign.c",
+        "src/runtime/xl6_crypto_ed25519_sign_buffer.c",
+        "src/runtime/xl6_crypto_ed25519_seed_sign.c",
+        "src/runtime/xl6_crypto_ed25519_verify.c",
+        "src/runtime/xl6_crypto_ed25519_verify_buffer.c",
+        "src/runtime/xl6_crypto_ed25519_domain.c",
+        "src/runtime/xl6_crypto_abi.h",
+        "src/ir/xl6_ir_crypto_contracts.inc"
+      ],
+      "NormalProductCases": [
+        "stdlib_crypto_normal_public",
+        "stdlib_crypto_key_format_values",
+        "stdlib_crypto_ed25519_seed_sign_only",
+        "stdlib_crypto_ed25519_verify_only"
+      ],
+      "DecisionWitnesses": [
+        "docs/crypto-ed25519-managed.md",
+        "docs/crypto-key-formats.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary public-product cases; role review is not full semantic, race, cryptographic-security or goal acceptance"
+    },
+    "ed25519-keypair": {
+      "Surface": [
+        "crypto.ed25519KeyPair"
+      ],
+      "Reason": "OS SecureRandom 加一次 KeyInit，生成同一受管理类型；避免先 KeyPair 派生公钥、再由 KeyInit 重复派生。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_crypto_ed25519_generate.c",
+        "src/runtime/xl6_crypto_ed25519.c",
+        "src/runtime/xl6_crypto_abi.h",
+        "src/ir/xl6_ir_crypto_contracts.inc"
+      ],
+      "NormalProductCases": [
+        "stdlib_crypto_normal_public"
+      ],
+      "DecisionWitnesses": [
+        "docs/crypto-ed25519-managed.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary public-product cases; role review is not full semantic, race, cryptographic-security or goal acceptance"
+    },
+    "xdh-keypair": {
+      "Surface": [
+        "crypto.x25519KeyPair/x448KeyPair"
+      ],
+      "Reason": "原生安全随机直接创建已有受管理类型；方法及格式复用，不增加裸指针结果或平行拥有权。",
+      "SourceWitnesses": [
+        "src/runtime/xl6_crypto_x25519_generate.c",
+        "src/runtime/xl6_crypto_x448_generate.c",
+        "src/runtime/xl6_crypto_abi.h",
+        "src/ir/xl6_ir_crypto_contracts.inc"
+      ],
+      "NormalProductCases": [
+        "stdlib_crypto_normal_public"
+      ],
+      "DecisionWitnesses": [
+        "docs/crypto-xdh-managed.md"
+      ],
+      "AcceptanceBoundary": "Selected ordinary public-product cases; role review is not full semantic, race, cryptographic-security or goal acceptance"
+    },
     "atomic": {
       "Surface": [
         "AtomicInt32",
@@ -647,310 +1149,310 @@
     {
       "Group": "crypto_asn1",
       "Module": "asn1_der",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-namespace",
+      "Profile": "asn1",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "pem",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-namespace",
+      "Profile": "pem",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_core",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-namespace",
+      "Profile": "crypto-core",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_int31",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "crypto-internal-arithmetic",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_rsa",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "rsa-owners",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_rsa_private",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "rsa-owners",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_rsa_pss",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "rsa-pss",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_rsa_pss_sign",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "rsa-pss",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_rsa_pkcs1",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "rsa-pkcs1",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_rsa_pkcs1_sign",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "rsa-pkcs1",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_ecdsa_core",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "crypto-internal-arithmetic",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_ecdsa_der",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-namespace",
+      "Profile": "ecdsa-der",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_nist",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "crypto-internal-arithmetic",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_p256",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "nist-keys",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_p384",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "nist-keys",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_nist_keypair",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "crypto-internal-arithmetic",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_p256_keypair",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-namespace",
+      "Profile": "nist-keypair",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_p384_keypair",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-namespace",
+      "Profile": "nist-keypair",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_ecdsa_math",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "crypto-internal-arithmetic",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_ecdsa_verify",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "crypto-internal-arithmetic",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_ecdsa_p256",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "ecdsa-operations",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_ecdsa_p384",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "ecdsa-operations",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_ecdsa_verify_der",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "crypto-internal-arithmetic",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_ecdsa_p256_der",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "ecdsa-operations_der",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_ecdsa_p384_der",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "ecdsa-operations_der",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_ecdsa_sign",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "crypto-internal-arithmetic",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_ecdsa_p256_sign",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "ecdsa-operations",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_ecdsa_p384_sign",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "ecdsa-operations",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_ecdsa_sign_der",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "crypto-internal-arithmetic",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_ecdsa_p256_sign_der",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "ecdsa-operations_der",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_ecdsa_p384_sign_der",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "ecdsa-operations_der",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_sha1",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-namespace",
+      "Profile": "digests",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_sha256",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-namespace",
+      "Profile": "digests",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_sha224",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-namespace",
+      "Profile": "digests",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_sha512",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-namespace",
+      "Profile": "digests",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_sha512_256",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-namespace",
+      "Profile": "digests",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_md5",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-namespace",
+      "Profile": "digests",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_hmac_sha256",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-namespace",
+      "Profile": "hmac",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_hmac_sha512",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-namespace",
+      "Profile": "hmac",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_pbkdf2_sha256",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-namespace",
+      "Profile": "kdf",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_pbkdf2_sha512",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-namespace",
+      "Profile": "kdf",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_hkdf_sha256",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-namespace",
+      "Profile": "kdf",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_hkdf_sha512",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-namespace",
+      "Profile": "kdf",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_chacha20",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-namespace",
+      "Profile": "chacha20-advanced",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
@@ -962,9 +1464,9 @@
     {
       "Group": "crypto_asn1",
       "Module": "crypto_chacha20_poly1305",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "chacha-aead",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
@@ -976,72 +1478,72 @@
     {
       "Group": "crypto_asn1",
       "Module": "crypto_aes_gcm",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "aes-gcm",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_curve25519",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "internal",
+      "Profile": "crypto-internal-arithmetic",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_x25519",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "xdh-keys",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_ed25519",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "ed25519",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_ed25519_sign",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "ed25519",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_ed25519_verify",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "ed25519",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_ed25519_keypair",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "composition",
+      "Profile": "ed25519-keypair",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_x448",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-type",
+      "Profile": "xdh-keys",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_x25519_keypair",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-namespace",
+      "Profile": "xdh-keypair",
+      "Review": "role-reviewed"
     },
     {
       "Group": "crypto_asn1",
       "Module": "crypto_x448_keypair",
-      "Disposition": "pending",
-      "Profile": null,
-      "Review": "pending"
+      "Disposition": "public-namespace",
+      "Profile": "xdh-keypair",
+      "Review": "role-reviewed"
     },
     {
       "Group": "x509",

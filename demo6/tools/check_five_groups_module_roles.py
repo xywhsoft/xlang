@@ -48,7 +48,7 @@ REQUESTED = {
 }
 EXPECTED = {(group, module) for group, names in REQUESTED.items() for module in names.split()}
 COUNTS = {group: len(names.split()) for group, names in REQUESTED.items()}
-DISPOSITIONS = {"internal", "language-mechanism", "public-type", "composition"}
+DISPOSITIONS = {"internal", "language-mechanism", "public-type", "public-namespace", "composition"}
 
 
 def require(condition: bool, message: str) -> None:
@@ -156,16 +156,19 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     root = Path(__file__).resolve().parents[1]
     parser.add_argument("--roles", type=Path, default=root / "tools/five_groups_module_roles.json")
-    parser.add_argument("--fixtures", type=Path, default=root / "tools/concurrency_public_fixtures.json")
+    parser.add_argument("--fixtures", type=Path, nargs="+", default=[
+        root / "tools/concurrency_public_fixtures.json", root / "tools/crypto_surface_public_fixtures.json"])
     parser.add_argument("--report", type=Path)
     parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args()
-    paths = [Path(__file__).resolve(), args.roles.resolve(), args.fixtures.resolve()]
+    paths = [Path(__file__).resolve(), args.roles.resolve(), *[p.resolve() for p in args.fixtures]]
     sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
     inputs = {str(path): sha(path) for path in paths}
     try:
         data = json.loads(paths[1].read_text(encoding="utf-8-sig"))
-        fixtures = json.loads(paths[2].read_text(encoding="utf-8-sig"))
+        fixtures = {"Cases": []}
+        for path in paths[2:]:
+            fixtures["Cases"].extend(json.loads(path.read_text(encoding="utf-8-sig"))["Cases"])
         result = validate(data, fixtures, root)
         result["RejectedInvalidInventories"] = self_test(data, fixtures, root) if args.self_test else 0
         require(inputs == {str(path): sha(path) for path in paths}, "inputs changed during review")
