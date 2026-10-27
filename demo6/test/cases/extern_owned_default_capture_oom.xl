@@ -1,0 +1,43 @@
+extern "owned_debug" @no_raise func debug() as bool
+extern "owned_fail_after" @no_raise func failAfter(int count)
+extern "owned_clear_failure" @no_raise func clearFailure()
+extern "owned_outstanding" @no_raise func live() as int
+func counter(int value,func() as int callback=func() as int
+    value+=1
+    return value
+end) as func() as int
+    return callback
+end
+func capture(string value,func() as string callback=func() as string
+    return value
+end) as func() as string
+    return callback
+end
+func exercise()
+    func() as int direct=counter(40)
+    assert direct()==41 and direct()==42
+    func(int) as func() as int shortened=counter
+    func() as int adapted=shortened(10)
+    assert adapted()==11 and adapted()==12
+    func() as string borrowed=capture("owned prefix")
+    assert borrowed()=="owned prefix"
+end
+exercise()
+assert debug()
+int accepted=0
+int rejected=0
+// No worker is active: live-allocation equality measures this invocation's
+// cells, copied strings, frames and unwind path without task-retirement races.
+for prefix in range(96)
+    int before=live()
+    failAfter(prefix)
+    try
+        exercise()
+        accepted+=1
+    catch failure
+        rejected+=1
+    end
+    clearFailure()
+    assert live()==before
+end
+assert accepted>0 and rejected>0

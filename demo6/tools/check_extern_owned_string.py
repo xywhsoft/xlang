@@ -66,6 +66,8 @@ def main():
             ['test/cases/extern_owned_task_scalars_host.c'],[]),
         ('task-error-arrays','test/cases/extern_owned_task_error_arrays.xl',
             ['test/cases/extern_owned_task_scalars_host.c','test/cases/extern_owned_string_host.c'],[]),
+        ('default-capture-oom','test/cases/extern_owned_default_capture_oom.xl',
+            ['test/cases/extern_owned_string_host.c'],[]),
     ]
     sha=lambda path:hashlib.sha256(Path(path).read_bytes()).hexdigest()
     inputs=[ROOT/source for _,source,_,_ in cases]+[ROOT/path for _,_,paths,_ in cases for path in paths]
