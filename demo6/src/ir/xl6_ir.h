@@ -3246,6 +3246,9 @@ typedef struct XL6_IrNode {
      * deliberately independent from targetSymbol because a property
      * assignment uses targetSymbol for its setter. */
     XL6_SymbolId compoundOperatorSymbol;
+    /* Constructor receiver identity survives even when its body has no self
+     * expression. This is binding data, not a source-name search. */
+    XL6_SymbolId constructorReceiverSymbol;
     XL6_SemCallKind callKind;
     XL6_IrRuntimeOp cOwnedCompareOp;
     XL6_IrImplicitNameAbi implicitNameAbi;
@@ -3927,7 +3930,11 @@ typedef enum XL6_IrInitializerAbi {
      * runtimeResourceOp fixes both the family and any language default values. */
     XL6_IR_INITIALIZER_RUNTIME_RESOURCE_DEFAULT,
     /* Owned empty binary value, never a nullable pointer sentinel. */
-    XL6_IR_INITIALIZER_BYTES_EMPTY
+    XL6_IR_INITIALIZER_BYTES_EMPTY,
+    /* No value exists before the verified create body commits this field.
+     * This is a compile-time construction obligation, never a nullable
+     * language value, a default factory call, or a runtime init flag. */
+    XL6_IR_INITIALIZER_CONSTRUCTOR_REQUIRED
 } XL6_IrInitializerAbi;
 
 typedef struct XL6_IrValueInitializer {

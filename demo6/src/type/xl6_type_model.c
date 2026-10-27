@@ -2,6 +2,8 @@
 
 #include "src/common/xl6_common.h"
 
+#include "src/type/xl6_constructor_flow.c"
+
 int xl6TypeParseIntegerMagnitude(const char* text, uint64_t* result)
 {
     uint64_t value = 0;
