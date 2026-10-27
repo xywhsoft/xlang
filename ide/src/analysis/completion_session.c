@@ -5,6 +5,7 @@
 #include "analysis/session_state.h"
 #include "analysis/frontend_internal.h"
 #include "analysis/frontend_entry_cache.h"
+#include "analysis/completion_unit.h"
 #include "src/sem/xl6_completion.h"
 #include <xrt.h>
 #include <stdio.h>
@@ -68,7 +69,6 @@ xls_semantic_completion* xlsCompletionSessionQueryWithHistory(xls_completion_ses
     if(cancelled && cancelled(user)) goto cancel;
     if(equal) result=xlsSemanticCompletionRetain(s->result);
     else {
-        ++s->stats.builds;
         int compatible=s->result && s->batch && count==s->stats.documents &&
             xlsFrontendContextsEqual(context,xlsInputBatchContext(s->batch)) &&
             !strcmp(xlsInputBatchDirectory(batch),xlsInputBatchDirectory(s->batch)) &&
@@ -96,7 +96,14 @@ xls_semantic_completion* xlsCompletionSessionQueryWithHistory(xls_completion_ses
                 }
             }
             if(cancelled && cancelled(user)) goto cancel;
-            if(syntax) result=xlsSemanticCompletionCreateBatch(s->entryCache,batch,queryKey,offset,syntax,baseline,cancelled,user,error,capacity);
+            if(syntax && baseline)result=xlsSemanticCompletionTryWordView(baseline,batch,queryKey,s->cursorSyntax,syntax,cancelled,user);
+            if(result){
+                xls_completion_unit_work word=xlsSemanticCompletionUnitWork(result);
+                ++s->stats.wordViews;s->stats.wordProofNodes+=word.proofNodes;
+            }else{
+                ++s->stats.builds;
+                if(syntax)result=xlsSemanticCompletionCreateBatch(s->entryCache,batch,queryKey,offset,syntax,baseline,cancelled,user,error,capacity);
+            }
         }
         if(!result) {
             if(cancelled && cancelled(user)) goto cancel;

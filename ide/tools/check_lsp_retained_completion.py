@@ -40,7 +40,13 @@ def main():
         assert [x['label'] for x in r['items']]==labels,r
         a=r['analysis'];assert a['workerThreadId']>0 and a['workerThreadId']!=a['captureThreadId'],a
         assert a['adapterThreadId'] not in (a['captureThreadId'],a['workerThreadId']),a
-        if builds is not None:assert a['builds']==builds,a
+        # Expected constructions include both full semantic builds and the
+        # independent word views; exact hits remain a separate counter.
+        assert type(a['wordViews']) is int and a['wordViews']>=0,a
+        if builds is not None:assert a['builds']+a['wordViews']==builds,a
+        if a['lastBuildWordView']['projected']:
+            assert a['lastBuildWordView']['proofNodes']>0 and not a['lastBuildWordView']['astMaterialized'],a
+            assert a['lastBuildSemantics']['checked']==a['lastBuildSemantics']['reused']==0,a
         if hits is not None:assert a['cacheHits']==hits,a
         if invalidations is not None:assert a['invalidations']==invalidations,a
         if owner is not None:assert a['workerThreadId']==owner,a
@@ -62,8 +68,9 @@ def main():
         c.change(entry,text,2);complete(c,text,'return res',2,['result'],1,17,owner=owner)
         done('new-same-body-version-restamps-cached-facts')
         complete(c,text,'return re',2,['result'],2,17,owner=owner)
-        complete(c,text,'return res',2,['result'],3,17,owner=owner)
-        done('different-cursor-rebuilds-single-entry-cache')
+        r,_=complete(c,text,'return res',2,['result'],3,17,owner=owner)
+        assert r['analysis']['builds']==2 and r['analysis']['wordViews']==1 and r['analysis']['lastBuildWordView']['projected']==1,r
+        done('different-cursor-full-broadening-and-independent-narrowing')
         text=text.replace('result = 7','result = 8');c.change(entry,text,3)
         complete(c,text,'return res',3,['result'],4,17,owner=owner)
         done('changed-body-recomputes')

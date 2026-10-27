@@ -123,6 +123,7 @@ typedef struct xls_sem_body_job {
     int shifted;
 } xls_sem_body_job;
 struct xls_sem_memo {
+    xatomic32 references;
     char* path;
     xstrbuf context;
     xarray entries;
@@ -973,9 +974,18 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
 }
 void xlsFrontendSemMemoDestroy(xls_sem_memo* memo)
 {
-    if(!memo) return;
+    if(!memo || xrtAtomic32FetchSub(&memo->references,1,XMEMORY_ACQ_REL)!=1) return;
     for(size_t i=0;i<memo->entries.Count;++i) { xls_sem_entry* e=xrtArrayGet(&memo->entries,i); xrtStrBufFree(&e->key); xlsSemEntryFactsClear(e); }
     xrtArrayUnit(&memo->entries); xrtStrBufFree(&memo->context);xlsSemReadContextRelease(memo->readContext);xrtFree(memo->path); xrtFree(memo);
+}
+xls_sem_memo* xlsFrontendSemMemoRetain(xls_sem_memo* memo)
+{if(memo)xrtAtomic32FetchAdd(&memo->references,1,XMEMORY_RELAXED);return memo;}
+size_t xlsFrontendSemMemoOwnedBytes(const xls_sem_memo* memo)
+{
+    if(!memo)return 0;
+    size_t bytes=sizeof(*memo),path=memo->path ? strlen(memo->path)+1 : 0,reads=memo->readContext ? memo->readContext->bytes : 0;
+    if(memo->bytes>SIZE_MAX-bytes || path>SIZE_MAX-bytes-memo->bytes || reads>SIZE_MAX-bytes-memo->bytes-path)return SIZE_MAX;
+    return bytes+memo->bytes+path+reads;
 }
 xls_ast_intern_work xlsFrontendSemMemoTypes(const xls_sem_memo* memo)
 {return memo ? memo->typeWork : (xls_ast_intern_work){0};}
@@ -1044,6 +1054,7 @@ static int xlsSemCheckMemo(XL6_AstNode* root,XL6_DiagList* diags,const char* mod
         .deferredRoot=root,.deferredQuery=query};
     xls_sem_memo* memo=path && sources ? xrtCalloc(1,sizeof(*memo)) : NULL;
     if(memo) {
+        xrtAtomic32Init(&memo->references,1);
         memo->path=xrtStrDup(path);
         if(!memo->path || !xrtArrayInit(&memo->entries,sizeof(xls_sem_entry)) || !xrtMapInit(&build.slots,sizeof(size_t)) ||
            !xrtMapInit(&build.sources,sizeof(XL6_AstNode*)) || !xrtMapSetDrop(&build.sources,xlsSemSourceUnpin,NULL)) {

@@ -317,6 +317,7 @@ static XL6_AstNode* materialize(const xls_syntax* s,int compilerPrivate)
     if(okay) return root;
     xl6AstFree(root); return NULL;
 }
+#include "analysis/syntax_cursor_word.inc"
 int xlsSyntaxCopyParse(const xls_syntax* s,XL6_ParseResult* result)
 {
     if(!s || !result || result->root || result->diags.count) return 0;

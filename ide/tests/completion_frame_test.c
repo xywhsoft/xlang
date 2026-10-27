@@ -12,9 +12,9 @@
 #include "../src/ui/completion_view.c"
 typedef struct fixture {
  const char *root,*compiler,*expectedName;HDESK desktop;xide_app app;xide_document* document;
- int failed,started,phase,sample,mode,modeIndex,samples,reverse,offset,frames,checks,revision;uint64_t deadline;
+ int failed,started,phase,sample,mode,modeIndex,samples,reverse,offset,frames,checks,revision,words,inputOffset,rangeEnd,insertChar,helpers;uint64_t deadline;
  LARGE_INTEGER frequency;double inputAt,inputMs,peakFrame,totalFrame,lastCallback,peakGap,cpuAt;
- char* path;char* source;
+ char* path;char* source;size_t sourceCapacity;
 } fixture;
 static double now(fixture* f) {LARGE_INTEGER t;QueryPerformanceCounter(&t);return 1000.0*(double)t.QuadPart/f->frequency.QuadPart;}
 #define CHECK(e) do{++f->checks;if(!(e)){fprintf(stderr,"frame_probe:%d %s phase=%d mode=%d sample=%d wanted=%d pending=%d ready=%d\n",__LINE__,#e,f->phase,f->mode,f->sample,f->app.completionView?f->app.completionView->wanted:0,f->app.completionView?f->app.completionView->pending:0,f->app.completionView?f->app.completionView->ready:0);f->failed=1;xgeQuit();return XGE_OK;}}while(0)
@@ -38,14 +38,28 @@ static int frame(void* user)
  CHECK(GetTickCount64()<f->deadline);
  xide_completion_view* v=app->completionView;xui_widget editor=f->document->editor;xui_code_document document=xuiCodeEditGetDocument(editor);
  if(f->phase==2) {
-  cvdismiss(v);f->expectedName=(++f->revision&1) ? "zzRecent" : "zzResult";
-  char* declaration=strstr(f->source,"int zzR");CHECK(declaration);int nameAt=(int)(declaration-f->source)+4;
-  memcpy(f->source+nameAt,f->expectedName,8);CHECK(xuiCodeDocumentReplace(document,nameAt,nameAt+8,f->expectedName)==XUI_OK);
-  CHECK(xuiCodeDocumentReplace(document,f->offset,f->offset+1,"")==XUI_OK && xideRefreshEditorSyntax(editor)==XUI_OK);
-  CHECK(xuiCodeSelectionGotoOffset(xuiCodeEditGetSelection(editor),document,f->offset,0)==XUI_OK && xuiSetFocusWidget(app->context,editor)==XUI_OK);
+  cvdismiss(v);++f->revision;f->inputOffset=f->offset;f->insertChar='R';f->rangeEnd=f->offset+6;
+  if(f->words){
+   f->expectedName="zzResult";
+   if(f->revision&1){
+    size_t length=strlen(f->source);f->inputOffset=f->offset+1;f->insertChar='e';f->rangeEnd=f->offset+7;
+    CHECK(length+1<f->sourceCapacity && f->source[f->inputOffset]=='O');
+    memmove(f->source+f->inputOffset+1,f->source+f->inputOffset,length-(size_t)f->inputOffset+1);f->source[f->inputOffset]='e';
+   }else{
+    CHECK(f->source[f->offset+1]=='e' && xuiCodeDocumentReplace(document,f->offset,f->offset+2,"")==XUI_OK);
+    memmove(f->source+f->offset+1,f->source+f->offset+2,strlen(f->source)-(size_t)f->offset-1);
+   }
+   CHECK(xideRefreshEditorSyntax(editor)==XUI_OK);
+  }else{
+   f->expectedName=(f->revision&1) ? "zzRecent" : "zzResult";
+   char* declaration=strstr(f->source,"int zzR");CHECK(declaration);int nameAt=(int)(declaration-f->source)+4;
+   memcpy(f->source+nameAt,f->expectedName,8);CHECK(xuiCodeDocumentReplace(document,nameAt,nameAt+8,f->expectedName)==XUI_OK);
+   CHECK(xuiCodeDocumentReplace(document,f->offset,f->offset+1,"")==XUI_OK && xideRefreshEditorSyntax(editor)==XUI_OK);
+  }
+  CHECK(xuiCodeSelectionGotoOffset(xuiCodeEditGetSelection(editor),document,f->inputOffset,0)==XUI_OK && xuiSetFocusWidget(app->context,editor)==XUI_OK);
   f->phase=3;xgeRenderRequest();
  } else if(f->phase==3) {
-  f->frames=0;f->peakFrame=f->totalFrame=f->peakGap=0;f->cpuAt=cpuNow();f->inputAt=now(f);CHECK(xuiInputTextEx(app->context,'R',NULL)==XUI_OK && xuiDispatchPendingEvents(app->context)==XUI_OK);f->inputMs=now(f)-f->inputAt;
+  f->frames=0;f->peakFrame=f->totalFrame=f->peakGap=0;f->cpuAt=cpuNow();f->inputAt=now(f);CHECK(xuiInputTextEx(app->context,(uint32_t)f->insertChar,NULL)==XUI_OK && xuiDispatchPendingEvents(app->context)==XUI_OK);f->inputMs=now(f)-f->inputAt;
   if(f->mode) {CHECK(xuiInputKeyDownEx(app->context,XUI_KEY_SPACE,XUI_MOD_CTRL,NULL)==XUI_OK && xuiDispatchPendingEvents(app->context)==XUI_OK && xuiInputKeyUpEx(app->context,XUI_KEY_SPACE,XUI_MOD_CTRL,NULL)==XUI_OK && xuiDispatchPendingEvents(app->context)==XUI_OK);CHECK(v->wanted && !v->repeatEditor && v->due<=GetTickCount64());}
   f->phase=4;f->deadline=GetTickCount64()+30000;
  }
@@ -54,9 +68,9 @@ static int frame(void* user)
  if(f->phase==4){if(!f->frames)elapsed=after-f->inputAt;else if(gap>f->peakGap)f->peakGap=gap;++f->frames;f->totalFrame+=elapsed;if(elapsed>f->peakFrame)f->peakFrame=elapsed;}
  if(f->phase==1 && v->ready) {CHECK(v->result && has(v,"zzResult"));f->phase=2;xgeRenderRequest();}
  else if(f->phase==4 && v->ready && v->result && has(v,f->expectedName) && xuiCodeEditIsCompletionOpen(editor)) {
-  CHECK(v->nativeBackend && v->document==f->document && v->id==f->document->id && v->count==1 && v->version==xuiCodeDocumentGetVersion(document) && v->start==f->offset-2 && v->end==f->offset+6 && !strcmp(xuiCodeEditGetText(editor),f->source));
+  CHECK(v->nativeBackend && v->document==f->document && v->id==f->document->id && v->count==1 && v->version==xuiCodeDocumentGetVersion(document) && v->start==f->offset-2 && v->end==f->rangeEnd && !strcmp(xuiCodeEditGetText(editor),f->source));
   double cpu=cpuNow();CHECK(cpu>=f->cpuAt && f->cpuAt>=0);
-  printf("{\"mode\":%d,\"sample\":%d,\"bytes\":%zu,\"candidate\":\"%s\",\"documentVersion\":%u,\"dpiScale\":%.6f,\"inputMs\":%.6f,\"renderSubmittedMs\":%.6f,\"maxFrameMs\":%.6f,\"totalFrameMs\":%.6f,\"maxCallbackGapMs\":%.6f,\"guiCpuMs\":%.6f,\"frames\":%d}\n",f->mode,f->sample,strlen(f->source),f->expectedName,v->version,app->dpiScale,f->inputMs,after-f->inputAt,f->peakFrame,f->totalFrame,f->peakGap,cpu-f->cpuAt,f->frames);fflush(stdout);
+  printf("{\"mode\":%d,\"sample\":%d,\"bytes\":%zu,\"candidate\":\"%s\",\"wordViewScenario\":%d,\"helperFunctions\":%d,\"queryPrefix\":\"%s\",\"documentVersion\":%u,\"dpiScale\":%.6f,\"inputMs\":%.6f,\"renderSubmittedMs\":%.6f,\"maxFrameMs\":%.6f,\"totalFrameMs\":%.6f,\"maxCallbackGapMs\":%.6f,\"guiCpuMs\":%.6f,\"frames\":%d}\n",f->mode,f->sample,strlen(f->source),f->expectedName,f->words,f->helpers,f->words && (f->revision&1) ? "zzRe" : "zzR",v->version,app->dpiScale,f->inputMs,after-f->inputAt,f->peakFrame,f->totalFrame,f->peakGap,cpu-f->cpuAt,f->frames);fflush(stdout);
   if(f->sample==0){char leaf[50];snprintf(leaf,sizeof(leaf),"mode-%d.png",f->mode);char* path=xidePathResolve(f->root,leaf);CHECK(path && xideAppCapture(app,path)==XGE_OK);free(path);}
   if(++f->sample==f->samples){f->sample=0;if(++f->modeIndex==2){f->phase=5;xgeRenderRequest();return XGE_OK;}f->mode=f->reverse ? 0 : 1;}
   f->phase=2;xgeRenderRequest();
@@ -72,17 +86,25 @@ static DWORD WINAPI worker(void* user)
 }
 static int runMain(int argc,char** argv)
 {
- if(argc<3 || argc>6 || !xrtDirCreateAll(argv[1]))return 2;
+ if(argc<3 || argc>8 || (argc>6 && strcmp(argv[6],"words")) || !xrtDirCreateAll(argv[1]))return 2;
  fixture f={.root=argv[1],.compiler=argv[2],.samples=argc>3 ? atoi(argv[3]) : 3,.reverse=argc>5 ? atoi(argv[5]) : 0};size_t bytes=argc>4 ? (size_t)strtoull(argv[4],NULL,10) : 8192;
  if(f.samples<1 || f.samples>120 || bytes<128 || bytes>7u*1024u*1024u || (f.reverse!=0 && f.reverse!=1))return 2;
- f.mode=f.reverse ? 1 : 0;
+ f.mode=f.reverse ? 1 : 0;f.words=argc>6;
  if(!QueryPerformanceFrequency(&f.frequency))return 1;
- f.path=xidePathResolve(f.root,"frame-probe.xl");xstrbuf source;xrtStrBufInit(&source);
+ f.path=xidePathResolve(f.root,argc>7 ? argv[7] : "frame-probe.xl");xstrbuf source;xrtStrBufInit(&source);
  const char* body="func main(...) as int\n int zzResult = 7\n return zzROther\nend\n";
+ if(f.words)while(f.helpers<4096 && source.Size+strlen(body)+160<bytes){
+  if(!xrtStrBufAppendFormat(&source,"func frame_helper_%d(int value) as int\n if value>0 then\n return value+%d\n end\n return 0\nend\n",f.helpers,f.helpers))return 1;
+  ++f.helpers;
+ }
  while(source.Size+strlen(body)+34<bytes)if(!xrtStrBufAppend(&source,xrtStrView("// 0123456789abcdef0123456789abcde\n")))return 1;
  if(!xrtStrBufAppend(&source,xrtStrView(body)))return 1;
- f.source=source.Data;f.offset=(int)(strstr(source.Data,"return zzR")-source.Data)+9;
- if(!f.path || !xrtFileWriteAtomic(f.path,(xbytesview){(const unsigned char*)body,strlen(body)}))return 1;
+ if(!xrtStrBufReserve(&source,source.Size+32))return 1;
+ f.source=source.Data;f.sourceCapacity=source.Capacity;f.offset=(int)(strstr(source.Data,"return zzR")-source.Data)+9;
+ if(!f.path)return 1;
+ if(argc>7 && xrtFileExists(f.path)){
+  size_t size=0;unsigned char* existing=xrtFileReadAll(f.path,&size);int same=existing && size==strlen(body) && !memcmp(existing,body,size);xrtFree(existing);if(!same)return 1;
+ }else if(!xrtFileWriteAtomic(f.path,(xbytesview){(const unsigned char*)body,strlen(body)}))return 1;
  f.app.hidden=1;f.app.noSession=1;f.app.highDpi=1;f.app.compilerPath=f.compiler;
  wchar_t name[80];swprintf(name,80,L"CompletionFrame-%lu",GetCurrentProcessId());f.desktop=CreateDesktopW(name,NULL,NULL,0,DESKTOP_CREATEWINDOW|DESKTOP_READOBJECTS|DESKTOP_WRITEOBJECTS|DESKTOP_ENUMERATE,NULL);if(!f.desktop)return 1;
  HANDLE thread=CreateThread(NULL,0,worker,&f,0,NULL);DWORD code=1;if(thread){if(WaitForSingleObject(thread,600000)!=WAIT_OBJECT_0){fputs("completion frame test timed out\n",stderr);ExitProcess(1);}GetExitCodeThread(thread,&code);CloseHandle(thread);}CloseDesktop(f.desktop);free(f.path);xrtStrBufFree(&source);return (int)code;

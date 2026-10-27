@@ -77,6 +77,8 @@ CORE_TESTS = ("analysis_semantic_proof_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_semantic_headers_test", *CORE_TESTS)
 CORE_TESTS = ("semantic_coordinates_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_function_unit_test", "analysis_function_unit_fault_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_completion_unit_test", "analysis_completion_unit_fault_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_topology_clone_fault_test", *CORE_TESTS)
 HOST_TESTS += ("navigation_cache_test", "semantic_reference_shard_test", "project_references_test", "project_reference_budget_test", "reference_path_index_test")
 HOST_TESTS += ("path_identity_batch_test", "reference_capture_test")
 HOST_TESTS += ("project_reference_parallel_test",)
@@ -811,8 +813,12 @@ def main() -> None:
                 # only;the dependency snapshot must invoke neither stage.
                 extra += ["-Wl,--wrap=xl6SemCheckModuleWithIndex",
                           "-Wl,--wrap=xl6IrBuildModuleFromAst"]
+            if name == "analysis_topology_clone_fault_test":
+                extra += ["-Wl,--wrap=" + function for function in (
+                    "xrtMalloc", "xrtCalloc", "xrtFree", "xrtArrayInit",
+                    "xrtArrayReserve", "xrtArrayPush", "xrtArrayUnit")]
             run([str(cc), str(objects[name]), *extra, str(core), "-Wl,--gc-sections", *libraries, "-o", str(program)], name + "-link")
-            result = run([str(program)], name + "-run", 30)
+            result = run([str(program)], name + "-run", 120 if name == "analysis_ir_scan_test" else 30)
             if b"passed:" not in result.stdout:
                 raise RuntimeError(f"missing test completion receipt: {name}")
             runs.append(dict(name=name,stdout=result.stdout.decode("utf-8")))

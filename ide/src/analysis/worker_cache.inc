@@ -140,7 +140,7 @@ static xtaskoutcome executeSemantic(xcancel* cancel,query_input* input,xtaskvalu
         result->completion=xlsCompletionSessionQueryWithHistory(selected->value.completion,input->context,history,inputs.documents,inputs.count,input->target,input->queryKey,input->offset,cancelled,cancel,result->error,sizeof(result->error));
         xlsCompletionSessionStats(selected->value.completion,&after);
 #define ADD(field) w->completionTotals.field=addWork(w->completionTotals.field,before.field,after.field)
-        ADD(builds);ADD(hits);ADD(invalidations);ADD(cursorFullParses);ADD(cursorFragmentParses);ADD(cursorReusedDeclarations);ADD(cursorParsedBytes);ADD(cursorSyntaxHits);ADD(cursorFreshBuilds);ADD(inputScopeHits);
+        ADD(builds);ADD(hits);ADD(invalidations);ADD(cursorFullParses);ADD(cursorFragmentParses);ADD(cursorReusedDeclarations);ADD(cursorParsedBytes);ADD(cursorSyntaxHits);ADD(cursorFreshBuilds);ADD(inputScopeHits);ADD(wordViews);ADD(wordProofNodes);
 #undef ADD
         w->completionTotals.documents=after.documents;w->completionTotals.textBytes=after.textBytes;result->completionStats=w->completionTotals;
     }else{

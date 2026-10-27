@@ -26,6 +26,8 @@ const xls_context* xlsInputBatchContext(const xls_input_batch* batch);
 xls_input_batch* xlsInputBatchRetain(const xls_input_batch* batch);
 void xlsInputBatchDestroy(xls_input_batch* batch);
 const xls_analysis_document* xlsInputBatchFind(const xls_input_batch* batch,const char* key);
+/* Borrowed immutable row in captured order; no lookup/allocation/I/O. */
+const xls_analysis_document* xlsInputBatchAt(const xls_input_batch* batch,size_t ordinal);
 const xls_analysis_document* xlsInputBatchTarget(const xls_input_batch* batch);
 const char* xlsInputBatchEntry(const xls_input_batch* batch);
 const char* xlsInputBatchDirectory(const xls_input_batch* batch);

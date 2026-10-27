@@ -9,6 +9,8 @@
 #include "analysis/frontend_module_graph.h"
 #include "analysis/frontend_cancel.h"
 #include "analysis/signature_internal.h"
+#include "analysis/completion_unit.h"
+#include "analysis/cursor_word_view.h"
 #include "src/parser/xl6_parser_api.h"
 #include "src/compile/xl6_imports.h"
 #include "src/stdlib/xl6_stdlib.h"
@@ -16,6 +18,10 @@
 #include "src/sem/xl6_completion.h"
 #include <stdio.h>
 
+typedef struct xls_completion_word_unit xls_completion_word_unit;
+static void wordUnitRelease(xls_completion_word_unit*);
+static void wordQueryFree(xls_semantic_completion*);
+static int validateLocked(xls_semantic_completion*);
 struct xls_semantic_completion {
     xatomic32 references,invalid;
     xls_context* context;
@@ -42,6 +48,10 @@ struct xls_semantic_completion {
     uint64_t usedInputs;int usageKnown;
     xls_input_topology* topology;
     xls_module_graph* modules;
+    xls_completion_word_unit* wordUnit;
+    const char* wordKey;
+    xls_completion_unit_work wordWork;
+    xls_semantic_completion* demanded;
 };
 static int absolute(const char* path)
 {
@@ -65,17 +75,20 @@ void xlsSemanticCompletionDestroy(xls_semantic_completion* r)
 {
     if(!r || xrtAtomic32FetchSub(&r->references,1,XMEMORY_ACQ_REL)!=1) return;
     xlsSignatureDataDestroy(r->signature);
-    xlsInputTopologyDestroy(r->topology);
+    if(!r->wordUnit)xlsInputTopologyDestroy(r->topology);
     xlsModuleGraphRelease(r->modules);
-    xl6CompletionFree(&r->query);
+    wordQueryFree(r);
     xlsFrontendSemTailDestroy(r->tail);
     xl6ParseResultFree(&r->parse);
     xl6ImportDepsFree(&r->deps);
     xlsFrontendOverlayClear(&r->overlay,r->inputOwner);xlsInputBatchDestroy(r->inputOwner);
     xl6SourceReportFree(&r->report);
+    wordUnitRelease(r->wordUnit);
+    xlsSemanticCompletionDestroy(r->demanded);
     xlsFrontendSemMemoDestroy(r->memo);
     xlsContextRelease(r->context); xrtFree(r->queryError); xrtFree(r->path); if(r->lockInitialized) xrtMutexUnit(&r->lock); xrtFree(r);
 }
+#include "analysis/semantic_word_unit.inc"
 static xls_semantic_completion* createBody(xls_context* context,const char* entry,const char* queryPath,
     size_t offset,const xls_semantic_input* inputs,size_t count,const xls_syntax* syntax,
     xls_semantic_completion* previous,int memoEnabled,
@@ -161,11 +174,15 @@ static xls_semantic_completion* createBody(xls_context* context,const char* entr
         xlsFrontendSemStorageBegin(&storage,xlsFrontendSemStorageBudget());
         xlsFrontendSemCallsBegin(&calls,xlsFrontendSemCallsBudget());
         if(memoEnabled) {
-            int compatible=previous && previous->memo && !strcmp(previous->path,r->path) &&
+            xls_sem_memo* memo=previous && previous->wordUnit ? previous->wordUnit->memo : previous ? previous->memo : NULL;
+            const XL6_SourceReport* oldReport=previous && previous->wordUnit ? &previous->wordUnit->report : previous ? &previous->report : NULL;
+            int topology=previous && previous->wordUnit ? xlsInputTopologyOverlayCompatible(previous->wordUnit->topology,&previous->wordUnit->overlay,&r->overlay) :
+                previous && xlsInputTopologyOverlayCompatible(xlsSemanticCompletionTopology(previous),&previous->overlay,&r->overlay);
+            int compatible=previous && memo && !strcmp(previous->path,r->path) &&
                 xlsFrontendContextsEqual(previous->context,context) && xlsSemanticCompletionValidate(previous) &&
-                xlsInputTopologyOverlayCompatible(xlsSemanticCompletionTopology(previous),&previous->overlay,&r->overlay);
+                topology;
             retry=xlsFrontendSemCheckCursorDeferred(r->parse.root,&r->parse.diags,module,&r->query,entry,&r->report,
-                compatible ? &previous->report : NULL,compatible ? previous->memo : NULL,&r->memo,&r->semanticWork,&r->tail)<0;
+                compatible ? oldReport : NULL,compatible ? memo : NULL,&r->memo,&r->semanticWork,&r->tail)<0;
         } else xl6SemCheckModuleWithQuery(r->parse.root,&r->parse.diags,module,0,&r->query);
         xlsFrontendSemCallsEnd(&calls,&r->callWork);
         xlsFrontendSemStorageEnd(&storage,&r->storageWork);
@@ -271,6 +288,9 @@ const XL6_AstNode* xlsSemanticCompletionAst(const xls_semantic_completion* resul
 {
     xls_semantic_completion* r=(xls_semantic_completion*)result;
     if(!r || !xrtMutexLock(&r->lock))return NULL;
+    if(r->wordUnit){
+        const XL6_AstNode* root=wordDemandAst(r);xrtMutexUnlock(&r->lock);return root;
+    }
     int materialized=xlsFrontendSemTailMaterialize(r->tail);
     const XL6_AstNode* root=materialized ? r->parse.root : NULL;xrtMutexUnlock(&r->lock);return root;
 }

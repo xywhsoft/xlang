@@ -30,7 +30,14 @@ def main():
     parser.add_argument("--rounds", type=int, default=2, help="alternate auto/forced order each round")
     parser.add_argument("--bytes", type=int, nargs="+", default=[8192])
     parser.add_argument("--max-render-p95-ms", type=float, help="optional explicit performance gate")
+    parser.add_argument("--word-view", action="store_true", help="alternate token-only prefix edits; declarations stay exact")
+    parser.add_argument("--shared-source", type=Path, help="stable source identity across independent frame runs; requires --word-view")
     args = parser.parse_args()
+    if args.shared_source and not args.word_view:
+        parser.error("--shared-source requires --word-view")
+    if args.shared_source:
+        args.shared_source = args.shared_source.resolve()
+        args.shared_source.parent.mkdir(parents=True, exist_ok=True)
     if not 1 <= args.samples <= 120 or not 1 <= args.rounds <= 8 or any(
             n < 128 or n > 7 * 1024 * 1024 for n in args.bytes):
         parser.error("samples 1..120, rounds 1..8, bytes 128..7340032 are required")
@@ -55,13 +62,20 @@ def main():
         "complete source and candidate. Measurement ends after application surface render/present "
         "submission, before compositor/physical display. Private desktop, hidden window, warm native "
         "server, one local candidate, ordinary background views retained. Document preparation and "
-        "first-sample screenshot readback are outside measured spans. Each preparation alternates a local "
-        "declaration name; typed R must produce the matching fresh candidate. The declaration-name edit "
-        "is outside the measured span. GUI CPU includes fixture checks "
+        "first-sample screenshot readback are outside measured spans. Scenario details are recorded "
+        "separately. GUI CPU includes fixture checks "
         "and excludes child servers. This baseline does not prove changed-function semantic incrementality, "
         "cold startup, full-engine memory, all document sizes or hardware input-to-photon latency. "
         "Host is shared and not exclusive.",
         "fixture": str(fixture), "compiler": str(compiler),
+        "wordViewScenario": args.word_view,
+        "sharedSource": str(args.shared_source) if args.shared_source else None,
+        "scenario": ("A bounded helper-function corpus precedes the query;declarations stay exact. "
+                     "Alternate zzR/zzRe prefixes in one whole identifier, "
+                     "with real character events and complete source/range checks. This does not "
+                     "by itself prove a particular server cache route." if args.word_view else
+                     "Preparation alternates a local declaration name outside measured spans; "
+                     "typed R must produce the matching fresh candidate."),
         "compilerExists": compiler.is_file(), "protected": protected,
         "host": {"platform": platform.platform(), "machine": platform.machine(),
                  "processor": platform.processor(), "logicalCpus": os.cpu_count()},
@@ -81,6 +95,10 @@ def main():
                 output = root / name
                 command = [str(fixture), str(output), str(compiler), str(args.samples),
                            str(size), str(round_index % 2)]
+                if args.word_view:
+                    command.append("words")
+                    if args.shared_source:
+                        command.append(str(args.shared_source))
                 process = subprocess.run(command, cwd=fixture.parent, capture_output=True, timeout=660)
                 log = root / (name + ".log")
                 log.write_bytes(process.stdout + process.stderr)
@@ -99,7 +117,8 @@ def main():
                     rows = [s for s in samples if s["mode"] == mode]
                     if sorted(s["sample"] for s in rows) != list(range(args.samples)):
                         raise RuntimeError("missing/duplicate mode samples")
-                    if len({s["bytes"] for s in rows}) != 1 or not size - 64 <= rows[0]["bytes"] <= size:
+                    if (not args.word_view and len({s["bytes"] for s in rows}) != 1) or any(
+                            not size - 64 <= s["bytes"] <= size + int(args.word_view) for s in rows):
                         raise RuntimeError("unexpected actual document size")
                     for row in rows:
                         if row["candidate"] not in ("zzRecent", "zzResult") or row["documentVersion"] < 1:
@@ -109,14 +128,25 @@ def main():
                             if not math.isfinite(row[metric]) or row[metric] < 0:
                                 raise RuntimeError("invalid performance sample")
                 for index, sample in enumerate(samples):
-                    expected = "zzRecent" if index % 2 == 0 else "zzResult"
+                    expected = "zzResult" if args.word_view else "zzRecent" if index % 2 == 0 else "zzResult"
                     if sample["candidate"] != expected or sample["dpiScale"] <= 0:
                         raise RuntimeError("candidate/scale corpus mismatch")
                     if index and sample["documentVersion"] <= samples[index - 1]["documentVersion"]:
                         raise RuntimeError("non-increasing document version")
+                    if args.word_view and (sample.get("wordViewScenario") != 1 or sample.get("queryPrefix") !=
+                                          ("zzRe" if index % 2 == 0 else "zzR")):
+                        raise RuntimeError("word-only input scenario mismatch")
+                    if args.word_view and (not 0 <= sample.get("helperFunctions", -1) <= 4096 or
+                                          (size >= 512 and not sample["helperFunctions"])):
+                        raise RuntimeError("missing helper-function workload")
                 if len(samples) != 2 * args.samples or len(run["images"]) != 2:
                     raise RuntimeError("incomplete frame samples or screenshots")
                 print(name, "verified", len(samples), "frame samples", flush=True)
+                if args.shared_source:
+                    value = digest(args.shared_source)
+                    if str(args.shared_source) in protected and protected[str(args.shared_source)] != value:
+                        raise RuntimeError("shared source bytes changed")
+                    protected[str(args.shared_source)] = value
         for size in args.bytes:
             for mode in (0, 1):
                 rows = [s for r in evidence["runs"] if r["requestedBytes"] == size
