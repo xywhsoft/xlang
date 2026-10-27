@@ -1,4 +1,5 @@
 #include "analysis/dependency_capture.h"
+#include "analysis/function_unit_internal.h"
 #include "analysis/check.h"
 #include "analysis/frontend_overlay.h"
 #include "analysis/check_ir.h"
@@ -407,6 +408,18 @@ int xlsSemanticCheckValidate(xls_semantic_check* r)
 {
     if(!r || !xrtMutexLock(&r->lock)) return 0;
     int okay=validateLocked(r); xrtMutexUnlock(&r->lock); return okay;
+}
+int xlsFrontendCheckFunctionInputs(const xls_semantic_check* r,XL6_SourceReport* out)
+{
+    if(out)*out=(XL6_SourceReport){0};
+    if(!r || !out || invalid(r) || !r->accepted)return 0;
+    /* These captured arrays/metadata never mutate after publication. Do not
+     * read the report's mutable complete/error validation fields concurrently.
+     * The caller retains the result and validates again before publication. */
+    const XL6_SourceReport* p=&r->report;
+    *out=(XL6_SourceReport){.items=p->items,.count=p->count,.capacity=p->capacity,.bytes=p->bytes,.complete=1,
+        .probes=p->probes,.probeCount=p->probeCount,.probeCapacity=p->probeCapacity,.probeBytes=p->probeBytes,
+        .packagePath=p->packagePath,.packagePathObserved=p->packagePathObserved};return 1;
 }
 static char* reportLocked(xls_semantic_check* r,size_t* size,int includeIndex)
 {
