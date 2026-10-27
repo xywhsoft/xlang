@@ -153,6 +153,19 @@ try {
     $abi = Join-Path $work 'abi.c'
     [IO.File]::WriteAllText($abi,"#include <stdint.h>`n#include `"blake3_native.h`"`n" + ($decls -join "`n"),$utf8)
     $null = Check 'generated-prototypes' $gcc ($packageFlags + @('-Irelease/extlibs/blake3/include','-fsyntax-only',$abi))
+    $ownedModule = [IO.File]::ReadAllText((Join-Path $work 'extlib_blake3.c'))
+    foreach ($symbol in @(
+        'xblake3_hash_hex_owned', 'xblake3_hash_str_hex_owned',
+        'xblake3_hash_mac_hex_owned', 'xblake3_hash_mac_str_hex_owned',
+        'xblake3_hash_kdf_hex_owned', 'xblake3_hash_kdf_str_hex_owned',
+        'xblake3_file_hex_owned', 'xblake3_hasher_digest_hex_owned')) {
+        if (-not $ownedModule.Contains("extern char* $symbol(") -or
+            -not [regex]::IsMatch($ownedModule,
+                '\.Data\s*=\s*' + [regex]::Escape($symbol) + '\s*\(')) {
+            throw "BLAKE3 owned text is not directly adopted: $symbol"
+        }
+    }
+    Write-Host '[blake3] owned text direct adoption: PASS'
     foreach ($name in @('blake3','blake3_basic')) {
         $case = "release/examples/extlibs/$name.xl"
         $text = Check "$name-example-jit" $xl @('run',$case)
@@ -187,6 +200,26 @@ try {
     foreach ($path in $hashes.Keys) {
         if ((Get-FileHash -LiteralPath (Join-Path $Root $path)).Hash -ne $hashes[$path]) { throw "Input changed: $path" }
     }
+    $blockers = @()
+    $privateCase = 'release/extlibs/blake3/test/private_adopt_constructor_negative.xl'
+    $private = Invoke-ExtlibSmokeProcess $xl @('check',$privateCase) $Root 30
+    $privateRejected = $private.status -eq 'fail' -and
+        ($private.stdout + $private.stderr) -match '\[sem\]'
+    $checks.Add([ordered]@{name='private-adopt-constructor';status=$(if ($privateRejected) { 'pass' } else { 'fail' });exitCode=$private.exitCode;stdout=$private.stdout;stderr=$private.stderr})
+    if (!$privateRejected) { $blockers += 'private native handle adoption remains accessible' }
+    if (!$SkipAot) {
+        $globalCase = 'release/extlibs/blake3/test/aot_global_hasher_repro.xl'
+        $globalJit = Check 'global-hasher-jit' $xl @('run',$globalCase)
+        $globalExe = Join-Path $work 'global-hasher.exe'
+        $null = Check 'global-hasher-build' $xl @('build',$globalCase,'-o',$globalExe)
+        $globalAot = Invoke-ExtlibSmokeProcess $globalExe @() $Root 30
+        $globalText = $globalAot.stdout.Replace("`r`n","`n").TrimEnd("`n")
+        $globalPassed = $globalAot.status -eq 'pass' -and
+            $globalText -ceq $globalJit
+        $checks.Add([ordered]@{name='global-hasher-aot';status=$(if ($globalPassed) { 'pass' } else { 'fail' });exitCode=$globalAot.exitCode;stdout=$globalAot.stdout;stderr=$globalAot.stderr})
+        if (!$globalPassed) { $blockers += 'top-level native hasher fails during standalone EXE retirement' }
+    }
+    if ($blockers.Count) { throw ('BLAKE3 release blockers: ' + ($blockers -join '; ')) }
     $outcome = 'passed'
 } finally {
     $scope = 'Windows C boundaries, 35 upstream vectors in three modes and six lengths, allocation failures, independent threads, xlang/C JIT, callbacks and readers, generated ABI and paired examples'
