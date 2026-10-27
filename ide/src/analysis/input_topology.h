@@ -22,6 +22,12 @@ void xlsInputTopologyLookup(const struct XL6_SourceOverlay* overlay,const char* 
 void xlsInputTopologyFailure(const struct XL6_SourceOverlay* overlay);
 xls_input_topology* xlsInputTopologyEnd(xls_input_topology_scope* scope);
 void xlsInputTopologyDestroy(xls_input_topology* topology);
+/* Explicit independent copy of immutable prepared lookup keys;no earlier
+ * owner/report/overlay/AST is retained. Known payload<=min(limit,8MiB).
+ * Cancellation/resource failure publishes no partial proof. Caller keeps the
+ * source alive for the call;the returned proof owns all prepared key bytes. */
+xls_input_topology* xlsInputTopologyClone(const xls_input_topology*,size_t limit,
+    int (*cancelled)(void*),void* user);
 typedef struct xls_input_topology_info {size_t paths,bytes;} xls_input_topology_info;
 xls_input_topology_info xlsInputTopologyInfo(const xls_input_topology* topology);
 /* Complete negative proof for changed overlay labels,not disk freshness.

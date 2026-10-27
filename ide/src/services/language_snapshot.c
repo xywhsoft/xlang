@@ -13,6 +13,7 @@
 #include <limits.h>
 #ifdef XLS_COMPILER_XRT
 #include "analysis/semantic.h"
+#include "analysis/completion_unit.h"
 #include "analysis/check.h"
 #include "analysis/check_ir.h"
 #include "analysis/index_entities.h"
@@ -719,7 +720,9 @@ analysed:
    put(stats,"cursorReusedDeclarations",xrtValueInt((int64)q->completionStats.cursorReusedDeclarations)) &&
    put(stats,"cursorParsedBytes",xrtValueInt((int64)q->completionStats.cursorParsedBytes)) &&
    put(stats,"cursorSyntaxHits",xrtValueInt((int64)q->completionStats.cursorSyntaxHits)) &&
-   put(stats,"cursorFreshBuilds",xrtValueInt((int64)q->completionStats.cursorFreshBuilds)) && sessionCacheStats(stats,q);
+   put(stats,"cursorFreshBuilds",xrtValueInt((int64)q->completionStats.cursorFreshBuilds)) &&
+   put(stats,"wordViews",xrtValueInt((int64)q->completionStats.wordViews)) &&
+   put(stats,"wordProofNodes",xrtValueInt((int64)q->completionStats.wordProofNodes)) && sessionCacheStats(stats,q);
   xvalue* entryWork=xrtValueObject();
   okayStats=okayStats && entryWork && put(entryWork,"parsed",xrtValueInt((int64)q->entryParseWork.parsed)) &&
    put(entryWork,"reused",xrtValueInt((int64)q->entryParseWork.reused)) && put(entryWork,"declined",xrtValueInt((int64)q->entryParseWork.declined)) &&
@@ -740,6 +743,14 @@ analysed:
    put(semWork,"proofNodes",xrtValueInt((int64)work.proofNodes));
   if(okayStats) {okayStats=put(stats,"lastBuildSemantics",semWork);semWork=NULL;}
   xrtValueRelease(semWork);
+  xls_completion_unit_work word=xlsSemanticCompletionUnitWork(nativeCompletion);
+  xvalue* wordWork=xrtValueObject();
+  okayStats=okayStats && wordWork && put(wordWork,"projected",xrtValueInt((int64)word.projected)) &&
+   put(wordWork,"proofNodes",xrtValueInt((int64)word.proofNodes)) && put(wordWork,"candidates",xrtValueInt((int64)word.candidates)) &&
+   put(wordWork,"knownBytes",xrtValueInt((int64)word.knownBytes)) && put(wordWork,"astMaterialized",xrtValueInt((int64)word.astMaterialized)) &&
+   put(wordWork,"astFailures",xrtValueInt((int64)word.astFailures));
+  if(okayStats){okayStats=put(stats,"lastBuildWordView",wordWork);wordWork=NULL;}
+  xrtValueRelease(wordWork);
   xls_sem_call_work calls=xlsSemanticCompletionCallWork(nativeCompletion);
   xvalue* callWork=xrtValueObject();
   okayStats=okayStats && callWork && put(callWork,"indexes",xrtValueInt((int64)calls.indexes)) &&

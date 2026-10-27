@@ -71,6 +71,27 @@ void xlsInputTopologyDestroy(xls_input_topology* topology)
 {
     if(topology){for(size_t i=0;i<topology->keys.Count;++i)xrtFree(((topology_key*)xrtArrayGet(&topology->keys,i))->data);xrtArrayUnit(&topology->keys);xrtFree(topology);}
 }
+xls_input_topology* xlsInputTopologyClone(const xls_input_topology* source,size_t limit,int (*cancelled)(void*),void* user)
+{
+    if(limit>TOPOLOGY_BYTES)limit=TOPOLOGY_BYTES;
+    if(!source || limit<sizeof(xls_input_topology) || source->keys.Count>TOPOLOGY_PATHS || (cancelled && cancelled(user)))return NULL;
+    xls_input_topology* copy=xrtCalloc(1,sizeof(*copy));if(!copy)return NULL;
+    if(!xrtArrayInit(&copy->keys,sizeof(topology_key)) || !xrtArrayReserve(&copy->keys,source->keys.Count) ||
+       copy->keys.Capacity>(limit-sizeof(*copy))/sizeof(topology_key))goto failed;
+    copy->bytes=sizeof(*copy)+copy->keys.Capacity*sizeof(topology_key);
+    for(size_t i=0;i<source->keys.Count;++i){
+        if(cancelled && cancelled(user))goto failed;
+        const topology_key* from=xrtArrayConstGet(&source->keys,i);
+        if(!from || !from->data || !from->bytes || from->bytes>limit-copy->bytes)goto failed;
+        topology_key key={xrtMalloc(from->bytes),from->bytes};if(!key.data)goto failed;
+        memcpy(key.data,from->data,from->bytes);
+        if(!xrtArrayPush(&copy->keys,&key)){xrtFree(key.data);goto failed;}
+        copy->bytes+=key.bytes;
+    }
+    if(cancelled && cancelled(user))goto failed;
+    return copy;
+failed:xlsInputTopologyDestroy(copy);return NULL;
+}
 xls_input_topology* xlsInputTopologyEnd(xls_input_topology_scope* scope)
 {
     if(!scope || active!=scope)return NULL;

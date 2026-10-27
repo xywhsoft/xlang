@@ -45,6 +45,8 @@ const xls_analysis_document* xlsInputBatchFind(const xls_input_batch* b,const ch
 }
 const xls_analysis_document* xlsInputBatchTarget(const xls_input_batch* b)
 { return b && b->target<b->count ? &b->documents[b->target] : NULL; }
+const xls_analysis_document* xlsInputBatchAt(const xls_input_batch* b,size_t ordinal)
+{return b && ordinal<b->count ? &b->documents[ordinal] : NULL;}
 const char* xlsInputBatchEntry(const xls_input_batch* b)
 {
     const xls_analysis_document* target=xlsInputBatchTarget(b);

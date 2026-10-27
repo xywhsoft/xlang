@@ -9,13 +9,19 @@ typedef struct xls_completion_stats {
     uint64_t cursorFullParses,cursorFragmentParses,cursorReusedDeclarations,cursorParsedBytes;
     uint64_t cursorSyntaxHits,cursorFreshBuilds;
     uint64_t inputScopeHits;
+    uint64_t wordViews,wordProofNodes;
 } xls_completion_stats;
 /* One owner, one retained exact cursor projection. Hits revalidate disk,
  * import candidates and observed environment. Unobserved body changes may hit
  * when the original lookup mask and unchanged overlay membership prove them
  * irrelevant;entry/query bodies stay exact,inputScopeHits counts these hits.
- * Other changed inputs/cursors still
- * run the shared semantic query. Opened entry/import query files can reuse
+ * Proven edits/caret movement inside the same original-parser token may
+ * directly read independent candidate/source/memo/topology units. Both input
+ * bodies are bound exactly;all parser values and induced coordinates match;
+ * filtering never broadens beyond the original unit's prefix. wordViews and
+ * wordProofNodes count this construction separately from full semantic builds.
+ * Other changed inputs/cursors run the shared semantic query.
+ * Opened entry/import query files can reuse
  * immutable cursor syntax,including project entries that are closed. Source
  * loading/reporting,imports and semantic checking still run. Failed cursor
  * cache construction/copy uses the original shared native query path,
