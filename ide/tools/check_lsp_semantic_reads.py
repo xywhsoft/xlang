@@ -44,7 +44,7 @@ def main():
                 return r
             try:
                 c.send('initialize',dict(capabilities={},initializationOptions=dict(automaticDiagnostics=False,checkOnSave=False)),1)
-                init,_=c.reply(1);assert init['result']['serverInfo']['version']=='0.85';c.send('initialized',{})
+                init,_=c.reply(1);assert init['result']['serverInfo']['version']=='0.87';c.send('initialized',{})
                 for v in range(10):
                     text=source(helpers,v)
                     if not v:c.open(path,text,1)

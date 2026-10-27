@@ -11,9 +11,12 @@ xls_ast_storage* xlsAstStorageCreate(size_t budget);
 XL6_AstNode* xlsAstStorageNode(xls_ast_storage* storage,size_t extraBudget);
 void xlsAstStorageUnpin(xls_ast_storage* storage);
 void xlsAstStorageFreeNode(XL6_AstNode* node);
-/* Private fact forests may share unlocated bare type leaves during a single
- * construction. Each AST edge owns one reference; final release uses the
- * unchanged field/source/pool destructor. No cross-result mutable sharing. */
+/* Private fact forests may share direct type roots in one construction.
+ * Ordinary paths still opt in only for unlocated bare leaves;static semantic
+ * restoration can explicitly prove complete direct-root projection equality.
+ * Nested nodes are never independently aliased across distinct root contexts.
+ * Each AST edge owns one reference;final release uses the original recursive
+ * field/source/pool destructor. No cross-result mutable sharing. */
 static inline int xlsAstSharedLeafRelease(XL6_AstNode* node)
 {
     if(node && node->xlsLeafReferences>1){--node->xlsLeafReferences;return 1;}

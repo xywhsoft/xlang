@@ -56,6 +56,23 @@ typedef struct xls_ast_leaf_work {uint64_t hits,entries,keyBytes;} xls_ast_leaf_
 XL6_AstNode* xlsAstCloneFactTypes(const XL6_AstNode* input,const xls_ast_clone_options* options,
     xls_ast_cursor_source_policy policy,void* user,size_t poolBudget,xls_ast_pool_work* work,
     xls_ast_leaf_work* leaves,size_t* bytes);
+typedef struct xls_ast_tree_work {uint64_t entries,hits,validatedNodes,allocatedNodes,certifiedNodes;} xls_ast_tree_work;
+/* A certificate provider is an audited state-projection adapter,not a generic
+ * transform hint. Mark returns the current coordinate-sequence cursor,or
+ * SIZE_MAX to decline. Replay must prove the same complete projected values
+ * and reproduce every observable transform effect for that repeated immutable
+ * input subtree;zero rejects this clone attempt. NULL replays every callback. */
+typedef struct xls_ast_tree_projection {size_t (*mark)(void* user);int (*replay)(void* user,size_t begin,size_t count);} xls_ast_tree_projection;
+/* Private STATIC semantic restoration only. Direct type-root aliases select
+ * identical immutable input pointers within this one clone call. Each alias
+ * either replays all transforms in original preorder or uses the explicit
+ * audited projection certificate. Current values/source projection stay exact.
+ * Each edge owns a reference on this private result's root.
+ * Callers must restore callback state and retry the ordinary clone on failure.
+ * No cross-result sharing,cursor admission or transfer of callback-owned fields.
+ * max256pointer keys;index failure disables this optional sharing only. */
+XL6_AstNode* xlsAstCloneFactTrees(const XL6_AstNode* input,const xls_ast_clone_options* options,
+    const xls_ast_tree_projection* projection,size_t poolBudget,xls_ast_pool_work* work,xls_ast_tree_work* trees,size_t* bytes);
 /* Borrow a construction-pinned forest owner. Does not unpin it. Per-copy bytes
  * use the original logical node/field accounting; extra pool capacity is bounded
  * separately. No implicit retry or transform/source-contract changes. */

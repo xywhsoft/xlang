@@ -2,6 +2,7 @@
 #include <xrt.h>
 #include <string.h>
 
+typedef struct clone_tree {XL6_AstNode* node;size_t begin,count;uint64_t nodes;} clone_tree;
 typedef struct clone_context {
     xls_ast_clone_options options;
     xmap sources;
@@ -14,6 +15,9 @@ typedef struct clone_context {
     xmap leaves;
     int leafSharing;
     xls_ast_leaf_work leafWork;
+    xmap trees;int treeSharing;
+    xls_ast_tree_work treeWork;
+    const xls_ast_tree_projection* projection;
 } clone_context;
 static int bareType(const XL6_AstNode* n)
 {
@@ -72,9 +76,60 @@ static int source(clone_context* c,const XL6_AstSource* in,XL6_AstNode* out)
     }
     out->source=value; ++value->references; return 1;
 }
+
+static int sameTypeScalars(const XL6_AstNode* a,const XL6_AstNode* b)
+{
+#define SAME(field) if(a->field!=b->field)return 0
+    SAME(kind);SAME(flags);SAME(literalSize);SAME(literalScalar);SAME(literalDecoded);
+    SAME(semanticTypeId);SAME(semanticTypeAbiId);SAME(semanticSymbolId);SAME(semanticDeclaredSymbolId);
+    SAME(semanticTargetSymbolId);SAME(semanticCompoundOperatorSymbolId);SAME(semanticCallKind);SAME(semanticLvalueKind);
+    SAME(semanticOwnership);SAME(semanticExitKind);SAME(semanticScopeDepth);SAME(semanticTargetScopeDepth);
+    SAME(semanticRegionId);SAME(semanticTargetRegionId);SAME(line);SAME(column);
+    SAME(range.known);SAME(range.startOffset);SAME(range.endOffset);SAME(range.startLine);SAME(range.startColumn);SAME(range.endLine);SAME(range.endColumn);
+    SAME(tokenRange.known);SAME(tokenRange.startOffset);SAME(tokenRange.endOffset);SAME(tokenRange.startLine);SAME(tokenRange.startColumn);SAME(tokenRange.endLine);SAME(tokenRange.endColumn);
+#undef SAME
+    return 1;
+}
+static int replayType(clone_context* c,const XL6_AstNode* in,const XL6_AstNode* owned,size_t depth)
+{
+    if(!in || !owned || depth>512 || in->childCount!=owned->childCount || (in->source && in->source->completionQuery))return 0;
+    XL6_AstNode prepared=*in;
+    prepared.text=prepared.doc=NULL;prepared.literalData=NULL;prepared.source=NULL;
+    prepared.children=NULL;prepared.childCount=prepared.childCapacity=0;prepared.inferredType=prepared.semanticDeclaredType=NULL;
+    prepared.xlsStorage=c->storage;prepared.xlsLeafReferences=0;
+    ++c->treeWork.validatedNodes;
+    if((c->options.transform && !c->options.transform(in,&prepared,c->options.user)) || !noOwnedFields(&prepared) ||
+       prepared.childCount || prepared.childCapacity || !sameTypeScalars(&prepared,owned))return 0;
+    /* A repeated input source uses the very same clone-local memoized target
+     * in the original copier. Never call targetSource/policy a second time. */
+    XL6_AstSource* expected=NULL;
+    if(in->source && !c->options.dropSources){
+        const XL6_AstSource* source=in->source;XL6_AstSource** found=xrtMapGet(&c->sources,(xbytesview){(const unsigned char*)&source,sizeof(source)});
+        if(!found)return 0;
+        expected=*found;
+    }
+    if(owned->source!=expected || !!in->inferredType!=!!owned->inferredType || !!in->semanticDeclaredType!=!!owned->semanticDeclaredType)return 0;
+    for(size_t i=0;i<in->childCount;++i)if(!replayType(c,in->children[i],owned->children[i],depth+1))return 0;
+    if(in->inferredType && !replayType(c,in->inferredType,owned->inferredType,depth+1))return 0;
+    if(in->semanticDeclaredType && !replayType(c,in->semanticDeclaredType,owned->semanticDeclaredType,depth+1))return 0;
+    return 1;
+}
+
 static XL6_AstNode* clone(clone_context* c,const XL6_AstNode* in,size_t depth)
 {
     if(!in || depth>512) return NULL;
+    int treeCandidate=c->treeSharing && depth==1 && in->kind==XL6_AST_TYPE;
+    xbytesview treeKey={(const unsigned char*)&in,sizeof(in)};
+    clone_tree* tree=treeCandidate ? xrtMapGet(&c->trees,treeKey) : NULL;
+    if(tree && tree->node && tree->node->xlsLeafReferences<UINT32_MAX){
+        if(c->projection && tree->begin!=SIZE_MAX){
+            if(!c->projection->replay(c->options.user,tree->begin,tree->count))return NULL;
+            c->treeWork.certifiedNodes+=tree->nodes;
+        }else if(!replayType(c,in,tree->node,depth))return NULL;
+        ++tree->node->xlsLeafReferences;++c->treeWork.hits;return tree->node;
+    }
+    size_t projectionBegin=treeCandidate && c->projection ? c->projection->mark(c->options.user) : SIZE_MAX;
+    uint64_t nodesBefore=c->treeWork.allocatedNodes;
     /* Only direct fact roots are context-independent. A nested class-handle
      * target can receive its parent's identity in the original finalizer,
      * even when that target initially looks like an unannotated bare leaf. */
@@ -104,6 +159,7 @@ static XL6_AstNode* clone(clone_context* c,const XL6_AstNode* in,size_t depth)
         if(!charge(c,sizeof(*in)))return NULL;
         out=xrtCalloc(1,sizeof(*out));if(!out)return NULL;
     }
+    ++c->treeWork.allocatedNodes;
     if(transformedBefore)*out=prepared;
     else{
         *out=*in;out->text=out->doc=NULL;out->literalData=NULL;out->source=NULL;
@@ -142,37 +198,53 @@ static XL6_AstNode* clone(clone_context* c,const XL6_AstNode* in,size_t depth)
             c->leafSharing=0;xrtMapUnit(&c->leaves);c->leaves=(xmap){0};
         }
     }
+    if(treeCandidate && !tree && c->treeWork.entries<256){
+        size_t projectionEnd=c->projection ? c->projection->mark(c->options.user) : SIZE_MAX;
+        clone_tree entry={out,projectionBegin,0,c->treeWork.allocatedNodes-nodesBefore};
+        if(projectionEnd==SIZE_MAX || projectionBegin>projectionEnd)entry.begin=SIZE_MAX;
+        else entry.count=projectionEnd-projectionBegin;
+        if(xrtMapSet(&c->trees,treeKey,&entry)){
+            if(!out->xlsLeafReferences)out->xlsLeafReferences=1;
+            ++c->treeWork.entries;
+        }else{c->treeSharing=0;xrtMapUnit(&c->trees);c->trees=(xmap){0};}
+    }
     return out;
 failed: xl6AstFree(out); return NULL;
 }
 static XL6_AstNode* cloneForest(const XL6_AstNode* input,const xls_ast_clone_options* options,
-    xls_ast_cursor_source_policy policy,void* user,size_t poolBudget,xls_ast_pool_work* work,xls_ast_leaf_work* leaves,size_t* bytes)
+    xls_ast_cursor_source_policy policy,void* user,size_t poolBudget,xls_ast_pool_work* work,xls_ast_leaf_work* leaves,xls_ast_tree_work* trees,const xls_ast_tree_projection* projection,size_t* bytes)
 {
     if(bytes) *bytes=0;
     if(work)*work=(xls_ast_pool_work){0};
     if(leaves)*leaves=(xls_ast_leaf_work){0};
-    clone_context context={.cursorPolicy=policy,.policyUser=user}; if(options) context.options=*options;
+    if(trees)*trees=(xls_ast_tree_work){0};
+    clone_context context={.cursorPolicy=policy,.policyUser=user,.projection=projection}; if(options) context.options=*options;
     if(!input || !xrtMapInit(&context.sources,sizeof(XL6_AstSource*))) return NULL;
     if(leaves && xrtMapInit(&context.leaves,sizeof(XL6_AstNode*)))context.leafSharing=1;
+    if(trees && xrtMapInit(&context.trees,sizeof(clone_tree)))context.treeSharing=1;
     if(poolBudget){
         context.storage=xlsAstStorageCreate(poolBudget);
         if(!context.storage || !charge(&context,xlsAstStorageWork(context.storage).bytes)){
-            xlsAstStorageUnpin(context.storage);xrtMapUnit(&context.sources);xrtMapUnit(&context.leaves);return NULL;
+            xlsAstStorageUnpin(context.storage);xrtMapUnit(&context.sources);xrtMapUnit(&context.leaves);xrtMapUnit(&context.trees);return NULL;
         }
     }
-    XL6_AstNode* root=clone(&context,input,0); xrtMapUnit(&context.sources);xrtMapUnit(&context.leaves);
+    XL6_AstNode* root=clone(&context,input,0); xrtMapUnit(&context.sources);xrtMapUnit(&context.leaves);xrtMapUnit(&context.trees);
     if(root && bytes) *bytes=context.bytes;
     if(root && work)*work=xlsAstStorageWork(context.storage);
     if(root && leaves)*leaves=context.leafWork;
+    if(root && trees)*trees=context.treeWork;
     xlsAstStorageUnpin(context.storage);
     return root;
 }
 XL6_AstNode* xlsAstClonePooled(const XL6_AstNode* input,const xls_ast_clone_options* options,
     xls_ast_cursor_source_policy policy,void* user,size_t poolBudget,xls_ast_pool_work* work,size_t* bytes)
-{return cloneForest(input,options,policy,user,poolBudget,work,NULL,bytes);}
+{return cloneForest(input,options,policy,user,poolBudget,work,NULL,NULL,NULL,bytes);}
 XL6_AstNode* xlsAstCloneFactTypes(const XL6_AstNode* input,const xls_ast_clone_options* options,
     xls_ast_cursor_source_policy policy,void* user,size_t poolBudget,xls_ast_pool_work* work,xls_ast_leaf_work* leaves,size_t* bytes)
-{xls_ast_leaf_work ignored;return cloneForest(input,options,policy,user,poolBudget,work,leaves ? leaves : &ignored,bytes);}
+{xls_ast_leaf_work ignored;return cloneForest(input,options,policy,user,poolBudget,work,leaves ? leaves : &ignored,NULL,NULL,bytes);}
+XL6_AstNode* xlsAstCloneFactTrees(const XL6_AstNode* input,const xls_ast_clone_options* options,
+    const xls_ast_tree_projection* projection,size_t poolBudget,xls_ast_pool_work* work,xls_ast_tree_work* trees,size_t* bytes)
+{xls_ast_leaf_work leaves;xls_ast_tree_work ignored;return cloneForest(input,options,NULL,NULL,poolBudget,work,&leaves,trees ? trees : &ignored,projection,bytes);}
 XL6_AstNode* xlsAstCloneWithCursorSource(const XL6_AstNode* input,const xls_ast_clone_options* options,
     xls_ast_cursor_source_policy policy,void* user,size_t* bytes)
 {return xlsAstClonePooled(input,options,policy,user,0,NULL,bytes);}
