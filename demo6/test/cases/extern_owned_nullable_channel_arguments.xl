@@ -1,0 +1,30 @@
+import concurrent
+extern "owned_task_text" @owned func Text(c_int mode) as string
+func failure() as error
+    try
+        Text(c_int(-1))
+    catch value
+        return value
+    end
+    throw ValueError "expected native failure"
+end
+// Receiver fixes T=error?; present and absent values lift without explicit casts.
+channel<error?> errors=channel::<error?>(1)
+assert (await errors.sendAsyncTimeout(failure(),1000))==channelStatus.ok
+auto first=await errors.recvAsyncTimeout(1000)
+assert first.hasValue and first.value!=null
+assert (await errors.sendAsyncTimeout(null,1000))==channelStatus.ok
+auto second=await errors.recvAsyncTimeout(1000)
+assert second.hasValue and second.value==null
+errors.close()
+channel<string?> texts=channel::<string?>(1)
+assert (await texts.sendAsyncTimeout("native text",1000))==channelStatus.ok
+auto text=await texts.recvAsyncTimeout(1000)
+assert text.hasValue
+string? value=text.value
+assert value!=null
+if value!=null then assert value=="native text" end
+assert (await texts.sendAsyncTimeout(null,1000))==channelStatus.ok
+auto absent=await texts.recvAsyncTimeout(1000)
+assert absent.hasValue and absent.value==null
+texts.close()

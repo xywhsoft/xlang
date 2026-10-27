@@ -15796,6 +15796,10 @@ static int xl6IrLowerUnifyGenericType(
             resolved[index] = actualId;
             return 1;
         }
+        const XL6_IrType* fixed=xl6IrTypeGet(&module->types,resolved[index]);
+        if(!depth && fixed && fixed->kind==XL6_IR_TYPE_NULLABLE && fixed->paramCount==1 &&
+            fixed->params && (fixed->params[0]==actualId ||
+            (actual->name && !strcmp(actual->name,"null")))) return 1;
         return resolved[index] == actualId;
     }
     /* T? has no fixed physical ABI before substitution: e.g. closure? is a

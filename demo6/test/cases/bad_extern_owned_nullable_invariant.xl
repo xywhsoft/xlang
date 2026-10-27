@@ -1,0 +1,6 @@
+func same<T>(array<T> first,array<T> second) as int
+    return first.length+second.length
+end
+array<string?> first=[null]
+array<string> second=["not invariant"]
+same(first,second)
