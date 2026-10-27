@@ -56,6 +56,22 @@ xls_semantic_index* xlsFrontendIndexCreate(const XL6_AstNode* root,
 }
 size_t xlsFrontendIndexBudgetUsed(const xls_semantic_index* index)
 { return index ? index->build.budget : 0; }
+int xlsFrontendIndexFunctionSpan(const xls_semantic_index* index,const XL6_AstNode* root,size_t* first,size_t* count)
+{
+    if(first)*first=0;
+    if(count)*count=0;
+    if(!index || !root || !first || !count)return 0;
+    const XL6_IndexBuild* b=&index->build;
+    for(size_t i=0;i<b->count;++i)if(b->facts[i].node==root){
+        size_t end=i+1;unsigned id=(unsigned)i+1;
+        while(end<b->count && b->facts[end].parent>=id){
+            if(b->facts[end].parent> end)return 0;
+            ++end;
+        }
+        *first=i;*count=end-i;return 1;
+    }
+    return 0;
+}
 size_t xlsSemanticIndexCount(const xls_semantic_index* index)
 { return index ? index->build.count : 0; }
 static xls_index_range xlsFrontendRange(const XL6_SourceReport* report,

@@ -10,4 +10,6 @@ void xlsFrontendIndexDestroy(xls_semantic_index* index);
 /* Conservative owned-array/string data charge, excluding borrowed AST and
  * runtime/allocator overhead. Not a process peak-memory measurement. */
 size_t xlsFrontendIndexBudgetUsed(const xls_semantic_index* index);
+/* Original collector child preorder,with global parent/source IDs intact. */
+int xlsFrontendIndexFunctionSpan(const xls_semantic_index*,const XL6_AstNode*,size_t* first,size_t* count);
 #endif
