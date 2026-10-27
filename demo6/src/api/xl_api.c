@@ -48,7 +48,7 @@
 #include "src/sem/xl6_sem_index.h"
 #include "src/sem/xl6_completion.h"
 #include "src/backend/xl6_toolchain.h"
-#include "src/cgen/xl6_ir_cgen.h"
+#include "src/cgen/xl6_ir_cgen_native_header.h"
 #include "src/common/xl6_common.h"
 #include "src/common/xl6_console.h"
 #include "src/compile/xl6_compile_unit.h"
@@ -1528,7 +1528,7 @@ static int xlCHeaderBinding(void* user, XL6_SymbolId symbol, const char* name,
 }
 
 static int xlEmitUnitHeaderToMemoryMapped(XL_Context* ctx, XL6_CompileUnit* unit,
-    const char* guardName, char** outText, xvalue** outBindings)
+    const char* guardName, char** outText, xvalue** outBindings, int nativeContract)
 {
     XL6_Output out;
     int ok;
@@ -1552,7 +1552,11 @@ static int xlEmitUnitHeaderToMemoryMapped(XL_Context* ctx, XL6_CompileUnit* unit
         *outBindings = NULL;
         bindings.records = xrtValueArray();
     }
-    ok = xl6IrCgenEmitHeaderWithBindings(&out, &unit->ir,
+    ok = nativeContract
+        ? xl6IrCgenEmitNativeContractHeader(&out, &unit->ir,
+            guardName != NULL && guardName[0] != '\0' ? guardName : "XL6_GENERATED_HEADER_H",
+            &unit->parse.diags)
+        : xl6IrCgenEmitHeaderWithBindings(&out, &unit->ir,
             guardName != NULL && guardName[0] != '\0' ? guardName : "XL6_GENERATED_HEADER_H",
             &unit->parse.diags, outBindings != NULL ? xlCHeaderBinding : NULL, &bindings);
     if ( ok && !xl6OutputHasFailed(&out) ) {
@@ -1576,10 +1580,10 @@ static int xlEmitUnitHeaderToMemoryMapped(XL_Context* ctx, XL6_CompileUnit* unit
     return ok && *outText != NULL;
 }
 
-static int xlEmitUnitHeaderToMemory(XL_Context* ctx, XL6_CompileUnit* unit,
+static int xlEmitUnitNativeHeaderToMemory(XL_Context* ctx, XL6_CompileUnit* unit,
     const char* guardName, char** outText)
 {
-    return xlEmitUnitHeaderToMemoryMapped(ctx, unit, guardName, outText, NULL);
+    return xlEmitUnitHeaderToMemoryMapped(ctx, unit, guardName, outText, NULL, 1);
 }
 
 static int xlMountDynamicTccBinary(XL_Context* ctx, const char* virtualPath, const void* data, size_t size)
@@ -1685,7 +1689,7 @@ static int xlCompileUnitCSourceFiles(
         xlSetError(ctx, "too many C source files");
         return 0;
     }
-    if ( !xlEmitUnitHeaderToMemory(ctx, unit, xlNativeCHeaderGuard, &headerText) )
+    if ( !xlEmitUnitNativeHeaderToMemory(ctx, unit, xlNativeCHeaderGuard, &headerText) )
         return 0;
     if ( !xlSaveTempTextByName(ctx, "module.h", headerText) ) goto cleanup;
     for ( group = 0; group < 2; ++group ) {
@@ -5276,7 +5280,7 @@ static int xlcCheckInternal(XLC_Context* ctx, const char* outputPath, int jsonOu
         }
     }
     if (withBridge && success) {
-        success = xlEmitUnitHeaderToMemoryMapped(ctx->runtime, &unit, xlNativeCHeaderGuard, &headerText, &bindings);
+        success = xlEmitUnitHeaderToMemoryMapped(ctx->runtime, &unit, xlNativeCHeaderGuard, &headerText, &bindings, 0);
         if (success && strlen(headerText) > 1024u * 1024u) {
             xlSetError(ctx->runtime, "C bridge declarations exceed the 1 MiB query limit");
             success = 0;

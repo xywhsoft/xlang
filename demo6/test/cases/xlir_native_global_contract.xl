@@ -1,0 +1,12 @@
+extern "native_global_counter" int counter
+extern "native_global_enabled" c_bool enabled
+extern "native_global_size" c_size size
+
+export "xl_native_global_read" func readCounter() as int
+    return counter
+end
+
+assert bool(enabled) and counter == 40 and size == c_size(3)
+counter += 2
+assert counter == 42 and readCounter() == 42
+println("native global contract: exact imported storage and public header isolation passed")
