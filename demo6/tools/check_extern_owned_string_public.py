@@ -92,8 +92,12 @@ def main():
     task_optional_contract = ROOT/'test/cases/xlir_task_optional_contract.c'
     task_reference_contract = ROOT/'test/cases/xlir_task_reference_contract.c'
     error_array_contract = ROOT/'test/cases/xlir_error_array_admission.c'
+    reference_boundary_contract = ROOT/'test/cases/xlir_error_transport_contract.c'
     for path in [source, *native, template, contract, oom_contract, task_scalar_contract, task_composition_contract, task_optional_contract,
             task_reference_contract,error_array_contract,
+            reference_boundary_contract,
+            ROOT/'test/cases/extern_owned_error_safe_index.xl',
+            ROOT/'test/cases/extern_owned_bound_method_defaults.xl',
             ROOT/'test/cases/extern_owned_task_nullable_callbacks.xl',
             ROOT/'test/cases/extern_owned_task_dependent_defaults.xl',
             ROOT/'test/cases/extern_owned_task_error_arrays.xl',
@@ -172,6 +176,7 @@ def main():
     assert '10 mutations rejected' in run('task-optional-contract', [output])
     for name,unit,message in [
             ('task-reference-contract',task_reference_contract,'8 mutations rejected'),
+            ('reference-boundary-contract',reference_boundary_contract,'6 mutations rejected'),
             ('error-array-admission',error_array_contract,'64 OOM prefixes balanced')]:
         output=work/(name+('.exe' if os.name=='nt' else ''))
         response=work/(name+'.rsp')
