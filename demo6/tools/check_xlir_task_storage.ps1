@@ -4,6 +4,7 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [string]$Tcc='E:/software/tcc/tcc.exe')
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
+. (Join-Path $PSScriptRoot 'xlir_resident_closure.ps1')
 $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
 try {
@@ -49,10 +50,10 @@ try {
                 (Get-FileHash -LiteralPath $first).Hash -ne (Get-FileHash -LiteralPath $second).Hash){$deterministic=$false}
         }
     }
-    $includes=@('-I.',"-I$([IO.Path]::GetFullPath((Join-Path $PublicDirectory 'include')))","-I$outputPath")
+    $includes=@('-I.','-Irelease','-Irelease/include',"-I$([IO.Path]::GetFullPath((Join-Path $PublicDirectory 'include')))","-I$outputPath")
     $strict=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
         '-Wno-unused-label','-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-Wno-pointer-sign','-Wno-format-truncation')
-    $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32');$lanes=@();$dlls=@()
+    $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32');$lanes=@();$dlls=@();$runtimeBuilds=@()
     $runtimeMarker='Resident tasks: 200 queued physical graphs, 200 executing refusals, 100 blocked-drop refusals, 100 frozen notification graphs and callback-tail joins across four outcomes, 200 synchronous cancellation self-join refusals, 100 allocation rollbacks, 100 armed-OOM discards, 100 actual DLL lifetimes with after-Close child closures; no native root registration'
     $programs=@(
         @{Name='activation-layout';Sources=@('test/cases/xlir_activation_capture_layout_runtime.c');
@@ -71,19 +72,47 @@ try {
         @{Name='module-pool';Sources=@('test/cases/xlir_module_task_pool_runtime.c','test/cases/xlir_module_task_pool_host.c','src/runtime/xl6_continuation_frame.c','src/runtime/xl6_future_wait.c','src/runtime/xl6_task.c','src/runtime/xl6_task_frame.c','src/runtime/xl6_task_pool.c');
             Pattern='module pool: generated quiescence precedes global cleanup; raising cleanup, retry, reactivation and callback join passed'},
         @{Name='pool-outcome';Sources=@('test/cases/xlir_async_pool_outcome_runtime.c','test/cases/xlir_async_pool_outcome_host.c','test/cases/xlir_task_outcome_whitebox.c','src/runtime/xl6_task_pool.c');
+            Embedder='test/cases/xlir_task_outcome_whitebox.c';EmbeddedSources=@('src/runtime/xl6_task.c','src/runtime/xl6_task_frame.c');
             Pattern='pool outcome runtime: [1-9][0-9]* executions, [1-9][0-9]* reverse cancellations, [1-9][0-9]* pre-submit faults, [1-9][0-9]* balanced allocations'},
         @{Name='callback';Sources=@('test/cases/xlir_callback_boundary_runtime.c','test/cases/xlir_callback_boundary_host.c','src/runtime/xl6_continuation_frame.c','src/runtime/xl6_future_wait.c','src/runtime/xl6_task.c','src/runtime/xl6_task_frame.c','src/runtime/xl6_task_pool.c');
             Pattern='callback boundary runtime: [1-9][0-9]* executions, [1-9][0-9]* pre-callback cancellations, [1-9][0-9]* allocation faults, [1-9][0-9]* balanced allocations'},
         @{Name='future-only';Sources=@('test/cases/xlir_callback_boundary_future_only_runtime.c','test/cases/xlir_callback_boundary_future_only_host.c','src/runtime/xl6_continuation_frame.c','src/runtime/xl6_future_wait.c','src/runtime/xl6_task.c','src/runtime/xl6_task_frame.c','src/runtime/xl6_task_pool.c');Pattern='callback cleanup raising=1 state=[0-9]+ code=77 drops=1 thread_error=0'})
+    $roots=@($residentSources)+@($programs|ForEach-Object {$_.Sources}|Where-Object {$_-like'src/*'})
+    $fixtures=@('xlir_async_pool_launch_allocation','xlir_callback_boundary','xlir_callback_boundary_future_only',
+        'xlir_module_task_pool','xlir_frame_ownership','xlir_generator_ownership','xlir_async_pool_outcome',
+        'xlir_async_launch_allocation','xlir_task_closed_capture','xlir_dynamic_iteration_allocation')
+    $closure=Get-XlirResidentClosure -Root $rootPath -Directory "$outputPath/resident-closure" `
+        -Sources @($roots|Sort-Object -Unique) -NativeProvider 'tools/xrt_single_header_impl.c' `
+        -Fixtures @($fixtures|ForEach-Object {"test/cases/$_.xl"}) -PublicDirectory $PublicDirectory
+    $residentSources=@($closure.Sources)
+    $inputs+=@($closure.Inputs)
     foreach($compiler in @('gcc-O0','gcc-O2','tcc')){
+        $objects=@()
+        if($compiler-ne'tcc'){
+            foreach($source in $residentSources){
+                $object="$outputPath/$compiler-$([IO.Path]::GetFileNameWithoutExtension($source)).o"
+                $code=Invoke-XlirGccToLog ($strict+@("-$($compiler.Substring(4))")+$includes+@('-c',$source,'-o',$object)) "$object.log"
+                $runtimeBuilds+=[pscustomobject]@{Compiler=$compiler;Source=$source;Exit=$code;Object=$object}
+                $objects+=@($object)
+            }
+        }
         $dll="$outputPath/task-$compiler.dll"
-        if($compiler -eq 'tcc'){$dllBuild=Invoke-XlirNativeToLog $Tcc (@('-std=c11','-shared')+$includes+@('test/cases/xlir_task_storage_drop.c','-o',$dll)) "$dll.build.log"}
-        else{$dllBuild=Invoke-XlirNativeToLog gcc ($strict+@("-$($compiler.Substring(4))",'-shared')+$includes+@('test/cases/xlir_task_storage_drop.c','-o',$dll)) "$dll.build.log"}
+        if($compiler -eq 'tcc'){$dllBuild=Invoke-XlirTccToLog $Tcc (@('-std=c11','-shared')+$includes+@('test/cases/xlir_task_storage_drop.c','-o',$dll)) "$dll.build.log"}
+        else{$dllBuild=Invoke-XlirGccToLog ($strict+@("-$($compiler.Substring(4))",'-shared')+$includes+@('test/cases/xlir_task_storage_drop.c','-o',$dll)) "$dll.build.log"}
         $dlls += [pscustomobject]@{Name=$compiler;Build=$dllBuild;Path=$dll}
         foreach($program in $programs){
-            $name="$($program.Name)-$compiler";$binary="$outputPath/$name.exe";$sources=@($program.Sources)+$residentSources
-            if($compiler -eq 'tcc'){$buildExit=Invoke-XlirNativeToLog $Tcc (@('-std=c11')+$includes+$sources+@('tools/xrt_single_header_impl.c','C:/Windows/System32/ucrtbase.dll')+$libs+@('-o',$binary)) "$outputPath/$name.build.log"}
-            else{$buildExit=Invoke-XlirNativeToLog gcc ($strict+@("-$($compiler.Substring(4))")+$includes+$sources+@($runtime[0].Path)+$libs+@('-o',$binary)) "$outputPath/$name.build.log"}
+            $name="$($program.Name)-$compiler";$binary="$outputPath/$name.exe"
+            $sources=@($program.Sources|Where-Object {$_-notlike'src/*'})
+            $provided=if($program.EmbeddedSources){@($program.EmbeddedSources)}else{@()}
+            foreach($source in $provided){
+                if($source-notin$residentSources-or$program.Embedder-notin$sources-or
+                    @(Select-String -LiteralPath $program.Embedder -SimpleMatch ('#include "'+$source+'"')).Count-ne1){throw 'White-box provider no longer embeds the declared source'}
+            }
+            $selectedSources=@($residentSources|Where-Object {$_-notin$provided})
+            $embeddedObjects=@($provided|ForEach-Object {"$outputPath/$compiler-$([IO.Path]::GetFileNameWithoutExtension($_)).o"})
+            $selectedObjects=@($objects|Where-Object {$_-notin$embeddedObjects})
+            if($compiler -eq 'tcc'){$buildExit=Invoke-XlirTccToLog $Tcc (@('-std=c11')+$includes+$sources+$selectedSources+@('tools/xrt_single_header_impl.c','C:/Windows/System32/ucrtbase.dll')+$libs+@('-o',$binary)) "$outputPath/$name.build.log"}
+            else{$buildExit=Invoke-XlirGccToLog ($strict+@("-$($compiler.Substring(4))")+$includes+$sources+$selectedObjects+@($runtime[0].Path)+$libs+@('-o',$binary)) "$outputPath/$name.build.log"}
             $runExit=$null;$complete=$false
             if($buildExit -eq 0){
                 $options=@{FilePath=$binary;WindowStyle='Hidden';PassThru=$true;WorkingDirectory=$rootPath;RedirectStandardOutput="$outputPath/$name.out.log";RedirectStandardError="$outputPath/$name.err.log"}
@@ -100,10 +129,10 @@ $process=Start-Process @options
         }
     }
     $unchanged=@($inputs | Where-Object {(Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256}).Count -eq 0
-    $report=[pscustomobject]@{RecordedAt=(Get-Date).ToString('o');Inputs=$inputs;InputsUnchanged=$unchanged;Emission=$emission;Deterministic=$deterministic;Dlls=$dlls;Lanes=$lanes;
+    $report=[pscustomobject]@{RecordedAt=(Get-Date).ToString('o');Inputs=$inputs;InputsUnchanged=$unchanged;Emission=$emission;Deterministic=$deterministic;Dlls=$dlls;RuntimeBuilds=$runtimeBuilds;Lanes=$lanes;
         RuntimeMarker=$runtimeMarker;TaskOwnership=[pscustomobject]@{RetiredGraphsPerProgram=200;ActivePoolRefusalsPerProgram=200;ParkedGraphsPerResidentProgram=200;ParkedRawNodes=7;ParkedRawEdges=9;ParkedLanguageNodes=9;ParkedLanguageEdges=15;RootDeferralsPerProgram=400;QueuedBusyPerProgram=400;OutcomesPerProgram=200;ClassFinalizersPerProgram=400;ActiveRefusalsPerProgram=150;FinalizerFreezeProbesPerProgram=400};
         Scope='Resident physical task frames and actual owning pool/native edges; exact IR capture trace/destroy vectors and V2 closed task storage. All original module pool/outcome/callback/future-only lifecycle and failure populations retained in GCC O0/O2 and source TCC/UCRT. An active same-pool blocker now correctly refuses whole-graph inspection: retain those 200 active transactions and add 200 complete physically parked queued graphs. The original 200 raw/language Job, outcome and class-finalizer transactions keep real explicit held-reference bundles through quiescence, then verify complete retired graphs, 400 root deferrals, preparation/finalization and shared Plan commit/Finish. No borrowed pool pointer is omitted or fabricated as a leaf. All nine capture kinds, six generated async captures, dynamic iteration allocation and managed iterator cycle populations remain. The 25 direct outcome bridge probes now own real idle pool shells through frame/activity tails. No source-vs-release substitution, native graph root registration, release rebuild, Linux or full CLI/JIT/AOT acceptance claim.'}
     [IO.File]::WriteAllText("$outputPath/results.json",($report | ConvertTo-Json -Depth 7),[Text.UTF8Encoding]::new($false))
     if(!$unchanged -or !$deterministic -or @($emission | Where-Object {$_.Exit -ne 0 -or !$_.Complete}).Count -or
-        @($dlls | Where-Object Build -ne 0).Count -or @($lanes | Where-Object {$_.Build -ne 0 -or $_.Run -ne 0 -or !$_.Complete}).Count){throw 'Task storage batch collected failures'}
+        @($runtimeBuilds | Where-Object Exit -ne 0).Count -or @($dlls | Where-Object Build -ne 0).Count -or @($lanes | Where-Object {$_.Build -ne 0 -or $_.Run -ne 0 -or !$_.Complete}).Count){throw 'Task storage batch collected failures'}
 }finally{Pop-Location}

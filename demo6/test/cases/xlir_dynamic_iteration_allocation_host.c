@@ -4,9 +4,12 @@
 // the real allocator only after the real resident/XRT advance has completed.
 #include "src/runtime/xl6_value_iterator.h"
 const XL6_ValueIteratorRuntimeV2* iteration_projection_iterator_runtime(void);
+XL6_ValueIterator* iteration_projection_collection_create(const struct xvalue*);
 #define xl6ValueIteratorRuntimeV2Get iteration_projection_iterator_runtime
+#define xl6CollectionValueIteratorCreateV1 iteration_projection_collection_create
 #include "xlir_dynamic_iteration_allocation.c"
 #undef xl6ValueIteratorRuntimeV2Get
+#undef xl6CollectionValueIteratorCreateV1
 #include "xlir_dynamic_iteration_allocation.h.bind.h"
 #define XLIR_TEST_LAUNCH_FUTURE
 #define XLIR_TEST_LAUNCH_GENERATOR

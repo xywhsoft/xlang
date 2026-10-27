@@ -129,7 +129,10 @@ int main(int argc, char** argv)
             balanced(&before);
             if (!triggered) break;
         }
-        assert(budget < 128 && faults >= 5);
+        /* Fixed-executor initialization belongs to module init. Enumerate
+         * every launch allocation until the first non-failing prefix instead
+         * of requiring the allocation count of the old lazy executor. */
+        assert(budget < 128 && budget > 0 && faults == budget);
     }
     assert(xrtSemDestroy(entered) && xrtSemDestroy(proceed));
     if (!smoke) {

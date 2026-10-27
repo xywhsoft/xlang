@@ -10,16 +10,35 @@
 #include <string.h>
 extern int callback_boundary_init(void);
 extern void callback_boundary_fini(void);
+extern void callback_boundary_wait_idle(void);
 extern xfuture* callback_boundary_start(unsigned, xfuture*);
 static xatomic32 drops = {0}, calls = {0}, publications = {0};
+static xatomic32 dispatchFaultArmed = {0}, dispatchFaultTriggered = {0};
+static uint64_t dispatchFaultBudget;
+static int dispatchFaultActive;
 static unsigned payloadDrops;
 static unsigned currentKind, currentMode, currentErrors;
 static int raiseDrop, raiseCall, taskMode, blockDrop;
 static xerror *cleanupError, *callError, *inputError, *sentinel;
 static xsem *entered, *proceed;
 static unsigned count(xatomic32* value) { return xrtAtomic32Load(value, XMEMORY_SEQ_CST); }
+void* callback_boundary_dispatch_malloc(size_t bytes)
+{
+    if (xrtAtomic32Exchange(&dispatchFaultArmed, 0, XMEMORY_SEQ_CST)) {
+        assert(!dispatchFaultActive && xrtMemDebugFailAfter(dispatchFaultBudget));
+        dispatchFaultActive = 1;
+    }
+    return xrtMalloc(bytes);
+}
 void callback_boundary_drop(void)
 {
+    /* Capture cleanup always runs on the invoking worker, even if allocation
+     * failed before user code. Clear its TLS fault before publishing the
+     * outcome, so it cannot leak into another job on the fixed executor. */
+    if (dispatchFaultActive) {
+        xrtAtomic32Store(&dispatchFaultTriggered, xrtMemDebugFailTriggered(), XMEMORY_SEQ_CST);
+        xrtMemDebugFailClear(); dispatchFaultActive = 0;
+    }
     xrtAtomic32FetchAdd(&drops, 1, XMEMORY_SEQ_CST);
     if (blockDrop) {
         assert(xrtSemPost(entered));
@@ -76,6 +95,7 @@ static void complete(xpromise* promise, unsigned mode, int64_t* payload)
 }
 static void balanced(const xmemdebugsnapshot* before)
 {
+    callback_boundary_wait_idle();
     xmemdebugsnapshot after; xrtMemDebugSnapshot(&after);
     assert(before->LiveCount == after.LiveCount && before->LiveBytes == after.LiveBytes);
     assert(after.AllocCount - before->AllocCount == after.FreeCount - before->FreeCount);
@@ -139,6 +159,7 @@ int main(int argc, char** argv)
             if (forward) assert(xrtFutureValue(result) == payload);
         }
         alias = xrtFutureRef(result); assert(alias); xrtFutureDestroy(source); xrtFutureDestroy(result);
+        callback_boundary_wait_idle();
         if (mode == 0) assert(payloadDrops == sourceDrops + (forward && expected == XFUTURE_RESOLVED ? 0u : 1u));
         xrtFutureDestroy(alias);
         assert(payloadDrops == sourceDrops + (mode == 0 ? 1u : 0u) && !xrtGetError());
@@ -179,6 +200,7 @@ int main(int argc, char** argv)
         assert(xrtThreadWaitFor(resolver, 15000000) == XWAIT_OK); xrtThreadDestroy(resolver);
         fprintf(stderr, "callback publication barrier cancelled=%u published_during_cleanup=%d\n", mode, early);
         assert(!early);
+        assert(xrtFutureWait(result) == XWAIT_OK);
         assert(xrtFutureState(result) == (mode ? XFUTURE_CANCELLED : XFUTURE_FAILED));
         xrtPromiseDestroy(promise); xrtFutureDestroy(source); xrtFutureDestroy(result);
         blockDrop = 0;
@@ -205,6 +227,7 @@ int main(int argc, char** argv)
         else assert(xrtFutureValue(result) && *(void**)xrtFutureValue(result));
         alias = xrtFutureRef(result); xrtFutureDestroy(source); xrtFutureDestroy(result);
         assert(count(&drops) == expectedDrop); xrtFutureDestroy(alias);
+        callback_boundary_wait_idle();
         assert(count(&drops) == firstDrop + ((errors & 2) ? 1u : 2u) && !xrtGetError());
         if (!smoke) balanced(&before);
         ++executions;
@@ -231,10 +254,14 @@ int main(int argc, char** argv)
         raiseDrop = raiseCall = 0; xrtMemDebugSnapshot(&before);
         promise = xrtPromiseCreate(&source, NULL); assert(promise);
         result = callback_boundary_start(kind ? 4 : 0, source); assert(result);
-        assert(xrtMemDebugFailAfter(mode));
+        dispatchFaultBudget = mode;
+        xrtAtomic32Store(&dispatchFaultTriggered, 0, XMEMORY_SEQ_CST);
+        xrtAtomic32Store(&dispatchFaultArmed, 1, XMEMORY_SEQ_CST);
         assert(xrtPromiseResolve(promise, &placeholder));
-        triggered = xrtMemDebugFailTriggered(); xrtMemDebugFailClear();
-        assert(xrtFutureDone(result) && !xrtGetError());
+        assert(xrtFutureWait(result) == XWAIT_OK && !xrtGetError());
+        callback_boundary_wait_idle();
+        assert(!count(&dispatchFaultArmed) && !dispatchFaultActive);
+        triggered = (int)count(&dispatchFaultTriggered);
         assert(xrtFutureState(result) == (triggered ? XFUTURE_FAILED : XFUTURE_RESOLVED));
         xrtPromiseDestroy(promise); xrtFutureDestroy(source); xrtFutureDestroy(result);
         assert(!xrtGetError()); balanced(&before); faults += triggered ? 1u : 0u;
@@ -260,7 +287,8 @@ int main(int argc, char** argv)
         assert(xrtFutureState(result) == (cancelWins ? XFUTURE_CANCELLED : expectedCode ? XFUTURE_FAILED : XFUTURE_RESOLVED));
         if (!cancelWins && expectedCode) {
             const xerror* error = xrtFutureError(result);
-            assert(error && xrtErrorCause(error) && xrtErrorCode(xrtErrorCause(error)) == expectedCode);
+            assert(error && xrtErrorCause(error) == ((errors & 2) ? callError : cleanupError));
+            assert(xrtErrorCode(xrtErrorCause(error)) == expectedCode);
         } else if (!cancelWins) assert(*(int64_t*)xrtFutureValue(result) == 15);
         xrtFutureDestroy(result); assert(!xrtGetError());
         /* Pool bookkeeping is allowed to outlive the published Future; module

@@ -19,6 +19,21 @@ static int raisingDrop;
 static int failConstructorAfterSubmit;
 static int unloadOk, unloadCode;
 static unsigned faults;
+static int pool_retire_until_settled(void)
+{
+    xdeadline deadline=xrtDeadlineAfter(5000000);
+    for(;;){
+        XL6_ModuleRetireResult result=xl_script_module_retire_step();
+        if(result==XL6_MODULE_RETIRE_READY)return 1;
+        if(result==XL6_MODULE_RETIRE_FAILED)return 0;
+        if(result!=XL6_MODULE_RETIRE_BUSY||xrtGetError()||xrtDeadlineExpired(deadline))
+            fprintf(stderr,"pool retire result=%d initialized=%d error=%d code=%d expired=%d\n",
+                result,xlir_module_initialized,xrtGetError()?(int)xrtErrorKind(xrtGetError()):0,
+                xrtGetError()?xrtErrorCode(xrtGetError()):0,(int)xrtDeadlineExpired(deadline));
+        assert(result==XL6_MODULE_RETIRE_BUSY&&!xrtGetError()&&!xrtDeadlineExpired(deadline));
+        xrtThreadYield();
+    }
+}
 static XL6_TaskOutcome callback_task(xcancel*, void*, XL6_TaskResult*);
 static void final_callback(void*,void*);
 static void callback_drop(void* data,void* user) { (void)data; (void)user; }
@@ -66,9 +81,9 @@ void pool_test_job(int64_t mode)
 {
     assert(pool_owner_count() == 1 && pool_test_read() == 42);
     if (mode == 1) {
-        assert(!xl_script_module_unit_checked() && xrtGetError());
+        assert(xl_script_module_retire_step() == XL6_MODULE_RETIRE_BUSY && !xrtGetError());
         assert(xlir_module_initialized == 2 && pool_owner_count() == 1);
-        xrtClearError(); pool_count_self();
+        pool_count_self();
     }
     if (mode >= 0) pool_sync_block();
     if (mode == 2) {
@@ -80,7 +95,7 @@ void pool_test_job(int64_t mode)
 }
 void pool_run_unload(void)
 {
-    unloadOk = xl_script_module_unit_checked();
+    unloadOk = pool_retire_until_settled();
     unloadCode = xrtGetError() ? xrtErrorCode(xrtGetError()) : 0;
     xrtClearError();
 }
@@ -105,6 +120,7 @@ void pool_initializer_rollback(void)
     failConstructorAfterSubmit = 1;
     assert(!xlir_module_init() && xrtGetError() && xrtErrorCode(xrtGetError()) == 73);
     xrtClearError(); failConstructorAfterSubmit = 0;
+    assert(pool_retire_until_settled()&&!xrtGetError());
     assert(!xlir_module_initialized && !pool_owner_count() && !xlir_async_pool);
     assert(!xlir_async_pool);
 }
@@ -152,7 +168,10 @@ unsigned pool_allocation_faults(void)
         ok = xlir_module_init(); triggered = xrtMemDebugFailTriggered();
         xrtMemDebugFailClear();
         if (triggered) ++faults;
-        if (!ok) { assert(xrtGetError()); xrtClearError(); }
+        if (!ok) {
+            assert(xrtGetError()); xrtClearError();
+            assert(pool_retire_until_settled() && !xrtGetError());
+        }
         if (ok) assert(xl_script_module_unit_checked());
         assert(!xrtGetError() && !xlir_module_initialized && !pool_owner_count());
         assert(!xlir_async_pool);
@@ -166,7 +185,7 @@ unsigned pool_allocation_faults(void)
         triggered = xrtMemDebugFailTriggered(); xrtMemDebugFailClear();
         if (triggered) ++faults;
         xrtClearError();
-        assert(xl_script_module_unit_checked() && !xrtGetError());
+        assert(pool_retire_until_settled() && !xrtGetError());
         assert(!xlir_module_initialized && !pool_owner_count() && !xlir_async_pool);
     }
     return faults;
@@ -191,6 +210,7 @@ unsigned pool_global_construction_fault_probe(void)
             return index;
         }
         assert(!ok && xrtGetError()); xrtClearError();
+        assert(pool_retire_until_settled() && !xrtGetError());
         assert(!xlir_module_initialized && !pool_owner_count() && !xlir_async_pool);
     }
     assert(!"construction fault sweep never reached a successful allocation budget");
