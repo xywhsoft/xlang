@@ -1,5 +1,10 @@
 # blake3
 
+2026-10-27：拥有型 hex 返回值改为 `@owned string?` 直接接管，Windows 严格 C、
+官方向量、分配故障、进度回调、生成原型、C/XLang 范例及其 JIT/AOT 均通过。
+门禁现将包外私有构造器和顶层 hasher 的独立 EXE 也列为最终签收条件；
+当前两项仍被主线缺陷阻断，故整包不能标记为发布级通过。
+
 BLAKE3 普通哈希、原生 keyed hash 和密钥派生。使用随包 portable C 后端，
 复用宿主 XRT/xruntime；不需要额外 BLAKE3 DLL。上游版本、许可证和本地补丁见
 [VENDOR.md](VENDOR.md)。
@@ -153,8 +158,9 @@ Hasher/File 的 NULL 配置使用默认资源限制。流对象用 `xrtBlake3Opt
 薄绑定头 [include/blake3_native.h](include/blake3_native.h) 与生成原型一致：
 hex 返回值借用当前 XRT 临时区，清理或回退后失效，长期保留需复制；原始摘要返回
 拥有型 `xbuffer*`，C 调用方须 `xrtBufferDestroy`。错误来自 `xrtGetError()`，
-新增 `_owned` hex 入口返回独立 XRT 分配，C 调用方须 `xrtFree`；XLang 直接
-接管该分配，不经 `extern as string` 的全文复制。失败时 `_owned` 返回 NULL。
+新增 `_owned` hex 入口返回独立 XRT 分配，C 调用方须 `xrtFree`；XLang 使用
+`@owned string?` 直接接管，不经 `point` 中转。生成代码仍扫描一次文本长度，
+但不复制字符。失败时 `_owned` 返回 NULL。
 不要保存跨后续错误操作的借用错误消息。创建得到的原生对象由对应 destroy 释放。
 核心 `xrtBlake3File` 借用 Reader；C 调用方须检查自有 Reader 的关闭结果。
 XLang 的 `hashFileHex` 自行关闭文件，关闭失败不会返回摘要，并保留先发生的

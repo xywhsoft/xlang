@@ -131,9 +131,9 @@ XBLAKE3_EXPORT const char* xblake3_hash_hex(void* data, size_t size, size_t outl
 { return blake3_hash_hex(0, data, size, NULL, 0, NULL, 0, outlen); }
 XBLAKE3_EXPORT const char* xblake3_hash_str_hex(const char* data, size_t size, size_t outlen)
 { return xblake3_hash_hex((void*)data, size, outlen); }
-XBLAKE3_EXPORT void* xblake3_hash_hex_owned(void* data, size_t size, size_t outlen)
+XBLAKE3_EXPORT char* xblake3_hash_hex_owned(void* data, size_t size, size_t outlen)
 { return blake3_hash_hex_owned(0, data, size, NULL, 0, NULL, 0, outlen); }
-XBLAKE3_EXPORT void* xblake3_hash_str_hex_owned(const char* data, size_t size, size_t outlen)
+XBLAKE3_EXPORT char* xblake3_hash_str_hex_owned(const char* data, size_t size, size_t outlen)
 { return xblake3_hash_hex_owned((void*)data, size, outlen); }
 XBLAKE3_EXPORT const char* xblake3_hash_mac_hex(void* data, size_t size,
     void* key, size_t keylen, size_t outlen)
@@ -141,10 +141,10 @@ XBLAKE3_EXPORT const char* xblake3_hash_mac_hex(void* data, size_t size,
 XBLAKE3_EXPORT const char* xblake3_hash_mac_str_hex(const char* data, size_t size,
     const char* key, size_t keylen, size_t outlen)
 { return xblake3_hash_mac_hex((void*)data, size, (void*)key, keylen, outlen); }
-XBLAKE3_EXPORT void* xblake3_hash_mac_hex_owned(void* data, size_t size,
+XBLAKE3_EXPORT char* xblake3_hash_mac_hex_owned(void* data, size_t size,
     void* key, size_t keylen, size_t outlen)
 { return blake3_hash_hex_owned(1, data, size, key, keylen, NULL, 0, outlen); }
-XBLAKE3_EXPORT void* xblake3_hash_mac_str_hex_owned(const char* data, size_t size,
+XBLAKE3_EXPORT char* xblake3_hash_mac_str_hex_owned(const char* data, size_t size,
     const char* key, size_t keylen, size_t outlen)
 { return xblake3_hash_mac_hex_owned((void*)data, size, (void*)key, keylen, outlen); }
 XBLAKE3_EXPORT const char* xblake3_hash_kdf_hex(void* data, size_t size,
@@ -153,10 +153,10 @@ XBLAKE3_EXPORT const char* xblake3_hash_kdf_hex(void* data, size_t size,
 XBLAKE3_EXPORT const char* xblake3_hash_kdf_str_hex(const char* data, size_t size,
     const char* context, size_t context_len, size_t outlen)
 { return xblake3_hash_kdf_hex((void*)data, size, context, context_len, outlen); }
-XBLAKE3_EXPORT void* xblake3_hash_kdf_hex_owned(void* data, size_t size,
+XBLAKE3_EXPORT char* xblake3_hash_kdf_hex_owned(void* data, size_t size,
     const char* context, size_t context_len, size_t outlen)
 { return blake3_hash_hex_owned(2, data, size, NULL, 0, context, context_len, outlen); }
-XBLAKE3_EXPORT void* xblake3_hash_kdf_str_hex_owned(const char* data, size_t size,
+XBLAKE3_EXPORT char* xblake3_hash_kdf_str_hex_owned(const char* data, size_t size,
     const char* context, size_t context_len, size_t outlen)
 { return xblake3_hash_kdf_hex_owned((void*)data, size, context, context_len, outlen); }
 
@@ -225,7 +225,7 @@ XBLAKE3_EXPORT const char* xblake3_file_hex(const char* path, unsigned long long
     size_t outlen, xvalue* callback)
 { return blake3_file_hex(path, maximum, outlen, callback, false); }
 
-XBLAKE3_EXPORT void* xblake3_file_hex_owned(const char* path, unsigned long long maximum,
+XBLAKE3_EXPORT char* xblake3_file_hex_owned(const char* path, unsigned long long maximum,
     size_t outlen, xvalue* callback)
 {
     const char* text = blake3_file_hex(path, maximum, outlen, callback, true);
@@ -289,7 +289,7 @@ XBLAKE3_EXPORT const char* xblake3_hasher_digest_hex(void* handle, size_t outlen
     if (text == NULL || !xrtBlake3HasherDigest(handle, digest, outlen)) return "";
     return blake3_hex_finish(digest, outlen, text);
 }
-XBLAKE3_EXPORT void* xblake3_hasher_digest_hex_owned(void* handle, size_t outlen)
+XBLAKE3_EXPORT char* xblake3_hasher_digest_hex_owned(void* handle, size_t outlen)
 {
     uint8* digest;
     xrtClearError();
