@@ -1,5 +1,11 @@
 # money
 
+2026-10-27：`xm_format` 明确返回 XRT 分配的 `char*`，XLang 声明为
+`@owned string?`，由生成代码直接接管指针，不再经过 `point` 和
+`takeCstr` 包装。新增独立的 JIT/AOT 与生成代码检查；接管时仍需
+计算字符串长度，不宣称整个格式化调用零开销。完整门禁仍受下述
+`money.split` 数组相等性主线问题阻断。
+
 2026-10-26 重建 Windows/Linux 发布版后，原生 C、语言主用例与
 错误分类继续通过；最小复现 `dev/extlib_blockers/money_split_array_equality.xl`
 在两平台均显示普通/类型化数组同内容相等，而 `money.split` 返回的

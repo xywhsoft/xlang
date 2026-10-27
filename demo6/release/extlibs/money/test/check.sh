@@ -33,6 +33,14 @@ if [[ ! -x "$xl" ]]; then
     printf 'money Linux gate: release/xl is required\n' >&2
     exit 1
 fi
+owned_source=release/extlibs/money/test/owned_format.xl
+timeout 90s "$xl" run "$owned_source"
+timeout 90s "$xl" cgen "$owned_source" --emit "$work/owned_format.c"
+grep -Eq 'extern char\* xm_format\(' "$work/owned_format.c"
+grep -Eq 'v[0-9]+\.Data[[:space:]]*=[[:space:]]*xm_format[[:space:]]*\(' "$work/owned_format.c"
+timeout 90s "$xl" build "$owned_source" -o "$work/owned_format"
+timeout 30s "$work/owned_format"
+printf 'money owned format JIT/AOT: PASS\n'
 timeout 90s "$xl" run test/cases/extlib_money.xl
 timeout 90s "$xl" run test/cases/extlib_money_boundaries.xl
 timeout 90s "$xl" run release/extlibs/money/test/error_kinds.xl

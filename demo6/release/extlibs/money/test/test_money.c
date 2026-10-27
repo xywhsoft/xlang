@@ -101,10 +101,10 @@ static int test_scale_reference(void) { return 0; }
 #endif
 
 static int test_format_and_split(void) {
-    void *first = xm_format(123456, "usd", 3);
-    void *second = xm_format(INT64_MIN, "USD", 3);
-    void *unknown = xm_format(123, "xyz", 3);
-    void *rubles = xm_format(123, "RUB", 3);
+    char *first = xm_format(123456, "usd", 3);
+    char *second = xm_format(INT64_MIN, "USD", 3);
+    char *unknown = xm_format(123, "xyz", 3);
+    char *rubles = xm_format(123, "RUB", 3);
     xvalue *parts;
     int64_t amount, sum = 0;
     int i;
@@ -188,7 +188,7 @@ static int test_split_reference(void) {
 }
 
 static int test_allocation_errors(void) {
-    void *formatted;
+    char *formatted;
     xvalue *parts;
     unsigned failure, splitFailures = 0;
     xrtClearError();
@@ -225,7 +225,7 @@ static int test_allocation_errors(void) {
 static int test_error_recovery(void) {
     int64_t result = 0;
     xvalue *parts;
-    void *formatted;
+    char *formatted;
     CHECK(!xm_add_checked(INT64_MAX, 1, &result) && xrtGetError() != NULL);
     CHECK(xm_add_checked(1, 2, &result) && result == 3 && xrtGetError() == NULL);
     CHECK(!xm_scale_checked(1, 1, 0, &result) && xrtGetError() != NULL);

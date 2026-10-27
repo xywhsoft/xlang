@@ -80,7 +80,7 @@ int64_t xm_exponent(const char *code, size_t length) {
     return currency != NULL ? currency->exponent : 2;
 }
 
-void *xm_format(int64_t amount, const char *code, size_t length) {
+char *xm_format(int64_t amount, const char *code, size_t length) {
     char upper[4], text[64], digits[32];
     const XmCurrency *currency;
     const char *prefix;

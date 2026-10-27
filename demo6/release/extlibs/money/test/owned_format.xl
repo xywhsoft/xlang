@@ -1,0 +1,19 @@
+import money
+
+func main(...) as int
+    string first = money.format(123456, "usd")
+    string second = money.format(123, "RUB")
+    assert first == "$1,234.56"
+    assert second == "₽1.23"
+    assert money.format(1, "JPY") == "¥1"
+    assert first == "$1,234.56"
+
+    bool invalid = false
+    try
+        money.format(1, "US\0D")
+    catch ValueError e
+        invalid = true
+    end
+    assert invalid
+    return 0
+end

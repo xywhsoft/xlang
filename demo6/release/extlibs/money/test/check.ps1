@@ -15,6 +15,26 @@ try {
     & $runner -Package money -Source release/extlibs/money/test/test_money.c
     if ($LASTEXITCODE -ne 0) { throw 'money C arithmetic boundaries failed' }
 
+    $ownedSource = 'release/extlibs/money/test/owned_format.xl'
+    & $xl run $ownedSource
+    if ($LASTEXITCODE -ne 0) { throw 'money owned format JIT failed' }
+    $ownedC = Join-Path $work 'owned_format.c'
+    & $xl cgen $ownedSource --emit $ownedC
+    if ($LASTEXITCODE -ne 0) { throw 'money owned format cgen failed' }
+    $generated = Get-Content -LiteralPath $ownedC -Raw
+    if ($generated -cnotmatch 'extern char\* xm_format\(' -or
+        $generated -cnotmatch '\bv\d+\.Data\s*=\s*xm_format\s*\(') {
+        throw 'money owned format did not directly adopt the native return'
+    }
+    if (-not $SkipAot) {
+        $ownedExe = Join-Path $work 'owned_format.exe'
+        & $xl build $ownedSource -o $ownedExe
+        if ($LASTEXITCODE -ne 0) { throw 'money owned format AOT build failed' }
+        & $ownedExe
+        if ($LASTEXITCODE -ne 0) { throw 'money owned format AOT execution failed' }
+    }
+    Write-Host '[money] owned format: PASS'
+
     foreach ($source in @(
         'test/cases/extlib_money.xl',
         'test/cases/extlib_money_boundaries.xl',

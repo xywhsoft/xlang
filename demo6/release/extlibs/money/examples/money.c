@@ -5,7 +5,7 @@
 #include <string.h>
 
 static int print_amount(const char *label, int64_t amount) {
-    char *text = (char *)xm_format(amount, "USD", 3);
+    char *text = xm_format(amount, "USD", 3);
     if (text == NULL) return 0;
     printf("%s%s\n", label, text);
     xrtFree(text);
@@ -54,7 +54,7 @@ int main(void) {
             xrtValueRelease(parts);
             return 1;
         }
-        text = (char *)xm_format(amount, "USD", 3);
+        text = xm_format(amount, "USD", 3);
         if (text == NULL) {
             xrtValueRelease(parts);
             return 1;
@@ -67,7 +67,7 @@ int main(void) {
     for (i = 0; i < sizeof(currencies) / sizeof(currencies[0]); ++i) {
         const char *code = currencies[i];
         const char *symbol = xm_symbol(code, strlen(code));
-        char *text = (char *)xm_format(123456, code, strlen(code));
+        char *text = xm_format(123456, code, strlen(code));
         if (text == NULL) return 1;
         printf("%s %s %s\n", code, symbol, text);
         xrtFree(text);

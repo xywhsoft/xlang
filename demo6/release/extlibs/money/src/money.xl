@@ -1,4 +1,4 @@
-extern "xm_format" func __m_format(int amount, string currency, c_size length) as point
+extern "xm_format" @owned func __m_format(int amount, string currency, c_size length) as string?
 extern "xm_symbol" func __m_symbol(string currency, c_size length) as string
 extern "xm_exponent" func __m_exponent(string currency, c_size length) as int
 extern "xm_add" func __m_add(int a, int b) as var
@@ -18,9 +18,9 @@ export func format(int amount, string currency) as string
     if __m_exponent(currency, length) < 0 then
         throw ValueError "money: currency must contain three ASCII letters"
     end
-    point result = __m_format(amount, currency, length)
+    string? result = __m_format(amount, currency, length)
     if result == null then throw MemoryError "money: cannot format amount" end
-    return __xl_runtime.takeCstr(result)
+    return result
 end
 
 // symbol 返回货币符号（如 USD → $）；未知货币返回空字符串

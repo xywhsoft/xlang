@@ -18,7 +18,7 @@ int xm_scale_checked(int64_t amount, int64_t numerator, int64_t denominator, int
 int xm_rate_checked(int64_t amount, double rate, int64_t *out);
 
 /* format 返回 XRT 拥有的字符串；调用方用 xrtFree 释放。symbol 为借用指针。 */
-void *xm_format(int64_t amount, const char *code, size_t length);
+char *xm_format(int64_t amount, const char *code, size_t length);
 const char *xm_symbol(const char *code, size_t length);
 int64_t xm_exponent(const char *code, size_t length);
 
