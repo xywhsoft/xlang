@@ -1,5 +1,12 @@
 # barcode
 
+2026-10-28 独立扫码验证：包内 `test/check_decode.py` 从公开的
+`xb_ascii` 读取 95 个模块，用 ZXing-C++ 3.1.1 读回 EAN-13 与
+UPC-A 的短码和完整码，分别核对自动生成及已有的校验位。该项需
+测试环境安装 Python `numpy` 和 `zxing-cpp`，不进入发布包运行依赖；
+普通包门禁仍不以测试工具是否安装来决定结果。
+UPC-A 的扫码结果允许识别器返回原始 12 位码或加前导零的 13 位 EAN 码。
+
 2026-10-27 字符串接管收口：SVG 与 ASCII 的四个公开入口由
 `@owned string?` 直接接管 XRT 分配的 `char*`，不再经 `point`/
 `takeCstr` 转发。NULL 仍走失败路径，包内恢复测试分别确认四个
@@ -71,6 +78,7 @@ Linux 联合门禁通过 C ASan/UBSan、XLang JIT 和双语固定输出。
 从 `demo6` 目录运行：
 
 ```powershell
+python release\extlibs\barcode\test\check_decode.py  # 需 numpy 和 zxing-cpp
 python release\extlibs\barcode\test\check.py
 python release\extlibs\barcode\test\check.py --skip-aot
 .\release\xl.exe run test\cases\extlib_barcode.xl
