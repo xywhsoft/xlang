@@ -1,5 +1,10 @@
 # op
 
+2026-10-27：公开调用层的文本结果统一声明为 XRT 分配的 `char *`；
+XLang extern 使用 `@owned ... as string?` 直接接管内存，空指针仍映射为空字符串。
+C 调用方继续以 `xrtFree` 释放结果。本轮只验证包级调用与所有权，
+不扩大设备、驱动和 hook 的测试范围。
+
 2026-10-24：更新后的 Windows 发布版执行默认 `test/check.ps1`，
 包装层严格 C ABI、C/XLang 只读调用、错误参数、随机数与等待边界、
 双语范例同输出以及核心/公开范例 AOT 均通过。旧的带输出 AOT
@@ -32,8 +37,8 @@ XLang 公开接口把字符串交给零结尾 C 参数前统一拒绝内嵌 NUL�
 窗口模式、标题、文件路径、颜色条件或文本只按有效前缀执行；C 调用方
 仍需自行保证传入正常的零结尾字符串。包内 `test/nul_arguments.xl`
 用自建窗口夹具验证拒绝发生在绑定和查找之前。
-`xop_create` 返回的句柄由 `xop_destroy` 释放。C 头中已改为 `void *` 的文本
-结果由 XRT 独立分配，C 调用方用 `xrtFree` 释放，XLang 由 `takeCstr` 接管；
+`xop_create` 返回的句柄由 `xop_destroy` 释放。C 头中声明为 `char *` 的文本
+结果由 XRT 独立分配，C 调用方用 `xrtFree` 释放，XLang 由 `@owned` 直接接管；
 窗口标题/坐标/枚举、进程/模块列表、屏幕尺寸、剪贴板读取，
 以及 `Op` 的颜色/图片搜索、帧信息、图片哈希和 `captureToMem` 已走这条路径。
 `getColors`、`findColorEx`、`findPicEx`、`captureToMem` 不再以 64 KiB 缓冲区

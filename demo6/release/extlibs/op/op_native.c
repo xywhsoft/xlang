@@ -1067,7 +1067,7 @@ static void *op_coordinate_text(int x, int y) {
     return xrtStrDup(result);
 }
 
-void *xop_get_color(void *ptr, long long x, long long y) {
+char *xop_get_color(void *ptr, long long x, long long y) {
     op_context *ctx = (op_context *)ptr;
     char result[8];
     if (!ctx) { opSetError("op: null context"); return NULL; }
@@ -1084,7 +1084,7 @@ void *xop_get_color(void *ptr, long long x, long long y) {
     return xrtStrDup(result);
 }
 
-void *xop_get_colors(void *ptr, long long x1, long long y1,
+char *xop_get_colors(void *ptr, long long x1, long long y1,
                      long long x2, long long y2) {
     op_context *ctx = (op_context *)ptr;
     int sx1, sy1, sx2, sy2;
@@ -1120,7 +1120,7 @@ void *xop_get_colors(void *ptr, long long x1, long long y1,
         }
     }
     if (!xrtBufferAppendByte(&result, 0)) { xrtBufferUnit(&result); return NULL; }
-    return xrtBufferTake(&result, NULL, NULL);
+    return (char *)xrtBufferTake(&result, NULL, NULL);
 }
 
 static int op_save_bmp(const char *path, BYTE *buf, int w, int h) {
@@ -1190,7 +1190,7 @@ long long xop_capture(void *ptr, long long x1, long long y1,
     return ok;
 }
 
-void *xop_get_frame_info(void *ptr) {
+char *xop_get_frame_info(void *ptr) {
     op_context *ctx = (op_context *)ptr;
     char result[64];
     if (!ctx) { opSetError("op: null context"); return NULL; }
@@ -1293,7 +1293,7 @@ static int op_match_any(BYTE pr, BYTE pg, BYTE pb, op_color_t *colors, int count
 /* FindColor                                                           */
 /* ------------------------------------------------------------------ */
 
-void *xop_find_color(void *ptr, long long x1, long long y1,
+char *xop_find_color(void *ptr, long long x1, long long y1,
                       long long x2, long long y2,
                       const char *color, double sim, long long dir) {
     op_context *ctx = (op_context *)ptr;
@@ -1332,7 +1332,7 @@ void *xop_find_color(void *ptr, long long x1, long long y1,
     return xrtStrDup("");
 }
 
-void *xop_find_color_ex(void *ptr, long long x1, long long y1,
+char *xop_find_color_ex(void *ptr, long long x1, long long y1,
                         long long x2, long long y2,
                         const char *color, double sim, long long dir) {
     op_context *ctx = (op_context *)ptr;
@@ -1383,7 +1383,7 @@ void *xop_find_color_ex(void *ptr, long long x1, long long y1,
         if (yy == y_end) break;
     }
     if (!xrtBufferAppendByte(&result, 0)) { xrtBufferUnit(&result); return NULL; }
-    return xrtBufferTake(&result, NULL, NULL);
+    return (char *)xrtBufferTake(&result, NULL, NULL);
 }
 
 /* ------------------------------------------------------------------ */
@@ -1432,7 +1432,7 @@ static int op_parse_offsets(const char *s, op_offset_point_t *pts, int max) {
     return count;
 }
 
-void *xop_find_multi_color(void *ptr, long long x1, long long y1,
+char *xop_find_multi_color(void *ptr, long long x1, long long y1,
                             long long x2, long long y2,
                             const char *first_color, const char *offset_color,
                             double sim, long long dir) {
@@ -1594,7 +1594,7 @@ static int op_match_at(BYTE *screen, int sw, int sx, int sy,
     return (double)matched / (double)total >= sim;
 }
 
-void *xop_find_pic(void *ptr, long long x1, long long y1,
+char *xop_find_pic(void *ptr, long long x1, long long y1,
                     long long x2, long long y2,
                     const char *pic_file, const char *delta_color,
                     double sim, long long dir) {
@@ -1649,7 +1649,7 @@ void *xop_find_pic(void *ptr, long long x1, long long y1,
     return xrtStrDup("");
 }
 
-void *xop_find_pic_ex(void *ptr, long long x1, long long y1,
+char *xop_find_pic_ex(void *ptr, long long x1, long long y1,
                        long long x2, long long y2,
                        const char *pic_file, const char *delta_color,
                        double sim, long long dir) {
@@ -1714,7 +1714,7 @@ void *xop_find_pic_ex(void *ptr, long long x1, long long y1,
     }
     free(tmpl.data);
     if (!xrtBufferAppendByte(&result, 0)) { xrtBufferUnit(&result); return NULL; }
-    return xrtBufferTake(&result, NULL, NULL);
+    return (char *)xrtBufferTake(&result, NULL, NULL);
 }
 
 /* ------------------------------------------------------------------ */
@@ -2099,7 +2099,7 @@ static BOOL CALLBACK op_enum_proc(HWND hwnd, LPARAM lParam) {
     return TRUE;
 }
 
-void *xop_enum_window(long long parent, const char *title,
+char *xop_enum_window(long long parent, const char *title,
                       const char *class_name, long long filter) {
     op_enum_ctx_t ec;
     memset(&ec, 0, sizeof(ec));
@@ -2125,7 +2125,7 @@ void *xop_enum_window(long long parent, const char *title,
     return xrtStrDup(ec.result);
 }
 
-void *xop_enum_window_by_process(const char *process, const char *title,
+char *xop_enum_window_by_process(const char *process, const char *title,
                                  const char *class_name, long long filter) {
     op_enum_ctx_t ec;
 
@@ -2155,7 +2155,7 @@ void *xop_enum_window_by_process(const char *process, const char *title,
     return xrtStrDup(ec.result);
 }
 
-void *xop_get_screen_size(void) {
+char *xop_get_screen_size(void) {
     int w = GetSystemMetrics(SM_CXSCREEN);
     int h = GetSystemMetrics(SM_CYSCREEN);
     char result[64];
@@ -2163,7 +2163,7 @@ void *xop_get_screen_size(void) {
     return xrtStrDup(result);
 }
 
-void *xop_get_cursor_pos(void) {
+char *xop_get_cursor_pos(void) {
     POINT pt;
     char result[64];
     GetCursorPos(&pt);
@@ -2175,7 +2175,7 @@ void *xop_get_cursor_pos(void) {
 /* Window management (module-level)                                    */
 /* ------------------------------------------------------------------ */
 
-void *xop_get_window_rect(long long hwnd) {
+char *xop_get_window_rect(long long hwnd) {
     RECT rc;
     char result[64];
     if (!GetWindowRect((HWND)(intptr_t)hwnd, &rc)) return xrtStrDup("0,0,0,0");
@@ -2199,7 +2199,7 @@ long long xop_set_window_size(long long hwnd, long long w, long long ht) {
     return MoveWindow(hw, rc.left, rc.top, (int)w, (int)ht, TRUE);
 }
 
-void *xop_get_window_title(long long hwnd) {
+char *xop_get_window_title(long long hwnd) {
     HWND h = (HWND)(intptr_t)hwnd;
     int units;
     uint16 *wide;
@@ -2268,7 +2268,7 @@ long long xop_send_string(long long hwnd, const char *str) {
     return 1;
 }
 
-void *xop_client_to_screen(long long hwnd, long long x, long long y) {
+char *xop_client_to_screen(long long hwnd, long long x, long long y) {
     POINT pt = {(LONG)x, (LONG)y};
     char result[64];
     ClientToScreen((HWND)(intptr_t)hwnd, &pt);
@@ -2276,7 +2276,7 @@ void *xop_client_to_screen(long long hwnd, long long x, long long y) {
     return xrtStrDup(result);
 }
 
-void *xop_screen_to_client(long long hwnd, long long x, long long y) {
+char *xop_screen_to_client(long long hwnd, long long x, long long y) {
     POINT pt = {(LONG)x, (LONG)y};
     char result[64];
     ScreenToClient((HWND)(intptr_t)hwnd, &pt);
@@ -2288,7 +2288,7 @@ void *xop_screen_to_client(long long hwnd, long long x, long long y) {
 /* FindColorBlock & GetColorNum                                        */
 /* ------------------------------------------------------------------ */
 
-void *xop_find_color_block(void *ptr, long long x1, long long y1,
+char *xop_find_color_block(void *ptr, long long x1, long long y1,
                             long long x2, long long y2,
                             const char *color, double sim,
                             long long width, long long height) {
@@ -2367,7 +2367,7 @@ long long xop_get_color_num(void *ptr, long long x1, long long y1,
 /* Returns: "index,x,y" or "" if not found                             */
 /* ------------------------------------------------------------------ */
 
-void *xop_find_pic_n(void *ptr, long long x1, long long y1,
+char *xop_find_pic_n(void *ptr, long long x1, long long y1,
                       long long x2, long long y2,
                       const char *pic_files, const char *delta_color,
                       double sim, long long dir) {
@@ -2434,7 +2434,7 @@ void *xop_find_pic_n(void *ptr, long long x1, long long y1,
 /* CaptureToMem - returns hex string of BGRA pixels                    */
 /* ------------------------------------------------------------------ */
 
-void *xop_capture_to_mem(void *ptr, long long x1, long long y1,
+char *xop_capture_to_mem(void *ptr, long long x1, long long y1,
                          long long x2, long long y2) {
     op_context *ctx = (op_context *)ptr;
     int sx1, sy1, sx2, sy2, w, h, head, x, y, k;
@@ -2518,7 +2518,7 @@ double xop_image_compare(void *ptr, long long x1, long long y1,
     return (double)matched / (double)total;
 }
 
-void *xop_image_hash(void *ptr, long long x1, long long y1,
+char *xop_image_hash(void *ptr, long long x1, long long y1,
                      long long x2, long long y2) {
     op_context *ctx = (op_context *)ptr;
     char result[32];
@@ -2760,7 +2760,7 @@ double xop_read_float(long long pid, long long addr) {
     return (double)val;
 }
 
-void *xop_read_string(long long pid, long long addr, long long len) {
+char *xop_read_string(long long pid, long long addr, long long len) {
     HANDLE h;
     char *result;
     SIZE_T rd = 0;
@@ -2849,7 +2849,7 @@ static int op_memory_readable(const MEMORY_BASIC_INFORMATION *info) {
            access == PAGE_EXECUTE_READWRITE || access == PAGE_EXECUTE_WRITECOPY;
 }
 
-void *xop_find_memory(long long pid, long long start_addr,
+char *xop_find_memory(long long pid, long long start_addr,
                       long long end_addr, const char *pattern) {
     unsigned char pat[256], mask[256], chunk[4096 + 255];
     const char *p = pattern;
@@ -2945,7 +2945,7 @@ void *xop_find_memory(long long pid, long long start_addr,
 /* Process enumeration (module-level)                                  */
 /* ------------------------------------------------------------------ */
 
-void *xop_enum_process(const char *filter) {
+char *xop_enum_process(const char *filter) {
     uint16 *wide_filter = (filter && *filter) ? xrtUtf8To16(filter, NULL) : NULL;
     int failed = 0;
     op_process_entry32w pe;
@@ -2995,10 +2995,10 @@ void *xop_enum_process(const char *filter) {
     xrtFree(wide_filter);
     if (!failed && !xrtBufferAppendByte(&result, 0)) failed = 1;
     if (failed) { xrtBufferUnit(&result); return NULL; }
-    return xrtBufferTake(&result, NULL, NULL);
+    return (char *)xrtBufferTake(&result, NULL, NULL);
 }
 
-void *xop_get_process_modules(long long pid) {
+char *xop_get_process_modules(long long pid) {
     op_module_entry32w me;
     HANDLE snap;
     int failed = 0;
@@ -3040,7 +3040,7 @@ void *xop_get_process_modules(long long pid) {
     CloseHandle(snap);
     if (!failed && !xrtBufferAppendByte(&result, 0)) failed = 1;
     if (failed) { xrtBufferUnit(&result); return NULL; }
-    return xrtBufferTake(&result, NULL, NULL);
+    return (char *)xrtBufferTake(&result, NULL, NULL);
 }
 
 /* ------------------------------------------------------------------ */
@@ -3118,7 +3118,7 @@ long long xop_set_clipboard(const char *text) {
     return ok;
 }
 
-void *xop_get_clipboard(void) {
+char *xop_get_clipboard(void) {
     HGLOBAL block;
     const uint16 *wide;
     size_t units;
