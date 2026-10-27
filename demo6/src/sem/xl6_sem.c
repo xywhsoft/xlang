@@ -3777,6 +3777,21 @@ static int xl6SemInferGenericTypeFromTypes(
     return 1;
 }
 
+/* The receiver/container first fixes T. A later value argument may then
+ * use the ordinary nullable lift, without relaxing invariant container slots. */
+static int xl6SemInferGenericValueArgument(
+    XL6_SemContext* ctx,const XL6_AstNode* typeParams,XL6_AstNode** inferred,
+    const XL6_AstNode* parameter,const XL6_AstNode* value)
+{
+    const XL6_AstNode* resolved=xl6SemResolveAliasType(ctx,parameter);
+    int index=resolved && !resolved->childCount ? xl6SemTypeParamIndexIn(typeParams,resolved->text) : -1;
+    const XL6_AstNode* inner=index>=0 ? xl6SemNullableInnerType(inferred[index]) : NULL;
+    const XL6_AstNode* actual=xl6SemResolveAliasType(ctx,value);
+    if(inner && (xl6SemTypeEquals(ctx,value,inner) ||
+        (actual && xl6TextEquals(actual->text,"null")))) return 1;
+    return xl6SemInferGenericTypeFromTypes(ctx,typeParams,inferred,parameter,value);
+}
+
 static int xl6SemContainerLiteralMatchesType(
     XL6_SemContext* ctx,
     const XL6_AstNode* expr,
@@ -4079,7 +4094,7 @@ static int xl6SemInferGenericFromExprShape(
     if ( exprType == NULL ) {
         return 0;
     }
-    containerShape = xl6SemInferGenericTypeFromTypes(
+    containerShape = xl6SemInferGenericValueArgument(
         ctx, typeParams, inferredTypes, paramType, exprType);
     xl6AstFree(exprType);
     return containerShape;
@@ -4660,7 +4675,7 @@ static int xl6SemDiagnoseGenericCallArgMismatch(XL6_SemContext* ctx, XL6_AstNode
         if ( exprType == NULL ) {
             continue;
         }
-        if ( !xl6SemInferGenericTypeFromTypes(ctx, typeParams, inferredTypes, paramType, exprType) ) {
+        if ( !xl6SemInferGenericValueArgument(ctx, typeParams, inferredTypes, paramType, exprType) ) {
             paramResolved = xl6SemResolveAliasType(ctx, paramType);
             typeParamIndex = paramResolved != NULL && paramResolved->childCount == 0 ?
                              xl6SemTypeParamIndexIn(typeParams, paramResolved->text) : -1;
@@ -7095,7 +7110,7 @@ static XL6_AstNode* xl6SemInferCallTypeArgs(
         }
         exprType = xl6SemInferAutoTypeNode(ctx, argExpr);
         if ( exprType == NULL ||
-             !xl6SemInferGenericTypeFromTypes(ctx, typeParams, inferred, paramType, exprType) ) {
+             !xl6SemInferGenericValueArgument(ctx, typeParams, inferred, paramType, exprType) ) {
             xl6AstFree(exprType);
             goto fail;
         }
