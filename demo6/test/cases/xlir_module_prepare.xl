@@ -1,6 +1,13 @@
 extern "future_escape_capture" func capture(var value)
 extern "future_escape_dropped" func dropped(int id)
 string moduleText = "future" + " alive"
+// Preparation tests exercise the blocking task pool as well as the separate
+// ready-entry executor. An async function alone no longer creates that pool.
+func preparationPoolProbe() as int
+    return 19
+end
+future<int> preparationPoolResult = task.spawn(preparationPoolProbe)
+int preparationPoolValue = await preparationPoolResult
 class Marker
     int id = 0
     create(int id)
@@ -27,7 +34,7 @@ func() as int checkedCallback = await internalClosure
 future<Marker> checkedInner = await internalNested
 Marker checkedThird = await checkedInner
 export "future_prepare_settle" func settle() as int
-    assert checkedFirst.id == 7 and checkedCallback() == 8 and checkedThird.id == 9
+    assert preparationPoolValue == 19 and checkedFirst.id == 7 and checkedCallback() == 8 and checkedThird.id == 9
     return 1
 end
 export "future_escape_run" func runEscape(int mode) as int

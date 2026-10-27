@@ -31,7 +31,7 @@ try {
     }
     foreach($ext in @('c','h','json')){if((Get-FileHash "$prefix.generated.$ext").Hash -ne (Get-FileHash "$prefix.repeat.$ext").Hash){throw 'Nondeterministic module preparation emission'}}
     $flags=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
-        '-Wno-pointer-sign','-Wno-format-truncation','-Wno-missing-field-initializers',"-I$outputPath",'-I.','-Irelease','-Irelease/include','-Ilib/tcc',
+        '-Wno-pointer-sign','-Wno-format-truncation','-Wno-missing-field-initializers',"-I$outputPath",'-I.','-Irelease','-Irelease/include','-Ilib/tcc','-Itest/cases',
         '-DJOINT_SOURCE_XRT','-DXL_ENABLE_EXE_COMPILER=1',(New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $outputPath.Replace('\','/') -RawArgument))
     $excluded=@('xl_api.o','xl_api_path.o','xl6_console.o','xlir_public_source_driver.o')
     $dependencies=@($build.Objects | Where-Object {[IO.Path]::GetFileName($_.Path) -notin $excluded} | ForEach-Object Path)
@@ -41,6 +41,8 @@ try {
         foreach($version in @(2,3)){
         $laneName=if($version-eq2){"tcc-host-$level"}else{"tcc-owned-host-$level"}
         $versionFlags=@();if($version-eq2){$versionFlags=@('-DMODULE_PREPARE_LEGACY_V2')}
+        $artifactSource=if($version-eq2){'test/cases/xlir_module_prepare_legacy_artifact.c'}else{'test/cases/xlir_module_prepare_artifact.c'}
+        $versionFlags+=@(New-XlirCStringDefine 'JOINT_TCC_SOURCE_FILE' ([IO.Path]::GetFullPath($artifactSource).Replace('\','/')) -RawArgument)
         $binary="$outputPath/$laneName.exe"
         $buildExit=Invoke-XlirGccToLog ($flags+$versionFlags+@("-$level",'test/cases/xlir_module_prepare_tcc_host.c')+$dependencies+@('release/xl.dll')+$libs+@('-o',$binary)) "$outputPath/$laneName.build.log"
         foreach($mode in $Modes){
@@ -62,6 +64,6 @@ $process=Start-Process -FilePath $binary -ArgumentList $mode -WindowStyle Hidden
     }
     $unchanged=@($inputs | Where-Object {(Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256}).Count -eq 0
     [IO.File]::WriteAllText("$outputPath/results.json",([pscustomobject]@{Inputs=$inputs;InputsUnchanged=$unchanged;Deterministic=$true;Modes=$Modes;Levels=$Levels;Lanes=$rows;
-        Scope='All original 18 modes and both host optimization levels retained for an explicitly adapted legacy V2 artifact with real resource drain. The same complete population is additionally run against canonical generated V3, which leaves graph-owned pools open at preflight. Six Future aliases, BUSY and diagnostic-independent failure/retry, ambient-error precedence, cross-thread lock/freeze probes, reentrant exclusion, malformed V2/V3 pre-callback refusal, inherited mutation deferral and V1 compatibility. Legacy adaptation is test-only, not a Cgen fallback.'} | ConvertTo-Json -Depth 7),[Text.UTF8Encoding]::new($false))
+        Scope='All original 18 modes and both host optimization levels retained for an explicitly adapted legacy V2 artifact with real task-pool drain. The same complete population is additionally run against a test-only V3 adapter of current V4 output, which leaves graph-owned services open at preflight. The fixture now creates both an actual blocking task pool and a separate ready-entry executor. Six Future aliases, BUSY and diagnostic-independent failure/retry, ambient-error precedence, cross-thread lock/freeze probes, reentrant exclusion, malformed V2/V3 pre-callback refusal, inherited mutation deferral and V1 compatibility. Legacy adaptation is test-only, not a Cgen fallback.'} | ConvertTo-Json -Depth 7),[Text.UTF8Encoding]::new($false))
     if(!$unchanged -or @($rows | Where-Object {!$_.Complete}).Count){throw 'Module preparation failures collected'}
 } finally {Pop-Location}

@@ -1,8 +1,10 @@
 #define JOINT_TCC_ASYNC
+#ifndef JOINT_TCC_SOURCE_FILE
 #ifdef MODULE_PREPARE_LEGACY_V2
 #define JOINT_TCC_SOURCE_FILE "test/cases/xlir_module_prepare_legacy_artifact.c"
 #else
 #define JOINT_TCC_SOURCE_FILE "test/cases/xlir_module_prepare_artifact.c"
+#endif
 #endif
 #define main unused_async_main
 #include "xlir_one_shot_tcc_host.c"
@@ -236,7 +238,17 @@ static void transact(void)
     }
     if(compatibility_guard) {
         XL_ScriptUnitCheckedProc unit;
-        collect(); assert(!atomic_load(&deleted) && !prepares && !module->ownershipPlan && !forbidden_calls);
+        collect();
+        /* A valid V1 fallback can discover the real external guard and begin
+         * aborting its rooted snapshot. Worker parking can briefly defer the
+         * abort freeze; no semantic preparation or quarantine is permitted. */
+        ULONGLONG abortDeadline=GetTickCount64()+5000;
+        while(module->ownershipPlan){
+            assert(module->ownershipPhase==5&&!module->ownershipCleared&&!module->retirementFailed&&
+                !atomic_load(&deleted)&&!prepares&&!forbidden_calls&&GetTickCount64()<abortDeadline);
+            collect();xrtThreadYield();
+        }
+        assert(!atomic_load(&deleted) && !prepares && !module->ownershipPlan && !forbidden_calls);
         symbol=lookup(compiled_state,"xl_script_module_unit_checked"); memcpy(&unit,&symbol,sizeof(unit));
         XL6_CodeScope scope={0}; xl6CodeScopeEnter(&scope,compatibility_guard); assert(unit && unit());
         xl6CodeScopeLeave(&scope); xl6CodeLeaseRelease(compatibility_guard);
