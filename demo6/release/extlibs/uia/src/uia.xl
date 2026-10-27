@@ -22,16 +22,16 @@ extern "x_uia_from_hwnd" func x_uia_from_hwnd(point hwnd) as point
 extern "x_uia_from_point" func x_uia_from_point(c_int x, c_int y) as point
 extern "x_uia_element_release" func x_uia_element_release(point element) as c_int
 extern "x_uia_element_valid" func x_uia_element_valid(point element) as c_int
-extern "x_uia_element_name_owned" func x_uia_element_name(point element) as point
-extern "x_uia_element_automation_id_owned" func x_uia_element_automation_id(point element) as point
-extern "x_uia_element_class_name_owned" func x_uia_element_class_name(point element) as point
+extern "x_uia_element_name_owned" @owned func x_uia_element_name(point element) as string?
+extern "x_uia_element_automation_id_owned" @owned func x_uia_element_automation_id(point element) as string?
+extern "x_uia_element_class_name_owned" @owned func x_uia_element_class_name(point element) as string?
 extern "x_uia_element_control_type" func x_uia_element_control_type(point element) as c_int
 extern "x_uia_element_hwnd" func x_uia_element_hwnd(point element) as point
 extern "x_uia_element_rect_json" func x_uia_element_rect_json(point element) as string
-extern "x_uia_element_snapshot_json_owned" func x_uia_element_snapshot_json(point element, c_int depth, c_int max_nodes) as point
-extern "x_uia_element_cached_children_json_owned" func x_uia_element_cached_children_json(point element, c_int depth, c_int max_nodes) as point
-extern "x_uia_locator_for_owned" func x_uia_locator_for(point element) as point
-extern "x_uia_focused_locator_owned" func x_uia_focused_locator() as point
+extern "x_uia_element_snapshot_json_owned" @owned func x_uia_element_snapshot_json(point element, c_int depth, c_int max_nodes) as string?
+extern "x_uia_element_cached_children_json_owned" @owned func x_uia_element_cached_children_json(point element, c_int depth, c_int max_nodes) as string?
+extern "x_uia_locator_for_owned" @owned func x_uia_locator_for(point element) as string?
+extern "x_uia_focused_locator_owned" @owned func x_uia_focused_locator() as string?
 extern "x_uia_element_find_class_path" func x_uia_element_find_class_path(point root, string class_path, c_int process_id, c_int timeout_ms) as point
 extern "x_uia_element_find_first" func x_uia_element_find_first(point element, point condition, c_int scope, c_int timeout_ms) as point
 extern "x_uia_element_find_all" func x_uia_element_find_all(point element, point condition, c_int scope, c_int timeout_ms) as var
@@ -40,9 +40,9 @@ extern "x_uia_element_children" func x_uia_element_children(point element) as va
 extern "x_uia_element_set_focus" func x_uia_element_set_focus(point element) as c_int
 extern "x_uia_element_click" func x_uia_element_click(point element, c_int timeout_ms) as c_int
 extern "x_uia_element_invoke" func x_uia_element_invoke(point element) as c_int
-extern "x_uia_element_value_owned" func x_uia_element_value(point element) as point
+extern "x_uia_element_value_owned" @owned func x_uia_element_value(point element) as string?
 extern "x_uia_element_set_value" func x_uia_element_set_value(point element, string value) as c_int
-extern "x_uia_element_text_owned" func x_uia_element_text(point element) as point
+extern "x_uia_element_text_owned" @owned func x_uia_element_text(point element) as string?
 extern "x_uia_element_toggle" func x_uia_element_toggle(point element) as c_int
 extern "x_uia_element_toggle_state" func x_uia_element_toggle_state(point element) as c_int
 extern "x_uia_element_range_value" func x_uia_element_range_value(point element) as float
@@ -56,7 +56,7 @@ extern "x_uia_events_create" func x_uia_events_create() as point
 extern "x_uia_events_valid" func x_uia_events_valid(point events) as c_int
 extern "x_uia_events_subscribe_focus_changed" func x_uia_events_subscribe_focus_changed(point events) as c_int
 extern "x_uia_events_subscribe_property_changed" func x_uia_events_subscribe_property_changed(point events, point element, c_int property_id) as c_int
-extern "x_uia_events_poll_json_owned" func x_uia_events_poll_json(point events, c_int timeout_ms) as point
+extern "x_uia_events_poll_json_owned" @owned func x_uia_events_poll_json(point events, c_int timeout_ms) as string?
 extern "x_uia_events_release" func x_uia_events_release(point events) as c_int
 extern "x_uia_condition_release" func x_uia_condition_release(point condition) as c_int
 extern "x_uia_condition_valid" func x_uia_condition_valid(point condition) as c_int
@@ -72,6 +72,11 @@ extern "x_uia_condition_not" func x_uia_condition_not(point condition) as point
 func __to_c_int(int value) as c_int
 	assert value >= -2147483648 and value <= 2147483647, "uia: integer argument is outside C int range"
 	return c_int(value)
+end
+
+func __uia_owned_text(string? value) as string
+	if value == null then return "" end
+	return value
 end
 
 func __uia_require_c_string(string text)
@@ -265,15 +270,15 @@ class Element
 	end
 
 	func name() as string
-		return __xl_runtime.takeCstr(x_uia_element_name(self.handle))
+		return __uia_owned_text(x_uia_element_name(self.handle))
 	end
 
 	func automation_id() as string
-		return __xl_runtime.takeCstr(x_uia_element_automation_id(self.handle))
+		return __uia_owned_text(x_uia_element_automation_id(self.handle))
 	end
 
 	func class_name() as string
-		return __xl_runtime.takeCstr(x_uia_element_class_name(self.handle))
+		return __uia_owned_text(x_uia_element_class_name(self.handle))
 	end
 
 	func control_type() as int
@@ -289,15 +294,15 @@ class Element
 	end
 
 	func snapshot_json(int depth, int max_nodes) as string
-		return __xl_runtime.takeCstr(x_uia_element_snapshot_json(self.handle, __to_c_int(depth), __to_c_int(max_nodes)))
+		return __uia_owned_text(x_uia_element_snapshot_json(self.handle, __to_c_int(depth), __to_c_int(max_nodes)))
 	end
 
 	func cached_children_json(int depth, int max_nodes) as string
-		return __xl_runtime.takeCstr(x_uia_element_cached_children_json(self.handle, __to_c_int(depth), __to_c_int(max_nodes)))
+		return __uia_owned_text(x_uia_element_cached_children_json(self.handle, __to_c_int(depth), __to_c_int(max_nodes)))
 	end
 
 	func locator_json() as string
-		return __xl_runtime.takeCstr(x_uia_locator_for(self.handle))
+		return __uia_owned_text(x_uia_locator_for(self.handle))
 	end
 
 	func find_first(Condition condition, int timeout_ms) as Element
@@ -353,7 +358,7 @@ class Element
 	end
 
 	func value() as string
-		return __xl_runtime.takeCstr(x_uia_element_value(self.handle))
+		return __uia_owned_text(x_uia_element_value(self.handle))
 	end
 
 	func set_value(string value) as bool
@@ -362,7 +367,7 @@ class Element
 	end
 
 	func text() as string
-		return __xl_runtime.takeCstr(x_uia_element_text(self.handle))
+		return __uia_owned_text(x_uia_element_text(self.handle))
 	end
 
 	func toggle() as bool
@@ -423,11 +428,11 @@ class Events
 	end
 
 	func poll_json(int timeout_ms) as string
-		return __xl_runtime.takeCstr(x_uia_events_poll_json(self.handle, __to_c_int(timeout_ms)))
+		return __uia_owned_text(x_uia_events_poll_json(self.handle, __to_c_int(timeout_ms)))
 	end
 
 	func poll_callback(func(string) as int callback, int timeout_ms) as int
-		auto json = __xl_runtime.takeCstr(x_uia_events_poll_json(self.handle, __to_c_int(timeout_ms)))
+		auto json = __uia_owned_text(x_uia_events_poll_json(self.handle, __to_c_int(timeout_ms)))
 		if json == "{}" then
 			return 0
 		end
@@ -485,7 +490,7 @@ export func focused() as Element
 end
 
 export func focused_locator() as string
-	return __xl_runtime.takeCstr(x_uia_focused_locator())
+	return __uia_owned_text(x_uia_focused_locator())
 end
 
 export func from_hwnd(point hwnd) as Element
@@ -505,7 +510,7 @@ export func element(point handle) as Element
 end
 
 export func locator_for(Element element) as string
-	return __xl_runtime.takeCstr(x_uia_locator_for(element.handle))
+	return __uia_owned_text(x_uia_locator_for(element.handle))
 end
 
 export func by_name(string name) as Condition

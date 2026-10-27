@@ -1,5 +1,9 @@
 # uia
 
+2026-10-27：十条 `_owned` 文本结果的 C 原型改为 `char*`，XLang
+用 `@owned string?` 直接接管 XRT 分配；原有空指针到空串的映射不变。
+借用型版本、错误消息和矩形短 JSON 仍按原合同复制，不改变原生 UIA 行为。
+
 Windows UI Automation 扩展库。C 桥接源代码和公开头文件分别为
 `x_uia_artifact.c`、`include/uia.h`；XLang 通过 `import uia` 使用。
 非 Windows 平台不提供此包。
