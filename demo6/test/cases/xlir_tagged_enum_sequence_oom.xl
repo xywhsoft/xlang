@@ -1,0 +1,64 @@
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+enum SequenceOomChoice
+    value(string text)
+    missing()
+end
+func makeSequence(int family, SequenceOomChoice item) as var
+    if family == 0
+        array<SequenceOomChoice> values = array[item]
+        return values
+    elseif family == 1
+        array<SequenceOomChoice?> values = array[item, null]
+        return values
+    elseif family == 2
+        list<SequenceOomChoice?> values = list[-3: item, 7: null]
+        return values
+    elseif family == 3
+        dict<SequenceOomChoice?> values = dict{"value": item, "none": null}
+        return values
+    elseif family == 4
+        set<SequenceOomChoice> values = set{item}
+        return values
+    else
+        Stack<SequenceOomChoice> values = Stack::<SequenceOomChoice>()
+        assert values.push(item)
+        return values
+    end
+end
+func main(...) as int
+    SequenceOomChoice item = SequenceOomChoice.value("a\0你")
+    for family in range(6)
+        int failed = 0
+        int completed = 0
+        for point in range(96)
+            var result = null
+            bool caught = false
+            assert failAfter(uint64(point))
+            try
+                result = makeSequence(family, item)
+            catch MemoryError
+                caught = true
+            end
+            bool triggered = failTriggered()
+            failClear()
+            assert caught == triggered
+            if caught
+                failed += 1
+                assert result == null
+            else
+                completed += 1
+                assert result != null
+            end
+        end
+        assert failed > 0 and completed > 0
+    end
+    string text = match item
+    case value(value) then value
+    case missing then "bad"
+    end
+    assert text == "a\0你"
+    println("tagged enum sequences: 576 allocation prefixes passed")
+    return 0
+end

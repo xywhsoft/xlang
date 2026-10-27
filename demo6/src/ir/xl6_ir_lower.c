@@ -1345,7 +1345,13 @@ static int xl6IrLowerRemoveUnreachableSubtreeCleanup(
     return 1;
 }
 
-static int xl6IrLowerXValueRebindAllowed(
+typedef enum XL6_IrLowerXValueConversionAbi {
+    XL6_IR_LOWER_XVALUE_CONVERSION_NONE,
+    XL6_IR_LOWER_XVALUE_CONVERSION_REBIND,
+    XL6_IR_LOWER_XVALUE_CONVERSION_STACK_ERASE
+} XL6_IrLowerXValueConversionAbi;
+
+static XL6_IrLowerXValueConversionAbi xl6IrLowerXValueConversion(
     const XL6_IrLowerContext* ctx,
     XL6_IrTypeId targetType, XL6_IrTypeId sourceType);
 
@@ -1372,8 +1378,8 @@ static XL6_SymbolId xl6IrLowerReturnTransferredStorage(
          storage->cellType != XL6_IR_TYPE_INVALID ||
          storage->type != returned->storageType ||
          (returned->storageType != targetType &&
-          !xl6IrLowerXValueRebindAllowed(
-              ctx, targetType, returned->storageType)) ) return 0;
+          xl6IrLowerXValueConversion(ctx, targetType, returned->storageType) !=
+              XL6_IR_LOWER_XVALUE_CONVERSION_REBIND) ) return 0;
     /* A direct RETURN is itself an owning sink, so a borrowed NAME may transfer
      * its function-local storage even though the expression LOAD remains a
      * borrow.  Deferred returns do not use that contextual transfer: their
@@ -1789,26 +1795,36 @@ static XL6_IrValueId xl6IrLowerBorrowManagedStringOperand(
 static XL6_IrValueId xl6IrLowerPersistenceClassDefault(
     XL6_IrLowerContext* ctx, XL6_IrNodeId origin, XL6_IrTypeId type);
 
-/* Rebinding never changes the physical xvalue handle.  The target may erase a
- * concrete class/protocol/container into the open dynamic builtin, or preserve
- * one of the already verified nominal widening relations.  The owned handle is
- * transferred by VALUE; borrowed observations use XVALUE_RETAIN below. */
-static int xl6IrLowerXValueRebindAllowed(
+/* Select conversion ownership before choosing a local transfer.  A rebind
+ * preserves the physical xvalue handle; Stack erasure creates an independent
+ * wrapper owner and must never participate in a transparent LOAD/VALUE/MOVE
+ * chain. Borrowed inputs are retained at the selected conversion boundary. */
+static XL6_IrLowerXValueConversionAbi xl6IrLowerXValueConversion(
     const XL6_IrLowerContext* ctx, XL6_IrTypeId targetType,
     XL6_IrTypeId sourceType)
 {
-    const XL6_IrType* target = xl6IrTypeGet(&ctx->module->types, targetType);
-    if ( targetType == sourceType ) return 1;
-    if (xl6IrCollectionErasureAllowed(ctx->module, targetType, sourceType)) return 1;
-    if ( xl6IrLowerTypeIsDynamicXValueBuiltin(ctx->module, targetType) &&
-         xl6IrLowerTypeHasManagedXValueCarrier(ctx->module, sourceType) ) return 1;
-    return xl6IrLowerClassValueAssignableTo(ctx, targetType, sourceType) ||
+    const XL6_IrType* target;
+    int compatible;
+    if ( ctx == NULL ||
+         (target = xl6IrTypeGet(&ctx->module->types, targetType)) == NULL ||
+         xl6IrTypeGet(&ctx->module->types, sourceType) == NULL )
+        return XL6_IR_LOWER_XVALUE_CONVERSION_NONE;
+    if ( targetType == sourceType ) return XL6_IR_LOWER_XVALUE_CONVERSION_REBIND;
+    compatible = xl6IrCollectionErasureAllowed(ctx->module, targetType, sourceType) ||
+           (xl6IrLowerTypeIsDynamicXValueBuiltin(ctx->module, targetType) &&
+            xl6IrLowerTypeHasManagedXValueCarrier(ctx->module, sourceType)) ||
+           xl6IrLowerClassValueAssignableTo(ctx, targetType, sourceType) ||
            (target != NULL && target->kind == XL6_IR_TYPE_NULLABLE &&
             target->paramCount == 1 && target->params != NULL &&
             (target->params[0] == sourceType ||
              xl6IrLowerClassValueAssignableTo(
                  ctx, target->params[0], sourceType))) ||
            xl6IrProtocolClassImplements(ctx->module, targetType, sourceType);
+    if ( !compatible ) return XL6_IR_LOWER_XVALUE_CONVERSION_NONE;
+    if ( xl6IrStackErasureSourceType(ctx->module, sourceType) &&
+         xl6IrLowerTypeIsDynamicXValueBuiltin(ctx->module, targetType) )
+        return XL6_IR_LOWER_XVALUE_CONVERSION_STACK_ERASE;
+    return XL6_IR_LOWER_XVALUE_CONVERSION_REBIND;
 }
 
 static int xl6IrLowerWeakCreateSignature(
@@ -2020,7 +2036,8 @@ static XL6_IrValueId xl6IrLowerRetainXValueCarrierAs(
     retainOp = xl6IrLowerTypeIsManagedBytes(ctx->module, sourceType)
         ? XL6_IR_RUNTIME_BYTES_RETAIN : XL6_IR_RUNTIME_XVALUE_RETAIN;
     XL6_IrTypeId stackId=xl6IrStackErasureSourceType(ctx->module,sourceType);
-    if (stackId && xl6IrLowerTypeIsDynamicXValueBuiltin(ctx->module,targetType)) {
+    if (xl6IrLowerXValueConversion(ctx,targetType,sourceType) ==
+            XL6_IR_LOWER_XVALUE_CONVERSION_STACK_ERASE) {
         source=xl6IrLowerEmitRuntimeCall(ctx,origin,sourceType,XL6_IR_RUNTIME_XVALUE_RETAIN,&source,1);
         if (!source) return XL6_IR_VALUE_INVALID;
         return xl6IrLowerEmitRuntimeCallMetadata(ctx,origin,origin,targetType,XL6_IR_RUNTIME_STACK_ERASE,NULL,
@@ -2030,7 +2047,8 @@ static XL6_IrValueId xl6IrLowerRetainXValueCarrierAs(
         ctx, origin, sourceType, retainOp, &source, 1);
     if ( retained == XL6_IR_VALUE_INVALID || sourceType == targetType )
         return retained;
-    if ( !xl6IrLowerXValueRebindAllowed(ctx, targetType, sourceType) ) {
+    if ( xl6IrLowerXValueConversion(ctx, targetType, sourceType) ==
+             XL6_IR_LOWER_XVALUE_CONVERSION_NONE ) {
         xl6IrLowerDiag(ctx, origin,
             "XLIR retained dynamic value has no explicit static rebind ABI");
         return XL6_IR_VALUE_INVALID;
@@ -3761,7 +3779,8 @@ static XL6_IrValueId xl6IrLowerBoxRuntimeXValueWithNativeDestroy(
          * NAME annotation nor its original CELL_LOAD may add another retain. */
         if ( xl6IrLowerValueHasOwner(ctx, source) ) {
             if ( loweredSourceType == targetType ) return source;
-            if ( xl6IrLowerXValueRebindAllowed(ctx, targetType, loweredSourceType) )
+            if ( xl6IrLowerXValueConversion(ctx, targetType, loweredSourceType) !=
+                     XL6_IR_LOWER_XVALUE_CONVERSION_NONE )
                 return xl6IrLowerEmitValueCopy(
                     ctx, origin, targetType, source);
             xl6IrLowerDiag(ctx, origin,
@@ -4123,7 +4142,8 @@ static XL6_IrValueId xl6IrLowerOwnedValueAsErasedRuntimeXValue(
     }
     if ( xl6IrLowerTypeIsRuntimeXValue(ctx->module, sourceType) ) {
         if ( sourceType == erasedType ) return source;
-        if ( !xl6IrLowerXValueRebindAllowed(ctx, erasedType, sourceType) ) {
+        if ( xl6IrLowerXValueConversion(ctx, erasedType, sourceType) ==
+                 XL6_IR_LOWER_XVALUE_CONVERSION_NONE ) {
             xl6IrLowerDiag(ctx, origin,
                 "XLIR owned xvalue item cannot rebind to the canonical erased carrier");
             return XL6_IR_VALUE_INVALID;
@@ -4918,8 +4938,8 @@ static XL6_IrValueId xl6IrLowerTransferredReturnValueAsType(
         return XL6_IR_VALUE_INVALID;
     }
     if ( source->storageType == targetType ) return value;
-    if ( !xl6IrLowerXValueRebindAllowed(
-             ctx, targetType, source->storageType) ) {
+    if ( xl6IrLowerXValueConversion(ctx, targetType, source->storageType) !=
+             XL6_IR_LOWER_XVALUE_CONVERSION_REBIND ) {
         xl6IrLowerDiag(ctx, origin,
             "XLIR transferred return has no representation-preserving target rebind");
         return XL6_IR_VALUE_INVALID;
@@ -8727,9 +8747,9 @@ static XL6_IrValueId xl6IrLowerBorrowRuntimeXValueOperand(
     if ( source == XL6_IR_VALUE_INVALID || !xl6IrLowerValueHasOwner(ctx, source) )
         return source;
     if ( xl6IrLowerValueType(ctx, source) != sourceNode->storageType ) {
-        if ( !xl6IrLowerXValueRebindAllowed(
-                 ctx, sourceNode->storageType,
-                 xl6IrLowerValueType(ctx, source)) )
+        if ( xl6IrLowerXValueConversion(ctx, sourceNode->storageType,
+                 xl6IrLowerValueType(ctx, source)) ==
+                 XL6_IR_LOWER_XVALUE_CONVERSION_NONE )
             return XL6_IR_VALUE_INVALID;
         source = xl6IrLowerEmitValueCopy(
             ctx, origin, sourceNode->storageType, source);
@@ -9632,7 +9652,8 @@ static XL6_IrValueId xl6IrLowerEmitValueCopy(
         type!=xl6IrLowerValueType(ctx,source))
         return xl6IrLowerCOwnedCopy(ctx,origin,type,source);
     XL6_IrTypeId stackId=xl6IrStackErasureSourceType(ctx->module,xl6IrLowerValueType(ctx,source));
-    if (stackId && xl6IrLowerTypeIsDynamicXValueBuiltin(ctx->module,type)) {
+    if (xl6IrLowerXValueConversion(ctx,type,xl6IrLowerValueType(ctx,source)) ==
+            XL6_IR_LOWER_XVALUE_CONVERSION_STACK_ERASE) {
         if (!xl6IrLowerValueHasOwner(ctx,source)) {
             source=xl6IrLowerEmitRuntimeCall(ctx,origin,xl6IrLowerValueType(ctx,source),XL6_IR_RUNTIME_XVALUE_RETAIN,&source,1);
             if (!source) return XL6_IR_VALUE_INVALID;

@@ -1,0 +1,110 @@
+enum SequenceChoice<T>
+    value(T item)
+    error(string message)
+end
+enum SequenceTree
+    leaf(int value)
+    branch(array<SequenceTree> children)
+end
+int sequenceOwners = 0
+int sequenceDrops = 0
+class SequenceOwner
+    int value
+    create(int value)
+        self.value = value
+        sequenceOwners += 1
+    end
+    destroy()
+        sequenceDrops += 1
+    end
+end
+func choiceText(SequenceChoice<string> value) as string
+    return match value
+    case value(text) then text
+    case error(message) then message
+    end
+end
+func choiceOwner(SequenceChoice<SequenceOwner> value) as int
+    return match value
+    case value(item) then item.value
+    case error(_) then -1
+    end
+end
+extern "enum_sequence_probe" func probe(var text, var integer) as int
+func checkOwnerLifetime()
+    SequenceChoice<SequenceOwner> first = SequenceChoice::<SequenceOwner>.value(SequenceOwner(42))
+    array<SequenceChoice<SequenceOwner>> values = array[first]
+    list<SequenceChoice<SequenceOwner>?> sparse = list[-3: first, 7: null]
+    dict<array<SequenceChoice<SequenceOwner>>> nested = dict{"values": values}
+    Stack<SequenceChoice<SequenceOwner>> stack = Stack::<SequenceChoice<SequenceOwner>>()
+    assert stack.push(first)
+    assert choiceOwner(stack.pop()) == 42
+    assert choiceOwner(nested["values"][0]) == 42
+    for _, item in sparse
+        if item != null then assert choiceOwner(item) == 42 end
+    end
+end
+func main(...) as int
+    SequenceChoice<string> first = SequenceChoice::<string>.value("a\0你")
+    assert probe(first, SequenceChoice::<int>.value(7)) == 1
+    SequenceChoice<string> second = SequenceChoice::<string>.error("second")
+    array<SequenceChoice<string>> values = array[first, second]
+    array<SequenceChoice<string>?> optional = array[first, null, second]
+    assert optional.resize(5)
+    assert optional[3] == null and optional[4] == null
+    optional[3] = first
+    int seen = 0
+    for item in optional
+        if item != null
+            assert choiceText(item) != ""
+            seen += 1
+        end
+    end
+    assert seen == 3
+    list<SequenceChoice<string>?> sparse = list[-3: first, 7: null, 9: second]
+    dict<SequenceChoice<string>?> named = dict{"first": first, "none": null, "second": second}
+    assert choiceText(sparse[-3] ?? second) == "a\0你"
+    assert named["none"] == null and choiceText(named["first"] ?? second) == "a\0你"
+    Stack<SequenceChoice<string>?> stack = Stack::<SequenceChoice<string>?>()
+    assert stack.push(first) and stack.push(null) and stack.push(second)
+    assert choiceText(stack.pop() ?? first) == "second"
+    assert stack.pop() == null and choiceText(stack.pop() ?? second) == "a\0你"
+    // The typed key domain preserves the existing erased reference-key rule.
+    set<SequenceChoice<string>> keyed = set{first, first, second}
+    set erased = set{first, first, second}
+    assert keyed.length == 2 and keyed.length == erased.length
+    assert first in keyed and first in erased
+    array<list<SequenceChoice<string>?>> nested = array[sparse]
+    assert choiceText(nested[0][-3] ?? second) == "a\0你"
+    array<SequenceTree> children = array[SequenceTree.leaf(1), SequenceTree.leaf(2)]
+    SequenceTree tree = SequenceTree.branch(children)
+    int count = match tree
+    case leaf(_) then -1
+    case branch(items) then items.length
+    end
+    assert count == 2
+    var alias = values
+    int refused = 0
+    try
+        alias[0] = SequenceChoice::<int>.value(7)
+    catch TypeError
+        refused += 1
+    end
+    try
+        auto wrong = alias as array<SequenceChoice<int>>
+    catch TypeError
+        refused += 1
+    end
+    try
+        values.resize(3)
+    catch TypeError
+        refused += 1
+    end
+    assert refused == 3 and values.length == 2 and choiceText(values[0]) == "a\0你"
+    for iteration in range(12)
+        checkOwnerLifetime()
+        assert sequenceOwners == sequenceDrops
+    end
+    println("tagged enum native sequences passed")
+    return 0
+end
