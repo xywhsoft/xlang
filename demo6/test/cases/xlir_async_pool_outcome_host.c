@@ -9,7 +9,14 @@ extern const xerror* xrtFutureError(const xfuture*);
 unsigned pool_outcome_watch_size(void) { return (unsigned)sizeof(xfuturewatch); }
 typedef char pool_watch_storage_abi[(sizeof(xfuturewatch) == 64) ? 1 : -1];
 int pool_outcome_init(void) { return xlir_module_init(); }
-void pool_outcome_fini(void) { xlir_module_fini(); }
+void pool_outcome_fini(void)
+{
+    xdeadline deadline=xrtDeadlineAfter(5000000);
+    while(!xlir_continuation_quiesce(false)){
+        assert(!xrtGetError()&&!xrtDeadlineExpired(deadline));xrtThreadYield();
+    }
+    xlir_module_fini();
+}
 xfuture* pool_outcome_start(unsigned kind, int64_t mode)
 {
     switch (kind) {

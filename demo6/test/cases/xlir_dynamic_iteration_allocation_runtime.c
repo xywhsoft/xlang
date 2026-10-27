@@ -4,6 +4,7 @@
 #define XRT_MODULE_FUTURE
 #include "lib/xrt/xrt.h"
 #include "src/runtime/xl6_value_iterator.h"
+#include "src/runtime/xl6_list_value_iterator.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
@@ -33,6 +34,11 @@ static void end_window(void)
 static XL6_ValueIterator* iteration_projection_cursor_create(const xvalue* source)
 {
     XL6_ValueIterator* cursor = xl6ValueIteratorRuntimeV2Get()->Create(source);
+    assert(cursor && !created && !active); ++created; ++active; return cursor;
+}
+XL6_ValueIterator* iteration_projection_collection_create(const xvalue* source)
+{
+    XL6_ValueIterator* cursor=xl6CollectionValueIteratorCreateV1(source);
     assert(cursor && !created && !active); ++created; ++active; return cursor;
 }
 static bool iteration_projection_cursor_advance(XL6_ValueIterator* cursor, bool* found)
