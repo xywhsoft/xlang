@@ -19,6 +19,39 @@ static int xl6IrCgenEmitModuleFiniBoundary(XL6_Output* out, const XL6_IrModule* 
     return !xl6OutputHasFailed(out);
 }
 
+static void xl6IrCgenEmitResourcePrepareStep(XL6_Output* out, const char* expression)
+{
+    xl6OutputPrintf(out,
+        "    {\n"
+        "        XL6_ModulePrepareResult step = %s;\n"
+        "        if (step == XL6_MODULE_PREPARE_FAILED || xlir_preparation.failed || xrtGetError()) {\n"
+        "            xl6ErrorScopeCaptureFailure(&xlir_preparation); prepared = XL6_MODULE_PREPARE_FAILED;\n"
+        "        } else if (step == XL6_MODULE_PREPARE_BUSY) {\n"
+        "            if (prepared == XL6_MODULE_PREPARE_READY) prepared = step;\n"
+        "        } else if (step != XL6_MODULE_PREPARE_READY) {\n"
+        "            xrtSetErrorKind(XERR_INTERNAL); xl6ErrorScopeCaptureFailure(&xlir_preparation);\n"
+        "            prepared = XL6_MODULE_PREPARE_FAILED;\n"
+        "        }\n"
+        "    }\n", expression);
+}
+
+/* Every service receives a nonblocking close/probe before any service may
+ * wait. The IR's closed ownership ABIs select these direct native calls;
+ * neither source spelling nor generated-text inference participates. */
+static void xl6IrCgenEmitResourcePreparePass(
+    XL6_Output* out, const XL6_IrModule* module)
+{
+    if (module->abi.executionOwnershipAbi == XL6_IR_MODULE_EXECUTION_OWNERSHIP_RESIDENT_SOURCE_V1)
+        xl6IrCgenEmitResourcePrepareStep(out,
+            "teardown ? xl6ExecutionModulePrepareV1(xlir_execution_source) : XL6_MODULE_PREPARE_READY");
+    if (module->abi.taskPoolOwnershipAbi == XL6_IR_MODULE_TASK_POOL_OWNERSHIP_RESIDENT_NATIVE_JOBS_JOIN_V1)
+        xl6IrCgenEmitResourcePrepareStep(out,
+            "xl6TaskPoolModulePrepareV1(xlir_async_pool, teardown, stage != 0)");
+    if (module->abi.executorOwnershipAbi == XL6_IR_MODULE_EXECUTOR_OWNERSHIP_RESIDENT_WAIT_SLOTS_JOIN_V1)
+        xl6IrCgenEmitResourcePrepareStep(out,
+            "teardown && !xlir_continuation_quiesce(stage != 0) ? XL6_MODULE_PREPARE_BUSY : XL6_MODULE_PREPARE_READY");
+}
+
 static int xl6IrCgenEmitFunction(
     XL6_Output* out, const XL6_IrModule* module,
     const XL6_IrFunction* function,
@@ -47,17 +80,22 @@ static int xl6IrCgenEmitFunction(
             xl6OutputPuts("    if (xlir_module_initializing) return XL6_MODULE_PREPARE_BUSY;\n", out);
         xl6OutputPuts("    if (xlir_module_initialized == 0) return XL6_MODULE_PREPARE_READY;\n"
             "    if (xlir_module_initialized != 1 && xlir_module_initialized != 2) return XL6_MODULE_PREPARE_BUSY;\n", out);
-        if (module->abi.executorOwnershipAbi == XL6_IR_MODULE_EXECUTOR_OWNERSHIP_RESIDENT_WAIT_SLOTS_JOIN_V1)
-            xl6OutputPuts("    if (teardown && !xlir_continuation_quiesce(wait)) return XL6_MODULE_PREPARE_BUSY;\n", out);
-        if(module->abi.executionOwnershipAbi==XL6_IR_MODULE_EXECUTION_OWNERSHIP_RESIDENT_SOURCE_V1)
-            xl6OutputPuts("    if (teardown) { XL6_ModulePrepareResult source = xl6ExecutionModulePrepareV1(xlir_execution_source);\n"
-                "        if (source != XL6_MODULE_PREPARE_READY) return source; }\n",out);
-        if (module->abi.taskPoolOwnershipAbi == XL6_IR_MODULE_TASK_POOL_OWNERSHIP_RESIDENT_NATIVE_JOBS_JOIN_V1)
-            xl6OutputPuts("    {\n"
-                "        XL6_ModulePrepareResult pool = xl6TaskPoolModulePrepareV1(xlir_async_pool, teardown, wait);\n"
-                "        if (pool != XL6_MODULE_PREPARE_READY) return pool;\n"
-                "    }\n", out);
-        xl6OutputPuts("    return XL6_MODULE_PREPARE_READY;\n}\n"
+        if (module->abi.executorOwnershipAbi != XL6_IR_MODULE_EXECUTOR_OWNERSHIP_NONE ||
+            module->abi.executionOwnershipAbi != XL6_IR_MODULE_EXECUTION_OWNERSHIP_NONE ||
+            module->abi.taskPoolOwnershipAbi != XL6_IR_MODULE_TASK_POOL_OWNERSHIP_NONE) {
+            xl6OutputPuts("    XL6_ModulePrepareResult prepared = XL6_MODULE_PREPARE_READY;\n"
+                "    xl6_error_scope xlir_preparation = {0};\n"
+                "    if (!xl6ErrorScopeBegin(&xlir_preparation)) return XL6_MODULE_PREPARE_FAILED;\n",out);
+            xl6OutputPuts("    for (int stage = 0; stage < (wait ? 2 : 1); ++stage) {\n"
+                "        prepared = XL6_MODULE_PREPARE_READY;\n",out);
+            xl6IrCgenEmitResourcePreparePass(out,module);
+            xl6OutputPuts("        if (prepared != XL6_MODULE_PREPARE_BUSY || xlir_preparation.failed) break;\n",out);
+            xl6OutputPuts("    }\n"
+                "    xl6_error_result outcome = xl6ErrorScopeEnd(&xlir_preparation);\n"
+                "    if (!outcome.ok) { xl6ErrorScopePropagateFailure(outcome); return XL6_MODULE_PREPARE_FAILED; }\n"
+                "    return prepared;\n",out);
+        } else xl6OutputPuts("    return XL6_MODULE_PREPARE_READY;\n",out);
+        xl6OutputPuts("}\n"
             "static inline XL6_ModulePrepareResult xlir_module_prepare_retirement(void)\n"
             "{ return xlir_module_prepare_resources(false, false); }\n", out);
         xl6OutputPuts(module->abi.continuationAbi != XL6_IR_MODULE_CONTINUATION_NONE
