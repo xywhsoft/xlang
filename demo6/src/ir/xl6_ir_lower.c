@@ -4186,7 +4186,7 @@ static XL6_IrValueId xl6IrLowerContextualCollectionItemAsRuntimeXValue(
 static XL6_IrValueId xl6IrLowerNodeAsRuntimeXValue(
     XL6_IrLowerContext* ctx, XL6_IrNodeId origin, XL6_IrNodeId sourceId,
     const XL6_IrNode* source, XL6_IrTypeId targetType);
-static XL6_IrValueId xl6IrLowerConditionalAsRuntimeXValue(
+static XL6_IrValueId xl6IrLowerConditionalAsType(
     XL6_IrLowerContext* ctx, XL6_IrNodeId origin, const XL6_IrNode* source,
     XL6_IrTypeId targetType);
 
@@ -4568,7 +4568,7 @@ static XL6_IrValueId xl6IrLowerNodeAsRuntimeXValue(
         return XL6_IR_VALUE_INVALID;
     }
     if ( source->kind == XL6_IR_NODE_CONDITIONAL )
-        return xl6IrLowerConditionalAsRuntimeXValue(ctx, origin, source, targetType);
+        return xl6IrLowerConditionalAsType(ctx, origin, source, targetType);
     value = xl6IrLowerNode(ctx, sourceId);
     if ( value == XL6_IR_VALUE_INVALID ) return XL6_IR_VALUE_INVALID;
     if ( xl6IrLowerCheckedCollectionProjectionRequired(
@@ -23537,17 +23537,12 @@ static XL6_IrValueId xl6IrLowerNullableCoalesce(
     if ( leftTemporary != 0 &&
          !xl6IrLowerEmit(ctx, XL6_IR_INSTR_RELEASE, id, leftType,
                           leftTemporary, NULL, 0, NULL) ) return XL6_IR_VALUE_INVALID;
-    fallback = erased
-        ? xl6IrLowerNodeAsRuntimeXValue(
-            ctx, id, rightId, rightNode, node->storageType)
-        : xl6IrLowerNodeAsType(
-            ctx, id, rightId, rightNode, node->storageType);
+    fallback = xl6IrLowerNodeAsType(
+        ctx, id, rightId, rightNode, node->storageType);
     if ( fallback == XL6_IR_VALUE_INVALID ) return XL6_IR_VALUE_INVALID;
-    if ( managedPointer || native ) {
-        fallback = xl6IrLowerOwnedStorageValue(
-            ctx, id, node->storageType, rightNode, fallback);
-        if ( fallback == XL6_IR_VALUE_INVALID ) return XL6_IR_VALUE_INVALID;
-    }
+    fallback = xl6IrLowerOwnedValueBoundary(
+        ctx, id, node->storageType, rightNode, fallback);
+    if ( fallback == XL6_IR_VALUE_INVALID ) return XL6_IR_VALUE_INVALID;
     if (!xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, id, node->storageType,
             resultTemporary, &fallback, 1, NULL) || !xl6IrLowerEmitJump(ctx, id, mergeBlock))
         return XL6_IR_VALUE_INVALID;
@@ -23557,11 +23552,11 @@ static XL6_IrValueId xl6IrLowerNullableCoalesce(
     return joined && (!native || xl6IrLowerCompleteEvaluationBorrows(ctx,id,nativeFirst,&joined)) ? joined : XL6_IR_VALUE_INVALID;
 }
 
-/* Conditional branches can carry a typed collection representation even when
- * their enclosing use requires `var`.  Resolve that representation here at
- * the conversion boundary: the CFG, temporary storage, branch conversion and
- * xvalue ABI are all XLIR facts before Cgen runs. */
-static XL6_IrValueId xl6IrLowerConditionalAsRuntimeXValue(
+/* Every conditional result uses one owning join. Each branch first converts
+ * to the exact destination TypeId, then acquires its independent owner before
+ * storing it. This includes erased `var` results: a borrowed physical carrier
+ * from a flow-refined NAME is not an ownership acquisition. */
+static XL6_IrValueId xl6IrLowerConditionalAsType(
     XL6_IrLowerContext* ctx, XL6_IrNodeId origin, const XL6_IrNode* source,
     XL6_IrTypeId targetType)
 {
@@ -23578,15 +23573,15 @@ static XL6_IrValueId xl6IrLowerConditionalAsRuntimeXValue(
     const XL6_IrNode* branchNode;
 
     if ( source == NULL || source->sourceKind != XL6_AST_CONDITIONAL || source->childCount != 3 ||
-         !xl6IrLowerTypeIsRuntimeXValue(ctx->module, targetType) ) {
-        xl6IrLowerDiag(ctx, origin, "XLIR dynamic conditional has no resolved result ABI");
+         xl6IrTypeGet(&ctx->module->types, targetType) == NULL ) {
+        xl6IrLowerDiag(ctx, origin, "XLIR conditional has no resolved result ABI");
         return XL6_IR_VALUE_INVALID;
     }
     conditionId = ctx->module->children[source->firstChild];
     conditionNode = xl6IrNodeGet(ctx->module, conditionId);
     condition = xl6IrLowerNode(ctx, conditionId);
     if ( condition == XL6_IR_VALUE_INVALID || conditionNode == NULL ) {
-        xl6IrLowerDiag(ctx, origin, "XLIR dynamic conditional has no boolean condition ABI");
+        xl6IrLowerDiag(ctx, origin, "XLIR conditional has no boolean condition ABI");
         return XL6_IR_VALUE_INVALID;
     }
     condition = xl6IrLowerTruthValue(ctx, origin, conditionNode, condition);
@@ -23594,7 +23589,7 @@ static XL6_IrValueId xl6IrLowerConditionalAsRuntimeXValue(
          !xl6IrLowerTypeIsBool(
              ctx->module, xl6IrLowerValueType(ctx, condition)) ) {
         xl6IrLowerDiag(ctx, origin,
-            "XLIR dynamic conditional condition has no explicit truth conversion ABI");
+            "XLIR conditional condition has no explicit truth conversion ABI");
         return XL6_IR_VALUE_INVALID;
     }
     temporary = xl6IrLowerNewTempStorage(ctx, targetType, origin);
@@ -23609,7 +23604,8 @@ static XL6_IrValueId xl6IrLowerConditionalAsRuntimeXValue(
     xl6IrLowerEnterBlock(ctx, thenBlock);
     branchId = ctx->module->children[source->firstChild + 1];
     branchNode = xl6IrNodeGet(ctx->module, branchId);
-    value = xl6IrLowerNodeAsRuntimeXValue(ctx, origin, branchId, branchNode, targetType);
+    value = xl6IrLowerNodeAsType(ctx, origin, branchId, branchNode, targetType);
+    value = xl6IrLowerOwnedValueBoundary(ctx, origin, targetType, branchNode, value);
     if ( value == XL6_IR_VALUE_INVALID ||
          !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, origin, targetType, temporary, &value, 1, NULL) ||
          !xl6IrLowerEmitJump(ctx, origin, mergeBlock) ) return XL6_IR_VALUE_INVALID;
@@ -23617,16 +23613,14 @@ static XL6_IrValueId xl6IrLowerConditionalAsRuntimeXValue(
     xl6IrLowerEnterBlock(ctx, elseBlock);
     branchId = ctx->module->children[source->firstChild + 2];
     branchNode = xl6IrNodeGet(ctx->module, branchId);
-    value = xl6IrLowerNodeAsRuntimeXValue(ctx, origin, branchId, branchNode, targetType);
+    value = xl6IrLowerNodeAsType(ctx, origin, branchId, branchNode, targetType);
+    value = xl6IrLowerOwnedValueBoundary(ctx, origin, targetType, branchNode, value);
     if ( value == XL6_IR_VALUE_INVALID ||
          !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, origin, targetType, temporary, &value, 1, NULL) ||
          !xl6IrLowerEmitJump(ctx, origin, mergeBlock) ) return XL6_IR_VALUE_INVALID;
 
     xl6IrLowerEnterBlock(ctx, mergeBlock);
-    if (!xl6IrLowerEmit(ctx, XL6_IR_INSTR_LOAD, origin, targetType, temporary, NULL, 0, &value) ||
-        !xl6IrLowerEmit(ctx, XL6_IR_INSTR_MOVE, origin, targetType, temporary, &value, 1, NULL))
-        return XL6_IR_VALUE_INVALID;
-    return value;
+    return xl6IrLowerReadJoinStorage(ctx, origin, targetType, temporary);
 }
 
 static XL6_IrValueId xl6IrLowerConditionalFutureOwned(
@@ -23753,78 +23747,6 @@ static XL6_IrValueId xl6IrLowerConditionalFutureOwned(
                          temporary, NULL, 0, &value) )
         return XL6_IR_VALUE_INVALID;
     if ( outTemporary != NULL ) *outTemporary = temporary;
-    return value;
-}
-
-static XL6_IrValueId xl6IrLowerConditional(XL6_IrLowerContext* ctx, XL6_IrNodeId id, const XL6_IrNode* node)
-{
-    XL6_IrValueId condition;
-    XL6_IrValueId value;
-    XL6_SymbolId temporary;
-    XL6_IrBlockId thenBlock;
-    XL6_IrBlockId elseBlock;
-    XL6_IrBlockId mergeBlock;
-    XL6_IrInstruction* branch;
-    const XL6_IrNode* conditionNode;
-    const XL6_IrType* resultType;
-    if ( node->sourceKind != XL6_AST_CONDITIONAL || node->childCount != 3 ||
-         node->storageType == XL6_IR_TYPE_INVALID ) {
-        xl6IrLowerDiag(ctx, id, "XLIR conditional expression has no canonical shape or result ABI");
-        return XL6_IR_VALUE_INVALID;
-    }
-    resultType = xl6IrTypeGet(&ctx->module->types, node->storageType);
-    conditionNode = xl6IrNodeGet(ctx->module, ctx->module->children[node->firstChild]);
-    condition = xl6IrLowerNode(ctx, ctx->module->children[node->firstChild]);
-    if ( condition == XL6_IR_VALUE_INVALID || conditionNode == NULL ) {
-        xl6IrLowerDiag(ctx, id, "XLIR conditional expression has no boolean condition ABI");
-        return XL6_IR_VALUE_INVALID;
-    }
-    condition = xl6IrLowerTruthValue(ctx, id, conditionNode, condition);
-    if ( condition == XL6_IR_VALUE_INVALID ||
-         !xl6IrLowerTypeIsBool(
-             ctx->module, xl6IrLowerValueType(ctx, condition)) ) {
-        xl6IrLowerDiag(ctx, id,
-            "XLIR conditional expression has no explicit truth conversion ABI");
-        return XL6_IR_VALUE_INVALID;
-    }
-    temporary = xl6IrLowerNewTempStorage(ctx, node->storageType, id);
-    if ( temporary == 0 || !xl6IrLowerNewBlock(ctx, &thenBlock) || !xl6IrLowerNewBlock(ctx, &elseBlock) ||
-         !xl6IrLowerNewBlock(ctx, &mergeBlock) ||
-         !xl6IrLowerEmit(ctx, XL6_IR_INSTR_BRANCH, id, XL6_IR_TYPE_INVALID, 0, &condition, 1, NULL) )
-        return XL6_IR_VALUE_INVALID;
-    branch = &ctx->module->instructions[ctx->module->instructionCount - 1];
-    branch->trueTarget = thenBlock;
-    branch->falseTarget = elseBlock;
-    xl6IrLowerEnterBlock(ctx, thenBlock);
-    {
-        XL6_IrNodeId branchId = ctx->module->children[node->firstChild + 1];
-        const XL6_IrNode* branch = xl6IrNodeGet(ctx->module, branchId);
-        value = xl6IrLowerNodeAsType(
-            ctx, id, branchId, branch, node->storageType);
-        value = xl6IrLowerOwnedValueBoundary(
-            ctx, id, node->storageType, branch, value);
-    }
-    if ( value == XL6_IR_VALUE_INVALID ||
-         !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, id, node->storageType, temporary, &value, 1, NULL) ||
-         !xl6IrLowerEmitJump(ctx, id, mergeBlock) ) return XL6_IR_VALUE_INVALID;
-    xl6IrLowerEnterBlock(ctx, elseBlock);
-    {
-        XL6_IrNodeId branchId = ctx->module->children[node->firstChild + 2];
-        const XL6_IrNode* branch = xl6IrNodeGet(ctx->module, branchId);
-        value = xl6IrLowerNodeAsType(
-            ctx, id, branchId, branch, node->storageType);
-        value = xl6IrLowerOwnedValueBoundary(
-            ctx, id, node->storageType, branch, value);
-    }
-    if ( value == XL6_IR_VALUE_INVALID ||
-         !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, id, node->storageType, temporary, &value, 1, NULL) ||
-         !xl6IrLowerEmitJump(ctx, id, mergeBlock) ) return XL6_IR_VALUE_INVALID;
-    xl6IrLowerEnterBlock(ctx, mergeBlock);
-    if ( !xl6IrLowerEmit(ctx, XL6_IR_INSTR_LOAD, id, node->storageType,
-            temporary, NULL, 0, &value) ) return XL6_IR_VALUE_INVALID;
-    if ( resultType != NULL && resultType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
-         !xl6IrLowerEmit(ctx, XL6_IR_INSTR_MOVE, id, node->storageType,
-             temporary, &value, 1, NULL) ) return XL6_IR_VALUE_INVALID;
     return value;
 }
 
@@ -32562,7 +32484,7 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
     case XL6_IR_NODE_IF:
         return xl6IrLowerIf(ctx, id, node);
     case XL6_IR_NODE_CONDITIONAL:
-        return xl6IrLowerConditional(ctx, id, node);
+        return xl6IrLowerConditionalAsType(ctx, id, node, node->storageType);
     case XL6_IR_NODE_LOOP:
         if ( node->sourceKind == XL6_AST_WHILE ) return xl6IrLowerWhile(ctx, id, node);
         if ( node->sourceKind == XL6_AST_DO_WHILE ) return xl6IrLowerDoWhile(ctx, id, node);
