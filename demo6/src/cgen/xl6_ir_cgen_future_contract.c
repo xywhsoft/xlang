@@ -424,7 +424,8 @@ static int xl6IrCgenRuntimeFutureAggregateAbi(
           !xl6IrCgenFuturePayloadBoxerAbiSupported(
               instruction->asyncResultAbi)) ||
          (instruction->asyncResultAbi == XL6_IR_ASYNC_RESULT_RETAINED_CLOSURE &&
-          !xl6IrCgenRuntimeCallableSignatureAbi(module, instruction->payloadType)) )
+          !xl6IrCgenRuntimeCallableSignatureAbi(module,
+              xl6IrRuntimeCallableFieldSourceSignature(module, instruction->payloadType))) )
         return 0;
     for ( i = 0; i < instruction->operandCount; ++i ) {
         const XL6_IrInstruction* source = xl6IrCgenValueDefinition(
@@ -515,7 +516,7 @@ static int xl6IrCgenRuntimeFutureAggregateArrayAbi(
             payload, instruction->asyncResultAbi) &&
         !(instruction->asyncResultAbi == XL6_IR_ASYNC_RESULT_RETAINED_CLOSURE &&
           !xl6IrCgenRuntimeCallableSignatureAbi(
-              module, instruction->payloadType));
+              module, xl6IrRuntimeCallableFieldSourceSignature(module, instruction->payloadType)));
     if ( shapeMatches && instruction->runtimeOp ==
              XL6_IR_RUNTIME_FUTURE_ALL_XVALUES_ARRAY &&
          instruction->asyncResultAbi != XL6_IR_ASYNC_RESULT_VOID &&
