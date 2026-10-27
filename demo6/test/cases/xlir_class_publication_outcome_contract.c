@@ -32,9 +32,9 @@ int main(int argc, char** argv)
         payload = producer->payloadType; producer->payloadType = XL6_IR_TYPE_INVALID;
         reject(&ir, NULL); producer->payloadType = payload;
     }
-    /* The three user classes and both expanded DynamicFields births commit
-     * code ownership; destructor-free classes are no longer omitted. */
-    assert(publications == 5 && mutations == 30); verify(&ir);
+    /* Three user classes and the clone/__clone__/default DynamicFields births
+     * all commit code ownership, including destructor-free classes. */
+    assert(publications == 6 && mutations == 36); verify(&ir);
     assert(xl6OutputOpenFile(&out, argv[1]) && xl6IrCgenEmitC(&out, &ir, &parse.diags)); xl6OutputClose(&out);
     assert(xl6OutputOpenFile(&out, argv[2]) && xl6IrCgenEmitHeader(&out, &ir, "CLASS_PUBLICATION", &parse.diags)); xl6OutputClose(&out);
     printf("Class publication: %llu checked consuming bindings, %llu rejected C/header-gated mutations\n",

@@ -3,6 +3,7 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$Directory)
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
+. (Join-Path $PSScriptRoot 'xlir_resident_closure.ps1')
 $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
 try {
@@ -21,6 +22,8 @@ try {
         @($files | ForEach-Object {[pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})
     if (@($inputs | Where-Object {(Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256}).Count) { throw 'Stale class-storage inputs' }
     New-Item -ItemType Directory -Path $outputPath | Out-Null
+    $closure=Get-XlirResidentClosure -Root $rootPath -Directory "$outputPath/resident-closure" -Sources @('src/runtime/xl6_code_finalizer.c','src/runtime/xl6_code_lease.c') -NativeProvider 'tools/xrt_single_header_impl.c'
+    $inputs+=@($closure.Inputs)
     Copy-Item -LiteralPath release/xl.dll -Destination "$outputPath/xl.dll"
     New-Item -ItemType Directory -Path "$outputPath/__xl_runtime" | Out-Null
     foreach ($header in $build.Headers) {
@@ -30,7 +33,7 @@ try {
     }
     & $ContractDriver "$outputPath/ir.c" "$outputPath/ir.h" *> "$outputPath/ir.log"
     $irExit=$LASTEXITCODE
-    $irComplete=[bool](Select-String -LiteralPath "$outputPath/ir.log" -SimpleMatch 'Class storage IR: 4 prepared allocations, 4 exact commits, 2 lifecycle field bindings, 24 rejected Typed/Lowered/C/header mutations' -Quiet)
+    $irComplete=[bool](Select-String -LiteralPath "$outputPath/ir.log" -SimpleMatch 'Class storage IR: 5 prepared allocations, 5 exact commits, 2 lifecycle field bindings, 27 rejected Typed/Lowered/C/header mutations' -Quiet)
     $includePath=[IO.Path]::GetFullPath((Join-Path $PublicDirectory 'include'))
     $emission=@()
     foreach ($phase in @('emit','repeat')) {
@@ -45,27 +48,27 @@ try {
         if (!(Test-Path $first) -or !(Test-Path $repeat) -or (Get-FileHash $first).Hash -ne (Get-FileHash $repeat).Hash) { $deterministic=$false }
         if (Test-Path $first) { Copy-Item -LiteralPath $first -Destination "$outputPath/xlir_class_storage.generated.$extension" }
     }
-    $strict=@('-std=c11','-Wall','-Wextra','-Werror','-I.',"-I$includePath","-I$outputPath")
+    $strict=@('-std=c11','-Wall','-Wextra','-Werror','-I.','-Irelease','-Irelease/include',"-I$includePath","-I$outputPath")
     $libs=@('-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32')
     $hostFlags=@('-Irelease','-Ilib/tcc','-DJOINT_SOURCE_XRT','-ffunction-sections','-fdata-sections',
         '-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter','-Wno-pointer-sign',
         '-Wno-format-truncation','-Wno-missing-field-initializers',
-        (New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $outputPath.Replace('\','/')))
+        (New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $outputPath.Replace('\','/') -RawArgument))
     $embedded=@('xl_api.o','xl_api_path.o','xl6_console.o','xlir_public_source_driver.o')
     $dependencies=@($build.Objects | Where-Object {[IO.Path]::GetFileName($_.Path) -notin $embedded} | ForEach-Object Path)
     $lanes=@()
     foreach ($level in @(0,2)) {
         $dll="$outputPath/generated-O$level.dll"
-        & gcc @strict "-O$level" -shared test/cases/xlir_class_storage_dll.c -o $dll *> "$outputPath/dll-O$level.log"
-        if ($LASTEXITCODE -ne 0) { throw 'Class storage DLL build failed' }
+        $dllExit=Invoke-XlirGccToLog ($strict+@("-O$level",'-shared','test/cases/xlir_class_storage_dll.c','-o',$dll)) "$outputPath/dll-O$level.log"
+        if ($dllExit -ne 0) { throw 'Class storage DLL build failed' }
         foreach ($kind in @('native','language-tcc')) {
             $lane="$outputPath/$kind-O$level"
             if ($kind -eq 'native') {
-                & gcc @strict "-O$level" test/cases/xlir_class_storage_contract.c src/runtime/xl6_code_finalizer.c src/runtime/xl6_code_lease.c $runtime[0].Path @libs -o "$lane.exe" *> "$lane.build.log"
+                $buildExit=Invoke-XlirGccToLog ($strict+@("-O$level",'test/cases/xlir_class_storage_contract.c')+@($closure.Sources)+@($runtime[0].Path)+$libs+@('-o',"$lane.exe")) "$lane.build.log"
             } else {
-                & gcc @strict @hostFlags "-O$level" test/cases/xlir_class_storage_tcc_host.c @dependencies release/xl.dll '-Wl,--gc-sections' @libs -o "$lane.exe" *> "$lane.build.log"
+                $buildExit=Invoke-XlirGccToLog ($strict+$hostFlags+@("-O$level",'test/cases/xlir_class_storage_tcc_host.c')+$dependencies+@('release/xl.dll','-Wl,--gc-sections')+$libs+@('-o',"$lane.exe")) "$lane.build.log"
             }
-            $buildExit=$LASTEXITCODE; $runExit=$null; $complete=$false
+            $runExit=$null; $complete=$false
             if ($buildExit -eq 0) {
                 $options=@{FilePath="$lane.exe";WindowStyle='Hidden';PassThru=$true;WorkingDirectory=$rootPath;
                     RedirectStandardOutput="$lane.out.log";RedirectStandardError="$lane.err.log"}

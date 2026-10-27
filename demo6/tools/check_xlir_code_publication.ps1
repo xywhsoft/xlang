@@ -2,6 +2,8 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$ContractDriver,
     [Parameter(Mandatory=$true)][string]$Directory)
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
+. (Join-Path $PSScriptRoot 'xlir_resident_closure.ps1')
 $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
 try {
@@ -20,28 +22,31 @@ try {
         @($files | ForEach-Object {[pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})
     if (@($inputs | Where-Object {(Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256}).Count) { throw 'Stale publication inputs' }
     New-Item -ItemType Directory -Path $outputPath | Out-Null
+    $closure=Get-XlirResidentClosure -Root $rootPath -Directory "$outputPath/resident-closure" -Sources @('src/runtime/xl6_code_lease.c','src/runtime/xl6_code_finalizer.c','src/runtime/xl6_frame_storage.c') -NativeProvider 'tools/xrt_single_header_impl.c' -PublicDirectory $PublicDirectory -Fixtures @('test/cases/xlir_class_publication_outcome.xl')
+    $inputs+=@($closure.Inputs)
     $prefix=Join-Path $outputPath 'publication'
     & $ContractDriver "$prefix.c" "$prefix.h" *> "$outputPath/ir.log"
     $irExit=$LASTEXITCODE
-    $irComplete=[bool](Select-String -LiteralPath "$outputPath/ir.log" -SimpleMatch 'Class publication: 5 checked consuming bindings, 30 rejected C/header-gated mutations' -Quiet)
+    $irComplete=[bool](Select-String -LiteralPath "$outputPath/ir.log" -SimpleMatch 'Class publication: 6 checked consuming bindings, 36 rejected C/header-gated mutations' -Quiet)
     $includePath=[IO.Path]::GetFullPath((Join-Path $PublicDirectory 'include'))
-    $strict=@('-std=c11','-Wall','-Wextra','-Werror','-I.',"-I$includePath",'-Wno-unused-function',
+    $strict=@('-std=c11','-Wall','-Wextra','-Werror','-I.','-Irelease','-Irelease/include',"-I$includePath",'-Wno-unused-function',
         '-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-label','-Wno-unused-but-set-variable',
         '-Wno-unused-const-variable','-Wno-missing-field-initializers','-Wno-pointer-sign','-Wno-format-truncation')
     $libs=@('-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32')
     $lanes=@()
     foreach ($level in @(0,2)) {
         $dll="$outputPath/scope-O$level.dll"
-        & gcc @strict "-O$level" -shared test/cases/xlir_code_scope_drop.c -o $dll *> "$outputPath/dll-O$level.log"
-        if ($LASTEXITCODE -ne 0) { throw 'Code scope DLL build failed' }
+        $dllExit=Invoke-XlirGccToLog ($strict+@("-O$level",'-shared','test/cases/xlir_code_scope_drop.c','-o',$dll)) "$outputPath/dll-O$level.log"
+        if ($dllExit -ne 0) { throw 'Code scope DLL build failed' }
         foreach ($name in @('scope','publication')) {
             $lane="$outputPath/$name-O$level"
             $sources=if ($name -eq 'scope') { @('test/cases/xlir_code_scope_contract.c','src/runtime/xl6_code_lease.c') }
                 else { @("$prefix.c",'test/cases/xlir_class_publication_outcome_native.c','test/cases/xlir_class_publication_outcome_host.c',
                     'src/runtime/xl6_code_lease.c','src/runtime/xl6_code_finalizer.c','src/runtime/xl6_slot.c','src/runtime/xl6_frame_storage.c','src/runtime/xl6_continuation_frame.c','src/runtime/xl6_future_wait.c','src/runtime/xl6_task.c','src/runtime/xl6_task_frame.c','src/runtime/xl6_task_pool.c','src/runtime/xl6_capture.c','src/runtime/xl6_value_iterator.c','src/runtime/xl6_future_callback.c','src/runtime/xl6_generator.c',
                     'src/runtime/xl6_future_payload.c','src/runtime/xl6_closure.c','src/runtime/xl6_cell.c','src/runtime/xl6_continuation_queue.c') }
-            & gcc @strict "-O$level" @sources $runtime[0].Path @libs -o "$lane.exe" *> "$lane.build.log"
-            $buildExit=$LASTEXITCODE; $runExit=$null; $complete=$false
+            if($name-eq'publication'){$sources=@($sources|Where-Object {$_-notlike'src/*'})+@($closure.Sources)}
+            $buildExit=Invoke-XlirGccToLog ($strict+@("-O$level")+$sources+@($runtime[0].Path)+$libs+@('-o',"$lane.exe")) "$lane.build.log"
+            $runExit=$null; $complete=$false
             if ($buildExit -eq 0) {
                 $arguments=if ($name -eq 'scope') {@('"'+$dll+'"')} else {@()}
                 $options=@{FilePath="$lane.exe";WindowStyle='Hidden';PassThru=$true;RedirectStandardOutput="$lane.out.log";RedirectStandardError="$lane.err.log"}
