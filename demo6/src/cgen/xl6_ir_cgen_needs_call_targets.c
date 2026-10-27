@@ -29,6 +29,26 @@ static int xl6IrCgenRequireErrorResult(
 }
 
 
+/* One codec proof selects both emitted declarations and artifact symbols. */
+static void xl6IrCgenRequireValueCodecNeeds(XL6_IrCgenNeeds* needs,
+    XL6_IrSequenceCodecAbi codec, bool input, bool output)
+{
+    if (codec==XL6_IR_SEQUENCE_CODEC_DIRECT || (!input && !output)) return;
+    needs->needsXValueRuntime=1;
+    if (codec==XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1) {
+        if(input)needs->needsXValueClosureBridgeRuntime=1;
+        if(output)needs->needsXValueClosureProjectionRuntime=1;
+        needs->needsClosureRuntime=1;needs->needsXCallRuntime=1;
+    } else if (codec==XL6_IR_SEQUENCE_CODEC_ERROR_VALUE_V1) {
+        if(input)needs->needsXValueErrorBoxRuntime=1;
+        if(output)needs->needsXValueErrorProjectionRuntime=1;
+        needs->needsXValueHandleRuntime=1;needs->needsXValueTypeIdentityRuntime=1;
+        needs->needsErrorRuntime=1;needs->needsRuntimeTrap=1;
+    } else if (codec==XL6_IR_SEQUENCE_CODEC_UNION_VALUE_V1) {
+        needs->needsXValueUnionRuntime=1;needs->needsRuntimeTrap=1;
+    }
+}
+
 static int xl6IrCgenAnalyzeCallTargetNeeds(
     const XL6_IrModule* module, XL6_IrCgenNeeds* needs,
     XL6_DiagList* diags)
@@ -40,20 +60,8 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
         if ( target->reachability == XL6_IR_REACHABILITY_UNREACHABLE ) continue;
         XL6_IrNativeCallValuePlan value={0};
         if (!xl6IrNativeCallValuePlanBuild(module,target,&value)) return 0;
-        if (xl6IrCgenNativeCallValueEncoded(&value) && (value.inputParameter || value.output)) {
-            needs->needsXValueRuntime=1;
-            if (value.value.codecAbi==XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1) {
-                if(value.inputParameter)needs->needsXValueClosureBridgeRuntime=1;
-                if(value.output)needs->needsXValueClosureProjectionRuntime=1;
-                needs->needsClosureRuntime=1;needs->needsXCallRuntime=1;
-            } else if(value.value.codecAbi==XL6_IR_SEQUENCE_CODEC_ERROR_VALUE_V1) {
-                needs->needsXValueErrorBoxRuntime=1;needs->needsXValueErrorProjectionRuntime=1;
-                needs->needsXValueHandleRuntime=1;needs->needsXValueTypeIdentityRuntime=1;
-                needs->needsErrorRuntime=1;needs->needsRuntimeTrap=1;
-            } else if(value.value.codecAbi==XL6_IR_SEQUENCE_CODEC_UNION_VALUE_V1) {
-                needs->needsXValueUnionRuntime=1;needs->needsRuntimeTrap=1;
-            }
-        }
+        if (xl6IrCgenNativeCallValueEncoded(&value))
+            xl6IrCgenRequireValueCodecNeeds(needs,value.value.codecAbi,value.inputParameter!=0,value.output);
         if(target->asyncResultAbi==XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE)
             needs->needsNativeFuturePayloadRuntime=1;
         if(target->kind==XL6_IR_CALL_TARGET_INTERNAL_ASYNC && target->asyncCaptureDestroyAbis)

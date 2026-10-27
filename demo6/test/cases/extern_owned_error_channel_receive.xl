@@ -1,0 +1,5 @@
+// This entire module has no Error producer or Array box to mask missing needs.
+channel<error?> pipe=channel::<error?>(1)
+pipe.close()
+auto status,item=pipe.recv()
+assert status==channelStatus.closed and item==null
