@@ -104,7 +104,7 @@ int main(int argc, char** argv)
     }
     printf("property transaction: %llu accessor calls, %llu checked outcomes, %llu shared getter/setter pairs, %llu rejected mutations\n",
         (unsigned long long)calls, (unsigned long long)raising, (unsigned long long)paired, (unsigned long long)mutations);
-    assert(calls == 29 && raising == 25 && paired == 9 && mutations == 63);
+    assert(calls == 29 && raising == 29 && paired == 9 && mutations == 67);
     assert(ir.classDispatchSlotCount == 2);
     for (i = 0; i < ir.classDispatchSlotCount; ++i) {
         XL6_IrClassDispatchSlot* slot = &ir.classDispatchSlots[i];
@@ -113,7 +113,9 @@ int main(int argc, char** argv)
         XL6_IrCallErrorPhysicalAbi physical = slot->errorPhysicalAbi;
         XL6_IrParameterAbi parameter = slot->parameterAbis[0];
         XL6_IrParameterAbi* parameters = slot->parameterAbis;
-        assert(base && base->errorAbi == XL6_IR_ERROR_ABI_NO_RAISE && effect == XL6_IR_ERROR_ABI_MAY_RAISE);
+        /* Owning string returns/assignment can allocate in the base too.
+         * Scalar no-raise slot lifting is covered by property_overload_selection. */
+        assert(base && base->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE && effect == XL6_IR_ERROR_ABI_MAY_RAISE);
         assert(physical == XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER && parameter == XL6_IR_PARAMETER_ABI_BORROW);
         slot->errorAbi = XL6_IR_ERROR_ABI_NO_RAISE; reject(&ir); slot->errorAbi = effect;
         slot->errorPhysicalAbi = XL6_IR_CALL_ERROR_PHYSICAL_NONE; reject(&ir); slot->errorPhysicalAbi = physical;
@@ -121,7 +123,7 @@ int main(int argc, char** argv)
         slot->parameterAbis = NULL; reject(&ir); slot->parameterAbis = parameters;
     }
     printf("property virtual slots: 2 joined outcomes, borrowed keys, %llu total rejected mutations\n", (unsigned long long)mutations);
-    assert(mutations == 71);
+    assert(mutations == 75);
     assert(xl6IrVerifyModule(&ir, &parse.diags));
     assert(argc == 4 && xl6OutputOpenFile(&out, argv[1]));
     if (!xl6IrCgenEmitC(&out, &ir, &parse.diags)) {

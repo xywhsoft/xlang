@@ -1609,8 +1609,8 @@ static const XL6_AstNode* xl6SemFindStaticClassFieldNode(XL6_SemContext* ctx, co
 static XL6_AstNode* xl6SemCloneStaticClassFieldType(XL6_SemContext* ctx, XL6_AstNode* member);
 static XL6_AstNode* xl6SemResolveStaticClassFuncCall(XL6_SemContext* ctx, XL6_AstNode* call, int report);
 static XL6_AstNode* xl6SemCloneProtocolReturnType(XL6_SemContext* ctx, const XL6_AstNode* receiverType, const char* protocolName);
-static XL6_AstNode* xl6SemClonePropertyGetterType(XL6_SemContext* ctx, XL6_AstNode* member, XL6_AstNode** args, size_t argCount, int report);
-static XL6_AstNode* xl6SemClonePropertyIndexGetterType(XL6_SemContext* ctx, XL6_AstNode* indexExpr, int report);
+static XL6_AstNode* xl6SemClonePropertyGetterType(XL6_SemContext* ctx, XL6_AstNode* member, XL6_AstNode** args, size_t argCount, XL6_AstNode* operation, int report);
+static XL6_AstNode* xl6SemClonePropertyIndexGetterType(XL6_SemContext* ctx, XL6_AstNode* indexExpr, int bind, int report);
 static XL6_AstNode* xl6SemClonePropertySetterValueType(XL6_SemContext* ctx, XL6_AstNode* operation, XL6_AstNode* left, XL6_AstNode* valueExpr, int report);
 static int xl6SemClassHasPropertyName(XL6_SemContext* ctx, XL6_AstNode* classNode, const char* name, int kind);
 static int xl6SemLeftNamesClassProperty(XL6_SemContext* ctx, XL6_AstNode* left);
@@ -6367,11 +6367,14 @@ static XL6_AstNode* xl6SemCloneClassCallableReturnType(
     return xl6SemCloneTypeNode(returns->children[0]);
 }
 
+/* NULL operation is a type-only query. Only the semantic check supplies the
+ * complete operation that owns the selected call and argument ownership. */
 static XL6_AstNode* xl6SemClonePropertyGetterType(
     XL6_SemContext* ctx,
     XL6_AstNode* member,
     XL6_AstNode** args,
     size_t argCount,
+    XL6_AstNode* operation,
     int report)
 {
     XL6_AstNode* receiverType;
@@ -6417,8 +6420,10 @@ static XL6_AstNode* xl6SemClonePropertyGetterType(
     if ( getter != NULL && concreteGetter != NULL ) {
         const XL6_AstNode* returns = xl6SemCallableReturns(concreteGetter);
 
-        xl6SemSetCallPlan(member, XL6_SEM_CALL_WITNESS, getter);
-        xl6SemAnnotateResolvedCallOwnership(ctx,call, concreteGetter);
+        if (operation != NULL) {
+            xl6SemSetCallPlan(operation, XL6_SEM_CALL_WITNESS, getter);
+            xl6SemAnnotateResolvedCallOwnership(ctx,call, concreteGetter);
+        }
         result = returns != NULL && returns->childCount == 1 ?
             xl6SemCloneTypeNode(returns->children[0]) : NULL;
         xl6AstFree(concreteGetter);
@@ -6438,8 +6443,8 @@ static XL6_AstNode* xl6SemClonePropertyGetterType(
     }
 
     getter = xl6SemResolveClassPropertyEx(ctx, call, classNode, concreteType, member->text, XL6_AST_GET, report);
-    if ( getter != NULL ) {
-        xl6SemSetCallPlan(member, XL6_SEM_CALL_PROPERTY_GET, getter);
+    if ( getter != NULL && operation != NULL ) {
+        xl6SemSetCallPlan(operation, XL6_SEM_CALL_PROPERTY_GET, getter);
         xl6SemAnnotateResolvedCallOwnership(ctx,call, getter);
     }
     result = xl6SemCloneClassCallableReturnType(ctx, concreteType, classNode, getter);
@@ -6489,7 +6494,7 @@ static XL6_AstNode* xl6SemCloneClassMemberCallReturnType(XL6_SemContext* ctx, XL
     return result;
 }
 
-static XL6_AstNode* xl6SemClonePropertyIndexGetterType(XL6_SemContext* ctx, XL6_AstNode* indexExpr, int report)
+static XL6_AstNode* xl6SemClonePropertyIndexGetterType(XL6_SemContext* ctx, XL6_AstNode* indexExpr, int bind, int report)
 {
     XL6_AstNode* receiver;
     XL6_AstNode** args;
@@ -6515,7 +6520,17 @@ static XL6_AstNode* xl6SemClonePropertyIndexGetterType(XL6_SemContext* ctx, XL6_
     for ( i = 0; i < argCount; ++i ) {
         args[i] = xl6SemIndexArgAt(indexExpr, i);
     }
-    result = xl6SemClonePropertyGetterType(ctx, receiver, args, argCount, report);
+    /* The whole INDEX owns an indexed getter. Type queries neither select a
+     * different callable on MEMBER nor consume its argument ownership. The
+     * MEMBER becomes a non-value selector only after this getter is selected;
+     * otherwise a zero-argument getter can still return an indexed container. */
+    result = xl6SemClonePropertyGetterType(ctx, receiver, args, argCount,
+        bind ? indexExpr : NULL, report);
+    if (result != NULL && bind) {
+        xl6SemSetCallPlan(receiver, XL6_SEM_CALL_NONE, NULL);
+        xl6AstFree(receiver->inferredType);
+        receiver->inferredType = NULL;
+    }
     xrtFree(args);
     return result;
 }
@@ -6742,8 +6757,8 @@ static int xl6SemCheckPropertyAssignTarget(
     getterType = NULL;
     if ( !xl6TextEquals(op, "=") ) {
         getterType = left != NULL && left->kind == XL6_AST_INDEX ?
-            xl6SemClonePropertyIndexGetterType(ctx, left, 1) :
-            xl6SemClonePropertyGetterType(ctx, left, NULL, 0, 1);
+            xl6SemClonePropertyIndexGetterType(ctx, left, 1, 1) :
+            xl6SemClonePropertyGetterType(ctx, left, NULL, 0, left, 1);
         if ( getterType == NULL ) {
             xl6SemErrorNode(ctx, left, "class property compound assignment requires matching get");
             return 0;
@@ -13925,7 +13940,7 @@ static XL6_AstNode* xl6SemCloneIndexedItemType(XL6_SemContext* ctx, XL6_AstNode*
 
     receiver = expr->childCount > 0 ? expr->children[0] : NULL;
     if ( receiver != NULL && receiver->kind == XL6_AST_MEMBER ) {
-        XL6_AstNode* propertyType = xl6SemClonePropertyIndexGetterType(ctx, expr, 0);
+        XL6_AstNode* propertyType = xl6SemClonePropertyIndexGetterType(ctx, expr, 0, 0);
         if ( propertyType != NULL ) {
             return propertyType;
         }
@@ -15908,7 +15923,7 @@ static int xl6SemCheckIndexExpr(XL6_SemContext* ctx, XL6_AstNode* node)
 
     receiver = node != NULL && node->childCount > 0 ? node->children[0] : NULL;
     if ( receiver != NULL && receiver->kind == XL6_AST_MEMBER ) {
-        XL6_AstNode* propertyType = xl6SemClonePropertyIndexGetterType(ctx, node, 0);
+        XL6_AstNode* propertyType = xl6SemClonePropertyIndexGetterType(ctx, node, 1, 0);
         if ( propertyType != NULL ) {
             size_t i;
             ok = 1;
@@ -16273,7 +16288,8 @@ static int xl6SemCheckSafeMemberExpr(XL6_SemContext* ctx, XL6_AstNode* node)
             ok = 0;
         }
     } else {
-        resultType = xl6SemCloneSafeMemberResultType(ctx, node);
+        resultType = xl6SemClonePropertyGetterType(ctx, node, NULL, 0, node, 0);
+        if (resultType == NULL) resultType = xl6SemCloneSafeMemberResultType(ctx, node);
         if ( resultType == NULL ) {
             xl6SemErrorNode(ctx, node, "safe member was not found on receiver type");
             ok = 0;
@@ -16520,7 +16536,8 @@ static int xl6SemCheckMemberExpr(XL6_SemContext* ctx, XL6_AstNode* node)
         xl6AstFree(accessType);
     }
 
-    fieldType = xl6SemCloneMemberFieldType(ctx, node);
+    fieldType = xl6SemClonePropertyGetterType(ctx, node, NULL, 0, node, 0);
+    if (fieldType == NULL) fieldType = xl6SemCloneMemberFieldType(ctx, node);
     if ( fieldType != NULL ) {
         int fieldProtocol = xl6SemBindFieldProtocol(ctx, node);
         if ( fieldProtocol == 0 ) {
@@ -23384,7 +23401,7 @@ static XL6_AstNode* xl6SemCloneMemberFieldType(XL6_SemContext* ctx, XL6_AstNode*
         }
     }
     if ( result == NULL ) {
-        result = xl6SemClonePropertyGetterType(ctx, member, NULL, 0, 0);
+        result = xl6SemClonePropertyGetterType(ctx, member, NULL, 0, NULL, 0);
     }
     if ( result == NULL ) {
         result = xl6SemCloneProtocolReturnType(ctx, receiverType, "__field__");
@@ -23427,7 +23444,7 @@ static XL6_AstNode* xl6SemCloneSafeMemberResultType(
     } else {
         result = xl6SemCloneRecordFieldType(ctx, nullableInner, member->text);
         if ( result == NULL ) {
-            result = xl6SemClonePropertyGetterType(ctx, member, NULL, 0, 0);
+            result = xl6SemClonePropertyGetterType(ctx, member, NULL, 0, NULL, 0);
         }
         if ( result == NULL ) {
             result = xl6SemCloneProtocolReturnType(ctx, nullableInner, "__field__");

@@ -93,7 +93,7 @@ class PropertyDerived extends PropertyState
     end
 end
 PropertyState propertyCurrent = PropertyDerived(3)
-// Both non-raising base bodies are lifted into the slot's joined outcome.
+// Owning string copies are checked in both base and override bodies.
 export "property_base_virtual" func propertyBaseVirtual() as int
     PropertyState state = PropertyState(3)
     state.word["7"] = "base"

@@ -6,6 +6,7 @@
 void property_prepare(void);
 void property_finish(void);
 void property_cycle(void);
+void property_idle(void);
 int main(int argc, char** argv)
 {
     xmemdebugsnapshot initial, before, after;
@@ -13,8 +14,10 @@ int main(int argc, char** argv)
     assert(smoke || (argc == 1 && xrtMemDebugEnable(true)));
     if (!smoke) xrtMemDebugSnapshot(&initial);
     property_prepare(); property_cycle();
+    property_idle();
     if (!smoke) xrtMemDebugSnapshot(&before);
     for (i = 0; i < 100; ++i) property_cycle();
+    property_idle();
     if (!smoke) {
         xrtMemDebugSnapshot(&after);
         if (before.LiveCount != after.LiveCount || before.LiveBytes != after.LiveBytes)
@@ -34,6 +37,6 @@ int main(int argc, char** argv)
         assert(initial.DoubleFreeCount == after.DoubleFreeCount && initial.InvalidFreeCount == after.InvalidFreeCount);
         assert(initial.UseAfterFreeCount == after.UseAfterFreeCount);
     }
-    puts("property transaction: 8800 read/set/compound failure cases, 300 raising-cleanup cases, 3200 genuine async cases, 100 mixed-effect base dispatch cases, 100 normalized nullable-return cases, initial allocation baseline restored");
+    puts("property transaction: 8800 read/set/compound failure cases, 300 raising-cleanup cases, 2400 pending-source suspensions, 800 pre-await getter failures, 100 checked base dispatch cases, 100 normalized nullable-return cases, initial allocation baseline restored");
     return 0;
 }

@@ -2,7 +2,9 @@
 #include <stdio.h>
 #include "../../build/test/xlir_property_assignment_transaction.c"
 #include "../../build/test/xlir_property_assignment_transaction.bind.h"
+#include "test/support/xlir_property_await_barrier.h"
 static xpromise* pendingPromise;
+static xfuture* pendingInput;
 static int64_t payload = 4;
 extern bool xrtFutureDone(const xfuture*);
 extern bool xrtPromiseResolve(xpromise*, void*);
@@ -15,8 +17,9 @@ void property_fail(int64_t code)
 xfuture* property_future(void)
 {
     xfuture* result = NULL;
-    assert(!pendingPromise); pendingPromise = xrtPromiseCreate(&result, NULL);
-    assert(pendingPromise && result); return result;
+    assert(!pendingPromise && !pendingInput); pendingPromise = xrtPromiseCreate(&result, NULL);
+    assert(pendingPromise && result);
+    pendingInput = xrtFutureRef(result); assert(pendingInput); return result;
 }
 static void checked(int64_t result, int expected, const char* name, int mode, int stage)
 {
@@ -41,7 +44,16 @@ static int order(int kind, int mode, int stage)
     return value * 10;
 }
 void property_prepare(void) { assert(xlir_module_init() && !xrtGetError()); }
-void property_finish(void) { xlir_module_fini(); assert(!pendingPromise && !xrtGetError()); }
+void property_idle(void)
+{
+    uint64_t started = xrtClock();
+    assert(xlir_continuation_executor);
+    while (!xl6ContinuationExecutorIsIdle(xlir_continuation_executor)) {
+        assert(xrtClock() - started < 5000000);
+        xrtSleep(1);
+    }
+}
+void property_finish(void) { xlir_module_fini(); assert(!pendingPromise && !pendingInput && !xrtGetError()); }
 void property_cycle(void)
 {
     int stage, mode, reject;
@@ -58,6 +70,7 @@ void property_cycle(void)
         const xerror* error;
         int failingGetter = asyncStages[stage] == 3;
         property_start(mode, asyncStages[stage]);
+        xlirTestWaitForPropertyAwait(pendingInput, PROPERTY_PENDING, failingGetter != 0);
         assert(pendingPromise && xrtFutureDone(PROPERTY_PENDING) == (failingGetter != 0));
         property_replace();
         if (reject) {
@@ -75,6 +88,7 @@ void property_cycle(void)
             assert(!error && value && *value == 7);
         }
         xrtFutureDestroy(PROPERTY_PENDING); PROPERTY_PENDING = NULL;
+        xrtFutureDestroy(pendingInput); pendingInput = NULL;
         assert(!xrtGetError());
     }
 }
