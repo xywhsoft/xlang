@@ -25,7 +25,9 @@ try {
     $flags = @('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
         '-Wno-unused-label','-Wno-pointer-sign','-Wno-format-truncation','-Wno-missing-field-initializers','-I.','-Irelease','-Irelease/include','-Ilib/tcc','-Itest/cases',"-I$work","-I$($cohort.IncludeDirectory)",'-DXL_ENABLE_EXE_COMPILER=1')
     $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
-    $hostFlags=@('-DJOINT_SOURCE_XRT',(New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $cohort.IncludeDirectory.Replace('\','/') -RawArgument))
+    $hostFlags=@('-DJOINT_SOURCE_XRT',
+        (New-XlirCStringDefine 'JOINT_TCC_ARTIFACT_DIRECTORY' $work.Replace('\','/') -RawArgument),
+        (New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $cohort.IncludeDirectory.Replace('\','/') -RawArgument))
     $build=Invoke-XlirGccToLog ($flags+@('-O2')+$hostFlags+@('-c','test/cases/xlir_async_module_tcc_host.c','-o',"$prefix.host.o")) "$work/host.build.log"
     if ($build -ne 0) { throw 'TCC async source host build failed' }
     $build=Invoke-XlirGccToLog ($flags+@('-O2',"$prefix.host.o")+@($cohort.Objects)+@('release/xl.dll')+$libs+@('-o',"$prefix.exe")) "$work/host.link.log"
