@@ -19,6 +19,13 @@
 5. 同一 XLIR 的重复发射必须逐字节确定；生成结果必须通过严格 C、JIT/AOT 和相应宿主运行门。
 6. 标准库和原生组件的需求来自已验证的 runtime/native dependency plan，不扫描源码或生成后的 C 文本猜测功能。
 
+具体类的 fixed typed 方法绑定由 Lowered XLIR 的
+`XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER` 指定唯一目标和一个接收者捕获。
+重载选择、泛型闭合、默认实参、native 参数投影与虚方法槽位均在 IR 中决定。
+C emitter 直接发射 bool/typed-out 的闭包入口函数体，不再套转发 thunk；
+参数/结果不经过动态 Value，owned 字符串沿用普通接管路径。动态擦除调用
+仍使用其原有 ABI，不能用这个 role 绕过来源及签名校验。
+
 ## Process 配置与同步捕获
 
 Command、Options、Result、Status 的真实参数/结果、所有权、错误和效果

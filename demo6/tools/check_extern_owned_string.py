@@ -81,6 +81,13 @@ def main():
             ['test/cases/extern_owned_string_host.c'],[]),
         ('native-bound-defaults','test/cases/extern_owned_native_bound_defaults.xl',
             ['test/cases/extern_owned_string_host.c','test/cases/extern_owned_native_bound_defaults_host.c'],[]),
+        ('nullable-generic-channel-arguments','test/cases/extern_owned_nullable_channel_arguments.xl',
+            ['test/cases/extern_owned_task_scalars_host.c'],[]),
+        ('error-array-extract','test/cases/extern_owned_error_array_extract.xl',
+            ['test/cases/extern_owned_task_scalars_host.c','test/cases/extern_owned_string_host.c'],[]),
+        ('typed-bound-methods','test/cases/extern_owned_typed_bound_methods.xl',[],[]),
+        ('typed-bound-native','test/cases/extern_owned_typed_bound_native.xl',
+            ['test/cases/extern_owned_string_host.c','test/cases/extern_owned_typed_bound_native_host.c'],['typed_bound_text','typed_bound_roundtrip']),
     ]
     sha=lambda path:hashlib.sha256(Path(path).read_bytes()).hexdigest()
     inputs=[ROOT/source for _,source,_,_ in cases]+[ROOT/path for _,_,paths,_ in cases for path in paths]
@@ -115,6 +122,9 @@ def main():
         if case=='extern_owned_string':
             assert re.search(r'const char\* borrowed_raw_\d+ = owned_borrowed\(',generated),'borrowed C prototype changed'
             assert 'xlir_string_from_cstr(borrowed_raw_' in generated,'borrowed default changed'
+        if case=='typed-bound-native':
+            assert re.search(r'#define xlir_closure_invoke_(\d+) xlir_fn_\1',generated),'bound entry gained another forwarding thunk'
+            assert 'xlir_bound_output' in generated,'bound result lost its typed output ABI'
         if case=='task-all-C-scalars':
             # Aggregation already produces an xvalue array. Its scalar boxer
             # must use the native profile and identity, never signed i64.
@@ -169,6 +179,7 @@ def main():
         'test/cases/bad_extern_owned_task_variadic.xl':'task.spawn argument type does not match func signature',
         'test/cases/bad_extern_owned_task_nullable.xl':'task.spawn first argument must be a func value',
         'test/cases/bad_extern_owned_task_nullable_invalidated.xl':'task.spawn first argument must be a func value',
+        'test/cases/bad_extern_owned_nullable_invariant.xl':'泛型函数类型推断冲突',
     }
     for relative,message in negatives.items():
         source=ROOT/relative;name=source.stem.removeprefix('bad_extern_owned_')

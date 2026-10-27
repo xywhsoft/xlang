@@ -61,7 +61,8 @@ extern string 返回继续复制借用内容。重复 C 符号不能声明冲突
 | native 方法经 protocol 分派 | 同一接管合同，保留原指针；既有分派成本仍在 |
 | 可空 @no_raise 直接入口 | 没有可失败的 C 文本实参准备时不增加 foreign scope；生成调用及指针/长度构造 |
 | 可失败入口 | 既有 foreign scope、NULL/长度检查，必须单列成本 |
-| xcall、动态方法、保存为函数值的实例方法 | 使用既有动态表示/装箱/解箱，可分配及复制 |
+| 具体类实例方法绑定到固定 typed 函数值 | 编译期选择重载并捕获接收者；类型化调用保持 owned 返回的原指针，不装箱参数或结果 |
+| xcall、擦除到 var 的方法及其他动态调用 | 使用既有动态表示/装箱/解箱，可分配及复制 |
 | 普通赋值、捕获、容器、任务结果 | 普通 string 既有值语义，不承诺全部零拷贝 |
 | 普通字符串槽位搬移 | 继续使用既有 Slot runtime 发布/清空协议，不能把普通生命周期调用算作已消除 |
 
@@ -109,9 +110,32 @@ scope；普通 string 的布局和读路径没有新增判断。本路径不宣�
 与手写 C 等速。动态 `var`/`xcall` 仍需先收窄为普通固定调用签名；扩展资源
 结果、特殊 native 参数和实例接收者不通过原生可变参数函数值隐式擦除 ABI。
 
-尤其是既有 xrtValueStringTake 会把缓冲 realloc 到精确长度，跨尺寸类时会移动
-并复制；绑定实例方法还会经过动态结果的字符串解箱复制。这些不是 @owned 的
-接管步骤，本轮未调整其设计，也不能用本轮结果声称这些路径零损耗。
+具体类的实例方法可直接绑定到固定函数签名，包含非空流证明后的可空接收者、
+按签名选择的重载，以及由参数/结果类型闭合的实例泛型方法。省略的尾部形参
+必须有默认值，默认表达式仍在每次调用时执行，并使用捕获的接收者和前序实参。
+虚方法保留虚分派和整个槽位的可失败合同。示例：
+
+```xlang
+class Native
+    private native point handle
+    extern "native_open" create()
+    extern "native_close" destroy()
+    extern "native_text" @owned func Text(c_int mode=c_int(7)) as string
+end
+Native value=Native()
+func() as string read=value.Text
+string text=read()
+```
+
+绑定只求值一次接收者，闭包保留它直到最后一个引用释放。绑定本身仍有普通
+闭包分配、引用与代码 lease 成本；调用保留闭包读取协议、错误作用域及必要的
+strlen。本路径消除动态参数/结果装箱和返回字符串复制，没有宣称整个闭包
+调用与手写 C 等速。生成的绑定函数直接使用 typed 闭包入口 ABI，省去额外
+的转发 thunk，重载和泛型判断均不进入运行时。
+
+既有 xrtValueStringTake 会把缓冲 realloc 到精确长度，跨尺寸类时可能移动并
+复制；方法一旦擦除到动态 Value，仍可能经过字符串投影复制。这些成本不属于
+@owned 接管步骤，不能用类型化路径的结果声称所有动态路径都零损耗。
 
 ## XACME 试用
 
