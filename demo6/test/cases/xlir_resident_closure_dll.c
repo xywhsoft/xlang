@@ -31,4 +31,4 @@ __declspec(dllexport) bool closure_generated_adapter(void* data, const struct xr
 __declspec(dllexport) const char* const* closure_generated_names(void)
 { static const char* const names[] = {"amount"}; return names; }
 __declspec(dllexport) const xlir_call_default* closure_generated_defaults(void)
-{ static const xlir_call_default defaults[] = {{2, false, 42, 0, 0.0, NULL, 0u, 0u}}; return defaults; }
+{ static const xlir_call_default defaults[] = {{.abi=2, .i64_value=42}}; return defaults; }

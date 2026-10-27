@@ -11,23 +11,18 @@ func __op_text(string value) as string
     return value
 end
 
-func __op_owned_text(string? value) as string
-    if value == null then return "" end
-    return value
-end
-
-extern "xop_get_color" @owned func __op_get_color(point context, int x, int y) as string?
-extern "xop_get_frame_info" @owned func __op_get_frame_info(point context) as string?
-extern "xop_image_hash" @owned func __op_image_hash(point context, int x1, int y1, int x2, int y2) as string?
-extern "xop_get_colors" @owned func __op_get_colors(point context, int x1, int y1, int x2, int y2) as string?
-extern "xop_find_color_ex" @owned func __op_find_color_ex(point context, int x1, int y1, int x2, int y2, string color, float sim, int dir) as string?
-extern "xop_find_color" @owned func __op_find_color(point context, int x1, int y1, int x2, int y2, string color, float sim, int dir) as string?
-extern "xop_find_multi_color" @owned func __op_find_multi_color(point context, int x1, int y1, int x2, int y2, string firstColor, string offsetColor, float sim, int dir) as string?
-extern "xop_find_pic" @owned func __op_find_pic(point context, int x1, int y1, int x2, int y2, string picFile, string deltaColor, float sim, int dir) as string?
-extern "xop_find_color_block" @owned func __op_find_color_block(point context, int x1, int y1, int x2, int y2, string color, float sim, int width, int height) as string?
-extern "xop_find_pic_n" @owned func __op_find_pic_n(point context, int x1, int y1, int x2, int y2, string picFiles, string deltaColor, float sim, int dir) as string?
-extern "xop_find_pic_ex" @owned func __op_find_pic_ex(point context, int x1, int y1, int x2, int y2, string picFile, string deltaColor, float sim, int dir) as string?
-extern "xop_capture_to_mem" @owned func __op_capture_to_mem(point context, int x1, int y1, int x2, int y2) as string?
+extern "xop_get_color" @owned func __op_get_color(point context, int x, int y) as string
+extern "xop_get_frame_info" @owned func __op_get_frame_info(point context) as string
+extern "xop_image_hash" @owned func __op_image_hash(point context, int x1, int y1, int x2, int y2) as string
+extern "xop_get_colors" @owned func __op_get_colors(point context, int x1, int y1, int x2, int y2) as string
+extern "xop_find_color_ex" @owned func __op_find_color_ex(point context, int x1, int y1, int x2, int y2, string color, float sim, int dir) as string
+extern "xop_find_color" @owned func __op_find_color(point context, int x1, int y1, int x2, int y2, string color, float sim, int dir) as string
+extern "xop_find_multi_color" @owned func __op_find_multi_color(point context, int x1, int y1, int x2, int y2, string firstColor, string offsetColor, float sim, int dir) as string
+extern "xop_find_pic" @owned func __op_find_pic(point context, int x1, int y1, int x2, int y2, string picFile, string deltaColor, float sim, int dir) as string
+extern "xop_find_color_block" @owned func __op_find_color_block(point context, int x1, int y1, int x2, int y2, string color, float sim, int width, int height) as string
+extern "xop_find_pic_n" @owned func __op_find_pic_n(point context, int x1, int y1, int x2, int y2, string picFiles, string deltaColor, float sim, int dir) as string
+extern "xop_find_pic_ex" @owned func __op_find_pic_ex(point context, int x1, int y1, int x2, int y2, string picFile, string deltaColor, float sim, int dir) as string
+extern "xop_capture_to_mem" @owned func __op_capture_to_mem(point context, int x1, int y1, int x2, int y2) as string
 
 export class Op
     native point handle
@@ -57,51 +52,51 @@ export class Op
         return self.imageCompareNative(x1, y1, x2, y2, __op_text(picFile), sim)
     end
     func getColor(int x, int y) as string
-        return __op_owned_text(__op_get_color(self.handle, x, y))
+        return __op_get_color(self.handle, x, y)
     end
 
     func getColors(int x1, int y1, int x2, int y2) as string
-        return __op_owned_text(__op_get_colors(self.handle, x1, y1, x2, y2))
+        return __op_get_colors(self.handle, x1, y1, x2, y2)
     end
 
     func findColorEx(int x1, int y1, int x2, int y2, string color, float sim, int dir) as string
-        return __op_owned_text(__op_find_color_ex(self.handle, x1, y1, x2, y2, __op_text(color), sim, dir))
+        return __op_find_color_ex(self.handle, x1, y1, x2, y2, __op_text(color), sim, dir)
     end
 
     func findColor(int x1, int y1, int x2, int y2, string color, float sim, int dir) as string
-        return __op_owned_text(__op_find_color(self.handle, x1, y1, x2, y2, __op_text(color), sim, dir))
+        return __op_find_color(self.handle, x1, y1, x2, y2, __op_text(color), sim, dir)
     end
 
     func findMultiColor(int x1, int y1, int x2, int y2, string firstColor, string offsetColor, float sim, int dir) as string
-        return __op_owned_text(__op_find_multi_color(self.handle, x1, y1, x2, y2, __op_text(firstColor), __op_text(offsetColor), sim, dir))
+        return __op_find_multi_color(self.handle, x1, y1, x2, y2, __op_text(firstColor), __op_text(offsetColor), sim, dir)
     end
 
     func findPic(int x1, int y1, int x2, int y2, string picFile, string deltaColor, float sim, int dir) as string
-        return __op_owned_text(__op_find_pic(self.handle, x1, y1, x2, y2, __op_text(picFile), __op_text(deltaColor), sim, dir))
+        return __op_find_pic(self.handle, x1, y1, x2, y2, __op_text(picFile), __op_text(deltaColor), sim, dir)
     end
 
     func findColorBlock(int x1, int y1, int x2, int y2, string color, float sim, int width, int height) as string
-        return __op_owned_text(__op_find_color_block(self.handle, x1, y1, x2, y2, __op_text(color), sim, width, height))
+        return __op_find_color_block(self.handle, x1, y1, x2, y2, __op_text(color), sim, width, height)
     end
 
     func findPicN(int x1, int y1, int x2, int y2, string picFiles, string deltaColor, float sim, int dir) as string
-        return __op_owned_text(__op_find_pic_n(self.handle, x1, y1, x2, y2, __op_text(picFiles), __op_text(deltaColor), sim, dir))
+        return __op_find_pic_n(self.handle, x1, y1, x2, y2, __op_text(picFiles), __op_text(deltaColor), sim, dir)
     end
 
     func findPicEx(int x1, int y1, int x2, int y2, string picFile, string deltaColor, float sim, int dir) as string
-        return __op_owned_text(__op_find_pic_ex(self.handle, x1, y1, x2, y2, __op_text(picFile), __op_text(deltaColor), sim, dir))
+        return __op_find_pic_ex(self.handle, x1, y1, x2, y2, __op_text(picFile), __op_text(deltaColor), sim, dir)
     end
 
     func captureToMem(int x1, int y1, int x2, int y2) as string
-        return __op_owned_text(__op_capture_to_mem(self.handle, x1, y1, x2, y2))
+        return __op_capture_to_mem(self.handle, x1, y1, x2, y2)
     end
 
     func getFrameInfo() as string
-        return __op_owned_text(__op_get_frame_info(self.handle))
+        return __op_get_frame_info(self.handle)
     end
 
     func imageHash(int x1, int y1, int x2, int y2) as string
-        return __op_owned_text(__op_image_hash(self.handle, x1, y1, x2, y2))
+        return __op_image_hash(self.handle, x1, y1, x2, y2)
     end
 
     // mouse
@@ -139,38 +134,38 @@ end
 
 // module-level: window management
 extern "xop_find_window" func __op_find_window(string className, string title) as int
-extern "xop_enum_window" @owned func __op_enum_window(int parent, string title, string className, int filter) as string?
-extern "xop_enum_window_by_process" @owned func __op_enum_window_by_process(string process, string title, string className, int filter) as string?
-extern "xop_get_screen_size" @owned func __op_get_screen_size() as string?
-extern "xop_get_cursor_pos" @owned func __op_get_cursor_pos() as string?
-extern "xop_get_window_rect" @owned func __op_get_window_rect(int hwnd) as string?
+extern "xop_enum_window" @owned func __op_enum_window(int parent, string title, string className, int filter) as string
+extern "xop_enum_window_by_process" @owned func __op_enum_window_by_process(string process, string title, string className, int filter) as string
+extern "xop_get_screen_size" @owned func __op_get_screen_size() as string
+extern "xop_get_cursor_pos" @owned func __op_get_cursor_pos() as string
+extern "xop_get_window_rect" @owned func __op_get_window_rect(int hwnd) as string
 extern "xop_move_window" func __op_move_window(int hwnd, int x, int y) as int
 extern "xop_set_window_size" func __op_set_window_size(int hwnd, int w, int h) as int
-extern "xop_get_window_title" @owned func __op_get_window_title(int hwnd) as string?
+extern "xop_get_window_title" @owned func __op_get_window_title(int hwnd) as string
 extern "xop_set_window_title" func __op_set_window_title(int hwnd, string title) as int
 extern "xop_set_window_state" func __op_set_window_state(int hwnd, int mode) as int
 extern "xop_send_string" func __op_send_string(int hwnd, string str) as int
-extern "xop_client_to_screen" @owned func __op_client_to_screen(int hwnd, int x, int y) as string?
-extern "xop_screen_to_client" @owned func __op_screen_to_client(int hwnd, int x, int y) as string?
+extern "xop_client_to_screen" @owned func __op_client_to_screen(int hwnd, int x, int y) as string
+extern "xop_screen_to_client" @owned func __op_screen_to_client(int hwnd, int x, int y) as string
 
 // module-level: memory R/W
 extern "xop_read_int" func __op_read_int(int pid, int addr) as int
 extern "xop_read_float" func __op_read_float(int pid, int addr) as float
-extern "xop_read_string" @owned func __op_read_string(int pid, int addr, int len) as string?
+extern "xop_read_string" @owned func __op_read_string(int pid, int addr, int len) as string
 extern "xop_write_int" func __op_write_int(int pid, int addr, int value) as int
 extern "xop_write_float" func __op_write_float(int pid, int addr, float value) as int
 extern "xop_write_string" func __op_write_string(int pid, int addr, string value) as int
-extern "xop_find_memory" @owned func __op_find_memory(int pid, int startAddr, int endAddr, string pattern) as string?
+extern "xop_find_memory" @owned func __op_find_memory(int pid, int startAddr, int endAddr, string pattern) as string
 
 // module-level: process
-extern "xop_enum_process" @owned func __op_enum_process(string filter) as string?
-extern "xop_get_process_modules" @owned func __op_get_process_modules(int pid) as string?
+extern "xop_enum_process" @owned func __op_enum_process(string filter) as string
+extern "xop_get_process_modules" @owned func __op_get_process_modules(int pid) as string
 
 // module-level: system tools
 extern "xop_delay" func __op_delay(int ms)
 extern "xop_random_int" func __op_random_int(int min, int max) as int
 extern "xop_set_clipboard" func __op_set_clipboard(string text) as int
-extern "xop_get_clipboard" @owned func __op_get_clipboard() as string?
+extern "xop_get_clipboard" @owned func __op_get_clipboard() as string
 
 export func create() as Op
     return Op()
@@ -181,23 +176,23 @@ export func findWindow(string className, string title) as int
 end
 
 export func enumWindow(int parent, string title, string className, int filter) as string
-    return __op_owned_text(__op_enum_window(parent, __op_text(title), __op_text(className), filter))
+    return __op_enum_window(parent, __op_text(title), __op_text(className), filter)
 end
 
 export func enumWindowByProcess(string process, string title, string className, int filter) as string
-    return __op_owned_text(__op_enum_window_by_process(__op_text(process), __op_text(title), __op_text(className), filter))
+    return __op_enum_window_by_process(__op_text(process), __op_text(title), __op_text(className), filter)
 end
 
 export func getScreenSize() as string
-    return __op_owned_text(__op_get_screen_size())
+    return __op_get_screen_size()
 end
 
 export func getCursorPos() as string
-    return __op_owned_text(__op_get_cursor_pos())
+    return __op_get_cursor_pos()
 end
 
 export func getWindowRect(int hwnd) as string
-    return __op_owned_text(__op_get_window_rect(hwnd))
+    return __op_get_window_rect(hwnd)
 end
 
 export func moveWindow(int hwnd, int x, int y) as int
@@ -209,7 +204,7 @@ export func setWindowSize(int hwnd, int w, int h) as int
 end
 
 export func getWindowTitle(int hwnd) as string
-    return __op_owned_text(__op_get_window_title(hwnd))
+    return __op_get_window_title(hwnd)
 end
 
 export func setWindowTitle(int hwnd, string title) as int
@@ -225,11 +220,11 @@ export func sendString(int hwnd, string str) as int
 end
 
 export func clientToScreen(int hwnd, int x, int y) as string
-    return __op_owned_text(__op_client_to_screen(hwnd, x, y))
+    return __op_client_to_screen(hwnd, x, y)
 end
 
 export func screenToClient(int hwnd, int x, int y) as string
-    return __op_owned_text(__op_screen_to_client(hwnd, x, y))
+    return __op_screen_to_client(hwnd, x, y)
 end
 
 export func readInt(int pid, int addr) as int
@@ -241,7 +236,7 @@ export func readFloat(int pid, int addr) as float
 end
 
 export func readString(int pid, int addr, int len) as string
-    return __op_owned_text(__op_read_string(pid, addr, len))
+    return __op_read_string(pid, addr, len)
 end
 
 export func writeInt(int pid, int addr, int value) as int
@@ -257,15 +252,15 @@ export func writeString(int pid, int addr, string value) as int
 end
 
 export func findMemory(int pid, int startAddr, int endAddr, string pattern) as string
-    return __op_owned_text(__op_find_memory(pid, startAddr, endAddr, __op_text(pattern)))
+    return __op_find_memory(pid, startAddr, endAddr, __op_text(pattern))
 end
 
 export func enumProcess(string filter) as string
-    return __op_owned_text(__op_enum_process(__op_text(filter)))
+    return __op_enum_process(__op_text(filter))
 end
 
 export func getProcessModules(int pid) as string
-    return __op_owned_text(__op_get_process_modules(pid))
+    return __op_get_process_modules(pid)
 end
 
 export func delay(int ms)
@@ -281,5 +276,5 @@ export func setClipboard(string text) as int
 end
 
 export func getClipboard() as string
-    return __op_owned_text(__op_get_clipboard())
+    return __op_get_clipboard()
 end

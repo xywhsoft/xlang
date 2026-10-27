@@ -5,8 +5,8 @@ FIPS 202 的 SHA3-224/256/384/512 固定摘要与 SHAKE128/256 可变长输出�
 包版本和 `version()` 均为 `1.0.0`，无外部动态库依赖。
 
 2026-10-27：五个 `_owned` hex C 出口明确返回 `char *`，XLang 绑定以
-`@owned ... as string?` 直接接管 XRT 分配；C 调用方继续使用 `xrtFree`。
-空返回仍走原生错误或内存错误分支。Windows 综合门禁的 C、JIT、AOT、
+`@owned ... as string` 直接接管 XRT 分配；C 调用方继续使用 `xrtFree`。
+无结果时走原生错误分支。Windows 综合门禁的 C、JIT、AOT、
 双语范例和大输出所有权用例通过。
 
 ## xlang API

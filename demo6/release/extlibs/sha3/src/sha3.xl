@@ -1,11 +1,11 @@
 // SHA3 固定摘要与 SHAKE 变长输出。文本统一按 UTF-8 字节处理。
 extern "xsha3_version" func __version() as string
-extern "xsha3_hash_hex_owned" @owned func __hex(point data, c_size size, c_int bits) as string?
-extern "xsha3_hash_str_hex_owned" @owned func __hexStr(string data, c_size size, c_int bits) as string?
+extern "xsha3_hash_hex_owned" @owned func __hex(point data, c_size size, c_int bits) as string
+extern "xsha3_hash_str_hex_owned" @owned func __hexStr(string data, c_size size, c_int bits) as string
 extern "xsha3_hash_bytes" func __bytes(point data, c_size size, c_int bits) as point
 extern "xsha3_hash_str_bytes" func __bytesStr(string data, c_size size, c_int bits) as point
-extern "xshake_hash_hex_owned" @owned func __shakeHex(point data, c_size size, c_int strength, c_size length) as string?
-extern "xshake_hash_str_hex_owned" @owned func __shakeHexStr(string data, c_size size, c_int strength, c_size length) as string?
+extern "xshake_hash_hex_owned" @owned func __shakeHex(point data, c_size size, c_int strength, c_size length) as string
+extern "xshake_hash_str_hex_owned" @owned func __shakeHexStr(string data, c_size size, c_int strength, c_size length) as string
 extern "xshake_hash_bytes" func __shakeBytes(point data, c_size size, c_int strength, c_size length) as point
 extern "xshake_hash_str_bytes" func __shakeBytesStr(string data, c_size size, c_int strength, c_size length) as point
 extern "xsha3_file_hex" func __fileHex(string path, c_ulonglong maximum, c_int bits, var callback) as string
@@ -39,21 +39,16 @@ func __limit(int maximum)
     end
 end
 
-func __owned_hex(string? value) as string
-    if value == null then throw MemoryError "sha3: hex result is unavailable" end
-    return value
-end
-
 // ----------------------------- 文本与二进制摘要 -----------------------------
 
 export func version() as string
     return __version()
 end
 export func hashHex(Buffer data, int bits = 256) as string
-    return __owned_hex(__hex(data.data(), c_size(data.len()), __bits(bits)))
+    return __hex(data.data(), c_size(data.len()), __bits(bits))
 end
 export func hashHex(string text, int bits = 256) as string
-    return __owned_hex(__hexStr(text, c_size(string.byteLen(text)), __bits(bits)))
+    return __hexStr(text, c_size(string.byteLen(text)), __bits(bits))
 end
 export func hashBytes(Buffer data, int bits = 256) as Buffer
     return Buffer(__bytes(data.data(), c_size(data.len()), __bits(bits)))
@@ -74,16 +69,16 @@ export func hash256Bytes(string text) as Buffer
     return hashBytes(text, 256)
 end
 export func shake128Hex(Buffer data, int outLen = 32) as string
-    return __owned_hex(__shakeHex(data.data(), c_size(data.len()), c_int(128), __length(outLen)))
+    return __shakeHex(data.data(), c_size(data.len()), c_int(128), __length(outLen))
 end
 export func shake128Hex(string text, int outLen = 32) as string
-    return __owned_hex(__shakeHexStr(text, c_size(string.byteLen(text)), c_int(128), __length(outLen)))
+    return __shakeHexStr(text, c_size(string.byteLen(text)), c_int(128), __length(outLen))
 end
 export func shake256Hex(Buffer data, int outLen = 32) as string
-    return __owned_hex(__shakeHex(data.data(), c_size(data.len()), c_int(256), __length(outLen)))
+    return __shakeHex(data.data(), c_size(data.len()), c_int(256), __length(outLen))
 end
 export func shake256Hex(string text, int outLen = 32) as string
-    return __owned_hex(__shakeHexStr(text, c_size(string.byteLen(text)), c_int(256), __length(outLen)))
+    return __shakeHexStr(text, c_size(string.byteLen(text)), c_int(256), __length(outLen))
 end
 export func shake128Bytes(Buffer data, int outLen = 32) as Buffer
     return Buffer(__shakeBytes(data.data(), c_size(data.len()), c_int(128), __length(outLen)))
@@ -137,7 +132,7 @@ export class Sha3Hasher
     extern "xsha3_hasher_destroy" destroy()
     private extern "xsha3_hasher_update" func updateNative(point data, c_size size) as bool
     private extern "xsha3_hasher_update_str" func updateStrNative(string data, c_size size) as bool
-    private extern "xsha3_hasher_digest_hex_owned" @owned func digestHexNative(c_size length) as string?
+    private extern "xsha3_hasher_digest_hex_owned" @owned func digestHexNative(c_size length) as string
     private extern "xsha3_hasher_digest_bytes" func digestBytesNative(c_size length) as point
     extern "xsha3_hasher_reset" func reset() as bool
     private extern "xsha3_hasher_input_bytes" func inputBytesNative() as c_ulonglong
@@ -161,7 +156,7 @@ export class Sha3Hasher
         if outLen == 0 then
             outLen = int(self.outBytesNative())
         end
-        return __owned_hex(self.digestHexNative(__length(outLen)))
+        return self.digestHexNative(__length(outLen))
     end
     func digestBytes(int outLen = 0) as Buffer
         if outLen == 0 then
@@ -183,7 +178,7 @@ export class ShakeHasher
     extern "xsha3_hasher_destroy" destroy()
     private extern "xsha3_hasher_update" func updateNative(point data, c_size size) as bool
     private extern "xsha3_hasher_update_str" func updateStrNative(string data, c_size size) as bool
-    private extern "xsha3_hasher_digest_hex_owned" @owned func digestHexNative(c_size length) as string?
+    private extern "xsha3_hasher_digest_hex_owned" @owned func digestHexNative(c_size length) as string
     private extern "xsha3_hasher_digest_bytes" func digestBytesNative(c_size length) as point
     extern "xsha3_hasher_reset" func reset() as bool
     private extern "xsha3_hasher_input_bytes" func inputBytesNative() as c_ulonglong
@@ -203,7 +198,7 @@ export class ShakeHasher
     end
     // 每次从同一流前缀产生输出，不是推进游标的 squeeze。
     func digestHex(int outLen = 32) as string
-        return __owned_hex(self.digestHexNative(__length(outLen)))
+        return self.digestHexNative(__length(outLen))
     end
     func digestBytes(int outLen = 32) as Buffer
         return Buffer(self.digestBytesNative(__length(outLen)))
