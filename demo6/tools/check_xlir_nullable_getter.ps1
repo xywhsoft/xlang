@@ -4,6 +4,7 @@ $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
 . "$root/tools/extlib_smoke_process.ps1"
 . "$root/tools/xlir_native_process.ps1"
+. (Join-Path $PSScriptRoot 'xlir_resident_objects.ps1')
 Push-Location $root
 try {
     $public=(Resolve-Path -LiteralPath $PublicSourceDirectory).Path
@@ -43,8 +44,9 @@ try {
             '-Wno-pointer-sign','-Wno-format-truncation',"-I$public/include",'-I.','-Irelease','-Irelease/include')
         $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
         $compilerObjects=@($build.Objects|Where-Object {[IO.Path]::GetFileName($_.Path)-ne'xlir_public_source_driver.o'}|ForEach-Object Path)
-        $nativeObjects=@($build.Sources|Where-Object {$_-like'src/runtime/*'-or$_-eq'tools/xrt_single_header_impl.c'-or$_-eq'src/api/xl_task_group_bridge.c'}|
-            ForEach-Object {Join-Path $public ([IO.Path]::GetFileNameWithoutExtension($_)+'.o')})
+        $resident=Get-XlirFixtureResidentObjects -Root $root -PublicDirectory $public -Directory "$work/resident-closure" -Fixtures @($cases|ForEach-Object {"test/cases/$_.xl"})
+        $nativeObjects=@($resident.Objects)
+        foreach($record in $resident.Inputs){$inputs[$record.Path]=$record.Sha256}
         $null=Check 'child-build' gcc @('-std=c11','-Wall','-Wextra','-Werror','-municode','test/cases/xlir_process_child.c','-o',$child)
         $inputs[$child]=(Get-FileHash $child).Hash
         $null=Check 'contract-build' gcc ($flags+@('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_nullable_getter_contract.c')+$compilerObjects+@('release/xl.dll')+$libs+@('-o',"$work/contract.exe"))
