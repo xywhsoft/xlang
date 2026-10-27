@@ -4,6 +4,18 @@
 #include <stdio.h>
 #include <string.h>
 
+_Static_assert(_Generic(&xgt_t,
+    char *(*)(xvalue *, const char *): 1, default: 0), "xgt_t must return owned text");
+_Static_assert(_Generic(&xgt_tn,
+    char *(*)(xvalue *, const char *, const char *, int64_t): 1, default: 0),
+    "xgt_tn must return owned text");
+_Static_assert(_Generic(&xgt_tc,
+    char *(*)(xvalue *, const char *, const char *): 1, default: 0),
+    "xgt_tc must return owned text");
+_Static_assert(_Generic(&xgt_tnc,
+    char *(*)(xvalue *, const char *, const char *, const char *, int64_t): 1, default: 0),
+    "xgt_tnc must return owned text");
+
 #define CHECK(test) do { if (!(test)) { \
     fprintf(stderr, "gettext test failed at line %d: %s\n", __LINE__, #test); \
     return 1; \

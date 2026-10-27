@@ -685,23 +685,23 @@ const char *xgt_tnc_borrowed(xvalue *catalog, const char *context, const char *m
     return result;
 }
 
-void *xgt_t(xvalue *catalog, const char *msgid) {
+char *xgt_t(xvalue *catalog, const char *msgid) {
     const char *text = xgt_t_borrowed(catalog, msgid);
     return text ? xgt_copy(text, strlen(text)) : NULL;
 }
 
-void *xgt_tn(xvalue *catalog, const char *msgid,
+char *xgt_tn(xvalue *catalog, const char *msgid,
     const char *msgidPlural, int64_t n) {
     const char *text = xgt_tn_borrowed(catalog, msgid, msgidPlural, n);
     return text ? xgt_copy(text, strlen(text)) : NULL;
 }
 
-void *xgt_tc(xvalue *catalog, const char *context, const char *msgid) {
+char *xgt_tc(xvalue *catalog, const char *context, const char *msgid) {
     const char *text = xgt_tc_borrowed(catalog, context, msgid);
     return text ? xgt_copy(text, strlen(text)) : NULL;
 }
 
-void *xgt_tnc(xvalue *catalog, const char *context, const char *msgid,
+char *xgt_tnc(xvalue *catalog, const char *context, const char *msgid,
     const char *msgidPlural, int64_t n) {
     const char *text = xgt_tnc_borrowed(catalog, context, msgid, msgidPlural, n);
     return text ? xgt_copy(text, strlen(text)) : NULL;

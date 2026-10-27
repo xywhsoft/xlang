@@ -1,5 +1,11 @@
 # gettext
 
+四个 C 查询入口 `xgt_t`、`xgt_tn`、`xgt_tc`、`xgt_tnc` 返回独立的
+`char*`，调用方用 `xrtFree` 释放；`*_borrowed` 返回目录或输入中的
+借用文本，不能释放。XLang 包装层从借用文本构造独立 `string`，
+这是保证目录销毁或输入退役后结果仍有效所需的一次复制，
+不把它误称为可消除的桥接复制。
+
 2026-10-26 当前 Windows/Linux 包门禁均退出 0：严格 C、Linux
 ASan/UBSan、中央/重复键/边界/分配故障/输入限额用例 JIT 与独立
 EXE AOT、双语成对范例和公开范例 AOT 全通过。C 单文件范例也由
