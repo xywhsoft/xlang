@@ -1,0 +1,163 @@
+typedef TextItems = array<string>
+typedef TextItemsReader = func() as TextItems
+typedef ItemPairReader = func() as (array<int>, string)
+
+int callableResultEntries = 0
+int callableResultGetters = 0
+int callableResultFactories = 0
+int callableResultFinalizers = 0
+
+func readTextItems() as TextItems
+    callableResultEntries += 1
+    return array["a\0你", "second"]
+end
+
+func readNumbers() as array<int>
+    return array[3, 5, 7]
+end
+
+func readSparse() as list<string>
+    return list[2: "two", 5: "five\0你"]
+end
+
+func readMapping() as dict<string>
+    return dict{"key": "value\0你"}
+end
+
+func readSet() as set<int>
+    return set{3, 5, 7}
+end
+
+func readNested() as array<array<int>>
+    return array[array[11, 13], array[17]]
+end
+
+func readMaybe() as array<string>?
+    return readTextItems()
+end
+
+func readPair() as (array<int>, string)
+    return readNumbers(), "pair\0你"
+end
+
+func failItems() as TextItems
+    throw "callable result failure"
+end
+
+func makeReader() as TextItemsReader
+    callableResultFactories += 1
+    return readTextItems
+end
+
+class ResultFactory<T>
+    func() as T produce
+end
+
+class ResultReaders
+    TextItemsReader items = readTextItems
+    func() as array<int> numbers = readNumbers
+    func() as list<string> sparse = readSparse
+    func() as dict<string> mapping = readMapping
+    func() as set<int> unique = readSet
+    func() as array<array<int>> nested = readNested
+    func() as array<string>? maybe = readMaybe
+    ItemPairReader pair = readPair
+
+    get reader() as TextItemsReader
+        callableResultGetters += 1
+        return items
+    end
+end
+
+func checkDeclaredAndInferred(ResultReaders readers)
+    TextItems declared = readers.items()
+    auto inferred = readers.items()
+    assert declared[0] == "a\0你" and inferred[1] == "second"
+    declared = readers.items()
+    inferred = readers.items()
+    assert declared.length == 2 and inferred[0] == "a\0你"
+    declared[0] = "changed"
+    assert inferred[0] == "a\0你"
+    int count = 0
+    for item in readers.numbers()
+        assert item == 3 or item == 5 or item == 7
+        count += 1
+    end
+    assert count == 3
+end
+
+func checkGenericResults()
+    auto factory = ResultFactory::<TextItems>()
+    factory.produce = readTextItems
+    TextItems explicitResult = factory.produce()
+    auto inferredResult = factory.produce()
+    assert explicitResult[0] == "a\0你" and inferredResult[1] == "second"
+    auto numberFactory = ResultFactory::<array<int>>()
+    numberFactory.produce = readNumbers
+    int sum = 0
+    for number in numberFactory.produce()
+        sum += number
+    end
+    assert sum == 15
+end
+
+func checkContainers(ResultReaders readers)
+    auto sparse = readers.sparse()
+    auto mapping = readers.mapping()
+    auto unique = readers.unique()
+    auto nested = readers.nested()
+    assert sparse[5] == "five\0你" and mapping["key"] == "value\0你"
+    int sum = 0
+    for number in unique
+        sum += number
+    end
+    assert sum == 15 and nested[0][1] == 13 and nested[1][0] == 17
+    auto optional = readers.maybe()
+    auto present = optional ?? array["fallback"]
+    assert present[0] == "a\0你"
+    auto numbers, text = readers.pair()
+    assert numbers[2] == 7 and text == "pair\0你"
+    numbers, text = readers.pair()
+    assert numbers[0] == 3 and text == "pair\0你"
+end
+
+func checkExpressionCallees(ResultReaders readers)
+    int entries = callableResultEntries
+    auto propertyResult = readers.reader()
+    auto producedResult = makeReader()()
+    array<TextItemsReader> callbacks = array[readTextItems]
+    auto indexedResult = callbacks[0]()
+    auto selectedResult = (true ? readers.items : makeReader())()
+    TextItemsReader? optional = readers.items
+    auto unwrappedResult = (optional ?? makeReader())()
+    assert propertyResult[0] == "a\0你" and producedResult[0] == "a\0你"
+    assert indexedResult[1] == "second" and selectedResult[1] == "second"
+    assert unwrappedResult[0] == "a\0你"
+    assert callableResultEntries == entries + 5
+    assert callableResultGetters == 1 and callableResultFactories == 1
+end
+
+func checkFailure(ResultReaders readers)
+    readers.items = failItems
+    bool caught = false
+    try
+        auto rejected = readers.items()
+        assert rejected.length == 0
+    catch failure
+        caught = true
+    finally
+        callableResultFinalizers += 1
+    end
+    assert caught and callableResultFinalizers == 1
+end
+
+func main(...) as int
+    auto readers = ResultReaders()
+    checkDeclaredAndInferred(readers)
+    checkGenericResults()
+    checkContainers(readers)
+    checkExpressionCallees(readers)
+    checkFailure(readers)
+    println("callable container results: complete signatures, owned values and single evaluation")
+    return 0
+end

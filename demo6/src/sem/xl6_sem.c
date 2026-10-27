@@ -7222,6 +7222,23 @@ static XL6_AstNode* xl6SemCloneStaticInvocationReturns(XL6_SemContext* ctx,
     xl6AstFree(args);xl6AstFree(owner);return result;
 }
 
+/* A callable value's complete signature is available during type queries,
+ * before the final call plan is selected. Preserve the owned return list;
+ * reducing a generic result to its outer name would cache a different ABI.
+ * Declaration/method overload resolution must run before this fallback. */
+static XL6_AstNode* xl6SemCloneCallableValueReturnTypes(
+    XL6_SemContext* ctx, XL6_AstNode* callee)
+{
+    XL6_AstNode* type = xl6SemInferAutoTypeNode(ctx, callee);
+    const XL6_AstNode* callable = xl6SemResolveAliasType(ctx, type);
+    XL6_AstNode* returns = callable != NULL &&
+        xl6TextEquals(callable->text, "function") && callable->childCount > 1 &&
+        callable->children[1] != NULL
+        ? xl6SemCloneTypeNode(callable->children[1]) : NULL;
+    xl6AstFree(type);
+    return returns;
+}
+
 static XL6_AstNode* xl6SemCallReturnTypesEx(XL6_SemContext* ctx, XL6_AstNode* expr, XL6_AstNode** ownedType)
 {
     XL6_AstNode* callee;
@@ -7348,9 +7365,17 @@ static XL6_AstNode* xl6SemCallReturnTypesEx(XL6_SemContext* ctx, XL6_AstNode* ex
             }
             xl6AstFree(receiverType);
         }
+        if (ownedType != NULL) {
+            *ownedType = xl6SemCloneCallableValueReturnTypes(ctx, callee);
+            return *ownedType;
+        }
         return NULL;
     }
     if ( callee->kind != XL6_AST_NAME ) {
+        if (ownedType != NULL) {
+            *ownedType = xl6SemCloneCallableValueReturnTypes(ctx, callee);
+            return *ownedType;
+        }
         return NULL;
     }
 
