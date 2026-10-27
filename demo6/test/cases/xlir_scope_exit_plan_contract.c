@@ -17,6 +17,8 @@ static XL6_AstNode* local(const char* name, XL6_SymbolId symbol, int managed)
     XL6_AstNode* node = xl6AstNewText(XL6_AST_VAR_DECL, name, strlen(name), NULL);
     const char* text = managed ? "\"owned\"" : "42";
     XL6_AstNode* value = xl6AstNewText(managed ? XL6_AST_STRING : XL6_AST_INT, text, strlen(text), NULL);
+    /* Direct AST clients provide the same decoded payload as the parser. */
+    if (managed) assert(xl6AstSetLiteralData(value, "owned", 5));
     node->semanticSymbolId = symbol;
     node->inferredType = typeNode(managed);
     /* Ordinary scope ownership follows the IR block's direct bindings, not

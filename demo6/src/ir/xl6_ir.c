@@ -3011,14 +3011,21 @@ static XL6_IrTypeId xl6IrInternAstType(XL6_IrModule* module, const XL6_AstNode* 
 static int xl6IrNodeContains(
     const XL6_IrModule* module, XL6_IrNodeId ancestor, XL6_IrNodeId descendant)
 {
-    const XL6_IrNode* node;
-    size_t i;
+    size_t remaining;
 
     if ( ancestor == descendant ) return 1;
-    node = xl6IrNodeGet(module, ancestor);
-    if ( node == NULL ) return 0;
-    for ( i = 0; i < node->childCount; ++i ) {
-        if ( xl6IrNodeContains(module, module->children[node->firstChild + i], descendant) ) return 1;
+    if ( xl6IrNodeGet(module, ancestor) == NULL ) return 0;
+    /* The structural verifier establishes a rooted tree with reciprocal
+     * parent/child links before semantic verification. Walk its ancestry,
+     * rather than repeatedly visiting every node in the ancestor's subtree.
+     * Keep the walk bounded when called while malformed IR is being checked. */
+    remaining = module->nodeCount;
+    while ( descendant != XL6_IR_NODE_INVALID && remaining != 0 ) {
+        const XL6_IrNode* node = xl6IrNodeGet(module, descendant);
+        if ( node == NULL ) return 0;
+        --remaining;
+        descendant = node->parent;
+        if ( descendant == ancestor ) return 1;
     }
     return 0;
 }
@@ -3137,7 +3144,8 @@ static int xl6IrCleanupDeclarationIsLiveAtExit(
     const XL6_IrModule* module, XL6_IrNodeId declaration, XL6_IrNodeId exitOrigin)
 {
     const XL6_IrNode* candidate = xl6IrNodeGet(module, declaration);
-    size_t i;
+    XL6_IrNodeId selected = XL6_IR_NODE_INVALID, cursor;
+    size_t remaining;
 
     if (candidate != NULL && candidate->kind == XL6_IR_NODE_PATTERN) {
         XL6_IrNodeId scope = xl6IrPatternBindingScope(module, declaration);
@@ -3150,15 +3158,21 @@ static int xl6IrCleanupDeclarationIsLiveAtExit(
      * values and products. */
     if ( candidate == NULL || candidate->region == 0 ||
          xl6IrNodeContains(module, declaration, exitOrigin) ) return 0;
-    for ( i = 0; i < module->nodeCount; ++i ) {
-        const XL6_IrNode* scope = &module->nodes[i];
-        XL6_IrNodeId scopeId = (XL6_IrNodeId)(i + 1);
-
-        if ( scope->kind != XL6_IR_NODE_BLOCK || scope->region != candidate->region ) continue;
-        if ( xl6IrNodeContains(module, scopeId, declaration) )
-            return xl6IrNodeContains(module, scopeId, exitOrigin);
+    /* Only ancestors can own the declaration. Preserve the original first
+     * matching block in node-id order, even when ids are not tree preorder;
+     * selecting the nearest block would change the existing region contract. */
+    remaining = module->nodeCount;
+    cursor = declaration;
+    while ( cursor != XL6_IR_NODE_INVALID && remaining != 0 ) {
+        const XL6_IrNode* scope = xl6IrNodeGet(module, cursor);
+        if ( scope == NULL ) return 0;
+        --remaining;
+        if ( scope->kind == XL6_IR_NODE_BLOCK && scope->region == candidate->region &&
+             (selected == XL6_IR_NODE_INVALID || cursor < selected) ) selected = cursor;
+        cursor = scope->parent;
     }
-    return 0;
+    if ( cursor != XL6_IR_NODE_INVALID ) return 0;
+    return selected != XL6_IR_NODE_INVALID && xl6IrNodeContains(module, selected, exitOrigin);
 }
 
 static XL6_IrNodeId xl6IrCleanupEnclosingCallable(
