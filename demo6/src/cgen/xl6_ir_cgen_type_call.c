@@ -473,7 +473,8 @@ static XL6_IrParameterAbi xl6IrCgenStorageParameterAbi(
                   ++closureIndex ) {
                 const XL6_IrClosureTarget* closure =
                     &module->closureTargets[closureIndex];
-                if ( closure->kind == XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER &&
+                if ( (closure->kind == XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER ||
+                      closure->kind == XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER) &&
                      closure->targetSymbol == function->symbol ) {
                     closureSignature = xl6IrTypeGet(
                         &module->types, closure->signatureType);

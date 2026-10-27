@@ -1,0 +1,105 @@
+class Box
+    string text="receiver"
+    func Pick(string value="default") as string
+        return value
+    end
+    func Pick(int value) as int
+        return value
+    end
+    func Generic<T>(T first,T second=first) as T
+        return second
+    end
+    func Generic<T>(T first,int required) as T
+        return first
+    end
+    func Receiver(string value=self.text) as string
+        return value
+    end
+    func Implicit(string prefix,string value=prefix+text) as string
+        return value
+    end
+end
+Box? optional=Box()
+if optional!=null
+    func() as string omitted=optional.Pick
+    func(string) as string full=optional.Pick
+    func(int) as int integer=optional.Pick
+    assert omitted()=="default" and full("text")=="text" and integer(7)==7
+    func(string) as string generic=optional.Generic
+    func(string,string) as string genericFull=optional.Generic
+    assert generic("generic")=="generic" and genericFull("first","last")=="last"
+    assert optional.Generic("direct")=="direct"
+    func(string,string) as string fullImplicit=optional.Implicit
+    func(string) as string shortImplicit=optional.Implicit
+    assert fullImplicit("prefix","explicit")=="explicit" and shortImplicit("prefix")=="prefixreceiver"
+end
+func factory() as func() as string
+    Box local=Box()
+    return local.Receiver
+end
+func() as string receiver=factory()
+assert receiver()=="receiver"
+class Base
+    virtual func Read(string value="base") as string
+        return value
+    end
+end
+class Child extends Base
+    override func Read(string value="child") as string
+        return "child:"+value
+    end
+end
+Base base=Child()
+func(string) as string virtualFull=base.Read
+func() as string virtualDefault=base.Read
+assert virtualFull("value")=="child:value"
+assert virtualDefault()=="child:base"
+class GrandChild extends Child
+end
+GrandChild grandChild=GrandChild()
+func() as string inherited=grandChild.Read
+assert inherited()=="child:child"
+
+class Actions
+    string text="captured"
+    int count=0
+    func Add(int value=7)
+        self.count+=value
+    end
+    func Pair() as (int,string)
+        return self.count,"pair"
+    end
+    func Capture(func() as string callback=func() as string
+        return self.text
+    end) as func() as string
+        return callback
+    end
+end
+Actions actions=Actions()
+func() add=actions.Add
+add()
+func() as (int,string) pair=actions.Pair
+auto count,pairText=pair()
+assert count==7 and pairText=="pair"
+func() as func() as string capture=actions.Capture
+func() as string inner=capture()
+assert inner()=="captured"
+class NoRaiseBase
+    virtual func Value() as int
+        return 7
+    end
+end
+class RaisingChild extends NoRaiseBase
+    override func Value() as int
+        throw ValueError "virtual failure"
+    end
+end
+NoRaiseBase throwing=RaisingChild()
+func() as int callback=throwing.Value
+bool caught=false
+try
+    callback()
+catch ValueError problem
+    caught=true
+end
+assert caught

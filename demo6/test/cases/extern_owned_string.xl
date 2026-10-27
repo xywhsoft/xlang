@@ -95,9 +95,8 @@ func methods()
     auto object=NativeText()
     assert verify(original(object.Text()) and original(object.Value), 84)
     func() as string bound=object.Text
-    // Bound methods use the existing erased method carrier and ordinary
-    // string unboxing. Verify ownership safety, without claiming zero copy.
-    assert verify(bound()=="owned text", 86)
+    // A concrete typed receiver binding transfers the native return directly.
+    assert verify(original(bound()), 86)
     TextApi protocolView=object
     assert verify(original(protocolView.Text()), 87)
     assert verify(protocolView.Optional()==null, 88)

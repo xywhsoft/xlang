@@ -4637,7 +4637,9 @@ typedef enum XL6_IrClosureTargetKind {
     /* C ... cannot be forwarded through a va_list thunk. The closure lease
      * retains the native entry and value-specific string ownership metadata;
      * each typed call site expands its own native argument list. */
-    XL6_IR_CLOSURE_TARGET_C_VARIADIC_NATIVE
+    XL6_IR_CLOSURE_TARGET_C_VARIADIC_NATIVE,
+    /* One receiver capture and a verified concrete typed method invocation. */
+    XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER
 } XL6_IrClosureTargetKind;
 
 typedef enum XL6_IrClosureRawCallbackAbi {
@@ -7186,6 +7188,7 @@ int xl6IrBuildDynamicMethodScalarCodecs(XL6_IrModule*,XL6_DiagList*);
 int xl6IrBuildDynamicBoundSignatures(XL6_IrModule*,XL6_DiagList*);
 /* Authenticated full bound signature for a statically proved arity adapter. */
 XL6_IrTypeId xl6IrBoundMethodCastIdentityType(const XL6_IrModule*,const XL6_IrInstruction*);
+int xl6IrBoundMethodTargetMatches(const XL6_IrModule*,XL6_IrNodeId,XL6_SymbolId,XL6_IrTypeId);
 int xl6IrVerifyDynamicMethodScalarCodecs(const XL6_IrModule*,XL6_DiagList*);
 const XL6_IrCallableBridgeResult* xl6IrDynamicMethodScalarCodecGet(const XL6_IrModule*,size_t);
 const XL6_IrCallableBridge* xl6IrCallableBridgeGet(
