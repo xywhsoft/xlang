@@ -10,7 +10,7 @@ int rapidocr_available_native(void);
 /* backend/last_error 返回借用字符串；extlib_path 返回需 xrtFree 的独立字符串。 */
 const char* rapidocr_backend_native(void);
 const char* rapidocr_last_error_native(void);
-void* rapidocr_extlib_path_native(const char* relative);
+char* rapidocr_extlib_path_native(const char* relative);
 int rapidocr_box_count_native(const char* boxes_json);
 int rapidocr_first_box_x_native(const char* boxes_json);
 int rapidocr_first_box_y_native(const char* boxes_json);

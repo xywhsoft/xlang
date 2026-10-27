@@ -436,8 +436,8 @@ static int check_resource_path(void)
     char* base = test_path("extlibs/rapidocr");
     char* fixture = test_path("extlibs/rapidocr/中文路径.txt");
     const unsigned char data[] = { 'o', 'k' };
-    void* first;
-    void* second;
+    char* first;
+    char* second;
     int ok;
     if (parent == NULL || base == NULL || fixture == NULL ||
         !xrtDirCreateAll(base) ||
@@ -485,7 +485,7 @@ static void rapid_thread_body(RapidThreadCase* test)
         if (strcmp(rapidocr_last_error_native(), expected) != 0) test->failed = 1;
     }
     {
-        void* path = rapidocr_extlib_path_native("models/missing.txt");
+        char* path = rapidocr_extlib_path_native("models/missing.txt");
         if (path == NULL || rapidocr_last_error_native()[0] != '\0') test->failed = 1;
         xrtFree(path);
     }

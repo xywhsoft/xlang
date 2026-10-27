@@ -123,6 +123,17 @@ try {
     Push-Location $release
     try {
         $null = Run 'XLang API smoke' $xl @('run', 'examples/extlibs/rapidocr.xl')
+        $generated = Join-Path $work 'owned_resource_path.c'
+        $null = Run 'resource path cgen' $xl @('cgen',
+            'examples/extlibs/rapidocr.xl', '--emit', $generated)
+        $generatedText = [IO.File]::ReadAllText($generated)
+        $adoptions = [regex]::Matches($generatedText,
+            '\.Data\s*=\s*rapidocr_extlib_path_native\s*\(').Count
+        if ($adoptions -ne 1 -or
+            -not $generatedText.Contains('extern char* rapidocr_extlib_path_native(')) {
+            throw 'RapidOCR resource path must directly adopt the owned C string'
+        }
+        Write-Host '[rapidocr] resource path direct adoption: PASS'
         $null = Run 'XLang decoder boundaries' $xl @('run', 'extlibs/rapidocr/test/rec_decode_smoke.xl')
         $null = Run 'XLang native failure boundaries' $xl @('run', 'extlibs/rapidocr/test/native_failures.xl')
         $xlOutput = Run 'XLang example' $xl @('run', 'extlibs/rapidocr/examples/postprocess.xl')

@@ -634,7 +634,7 @@ XL_EXPORT const char* rapidocr_last_error_native(void)
 	const char* buffer = rapid_error_buffer(0);
 	return buffer != NULL ? buffer : "";
 }
-XL_EXPORT void* rapidocr_extlib_path_native(const char* relative) { return rapid_resource_path(relative); }
+XL_EXPORT char* rapidocr_extlib_path_native(const char* relative) { return rapid_resource_path(relative); }
 
 static void rapid_bridge_error(const char* fallback)
 {

@@ -14,7 +14,7 @@ const string EXAMPLE_KEYS_PATH = "models\\ppocr_keys_v1.txt"
 extern "rapidocr_available_native" func rapidocr_available_native() as c_int
 extern "rapidocr_backend_native" func rapidocr_backend_native() as string
 extern "rapidocr_last_error_native" func rapidocr_last_error_native() as string
-extern "rapidocr_extlib_path_native" func rapidocr_extlib_path_native(string relative) as point
+extern "rapidocr_extlib_path_native" @owned func rapidocr_extlib_path_native(string relative) as string?
 extern "rapidocr_create_native" func rapidocr_create_native(string config_path) as point
 extern "rapidocr_release_native" func rapidocr_release_native(point handle) as c_int
 extern "rapidocr_call_native" func rapidocr_call_native(point handle, string img, c_int use_det, c_int use_cls, c_int use_rec, c_int return_word_box) as point
@@ -117,13 +117,13 @@ func rapidocr_model_path(string file_name) as string
 end
 
 func rapidocr_extlib_path(string relative) as string
-	point result = rapidocr_extlib_path_native(relative)
+	string? result = rapidocr_extlib_path_native(relative)
 	if result == null then
 		string message = rapidocr_last_error_native()
 		if message == "" then message = "RapidOCR resource path resolution failed" end
 		throw RuntimeError message
 	end
-	return __xl_runtime.takeCstr(result)
+	return result
 end
 
 func rapidocr_json_path(string value) as string

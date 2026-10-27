@@ -1,5 +1,14 @@
 # RapidOCR 扩展库
 
+2026-10-27 路径结果所有权：`rapidocr_extlib_path_native` 的 C 返回
+明确为需 `xrtFree` 的独立 `char*`；XLang 内部路径函数以
+`@owned string?` 直接接管，删除 `point/takeCstr` 中转。
+生成 C 门禁固定直接保存原生指针；仍需一次 `strlen` 取得长度，
+不声称文件系统查找本身零开销。失败时继续抛原有 `RuntimeError`，
+不改变公开 API 或推理插件内部行为。Windows 默认门禁的严格 C、
+完整/残缺桥接、真实模型与失败路径、独立 EXE 均通过；Linux
+`test/check.sh` 的 C 桥接与语言失败路径也退出 0。
+
 2026-10-26 当前 Windows 默认门禁退出 0：真实模型的 XLang 推理、
 失败路径、自动句柄清理及其独立 EXE 均通过，完整/残缺测试桥接的
 C/XLang 调用穿透也通过。C 公开后处理入口可用，但 C 端完整推理
