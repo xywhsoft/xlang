@@ -3,6 +3,8 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$Directory,
     [string]$Tcc='E:/software/tcc/tcc.exe')
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
+. (Join-Path $PSScriptRoot 'xlir_resident_closure.ps1')
 $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
 try {
@@ -28,6 +30,10 @@ try {
         @($files | ForEach-Object {[pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})
     if (@($inputs | Where-Object {(Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256}).Count) { throw 'Stale cell storage inputs' }
     New-Item -ItemType Directory -Path $outputPath | Out-Null
+    $closure=Get-XlirResidentClosure -Root $rootPath -Directory "$outputPath/resident-closure" -Sources $residentSources -NativeProvider 'tools/xrt_single_header_impl.c' -PublicDirectory $PublicDirectory -Fixtures @(
+        'test/cases/xlir_cell_allocation_outcome.xl','test/cases/xlir_cell_allocation_suspension.xl',
+        'test/cases/xlir_cell_thread_lifetime.xl','test/cases/xlir_capture_ownership.xl')
+    $residentSources=@($closure.Sources);$inputs+=@($closure.Inputs)
     $checks=@(); $emission=@(); $deterministic=$true
     $irMarker='Resident cell IR: 5 original fixtures, 20 rejected C/header-gated mutations; 22 allocations, 22 initializations, 14 owning exchanges; explicit text/JSON ABI and no generated lifecycle replica'
     & $drivers.xlir_cell_storage_contract *> "$outputPath/storage-ir.log"
@@ -63,7 +69,7 @@ try {
             (Get-FileHash "$outputPath/xlir_capture_ownership.$suffix").Hash -ne (Get-FileHash "$outputPath/xlir_capture_ownership.repeat.$suffix").Hash) { $deterministic=$false }
     }
     $includePath=[IO.Path]::GetFullPath((Join-Path $PublicDirectory 'include'))
-    $includes=@("-I$includePath","-I$outputPath",'-I.','-Irelease')
+    $includes=@("-I$includePath","-I$outputPath",'-I.','-Irelease','-Irelease/include')
     $strict=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable',
         '-Wno-unused-parameter','-Wno-unused-label','-Wno-unused-but-set-variable','-Wno-missing-field-initializers',
         '-Wno-pointer-sign','-Wno-format-truncation')
@@ -78,16 +84,19 @@ try {
             Pattern='cell thread lifetime: 8 workers, 800000 raw retain/release operations, 48240 source readers, 30 final-owner races, [1-9][0-9]* balanced allocations'},
         @{Name='capture';Sources=@('test/cases/xlir_capture_ownership_host.c')+$residentSources;
             Pattern='capture ownership: 700 generated graphs, aliases, calls and exact memory balance complete'})
+    $residentClosure=Get-XlirResidentClosure -Root $rootPath -Directory "$outputPath/cell-closure" -Sources @($cases[0].Sources|Where-Object {$_-like'src/*'}) -NativeProvider 'tools/xrt_single_header_impl.c'
+    $cases[0].Sources=@($cases[0].Sources|Where-Object {$_-notlike'src/*'})+@($residentClosure.Sources)
+    $inputs+=@($residentClosure.Inputs)
     $lanes=@()
     foreach ($case in $cases) {
         foreach ($compiler in @('gcc-O0','gcc-O2','tcc')) {
             $name="$($case.Name)-$compiler"; $binary="$outputPath/$name.exe"; $timer=[Diagnostics.Stopwatch]::StartNew()
             if ($compiler -eq 'tcc') {
-                & $Tcc -std=c11 @includes @($case.Sources) tools/xrt_single_header_impl.c C:/Windows/System32/ucrtbase.dll @libs -o $binary *> "$outputPath/$name.build.log"
+                $buildExit=Invoke-XlirTccToLog $Tcc (@('-std=c11')+$includes+@($case.Sources)+@('tools/xrt_single_header_impl.c','C:/Windows/System32/ucrtbase.dll')+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
             } else {
-                & gcc @strict "-$($compiler.Substring(4))" @includes @($case.Sources) $runtime[0].Path @libs -o $binary *> "$outputPath/$name.build.log"
+                $buildExit=Invoke-XlirGccToLog ($strict+@("-$($compiler.Substring(4))")+$includes+@($case.Sources)+@($runtime[0].Path)+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
             }
-            $buildExit=$LASTEXITCODE; $runExit=$null; $complete=$false
+            $runExit=$null; $complete=$false
             if ($buildExit -eq 0) {
 $process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath -RedirectStandardOutput "$outputPath/$name.out.log" -RedirectStandardError "$outputPath/$name.err.log"
                 $null = $process.Handle
