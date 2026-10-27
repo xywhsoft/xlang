@@ -32,7 +32,7 @@ static void shutdown(void)
 }
 int main(int argc, char** argv)
 {
-    unsigned round, mode;
+    unsigned round, mode, refused = 0;
     unsigned selected = argc == 2 ? (unsigned)strtoul(argv[1], NULL, 10) : 7;
     for (round = 0; round < 25; ++round) for (mode = 0; mode < 7; ++mode) {
         if (selected != 7 && mode != selected) continue;
@@ -66,10 +66,12 @@ int main(int argc, char** argv)
             assert(one.ok && one.value);
             if (mode == 5) {
                 two = XLIR_DISPATCH_CHAIN(c, d); assert(two.ok && two.value);
-                xfutureresult rejected = {0};
-                three = XLIR_DISPATCH_CHAIN(a, b); assert(three.ok && three.value != NULL);
-                assert(xrtFutureWaitFor(three.value, 5000000) == 0 && xrtFutureResult(three.value, &rejected));
-                assert(rejected.State == XFUTURE_FAILED && rejected.Value == NULL);
+                /* A full ready-entry domain refuses launch before the body
+                 * starts. Body/Watch failures in modes 2/3/4 still belong to
+                 * an accepted Future and must execute their finally block. */
+                three = XLIR_DISPATCH_CHAIN(a, b);
+                assert(!three.ok && three.value == NULL && xrtGetError() && xrtErrorKind(xrtGetError()) == XERR_RANGE);
+                ++refused;
                 xrtClearError();
             }
             if (mode == 6) {
@@ -94,9 +96,10 @@ int main(int argc, char** argv)
         xrtFutureDestroy(a); xrtFutureDestroy(b); xrtFutureDestroy(c); xrtFutureDestroy(d);
         xrtPromiseDestroy(pa); xrtPromiseDestroy(pb); xrtPromiseDestroy(pc); xrtPromiseDestroy(pd);
         shutdown();
-        assert(dispatch_cleanup_count() == (mode == 5 ? 3 : mode == 6 ? 2 : 1));
+        assert(dispatch_cleanup_count() == (mode == 5 || mode == 6 ? 2 : 1));
         dispatch_memory_end();
     }
+    assert(refused == (selected == 5 || selected == 7 ? 25u : 0u));
     printf("generated dispatch: mode=%u cases=%u balanced memory\n", selected, selected == 7 ? 175 : 25);
     return 0;
 }
