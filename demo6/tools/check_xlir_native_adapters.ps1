@@ -12,7 +12,8 @@ try {
     $cases=@(foreach($case in $parsedCases){$case})
     if(!$cases.Count-or@($cases|Sort-Object -Unique).Count-ne$cases.Count){throw 'Adapter cases must be explicit and unique'}
     $files=Get-Item -LiteralPath (@($PSCommandPath,'test/cases/xlir_native_adapter_cases.json','src/driver/xl6_xlc_shell.c',
-        'test/cases/xlir_artifact_runtime_contract.c','test/cases/xlir_dynamic_operand_transaction_host.c',(Get-Command gcc).Source,(Get-Command nm).Source)+
+        'test/cases/xlir_artifact_runtime_contract.c','test/cases/xlir_dynamic_operand_transaction_host.c',
+        'tools/check_xlir_point_sequences.py','tools/xlir_public_build_inputs.py',(Get-Command gcc).Source,(Get-Command nm).Source)+
         @($cases|ForEach-Object {"test/cases/$_.xl"}))
     $inputs=@($public.Inputs)+@($public.Headers)+@($public.Objects)+@($files|ForEach-Object {
         [pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})
@@ -92,13 +93,23 @@ try {
             $boxingRun=$LASTEXITCODE
         }
     }
+    & python tools/check_xlir_point_sequences.py --root $rootPath --public $PublicDirectory --out "$outputPath/point-sequences" *> "$outputPath/point-sequences.log"
+    $pointExit=$LASTEXITCODE
+    $pointReportPath="$outputPath/point-sequences/results.json"
+    $pointComplete=$false
+    $pointReportSha=$null
+    if(Test-Path -LiteralPath $pointReportPath){
+        $pointComplete=$pointExit-eq0-and(Get-Content -LiteralPath $pointReportPath -Raw|ConvertFrom-Json).Complete
+        $pointReportSha=(Get-FileHash -LiteralPath $pointReportPath).Hash
+    }
     $unchanged=!@($inputs|Where-Object {(Get-FileHash -LiteralPath $_.Path).Hash-ne$_.Sha256}).Count
     $complete=$unchanged-and$cliBuild-eq0-and$contractBuild-eq0-and!$boundaryErrors.Count-and
-        $results.Count-eq$cases.Count-and!@($results|Where-Object {!$_.Complete}).Count-and$boxingBuild-eq0-and$boxingRun-eq0
+        $results.Count-eq$cases.Count-and!@($results|Where-Object {!$_.Complete}).Count-and$boxingBuild-eq0-and$boxingRun-eq0-and$pointComplete
     $report=[pscustomobject]@{Complete=$complete;Inputs=$inputs;InputsUnchanged=$unchanged;CliBuild=$cliBuild;ContractBuild=$contractBuild;
         DescriptorFields=$fields.Count;DescriptorGroups=$groups.Count;BoundaryErrors=$boundaryErrors;Results=$results;
         BoxingRuntime=[pscustomobject]@{Build=$boxingBuild;Run=$boxingRun;Complete=($boxingBuild-eq0-and$boxingRun-eq0)};
-        Scope='Generated C and selected native implementation strictly compiled; actual undefined native symbols of generated and resident objects checked against selected implementation. No network services or stdlib programs executed; not lifetime or platform acceptance.'}
+        PointSequences=[pscustomobject]@{Exit=$pointExit;Complete=$pointComplete;Report=$pointReportPath;ReportSha256=$pointReportSha};
+        Scope='Generated C and selected native implementation strictly compiled; actual undefined native symbols of generated and resident objects checked against selected implementation. Raw pointer collections additionally check actual JIT/AOT, addresses, IR refusal and finite allocation-failure prefixes; broader lifetime and platform acceptance remain separate.'}
     [IO.File]::WriteAllText("$outputPath/results.json",($report|ConvertTo-Json -Depth 8),[Text.UTF8Encoding]::new($false))
     if(!$complete){throw 'Native adapter closure failures retained'}
 } finally {Pop-Location}
