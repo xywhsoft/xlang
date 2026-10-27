@@ -5,6 +5,7 @@ $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
 . "$root/tools/extlib_smoke_process.ps1"
 . "$root/tools/xlir_native_process.ps1"
+. (Join-Path $PSScriptRoot 'xlir_resident_closure.ps1')
 Push-Location $root
 try {
     $public=(Resolve-Path -LiteralPath $PublicSourceDirectory).Path
@@ -32,6 +33,13 @@ try {
         $resolved=(Resolve-Path -LiteralPath $path).Path;$inputs[$resolved]=(Get-FileHash $resolved).Hash
     }
     New-Item -ItemType Directory -Path $work|Out-Null
+    $closure=Get-XlirResidentClosure -Root $root -Directory "$work/resident-closure" -Sources $resident -NativeProvider 'tools/xrt_single_header_impl.c' -PublicDirectory $public -Fixtures @('test/cases/xlir_async_cancel_watch.xl')
+    $frameProbe='test/cases/xlir_async_cancel_wait_frame.c'
+    $resident=@($closure.Sources|ForEach-Object {
+        if($_-eq'src/runtime/xl6_continuation_frame.c'){$frameProbe}else{$_}
+    })
+    foreach($record in $closure.Inputs){$inputs[$record.Path]=$record.Sha256}
+    $inputs[[IO.Path]::GetFullPath($frameProbe)]=(Get-FileHash -LiteralPath $frameProbe).Hash
     $rows=[Collections.Generic.List[object]]::new();$complete=$false;$utf8=[Text.UTF8Encoding]::new($false)
     function Check($name,$program,[string[]]$arguments,$witness=''){
         $result=if($program -eq 'gcc'){Invoke-XlirGccToLog $arguments "$work/$name.compiler.log" -PassThru -TimeoutSeconds 120}
@@ -50,7 +58,7 @@ try {
         Check 'contract-build' gcc ($flags+@('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_async_cancel_watch_contract.c')+$objects+@('release/xl.dll')+$libs+@('-o',"$work/contract.exe"))
         Copy-Item release/xl.dll "$work/xl.dll"
         foreach($repeat in @('','.repeat')){
-            Check "emit$repeat" "$work/contract.exe" @("$work/xlir_async_cancel_watch$repeat.c","$work/xlir_async_cancel_watch$repeat.h","$work/xlir_async_cancel_watch$repeat.json") '15 C/header-gated mutations'
+            Check "emit$repeat" "$work/contract.exe" @("$work/xlir_async_cancel_watch$repeat.c","$work/xlir_async_cancel_watch$repeat.h","$work/xlir_async_cancel_watch$repeat.json") '18 C/header-gated mutations'
         }
         foreach($suffix in @('c','h','json','h.bind.h')){
             if((Get-FileHash "$work/xlir_async_cancel_watch.$suffix").Hash-ne(Get-FileHash "$work/xlir_async_cancel_watch.repeat.$suffix").Hash){throw 'Cancellation output nondeterministic'}
