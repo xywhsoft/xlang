@@ -201,12 +201,12 @@ int64_t xchash_remove_node(void* handle, const char* name)
     return 1;
 }
 
-void* xchash_get_node(void* handle, const char* key)
+char* xchash_get_node(void* handle, const char* key)
 {
     xch_ring* ring = (xch_ring*)handle;
     uint64 hash;
     size_t lo, hi, mid;
-    void* result;
+    char* result;
     xrtClearError();
     if (ring == NULL || key == NULL) {
         xch_error(XERR_ARGUMENT, "ring and key are required");

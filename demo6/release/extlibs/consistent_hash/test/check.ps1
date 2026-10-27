@@ -54,6 +54,15 @@ try {
     }
 
     $null = Run 'XLang central' $xl @('run', 'test/cases/extlib_consistent_hash.xl')
+    $generated = Join-Path $work 'owned_get_node.c'
+    $null = Run 'XLang codegen' $xl @('cgen',
+        'release/examples/extlibs/consistent_hash.xl', '--emit', $generated)
+    $generatedText = [IO.File]::ReadAllText($generated)
+    if (-not $generatedText.Contains('extern char* xchash_get_node(') -or
+        -not [regex]::IsMatch($generatedText, '\.Data\s*=\s*xchash_get_node\s*\(')) {
+        throw 'getNode did not directly adopt the owned C string'
+    }
+    Write-Host '[consistent_hash] owned string adoption: PASS'
     foreach ($name in @('boundaries', 'allocations', 'layout')) {
         $null = Run "XLang $name" $xl @('run',
             "release/extlibs/consistent_hash/test/$name.xl")

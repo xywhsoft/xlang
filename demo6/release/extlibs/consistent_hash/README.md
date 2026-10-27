@@ -28,7 +28,7 @@ Linux 门禁现同样执行这条 AOT 边界，保持红色直至主线生命周
 
 ## C 接口
 
-声明在 `include/consistent_hash_native.h`。`xchash_create` 返回需 `xchash_destroy` 的句柄；`xchash_add_node` / `xchash_remove_node` 成功返回 1，失败返回 0，可通过 `xrtGetError` 查错。`xchash_get_node` 返回需 `xrtFree` 的独立 NUL 结尾字符串，失败返回 `NULL`，空环成功返回 `""`。C 接口不要求 xlang 编译器；XLang 类负责自动释放句柄并接管查询文本结果。
+声明在 `include/consistent_hash_native.h`。`xchash_create` 返回需 `xchash_destroy` 的句柄；`xchash_add_node` / `xchash_remove_node` 成功返回 1，失败返回 0，可通过 `xrtGetError` 查错。`xchash_get_node` 返回需 `xrtFree` 的独立 NUL 结尾字符串，失败返回 `NULL`，空环成功返回 `""`。C 接口不要求 xlang 编译器；XLang 类负责自动释放句柄，并以 `@owned string?` 接管查询文本，不经 `point` 二次转换。生成代码仍会扫描一次字符串长度，但不复制字符。
 每个有结果的 C 调用开始时清除本线程旧的 XRT 错误，失败后可直接重试；
 `node_count` / `vnode_count` 对空句柄返回 `-1` 并设置参数错误。
 

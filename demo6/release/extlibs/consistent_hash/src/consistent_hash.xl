@@ -12,7 +12,7 @@ export class ConsistentHash
 
     private extern "xchash_add_node" func addNative(string node) as int
     private extern "xchash_remove_node" func removeNative(string node) as int
-    private extern "xchash_get_node" func getNative(string key) as point
+    private extern "xchash_get_node" @owned func getNative(string key) as string?
     private extern "xchash_node_count" func nodeCountNative() as int
     private extern "xchash_vnode_count" func vnodeCountNative() as int
 
@@ -47,9 +47,9 @@ export class ConsistentHash
     func getNode(string key) as string
         if self.handle == null then throw RuntimeError "consistent_hash: ring is closed" end
         if __ch_has_nul(key) then throw ValueError "consistent_hash: key contains NUL" end
-        point result = self.getNative(key)
+        string? result = self.getNative(key)
         if result == null then throw RuntimeError __ch_error() end
-        return __xl_runtime.takeCstr(result)
+        return result
     end
 end
 
