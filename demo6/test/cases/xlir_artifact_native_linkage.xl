@@ -1,4 +1,4 @@
-extern "xrtEncodingUnitSize" func encodingUnit(c_int code) as c_size
+extern "xrtEncodingUnitSize" func encodingUnit(c_uint code) as c_size
 extern "xrtMathMax" func unusedMath(float left, float right) as float
 
 assert encodingUnit(0) == 0
