@@ -2699,10 +2699,12 @@ static XL_Module* xlCreateModuleFromState(XL_Context* ctx, TCCState* s)
 static XL_Module* xl__retiringModules;
 static size_t xl__retirementPass;
 static int xl__collectingRetirements;
+static uint64 xl__collectingRetirementsThread;
 /* API lifecycle exclusion serializes all host modules, including plans paused
  * for nonblocking Freeze admission. During callbacks the mutex is released,
  * but this guard prevents another driver from deleting any pinned module. */
 static int xl__ownershipDriverRunning;
+static uint64 xl__ownershipDriverThread;
 
 /* Caller owns an entry/retirement pin and invokes outside the API mutex.
  * Semantic failure is captured by the surrounding error scope, never inferred
@@ -2848,7 +2850,7 @@ static void xlModuleAdvanceOwnershipUnlocked(XL_Module* module)
     XL6_OwnershipPlanResult result; xerror* prior;
     xl6_error_result outcome = {true, NULL};
     if (xl__ownershipDriverRunning) return;
-    xl__ownershipDriverRunning = 1; prior = xrtTakeError();
+    xl__ownershipDriverRunning = 1; xl__ownershipDriverThread = xrtThreadCurrentId(); prior = xrtTakeError();
     module->ownershipAdmissionRefused=0;
     if (!module->ownershipPlan) {
         result = xl6OwnershipPlanTryCreateV6((xrtownershipref){module, &xlModuleOwnershipOps},
@@ -2910,7 +2912,7 @@ done:
         module->retirementFailed = 1;
         module->retirementError = xrtErrorRef(outcome.error);
     }
-    xrtClearError(); xrtSetErrorTake(prior); xl__ownershipDriverRunning = 0;
+    xrtClearError(); xrtSetErrorTake(prior); xl__ownershipDriverThread = 0; xl__ownershipDriverRunning = 0;
     if (!outcome.ok) {
         if (prior != NULL) { xrtErrorFree(outcome.error); outcome.error = xrtErrorRef(prior); }
         xl6ErrorScopePropagateFailure(outcome);
@@ -2937,6 +2939,7 @@ static int xlModulePrepareRetirementUnlocked(XL_Module* module)
     if (!xrtOwnershipScopeEnd(&admission)) abort();
     if (module->preparationRefs || module->ownershipPlan || xl__ownershipDriverRunning) return 0;
     ++module->preparationRefs; module->retirementRunning = 1; xl__ownershipDriverRunning = 1;
+    xl__ownershipDriverThread = xrtThreadCurrentId();
     xlApiUnlock();
     if (!xl6ErrorScopeBegin(&cleanup)) abort();
     result = module->retirementStep ? module->retirementStep->preflight()
@@ -2947,7 +2950,8 @@ static int xlModulePrepareRetirementUnlocked(XL_Module* module)
     outcome = xl6ErrorScopeEnd(&cleanup);
     xlApiLock();
     if (!module->preparationRefs || !module->retirementRunning || !xl__ownershipDriverRunning) abort();
-    --module->preparationRefs; module->retirementRunning = 0; xl__ownershipDriverRunning = 0;
+    --module->preparationRefs; module->retirementRunning = 0;
+    xl__ownershipDriverThread = 0; xl__ownershipDriverRunning = 0;
     if (outcome.ok && result == XL6_MODULE_PREPARE_READY) module->retirementPrepared = 1;
     if (!outcome.ok) {
         if (!module->retirementFailed) {
@@ -2987,12 +2991,14 @@ static int xlModuleTryRetireUnlocked(XL_Module* module)
             /* A failed caller's ambient diagnostic must not be mistaken for
              * failure to retire this module. Observe this operation's own
              * outcome in isolation, restoring the earlier diagnostic. */
+            xl__ownershipDriverRunning = 1; xl__ownershipDriverThread = xrtThreadCurrentId();
             xlApiUnlock();
             if (!xl6ErrorScopeBegin(&cleanup)) abort();
             retired = xlModuleRetirementStep(module, false);
             if (retired == XL6_MODULE_RETIRE_FAILED) xl6ErrorScopeCaptureFailure(&cleanup);
             outcome = xl6ErrorScopeEnd(&cleanup);
             xlApiLock();
+            xl__ownershipDriverThread = 0; xl__ownershipDriverRunning = 0;
             if (!outcome.ok) {
                 module->activation = XL_MODULE_DEACTIVATION_PENDING;
                 module->retirementRunning = 0;
@@ -3050,8 +3056,9 @@ static void xlDestroyModuleUnlocked(XL_Module* module)
 static void xlCollectRetiringModulesUnlocked(void)
 {
     XL_Module* module; size_t remaining = 0, pass;
-    if (xl__collectingRetirements) return;
+    if (xl__collectingRetirements || xl__retiringModules == NULL) return;
     xl__collectingRetirements = 1;
+    xl__collectingRetirementsThread = xrtThreadCurrentId();
     if (++xl__retirementPass == 0) {
         ++xl__retirementPass;
         for (module = xl__retiringModules; module != NULL; module = module->retirementNext) module->retirementPass = 0;
@@ -3066,7 +3073,7 @@ static void xlCollectRetiringModulesUnlocked(void)
         if (module == NULL) break;
         module->retirementPass = pass; (void)xlModuleTryRetireUnlocked(module);
     }
-    xl__collectingRetirements = 0;
+    xl__collectingRetirementsThread = 0; xl__collectingRetirements = 0;
 }
 
 XL_RuntimeDrainResult xlRuntimeDrainRetiringChecked(long long milliseconds)
@@ -3076,9 +3083,16 @@ XL_RuntimeDrainResult xlRuntimeDrainRetiringChecked(long long milliseconds)
     if(milliseconds< -1){xrtSetErrorKind(XERR_ARGUMENT);xl6ErrorScopeCaptureFailure(&scope);goto drain_end;}
     uint64 timeout=milliseconds<0 || (uint64)milliseconds>UINT64_MAX/1000u ? UINT64_MAX : (uint64)milliseconds*1000u;
     xdeadline deadline=xrtDeadlineAfter(timeout);
+    const uint64 caller=xrtThreadCurrentId();
     for(;;){
-        xlApiLock();bool reentry=xl__collectingRetirements || xl__ownershipDriverRunning,recovery=false;
-        if(!reentry){
+        xlApiLock();bool active=xl__collectingRetirements || xl__ownershipDriverRunning,recovery=false;
+        /* Only a callback on the current driver thread must return BUSY to
+         * avoid self-deadlock. Another thread's outside-lock cleanup is real
+         * progress to wait for, subject to this caller's deadline. Owner IDs
+         * and both admission flags are read/written under the API mutex. */
+        bool reentry=(xl__collectingRetirements && xl__collectingRetirementsThread==caller) ||
+            (xl__ownershipDriverRunning && xl__ownershipDriverThread==caller);
+        if(!active){
             /* Observe an earlier no-diagnostic failure before a successful
              * retry can finish and free that module's physical record. */
             for(XL_Module* module=xl__retiringModules;module && !scope.failed;module=module->retirementNext)

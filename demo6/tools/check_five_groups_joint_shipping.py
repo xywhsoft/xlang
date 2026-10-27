@@ -45,6 +45,7 @@ def main():
         shutil.copy2(path, isolated / path.name)
     source = controls / 'test/cases/stdlib_five_groups_joint.xl'
     host_source = controls / 'test/cases/xlir_five_groups_joint_host.c'
+    drain_source = controls / 'test/cases/xlir_runtime_drain_threads.c'
     copied = inputs / source.name
     shutil.copy2(source, copied)
     host = isolated / ('joint-host.exe' if windows else 'joint-host')
@@ -59,7 +60,7 @@ def main():
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(row.source, destination)
     pinned = {Path(__file__).resolve(), Path(sys.executable), cc, args.build_report.resolve(),
-              Path(load_resources.__code__.co_filename).resolve(), source, host_source,
+              Path(load_resources.__code__.co_filename).resolve(), source, host_source, drain_source,
               manifest, *original, *[row.source for row in declarations]}
     report = dict(Complete=False, Inputs={str(q): sha(q) for q in sorted(pinned)},
                   Rows=[], Failures=[], ActualShippingProducts=True, SourceObjectOverrides=False,
@@ -93,6 +94,15 @@ def main():
         assert 'five-groups-joint: ' + ('epoll' if windows else 'iocp') not in output
 
     try:
+        for optimization in ('O0', 'O2'):
+            drain = isolated / ('drain-' + optimization + ('.exe' if windows else ''))
+            run('drain-build-' + optimization,
+                [cc, '-std=c11', '-Wall', '-Wextra', '-Werror', '-' + optimization,
+                 '-I' + str(root / 'release/include'), drain_source, isolated / names[2], isolated / names[1],
+                 *([] if windows else ['-pthread', '-ldl', '-lm', '-Wl,-rpath,$ORIGIN']), '-o', drain])
+            output = run('drain-run-' + optimization, [drain])
+            assert output.count('drain threads: phase=') == 3 and output.count('wait=1/1 released=1') == 3
+        report['DrainThreadPhasesPerOptimization'] = 3
         run('public-host-build', [cc, '-std=c11', '-Wall', '-Wextra', '-Werror',
                                  '-I' + str(root / 'release/include'), host_source,
                                  isolated / names[2], *([] if windows else ['-Wl,-rpath,$ORIGIN']), '-o', host])
