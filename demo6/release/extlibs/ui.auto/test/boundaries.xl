@@ -79,6 +79,19 @@ func main(...) as int
 		rejected = true
 	end
 	assert rejected, "locator field type must be checked"
+	for invalid in [
+		"{\"name\":null,\"processId\":1}",
+		"{\"name\":\"Edit\",\"processId\":null}",
+		"{\"name\":\"Edit\",\"index\":null}"
+	]
+		rejected = false
+		try
+			ui.auto.locator_from_json(invalid)
+		catch TypeError e
+			rejected = true
+		end
+		assert rejected, "explicit null locator field must not mean absent"
+	end
 	rejected = false
 	try
 		ui.auto.locator_from_json("{\"strategy\":\"processClassPath\",\"processId\":1}")

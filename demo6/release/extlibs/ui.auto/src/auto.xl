@@ -117,8 +117,8 @@ func x_ui_auto_locator_from_json(string text) as Locator
 	if strategy == "processClassPath" and loc.class_path == "" then
 		throw ValueError "processClassPath locator requires classPath"
 	end
-	var index_value = obj?["index"]
-	if index_value != null then
+	if "index" in obj then
+		var index_value = obj["index"]
 		if type(index_value) != int then throw TypeError "locator index must be an integer" end
 		if int(index_value) < 0 then throw ValueError "locator index must not be negative" end
 		if loc.class_path == "" then throw ValueError "locator index requires classPath" end
@@ -220,19 +220,19 @@ func x_ui_auto_focused_locator_json() as string
 end
 
 func json_string(var obj, string key) as string
-	var value = obj?[key]
-	if value == null then
+	if not (key in obj) then
 		return ""
 	end
+	var value = obj[key]
 	if type(value) != string then throw TypeError "locator field must be a string" end
 	return string(value)
 end
 
 func json_int(var obj, string key) as int
-	var value = obj?[key]
-	if value == null then
+	if not (key in obj) then
 		return 0
 	end
+	var value = obj[key]
 	if type(value) != int then throw TypeError "locator field must be an integer" end
 	return int(value)
 end
