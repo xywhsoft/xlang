@@ -1,0 +1,94 @@
+import memcached
+
+func readExact(TcpStream peer, int count) as Buffer
+    Buffer received = Buffer()
+    while received.len() < count
+        bytes part = peer.recv(count - received.len(), 5000)
+        assert part.length > 0
+        assert received.append(part)
+    end
+    return received
+end
+
+func serve(TcpStream peer) as int
+    string setRequest = "set key 0 0 3\r\na\0b\r\n"
+    assert readExact(peer, string.byteLen(setRequest)).text() == setRequest
+    assert peer.send("STO") == NetStatus.ok
+    assert peer.wait(TcpWait.drain, 5000) == NetStatus.ok
+    time.sleep(20)
+    assert peer.send("RED\r\n") == NetStatus.ok
+    assert peer.wait(TcpWait.drain, 5000) == NetStatus.ok
+
+    assert readExact(peer, 9).text() == "get key\r\n"
+    assert peer.send("VALUE key 0 3\r\na") == NetStatus.ok
+    assert peer.wait(TcpWait.drain, 5000) == NetStatus.ok
+    time.sleep(20)
+    assert peer.send("\0b\r\nEND\r\n") == NetStatus.ok
+    assert peer.wait(TcpWait.drain, 5000) == NetStatus.ok
+
+    bytes binarySet = b"set binary 0 0 2\r\n\xff\0\r\n"
+    assert readExact(peer, binarySet.length).toBytes() == binarySet
+    assert peer.send("STORED\r\n") == NetStatus.ok
+    assert peer.wait(TcpWait.drain, 5000) == NetStatus.ok
+    assert readExact(peer, 12).text() == "get binary\r\n"
+    assert peer.send(Buffer(b"VALUE binary 0 2\r\n\xff\0\r\nEND\r\n")) == NetStatus.ok
+    assert peer.wait(TcpWait.drain, 5000) == NetStatus.ok
+
+    assert readExact(peer, 12).text() == "delete key\r\n"
+    assert peer.send("DELETED\r\n") == NetStatus.ok
+    assert peer.wait(TcpWait.drain, 5000) == NetStatus.ok
+
+    assert readExact(peer, 9).text() == "get key\r\n"
+    assert peer.send("END\r\n") == NetStatus.ok
+    assert peer.wait(TcpWait.drain, 5000) == NetStatus.ok
+    peer.close()
+    return 1
+end
+
+func serveMalformed(TcpStream peer) as int
+    readExact(peer, 9)
+    assert peer.send("UNKNOWN\r\n") == NetStatus.ok
+    assert peer.wait(TcpWait.drain, 5000) == NetStatus.ok
+    time.sleep(100)
+    peer.close()
+    return 1
+end
+
+func main(...) as int
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
+    auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+    TcpStream client = TcpStream(engine, listener.localAddress())
+    assert client.wait(TcpWait.open, 5000) == NetStatus.ok
+    TcpStream peer = listener.accept(5000)
+    future<int> job = task.spawn(serve, peer)
+    assert memcached.set(client, "key", "a\0b") == "stored"
+    var found = memcached.get(client, "key")
+    assert found != null and found == "a\0b"
+    assert memcached.set(client, "binary", b"\xff\0") == "stored"
+    assert memcached.get(client, "binary") == b"\xff\0"
+    assert memcached.del(client, "key")
+    assert memcached.get(client, "key") == null
+    assert job.wait()
+    client.close()
+
+    TcpStream bad = TcpStream(engine, listener.localAddress())
+    assert bad.wait(TcpWait.open, 5000) == NetStatus.ok
+    TcpStream badPeer = listener.accept(5000)
+    future<int> badJob = task.spawn(serveMalformed, badPeer)
+    bool rejected = false
+    try
+        memcached.get(bad, "key")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected
+    assert badJob.wait()
+    assert bad.state != TcpStreamState.open
+    bad.close()
+    listener.close()
+    engine.close()
+    assert engine.wait(5000)
+    println("memcached loopback: ok")
+    return 0
+end

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>memcached - 扩展库 - xlang</title>
+  <meta name="description" content="Memcached 文本协议编解码和 TcpStream 单命令客户端。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / memcached</p><h1>memcached</h1>
+    <p class="extlib-lead">长度感知的文本协议与简洁的单命令客户端。</p>
+    <p>连接由调用方持有。支持 TCP 分包、任意字节值、总超时和失同步连接中止；不含连接池、自动重连、SASL 或二进制协议。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>set(stream, key, data, exptime=0, timeoutMs=5000)</code></td><td>写入 string 或 bytes，返回存储状态</td></tr>
+      <tr><td><code>get(stream, key, timeoutMs=5000)</code></td><td>返回 string、bytes 或 null</td></tr>
+      <tr><td><code>del(stream, key, timeoutMs=5000)</code></td><td>删除并返回 bool</td></tr>
+      <tr><td><code>buildGet / buildSet / buildAdd / buildDelete / buildTouch</code></td><td>构造文本协议命令</td></tr>
+      <tr><td><code>buildStats / buildFlushAll / buildVersion</code></td><td>构造管理命令</td></tr>
+      <tr><td><code>frameSize(Buffer) / parseResponse(Buffer)</code></td><td>增量识别并解析完整回复</td></tr>
+    </tbody></table>
+    <h2>范例</h2>
+    <pre><code>import memcached
+Buffer response = Buffer("VALUE key 0 3\r\na\0b\r\nEND\r\n")
+var parsed = memcached.parseResponse(response)
+assert parsed["items"][0]["data"] == "a\0b"</code></pre>
+    <p>成对范例：<code>examples/basic.xl</code> 和 <code>examples/basic_c.c</code>；两者展示相同的构造与解析结果。C 侧包含 <code>include/memcached_native.h</code>，返回的命令字符串使用 <code>xrtFree</code>，返回的值使用 <code>xrtValueRelease</code>。</p>
+    <h2>验收范围</h2>
+    <p>2026-10-27：Windows JIT/AOT 与 Linux GCC ASan/UBSan、JIT/AOT 包级门禁通过，覆盖 C 协议边界和故障分配、本地 TCP 分包/二进制值/连接复用/畸形回复、双语范例同输出。当前尚未连接真实 Memcached 服务或执行长时压力测试，不将此记录解释为完整生产级客户端签收。</p>
+  </section>
+</main>
+</body>
+</html>

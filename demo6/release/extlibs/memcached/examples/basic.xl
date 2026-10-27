@@ -1,0 +1,13 @@
+import memcached
+
+func main(...) as int
+    string command = memcached.buildSet("key", 0, 0, 3)
+    Buffer response = Buffer("VALUE key 0 3\r\na\0b\r\nEND\r\n")
+    var result = memcached.parseResponse(response)
+    string value = string(result["items"][0]["data"])
+    println("set command: " + string.slice(command, 0, string.byteLen(command) - 2))
+    println("value bytes: " + string(string.byteLen(value)))
+    println("value middle byte: " + string(Buffer(value).byteAt(1)))
+    println("missing status: " + string(memcached.parseResponse(Buffer("END\r\n"))["status"]))
+    return 0
+end

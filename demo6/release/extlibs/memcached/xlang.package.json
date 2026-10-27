@@ -6,7 +6,7 @@
     "kind": "demo6-extlib",
     "artifact": {
         "kind": "source",
-        "cSources": ["memcached_native.c"],
+        "cSources": ["memcached_request.c", "memcached_response.c"],
         "xlSources": ["src/memcached.xl"]
     },
     "links": [],

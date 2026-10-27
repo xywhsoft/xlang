@@ -1,0 +1,4 @@
+set command: set key 0 0 3
+value bytes: 3
+value middle byte: 0
+missing status: end

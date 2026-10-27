@@ -1,0 +1,45 @@
+import memcached
+
+assert memcached.buildGet(["a", "b"]) == "get a b\r\n"
+assert memcached.buildSet("key", 1, 0, 3) == "set key 1 0 3\r\n"
+assert memcached.buildDelete("key") == "delete key\r\n"
+assert memcached.buildTouch("key", 10) == "touch key 10\r\n"
+
+bool invalid = false
+try
+    memcached.buildDelete("bad key")
+catch ValueError error
+    invalid = true
+end
+assert invalid
+
+Buffer partial = Buffer("VALUE key 0 3\r\nab")
+assert memcached.frameSize(partial) == 0
+Buffer reply = Buffer("VALUE key 0 3\r\na\0b\r\nEND\r\n")
+assert memcached.frameSize(reply) == reply.len()
+var decoded = memcached.parseResponse(reply)
+assert decoded["status"] == "value"
+assert decoded["items"].length == 1
+assert decoded["items"][0]["data"] == "a\0b"
+assert string.byteLen(string(decoded["items"][0]["data"])) == 3
+
+Buffer multi = Buffer("VALUE a 0 1\r\nX\r\nVALUE b 0 0\r\n\r\nEND\r\n")
+decoded = memcached.parseResponse(multi)
+assert decoded["items"].length == 2
+assert decoded["items"][1]["data"] == ""
+Buffer binary = Buffer(b"VALUE bin 0 2\r\n\xff\0\r\nEND\r\n")
+decoded = memcached.parseResponse(binary)
+assert decoded["items"][0]["data"] == b"\xff\0"
+decoded = memcached.parseResponse(Buffer("VALUE k 0 1 18446744073709551615\r\nX\r\nEND\r\n"))
+assert decoded["items"][0]["cas"] == "18446744073709551615"
+assert memcached.parseResponse(Buffer("END\r\n"))["status"] == "end"
+assert memcached.frameSize(Buffer("BROKEN\r\n")) < 0
+
+invalid = false
+try
+    memcached.parseResponse(Buffer("STORED\r\nextra"))
+catch ValueError error
+    invalid = true
+end
+assert invalid
+println("memcached XLang protocol: ok")
