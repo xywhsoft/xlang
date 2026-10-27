@@ -6,8 +6,11 @@
 #include "src/runtime/xl6_closure.h"
 #include "src/runtime/xl6_cell.h"
 #include "src/runtime/xl6_future_payload.h"
+#include "src/runtime/xl6_ownership_catalog.h"
+#include "src/runtime/xl6_ownership_domains.h"
 #include <assert.h>
 #include <stdio.h>
+#include <stdatomic.h>
 #include <string.h>
 extern int pending_graph_bind(const XL6_CodeOwner*);
 extern int pending_graph_init(void);
@@ -16,14 +19,16 @@ extern int pending_graph_finish(void);
 extern bool pending_graph_trace(XL6_ModuleOwnershipVisit,void*);
 extern void pending_graph_keep(int64_t);
 typedef struct Owner {
-    size_t refs;
+    atomic_size_t refs;
     xpromise *promise,*retired;
     const void* claim;
     bool closed,cleared,finished;
 } Owner;
 static Owner owner;
 static xvalue* alias;
-static unsigned events,callbacks,finalizers,deferrals;
+static atomic_uint events,callbacks,finalizers;
+static unsigned deferrals;
+static XL6_OwnershipCatalog* catalog;
 static void begin(xrtownershipscope* s){assert(xrtOwnershipMutationBegin(s));}
 static void end(xrtownershipscope* s){assert(xrtOwnershipScopeEnd(s));}
 static int acquire(void* data)
@@ -60,25 +65,28 @@ static bool finish(const void* data,const void* token)
     xrtPromiseDestroy(p);return true;
 }
 static const xrtownershipadapterv1 owner_adapter={sizeof(owner_adapter),hold,release,claim,restore,NULL,clear,finish};
-static bool resolve(xrtownershipref ref,void* context,const xrtownershipadapterv1** adapter,const xrtownershippreparationv1** prep)
+static XL6_OwnershipAdmissionV1 resolve(xrtownershipref ref,void* context,const xrtownershipadapterv1** adapter,
+    const xrtownershippreparationv1** prep,const XL6_OwnershipFinishV1** completion)
 {
-    (void)context;*prep=NULL;
-    if(ref.Ops==&owner_ops){*adapter=&owner_adapter;return true;}
-    if((*adapter=xl6FutureCallbackOwnershipAdapterV1(ref,prep)))return true;
-    const xfutureproducerownershipv1* producers[]={xl6FutureCallbackProducerPolicyV1Get()};
-    const xfuturewatchownershipv1* watches[]={xl6FutureCallbackWatchPolicyV1Get()};
-    const xfuturepayloadownershipv1* payloads[XL6_FUTURE_PAYLOAD_COUNT-XL6_FUTURE_PAYLOAD_VALUE];
-    for(unsigned i=0;i<sizeof(payloads)/sizeof(*payloads);++i)payloads[i]=xl6PayloadPolicyGet((XL6_FuturePayloadKind)(XL6_FUTURE_PAYLOAD_VALUE+i));
-    if((*adapter=xrtFutureOwnershipAdapterV3(ref,payloads,sizeof(payloads)/sizeof(*payloads),producers,1,watches,1,prep)))return true;
-    if((*adapter=xl6ClosureOwnershipAdapterV1(ref)))return true;
-    if((*adapter=xl6CellOwnershipAdapterV1(ref)))return true;
-    if((*adapter=xl6CodeLeaseOwnershipAdapterV1(ref)))return true;
-    if((*adapter=xl6ClassOwnershipAdapterV1(ref)))return true;
-    if((*adapter=xrtValueCallableOwnershipAdapterV1(ref)))return true;
-    if((*adapter=xrtValueFutureOwnershipAdapterV1(ref)))return true;
-    if((*adapter=xrtCancelOwnershipAdapterV1(ref)))return true;
-    if((*adapter=xrtErrorOwnershipAdapterV1(ref)))return true;
-    *adapter=xrtValueOwnershipAdapterV1(ref);return *adapter!=NULL;
+    (void)context;*adapter=NULL;*prep=NULL;*completion=NULL;
+    if(ref.Ops==&owner_ops){*adapter=&owner_adapter;return XL6_OWNERSHIP_ADMISSION_ADMITTED;}
+    return xl6OwnershipCatalogProbeV1(ref,catalog,adapter,prep,completion);
+}
+static XL6_OwnershipPlanResult create_plan(xrtownershipref root,XL6_OwnershipPlan** plan)
+{
+    xdeadline limit=xrtDeadlineAfter(5000000);XL6_OwnershipPlanResult result;
+    while((result=xl6OwnershipPlanTryCreateV6(root,resolve,NULL,false,NULL,plan))==XL6_OWNERSHIP_PLAN_BUSY){
+        assert(!*plan&&!xrtDeadlineExpired(limit));xrtThreadYield();
+    }
+    return result;
+}
+static XL6_OwnershipStepResult prepare_plan(XL6_OwnershipPlan* plan)
+{
+    xdeadline limit=xrtDeadlineAfter(5000000);XL6_OwnershipStepResult result;
+    while((result=xl6OwnershipPlanPrepare(plan))==XL6_OWNERSHIP_STEP_BUSY){
+        assert(events<=12&&!owner.cleared&&!xrtDeadlineExpired(limit));xrtThreadYield();
+    }
+    return result;
 }
 void pending_callback_observe(int64_t event,const char* text)
 {
@@ -96,7 +104,13 @@ xfuture* pending_callback_input(void)
 }
 int main(void)
 {
-    assert(xrtMemDebugEnable(true));xrtSetErrorKind(XERR_STATE);xrtClearError();
+    xmemdebugsnapshot whole;
+    assert(xrtMemDebugEnable(true));xrtSetErrorKind(XERR_STATE);xrtClearError();xrtMemDebugSnapshot(&whole);
+    const XL6_OwnershipDomainV1* domains[]={xl6OwnershipDomainCodeLeaseV1Get(),xl6OwnershipDomainClassV1Get(),
+        xl6OwnershipDomainCellV1Get(),xl6OwnershipDomainClosureV1Get(),xl6OwnershipDomainExecutorV1Get(),
+        xl6OwnershipDomainQueueV1Get(),xl6OwnershipDomainFutureCallbackQueueV1Get(),
+        xl6OwnershipDomainFuturePayloadV1Get(),xl6OwnershipDomainNativeFutureV1Get()};
+    catalog=xl6OwnershipCatalogCreateV1(domains,sizeof(domains)/sizeof(*domains));assert(catalog);
     const XL6_CodeOwnerGraph code={{sizeof(code),&owner,acquire,code_release},0x584C36434F574E31ULL,&owner_ops};
     assert(pending_graph_bind(&code.base));
     for(unsigned n=0;n<100;++n){
@@ -106,15 +120,15 @@ int main(void)
         xrtownershipscope mutation={0};begin(&mutation);owner.closed=true;end(&mutation);release(&owner);
         xrtownershipref root={&owner,&owner_ops};XL6_OwnershipPlan* plan=NULL;
         if(alias){
-            assert(xl6OwnershipPlanTryCreateV2(root,resolve,NULL,&plan)==XL6_OWNERSHIP_PLAN_ROOTED);
-            assert(xl6OwnershipPlanPrepare(plan)==XL6_OWNERSHIP_STEP_READY&&!events);
+            assert(create_plan(root,&plan)==XL6_OWNERSHIP_PLAN_ROOTED);
+            assert(prepare_plan(plan)==XL6_OWNERSHIP_STEP_READY&&!events);
             assert(xl6OwnershipPlanFinalize(plan)&&!events&&xl6OwnershipPlanTryCommit(plan)==XL6_OWNERSHIP_PLAN_ROOTED);
             assert(xl6OwnershipPlanTryDestroy(plan)==XL6_OWNERSHIP_PLAN_READY);plan=NULL;
             xrtValueRelease(alias);alias=NULL;++deferrals;assert(!events);
         }
-        assert(xl6OwnershipPlanTryCreateV2(root,resolve,NULL,&plan)==XL6_OWNERSHIP_PLAN_PREPARATIONS);
+        assert(create_plan(root,&plan)==XL6_OWNERSHIP_PLAN_PREPARATIONS);
         assert(xl6OwnershipPlanFinalize(plan)&&!events); /* Cannot skip preparation. */
-        assert(xl6OwnershipPlanPrepare(plan)==XL6_OWNERSHIP_STEP_READY&&events==12);
+        assert(prepare_plan(plan)==XL6_OWNERSHIP_STEP_READY&&events==12);
         assert(xl6OwnershipPlanFinalize(plan)&&events==123);
         assert(xl6OwnershipPlanTryCommit(plan)==XL6_OWNERSHIP_PLAN_READY&&xl6OwnershipPlanFinish(plan));
         assert(xl6OwnershipPlanTryDestroy(plan)==XL6_OWNERSHIP_PLAN_READY&&!owner.refs&&owner.finished);
@@ -124,5 +138,9 @@ int main(void)
             before.InvalidFreeCount==after.InvalidFreeCount&&before.DoubleFreeCount==after.DoubleFreeCount);
     }
     assert(callbacks==200&&finalizers==100&&deferrals==50);
+    xl6OwnershipCatalogDestroyV1(catalog);catalog=NULL;
+    {xmemdebugsnapshot after;xrtClearError();xrtMemDebugSnapshot(&after);
+        assert(whole.LiveCount==after.LiveCount&&whole.LiveBytes==after.LiveBytes&&
+            after.AllocCount-whole.AllocCount==after.FreeCount-whole.FreeCount);}
     puts("Pending callback preparation: 100 generated two-finally graphs, 50 external-result deferrals, 200 ordered callbacks before 100 class finalizers, complete trace/prepare/clear/finish and zero live delta; no fake roots or guard leases");return 0;
 }

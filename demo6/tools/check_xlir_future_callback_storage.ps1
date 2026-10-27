@@ -1,8 +1,10 @@
 param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$ContractDirectory,
     [Parameter(Mandatory=$true)][string]$Directory,
-    [string]$Tcc='E:/software/tcc/tcc.exe')
+    [string]$Tcc='E:/software/tcc/tcc.exe', [string]$OnlyPrograms='')
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
+. (Join-Path $PSScriptRoot 'xlir_resident_closure.ps1')
 $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
 try {
@@ -15,6 +17,7 @@ try {
     $residentSources=@('src/runtime/xl6_code_lease.c','src/runtime/xl6_ownership_plan.c','src/runtime/xl6_capture.c','src/runtime/xl6_value_iterator.c','src/runtime/xl6_future_callback.c','src/runtime/xl6_closure.c','src/runtime/xl6_cell.c',
         'src/runtime/xl6_slot.c','src/runtime/xl6_frame_storage.c','src/runtime/xl6_continuation_frame.c','src/runtime/xl6_future_wait.c','src/runtime/xl6_task.c','src/runtime/xl6_task_frame.c','src/runtime/xl6_task_pool.c','src/runtime/xl6_generator.c','src/runtime/xl6_code_finalizer.c',
         'src/runtime/xl6_continuation_queue.c','src/runtime/xl6_continuation_executor.c','src/runtime/xl6_continuation_future.c','src/runtime/xl6_future_payload.c','src/runtime/xl6_time_core.c')
+    $residentSources+=@('code_lease','class','cell','closure','executor','queue','future_callback_queue','future_payload','native_future'|ForEach-Object {"src/runtime/xl6_ownership_domain_$_.c"})
     $files=@(Get-Item -LiteralPath $PSCommandPath,$Tcc,'C:/Windows/System32/ucrtbase.dll',(Get-Command gcc).Source,
         'test/cases/xlir_class_release_isolation.c','test/cases/xlir_terminal_release_transitive.c','test/cases/xlir_future_producer_roots.c')+
         @(Get-ChildItem test/cases -File | Where-Object {$_.Name -match '^xlir_(future_callback_storage|future_continuation_abi_host|callback_boundary|pending_callback_preparation)' -or $_.Name -eq 'stdlib_future_continuation.xl'})
@@ -22,7 +25,10 @@ try {
         @($files | ForEach-Object {[pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})
     foreach($row in $inputs){if((Get-FileHash -LiteralPath $row.Path).Hash -ne $row.Sha256){throw "Stale Future callback input: $($row.Path)"}}
     New-Item -ItemType Directory -Path $outputPath | Out-Null
-    $irMarker='Future callback storage IR: 3 fixtures, 15 Future continuations, 10 tasks, 125 rejected C/header-gated storage mutations; exact text/JSON ABI'
+    $closure=Get-XlirResidentClosure -Root $rootPath -Directory "$outputPath/resident-closure" -Sources $residentSources -NativeProvider 'tools/xrt_single_header_impl.c' -PublicDirectory $PublicDirectory -Fixtures @('test/cases/xlir_callback_boundary.xl','test/cases/xlir_callback_boundary_future_only.xl','test/cases/xlir_pending_callback_preparation.xl','test/cases/stdlib_future_continuation.xl')
+    $residentSources=@($closure.Sources)
+    $inputs+=@($closure.Inputs)
+    $irMarker='Future callback storage IR: 3 fixtures, 15 Future continuations, 10 tasks, 235 rejected C/header-gated mutations including retired inline transport/cleanup/error ABIs; exact text/JSON ABI'
     $cases=@(
         @{Name='xlir_future_callback_storage';Driver='xlir_future_callback_storage_contract';Pattern=[regex]::Escape($irMarker)},
         @{Name='xlir_callback_boundary.future_only';Driver='xlir_callback_boundary_contract';Extra=@('--future-only');Pattern='callback boundary contract: 1 activations, 2 captures, 36 rejected mutations'})
@@ -53,7 +59,7 @@ try {
         $first="$outputPath/xlir_pending_callback_preparation.$suffix";$second="$outputPath/xlir_pending_callback_preparation-repeat.$suffix"
         if(!(Test-Path $first) -or !(Test-Path $second) -or (Get-FileHash $first).Hash -ne (Get-FileHash $second).Hash){$deterministic=$false}
     }
-    $includes=@('-I.','-Irelease',"-I$([IO.Path]::GetFullPath((Join-Path $PublicDirectory 'include')))","-I$outputPath")
+    $includes=@('-I.','-Irelease','-Irelease/include','-Itest/cases',"-I$([IO.Path]::GetFullPath((Join-Path $PublicDirectory 'include')))","-I$outputPath")
     $strict=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
         '-Wno-unused-label','-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-Wno-pointer-sign','-Wno-format-truncation')
     $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32');$lanes=@();$dlls=@()
@@ -68,16 +74,22 @@ try {
         @{Name='ordinary-value';Sources=@('test/cases/xlir_class_release_isolation.c');Arguments=@('0');Pattern='Ordinary release mode 0: finalizers=1 isolated=1, all threads joined and zero live delta'},
         @{Name='ordinary-closure';Sources=@('test/cases/xlir_class_release_isolation.c');Arguments=@('1');Pattern='Ordinary release mode 1: finalizers=1 isolated=1, all threads joined and zero live delta'},
         @{Name='transitive';Sources=@('test/cases/xlir_terminal_release_transitive.c');Pattern='Terminal release isolation: 21 routes x25, 526 actual finalizers, 528 cross-thread probes; containers/COW/cursors/cells/closure scopes/Future/callable bridges/deep clones, receiver/weak/error contracts, explicit native phases and caller-scope preservation; zero live delta'})
+    $availablePrograms=@($programs.Name)
+    if($OnlyPrograms){
+        $requested=@($OnlyPrograms.Split(','))
+        if(@($requested|Sort-Object -Unique).Count-ne$requested.Count-or@($requested|Where-Object {$_-notin$availablePrograms}).Count){throw 'Unknown or repeated callback diagnostic program'}
+        $programs=@($programs|Where-Object {$_.Name-in$requested})
+    }
     foreach($compiler in @('gcc-O0','gcc-O2','tcc')){
         $dll="$outputPath/future-$compiler.dll"
-        if($compiler -eq 'tcc'){& $Tcc -std=c11 -shared @includes test/cases/xlir_future_callback_storage_drop.c -o $dll *> "$dll.build.log"}
-        else{& gcc @strict "-$($compiler.Substring(4))" -shared @includes test/cases/xlir_future_callback_storage_drop.c -o $dll *> "$dll.build.log"}
-        $dlls += [pscustomobject]@{Name=$compiler;Build=$LASTEXITCODE;Path=$dll}
+        if($compiler -eq 'tcc'){$dllExit=Invoke-XlirTccToLog $Tcc (@('-std=c11','-shared')+$includes+@('test/cases/xlir_future_callback_storage_drop.c','-o',$dll)) "$dll.build.log"}
+        else{$dllExit=Invoke-XlirGccToLog ($strict+@("-$($compiler.Substring(4))",'-shared')+$includes+@('test/cases/xlir_future_callback_storage_drop.c','-o',$dll)) "$dll.build.log"}
+        $dlls += [pscustomobject]@{Name=$compiler;Build=$dllExit;Path=$dll}
         foreach($program in $programs){
             $name="$($program.Name)-$compiler";$binary="$outputPath/$name.exe";$sources=@($program.Sources)+$residentSources
-            if($compiler -eq 'tcc'){& $Tcc -std=c11 @includes @sources tools/xrt_single_header_impl.c C:/Windows/System32/ucrtbase.dll @libs -o $binary *> "$outputPath/$name.build.log"}
-            else{& gcc @strict "-$($compiler.Substring(4))" @includes @sources $runtime[0].Path @libs -o $binary *> "$outputPath/$name.build.log"}
-            $buildExit=$LASTEXITCODE;$runExit=$null;$complete=$false
+            if($compiler -eq 'tcc'){$buildExit=Invoke-XlirTccToLog $Tcc (@('-std=c11')+$includes+$sources+@('tools/xrt_single_header_impl.c','C:/Windows/System32/ucrtbase.dll')+$libs+@('-o',$binary)) "$outputPath/$name.build.log"}
+            else{$buildExit=Invoke-XlirGccToLog ($strict+@("-$($compiler.Substring(4))")+$includes+$sources+@($runtime[0].Path)+$libs+@('-o',$binary)) "$outputPath/$name.build.log"}
+            $runExit=$null;$complete=$false
             if($buildExit -eq 0){
                 $options=@{FilePath=$binary;WindowStyle='Hidden';PassThru=$true;WorkingDirectory=$rootPath;RedirectStandardOutput="$outputPath/$name.out.log";RedirectStandardError="$outputPath/$name.err.log"}
                 if($program.Name -eq 'resident'){$options.ArgumentList=@('"'+$dll+'"')}
@@ -94,7 +106,7 @@ $process=Start-Process @options
     }
     $unchanged=@($inputs | Where-Object {(Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256}).Count -eq 0
     $report=[pscustomobject]@{RecordedAt=(Get-Date).ToString('o');Inputs=$inputs;InputsUnchanged=$unchanged;Emission=$emission;Deterministic=$deterministic;Dlls=$dlls;Lanes=$lanes;
-        IrMarker=$irMarker;RuntimeMarker=$runtimeMarker;Scope='One resident Future callback storage/registration/retirement implementation selected by verified callback storage ABI. Full then/catch/finally source fixture, generated pending graph, resident four outcomes/active/drop/cancel/OOM/races and real DLL child continuations/closures after Close. New generated two-finally owner graphs require normal notification before class finalization and external-result deferral. That additive graph host does not prove actual PE/TCC unmapping. No native roots or full native participation, Linux/release/default-backend claim.'}
+        IrMarker=$irMarker;RuntimeMarker=$runtimeMarker;FullPopulation=($programs.Count-eq$availablePrograms.Count);SelectedPrograms=@($programs.Name);AvailablePrograms=$availablePrograms;Scope='Actual queued language Future callbacks plus explicit native inline contracts. Default population retains all nine programs and three compilers; a selected diagnostic subset is explicitly marked. Native four outcomes/active/drop/cancel/OOM/races and real DLL child continuations/closures after Close. Generated two-finally owner graphs use current catalog policies before class finalization and external-result deferral. The additive graph host does not establish actual PE/TCC unmapping. No Linux/release acceptance claim.'}
     [IO.File]::WriteAllText("$outputPath/results.json",($report | ConvertTo-Json -Depth 7),[Text.UTF8Encoding]::new($false))
     if(!$unchanged -or !$deterministic -or @($emission | Where-Object {$_.Exit -ne 0 -or !$_.Complete}).Count -or
         @($dlls | Where-Object Build -ne 0).Count -or @($lanes | Where-Object {$_.Build -ne 0 -or $_.Run -ne 0 -or !$_.Complete}).Count){throw 'Future callback storage batch collected failures'}
