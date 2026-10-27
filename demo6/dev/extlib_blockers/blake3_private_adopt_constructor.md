@@ -1,5 +1,12 @@
 # blake3 导出类的私有句柄构造器仍可被包外调用
 
+2026-10-27 复验：`xl.exe` SHA-256 为
+`CCF98FF05BAAA71C1827EAA0C8B7A011A9A17EAB1AECD593CD89848D227C5A2B`，
+`xl.dll` 为 `7D07E84B3FD99C74F226D5A221CD94BE402AFC1091F15E9FDEE4FD019F2B11D9`，
+`xlc.dll` 为 `2F3DAA80FF68FA0E6C42CEEA39F7205573559CDDF3BCF4F5A7F96FD55A09F655`。
+仅运行 `xl check release/extlibs/blake3/test/private_adopt_constructor_negative.xl`，
+仍输出 `ok`、退出 0；未运行危险的原生句柄构造。
+
 状态：blocked-upstream。普通扩展库任务不修改 XLang 编译器。
 
 ## 最小复现
