@@ -1,5 +1,14 @@
 # cbor
 
+2026-10-27 重建 Windows 发布版后，独立 `Buffer` AOT 探针已构建并运行，
+旧 `xl6NativeHandleTraceLeaf` 缺符号不再是当前首阻断。默认包门禁的
+严格 C 编译、原生边界/分配故障及 C 范例通过，随后 XLang
+`test/boundaries.xl` 在语言字典传入 `encode(var)` 时报告
+`NotImplementedError: CBOR cannot encode this dynamic value type`。
+既有 `dev/extlib_blockers/cbor_var_projection.xl` 用整数正例和数组
+负例固定同一投影边界；本次字典失败由 `test/boundaries.xl` 复现。
+等待主线统一修复 foreign `var` 容器投影后再跑完整双语/AOT 门禁。
+
 2026-10-25 使用当日重建的 Windows 发布版执行默认 `test/check.ps1`：
 manifest 严格 C、C 边界/分配故障与 C 范例均通过；首个 XLang
 `test/boundaries.xl` 在语言数组进入 `encode(var)` 时抛
