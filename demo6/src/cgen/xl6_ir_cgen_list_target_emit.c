@@ -16,7 +16,8 @@ static int xl6IrCgenEmitValueCollectionTargetCreateDepth(XL6_Output* out,const X
     const XL6_IrSequenceLayout* plan=&schema->sequenceLayout;
     XL6_IrTypeId element=plan->elementType;
     const XL6_IrType* payload=xl6IrTypeGet(&module->types,element);
-    const char* slot=plan->codecAbi==XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1 ||
+    const char* slot=plan->codecAbi==XL6_IR_SEQUENCE_CODEC_ERROR_VALUE_V1 ||
+        plan->codecAbi==XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1 ||
         plan->codecAbi==XL6_IR_SEQUENCE_CODEC_UNION_VALUE_V1 ?
         "xvalue*" : xl6IrCgenType(module,element);
     const char* descriptor=xl6IrCgenNativeSlotTypeExpr(plan->slotAbi);

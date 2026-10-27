@@ -46,6 +46,10 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
                 if(value.inputParameter)needs->needsXValueClosureBridgeRuntime=1;
                 if(value.output)needs->needsXValueClosureProjectionRuntime=1;
                 needs->needsClosureRuntime=1;needs->needsXCallRuntime=1;
+            } else if(value.value.codecAbi==XL6_IR_SEQUENCE_CODEC_ERROR_VALUE_V1) {
+                needs->needsXValueErrorBoxRuntime=1;needs->needsXValueErrorProjectionRuntime=1;
+                needs->needsXValueHandleRuntime=1;needs->needsXValueTypeIdentityRuntime=1;
+                needs->needsErrorRuntime=1;needs->needsRuntimeTrap=1;
             } else if(value.value.codecAbi==XL6_IR_SEQUENCE_CODEC_UNION_VALUE_V1) {
                 needs->needsXValueUnionRuntime=1;needs->needsRuntimeTrap=1;
             }

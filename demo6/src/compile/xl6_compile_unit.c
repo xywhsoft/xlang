@@ -968,6 +968,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_crypto_aes_block_buffer.c",D(R(CRYPTO_AES_BLOCK)),{"XRT_MODULE_BUFFER"}},
     {"src/runtime/xl6_crypto_poly1305_buffer.c",D(),{"XRT_MODULE_CRYPTO_POLY1305","XRT_MODULE_VALUE","XRT_MODULE_BUFFER"}},
     {"src/runtime/xl6_crypto_poly1305_stream_buffer.c",D(R(CRYPTO_POLY1305_STREAM)),{"XRT_MODULE_BUFFER"}},
+    {"src/runtime/xl6_array_error_admission.c",D(R(SEQUENCE),R(ERROR_VALUE)),{"XRT_MODULE_VALUE"}},
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
@@ -1244,6 +1245,7 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
                      * family and all descendants from this closed recipe. */
                     break;
                 case XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1: REQUIRE(R(ARRAY_CALLABLE_ADMISSION)); break;
+                case XL6_IR_SEQUENCE_LAYOUT_ERROR_REFERENCE_V1: REQUIRE(R(ARRAY_ERROR_ADMISSION)); break;
                 case XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1: REQUIRE(R(ARRAY_FUTURE_ADMISSION)); break;
                 case XL6_IR_SEQUENCE_LAYOUT_SEMAPHORE_REFERENCE_V1: REQUIRE(R(ARRAY_SEMAPHORE_ADMISSION)); break;
                 case XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1: REQUIRE(R(ARRAY_THREAD_ADMISSION)); break;

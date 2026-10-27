@@ -22,6 +22,9 @@ static int xl6IrChannelValuePlanDescribe(const XL6_IrModule* module,XL6_IrTypeId
             if (base->kind!=XL6_IR_TYPE_UNION || base->cAbi!=XL6_IR_C_ABI_UNION ||
                 base->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
                 !xl6IrUnionLayoutGet(module,layout->baseElementType)) return 0;
+        } else if (layout->codecAbi==XL6_IR_SEQUENCE_CODEC_ERROR_VALUE_V1) {
+            if (base->cAbi!=XL6_IR_C_ABI_RUNTIME_ERROR_PTR ||
+                base->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED || !element->typeValueId) return 0;
         } else return 0;
     }
     plan.elementType=layout->elementType;plan.baseElementType=layout->baseElementType;

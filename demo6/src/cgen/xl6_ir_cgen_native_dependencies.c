@@ -325,6 +325,7 @@ static int xl6IrCgenVisitSequenceFactorySymbols(const XL6_IrModule* module,XL6_I
     case XL6_IR_SEQUENCE_LAYOUT_C_SCALAR_V1: factory="xl6SequenceCScalarCreateV1"; break;
     case XL6_IR_SEQUENCE_LAYOUT_NULLABLE_C_SCALAR_V1: factory="xl6SequenceNullableCScalarCreateV1"; break;
     case XL6_IR_SEQUENCE_LAYOUT_NUMERIC_ENUM_V1: factory="xl6SequenceNumericEnumCreateV1"; break;
+    case XL6_IR_SEQUENCE_LAYOUT_ERROR_REFERENCE_V1: factory="xl6SequenceErrorCreateV1"; break;
     case XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1: factory="xl6SequenceCallableCreateV1"; break;
     case XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1: factory="xl6SequenceFutureCreateV1"; break;
     case XL6_IR_SEQUENCE_LAYOUT_SEMAPHORE_REFERENCE_V1: factory="xl6SequenceSemCreateV1"; break;

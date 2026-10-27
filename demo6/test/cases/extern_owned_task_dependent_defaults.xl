@@ -29,6 +29,28 @@ func chain(string first,string second=first,string third=second) as string
     return third
 end
 assert chain("chain")=="chain"
+// Default closures own the evaluated prefix, including after the call returns.
+func capture(string value,func() as string callback=func() as string
+    return value
+end) as func() as string
+    return callback
+end
+func() as string captured=capture(Text(c_int(7)))
+assert captured()=="native text"
+func(string) as func() as string captureAdapter=capture
+func() as string adapted=captureAdapter("adapted")
+assert adapted()=="adapted"
+func counter(int value,func() as int callback=func() as int
+    value+=1
+    return value
+end) as func() as int
+    return callback
+end
+func() as int next=counter(40)
+assert next()==41 and next()==42
+func(int) as func() as int counterAdapter=counter
+func() as int other=counterAdapter(10)
+assert other()==11 and other()==12
 class Factory
     static func make(string value,string fallback=value) as string
         return fallback

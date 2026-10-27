@@ -76,6 +76,7 @@ static XL6_IrErrorAbi xl6IrNodeConstructionErrorAbi(const XL6_IrModule* module, 
                           loop->loopItemAbi == XL6_IR_LOOP_ITEM_NULLABLE_CLOSURE_COPY ||
                           loop->loopItemAbi == XL6_IR_LOOP_ITEM_CLOSURE_COPY ||
                           loop->loopItemAbi == XL6_IR_LOOP_ITEM_NATIVE_VALUE_COPY ||
+                          loop->loopItemAbi == XL6_IR_LOOP_ITEM_ERROR_COPY ||
                           loop->loopItemAbi == XL6_IR_LOOP_ITEM_FUTURE_COPY ||
                           loop->loopItemAbi == XL6_IR_LOOP_ITEM_NULLABLE_FUTURE_COPY)))
                 return XL6_IR_ERROR_ABI_MAY_RAISE;
@@ -926,7 +927,8 @@ static int xl6IrSequenceLayoutComplete(XL6_IrSequenceLayoutAbi abi)
         abi==XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1 ||
         abi==XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1 || abi==XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1 ||
         abi==XL6_IR_SEQUENCE_LAYOUT_DICT_REFERENCE_V1 || abi==XL6_IR_SEQUENCE_LAYOUT_NATIVE_VALUE_V1 ||
-        abi==XL6_IR_SEQUENCE_LAYOUT_UNION_VALUE_V1 || abi==XL6_IR_SEQUENCE_LAYOUT_CHANNEL_REFERENCE_V1 ||
+        abi==XL6_IR_SEQUENCE_LAYOUT_UNION_VALUE_V1 || abi==XL6_IR_SEQUENCE_LAYOUT_ERROR_REFERENCE_V1 ||
+        abi==XL6_IR_SEQUENCE_LAYOUT_CHANNEL_REFERENCE_V1 ||
         abi==XL6_IR_SEQUENCE_LAYOUT_SLOT_MAP_REFERENCE_V1;
 }
 /* One key-domain authority for direct operations, nested schemas, lowering
@@ -1014,6 +1016,18 @@ static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool
         result.slotAbi=XL6_IR_NATIVE_SLOT_XVALUE_CARRIER;
         result.transferAbi=XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN;
         result.codecAbi=XL6_IR_SEQUENCE_CODEC_UNION_VALUE_V1;
+    } else if (result.role==XL6_IR_SEQUENCE_ROLE_ARRAY &&
+        base->cAbi==XL6_IR_C_ABI_RUNTIME_ERROR_PTR && base->typeValueId &&
+        base->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED &&
+        base->nullAbi==XL6_IR_NULL_ABI_POINTER_SENTINEL &&
+        element->cAbi==base->cAbi && element->ownershipAbi==base->ownershipAbi &&
+        element->nullAbi==base->nullAbi) {
+        /* Error invocation owns xerror*. Sequence slots own the existing
+         * private error Value handle, with the logical element identity. */
+        result.abi=XL6_IR_SEQUENCE_LAYOUT_ERROR_REFERENCE_V1;
+        result.slotAbi=XL6_IR_NATIVE_SLOT_XVALUE_CARRIER;
+        result.transferAbi=XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN;
+        result.codecAbi=XL6_IR_SEQUENCE_CODEC_ERROR_VALUE_V1;
     } else if (base->cAbi==XL6_IR_C_ABI_RUNTIME_FUTURE_PTR &&
         base->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED &&
         base->nullAbi==XL6_IR_NULL_ABI_POINTER_SENTINEL && base->paramCount==1 &&
@@ -1162,6 +1176,7 @@ static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool
         result.abi == XL6_IR_SEQUENCE_LAYOUT_C_SCALAR_V1 || result.abi == XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1 ||
         result.abi == XL6_IR_SEQUENCE_LAYOUT_NULLABLE_C_SCALAR_V1 ||
         result.abi == XL6_IR_SEQUENCE_LAYOUT_NUMERIC_ENUM_V1 ||
+        result.abi == XL6_IR_SEQUENCE_LAYOUT_ERROR_REFERENCE_V1 ||
         result.abi == XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1 ||
         result.abi == XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1 ||
         result.abi == XL6_IR_SEQUENCE_LAYOUT_TREE_REFERENCE_V1 ||
@@ -1184,6 +1199,7 @@ static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool
             result.admissionAbi == XL6_VALUE_ADMIT_BYTES ? XL6_IR_SEQUENCE_DEFAULT_EMPTY_BYTES :
             result.admissionAbi == XL6_VALUE_ADMIT_STRING ? XL6_IR_SEQUENCE_DEFAULT_EMPTY_STRING :
             result.abi == XL6_IR_SEQUENCE_LAYOUT_NOMINAL_V2 ||
+            result.abi == XL6_IR_SEQUENCE_LAYOUT_ERROR_REFERENCE_V1 ||
             result.abi == XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1 ||
             result.abi == XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1 ||
             result.abi == XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1 ||
@@ -1226,6 +1242,7 @@ const char* xl6IrSequenceCodecAbiName(XL6_IrSequenceCodecAbi abi)
     case XL6_IR_SEQUENCE_CODEC_DIRECT: return "direct";
     case XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1: return "closure-value-v1";
     case XL6_IR_SEQUENCE_CODEC_UNION_VALUE_V1: return "union-value-v1";
+    case XL6_IR_SEQUENCE_CODEC_ERROR_VALUE_V1: return "error-value-v1";
     default: return "invalid";
     }
 }
@@ -1260,6 +1277,7 @@ const char* xl6IrSequenceLayoutAbiName(XL6_IrSequenceLayoutAbi abi)
     case XL6_IR_SEQUENCE_LAYOUT_NULLABLE_C_SCALAR_V1: return "nullable-c-scalar-v1";
     case XL6_IR_SEQUENCE_LAYOUT_NUMERIC_ENUM_V1: return "numeric-enum-v1";
     case XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1: return "callable-reference-v1";
+    case XL6_IR_SEQUENCE_LAYOUT_ERROR_REFERENCE_V1: return "error-reference-v1";
     case XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1: return "future-reference-v1";
     case XL6_IR_SEQUENCE_LAYOUT_TREE_REFERENCE_V1: return "tree-reference-v1";
     case XL6_IR_SEQUENCE_LAYOUT_QUEUE_REFERENCE_V1: return "queue-reference-v1";
@@ -8770,6 +8788,8 @@ static int xl6IrSequenceConstructionRecipeDepth(const XL6_IrModule* module,
     case XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1:
     case XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1:
     case XL6_IR_SEQUENCE_LAYOUT_NATIVE_VALUE_V1: return 1;
+    case XL6_IR_SEQUENCE_LAYOUT_ERROR_REFERENCE_V1:
+        return role==XL6_IR_SEQUENCE_ROLE_ARRAY;
     case XL6_IR_SEQUENCE_LAYOUT_UNION_VALUE_V1:
         return role==XL6_IR_SEQUENCE_ROLE_ARRAY && xl6IrVerifyUnionLayouts(module) &&
             xl6IrUnionLayoutGet(module,plan->baseElementType)!=NULL;
@@ -17477,6 +17497,10 @@ static int xl6IrNullableProjectionTypeIsClosed(
          nullable->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
          nullable->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
          xl6IrNullableScalarElementAbi(module,nullableTypeId)!=XL6_IR_C_ABI_UNSUPPORTED ) return 1;
+    if (nullable->cAbi == XL6_IR_C_ABI_RUNTIME_ERROR_PTR &&
+        nullable->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
+        nullable->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL &&
+        element->cAbi == nullable->cAbi && nullable->typeValueId) return 1;
     if ( nullable->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
          nullable->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
          nullable->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL &&
@@ -20177,6 +20201,12 @@ static XL6_IrLoopAbi xl6IrClassifyLoopAbi(
             return XL6_IR_LOOP_ABI_NONE;
         resolvedItemAbi = XL6_IR_LOOP_ITEM_XVALUE_RETAIN;
         break;
+    case XL6_IR_C_ABI_RUNTIME_ERROR_PTR:
+        if (itemType->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED ||
+            itemType->nullAbi!=XL6_IR_NULL_ABI_POINTER_SENTINEL || !itemType->typeValueId)
+            return XL6_IR_LOOP_ABI_NONE;
+        resolvedItemAbi=XL6_IR_LOOP_ITEM_ERROR_COPY;
+        break;
     case XL6_IR_C_ABI_RUNTIME_FUTURE_PTR: {
         int nullable=itemType->kind==XL6_IR_TYPE_NULLABLE;
         if(!xl6IrFutureProjectionPayloadType(module,itemTypeId,nullable
@@ -20265,6 +20295,7 @@ static XL6_IrLoopAbi xl6IrClassifyLoopAbi(
          resolvedItemAbi == XL6_IR_LOOP_ITEM_NULLABLE_CLOSURE_COPY ||
          resolvedItemAbi == XL6_IR_LOOP_ITEM_NULLABLE_STRING_COPY ||
          resolvedItemAbi == XL6_IR_LOOP_ITEM_NATIVE_VALUE_COPY ||
+         resolvedItemAbi == XL6_IR_LOOP_ITEM_ERROR_COPY ||
          resolvedItemAbi == XL6_IR_LOOP_ITEM_FUTURE_COPY ||
          resolvedItemAbi == XL6_IR_LOOP_ITEM_NULLABLE_FUTURE_COPY)
             ? XL6_IR_ERROR_ABI_MAY_RAISE : XL6_IR_ERROR_ABI_NO_RAISE;
@@ -20384,6 +20415,7 @@ static XL6_IrLoopTargetLifetimeAbi xl6IrLoopItemLifetimeAbi(
     case XL6_IR_LOOP_ITEM_NATIVE_VALUE_COPY:
     case XL6_IR_LOOP_ITEM_BYTES_COPY:
     case XL6_IR_LOOP_ITEM_NULLABLE_BYTES_COPY:
+    case XL6_IR_LOOP_ITEM_ERROR_COPY:
     case XL6_IR_LOOP_ITEM_FUTURE_COPY:
     case XL6_IR_LOOP_ITEM_NULLABLE_FUTURE_COPY:
         return XL6_IR_LOOP_TARGET_LIFETIME_OWNED_ITERATION_RELEASE;
@@ -39896,7 +39928,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
              node->loopKeyAbi > XL6_IR_LOOP_KEY_NATIVE_VALUE_COPY ||
              node->loopKeyAbi != expectedLoopKeyAbi ||
              node->loopItemAbi < XL6_IR_LOOP_ITEM_NONE ||
-             node->loopItemAbi > XL6_IR_LOOP_ITEM_NULLABLE_FUTURE_COPY ||
+             node->loopItemAbi > XL6_IR_LOOP_ITEM_ERROR_COPY ||
              node->loopItemAbi != expectedLoopItemAbi ||
              node->loopKeyLifetimeAbi < XL6_IR_LOOP_TARGET_LIFETIME_NONE ||
              node->loopKeyLifetimeAbi >
@@ -49283,6 +49315,7 @@ static const char* xl6IrLoopItemAbiName(XL6_IrLoopItemAbi abi)
     case XL6_IR_LOOP_ITEM_NATIVE_VALUE_COPY: return "native-value-copy";
     case XL6_IR_LOOP_ITEM_BYTES_COPY: return "bytes-copy";
     case XL6_IR_LOOP_ITEM_NULLABLE_BYTES_COPY: return "nullable-bytes-copy";
+    case XL6_IR_LOOP_ITEM_ERROR_COPY: return "error-copy";
     case XL6_IR_LOOP_ITEM_FUTURE_COPY: return "future-copy";
     case XL6_IR_LOOP_ITEM_NULLABLE_FUTURE_COPY: return "nullable-future-copy";
     default: return "invalid";
