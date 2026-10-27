@@ -14617,6 +14617,9 @@ static int xl6IrTypedCollectionElementResultSupported(const XL6_IrType* type)
          type->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
          type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES ||
          type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+         (type->cAbi == XL6_IR_C_ABI_RUNTIME_ERROR_PTR &&
+          type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
+          type->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL && type->typeValueId) ||
          xl6IrArrayTrivialExtractResult(type) || xl6IrNativeValuePlanForType(type));
 }
 
