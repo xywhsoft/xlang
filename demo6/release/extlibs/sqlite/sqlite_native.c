@@ -343,18 +343,6 @@ XSQLITE_EXPORT char* xsqlite3_last_insert_rowid_text_owned_native(void* db)
     return xsqlite_owned_text(text);
 }
 
-/* C 保留 char* 结果；语言 point ABI 只转换指针类型，不另行复制文本。 */
-XSQLITE_EXPORT void* xsqlite3_column_text_point_native(void* stmt, int column)
-{ return xsqlite3_column_text_owned_native(stmt, column); }
-XSQLITE_EXPORT void* xsqlite3_column_name_point_native(void* stmt, int column)
-{ return xsqlite3_column_name_owned_native(stmt, column); }
-XSQLITE_EXPORT void* xsqlite3_errmsg_point_native(void* db)
-{ return xsqlite3_errmsg_owned_native(db); }
-XSQLITE_EXPORT void* xsqlite3_stmt_errmsg_point_native(void* stmt)
-{ return xsqlite3_stmt_errmsg_owned_native(stmt); }
-XSQLITE_EXPORT void* xsqlite3_last_insert_rowid_text_point_native(void* db)
-{ return xsqlite3_last_insert_rowid_text_owned_native(db); }
-
 XSQLITE_EXPORT int xsqlite3_busy_timeout_native(void* db, int milliseconds)
 {
     return db != NULL && milliseconds >= 0 ? sqlite3_busy_timeout(db, milliseconds) : SQLITE_MISUSE;

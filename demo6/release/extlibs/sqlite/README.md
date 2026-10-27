@@ -28,6 +28,9 @@ SQLite/XRT 分配故障、线程、XLang JIT 与独立 EXE AOT、生成原型
 
 内置 SQLite 源码的本地数据库包，无需另外安装数据库 DLL。推荐使用 `Database`
 和 `Statement`；需要精确状态码或 C 互操作时使用 `sqlite3_*` 薄接口。
+XLang 的列文本、列名、错误消息和行号文本直接接管 C 层一次性分配的
+`char*`；C 调用方使用对应 `*_owned_native` 后须以 `xrtFree` 释放。
+旧的 `*_point_native` 透传层不再提供。
 
 ```xlang
 import sqlite
