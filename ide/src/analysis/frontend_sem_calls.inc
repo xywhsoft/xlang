@@ -84,19 +84,69 @@ static size_t xlsSemCallNext(XL6_SemContext* context,size_t previous)
     if(scope && scope->context==context && next<context->root->childCount)++scope->work.candidateVisits;
     return next;
 }
-static int xlsSemReadHeaderKey(XL6_SemContext* ctx,const char* name,xstrbuf* key,size_t* count)
+typedef struct xls_sem_header_iterator {xls_sem_call_scope* scope;XL6_SemContext* context;const char* name;size_t next;int indexed;} xls_sem_header_iterator;
+static int xlsSemHeaderOpen(xls_sem_header_iterator* it,XL6_SemContext* ctx,const char* name)
 {
-    *count=0;if(!ctx || !ctx->root || !name)return 0;
+    if(!ctx || !ctx->root || !name)return 0;
     xls_sem_call_scope* scope=xlsActiveCallScope;
     if(!scope || scope->context!=ctx || scope->root!=ctx->root || scope->children!=ctx->root->children || scope->count!=ctx->root->childCount || scope->disabled)return 0;
     int indexed=xlsSemCallsReady(scope,ctx);
     /* A refused large auxiliary index must not create a new quadratic path. */
     if(!indexed && ctx->root->childCount>=64)return 0;
     size_t first=0;if(indexed){const size_t* at=xrtMapConstGet(&scope->heads,(xbytesview){(const unsigned char*)name,strlen(name)});first=at ? *at : ctx->root->childCount;}
-    for(size_t i=first;i<ctx->root->childCount;i=indexed ? scope->index.next[i] : i+1){
-        const XL6_AstNode* n=ctx->root->children[i];if(!xl6SemIsFuncDecl(n) || !xl6TextEquals(xl6SemFuncName(n),name))continue;
+    *it=(xls_sem_header_iterator){scope,ctx,name,first,indexed};return 1;
+}
+static const XL6_AstNode* xlsSemHeaderNext(xls_sem_header_iterator* it)
+{
+    while(it->next<it->context->root->childCount){
+        size_t i=it->next;it->next=it->indexed ? it->scope->index.next[i] : i+1;
+        const XL6_AstNode* n=it->context->root->children[i];
+        if(xl6SemIsFuncDecl(n) && xl6TextEquals(xl6SemFuncName(n),it->name))return n;
+    }
+    return NULL;
+}
+static int xlsSemReadHeaderKey(XL6_SemContext* ctx,const char* name,xstrbuf* key,size_t* count)
+{
+    *count=0;xls_sem_header_iterator it;if(!xlsSemHeaderOpen(&it,ctx,name))return 0;
+    const XL6_AstNode* n;while((n=xlsSemHeaderNext(&it))){
         if(xlsFrontendCancelPoll() || !xlsSemKeyNode(key,n,1,1))return 0;
         ++*count;
     }
+    return 1;
+}
+static int xlsSemHeaderValueInit(xls_sem_header_value* value,XL6_SemContext* ctx,const char* name,
+    const xstrbuf* expected,size_t count,size_t limit)
+{
+    if(!value || !limit || count>limit/sizeof(XL6_AstNode*))return 0;
+    xls_sem_header_value owned={0};xstrbuf proof={0};xls_sem_header_iterator it;size_t seen=0;
+    if(!xlsSemHeaderOpen(&it,ctx,name) || !xrtArrayInit(&owned.roots,sizeof(XL6_AstNode*)) ||
+       !xrtArrayResize(&owned.roots,count))goto failed;
+    if(owned.roots.Capacity>limit/sizeof(XL6_AstNode*))goto failed;
+    owned.bytes=owned.roots.Capacity*sizeof(XL6_AstNode*);
+    const XL6_AstNode* node;while((node=xlsSemHeaderNext(&it))){
+        if(seen>=count || owned.bytes>=limit)goto failed;
+        size_t bytes=0;XL6_AstNode* clone=xlsSemHeaderClone(node,limit-owned.bytes,&bytes);if(!clone)goto failed;
+        *(XL6_AstNode**)xrtArrayGet(&owned.roots,seen++)=clone;owned.bytes+=bytes;
+        /* Independently validate representation against the original encoder,
+         * once per new value. This includes path dictionary canonicalization. */
+        if(!xlsSemKeyNode(&proof,clone,1,1))goto failed;
+    }
+    if(seen!=count || !xlsSemEqualKey(&proof,expected))goto failed;
+    xrtStrBufFree(&proof);owned.ready=1;*value=owned;return 1;
+failed:xrtStrBufFree(&proof);xlsSemHeaderValueUnit(&owned);return 0;
+}
+static int xlsSemHeaderValueEqual(const xls_sem_header_value* value,XL6_SemContext* ctx,const char* name)
+{
+    if(xlsActiveHeaderControl)++xlsActiveHeaderControl->work.comparisons;
+    xls_sem_header_iterator it;if(!value || !value->ready || !xlsSemHeaderOpen(&it,ctx,name))return 0;
+    size_t count=0;const XL6_AstNode* node;while((node=xlsSemHeaderNext(&it))){
+        /* Keep the original observation's cancellation point for every actual
+         * candidate,including before inspecting an unexpected extra overload. */
+        if(xlsFrontendCancelPoll() || count>=value->roots.Count ||
+           !xlsSemHeaderNodeEqual(*(XL6_AstNode* const*)xrtArrayConstGet(&value->roots,count),node,1,1))return 0;
+        ++count;
+    }
+    if(count!=value->roots.Count)return 0;
+    if(xlsActiveHeaderControl)++xlsActiveHeaderControl->work.matches;
     return 1;
 }

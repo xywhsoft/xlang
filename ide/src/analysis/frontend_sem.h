@@ -109,6 +109,18 @@ typedef struct xls_sem_value_control {struct xls_sem_value_control* previous;int
  * and always validate each distinct snapshot after the function finishes. */
 void xlsFrontendSemValuesBegin(xls_sem_value_control* control,int enabled);
 void xlsFrontendSemValuesEnd(xls_sem_value_control* control);
+/* Optional owned function-header values for repeated observations inside one
+ * original function check. First/final serialized proofs remain mandatory.
+ * Zero budget selects the serialized path; nested controls only reduce it.
+ * bytes counts known clone/vector storage, not allocator overhead or RSS. */
+typedef struct xls_sem_header_work {
+    uint64_t captures,comparisons,matches,declines,nodes,bytes;
+} xls_sem_header_work;
+typedef struct xls_sem_header_control {
+    struct xls_sem_header_control* previous;size_t budget;xls_sem_header_work work;
+} xls_sem_header_control;
+void xlsFrontendSemHeadersBegin(xls_sem_header_control* control,size_t bytes);
+void xlsFrontendSemHeadersEnd(xls_sem_header_control* control,xls_sem_header_work* work);
 /* Private opt-in around the unchanged compiler checker. Memo facts are
  * immutable, independently owned, and never a substitute for whole-module
  * declaration checks, final type/region annotation or typed IR verification.

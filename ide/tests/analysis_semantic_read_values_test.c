@@ -65,6 +65,10 @@ static int variants(void)
 }
 int main(void)
 {
+    /* This fixture isolates registry values and serialized scratch retention.
+     * Function-header values have their own combined-path/fresh-model oracle. */
+    xls_sem_header_control headers;xlsFrontendSemHeadersBegin(&headers,0);
     xrtAtomic32Init(&checks,0);if(!values() || !variants())return 1;
+    xlsFrontendSemHeadersEnd(&headers,NULL);
     printf("analysis_semantic_read_values_test passed: %u checks;all registry fields/owned UTF8/negative/type-tree refusal,nested typed/serialized and retained/fresh-buffer comparisons,actual binary-default invalidation and complete fresh AST/index/report/IR parity\n",(unsigned)xrtAtomic32Load(&checks,XMEMORY_RELAXED));return 0;
 }
