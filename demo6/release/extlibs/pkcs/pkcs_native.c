@@ -67,7 +67,7 @@ static xbuffer* xpkcs_one(const char* hex, xdervalue* value)
     return bytes;
 }
 
-static void* xpkcs_result(const xbuffer* bytes)
+static char* xpkcs_result(const xbuffer* bytes)
 {
     return xrtHexEncodeNew(bytes->Data, bytes->Size, 0u);
 }
@@ -101,7 +101,7 @@ int64_t xpkcs_get_length(const char* hex)
     return length;
 }
 
-void* xpkcs_get_content(const char* hex)
+char* xpkcs_get_content(const char* hex)
 {
     xdervalue value;
     xbuffer* bytes = xpkcs_one(hex, &value);
@@ -113,7 +113,7 @@ void* xpkcs_get_content(const char* hex)
     return result;
 }
 
-void* xpkcs_encode_int(int64_t number)
+char* xpkcs_encode_int(int64_t number)
 {
     xbuffer der = {0};
     char* result;
@@ -154,7 +154,7 @@ xvalue* xpkcs_decode_int_value(const char* hex)
     return xpkcs_decode_int(hex, &number) ? xrtValueInt(number) : NULL;
 }
 
-void* xpkcs_encode_oid(const char* dotted)
+char* xpkcs_encode_oid(const char* dotted)
 {
     xbuffer der = {0};
     char* result;
@@ -172,7 +172,7 @@ void* xpkcs_encode_oid(const char* dotted)
     return result;
 }
 
-void* xpkcs_decode_oid(const char* hex)
+char* xpkcs_decode_oid(const char* hex)
 {
     xdervalue value;
     xbytesview oid;
@@ -193,7 +193,7 @@ void* xpkcs_decode_oid(const char* hex)
     return result;
 }
 
-static void* xpkcs_wrap(const char* hex, uint32 tag)
+static char* xpkcs_wrap(const char* hex, uint32 tag)
 {
     xbuffer* content = xpkcs_hex(hex, true);
     xbuffer der = {0};
@@ -229,17 +229,17 @@ static void* xpkcs_wrap(const char* hex, uint32 tag)
     return result;
 }
 
-void* xpkcs_wrap_sequence(const char* hex)
+char* xpkcs_wrap_sequence(const char* hex)
 {
     return xpkcs_wrap(hex, XASN1_SEQUENCE);
 }
 
-void* xpkcs_wrap_set(const char* hex)
+char* xpkcs_wrap_set(const char* hex)
 {
     return xpkcs_wrap(hex, XASN1_SET);
 }
 
-void* xpkcs_encode_octet(const char* hex)
+char* xpkcs_encode_octet(const char* hex)
 {
     xbuffer* content = xpkcs_hex(hex, true);
     xbuffer der = {0};
@@ -257,7 +257,7 @@ void* xpkcs_encode_octet(const char* hex)
     return result;
 }
 
-void* xpkcs_encode_null(void)
+char* xpkcs_encode_null(void)
 {
     xbuffer der = {0};
     char* result;
@@ -271,7 +271,7 @@ void* xpkcs_encode_null(void)
     return result;
 }
 
-void* xpkcs_encode_bitstring(const char* hex)
+char* xpkcs_encode_bitstring(const char* hex)
 {
     xbuffer* content = xpkcs_hex(hex, true);
     xbuffer der = {0};
@@ -290,7 +290,7 @@ void* xpkcs_encode_bitstring(const char* hex)
     return result;
 }
 
-void* xpkcs_concat(const char* left, const char* right)
+char* xpkcs_concat(const char* left, const char* right)
 {
     xbuffer* a = xpkcs_hex(left, true);
     xbuffer* b;
@@ -352,7 +352,7 @@ fail:
     return -1;
 }
 
-void* xpkcs_tag_name(const char* hex)
+char* xpkcs_tag_name(const char* hex)
 {
     xdervalue value;
     xbuffer* bytes = xpkcs_one(hex, &value);

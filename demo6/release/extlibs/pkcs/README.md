@@ -1,5 +1,13 @@
 # pkcs
 
+2026-10-27：11 个拥有型 C 文本结果改为明确的 `char*`，XLang
+用 `@owned string?` 直接接管，删除 `point/takeCstr` 中转。
+输入 NUL 校验不再返回整份文本，校验后直接传原参数。
+生成 C 门禁逐个核对直接指针交接；结果长度仍需一次 `strlen`，
+且 C 侧构造 DER/HEX 的分配并未消失，不宣称整条操作零开销。
+Windows 默认门禁通过严格 C、分配故障、生成 C、双语 JIT/AOT；
+Linux 门禁通过 C ASan/UBSan、OpenSSL 独立 DER 解析和双语 AOT。
+
 2026-10-26 重建 Windows/Linux x64 发布物后，两平台默认包门禁
 均退出 0：公开 C 头、严格 GCC、Linux ASan/UBSan、C/XLang 边界
 与分配故障、双语固定输出、边界及 C/XLang 范例独立 EXE AOT。
@@ -45,10 +53,10 @@ HEX 输入不区分大小写；输出为小写。除 `concat` 和 `nextOffset` �
 
 ## C 接口与所有权
 
-公开声明位于 `include/pkcs_native.h`。返回的 `void*` 实际指向 NUL 结尾的文本，C 可转成 `char*` 使用；它是独立分配的调用方所有内存，须使用 `xrtFree` 释放。此处保留 `void*` 是为了与 XLang 生成的 `point` ABI 原型一致。失败返回 `NULL`，可通过 `xrtGetError()` 取错误。`xpkcs_decode_int` 使用返回值表示成功，并仅在成功时写入 `int64_t*`，因此零也是有效结果。`xpkcs_decode_int_value` 仅供 XLang 的 `var` 桥接，C 调用方一般应使用前者。
+公开声明位于 `include/pkcs_native.h`。文本结果为独立分配的 NUL 结尾 `char*`，调用方须使用 `xrtFree` 释放；失败返回 `NULL`，可通过 `xrtGetError()` 取错误。`xpkcs_decode_int` 使用返回值表示成功，并仅在成功时写入 `int64_t*`，因此零也是有效结果。`xpkcs_decode_int_value` 仅供 XLang 的 `var` 桥接，C 调用方一般应使用前者。
 若 C 侧使用 `xpkcs_decode_int_value`，返回的 `xvalue*` 由调用方以 `xrtValueRelease` 释放。公开头可独立包含；应用需要操作该值时须自行启用 XRT value 模块。
 
-XLang 封装通过 `__xl_runtime.takeCstr` 接管 C 字符串，无需用户手工释放。包所需 XRT 模块在 `xlang.package.json` 的 `xrtModules` 中声明。
+XLang 封装通过 `@owned string?` 接管 C 字符串，无需用户手工释放。包所需 XRT 模块在 `xlang.package.json` 的 `xrtModules` 中声明。
 
 ## 范例和验证
 

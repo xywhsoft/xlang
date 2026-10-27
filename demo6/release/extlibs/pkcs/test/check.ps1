@@ -49,6 +49,23 @@ try {
     $null = Run 'XLang allocations' $xl @('run',
         'release/extlibs/pkcs/test/allocations.xl')
     $null = Run 'XLang existing test' $xl @('run', 'test/cases/extlib_pkcs.xl')
+    $generated = Join-Path $work 'owned_text.c'
+    $null = Run 'owned-text cgen' $xl @('cgen',
+        'release/examples/extlibs/pkcs.xl', '--emit', $generated)
+    $generatedText = [IO.File]::ReadAllText($generated)
+    foreach ($symbol in @('get_content', 'encode_int', 'encode_oid',
+        'decode_oid', 'wrap_sequence', 'wrap_set', 'encode_octet',
+        'encode_null', 'encode_bitstring', 'concat', 'tag_name')) {
+        $pattern = '\b\w+\.Data\s*=\s*xpkcs_' + $symbol + '\s*\('
+        if ([regex]::Matches($generatedText, $pattern).Count -ne 1) {
+            throw "pkcs owned string was not adopted directly: $symbol"
+        }
+    }
+    if ($generatedText.Contains('xl6_xrt_take_cstr') -or
+        $generatedText.Contains('xl6CStringCopyV1')) {
+        throw 'pkcs generated code contains a string transfer wrapper or copy'
+    }
+    Write-Host '[pkcs] owned string cgen: PASS'
 
     if (-not $SkipAot) {
         $boundary = Join-Path $work 'boundaries.exe'

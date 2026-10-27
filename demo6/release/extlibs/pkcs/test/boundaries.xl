@@ -100,4 +100,5 @@ catch ValueError e
     failures += 1
 end
 assert failures == 15
+assert saved == "02023039"
 println("pkcs boundaries: PASS")
