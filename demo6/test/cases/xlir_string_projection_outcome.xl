@@ -1,0 +1,57 @@
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+class ProjectionText
+    string text = "a\0你好"
+
+    func get() as string
+        return self.text
+    end
+
+    func add(string part) as ProjectionText
+        self.text += part
+        return self
+    end
+end
+
+func temporaryText() as ProjectionText
+    return ProjectionText()
+end
+
+func main(...) as int
+    ProjectionText source = ProjectionText()
+    source.add("")
+    int rejected = 0
+    int completed = 0
+    for operation in range(2)
+        for point in range(64)
+            bool caught = false
+            string result = "unchanged"
+            assert failAfter(uint64(point))
+            try
+                if operation == 0 then
+                    result = source.get()
+                else
+                    result = temporaryText().get()
+                end
+            catch MemoryError
+                caught = true
+            end
+            bool triggered = failTriggered()
+            failClear()
+            assert caught == triggered
+            if caught then
+                rejected += 1
+                assert result == "unchanged"
+            else
+                completed += 1
+                assert result == "a\0你好"
+            end
+        end
+    end
+    assert source.text == "a\0你好"
+    assert rejected > 0 and completed > 0
+    println("string projection outcomes: 128 checked cases passed")
+    return 0
+end
