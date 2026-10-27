@@ -148,6 +148,7 @@ typedef struct XL6_IrLowerDefaultArgument {
     XL6_SymbolId symbol;
     XL6_IrValueId value;
     XL6_SymbolId cellStorage;
+    XL6_IrTypeId receiverType;
     struct XL6_IrLowerDefaultArgument* outer;
 } XL6_IrLowerDefaultArgument;
 
@@ -156,6 +157,14 @@ static const XL6_IrLowerDefaultArgument* xl6IrLowerDefaultArgumentGet(
 {
     for (const XL6_IrLowerDefaultArgument* item=ctx->defaultArguments;item;item=item->outer)
         if (symbol && item->symbol==symbol) return item;
+    return NULL;
+}
+
+static const XL6_IrLowerDefaultArgument* xl6IrLowerDefaultReceiverGet(
+    const XL6_IrLowerContext* ctx)
+{
+    for (const XL6_IrLowerDefaultArgument* item=ctx->defaultArguments;item;item=item->outer)
+        if (item->receiverType) return item;
     return NULL;
 }
 
@@ -4959,30 +4968,41 @@ static XL6_IrTypeId xl6IrLowerDefaultCaptureCellType(
     return XL6_IR_TYPE_INVALID;
 }
 
+static XL6_IrNodeId xl6IrLowerFindClassReceiverInSubtree(const XL6_IrModule*,XL6_IrNodeId);
+static XL6_IrNodeId xl6IrLowerEnclosingClass(const XL6_IrModule*,XL6_IrNodeId);
+
 static XL6_IrValueId xl6IrLowerDefaultPrefixAsType(
     XL6_IrLowerContext* ctx, XL6_IrNodeId origin,
     const XL6_IrCallArgument* binding, XL6_IrTypeId type,
     const XL6_IrValueId* arguments, size_t offset, const XL6_IrNode* params)
 {
-    if (binding->source != XL6_IR_CALL_ARGUMENT_DEFAULT || !binding->parameter)
+    if (binding->source != XL6_IR_CALL_ARGUMENT_DEFAULT || (!binding->parameter && !offset))
         return xl6IrLowerCallArgumentAsType(ctx,origin,binding,type);
     if (!params || binding->parameter>params->childCount || !arguments)
         return xl6IrLowerDiag(ctx,origin,"XLIR default argument has no canonical prefix bindings"), XL6_IR_VALUE_INVALID;
     XL6_IrLowerDefaultArgument* outer=ctx->defaultArguments;
-    XL6_IrLowerDefaultArgument* bindings=xrtCalloc(binding->parameter,sizeof(*bindings));
+    size_t count=binding->parameter+(offset ? 1 : 0);
+    XL6_IrLowerDefaultArgument* bindings=xrtCalloc(count,sizeof(*bindings));
     if (!bindings) return xl6IrLowerDiag(ctx,origin,"XLIR default prefix binding allocation failed"), XL6_IR_VALUE_INVALID;
     size_t first=ctx->evaluationOwnerCount;
-    for (size_t p=0;p<binding->parameter;++p) {
-        const XL6_IrNode* parameter=xl6IrNodeGet(ctx->module,ctx->module->children[params->firstChild+p]);
-        if (!parameter || !arguments[p+offset]) {
+    for (size_t i=0;i<count;++i) {
+        XL6_IrNodeId parameterId=offset && !i ?
+            xl6IrLowerFindClassReceiverInSubtree(ctx->module,params->parent) :
+            ctx->module->children[params->firstChild+i-(offset ? 1 : 0)];
+        const XL6_IrNode* parameter=xl6IrNodeGet(ctx->module,parameterId);
+        XL6_IrValueId value=arguments[offset && !i ? 0 : i+(offset ? offset-1 : 0)];
+        if ((!parameter && !(offset && !i)) || !value) {
             ctx->defaultArguments=outer;xrtFree(bindings);
             return xl6IrLowerDiag(ctx,origin,"XLIR default prefix is not evaluated"), XL6_IR_VALUE_INVALID;
         }
-        bindings[p].symbol=parameter->symbol;bindings[p].value=arguments[p+offset];
+        size_t p=i;
+        bindings[p].symbol=parameter ? (offset && !i ? parameter->targetSymbol : parameter->symbol) : 0;
+        bindings[p].value=value;
+        if (offset && !i) bindings[p].receiverType=xl6IrLowerValueType(ctx,value);
         bindings[p].outer=ctx->defaultArguments;ctx->defaultArguments=&bindings[p];
         /* A mutable capture owns a cell for this default activation, exactly
          * like the standalone default program used by named adapters. */
-        XL6_IrTypeId cellType=xl6IrLowerDefaultCaptureCellType(ctx->module,binding->expression,parameter->symbol);
+        XL6_IrTypeId cellType=xl6IrLowerDefaultCaptureCellType(ctx->module,binding->expression,bindings[p].symbol);
         if (cellType) {
             XL6_IrTypeId inputType=xl6IrLowerValueType(ctx,bindings[p].value);
             XL6_SymbolId cell=xl6IrLowerNewTempStorage(ctx,inputType,origin);
@@ -5008,7 +5028,7 @@ static XL6_IrValueId xl6IrLowerFixedCallArgumentAsType(
     const XL6_IrCallArgument* binding, XL6_IrTypeId type,
     const XL6_IrValueId* arguments, size_t offset)
 {
-    if (binding->source!=XL6_IR_CALL_ARGUMENT_DEFAULT || !binding->parameter)
+    if (binding->source!=XL6_IR_CALL_ARGUMENT_DEFAULT || (!binding->parameter && !offset))
         return xl6IrLowerCallArgumentAsType(ctx,origin,binding,type);
     const XL6_IrCallSite* site=xl6IrCallSiteGet(ctx->module,origin);
     const XL6_IrNode* declaration=site ? xl6IrSymbolNodeGet(ctx->module,site->targetSymbol) : NULL;
@@ -7129,15 +7149,25 @@ static XL6_IrValueId xl6IrLowerImplicitName(
     if ( ctx == NULL || name == NULL ||
          name->implicitNameAbi == XL6_IR_IMPLICIT_NAME_NONE )
         return XL6_IR_VALUE_INVALID;
-    if ( ctx->functionIndex >= ctx->module->functionCount ||
-         (function = &ctx->module->functions[ctx->functionIndex])->symbol == 0 ||
-         (target = xl6IrCallTargetGet(ctx->module, function->symbol)) == NULL ||
-         function->parameterCount == 0 || target->parameterCount == 0 ||
-         target->parameterTypes == NULL || target->parameterAbis == NULL ||
-         target->parameterTypes[0] != name->implicitReceiverType ||
-         target->parameterAbis[0] != XL6_IR_PARAMETER_ABI_BORROW ) {
-        xl6IrLowerDiag(ctx, origin,
-            "XLIR implicit name has no active borrowed receiver parameter ABI");
+    const XL6_IrLowerDefaultArgument* defaultReceiver=xl6IrLowerDefaultReceiverGet(ctx);
+    if (defaultReceiver) {
+        receiver=defaultReceiver->value;
+        if (defaultReceiver->receiverType!=name->implicitReceiverType)
+            receiver=xl6IrLowerEmitValueCopy(ctx,origin,name->implicitReceiverType,receiver);
+        if (!receiver) return XL6_IR_VALUE_INVALID;
+    } else {
+    function=ctx->functionIndex<ctx->module->functionCount ? &ctx->module->functions[ctx->functionIndex] : NULL;
+    target=function ? xl6IrCallTargetGet(ctx->module,function->symbol) : NULL;
+    /* Method default programs have a synthetic symbol but their verified
+     * first input is still the borrowed receiver of the enclosing method. */
+    bool methodDefault=function && function->kind==XL6_IR_FUNCTION_ARGUMENT_DEFAULT &&
+        !function->defaultClosureSymbol && function->parameterCount &&
+        xl6IrLowerEnclosingClass(ctx->module,function->declaration)!=XL6_IR_NODE_INVALID;
+    if (!function || !function->parameterCount || (!methodDefault &&
+        (!target || !target->parameterCount || !target->parameterTypes || !target->parameterAbis ||
+         target->parameterTypes[0]!=name->implicitReceiverType ||
+         target->parameterAbis[0]!=XL6_IR_PARAMETER_ABI_BORROW))) {
+        xl6IrLowerDiag(ctx,origin,"XLIR implicit name has no active borrowed receiver parameter ABI");
         return XL6_IR_VALUE_INVALID;
     }
     receiverSymbol = ctx->module->functionParameters[function->firstParameter];
@@ -7154,6 +7184,7 @@ static XL6_IrValueId xl6IrLowerImplicitName(
         xl6IrLowerDiag(ctx, origin,
             "XLIR implicit name receiver cannot be materialized from slot zero");
         return XL6_IR_VALUE_INVALID;
+    }
     }
     if ( name->implicitNameAbi ==
              XL6_IR_IMPLICIT_NAME_BASE_RECEIVER_VIEW ) {
@@ -14109,6 +14140,13 @@ static int xl6IrLowerCollectClosureCaptures(
              node->storageType == XL6_IR_TYPE_INVALID ) return 1;
         if ( xl6IrLowerClosureSourceIsCallableDeclarationName(
                  ctx->module, sourceId, source) ) return 1;
+        /* self has no source PARAM node. Its first NAME may be inside this
+         * closure, but the binding still belongs to the enclosing method. */
+        if (source->kind==XL6_IR_NODE_NAME && source->text && !strcmp(source->text,"self") &&
+            source->targetSymbol==node->targetSymbol &&
+            xl6IrLowerTypeIsClassReceiver(ctx->module,source->storageType))
+            return xl6IrLowerClosureCaptureAdd(ctx,closure,id,node->targetSymbol,
+                source->storageType,0);
         /* Walk nested closure bodies as well: an inner closure can only
          * construct its environment after its creator returns if every
          * ancestor capture is first materialized in the creator's frame.

@@ -1,0 +1,62 @@
+int receivers=0
+class Box
+    string text="self"
+    func first(string value=self.text) as string
+        return value
+    end
+    func second(string prefix,string value=prefix+self.text) as string
+        return value
+    end
+    func implicit(string value=text) as string
+        return value
+    end
+    func capture(func() as string callback=func() as string
+        return self.text
+    end) as func() as string
+        return callback
+    end
+end
+func receiver() as Box
+    receivers+=1
+    return Box()
+end
+assert receiver().first()=="self" and receivers==1
+Box box=Box()
+assert box.first()=="self" and box.second("prefix")=="prefixself"
+assert box.implicit()=="self"
+func() as string captured=box.capture()
+box.text="updated"
+assert captured()=="updated"
+class Child extends Box
+end
+Child child=Child()
+assert child.first()=="self" and child.second("base:")=="base:self"
+func createCallback() as func() as string
+    Box local=Box()
+    return local.capture()
+end
+func exercise()
+    func() as string cb=createCallback()
+    assert cb()=="self"
+end
+exercise()
+extern "owned_debug" @no_raise func debug() as bool
+extern "owned_fail_after" @no_raise func failAfter(int count)
+extern "owned_clear_failure" @no_raise func clearFailure()
+extern "owned_outstanding" @no_raise func live() as int
+assert debug()
+int passed=0
+int failed=0
+for prefix in range(96)
+    int before=live()
+    failAfter(prefix)
+    try
+        exercise()
+        passed+=1
+    catch problem
+        failed+=1
+    end
+    clearFailure()
+    assert live()==before
+end
+assert passed>0 and failed>0
