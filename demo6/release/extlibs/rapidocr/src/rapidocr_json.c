@@ -12,11 +12,24 @@
 #define RAPIDOCR_EXPORT
 #endif
 
-#define RAPIDOCR_MAX_JSON_BYTES (4u * 1024u * 1024u)
 #define RAPIDOCR_MAX_RESULTS 256u
 #define RAPIDOCR_MAX_TENSOR_JSON_BYTES (64u * 1024u * 1024u)
 
 static int rapidocr_json_number(const xvalue* value, double* out);
+
+/* 外部桥接只给出 C 字符串；扫描到限额即停，并把长度交给解析器复用。 */
+static int rapidocr_json_size(const char* source, size_t limit, size_t* out_size)
+{
+	size_t i;
+	if (source == NULL || out_size == NULL) return 0;
+	for (i = 0u; i <= limit; ++i) {
+		if (source[i] == '\0') {
+			*out_size = i;
+			return 1;
+		}
+	}
+	return 0;
+}
 
 int rapidocr_json_shape_dims(const char* source, int* out_dims, int capacity)
 {
@@ -24,9 +37,8 @@ int rapidocr_json_shape_dims(const char* source, int* out_dims, int capacity)
 	size_t bytes;
 	size_t count;
 	size_t i;
-	if (source == NULL || out_dims == NULL || capacity < 1 || capacity > 8) return 0;
-	bytes = strlen(source);
-	if (bytes == 0u || bytes > 256u) return 0;
+	if (out_dims == NULL || capacity < 1 || capacity > 8 ||
+		!rapidocr_json_size(source, 256u, &bytes) || bytes == 0u) return 0;
 	shape = xrtJsonParse((xstrview){ source, bytes });
 	if (xrtValueType(shape) != XVALUE_ARRAY) goto failed;
 	count = xrtValueCount(shape);
@@ -63,9 +75,8 @@ int rapidocr_json_tensor_values(const char* source, int* out_h, int* out_w,
 	*out_h = 0;
 	*out_w = 0;
 	*out_values = NULL;
-	if (source == NULL) return 0;
-	bytes = strlen(source);
-	if (bytes == 0u || bytes > RAPIDOCR_MAX_TENSOR_JSON_BYTES) return 0;
+	if (!rapidocr_json_size(source, RAPIDOCR_MAX_TENSOR_JSON_BYTES, &bytes) ||
+		bytes == 0u) return 0;
 	root = xrtJsonParse((xstrview){ source, bytes });
 	if (xrtValueType(root) != XVALUE_OBJECT) goto failed;
 	shape = xrtValueObjectGet(root, xrtStrView("shape"));
@@ -198,11 +209,12 @@ static int rapidocr_json_box_item(const xvalue* item_value, double points[8])
 RapidJsonGeometry* rapidocr_json_geometry_open(const char* source)
 {
 	xvalue* root;
+	size_t bytes;
 	size_t count;
 	size_t i;
 	RapidJsonGeometry* geometry = NULL;
-	if (source == NULL || strlen(source) > RAPIDOCR_MAX_JSON_BYTES) return NULL;
-	root = xrtJsonParse(xrtStrView(source));
+	if (!rapidocr_json_size(source, RAPIDOCR_MAX_JSON_BYTES, &bytes)) return NULL;
+	root = xrtJsonParse((xstrview){ source, bytes });
 	if (xrtValueType(root) != XVALUE_ARRAY) goto cleanup;
 	count = xrtValueCount(root);
 	if (count > RAPIDOCR_MAX_RESULTS) goto cleanup;
@@ -248,6 +260,7 @@ void* rapidocr_ocr_items_json_encode(const char* result_json, double min_score)
 	xvalue* scores;
 	xvalue* items = NULL;
 	char* output = NULL;
+	size_t bytes;
 	size_t count = 0u;
 	size_t i;
 	if (!isfinite(min_score)) return NULL;
@@ -255,8 +268,8 @@ void* rapidocr_ocr_items_json_encode(const char* result_json, double min_score)
 	items = xrtValueArray();
 	if (items == NULL) return NULL;
 	if (result_json == NULL || result_json[0] == '\0') goto serialize;
-	if (strlen(result_json) > RAPIDOCR_MAX_JSON_BYTES) goto cleanup;
-	root = xrtJsonParse(xrtStrView(result_json));
+	if (!rapidocr_json_size(result_json, RAPIDOCR_MAX_JSON_BYTES, &bytes)) goto cleanup;
+	root = xrtJsonParse((xstrview){ result_json, bytes });
 	if (xrtValueType(root) != XVALUE_OBJECT) goto cleanup;
 	boxes = xrtValueObjectGet(root, xrtStrView("boxes"));
 	texts = xrtValueObjectGet(root, xrtStrView("txts"));
@@ -377,8 +390,8 @@ cleanup:
 static xvalue* rapidocr_parse_json(const char* text, const char* fallback)
 {
 	const char* source = text != NULL && text[0] != '\0' ? text : fallback;
-	size_t size = strlen(source);
-	if (size > RAPIDOCR_MAX_JSON_BYTES) return NULL;
+	size_t size;
+	if (!rapidocr_json_size(source, RAPIDOCR_MAX_JSON_BYTES, &size)) return NULL;
 	{
 		xvalue* parsed = xrtJsonParse((xstrview){ source, size });
 		if (parsed == NULL) xrtClearError();

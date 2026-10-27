@@ -278,6 +278,42 @@ static int check_classifier(void)
     return 0;
 }
 
+static int check_json_input_limits(void)
+{
+    char shape[258];
+    char* boxes;
+    RapidJsonGeometry* geometry;
+    int dims[8] = { 0 };
+    int ok;
+
+    memset(shape, ' ', 256u);
+    memcpy(shape, "[1,2]", 5u);
+    shape[256] = '\0';
+    shape[257] = '\0';
+    if (rapidocr_json_shape_dims(shape, dims, 8) != 2 || dims[0] != 1 || dims[1] != 2)
+        return fail("shape JSON at byte limit rejected");
+    shape[256] = ' ';
+    if (rapidocr_json_shape_dims(shape, dims, 8) != 0)
+        return fail("shape JSON above byte limit accepted");
+
+    boxes = (char*)malloc(RAPIDOCR_MAX_JSON_BYTES + 2u);
+    if (boxes == NULL) return fail("JSON limit fixture allocation");
+    memset(boxes, ' ', RAPIDOCR_MAX_JSON_BYTES + 1u);
+    memcpy(boxes, "[]", 2u);
+    boxes[RAPIDOCR_MAX_JSON_BYTES] = '\0';
+    boxes[RAPIDOCR_MAX_JSON_BYTES + 1u] = '\0';
+    geometry = rapidocr_json_geometry_open(boxes);
+    ok = geometry != NULL && geometry->count == 0;
+    xrtFree(geometry);
+    boxes[RAPIDOCR_MAX_JSON_BYTES] = ' ';
+    geometry = rapidocr_json_geometry_open(boxes);
+    ok = ok && geometry == NULL;
+    xrtFree(geometry);
+    free(boxes);
+    if (!ok) return fail("geometry JSON byte limit");
+    return 0;
+}
+
 static int check_ocr_items(void)
 {
     const char* source = "{\"boxes\":[{\"box\":[[1,2],[11,2],[11,8],[1,8]]}],"
@@ -558,6 +594,7 @@ int main(void)
     if (check_assembly() != 0) return 1;
     if (check_decode() != 0) return 1;
     if (check_classifier() != 0) return 1;
+    if (check_json_input_limits() != 0) return 1;
     if (check_ocr_items() != 0) return 1;
     if (check_detector_boxes() != 0) return 1;
     if (check_box_geometry() != 0) return 1;

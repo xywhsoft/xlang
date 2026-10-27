@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 
+#define RAPIDOCR_MAX_JSON_BYTES (4u * 1024u * 1024u)
 #define RAPIDOCR_MAX_TENSOR_CELLS (4u * 1024u * 1024u)
 
 typedef struct RapidJsonBox {
