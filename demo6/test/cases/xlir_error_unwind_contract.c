@@ -84,6 +84,7 @@ int main(int argc, char** argv)
     XL6_IrModule ir;
     XL6_Output out;
     size_t i, regions = 0, normalRegions = 0, mutations = 0, members = 0, outcomes = 0, pendingFailures = 0;
+    size_t selectedOperators = 0;
     release_effect_contract();
     xl6ParseResultInit(&parse); xl6IrModuleInit(&ir);
     if (!xl6ParseFile(argc == 3 ? argv[1] : "test/cases/xlir_error_unwind.xl", &parse) ||
@@ -104,6 +105,21 @@ int main(int argc, char** argv)
         xl6OutputClose(&out);
     } else assert(argc == 1);
     if (argc == 3) { xl6IrModuleFree(&ir); xl6ParseResultFree(&parse); return 0; }
+    for (i = 0; i < ir.nodeCount; ++i) {
+        XL6_IrNode* node = &ir.nodes[i];
+        XL6_IrErrorAbi effect = node->operatorErrorAbi;
+        const XL6_IrCallTarget* target;
+        if (node->compoundOperatorSymbol == 0) continue;
+        target = xl6IrCallTargetGet(&ir, node->compoundOperatorSymbol);
+        assert(effect == XL6_IR_ERROR_ABI_NO_RAISE && target != NULL &&
+            target->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE);
+        /* Do not duplicate the selected call's real checked failure as a
+         * dynamic-box intrinsic effect because its class uses xvalue storage. */
+        node->operatorErrorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
+        reject(&ir); node->operatorErrorAbi = effect;
+        ++selectedOperators; ++mutations;
+    }
+    assert(selectedOperators >= 2);
     for (i = 0; i < ir.instructionCount; ++i) {
         XL6_IrInstruction* begin = &ir.instructions[i];
         XL6_IrInstruction *end, *test, *cancel;
@@ -212,5 +228,7 @@ int main(int argc, char** argv)
     printf("normal cleanup contract: %lu isolated regions with exclusive bool outcomes\n", (unsigned long)normalRegions);
     printf("pending return cleanup: %lu normal finally failure transactions preserve success and cancel failure\n",
         (unsigned long)pendingFailures);
+    printf("selected compound operators: %lu independent checked call effects, duplicate intrinsic effects rejected\n",
+        (unsigned long)selectedOperators);
     return 0;
 }

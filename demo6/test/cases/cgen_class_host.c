@@ -3,24 +3,26 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdint.h>
+#include <inttypes.h>
 
 typedef struct xvalue xvalue;
 
-xvalue* xrtValueInt(long long value);
-bool xrtValueGetInt(const xvalue* value, long long* result);
+xvalue* xrtValueInt(int64_t value);
+bool xrtValueGetInt(const xvalue* value, int64_t* result);
 size_t xrtValueCount(const xvalue* value);
 
-static long long g_nc_probe_count = 0;
-static long long g_recorded_xvalue = 0;
-static unsigned long long g_expect_i64_count = 0;
+static int64_t g_nc_probe_count = 0;
+static int64_t g_recorded_xvalue = 0;
+static uint64_t g_expect_i64_count = 0;
 
-void expect_i64(long long actual, long long expected)
+void expect_i64(int64_t actual, int64_t expected)
 {
     ++g_expect_i64_count;
     if ( actual != expected ) {
         fprintf(
             stderr,
-            "expect_i64 failed: call=%llu actual=%lld expected=%lld\n",
+            "expect_i64 failed: call=%" PRIu64 " actual=%" PRId64 " expected=%" PRId64 "\n",
             g_expect_i64_count,
             actual,
             expected
@@ -106,7 +108,7 @@ void nc_probe_reset(void)
     g_nc_probe_count = 0;
 }
 
-long long nc_probe_next(void)
+int64_t nc_probe_next(void)
 {
     g_nc_probe_count += 1;
     return 33;
@@ -118,7 +120,7 @@ xvalue* nc_probe_next_var(void)
     return xrtValueInt(33);
 }
 
-long long nc_probe_count(void)
+int64_t nc_probe_count(void)
 {
     return g_nc_probe_count;
 }
@@ -128,26 +130,26 @@ void record_xvalue(xvalue* value)
     (void)xrtValueGetInt(value, &g_recorded_xvalue);
 }
 
-long long recorded_xvalue(void)
+int64_t recorded_xvalue(void)
 {
     return g_recorded_xvalue;
 }
 
-long long xvalue_vararg_count(const char* tag, xvalue* arg)
+int64_t xvalue_vararg_count(const char* tag, xvalue* arg)
 {
     (void)tag;
-    return (long long)xrtValueCount(arg);
+    return (int64_t)xrtValueCount(arg);
 }
 
-long long xvalue_kw_count(const char* tag, xvalue* arg)
+int64_t xvalue_kw_count(const char* tag, xvalue* arg)
 {
     (void)tag;
-    return (long long)xrtValueCount(arg);
+    return (int64_t)xrtValueCount(arg);
 }
 
-void* native_handle(long long value)
+void* native_handle(int64_t value)
 {
-    static long long slots[8];
+    static int64_t slots[8];
     int index = (int)(value & 7);
     slots[index] = value;
     return &slots[index];

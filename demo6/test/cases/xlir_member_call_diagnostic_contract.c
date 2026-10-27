@@ -14,7 +14,8 @@ static const struct { const char* name; const char* source; } invalid[] = {
     {"generic-arity", "class Generic<T>\n func accept(T value) as bool\n return true\n end\nend\nGeneric<int> item = Generic::<int>()\nassert item.accept(1, 2)\n"},
     {"async-arity", "class AsyncCheck\n async func accept(int value) as bool\n return true\n end\nend\nAsyncCheck item = AsyncCheck()\nfuture<bool> result = item.accept(1, 2)\n"},
     {"non-callable-field", "class Field\n int value = 1\nend\nField item = Field()\nitem.value()\n"},
-    {"native-tcp-arity", "func wrong(TcpStream stream)\n assert stream.send(\"value\", 8000)\nend\n"}
+    /* send(data, size) is valid; use a third argument to test arity rejection. */
+    {"native-tcp-arity", "func wrong(TcpStream stream)\n stream.send(\"value\", 8000, 1)\nend\n"}
 };
 
 int main(void)
