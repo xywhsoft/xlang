@@ -285,7 +285,7 @@ int xl6IrVerifyDynamicMethodScalarCodecs(const XL6_IrModule* module,XL6_DiagList
             XL6_IrCallableErasureAbi erasure=method->variadicAbi==XL6_IR_CALL_VARIADIC_ARRAY ? XL6_IR_CALLABLE_ERASURE_ARRAY_VARIADIC :
                 method->variadicAbi==XL6_IR_CALL_VARIADIC_DICT ? XL6_IR_CALLABLE_ERASURE_DICT_VARIADIC : XL6_IR_CALLABLE_ERASURE_FIXED;
             if(!signature || !signature->typeValueId || signature->paramCount!=method->parameterCount ||
-                !parameters || !returns || !xl6IrNamedCallableSignatureMatches(module,method->boundSignatureType,parameters,returns,erasure))goto malformed;
+                !parameters || !returns || !xl6IrNamedCallableSignatureMatches(module,method->boundSignatureType,parameters,returns,erasure,NULL))goto malformed;
         } else if(method->boundSignatureType)goto malformed;
         for(size_t p=0;p<method->parameterCount;++p) {
             const XL6_IrDynamicMethodParameter* item=&module->dynamicMethodParameters[method->firstParameter+p];

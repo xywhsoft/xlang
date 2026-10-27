@@ -1,0 +1,54 @@
+// Closed generic functions use the ordinary capture-free callable adapter.
+func echo<T>(T value) as T
+    return value
+end
+func(c_int) as c_int scalar=echo::<c_int>
+assert scalar(c_int(7))==c_int(7)
+assert await task.spawn(echo::<c_int>,c_int(9))==c_int(9)
+auto text=echo::<string>
+assert text("text")=="text"
+assert await task.spawn(text,"owned")=="owned"
+assert echo::<c_int>(c_int(11))==c_int(11)
+// Reusing a direct instance and a reference must select the same concrete ABI.
+auto alias=echo::<c_int>
+assert alias(c_int(13))==c_int(13)
+func pick<T,U>(U ignored,T value) as T
+    return value
+end
+auto reordered=pick::<string,c_int>
+assert reordered(c_int(0),"ordered")=="ordered"
+auto aggregate=echo::<array<c_int>>
+array<c_int> input=[c_int(3),c_int(5)]
+auto result=aggregate(input)
+assert result.length==2 and result[1]==c_int(5)
+func factory<T>() as func(T) as T
+    return echo::<T>
+end
+auto returned=factory::<string>()
+assert returned("returned")=="returned"
+func optional<T>(T? value) as T?
+    return value
+end
+auto nullable=optional::<c_int>
+c_int? missing=null
+assert nullable(missing)==null
+assert await task.spawn(nullable,c_int(17))!=null
+// An asynchronous generic named function returns its ordinary Future type.
+async func ready<T>(T value) as T
+    return value
+end
+auto asynchronous=ready::<string>
+assert await asynchronous("ready")=="ready"
+// A failure preserves the original checked-call path through the adapter.
+extern "owned_task_text" @owned func Text(c_int mode) as string
+func invoke<T>(func(c_int) as T callback,c_int mode) as T
+    return callback(mode)
+end
+auto failed=invoke::<string>
+bool caught=false
+try
+    failed(Text,c_int(-1))
+catch error
+    caught=true
+end
+assert caught

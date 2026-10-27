@@ -4648,26 +4648,25 @@ static XL6_IrNodeId xl6IrBuildEnclosingClass(
  * one concrete class instance.  Composite types must already be interned by
  * the typed frontend; this pass selects that canonical type and never creates
  * a backend-only approximation. */
-static XL6_IrTypeId xl6IrBuildClassSubstituteTypeDepth(
-    const XL6_IrModule* module, XL6_IrNodeId classDeclaration,
-    XL6_IrTypeId classType, XL6_IrTypeId sourceType, size_t depth)
+static XL6_IrTypeId xl6IrBuildSubstituteTypeDepth(
+    const XL6_IrModule* module, const XL6_IrNode* params,
+    const XL6_IrTypeId* arguments, size_t argumentCount,
+    XL6_IrTypeId sourceType, size_t depth)
 {
-    const XL6_IrNode* params = xl6IrBuildDeclarationTypeParams(module, classDeclaration);
-    const XL6_IrType* applied = xl6IrTypeGet(&module->types, classType);
     const XL6_IrType* source = xl6IrTypeGet(&module->types, sourceType);
     XL6_IrTypeId* substitutedParams = NULL;
     XL6_IrTypeId* substitutedReturns = NULL;
     size_t i;
     XL6_IrTypeId result = XL6_IR_TYPE_INVALID;
     int changed = 0;
-    if ( params == NULL || applied == NULL || source == NULL || depth > module->types.count ||
-         params->childCount != applied->paramCount ) return XL6_IR_TYPE_INVALID;
+    if ( params == NULL || (argumentCount != 0 && arguments == NULL) || source == NULL || depth > module->types.count ||
+         params->childCount != argumentCount ) return XL6_IR_TYPE_INVALID;
     if ( source->kind == XL6_IR_TYPE_TYPE_PARAM ) {
         for ( i = 0; i < params->childCount; ++i ) {
             const XL6_IrNode* item = xl6IrNodeGet(module,
                 module->children[params->firstChild + i]);
             if ( item != NULL && item->text != NULL && source->name != NULL &&
-                 strcmp(item->text, source->name) == 0 ) return applied->params[i];
+                 strcmp(item->text, source->name) == 0 ) return arguments[i];
         }
         return XL6_IR_TYPE_INVALID;
     }
@@ -4676,8 +4675,8 @@ static XL6_IrTypeId xl6IrBuildClassSubstituteTypeDepth(
         substitutedParams = (XL6_IrTypeId*)xrtMalloc(source->paramCount * sizeof(*substitutedParams));
         if ( substitutedParams == NULL ) goto done;
         for ( i = 0; i < source->paramCount; ++i ) {
-            substitutedParams[i] = xl6IrBuildClassSubstituteTypeDepth(
-                module, classDeclaration, classType, source->params[i], depth + 1);
+            substitutedParams[i] = xl6IrBuildSubstituteTypeDepth(
+                module, params, arguments, argumentCount, source->params[i], depth + 1);
             if ( substitutedParams[i] == XL6_IR_TYPE_INVALID ) goto done;
             if ( substitutedParams[i] != source->params[i] ) changed = 1;
         }
@@ -4686,8 +4685,8 @@ static XL6_IrTypeId xl6IrBuildClassSubstituteTypeDepth(
         substitutedReturns = (XL6_IrTypeId*)xrtMalloc(source->returnCount * sizeof(*substitutedReturns));
         if ( substitutedReturns == NULL ) goto done;
         for ( i = 0; i < source->returnCount; ++i ) {
-            substitutedReturns[i] = xl6IrBuildClassSubstituteTypeDepth(
-                module, classDeclaration, classType, source->returns[i], depth + 1);
+            substitutedReturns[i] = xl6IrBuildSubstituteTypeDepth(
+                module, params, arguments, argumentCount, source->returns[i], depth + 1);
             if ( substitutedReturns[i] == XL6_IR_TYPE_INVALID ) goto done;
             if ( substitutedReturns[i] != source->returns[i] ) changed = 1;
         }
@@ -4733,6 +4732,16 @@ done:
     xrtFree(substitutedParams);
     xrtFree(substitutedReturns);
     return result;
+}
+
+static XL6_IrTypeId xl6IrBuildClassSubstituteTypeDepth(
+    const XL6_IrModule* module, XL6_IrNodeId classDeclaration,
+    XL6_IrTypeId classType, XL6_IrTypeId sourceType, size_t depth)
+{
+    const XL6_IrType* applied = xl6IrTypeGet(&module->types, classType);
+    return applied ? xl6IrBuildSubstituteTypeDepth(module,
+        xl6IrBuildDeclarationTypeParams(module, classDeclaration),
+        applied->params, applied->paramCount, sourceType, depth) : XL6_IR_TYPE_INVALID;
 }
 
 static XL6_IrTypeId xl6IrBuildClassSubstituteType(
@@ -9123,7 +9132,9 @@ static XL6_IrNodeId xl6IrNamedCallableDeclaration(
     const XL6_IrNode* target;
     XL6_IrNodeId declarationId;
     const XL6_IrNode* declaration;
-    if ( module == NULL || name == NULL || name->kind != XL6_IR_NODE_NAME ||
+    if ( module == NULL || name == NULL ||
+         (name->kind != XL6_IR_NODE_NAME &&
+          !(name->kind == XL6_IR_NODE_CALL && name->sourceKind == XL6_AST_GENERIC_INSTANT)) ||
          name->targetSymbol == 0 || name->typeValueTarget != XL6_IR_TYPE_INVALID )
         return XL6_IR_NODE_INVALID;
     parent = xl6IrNodeGet(module, name->parent);
@@ -9245,13 +9256,38 @@ static size_t xl6IrNamedCallableSignatureParameter(
         ? targetParameter : SIZE_MAX;
 }
 
+/* Explicit generic references use the same canonical type substitution as
+ * class members. Before specialization they name a template; afterward the
+ * concrete target needs no substitution. This contract also drives verification. */
+static XL6_IrTypeId xl6IrNamedCallableAppliedType(
+    const XL6_IrModule* module, const XL6_IrNode* reference,
+    XL6_IrNodeId declaration, XL6_IrTypeId source)
+{
+    const XL6_IrNode* params = xl6IrBuildDeclarationTypeParams(module, declaration);
+    if (!reference || reference->sourceKind != XL6_AST_GENERIC_INSTANT || !params || !params->childCount)
+        return source;
+    const XL6_IrNode* args = reference->childCount == 2
+        ? xl6IrNodeGet(module, module->children[reference->firstChild + 1]) : NULL;
+    if (!args || args->kind != XL6_IR_NODE_LIST || args->childCount != params->childCount)
+        return XL6_IR_TYPE_INVALID;
+    XL6_IrTypeId* types = (XL6_IrTypeId*)xrtCalloc(args->childCount, sizeof(*types));
+    if (!types) return XL6_IR_TYPE_INVALID;
+    for (size_t i=0;i<args->childCount;++i) {
+        const XL6_IrNode* arg = xl6IrNodeGet(module, module->children[args->firstChild+i]);
+        types[i] = arg ? arg->storageType : XL6_IR_TYPE_INVALID;
+    }
+    XL6_IrTypeId result = xl6IrBuildSubstituteTypeDepth(module, params, types, args->childCount, source, 0);
+    xrtFree(types);
+    return result;
+}
+
 /* Verify a contextual exact function type against the declaration shape.  A
  * shorter fixed prefix is legal only when every omitted declaration parameter
  * has a default; variadic carriers retain their final physical position. */
 static int xl6IrNamedCallableSignatureMatches(
     const XL6_IrModule* module, XL6_IrTypeId signatureType,
     const XL6_IrNode* parameters, const XL6_IrNode* returns,
-    XL6_IrCallableErasureAbi targetErasure)
+    XL6_IrCallableErasureAbi targetErasure, const XL6_IrNode* reference)
 {
     const XL6_IrType* signature = xl6IrTypeGet(&module->types, signatureType);
     size_t i;
@@ -9277,10 +9313,11 @@ static int xl6IrNamedCallableSignatureMatches(
             ? xl6IrParameterModeFromFlags(parameter->flags)
             : XL6_IR_PARAMETER_MODE_INVALID;
         if ( parameter == NULL || parameter->kind != XL6_IR_NODE_PARAM_DECL ||
-             signature->params[i] != parameter->storageType ||
+             signature->params[i] != xl6IrNamedCallableAppliedType(
+                 module, reference, returns->parent, parameter->storageType) ||
              signature->parameterModes[i] != mode ||
              signature->parameterAbis[i] != xl6IrParameterAbiForMode(
-                 xl6IrTypeGet(&module->types, parameter->storageType), mode) )
+                 xl6IrTypeGet(&module->types, signature->params[i]), mode) )
             return 0;
     }
     for ( i = 0; i < parameters->childCount; ++i ) {
@@ -9295,13 +9332,15 @@ static int xl6IrNamedCallableSignatureMatches(
     }
     if (async) {
         const XL6_IrNode* result=returns->childCount==1 ? xl6IrNodeGet(module,module->children[returns->firstChild]) : NULL;
-        return returns->childCount<=1 && signature->returns[0]==xl6IrBuildMethodCallResultType(module,declaration,
-            result ? result->type : XL6_IR_TYPE_INVALID);
+        return returns->childCount<=1 && signature->returns[0]==xl6IrBuildMethodCallResultType(
+            module, declaration, xl6IrNamedCallableAppliedType(module, reference, returns->parent,
+                result ? result->type : XL6_IR_TYPE_INVALID));
     }
     for ( i = 0; i < returns->childCount; ++i ) {
         const XL6_IrNode* result = xl6IrNodeGet(
             module, module->children[returns->firstChild + i]);
-        if ( result == NULL || signature->returns[i] != result->type ) return 0;
+        if ( result == NULL || signature->returns[i] != xl6IrNamedCallableAppliedType(
+                 module, reference, returns->parent, result->type) ) return 0;
     }
     return 1;
 }
@@ -9314,7 +9353,7 @@ static XL6_IrTypeId xl6IrFindNamedCallableSignature(
     for ( i = 0; i < module->types.count; ++i )
         if ( module->types.items[i].paramCount == parameters->childCount &&
              xl6IrNamedCallableSignatureMatches(
-                 module, (XL6_IrTypeId)(i + 1), parameters, returns, erasure) )
+                 module, (XL6_IrTypeId)(i + 1), parameters, returns, erasure, NULL) )
             return (XL6_IrTypeId)(i + 1);
     return XL6_IR_TYPE_INVALID;
 }
@@ -9425,12 +9464,12 @@ static XL6_IrNamedCallableAbi xl6IrClassifyNamedCallableAbi(
               module, declarationId, &parameters, &returns, &erasure) )
         return XL6_IR_NAMED_CALLABLE_NONE;
     if ( xl6IrNamedCallableSignatureMatches(
-             module, name->storageType, parameters, returns, erasure) )
+             module, name->storageType, parameters, returns, erasure, name) )
         signature = name->storageType;
     else if ( xl6IrNamedCallableSignatureMatches(
-                  module, name->type, parameters, returns, erasure) )
+                  module, name->type, parameters, returns, erasure, name) )
         signature = name->type;
-    else
+    else if (name->sourceKind != XL6_AST_GENERIC_INSTANT)
         signature = xl6IrFindNamedCallableSignature(
             module, parameters, returns, erasure);
     if ( signature == XL6_IR_TYPE_INVALID )
@@ -9461,12 +9500,12 @@ static int xl6IrBuildNamedCallableAbis(XL6_IrModule* module)
                  module, declarationId, &parameters, &returns, &erasure) )
             return 0;
         if ( xl6IrNamedCallableSignatureMatches(
-                 module, node->storageType, parameters, returns, erasure) )
+                 module, node->storageType, parameters, returns, erasure, node) )
             signature = node->storageType;
         else if ( xl6IrNamedCallableSignatureMatches(
-                      module, node->type, parameters, returns, erasure) )
+                      module, node->type, parameters, returns, erasure, node) )
             signature = node->type;
-        else
+        else if (node->sourceKind != XL6_AST_GENERIC_INSTANT)
             signature = xl6IrInternNamedCallableSignature(
                 module, parameters, returns, erasure);
         node = &module->nodes[i];
@@ -39491,7 +39530,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             }
         }
         if ( module->stage == XL6_IR_STAGE_LOWERED && owner != NULL &&
-             owner->kind == XL6_IR_NODE_NAME ) {
+             (owner->kind == XL6_IR_NODE_NAME ||
+              owner->sourceKind == XL6_AST_GENERIC_INSTANT) ) {
             for ( j = 0; j < module->closureTargetCount; ++j ) {
                 if ( module->closureTargets[j].kind == XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER &&
                      module->closureTargets[j].declaration == storage->owner ) {
@@ -40151,7 +40191,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
         } else if ( closure->kind == XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER ) {
              size_t parameter, boundaries = 0, boundary = 0;
              if ( module->stage != XL6_IR_STAGE_LOWERED ||
-                  declaration->kind != XL6_IR_NODE_NAME ||
+                  (declaration->kind != XL6_IR_NODE_NAME &&
+                   declaration->sourceKind != XL6_AST_GENERIC_INSTANT) ||
                   declaration->namedCallableAbi !=
                       XL6_IR_NAMED_CALLABLE_CAPTURE_FREE_ADAPTER ||
                   declaration->namedCallableTargetSymbol !=

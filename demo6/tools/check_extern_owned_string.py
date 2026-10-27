@@ -58,6 +58,8 @@ def main():
             ['test/cases/extern_owned_task_scalars_host.c','test/cases/extern_owned_task_composition_host.c'],[]),
         ('task-generic-continuations','test/cases/extern_owned_task_continuations.xl',
             ['test/cases/extern_owned_task_scalars_host.c'],[]),
+        ('task-generic-function-values','test/cases/extern_owned_task_generic_callable.xl',
+            ['test/cases/extern_owned_task_scalars_host.c'],[]),
     ]
     sha=lambda path:hashlib.sha256(Path(path).read_bytes()).hexdigest()
     inputs=[ROOT/source for _,source,_,_ in cases]+[ROOT/path for _,_,paths,_ in cases for path in paths]
