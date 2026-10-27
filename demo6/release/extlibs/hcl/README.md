@@ -1,5 +1,15 @@
 # hcl
 
+2026-10-28：Windows 默认完整门禁与 Linux 默认完整门禁均退出 0。
+Linux 新增复用已有四线程用例的 ASan/UBSan 检查，四个线程各做 500 轮
+查询并核对保留的文本不被后续调用覆盖。每个阶段现在记录命令、原始退出码、
+stdout/stderr；失败保留现场，成功自动清理。输入指纹覆盖包源码/测试、
+XRT 头、中央用例、双语范例、`xl` 及其实际依赖的 `libxlc.so`，
+并在验收结束时复核不变。诊断自测验证无输出退出 37 和命令不存在退出 127
+都不会丢失原始状态；不改变既有路径或超时限制。C 范例按公开原型使用
+`char*`，去除无意义的 `void*` 和强制转换。历史偶发退出根因仍未知，
+以上通过和证据留档改进不等于修复该历史风险。
+
 2026-10-27：四个文本查询的 C 原型明确为 XRT 自有 `char*`，XLang
 `extern @owned string` 直接接管结果；公开查询写法、缺失属性返回空串、
 错误分类和 NUL 输入检查不变。生成 C 门禁逐一核对四个原生调用直接
@@ -129,6 +139,20 @@ C 接口见 `include/hcl_native.h`。文本结果是**独立拥有型**内存，
   C 的 ASan/UBSan 边界、无效 UTF-8 拒绝、合法中文文本查询、中央与包内
   XLang 用例，以及 C/XLang 范例的逐字节同输出。C 范例使用严格 GCC
   编译，`int64_t` 的格式化在 LP64 与 LLP64 下均受检查。
+- Linux 门禁还运行已有四线程用例及全部语言/公开 C 范例的独立 EXE。
+  失败时 stderr 输出 `[hcl] FAIL stage=... exit=... artifacts=...`；目录位于
+  `${TMPDIR:-/tmp}/xlang-hcl-*`，保留 `failed-stage.txt`、`exit-code.txt`、
+  `phases.tsv`、`fingerprint.stdout`、`compiler.txt`，以及每一步的
+  `阶段名.command/.stdout/.stderr`。排查结束后可删除报告的该次独占目录。
+- 只验证留档机制：从 `demo6` 运行
+  `bash release/extlibs/hcl/test/check_gate_diagnostics.sh`，检查无输出失败、
+  编译器启动失败、原始退出码及现场内容；成功时自动清理刻意产生的失败现场。
+  该自测不是解析器或语言 JIT/AOT 验收的替代品。
+
+## 历史验证记录
+
+以下记录中的“当前阻断”只描述记录当日的发布物；旧快照缺符号问题已由
+上述新版完整门禁复验解除。仍开放的是历史 Linux 偶发退出的未知根因。
 
 2026-10-19：C 测试对一份含转义字符串、块与数组表达式的有效文档逐字节
 截断，并用六种字节逐位置替换，比较 `validate` 与 `get`、`getRaw`、
