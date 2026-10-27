@@ -12252,6 +12252,8 @@ static int xl6IrLowerTaskAllPayloadBoxerSupported(
     if ( type == NULL || abi != xl6IrLowerAsyncResultAbi(module, typeId) )
         return 0;
     switch ( abi ) {
+    case XL6_IR_ASYNC_RESULT_COPY_TAGGED:
+        return xl6IrNullableScalarElementAbi(module, typeId) != XL6_IR_C_ABI_UNSUPPORTED;
     case XL6_IR_ASYNC_RESULT_COPY_C_SCALAR:
         return type->typeValueId != 0 &&
             xl6IrNativeScalarProfileForCAbi(type->cAbi) != XL6_NATIVE_SCALAR_NONE;
@@ -17403,6 +17405,9 @@ static int xl6IrLowerSpecializationCloneIntrinsicCalls(
         target->payloadType = source.payloadType == XL6_IR_TYPE_INVALID
             ? XL6_IR_TYPE_INVALID
             : xl6IrLowerSpecializationSubstituteType(build, source.payloadType);
+        target->sourcePayloadType = source.sourcePayloadType == XL6_IR_TYPE_INVALID
+            ? XL6_IR_TYPE_INVALID
+            : xl6IrLowerSpecializationSubstituteType(build, source.sourcePayloadType);
         target->runtimeResourceKeyType = source.runtimeResourceKeyType == XL6_IR_TYPE_INVALID
             ? XL6_IR_TYPE_INVALID
             : xl6IrLowerSpecializationSubstituteType(build, source.runtimeResourceKeyType);
@@ -17427,6 +17432,8 @@ static int xl6IrLowerSpecializationCloneIntrinsicCalls(
               target->resultType == XL6_IR_TYPE_INVALID) ||
              (source.payloadType != XL6_IR_TYPE_INVALID &&
               target->payloadType == XL6_IR_TYPE_INVALID) ||
+             (source.sourcePayloadType != XL6_IR_TYPE_INVALID &&
+              target->sourcePayloadType == XL6_IR_TYPE_INVALID) ||
              (source.typeQueryTarget != XL6_IR_TYPE_INVALID &&
               target->typeQueryTarget == XL6_IR_TYPE_INVALID) ||
              (source.receiver != XL6_IR_NODE_INVALID &&
@@ -17475,6 +17482,12 @@ static int xl6IrLowerSpecializationCloneIntrinsicCalls(
         /* Payload destruction/copy policy depends on the concrete T, never
          * on the template's unresolved ABI. All task forms are revalidated. */
         switch (target->kind) {
+        case XL6_IR_INTRINSIC_FUTURE_THEN:
+        case XL6_IR_INTRINSIC_FUTURE_CATCH:
+        case XL6_IR_INTRINSIC_FUTURE_FINALLY:
+            target->sourcePayloadAbi = xl6IrLowerAsyncResultAbi(module, target->sourcePayloadType);
+            target->payloadAbi = xl6IrLowerAsyncResultAbi(module, target->payloadType);
+            break;
         case XL6_IR_INTRINSIC_TASK_ALL:
         case XL6_IR_INTRINSIC_TASK_RACE:
         case XL6_IR_INTRINSIC_TASK_ALL_ARRAY:
