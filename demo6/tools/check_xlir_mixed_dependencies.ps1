@@ -32,8 +32,10 @@ try {
         $code=$LASTEXITCODE;$complete=$false
         if(!$code){
             $ir=Get-Content "$out/emit$pass.json" -Raw|ConvertFrom-Json
+            # Fixed workers dispatch these four continuations through
+            # FUTURE_READY_QUEUE_V1 / RESIDENT_QUEUED_FUTURE_FRAME_V1.
             $complete=$ir.asyncMachines.Count-eq1-and$ir.moduleExecutorOwnershipAbi-eq1-and$ir.moduleTaskPoolOwnershipAbi-eq1-and$ir.retirementAbi-eq4-and
-                $ir.callbackBoundaries.Count-eq5-and@($ir.callbackBoundaries|Where-Object {$_.transportAbi-eq2-and$_.storageAbi-eq6}).Count-eq4-and
+                $ir.callbackBoundaries.Count-eq5-and@($ir.callbackBoundaries|Where-Object {$_.transportAbi-eq3-and$_.storageAbi-eq7}).Count-eq4-and
                 @($ir.callbackBoundaries|Where-Object {$_.transportAbi-eq1-and$_.storageAbi-eq5}).Count-eq1
             if($Aggregate){$complete=$complete-and$ir.futureAggregateAbi-eq2}
         }
@@ -61,27 +63,25 @@ try {
             $waitObjects[$level]=@()
             foreach($source in $waitSources){
                 $object="$out/$([IO.Path]::GetFileNameWithoutExtension($source))-O$level.o"
-                & gcc @flags "-O$level" -DXL_STATIC_EMBED -c $source -o $object *> "$object.log"
-                $code=$LASTEXITCODE;$residentBuilds+=[pscustomobject]@{Source=$source;Level=$level;Exit=$code;Object=$object}
+                $code=Invoke-XlirGccToLog ($flags+@("-O$level",'-DXL_STATIC_EMBED','-c',$source,'-o',$object)) "$object.log"
+                $residentBuilds+=[pscustomobject]@{Source=$source;Level=$level;Exit=$code;Object=$object}
                 if(!$code){$waitObjects[$level]+=$object}
             }
         }
         foreach($kind in @('tcc','dll')){foreach($level in @(0,2)){
             $name="$kind-O$level";$binary="$out/$name.exe";$dllExit=$null
-            $extra=@('-DJOINT_SOURCE_XRT',(New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $out.Replace('\','/')))
+            $extra=@('-DJOINT_SOURCE_XRT',(New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $out.Replace('\','/') -RawArgument))
             if($kind-eq'dll'){$extra=@('-DMODULE_EXECUTOR_DLL','-DXL_BUILD_DLL',
-                (New-XlirCStringDefine 'JOINT_DLL_PATH' ($out.Replace('\','/')+"/mixed-dependency-O$level.dll")),
-                (New-XlirCStringDefine 'JOINT_DLL_NAME' "mixed-dependency-O$level.dll"),"-Wl,--out-implib,$out/$name.a",'-Wl,--export-all-symbols')}
+                (New-XlirCStringDefine 'JOINT_DLL_PATH' ($out.Replace('\','/')+"/mixed-dependency-O$level.dll") -RawArgument),
+                (New-XlirCStringDefine 'JOINT_DLL_NAME' "mixed-dependency-O$level.dll" -RawArgument),"-Wl,--out-implib,$out/$name.a",'-Wl,--export-all-symbols')}
             $buildExit=1
             if($waitObjects[$level].Count-eq3){
                 $linked=@($commonDependencies)+@($waitObjects[$level])
-                & gcc @flags "-O$level" @extra "test/cases/${case}_host.c" @linked release/xl.dll @libs -o $binary *> "$out/$name.build.log"
-                $buildExit=$LASTEXITCODE
+                $buildExit=Invoke-XlirGccToLog ($flags+@("-O$level")+$extra+@("test/cases/${case}_host.c")+$linked+@('release/xl.dll')+$libs+@('-o',$binary)) "$out/$name.build.log"
             }
             $run=$null;$complete=$false;$oom=0;$admissionDeferrals=0;$snapshotDeferrals=0
             if(!$buildExit-and$kind-eq'dll'){
-                & gcc @flags "-O$level" -shared -DXL6_BUILD_SHARED "test/cases/${case}_artifact.c" "$out/$name.a" '-Wl,--export-all-symbols' -o "$out/mixed-dependency-O$level.dll" *> "$out/$name.dll.log"
-                $dllExit=$LASTEXITCODE
+                $dllExit=Invoke-XlirGccToLog ($flags+@("-O$level",'-shared','-DXL6_BUILD_SHARED',"test/cases/${case}_artifact.c","$out/$name.a",'-Wl,--export-all-symbols','-o',"$out/mixed-dependency-O$level.dll")) "$out/$name.dll.log"
             }
             if(!$buildExit-and($kind-ne'dll'-or$dllExit-eq0)){
 $process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath -RedirectStandardOutput "$out/$name.out.log" -RedirectStandardError "$out/$name.err.log"

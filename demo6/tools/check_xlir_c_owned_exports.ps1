@@ -12,7 +12,7 @@ $work=if ([IO.Path]::IsPathRooted($Directory)) { [IO.Path]::GetFullPath($Directo
 if (Test-Path -LiteralPath $work) { throw 'Use a fresh C owner export validation directory' }
 [IO.Directory]::CreateDirectory($work) | Out-Null
 $utf8=[Text.UTF8Encoding]::new($false)
-$gcc=(Get-Command gcc -CommandType Application -ErrorAction Stop).Source
+$gcc=(Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $objects=@($public.Objects | Where-Object {[IO.Path]::GetFileName($_.Path) -ne 'xlir_public_source_driver.o'} | ForEach-Object Path)
 $checks=[Collections.Generic.List[object]]::new()
 $files=@($PSCommandPath,"$root/test/cases/xlir_c_owned_exports.xl","$root/test/cases/xlir_c_owned_import_exports.xl",
