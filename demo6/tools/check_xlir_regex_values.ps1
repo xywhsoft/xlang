@@ -62,6 +62,8 @@ try {
     $extra=@($PSCommandPath,'tools/check_stdlib_regex.sh','test/cases/xlir_regex_host.c','test/support/regex_native.c',
         'test/cases/xlir_pattern_host.c','test/support/pattern_native.c','test/cases/xlir_pattern_builder_host.c','test/support/pattern_builder_native.c','test/cases/xlir_error_projection_contract.c','test/cases/xlir_continuation_owner_test.h','test/cases/xlir_synthetic_owner_edit.h',
         'test/cases/xlir_text_value_contract.c','test/cases/xlir_string_interpolation_host.c','test/cases/xlir_regex_extended_host.c','test/cases/xlir_regex_callback_host.c',
+        'test/cases/xlir_constructor_flow_solver.c','test/cases/xlir_constructor_definite_assignment_contract.c',
+        'test/cases/xlir_constructor_definite_assignment.xl',
         'tools/extlib_smoke_process.ps1','tools/xlir_native_process.ps1','tools/xlir_resident_closure.ps1',
         'tools/stage_xlir_artifact_runtime_sources.ps1',
         $formalCli,(Join-Path $formal 'xlc.dll'),(Join-Path $formal 'xl.dll'),'release/xl.dll',
@@ -114,6 +116,11 @@ try {
         }
         $null=Check 'contract-build' gcc ($flags+@('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_text_value_contract.c')+
             $compilerObjects+@('release/xl.dll')+$libs+@('-o',"$work/contract.exe"))
+        $null=Check 'constructor-flow-solver-build' gcc ($flags+@('test/cases/xlir_constructor_flow_solver.c','-o',"$work/constructor-flow-solver.exe"))
+        $null=Check 'constructor-flow-solver' "$work/constructor-flow-solver.exe" @()
+        $null=Check 'constructor-assignment-build' gcc ($flags+@('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_constructor_definite_assignment_contract.c')+
+            $compilerObjects+@('release/xl.dll')+$libs+@('-o',"$work/constructor-assignment.exe"))
+        $null=Check 'constructor-assignment' "$work/constructor-assignment.exe" @('test/cases/xlir_constructor_definite_assignment.xl')
         $null=Check 'error-projection-contract-build' gcc ($flags+@('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_error_projection_contract.c')+
             $compilerObjects+@('release/xl.dll')+$libs+@('-o',"$work/error-projection-contract.exe"))
         $null=Check 'error-projection-contract' "$work/error-projection-contract.exe" @('test/cases/stdlib_pattern_tags.xl',"$work/error-projection.closed.c")
