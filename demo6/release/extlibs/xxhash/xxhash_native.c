@@ -1,6 +1,3 @@
-#ifndef XRT_MODULE_TEMP_MEMORY
-#define XRT_MODULE_TEMP_MEMORY
-#endif
 #ifndef XRT_MODULE_IO_FILE
 #define XRT_MODULE_IO_FILE
 #endif
@@ -23,20 +20,20 @@ const char* xxxhash_version(void)
 }
 const char* xxxhash_last_error(void) { return xrtErrorMessage(xrtGetError()); }
 
-/* 文本借用当前 XRT 临时区，不被后续 hash 或跨线程调用覆盖。 */
-static const char* xxhash_hex(uint64 value, bool wide)
+/* 文本独立拥有，C 调用方释放；XLang 在 extern 边界直接接管。 */
+static char* xxhash_hex(uint64 value, bool wide)
 {
-    char* text = xrtTemp(wide ? 17 : 9);
-    if (text == NULL) return "";
+    char* text = xrtMalloc(wide ? 17 : 9);
+    if (text == NULL) return NULL;
     if (wide) snprintf(text, 17, "%016llx", (unsigned long long)value);
     else snprintf(text, 9, "%08x", (unsigned int)value);
     return text;
 }
 
-static const char* xxhash_hex128(uint64 high, uint64 low)
+static char* xxhash_hex128(uint64 high, uint64 low)
 {
-    char* text = xrtTemp(33);
-    if (text == NULL) return "";
+    char* text = xrtMalloc(33);
+    if (text == NULL) return NULL;
     snprintf(text, 33, "%016llx%016llx", (unsigned long long)high, (unsigned long long)low);
     return text;
 }
@@ -49,12 +46,12 @@ unsigned long long xxxhash_hash64(void* data, size_t size, unsigned long long se
 }
 unsigned long long xxxhash_hash64_str(const char* data, size_t size, unsigned long long seed)
 { return xxxhash_hash64((void*)data, size, seed); }
-const char* xxxhash_hash64_hex(void* data, size_t size, unsigned long long seed)
+char* xxxhash_hash64_hex(void* data, size_t size, unsigned long long seed)
 {
     uint64 hash;
-    return xrtXxhash64(data, size, seed, &hash, NULL) ? xxhash_hex(hash, true) : "";
+    return xrtXxhash64(data, size, seed, &hash, NULL) ? xxhash_hex(hash, true) : NULL;
 }
-const char* xxxhash_hash64_str_hex(const char* data, size_t size, unsigned long long seed)
+char* xxxhash_hash64_str_hex(const char* data, size_t size, unsigned long long seed)
 { return xxxhash_hash64_hex((void*)data, size, seed); }
 unsigned int xxxhash_hash32(void* data, size_t size, unsigned int seed)
 {
@@ -64,12 +61,12 @@ unsigned int xxxhash_hash32(void* data, size_t size, unsigned int seed)
 }
 unsigned int xxxhash_hash32_str(const char* data, size_t size, unsigned int seed)
 { return xxxhash_hash32((void*)data, size, seed); }
-const char* xxxhash_hash32_hex(void* data, size_t size, unsigned int seed)
+char* xxxhash_hash32_hex(void* data, size_t size, unsigned int seed)
 {
     uint32 hash;
-    return xrtXxhash32(data, size, seed, &hash, NULL) ? xxhash_hex(hash, false) : "";
+    return xrtXxhash32(data, size, seed, &hash, NULL) ? xxhash_hex(hash, false) : NULL;
 }
-const char* xxxhash_hash32_str_hex(const char* data, size_t size, unsigned int seed)
+char* xxxhash_hash32_str_hex(const char* data, size_t size, unsigned int seed)
 { return xxxhash_hash32_hex((void*)data, size, seed); }
 
 // -------------------------------- XXH3 一次性接口 --------------------------------
@@ -82,19 +79,19 @@ unsigned long long xxxhash_hash3_64(void* data, size_t size, unsigned long long 
 }
 unsigned long long xxxhash_hash3_64_str(const char* data, size_t size, unsigned long long seed)
 { return xxxhash_hash3_64((void*)data, size, seed); }
-const char* xxxhash_hash3_64_hex(void* data, size_t size, unsigned long long seed)
+char* xxxhash_hash3_64_hex(void* data, size_t size, unsigned long long seed)
 {
     uint64 hash;
-    return xrtXxhash3_64(data, size, seed, &hash, NULL) ? xxhash_hex(hash, true) : "";
+    return xrtXxhash3_64(data, size, seed, &hash, NULL) ? xxhash_hex(hash, true) : NULL;
 }
-const char* xxxhash_hash3_64_str_hex(const char* data, size_t size, unsigned long long seed)
+char* xxxhash_hash3_64_str_hex(const char* data, size_t size, unsigned long long seed)
 { return xxxhash_hash3_64_hex((void*)data, size, seed); }
-const char* xxxhash_hash3_128_hex(void* data, size_t size, unsigned long long seed)
+char* xxxhash_hash3_128_hex(void* data, size_t size, unsigned long long seed)
 {
     uint64 high, low;
-    return xrtXxhash3_128(data, size, seed, &high, &low, NULL) ? xxhash_hex128(high, low) : "";
+    return xrtXxhash3_128(data, size, seed, &high, &low, NULL) ? xxhash_hex128(high, low) : NULL;
 }
-const char* xxxhash_hash3_128_str_hex(const char* data, size_t size, unsigned long long seed)
+char* xxxhash_hash3_128_str_hex(const char* data, size_t size, unsigned long long seed)
 { return xxxhash_hash3_128_hex((void*)data, size, seed); }
 
 // -------------------------------- 文件与回调 --------------------------------
@@ -131,11 +128,11 @@ unsigned long long xxxhash_file64(const char* path, unsigned long long seed,
     uint64 hash = 0;
     return xxhash_file(path, seed, maximum, callback, &hash) ? (unsigned long long)hash : 0;
 }
-const char* xxxhash_file64_hex(const char* path, unsigned long long seed,
+char* xxxhash_file64_hex(const char* path, unsigned long long seed,
     unsigned long long maximum, xvalue* callback)
 {
     uint64 hash;
-    return xxhash_file(path, seed, maximum, callback, &hash) ? xxhash_hex(hash, true) : "";
+    return xxhash_file(path, seed, maximum, callback, &hash) ? xxhash_hex(hash, true) : NULL;
 }
 
 // -------------------------------- 流式对象薄绑定 --------------------------------
@@ -159,10 +156,10 @@ unsigned long long xxxhash_hasher_digest(void* handle)
     xrtXxhashHasherDigest(handle, &hash);
     return (unsigned long long)hash;
 }
-const char* xxxhash_hasher_digest_hex(void* handle)
+char* xxxhash_hasher_digest_hex(void* handle)
 {
     uint64 hash;
-    return xrtXxhashHasherDigest(handle, &hash) ? xxhash_hex(hash, true) : "";
+    return xrtXxhashHasherDigest(handle, &hash) ? xxhash_hex(hash, true) : NULL;
 }
 bool xxxhash_hasher_reset(void* handle) { return xrtXxhashHasherReset(handle); }
 unsigned long long xxxhash_hasher_input_bytes(void* handle)

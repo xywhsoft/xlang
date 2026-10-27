@@ -12,7 +12,7 @@
                                       "third_party/xxhash.c"
                                   ],
                      "includeDirs": ["include"],
-                     "xrtModules": ["XRT_MODULE_IO_BUFFER", "XRT_MODULE_IO_FILE", "XRT_MODULE_TEMP_MEMORY"],
+                     "xrtModules": ["XRT_MODULE_IO_BUFFER", "XRT_MODULE_IO_FILE"],
                      "xlSources":  [
                                        "src/xxhash.xl"
                                    ]
@@ -26,7 +26,7 @@
     "dependencies":  [
 
                      ],
-    "coverage": { "mode": "suite", "tests": ["test/seeded_boundaries.xl", "test/stream_limit.xl", "test/xxh3.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/seeded_boundaries.xl", "test/stream_limit.xl", "test/xxh3.xl", "test/ownership.xl"] },
     "native":  {
                    "singleton":  false,
                    "loadName":  "",
