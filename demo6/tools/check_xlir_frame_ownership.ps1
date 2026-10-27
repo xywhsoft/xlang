@@ -3,6 +3,8 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$Directory,
     [string]$Tcc='E:/software/tcc/tcc.exe')
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
+. (Join-Path $PSScriptRoot 'xlir_resident_closure.ps1')
 $rootPath=(Get-Location).Path
 $outputPath=if ([IO.Path]::IsPathRooted($Directory)) { [IO.Path]::GetFullPath($Directory) }
     else { [IO.Path]::GetFullPath((Join-Path $rootPath $Directory)) }
@@ -13,7 +15,7 @@ $runtimeObject=@($manifest.Objects | Where-Object {[IO.Path]::GetFileName($_.Pat
 if (!$manifest.SourceXrt -or $runtimeObject.Count -ne 1) { throw 'Current source compiler and XRT required' }
 $files=@(Get-Item $PSCommandPath,$ContractDriver,$manifest.Driver,
     test/cases/xlir_frame_ownership.xl,test/cases/xlir_cell_continuation_outcome.xl,
-    test/cases/xlir_frame_ownership_host.c,test/cases/xlir_frame_ownership_contract.c,
+    test/cases/xlir_frame_ownership_host.c,test/cases/xlir_frame_ownership_frame.c,test/cases/xlir_frame_ownership_contract.c,
     test/cases/xlir_continuation_ownership_contract.c,test/cases/xlir_continuation_queue_contract.c,
     test/cases/xlir_continuation_handoff_contract.c,test/cases/xlir_continuation_handoff_transport.c,
     test/cases/xlir_continuation_executor_contract.c,test/cases/xlir_continuation_progress_contract.c)
@@ -32,7 +34,7 @@ foreach ($suffix in @('c','h','json')) {
     if ((Get-FileHash "$prefix.$suffix").Hash -ne (Get-FileHash "$prefix.repeat.$suffix").Hash) { throw 'Nondeterministic frame artifact' }
 }
 $includePath=[IO.Path]::GetFullPath((Join-Path $PublicDirectory 'include'))
-$includes=@("-I$includePath","-I$outputPath",'-I.')
+$includes=@("-I$includePath","-I$outputPath",'-I.','-Irelease','-Irelease/include')
 $strict=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable',
     '-Wno-unused-parameter','-Wno-unused-label','-Wno-unused-but-set-variable','-Wno-missing-field-initializers',
     '-Wno-pointer-sign','-Wno-format-truncation')
@@ -53,16 +55,26 @@ foreach ($case in $cases) {
         $case.Sources += 'src/runtime/xl6_code_lease.c'
     }
     if ($case.Name -eq 'generated') { $case.Sources += 'src/runtime/xl6_code_finalizer.c' }
+    $roots=@($case.Sources|Where-Object {$_-like'src/*'})
+    if($case.Name-eq'handoff'){$roots+=@('src/runtime/xl6_continuation_future.c')}
+    $fixtures=if($case.Name-eq'generated'){@('test/cases/xlir_frame_ownership.xl')}else{@()}
+    $closure=Get-XlirResidentClosure -Root $rootPath -Directory "$outputPath/closure-$($case.Name)" -Sources $roots -NativeProvider 'tools/xrt_single_header_impl.c' -PublicDirectory $PublicDirectory -Fixtures $fixtures
+    $hosts=@($case.Sources|Where-Object {$_-notlike'src/*'-and$_-ne'test/cases/xlir_continuation_handoff_transport.c'})
+    $case.Sources=$hosts+@($closure.Sources|ForEach-Object {
+        if($case.Name-eq'handoff'-and$_-eq'src/runtime/xl6_continuation_future.c'){'test/cases/xlir_continuation_handoff_transport.c'}
+        elseif($case.Name-eq'generated'-and$_-eq'src/runtime/xl6_continuation_frame.c'){'test/cases/xlir_frame_ownership_frame.c'}else{$_}
+    })
+    $inputs+=@($closure.Inputs)
     foreach ($compiler in @('gcc-O0','gcc-O2','tcc')) {
         if ($compiler -eq 'tcc' -and !$case.Tcc) { continue }
         $name="$($case.Name)-$compiler"; $binary="$outputPath/$name.exe"
         if ($compiler -eq 'tcc') {
-            & $Tcc -std=c11 @includes @($case.Sources) tools/xrt_single_header_impl.c C:/Windows/System32/ucrtbase.dll @libs -o $binary *> "$outputPath/$name.build.log"
+            $build=Invoke-XlirTccToLog $Tcc (@('-std=c11')+$includes+@($case.Sources)+@('tools/xrt_single_header_impl.c','C:/Windows/System32/ucrtbase.dll')+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
         } else {
             $optimization=if ($compiler -eq 'gcc-O0') {'-O0'} else {'-O2'}
-            & gcc @strict $optimization @includes @($case.Sources) $runtimeObject[0].Path @libs -o $binary *> "$outputPath/$name.build.log"
+            $build=Invoke-XlirGccToLog ($strict+@($optimization)+$includes+@($case.Sources)+@($runtimeObject[0].Path)+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
         }
-        $build=$LASTEXITCODE; $run=$null; $complete=$false
+        $run=$null; $complete=$false
         if ($build -eq 0) {
 $process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath `
                 -RedirectStandardOutput "$outputPath/$name.run.log" -RedirectStandardError "$outputPath/$name.err.log"

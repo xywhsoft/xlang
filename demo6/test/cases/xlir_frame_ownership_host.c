@@ -25,8 +25,12 @@ void frame_graph_capture(xvalue* value)
 
 static void graph(unsigned round, unsigned mode, unsigned stage, bool alias)
 {
-    /* Stable output producer adds one physical node and three real owning edges. */
-    static const size_t nodes[] = {13, 14, 10}, edges[] = {23, 22, 17};
+    /* Inspect the actual capture graph at each await. The cell case retains
+     * its original input capture and its cell payload separately. Replacing
+     * that payload with [42] introduces its three value/container nodes and
+     * two edges while the original input capture is still live. */
+    static const size_t nodes[][2] = {{13,13}, {14,17}, {10,10}};
+    static const size_t edges[][2] = {{23,23}, {23,25}, {17,17}};
     xrtownershipref anchors[4], slots[5];
     xrtownershipresult result = {0}; bool live[4] = {0}; xvalue* retained = alias ? xrtValueRetain(captured) : NULL;
     anchors[0] = xrtFutureOwnership(sources[0]); anchors[1] = xrtFutureOwnership(sources[1]);
@@ -40,7 +44,7 @@ static void graph(unsigned round, unsigned mode, unsigned stage, bool alias)
     /* Even if ALL host source/output references are accounted as internal,
      * the independent queue execution lease keeps the activation/output live. */
     assert(result.ExternalRootCount == 1u + (alias ? 1u : 0u) && live[3] && live[2] == alias);
-    assert(result.NodeCount == nodes[mode] && result.EdgeCount == edges[mode]);
+    assert(result.NodeCount == nodes[mode][stage] && result.EdgeCount == edges[mode][stage]);
     assert(result.ReachableAnchorCount == (mode == 0 && stage == 1 ? 3u : 2u) + (alias ? 1u : 0u));
     xrtValueRelease(retained);
 }
@@ -60,6 +64,9 @@ int main(void)
         assert(xlir_module_init()); queue = xl6ContinuationQueueCreate(1); assert(queue);
         for (unsigned i = 0; i < 2; ++i) { producers[i] = xrtPromiseCreate(&sources[i], NULL); assert(producers[i]); }
         frame_graph_build(mode); assert(captured && !xrtGetError() && roots == 1);
+        /* Ready entry is now scheduled before the first source await. Drive
+         * it to that real pending await, then inspect the original states. */
+        assert(xl6ContinuationRunOne(queue));
         output = xrtValueGetFuture(captured); assert(output && xrtFutureState(output) == XFUTURE_PENDING);
         graph(round || outcome, mode, 0, false); graph(1, mode, 0, true);
         xl6ContinuationQueueClose(queue); /* successor inherits after Close */

@@ -28,12 +28,15 @@ int main(int argc,char** argv)
             for(size_t m=0;m<ir.asyncMachineCount;++m){const XL6_IrAsyncMachine* machine=&ir.asyncMachines[m];
                 assert_activation_layout(text,"xlir_async_machine",machine->targetSymbol,
                     machine->frameSlotCount?ir.asyncMachineFrameSlots+machine->firstFrameSlot:NULL,machine->frameSlotCount,machine->firstFrameSlot,
-                    machine->destroyActionCount?ir.asyncFrameActions+machine->firstDestroyAction:NULL,machine->destroyActionCount);}
+                    machine->destroyActionCount?ir.asyncFrameActions+machine->firstDestroyAction:NULL,machine->destroyActionCount);
+                if(machine->suspensionCount){char expected[192];
+                    snprintf(expected,sizeof(expected),"xlir_async_machine_frame_%u* next = xlir_async_machine_allocate_%u()",
+                        machine->targetSymbol,machine->targetSymbol);assert(strstr(text,expected));}}
             assert(strstr(text,"__xl_runtime/xl6_continuation_future.h") && strstr(text,"xl6ContinuationFrameRuntimeV2Get()->Discard") &&
                 strstr(text,"xlir_async_frame_allocate(sizeof(*frame), &xlir_async_machine_storage_") && strstr(text,"xlir_async_frame_dispose(data);"));
             ++machines;
             assert(strstr(text,"xl6ContinuationFrameLaunchV1(frame,")&&!strstr(text,"__xl_runtime/xl6_task.h"));
-            if(ir.asyncSuspensionCount){++resumable;assert(strstr(text,"xlir_async_frame_allocate(sizeof(*next), &xlir_async_machine_storage_") &&
+            if(ir.asyncSuspensionCount){++resumable;assert(strstr(text,"xl6ContinuationFrameRuntimeV5Get()->Allocate") &&
                 strstr(text,"xlir_async_frame_dispose(next);")&&strstr(text,"xl6ContinuationFrameRuntimeV2Get()->Retire"));}
             else{++queued;assert(!strstr(text,"xl6ContinuationWatchRegister("));}
         } else ++ready;
