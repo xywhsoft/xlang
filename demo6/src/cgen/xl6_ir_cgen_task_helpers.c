@@ -461,7 +461,11 @@ static int xl6IrCgenEmitTaskSpawnHelper(
         "    cancelled = ok && !xrtGetError() && xrtCancelRequested(cancel);\n"
         "complete:\n", out);
     xl6OutputPrintf(out,
-        "    if (frame) xlir_task_spawn_frame_cleanup_%lu(frame);\n"
+        "    { xl6_error_scope cleanup = {0}; xl6_error_result outcome;\n"
+        "      if (!xl6ErrorScopeBeginCleanup(&cleanup, !ok)) abort();\n"
+        "      if (frame) xlir_task_spawn_frame_cleanup_%lu(frame);\n"
+        "      outcome = xl6ErrorScopeEnd(&cleanup);\n"
+        "      ok = outcome.ok; xrtSetErrorTake(outcome.error); }\n"
         "    if (!ok || xrtGetError() != NULL || cancelled) {\n",
         (unsigned long)instructionIndex);
     if (!isVoid) xl6OutputPrintf(out,
