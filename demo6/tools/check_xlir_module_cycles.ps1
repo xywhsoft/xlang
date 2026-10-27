@@ -48,7 +48,7 @@ try {
     $excluded=@('xl_api.o','xl_api_path.o','xl6_console.o','xlir_public_source_driver.o')
     $dependencies=@($build.Objects | Where-Object {[IO.Path]::GetFileName($_.Path) -notin $excluded} | ForEach-Object Path)
     $hostFlags=$flags+@('-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter','-Wno-pointer-sign',
-        '-Wno-format-truncation','-Wno-missing-field-initializers','-Irelease','-Ilib/tcc',"-I$outputPath",'-DJOINT_SOURCE_XRT',
+        '-Wno-format-truncation','-Wno-missing-field-initializers','-Irelease','-Irelease/include','-Ilib/tcc','-Itest/cases',"-I$outputPath",'-DJOINT_SOURCE_XRT',
         (New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $outputPath.Replace('\','/') -RawArgument))
     foreach($level in @(0,2)){
         $name="module-O$level";$binary="$outputPath/$name.exe"
