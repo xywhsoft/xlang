@@ -88,6 +88,10 @@ static int test_utf8_render(const char *text, const xvalue *matrix) {
 int main(void) {
     const char *hello = "HELLO WORLD";
     const char *chinese = "你好，世界";
+    const char *mixed = "1234567890123456789012345678901234567890"
+        "a1234567890123456789012345678901234567890";
+    const char *mixed_utf8 = "1234567890123456789012345678901234567890"
+        "你好1234567890123456789012345678901234567890";
     char long_text[1001];
     char style[1001];
     xvalue *matrix;
@@ -102,6 +106,11 @@ int main(void) {
 
     CHECK(xqr_version_n(hello, strlen(hello), "M", 1) == 1);
     CHECK(xqr_version_n(chinese, strlen(chinese), "M", 1) >= 2);
+    CHECK(xqr_version_n(mixed, strlen(mixed), "M", 1) == 3);
+    CHECK(xqr_version_n(mixed_utf8, strlen(mixed_utf8), "M", 1) == 4);
+    matrix = xqr_matrix_n(mixed, strlen(mixed), "M", 1);
+    CHECK(matrix != NULL && xrtValueCount(matrix) == 29);
+    xrtValueRelease(matrix);
     matrix = xqr_matrix_n(hello, strlen(hello), "M", 1);
     CHECK(matrix != NULL && xrtValueCount(matrix) == 21);
     CHECK(xrtValueCount(xrtValueArrayGet(matrix, 0)) == 21);

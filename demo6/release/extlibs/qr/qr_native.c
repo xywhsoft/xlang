@@ -196,64 +196,90 @@ static void xqr_append_bits(XqrBits *b, unsigned int value, int count) {
     }
 }
 
-/* 全文选一个最紧凑的单段模式。 */
-static int xqr_detect_mode(const char *text, size_t length,
-    int *numeric, int *alnum) {
-    const unsigned char *p = (const unsigned char *)text;
-    int mode = 0;
-    int i;
-    *numeric = 1;
-    *alnum = 1;
-    for (i = 0; i < (int)length; ++i) {
-        if (text[i] < '0' || text[i] > '9') {
-            *numeric = 0;
-        }
-        if (strchr(xqr_alnum_charset, p[i]) == NULL) {
-            *alnum = 0;
-        }
-    }
-    if (length == 0) {
-        *numeric = 0;
-        *alnum = 0;
-    }
-    if (*numeric) mode = 0;
-    else if (*alnum) mode = 1;
-    else mode = 2;
-    return mode;
-}
-
-static int xqr_uses_eci(const char *text, size_t length, int mode) {
+static int xqr_uses_eci(const char *text, size_t length) {
     size_t index;
-    if (mode != 2) return 0;
     for (index = 0; index < length; ++index) {
         if ((unsigned char)text[index] >= 0x80u) return 1;
     }
     return 0;
 }
 
-static int xqr_payload_bits(size_t length, int mode) {
-    int n = (int)length;
-    if (mode == 0) {
-        return (n / 3) * 10 + (n % 3 == 2 ? 7 : (n % 3 == 1 ? 4 : 0));
-    }
-    if (mode == 1) {
-        return (n / 2) * 11 + (n % 2) * 6;
-    }
-    {
-        /* 字节模式的长度已经由调用方按 UTF-8 字节数传入。 */
-        return n * 8;
-    }
+/* 数字三字一组、字母两字一组，状态同时记录模式与组内余数。 */
+static int xqr_state_mode(int state) {
+    return state < 3 ? 0 : (state < 5 ? 1 : 2);
 }
 
-static int xqr_pick_version(size_t length, int mode, int level, int useEci,
-    int *capacityBits) {
-    int v;
-    for (v = 1; v <= XQR_MAX_VERSION; v++) {
-        int countBits = xqr_char_count_bits(mode, v);
-        int dataBits = 4 + countBits + xqr_payload_bits(length, mode) +
-            (useEci ? 12 : 0);
+static int xqr_first_state(int mode) {
+    return mode == 0 ? 1 : (mode == 1 ? 4 : 5);
+}
+
+static int xqr_next_state(int state) {
+    if (state < 3) return (state + 1) % 3;
+    if (state < 5) return state == 3 ? 4 : 3;
+    return 5;
+}
+
+static int xqr_increment_bits(int state) {
+    if (state < 3) return state == 0 ? 4 : 3;
+    if (state < 5) return state == 3 ? 6 : 5;
+    return 8;
+}
+
+/* 同一版本组的字符计数字段宽度固定；逐字节规划最短编码。 */
+static int xqr_plan(const char *text, size_t length, int ver,
+    unsigned char *modes) {
+    signed char prior[XQR_MAX_TEXT][6];
+    int current[6], next[6];
+    int i, state, mode, bestState = -1, best = 1000000;
+    for (state = 0; state < 6; ++state) current[state] = 1000000;
+    for (i = 0; i < (int)length; ++i) {
+        unsigned char ch = (unsigned char)text[i];
+        int allowed[3] = {ch >= '0' && ch <= '9',
+            strchr(xqr_alnum_charset, ch) != NULL, 1};
+        for (state = 0; state < 6; ++state) next[state] = 1000000;
+        for (state = -1; state < 6; ++state) {
+            int cost = state < 0 ? (i == 0 ? 0 : 1000000) : current[state];
+            if (cost == 1000000) continue;
+            for (mode = 0; mode < 3; ++mode) {
+                int same = state >= 0 && xqr_state_mode(state) == mode;
+                int target, bits;
+                if (!allowed[mode]) continue;
+                target = same ? xqr_next_state(state) : xqr_first_state(mode);
+                bits = cost + (same ? xqr_increment_bits(state) :
+                    4 + xqr_char_count_bits(mode, ver) +
+                    xqr_increment_bits(mode == 0 ? 0 : (mode == 1 ? 3 : 5)));
+                if (bits < next[target]) {
+                    next[target] = bits;
+                    prior[i][target] = (signed char)state;
+                }
+            }
+        }
+        for (state = 0; state < 6; ++state) current[state] = next[state];
+    }
+    for (state = 0; state < 6; ++state) {
+        if (current[state] < best) {
+            best = current[state];
+            bestState = state;
+        }
+    }
+    if (modes != NULL) {
+        for (i = (int)length - 1; i >= 0; --i) {
+            modes[i] = (unsigned char)xqr_state_mode(bestState);
+            bestState = prior[i][bestState];
+        }
+    }
+    return best;
+}
+
+static int xqr_pick_version(const char *text, size_t length, int level,
+    int useEci, unsigned char *modes, int *capacityBits) {
+    int v, bits = 0;
+    for (v = 1; v <= XQR_MAX_VERSION; ++v) {
         int cap = xqr_data_codewords(v, level) * 8;
-        if (length < (size_t)(1u << countBits) && dataBits <= cap) {
+        if (v == 1 || v == 10 || v == 27)
+            bits = xqr_plan(text, length, v, NULL) + (useEci ? 12 : 0);
+        if (bits <= cap) {
+            if (modes != NULL) xqr_plan(text, length, v, modes);
             *capacityBits = cap;
             return v;
         }
@@ -261,14 +287,10 @@ static int xqr_pick_version(size_t length, int mode, int level, int useEci,
     return 0;
 }
 
-static void xqr_encode_payload(XqrBits *b, const char *text,
-    size_t length, int mode, int ver, int useEci) {
+static void xqr_encode_segment(XqrBits *b, const char *text,
+    size_t length, int mode, int ver) {
     int n = (int)length;
     int i;
-    if (useEci) {
-        xqr_append_bits(b, 7, 4);
-        xqr_append_bits(b, 26, 8);
-    }
     xqr_append_bits(b, (unsigned int)(mode == 0 ? 1 : (mode == 1 ? 2 : 4)),
         4);
     xqr_append_bits(b, (unsigned int)n, xqr_char_count_bits(mode, ver));
@@ -306,17 +328,31 @@ static void xqr_encode_payload(XqrBits *b, const char *text,
     }
 }
 
+static void xqr_encode_payload(XqrBits *b, const char *text,
+    size_t length, const unsigned char *modes, int ver, int useEci) {
+    size_t start = 0, end;
+    if (useEci) {
+        xqr_append_bits(b, 7, 4);
+        xqr_append_bits(b, 26, 8);
+    }
+    while (start < length) {
+        end = start + 1;
+        while (end < length && modes[end] == modes[start]) ++end;
+        xqr_encode_segment(b, text + start, end - start, modes[start], ver);
+        start = end;
+    }
+}
+
 /* 先按块计算纠错码字，再交错数据块和纠错块。 */
 static int xqr_build_codewords(const char *text, size_t length, int level,
     unsigned char *out) {
-    int mode;
     int version;
     int useEci;
     int capacityBits = 0;
+    unsigned char modes[XQR_MAX_TEXT];
     XqrBits bits;
     int dataCap;
     int i;
-    int j;
     int numBlocks;
     int eccLen;
     int dataLen;
@@ -326,17 +362,15 @@ static int xqr_build_codewords(const char *text, size_t length, int level,
     unsigned char *allData;
     unsigned char ecc[81 * 30];
 
-    mode = xqr_detect_mode(text, length, &i, &j);
-    (void)i;
-    (void)j;
-    useEci = xqr_uses_eci(text, length, mode);
-    version = xqr_pick_version(length, mode, level, useEci, &capacityBits);
+    useEci = xqr_uses_eci(text, length);
+    version = xqr_pick_version(text, length, level, useEci,
+        modes, &capacityBits);
     if (version == 0) {
         xqr_error("text is too long for any qr version at this level");
         return 0;
     }
     memset(&bits, 0, sizeof(bits));
-    xqr_encode_payload(&bits, text, length, mode, version, useEci);
+    xqr_encode_payload(&bits, text, length, modes, version, useEci);
     /* 终止位。 */
     xqr_append_bits(&bits, 0,
         (bits.length + 4 <= capacityBits) ? 4 : (capacityBits - bits.length));
@@ -758,13 +792,12 @@ xvalue *xqr_matrix_n(const char *text, size_t length,
 int64_t xqr_version_n(const char *text, size_t length,
     const char *level, size_t levelSize) {
     int lv;
-    int numeric, alnum, mode, version, capacityBits;
+    int version, capacityBits;
     xrtClearError();
     lv = xqr_valid_input(text, length, level, levelSize);
     if (lv < 0) return 0;
-    mode = xqr_detect_mode(text, length, &numeric, &alnum);
-    version = xqr_pick_version(length, mode, lv,
-        xqr_uses_eci(text, length, mode), &capacityBits);
+    version = xqr_pick_version(text, length, lv,
+        xqr_uses_eci(text, length), NULL, &capacityBits);
     if (version == 0) xqr_error("text is too long for any qr version at this level");
     return version;
 }

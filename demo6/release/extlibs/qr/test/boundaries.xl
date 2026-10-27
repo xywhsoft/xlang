@@ -4,6 +4,12 @@ func main(...) as int
     assert qr.version("HELLO WORLD") == 1
     assert qr.matrix("HELLO WORLD").length == 21
     assert qr.version("你好，世界") >= 2
+    string mixed = "1234567890123456789012345678901234567890a1234567890123456789012345678901234567890"
+    assert qr.version(mixed) == 3
+    assert qr.matrix(mixed).length == 29
+    string mixedUtf8 = "1234567890123456789012345678901234567890你好1234567890123456789012345678901234567890"
+    assert qr.version(mixedUtf8) == 4
+    assert qr.matrix(mixedUtf8).length == 33
 
     string first = qr.svg("HELLO WORLD")
     string second = qr.svg("你好，世界", "H")
