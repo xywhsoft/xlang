@@ -158,7 +158,7 @@ fail:
     return false;
 }
 
-void* xdiff_lines(const char* old_text, const char* new_text)
+char* xdiff_lines(const char* old_text, const char* new_text)
 {
     xdiff_plan plan;
     size_t i, size = 0u, position = 0u;
@@ -180,10 +180,10 @@ void* xdiff_lines(const char* old_text, const char* new_text)
     return result;
 }
 
-void* xdiff_stats(const char* old_text, const char* new_text)
+char* xdiff_stats(const char* old_text, const char* new_text)
 {
     xdiff_plan plan;
-    void* result;
+    char* result;
     if (!xdiff_prepare(old_text, new_text, &plan)) return NULL;
     result = xrtFormat("%llu,%llu,%llu", (unsigned long long)plan.added,
         (unsigned long long)plan.deleted, (unsigned long long)plan.unchanged);

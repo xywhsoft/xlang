@@ -19,6 +19,7 @@ function Confirm-Output([string] $name, [string[]] $lines) {
 
 Push-Location $root
 try {
+    [IO.Directory]::CreateDirectory($work) | Out-Null
     & $gcc -std=c11 -Wall -Wextra -Werror -fsyntax-only '-Ilib/xrt' `
         '-Irelease/extlibs/diff/include' @moduleFlags release/extlibs/diff/diff_native.c
     if ($LASTEXITCODE -ne 0) { throw 'diff manifest macro compile failed' }
@@ -35,6 +36,18 @@ try {
         & $xl run $source
         if ($LASTEXITCODE -ne 0) { throw "diff XLang test failed: $source" }
     }
+    $generated = Join-Path $work 'diff_owned.c'
+    & $xl cgen test/cases/extlib_diff.xl --emit $generated
+    if ($LASTEXITCODE -ne 0) { throw 'diff ownership cgen failed' }
+    $generatedText = [IO.File]::ReadAllText($generated)
+    foreach ($symbol in @('xdiff_lines', 'xdiff_stats')) {
+        if ($generatedText -cnotmatch "\bv\d+\.Data\s*=\s*$symbol\s*\(") {
+            throw "$symbol must adopt the native C string directly"
+        }
+    }
+    if ($generatedText.Contains('xl6CStringCopyV1')) {
+        throw 'diff text must not be copied at the native boundary'
+    }
 
     $cLines = @(& $runner -Package diff -Source release/extlibs/diff/examples/diff_c.c)
     if ($LASTEXITCODE -ne 0) { throw 'diff C package example failed' }
@@ -47,7 +60,6 @@ try {
     Confirm-Output 'XLang example' $xlLines
 
     if (-not $SkipAot) {
-        [IO.Directory]::CreateDirectory($work) | Out-Null
         $example = Join-Path $work 'diff_example.exe'
         & $xl build release/examples/extlibs/diff.xl -o $example
         if ($LASTEXITCODE -ne 0) { throw 'diff XLang example AOT build failed' }

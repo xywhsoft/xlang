@@ -1,6 +1,6 @@
 extern "xl6_xrt_last_error_text" func __diff_error() as string
-extern "xdiff_lines" func __diff_lines(string oldText, string newText) as point
-extern "xdiff_stats" func __diff_stats(string oldText, string newText) as point
+extern "xdiff_lines" @owned func __diff_lines(string oldText, string newText) as string?
+extern "xdiff_stats" @owned func __diff_stats(string oldText, string newText) as string?
 
 // 原生接口读取零结尾文本，不允许 XLang 字符串被截成前缀。
 func __diff_text(string value) as string
@@ -11,13 +11,13 @@ func __diff_text(string value) as string
 end
 
 export func lines(string oldText, string newText) as string
-    point result = __diff_lines(__diff_text(oldText), __diff_text(newText))
+    string? result = __diff_lines(__diff_text(oldText), __diff_text(newText))
     if result == null then throw ValueError __diff_error() end
-    return __xl_runtime.takeCstr(result)
+    return result
 end
 
 export func stats(string oldText, string newText) as string
-    point result = __diff_stats(__diff_text(oldText), __diff_text(newText))
+    string? result = __diff_stats(__diff_text(oldText), __diff_text(newText))
     if result == null then throw ValueError __diff_error() end
-    return __xl_runtime.takeCstr(result)
+    return result
 end

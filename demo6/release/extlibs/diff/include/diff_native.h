@@ -6,8 +6,8 @@ extern "C" {
 #endif
 
 /* 输入必须是有效的零结尾文本，空指针报 XERR_ARGUMENT；返回值由调用方 xrtFree。 */
-void* xdiff_lines(const char* old_text, const char* new_text);
-void* xdiff_stats(const char* old_text, const char* new_text);
+char* xdiff_lines(const char* old_text, const char* new_text);
+char* xdiff_stats(const char* old_text, const char* new_text);
 
 #ifdef __cplusplus
 }

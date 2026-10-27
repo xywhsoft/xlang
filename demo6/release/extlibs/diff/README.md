@@ -1,5 +1,10 @@
 # diff
 
+2026-10-27 所有权收口：`xdiff_lines` 和 `xdiff_stats` 的 C 结果明确为
+XRT 拥有的 `char*`，XLang `@owned string?` 直接接管。生成 C 门禁检查
+两条路径都直接保存原生指针，不在交接处复制正文；仍需一次 `strlen`
+获取长度。LCS 算法和错误合同不变。
+
 2026-10-26 当前发布物复验：Windows 默认 `test/check.ps1` 与 Linux
 `test/check.sh` 均通过。两平台的 C 单文件范例 `xl build` 独立 EXE
 与 GCC、TCC、XLang JIT/AOT 固定输出一致；Linux 新增语言边界与
