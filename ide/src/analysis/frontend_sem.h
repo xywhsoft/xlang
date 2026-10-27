@@ -62,6 +62,21 @@ typedef struct xls_sem_body_control {struct xls_sem_body_control* previous;size_
  * Zero retains the original eager fact restoration. Nested limits only shrink. */
 void xlsFrontendSemBodyBegin(xls_sem_body_control* control,size_t bytes);
 void xlsFrontendSemBodyEnd(xls_sem_body_control* control);
+typedef struct xls_sem_tree_work {
+    uint64_t calls,fallbacks,sharedRoots,certifiedNodes,clonedNodes,cloneBytes;
+} xls_sem_tree_work;
+typedef struct xls_sem_tree_control {
+    struct xls_sem_tree_control* previous;int enabled;xls_sem_tree_work work;
+} xls_sem_tree_control;
+/* Verification/observation scope for same-result static fact-root projection.
+ * Zero selects the existing independent-copy path;nested scopes only disable.
+ * Work describes completed shared-path restorations only,not ordinary/cursor
+ * copying,failed partial attempts,total analysis,RSS or a cache byte quota.
+ * fallback counts shared-copy failures retried through ordinary copying.
+ * Root index<=256keys per synchronous function restoration,with ordinary
+ * copying when optional indexing fails. No cross-result tree ownership. */
+void xlsFrontendSemTreesBegin(xls_sem_tree_control* control,int enabled);
+void xlsFrontendSemTreesEnd(xls_sem_tree_control* control,xls_sem_tree_work* work);
 typedef struct xls_sem_work { uint64_t checked,reused,contextHits,bytes,proofHits,proofNodes; } xls_sem_work;
 /* Optional immutable restoration certificates, at most 4 KiB per function.
  * Actual capacities are charged to the existing semantic-unit quota. A

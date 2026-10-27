@@ -7,6 +7,26 @@
 #define XLS_SEM_MEMO_BYTES (64u*1024u*1024u)
 #define XLS_SEM_KEY_BYTES (8u*1024u*1024u)
 static _Thread_local xls_sem_storage_control* xlsActiveStorage;
+static _Thread_local xls_sem_tree_control* xlsActiveTrees;
+void xlsFrontendSemTreesBegin(xls_sem_tree_control* control,int enabled)
+{
+    if(!control)return;
+    *control=(xls_sem_tree_control){.previous=xlsActiveTrees,.enabled=enabled && (!xlsActiveTrees || xlsActiveTrees->enabled)};
+    xlsActiveTrees=control;
+}
+static void xlsSemTreeWorkAdd(xls_sem_tree_work* target,const xls_sem_tree_work* work)
+{
+    target->calls+=work->calls;target->fallbacks+=work->fallbacks;target->sharedRoots+=work->sharedRoots;
+    target->certifiedNodes+=work->certifiedNodes;target->clonedNodes+=work->clonedNodes;target->cloneBytes+=work->cloneBytes;
+}
+void xlsFrontendSemTreesEnd(xls_sem_tree_control* control,xls_sem_tree_work* work)
+{
+    if(work)*work=(xls_sem_tree_work){0};
+    if(!control || xlsActiveTrees!=control)return;
+    if(work)*work=control->work;
+    xlsActiveTrees=control->previous;
+    if(xlsActiveTrees)xlsSemTreeWorkAdd(&xlsActiveTrees->work,&control->work);
+}
 size_t xlsFrontendSemStorageBudget(void)
 {return xlsActiveStorage ? xlsActiveStorage->budget-(size_t)xlsActiveStorage->work.chargedBytes : 64u*1024u*1024u;}
 void xlsFrontendSemStorageBegin(xls_sem_storage_control* control,size_t bytes)
@@ -528,10 +548,14 @@ static int xlsSemTypeTransform(const XL6_AstNode* in,XL6_AstNode* out,void* user
 }
 static XL6_AstSource* xlsSemTypeSource(const XL6_AstSource* in,void* user)
 { xls_sem_type_copy* copy=user; return copy->options.targetSource(in,copy->options.user); }
+static size_t xlsSemTypeProjectionMark(void* user);
+static int xlsSemTypeProjectionReplay(void* user,size_t begin,size_t count);
+static const xls_ast_tree_projection xlsSemTypeProjection={xlsSemTypeProjectionMark,xlsSemTypeProjectionReplay};
 static int xlsSemCopyFactTypesWithCursor(xarray* facts,const xls_ast_clone_options* options,
-    xls_ast_cursor_source_policy policy,void* policyUser,size_t* bytes,int pooled,int* attempted,int shareLeaves)
+    xls_ast_cursor_source_policy policy,void* policyUser,size_t* bytes,int pooled,int* attempted,int shareLeaves,xls_ast_tree_work* treeWork)
 {
     if(attempted)*attempted=0;
+    if(treeWork)*treeWork=(xls_ast_tree_work){0};
     /* Borrow input type pointers only while gathering. Clear them before any
      * failure can make the caller destroy this output array. One clone owns
      * every copied type, sharing its source map across the whole function. */
@@ -549,21 +573,23 @@ static int xlsSemCopyFactTypesWithCursor(xarray* facts,const xls_ast_clone_optio
     XL6_AstNode root={.kind=XL6_AST_MODULE,.children=(XL6_AstNode**)types.Data,.childCount=types.Count};
     xls_sem_type_copy copy={&root,*options};
     xls_ast_clone_options cloneOptions={xlsSemTypeTransform,&copy,options->bytes,0,options->targetSource ? xlsSemTypeSource : NULL};
-    XL6_AstNode* owned=NULL;int triedPool=0;
+    XL6_AstNode* owned=NULL;int triedPool=0;xls_ast_tree_work trees={0};
+    if(shareLeaves>1 && attempted)*attempted=1;
     if(options->bytes && pooled && xlsActiveStorage){
         size_t budget=xlsFrontendSemStorageBudget();xls_ast_pool_work work={0};
         if(budget){
             triedPool=1;if(attempted)*attempted=1;
-            owned=shareLeaves ? xlsAstCloneFactTypes(&root,&cloneOptions,policy,policyUser,budget,&work,NULL,bytes) :
+            owned=shareLeaves>1 ? xlsAstCloneFactTrees(&root,&cloneOptions,&xlsSemTypeProjection,budget,&work,&trees,bytes) : shareLeaves ? xlsAstCloneFactTypes(&root,&cloneOptions,policy,policyUser,budget,&work,NULL,bytes) :
                 xlsAstClonePooled(&root,&cloneOptions,policy,policyUser,budget,&work,bytes);
         }
         if(owned){xlsActiveStorage->work.nodes+=work.nodes;xlsActiveStorage->work.pages+=work.pages;xlsActiveStorage->work.chargedBytes+=work.bytes;}
         else ++xlsActiveStorage->work.heapFallbacks;
     }
-    if(options->bytes && !owned && !triedPool)owned=shareLeaves ?
+    if(options->bytes && !owned && !triedPool)owned=shareLeaves>1 ? xlsAstCloneFactTrees(&root,&cloneOptions,&xlsSemTypeProjection,0,NULL,&trees,bytes) : shareLeaves ?
         xlsAstCloneFactTypes(&root,&cloneOptions,policy,policyUser,0,NULL,NULL,bytes) :
         xlsAstCloneWithCursorSource(&root,&cloneOptions,policy,policyUser,bytes);
     int copied=owned!=NULL;
+    if(copied && shareLeaves>1 && treeWork)*treeWork=trees;
     if(owned) {
         for(size_t i=0;i<slots.Count;++i) {
             XL6_AstNode** field=*(XL6_AstNode***)xrtArrayGet(&slots,i); *field=owned->children[i];
@@ -573,7 +599,7 @@ static int xlsSemCopyFactTypesWithCursor(xarray* facts,const xls_ast_clone_optio
     xrtArrayUnit(&types); xrtArrayUnit(&slots); return copied;
 }
 static int xlsSemCopyFactTypes(xarray* facts,const xls_ast_clone_options* options,size_t* bytes)
-{return xlsSemCopyFactTypesWithCursor(facts,options,NULL,NULL,bytes,0,NULL,0);}
+{return xlsSemCopyFactTypesWithCursor(facts,options,NULL,NULL,bytes,0,NULL,0,NULL);}
 static int xlsSemCaptureTypes(xls_sem_unit* unit,size_t limit,size_t* bytes)
 {
     xarray types={0},slots={0};xarray* facts=&unit->facts;*bytes=0;
@@ -740,11 +766,48 @@ static xls_sem_apply xlsSemApplyBegin(const xls_sem_entry* entry,const xls_sem_m
     }
     return apply;
 }
+static size_t xlsSemTypeProjectionMark(void* user)
+{
+    const xls_sem_type_copy* copy=user;
+    if(copy->options.transform!=xlsSemApplyPosition)return SIZE_MAX;
+    const xls_sem_apply* apply=copy->options.user;
+    return apply->positions->Count==apply->visited ? apply->visited : SIZE_MAX;
+}
+static int xlsSemTypeProjectionReplay(void* user,size_t begin,size_t count)
+{
+    const xls_sem_type_copy* copy=user;
+    if(copy->options.transform!=xlsSemApplyPosition)return 0;
+    xls_sem_apply* apply=copy->options.user;xarray* positions=apply->positions;
+    size_t current=apply->visited,limit=XLS_SEM_MEMO_BYTES/sizeof(xls_sem_position);
+    if(current!=positions->Count || begin>current || count>current-begin || current>limit || count>limit-current)return 0;
+    if(apply->previous->Count){
+        if(current>apply->previous->Count || count>apply->previous->Count-current ||
+           begin>apply->previous->Count || count>apply->previous->Count-begin)return 0;
+        for(size_t i=0;i<count;++i){
+            const xls_sem_position *a=xrtArrayConstGet(apply->previous,begin+i),*b=xrtArrayConstGet(apply->previous,current+i);
+            if(!xlsSemSameRange(a->range,b->range) || !xlsSemSameRange(a->token,b->token) || a->line!=b->line || a->column!=b->column)return 0;
+        }
+    }
+    /* Same immutable root and equal effective old-position sequence under one
+     * fixed moves/anchor/source/symbol environment yield the same projection.
+     * Without a previous sequence,the immutable input itself supplies both.
+     * All guards ran for the first copy. Symbol binding has no side effects
+     * except its output values;different is already the same monotone OR.
+     * Clone-local source targets are fixed too. Publish no edge before this
+     * bounded append succeeds;the caller restores all state on any failure. */
+    if(count){
+        if(!xrtArrayResize(positions,current+count))return 0;
+        memcpy((xls_sem_position*)positions->Data+current,(const xls_sem_position*)positions->Data+begin,count*sizeof(xls_sem_position));
+    }
+    apply->visited=current+count;return 1;
+}
 static int xlsSemApplyFacts(const xls_sem_entry* entry,const xarray* nodes,const xls_sem_moves* moves,const xmap* sources,
     xarray* positions,const XL6_AstNode* function,const xls_sem_cursor* cursor,XL6_SymbolId symbolStart,int symbolsChanged)
 {
     if(!entry->unit || entry->unit->facts.Count!=nodes->Count) return 0;
-    xarray staged={0}; size_t owned=0;
+    xarray staged={0}; size_t owned=0;xls_ast_tree_work treeWork={0};
+    int shared=(!xlsActiveTrees || xlsActiveTrees->enabled) && !entry->unit->cursor.path && entry->unit->types &&
+        xlsActiveSemBuild && !xlsActiveSemBuild->deferredQuery;
     xls_sem_apply apply=xlsSemApplyBegin(entry,moves,sources,positions,function,cursor,symbolStart,symbolsChanged);
     if(!xrtArrayInit(&staged,sizeof(xls_sem_fact)) || !xrtArrayResize(&staged,nodes->Count) || !xrtArrayInit(positions,sizeof(xls_sem_position))) goto failed;
     /* Stage every owned type before touching the fresh tree. On resource or
@@ -752,15 +815,17 @@ static int xlsSemApplyFacts(const xls_sem_entry* entry,const xarray* nodes,const
     for(size_t i=0;i<staged.Count;++i) *(xls_sem_fact*)xrtArrayGet(&staged,i)=*(const xls_sem_fact*)xrtArrayConstGet(&entry->unit->facts,i);
     xls_ast_clone_options options={xlsSemApplyPosition,&apply,XLS_SEM_MEMO_BYTES,0,xlsSemApplySource};
     xls_sem_apply original=apply;size_t positionsBefore=positions->Count;int attempted=0;
-    int copied=xlsSemCopyFactTypesWithCursor(&staged,&options,xlsSemApplyCursorSource,&apply,&owned,1,&attempted,1);
+    int copied=xlsSemCopyFactTypesWithCursor(&staged,&options,xlsSemApplyCursorSource,&apply,&owned,1,&attempted,shared ? 2 : 1,&treeWork);
+    int sharedCopy=shared && copied;
     if(!copied && attempted){
         /* Clone callbacks advance the coordinate cursor and staged positions.
          * The failed tree already released its types/sources. Restore every
          * callback state and borrow the original facts again before a heap
          * retry;never continue from a partially consumed position table. */
-        apply=original;positions->Count=positionsBefore;
+        if(shared && xlsActiveTrees)++xlsActiveTrees->work.fallbacks;
+        sharedCopy=0;apply=original;positions->Count=positionsBefore;
         for(size_t i=0;i<staged.Count;++i)*(xls_sem_fact*)xrtArrayGet(&staged,i)=*(const xls_sem_fact*)xrtArrayConstGet(&entry->unit->facts,i);
-        copied=xlsSemCopyFactTypesWithCursor(&staged,&options,xlsSemApplyCursorSource,&apply,&owned,0,NULL,1);
+        copied=xlsSemCopyFactTypesWithCursor(&staged,&options,xlsSemApplyCursorSource,&apply,&owned,0,NULL,1,NULL);
     }
     if(!copied) goto failed;
     if(entry->positions.Count && entry->positions.Count!=apply.visited) goto failed;
@@ -779,6 +844,10 @@ static int xlsSemApplyFacts(const xls_sem_entry* entry,const xarray* nodes,const
         n->semanticScopeDepth=f->scope; n->semanticTargetScopeDepth=f->targetScope; n->semanticRegionId=f->region; n->semanticTargetRegionId=f->targetRegion;
         xl6AstFree(n->inferredType); xl6AstFree(n->semanticDeclaredType);
         n->inferredType=f->inferred; n->semanticDeclaredType=f->declaredType; f->inferred=f->declaredType=NULL;
+    }
+    if(sharedCopy && xlsActiveTrees){
+        xls_sem_tree_work work={1,0,treeWork.hits,treeWork.certifiedNodes,treeWork.allocatedNodes,owned};
+        xlsSemTreeWorkAdd(&xlsActiveTrees->work,&work);
     }
     xlsSemFactsFree(&staged); return 1;
 failed: xlsSemFactsFree(&staged); xrtArrayUnit(positions); return 0;

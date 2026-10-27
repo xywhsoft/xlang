@@ -42,7 +42,7 @@ def main():
                     cases.append(dict(method=method,roots=count,target=index,version=version,analysis=a));return value
                 try:
                     c.send('initialize',dict(capabilities={},initializationOptions=dict(automaticDiagnostics=False,checkOnSave=False)),1)
-                    init,_=c.reply(1);assert init['result']['serverInfo']['version']=='0.85';c.send('initialized',{})
+                    init,_=c.reply(1);assert init['result']['serverInfo']['version']=='0.87';c.send('initialized',{})
                     for path in paths:c.open(path,body,1)
                     for i in range(count):
                         value=call(i);assert value['analysis']['builds']==i+1 and value['analysis']['sessionCache']['sessions']==min(i+1,8)
