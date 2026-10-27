@@ -104,11 +104,15 @@ static int xl6IrCgenEmitFuturePayloadBoxer(
             out);
         break;
     case XL6_IR_ASYNC_RESULT_RETAINED_CLOSURE:
-        xl6OutputPrintf(out,
-            "    return *(xlir_closure* const*)payload != NULL ? xlir_closure_to_xvalue_scalar(*(xlir_closure* const*)payload, xlir_xcall_entry_t%u, 0x%016llXULL) : %s;\n",
-            (unsigned int)instruction->payloadType,
-            (unsigned long long)xl6IrTypeGet(
-                &module->types, instruction->payloadType)->typeValueId, absent);
+        {
+            XL6_IrTypeId signature = xl6IrRuntimeCallableFieldSourceSignature(module, instruction->payloadType);
+            const XL6_IrType* callable = xl6IrTypeGet(&module->types, signature);
+            if (!callable) return xl6IrCgenDiag(diags, module, instruction->origin,
+                "XLIR task.all closure has no underlying signature");
+            xl6OutputPrintf(out,
+                "    return *(xlir_closure* const*)payload != NULL ? xlir_closure_to_xvalue_scalar(*(xlir_closure* const*)payload, xlir_xcall_entry_t%u, 0x%016llXULL) : %s;\n",
+                (unsigned)signature, (unsigned long long)callable->typeValueId, absent);
+        }
         break;
     case XL6_IR_ASYNC_RESULT_RETAINED_ERROR:
         xl6OutputPrintf(out,

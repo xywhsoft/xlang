@@ -12295,7 +12295,7 @@ static int xl6IrLowerTaskAllPayloadBoxerSupported(
                type->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL &&
                type->typeValueId != 0;
     case XL6_IR_ASYNC_RESULT_RETAINED_CLOSURE:
-        return xl6IrLowerRuntimeCallableSignatureSupported(module, typeId);
+        return xl6IrRuntimeCallableFieldSourceSignature(module, typeId) != XL6_IR_TYPE_INVALID;
     default:
         return 0;
     }

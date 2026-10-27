@@ -10940,7 +10940,7 @@ static int xl6IrTaskAllPayloadBoxerSupported(
                type->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL &&
                type->typeValueId != 0;
     case XL6_IR_ASYNC_RESULT_RETAINED_CLOSURE:
-        return xl6IrRuntimeCallableSignatureSupported(module, typeId);
+        return xl6IrRuntimeCallableFieldSourceSignature(module, typeId) != XL6_IR_TYPE_INVALID;
     default:
         return 0;
     }
@@ -11005,7 +11005,8 @@ int xl6IrTaskSpawnArgumentCanBind(
     if (parameter->kind == XL6_IR_TYPE_NULLABLE && parameter->paramCount == 1 &&
         parameter->params != NULL && actual->kind != XL6_IR_TYPE_NULLABLE) {
         if (actualType == parameter->params[0] ||
-            xl6IrCallableTypesCompatible(module, actualType, parameter->params[0])) return 1;
+            xl6IrCallableTypesCompatible(module, actualType, parameter->params[0]) ||
+            xl6IrBuildClassAssignableTo(module, parameter->params[0], actualType)) return 1;
         if (actual->kind == XL6_IR_TYPE_BUILTIN && actual->name != NULL &&
             actual->cAbi == XL6_IR_C_ABI_UNSUPPORTED && !strcmp(actual->name, "null"))
             return parameter->nullAbi != XL6_IR_NULL_ABI_NONE;

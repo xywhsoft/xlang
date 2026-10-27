@@ -142,7 +142,7 @@ static int xl6IrCgenRuntimeCallableAdapterDirectlyNeeded(
             instruction->asyncResultAbi ==
                 XL6_IR_ASYNC_RESULT_RETAINED_CLOSURE;
         signatureType = aggregateClosure
-            ? instruction->payloadType : instruction->calleeType;
+            ? xl6IrRuntimeCallableFieldSourceSignature(module, instruction->payloadType) : instruction->calleeType;
         if ( reverse ) {
             if ( (instruction->runtimeOp ==
                       XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_CLOSURE ||

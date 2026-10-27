@@ -1,0 +1,54 @@
+// A nullable callable retains its concrete signature through Future aggregation.
+extern "owned_task_text" @owned func Text(c_int mode) as string
+typedef Producer=func(c_int) as string
+func optionalProducer(bool enabled) as Producer?
+    if enabled
+        return Text
+    end
+    return null
+end
+auto absent=task.spawn(optionalProducer,false)
+auto present=task.spawn(optionalProducer,true)
+assert await absent==null
+auto literal=await task.all([absent,present])
+assert literal.length==2 and literal[0]==null
+Producer? selected=literal[1]
+if selected!=null
+    assert selected(c_int(7))=="native text"
+else
+    assert false
+end
+array<future<Producer?>> jobs=[present,absent]
+auto values=await task.all(jobs)
+assert values[1]==null
+selected=values[0]
+if selected!=null
+    assert selected(c_int(7))=="native text"
+else
+    assert false
+end
+assert await task.race([absent])==null
+assert await task.race([present])!=null
+array<future<Producer?>> missingJobs=[absent]
+assert await task.race(missingJobs)==null
+// The task frame stores the declared nullable base representation after the
+// ordinary subtype conversion, preserving the same object and its fields.
+class Base
+    int value=7
+end
+class Child extends Base
+end
+func consume(Base? value) as int
+    if value!=null
+        return value.value
+    end
+    return 0
+end
+Child child=Child()
+assert consume(child)==7
+assert await task.spawn(consume,child)==7
+Child? maybeChild=child
+if maybeChild!=null
+    assert await task.spawn(consume,maybeChild)==7
+end
+assert await task.spawn(consume,null)==0
