@@ -68,6 +68,39 @@ $sourceSnapshot = @(New-XlirPublicCgenSnapshot -Paths @($sources | ForEach-Objec
     [IO.Path]::GetFullPath((Join-Path $Root $_))
 }))
 
+# Exercise the actual private ancestry queries against the independent child
+# traversal reference. The same checked full source cohort supplies all other
+# compiler/runtime units; the fixture includes xl6_ir.c exactly once.
+$ancestryFixture = Join-Path $Root 'test/cases/xlir_cleanup_ancestry_contract.c'
+$ancestryInputs = @(New-XlirPublicCgenSnapshot -Paths @($PSCommandPath, $ancestryFixture))
+$ancestryObjects = @($session.Manifest.Objects | Where-Object {
+    [IO.Path]::GetFileName($_.Path) -notin @('xl6_ir.o','xlir_public_source_driver.o')
+} | ForEach-Object Path)
+foreach ($name in @('xl6_ir.o','xlir_public_source_driver.o')) {
+    if (@($session.Manifest.Objects | Where-Object {[IO.Path]::GetFileName($_.Path) -eq $name}).Count -ne 1) {
+        throw "Missing or ambiguous cleanup ancestry source role: $name"
+    }
+}
+$ancestryResults = @()
+Copy-Item -LiteralPath (Join-Path $Root 'release/xl.dll') -Destination (Join-Path $outputPath 'xl.dll')
+Push-Location $Root
+try {
+    foreach ($level in @(0,2)) {
+        $prefix = Join-Path $outputPath "cleanup-ancestry-O$level"
+        $arguments = @($session.Manifest.CompileFlags) + @("-O$level",$ancestryFixture) +
+            $ancestryObjects + @((Join-Path $Root 'release/xl.dll'),'-lws2_32','-liphlpapi',
+                '-lshell32','-lole32','-ladvapi32','-o',"$prefix.exe")
+        $buildExit = Invoke-XlirGccToLog $arguments "$prefix.build.log"
+        if ($buildExit) { throw 'Cleanup ancestry reference contract failed to build' }
+        $runExit = Invoke-XlirNativeToLog "$prefix.exe" @() "$prefix.run.log"
+        $marker = 'cleanup ancestry passed: trees=257 contains=1115236 lifetimes=1115236 malformed=6'
+        $passed = $runExit -eq 0 -and (Select-String -LiteralPath "$prefix.run.log" -SimpleMatch $marker -Quiet)
+        $ancestryResults += [pscustomobject]@{Level=$level;BuildExit=$buildExit;Exit=$runExit;Passed=[bool]$passed;
+            Binary="$prefix.exe";Sha256=(Get-FileHash -LiteralPath "$prefix.exe").Hash;Log="$prefix.run.log"}
+        if (!$passed) { throw 'Cleanup ancestry reference or malformed-tree contract failed' }
+    }
+} finally { Pop-Location }
+
 $scratch = Join-Path $outputPath 'scratch'
 [IO.Directory]::CreateDirectory($scratch) | Out-Null
 $defaultSuccess = 0
@@ -180,6 +213,7 @@ if ($inputsUnchanged) {
         Assert-XlirPublicCgenDirectoryInventoryUnchanged -Directory $suiteDirectory `
             -Filter '*.bat' -Snapshot $suiteSnapshot
         Assert-XlirPublicCgenSnapshotUnchanged -Snapshot $sourceSnapshot
+        Assert-XlirPublicCgenSnapshotUnchanged -Snapshot $ancestryInputs
     } catch {
         $inputsUnchanged = $false
         $inputFailure = $_.Exception.Message
@@ -189,7 +223,7 @@ if ($inputsUnchanged) {
 $summary = 'XLIR current-source default admission: sources={0}, default-ok={1}, xlir-ok={2}, default-mismatches={3}' -f
     $sources.Count, $defaultSuccess, $xlirSuccess, $defaultMismatches.Count
 $report = [ordered]@{
-    SchemaVersion = 4
+    SchemaVersion = 5
     RecordedAt = [DateTime]::UtcNow.ToString('o')
     Commands = @('cgen', 'run', 'build')
     SourceCount = $sources.Count
@@ -206,6 +240,8 @@ $report = [ordered]@{
     DriverSha256 = $session.DriverSha256
     CompilerScope = $session.Manifest.Scope
     PrioritySources = $prioritySources
+    CleanupAncestryInputs = $ancestryInputs
+    CleanupAncestry = $ancestryResults
     SuiteInputs = @($suiteSnapshot | ForEach-Object {
         [ordered]@{ Path = Get-XlirContainedRelativePath -Base $Root -Path $_.Path; Sha256 = $_.Sha256 }
     })
