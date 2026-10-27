@@ -2,7 +2,7 @@ extern "xnetrc_error_code" func __netrc_error_code() as int
 extern "xnetrc_error_line" func __netrc_error_line() as int
 extern "xnetrc_error_column" func __netrc_error_column() as int
 extern "xnetrc_error_offset" func __netrc_error_offset() as int
-extern "xnetrc_error_message" func __netrc_error_message() as point
+extern "xnetrc_error_message" @owned func __netrc_error_message() as string
 extern "xnetrc_parse" func __netrc_parse(string data, uint64 size,
     c_bool strict, uint64 maxInput, uint64 maxOutput,
     uint64 maxItem, uint64 maxEntries, uint64 maxNodes) as var
@@ -34,7 +34,7 @@ end
 
 
 func __netrc_error() as string
-    return __xl_runtime.takeCstr(__netrc_error_message())
+    return __netrc_error_message()
 end
 
 

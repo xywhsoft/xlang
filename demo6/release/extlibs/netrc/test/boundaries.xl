@@ -8,16 +8,16 @@ func main(...) as int
     auto config = netrc.parse("machine api.example.com login alice password \"default\"\n" +
         "default login guest password fallback\n")
     var auth = config.authenticators("api.example.com")
-    assert auth["login"] == "alice"
-    assert auth["password"] == "default"
+    assert auth["login"] == "alice", "named host login"
+    assert auth["password"] == "default", "named host password"
     var fallback = config.authenticators("unknown.example")
-    assert fallback["login"] == "guest"
+    assert fallback["login"] == "guest", "default login"
     array<string> hostNames = config.hostNames()
-    assert hostNames.length == 2
+    assert hostNames.length == 2, "host name count"
 
     // 关键字作为凭据值须在序列化之后仍保持原值。
     auto restored = netrc.parse(config.stringify())
-    assert restored.authenticators("api.example.com")["password"] == "default"
+    assert restored.authenticators("api.example.com")["password"] == "default", "stringify round trip"
     auto defaultFirst = netrc.parse("default login guest\nmachine api.example.com login alice\n")
     assert defaultFirst.stringify() == "machine api.example.com\n  login alice\n\ndefault\n  login guest\n\n", "default must be written after every machine"
 
@@ -27,8 +27,8 @@ func main(...) as int
     catch ConfigError e
         badMacro = true
     end
-    assert badMacro
-    assert netrc.errorLine() == 1
+    assert badMacro, "macdef trailing tokens"
+    assert netrc.errorLine() == 1, "macdef error line"
 
     badMacro = false
     try
@@ -37,7 +37,7 @@ func main(...) as int
         badMacro = true
     end
     assert badMacro, "NUL in macdef header comment must be rejected"
-    assert netrc.errorLine() == 1
+    assert netrc.errorLine() == 1, "macdef embedded NUL line"
 
     badMacro = false
     try
@@ -55,7 +55,7 @@ func main(...) as int
     catch ConfigError e
         badToken = true
     end
-    assert badToken
+    assert badToken, "newline inside quoted token"
     badToken = false
     try
         netrc.parse("machine h login \"unfinished")
@@ -94,7 +94,7 @@ func main(...) as int
     bool limitCaught = false
     bool memoryCaught = false
     // 输入限额在原生层复制文本前检查，同时保留 errorCode 的诊断。
-    assert failAfter(3)
+    assert failAfter(3), "allocation fault injection setup"
     try
         netrc.parse(oversized, maxInput = string.byteLen(oversized) - 1)
     catch ConfigError e
@@ -104,7 +104,10 @@ func main(...) as int
     end
     bool triggered = failTriggered()
     failClear()
-    assert limitCaught and not memoryCaught and not triggered and netrc.errorCode() == 4
+    assert limitCaught, "input limit must throw ConfigError"
+    assert not memoryCaught, "input limit must not throw MemoryError"
+    assert not triggered, "input limit must precede allocation"
+    assert netrc.errorCode() == 4, "input limit error code"
     bool nulCaught = false
     try
         netrc.parse("machine host login a\0hidden\n")
@@ -169,6 +172,6 @@ func main(...) as int
         count += 1
     end
     auto unlimited = netrc.parse(repeated.text(), false, maxEntries = 0)
-    assert unlimited.authenticators("unused")["login"] == "a"
+    assert unlimited.authenticators("unused")["login"] == "a", "unlimited input parse"
     return 0
 end

@@ -33,6 +33,15 @@ if [[ ! -x "$xl" ]]; then
     printf 'netrc: Linux xl runner is missing: %s\n' "$xl" >&2
     exit 1
 fi
+owned_source=release/extlibs/netrc/test/owned_text.xl
+timeout 90s "$xl" run "$owned_source"
+timeout 90s "$xl" cgen "$owned_source" --emit "$work/owned_text.c"
+grep -Eq 'extern char\* xnetrc_error_message\(' "$work/owned_text.c"
+grep -Eq 'v[0-9]+\.Data[[:space:]]*=[[:space:]]*xnetrc_error_message[[:space:]]*\(' "$work/owned_text.c"
+grep -Eq 'xl6_xrt_take_cstr\(' "$work/owned_text.c"
+timeout 90s "$xl" build "$owned_source" -o "$work/owned_text"
+timeout 30s "$work/owned_text"
+printf 'netrc owned text JIT/AOT: PASS\n'
 timeout 90s "$xl" run test/cases/extlib_netrc.xl
 timeout 90s "$xl" run release/extlibs/netrc/test/boundaries.xl
 timeout 90s "$xl" run release/extlibs/netrc/test/named_type.xl

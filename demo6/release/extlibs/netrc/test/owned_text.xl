@@ -1,0 +1,18 @@
+import netrc
+
+func main(...) as int
+    netrc.Netrc credentials = netrc.parse("machine example.org login alice password secret\n")
+    string text = credentials.stringify()
+    assert text == "machine example.org\n  login alice\n  password secret\n\n"
+    assert netrc.parse(text).authenticators("example.org")["login"] == "alice"
+
+    bool invalid = false
+    try
+        netrc.parse("machine example.org login \"unfinished")
+    catch ConfigError error
+        invalid = true
+        assert string.indexOf(error.message, "netrc") >= 0
+    end
+    assert invalid
+    return 0
+end

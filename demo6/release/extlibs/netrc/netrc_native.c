@@ -85,7 +85,7 @@ XNETRC_EXPORT int64 xnetrc_error_offset(void)
 	return pError != NULL ? (int64)pError->iOffset : 0;
 }
 
-XNETRC_EXPORT void* xnetrc_error_message(void)
+XNETRC_EXPORT char* xnetrc_error_message(void)
 {
 	xrtnetrcerror* pError = __xnetrcError();
 	const char* sMessage = pError != NULL && pError->sMessage[0] != 0 ?

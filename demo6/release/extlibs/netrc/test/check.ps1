@@ -59,6 +59,22 @@ try {
         }
     }
 
+    $ownedSource = 'release/extlibs/netrc/test/owned_text.xl'
+    $null = Run 'owned text JIT' $xl @('run', $ownedSource)
+    $ownedC = Join-Path $work 'owned_text.c'
+    $null = Run 'owned text cgen' $xl @('cgen', $ownedSource, '--emit', $ownedC)
+    $generated = Get-Content -LiteralPath $ownedC -Raw
+    if ($generated -cnotmatch 'extern char\* xnetrc_error_message\(' -or
+        $generated -cnotmatch '\bv\d+\.Data\s*=\s*xnetrc_error_message\s*\(' -or
+        $generated -cnotmatch 'xl6_xrt_take_cstr\(') {
+        throw 'netrc text results were not adopted through their declared ownership paths'
+    }
+    if (-not $SkipAot) {
+        $ownedExe = Join-Path $work 'owned_text.exe'
+        $null = Run 'owned text AOT build' $xl @('build', $ownedSource, '-o', $ownedExe)
+        $null = Run 'owned text AOT' $ownedExe @()
+    }
+
     $example = Join-Path $work 'netrc_c_example.exe'
     $null = Run 'C example compile' $gcc ($flags + @(
         'release/extlibs/netrc/examples/basic.c', $runtime) +
