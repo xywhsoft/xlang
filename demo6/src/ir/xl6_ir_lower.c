@@ -4834,9 +4834,9 @@ static int xl6IrLowerCOwnedPrint(XL6_IrLowerContext* ctx,XL6_IrNodeId id,const X
 {
     const XL6_IrNode* args=xl6IrNodeGet(ctx->module,ctx->module->children[node->firstChild+1]);
     const XL6_IrNode* callee=xl6IrNodeGet(ctx->module,ctx->module->children[node->firstChild]);
-    if(!args || !args->childCount)return 0;
-    XL6_IrValueId* values=xrtCalloc(args->childCount,sizeof(*values));
-    if(!values)return 0;
+    if(!args)return 0;
+    XL6_IrValueId* values=args->childCount ? xrtCalloc(args->childCount,sizeof(*values)) : NULL;
+    if(args->childCount && !values)return 0;
     size_t first=ctx->evaluationOwnerCount;
     for(size_t i=0;i<args->childCount;++i) {
         const XL6_IrNode* arg=xl6IrNodeGet(ctx->module,ctx->module->children[args->firstChild+i]);
@@ -33758,6 +33758,8 @@ int xl6IrLowerModule(XL6_IrModule* module, XL6_DiagList* diags)
         schemaFailure = "XLIR lowering could not derive dynamic method scalar codecs";
     else if ( !xl6IrRefreshValueCopyRecipes(module) )
         schemaFailure = "XLIR lowering could not derive complete value copy recipes";
+    else if ( !xl6IrRefreshValueDisplayRecipes(module) )
+        schemaFailure = "XLIR lowering could not derive complete value display recipes";
     else if ( !xl6IrBuildPersistenceProjectPlans(module) )
         schemaFailure = "XLIR lowering could not derive persistence projection facts";
     else if ( !xl6IrBuildPersistenceRestorePlans(module) )

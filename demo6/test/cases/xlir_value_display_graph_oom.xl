@@ -1,0 +1,61 @@
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func displayAny(var value) as string
+    return string(value)
+end
+
+class DisplayOomFields
+    derive string
+    dict<int> values = dict{"answer": 42}
+end
+
+func main(...) as int
+    array<int> numbers = array[1, 2]
+    dict<string> fields = dict{"value": "a\0你"}
+    list<int> sparse = list[-7: 41, 7: 42]
+    set<int> unique = set{41, 42}
+    DisplayOomFields object = DisplayOomFields()
+    for operation in range(5)
+        int rejected = 0
+        int completed = 0
+        for point in range(128)
+            string result = "unchanged"
+            bool caught = false
+            assert failAfter(uint64(point))
+            try
+                if operation == 0 then
+                    result = displayAny(numbers)
+                elseif operation == 1 then
+                    result = displayAny(fields)
+                elseif operation == 2 then
+                    result = displayAny(sparse)
+                elseif operation == 3 then
+                    result = displayAny(unique)
+                else
+                    result = string(object)
+                end
+            catch MemoryError
+                caught = true
+            end
+            bool triggered = failTriggered()
+            failClear()
+            assert caught == triggered
+            if caught then
+                rejected += 1
+                assert result == "unchanged"
+            else
+                completed += 1
+                assert string.byteLen(result) > 0
+            end
+        end
+        assert rejected > 0 and completed > 0
+    end
+    assert numbers[1] == 2
+    assert fields["value"] == "a\0你"
+    assert sparse[-7] == 41
+    assert 42 in unique
+    println("native value display: 640 allocation prefixes passed")
+    return 0
+end

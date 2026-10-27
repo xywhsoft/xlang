@@ -98,7 +98,7 @@ try {
     $generatedText = [System.IO.File]::ReadAllText(
         $generatedPath, [System.Text.Encoding]::UTF8)
     foreach ( $required in @(
-        "xlir_type_id_to_string", "xl6ClassValueTextV1", "xlir_class_string_schema_t",
+        "xlir_type_id_to_string", "xl6ClassValueTextNativeV1", "xlir_class_string_schema_t",
         'sizeof("StringRecord") - 1u', 'sizeof("id") - 1u',
         'sizeof("name") - 1u'
     ) ) {

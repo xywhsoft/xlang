@@ -5,9 +5,9 @@ static int xl6IrCgenEmitCOwned(XL6_Output* out,const XL6_IrModule* module,
     if(!xl6IrCOwnedInstructionCompatible(module,ins))
         return xl6IrCgenDiag(diags,module,ins->origin,"C owner operation has no exact physical ABI");
     unsigned result=(unsigned)ins->result;
-    unsigned source=(unsigned)module->operands[ins->firstOperand];
+    unsigned source=ins->operandCount ? (unsigned)module->operands[ins->firstOperand] : 0;
     if(ins->runtimeOp==XL6_IR_RUNTIME_C_PRINT || ins->runtimeOp==XL6_IR_RUNTIME_C_PRINTLN) {
-        xl6OutputPrintf(out,"    XL6_CPrintPartV1 c_print_%u[%lu] = {0};\n",result,(unsigned long)ins->operandCount);
+        xl6OutputPrintf(out,"    XL6_CPrintPartV1 c_print_%u[%lu] = {0};\n",result,(unsigned long)(ins->operandCount ? ins->operandCount : 1));
         for(size_t i=0;i<ins->operandCount;++i) {
             unsigned value=(unsigned)module->operands[ins->firstOperand+i];
             const XL6_IrInstruction* def=xl6IrCgenValueDefinition(module,value,NULL);
@@ -30,7 +30,11 @@ static int xl6IrCgenEmitCOwned(XL6_Output* out,const XL6_IrModule* module,
             else xl6OutputPrintf(out,"    c_print_%u[%lu].Kind=3; c_print_%u[%lu].Value=v%u;\n",result,(unsigned long)i,result,(unsigned long)i,value);
             if(optional)xl6OutputPuts("    }\n",out);
         }
-        xl6OutputPrintf(out,"    v%u = xl6CPrintV1(c_print_%u,%lu,%s);\n",result,result,(unsigned long)ins->operandCount,ins->runtimeOp==XL6_IR_RUNTIME_C_PRINTLN ? "true" : "false");
+        xl6OutputPrintf(out,"    v%u = xl6CPrintNativeV1(c_print_%u,%lu,%s,",result,result,(unsigned long)ins->operandCount,ins->runtimeOp==XL6_IR_RUNTIME_C_PRINTLN ? "true" : "false");
+        if(ins->displayGraphProviders) {
+            if(!xl6IrCgenEmitValueGraphPlan(out,ins->displayGraphProviders,0))return 0;
+        } else xl6OutputPuts("NULL",out);
+        xl6OutputPuts(");\n",out);
     } else if(ins->runtimeOp==XL6_IR_RUNTIME_CSTRING_SET_COPY) {
         const XL6_IrInstruction* input=xl6IrCgenValueDefinition(module,source,NULL);
         const XL6_IrType* type=xl6IrTypeGet(&module->types,input->type);

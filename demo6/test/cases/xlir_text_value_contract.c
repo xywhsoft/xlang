@@ -35,21 +35,31 @@ int main(int argc, char** argv)
     }
     if (strstr(argv[1], "stdlib_text_interpolation.xl") != NULL) assert(characterConversions == 3);
     if (strstr(argv[1], "stdlib_text_literals_nested.xl") != NULL) {
-        unsigned projections = 0;
+        unsigned projections = 0, arrays = 0, lists = 0;
         for (size_t i = 0; i < ir.instructionCount; ++i) {
             XL6_IrInstruction* instruction = &ir.instructions[i];
-            assert(instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY);
             assert(instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_INT_MAP_AT_I64_STRING_COPY);
-            if (instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_PROJECT_STRING_COPY) continue;
-            assert(xl6IrInstructionIsFallibleProjection(&ir, instruction));
+            int nativeArray=instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY;
+            int nativeList=instruction->runtimeOp==XL6_IR_RUNTIME_LIST_READ_STRING;
+            if (!nativeArray && !nativeList &&
+                instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_PROJECT_STRING_COPY) continue;
+            /* These historical opcode names now select sealed native slot
+             * reads. Prove the real ABI; do not require obsolete wire boxes. */
+            if (nativeArray) { assert(xl6IrArrayStringReadRuntimeInstructionCompatible(&ir,instruction)); ++arrays; }
+            else if (nativeList) { assert(xl6IrListIndexRuntimeInstructionCompatible(&ir,instruction)); ++lists; }
+            else assert(xl6IrInstructionIsFallibleProjection(&ir, instruction));
+            assert(i+1<ir.instructionCount && ir.instructions[i+1].kind==XL6_IR_INSTR_ERROR_TEST &&
+                ir.instructions[i+1].operandCount==1 &&
+                ir.operands[ir.instructions[i+1].firstOperand]==instruction->result);
             XL6_IrTypeId payload = instruction->payloadType;
-            instruction->payloadType = XL6_IR_TYPE_INVALID;
+            instruction->payloadType = payload==XL6_IR_TYPE_INVALID ? instruction->type : XL6_IR_TYPE_INVALID;
             assert(!xl6IrVerifyModule(&ir, NULL));
             instruction->payloadType = payload;
             assert(xl6IrVerifyModule(&ir, NULL));
             ++projections;
         }
-        assert(projections >= 3); /* array, stored sparse list, temporary list */
+        assert(projections >= 3 && arrays>=1 && lists>=2); /* array, stored sparse list, temporary list */
+        printf("nested string projections: %u native array, %u native list, %u complete checked reads\n",arrays,lists,projections);
     }
     /* Generic product verification, including plain language functions with
      * no standard-library bridge. A corrupted closed ABI must never reach C. */

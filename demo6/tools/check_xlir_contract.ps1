@@ -5531,7 +5531,7 @@ foreach ( $required in @(
 foreach ( $required in @(
     "xl6IrCgenRuntimeTypeIdToStringAbi",
     "xl6IrCgenRuntimeClassDerivedStringAbi",
-    "xlir_type_id_to_string", "xl6ClassValueTextV1", "xlir_class_string_schema_t",
+    "xlir_type_id_to_string", "xl6ClassValueTextNativeV1", "xlir_class_string_schema_t",
     "stringDeriveIncluded", "xrtValueObjectGet"
 ) ) {
     if ( ! $cEmitter.Contains($required) ) {

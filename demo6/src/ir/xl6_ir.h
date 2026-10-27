@@ -3365,6 +3365,9 @@ typedef struct XL6_IrInstruction {
      * after lowering; independently rederived by verification before C.
      * Zero for shallow copy, leaf-only graphs and every unrelated operation. */
     unsigned copyGraphProviders;
+    /* Exact native data-provider closure for value/class text conversion and
+     * C print operands. Established once after lowering, verified before C. */
+    unsigned displayGraphProviders;
     /* Valid for AWAIT and typed Future aggregate runtime operations.  VOID
      * defines a control token with INVALID type; every value form fixes the
      * exact source completion representation. */
@@ -7647,6 +7650,8 @@ typedef enum XL6_IrValueCopyProviderAbi {
 /* Complete transitive storage capability shared by clone and projection. */
 enum { XL6_IR_GRAPH_LIST_V1=1u, XL6_IR_GRAPH_SET_V1=2u, XL6_IR_GRAPH_DICT_V1=4u };
 unsigned xl6IrValueGraphProvidersForType(const XL6_IrModule*,XL6_IrTypeId);
+int xl6IrValueDisplayGraphRecipe(const XL6_IrModule*,const XL6_IrInstruction*,unsigned*);
+int xl6IrRefreshValueDisplayRecipes(XL6_IrModule*);
 int xl6IrRefreshValueCopyRecipes(XL6_IrModule*);
 XL6_IrValueCopyProviderAbi xl6IrValueCopyProviderAbi(
     const XL6_IrModule*,const XL6_IrInstruction*);

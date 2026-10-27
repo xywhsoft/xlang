@@ -166,7 +166,8 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
                 "  return xrtStrDupN(buffer, size); }\n", out);
         if ( needs->needsXValueToStringRuntime )
             xl6OutputPuts(
-                "extern xlir_string xl6ValueTextV1(const xvalue*);\n", out);
+                "struct XL6_ValueGraphPlanV1;\n"
+                "extern xlir_string xl6ValueTextNativeV1(const xvalue*,const struct XL6_ValueGraphPlanV1*);\n", out);
         xl6OutputPuts("\n", out);
     }
     if ( needs->needsTypeIdToStringRuntime ) {

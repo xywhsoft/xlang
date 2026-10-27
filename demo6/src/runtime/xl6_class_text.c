@@ -2,7 +2,8 @@
 #include "src/runtime/xl6_value_format.h"
 #include "src/runtime/xl6_text_internal.h"
 
-xstrview xl6ClassValueTextV1(const xvalue* value, const XL6_ClassTextSchemaV1* schema)
+xstrview xl6ClassValueTextNativeV1(const xvalue* value, const XL6_ClassTextSchemaV1* schema,
+    const XL6_ValueGraphPlanV1* graph)
 {
     if (!schema || !schema->Name.Data || schema->RuntimeTypeTag <= 0 || !schema->TypeId ||
         (schema->FieldCount && !schema->Fields)) {
@@ -30,7 +31,7 @@ xstrview xl6ClassValueTextV1(const xvalue* value, const XL6_ClassTextSchemaV1* s
         if (!item) { xrtSetErrorKind(XERR_STATE); ready = false; break; }
         ready = (!i || xrtStrBufAppend(&output, xrtStrView(", "))) &&
             xrtStrBufAppend(&output, name) && xrtStrBufAppend(&output, xrtStrView("=")) &&
-            xl6ValueTextAppendV1(&output, item);
+            xl6ValueTextAppendNativeV1(&output, item, graph);
     }
     if (ready) ready = xrtStrBufAppend(&output, xrtStrView("}"));
     size_t size = output.Size;
@@ -40,3 +41,5 @@ xstrview xl6ClassValueTextV1(const xvalue* value, const XL6_ClassTextSchemaV1* s
     xrtStrBufFree(&output);
     return ready ? xl6TextOwn(text, size) : xl6TextFailure;
 }
+xstrview xl6ClassValueTextV1(const xvalue* value, const XL6_ClassTextSchemaV1* schema)
+{ return xl6ClassValueTextNativeV1(value,schema,NULL); }

@@ -634,7 +634,9 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
         const XL6_IrInstruction* instruction=&module->instructions[i];
         if(instruction->kind==XL6_IR_INSTR_RUNTIME_CALL &&
             (instruction->runtimeOp==XL6_IR_RUNTIME_C_PRINT || instruction->runtimeOp==XL6_IR_RUNTIME_C_PRINTLN) &&
-            xl6IrCgenInstructionIsReachable(module,i) && !visitor(context,"xl6ValueTextV1"))return 0;
+            xl6IrCgenInstructionIsReachable(module,i) && !visitor(context,"xl6ValueTextNativeV1"))return 0;
+        if (xl6IrCgenInstructionIsReachable(module,i) && instruction->displayGraphProviders &&
+            !xl6IrCgenVisitValueGraphProviders(instruction->displayGraphProviders,0,visitor,context)) return 0;
         if(instruction->kind==XL6_IR_INSTR_RUNTIME_CALL&&instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_ENUM_BIND&&
             xl6IrCgenInstructionIsReachable(module,i)&&!visitor(context,"xl6ValueEnumBindTakeV1")) return 0;
         const XL6_IrPersistenceInvocationContract* configured=instruction->kind==XL6_IR_INSTR_RUNTIME_CALL
@@ -1043,8 +1045,8 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
     if (needs.needsXValueFutureReader && !visitor(context,"xl6PayloadReadFutureV1")) return 0;
     if ((needs.needsXValueErrorProjectionRuntime || needs.needsXValueCheckedCastRuntime) &&
         !visitor(context,"xl6ErrorValueReadRefV1")) return 0;
-    if (needs.needsXValueToStringRuntime && !visitor(context,"xl6ValueTextV1")) return 0;
-    if (needs.needsClassDerivedToStringRuntime && !visitor(context,"xl6ClassValueTextV1")) return 0;
+    if (needs.needsXValueToStringRuntime && !visitor(context,"xl6ValueTextNativeV1")) return 0;
+    if (needs.needsClassDerivedToStringRuntime && !visitor(context,"xl6ClassValueTextNativeV1")) return 0;
     if (needs.needsCallableIntegerCodec &&
         (!visitor(context,"xl6ValueIntegerSlotAdmitsV1") ||
          !visitor(context,"xl6ValueReadIntegerV1") || !visitor(context,"xl6ValueBoxIntegerV1"))) return 0;

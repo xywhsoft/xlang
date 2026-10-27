@@ -7,7 +7,8 @@
 
 typedef bool (*TextSink)(xstrview, void*);
 
-static bool render(const xvalue* value, TextSink sink, void* output)
+static bool render(const xvalue* value, TextSink sink, void* output,
+    const XL6_ValueGraphPlanV1* graph)
 {
     char buffer[128];
     size_t size = 0;
@@ -74,7 +75,7 @@ static bool render(const xvalue* value, TextSink sink, void* output)
      * Scalar/string fast paths above remain allocation-free for append. */
     xl6_error_scope operation={0};
     if (!xl6ErrorScopeBegin(&operation)) abort();
-    xvalue* data=xl6ValueDataSnapshotV1(value);
+    xvalue* data=graph ? xl6ValueDataSnapshotNativeV1(value,graph) : xl6ValueDataSnapshotV1(value);
     char* text=data ? xrtXlonStringify(data, false, &size) : NULL;
     bool ok=text && sink((xstrview){text, size}, output);
     if (!ok) xl6ErrorScopeCaptureFailure(&operation);
@@ -91,16 +92,21 @@ static bool copyText(xstrview text, void* output)
     *(xstrview*)output = copy;
     return true;
 }
-xstrview xl6ValueTextV1(const xvalue* value)
+xstrview xl6ValueTextNativeV1(const xvalue* value, const XL6_ValueGraphPlanV1* graph)
 {
     xstrview result = xl6TextFailure;
-    if (!render(value, copyText, &result)) return xl6TextFailure;
+    if (!render(value, copyText, &result, graph)) return xl6TextFailure;
     return result;
 }
 static bool appendText(xstrview text, void* output)
 { return xrtStrBufAppend(output, text); }
-bool xl6ValueTextAppendV1(xstrbuf* output, const xvalue* value)
+bool xl6ValueTextAppendNativeV1(xstrbuf* output, const xvalue* value,
+    const XL6_ValueGraphPlanV1* graph)
 {
     if (!output) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
-    return render(value, appendText, output);
+    return render(value, appendText, output, graph);
 }
+xstrview xl6ValueTextV1(const xvalue* value)
+{ return xl6ValueTextNativeV1(value, NULL); }
+bool xl6ValueTextAppendV1(xstrbuf* output, const xvalue* value)
+{ return xl6ValueTextAppendNativeV1(output, value, NULL); }

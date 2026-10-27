@@ -1,0 +1,54 @@
+func displayArray(array<int> values) as string
+    return string(values)
+end
+
+func displayDict(dict<int> values) as string
+    return string(values)
+end
+
+func displayList(list<int> values) as string
+    return string(values)
+end
+
+func displaySet(set<int> values) as string
+    return string(values)
+end
+
+func displayOpen(var value) as string
+    return string(value)
+end
+
+func displayInteger(int value)
+    println(value)
+end
+
+class DisplayFields
+    derive string
+    dict<int> entries = dict{"answer": 42}
+    set<int> hidden @string(skip) = set{99}
+end
+
+func displayClass(DisplayFields value) as string
+    return string(value)
+end
+
+func main(...) as int
+    array<int> numbers = array[1, 2]
+    dict<int> fields = dict{"answer": 42}
+    list<int> sparse = list[-7: 41, 7: 42]
+    set<int> unique = set{41, 42}
+    assert displayArray(numbers) == "[1,2]"
+    var restored = xlon.parse(displayDict(fields))
+    assert restored.answer == 42
+    assert string.byteLen(displayList(sparse)) > 0
+    assert string.byteLen(displaySet(unique)) > 0
+    assert string.byteLen(displayOpen(fields)) > 0
+    array<var> mixed = array[numbers, fields, sparse, unique]
+    assert string.byteLen(string(mixed)) > 0
+    assert string.byteLen(displayClass(DisplayFields())) > 0
+    println(numbers, fields, sparse, unique)
+    displayInteger(42)
+    println()
+    println("native value display graph passed")
+    return 0
+end

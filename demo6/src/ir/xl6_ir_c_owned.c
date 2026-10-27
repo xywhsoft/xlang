@@ -82,7 +82,7 @@ int xl6IrCOwnedInstructionCompatible(const XL6_IrModule* module,const XL6_IrInst
         xl6IrValueDefinition(module,module->operands[ins->firstOperand],NULL) : NULL;
     const XL6_IrType* source=input ? xl6IrTypeGet(&module->types,input->type) : NULL;
     const XL6_IrType* result=xl6IrTypeGet(&module->types,ins->type);
-    if(!source || !result) return 0;
+    if(!result) return 0;
     if(ins->runtimeOp==XL6_IR_RUNTIME_C_PRINT || ins->runtimeOp==XL6_IR_RUNTIME_C_PRINTLN) {
         const XL6_IrNode* origin=xl6IrNodeGet(module,ins->origin);
         if(ins->targetSymbol || result->cAbi!=XL6_IR_C_ABI_BOOL || !origin || origin->callKind!=XL6_SEM_CALL_C_OWNED_PRINT)return 0;
@@ -94,6 +94,7 @@ int xl6IrCOwnedInstructionCompatible(const XL6_IrModule* module,const XL6_IrInst
         }
         return 1;
     }
+    if(!source) return 0;
     if(ins->runtimeOp==XL6_IR_RUNTIME_CSTRING_SET_COPY || ins->runtimeOp==XL6_IR_RUNTIME_CBYTES_SET_COPY) {
         const XL6_IrInstruction* key=ins->operandCount==3 ? xl6IrValueDefinition(module,module->operands[ins->firstOperand+1],NULL) : NULL;
         const XL6_IrInstruction* item=ins->operandCount==3 ? xl6IrValueDefinition(module,module->operands[ins->firstOperand+2],NULL) : NULL;
