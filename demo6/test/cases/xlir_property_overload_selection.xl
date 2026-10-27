@@ -1,0 +1,114 @@
+int selectionTrace = 0
+func selectionStep(int digit) as int
+    selectionTrace = selectionTrace * 10 + digit
+    return digit
+end
+func selectionSuffix() as string
+    selectionStep(5)
+    return "!"
+end
+protocol SelectionView<T>
+    get item(int index) as T
+    let item(int index, T value)
+    get data() as array<int>
+end
+class SelectionBox<T>
+    T stored
+    create(T value)
+        self.stored = value
+    end
+    get item() as T
+        selectionStep(4)
+        return self.stored
+    end
+    let item(T value)
+        selectionStep(6)
+        self.stored = value
+    end
+    get item(int index) as T
+        assert index == 2
+        selectionStep(4)
+        return self.stored
+    end
+    let item(int index, T value)
+        assert index == 2
+        selectionStep(6)
+        self.stored = value
+    end
+    get item(int first, int second) as T
+        assert first == 2 and second == 3
+        selectionStep(4)
+        return self.stored
+    end
+    let item(int first, int second, T value)
+        assert first == 2 and second == 3
+        selectionStep(6)
+        self.stored = value
+    end
+    get data() as array<int>
+        selectionStep(4)
+        return array[10, 20, 30]
+    end
+    get data(int index) as T
+        assert index == 2
+        selectionStep(4)
+        return self.stored
+    end
+end
+class SelectionBase
+    virtual get stable() as int
+        return 17
+    end
+    virtual let stable(int value)
+    end
+end
+class SelectionDerived extends SelectionBase
+    override get stable() as int
+        throw ValueError "selected getter"
+    end
+    override let stable(int value)
+        throw ValueError "selected setter"
+    end
+end
+func main(...) as int
+    SelectionBox<string> box = SelectionBox::<string>("a\0你")
+    SelectionView<string> view = box
+    selectionTrace = 0
+    assert box.item == "a\0你" and selectionTrace == 4
+    selectionTrace = 0
+    assert box.item[selectionStep(2)] == "a\0你" and selectionTrace == 24
+    selectionTrace = 0
+    box.item[selectionStep(2), selectionStep(3)] += selectionSuffix()
+    assert selectionTrace == 23456
+    assert box.item == "a\0你!"
+    selectionTrace = 0
+    assert box.data[selectionStep(2)] == "a\0你!" and selectionTrace == 24
+    // The protocol's data getter has no indexed overload. This is an Array
+    // read after one getter call, even though its class has data(int) too.
+    selectionTrace = 0
+    assert view.data[selectionStep(2)] == 30 and selectionTrace == 42
+    selectionTrace = 0
+    assert view.item[selectionStep(2)] == "a\0你!" and selectionTrace == 24
+    selectionTrace = 0
+    view.item[selectionStep(2)] += selectionSuffix()
+    assert selectionTrace == 2456
+    assert box.item == "a\0你!!"
+    SelectionBase plain = SelectionBase()
+    SelectionBase changed = SelectionDerived()
+    assert plain.stable == 17
+    plain.stable = 19
+    int caught = 0
+    try
+        auto ignored = changed.stable
+    catch ValueError
+        caught += 1
+    end
+    try
+        changed.stable = 19
+    catch ValueError
+        caught += 1
+    end
+    assert caught == 2
+    println("property overload selection passed")
+    return 0
+end

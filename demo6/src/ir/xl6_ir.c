@@ -4166,9 +4166,9 @@ static int xl6IrAstNodeRequiresType(const XL6_AstNode* node, const XL6_AstNode* 
     if ( parent != NULL && parent->kind == XL6_AST_MEMBER && childIndex == 0 && node->kind == XL6_AST_GENERIC_INSTANT ) return 0;
     if ( parent != NULL && parent->kind == XL6_AST_ENUM_VARIANT && node->kind == XL6_AST_INT ) return 0;
     if ( parent != NULL && (parent->kind == XL6_AST_INDEX || parent->kind == XL6_AST_SAFE_INDEX) && childIndex == 0 &&
-         node->kind == XL6_AST_MEMBER && (node->semanticCallKind == XL6_SEM_CALL_PROPERTY_GET ||
-         (node->semanticCallKind == XL6_SEM_CALL_WITNESS && node->semanticTargetSymbolId != 0) ||
-         parent->semanticCallKind == XL6_SEM_CALL_PROPERTY_GET || parent->semanticCallKind == XL6_SEM_CALL_PROPERTY_SET ||
+         node->kind == XL6_AST_MEMBER && (parent->semanticCallKind == XL6_SEM_CALL_PROPERTY_GET ||
+         (parent->semanticCallKind == XL6_SEM_CALL_WITNESS && parent->semanticTargetSymbolId != 0) ||
+         parent->semanticCallKind == XL6_SEM_CALL_PROPERTY_SET ||
          parent->semanticLvalueKind == XL6_SEM_LVALUE_PROPERTY) ) return 0;
     if ( node->kind == XL6_AST_CALL && parent != NULL && parent->kind == XL6_AST_EXPR_STMT ) return 0;
     switch ( node->kind ) {
@@ -4356,22 +4356,6 @@ static XL6_IrNodeId xl6IrBuildAstNode(
         if ( source->children[i] != NULL && children[i] == XL6_IR_NODE_INVALID ) *ok = 0;
     }
     node = &module->nodes[(size_t)id - 1];
-    /* An indexed accessor's MEMBER is a selector, not a value or a separate
-     * getter invocation. Normalize the semantic binding onto the whole INDEX.
-     * A zero-argument getter returning a container has its own inferred type
-     * and is deliberately not folded into the element operation. */
-    if (node->kind == XL6_IR_NODE_INDEX && source->kind == XL6_AST_INDEX &&
-        children != NULL && source->childCount == 2) {
-        XL6_IrNode* selector = (XL6_IrNode*)xl6IrNodeGet(module, children[0]);
-        if (selector != NULL && selector->kind == XL6_IR_NODE_MEMBER &&
-            selector->type == XL6_IR_TYPE_INVALID && selector->storageType == XL6_IR_TYPE_INVALID &&
-            selector->targetSymbol != 0 && (selector->callKind == XL6_SEM_CALL_PROPERTY_GET ||
-                selector->callKind == XL6_SEM_CALL_WITNESS)) {
-            node->callKind = selector->callKind;
-            node->targetSymbol = selector->targetSymbol;
-            selector->callKind = XL6_SEM_CALL_NONE;
-        }
-    }
     /* `auto` declarations have no declared AST type, but semantic analysis has
      * already fixed the initializer ABI.  Persist that ABI on the declaration
      * itself before later name nodes and lowering consume the IR.  Otherwise a
@@ -9776,7 +9760,7 @@ static int xl6IrBuildSyntaxCallSite(XL6_IrModule* module, XL6_IrNodeId origin)
             ? xl6IrNodeGet(module, module->children[operation->firstChild]) : NULL;
         if (propertyNode == NULL || propertyNode->kind != XL6_IR_NODE_MEMBER || propertyNode->childCount != 1 ||
             propertyNode->type != XL6_IR_TYPE_INVALID || propertyNode->storageType != XL6_IR_TYPE_INVALID ||
-            propertyNode->callKind != XL6_SEM_CALL_NONE) return 0;
+            propertyNode->callKind != XL6_SEM_CALL_NONE || propertyNode->targetSymbol != 0) return 0;
     }
     if ( !xl6IrNodeIsResolvedSyntaxCall(operation) ||
          (operation->kind == XL6_IR_NODE_UNARY && operation->childCount != 1) ||
@@ -36070,6 +36054,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         "XLIR setter CallSite origin has no canonical assignment shape");
                 if (indexedGetter && (syntaxProperty == NULL || syntaxProperty->kind != XL6_IR_NODE_MEMBER ||
                     syntaxProperty->childCount != 1 || syntaxProperty->callKind != XL6_SEM_CALL_NONE ||
+                    syntaxProperty->targetSymbol != 0 ||
                     syntaxProperty->valueCategory != XL6_IR_VALUE_NONE ||
                     syntaxProperty->type != XL6_IR_TYPE_INVALID || syntaxProperty->storageType != XL6_IR_TYPE_INVALID))
                     return xl6IrDiag(diags, call, "XLIR indexed accessor has no canonical non-value selector");
