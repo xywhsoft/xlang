@@ -1,6 +1,13 @@
 # dotenv
 
-2026-10-27 Linux 现有发布物复验：C ASan/UBSan、语言 JIT、中央
+2026-10-27 从已提交源码 `f715e057e` 在独立工作树重建 Linux 发布版，
+默认 `test/check.sh` 退出 0：严格 C ASan/UBSan、语言 JIT、中央与
+边界/故障注入及公开范例的独立 EXE、C/XLang 输出对照均通过。
+脚本只规范化黄金文本的 CRLF 行尾，以便 Windows 工作树在 Linux
+运行时不因检出方式失败；库实现与公开 API 未改。此前的图提供者
+缺符号见下方历史记录，不再是当前源码的发布阻断。
+
+2026-10-27 旧 Linux 发布物复验：C ASan/UBSan、语言 JIT、中央
 独立 EXE 均通过；默认门禁在构建带 `println` 的 `test/limits.xl`
 时因 `xl6DictGraphProviderV1` 未解析而退出 1。无包最小复现见
 `../../../dev/extlib_blockers/linux_aot_print_graph_provider.md`。

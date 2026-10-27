@@ -24,7 +24,9 @@ timeout 90s "$work/test_dotenv"
 "$cc" "${flags[@]}" release/extlibs/dotenv/examples/basic.c \
     release/extlibs/dotenv/test/xrt_runtime.c -lm -ldl -o "$work/example"
 timeout 30s "$work/example" > "$work/example.txt"
-diff -u release/extlibs/dotenv/examples/basic.expected.txt "$work/example.txt"
+# Windows 工作树可能把文本夹具检出为 CRLF；Linux 输出统一按 LF 核对。
+sed 's/\r$//' release/extlibs/dotenv/examples/basic.expected.txt > "$work/expected.txt"
+diff -u "$work/expected.txt" "$work/example.txt"
 
 xl=release/xl
 if [[ ! -x "$xl" ]]; then
@@ -49,7 +51,7 @@ if ! grep -Fq 'parseNative' "$work/private_native.txt" ||
     exit 1
 fi
 timeout 90s "$xl" run release/examples/extlibs/dotenv.xl > "$work/example_xl.txt"
-diff -u release/extlibs/dotenv/examples/basic.expected.txt "$work/example_xl.txt"
+diff -u "$work/expected.txt" "$work/example_xl.txt"
 diff -u "$work/example.txt" "$work/example_xl.txt"
 timeout 120s "$xl" build test/cases/extlib_dotenv.xl -o "$work/dotenv_core"
 timeout 90s "$work/dotenv_core"
