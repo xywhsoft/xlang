@@ -76,6 +76,7 @@ CORE_TESTS = ("analysis_semantic_proof_test", *CORE_TESTS)
 HOST_TESTS += ("navigation_cache_test", "semantic_reference_shard_test", "project_references_test", "project_reference_budget_test", "reference_path_index_test")
 HOST_TESTS += ("path_identity_batch_test", "reference_capture_test")
 HOST_TESTS += ("project_reference_parallel_test",)
+HOST_TESTS += ("project_reference_owner_test", "project_reference_owner_fault_test")
 
 
 def sha(path: Path) -> str:
@@ -574,6 +575,32 @@ def prepare_native_ast(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
         change='private storage owner plus within-forest bare fact-type leaf edge references;early release retains fields until last edge,then original field/source/final pool release;all native translation units rebuilt')
 
 
+def prepare_reference_owner_fixture(ide: Path, output: Path) -> tuple[Path, Path, list[dict]]:
+    """Private phase fences and one constructor substitution; normal host unchanged."""
+    source = ide / 'src/services/project_references.c'
+    snapshot = ide / 'src/services/language_snapshot.c'
+    body = source.read_text('utf8')
+    definition = 'static int locations(xarray* rows,reference_output* out)'
+    marker = 'static xtaskoutcome execute('
+    if body.count(definition) != 1 or body.count(marker) != 1:
+        raise ValueError('reference owner publication fixture seam changed')
+    folder = output / 'owner_fixtures'
+    folder.mkdir()
+    coordinator = folder / 'project_references.c'
+    body = body.replace(definition, 'static int ownerLocationsOriginal(xarray* rows,reference_output* out)')
+    body = body.replace(marker, 'static int locations(xarray* rows,reference_output* out){int okay=ownerLocationsOriginal(rows,out);if(okay)ownerFence(6);return okay;}\n' + marker)
+    coordinator.write_text(body, encoding='utf8', newline='\n')
+    alternate = folder / 'owner_snapshot_fault.c'
+    alternate.write_text('#define xideSemanticReferenceShardCreate ownerFaultShardCreate\n#include "services/language_snapshot.c"\n', encoding='utf8', newline='\n')
+    return coordinator, alternate, [
+        dict(source=str(source), sourceSha256=sha(source), compiledSource=str(coordinator),
+             compiledSha256=sha(coordinator), fixtureOnly=True,
+             change='original Location serializer body; fixture-only post-serialization publication fence'),
+        dict(source=str(snapshot), sourceSha256=sha(snapshot), compiledSource=str(alternate),
+             compiledSha256=sha(alternate), fixtureOnly=True,
+             change='include original snapshot body with one fixture-only shard constructor substitution')]
+
+
 def main() -> None:
     ide = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser(description=__doc__)
@@ -613,6 +640,8 @@ def main() -> None:
     # makes the existing private serializer budget configurable; no grammar,
     # fact collection or index algorithm is duplicated in the IDE.
     try:
+        owner_coordinator, owner_snapshot, owner_overlays = (prepare_reference_owner_fixture(ide, output)
+            if args.server and not args.skip_tests else (None, None, []))
         original_index, generated_index, index_overlay = prepare_native_index(frontend, output)
         original_ir, generated_ir, ir_overlay = prepare_native_ir(frontend, output)
         original_sem, generated_sem, sem_overlay = prepare_native_sem(frontend, output)
@@ -626,6 +655,8 @@ def main() -> None:
         runtime_overlay = derive_process_runtime(frontend / 'lib/xrt/xrt.h', output / 'native_xrt/xrt.h')
     except ValueError as error:
         parser.error(str(error))
+    if owner_snapshot:
+        sources.append((owner_snapshot, True))
     sources = [(generated_index if path == original_index else path, owned) for path, owned in sources]
     sources = [(generated_ir if path == original_ir else path, owned) for path, owned in sources]
     sources = [(generated_sem if path == original_sem else path, owned) for path, owned in sources]
@@ -669,7 +700,8 @@ def main() -> None:
         str(original_index): index_overlay["sourceSha256"], str(original_ir): ir_overlay["sourceSha256"],
         str(original_sem): sem_overlay["sourceSha256"], str(original_stdlib): stdlib_overlay["sourceSha256"],
         str(original_types): types_overlay["sourceSha256"]}, {}, [], {}
-    source_overlays = [index_overlay, ir_overlay, sem_overlay, stdlib_overlay, types_overlay, ast_overlay, parser_overlay, lexer_overlay, stack_overlay, *context_overlays]
+    source_overlays = [index_overlay, ir_overlay, sem_overlay, stdlib_overlay, types_overlay, ast_overlay, parser_overlay, lexer_overlay, stack_overlay, *context_overlays, *owner_overlays]
+    inputs.update({row['source']: row['sourceSha256'] for row in owner_overlays})
     inputs[str(Path(__file__).with_name('native_cancellation_overlay.py').resolve())] = sha(Path(__file__).with_name('native_cancellation_overlay.py'))
     inputs[str(Path(__file__).with_name('native_ir_memo_overlay.py').resolve())] = sha(Path(__file__).with_name('native_ir_memo_overlay.py'))
     inputs[str(Path(__file__).with_name('native_type_source_overlay.py').resolve())] = sha(Path(__file__).with_name('native_type_source_overlay.py'))
@@ -696,6 +728,14 @@ def main() -> None:
             raise RuntimeError(f"{name} failed ({result.returncode}); see {output / (name + '.log')}")
         return result
 
+    def unit_flags(source: Path, owned: bool) -> list[str]:
+        flags = common + (strict if owned else shared)
+        if source == ide / 'tests/project_reference_owner_fault_test.c':
+            if not owner_coordinator:
+                raise ValueError('missing owner publication fixture target')
+            flags += ['-DXIDE_OWNER_REFERENCE_FIXTURE="' + owner_coordinator.as_posix() + '"']
+        return flags
+
     try:
         probe_sources = [ide / "src/analysis/runtime.c", frontend / "src/ast/xl6_ast.c"]
         if args.server:
@@ -710,7 +750,7 @@ def main() -> None:
             runtime_profiles.append(dict(source=str(source), memoryDebug=debug_memory,
                 macroSha256=hashlib.sha256(result.stdout).hexdigest()))
         for source, owned in sources:
-            flags = common + (strict if owned else shared)
+            flags = unit_flags(source, owned)
             result = run([str(cc), *flags, "-MM", "-MT", "xlsObject", str(source)], source.stem + "-deps")
             unit_dependencies = dependencies(result.stdout.decode("utf-8"))
             ast_headers = {path for path in unit_dependencies if path.name == 'xl6_ast.h'}
@@ -729,7 +769,7 @@ def main() -> None:
         objects = {}
         for source, owned in sources:
             target = output / (source.stem + ".o")
-            run([str(cc), *common, *(strict if owned else shared), "-c", str(source), "-o", str(target)], source.stem)
+            run([str(cc), *unit_flags(source, owned), "-c", str(source), "-o", str(target)], source.stem)
             objects[source.stem] = target
         ar = cc.with_name("ar.exe" if os.name == "nt" else "ar")
         core = output / "xlang-analysis-core.a"
@@ -750,10 +790,12 @@ def main() -> None:
             if name in HOST_TESTS:
                 extra += [str(objects[Path(source).stem]) for source in SERVER_SOURCES
                           if Path(source).stem != "xlang_ls" and
-                          not (name in ("snapshot_report_test", "reference_capture_test") and Path(source).stem == "language_snapshot") and
+                          not (name in ("snapshot_report_test", "reference_capture_test", "project_reference_owner_fault_test") and Path(source).stem == "language_snapshot") and
                           not (name == "path_identity_batch_test" and Path(source).stem == "path") and
                           not (name in ("semantic_lookup_test", "semantic_reference_shard_test") and Path(source).stem == "semantic_definition") and
-                          not (name in ("project_reference_budget_test", "reference_path_index_test", "project_reference_parallel_test") and Path(source).stem == "project_references")]
+                          not (name in ("project_reference_budget_test", "reference_path_index_test", "project_reference_parallel_test", "project_reference_owner_fault_test") and Path(source).stem == "project_references")]
+            if name == "project_reference_owner_fault_test":
+                extra.append(str(objects['owner_snapshot_fault']))
             if name in CLIENT_TESTS:
                 # The stream fixture privately owns its actor for deterministic
                 # gates. Other client fixtures need only the pure decoders.
