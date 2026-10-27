@@ -1,5 +1,15 @@
 # Brotli
 
+2026-10-28 从当前工作树构建的 Windows/Linux 发布版复验：默认
+`tools/check_extlib_brotli.ps1` 与 `tools/check_extlib_brotli.sh` 均退出 0。
+Windows 覆盖严格 C、生成原型、分配故障、进度回调、双语 JIT/AOT；
+Linux 覆盖 C ASan/UBSan、116 个分配故障点、文件事务、六份独立
+XLang EXE、C 文件事务 EXE 和双语对照。Linux 语言阶段在本次独占的
+原生临时目录运行；同一核心用例在 WSL 的 Windows 挂载盘曾无诊断
+退出，在原生目录通过。中央范例黄金文件现固定 LF 检出，门禁也
+规范化已有 CRLF 工作树的该份文本；包实现与公开 API 未改。
+这些是包级短时验证，不外推 32 位、TSan 或长时压力。
+
 2026-10-27 使用当前源码重建 Windows 发布版后，默认
 `tools/check_extlib_brotli.ps1` 退出 0：严格 C、分配故障、原生入口
 访问负例、外部 Brotli 流夹具、生成原型、语言 JIT/AOT、C/XLang
