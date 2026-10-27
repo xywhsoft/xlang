@@ -38,10 +38,10 @@ export func factory() as HandleFactory
     return HandleFactory()
 end
 
-export func increment(byref int value)
-    value += 1
+export func increment(int value) as int
+    return value + 1
 end
 
-export func makeOut(int source, out int value)
-    value = source
+export func makeOut(int source) as int
+    return source
 end
