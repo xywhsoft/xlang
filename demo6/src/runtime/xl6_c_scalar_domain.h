@@ -22,7 +22,8 @@ static inline bool xl6CScalarTypeV1(const xrttype* type)
     return type && (type==xrtTypeBool() || type==xrtTypeInt8() || type==xrtTypeUInt8() ||
         type==xrtTypeInt16() || type==xrtTypeUInt16() || type==xrtTypeInt32() ||
         type==xrtTypeUInt32() || type==xrtTypeInt64() || type==xrtTypeUInt64() ||
-        type==xrtTypeFloat32() || type==xrtTypeFloat64() || type==xrtTypeType());
+        type==xrtTypeFloat32() || type==xrtTypeFloat64() || type==xrtTypeType() ||
+        type==xrtTypePointer());
 }
 static inline bool xl6CScalarSlotV1(const xrttype* type,const void* item)
 {
@@ -62,6 +63,10 @@ static inline bool xl6CScalarValueV1(const xrttype* type,uint64_t identity,const
     if(actual && xrtValueScalarDomainV1(item)!=xl6CScalarDomainTagV1(type)) return false;
     xvaluetype tag=xrtValueType(item);
     switch (type->Kind) {
+    /* Raw C interop may supply an unbound pointer. A typed collection
+     * projection carries its exact point<T> identity; unrelated bound
+     * pointers were rejected above. Never inspect or own the pointee. */
+    case XRT_TYPE_POINTER: return tag==XVALUE_POINTER;
     case XRT_TYPE_BOOL: return tag==XVALUE_BOOL;
     case XRT_TYPE_SIGNED_INT: {
         int64_t number;

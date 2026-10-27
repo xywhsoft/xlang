@@ -332,6 +332,7 @@ static const char* xl6IrCgenNativeSlotTypeExpr(XL6_IrNativeSlotAbi slot)
     case XL6_IR_NATIVE_SLOT_TYPE_ID: return "xrtTypeType()";
     case XL6_IR_NATIVE_SLOT_XVALUE_CARRIER: return "xrtTypeValue()";
     case XL6_IR_NATIVE_SLOT_FUTURE_PTR: return "xrtTypeFuture()";
+    case XL6_IR_NATIVE_SLOT_RAW_POINTER: return "xrtTypePointer()";
     case XL6_IR_NATIVE_SLOT_F32: return "xrtTypeFloat32()";
     case XL6_IR_NATIVE_SLOT_C_CHAR:
         return "(CHAR_MIN < 0 ? xrtTypeInt8() : xrtTypeUInt8())";

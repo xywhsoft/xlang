@@ -21783,6 +21783,7 @@ static XL6_IrValueId xl6IrLowerXValueIteratorFor(
     int dynamicSource;
     int nullableItemProjection = 0;
     int scalarItemProjection = 0;
+    int rawPointerItemProjection = 0;
     int closureItemProjection = 0;
     int nativeHandleItemProjection = 0;
     int unionItemProjection = 0;
@@ -22036,6 +22037,13 @@ static XL6_IrValueId xl6IrLowerXValueIteratorFor(
                     ? XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_FUTURE_COPY
                     : XL6_IR_RUNTIME_XVALUE_PROJECT_FUTURE_COPY)) break;
         goto invalidItemProjection;
+    case XL6_IR_LOOP_ITEM_RAW_POINTER_COPY:
+        rawPointerItemProjection=1;
+        if (projectedItemType->nativeSlotAbi==XL6_IR_NATIVE_SLOT_RAW_POINTER &&
+            projectedItemType->cAbi==XL6_IR_C_ABI_RAW_POINTER &&
+            projectedItemType->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
+            projectedItemType->nullAbi==XL6_IR_NULL_ABI_POINTER_SENTINEL) break;
+        goto invalidItemProjection;
     case XL6_IR_LOOP_ITEM_NATIVE_HANDLE_BORROW:
         nativeHandleItemProjection = 1;
         if ( projectedItemType->kind == XL6_IR_TYPE_CLASS &&
@@ -22257,7 +22265,7 @@ invalidItemProjection:
                 ctx, id, node, keyTargetId, key, node->loopKeyLifetimeAbi)) return 0;
     }
     if ( materializesItem ) {
-        if ( slotMapIterator || nullableItemProjection || scalarItemProjection || closureItemProjection ||
+        if ( slotMapIterator || nullableItemProjection || scalarItemProjection || rawPointerItemProjection || closureItemProjection ||
              nativeHandleItemProjection ||
              unionItemProjection || nativeValueItemProjection || referenceItemProjection ) {
             XL6_IrTypeId dynamicType =
@@ -22277,6 +22285,8 @@ invalidItemProjection:
                 : scalarItemProjection
                 ? xl6IrLowerProjectBorrowedXValueAsScalar(
                     ctx, itemTargetId, borrowedItem, itemType)
+                : rawPointerItemProjection
+                ? xl6IrLowerProjectBorrowedXValueAsRawPointer(ctx,itemTargetId,borrowedItem,itemType)
                 : nativeHandleItemProjection
                 ? xl6IrLowerProjectBorrowedXValueAsNativeHandle(
                     ctx, itemTargetId, borrowedItem, itemType)

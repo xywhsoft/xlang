@@ -47,7 +47,8 @@ static const XL6_SequenceAdmissionOpsV2 ops={retain,drop,slot,value,equivalent,d
 
 xvalue* xl6SequenceCScalarCreateV1(unsigned int role,uint64_t identity,uint64_t element,const xrttype* type,uint64_t boxedIdentity)
 {
-    if (!identity || !element || element!=boxedIdentity || !physical(type)) {
+    if (!identity || !element || !boxedIdentity ||
+        (element!=boxedIdentity && type!=xrtTypePointer()) || !physical(type)) {
         xrtSetErrorKind(XERR_ARGUMENT); return NULL;
     }
     CScalarPolicy* data=xrtMalloc(sizeof(*data));

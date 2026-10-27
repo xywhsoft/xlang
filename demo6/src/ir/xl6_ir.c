@@ -804,6 +804,10 @@ XL6_IrNativeSlotAbi xl6IrNativeSlotAbiForType(const XL6_IrTypePool* pool, const 
             (type->kind == XL6_IR_TYPE_NULLABLE ? XL6_IR_NATIVE_SLOT_NULLABLE_STRING : XL6_IR_NATIVE_SLOT_STRING) : XL6_IR_NATIVE_SLOT_NONE;
     if (type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR || type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES)
         return type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED ? XL6_IR_NATIVE_SLOT_XVALUE_CARRIER : XL6_IR_NATIVE_SLOT_NONE;
+    if (type->cAbi == XL6_IR_C_ABI_RAW_POINTER)
+        return type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
+            type->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL
+            ? XL6_IR_NATIVE_SLOT_RAW_POINTER : XL6_IR_NATIVE_SLOT_NONE;
     switch (type->cAbi) {
     case XL6_IR_C_ABI_BOOL: return XL6_IR_NATIVE_SLOT_BOOL;
     case XL6_IR_C_ABI_I64: return XL6_IR_NATIVE_SLOT_I64;
@@ -889,6 +893,7 @@ const char* xl6IrNativeSlotAbiName(XL6_IrNativeSlotAbi abi)
     case XL6_IR_NATIVE_SLOT_C_DOUBLE: return "c-double";
     case XL6_IR_NATIVE_SLOT_C_WCHAR: return "c-wchar";
     case XL6_IR_NATIVE_SLOT_FUTURE_PTR: return "future-ptr";
+    case XL6_IR_NATIVE_SLOT_RAW_POINTER: return "raw-pointer";
     default: return "invalid";
     }
 }
@@ -1045,6 +1050,12 @@ static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool
     } else if (result.slotAbi == XL6_IR_NATIVE_SLOT_NONE ||
         result.transferAbi == XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID) {
         result.abi=XL6_IR_SEQUENCE_LAYOUT_PENDING_SLOT;
+    } else if (result.slotAbi==XL6_IR_NATIVE_SLOT_RAW_POINTER &&
+               result.transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_TRIVIAL_COPY) {
+        /* point and point<T> are non-owning native pointers, including their
+         * null sentinel. Keep the exact logical IDs in the existing native
+         * scalar recipe; neither an integer carrier nor an owning handle. */
+        result.abi=XL6_IR_SEQUENCE_LAYOUT_C_SCALAR_V1;
     } else if (base->kind==XL6_IR_TYPE_NUMERIC_ENUM &&
                result.transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_TRIVIAL_COPY &&
                xl6IrIntegerAdmissionAbi(base->integerTarget)!=XL6_VALUE_ADMIT_NONE) {
@@ -11751,6 +11762,10 @@ XL6_IrRuntimeResourcePayloadAbi xl6IrTypeResourcePayloadAbi(const XL6_IrType* ty
          type->paramCount == 1 && type->params != NULL && type->params[0] != XL6_IR_TYPE_INVALID )
         return XL6_IR_RUNTIME_RESOURCE_PAYLOAD_TRIVIAL_COPY;
     if ( type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
+         type->cAbi == XL6_IR_C_ABI_RAW_POINTER &&
+         type->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL )
+        return XL6_IR_RUNTIME_RESOURCE_PAYLOAD_TRIVIAL_COPY;
+    if ( type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
          type->nullAbi == XL6_IR_NULL_ABI_NONE &&
          (type->cAbi == XL6_IR_C_ABI_BOOL ||
           type->cAbi == XL6_IR_C_ABI_I64 ||
@@ -14668,6 +14683,7 @@ int xl6IrArrayTrivialExtractResult(const XL6_IrType* type)
 {
     return type && type->nativeSlotAbi!=XL6_IR_NATIVE_SLOT_NONE &&
         (type->cAbi==XL6_IR_C_ABI_TAGGED_NULLABLE || type->cAbi==XL6_IR_C_ABI_TYPE_ID ||
+         type->nativeSlotAbi==XL6_IR_NATIVE_SLOT_RAW_POINTER ||
          (type->cAbi>=XL6_IR_C_ABI_C_CHAR && type->cAbi<=XL6_IR_C_ABI_C_WCHAR) ||
          (type->cAbi==XL6_IR_C_ABI_I64 && type->integerTarget!=XL6_IR_INTEGER_TARGET_SIGNED_64));
 }
@@ -20355,6 +20371,11 @@ static XL6_IrLoopAbi xl6IrClassifyLoopAbi(
         resolvedItemAbi=nullable ? XL6_IR_LOOP_ITEM_NULLABLE_FUTURE_COPY : XL6_IR_LOOP_ITEM_FUTURE_COPY;
         break;
     }
+    case XL6_IR_C_ABI_RAW_POINTER:
+        if (xl6IrNativeSlotAbiForType(&module->types,itemType)!=XL6_IR_NATIVE_SLOT_RAW_POINTER ||
+            !itemType->typeValueId) return XL6_IR_LOOP_ABI_NONE;
+        resolvedItemAbi=XL6_IR_LOOP_ITEM_RAW_POINTER_COPY;
+        break;
     case XL6_IR_C_ABI_NATIVE_HANDLE:
         if ( itemType->kind != XL6_IR_TYPE_CLASS ||
              itemType->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
@@ -20537,6 +20558,7 @@ static XL6_IrLoopTargetLifetimeAbi xl6IrLoopItemLifetimeAbi(
     case XL6_IR_LOOP_ITEM_F64:
     case XL6_IR_LOOP_ITEM_TAGGED_NULLABLE_COPY:
     case XL6_IR_LOOP_ITEM_NATIVE_HANDLE_BORROW:
+    case XL6_IR_LOOP_ITEM_RAW_POINTER_COPY:
     case XL6_IR_LOOP_ITEM_UNION_COPY:
     case XL6_IR_LOOP_ITEM_PROTOCOL_PRODUCT_VALUE:
     case XL6_IR_LOOP_ITEM_GENERATOR_VALUE:
@@ -22866,7 +22888,8 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
         xl6IrTypedCollectionErrorAbi(instruction->typedCollectionOp) == XL6_IR_ERROR_ABI_MAY_RAISE) {
         if (instruction->collectionAbi==XL6_IR_COLLECTION_ARRAY &&
             (instruction->typedCollectionOp==XL6_IR_TYPED_COLLECTION_POP || instruction->typedCollectionOp==XL6_IR_TYPED_COLLECTION_TAKE) &&
-            xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,instruction->type)))
+            (xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,instruction->type)) ||
+             xl6IrArrayTrivialExtractResult(xl6IrTypeGet(&module->types,instruction->type))))
             return XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT;
         return XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE;
     }
@@ -26191,6 +26214,13 @@ static int xl6IrVerifyOperatorAbi(
                xl6IrCAbiIsIntegerScalar(result->cAbi);
     case XL6_IR_OPCODE_EQ:
     case XL6_IR_OPCODE_NE:
+        /* point<T> labels constrain typed storage and assignment. Equality
+         * compares the existing non-owning void* carriers; a raw point view
+         * must not require retagging either operand or a boxed comparison. */
+        if (xl6IrNativeSlotAbiForType(&module->types,leftType)==XL6_IR_NATIVE_SLOT_RAW_POINTER &&
+            xl6IrNativeSlotAbiForType(&module->types,rightType)==XL6_IR_NATIVE_SLOT_RAW_POINTER)
+            return result->cAbi==XL6_IR_C_ABI_BOOL;
+        /* fall through */
     case XL6_IR_OPCODE_LT:
     case XL6_IR_OPCODE_LE:
     case XL6_IR_OPCODE_GT:
@@ -40086,7 +40116,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
              node->loopKeyAbi > XL6_IR_LOOP_KEY_NATIVE_VALUE_COPY ||
              node->loopKeyAbi != expectedLoopKeyAbi ||
              node->loopItemAbi < XL6_IR_LOOP_ITEM_NONE ||
-             node->loopItemAbi > XL6_IR_LOOP_ITEM_ERROR_COPY ||
+             node->loopItemAbi > XL6_IR_LOOP_ITEM_RAW_POINTER_COPY ||
              node->loopItemAbi != expectedLoopItemAbi ||
              node->loopKeyLifetimeAbi < XL6_IR_LOOP_TARGET_LIFETIME_NONE ||
              node->loopKeyLifetimeAbi >
@@ -49490,6 +49520,7 @@ static const char* xl6IrLoopItemAbiName(XL6_IrLoopItemAbi abi)
     case XL6_IR_LOOP_ITEM_BYTES_COPY: return "bytes-copy";
     case XL6_IR_LOOP_ITEM_NULLABLE_BYTES_COPY: return "nullable-bytes-copy";
     case XL6_IR_LOOP_ITEM_ERROR_COPY: return "error-copy";
+    case XL6_IR_LOOP_ITEM_RAW_POINTER_COPY: return "raw-pointer-copy";
     case XL6_IR_LOOP_ITEM_FUTURE_COPY: return "future-copy";
     case XL6_IR_LOOP_ITEM_NULLABLE_FUTURE_COPY: return "nullable-future-copy";
     default: return "invalid";
