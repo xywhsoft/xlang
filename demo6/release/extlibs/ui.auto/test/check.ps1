@@ -47,6 +47,9 @@ try {
     & $gcc -std=c11 -Wall -Wextra -Werror -fsyntax-only `
         '-I../lib/xrt' extlibs/ui.auto/test/external_window.c
     if ($LASTEXITCODE -ne 0) { throw 'ui.auto external window GCC syntax check failed' }
+    & $gcc -std=c11 -Wall -Wextra -Werror -fsyntax-only `
+        '-I../lib/xrt' extlibs/ui.auto/test/cross_process_c.c
+    if ($LASTEXITCODE -ne 0) { throw 'ui.auto C cross-process GCC syntax check failed' }
     $xlExample = @()
     foreach ($file in @(
         'examples/extlibs/ui_auto.xl',
@@ -69,6 +72,11 @@ try {
         extlibs/uia/x_uia_artifact.c --inc-path ../lib/xrt `
         --link ole32 --link oleaut32 --link user32 -o $fixtureExe
     if ($LASTEXITCODE -ne 0) { throw 'external window fixture build failed' }
+    $crossProcessCExe = Join-Path $work 'cross_process_c.exe'
+    & $xl build extlibs/ui.auto/test/cross_process_c.c `
+        extlibs/uia/x_uia_artifact.c --inc-path ../lib/xrt `
+        --link ole32 --link oleaut32 --link user32 -o $crossProcessCExe
+    if ($LASTEXITCODE -ne 0) { throw 'ui.auto C cross-process build failed' }
     $crossProcessExe = Join-Path $work 'cross_process.exe'
     if (-not $SkipAot) {
         & $xl build extlibs/ui.auto/test/cross_process.xl -o $crossProcessExe
@@ -88,6 +96,10 @@ try {
         if ($ready.Result -cne 'ready') {
             $detail = if ($fixture.HasExited) { $fixture.StandardError.ReadToEnd() } else { 'no ready message' }
             throw "external window fixture did not start: $detail"
+        }
+        $cCrossProcess = @(& $crossProcessCExe $fixture.Id)
+        if ($LASTEXITCODE -ne 0 -or [string]::Join("`n", $cCrossProcess) -cne 'ui.auto C cross-process ok') {
+            throw "ui.auto C cross-process test failed: $cCrossProcess"
         }
         $jitCapture = Join-Path $work 'cross_process_jit.png'
         & $xl run extlibs/ui.auto/test/cross_process.xl -- $fixture.Id $jitCapture
