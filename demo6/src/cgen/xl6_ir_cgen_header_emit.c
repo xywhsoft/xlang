@@ -1,3 +1,5 @@
+#include "src/cgen/xl6_ir_cgen_native_header.h"
+
 typedef struct XL6_IrCgenHeaderOpaqueNeeds {
     int string;
     int xvalue;
@@ -187,9 +189,9 @@ static void xl6IrCgenEmitHeaderOpaqueDeclarations(
  * the implementation wrappers are.  The header cannot expose an unresolved
  * source declaration: a missing C ABI is rejected by the same preflight used
  * for the generated C translation unit. */
-int xl6IrCgenEmitHeaderWithBindings(
+static int xl6IrCgenEmitHeaderBody(
     XL6_Output* out, const XL6_IrModule* module, const char* guardName, XL6_DiagList* diags,
-    XL6_IrCgenHeaderBindingVisitor visitor, void* context)
+    XL6_IrCgenHeaderBindingVisitor visitor, void* context, int nativeContract)
 {
     XL6_IrCgenHeaderOpaqueNeeds opaqueNeeds = {0};
     unsigned char* publicTypes = NULL;
@@ -276,8 +278,14 @@ int xl6IrCgenEmitHeaderWithBindings(
               target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY) &&
              !xl6IrCgenEmitExternPrototypeWithBindings(out, module, target, diags, visitor, context) ) return 0;
     }
-    /* Imported storage is a private implementation dependency. Its extern
-     * declaration belongs in the generated C unit, not the public export ABI. */
+    /* Imported storage is not a public export. C implementations supplied by
+     * the host must nevertheless match its exact lowered declaration, just
+     * as they must match the foreign function prototypes above. */
+    if (nativeContract) {
+        for (i = 0; i < module->externGlobalCount; ++i)
+            if (!xl6IrCgenEmitExternGlobal(out, module,
+                    &module->externGlobals[i], diags)) return 0;
+    }
     if (module->exportCount != 0) {
         xl6IrCgenEmitForeignErrorDeclarations(out, 1);
         xl6OutputPuts(
@@ -343,8 +351,21 @@ int xl6IrCgenEmitHeaderWithBindings(
     return !xl6OutputHasFailed(out);
 }
 
+int xl6IrCgenEmitHeaderWithBindings(
+    XL6_Output* out, const XL6_IrModule* module, const char* guardName, XL6_DiagList* diags,
+    XL6_IrCgenHeaderBindingVisitor visitor, void* context)
+{
+    return xl6IrCgenEmitHeaderBody(out, module, guardName, diags, visitor, context, 0);
+}
+
 int xl6IrCgenEmitHeader(XL6_Output* out, const XL6_IrModule* module,
     const char* guardName, XL6_DiagList* diags)
 {
     return xl6IrCgenEmitHeaderWithBindings(out, module, guardName, diags, NULL, NULL);
+}
+
+int xl6IrCgenEmitNativeContractHeader(XL6_Output* out, const XL6_IrModule* module,
+    const char* guardName, XL6_DiagList* diags)
+{
+    return xl6IrCgenEmitHeaderBody(out, module, guardName, diags, NULL, NULL, 1);
 }
