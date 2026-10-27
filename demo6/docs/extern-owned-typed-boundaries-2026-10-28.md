@@ -63,8 +63,9 @@ Error Array 仍存储原有私有 Error 盒，提取不复制 Error 文本；本
 
 ## 双平台验收
 
-使用 Windows `driver-83` 和 Linux/WSL `linux-83` 的完整源码候选。Windows
-构建含 1296 个编译单元，Linux 含 1298 个；收尾重新核验 Windows 的 2544 项
+合并时同步主线 `e0c507a4f` 的构造器确定赋值检查；最终源码版本为
+`d4c178b7b`。使用 Windows `driver-85` 和 Linux/WSL `linux-85` 的完整源码候选。Windows
+构建含 1296 个编译单元，Linux 含 1298 个；收尾重新核验 Windows 的 2549 项
 构建输入、两端对象及产物哈希。两端公开编译门的 68 项测试输入逐字节一致。
 
 | 检查阶段 | Windows | Linux |
@@ -73,22 +74,30 @@ Error Array 仍存储原有私有 Error 盒，提取不复制 Error 文本；本
 | 独立 C 消费者及 C/IR 合同 | 29 / 29 | 29 / 29 |
 | 任务相关回归 | 18 / 18 | 18 / 18 |
 | 原审计的 27 个用例：emit/JIT/exe/AOT | 108 / 108 | 108 / 108 |
-| 合计检查阶段 | 321 / 321 | 321 / 321 |
+| 主线构造器合并回归 | 8 / 8 | 8 / 8 |
+| 合计检查阶段 | 329 / 329 | 329 / 329 |
 
-166 项中包含独立 C 门的汇总调用；321 是执行阶段数，不是独立语言用例数。
+166 项中包含独立 C 门的汇总调用；329 是执行阶段数，不是独立语言用例数。
 独立 C 门运行 O0/O2，继续拒绝 45 种非法 IR，且保留原有 OOM 与失败回滚检查。
+构造器合并回归另含 42 项控制流、24 项语义/Typed 检查和 38 项 IR 破坏控制。
 原审计目录保持原样；确认矩阵另存副本，仅将原生绑定方法的预期从“返回复制”
 改为“保留原指针”，其余用例均按原断言执行。
 
-原始回执与输入校验汇总：`build/owned-string/typed-boundaries-83/acceptance.json`。
-其中记录 `acceptance-{windows,linux}-83`、各自的 `independent-C`、
-`task-regression-{windows,linux}-83-focused`、
-`confirmation-boundaries-83/{windows,linux}`，以及两份源码构建记录的路径和哈希。
+原始回执与输入校验汇总：`build/owned-string/typed-boundaries-85/acceptance.json`。
+其中记录 `acceptance-windows-85b`、`acceptance-linux-85`、各自的 `independent-C`、
+`task-regression-{windows,linux}-85-focused`、
+`confirmation-boundaries-85/{windows,linux}`、两端构造器合并回归，以及两份源码
+构建记录的路径和哈希。
+
+合并后的首个增量候选因验证脚本遗漏带 BOM 源码的首行 include 而混入旧对象，
+已弃用。最终候选额外用 GCC `-MM` 核算 45 个编译器翻译单元，25 个受影响单元
+全部重编，没有遗留旧对象。Windows 首轮还出现一次任务退役阶段失败；单独
+复跑、新旧候选各三次对照及完整门禁重跑均通过。上述失败日志保留，不计入通过项。
 
 C emitter 文档合同门通过。全仓 source-wiring 仍有既有目录登记缺项；C fixture
 登记脚本还会把旧 `c_bridge_environment_host.c:50` 的反例路径字符串当作 include，
 在 Windows 上报无效路径。本轮新增 IR 分片已通过 include 接入，新增 C fixture
 由专项门显式引用；本验收不代表全仓登记或发布总门通过。
 
-主线合入保留其他线程未提交改动；上述测试针对本次已提交的源码。主工作区
-release 二进制没有替换，使用新功能须正常重建。
+主线合入保留其他线程未提交改动；上述测试针对本次已提交的源码。
+本轮未替换主工作区的 release 二进制，使用新功能须正常重建。
