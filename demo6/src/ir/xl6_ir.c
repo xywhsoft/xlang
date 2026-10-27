@@ -17,6 +17,7 @@ _Static_assert((int)XL6_IR_NOMINAL_IDENTITY_CLASS_RUNTIME_TAG==(int)XL6_NOMINAL_
     (int)XL6_IR_NOMINAL_IDENTITY_PROTOCOL_RUNTIME_TAG==(int)XL6_NOMINAL_ADMIT_PROTOCOL_TAG,
     "Verified nominal identity data must use the resident schema ABI");
 #include "src/type/xl6_type_model.h"
+#include "src/type/xl6_constructor_flow.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -4261,6 +4262,7 @@ static XL6_IrNodeId xl6IrBuildAstNode(
     }
     node->symbol = source->semanticSymbolId; node->targetSymbol = source->semanticTargetSymbolId;
     node->compoundOperatorSymbol = source->semanticCompoundOperatorSymbolId;
+    node->constructorReceiverSymbol = source->semanticReceiverSymbolId;
     node->callKind = source->semanticCallKind; node->lvalueKind = source->semanticLvalueKind; node->exitKind = source->semanticExitKind;
     node->scopeDepth = source->semanticScopeDepth; node->targetScopeDepth = source->semanticTargetScopeDepth;
     node->region = source->semanticRegionId; node->targetRegion = source->semanticTargetRegionId;
@@ -5650,6 +5652,19 @@ size_t xl6IrClassInitializerSpecializationCount(const XL6_IrModule* module)
     return count;
 }
 
+static int xl6IrClassHasBodyCreate(const XL6_IrModule* module,XL6_IrNodeId owner)
+{
+    const XL6_IrNode* declaration=xl6IrNodeGet(module,owner);
+    const XL6_IrNode* body=declaration&&declaration->childCount>1?
+        xl6IrNodeGet(module,module->children[declaration->firstChild+1]):NULL;
+    for(size_t i=0;body&&i<body->childCount;++i){
+        const XL6_IrNode* n=xl6IrNodeGet(module,module->children[body->firstChild+i]);
+        if(n&&n->sourceKind==XL6_AST_CREATE&&n->text&&!strcmp(n->text,"create")&&
+            n->childCount>1&&n->constructorReceiverSymbol)return 1;
+    }
+    return 0;
+}
+
 static int xl6IrBuildClassLayoutAppendField(
     XL6_IrModule* module, size_t layoutIndex, XL6_IrNodeId declaration)
 {
@@ -5736,7 +5751,9 @@ static int xl6IrBuildClassLayoutAppendField(
             item->initializerAbi = XL6_IR_INITIALIZER_EXPLICIT;
     } else {
         XL6_IrInitializerAbi nullDefault = xl6IrNullDefaultInitializerAbi(fieldType);
-        if (nullDefault != XL6_IR_INITIALIZER_NONE)
+        if (xl6IrTypeRequiresExplicitNativeInitialization(module,item->type))
+            item->initializerAbi=XL6_IR_INITIALIZER_CONSTRUCTOR_REQUIRED;
+        else if (nullDefault != XL6_IR_INITIALIZER_NONE)
             item->initializerAbi = nullDefault;
         else if ( xl6IrScalarZeroInitializerType(fieldType) )
             item->initializerAbi = XL6_IR_INITIALIZER_SCALAR_ZERO;
@@ -6471,12 +6488,18 @@ static int xl6IrRefreshClassLayoutsDetailed(
     module->classDestroyStepCount = 0;
     module->classDestroyStepCapacity = 0;
     for(size_t field=0;field<module->classFieldCount;++field) {
-        const XL6_IrClassField* item=&module->classFields[field];
+        XL6_IrClassField* item=&module->classFields[field];
         if(item->initializer==XL6_IR_NODE_INVALID &&
-           xl6IrTypeRequiresExplicitNativeInitialization(module,item->type))
-            return xl6IrClassLayoutFailure(module,failure,failureSize,
-                xl6IrNodeGet(module,item->declaration),item->type,
-                "native resource field needs explicit initialization or nullable storage");
+           xl6IrTypeRequiresExplicitNativeInitialization(module,item->type)){
+            if(!xl6IrClassHasBodyCreate(module,xl6IrBuildEnclosingClass(module,item->declaration)))
+                return xl6IrClassLayoutFailure(module,failure,failureSize,
+                    xl6IrNodeGet(module,item->declaration),item->type,
+                    "native resource field needs explicit initialization or nullable storage");
+            /* A referenced native class may be laid out after its user. Close
+             * construction obligations only when every native shape exists,
+             * independent of source/type interning order. */
+            item->initializerAbi=XL6_IR_INITIALIZER_CONSTRUCTOR_REQUIRED;
+        }
     }
     if ( !xl6IrBuildClassDestroyPlans(module) )
         return xl6IrClassLayoutFailure(
@@ -27284,6 +27307,8 @@ static int xl6IrVerifyClassFieldInitializer(
     return xl6IrVerifyInitializerGraph(module, family, owner, source, field->initializer, &remaining);
 }
 
+#include "src/ir/xl6_ir_constructor.inc"
+
 static int xl6IrVerifyClassLayouts(const XL6_IrModule* module)
 {
     size_t i;
@@ -27398,9 +27423,10 @@ static int xl6IrVerifyClassLayouts(const XL6_IrModule* module)
             size_t other;
             const XL6_IrType* fieldType = xl6IrTypeGet(&module->types, item->type);
             if (!xl6IrVerifyClassFieldInitializer(module, item)) return 0;
-            if(item->initializer==XL6_IR_NODE_INVALID &&
-               xl6IrTypeRequiresExplicitNativeInitialization(module,item->type))
-                return 0;
+            int required=item->initializer==XL6_IR_NODE_INVALID&&
+                xl6IrTypeRequiresExplicitNativeInitialization(module,item->type);
+            if((item->initializerAbi==XL6_IR_INITIALIZER_CONSTRUCTOR_REQUIRED)!=required||
+               (required&&!xl6IrClassHasBodyCreate(module,xl6IrBuildEnclosingClass(module,item->declaration))))return 0;
             XL6_IrRuntimeResourceOp expectedResourceOp =
                 item->initializerAbi ==
                         XL6_IR_INITIALIZER_RUNTIME_RESOURCE_DEFAULT
@@ -27490,6 +27516,7 @@ static int xl6IrVerifyClassLayouts(const XL6_IrModule* module)
                     fieldType->cAbi != XL6_IR_C_ABI_MANAGED_BYTES ||
                     fieldType->kind == XL6_IR_TYPE_NULLABLE)) ||
                   (item->initializer == XL6_IR_NODE_INVALID &&
+                   !required &&
                    xl6IrNullDefaultInitializerAbi(fieldType) != XL6_IR_INITIALIZER_NONE &&
                    item->initializerAbi != xl6IrNullDefaultInitializerAbi(fieldType)) ||
                    (item->initializerAbi == XL6_IR_INITIALIZER_NULL_SENTINEL &&
@@ -27534,6 +27561,7 @@ static int xl6IrVerifyClassLayouts(const XL6_IrModule* module)
                    item->initializerAbi != XL6_IR_INITIALIZER_SCALAR_ZERO &&
                     item->initializerAbi != XL6_IR_INITIALIZER_STRING_EMPTY &&
                     item->initializerAbi != XL6_IR_INITIALIZER_BYTES_EMPTY &&
+                    item->initializerAbi != XL6_IR_INITIALIZER_CONSTRUCTOR_REQUIRED &&
                      item->initializerAbi != XL6_IR_INITIALIZER_NULL_SENTINEL &&
                      item->initializerAbi != XL6_IR_INITIALIZER_XVALUE_NULL &&
                      item->initializerAbi !=
@@ -34167,6 +34195,8 @@ static const XL6_IrInstruction* xl6IrClassPreparedAllocation(
     return NULL;
 }
 
+#include "src/ir/xl6_ir_constructor_cfg.inc"
+
 static int xl6IrVerifyClassConstruction(const XL6_IrModule* module, XL6_DiagList* diags)
 {
     size_t f, i, j;
@@ -35982,6 +36012,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
     if ( !xl6IrVerifyClassLayouts(module) ) {
         return xl6IrDiag(diags, NULL, "XLIR class layout arena is malformed");
     }
+    if (!xl6IrVerifyConstructorAssignments(module,diags))return 0;
     if ( !xl6IrVerifyClassIdentityPlans(module) ) {
         return xl6IrDiag(diags, NULL, "XLIR class identity arena is not canonical");
     }
@@ -47918,6 +47949,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
              !xl6IrVerifyLoweredLayout(module, diags) ||
              !xl6IrVerifyCellConstruction(module, diags) ||
              !xl6IrVerifyClassConstruction(module, diags) ||
+             !xl6IrVerifyConstructorCfg(module, diags) ||
              !xl6IrVerifyManagedStorageInputs(module, diags) ||
              !xl6IrVerifyOwnerConsumption(module, diags) ||
              !xl6IrVerifyValueLifetimes(module, diags) ||
@@ -50407,6 +50439,7 @@ static const char* xl6IrInitializerAbiName(XL6_IrInitializerAbi abi)
     case XL6_IR_INITIALIZER_SCALAR_ZERO: return "scalar-zero";
     case XL6_IR_INITIALIZER_STRING_EMPTY: return "string-empty";
     case XL6_IR_INITIALIZER_BYTES_EMPTY: return "bytes-empty";
+    case XL6_IR_INITIALIZER_CONSTRUCTOR_REQUIRED: return "constructor-required";
     case XL6_IR_INITIALIZER_NULL_SENTINEL: return "null-sentinel";
     case XL6_IR_INITIALIZER_XVALUE_NULL: return "xvalue-null";
     case XL6_IR_INITIALIZER_XVALUE_CONTAINER_EMPTY: return "xvalue-container-empty";
@@ -52688,6 +52721,7 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
         /* Names are deliberately omitted until the shared JSON escaping helper moves here. */
         xl6OutputPrintf(out, "    {\"generatorClosePointAbi\":%d,\"generatorClosePointAbiName\":\"%s\",", (int)node->generatorClosePointAbi, xl6IrGeneratorClosePointAbiName(node->generatorClosePointAbi));
         xl6OutputPrintf(out, "\"indexReceiverGate\":%d,", (int)node->indexReceiverGate);
+        xl6OutputPrintf(out, "\"constructorReceiverSymbol\":%u,", (unsigned)node->constructorReceiverSymbol);
         xl6OutputPrintf(out, "\"id\":%lu,\"kind\":%d,\"kindName\":\"%s\",\"sourceKind\":%d,\"sourceKindName\":\"%s\",\"declarationOwnerType\":%u,\"callKind\":%d,\"callKindName\":\"%s\",\"valueCategory\":%d,\"valueCategoryName\":\"%s\",\"ownership\":%d,\"ownershipName\":\"%s\",\"ownershipPlanned\":%d,\"parent\":%u,\"line\":%d,\"column\":%d,\"firstChild\":%lu,\"childCount\":%lu,\"opcode\":%d,\"opcodeName\":\"%s\",\"operatorErrorAbi\":%d,\"operatorErrorAbiName\":\"%s\",\"operatorExecutionType\":%u,\"compoundOperatorSymbol\":%u,\"operatorOperand0Abi\":%d,\"operatorOperand0AbiName\":\"%s\",\"operatorOperand1Abi\":%d,\"operatorOperand1AbiName\":\"%s\",\"castAbi\":%d,\"castAbiName\":\"%s\",\"castErrorAbi\":%d,\"castErrorAbiName\":\"%s\",\"implicitConversionRuntimeOp\":%d,\"implicitConversionRuntimeOpName\":\"%s\",\"implicitConversionErrorAbi\":%d,\"implicitConversionErrorAbiName\":\"%s\",\"implicitNameAbi\":%d,\"implicitNameAbiName\":\"%s\",\"implicitReceiverType\":%u,\"implicitFieldDeclaration\":%u,\"namedCallableAbi\":%d,\"namedCallableAbiName\":\"%s\",\"namedCallableTargetSymbol\":%u,\"namedCallableSignatureType\":%u,\"memberAbi\":%d,\"memberAbiName\":\"%s\",\"projectionErrorAbi\":%d,\"projectionErrorAbiName\":\"%s\",\"evaluationErrorAbi\":%d,\"evaluationErrorAbiName\":\"%s\",\"constructionErrorAbi\":%d,\"constructionErrorAbiName\":\"%s\",\"unionField\":%ld,\"indexWriteAbi\":%d,\"indexWriteAbiName\":\"%s\",\"indexWriteErrorAbi\":%d,\"indexWriteErrorAbiName\":\"%s\",\"loopAbi\":%d,\"loopAbiName\":\"%s\",\"loopKeyAbi\":%d,\"loopKeyAbiName\":\"%s\",\"loopItemAbi\":%d,\"loopItemAbiName\":\"%s\",\"loopKeyLifetimeAbi\":%d,\"loopKeyLifetimeAbiName\":\"%s\",\"loopItemLifetimeAbi\":%d,\"loopItemLifetimeAbiName\":\"%s\",\"loopErrorAbi\":%d,\"loopErrorAbiName\":\"%s\",\"loopResourceAbi\":%d,\"loopResourceAbiName\":\"%s\",\"loopResourceType\":%u,\"loopProtocolIterTarget\":%u,\"loopProtocolNextTarget\":%u,\"loopProtocolIterableReceiverType\":%u,\"loopProtocolIteratorReceiverType\":%u,\"loopProtocolIteratorType\":%u,\"loopProtocolNextResultType\":%u,\"loopProtocolItemType\":%u,\"type\":%u,\"storageType\":%u,\"typeValueTarget\":%u,\"symbol\":%u,\"targetSymbol\":%u,\"scopeDepth\":%u,\"region\":%u}%s\n",
                         (unsigned long)(i + 1), (int)node->kind,
                         xl6IrNodeKindName(node->kind), (int)node->sourceKind,

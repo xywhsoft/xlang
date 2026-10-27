@@ -185,6 +185,8 @@ typedef struct XL6_AstNode {
     uint32 semanticDeclaredSymbolId;
     struct XL6_AstNode* semanticDeclaredType;
     uint32 semanticTargetSymbolId;
+    /* Exact implicit receiver bound by a language create/destroy body. */
+    uint32 semanticReceiverSymbolId;
     /* A compound assignment can name two independent callable boundaries:
      * semanticTargetSymbolId is the destination setter (when present), while
      * this field is the exact overloaded operator selected for the

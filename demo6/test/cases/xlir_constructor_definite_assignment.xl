@@ -1,0 +1,110 @@
+class RequiredNativeBase
+    protected PatternOptions baseOptions
+    create(int size)
+        self.baseOptions = PatternOptions(maxPatternBytes = size)
+    end
+    func baseSize() as int
+        return self.baseOptions.maxPatternBytes
+    end
+end
+
+class RequiredNativeOwner extends RequiredNativeBase
+    private PatternOptions options
+    create(int mode)
+        base(17)
+        if mode == 0
+            self.options = PatternOptions(maxPatternBytes = 31)
+            return
+        elseif mode == 1
+            do
+                self.options = PatternOptions(maxPatternBytes = 31)
+            while false end
+        else
+            while true
+                self.options = PatternOptions(maxPatternBytes = 31)
+                break
+            end
+        end
+    end
+    func size() as int
+        return self.options.maxPatternBytes
+    end
+end
+
+class RequiredNativeFinally
+    private PatternOptions options
+    create(bool early)
+        try
+            if early
+                return
+            end
+        finally
+            self.options = PatternOptions(maxPatternBytes = 41)
+        end
+    end
+    func size() as int
+        return self.options.maxPatternBytes
+    end
+end
+
+class RequiredNativeRecovery
+    private PatternOptions options
+    create()
+        try
+            throw "recover"
+        catch MemoryError e
+            throw
+        catch e
+            self.options = PatternOptions(maxPatternBytes = 53)
+        end
+    end
+    func size() as int
+        return self.options.maxPatternBytes
+    end
+end
+
+int requiredNativeFinalizers = 0
+func makeRequiredNativePair() as (PatternOptions, PatternOptions)
+    return PatternOptions(maxPatternBytes = 61), PatternOptions(maxPatternBytes = 67)
+end
+class RequiredNativeProduct
+    private PatternOptions first
+    private PatternOptions second
+    create()
+        self.first, self.second = makeRequiredNativePair()
+    end
+    func size() as int
+        return self.first.maxPatternBytes + self.second.maxPatternBytes
+    end
+end
+class RequiredNativeRollback
+    private PatternOptions first
+    private PatternOptions second
+    create()
+        self.first = PatternOptions()
+        throw ValueError "constructor rollback"
+    end
+    destroy()
+        requiredNativeFinalizers += 1
+    end
+end
+
+for mode in range(0, 3)
+    auto owner = RequiredNativeOwner(mode)
+    assert owner.size() == 31
+    assert owner.baseSize() == 17
+end
+assert RequiredNativeFinally(false).size() == 41
+assert RequiredNativeFinally(true).size() == 41
+assert RequiredNativeRecovery().size() == 53
+assert RequiredNativeProduct().size() == 128
+try
+    auto partial = RequiredNativeRollback()
+catch ValueError e
+    assert requiredNativeFinalizers == 0
+end
+assert requiredNativeFinalizers == 0
+assert Pattern("/item/{id}").test("/item/one")
+auto builder = PatternBuilder()
+builder.add("/item/{id}")
+assert builder.compile().test("/item/two")
