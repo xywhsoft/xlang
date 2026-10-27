@@ -133,7 +133,9 @@ static DWORD WINAPI racing(void* data)
     Race* race=data;
     while(!InterlockedCompareExchange(&race->go,0,0))SwitchToThread();
     if(race->cancel)(void)xrtFutureCancel(race->output);else complete(race->promise,0);
-    assert(xrtRuntimeRetireThreadStorage());return 0;
+    /* This foreign thread owns only its current diagnostic. Runtime storage
+     * retirement is terminal for the entire instance, not thread cleanup. */
+    xrtClearError();return 0;
 }
 static void races(void)
 {
@@ -155,7 +157,9 @@ int main(void)
     xmemdebugsnapshot before;assert(xrtMemDebugEnable(true));
     api=xl6FutureCallbackRuntimeV1Get();storage=xl6FutureCallbackRuntimeV2Get();exclusive=xl6FutureCallbackRuntimeV3Get();
     xrtSetErrorKind(XERR_STATE);xrtClearError();xrtMemDebugSnapshot(&before);
-    pending_and_ready();cancellation();unsigned faults=allocation_faults();races();balanced(&before);
+    pending_and_ready();cancellation();unsigned faults=allocation_faults();races();
+    xrtSetErrorKind(XERR_STATE);assert(xrtGetError());xrtClearError();balanced(&before);
     printf("Exclusive Future callbacks: 200 outcomes, 100 exact pending graphs, 200 source cancellations, 100 non-exclusive controls, %u allocation rollbacks, 1000 cancellation/completion races; zero live delta\n",faults);
-    return 0;
+    /* All racing threads have physically exited and no XRT entry follows. */
+    assert(xrtRuntimeRetireThreadStorage());return 0;
 }

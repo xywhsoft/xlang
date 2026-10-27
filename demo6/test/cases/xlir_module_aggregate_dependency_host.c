@@ -1,4 +1,5 @@
 #include "src/runtime/xl6_future_wait.h"
+#include "src/runtime/xl6_future_callback.h"
 static void bind_aggregate_callbacks(void);
 static void inspect_aggregate_unrooted(struct xrtownershipref, bool);
 static void begin_aggregate_probe(void);
@@ -13,6 +14,7 @@ static unsigned aggregate_mode, proof_plans, proof_members, proof_feeders, proof
 static unsigned proof_unprepared_queries;
 static unsigned proof_native_views, late_completions;
 static unsigned proof_snapshot_deferrals;
+static unsigned proof_prepare_admission_deferrals;
 static bool probe_busy;
 static XL6_OwnershipAdmissionV1 probe_resolve(xrtownershipref ref, void* context, const xrtownershipadapterv1** adapter,
     const xrtownershippreparationv1** preparation,const xrtownershipfinishv1** completion)
@@ -35,18 +37,29 @@ static void bind_aggregate_callbacks(void)
 static void proof_balanced(const xmemdebugsnapshot* before)
 {
     xmemdebugsnapshot after; xrtMemDebugSnapshot(&after);
-    assert(after.LiveCount == before->LiveCount && after.LiveBytes == before->LiveBytes &&
+    bool balanced = after.LiveCount == before->LiveCount && after.LiveBytes == before->LiveBytes &&
         after.AllocCount - before->AllocCount == after.FreeCount - before->FreeCount &&
         after.InvalidFreeCount == before->InvalidFreeCount && after.DoubleFreeCount == before->DoubleFreeCount &&
-        after.UseAfterFreeCount == before->UseAfterFreeCount);
+        after.UseAfterFreeCount == before->UseAfterFreeCount;
+    if (!balanced) fprintf(stderr,
+        "Aggregate snapshot mismatch: mode=%u width=%u transaction=%u plans=%u budgets=%u live=%llu->%llu bytes=%llu->%llu alloc=%llu free=%llu\n",
+        aggregate_mode, cycle_width, transactions, proof_plans, proof_budgets,
+        (unsigned long long)before->LiveCount, (unsigned long long)after.LiveCount,
+        (unsigned long long)before->LiveBytes, (unsigned long long)after.LiveBytes,
+        (unsigned long long)(after.AllocCount-before->AllocCount),
+        (unsigned long long)(after.FreeCount-before->FreeCount));
+    assert(balanced);
 }
 typedef struct WaitProducerSearch { const void* token; xrtownershipref output, producer; unsigned found; } WaitProducerSearch;
 typedef struct WaitQueueSearch { xrtownershipref queue; const xrtownershippreparationv1* preparation; unsigned edges; } WaitQueueSearch;
 static bool find_wait_queue(xrtownershipref ref, void* data)
 {
-    WaitQueueSearch* search = data; const XL6_ContinuationStorageV2* storage[] = {xl6ContinuationProducedStorageV2Get()};
+    WaitQueueSearch* search = data;
+    const XL6_ContinuationStorageV2* storage[] = {
+        xl6ContinuationProducedStorageV2Get(), xl6FutureCallbackQueuedStorageV2Get()};
     const xrtownershippreparationv1 *preparation = NULL, *admitted = NULL; const xrtownershipadapterv1* adapter = NULL;
-    const xrtownershipadapterv1* queue = xl6ContinuationQueueOwnershipAdapterV1(ref, storage, 1, &preparation);
+    const xrtownershipadapterv1* queue = xl6ContinuationQueueOwnershipAdapterV1(
+        ref, storage, sizeof(storage) / sizeof(storage[0]), &preparation);
     if (queue) {
         assert(resolve_probe_capability(ref, &adapter, &admitted) && adapter == queue && admitted == preparation);
         if (search->edges) assert(ref.Data == search->queue.Data && ref.Ops == search->queue.Ops);
@@ -195,10 +208,20 @@ static void inspect_aggregate_unrooted(xrtownershipref executor, bool feeder)
         quiet_executor(executor, &freeze);
         assert(resolve_probe_capability(producer, &adapter, &preparation) && preparation);
         assert(xrtOwnershipScopeEnd(&freeze));
-        xrtSetErrorKind(XERR_PROTOCOL); const xerror* primary = xrtGetError(); assert(primary && xrtMemDebugFailAfter(0));
-        xrtownershipprepareresult result = preparation->Prepare(producer.Data, plan);
-        bool failed = xrtMemDebugFailTriggered(); xrtMemDebugFailClear();
-        assert(failed && result == XRT_OWNERSHIP_PREPARE_BUSY && xrtGetError() == primary);
+        xrtSetErrorKind(XERR_PROTOCOL); const xerror* primary = xrtGetError(); assert(primary);
+        for (;;) {
+            assert(xrtMemDebugFailAfter(0));
+            xrtownershipprepareresult result = preparation->Prepare(producer.Data, plan);
+            bool failed = xrtMemDebugFailTriggered(); xrtMemDebugFailClear();
+            assert(result == XRT_OWNERSHIP_PREPARE_BUSY && xrtGetError() == primary);
+            assert_untouched();
+            if (failed) break; /* The intended scratch OOM actually ran. */
+            /* A failed nonblocking freeze has not entered that proof. Only
+             * this physical admission refusal may retry; cancellation or any
+             * other semantic duty would fail assert_untouched above. */
+            ++proof_prepare_admission_deferrals;
+            assert(!xrtDeadlineExpired(deadline)); xrtThreadYield();
+        }
         xrtClearError(); assert_untouched(); ++proof_deferrals;
     }
     for (;;) {
@@ -281,6 +304,7 @@ int main(void)
     printf("Aggregate dependency modules: 170 real unloads, six literal/array ALL/RACE/ANY modes, 72 rings, 24 feeders, 24 acyclic controls, 128 external-root checks, 48 cleanup-await roots, 704 callback finally executions, 32 snapshot budgets, %u actual OOM; original async catch/finally, complete ALL results, ANY index, MEM_FREE and exact memory balance\n", oom_failures);
     printf("Aggregate wait proof: 80 actual independently admitted module plans, 160 members, 12 feeders refused, 108 diagnostic-preserving proof budgets, 12 resource failures, 12 real producer BUSY deferrals; zero premature cancellation or semantic cleanup\n");
     printf("Aggregate snapshot admission: %u exact native-transition quiescence deferrals; every successful plan independently readmits the whole graph\n", proof_snapshot_deferrals);
+    printf("Aggregate producer admission: %u physical freeze deferrals before 12 actual scratch OOM preparations\n", proof_prepare_admission_deferrals);
     printf("Aggregate descriptor boundary: 172 unprepared-queue refusals and 172 wrong-claim refusals; actual queue preparation required\n");
     printf("Aggregate native input facts: 172 exact complete ordered views, duplicate and completed slots, ALL/ANY rules and Race-only loser cancellation; 18 success/failure/cancellation completions after module Close\n");
     return 0;
