@@ -32,6 +32,7 @@ Windows UI Automation 扩展库。C 桥接源代码和公开头文件分别为
 - 组合查询条件由系统 UIA 持有子条件；构造后可以先释放子条件。`find_all(..., timeout_ms)` 等待首次非空结果，`0` 表示即时快照；无匹配返回空数组，不设置错误。
 - `Element.find_class_path(path, process_id, timeout_ms)` 与 C 的 `x_uia_element_find_class_path` 沿生成定位器所用的 Control View 树逐段查找，不混用原始 `children()` 树；每层只扫描一次同级元素，并在等待期限内检查超时。路径段包含类名、控件类型和同签名兄弟序号，类名中的 `/[]%#` 会转义。路径必须处于接收元素的子树内；目标或进程不匹配时返回空元素且不设置错误，畸形路径或 UIA 调用失败仍报错。
 - `Element.wait_window_closed(timeout_ms)` 在窗口仍打开且超时时返回 `false`、不设置错误；关闭后返回 `true`。无效元素与查询 HWND 失败仍报错。`timeout_ms <= 0` 使用当前默认 5 秒等待。
+- 测试窗口关闭并确认线程退出后，公开的 HWND getter 返回空指针；随后请求焦点不再假报成功。焦点消息投递失败也返回错误。重复 `close()` 仍可成功，现有句柄仍可 `release()`。
 
 从 `demo6/release` 运行：
 
@@ -46,6 +47,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File extlibs/uia/test/check.ps1 -
 ## 验收状态
 
 已通过完整 XLang 范例、C/XLang 同输出范例、空事件轮询、整数 ABI 边界、自动/显式析构、TCC C 冒烟和独立 GCC/XRT C 构建。另覆盖 Win64 `VARIANT` ABI、严格 UTF-8、五个文本入口的 NUL 拒绝、子条件提前释放、跨线程拒绝、活跃句柄阻止卸载、真实焦点回调及短轮次事件订阅/释放。测试只操作包自己创建的窗口。
+
+2026-10-27：关闭测试窗口后，原生层清除失效的窗口和子控件 HWND；两个焦点请求检查 `PostMessageA`，不再在投递失败时返回成功。C 用例先复现关闭后焦点请求误报，再与 XLang 成对验证关闭、空 HWND、失败请求和句柄释放；完整 Windows `-StrictC` 门禁通过，含独立 AOT。
 
 2026-10-27：`Events.release()` 和 `TestWindow.release()` 现在仅在原生释放成功后清空句柄。COM 退订失败或自建窗口线程退出超时时，调用方仍可重试；`TestWindow` 的显式释放和自然析构不再重复关闭窗口。C 回归覆盖跨线程释放事件队列失败后，所有者仍可用同一句柄成功释放；Windows 完整 `-StrictC` 门禁的 C、JIT 和独立 AOT 均通过。
 

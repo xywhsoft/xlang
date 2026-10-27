@@ -17,6 +17,15 @@ func main(...) as int
     assert root.close_window(), "window close failed"
     assert root.wait_window_closed(1000), "closed window was not observed"
     assert uia.last_error() == "", "successful wait retained an old error"
+    assert window.close()
+    assert window.hwnd() == null, "closed window retained its HWND"
+    bool focusCaught = false
+    try
+        window.focus_edit()
+    catch ValueError
+        focusCaught = true
+    end
+    assert focusCaught, "closed window accepted a focus request"
     assert root.release()
     assert window.release()
     assert uia.shutdown()

@@ -12,13 +12,17 @@ int main(void)
     int closed = timed_out ? x_uia_element_close_window(root) : 0;
     int waited = closed ? x_uia_element_wait_window_closed(root, 1000) &&
         x_uia_last_error()[0] == '\0' : 0;
-    if (!invalid || !timed_out || !closed || !waited) {
-        fprintf(stderr, "invalid=%d timeout=%d close=%d wait=%d: %s\n",
-            invalid, timed_out, closed, waited, x_uia_last_error());
+    int closed_handle = waited && x_uia_test_window_close(window) &&
+        x_uia_test_window_hwnd(window) == NULL;
+    int focus_rejected = closed_handle && !x_uia_test_window_focus_edit(window) &&
+        x_uia_last_error()[0] != '\0';
+    if (!invalid || !timed_out || !closed || !waited || !closed_handle || !focus_rejected) {
+        fprintf(stderr, "invalid=%d timeout=%d close=%d wait=%d handle=%d focus=%d: %s\n",
+            invalid, timed_out, closed, waited, closed_handle, focus_rejected, x_uia_last_error());
     }
     if (root) x_uia_element_release(root);
     if (window) x_uia_test_window_release(window);
     x_uia_shutdown();
-    if (invalid && timed_out && closed && waited) puts("uia close/wait ok");
-    return invalid && timed_out && closed && waited ? 0 : 1;
+    if (invalid && timed_out && closed && waited && closed_handle && focus_rejected) puts("uia close/wait ok");
+    return invalid && timed_out && closed && waited && closed_handle && focus_rejected ? 0 : 1;
 }

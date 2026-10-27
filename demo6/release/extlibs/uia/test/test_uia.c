@@ -351,6 +351,13 @@ int main(void)
 		}
 	}
 	xrtValueRelease(pChildren);
+	/* 关闭后的测试窗口不得把失败的焦点消息报告为成功。 */
+	if ( !x_uia_test_window_close(pWindow) || x_uia_test_window_valid(pWindow) ||
+		x_uia_test_window_focus_edit(pWindow) ||
+		x_uia_test_window_focus_button(pWindow) ) {
+		fprintf(stderr, "UIA closed window accepted a focus request\n");
+		goto cleanup;
+	}
 	iResult = 0;
 
 cleanup:

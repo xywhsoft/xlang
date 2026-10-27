@@ -1213,7 +1213,10 @@ XL_EXPORT int x_uia_test_window_focus_edit(void* handle)
 		x_uia_set_error("test_window.focus_edit: invalid window");
 		return 0;
 	}
-	PostMessageA(win->hwnd, X_UIA_TEST_WINDOW_FOCUS_EDIT, 0u, 0);
+	if ( !PostMessageA(win->hwnd, X_UIA_TEST_WINDOW_FOCUS_EDIT, 0u, 0) ) {
+		x_uia_set_error("test_window.focus_edit: PostMessage failed");
+		return 0;
+	}
 	x_uia_set_error("");
 	return 1;
 }
@@ -1225,7 +1228,10 @@ XL_EXPORT int x_uia_test_window_focus_button(void* handle)
 		x_uia_set_error("test_window.focus_button: invalid window");
 		return 0;
 	}
-	PostMessageA(win->hwnd, X_UIA_TEST_WINDOW_FOCUS_BUTTON, 0u, 0);
+	if ( !PostMessageA(win->hwnd, X_UIA_TEST_WINDOW_FOCUS_BUTTON, 0u, 0) ) {
+		x_uia_set_error("test_window.focus_button: PostMessage failed");
+		return 0;
+	}
 	x_uia_set_error("");
 	return 1;
 }
@@ -1247,6 +1253,10 @@ XL_EXPORT int x_uia_test_window_close(void* handle)
 			return 0;
 		}
 	}
+	win->hwnd = NULL;
+	win->edit_hwnd = NULL;
+	win->button_hwnd = NULL;
+	win->checkbox_hwnd = NULL;
 	x_uia_set_error("");
 	return 1;
 }
