@@ -1,5 +1,11 @@
 # dotenv
 
+2026-10-27 当前 Windows 发布版复验：默认 `test/check.ps1` 退出 0，
+覆盖严格 C、C/XLang 范例、限额、进程环境写入与构造分配故障、
+配置替换，以及对应的独立 EXE。下文旧版缺共享符号或头文件顺序
+错误的记录均为历史状态；本次未重建 Linux 发布物，不据此签收
+新 Linux AOT 或长期进程环境压力。
+
 UTF-8 `.env` 配置库。C 使用 `include/xrt_dotenv.h`，XLang 使用 `import dotenv`。
 每份 `Config` 独立持有键值；`parse`、`load` 成功后才替换现有内容，不会把半份
 配置暴露给调用方，也不会默认改写进程环境。
