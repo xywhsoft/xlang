@@ -11,8 +11,11 @@ func main(...) as int
     assert first.contains("viewBox=\"0 0 116 116\"")
     assert first.contains("</svg>") and second.contains("</svg>")
     assert first != second
-    assert qr.ascii("HELLO WORLD").contains("##")
-    assert qr.utf8("HELLO WORLD").contains("█")
+    string ascii = qr.ascii("HELLO WORLD")
+    string halfBlocks = qr.utf8("HELLO WORLD")
+    assert ascii.contains("##")
+    assert halfBlocks.contains("█")
+    assert ascii != halfBlocks
 
     bool badCell = false
     try
@@ -21,6 +24,8 @@ func main(...) as int
         badCell = true
     end
     assert badCell, "line break in render cell rejected"
+    assert first.contains("</svg>") and second.contains("</svg>")
+    assert ascii.contains("##") and halfBlocks.contains("█")
 
     string longText = ""
     for i in range(1000)

@@ -2,13 +2,13 @@ extern "xqr_matrix_n" func __qr_matrix(string text, c_size length,
     string level, c_size levelLength) as var
 extern "xqr_version_n" func __qr_version(string text, c_size length,
     string level, c_size levelLength) as int
-extern "xqr_ascii_n" func __qr_ascii(string text, c_size length,
+extern "xqr_ascii_n" @owned func __qr_ascii(string text, c_size length,
     string level, c_size levelLength, string dark, c_size darkLength,
-    string light, c_size lightLength) as point
-extern "xqr_utf8_n" func __qr_utf8(string text, c_size length,
-    string level, c_size levelLength) as point
-extern "xqr_svg_n" func __qr_svg(string text, c_size length,
-    string level, c_size levelLength, int border, int scale) as point
+    string light, c_size lightLength) as string?
+extern "xqr_utf8_n" @owned func __qr_utf8(string text, c_size length,
+    string level, c_size levelLength) as string?
+extern "xqr_svg_n" @owned func __qr_svg(string text, c_size length,
+    string level, c_size levelLength, int border, int scale) as string?
 
 
 
@@ -36,27 +36,27 @@ end
 // ascii 用给定明暗字符渲染二维码（默认可传空串使用 "##" 与 "  "）
 export func ascii(string text, string level = "M", string dark = "##",
     string light = "  ") as string
-    point result = __qr_ascii(text, c_size(string.byteLen(text)),
+    string? result = __qr_ascii(text, c_size(string.byteLen(text)),
         level, c_size(string.byteLen(level)),
         dark, c_size(string.byteLen(dark)),
         light, c_size(string.byteLen(light)))
     if result == null then throw ValueError "qr: cannot render ASCII code" end
-    return __xl_runtime.takeCstr(result)
+    return result
 end
 
 // utf8 用半块字符渲染，两行模块合并为一行输出
 export func utf8(string text, string level = "M") as string
-    point result = __qr_utf8(text, c_size(string.byteLen(text)),
+    string? result = __qr_utf8(text, c_size(string.byteLen(text)),
         level, c_size(string.byteLen(level)))
     if result == null then throw ValueError "qr: cannot render UTF-8 code" end
-    return __xl_runtime.takeCstr(result)
+    return result
 end
 
 // svg 生成矢量图；border 为静区模块数，scale 为每模块像素
 export func svg(string text, string level = "M", int border = 4,
     int scale = 4) as string
-    point result = __qr_svg(text, c_size(string.byteLen(text)),
+    string? result = __qr_svg(text, c_size(string.byteLen(text)),
         level, c_size(string.byteLen(level)), border, scale)
     if result == null then throw ValueError "qr: cannot render SVG code" end
-    return __xl_runtime.takeCstr(result)
+    return result
 end

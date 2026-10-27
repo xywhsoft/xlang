@@ -17,13 +17,13 @@ int64_t xqr_version_n(const char *text, size_t length,
     const char *level, size_t levelSize);
 
 /* 三种渲染结果均为独立 XRT 字符串，调用方用 xrtFree。 */
-void *xqr_ascii_n(const char *text, size_t length,
+char *xqr_ascii_n(const char *text, size_t length,
     const char *level, size_t levelSize,
     const char *dark, size_t darkSize,
     const char *light, size_t lightSize);
-void *xqr_utf8_n(const char *text, size_t length,
+char *xqr_utf8_n(const char *text, size_t length,
     const char *level, size_t levelSize);
-void *xqr_svg_n(const char *text, size_t length,
+char *xqr_svg_n(const char *text, size_t length,
     const char *level, size_t levelSize,
     int64_t border, int64_t scale);
 

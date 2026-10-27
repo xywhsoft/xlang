@@ -773,13 +773,13 @@ static int xqr_append(xbuffer *output, const char *text, size_t size) {
     return xrtBufferAppend(output, (xbytesview){(const uint8 *)text, size});
 }
 
-static void *xqr_finish(xbuffer *output) {
-    void *result;
+static char *xqr_finish(xbuffer *output) {
+    char *result;
     if (!xrtBufferAppendByte(output, 0)) {
         xrtBufferUnit(output);
         return NULL;
     }
-    result = xrtBufferTake(output, NULL, NULL);
+    result = (char *)xrtBufferTake(output, NULL, NULL);
     if (result == NULL) xrtBufferUnit(output);
     return result;
 }
@@ -799,7 +799,7 @@ static int xqr_valid_cell(const char *text, size_t size) {
     return 1;
 }
 
-void *xqr_ascii_n(const char *text, size_t length,
+char *xqr_ascii_n(const char *text, size_t length,
     const char *level, size_t levelSize,
     const char *dark, size_t darkSize,
     const char *light, size_t lightSize) {
@@ -845,7 +845,7 @@ fail:
     return NULL;
 }
 
-void *xqr_utf8_n(const char *text, size_t length,
+char *xqr_utf8_n(const char *text, size_t length,
     const char *level, size_t levelSize) {
     /* 两行模块合成一行，半块字符直接写入独立缓冲。 */
     XqrMatrix m;
@@ -880,7 +880,7 @@ fail:
     return NULL;
 }
 
-void *xqr_svg_n(const char *text, size_t length,
+char *xqr_svg_n(const char *text, size_t length,
     const char *level, size_t levelSize,
     int64_t border, int64_t scale) {
     XqrMatrix m;
