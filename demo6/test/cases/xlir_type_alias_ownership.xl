@@ -1,0 +1,157 @@
+typedef OwnedText = string
+typedef OwnedData = bytes
+typedef TextSequence = array<OwnedText>
+typedef TextSequenceAlias = TextSequence
+typedef SparseTexts = list<OwnedText>
+typedef NamedTexts = dict<OwnedText>
+typedef UniqueNumbers = set<int>
+typedef DynamicItem = var
+typedef DynamicItems = array<DynamicItem>
+typedef MaybeText = OwnedText?
+typedef MaybeTextAlias = MaybeText
+typedef TextReader = func() as TextSequenceAlias
+typedef Failure = error
+typedef Count = int
+
+int aliasPayloadsDestroyed = 0
+
+class AliasPayload
+    int value = 29
+    destroy()
+        aliasPayloadsDestroyed += 1
+    end
+end
+
+typedef Payload = AliasPayload
+typedef Payloads = array<Payload>
+
+func makeTexts() as TextSequenceAlias
+    return array["a\0你", "second"]
+end
+
+func makeSparse() as SparseTexts
+    return list[2: "two", 5: "five\0你"]
+end
+
+func makeNamed() as NamedTexts
+    return dict{"key": "value\0你"}
+end
+
+func makeUnique() as UniqueNumbers
+    return set{3, 5, 7}
+end
+
+func keepTexts(TextSequenceAlias items) as TextSequenceAlias
+    assert items[0] == "a\0你"
+    return items
+end
+
+func replaceData(OwnedData data) as OwnedData
+    data[0] = 98
+    return data
+end
+
+func makeMaybe() as MaybeTextAlias
+    return "optional\0你"
+end
+
+func keepPayload(Payload payload) as Payload
+    return payload
+end
+
+func readCause(Failure failure) as Failure
+    return failure.cause
+end
+
+class AliasReaders
+    TextReader texts = makeTexts
+    get values() as TextSequenceAlias
+        return makeTexts()
+    end
+end
+
+func checkIteration()
+    Count count = 0
+    for text in makeTexts()
+        assert text == "a\0你" or text == "second"
+        count += 1
+    end
+    assert count == 2
+    Count positions = 0
+    for index, text in makeSparse()
+        assert (index == 2 and text == "two") or (index == 5 and text == "five\0你")
+        positions += index
+    end
+    assert positions == 7
+    Count mappings = 0
+    for key, data in makeNamed()
+        assert key == "key" and data == "value\0你"
+        mappings += 1
+    end
+    assert mappings == 1
+    Count sum = 0
+    for number in makeUnique()
+        sum += number
+    end
+    assert sum == 15
+    auto readers = AliasReaders()
+    count = 0
+    for text in readers.texts()
+        count += 1
+    end
+    for text in readers.values
+        count += 1
+    end
+    assert count == 4
+end
+
+func checkValues()
+    TextSequence texts = keepTexts(makeTexts())
+    OwnedText first = texts[0]
+    texts[0] = "replaced"
+    assert first == "a\0你"
+    OwnedData original = b"a\0\xff"
+    OwnedData changed = replaceData(original)
+    assert original == b"a\0\xff" and changed == b"b\0\xff"
+    MaybeTextAlias maybe = makeMaybe()
+    assert maybe != null and maybe == "optional\0你"
+    DynamicItems items = array["dynamic\0你", 42]
+    DynamicItem dynamic = items[0]
+    items[0] = "replaced"
+    assert string(dynamic) == "dynamic\0你"
+    DynamicItems? optional = items
+    auto safe = optional?[1]
+    assert safe == 42
+end
+
+func checkPayloads()
+    Payloads items = array[AliasPayload()]
+    Payload item = keepPayload(items[0])
+    assert item.value == 29
+    Payloads? optional = items
+    auto safe = optional?[0]
+    assert safe != null and safe.value == 29
+end
+
+func checkErrors()
+    bool caught = false
+    try
+        throw ValueError "failure\0你"
+    catch ValueError failure
+        Failure alias = failure
+        Failure cause = readCause(alias)
+        assert alias.message == "failure\0你" and cause.domain == ""
+        caught = true
+    end
+    assert caught
+end
+
+func main(...) as int
+    checkIteration()
+    checkValues()
+    checkPayloads()
+    assert aliasPayloadsDestroyed == 1
+    checkErrors()
+    println("type alias ownership: canonical returns, arguments, indexes and cleanup")
+    return 0
+end

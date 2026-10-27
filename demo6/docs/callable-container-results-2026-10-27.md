@@ -48,8 +48,9 @@ GCC 编译检查失败；其 JIT／module／AOT 和新夹具均已通过。r3 �
 
 另行缩减出 `typedef AliasItems = array<int>` 的直接函数返回后迭代问题，
 修改前后均在 canonical iterator ABI 处拒绝，确认是既有独立缺口。本批
-覆盖别名结果的保存和读取，不据此声称已经覆盖别名迭代。typed point 的
-Sequence 准入问题也继续保留。
+覆盖别名结果的保存和读取，不据此声称已经覆盖别名迭代。该迭代缺口已由
+后续 [别名所有权规划](type-alias-ownership-2026-10-27.md) 修复；typed point
+的 Sequence 准入问题继续保留。
 
 完整 74-worker 场景使用另一份已冻结的 native-global 候选继续运行；
 该候选没有本批语义修改，不回填其结果，也不修改运行中的源码或报告。

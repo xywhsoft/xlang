@@ -244,7 +244,7 @@ static int xl6SemExprCanMatchParamType(
     XL6_SemContext* ctx,
     const XL6_AstNode* expr,
     const XL6_AstNode* typeNode);
-static int xl6SemPlanTypeIsManaged(const XL6_AstNode* type);
+static int xl6SemPlanTypeIsManaged(XL6_SemContext* ctx, const XL6_AstNode* type);
 static int xl6SemTypeCanAssignFromType(
     XL6_SemContext* ctx,
     const XL6_AstNode* valueType,
@@ -1656,6 +1656,7 @@ static unsigned int xl6SemParamMode(const XL6_AstNode* param)
 }
 
 static void xl6SemAnnotateCallArgOwnership(
+    XL6_SemContext* ctx,
     XL6_AstNode* arg,
     const XL6_AstNode* param
 )
@@ -1674,8 +1675,8 @@ static void xl6SemAnnotateCallArgOwnership(
     } else if ( mode == XL6_AST_FLAG_BYVAL ) {
         ownership = XL6_SEM_OWNERSHIP_COPY;
     } else if ( (param != NULL && param->childCount > 0 &&
-                 xl6SemPlanTypeIsManaged(param->children[0])) ||
-                (expr != NULL && xl6SemPlanTypeIsManaged(expr->inferredType)) ) {
+                 xl6SemPlanTypeIsManaged(ctx, param->children[0])) ||
+                (expr != NULL && xl6SemPlanTypeIsManaged(ctx, expr->inferredType)) ) {
         /*
          * 泛型形参在这里仍可能只是 T，无法单独判断实例化后的生命周期。
          * 实参已经完成类型推断，因此同时用它确认托管语义：class、容器和
@@ -3529,7 +3530,7 @@ static void xl6SemAnnotateResolvedCallOwnership(
             param = params->children[fixedCount];
         }
         if ( param != NULL ) {
-            xl6SemAnnotateCallArgOwnership(arg, param);
+            xl6SemAnnotateCallArgOwnership(ctx, arg, param);
         }
     }
 }
@@ -8744,7 +8745,7 @@ static int xl6SemCheckKnownCall(XL6_SemContext* ctx, XL6_AstNode* call, XL6_AstN
                 }
                 index = xl6SemFindParamIndex(params, fixedCount, arg->text);
                 if ( index >= 0 ) {
-                    xl6SemAnnotateCallArgOwnership(arg, params->children[index]);
+                    xl6SemAnnotateCallArgOwnership(ctx, arg, params->children[index]);
                     if ( provided[index] ) {
                         xl6SemErrorNode(ctx, arg, "重复传入同一个命名参数");
                         ok = 0;
@@ -8756,6 +8757,7 @@ static int xl6SemCheckKnownCall(XL6_SemContext* ctx, XL6_AstNode* call, XL6_AstN
                 } else if ( params != NULL &&
                             params->childCount > (size_t)fixedCount ) {
                     xl6SemAnnotateCallArgOwnership(
+                        ctx,
                         arg,
                         params->children[fixedCount]
                     );
@@ -8774,6 +8776,7 @@ static int xl6SemCheckKnownCall(XL6_SemContext* ctx, XL6_AstNode* call, XL6_AstN
                 }
                 if ( positionalIndex < fixedCount ) {
                     xl6SemAnnotateCallArgOwnership(
+                        ctx,
                         arg,
                         params->children[positionalIndex]
                     );
@@ -8789,6 +8792,7 @@ static int xl6SemCheckKnownCall(XL6_SemContext* ctx, XL6_AstNode* call, XL6_AstN
                 } else if ( params != NULL &&
                             params->childCount > (size_t)fixedCount ) {
                     xl6SemAnnotateCallArgOwnership(
+                        ctx,
                         arg,
                         params->children[fixedCount]
                     );
@@ -25166,15 +25170,29 @@ static int xl6SemPlanNodeIsCallable(const XL6_AstNode* node)
     }
 }
 
-static int xl6SemPlanTypeIsManaged(const XL6_AstNode* type)
+/* Planning consumes the same alias targets as semantic checking, while the
+ * registry is still alive. Peeling nullable wrappers is read-only and bounded
+ * like the existing alias queries, including on already rejected input. */
+static const XL6_AstNode* xl6SemPlanValueType(
+    XL6_SemContext* ctx, const XL6_AstNode* type)
+{
+    for (unsigned depth = 0; depth < 32; ++depth) {
+        const XL6_AstNode* inner;
+        type = xl6SemResolveAliasType(ctx, type);
+        inner = xl6SemNullableInnerType(type);
+        if (inner == NULL) return type;
+        type = inner;
+    }
+    return NULL;
+}
+
+static int xl6SemPlanTypeIsManaged(XL6_SemContext* ctx, const XL6_AstNode* type)
 {
     const char* name;
 
+    type = xl6SemPlanValueType(ctx, type);
     if ( type == NULL ) {
         return 0;
-    }
-    if ( xl6SemTypeIsNullable(type) ) {
-        return xl6SemPlanTypeIsManaged(xl6SemNullableInnerType(type));
     }
     name = type->text;
     if ( name == NULL ) {
@@ -25198,15 +25216,8 @@ static int xl6SemPlanTypeIsManaged(const XL6_AstNode* type)
            xl6TextEquals(name, "generator");
 }
 
-static const XL6_AstNode* xl6SemPlanNullableInnerOrSelf(const XL6_AstNode* type)
-{
-    const XL6_AstNode* inner;
-
-    inner = xl6SemNullableInnerType(type);
-    return inner != NULL ? inner : type;
-}
-
-static int xl6SemPlanIndexReceiverIsTypedContainer(const XL6_AstNode* node)
+static int xl6SemPlanIndexReceiverIsTypedContainer(
+    XL6_SemContext* ctx, const XL6_AstNode* node)
 {
     const XL6_AstNode* receiver;
     const XL6_AstNode* receiverType;
@@ -25218,11 +25229,11 @@ static int xl6SemPlanIndexReceiverIsTypedContainer(const XL6_AstNode* node)
     }
     receiver = node->children[0];
     receiverType = receiver != NULL ?
-        xl6SemPlanNullableInnerOrSelf(receiver->inferredType) :
+        xl6SemPlanValueType(ctx, receiver->inferredType) :
         NULL;
     args = xl6SemTypeNodeGenericArgs(receiverType);
     itemType = args != NULL && args->childCount == 1 ?
-        xl6SemPlanNullableInnerOrSelf(args->children[0]) :
+        xl6SemPlanValueType(ctx, args->children[0]) :
         NULL;
     return receiverType != NULL &&
            args != NULL &&
@@ -25234,7 +25245,8 @@ static int xl6SemPlanIndexReceiverIsTypedContainer(const XL6_AstNode* node)
             xl6TextEquals(receiverType->text, "dict"));
 }
 
-static int xl6SemPlanTypedIndexMaterializesOwnedValue(const XL6_AstNode* node)
+static int xl6SemPlanTypedIndexMaterializesOwnedValue(
+    XL6_SemContext* ctx, const XL6_AstNode* node)
 {
     const XL6_AstNode* valueType;
     const char* name;
@@ -25242,7 +25254,7 @@ static int xl6SemPlanTypedIndexMaterializesOwnedValue(const XL6_AstNode* node)
     if ( node == NULL ) {
         return 0;
     }
-    valueType = xl6SemPlanNullableInnerOrSelf(node->inferredType);
+    valueType = xl6SemPlanValueType(ctx, node->inferredType);
     name = valueType != NULL ? valueType->text : NULL;
     if ( name == NULL ) {
         return 0;
@@ -25258,6 +25270,7 @@ static int xl6SemPlanTypedIndexMaterializesOwnedValue(const XL6_AstNode* node)
 }
 
 static XL6_SemOwnershipAction xl6SemPlanValueOwnership(
+    XL6_SemContext* ctx,
     const XL6_AstNode* node
 )
 {
@@ -25271,7 +25284,7 @@ static XL6_SemOwnershipAction xl6SemPlanValueOwnership(
      */
     if ( node->semanticCallKind == XL6_SEM_CALL_PROPERTY_GET ||
          node->semanticCallKind == XL6_SEM_CALL_WITNESS ) {
-        return xl6SemPlanTypeIsManaged(node->inferredType) ?
+        return xl6SemPlanTypeIsManaged(ctx, node->inferredType) ?
             XL6_SEM_OWNERSHIP_MOVE :
             XL6_SEM_OWNERSHIP_COPY;
     }
@@ -25281,10 +25294,10 @@ static XL6_SemOwnershipAction xl6SemPlanValueOwnership(
      * 嵌套容器、tagged enum 和安全 string 索引仍借用底层值，由目标负责复制。
      */
     if ( node->kind == XL6_AST_INDEX || node->kind == XL6_AST_SAFE_INDEX ) {
-        int typedContainer = xl6SemPlanIndexReceiverIsTypedContainer(node);
-        int managed = xl6SemPlanTypeIsManaged(node->inferredType);
+        int typedContainer = xl6SemPlanIndexReceiverIsTypedContainer(ctx, node);
+        int managed = xl6SemPlanTypeIsManaged(ctx, node->inferredType);
 
-        if ( typedContainer && xl6SemPlanTypedIndexMaterializesOwnedValue(node) ) {
+        if ( typedContainer && xl6SemPlanTypedIndexMaterializesOwnedValue(ctx, node) ) {
             return XL6_SEM_OWNERSHIP_MOVE;
         }
         if ( node->kind == XL6_AST_SAFE_INDEX && !typedContainer ) {
@@ -25299,17 +25312,18 @@ static XL6_SemOwnershipAction xl6SemPlanValueOwnership(
     if ( node->kind == XL6_AST_MEMBER &&
          xl6TextEquals(node->text, "cause") &&
          node->childCount > 0 &&
-         node->children[0] != NULL &&
-         node->children[0]->inferredType != NULL &&
-         xl6TextEquals(node->children[0]->inferredType->text, "error") ) {
-        return XL6_SEM_OWNERSHIP_MOVE;
+         node->children[0] != NULL ) {
+        const XL6_AstNode* receiverType =
+            xl6SemPlanValueType(ctx, node->children[0]->inferredType);
+        if (receiverType != NULL && xl6TextEquals(receiverType->text, "error"))
+            return XL6_SEM_OWNERSHIP_MOVE;
     }
     if ( node->kind == XL6_AST_NAME ||
          node->kind == XL6_AST_MEMBER ||
          node->kind == XL6_AST_SAFE_MEMBER ) {
         return XL6_SEM_OWNERSHIP_BORROW;
     }
-    if ( xl6SemPlanTypeIsManaged(node->inferredType) ) {
+    if ( xl6SemPlanTypeIsManaged(ctx, node->inferredType) ) {
         return XL6_SEM_OWNERSHIP_MOVE;
     }
     return node->inferredType != NULL ?
@@ -25348,6 +25362,7 @@ static uint32 xl6SemPlanReserveRegion(XL6_SemPlanWalkState* state)
 }
 
 static void xl6SemAnnotateExecutionPlans(
+    XL6_SemContext* ctx,
     XL6_AstNode* node,
     const XL6_SemPlanWalkState* state
 )
@@ -25363,7 +25378,7 @@ static void xl6SemAnnotateExecutionPlans(
     node->semanticScopeDepth = state->scopeDepth;
     node->semanticRegionId = state->currentRegion;
     if ( node->semanticOwnership == XL6_SEM_OWNERSHIP_NONE ) {
-        node->semanticOwnership = xl6SemPlanValueOwnership(node);
+        node->semanticOwnership = xl6SemPlanValueOwnership(ctx, node);
     }
 
     childState = *state;
@@ -25460,13 +25475,13 @@ static void xl6SemAnnotateExecutionPlans(
                 tryChildState.exceptionTargetScopeDepth = state->exceptionTargetScopeDepth;
                 tryChildState.exceptionTargetRegion = state->exceptionTargetRegion;
             }
-            xl6SemAnnotateExecutionPlans(node->children[i], &tryChildState);
+            xl6SemAnnotateExecutionPlans(ctx, node->children[i], &tryChildState);
         }
         return;
     }
 
     for ( i = 0; i < node->childCount; ++i ) {
-        xl6SemAnnotateExecutionPlans(node->children[i], &childState);
+        xl6SemAnnotateExecutionPlans(ctx, node->children[i], &childState);
     }
 }
 
@@ -25798,7 +25813,7 @@ int xl6SemCheckModuleWithQuery(
         planState.functionTargetRegion = 1;
         planState.exceptionTargetRegion = 1;
         planState.nextRegion = &nextRegion;
-        xl6SemAnnotateExecutionPlans(root, &planState);
+        xl6SemAnnotateExecutionPlans(&ctx, root, &planState);
     }
     xl6SemPopScope(&ctx, &globalScope);
     xrtFree(ctx.flowFacts);
