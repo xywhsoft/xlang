@@ -1,0 +1,15 @@
+// Parameter names shadow globals inside every declaration's default scope.
+c_int first=c_int(99)
+extern "owned_task_default_pair" @owned func pair(c_int first=c_int(7),c_uint second=c_uint(first+2)) as string
+assert pair()=="pair" and pair(c_int(7))=="pair"
+assert first==c_int(99)
+func(c_int) as string short=pair
+func() as string zero=pair
+assert short(c_int(7))=="pair" and zero()=="pair"
+class API
+    static extern "owned_task_default_pair" @owned func Pair(c_int first,c_uint second=c_uint(first+2)) as string
+end
+assert API.Pair(c_int(7))=="pair"
+func(c_int) as string method=API.Pair
+assert method(c_int(7))=="pair"
+assert await task.spawn(short,c_int(7))=="pair"

@@ -21014,6 +21014,8 @@ static int xl6SemCheckExternFunc(XL6_SemContext* ctx, XL6_AstNode* node)
     int seenOptional = 0;
 
     ok = 1;
+    XL6_Scope parameterScope;
+    xl6SemPushScope(ctx,&parameterScope);
     params = node->childCount > 1 ? node->children[1] : NULL;
     if ( params != NULL ) {
         for ( i = 0; i < params->childCount; ++i ) {
@@ -21039,9 +21041,12 @@ static int xl6SemCheckExternFunc(XL6_SemContext* ctx, XL6_AstNode* node)
                 xl6SemErrorNode(ctx, param, "required extern parameter follows an optional parameter");
                 ok = 0;
             }
+            if (!xl6SemParamIsVararg(param) && param->text &&
+                !xl6ScopeAddTyped(ctx,param,XL6_SYM_VALUE,param->childCount ? param->children[0] : NULL)) ok=0;
         }
     }
 
+    xl6SemPopScope(ctx,&parameterScope);
     returns = node->childCount > 2 ? node->children[2] : NULL;
     if ( returns != NULL ) {
         for ( i = 0; i < returns->childCount; ++i ) {
@@ -21248,6 +21253,15 @@ static int xl6SemCheckParamListOnly(
         }
     }
     return ok;
+}
+
+/* Foreign declarations have no body scope, but their defaults have the same
+ * preceding-parameter scope as language functions. No runtime slots exist. */
+static int xl6SemCheckForeignParamDefaults(XL6_SemContext* ctx,XL6_AstNode* params)
+{
+    XL6_Scope scope;xl6SemPushScope(ctx,&scope);
+    int ok=xl6SemCheckParamListOnly(ctx,params,1,1);
+    xl6SemPopScope(ctx,&scope);return ok;
 }
 
 static int xl6SemCheckSignatureReturnTypes(XL6_SemContext* ctx, XL6_AstNode* returns, int generatorAllowed)
@@ -22806,7 +22820,7 @@ static int xl6SemCheckClassExternSpecial(XL6_SemContext* ctx, XL6_AstNode* class
         xl6SemErrorNode(ctx, nameNode, "native-backed class destroy cannot declare parameters");
         ok = 0;
     }
-    if ( !xl6SemCheckParamListOnly(ctx, params, 0, 1) ) {
+    if ( !xl6SemCheckForeignParamDefaults(ctx, params) ) {
         ok = 0;
     }
     if ( !xl6SemCheckClassExternParamsNoVararg(ctx, params, 0) ) {
@@ -22830,7 +22844,7 @@ static int xl6SemCheckClassExternFunc(XL6_SemContext* ctx, XL6_AstNode* classNod
         xl6SemErrorNode(ctx, nameNode, "class native create/destroy must use the special extern declaration form");
         ok = 0;
     }
-    if ( node->childCount > 1 && !xl6SemCheckParamListOnly(ctx, node->children[1], 0, 1) ) {
+    if ( node->childCount > 1 && !xl6SemCheckForeignParamDefaults(ctx, node->children[1]) ) {
         ok = 0;
     }
     if ( node->childCount > 1 && !xl6SemCheckClassExternParamsNoVararg(ctx, node->children[1], 1) ) {
