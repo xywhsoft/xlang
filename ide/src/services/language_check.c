@@ -499,6 +499,13 @@ int xideLanguageCheckCaptureReferences(xide_language_check* q,xide_reference_sha
  EnterCriticalSection(&q->lock);int okay=q->referenceMode && q->state==XIDE_CHECK_READY && q->guardState==XIDE_GUARD_RUNNING && !cancelled(q) && q->referenceShard;
  if(okay){*shard=xideSemanticReferenceShardRetain(q->referenceShard);*key=xideSemanticReferenceKeyRetain(q->referenceKey);}LeaveCriticalSection(&q->lock);return okay;
 }
+int xideLanguageCheckReferenceSourceRejected(xide_language_check* q)
+{
+ if(!q)return 0;
+ EnterCriticalSection(&q->lock);bool accepted=true;const xvalue* diagnostics=get(q->result,"diagnostics");
+ int rejected=q->nativeSemantic && q->referenceMode && q->state==XIDE_CHECK_READY && q->guardState==XIDE_GUARD_RUNNING && !cancelled(q) && !q->referenceShard && xrtValueGetBool(get(q->result,"ok"),&accepted) && !accepted && xrtValueType(diagnostics)==XVALUE_ARRAY && xrtValueCount(diagnostics)>0;
+ LeaveCriticalSection(&q->lock);return rejected;
+}
 int xideLanguageCheckReferenceWork(xide_language_check* q,xls_check_stats* work,xls_worker_cache_stats* sessions,xide_navigation_work* navigation)
 {
  if(work)memset(work,0,sizeof(*work));

@@ -73,6 +73,8 @@ xide_language_check* xideLanguageCheckStartReferenceCapture(xls_context* context
  const xls_analysis_document* documents,size_t count,const char* trigger,
  const char* keyPath,int line,int character,const xide_language_analysis_options* options,xide_model_error* error);
 int xideLanguageCheckCaptureReferences(xide_language_check* check,xide_reference_shard** shard,xide_reference_key** key);
+/* Native guarded source rejection only;not infrastructure/quota/cancel. */
+int xideLanguageCheckReferenceSourceRejected(xide_language_check* check);
 /* Read-only work snapshots for the actual successful reference capture.
  * Check counters are cumulative worker totals,not per-request full-function
  * work;navigation counts describe this capture. No JSON,hashing or I/O. */

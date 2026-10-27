@@ -25,8 +25,8 @@ struct xide_project_references {xtaskpool* pool;xls_worker *analysis,*keys,*memb
 struct xide_reference_query {xfuture* future;xfuturewatch watch;int initialized,linked;void (*wake)(void*);void* user;};
 typedef struct reference_input {xide_project_references* store;xls_context* scope;xls_analysis_document docs[64];path_index paths;size_t count;char *trigger,*path;int line,character,include,proof;} reference_input;
 typedef struct reference_output {xvalue* locations;xide_project_reference_stats stats;uint64_t memberThreads[XIDE_REFERENCE_MEMBER_WORKERS];char error[512];} reference_output;
-typedef struct reference_job {const char* path;xevent* event;xide_language_check* check;reference_record* record;int fresh;char error[512];} reference_job;
-typedef struct root {char* path;wchar_t* key;} root;
+typedef struct reference_job {const char* path;xevent* event;xide_language_check* check;reference_record* record;int fresh,sourceRejected;char error[512];} reference_job;
+typedef struct root {char* path;wchar_t* key;int covered,mustAnalyze;char* rejection;reference_record* cached;} root;
 typedef struct result_row {char* path;wchar_t* key;xide_lsp_position start,end;const xvalue* proof;} result_row;
 static xstrview sv(const char* s){return (xstrview){s,strlen(s)};}
 static const xvalue* get(const xvalue* v,const char* key){return v && xrtValueType(v)==XVALUE_OBJECT ? xrtValueObjectGet(v,sv(key)) : NULL;}
@@ -77,7 +77,7 @@ static int compareRow(const void* a,const void* b)
 static int addRoot(xarray* roots,const char* directory,const char* path,size_t* bytes)
 {
  if(!path || !xidePathHasExtension(path,".xl"))return 1;
- root r={xidePathResolveLexical(directory,path),NULL};if(r.path)r.key=xidePathNativeWide(r.path);
+ root r={.path=xidePathResolveLexical(directory,path)};if(r.path)r.key=xidePathNativeWide(r.path);
  if(!r.path || !r.key || !charge(bytes,strlen(r.path)+1+(wcslen(r.key)+1)*sizeof(wchar_t)+2*sizeof(root),PROOF_BYTES) || !xrtArrayPush(roots,&r)){free(r.path);free(r.key);return 0;}return 1;
 }
 static int hasOverlay(const reference_record* r,const char* path){for(size_t i=0;i<r->count;++i)if(same(r->overlays[i],path))return 1;return 0;}
@@ -176,7 +176,7 @@ static reference_record* finishAnalysis(reference_input* in,reference_job* job,i
  while(xideLanguageCheckState(check,NULL,0)==XIDE_CHECK_RUNNING && !stopped(cancel))xrtEventWaitFor(job->event,10000);
  if(stopped(cancel)){xideLanguageCheckCancel(check);goto done;}
  r=xrtCalloc(1,sizeof(*r));if(r)xrtAtomic32Init(&r->references,1);xide_reference_key* captured=NULL;
- if(!r || !xideLanguageCheckCaptureReferences(check,&r->shard,&captured)){fail(out,"A configured member did not produce complete verified reference facts.");goto failed;}
+ if(!r || !xideLanguageCheckCaptureReferences(check,&r->shard,&captured)){job->sourceRejected=r && !keyWanted && xideLanguageCheckReferenceSourceRejected(check);fail(out,"A configured member did not produce complete verified reference facts.");goto failed;}
  if(keyWanted){xls_check_stats work;xls_worker_cache_stats sessions;xide_navigation_work navigation;
   if(!xideLanguageCheckReferenceWork(check,&work,&sessions,&navigation)){xideSemanticReferenceKeyRelease(captured);fail(out,"Cannot capture verified key worker work.");goto failed;}
   out->stats.keyActorBuilds=work.builds;out->stats.keyActorHits=work.hits;out->stats.keyActorSessions=sessions.sessions;
@@ -232,40 +232,121 @@ static int locations(xarray* rows,reference_output* out)
  }
  xjsonwriteconfig config;xrtJsonWriteConfigInit(&config);config.MaxOutputBytes=RESULT_WIRE_BYTES;size_t bytes=0;out->stats.locations=xrtValueCount(out->locations);return xrtJsonWrite(out->locations,&config,countWire,&bytes);
 }
+
+static int ownsSource(const reference_record* record,const char* path)
+{
+ for(size_t i=0;i<xideSemanticReferenceShardSources(record->shard);++i){xide_semantic_source source;if(!xideSemanticReferenceShardSource(record->shard,i,&source))return -1;if((source.kind&1) && same(source.path,path))return 1;}return 0;
+}
+static int coverSources(root* roots,size_t count,const reference_record* record,const char* primary)
+{
+ for(size_t i=0;i<xideSemanticReferenceShardSources(record->shard);++i){
+  xide_semantic_source source;if(!xideSemanticReferenceShardSource(record->shard,i,&source))return 0;if(!(source.kind&1))continue;
+  wchar_t* key=xidePathNativeWide(source.path);if(!key)return 0;size_t lo=0,hi=count;
+  while(lo<hi){size_t mid=lo+(hi-lo)/2;if(xidePathNativeKeyCompare(roots[mid].key,key)<0)lo=mid+1;else hi=mid;}
+  if(lo<count && !xidePathNativeKeyCompare(roots[lo].key,key) && (!same(roots[lo].path,primary) || !xidePathNativeKeyCompare(record->key,key)))roots[lo].covered=1;
+  free(key);
+ }return 1;
+}
+
+/* Query-local pins of already checked,currently validated compilation owners.
+ * Select providers in deterministic root order. A selected provider must still
+ * contribute its full shard:later coverage never suppresses it,including a
+ * possible import cycle. Covered libraries need no repeated program rejection.
+ * Initial key coverage precedes this scan;no member scan for no-symbol queries.
+ * Every pinned provider is scheduled and enters the original final guard list.
+ * Pins can retain the previous bounded shard payload while newer cache entries
+ * are admitted;this is extra query lifetime,not a global/RSS memory limit. */
+static int planCachedOwners(reference_input* in,root* all,size_t count,size_t requested,xcancel* cancel,reference_output* out)
+{
+ all[requested].mustAnalyze=1;
+ for(size_t i=0;i<count;++i){
+  if(stopped(cancel))return 0;
+  if(i==requested || all[i].covered || (i && !compareRoot(all+i-1,all+i)))continue;
+  all[i].cached=retainRecord(findRecord(in->store,in,all+i,cancel));
+  if(!all[i].cached)continue;
+  all[i].mustAnalyze=1;++out->stats.coverageCacheRoots;
+  if(!coverSources(all,count,all[i].cached,xlsContextSpec(in->scope)->entry))return 0;
+ }
+ return !stopped(cancel);
+}
+typedef struct owner_proof {xls_dependency_capture* dependency;xide_language_input_guard* guard;} owner_proof;
+static int ownerProofValid(owner_proof* proof,xcancel* cancel)
+{xide_model_error error={0};return !stopped(cancel) && (!proof->dependency || xlsDependencyCaptureValidate(proof->dependency)) && (!proof->guard || xideLanguageInputGuardValidate(proof->guard,stopped,cancel,&error));}
+static int probeOwner(reference_input* in,const root* candidate,xcancel* cancel,owner_proof* proof,reference_output* out)
+{
+ reference_record* cached=findRecord(in->store,in,candidate,cancel);
+ if(cached){int owns=ownsSource(cached,in->path);if(owns<0){fail(out,"Invalid cached owner source vector.");return -1;}++out->stats.ownerRouteHits;if(owns)proof->guard=xideLanguageInputGuardRetain(cached->guard);return owns;}
+ if(stopped(cancel))return -1;
+ xls_context_spec spec=*xlsContextSpec(in->scope);spec.entry=candidate->path;spec.lists[XLS_CONTEXT_MEMBERS]=(xls_context_strings){0};
+ xls_context* context=xlsContextCreate(&spec,16u*1024u*1024u,NULL);xevent* event=xrtEventCreate(false,false);
+ xls_query* query=context && event ? xlsWorkerDependenciesInContext(in->store->keys,context,in->docs,in->count,NULL) : NULL;xlsContextRelease(context);
+ if(!query){if(event)xrtEventDestroy(event);fail(out,"Cannot start original dependency owner capture.");return -1;}
+ ++out->stats.ownerProbes;
+ int linked=xlsQuerySetWake(query,childWake,event);xcancelwatch* wake=cancel ? xrtCancelWatch(cancel,childWake,event) : NULL;
+ xls_dependency_capture* value=NULL;xls_dependency_session_stats stats={0};char error[256]={0};enum xls_query_state state;
+ while((state=xlsQueryDependencyResult(query,&value,&stats,NULL,error,sizeof(error)))==XLS_QUERY_PENDING && !stopped(cancel))xrtEventWaitFor(event,10000);
+ if(stopped(cancel))xlsQueryCancel(query);
+ if(wake)xrtCancelUnwatch(wake);
+ xlsQueryDestroy(query);xrtEventDestroy(event);
+ if(!linked || stopped(cancel) || state!=XLS_QUERY_READY || !value || !xlsDependencyCaptureInfo(value).expanded){xlsDependencyCaptureRelease(value);if(!stopped(cancel))fail(out,*error ? error : "Dependency owner expansion is incomplete.");return -1;}
+ out->stats.ownerActorBuilds=(size_t)stats.builds;out->stats.ownerActorHits=(size_t)stats.hits;
+ xls_check_inputs inputs;int owns=0;
+ if(!xlsDependencyCaptureInputs(value,&inputs)){xlsDependencyCaptureRelease(value);fail(out,"Missing original dependency owner inputs.");return -1;}
+ for(size_t i=0;i<inputs.sources;++i){xls_check_source source;if(!xlsDependencyCaptureSource(value,i,&source)){xlsDependencyCaptureRelease(value);fail(out,"Invalid original dependency owner source.");return -1;}if((source.kind&1) && same(source.path,in->path))owns=1;}
+ if(owns)proof->dependency=value;else xlsDependencyCaptureRelease(value);return owns;
+}
+static int selectOwner(reference_input* in,root* roots,size_t count,size_t* requested,xcancel* cancel,owner_proof* proof,reference_output* out)
+{
+ const xls_context_spec* scope=xlsContextSpec(in->scope);if(scope->kind!=XLS_CONTEXT_PROJECT || same(in->path,scope->entry))return *requested!=SIZE_MAX;
+ size_t primary=SIZE_MAX;for(size_t i=0;i<count;++i)if(same(roots[i].path,scope->entry)){primary=i;break;}
+ if(primary==SIZE_MAX)return fail(out,"Configured entry is absent from reference roots.");
+ int owns=probeOwner(in,roots+primary,cancel,proof,out);if(owns<0)return 0;if(owns){*requested=primary;return 1;}
+ for(size_t i=0;i<count;++i){if(i==primary || same(roots[i].path,in->path) || (i && !compareRoot(roots+i-1,roots+i)))continue;
+  owns=probeOwner(in,roots+i,cancel,proof,out);if(owns<0)return 0;if(owns){*requested=i;return 1;}
+ }
+ return *requested!=SIZE_MAX || fail(out,"No configured compilation owns the requested dependency source.");
+}
 static xtaskoutcome execute(xcancel* cancel,void* data,xtaskvalue* value)
 {
- reference_input* in=data;reference_output* out=xrtCalloc(1,sizeof(*out));if(!out)return XTASK_FAILED;out->stats.thread=xrtThreadCurrentId();out->stats.memberWorkers=in->store->memberCount;xarray roots={0},rows={0},guards={0},proofs={0};xmap known={0};size_t rootBytes=0,rowBytes=0,proofBytes=0;xide_reference_key* key=NULL;reference_job jobs[XIDE_REFERENCE_MEMBER_WORKERS]={0};
+ reference_input* in=data;reference_output* out=xrtCalloc(1,sizeof(*out));if(!out)return XTASK_FAILED;out->stats.thread=xrtThreadCurrentId();out->stats.memberWorkers=in->store->memberCount;xarray roots={0},rows={0},guards={0},proofs={0};xmap known={0};size_t rootBytes=0,rowBytes=0,proofBytes=0;xide_reference_key* key=NULL;reference_job jobs[XIDE_REFERENCE_MEMBER_WORKERS]={0};owner_proof ownerProof={0};
  const char* paths[64];for(size_t i=0;i<in->count;++i)paths[i]=in->docs[i].path;pathIndexBuild(&in->paths,paths,in->count);
  if(!xrtArrayInit(&roots,sizeof(root)) || !xrtArrayInit(&rows,sizeof(result_row)) || !xrtArrayInit(&guards,sizeof(xide_language_input_guard*)) || !xrtArrayInit(&proofs,sizeof(xvalue*)) || !xrtMapInit(&known,sizeof(size_t)))goto failed;
- const xls_context_spec* scope=xlsContextSpec(in->scope);if(!addRoot(&roots,scope->directory,in->path,&rootBytes) || !addRoot(&roots,scope->directory,scope->entry,&rootBytes))goto failed;
+ const xls_context_spec* scope=xlsContextSpec(in->scope);if((scope->kind!=XLS_CONTEXT_PROJECT && !addRoot(&roots,scope->directory,in->path,&rootBytes)) || !addRoot(&roots,scope->directory,scope->entry,&rootBytes))goto failed;
  for(size_t i=0;i<scope->lists[XLS_CONTEXT_MEMBERS].count;++i){if(stopped(cancel))goto done;if(!addRoot(&roots,scope->directory,scope->lists[XLS_CONTEXT_MEMBERS].items[i],&rootBytes))goto failed;}
  if(!xrtArraySort(&roots,compareRoot))goto failed;
  /* Deduplicate aliases before analysis. Keep roots separately owned until
     cleanup,so every construction/cancellation path has the same destructor. */
- root* all=(root*)roots.Data;size_t requested=SIZE_MAX;for(size_t i=0;i<roots.Count;++i)if(same(all[i].path,in->path)){requested=i;break;}if(requested==SIZE_MAX)goto failed;
+ root* all=(root*)roots.Data;size_t requested=SIZE_MAX;for(size_t i=0;i<roots.Count;++i)if(same(all[i].path,in->path)){requested=i;break;}if(!selectOwner(in,all,roots.Count,&requested,cancel,&ownerProof,out))goto done;
  /* Resolve the requested binding first on its dedicated actor. No-symbol
     queries retain the original early-empty behavior and schedule no members. */
  if(stopped(cancel))goto done;
  beginAnalysis(in,all[requested].path,1,in->store->keys,jobs);
  jobs[0].record=finishAnalysis(in,jobs,1,cancel,&key,out);if(!jobs[0].record)goto done;
- ++out->stats.roots;if(!key){out->locations=xrtValueArray();if(!out->locations)goto failed;goto done;}
+ ++out->stats.roots;if(ownsSource(jobs[0].record,in->path)!=1){fail(out,"Selected compilation no longer owns the requested source.");goto done;}if(!key){out->locations=xrtValueArray();if(!out->locations)goto failed;goto done;}
+ if(!coverSources(all,roots.Count,jobs[0].record,scope->entry) || !planCachedOwners(in,all,roots.Count,requested,cancel,out))goto done;
  for(size_t next=0,active=1;;){
   for(size_t slot=0;slot<active;++slot){
    if(stopped(cancel))goto done;
-   if(!jobs[slot].record){jobs[slot].record=finishAnalysis(in,jobs+slot,0,cancel,NULL,out);if(!jobs[slot].record)goto done;++out->stats.roots;}
+   if(!jobs[slot].record){jobs[slot].record=finishAnalysis(in,jobs+slot,0,cancel,NULL,out);if(!jobs[slot].record){
+    if(!jobs[slot].sourceRejected || stopped(cancel))goto done;
+    root* rejected=NULL;for(size_t i=0;i<roots.Count;++i)if(same(all[i].path,jobs[slot].path)){rejected=all+i;break;}
+    if(!rejected || !charge(&rootBytes,strlen(out->error)+1,PROOF_BYTES) || !(rejected->rejection=xrtStrDup(out->error)))goto failed;
+    rejected->mustAnalyze=0;++out->stats.sourceRejections;*out->error=0;continue;
+   }++out->stats.roots;}
    else if(!jobs[slot].fresh){++out->stats.reused;++out->stats.roots;}
    reference_record* record=jobs[slot].record;
    size_t charged=xideLanguageInputGuardReportBytes(record->guard);if(charged==SIZE_MAX || !charge(&proofBytes,charged,PROOF_BYTES))goto failed;
    xide_language_input_guard* guard=xideLanguageInputGuardRetain(record->guard);if(!xrtArrayPush(&guards,&guard)){xideLanguageInputGuardRelease(guard);goto failed;}
    if(!appendRows(in,&rows,record,key,in->include,&rowBytes,&known,&proofs,&proofBytes,out))goto done;
+   if(!coverSources(all,roots.Count,record,scope->entry))goto failed;
    if(jobs[slot].fresh)cacheRecord(in->store,record);
   }
   clearJobs(jobs,XIDE_REFERENCE_MEMBER_WORKERS);active=0;size_t pending=0;
   while(active<in->store->memberCount && next<roots.Count){
-   size_t i=next++;if(i==requested || (i && !compareRoot(all+i-1,all+i)))continue;
+   size_t i=next++;if(i==requested || (all[i].covered && !all[i].mustAnalyze) || (i && !compareRoot(all+i-1,all+i))){if(i!=requested && all[i].covered && !all[i].mustAnalyze)++out->stats.coveredRoots;continue;}
    if(stopped(cancel))goto done;
    reference_job* job=jobs+active;job->path=all[i].path;
-   job->record=retainRecord(findRecord(in->store,in,all+i,cancel));
+   job->record=retainRecord(all[i].cached);all[i].mustAnalyze=1;
    if(!job->record){
     int started=beginAnalysis(in,job->path,0,in->store->members[active],job);
     if(started){++pending;++out->stats.memberTasks;}
@@ -278,13 +359,20 @@ static xtaskoutcome execute(xcancel* cancel,void* data,xtaskvalue* value)
      order. A later failure cannot replace an earlier error or discard its
      already admitted prefix;warm pins survive that prefix's evictions. */
  }
+ for(size_t i=0;i<roots.Count;++i)if(all[i].rejection && !all[i].covered){fail(out,all[i].rejection);goto done;}
  for(size_t i=0;i<guards.Count;++i){xide_model_error error={0};if(!xideLanguageInputGuardValidate(((xide_language_input_guard**)guards.Data)[i],stopped,cancel,&error)){fail(out,"Project source/resolution inputs changed before publication.");goto done;}}
  if(!locations(&rows,out))goto failed;
  goto done;
 failed:fail(out,"Project reference allocation or query budget failed.");
 done:
+ /* Preserve original ordered failure precedence without turning any later
+  * infrastructure failure into success. Only an uncovered earlier source
+  * rejection supplies the message;all such paths still return RequestFailed. */
+ if(*out->error)for(size_t i=0;i<roots.Count;++i){root* r=(root*)roots.Data+i;if(r->rejection && !r->covered){fail(out,r->rejection);break;}}
+ if(out->locations && !*out->error && !ownerProofValid(&ownerProof,cancel))fail(out,"Compilation owner inputs changed before publication.");
+ xlsDependencyCaptureRelease(ownerProof.dependency);xideLanguageInputGuardRelease(ownerProof.guard);
  clearJobs(jobs,XIDE_REFERENCE_MEMBER_WORKERS);xideSemanticReferenceKeyRelease(key);
- for(size_t i=0;i<roots.Count;++i){root* r=(root*)roots.Data+i;free(r->path);free(r->key);}xrtArrayUnit(&roots);
+ for(size_t i=0;i<roots.Count;++i){root* r=(root*)roots.Data+i;free(r->path);free(r->key);xrtFree(r->rejection);releaseRecord(r->cached);}xrtArrayUnit(&roots);
  for(size_t i=0;i<rows.Count;++i){result_row* r=(result_row*)rows.Data+i;xrtFree(r->path);free(r->key);}xrtArrayUnit(&rows);
  for(size_t i=0;i<guards.Count;++i)xideLanguageInputGuardRelease(((xide_language_input_guard**)guards.Data)[i]);
  xrtArrayUnit(&guards);
