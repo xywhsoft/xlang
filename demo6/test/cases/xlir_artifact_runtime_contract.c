@@ -513,9 +513,18 @@ done:
 int main(int argc,char** argv)
 {
     if (!xrtMemDebugEnable(true)) return 1;
-    if (!closure_contract() || !artifact_source_contract()) return 1;
+    /* Native emission verifies the fixture's actual IR/plan. The exhaustive
+     * immutable registry is a separate batch check, not work repeated before
+     * every single fixture in the same compiled cohort. */
     if (argc==4 && !strcmp(argv[1],"--emit-native")) return emit_native_source(argv[2],argv[3],NULL)?0:1;
     if (argc==5 && !strcmp(argv[1],"--emit-native-with-c")) return emit_native_source(argv[2],argv[3],argv[4])?0:1;
+    if (!closure_contract() || !artifact_source_contract()) return 1;
+    if (argc==2 && !strcmp(argv[1],"--registry")) {
+        if (!native_catalog_contract() || !slot_key_component_contract()) return 1;
+        printf("artifact registry contract complete: %u dependency pairs\n",
+            (unsigned)(XL6_ARTIFACT_RUNTIME_COUNT * XL6_ARTIFACT_RUNTIME_COUNT));
+        return 0;
+    }
     if (argc==2 && !strcmp(argv[1],"--catalog")) {
         for (unsigned i=0;i<XL6_ARTIFACT_RUNTIME_COUNT;++i) {
             const XL6_ArtifactRuntimeComponent* item=xl6ArtifactRuntimeComponentGet(i);

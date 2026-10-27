@@ -109,7 +109,9 @@ int main(int argc, char** argv)
             ? XL6_IR_CALL_EXECUTION_FOREIGN_MAY_BLOCK : XL6_IR_CALL_EXECUTION_FOREIGN_NONBLOCKING;
         assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir, t));
         t->executionBoundaryAbi = boundary;
-        t->errorPhysicalAbi = XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE;
+        t->errorPhysicalAbi = errorPhysicalAbi==XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE
+            ? XL6_IR_CALL_ERROR_PHYSICAL_XRT_THREAD_ERROR : XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE;
+        assert(t->errorPhysicalAbi!=errorPhysicalAbi);
         assert(!xl6IrRuntimeDirectBridgeTargetMatches(&ir, t));
         t->errorPhysicalAbi = errorPhysicalAbi;
         size_t count = t->parameterCount;
