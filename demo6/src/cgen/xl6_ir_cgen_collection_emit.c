@@ -336,7 +336,8 @@ static int xl6IrCgenEmitSequenceCreateDepth(XL6_Output* out,const XL6_IrModule* 
     const XL6_IrType* base=any ? payload : xl6IrTypeGet(&module->types,plan->baseElementType);
     const char* descriptor=any ? "xrtTypeValue()" : xl6IrCgenNativeSlotTypeExpr(plan->slotAbi);
     const char* baseDescriptor=xl6IrCgenNativeValueTypeExpr(module,plan->baseElementType);
-    const char* payloadType=plan->codecAbi==XL6_IR_SEQUENCE_CODEC_UNION_VALUE_V1 ||
+    const char* payloadType=plan->codecAbi==XL6_IR_SEQUENCE_CODEC_ERROR_VALUE_V1 ||
+        plan->codecAbi==XL6_IR_SEQUENCE_CODEC_UNION_VALUE_V1 ||
         plan->codecAbi==XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1 ? "xvalue*" : xl6IrCgenType(module,element);
     const char* transfer=any ? "3" : xl6IrCgenSequenceTransferAbiToken(plan->transferAbi);
 #define XL6_SEQUENCE_CREATE_IDS result,(unsigned)plan->role, \
@@ -410,13 +411,15 @@ static int xl6IrCgenEmitSequenceCreateDepth(XL6_Output* out,const XL6_IrModule* 
             plan->abi==XL6_IR_SEQUENCE_LAYOUT_MUTEX_REFERENCE_V1 ? 1u :
             plan->abi==XL6_IR_SEQUENCE_LAYOUT_COND_REFERENCE_V1 ? 2u : 3u);
         break;
+    case XL6_IR_SEQUENCE_LAYOUT_ERROR_REFERENCE_V1:
     case XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1:
     case XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1:
     case XL6_IR_SEQUENCE_LAYOUT_SEMAPHORE_REFERENCE_V1:
     case XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1:
         xl6OutputPrintf(out,
             "    %s = %s(%u, 0x%016llXULL, 0x%016llXULL, 0x%016llXULL, %s);\n",
-            result,plan->abi==XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1 ?
+            result,plan->abi==XL6_IR_SEQUENCE_LAYOUT_ERROR_REFERENCE_V1 ? "xl6SequenceErrorCreateV1" :
+                plan->abi==XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1 ?
                 "xl6SequenceCallableCreateV1" :
                 plan->abi==XL6_IR_SEQUENCE_LAYOUT_SEMAPHORE_REFERENCE_V1 ?
                 "xl6SequenceSemCreateV1" :

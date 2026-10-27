@@ -70,6 +70,10 @@ XL6_TEXT_API xvalue* xl6SequenceNumericEnumCreateV1(unsigned int, uint64_t, uint
  * unbound callable or a same-tag foreign handle is refused. Only nullable
  * slots have a default. This policy owns scalar metadata, no module callback,
  * and does not independently certify a callback's ownership/retirement graph. */
+/* Error slots own genuine private error Value handles. Their logical element
+ * identity is preserved by the explicit error-value codec; nullable slots
+ * alone admit null and have a default. No generated callback is retained. */
+XL6_TEXT_API xvalue* xl6SequenceErrorCreateV1(unsigned int, uint64_t, uint64_t, uint64_t, bool);
 XL6_TEXT_API xvalue* xl6SequenceCallableCreateV1(unsigned int, uint64_t, uint64_t, uint64_t, bool);
 /* Exact resident, nonnullable callable slot schema on an operation pin.
  * Does not certify the callback signature shape or its ownership graph. */

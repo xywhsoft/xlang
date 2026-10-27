@@ -147,15 +147,16 @@ static int xl6IrLowerReplaceStorageValue(
 typedef struct XL6_IrLowerDefaultArgument {
     XL6_SymbolId symbol;
     XL6_IrValueId value;
+    XL6_SymbolId cellStorage;
     struct XL6_IrLowerDefaultArgument* outer;
 } XL6_IrLowerDefaultArgument;
 
-static XL6_IrValueId xl6IrLowerDefaultArgumentValue(
+static const XL6_IrLowerDefaultArgument* xl6IrLowerDefaultArgumentGet(
     const XL6_IrLowerContext* ctx, XL6_SymbolId symbol)
 {
     for (const XL6_IrLowerDefaultArgument* item=ctx->defaultArguments;item;item=item->outer)
-        if (symbol && item->symbol==symbol) return item->value;
-    return XL6_IR_VALUE_INVALID;
+        if (symbol && item->symbol==symbol) return item;
+    return NULL;
 }
 
 typedef struct XL6_IrLowerPromotedParameter {
@@ -2079,6 +2080,9 @@ static XL6_IrValueId xl6IrLowerRetainXValueCarrierAs(
  * boundary.  The operand is always a borrowed canonical dynamic xvalue; the
  * exact nullable result TypeId selects one closed physical reconstruction ABI.
  * This keeps array/list/dict/iterator mechanics out of Cgen's type logic. */
+static XL6_IrValueId xl6IrLowerProjectBorrowedXValueAsError(
+    XL6_IrLowerContext*, XL6_IrNodeId, XL6_IrValueId, XL6_IrTypeId);
+
 static XL6_IrValueId xl6IrLowerProjectBorrowedXValueAsNullable(
     XL6_IrLowerContext* ctx, XL6_IrNodeId origin,
     XL6_IrValueId borrowed, XL6_IrTypeId nullableTypeId)
@@ -2096,6 +2100,11 @@ static XL6_IrValueId xl6IrLowerProjectBorrowedXValueAsNullable(
          !xl6IrLowerTypeIsDynamicXValueBuiltin(
              ctx->module, xl6IrLowerValueType(ctx, borrowed)) ||
          nullable == NULL || element == NULL ) return XL6_IR_VALUE_INVALID;
+    if (nullable->cAbi == XL6_IR_C_ABI_RUNTIME_ERROR_PTR &&
+        nullable->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
+        nullable->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL &&
+        element->cAbi == nullable->cAbi)
+        return xl6IrLowerProjectBorrowedXValueAsError(ctx,origin,borrowed,nullableTypeId);
     if(xl6IrNullableNativeValuePlan(&ctx->module->types,nullable)){
         result=xl6IrLowerEmitRuntimeCall(ctx,origin,nullableTypeId,
             XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED,&borrowed,1);
@@ -4929,22 +4938,38 @@ static XL6_IrValueId xl6IrLowerCallArgumentAsType(
     return result;
 }
 
-static XL6_IrValueId xl6IrLowerFixedCallArgumentAsType(
+static XL6_IrTypeId xl6IrLowerDefaultCaptureCellType(
+    const XL6_IrModule* module,XL6_IrNodeId expression,XL6_SymbolId symbol)
+{
+    for (size_t i=0;i<module->closureTargetCount;++i) {
+        const XL6_IrClosureTarget* closure=&module->closureTargets[i];
+        XL6_IrNodeId ancestor=closure->declaration;
+        while (ancestor && ancestor!=expression) {
+            const XL6_IrNode* node=xl6IrNodeGet(module,ancestor);
+            ancestor=node ? node->parent : 0;
+        }
+        if (!ancestor) continue;
+        for (size_t c=0;c<closure->captureCount;++c) {
+            const XL6_IrClosureCapture* capture=&module->closureCaptures[closure->firstCapture+c];
+            if (capture->sourceSymbol==symbol && capture->cellType) return capture->cellType;
+        }
+    }
+    return XL6_IR_TYPE_INVALID;
+}
+
+static XL6_IrValueId xl6IrLowerDefaultPrefixAsType(
     XL6_IrLowerContext* ctx, XL6_IrNodeId origin,
     const XL6_IrCallArgument* binding, XL6_IrTypeId type,
-    const XL6_IrValueId* arguments, size_t offset)
+    const XL6_IrValueId* arguments, size_t offset, const XL6_IrNode* params)
 {
     if (binding->source != XL6_IR_CALL_ARGUMENT_DEFAULT || !binding->parameter)
         return xl6IrLowerCallArgumentAsType(ctx,origin,binding,type);
-    const XL6_IrCallSite* site=xl6IrCallSiteGet(ctx->module,origin);
-    const XL6_IrNode* declaration=site ? xl6IrSymbolNodeGet(ctx->module,site->targetSymbol) : NULL;
-    XL6_IrNodeId declarationId=declaration ? (XL6_IrNodeId)(declaration-ctx->module->nodes+1) : 0;
-    const XL6_IrNode* params=xl6IrNodeGet(ctx->module,xl6IrCallParameterListGet(ctx->module,declarationId));
     if (!params || binding->parameter>params->childCount || !arguments)
         return xl6IrLowerDiag(ctx,origin,"XLIR default argument has no canonical prefix bindings"), XL6_IR_VALUE_INVALID;
     XL6_IrLowerDefaultArgument* outer=ctx->defaultArguments;
     XL6_IrLowerDefaultArgument* bindings=xrtCalloc(binding->parameter,sizeof(*bindings));
     if (!bindings) return xl6IrLowerDiag(ctx,origin,"XLIR default prefix binding allocation failed"), XL6_IR_VALUE_INVALID;
+    size_t first=ctx->evaluationOwnerCount;
     for (size_t p=0;p<binding->parameter;++p) {
         const XL6_IrNode* parameter=xl6IrNodeGet(ctx->module,ctx->module->children[params->firstChild+p]);
         if (!parameter || !arguments[p+offset]) {
@@ -4953,9 +4978,41 @@ static XL6_IrValueId xl6IrLowerFixedCallArgumentAsType(
         }
         bindings[p].symbol=parameter->symbol;bindings[p].value=arguments[p+offset];
         bindings[p].outer=ctx->defaultArguments;ctx->defaultArguments=&bindings[p];
+        /* A mutable capture owns a cell for this default activation, exactly
+         * like the standalone default program used by named adapters. */
+        XL6_IrTypeId cellType=xl6IrLowerDefaultCaptureCellType(ctx->module,binding->expression,parameter->symbol);
+        if (cellType) {
+            XL6_IrTypeId inputType=xl6IrLowerValueType(ctx,bindings[p].value);
+            XL6_SymbolId cell=xl6IrLowerNewTempStorage(ctx,inputType,origin);
+            XL6_IrValueId initial=xl6IrLowerAcquireValueOwner(ctx,origin,bindings[p].value);
+            if (!cell || !initial || !xl6IrLowerSetStorageCell(ctx,cell,cellType,origin) ||
+                !xl6IrLowerConstructCell(ctx,origin,origin,cell,initial) ||
+                !xl6IrLowerProtectEvaluationStorage(ctx,origin,cell,0,0,0)) {
+                ctx->defaultArguments=outer;xrtFree(bindings);return XL6_IR_VALUE_INVALID;
+            }
+            bindings[p].cellStorage=cell;
+        }
     }
+    size_t last=ctx->evaluationOwnerCount;
     XL6_IrValueId result=xl6IrLowerCallArgumentAsType(ctx,origin,binding,type);
-    ctx->defaultArguments=outer;xrtFree(bindings);return result;
+    ctx->defaultArguments=outer;xrtFree(bindings);
+    if (result && !xl6IrLowerCompleteEvaluationBorrowRange(ctx,origin,first,last,&result))
+        return XL6_IR_VALUE_INVALID;
+    return result;
+}
+
+static XL6_IrValueId xl6IrLowerFixedCallArgumentAsType(
+    XL6_IrLowerContext* ctx, XL6_IrNodeId origin,
+    const XL6_IrCallArgument* binding, XL6_IrTypeId type,
+    const XL6_IrValueId* arguments, size_t offset)
+{
+    if (binding->source!=XL6_IR_CALL_ARGUMENT_DEFAULT || !binding->parameter)
+        return xl6IrLowerCallArgumentAsType(ctx,origin,binding,type);
+    const XL6_IrCallSite* site=xl6IrCallSiteGet(ctx->module,origin);
+    const XL6_IrNode* declaration=site ? xl6IrSymbolNodeGet(ctx->module,site->targetSymbol) : NULL;
+    XL6_IrNodeId declarationId=declaration ? (XL6_IrNodeId)(declaration-ctx->module->nodes+1) : 0;
+    const XL6_IrNode* params=xl6IrNodeGet(ctx->module,xl6IrCallParameterListGet(ctx->module,declarationId));
+    return xl6IrLowerDefaultPrefixAsType(ctx,origin,binding,type,arguments,offset,params);
 }
 
 /* A direct return may transfer a function-local managed owner into its result
@@ -5965,6 +6022,7 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeXValueIndexI64(
           resultType->cAbi == XL6_IR_C_ABI_MANAGED_BYTES ||
           resultType->cAbi == XL6_IR_C_ABI_CLOSURE_PTR ||
           resultType->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
+          resultType->cAbi == XL6_IR_C_ABI_RUNTIME_ERROR_PTR ||
           resultType->cAbi == XL6_IR_C_ABI_NATIVE_HANDLE) ) {
         XL6_IrValueId borrowed;
         dynamicType = xl6IrLowerFindDynamicBuiltinType(ctx->module);
@@ -21649,7 +21707,7 @@ static XL6_IrValueId xl6IrLowerXValueIteratorFor(
     int nativeHandleItemProjection = 0;
     int unionItemProjection = 0;
     int nativeValueItemProjection = 0;
-    int futureItemProjection = 0;
+    int referenceItemProjection = 0;
     int slotMapIterator = xl6IrSlotMapLoopIteratorOp(node)!=XL6_IR_RUNTIME_NONE;
 
     if ( node->sourceKind != XL6_AST_FOR || node->childCount != 3 ||
@@ -21875,9 +21933,15 @@ static XL6_IrValueId xl6IrLowerXValueIteratorFor(
              projectedItemType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED )
             break;
         goto invalidItemProjection;
+    case XL6_IR_LOOP_ITEM_ERROR_COPY:
+        referenceItemProjection=1;
+        if (projectedItemType->cAbi==XL6_IR_C_ABI_RUNTIME_ERROR_PTR &&
+            projectedItemType->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED &&
+            projectedItemType->nullAbi==XL6_IR_NULL_ABI_POINTER_SENTINEL && projectedItemType->typeValueId) break;
+        goto invalidItemProjection;
     case XL6_IR_LOOP_ITEM_FUTURE_COPY:
     case XL6_IR_LOOP_ITEM_NULLABLE_FUTURE_COPY:
-        futureItemProjection=1;
+        referenceItemProjection=1;
         if(xl6IrFutureProjectionPayloadType(ctx->module,itemType,
                 node->loopItemAbi==XL6_IR_LOOP_ITEM_NULLABLE_FUTURE_COPY
                     ? XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_FUTURE_COPY
@@ -21935,6 +21999,7 @@ invalidItemProjection:
          node->loopItemAbi == XL6_IR_LOOP_ITEM_CLOSURE_COPY ||
          node->loopItemAbi == XL6_IR_LOOP_ITEM_XVALUE_RETAIN ||
          node->loopItemAbi == XL6_IR_LOOP_ITEM_NATIVE_VALUE_COPY ||
+         node->loopItemAbi == XL6_IR_LOOP_ITEM_ERROR_COPY ||
          node->loopItemAbi == XL6_IR_LOOP_ITEM_FUTURE_COPY ||
          node->loopItemAbi == XL6_IR_LOOP_ITEM_NULLABLE_FUTURE_COPY ||
          node->loopItemAbi ==
@@ -22103,7 +22168,7 @@ invalidItemProjection:
     if ( materializesItem ) {
         if ( slotMapIterator || nullableItemProjection || scalarItemProjection || closureItemProjection ||
              nativeHandleItemProjection ||
-             unionItemProjection || nativeValueItemProjection || futureItemProjection ) {
+             unionItemProjection || nativeValueItemProjection || referenceItemProjection ) {
             XL6_IrTypeId dynamicType =
                 xl6IrLowerFindDynamicBuiltinType(ctx->module);
             XL6_IrValueId borrowedItem = dynamicType == XL6_IR_TYPE_INVALID
@@ -22112,7 +22177,7 @@ invalidItemProjection:
                     ctx, itemTargetId, dynamicType,
                     XL6_IR_RUNTIME_XVALUE_ITERATOR_ITEM_BORROW,
                     &loadedState, 1);
-            item = slotMapIterator || futureItemProjection
+            item = slotMapIterator || referenceItemProjection
                 ? projectedItemType->kind==XL6_IR_TYPE_NULLABLE
                     ? xl6IrLowerProjectBorrowedXValueAsNullable(ctx,itemTargetId,borrowedItem,itemType)
                     : xl6IrLowerProjectBorrowedXValueAsExactType(ctx,itemTargetId,borrowedItem,itemType)
@@ -30018,7 +30083,12 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
                 if ( captures == NULL ) { ctx->failed = 1; return XL6_IR_VALUE_INVALID; }
                 for ( i = 0; i < closure->captureCount; ++i ) {
                     const XL6_IrClosureCapture* item = &ctx->module->closureCaptures[closure->firstCapture + i];
-                    XL6_SymbolId source = xl6IrLowerClosureCaptureStorage(ctx, item->sourceSymbol);
+                    const XL6_IrLowerDefaultArgument* argument=xl6IrLowerDefaultArgumentGet(ctx,item->sourceSymbol);
+                    if (argument && !argument->cellStorage) {
+                        captures[i]=argument->value;
+                        continue;
+                    }
+                    XL6_SymbolId source = argument ? argument->cellStorage : xl6IrLowerClosureCaptureStorage(ctx, item->sourceSymbol);
                     if ( source == 0 ) source = xl6IrLowerPromotedParameterStorage(ctx, item->sourceSymbol);
                     if ( source == 0 ) source = item->sourceSymbol;
                     const XL6_IrStorage* actual=xl6IrStorageGet(ctx->module,source);
@@ -30231,7 +30301,8 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
                 ? payload->type : node->storageType;
             XL6_SymbolId captureStorage = xl6IrLowerClosureCaptureStorage(ctx, node->targetSymbol);
             XL6_SymbolId promotedStorage = xl6IrLowerPromotedParameterStorage(ctx, node->targetSymbol);
-            XL6_SymbolId storageSymbol = captureStorage != 0 ? captureStorage
+            const XL6_IrLowerDefaultArgument* argument=xl6IrLowerDefaultArgumentGet(ctx,node->targetSymbol);
+            XL6_SymbolId storageSymbol = argument && argument->cellStorage ? argument->cellStorage : captureStorage != 0 ? captureStorage
                 : promotedStorage != 0 ? promotedStorage : node->targetSymbol;
             storage = xl6IrStorageGet(ctx->module, storageSymbol);
             /* Lowered storage is the authoritative TypeId for synthetic and
@@ -30239,7 +30310,7 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
              * equivalent contextual builtin TypeId, but LOAD must name the
              * exact registered cell ABI. */
             if ( storage != NULL ) storageType = storage->type;
-            result=xl6IrLowerDefaultArgumentValue(ctx,node->targetSymbol);
+            result=argument && !argument->cellStorage ? argument->value : XL6_IR_VALUE_INVALID;
             if ( result == XL6_IR_VALUE_INVALID && !xl6IrLowerEmit(ctx,
                                   storage != NULL && storage->cellType != XL6_IR_TYPE_INVALID
                                       ? XL6_IR_INSTR_CELL_LOAD : XL6_IR_INSTR_LOAD,
@@ -33055,9 +33126,10 @@ static int xl6IrLowerNamedAdapterBody(
                  sourceParameter->childCount < 2 ) goto done;
             defaultId = ctx->module->children[sourceParameter->firstChild + 1];
             expression = xl6IrNodeGet(ctx->module, defaultId);
-            operands[parameter] = xl6IrLowerNodeAsType(
-                ctx, defaultId, defaultId, expression,
-                target->parameterTypes[parameter]);
+            XL6_IrCallArgument binding={.source=XL6_IR_CALL_ARGUMENT_DEFAULT,
+                .parameter=parameter,.expression=defaultId};
+            operands[parameter] = xl6IrLowerDefaultPrefixAsType(
+                ctx,defaultId,&binding,target->parameterTypes[parameter],operands,0,parameters);
             if (operands[parameter] != XL6_IR_VALUE_INVALID)
                 operands[parameter] = xl6IrLowerOwnedStorageValue(ctx, defaultId,
                     target->parameterTypes[parameter], expression, operands[parameter]);

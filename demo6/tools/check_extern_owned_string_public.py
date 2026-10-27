@@ -90,7 +90,13 @@ def main():
     task_scalar_contract = ROOT/'test/cases/xlir_task_c_scalar_contract.c'
     task_composition_contract = ROOT/'test/cases/xlir_task_composition_contract.c'
     task_optional_contract = ROOT/'test/cases/xlir_task_optional_contract.c'
+    task_reference_contract = ROOT/'test/cases/xlir_task_reference_contract.c'
+    error_array_contract = ROOT/'test/cases/xlir_error_array_admission.c'
     for path in [source, *native, template, contract, oom_contract, task_scalar_contract, task_composition_contract, task_optional_contract,
+            task_reference_contract,error_array_contract,
+            ROOT/'test/cases/extern_owned_task_nullable_callbacks.xl',
+            ROOT/'test/cases/extern_owned_task_dependent_defaults.xl',
+            ROOT/'test/cases/extern_owned_task_error_arrays.xl',
             ROOT/'test/cases/extern_owned_task_generic.xl',
             ROOT/'test/cases/extern_owned_task_nullable.xl',
             ROOT/'test/cases/extern_owned_task_optional.xl',
@@ -164,6 +170,16 @@ def main():
          '-Wno-unused-parameter', '-Wno-missing-field-initializers', task_optional_contract, *links, '-o', output]), encoding='utf-8')
     run('task-optional-contract-build', [cc, '@'+str(response)])
     assert '10 mutations rejected' in run('task-optional-contract', [output])
+    for name,unit,message in [
+            ('task-reference-contract',task_reference_contract,'8 mutations rejected'),
+            ('error-array-admission',error_array_contract,'64 OOM prefixes balanced')]:
+        output=work/(name+('.exe' if os.name=='nt' else ''))
+        response=work/(name+'.rsp')
+        response.write_text('\n'.join('"'+str(value).replace('\\','/')+'"' for value in
+            [*flags,'-O2','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable',
+             '-Wno-unused-parameter','-Wno-missing-field-initializers',unit,*links,'-o',output]),encoding='utf-8')
+        run(name+'-build',[cc,'@'+str(response)])
+        assert message in run(name,[output])
     # GNU wrapping must reach calls inside the compiler, so link its verified
     # source objects on Linux too, rather than wrapping the shared-library API.
     oom_links = links if 'Inputs' in build else [

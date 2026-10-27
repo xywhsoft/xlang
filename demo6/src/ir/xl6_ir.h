@@ -714,7 +714,8 @@ typedef enum XL6_IrSequenceLayoutAbi {
     /* Untagged trivial union: exact nominal bytes in owned Value slots. */
     XL6_IR_SEQUENCE_LAYOUT_UNION_VALUE_V1,
     XL6_IR_SEQUENCE_LAYOUT_CHANNEL_REFERENCE_V1,
-    XL6_IR_SEQUENCE_LAYOUT_SLOT_MAP_REFERENCE_V1
+    XL6_IR_SEQUENCE_LAYOUT_SLOT_MAP_REFERENCE_V1,
+    XL6_IR_SEQUENCE_LAYOUT_ERROR_REFERENCE_V1
 } XL6_IrSequenceLayoutAbi;
 
 /* A recipe's physical slot need not equal its element's invocation ABI.
@@ -728,7 +729,8 @@ typedef enum XL6_IrSequenceCodecAbi {
     XL6_IR_SEQUENCE_CODEC_NONE = 0,
     XL6_IR_SEQUENCE_CODEC_DIRECT,
     XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1,
-    XL6_IR_SEQUENCE_CODEC_UNION_VALUE_V1
+    XL6_IR_SEQUENCE_CODEC_UNION_VALUE_V1,
+    XL6_IR_SEQUENCE_CODEC_ERROR_VALUE_V1
 } XL6_IrSequenceCodecAbi;
 
 typedef enum XL6_IrSequenceDefaultAbi {
@@ -3124,7 +3126,8 @@ typedef enum XL6_IrLoopItemAbi {
      * entering the body. The exact payload type and nullable carrier remain
      * explicit; the binding owns its reference until iteration cleanup. */
     XL6_IR_LOOP_ITEM_FUTURE_COPY,
-    XL6_IR_LOOP_ITEM_NULLABLE_FUTURE_COPY
+    XL6_IR_LOOP_ITEM_NULLABLE_FUTURE_COPY,
+    XL6_IR_LOOP_ITEM_ERROR_COPY
 } XL6_IrLoopItemAbi;
 
 /* Projection representation and target lifetime are distinct contracts.  A

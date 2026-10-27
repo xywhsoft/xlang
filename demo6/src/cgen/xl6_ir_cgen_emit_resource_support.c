@@ -111,6 +111,7 @@ static int xl6IrCgenEmitResourceRuntime(
             "extern xvalue* xl6SequenceCScalarCreateV1(unsigned int, uint64_t, uint64_t, const xrttype*, uint64_t);\n"
             "extern xvalue* xl6SequenceNullableCScalarCreateV1(unsigned int, uint64_t, uint64_t, const xrttype*, const xrttype*, uint64_t);\n"
             "extern xvalue* xl6SequenceNumericEnumCreateV1(unsigned int, uint64_t, uint64_t, const xrttype*, unsigned int, bool, uint64_t);\n"
+            "extern xvalue* xl6SequenceErrorCreateV1(unsigned int, uint64_t, uint64_t, uint64_t, bool);\n"
             "extern xvalue* xl6SequenceCallableCreateV1(unsigned int, uint64_t, uint64_t, uint64_t, bool);\n"
             "extern xvalue* xl6SequenceFutureCreateV1(unsigned int, uint64_t, uint64_t, uint64_t, bool);\n"
             "extern xvalue* xl6SequenceSemCreateV1(unsigned int, uint64_t, uint64_t, uint64_t, bool);\n"

@@ -1,0 +1,79 @@
+extern "owned_task_text" @owned func Text(c_int mode) as string
+extern "owned_debug" @no_raise func debug() as bool
+extern "owned_fail_after" @no_raise func failAfter(int count)
+extern "owned_clear_failure" @no_raise func clearFailure()
+extern "owned_outstanding" @no_raise func live() as int
+func errorValue() as error
+    try
+        Text(c_int(-1))
+    catch failure
+        return failure
+    end
+    throw ValueError "expected producer failure"
+end
+func collect(error? failure) as array<error?>
+    array<error?> values=[null,failure]
+    assert values.push(failure)
+    assert values.resize(5)
+    assert values[0]==null and values[3]==null and values[4]==null
+    int present=0
+    for item in values
+        if item!=null
+            present+=1
+            assert item.message!=""
+        end
+    end
+    assert present==2
+    return values
+end
+error seed=errorValue()
+array<error> required=[seed]
+assert required.push(seed)
+error first=required[0]
+assert first.message!=""
+for failure in required
+    assert failure.message!=""
+end
+auto warm=collect(seed)
+assert warm.length==5
+// Synchronous fault prefixes isolate factory/boxing/slot rollback from worker
+// retirement. Every successful or abandoned container releases its references.
+assert debug()
+int accepted=0
+int rejected=0
+for prefix in range(48)
+    int before=live()
+    failAfter(prefix)
+    try
+        auto temporary=collect(seed)
+        assert temporary.length==5
+        accepted+=1
+    catch failure
+        rejected+=1
+    end
+    clearFailure()
+    assert live()==before
+end
+assert accepted>0 and rejected>0
+// Native aggregate boxes retain the same logical nullable error identity.
+func optionalError(bool enabled) as error?
+    if enabled
+        return errorValue()
+    end
+    return null
+end
+auto missing=task.spawn(optionalError,false)
+auto present=task.spawn(optionalError,true)
+auto aggregate=await task.all([missing,present])
+assert aggregate[0]==null and aggregate[1]!=null
+error? selected=aggregate[1]
+if selected!=null
+    assert selected.message!=""
+else
+    assert false
+end
+array<future<error?>> jobs=[present,missing]
+auto stored=await task.all(jobs)
+assert stored[0]!=null and stored[1]==null
+auto requiredTasks=await task.all([task.spawn(errorValue)])
+assert requiredTasks[0].message!=""

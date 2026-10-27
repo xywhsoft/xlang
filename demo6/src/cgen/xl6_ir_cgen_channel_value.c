@@ -8,6 +8,9 @@ static int xl6IrCgenChannelValueEncode(XL6_Output* out,const XL6_IrModule* modul
     if (plan->codecAbi==XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1)
         xl6OutputPrintf(out,"      xvalue* %s = %s != NULL ? xlir_closure_to_xvalue_scalar(%s, xlir_xcall_entry_t%u, 0x%016llXULL) : xrtValueRetain(xrtValueNull());\n",
             slot,source,source,(unsigned)plan->baseElementType,(unsigned long long)base->typeValueId);
+    else if (plan->codecAbi==XL6_IR_SEQUENCE_CODEC_ERROR_VALUE_V1)
+        xl6OutputPrintf(out,"      xvalue* %s = xl6ErrorValueRefV1(%s, 0x%016llXULL);\n",
+            slot,source,(unsigned long long)xl6IrTypeGet(&module->types,plan->elementType)->typeValueId);
     else if (plan->codecAbi==XL6_IR_SEQUENCE_CODEC_UNION_VALUE_V1) {
         if (plan->logicalTagged) xl6OutputPrintf(out,
             "      xvalue* %s = %s.hasValue ? xlir_xvalue_union_box(&%s.value, sizeof(%s.value), 0x%016llXULL) : xrtValueRetain(xrtValueNull());\n",
@@ -59,6 +62,12 @@ static int xl6IrCgenChannelValueDecode(XL6_Output* out,const XL6_IrModule* modul
     if (plan->codecAbi==XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1)
         xl6OutputPrintf(out,"        if (!xlir_xvalue_project_closure_try_copy_into(%s, (void (*)(void))xlir_xvalue_closure_entry_t%u, %s, &%s)) xl6ErrorScopeCaptureFailure(&%s);\n",
             slot,(unsigned)plan->baseElementType,plan->nullable?"true":"false",result,scope);
+    else if (plan->codecAbi==XL6_IR_SEQUENCE_CODEC_ERROR_VALUE_V1) {
+        xl6OutputPrintf(out,"        if (!xl6ErrorValueReadRefV1(%s",slot);
+        if (plan->nullable) xl6OutputPrintf(out," ? %s : xrtValueNull()",slot);
+        xl6OutputPrintf(out,", 0x%016llXULL, &%s)) xl6ErrorScopeCaptureFailure(&%s);\n",
+            (unsigned long long)xl6IrTypeGet(&module->types,plan->elementType)->typeValueId,result,scope);
+    }
     else if (plan->codecAbi==XL6_IR_SEQUENCE_CODEC_UNION_VALUE_V1) {
         if (plan->logicalTagged) xl6OutputPrintf(out,
             "        %s.hasValue = xrtValueType(%s) != 0;\n"
