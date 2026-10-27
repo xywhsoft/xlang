@@ -102,11 +102,11 @@ static bool xtab_row_text(xbuffer* output, const xtab_table* table,
     return xtab_append(output, "|\n", 2u);
 }
 
-void* xtab_render(void* handle)
+char* xtab_render(void* handle)
 {
     xtab_table* table = (xtab_table*)handle;
     xbuffer output;
-    void* result = NULL;
+    char* result = NULL;
     size_t row;
     xrtClearError();
     if (table == NULL || table->pending_kind != 0) {
@@ -125,7 +125,7 @@ void* xtab_render(void* handle)
         if (!xtab_border(&output, table)) goto done;
     }
     if (!xrtBufferAppendByte(&output, '\0')) goto done;
-    result = xrtBufferTake(&output, NULL, NULL);
+    result = (char*)xrtBufferTake(&output, NULL, NULL);
 done:
     xrtBufferUnit(&output);
     return result;
