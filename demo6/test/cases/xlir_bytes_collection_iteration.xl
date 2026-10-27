@@ -1,0 +1,118 @@
+func firstBytes() as bytes
+    array<bytes> values = array[b"a\0\xff", b"", b"tail"]
+    for item in values
+        return item
+    end
+    return b""
+end
+
+func verifyBytesIteration()
+    array<bytes> values = array[b"a\0\xff", b"", b"tail"]
+    int visits = 0
+    for index, item in values
+        visits += 1
+        if item.length != 0 then item[0] = 90 end
+        if index == 0 then
+            assert item == b"Z\0\xff"
+            assert values[0] == b"a\0\xff"
+            continue
+        end
+    end
+    assert visits == 3 and firstBytes() == b"a\0\xff"
+
+    list<bytes> sparse = list[2: b"x\0y", 8: b"\xff"]
+    visits = 0
+    for index, item in sparse
+        assert index == 2 or index == 8
+        item[0] = 90
+        assert sparse[index][0] != 90
+        visits += 1
+    end
+    assert visits == 2
+
+    set<bytes> keys = set{b"a\0b", b"\xff"}
+    visits = 0
+    for item in keys
+        item[0] = 90
+        visits += 1
+    end
+    assert visits == 2 and keys.contains(b"a\0b") and keys.contains(b"\xff")
+
+    dict<bytes> named = dict{"nul": b"a\0b", "empty": b""}
+    visits = 0
+    for key, item in named
+        if key == "nul" then
+            item[0] = 90
+            assert named[key] == b"a\0b"
+        else
+            assert item.length == 0
+        end
+        visits += 1
+    end
+    assert visits == 2
+
+    array<bytes?> optional = array[null, b"a\0b", b""]
+    visits = 0
+    for item in optional
+        if item != null then
+            bytes copy = item
+            if copy.length != 0 then copy[0] = 90 end
+        end
+        visits += 1
+    end
+    assert visits == 3
+    auto originalOptional = optional[1]
+    assert originalOptional != null
+    if originalOptional != null then assert originalOptional == b"a\0b" end
+
+    list<bytes?> optionalSparse = list[2: null, 8: b"a\0b"]
+    visits = 0
+    for index, item in optionalSparse
+        if item != null then assert index == 8 and item == b"a\0b" end
+        visits += 1
+    end
+    assert visits == 2
+
+    set<bytes?> optionalKeys = set{null, b"a\0b"}
+    visits = 0
+    for item in optionalKeys
+        if item != null then assert item == b"a\0b" end
+        visits += 1
+    end
+    assert visits == 2
+
+    dict<bytes?> optionalNamed = dict{"none": null, "nul": b"a\0b"}
+    visits = 0
+    for key, item in optionalNamed
+        if item != null then assert key == "nul" and item == b"a\0b" end
+        visits += 1
+    end
+    assert visits == 2
+
+    visits = 0
+    for _ in values
+        visits += 1
+        break
+    end
+    assert visits == 1
+    for _ in sparse
+        break
+    end
+    for _, _ in named
+        break
+    end
+
+    int finalized = 0
+    try
+        for item in values
+            assert item == b"a\0\xff"
+            throw ValueError "bytes cursor"
+        end
+    catch ValueError error
+        assert error.message == "bytes cursor"
+    finally
+        finalized += 1
+    end
+    assert finalized == 1
+end
+verifyBytesIteration()

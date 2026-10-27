@@ -20233,7 +20233,7 @@ static XL6_IrLoopAbi xl6IrClassifyLoopAbi(
             return XL6_IR_LOOP_ABI_NONE;
         break;
     case XL6_IR_C_ABI_MANAGED_BYTES:
-        if (!slotMapIterator || itemType->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED ||
+        if (itemType->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED ||
             itemType->nullAbi!=XL6_IR_NULL_ABI_XVALUE_SENTINEL)
             return XL6_IR_LOOP_ABI_NONE;
         if (itemType->kind==XL6_IR_TYPE_BUILTIN && !itemType->paramCount)

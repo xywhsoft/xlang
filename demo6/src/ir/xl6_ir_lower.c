@@ -21979,6 +21979,15 @@ static XL6_IrValueId xl6IrLowerXValueIteratorFor(
             projectedItemType->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED &&
             projectedItemType->nullAbi==XL6_IR_NULL_ABI_POINTER_SENTINEL && projectedItemType->typeValueId) break;
         goto invalidItemProjection;
+    case XL6_IR_LOOP_ITEM_BYTES_COPY:
+    case XL6_IR_LOOP_ITEM_NULLABLE_BYTES_COPY:
+        referenceItemProjection=1;
+        if (projectedItemType->cAbi==XL6_IR_C_ABI_MANAGED_BYTES &&
+            projectedItemType->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED &&
+            projectedItemType->nullAbi==XL6_IR_NULL_ABI_XVALUE_SENTINEL &&
+            (projectedItemType->kind==XL6_IR_TYPE_NULLABLE)==
+                (node->loopItemAbi==XL6_IR_LOOP_ITEM_NULLABLE_BYTES_COPY)) break;
+        goto invalidItemProjection;
     case XL6_IR_LOOP_ITEM_FUTURE_COPY:
     case XL6_IR_LOOP_ITEM_NULLABLE_FUTURE_COPY:
         referenceItemProjection=1;
@@ -22042,6 +22051,8 @@ invalidItemProjection:
          node->loopItemAbi == XL6_IR_LOOP_ITEM_ERROR_COPY ||
          node->loopItemAbi == XL6_IR_LOOP_ITEM_FUTURE_COPY ||
          node->loopItemAbi == XL6_IR_LOOP_ITEM_NULLABLE_FUTURE_COPY ||
+         node->loopItemAbi == XL6_IR_LOOP_ITEM_BYTES_COPY ||
+         node->loopItemAbi == XL6_IR_LOOP_ITEM_NULLABLE_BYTES_COPY ||
          node->loopItemAbi ==
              XL6_IR_LOOP_ITEM_DYNAMIC_LOGICAL_XVALUE);
     if ( hasItem && node->loopItemLifetimeAbi != (!materializesItem
