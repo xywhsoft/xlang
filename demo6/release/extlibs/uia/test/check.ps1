@@ -29,6 +29,13 @@ try {
     $cArgs = @('run', 'extlibs/uia/test/test_uia.c', '--link', 'user32', '--link', 'ole32', '--link', 'oleaut32')
     $cSmoke = Invoke-Checked 'C smoke' $cArgs
     if ($cSmoke -ne 'uia C smoke: PASS') { throw 'unexpected C smoke output' }
+    $closeC = Invoke-Checked 'C close/wait' @('run',
+        'extlibs/uia/test/window_close_c.c', 'extlibs/uia/x_uia_artifact.c',
+        '--inc-path', '../lib/xrt', '--link', 'user32', '--link', 'ole32', '--link', 'oleaut32')
+    $closeXL = Invoke-Checked 'XLang close/wait' @('run', 'extlibs/uia/test/window_close.xl')
+    if ($closeC -cne 'uia close/wait ok' -or $closeXL -cne $closeC) {
+        throw 'C/XLang close/wait output differs'
+    }
 
     foreach ($name in @('version', 'window_raw', 'window', 'window_auto', 'basic', 'boundaries')) {
         $file = "extlibs/uia/test/test_uia_$name.xl"
@@ -55,6 +62,9 @@ try {
         $gcc = (Get-Command gcc -ErrorAction Stop).Source
         $outputExe = Join-Path $work 'uia_c_test.exe'
         $xrtDir = (Resolve-Path (Join-Path $release '../lib/xrt')).Path
+        & $gcc -std=c11 -Wall -Wextra -Werror -fsyntax-only "-I$xrtDir" `
+            (Join-Path $release 'extlibs/uia/test/window_close_c.c')
+        if ($LASTEXITCODE -ne 0) { throw 'GCC close/wait syntax check failed' }
         Write-Host 'GCC standalone C test'
         & $gcc -std=c11 -O2 -Werror=implicit-function-declaration -Werror=incompatible-pointer-types -DXRT_IMPLEMENTATION "-I$xrtDir" -o $outputExe (Join-Path $release 'extlibs/uia/test/test_uia.c') -lole32 -loleaut32 -luser32 -lws2_32 -lcrypt32 -lbcrypt -liphlpapi -lshlwapi -lshell32 -ladvapi32 -lgdi32 -lwinhttp -lwsock32
         if ($LASTEXITCODE -ne 0) { throw 'GCC standalone C build failed' }
@@ -63,6 +73,13 @@ try {
     }
 
     if (-not $SkipAot) {
+        $closeAot = Join-Path $work 'window_close.exe'
+        [void](Invoke-Checked 'XLang close/wait AOT build' @('build',
+            'extlibs/uia/test/window_close.xl', '-o', $closeAot))
+        $closeOutput = & $closeAot 2>&1
+        if ($LASTEXITCODE -ne 0 -or ($closeOutput | Out-String).Trim() -cne $closeC) {
+            throw 'XLang close/wait AOT output differs from C/JIT'
+        }
         $implicitAot = Join-Path $work 'implicit_handles.exe'
         [void](Invoke-Checked 'XLang implicit handles AOT build' @('build',
             'extlibs/uia/test/test_uia_implicit_handles.xl', '-o', $implicitAot))

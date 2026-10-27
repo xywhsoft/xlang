@@ -3101,7 +3101,8 @@ XL_EXPORT int x_uia_element_wait_window_closed(void* handle, int timeout_ms)
 	while ( IsWindow((HWND)hwnd) ) {
 		now = GetTickCount();
 		if ( (DWORD)(now - started) >= (DWORD)effective_timeout ) {
-			x_uia_set_error("wait_window_closed: timeout");
+			/* 尚未关闭是正常等待结果；错误仅留给无效句柄和 UIA 调用失败。 */
+			x_uia_set_error("");
 			return 0;
 		}
 		Sleep(25u);

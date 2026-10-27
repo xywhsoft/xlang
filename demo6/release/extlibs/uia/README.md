@@ -1,5 +1,11 @@
 # uia
 
+2026-10-27：`Element.wait_window_closed(timeout_ms)` 等待超时时现返回
+`false` 且不设置 XRT 错误；此前 C 返回 0，但 XLang 因错误槽而抛
+`ValueError`。无效元素和 UIA 句柄查询失败仍报错。受控窗口的
+C/XLang 用例固定无效元素、正常超时、关闭后成功及错误清除，
+Windows `-StrictC` 完整门禁（含独立 AOT）通过。
+
 2026-10-27：十条 `_owned` 文本结果的 C 原型改为 `char*`，XLang
 用 `@owned string?` 直接接管 XRT 分配；原有空指针到空串的映射不变。
 借用型版本、错误消息和矩形短 JSON 仍按原合同复制，不改变原生 UIA 行为。
@@ -25,6 +31,7 @@ Windows UI Automation 扩展库。C 桥接源代码和公开头文件分别为
 - `launch`、三个文本定位条件和 `Element.set_value` 在 XLang 侧拒绝内嵌 NUL，避免 C 字符串接口只使用前缀；拒绝的输入不会修改控件。
 - 组合查询条件由系统 UIA 持有子条件；构造后可以先释放子条件。`find_all(..., timeout_ms)` 等待首次非空结果，`0` 表示即时快照；无匹配返回空数组，不设置错误。
 - `Element.find_class_path(path, process_id, timeout_ms)` 与 C 的 `x_uia_element_find_class_path` 沿生成定位器所用的 Control View 树逐段查找，不混用原始 `children()` 树；每层只扫描一次同级元素，并在等待期限内检查超时。路径段包含类名、控件类型和同签名兄弟序号，类名中的 `/[]%#` 会转义。路径必须处于接收元素的子树内；目标或进程不匹配时返回空元素且不设置错误，畸形路径或 UIA 调用失败仍报错。
+- `Element.wait_window_closed(timeout_ms)` 在窗口仍打开且超时时返回 `false`、不设置错误；关闭后返回 `true`。无效元素与查询 HWND 失败仍报错。`timeout_ms <= 0` 使用当前默认 5 秒等待。
 
 从 `demo6/release` 运行：
 

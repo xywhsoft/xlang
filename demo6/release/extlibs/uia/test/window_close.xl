@@ -1,0 +1,25 @@
+import uia
+
+func main(...) as int
+    point empty = null
+    auto invalid = uia.element(empty)
+    bool caught = false
+    try
+        invalid.wait_window_closed(25)
+    catch ValueError
+        caught = true
+    end
+    assert caught, "invalid element must be an error"
+    auto window = uia.test_window()
+    auto root = uia.from_hwnd(window.hwnd())
+    assert not root.wait_window_closed(25), "open window must time out"
+    assert uia.last_error() == "", "normal timeout must not set an error"
+    assert root.close_window(), "window close failed"
+    assert root.wait_window_closed(1000), "closed window was not observed"
+    assert uia.last_error() == "", "successful wait retained an old error"
+    assert root.release()
+    assert window.release()
+    assert uia.shutdown()
+    println("uia close/wait ok")
+    return 0
+end

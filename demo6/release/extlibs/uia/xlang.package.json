@@ -27,7 +27,7 @@
     "dependencies":  [
 
                      ],
-    "coverage": { "mode": "suite", "tests": ["test/test_uia_boundaries.xl", "test/test_uia_implicit_handles.xl", "test/test_uia_focus_callback.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/test_uia_boundaries.xl", "test/test_uia_implicit_handles.xl", "test/test_uia_focus_callback.xl", "test/window_close.xl"] },
     "native":  {
                    "singleton":  false,
                    "loadName":  "",
