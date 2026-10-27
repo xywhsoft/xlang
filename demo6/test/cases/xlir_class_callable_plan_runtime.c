@@ -222,7 +222,9 @@ typedef struct Active { xatomic32 entered,leave; xrtcallable* callable; } Active
 static bool active_entry(void* data,const xrtcallframe* frame,xrtcallresult* result)
 {
     Active* a=data;(void)frame;(void)result;xrtAtomic32Store(&a->entered,1,XMEMORY_RELEASE);
-    xdeadline deadline=xrtDeadlineAfter(5000);
+    /* The pinned snapshot uses microseconds. Keep a five-second handshake
+     * budget rather than a scheduler-sensitive five-millisecond deadline. */
+    xdeadline deadline=xrtDeadlineAfter(5*XRT_TIME_SECOND);
     while(!xrtAtomic32Load(&a->leave,XMEMORY_ACQUIRE)){assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
     return true;
 }
@@ -239,13 +241,13 @@ static void active_native(void)
 {
     xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);Active a={0};xrtownershipscope freeze={0};XL6_OwnershipPlan* plan=NULL;
     a.callable=xrtCallableCreate(NULL,active_entry,&a,active_drop);assert(a.callable && xrtCallableOwnershipBindV1(a.callable,&active_policy));
-    xthread* thread=xrtThreadCreate(worker,&a,0);assert(thread);xdeadline deadline=xrtDeadlineAfter(5000);
+    xthread* thread=xrtThreadCreate(worker,&a,0);assert(thread);xdeadline deadline=xrtDeadlineAfter(5*XRT_TIME_SECOND);
     while(!xrtAtomic32Load(&a.entered,XMEMORY_ACQUIRE)){assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
     while(!xrtOwnershipFreezeTryBegin(&freeze)){assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
     assert(!xrtCallableOwnershipAdapterV1(xrtCallableOwnership(a.callable),&active_policy));
     assert(xrtOwnershipScopeEnd(&freeze));
     assert(xl6OwnershipPlanTryCreate(xrtCallableOwnership(a.callable),active_resolve,NULL,&plan)==XL6_OWNERSHIP_PLAN_ERROR && !plan && !legacy_traced);xrtClearError();
-    xrtAtomic32Store(&a.leave,1,XMEMORY_RELEASE);assert(xrtThreadWaitFor(thread,5000)==XWAIT_OK);
+    xrtAtomic32Store(&a.leave,1,XMEMORY_RELEASE);assert(xrtThreadWaitFor(thread,5*XRT_TIME_SECOND)==XWAIT_OK);
     xrtThreadDestroy(thread);xrtCallableUnref(a.callable);balance(&before);
 }
 int main(void)
