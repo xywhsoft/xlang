@@ -535,9 +535,9 @@ static int xl6IrCgenEmitXValueProjectionInstruction(
             (unsigned int)instruction->result, (unsigned int)operand);
     } else if ( instruction->runtimeOp ==
                 XL6_IR_RUNTIME_XVALUE_PROJECT_ERROR_REF ) {
-        identity = xl6IrTypeGet(&module->types, instruction->payloadType);
+        identity = xl6IrTypeGet(&module->types, instruction->runtimeIdentityType);
         if ( instruction->payloadType != instruction->type ||
-             instruction->runtimeIdentityType != instruction->type ||
+             instruction->runtimeIdentityType != xl6IrErrorProjectionIdentityType(module,instruction->origin,instruction->type) ||
              identity == NULL || identity->typeValueId == 0 ||
              identity->cAbi != XL6_IR_C_ABI_RUNTIME_ERROR_PTR ||
              identity->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||

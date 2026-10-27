@@ -2315,7 +2315,7 @@ static XL6_IrValueId xl6IrLowerProjectBorrowedXValueAsError(
         XL6_IrInstruction* projection =
             &ctx->module->instructions[ctx->module->instructionCount - 1];
         projection->payloadType = errorTypeId;
-        projection->runtimeIdentityType = errorTypeId;
+        projection->runtimeIdentityType = xl6IrErrorProjectionIdentityType(ctx->module,origin,errorTypeId);
     }
     return result;
 }

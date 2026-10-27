@@ -1,0 +1,52 @@
+extern "owned_task_text" @owned func Text(c_int mode) as string
+extern "owned_debug" @no_raise func debug() as bool
+extern "owned_fail_after" @no_raise func failAfter(int count)
+extern "owned_clear_failure" @no_raise func clearFailure()
+extern "owned_outstanding" @no_raise func live() as int
+func failure() as error
+    try
+        Text(c_int(-1))
+    catch value
+        return value
+    end
+    throw ValueError "expected failure"
+end
+func check(error seed) as error?
+    array<error> items=[seed]
+    list<error> sparse=[7:seed]
+    dict<error> keyed=dict{"error":seed}
+    assert items?[3]==null and sparse?[9]==null and keyed?["absent"]==null
+    error? first=items?[0]
+    error? second=sparse?[7]
+    error? third=keyed?["error"]
+    assert first!=null and second!=null and third!=null
+    if first!=null
+        assert first.message!=""
+    end
+    array<error?> optional=[null,seed]
+    assert optional?[0]==null and optional?[1]!=null and optional?[9]==null
+    array<error>? absent=null
+    assert absent?[0]==null
+    // The returned reference outlives all three source containers.
+    return items?[0]
+end
+error seed=failure()
+error? warm=check(seed)
+assert warm!=null
+assert debug()
+int success=0
+int failed=0
+for prefix in range(64)
+    int before=live()
+    failAfter(prefix)
+    try
+        error? value=check(seed)
+        assert value!=null
+        success+=1
+    catch problem
+        failed+=1
+    end
+    clearFailure()
+    assert live()==before
+end
+assert success>0 and failed>0
