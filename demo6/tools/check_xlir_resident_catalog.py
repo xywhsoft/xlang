@@ -39,7 +39,21 @@ def declarations(root):
     header = (root / 'src/compile/xl6_artifact_runtime.h').read_text(encoding='utf-8')
     match = re.search(r'typedef\s+enum\s+XL6_ArtifactRuntimeId\s*\{(.*?)\}\s*XL6_ArtifactRuntimeId\s*;', header, re.S)
     assert match, 'Missing explicit component identities'
-    names = re.findall(r'\bXL6_ARTIFACT_(?!RUNTIME_COUNT\b)([A-Z_][A-Z_0-9]*)\b', match[1])
+    def expand_ids(body, active):
+        pieces = []
+        for line in body.splitlines(keepends=True):
+            include = re.fullmatch(r'\s*#include\s+"([^"]+_component_ids\.inc)"\s*', line)
+            if not include:
+                pieces.append(line)
+                continue
+            child = (root / include[1]).resolve()
+            if not child.is_file(): child = (root / 'src/compile' / include[1]).resolve()
+            assert child.is_relative_to(root.resolve()) and child.is_file(), child
+            assert child not in active, ('component identity include cycle', child)
+            pieces.append(expand_ids(child.read_text(encoding='utf-8'), (*active, child)))
+        return ''.join(pieces)
+    names = re.findall(r'\bXL6_ARTIFACT_(?!RUNTIME_COUNT\b)([A-Z_][A-Z_0-9]*)\b',
+                       expand_ids(match[1], ()))
     assert len(names) == len(set(names)) and 'NETWORK_SERVICE' in names
     ids = {name: index for index, name in enumerate(names)}
     entries = []
@@ -50,18 +64,35 @@ def declarations(root):
                         r'^\s*XL6_TEXT_EXPORT\((\w+),\s*(\w+)\)'):
             entries.extend(re.findall(pattern, body, re.M))
     resources=(root/'src/runtime/xl6_native_resource_policies.inc').read_text(encoding='utf-8')
-    entries.extend((getter,owner) for owner,getter in re.findall(
-        r'XL6_NATIVE_RESOURCE_POLICY\((?:"\w+"|NULL),(\w+),(\w+)\)',resources))
+    resource_policies = re.findall(
+        r'XL6_NATIVE_RESOURCE_POLICY\((?:"\w+"|NULL),(\w+),(\w+)\)', resources)
     domains = (root / "src/runtime/xl6_ownership_domains.inc").read_text(encoding="utf-8")
     policies = re.findall(r"XL6_OWNERSHIP_DOMAIN_ENTRY\((\w+),(\w+),(\w+)\)", domains)
-    prototypes = re.findall(r'\b(xl6OwnershipDomain\w+V1Get)\(void\);',
-        (root / 'src/runtime/xl6_ownership_domains.h').read_text(encoding='utf-8'))
+    # domains.h includes catalog.h, whose public forward declarations are
+    # part of the same declaration-only SDK. Keep exact duplicate/set checks.
+    prototype_headers = ('xl6_ownership_domains.h', 'xl6_ownership_catalog.h')
+    prototypes = [name for header in prototype_headers for name in re.findall(
+        r'\b(xl6OwnershipDomain\w+V1Get)\(void\);',
+        (root / 'src/runtime' / header).read_text(encoding='utf-8'))]
     assert len(prototypes)==len(set(prototypes)) and set(prototypes)=={getter for _, _, getter in policies}
-    entries.extend((getter, owner) for _, owner, getter in policies)
+    # The primary C table expands policy/domain getters as well as ordinary
+    # runtime exports. The same getter may serve several roles; join those exact
+    # identities only when their component owners agree. The compiled oracle
+    # below independently checks the resulting registration map.
+    owners = dict(entries)
+    assert len(owners) == len(entries), 'Duplicate primary symbol declaration'
+    derived = [(getter, owner) for _, owner, getter in policies] + [
+        (getter, owner) for owner, getter in resource_policies]
+    for getter, owner in derived:
+        if getter in owners:
+            assert owners[getter] == owner, ('Conflicting resource policy owner', getter)
+        else:
+            entries.append((getter, owner))
+            owners[getter] = owner
     return ids, entries
 
 
-def inspect(ids, entries, components, host_symbols, host_abis):
+def inspect(ids, entries, components, host_symbols, host_abis, compiled_owners):
     errors, declared, actual = [], {}, {}
     for symbol, owner in entries:
         if symbol in declared:
@@ -79,9 +110,15 @@ def inspect(ids, entries, components, host_symbols, host_abis):
             if symbol in actual:
                 errors.append('Duplicate actual export: ' + symbol)
             actual[symbol] = row['Id']
-    for symbol, owner in actual.items():
+    for symbol, owner in compiled_owners.items():
         if declared.get(symbol) != owner:
-            errors.append('Unregistered or misowned actual export: ' + symbol)
+            errors.append('Missing or misowned compiled Cgen entry: ' + symbol)
+    for symbol, owner in declared.items():
+        if compiled_owners.get(symbol) != owner:
+            errors.append('Declaration differs from compiled Cgen entry: ' + symbol)
+    for symbol, owner in actual.items():
+        if symbol in declared and declared[symbol] != owner:
+            errors.append('Misowned actual Cgen export: ' + symbol)
     for symbol in declared:
         if symbol not in actual:
             errors.append('Declared export missing: ' + symbol)
@@ -117,12 +154,12 @@ def inspect(ids, entries, components, host_symbols, host_abis):
             'ActualExports': len(actual), 'ComponentCount': len(ids), 'Linkage': links}
 
 
-def negative_controls(ids, entries, components, host_symbols, host_abis):
+def negative_controls(ids, entries, components, host_symbols, host_abis, compiled_owners):
     """Mutate the actual full passing population, never an invented toy catalog."""
     checks = []
 
     def reject(name, changed_entries, changed_components):
-        result = inspect(ids, changed_entries, changed_components,host_symbols,host_abis)
+        result = inspect(ids, changed_entries, changed_components,host_symbols,host_abis,compiled_owners)
         assert result['RegistryErrors'], 'Audit accepted negative control: ' + name
         checks.append({'Name': name, 'Rejected': True, 'Errors': result['RegistryErrors']})
 
@@ -166,7 +203,7 @@ def negative_controls(ids, entries, components, host_symbols, host_abis):
     reject('undeclared-host-abi',entries,changed)
     changed=copy.deepcopy(components);changed[row['Id']]['HostAbi']=1<<31
     reject('unknown-host-abi',entries,changed)
-    assert inspect(ids,entries,components,set(),host_abis)['RegistryErrors']
+    assert inspect(ids,entries,components,set(),host_abis,compiled_owners)['RegistryErrors']
     checks.append(dict(Name='missing-actual-host-definition',Rejected=True))
     return checks
 
@@ -198,16 +235,26 @@ def main():
     # Include all native/header inputs, not just the exported registry rows.
     files.update(path for folder in ('src', 'lib/xrt', 'lib/xruntime', 'release/include')
                  for path in (root / folder).rglob('*') if path.is_file() and path.suffix in ('.c', '.h', '.inc'))
-    rows = []
+    rows, responses = [], []
     report = {'Complete': False, 'InputsUnchanged': False, 'Scope': __doc__,
               'Platform': os.name, 'Rows': rows, 'ShippingLibraryAcceptance': False,
               'Full53Acceptance': False, 'StandaloneArtifactExecutionAcceptance': False}
 
-    def run(name, command):
+    def run(name, command, input_path=None):
         command = list(map(str, command))
-        result = subprocess.run(command, cwd=root, capture_output=True, timeout=180)
+        actual = command
+        if command[0] == str(cc):
+            response = build_dir / (name + '.rsp')
+            response.write_text('\n'.join('"'+arg.replace('\\', '/').replace('"', '\\"')+'"'
+                for arg in command[1:])+'\n', encoding='utf-8')
+            files.add(response)
+            responses.append({'Path': str(response), 'Sha256': sha(response)})
+            actual = [str(cc), '@'+str(response)]
+        result = subprocess.run(actual, cwd=root, capture_output=True, timeout=180,
+            input=None if input_path is None else Path(input_path).read_bytes())
         (build_dir / (name + '.log')).write_bytes(result.stdout + result.stderr)
-        rows.append({'Name': name, 'Command': command, 'Exit': result.returncode})
+        rows.append({'Name': name, 'Command': command, 'ActualCommand': actual,
+            'InputPath': None if input_path is None else str(input_path), 'Exit': result.returncode})
         assert result.returncode == 0, (name, result.stderr[-6000:].decode(errors='replace'))
         return result.stdout.decode(errors='strict')
 
@@ -259,19 +306,61 @@ def main():
     report['Inputs'] = inputs
     try:
         catalog = [json.loads(line) for line in catalog_text.splitlines() if line.strip()]
+        ids, entries = declarations(root)
+        registered = {symbol for symbol, _ in entries}
         components = []
         for component in catalog:
             obj = build_dir / ('component-' + str(component['Id']) + '.o')
             if args.compiler:
                 run('component-' + str(component['Id']), [cc, *flags, '-c', component['Source'], '-o', obj])
             assert obj.is_file(), 'Missing actual provider object: ' + str(obj)
-            defined = re.findall(r'\b[A-Za-z]\s+(xl\w+)\s*$',
+            defined = re.findall(r'\b[A-Za-z]\s+(\w+)\s*$',
                 run('defined-' + str(component['Id']), [nm, '-g', '--defined-only', obj]), re.M)
-            undefined = re.findall(r'\bU\s+(xl\w+)\s*$',
+            undefined = re.findall(r'\bU\s+(\w+)\s*$',
                 run('undefined-' + str(component['Id']), [nm, '-u', obj]), re.M)
             report.setdefault('Objects', []).append({'Path': str(obj), 'Sha256': sha(obj)})
             components.append(dict(component, Build=0, Defined=defined, Undefined=undefined))
-        ids, entries = declarations(root)
+        # Ask the real compiled catalog which names are Cgen entry points.
+        # All other native globals keep their physical source ownership and
+        # participate in the same full transitive undefined-symbol checks.
+        observer = Path(__file__).resolve().parents[1] / 'test/support/xlir_resident_symbol_owners.c'
+        observer_hash = sha(observer)
+        owner_binary = build_dir / ('symbol-owners.exe' if windows else 'symbol-owners')
+        run('symbol-owners-build', [cc, *flags, '-ffunction-sections', '-fdata-sections',
+            '-fno-jump-tables', '-fno-asynchronous-unwind-tables', '-fno-unwind-tables',
+            observer, 'src/compile/xl6_compile_unit.c', '-Wl,--gc-sections', '-o', owner_binary])
+        names = sorted(registered | {name for row in components for name in row['Defined']})
+        query = build_dir / 'symbol-owner-queries.txt'
+        query.write_text(''.join(name+'\n' for name in names), encoding='utf-8')
+        owner_text = run('symbol-owners', [owner_binary], input_path=query)
+        records = [line.split('\t') for line in owner_text.splitlines()]
+        assert all(len(row) == 3 and row[0] in ('D', 'A') for row in records)
+        owner_rows = [row[1:] for row in records if row[0] == 'A']
+        assert [row[0] for row in owner_rows] == names
+        owner_ids = {name: int(owner) for name, owner in owner_rows}
+        assert all(0 <= owner <= len(ids) for owner in owner_ids.values())
+        compiled_owners = {}
+        for _, name, raw_owner in (row for row in records if row[0] == 'D'):
+            owner = int(raw_owner)
+            assert 0 <= owner < len(ids)
+            assert name not in compiled_owners or compiled_owners[name] == owner
+            compiled_owners[name] = owner
+        assert all(compiled_owners.get(name, len(ids)) == owner for name, owner in owner_ids.items())
+        # The textual inventory is a subset check only. C preprocessing also
+        # expands grouped engine/buffer declarations and all future additions.
+        assert all(compiled_owners.get(name) == ids[owner] for name, owner in entries)
+        report['ParsedDeclarationSubset'] = len(entries)
+        owner_names = {owner: name for name, owner in ids.items()}
+        entries = [(name, owner_names[owner]) for name, owner in compiled_owners.items()]
+        for row in components:
+            row['Defined'] = [name for name in row['Defined'] if name.startswith('xl') or name in compiled_owners]
+            row['Undefined'] = [name for name in row['Undefined'] if name.startswith('xl') or name in compiled_owners]
+        report['CompiledCgenEntryOwners'] = compiled_owners
+        report['InternalCExports'] = {name: row['Id'] for row in components for name in row['Defined']
+            if owner_ids[name] == len(ids)}
+        observer_inputs = [{'Path': str(observer), 'Sha256': observer_hash}] + [
+            {'Path': str(path), 'Sha256': sha(path)} for path in (owner_binary, query)]
+        inputs.extend(observer_inputs)
         abi_text=(root/'src/compile/xl6_artifact_host_abis.inc').read_text(encoding='utf-8')
         declared_host=re.findall(r'XL6_ARTIFACT_HOST_ABI\((\w+),(\d+),"(\w+)"\)',abi_text)
         assert declared_host and len({int(bit) for _,bit,_ in declared_host})==len(declared_host)
@@ -294,13 +383,15 @@ def main():
             report['ActualHostObject']=dict(Path=str(host_provider),Sha256=sha(host_provider))
         report['DeclaredHostAbis']=declared_host
         report['ActualRequiredHostExports']=sorted(host_symbols & set(host_abis.values()))
-        report.update(inspect(ids, entries, components,host_symbols,host_abis))
-        assert not report['RegistryErrors'], report['RegistryErrors']
-        report['NegativeControls'] = negative_controls(ids, entries, components,host_symbols,host_abis)
+        report.update(inspect(ids, entries, components,host_symbols,host_abis,compiled_owners))
+        assert not report['RegistryErrors'], (len(report['RegistryErrors']), report['RegistryErrors'][:10])
+        report['NegativeControls'] = negative_controls(ids, entries, components,host_symbols,host_abis,compiled_owners)
         report['DependencyPairs'] = len(ids) ** 2
         report['HostCheckedExports'] = sorted(symbol for row in components for symbol in row['Defined']
             if symbol.startswith(('xlSyncRetirement', 'xlCancellationRetirement')))
-        report['InputsUnchanged'] = all(sha(row['Path']) == row['Sha256'] for row in inputs + report['Objects'])
+        report['CompilerResponses'] = responses
+        report['InputsUnchanged'] = all(sha(row['Path']) == row['Sha256']
+            for row in inputs + responses + report['Objects'])
         report['Complete'] = report['InputsUnchanged'] and all(row['Exit'] == 0 for row in rows)
         assert report['Complete']
     finally:
