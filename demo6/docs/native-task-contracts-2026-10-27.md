@@ -1,13 +1,30 @@
 # Native task contract completion
 
-The compiler lifts non-null or flow-refined arguments into a nullable parameter before callback capture, using the ordinary explicit conversion. Tagged scalar frames retain their exact C representation. `task.all` boxes absent nullable strings as the existing null value and preserves native scalar width, signedness and floating bits. Ordinary non-null string representation and runtime dispatch remain unchanged.
+All five gaps from the task/owned-string audit are closed in the compiler:
 
-Generic `Future.then/catch/finally` specialization substitutes and revalidates both source and destination payload types and ABIs. No dynamic generic dispatcher or extension forwarding wrapper is introduced.
+- Non-null and flow-refined arguments are explicitly lifted into the declared nullable parameter before callback capture, using the ordinary call conversion.
+- `task.all` represents an absent nullable string with the existing null value. Optional C scalar frames and aggregate boxers preserve presence, exact width, signedness and floating bits.
+- Generic `Future.then/catch/finally` specialization substitutes and revalidates both source and result payload types and ABIs.
+- Explicit closed generic references such as `echo::<c_int>` select an existing monomorphic instance and use the ordinary capture-free named adapter. Locals, task callbacks, returned callbacks, nested types and async functions share this path.
 
-Initial Windows validation: source candidate driver-46, all three new regression files passed emitted C, JIT, AOT build and AOT execution (12 stages). The optional-scalar fixture covers all 20 C scalar forms, platform extrema, NaN and negative zero. The corrected previous audit cases also pass for these four gap classes. Linux and final public boundary gates will be recorded after the generic callable stage.
+The implementation changes no runtime layout or allocator contract. Implicit inference for an open generic function reference is outside this change; supply its explicit type arguments. `task.all` retains its existing array element boxing cost.
 
-`task.all` still uses its existing array element boxing. This change does not establish zero overhead for an entire asynchronous or aggregate call.
+## Validation
 
-Explicit closed generic references (`echo::<c_int>`) now select a concrete instance through the existing specialization graph and the existing capture-free named adapter. The same code path covers locals, arguments to task.spawn, returned callbacks, nested parameterized types and async functions. No implicit type inference for an open generic function reference is added.
+The Windows candidate is a complete source compiler/runtime cohort (driver-50, O0); Linux uses the corresponding source cohort (linux-50, Os). Each platform runs:
 
-Windows candidate driver-50 passed the public owned-string gate (including all four new fixtures) and its independent C consumer. Ten additional damaged nullable/callback contracts were independently rejected before C and header emission. The variadic regression fixture now performs asynchronous work after its synchronous OOM accounting, since Future readiness does not imply worker frame retirement.
+| Gate | Checks |
+| --- | ---: |
+| Public compiler: emitted C, JIT, AOT, rejection cases | 105 |
+| Independent C consumer and compiler contract programs | 23 |
+| Existing task/closure/native Future regression controls | 18 |
+
+The independent gate builds separate C translation units at O0 and O2, checks 120 controlled OOM prefixes at each optimization, rejects 6 damaged native variadic contracts, 6 scalar task contracts, 9 task composition contracts and 10 new optional/continuation/reference contracts before C/header emission, and checks 5 metadata allocation failures.
+
+The new fixtures cover all 20 optional C scalar forms, platform extrema, NaN, negative zero, null string aggregation, non-null flow injection, generic success/failure/cleanup callbacks and closed generic callable composition. `extern_c_variadic_value.xl` performs asynchronous work after synchronous OOM accounting: Future readiness does not imply worker frame retirement.
+
+Generated C for `extern_owned_string`, `extern_owned_string_package`, `extern_owned_string_export` and `extern_owned_string_forward` is byte-identical to the preceding driver-43 acceptance. This verifies these ordinary direct-string paths; it is not a claim of zero overhead for every asynchronous or aggregate operation.
+
+Local build receipts, hashes, logs and frozen Linux sources are recorded under `build/owned-string/`, with `task-final-50.json` as the acceptance index. Reproduce the durable gates with `tools/check_extern_owned_string.py` and `tools/check_extern_owned_string_public.py`, providing a fresh evidence directory and a verified current-source compiler/runtime receipt.
+
+Published release binaries are not replaced by these source changes. Concurrent mainline work is preserved during integration.
