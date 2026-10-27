@@ -60,16 +60,17 @@ int main(int argc, char** argv)
             reject(&ir, NULL); *instruction = saved;
         }
     }
-    /* Two source classes and both expanded DynamicFields creation sites must
-     * obey the same prepared-storage contract, including unreachable bodies. */
-    if (allocations != 4 || commits != 4 || mutations != 24) {
+    /* Two source classes and all three expanded DynamicFields factories
+     * (clone, __clone__, default) use the same prepared-storage contract,
+     * including unreachable bodies. Every actual allocation/commit mutates. */
+    if (allocations != 5 || commits != 5 || mutations != 27) {
         fprintf(stderr, "Class storage population: allocations=%lu commits=%lu mutations=%lu\n",
             (unsigned long)allocations, (unsigned long)commits, (unsigned long)mutations);
         assert(xl6OutputOpenFile(&out, argv[1])); xl6IrDumpModuleJson(&out, &ir); xl6OutputClose(&out);
     }
-    assert(allocations == 4 && commits == 4 && mutations == 24); verify(&ir);
+    assert(allocations == 5 && commits == 5 && mutations == 27); verify(&ir);
     assert(xl6OutputOpenFile(&out, argv[1]) && xl6IrCgenEmitC(&out, &ir, &parse.diags)); xl6OutputClose(&out);
     assert(xl6OutputOpenFile(&out, argv[2]) && xl6IrCgenEmitHeader(&out, &ir, "CLASS_STORAGE", &parse.diags)); xl6OutputClose(&out);
-    puts("Class storage IR: 4 prepared allocations, 4 exact commits, 2 lifecycle field bindings, 24 rejected Typed/Lowered/C/header mutations");
+    puts("Class storage IR: 5 prepared allocations, 5 exact commits, 2 lifecycle field bindings, 27 rejected Typed/Lowered/C/header mutations");
     xl6IrModuleFree(&ir); xl6ParseResultFree(&parse); return 0;
 }
