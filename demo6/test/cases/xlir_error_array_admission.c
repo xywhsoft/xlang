@@ -3,6 +3,7 @@
 #include "src/runtime/xl6_array.h"
 #include "src/runtime/xl6_array_erased.h"
 #include "src/runtime/xl6_error_value.h"
+#include "src/runtime/xl6_array_extract.h"
 #include <assert.h>
 #include <stdio.h>
 
@@ -65,14 +66,48 @@ static void vectors(const xerror* error,bool nullable)
     xerror* projected=NULL;assert(xl6ErrorValueReadRefV1(read,identity,&projected) && projected==error);
     xrtErrorFree(projected);xrtValueRelease(read);xrtValueRelease(copy);
 }
+static void extraction(const xerror* error)
+{
+    xvalue* array=xl6SequenceErrorCreateV1(XL6_SEQUENCE_ARRAY_V1,101,201,201,false);
+    xvalue* good=xl6ErrorValueRefV1(error,201);assert(array && good);
+    assert(xl6ArrayPushV1(array,LAYOUT(201),&good));
+    /* Like generated arrays, publish the resident projection before extract. */
+    assert(!xl6ArrayExtractErrorV1(array,101,201,0,false,false));clear(XERR_STATE);
+    xvalue* projected=xl6ArrayEraseV1(array,LAYOUT(201),NULL);assert(projected==array);
+    xrtValueRelease(projected);
+    assert(!xl6ArrayExtractErrorV1(array,999,201,0,false,false));clear(XERR_TYPE);
+    assert(!xl6ArrayExtractErrorV1(array,101,999,0,false,false));clear(XERR_TYPE);
+    assert(!xl6ArrayExtractErrorV1(array,101,201,9,false,false));clear(XERR_RANGE);
+    assert(xl6ArraySizeV1(array,LAYOUT(201),false)==1);
+    xerror* prior=xrtErrorCreate(XERR_RANGE,"native",2,"prior");assert(prior);
+    xrtSetErrorTake(xrtErrorRef(prior));
+    xerror* result=xl6ArrayExtractErrorV1(array,101,201,0,true,false);
+    assert(result==error && xrtGetError()==prior);
+    xrtClearError();xrtErrorFree(prior);xrtErrorFree(result);
+    assert(xl6ArraySizeV1(array,LAYOUT(201),false)==0);
+    xrtValueRelease(array);
+    /* Wire carriers must authenticate before committing a destructive read. */
+    xvalue* wire=xrtValueArray();xvalue* wrong=xrtValueInt(7);assert(wire && wrong);
+    assert(xrtValueArrayAppend(wire,wrong));xrtValueRelease(wrong);
+    assert(!xl6ArrayExtractErrorV1(wire,101,201,0,true,false));clear(XERR_TYPE);
+    assert(xrtValueCount(wire)==1);
+    assert(xrtValueArrayAppend(wire,good));
+    result=xl6ArrayExtractErrorV1(wire,101,201,0,true,false);
+    assert(result==error && xrtValueCount(wire)==1);xrtErrorFree(result);
+    xrtValueRelease(wire);xrtValueRelease(good);
+}
 static bool operation(const xerror* error)
 {
     xvalue* array=xl6SequenceErrorCreateV1(XL6_SEQUENCE_ARRAY_V1,101,202,201,true);
     xvalue* boxed=array ? xl6ErrorValueRefV1(error,202) : NULL;
     bool ok=array && boxed && xl6ArrayPushV1(array,LAYOUT(202),&boxed) &&
         xl6ArrayResizeV1(array,LAYOUT(202),33);
+    xvalue* projected=ok ? xl6ArrayEraseV1(array,LAYOUT(202),NULL) : NULL;
+    ok=ok && projected;xrtValueRelease(projected);
     xvalue* copy=ok ? xl6ArrayCloneV1(array,LAYOUT(202)) : NULL;
     ok=ok && copy;
+    xerror* extracted=ok ? xl6ArrayExtractErrorV1(copy,101,202,0,false,true) : NULL;
+    ok=ok && extracted==error;xrtErrorFree(extracted);
     xrtValueRelease(copy);xrtValueRelease(boxed);xrtValueRelease(array);return ok;
 }
 int main(void)
@@ -82,7 +117,7 @@ int main(void)
     /* Warm immutable singleton metadata before taking allocation snapshots. */
     assert(operation(error));
     xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);
-    vectors(error,false);vectors(error,true);balanced(&before);
+    vectors(error,false);vectors(error,true);extraction(error);balanced(&before);
     assert(!xl6SequenceErrorCreateV1(XL6_SEQUENCE_ARRAY_V1,0,201,201,false));clear(XERR_ARGUMENT);
     assert(!xl6SequenceErrorCreateV1(XL6_SEQUENCE_ARRAY_V1,101,201,201,true));clear(XERR_ARGUMENT);
     assert(!xl6SequenceErrorCreateV1(XL6_SEQUENCE_ARRAY_V1,101,202,201,false));clear(XERR_ARGUMENT);
