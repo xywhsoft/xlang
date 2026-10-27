@@ -34,6 +34,8 @@ Apple property list 的 XML 1.0 与 `bplist00` 读写。XLang 入口使用 `impo
 底层 XRT 分配，避免 `dumps(...).text()` 再复制整份文本；补齐终止字节
 时缓冲容量不足仍可能扩容。C 侧调用文本桥接后用 `xrtFree` 释放。
 二进制输出继续使用 `dumps(..., "binary")` 和 `xbuffer*`，不经过 C 字符串。
+XLang 声明将文本和错误消息均标为 `@owned string?`，直接接管 XRT 分配，
+不再经 `point` 和 `takeCstr` 二次封装；原生失败时的空指针仍单独处理。
 
 `UID` 是导出类型，可写 `plist.UID id = plist.uid(42)`；内部原生文档句柄不向导入方导出。
 `NativeDocument` 仅供包内桥接使用，导入方无法声明或构造；

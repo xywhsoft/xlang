@@ -215,7 +215,7 @@ XRT_API ptr xplist_stringify(ptr pHandle, int iFormat, bool bPretty,
 }
 
 /* 仅接管 XML 文本；二进制 plist 继续由 xbuffer 返回。 */
-XRT_API ptr xplist_stringify_text(ptr pHandle, bool bPretty,
+XRT_API char* xplist_stringify_text(ptr pHandle, bool bPretty,
 	bool bSortKeys, uint32 iIndent, uint64 iMaxOutput, uint64 iMaxItem,
 	uint64 iMaxEntries, uint64 iMaxNodes, uint32 iMaxDepth)
 {
@@ -261,4 +261,4 @@ XRT_API int64 xplist_error_code(void)
 XRT_API int64 xplist_error_line(void) { xrtplisterror* p = __xplistError(); return p != NULL ? (int64)p->iLine : 0; }
 XRT_API int64 xplist_error_column(void) { xrtplisterror* p = __xplistError(); return p != NULL ? (int64)p->iColumn : 0; }
 XRT_API int64 xplist_error_offset(void) { xrtplisterror* p = __xplistError(); return p != NULL ? (int64)p->iOffset : 0; }
-XRT_API ptr xplist_error_message(void) { xrtplisterror* p = __xplistError(); const char* s = p != NULL && p->sMessage[0] != 0 ? p->sMessage : "plist operation failed"; return xrtStrDup(s); }
+XRT_API char* xplist_error_message(void) { xrtplisterror* p = __xplistError(); const char* s = p != NULL && p->sMessage[0] != 0 ? p->sMessage : "plist operation failed"; return xrtStrDup(s); }

@@ -13,7 +13,7 @@ extern "xplist_error_code" func __plist_error_code() as int
 extern "xplist_error_line" func __plist_error_line() as int
 extern "xplist_error_column" func __plist_error_column() as int
 extern "xplist_error_offset" func __plist_error_offset() as int
-extern "xplist_error_message" func __plist_error_message() as point
+extern "xplist_error_message" @owned func __plist_error_message() as string?
 
 
 
@@ -68,9 +68,9 @@ class NativeDocument
         uint64 maxOutput, uint64 maxItem,
         uint64 maxEntries, uint64 maxNodes,
         c_uint maxDepth) as point
-    extern "xplist_stringify_text" func stringifyTextNative(c_bool pretty,
+    extern "xplist_stringify_text" @owned func stringifyTextNative(c_bool pretty,
         c_bool sortKeys, c_uint indent, uint64 maxOutput, uint64 maxItem,
-        uint64 maxEntries, uint64 maxNodes, c_uint maxDepth) as point
+        uint64 maxEntries, uint64 maxNodes, c_uint maxDepth) as string?
     extern "xplist_save" func saveNative(string path, c_int format,
         c_bool pretty, c_bool sortKeys, c_uint indent,
         uint64 maxOutput, uint64 maxItem,
@@ -81,7 +81,9 @@ end
 
 
 func __plist_error() as string
-    return __xl_runtime.takeCstr(__plist_error_message())
+    string? message = __plist_error_message()
+    if message == null then return "plist operation failed" end
+    return message
 end
 
 func __plist_raise_error()
@@ -89,6 +91,14 @@ func __plist_raise_error()
         throw MemoryError __plist_error()
     end
     throw PlistError __plist_error()
+end
+
+func __plist_take_text(string? result) as string
+    if result == null then
+        if __plist_error_code() == 6 then throw MemoryError __plist_error() end
+        throw PlistError __plist_error()
+    end
+    return result
 end
 
 func __plist_raise_build_error(string message)
@@ -365,12 +375,10 @@ export func stringify(var value, bool pretty = true,
     if root == null or not document.setRoot(root) then
         __plist_raise_build_error("could not build plist document")
     end
-    point result = document.stringifyTextNative(c_bool(pretty),
+    return __plist_take_text(document.stringifyTextNative(c_bool(pretty),
         c_bool(sortKeys), c_uint(indent), uint64(maxOutput),
         uint64(maxItem), uint64(maxEntries), uint64(maxNodes),
-        c_uint(maxDepth))
-    if result == null then __plist_raise_error() end
-    return __xl_runtime.takeCstr(result)
+        c_uint(maxDepth)))
 end
 
 export func dump(string path, var value, string format = "xml",
