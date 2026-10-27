@@ -1,8 +1,9 @@
 import ui.auto
 
 func main(...) as int
-    assert arg.length == 2, "cross-process test requires a PID"
+    assert arg.length == 3, "cross-process test requires a PID and image path"
     int process_id = int(arg[1])
+    string image_path = string(arg[2])
 
     auto edit = ui.auto.by_class_name("Edit", "", 50004)
     edit.process_id = process_id
@@ -10,6 +11,7 @@ func main(...) as int
     assert ui.auto.wait_exists(edit), "external edit was not found"
     assert ui.auto.type_text(edit, "cross-process text"), "external edit input failed"
     assert ui.auto.read(edit) == "cross-process text", "external edit read failed"
+    assert ui.auto.screenshot(edit, image_path), "external edit screenshot failed"
 
     auto button = ui.auto.by_class_name("Button", "Click", 50000)
     button.process_id = process_id

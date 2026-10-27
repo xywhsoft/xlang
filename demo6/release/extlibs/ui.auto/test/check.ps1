@@ -89,11 +89,15 @@ try {
             $detail = if ($fixture.HasExited) { $fixture.StandardError.ReadToEnd() } else { 'no ready message' }
             throw "external window fixture did not start: $detail"
         }
-        & $xl run extlibs/ui.auto/test/cross_process.xl -- $fixture.Id
+        $jitCapture = Join-Path $work 'cross_process_jit.png'
+        & $xl run extlibs/ui.auto/test/cross_process.xl -- $fixture.Id $jitCapture
         if ($LASTEXITCODE -ne 0) { throw 'ui.auto cross-process test failed' }
+        Confirm-Screenshot $jitCapture
         if (-not $SkipAot) {
-            & $crossProcessExe $fixture.Id
+            $aotCapture = Join-Path $work 'cross_process_aot.png'
+            & $crossProcessExe $fixture.Id $aotCapture
             if ($LASTEXITCODE -ne 0) { throw 'ui.auto cross-process AOT test failed' }
+            Confirm-Screenshot $aotCapture
         }
         $fixture.StandardInput.WriteLine()
         if (-not $fixture.WaitForExit(5000) -or $fixture.ExitCode -ne 0) {
