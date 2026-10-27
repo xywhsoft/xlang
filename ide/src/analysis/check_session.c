@@ -63,7 +63,6 @@ xls_semantic_check* xlsCheckSessionCheckWithHistory(xls_check_session* s,xls_con
     if(!used && s->result && s->captureIndex==captureIndex && s->usageKnown)
         used=xlsInputBatchEqualTopology(s->batch,batch,s->usedInputs,NULL,xlsSemanticCheckTopology(s->result),&remapped);
     int equal=ordinary || used;
-    xls_semantic_input inputs[64]; xlsInputBatchInputs(batch,inputs,64);
     if(equal && !xlsSemanticCheckValidate(s->result)) { equal=0; ++s->stats.invalidations; }
     if(stopped(cancelled,user)) goto cancel;
     if(equal) result=xlsSemanticCheckRetain(s->result);
@@ -91,7 +90,7 @@ xls_semantic_check* xlsCheckSessionCheckWithHistory(xls_check_session* s,xls_con
         }
         xls_semantic_check* baseline=compatible ? s->result : NULL;
         if(!s->entryCache) s->entryCache=xlsEntryCacheCreate(32u*1024u*1024u);
-        result=xlsSemanticCheckCreateCachedInContext(context,s->entryCache,entry,inputs,count,captureIndex,syntax,baseline,cancelled,user,error,capacity);
+        result=xlsSemanticCheckCreateBatch(s->entryCache,batch,captureIndex,syntax,baseline,cancelled,user,error,capacity);
         if(!result) goto done;
         xls_check_semantic_work work=xlsSemanticCheckWork(result);
         s->stats.semanticFunctionsChecked+=work.functionsChecked; s->stats.semanticFunctionsReused+=work.functionsReused;

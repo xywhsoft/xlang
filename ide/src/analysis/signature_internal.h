@@ -6,6 +6,7 @@
 #include "src/sem/xl6_completion.h"
 #include "src/lexer/xl6_lexer_api.h"
 #include <xrt.h>
+struct xls_input_batch;
 typedef struct xls_signature_record {
     char* label;size_t labelCapacity;
     const char* documentation;
@@ -58,6 +59,12 @@ xls_signature_data* xlsSemanticSignatureData(const xls_semantic_completion* resu
 xls_semantic_completion* xlsSemanticSignatureCreateInContext(xls_context* context,const char* entry,
     const char* path,size_t offset,const xls_semantic_input* inputs,size_t count,xls_signature_data* data,
     xls_entry_cache* cache,xls_semantic_completion* previous,int memoEnabled,
+    int (*cancelled)(void*),void* user,char* error,size_t capacity);
+xls_semantic_completion* xlsSemanticSignatureCreateBatch(xls_entry_cache* cache,
+    const struct xls_input_batch* batch,const char* queryKey,size_t offset,xls_signature_data* data,
+    xls_semantic_completion* previous,int (*cancelled)(void*),void* user,char* error,size_t capacity);
+xls_signature_help* xlsSignatureCreateBatch(xls_entry_cache* cache,const struct xls_input_batch* batch,
+    const char* queryKey,size_t offset,xls_call_context* index,xls_signature_help* previous,
     int (*cancelled)(void*),void* user,char* error,size_t capacity);
 xls_signature_help* xlsSignatureCreateRetainedInContext(xls_context* context,const char* entry,const char* path,
     size_t offset,const xls_semantic_input* inputs,size_t count,xls_call_context* index,xls_entry_cache* cache,

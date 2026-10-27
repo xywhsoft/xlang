@@ -27,13 +27,15 @@ int main(void)
     while(!strchr(line,'\n') && used<sizeof(line)-1) {int64 n=xrtProcessRead(process,XPROCESS_STDOUT,line+used,sizeof(line)-used-1);CHECK(n>0);used+=(size_t)n;}
     CHECK(strchr(line,'\n'));child=OpenProcess(SYNCHRONIZE,FALSE,(DWORD)strtoul(line,NULL,10));CHECK(child);
     CHECK(xrtProcessWrite(process,"q",1)==1 && xrtProcessClose(process,XPROCESS_STDIN));
-    CHECK(xrtProcessWaitFor(process,5000)==XWAIT_OK && xrtProcessStatus(process,&before));
+    /* XRT relative deadlines use microseconds; this tests cleanup/status,
+       not a five-millisecond Windows process-exit performance budget. */
+    CHECK(xrtProcessWaitFor(process,5000000)==XWAIT_OK && xrtProcessStatus(process,&before));
     CHECK(before.Kind==XPROCESS_EXIT_CODE && before.Code==0 && before.Stop==XPROCESS_STOP_NONE);
     CHECK(xrtProcessKillTree(process));CHECK(WaitForSingleObject(child,1000)==WAIT_OBJECT_0);
     CHECK(xrtProcessStatus(process,&after) && before.Kind==after.Kind && before.Code==after.Code && before.Stop==after.Stop && before.Signal==after.Signal && before.CoreDumped==after.CoreDumped);
     CHECK(xrtProcessKillTree(process) && xrtProcessRead(process,XPROCESS_STDOUT,line,sizeof(line))==0);
 cleanup:
-    if(process){xrtProcessKillTree(process);xrtProcessWaitFor(process,5000);xrtProcessDestroy(process);}if(child)CloseHandle(child);
+    if(process){xrtProcessKillTree(process);xrtProcessWaitFor(process,5000000);xrtProcessDestroy(process);}if(child)CloseHandle(child);
     if(okay)printf("analysis_process_tree_test passed: %d checks; retained Windows Job cleanup after root exit, unchanged terminal root status, repeated stop and pipe EOF.\n",checks);
     return okay ? 0 : 1;
 }

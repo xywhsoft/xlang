@@ -65,7 +65,7 @@ def main():
                 try:
                     c.send('initialize', dict(capabilities={}, initializationOptions=dict(automaticDiagnostics=False, checkOnSave=False)), 1)
                     init, _ = c.reply(1)
-                    assert init['result']['serverInfo']['version'] == '0.90', init
+                    assert init['result']['serverInfo']['version'] == '0.91', init
                     c.send('initialized', {})
                     c.open(path, heavy, 1)
                     c.send(method, params(method, path, heavy, 1), 10)
