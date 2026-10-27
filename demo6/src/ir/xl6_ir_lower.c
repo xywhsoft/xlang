@@ -33881,6 +33881,9 @@ int xl6IrLowerModule(XL6_IrModule* module, XL6_DiagList* diags)
         xrtFree(ctx.promotedParameters);
         return 0;
     }
+    for (size_t cast=0;cast<module->instructionCount;++cast)
+        if (module->instructions[cast].runtimeOp==XL6_IR_RUNTIME_XVALUE_CLOSURE_CAST_CHECKED)
+            module->instructions[cast].runtimeIdentityType=xl6IrBoundMethodCastIdentityType(module,&module->instructions[cast]);
     xl6IrBindModuleStorageTrace(module);
     xl6IrLowerRefreshStats(module);
     xrtFree(ctx.loops);

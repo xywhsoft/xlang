@@ -774,7 +774,7 @@ static int xl6IrCgenRuntimeCheckedClosureCastAbi(
          instruction->targetValue != XL6_IR_VALUE_INVALID ||
          instruction->payloadType != instruction->type ||
          instruction->calleeType != instruction->type ||
-         instruction->runtimeIdentityType != XL6_IR_TYPE_INVALID ||
+         instruction->runtimeIdentityType != xl6IrBoundMethodCastIdentityType(module,instruction) ||
          instruction->castAbi != XL6_IR_CAST_XVALUE_TO_CLOSURE_CHECKED ||
          instruction->opcode != XL6_IR_OPCODE_INVALID ) return 0;
     source = xl6IrCgenValueDefinition(
