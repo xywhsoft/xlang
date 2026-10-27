@@ -1057,6 +1057,7 @@ static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool
                base->collectionAbi == XL6_IR_COLLECTION_NONE &&
                base->runtimeResourceAbi == XL6_IR_RUNTIME_RESOURCE_NONE &&
                (base->kind == XL6_IR_TYPE_CLASS || base->kind == XL6_IR_TYPE_PROTOCOL ||
+                base->kind == XL6_IR_TYPE_TAGGED_ENUM ||
                 base->kind == XL6_IR_TYPE_GENERIC_INSTANCE)) {
         /* The module's closed nominal identity set is still required at the
          * operation boundary. This recipe does not invent a set from a name. */

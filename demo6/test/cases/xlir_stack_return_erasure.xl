@@ -1,0 +1,46 @@
+int stackReturnFinally = 0
+func localStack() as var
+    Stack<string> values = Stack::<string>()
+    assert values.push("a\0你")
+    return values
+end
+func finallyStack() as var
+    Stack<string> values = Stack::<string>()
+    assert values.push("before")
+    try
+        return values
+    finally
+        assert values.count() == 1
+        assert values.push("after")
+        stackReturnFinally += 1
+    end
+end
+func nullableStack(bool present) as var
+    Stack<int>? values = present ? Stack::<int>() : null
+    return values
+end
+func capturedStack() as var
+    Stack<int> values = Stack::<int>()
+    auto observe = func() as int
+        return values.count()
+    end
+    assert values.push(23) and observe() == 1
+    return values
+end
+func main(...) as int
+    for iteration in range(16)
+        var first = localStack()
+        assert string(first.pop()) == "a\0你"
+        var second = finallyStack()
+        assert string(second.pop()) == "after"
+        assert string(second.pop()) == "before"
+        assert nullableStack(false) == null
+        var optional = nullableStack(true)
+        assert bool(optional.push(17)) and int(optional.pop()) == 17
+        var captured = capturedStack()
+        assert int(captured.pop()) == 23
+    end
+    assert stackReturnFinally == 16
+    println("Stack return erasure: local, finally, nullable and captured owners passed")
+    return 0
+end
