@@ -1,7 +1,9 @@
 /* Reuse the real source API, resident executor and DLL-unmapping harness.
  * Only the relocated-state provider is substituted, not the execution path. */
+#ifndef JOINT_DLL_PATH
 #define JOINT_DLL_PATH "build/test/xlir_one_shot_lifetime.generated.dll"
 #define JOINT_DLL_NAME "xlir_one_shot_lifetime.generated.dll"
+#endif
 #define main joint_other_modes_main
 #include "xlir_async_module_lifetime_host.c"
 #undef main
@@ -56,13 +58,15 @@ int main(int argc, char** argv)
             assert(ok && context.lastExitCode == 42 && atomic_load(&deleted) == 1);
         } else if (selected == 3 || selected == 4) {
             /* Ready inputs still dispatch asynchronously. Successful cleanup
-             * commits the exit code; busy cleanup must be reported, not hidden. */
-            if (ok) assert(context.lastExitCode == 42);
-            else assert(context.lastError && strstr(context.lastError, "cleanup failed"));
+             * may be deferred to the checked resident retirement owner. BUSY
+             * is not an entry failure; no genuine error may be discarded. */
+            assert(ok && context.lastExitCode == 42 && !context.lastError);
             finish();
         } else {
-            assert(!ok && context.lastError);
-            if (selected == 1 || selected == 2) assert(strstr(context.lastError, "AssertionError"));
+            if (selected == 1 || selected == 2)
+                assert(!ok && context.lastError && strstr(context.lastError, "AssertionError"));
+            else
+                assert(ok && context.lastExitCode == 42 && !context.lastError);
             assert(!atomic_load(&deleted) && !atomic_load(&global_drops));
             /* Handle was consumed. Only the retirement owner may collect it. */
             collect(); assert(!atomic_load(&deleted));

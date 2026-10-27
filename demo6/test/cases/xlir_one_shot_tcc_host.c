@@ -51,6 +51,10 @@ static void load_artifact(void)
 #ifndef JOINT_SOURCE_XRT
     assert(register_environment(compiled_state, TCC_OUTPUT_MEMORY));
 #endif
+#ifdef JOINT_TCC_ARTIFACT_DIRECTORY
+    /* Generated artifacts and runtime headers have separate reviewed roots. */
+    assert(tcc_add_include_path(compiled_state, JOINT_TCC_ARTIFACT_DIRECTORY) == 0);
+#endif
 #ifdef JOINT_TCC_INCLUDE_DIRECTORY
     assert(tcc_add_include_path(compiled_state, JOINT_TCC_INCLUDE_DIRECTORY) == 0);
 #else

@@ -12,6 +12,36 @@ xfuture* future_graph_source(void) { assert(source); return xrtFutureRef(source)
 void future_graph_capture(xvalue* value)
 { assert(captured == NULL && value != NULL); captured = xrtValueRetain(value); assert(captured); }
 
+static void inspect_pending_source(xrtownershipref anchor, bool* live, xrtownershipresult* result)
+{
+    DWORD started = GetTickCount();
+    xfuturedebugsnapshot pending;
+    /* Launch publishes the Future before a fixed worker reaches await. Wait
+     * for the real linked Watch; the graph assertion must not test which
+     * thread happened to run first. The host never resolves this source here. */
+    do {
+        assert(xrtFutureDebugSnapshot(source, &pending));
+        if (pending.PendingWatches != 0) break;
+        assert((DWORD)(GetTickCount() - started) < 10000); SwitchToThread();
+    } while (true);
+    assert(pending.PendingWatches == 1);
+    for (;;) {
+        xrtownershipscope freeze = {0};
+        if (xrtOwnershipFreezeTryBegin(&freeze)) {
+            xrtownershipresult before = *result;
+            bool ok = xrtOwnershipInspectReachable(&anchor, 1, NULL, 0, live, result, NULL, NULL);
+            assert(xrtOwnershipScopeEnd(&freeze));
+            if (ok) return;
+            /* A worker may still be leaving its active frame phase. Only the
+             * checked state refusal is retryable, and outputs stay atomic. */
+            assert(!memcmp(&before, result, sizeof(before)));
+            assert(xrtGetError() && xrtErrorKind(xrtGetError()) == XERR_STATE);
+            xrtClearError();
+        }
+        assert((DWORD)(GetTickCount() - started) < 10000); SwitchToThread();
+    }
+}
+
 static void invoke_closure(xlir_closure* closure)
 {
     int64_t answer = 0;
@@ -49,7 +79,7 @@ int main(void)
            * lease is a genuine root, independent of the Watch storage lease. */
           xrtownershipref anchor = xrtFutureOwnership(source);
           xrtownershipresult old = {11,22,33,44}, result = old; bool live = true; xfuturewatch opaque;
-          assert(xrtOwnershipInspectReachable(&anchor, 1, NULL, 0, &live, &result, NULL, NULL));
+          inspect_pending_source(anchor, &live, &result);
           assert(live && result.NodeCount == 6 && result.EdgeCount == 9 && result.ExternalRootCount == 3);
           /* Preserve the former fail-closed assertion for an ACTUAL opaque
            * native waiter; do not convert unknown callback data to a leaf. */
