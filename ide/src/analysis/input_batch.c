@@ -59,13 +59,13 @@ int xlsInputSameBody(const xls_analysis_document* a,const xls_analysis_document*
     return a && b && (a->text==b->text || (xlsTextSize(a->text)==xlsTextSize(b->text) &&
         !memcmp(xlsTextData(a->text),xlsTextData(b->text),xlsTextSize(a->text))));
 }
-xls_input_batch* xlsInputBatchCreateInContext(xls_context* context,const xls_session_limits* limits,const xls_input_batch* previous,
+static xls_input_batch* createInContext(xls_context* context,const xls_session_limits* limits,const xls_input_batch* previous,
     const xls_analysis_document* documents,size_t count,const char* target,
-    int (*cancelled)(void*),void* user,char* error,size_t capacity)
+    int (*cancelled)(void*),void* user,char* error,size_t capacity,int allowClosed)
 {
     xls_session_limits chosen; xls_input_batch* b=NULL;
     if(error && capacity) *error=0;
-    if(!xlsInputLimits(limits,&chosen) || !documents || !count || count>chosen.documents ||
+    if(!xlsInputLimits(limits,&chosen) || (count && !documents) || (!count && (!allowClosed || target || !context)) || count>chosen.documents ||
        (target ? !label(target) : !context)) goto invalid;
     if(cancelled && cancelled(user)) goto cancel;
     b=xrtCalloc(1,sizeof(*b)); if(!b) goto memory;
@@ -99,6 +99,14 @@ memory: fail(error,capacity,"cannot retain semantic input batch"); goto done;
 cancel: fail(error,capacity,"semantic session cancelled");
 done: xlsInputBatchDestroy(b); return NULL;
 }
+xls_input_batch* xlsInputBatchCreateInContext(xls_context* context,const xls_session_limits* limits,const xls_input_batch* previous,
+    const xls_analysis_document* documents,size_t count,const char* target,
+    int (*cancelled)(void*),void* user,char* error,size_t capacity)
+{return createInContext(context,limits,previous,documents,count,target,cancelled,user,error,capacity,0);}
+xls_input_batch* xlsInputBatchCreateClosedInContext(xls_context* context,const xls_session_limits* limits,const xls_input_batch* previous,
+    const xls_analysis_document* documents,size_t count,const char* target,
+    int (*cancelled)(void*),void* user,char* error,size_t capacity)
+{return createInContext(context,limits,previous,documents,count,target,cancelled,user,error,capacity,1);}
 xls_input_batch* xlsInputBatchCreate(const xls_session_limits* limits,const xls_input_batch* previous,
     const xls_analysis_document* documents,size_t count,const char* target,
     int (*cancelled)(void*),void* user,char* error,size_t capacity)

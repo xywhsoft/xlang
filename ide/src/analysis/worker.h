@@ -5,6 +5,7 @@
 #include "analysis/check_session.h"
 #include "analysis/completion_session.h"
 #include "analysis/signature_session.h"
+#include "analysis/dependency_session.h"
 
 typedef struct xls_worker xls_worker;
 typedef struct xls_query xls_query;
@@ -61,6 +62,12 @@ xls_query* xlsWorkerCompletionInContext(xls_worker* worker,xls_context* context,
  * aliases a signature projection. Prefer a foreground actor for these queries. */
 xls_query* xlsWorkerSignatureInContext(xls_worker* worker,xls_context* context,
     const xls_analysis_document* documents,size_t count,const char* entry,const char* queryKey,size_t offset);
+/* Original parser/import/stdlib expansion only;no semantic or IR builders.
+ * Uses the same actor,full input history,cancellation and shared LRU budget.
+ * NULL target selects context.entry and permits zero open overlays. A READY
+ * source-error result can have expanded=0;expanded never means program valid. */
+xls_query* xlsWorkerDependenciesInContext(xls_worker* worker,xls_context* context,
+    const xls_analysis_document* documents,size_t count,const char* target);
 void xlsQueryCancel(xls_query* query);
 /* Register once from the submitting owner. Wake can run on the completing
  * worker or synchronously if already ready; it must be short/thread-safe and
@@ -82,6 +89,10 @@ enum xls_query_state xlsQueryCompletionResult(xls_query* query,xls_semantic_comp
     xls_completion_stats* stats,uint64_t* threadId,char* error,size_t capacity);
 enum xls_query_state xlsQuerySignatureResult(xls_query* query,xls_signature_help** result,
     xls_signature_stats* stats,uint64_t* threadId,char* error,size_t capacity);
+/* READY transfers an independent dependency reference. Other states clear
+ * outputs,using the same bounded error and query lifetime contract above. */
+enum xls_query_state xlsQueryDependencyResult(xls_query* query,xls_dependency_capture** result,
+    xls_dependency_session_stats* stats,uint64_t* threadId,char* error,size_t capacity);
 /* Value snapshot from a successful semantic query;no I/O or actor wait. Cache
  * hits mean routing to a retained session,not necessarily an exact fact hit.
  * Existing semantic stats continue reporting actual worker-wide work totals.

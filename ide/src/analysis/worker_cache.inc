@@ -5,6 +5,7 @@ static xls_session_state semanticState(const semantic_session* s)
 {
     if(s->kind==QUERY_CHECK)return xlsCheckSessionState(s->value.check);
     if(s->kind==QUERY_COMPLETION)return xlsCompletionSessionState(s->value.completion);
+    if(s->kind==QUERY_DEPENDENCY)return xlsDependencySessionState(s->value.dependency);
     return xlsSignatureSessionState(s->value.signature);
 }
 static void destroySemantic(semantic_session* s)
@@ -12,24 +13,27 @@ static void destroySemantic(semantic_session* s)
     if(s->kind==QUERY_CHECK)xlsCheckSessionDestroy(s->value.check);
     else if(s->kind==QUERY_COMPLETION)xlsCompletionSessionDestroy(s->value.completion);
     else if(s->kind==QUERY_SIGNATURE)xlsSignatureSessionDestroy(s->value.signature);
+    else if(s->kind==QUERY_DEPENDENCY)xlsDependencySessionDestroy(s->value.dependency);
     *s=(semantic_session){0};
 }
 static xls_semantic_checkpoint checkpointSemantic(const semantic_session* s)
 {
     if(s->kind==QUERY_CHECK)return xlsCheckSessionCheckpoint(s->value.check);
     if(s->kind==QUERY_COMPLETION)return xlsCompletionSessionCheckpoint(s->value.completion);
+    if(s->kind==QUERY_DEPENDENCY)return xlsDependencySessionCheckpoint(s->value.dependency);
     return xlsSignatureSessionCheckpoint(s->value.signature);
 }
 static void restoreSemantic(semantic_session* s,xls_semantic_checkpoint* old)
 {
     if(s->kind==QUERY_CHECK)xlsCheckSessionRestore(s->value.check,old);
     else if(s->kind==QUERY_COMPLETION)xlsCompletionSessionRestore(s->value.completion,old);
+    else if(s->kind==QUERY_DEPENDENCY)xlsDependencySessionRestore(s->value.dependency,old);
     else xlsSignatureSessionRestore(s->value.signature,old);
 }
 static void dropCheckpoint(xls_semantic_checkpoint* old)
 {
     xlsInputBatchDestroy(old->inputs);xlsSemanticCheckDestroy(old->check);xlsSemanticCompletionDestroy(old->completion);
-    xlsSignatureRelease(old->signature);xlsSyntaxRelease(old->syntax);*old=(xls_semantic_checkpoint){0};
+    xlsSignatureRelease(old->signature);xlsDependencyCaptureRelease(old->dependency);xlsSyntaxRelease(old->syntax);*old=(xls_semantic_checkpoint){0};
 }
 static int createSemantic(xls_worker* w,enum query_kind kind,semantic_session* s)
 {
@@ -40,6 +44,7 @@ static int createSemantic(xls_worker* w,enum query_kind kind,semantic_session* s
     s->kind=kind;
     if(kind==QUERY_CHECK){s->value.check=xlsCheckSessionCreate(&limits);return s->value.check!=NULL;}
     if(kind==QUERY_COMPLETION){s->value.completion=xlsCompletionSessionCreate(&limits);return s->value.completion!=NULL;}
+    if(kind==QUERY_DEPENDENCY){s->value.dependency=xlsDependencySessionCreate(&limits);return s->value.dependency!=NULL;}
     s->value.signature=xlsSignatureSessionCreate(&limits);return s->value.signature!=NULL;
 }
 static int sameRequired(const xls_analysis_document* old,const xls_analysis_document* now)
@@ -114,7 +119,15 @@ static xtaskoutcome executeSemantic(xcancel* cancel,query_input* input,xtaskvalu
     int checkpointed=selected!=&staged;
     xls_semantic_checkpoint checkpoint=checkpointed ? checkpointSemantic(selected) : (xls_semantic_checkpoint){0};
     const xls_input_batch* history=w->history[(size_t)input->kind-QUERY_CHECK];
-    if(input->kind==QUERY_SIGNATURE){
+    if(input->kind==QUERY_DEPENDENCY){
+        xls_dependency_session_stats before,after;xlsDependencySessionStats(selected->value.dependency,&before);
+        result->dependency=xlsDependencySessionCaptureWithHistory(selected->value.dependency,input->context,history,inputs.documents,inputs.count,input->target,cancelled,cancel,result->error,sizeof(result->error));
+        xlsDependencySessionStats(selected->value.dependency,&after);
+#define ADD(field) w->dependencyTotals.field=addWork(w->dependencyTotals.field,before.field,after.field)
+        ADD(builds);ADD(hits);ADD(invalidations);ADD(entryFullParses);ADD(entryFragmentParses);ADD(entryReusedDeclarations);ADD(entryParsedBytes);ADD(entrySyntaxHits);ADD(inputScopeHits);
+#undef ADD
+        w->dependencyTotals.documents=after.documents;w->dependencyTotals.textBytes=after.textBytes;result->dependencyStats=w->dependencyTotals;
+    }else if(input->kind==QUERY_SIGNATURE){
         xls_signature_stats before,after;xlsSignatureSessionStats(selected->value.signature,&before);
         result->signature=xlsSignatureSessionQueryWithHistory(selected->value.signature,input->context,history,inputs.documents,inputs.count,input->target,input->queryKey,input->offset,cancelled,cancel,result->error,sizeof(result->error));
         xlsSignatureSessionStats(selected->value.signature,&after);
@@ -141,7 +154,7 @@ static xtaskoutcome executeSemantic(xcancel* cancel,query_input* input,xtaskvalu
     }
     result->threadId=xrtThreadCurrentId();
     if(xrtCancelRequested(cancel)){if(checkpointed)restoreSemantic(selected,&checkpoint);dropCheckpoint(&checkpoint);destroySemantic(&staged);freeResult(result,NULL);return XTASK_CANCELLED;}
-    if(result->check || result->completion || result->signature){commitSemantic(w,selected,slot,replaced);staged=(semantic_session){0};}
+    if(result->check || result->completion || result->signature || result->dependency){commitSemantic(w,selected,slot,replaced);staged=(semantic_session){0};}
     else if(checkpointed)restoreSemantic(selected,&checkpoint);
     dropCheckpoint(&checkpoint);
     destroySemantic(&staged);result->cacheStats=w->cacheStats;
