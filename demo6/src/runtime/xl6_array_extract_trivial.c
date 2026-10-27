@@ -8,6 +8,7 @@
 typedef union TrivialScratch {
     bool boolean; int8_t i8; uint8_t u8; int16_t i16; uint16_t u16;
     int32_t i32; uint32_t u32; int64_t i64; uint64_t u64; float f32; double f64;
+    void* pointer;
     XL6_NullableBoolV1 nb; XL6_NullableI64V1 ni; XL6_NullableU64V1 nu;
     XL6_NullableF32V1 nf; XL6_NullableF64V1 nd; XL6_NullableTimeV1 nt;
     XL6_NullableCharV1 nc;

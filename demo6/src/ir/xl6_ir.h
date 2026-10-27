@@ -679,6 +679,7 @@ typedef enum XL6_IrNativeSlotAbi {
 #include "src/type/xl6_native_value_profiles.inc"
 #undef XL6_NATIVE_VALUE_PROFILE
     XL6_IR_NATIVE_SLOT_NULLABLE_SLOT_MAP_KEY_V1,
+    XL6_IR_NATIVE_SLOT_RAW_POINTER,
 } XL6_IrNativeSlotAbi;
 
 /* Target resident Sequence recipe, not permission to reinterpret an existing
@@ -3127,7 +3128,9 @@ typedef enum XL6_IrLoopItemAbi {
      * explicit; the binding owns its reference until iteration cleanup. */
     XL6_IR_LOOP_ITEM_FUTURE_COPY,
     XL6_IR_LOOP_ITEM_NULLABLE_FUTURE_COPY,
-    XL6_IR_LOOP_ITEM_ERROR_COPY
+    XL6_IR_LOOP_ITEM_ERROR_COPY,
+    /* Non-owning point/point<T> value copied from the cursor's pointer box. */
+    XL6_IR_LOOP_ITEM_RAW_POINTER_COPY
 } XL6_IrLoopItemAbi;
 
 /* Projection representation and target lifetime are distinct contracts.  A

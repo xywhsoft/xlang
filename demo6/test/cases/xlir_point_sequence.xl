@@ -1,0 +1,53 @@
+class PointerLeft
+end
+class PointerRight
+end
+
+func probe(point<PointerLeft> first, point<PointerRight> other, point raw) as int
+    var firstBox = first
+    var otherBox = other
+    assert (point(firstBox) == null) == (first == null)
+    assert (point(otherBox) == null) == (other == null)
+    assert point(firstBox) == first and first == point(firstBox)
+    assert other == point(otherBox) and point(otherBox) == other
+    assert (first == other) == (point(firstBox) == point(otherBox))
+    if first != null then assert first != raw and raw != other end
+    array<point<PointerLeft>> values = [first, null]
+    values.push(first)
+    values.insert(1, first)
+    assert values.length == 4 and values.pop() == first
+    assert values.take(1) == first and values[1] == null
+    values.resize(4)
+    assert values[2] == null and values[3] == null
+    values[2] = first
+    int visits = 0
+    for index, item in values
+        assert item == values[index]
+        visits += 1
+    end
+    assert visits == 4
+    var erased = values
+    array<point<PointerLeft>> same = erased as array<point<PointerLeft>>
+    array<point<PointerRight>>? wrong = erased as array<point<PointerRight>>?
+    assert same[0] == first and wrong == null
+
+    Stack<point<PointerRight>> stack = Stack::<point<PointerRight>>()
+    stack.push(other)
+    stack.push(null)
+    assert stack.pop() == null and stack.pop() == other
+
+    list<point<PointerLeft>> sparse = list[2: first, 9: null]
+    dict<point<PointerLeft>> named = dict{"first": first, "none": null}
+    assert sparse[2] == first and named["first"] == first
+    for _, item in sparse
+        assert item == first or item == null
+    end
+    for key, item in named
+        assert key == "first" ? item == first : item == null
+    end
+    array<point> untyped = [raw, null]
+    assert untyped[0] == raw and untyped.pop() == null
+    return 0
+end
+
+assert probe(null, null, null) == 0

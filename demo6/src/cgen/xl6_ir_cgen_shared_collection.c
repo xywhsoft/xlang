@@ -445,7 +445,7 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
                     const char* basePhysical=xl6IrCgenNativeValueTypeExpr(module,baseId);
                     const char* outputType=xl6IrCgenType(module,instruction->type);
                     if (!base || !base->typeValueId || !physical || !basePhysical || !outputType) return -1;
-                    xl6OutputPrintf(out,"    v%u = (%s){0};\n    bool extraction_ok_%u = %s(v%u, 0x%016llXULL, 0x%016llXULL, ",
+                    xl6OutputPrintf(out,"    v%u = (%s){0};\n    bool projection_ok_%u = %s(v%u, 0x%016llXULL, 0x%016llXULL, ",
                         (unsigned)instruction->result,outputType,(unsigned)instruction->result,symbol,(unsigned)receiver,
                         (unsigned long long)array->typeValueId,(unsigned long long)element->typeValueId);
                     if (pop) xl6OutputPuts("0",out); else xl6OutputPrintf(out,"v%u",(unsigned)argument0);

@@ -32,10 +32,15 @@ XL6_TEXT_API xvalue* xl6SequenceUnionCreateV1(unsigned int, uint64_t, uint64_t, 
  * into generated code. No optional physical factory is selected implicitly. */
 XL6_TEXT_API xvalue* xl6SequencePrimitiveCreateV1(unsigned int, uint64_t, uint64_t, unsigned int, size_t,
     const xrttype*, unsigned int, bool, uint64_t);
-/* Nonnullable C ABI scalars/type-id: actual native-width builtin descriptor,
+/* C ABI scalars/type-id: actual native-width builtin descriptor,
  * exact dynamic tag/range/identity, zero default. The admitted boxed identity
  * equals the element identity. A type-id projection requires explicit identity;
- * an unbound ordinary UInt is not a type value. No custom descriptors. */
+ * an unbound ordinary UInt is not a type value. Raw point/point<T> slots use
+ * the builtin non-owning pointer descriptor, including its null sentinel.
+ * Only pointer-sentinel nullable elements may differ from boxedIdentity here;
+ * the erased carrier remains XVALUE_POINTER, including pointer(NULL), rather
+ * than the unrelated dynamic null tag. Language null coercion creates a slot.
+ * tagged nullable scalars use their separate factory. No custom descriptors. */
 XL6_TEXT_API xvalue* xl6SequenceCScalarCreateV1(unsigned int, uint64_t, uint64_t, const xrttype*, uint64_t);
 /* The child schema exemplar is consumed on BOTH paths. Only its immutable
  * role/layout/full admission metadata is retained, not the exemplar, its
