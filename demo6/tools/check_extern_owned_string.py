@@ -68,6 +68,19 @@ def main():
             ['test/cases/extern_owned_task_scalars_host.c','test/cases/extern_owned_string_host.c'],[]),
         ('default-capture-oom','test/cases/extern_owned_default_capture_oom.xl',
             ['test/cases/extern_owned_string_host.c'],[]),
+        ('error-safe-index','test/cases/extern_owned_error_safe_index.xl',
+            ['test/cases/extern_owned_task_scalars_host.c','test/cases/extern_owned_string_host.c'],[]),
+        ('error-transports','test/cases/extern_owned_error_transports.xl',
+            ['test/cases/extern_owned_task_scalars_host.c','test/cases/extern_owned_string_host.c'],[]),
+        ('error-channel-receive','test/cases/extern_owned_error_channel_receive.xl',[],[]),
+        ('method-receiver-defaults','test/cases/extern_owned_method_receiver_defaults.xl',
+            ['test/cases/extern_owned_string_host.c'],[]),
+        ('foreign-prefix-defaults','test/cases/extern_owned_foreign_prefix_defaults.xl',
+            ['test/cases/extern_owned_task_scalars_host.c','test/cases/extern_owned_task_composition_host.c'],[]),
+        ('bound-method-defaults','test/cases/extern_owned_bound_method_defaults.xl',
+            ['test/cases/extern_owned_string_host.c'],[]),
+        ('native-bound-defaults','test/cases/extern_owned_native_bound_defaults.xl',
+            ['test/cases/extern_owned_string_host.c','test/cases/extern_owned_native_bound_defaults_host.c'],[]),
     ]
     sha=lambda path:hashlib.sha256(Path(path).read_bytes()).hexdigest()
     inputs=[ROOT/source for _,source,_,_ in cases]+[ROOT/path for _,_,paths,_ in cases for path in paths]
