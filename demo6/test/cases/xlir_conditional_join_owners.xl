@@ -1,0 +1,61 @@
+int joinCreated = 0
+int joinDropped = 0
+int joinFallbacks = 0
+class JoinOwner
+    int id
+    create(int id)
+        self.id = id
+        joinCreated += 1
+    end
+    destroy()
+        joinDropped += 1
+    end
+end
+func fallback(JoinOwner value) as JoinOwner
+    joinFallbacks += 1
+    return value
+end
+func aliases(bool choose, bool present) as (var, var)
+    var item = JoinOwner(1)
+    var optional = present ? item : null
+    return choose ? item : item, optional ?? fallback(item)
+end
+func capturedAliases(bool choose, bool present) as (var, var)
+    var item = JoinOwner(1)
+    var optional = present ? item : null
+    auto change = func()
+        item.id = 7
+    end
+    change()
+    return choose ? item : item, optional ?? fallback(item)
+end
+func strings(bool choose) as (string, string)
+    string left = "a\0你"
+    string right = "b\0好"
+    string? optional = choose ? left : null
+    return choose ? left : right, optional ?? right
+end
+func check(bool choose, bool present)
+    int before = joinFallbacks
+    auto first, second = aliases(choose, present)
+    first.id = 11
+    assert second.id == 11 and joinFallbacks == before + (present ? 0 : 1)
+    auto captured, related = capturedAliases(choose, present)
+    assert captured.id == 7 and related.id == 7
+    captured.id = 13
+    assert related.id == 13 and joinFallbacks == before + (present ? 0 : 2)
+    auto text, other = strings(choose)
+    assert text == (choose ? "a\0你" : "b\0好") and text == other
+end
+func main(...) as int
+    for iteration in range(48)
+        check(true, true)
+        check(true, false)
+        check(false, true)
+        check(false, false)
+        assert joinCreated == joinDropped
+    end
+    assert joinCreated == 384 and joinFallbacks == 192
+    println("conditional/coalesce owners: 192 calls, shared identity, lazy fallback and captured cells passed")
+    return 0
+end

@@ -228,9 +228,10 @@ static void verify(XL6_IrModule* ir)
     assert(joinedOwners >= 4 && joinBypasses >= 2);
     assert(xl6IrVerifyModule(ir, NULL));
 }
-int main(void)
+int main(int argc, char** argv)
 {
     XL6_ParseResult parse; XL6_IrModule ir; size_t i;
+    assert(argc == 1 || argc == 3);
     xl6ParseResultInit(&parse); xl6IrModuleInit(&ir);
     if (!xl6ParseFile("test/cases/xlir_return_projection_owner.xl", &parse) ||
         !xl6StdlibExpandModule(parse.root, &parse.diags) ||
@@ -244,6 +245,14 @@ int main(void)
         (unsigned long)cells, (unsigned long)classificationChecks, (unsigned long)mutations);
     printf("return projection joins: %lu path-dependent owners, %lu skipped-acquisition CFG mutations rejected\n",
         (unsigned long)joinedOwners, (unsigned long)joinBypasses);
+    if (argc == 3) {
+        XL6_Output out;
+        if (!xl6OutputOpenFile(&out, argv[1])) goto failed;
+        int ok = xl6IrCgenEmitC(&out, &ir, &parse.diags); xl6OutputClose(&out);
+        if (!ok || !xl6OutputOpenFile(&out, argv[2])) goto failed;
+        ok = xl6IrCgenEmitHeader(&out, &ir, "RETURN_PROJECTION_OWNERS", &parse.diags);
+        xl6OutputClose(&out); if (!ok) goto failed;
+    }
     xl6IrModuleFree(&ir); xl6ParseResultFree(&parse); return 0;
 failed:
     for (i = 0; i < parse.diags.count; ++i) fprintf(stderr, "%s\n", parse.diags.items[i].message);
