@@ -5,6 +5,7 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [string]$Tcc='E:/software/tcc/tcc.exe')
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
+. (Join-Path $PSScriptRoot 'xlir_resident_closure.ps1')
 $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
 try {
@@ -32,6 +33,20 @@ try {
         @($files|ForEach-Object {[pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})
     if(@($inputs|Where-Object {(Get-FileHash -LiteralPath $_.Path).Hash-ne$_.Sha256}).Count){throw 'Stale cancellation inputs'}
     New-Item -ItemType Directory -Path $outputPath|Out-Null
+    $closure=Get-XlirResidentClosure -Root $rootPath -Directory "$outputPath/resident-closure" -Sources ($resident+@('src/runtime/xl6_continuation_future.c')) -NativeProvider 'tools/xrt_single_header_impl.c' -PublicDirectory $PublicDirectory -Fixtures @('test/cases/xlir_async_cancel_watch.xl','test/cases/xlir_cell_cancel_race.xl')
+    # The source transport compiles the real Future transport with its Watch
+    # observer. It is a physical provider of that one component, not a second
+    # implementation to link alongside it.
+    $transportProbe='test/cases/xlir_async_source_transport.c'
+    $frameProbe='test/cases/xlir_async_cancel_wait_frame.c'
+    $original=@($original|Where-Object {$_-notlike'src/*'-and$_-ne$transportProbe})+@($closure.Sources|ForEach-Object {
+        if($_-eq'src/runtime/xl6_continuation_future.c'){$transportProbe}else{$_}
+    })
+    $interrupt=@($interrupt|Where-Object {$_-notlike'src/*'})+@($closure.Sources|ForEach-Object {
+        if($_-eq'src/runtime/xl6_continuation_frame.c'){$frameProbe}else{$_}
+    })
+    $inputs+=@($closure.Inputs)
+    $inputs+=@([pscustomobject]@{Path=[IO.Path]::GetFullPath($frameProbe);Sha256=(Get-FileHash -LiteralPath $frameProbe).Hash})
     $emission=@();$deterministic=$true
     foreach($fixture in @('watch','cell')){
         $name=if($fixture-eq'watch'){'xlir_async_cancel_watch'}else{'xlir_cell_cancel_race'}
@@ -52,7 +67,7 @@ try {
                 (Get-FileHash "$outputPath/$name.$suffix").Hash-ne(Get-FileHash "$outputPath/$name.repeat.$suffix").Hash){$deterministic=$false}
         }
     }
-    $includes=@("-I$([IO.Path]::GetFullPath((Join-Path $PublicDirectory 'include')))","-I$outputPath",'-I.')
+    $includes=@("-I$([IO.Path]::GetFullPath((Join-Path $PublicDirectory 'include')))","-I$outputPath",'-I.','-Irelease','-Irelease/include')
     $strict=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
         '-Wno-unused-label','-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-Wno-pointer-sign','-Wno-format-truncation')
     $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
@@ -61,14 +76,14 @@ try {
         $name="$variant-$configuration";$binary="$outputPath/$name.exe"
         $sources=if($variant-eq'original'){$original}else{$interrupt}
         $defines=if($variant-eq'original'){@(
-            (New-XlirCStringDefine 'XLIR_CANCEL_WATCH_GENERATED_C' 'xlir_async_cancel_watch.c'),
-            (New-XlirCStringDefine 'XLIR_CANCEL_WATCH_GENERATED_BIND' 'xlir_async_cancel_watch.h.bind.h'))}else{@()}
+            (New-XlirCStringDefine 'XLIR_CANCEL_WATCH_GENERATED_C' 'xlir_async_cancel_watch.c' -RawArgument),
+            (New-XlirCStringDefine 'XLIR_CANCEL_WATCH_GENERATED_BIND' 'xlir_async_cancel_watch.h.bind.h' -RawArgument))}else{@()}
         if($configuration-eq'tcc'){
-            & $Tcc -std=c11 @includes @defines @sources tools/xrt_single_header_impl.c C:/Windows/System32/ucrtbase.dll @libs -o $binary *> "$outputPath/$name.build.log"
+            $build=Invoke-XlirTccToLog $Tcc (@('-std=c11')+$includes+$defines+$sources+@('tools/xrt_single_header_impl.c','C:/Windows/System32/ucrtbase.dll')+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
         }else{
-            & gcc @strict "-$($configuration.Substring(4))" @includes @defines @sources $runtime[0].Path @libs -o $binary *> "$outputPath/$name.build.log"
+            $build=Invoke-XlirGccToLog ($strict+@("-$($configuration.Substring(4))")+$includes+$defines+$sources+@($runtime[0].Path)+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
         }
-        $build=$LASTEXITCODE;$run=$null;$complete=$false
+        $run=$null;$complete=$false
         if($build-eq0){
 $process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath `
                 -RedirectStandardOutput "$outputPath/$name.out.log" -RedirectStandardError "$outputPath/$name.err.log"

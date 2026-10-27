@@ -2,6 +2,8 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$ContractDirectory,
     [Parameter(Mandatory=$true)][string]$Directory,[string]$Tcc='E:/software/tcc/tcc.exe')
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
+. (Join-Path $PSScriptRoot 'xlir_resident_closure.ps1')
 $rootPath=(Get-Location).Path;$outputPath=[IO.Path]::GetFullPath($Directory)
 if(Test-Path -LiteralPath $outputPath){throw 'Preserve prior task-pool graph evidence'}
 $public=Get-Content -Raw -LiteralPath (Join-Path $PublicDirectory 'build.json')|ConvertFrom-Json
@@ -21,16 +23,19 @@ $inputs=@($public.Inputs)+@($public.Headers)+@($runtime)+@($contracts.Inputs)+@(
         ForEach-Object {[pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})
 foreach($row in $inputs){if((Get-FileHash -LiteralPath $row.Path).Hash-ne$row.Sha256){throw "Stale task-pool graph input: $($row.Path)"}}
 New-Item -ItemType Directory -Path $outputPath|Out-Null
+$closure=Get-XlirResidentClosure -Root $rootPath -Directory "$outputPath/resident-closure" -Sources @($sources|Where-Object {$_-like'src/*'}) -NativeProvider 'tools/xrt_single_header_impl.c'
+$sources=@($sources|Where-Object {$_-notlike'src/*'})+@($closure.Sources)
+$inputs+=@($closure.Inputs)
 & $driver *> "$outputPath/ir.log";$irExit=$LASTEXITCODE
 $irComplete=$irExit-eq0-and[bool](Select-String -LiteralPath "$outputPath/ir.log" -SimpleMatch 'Task pool graph IR: 4 independent Pool/Executor partitions, 32 C/header-gated mutations' -Quiet)
 $strict=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
-    '-Wno-unused-label','-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-Wno-pointer-sign','-Wno-format-truncation','-I.')
+    '-Wno-unused-label','-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-Wno-pointer-sign','-Wno-format-truncation','-I.','-Irelease','-Irelease/include')
 $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32');$lanes=@()
 foreach($compiler in @('gcc-O0','gcc-O2','tcc')){
     $binary="$outputPath/$compiler.exe"
-    if($compiler-eq'tcc'){& $Tcc -std=c11 -I. @sources tools/xrt_single_header_impl.c C:/Windows/System32/ucrtbase.dll @libs -o $binary *> "$outputPath/$compiler.build.log"}
-    else{& gcc @strict "-$($compiler.Substring(4))" @sources $runtime[0].Path @libs -o $binary *> "$outputPath/$compiler.build.log"}
-    $build=$LASTEXITCODE;$run=$null;$complete=$false
+    if($compiler-eq'tcc'){$build=Invoke-XlirTccToLog $Tcc (@('-std=c11','-I.','-Irelease','-Irelease/include')+$sources+@('tools/xrt_single_header_impl.c','C:/Windows/System32/ucrtbase.dll')+$libs+@('-o',$binary)) "$outputPath/$compiler.build.log"}
+    else{$build=Invoke-XlirGccToLog ($strict+@("-$($compiler.Substring(4))")+$sources+@($runtime[0].Path)+$libs+@('-o',$binary)) "$outputPath/$compiler.build.log"}
+    $run=$null;$complete=$false
     if($build-eq0){
 $process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath -RedirectStandardOutput "$outputPath/$compiler.out.log" -RedirectStandardError "$outputPath/$compiler.err.log"
         $null = $process.Handle

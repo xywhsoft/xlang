@@ -5,6 +5,8 @@
 #include <assert.h>
 extern XL6_ContinuationQueue* dependency_queue(void);
 extern const XL6_CodeOwner* dependency_owner(void);
+void dependency_prepare(void) {assert(xlir_module_init()&&!xrtGetError());}
+void dependency_finish(void) {xlir_module_fini();assert(!xrtGetError());}
 XL6_ContinuationAdmission dependency_reserve(XL6_ContinuationExecutor* executor,XL6_ContinuationTicket* ticket,
     XL6_ContinuationProc run,XL6_ContinuationProc release,void* data,const XL6_CodeOwner* owner)
 {

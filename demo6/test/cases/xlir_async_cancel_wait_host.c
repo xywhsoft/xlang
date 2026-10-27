@@ -15,7 +15,9 @@ extern int cancel_watch_dropped(int),cancel_watch_finalized(void);
 XL6_ContinuationAdmission cancel_wait_reserve(XL6_ContinuationExecutor* executor,XL6_ContinuationTicket* ticket,
     XL6_ContinuationProc run,XL6_ContinuationProc release,void* data,const XL6_CodeOwner* owner)
 {
-    (void)executor;cancel_wait_frame(data);
+    /* Initial entry is ready work, not an armed await. Pending frame pins
+     * are still recorded at the generated successor boundary below. */
+    (void)executor;
     return xl6ContinuationReserveOwned(cancel_wait_queue(),ticket,run,release,data,owner);
 }
 XL6_ContinuationAdmission cancel_wait_successor(XL6_ContinuationTicket* previous,XL6_ContinuationTicket* ticket,
@@ -46,6 +48,9 @@ xfuture* cancel_wait_launch(xvalue* a,xvalue* b,xfuture* source,xfuture* cleanup
 {
     xl6_error_scope scope={0};assert(xl6ErrorScopeBegin(&scope));
     xlir_result_future result=CANCEL_WATCH_RUN(a,b,source,cleanup,mode);
+    /* Initial entry is queued by the current fixed-worker launcher. Reach
+     * the first pending source before testing its armed cancellation path. */
+    assert(result.ok&&result.value&&xl6ContinuationRunOne(cancel_wait_queue()));
     xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
     assert(result.ok&&result.value&&outcome.ok&&!outcome.error&&!xrtGetError());return result.value;
 }

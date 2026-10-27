@@ -3,6 +3,8 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$Directory,
     [string]$Tcc='E:/software/tcc/tcc.exe')
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
+. (Join-Path $PSScriptRoot 'xlir_resident_closure.ps1')
 $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
 try {
@@ -22,6 +24,9 @@ try {
         @($files | ForEach-Object {[pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})
     if(@($inputs | Where-Object {(Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256}).Count){throw 'Stale slot-transfer inputs'}
     New-Item -ItemType Directory -Path $outputPath | Out-Null
+    $closure=Get-XlirResidentClosure -Root $rootPath -Directory "$outputPath/resident-closure" -Sources @($sources|Where-Object {$_-like'src/*'}) -NativeProvider 'tools/xrt_single_header_impl.c' -PublicDirectory $PublicDirectory -Fixtures @('test/cases/xlir_slot_transfers.xl')
+    $sources=@($sources|Where-Object {$_-notlike'src/*'})+@($closure.Sources)
+    $inputs+=@($closure.Inputs)
     $marker='Slot transfer IR: 5 fixtures, 20 rejected C/header-gated mutations, explicit text/JSON ABI; ordinary globals, async/generator frames, cells and module owners'
     $emission=@();$deterministic=$true
     foreach($repeat in @('','.repeat')){
@@ -36,18 +41,18 @@ try {
             (Get-FileHash "$outputPath/xlir_slot_transfers.$suffix").Hash -ne (Get-FileHash "$outputPath/xlir_slot_transfers.repeat.$suffix").Hash){$deterministic=$false}
     }
     $includePath=[IO.Path]::GetFullPath((Join-Path $PublicDirectory 'include'))
-    $includes=@("-I$includePath","-I$outputPath",'-I.')
+    $includes=@("-I$includePath","-I$outputPath",'-I.','-Irelease','-Irelease/include')
     $strict=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter')
     $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32');$lanes=@()
     $pattern='Slot transfers: 100 generated global freezes, 100 frozen physical handoffs, 100 armed-OOM allocation-free commits, 20000 racing handoffs, ([1-9][0-9]*) frozen graph probes; exact active/payload/ref/allocator balance, no native root registration'
     foreach($name in @('gcc-O0','gcc-O2','tcc')){
         $binary="$outputPath/$name.exe"
         if($name -eq 'tcc'){
-            & $Tcc -std=c11 @includes @sources tools/xrt_single_header_impl.c C:/Windows/System32/ucrtbase.dll @libs -o $binary *> "$outputPath/$name.build.log"
+            $buildExit=Invoke-XlirTccToLog $Tcc (@('-std=c11')+$includes+$sources+@('tools/xrt_single_header_impl.c','C:/Windows/System32/ucrtbase.dll')+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
         }else{
-            & gcc @strict "-$($name.Substring(4))" @includes @sources $runtime[0].Path @libs -o $binary *> "$outputPath/$name.build.log"
+            $buildExit=Invoke-XlirGccToLog ($strict+@("-$($name.Substring(4))")+$includes+$sources+@($runtime[0].Path)+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
         }
-        $buildExit=$LASTEXITCODE;$runExit=$null;$complete=$false;$probes=0
+        $runExit=$null;$complete=$false;$probes=0
         if($buildExit -eq 0){
 $process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath -RedirectStandardOutput "$outputPath/$name.out.log" -RedirectStandardError "$outputPath/$name.err.log"
             $null = $process.Handle
