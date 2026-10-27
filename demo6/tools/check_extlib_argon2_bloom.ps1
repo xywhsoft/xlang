@@ -93,8 +93,18 @@ try {
         $case = "test/cases/extlib_$name.xl"
         $module = Join-Path $work "$name.c"
         $null = Check "$name-cgen" $xl @('cgen',$case,'--emit',$module)
+        $generatedText = [IO.File]::ReadAllText($module)
+        if ($name -eq 'argon2') {
+            foreach ($symbol in @('xargon2_hash','xargon2_hash_raw','xargon2_extract','xargon2_generate_salt')) {
+                if ($generatedText -cnotmatch "\bv\d+\.Data\s*=\s*$symbol\s*\(") {
+                    throw "$symbol must adopt its native string without a copy"
+                }
+            }
+            if ($generatedText.Contains('__a2_require')) {
+                throw 'argon2 must not retain a string forwarding wrapper'
+            }
+        }
         if ($name -eq 'bloom') {
-            $generatedText = [IO.File]::ReadAllText($module)
             foreach ($symbol in @('xbloom_serialize_owned', 'xcounting_bloom_serialize_owned')) {
                 if ($generatedText -cnotmatch "\bv\d+\.Data\s*=\s*$symbol\s*\(") {
                     throw "$symbol must adopt the native C string directly"
@@ -139,6 +149,11 @@ try {
     foreach ($name in @('argon2','bloom')) {
         $null = Check "$name-tutorial" $xl @('run',"release/examples/extlibs/$name.xl") 180
     }
+    $ownedCase = 'release/extlibs/argon2/test/ownership.xl'
+    $null = Check 'argon2-ownership-jit' $xl @('run',$ownedCase)
+    $ownedBinary = Join-Path $work 'argon2-owned.exe'
+    $null = Check 'argon2-ownership-build' $xl @('build',$ownedCase,'-o',$ownedBinary)
+    $null = Check 'argon2-ownership-aot' $ownedBinary @()
     $nulKeys = 'release/extlibs/bloom/test/nul_keys.xl'
     $null = Check 'bloom-nul-keys-jit' $xl @('run',$nulKeys)
     $nulBinary = Join-Path $work 'bloom-nul-keys.exe'

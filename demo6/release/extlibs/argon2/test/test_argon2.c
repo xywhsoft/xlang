@@ -35,17 +35,19 @@ int main(void)
         memset(secret, 3, sizeof(secret));
         memset(ad, 4, sizeof(ad));
         for (i = 0; i < sizeof(vectors) / sizeof(vectors[0]); ++i) {
-            const char* actual = xargon2_hash_raw(password, sizeof(password),
+            char* actual = xargon2_hash_raw(password, sizeof(password),
                 salt, sizeof(salt), secret, sizeof(secret), ad, sizeof(ad),
                 3, 32, 4, 32, 16, vectors[i].type);
             if (actual == NULL || strcmp(actual, vectors[i].tag) != 0) {
                 fprintf(stderr, "test_argon2: RFC 9106 vector %lld failed: %s\n",
                     vectors[i].type, actual != NULL ? actual : "(null)");
+                xrtFree(actual);
                 return 1;
             }
+            xrtFree(actual);
         }
     }
-    const char* encoded = xargon2_hash(
+    char* encoded = xargon2_hash(
         LIT("xlang-password"), LIT("0123456789abcdef"), LIT(""), LIT(""),
         2, 64, 1, 32, 16, 2
     );
@@ -58,16 +60,18 @@ int main(void)
     }
     /* 每次公开操作只留下本次错误；正常不匹配不能继承旧故障。 */
     {
-        const char *value;
+        char *value;
         xrtSetErrorInfo(XERR_IO, "test", 0, "old error");
         value = xargon2_hash(LIT("pw"), LIT("0123456789abcdef"), LIT(""), LIT(""),
             1, 64, 1, 32, 16, 2);
-        assert(value[0] != '\0' && xrtGetError() == NULL);
+        assert(value && value[0] != '\0' && xrtGetError() == NULL);
+        xrtFree(value);
 
         xrtSetErrorInfo(XERR_IO, "test", 0, "old error");
         value = xargon2_hash_raw(LIT("pw"), LIT("0123456789abcdef"), LIT(""), LIT(""),
             1, 64, 1, 32, 16, 2);
-        assert(value[0] != '\0' && xrtGetError() == NULL);
+        assert(value && value[0] != '\0' && xrtGetError() == NULL);
+        xrtFree(value);
 
         xrtSetErrorInfo(XERR_IO, "test", 0, "old error");
         assert(!xargon2_verify(LIT("wrong"), encoded, strlen(encoded), LIT(""), LIT("")));
@@ -79,11 +83,13 @@ int main(void)
 
         xrtSetErrorInfo(XERR_IO, "test", 0, "old error");
         value = xargon2_extract(encoded, strlen(encoded));
-        assert(value[0] != '\0' && xrtGetError() == NULL);
+        assert(value && value[0] != '\0' && xrtGetError() == NULL);
+        xrtFree(value);
 
         xrtSetErrorInfo(XERR_IO, "test", 0, "old error");
         value = xargon2_generate_salt(16);
-        assert(strlen(value) == 32u && xrtGetError() == NULL);
+        assert(value && strlen(value) == 32u && xrtGetError() == NULL);
+        xrtFree(value);
 
         xrtSetErrorInfo(XERR_IO, "test", 0, "old error");
         assert(!xargon2_verify(LIT("pw"), LIT("invalid"), LIT(""), LIT("")));
@@ -94,32 +100,37 @@ int main(void)
         assert(xrtGetError() == NULL);
 
         xrtSetErrorInfo(XERR_IO, "test", 0, "old error");
-        assert(xargon2_extract(LIT("invalid"))[0] == '\0');
-        assert(xrtGetError() == NULL);
+        value = xargon2_extract(LIT("invalid"));
+        assert(value && value[0] == '\0' && xrtGetError() == NULL);
+        xrtFree(value);
     }
     {
-        const char *withNul = xargon2_hash(LIT("pw\0tail"), LIT("0123456789abcdef"),
+        char *withNul = xargon2_hash(LIT("pw\0tail"), LIT("0123456789abcdef"),
             LIT(""), LIT(""), 1, 64, 1, 32, 16, 2);
-        const char *withoutNul = xargon2_hash(LIT("pw"), LIT("0123456789abcdef"),
+        char *withoutNul = xargon2_hash(LIT("pw"), LIT("0123456789abcdef"),
             LIT(""), LIT(""), 1, 64, 1, 32, 16, 2);
+        assert(withNul && withoutNul);
         if ( strcmp(withNul, withoutNul) == 0 ) {
             fputs("test_argon2: password was truncated at NUL\n", stderr);
             return 1;
         }
         assert(xargon2_verify(LIT("pw\0tail"), withNul, strlen(withNul), LIT(""), LIT("")));
         assert(!xargon2_verify(LIT("pw"), withNul, strlen(withNul), LIT(""), LIT("")));
+        xrtFree(withNul);
+        xrtFree(withoutNul);
     }
     {
         char malformed[512];
         size_t fullLength;
-        const char *fullSalt = xargon2_hash(LIT("pw"), LIT("salt1234\0tail"),
+        char *fullSalt = xargon2_hash(LIT("pw"), LIT("salt1234\0tail"),
             LIT("key\0tail"), LIT("tenant\0tail"), 1, 64, 1, 32, 16, 2);
-        const char *shortSalt = xargon2_hash(LIT("pw"), LIT("salt1234"),
+        char *shortSalt = xargon2_hash(LIT("pw"), LIT("salt1234"),
             LIT("key\0tail"), LIT("tenant\0tail"), 1, 64, 1, 32, 16, 2);
-        const char *rawFull = xargon2_hash_raw(LIT("pw"), LIT("salt1234\0tail"),
+        char *rawFull = xargon2_hash_raw(LIT("pw"), LIT("salt1234\0tail"),
             LIT("key\0tail"), LIT("tenant\0tail"), 1, 64, 1, 32, 16, 2);
-        const char *rawShort = xargon2_hash_raw(LIT("pw"), LIT("salt1234"),
+        char *rawShort = xargon2_hash_raw(LIT("pw"), LIT("salt1234"),
             LIT("key\0tail"), LIT("tenant\0tail"), 1, 64, 1, 32, 16, 2);
+        assert(fullSalt && shortSalt && rawFull && rawShort);
         assert(strcmp(fullSalt, shortSalt) != 0);
         assert(strcmp(rawFull, rawShort) != 0);
         assert(xargon2_verify(LIT("pw"), fullSalt, strlen(fullSalt),
@@ -135,9 +146,13 @@ int main(void)
         assert(!xargon2_verify(LIT("pw"), malformed, fullLength + 5u,
             LIT("key\0tail"), LIT("tenant\0tail")));
         assert(xrtGetError() == NULL);
+        xrtFree(fullSalt);
+        xrtFree(shortSalt);
+        xrtFree(rawFull);
+        xrtFree(rawShort);
     }
     if ( xargon2_hash(LIT("x"), LIT("0123456789abcdef"), LIT(""), LIT(""),
-                      1, 2097153, 1, 32, 16, 2)[0] != '\0' ) {
+                      1, 2097153, 1, 32, 16, 2) != NULL ) {
         fputs("test_argon2: excessive memory cost was accepted\n", stderr);
         return 1;
     }
@@ -145,32 +160,36 @@ int main(void)
 
     /* 错误密码/损坏 PHC 是普通不匹配；资源上限和分配失败不是不匹配。 */
     {
-        const char *contextual = xargon2_hash(
+        char *contextual = xargon2_hash(
             LIT("pw"), LIT("0123456789abcdef"), LIT("server-key"), LIT("tenant-42"),
             1, 64, 1, 32, 16, 2
         );
-        assert(contextual[0] != '\0');
+        assert(contextual && contextual[0] != '\0');
         assert(xargon2_verify(LIT("pw"), contextual, strlen(contextual), LIT("server-key"), LIT("tenant-42")));
         assert(!xargon2_verify(LIT("pw"), contextual, strlen(contextual), LIT(""), LIT("")));
         assert(!xargon2_verify(LIT("pw"), contextual, strlen(contextual), LIT("wrong-key"), LIT("tenant-42")));
         assert(!xargon2_verify(LIT("pw"), contextual, strlen(contextual), LIT("server-key"), LIT("wrong-tenant")));
         assert(xrtGetError() == NULL);
+        xrtFree(contextual);
     }
     assert(!xargon2_verify(LIT("pw"), LIT("invalid"), LIT(""), LIT("")));
     assert(xrtGetError() == NULL);
     assert(!xargon2_verify(LIT("pw"), LIT("$argon2id$v=19$m=2097153,t=1,p=1$c29tZXNhbHQ$AAAAAA"), LIT(""), LIT("")));
     expect_error(XERR_VALUE);
-    assert(xargon2_generate_salt(7)[0] == '\0');
+    assert(xargon2_generate_salt(7) == NULL);
     expect_error(XERR_VALUE);
     assert(xargon2_needs_rehash(encoded, strlen(encoded), 0, 64, 1));
     expect_error(XERR_VALUE);
-    assert(xargon2_hash(LIT("x"), LIT("short"), LIT(""), LIT(""), 1, 64, 1, 32, 16, 2)[0] == '\0');
+    assert(xargon2_hash(LIT("x"), LIT("short"), LIT(""), LIT(""), 1, 64, 1, 32, 16, 2) == NULL);
     expect_error(XERR_VALUE);
-    assert(xargon2_hash_raw(LIT("x"), LIT("somesalt"), LIT(""), LIT(""), 1, 64, 1, 3, 16, 2)[0] == '\0');
+    assert(xargon2_hash_raw(LIT("x"), LIT("somesalt"), LIT(""), LIT(""), 1, 64, 1, 3, 16, 2) == NULL);
     expect_error(XERR_VALUE);
-    assert(xargon2_hash(LIT("x"), LIT("somesalt"), LIT(""), LIT(""), 1, 64, 1, 32, 16, 3)[0] == '\0');
+    assert(xargon2_hash(LIT("x"), LIT("somesalt"), LIT(""), LIT(""), 1, 64, 1, 32, 16, 3) == NULL);
     expect_error(XERR_VALUE);
+    /* 结果不再借用临时区，清理后原 PHC 仍可验证。 */
     xrtTempUnit(xrtTempCurrent());
+    assert(xargon2_verify(LIT("xlang-password"), encoded, strlen(encoded), LIT(""), LIT("")));
+    xrtFree(encoded);
     puts("test_argon2: ok");
     return 0;
 }

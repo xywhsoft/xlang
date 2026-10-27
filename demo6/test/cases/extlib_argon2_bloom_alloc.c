@@ -45,16 +45,21 @@ static void test_free(ptr context, ptr memory)
     system_allocator.Free(system_allocator.Context, memory);
 }
 
+static int owned_text(char *text)
+{
+    int ok = text != NULL && text[0] != '\0';
+    xrtFree(text);
+    return ok;
+}
+
 static int operation(unsigned int kind)
 {
     void *copy;
-    const char *text;
     switch (kind) {
     case 0:
-        text = xargon2_hash(LIT("password"), LIT("somesalt"), LIT(""), LIT(""), 1, 64, 1, 32, 16, 2);
-        return text[0] != '\0';
+        return owned_text(xargon2_hash(LIT("password"), LIT("somesalt"), LIT(""), LIT(""), 1, 64, 1, 32, 16, 2));
     case 1: return xargon2_verify(LIT("password"), encoded, strlen(encoded), LIT(""), LIT("")) != 0;
-    case 2: return xargon2_extract(encoded, strlen(encoded))[0] != '\0';
+    case 2: return owned_text(xargon2_extract(encoded, strlen(encoded)));
     case 3: copy = xbloom_create(100, 0.01); break;
     case 4: copy = xbloom_deserialize(bloom_text); break;
     case 5: copy = xbloom_clone(filter); break;
@@ -74,6 +79,15 @@ static int operation(unsigned int kind)
         xrtFree(owned);
         return ok;
     }
+    case 13:
+        return owned_text(xargon2_hash_raw(LIT("password"), LIT("somesalt"), LIT(""), LIT(""), 1, 64, 1, 32, 16, 2));
+    case 14: return owned_text(xargon2_generate_salt(16));
+    case 15: {
+        char *empty = xargon2_extract(LIT("invalid"));
+        int ok = empty != NULL && empty[0] == '\0';
+        xrtFree(empty);
+        return ok;
+    }
     default: return xcounting_bloom_serialize(counting)[0] != '\0';
     }
     if (kind < 7) xbloom_destroy(copy);
@@ -89,7 +103,7 @@ int main(void)
     xrtGetAllocator(&system_allocator);
     assert(xrtSetAllocator(&allocator));
     assert(xrtMemDebugEnable(true));
-    encoded = xrtStrDup(xargon2_hash(LIT("password"), LIT("somesalt"), LIT(""), LIT(""), 1, 64, 1, 32, 16, 2));
+    encoded = xargon2_hash(LIT("password"), LIT("somesalt"), LIT(""), LIT(""), 1, 64, 1, 32, 16, 2);
     filter = xbloom_create(100, 0.01);
     counting = xcounting_bloom_create(100, 0.01);
     assert(encoded && filter && counting);
@@ -104,10 +118,10 @@ int main(void)
 
     /* 普通堆与临时区分别注入；失败必须报 MemoryError，且不改变输入对象。 */
     for (mode = 0; mode < 2; ++mode) {
-      for (kind = 0; kind < 13; ++kind) {
+      for (kind = 0; kind < 16; ++kind) {
         unsigned int good = 0, bad = 0;
         if (mode == 0 && (kind == 6 || kind == 10)) continue;
-        if (mode == 1 && kind != 0 && kind != 2 && kind != 6 && kind != 10) continue;
+        if (mode == 1 && kind != 6 && kind != 10) continue;
         for (index = 0; index < 16; ++index) {
             int ok;
             bool injected;

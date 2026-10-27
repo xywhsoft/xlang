@@ -1,5 +1,15 @@
 # argon2
 
+2026-10-28 文本所有权收口：四个 C 文本出口统一返回可用 `xrtFree`
+释放的 `char*`，XLang 以 `@owned string` 直接接管，不再先写临时区
+再复制；删除了只负责字符串转发的 `__a2_require`。生成 C 检查四条
+直接接管路径，仍有一次长度扫描和既有外调错误处理，不宣称整条
+调用零开销。Windows/Linux 默认联合门禁均退出 0，覆盖 RFC 向量、
+C ASan/UBSan（Linux）、分配故障、正常空结果、语言 JIT/AOT 与
+双语固定输出；C 范例显式释放全部文本。新增
+[所有权用例](test/ownership.xl) 已登记包清单。Linux 语言阶段使用
+独占原生临时目录，不将此通过外推为 WSL 挂载盘性能已修复。
+
 2026-10-26 当前发布物：Windows `tools/check_extlib_argon2_bloom.ps1`
 报告 `passed`，47 项检查，严格 C/生成原型、RFC 向量、分配故障、
 语言 JIT/AOT 与双语固定输出通过。Linux 同一联合门禁退出 0：
@@ -18,7 +28,7 @@ Linux `tools/check_extlib_argon2_bloom.sh` 的 C ASan/UBSan、固定向量、
 范例与分配故障通过；当时未用重建的 Linux xlang 执行语言/AOT 门禁。
 下面保留旧构建的失败记录作追溯，不代表当前发布版仍被阻断。
 
-官方 Argon2 参考实现的 xlang/C 包，内存、临时字符串、安全随机数和错误槽复用 XRT。
+官方 Argon2 参考实现的 xlang/C 包，内存、文本结果、安全随机数和错误槽复用 XRT。
 支持 Argon2d、Argon2i、Argon2id，默认 Argon2id。当前后端按顺序处理各 lane；
 `parallelism` 是算法参数，不承诺创建相同数量的系统线程。
 
@@ -69,8 +79,12 @@ t=1/m=2097152/p=4。两组对应 [RFC 9106 第 4 节](https://www.rfc-editor.org
 ## C 与验证
 
 公开声明位于 `include/argon2_native.h`，每个输入指针均紧邻其 `size_t` 字节长度；
-零长度盐触发随机盐生成。C 返回字符串借用当前 XRT 临时区，
-需要跨越该临时区生命周期时先复制；失败详情读取 `xrtGetError()`。
+零长度盐触发随机盐生成。四条 C 文本返回值均由调用方拥有，以
+`xrtFree` 释放，其他调用或临时区清理不会使先前结果失效。
+资源或参数失败返回 `NULL`，详情读取 `xrtGetError()`；
+`xargon2_extract` 对无效 PHC 返回拥有的空文本且不留错误，仍须
+释放，XLang 的 `extract*` 将它映射为 `-1`。空结果的分配失败
+仍是 `NULL`/`MemoryError`，不能当作普通未命中。
 源文件以 package manifest 为准，链接一份 XRT。输入密码由调用方拥有，库不会擦除它。
 
 范例：`examples/extlibs/argon2.xl` 为教学覆盖；`argon2_basic.xl` 与 `argon2_c.c`
@@ -79,6 +93,9 @@ t=1/m=2097152/p=4。两组对应 [RFC 9106 第 4 节](https://www.rfc-editor.org
 专项门禁：`tools/check_extlib_argon2_bloom.ps1`，包含生成的全部 C 原型、严格 GCC、
 C/xlang JIT/AOT、负例和分配故障。具体运行结果应查看该次 `results.json`，不能只凭
 测试脚本存在认定通过。二进制重载、验证任务预算和性能标定仍是后续项。
+Linux 对应入口为 `bash tools/check_extlib_argon2_bloom.sh`。新增
+`test/ownership.xl` 覆盖 PHC、raw hex、参数文本、随机盐及普通未命中
+的 OOM 与恢复；C 分配故障扫描检查活动分配、重复释放及越界计数。
 `test/test_argon2.c` 另核对 RFC 9106 第 5 节 Argon2d/i/id 的三个固定 Tag，
 覆盖密码、盐、secret 和 ad 的完整字节传递，避免仅用本库生成再由本库验证。
 该用例已通过 Windows 严格 GCC、TCC C JIT 与 Linux ASan/UBSan；不替代 XLang 验收。

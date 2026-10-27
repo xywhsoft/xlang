@@ -179,7 +179,7 @@ static int xargon2_hash_bytes(uint8_t *output, uint32_t outputLength,
 
 
 
-const char *xargon2_hash(const char *password, size_t passwordSize,
+char *xargon2_hash(const char *password, size_t passwordSize,
                          const char *salt, size_t saltSize,
                          const char *secret, size_t secretSize,
                          const char *ad, size_t adSize,
@@ -203,7 +203,7 @@ const char *xargon2_hash(const char *password, size_t passwordSize,
          !xargon2_validate_bytes(salt, saltSize) ||
          !xargon2_validate_bytes(secret, secretSize) ||
          !xargon2_validate_bytes(ad, adSize) ) {
-        return "";
+        return NULL;
     }
     if ( !xargon2_type_from_value(typeValue, &type) ||
          !xargon2_validate_costs(timeCost, memoryCost, parallelism,
@@ -211,20 +211,20 @@ const char *xargon2_hash(const char *password, size_t passwordSize,
         if ( typeValue < 0 || typeValue > 2 ) {
             xargon2_set_error(XERR_VALUE, "argon2 type must be ARGON2D, ARGON2I or ARGON2ID");
         }
-        return "";
+        return NULL;
     }
 
     if ( automatic ) {
         actualSaltLength = (uint32_t)saltLength;
         if ( !xrtSecureRandom(automaticSalt, actualSaltLength) ) {
             xargon2_set_error(XERR_IO, "argon2 secure random generation failed");
-            return "";
+            return NULL;
         }
         actualSalt = automaticSalt;
     } else {
         if ( saltSize < ARGON2_MIN_SALT_LENGTH || saltSize > XARGON2_MAX_SALT_LENGTH ) {
             xargon2_set_error(XERR_VALUE, "argon2 salt length must be between 8 and 64 bytes");
-            return "";
+            return NULL;
         }
         actualSalt = (const uint8_t *)salt;
         actualSaltLength = (uint32_t)saltSize;
@@ -243,7 +243,7 @@ const char *xargon2_hash(const char *password, size_t passwordSize,
         }
         xrtSecureZero(output, sizeof(output));
         xargon2_set_error_code(result);
-        return "";
+        return NULL;
     }
 
     encodedLength = argon2_encodedlen((uint32_t)timeCost,
@@ -251,14 +251,14 @@ const char *xargon2_hash(const char *password, size_t passwordSize,
                                       (uint32_t)parallelism,
                                       actualSaltLength,
                                       (uint32_t)hashLength, type);
-    encoded = (char *)xrtTemp(encodedLength);
+    encoded = (char *)xrtMalloc(encodedLength);
     if ( encoded == NULL ) {
         if ( automatic ) {
             xrtSecureZero(automaticSalt, sizeof(automaticSalt));
         }
         xrtSecureZero(output, sizeof(output));
         xargon2_set_error(XERR_MEMORY, "argon2 output allocation failed");
-        return "";
+        return NULL;
     }
     result = encode_string(encoded, encodedLength, &context, type);
     if ( automatic ) {
@@ -266,15 +266,16 @@ const char *xargon2_hash(const char *password, size_t passwordSize,
     }
     xrtSecureZero(output, sizeof(output));
     if ( result != ARGON2_OK ) {
+        xrtFree(encoded);
         xargon2_set_error_code(result);
-        return "";
+        return NULL;
     }
     return encoded;
 }
 
 
 
-const char *xargon2_hash_raw(const char *password, size_t passwordSize,
+char *xargon2_hash_raw(const char *password, size_t passwordSize,
                              const char *salt, size_t saltSize,
                              const char *secret, size_t secretSize,
                              const char *ad, size_t adSize,
@@ -299,7 +300,7 @@ const char *xargon2_hash_raw(const char *password, size_t passwordSize,
          !xargon2_validate_bytes(salt, saltSize) ||
          !xargon2_validate_bytes(secret, secretSize) ||
          !xargon2_validate_bytes(ad, adSize) ) {
-        return "";
+        return NULL;
     }
     if ( !xargon2_type_from_value(typeValue, &type) ||
          !xargon2_validate_costs(timeCost, memoryCost, parallelism,
@@ -307,20 +308,20 @@ const char *xargon2_hash_raw(const char *password, size_t passwordSize,
         if ( typeValue < 0 || typeValue > 2 ) {
             xargon2_set_error(XERR_VALUE, "argon2 type must be ARGON2D, ARGON2I or ARGON2ID");
         }
-        return "";
+        return NULL;
     }
 
     if ( automatic ) {
         actualSaltLength = (uint32_t)saltLength;
         if ( !xrtSecureRandom(automaticSalt, actualSaltLength) ) {
             xargon2_set_error(XERR_IO, "argon2 secure random generation failed");
-            return "";
+            return NULL;
         }
         actualSalt = automaticSalt;
     } else {
         if ( saltSize < ARGON2_MIN_SALT_LENGTH || saltSize > XARGON2_MAX_SALT_LENGTH ) {
             xargon2_set_error(XERR_VALUE, "argon2 salt length must be between 8 and 64 bytes");
-            return "";
+            return NULL;
         }
         actualSalt = (const uint8_t *)salt;
         actualSaltLength = (uint32_t)saltSize;
@@ -339,14 +340,14 @@ const char *xargon2_hash_raw(const char *password, size_t passwordSize,
     if ( result != ARGON2_OK ) {
         xrtSecureZero(output, sizeof(output));
         xargon2_set_error_code(result);
-        return "";
+        return NULL;
     }
 
-    hex = (char *)xrtTemp((size_t)hashLength * 2u + 1u);
+    hex = (char *)xrtMalloc((size_t)hashLength * 2u + 1u);
     if ( hex == NULL ) {
         xrtSecureZero(output, sizeof(output));
         xargon2_set_error(XERR_MEMORY, "argon2 output allocation failed");
-        return "";
+        return NULL;
     }
     for ( i = 0; i < (size_t)hashLength; i++ ) {
         hex[i * 2u] = digits[output[i] >> 4];
@@ -519,7 +520,7 @@ long long xargon2_needs_rehash(const char *encoded, size_t encodedSize,
 
 
 
-const char *xargon2_extract(const char *encoded, size_t encodedSize)
+char *xargon2_extract(const char *encoded, size_t encodedSize)
 {
     argon2_context context;
     argon2_type type;
@@ -532,14 +533,15 @@ const char *xargon2_extract(const char *encoded, size_t encodedSize)
     result = xargon2_decode(encoded, encodedSize, "", 0u,
                             &context, &type, &salt, &output);
     if ( result != ARGON2_OK ) {
-        return "";
+        /* 无效 PHC 是普通未命中；资源失败仍通过错误槽传播。 */
+        return xrtGetError() == NULL ? xrtStrDup("") : NULL;
     }
-    resultText = (char *)xrtTemp(96);
+    resultText = (char *)xrtMalloc(96);
     if ( resultText == NULL ) {
         xargon2_free(salt, encodedSize);
         xargon2_free(output, encodedSize);
         xargon2_set_error(XERR_MEMORY, "argon2 extraction allocation failed");
-        return "";
+        return NULL;
     }
     snprintf(resultText, 96, "%d,%u,%u,%u,%u,%u", (int)type,
              context.t_cost, context.m_cost, context.lanes,
@@ -551,7 +553,7 @@ const char *xargon2_extract(const char *encoded, size_t encodedSize)
 
 
 
-const char *xargon2_generate_salt(long long length)
+char *xargon2_generate_salt(long long length)
 {
     static const char digits[] = "0123456789abcdef";
     uint8_t bytes[XARGON2_MAX_SALT_LENGTH];
@@ -562,17 +564,17 @@ const char *xargon2_generate_salt(long long length)
     if ( length < ARGON2_MIN_SALT_LENGTH ||
          length > XARGON2_MAX_SALT_LENGTH ) {
         xargon2_set_error(XERR_VALUE, "argon2 salt length must be between 8 and 64 bytes");
-        return "";
+        return NULL;
     }
     if ( !xrtSecureRandom(bytes, (size_t)length) ) {
         xargon2_set_error(XERR_IO, "argon2 secure random generation failed");
-        return "";
+        return NULL;
     }
-    hex = (char *)xrtTemp((size_t)length * 2u + 1u);
+    hex = (char *)xrtMalloc((size_t)length * 2u + 1u);
     if ( hex == NULL ) {
         xrtSecureZero(bytes, sizeof(bytes));
         xargon2_set_error(XERR_MEMORY, "argon2 salt allocation failed");
-        return "";
+        return NULL;
     }
     for ( i = 0; i < (size_t)length; i++ ) {
         hex[i * 2u] = digits[bytes[i] >> 4];

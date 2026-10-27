@@ -71,11 +71,13 @@
   <!-- ═══════════ 面板 1：概览 ═══════════ -->
   <div class="ext-panel active" id="panel-overview">
     <h2>当前合同与验证</h2>
-    <p>2026-09-26 原生 ABI 与错误边界更新。公开 C 声明为 <code>include/argon2_native.h</code>，
-    专项门禁为 <code>tools/check_extlib_argon2_bloom.ps1</code>，执行记录绑定源码和宿主哈希。</p>
+    <p>2026-10-28 文本所有权与错误边界复验。公开 C 声明为 <code>include/argon2_native.h</code>，
+    专项门禁为 <code>tools/check_extlib_argon2_bloom.ps1</code> 与对应 <code>.sh</code>，Windows/Linux 默认门禁均通过，执行记录绑定源码和宿主哈希。</p>
     <ul>
       <li>无效参数使用 ValueError，分配失败使用 MemoryError，安全随机源失败使用 IOError。</li>
       <li>六个 C 操作入口先清除旧的 XRT 错误；成功、密码不匹配和无效 PHC 的普通查询结果不会继承上次失败。调用后立即读取错误槽。</li>
+      <li>四条 C 文本返回值为拥有型 <code>char*</code>，调用方以 <code>xrtFree</code> 释放，失败返回 <code>NULL</code> 并设置 XRT 错误。XLang 使用 <code>@owned string</code> 直接接管，不经临时区复制正文；仍需一次长度扫描。</li>
+      <li><code>xargon2_extract</code> 对无效 PHC 返回拥有的空文本且不留错误，语言层 <code>extract*</code> 返回 -1。空结果自身的 OOM 仍抛 MemoryError。C/语言故障注入与恢复、生成 C 接管检查、双语 JIT/AOT 均已覆盖；不代表独立密码学审计或长时压力已完成。</li>
       <li>输出 4..256 字节、盐 8..64 字节、内存最多 2097152 KiB；verify 同样检查资源上限。
       该上限不是并发配额或时间预算，不承诺取消与中途终止。</li>
       <li>RFC 9106 参数组：64 MiB / t=3 / p=4，或 2 GiB / t=1 / p=4；
