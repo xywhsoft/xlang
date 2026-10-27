@@ -17,8 +17,6 @@ xvalue* xprocps_pids(void);
 int64_t xprocps_count(void);
 /* 返回由 xrtFree 释放的 UTF-8 独立字符串；不可访问时返回 NULL。 */
 char* xprocps_name(int64_t pid);
-/* XLang point ABI 入口；C 调用方优先使用 xprocps_name。 */
-void* xprocps_name_abi(int64_t pid);
 /* 当前常驻内存 KiB；不可访问时返回 -1。 */
 int64_t xprocps_mem_kb(int64_t pid);
 

@@ -30,6 +30,7 @@ function Build-Aot([string] $source, [string] $output) {
 }
 
 $work = $null
+$generated = $null
 Push-Location $root
 try {
     & $gcc -std=c11 -Wall -Wextra -Werror -x c -fsyntax-only '-Ilib/xrt' `
@@ -55,6 +56,16 @@ try {
     $xlLines = @(& $xl run release/examples/extlibs/procps.xl)
     if ($LASTEXITCODE -ne 0) { throw 'procps XLang example failed' }
     Confirm-Output 'XLang example' $xlLines
+    $generated = Join-Path ([IO.Path]::GetTempPath()) `
+        ('xlang-procps-owned-' + [guid]::NewGuid().ToString('N') + '.c')
+    & $xl cgen release/examples/extlibs/procps.xl --emit $generated
+    if ($LASTEXITCODE -ne 0) { throw 'procps owned-name cgen failed' }
+    $generatedText = [IO.File]::ReadAllText($generated)
+    if ([regex]::Matches($generatedText,
+            '\b\w+\.Data\s*=\s*xprocps_name\s*\(').Count -ne 1 -or
+        $generatedText.Contains('xprocps_name_abi')) {
+        throw 'procps name result must be adopted from the public C API directly'
+    }
 
     if (-not $SkipAot) {
         $work = Join-Path ([IO.Path]::GetTempPath()) ('xlang-procps-aot-' + [guid]::NewGuid().ToString('N'))
@@ -82,6 +93,9 @@ try {
     }
 } finally {
     Pop-Location
+    if ($generated -ne $null -and (Test-Path -LiteralPath $generated)) {
+        Remove-Item -LiteralPath $generated -Force
+    }
     if ($work -ne $null) {
         foreach ($output in @('procps_core.exe', 'procps_example.exe', 'procps_c_example.exe')) {
             $file = Join-Path $work $output

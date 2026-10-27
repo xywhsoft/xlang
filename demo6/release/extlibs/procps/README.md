@@ -1,5 +1,14 @@
 # procps
 
+2026-10-27：`name(pid)` 直接声明公开的 `xprocps_name` 为
+`@owned string?`，删除只转发指针的 `xprocps_name_abi` 和语言侧
+`point/takeCstr` 交接。进程名不可用仍按原合同报错；生成 C 直接
+保存原生结果指针，不复制正文，但仍扫描一次以取得字节长度。
+Windows 默认门禁通过严格 C、语言边界和双语 AOT；Linux 门禁通过
+C ASan/UBSan、异常 `/proc` 数据、非法 UTF-8 名称和双语 AOT。
+WSL 挂载盘下中央 JIT 曾触及旧 90 秒限额；单独运行实测约 57 秒，
+仅将 Linux 脚本的语言编译限额提高到有界的 180 秒后完整复验通过。
+
 2026-10-26 重建 Windows/Linux x64 发布物后，两平台默认包门禁
 均退出 0：严格 C/ABI、Linux ASan/UBSan、异常 `/proc` 数据与
 非法 UTF-8 名称、C/XLang 固定输出、中央/边界独立 EXE，以及

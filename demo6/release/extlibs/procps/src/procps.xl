@@ -3,7 +3,7 @@ extern "xl6_xrt_last_error_text" func __proc_error() as string
 extern "xprocps_pid" func __proc_pid() as int
 extern "xprocps_ppid" func __proc_ppid() as int
 extern "xprocps_exists" func __proc_exists(int pid) as c_int
-extern "xprocps_name_abi" func __proc_name(int pid) as point
+extern "xprocps_name" @owned func __proc_name(int pid) as string?
 extern "xprocps_pids" func __proc_pids() as var
 extern "xprocps_count" func __proc_count() as int
 extern "xprocps_mem_kb" func __proc_mem(int pid) as int
@@ -23,9 +23,9 @@ export func exists(int processId) as bool
 end
 
 export func name(int processId) as string
-    point value = __proc_name(processId)
+    string? value = __proc_name(processId)
     if value == null then throw ValueError "process name is unavailable" end
-    return __xl_runtime.takeCstr(value)
+    return value
 end
 
 export func pids() as array<int>

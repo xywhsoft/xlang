@@ -62,20 +62,20 @@ diff -u release/extlibs/procps/test/procps.expected.txt "$work/c_example.txt"
 timeout 30s ./release/xl run release/extlibs/procps/examples/procps_c.c \
     > "$work/c_direct.txt"
 diff -u "$work/c_example.txt" "$work/c_direct.txt"
-timeout 90s ./release/xl run release/extlibs/procps/test/boundaries.xl
-timeout 90s ./release/xl run test/cases/extlib_procps.xl
-timeout 90s ./release/xl run release/examples/extlibs/procps.xl \
+timeout 180s ./release/xl run release/extlibs/procps/test/boundaries.xl
+timeout 180s ./release/xl run test/cases/extlib_procps.xl
+timeout 180s ./release/xl run release/examples/extlibs/procps.xl \
     > "$work/xl_example.txt"
 diff -u "$work/c_example.txt" "$work/xl_example.txt"
 
-timeout 90s ./release/xl build test/cases/extlib_procps.xl -o "$work/procps_core"
+timeout 180s ./release/xl build test/cases/extlib_procps.xl -o "$work/procps_core"
 timeout 30s "$work/procps_core"
-timeout 90s ./release/xl build release/extlibs/procps/test/boundaries.xl -o "$work/procps_boundaries"
+timeout 180s ./release/xl build release/extlibs/procps/test/boundaries.xl -o "$work/procps_boundaries"
 timeout 30s "$work/procps_boundaries"
-timeout 90s ./release/xl build release/examples/extlibs/procps.xl -o "$work/procps_xl_aot"
+timeout 180s ./release/xl build release/examples/extlibs/procps.xl -o "$work/procps_xl_aot"
 timeout 30s "$work/procps_xl_aot" > "$work/xl_aot.txt"
 diff -u release/extlibs/procps/test/procps.expected.txt "$work/xl_aot.txt"
-timeout 90s ./release/xl build release/extlibs/procps/examples/procps_c.c -o "$work/procps_c_aot"
+timeout 180s ./release/xl build release/extlibs/procps/examples/procps_c.c -o "$work/procps_c_aot"
 timeout 30s "$work/procps_c_aot" > "$work/c_aot.txt"
 diff -u release/extlibs/procps/test/procps.expected.txt "$work/c_aot.txt"
 printf 'procps Linux C ASan/UBSan, XLang parity and bilingual AOT gate: PASS\n'

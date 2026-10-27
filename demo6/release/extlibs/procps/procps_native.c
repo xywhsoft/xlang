@@ -351,11 +351,6 @@ char* xprocps_name(int64_t pid)
 #endif
 }
 
-void* xprocps_name_abi(int64_t pid)
-{
-    return xprocps_name(pid);
-}
-
 #ifndef _WIN32
 static bool xprocps_statm_number(const char** cursor, int64* value)
 {
