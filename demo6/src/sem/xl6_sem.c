@@ -3214,6 +3214,12 @@ static const char* xl6SemExprDeclaredTypeName(XL6_SemContext* ctx, XL6_AstNode* 
     return xl6SemExprStaticTypeName(ctx, expr);
 }
 
+static int xl6SemIsDataContainerTypeName(const char* name)
+{
+    return xl6TextEquals(name,"array") || xl6TextEquals(name,"list") ||
+           xl6TextEquals(name,"set") || xl6TextEquals(name,"dict");
+}
+
 static int xl6SemCanConvertType(const char* source, const char* target)
 {
     if ( source == NULL || target == NULL ) {
@@ -3258,6 +3264,7 @@ static int xl6SemCanConvertType(const char* source, const char* target)
     }
     if ( xl6TextEquals(target, "string") ) {
         return xl6SemIsIntegerTypeName(source) || xl6SemIsFloatTypeName(source) ||
+               xl6SemIsDataContainerTypeName(source) ||
                xl6SemIsBoolTypeName(source) || xl6TextEquals(source, "string") ||
                xl6TextEquals(source, "time") || xl6TextEquals(source, "point") ||
                xl6TextEquals(source, "type") || xl6TextEquals(source, "error");
@@ -9205,6 +9212,7 @@ static int xl6SemCallIsTypeBuiltin(XL6_AstNode* node)
 static int xl6SemTypeNameHasImplicitToString(const char* name)
 {
     return xl6TextEquals(name, "null") ||
+           xl6SemIsDataContainerTypeName(name) ||
            xl6TextEquals(name, "var") ||
            xl6TextEquals(name, "bool") ||
            xl6SemIsIntegerTypeName(name) ||

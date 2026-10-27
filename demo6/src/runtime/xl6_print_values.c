@@ -1,10 +1,17 @@
 #include "src/runtime/xl6_value_format.h"
 #include "src/runtime/xl6_sequence_projection.h"
+#include "src/runtime/xl6_list_graph.h"
+#include "src/runtime/xl6_set_graph.h"
+#include "src/runtime/xl6_dict_graph.h"
 #include "src/api/xl_foreign_error.h"
 #include <stdlib.h>
 
 bool xl6_xrt_print(xvalue* values, bool newline)
 {
+    /* This exported erased-pack entry is genuinely open. Ordinary direct
+     * language calls carry their narrower IR plan through CPrintNative. */
+    const XL6_ValueGraphProviderV1* providers[]={xl6ListGraphProviderV1(),xl6SetGraphProviderV1(),xl6DictGraphProviderV1()};
+    const XL6_ValueGraphPlanV1 graph={sizeof(graph),providers,3,NULL,0};
     xstrbuf output;
     bool ready = true;
     xl6_error_scope operation={0};
@@ -27,12 +34,12 @@ bool xl6_xrt_print(xvalue* values, bool newline)
             const xvalue* item=owned ? xl6SequenceProjectionTakeV1(owner,
                 xrtTypedArrayGetValue(storage,i,converter)) : owner ?
                 *(xvalue* const*)xrtTypedArrayConstGet(storage,i) : xrtValueArrayGet(values,i);
-            ready=(!owned || item) && xl6ValueTextAppendV1(&output,item);
+            ready=(!owned || item) && xl6ValueTextAppendNativeV1(&output,item,&graph);
             if (!ready) xl6ErrorScopeCaptureFailure(&operation);
             if (owned) xrtValueRelease((xvalue*)item);
             if (operation.failed || xrtGetError()) ready=false;
         }
-    } else ready = xl6ValueTextAppendV1(&output, values);
+    } else ready = xl6ValueTextAppendNativeV1(&output, values,&graph);
     if (!ready) xl6ErrorScopeCaptureFailure(&operation);
     if (owner) xl6SequenceEndV1(owner);
     if (operation.failed || xrtGetError()) ready=false;

@@ -25178,6 +25178,104 @@ unsigned xl6IrValueGraphProvidersForType(const XL6_IrModule* module,XL6_IrTypeId
     size_t remaining=4096;
     return xl6IrValueGraphProvidersWalk(module,id,0,&remaining);
 }
+/* SSA representation-only rebinds and explicit boxing preserve their input
+ * data domain. Loads/calls of an open var remain open; never infer their
+ * contents from a storage name, current initializer or a source expression. */
+static unsigned xl6IrValueDisplayProvidersWalk(const XL6_IrModule* module,
+    XL6_IrValueId value,unsigned depth,size_t* remaining)
+{
+    size_t sourceIndex=0;
+    const XL6_IrInstruction* source=xl6IrValueDefinition(module,value,&sourceIndex);
+    if (!source || depth>=64 || !*remaining) return 7u;
+    --*remaining;
+    const XL6_IrType* type=xl6IrTypeGet(&module->types,source->type);
+    if (!type) return 7u;
+    if (source->kind==XL6_IR_INSTR_RUNTIME_CALL &&
+        (source->runtimeOp==XL6_IR_RUNTIME_XVALUE_NULL ||
+         source->runtimeOp==XL6_IR_RUNTIME_XVALUE_BOOL)) return 0;
+    if (type->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+        type->collectionAbi!=XL6_IR_COLLECTION_NONE || type->kind==XL6_IR_TYPE_CLASS)
+        return xl6IrValueGraphProvidersForType(module,source->type);
+    /* Local data-flow forwarding across the exact STORE/LOAD pair used by
+     * an evaluation anchor. Both must be in the same block. This proves only
+     * the loaded data domain; ownership and cleanup still use their own IR
+     * contracts. Ordinary variable initializers/earlier writes are not used. */
+    if (source->kind==XL6_IR_INSTR_LOAD && sourceIndex>0 && module->blocks) {
+        const XL6_IrStorage* storage=xl6IrStorageGet(module,source->targetSymbol);
+        const XL6_IrInstruction* stored=&module->instructions[sourceIndex-1];
+        if (storage && storage->kind==XL6_IR_STORAGE_TEMPORARY &&
+            stored->kind==XL6_IR_INSTR_STORE && stored->targetSymbol==source->targetSymbol &&
+            stored->type==source->type && stored->operandCount==1 &&
+            stored->firstOperand<module->operandCount) {
+            for (size_t i=0;i<module->blockCount;++i) {
+                const XL6_IrBlock* block=&module->blocks[i];
+                if (sourceIndex>block->firstInstruction &&
+                    sourceIndex-block->firstInstruction<block->instructionCount)
+                    return xl6IrValueDisplayProvidersWalk(module,
+                        module->operands[stored->firstOperand],depth+1,remaining);
+            }
+        }
+    }
+    bool transparent=source->kind==XL6_IR_INSTR_VALUE && source->operandCount==1;
+    bool box=source->kind==XL6_IR_INSTR_RUNTIME_CALL &&
+        (source->runtimeOp==XL6_IR_RUNTIME_XVALUE_RETAIN ||
+         xl6IrRuntimeBoxingErrorPhysicalAbi(source->runtimeOp)!=XL6_IR_CALL_ERROR_PHYSICAL_INVALID);
+    if (transparent || box) {
+        if (source->firstOperand>module->operandCount ||
+            source->operandCount>module->operandCount-source->firstOperand ||
+            (source->operandCount && !module->operands)) return 7u;
+        unsigned providers=0;
+        for (size_t i=0;i<source->operandCount;++i)
+            providers|=xl6IrValueDisplayProvidersWalk(module,
+                module->operands[source->firstOperand+i],depth+1,remaining);
+        return providers;
+    }
+    return xl6IrValueGraphProvidersForType(module,source->type);
+}
+int xl6IrValueDisplayGraphRecipe(const XL6_IrModule* module,
+    const XL6_IrInstruction* instruction,unsigned* providersOut)
+{
+    if (!module || !instruction || instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL ||
+        (instruction->runtimeOp!=XL6_IR_RUNTIME_XVALUE_TO_STRING &&
+         instruction->runtimeOp!=XL6_IR_RUNTIME_CLASS_DERIVED_TO_STRING &&
+         instruction->runtimeOp!=XL6_IR_RUNTIME_C_PRINT &&
+         instruction->runtimeOp!=XL6_IR_RUNTIME_C_PRINTLN) ||
+        (!instruction->operandCount && instruction->runtimeOp!=XL6_IR_RUNTIME_C_PRINT &&
+         instruction->runtimeOp!=XL6_IR_RUNTIME_C_PRINTLN) ||
+        (instruction->operandCount && !module->operands) ||
+        instruction->firstOperand>module->operandCount ||
+        instruction->operandCount>module->operandCount-instruction->firstOperand) return 0;
+    unsigned providers=0; size_t remaining=4096;
+    if (instruction->runtimeOp==XL6_IR_RUNTIME_CLASS_DERIVED_TO_STRING) {
+        const XL6_IrClassLayout* layout=xl6IrBuildClassLayoutByType(module,instruction->payloadType);
+        if (!layout || layout->inheritedFieldCount>layout->fieldCount ||
+            layout->firstField>module->classFieldCount ||
+            layout->fieldCount>module->classFieldCount-layout->firstField ||
+            (layout->fieldCount && !module->classFields)) return 0;
+        for (size_t i=layout->inheritedFieldCount;i<layout->fieldCount;++i) {
+            const XL6_IrClassField* field=&module->classFields[layout->firstField+i];
+            if (field->stringDeriveIncluded)
+                providers|=xl6IrValueGraphProvidersForType(module,field->type);
+        }
+        if (providersOut) *providersOut=providers;
+        return 1;
+    }
+    for (size_t i=0;i<instruction->operandCount;++i)
+        providers|=xl6IrValueDisplayProvidersWalk(module,
+            module->operands[instruction->firstOperand+i],0,&remaining);
+    if (providersOut) *providersOut=providers;
+    return 1;
+}
+int xl6IrRefreshValueDisplayRecipes(XL6_IrModule* module)
+{
+    if (!module || (module->instructionCount && !module->instructions)) return 0;
+    for (size_t i=0;i<module->instructionCount;++i) {
+        XL6_IrInstruction* instruction=&module->instructions[i];
+        instruction->displayGraphProviders=0;
+        (void)xl6IrValueDisplayGraphRecipe(module,instruction,&instruction->displayGraphProviders);
+    }
+    return 1;
+}
 int xl6IrRefreshValueCopyRecipes(XL6_IrModule* module)
 {
     if (!module || (module->instructionCount && !module->instructions)) return 0;
@@ -40445,6 +40543,10 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 const XL6_IrInstruction* instruction = &module->instructions[block->firstInstruction + j];
                 const XL6_IrNode* instructionOrigin =
                     xl6IrNodeGet(module, instruction->origin);
+                unsigned displayProviders=0;
+                (void)xl6IrValueDisplayGraphRecipe(module,instruction,&displayProviders);
+                if (instruction->displayGraphProviders!=displayProviders)
+                    return xl6IrDiag(diags,instructionOrigin,"XLIR display graph providers do not match the exact SSA data domain");
                 if (instruction->copyGraphProviders &&
                     (instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL ||
                      instruction->runtimeOp!=XL6_IR_RUNTIME_XVALUE_DEEP_CLONE))
@@ -52990,6 +53092,7 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
         const XL6_IrInstruction* instruction = &module->instructions[i];
         size_t operandIndex;
         xl6OutputPrintf(out, "    {\"generatorClosePointAbi\":%d,\"generatorClosePointAbiName\":\"%s\",\"generatorClosePlan\":%lu,\"generatorYieldAbi\":%d,", (int)instruction->generatorClosePointAbi, xl6IrGeneratorClosePointAbiName(instruction->generatorClosePointAbi), (unsigned long)instruction->generatorClosePlan, (int)instruction->generatorYieldAbi);
+        xl6OutputPrintf(out,"\"displayGraphProviders\":%u,\"copyGraphProviders\":%u,",instruction->displayGraphProviders,instruction->copyGraphProviders);
         xl6OutputPrintf(out, "\"contextualCastSource\":%u,", (unsigned int)instruction->contextualCastSource);
         xl6OutputPrintf(out, "\"sequenceResultArrayType\":%u,", (unsigned)instruction->sequenceResultArrayType);
         xl6OutputPrintf(out, "\"contextualIntegerConversionSource\":%u,",

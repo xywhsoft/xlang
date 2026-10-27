@@ -18,4 +18,6 @@ typedef struct XL6_ClassTextSchemaV1 {
  * Non-null values must carry both the exact nominal identity and class tag,
  * as well as every selected field. Tags alone are only module-local. */
 XL6_TEXT_API xstrview xl6ClassValueTextV1(const xvalue*, const XL6_ClassTextSchemaV1*);
+struct XL6_ValueGraphPlanV1;
+XL6_TEXT_API xstrview xl6ClassValueTextNativeV1(const xvalue*, const XL6_ClassTextSchemaV1*, const struct XL6_ValueGraphPlanV1*);
 #endif

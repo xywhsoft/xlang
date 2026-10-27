@@ -36,7 +36,7 @@ def main():
     assert required.issubset({path.stem for path in sources})
     runtime=native/'release/libxl.so'; assert runtime.is_file()
     files={Path(__file__).resolve(),source_list,Path(cc),runtime,*sources,*runtime_manifests}
-    for folder in ('src','lib','res/tcc','release/include'):
+    for folder in ('src','lib','res/tcc','release/include','release/extlibs'):
         files.update(path for path in (root/folder).rglob('*') if path.is_file())
     files.update(path for path in (native/'build/linux/tcc-dist').rglob('*') if path.is_file())
     # Record the actual compiler/assembler/linker used, not just the gcc wrapper.

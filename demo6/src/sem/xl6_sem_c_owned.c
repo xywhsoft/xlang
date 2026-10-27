@@ -827,15 +827,11 @@ static int xl6SemCOwnedPrint(XL6_SemContext* ctx,XL6_AstNode* call)
     if(!name || name->kind!=XL6_AST_NAME ||
        (!xl6TextEquals(name->text,"__xl_std_print") && !xl6TextEquals(name->text,"__xl_std_println")))return -1;
     XL6_AstNode* args=call->childCount>1 ? call->children[1] : NULL;
-    int owned=0;
+    if(!args)return -1;
     for(size_t i=0;args && i<args->childCount;++i) {
         XL6_AstNode* arg=args->children[i];
         if(arg->kind!=XL6_AST_ARG || arg->childCount!=1)return -1;
-        XL6_AstNode* type=xl6SemInferAutoTypeNode(ctx,arg->children[0]);
-        owned|=xl6SemCOwnedTypeBase(type)!=NULL;
-        xl6AstFree(type);
     }
-    if(!owned)return -1;
     for(size_t i=0;i<args->childCount;++i)
         if(!xl6SemCheckExpr(ctx,args->children[i]->children[0]))return 0;
     xl6SemSetCallPlan(call,XL6_SEM_CALL_C_OWNED_PRINT,NULL);

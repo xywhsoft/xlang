@@ -696,6 +696,8 @@ static int xl6IrCgenEmitSharedStringCompare(
     return xl6OutputHasFailed(out) ? -1 : 1;
 }
 
+static int xl6IrCgenEmitValueGraphPlan(XL6_Output*,unsigned,int);
+
 static int xl6IrCgenSharedScalarStringRuntimeOpIs(
     XL6_IrRuntimeOp operation)
 {
@@ -759,11 +761,15 @@ static int xl6IrCgenEmitSharedScalarStringRuntime(
                 ? "xlir_u64_to_string"
                 : instruction->runtimeOp == XL6_IR_RUNTIME_F64_TO_STRING
                     ? "xlir_f64_to_string" : "xlir_xvalue_to_string";
-    if (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_TO_STRING)
-        xl6OutputPrintf(out, "    v%u = xl6ValueTextV1(v%u);\n",
+    if (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_TO_STRING) {
+        xl6OutputPrintf(out, "    v%u = xl6ValueTextNativeV1(v%u, ",
             (unsigned int)instruction->result,
             (unsigned int)module->operands[instruction->firstOperand]);
-    else
+        if (instruction->displayGraphProviders) {
+            if (!xl6IrCgenEmitValueGraphPlan(out,instruction->displayGraphProviders,0)) return -1;
+        } else xl6OutputPuts("NULL",out);
+        xl6OutputPuts(");\n",out);
+    } else
         xl6OutputPrintf(out, "    v%u = xlir_string_take_cstr(%s(v%u));\n",
             (unsigned int)instruction->result, helper,
             (unsigned int)module->operands[instruction->firstOperand]);

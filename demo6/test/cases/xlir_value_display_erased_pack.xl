@@ -1,0 +1,8 @@
+extern "xl6_xrt_print" func printPack(var values, bool newline) as bool
+
+func main(...) as int
+    array<var> values = array[dict{"answer": 42}, list[-7: 41], set{41, 42}]
+    assert printPack(values, true)
+    println("native erased display pack passed")
+    return 0
+end

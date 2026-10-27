@@ -58,6 +58,9 @@ $negatives = @('xlir_string_bridge_bad_result','xlir_string_bridge_bad_parameter
 # the verified source cohort, rather than an incomplete handwritten API tail.
 # Standalone reachability/pruning is checked independently below and elsewhere.
 $objects = @($build.Objects | Where-Object {[IO.Path]::GetFileName($_.Path) -ne 'xlir_public_source_driver.o'} | ForEach-Object Path)
+$xrtObjects = @($build.Objects | Where-Object {[IO.Path]::GetFileName($_.Source) -eq 'xrt_single_header_impl.c'})
+if ($xrtObjects.Count -ne 1) { throw 'Source cohort must contain exactly one XRT implementation object' }
+$xrtObject = $xrtObjects[0].Path
 $paths = @($build.Inputs.Path) + @($build.Headers.Path) + @($build.Objects.Path) +
     @($driver,$gcc,$PSCommandPath,(Join-Path $compilerDir 'build.json')) + $objects
 $paths += @($artifactPath,(Join-Path $Root $artifact.Mapping)) + @($artifact.Files.Source) + @($artifact.Files.Path)
@@ -78,6 +81,9 @@ $paths += @($source,$failure,$example,$cExample,'test/cases/xlir_string_bridge_m
     'test/cases/xlir_text_value_contract.c','test/support/string_bridge_native.c',
     'test/cases/xlir_string_projection_outcome.xl',
     'test/cases/xlir_string_projection_outcome_contract.c','test/cases/cgen_string_value_ownership.xl',
+    'test/cases/xlir_value_display_graph.xl','test/cases/xlir_value_display_graph_oom.xl',
+    'test/cases/xlir_value_display_graph_contract.c',
+    'test/cases/xlir_value_display_pruning_contract.c','test/cases/xlir_value_display_host.c',
     'tools/check_xlir_string_bridges.ps1','tools/check_xlir_string_repeat.ps1',
     'tools/stage_xlir_artifact_runtime_sources.ps1','test/fixtures/extlib_boundary_pending/string_join_symbol.xl') |
     ForEach-Object {Join-Path $Root $_}
@@ -156,6 +162,51 @@ try {
     $projectionAot = Join-Path $work 'projection-aot'
     $null = Check 'projection-aot-build' $driver @('test/cases/xlir_string_projection_outcome.xl','exe',$projectionAot)
     if ((Check 'projection-oom-aot' "$projectionAot.exe" @()) -notmatch '128 checked cases passed') {throw 'Projection AOT oracle incomplete'}
+    $display = Join-Path $work 'display-contract.exe'
+    $null = Check 'display-contract-build' $gcc ($flags+@('test/cases/xlir_value_display_graph_contract.c')+
+        $compilerObjects+@('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$display))
+    if ((Check 'display-contract' $display @('test/cases/xlir_value_display_graph.xl')) -notmatch '7 independent provider domains, 28 rejected metadata mutations') {
+        throw 'Native display provider contract incomplete'
+    }
+    $displayPruning = Join-Path $work 'display-pruning.exe'
+    $null = Check 'display-pruning-build' $gcc ($flags+@('test/cases/xlir_value_display_pruning_contract.c')+
+        $compilerObjects+@('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$displayPruning))
+    $displayFixtures = @(
+        @('scalar',0,"println(42)`n"),
+        @('text',0,"println(`"hello`")`n"),
+        @('array',0,"array<int> a = array[1,2]`nprintln(a)`n"),
+        @('dict',4,"dict<int> a = dict{`"a`":42}`nprintln(a)`n"),
+        @('list',1,"list<int> a = list[-7:41,7:42]`nprintln(a)`n"),
+        @('set',2,"set<int> a = set{41,42}`nprintln(a)`n"),
+        @('open',7,"func display(var a) as string`n return string(a)`nend`ndict<int> a = dict{`"a`":42}`nprintln(display(a))`n"),
+        @('class-skipped',4,"class Fields`n derive string`n dict<int> a = dict{`"a`":42}`n set<int> hidden @string(skip) = set{99}`nend`nprintln(string(Fields()))`n")
+    )
+    $displayArguments = @()
+    foreach ($fixture in $displayFixtures) {
+        $fixturePath = Join-Path $work ("display-pruning-"+$fixture[0]+'.xl')
+        [IO.File]::WriteAllText($fixturePath,$fixture[2],$utf8)
+        $displayArguments += @([string]$fixture[1],$fixturePath)
+    }
+    if ((Check 'display-pruning' $displayPruning $displayArguments) -notmatch 'display artifact pruning: mask 7') {
+        throw 'Native display artifact closure incomplete'
+    }
+    foreach ($entry in @(@('display','test/cases/xlir_value_display_graph.xl','native value display graph passed'),
+                         @('display-oom','test/cases/xlir_value_display_graph_oom.xl','640 allocation prefixes passed'))) {
+        if ((Check "$($entry[0])-jit" $driver @($entry[1],'run',(Join-Path $work "$($entry[0])-jit"))) -notmatch $entry[2]) {
+            throw 'Native display JIT oracle incomplete'
+        }
+        $prefix = Join-Path $work "$($entry[0])-aot"
+        $null = Check "$($entry[0])-aot-build" $driver @($entry[1],'exe',$prefix)
+        if ((Check "$($entry[0])-aot" "$prefix.exe" @()) -notmatch $entry[2]) {throw 'Native display AOT oracle incomplete'}
+        $emitted = Join-Path $work "$($entry[0])-generated.c"
+        $null = Check "$($entry[0])-native-emit" $driver @($entry[1],'cgen-default',$emitted)
+        $nativeDisplay = Join-Path $work "$($entry[0])-native.exe"
+        $null = Check "$($entry[0])-native-build" $gcc ($flags+@('-O2','-include',$emitted,'test/cases/xlir_value_display_host.c')+
+            $objects+@('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$nativeDisplay))
+        if ((Check "$($entry[0])-native" $nativeDisplay @()) -notmatch 'three complete module lifetimes balanced') {
+            throw 'Native display lifetime oracle incomplete'
+        }
+    }
     $native = Join-Path $work 'native.exe'
     $null = Check 'native-build' $gcc ($flags+@('-include',"$module.c",'test/cases/xlir_string_bridge_abi_host.c')+
         $objects+@('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$native))
@@ -248,7 +299,7 @@ try {
     $xlOutput = Check 'example-xl' $driver @($example,'run',(Join-Path $work 'example-xl'))
     $xlOutput = ($xlOutput -split "`n" | Where-Object {$_ -cne 'public source run complete'}) -join "`n"
     $cExe = Join-Path $work 'example-c.exe'
-    $null = Check 'example-c-build' $gcc ($flags+@($cExample,(Join-Path $compilerDir 'xrt_single_header_impl.o'),
+    $null = Check 'example-c-build' $gcc ($flags+@($cExample,$xrtObject,
         '-lWs2_32','-lIPHLPAPI','-lShell32','-o',$cExe))
     $cOutput = Check 'example-c' $cExe @()
     if ($xlOutput -cne $cOutput -or ($xlOutput -split "`n").Count -ne 21) { throw 'Bilingual examples differ' }
@@ -258,7 +309,7 @@ try {
     $changed = @($inputs.Keys | Where-Object {!(Test-Path -LiteralPath $_) -or (Get-FileHash -LiteralPath $_).Hash -ne $inputs[$_]})
     if ($changed.Count) { $outcome = 'invalid-input-change' }
     $record = [ordered]@{date=(Get-Date).ToString('o');outcome=$outcome;compiler=$driver;buildManifest=(Join-Path $compilerDir 'build.json');
-        scope='Current-source compiler/public API; two-field strings, typed arrays/chars/bytes, 10 negative ABI declarations and 10 interpolation negatives, shared literal delimiter/position/bounded fuzz contract and 10000 actual frontend fuzz iterations, in-memory ABI/effect/ownership mutations, deterministic C/H/IR, native OOM and 4-thread 2000 joins, 600 repeat probes, nested interpolation OOM JIT/AOT, relocation and C/xlang examples. Host links resident object set; actual standalone pruning is a separate artifact gate. Not full RC0 or 53-module completion.';
+        scope='Current-source compiler/public API; two-field strings, typed arrays/chars/bytes, 10 negative ABI declarations and 10 interpolation negatives, shared literal delimiter/position/bounded fuzz contract and 10000 actual frontend fuzz iterations, in-memory ABI/effect/ownership mutations, deterministic C/H/IR, native OOM and 4-thread 2000 joins, 600 repeat probes, native display seven domains/28 metadata mutations/eight artifact closures/640 allocation prefixes and repeated module balance, nested interpolation OOM JIT/AOT, relocation and C/xlang examples. Native host links the resident cohort; display pruning checks the actual artifact plan, while broader standalone pruning remains a separate gate. Not full RC0 or 53-module completion.';
         inputs=$inputs;changedInputs=$changed;checks=$checks.ToArray()}
     [IO.File]::WriteAllText((Join-Path $work 'results.json'),($record | ConvertTo-Json -Depth 8),$utf8)
 }

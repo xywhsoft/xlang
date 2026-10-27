@@ -507,11 +507,15 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                             instruction->origin,
                             "XLIR C emitter derived class string ABI is unresolved");
                     xl6OutputPrintf(out,
-                        "    v%u = xl6ClassValueTextV1(v%u, &xlir_class_string_schema_t%u);\n",
+                        "    v%u = xl6ClassValueTextNativeV1(v%u, &xlir_class_string_schema_t%u, ",
                         (unsigned int)instruction->result,
                         (unsigned int)module->operands[
                              instruction->firstOperand],
                         (unsigned int)instruction->payloadType);
+                    if (instruction->displayGraphProviders) {
+                        if (!xl6IrCgenEmitValueGraphPlan(out,instruction->displayGraphProviders,0)) return 0;
+                    } else xl6OutputPuts("NULL",out);
+                    xl6OutputPuts(");\n",out);
                 } else if ( instruction->runtimeOp ==
                             XL6_IR_RUNTIME_CLASS_DERIVED_EQUAL ) {
                     if ( !xl6IrCgenRuntimeClassDerivedEqualAbi(
