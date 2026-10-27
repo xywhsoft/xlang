@@ -15752,7 +15752,8 @@ static int xl6IrLowerGenericCallTypeArgs(
     if ( outTypes == NULL || outCount == NULL ) return 0;
     *outTypes = NULL; *outCount = 0;
     if ( module == NULL || call == NULL || call->kind != XL6_IR_NODE_CALL || call->childCount < 1 ||
-         (instant = xl6IrNodeGet(module, module->children[call->firstChild])) == NULL ||
+         (instant = call->sourceKind == XL6_AST_GENERIC_INSTANT ? call
+             : xl6IrNodeGet(module, module->children[call->firstChild])) == NULL ||
          instant->sourceKind != XL6_AST_GENERIC_INSTANT || instant->childCount < 2 ||
          (args = xl6IrNodeGet(module, module->children[instant->firstChild + 1])) == NULL ||
          args->kind != XL6_IR_NODE_LIST || args->childCount == 0 )
@@ -17780,6 +17781,8 @@ static int xl6IrLowerBuildGenericSpecialization(
     if ( existing != NULL ) {
         if ( callId != XL6_IR_NODE_INVALID ) {
             module->nodes[callId - 1].targetSymbol = existing->symbol;
+            if (module->nodes[callId - 1].namedCallableAbi != XL6_IR_NAMED_CALLABLE_NONE)
+                module->nodes[callId - 1].namedCallableTargetSymbol = existing->symbol;
             if ( !xl6IrLowerRetargetCallSite(module, callId, existing->declaration) ) {
                 xrtFree(typeParams);
                 return xl6IrLowerDiag(ctx, callId,
@@ -17870,6 +17873,8 @@ static int xl6IrLowerBuildGenericSpecialization(
     }
     if ( callId != XL6_IR_NODE_INVALID ) {
         module->nodes[callId - 1].targetSymbol = symbol;
+        if (module->nodes[callId - 1].namedCallableAbi != XL6_IR_NAMED_CALLABLE_NONE)
+            module->nodes[callId - 1].namedCallableTargetSymbol = symbol;
         if ( !xl6IrLowerRetargetCallSite(module, callId, declaration) ) goto cleanup;
     }
     if ( outSymbol != NULL ) *outSymbol = symbol;
@@ -17955,7 +17960,10 @@ static int xl6IrLowerMaterializeGenericSpecializations(XL6_IrLowerContext* ctx)
         size_t typeArgCount = 0;
         XL6_IrNodeId enclosingClass;
         int insideGenericDeclaration = 0;
-        if (call == NULL || call->kind != XL6_IR_NODE_CALL || call->sourceKind != XL6_AST_CALL ||
+        if (call == NULL || call->kind != XL6_IR_NODE_CALL ||
+            (call->sourceKind != XL6_AST_CALL &&
+             !(call->sourceKind == XL6_AST_GENERIC_INSTANT &&
+               call->namedCallableAbi == XL6_IR_NAMED_CALLABLE_CAPTURE_FREE_ADAPTER)) ||
             call->callKind == XL6_SEM_CALL_WITNESS || call->targetSymbol == 0 ||
             (size_t)call->targetSymbol >= module->symbolNodeCapacity ||
             (declaration = module->symbolNodes[call->targetSymbol]) == XL6_IR_NODE_INVALID ||
@@ -27634,7 +27642,8 @@ static XL6_IrClosureTarget* xl6IrLowerRegisterNamedAdapter(
     const XL6_IrNode* parameters;
     XL6_IrCallVariadicAbi variadicAbi;
     size_t i;
-    if ( ctx == NULL || name == NULL || name->kind != XL6_IR_NODE_NAME ||
+    if ( ctx == NULL || name == NULL ||
+         (name->kind != XL6_IR_NODE_NAME && name->sourceKind != XL6_AST_GENERIC_INSTANT) ||
          name->namedCallableAbi !=
              XL6_IR_NAMED_CALLABLE_CAPTURE_FREE_ADAPTER ||
          name->namedCallableTargetSymbol == 0 ||
@@ -30671,6 +30680,14 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
             size_t evaluationOwnerFirst = ctx->evaluationOwnerCount;
             int callEmitted;
             int builtinLowered;
+            if (node->sourceKind == XL6_AST_GENERIC_INSTANT &&
+                node->namedCallableAbi == XL6_IR_NAMED_CALLABLE_CAPTURE_FREE_ADAPTER) {
+                const XL6_IrClosureTarget* adapter = xl6IrLowerRegisterNamedAdapter(ctx, id, node);
+                if (!adapter || !xl6IrLowerEmit(ctx, XL6_IR_INSTR_CLOSURE_MAKE, id,
+                    node->namedCallableSignatureType, adapter->targetSymbol, NULL, 0, &result) ||
+                    !xl6IrLowerEmitRuntimeErrorEdge(ctx, id, node, result)) return XL6_IR_VALUE_INVALID;
+                return result;
+            }
             intrinsic = xl6IrIntrinsicCallGet(ctx->module, id);
             if(node->callKind==XL6_SEM_CALL_C_OWNED_PRINT) {
                 if(!xl6IrLowerCOwnedPrint(ctx,id,node))xl6IrLowerDiag(ctx,id,"C print has no complete borrowed argument transaction");

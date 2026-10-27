@@ -109,8 +109,6 @@ async func worker() as string
     return producer(c_int(1),"abc",c_short(7),float32(2.5))
 end
 check("abc")
-auto fromWorker=await worker()
-assert fromWorker=="abc"
 allocations()
 assert debug()
 int prefix=0
@@ -130,3 +128,8 @@ while prefix<32
     prefix+=1
 end
 assert accepted>0 and rejected>0
+
+// Await resolves before worker frame retirement. Keep asynchronous cleanup
+// outside the synchronous allocation-prefix accounting above.
+auto fromWorker=await worker()
+assert fromWorker=="abc"
