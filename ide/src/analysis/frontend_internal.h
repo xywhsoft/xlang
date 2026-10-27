@@ -2,6 +2,7 @@
 #define XLANG_ANALYSIS_FRONTEND_INTERNAL_H
 #include "analysis/session.h"
 #include "analysis/check.h"
+#include "analysis/dependency_capture.h"
 #include "src/parser/xl6_parser_api.h"
 #include "src/ir/xl6_ir.h"
 #include "analysis/frontend_sem.h"
@@ -21,6 +22,13 @@ xls_sem_read_work xlsSemanticCheckReads(const xls_semantic_check* result);
  * Private sessions additionally prove unchanged membership and mandatory
  * entry/query bodies, then still validate all original disk/probe inputs. */
 int xlsSemanticCheckInputUsage(const xls_semantic_check* result,uint64_t* used);
+/* Same original loader observations and topology,borrowed from the retained
+ * dependency owner. No semantic acceptance or AST exposure is implied. */
+int xlsDependencyCaptureInputUsage(const xls_dependency_capture* result,uint64_t* used);
+const struct xls_input_topology* xlsDependencyCaptureTopology(const xls_dependency_capture* result);
+xls_dependency_capture* xlsDependencyCaptureCreateParsedInContext(xls_context* context,
+    struct xls_entry_cache* cache,const char* entry,const xls_semantic_input* inputs,size_t count,
+    const xls_syntax* syntax,int (*cancelled)(void*),void* user,char* error,size_t capacity);
 int xlsSemanticCompletionInputUsage(const xls_semantic_completion* result,uint64_t* used);
 typedef struct xls_parse_work { uint64_t full,fragments,reused,bytes; } xls_parse_work;
 xls_syntax* xlsSyntaxBuild(const char* path,xls_text* text,const xls_syntax* previous,xls_parse_work* work);

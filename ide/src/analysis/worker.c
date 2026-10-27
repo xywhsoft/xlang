@@ -7,23 +7,23 @@
 #include <string.h>
 #include <stdio.h>
 
-enum query_kind { QUERY_SYNTAX,QUERY_FOLDING,QUERY_CHECK,QUERY_COMPLETION,QUERY_SIGNATURE };
+enum query_kind { QUERY_SYNTAX,QUERY_FOLDING,QUERY_CHECK,QUERY_COMPLETION,QUERY_SIGNATURE,QUERY_DEPENDENCY,QUERY_COUNT };
 typedef struct semantic_session {
     enum query_kind kind;
-    union {xls_check_session* check;xls_completion_session* completion;xls_signature_session* signature;} value;
+    union {xls_check_session* check;xls_completion_session* completion;xls_signature_session* signature;xls_dependency_session* dependency;} value;
 } semantic_session;
 struct xls_worker {
     xtaskpool* pool;xls_session* session;xls_session_limits limits;
     xls_module_store* modules;
     xls_projection_store* projections;
     semantic_session cached[32];size_t cachedCount;xls_worker_cache_limits cacheLimits;xls_worker_cache_stats cacheStats;
-    xls_input_batch* history[3];
-    xls_check_stats checkTotals;xls_completion_stats completionTotals;xls_signature_stats signatureTotals;
+    xls_input_batch* history[QUERY_COUNT-QUERY_CHECK];
+    xls_check_stats checkTotals;xls_completion_stats completionTotals;xls_signature_stats signatureTotals;xls_dependency_session_stats dependencyTotals;
 };
 struct xls_query { xfuture* future; xfuturewatch watch; int watchInitialized,watchLinked; void (*wake)(void*); void* user; };
 typedef struct query_document { char *key,*path; xls_text* text; uint64_t identity,revision; } query_document;
 typedef struct query_input { xls_worker* worker; xls_context* context; xmap documents; char *target,*queryKey; enum query_kind kind; size_t rangeLimit,offset; } query_input;
-typedef struct query_result { xls_analysis_snapshot snapshot; xls_session_stats stats; uint64_t threadId; xls_folding* folding; xls_semantic_check* check; xls_check_stats checkStats; xls_semantic_completion* completion; xls_completion_stats completionStats; xls_signature_help* signature; xls_signature_stats signatureStats; xls_worker_cache_stats cacheStats; char error[256]; } query_result;
+typedef struct query_result { xls_analysis_snapshot snapshot; xls_session_stats stats; uint64_t threadId; xls_folding* folding; xls_semantic_check* check; xls_check_stats checkStats; xls_semantic_completion* completion; xls_completion_stats completionStats; xls_signature_help* signature; xls_signature_stats signatureStats; xls_dependency_capture* dependency; xls_dependency_session_stats dependencyStats; xls_worker_cache_stats cacheStats; char error[256]; } query_result;
 static xbytesview keyView(const char* key) { return (xbytesview){(const unsigned char*)key,strlen(key)}; }
 static int validLabel(const char* label)
 { size_t size=label ? strlen(label) : 0; return size && size<=262144 && xrtUtf8Valid((xstrview){label,size},NULL); }
@@ -32,7 +32,7 @@ static void dropDocument(xbytesview key,void* value,void* user)
 static void freeInput(void* value,void* user)
 { (void)user; query_input* input=value; xlsContextRelease(input->context); xrtMapUnit(&input->documents); xrtFree(input->target); xrtFree(input->queryKey); xrtFree(input); }
 static void freeResult(void* value,void* user)
-{ (void)user; query_result* result=value; xlsSignatureRelease(result->signature); xlsSemanticCompletionDestroy(result->completion); xlsSemanticCheckDestroy(result->check); xlsFoldingDestroy(result->folding); xlsSyntaxRelease(result->snapshot.syntax); xrtFree(result); }
+{ (void)user; query_result* result=value; xlsDependencyCaptureRelease(result->dependency); xlsSignatureRelease(result->signature); xlsSemanticCompletionDestroy(result->completion); xlsSemanticCheckDestroy(result->check); xlsFoldingDestroy(result->folding); xlsSyntaxRelease(result->snapshot.syntax); xrtFree(result); }
 static int cancelled(void* user) { return xrtCancelRequested(user); }
 static int live(const char* key,size_t size,void* user)
 { query_input* input=user; return xrtMapHas(&input->documents,(xbytesview){(const unsigned char*)key,size}); }
@@ -58,7 +58,7 @@ static xtaskoutcome execute(xcancel* cancel,void* value,xtaskvalue* output)
 {
     query_input* input=value; xls_session* session=input->worker->session;
     if(xrtCancelRequested(cancel)) return XTASK_CANCELLED;
-    if(input->kind==QUERY_CHECK || input->kind==QUERY_COMPLETION || input->kind==QUERY_SIGNATURE) {
+    if(input->kind>=QUERY_CHECK && input->kind<QUERY_COUNT) {
         xls_module_scope scope;xlsModuleScopeBegin(&scope,input->worker->modules);
         xtaskoutcome outcome=executeSemantic(cancel,input,output);xlsModuleScopeEnd(&scope);return outcome;
     }
@@ -110,7 +110,7 @@ void xlsWorkerDestroy(xls_worker* worker)
     xlsProjectionStoreDestroy(worker->projections);
     xlsSessionDestroy(worker->session);
     for(size_t i=0;i<worker->cachedCount;++i)destroySemantic(&worker->cached[i]);
-    for(size_t i=0;i<3;++i)xlsInputBatchDestroy(worker->history[i]);
+    for(size_t i=0;i<QUERY_COUNT-QUERY_CHECK;++i)xlsInputBatchDestroy(worker->history[i]);
     xlsModuleStoreRelease(worker->modules);
     xrtFree(worker);
 }
@@ -124,8 +124,8 @@ int xlsWorkerLoad(xls_worker* worker,xls_worker_load* load)
 xls_projection_store* xlsWorkerProjectionStore(xls_worker* worker){return worker ? worker->projections : NULL;}
 static xls_query* submit(xls_worker* worker,xls_context* context,const xls_analysis_document* documents,size_t count,const char* target,enum query_kind kind,size_t rangeLimit,const char* queryKey,size_t offset)
 {
-    if(!worker || !documents || !count || count>worker->limits.documents ||
-       (target ? !validLabel(target) : !context || (kind!=QUERY_CHECK && kind!=QUERY_COMPLETION && kind!=QUERY_SIGNATURE)) ||
+    if(!worker || (count && !documents) || (!count && (kind!=QUERY_DEPENDENCY || target || !context)) || count>worker->limits.documents ||
+       (target ? !validLabel(target) : !context || kind<QUERY_CHECK || kind>=QUERY_COUNT) ||
        ((kind==QUERY_COMPLETION || kind==QUERY_SIGNATURE) && !validLabel(queryKey))) return NULL;
     query_input* input=xrtMalloc(sizeof(*input));
     if(!input) return NULL;
@@ -258,6 +258,29 @@ enum xls_query_state xlsQueryCompletionResult(xls_query* query,xls_semantic_comp
 xls_query* xlsWorkerSignatureInContext(xls_worker* worker,xls_context* context,
     const xls_analysis_document* documents,size_t count,const char* entry,const char* queryKey,size_t offset)
 {return count>64 ? NULL : submit(worker,context,documents,count,entry,QUERY_SIGNATURE,0,queryKey,offset);}
+
+xls_query* xlsWorkerDependenciesInContext(xls_worker* worker,xls_context* context,
+    const xls_analysis_document* documents,size_t count,const char* target)
+{return count>64 ? NULL : submit(worker,context,documents,count,target,QUERY_DEPENDENCY,0,NULL,0);}
+
+enum xls_query_state xlsQueryDependencyResult(xls_query* query,xls_dependency_capture** result,
+    xls_dependency_session_stats* stats,uint64_t* threadId,char* error,size_t capacity)
+{
+    if(result)*result=NULL;
+    if(stats)*stats=(xls_dependency_session_stats){0};
+    if(threadId)*threadId=0;
+    if(error && capacity)*error=0;
+    if(!query || !result)return XLS_QUERY_FAILED;
+    xfuturestate state=xrtFutureState(query->future);
+    if(state==XFUTURE_PENDING)return XLS_QUERY_PENDING;
+    if(state==XFUTURE_CANCELLED)return XLS_QUERY_CANCELLED;
+    const query_result* value=state==XFUTURE_RESOLVED ? xrtFutureValue(query->future) : NULL;
+    if(!value || !value->dependency){if(error && capacity)snprintf(error,capacity,"%s",value && *value->error ? value->error : "dependency query failed");return XLS_QUERY_FAILED;}
+    *result=xlsDependencyCaptureRetain(value->dependency);
+    if(stats)*stats=value->dependencyStats;
+    if(threadId)*threadId=value->threadId;
+    return XLS_QUERY_READY;
+}
 enum xls_query_state xlsQuerySignatureResult(xls_query* query,xls_signature_help** result,
     xls_signature_stats* stats,uint64_t* threadId,char* error,size_t capacity)
 {
@@ -281,6 +304,6 @@ int xlsQuerySessionCache(const xls_query* query,xls_worker_cache_stats* stats)
     if(stats)*stats=(xls_worker_cache_stats){0};
     if(!query || !stats || xrtFutureState(query->future)!=XFUTURE_RESOLVED)return 0;
     const query_result* result=xrtFutureValue(query->future);
-    if(!result || (!result->check && !result->completion && !result->signature))return 0;
+    if(!result || (!result->check && !result->completion && !result->signature && !result->dependency))return 0;
     *stats=result->cacheStats;return 1;
 }

@@ -11,6 +11,12 @@ xls_input_batch* xlsInputBatchCreate(const xls_session_limits* limits,const xls_
 xls_input_batch* xlsInputBatchCreateInContext(xls_context* context,const xls_session_limits* limits,const xls_input_batch* previous,
     const xls_analysis_document* documents,size_t count,const char* target,
     int (*cancelled)(void*),void* user,char* error,size_t capacity);
+/* Dependency-session opt-in:zero overlays is valid only for a configured
+ * disk entry (non-NULL context,NULL target). Existing entrypoints keep their
+ * nonempty-input contract. No synthetic editor identity/version is created. */
+xls_input_batch* xlsInputBatchCreateClosedInContext(xls_context* context,const xls_session_limits* limits,const xls_input_batch* previous,
+    const xls_analysis_document* documents,size_t count,const char* target,
+    int (*cancelled)(void*),void* user,char* error,size_t capacity);
 /* NULL target selects context.entry without creating a synthetic overlay.
  * Target then returns NULL; Entry returns the actual compilation path.
  * Shared frontend input reports guard disk entries and their dependencies. */

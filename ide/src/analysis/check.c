@@ -231,14 +231,17 @@ xls_semantic_check* xlsSemanticCheckCreateCachedInContext(xls_context* context,x
     xls_semantic_check* previous,int (*cancelled)(void*),void* user,char* error,size_t capacity)
 {return createConfiguredInContext(context,cache,entry,inputs,count,captureIndex,syntax,previous,cancelled,user,error,capacity,0);}
 struct xls_dependency_capture {xatomic32 references;xls_semantic_check* owner;};
-xls_dependency_capture* xlsDependencyCaptureCreate(xls_context* context,xls_entry_cache* cache,const char* entry,
- const xls_semantic_input* inputs,size_t count,int (*cancelled)(void*),void* user,char* error,size_t capacity)
+xls_dependency_capture* xlsDependencyCaptureCreateParsedInContext(xls_context* context,xls_entry_cache* cache,const char* entry,
+ const xls_semantic_input* inputs,size_t count,const xls_syntax* syntax,int (*cancelled)(void*),void* user,char* error,size_t capacity)
 {
  xls_dependency_capture* result=xrtCalloc(1,sizeof(*result));if(!result){fail(error,capacity,"cannot allocate dependency capture");return NULL;}
  xrtAtomic32Init(&result->references,1);
- result->owner=createConfiguredInContext(context,cache,entry,inputs,count,0,NULL,NULL,cancelled,user,error,capacity,1);
+ result->owner=createConfiguredInContext(context,cache,entry,inputs,count,0,syntax,NULL,cancelled,user,error,capacity,1);
  if(!result->owner){xrtFree(result);return NULL;}return result;
 }
+xls_dependency_capture* xlsDependencyCaptureCreate(xls_context* context,xls_entry_cache* cache,const char* entry,
+ const xls_semantic_input* inputs,size_t count,int (*cancelled)(void*),void* user,char* error,size_t capacity)
+{return xlsDependencyCaptureCreateParsedInContext(context,cache,entry,inputs,count,NULL,cancelled,user,error,capacity);}
 xls_dependency_capture* xlsDependencyCaptureRetain(xls_dependency_capture* r)
 {if(r)xrtAtomic32FetchAdd(&r->references,1,XMEMORY_RELAXED);return r;}
 void xlsDependencyCaptureRelease(xls_dependency_capture* r)
@@ -257,6 +260,10 @@ const xls_module_graph* xlsDependencyCaptureModules(const xls_dependency_capture
 {return xlsSemanticCheckModules(r?r->owner:NULL);}
 int xlsDependencyCaptureValidate(xls_dependency_capture* r)
 {return r && xlsSemanticCheckValidate(r->owner);}
+int xlsDependencyCaptureInputUsage(const xls_dependency_capture* r,uint64_t* used)
+{return xlsSemanticCheckInputUsage(r?r->owner:NULL,used);}
+const xls_input_topology* xlsDependencyCaptureTopology(const xls_dependency_capture* r)
+{return xlsSemanticCheckTopology(r?r->owner:NULL);}
 int xlsSemanticCheckInputUsage(const xls_semantic_check* result,uint64_t* used)
 {
     if(used)*used=0;

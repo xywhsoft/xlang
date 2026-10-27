@@ -33,6 +33,7 @@ static bool faultRequested(const xcancel* cancel)
 #define xlsWorkerCompletion faultWorkerCompletion
 #define xlsWorkerCompletionInContext faultWorkerCompletionInContext
 #define xlsWorkerSignatureInContext faultWorkerSignatureInContext
+#define xlsWorkerDependenciesInContext faultWorkerDependenciesInContext
 #define xlsQueryCancel faultQueryCancel
 #define xlsQuerySetWake faultQuerySetWake
 #define xlsQueryDestroy faultQueryDestroy
@@ -41,6 +42,7 @@ static bool faultRequested(const xcancel* cancel)
 #define xlsQueryCheckResult faultQueryCheckResult
 #define xlsQueryCompletionResult faultQueryCompletionResult
 #define xlsQuerySignatureResult faultQuerySignatureResult
+#define xlsQueryDependencyResult faultQueryDependencyResult
 #define xlsQuerySessionCache faultQuerySessionCache
 #include "analysis/worker.c"
 #define main ordinaryCacheFixtureMain
