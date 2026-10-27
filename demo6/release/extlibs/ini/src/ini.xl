@@ -29,24 +29,24 @@ class Config
     extern "xini_destroy" destroy()
 
     private extern "xini_error_code" func errorCodeNative() as int
-    private extern "xini_error_text" func errorTextNative() as point
+    private extern "xini_error_text" @owned func errorTextNative() as string?
     private extern "xini_error_line" func errorLineNative() as int
     private extern "xini_error_column" func errorColumnNative() as int
     private extern "xini_error_offset" func errorOffsetNative() as int
     private extern "xini_section_count" func sectionCountNative() as int
-    private extern "xini_section_name" func sectionNameNative(c_int index) as point
+    private extern "xini_section_name" @owned func sectionNameNative(c_int index) as string?
     private extern "xini_has_section" func hasSectionNative(string section) as bool
     private extern "xini_key_count" func keyCountNative(string section) as int
-    private extern "xini_key_name" func keyNameNative(string section, c_int index) as point
+    private extern "xini_key_name" @owned func keyNameNative(string section, c_int index) as string?
     private extern "xini_has" func hasNative(string section, string key) as bool
-    private extern "xini_get" func getNative(string section, string key) as point
+    private extern "xini_get" @owned func getNative(string section, string key) as string?
     private extern "xini_get_int" func getIntNative(string section, string key) as int
     private extern "xini_get_float" func getFloatNative(string section, string key) as float
     private extern "xini_get_bool" func getBoolNative(string section, string key) as bool
     private extern "xini_set" func setNative(string section, string key, string value) as bool
     private extern "xini_remove" func removeNative(string section, string key) as bool
     private extern "xini_remove_section" func removeSectionNative(string section) as bool
-    private extern "xini_stringify_text" func stringifyTextNative() as point
+    private extern "xini_stringify_text" @owned func stringifyTextNative() as string?
     private extern "xini_save" func saveNative(string path) as bool
 
     get valid() as bool
@@ -56,8 +56,9 @@ class Config
 
     func errorText() as string
         if self.handle == null then return "INI operation failed" end
-        point value = self.errorTextNative()
-        return __xl_runtime.takeCstr(value)
+        string? value = self.errorTextNative()
+        if value == null then throw MemoryError "INI error text allocation failed" end
+        return value
     end
 
     get errorCode() as int
@@ -80,11 +81,11 @@ class Config
         array<string> result = array<string>[]
         int i = 0
         while i < self.sectionCountNative()
-            point value = self.sectionNameNative(c_int(i))
+            string? value = self.sectionNameNative(c_int(i))
             if value == null then
                 throw ConfigError "INI section index is out of range"
             end
-            result.append(__xl_runtime.takeCstr(value))
+            result.append(value)
             i += 1
         end
         return result
@@ -100,11 +101,11 @@ class Config
         array<string> result = array<string>[]
         int i = 0
         while i < self.keyCountNative(section)
-            point value = self.keyNameNative(section, c_int(i))
+            string? value = self.keyNameNative(section, c_int(i))
             if value == null then
                 throw ConfigError "INI key index is out of range"
             end
-            result.append(__xl_runtime.takeCstr(value))
+            result.append(value)
             i += 1
         end
         return result
@@ -123,11 +124,11 @@ class Config
     func get(string section, string key) as string
         __ini_require_c_string(section)
         __ini_require_c_string(key)
-        point result = self.getNative(section, key)
+        string? result = self.getNative(section, key)
         if result == null then
             throw ConfigError self.errorText()
         end
-        return __xl_runtime.takeCstr(result)
+        return result
     end
 
     func get(string key) as string
@@ -216,11 +217,11 @@ class Config
     end
 
     func stringify() as string
-        point result = self.stringifyTextNative()
+        string? result = self.stringifyTextNative()
         if result == null then
             throw ConfigError self.errorText()
         end
-        return __xl_runtime.takeCstr(result)
+        return result
     end
 
     func save(string path)

@@ -91,7 +91,7 @@ XINI_EXPORT int64 xini_error_code(void* pValue)
 	return pError != NULL ? pError->iCode : XRT_INI_ERROR_ARGUMENT;
 }
 
-XINI_EXPORT void* xini_error_text(void* pValue)
+XINI_EXPORT char* xini_error_text(void* pValue)
 {
 	const xrtinierror* pError = xrtIniError((xrtiniconfig*)pValue);
 	return xrtStrDup(pError != NULL && pError->sMessage[0] != 0 ?
@@ -121,7 +121,7 @@ XINI_EXPORT int64 xini_section_count(void* pValue)
 	return (int64)xrtIniSectionCount((xrtiniconfig*)pValue);
 }
 
-XINI_EXPORT void* xini_section_name(void* pValue, int iIndex)
+XINI_EXPORT char* xini_section_name(void* pValue, int iIndex)
 {
 	const char* sName = iIndex >= 0 ?
 		xrtIniSectionName((xrtiniconfig*)pValue, (uint32)iIndex) : NULL;
@@ -138,7 +138,7 @@ XINI_EXPORT int64 xini_key_count(void* pValue, cstr sSection)
 	return (int64)xrtIniKeyCount((xrtiniconfig*)pValue, xini_borrowed(sSection));
 }
 
-XINI_EXPORT void* xini_key_name(void* pValue, cstr sSection, int iIndex)
+XINI_EXPORT char* xini_key_name(void* pValue, cstr sSection, int iIndex)
 {
 	const char* sName = iIndex >= 0 ?
 		xrtIniKeyName((xrtiniconfig*)pValue, xini_borrowed(sSection), (uint32)iIndex) : NULL;
@@ -150,7 +150,7 @@ XINI_EXPORT bool xini_has(void* pValue, cstr sSection, cstr sKey)
 	return xrtIniHas((xrtiniconfig*)pValue, xini_borrowed(sSection), xini_borrowed(sKey));
 }
 
-XINI_EXPORT void* xini_get(void* pValue, cstr sSection, cstr sKey)
+XINI_EXPORT char* xini_get(void* pValue, cstr sSection, cstr sKey)
 {
 	str sValue = xrtIniGet((xrtiniconfig*)pValue, xini_borrowed(sSection), xini_borrowed(sKey));
 	xini_defer_error((xrtiniconfig*)pValue);
@@ -207,7 +207,7 @@ XINI_EXPORT void* xini_stringify(void* pValue)
 }
 
 /* 将文本缓冲直接交给调用方；返回值由 xrtFree 释放。 */
-XINI_EXPORT void* xini_stringify_text(void* pValue)
+XINI_EXPORT char* xini_stringify_text(void* pValue)
 {
 	xbuffer* pOutput = (xbuffer*)xini_stringify(pValue);
 	char* sText;

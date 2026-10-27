@@ -1,5 +1,11 @@
 # ini
 
+2026-10-27 所有权收口：错误文本、节名、键名、值和序列化文本的
+C 出口均明确返回 XRT 拥有的 `char*`；XLang native-backed class 使用
+`@owned string?` 直接接管。生成 C 门禁逐项检查直接保存原生指针，
+不在交接处复制正文；仍需一次 `strlen` 获取长度。错误与空值分支
+保留原有合同，错误文本自身分配失败明确抛 MemoryError。
+
 2026-10-26 当前发布物：Windows 默认包门禁、Linux C ASan/UBSan
 与独立 Python `configparser` 双向互通均通过。两平台中央用例、
 边界及公开范例 JIT/AOT 通过；Linux 浮点核心/边界/中央/公开

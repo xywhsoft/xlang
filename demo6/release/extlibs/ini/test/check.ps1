@@ -52,10 +52,14 @@ try {
         $null = Run 'direct-text cgen' $xl @('cgen',
             'extlibs/ini/test/boundaries.xl', '--emit', $generated)
         $generatedText = [IO.File]::ReadAllText($generated)
-        $adoptions = [regex]::Matches($generatedText,
-            '\bxl6_xrt_take_cstr\s*\(').Count
-        if ($adoptions -lt 3 -or $generatedText.Contains('xl6CStringCopyV1')) {
-            throw 'INI get/stringify must transfer C allocations without copying'
+        foreach ($symbol in @('xini_error_text', 'xini_section_name',
+            'xini_key_name', 'xini_get', 'xini_stringify_text')) {
+            if ($generatedText -cnotmatch "\bv\d+\.Data\s*=\s*$symbol\s*\(") {
+                throw "$symbol must adopt the native C string directly"
+            }
+        }
+        if ($generatedText.Contains('xl6CStringCopyV1')) {
+            throw 'INI text must not be copied at the native boundary'
         }
         Write-Host '[ini] direct string adoption: PASS'
         $oldErrorActionPreference = $ErrorActionPreference
