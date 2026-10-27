@@ -1,5 +1,20 @@
 # SQLite
 
+2026-10-28：修复单语句 `prepare` 为检查尾部而再次编译 SQL 的问题。
+被拒绝的尾部 PRAGMA 原可提前修改连接，C/XLang 红例已复现 `query_only`；
+同类测试同时覆盖 `foreign_keys/recursive_triggers`。现只扫描尾部空白、空语句和注释，不编译额外 SQL，
+也不为尾部检查另行分配。C 授权回调验证不再收到尾部 PRAGMA，正常第一条
+PRAGMA 的原生语义不变；另有 510 组单字节尾部与上游对照和注释/BOM 边界。
+成对 C/XLang 范例展示拒绝额外语句后连接仍可写，固定输出不变。
+
+最终 Windows 默认门禁 37 项通过，44 个生成原型与 45 个常量通过；Linux
+默认完整门禁通过 C ASan/UBSan、149 个分配故障点、线程、语言 JIT/AOT 和
+双语同输出。此前一次 Linux 门禁无诊断退出且旧脚本删除了现场，根因仍未知。
+脚本现保留失败命令/行号、原始状态、管道状态和已有日志，并记录 `xl/libxlc.so`
+指纹；无输出退出 37 的诊断探针通过。包在当前验收矩阵中暂列 R，详见
+[Linux 门禁待定位记录](../../../dev/extlib_blockers/sqlite_linux_silent_gate_20261028.md)，
+不把最终复跑通过视为关闭该风险。
+
 2026-10-26 当前发布物复验：Linux 包级门禁现覆盖 C ASan/UBSan、
 149 个分配故障点、线程、中央/边界/文件 XLang JIT 与独立 EXE AOT、
 两份公开 XLang 范例及 C 范例的 `xl run`/`xl build`。成对范例与
@@ -56,6 +71,9 @@ println(rows[0]["name"])
 - `last_error()`：当前连接的 SQLite 诊断，不是进程全局字符串。
 - `prepare(sql)`：创建拥有型 `Statement`，只接受一条语句；空语句、多语句和非法
   尾部被拒绝。允许结尾空白、分号和注释；多语句执行使用 `execute`/`exec_code`。
+  尾部检查不编译第二条语句，注释按 SQLite 规则不嵌套。该限制不是只读检查或
+  事务回滚承诺：第一条语句仍按 SQLite 自身语义编译，部分 PRAGMA 可在
+  `prepare` 时生效，不能把 `prepare` 当作无副作用的 SQL 校验器。
 - `query(sql)`：全部行组成的动态数组，每行为列名到值的字典。执行失败抛出异常，
   不返回空成功或部分结果；语句在 `finally` 中释放。大结果集应使用 Statement 逐行读。
 - `changes()`、`total_changes()`、`last_insert_rowid()`：64 位整数；行计数使用
@@ -111,9 +129,8 @@ Statement：
 自行复制。返回的 Buffer 由 C 调用方 `xrtBufferDestroy`，xlang 则由 Buffer 对象释放。
 `*_owned_native` 文本入口返回一份 `xrtFree` 负责释放的独立副本；xlang 直接接管
 这份内存，列值和诊断不再经过临时区与第二次字符串复制。原有 C 入口保持借用合同。
-语言 `point` 物理 ABI 另使用 `*_point_native` 入口，仅把同一拥有型指针按
-`void*` 返回；C 调用方仍可使用返回 `char*` 的 `*_owned_native`，两者均须
-由接收方最终调用 `xrtFree`，不能同时接管同一结果。
+当前语言声明以 `@owned string?` 直接调用这些 `char*` 入口，不提供额外的
+`*_point_native` 转接层。
 
 底层状态码入口不把 SQLite 业务失败变成 XRT 异常；没有状态码的创建、prepare、
 读列入口使用 XRT 错误对象。裸 C 句柄不检测悬空指针，释放后复用属于 C 调用方错误。
@@ -124,6 +141,9 @@ Statement：
 门禁：`tools/check_extlib_sqlite.ps1`，Linux C 与双语 AOT：`tools/check_extlib_sqlite.sh`。
 覆盖 ABI/常量、64 位值、UTF-8、二进制/NUL、状态与生命周期、事务/文件锁、分配故障、
 独立线程，以及 C/xlang 的 JIT/AOT/GCC 范例。每次通过仅证明对应固定输入与平台。
+Linux 失败现场由 `[sqlite] FAIL exit=... artifacts=...` 报告；`failure.txt` 保存
+原始退出码、脚本行号、失败命令及管道状态，原有 stdout 日志和输入/编译器记录
+一并保留。只有成功时自动清理该次独占目录；排查结束后再手动清理失败现场。
 
 2026-09-27 专项：37 项 Windows 检查、44 个生成原型与 45 个常量通过；SQLite
 工作流注入 149 个分配失败点，XRT Buffer/临时文本另外验证 2/1 个失败点及恢复。
@@ -149,6 +169,11 @@ amalgamation 的 `sqlite3_version` 定义被头文件保护宏跳过。
   用户自定义 SQL 函数。这些上游能力不能仅因 vendor 源码存在就算作 xlang API 已开放。
 - 成对范例：`release/examples/extlibs/sqlite_basic.xl` 与 `examples/basic.c`；两者
   使用同一份预期输出。完整接口演示仍在 `release/examples/extlibs/sqlite.xl`。
+
+## 历史验证记录
+
+下列“当前阻断”仅描述记录当日的发布物，旧 XLIR/point 透传层不作为当前
+实现依据；现行接口及待定位风险以本文开头和数据/错误合同为准。
 
 2026-10-19：C 范例的数据库操作改为显式检查，不再依赖 `assert` 执行；
 失败路径释放语句、连接和 Buffer。Linux C 门禁使用 `-DNDEBUG` 并在
@@ -195,7 +220,9 @@ Windows 完整门禁 37 项通过，包含 44 个生成原型、45 个常量、
 
 语义依据：[列结果](https://www.sqlite.org/c3ref/column_blob.html)、
 [关闭连接](https://www.sqlite.org/c3ref/close.html)、
-[参数绑定](https://www.sqlite.org/c3ref/bind_blob.html)。
+[参数绑定](https://www.sqlite.org/c3ref/bind_blob.html)、
+[PRAGMA 的编译阶段行为](https://www.sqlite.org/pragma.html)、
+[SQL 注释规则](https://www.sqlite.org/lang_comment.html)。
 
 ## 模块级签名
 

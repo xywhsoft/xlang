@@ -5,15 +5,32 @@ cd "$root"
 tmp_root=$(realpath -m -- "${TMPDIR:-/tmp}")
 work=$(mktemp -d "$tmp_root/xlang-sqlite-XXXXXXXX")
 cleanup() {
-    case "$work" in
-        "$tmp_root"/xlang-sqlite-*) rm -rf -- "$work" ;;
-    esac
+    result=$?
+    trap - EXIT
+    set +e
+    if ((result == 0)); then
+        case "$work" in
+            "$tmp_root"/xlang-sqlite-*) rm -rf -- "$work" || result=$? ;;
+        esac
+    else
+        printf '[sqlite] FAIL exit=%s artifacts=%s\n' "$result" "$work" >&2
+    fi
+    exit "$result"
 }
 trap cleanup EXIT
+
+# 保留失败命令和管道中各进程的状态，避免无输出失败被清理掉。
+record_failure() {
+    printf 'exit=%s\nline=%s\ncommand=%s\npipeline=%s\n' "$@" > "$work/failure.txt"
+    cat "$work/failure.txt" >&2
+}
+trap 'record_failure "$?" "$LINENO" "$BASH_COMMAND" "${PIPESTATUS[*]}"' ERR
+
 cc=${CC:-gcc}
 pkg=release/extlibs/sqlite
 mapfile -d '' inputs < <(find "$pkg" -type f \( -name '*.c' -o -name '*.h' -o -name '*.json' -o -name '*.xl' \) -print0 | sort -z)
-inputs+=(lib/xrt/xrt.h test/support/extlib_sqlite_runtime.c tools/check_extlib_sqlite.sh
+inputs+=(lib/xrt/xrt.h release/xl release/libxlc.so
+         test/support/extlib_sqlite_runtime.c tools/check_extlib_sqlite.sh
          test/cases/extlib_sqlite.xl release/examples/extlibs/sqlite.xl
          release/examples/extlibs/sqlite_basic.xl
          release/examples/extlibs/sqlite_basic.expected.txt)

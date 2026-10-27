@@ -50,6 +50,7 @@ println(rows[0]["name"])</code></pre>
       <tr><td><code>changes()</code> / <code>total_changes()</code> / <code>last_insert_rowid()</code></td><td>64 位计数与行号；另有 last_insert_rowid_text()。</td></tr>
       <tr><td><code>busy_timeout(milliseconds)</code></td><td>设置锁等待上限；0 表示不等待，不自动重试整个事务。</td></tr>
     </tbody></table>
+    <p><code>prepare</code> 只扫描第一条语句之后的空白、空语句和注释，不为检查尾部再次编译 SQL，避免被拒绝的额外 PRAGMA 改变连接配置。第一条语句仍遵守 SQLite 自身语义：部分 PRAGMA 在编译时就生效，不能将 prepare 当作无副作用或只读 SQL 校验器。</p>
     <h2 id="statement">Statement</h2>
     <table class="ext-kv"><thead><tr><th>接口</th><th>合同</th></tr></thead><tbody>
       <tr><td><code>bind(index, int|float|string|Buffer)</code> / <code>bind_null(index)</code></td><td>保留 64 位整数；Buffer 是 BLOB，NULL 与空值分开。</td></tr>
@@ -133,6 +134,7 @@ memory() as Database</code></pre>
     XRT Buffer 与临时文本分配失败、四个独立线程、中文路径/锁竞争和 C/xlang JIT/AOT/GCC 范例输出对照。
     Linux 包级门禁现覆盖 C ASan/UBSan、分配故障与线程、中央/边界/文件 XLang JIT/AOT、公开双语范例的 JIT/AOT 和独立 GCC 固定输出对照。</p>
     <p>2026-10-26：当前 Linux <code>release/xl</code> 完整门禁通过。Windows 专项门禁复验覆盖 37 项检查、44 个生成原型、45 个常量及 C/XLang 成对范例。数据库和语句析构只释放原生句柄，不再写入正在退役的对象字段；显式 close/finalize 保持幂等。此前的 XLIR ABI 错误属于旧发布物记录。</p>
+    <p>2026-10-28：尾部 PRAGMA 副作用的 C/XLang 红例修复后通过，另验 510 组单字节尾部与上游对照、授权回调、注释和 BOM 边界。最终 Windows/Linux 默认完整门禁通过，成对范例展示拒绝额外 SQL 后连接仍可写，固定输出不变。此前一次 Linux 门禁无诊断退出根因仍未知，暂列待定位风险；脚本现保留失败命令、原始状态及现场，不因最终复跑通过而关闭该风险。</p>
     <p>范围不包含断电恢复、网络文件系统、跨进程 WAL 故障矩阵、32 位/ARM 或性能认证。
     包装尚未提供数据库加密、异步线程池、自动事务重试、备份/增量 BLOB、高级回调或自定义 SQL 函数。</p>
   </section>

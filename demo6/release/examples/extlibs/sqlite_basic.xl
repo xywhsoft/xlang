@@ -2,6 +2,17 @@ import sqlite
 
 // 参数绑定保留引号与字节，不拼接 SQL；Statement 和 Database 自动管理句柄。
 auto db = sqlite.memory()
+
+// prepare 只接受一条语句；多语句执行显式使用 execute，尾部不会被偷偷编译。
+assert db.execute("pragma query_only = off")
+bool rejected = false
+try
+    db.prepare("select 1; pragma query_only = on")
+catch ValueError e
+    rejected = true
+end
+assert rejected
+
 assert db.execute("create table people(id integer primary key, name text)")
 auto insert = db.prepare("insert into people(name) values(?)")
 for name in ["Ada", "O'Reilly"]

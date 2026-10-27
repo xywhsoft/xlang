@@ -99,12 +99,39 @@ XSQLITE_EXPORT int xsqlite3_exec_native(void* db, const char* sql)
     return sqlite3_exec((sqlite3*)db, sql, NULL, NULL, NULL);
 }
 
+/* 尾部只识别空白、空语句和注释；不能再次 prepare，PRAGMA 可能在编译时生效。 */
+static int xsqlite_empty_tail(const char* text)
+{
+    const unsigned char* tail = (const unsigned char*)text;
+    while (*tail != 0) {
+        if (*tail == ' ' || *tail == '\t' || *tail == '\n' ||
+            *tail == '\r' || *tail == '\f') {
+            /* 与 SQLite 的空白 token 保持一致，不受进程 locale 影响。 */
+            do { ++tail; } while (*tail == ' ' || (*tail >= '\t' && *tail <= '\r'));
+        } else if (*tail == ';') {
+            ++tail;
+        } else if (tail[0] == '-' && tail[1] == '-') {
+            tail += 2;
+            while (*tail != 0 && *tail != '\n') ++tail;
+        } else if (tail[0] == '/' && tail[1] == '*' && tail[2] != 0) {
+            tail += 2;
+            while (*tail != 0 && !(tail[0] == '*' && tail[1] == '/')) ++tail;
+            if (*tail == 0) return 1;
+            tail += 2;
+        } else if (tail[0] == 0xef && tail[1] == 0xbb && tail[2] == 0xbf) {
+            tail += 3;
+        } else {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 /* prepare 只接收一条语句；多条执行必须显式使用 exec，不能静默丢弃尾部 SQL。 */
 XSQLITE_EXPORT void* xsqlite3_prepare_v2_native(void* handle, const char* sql)
 {
     sqlite3* db = (sqlite3*)handle;
     sqlite3_stmt* stmt = NULL;
-    sqlite3_stmt* extra = NULL;
     const char* tail = NULL;
     xrtClearError();
     if (db == NULL) {
@@ -125,16 +152,11 @@ XSQLITE_EXPORT void* xsqlite3_prepare_v2_native(void* handle, const char* sql)
         xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.sqlite", SQLITE_MISUSE, "sqlite prepare requires one statement");
         return NULL;
     }
-    if (tail != NULL && *tail != '\0') {
-        rc = sqlite3_prepare_v2(db, tail, -1, &extra, NULL);
-        if (rc != SQLITE_OK || extra != NULL) {
-            sqlite3_finalize(extra);
-            sqlite3_finalize(stmt);
-            if ((rc & 0xff) == SQLITE_NOMEM) xsqlite_error(NULL, rc);
-            else xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.sqlite", SQLITE_MISUSE,
-                    "sqlite prepare accepts exactly one statement");
-            return NULL;
-        }
+    if (tail != NULL && !xsqlite_empty_tail(tail)) {
+        sqlite3_finalize(stmt);
+        xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.sqlite", SQLITE_MISUSE,
+            "sqlite prepare accepts exactly one statement");
+        return NULL;
     }
     return stmt;
 }

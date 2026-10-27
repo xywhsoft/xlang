@@ -13,6 +13,14 @@
 
 #define CHECK(c) do { if (!(c)) { fprintf(stderr, "sqlite C line %d: %s\n", __LINE__, #c); return 1; } } while (0)
 
+static int countPragma(void* context, int action, const char* first,
+    const char* second, const char* database, const char* trigger)
+{
+    (void)first; (void)second; (void)database; (void)trigger;
+    if (action == SQLITE_PRAGMA) ++*(int*)context;
+    return SQLITE_OK;
+}
+
 int main(void)
 {
     CHECK(SQLITE_OK == 0);
@@ -96,6 +104,86 @@ int main(void)
     void* db = xsqlite3_open_native(":memory:");
     CHECK(db != NULL);
     CHECK(xsqlite3_exec_native(db, NULL) == SQLITE_MISUSE);
+
+    /* 拒绝第二条语句时不能编译它，否则 PRAGMA 可能已经修改连接。 */
+    const char* pragmas[] = {"query_only", "foreign_keys", "recursive_triggers"};
+    for (size_t i = 0; i < sizeof(pragmas) / sizeof(pragmas[0]); ++i) {
+        char sql[160];
+        snprintf(sql, sizeof(sql), "pragma %s = off", pragmas[i]);
+        CHECK(xsqlite3_exec_native(db, sql) == SQLITE_OK);
+        int pragma_calls = 0;
+        CHECK(sqlite3_set_authorizer(db, countPragma, &pragma_calls) == SQLITE_OK);
+        snprintf(sql, sizeof(sql), "select 1; /* tail */ pragma %s = on", pragmas[i]);
+        CHECK(xsqlite3_prepare_v2_native(db, sql) == NULL);
+        CHECK(xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
+        CHECK(pragma_calls == 0);
+        CHECK(sqlite3_next_stmt(db, NULL) == NULL);
+        snprintf(sql, sizeof(sql), "pragma %s", pragmas[i]);
+        void* probe = xsqlite3_prepare_v2_native(db, sql);
+        CHECK(probe != NULL && xsqlite3_step_native(probe) == SQLITE_ROW);
+        CHECK(xsqlite3_column_int_native(probe, 0) == 0);
+        CHECK(xsqlite3_finalize_native(probe) == SQLITE_OK);
+        CHECK(pragma_calls == 1);
+        CHECK(sqlite3_set_authorizer(db, NULL, NULL) == SQLITE_OK);
+    }
+
+    /* 单字节尾部逐一与上游比对，也覆盖空白 token 内的控制字符。 */
+    for (int padding = 0; padding < 2; ++padding) {
+        for (unsigned value = 1; value <= 255; ++value) {
+            char tail[3] = {0};
+            char sql[32];
+            size_t size = 0;
+            sqlite3_stmt* extra = NULL;
+            if (padding) tail[size++] = ' ';
+            tail[size++] = (char)value;
+            int rc = sqlite3_prepare_v2(db, tail, -1, &extra, NULL);
+            int accepted = rc == SQLITE_OK && extra == NULL;
+            sqlite3_finalize(extra);
+            snprintf(sql, sizeof(sql), "select 42;%s", tail);
+            void* probe = xsqlite3_prepare_v2_native(db, sql);
+            CHECK((probe != NULL) == accepted);
+            if (probe != NULL) {
+                CHECK(xsqlite3_step_native(probe) == SQLITE_ROW);
+                CHECK(xsqlite3_column_int_native(probe, 0) == 42);
+                CHECK(xsqlite3_finalize_native(probe) == SQLITE_OK);
+            } else {
+                CHECK(xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
+            }
+            CHECK(sqlite3_next_stmt(db, NULL) == NULL);
+        }
+    }
+
+    const char* empty_tails[] = {
+        "", ";;\t\r\n\f ", "-- pragma query_only=on\r; select 9", "/* ended */ ;",
+        "/* through end", "/*/", "/* /* not nested */; -- done\n;",
+        "\xef\xbb\xbf;/*done*/\xef\xbb\xbf"
+    };
+    for (size_t i = 0; i < sizeof(empty_tails) / sizeof(empty_tails[0]); ++i) {
+        char sql[160];
+        snprintf(sql, sizeof(sql), "select 42;%s", empty_tails[i]);
+        void* probe = xsqlite3_prepare_v2_native(db, sql);
+        CHECK(probe != NULL && xsqlite3_step_native(probe) == SQLITE_ROW);
+        CHECK(xsqlite3_column_int_native(probe, 0) == 42);
+        CHECK(xsqlite3_finalize_native(probe) == SQLITE_OK);
+    }
+    const char* bad_tails[] = {"/*", "/", "-", "/*closed*/ select 2", "/* /* */ */", "\xef\xbb", "\xc2\xa0"};
+    for (size_t i = 0; i < sizeof(bad_tails) / sizeof(bad_tails[0]); ++i) {
+        char sql[160];
+        snprintf(sql, sizeof(sql), "select 42;%s", bad_tails[i]);
+        CHECK(xsqlite3_prepare_v2_native(db, sql) == NULL);
+        CHECK(xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
+        CHECK(sqlite3_next_stmt(db, NULL) == NULL);
+    }
+
+    /* 第一条语句仍保留 SQLite 自身的 prepare 阶段 PRAGMA 语义。 */
+    void* configure = xsqlite3_prepare_v2_native(db, "pragma query_only = on; -- one statement");
+    CHECK(configure != NULL && xsqlite3_finalize_native(configure) == SQLITE_OK);
+    void* configured = xsqlite3_prepare_v2_native(db, "pragma query_only");
+    CHECK(configured != NULL && xsqlite3_step_native(configured) == SQLITE_ROW);
+    CHECK(xsqlite3_column_int_native(configured, 0) == 1);
+    CHECK(xsqlite3_finalize_native(configured) == SQLITE_OK);
+    CHECK(xsqlite3_exec_native(db, "pragma query_only = off") == SQLITE_OK);
+
     CHECK(xsqlite3_busy_timeout_native(db, 0) == SQLITE_OK);
     CHECK(xsqlite3_busy_timeout_native(db, -1) == SQLITE_MISUSE);
     CHECK(xsqlite3_exec_native(db, "create table t(id integer primary key,i integer,r real,s text,b blob,n text)") == SQLITE_OK);

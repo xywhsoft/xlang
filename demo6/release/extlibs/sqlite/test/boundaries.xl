@@ -14,6 +14,47 @@ end
 
 func main(...) as int
     auto db = sqlite.memory()
+
+    // prepare 拒绝多语句时，尾部 PRAGMA 不能提前改变连接配置。
+    for name in ["query_only", "foreign_keys", "recursive_triggers"]
+        assert db.execute(f"pragma {name} = off")
+        bool rejected = false
+        try
+            db.prepare(f"select 1; /* tail */ pragma {name} = on")
+        catch ValueError e
+            rejected = true
+        end
+        assert rejected
+        auto probe = db.prepare(f"pragma {name}")
+        assert probe.row_ready() and probe.column_int(0) == 0
+        assert probe.finalize() == sqlite.SQLITE_OK
+    end
+
+    // 注释到 EOF 合法；块注释不嵌套，UTF-8 BOM 可作为 SQLite 空白 token。
+    for tail in [";;\t\r\n\f ", "-- pragma query_only=on\r; select 9", "/* done */ ;",
+        "/* through end", "/*/", "/* /* not nested */; -- done\n;", "\uFEFF;/*done*/\uFEFF"]
+        auto probe = db.prepare("select 42;" + tail)
+        assert probe.row_ready() and probe.column_int(0) == 42
+        assert probe.finalize() == sqlite.SQLITE_OK
+    end
+    for tail in ["/*", "/", "-", "/* done */ select 2", "/* /* */ */"]
+        bool rejected = false
+        try
+            db.prepare("select 42;" + tail)
+        catch ValueError e
+            rejected = true
+        end
+        assert rejected
+    end
+
+    // 第一条 PRAGMA 仍遵守 SQLite 原有的 prepare 阶段生效规则。
+    auto configure = db.prepare("pragma query_only = on; -- one statement")
+    assert configure.finalize() == sqlite.SQLITE_OK
+    auto configured = db.prepare("pragma query_only")
+    assert configured.row_ready() and configured.column_int(0) == 1
+    assert configured.finalize() == sqlite.SQLITE_OK
+    assert db.execute("pragma query_only = off")
+
     assert db.execute("create table entry(id integer primary key, text_value text, payload blob, optional text)")
     auto insert = db.prepare("insert into entry values(?, ?, ?, ?)")
     Buffer source = Buffer()
