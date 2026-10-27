@@ -18076,6 +18076,10 @@ static XL6_IrErrorAbi xl6IrClassifyOperatorErrorAbi(
     if ( !operatorNode || node->callKind == XL6_SEM_CALL_PROTOCOL ||
          node->opcode == XL6_IR_OPCODE_INVALID )
         return XL6_IR_ERROR_ABI_INVALID;
+    /* A selected class overload carries its effect on the resolved call.
+     * Its managed xvalue representation does not turn that operation into
+     * an additional dynamic-box arithmetic operation. */
+    if (node->compoundOperatorSymbol != 0) return XL6_IR_ERROR_ABI_NO_RAISE;
     operatorType = node->storageType;
     if ( node->sourceKind == XL6_AST_ASSIGN && node->childCount >= 1 &&
          node->firstChild < module->childCount ) {
