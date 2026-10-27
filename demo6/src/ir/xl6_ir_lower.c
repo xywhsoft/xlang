@@ -38,6 +38,7 @@ typedef struct XL6_IrLowerContext {
     struct XL6_IrLowerDeferredLoopExit* deferredLoopExits;
     size_t deferredLoopExitCount;
     size_t deferredLoopExitCapacity;
+    struct XL6_IrLowerDefaultArgument* defaultArguments;
     struct XL6_IrLowerPromotedParameter* promotedParameters;
     size_t promotedParameterCount;
     size_t promotedParameterCapacity;
@@ -140,6 +141,23 @@ static int xl6IrLowerReplaceStorageValue(
 /* A function keeps its externally visible scalar parameter ABI.  When a
  * nested closure mutates that parameter, lowering materializes a separate
  * local cell before the body starts and resolves all body uses through it. */
+/* Compile-time SSA bindings, scoped to one default expression. Earlier
+ * arguments already have their call-site ownership anchors; no runtime copy
+ * or extra storage is needed to read them from the callee's default syntax. */
+typedef struct XL6_IrLowerDefaultArgument {
+    XL6_SymbolId symbol;
+    XL6_IrValueId value;
+    struct XL6_IrLowerDefaultArgument* outer;
+} XL6_IrLowerDefaultArgument;
+
+static XL6_IrValueId xl6IrLowerDefaultArgumentValue(
+    const XL6_IrLowerContext* ctx, XL6_SymbolId symbol)
+{
+    for (const XL6_IrLowerDefaultArgument* item=ctx->defaultArguments;item;item=item->outer)
+        if (symbol && item->symbol==symbol) return item->value;
+    return XL6_IR_VALUE_INVALID;
+}
+
 typedef struct XL6_IrLowerPromotedParameter {
     XL6_SymbolId sourceSymbol;
     XL6_SymbolId cellStorage;
@@ -4909,6 +4927,35 @@ static XL6_IrValueId xl6IrLowerCallArgumentAsType(
         xl6IrNodeGet(ctx->module, binding->expression), targetType);
     ctx->declarationExitOrigin = previous;
     return result;
+}
+
+static XL6_IrValueId xl6IrLowerFixedCallArgumentAsType(
+    XL6_IrLowerContext* ctx, XL6_IrNodeId origin,
+    const XL6_IrCallArgument* binding, XL6_IrTypeId type,
+    const XL6_IrValueId* arguments, size_t offset)
+{
+    if (binding->source != XL6_IR_CALL_ARGUMENT_DEFAULT || !binding->parameter)
+        return xl6IrLowerCallArgumentAsType(ctx,origin,binding,type);
+    const XL6_IrCallSite* site=xl6IrCallSiteGet(ctx->module,origin);
+    const XL6_IrNode* declaration=site ? xl6IrSymbolNodeGet(ctx->module,site->targetSymbol) : NULL;
+    XL6_IrNodeId declarationId=declaration ? (XL6_IrNodeId)(declaration-ctx->module->nodes+1) : 0;
+    const XL6_IrNode* params=xl6IrNodeGet(ctx->module,xl6IrCallParameterListGet(ctx->module,declarationId));
+    if (!params || binding->parameter>params->childCount || !arguments)
+        return xl6IrLowerDiag(ctx,origin,"XLIR default argument has no canonical prefix bindings"), XL6_IR_VALUE_INVALID;
+    XL6_IrLowerDefaultArgument* outer=ctx->defaultArguments;
+    XL6_IrLowerDefaultArgument* bindings=xrtCalloc(binding->parameter,sizeof(*bindings));
+    if (!bindings) return xl6IrLowerDiag(ctx,origin,"XLIR default prefix binding allocation failed"), XL6_IR_VALUE_INVALID;
+    for (size_t p=0;p<binding->parameter;++p) {
+        const XL6_IrNode* parameter=xl6IrNodeGet(ctx->module,ctx->module->children[params->firstChild+p]);
+        if (!parameter || !arguments[p+offset]) {
+            ctx->defaultArguments=outer;xrtFree(bindings);
+            return xl6IrLowerDiag(ctx,origin,"XLIR default prefix is not evaluated"), XL6_IR_VALUE_INVALID;
+        }
+        bindings[p].symbol=parameter->symbol;bindings[p].value=arguments[p+offset];
+        bindings[p].outer=ctx->defaultArguments;ctx->defaultArguments=&bindings[p];
+    }
+    XL6_IrValueId result=xl6IrLowerCallArgumentAsType(ctx,origin,binding,type);
+    ctx->defaultArguments=outer;xrtFree(bindings);return result;
 }
 
 /* A direct return may transfer a function-local managed owner into its result
@@ -11101,7 +11148,7 @@ static XL6_IrValueId xl6IrLowerProtocolInvocation(
                 if (operands[p + 1] == XL6_IR_VALUE_INVALID) goto done;
                 continue;
             }
-            operands[p + 1] = xl6IrLowerCallArgumentAsType(ctx, id, binding, type);
+            operands[p + 1] = xl6IrLowerFixedCallArgumentAsType(ctx, id, binding, type, operands, 1);
             operands[p + 1] = xl6IrLowerPrepareOwnedCallArgument(ctx, id, type, abi, expression, operands[p + 1]);
             operands[p + 1] = xl6IrLowerAnchorResolvedCallBorrow(ctx, id, binding->expression, expression,
                 type, abi, operands[p + 1], &temporaries[step]);
@@ -26665,8 +26712,8 @@ static XL6_IrValueId xl6IrLowerBaseConstructorCall(
                 "XLIR base constructor argument has no fixed parameter binding ABI");
             goto done_base;
         }
-        operands[parameter] = xl6IrLowerCallArgumentAsType(
-            ctx, id, binding, target->parameterTypes[parameter]);
+        operands[parameter] = xl6IrLowerFixedCallArgumentAsType(
+            ctx, id, binding, target->parameterTypes[parameter], operands, 1);
         operands[parameter] = xl6IrLowerPrepareOwnedCallArgument(
             ctx, id, target->parameterTypes[parameter],
             target->parameterAbis[parameter], expression,
@@ -26798,8 +26845,8 @@ static XL6_IrValueId xl6IrLowerConstructorCall(
             return XL6_IR_VALUE_INVALID;
         }
         expression = xl6IrNodeGet(ctx->module, argumentId);
-        operands[parameter] = xl6IrLowerCallArgumentAsType(
-            ctx, id, binding, target->parameterTypes[parameter]);
+        operands[parameter] = xl6IrLowerFixedCallArgumentAsType(
+            ctx, id, binding, target->parameterTypes[parameter], operands, 1);
         operands[parameter] = xl6IrLowerPrepareOwnedCallArgument(
             ctx, id, target->parameterTypes[parameter],
             target->parameterAbis[parameter], expression,
@@ -30192,7 +30239,8 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
              * equivalent contextual builtin TypeId, but LOAD must name the
              * exact registered cell ABI. */
             if ( storage != NULL ) storageType = storage->type;
-            if ( !xl6IrLowerEmit(ctx,
+            result=xl6IrLowerDefaultArgumentValue(ctx,node->targetSymbol);
+            if ( result == XL6_IR_VALUE_INVALID && !xl6IrLowerEmit(ctx,
                                   storage != NULL && storage->cellType != XL6_IR_TYPE_INVALID
                                       ? XL6_IR_INSTR_CELL_LOAD : XL6_IR_INSTR_LOAD,
                                   id, storageType, storageSymbol,
@@ -31342,7 +31390,7 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
                     continue;
                 }
                 operands[parameterIndex] = binding != NULL
-                    ? xl6IrLowerCallArgumentAsType(ctx, id, binding, target->parameterTypes[parameterIndex])
+                    ? xl6IrLowerFixedCallArgumentAsType(ctx, id, binding, target->parameterTypes[parameterIndex], operands, argumentOffset)
                     : xl6IrLowerNodeAsType(ctx, id, argumentExprId, argumentExpr, target->parameterTypes[parameterIndex]);
                 if ( operands[parameterIndex] != XL6_IR_VALUE_INVALID &&
                      target->parameterTypes[parameterIndex] != XL6_IR_TYPE_INVALID &&
