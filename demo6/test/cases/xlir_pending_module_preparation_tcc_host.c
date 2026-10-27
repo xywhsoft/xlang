@@ -8,15 +8,20 @@ typedef struct PendingModuleHooks {
     void (*observe)(int64_t,const char*);
     void (*capture)(xvalue*);
 } PendingModuleHooks;
-static xvalue* pending_alias;
-static unsigned choice,events,notifications,destructors,boundary_probes,deferrals;
-static unsigned graph_notifications,graph_finalizers;
+static _Atomic(xvalue*) pending_alias;
+static unsigned choice;
+static _Atomic unsigned events,notifications,destructors,boundary_probes,deferrals;
+static _Atomic unsigned graph_notifications,graph_finalizers,inline_notifications,queued_notifications;
 static DWORD WINAPI pending_boundary(void* unused)
 {
     xrtownershipscope freeze={0};MEMORY_BASIC_INFORMATION memory;(void)unused;
     xlApiLock();assert(!atomic_load(&deleted)&&module->state==compiled_state&&module->codeLeases);
     xlApiUnlock();
-    assert(xrtOwnershipFreezeTryBegin(&freeze)&&xrtOwnershipScopeEnd(&freeze));
+    ULONGLONG deadline=GetTickCount64()+5000;
+    while(!xrtOwnershipFreezeTryBegin(&freeze)) {
+        assert(!xrtGetError()&&GetTickCount64()<deadline);SwitchToThread();
+    }
+    assert(xrtOwnershipScopeEnd(&freeze));
     assert(VirtualQuery(relocated_entry,&memory,sizeof(memory))==sizeof(memory)&&memory.State==MEM_COMMIT);
     collect();assert(!atomic_load(&deleted));return 0;
 }
@@ -24,16 +29,32 @@ static void pending_observe(int64_t event,const char* text)
 {
     assert(!atomic_load(&deleted)&&text&&!strcmp(text,"pending owner"));
     if(event!=3&&choice<4){
-        /* Prove the real host's V2 graph preparation, not eager module Unit or
-         * an explicit host PromiseClose, is what delivers these callbacks. */
-        assert(xl__ownershipDriverRunning&&module->ownershipPlan&&module->ownershipPhase==6&&
-            module->retirementPrepared&&!module->ownershipCleared);++graph_notifications;
+        /* Prove the real host's V4 graph preparation, not eager module Unit or
+         * an explicit host PromiseClose, delivers these callbacks. A finally
+         * notification may run on the ready queue after Prepare returned BUSY;
+         * graph phase and code ownership must remain valid on either thread. */
+        xlApiLock();
+        bool certified=module->ownershipPlan&&module->ownershipPhase==6&&
+            module->retirementPrepared&&!module->ownershipCleared&&module->codeLeases;
+        bool inlineDelivery=xl__ownershipDriverRunning&&xl__ownershipDriverThread==xrtThreadCurrentId();
+        int driver=xl__ownershipDriverRunning,phase=module->ownershipPhase,
+            prepared=module->retirementPrepared,cleared=module->ownershipCleared;
+        void* plan=module->ownershipPlan;
+        xlApiUnlock();
+        if(!certified)
+            fprintf(stderr,"pending callback mode=%u event=%lld driver=%d plan=%p phase=%d prepared=%d cleared=%d\n",
+                choice,(long long)event,driver,plan,phase,prepared,cleared);
+        assert(certified);++graph_notifications;
+        if(inlineDelivery)++inline_notifications;else ++queued_notifications;
     }
     if(event==3&&(choice==0||choice==1||choice==3)){
-        assert(xl__ownershipDriverRunning&&module->ownershipPlan&&module->ownershipPhase==1&&
-            !module->ownershipCleared);++graph_finalizers;
+        xlApiLock();bool certified=xl__ownershipDriverRunning&&module->ownershipPlan&&
+            module->ownershipPhase==1&&!module->ownershipCleared;xlApiUnlock();
+        assert(certified);++graph_finalizers;
     }
-    assert(event==(events==0?1:events==1?2:3));events=events*10+(unsigned)event;
+    unsigned before=atomic_load(&events);
+    assert(event==(before==0?1:before==1?2:3));
+    assert(atomic_compare_exchange_strong(&events,&before,before*10+(unsigned)event));
     HANDLE worker=CreateThread(NULL,0,pending_boundary,NULL,0,NULL);assert(worker);
     assert(WaitForSingleObject(worker,5000)==WAIT_OBJECT_0&&CloseHandle(worker));++boundary_probes;
     if(event==3)++destructors;else ++notifications;
@@ -64,7 +85,7 @@ static void pending_transaction(void)
     assert(bind&&run&&source_ref);bind(&hooks);
     xl__tcc.tcc_get_symbol=lookup;xl__tcc.tcc_delete=pending_delete;
     xlApiLock();module=xlCreateModuleFromState(&context,compiled_state);xlApiUnlock();assert(module);
-    assert(module->retirementContract&&module->retirementPreparation&&xlActivateModule(&context,module,NULL));
+    assert(module->retirementContract&&module->retirementStep&&!module->retirementPreparation&&xlActivateModule(&context,module,NULL));
     xlApiLock();assert(xlModuleBeginCallUnlocked(module));xlApiUnlock();
     run(choice);assert(!events&&!xrtGetError());if(choice>=3){producer=source_ref();assert(producer);}
     xlApiLock();xlModuleEndCallUnlocked(module);xlApiUnlock();
@@ -107,6 +128,7 @@ int main(int argc,char** argv)
     for(unsigned n=0;n<25;++n)pending_transaction();
     assert(notifications==50&&destructors==25&&boundary_probes==75&&deferrals==(choice?25u:0u));
     assert(graph_notifications==(choice<4?50u:0u)&&graph_finalizers==((choice==0||choice==1||choice==3)?25u:0u));
+    assert(inline_notifications+queued_notifications==graph_notifications);
     printf("Pending module mode=%u: 25 real TCC lifetimes, 50 ordered finally callbacks before 25 class finalizers, 75 unlocked/unfrozen code-residency probes, %u real-reference deferrals, MEM_FREE and zero live delta; no guard leases or fake roots\n",choice,deferrals);
     printf("Pending module phases mode=%u: %u certified preparation notifications, %u graph finalizers\n",choice,graph_notifications,graph_finalizers);return 0;
 }
