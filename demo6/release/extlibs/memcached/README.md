@@ -9,7 +9,7 @@ Memcached 文本协议编解码与基于标准库 `TcpStream` 的单命令客户
 ```xlang
 import memcached
 
-auto engine = NetEngine(NetEngineOptions().withWorkers(1))
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
 engine.start()
 TcpStream stream = TcpStream(engine, NetAddress("127.0.0.1", 11211))
 assert stream.wait(TcpWait.open, 5000) == NetStatus.ok
@@ -21,11 +21,14 @@ engine.close()
 assert engine.wait(5000)
 ```
 
-`set` 接受 `string` 或 `bytes`；有效 UTF-8 的返回值为 `string`，非
-UTF-8 返回 `bytes`。`get` 未命中返回 `null`，命中空值返回空字符串，
-这两种状态不同。`del` 返回是否删除。`set` 的到期秒数默认为 0，三个
-便捷操作的超时默认为 5000 毫秒；超时限定在 1..2147483647 毫秒。
-单条回复最多 64 MiB。收到不完整、畸形、超限或额外回复时，中止已
+`set` 和 `add` 接受 `string` 或 `bytes`；有效 UTF-8 的返回值为
+`string`，非 UTF-8 返回 `bytes`。`get` 未命中返回 `null`，命中空值
+返回空字符串，这两种状态不同。`getMany` 返回命中项数组，未命中的键
+不在数组内；`del` 和 `touch` 返回是否生效。`stats` 返回状态字典，
+`version` 返回服务版本，`flushAll` 清空服务的全部键，需谨慎调用。
+`set/add` 的到期秒数默认为 0。便捷操作的超时默认为 5000 毫秒，范围
+为 1..2147483647 毫秒。`get/getMany` 可把 `maxReplyBytes` 从默认
+64 MiB 收紧；单条回复的硬上限是 64 MiB。收到不完整、畸形、超限或额外回复时，中止已
 失同步的连接；调用方需要重新连接。完整错误回复抛 `ValueError`，
 连接仍可复用。便捷操作不支持流水线并发访问同一 `TcpStream`。
 
@@ -58,8 +61,21 @@ UTF-8 返回 `bytes`。`get` 未命中返回 `null`，命中空值返回空字�
 - Windows：`powershell -File release/extlibs/memcached/test/check.ps1`
 - Linux：`bash release/extlibs/memcached/test/check.sh`
 
-门禁包含 C 协议边界、故障分配、Linux ASan/UBSan、XLang JIT/AOT、
-本地 TCP 分包/二进制数据/连接复用/畸形回复，以及 C/XLang 同结果范例。
-范例位于 `examples/basic_c.c` 和 `examples/basic.xl`，不需要外部
-Memcached 服务。真实服务互通与长时稳定性尚未验收，因此此包当前
-不作完整生产级 Memcached 客户端的承诺。
+日常门禁包含 C 协议边界、故障分配、Linux ASan/UBSan、XLang JIT/AOT、
+本地 TCP 分包/二进制数据/错误后连接复用/半包、超时与限额中止，以及 C/XLang
+同结果范例。离线范例是 `examples/basic_c.c` 和 `examples/basic.xl`。
+
+真实服务门禁需要安装 `memcached` 和 `ss`，并自动启动临时实例：
+
+- Linux：`bash release/extlibs/memcached/test/check_live.sh`
+- WSL 测 Windows 发布版：`bash release/extlibs/memcached/test/check_live.sh --windows-xl`
+- 短时并发压力：在上述命令前设置 `MEMCACHED_STRESS=1`，执行四连接各
+  1000 轮 set/get/delete/未命中。
+
+`examples/live.xl` 与 `examples/live_c.c` 可单独连接现有服务，默认
+端口 11211，或使用 `MEMCACHED_LIVE_PORT` 指定端口。两者均校验普通值、
+非 UTF-8 二进制值、空值与未命中、多键读取、add/touch、stats/version、
+重复删除和 flushAll，输出逐字节相同。当前已在
+Windows/Linux 发布版的 JIT 和独立 EXE AOT 下通过临时真实服务测试及
+上述并发短压；数小时耐久、真实生产流量和服务集群未验收，不把短测
+解释为完整生产签收。

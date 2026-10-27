@@ -10,6 +10,7 @@
 struct xcancel;
 struct xfuture;
 struct xrtownershipref;
+struct xrtownershippreparationv1;
 struct xtaskpool;
 struct xasyncfile;
 struct xfileoptions;
@@ -217,7 +218,6 @@ XL6_CODE_LEASE_API const struct xfutureproducerownershipv1* xl6TaskProducerPolic
 struct xtaskdataownershipv1;
 struct xfuturewatchownershipv1;
 struct xrtownershipadapterv1;
-struct xrtownershippreparationv1;
 /* The native Job owns exactly the existing accepted frame reference. The
  * policy/Watch identities do not certify other frame layouts or their children.
  * V2 frame preparation waits for actual execution, cleanup and forwarding;

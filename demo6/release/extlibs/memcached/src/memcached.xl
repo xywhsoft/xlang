@@ -162,10 +162,31 @@ export func set(TcpStream stream, string key, bytes data,
     return __mc_set_data(stream, key, Buffer(data), exptime, timeoutMs)
 end
 
-// 未命中是 null；命中空值是 ""，非 UTF-8 数据为 bytes。
-export func get(TcpStream stream, string key, int timeoutMs = 5000) as var
-    var reply = __mc_exchange(stream, buildGet([key]), Buffer(), false,
+func __mc_add_data(TcpStream stream, string key, Buffer data,
+    int exptime, int timeoutMs) as bool
+    var reply = __mc_exchange(stream,
+        buildAdd(key, 0, exptime, data.len()), data, true,
         timeoutMs, 67_108_864)
+    if reply["status"] == "stored" then return true end
+    if reply["status"] == "not_stored" then return false end
+    throw ValueError "memcached: unexpected add response"
+end
+
+export func add(TcpStream stream, string key, string data,
+    int exptime = 0, int timeoutMs = 5000) as bool
+    return __mc_add_data(stream, key, Buffer(data), exptime, timeoutMs)
+end
+
+export func add(TcpStream stream, string key, bytes data,
+    int exptime = 0, int timeoutMs = 5000) as bool
+    return __mc_add_data(stream, key, Buffer(data), exptime, timeoutMs)
+end
+
+// 未命中是 null；命中空值是 ""，非 UTF-8 数据为 bytes。
+export func get(TcpStream stream, string key, int timeoutMs = 5000,
+    int maxReplyBytes = 67_108_864) as var
+    var reply = __mc_exchange(stream, buildGet([key]), Buffer(), false,
+        timeoutMs, maxReplyBytes)
     if reply["status"] == "end" then
         return null
     end
@@ -175,10 +196,50 @@ export func get(TcpStream stream, string key, int timeoutMs = 5000) as var
     throw ValueError "memcached: unexpected get response"
 end
 
+export func getMany(TcpStream stream, array<string> keys,
+    int timeoutMs = 5000, int maxReplyBytes = 67_108_864) as var
+    var reply = __mc_exchange(stream, buildGet(keys), Buffer(), false,
+        timeoutMs, maxReplyBytes)
+    if reply["status"] == "end" then return [] end
+    if reply["status"] == "value" then return reply["items"] end
+    throw ValueError "memcached: unexpected get response"
+end
+
 export func del(TcpStream stream, string key, int timeoutMs = 5000) as bool
     var reply = __mc_exchange(stream, buildDelete(key), Buffer(), false,
         timeoutMs, 67_108_864)
     if reply["status"] == "deleted" then return true end
     if reply["status"] == "not_found" then return false end
     throw ValueError "memcached: unexpected delete response"
+end
+
+export func touch(TcpStream stream, string key, int exptime,
+    int timeoutMs = 5000) as bool
+    var reply = __mc_exchange(stream, buildTouch(key, exptime), Buffer(), false,
+        timeoutMs, 67_108_864)
+    if reply["status"] == "touched" then return true end
+    if reply["status"] == "not_found" then return false end
+    throw ValueError "memcached: unexpected touch response"
+end
+
+export func stats(TcpStream stream, int timeoutMs = 5000) as var
+    var reply = __mc_exchange(stream, buildStats(), Buffer(), false,
+        timeoutMs, 67_108_864)
+    if reply["status"] == "stats" then return reply["stats"] end
+    if reply["status"] == "end" then return {} end
+    throw ValueError "memcached: unexpected stats response"
+end
+
+export func version(TcpStream stream, int timeoutMs = 5000) as string
+    var reply = __mc_exchange(stream, buildVersion(), Buffer(), false,
+        timeoutMs, 67_108_864)
+    if reply["status"] == "version" then return string(reply["version"]) end
+    throw ValueError "memcached: unexpected version response"
+end
+
+export func flushAll(TcpStream stream, int timeoutMs = 5000) as bool
+    var reply = __mc_exchange(stream, buildFlushAll(), Buffer(), false,
+        timeoutMs, 67_108_864)
+    if reply["status"] == "ok" then return true end
+    throw ValueError "memcached: unexpected flush response"
 end

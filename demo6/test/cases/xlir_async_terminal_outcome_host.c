@@ -1,5 +1,11 @@
-#include "../../build/test/xlir_async_terminal_outcome.c"
-#include "../../build/test/xlir_async_terminal_outcome.h.bind.h"
+#ifndef XLIR_TERMINAL_SOURCE
+#define XLIR_TERMINAL_SOURCE "../../build/test/xlir_async_terminal_outcome.c"
+#endif
+#ifndef XLIR_TERMINAL_BINDING
+#define XLIR_TERMINAL_BINDING "../../build/test/xlir_async_terminal_outcome.h.bind.h"
+#endif
+#include XLIR_TERMINAL_SOURCE
+#include XLIR_TERMINAL_BINDING
 #define XLIR_TEST_LAUNCH_FUTURE
 #include "xlir_launch_test.h"
 #define XLIR_ASYNC_SOURCE_HOST

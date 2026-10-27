@@ -863,7 +863,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_tcp_proxy_dial_sync.c",D(R(EXECUTION_TCP_PROXY_DIAL),R(TCP_DIAL_SYNC_COMMON)),{"XRT_MODULE_STRING","XRT_MODULE_UNICODE_TEXT"}},
     {"src/runtime/xl6_tcp_proxy_dial_future.c",D(R(EXECUTION_TCP_PROXY_DIAL),R(TCP_FUTURE)),{"XRT_MODULE_STRING","XRT_MODULE_UNICODE_TEXT"}},
     {"src/runtime/xl6_tcp_proxy_dial_interrupt_future.c",D(R(TCP_PROXY_DIAL_FUTURE),R(FUTURE_CALLBACK_INTERRUPT)),{NULL}},
-    {"src/runtime/xl6_net_vector_input.c",D(R(SEQUENCE)),{NULL}},
+    {"src/runtime/xl6_net_vector_input.c",D(R(SEQUENCE),R(FOREIGN_ERROR)),{NULL}},
     {"src/runtime/xl6_tcp_vector.c",D(R(TCP_LANGUAGE),R(NET_VECTOR_INPUT)),{NULL}},
     {"src/runtime/xl6_tcp_vector_text.c",D(R(TCP_VECTOR),R(ARRAY_PRIMITIVE_ADMISSION)),{NULL}},
     {"src/runtime/xl6_tcp_vector_bytes.c",D(R(TCP_VECTOR),R(ARRAY_REFERENCE_ADMISSION)),{NULL}},

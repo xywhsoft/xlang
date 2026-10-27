@@ -2,7 +2,7 @@
     {"src/runtime/xl6_x509_validated_crl_owner.c", D(R(X509_CRL_POLICY_VALUE),R(NATIVE_HANDLE)), {NULL}},
     {"src/runtime/xl6_x509_crl_policy.c", D(R(X509_VALIDATED_CRL_OWNER)), {"XRT_MODULE_X509_CRL_POLICY","XRT_MODULE_X509_VERIFY_RSA","XRT_MODULE_X509_VERIFY_ECDSA","XRT_MODULE_X509_VERIFY_ED25519"}},
     {"src/runtime/xl6_x509_crl_set.c", D(R(X509_CRL_POLICY)), {NULL}},
-    {"src/runtime/xl6_x509_revocation.c", D(R(X509_CRL_POLICY_VALUE),R(X509_CRL_ENTRY)), {NULL}},
+    {"src/runtime/xl6_x509_revocation.c", D(R(NATIVE_HANDLE),R(X509_CRL_POLICY_VALUE),R(X509_CRL_ENTRY)), {NULL}},
     {"src/runtime/xl6_x509_crl_query.c", D(R(X509_CRL_POLICY),R(X509_REVOCATION)), {NULL}},
     {"src/runtime/xl6_x509_crl_set_query.c", D(R(X509_CRL_SET),R(X509_REVOCATION)), {NULL}},
     {"src/runtime/xl6_x509_revocation_check.c", D(R(X509_REVOCATION),R(X509_CERTIFICATE),R(X509_VALIDATED_CRL_OWNER),R(X509_PATH_VALUE)), {NULL}},

@@ -1,0 +1,38 @@
+import memcached
+
+// 每个任务独占连接；同一 TcpStream 不承诺并发发命令。
+func exercise(int worker, int rounds, int port) as int
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
+    TcpStream stream = TcpStream(engine, NetAddress.loopback(4, port))
+    assert stream.wait(TcpWait.open, 3000) == NetStatus.ok
+    string key = "xlang:test:memcached:" + string(time.monotonic()) + ":" + string(worker)
+    for i in range(rounds)
+        string value = "value:" + string(worker) + ":" + string(i) + "\0end"
+        assert memcached.set(stream, key, value, 30) == "stored"
+        assert memcached.get(stream, key) == value
+        assert memcached.del(stream, key)
+        assert memcached.get(stream, key) == null
+    end
+    stream.close()
+    engine.close()
+    assert engine.wait(5000)
+    return 1
+end
+
+func main(...) as int
+    int rounds = 100
+    int port = int(env.get("MEMCACHED_LIVE_PORT") ?? "11211")
+    if arg.length > 1 then rounds = int(arg[1]) end
+    assert rounds > 0 and rounds <= 10000
+    future<int> first = task.spawn(exercise, 1, rounds, port)
+    future<int> second = task.spawn(exercise, 2, rounds, port)
+    future<int> third = task.spawn(exercise, 3, rounds, port)
+    future<int> fourth = task.spawn(exercise, 4, rounds, port)
+    assert first.wait()
+    assert second.wait()
+    assert third.wait()
+    assert fourth.wait()
+    println("memcached concurrent server: " + string(rounds) + " rounds ok")
+    return 0
+end

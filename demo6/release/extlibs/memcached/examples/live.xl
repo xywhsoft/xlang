@@ -1,0 +1,49 @@
+import memcached
+
+// 使用临时端口门禁时设置 MEMCACHED_LIVE_PORT；单独运行默认 11211。
+func main(...) as int
+    int port = int(env.get("MEMCACHED_LIVE_PORT") ?? "11211")
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
+    TcpStream stream = TcpStream(engine, NetAddress.loopback(4, port))
+    assert stream.wait(TcpWait.open, 3000) == NetStatus.ok
+
+    assert memcached.set(stream, "xlang:live:text", "hello") == "stored"
+    assert memcached.get(stream, "xlang:live:text") == "hello"
+    println("text: hello")
+
+    assert memcached.set(stream, "xlang:live:binary", b"\xff\0") == "stored"
+    assert memcached.get(stream, "xlang:live:binary") == b"\xff\0"
+    println("binary bytes: 2")
+
+    var many = memcached.getMany(stream,
+        ["xlang:live:text", "xlang:live:binary", "xlang:live:absent"])
+    assert many.length == 2
+    assert many[0]["data"] == "hello" and many[1]["data"] == b"\xff\0"
+    assert memcached.getMany(stream, ["xlang:live:absent"]).length == 0
+    assert memcached.add(stream, "xlang:live:add", "first")
+    assert not memcached.add(stream, "xlang:live:add", "second")
+    assert memcached.touch(stream, "xlang:live:text", 30)
+    assert not memcached.touch(stream, "xlang:live:absent", 30)
+    assert string.byteLen(memcached.version(stream)) > 0
+    assert memcached.stats(stream)["pid"] != null
+
+    assert memcached.set(stream, "xlang:live:empty", "") == "stored"
+    var empty = memcached.get(stream, "xlang:live:empty")
+    assert empty != null and empty == ""
+    assert memcached.get(stream, "xlang:live:absent") == null
+    println("empty vs missing: distinct")
+
+    assert memcached.del(stream, "xlang:live:text")
+    assert not memcached.del(stream, "xlang:live:text")
+    assert memcached.get(stream, "xlang:live:text") == null
+    println("delete: ok")
+
+    assert memcached.flushAll(stream)
+    assert memcached.get(stream, "xlang:live:binary") == null
+
+    stream.close()
+    engine.close()
+    assert engine.wait(5000)
+    return 0
+end
