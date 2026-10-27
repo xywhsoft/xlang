@@ -95,10 +95,24 @@ try {
     $null = Check 'seeded-boundaries-jit' $xl @('run','release/extlibs/xxhash/test/seeded_boundaries.xl')
     $null = Check 'stream-limit-jit' $xl @('run','release/extlibs/xxhash/test/stream_limit.xl')
     $null = Check 'xxh3-jit' $xl @('run','release/extlibs/xxhash/test/xxh3.xl')
+    $null = Check 'ownership-jit' $xl @('run','release/extlibs/xxhash/test/ownership.xl')
     if (!$SkipAot) {
-        $xxh3Binary = Join-Path $work 'xxh3.exe'
-        $null = Check 'xxh3-build' $xl @('build','release/extlibs/xxhash/test/xxh3.xl','-o',$xxh3Binary)
-        $null = Check 'xxh3-aot' $xxh3Binary @()
+        foreach ($name in @('xxh3','ownership')) {
+            $binary = Join-Path $work "$name.exe"
+            $null = Check "$name-build" $xl @('build',"release/extlibs/xxhash/test/$name.xl",'-o',$binary)
+            $null = Check "$name-aot" $binary @()
+        }
+    }
+    $ownedModule = Join-Path $work 'ownership.c'
+    $null = Check 'ownership-cgen' $xl @('cgen','release/extlibs/xxhash/test/ownership.xl','--emit',$ownedModule)
+    $ownedText = [IO.File]::ReadAllText($ownedModule)
+    foreach ($symbol in @('xxxhash_hash64_hex','xxxhash_hash64_str_hex',
+        'xxxhash_hash32_hex','xxxhash_hash32_str_hex','xxxhash_hash3_64_hex',
+        'xxxhash_hash3_64_str_hex','xxxhash_hash3_128_hex','xxxhash_hash3_128_str_hex',
+        'xxxhash_file64_hex','xxxhash_hasher_digest_hex')) {
+        if ($ownedText -cnotmatch ('\bv\d+\.Data\s*=\s*' + $symbol + '\s*\(')) {
+            throw "$symbol must transfer its native string without a copy"
+        }
     }
     $xxh3Module = Join-Path $work 'xxh3.c'
     $null = Check 'xxh3-cgen' $xl @('cgen','release/extlibs/xxhash/test/xxh3.xl','--emit',$xxh3Module)

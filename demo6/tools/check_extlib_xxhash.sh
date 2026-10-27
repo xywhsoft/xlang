@@ -10,7 +10,7 @@ input_paths() {
     find "$pkg" -type f -print0
     printf '%s\0' .gitattributes lib/xrt/xrt.h lib/xruntime/xruntime.h \
         test/support/extlib_codec_runtime.c tools/check_extlib_xxhash.sh \
-        release/xl test/cases/extlib_xxhash.xl \
+        release/xl release/libxlc.so test/cases/extlib_xxhash.xl \
         test/cases/extlib_xxhash_boundaries.xl \
         test/cases/extlib_xxhash_progress.xl \
         release/examples/extlibs/xxhash.xl \
@@ -39,11 +39,22 @@ for name in test_xxhash test_xxhash_native; do
 done
 "$cc" "${flags[@]}" -DNDEBUG "$pkg/examples/basic.c" "${objects[@]}" "$work/runtime.o" -lm -ldl -o "$work/basic"
 timeout 30s "$work/basic" > "$work/basic.log"
-diff -u release/examples/extlibs/xxhash_basic.expected.txt "$work/basic.log"
+sed 's/\r$//' release/examples/extlibs/xxhash_basic.expected.txt > "$work/basic.expected.txt"
+diff -u "$work/basic.expected.txt" "$work/basic.log"
 if [[ ! -x release/xl ]]; then
     printf 'xxhash Linux xl runner is missing: release/xl\n' >&2
     exit 1
 fi
+# 保留相同发布输入，在原生临时目录执行语言阶段，避开 WSL 挂载盘 I/O 超时。
+stage="$work/stage"
+mkdir -p "$stage/release/extlibs" "$stage/release/examples/extlibs" "$stage/test/cases"
+cp -a release/xl release/libxlc.so "$stage/release/"
+cp -a "$pkg" "$stage/release/extlibs/"
+cp -a test/cases/extlib_xxhash.xl test/cases/extlib_xxhash_boundaries.xl \
+    test/cases/extlib_xxhash_progress.xl "$stage/test/cases/"
+cp -a release/examples/extlibs/xxhash.xl release/examples/extlibs/xxhash_basic.xl \
+    release/examples/extlibs/xxhash_basic.expected.txt "$stage/release/examples/extlibs/"
+cd "$stage"
 timeout 90s ./release/xl run "$pkg/examples/basic.c" > "$work/basic_direct.log"
 diff -u "$work/basic.log" "$work/basic_direct.log"
 for name in private_update_negative private_string_length_negative; do
@@ -63,18 +74,28 @@ done
 for name in extlib_xxhash extlib_xxhash_boundaries extlib_xxhash_progress; do
     timeout 90s ./release/xl run "test/cases/$name.xl"
 done
-for name in seeded_boundaries stream_limit xxh3; do
+for name in seeded_boundaries stream_limit xxh3 ownership; do
     timeout 90s ./release/xl run "$pkg/test/$name.xl"
+done
+timeout 90s ./release/xl cgen "$pkg/test/ownership.xl" --emit "$work/ownership.c"
+for symbol in xxxhash_hash64_hex xxxhash_hash64_str_hex xxxhash_hash32_hex \
+    xxxhash_hash32_str_hex xxxhash_hash3_64_hex xxxhash_hash3_64_str_hex \
+    xxxhash_hash3_128_hex xxxhash_hash3_128_str_hex xxxhash_file64_hex \
+    xxxhash_hasher_digest_hex; do
+    if ! grep -Eq "v[0-9]+\\.Data[[:space:]]*=[[:space:]]*$symbol[[:space:]]*\\(" "$work/ownership.c"; then
+        printf 'xxhash: %s must transfer its native string without a copy\n' "$symbol" >&2
+        exit 1
+    fi
 done
 timeout 90s ./release/xl run release/examples/extlibs/xxhash.xl > "$work/full_jit.log"
 timeout 90s ./release/xl run release/examples/extlibs/xxhash_basic.xl > "$work/basic_jit.log"
 diff -u "$work/basic.log" "$work/basic_jit.log"
 printf '[xxhash] XLang AOT gate\n'
-for name in extlib_xxhash extlib_xxhash_boundaries extlib_xxhash_progress seeded_boundaries stream_limit xxh3 xxhash xxhash_basic; do
+for name in extlib_xxhash extlib_xxhash_boundaries extlib_xxhash_progress seeded_boundaries stream_limit xxh3 ownership xxhash xxhash_basic; do
     printf '[xxhash] AOT %s\n' "$name"
     case "$name" in
         extlib_*) source="test/cases/$name.xl" ;;
-        seeded_boundaries|stream_limit|xxh3) source="$pkg/test/$name.xl" ;;
+        seeded_boundaries|stream_limit|xxh3|ownership) source="$pkg/test/$name.xl" ;;
         *) source="release/examples/extlibs/$name.xl" ;;
     esac
     timeout 180s ./release/xl build "$source" -o "$work/$name"
@@ -82,6 +103,7 @@ for name in extlib_xxhash extlib_xxhash_boundaries extlib_xxhash_progress seeded
 done
 diff -u "$work/basic.log" "$work/xxhash_basic_aot.log"
 diff -u "$work/full_jit.log" "$work/xxhash_aot.log"
+cd "$root"
 mapfile -d '' after < <(input_paths | sort -z)
 sha256sum "${after[@]}" > "$work/inputs.after.sha256"
 diff -u "$work/inputs.before.sha256" "$work/inputs.after.sha256"
