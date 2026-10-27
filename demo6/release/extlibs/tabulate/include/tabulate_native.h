@@ -23,7 +23,7 @@ int xtab_set_headers(void* table, const char* const* cells, size_t count);
 int xtab_add_row(void* table, const char* const* cells, size_t count);
 
 /* 文本由 XRT 独立分配，C 调用方用 xrtFree 释放。 */
-void* xtab_render(void* table);
+char* xtab_render(void* table);
 int64_t xtab_row_count(void* table);
 int64_t xtab_col_count(void* table);
 

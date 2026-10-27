@@ -1,5 +1,16 @@
 # tabulate
 
+2026-10-28：`xtab_render` 的 C 返回类型明确为 XRT 分配的 `char*`，
+XLang `@owned string?` 直接接管，删除 `point/takeCstr` 中转。
+公开写法、空表结果和失败判断不变；接管仍需一次 `strlen` 获取长度。
+Windows 严格 C、线程、语言边界/分配故障与生成 C 的无复制检查通过；
+Linux 严格 C、ASan/UBSan、线程与 JIT 也通过。两平台默认门禁均在
+顶层对象的边界 EXE 打印 PASS 后，于退出清理阶段抛 RuntimeError；
+这是已登记的独立 AOT 阻断，不因这项优化而签收整包。Linux 黄金文件
+固定以 LF 检出，避免 Windows 工作树的 CRLF 使 `diff` 提前失败。
+聚焦复验可在 Linux 使用 `TABULATE_SKIP_AOT=1 bash release/extlibs/tabulate/test/check.sh`；
+该模式不代表发布签收，默认命令仍保留 AOT 红灯。
+
 2026-10-26：当前发布版的 Windows 默认包门禁新增顶层对象边界 AOT，
 在严格 C、线程、XLang JIT 和核心 AOT 通过后，独立 EXE 于退出清理
 阶段报 `RuntimeError: operation is not valid in the current state`；
