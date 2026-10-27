@@ -8,5 +8,5 @@
     "links": [],
     "loadlibs": [],
     "native": { "singleton": false, "loadName": "", "version": "" },
-    "artifact": { "kind": "source", "cSources": ["dns_native.c"], "xlSources": ["src/dns.xl"] }
+    "artifact": { "kind": "source", "cSources": ["dns_native.c"], "xlSources": ["src/dns.xl"], "includeDirs": ["include"] }
 }

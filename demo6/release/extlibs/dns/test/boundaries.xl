@@ -1,0 +1,42 @@
+import dns
+
+func main(...) as int
+    assert dns.validName("a\0.evil") == 0, "NUL must not truncate a hostname"
+    assert dns.isIpv4("127.0.0.1\0.evil") == 0, "NUL must not truncate an address"
+    assert dns.isIpv4("256.1.1.1") == 0, "invalid numeric address is false"
+    assert dns.isIpv4("::1") == 0, "IPv6 is not IPv4"
+    assert dns.isIpv4("127.0.0.1") == 1, "invalid lookup must not poison recovery"
+
+    bool badName = false
+    try
+        dns.encodeName("a\0.evil")
+    catch ValueError e
+        badName = true
+    end
+    assert badName, "encoded name must reject NUL"
+    badName = false
+    try
+        dns.encodeName("bad..name")
+    catch ValueError e
+        badName = true
+    end
+    assert badName, "invalid encoded name must throw"
+    assert dns.encodeName("example.com.") == "076578616d706c6503636f6d00"
+
+    bool badHost = false
+    try
+        dns.resolve("localhost\0.evil")
+    catch ValueError e
+        badHost = true
+    end
+    assert badHost, "resolver must reject NUL"
+    bool badFamily = false
+    try
+        dns.resolve("localhost", 5)
+    catch ValueError e
+        badFamily = true
+    end
+    assert badFamily, "resolver must reject unsupported family"
+    assert dns.resolve("localhost", 4).length > 0, "IPv4 localhost recovery"
+    return 0
+end

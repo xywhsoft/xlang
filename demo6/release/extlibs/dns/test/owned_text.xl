@@ -1,5 +1,9 @@
 import dns
 
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
 string first = dns.encodeName("example.com")
 string second = dns.encodeName("a.io")
 assert first == "076578616d706c6503636f6d00"
@@ -8,8 +12,26 @@ assert first == "076578616d706c6503636f6d00"
 bool rejected = false
 try
     dns.encodeName("bad..name")
-catch e
+catch ValueError e
     rejected = true
 end
 assert rejected
 assert dns.encodeName("b.net") == "0162036e657400"
+
+int failures = 0
+int successes = 0
+for allocation in range(24)
+    bool memoryCaught = false
+    assert failAfter(uint64(allocation))
+    try
+        dns.encodeName("example.com")
+    catch MemoryError e
+        memoryCaught = true
+    end
+    bool triggered = failTriggered()
+    failClear()
+    assert memoryCaught == triggered, "DNS text allocation failure classification"
+    if triggered then failures += 1 else successes += 1 end
+    assert dns.encodeName("b.net") == "0162036e657400", "DNS failure recovery"
+end
+assert failures > 0 and successes > 0

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>dns - 扩展库 - xlang</title>
+  <meta name="description" content="DNS 主机名辅助与系统地址解析，支持 C 和 xlang。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../book/index.html">教程</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li></ul>
+</div></nav>
+<main class="extlib-layout c-net" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / dns</p>
+    <h1>dns</h1>
+    <p class="extlib-lead">主机名校验、DNS 标签编码和系统地址解析，C 与 xlang 使用同一原生实现。</p>
+    <p>版本 1.0.0 · C / xlang · 无扩展库依赖</p>
+  </header>
+  <section id="start">
+    <h2>快速开始</h2>
+    <pre><code>import dns
+
+println(dns.encodeName("example.com"))  // 076578616d706c6503636f6d00
+array&lt;string&gt; ips = dns.resolve("localhost", 4)</code></pre>
+    <p>对照范例分别位于 <code>release/examples/extlibs/dns.xl</code> 和 <code>release/extlibs/dns/examples/basic.c</code>，展示相同的固定输出；解析检查只使用本机 <code>localhost</code>，不依赖外部 DNS。</p>
+  </section>
+  <section id="api">
+    <h2>接口</h2>
+    <table class="ext-kv"><thead><tr><th>入口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>typeName / className / rcodeName / opcodeName</code></td><td>DNS 数字代码转名称；未知值返回 <code>UNKNOWN</code>。</td></tr>
+      <tr><td><code>validName(name)</code></td><td>校验 ASCII 主机名标签，允许末尾根点；返回 1 或 0。</td></tr>
+      <tr><td><code>encodeName(domain)</code></td><td>将主机名编码为 DNS 标签序列的十六进制文本；无效输入抛 <code>ValueError</code>。</td></tr>
+      <tr><td><code>isIpv4(address)</code></td><td>严格检验数字 IPv4；格式错误或 IPv6 返回 0，不抛格式异常。</td></tr>
+      <tr><td><code>resolve(host, family = 0)</code></td><td>委托系统解析地址；family 为 0、4 或 6，结果顺序由系统决定。</td></tr>
+    </tbody></table>
+    <p>语言入口不会让内嵌 NUL 截断 C 字符串：验证入口返回 0，编码和解析入口抛 <code>ValueError</code>。此包不做 IDNA/Punycode 转换，也不是完整 DNS 报文客户端或服务器。</p>
+    <p>C 端包含 <code>extlibs/dns/include/dns_native.h</code>。名称映射返回借用的静态文本；<code>xdns_encode_name</code> 的结果用 <code>xrtFree</code> 释放，<code>xdns_resolve</code> 的结果用 <code>xrtValueRelease</code> 释放。整数 ABI 使用 <code>int64_t</code>，兼容 Windows 与 Linux LP64；XLang 对编码文本直接接管 XRT 分配。</p>
+  </section>
+  <section id="verify">
+    <h2>验证</h2>
+    <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/dns/test/check.ps1
+bash release/extlibs/dns/test/check.sh</code></pre>
+    <p>2026-10-27：Windows 包级 C、语言 JIT/AOT、独立 C EXE 和双语同输出通过；Linux 新构建发布版的 C ASan/UBSan、语言 JIT/AOT 与独立 C EXE 通过。测试不覆盖公网 DNS 可用性、长期压力或其他架构。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>

@@ -1,27 +1,17 @@
 import dns
 
 func main(...) as int
-    // DNS protocol helpers
-
-    // Record types
-    println("Type 1 = " + dns.typeName(1))
-    println("Type 28 = " + dns.typeName(28))
-
-    // Response codes
-    println("Rcode 0 = " + dns.rcodeName(0))
-    println("Rcode 3 = " + dns.rcodeName(3))
-
-    // Domain encoding
-    println("encode example.com = " + dns.encodeName("example.com"))
-
-    // Validation
-    println("valid 'test.org' = " + string(dns.validName("test.org")))
-
-    // XRT 负责实际地址解析，dns 只提供语言层的稳定结果。
-    for address in dns.resolve("localhost")
-        println("localhost = " + address)
-    end
-
-    println("dns example: PASS")
+    println("type A: " + dns.typeName(1))
+    println("class IN: " + dns.className(1))
+    println("rcode 3: " + dns.rcodeName(3))
+    println("opcode 5: " + dns.opcodeName(5))
+    println("example.com: " + dns.encodeName("example.com"))
+    println("valid example.com: " + string(dns.validName("example.com")))
+    println("valid bad..name: " + string(dns.validName("bad..name")))
+    println("IPv4 127.0.0.1: " + string(dns.isIpv4("127.0.0.1")))
+    println("IPv4 invalid: " + string(dns.isIpv4("256.1.1.1")))
+    array<string> addresses = dns.resolve("localhost", 4)
+    assert addresses.length > 0
+    println("localhost IPv4: yes")
     return 0
 end

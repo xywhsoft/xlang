@@ -6,9 +6,10 @@
 #define XRT_MODULE_NET_DNS
 #define XRT_MODULE_VALUE_CONTAINER
 #include "xrt.h"
+#include "include/dns_native.h"
 
 /* DNS record type name */
-const char* xdns_type_name(long long type) {
+const char* xdns_type_name(int64_t type) {
     switch (type) {
         case 1: return "A";
         case 2: return "NS";
@@ -54,7 +55,7 @@ const char* xdns_type_name(long long type) {
 }
 
 /* DNS class name */
-const char* xdns_class_name(long long cls) {
+const char* xdns_class_name(int64_t cls) {
     switch (cls) {
         case 1: return "IN";
         case 3: return "CH";
@@ -66,7 +67,7 @@ const char* xdns_class_name(long long cls) {
 }
 
 /* DNS response code */
-const char* xdns_rcode_name(long long rcode) {
+const char* xdns_rcode_name(int64_t rcode) {
     switch (rcode) {
         case 0: return "NOERROR";
         case 1: return "FORMERR";
@@ -92,7 +93,7 @@ const char* xdns_rcode_name(long long rcode) {
 }
 
 /* DNS opcode */
-const char* xdns_opcode_name(long long opcode) {
+const char* xdns_opcode_name(int64_t opcode) {
     switch (opcode) {
         case 0: return "QUERY";
         case 1: return "IQUERY";
@@ -105,7 +106,7 @@ const char* xdns_opcode_name(long long opcode) {
 }
 
 /* DNS 标签只接受 ASCII 主机名形式；末尾根点允许但不会重复编码。 */
-long long xdns_valid_name(const char* sName)
+int64_t xdns_valid_name(const char* sName)
 {
     size_t iLength;
     size_t i;
@@ -179,20 +180,21 @@ char* xdns_encode_name(const char* sDomain)
     return sHex;
 }
 
-/* XLang point ABI 使用 void*；C 调用方继续获得 char*。 */
-void* xdns_encode_name_xl(const char* sDomain)
-{
-    return xdns_encode_name(sDomain);
-}
-
-long long xdns_is_ipv4(const char* sAddress)
+int64_t xdns_is_ipv4(const char* sAddress)
 {
     xnetaddr tAddress;
-    return xrtNetAddrParse(&tAddress, sAddress, 0u) &&
-        tAddress.Family == XNET_FAMILY_IPV4 ? 1 : 0;
+    xrtClearError();
+    if (xrtNetAddrParse(&tAddress, sAddress, 0u)) {
+        return tAddress.Family == XNET_FAMILY_IPV4 ? 1 : 0;
+    }
+    if (xrtErrorKind(xrtGetError()) == XERR_VALUE ||
+        xrtErrorKind(xrtGetError()) == XERR_ARGUMENT) {
+        xrtClearError();
+    }
+    return 0;
 }
 
-static xnetfamily xdns_family(long long iFamily)
+static xnetfamily xdns_family(int64_t iFamily)
 {
     if (iFamily == 4) { return XNET_FAMILY_IPV4; }
     if (iFamily == 6) { return XNET_FAMILY_IPV6; }
@@ -200,7 +202,7 @@ static xnetfamily xdns_family(long long iFamily)
 }
 
 /* 返回稳定的 xvalue 字符串数组，列表顺序与 XRT 系统解析顺序一致。 */
-xvalue* xdns_resolve(const char* sHost, long long iFamily)
+xvalue* xdns_resolve(const char* sHost, int64_t iFamily)
 {
     xnetaddrlist* pAddresses;
     xvalue* pResult;

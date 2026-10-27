@@ -1,0 +1,10 @@
+type A: A
+class IN: IN
+rcode 3: NXDOMAIN
+opcode 5: UPDATE
+example.com: 076578616d706c6503636f6d00
+valid example.com: 1
+valid bad..name: 0
+IPv4 127.0.0.1: 1
+IPv4 invalid: 0
+localhost IPv4: yes
