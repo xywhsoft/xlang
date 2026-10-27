@@ -202,6 +202,11 @@ build/c-owned/extlib-foreign-var/public_source.exe `
 应由主线统一 foreign `var` 容器投影，修复后复跑最小源及完整包门禁；
 不能在 MessagePack 包内解释编译器私有句柄。
 
+2026-10-27 以当前 Windows/Linux 发布物再次运行同一 MessagePack 最小源，
+两平台均退出 1 并报告上述动态类型错误。Windows 默认包门禁先通过
+严格 C、分配故障、C 范例和 C 单文件直跑，随后停在语言边界；
+本轮未执行 AOT，旧版缺符号记录不代表当前第一失败点。
+
 生成 C 对 `var document = {"x": 1}` 调用 `xl6DictCreateTakeV1`，
 对 `var values = [2, 4]` 使用 `xl6SequenceReferenceCreateV1` 与数组
 投影。前者在运行时由 `xrtValueHandleTake` 包装为 `XVALUE_HANDLE`；

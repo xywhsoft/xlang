@@ -1,9 +1,10 @@
 # MessagePack 扩展库
 
-2026-10-25 当前 Windows 发布版复验：默认包门禁的严格 C、边界、
+2026-10-27 当前 Windows 发布版复验：默认包门禁的严格 C、边界、
 分配故障与 C 范例均通过；首个 XLang 边界用例在语言字典传给
 `encode(var)` 时报告 `NotImplementedError: MessagePack cannot encode this dynamic value type`。
-最小复现见 `../../../dev/extlib_blockers/msgpack_var_dict_projection.xl`。
+同一最小复现在 Windows/Linux 发布物上均退出 1，见
+`../../../dev/extlib_blockers/msgpack_var_dict_projection.xl`。
 这与共享 foreign `var` 容器投影故障同形，尚未证明内部根因完全相同；
 本轮未进入 AOT，不签收完整语言/发布门禁，也不在包中识别私有句柄。
 包级 PowerShell 门禁保留原生 stderr 和退出码，并将此失败明确标为
@@ -64,7 +65,7 @@ Linux 包级门禁：`bash release/extlibs/msgpack/test/check.sh`，对 C 核心
 类型错误，以及截断的 uint64 被误报为范围错误；故障注入、严格 GCC、
 C/XLang 边界和 Linux sanitizer 均通过。
 
-`-SkipAot` 只运行严格 C、XLang JIT 和双语对照；不带该开关时依次验证核心、边界及带输出范例 AOT。当前发布构建在核心 AOT 即缺少 `xl6NativeHandleTraceLeaf`，见 `dev/extlib_blockers/native_handle_trace_aot.md`，因此完整包级门禁不能通过。C/XLang 对照范例在 `examples/`。
+`-SkipAot` 只运行严格 C、XLang JIT 和双语对照；不带该开关时依次验证核心、边界及带输出范例 AOT。2026-10-27 默认门禁先被上述 foreign `var` 字典投影阻断，尚未运行本轮 AOT；早期构建缺少 `xl6NativeHandleTraceLeaf` 的记录见 `dev/extlib_blockers/native_handle_trace_aot.md`，不能作为当前首阻断。C/XLang 对照范例在 `examples/`。
 与 [MessagePack 官方 Python 实现](https://github.com/msgpack/msgpack-python) 的双向互操作可选验证：C/xlang 保存的文件字节一致且 Python 可解码；Python 写出的 UTF-8、64 位整数、嵌套值及 `bin` 原始字节，C/xlang 均可读取。Python 包只安装在 `build/test` 的隔离环境，不进入发布包。从 `demo6` 目录运行：
 
 ```powershell
