@@ -8248,6 +8248,31 @@ static int xl6SemExprCanMatchFunctionTypeEx(XL6_SemContext* ctx, const XL6_AstNo
     XL6_AstNode* staticOwner=expr->kind==XL6_AST_MEMBER
         ? xl6SemClassDeclFromTypeMemberReceiver(ctx,(XL6_AstNode*)expr) : NULL;
     if (staticOwner && xl6SemFindStaticClassFieldNode(ctx,staticOwner,expr->text,NULL)) staticOwner=NULL;
+    /* An explicit type application still names a declaration. Match its
+     * substituted parameter list, including omitted defaults, before binding
+     * the contextual signature; an arbitrary stored function keeps its arity. */
+    if (expr->kind == XL6_AST_GENERIC_INSTANT && expr->childCount == 2) {
+        const XL6_AstNode* args = expr->children[1];
+        const XL6_AstNode* selected = NULL;
+        for (size_t i=0;ctx->root && i<ctx->root->childCount;++i) {
+            const XL6_AstNode* item=ctx->root->children[i];
+            if (item && expr->semanticTargetSymbolId != 0 &&
+                item->semanticSymbolId == expr->semanticTargetSymbolId && xl6SemFuncIsGeneric(item)) {
+                selected=item; break;
+            }
+        }
+        if (selected && args) {
+            XL6_AstNode* params=xl6SemSubstituteGenericTypeArgs(
+                xl6SemFuncTypeParams(selected), args, xl6SemCallableParams(selected));
+            XL6_AstNode* invocation=xl6SemFunctionTypeFromGenericCallable(ctx,selected,args,expr);
+            int matches=params && invocation && xl6SemFunctionTypeMatchesParts(ctx,typeNode,
+                params,invocation->childCount>1 ? invocation->children[1] : NULL);
+            if (matches) matches=xl6SemBindResolvedFunctionValue(ctx,expr,
+                typeNode->childCount ? typeNode : invocation,selected,reportError);
+            xl6AstFree(params);xl6AstFree(invocation);
+            return matches;
+        }
+    }
     if ( expr->kind == XL6_AST_NAME || staticOwner ) {
         sym = expr->kind==XL6_AST_NAME ? xl6ScopeFind(ctx->scope, expr->text) : NULL;
         if ( sym != NULL && sym->type != NULL && xl6TextEquals(sym->type->text, "function") ) {

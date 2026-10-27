@@ -1,0 +1,59 @@
+extern "owned_task_text" @owned func Text(c_int mode) as string
+int defaults=0
+int bodies=0
+func choose(string value) as string
+    defaults+=1
+    return value
+end
+func make(string value,string fallback=choose(value)) as string
+    bodies+=1
+    return fallback
+end
+assert make(Text(c_int(7)))=="native text"
+assert defaults==1 and bodies==1
+assert make(fallback="explicit",value="first")=="explicit"
+assert defaults==1 and bodies==2
+func nested(string value,string fallback=make(value)) as string
+    return fallback
+end
+assert nested("nested")=="nested"
+assert defaults==2 and bodies==3
+func generic<T>(T value,T fallback=value) as T
+    return fallback
+end
+assert generic::<string>("generic")=="generic"
+func(string) as string shortened=generic::<string>
+assert shortened("callback")=="callback"
+assert await task.spawn(shortened,"task")=="task"
+func chain(string first,string second=first,string third=second) as string
+    return third
+end
+assert chain("chain")=="chain"
+class Factory
+    static func make(string value,string fallback=value) as string
+        return fallback
+    end
+end
+assert Factory.make("static")=="static"
+class Box
+    string value
+    create(string prefix,string value=prefix)
+        self.value=value
+    end
+end
+assert Box("constructed").value=="constructed"
+func fail(string value) as string
+    throw ValueError "default failed"
+end
+func never(string value,string fallback=fail(value)) as string
+    bodies+=1
+    return fallback
+end
+int before=bodies
+bool caught=false
+try
+    never(Text(c_int(7)))
+catch error
+    caught=true
+end
+assert caught and bodies==before
