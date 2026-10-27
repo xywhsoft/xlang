@@ -2502,6 +2502,8 @@ static XL6_IrValueId xl6IrLowerProjectBorrowedXValueAsExactType(
          resultType->cAbi == XL6_IR_C_ABI_CLOSURE_PTR )
         return xl6IrLowerProjectBorrowedXValueAsClosure(
             ctx, origin, borrowed, resultTypeId);
+    if (resultType->cAbi == XL6_IR_C_ABI_RUNTIME_ERROR_PTR)
+        return xl6IrLowerProjectBorrowedXValueAsError(ctx,origin,borrowed,resultTypeId);
     if (resultType->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR) {
         XL6_IrValueId future=xl6IrLowerProjectBorrowedXValueAsFuture(ctx, origin, borrowed, resultTypeId);
         return future!=XL6_IR_VALUE_INVALID && xl6IrLowerObserveProjection(ctx,origin,future)
