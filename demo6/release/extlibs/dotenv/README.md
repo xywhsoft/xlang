@@ -1,5 +1,12 @@
 # dotenv
 
+2026-10-27 Linux 现有发布物复验：C ASan/UBSan、语言 JIT、中央
+独立 EXE 均通过；默认门禁在构建带 `println` 的 `test/limits.xl`
+时因 `xl6DictGraphProviderV1` 未解析而退出 1。无包最小复现见
+`../../../dev/extlib_blockers/linux_aot_print_graph_provider.md`。
+这属于当前 Linux AOT 产物边界，不能把 Windows 门禁或部分 Linux
+通过项当作整包双平台签收；本任务不在 dotenv 内规避输出调用。
+
 2026-10-27 当前 Windows 发布版复验：默认 `test/check.ps1` 退出 0，
 覆盖严格 C、C/XLang 范例、限额、进程环境写入与构造分配故障、
 配置替换，以及对应的独立 EXE。下文旧版缺共享符号或头文件顺序
