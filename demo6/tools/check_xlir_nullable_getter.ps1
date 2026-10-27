@@ -1,7 +1,10 @@
 param([Parameter(Mandatory=$true)][string]$PublicSourceDirectory,
-    [Parameter(Mandatory=$true)][string]$Directory)
+    [Parameter(Mandatory=$true)][string]$Directory,
+    [string]$FormalDirectory='')
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
+$formal=if($FormalDirectory){(Resolve-Path -LiteralPath $FormalDirectory).Path}else{Join-Path $root 'release'}
+$formalCli=Join-Path $formal 'xl.exe'
 . "$root/tools/extlib_smoke_process.ps1"
 . "$root/tools/xlir_native_process.ps1"
 . (Join-Path $PSScriptRoot 'xlir_resident_objects.ps1')
@@ -19,7 +22,7 @@ try {
     $regressions=@('protocol_property_dispatch','protocol_generic_property_dispatch','cgen_class_self_property_dispatch','xlir_internal_property_error_propagation','nullable_safe_navigation')
     $extra=@($PSCommandPath,'tools/check_xlir_nullable_getter.sh','test/cases/xlir_nullable_getter_contract.c',
         'test/cases/xlir_process_oom_host.c','test/cases/xlir_time_text_closure_host.c','test/cases/xlir_process_child.c',
-        'test/cases/sem_nullable_getter_private.xl','release/xl.exe','release/xlc.dll','release/xl.dll',
+        'test/cases/sem_nullable_getter_private.xl',$formalCli,(Join-Path $formal 'xlc.dll'),(Join-Path $formal 'xl.dll'),'release/xl.dll',
         'tools/extlib_smoke_process.ps1','tools/stage_xlir_artifact_runtime_sources.ps1',"$public/build.json",(Get-Command gcc).Source)
     $paths=@($build.Inputs.Path)+@($build.Headers.Path)+@($build.Objects.Path)+$extra
     $paths+=@($cases+$regressions|ForEach-Object {"test/cases/$_.xl"})
@@ -65,8 +68,8 @@ try {
             $null=Check "$case-jit" $build.Driver @($source,'run',"$prefix.jit")
             $null=Check "$case-aot-build" $build.Driver @($source,'exe',"$prefix.aot")
             $null=Check "$case-aot" "$prefix.aot.exe" @()
-            $null=Check "$case-formal-jit" 'release/xl.exe' @('run',$source)
-            $null=Check "$case-formal-aot-build" 'release/xl.exe' @('build',$source,'-o',"$prefix.formal.exe")
+            $null=Check "$case-formal-jit" $formalCli @('run',$source)
+            $null=Check "$case-formal-aot-build" $formalCli @('build',$source,'-o',"$prefix.formal.exe")
             $null=Check "$case-formal-aot" "$prefix.formal.exe" @()
             if($case-eq'xlir_nullable_getter_alias') {
                 $null=Check 'alias-oom-build' gcc ($flags+@('-include',"$prefix.c",'test/cases/xlir_process_oom_host.c')+$nativeObjects+$libs+@('-o',"$prefix.oom.exe"))

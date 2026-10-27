@@ -4,6 +4,7 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [string]$Tcc='E:/software/tcc/tcc.exe')
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
+. (Join-Path $PSScriptRoot 'xlir_resident_closure.ps1')
 $outputPath=if ([IO.Path]::IsPathRooted($Directory)) { [IO.Path]::GetFullPath($Directory) }
     else { [IO.Path]::GetFullPath((Join-Path (Get-Location) $Directory)) }
 if (Test-Path -LiteralPath $outputPath) { throw 'Use a new terminal evidence directory' }
@@ -20,7 +21,19 @@ $inputs=@($manifest.Inputs)+@($manifest.Headers)+@($runtimeObject)+
     @($files|ForEach-Object {[pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})
 if (@($inputs|Where-Object {(Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256}).Count) { throw 'Stale terminal sources' }
 New-Item -ItemType Directory -Path $outputPath | Out-Null
-$prefix='build/test/xlir_async_terminal_outcome'
+$rootPath=(Resolve-Path -LiteralPath (Split-Path -Parent $PSScriptRoot)).Path
+$closure=Get-XlirResidentClosure -Root $rootPath -Directory "$outputPath/resident-closure" `
+    -Sources @($runtimeSources|Where-Object {$_-like'src/*'}) -NativeProvider 'tools/xrt_single_header_impl.c' `
+    -Fixtures @('test/cases/xlir_async_terminal_outcome.xl') -PublicDirectory $PublicDirectory
+# This test observer compiles the real provider with one native Watch hook.
+# Keep its canonical dependency closure, but link the physical provider once.
+$watchProvider='src/runtime/xl6_continuation_future.c'
+if($watchProvider-notin$closure.Sources-or
+    @(Select-String -LiteralPath 'test/cases/xlir_async_source_transport.c' -SimpleMatch `
+        '#include "../../src/runtime/xl6_continuation_future.c"').Count-ne1){throw 'Watch observer no longer provides the declared resident source'}
+$runtimeSources=@($runtimeSources|Where-Object {$_-notlike'src/*'})+@($closure.Sources|Where-Object {$_-ne$watchProvider})
+$inputs+=@($closure.Inputs)
+$prefix=(Join-Path $outputPath 'xlir_async_terminal_outcome').Replace('\','/')
 foreach ($pass in @('','.repeat')) {
     & $ContractDriver "$prefix$pass.c" "$prefix$pass.h" "$prefix$pass.json" *> "$outputPath/emit$pass.log"
     if ($LASTEXITCODE -ne 0) { throw 'Terminal outcome contract failed' }
@@ -30,7 +43,9 @@ foreach ($suffix in @('c','h','json','h.bind.h')) {
     Copy-Item -LiteralPath "$prefix.$suffix" -Destination "$outputPath/module.$suffix"
 }
 $includePath=[IO.Path]::GetFullPath((Join-Path $PublicDirectory 'include'))
-$includes=@("-I$includePath",'-I.','-Ibuild/test','-Irelease','-DXL_STATIC_EMBED')
+$includes=@("-I$includePath",'-I.','-Itest/cases','-Ibuild/test','-Irelease','-Irelease/include','-DXL_STATIC_EMBED',
+    (New-XlirCStringDefine -Name XLIR_TERMINAL_SOURCE -Value "$prefix.c" -RawArgument),
+    (New-XlirCStringDefine -Name XLIR_TERMINAL_BINDING -Value "$prefix.h.bind.h" -RawArgument))
 $strict=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
     '-Wno-unused-label','-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-Wno-pointer-sign','-Wno-format-truncation')
 $sources=@('test/cases/xlir_async_terminal_outcome_runtime.c','test/cases/xlir_async_terminal_outcome_host.c')+$runtimeSources
@@ -40,11 +55,11 @@ foreach ($lane in @('gcc-O0','gcc-O2','tcc')) {
     if ($lane -eq 'tcc') {
         $arguments=@('-std=c11')+$includes+$sources+
             @('tools/xrt_single_header_impl.c','C:/Windows/System32/ucrtbase.dll')+$libs+@('-o',$binary)
-        $build=Invoke-XlirNativeToLog $Tcc $arguments "$outputPath/$lane.build.log"
+        $build=Invoke-XlirTccToLog $Tcc $arguments "$outputPath/$lane.build.log"
     }
     else {
         $optimization=if ($lane -eq 'gcc-O0') {'-O0'} else {'-O2'}
-        $build=Invoke-XlirNativeToLog (Get-Command gcc).Source ($strict+@($optimization)+$includes+$sources+
+        $build=Invoke-XlirGccToLog ($strict+@($optimization)+$includes+$sources+
             @($runtimeObject[0].Path)+$libs+@('-o',$binary)) "$outputPath/$lane.build.log"
     }
     $run=$null; $complete=$false

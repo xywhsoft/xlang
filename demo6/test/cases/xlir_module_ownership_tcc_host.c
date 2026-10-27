@@ -112,15 +112,16 @@ int main(void)
         view = (xrtownershipref){module, xl6CodeOwnerGraphOps(owner)};
         graph_inspect(view, 1, 0, 1); /* uninitialized module owns no globals */
         assert(xlActivateModule(&context, module, NULL));
-        /* module + scalar Value + array Value/backing/two items + closure + code lease = 8.
+        /* module + scalar Value + typed-array Value/backing + closure + code lease = 6.
+         * The two int elements live inline in typed storage; neither is an xvalue node.
          * The closure's unique environment is folded into its owning node;
          * its capture is a second real edge to the same scalar Value. The
          * closure owns its resident lease, which in turn owns the module. */
-        graph_inspect(view, 8, 9, 1);
+        graph_inspect(view, 6, 7, 1);
         xlApiLock(); assert(xlModuleBeginCallUnlocked(module)); xlApiUnlock();
         assert(graph_run() == 42 && graph_alias && xrtGetError() == NULL);
         xlApiLock(); xlModuleEndCallUnlocked(module); xlApiUnlock();
-        graph_inspect(view, 8, 9, 2); /* native Retain remains visible */
+        graph_inspect(view, 6, 7, 2); /* native Retain remains visible */
         /* Unknown, truncated and old capabilities may still acquire code, but
          * cannot claim a complete graph. Each acquired reference is returned. */
         for (unsigned abi = 0; abi < 3; ++abi) {
@@ -136,12 +137,12 @@ int main(void)
             assert(xl6CodeLeaseAcquire(owner, &lease) == XL6_CODE_LEASE_ACQUIRED);
             assert(xl6CodeLeaseRetain(lease) == lease && xl6CodeLeaseRetain(lease) == lease);
             assert(module->codeLeases == 2);
-            view = xl6CodeLeaseOwnership(lease); graph_inspect(view, 9, 10, 3);
+            view = xl6CodeLeaseOwnership(lease); graph_inspect(view, 7, 8, 3);
             xlDestroyModule(module); assert(!atomic_load(&deleted));
             { XL6_CodeLease* denied = lease; assert(xl6CodeLeaseAcquire(owner, &denied) == XL6_CODE_LEASE_CLOSED && !denied); }
-            graph_inspect(view, 9, 10, 2);
+            graph_inspect(view, 7, 8, 2);
             xrtValueRelease(graph_alias); graph_alias = NULL;
-            shape = graph_inspect(view, 9, 10, 1); graph_faults(view, &shape);
+            shape = graph_inspect(view, 7, 8, 1); graph_faults(view, &shape);
             xl6CodeLeaseRelease(lease); xl6CodeLeaseRelease(lease);
             assert(!atomic_load(&deleted) && module->codeLeases == 2);
             xl6CodeLeaseRelease(lease); /* resident tail, may unmap module */
@@ -151,14 +152,14 @@ int main(void)
             assert(xl6ContinuationReserveOwned(queue, &frame->ticket, graph_frame_run, graph_frame_release, frame, owner) == XL6_CONTINUATION_ADMITTED);
             assert(xl6ContinuationTraceBind(&frame->ticket, graph_frame_trace));
             xl6ContinuationCommit(&frame->ticket);
-            view = xl6ContinuationOwnership(&frame->ticket); graph_inspect(view, 10, 12, 3);
+            view = xl6ContinuationOwnership(&frame->ticket); graph_inspect(view, 8, 10, 3);
             xlDestroyModule(module); assert(!atomic_load(&deleted)); xl6ContinuationQueueClose(queue);
-            shape = graph_inspect(view, 10, 12, 2); graph_faults(view, &shape);
+            shape = graph_inspect(view, 8, 10, 2); graph_faults(view, &shape);
             xl6ContinuationReady(&frame->ticket); xl6ContinuationTransportReleased(&frame->ticket);
             assert(xl6ContinuationRunOne(queue) && !atomic_load(&deleted) && graph_runs == 1 && graph_releases == 1);
-            view = xl6ContinuationOwnership(&graph_frames[1].ticket); graph_inspect(view, 10, 12, 2);
+            view = xl6ContinuationOwnership(&graph_frames[1].ticket); graph_inspect(view, 8, 10, 2);
             xrtValueRelease(graph_alias); graph_alias = NULL;
-            graph_inspect(view, 10, 12, 1);
+            graph_inspect(view, 8, 10, 1);
             assert(xl6ContinuationRunOne(queue) && graph_runs == 2 && graph_releases == 2);
             assert(atomic_load(&deleted) && xl6ContinuationQueueDestroy(queue));
             /* The accepted callback retained one last native alias while it
