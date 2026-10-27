@@ -10880,6 +10880,8 @@ static int xl6IrTaskAllPayloadBoxerSupported(
     if ( type == NULL || abi != xl6IrBuildAsyncResultAbi(module, typeId) )
         return 0;
     switch ( abi ) {
+    case XL6_IR_ASYNC_RESULT_COPY_TAGGED:
+        return xl6IrNullableScalarElementAbi(module, typeId) != XL6_IR_C_ABI_UNSUPPORTED;
     case XL6_IR_ASYNC_RESULT_COPY_C_SCALAR:
         return type->typeValueId != 0 &&
             xl6IrNativeScalarProfileForCAbi(type->cAbi) != XL6_NATIVE_SCALAR_NONE;
@@ -10927,7 +10929,12 @@ int xl6IrTaskSpawnParameterAbiSupported(
                type->cAbi == XL6_IR_C_ABI_F32 ||
                type->cAbi == XL6_IR_C_ABI_TIME_I64 ||
                type->cAbi == XL6_IR_C_ABI_RAW_POINTER ||
-               type->cAbi == XL6_IR_C_ABI_NATIVE_HANDLE;
+               type->cAbi == XL6_IR_C_ABI_NATIVE_HANDLE ||
+               (type->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
+                type->kind == XL6_IR_TYPE_NULLABLE &&
+                type->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
+                type->paramCount == 1 && type->params != NULL &&
+                type->nativeSlotAbi != XL6_IR_NATIVE_SLOT_NONE);
     }
     return type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
            (abi == XL6_IR_PARAMETER_ABI_BORROW || abi == XL6_IR_PARAMETER_ABI_OWNED) &&
@@ -10955,6 +10962,16 @@ int xl6IrTaskSpawnArgumentCanBind(
     if (!actual || !parameter) return 0;
     if (actualType == parameterType ||
         xl6IrCallableTypesCompatible(module, actualType, parameterType)) return 1;
+    /* Lift a flow-refined operand into the declared nullable representation
+     * before capture, using the same explicit conversion as an ordinary call. */
+    if (parameter->kind == XL6_IR_TYPE_NULLABLE && parameter->paramCount == 1 &&
+        parameter->params != NULL && actual->kind != XL6_IR_TYPE_NULLABLE) {
+        if (actualType == parameter->params[0] ||
+            xl6IrCallableTypesCompatible(module, actualType, parameter->params[0])) return 1;
+        if (actual->kind == XL6_IR_TYPE_BUILTIN && actual->name != NULL &&
+            actual->cAbi == XL6_IR_C_ABI_UNSUPPORTED && !strcmp(actual->name, "null"))
+            return parameter->nullAbi != XL6_IR_NULL_ABI_NONE;
+    }
     if(xl6IrTypeIsCOwned(actual) || xl6IrTypeIsCOwned(parameter)) {
         if(actual->kind==XL6_IR_TYPE_NULLABLE && parameter->kind!=XL6_IR_TYPE_NULLABLE)return 0;
         int text=(actual->cAbi==XL6_IR_C_ABI_C_STRING || actual->cAbi==XL6_IR_C_ABI_MANAGED_STRING) &&

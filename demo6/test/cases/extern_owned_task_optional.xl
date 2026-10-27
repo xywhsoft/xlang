@@ -1,0 +1,35 @@
+// Null aggregation and flow-refined inputs use ordinary nullable contracts.
+extern "owned_task_optional" @owned @no_raise func Optional0(c_int mode) as string?
+auto first0=task.spawn(Optional0,c_int(0))
+auto second0=task.spawn(Optional0,c_int(7))
+auto values0=await task.all([first0,second0])
+assert values0.length==2 and values0[0]==null and values0[1]!=null
+
+extern "owned_task_optional" @owned @no_raise func Optional1(c_int mode) as string?
+array<future<string?>> jobs1=[task.spawn(Optional1,c_int(0)),task.spawn(Optional1,c_int(7))]
+auto values1=await task.all(jobs1)
+assert values1.length==2 and values1[0]==null and values1[1]!=null
+
+func echo2(string? value2) as string?
+    return value2
+end
+string? value2="text"
+if value2!=null
+    assert echo2(value2)!=null
+    assert await task.spawn(echo2,value2)!=null
+end
+
+extern "owned_task_text" @owned func Text3(c_int mode) as string
+typedef Producer3=func(c_int) as string
+func consume3(Producer3? producer3) as string
+    if producer3!=null
+        return producer3(c_int(7))
+    end
+    return "absent"
+end
+Producer3? producer3=Text3
+if producer3!=null
+    assert consume3(producer3)=="native text"
+    assert await task.spawn(consume3,producer3)=="native text"
+end
+

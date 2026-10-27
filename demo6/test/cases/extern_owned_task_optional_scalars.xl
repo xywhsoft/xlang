@@ -1,0 +1,332 @@
+// Nullable native slots retain presence, exact C width, signedness and bits.
+extern "owned_task_char_min" @no_raise func charMin() as c_char
+extern "owned_task_long_min" @no_raise func longMin() as c_long
+extern "owned_task_ulong_max" @no_raise func ulongMax() as c_ulong
+extern "owned_task_size_max" @no_raise func sizeMax() as c_size
+extern "owned_task_ssize_min" @no_raise func ssizeMin() as c_ssize
+extern "owned_task_ptrdiff_min" @no_raise func ptrdiffMin() as c_ptrdiff
+extern "owned_task_intptr_min" @no_raise func intptrMin() as c_intptr
+extern "owned_task_uintptr_max" @no_raise func uintptrMax() as c_uintptr
+extern "owned_task_wchar_max" @no_raise func wcharMax() as c_wchar
+func echo0(c_char? value) as c_char?
+    return value
+end
+c_char input0=charMin()
+c_char? present0=input0
+c_char? absent0=null
+auto first0=task.spawn(echo0,present0)
+auto missing0=task.spawn(echo0,absent0)
+auto literal0=await task.all([missing0,first0])
+assert literal0.length==2 and literal0[0]==null and literal0[1]==present0
+array<future<c_char?>> jobs0=[first0,missing0]
+auto array0=await task.all(jobs0)
+assert array0[0]==present0 and array0[1]==null
+// A non-null argument is lifted before entering the exact nullable frame.
+assert await task.spawn(echo0,input0)!=null
+func echo1(c_schar? value) as c_schar?
+    return value
+end
+c_schar input1=c_schar(-128)
+c_schar? present1=input1
+c_schar? absent1=null
+auto first1=task.spawn(echo1,present1)
+auto missing1=task.spawn(echo1,absent1)
+auto literal1=await task.all([missing1,first1])
+assert literal1.length==2 and literal1[0]==null and literal1[1]==present1
+array<future<c_schar?>> jobs1=[first1,missing1]
+auto array1=await task.all(jobs1)
+assert array1[0]==present1 and array1[1]==null
+// A non-null argument is lifted before entering the exact nullable frame.
+assert await task.spawn(echo1,input1)!=null
+func echo2(c_uchar? value) as c_uchar?
+    return value
+end
+c_uchar input2=c_uchar(255)
+c_uchar? present2=input2
+c_uchar? absent2=null
+auto first2=task.spawn(echo2,present2)
+auto missing2=task.spawn(echo2,absent2)
+auto literal2=await task.all([missing2,first2])
+assert literal2.length==2 and literal2[0]==null and literal2[1]==present2
+array<future<c_uchar?>> jobs2=[first2,missing2]
+auto array2=await task.all(jobs2)
+assert array2[0]==present2 and array2[1]==null
+// A non-null argument is lifted before entering the exact nullable frame.
+assert await task.spawn(echo2,input2)!=null
+func echo3(c_short? value) as c_short?
+    return value
+end
+c_short input3=c_short(-32768)
+c_short? present3=input3
+c_short? absent3=null
+auto first3=task.spawn(echo3,present3)
+auto missing3=task.spawn(echo3,absent3)
+auto literal3=await task.all([missing3,first3])
+assert literal3.length==2 and literal3[0]==null and literal3[1]==present3
+array<future<c_short?>> jobs3=[first3,missing3]
+auto array3=await task.all(jobs3)
+assert array3[0]==present3 and array3[1]==null
+// A non-null argument is lifted before entering the exact nullable frame.
+assert await task.spawn(echo3,input3)!=null
+func echo4(c_ushort? value) as c_ushort?
+    return value
+end
+c_ushort input4=c_ushort(65535)
+c_ushort? present4=input4
+c_ushort? absent4=null
+auto first4=task.spawn(echo4,present4)
+auto missing4=task.spawn(echo4,absent4)
+auto literal4=await task.all([missing4,first4])
+assert literal4.length==2 and literal4[0]==null and literal4[1]==present4
+array<future<c_ushort?>> jobs4=[first4,missing4]
+auto array4=await task.all(jobs4)
+assert array4[0]==present4 and array4[1]==null
+// A non-null argument is lifted before entering the exact nullable frame.
+assert await task.spawn(echo4,input4)!=null
+func echo5(c_int? value) as c_int?
+    return value
+end
+c_int input5=c_int(-2147483647)
+c_int? present5=input5
+c_int? absent5=null
+auto first5=task.spawn(echo5,present5)
+auto missing5=task.spawn(echo5,absent5)
+auto literal5=await task.all([missing5,first5])
+assert literal5.length==2 and literal5[0]==null and literal5[1]==present5
+array<future<c_int?>> jobs5=[first5,missing5]
+auto array5=await task.all(jobs5)
+assert array5[0]==present5 and array5[1]==null
+// A non-null argument is lifted before entering the exact nullable frame.
+assert await task.spawn(echo5,input5)!=null
+func echo6(c_uint? value) as c_uint?
+    return value
+end
+c_uint input6=c_uint(4294967295)
+c_uint? present6=input6
+c_uint? absent6=null
+auto first6=task.spawn(echo6,present6)
+auto missing6=task.spawn(echo6,absent6)
+auto literal6=await task.all([missing6,first6])
+assert literal6.length==2 and literal6[0]==null and literal6[1]==present6
+array<future<c_uint?>> jobs6=[first6,missing6]
+auto array6=await task.all(jobs6)
+assert array6[0]==present6 and array6[1]==null
+// A non-null argument is lifted before entering the exact nullable frame.
+assert await task.spawn(echo6,input6)!=null
+func echo7(c_long? value) as c_long?
+    return value
+end
+c_long input7=longMin()
+c_long? present7=input7
+c_long? absent7=null
+auto first7=task.spawn(echo7,present7)
+auto missing7=task.spawn(echo7,absent7)
+auto literal7=await task.all([missing7,first7])
+assert literal7.length==2 and literal7[0]==null and literal7[1]==present7
+array<future<c_long?>> jobs7=[first7,missing7]
+auto array7=await task.all(jobs7)
+assert array7[0]==present7 and array7[1]==null
+// A non-null argument is lifted before entering the exact nullable frame.
+assert await task.spawn(echo7,input7)!=null
+func echo8(c_ulong? value) as c_ulong?
+    return value
+end
+c_ulong input8=ulongMax()
+c_ulong? present8=input8
+c_ulong? absent8=null
+auto first8=task.spawn(echo8,present8)
+auto missing8=task.spawn(echo8,absent8)
+auto literal8=await task.all([missing8,first8])
+assert literal8.length==2 and literal8[0]==null and literal8[1]==present8
+array<future<c_ulong?>> jobs8=[first8,missing8]
+auto array8=await task.all(jobs8)
+assert array8[0]==present8 and array8[1]==null
+// A non-null argument is lifted before entering the exact nullable frame.
+assert await task.spawn(echo8,input8)!=null
+func echo9(c_longlong? value) as c_longlong?
+    return value
+end
+c_longlong input9=c_longlong(-9223372036854775807)
+c_longlong? present9=input9
+c_longlong? absent9=null
+auto first9=task.spawn(echo9,present9)
+auto missing9=task.spawn(echo9,absent9)
+auto literal9=await task.all([missing9,first9])
+assert literal9.length==2 and literal9[0]==null and literal9[1]==present9
+array<future<c_longlong?>> jobs9=[first9,missing9]
+auto array9=await task.all(jobs9)
+assert array9[0]==present9 and array9[1]==null
+// A non-null argument is lifted before entering the exact nullable frame.
+assert await task.spawn(echo9,input9)!=null
+func echo10(c_ulonglong? value) as c_ulonglong?
+    return value
+end
+c_ulonglong input10=c_ulonglong(uint64(18446744073709551615))
+c_ulonglong? present10=input10
+c_ulonglong? absent10=null
+auto first10=task.spawn(echo10,present10)
+auto missing10=task.spawn(echo10,absent10)
+auto literal10=await task.all([missing10,first10])
+assert literal10.length==2 and literal10[0]==null and literal10[1]==present10
+array<future<c_ulonglong?>> jobs10=[first10,missing10]
+auto array10=await task.all(jobs10)
+assert array10[0]==present10 and array10[1]==null
+// A non-null argument is lifted before entering the exact nullable frame.
+assert await task.spawn(echo10,input10)!=null
+func echo11(c_size? value) as c_size?
+    return value
+end
+c_size input11=sizeMax()
+c_size? present11=input11
+c_size? absent11=null
+auto first11=task.spawn(echo11,present11)
+auto missing11=task.spawn(echo11,absent11)
+auto literal11=await task.all([missing11,first11])
+assert literal11.length==2 and literal11[0]==null and literal11[1]==present11
+array<future<c_size?>> jobs11=[first11,missing11]
+auto array11=await task.all(jobs11)
+assert array11[0]==present11 and array11[1]==null
+// A non-null argument is lifted before entering the exact nullable frame.
+assert await task.spawn(echo11,input11)!=null
+func echo12(c_ssize? value) as c_ssize?
+    return value
+end
+c_ssize input12=ssizeMin()
+c_ssize? present12=input12
+c_ssize? absent12=null
+auto first12=task.spawn(echo12,present12)
+auto missing12=task.spawn(echo12,absent12)
+auto literal12=await task.all([missing12,first12])
+assert literal12.length==2 and literal12[0]==null and literal12[1]==present12
+array<future<c_ssize?>> jobs12=[first12,missing12]
+auto array12=await task.all(jobs12)
+assert array12[0]==present12 and array12[1]==null
+// A non-null argument is lifted before entering the exact nullable frame.
+assert await task.spawn(echo12,input12)!=null
+func echo13(c_ptrdiff? value) as c_ptrdiff?
+    return value
+end
+c_ptrdiff input13=ptrdiffMin()
+c_ptrdiff? present13=input13
+c_ptrdiff? absent13=null
+auto first13=task.spawn(echo13,present13)
+auto missing13=task.spawn(echo13,absent13)
+auto literal13=await task.all([missing13,first13])
+assert literal13.length==2 and literal13[0]==null and literal13[1]==present13
+array<future<c_ptrdiff?>> jobs13=[first13,missing13]
+auto array13=await task.all(jobs13)
+assert array13[0]==present13 and array13[1]==null
+// A non-null argument is lifted before entering the exact nullable frame.
+assert await task.spawn(echo13,input13)!=null
+func echo14(c_intptr? value) as c_intptr?
+    return value
+end
+c_intptr input14=intptrMin()
+c_intptr? present14=input14
+c_intptr? absent14=null
+auto first14=task.spawn(echo14,present14)
+auto missing14=task.spawn(echo14,absent14)
+auto literal14=await task.all([missing14,first14])
+assert literal14.length==2 and literal14[0]==null and literal14[1]==present14
+array<future<c_intptr?>> jobs14=[first14,missing14]
+auto array14=await task.all(jobs14)
+assert array14[0]==present14 and array14[1]==null
+// A non-null argument is lifted before entering the exact nullable frame.
+assert await task.spawn(echo14,input14)!=null
+func echo15(c_uintptr? value) as c_uintptr?
+    return value
+end
+c_uintptr input15=uintptrMax()
+c_uintptr? present15=input15
+c_uintptr? absent15=null
+auto first15=task.spawn(echo15,present15)
+auto missing15=task.spawn(echo15,absent15)
+auto literal15=await task.all([missing15,first15])
+assert literal15.length==2 and literal15[0]==null and literal15[1]==present15
+array<future<c_uintptr?>> jobs15=[first15,missing15]
+auto array15=await task.all(jobs15)
+assert array15[0]==present15 and array15[1]==null
+// A non-null argument is lifted before entering the exact nullable frame.
+assert await task.spawn(echo15,input15)!=null
+func echo16(c_bool? value) as c_bool?
+    return value
+end
+c_bool input16=c_bool(true)
+c_bool? present16=input16
+c_bool? absent16=null
+auto first16=task.spawn(echo16,present16)
+auto missing16=task.spawn(echo16,absent16)
+auto literal16=await task.all([missing16,first16])
+assert literal16.length==2 and literal16[0]==null and literal16[1]==present16
+array<future<c_bool?>> jobs16=[first16,missing16]
+auto array16=await task.all(jobs16)
+assert array16[0]==present16 and array16[1]==null
+// A non-null argument is lifted before entering the exact nullable frame.
+assert await task.spawn(echo16,input16)!=null
+func echo17(c_float? value) as c_float?
+    return value
+end
+c_float input17=c_float(-1.25)
+c_float? present17=input17
+c_float? absent17=null
+auto first17=task.spawn(echo17,present17)
+auto missing17=task.spawn(echo17,absent17)
+auto literal17=await task.all([missing17,first17])
+assert literal17.length==2 and literal17[0]==null and literal17[1]==present17
+array<future<c_float?>> jobs17=[first17,missing17]
+auto array17=await task.all(jobs17)
+assert array17[0]==present17 and array17[1]==null
+// A non-null argument is lifted before entering the exact nullable frame.
+assert await task.spawn(echo17,input17)!=null
+func echo18(c_double? value) as c_double?
+    return value
+end
+c_double input18=c_double(-2.5)
+c_double? present18=input18
+c_double? absent18=null
+auto first18=task.spawn(echo18,present18)
+auto missing18=task.spawn(echo18,absent18)
+auto literal18=await task.all([missing18,first18])
+assert literal18.length==2 and literal18[0]==null and literal18[1]==present18
+array<future<c_double?>> jobs18=[first18,missing18]
+auto array18=await task.all(jobs18)
+assert array18[0]==present18 and array18[1]==null
+// A non-null argument is lifted before entering the exact nullable frame.
+assert await task.spawn(echo18,input18)!=null
+func echo19(c_wchar? value) as c_wchar?
+    return value
+end
+c_wchar input19=wcharMax()
+c_wchar? present19=input19
+c_wchar? absent19=null
+auto first19=task.spawn(echo19,present19)
+auto missing19=task.spawn(echo19,absent19)
+auto literal19=await task.all([missing19,first19])
+assert literal19.length==2 and literal19[0]==null and literal19[1]==present19
+array<future<c_wchar?>> jobs19=[first19,missing19]
+auto array19=await task.all(jobs19)
+assert array19[0]==present19 and array19[1]==null
+// A non-null argument is lifted before entering the exact nullable frame.
+assert await task.spawn(echo19,input19)!=null
+// Nullable floating slots preserve NaN payloads and negative zero too.
+extern "owned_task_float" @no_raise func floatValue(c_int kind) as c_float
+extern "owned_task_double" @no_raise func doubleValue(c_int kind) as c_double
+extern "owned_task_float_check" @no_raise func checkFloat(c_float value,c_int kind) as bool
+extern "owned_task_double_check" @no_raise func checkDouble(c_double value,c_int kind) as bool
+for kind in range(3)
+    c_int mode=c_int(kind)
+    auto floats=await task.all([task.spawn(echo17,floatValue(mode))])
+    c_float? f=floats[0]
+    if f!=null
+        assert checkFloat(f,mode)
+    else
+        assert false
+    end
+    auto doubles=await task.all([task.spawn(echo18,doubleValue(mode))])
+    c_double? d=doubles[0]
+    if d!=null
+        assert checkDouble(d,mode)
+    else
+        assert false
+    end
+end

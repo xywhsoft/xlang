@@ -1,0 +1,49 @@
+// Concrete generic continuations rebuild both source and result payload ABIs.
+func echo0(c_int value) as c_int
+    return value
+end
+func map0(c_int value) as c_int
+    return value
+end
+func pipe0<T>(future<T> source,func(T) as T callback) as future<T>
+    return source.then(callback)
+end
+assert await pipe0::<c_int>(task.spawn(echo0,c_int(7)),map0)==c_int(7)
+
+extern "owned_task_text" @owned func Text1(c_int mode) as string
+func map1(string value) as string
+    return value+"!"
+end
+func pipe1<T>(future<T> source,func(T) as T callback) as future<T>
+    return source.then(callback)
+end
+assert await pipe1::<string>(task.spawn(Text1,c_int(7)),map1)=="native text!"
+
+func echo2(c_int value) as c_int
+    return value
+end
+func map2(c_int value) as string
+    return "mapped"
+end
+func pipe2<T>(future<T> source,func(T) as string callback) as future<string>
+    return source.then(callback)
+end
+assert await pipe2::<c_int>(task.spawn(echo2,c_int(7)),map2)=="mapped"
+
+extern "owned_task_text" @owned func Text3(c_int mode) as string
+func recover3(error failure) as string
+    return "recovered"
+end
+func pipe3<T>(future<T> source,func(error) as T callback) as future<T>
+    return source.catch(callback)
+end
+assert await pipe3::<string>(task.spawn(Text3,c_int(-1)),recover3)=="recovered"
+
+extern "owned_task_text" @owned func Text4(c_int mode) as string
+func clean()
+end
+func pipe4<T>(future<T> source,func() callback) as future<T>
+    return source.finally(callback)
+end
+assert await pipe4::<string>(task.spawn(Text4,c_int(7)),clean)=="native text"
+

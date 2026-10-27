@@ -15,7 +15,39 @@ static int xl6IrCgenEmitFuturePayloadBoxer(
         "static xvalue* xlir_future_payload_box_t%u(const void* payload)\n{\n"
         "    if (payload == NULL) return NULL;\n",
         (unsigned int)instruction->payloadType);
+    const XL6_IrType* payload = xl6IrTypeGet(&module->types, instruction->payloadType);
+    const char* absent = payload && payload->kind == XL6_IR_TYPE_NULLABLE
+        ? "xrtValueRetain(xrtValueNull())" : "NULL";
     switch ( instruction->asyncResultAbi ) {
+    case XL6_IR_ASYNC_RESULT_COPY_TAGGED:
+        {
+            XL6_IrCAbi abi = xl6IrNullableScalarElementAbi(module, instruction->payloadType);
+            const XL6_IrType* element = payload && payload->params
+                ? xl6IrTypeGet(&module->types, payload->params[0]) : NULL;
+            const char* type = xl6IrCgenType(module, instruction->payloadType);
+            if (!element || !type || abi == XL6_IR_C_ABI_UNSUPPORTED)
+                return xl6IrCgenDiag(diags, module, instruction->origin,
+                    "XLIR task.all optional scalar has no exact carrier ABI");
+            xl6OutputPrintf(out,
+                "    const %s* value = (const %s*)payload;\n"
+                "    if (!value->hasValue) return xrtValueRetain(xrtValueNull());\n", type, type);
+            XL6_NativeScalarProfileV1 profile = xl6IrNativeScalarProfileForCAbi(abi);
+            if (profile != XL6_NATIVE_SCALAR_NONE) {
+                xl6OutputPrintf(out,
+                    "    return xl6ValueBoxNativeScalarV1(&value->value, %u, 0x%016llXULL);\n",
+                    (unsigned)profile, (unsigned long long)element->typeValueId);
+            } else {
+                const char* boxer = abi == XL6_IR_C_ABI_BOOL ? "xrtValueBool"
+                    : abi == XL6_IR_C_ABI_I64 ? "xrtValueInt"
+                    : abi == XL6_IR_C_ABI_U64 || abi == XL6_IR_C_ABI_TYPE_ID ? "xrtValueUInt"
+                    : abi == XL6_IR_C_ABI_CHAR_U32 ? "xrtValueChar"
+                    : abi == XL6_IR_C_ABI_TIME_I64 ? "xrtValueTime" : "xrtValueFloat";
+                xl6OutputPrintf(out, "    return %s%s(value->value)%s;\n",
+                    abi == XL6_IR_C_ABI_BOOL ? "xrtValueRetain(" : "", boxer,
+                    abi == XL6_IR_C_ABI_BOOL ? ")" : "");
+            }
+        }
+        break;
     case XL6_IR_ASYNC_RESULT_COPY_C_SCALAR:
         {
             const XL6_IrType* type = xl6IrTypeGet(&module->types, instruction->payloadType);
@@ -62,9 +94,9 @@ static int xl6IrCgenEmitFuturePayloadBoxer(
             "    return xrtValueTime(*(const int64_t*)payload);\n", out);
         break;
     case XL6_IR_ASYNC_RESULT_OWNED_STRING:
-        xl6OutputPuts(
-            "    return ((const xlir_string*)payload)->Data != NULL ? xrtValueString(*(const xlir_string*)payload) : NULL;\n",
-            out);
+        xl6OutputPrintf(out,
+            "    return ((const xlir_string*)payload)->Data != NULL ? xrtValueString(*(const xlir_string*)payload) : %s;\n",
+            absent);
         break;
     case XL6_IR_ASYNC_RESULT_RETAINED_XVALUE:
         xl6OutputPuts(
@@ -73,10 +105,10 @@ static int xl6IrCgenEmitFuturePayloadBoxer(
         break;
     case XL6_IR_ASYNC_RESULT_RETAINED_CLOSURE:
         xl6OutputPrintf(out,
-            "    return *(xlir_closure* const*)payload != NULL ? xlir_closure_to_xvalue_scalar(*(xlir_closure* const*)payload, xlir_xcall_entry_t%u, 0x%016llXULL) : NULL;\n",
+            "    return *(xlir_closure* const*)payload != NULL ? xlir_closure_to_xvalue_scalar(*(xlir_closure* const*)payload, xlir_xcall_entry_t%u, 0x%016llXULL) : %s;\n",
             (unsigned int)instruction->payloadType,
             (unsigned long long)xl6IrTypeGet(
-                &module->types, instruction->payloadType)->typeValueId);
+                &module->types, instruction->payloadType)->typeValueId, absent);
         break;
     case XL6_IR_ASYNC_RESULT_RETAINED_ERROR:
         xl6OutputPrintf(out,
@@ -85,9 +117,9 @@ static int xl6IrCgenEmitFuturePayloadBoxer(
                 &module->types, instruction->payloadType)->typeValueId);
         break;
     case XL6_IR_ASYNC_RESULT_RETAINED_FUTURE:
-        xl6OutputPuts(
-            "    return *(xfuture* const*)payload != NULL ? xrtValueFuture(*(xfuture* const*)payload) : NULL;\n",
-            out);
+        xl6OutputPrintf(out,
+            "    return *(xfuture* const*)payload != NULL ? xrtValueFuture(*(xfuture* const*)payload) : %s;\n",
+            absent);
         break;
     default:
         return xl6IrCgenDiag(diags, module, instruction->origin,
