@@ -1,6 +1,7 @@
 class WrongPatternEditOwner
     private native point handle
-    extern "xl6PatternBuilderDestroyV1" destroy()
+    extern "xl6UnicodeValidatorCreateV1" create()
+    extern "xl6UnicodeValidatorDestroyV1" destroy()
 end
 class BadPatternKeyOwner
     private native point handle

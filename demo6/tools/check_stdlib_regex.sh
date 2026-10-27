@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # B13-B17b Regex/Pattern snapshots, Builder transactions and checked callbacks.
 set -euo pipefail
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT="$(realpath "${BASH_SOURCE[0]}")"
+ROOT="$(cd "${3:-$(dirname "$SCRIPT")/..}" && pwd)"
 cd "$ROOT"
 OUT="${1:?Provide a fresh evidence directory}"
 GROUP="${2:-all}"
@@ -14,7 +15,11 @@ CC="$(command -v gcc)"; CLI="$ROOT/release/xl"; checks=0
 trap 'status=$?; if ((status)); then printf "{\"Complete\":false,\"Checks\":%d,\"Exit\":%d}\n" "$checks" "$status" >"$OUT/results.json"; fi' EXIT
 run() {
     local name="$1"; shift
-    if ! timeout 120s "$@" >"$OUT/$name.log" 2>&1; then
+    local seconds=120
+    # One full registry has over a million dependency pairs. Keep its complete
+    # check once per cohort, with a separate bound from individual fixtures.
+    [[ "$name" != artifact-registry ]] || seconds=1800
+    if ! timeout "${seconds}s" "$@" >"$OUT/$name.log" 2>&1; then
         tail -n 35 "$OUT/$name.log" >&2; printf 'Regex check failed: %s\n' "$name" >&2; exit 1
     fi
     checks=$((checks+1))
@@ -43,6 +48,9 @@ fi
     find src lib release/include -type f -print0
     printf '%s\0' "$CC" release/xl release/libxl.so release/libxlc.so build_linux.sh
     printf '%s\0' tools/check_stdlib_regex.sh tools/tcc_vfs_manifest_linux_xlc.txt
+    printf '%s\0' tools/gen_tcc_vfs_resources.py
+    printf '%s\0' "$SCRIPT"
+    printf '%s\0' test/support/xlir_resident_closure.c
     printf '%s\0' test/cases/xlir_regex_host.c test/support/regex_native.c test/cases/xlir_pattern_host.c test/support/pattern_native.c
     printf '%s\0' test/cases/xlir_pattern_builder_host.c test/support/pattern_builder_native.c
     printf '%s\0' test/cases/xlir_regex_extended_host.c test/cases/xlir_regex_callback_host.c
@@ -51,12 +59,30 @@ fi
     printf '%s\0' test/cases/xlir_string_interpolation_host.c
     for fixture in "${cases[@]}" "${negative[@]}" "${privacy[@]}" "${undeclared[@]}"; do printf '%s\0' "test/cases/$fixture.xl"; done
 } | sort -zu | xargs -0 sha256sum >"$OUT/inputs.sha256"
-while IFS='|' read -r kind target source; do
-    if [[ "$kind" = file && "$target" = include/__xl_runtime/* ]]; then
-        source="${source//%XL6_ROOT%/$ROOT}"
-        mkdir -p "$OUT/$(dirname "$target")"; cp "$source" "$OUT/$target"; cmp "$source" "$OUT/$target"
-    fi
-done <tools/tcc_vfs_manifest_linux_xlc.txt
+python3 - "$ROOT" "$OUT" <<'PY'
+from pathlib import Path
+import hashlib,json,shutil,sys
+root,out=map(Path,sys.argv[1:]);sys.path.insert(0,str(root/'tools'))
+from gen_tcc_vfs_resources import load_resources
+manifest=out/'runtime-headers.manifest'
+rows=[]
+for line in (root/'tools/tcc_vfs_manifest_linux_xlc.txt').read_text(encoding='utf-8').splitlines():
+    parts=line.strip().split('|')
+    if len(parts)>=3 and (parts[1]=='include/__xl_runtime' or parts[1].startswith('include/__xl_runtime/')):rows.append(line)
+assert rows
+manifest.write_text('\n'.join(rows)+'\n',encoding='utf-8')
+records=[]
+for resource in load_resources(manifest,root,root,root,out):
+    target=out/resource.virtual
+    assert target.resolve().is_relative_to((out/'include/__xl_runtime').resolve())
+    target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(resource.source,target)
+    digest=hashlib.sha256(resource.source.read_bytes()).hexdigest()
+    assert hashlib.sha256(target.read_bytes()).hexdigest()==digest
+    records.append(dict(Source=str(resource.source),Path=str(target),Sha256=digest))
+assert records
+(out/'runtime-headers.json').write_text(json.dumps(records,indent=2)+'\n',encoding='utf-8')
+PY
+find "$OUT/include" -type f -print0 | sort -zu | xargs -0 sha256sum >>"$OUT/inputs.sha256"
 strict=(-std=c11 -D_GNU_SOURCE -Wall -Wextra -Werror -DXL_STATIC_EMBED
     -Wno-unused-function -Wno-unused-label -Wno-unused-variable -Wno-unused-parameter
     -Wno-unused-const-variable -Wno-unused-but-set-variable -Wno-missing-field-initializers
@@ -65,26 +91,48 @@ libs=(-Lrelease -Wl,-rpath,"$ROOT/release" -pthread -ldl -lm)
 export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1
 export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
 sanitize=(-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -no-pie)
+# The actual artifact registry owns transitive resident dependencies. Native
+# tests must use the same closure as Windows and generated artifacts; a short
+# hand-maintained source list misses cleanup/handle policy dependencies.
+run resident-closure-build "$CC" "${strict[@]}" -O0 -ffunction-sections -fdata-sections \
+    -fno-jump-tables -fno-asynchronous-unwind-tables -fno-unwind-tables \
+    test/support/xlir_resident_closure.c src/compile/xl6_compile_unit.c \
+    -Wl,--gc-sections -o "$OUT/resident-closure"
+close_sources() {
+    local name="$1"; shift
+    local args=(); local source
+    for source in "$@"; do args+=(--source "$source"); done
+    run "$name.closure" "$OUT/resident-closure" "${args[@]}"
+    run "$name.sources" python3 -c 'import json,sys; r=json.load(open(sys.argv[1],encoding="utf-8")); s=r["Sources"]; assert s and len(s)==len(set(s)); print("\n".join(s))' "$OUT/$name.closure.log"
+}
 if [[ "$GROUP" = all ]]; then
+close_sources native src/runtime/xl6_regex_core.c src/runtime/xl6_regex_match.c
+mapfile -t native_sources <"$OUT/native.sources.log"
 run native-build "$CC" "${strict[@]}" "${sanitize[@]}" test/cases/xlir_regex_host.c \
-    test/support/regex_native.c src/runtime/xl6_regex_core.c src/runtime/xl6_regex_match.c \
+    test/support/regex_native.c "${native_sources[@]}" \
     -pthread -ldl -lm -o "$OUT/native"
 run native "$OUT/native"
 grep -q '68 actual failures, 5 first no-hit completions' "$OUT/native.log"
+close_sources extended src/runtime/xl6_regex_core.c src/runtime/xl6_regex_match.c src/runtime/xl6_regex_iterator.c \
+    src/runtime/xl6_regex_replace.c src/runtime/xl6_regex_replace_buffer.c src/runtime/xl6_regex_split.c src/runtime/xl6_regex_set.c src/runtime/xl6_array_input.c src/runtime/xl6_sequence.c
+mapfile -t extended_sources <"$OUT/extended.sources.log"
 run extended-native-build "$CC" "${strict[@]}" "${sanitize[@]}" test/cases/xlir_regex_extended_host.c \
-    test/support/regex_native.c src/runtime/xl6_regex_core.c src/runtime/xl6_regex_match.c src/runtime/xl6_regex_iterator.c \
-    src/runtime/xl6_regex_replace.c src/runtime/xl6_regex_replace_buffer.c src/runtime/xl6_regex_split.c src/runtime/xl6_regex_set.c src/runtime/xl6_array_input.c src/runtime/xl6_sequence.c \
+    test/support/regex_native.c "${extended_sources[@]}" \
     -pthread -ldl -lm -o "$OUT/extended-native"
 run extended-native "$OUT/extended-native"
 grep -Eq '[1-9][0-9]* actual failures, 9 first no-hit completions' "$OUT/extended-native.log"
 fi
+close_sources pattern src/runtime/xl6_pattern_core.c src/runtime/xl6_pattern_options.c src/runtime/xl6_pattern_match.c
+mapfile -t pattern_sources <"$OUT/pattern.sources.log"
 run pattern-native-build "$CC" "${strict[@]}" "${sanitize[@]}" test/cases/xlir_pattern_host.c \
-    test/support/pattern_native.c src/runtime/xl6_pattern_core.c src/runtime/xl6_pattern_options.c src/runtime/xl6_pattern_match.c \
+    test/support/pattern_native.c "${pattern_sources[@]}" \
     -pthread -ldl -lm -o "$OUT/pattern-native"
 run pattern-native "$OUT/pattern-native"
 grep -q '60 actual failures, 5 first no-hit completions' "$OUT/pattern-native.log"
+close_sources builder src/runtime/xl6_pattern_builder.c src/runtime/xl6_pattern_core.c src/runtime/xl6_pattern_options.c src/runtime/xl6_array_input.c src/runtime/xl6_sequence.c
+mapfile -t builder_sources <"$OUT/builder.sources.log"
 run pattern-builder-native-build "$CC" "${strict[@]}" "${sanitize[@]}" test/cases/xlir_pattern_builder_host.c \
-    test/support/pattern_builder_native.c src/runtime/xl6_pattern_builder.c src/runtime/xl6_pattern_core.c src/runtime/xl6_pattern_options.c src/runtime/xl6_array_input.c src/runtime/xl6_sequence.c \
+    test/support/pattern_builder_native.c "${builder_sources[@]}" \
     -pthread -ldl -lm -o "$OUT/pattern-builder-native"
 run pattern-builder-native "$OUT/pattern-builder-native"
 grep -Eq '[1-9][0-9]* actual failures, 10 first no-hit completions' "$OUT/pattern-builder-native.log"
@@ -94,7 +142,8 @@ run callback-native "$OUT/callback-native"
 grep -q 'regex callback native OOM: 133 actual failures, 3 first no-hit completions, balanced' "$OUT/callback-native.log"
 fi
 run contract-build "$CC" "${strict[@]}" test/cases/xlir_text_value_contract.c -lxlc "${libs[@]}" -o "$OUT/contract"
-run artifact-build "$CC" "${strict[@]}" test/cases/xlir_artifact_runtime_contract.c -lxlc "${libs[@]}" -o "$OUT/artifact"
+run artifact-build "$CC" "${strict[@]}" -O2 test/cases/xlir_artifact_runtime_contract.c -lxlc "${libs[@]}" -o "$OUT/artifact"
+run artifact-registry "$OUT/artifact" --registry
 run error-projection-contract-build "$CC" "${strict[@]}" test/cases/xlir_error_projection_contract.c -lxlc "${libs[@]}" -o "$OUT/error-projection-contract"
 run error-projection-contract "$OUT/error-projection-contract" test/cases/stdlib_pattern_tags.xl "$OUT/error-projection.closed.c"
 run error-projection-modes-contract "$OUT/error-projection-contract" test/cases/stdlib_pattern_error_modes.xl "$OUT/error-projection-modes.closed.c"
