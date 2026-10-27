@@ -12,7 +12,7 @@ double xfeat_now_ms_native(void);
 int xfeat_stats_reset_native(void);
 int xfeat_stats_add_native(int kind, double preprocess_ms, double ort_ms, double parse_ms);
 /* JSON 返回独立的 XRT 字符串；C 调用方使用 xrtFree 释放。 */
-void* xfeat_stats_json_native(void);
+char* xfeat_stats_json_native(void);
 
 void* xfeat_engine_create_native(void* query_session, void* target_session);
 void* xfeat_engine_query_session_native(void* handle);
@@ -39,7 +39,7 @@ int xfeat_location_bbox_x_native(void* handle);
 int xfeat_location_bbox_y_native(void* handle);
 int xfeat_location_bbox_w_native(void* handle);
 int xfeat_location_bbox_h_native(void* handle);
-void* xfeat_location_json_native(void* handle, const char* image_name,
+char* xfeat_location_json_native(void* handle, const char* image_name,
                                  const char* output_name);
 
 #ifdef __cplusplus

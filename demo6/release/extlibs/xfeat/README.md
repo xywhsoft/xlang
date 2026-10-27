@@ -1,5 +1,9 @@
 # xfeat
 
+2026-10-27：统计与定位 JSON 的 C 原型明确为拥有型 `char*`，XLang
+用 `@owned string?` 直接接管 `xrtJsonWriterTake` 的分配；失败仍按原合同
+抛 `RuntimeError`。调用方在 C 中继续用 `xrtFree` 释放，不涉及推理插件内部。
+
 2026-10-26 当前 Windows 发布版设置 `XFEAT_MODEL` 后，默认门禁及
 `-ParallelLive` 均退出 0。固定目标图的局部查询得到 177 次匹配、
 63 个内点，C/XLang JIT 与真实模型独立 EXE 输出逐行一致；不相关

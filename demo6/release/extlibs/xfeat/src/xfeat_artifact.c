@@ -341,7 +341,7 @@ static bool xfeat_stats_bucket_json(xjsonwriter* writer, const char* name, const
 		xrtJsonWriterEnd(writer);
 }
 
-XL_EXPORT void* xfeat_stats_json_native(void)
+XL_EXPORT char* xfeat_stats_json_native(void)
 {
 	xjsonwriteconfig config;
 	xjsonwriter* writer;
@@ -1016,7 +1016,7 @@ XL_EXPORT int xfeat_location_bbox_h_native(void* handle)
 	return loc != NULL ? loc->bbox[3] : 0;
 }
 
-XL_EXPORT void* xfeat_location_json_native(void* handle, const char* image_name, const char* output_name)
+XL_EXPORT char* xfeat_location_json_native(void* handle, const char* image_name, const char* output_name)
 {
 	XFeatLocation* loc = (XFeatLocation*)handle;
 	xjsonwriteconfig config;

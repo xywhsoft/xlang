@@ -8,7 +8,7 @@ extern "xfeat_last_error_native" func xfeat_last_error_native() as string
 extern "xfeat_now_ms_native" func xfeat_now_ms_native() as float
 extern "xfeat_stats_reset_native" func xfeat_stats_reset_native() as c_int
 extern "xfeat_stats_add_native" func xfeat_stats_add_native(c_int kind, float preprocess_ms, float ort_ms, float parse_ms) as c_int
-extern "xfeat_stats_json_native" func xfeat_stats_json_raw_native() as point
+extern "xfeat_stats_json_native" @owned func xfeat_stats_json_raw_native() as string?
 extern "xfeat_engine_create_native" func xfeat_engine_create_native(point query_session, point target_session) as point
 extern "xfeat_engine_query_session_native" func xfeat_engine_query_session_native(point handle) as point
 extern "xfeat_engine_target_session_native" func xfeat_engine_target_session_native(point handle) as point
@@ -25,7 +25,7 @@ extern "xfeat_match_native" func xfeat_match_native(point query_handle, point ta
 extern "xfeat_location_release_native" func xfeat_location_release_native(point handle) as c_int
 extern "xfeat_location_found_native" func xfeat_location_found_native(point handle) as c_int
 extern "xfeat_location_score_native" func xfeat_location_score_native(point handle) as float
-extern "xfeat_location_json_native" func xfeat_location_json_raw_native(point handle, string image_name, string output_name) as point
+extern "xfeat_location_json_native" @owned func xfeat_location_json_raw_native(point handle, string image_name, string output_name) as string?
 extern "xfeat_location_bbox_x_native" func xfeat_location_bbox_x_native(point handle) as c_int
 extern "xfeat_location_bbox_y_native" func xfeat_location_bbox_y_native(point handle) as c_int
 extern "xfeat_location_bbox_w_native" func xfeat_location_bbox_w_native(point handle) as c_int
@@ -46,16 +46,17 @@ func xfeat_to_c_int(int value) as c_int
 	return c_int(value)
 end
 
+func xfeat_take_json(string? value) as string
+	if value == null then throw RuntimeError xfeat_json_error() end
+	return value
+end
+
 func xfeat_stats_json_native() as string
-	point raw = xfeat_stats_json_raw_native()
-	if raw == null then throw RuntimeError xfeat_json_error() end
-	return __xl_runtime.takeCstr(raw)
+	return xfeat_take_json(xfeat_stats_json_raw_native())
 end
 
 func xfeat_location_json_native(point handle, string image_name, string output_name) as string
-	point raw = xfeat_location_json_raw_native(handle, image_name, output_name)
-	if raw == null then throw RuntimeError xfeat_json_error() end
-	return __xl_runtime.takeCstr(raw)
+	return xfeat_take_json(xfeat_location_json_raw_native(handle, image_name, output_name))
 end
 
 func xfeat_json_error() as string
