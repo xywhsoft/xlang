@@ -24434,6 +24434,25 @@ static int xl6IrLowerEmitRuntimeErrorEdgeWithPlan(
     XL6_SymbolId target = producer != NULL &&
         (producer->kind == XL6_IR_INSTR_CALL || producer->kind == XL6_IR_INSTR_ASYNC_START ||
          producer->kind == XL6_IR_INSTR_GENERATOR_START) ? producer->targetSymbol : 0;
+    /* Metadata emission may already have observed this exact producer. Reuse
+     * only its untouched success continuation: no intervening operation can
+     * have changed the checked outcome. Never test a stale result again after
+     * work has been emitted into that continuation. */
+    if (errorPlan != NULL && producer != NULL && ctx->block != XL6_IR_BLOCK_INVALID &&
+        (size_t)ctx->block <= ctx->module->blockCount) {
+        const XL6_IrBlock* block = &ctx->module->blocks[(size_t)ctx->block - 1];
+        size_t next = (size_t)(producer - ctx->module->instructions) + 1;
+        if (block->instructionCount == 0 &&
+            block->firstInstruction == ctx->module->instructionCount &&
+            next < ctx->module->instructionCount) {
+            const XL6_IrInstruction* observed = &ctx->module->instructions[next];
+            if (observed->kind == XL6_IR_INSTR_ERROR_TEST &&
+                observed->operandCount == 1 &&
+                observed->firstOperand < ctx->module->operandCount &&
+                ctx->module->operands[observed->firstOperand] == result &&
+                observed->trueTarget == ctx->block) return 1;
+        }
+    }
     if ( errorPlan == NULL || result == XL6_IR_VALUE_INVALID ||
          !xl6IrLowerNewBlock(ctx, &successBlock) ||
          !xl6IrLowerNewBlock(ctx, &failureBlock) ||

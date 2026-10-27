@@ -7,6 +7,7 @@ $ErrorActionPreference = 'Stop'
 if (!$Root) { $Root = Split-Path -Parent $PSScriptRoot }
 $Root = (Resolve-Path -LiteralPath $Root).Path
 . (Join-Path $Root 'tools/extlib_smoke_process.ps1')
+. (Join-Path $Root 'tools/xlir_native_process.ps1')
 $compilerDir = (Resolve-Path -LiteralPath $(if ([IO.Path]::IsPathRooted($PublicSourceDirectory)) {
     $PublicSourceDirectory
 } else {Join-Path $Root $PublicSourceDirectory})).Path
@@ -39,6 +40,7 @@ $work = [IO.Path]::GetFullPath($(if ([IO.Path]::IsPathRooted($WorkDirectory)) {
 } else { Join-Path $Root $WorkDirectory }))
 if (Test-Path -LiteralPath $work) { throw 'Choose a fresh gate directory' }
 [IO.Directory]::CreateDirectory($work) | Out-Null
+Copy-Item -LiteralPath (Join-Path $Root 'release/xl.dll') -Destination (Join-Path $work 'xl.dll')
 $gcc = (Get-Command gcc.exe -ErrorAction Stop).Source
 $checks = [Collections.Generic.List[object]]::new()
 $inputs = [ordered]@{}
@@ -52,8 +54,10 @@ $negatives = @('xlir_string_bridge_bad_result','xlir_string_bridge_bad_parameter
     'xlir_string_bytes_bad_result','xlir_string_bytes_bad_parameter',
     'xlir_string_chars_bad_result','xlir_string_chars_bad_parameter',
     'xlir_string_repeat_bad_result','xlir_string_repeat_bad_parameter')
-$objects = @($build.Sources | Where-Object {$_ -like 'src/runtime/*' -or $_ -in @('tools/xrt_single_header_impl.c','src/api/xl_task_group_bridge.c')} |
-    ForEach-Object {Join-Path $compilerDir ([IO.Path]::GetFileNameWithoutExtension($_)+'.o')})
+# Runtime providers include nested compiler-context lifecycle operations. Use
+# the verified source cohort, rather than an incomplete handwritten API tail.
+# Standalone reachability/pruning is checked independently below and elsewhere.
+$objects = @($build.Objects | Where-Object {[IO.Path]::GetFileName($_.Path) -ne 'xlir_public_source_driver.o'} | ForEach-Object Path)
 $paths = @($build.Inputs.Path) + @($build.Headers.Path) + @($build.Objects.Path) +
     @($driver,$gcc,$PSCommandPath,(Join-Path $compilerDir 'build.json')) + $objects
 $paths += @($artifactPath,(Join-Path $Root $artifact.Mapping)) + @($artifact.Files.Source) + @($artifact.Files.Path)
@@ -72,15 +76,20 @@ $paths += @($source,$failure,$example,$cExample,'test/cases/xlir_string_bridge_m
     'test/cases/sem_fstring_nested_undeclared_identifier.xl','test/cases/sem_fstring_undeclared_identifier.xl',
     'test/cases/sem_fstring_multiline_undeclared_identifier.xl',
     'test/cases/xlir_text_value_contract.c','test/support/string_bridge_native.c',
+    'test/cases/xlir_string_projection_outcome.xl',
+    'test/cases/xlir_string_projection_outcome_contract.c','test/cases/cgen_string_value_ownership.xl',
     'tools/check_xlir_string_bridges.ps1','tools/check_xlir_string_repeat.ps1',
     'tools/stage_xlir_artifact_runtime_sources.ps1','test/fixtures/extlib_boundary_pending/string_join_symbol.xl') |
     ForEach-Object {Join-Path $Root $_}
 $paths += $negatives | ForEach-Object {Join-Path $Root "test/cases/$_.xl"}
 foreach ($path in @($paths | Sort-Object -Unique)) { $inputs[$path] = (Get-FileHash -LiteralPath $path).Hash }
 function Check([string]$name,[string]$program,[string[]]$arguments,[string]$expectedError = '') {
-    $r = Invoke-ExtlibSmokeProcess $program $arguments $Root 120 @{}
+    $log = Join-Path $work "$name.log"
+    $r = if ($program -eq $gcc) {
+        Invoke-XlirCompilerResponseToLog $program $arguments $log -PassThru -TimeoutSeconds 120
+    } else { Invoke-ExtlibSmokeProcess $program $arguments $Root 120 @{} }
     $checks.Add([ordered]@{name=$name;program=$program;arguments=$arguments;result=$r})
-    [IO.File]::WriteAllText((Join-Path $work "$name.log"),$r.stdout+$r.stderr,$utf8)
+    [IO.File]::WriteAllText($log,$r.stdout+$r.stderr,$utf8)
     if ($expectedError) {
         if ($r.status -ne 'fail' -or $r.exitCode -ne 1 -or $r.stderr -notmatch $expectedError) { throw "$name was not rejected correctly: $($r.stderr)" }
     } elseif ($r.status -ne 'pass') { throw "$name failed: $($r.stderr) $($r.stdout)" }
@@ -100,12 +109,17 @@ try {
     $signatures = [ordered]@{Length=2;ByteLength=2;ByteAt=3;StartsWith=5;EndsWith=5;
         Join=4;Split=4;Lines=2;Repeat=3;Replace=6;Slice=4;Bytes=2;Chars=2}
     foreach ($name in $signatures.Keys) {
-        $targets = @($ir.callTargets | Where-Object cName -eq "xl6Text${name}V1")
+        # Native typed-array producers carry owner/element identities and use
+        # NULL as their checked failure carrier. Scalar/value entries keep V1.
+        $nativeArray = $name -in @('Split','Lines','Chars')
+        $version = if ($nativeArray) {'V2'} else {'V1'}
+        $physicalError = if ($nativeArray) {'null-result'} else {'xrt-thread-error'}
+        $targets = @($ir.callTargets | Where-Object cName -eq "xl6Text${name}${version}")
         if (!$targets.Count) { throw "Missing string contract: $name" }
         foreach ($target in $targets) {
             if ($target.runtimeBridgeName -ne 'text-value' -or $target.parameterCount -ne $signatures[$name] -or
                 $target.parameterAbis[0] -ne 2 -or $target.errorAbiName -ne 'may-raise' -or
-                $target.errorPhysicalAbiName -ne 'xrt-thread-error' -or
+                $target.errorPhysicalAbiName -ne $physicalError -or
                 $target.resultConversionAbiName -ne 'direct') { throw "Invalid string contract: $name" }
         }
     }
@@ -117,7 +131,7 @@ try {
     $null = Check 'minimal' $driver @('test/cases/xlir_string_bridge_minimal.xl','emit',(Join-Path $work 'minimal'))
     $minimal = Get-Content (Join-Path $work 'minimal.c') -Raw
     if ($minimal -notmatch 'xl6TextByteLengthV1\(' -or
-        $minimal -match 'xl6Text(?:Join|Split|Lines|Replace|Slice|Bytes|Chars)V1\(' -or
+        $minimal -match 'xl6Text(?:Join|Split|Lines|Replace|Slice|Bytes|Chars)V[12]\(' -or
         $minimal -match 'xl6_xrt_(?:string_|take_cstr)|xlir_xvalue_to_string\(') { throw 'Unused string adapters were emitted' }
     $generated = Get-Content "$module.c" -Raw
     if ($generated -match '(?m)^\s*(?:static\s+)?(?:xstrview|xlir_string|xvalue\s*\*)\s+xl6Text\w+\([^;]*\)\s*\{' -or
@@ -127,9 +141,24 @@ try {
         '-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-const-variable','-Wno-unused-but-set-variable',
         '-Wno-missing-field-initializers','-Wno-format-truncation','-Wno-pointer-sign',
         "-I$compilerDir/include",'-Irelease/include','-Ilib/xrt','-Ilib/xruntime','-I.')
+    $compilerObjects = $objects
+    $projection = Join-Path $work 'projection-contract.exe'
+    $null = Check 'projection-contract-build' $gcc ($flags+@('test/cases/xlir_string_projection_outcome_contract.c')+
+        $compilerObjects+@('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$projection))
+    foreach ($entry in @(@('projection','test/cases/xlir_string_projection_outcome.xl'),
+                         @('value-ownership','test/cases/cgen_string_value_ownership.xl'))) {
+        if ((Check "$($entry[0])-contract" $projection @($entry[1])) -notmatch 'immediate single observations; missing outcomes reject C and header') {
+            throw 'String projection outcome contract incomplete'
+        }
+    }
+    if ((Check 'projection-oom-jit' $driver @('test/cases/xlir_string_projection_outcome.xl','run',
+            (Join-Path $work 'projection-jit'))) -notmatch '128 checked cases passed') {throw 'Projection JIT oracle incomplete'}
+    $projectionAot = Join-Path $work 'projection-aot'
+    $null = Check 'projection-aot-build' $driver @('test/cases/xlir_string_projection_outcome.xl','exe',$projectionAot)
+    if ((Check 'projection-oom-aot' "$projectionAot.exe" @()) -notmatch '128 checked cases passed') {throw 'Projection AOT oracle incomplete'}
     $native = Join-Path $work 'native.exe'
     $null = Check 'native-build' $gcc ($flags+@('-include',"$module.c",'test/cases/xlir_string_bridge_abi_host.c')+
-        $objects+@('-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$native))
+        $objects+@('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$native))
     $nativeOutput = Check 'native' $native @()
     if ($nativeOutput -notmatch 'string join allocation failures ok' -or
         $nativeOutput -notmatch 'string join threads ok: 2000 rounds' -or
@@ -145,13 +174,11 @@ try {
     if ($repeatC -notmatch 'xl6TextRepeatV1\(' -or $repeatC -match 'xl6Text(?:Replace|Split|Join)V1\(') {throw 'Repeat-only calls are not minimal'}
     $repeatExe = Join-Path $work 'repeat.exe'
     $null = Check 'repeat-strict-build' $gcc ($flags+@('-include',"$repeat.c",'test/cases/xlir_string_repeat_host.c')+
-        $objects+@('-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$repeatExe))
+        $objects+@('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$repeatExe))
     if ((Check 'repeat-native' $repeatExe @()) -notmatch '600 cases, 300 real allocation failures, balanced memory') {throw 'Repeat native oracle incomplete'}
     $contract = Join-Path $work 'contract.exe'
-    $compilerObjects = @($build.Objects | Where-Object {[IO.Path]::GetFileName($_.Path) -ne 'xlir_public_source_driver.o'} | ForEach-Object Path)
     $null = Check 'contract-build' $gcc ($flags+@('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_text_value_contract.c')+
         $compilerObjects+@('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$contract))
-    Copy-Item -LiteralPath release/xl.dll -Destination (Join-Path $work 'xl.dll')
     $literal = Join-Path $work 'literal-span.exe'
     $null = Check 'literal-build' $gcc ($flags+@('test/cases/xlir_literal_span_contract.c')+
         $compilerObjects+@('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$literal))
@@ -193,7 +220,7 @@ try {
     $interpolation = Join-Path $work 'interpolation-native.exe'
     $null = Check 'interpolation-strict-build' $gcc ($flags+@('-include',(Join-Path $work 'interpolation-default.c'),
         'test/cases/xlir_string_interpolation_host.c')+$objects+
-        @('-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$interpolation))
+        @('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$interpolation))
     $null = Check 'interpolation-native' $interpolation @()
     for ($point=0; $point -le 256; ++$point) {
         $output = Check "interpolation-oom-$point" $interpolation @("$point")
@@ -203,7 +230,7 @@ try {
     $nested = Join-Path $work 'nested-literals-native.exe'
     $null = Check 'nested-literals-strict-build' $gcc ($flags+@('-include',(Join-Path $work 'nested-literals-default.c'),
         'test/cases/xlir_string_interpolation_host.c')+$objects+
-        @('-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$nested))
+        @('release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$nested))
     $null = Check 'nested-literals-native' $nested @()
     for ($point=0; $point -le 512; ++$point) {
         $output = Check "nested-literals-oom-$point" $nested @("$point")
