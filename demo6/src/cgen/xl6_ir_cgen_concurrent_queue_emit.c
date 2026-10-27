@@ -91,8 +91,10 @@ static int xl6IrCgenEmitConcurrentQueueRuntime(XL6_Output* out,const XL6_IrModul
     const char* prefix=xl6IrCgenConcurrentQueuePrefix(family);
     const char* method=xl6IrCgenConcurrentQueueMethod(family,instruction->runtimeOp);
     const char* descriptor=xl6IrCgenNativeSlotTypeExpr(plan->slotAbi);
-    bool closure=plan->codecAbi==XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1;
-    const char* slotType=closure ? "xvalue*" : xl6IrCgenType(module,instruction->payloadType);
+    XL6_IrChannelValuePlan valuePlan={0};
+    if (!xl6IrChannelValuePlanFromSchema(module,schemaId,&valuePlan)) return -1;
+    bool encoded=plan->codecAbi!=XL6_IR_SEQUENCE_CODEC_DIRECT;
+    const char* slotType=encoded ? "xvalue*" : xl6IrCgenType(module,instruction->payloadType);
     if (!prefix || !method || !descriptor || !slotType || !payload || !result) return -1;
     unsigned output=(unsigned)instruction->result;
     unsigned first=(unsigned)module->operands[instruction->firstOperand];
@@ -116,14 +118,13 @@ static int xl6IrCgenEmitConcurrentQueueRuntime(XL6_Output* out,const XL6_IrModul
             output,prefix,method,ownerIdentity,first,output);
         break;
     case XL6_IR_RUNTIME_SPECIAL_QUEUE_TRY_PUSH:
-        if (closure) {
-            const XL6_IrType* base=xl6IrTypeGet(&module->types,plan->baseElementType);
+        if (encoded) {
+            char source[24];snprintf(source,sizeof(source),"v%u",second);
+            if (xl6IrCgenChannelValueEncode(out,module,&valuePlan,source,"queue_slot")<0) return -1;
             xl6OutputPrintf(out,
-                "      xvalue* queue_slot = v%u != NULL ? xlir_closure_to_xvalue_scalar(v%u, xlir_xcall_entry_t%u, 0x%016llXULL) : xrtValueRetain(xrtValueNull());\n"
                 "      if (queue_slot == NULL) { v%u = XQUEUE_ERROR; xl6ErrorScopeCaptureFailure(&queue_scope); }\n"
                 "      else v%u = %s%s(v%u, 0x%016llXULL, 0x%016llXULL, sizeof(%s), %s, &queue_slot);\n"
                 "      xrtValueRelease(queue_slot);\n",
-                second,second,(unsigned)plan->baseElementType,(unsigned long long)base->typeValueId,
                 output,output,prefix,method,first,ownerIdentity,elementIdentity,slotType,descriptor);
         } else xl6OutputPrintf(out,
             "      v%u = %s%s(v%u, 0x%016llXULL, 0x%016llXULL, sizeof(%s), %s, &v%u);\n",
@@ -135,14 +136,14 @@ static int xl6IrCgenEmitConcurrentQueueRuntime(XL6_Output* out,const XL6_IrModul
     case XL6_IR_RUNTIME_WAIT_QUEUE_POP_TIMEOUT: {
         bool tagged=xl6IrOptionalResultPayloadTagged(module,result->params[1],instruction->payloadType)!=0;
         if(tagged)xl6OutputPrintf(out,"      v%u.e1.hasValue = true;\n",output);
-        if (closure) xl6OutputPuts("      xvalue* queue_slot = NULL;\n",out);
+        if (encoded) xl6OutputPuts("      xvalue* queue_slot = NULL;\n",out);
         if(family==XL6_IR_RUNTIME_RESOURCE_WAIT_QUEUE) {
             const XL6_IrWaitQueueReceiveSpec* spec=xl6IrWaitQueueReceiveRuntime(instruction->runtimeOp);
             if(!spec)return -1;
             xl6OutputPrintf(out,"      XL6_ChannelStatusV1 queue_status = XL6_CHANNEL_EMPTY_V1;\n"
                 "      bool queue_ok = xl6WaitQueueReceiveV1(v%u, 0x%016llXULL, 0x%016llXULL, %s,\n"
                 "          (XL6_ChannelSlotV1){",first,ownerIdentity,elementIdentity,descriptor);
-            if(closure)xl6OutputPuts("&queue_slot",out);
+            if(encoded)xl6OutputPuts("&queue_slot",out);
             else xl6OutputPrintf(out,"&v%u.e1%s",output,tagged?".value":"");
             xl6OutputPrintf(out,", sizeof(%s)}, (XL6_ChannelWaitV1)%u, ",slotType,spec->waitMode);
             if(spec->timed)xl6OutputPrintf(out,"v%u",second);else xl6OutputPuts("0",out);
@@ -152,15 +153,15 @@ static int xl6IrCgenEmitConcurrentQueueRuntime(XL6_Output* out,const XL6_IrModul
         } else {
             xl6OutputPrintf(out,"      v%u.e0 = %s%s(v%u, 0x%016llXULL, 0x%016llXULL, sizeof(%s), %s, ",
             output,prefix,method,first,ownerIdentity,elementIdentity,slotType,descriptor);
-        if (closure) xl6OutputPuts("&queue_slot);\n",out);
+        if (encoded) xl6OutputPuts("&queue_slot);\n",out);
         else xl6OutputPrintf(out,"&v%u.e1%s);\n",output,tagged ? ".value" : "");
         xl6OutputPrintf(out,"      if (v%u.e0 == XQUEUE_ERROR) xl6ErrorScopeCaptureFailure(&queue_scope);\n",output);
         }
-        if (closure) {
-            xl6OutputPrintf(out,
-                "      if (v%u.e0 == XQUEUE_OK && !xlir_xvalue_project_closure_try_copy_into(queue_slot, (void (*)(void))xlir_xvalue_closure_entry_t%u, %s, &v%u.e1)) xl6ErrorScopeCaptureFailure(&queue_scope);\n"
-                "      xrtValueRelease(queue_slot);\n",
-                output,(unsigned)plan->baseElementType,plan->nullable ? "true" : "false",output);
+        if (encoded) {
+            char target[32];snprintf(target,sizeof(target),"v%u.e1%s",output,tagged ? ".value" : "");
+            xl6OutputPrintf(out,"      if (v%u.e0 == XQUEUE_OK) {\n",output);
+            if (xl6IrCgenChannelValueDecode(out,module,&valuePlan,"queue_slot",target,"queue_scope")<0) return -1;
+            xl6OutputPuts("      }\n      xrtValueRelease(queue_slot);\n",out);
         }
         break;
     }

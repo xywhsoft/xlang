@@ -1,0 +1,117 @@
+extern "owned_task_text" @owned func Text(c_int mode) as string
+extern "owned_debug" @no_raise func debug() as bool
+extern "owned_fail_after" @no_raise func failAfter(int count)
+extern "owned_clear_failure" @no_raise func clearFailure()
+extern "owned_outstanding" @no_raise func live() as int
+func failure() as error
+    try
+        Text(c_int(-1))
+    catch e
+        return e
+    end
+    throw ValueError "expected failure"
+end
+func check(error? value)
+    assert value!=null
+    if value!=null
+        assert value.message!=""
+    end
+end
+func useSpscQueue(error seed)
+    SpscQueue<error?> queue=SpscQueue::<error?>(4)
+    assert queue.tryPush(seed)==queueStatus.ok
+    auto status,item=queue.tryPop()
+    assert status==queueStatus.ok
+    check(item)
+    array<error?> input=[null,seed]
+    auto pushed,count=queue.pushBatch(input)
+    assert pushed==queueStatus.ok and count==2
+    auto absentStatus,absent=queue.tryPop()
+    assert absentStatus==queueStatus.ok and absent==null
+    auto presentStatus,present=queue.tryPop()
+    assert presentStatus==queueStatus.ok
+    check(present)
+    assert queue.tryPush(seed)==queueStatus.ok
+    assert queue.tryPush(null)==queueStatus.ok
+    auto batchStatus,output=queue.popBatch(2)
+    assert batchStatus==queueStatus.ok and output.length==2
+    check(output[0])
+    assert output[1]==null
+end
+func useMpscQueue(error seed)
+    MpscQueue<error?> queue=MpscQueue::<error?>(4)
+    assert queue.tryPush(seed)==queueStatus.ok
+    auto status,item=queue.tryPop()
+    assert status==queueStatus.ok
+    check(item)
+    array<error?> input=[null,seed]
+    auto pushed,count=queue.pushBatch(input)
+    assert pushed==queueStatus.ok and count==2
+    auto absentStatus,absent=queue.tryPop()
+    assert absentStatus==queueStatus.ok and absent==null
+    auto presentStatus,present=queue.tryPop()
+    assert presentStatus==queueStatus.ok
+    check(present)
+    assert queue.tryPush(seed)==queueStatus.ok
+    assert queue.tryPush(null)==queueStatus.ok
+    auto batchStatus,output=queue.popBatch(2)
+    assert batchStatus==queueStatus.ok and output.length==2
+    check(output[0])
+    assert output[1]==null
+end
+func useMpmcQueue(error seed)
+    MpmcQueue<error?> queue=MpmcQueue::<error?>(4)
+    assert queue.tryPush(seed)==queueStatus.ok
+    auto status,item=queue.tryPop()
+    assert status==queueStatus.ok
+    check(item)
+    array<error?> input=[null,seed]
+    auto pushed,count=queue.pushBatch(input)
+    assert pushed==queueStatus.ok and count==2
+    auto absentStatus,absent=queue.tryPop()
+    assert absentStatus==queueStatus.ok and absent==null
+    auto presentStatus,present=queue.tryPop()
+    assert presentStatus==queueStatus.ok
+    check(present)
+    assert queue.tryPush(seed)==queueStatus.ok
+    assert queue.tryPush(null)==queueStatus.ok
+    auto batchStatus,output=queue.popBatch(2)
+    assert batchStatus==queueStatus.ok and output.length==2
+    check(output[0])
+    assert output[1]==null
+end
+func useChannel(error seed)
+    channel<error?> pipe=channel::<error?>(2)
+    assert pipe.send(seed) and pipe.send(null)
+    auto status,item=pipe.recv()
+    assert status==channelStatus.ok
+    check(item)
+    auto status2,absent=pipe.recv()
+    assert status2==channelStatus.ok and absent==null
+    pipe.close()
+end
+func exercise(error seed)
+    useSpscQueue(seed)
+    useMpscQueue(seed)
+    useMpmcQueue(seed)
+    useChannel(seed)
+end
+error seed=failure()
+exercise(seed)
+assert debug()
+int accepted=0
+int rejected=0
+// Synchronous transports have no worker-retirement ambiguity in this ledger.
+for prefix in range(160)
+    int before=live()
+    failAfter(prefix)
+    try
+        exercise(seed)
+        accepted+=1
+    catch problem
+        rejected+=1
+    end
+    clearFailure()
+    assert live()==before
+end
+assert accepted>0 and rejected>0

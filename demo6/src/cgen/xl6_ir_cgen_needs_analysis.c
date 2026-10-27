@@ -701,13 +701,7 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
             if (!xl6IrChannelValuePlanBuild(module,channelId,&message)) return 0;
             if (xl6IrChannelSendSpecRuntime(module->instructions[i].runtimeOp) ||
                 xl6IrChannelReceiveSpecRuntime(module->instructions[i].runtimeOp)) {
-                if (message.codecAbi==XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1) {
-                    needs->needsXValueClosureBridgeRuntime=1;
-                    needs->needsXValueClosureProjectionRuntime=1;
-                    needs->needsClosureRuntime=1;needs->needsXCallRuntime=1;
-                } else if (message.codecAbi==XL6_IR_SEQUENCE_CODEC_UNION_VALUE_V1) {
-                    needs->needsXValueUnionRuntime=1;needs->needsRuntimeTrap=1;
-                }
+                xl6IrCgenRequireValueCodecNeeds(needs,message.codecAbi,true,true);
             }
             needs->needsForeignErrorRuntime=1;
             needs->needsNominalIdentityRuntime=1;
@@ -730,12 +724,12 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
                 if (!schema) return 0;
                 if (module->instructions[i].runtimeOp==XL6_IR_RUNTIME_SPECIAL_QUEUE_CREATE &&
                     !xl6IrCgenAnalyzeSequenceRecipeNeeds(module,queue->messageSchemaType,needs,0)) return 0;
-                if (schema->sequenceLayout.codecAbi==XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1) {
-                    needs->needsXValueClosureBridgeRuntime=1;
-                    needs->needsXValueClosureProjectionRuntime=1;
-                    needs->needsClosureRuntime=1;
-                    needs->needsXCallRuntime=1;
-                }
+                bool scalarInput=module->instructions[i].runtimeOp==XL6_IR_RUNTIME_SPECIAL_QUEUE_TRY_PUSH;
+                bool scalarOutput=module->instructions[i].runtimeOp==XL6_IR_RUNTIME_CONCURRENT_QUEUE_TRY_POP ||
+                    xl6IrWaitQueueReceiveRuntime(module->instructions[i].runtimeOp)!=NULL;
+                bool closure=schema->sequenceLayout.codecAbi==XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1;
+                xl6IrCgenRequireValueCodecNeeds(needs,schema->sequenceLayout.codecAbi,
+                    closure || scalarInput,closure || scalarOutput);
                 needs->needsForeignErrorRuntime=1;
                 needs->needsNominalIdentityRuntime=1;
             } else return 0; /* No legacy generated queue fallback. */
