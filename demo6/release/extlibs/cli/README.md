@@ -1,5 +1,11 @@
 # cli
 
+2026-10-28 最小复验：不导入 CLI、只调用 `os.args()` 的源文件也在
+Windows run/build 与 Linux run 报 `xl6_xrt_os_args` 未解析，Windows
+`check` 则通过。最小源、运行时符号注册位置和修复验收边界见
+[专项记录](../../../dev/extlib_blockers/cli_os_args_symbol.md)。本包不
+为标准库入口增加替代实现；以下 C 通过记录不等于完整语言签收。
+
 `cli` 将参数数组按声明解析为旗标、选项和位置参数。XLang 使用 `import cli`；
 C 使用 `include/cli_native.h`，调用方以 `xrtValueRelease` 释放 `xcli_parse`
 返回的结果。解析不读取进程参数；只有显式调用 `cli.parseOs(spec)` 才读取。

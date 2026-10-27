@@ -1,0 +1,5 @@
+// 不导入扩展库，单独固定 cli.parseOs 所依赖的标准库入口。
+func main(...) as int
+    var args = os.args()
+    return 0
+end
