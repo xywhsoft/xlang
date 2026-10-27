@@ -1,7 +1,8 @@
 # op
 
 2026-10-27：公开调用层的文本结果统一声明为 XRT 分配的 `char *`；
-XLang extern 使用 `@owned ... as string?` 直接接管内存，空指针仍映射为空字符串。
+XLang extern 使用 `@owned ... as string` 直接接管内存；空指针视为错误，
+不把它当作正常空字符串。
 C 调用方继续以 `xrtFree` 释放结果。本轮只验证包级调用与所有权，
 不扩大设备、驱动和 hook 的测试范围。
 
