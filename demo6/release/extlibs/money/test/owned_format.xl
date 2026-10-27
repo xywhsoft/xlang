@@ -1,5 +1,9 @@
 import money
 
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
 func main(...) as int
     string first = money.format(123456, "usd")
     string second = money.format(123, "RUB")
@@ -15,5 +19,22 @@ func main(...) as int
         invalid = true
     end
     assert invalid
+
+    int failures = 0
+    int successes = 0
+    for allocation in range(16)
+        bool memoryCaught = false
+        assert failAfter(uint64(allocation))
+        try
+            money.format(123, "USD")
+        catch MemoryError error
+            memoryCaught = true
+        end
+        bool triggered = failTriggered()
+        failClear()
+        assert memoryCaught == triggered, "money format fault classification"
+        if triggered then failures += 1 else successes += 1 end
+    end
+    assert failures > 0 and successes > 0
     return 0
 end
