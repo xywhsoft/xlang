@@ -1,2 +1,2 @@
 #include <stdint.h>
-void xlir_pkg_increment(int64_t* value) { ++*value; }
+int64_t xlir_pkg_increment(int64_t value) { return value + 1; }
