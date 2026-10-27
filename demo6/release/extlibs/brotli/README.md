@@ -1,5 +1,12 @@
 # Brotli
 
+2026-10-27 使用当前源码重建 Windows 发布版后，默认
+`tools/check_extlib_brotli.ps1` 退出 0：严格 C、分配故障、原生入口
+访问负例、外部 Brotli 流夹具、生成原型、语言 JIT/AOT、C/XLang
+范例同输出，以及事务文件分配故障的 C/JIT/AOT 均通过。
+这是 Windows x64 的包级短时验收；本次未重跑 Linux、32 位、TSan
+或长时压力，不据此签收这些范围。
+
 Brotli 1.1.0 后端，提供一次性 Buffer/UTF-8 文本、增量流和事务文件接口。
 压缩输出直接是标准 Brotli 字节流，不附加私有帧头、结束记录或校验码。
 该包依赖宿主 XRT/xruntime，不需要另外安装 Brotli 动态库。

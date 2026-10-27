@@ -25,8 +25,7 @@
   <header class="extlib-head">
     <p><a href="../extlibs.html">扩展库</a> / brotli</p>
     <div class="extlib-title-row"><h1>brotli</h1><span class="extlib-cat-badge">压缩</span></div>
-    <p>文件 OOM 修复已同步到包源码。2026-10-17 当前 <code>release/xl.exe</code> 使用该源码时，JIT 与生成的 AOT 程序均通过逐分配点故障扫描，验证目标文件保留及临时文件清理。
-    当前 <code>xl.dll</code>/<code>xlc.dll</code> 的公开 C 源码执行宿主亦通过同一故障夹具；旧预编译程序未复验，纯 VFS 仍沿用此前隔离候选专项结果。</p>
+    <p>2026-10-27 使用当前源码重建 Windows 发布版后，完整包级门禁通过严格 C、分配故障、外部 Brotli 流夹具、生成原型、语言 JIT/AOT、C/XLang 范例同输出，以及事务文件分配故障的 C/JIT/AOT。<code>xl.dll</code>/<code>xlc.dll</code> 的公开 C 源码执行宿主另有既往专项验证；本次未重跑 Linux、32 位、TSan 或长时压力。</p>
     <p class="extlib-lead">标准 Brotli 字节流、UTF-8 文本、增量处理与事务文件。内嵌 Brotli 1.1.0 后端，复用宿主 XRT/xruntime，无需安装 Brotli 动态库。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api">
