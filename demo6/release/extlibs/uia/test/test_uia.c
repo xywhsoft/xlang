@@ -6,8 +6,10 @@
 
 typedef struct XUiaThreadCheck {
 	void* root;
+	void* events;
 	int valid;
 	int shutdown;
+	int release_events;
 	void* desktop;
 } XUiaThreadCheck;
 
@@ -16,6 +18,7 @@ static DWORD WINAPI x_uia_check_other_thread(void* context)
 	XUiaThreadCheck* check = (XUiaThreadCheck*)context;
 	check->valid = x_uia_element_valid(check->root);
 	check->shutdown = x_uia_shutdown();
+	check->release_events = x_uia_events_release(check->events);
 	check->desktop = x_uia_desktop();
 	return 0;
 }
@@ -275,10 +278,15 @@ int main(void)
 	if ( x_uia_shutdown() != 0 ) { goto cleanup; }
 	memset(&threadCheck, 0, sizeof(threadCheck));
 	threadCheck.root = pRoot;
+	pEvents = x_uia_events_create();
+	if ( pEvents == NULL ) { goto cleanup; }
+	threadCheck.events = pEvents;
 	worker = CreateThread(NULL, 0, x_uia_check_other_thread, &threadCheck, 0, NULL);
 	if ( worker == NULL || WaitForSingleObject(worker, 2000u) != WAIT_OBJECT_0 ||
-		threadCheck.valid != 0 || threadCheck.shutdown != 0 || threadCheck.desktop != NULL ||
-		!x_uia_element_valid(pRoot) ) { goto cleanup; }
+		threadCheck.valid != 0 || threadCheck.shutdown != 0 || threadCheck.release_events != 0 ||
+		threadCheck.desktop != NULL || !x_uia_element_valid(pRoot) ||
+		!x_uia_events_valid(pEvents) || !x_uia_events_release(pEvents) ) { goto cleanup; }
+	pEvents = NULL;
 	for ( int i = 0; i < 8; ++i ) {
 		pEvents = x_uia_events_create();
 		if ( pEvents == NULL || !x_uia_events_subscribe_focus_changed(pEvents) ||

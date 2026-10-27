@@ -47,6 +47,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File extlibs/uia/test/check.ps1 -
 
 已通过完整 XLang 范例、C/XLang 同输出范例、空事件轮询、整数 ABI 边界、自动/显式析构、TCC C 冒烟和独立 GCC/XRT C 构建。另覆盖 Win64 `VARIANT` ABI、严格 UTF-8、五个文本入口的 NUL 拒绝、子条件提前释放、跨线程拒绝、活跃句柄阻止卸载、真实焦点回调及短轮次事件订阅/释放。测试只操作包自己创建的窗口。
 
+2026-10-27：`Events.release()` 和 `TestWindow.release()` 现在仅在原生释放成功后清空句柄。COM 退订失败或自建窗口线程退出超时时，调用方仍可重试；`TestWindow` 的显式释放和自然析构不再重复关闭窗口。C 回归覆盖跨线程释放事件队列失败后，所有者仍可用同一句柄成功释放；Windows 完整 `-StrictC` 门禁的 C、JIT 和独立 AOT 均通过。
+
 2026-10-26：焦点事件补 XLang 具名回调用例，确认事件 JSON 和回调返回值均能穿过 `poll_callback`；空队列不调用回调，回调抛错后事件句柄仍可释放。JIT 与独立 AOT 运行结果一致，完整 `-StrictC` 包门禁通过。这里验证的是“UIA 原生事件入队，再由 XLang 主动轮询并调用函数”，不是 UIA 在事件线程直接调用 XLang。
 
 尚未覆盖真实桌面应用的权限隔离、DPI、远程会话和不同 Windows 版本，以及事件长期压力；单线程是明确的 API 限制，不支持同一 UIA 上下文的并行调用。旧构建曾缺 `xl6ValueDataSnapshotV1`，当前完整 XLang AOT 门禁已通过。

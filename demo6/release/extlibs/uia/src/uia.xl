@@ -194,20 +194,16 @@ class TestWindow
 		if self.handle == null then
 			return false
 		end
-		if x_uia_test_window_close(self.handle) == 0 then
+		if x_uia_test_window_release(self.handle) == 0 then
 			return false
 		end
-		point released = self.handle
 		self.handle = null
-		return x_uia_test_window_release(released) != 0
+		return true
 	end
 
 	destroy()
 		if self.handle != null then
-			if x_uia_test_window_close(self.handle) != 0 then
-				point released = self.handle
-				x_uia_test_window_release(released)
-			end
+			x_uia_test_window_release(self.handle)
 		end
 	end
 end
@@ -443,9 +439,11 @@ class Events
 		if self.handle == null then
 			return false
 		end
-		point released = self.handle
+		if x_uia_events_release(self.handle) == 0 then
+			return false
+		end
 		self.handle = null
-		return x_uia_events_release(released) != 0
+		return true
 	end
 
 	destroy()
