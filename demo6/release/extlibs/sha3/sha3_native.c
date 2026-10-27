@@ -52,7 +52,7 @@ static char* sha3_hex_owned_space(size_t size, uint8** digest)
     *digest = text != NULL ? (uint8*)text + size * 2 + 1 : NULL;
     return text;
 }
-static void* sha3_hex_owned_finish(char* text, const uint8* digest, size_t size, bool ok)
+static char* sha3_hex_owned_finish(char* text, const uint8* digest, size_t size, bool ok)
 {
     size_t written;
     xerror* error;
@@ -119,7 +119,7 @@ static const char* sha3_hex_once(const void* data, size_t size, int bits, bool s
                  xrtSha3Hash(data, size, bits, digest, length, NULL);
     return ok ? sha3_hex_finish(digest, length, text) : "";
 }
-static void* sha3_hex_once_owned(const void* data, size_t size, int bits, bool shake, size_t length)
+static char* sha3_hex_once_owned(const void* data, size_t size, int bits, bool shake, size_t length)
 {
     uint8* digest;
     char* text;
@@ -147,9 +147,9 @@ const char* xsha3_hash_hex(void* data, size_t size, int bits)
 { return sha3_hex_once(data, size, bits, false, 0); }
 const char* xsha3_hash_str_hex(const char* data, size_t size, int bits)
 { return sha3_hex_once(data, size, bits, false, 0); }
-void* xsha3_hash_hex_owned(void* data, size_t size, int bits)
+char* xsha3_hash_hex_owned(void* data, size_t size, int bits)
 { return sha3_hex_once_owned(data, size, bits, false, 0); }
-void* xsha3_hash_str_hex_owned(const char* data, size_t size, int bits)
+char* xsha3_hash_str_hex_owned(const char* data, size_t size, int bits)
 { return sha3_hex_once_owned(data, size, bits, false, 0); }
 void* xsha3_hash_bytes(void* data, size_t size, int bits)
 { return sha3_bytes_once(data, size, bits, false, 0); }
@@ -159,9 +159,9 @@ const char* xshake_hash_hex(void* data, size_t size, int strength, size_t length
 { return sha3_hex_once(data, size, strength, true, length); }
 const char* xshake_hash_str_hex(const char* data, size_t size, int strength, size_t length)
 { return sha3_hex_once(data, size, strength, true, length); }
-void* xshake_hash_hex_owned(void* data, size_t size, int strength, size_t length)
+char* xshake_hash_hex_owned(void* data, size_t size, int strength, size_t length)
 { return sha3_hex_once_owned(data, size, strength, true, length); }
-void* xshake_hash_str_hex_owned(const char* data, size_t size, int strength, size_t length)
+char* xshake_hash_str_hex_owned(const char* data, size_t size, int strength, size_t length)
 { return sha3_hex_once_owned(data, size, strength, true, length); }
 void* xshake_hash_bytes(void* data, size_t size, int strength, size_t length)
 { return sha3_bytes_once(data, size, strength, true, length); }
@@ -245,7 +245,7 @@ const char* xsha3_hasher_digest_hex(void* handle, size_t length)
     return text != NULL && xrtSha3HasherDigest(handle, digest, length) ?
         sha3_hex_finish(digest, length, text) : "";
 }
-void* xsha3_hasher_digest_hex_owned(void* handle, size_t length)
+char* xsha3_hasher_digest_hex_owned(void* handle, size_t length)
 {
     uint8* digest;
     char* text;
