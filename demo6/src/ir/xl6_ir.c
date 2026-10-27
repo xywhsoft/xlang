@@ -14185,6 +14185,46 @@ int xl6IrBuildDynamicBoundSignatures(XL6_IrModule* module,XL6_DiagList* diags)
         xl6IrDiag(diags,NULL,"XLIR bound signature has no finalized result representation");
 }
 
+/* Keep the source method's authenticated signature while its existing typed
+ * Value entry supplies the shorter argument vector. Defaults stay in the
+ * existing method dispatcher; no extra closure, creator or invocation layer. */
+XL6_IrTypeId xl6IrBoundMethodCastIdentityType(
+    const XL6_IrModule* module,const XL6_IrInstruction* instruction)
+{
+    if (!module || !instruction || instruction->runtimeOp!=XL6_IR_RUNTIME_XVALUE_CLOSURE_CAST_CHECKED ||
+        instruction->castAbi!=XL6_IR_CAST_XVALUE_TO_CLOSURE_CHECKED) return XL6_IR_TYPE_INVALID;
+    XL6_IrNodeId sourceId=instruction->contextualCastSource;
+    const XL6_IrNode* origin=xl6IrNodeGet(module,instruction->origin);
+    if (!sourceId && origin && origin->sourceKind==XL6_AST_TYPE_AS && origin->childCount)
+        sourceId=module->children[origin->firstChild];
+    const XL6_IrIntrinsicCall* intrinsic=xl6IrIntrinsicCallGet(module,instruction->origin);
+    if (!sourceId && intrinsic && intrinsic->kind==XL6_IR_INTRINSIC_CHECKED_XVALUE_CONVERT &&
+        intrinsic->operandCount==1 && intrinsic->firstOperand<module->intrinsicOperandCount)
+        sourceId=module->intrinsicOperands[intrinsic->firstOperand].expression;
+    const XL6_IrNode* source=xl6IrNodeGet(module,sourceId);
+    const XL6_IrType* target=xl6IrTypeGet(&module->types,instruction->type);
+    if (!source || source->kind!=XL6_IR_NODE_MEMBER || source->sourceKind!=XL6_AST_MEMBER ||
+        source->childCount!=1 || !source->text || !target || target->kind!=XL6_IR_TYPE_FUNCTION ||
+        target->callableErasureAbi!=XL6_IR_CALLABLE_ERASURE_FIXED) return XL6_IR_TYPE_INVALID;
+    const XL6_IrNode* receiver=xl6IrNodeGet(module,module->children[source->firstChild]);
+    XL6_IrTypeId owner=receiver ? (receiver->type ? receiver->type : receiver->storageType) : 0;
+    for (size_t i=0;i<module->dynamicMethodCount;++i) {
+        const XL6_IrDynamicMethod* method=&module->dynamicMethods[i];
+        if (method->kind!=XL6_IR_DYNAMIC_CALL_METHOD || method->adapterAbi!=XL6_IR_DYNAMIC_METHOD_ADAPTER_VERIFIED ||
+            method->ownerType!=owner || !method->name || strcmp(method->name,source->text) ||
+            !method->boundSignatureType || target->paramCount>=method->parameterCount ||
+            method->variadicAbi!=XL6_IR_CALL_VARIADIC_NONE) continue;
+        const XL6_IrNode* declaration=xl6IrNodeGet(module,method->declaration);
+        const XL6_IrNode* params=declaration && declaration->childCount>2 ?
+            xl6IrNodeGet(module,module->children[declaration->firstChild+1]) : NULL;
+        const XL6_IrNode* returns=declaration && declaration->childCount>2 ?
+            xl6IrNodeGet(module,module->children[declaration->firstChild+2]) : NULL;
+        if (params && returns && xl6IrNamedCallableSignatureMatches(module,instruction->type,
+            params,returns,XL6_IR_CALLABLE_ERASURE_FIXED,source)) return method->boundSignatureType;
+    }
+    return XL6_IR_TYPE_INVALID;
+}
+
 static int xl6IrBuildDynamicMethodAppend(
     XL6_IrModule* module, const XL6_IrClassLayout* layout,
     XL6_IrNodeId declaration)
@@ -41069,7 +41109,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         instruction->runtimeOp ==
                             XL6_IR_RUNTIME_XVALUE_PROJECT_XVALUE_RETAIN ||
                         instruction->runtimeOp ==
-                            XL6_IR_RUNTIME_XVALUE_PROJECT_ERROR_REF)) &&
+                            XL6_IR_RUNTIME_XVALUE_PROJECT_ERROR_REF ||
+                        instruction->runtimeOp ==
+                            XL6_IR_RUNTIME_XVALUE_CLOSURE_CAST_CHECKED)) &&
                      ((instruction->kind == XL6_IR_INSTR_RUNTIME_CALL &&
                        (instruction->runtimeOp ==
                              XL6_IR_RUNTIME_XVALUE_TYPE_BIND ||
@@ -42844,7 +42886,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                : instruction->calleeType !=
                                      XL6_IR_TYPE_INVALID) ||
                              instruction->runtimeIdentityType !=
-                                 XL6_IR_TYPE_INVALID ||
+                                 (closure ? xl6IrBoundMethodCastIdentityType(module,instruction) : XL6_IR_TYPE_INVALID) ||
                              instruction->payloadType != instruction->type ||
                              resultType == NULL ||
                              resultType->kind == XL6_IR_TYPE_NULLABLE ||

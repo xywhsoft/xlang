@@ -1,0 +1,66 @@
+int receivers=0
+int defaults=0
+func defaultText() as string
+    defaults+=1
+    return "default"
+end
+class Box
+    string text="receiver"
+    func constant(string value=defaultText()) as string
+        return value
+    end
+    func prefix(string first,string second=first) as string
+        return second
+    end
+    func receiver(string value=self.text) as string
+        return value
+    end
+end
+func makeBox() as Box
+    receivers+=1
+    return Box()
+end
+func() as string first=makeBox().constant
+assert receivers==1
+assert first()=="default" and first()=="default" and defaults==2
+assert receivers==1
+Box box=Box()
+func(string) as string prefix=box.prefix
+assert prefix("prefix")=="prefix"
+func() as string selected=box.constant
+selected=box.receiver
+assert selected()=="receiver"
+class Child extends Box
+end
+Child child=Child()
+func() as string inherited=child.receiver
+assert inherited()=="receiver"
+func makeCallback() as func() as string
+    Box local=Box()
+    return local.receiver
+end
+func exercise()
+    func() as string saved=makeCallback()
+    assert saved()=="receiver"
+end
+exercise()
+extern "owned_debug" @no_raise func debug() as bool
+extern "owned_fail_after" @no_raise func failAfter(int count)
+extern "owned_clear_failure" @no_raise func clearFailure()
+extern "owned_outstanding" @no_raise func live() as int
+assert debug()
+int accepted=0
+int rejected=0
+for point in range(128)
+    int before=live()
+    failAfter(point)
+    try
+        exercise()
+        accepted+=1
+    catch problem
+        rejected+=1
+    end
+    clearFailure()
+    assert live()==before
+end
+assert accepted>0 and rejected>0

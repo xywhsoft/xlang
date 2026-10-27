@@ -7184,6 +7184,8 @@ int xl6IrBuildCallableBridges(XL6_IrModule* module, XL6_DiagList* diags);
 int xl6IrDynamicMethodScalarPlanForType(const XL6_IrModule*,XL6_IrTypeId,XL6_IrCallableBridgeResult*);
 int xl6IrBuildDynamicMethodScalarCodecs(XL6_IrModule*,XL6_DiagList*);
 int xl6IrBuildDynamicBoundSignatures(XL6_IrModule*,XL6_DiagList*);
+/* Authenticated full bound signature for a statically proved arity adapter. */
+XL6_IrTypeId xl6IrBoundMethodCastIdentityType(const XL6_IrModule*,const XL6_IrInstruction*);
 int xl6IrVerifyDynamicMethodScalarCodecs(const XL6_IrModule*,XL6_DiagList*);
 const XL6_IrCallableBridgeResult* xl6IrDynamicMethodScalarCodecGet(const XL6_IrModule*,size_t);
 const XL6_IrCallableBridge* xl6IrCallableBridgeGet(

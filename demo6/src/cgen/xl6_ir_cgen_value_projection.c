@@ -623,7 +623,7 @@ static int xl6IrCgenEmitXValueProjectionInstruction(
             (unsigned int)instruction->result);
     } else if ( instruction->runtimeOp ==
                 XL6_IR_RUNTIME_XVALUE_CLOSURE_CAST_CHECKED ) {
-        identity = xl6IrTypeGet(&module->types, instruction->payloadType);
+        identity = xl6IrTypeGet(&module->types, instruction->runtimeIdentityType ? instruction->runtimeIdentityType : instruction->payloadType);
         if ( identity == NULL ||
              !xl6IrCgenRuntimeCheckedClosureCastAbi(
                  module, instruction) ) return 0;
