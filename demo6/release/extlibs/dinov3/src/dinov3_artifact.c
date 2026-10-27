@@ -96,7 +96,7 @@ static bool dino_write_embedding(xjsonwriter* writer, void* handle, int count)
     return xrtJsonWriterEnd(writer);
 }
 
-static void* dino_json_take(xjsonwriter* writer, bool valid)
+static char* dino_json_take(xjsonwriter* writer, bool valid)
 {
     char* text = NULL;
     if (valid && xrtJsonWriterFinish(writer)) text = xrtJsonWriterTake(writer, NULL);
@@ -123,7 +123,7 @@ XL_EXPORT const char* dinov3_last_error_native(void)
     return text != NULL ? text : ort_last_error_native();
 }
 
-XL_EXPORT void* dinov3_embedding_json_native(void* result_handle)
+XL_EXPORT char* dinov3_embedding_json_native(void* result_handle)
 {
     xjsonwriteconfig config;
     xjsonwriter* writer;
@@ -144,7 +144,7 @@ XL_EXPORT void* dinov3_embedding_json_native(void* result_handle)
     return dino_json_take(writer, valid);
 }
 
-XL_EXPORT void* dinov3_output_json_native(void* result_handle, const char* source_path)
+XL_EXPORT char* dinov3_output_json_native(void* result_handle, const char* source_path)
 {
     xjsonwriteconfig config;
     xjsonwriter* writer;

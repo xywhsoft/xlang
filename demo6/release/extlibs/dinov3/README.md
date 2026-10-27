@@ -1,5 +1,9 @@
 # dinov3
 
+2026-10-27：两条 JSON 结果的 C 原型明确为拥有型 `char*`，XLang
+使用 `@owned string?` 直接接管 XRT writer 的分配；空结果仍抛
+`RuntimeError`。C 调用方继续以 `xrtFree` 释放，不涉及插件内部推理。
+
 2026-10-26 当前 Windows 发布版设置 `DINOV3_MODEL` 与
 `DINOV3_TEST_IMAGE` 后，完整门禁及 `-ParallelLive` 均退出 0。
 真实图片的 384 维嵌入在 C、XLang JIT、XLang 独立 EXE 间逐项

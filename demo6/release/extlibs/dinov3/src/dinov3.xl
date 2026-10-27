@@ -4,8 +4,8 @@ import onnxruntime
 extern "dinov3_version_native" func dinov3_version_native() as string
 extern "dinov3_available_native" func dinov3_available_native() as c_int
 extern "dinov3_last_error_native" func dinov3_last_error_native() as string
-extern "dinov3_embedding_json_native" func dinov3_embedding_json_raw_native(point result_handle) as point
-extern "dinov3_output_json_native" func dinov3_output_json_raw_native(point result_handle, string source_path) as point
+extern "dinov3_embedding_json_native" @owned func dinov3_embedding_json_raw_native(point result_handle) as string?
+extern "dinov3_output_json_native" @owned func dinov3_output_json_raw_native(point result_handle, string source_path) as string?
 extern "dinov3_l2_norm_native" func dinov3_l2_norm_native(point result_handle) as float
 extern "dinov3_cosine_native" func dinov3_cosine_native(point left_handle, point right_handle) as float
 extern "ort_session_run_tensor_fast_native" func dinov3_run_tensor_native(point session, string input_name, point tensor, string output_names) as point
@@ -14,16 +14,17 @@ extern "ort_result_float_shape_json_native" func dinov3_result_shape_native(poin
 extern "ort_result_float_count_native" func dinov3_result_count_native(point handle) as c_int
 extern "ort_result_float_at_native" func dinov3_result_at_native(point handle, c_int index) as float
 
+func dinov3_take_json(string? value) as string
+	if value == null then throw RuntimeError dinov3_last_error_native() end
+	return value
+end
+
 func dinov3_embedding_json_native(point result_handle) as string
-	point raw = dinov3_embedding_json_raw_native(result_handle)
-	if raw == null then throw RuntimeError dinov3_last_error_native() end
-	return __xl_runtime.takeCstr(raw)
+	return dinov3_take_json(dinov3_embedding_json_raw_native(result_handle))
 end
 
 func dinov3_output_json_native(point result_handle, string source_path) as string
-	point raw = dinov3_output_json_raw_native(result_handle, source_path)
-	if raw == null then throw RuntimeError dinov3_last_error_native() end
-	return __xl_runtime.takeCstr(raw)
+	return dinov3_take_json(dinov3_output_json_raw_native(result_handle, source_path))
 end
 
 func dinov3_require_output(point handle)
