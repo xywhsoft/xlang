@@ -1805,6 +1805,8 @@ static XL6_IrValueId xl6IrLowerOwnedStorageValue(
 static XL6_IrValueId xl6IrLowerAnchorEvaluationBorrow(
     XL6_IrLowerContext* ctx, XL6_IrNodeId origin,
     XL6_IrTypeId type, XL6_IrValueId owned);
+static int xl6IrLowerTryTypedBoundMethod(XL6_IrLowerContext*,XL6_IrNodeId,XL6_IrNodeId,XL6_IrTypeId,XL6_IrValueId*);
+
 static XL6_IrValueId xl6IrLowerCheckedXValueCastValue(
     XL6_IrLowerContext* ctx, XL6_IrNodeId id, const XL6_IrNode* control,
     XL6_IrNodeId sourceId, XL6_IrTypeId resultTypeId,
@@ -7160,8 +7162,15 @@ static XL6_IrValueId xl6IrLowerImplicitName(
     target=function ? xl6IrCallTargetGet(ctx->module,function->symbol) : NULL;
     /* Method default programs have a synthetic symbol but their verified
      * first input is still the borrowed receiver of the enclosing method. */
+    bool boundDefault=false;
+    if(function && function->kind==XL6_IR_FUNCTION_ARGUMENT_DEFAULT && function->defaultClosureSymbol)
+        for(size_t c=0;c<ctx->module->closureTargetCount;++c) {
+            const XL6_IrClosureTarget* closure=&ctx->module->closureTargets[c];
+            if(closure->targetSymbol==function->defaultClosureSymbol &&
+               closure->kind==XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER && closure->captureCount==1) {boundDefault=true;break;}
+        }
     bool methodDefault=function && function->kind==XL6_IR_FUNCTION_ARGUMENT_DEFAULT &&
-        !function->defaultClosureSymbol && function->parameterCount &&
+        (!function->defaultClosureSymbol || boundDefault) && function->parameterCount &&
         xl6IrLowerEnclosingClass(ctx->module,function->declaration)!=XL6_IR_NODE_INVALID;
     if (!function || !function->parameterCount || (!methodDefault &&
         (!target || !target->parameterCount || !target->parameterTypes || !target->parameterAbis ||
@@ -7170,7 +7179,8 @@ static XL6_IrValueId xl6IrLowerImplicitName(
         xl6IrLowerDiag(ctx,origin,"XLIR implicit name has no active borrowed receiver parameter ABI");
         return XL6_IR_VALUE_INVALID;
     }
-    receiverSymbol = ctx->module->functionParameters[function->firstParameter];
+    receiverSymbol = ctx->module->functionParameters[function->firstParameter +
+        (boundDefault ? function->parameterCount-1 : 0)];
     promotedStorage = xl6IrLowerPromotedParameterStorage(ctx, receiverSymbol);
     if ( promotedStorage != 0 ) receiverSymbol = promotedStorage;
     receiverStorage = xl6IrStorageGet(ctx->module, receiverSymbol);
@@ -7916,6 +7926,10 @@ static XL6_IrValueId xl6IrLowerCheckedXValueCastValue(
         xl6IrLowerDiag(ctx, id,
             "XLIR checked dynamic cast has no canonical exception transfer");
         return XL6_IR_VALUE_INVALID;
+    }
+    if(castAbi==XL6_IR_CAST_XVALUE_TO_CLOSURE_CHECKED) {
+        int bound=xl6IrLowerTryTypedBoundMethod(ctx,id,sourceId,resultTypeId,&result);
+        if(bound) return bound>0 ? result : XL6_IR_VALUE_INVALID;
     }
     source = xl6IrLowerNode(ctx, sourceId);
     source = xl6IrLowerBorrowRuntimeXValueOperand(
@@ -12494,7 +12508,8 @@ static XL6_IrClosureRawCallbackAbi xl6IrLowerClosureRawCallbackAbi(
              module, closure->signatureType) )
         return XL6_IR_CLOSURE_RAW_CALLBACK_NONE;
     target = xl6IrCallTargetGet(
-        module, closure->kind == XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER
+        module, (closure->kind == XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER ||
+                 closure->kind == XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER)
             ? closure->adaptedTargetSymbol : closure->targetSymbol);
     if ( target == NULL ) return XL6_IR_CLOSURE_RAW_CALLBACK_NONE;
     if ( target->errorAbi == XL6_IR_ERROR_ABI_NO_RAISE )
@@ -15866,6 +15881,7 @@ static int xl6IrLowerInferGenericCallTypeArgs(
         /* Infer from the exact value at the call boundary, not a NAME's wider
          * nullable storage. Lowering already materializes that flow projection. */
         actualType = xl6IrNodeMaterializedValueType(module, actual);
+        if(binding->source==XL6_IR_CALL_ARGUMENT_DEFAULT && xl6IrLowerTypeContainsTypeParam(module,actualType,0)) continue;
         if ( !xl6IrLowerUnifyGenericType(module, formal->storageType, actualType,
                                           parameters, parameterCount, resolved, 0) ) goto done;
     }
@@ -18582,6 +18598,8 @@ static int xl6IrLowerMaterializeGenericDynamicMethods(
 /* Calls, class protocols, loop protocols and the dynamic registry can each
  * append dependencies for another producer. Close one graph before physical
  * target registration, instead of relying on a fixed number of passes. */
+static int xl6IrLowerMaterializeTypedBoundMethods(XL6_IrLowerContext*);
+
 static int xl6IrLowerCloseGenericSpecializationGraph(XL6_IrLowerContext* ctx)
 {
     XL6_IrModule* module = ctx->module;
@@ -18596,7 +18614,8 @@ static int xl6IrLowerCloseGenericSpecializationGraph(XL6_IrLowerContext* ctx)
             !xl6IrLowerMaterializeGenericLoopProtocols(ctx) ||
             !xl6IrLowerMaterializeGenericNativeLifecycles(ctx) ||
             !xl6IrRefreshClassLayouts(module) || !xl6IrRefreshNominalIdentitySets(module) ||
-            !xl6IrLowerMaterializeGenericDynamicMethods(ctx) ) {
+            !xl6IrLowerMaterializeGenericDynamicMethods(ctx) ||
+            !xl6IrLowerMaterializeTypedBoundMethods(ctx) ) {
             if ( ctx->diags == NULL || ctx->diags->count == 0 )
                 xl6IrLowerDiag(ctx, module->root,
                     "XLIR generic dependency closure failed without diagnostic provenance");
@@ -27920,6 +27939,8 @@ static XL6_IrClosureTarget* xl6IrLowerRegisterNamedAdapter(
     return closure;
 }
 
+#include "src/ir/xl6_ir_bound_method.c"
+
 /* An owned operand is anchored before evaluating any later operand. The
  * borrowed runtime operation and its error edge consume only this explicit
  * lifetime, never a source-level ownership guess in Cgen. */
@@ -32782,6 +32803,11 @@ static int xl6IrLowerAddFunctionFailurePlan(XL6_IrLowerContext* ctx, XL6_IrNodeI
     XL6_IrModule* module = ctx->module;
     XL6_IrExitPlan* plan;
     size_t step;
+    /* The immutable parameter/terminal recipe can serve multiple concrete
+     * default environments. Each invocation still owns its own error frame. */
+    for(size_t i=0;i<module->exitPlanCount;++i)
+        if(module->exitPlans[i].origin==origin && module->exitPlans[i].point==XL6_IR_EXIT_POINT_FUNCTION_FAILURE)
+            return 1;
     if (!xl6IrLowerGrow((void**)&module->exitPlans, &module->exitPlanCapacity,
             module->exitPlanCount, sizeof(*module->exitPlans))) { ctx->failed = 1; return 0; }
     plan = &module->exitPlans[module->exitPlanCount++];
@@ -32820,7 +32846,8 @@ static int xl6IrLowerBeginNamedAdapterFunction(
     XL6_IrBlock* block;
     size_t parameter;
     if ( module == NULL || closure == NULL ||
-         closure->kind != XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER ||
+         (closure->kind != XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER &&
+           closure->kind != XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER) ||
          signature == NULL || signature->kind != XL6_IR_TYPE_FUNCTION ||
          target == NULL ||
          (target->kind != XL6_IR_CALL_TARGET_INTERNAL &&
@@ -32830,7 +32857,7 @@ static int xl6IrLowerBeginNamedAdapterFunction(
          (target->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE &&
           target->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE) ||
          parameters == NULL || parameters->kind != XL6_IR_NODE_LIST ||
-         parameters->childCount != target->parameterCount ||
+         parameters->childCount + (xl6IrLowerBoundMethodKind(closure) ? 1u : 0u) != target->parameterCount ||
          !xl6IrLowerGrow((void**)&module->functions, &module->functionCapacity,
                           module->functionCount, sizeof(*module->functions)) ||
          !xl6IrLowerGrow((void**)&module->blocks, &module->blockCapacity,
@@ -32838,6 +32865,7 @@ static int xl6IrLowerBeginNamedAdapterFunction(
         if ( ctx != NULL ) ctx->failed = 1;
         return 0;
     }
+    XL6_IrCallTarget userTarget=xl6IrLowerBoundMethodKind(closure) ? xl6IrLowerBoundMethodUserTarget(target) : *target;
     ctx->promotedParameterCount = 0;
     function = &module->functions[module->functionCount];
     memset(function, 0, sizeof(*function));
@@ -32866,7 +32894,7 @@ static int xl6IrLowerBeginNamedAdapterFunction(
     function->firstParameter = module->functionParameterCount;
     for ( parameter = 0; parameter < signature->paramCount; ++parameter ) {
         size_t targetParameter = xl6IrLowerNamedAdapterTargetParameter(
-            signature, target, parameter);
+            signature, &userTarget, parameter);
         const XL6_IrNode* sourceParameter = xl6IrNodeGet(
             module, targetParameter != SIZE_MAX
                 ? module->children[parameters->firstChild + targetParameter]
@@ -32888,6 +32916,11 @@ static int xl6IrLowerBeginNamedAdapterFunction(
         }
         module->functionParameters[module->functionParameterCount++] = symbol;
         function->parameterCount += 1;
+    }
+    if(xl6IrLowerBoundMethodKind(closure)) {
+        const XL6_IrClosureCapture* capture=&module->closureCaptures[closure->firstCapture];
+        if(!xl6IrLowerRegisterStorage(ctx,XL6_IR_STORAGE_CAPTURE,capture->storageSymbol,capture->type,
+            closure->declaration,closure->declaration)) return 0;
     }
     block = &module->blocks[module->blockCount];
     memset(block, 0, sizeof(*block));
@@ -33020,7 +33053,7 @@ static int xl6IrLowerClosureDefaultPrograms(XL6_IrLowerContext* ctx, size_t clos
     XL6_IrClosureTarget closure = module->closureTargets[closureIndex];
     const XL6_IrType* signature = xl6IrTypeGet(&module->types, closure.signatureType);
     const XL6_IrCallTarget* target = xl6IrCallTargetGet(module,
-        closure.kind == XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER ? closure.adaptedTargetSymbol : closure.targetSymbol);
+        (closure.kind == XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER || closure.kind == XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER) ? closure.adaptedTargetSymbol : closure.targetSymbol);
     const XL6_IrNode* declaration = target ? xl6IrNodeGet(module, target->declaration) : NULL;
     const XL6_IrNode* parameters = declaration ? xl6IrNodeGet(module,
         module->children[declaration->firstChild + (declaration->sourceKind == XL6_AST_ANON_FUNC ? 0 : 1)]) : NULL;
@@ -33091,7 +33124,7 @@ static int xl6IrLowerClosureDefaultPrograms(XL6_IrLowerContext* ctx, size_t clos
         xl6IrLowerEndFunction(ctx);
         signature = xl6IrTypeGet(&module->types, closure.signatureType);
         target = xl6IrCallTargetGet(module,
-            closure.kind == XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER ? closure.adaptedTargetSymbol : closure.targetSymbol);
+            (closure.kind == XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER || closure.kind == XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER) ? closure.adaptedTargetSymbol : closure.targetSymbol);
         declaration = target ? xl6IrNodeGet(module, target->declaration) : NULL;
         parameters = declaration ? xl6IrNodeGet(module, module->children[declaration->firstChild +
             (declaration->sourceKind == XL6_AST_ANON_FUNC ? 0 : 1)]) : NULL;
@@ -33127,6 +33160,17 @@ static int xl6IrLowerNamedAdapterBody(
          (parameters = xl6IrNodeGet(
              ctx->module, ctx->module->children[declaration->firstChild + 1])) == NULL ||
          !xl6IrLowerBeginNamedAdapterFunction(ctx, closure) ) return 0;
+    size_t offset=xl6IrLowerBoundMethodKind(closure) ? 1u : 0u;
+    XL6_IrCallTarget userTarget=offset ? xl6IrLowerBoundMethodUserTarget(target) : *target;
+    size_t dispatch=SIZE_MAX;
+    XL6_IrCallTarget invocation=*target;
+    if(offset) for(size_t i=0;i<ctx->module->classDispatchSlotCount;++i) {
+        const XL6_IrClassDispatchSlot* slot=&ctx->module->classDispatchSlots[i];
+        if(slot->declarationSymbol==target->symbol && slot->receiverType==target->parameterTypes[0]) {
+            dispatch=i;invocation.errorAbi=slot->errorAbi;invocation.errorPhysicalAbi=slot->errorPhysicalAbi;break;
+        }
+    }
+    target=&invocation;
     function = &ctx->module->functions[ctx->functionIndex];
     first = ctx->evaluationOwnerCount;
     if ( target->parameterCount != 0 ) {
@@ -33138,11 +33182,15 @@ static int xl6IrLowerNamedAdapterBody(
             goto done;
         }
     }
+    if(offset) {
+        const XL6_IrClosureCapture* capture=&ctx->module->closureCaptures[closure->firstCapture];
+        if(!xl6IrLowerEmit(ctx,XL6_IR_INSTR_LOAD,closure->declaration,capture->type,capture->storageSymbol,NULL,0,&operands[0])) goto done;
+    }
     /* All consuming inputs belong to the adapter on entry, including a
      * parameter located after a failing default. Protect them before any
      * default expression is evaluated, using the shared owner transaction. */
-    for (parameter = 0; parameter < target->parameterCount; ++parameter) {
-        size_t incoming = xl6IrLowerNamedAdapterSignatureParameter(signature, target, parameter);
+    for (parameter = offset; parameter < target->parameterCount; ++parameter) {
+        size_t incoming = xl6IrLowerNamedAdapterSignatureParameter(signature, &userTarget, parameter-offset);
         XL6_SymbolId symbol;
         if (incoming == SIZE_MAX || target->parameterAbis[parameter] != XL6_IR_PARAMETER_ABI_OWNED) continue;
         symbol = ctx->module->functionParameters[function->firstParameter + incoming];
@@ -33150,11 +33198,11 @@ static int xl6IrLowerNamedAdapterBody(
                 target->parameterTypes[parameter], symbol, NULL, 0, &operands[parameter]) ||
             !xl6IrLowerProtectEvaluationStorage(ctx, closure->declaration, symbol, operands[parameter], 1, 0)) goto done;
     }
-    for ( parameter = 0; parameter < target->parameterCount; ++parameter ) {
+    for ( parameter = offset; parameter < target->parameterCount; ++parameter ) {
         size_t signatureParameter = xl6IrLowerNamedAdapterSignatureParameter(
-            signature, target, parameter);
+            signature, &userTarget, parameter-offset);
         const XL6_IrNode* sourceParameter = xl6IrNodeGet(
-            ctx->module, ctx->module->children[parameters->firstChild + parameter]);
+            ctx->module, ctx->module->children[parameters->firstChild + parameter-offset]);
         if ( sourceParameter == NULL || sourceParameter->kind != XL6_IR_NODE_PARAM_DECL ) goto done;
         if ( signatureParameter != SIZE_MAX ) {
             if (target->parameterAbis[parameter] == XL6_IR_PARAMETER_ABI_OWNED) continue;
@@ -33183,9 +33231,9 @@ static int xl6IrLowerNamedAdapterBody(
             defaultId = ctx->module->children[sourceParameter->firstChild + 1];
             expression = xl6IrNodeGet(ctx->module, defaultId);
             XL6_IrCallArgument binding={.source=XL6_IR_CALL_ARGUMENT_DEFAULT,
-                .parameter=parameter,.expression=defaultId};
+                .parameter=parameter-offset,.expression=defaultId};
             operands[parameter] = xl6IrLowerDefaultPrefixAsType(
-                ctx,defaultId,&binding,target->parameterTypes[parameter],operands,0,parameters);
+                ctx,defaultId,&binding,target->parameterTypes[parameter],operands,offset,parameters);
             if (operands[parameter] != XL6_IR_VALUE_INVALID)
                 operands[parameter] = xl6IrLowerOwnedStorageValue(ctx, defaultId,
                     target->parameterTypes[parameter], expression, operands[parameter]);
@@ -33212,26 +33260,29 @@ static int xl6IrLowerNamedAdapterBody(
      * after all argument/default binding is complete, immediately before the
      * consuming call. A LOAD alone is a borrow, not permission to consume.
      * Default temporaries use the same commit as incoming parameter slots. */
+    if (!xl6IrLowerProjectCallTargetPhysicalOperands(ctx,closure->declaration,target,operands,target->parameterCount)) goto done;
     if (!xl6IrLowerCommitEvaluationOwners(ctx, closure->declaration, first)) goto done;
     if ( !xl6IrLowerEmit(ctx,
+                          dispatch!=SIZE_MAX ? XL6_IR_INSTR_VIRTUAL_CALL :
                           target->kind == XL6_IR_CALL_TARGET_INTERNAL_ASYNC
                               ? XL6_IR_INSTR_ASYNC_START
                               : target->kind == XL6_IR_CALL_TARGET_INTERNAL_GENERATOR
                               ? XL6_IR_INSTR_GENERATOR_START
                               : XL6_IR_INSTR_CALL,
                           closure->declaration,
-                          target->returnType, target->symbol,
+                          target->returnType, dispatch!=SIZE_MAX ? 0 : target->symbol,
                           operands, target->parameterCount,
                           target->returnType == XL6_IR_TYPE_INVALID &&
                           target->errorAbi == XL6_IR_ERROR_ABI_NO_RAISE
                               ? NULL : &callResult) ) goto done;
+    if(dispatch!=SIZE_MAX) ctx->module->instructions[ctx->module->instructionCount-1].dispatchSlot=(uint32)(dispatch+1);
     {
         XL6_IrLowerCallCleanup cleanup = {0};
         size_t count = 0;
         /* Consuming defaults are already owned by the target. Borrowed
          * defaults remain adapter owners through outcome observation and
          * result commit, using the same transaction as every ordinary call. */
-        for (parameter = 0; parameter < target->parameterCount; ++parameter) {
+        for (parameter = offset; parameter < target->parameterCount; ++parameter) {
             if (defaultStorages[parameter] == 0 ||
                 !xl6IrTypeHasStorageReleaseAbi(ctx->module, target->parameterTypes[parameter]) ||
                 target->parameterAbis[parameter] == XL6_IR_PARAMETER_ABI_OWNED) continue;
@@ -33745,7 +33796,7 @@ int xl6IrLowerModule(XL6_IrModule* module, XL6_DiagList* diags)
         if (!xl6IrLowerClosureDefaultPrograms(&ctx, i)) { ctx.failed = 1; break; }
         XL6_IrClosureTarget closure = module->closureTargets[i];
         const XL6_IrNode* node = xl6IrNodeGet(module, closure.declaration);
-        if ( closure.kind == XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER ) {
+        if ( closure.kind == XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER || closure.kind == XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER ) {
             if ( !xl6IrLowerNamedAdapterBody(&ctx, &closure) ) break;
             continue;
         }

@@ -1,0 +1,59 @@
+extern "owned_text" @owned func Text() as string
+extern "owned_original" @no_raise func original(string value) as bool
+extern "owned_one_allocation" @no_raise func oneAllocation(string value) as bool
+extern "owned_reset" @no_raise func reset()
+extern "owned_debug" @no_raise func debug() as bool
+extern "owned_fail_after" @no_raise func failAfter(int count)
+extern "owned_clear_failure" @no_raise func clearFailure()
+extern "owned_outstanding" @no_raise func live() as int
+extern "typed_bound_handles" @no_raise func handles() as int
+class Native
+    private native point handle
+    extern "typed_bound_open" create()
+    extern "typed_bound_close" destroy()
+    extern "typed_bound_text" @owned func Read(c_int mode=c_int(7)) as string
+    extern "typed_bound_roundtrip" @owned func Echo(string value,c_int mode=c_int(7)) as string
+end
+func saved() as func() as string
+    Native local=Native()
+    return local.Read
+end
+func exercise()
+    func() as string callback=saved()
+    assert handles()>0
+    // No Value argument/result boxes or return-string copy, even on first call.
+    reset()
+    string value=callback()
+    assert original(value) and oneAllocation(value)
+    Native? optional=Native()
+    if optional!=null
+        func(c_int) as string full=optional.Read
+        reset()
+        string complete=full(c_int(7))
+        assert original(complete) and oneAllocation(complete)
+        func(string) as string echo=optional.Echo
+        string input=Text()
+        reset()
+        string output=echo(input)
+        assert original(output) and oneAllocation(output)
+    end
+end
+assert handles()==0
+exercise()
+assert handles()==0
+assert debug()
+int accepted=0
+int rejected=0
+for prefix in range(160)
+    int before=live()
+    failAfter(prefix)
+    try
+        exercise()
+        accepted+=1
+    catch problem
+        rejected+=1
+    end
+    clearFailure()
+    assert live()==before and handles()==0
+end
+assert accepted>0 and rejected>0

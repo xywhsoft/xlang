@@ -26,14 +26,19 @@ static int xl6IrCgenEmitPrototype(XL6_Output* out, const XL6_IrModule* module, c
         else xl6OutputPuts("static void xlir_module_fini(void)", out);
         return 1;
     }
-    returnType = function->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE
+    closure = xl6IrCgenClosureTargetGet(module, function->symbol);
+    bool bound=closure && closure->kind==XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER;
+    returnType = bound ? "bool" : function->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE
         ? xl6IrCgenErrorResultType(module, function->returnType)
         : (function->returnType == XL6_IR_TYPE_INVALID ? "void" : xl6IrCgenType(module, function->returnType));
     if ( returnType == NULL ) return xl6IrCgenDiag(diags, module, function->declaration, "XLIR C emitter does not support this function return ABI");
     xl6OutputPrintf(out, "static %s xlir_fn_%u(", returnType, (unsigned int)function->symbol);
     closure = xl6IrCgenClosureTargetGet(module, function->symbol);
-    if ( closure != NULL ) xl6OutputPuts("void* environment", out);
-    else if ( function->parameterCount == 0 ) xl6OutputPuts("void", out);
+    if ( closure != NULL ) {
+        xl6OutputPuts("void* environment", out);
+        if(bound && function->returnType!=XL6_IR_TYPE_INVALID)
+            xl6OutputPrintf(out,", %s* xlir_bound_output",xl6IrCgenType(module,function->returnType));
+    } else if ( function->parameterCount == 0 ) xl6OutputPuts("void", out);
     for ( i = 0; i < function->parameterCount; ++i ) {
         XL6_SymbolId symbol = module->functionParameters[function->firstParameter + i];
         const char* type = xl6IrCgenFunctionParameterType(module, function, i);

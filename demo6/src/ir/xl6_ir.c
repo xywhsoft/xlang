@@ -3765,14 +3765,17 @@ static int xl6IrWalkExitRoute(const XL6_IrModule* module, const XL6_IrExitPlan* 
     if (plan->point == XL6_IR_EXIT_POINT_FUNCTION_FAILURE) {
         XL6_IrExitStep step;
         size_t f, owners = 0;
+        bool onlyDefaults=true;
         if (!exceptional || plan->targetScopeDepth != 0 || plan->targetRegion != 0 ||
             plan->firstCleanup != 0 || plan->cleanupCount != 0) return 0;
         for (f = 0; f < module->functionCount; ++f) {
             const XL6_IrFunction* function = &module->functions[f];
             if (function->declaration == plan->origin && xl6IrFunctionHasIndependentFailureBoundary(function->kind) &&
-                function->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE) ++owners;
+                function->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE) {
+                ++owners; onlyDefaults=onlyDefaults && function->kind==XL6_IR_FUNCTION_ARGUMENT_DEFAULT;
+            }
         }
-        if (owners != 1) return 0;
+        if (!owners || (owners!=1 && (!onlyDefaults || source->kind!=XL6_IR_NODE_PARAM_DECL))) return 0;
         memset(&step, 0, sizeof(step));
         step.kind = XL6_IR_EXIT_STEP_PARAMETERS; step.origin = plan->origin;
         step.failureTarget = plan->origin;
@@ -14223,6 +14226,48 @@ XL6_IrTypeId xl6IrBoundMethodCastIdentityType(
             params,returns,XL6_IR_CALLABLE_ERASURE_FIXED,source)) return method->boundSignatureType;
     }
     return XL6_IR_TYPE_INVALID;
+}
+
+/* Static typed binding authenticates a declaration, not an erased name group.
+ * Nullable receiver syntax is admitted here only as a representation input;
+ * lowering still materializes the ordinary checked/non-null class value. */
+int xl6IrBoundMethodTargetMatches(const XL6_IrModule* module,XL6_IrNodeId sourceId,
+    XL6_SymbolId symbol,XL6_IrTypeId signatureId)
+{
+    const XL6_IrNode* source=xl6IrNodeGet(module,sourceId);
+    const XL6_IrCallTarget* target=xl6IrCallTargetGet(module,symbol);
+    const XL6_IrType* signature=xl6IrTypeGet(&module->types,signatureId);
+    if(!source || source->kind!=XL6_IR_NODE_MEMBER || source->sourceKind!=XL6_AST_MEMBER ||
+       source->childCount!=1 || !source->text || !target || !signature ||
+       signature->kind!=XL6_IR_TYPE_FUNCTION || signature->callableErasureAbi!=XL6_IR_CALLABLE_ERASURE_FIXED ||
+       !target->parameterCount || !target->parameterTypes || !target->parameterAbis ||
+       (target->kind!=XL6_IR_CALL_TARGET_INTERNAL && target->kind!=XL6_IR_CALL_TARGET_INTERNAL_ASYNC &&
+        target->kind!=XL6_IR_CALL_TARGET_INTERNAL_GENERATOR && target->kind!=XL6_IR_CALL_TARGET_EXTERN_C) ||
+       target->variadicAbi!=XL6_IR_CALL_VARIADIC_NONE ||
+       target->parameterCount<signature->paramCount+1 || target->returnType!=signature->callableResultType ||
+       target->parameterAbis[0]!=XL6_IR_PARAMETER_ABI_BORROW) return 0;
+    const XL6_IrNode* declaration=xl6IrNodeGet(module,target->declaration);
+    const XL6_IrNode* name=declaration && declaration->childCount>2 ? xl6IrNodeGet(module,module->children[declaration->firstChild]) : NULL;
+    const XL6_IrNode* params=declaration && declaration->childCount>2 ? xl6IrNodeGet(module,module->children[declaration->firstChild+1]) : NULL;
+    const XL6_IrNode* receiver=xl6IrNodeGet(module,module->children[source->firstChild]);
+    XL6_IrTypeId receiverId=receiver ? xl6IrNodeMaterializedValueType(module,receiver) : 0;
+    const XL6_IrType* receiverType=xl6IrTypeGet(&module->types,receiverId);
+    if(receiverType && receiverType->kind==XL6_IR_TYPE_NULLABLE && receiverType->paramCount==1)
+        receiverId=receiverType->params[0];
+    if(!declaration || (declaration->sourceKind!=XL6_AST_FUNC && declaration->sourceKind!=XL6_AST_ASYNC_FUNC &&
+       declaration->sourceKind!=XL6_AST_NATIVE_EXTERN_FUNC) ||
+       (declaration->flags & XL6_AST_FLAG_STATIC) || !name || !name->text ||
+       strcmp(name->text,source->text) || !params || params->childCount+1!=target->parameterCount ||
+       !xl6IrBuildClassDerivesFrom(module,receiverId,target->parameterTypes[0])) return 0;
+    for(size_t i=0;i<signature->paramCount;++i)
+        if(!signature->parameterAbis || !signature->params ||
+           signature->params[i]!=target->parameterTypes[i+1] ||
+           signature->parameterAbis[i]!=target->parameterAbis[i+1]) return 0;
+    for(size_t i=signature->paramCount;i<params->childCount;++i) {
+        const XL6_IrNode* parameter=xl6IrNodeGet(module,module->children[params->firstChild+i]);
+        if(!parameter || parameter->childCount<2) return 0;
+    }
+    return 1;
 }
 
 static int xl6IrBuildDynamicMethodAppend(
@@ -39706,9 +39751,19 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
         owner = xl6IrNodeGet(module, storage->owner);
         if (module->stage == XL6_IR_STAGE_LOWERED && owner->kind == XL6_IR_NODE_PARAM_DECL) {
             size_t owners = 0;
-            for (j = 0; j < module->functionCount; ++j)
-                owners += module->functions[j].declaration == storage->owner &&
-                    module->functions[j].kind == XL6_IR_FUNCTION_ARGUMENT_DEFAULT;
+            for (j = 0; j < module->functionCount; ++j) {
+                const XL6_IrFunction* program=&module->functions[j];
+                if(program->declaration!=storage->owner || program->kind!=XL6_IR_FUNCTION_ARGUMENT_DEFAULT) continue;
+                bool owns=false;
+                if(storage->kind==XL6_IR_STORAGE_PARAMETER) {
+                    for(size_t p=0;p<program->parameterCount;++p)
+                        owns=owns || module->functionParameters[program->firstParameter+p]==storage->symbol;
+                } else {
+                    for(size_t k=program->firstInstruction;k<program->firstInstruction+program->instructionCount;++k)
+                        owns=owns || module->instructions[k].targetSymbol==storage->symbol;
+                }
+                owners+=owns;
+            }
             argumentDefaultOwner = owners == 1;
         }
         if (module->stage == XL6_IR_STAGE_LOWERED && storage->kind == XL6_IR_STORAGE_TEMPORARY &&
@@ -39736,10 +39791,11 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             }
         }
         if ( module->stage == XL6_IR_STAGE_LOWERED && owner != NULL &&
-             (owner->kind == XL6_IR_NODE_NAME ||
+             (owner->kind == XL6_IR_NODE_NAME || owner->kind == XL6_IR_NODE_MEMBER ||
               owner->sourceKind == XL6_AST_GENERIC_INSTANT) ) {
             for ( j = 0; j < module->closureTargetCount; ++j ) {
-                if ( module->closureTargets[j].kind == XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER &&
+                if ( (module->closureTargets[j].kind == XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER ||
+                     module->closureTargets[j].kind == XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER) &&
                      module->closureTargets[j].declaration == storage->owner ) {
                     namedAdapterOwner = 1;
                     break;
@@ -40307,7 +40363,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
         }
         const XL6_IrNode* declaration = xl6IrNodeGet(module, closure->declaration);
         const XL6_IrCallTarget* target = xl6IrCallTargetGet(
-            module, closure->kind == XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER
+            module, (closure->kind == XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER ||
+                closure->kind == XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER)
                 ? closure->adaptedTargetSymbol : closure->targetSymbol);
         const XL6_IrNode* targetDeclaration = target != NULL
             ? xl6IrNodeGet(module, target->declaration) : NULL;
@@ -40319,7 +40376,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 module->children[targetDeclaration->firstChild +
                     (targetDeclaration->sourceKind == XL6_AST_ANON_FUNC ? 0u : 1u)])
             : NULL;
-        const XL6_IrFunction* adapter = closure->kind == XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER
+        const XL6_IrFunction* adapter = (closure->kind == XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER ||
+            closure->kind == XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER)
             ? xl6IrFunctionBySymbol(module, closure->targetSymbol) : NULL;
         const XL6_IrType* signature = xl6IrTypeGet(&module->types, closure->signatureType);
         XL6_IrClosureRawCallbackAbi expectedRawCallbackAbi;
@@ -40394,19 +40452,18 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         module, target->returnType, signature->callableResultType))) )
                 return xl6IrDiag(diags, NULL,
                                  "XLIR anonymous closure target has no complete signature and body ABI");
-        } else if ( closure->kind == XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER ) {
+        } else if ( closure->kind == XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER ||
+                    closure->kind == XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER ) {
              size_t parameter, boundaries = 0, boundary = 0;
              if ( module->stage != XL6_IR_STAGE_LOWERED ||
-                  (declaration->kind != XL6_IR_NODE_NAME &&
-                   declaration->sourceKind != XL6_AST_GENERIC_INSTANT) ||
-                  declaration->namedCallableAbi !=
-                      XL6_IR_NAMED_CALLABLE_CAPTURE_FREE_ADAPTER ||
-                  declaration->namedCallableTargetSymbol !=
-                      closure->adaptedTargetSymbol ||
-                  declaration->namedCallableSignatureType !=
-                      closure->signatureType ||
-                  closure->targetSymbol == 0 || closure->adaptedTargetSymbol == 0 ||
-                 closure->captureCount != 0 ||
+                  (closure->kind==XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER ?
+                   (!xl6IrBoundMethodTargetMatches(module,closure->declaration,closure->adaptedTargetSymbol,closure->signatureType) ||
+                    closure->captureCount!=1 || module->closureCaptures[closure->firstCapture].type!=target->parameterTypes[0]) :
+                   ((declaration->kind!=XL6_IR_NODE_NAME && declaration->sourceKind!=XL6_AST_GENERIC_INSTANT) ||
+                    declaration->namedCallableAbi!=XL6_IR_NAMED_CALLABLE_CAPTURE_FREE_ADAPTER ||
+                    declaration->namedCallableTargetSymbol!=closure->adaptedTargetSymbol ||
+                    declaration->namedCallableSignatureType!=closure->signatureType || closure->captureCount!=0)) ||
+                  closure->targetSymbol==0 || closure->adaptedTargetSymbol==0 ||
                  target == NULL ||
                  (target->kind != XL6_IR_CALL_TARGET_INTERNAL &&
                   target->kind != XL6_IR_CALL_TARGET_INTERNAL_ASYNC &&
@@ -44442,11 +44499,23 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         default:
                             break;
                         }
-                        if ( originNode != NULL &&
-                             originNode->targetSymbol != 0 ) {
+                        XL6_SymbolId physicalSymbol=originNode ? originNode->targetSymbol : 0;
+                        if(!physicalSymbol) {
+                            size_t index=(size_t)(instruction-module->instructions);
+                            for(size_t c=0;c<module->closureTargetCount;++c) {
+                                const XL6_IrClosureTarget* closure=&module->closureTargets[c];
+                                if(closure->kind!=XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER ||
+                                   closure->declaration!=instruction->origin) continue;
+                                const XL6_IrFunction* body=xl6IrFunctionBySymbol(module,closure->targetSymbol);
+                                if(body && body->kind==XL6_IR_FUNCTION_NAMED_ADAPTER &&
+                                   index>=body->firstInstruction && index-body->firstInstruction<body->instructionCount) {
+                                    physicalSymbol=closure->adaptedTargetSymbol;break;
+                                }
+                            }
+                        }
+                        if ( originNode != NULL && physicalSymbol != 0 ) {
                             const XL6_IrCallTarget* physicalTarget =
-                                xl6IrCallTargetGet(
-                                    module, originNode->targetSymbol);
+                                xl6IrCallTargetGet(module,physicalSymbol);
                             size_t physicalParameter;
                             /* Property get/set and ordinary calls share the
                              * same CallTarget boundary.  Locate the exact

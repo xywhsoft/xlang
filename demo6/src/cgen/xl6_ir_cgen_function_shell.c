@@ -465,6 +465,10 @@ static int xl6IrCgenEmitClosureInvokePrototype(
     const XL6_IrClosureTarget* closure, XL6_DiagList* diags)
 {
     if (closure && closure->kind == XL6_IR_CLOSURE_TARGET_C_VARIADIC_NATIVE) return 1;
+    if(closure && closure->kind==XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER) {
+        xl6OutputPrintf(out,"#define xlir_closure_invoke_%u xlir_fn_%u\n",(unsigned)closure->targetSymbol,(unsigned)closure->targetSymbol);
+        return !xl6OutputHasFailed(out);
+    }
     const XL6_IrType* signature = closure != NULL
         ? xl6IrTypeGet(&module->types, closure->signatureType) : NULL;
     const char* resultType = NULL;
@@ -579,6 +583,7 @@ static int xl6IrCgenEmitClosureInvoke(
     XL6_Output* out, const XL6_IrModule* module, const XL6_IrClosureTarget* closure, XL6_DiagList* diags)
 {
     if (closure && closure->kind == XL6_IR_CLOSURE_TARGET_C_VARIADIC_NATIVE) return 1;
+    if(closure && closure->kind==XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER) return 1;
     const XL6_IrCallTarget* target;
     const XL6_IrFunction* function;
     const XL6_IrType* signature;
@@ -600,7 +605,8 @@ static int xl6IrCgenEmitClosureInvoke(
         return xl6IrCgenDiag(diags, module, closure != NULL ? closure->declaration : XL6_IR_NODE_INVALID,
                              "XLIR C emitter closure target has no complete thunk ABI");
     target = xl6IrCallTargetGet(
-        module, closure->kind == XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER
+        module, (closure->kind == XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER ||
+                 closure->kind == XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER)
             ? closure->adaptedTargetSymbol : closure->targetSymbol);
     if ( target == NULL ||
          (target->kind != XL6_IR_CALL_TARGET_INTERNAL &&
@@ -614,10 +620,12 @@ static int xl6IrCgenEmitClosureInvoke(
            (target->returnType != signature->callableResultType &&
             !(signature->returnCount == 1 && xl6IrCgenClosureTypesCompatible(
                 module, target->returnType, signature->callableResultType))))) ||
-         (closure->kind == XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER &&
+         ((closure->kind == XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER ||
+           closure->kind == XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER) &&
           (function->kind != XL6_IR_FUNCTION_NAMED_ADAPTER ||
            function->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
-           closure->adaptedTargetSymbol == 0 || closure->captureCount != 0)) )
+           closure->adaptedTargetSymbol == 0 || closure->captureCount !=
+            (closure->kind==XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER ? 1u : 0u))) )
         return xl6IrCgenDiag(diags, module, closure->declaration,
                              "XLIR C emitter closure adapter role is unresolved");
     if ( signature->callableResultType != XL6_IR_TYPE_INVALID ) {
