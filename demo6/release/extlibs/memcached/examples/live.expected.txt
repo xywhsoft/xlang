@@ -1,0 +1,4 @@
+text: hello
+binary bytes: 2
+empty vs missing: distinct
+delete: ok

@@ -22,9 +22,11 @@
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>
-      <tr><td><code>set(stream, key, data, exptime=0, timeoutMs=5000)</code></td><td>写入 string 或 bytes，返回存储状态</td></tr>
-      <tr><td><code>get(stream, key, timeoutMs=5000)</code></td><td>返回 string、bytes 或 null</td></tr>
-      <tr><td><code>del(stream, key, timeoutMs=5000)</code></td><td>删除并返回 bool</td></tr>
+      <tr><td><code>set / add(stream, key, data, exptime=0, timeoutMs=5000)</code></td><td>写入 string 或 bytes；add 仅在键不存在时写入</td></tr>
+      <tr><td><code>get(stream, key, timeoutMs=5000, maxReplyBytes=67108864)</code></td><td>返回 string、bytes 或 null，可收紧回复限额</td></tr>
+      <tr><td><code>getMany(stream, keys, timeoutMs=5000, maxReplyBytes=67108864)</code></td><td>返回命中项数组</td></tr>
+      <tr><td><code>del / touch</code></td><td>删除或更新过期时间，返回 bool</td></tr>
+      <tr><td><code>stats / version / flushAll</code></td><td>查询状态、版本；flushAll 清空全部键</td></tr>
       <tr><td><code>buildGet / buildSet / buildAdd / buildDelete / buildTouch</code></td><td>构造文本协议命令</td></tr>
       <tr><td><code>buildStats / buildFlushAll / buildVersion</code></td><td>构造管理命令</td></tr>
       <tr><td><code>frameSize(Buffer) / parseResponse(Buffer)</code></td><td>增量识别并解析完整回复</td></tr>
@@ -34,9 +36,9 @@
 Buffer response = Buffer("VALUE key 0 3\r\na\0b\r\nEND\r\n")
 var parsed = memcached.parseResponse(response)
 assert parsed["items"][0]["data"] == "a\0b"</code></pre>
-    <p>成对范例：<code>examples/basic.xl</code> 和 <code>examples/basic_c.c</code>；两者展示相同的构造与解析结果。C 侧包含 <code>include/memcached_native.h</code>，返回的命令字符串使用 <code>xrtFree</code>，返回的值使用 <code>xrtValueRelease</code>。</p>
+    <p>离线成对范例：<code>examples/basic.xl</code> 和 <code>examples/basic_c.c</code>；真实服务成对范例：<code>examples/live.xl</code> 和 <code>examples/live_c.c</code>。C 侧包含 <code>include/memcached_native.h</code>，拥有型命令字符串使用 <code>xrtFree</code>，返回的值使用 <code>xrtValueRelease</code>。</p>
     <h2>验收范围</h2>
-    <p>2026-10-27：Windows JIT/AOT 与 Linux GCC ASan/UBSan、JIT/AOT 包级门禁通过，覆盖 C 协议边界和故障分配、本地 TCP 分包/二进制值/连接复用/畸形回复、双语范例同输出。当前尚未连接真实 Memcached 服务或执行长时压力测试，不将此记录解释为完整生产级客户端签收。</p>
+    <p>2026-10-27：Windows JIT/AOT 与 Linux GCC ASan/UBSan、JIT/AOT 包级门禁通过，覆盖 C 协议边界和故障分配、本地 TCP 分包/二进制值/错误后复用/半包、超时与限额中止、双语范例同输出。自管理临时 Memcached 服务在两平台通过多键读取、add/touch、stats/version、flushAll 的 C/XLang JIT 与独立 EXE AOT；可选短压另通过四连接各 1000 轮。数小时耐久、生产流量与集群尚未验收，不将短时门禁解释为完整生产级客户端签收。</p>
   </section>
 </main>
 </body>

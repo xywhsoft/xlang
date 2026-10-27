@@ -54,6 +54,48 @@ func serveMalformed(TcpStream peer) as int
     return 1
 end
 
+func serveError(TcpStream peer) as int
+    assert readExact(peer, 9).text() == "get key\r\n"
+    assert peer.send("CLIENT_ERROR invalid\r\n") == NetStatus.ok
+    assert peer.wait(TcpWait.drain, 5000) == NetStatus.ok
+    assert readExact(peer, 9).text() == "get key\r\n"
+    assert peer.send("END\r\n") == NetStatus.ok
+    assert peer.wait(TcpWait.drain, 5000) == NetStatus.ok
+    peer.close()
+    return 1
+end
+
+func servePartial(TcpStream peer) as int
+    readExact(peer, 9)
+    assert peer.send("VALUE key 0 4\r\nab") == NetStatus.ok
+    assert peer.wait(TcpWait.drain, 5000) == NetStatus.ok
+    peer.close()
+    return 1
+end
+
+func serveSlow(TcpStream peer) as int
+    readExact(peer, 9)
+    time.sleep(250)
+    peer.close()
+    return 1
+end
+
+func serveLimited(TcpStream peer) as int
+    readExact(peer, 9)
+    assert peer.send("VALUE key 0 3\r\nabc\r\nEND\r\n") == NetStatus.ok
+    assert peer.wait(TcpWait.drain, 5000) == NetStatus.ok
+    peer.close()
+    return 1
+end
+
+func assertAborted(TcpStream stream, string reason)
+    for attempt in range(200)
+        if stream.state != TcpStreamState.open then return end
+        time.sleep(5)
+    end
+    assert false, reason
+end
+
 func main(...) as int
     auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
     engine.start()
@@ -62,14 +104,14 @@ func main(...) as int
     assert client.wait(TcpWait.open, 5000) == NetStatus.ok
     TcpStream peer = listener.accept(5000)
     future<int> job = task.spawn(serve, peer)
-    assert memcached.set(client, "key", "a\0b") == "stored"
+    assert memcached.set(client, "key", "a\0b") == "stored", "primary set"
     var found = memcached.get(client, "key")
-    assert found != null and found == "a\0b"
-    assert memcached.set(client, "binary", b"\xff\0") == "stored"
-    assert memcached.get(client, "binary") == b"\xff\0"
-    assert memcached.del(client, "key")
-    assert memcached.get(client, "key") == null
-    assert job.wait()
+    assert found != null and found == "a\0b", "primary get"
+    assert memcached.set(client, "binary", b"\xff\0") == "stored", "binary set"
+    assert memcached.get(client, "binary") == b"\xff\0", "binary get"
+    assert memcached.del(client, "key"), "primary delete"
+    assert memcached.get(client, "key") == null, "primary missing"
+    assert job.wait(), "primary server job"
     client.close()
 
     TcpStream bad = TcpStream(engine, listener.localAddress())
@@ -82,10 +124,74 @@ func main(...) as int
     catch ValueError error
         rejected = true
     end
-    assert rejected
-    assert badJob.wait()
-    assert bad.state != TcpStreamState.open
+    assert rejected, "malformed response rejected"
+    assert badJob.wait(), "malformed server job"
+    assertAborted(bad, "malformed stream aborted")
     bad.close()
+
+    TcpStream errorClient = TcpStream(engine, listener.localAddress())
+    assert errorClient.wait(TcpWait.open, 5000) == NetStatus.ok
+    TcpStream errorPeer = listener.accept(5000)
+    future<int> errorJob = task.spawn(serveError, errorPeer)
+    bool serverError = false
+    try
+        memcached.get(errorClient, "key")
+    catch ValueError error
+        serverError = true
+    end
+    assert serverError, "complete server error"
+    assert errorClient.state == TcpStreamState.open, "error stream reusable"
+    assert memcached.get(errorClient, "key") == null, "error follow-up"
+    assert errorJob.wait(), "error server job"
+    errorClient.close()
+
+    TcpStream partialClient = TcpStream(engine, listener.localAddress())
+    assert partialClient.wait(TcpWait.open, 5000) == NetStatus.ok
+    TcpStream partialPeer = listener.accept(5000)
+    future<int> partialJob = task.spawn(servePartial, partialPeer)
+    bool partialRejected = false
+    try
+        memcached.get(partialClient, "key")
+    catch ValueError error
+        partialRejected = true
+    end
+    assert partialRejected, "partial response rejected"
+    assert partialJob.wait(), "partial server job"
+    assertAborted(partialClient, "partial stream aborted")
+    partialClient.close()
+
+    TcpStream slowClient = TcpStream(engine, listener.localAddress())
+    assert slowClient.wait(TcpWait.open, 5000) == NetStatus.ok
+    TcpStream slowPeer = listener.accept(5000)
+    future<int> slowJob = task.spawn(serveSlow, slowPeer)
+    bool timedOut = false
+    try
+        memcached.get(slowClient, "key", 20)
+    catch TimeoutError error
+        timedOut = true
+    catch ValueError error
+        timedOut = true
+    end
+    assert timedOut, "slow response rejected"
+    assert slowJob.wait(), "slow server job"
+    assertAborted(slowClient, "slow stream aborted")
+    slowClient.close()
+
+    TcpStream limitedClient = TcpStream(engine, listener.localAddress())
+    assert limitedClient.wait(TcpWait.open, 5000) == NetStatus.ok
+    TcpStream limitedPeer = listener.accept(5000)
+    future<int> limitedJob = task.spawn(serveLimited, limitedPeer)
+    bool limited = false
+    try
+        memcached.get(limitedClient, "key", 5000, 8)
+    catch ValueError error
+        limited = true
+    end
+    assert limited, "reply limit enforced"
+    assert limitedJob.wait(), "reply limit server job"
+    assertAborted(limitedClient, "limited stream aborted")
+    limitedClient.close()
+
     listener.close()
     engine.close()
     assert engine.wait(5000)
