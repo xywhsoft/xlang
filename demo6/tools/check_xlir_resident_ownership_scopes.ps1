@@ -2,6 +2,8 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$Directory,
     [string]$Tcc='E:/software/tcc/tcc.exe')
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
+. (Join-Path $PSScriptRoot 'xlir_resident_closure.ps1')
 $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
 try {
@@ -20,6 +22,9 @@ try {
     })
     if (@($inputs | Where-Object {(Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256}).Count) { throw 'Stale resident-scope inputs' }
     New-Item -ItemType Directory -Path $outputPath | Out-Null
+    $closure=Get-XlirResidentClosure -Root $rootPath -Directory "$outputPath/resident-closure" -Sources @($sources|Where-Object {$_-like'src/*'}) -NativeProvider 'tools/xrt_single_header_impl.c'
+    $sources=@($sources|Where-Object {$_-notlike'src/*'})+@($closure.Sources)
+    $inputs+=@($closure.Inputs)
     $markers=@(
         'Resident ownership scopes: 100 frozen lease/stack/closure transitions, 50 in-flight callback tails, 50 allocator-held factory transfers, 10 real pending invocations; exact graph/count/allocator balance, no native root registration; not module collection',
         'Continuation ownership scopes: 100 frozen queue/transport transitions, 10 actual pending dispatches, 10 physical retirement tails with after-Close child escape; exact credits/code roots/allocator balance; not module collection')
@@ -29,11 +34,11 @@ try {
         if ($name -eq 'tcc') {
             # TCC cannot consume GCC COFF objects. Compile the actual source
             # implementation, and import the standard C99 conversions from UCRT.
-            & $Tcc -std=c11 -Wall -Werror -I. @sources tools/xrt_single_header_impl.c C:/Windows/System32/ucrtbase.dll @libs -o "$lane.exe" *> "$lane.build.log"
+            $buildExit=Invoke-XlirTccToLog $Tcc (@('-std=c11','-Wall','-Werror','-I.','-Irelease','-Irelease/include')+$sources+@('tools/xrt_single_header_impl.c','C:/Windows/System32/ucrtbase.dll')+$libs+@('-o',"$lane.exe")) "$lane.build.log"
         } else {
-            & gcc -std=c11 -Wall -Wextra -Werror "-$($name.Substring(4))" -I. @sources $runtime[0].Path @libs -o "$lane.exe" *> "$lane.build.log"
+            $buildExit=Invoke-XlirGccToLog (@('-std=c11','-Wall','-Wextra','-Werror',"-$($name.Substring(4))",'-I.','-Irelease','-Irelease/include')+$sources+@($runtime[0].Path)+$libs+@('-o',"$lane.exe")) "$lane.build.log"
         }
-        $buildExit=$LASTEXITCODE; $runExit=$null; $complete=$false
+        $runExit=$null; $complete=$false
         if ($buildExit -eq 0) {
 $process=Start-Process -FilePath "$lane.exe" -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath -RedirectStandardOutput "$lane.out.log" -RedirectStandardError "$lane.err.log"
             $null = $process.Handle

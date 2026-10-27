@@ -2,6 +2,8 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$ContractDriver,
     [Parameter(Mandatory=$true)][string]$Directory,[string]$Tcc='E:/software/tcc/tcc.exe')
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
+. (Join-Path $PSScriptRoot 'xlir_resident_closure.ps1')
 $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
 try{
@@ -23,6 +25,13 @@ try{
         @($files|ForEach-Object {[pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})
     if(@($inputs|Where-Object {(Get-FileHash -LiteralPath $_.Path).Hash-ne$_.Sha256}).Count){throw 'Stale dependency inputs'}
     New-Item -ItemType Directory -Path $out|Out-Null
+    $closure=Get-XlirResidentClosure -Root $rootPath -Directory "$out/resident-closure" -Sources @($sources|Where-Object {$_-like'src/*'}) -NativeProvider 'tools/xrt_single_header_impl.c' -PublicDirectory $PublicDirectory -Fixtures @('test/cases/xlir_async_dependency_cycle.xl')
+    $frameProbe='test/cases/xlir_async_dependency_cycle_frame.c'
+    $sources=@($sources|Where-Object {$_-notlike'src/*'})+@($closure.Sources|ForEach-Object {
+        if($_-eq'src/runtime/xl6_continuation_frame.c'){$frameProbe}else{$_}
+    })
+    $inputs+=@($closure.Inputs)
+    $inputs+=@([pscustomobject]@{Path=[IO.Path]::GetFullPath($frameProbe);Sha256=(Get-FileHash -LiteralPath $frameProbe).Hash})
     $marker='Async dependency IR: verified producer and resident cancellation, 2 C/header-gated mutations, original catch/finally resume CFG'
     $emission=@();$deterministic=$true
     foreach($repeat in @('','.repeat')){
@@ -35,18 +44,18 @@ try{
         if(!(Test-Path "$out/xlir_async_dependency_cycle.$suffix")-or!(Test-Path "$out/xlir_async_dependency_cycle.repeat.$suffix")-or
             (Get-FileHash "$out/xlir_async_dependency_cycle.$suffix").Hash-ne(Get-FileHash "$out/xlir_async_dependency_cycle.repeat.$suffix").Hash){$deterministic=$false}
     }
-    $includes=@("-I$([IO.Path]::GetFullPath((Join-Path $PublicDirectory 'include')))","-I$out",'-I.')
+    $includes=@("-I$([IO.Path]::GetFullPath((Join-Path $PublicDirectory 'include')))","-I$out",'-I.','-Irelease','-Irelease/include')
     $strict=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
         '-Wno-unused-label','-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-Wno-pointer-sign','-Wno-format-truncation')
     $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32');$lanes=@()
     foreach($configuration in @('gcc-O0','gcc-O2','tcc')){
         $binary="$out/$configuration.exe"
         if($configuration-eq'tcc'){
-            & $Tcc -std=c11 @includes @sources tools/xrt_single_header_impl.c C:/Windows/System32/ucrtbase.dll @libs -o $binary *> "$out/$configuration.build.log"
+            $build=Invoke-XlirTccToLog $Tcc (@('-std=c11')+$includes+$sources+@('tools/xrt_single_header_impl.c','C:/Windows/System32/ucrtbase.dll')+$libs+@('-o',$binary)) "$out/$configuration.build.log"
         }else{
-            & gcc @strict "-$($configuration.Substring(4))" @includes @sources $runtime[0].Path @libs -o $binary *> "$out/$configuration.build.log"
+            $build=Invoke-XlirGccToLog ($strict+@("-$($configuration.Substring(4))")+$includes+$sources+@($runtime[0].Path)+$libs+@('-o',$binary)) "$out/$configuration.build.log"
         }
-        $build=$LASTEXITCODE;$run=$null;$complete=$false;$oom=0
+        $run=$null;$complete=$false;$oom=0
         if($build-eq0){
 $process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath `
                 -RedirectStandardOutput "$out/$configuration.out.log" -RedirectStandardError "$out/$configuration.err.log"

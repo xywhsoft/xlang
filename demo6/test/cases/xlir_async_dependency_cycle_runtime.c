@@ -92,6 +92,7 @@ void dependency_finally(int64_t id) {assert(id>=0&&(unsigned)id<width&&!finalize
 void dependency_after(int64_t id) {assert(id>=0&&(unsigned)id<width);++after[id];}
 xfuture* dependency_boot(void) {assert(!"reachability-only entry");return NULL;}
 extern xfuture* dependency_start(unsigned,xfuture*,xfuture*,bool);
+extern void dependency_prepare(void),dependency_finish(void);
 static void balance(const xmemdebugsnapshot* before)
 {
     xmemdebugsnapshot now;xrtMemDebugSnapshot(&now);
@@ -110,6 +111,10 @@ static void cycle(unsigned size,bool waitCleanup,unsigned rootKind,bool allocati
     terminal=cleanup;
     if(!waitCleanup)assert(xrtPromiseResolve(cleanupPromise,&payload));
     for(unsigned i=0;i<size;++i)outputs[i]=dependency_start(i,boot,cleanup,waitCleanup);
+    /* Entry is now an admitted ready activation. Reach the initial pending
+     * boot await before exercising the original boot-to-peer transition. */
+    for(unsigned i=0;i<size;++i)assert(xl6ContinuationRunOne(owner->queue));
+    assert(!xl6ContinuationRunOne(owner->queue));
     assert(xrtPromiseResolve(bootPromise,&payload));
     for(unsigned i=0;i<size;++i)assert(xl6ContinuationRunOne(owner->queue));
     if(!linear)assert(!xl6ContinuationRunOne(owner->queue));
@@ -178,6 +183,7 @@ static void cycle(unsigned size,bool waitCleanup,unsigned rootKind,bool allocati
 int main(void)
 {
     assert(xrtMemDebugEnable(true));
+    xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);dependency_prepare();
     for(unsigned round=0;round<10;++round)for(unsigned size=2;size<=3;++size)
     for(unsigned root=0;root<2;++root)cycle(size,false,root,false,true,false);
     for(unsigned round=0;round<10;++round)for(unsigned size=1;size<=3;++size)
@@ -185,6 +191,7 @@ int main(void)
     for(unsigned round=0;round<10;++round)for(unsigned cleanup=0;cleanup<2;++cleanup)
     for(unsigned root=0;root<2;++root)cycle(3,cleanup!=0,root,false,false,true);
     assert(completed==200&&readyChains==40&&feeders==40&&refusals==800&&preparations==200&&cyclicInterruptions==160&&ooms>20);
+    dependency_finish();balance(&before);
     printf("Async dependency cycles: %u generated one/two/three-producer rings, %u runnable acyclic chains, %u cycle feeders, %u exact queue/storage/frame/Watch refusals, %u authorized cyclic interruptions, %u real snapshot OOM failures; external roots preserved, ready work and feeders not cancelled, normal catch/finally and cleanup-await resurrection, exact queue/frame/owner retirement and memory balance\n",completed-readyChains-feeders,readyChains,feeders,refusals,cyclicInterruptions,ooms);
     return 0;
 }
