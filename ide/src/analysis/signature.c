@@ -1,5 +1,6 @@
 #include "analysis/signature_internal.h"
 #include "analysis/frontend_internal.h"
+#include "analysis/input_batch.h"
 #include <stdio.h>
 #include <string.h>
 #define XLS_SIGNATURE_BYTES (4u*1024u*1024u)
@@ -36,7 +37,7 @@ int xlsSignatureAppend(xls_signature_scope* scope,xls_signature_record record)
 }
 static xls_signature_help* createSignature(xls_context* context,const char* entry,const char* path,size_t offset,
     const xls_semantic_input* inputs,size_t count,xls_call_context* index,xls_entry_cache* cache,
-    xls_signature_help* previous,int memoEnabled,int (*cancelled)(void*),void* user,char* error,size_t capacity)
+    xls_signature_help* previous,int memoEnabled,int (*cancelled)(void*),void* user,char* error,size_t capacity,const xls_input_batch* batch,const char* queryKey)
 {
     if(error && capacity)*error=0;
     const xls_semantic_input* target=NULL;
@@ -61,7 +62,7 @@ static xls_signature_help* createSignature(xls_context* context,const char* entr
     if(found<0){xlsSignatureDataDestroy(data);goto invalid;}
     data->hasSite=found>0 && !data->site.inComment && !data->site.embedded;
     if(found && data->site.embedded)data->error="signature query needs embedded expression recovery";
-    xls_semantic_completion* semantic=xlsSemanticSignatureCreateInContext(context,entry,path,offset,inputs,count,data,cache,xlsSignatureSemantic(previous),memoEnabled,cancelled,user,error,capacity);
+    xls_semantic_completion* semantic=batch ? xlsSemanticSignatureCreateBatch(cache,batch,queryKey,offset,data,xlsSignatureSemantic(previous),cancelled,user,error,capacity) : xlsSemanticSignatureCreateInContext(context,entry,path,offset,inputs,count,data,cache,xlsSignatureSemantic(previous),memoEnabled,cancelled,user,error,capacity);
     if(!semantic)return NULL;
     xls_signature_help* result=xrtCalloc(1,sizeof(*result));
     if(!result){xlsSemanticCompletionDestroy(semantic);goto memory;}
@@ -71,11 +72,21 @@ memory:if(error && capacity)snprintf(error,capacity,"cannot allocate signature q
 }
 xls_signature_help* xlsSignatureCreateInContext(xls_context* context,const char* entry,const char* path,size_t offset,
     const xls_semantic_input* inputs,size_t count,int (*cancelled)(void*),void* user,char* error,size_t capacity)
-{return createSignature(context,entry,path,offset,inputs,count,NULL,NULL,NULL,0,cancelled,user,error,capacity);}
+{return createSignature(context,entry,path,offset,inputs,count,NULL,NULL,NULL,0,cancelled,user,error,capacity,NULL,NULL);}
 xls_signature_help* xlsSignatureCreateRetainedInContext(xls_context* context,const char* entry,const char* path,size_t offset,
     const xls_semantic_input* inputs,size_t count,xls_call_context* index,xls_entry_cache* cache,xls_signature_help* previous,
     int (*cancelled)(void*),void* user,char* error,size_t capacity)
-{return createSignature(context,entry,path,offset,inputs,count,index,cache,previous,1,cancelled,user,error,capacity);}
+{return createSignature(context,entry,path,offset,inputs,count,index,cache,previous,1,cancelled,user,error,capacity,NULL,NULL);}
+xls_signature_help* xlsSignatureCreateBatch(xls_entry_cache* cache,const xls_input_batch* batch,
+ const char* queryKey,size_t offset,xls_call_context* index,xls_signature_help* previous,
+ int (*cancelled)(void*),void* user,char* error,size_t capacity)
+{
+ const xls_analysis_document* query=xlsInputBatchFind(batch,queryKey);
+ if(!query){if(error && capacity)snprintf(error,capacity,"missing immutable signature batch");return NULL;}
+ xls_semantic_input inputs[64];size_t count=xlsInputBatchInputs(batch,inputs,64);
+ return createSignature((xls_context*)xlsInputBatchContext(batch),xlsInputBatchEntry(batch),query->path,
+     offset,inputs,count,index,cache,previous,1,cancelled,user,error,capacity,batch,queryKey);
+}
 xls_semantic_completion* xlsSignatureSemantic(const xls_signature_help* result){return result ? result->semantic : NULL;}
 xls_signature_data* xlsSignatureData(const xls_signature_help* result){return xlsSemanticSignatureData(xlsSignatureSemantic(result));}
 xls_signature_help* xlsSignatureRetain(xls_signature_help* result){if(result)xrtAtomic32FetchAdd(&result->references,1,XMEMORY_RELAXED);return result;}

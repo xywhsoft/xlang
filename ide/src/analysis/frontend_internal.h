@@ -7,6 +7,20 @@
 #include "src/ir/xl6_ir.h"
 #include "analysis/frontend_sem.h"
 #include "analysis/ast_materialize.h"
+struct xls_input_batch;
+struct xls_entry_cache;
+/* Session-only constructors derive all raw rows/context/entry from the opaque
+ * validated batch and retain it in the immutable result. Existing raw-input
+ * constructors remain independent copying reference paths. */
+xls_semantic_check* xlsSemanticCheckCreateBatch(struct xls_entry_cache* cache,
+    const struct xls_input_batch* batch,int captureIndex,const xls_syntax* syntax,
+    xls_semantic_check* previous,int (*cancelled)(void*),void* user,char* error,size_t capacity);
+xls_dependency_capture* xlsDependencyCaptureCreateBatch(struct xls_entry_cache* cache,
+    const struct xls_input_batch* batch,const xls_syntax* syntax,
+    int (*cancelled)(void*),void* user,char* error,size_t capacity);
+xls_semantic_completion* xlsSemanticCompletionCreateBatch(struct xls_entry_cache* cache,
+    const struct xls_input_batch* batch,const char* queryKey,size_t offset,const xls_syntax* syntax,
+    xls_semantic_completion* previous,int (*cancelled)(void*),void* user,char* error,size_t capacity);
 /* Compiler facts remain inside the analysis layer. Never mutate a published
  * parse tree; semantic passes require their own owned representation. */
 const XL6_AstNode* xlsSyntaxAst(const xls_syntax* syntax);

@@ -68,7 +68,7 @@ xls_semantic_completion* xlsCompletionSessionQueryWithHistory(xls_completion_ses
     if(cancelled && cancelled(user)) goto cancel;
     if(equal) result=xlsSemanticCompletionRetain(s->result);
     else {
-        xls_semantic_input inputs[64]; xlsInputBatchInputs(batch,inputs,64); ++s->stats.builds;
+        ++s->stats.builds;
         int compatible=s->result && s->batch && count==s->stats.documents &&
             xlsFrontendContextsEqual(context,xlsInputBatchContext(s->batch)) &&
             !strcmp(xlsInputBatchDirectory(batch),xlsInputBatchDirectory(s->batch)) &&
@@ -96,7 +96,7 @@ xls_semantic_completion* xlsCompletionSessionQueryWithHistory(xls_completion_ses
                 }
             }
             if(cancelled && cancelled(user)) goto cancel;
-            if(syntax) result=xlsSemanticCompletionCreateIncrementalInContext(context,s->entryCache,xlsInputBatchEntry(batch),query->path,offset,inputs,count,syntax,baseline,cancelled,user,error,capacity);
+            if(syntax) result=xlsSemanticCompletionCreateBatch(s->entryCache,batch,queryKey,offset,syntax,baseline,cancelled,user,error,capacity);
         }
         if(!result) {
             if(cancelled && cancelled(user)) goto cancel;
@@ -104,7 +104,7 @@ xls_semantic_completion* xlsCompletionSessionQueryWithHistory(xls_completion_ses
              * surface. This is the original native frontend, never CLI;
              * the explicit route counter distinguishes it from reuse. */
             ++s->stats.cursorFreshBuilds;
-            result=xlsSemanticCompletionCreateIncrementalInContext(context,s->entryCache,xlsInputBatchEntry(batch),query->path,offset,inputs,count,NULL,baseline,cancelled,user,error,capacity);
+            result=xlsSemanticCompletionCreateBatch(s->entryCache,batch,queryKey,offset,NULL,baseline,cancelled,user,error,capacity);
             xlsSyntaxRelease(syntax); syntax=NULL;
         }
         if(!result) goto done;

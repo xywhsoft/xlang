@@ -66,8 +66,7 @@ xls_signature_help* xlsSignatureSessionQueryWithHistory(xls_signature_session* s
         const xls_analysis_document* old=xlsInputBatchFind(s->batch,queryKey);xls_call_context* index=NULL;
         if(s->result && old && s->queryKey && !strcmp(s->queryKey,queryKey) && old->identity==query->identity && !strcmp(old->path,query->path) && xlsInputSameBody(old,query))index=xlsSignatureData(s->result)->index;
         if(!s->entryCache)s->entryCache=xlsEntryCacheCreate(32u*1024u*1024u);
-        xls_semantic_input inputs[64];xlsInputBatchInputs(batch,inputs,64);
-        result=xlsSignatureCreateRetainedInContext(context,xlsInputBatchEntry(batch),query->path,offset,inputs,count,index,s->entryCache,compatible ? s->result : NULL,cancelled,user,error,capacity);
+        result=xlsSignatureCreateBatch(s->entryCache,batch,queryKey,offset,index,compatible ? s->result : NULL,cancelled,user,error,capacity);
         if(!result)goto done;
         if(index && xlsSignatureData(result)->index==index)++s->stats.indexHits;else ++s->stats.indexBuilds;
     }

@@ -76,9 +76,8 @@ xls_dependency_capture* xlsDependencySessionCaptureWithHistory(xls_dependency_se
             if(!syntax)goto memory;
         }
         if(stopped(cancelled,user))goto cancel;
-        xls_semantic_input inputs[64];xlsInputBatchInputs(batch,inputs,64);
         if(!s->entryCache)s->entryCache=xlsEntryCacheCreate(32u*1024u*1024u);
-        result=xlsDependencyCaptureCreateParsedInContext(context,s->entryCache,xlsInputBatchEntry(batch),inputs,count,syntax,cancelled,user,error,capacity);
+        result=xlsDependencyCaptureCreateBatch(s->entryCache,batch,syntax,cancelled,user,error,capacity);
         if(!result)goto done;
     }
     if(stopped(cancelled,user)){xlsDependencyCaptureRelease(result);result=NULL;goto cancel;}
