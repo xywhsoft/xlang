@@ -33,6 +33,15 @@ if [[ ! -x "$xl" ]]; then
     printf 'dotenv: Linux xl runner is missing: %s\n' "$xl" >&2
     exit 1
 fi
+# WSL 挂载盘上的独立 EXE 构建可能失败；语言门禁在本次临时原生目录运行。
+stage="$work/stage"
+mkdir -p "$stage/release/extlibs" "$stage/release/examples/extlibs" "$stage/test/cases" "$stage/test/data"
+cp -a release/xl release/libxlc.so "$stage/release/"
+cp -a release/extlibs/dotenv "$stage/release/extlibs/"
+cp -a release/examples/extlibs/dotenv.xl "$stage/release/examples/extlibs/"
+cp -a test/cases/extlib_dotenv.xl "$stage/test/cases/"
+cp -a test/data/dotenv_test.env "$stage/test/data/"
+cd "$stage"
 timeout 90s "$xl" run release/extlibs/dotenv/examples/basic.c > "$work/example_direct.txt"
 diff -u "$work/example.txt" "$work/example_direct.txt"
 timeout 90s "$xl" run test/cases/extlib_dotenv.xl
