@@ -58,7 +58,7 @@ CORE_TESTS = ("analysis_cursor_memo_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_call_candidates_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_cursor_source_memo_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_completion_annotations_test", *CORE_TESTS)
-CORE_TESTS = ("analysis_ast_tree_test", "analysis_ast_leaf_failure_test", "analysis_ast_leaf_test", "analysis_ast_storage_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_dependency_capture_test", "analysis_ast_tree_test", "analysis_ast_leaf_failure_test", "analysis_ast_leaf_test", "analysis_ast_storage_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_completion_body_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_plan_direct_test", "analysis_check_materialize_test", "analysis_ast_materialize_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_call_context_test", *CORE_TESTS)
@@ -759,6 +759,11 @@ def main() -> None:
                 extra += [str(objects[Path(source).stem]) for source in CLIENT_TEST_SOURCES
                           if Path(source).stem != "diagnostic_stream" and
                           not (name == "reference_results_test" and Path(source).stem == "reference_results")]
+            if name == "analysis_dependency_capture_test":
+                # Observe real original semantic/IR entry calls in this fixture
+                # only;the dependency snapshot must invoke neither stage.
+                extra += ["-Wl,--wrap=xl6SemCheckModuleWithIndex",
+                          "-Wl,--wrap=xl6IrBuildModuleFromAst"]
             run([str(cc), str(objects[name]), *extra, str(core), "-Wl,--gc-sections", *libraries, "-o", str(program)], name + "-link")
             result = run([str(program)], name + "-run", 30)
             if b"passed:" not in result.stdout:
