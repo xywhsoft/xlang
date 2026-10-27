@@ -1,5 +1,11 @@
 # semver
 
+2026-10-27 当前 Windows 发布版复验：默认包门禁的严格 C/ABI、
+边界、分配故障、C/XLang 黄金输出及独立 EXE AOT 全部通过。
+另用本机已安装的 node-semver 7.8.5 运行可选独立 oracle：
+279,319 组共同语义零差异，276 组本包扩展区间跳过。
+这验证的是固定矩阵与 Windows 构建，不替代其他平台本轮重测。
+
 2026-10-26 新版 Windows/Linux 发布物验收：两平台均以当前源码构建的
 `xl` 运行默认包门禁，全部退出 0。`prerelease/build/clean` 的
 `@owned string` 返回在新发布物上直接接管 XRT 分配；严格 C/ABI、
