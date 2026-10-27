@@ -55,7 +55,8 @@ int main(void)
         text = xl6OutputTakeMemoryText(&out, NULL);
         assert(text && strstr(text, "xl6ContinuationFrameRuntimeV3Get()->Bind(frame)") &&
             strstr(text,"xl6ContinuationFrameRuntimeV4Get()->Observe(frame, &input)") && !strstr(text,"cancelObserved") &&
-            strstr(text, "XL6_ContinuationFrameLayoutV2") && !strstr(text,"xlir_async_machine_frame_trace_"));
+            strstr(text, "XL6_ContinuationFrameLayoutV3") && strstr(text,"xl6ContinuationFrameLaunchV1(frame,") &&
+            !strstr(text,"xlir_async_machine_frame_trace_"));
         xrtFree(text); xl6IrModuleFree(&ir); xl6ParseResultFree(&parse);
     }
     assert(families[0] && families[1] && ownershipMutations && mutations == 3 * slots + ownershipMutations);

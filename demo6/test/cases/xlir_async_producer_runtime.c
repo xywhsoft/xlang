@@ -91,6 +91,7 @@ static void complete(xpromise* promise,unsigned outcome)
 }
 static XL6_ContinuationQueue* queue;static xfuture* sources[2];static void* observed[2];static unsigned observations,entered;
 extern xfuture* async_managed_create(void);
+extern void async_managed_prepare(void), async_managed_finish(void);
 XL6_ContinuationQueue* async_managed_queue(void) {return queue;}
 void async_managed_observe(void* frame) {assert(observations<2);observed[observations++]=frame;}
 xfuture* async_storage_source(int64_t stage) {assert(stage==0||stage==1);return xrtFutureRef(sources[stage]);}
@@ -101,7 +102,8 @@ static void generated(unsigned outcome,bool ready,bool allocationSweep)
     queue=xl6ContinuationQueueCreate(1);assert(queue);
     for(unsigned i=0;i<2;++i){promises[i]=xrtPromiseCreate(&sources[i],NULL);assert(promises[i]);}
     if(ready)complete(promises[1],outcome==4?0:outcome);
-    xfuture* output=async_managed_create();assert(output&&observations==1&&entered==1);
+    xfuture* output=async_managed_create();assert(output&&!observations&&!entered);
+    assert(xl6ContinuationRunOne(queue)&&observations==1&&entered==1);
     xrtownershipref root=xrtFutureOwnership(output),first=api->Ownership(observed[0]);
     xrtownershipref producer=producer_of(output,first);assert(refs(producer)==2&&refs(first)==3);current_is(producer,first);
     /* Each physical child and each exact XRT policy must be admitted independently. */
@@ -209,8 +211,10 @@ static void root_retry(unsigned mode)
 }
 int main(void)
 {
+    xmemdebugsnapshot whole;
     assert(xrtMemDebugEnable(true));api=xl6ContinuationFrameRuntimeV2Get();produced=xl6ContinuationFrameRuntimeV3Get();
     xrtSetErrorKind(XERR_STATE);xrtClearError();
+    xrtMemDebugSnapshot(&whole);async_managed_prepare();
     for(unsigned round=0;round<10;++round){
         for(unsigned outcome=0;outcome<5;++outcome)for(unsigned ready=0;ready<2;++ready)
             generated(outcome,ready!=0,outcome==0&&!ready);
@@ -218,6 +222,7 @@ int main(void)
         chain();
     }
     assert(graphs==100&&denials==1040&&rootRetries==30&&successorRetries==640&&steps==640&&freezes==200&&oomAttempts==330&&trueOoms>=20);
+    async_managed_finish();balance(&whole);
     puts("Async producer graph: 100 generated pending/ready outcome graphs, 1040 exact policy/identity refusals, 30 root retries, 640 successor rollbacks and handoffs, 200 cross-thread freezes, 330 allocation budgets; stable producer, real Plan pins, constant live chain storage, exact memory balance");
     printf("Async producer OOM: %u actual allocation failures\n",trueOoms);return 0;
 }

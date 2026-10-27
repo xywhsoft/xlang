@@ -37,6 +37,7 @@ static XL6_ContinuationQueue* generatedQueue;
 static xfuture* sources[2];
 static volatile LONG generatedEntered;
 extern xfuture* async_storage_generated_create(void);
+extern void async_storage_generated_prepare(void), async_storage_generated_finish(void);
 XL6_ContinuationQueue* async_storage_queue(void) { return generatedQueue; }
 xfuture* async_storage_source(int64_t stage) { assert(stage==0 || stage==1); return xrtFutureRef(sources[stage]); }
 void async_storage_entered(void) { InterlockedIncrement(&generatedEntered); }
@@ -77,7 +78,9 @@ static void frozen_storage(unsigned mode,unsigned rounds)
         assert(xrtOwnershipScopeEnd(&freeze)); join(thread);
         if(mode==0) { assert(w.frame); storage->Free(w.frame); }
         if(mode==2) {
-            xfuture* output=w.frame; assert(output && generatedEntered==1 && xrtFutureState(output)==XFUTURE_PENDING);
+            xfuture* output=w.frame; assert(output && !generatedEntered);
+            assert(xl6ContinuationRunOne(generatedQueue)); /* ready entry -> first pending await */
+            assert(generatedEntered==1 && xrtFutureState(output)==XFUTURE_PENDING);
             xl6ContinuationQueueClose(generatedQueue);
             for(unsigned i=0;i<2;++i) { resolve_source(promises[i]); assert(xl6ContinuationRunOne(generatedQueue)); }
             assert(xrtFutureState(output)==XFUTURE_RESOLVED && *(int64_t*)xrtFutureValue(output)==172);
@@ -203,10 +206,15 @@ int main(int argc,char** argv)
     xmemdebugsnapshot before,after;
     assert(xrtMemDebugEnable(true) && xrtMemDebugEnabled()); storage=xl6FrameStorageRuntimeV1Get();
     assert(storage && storage->Allocate && storage->Free);
-    if(argc==2 && !strcmp(argv[1],"--generated-only")) { frozen_storage(2,1); return 0; }
+    if(argc==2 && !strcmp(argv[1],"--generated-only")) {
+        xrtMemDebugSnapshot(&before); async_storage_generated_prepare(); frozen_storage(2,1);
+        async_storage_generated_finish(); balance(&before); return 0;
+    }
     if(argc==2 && !strcmp(argv[1],"--retirement-only")) { retirement(1); return 0; }
     assert(argc==1); xrtMemDebugSnapshot(&before);
+    async_storage_generated_prepare();
     frozen_storage(0,100); frozen_storage(1,100); frozen_storage(2,100); retirement(100); oom();
+    async_storage_generated_finish();
     balance(&before); xrtMemDebugSnapshot(&after); assert(after.AllocCount>before.AllocCount);
     puts("Async physical storage: 200 frozen allocate/free transitions, 100 generated launches, 200 generated Watch retirements, 100 blocked-cleanup successor handoffs, 100 true OOM rollbacks, 100 armed-OOM frees; exact graph/count/credit/allocator balance, no native root registration");
     printf("Async storage allocator: %llu real allocations, zero live delta\n",(unsigned long long)(after.AllocCount-before.AllocCount));

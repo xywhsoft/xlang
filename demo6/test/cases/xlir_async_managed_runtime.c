@@ -169,6 +169,7 @@ static void watches(unsigned outcome,bool ready)
 }
 static XL6_ContinuationQueue* generatedQueue;static xfuture* sources[2];static void* observed[2];static unsigned observations,entered;
 extern xfuture* async_managed_create(void);
+extern void async_managed_prepare(void), async_managed_finish(void);
 XL6_ContinuationQueue* async_managed_queue(void) {return generatedQueue;}
 void async_managed_observe(void* frame) {assert(observations<2);observed[observations++]=frame;}
 xfuture* async_storage_source(int64_t stage) {assert(stage==0||stage==1);return xrtFutureRef(sources[stage]);}
@@ -178,7 +179,8 @@ static void generated(unsigned outcome)
     xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);xpromise* producers[2];observations=entered=0;
     generatedQueue=xl6ContinuationQueueCreate(1);assert(generatedQueue);
     for(unsigned i=0;i<2;++i){producers[i]=xrtPromiseCreate(&sources[i],NULL);assert(producers[i]);}
-    xfuture* output=async_managed_create();assert(output&&observations==1&&entered==1);
+    xfuture* output=async_managed_create();assert(output&&!observations&&!entered);
+    assert(xl6ContinuationRunOne(generatedQueue)&&observations==1&&entered==1);
     void* first=api->Retain(observed[0]);assert(first&&count(first)==4);
     complete(producers[0],0);assert(count(first)==3);xl6ContinuationQueueClose(generatedQueue);
     assert(xl6ContinuationRunOne(generatedQueue)&&observations==2&&count(first)==1);
@@ -264,7 +266,9 @@ static void dll_lifetime(const char* file,bool adapterLast)
 }
 int main(int argc,char** argv)
 {
+    xmemdebugsnapshot whole;
     assert(argc==2&&xrtMemDebugEnable(true));api=xl6ContinuationFrameRuntimeV2Get();assert(api);
+    xrtMemDebugSnapshot(&whole);async_managed_prepare();
     for(unsigned round=0;round<10;++round){
         for(unsigned mode=0;mode<4;++mode)for(unsigned order=0;order<6;++order)native(mode,order);
         for(unsigned outcome=0;outcome<4;++outcome){watches(outcome,false);watches(outcome,true);}
@@ -273,6 +277,7 @@ int main(int argc,char** argv)
         dll_lifetime(argv[1],false);dll_lifetime(argv[1],true);
     }
     assert(transactions==240&&watchTransactions==80&&generatedTransactions==50&&probes==580&&refusals==820&&failures==120&&ooms==10&&dllLifetimes==20);
+    async_managed_finish();balance(&whole);
     puts("Managed async: 240 lifecycle transactions, 80 real Watch outcomes, 50 generated successor chains, 580 cross-thread freezes, 820 ABI/admission refusals, 120 exact failure outcomes, 10 real OOM rollbacks, 20 actual DLL unloads; actual pins and plan retirement, exact memory balance");
     return 0;
 }

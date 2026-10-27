@@ -4,6 +4,7 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [string]$Tcc='E:/software/tcc/tcc.exe')
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
+. (Join-Path $PSScriptRoot 'xlir_resident_closure.ps1')
 $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
 try {
@@ -18,17 +19,24 @@ try {
         'src/runtime/xl6_continuation_queue.c','src/runtime/xl6_continuation_executor.c',
         'src/runtime/xl6_continuation_future.c','src/runtime/xl6_future_payload.c','src/runtime/xl6_closure.c','src/runtime/xl6_cell.c')
     $managedSources=@('test/cases/xlir_async_managed_runtime.c','test/cases/xlir_async_managed_host.c','src/runtime/xl6_ownership_plan.c')+
-        @($sources | Where-Object {$_ -notmatch '^test/'})
+        @($sources | Where-Object {$_ -like 'src/*'})
     $producerSources=@('test/cases/xlir_async_producer_runtime.c','test/cases/xlir_async_managed_host.c','src/runtime/xl6_ownership_plan.c')+
-        @($sources | Where-Object {$_ -notmatch '^test/'})
+        @($sources | Where-Object {$_ -like 'src/*'})
     $files=@(Get-Item -LiteralPath $PSCommandPath,$ContractDriver,$Tcc,'C:/Windows/System32/ucrtbase.dll',(Get-Command gcc).Source,
         'test/cases/xlir_async_storage_contract.c','test/cases/xlir_async_storage.xl','test/cases/xlir_frame_ownership.xl',
         'test/cases/xlir_cell_continuation_outcome.xl','test/cases/xlir_async_pool_launch_allocation.xl',
-        'test/cases/xlir_async_launch_allocation.xl','test/cases/xlir_async_managed_dll.c','test/cases/xlir_async_managed_dll.h')+@(Get-Item -LiteralPath $sources)+@(Get-Item -LiteralPath $managedSources)+@(Get-Item -LiteralPath $producerSources)
+        'test/cases/xlir_async_launch_allocation.xl','test/cases/xlir_async_managed_dll.c','test/cases/xlir_async_managed_dll.h',
+        'test/cases/xlir_async_storage_frame.c')+@(Get-Item -LiteralPath $sources)+@(Get-Item -LiteralPath $managedSources)+@(Get-Item -LiteralPath $producerSources)
     $inputs=@($public.Inputs)+@($public.Headers)+@($runtime)+@($contracts.Inputs)+@($contracts.Drivers)+
         @($files | ForEach-Object {[pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})
     if(@($inputs | Where-Object {(Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256}).Count){throw 'Stale async-storage inputs'}
     New-Item -ItemType Directory -Path $outputPath | Out-Null
+    $closure=Get-XlirResidentClosure -Root $rootPath -Directory "$outputPath/resident-closure" -Sources @((@($sources)+@($managedSources)+@($producerSources))|Where-Object {$_-like'src/*'}|Sort-Object -Unique) -NativeProvider 'tools/xrt_single_header_impl.c' -PublicDirectory $PublicDirectory -Fixtures @('test/cases/xlir_async_storage.xl')
+    $resident=@($closure.Sources|ForEach-Object {if($_-eq'src/runtime/xl6_continuation_frame.c'){'test/cases/xlir_async_storage_frame.c'}else{$_}})
+    $sources=@($sources|Where-Object {$_-notlike'src/*'})+$resident
+    $managedSources=@($managedSources|Where-Object {$_-notlike'src/*'})+$resident
+    $producerSources=@($producerSources|Where-Object {$_-notlike'src/*'})+$resident
+    $inputs+=@($closure.Inputs)
     $marker='Async storage IR: 5 fixtures, 30 rejected C/header-gated mutations, 4 queued frame fixtures, 3 resumable, 1 root-only, 1 frame-free ready future; explicit text/JSON ABI'
     $emission=@();$deterministic=$true
     foreach($repeat in @('','.repeat')){
@@ -43,7 +51,7 @@ try {
             (Get-FileHash "$outputPath/xlir_async_storage.$suffix").Hash -ne (Get-FileHash "$outputPath/xlir_async_storage.repeat.$suffix").Hash){$deterministic=$false}
     }
     $includePath=[IO.Path]::GetFullPath((Join-Path $PublicDirectory 'include'))
-    $includes=@("-I$includePath","-I$outputPath",'-I.')
+    $includes=@("-I$includePath","-I$outputPath",'-I.','-Irelease','-Irelease/include')
     $strict=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-label')
     $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32');$lanes=@()
     $runtimeMarker='Async physical storage: 200 frozen allocate/free transitions, 100 generated launches, 200 generated Watch retirements, 100 blocked-cleanup successor handoffs, 100 true OOM rollbacks, 100 armed-OOM frees; exact graph/count/credit/allocator balance, no native root registration'
@@ -52,11 +60,12 @@ try {
     foreach($variant in @('original','managed','producer')){ foreach($configuration in @('gcc-O0','gcc-O2','tcc')){
         $name=if($variant -eq 'original'){$configuration}else{"$variant-$configuration"}
         $caseSources=if($variant -eq 'original'){$sources}elseif($variant -eq 'managed'){$managedSources}else{$producerSources}
+        $probeFlags=if($variant-eq'original'){@()}else{@('-DXLIR_ASYNC_MANAGED_PROBE')}
         $binary="$outputPath/$name.exe"
         if($configuration -eq 'tcc'){
-            $buildExit=Invoke-XlirNativeToLog $Tcc (@('-std=c11')+$includes+$caseSources+@('tools/xrt_single_header_impl.c','C:/Windows/System32/ucrtbase.dll')+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
+            $buildExit=Invoke-XlirTccToLog $Tcc (@('-std=c11')+$probeFlags+$includes+$caseSources+@('tools/xrt_single_header_impl.c','C:/Windows/System32/ucrtbase.dll')+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
         }else{
-            $buildExit=Invoke-XlirNativeToLog gcc ($strict+@("-$($configuration.Substring(4))")+$includes+$caseSources+@($runtime[0].Path)+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
+            $buildExit=Invoke-XlirGccToLog ($strict+@("-$($configuration.Substring(4))")+$probeFlags+$includes+$caseSources+@($runtime[0].Path)+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
         }
         $runExit=$null;$complete=$false;$allocations=0;$dllExit=$null;$trueOom=0
         if($variant -eq 'managed'){
