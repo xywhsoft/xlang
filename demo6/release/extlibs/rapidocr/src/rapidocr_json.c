@@ -516,21 +516,21 @@ cleanup:
 	return output;
 }
 
-RAPIDOCR_EXPORT void* rapidocr_assemble_result_native(const char* boxes_json,
+RAPIDOCR_EXPORT char* rapidocr_assemble_result_native(const char* boxes_json,
 	const char* rec_json, double elapse)
 {
 	const char* recs[] = { rec_json };
 	return rapidocr_assemble_many(boxes_json, recs, 1u, elapse);
 }
 
-RAPIDOCR_EXPORT void* rapidocr_assemble_result2_native(const char* boxes_json,
+RAPIDOCR_EXPORT char* rapidocr_assemble_result2_native(const char* boxes_json,
 	const char* rec0_json, const char* rec1_json, double elapse)
 {
 	const char* recs[] = { rec0_json, rec1_json };
 	return rapidocr_assemble_many(boxes_json, recs, 2u, elapse);
 }
 
-RAPIDOCR_EXPORT void* rapidocr_assemble_result4_native(const char* boxes_json,
+RAPIDOCR_EXPORT char* rapidocr_assemble_result4_native(const char* boxes_json,
 	const char* rec0_json, const char* rec1_json, const char* rec2_json,
 	const char* rec3_json, double elapse)
 {
@@ -538,7 +538,7 @@ RAPIDOCR_EXPORT void* rapidocr_assemble_result4_native(const char* boxes_json,
 	return rapidocr_assemble_many(boxes_json, recs, 4u, elapse);
 }
 
-RAPIDOCR_EXPORT void* rapidocr_assemble_result_list_native(const char* boxes_json,
+RAPIDOCR_EXPORT char* rapidocr_assemble_result_list_native(const char* boxes_json,
 	const char* recs_json, double elapse)
 {
 	xvalue* recs = rapidocr_parse_json(recs_json, "[]");

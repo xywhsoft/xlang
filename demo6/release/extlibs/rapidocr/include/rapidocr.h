@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-/* C 后处理入口；返回 void* 的文本由调用方使用 xrtFree 释放。 */
+/* C 后处理文本返回独立 char*，调用方使用 xrtFree 释放。 */
 int rapidocr_available_native(void);
 /* backend/last_error 返回借用字符串；extlib_path 返回需 xrtFree 的独立字符串。 */
 const char* rapidocr_backend_native(void);
@@ -34,37 +34,37 @@ int rapidocr_boxes_rec_target_width_native(void* handle, int index,
 int rapidocr_vis_image_native(const char* source_path, const char* boxes_json,
     const char* save_path);
 int rapidocr_cls_should_rotate_native(const char* cls_json, double threshold);
-void* rapidocr_charset_info_native(const char* path);
+char* rapidocr_charset_info_native(const char* path);
 /* 句柄在 release 前可复用于多个识别结果；字典文件在 open 时读取一次。 */
 void* rapidocr_charset_open_native(const char* path);
 int rapidocr_charset_release_native(void* charset);
 /* 三种识别解码入口同样返回 xrtFree 释放的独立字符串；失败返回 NULL。 */
-void* rapidocr_rec_decode_native(const char* output_json, const char* keys_path);
-void* rapidocr_rec_decode_result_native(void* result_handle, const char* keys_path);
-void* rapidocr_rec_decode_result_at_native(void* result_handle,
+char* rapidocr_rec_decode_native(const char* output_json, const char* keys_path);
+char* rapidocr_rec_decode_result_native(void* result_handle, const char* keys_path);
+char* rapidocr_rec_decode_result_at_native(void* result_handle,
     const char* keys_path, int batch_index);
-void* rapidocr_rec_decode_result_at_charset_native(void* result_handle,
+char* rapidocr_rec_decode_result_at_charset_native(void* result_handle,
     void* charset, int batch_index);
-void* rapidocr_cls_decode_result_native(void* result_handle);
-void* rapidocr_cls_decode_result_at_native(void* result_handle, int batch_index);
-void* rapidocr_to_ocr_items_json_native(const char* result_json);
-void* rapidocr_to_ocr_items_json2_native(const char* result_json, double text_score);
-void* rapidocr_det_boxes_from_output_native(const char* output_json,
+char* rapidocr_cls_decode_result_native(void* result_handle);
+char* rapidocr_cls_decode_result_at_native(void* result_handle, int batch_index);
+char* rapidocr_to_ocr_items_json_native(const char* result_json);
+char* rapidocr_to_ocr_items_json2_native(const char* result_json, double text_score);
+char* rapidocr_det_boxes_from_output_native(const char* output_json,
     int image_width, int image_height, double threshold);
-void* rapidocr_det_boxes_from_result_native(void* result_handle,
+char* rapidocr_det_boxes_from_result_native(void* result_handle,
     int image_width, int image_height, double threshold);
-void* rapidocr_det_boxes_from_result_db_native(void* result_handle,
+char* rapidocr_det_boxes_from_result_db_native(void* result_handle,
     int image_width, int image_height, double threshold, double box_thresh,
     double unclip_ratio, int use_dilation, int min_box_size, int filter_small_boxes);
 /* assemble 系列返回独立的 XRT 字符串，调用方用 xrtFree 释放；失败返回 NULL。 */
-void* rapidocr_assemble_result_native(const char* boxes_json,
+char* rapidocr_assemble_result_native(const char* boxes_json,
     const char* rec_json, double elapsed_seconds);
-void* rapidocr_assemble_result2_native(const char* boxes_json,
+char* rapidocr_assemble_result2_native(const char* boxes_json,
     const char* rec0_json, const char* rec1_json, double elapsed_seconds);
-void* rapidocr_assemble_result4_native(const char* boxes_json,
+char* rapidocr_assemble_result4_native(const char* boxes_json,
     const char* rec0_json, const char* rec1_json, const char* rec2_json,
     const char* rec3_json, double elapsed_seconds);
-void* rapidocr_assemble_result_list_native(const char* boxes_json,
+char* rapidocr_assemble_result_list_native(const char* boxes_json,
     const char* recs_json, double elapsed_seconds);
 
 /* 可选原生桥接层入口；缺失或符号不全时 create/call 返回 NULL，不创建伪结果。 */

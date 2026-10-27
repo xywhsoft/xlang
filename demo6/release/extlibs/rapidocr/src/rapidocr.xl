@@ -29,22 +29,22 @@ extern "rapidocr_output_word_results_native" func rapidocr_output_word_results_n
 extern "rapidocr_output_elapse_list_native" func rapidocr_output_elapse_list_native(point handle) as string
 extern "rapidocr_output_elapse_native" func rapidocr_output_elapse_native(point handle) as float
 extern "rapidocr_output_vis_native" func rapidocr_output_vis_native(point handle, string save_path) as c_int
-extern "rapidocr_det_boxes_from_output_native" func rapidocr_det_boxes_from_output_native(string output_json, c_int image_width, c_int image_height, float threshold) as point
-extern "rapidocr_det_boxes_from_result_db_native" func rapidocr_det_boxes_from_result_db_native(point result_handle, c_int image_width, c_int image_height, float threshold, float box_thresh, float unclip_ratio, c_int use_dilation, c_int min_box_size, c_int filter_small_boxes) as point
-extern "rapidocr_charset_info_native" func rapidocr_charset_info_native(string path) as point
+extern "rapidocr_det_boxes_from_output_native" @owned func rapidocr_det_boxes_from_output_native(string output_json, c_int image_width, c_int image_height, float threshold) as string?
+extern "rapidocr_det_boxes_from_result_db_native" @owned func rapidocr_det_boxes_from_result_db_native(point result_handle, c_int image_width, c_int image_height, float threshold, float box_thresh, float unclip_ratio, c_int use_dilation, c_int min_box_size, c_int filter_small_boxes) as string?
+extern "rapidocr_charset_info_native" @owned func rapidocr_charset_info_native(string path) as string?
 extern "rapidocr_charset_open_native" func rapidocr_charset_open_native(string path) as point
 extern "rapidocr_charset_release_native" func rapidocr_charset_release_native(point charset) as c_int
-extern "rapidocr_rec_decode_native" func rapidocr_rec_decode_native(string output_json, string keys_path) as point
-extern "rapidocr_rec_decode_result_native" func rapidocr_rec_decode_result_native(point result_handle, string keys_path) as point
-extern "rapidocr_rec_decode_result_at_charset_native" func rapidocr_rec_decode_result_at_charset_native(point result_handle, point charset, c_int batch_index) as point
-extern "rapidocr_cls_decode_result_native" func rapidocr_cls_decode_result_native(point result_handle) as point
-extern "rapidocr_cls_decode_result_at_native" func rapidocr_cls_decode_result_at_native(point result_handle, c_int batch_index) as point
+extern "rapidocr_rec_decode_native" @owned func rapidocr_rec_decode_native(string output_json, string keys_path) as string?
+extern "rapidocr_rec_decode_result_native" @owned func rapidocr_rec_decode_result_native(point result_handle, string keys_path) as string?
+extern "rapidocr_rec_decode_result_at_charset_native" @owned func rapidocr_rec_decode_result_at_charset_native(point result_handle, point charset, c_int batch_index) as string?
+extern "rapidocr_cls_decode_result_native" @owned func rapidocr_cls_decode_result_native(point result_handle) as string?
+extern "rapidocr_cls_decode_result_at_native" @owned func rapidocr_cls_decode_result_at_native(point result_handle, c_int batch_index) as string?
 extern "rapidocr_cls_should_rotate_native" func rapidocr_cls_should_rotate_native(string cls_json, float threshold) as c_int
-extern "rapidocr_assemble_result_native" func rapidocr_assemble_result_native(string boxes_json, string rec_json, float elapse) as point
-extern "rapidocr_assemble_result2_native" func rapidocr_assemble_result2_native(string boxes_json, string rec0_json, string rec1_json, float elapse) as point
-extern "rapidocr_assemble_result4_native" func rapidocr_assemble_result4_native(string boxes_json, string rec0_json, string rec1_json, string rec2_json, string rec3_json, float elapse) as point
-extern "rapidocr_assemble_result_list_native" func rapidocr_assemble_result_list_native(string boxes_json, string recs_json, float elapse) as point
-extern "rapidocr_to_ocr_items_json2_native" func rapidocr_to_ocr_items_json2_native(string result_json, float text_score) as point
+extern "rapidocr_assemble_result_native" @owned func rapidocr_assemble_result_native(string boxes_json, string rec_json, float elapse) as string?
+extern "rapidocr_assemble_result2_native" @owned func rapidocr_assemble_result2_native(string boxes_json, string rec0_json, string rec1_json, float elapse) as string?
+extern "rapidocr_assemble_result4_native" @owned func rapidocr_assemble_result4_native(string boxes_json, string rec0_json, string rec1_json, string rec2_json, string rec3_json, float elapse) as string?
+extern "rapidocr_assemble_result_list_native" @owned func rapidocr_assemble_result_list_native(string boxes_json, string recs_json, float elapse) as string?
+extern "rapidocr_to_ocr_items_json2_native" @owned func rapidocr_to_ocr_items_json2_native(string result_json, float text_score) as string?
 extern "rapidocr_vis_image_native" func rapidocr_vis_image_native(string source_path, string boxes_json, string save_path) as c_int
 extern "rapidocr_first_box_x_native" func rapidocr_first_box_x_native(string boxes_json) as c_int
 extern "rapidocr_first_box_y_native" func rapidocr_first_box_y_native(string boxes_json) as c_int
@@ -85,13 +85,13 @@ func rapidocr_require_json(string value)
 	end
 end
 
-func rapidocr_take_json_result(point result) as string
+func rapidocr_take_json_result(string? result) as string
 	if result == null then
 		string message = rapidocr_last_error_native()
 		if message == "" then message = "RapidOCR native result failed" end
 		throw RuntimeError message
 	end
-	return __xl_runtime.takeCstr(result)
+	return result
 end
 
 func rapidocr_open_session(string model_path, bool needed) as InferenceSessionObject
@@ -726,6 +726,19 @@ func rapidocr_recognize_boxes(Image img, string boxes, bool use_cls, InferenceSe
 	return parts + "]", cls, ""
 end
 
+// 在这里收束可空的拥有型返回值，避免主流水线跨作用域持有临时字符串。
+func rapidocr_det_boxes_db(point result_handle, c_int image_width, c_int image_height, float threshold, float box_thresh, float unclip_ratio, c_int use_dilation, c_int min_box_size, c_int filter_small_boxes) as string
+	string? result = rapidocr_det_boxes_from_result_db_native(result_handle, image_width, image_height, threshold, box_thresh, unclip_ratio, use_dilation, min_box_size, filter_small_boxes)
+	if result == null then return "" end
+	return result
+end
+
+func rapidocr_assemble_list(string boxes, string recs_json) as string
+	string? result = rapidocr_assemble_result_list_native(boxes, recs_json, 0.0)
+	if result == null then return "" end
+	return result
+end
+
 func rapidocr_run_xlang_pipeline(string img_path, bool use_det, bool use_cls, bool use_rec, InferenceSessionObject det_sess, InferenceSessionObject cls_sess, InferenceSessionObject rec_sess, point charset_handle, float det_threshold, float box_thresh, float unclip_ratio, bool det_use_dilation, int min_box_size, bool filter_small_boxes, float cls_thresh, float text_score, int cls_img_w, int cls_img_h, int rec_img_w, int rec_img_h) as RapidOCROutput
 	auto img = opencv.imread_flags(img_path, 1)
 	if img.empty() then
@@ -751,9 +764,8 @@ func rapidocr_run_xlang_pipeline(string img_path, bool use_det, bool use_cls, bo
 			if filter_small_boxes then
 				small_filter_flag = 1
 			end
-			point boxes_ptr = rapidocr_det_boxes_from_result_db_native(det_result.handle, rapidocr_to_c_int(img.width()), rapidocr_to_c_int(img.height()), det_threshold, box_thresh, unclip_ratio, rapidocr_to_c_int(dilation_flag), rapidocr_to_c_int(min_box_size), rapidocr_to_c_int(small_filter_flag))
-			if boxes_ptr == null then return RapidOCROutput("detector postprocess failed: " + rapidocr_last_error_native()) end
-			boxes = __xl_runtime.takeCstr(boxes_ptr)
+			boxes = rapidocr_det_boxes_db(det_result.handle, rapidocr_to_c_int(img.width()), rapidocr_to_c_int(img.height()), det_threshold, box_thresh, unclip_ratio, rapidocr_to_c_int(dilation_flag), rapidocr_to_c_int(min_box_size), rapidocr_to_c_int(small_filter_flag))
+			if boxes == "" then return RapidOCROutput("detector postprocess failed: " + rapidocr_last_error_native()) end
 		end
 	end
 
@@ -768,9 +780,8 @@ func rapidocr_run_xlang_pipeline(string img_path, bool use_det, bool use_cls, bo
 	end
 	rapidocr_require_json(boxes)
 	rapidocr_require_json(recs_json)
-	point assembled_ptr = rapidocr_assemble_result_list_native(boxes, recs_json, 0.0)
-	if assembled_ptr == null then return RapidOCROutput("OCR result assembly failed") end
-	string assembled = __xl_runtime.takeCstr(assembled_ptr)
+	string assembled = rapidocr_assemble_list(boxes, recs_json)
+	if assembled == "" then return RapidOCROutput("OCR result assembly failed") end
 	return RapidOCROutput(assembled, rapidocr_text_from_recs(recs_json), boxes, txts, scores, cls, "[]", 0.0, img_path, text_score)
 end
 
@@ -1101,55 +1112,55 @@ end
 
 func rapidocr_det_boxes_from_output(string output_json, int image_width, int image_height) as string
 	rapidocr_require_json(output_json)
-	point result = rapidocr_det_boxes_from_output_native(output_json, rapidocr_to_c_int(image_width), rapidocr_to_c_int(image_height), 0.3)
+	string? result = rapidocr_det_boxes_from_output_native(output_json, rapidocr_to_c_int(image_width), rapidocr_to_c_int(image_height), 0.3)
 	return rapidocr_take_json_result(result)
 end
 
 func rapidocr_det_boxes_from_output(string output_json, int image_width, int image_height, float threshold) as string
 	rapidocr_require_json(output_json)
-	point result = rapidocr_det_boxes_from_output_native(output_json, rapidocr_to_c_int(image_width), rapidocr_to_c_int(image_height), threshold)
+	string? result = rapidocr_det_boxes_from_output_native(output_json, rapidocr_to_c_int(image_width), rapidocr_to_c_int(image_height), threshold)
 	return rapidocr_take_json_result(result)
 end
 
 func rapidocr_charset_info(string path) as string
 	rapidocr_require_path(path)
-	point result = rapidocr_charset_info_native(path)
+	string? result = rapidocr_charset_info_native(path)
 	return rapidocr_take_json_result(result)
 end
 
 func rapidocr_rec_decode(string output_json, string keys_path) as string
 	rapidocr_require_json(output_json)
 	rapidocr_require_path(keys_path)
-	point result = rapidocr_rec_decode_native(output_json, keys_path)
+	string? result = rapidocr_rec_decode_native(output_json, keys_path)
 	return rapidocr_take_json_result(result)
 end
 
 func rapidocr_rec_decode_result(point result_handle, string keys_path) as string
 	rapidocr_require_path(keys_path)
-	point result = rapidocr_rec_decode_result_native(result_handle, keys_path)
+	string? result = rapidocr_rec_decode_result_native(result_handle, keys_path)
 	return rapidocr_take_json_result(result)
 end
 
 func rapidocr_rec_decode_at_charset(point result_handle, point charset, int batch_index) as string
-	point result = rapidocr_rec_decode_result_at_charset_native(result_handle, charset, rapidocr_to_c_int(batch_index))
+	string? result = rapidocr_rec_decode_result_at_charset_native(result_handle, charset, rapidocr_to_c_int(batch_index))
 	if result == null then return "" end
-	return __xl_runtime.takeCstr(result)
+	return result
 end
 
 func rapidocr_cls_decode_result(point result_handle) as string
-	point result = rapidocr_cls_decode_result_native(result_handle)
+	string? result = rapidocr_cls_decode_result_native(result_handle)
 	return rapidocr_take_json_result(result)
 end
 
 func rapidocr_cls_decode_result_at(point result_handle, int batch_index) as string
-	point result = rapidocr_cls_decode_result_at_native(result_handle, rapidocr_to_c_int(batch_index))
+	string? result = rapidocr_cls_decode_result_at_native(result_handle, rapidocr_to_c_int(batch_index))
 	if result == null then return "" end
-	return __xl_runtime.takeCstr(result)
+	return result
 end
 
 func rapidocr_ocr_items_json2(string result_json, float text_score) as string
 	rapidocr_require_json(result_json)
-	point result = rapidocr_to_ocr_items_json2_native(result_json, text_score)
+	string? result = rapidocr_to_ocr_items_json2_native(result_json, text_score)
 	return rapidocr_take_json_result(result)
 end
 
@@ -1199,9 +1210,9 @@ func rapidocr_vis_image(string source_path, string boxes_json, string save_path)
 	return rapidocr_vis_image_native(source_path, boxes_json, save_path) != 0
 end
 
-func rapidocr_assembled_text(point result) as string
+func rapidocr_assembled_text(string? result) as string
 	if result == null then throw ValueError "RapidOCR result JSON is invalid or too large" end
-	return __xl_runtime.takeCstr(result)
+	return result
 end
 
 func rapidocr_assemble_result(string boxes_json, string rec_json) as string

@@ -127,13 +127,30 @@ try {
         $null = Run 'resource path cgen' $xl @('cgen',
             'examples/extlibs/rapidocr.xl', '--emit', $generated)
         $generatedText = [IO.File]::ReadAllText($generated)
-        $adoptions = [regex]::Matches($generatedText,
-            '\.Data\s*=\s*rapidocr_extlib_path_native\s*\(').Count
-        if ($adoptions -ne 1 -or
-            -not $generatedText.Contains('extern char* rapidocr_extlib_path_native(')) {
-            throw 'RapidOCR resource path must directly adopt the owned C string'
+        $ownedTextFunctions = @(
+            'rapidocr_extlib_path_native',
+            'rapidocr_det_boxes_from_output_native',
+            'rapidocr_det_boxes_from_result_db_native',
+            'rapidocr_charset_info_native',
+            'rapidocr_rec_decode_native',
+            'rapidocr_rec_decode_result_native',
+            'rapidocr_rec_decode_result_at_charset_native',
+            'rapidocr_cls_decode_result_native',
+            'rapidocr_cls_decode_result_at_native',
+            'rapidocr_to_ocr_items_json2_native',
+            'rapidocr_assemble_result_native',
+            'rapidocr_assemble_result2_native',
+            'rapidocr_assemble_result4_native',
+            'rapidocr_assemble_result_list_native'
+        )
+        foreach ($symbol in $ownedTextFunctions) {
+            $pattern = '\.Data\s*=\s*' + [regex]::Escape($symbol) + '\s*\('
+            if (-not $generatedText.Contains("extern char* $symbol(") -or
+                -not [regex]::IsMatch($generatedText, $pattern)) {
+                throw "RapidOCR owned C string is not directly adopted: $symbol"
+            }
         }
-        Write-Host '[rapidocr] resource path direct adoption: PASS'
+        Write-Host '[rapidocr] owned text direct adoption: PASS'
         $null = Run 'XLang decoder boundaries' $xl @('run', 'extlibs/rapidocr/test/rec_decode_smoke.xl')
         $null = Run 'XLang native failure boundaries' $xl @('run', 'extlibs/rapidocr/test/native_failures.xl')
         $xlOutput = Run 'XLang example' $xl @('run', 'extlibs/rapidocr/examples/postprocess.xl')

@@ -55,6 +55,8 @@ XLang 的配置、模型、字典、输入图片和可视化输出路径均拒�
 
 `rapidocr_assemble_result*_native` 已改为 XRT 严格 JSON 解析和序列化。四种组装入口均返回独立缓冲，C 调用方以 `xrtFree(result)` 释放，XLang 包装层自动接管；非法 JSON、非数组 boxes、超过 256 条识别结果或单段超过 4 MiB 时明确失败，不再静默截断。C 测试覆盖引号/反斜杠、超过旧 1 KiB 文本和 64 KiB 总缓冲的结果、连续调用与错误输入。
 
+本包的拥有型文本入口统一返回 `char*`，由 XRT 分配，C 调用方使用 `xrtFree`；XLang 通过 `@owned ... as string?` 接管，不再先包装为 `point` 再转换。生成代码仍需扫描一次字符串长度，但不额外复制字符。真实模型 JIT/AOT 与 C/XLang 后处理对照纳入包级门禁，覆盖检测框文本传入后续批量识别时的生命周期。
+
 公开的检测框、字典信息、识别/分类解码及 OCR 条目转换接口中，C 返回 `NULL` 表示操作失败，XLang 现在抛带原生诊断的 `RuntimeError`，不再把坏张量、缺字典或无效句柄伪装为 `[]`/`{}`。合法的无检测框仍返回 `[]`；完整推理的无文字结果仍由 `RapidOCROutput.ok()` 和空 `text()` 表达。推理内部的分批分类/识别失败继续汇入结果对象的 `error()`，不伪装为成功数据。无模型负例见 `test/native_failures.xl`，由 Windows/Linux 包级门禁运行。
 
 默认资源目录解析失败同样抛 `RuntimeError`，不会让空路径进入模型配置。`test/native_failures.xl` 扫描分配故障点，检查路径结果非空或明确失败，并验证故障清除后的恢复。

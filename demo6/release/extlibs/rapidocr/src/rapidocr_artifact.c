@@ -854,7 +854,7 @@ static int rapid_component_vertical_split(const double* values, int map_w, int m
 	return 1;
 }
 
-XL_EXPORT void* rapidocr_det_boxes_from_output_native(const char* output_json, int image_width, int image_height, double threshold)
+XL_EXPORT char* rapidocr_det_boxes_from_output_native(const char* output_json, int image_width, int image_height, double threshold)
 {
 	int map_h = 0;
 	int map_w = 0;
@@ -1030,7 +1030,7 @@ XL_EXPORT void* rapidocr_det_boxes_from_output_native(const char* output_json, i
 	return output;
 }
 
-XL_EXPORT void* rapidocr_det_boxes_from_result_native(void* result_handle, int image_width, int image_height, double threshold)
+XL_EXPORT char* rapidocr_det_boxes_from_result_native(void* result_handle, int image_width, int image_height, double threshold)
 {
 	int map_h = 0;
 	int map_w = 0;
@@ -1743,7 +1743,7 @@ static void rapid_db_sort_boxes(RapidDbBox* boxes, int count)
 	}
 }
 
-XL_EXPORT void* rapidocr_det_boxes_from_result_db_native(void* result_handle, int image_width, int image_height, double threshold, double box_thresh, double unclip_ratio, int use_dilation, int min_box_size, int filter_small_boxes)
+XL_EXPORT char* rapidocr_det_boxes_from_result_db_native(void* result_handle, int image_width, int image_height, double threshold, double box_thresh, double unclip_ratio, int use_dilation, int min_box_size, int filter_small_boxes)
 {
 	int map_h = 0;
 	int map_w = 0;
@@ -1885,7 +1885,7 @@ XL_EXPORT void* rapidocr_det_boxes_from_result_db_native(void* result_handle, in
 static RapidCharset* rapid_load_charset(const char* path);
 static void rapid_free_charset(RapidCharset* charset);
 
-XL_EXPORT void* rapidocr_charset_info_native(const char* path)
+XL_EXPORT char* rapidocr_charset_info_native(const char* path)
 {
 	RapidCharset* charset = rapid_load_charset(path);
 	void* output;
@@ -1990,7 +1990,7 @@ static int rapid_rec_append(xbuffer* text, const char* character)
 	return xrtBufferAppend(text, (xbytesview){ (const unsigned char*)character, length }) ? 1 : 0;
 }
 
-XL_EXPORT void* rapidocr_rec_decode_native(const char* output_json, const char* keys_path)
+XL_EXPORT char* rapidocr_rec_decode_native(const char* output_json, const char* keys_path)
 {
 	int shape_h = 0;
 	int classes = 0;
@@ -2147,7 +2147,7 @@ failed:
 	return NULL;
 }
 
-XL_EXPORT void* rapidocr_rec_decode_result_native(void* result_handle, const char* keys_path)
+XL_EXPORT char* rapidocr_rec_decode_result_native(void* result_handle, const char* keys_path)
 {
 	int shape_h = 0;
 	int classes = 0;
@@ -2169,7 +2169,7 @@ XL_EXPORT void* rapidocr_rec_decode_result_native(void* result_handle, const cha
 	return output;
 }
 
-XL_EXPORT void* rapidocr_rec_decode_result_at_charset_native(void* result_handle,
+XL_EXPORT char* rapidocr_rec_decode_result_at_charset_native(void* result_handle,
 	void* charset_handle, int batch_index)
 {
 	int dims[8];
@@ -2205,7 +2205,7 @@ XL_EXPORT void* rapidocr_rec_decode_result_at_charset_native(void* result_handle
 		shape_h, classes);
 }
 
-XL_EXPORT void* rapidocr_rec_decode_result_at_native(void* result_handle,
+XL_EXPORT char* rapidocr_rec_decode_result_at_native(void* result_handle,
 	const char* keys_path, int batch_index)
 {
 	RapidCharset* charset;
@@ -2223,7 +2223,7 @@ XL_EXPORT void* rapidocr_rec_decode_result_at_native(void* result_handle,
 }
 
 /* 分类输出按批次独立序列化，不借用全局结果槽。 */
-XL_EXPORT void* rapidocr_cls_decode_result_at_native(void* result_handle, int batch_index)
+XL_EXPORT char* rapidocr_cls_decode_result_at_native(void* result_handle, int batch_index)
 {
 	int dims[8];
 	int dim_count;
@@ -2281,7 +2281,7 @@ XL_EXPORT void* rapidocr_cls_decode_result_at_native(void* result_handle, int ba
 	return output;
 }
 
-XL_EXPORT void* rapidocr_cls_decode_result_native(void* result_handle)
+XL_EXPORT char* rapidocr_cls_decode_result_native(void* result_handle)
 {
 	return rapidocr_cls_decode_result_at_native(result_handle, 0);
 }
@@ -2384,7 +2384,7 @@ XL_EXPORT int rapidocr_boxes_rec_target_width_native(void* handle, int index, in
 		rec_img_w, rec_img_h);
 }
 
-XL_EXPORT void* rapidocr_to_ocr_items_json2_native(const char* result_json, double text_score)
+XL_EXPORT char* rapidocr_to_ocr_items_json2_native(const char* result_json, double text_score)
 {
 	void* output = rapidocr_ocr_items_json_encode(result_json, text_score);
 	if ( output == NULL ) xrtClearError();
@@ -2392,7 +2392,7 @@ XL_EXPORT void* rapidocr_to_ocr_items_json2_native(const char* result_json, doub
 	return output;
 }
 
-XL_EXPORT void* rapidocr_to_ocr_items_json_native(const char* result_json)
+XL_EXPORT char* rapidocr_to_ocr_items_json_native(const char* result_json)
 {
 	return rapidocr_to_ocr_items_json2_native(result_json, 0.5);
 }
