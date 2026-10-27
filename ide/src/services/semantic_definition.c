@@ -1,5 +1,6 @@
 /* Same-compilation IDs and source ranges, validated against exact inputs.
-   Positions are converted in one sorted pass per source, not one scan/node. */
+   Native projection uses bounded coordinate buckets with the complete ordered
+   converter as fallback;all scalar columns and UTF16 positions stay verified. */
 #include "services/semantic_definition.h"
 #include "protocol/lsp_wire.h"
 #include "platform/path.h"
@@ -20,7 +21,7 @@ typedef struct cursor_row { uint32_t source,sl,sc,el,ec,maximumLine,maximumChara
 typedef struct reference_row { uint32_t targetSource,targetStart,targetEnd,source,start,end,node; } reference_row;
 struct xide_semantic_definitions { node* nodes; size_t count,declCount,typeCount,sourceCount; declaration *declarations,*typeDeclarations; char** paths; size_t textBytes; xarray cursors,references;int lookupReady; };
 #ifdef XLS_COMPILER_XRT
-static int typedCapacity(size_t nodes,const xide_semantic_source* sources,size_t count)
+static int typedCapacity(size_t nodes,const xide_semantic_source* sources,size_t count,size_t* coordinateBudget)
 {
  /* Bound owned data including temporary coordinate endpoints, worst-case
     lookup capacities and the existing4MiB retained text allowance. Borrowed
@@ -36,6 +37,8 @@ static int typedCapacity(size_t nodes,const xide_semantic_source* sources,size_t
   if(size>TYPED_DEFINITION_BYTES-used) return 0;
   used+=size;
  }
+ *coordinateBudget=TYPED_DEFINITION_BYTES-used;
+ if(*coordinateBudget>8u*1024u*1024u)*coordinateBudget=8u*1024u*1024u;
  return 1;
 }
 #endif
@@ -135,25 +138,8 @@ static int typedNode(xide_semantic_definitions* d,node* n,const xls_semantic_ind
   typedRange(f.selectionRange,(int)f.selectionSource,sources,count,&n->selection,ends,used);
 }
 #endif
-static int convert(endpoint* ends,size_t used,const xide_semantic_source* sources)
-{
- qsort(ends,used,sizeof(*ends),compareEndpoint); int source=0,line=1,column=1,character=0; size_t at=0,size=0; const char* text=NULL;
- for(size_t i=0;i<used;++i) {
-  endpoint* e=&ends[i];
-  if(e->source!=source) { source=e->source; text=sources[source-1].text; if(!text) return 0; size=strlen(text); at=0; line=column=1; character=sources[source-1].utf16Prefix; }
-  if((size_t)e->offset>size) return 0;
-  while(at<(size_t)e->offset) {
-   unsigned char c=(unsigned char)text[at]; size_t n=c<128 ? 1 : c<0xe0 ? 2 : c<0xf0 ? 3 : 4;
-   if(c=='\r' && at+1<size && text[at+1]=='\n') n=2;
-   if(n>size-at || at+n>(size_t)e->offset) return 0;
-   if(c=='\r' || c=='\n') { ++line; column=1; character=0; } else { ++column; character+=n==4 ? 2 : 1; }
-   at+=n;
-  }
-  if(e->line!=line || e->column!=column) return 0;
-  *e->output=(point){line-1,character};
- }
- return 1;
-}
+#include "services/semantic_coordinate_dense.inc"
+#include "services/semantic_coordinate_sorted.inc"
 int xideSemanticRangesToLsp(const xide_semantic_source* sources,size_t count,xide_semantic_range_query* queries,size_t used)
 {
  if(!sources || !count || count>512 || (used && !queries) || used>65536) return 0;
@@ -178,7 +164,7 @@ static xide_semantic_definitions* definitionsCreate(const xvalue* index,
 {
  int64 schema=0; bool complete=false; const xvalue* rows=get(index,"nodes");
  if(!sources || !count || count>512) goto invalid;
- size_t nodeCount=0;
+ size_t nodeCount=0,coordinateBudget=0;
 #ifdef XLS_COMPILER_XRT
  if(typed) nodeCount=xlsSemanticIndexCount(typed);
  else
@@ -188,7 +174,7 @@ static xide_semantic_definitions* definitionsCreate(const xvalue* index,
   nodeCount=xrtValueCount(rows);
  }
 #ifdef XLS_COMPILER_XRT
- if(typed) { if(!typedCapacity(nodeCount,sources,count)) goto invalid; }
+ if(typed) { if(!typedCapacity(nodeCount,sources,count,&coordinateBudget)) goto invalid; }
  else
 #endif
  if(nodeCount>NODE_LIMIT) goto invalid;
@@ -214,7 +200,7 @@ static xide_semantic_definitions* definitionsCreate(const xvalue* index,
   if(okay && n->declared) d->declarations[d->declCount++]=(declaration){n->declared,i};
   if(okay && n->declaredType) d->typeDeclarations[d->typeCount++]=(declaration){n->declaredType,i};
  }
- if(okay) okay=convert(ends,used,sources);
+ if(okay){int fast=coordinateBudget ? convertDense(ends,used,sources,count,coordinateBudget) : -1;okay=fast<0 ? convert(ends,used,sources) : fast;}
  for(size_t i=0;okay && i<d->count;++i) {
   node* n=&d->nodes[i];
   if(n->selection.source && n->selection.endOffset>n->selection.startOffset) {

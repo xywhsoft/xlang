@@ -127,11 +127,13 @@ static int lookupQueries(size_t count)
 static int typedLimits(void)
 {
  xide_semantic_source source={"/typed-capacity.xl","",1,0};
- size_t low=0,high=CURSOR_SELECTION;
- while(low+1<high) {size_t mid=low+(high-low)/2;if(typedCapacity(mid,&source,1))low=mid;else high=mid;}
- CHECK(low>65536 && typedCapacity(low,&source,1) && !typedCapacity(low+1,&source,1));
- CHECK(!typedCapacity(SIZE_MAX,&source,1) && !typedCapacity(CURSOR_SELECTION,&source,1));
- source.path=NULL;CHECK(!typedCapacity(0,&source,1));return 1;
+ size_t low=0,high=CURSOR_SELECTION,budget=0,small=0;
+ while(low+1<high) {size_t mid=low+(high-low)/2;if(typedCapacity(mid,&source,1,&budget))low=mid;else high=mid;}
+ CHECK(low>65536 && typedCapacity(low,&source,1,&budget) && !typedCapacity(low+1,&source,1,&budget));
+ CHECK(!typedCapacity(SIZE_MAX,&source,1,&budget) && !typedCapacity(CURSOR_SELECTION,&source,1,&budget));
+ CHECK(typedCapacity(0,&source,1,&small) && small==8u*1024u*1024u);
+ CHECK(typedCapacity(low,&source,1,&budget) && budget<small);
+ source.path=NULL;CHECK(!typedCapacity(0,&source,1,&budget));return 1;
 }
 #endif
 int main(void)

@@ -26,7 +26,7 @@ def main():
         capabilities=dict(textDocument=dict(publishDiagnostics=dict(versionSupport=True)),
             experimental=dict(diagnosticInputProof=True,diagnosticDependencyProof=True))
         c.send('initialize',dict(capabilities=capabilities,initializationOptions=dict(automaticDiagnostics=True,checkOnSave=False,diagnosticDelay=0)),1)
-        reply,_=c.reply(1);assert reply['result']['serverInfo']['version']=='0.92';c.send('initialized',{})
+        reply,_=c.reply(1);assert reply['result']['serverInfo']['version']=='0.93';c.send('initialized',{})
         return c,folder
     def opened(c,path,body):
         path.write_bytes(b'// must remain unsaved\n');protected[str(path)]=sha(path);c.open(path,body,1)
