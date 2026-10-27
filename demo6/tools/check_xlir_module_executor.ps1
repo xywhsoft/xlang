@@ -48,7 +48,7 @@ try {
         $dependencies=@($build.Objects|Where-Object {[IO.Path]::GetFileName($_.Path)-notin$excluded}|ForEach-Object Path)
         $flags=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
             '-Wno-unused-label','-Wno-unused-but-set-variable','-Wno-unused-const-variable','-Wno-pointer-sign','-Wno-format-truncation','-Wno-missing-field-initializers',
-            '-I.','-Irelease','-Irelease/include','-Ilib/tcc',"-I$outputPath")
+            '-I.','-Irelease','-Irelease/include','-Ilib/tcc','-Itest/cases',"-I$outputPath")
         $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
         foreach($kind in @('tcc','dll')){foreach($level in @(0,2)){
             $name="$kind-O$level";$binary="$outputPath/$name.exe";$dllExit=$null

@@ -48,7 +48,9 @@ static void check_original_graph(void)
     xrtownershipref root = {module, &xlModuleOwnershipOps};
     xlApiLock(); assert(xrtOwnershipFreezeTryBegin(&freeze));
     assert(xrtOwnershipInspect(&root, 1, NULL, 0, &shape));
-    assert(shape.NodeCount == 8 && shape.EdgeCount == 9 && !shape.ReachableAnchorCount);
+    /* array<int> keeps 11 and 22 inline in typed storage. They are no longer
+     * two independently boxed xvalue nodes and their two owning edges. */
+    assert(shape.NodeCount == 6 && shape.EdgeCount == 7 && !shape.ReachableAnchorCount);
     assert(xrtOwnershipScopeEnd(&freeze)); xlApiUnlock();
 }
 static void balance(const xmemdebugsnapshot* before)
@@ -113,8 +115,8 @@ static void transaction(unsigned mode)
         XL6_OwnershipPlanResult result;
         assert(xl6CodeLeaseAcquire(&module->codeOwnerGraph.base, &guard) == XL6_CODE_LEASE_ACQUIRED);
         xlApiLock(); assert(xlModulePrepareRetirementUnlocked(module)); xl__ownershipDriverRunning = 1;
-        result = xl6OwnershipPlanTryCreate((xrtownershipref){module, &xlModuleOwnershipOps},
-            xlModuleResolveOwnership, NULL, &module->ownershipPlan);
+        result = xl6OwnershipPlanTryCreateV6((xrtownershipref){module, &xlModuleOwnershipOps},
+            xlModuleProbeOwnershipV1, xlModuleDiscoverOwnership, false, module, &module->ownershipPlan);
         xl__ownershipDriverRunning = 0; module->ownershipPhase = 5; xlApiUnlock();
         assert(result == XL6_OWNERSHIP_PLAN_ROOTED && module->snapshotRefs == 1);
         assert(xrtOwnershipMutationBegin(&mutation)); xlDestroyModule(module);
@@ -134,8 +136,8 @@ static void allocation_fault(unsigned point, bool commit)
         assert(xrtOwnershipMutationBegin(&mutation)); xlDestroyModule(module);
         assert(xrtOwnershipScopeEnd(&mutation));
         xlApiLock(); assert(xlModulePrepareRetirementUnlocked(module)); xl__ownershipDriverRunning = 1;
-        result = xl6OwnershipPlanTryCreate((xrtownershipref){module, &xlModuleOwnershipOps},
-            xlModuleResolveOwnership, NULL, &module->ownershipPlan);
+        result = xl6OwnershipPlanTryCreateV6((xrtownershipref){module, &xlModuleOwnershipOps},
+            xlModuleProbeOwnershipV1, xlModuleDiscoverOwnership, false, module, &module->ownershipPlan);
         xl__ownershipDriverRunning = 0; module->ownershipPhase = 2; xlApiUnlock();
         assert(result == XL6_OWNERSHIP_PLAN_READY);
     }
@@ -155,13 +157,16 @@ static void preparation_inspection_fault(bool preparing)
 {
     xmemdebugsnapshot before;xrtownershipscope mutation={0};
     xrtMemDebugSnapshot(&before);create_module(false);
-    /* Defer automatic retirement, then keep the actual V2 plan. The next
+    /* Defer automatic retirement, then keep the actual catalog-backed plan.
+     * Use production admission, discovery, context and completion policy.
+     * The next
      * allocation belongs to snapshot reconstruction, not to a finalizer. */
     assert(xrtOwnershipMutationBegin(&mutation));xlDestroyModule(module);
     assert(xrtOwnershipScopeEnd(&mutation));
     xlApiLock();assert(xlModulePrepareRetirementUnlocked(module));xl__ownershipDriverRunning=1;
-    XL6_OwnershipPlanResult result=xl6OwnershipPlanTryCreateV2(
-        (xrtownershipref){module,&xlModuleOwnershipOps},xlModuleResolveOwnershipV2,NULL,&module->ownershipPlan);
+    XL6_OwnershipPlanResult result=xl6OwnershipPlanTryCreateV6(
+        (xrtownershipref){module,&xlModuleOwnershipOps},xlModuleProbeOwnershipV1,
+        xlModuleDiscoverOwnership,false,module,&module->ownershipPlan);
     xl__ownershipDriverRunning=0;assert(result==XL6_OWNERSHIP_PLAN_READY);
     module->ownershipPhase=preparing?6:1;
     assert(xrtMemDebugFailAfter(0));xlModuleAdvanceOwnershipUnlocked(module);

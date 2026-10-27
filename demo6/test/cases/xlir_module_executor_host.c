@@ -270,7 +270,17 @@ static void protocol_transaction(unsigned version)
         xl6CodeScopeEnter(&scope, guard); assert(unit && unit()); xl6CodeScopeLeave(&scope);
         xl6CodeLeaseRelease(guard); ++protocol_refusals;
     } else {
-        xlDestroyModule(module); assert(!atomic_load(&deleted) && protocol_calls == 1 && !module->retirementPrepared);
+        xlDestroyModule(module);
+        /* Worker parking can defer freeze admission before the first actual
+         * preflight callback. Wait only for that callback; its first BUSY or
+         * FAILED result and the second-call retry assertions stay exact. */
+        xdeadline deadline=xrtDeadlineAfter(5000000);
+        while(!protocol_calls){
+            assert(!atomic_load(&deleted)&&!module->retirementPrepared&&!module->retirementFailed&&
+                !atomic_load(&global_drops)&&!xrtDeadlineExpired(deadline));
+            collect();xrtThreadYield();
+        }
+        assert(!atomic_load(&deleted) && protocol_calls == 1 && !module->retirementPrepared);
         assert(!!module->retirementFailed == (version != 8)); xrtClearError();
         finish(); assert(protocol_calls == 2); ++readiness_retries;
     }
