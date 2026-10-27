@@ -135,83 +135,41 @@ func x_ui_auto_locator_from_json(string text) as Locator
 	return loc
 end
 
-func x_ui_auto_wait_exists(Locator loc) as bool
-	if loc.root_hwnd != null then
-		auto root = uia.from_hwnd(loc.root_hwnd)
-		if root.valid() == false then
-			return false
-		end
-		return wait_exists_in_root(root, loc)
+func locator_root(Locator loc) as Element
+	if loc.timeout_ms < 0 or loc.control_type < 0 or loc.process_id < 0 then
+		throw ValueError "locator timeout and numeric filters must not be negative"
 	end
+	if loc.root_hwnd != null then return uia.from_hwnd(loc.root_hwnd) end
+	return uia.desktop()
+end
 
-	auto root = uia.desktop()
-	if root.valid() == false then
-		return false
-	end
+func x_ui_auto_wait_exists(Locator loc) as bool
+	auto root = locator_root(loc)
+	if not root.valid() then return false end
 	return wait_exists_in_root(root, loc)
 end
 
 func x_ui_auto_click(Locator loc) as bool
-	if loc.root_hwnd != null then
-		auto root = uia.from_hwnd(loc.root_hwnd)
-		if root.valid() == false then
-			return false
-		end
-		return click_in_root(root, loc)
-	end
-
-	auto root = uia.desktop()
-	if root.valid() == false then
-		return false
-	end
+	auto root = locator_root(loc)
+	if not root.valid() then return false end
 	return click_in_root(root, loc)
 end
 
 func x_ui_auto_type_text(Locator loc, string text) as bool
-	if loc.root_hwnd != null then
-		auto root = uia.from_hwnd(loc.root_hwnd)
-		if root.valid() == false then
-			return false
-		end
-		return type_text_in_root(root, loc, text)
-	end
-
-	auto root = uia.desktop()
-	if root.valid() == false then
-		return false
-	end
+	auto root = locator_root(loc)
+	if not root.valid() then return false end
 	return type_text_in_root(root, loc, text)
 end
 
 func x_ui_auto_read(Locator loc) as string
-	if loc.root_hwnd != null then
-		auto root = uia.from_hwnd(loc.root_hwnd)
-		if root.valid() == false then
-			return ""
-		end
-		return read_in_root(root, loc)
-	end
-
-	auto root = uia.desktop()
-	if root.valid() == false then
-		return ""
-	end
+	auto root = locator_root(loc)
+	if not root.valid() then return "" end
 	return read_in_root(root, loc)
 end
 
 func x_ui_auto_screenshot(Locator loc, string path) as bool
-	if loc.root_hwnd != null then
-		auto root = uia.from_hwnd(loc.root_hwnd)
-		if root.valid() == false then
-			return false
-		end
-		return screenshot_in_root(root, loc, path)
-	end
-
-	auto root = uia.desktop()
-	if root.valid() == false then
-		return false
-	end
+	auto root = locator_root(loc)
+	if not root.valid() then return false end
 	return screenshot_in_root(root, loc, path)
 end
 
@@ -244,9 +202,6 @@ func add_condition(Condition current, Condition next) as Condition
 end
 
 func find_in_root(Element root, Locator loc) as Element
-	if loc.timeout_ms < 0 or loc.control_type < 0 or loc.process_id < 0 then
-		throw ValueError "locator timeout and numeric filters must not be negative"
-	end
 	if loc.class_path != "" then
 		auto found = root.find_class_path(loc.class_path, loc.process_id, loc.timeout_ms)
 		if not found.valid() then return found end

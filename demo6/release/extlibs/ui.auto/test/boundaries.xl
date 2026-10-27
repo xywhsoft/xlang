@@ -157,6 +157,28 @@ func main(...) as int
 	end
 	assert rejected, "negative direct field must be rejected"
 	edit.process_id = 0
+	Buffer scratch = Buffer()
+	scratch.appendByte(1)
+	auto invalid_root = ui.auto.within(ui.auto.by_process_id(-1), scratch.data())
+	for action in range(0, 5)
+		rejected = false
+		try
+			if action == 0 then
+				ui.auto.wait_exists(invalid_root)
+			elseif action == 1 then
+				ui.auto.click(invalid_root)
+			elseif action == 2 then
+				ui.auto.type_text(invalid_root, "text")
+			elseif action == 3 then
+				ui.auto.read(invalid_root)
+			else
+				ui.auto.screenshot(invalid_root, "")
+			end
+		catch ValueError e
+			rejected = e.message.contains("locator timeout")
+		end
+		assert rejected, "invalid locator must be rejected before opening its root"
+	end
 
 	assert window.release(), "window release failed"
 	assert ui.auto.shutdown(), "uia shutdown failed"
