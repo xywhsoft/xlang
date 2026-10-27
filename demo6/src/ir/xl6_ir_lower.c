@@ -11718,6 +11718,9 @@ static int xl6IrLowerDefaultClassInitializeBody(
         char* keyLiteral;
         size_t instanceId;
         if ( layout->firstField + i == initializedField ) continue;
+        /* Pending slots do not exist until a checked create-body assignment
+         * succeeds. No dummy resource, null language value or init flag. */
+        if (field->initializerAbi==XL6_IR_INITIALIZER_CONSTRUCTOR_REQUIRED)continue;
         if ( field->initializerAbi == XL6_IR_INITIALIZER_EXPLICIT &&
              (field->initializer == XL6_IR_NODE_INVALID || initializer == NULL) ) {
             xl6IrLowerDiag(ctx, field->declaration,
@@ -12227,7 +12230,8 @@ static int xl6IrLowerBeginFunction(
                 return 0;
             }
             if ( receiver == NULL ) {
-                XL6_SymbolId receiverSymbol = xl6IrLowerNewSyntheticSymbol(ctx);
+                XL6_SymbolId receiverSymbol = node->constructorReceiverSymbol
+                    ? node->constructorReceiverSymbol : xl6IrLowerNewSyntheticSymbol(ctx);
                 if ( receiverSymbol == 0 ||
                      !xl6IrLowerGrow((void**)&module->functionParameters,
                                       &module->functionParameterCapacity,
@@ -15360,6 +15364,17 @@ static int xl6IrLowerSpecializationCollectSymbol(
     if ( build == NULL || id == XL6_IR_NODE_INVALID ) return 0;
     node = xl6IrNodeGet(build->ctx->module, id);
     if ( node == NULL ) return 0;
+    if(node->constructorReceiverSymbol&&
+       xl6IrLowerSpecializationSymbolMapGet(build,node->constructorReceiverSymbol)==node->constructorReceiverSymbol){
+        XL6_SymbolId mapped=xl6IrLowerNewSpecializationSymbol(build->ctx);
+        if(!mapped)return 0;
+        XL6_IrLowerSymbolMap* grown=(XL6_IrLowerSymbolMap*)xrtRealloc(
+            build->symbols,(build->symbolCount+1)*sizeof(*build->symbols));
+        if(!grown)return 0;
+        build->symbols=grown;
+        build->symbols[build->symbolCount].source=node->constructorReceiverSymbol;
+        build->symbols[build->symbolCount++].target=mapped;
+    }
     if ( node->symbol != 0 && xl6IrSymbolNodeGet(build->ctx->module, node->symbol) == node ) {
         XL6_SymbolId mapped = xl6IrLowerSpecializationSymbolMapGet(build, node->symbol);
         if ( mapped == node->symbol ) {
@@ -15590,6 +15605,8 @@ static XL6_IrNodeId xl6IrLowerSpecializationCloneNode(
     target->targetSymbol = xl6IrLowerSpecializationSymbolMapGet(build, source.targetSymbol);
     target->compoundOperatorSymbol = xl6IrLowerSpecializationSymbolMapGet(
         build, source.compoundOperatorSymbol);
+    target->constructorReceiverSymbol = xl6IrLowerSpecializationSymbolMapGet(
+        build, source.constructorReceiverSymbol);
     target->namedCallableTargetSymbol = xl6IrLowerSpecializationSymbolMapGet(
         build, source.namedCallableTargetSymbol);
     /* Parent is a graph edge, not cloneable node payload.  Rebuilding it from
@@ -29874,12 +29891,15 @@ static int xl6IrLowerProductBindings(
             target->text != NULL && strcmp(target->text, "_") == 0;
         if (managed && (first >= ctx->evaluationOwnerCount ||
             ctx->evaluationOwners[first].value != elements[field])) goto done;
-        if (discarded || (!declaration && target != NULL && target->kind == XL6_IR_NODE_INDEX)) {
+        if (discarded || (!declaration && target != NULL &&
+            (target->kind == XL6_IR_NODE_INDEX ||
+             (target->kind == XL6_IR_NODE_MEMBER && target->lvalueKind == XL6_SEM_LVALUE_FIELD)))) {
             if (!discarded) {
                 XL6_IrLowerElementTargetPlan plan = {0};
                 XL6_IrValueId value;
-                /* The field stays a protected borrow while the address and
-                 * boxing are evaluated. The index ABI acquires its own item. */
+                /* Each product item stays a protected borrow while its
+                 * index/field address and boxing are evaluated. The exact
+                 * mutation ABI acquires its own item on checked success. */
                 if (!xl6IrLowerPrepareElementTargetPlan(ctx, targetId, target, &plan)) goto done;
                 value = xl6IrLowerProjectedValueAsType(
                     ctx, origin, sourceId, elements[field], target->storageType);

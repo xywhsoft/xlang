@@ -6,6 +6,7 @@
 #include "src/sem/xl6_type_registry.h"
 #include "src/stdlib/xl6_stdlib.h"
 #include "src/type/xl6_type_model.h"
+#include "src/type/xl6_constructor_flow.h"
 #include "src/type/xl6_c_owned_type.h"
 #include "src/abi/xl6_native_generic.h"
 
@@ -12362,6 +12363,7 @@ static XL6_AstNode* xl6SemCloneTypeNode(const XL6_AstNode* node)
     copy->semanticTypeId = node->semanticTypeId;
     copy->semanticTypeAbiId = node->semanticTypeAbiId;
     copy->semanticSymbolId = node->semanticSymbolId;
+    copy->semanticReceiverSymbolId = node->semanticReceiverSymbolId;
     copy->semanticTargetSymbolId = node->semanticTargetSymbolId;
     copy->semanticCompoundOperatorSymbolId =
         node->semanticCompoundOperatorSymbolId;
@@ -21391,7 +21393,18 @@ static int xl6SemCheckFieldAttrValueExprs(XL6_SemContext* ctx, XL6_AstNode* fiel
     return ok;
 }
 
-static int xl6SemCheckField(XL6_SemContext* ctx, XL6_AstNode* field)
+static int xl6SemClassHasBodyCreate(const XL6_AstNode* owner)
+{
+    const XL6_AstNode* body=owner&&owner->kind==XL6_AST_CLASS&&owner->childCount>1?owner->children[1]:NULL;
+    for(size_t i=0;body&&i<body->childCount;++i){
+        const XL6_AstNode* member=body->children[i];
+        if(member&&member->kind==XL6_AST_CREATE&&xl6TextEquals(xl6SemMemberName(member),"create")&&
+            member->childCount>1&&member->children[1])return 1;
+    }
+    return 0;
+}
+
+static int xl6SemCheckField(XL6_SemContext* ctx, XL6_AstNode* field, const XL6_AstNode* owner)
 {
     XL6_AstNode* defaultExpr;
     int ok;
@@ -21414,7 +21427,8 @@ static int xl6SemCheckField(XL6_SemContext* ctx, XL6_AstNode* field)
                 "不可空队列声明必须包含初始化表达式；延迟创建请使用 nullable 队列");
             ok = 0;
         } else if (defaultExpr == NULL &&
-                   xl6SemNativeTypeRequiresInitializer(ctx, field->children[0])) {
+                   xl6SemNativeTypeRequiresInitializer(ctx, field->children[0]) &&
+                   (xl6SemAstHasFlag(field,XL6_AST_FLAG_STATIC)||!xl6SemClassHasBodyCreate(owner))) {
             xl6SemErrorNode(ctx, field,
                 "non-null native resource needs explicit initialization or nullable storage");
             ok = 0;
@@ -22657,7 +22671,7 @@ static int xl6SemCheckUnion(XL6_SemContext* ctx, XL6_AstNode* node)
             xl6SemErrorNode(ctx, field, "union fields do not support default values");
             ok = 0;
         }
-        if ( !xl6SemCheckField(ctx, field) ) {
+        if ( !xl6SemCheckField(ctx, field, NULL) ) {
             ok = 0;
         }
         if ( field->childCount > 0 && !xl6SemUnionFieldTypeIsPlainDepth(ctx, field->children[0], 0) ) {
@@ -22706,6 +22720,7 @@ static int xl6SemCheckClassSpecial(XL6_SemContext* ctx, XL6_AstNode* node)
         } else if ( !xl6ScopeAdd(ctx, &selfNode, XL6_SYM_VALUE) ) {
             ok = 0;
         }
+        node->semanticReceiverSymbolId = selfNode.semanticSymbolId;
     }
     if ( params != NULL && !xl6SemCheckParamListOnly(ctx, params, 1, 0) ) {
         ok = 0;
@@ -23920,6 +23935,8 @@ static int xl6SemCheckClassBaseCreateRule(XL6_SemContext* ctx, XL6_AstNode* clas
     return ok;
 }
 
+#include "src/sem/xl6_sem_constructor.inc"
+
 static int xl6SemCheckClass(XL6_SemContext* ctx, XL6_AstNode* node)
 {
     XL6_TypeParamScope typeParamScope;
@@ -24003,7 +24020,7 @@ static int xl6SemCheckClass(XL6_SemContext* ctx, XL6_AstNode* node)
                 ok = 0;
             }
             if ( member->kind == XL6_AST_FIELD ) {
-                if ( !xl6SemCheckField(ctx, member) ) {
+                if ( !xl6SemCheckField(ctx, member, node) ) {
                     ok = 0;
                 }
             } else if ( member->kind == XL6_AST_DERIVE ) {
@@ -25840,6 +25857,19 @@ int xl6SemCheckModuleWithQuery(
         }
     }
 
+    /* Summaries may refer to a base declared later in the module. Run only
+     * after every body has its canonical receiver and selected call targets. */
+    if(ok){
+        for(size_t c=0;c<root->childCount;++c){
+            const XL6_AstNode* owner=root->children[c];
+            const XL6_AstNode* body=owner&&owner->kind==XL6_AST_CLASS&&owner->childCount>1?owner->children[1]:NULL;
+            for(size_t m=0;body&&m<body->childCount;++m){
+                const XL6_AstNode* member=body->children[m];
+                if(member&&member->kind==XL6_AST_CREATE&&xl6TextEquals(xl6SemMemberName(member),"create")&&
+                    !xl6SemCheckConstructorAssignment(&ctx,owner,member))ok=0;
+            }
+        }
+    }
     if (!xl6SemValidateCOwnedTypes(&ctx,root,NULL)) ok=0;
     xl6SemAnnotateTypeIdentities(&ctx, root);
     {
