@@ -271,6 +271,7 @@ static const char* xl6IrCgenArrayExtractSymbol(const XL6_IrType* result)
     case XL6_IR_C_ABI_TIME_I64: return "xl6ArrayExtractTimeV1";
     case XL6_IR_C_ABI_CHAR_U32: return "xl6ArrayExtractCharV1";
     case XL6_IR_C_ABI_MANAGED_STRING: return "xl6ArrayExtractStringV1";
+    case XL6_IR_C_ABI_RUNTIME_ERROR_PTR: return "xl6ArrayExtractErrorV1";
     case XL6_IR_C_ABI_MANAGED_BYTES:
     case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR: return "xl6ArrayExtractValueV1";
     default: return NULL;
@@ -461,7 +462,8 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
                 if (pop) xl6OutputPuts("0",out);
                 else xl6OutputPrintf(out,"v%u",(unsigned)argument0);
                 xl6OutputPrintf(out,", %s",pop ? "true" : "false");
-                if (typedResult->cAbi==XL6_IR_C_ABI_MANAGED_STRING)
+                if (typedResult->cAbi==XL6_IR_C_ABI_MANAGED_STRING ||
+                    typedResult->cAbi==XL6_IR_C_ABI_RUNTIME_ERROR_PTR)
                     xl6OutputPrintf(out,", %s",typedResult->kind==XL6_IR_TYPE_NULLABLE ? "true" : "false");
                 xl6OutputPuts(");\n",out);
             } else if (!pop && (instruction->collectionAbi==XL6_IR_COLLECTION_LIST ||

@@ -26,6 +26,7 @@ XL6_TEXT_API uint32_t xl6ArrayExtractCharV1(const xvalue*,uint64_t,uint64_t,int6
  * string. On failure any prepared owner is released before returning. */
 XL6_TEXT_API xstrview xl6ArrayExtractStringV1(const xvalue*,uint64_t,uint64_t,int64_t,bool,bool);
 XL6_TEXT_API xvalue* xl6ArrayExtractValueV1(const xvalue*,uint64_t,uint64_t,int64_t,bool);
+XL6_TEXT_API xerror* xl6ArrayExtractErrorV1(const xvalue*,uint64_t,uint64_t,int64_t,bool,bool);
 /* Closed trivial scalar/nullable descriptors only. Exact logical admission
  * precedes wire conversion/removal. Native slots move without projection.
  * Output may be unaligned and is unchanged on failure; null presence is data.

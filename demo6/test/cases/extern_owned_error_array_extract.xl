@@ -1,0 +1,54 @@
+extern "owned_task_text" @owned func Text(c_int mode) as string
+extern "owned_debug" @no_raise func debug() as bool
+extern "owned_fail_after" @no_raise func failAfter(int count)
+extern "owned_clear_failure" @no_raise func clearFailure()
+extern "owned_outstanding" @no_raise func live() as int
+func failure() as error
+    try
+        Text(c_int(-1))
+    catch value
+        return value
+    end
+    throw ValueError "expected native failure"
+end
+func exercise(error seed) as error
+    array<error> discarded=[seed]
+    discarded.pop() // An unused result still releases its owned Error reference.
+    assert discarded.length==0
+    array<error> values=[seed,seed]
+    error first=values.take(0)
+    error last=values.pop()
+    assert values.length==0 and first.message==seed.message and last.message==seed.message
+    array<error?> optional=[null,seed]
+    error? present=optional.pop()
+    assert present!=null
+    if present!=null then assert present.message==seed.message end
+    assert optional.pop()==null and optional.length==0
+    bool caught=false
+    try
+        values.pop()
+    catch problem
+        caught=true
+    end
+    assert caught
+    return first
+end
+error seed=failure()
+assert exercise(seed).message==seed.message
+assert debug()
+int accepted=0
+int rejected=0
+// Ownership must balance even if constructing/projection of the array fails.
+for prefix in range(96)
+    int before=live()
+    failAfter(prefix)
+    try
+        exercise(seed)
+        accepted+=1
+    catch problem
+        rejected+=1
+    end
+    clearFailure()
+    assert live()==before
+end
+assert accepted>0 and rejected>0

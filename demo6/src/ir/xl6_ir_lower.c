@@ -32745,7 +32745,8 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
                 XL6_IrTypeId discardedType = xl6IrLowerValueType(ctx, discarded);
                 if ( discardedType != XL6_IR_TYPE_INVALID &&
                      xl6IrLowerTypeNeedsOwnership(ctx->module, discardedType) &&
-                     !xl6IrLowerTypeIsRuntimeError(ctx->module, discardedType) ) {
+                     (!xl6IrLowerTypeIsRuntimeError(ctx->module, discardedType) ||
+                      xl6IrLowerValueHasOwner(ctx, discarded)) ) {
                     XL6_SymbolId temporary = 0;
                     if ( expression == NULL || expression->valueCategory != XL6_IR_VALUE_RVALUE ||
                          !xl6IrLowerTypeHasStorageReleaseAbi(ctx->module, discardedType) ||
