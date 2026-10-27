@@ -17481,6 +17481,34 @@ static const XL6_IrClassField* xl6IrClassFieldForMemberAbi(
         module, ownerType, member->storageType, member->text);
 }
 
+XL6_IrTypeId xl6IrErrorProjectionIdentityType(
+    const XL6_IrModule* module, XL6_IrNodeId origin, XL6_IrTypeId resultId)
+{
+    const XL6_IrType* result=module ? xl6IrTypeGet(&module->types,resultId) : NULL;
+    if (!result || result->cAbi!=XL6_IR_C_ABI_RUNTIME_ERROR_PTR ||
+        result->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED ||
+        result->nullAbi!=XL6_IR_NULL_ABI_POINTER_SENTINEL || !result->typeValueId)
+        return XL6_IR_TYPE_INVALID;
+    const XL6_IrNode* node=xl6IrNodeGet(module,origin);
+    if (result->kind!=XL6_IR_TYPE_NULLABLE || result->paramCount!=1 || !result->params ||
+        !node || node->kind!=XL6_IR_NODE_INDEX || node->sourceKind!=XL6_AST_SAFE_INDEX ||
+        node->storageType!=resultId || node->childCount!=2) return resultId;
+    const XL6_IrNode* receiver=xl6IrNodeGet(module,module->children[node->firstChild]);
+    const XL6_IrType* container=receiver ? xl6IrTypeGet(&module->types,
+        receiver->type ? receiver->type : receiver->storageType) : NULL;
+    if (container && container->kind==XL6_IR_TYPE_NULLABLE && container->paramCount==1 && container->params)
+        container=xl6IrTypeGet(&module->types,container->params[0]);
+    if (!container || container->paramCount!=1 || !container->params ||
+        (container->collectionAbi!=XL6_IR_COLLECTION_ARRAY && container->collectionAbi!=XL6_IR_COLLECTION_LIST &&
+         container->collectionAbi!=XL6_IR_COLLECTION_DICT)) return resultId;
+    XL6_IrTypeId sourceId=container->params[0];
+    const XL6_IrType* source=xl6IrTypeGet(&module->types,sourceId);
+    if (sourceId==result->params[0] && source && source->cAbi==result->cAbi &&
+        source->ownershipAbi==result->ownershipAbi && source->nullAbi==result->nullAbi && source->typeValueId)
+        return sourceId;
+    return resultId;
+}
+
 static int xl6IrNullableProjectionTypeIsClosed(
     const XL6_IrModule* module, XL6_IrTypeId nullableTypeId)
 {
@@ -42674,7 +42702,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                  XL6_IR_NULL_ABI_POINTER_SENTINEL ||
                              instruction->payloadType != instruction->type ||
                              instruction->runtimeIdentityType !=
-                                 instruction->type ||
+                                 xl6IrErrorProjectionIdentityType(module,instruction->origin,instruction->type) ||
                              resultType->typeValueId == 0 )
                             return xl6IrDiag(diags,
                                 xl6IrNodeGet(module, instruction->origin),
