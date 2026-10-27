@@ -12,7 +12,7 @@ export class Watcher
 
     private extern "xwatch_add" func addNative(string path) as int
     private extern "xwatch_remove" func removeNative(int idx) as bool
-    private extern "xwatch_poll" func pollNative() as point
+    private extern "xwatch_poll" @owned func pollNative() as string?
     private extern "xwatch_count" func countNative() as int
     private extern "xwatch_path" func pathNative(int idx) as string
 
@@ -52,11 +52,11 @@ export class Watcher
         if self.handle == null then
             throw RuntimeError "watch: instance is destroyed"
         end
-        point event = self.pollNative()
+        string? event = self.pollNative()
         if event == null then
             throw IOError "watch: poll failed: " + __watch_error()
         end
-        return __xl_runtime.takeCstr(event)
+        return event
     end
 
     func path(int idx) as string

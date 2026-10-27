@@ -228,7 +228,7 @@ bool xwatch_remove(void *handle, int64_t index) {
 }
 
 /* 每次只返回一个独立拥有的事件，扫描游标避免前面的活跃路径饿死后面的。 */
-void *xwatch_poll(void *handle) {
+char *xwatch_poll(void *handle) {
     XWatcher *watcher = handle;
     size_t i;
     xrtClearError();

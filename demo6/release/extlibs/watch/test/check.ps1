@@ -117,8 +117,10 @@ try {
     $null = Run 'direct-event cgen' $xl @('cgen', $boundarySource,
         '--emit', $generated)
     $generatedText = [IO.File]::ReadAllText($generated)
-    $adoptions = [regex]::Matches($generatedText, '\bxl6_xrt_take_cstr\s*\(').Count
-    if ($adoptions -lt 2 -or $generatedText.Contains('xl6CStringCopyV1')) {
+    $adoptions = [regex]::Matches($generatedText,
+        '\b\w+\.Data\s*=\s*xwatch_poll\s*\(').Count
+    if ($adoptions -ne 1 -or $generatedText.Contains('xl6CStringCopyV1') -or
+        $generatedText.Contains('xl6_xrt_take_cstr')) {
         throw 'watch poll must transfer the C event allocation without copying'
     }
     Write-Host '[watch] direct string adoption: PASS'

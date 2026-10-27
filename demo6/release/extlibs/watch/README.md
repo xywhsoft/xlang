@@ -1,5 +1,12 @@
 # watch
 
+2026-10-27：`xwatch_poll` 的公开 C 返回类型明确为 `char*`；
+XLang 用 `@owned string?` 直接接管独立事件字符串，移除手写
+`point/takeCstr` 交接。无变化的空串与出错的 `NULL` 继续区分。
+生成 C 门禁检查原生返回指针直接赋给字符串数据，不复制正文；
+仍需一次 `strlen` 获取长度。Windows 完整门禁与 Linux C
+ASan/UBSan、目录竞态、XLang JIT/AOT、双语输出对照均通过。
+
 2026-10-26 新发布物复验：Windows 默认 `test/check.ps1` 与 Linux
 `test/check.sh` 均通过。Windows 补齐工作目录快照、分配故障及公开
 XLang 范例 AOT；两平台新增 C 单文件范例 `xl build` 独立 EXE，
@@ -9,7 +16,7 @@ ASan/UBSan 和目录竞态夹具。C 范例 AOT 从 `demo6` 根目录运行，
 不保证还原两次轮询之间的所有中间变化。
 
 2026-10-25 所有权复核：`Watcher.poll()` 返回普通 `string`，
-`takeCstr` 直接接管 `xwatch_poll` 的独立事件分配。先前改为
+当时以 `takeCstr` 直接接管 `xwatch_poll` 的独立事件分配。先前改为
 `cstring` 后转成 `string` 反而复制文本，现已修正。`path()` 的
 C 结果是借用指针，保持原有独立字符串语义。Windows 包门禁核对
 生成 C 的直接移交、目录竞态、双语范例和两份 AOT；Linux C
