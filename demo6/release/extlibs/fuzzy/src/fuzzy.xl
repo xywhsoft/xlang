@@ -1,7 +1,7 @@
 extern "xfuzzy_levenshtein" func __fuzzy_levenshtein(string a, string b) as int
 extern "xfuzzy_match" func __fuzzy_match(string pattern, string text) as int
 extern "xfuzzy_ratio" func __fuzzy_ratio(string a, string b) as int
-extern "xfuzzy_best" func __fuzzy_best(string pattern, string candidates) as point
+extern "xfuzzy_best" @owned func __fuzzy_best(string pattern, string candidates) as string?
 extern "xl6_xrt_last_error_text" func __fuzzy_error() as string
 
 // C 字符串接口不能表示内嵌 NUL，拒绝静默只比较前缀。
@@ -37,7 +37,7 @@ export func ratio(string a, string b) as int
 end
 
 export func best(string pattern, string candidates) as string
-    point result = __fuzzy_best(__fuzzy_text(pattern), __fuzzy_text(candidates))
+    string? result = __fuzzy_best(__fuzzy_text(pattern), __fuzzy_text(candidates))
     if result == null then throw ValueError __fuzzy_error() end
-    return __xl_runtime.takeCstr(result)
+    return result
 end

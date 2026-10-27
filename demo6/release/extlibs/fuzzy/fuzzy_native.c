@@ -167,7 +167,7 @@ int64_t xfuzzy_match(const char* pattern, const char* text)
     return xfuzzy_score_view(query, target);
 }
 
-void* xfuzzy_best(const char* pattern, const char* candidates)
+char* xfuzzy_best(const char* pattern, const char* candidates)
 {
     xstrview query, list;
     xstrview best = xrtStrViewN("", 0u);

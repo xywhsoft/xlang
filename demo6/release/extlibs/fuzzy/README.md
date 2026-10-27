@@ -1,5 +1,10 @@
 # fuzzy
 
+2026-10-27 所有权收口：`xfuzzy_best` 的 C 结果明确为 XRT 拥有的
+`char*`，XLang `best()` 使用 `@owned string?` 直接接管；专项门禁
+核对生成 C 的直接赋值，不在交接处复制正文。接管仍需一次
+`strlen` 获取长度，匹配算法与错误合同不变。
+
 2026-10-26：当前 Windows/Linux 发布物的默认包门禁均通过。固定范例输出同时核对
 GCC、TCC 单文件、XLang JIT，以及独立 C/XLang EXE；核心、边界和分配故障
 用例也分别以独立 EXE 执行。Linux 另通过 C ASan/UBSan 和四线程回归。

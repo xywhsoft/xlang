@@ -5,3 +5,4 @@
 extern int64_t xfuzzy_levenshtein(const char* a, const char* b);
 extern int64_t xfuzzy_ratio(const char* a, const char* b);
 extern int64_t xfuzzy_match(const char* pattern, const char* text);
+extern char* xfuzzy_best(const char* pattern, const char* candidates);

@@ -26,6 +26,7 @@ function Run([string]$label, [string]$program, [string[]]$arguments) {
 
 Push-Location $root
 try {
+    [IO.Directory]::CreateDirectory($work) | Out-Null
     $null = Run 'strict C syntax' $gcc @(
         '-std=c11', '-Wall', '-Wextra', '-Werror', '-fsyntax-only',
         '-Ilib/xrt', '-Irelease/extlibs/fuzzy',
@@ -47,6 +48,14 @@ try {
     $null = Run 'XLang allocations' $xl @('run',
         'release/extlibs/fuzzy/test/allocations.xl')
     $null = Run 'XLang central' $xl @('run', 'test/cases/extlib_fuzzy.xl')
+    $generated = Join-Path $work 'fuzzy_owned.c'
+    $null = Run 'owned string cgen' $xl @('cgen',
+        'test/cases/extlib_fuzzy.xl', '--emit', $generated)
+    $generatedText = [IO.File]::ReadAllText($generated)
+    if ($generatedText -cnotmatch '\bv\d+\.Data\s*=\s*xfuzzy_best\s*\(' -or
+        $generatedText.Contains('xl6CStringCopyV1')) {
+        throw 'fuzzy.best must adopt the native C string directly'
+    }
     $xlOutput = Run 'XLang example' $xl @('run',
         'release/examples/extlibs/fuzzy.xl')
     $expected = @(
@@ -64,7 +73,6 @@ try {
     }
     Write-Host '[fuzzy] C/XLang example parity: PASS'
     if (-not $SkipAot) {
-        [IO.Directory]::CreateDirectory($work) | Out-Null
         $aot = Join-Path $work 'core.exe'
         $null = Run 'core AOT build' $xl @('build',
             'test/cases/extlib_fuzzy.xl', '-o', $aot)
