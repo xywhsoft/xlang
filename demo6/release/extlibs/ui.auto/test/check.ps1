@@ -44,6 +44,9 @@ try {
     & $gcc -std=c11 -Wall -Wextra -Werror -fsyntax-only `
         '-I../lib/xrt' extlibs/ui.auto/examples/screenshot_c.c
     if ($LASTEXITCODE -ne 0) { throw 'ui.auto C screenshot GCC syntax check failed' }
+    & $gcc -std=c11 -Wall -Wextra -Werror -fsyntax-only `
+        '-I../lib/xrt' extlibs/ui.auto/test/external_window.c
+    if ($LASTEXITCODE -ne 0) { throw 'ui.auto external window GCC syntax check failed' }
     $xlExample = @()
     foreach ($file in @(
         'examples/extlibs/ui_auto.xl',
@@ -60,6 +63,51 @@ try {
             & $xl run $file
         }
         if ($LASTEXITCODE -ne 0) { throw "$file failed with exit code $LASTEXITCODE" }
+    }
+    $fixtureExe = Join-Path $work 'external_window.exe'
+    & $xl build extlibs/ui.auto/test/external_window.c `
+        extlibs/uia/x_uia_artifact.c --inc-path ../lib/xrt `
+        --link ole32 --link oleaut32 --link user32 -o $fixtureExe
+    if ($LASTEXITCODE -ne 0) { throw 'external window fixture build failed' }
+    $crossProcessExe = Join-Path $work 'cross_process.exe'
+    if (-not $SkipAot) {
+        & $xl build extlibs/ui.auto/test/cross_process.xl -o $crossProcessExe
+        if ($LASTEXITCODE -ne 0) { throw 'ui.auto cross-process AOT build failed' }
+    }
+    $start = [Diagnostics.ProcessStartInfo]::new($fixtureExe)
+    $start.UseShellExecute = $false
+    $start.CreateNoWindow = $true
+    $start.RedirectStandardInput = $true
+    $start.RedirectStandardOutput = $true
+    $start.RedirectStandardError = $true
+    $fixture = [Diagnostics.Process]::Start($start)
+    if ($null -eq $fixture) { throw 'external window fixture did not launch' }
+    try {
+        $ready = $fixture.StandardOutput.ReadLineAsync()
+        if (-not $ready.Wait(5000)) { throw 'external window fixture start timed out' }
+        if ($ready.Result -cne 'ready') {
+            $detail = if ($fixture.HasExited) { $fixture.StandardError.ReadToEnd() } else { 'no ready message' }
+            throw "external window fixture did not start: $detail"
+        }
+        & $xl run extlibs/ui.auto/test/cross_process.xl -- $fixture.Id
+        if ($LASTEXITCODE -ne 0) { throw 'ui.auto cross-process test failed' }
+        if (-not $SkipAot) {
+            & $crossProcessExe $fixture.Id
+            if ($LASTEXITCODE -ne 0) { throw 'ui.auto cross-process AOT test failed' }
+        }
+        $fixture.StandardInput.WriteLine()
+        if (-not $fixture.WaitForExit(5000) -or $fixture.ExitCode -ne 0) {
+            throw 'external window fixture did not exit cleanly'
+        }
+    } finally {
+        if (-not $fixture.HasExited) {
+            try { $fixture.StandardInput.WriteLine() } catch { }
+            if (-not $fixture.WaitForExit(5000)) {
+                $fixture.Kill()
+                $fixture.WaitForExit()
+            }
+        }
+        $fixture.Dispose()
     }
     $cExample = @(& (Join-Path $release '../tools/run_extlib_c.ps1') -Package uia `
         -Source 'release/examples/extlibs/ui_auto_c.c'

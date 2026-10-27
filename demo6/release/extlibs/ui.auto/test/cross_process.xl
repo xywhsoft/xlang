@@ -1,0 +1,26 @@
+import ui.auto
+
+func main(...) as int
+    assert arg.length == 2, "cross-process test requires a PID"
+    int process_id = int(arg[1])
+
+    auto edit = ui.auto.by_class_name("Edit", "", 50004)
+    edit.process_id = process_id
+    edit.timeout_ms = 5000
+    assert ui.auto.wait_exists(edit), "external edit was not found"
+    assert ui.auto.type_text(edit, "cross-process text"), "external edit input failed"
+    assert ui.auto.read(edit) == "cross-process text", "external edit read failed"
+
+    auto button = ui.auto.by_class_name("Button", "Click", 50000)
+    button.process_id = process_id
+    button.timeout_ms = 5000
+    assert ui.auto.click(button), "external button click failed"
+
+    edit.process_id = 2147483647
+    edit.timeout_ms = 0
+    assert not ui.auto.wait_exists(edit), "external process filter was ignored"
+
+    assert ui.auto.shutdown(), "UIA shutdown failed"
+    println("ui.auto cross-process ok")
+    return 0
+end

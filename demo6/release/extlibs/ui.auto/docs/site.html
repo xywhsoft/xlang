@@ -54,7 +54,7 @@ uiauto.shutdown()</code></pre>
     <h2>验证与边界</h2>
     <pre><code>xl run examples/extlibs/ui_auto.xl
 powershell -NoProfile -ExecutionPolicy Bypass -File extlibs/ui.auto/test/check.ps1 -SkipAot</code></pre>
-    <p>2026-10-26 当前 Windows 发布版默认门禁复跑通过自建窗口的成功/缺失/错误进程定位、定位器 JSON 往返、输入读取、内嵌 NUL 拒绝和真实 PNG 截图；JIT 与 AOT 均检查固定文字像素。<code>examples/extlibs/ui_auto_c.c</code> 直接调用 UIA C API，与 XLang 公开范例同输出；<code>extlibs/ui.auto/examples/screenshot_c.c</code> 通过 UIA 和 OpenCV 的公开 C 接口截取目标控件，保存并回读 PNG，包级门禁同样检查尺寸和文字像素。上面的 <code>-SkipAot</code> 只运行 C/JIT 聚焦门禁。这里只验收 OpenCV 公开调用链，不承担桥接内部测试；UIA 上下文限定在创建线程使用，真实第三方桌面的权限、DPI/多屏、远程会话及长期事件处理仍未认证。</p>
+    <p>2026-10-27 当前 Windows 发布版默认门禁通过自建窗口的成功/缺失/错误进程定位、定位器 JSON 往返、输入读取、内嵌 NUL 拒绝和真实 PNG 截图；JIT 与 AOT 均检查固定文字像素。另由独立 C 进程提供受控窗口，JIT/AOT 的 XLang 程序按进程 ID 完成定位、输入、读取和点击，门禁结束后回收夹具进程。<code>examples/extlibs/ui_auto_c.c</code> 直接调用 UIA C API，与 XLang 公开范例同输出；<code>extlibs/ui.auto/examples/screenshot_c.c</code> 通过 UIA 和 OpenCV 的公开 C 接口截取目标控件，保存并回读 PNG，包级门禁同样检查尺寸和文字像素。上面的 <code>-SkipAot</code> 只运行 C/JIT 聚焦门禁。这里只验收 OpenCV 公开调用链，不承担桥接内部测试；UIA 上下文限定在创建线程使用，真实第三方桌面的权限、DPI/多屏、远程会话及长期事件处理仍未认证。</p>
   </section>
 </main>
 <script src="../main.js"></script>
