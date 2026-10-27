@@ -4,6 +4,7 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [switch]$ResidentOnly,[string]$Tcc='E:/software/tcc/tcc.exe')
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
+. (Join-Path $PSScriptRoot 'xlir_resident_closure.ps1')
 $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
 try {
@@ -98,7 +99,7 @@ try {
             default {
                 $body=@('#define XLIR_GENERATOR_STORAGE_SOURCE "'+$prefix+'.c"')
                 if($case.Binding){$body+=@('#define XLIR_GENERATOR_STORAGE_BINDING "'+$prefix+'.h.bind.h"')}
-                $body+=@('#include "test/cases/'+$case.Fixture+'_host.c"');$case.Sources=@("test/cases/$($case.Fixture)_runtime.c")
+                $body+=@('#include "test/cases/'+$case.Fixture+'_adapter.c"');$case.Sources=@("test/cases/$($case.Fixture)_runtime.c")
             }
         }
         if($body.Count){
@@ -110,7 +111,12 @@ try {
     $cases+=@(@{Name='xlir_generator_managed_lifetime';Fixture='xlir_generator_managed_lifetime';Kind='managed-lifetime';
         Sources=@('test/cases/xlir_generator_managed_lifetime.c');
         Pattern='Managed generator lifetimes: 150 last-owner reentrant closes, 150 sparse payload drops, 100 actual DLL unloads with separately held control/frame descriptors, 400 cross-thread freezes, 100 real OOM failures, 250 ABI refusals; exact memory balance'})
-    $includes=@('-I.',('-I'+[IO.Path]::GetFullPath((Join-Path $PublicDirectory 'include'))),"-I$outputPath")
+    $closure=Get-XlirResidentClosure -Root $rootPath -Directory "$outputPath/resident-closure" `
+        -Sources $residentSources -NativeProvider 'tools/xrt_single_header_impl.c' `
+        -Fixtures @($cases|Where-Object {$_.Kind-ne'managed-lifetime'}|ForEach-Object {"test/cases/$($_.Fixture).xl"}|Sort-Object -Unique) -PublicDirectory $PublicDirectory
+    $residentSources=@($closure.Sources)
+    $inputs+=@($closure.Inputs)
+    $includes=@('-I.','-Itest/cases','-Irelease','-Irelease/include',('-I'+[IO.Path]::GetFullPath((Join-Path $PublicDirectory 'include'))),"-I$outputPath")
     $strict=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
         '-Wno-unused-label','-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-Wno-pointer-sign','-Wno-format-truncation')
     $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32');$lanes=@();$runtimeBuilds=@()
@@ -119,19 +125,19 @@ try {
         if($compiler -ne 'tcc'){
             foreach($source in $residentSources){
                 $object="$outputPath/$compiler-$([IO.Path]::GetFileNameWithoutExtension($source)).o"
-                $objectExit=Invoke-XlirNativeToLog gcc ($strict+@($level)+$includes+@('-c',$source,'-o',$object)) "$object.log"
+                $objectExit=Invoke-XlirGccToLog ($strict+@($level)+$includes+@('-c',$source,'-o',$object)) "$object.log"
                 $runtimeBuilds+=[pscustomobject]@{Compiler=$compiler;Source=$source;Exit=$objectExit;Object=$object}
                 $objects+=@($object)
             }
         }
         $dll="$outputPath/$compiler-callback.dll"
-        $dllBuild=Invoke-XlirNativeToLog gcc ($strict+@($level)+$includes+@('-shared','test/cases/xlir_generator_storage_drop.c','-o',$dll)) "$dll.log"
+        $dllBuild=Invoke-XlirGccToLog ($strict+@($level)+$includes+@('-shared','test/cases/xlir_generator_storage_drop.c','-o',$dll)) "$dll.log"
         foreach($case in $cases){
             $name="$($case.Name)-$compiler";$binary="$outputPath/$name.exe";$timer=[Diagnostics.Stopwatch]::StartNew()
             if($compiler -eq 'tcc'){
-                $buildExit=Invoke-XlirNativeToLog $Tcc (@('-std=c11')+$includes+@($case.Sources)+$residentSources+@('tools/xrt_single_header_impl.c','C:/Windows/System32/ucrtbase.dll')+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
+                $buildExit=Invoke-XlirTccToLog $Tcc (@('-std=c11')+$includes+@($case.Sources)+$residentSources+@('tools/xrt_single_header_impl.c','C:/Windows/System32/ucrtbase.dll')+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
             }else{
-                $buildExit=Invoke-XlirNativeToLog gcc ($strict+@($level)+$includes+@($case.Sources)+$objects+@($runtime[0].Path)+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
+                $buildExit=Invoke-XlirGccToLog ($strict+@($level)+$includes+@($case.Sources)+$objects+@($runtime[0].Path)+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
             }
             $runExit=$null;$complete=$false;$marker=''
             if($buildExit -eq 0 -and ($case.Kind -notin @('resident','managed-lifetime') -or $dllBuild -eq 0)){

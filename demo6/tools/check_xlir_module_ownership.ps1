@@ -49,8 +49,8 @@ try {
     }
     $flags = @('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable',
         '-Wno-unused-parameter','-Wno-pointer-sign','-Wno-format-truncation','-Wno-missing-field-initializers',
-        "-I$includePath",'-I.','-Irelease','-Ilib/tcc','-DJOINT_SOURCE_XRT','-ffunction-sections','-fdata-sections',
-        (New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $includePath.Replace('\','/')))
+        "-I$includePath",'-I.','-Isrc/api','-Irelease','-Irelease/include','-Ilib/tcc','-DJOINT_SOURCE_XRT','-ffunction-sections','-fdata-sections',
+        (New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $includePath.Replace('\','/') -RawArgument))
     $results = @()
     # O0 keeps unused public API bodies in this white-box host. Supply their
     # complete current-source dependencies rather than relying on optimization
@@ -58,15 +58,14 @@ try {
     # and the runtime TUs compiled below must not be linked a second time.
     $embedded = @('xl_api.o','xl_api_path.o','xl6_console.o','xlir_public_source_driver.o',
         'xl6_continuation_queue.o','xl6_continuation_executor.o','xl6_continuation_future.o',
-        'xl6_code_lease.o','xl6_closure.o','xl6_cell.o','xl6_slot.o','xl6_frame_storage.o','xl6_continuation_frame.o','xl6_future_wait.o','xl6_task.o','xl6_capture.o','xl6_value_iterator.o','xl6_future_callback.o','xl6_generator.o','xl6_future_payload.o','xrt_single_header_impl.o')
+        'xl6_code_lease.o','xl6_closure.o','xl6_cell.o','xl6_slot.o','xl6_frame_storage.o','xl6_continuation_frame.o','xl6_future_wait.o','xl6_task.o','xl6_task_frame.o','xl6_task_pool.o','xl6_capture.o','xl6_value_iterator.o','xl6_future_callback.o','xl6_generator.o','xl6_future_payload.o','xrt_single_header_impl.o')
     $dependencies = @($build.Objects | Where-Object { [IO.Path]::GetFileName($_.Path) -notin $embedded } | ForEach-Object Path)
     foreach ($level in @(0,2)) {
         $prefix = Join-Path $Directory "gcc-o$level"
-        & gcc @flags "-O$level" -c test/cases/xlir_module_ownership_tcc_host.c -o "$prefix.o" *> "$prefix.compile.log"
-        $code = $LASTEXITCODE
+        $code=Invoke-XlirGccToLog ($flags+@("-O$level",'-c','test/cases/xlir_module_ownership_tcc_host.c','-o',"$prefix.o")) "$prefix.compile.log"
         if (!$code) {
-            & gcc @flags "-O$level" "$prefix.o" src/runtime/xl6_continuation_queue.c src/runtime/xl6_continuation_executor.c src/runtime/xl6_continuation_future.c src/runtime/xl6_code_lease.c src/runtime/xl6_closure.c src/runtime/xl6_cell.c src/runtime/xl6_slot.c src/runtime/xl6_frame_storage.c src/runtime/xl6_continuation_frame.c src/runtime/xl6_future_wait.c src/runtime/xl6_task.c src/runtime/xl6_task_frame.c src/runtime/xl6_task_pool.c src/runtime/xl6_capture.c src/runtime/xl6_value_iterator.c src/runtime/xl6_future_callback.c src/runtime/xl6_generator.c src/runtime/xl6_future_payload.c @dependencies $runtime[0].Path release/xl.dll '-Wl,--gc-sections' -lWs2_32 -lIPHLPAPI -lShell32 -lOle32 -lAdvapi32 -o "$prefix.exe" *> "$prefix.link.log"
-            $code = $LASTEXITCODE
+            $resident=@('src/runtime/xl6_continuation_queue.c','src/runtime/xl6_continuation_executor.c','src/runtime/xl6_continuation_future.c','src/runtime/xl6_code_lease.c','src/runtime/xl6_closure.c','src/runtime/xl6_cell.c','src/runtime/xl6_slot.c','src/runtime/xl6_frame_storage.c','src/runtime/xl6_continuation_frame.c','src/runtime/xl6_future_wait.c','src/runtime/xl6_task.c','src/runtime/xl6_task_frame.c','src/runtime/xl6_task_pool.c','src/runtime/xl6_capture.c','src/runtime/xl6_value_iterator.c','src/runtime/xl6_future_callback.c','src/runtime/xl6_generator.c','src/runtime/xl6_future_payload.c')
+            $code=Invoke-XlirGccToLog ($flags+@("-O$level","$prefix.o")+$resident+$dependencies+@($runtime[0].Path,'release/xl.dll','-Wl,--gc-sections','-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$prefix.exe")) "$prefix.link.log"
         }
         if (!$code) {
 $process = Start-Process -FilePath ([IO.Path]::GetFullPath("$prefix.exe")) -WorkingDirectory $rootPath -WindowStyle Hidden -PassThru -RedirectStandardOutput "$prefix.stdout.log" -RedirectStandardError "$prefix.stderr.log"
