@@ -7,8 +7,8 @@
 
 int main(void)
 {
-    const char source[] = "[service]\nhost=localhost\nport=8080\nwelcome=old\nnote=unchanged\n"
-        "welcome=hello\n    world\nendpoint=http://${host}:${port}\n";
+    const char source[] = "scheme=http\n[service]\nhost=localhost\nport=8080\nwelcome=old\nnote=unchanged\n"
+        "welcome=hello\n    world\nendpoint=${.scheme}://${host}:${port}\n";
     xrtinioptions options;
     xrtIniOptionsInit(&options);
     options.bStrictDuplicates = false;

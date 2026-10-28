@@ -41,7 +41,7 @@ sha256sum "${inputs[@]}" > "$work/inputs.before.sha256"
 "$cc" --version > "$work/compiler.txt"
 printf '[ini] C sanitizer gate\n'
 "$cc" "${flags[@]}" -c release/extlibs/ini/test/xrt_runtime.c -o "$work/xrt.o"
-for name in test_ini test_updates test_output_limits; do
+for name in test_ini test_updates test_output_limits test_interpolation_refs; do
     "$cc" "${flags[@]}" "release/extlibs/ini/test/$name.c" \
         "$work/xrt.o" -lm -ldl -o "$work/$name"
     timeout 90s "$work/$name"
@@ -60,10 +60,12 @@ printf '[ini] XLang JIT gate\n'
 timeout 90s ./release/xl run release/extlibs/ini/test/test_ini.c
 timeout 90s ./release/xl run release/extlibs/ini/test/test_updates.c
 timeout 90s ./release/xl run release/extlibs/ini/test/test_output_limits.c
+timeout 90s ./release/xl run release/extlibs/ini/test/test_interpolation_refs.c
 timeout 90s ./release/xl run test/cases/extlib_ini.xl
 timeout 90s ./release/xl run release/extlibs/ini/test/boundaries.xl
 timeout 90s ./release/xl run release/extlibs/ini/test/updates.xl
 timeout 90s ./release/xl run release/extlibs/ini/test/output_limits.xl
+timeout 90s ./release/xl run release/extlibs/ini/test/interpolation_refs.xl
 timeout 90s ./release/xl run release/extlibs/ini/examples/profiles_c.c > "$work/profiles_direct_c.txt"
 timeout 90s ./release/xl run release/extlibs/ini/examples/profiles.xl > "$work/profiles_xl.txt"
 diff -u "$work/profiles_gcc.txt" "$work/profiles_direct_c.txt"
@@ -94,7 +96,7 @@ timeout 90s ./release/xl run release/examples/extlibs/ini.xl \
 diff -u "$work/c_example.txt" "$work/xl_example.txt"
 diff -u "$work/gcc_example.txt" "$work/c_example.txt"
 printf '[ini] XLang AOT gate\n'
-for name in aot_float_core boundaries updates output_limits; do
+for name in aot_float_core boundaries updates output_limits interpolation_refs; do
     timeout 180s ./release/xl build "release/extlibs/ini/test/$name.xl" \
         -o "$work/ini_$name"
     timeout 90s "$work/ini_$name"

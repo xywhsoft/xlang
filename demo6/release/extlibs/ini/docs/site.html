@@ -33,6 +33,7 @@ assert config.getInt("server", "port") == 9090
 println(config.stringify())</code></pre>
     <p>完整的 C/XLang 对照范例还演示 <code>create</code>、<code>save</code>、<code>load</code>：在独占临时目录中保存配置并读回核对，运行结束即清理。Windows 严格 GCC 与 TCC、Linux ASan/UBSan 的输出均和 XLang 对照。</p>
     <p>包内 <code>examples/profiles.xl</code> / <code>profiles_c.c</code> 另成对演示部署配置覆盖、多行值和读取时插值。可直接 <code>xl run</code>，不需要服务或数据文件；写回后可重新按默认严格模式读取。</p>
+    <p>插值的 <code>${.scheme}</code> 可读取全局键；首个点分隔节名与键名，其余点保留为键的一部分，如 <code>${s.a.b}</code> 读取 s 节的 a.b。空键引用报 ConfigError，空值本身合法；缺键、循环与真正的内存失败保持各自错误分类。</p>
   </section>
   <section id="api">
     <h2>接口</h2>
@@ -51,6 +52,7 @@ println(config.stringify())</code></pre>
   </section>
   <section id="verify">
     <h2>验证与边界</h2>
+    <p>2026-10-28 插值空键误报 MemoryError 已修复；新增 C 的 9 个合法/9 个错误引用对照、逐点 OOM 与分配恢复、语言消费正反例。Windows/Linux 默认门禁通过严格 C、Linux ASan/UBSan 及新旧双语 JIT/AOT，先前工具链 R 风险仍保留。</p>
     <p>本轮最后的 Windows/Linux 默认门禁完整通过，新增拥有型取值与插值累计预算的 C/XLang JIT/AOT、Linux ASan/UBSan、精确字节边界和 OOM 恢复检查。但 Windows GCC 编译未修改的 XRT 测试翻译单元曾出现一次内部错误；同参数重试成功，原因尚未闭环，当前仍保留工具链 R 风险。另一次 WSL 非正常重启使快照失效，已重新建立输入验证，不把失效运行视为库测试失败。</p>
     <p>2026-10-28 Windows 默认门禁与 Linux 原生文件系统同输入门禁均通过：新增 54 种重复覆盖组合、8 种 BOM 键布局、输出预算与逐点分配故障，保留严格 GCC、Linux ASan/UBSan、Python configparser 独立互通、私有访问负例和双语 JIT/AOT。失败现场及输入指纹会保留；这不是 32 位、TSan 或所有文件系统的压力验收。</p>
     <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/ini/test/check.ps1

@@ -1,0 +1,46 @@
+import ini
+
+func main(...) as int
+    auto config = ini.create(interpolation=true)
+    config.set("", "key", "global")
+    config.set("", "..", "global-dots")
+    config.set("s", "key", "local")
+    config.set("s", ".", "dot")
+    config.set("s", "a.b", "dotted")
+    config.set("s", "empty", "")
+    config.set("s", "cycle", "${cycle}")
+    array<string> expressions = ["${key}", "${.key}", "${s.key}", "${s..}", "${s.a.b}", "${...}", "${s.empty}", "pre${s.empty}post"]
+    array<string> expected = ["local", "global", "local", "dot", "dotted", "global-dots", "", "prepost"]
+    for index in range(expressions.length)
+        config.set("s", "value", expressions[index])
+        assert config.get("s", "value") == expected[index]
+    end
+
+    // 空键是错误，空节可表示全局节；首个点之后仍可有普通点字符。
+    array<string> invalid = ["${s.}", "${.}", "${}", "prefix${s.}suffix", "${s.key", "${", "${cycle}"]
+    for expression in invalid
+        config.set("s", "value", expression)
+        bool caught = false
+        try
+            config.get("s", "value")
+        catch ConfigError error
+            caught = true
+        end
+        assert caught and config.errorCode == 9
+        assert config.get("s", "key") == "local" and config.valid
+    end
+
+    config.set("s", "value", "${missing}")
+    bool caught = false
+    try
+        config.get("s", "value")
+    catch ConfigError error
+        caught = true
+    end
+    assert caught and config.errorCode == 7
+    auto raw = ini.create()
+    raw.set("s", "value", "${s.}")
+    assert raw.get("s", "value") == "${s.}"
+    println("ini language interpolation references: PASS")
+    return 0
+end

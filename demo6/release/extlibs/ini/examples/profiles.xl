@@ -2,7 +2,7 @@ import ini
 
 func main(...) as int
     // 同一节可按部署环境覆盖旧配置；插值在读取时使用当前值。
-    string source = "[service]\nhost=localhost\nport=8080\nwelcome=old\nnote=unchanged\nwelcome=hello\n    world\nendpoint=http://${host}:${port}\n"
+    string source = "scheme=http\n[service]\nhost=localhost\nport=8080\nwelcome=old\nnote=unchanged\nwelcome=hello\n    world\nendpoint=${.scheme}://${host}:${port}\n"
     auto config = ini.parse(source, strictDuplicates=false, interpolation=true)
     config.set("service", "port", "9090")
 

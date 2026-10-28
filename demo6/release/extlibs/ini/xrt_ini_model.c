@@ -396,7 +396,9 @@ static bool __xrtIniAppendResolved(xrtiniconfig* pConfig, xbuffer* pOutput,
 			const char* pDot;
 			str sRefSection;
 			str sRefKey;
-			if ( pClose == NULL || pClose == p + 2 ) {
+			pDot = pClose != NULL ? memchr(p + 2, '.', (size_t)(pClose - (p + 2))) : NULL;
+			/* 空节可引用全局键，空键无效；只按首个点分隔，不禁用带点键。 */
+			if ( pClose == NULL || pClose == p + 2 || (pDot != NULL && pDot + 1 == pClose) ) {
 				__xrtIniSetError(pConfig, XRT_INI_ERROR_INTERPOLATION, 0u, 0u, 0u,
 					"invalid INI interpolation expression");
 				return false;
@@ -405,7 +407,6 @@ static bool __xrtIniAppendResolved(xrtiniconfig* pConfig, xbuffer* pOutput,
 				pStart, (size_t)(p - pStart)) ) {
 				return false;
 			}
-			pDot = memchr(p + 2, '.', (size_t)(pClose - (p + 2)));
 			if ( pDot != NULL ) {
 				sRefSection = xrtStrDupN(p + 2, (size_t)(pDot - (p + 2)));
 				sRefKey = xrtStrDupN(pDot + 1, (size_t)(pClose - (pDot + 1)));
@@ -413,7 +414,7 @@ static bool __xrtIniAppendResolved(xrtiniconfig* pConfig, xbuffer* pOutput,
 				sRefSection = xrtStrDup(sSection);
 				sRefKey = xrtStrDupN(p + 2, (size_t)(pClose - (p + 2)));
 			}
-			if ( sRefSection == NULL || sRefKey == NULL || sRefKey[0] == 0 ||
+			if ( sRefSection == NULL || sRefKey == NULL ||
 				!__xrtIniAppendResolved(pConfig, pOutput, (const char*)sRefSection,
 					(const char*)sRefKey, pSections, pKeys, iDepth + 1u, iMaxDepth) ) {
 				xrtFree(sRefSection);

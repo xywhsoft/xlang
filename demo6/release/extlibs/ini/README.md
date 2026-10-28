@@ -8,6 +8,15 @@ Windows 默认门禁与 Linux 新快照默认门禁均完整通过，但中途�
 [原始证据与关闭条件](../../../dev/extlib_blockers/ini_gcc_ice_20261028.md)。
 不修改主线、替换 XRT、换优化级别或借用旧对象来取得绿灯。
 
+2026-10-28 插值引用分类补测：`${s.}`、`${.}` 和带前后缀的空键引用原
+误报 MemoryError，现与 `${}`、未闭合引用统一报 INTERPOLATION / ConfigError。
+仅拒绝空键，不把空节、空值或带点键一并禁用：`${.key}` 读取全局键；
+按首个点分隔节名，`${s.a.b}` 的键为 `a.b`，`${s..}` 的键为 `.`。
+缺键仍报 NOT_FOUND，循环引用仍报 INTERPOLATION，真实 OOM 仍报 MEMORY。
+关闭插值时原文不解释。C 的 9 个合法、9 个错误对照及逐点 OOM/活动分配
+恢复、语言消费正反例、新旧双语范例 JIT/AOT、严格 GCC 和 Linux ASan/UBSan
+均通过默认门禁；此前工具链 R 风险未因此关闭。
+
 ## 2026-10-28 覆盖赋值与无损写回
 
 修复三个 C/XLang 共用的包内错误，公开 ABI 不变：
@@ -41,6 +50,7 @@ WSL 挂载盘构建耗时风险；未重建主线或替换 XRT，基线仍见
 [`examples/profiles_c.c`](examples/profiles_c.c) 展示允许覆盖的配置、
 多行欢迎文本、读取时插值，以及写回后按默认严格模式重新读取。
 两份都检查实际结果，不只比较输出；无需网络、外部服务或数据文件。
+范例的协议名从 `${.scheme}` 读取全局配置，服务内的 host/port 按本节读取。
 在 `demo6` 目录运行：
 
 ```text
@@ -204,7 +214,7 @@ XLang 输出一致，范例结束时删除该目录。
 Linux 门禁使用 ASan/UBSan 验证 C 解析及文件路径边界，另以内嵌 TCC
 执行 C 用例，运行中央/包内 XLang 边界并逐字节核对双语范例。
 这些是 ini 包级证据，不等于整个 xlang 发布版签收。
-包内 `test/boundaries.xl`、`test/updates.xl`、`test/output_limits.xl` 已登记到 `coverage.tests`，统一扩展库 smoke 可发现；
+包内 `test/boundaries.xl`、`test/updates.xl`、`test/output_limits.xl`、`test/interpolation_refs.xl` 已登记到 `coverage.tests`，统一扩展库 smoke 可发现；
 现已从 `demo6` 工作目录与默认包门禁一并复跑。
 
 以下为历史验证记录，其中缺符号描述均指当时的旧发布二进制。
