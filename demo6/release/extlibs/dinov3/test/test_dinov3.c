@@ -133,8 +133,10 @@ int main(void)
                 "shape limit")) return 1;
     left.shape = "[3]";
     left.count = -1;
-    if (require(dinov3_embedding_json_native(&left) == NULL,
-                "negative count")) return 1;
+    xrtSetErrorKind(XERR_MEMORY);
+    if (require(dinov3_embedding_json_native(&left) == NULL && xrtGetError() == NULL &&
+                strcmp(dinov3_last_error_native(), "invalid DinoV3 embedding shape or count") == 0,
+                "negative count must not inherit a stale memory error")) return 1;
     left.count = 3;
     right.count = 2;
     right.shape = "[2]";

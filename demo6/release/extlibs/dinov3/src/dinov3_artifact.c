@@ -55,6 +55,8 @@ static xvalue* dino_shape(void* handle, int* value_count)
     size_t i;
     int count;
     int product = 1;
+    /* 新的形状读取只保留本次首因，旧线程 OOM 不能冒充本次读取失败。 */
+    xrtClearError();
     if (handle == NULL || value_count == NULL) {
         dino_set_error("DinoV3 output is unavailable");
         return NULL;
