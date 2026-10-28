@@ -1,4 +1,5 @@
 #define XRT_MODULE_ALL
+#define XRT_MODULE_MEMORY_DEBUG
 #include "xrt.h"
 #include "../include/xrt_plist.h"
 
@@ -23,6 +24,53 @@ extern char* xplist_stringify_text(ptr pHandle, bool bPretty,
 	bool bSortKeys, uint32 iIndent, uint64 iMaxOutput, uint64 iMaxItem,
 	uint64 iMaxEntries, uint64 iMaxNodes, uint32 iMaxDepth);
 extern char* xplist_error_message(void);
+
+/* 与语言预算使用同样的空字符串、格式和限额，源值在测量外构造。 */
+static char* encode_empty_xml(xvalue* source)
+{
+	ptr document = xplist_create();
+	ptr root;
+	char* result = NULL;
+	if ( document == NULL ) { return NULL; }
+	root = xplist_new_string(document, source);
+	if ( root != NULL && xplist_set_root(document, root) ) {
+		result = xplist_stringify_text(document, false, false, 2u,
+			536870912u, 268435456u, 100000u, 1000000u, 128u);
+	}
+	xplist_destroy(document);
+	return result;
+}
+
+static int test_owned_xml_budget(void)
+{
+	xvalue* source = xrtValueString(XRT_STR_LITERAL(""));
+	char* expected = source != NULL ? encode_empty_xml(source) : NULL;
+	const unsigned budgets[] = {0u, 7u};
+	size_t i;
+	int okay = expected != NULL;
+	for ( i = 0; okay && i < sizeof(budgets) / sizeof(budgets[0]); ++i ) {
+		char* result;
+		bool triggered;
+		bool memory_error;
+		if ( !xrtMemDebugFailAfter(budgets[i]) ) { okay = 0; break; }
+		result = encode_empty_xml(source);
+		triggered = xrtMemDebugFailTriggered();
+		memory_error = xrtErrorKind(xrtGetError()) == XERR_MEMORY ||
+			xplist_error_code() == XRT_PLIST_ERROR_MEMORY;
+		xrtMemDebugFailClear();
+		if ( budgets[i] == 0u ) {
+			okay = result == NULL && triggered && memory_error;
+		} else {
+			okay = result != NULL && !triggered && !memory_error &&
+				strcmp(result, expected) == 0;
+		}
+		xrtFree(result);
+	}
+	xrtFree(expected);
+	xrtValueRelease(source);
+	if ( !okay ) { fputs("plist native XML budget failed\n", stderr); }
+	return okay;
+}
 
 int main(void)
 {
@@ -86,6 +134,7 @@ int main(void)
 	xrtValueRelease(pKey);
 	xplist_destroy(pXmlHandle);
 	xplist_destroy(pHandle);
+	if ( bOk ) { bOk = test_owned_xml_budget(); }
 	if ( bOk ) { puts("test_plist_native: PASS"); }
 	return bOk ? 0 : 2;
 }

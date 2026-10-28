@@ -1,0 +1,4 @@
+import plist
+
+// 构树仍有必要的值转换；专门核对结果接管和后续返回链。
+assert string.contains(plist.stringify("", false, false), "<string")

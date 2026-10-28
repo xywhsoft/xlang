@@ -20,6 +20,7 @@
     <p class="extlib-lead">读取和写出 Apple XML 与二进制 property list。</p>
     <p>基于 XRT；XLang 值与 C 接口共享解析和写出核心，支持 UID、日期、数组、字典及二进制 Buffer。文本解析直接传递字符串和显式字节长度，不创建整份输入的临时 Buffer。</p>
     <p>2026-10-26 当前 Windows/Linux 默认包门禁均通过 C/XLang 边界、分配故障和独立 EXE；两平台用 Python <code>plistlib</code> 分别读回 C、JIT、AOT 生成的 XML 与 binary 产物。Linux 另通过 C ASan/UBSan。</p>
+    <p>2026-10-28 用 <code>??</code> 转移可空拥有型结果，移除 XML 与诊断的返回复制，保留独立 PlistError 分类。预热空字符串完整序列化的 C 预算为 7 次，XL 从 19 降为 18 次；构树和语言对象仍有额外成本，不宣称完整零开销。新预算/错误恢复、双平台默认门禁、Linux ASan/UBSan、双语 JIT/AOT 与 plistlib 互通通过。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
