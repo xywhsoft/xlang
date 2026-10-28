@@ -4,7 +4,14 @@ set -euo pipefail
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../../.." && pwd)
 cd "$root"
 work=$(mktemp -d "${TMPDIR:-/tmp}/xlang-snappy-XXXXXX")
-trap 'rm -rf -- "$work"' EXIT
+cleanup() {
+    result=$?
+    trap - EXIT
+    if ((result == 0)); then rm -rf -- "$work"
+    else printf '[snappy] FAIL exit=%s artifacts=%s\n' "$result" "$work" >&2; fi
+    exit "$result"
+}
+trap cleanup EXIT
 cc=${CC:-gcc}
 sanitize=(-fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread)
 flags=(-std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror
@@ -73,4 +80,5 @@ done
 diff -u "$work/file_ops_jit.txt" "$work/file_ops_aot.txt"
 diff -u "$work/basic_c.txt" "$work/basic_aot.txt"
 diff -u "$work/full_xl.txt" "$work/full_aot.txt"
+bash "$root/tools/check_extlib_native_globals.sh" snappy
 printf 'snappy Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\n'

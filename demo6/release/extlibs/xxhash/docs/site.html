@@ -25,6 +25,7 @@
   <header class="extlib-head">
     <p><a href="../extlibs.html">扩展库</a> / xxhash</p>
     <div class="extlib-title-row"><h1>xxhash</h1><span class="extlib-cat-badge">非密码哈希</span></div>
+    <p>2026-10-29 全局哈希器检查确认 M2 主线阻断：Windows/Linux JIT 退出0；独立 EXE 均打印校验 PASS 后在退出期报状态错误、退出1。默认门禁已接入并保留失败现场，旧向量、线程和局部对象通过不覆盖该边界，暂不作完整发布签收；不提前销毁或移动全局对象绕开。</p>
     <p class="extlib-lead">XXH32、XXH64 与 XXH3，面向数据分布、去重与快速指纹。内嵌 C 后端，不需要额外 xxHash DLL；不用于口令、签名或防恶意篡改。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api">

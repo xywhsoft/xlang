@@ -19,6 +19,7 @@ function Inputs {
     @('.gitattributes','release/xl.exe','release/xl.dll','release/xlc.dll','lib/xrt/xrt.h','lib/xruntime/xruntime.h',
       'release/include/xrt_decl.h','release/include/xruntime_decl.h','test/support/extlib_codec_runtime.c',
       'tools/check_extlib_xxhash.ps1','tools/check_extlib_xxhash.sh','tools/extlib_smoke_process.ps1',
+      'tools/check_extlib_native_globals.ps1','tools/check_extlib_native_globals.sh',
       'tools/xlir_native_process.ps1','tools/run_extlib_c.ps1','test/featured_extlibs.json','test/suites/11_featured_extlibs_rc.bat',
       'release/examples/extlibs/xxhash.xl','release/examples/extlibs/xxhash_basic.xl','release/examples/extlibs/xxhash_basic.expected.txt') +
       @($cases | ForEach-Object { "test/cases/$_.xl" }) +
@@ -168,6 +169,10 @@ try {
     }
     if ($c -cne $golden -or $jit -cne $golden) { throw 'C/XL golden output mismatch' }
     if (@(Compare-Object @($hashes.Keys) @(Inputs)).Count) { throw 'Input file set changed' }
+    $lifecycle = @('-NoProfile','-ExecutionPolicy','Bypass','-File','tools/check_extlib_native_globals.ps1',
+        '-Root',$Root,'-Package','xxhash')
+    if ($SkipAot) { $lifecycle += '-SkipAot' }
+    $null = Check 'top-level-lifecycle' (Get-Process -Id $PID).Path $lifecycle 360
     foreach ($path in $hashes.Keys) {
         if ((Get-FileHash -LiteralPath (Join-Path $Root $path)).Hash -ne $hashes[$path]) { throw "Input changed: $path" }
     }
@@ -187,6 +192,7 @@ try {
             [StringComparison]::OrdinalIgnoreCase)) {
             throw "xxhash temporary work path escaped build/test: $workPath"
         }
-        Remove-Item -LiteralPath $workPath -Recurse -Force
+        if ($outcome -eq 'passed') { Remove-Item -LiteralPath $workPath -Recurse -Force }
+        else { Write-Warning "xxhash failure artifacts: $workPath" }
     }
 }

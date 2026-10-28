@@ -19,6 +19,7 @@
 </div></nav>
 <main class="extlib-layout" id="main-content">
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / zstd</p><h1>zstd</h1>
+    <p>2026-10-29 新顶层对象检查确认 M2 主线阻断：Windows/Linux JIT 退出0；独立 EXE 均打印校验 PASS 后在退出期报状态错误、退出1。默认门禁已接入，旧函数内对象、帧互通与双语通过不覆盖该边界，暂不作完整发布签收；不提前销毁或移动全局对象绕开。</p>
     <p class="extlib-lead">Zstandard 二进制压缩、增量流和文件处理；同时提供 XLang 与 C 接口。</p>
     <p>2026-10-26：Windows 默认包门禁及 Python Zstandard 双向标准帧互通通过；Linux C ASan/UBSan、语言 JIT、八条独立 EXE AOT 和 C/JIT/AOT 范例输出对照通过。Windows 从项目根目录直接运行基础范例也通过，旧 VFS 路径及 Linux <code>cstring</code> 阻断不再复现。输出限额抛 <code>RangeError</code>；损坏帧和非法状态抛 <code>CompressionError</code>，分配失败抛 <code>MemoryError</code>。文件回调保留原异常与取消语义。</p>
   </header>

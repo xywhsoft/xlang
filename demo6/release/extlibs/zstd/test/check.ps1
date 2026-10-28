@@ -7,6 +7,7 @@ $xl = Join-Path $root 'release/xl.exe'
 $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $work = Join-Path ([IO.Path]::GetTempPath()) ('xlang-zstd-' + [Guid]::NewGuid().ToString('N'))
 [IO.Directory]::CreateDirectory($work) | Out-Null
+$passed = $false
 
 function Run([string]$name, [string]$program, [string[]]$arguments) {
     $old = $ErrorActionPreference
@@ -99,6 +100,11 @@ try {
             throw 'zstd teaching AOT did not reach completion'
         }
     }
+    $lifecycle = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
+        (Join-Path $root 'tools/check_extlib_native_globals.ps1'), '-Root', $root, '-Package', 'zstd')
+    if ($SkipAot) { $lifecycle += '-SkipAot' }
+    $null = Run 'top-level lifecycle' (Get-Process -Id $PID).Path $lifecycle
+    $passed = $true
     Write-Host 'zstd Windows package gate: PASS'
 } finally {
     Pop-Location
@@ -107,5 +113,6 @@ try {
     if (-not $workPath.StartsWith($tempRoot, [StringComparison]::OrdinalIgnoreCase)) {
         throw "zstd temporary work path escaped system temp: $workPath"
     }
-    Remove-Item -LiteralPath $workPath -Recurse -Force
+    if ($passed) { Remove-Item -LiteralPath $workPath -Recurse -Force }
+    else { Write-Warning "zstd failure artifacts: $workPath" }
 }

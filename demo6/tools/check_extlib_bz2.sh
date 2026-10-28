@@ -12,6 +12,7 @@ vendor=release/extlibs/_bzip2/third_party/bzip2
 includes=(-Ilib/xrt -Ilib/xruntime)
 if [[ -n ${XRT_INCLUDE:-} ]]; then includes=("-I$XRT_INCLUDE"); fi
 input_paths() {
+    printf '%s\0' tools/check_extlib_native_globals.ps1 tools/check_extlib_native_globals.sh
     find "$pkg" release/extlibs/_bzip2 -type f -print0
     printf '%s\0' lib/xrt/xrt.h lib/xruntime/xruntime.h test/support/extlib_codec_runtime.c \
         test/support/extlib_codec_file_rollback.h \
@@ -140,3 +141,4 @@ for name in full basic files; do
         diff -u "$work/$name.log" "$work/example-xl-$name-aot.log"
     fi
 done
+bash "$root/tools/check_extlib_native_globals.sh" bz2

@@ -35,6 +35,7 @@ mapfile -d '' inputs < <(
       printf '%s\0' lib/xrt/xrt.h lib/xruntime/xruntime.h release/xl release/libxl.so \
           release/libxlc.so release/include/xrt_decl.h release/include/xruntime_decl.h \
           release/include/xl_extlib_abi.h test/support/extlib_codec_runtime.c \
+          tools/check_extlib_native_globals.ps1 tools/check_extlib_native_globals.sh \
           test/cases/extlib_miniz.xl test/cases/extlib_miniz_progress.xl \
           release/examples/extlibs/miniz.xl release/examples/extlibs/miniz_basic.xl
     } | sort -zu
@@ -119,5 +120,6 @@ for source in streaming.xl streaming_c.c; do
     timeout 90s "$target" > "$work/${source//./_}.txt"
     diff -u "$work/streaming_gcc.txt" "$work/${source//./_}.txt"
 done
+bash "$root/tools/check_extlib_native_globals.sh" miniz
 sha256sum -c "$work/inputs.before.sha256" > "$work/inputs.checked.txt"
 printf 'miniz Linux C ASan/UBSan, Python zlib, XLang JIT/AOT and parity gate: PASS\n'

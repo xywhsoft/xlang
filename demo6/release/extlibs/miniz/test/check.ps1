@@ -17,6 +17,8 @@ $inputs = @('release/xl.exe', 'release/xl.dll', 'release/xlc.dll',
     'lib/xrt/xrt.h', 'lib/xruntime/xruntime.h', 'release/include/xrt_decl.h',
     'release/include/xruntime_decl.h', 'release/include/xl_extlib_abi.h',
     'test/support/extlib_codec_runtime.c', 'tools/run_extlib_c.ps1',
+    'tools/check_extlib_native_globals.ps1', 'tools/check_extlib_native_globals.sh',
+    'tools/extlib_smoke_process.ps1', 'tools/xlir_native_process.ps1',
     'test/cases/extlib_miniz.xl', 'test/cases/extlib_miniz_progress.xl',
     'release/examples/extlibs/miniz.xl', 'release/examples/extlibs/miniz_basic.xl') |
     ForEach-Object { Join-Path $root $_ }
@@ -192,6 +194,10 @@ try {
             if ($output -cne $streamingOutput) { throw "miniz $source AOT differs from GCC" }
         }
     }
+    $lifecycle = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
+        (Join-Path $root 'tools/check_extlib_native_globals.ps1'), '-Root', $root, '-Package', 'miniz')
+    if ($SkipAot) { $lifecycle += '-SkipAot' }
+    $null = Run 'top-level lifecycle' (Get-Process -Id $PID).Path $lifecycle
     foreach ($path in $hashes.Keys) {
         if ((Get-FileHash -LiteralPath $path).Hash -ne $hashes[$path]) {
             throw "miniz input changed during gate: $path"

@@ -11,6 +11,7 @@ $links = @('-lws2_32', '-ladvapi32', '-liphlpapi', '-lm')
 $workParent = Join-Path $root 'build/test/snappy_guard'
 $work = Join-Path $workParent ('run_' + [guid]::NewGuid().ToString('N'))
 [IO.Directory]::CreateDirectory($work) | Out-Null
+$passed = $false
 
 function Run([string]$name, [string]$program, [string[]]$arguments) {
     $previousAction = $ErrorActionPreference
@@ -138,6 +139,11 @@ try {
             throw 'XLang AOT output differs from C example'
         }
     }
+    $lifecycle = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
+        (Join-Path $root 'tools/check_extlib_native_globals.ps1'), '-Root', $root, '-Package', 'snappy')
+    if ($SkipAot) { $lifecycle += '-SkipAot' }
+    $null = Run 'top-level lifecycle' (Get-Process -Id $PID).Path $lifecycle
+    $passed = $true
     Write-Host 'snappy Windows package gate: PASS'
 } finally {
     Pop-Location
@@ -147,5 +153,6 @@ try {
         [StringComparison]::OrdinalIgnoreCase)) {
         throw "snappy temporary work path escaped build/test: $workPath"
     }
-    Remove-Item -LiteralPath $workPath -Recurse -Force
+    if ($passed) { Remove-Item -LiteralPath $workPath -Recurse -Force }
+    else { Write-Warning "snappy failure artifacts: $workPath" }
 }

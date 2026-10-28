@@ -10,7 +10,14 @@ fi
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../../.." && pwd)
 cd "$root"
 work=$(mktemp -d "${TMPDIR:-/tmp}/xlang-zstd-XXXXXX")
-trap 'rm -rf -- "$work"' EXIT
+cleanup() {
+    result=$?
+    trap - EXIT
+    if ((result == 0)); then rm -rf -- "$work"
+    else printf '[zstd] FAIL exit=%s artifacts=%s\n' "$result" "$work" >&2; fi
+    exit "$result"
+}
+trap cleanup EXIT
 cc=${CC:-gcc}
 sanitize=(-fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread)
 flags=(-std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror
@@ -89,4 +96,5 @@ for name in basic teaching; do
 done
 diff -u "$work/basic_c.txt" "$work/basic_aot.txt"
 diff -u "$work/teaching.txt" "$work/teaching_aot.txt"
+bash "$root/tools/check_extlib_native_globals.sh" zstd
 printf 'zstd Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\n'

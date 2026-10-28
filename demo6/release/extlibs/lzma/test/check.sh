@@ -34,6 +34,7 @@ mapfile -d '' inputs < <(
       printf '%s\0' lib/xrt/xrt.h lib/xruntime/xruntime.h release/xl release/libxl.so \
           release/libxlc.so release/include/xrt_decl.h release/include/xruntime_decl.h \
           release/include/xl_extlib_abi.h test/support/extlib_codec_runtime.c \
+          tools/check_extlib_native_globals.ps1 tools/check_extlib_native_globals.sh \
           test/cases/extlib_lzma.xl test/cases/extlib_lzma_progress.xl \
           release/examples/extlibs/lzma.xl
     } | sort -zu
@@ -124,5 +125,6 @@ timeout 90s "$work/lzma_basic_c" > "$work/basic_c_aot.txt"
 diff -u "$work/full_xl.txt" "$work/full_aot.txt"
 diff -u "$work/basic_c.txt" "$work/basic_aot.txt"
 diff -u "$work/basic_c.txt" "$work/basic_c_aot.txt"
+bash "$root/tools/check_extlib_native_globals.sh" lzma
 sha256sum -c "$work/inputs.before.sha256" > "$work/inputs.after.txt"
 printf 'lzma Linux C ASan/UBSan, Python XZ, XLang JIT/AOT and parity gate: PASS\n'

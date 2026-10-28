@@ -1,0 +1,10 @@
+import miniz
+
+// 顶层持有真实对象，退出时自然退役，不搬入 main 绕过全局析构边界。
+auto state = miniz.compressor(level = 1)
+
+func main(...) as int
+    assert state.valid
+    println("miniz top-level: PASS")
+    return 0
+end

@@ -17,6 +17,8 @@ $inputs = @('release/xl.exe', 'release/xl.dll', 'release/xlc.dll',
     'lib/xrt/xrt.h', 'lib/xruntime/xruntime.h', 'release/include/xrt_decl.h',
     'release/include/xruntime_decl.h', 'release/include/xl_extlib_abi.h',
     'test/support/extlib_codec_runtime.c', 'tools/run_extlib_c.ps1',
+    'tools/check_extlib_native_globals.ps1', 'tools/check_extlib_native_globals.sh',
+    'tools/extlib_smoke_process.ps1', 'tools/xlir_native_process.ps1',
     'test/cases/extlib_lzma.xl', 'test/cases/extlib_lzma_progress.xl',
     'release/examples/extlibs/lzma.xl') | ForEach-Object { Join-Path $root $_ }
 $inputs += @(Get-ChildItem (Join-Path $root 'release/extlibs/lzma') -Recurse -File |
@@ -180,6 +182,10 @@ try {
         $basicAot = Run 'basic example AOT run' $basicExe @()
         if ($basicAot -cne $cOutput) { throw 'basic example C/AOT output differs' }
     }
+    $lifecycle = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
+        (Join-Path $root 'tools/check_extlib_native_globals.ps1'), '-Root', $root, '-Package', 'lzma')
+    if ($SkipAot) { $lifecycle += '-SkipAot' }
+    $null = Run 'top-level lifecycle' (Get-Process -Id $PID).Path $lifecycle
     foreach ($path in $inputs) {
         if ((Get-FileHash -LiteralPath $path).Hash -cne $hashes[$path]) {
             throw "lzma validation input changed: $path"

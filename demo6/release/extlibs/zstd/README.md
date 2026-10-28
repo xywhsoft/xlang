@@ -1,5 +1,13 @@
 # zstd
 
+2026-10-29 新增 `test/top_level.xl`：全局持有一个真实压缩器，main
+内校验有效性，退出时自然析构。固定发布版 Windows/Linux JIT 均
+退出0；独立 EXE 均打印 PASS 后在退出期报状态错误并退出1，确认
+**M2 主线阻断**。默认门禁已接入专项；旧函数内使用、帧互通和双语
+通过记录不覆盖顶层析构，本包暂不作完整发布签收。报告与恢复方式
+见 `dev/extlib_blockers/global_native_class_aot_fini.md`，不移动全局对象、
+不提前销毁或吞异常，也不在包内改主线。
+
 2026-10-26 当前发布物：Windows 默认 `test/check.ps1` 与独立
 `test/check_interop.ps1` 均通过；严格 C、分配故障、标准帧、串联帧、
 文件、进度、错误分类及教学范例覆盖 JIT 和独立 EXE。Python
