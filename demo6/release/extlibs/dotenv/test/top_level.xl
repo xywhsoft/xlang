@@ -1,0 +1,10 @@
+import dotenv
+
+// 顶层保留真实配置对象，正常退出时自然析构，不移到函数内规避生命周期边界。
+auto state = dotenv.create()
+
+func main(...) as int
+    assert state.valid and state.count == 0
+    println("dotenv top-level: PASS")
+    return 0
+end

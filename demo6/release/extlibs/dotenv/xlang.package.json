@@ -19,6 +19,6 @@
     "links": [],
     "loadlibs": [],
     "dependencies": [],
-    "coverage": { "mode": "suite", "tests": ["test/limits.xl", "test/apply_oom.xl", "test/create_oom.xl", "test/replace.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/limits.xl", "test/apply_oom.xl", "test/create_oom.xl", "test/replace.xl", "test/top_level.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

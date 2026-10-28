@@ -1,8 +1,8 @@
 ﻿param(
     [string]$Root = '',
     [string]$RuntimeDirectory = '',
-    [ValidateSet('lz4','bz2','lzma','miniz','snappy','xxhash','zstd','gzip')]
-    [string[]]$Package = @('lz4','bz2','lzma','miniz','snappy','xxhash','zstd','gzip'),
+    [ValidateSet('lz4','bz2','lzma','miniz','snappy','xxhash','zstd','gzip','dotenv')]
+    [string[]]$Package = @('lz4','bz2','lzma','miniz','snappy','xxhash','zstd','gzip','dotenv'),
     [switch]$SkipAot
 )
 

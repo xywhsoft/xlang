@@ -1,0 +1,26 @@
+import dotenv
+
+func main(...) as int
+    dotenv.Config config = dotenv.parse("HOST=app.local\nPORT=8080\n")
+    // XLang 的普通 string 结果独立持有内容，可以跨配置修改继续使用。
+    string saved = config.get("HOST")
+    println(f"initial: {config.get("HOST")}:{config.get("PORT")}")
+
+    bool rejected = false
+    try
+        config.parse("HOST=wrong.local\nbad-key=1\n")
+    catch ConfigError error
+        rejected = true
+    end
+    assert rejected and config.errorLine == 2
+    assert config.get("HOST") == "app.local" and config.get("PORT") == "8080"
+    println(f"bad reload kept: {config.get("HOST")}:{config.get("PORT")}")
+
+    config.parse("HOST=api.local\nPORT=9090\n")
+    println(f"reloaded: {config.get("HOST")}:{config.get("PORT")}")
+    config.clear()
+    assert saved == "app.local" and config.count == 0
+    println(f"saved host: {saved}")
+    println(f"clear count: {config.count}")
+    return 0
+end

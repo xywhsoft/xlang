@@ -443,15 +443,80 @@ static int test_apply_memory_error(void)
 	return ok;
 }
 
+/* 输入可借用自同一对象；失败不撤销借用，成功也须先读完再释放旧条目。 */
+static int test_borrowed_inputs(void)
+{
+	xrtdotenv* config = xrtDotenvCreate();
+	const char* borrowed;
+	int ok = check(config != NULL, "cannot prepare borrowed input test");
+	if (!ok) return 0;
+	ok &= check(xrtDotenvSet(config, "KEY", "KEY"), "cannot prepare aliased key/value");
+	borrowed = xrtDotenvGet(config, "KEY");
+	ok &= check(borrowed != NULL && xrtDotenvSet(config, borrowed, borrowed) &&
+		xrtDotenvCount(config) == 1u && strcmp(xrtDotenvGet(config, "KEY"), "KEY") == 0,
+		"updating an entry with its own borrowed key/value failed");
+	ok &= check(xrtDotenvSet(config, "SCRIPT", "NEXT=ok\n") &&
+		xrtDotenvSet(config, "UNRELATED", "keep"), "cannot prepare aliased parse");
+	borrowed = xrtDotenvGet(config, "SCRIPT");
+	ok &= check(borrowed != NULL && xrtDotenvParse(config, borrowed, strlen(borrowed), 4096u) &&
+		xrtDotenvCount(config) == 1u && strcmp(xrtDotenvGet(config, "NEXT"), "ok") == 0,
+		"parse released its borrowed input before completing the replacement");
+	ok &= check(xrtDotenvSet(config, "BROKEN", "bad-key=value\n"),
+		"cannot prepare failed aliased parse");
+	borrowed = xrtDotenvGet(config, "BROKEN");
+	ok &= check(borrowed != NULL && !xrtDotenvParse(config, borrowed, strlen(borrowed), 4096u) &&
+		xrtDotenvErrorCode(config) == XRT_DOTENV_FORMAT &&
+		xrtDotenvGet(config, "BROKEN") == borrowed &&
+		strcmp(borrowed, "bad-key=value\n") == 0 && xrtDotenvCount(config) == 2u,
+		"failed aliased parse invalidated the original borrowed value");
+	ok &= check(xrtDotenvSet(config, "KEY", "KEY"), "cannot prepare aliased set OOM");
+	for (unsigned failure = 0; ok && failure < 4; ++failure) {
+		int updated, triggered;
+		borrowed = xrtDotenvGet(config, "KEY");
+		ok &= check(xrtMemDebugFailAfter(failure), "cannot inject aliased set OOM");
+		updated = xrtDotenvSet(config, borrowed, borrowed);
+		triggered = xrtMemDebugFailTriggered();
+		xrtMemDebugFailClear();
+		ok &= check(updated == !triggered && xrtDotenvGet(config, "KEY") != NULL &&
+			strcmp(xrtDotenvGet(config, "KEY"), "KEY") == 0,
+			"aliased set OOM changed or lost the original entry");
+		if (triggered) ok &= check(xrtDotenvGet(config, "KEY") == borrowed,
+			"failed aliased set invalidated the borrowed value");
+	}
+	xrtMemDebugFailClear();
+	xrtDotenvDestroy(config);
+	return ok;
+}
+
+static int run_checked(const char* name, int (*test)(void))
+{
+	xmemdebugsnapshot before, after;
+	int ok;
+	xrtClearError();
+	xrtMemDebugSnapshot(&before);
+	ok = test();
+	xrtClearError();
+	xrtMemDebugSnapshot(&after);
+	if (after.LiveBytes != before.LiveBytes || after.LiveCount != before.LiveCount ||
+		after.InvalidFreeCount != before.InvalidFreeCount ||
+		after.DoubleFreeCount != before.DoubleFreeCount ||
+		after.OverflowCount != before.OverflowCount || after.UnderflowCount != before.UnderflowCount) {
+		fprintf(stderr, "dotenv %s changed live allocations or memory guard counters\n", name);
+		ok = 0;
+	}
+	return ok;
+}
+
 int main(void)
 {
-	int ok = test_create_failure();
-	ok &= test_allocation_transactions();
-	ok &= test_error_recovery();
-	ok &= test_parse();
-	ok &= test_parse_mutations();
-	ok &= test_file_and_environment();
-	ok &= test_apply_memory_error();
+	int ok = run_checked("create OOM", test_create_failure);
+	ok &= run_checked("parse/set OOM", test_allocation_transactions);
+	ok &= run_checked("error recovery", test_error_recovery);
+	ok &= run_checked("parse", test_parse);
+	ok &= run_checked("parse mutations", test_parse_mutations);
+	ok &= run_checked("file/environment", test_file_and_environment);
+	ok &= run_checked("apply OOM", test_apply_memory_error);
+	ok &= run_checked("borrowed inputs", test_borrowed_inputs);
 	if (ok) puts("test_dotenv: PASS");
 	return ok ? 0 : 1;
 }
