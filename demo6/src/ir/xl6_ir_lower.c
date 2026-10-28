@@ -15720,6 +15720,7 @@ static int xl6IrLowerGenericDeclarationTypeParams(
     XL6_IrTypeId* types = NULL;
     XL6_IrTypeId* ordered = NULL;
     size_t count = 0;
+    size_t ownerCount = 0;
     size_t orderedCount = 0;
     size_t i;
     if ( outTypes == NULL || outCount == NULL ) return 0;
@@ -15730,8 +15731,11 @@ static int xl6IrLowerGenericDeclarationTypeParams(
      * A cloned declaration already carries a concrete owner, so it contributes
      * no residual type parameters and is not mistaken for its source template. */
     if ( !xl6IrLowerSpecializationCollectTypeParamsFromType(
-             module, node->declarationOwnerType, &types, &count, 0) ||
-         !xl6IrLowerSpecializationCollectTypeParamsFromNode(module, declaration, &types, &count) ) {
+             module, node->declarationOwnerType, &types, &count, 0) ) {
+        xrtFree(types); return 0;
+    }
+    ownerCount=count;
+    if ( !xl6IrLowerSpecializationCollectTypeParamsFromNode(module, declaration, &types, &count) ) {
         xrtFree(types); return 0;
     }
     /* A specialization's type-argument vector follows the declaration's
@@ -15749,6 +15753,8 @@ static int xl6IrLowerGenericDeclarationTypeParams(
     if ( declared != NULL ) {
         ordered = (XL6_IrTypeId*)xrtCalloc(count, sizeof(*ordered));
         if ( ordered == NULL ) { xrtFree(types); return 0; }
+        if(ownerCount)memcpy(ordered,types,ownerCount*sizeof(*ordered));
+        orderedCount=ownerCount;
         for ( i = 0; i < declared->childCount; ++i ) {
             const XL6_IrNode* parameter = xl6IrNodeGet(
                 module, module->children[declared->firstChild + i]);
@@ -15757,7 +15763,7 @@ static int xl6IrLowerGenericDeclarationTypeParams(
             if ( parameter == NULL || parameter->text == NULL || parameter->text[0] == '\0' ) {
                 xrtFree(ordered); xrtFree(types); return 0;
             }
-            for ( candidateIndex = 0; candidateIndex < count; ++candidateIndex ) {
+            for ( candidateIndex = ownerCount; candidateIndex < count; ++candidateIndex ) {
                 const XL6_IrType* type = xl6IrTypeGet(&module->types, types[candidateIndex]);
                 size_t prior;
                 int used = 0;
@@ -15776,9 +15782,8 @@ static int xl6IrLowerGenericDeclarationTypeParams(
             }
             ordered[orderedCount++] = found;
         }
-        /* A standalone generic function owns exactly its declared parameter
-         * vector.  Residual candidates indicate an unsupported mixed outer /
-         * inner generic scope and must not be silently assigned by occurrence. */
+        /* The full key is owner arguments followed by declared method
+         * arguments. Unrelated residual variables must still be rejected. */
         if ( orderedCount != count ) {
             xrtFree(ordered); xrtFree(types); return 0;
         }
@@ -15857,6 +15862,48 @@ static int xl6IrLowerUnifyGenericType(
     return 1;
 }
 
+static int xl6IrLowerSeedGenericOwner(const XL6_IrModule* module,XL6_IrNodeId declaration,
+    XL6_IrTypeId receiverId,const XL6_IrTypeId* parameters,size_t count,XL6_IrTypeId* resolved,
+    size_t* ownerCount)
+{
+    const XL6_IrNode* node=xl6IrNodeGet(module,declaration);
+    const XL6_IrType* family=node ? xl6IrTypeGet(&module->types,node->declarationOwnerType) : NULL;
+    *ownerCount=0;
+    if(!family || !xl6IrLowerTypeContainsTypeParam(module,node->declarationOwnerType,0))return 1;
+    const XL6_IrType* receiver=xl6IrTypeGet(&module->types,receiverId);
+    if(receiver && receiver->kind==XL6_IR_TYPE_NULLABLE && receiver->paramCount==1)
+        receiver=xl6IrTypeGet(&module->types,receiver->params[0]);
+    if(!receiver || receiver->kind!=XL6_IR_TYPE_CLASS || receiver->nominalSymbol!=family->nominalSymbol ||
+       receiver->paramCount!=family->paramCount || xl6IrLowerTypeContainsTypeParam(module,receiverId,0))return 0;
+    for(size_t i=0;i<family->paramCount;++i)
+        if(!xl6IrLowerUnifyGenericType(module,family->params[i],receiver->params[i],parameters,count,resolved,1))return 0;
+    while(*ownerCount<count && resolved[*ownerCount])++*ownerCount;
+    return 1;
+}
+static XL6_IrTypeId xl6IrLowerGenericCallReceiver(const XL6_IrModule* module,const XL6_IrNode* call,
+    XL6_IrNodeId declaration)
+{
+    const XL6_IrCallSite* site=xl6IrCallSiteGet(module,(XL6_IrNodeId)(call-module->nodes+1));
+    const XL6_IrNode* receiver=site && site->receiver ? xl6IrNodeGet(module,site->receiver) : NULL;
+    if(!receiver){
+        const XL6_IrNode* callee=call->sourceKind==XL6_AST_GENERIC_INSTANT ? call :
+            call->childCount ? xl6IrNodeGet(module,module->children[call->firstChild]) : NULL;
+        if(callee && callee->sourceKind==XL6_AST_GENERIC_INSTANT && callee->childCount)
+            callee=xl6IrNodeGet(module,module->children[callee->firstChild]);
+        if(callee && callee->kind==XL6_IR_NODE_MEMBER && callee->childCount==1)
+            receiver=xl6IrNodeGet(module,module->children[callee->firstChild]);
+    }
+    if(receiver){
+        const XL6_IrType* type=xl6IrTypeGet(&module->types,receiver->typeValueTarget);
+        if(type && type->kind==XL6_IR_TYPE_CLASS)return receiver->typeValueTarget;
+        return xl6IrNodeMaterializedValueType(module,receiver);
+    }
+    const XL6_IrNode* target=xl6IrNodeGet(module,declaration);
+    const XL6_IrType* owner=target ? xl6IrTypeGet(&module->types,target->declarationOwnerType) : NULL;
+    const XL6_IrType* result=xl6IrTypeGet(&module->types,call->storageType);
+    return owner && result && result->kind==XL6_IR_TYPE_CLASS && result->nominalSymbol==owner->nominalSymbol
+        ? call->storageType : XL6_IR_TYPE_INVALID;
+}
 static int xl6IrLowerInferGenericCallTypeArgs(
     XL6_IrLowerContext* ctx, const XL6_IrNode* call, XL6_IrNodeId declaration,
     XL6_IrTypeId** outTypes, size_t* outCount)
@@ -15884,6 +15931,9 @@ static int xl6IrLowerInferGenericCallTypeArgs(
          formalArgs->kind != XL6_IR_NODE_LIST || formalReturns->kind != XL6_IR_NODE_LIST ||
          site->fixedParameterCount > formalArgs->childCount ||
          (resolved = (XL6_IrTypeId*)xrtCalloc(parameterCount, sizeof(*resolved))) == NULL ) goto done;
+    size_t ownerCount=0;
+    if(!xl6IrLowerSeedGenericOwner(module,declaration,xl6IrLowerGenericCallReceiver(module,call,declaration),
+        parameters,parameterCount,resolved,&ownerCount))goto done;
     /* 命名参数和默认值已经绑定到形参；推断不能重新按源码位置配对。 */
     for(size_t phase=0;phase<2;++phase)
     for ( i = 0; i < site->fixedParameterCount; ++i ) {
@@ -15967,15 +16017,25 @@ static int xl6IrLowerGenericCallTypeArgs(
          (args = xl6IrNodeGet(module, module->children[instant->firstChild + 1])) == NULL ||
          args->kind != XL6_IR_NODE_LIST || args->childCount == 0 )
         return xl6IrLowerInferGenericCallTypeArgs(ctx, call, declaration, outTypes, outCount);
-    types = (XL6_IrTypeId*)xrtCalloc(args->childCount, sizeof(*types));
-    if ( types == NULL ) return 0;
+    XL6_IrTypeId* parameters=NULL;size_t count=0,ownerCount=0;
+    if(!xl6IrLowerGenericDeclarationTypeParams(module,declaration,&parameters,&count))return 0;
+    types = (XL6_IrTypeId*)xrtCalloc(count, sizeof(*types));
+    if ( types == NULL ) {xrtFree(parameters);return 0;}
+    if(!xl6IrLowerSeedGenericOwner(module,declaration,xl6IrLowerGenericCallReceiver(module,call,declaration),
+        parameters,count,types,&ownerCount)){xrtFree(parameters);xrtFree(types);return 0;}
+    /* Constructor type applications name the owner vector; member type
+     * applications name only the trailing method vector. */
+    size_t offset=ownerCount==count ? 0 : ownerCount;
+    if(args->childCount!=count-offset){xrtFree(parameters);xrtFree(types);return 0;}
     for ( i = 0; i < args->childCount; ++i ) {
         const XL6_IrNode* arg = xl6IrNodeGet(module, module->children[args->firstChild + i]);
-        types[i] = arg != NULL && arg->storageType != XL6_IR_TYPE_INVALID ? arg->storageType :
+        XL6_IrTypeId actual = arg != NULL && arg->storageType != XL6_IR_TYPE_INVALID ? arg->storageType :
             (arg != NULL ? arg->type : XL6_IR_TYPE_INVALID);
-        if ( types[i] == XL6_IR_TYPE_INVALID ) { xrtFree(types); return 0; }
+        if(!actual || (types[offset+i] && types[offset+i]!=actual)){xrtFree(parameters);xrtFree(types);return 0;}
+        types[offset+i]=actual;
     }
-    *outTypes = types; *outCount = args->childCount;
+    xrtFree(parameters);
+    *outTypes = types; *outCount = count;
     return 1;
 }
 
@@ -17951,9 +18011,9 @@ static XL6_IrTypeId xl6IrLowerConcreteGenericClassType(
     for ( i = 0; i < module->types.count; ++i ) {
         const XL6_IrType* type = &module->types.items[i];
         if ( type->kind == XL6_IR_TYPE_CLASS && classNode->symbol != 0 &&
-             type->nominalSymbol == classNode->symbol && type->paramCount == typeArgCount &&
+             type->nominalSymbol == classNode->symbol && family && type->paramCount == family->paramCount && typeArgCount>=family->paramCount &&
              type->params != NULL &&
-             memcmp(type->params, typeArgs, typeArgCount * sizeof(*typeArgs)) == 0 )
+             memcmp(type->params, typeArgs, type->paramCount * sizeof(*typeArgs)) == 0 )
             return (XL6_IrTypeId)(i + 1);
     }
     return XL6_IR_TYPE_INVALID;
@@ -18167,7 +18227,6 @@ static int xl6IrLowerMaterializeGenericSpecializations(XL6_IrLowerContext* ctx)
         XL6_IrNodeId declaration;
         XL6_IrTypeId* typeArgs = NULL;
         size_t typeArgCount = 0;
-        XL6_IrNodeId enclosingClass;
         int insideGenericDeclaration = 0;
         if (call == NULL || call->kind != XL6_IR_NODE_CALL ||
             (call->sourceKind != XL6_AST_CALL &&
@@ -18212,36 +18271,7 @@ static int xl6IrLowerMaterializeGenericSpecializations(XL6_IrLowerContext* ctx)
          * template is likewise deferred until its monomorphic owner clone has
          * substituted the receiver and explicit type arguments. */
         if (insideGenericDeclaration) continue;
-        enclosingClass = xl6IrLowerEnclosingClass(module, declaration);
-        if ( enclosingClass != XL6_IR_NODE_INVALID && call->childCount != 0 ) {
-            const XL6_IrNode* callee = xl6IrNodeGet(module, module->children[call->firstChild]);
-            const XL6_IrNode* receiver = callee != NULL && callee->kind == XL6_IR_NODE_MEMBER &&
-                callee->childCount == 1
-                ? xl6IrNodeGet(module, module->children[callee->firstChild]) : NULL;
-            /* A flow-proven nonnull receiver may still have nullable storage.
-             * Generic arguments belong to the value being called, not that
-             * variable's wider declared storage domain. */
-            XL6_IrTypeId receiverType = xl6IrNodeMaterializedValueType(module, receiver);
-            const XL6_IrType* owner = xl6IrTypeGet(&module->types, receiverType);
-            size_t parameter;
-            if ( owner != NULL && owner->kind == XL6_IR_TYPE_CLASS &&
-                 owner->paramCount != 0 && owner->params != NULL ) {
-                typeArgs = (XL6_IrTypeId*)xrtMalloc(owner->paramCount * sizeof(*typeArgs));
-                if ( typeArgs == NULL )
-                    return xl6IrLowerDiag(ctx, (XL6_IrNodeId)id,
-                                           "XLIR generic class receiver type arguments have no canonical storage");
-                memcpy(typeArgs, owner->params, owner->paramCount * sizeof(*typeArgs));
-                typeArgCount = owner->paramCount;
-                for ( parameter = 0; parameter < typeArgCount; ++parameter ) {
-                    if ( typeArgs[parameter] == XL6_IR_TYPE_INVALID ||
-                         xl6IrLowerTypeContainsTypeParam(module, typeArgs[parameter], 0) ) {
-                        xrtFree(typeArgs); typeArgs = NULL; typeArgCount = 0; break;
-                    }
-                }
-            }
-        }
-        if ( typeArgs == NULL &&
-             !xl6IrLowerGenericCallTypeArgs(ctx, call, declaration, &typeArgs, &typeArgCount) ) {
+        if ( !xl6IrLowerGenericCallTypeArgs(ctx, call, declaration, &typeArgs, &typeArgCount) ) {
             return xl6IrLowerDiag(ctx, (XL6_IrNodeId)id,
                                    "XLIR generic call requires resolved concrete type arguments before lowering");
         }

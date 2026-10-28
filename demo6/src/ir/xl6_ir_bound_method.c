@@ -35,14 +35,16 @@ static int xl6IrLowerTryTypedBoundMethod(XL6_IrLowerContext* ctx,XL6_IrNodeId or
     size_t selectedCount=0;
     uint64_t bestRank=UINT64_MAX;
     bool ambiguous=false;
-    size_t methodLimit=module->nodeCount;
+    const XL6_IrNode* chosen=xl6IrSymbolNodeGet(module,source->targetSymbol);
+    XL6_IrNodeId chosenId=chosen ? (XL6_IrNodeId)(chosen-module->nodes+1) : 0;
+    size_t methodLimit=chosenId ? 1 : 0;
     /* Rank declaration shapes before instantiating a winner. As with a
      * direct call, an inferred parameter costs GENERIC_MATCH, and omitted
      * defaults break ties only after all parameter conversion costs. */
     for(size_t i=0;i<methodLimit;++i) {
         source=xl6IrNodeGet(module,sourceId);
         signature=xl6IrTypeGet(&module->types,signatureId);
-        XL6_IrNodeId declarationId=(XL6_IrNodeId)i+1;
+        XL6_IrNodeId declarationId=chosenId;
         if(!xl6IrBoundMethodCandidateMatches(module,sourceId,declarationId))continue;
         const XL6_IrNode* declaration=xl6IrNodeGet(module,declarationId);
         XL6_SymbolId targetSymbol=declaration->symbol;
@@ -63,6 +65,8 @@ static int xl6IrLowerTryTypedBoundMethod(XL6_IrLowerContext* ctx,XL6_IrNodeId or
             if(!xl6IrLowerGenericDeclarationTypeParams(module,declarationId,&parameters,&count) || !count) {xrtFree(parameters);continue;}
             resolved=xrtCalloc(count,sizeof(*resolved));
             if(!resolved) {xrtFree(parameters);xrtFree(selectedArgs);ctx->failed=1;return -1;}
+            size_t ownerCount=0;
+            matches=xl6IrLowerSeedGenericOwner(module,declarationId,ownerId,parameters,count,resolved,&ownerCount)!=0;
             for(size_t p=0;matches && p<signature->paramCount;++p) {
                 const XL6_IrNode* parameter=xl6IrNodeGet(module,module->children[params->firstChild+p]);
                 if(!parameter) {matches=false;break;}
@@ -223,11 +227,10 @@ static int xl6IrLowerMaterializeTypedBoundMethods(XL6_IrLowerContext* ctx)
         const XL6_IrNode* source=xl6IrNodeGet(module,(XL6_IrNodeId)n);
         if(!source || source->kind!=XL6_IR_NODE_MEMBER || source->sourceKind!=XL6_AST_MEMBER) continue;
         bool generic=false;
-        for(size_t m=0;m<nodeLimit;++m) {
-            XL6_IrNodeId declarationId=(XL6_IrNodeId)m+1;
-            if(xl6IrBoundMethodCandidateMatches(module,(XL6_IrNodeId)n,declarationId) &&
-               xl6IrLowerIsGenericDeclaration(module,declarationId)) {generic=true;break;}
-        }
+        const XL6_IrNode* chosen=xl6IrSymbolNodeGet(module,source->targetSymbol);
+        XL6_IrNodeId declarationId=chosen ? (XL6_IrNodeId)(chosen-module->nodes+1) : 0;
+        generic=declarationId && xl6IrBoundMethodCandidateMatches(module,(XL6_IrNodeId)n,declarationId) &&
+            xl6IrLowerIsGenericDeclaration(module,declarationId);
         if(!generic) continue;
         XL6_IrNodeId parent=source->parent;
         for(size_t t=1;t<=typeLimit;++t) {

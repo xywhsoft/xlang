@@ -14277,30 +14277,15 @@ XL6_IrTypeId xl6IrBoundMethodCastIdentityType(
 /* Static typed binding authenticates a declaration, not an erased name group.
  * Nullable receiver syntax is admitted here only as a representation input;
  * lowering still materializes the ordinary checked/non-null class value. */
-static int xl6IrBoundMethodHasConstraints(const XL6_IrModule* module,const XL6_IrNode* declaration)
-{
-    if(!declaration || !declaration->childCount)return 0;
-    const XL6_IrNode* types=xl6IrNodeGet(module,module->children[declaration->firstChild+declaration->childCount-1]);
-    if(!types || types->sourceKind!=XL6_AST_TYPE_PARAMS)return 0;
-    for(size_t t=0;t<types->childCount;++t){
-        const XL6_IrNode* parameter=xl6IrNodeGet(module,module->children[types->firstChild+t]);
-        for(size_t c=0;parameter && c<parameter->childCount;++c){
-            const XL6_IrNode* constraint=xl6IrNodeGet(module,module->children[parameter->firstChild+c]);
-            if(constraint && constraint->sourceKind==XL6_AST_GENERIC_CONSTRAINT && constraint->childCount)return 1;
-        }
-    }
-    return 0;
-}
 int xl6IrBoundMethodSelectionMatches(const XL6_IrModule* module,
     XL6_IrNodeId sourceId,XL6_SymbolId symbol)
 {
     const XL6_IrNode* source=xl6IrNodeGet(module,sourceId);
-    if(!source)return 0;
+    if(!source || !source->targetSymbol)return 0;
     /* Concrete class/method clones retain a chain to the declaration chosen
      * while the semantic generic-constraint evidence was still available. */
     for(size_t depth=0;symbol && depth<=module->genericSpecializationCount;++depth){
         if(source->targetSymbol && symbol==source->targetSymbol)return 1;
-        if(!source->targetSymbol && xl6IrBoundMethodHasConstraints(module,xl6IrSymbolNodeGet(module,symbol)))return 0;
         XL6_SymbolId original=0;
         for(size_t i=0;i<module->genericSpecializationCount;++i)
             if(module->genericSpecializations[i].symbol==symbol){
@@ -14311,7 +14296,7 @@ int xl6IrBoundMethodSelectionMatches(const XL6_IrModule* module,
         if(original==symbol)break;
         symbol=original;
     }
-    return !source->targetSymbol;
+    return 0;
 }
 
 /* Public dynamic rows intentionally omit nonpublic methods. A typed binding
@@ -14322,11 +14307,15 @@ static int xl6IrBoundMethodAccessAllowed(const XL6_IrModule* module,XL6_IrNodeId
     if(!declaration)return 0;
     if(!(declaration->flags&(XL6_AST_FLAG_PRIVATE|XL6_AST_FLAG_PROTECTED)))return 1;
     const XL6_IrNode* source=xl6IrNodeGet(module,sourceId);
-    const XL6_IrNode* lexical=xl6IrNodeGet(module,xl6IrBuildEnclosingClass(module,sourceId));
+    const XL6_IrNode* lexical=xl6IrNodeGet(module,sourceId);
+    while(lexical && !lexical->declarationOwnerType)lexical=xl6IrNodeGet(module,lexical->parent);
     if(!source || !source->targetSymbol || !lexical)return 0;
-    return declaration->flags&XL6_AST_FLAG_PRIVATE
-        ? lexical->declarationOwnerType==declaration->declarationOwnerType
-        : xl6IrBuildClassDerivesFrom(module,lexical->declarationOwnerType,declaration->declarationOwnerType);
+    const XL6_IrType* here=xl6IrTypeGet(&module->types,lexical->declarationOwnerType);
+    const XL6_IrType* owner=xl6IrTypeGet(&module->types,declaration->declarationOwnerType);
+    bool sameClass=here && owner && here->kind==XL6_IR_TYPE_CLASS && owner->kind==XL6_IR_TYPE_CLASS &&
+        here->nominalSymbol && here->nominalSymbol==owner->nominalSymbol;
+    return declaration->flags&XL6_AST_FLAG_PRIVATE ? sameClass : sameClass ||
+        xl6IrBuildClassDerivesFrom(module,lexical->declarationOwnerType,declaration->declarationOwnerType);
 }
 int xl6IrBoundMethodCandidateMatches(const XL6_IrModule* module,XL6_IrNodeId sourceId,
     XL6_IrNodeId declarationId)
@@ -14344,17 +14333,14 @@ int xl6IrBoundMethodCandidateMatches(const XL6_IrModule* module,XL6_IrNodeId sou
     XL6_IrTypeId ownerId=receiver ? xl6IrNodeMaterializedValueType(module,receiver) : 0;
     const XL6_IrType* owner=xl6IrTypeGet(&module->types,ownerId);
     if(owner && owner->kind==XL6_IR_TYPE_NULLABLE && owner->paramCount==1)ownerId=owner->params[0];
+    const XL6_IrType* family=xl6IrTypeGet(&module->types,declaration->declarationOwnerType);
+    owner=xl6IrTypeGet(&module->types,ownerId);
+    bool genericOwner=family && owner && family->kind==XL6_IR_TYPE_CLASS &&
+        family->nominalSymbol==owner->nominalSymbol && family->paramCount==owner->paramCount &&
+        xl6IrBuildTypeContainsTypeParam(module,declaration->declarationOwnerType,0);
     if(!name || !name->text || strcmp(name->text,source->text) ||
-       !xl6IrBuildClassDerivesFrom(module,ownerId,declaration->declarationOwnerType))return 0;
-    if(declaration->flags&(XL6_AST_FLAG_PRIVATE|XL6_AST_FLAG_PROTECTED)){
-        return 1;
-    }
-    if(source->targetSymbol)return 1;
-    for(size_t i=0;i<module->dynamicMethodCount;++i){
-        const XL6_IrDynamicMethod* method=&module->dynamicMethods[i];
-        if(method->ownerType==ownerId && method->kind==XL6_IR_DYNAMIC_CALL_METHOD && method->declaration==declarationId)return 1;
-    }
-    return 0;
+       (!genericOwner && !xl6IrBuildClassDerivesFrom(module,ownerId,declaration->declarationOwnerType)))return 0;
+    return 1;
 }
 static int xl6IrBoundMethodResultMatchesDepth(const XL6_IrModule* module,XL6_IrTypeId fromId,
     XL6_IrTypeId toId,size_t depth)
@@ -36035,10 +36021,14 @@ static int xl6IrVerifyDeclarationOwners(const XL6_IrModule* module, XL6_DiagList
             const XL6_IrNode* source = xl6IrNodeGet(module, instance->sourceDeclaration);
             const XL6_IrType* family = xl6IrTypeGet(&module->types, classNode->declarationOwnerType);
             const XL6_IrCallTarget* target = xl6IrCallTargetGet(module, instance->symbol);
+            const XL6_IrNode* methodTypes=source && source->childCount ?
+                xl6IrNodeGet(module,module->children[source->firstChild+source->childCount-1]) : NULL;
+            size_t methodCount=methodTypes && methodTypes->sourceKind==XL6_AST_TYPE_PARAMS ? methodTypes->childCount : 0;
             if ( source == NULL || source->declarationOwnerType != classNode->declarationOwnerType ||
                  family == NULL || owner->paramCount != family->paramCount || instance->typeArgs == NULL ||
+                  instance->typeArgCount!=family->paramCount+methodCount ||
                  (family->paramCount ?
-                    (family->paramCount != instance->typeArgCount || !owner->params ||
+                     (!owner->params ||
                      memcmp(owner->params,instance->typeArgs,owner->paramCount*sizeof(*owner->params))!=0) :
                     node->declarationOwnerType!=classNode->declarationOwnerType) ||
                  target == NULL ||

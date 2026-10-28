@@ -91,6 +91,8 @@ def main():
             ['test/cases/extern_owned_string_host.c','test/cases/extern_owned_typed_bound_native_host.c'],[]),
         ('bound-c-owners','test/cases/extern_owned_bound_c_owners.xl',
             ['test/cases/extern_owned_bound_c_owners_host.c','test/cases/extern_owned_string_host.c'],[]),
+        ('bound-nested-generics','test/cases/extern_owned_bound_nested_generics.xl',
+            ['test/cases/extern_owned_bound_c_owners_host.c','test/cases/extern_owned_string_host.c'],[]),
         ('generic-nullable-order','test/cases/extern_owned_generic_nullable_order.xl',[],[]),
         ('bound-base-dispatch','test/cases/extern_owned_bound_base_dispatch.xl',[],[]),
         ('bound-async-generic','test/cases/extern_owned_bound_async_generic.xl',
@@ -177,6 +179,7 @@ def main():
             run('export-C-consumer-aot',[(work/'consumer-aot').with_suffix('.exe' if os.name=='nt' else '')])
     negatives={
         'test/cases/bad_extern_owned_bound_constraint.xl':'typed bound method violates generic constraints',
+        'test/cases/bad_extern_owned_bound_nested_constraint.xl':'typed bound method violates generic constraints',
         'test/cases/bad_extern_owned_bound_private.xl':'unknown class/union field',
         'test/cases/bad_extern_owned_bound_c_owner_kind.xl':'exact signature',
         'test/cases/bad_extern_owned_bound_c_owner_dynamic.xl':'no exact target identity and result ownership ABI',
