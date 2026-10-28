@@ -1,0 +1,221 @@
+{
+  "Complete": true,
+  "Date": "2026-10-29",
+  "Scope": "Approved 16 WebSocket XRT modules, default xlang library",
+  "SourceCommit": "843f43a06a4bc4ba1dd7d50e4537866473c2d50d",
+  "SourceIndexTree": "ce2fd82352b74047d35b707b21d81938979c744c",
+  "FreezeReportSha256": "02e0c33a75e44b769fa52c5394f21d2251e58f96bb359d09487d47a6a2a67a52",
+  "TestRunnerCommit": "6e9863567876b8f86d4e3d606a6caa0e6052bfe4",
+  "Classes": 22,
+  "ExactResidentDeclarations": 276,
+  "Platforms": {
+    "windows": {
+      "Complete": true,
+      "Report": "F:\\xlang-validation\\websocket-20261028\\acceptance-windows-r5\\results.json",
+      "ReportSha256": "1205d197329dc8434e4f0593b130879ab9bb1791f6d34ef04ac15cc4a46cafb4",
+      "BuildReportSha256": "fb1502f189bc32bb369603db0b426c10bdf1b77ca6050dd4e4f458da1d2c0c1e",
+      "PositivePrograms": 23,
+      "Stages": 207,
+      "ExpectedRejections": 5,
+      "StrictGeneratedCHostRuns": 24,
+      "CompilerOptions": [
+        "GCC C11 -O0 -Wall -Wextra -Werror",
+        "GCC C11 -O2 -Wall -Wextra -Werror"
+      ],
+      "LanguageFaultPrefixesPerOptimization": 361,
+      "NativeFactoriesPerProduct": 22,
+      "NativeAllocationPrefixesPerProduct": 46,
+      "CheckedNativeAllocationFailuresPerProduct": 24,
+      "DefaultCodecBudget": "64 MiB for default create/reset",
+      "Cases": [
+        "stdlib_websocket_callback_error_v2",
+        "stdlib_websocket_close_trim",
+        "stdlib_websocket_codecs_v2",
+        "stdlib_websocket_core",
+        "stdlib_websocket_cycle_v2",
+        "stdlib_websocket_extensions_v2",
+        "stdlib_websocket_frame_trim",
+        "stdlib_websocket_handoff_v2",
+        "stdlib_websocket_handshake_trim",
+        "stdlib_websocket_keygen_trim",
+        "stdlib_websocket_language_oom",
+        "stdlib_websocket_send_v2",
+        "stdlib_websocket_stream_config_trim",
+        "stdlib_websocket_stream_tls_trim",
+        "stdlib_websocket_stream_trim",
+        "stdlib_websocket_stream_v2",
+        "stdlib_websocket_tls_v2",
+        "stdlib_websocket_upgrade_loopback",
+        "stdlib_websocket_upgrade_tls_loopback",
+        "stdlib_websocket_upgrade_trim",
+        "stdlib_websocket_upgrade_v2",
+        "stdlib_websocket_values_v2",
+        "stdlib_websocket_wait_oom_v2"
+      ],
+      "BenchmarkCompiler": "GCC -Os, matching ordinary Windows resident providers",
+      "Benchmark": "WebSocket frame cost (100000 iterations, same product runtime, memdebug=1): borrowed-C=2797 us; owning-C=16204 us; owned-adapter=22235 us; adapter allocations=100000; payload copies=0; checksum=1800000",
+      "Products": [
+        {
+          "Path": "F:\\xlang-validation\\websocket-20261028\\scoped-r5\\export\\frozen\\demo6\\release\\xl.dll",
+          "Sha256": "c282f738b801c9560448eae3bc1a64c8bceef1398edab0934b74a78a2942385e"
+        },
+        {
+          "Path": "F:\\xlang-validation\\websocket-20261028\\scoped-r5\\export\\frozen\\demo6\\release\\xlc.dll",
+          "Sha256": "2e7a2ca8db3d63f0d792c9889052c6c4c328f582114041d0d325d9ff859a9d44"
+        },
+        {
+          "Path": "F:\\xlang-validation\\websocket-20261028\\scoped-r5\\export\\frozen\\demo6\\release\\xl.exe",
+          "Sha256": "1877a60cbc54361cdda3e6932855534e45e84a9f9cc037ba8a6844d436473eef"
+        },
+        {
+          "Path": "F:\\xlang-validation\\websocket-20261028\\scoped-r5\\export\\frozen\\demo6\\build\\tmp\\tcc_bootstrap.exe",
+          "Sha256": "f248fe27ee7c55544140f485f53933156f82519348392ebfa3390946106d3420"
+        },
+        {
+          "Path": "F:\\xlang-validation\\websocket-20261028\\scoped-r5\\export\\frozen\\demo6\\build\\tmp\\xrt.o",
+          "Sha256": "587a0bb1c843a83f68139beebbae9ef833722739483d36c295ab79ae5bc6f809"
+        },
+        {
+          "Path": "F:\\xlang-validation\\websocket-20261028\\scoped-r5\\export\\frozen\\demo6\\build\\tmp\\tcc_builtin_resources.c",
+          "Sha256": "7c90c51b9ac1fa8c645fee23b7ba942f5dcc4a20e00f94ff3fff24e3ec1587d4"
+        },
+        {
+          "Path": "F:\\xlang-validation\\websocket-20261028\\scoped-r5\\export\\frozen\\demo6\\build\\tmp\\tcc_builtin_resources_runtime.c",
+          "Sha256": "f5b7c8dabe18ad7f56fd0559589141c372907d1a1177f5ed80299ed8db1a5e95"
+        }
+      ],
+      "DocumentedExamples": [
+        {
+          "Name": "protocol",
+          "Exit": 0,
+          "LogSha256": "f290454f0c32af7c4adfaad755ae381f9afe113a722f7ce2c6e859032cd0f02f"
+        },
+        {
+          "Name": "loopback",
+          "Exit": 0,
+          "LogSha256": "1830f5cdc3715f5a8c9b3339121516bd0d3db50b16324506e81b295d91d618df"
+        }
+      ]
+    },
+    "linux": {
+      "Complete": true,
+      "Report": "F:\\xlang-validation\\websocket-20261028\\linux-final-receipts\\acceptance\\results.json",
+      "ReportSha256": "e6185c2f2228bfa6f4663e428db5a9373fadf9cae468b4200883991f999eb4f1",
+      "BuildReportSha256": "71a41ceec19ff524460949335d8105a3b2eeff7690bd00e8fd25f0fe9e4a37b1",
+      "PositivePrograms": 23,
+      "Stages": 204,
+      "ExpectedRejections": 5,
+      "StrictGeneratedCHostRuns": 24,
+      "CompilerOptions": [
+        "GCC C11 -O0 -Wall -Wextra -Werror",
+        "GCC C11 -O2 -Wall -Wextra -Werror"
+      ],
+      "LanguageFaultPrefixesPerOptimization": 361,
+      "NativeFactoriesPerProduct": 22,
+      "NativeAllocationPrefixesPerProduct": 46,
+      "CheckedNativeAllocationFailuresPerProduct": 24,
+      "DefaultCodecBudget": "64 MiB for default create/reset",
+      "Cases": [
+        "stdlib_websocket_callback_error_v2",
+        "stdlib_websocket_close_trim",
+        "stdlib_websocket_codecs_v2",
+        "stdlib_websocket_core",
+        "stdlib_websocket_cycle_v2",
+        "stdlib_websocket_extensions_v2",
+        "stdlib_websocket_frame_trim",
+        "stdlib_websocket_handoff_v2",
+        "stdlib_websocket_handshake_trim",
+        "stdlib_websocket_keygen_trim",
+        "stdlib_websocket_language_oom",
+        "stdlib_websocket_send_v2",
+        "stdlib_websocket_stream_config_trim",
+        "stdlib_websocket_stream_tls_trim",
+        "stdlib_websocket_stream_trim",
+        "stdlib_websocket_stream_v2",
+        "stdlib_websocket_tls_v2",
+        "stdlib_websocket_upgrade_loopback",
+        "stdlib_websocket_upgrade_tls_loopback",
+        "stdlib_websocket_upgrade_trim",
+        "stdlib_websocket_upgrade_v2",
+        "stdlib_websocket_values_v2",
+        "stdlib_websocket_wait_oom_v2"
+      ],
+      "BenchmarkCompiler": "GCC -O2, matching Linux resident providers",
+      "Benchmark": "WebSocket frame cost (100000 iterations, same product runtime, memdebug=1): borrowed-C=2318 us; owning-C=16636 us; owned-adapter=18525 us; adapter allocations=100000; payload copies=0; checksum=1800000",
+      "Products": [
+        {
+          "Path": "/home/ubuntu/xlang-validation/websocket-20261029/r5/demo6/release/libxl.so",
+          "Sha256": "da25fd5b5f8aebc437f484f55297deb1dbe9b8094f901bee00759f9405191b49"
+        },
+        {
+          "Path": "/home/ubuntu/xlang-validation/websocket-20261029/r5/demo6/release/libxlc.so",
+          "Sha256": "b6f351d7398b5e63f360710bdbb2fa69d16261982189a008e241e0922f52f425"
+        },
+        {
+          "Path": "/home/ubuntu/xlang-validation/websocket-20261029/r5/demo6/release/xl",
+          "Sha256": "37fa7e293ebee94789714858b5ce4b8033708efde1ec1ceddb8eb924b115ab00"
+        },
+        {
+          "Path": "/home/ubuntu/xlang-validation/websocket-20261029/r5/demo6/build/linux/tcc",
+          "Sha256": "4c663bd41f1f3762032db92cf6899fc5334d41c878186709f0e35862a7eea0b7"
+        },
+        {
+          "Path": "/home/ubuntu/xlang-validation/websocket-20261029/r5/demo6/build/linux/xrt.o",
+          "Sha256": "abe5db5e21e00d3b9e6248325a6277fb034f9c6b56c73550aea3e88e71c2e5e5"
+        },
+        {
+          "Path": "/home/ubuntu/xlang-validation/websocket-20261029/r5/demo6/build/linux/tcc_builtin_resources.c",
+          "Sha256": "f374a23952e74e0333e0c3289166009e66e308ddd026deee496d3abdb2821aea"
+        },
+        {
+          "Path": "/home/ubuntu/xlang-validation/websocket-20261029/r5/demo6/build/linux/tcc_builtin_resources_runtime.c",
+          "Sha256": "9c47a31d0454ce7a440fa9f3e05d21a0aff41102f521ae87be37571f90b430cc"
+        }
+      ],
+      "DocumentedExamples": [
+        {
+          "Name": "protocol",
+          "Exit": 0,
+          "LogSha256": "f290454f0c32af7c4adfaad755ae381f9afe113a722f7ce2c6e859032cd0f02f"
+        },
+        {
+          "Name": "loopback",
+          "Exit": 0,
+          "LogSha256": "1830f5cdc3715f5a8c9b3339121516bd0d3db50b16324506e81b295d91d618df"
+        }
+      ]
+    }
+  },
+  "RetiredCgenFiles": 6,
+  "RetiredCgenFileLines": 2358,
+  "NativeCommits": [
+    "7d27d412e13238d1f3ff726c039f4b87d9541177",
+    "25f57ebfdb46e3fffce7052dd40c5ba20e6e3dce",
+    "4e74ef9e805797b97272bfe6abbc4d50215f8600",
+    "930aa2811014d88d99805b03607cd784dae54ab4",
+    "2ca1569d8b6ec39c5880b06fa9221aa0e8a84622"
+  ],
+  "Boundaries": {
+    "ExternalTraffic": false,
+    "NetworkSecurityTests": false,
+    "MacOSTested": false,
+    "WholeWorkspaceAcceptance": false,
+    "LegacyXwsExtensionMigrated": false,
+    "GlobalXlirContract": "Pre-existing stale task-quiescence text assertion; not counted as passing"
+  },
+  "Undecided": {
+    "CRT": 0,
+    "XRT": [
+      "X01",
+      "X02",
+      "X07",
+      "X10",
+      "X25",
+      "X26",
+      "X27",
+      "X28",
+      "X29"
+    ],
+    "MemoryPoolsLast": true
+  }
+}
