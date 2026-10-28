@@ -112,6 +112,7 @@ end</pre></div></div>
 <span class="kw">export func</span> <span class="fn">decompressor</span>(...) <span class="kw">as</span> <span class="type">MinizDecompressor</span></div>
       <p>提供一次性、文件级和增量流式三种接口。流式类提供 update/drain/finish、inputBytes/outputBytes/finished；每次编码只生成一条 zlib 流，解码拒绝第二条拼接流及旧私有容器。</p>
       <div class="api-note">文件接口末尾支持可空 <code>onProgress(inputBytes, totalBytes, outputBytes)</code>。含 NUL 的源/目标路径报 <code>ValueError</code>；返回 false 删除临时输出并抛 <code>CancelledError</code>；回调异常原样传播。C 层对应 <code>xrtprogressproc</code> + <code>void* userData</code>。C 流式接口的进度从 Reader 当前读取位置起算；无法同时取得总长和当前位置时不设置 <code>TOTAL_KNOWN</code>。</div>
+      <div class="api-note">C 流式接口借用 Reader/Writer，不接管关闭。读取或 drain 写出失败时，错误结构保留可识别的 XRT 参数、内存、限额、状态、取消或 IO 首因，以及原始代码和消息；未提供详细首因时才按 IO 处理。</div>
       <div class="api-note"><code>level</code> 越界抛 <code>ValueError</code>；数据损坏抛 <code>CompressionError</code>。</div>
     </div>
   </div>
@@ -148,10 +149,12 @@ assert miniz.decompress(tuned.drain()).text() == "tune me"</pre></div></div>
     <div class="code-block"><div class="code-header"><span>终端</span></div><div class="code-body"><pre>cd release
 xl.exe run examples\extlibs\miniz.xl</pre></div></div>
     <p>C 对照范例可从 <code>release</code> 目录直接运行：<code>xl.exe run extlibs/miniz/examples/basic.c</code>。正式包仍按清单分离编译原生源码。</p>
+    <p>包内 <code>extlibs/miniz/examples/streaming.xl</code> 与 <code>streaming_c.c</code> 是完整增量流双语对照：及时 drain、finish 尾部收集、分块解压和计数断言。两份可直接 xl run 或 build，无文件依赖，固定输出为 hello stream 和 12 / 12。</p>
   </div>
 
   <div class="ext-panel" id="panel-tests">
     <h2>测试覆盖</h2>
+    <p>2026-10-28 Windows/Linux 默认门禁通过新增 C IO 首因矩阵：四个入口 × 七类错误共 28 组、真实 Writer 扩容 OOM、关闭归属和活动分配恢复。保留严格 GCC、Linux ASan/UBSan、Python zlib 互通、新旧双语 JIT/AOT；Windows 默认模式也完整构建运行中央、进度、文件、分配和完整范例。失败保留原始状态与输入指纹，不把一次通过写成长期压力或所有平台认证。</p>
     <p>测试文件：<code>extlibs/miniz/test/file_ops.xl</code>、<code>extlibs/miniz/test/test_miniz.c</code>，以及中央 <code>test/cases/extlib_miniz.xl</code>。C 入口先验证选项和资源限制结构的长度、版本、保留字段及 0..10 级别；条目、节点、深度限额及未知标志不适用于单条 zlib 流，显式设置会报参数错误，不读取文件流输入。</p>
     <ul>
       <li>一次性二进制往返（含 NUL / 0xFF）</li>

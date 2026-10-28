@@ -1,5 +1,48 @@
 # miniz
 
+2026-10-28 流式 IO 首因收口：C 的压缩/解压 Reader 读取失败和两个
+drain 的 Writer 失败原统一报 IO，并丢失后端代码和消息。现复用既有
+XRT 错误映射，保留 ARGUMENT、MEMORY、LIMIT、STATE、CANCELLED、IO
+等可识别首因，以及 `iBackendCode` 和原始消息；当前 XRT 错误槽不被改写。
+无详细错误的失败仍按 IO 处理。只修改失败分支，没有增加正常路径的
+包装层或数据复制，也没有替换 XRT 编解码底座。
+
+`test/test_io_errors.c` 的四个入口 × 七类错误共 28 组先红后绿，还覆盖
+两种真实 Buffer Writer 扩容 OOM、错误位置计数、失败后状态保持、借用
+Reader/Writer 的关闭归属和活动分配恢复。C 层的错误结构现在与原始
+XRT 首因一致；这不是新增 XLang 自定义 Reader/Writer API。
+
+本轮 Windows 默认门禁、Linux 同输入原生文件系统默认门禁均退出 0，
+包含严格 GCC、Linux ASan/UBSan、Python zlib 互通、28 组对照/真实 OOM、
+语言文件/进度/分配/文本转移、新旧双语 JIT/AOT。Windows 默认模式补齐
+此前只在 Linux 完整执行的中央、进度、文件、分配及完整范例 AOT；
+测试使用实际发布物和输入指纹，失败保留命令/状态/输出，成功清理独占产物。
+中央文件用例改用独占临时目录和 finally，不再复用固定 miniz-baseline。
+未修改主线或 XRT 快照；这不关闭其他包的旧风险，也不证明所有文件系统
+或长期压力已验收。当前基线见[发布矩阵](../../../docs/普通扩展库发布验收矩阵_2026-10-28.md)。
+
+## 增量流双语范例
+
+[`examples/streaming.xl`](examples/streaming.xl) 与
+[`examples/streaming_c.c`](examples/streaming_c.c) 共同展示 update、及时
+drain、finish 后尾部收集、分块解压以及输入/输出计数。C 的 Writer 由
+调用方创建和关闭；XLang 范例用两个临时 Buffer 构造传输碎片，真实网络
+接收块可以直接 update。两份均验证结果，无文件、服务或数据依赖。
+
+在 `demo6` 目录运行（Linux 把 xl.exe 改为 xl）：
+
+```text
+./release/xl.exe run release/extlibs/miniz/examples/streaming.xl
+./release/xl.exe run release/extlibs/miniz/examples/streaming_c.c
+```
+
+两份固定输出：
+
+```text
+hello stream
+12 / 12
+```
+
 2026-10-26 当前发布物：Windows 默认 `test/check.ps1` 退出 0，
 严格 C、Python 标准库 zlib 双向互通、分配故障、JIT/AOT 与 C/XLang
 范例输出一致。Linux `test/check.sh` 退出 0：C ASan/UBSan、

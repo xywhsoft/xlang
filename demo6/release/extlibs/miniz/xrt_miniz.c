@@ -76,7 +76,7 @@ static int __xrtMinizMapError(int iFallback)
 	}
 }
 
-/* 保留 XRT 底座诊断，同时补齐 miniz 流位置。 */
+/* 保留 XRT 压缩或 IO 底座诊断，同时补齐 miniz 流位置。 */
 static void __xrtMinizSetCodecError(xrtminizerror* pError, int iFallback,
 	uint64 iInput, uint64 iOutput, const char* sFallback)
 {
@@ -299,7 +299,7 @@ XRT_API bool xrtMinizCompressorDrain(xrtminizcompressor* pCompressor, xwriter* p
 	Output = xrtBufferView(pCompressor->Output);
 	if ( Output.Size != 0u &&
 		!xrtWriterWriteFull(pWriter, Output.Data, Output.Size, NULL) ) {
-		__xrtMinizSetError(&pCompressor->Error, XRT_MINIZ_ERROR_IO, 0,
+		__xrtMinizSetCodecError(&pCompressor->Error, XRT_MINIZ_ERROR_IO,
 			pCompressor->InputBytes, pCompressor->OutputBytes, "cannot write miniz output stream");
 		pCompressor->Failed = true;
 		return false;
@@ -449,7 +449,7 @@ XRT_API bool xrtMinizDecompressorDrain(xrtminizdecompressor* pDecompressor, xwri
 	Output = xrtBufferView(pDecompressor->Output);
 	if ( Output.Size != 0u &&
 		!xrtWriterWriteFull(pWriter, Output.Data, Output.Size, NULL) ) {
-		__xrtMinizSetError(&pDecompressor->Error, XRT_MINIZ_ERROR_IO, 0,
+		__xrtMinizSetCodecError(&pDecompressor->Error, XRT_MINIZ_ERROR_IO,
 			pDecompressor->InputBytes, pDecompressor->OutputBytes, "cannot write miniz output stream");
 		pDecompressor->Failed = true;
 		return false;
@@ -603,7 +603,7 @@ XRT_API bool xrtMinizCompressStream(xreader* pReader, xwriter* pWriter, const xr
 	while ( bRet ) {
 		size_t iRead = 0u;
 		if ( !xrtReaderRead(pReader, sInput, sizeof(sInput), &iRead) ) {
-			__xrtMinizSetError(&pCompressor->Error, XRT_MINIZ_ERROR_IO, 0,
+			__xrtMinizSetCodecError(&pCompressor->Error, XRT_MINIZ_ERROR_IO,
 				pCompressor->InputBytes, pCompressor->OutputBytes, "cannot read miniz input stream");
 			bRet = false;
 			break;
@@ -660,7 +660,7 @@ XRT_API bool xrtMinizDecompressStream(xreader* pReader, xwriter* pWriter, const 
 	while ( bRet ) {
 		size_t iRead = 0u;
 		if ( !xrtReaderRead(pReader, sInput, sizeof(sInput), &iRead) ) {
-			__xrtMinizSetError(&pDecompressor->Error, XRT_MINIZ_ERROR_IO, 0,
+			__xrtMinizSetCodecError(&pDecompressor->Error, XRT_MINIZ_ERROR_IO,
 				pDecompressor->InputBytes, pDecompressor->OutputBytes, "cannot read miniz input stream");
 			bRet = false;
 			break;

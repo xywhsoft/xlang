@@ -21,7 +21,7 @@ func main(...) as int
     assert packed[0] == 120, "zlib CMF header missing"
     println("一次性: ", source.len(), " 字节 -> ", packed.len(), " 字节")
 
-    // 直接压缩字符串（内部自动转 Buffer）。
+    // 字符串直接传入 UTF-8 数据及字节长度，不另建 Buffer 副本。
     Buffer textPacked = miniz.compress("hello miniz")
     assert miniz.decompressText(textPacked) == "hello miniz"
     println("引擎版本: ", miniz.version())

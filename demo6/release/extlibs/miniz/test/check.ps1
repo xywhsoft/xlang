@@ -5,6 +5,7 @@ $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../..')).Path
 $xl = Join-Path $root 'release/xl.exe'
 $runner = Join-Path $root 'tools/run_extlib_c.ps1'
 $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+$python = (Get-Command python -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $flags = @('-std=c11', '-O2', '-Wall', '-Wextra', '-Werror',
     '-DXRT_MODULE_DEFLATE', '-DXRT_MODULE_INFLATE',
     '-Ilib/xrt', '-Ilib/xruntime', '-Irelease/extlibs/miniz/include')
@@ -12,6 +13,18 @@ $links = @('-lws2_32', '-ladvapi32', '-liphlpapi', '-lm')
 $workParent = Join-Path $root 'build/test/miniz_guard'
 $work = Join-Path $workParent ('run_' + [guid]::NewGuid().ToString('N'))
 [IO.Directory]::CreateDirectory($work) | Out-Null
+$inputs = @('release/xl.exe', 'release/xl.dll', 'release/xlc.dll',
+    'lib/xrt/xrt.h', 'lib/xruntime/xruntime.h', 'release/include/xrt_decl.h',
+    'release/include/xruntime_decl.h', 'release/include/xl_extlib_abi.h',
+    'test/support/extlib_codec_runtime.c', 'tools/run_extlib_c.ps1',
+    'test/cases/extlib_miniz.xl', 'test/cases/extlib_miniz_progress.xl',
+    'release/examples/extlibs/miniz.xl', 'release/examples/extlibs/miniz_basic.xl') |
+    ForEach-Object { Join-Path $root $_ }
+$inputs += @(Get-ChildItem (Join-Path $root 'release/extlibs/miniz') -Recurse -File |
+    ForEach-Object FullName)
+$hashes = @{}
+foreach ($path in $inputs) { $hashes[$path] = (Get-FileHash -LiteralPath $path).Hash }
+$passed = $false
 
 function Run([string]$name, [string]$program, [string[]]$arguments) {
     $previousAction = $ErrorActionPreference
@@ -22,6 +35,8 @@ function Run([string]$name, [string]$program, [string[]]$arguments) {
     } finally {
         $ErrorActionPreference = $previousAction
     }
+    [IO.File]::AppendAllText((Join-Path $work 'commands.log'),
+        "${name}: $program $($arguments -join ' ')`nexit=$code`n$($output -join "`n")`n")
     if ($code -ne 0) {
         throw "${name}: exit $code`n$($output -join "`n")"
     }
@@ -39,6 +54,8 @@ function Run-C([string]$name, [string]$source) {
     } finally {
         $ErrorActionPreference = $previousAction
     }
+    [IO.File]::AppendAllText((Join-Path $work 'commands.log'),
+        "${name}: $runner -Package miniz -Source $source`nexit=$code`n$($output -join "`n")`n")
     if ($code -ne 0) {
         throw "${name}: exit $code`n$($output -join "`n")"
     }
@@ -48,6 +65,8 @@ function Run-C([string]$name, [string]$source) {
 
 Push-Location $root
 try {
+    $hashes | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $work 'inputs.before.json')
+    $null = Run 'GCC version' $gcc @('--version')
     $runtime = Join-Path $work 'runtime.o'
     $null = Run 'GCC runtime build' $gcc ($flags + @('-c',
         'test/support/extlib_codec_runtime.c', '-o', $runtime))
@@ -64,7 +83,7 @@ try {
         $links + @('-o', $testBinary))
     $null = Run 'GCC C boundaries' $testBinary @()
     $hex = Run 'GCC zlib sample' $testBinary @('--emit')
-    $null = Run 'Python zlib interop' 'python' @('-I', '-c',
+    $null = Run 'Python zlib interop' $python @('-I', '-c',
         'import sys,zlib; assert zlib.decompress(bytes.fromhex(sys.argv[1])) == bytes((97,98,99))',
         $hex)
     $allocBinary = Join-Path $work 'test_allocations.exe'
@@ -72,6 +91,11 @@ try {
         'release/extlibs/miniz/test/test_allocations.c') + $objects +
         $links + @('-o', $allocBinary))
     $null = Run 'GCC allocation failures' $allocBinary @()
+    $ioBinary = Join-Path $work 'test_io_errors.exe'
+    $null = Run 'GCC IO error build' $gcc ($flags + @(
+        'release/extlibs/miniz/test/test_io_errors.c') + $objects + $links + @('-o', $ioBinary))
+    $null = Run 'GCC IO error provenance' $ioBinary @()
+    $null = Run 'TCC IO error provenance' $xl @('run', 'release/extlibs/miniz/test/test_io_errors.c')
 
     foreach ($kind in @('compressor', 'decompressor')) {
         $source = "release/extlibs/miniz/test/private_${kind}_negative.xl"
@@ -122,6 +146,14 @@ try {
         throw "C/XLang example output differs:`nTCC: $cOutput`nGCC: $gccOutput`nXL: $xlOutput"
     }
     Write-Host '[miniz] C/XLang example parity: PASS'
+    $streaming = Join-Path $work 'streaming_c.exe'
+    $null = Run 'GCC streaming example build' $gcc ($flags + @(
+        'release/extlibs/miniz/examples/streaming_c.c') + $objects + $links + @('-o', $streaming))
+    $streamingOutput = Run 'GCC streaming example' $streaming @()
+    $streamingC = Run 'TCC streaming example' $xl @('run', 'release/extlibs/miniz/examples/streaming_c.c')
+    $streamingXl = Run 'XLang streaming example' $xl @('run', 'release/extlibs/miniz/examples/streaming.xl')
+    if ($streamingC -cne $streamingOutput -or $streamingXl -cne $streamingOutput -or
+        $streamingOutput -cne "hello stream`n12 / 12") { throw 'miniz streaming examples differ' }
 
     if (-not $SkipAot) {
         $textTarget = Join-Path $work 'miniz_text_transfer.exe'
@@ -135,7 +167,26 @@ try {
         if ($aotOutput -cne $cOutput) {
             throw 'XLang AOT output differs from C example'
         }
+        foreach ($source in @('test/cases/extlib_miniz.xl', 'test/cases/extlib_miniz_progress.xl',
+            'release/extlibs/miniz/test/file_ops.xl', 'release/extlibs/miniz/test/allocations.xl',
+            'release/examples/extlibs/miniz.xl')) {
+            $target = Join-Path $work (([IO.Path]::GetFileNameWithoutExtension($source)) + '.exe')
+            $null = Run "AOT build $source" $xl @('build', $source, '-o', $target)
+            $null = Run "AOT $source" $target @()
+        }
+        foreach ($source in @('streaming.xl', 'streaming_c.c')) {
+            $target = Join-Path $work ($source.Replace('.', '_') + '.exe')
+            $null = Run "AOT $source build" $xl @('build', "release/extlibs/miniz/examples/$source", '-o', $target)
+            $output = Run "AOT $source" $target @()
+            if ($output -cne $streamingOutput) { throw "miniz $source AOT differs from GCC" }
+        }
     }
+    foreach ($path in $hashes.Keys) {
+        if ((Get-FileHash -LiteralPath $path).Hash -ne $hashes[$path]) {
+            throw "miniz input changed during gate: $path"
+        }
+    }
+    $passed = $true
     Write-Host 'miniz Windows package gate: PASS'
 } finally {
     Pop-Location
@@ -145,5 +196,11 @@ try {
         [StringComparison]::OrdinalIgnoreCase)) {
         throw "miniz temporary work path escaped build/test: $workPath"
     }
-    Remove-Item -LiteralPath $workPath -Recurse -Force
+    if ($passed) {
+        Get-ChildItem -LiteralPath $workPath -File |
+            ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force }
+        Remove-Item -LiteralPath $workPath
+    } else {
+        Write-Warning "miniz failure artifacts: $workPath"
+    }
 }

@@ -95,27 +95,28 @@ func main(...) as int
         return 3
     end
 
-    dir.createAll("build/test/miniz-baseline")
-    string sourcePath = "build/test/miniz-baseline/source.bin"
-    string packedPath = "build/test/miniz-baseline/stream.zz"
-    string plainPath = "build/test/miniz-baseline/plain.bin"
-    file.writeBytes(sourcePath, source.toBytes())
-    miniz.compressFile(sourcePath, packedPath)
-    miniz.decompressFile(packedPath, plainPath)
-    if file.readBytes(plainPath) != source.toBytes() then
-        return 4
-    end
-    bool overwriteRejected = false
+    string directory = dir.temp("", "xlang-miniz-central-", "")
+    string sourcePath = path.join(directory, "source.bin")
+    string packedPath = path.join(directory, "stream.zz")
+    string plainPath = path.join(directory, "plain.bin")
     try
-        miniz.compressFile(sourcePath, packedPath, overwrite = false)
-    catch ValueError e
-        overwriteRejected = true
+        file.writeBytes(sourcePath, source.toBytes())
+        miniz.compressFile(sourcePath, packedPath)
+        miniz.decompressFile(packedPath, plainPath)
+        if file.readBytes(plainPath) != source.toBytes() then
+            return 4
+        end
+        bool overwriteRejected = false
+        try
+            miniz.compressFile(sourcePath, packedPath, overwrite = false)
+        catch ValueError e
+            overwriteRejected = true
+        end
+        if not overwriteRejected then
+            return 5
+        end
+    finally
+        assert dir.delete(directory), "miniz central test must remove its own temporary directory"
     end
-    if not overwriteRejected then
-        return 5
-    end
-    file.delete(sourcePath)
-    file.delete(packedPath)
-    file.delete(plainPath)
     return 0
 end
