@@ -11,6 +11,16 @@ func main(...) as int
     var decodedBinary = redis.decodeBytes(binaryReply)
     assert decodedBinary["value"]["value"] == Buffer.fromHex("61ff62").toBytes()
 
+    // 根数组也占一个节点；无法满足预算的帧头应直接报错，不继续等待正文。
+    assert not redis.isComplete("*99999\r\n")
+    bool rejected = false
+    try
+        redis.isComplete("*100000\r\n")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected
+
     println("encoded bytes:", string.byteLen(request))
     println("bulk value bytes:", string.byteLen(string(bulk["value"]["value"])))
     println("array reply:", arrayReply["value"]["value"].length, "items")

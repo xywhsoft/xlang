@@ -7,6 +7,16 @@ $xl = Join-Path $release 'xl.exe'
 $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
 $workRoot = Join-Path $root 'build/test'
 $work = Join-Path $workRoot ('redis_guard_' + [guid]::NewGuid().ToString('N'))
+$inputs = @('release/xl.exe', 'release/xl.dll', 'release/xlc.dll',
+    'lib/xrt/xrt.h', 'lib/xruntime/xruntime.h', 'release/include/xrt_decl.h',
+    'release/include/xruntime_decl.h', 'release/include/xl_extlib_abi.h',
+    'tools/run_extlib_c.ps1', 'test/cases/extlib_redis.xl',
+    'test/cases/xlir_extlib_redis_current_tcp.xl', 'release/examples/extlibs/redis.xl',
+    'release/examples/extlibs/redis_c.c') | ForEach-Object { Join-Path $root $_ }
+$inputs += @(Get-ChildItem (Join-Path $release 'extlibs/redis') -Recurse -File |
+    ForEach-Object FullName)
+$hashes = @{}
+foreach ($path in $inputs) { $hashes[$path] = (Get-FileHash -LiteralPath $path).Hash }
 
 function Run([string]$label, [string]$program, [string[]]$arguments) {
     $previousPreference = $ErrorActionPreference
@@ -29,13 +39,16 @@ try {
         'release/extlibs/redis/redis_native.c',
         'release/extlibs/redis/test/test_redis.c',
         'release/extlibs/redis/test/test_redis_alloc.c',
-        'release/extlibs/redis/test/test_redis_threads.c')
+        'release/extlibs/redis/test/test_redis_threads.c',
+        'release/extlibs/redis/test/test_example_lifetime.c')
     $null = Run 'C boundaries' (Join-Path $root 'tools/run_extlib_c.ps1') @(
         'redis', 'release/extlibs/redis/test/test_redis.c')
     $null = Run 'C allocation failures' (Join-Path $root 'tools/run_extlib_c.ps1') @(
         'redis', 'release/extlibs/redis/test/test_redis_alloc.c')
     $null = Run 'C threads' (Join-Path $root 'tools/run_extlib_c.ps1') @(
         'redis', 'release/extlibs/redis/test/test_redis_threads.c')
+    $null = Run 'C example ownership contract' $xl @('run',
+        'release/extlibs/redis/test/test_example_lifetime.c')
     $cExample = Run 'C example' (Join-Path $root 'tools/run_extlib_c.ps1') @(
         'redis', 'release/examples/extlibs/redis_c.c')
     $cDirect = Run 'C example xl run' $xl @('run',
@@ -45,6 +58,7 @@ try {
     }
     Push-Location $release
     try {
+        $null = Run 'XLang central case' $xl @('run', '../test/cases/extlib_redis.xl')
         $null = Run 'XLang boundaries' $xl @('run', 'extlibs/redis/test/boundaries.xl')
         $null = Run 'XLang allocation failures' $xl @('run',
             'extlibs/redis/test/allocations.xl')
@@ -102,6 +116,11 @@ try {
         }
     } finally { Pop-Location }
     if ($cExample -cne $xlExample) { throw '[redis] C/XLang example output differs' }
+    foreach ($path in $hashes.Keys) {
+        if ((Get-FileHash -LiteralPath $path).Hash -ne $hashes[$path]) {
+            throw "[redis] input changed during gate: $path"
+        }
+    }
     Write-Host '[redis] C/XLang example parity: PASS'
 } finally {
     Pop-Location

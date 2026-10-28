@@ -78,6 +78,129 @@ static int test_mutated_frames(void)
     return 0;
 }
 
+static int test_budget_frames(void)
+{
+    static const struct { const char* Data; bool Invalid; } Headers[] = {
+        {"*99999\r\n", false}, {"*100000\r\n", true},
+        {"*2\r\n*99997\r\n", false}, {"*2\r\n*99998\r\n", true},
+        {"*99999\r\n*1\r\n", true},
+        {"$67108851\r\n", false}, {"$67108852\r\n", true},
+        {"*1\r\n$67108847\r\n", false}, {"*1\r\n$67108848\r\n", true}
+    };
+    size_t i, length;
+    xvalue* reply;
+    void* scanner;
+    char deep[256];
+
+    /* 所有分片位置都与无状态检查一致，最终错误还须符合独立预算断言。 */
+    for (i = 0u; i < sizeof(Headers) / sizeof(Headers[0]); ++i) {
+        const char* data = Headers[i].Data;
+        size_t size = strlen(data);
+        scanner = xr_frame_create();
+        CHECK(scanner != NULL);
+        for (length = 0u; length <= size; ++length) {
+            bool expected = xr_is_complete_raw((void*)data, length);
+            bool failed = xrtGetError() != NULL;
+            CHECK(!expected && !xr_frame_check(scanner, (void*)data, length));
+            CHECK((xrtGetError() != NULL) == failed);
+        }
+        CHECK((xrtGetError() != NULL) == Headers[i].Invalid);
+        xr_frame_destroy(scanner);
+        reply = xr_decode_raw((void*)data, size);
+        CHECK(xrtValueType(reply) == XVALUE_NULL && xrtGetError() != NULL &&
+            xrtErrorKind(xrtGetError()) == XERR_VALUE);
+        CHECK(strcmp(xrtErrorMessage(xrtGetError()), Headers[i].Invalid ?
+            "RESP reply is malformed" : "RESP reply is incomplete") == 0);
+        xrtValueRelease(reply);
+    }
+
+    /* 根节点位于第 1 层：63 层非空数组加末端空数组恰好合法。 */
+    for (i = 0u; i < 63u; ++i) memcpy(deep + i * 4u, "*1\r\n", 4u);
+    memcpy(deep + 63u * 4u, "*0\r\n", 4u);
+    scanner = xr_frame_create();
+    CHECK(scanner != NULL);
+    for (length = 0u; length <= sizeof(deep); ++length) {
+        CHECK(xr_is_complete_raw(deep, length) == (length == sizeof(deep)));
+        CHECK(xrtGetError() == NULL);
+        CHECK(xr_frame_check(scanner, deep, length) == (length == sizeof(deep)));
+        CHECK(xrtGetError() == NULL);
+    }
+    xr_frame_destroy(scanner);
+    reply = xr_decode_raw(deep, sizeof(deep));
+    CHECK(reply != NULL && xrtValueType(reply) == XVALUE_OBJECT && xrtGetError() == NULL);
+    xrtValueRelease(reply);
+
+    /* 根数组也占一个节点，99999 个叶节点恰好用完十万个值的额度。 */
+    {
+        xbuffer data;
+        CHECK(xrtBufferInit(&data) &&
+            xrtBufferAppend(&data, (xbytesview){(cbytes)"*99999\r\n", 8u}));
+        for (i = 0u; i < 99999u; ++i)
+            CHECK(xrtBufferAppend(&data, (xbytesview){(cbytes)":0\r\n", 4u}));
+        scanner = xr_frame_create();
+        CHECK(scanner != NULL);
+        for (length = 257u; length < data.Size; length += 257u)
+            CHECK(!xr_frame_check(scanner, data.Data, length) && xrtGetError() == NULL);
+        CHECK(xr_frame_check(scanner, data.Data, data.Size) && xrtGetError() == NULL);
+        CHECK(xr_is_complete_raw(data.Data, data.Size) && xrtGetError() == NULL);
+        xr_frame_destroy(scanner);
+        reply = xr_decode_raw(data.Data, data.Size);
+        CHECK(xrtGetError() == NULL &&
+            xrtValueCount(field(field(reply, "value"), "value")) == 99999u);
+        xrtValueRelease(reply);
+        xrtBufferUnit(&data);
+    }
+
+    /* 帧头和结束 CRLF 同样占字节额度；不修改生产上限来缩小测试。 */
+    {
+        const size_t capacity = 64u * 1024u * 1024u;
+        const char bulk_header[] = "$67108851\r\n";
+        const char array_header[] = "*2\r\n$67108847\r\n";
+        char* data = xrtMalloc(capacity);
+        xstrview text;
+        CHECK(data != NULL);
+        memcpy(data, bulk_header, sizeof(bulk_header) - 1u);
+        memset(data + sizeof(bulk_header) - 1u, 'x',
+            capacity - sizeof(bulk_header) - 1u);
+        memcpy(data + capacity - 2u, "\r\n", 2u);
+        CHECK(xr_is_complete_raw(data, capacity) && xrtGetError() == NULL);
+        scanner = xr_frame_create();
+        CHECK(scanner != NULL &&
+            !xr_frame_check(scanner, data, sizeof(bulk_header) - 1u) && xrtGetError() == NULL);
+        CHECK(xr_frame_check(scanner, data, capacity) && xrtGetError() == NULL);
+        xr_frame_destroy(scanner);
+        reply = xr_decode_raw(data, capacity);
+        CHECK(xrtGetError() == NULL &&
+            xrtValueGetString(field(field(reply, "value"), "value"), &text) &&
+            text.Size == 67108851u && text.Data[0] == 'x' && text.Data[text.Size - 1u] == 'x');
+        xrtValueRelease(reply);
+
+        /* 第一项正好占满容量，但数组还缺一项，也已不可能再补齐。 */
+        memcpy(data, array_header, sizeof(array_header) - 1u);
+        CHECK(!xr_is_complete_raw(data, capacity) && xrtErrorKind(xrtGetError()) == XERR_VALUE);
+        scanner = xr_frame_create();
+        CHECK(scanner != NULL && !xr_frame_check(scanner, data, capacity) &&
+            xrtErrorKind(xrtGetError()) == XERR_VALUE);
+        xr_frame_destroy(scanner);
+        reply = xr_decode_raw(data, capacity);
+        CHECK(xrtValueType(reply) == XVALUE_NULL && xrtErrorKind(xrtGetError()) == XERR_VALUE);
+        xrtValueRelease(reply);
+
+        memset(data, 'x', capacity);
+        data[0] = '+';
+        CHECK(!xr_is_complete_raw(data, capacity) && xrtErrorKind(xrtGetError()) == XERR_VALUE);
+        scanner = xr_frame_create();
+        CHECK(scanner != NULL && !xr_frame_check(scanner, data, capacity) &&
+            xrtErrorKind(xrtGetError()) == XERR_VALUE);
+        xr_frame_destroy(scanner);
+        reply = xr_decode_raw(data, capacity);
+        CHECK(xrtValueType(reply) == XVALUE_NULL && xrtErrorKind(xrtGetError()) == XERR_VALUE);
+        xrtValueRelease(reply);
+        xrtFree(data);
+    }
+    return 0;
+}
+
 int main(void)
 {
     xvalue* Args = xrtValueArray();
@@ -358,6 +481,18 @@ int main(void)
         xr_frame_destroy(scanner);
     }
     xrtValueRelease(Input);
+    /* 64 层非空数组头已不可能补成合法帧，两种检查器应当同时拒绝。 */
+    for (i = 0; i < 64; ++i) memcpy(Deep + i * 4, "*1\r\n", 4u);
+    CHECK(!xr_is_complete_raw(Deep, 64u * 4u) &&
+        xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_VALUE);
+    {
+        void* scanner = xr_frame_create();
+        CHECK(scanner != NULL &&
+            !xr_frame_check(scanner, Deep, 64u * 4u) &&
+            xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_VALUE);
+        xr_frame_destroy(scanner);
+    }
+
     for (i = 0; i < 65; ++i) memcpy(Deep + i * 4, "*1\r\n", 4u);
     memcpy(Deep + 65 * 4, "+X\r\n", 4u);
     Input = xrtValueString((xstrview){ Deep, 65u * 4u + 4u });
@@ -393,6 +528,7 @@ int main(void)
     }
     xrtValueRelease(Input);
     CHECK(test_mutated_frames() == 0);
+    CHECK(test_budget_frames() == 0);
     puts("redis C boundaries: PASS");
     return 0;
 }

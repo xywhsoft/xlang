@@ -63,9 +63,9 @@ func serveSlow(TcpStream peer) as int
 end
 
 // 畸形回复后保持服务端连接，验证客户端主动终止失同步的流。
-func serveMalformed(TcpStream peer) as int
+func serveMalformed(TcpStream peer, string response) as int
     receiveRequest(peer)
-    assert peer.send("?bad\r\n") == NetStatus.ok, "malformed server send failed"
+    assert peer.send(response) == NetStatus.ok, "malformed server send failed"
     assert peer.wait(TcpWait.drain, 5000) == NetStatus.ok, "malformed server drain failed"
     time.sleep(1000)
     peer.close()
@@ -166,7 +166,7 @@ func main(...) as int
     TcpStream malformedClient = TcpStream(engine, server.localAddress())
     assert malformedClient.wait(TcpWait.open, 5000) == NetStatus.ok
     TcpStream malformedPeer = server.accept(5000)
-    future<int> malformedJob = task.spawn(serveMalformed, malformedPeer)
+    future<int> malformedJob = task.spawn(serveMalformed, malformedPeer, "?bad\r\n")
     bool malformedRejected = false
     try
         redis.command(malformedClient, ["PING"])
@@ -177,6 +177,29 @@ func main(...) as int
     assertAborted(malformedClient, "malformed reply must abort the stream")
     assert malformedJob.wait(), "malformed server task failed"
     malformedClient.close()
+
+    // 服务端只发送已经越界的帧头，客户端应报格式错误而非等到超时。
+    string deep = ""
+    for i in range(64)
+        deep = deep + "*1\r\n"
+    end
+    for header in [deep, "*100000\r\n", "*99999\r\n*1\r\n", "$67108852\r\n",
+        "*1\r\n$67108848\r\n"]
+        auto budgetClient = TcpStream(engine, server.localAddress())
+        assert budgetClient.wait(TcpWait.open, 5000) == NetStatus.ok
+        auto budgetPeer = server.accept(5000)
+        auto budgetJob = task.spawn(serveMalformed, budgetPeer, header)
+        bool budgetRejected = false
+        try
+            redis.command(budgetClient, ["PING"], 5000)
+        catch ValueError error
+            budgetRejected = error.message == "RESP reply is malformed"
+        end
+        assert budgetRejected, "impossible header must fail without waiting for its body"
+        assertAborted(budgetClient, "impossible header must abort the stream")
+        assert budgetJob.wait()
+        budgetClient.close()
+    end
 
     TcpStream partialClient = TcpStream(engine, server.localAddress())
     assert partialClient.wait(TcpWait.open, 5000) == NetStatus.ok

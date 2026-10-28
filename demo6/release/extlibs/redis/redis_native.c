@@ -30,7 +30,7 @@ typedef struct xrreader {
     const char* Data;
     size_t Size;
     size_t Pos;
-    size_t Nodes;
+    size_t ReservedNodes;
 } xrreader;
 
 static void xr_error(xerrkind Kind, const char* Message)
@@ -188,6 +188,21 @@ static xrstatus xr_line(xrreader* Reader, const char** Data, size_t* Size)
     return XR_INCOMPLETE;
 }
 
+/* 先预留尚未到达的子节点，避免明知越界的数组仍被当作未收齐。 */
+static bool xr_reserve_array(size_t* Nodes, unsigned Depth, size_t Count)
+{
+    if (Count > XR_MAX_ITEMS - *Nodes ||
+        (Count != 0u && Depth + 1u >= XR_MAX_DEPTH)) return false;
+    *Nodes += Count;
+    return true;
+}
+
+static bool xr_bulk_fits(size_t Position, size_t Size)
+{
+    return Position <= XR_MAX_BYTES - 2u &&
+        Size <= XR_MAX_BYTES - 2u - Position;
+}
+
 /* Take 接口仅在成功时转移所有权；所有失败路径由此函数统一清理。 */
 static xvalue* xr_tagged(const char* Type, xvalue* Payload)
 {
@@ -216,8 +231,6 @@ static xrstatus xr_parse(xrreader* Reader, unsigned Depth, bool Build, xvalue** 
 
     if (Depth >= XR_MAX_DEPTH) return XR_INVALID;
     if (Reader->Pos == Reader->Size) return XR_INCOMPLETE;
-    if (Reader->Nodes >= XR_MAX_ITEMS) return XR_INVALID;
-    ++Reader->Nodes;
     Type = Reader->Data[Reader->Pos++];
     if (Type != '+' && Type != '-' && Type != ':' && Type != '$' && Type != '*')
         return XR_INVALID;
@@ -235,12 +248,12 @@ static xrstatus xr_parse(xrreader* Reader, unsigned Depth, bool Build, xvalue** 
         } else if (Number == -1) {
             Name = "null";
             if (Build) Payload = xrtValueRetain(xrtValueNull());
-        } else if (Number < 0 || (uint64)Number > XR_MAX_BYTES ||
-                   (Type == '*' && (uint64)Number > XR_MAX_ITEMS)) {
+        } else if (Number < 0 || (uint64)Number > XR_MAX_BYTES) {
             return XR_INVALID;
         } else if (Type == '$') {
             size_t Size = (size_t)Number;
             Name = "bulk";
+            if (!xr_bulk_fits(Reader->Pos, Size)) return XR_INVALID;
             if (Reader->Size - Reader->Pos < Size + 2u) return XR_INCOMPLETE;
             if (Reader->Data[Reader->Pos + Size] != '\r' ||
                 Reader->Data[Reader->Pos + Size + 1u] != '\n') return XR_INVALID;
@@ -249,6 +262,8 @@ static xrstatus xr_parse(xrreader* Reader, unsigned Depth, bool Build, xvalue** 
         } else {
             size_t i;
             Name = "array";
+            if (!xr_reserve_array(&Reader->ReservedNodes, Depth, (size_t)Number))
+                return XR_INVALID;
             if (Build) {
                 Payload = xrtValueArray();
                 if (Payload == NULL) return XR_INVALID;
@@ -285,7 +300,7 @@ static bool xr_input_raw(const void* Data, size_t Size, xrreader* Reader)
     Reader->Data = Data != NULL ? (const char*)Data : "";
     Reader->Size = Size;
     Reader->Pos = 0u;
-    Reader->Nodes = 0u;
+    Reader->ReservedNodes = 1u;
     return true;
 }
 
@@ -307,6 +322,7 @@ static xvalue* xr_decode_reader(xrreader* Reader)
     xvalue* Result;
 
     Status = xr_parse(Reader, 0u, true, &Item);
+    if (Status == XR_INCOMPLETE && Reader->Size == XR_MAX_BYTES) Status = XR_INVALID;
     if (Status != XR_OK) {
         xr_error(XERR_VALUE, Status == XR_INCOMPLETE ?
             "RESP reply is incomplete" : "RESP reply is malformed");
@@ -329,6 +345,7 @@ static bool xr_complete_reader(xrreader* Reader)
     xrstatus Status;
 
     Status = xr_parse(Reader, 0u, false, NULL);
+    if (Status == XR_INCOMPLETE && Reader->Size == XR_MAX_BYTES) Status = XR_INVALID;
     if (Status == XR_INVALID)
         xr_error(XERR_VALUE, "RESP reply is malformed");
     return Status == XR_OK;
@@ -348,7 +365,7 @@ typedef struct xrframe {
     size_t LineStart;
     size_t Scan;
     size_t BulkSize;
-    size_t Nodes;
+    size_t ReservedNodes;
     size_t Remaining[XR_MAX_DEPTH];
     unsigned Depth;
     char Type;
@@ -360,6 +377,11 @@ static bool xr_frame_invalid(xrframe* Frame)
     Frame->Mode = XR_FRAME_BAD;
     xr_error(XERR_VALUE, "RESP reply is malformed");
     return false;
+}
+
+static bool xr_frame_incomplete(xrframe* Frame, size_t Size)
+{
+    return Size == XR_MAX_BYTES ? xr_frame_invalid(Frame) : false;
 }
 
 /* 一个值完成后，逐层结清父数组；状态只保存偏移，不借用缓冲地址。 */
@@ -378,8 +400,11 @@ static void xr_frame_finish(xrframe* Frame)
 
 void* xr_frame_create(void)
 {
+    xrframe* Frame;
     xrtClearError();
-    return xrtCalloc(1u, sizeof(xrframe));
+    Frame = xrtCalloc(1u, sizeof(xrframe));
+    if (Frame != NULL) Frame->ReservedNodes = 1u;
+    return Frame;
 }
 
 void xr_frame_destroy(void* Frame)
@@ -408,10 +433,9 @@ bool xr_frame_check(void* Handle, void* Data, size_t Size)
 
     for (;;) {
         if (Frame->Mode == XR_FRAME_TYPE) {
-            if (Frame->Pos == Size) return false;
-            if (Frame->Depth >= XR_MAX_DEPTH || Frame->Nodes >= XR_MAX_ITEMS)
+            if (Frame->Pos == Size) return xr_frame_incomplete(Frame, Size);
+            if (Frame->Depth >= XR_MAX_DEPTH)
                 return xr_frame_invalid(Frame);
-            ++Frame->Nodes;
             Frame->Type = Bytes[Frame->Pos++];
             if (Frame->Type != '+' && Frame->Type != '-' && Frame->Type != ':' &&
                 Frame->Type != '$' && Frame->Type != '*')
@@ -427,7 +451,7 @@ bool xr_frame_check(void* Handle, void* Data, size_t Size)
                 ++End;
             }
             Frame->Scan = End;
-            if (End == Size || End + 1u == Size) return false;
+            if (End == Size || End + 1u == Size) return xr_frame_incomplete(Frame, Size);
             if (Bytes[End + 1u] != '\n') return xr_frame_invalid(Frame);
             Frame->Pos = End + 2u;
             if (Frame->Type == '+' || Frame->Type == '-') {
@@ -440,12 +464,16 @@ bool xr_frame_check(void* Handle, void* Data, size_t Size)
                     xr_frame_finish(Frame);
                 } else if (Number == -1) {
                     xr_frame_finish(Frame);
-                } else if (Number < 0 || (uint64)Number > XR_MAX_BYTES ||
-                           (Frame->Type == '*' && (uint64)Number > XR_MAX_ITEMS)) {
+                } else if (Number < 0 || (uint64)Number > XR_MAX_BYTES) {
                     return xr_frame_invalid(Frame);
                 } else if (Frame->Type == '$') {
+                    if (!xr_bulk_fits(Frame->Pos, (size_t)Number))
+                        return xr_frame_invalid(Frame);
                     Frame->BulkSize = (size_t)Number;
                     Frame->Mode = XR_FRAME_BULK;
+                } else if (!xr_reserve_array(&Frame->ReservedNodes,
+                        Frame->Depth, (size_t)Number)) {
+                    return xr_frame_invalid(Frame);
                 } else if (Number == 0) {
                     xr_frame_finish(Frame);
                 } else {
@@ -455,7 +483,8 @@ bool xr_frame_check(void* Handle, void* Data, size_t Size)
             }
         }
         if (Frame->Mode == XR_FRAME_BULK) {
-            if (Size - Frame->Pos < Frame->BulkSize + 2u) return false;
+            if (Size - Frame->Pos < Frame->BulkSize + 2u)
+                return xr_frame_incomplete(Frame, Size);
             if (Bytes[Frame->Pos + Frame->BulkSize] != '\r' ||
                 Bytes[Frame->Pos + Frame->BulkSize + 1u] != '\n')
                 return xr_frame_invalid(Frame);
