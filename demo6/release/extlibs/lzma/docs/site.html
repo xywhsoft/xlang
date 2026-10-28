@@ -84,9 +84,10 @@ end</pre></div></div>
       <li><strong>大文件流式</strong> — <code>compressFile()</code> / <code>decompressFile()</code>；压缩器对象在 <code>finish()</code> 前暂存输入</li>
       <li><strong>进度回显</strong> — <code>inputBytes</code>/<code>outputBytes</code> 字节计数器</li>
       <li><strong>多成员流</strong> — 解压器 <code>finished</code>/<code>members</code></li>
-      <li><strong>级别 0..9</strong> — 0 最快、9 最高压缩率、5 默认平衡</li>
+      <li><strong>级别 0..9</strong> — 0 最快、9 最高压缩率、5 默认平衡；工厂、直接类构造和 C 入口统一拒绝非法级别，负值不代表默认</li>
       <li><strong>文件原子写</strong> — 临时文件 + 原子重命名</li>
     </ul>
+    <p>2026-10-28：Windows/Linux x64 默认包级门禁通过，包含 25 组 C 原生参数负例、0..9 往返、文件失败时保护已有目标、分配故障、Linux ASan/UBSan、Python 标准 XZ 互通及双语 JIT/AOT。C 桥接头可与核心头按任意顺序包含，不主动启用宿主的 XRT VALUE 模块。该结果不代表 32 位、长时压力或性能基准认证。</p>
     <h2>包信息</h2>
     <table class="ext-kv">
       <tr><th>包名</th><td>lzma</td></tr><tr><th>版本</th><td>1.0.0</td></tr>

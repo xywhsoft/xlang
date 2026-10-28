@@ -62,7 +62,8 @@
                                    "test/boundaries.xl",
                                    "test/file_ops.xl",
                                    "test/allocations.xl",
-                                   "test/text_transfer.xl"
+                                   "test/text_transfer.xl",
+                                   "test/native_options.xl"
                                ]
                  },
     "native":  {

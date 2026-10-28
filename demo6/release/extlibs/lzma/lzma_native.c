@@ -83,7 +83,7 @@ static void xlzma_options(xrtlzmaoptions* pOptions, int iLevel, uint64 iMaxInput
 	uint64 iMaxOutput, uint32 iMaxRatio)
 {
 	xrtLzmaOptionsInit(pOptions);
-	if ( iLevel >= 0 ) { pOptions->iLevel = iLevel; }
+	pOptions->iLevel = iLevel;
 	if ( iMaxInput != 0u ) { pOptions->tLimits.iMaxInputBytes = iMaxInput; }
 	if ( iMaxOutput != 0u ) { pOptions->tLimits.iMaxOutputBytes = iMaxOutput; }
 	if ( iMaxRatio != 0u ) { pOptions->tLimits.iMaxCompressionRatio = iMaxRatio; }
@@ -227,7 +227,7 @@ XLZMA_EXPORT void* xlzma_decompress(void* pData, size_t iSize, unsigned long lon
 	xrtlzmaerror tError;
 	xbuffer* pOutput = NULL;
 	xrtClearError();
-	xlzma_options(&tOptions, -1, iMaxInput, iMaxOutput, iMaxRatio);
+	xlzma_options(&tOptions, 5, iMaxInput, iMaxOutput, iMaxRatio);
 	if ( !xrtLzmaDecompress(pData, iSize, &tOptions, &pOutput, &tError) ) {
 		xlzma_publish_error(&tError);
 		return NULL;
@@ -284,7 +284,7 @@ XLZMA_EXPORT int xlzma_decompress_file(const char* sSource, const char* sDestina
 {
 	xrtlzmaoptions tOptions;
 	xrtClearError();
-	xlzma_options(&tOptions, -1, iMaxInput, iMaxOutput, iMaxRatio);
+	xlzma_options(&tOptions, 5, iMaxInput, iMaxOutput, iMaxRatio);
 	return xlzma_transform_file(sSource, sDestination, false, bOverwrite, &tOptions, pCallback);
 }
 
@@ -381,7 +381,7 @@ XLZMA_EXPORT void* xlzma_decompressor_create(unsigned long long iMaxInput, unsig
 	xrtlzmaoptions tOptions;
 	xrtlzmadecompressor* pDecompressor;
 	xrtClearError();
-	xlzma_options(&tOptions, -1, iMaxInput, iMaxOutput, iMaxRatio);
+	xlzma_options(&tOptions, 5, iMaxInput, iMaxOutput, iMaxRatio);
 	pDecompressor = xrtLzmaDecompressorCreate(&tOptions);
 	if ( pDecompressor == NULL ) {
 		if ( xrtGetError() == NULL ) {
