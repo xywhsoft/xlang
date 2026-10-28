@@ -1,0 +1,35 @@
+import gettext
+
+// 相邻上下文条目不要求额外空行，完整目录仍由标准 PO 状态机解析。
+var shared = gettext.parsePo("msgid \"plain\"\nmsgstr \"PLAIN\"\n")
+
+func main(...) as int
+    array<string> separators = ["", " ", "\t", " \t", "\t ", " \t \t "]
+    for separator in separators
+        string po = "msgctxt" + separator + "\"menu\"\nmsgid" + separator + "\"Open\"\nmsgstr" + separator + "\"MENU\"\n"
+        var catalog = gettext.parsePo(po)
+        assert gettext.tc(catalog, "menu", "Open") == "MENU"
+        po = "msgid" + separator + "\"file\"\nmsgid_plural" + separator + "\"files\"\nmsgstr[0]" + separator + "\"one\"\nmsgstr[1]" + separator + "\"many\"\n"
+        catalog = gettext.parsePo(po)
+        assert gettext.tn(catalog, "file", "files", 1) == "one"
+        assert gettext.tn(catalog, "file", "files", 2) == "many"
+    end
+    string adjacent = "msgid \"plain\"\nmsgstr \"PLAIN\"\nmsgctxt \"menu\"\nmsgid \"Open\"\nmsgstr \"MENU\"\nmsgctxt \"toolbar\"\nmsgid \"Open\"\nmsgstr \"TOOLBAR\"\n"
+    var catalog = gettext.parsePo(adjacent)
+    assert gettext.t(catalog, "plain") == "PLAIN"
+    assert gettext.tc(catalog, "menu", "Open") == "MENU"
+    assert gettext.tc(catalog, "toolbar", "Open") == "TOOLBAR"
+    assert gettext.t(shared, "plain") == "PLAIN"
+    // 识别关键字边界，而不是接受形似关键字的名称。
+    for invalid in ["msgidx \"x\"\nmsgstr \"bad\"\n", "msgctxt_extra \"x\"\nmsgid \"x\"\nmsgstr \"bad\"\n", "msgid \"x\"\nmsgid_plural_extra \"xs\"\nmsgstr[0] \"bad\"\n"]
+        bool rejected = false
+        try
+            gettext.parsePo(invalid)
+        catch ValueError error
+            rejected = true
+        end
+        assert rejected
+    end
+    println("gettext PO layout: PASS")
+    return 0
+end

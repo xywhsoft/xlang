@@ -193,6 +193,13 @@ static int xgt_po_quoted(XgtStr *out, const char *p, const char *end) {
     return 0;
 }
 
+/* 字段名按 token 边界识别，后接空白或引号，不把名称前缀当关键字。 */
+static int xgt_po_keyword(const char *p, const char *end,
+    const char *keyword, size_t size) {
+    return (size_t)(end - p) > size && memcmp(p, keyword, size) == 0 &&
+        (p[size] == ' ' || p[size] == '\t' || p[size] == '"');
+}
+
 typedef struct {
     XgtStr context;
     XgtStr id;
@@ -335,19 +342,21 @@ xvalue *xgt_parse_po(const char *text) {
             if (entry.have_translation && !xgt_po_flush(catalog, &entry)) goto fail;
             if (p + 1 < lineEnd && p[1] == ',' &&
                 xgt_po_fuzzy_flag(p + 2, lineEnd)) entry.fuzzy = 1;
-        } else if (strncmp(p, "msgctxt ", 8) == 0) {
+        } else if (xgt_po_keyword(p, lineEnd, "msgctxt", 7)) {
+            /* 新上下文开始下一条消息；上一条完整译文无需额外空行提交。 */
+            if (entry.have_translation && !xgt_po_flush(catalog, &entry)) goto fail;
             if (entry.have_context || entry.have_id ||
-                !xgt_po_quoted(&entry.context, p + 8, lineEnd)) goto fail;
+                !xgt_po_quoted(&entry.context, p + 7, lineEnd)) goto fail;
             entry.have_context = 1;
             entry.active = 1;
-        } else if (strncmp(p, "msgid_plural ", 13) == 0) {
+        } else if (xgt_po_keyword(p, lineEnd, "msgid_plural", 12)) {
             if (!entry.have_id || entry.have_plural || entry.have_translation ||
-                !xgt_po_quoted(&entry.plural, p + 13, lineEnd)) goto fail;
+                !xgt_po_quoted(&entry.plural, p + 12, lineEnd)) goto fail;
             entry.have_plural = 1;
             entry.active = 3;
-        } else if (strncmp(p, "msgid ", 6) == 0) {
+        } else if (xgt_po_keyword(p, lineEnd, "msgid", 5)) {
             if (entry.have_id && !xgt_po_flush(catalog, &entry)) goto fail;
-            if (!xgt_po_quoted(&entry.id, p + 6, lineEnd)) goto fail;
+            if (!xgt_po_quoted(&entry.id, p + 5, lineEnd)) goto fail;
             entry.have_id = 1;
             entry.active = 2;
         } else if (strncmp(p, "msgstr", 6) == 0) {

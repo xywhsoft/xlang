@@ -1,0 +1,25 @@
+import gettext
+
+func main(...) as int
+    assert arg.length == 2 or (arg.length == 3 and string(arg[2]) == "mo"), "usage: layout FILE.po|FILE.mo [mo]"
+    var catalog
+    if arg.length == 3 then
+        catalog = gettext.loadMo(string(arg[1]))
+    else
+        catalog = gettext.parsePo(file.readText(string(arg[1])))
+    end
+    // 同一夹具既可读取原始 PO，也可读取 GNU msgfmt 生成的 MO。
+    assert gettext.t(catalog, "plain") == "常规"
+    assert gettext.tc(catalog, "menu", "Open") == "打开"
+    assert gettext.tc(catalog, "toolbar", "Open") == "开启"
+    assert gettext.tn(catalog, "file", "files", 1) == "文件"
+    assert gettext.tn(catalog, "file", "files", 2) == "文件们"
+    assert gettext.tc(catalog, "", "Open") == "空上下文"
+    println("plain: " + gettext.t(catalog, "plain"))
+    println("menu: " + gettext.tc(catalog, "menu", "Open"))
+    println("toolbar: " + gettext.tc(catalog, "toolbar", "Open"))
+    println("file(1): " + gettext.tn(catalog, "file", "files", 1))
+    println("file(2): " + gettext.tn(catalog, "file", "files", 2))
+    println("empty context: " + gettext.tc(catalog, "", "Open"))
+    return 0
+end

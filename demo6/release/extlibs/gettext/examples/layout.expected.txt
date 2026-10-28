@@ -1,0 +1,6 @@
+plain: 常规
+menu: 打开
+toolbar: 开启
+file(1): 文件
+file(2): 文件们
+empty context: 空上下文
