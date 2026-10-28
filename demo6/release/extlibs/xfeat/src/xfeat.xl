@@ -46,23 +46,27 @@ func xfeat_to_c_int(int value) as c_int
 	return c_int(value)
 end
 
-func xfeat_take_json(string? value) as string
-	if value == null then throw RuntimeError xfeat_json_error() end
-	return value
+func xfeat_json_failure() as string
+	string message = xfeat_last_error_native()
+	if message == "" then throw RuntimeError "XFeat JSON serialization failed" end
+	throw RuntimeError message
 end
 
 func xfeat_stats_json_native() as string
-	return xfeat_take_json(xfeat_stats_json_raw_native())
+	return xfeat_stats_json_raw_native() ?? xfeat_json_failure()
 end
 
 func xfeat_location_json_native(point handle, string image_name, string output_name) as string
-	return xfeat_take_json(xfeat_location_json_raw_native(handle, image_name, output_name))
+	return xfeat_location_json_raw_native(handle, image_name, output_name) ?? xfeat_json_failure()
 end
 
-func xfeat_json_error() as string
-	string message = xfeat_last_error_native()
-	if message == "" then return "XFeat JSON serialization failed" end
-	return message
+// 消费定位句柄；成功直接移交 JSON，序列化抛错时也不能泄漏定位结果。
+func xfeat_finish_location(point location, string image_name, string output_name) as string
+	try
+		return xfeat_location_json_native(location, image_name, output_name)
+	finally
+		if location != null then xfeat_location_release_native(location) end
+	end
 end
 
 func xfeat_ceil32(int value) as int
@@ -319,11 +323,7 @@ func xfeat_locate_json(point engine, point query_set, string target_path) as str
 	xfeat_require_c_text(target_path)
 	point target_session = xfeat_engine_target_session_native(engine)
 	point location = xfeat_locate_prepared_with_session(query_set, target_session, target_path, 0.80, 4, 6.0)
-	string json = xfeat_location_json_native(location, target_path, "")
-	if location != null then
-		xfeat_location_release_native(location)
-	end
-	return json
+	return xfeat_finish_location(location, target_path, "")
 end
 
 func xfeat_locate_json(point engine, string query_path, string target_path) as string
@@ -332,11 +332,7 @@ func xfeat_locate_json(point engine, string query_path, string target_path) as s
 	point query_session = xfeat_engine_query_session_native(engine)
 	point target_session = xfeat_engine_target_session_native(engine)
 	point location = xfeat_locate_with_sessions(query_session, target_session, query_path, target_path, 0.80, 4, 6.0)
-	string json = xfeat_location_json_native(location, target_path, "")
-	if location != null then
-		xfeat_location_release_native(location)
-	end
-	return json
+	return xfeat_finish_location(location, target_path, "")
 end
 
 func xfeat_locate_json(point engine, string query_path, string target_path, string image_name, string output_name) as string
@@ -347,11 +343,7 @@ func xfeat_locate_json(point engine, string query_path, string target_path, stri
 	point query_session = xfeat_engine_query_session_native(engine)
 	point target_session = xfeat_engine_target_session_native(engine)
 	point location = xfeat_locate_with_sessions(query_session, target_session, query_path, target_path, 0.80, 4, 6.0)
-	string json = xfeat_location_json_native(location, image_name, output_name)
-	if location != null then
-		xfeat_location_release_native(location)
-	end
-	return json
+	return xfeat_finish_location(location, image_name, output_name)
 end
 
 func xfeat_locate_json(point engine, point query_set, string target_path, string image_name, string output_name) as string
@@ -360,11 +352,7 @@ func xfeat_locate_json(point engine, point query_set, string target_path, string
 	xfeat_require_c_text(output_name)
 	point target_session = xfeat_engine_target_session_native(engine)
 	point location = xfeat_locate_prepared_with_session(query_set, target_session, target_path, 0.80, 4, 6.0)
-	string json = xfeat_location_json_native(location, image_name, output_name)
-	if location != null then
-		xfeat_location_release_native(location)
-	end
-	return json
+	return xfeat_finish_location(location, image_name, output_name)
 end
 
 // 无命中时仍保存原图；读图、绘制或写盘失败时不返回成功 JSON。

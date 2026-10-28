@@ -24,7 +24,7 @@
                                         "XRT_MODULE_UNICODE"
                                    ]
                  },
-    "coverage": { "mode": "suite", "tests": ["test/nul_arguments.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/nul_arguments.xl", "test/owned_results.xl"] },
     "links":  [
 
               ],

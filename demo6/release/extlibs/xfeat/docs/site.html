@@ -39,6 +39,7 @@ println(xfeat.locate_json(engine, querySet, targetImagePath))
 xfeat.release_query(querySet)
 xfeat.close(engine)</code></pre>
     <p>正常未找到返回包含 <code>"found":false</code> 的 JSON；JSON 序列化失败会抛错，不伪装为空对象。定位器会拒绝宽或高超过目标图一半的框，整图对自身不是正例。包内 <code>examples/live_model.xl</code> 从目标图生成局部查询裁块；<code>examples/live_model_c.c</code> 用公开 C API 做相同的六尺度定位。Windows 门禁覆盖图片保存及失败路径，Linux 门禁覆盖 C 核心和无模型 XLang 调用，暂不验收 Linux OpenCV 桥接。设置 <code>XFEAT_MODEL</code> 后，门禁用包内固定正负图片验证找到与未找到路径，并逐行核对 C/XLang 正例输出；<code>XFEAT_TEST_IMAGE</code> 可覆盖正例图片。另可加 <code>-ParallelLive</code> 做两线程独立定位。模型权重仍由调用者提供；2026-10-26 当前 Windows 门禁已验证真实模型 XLang 独立 EXE 与 C/JIT 同输出及双线程短轮次定位。按 Windows 公开调用层验收；Linux OpenCV 图像桥接与插件内部长期稳定性不在此次签收范围。</p>
+    <p>2026-10-28：两条 JSON 原生出口直接移交结果，五条固定公开路径各减少一次 XRT 分配；四个定位重载统一在异常和成功路径释放临时定位句柄。Windows 完整门禁通过 C 35 组、XLang 70 组固定预算及 JIT/AOT、真实 ONNX 会话和图片保存；Linux C ASan/UBSan、无模型 JIT 与预算 AOT 通过。有效合成定位的故障证据属于 C；本轮未提供 XFeat 权重，真实定位与双线程推理仍为历史验收。NUL 检查、JSON writer、长度扫描、错误作用域与图片/推理成本仍在，不能称整桥零开销。保存入口还保留一处 try 内局部字符串返回复制，JSON 仍先于写盘生成；API 不承诺任意失败的文件事务原子性，不为消除副本改变失败顺序。</p>
   </section>
 </main>
 </body>

@@ -1,0 +1,61 @@
+import xfeat
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+extern "xfeat_stats_add_native" func addStats(c_int kind, float pre, float ort, float parse) as c_int
+
+func readResult(int operation) as string
+    point engine = null
+    point query = null
+    if operation == 0 then return xfeat.stats_json() end
+    if operation == 1 then return xfeat.locate_json(engine, query, "missing-target") end
+    if operation == 2 then return xfeat.locate_json(engine, "missing-query", "missing-target") end
+    if operation == 3 then return xfeat.locate_json(engine, "missing-query", "missing-target", "中文\nimage", "out") end
+    return xfeat.locate_json(engine, query, "missing-target", "中文\nimage", "out")
+end
+
+func main(...) as int
+    assert xfeat.reset_stats()
+    array<int> budgets = [13, 10, 12, 16, 14]
+    for operation in range(5)
+        string held = readResult(operation)
+        var original = json.parse(held)
+        if operation > 0 then assert original["found"] == false end
+        if operation >= 3 then assert original["image"] == "中文\nimage" end
+        int succeeded = -1
+        int needed = budgets[operation]
+        for budget in range(needed + 1)
+            string result = ""
+            bool rejected = false
+            bool triggered = false
+            assert failAfter(uint64(budget))
+            try
+                result = readResult(operation)
+            catch MemoryError error
+                rejected = true
+            finally
+                triggered = failTriggered()
+                failClear()
+            end
+            if triggered then
+                assert rejected, "failed JSON must not return a partial object"
+            else
+                assert not rejected and result == held
+                succeeded = budget
+                break
+            end
+        end
+        assert succeeded == needed, "JSON return copied the owned result or changed its allocation path"
+        println(f"xfeat XL owned operation {operation}: {succeeded} allocations")
+        assert readResult(operation) == held and xfeat.last_error() == ""
+    end
+    string held = xfeat.stats_json()
+    assert addStats(1, 1.0, 2.0, 3.0) != 0
+    var saved = json.parse(held)
+    var changed = json.parse(xfeat.stats_json())
+    assert saved["all"]["count"] == 0 and changed["all"]["count"] == 1
+    assert xfeat.reset_stats()
+    println("xfeat owned result budgets: PASS")
+    return 0
+end
