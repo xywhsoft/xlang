@@ -60,6 +60,11 @@
             return self.sendRef(opcode, data, size)
         end, self.worker)
     end
+    func sendTakeAsync(WsOpcode opcode, Buffer data, int size = -1) as future<NetStatus>
+        return self.engine().submit(func() as NetStatus
+            return self.sendTake(opcode, data, size)
+        end, self.worker)
+    end
     func receiveIntoAsync(Buffer output, bool dataEvents = false) as future<null>
         return self.engine().submit(func()
             self.receiveInto(output, dataEvents)
