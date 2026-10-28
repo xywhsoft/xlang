@@ -1,0 +1,77 @@
+import geohash
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    array<string> expected = ["s", "0,0,45,45", "u", "k", "t", "e"]
+    string hash = "s"
+    for operation in range(6)
+        int needed = 2
+        if operation == 0 then needed = 1 end
+        for budget in range(needed + 1)
+            string result = ""
+            bool memoryCaught = false
+            bool triggered = false
+            // C 结果一次分配；hash 输入另有一次既有 NUL 针串分配。
+            assert failAfter(uint64(budget))
+            try
+                if operation == 0 then
+                    result = geohash.encode(0.0, 0.0, 1)
+                elseif operation == 1 then
+                    result = geohash.bbox(hash)
+                elseif operation == 2 then
+                    result = geohash.north(hash)
+                elseif operation == 3 then
+                    result = geohash.south(hash)
+                elseif operation == 4 then
+                    result = geohash.east(hash)
+                else
+                    result = geohash.west(hash)
+                end
+            catch MemoryError error
+                memoryCaught = true
+            finally
+                triggered = failTriggered()
+                failClear()
+            end
+            if budget < needed then
+                assert triggered and memoryCaught
+            else
+                assert not triggered and not memoryCaught, "geohash copied text after the native result was adopted"
+                assert result == expected[operation]
+            end
+        end
+    end
+
+    // 八个 hash 入口必须完整检查输入，不能把有效前缀当成整个 hash。
+    string invalid = "s\0invalid"
+    int rejected = 0
+    for operation in range(8)
+        try
+            if operation == 0 then
+                geohash.decodeLat(invalid)
+            elseif operation == 1 then
+                geohash.decodeLon(invalid)
+            elseif operation == 2 then
+                geohash.bbox(invalid)
+            elseif operation == 3 then
+                geohash.north(invalid)
+            elseif operation == 4 then
+                geohash.south(invalid)
+            elseif operation == 5 then
+                geohash.east(invalid)
+            elseif operation == 6 then
+                geohash.west(invalid)
+            else
+                geohash.precision(invalid)
+            end
+        catch ValueError error
+            rejected += 1
+        end
+    end
+    assert rejected == 8
+    println("geohash owned result budgets: PASS")
+    return 0
+end

@@ -1,5 +1,22 @@
 # geohash
 
+2026-10-28 完整返回链复查：先前的门禁只检查接管点，六个公开文本
+函数随后仍各生成一次 `xlir_string_copy`。现三条 C 声明使用
+`@owned string`，六个公开函数直接返回，保留输入校验、极点错误和
+原生错误传播。完整夹具显式覆盖编码、边界框及四方向，各有一条
+接管且没有后续正文副本；公开 API、C ABI、网格和数值算法未变。
+
+固定单字符格的 C 共 12 组预算通过，XLang 共 17 组先红后绿：C 每条
+结果需一次分配；XL 编码相同，其余查询另有一次既有 NUL 针串分配。
+不足预算保持内存错误；不是整条操作对 C 的零开销证明。八个 hash
+入口另有 NUL 前缀拒绝回归，原有极点/经线/最高精度和 locale 测试保留。
+
+Windows/Linux 默认完整门禁通过严格 GCC/TCC C、Linux ASan/UBSan、
+线程、旧新语言 JIT/AOT 与双语固定输出。Linux 实跑曾因黄金文件
+CRLF 对输出 LF 误判，现与 Windows 一样仅规范化行尾，正文仍逐字
+比较；失败现场保留后用新快照完整复验通过。测试运行库按产品模块
+加线程/内存调试构建，输入指纹收尾核对；主线/XRT 未改。
+
 2026-10-27 所有权收口：编码、边界框与四个邻格查询的 C 结果原型
 明确为拥有型 `char*`；XLang 使用 `@owned string?` 直接接管
 XRT 分配，删去 `point` / `takeCstr` 中转。生成 C 门禁固定六条
@@ -59,7 +76,7 @@ Linux `test/check.sh` 的 C ASan/UBSan、线程、XLang JIT 与双语黄金输�
 - 边界：包内 `test/test_geohash.c`、`test/test_threads.c`、`test/boundaries.xl`（含内嵌 NUL 前缀负例），以及 `demo6/test/cases/extlib_geohash.xl`
 
 在 `demo6/release` 运行 `xl run extlibs/geohash/test/boundaries.xl`。在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package geohash -Source release/extlibs/geohash/test/test_geohash.c`。
-`pwsh -NoProfile -File release/extlibs/geohash/test/check.ps1 -SkipAot` 汇总严格 GCC manifest 宏、C/XLang 边界和三路范例黄金输出检查。去掉 `-SkipAot` 会继续构建并运行核心 AOT、带输出范例 AOT 和边界 AOT；当前 Windows 发布版均已通过。固定输出见 `examples/geohash.expected.txt`，不只依赖两种语言互相一致。
+`pwsh -NoProfile -File release/extlibs/geohash/test/check.ps1 -SkipAot` 汇总严格 GCC manifest 宏、C/XLang 边界和三路范例黄金输出检查。默认门禁还执行核心、边界、旧分配、新结果预算及双语范例 AOT，当前 Windows/Linux 均通过。`test/owned_results.xl` 进入 coverage，`test/owned_probe.xl` 独立核对六条完整返回链。固定输出见 `examples/geohash.expected.txt`，两平台只统一 CRLF/LF 行尾，正文严格匹配，不只依赖两种语言互相一致。独占目录成功清理，失败保留命令、输入指纹和产物。
 
 2026-10-12 已通过 Windows 严格 GCC、Linux ASan/UBSan、C/XL 边界与线程测试、同输出范例及 `test/cases/extlib_geohash.xl` 无输出核心 AOT。当时完整 AOT 缺少共享 `xl6ValueDataSnapshotV1`；现行复验结果见本页开头。
 
