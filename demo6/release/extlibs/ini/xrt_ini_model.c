@@ -340,6 +340,25 @@ XRT_API const char* xrtIniGetRaw(const xrtiniconfig* pConfig, str sSection, str 
 
 
 
+/* 展开期间逐段检查，不能先分配超限结果，再在最外层拒绝。 */
+static bool __xrtIniAppendResolvedText(xrtiniconfig* pConfig, xbuffer* pOutput,
+	const char* pData, size_t iSize)
+{
+	uint64 iLimit = pConfig->Options.tLimits.iMaxOutputBytes;
+	if ( iLimit != 0u && ((uint64)iSize > iLimit ||
+		(uint64)pOutput->Size > iLimit - (uint64)iSize) ) {
+		__xrtIniSetError(pConfig, XRT_INI_ERROR_LIMIT, 0u, 0u, 0u,
+			"resolved INI value exceeds the configured limit");
+		return false;
+	}
+	if ( !xrtBufferAppend(pOutput, (xbytesview){ (cbytes)pData, iSize }) ) {
+		__xrtIniSetError(pConfig, XRT_INI_ERROR_MEMORY, 0u, 0u, 0u,
+			"cannot grow INI interpolation output");
+		return false;
+	}
+	return true;
+}
+
 static bool __xrtIniAppendResolved(xrtiniconfig* pConfig, xbuffer* pOutput,
 	const char* sSection, const char* sKey, const char** pSections,
 	const char** pKeys, uint32 iDepth, uint32 iMaxDepth)
@@ -382,10 +401,8 @@ static bool __xrtIniAppendResolved(xrtiniconfig* pConfig, xbuffer* pOutput,
 					"invalid INI interpolation expression");
 				return false;
 			}
-			if ( p != pStart && !xrtBufferAppend(pOutput,
-				(xbytesview){ (cbytes)pStart, (size_t)(p - pStart) }) ) {
-				__xrtIniSetError(pConfig, XRT_INI_ERROR_MEMORY, 0u, 0u, 0u,
-					"cannot grow INI interpolation output");
+			if ( p != pStart && !__xrtIniAppendResolvedText(pConfig, pOutput,
+				pStart, (size_t)(p - pStart)) ) {
 				return false;
 			}
 			pDot = memchr(p + 2, '.', (size_t)(pClose - (p + 2)));
@@ -415,10 +432,8 @@ static bool __xrtIniAppendResolved(xrtiniconfig* pConfig, xbuffer* pOutput,
 		}
 		++p;
 	}
-	if ( p != pStart && !xrtBufferAppend(pOutput,
-		(xbytesview){ (cbytes)pStart, (size_t)(p - pStart) }) ) {
-		__xrtIniSetError(pConfig, XRT_INI_ERROR_MEMORY, 0u, 0u, 0u,
-			"cannot grow INI interpolation output");
+	if ( p != pStart && !__xrtIniAppendResolvedText(pConfig, pOutput,
+		pStart, (size_t)(p - pStart)) ) {
 		return false;
 	}
 	return true;
@@ -443,8 +458,15 @@ XRT_API str xrtIniGet(const xrtiniconfig* pConst, str sSection, str sKey)
 			"INI key does not exist: %s.%s", sSection, sKey);
 		return NULL;
 	}
-	if ( !pConfig->Options.bInterpolation ) {
-		sResult = xrtStrDup(sRaw);
+	if ( !pConfig->Options.bInterpolation || strstr(sRaw, "${") == NULL ) {
+		size_t iSize = strlen(sRaw);
+		if ( pConfig->Options.tLimits.iMaxOutputBytes != 0u &&
+			(uint64)iSize > pConfig->Options.tLimits.iMaxOutputBytes ) {
+			__xrtIniSetError(pConfig, XRT_INI_ERROR_LIMIT, 0u, 0u, 0u,
+				"INI value exceeds the configured limit");
+			return NULL;
+		}
+		sResult = xrtStrDupN(sRaw, iSize);
 		if ( sResult == NULL ) {
 			__xrtIniSetError(pConfig, XRT_INI_ERROR_MEMORY, 0u, 0u, 0u,
 				"cannot copy INI value");
@@ -465,13 +487,7 @@ XRT_API str xrtIniGet(const xrtiniconfig* pConst, str sSection, str sKey)
 	pSections = pStack;
 	pKeys = pStack + iMaxDepth;
 	if ( !__xrtIniAppendResolved(pConfig, pOutput, (const char*)sSection,
-		(const char*)sKey, pSections, pKeys, 0u, iMaxDepth) ||
-		(pConfig->Options.tLimits.iMaxOutputBytes != 0u &&
-		 pOutput->Size > pConfig->Options.tLimits.iMaxOutputBytes) ) {
-		if ( !pConfig->Failed ) {
-			__xrtIniSetError(pConfig, XRT_INI_ERROR_LIMIT, 0u, 0u, 0u,
-				"resolved INI value exceeds the configured limit");
-		}
+		(const char*)sKey, pSections, pKeys, 0u, iMaxDepth) ) {
 		xrtFree(pStack);
 		xrtBufferDestroy(pOutput);
 		return NULL;

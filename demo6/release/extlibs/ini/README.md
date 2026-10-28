@@ -1,5 +1,13 @@
 # ini
 
+当前发布状态为 **R：本体验证通过，工具链风险未闭环**。本轮最后的
+Windows 默认门禁与 Linux 新快照默认门禁均完整通过，但中途曾在 GCC
+16.2.0 编译未修改的 XRT 翻译单元时发生一次 `Illegal instruction` 内部
+错误；同参数单独复编与整套复跑均成功，原因仍未知。另一次 WSL
+非正常重启使临时输入零字节化，该失效运行未计为包测试结果。详见
+[原始证据与关闭条件](../../../dev/extlib_blockers/ini_gcc_ice_20261028.md)。
+不修改主线、替换 XRT、换优化级别或借用旧对象来取得绿灯。
+
 ## 2026-10-28 覆盖赋值与无损写回
 
 修复三个 C/XLang 共用的包内错误，公开 ABI 不变：
@@ -50,6 +58,24 @@ unchanged
 ```
 
 ## 所有权与使用说明
+
+`maxOutput` / `tLimits.iMaxOutputBytes` 统一限制拥有型 `get` 结果和序列化
+文本的 **UTF-8 字节数**，0 表示不限；等于预算成功，多一个字节报 LIMIT
+（XLang 为 ConfigError）。类型化 getInt/getFloat/getBool 的内部取值同样
+使用这一预算。只读借用视图 `xrtIniGetRaw` 不复制结果，不受输出预算截断。
+超限读取不修改保存的数据，后续成功读取会清除旧错误。
+
+插值展开时，前缀、每个引用的正文和后缀共用累计预算，在追加/扩容前检查；
+不再先构造完整的超限字符串才拒绝。没有 `${` 的普通值即使启用插值，也
+直接检查长度并复制一次，不分配引用栈和插值缓冲。这里限制的是结果长度，
+不是进程总内存上限，固定解析状态、缓冲容量和错误对象仍有自身开销。
+`test/test_output_limits.c` / `test/output_limits.xl` 单独覆盖准确预算、
+累计引用、跨节引用、UTF-8、0 不限、恢复，以及必要分配失败时的 MemoryError；
+超限和 OOM 分开验证，不依赖固定第几次分配来制造限额错误。
+该资源边界的独立红例先复现了普通 get 绕过限额、插值超限仍已扩容，
+修复后严格 GCC/TCC、Linux ASan/UBSan、语言 JIT/AOT 都通过。
+大引用的检查还核对没有额外的缓冲 realloc；这只证明该用例在扩容前拒绝，
+不等于所有程序路径的分配上界或整个库零开销。
 
 2026-10-27 所有权收口：错误文本、节名、键名、值和序列化文本的
 C 出口均明确返回 XRT 拥有的 `char*`；XLang native-backed class 使用
@@ -178,7 +204,7 @@ XLang 输出一致，范例结束时删除该目录。
 Linux 门禁使用 ASan/UBSan 验证 C 解析及文件路径边界，另以内嵌 TCC
 执行 C 用例，运行中央/包内 XLang 边界并逐字节核对双语范例。
 这些是 ini 包级证据，不等于整个 xlang 发布版签收。
-包内 `test/boundaries.xl` 已登记到 `coverage.tests`，统一扩展库 smoke 可发现；
+包内 `test/boundaries.xl`、`test/updates.xl`、`test/output_limits.xl` 已登记到 `coverage.tests`，统一扩展库 smoke 可发现；
 现已从 `demo6` 工作目录与默认包门禁一并复跑。
 
 以下为历史验证记录，其中缺符号描述均指当时的旧发布二进制。

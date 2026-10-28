@@ -1,0 +1,55 @@
+import ini
+
+func main(...) as int
+    // 普通取值和插值取值共用字节预算，不能只在 stringify 时才限制。
+    array<string> texts = ["", "1234567", "12345678", "123456789"]
+    for mode in range(2)
+        auto config = ini.create(interpolation=(mode == 1), maxOutput=8)
+        for text in texts
+            config.set("s", "value", text)
+            bool rejected = false
+            try
+                string value = config.get("s", "value")
+                assert value == text
+            catch ConfigError error
+                rejected = true
+            end
+            assert rejected == (string.byteLen(text) > 8)
+            if rejected then assert config.errorCode == 5 end
+        end
+    end
+
+    auto config = ini.create(interpolation=true, maxOutput=8)
+    config.set("s", "four", "1234")
+    config.set("s", "large", string.repeat("x", 8192))
+    array<string> references = ["${four}${four}", "${four}${four}x", "x${four}${four}", "A${large}"]
+    for expression in references
+        config.set("s", "value", expression)
+        bool rejected = false
+        try
+            assert config.get("s", "value") == "12341234"
+        catch ConfigError error
+            rejected = true
+        end
+        assert rejected == (expression != "${four}${four}")
+        if rejected then assert config.errorCode == 5 end
+        assert config.get("s", "four") == "1234" and config.valid
+    end
+
+    auto unicode = ini.create(interpolation=true, maxOutput=5)
+    unicode.set("s", "text", "\u4f60\u597d")
+    unicode.set("s", "value", "${text}")
+    bool rejected = false
+    try
+        unicode.get("s", "value")
+    catch ConfigError error
+        rejected = true
+    end
+    assert rejected, "UTF-8 output limits count bytes rather than characters"
+    auto unlimited = ini.create(interpolation=true, maxOutput=0)
+    unlimited.set("s", "text", string.repeat("x", 8192))
+    unlimited.set("s", "value", "A${text}B")
+    assert string.byteLen(unlimited.get("s", "value")) == 8194
+    println("ini language output limits: PASS")
+    return 0
+end

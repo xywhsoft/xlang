@@ -38,7 +38,8 @@ typedef struct {
 	bool bStrictDuplicates;
 	bool bInterpolation;
 	bool bReserved;
-	/* iMaxEntries 限制所有节的键总数；压缩倍率、标志不适用。 */
+	/* iMaxEntries 限制所有节的键总数；iMaxOutputBytes 同时约束拥有型
+	 * get 与序列化文本的字节数，0 为不限。压缩倍率、标志不适用。 */
 	xrtresourcelimits tLimits;
 } xrtinioptions;
 
