@@ -157,6 +157,7 @@ static int xl6IrVerifyConstructorAssignments(const XL6_IrModule* m,XL6_DiagList*
                 if(ctor->declarationOwnerType!=layout->type&&!templateBody)continue;
                 ++constructors;
                 if(!ctor->constructorReceiverSymbol)return xl6IrDiag(diags,ctor,"constructor has no canonical receiver symbol");
+                if(ctor->compiledPackageLink)continue;
                 context.receiver=ctor->constructorReceiverSymbol;
                 if(!xl6ConstructorFlowCheck(&view,(XL6_ConstructorNode)
                     xl6IrNodeGet(m,m->children[ctor->firstChild+1]),0,1))return 0;

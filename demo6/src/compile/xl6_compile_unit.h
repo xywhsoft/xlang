@@ -19,6 +19,7 @@ typedef struct XL6_CompileUnit {
 
 void xl6CompileUnitInit(XL6_CompileUnit* unit);
 void xl6CompileUnitFree(XL6_CompileUnit* unit);
+int xl6CompileUnitPrepareCompiledPackages(XL6_CompileUnit* unit);
 int xl6CompileUnitLoadFile(XL6_CompileUnit* unit, const char* path, int runSem);
 int xl6CompileUnitLoadSource(XL6_CompileUnit* unit, const char* source, const char* virtualPath, int runSem);
 

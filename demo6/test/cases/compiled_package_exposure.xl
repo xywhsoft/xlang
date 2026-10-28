@@ -1,0 +1,9 @@
+import xlang
+import compiled_demo
+
+assert compiled_demo.next() == 1
+auto engine = xlang.Context()
+assert engine.importPackage(xlang.compiledPackage("compiled_demo"))
+assert engine.run("assert 40 + 2 == 42\n")
+assert compiled_demo.next() == 2
+println("compiled_package_size=ok")

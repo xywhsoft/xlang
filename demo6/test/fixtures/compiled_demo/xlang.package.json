@@ -1,0 +1,18 @@
+{
+  "format": "xlang-package-1",
+  "name": "compiled_demo",
+  "version": "1.0.0",
+  "abiVersion": "1",
+  "artifact": {
+    "kind": "source",
+    "xlSources": ["src/compiled_demo.xl"],
+    "cSources": ["native.c"],
+    "xrtModules": ["XRT_MODULE_MEMORY", "XRT_MODULE_STRING"]
+  },
+  "dependencies": [
+    {"name": "compiled_left", "version": "1.0.0", "abiVersion": "1"},
+    {"name": "compiled_right", "version": "1.0.0", "abiVersion": "1"}
+  ],
+  "links": [],
+  "loadlibs": []
+}

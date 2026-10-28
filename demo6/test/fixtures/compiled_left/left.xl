@@ -1,0 +1,4 @@
+import compiled_leaf
+export func value() as int
+    return compiled_leaf.value()
+end

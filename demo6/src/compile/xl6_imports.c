@@ -4,6 +4,7 @@
 #include "src/common/xl6_common.h"
 #include "src/parser/xl6_parser_api.h"
 #include "src/sem/xl6_type_registry.h"
+#include "src/package/xl6_compiled_interface.inc"
 
 typedef struct XL6_ImportTextBuilder {
     char* data;
@@ -205,6 +206,12 @@ void xl6ImportDepsInit(XL6_ImportDeps* deps)
 
 void xl6ImportDepsFree(XL6_ImportDeps* deps)
 {
+    for (size_t i = 0; deps && i < deps->packageInfoCount; ++i) {
+        XL6_ImportPackageInfo* info = &deps->packageInfos[i];
+        xrtFree(info->name); xrtFree(info->version); xrtFree(info->abiVersion); xrtFree(info->dir);
+        xl6PackageStringListFree(&info->dependencies);
+    }
+    if (deps) xrtFree(deps->packageInfos);
     size_t i;
 
     if ( deps == NULL ) {
@@ -527,6 +534,24 @@ static int xl6ImportsCollectManifestDeps(
 
     if ( deps == NULL || manifest == NULL ) {
         return 1;
+    }
+    int knownPackage = 0;
+    for (size_t p = 0; p < deps->packageInfoCount; ++p)
+        if (!strcmp(deps->packageInfos[p].name, manifest->name)) knownPackage = 1;
+    if (!knownPackage) {
+        XL6_ImportPackageInfo info = {0};
+        info.name = xrtStrDup(manifest->name); info.version = xrtStrDup(manifest->version);
+        info.abiVersion = xrtStrDup(manifest->abiVersion); info.dir = xrtPathAbs(manifest->dir);
+        int copied = info.name && info.version && info.abiVersion && info.dir;
+        for (size_t p = 0; copied && p < manifest->dependencyCount; ++p)
+            copied = xl6PackageStringListAppend(&info.dependencies, manifest->dependencies[p].name);
+        XL6_ImportPackageInfo* items = copied ? (XL6_ImportPackageInfo*)xrtRealloc(
+            deps->packageInfos, (deps->packageInfoCount + 1) * sizeof(*items)) : NULL;
+        if (!items) {
+            xrtFree(info.name); xrtFree(info.version); xrtFree(info.abiVersion); xrtFree(info.dir);
+            xl6PackageStringListFree(&info.dependencies); return 0;
+        }
+        deps->packageInfos = items; items[deps->packageInfoCount++] = info;
     }
     if ( !xl6ImportsDepsAddPackageId(deps, manifest->packageId) ) {
         return 0;
@@ -2299,6 +2324,81 @@ static int xl6ImportsLoadOne(
         }
         xrtFree(target);
         return 1;
+    }
+
+    const XL_CompiledPackage* boundPackage = NULL;
+    for (size_t p = 0; deps && deps->compiledPackages && p < deps->compiledPackages->count; ++p)
+        if (!strcmp(target, deps->compiledPackages->items[p].name)) {
+            boundPackage = &deps->compiledPackages->items[p]; break;
+        }
+    if (boundPackage) {
+        XL6_AstNode* interfaceRoot;
+        deps->features |= XL6_IMPORT_FEATURE_COMPILED_PACKAGE_CONSUMER;
+        if (outNamespace && !(*outNamespace = xl6ImportsDupText(target))) { xrtFree(target); return 0; }
+        wasLoaded = xl6ImportsNamespaceIsLoaded(symbols, target);
+        ok = xl6ImportsSymbolTableAddNamespace(symbols, target, exposeNamespace ? 0 : 1);
+        if (ok && !wasLoaded) {
+            interfaceRoot = xl6CompiledPackageDecode(boundPackage->interfaceData, boundPackage->interfaceSize);
+            if (!interfaceRoot) ok = 0;
+            else {
+                char virtualPath[512];
+                snprintf(virtualPath, sizeof(virtualPath), "__xl_compiled__/%s.xl", target);
+                if(xl6ImportsPathListContains(&deps->activeSources,virtualPath)) {
+                    xl6DiagAdd(diags,1,1,"compiled package interface import cycle");ok=0;
+                } else if(!xl6PackageStringListAppend(&deps->activeSources,virtualPath))ok=0;
+                else {
+                    unsigned nested=deps->features & XL6_IMPORT_FEATURE_COMPILED_INTERFACE_EXPANSION;
+                    deps->features |= XL6_IMPORT_FEATURE_COMPILED_INTERFACE_EXPANSION;
+                    /* No source path for expansion: virtual interfaces have
+                     * no filesystem companions or relative source imports. */
+                    ok = xl6AstSetSourceTree(interfaceRoot, virtualPath) &&
+                        xl6ImportsExpandModule(interfaceRoot, NULL, diags, deps);
+                    deps->features=(deps->features & ~XL6_IMPORT_FEATURE_COMPILED_INTERFACE_EXPANSION)|nested;
+                    xl6ImportsStringListPop(&deps->activeSources);
+                }
+                /* Names inside this interface are already canonical. Publish
+                 * only its public surface; private recipe dependencies must
+                 * not become package members when the interface is imported. */
+                for (size_t n = 0; ok && n < interfaceRoot->childCount; ++n) {
+                    XL6_AstNode* declaration = interfaceRoot->children[n];
+                    if (!declaration || !(declaration->flags & XL6_AST_FLAG_PUBLIC)) continue;
+                    const char* internalName = xl6ImportsDeclName(declaration);
+                    char* publicName = xl6ImportsPublicNameFromInternal(target, internalName);
+                    if (!publicName) continue;
+                    ok = xl6ImportsSymbolTableAdd(symbols, target, publicName, internalName, declaration->kind, 1);
+                    xrtFree(publicName);
+                }
+                if (ok) {
+                    xl6ImportsDropDuplicateImportedDecls(root, interfaceRoot);
+                    size_t total=root->childCount+interfaceRoot->childCount;
+                    if(total<root->childCount || total>SIZE_MAX/sizeof(*root->children))ok=0;
+                    else {
+                        XL6_AstNode** children=root->children;
+                        if(total>root->childCapacity)children=(XL6_AstNode**)xrtRealloc(children,total*sizeof(*children));
+                        if(total && !children)ok=0;
+                        else {
+                            root->children=children;
+                            if(total>root->childCapacity)root->childCapacity=total;
+                            if(interfaceRoot->childCount)memcpy(children+root->childCount,
+                                interfaceRoot->children,interfaceRoot->childCount*sizeof(*children));
+                            root->childCount=total;interfaceRoot->childCount=0;
+                        }
+                    }
+                }
+                xl6AstFree(interfaceRoot);
+            }
+        }
+        if (ok) xl6ImportsNamespaceMarkLoaded(symbols, target);
+        else xl6DiagAddFile(diags, sourcePath, importNode->line, importNode->column,
+            "cannot import registered compiled package interface");
+        xrtFree(target);
+        return ok;
+    }
+
+    if(deps && (deps->features & XL6_IMPORT_FEATURE_COMPILED_INTERFACE_EXPANSION)) {
+        xl6DiagAddFile(diags,xl6AstSourcePath(importNode),importNode->line,importNode->column,
+            "compiled package dependency is not registered; filesystem fallback is forbidden");
+        xrtFree(target);return 0;
     }
 
     xl6PackageResolveImportObserved(sourcePath, target, &resolved,

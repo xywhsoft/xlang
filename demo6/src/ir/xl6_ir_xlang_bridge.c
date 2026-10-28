@@ -6,6 +6,8 @@ int xl6IrRuntimeXlangBridgeName(const char* name)
 {
     static const char* const names[] = {
         "xl6_xlang_context_create",
+        "xl6_xlang_compiled_package",
+        "xl6_xlang_context_import_package",
         "xl6_xlang_context_destroy",
         "xl6_xlang_context_last_error_copy",
         "xl6_xlang_context_set_work_dir",
@@ -122,6 +124,10 @@ int xl6IrRuntimeXlangBridgeTargetMatches(
     if ( strcmp(name, "xl6_xlang_context_create") == 0 )
         return target->parameterCount == 0 &&
                xl6IrRuntimeXlangFactoryMatches(module, target);
+    if (!strcmp(name,"xl6_xlang_compiled_package"))
+        return target->parameterCount==1 && target->kind==XL6_IR_CALL_TARGET_EXTERN_C &&
+            xl6IrBufferRuntimeBridgeResultMatches(xl6IrTypeGet(&module->types,target->returnType),XL6_IR_C_ABI_RAW_POINTER) &&
+            xl6IrRuntimeXlangDirectParameterMatches(module,target,0,XL6_IR_C_ABI_MANAGED_STRING,XL6_IR_PARAMETER_ABI_BORROW);
     if ( strcmp(name, "xl6_xlang_handler_wrap") == 0 )
         return target->parameterCount == 1 &&
                xl6IrRuntimeXlangFactoryMatches(module, target) &&
@@ -154,6 +160,9 @@ int xl6IrRuntimeXlangBridgeTargetMatches(
                    XL6_IR_PARAMETER_ABI_BORROW);
     if ( target->parameterCount == 0 ||
          !xl6IrRuntimeXlangReceiverMatches(module, target, 0) ) return 0;
+    if (!strcmp(name,"xl6_xlang_context_import_package"))
+        return target->parameterCount==2 && xl6IrBufferRuntimeBridgeResultMatches(result,XL6_IR_C_ABI_BOOL) &&
+            xl6IrRuntimeXlangDirectParameterMatches(module,target,1,XL6_IR_C_ABI_RAW_POINTER,XL6_IR_PARAMETER_ABI_VALUE);
     if ( strcmp(name, "xl6_xlang_context_destroy") == 0 ||
          strcmp(name, "xl6_xlang_handler_destroy") == 0 )
         return target->parameterCount == 1 && result == NULL;

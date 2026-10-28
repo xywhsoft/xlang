@@ -1,0 +1,5 @@
+{
+  "format": "xlang-package-1", "name": "compiled_demo", "version": "99.0.0", "abiVersion": "99",
+  "artifact": {"kind": "source", "xlSources": ["decoy.xl"], "cSources": []},
+  "dependencies": [], "links": [], "loadlibs": []
+}

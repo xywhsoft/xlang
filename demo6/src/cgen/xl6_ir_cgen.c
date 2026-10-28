@@ -87,5 +87,6 @@
 #include "src/cgen/xl6_ir_cgen_emit_resource_support.c"
 #include "src/cgen/xl6_ir_cgen_emit_definitions.c"
 #include "src/cgen/xl6_ir_cgen_module_trace.c"
+#include "src/cgen/xl6_ir_cgen_compiled_package.c"
 #include "src/cgen/xl6_ir_cgen_module_emit.c"
 #include "src/cgen/xl6_ir_cgen_header_emit.c"

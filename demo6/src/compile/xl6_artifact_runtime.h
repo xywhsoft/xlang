@@ -964,4 +964,7 @@ int xl6ArtifactRuntimeClosePlan(const XL6_ArtifactRuntimeSet* roots, XL6_Artifac
 /* Refuses Typed/corrupt IR. Failure leaves a zero plan, never a partial set. */
 int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi entry,
     XL6_ArtifactRuntimePlan* plan, XL6_DiagList* diags);
+struct XL6_IrCgenOptions;
+int xl6ArtifactRuntimePlanBuildWithOptions(const XL6_IrModule* module, XL6_ArtifactEntryAbi entry,
+    const struct XL6_IrCgenOptions* options, XL6_ArtifactRuntimePlan* plan, XL6_DiagList* diags);
 #endif

@@ -2356,8 +2356,15 @@ void xl6IrModuleFree(XL6_IrModule* module)
     if ( module == NULL ) {
         return;
     }
+    for (i = 0; i < module->compiledPackageCount; ++i) {
+        XL6_IrCompiledPackage* p = &module->compiledPackages[i];
+        xrtFree(p->name); xrtFree(p->version); xrtFree(p->abiVersion);
+        xrtFree(p->interfaceData); xrtFree(p->entries); xrtFree(p->dependencies);
+    }
+    xrtFree(module->compiledPackages);
     for ( i = 0; i < module->nodeCount; ++i ) {
         xrtFree(module->nodes[i].text);
+        xrtFree(module->nodes[i].compiledPackageLink);
         xrtFree(module->nodes[i].literalData);
     }
     for ( i = 0; i < module->types.count; ++i ) {
@@ -4260,6 +4267,12 @@ static XL6_IrNodeId xl6IrBuildAstNode(
     memset(node, 0, sizeof(*node));
     node->unionField = SIZE_MAX;
     node->kind = xl6IrNodeKindFromAst(source->kind); node->sourceKind = source->kind; node->flags = source->flags;
+    node->compiledPackageRoot = source->compiledPackageRoot;
+    node->compiledPackageError = source->compiledPackageError;
+    if (source->compiledPackageLink &&
+        !(node->compiledPackageLink = xrtStrDup(source->compiledPackageLink))) {
+        *ok = 0; return XL6_IR_NODE_INVALID;
+    }
     /* A semantically selected static method value has no runtime receiver.
      * Normalize its qualified spelling to the existing named-callable node;
      * sourceKind/span retain the original member expression for diagnostics. */
@@ -28531,6 +28544,12 @@ static int xl6IrBuildReachabilityFacts(
     for ( i = 0; i < module->exportCount; ++i )
         (void)xl6IrReachabilityMarkSymbol(
             module, facts, module->exports[i].symbol, XL6_IR_REACHABILITY_ROOT);
+    for (i = 0; i < module->callTargetCount; ++i) {
+        const XL6_IrNode* declaration = xl6IrNodeGet(module, module->callTargets[i].declaration);
+        if (declaration && declaration->compiledPackageRoot)
+            (void)xl6IrReachabilityMarkSymbol(module, facts,
+                module->callTargets[i].symbol, XL6_IR_REACHABILITY_ROOT);
+    }
     if ( module->abi.entryKind != XL6_IR_MODULE_ENTRY_NONE )
         (void)xl6IrReachabilityMarkSymbol(
             module, facts, module->abi.entrySymbol, XL6_IR_REACHABILITY_ROOT);
@@ -33407,6 +33426,7 @@ int xl6IrRuntimeSerializationBridgeTargetMatches(
 #include "src/ir/xl6_ir_vfs_bridge.c"
 #include "src/ir/xl6_ir_xlang_bridge.c"
 
+
 static int xl6IrRuntimeBridgeTargetMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target)
 {
@@ -35135,6 +35155,13 @@ static int xl6IrManagedReturnCommitMatches(
         module->operands[move->firstOperand] == load->result;
 }
 
+static unsigned xl6IrCompiledParameterLifetime(const XL6_IrModule* module,XL6_SymbolId symbol)
+{
+    const XL6_IrNode* node=xl6IrSymbolNodeGet(module,symbol);
+    return node && node->sourceKind==XL6_AST_PARAM &&
+        XL6_COMPILED_PARAM_LIFETIME_VALID(node->compiledPackageError)?node->compiledPackageError:0;
+}
+
 int xl6IrCallTargetParameterBindingOwnsStorage(
     const XL6_IrModule* module, const XL6_IrCallTarget* target,
     size_t parameter)
@@ -35169,6 +35196,8 @@ int xl6IrCallTargetParameterCanBorrowReadOnly(
          target->parameterAbis[parameter] != XL6_IR_PARAMETER_ABI_BORROW )
         return 0;
     lifetime = &target->parameterLifetimes[parameter];
+    unsigned compiled=xl6IrCompiledParameterLifetime(module,lifetime->sourceSymbol);
+    if(compiled)return (compiled&2u)!=0;
     type = xl6IrTypeGet(&module->types, target->parameterTypes[parameter]);
     if ( type == NULL ||
          (type->cAbi != XL6_IR_C_ABI_MANAGED_STRING && !xl6IrTypeIsCOwned(type) && !xl6IrNativeValuePlanForType(type)) ||
@@ -35230,6 +35259,8 @@ int xl6IrParameterBindingMayRebind(const XL6_IrModule* module, XL6_SymbolId symb
 {
     size_t i, a;
     if (module == NULL || symbol == 0) return 0;
+    unsigned compiled=xl6IrCompiledParameterLifetime(module,symbol);
+    if(compiled)return (compiled&1u)!=0;
     for (i = 0; i < module->nodeCount; ++i) {
         const XL6_IrNode* node = &module->nodes[i];
         /* Explicit mutable argument syntax also covers witness calls before
@@ -35269,6 +35300,9 @@ int xl6IrParameterBindingMayRebind(const XL6_IrModule* module, XL6_SymbolId symb
 XL6_IrReleaseEffect xl6IrParameterCleanupEffect(const XL6_IrModule* module,
     const XL6_IrCallTarget* target, size_t parameter, int rebindable)
 {
+    unsigned compiled=target && target->parameterLifetimes && parameter<target->parameterCount
+        ? xl6IrCompiledParameterLifetime(module,target->parameterLifetimes[parameter].sourceSymbol):0;
+    if(compiled)return (XL6_IrReleaseEffect)((compiled>>2)&3u);
     if (!xl6IrCallTargetParameterBindingOwnsStorage(module, target, parameter)) return XL6_IR_RELEASE_EFFECT_NO_RAISE;
     if (target->kind == XL6_IR_CALL_TARGET_INTERNAL &&
         target->parameterAbis[parameter] == XL6_IR_PARAMETER_ABI_BORROW && !rebindable)
@@ -36006,6 +36040,8 @@ invalid:
         "XLIR safe-index receiver branch must skip its key and produce null only on the null successor");
 }
 
+#include "xl6_ir_compiled_package_verify.c"
+
 int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
 {
     size_t i;
@@ -36024,6 +36060,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
         return xl6IrDiag(diags, NULL, "XLIR module is not initialized");
     }
     if (!xl6IrVerifyNodeTopology(module, diags)) return 0;
+    if (!xl6IrVerifyCompiledPackages(module,diags)) return 0;
     if (module->specializedSymbolCount > module->specializedSymbolCapacity ||
         (module->specializedSymbolCount && !module->specializedSymbols))
         return xl6IrDiag(diags, NULL, "XLIR specialized symbol index is malformed");
@@ -39414,7 +39451,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
         if ( module->stage == XL6_IR_STAGE_LOWERED &&
              (target->kind == XL6_IR_CALL_TARGET_INTERNAL ||
               target->kind == XL6_IR_CALL_TARGET_INTERNAL_ASYNC ||
-              target->kind == XL6_IR_CALL_TARGET_INTERNAL_GENERATOR) ) {
+              target->kind == XL6_IR_CALL_TARGET_INTERNAL_GENERATOR) &&
+             !xl6IrNodeGet(module,target->declaration)->compiledPackageLink ) {
             const XL6_IrFunction* function = xl6IrFunctionBySymbol(module, target->symbol);
             if ( function == NULL )
                 return xl6IrDiag(diags, NULL, "XLIR internal call target has no lowered function body");

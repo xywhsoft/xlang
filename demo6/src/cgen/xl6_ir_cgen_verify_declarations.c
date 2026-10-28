@@ -123,6 +123,7 @@ static int xl6IrCgenVerifyDeclarations(
               target->kind == XL6_IR_CALL_TARGET_INTERNAL_ASYNC ||
               target->kind == XL6_IR_CALL_TARGET_INTERNAL_GENERATOR) &&
               xl6IrCgenTargetIsReachable(module, target->symbol) &&
+             !xl6IrNodeGet(module,target->declaration)->compiledPackageLink &&
              xl6IrCgenFindFunction(module, target->symbol) == NULL )
             return xl6IrCgenDiag(diags, module, target->declaration, "XLIR C emitter internal call target has no body ABI");
         if ( (target->kind == XL6_IR_CALL_TARGET_EXTERN_C ||
