@@ -1,0 +1,23 @@
+import xlang
+import compiled_demo
+
+assert compiled_demo.next() == 1
+auto engine = xlang.Context()
+assert not engine.importPackage(null)
+auto package = xlang.compiledPackage("compiled_demo")
+assert package != null, "compiled package descriptor missing"
+if not engine.importPackage(package) then
+    println(engine.lastError)
+    assert false, "compiled package registration failed"
+end
+assert engine.importPackage(package)
+if not engine.runFile("compiled_package_script.xl") then
+    println(engine.lastError)
+    assert false
+end
+assert compiled_demo.next() == 4
+assert not engine.run("import compiled_demo\ncompiled_demo.secret()\n")
+assert not engine.run("import compiled_demo\ncompiled_demo.checked(-1)\n")
+assert engine.lastError != ""
+assert engine.run("import compiled_demo\nassert compiled_demo.add(40) == 42\n")
+println("compiled_package_host=ok")

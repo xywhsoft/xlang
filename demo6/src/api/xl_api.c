@@ -152,6 +152,7 @@ struct XL_Context {
     unsigned int activeCalls;
     int destroyRequested;
     XL6_BuildInputs* buildInputs; /* Borrowed from an XLC context. */
+    XL6_CompiledPackageSet compiledPackages;
 };
 
 
@@ -1035,6 +1036,13 @@ static int xlAddContextSymbols(XL_Context* ctx, TCCState* s)
             return 0;
         }
     }
+    for (size_t p = 0; ctx != NULL && p < ctx->compiledPackages.count; ++p)
+        for (size_t e = 0; e < ctx->compiledPackages.items[p].entryCount; ++e) {
+            const XL_PackageEntry* entry = &ctx->compiledPackages.items[p].entries[e];
+            if (!xlApiAddTccSymbol(s, entry->name, entry->address)) {
+                xlSetError2(ctx, "cannot bind compiled package entry", entry->name); return 0;
+            }
+        }
     return 1;
 }
 
@@ -1247,6 +1255,7 @@ static int xlEnsureUnitXlirLowered(XL_Context* ctx, XL6_CompileUnit* unit)
         }
     }
     if ( unit->ir.stage != XL6_IR_STAGE_LOWERED ||
+         !xl6CompileUnitPrepareCompiledPackages(unit) ||
          !xl6IrVerifyModule(&unit->ir, &unit->parse.diags) ) {
         unit->irReady = 0;
         xlSetCompileStageError(ctx, unit, "ir-verify");
@@ -1353,10 +1362,13 @@ static int xlTccCompileGeneratedModule(XL_Context* ctx, TCCState* s, const char*
     return ok;
 }
 
+#include "src/api/xl_compiled_package.inc"
+
 static int xlLoadUnitFromSource(XL_Context* ctx, XL6_CompileUnit* unit, const char* source, const char* virtualPath, const XL6_SourceOverlay* overlay)
 {
     xl6CompileUnitInit(unit);
     unit->importDeps.sourceOverlay = overlay;
+    unit->importDeps.compiledPackages = &ctx->compiledPackages;
     if ( source == NULL ) {
         xlSetError(ctx, "script source is empty");
         return 0;
@@ -1372,6 +1384,7 @@ static int xlLoadUnitFromFile(XL_Context* ctx, XL6_CompileUnit* unit, const char
 {
     xl6CompileUnitInit(unit);
     unit->importDeps.sourceOverlay = overlay;
+    unit->importDeps.compiledPackages = &ctx->compiledPackages;
     if ( path == NULL || path[0] == '\0' ) {
         xlSetError(ctx, "script file path is empty");
         return 0;
@@ -2244,6 +2257,10 @@ static int xlCompileUnitToExternalOutputWithC(
     int ok;
 
     s = NULL;
+    if(unit->importDeps.features & XL6_IMPORT_FEATURE_COMPILED_PACKAGE_CONSUMER) {
+        xlSetError(ctx,"compiled package addresses are process-local and cannot be emitted into an external binary");
+        return 0;
+    }
     if ( outputPath == NULL || outputPath[0] == '\0' ) {
         char text[128];
         snprintf(text, sizeof(text), "output %s path is empty", outputKind != NULL ? outputKind : "file");
@@ -2261,9 +2278,9 @@ static int xlCompileUnitToExternalOutputWithC(
          xlCompileUnitHasExecutableEntry(ctx, unit) > 0);
     ok = 0;
     xlTccDynamicVfsClear();
-    if (!xlEnsureUnitXlirLowered(ctx,unit) || !xl6ArtifactRuntimePlanBuild(&unit->ir, options.emitMainWrapper
+    if (!xlEnsureUnitXlirLowered(ctx,unit) || !xl6ArtifactRuntimePlanBuildWithOptions(&unit->ir, options.emitMainWrapper
             ? XL6_ARTIFACT_ENTRY_EXECUTABLE_V1 : XL6_ARTIFACT_ENTRY_CHECKED_MODULE_V1,
-            &artifactRuntime, &unit->parse.diags)) {
+            &options, &artifactRuntime, &unit->parse.diags)) {
         xlSetCompileDiagError(ctx, unit);
         goto cleanup;
     }
@@ -3792,6 +3809,7 @@ static void xlDestroyContextUnlocked(XL_Context* ctx)
     xrtFree(ctx->tccLibtcc1Path);
     xrtFree(ctx->lastError);
     xlStringListFree(&ctx->includePaths);
+    xlCompiledPackagesFree(&ctx->compiledPackages);
     xlStringListFree(&ctx->libraryPaths);
     xlStringListFree(&ctx->linkLibraries);
     xlStringListFree(&ctx->resourceFiles);
@@ -4108,6 +4126,13 @@ int xlRegisterCFunction(XL_Context* ctx, const char* symbolName, void* fn)
         return 0;
     }
     xlApiLock();
+    for(size_t p=0;symbolName && p<ctx->compiledPackages.count;++p)
+        for(size_t e=0;e<ctx->compiledPackages.items[p].entryCount;++e) {
+            const XL_PackageEntry* entry=&ctx->compiledPackages.items[p].entries[e];
+            if(!strcmp(entry->name,symbolName) && entry->address!=fn) {
+                xlSetError(ctx,"compiled package native symbol conflict");xlApiUnlock();return 0;
+            }
+        }
     ok = xlContextAddSymbol(ctx, symbolName, fn);
     if ( !ok ) {
         xlSetError(ctx, "cannot register C function");
@@ -4524,6 +4549,10 @@ XL_API int xlTccRegisterContextEnvironment(XL_Context* ctx, TCCState* state, int
     }
     xlApiLock();
     xlClearLastErrorUnlocked(ctx);
+    if(outputType!=TCC_OUTPUT_MEMORY && ctx->compiledPackages.count) {
+        xlSetError(ctx,"compiled package addresses may only be registered for in-process execution");
+        xlApiUnlock();return 0;
+    }
     ok = xlEnsureTcc(ctx) &&
          xlConfigureTccStateEnvironment(ctx, state, outputType) &&
          xlAddContextSymbols(ctx, state);

@@ -140,6 +140,11 @@ typedef enum XL6_AstKind {
 /* 仅供语义规范化使用，源码不能构造该标记。 */
 #define XL6_AST_FLAG_CLASS_HANDLE 0x80000000u
 
+#define XL6_COMPILED_PARAM_LIFETIME_TAG 0x100u
+#define XL6_COMPILED_PARAM_LIFETIME_VALID(value) \
+    (((value)&~0x10Fu)==0 && ((value)&0x100u)!=0 && \
+     (((value)>>2)&3u)>=1 && (((value)>>2)&3u)<=2 && ((value)&3u)!=3u)
+
 typedef struct XL6_AstSource {
     size_t references;
     char* path;
@@ -187,6 +192,11 @@ typedef struct XL6_AstNode {
     uint32 semanticTargetSymbolId;
     /* Exact implicit receiver bound by a language create/destroy body. */
     uint32 semanticReceiverSymbolId;
+    /* Trusted compiled-package declaration boundary; never source syntax. */
+    char* compiledPackageLink;
+    /* Callable error ABI (1/2), or tagged lifetime facts on imported PARAM. */
+    unsigned int compiledPackageError;
+    int compiledPackageRoot;
     /* A compound assignment can name two independent callable boundaries:
      * semanticTargetSymbolId is the destination setter (when present), while
      * this field is the exact overloaded operator selected for the

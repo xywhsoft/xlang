@@ -1197,10 +1197,15 @@ static int xl6IrCgenEmitDynamicMethodRuntime(
             if (!xl6IrCgenEmitLauncherPrototype(out,module,target,diags)) return 0;
             continue;
         }
+        const XL6_IrNode* declaration=xl6IrNodeGet(module,target->declaration);
+        /* Compiled-package entries have an exact external prototype emitted
+         * before this adapter family, not a duplicate local function body. */
+        if(declaration && declaration->compiledPackageLink)continue;
         function = xl6IrCgenFindFunction(
             module, module->dynamicMethods[methodIndex].targetSymbol);
-        if ( function == NULL ||
-             !xl6IrCgenEmitPrototype(out, module, function, diags) ) return 0;
+        if ( function == NULL )return xl6IrCgenDiag(diags,module,target->declaration,
+            "XLIR dynamic method has no function implementation or compiled package binding");
+        if (!xl6IrCgenEmitPrototype(out, module, function, diags)) return 0;
         xl6OutputPuts(";\n", out);
     }
     for ( methodIndex = 0; methodIndex < module->dynamicMethodCount;

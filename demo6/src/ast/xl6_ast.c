@@ -335,6 +335,7 @@ void xl6AstFree(XL6_AstNode* node)
     xrtFree(node->children);
     xl6AstFree(node->inferredType);
     xl6AstFree(node->semanticDeclaredType);
+    xrtFree(node->compiledPackageLink);
     xrtFree(node->text);
     xrtFree(node->literalData);
     xrtFree(node->doc);

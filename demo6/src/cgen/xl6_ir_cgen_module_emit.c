@@ -134,6 +134,7 @@ int xl6IrCgenEmitCEx(XL6_Output* out, const XL6_IrModule* module,
             needs.needsWebSocketStreamTlsRuntime);
     if ( !xl6IrCgenEmitAsyncAndCallableRuntime(out, module, &needs, diags) ) return 0;
     if ( !xl6IrCgenEmitResourceRuntime(out, module, &needs, diags) ) return 0;
+    if (!xl6IrCgenCompiledPackagePrototypes(out,module,diags)) return 0;
     /* Dynamic adapters consume physical bridge definitions, not normalized
      * language prototypes. Emit them after every selected bridge family. */
     if ( needs.needsDynamicMethodRuntime &&
@@ -141,6 +142,8 @@ int xl6IrCgenEmitCEx(XL6_Output* out, const XL6_IrModule* module,
     if ( !xl6IrCgenEmitModuleDefinitions(
             out, module, &needs, options, diags) ) return 0;
     if ( !xl6IrCgenEmitModuleOwnershipTrace(out, module, &needs) ) return 0;
+    if (!xl6IrCgenCompiledPackageDefinitions(out,module,needs.needsXlangRuntime,
+            options && options->emitMainWrapper,diags)) return 0;
     if ( !xl6IrCgenEmitSyntheticScriptEntry(out, module,
             options != NULL && options->emitScriptEntry) ) return 0;
     return xl6IrCgenEmitHostBindings(out, module,

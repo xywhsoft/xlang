@@ -1,0 +1,5 @@
+{
+  "format": "xlang-package-1", "name": "embedded_math", "version": "1.0.0", "abiVersion": "1",
+  "artifact": {"kind": "source", "xlSources": ["math.xl"], "cSources": ["native.c"], "xrtModules": []},
+  "dependencies": [], "links": [], "loadlibs": []
+}

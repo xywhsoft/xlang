@@ -1,0 +1,18 @@
+import xlang
+import embedded_math
+
+func main(...) as int
+    assert embedded_math.next() == 1
+    auto engine = xlang.Context()
+    if not engine.importPackage(xlang.compiledPackage("embedded_math")) then
+        println(engine.lastError)
+        return 1
+    end
+    if not engine.runFile("external.xl") then
+        println(engine.lastError)
+        return 1
+    end
+    assert embedded_math.next() == 3
+    println("embedded_package=ok")
+    return 0
+end
