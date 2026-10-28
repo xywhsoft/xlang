@@ -3779,18 +3779,17 @@ static int xl6SemInferGenericTypeFromTypes(
     return 1;
 }
 
-/* The receiver/container first fixes T. A later value argument may then
- * use the ordinary nullable lift, without relaxing invariant container slots. */
+/* Structural witnesses fix invariant type variables first. A direct T
+ * value then uses the already-supported nullable assignment boundary; it
+ * cannot re-infer T inside an Array/List/Set/Dict or function signature. */
 static int xl6SemInferGenericValueArgument(
     XL6_SemContext* ctx,const XL6_AstNode* typeParams,XL6_AstNode** inferred,
     const XL6_AstNode* parameter,const XL6_AstNode* value)
 {
     const XL6_AstNode* resolved=xl6SemResolveAliasType(ctx,parameter);
     int index=resolved && !resolved->childCount ? xl6SemTypeParamIndexIn(typeParams,resolved->text) : -1;
-    const XL6_AstNode* inner=index>=0 ? xl6SemNullableInnerType(inferred[index]) : NULL;
-    const XL6_AstNode* actual=xl6SemResolveAliasType(ctx,value);
-    if(inner && (xl6SemTypeEquals(ctx,value,inner) ||
-        (actual && xl6TextEquals(actual->text,"null")))) return 1;
+    if(index>=0 && xl6SemNullableInnerType(inferred[index]) &&
+       xl6SemTypeCanAssignFromType(ctx,value,inferred[index]))return 1;
     return xl6SemInferGenericTypeFromTypes(ctx,typeParams,inferred,parameter,value);
 }
 
@@ -4185,6 +4184,33 @@ static const XL6_AstNode* xl6SemGenericTypeParamArg(
     return NULL;
 }
 
+/* Collect shape constraints independently of source argument order. Do not
+ * evaluate/reorder values: this is a compiler-only type probe. The ordinary
+ * call matcher still diagnoses duplicate names, modes, arity and defaults. */
+static int xl6SemSeedGenericShapeArguments(XL6_SemContext* ctx,
+    const XL6_AstNode* call,const XL6_AstNode* func,XL6_AstNode** inferred)
+{
+    const XL6_AstNode* typeParams=xl6SemFuncTypeParams(func);
+    const XL6_AstNode* params=xl6SemCallableParams(func);
+    const XL6_AstNode* args=call && call->childCount>1 ? call->children[1] : NULL;
+    if(!inferred || !params || !typeParams)return 1;
+    int positional=0,fixed=xl6SemFixedParamCount((XL6_AstNode*)params);
+    for(size_t i=0;args && i<args->childCount;++i){
+        const XL6_AstNode* arg=args->children[i];
+        if(!arg)continue;
+        int index=arg->kind==XL6_AST_NAMED_ARG ? xl6SemFindParamIndex((XL6_AstNode*)params,fixed,arg->text) : positional++;
+        if(index<0 || index>=fixed)continue;
+        const XL6_AstNode* param=params->children[index];
+        const XL6_AstNode* type=param && param->childCount ? param->children[0] : NULL;
+        const XL6_AstNode* shape=xl6SemResolveAliasType(ctx,type);
+        if(!shape || (!shape->childCount && xl6SemTypeParamIndexIn(typeParams,shape->text)>=0) ||
+           !xl6SemTypeContainsTypeParam(typeParams,type))continue;
+        const XL6_AstNode* expr=arg->childCount ? arg->children[0] : NULL;
+        if(!xl6SemInferGenericFromExprShape(ctx,expr,type,typeParams,inferred,0))return 0;
+    }
+    return 1;
+}
+
 /* Substitution, unlike source syntax, may introduce an already optional
  * argument beneath T?. There is one null state, not an extra presence tag;
  * explicit nested nullable suffixes remain rejected by the type checker. */
@@ -4290,6 +4316,7 @@ static int xl6SemCallCandidateMatches(XL6_SemContext* ctx, XL6_AstNode* call, XL
         return 0;
     }
 
+    ok=xl6SemSeedGenericShapeArguments(ctx,call,func,inferredTypes);
     if ( args != NULL ) {
         for ( i = 0; i < args->childCount && ok; ++i ) {
             XL6_AstNode* arg = args->children[i];
@@ -4620,6 +4647,7 @@ static int xl6SemDiagnoseGenericCallArgMismatch(XL6_SemContext* ctx, XL6_AstNode
         return 0;
     }
 
+    (void)xl6SemSeedGenericShapeArguments(ctx,call,func,inferredTypes);
     positionalIndex = 0;
     seenNamed = 0;
     for ( i = 0; i < args->childCount; ++i ) {
@@ -7070,6 +7098,7 @@ static XL6_AstNode* xl6SemInferCallTypeArgs(
     if ( inferred == NULL ) {
         return NULL;
     }
+    if(!xl6SemSeedGenericShapeArguments(ctx,call,func,inferred))goto fail;
     fixedCount = xl6SemFixedParamCount((XL6_AstNode*)params);
     positionalIndex = 0;
     for ( i = 0; args != NULL && i < args->childCount; ++i ) {

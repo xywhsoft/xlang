@@ -85,6 +85,7 @@ def main():
             ['test/cases/extern_owned_task_scalars_host.c'],[]),
         ('error-array-extract','test/cases/extern_owned_error_array_extract.xl',
             ['test/cases/extern_owned_task_scalars_host.c','test/cases/extern_owned_string_host.c'],[]),
+        ('generic-nullable-order','test/cases/extern_owned_generic_nullable_order.xl',[],[]),
         ('bound-base-dispatch','test/cases/extern_owned_bound_base_dispatch.xl',[],[]),
         ('bound-async-generic','test/cases/extern_owned_bound_async_generic.xl',
             ['test/cases/extern_owned_string_host.c'],[]),
@@ -169,6 +170,7 @@ def main():
                 if args.cli else [binary,entry,'exe',work/'consumer-aot',*extra])
             run('export-C-consumer-aot',[(work/'consumer-aot').with_suffix('.exe' if os.name=='nt' else '')])
     negatives={
+        'test/cases/bad_extern_owned_nullable_derived_invariant.xl':None,
         'test/cases/bad_extern_owned_bound_ambiguous.xl':'typed bound method requires one exact overload',
         'test/cases/bad_extern_owned_integer.xl':'@owned requires',
         'test/cases/bad_extern_owned_product.xl':'@owned requires',
