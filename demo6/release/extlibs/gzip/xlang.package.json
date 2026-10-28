@@ -26,7 +26,7 @@
     "links": [],
     "loadlibs": [],
     "dependencies": [],
-    "coverage": { "mode": "suite", "tests": ["test/file_ops.xl", "test/error_dispatch.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/file_ops.xl", "test/error_dispatch.xl", "test/top_level.xl"] },
     "native": {
         "singleton": false,
         "loadName": "",

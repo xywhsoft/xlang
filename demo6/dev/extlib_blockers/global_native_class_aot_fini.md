@@ -1,5 +1,41 @@
 # 顶层 native-backed class 在独立 EXE 退出时失败
 
+## 2026-10-29 Gzip 第20个已实测涉及包
+
+补 `release/extlibs/gzip/test/top_level.xl`：全局保存一个真实压缩器，
+main内断言有效并打印 `gzip top-level: PASS`，自然退出时析构。
+固定发布版的Windows/Linux均为JIT退出0、构建退出0、独立EXE打印
+PASS后报同一状态错误并退出1。没有更新主线/XRT或靠提前销毁绕开。
+共享专项增加gzip选择及默认覆盖，恢复时从demo6执行：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/check_extlib_native_globals.ps1 -Package gzip
+```
+
+```sh
+bash tools/check_extlib_native_globals.sh gzip
+```
+
+Windows完整默认门禁54项，51个正向阶段和两项预期访问拒绝符合预期，
+只有最后生命周期子门禁未过；四种C头组合、25个生成C原型、139项
+zlib互通、13个内存/70个文件分配故障点、旧C/XLang与双语JIT/AOT
+均通过，输入变动0。正式报告及产物保留于
+`build/test/gzip_header_8baac82b7e504d25aca76f03806074b8`；生命周期
+子报告为 `build/test/native_globals_92745b063d7c46df9e0b4abfe53b0395`。
+
+Linux完整门禁使用原生快照 `/var/tmp/xlang-gzip-header-src-PeO005`。
+四头组合、C ASan/UBSan、139项互通、13个内存/48个文件故障点、
+七份旧AOT及双语输出均先通过，最后在新顶层AOT退出时报错，整体
+退出1。逐阶段生命周期现场在 `tmp/xlang-native-globals-53ulQH`，
+父门禁与外层源件/快照复核一致；全部失败现场保留。
+
+同轮的Gzip声明头模块污染/包含顺序问题已独立修正并验证先红后绿，
+它不是这一退出期问题的修复。M2已实测涉及19增至20包，Gzip由G
+转M；仍只证明同一可观察边界，不证明20包内部已全部同根。主线
+修复方向仍为全局对象、模块、代码/类型及错误作用域的有序退役。
+文件双故障没有在本轮实测，不从其他压缩包静态相似路径把它计为
+Gzip已确认RFS，也不把旧单点OOM通过当成双故障已验收。
+
 ## 2026-10-29 七包顶层生命周期专项
 
 继续逐包实测，而不是根据相似析构声明推断：LZ4、BZ2、LZMA、miniz、

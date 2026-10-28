@@ -1,11 +1,30 @@
 # gzip
 
+2026-10-29：桥接声明头不再强制开启宿主的 VALUE 模块，仅包含标准
+bool/size_t 与 opaque xvalue 声明；独立包含、核心头优先、桥接头优先、
+已配置XRT优先四种严格C组合在两平台均先红后绿，25个生成原型未变。
+
+新增 `test/top_level.xl` 另确认 **M2 主线阻断**：全局真实压缩器在
+Windows/Linux JIT均正常退出，独立EXE均打印PASS后于退出期报状态
+错误并退出1。默认门禁保留此项，暂不作完整发布签收；不移动全局
+对象、不提前销毁或吞异常。复现与修复方向见
+`dev/extlib_blockers/global_native_class_aot_fini.md`，本任务不改主线。
+
+Windows默认完整54项，51个正向阶段与两项预期访问拒绝符合预期，
+仅最后生命周期子门禁失败；含139项zlib互通、13个内存故障点、70个
+文件故障点、旧C/语言JIT/AOT及双语黄金输出，输入变动0。正式结果
+保留在 `build/test/gzip_header_8baac82b7e504d25aca76f03806074b8/results.json`。
+Linux原生快照PeO005同样先过四头组合、C ASan/UBSan、相同互通、
+13个内存/48个文件故障点、七份旧AOT和双语输出，最后在新顶层AOT
+失败；内外输入一致并保留现场。这里没有重跑或签收其余七包算法。
+文件双故障仍需独立测试，不从其他压缩包的静态相似代码推断结论。
+
 2026-10-26 当前发布版的 Windows 完整门禁及 Linux 联合门禁均退出 0。
 Windows 覆盖 C/zlib 互通、分配故障、文件事务、生成 ABI 与双语 JIT/AOT；
 Linux 覆盖严格 C ASan/UBSan、139 项独立 zlib 互通、语言完整用例、
 文件/错误边界，以及 C/XLang 范例的独立 EXE 与黄金输出。此前 Linux
 Buffer 字节异或的 typed XLIR 错误及旧 AOT 缺符号均未在当前发布物复现。
-按本包公开合同签收；不把它外推为超大文件、并发压力、断电恢复或
+当日仅按已测合同范围签收；不把它外推为超大文件、并发压力、断电恢复或
 性能的认证。旧版失败记录留在下方，仅作历史。
 
 标准 gzip 字节流与事务文件压缩。编解码、CRC32 和 ISIZE 校验复用宿主 XRT，
@@ -46,19 +65,19 @@ assert gzip.decompressText(stream) == "leftright"
 
 | API | 参数与结果 |
 | --- | --- |
-| `compress(Buffer|string data, int level=-1, int mtime=0, int maxInput=268435456, int maxOutput=536870912)` | `Buffer` |
+| `compress(Buffer\|string data, int level=-1, int mtime=0, int maxInput=268435456, int maxOutput=536870912)` | `Buffer` |
 | `decompress(Buffer data, int maxInput=268435456, int maxOutput=536870912, int maxRatio=1000)` | `Buffer` |
 | `decompressText(Buffer data, int maxInput=268435456, int maxOutput=536870912, int maxRatio=1000)` | 解压后校验 UTF-8 并接管文本缓冲；二进制内容使用 `decompress` |
-
-`decompressText` 取走 XRT 解压缓冲的有效载荷交给 `cstring`，
-不再经 `Buffer.text()` 无条件复制。追加末尾 NUL 时容量不足仍可能扩容。
-返回文本保留内嵌 NUL；
-非法 UTF-8 抛 `ValueError`。XLang 内部调用可共享该所有权，
-通过公开 C 导出调用时仍按普通字符串 ABI 转换。
 | `compressFile(string source, string destination, int level=-1, int mtime=0, bool overwrite=true, int maxInput=268435456, int maxOutput=536870912, onProgress=null)` | 同步文件压缩，无返回值 |
 | `decompressFile(string source, string destination, bool overwrite=true, int maxInput=268435456, int maxOutput=536870912, int maxRatio=1000, onProgress=null)` | 同步文件解压，无返回值 |
 | `compressor(int level=-1, int mtime=0, int maxInput=268435456, int maxOutput=536870912)` | `gzip.GzipCompressor` |
 | `decompressor(int maxInput=268435456, int maxOutput=536870912, int maxRatio=1000)` | `gzip.GzipDecompressor` |
+
+`decompressText` 取走 XRT 解压缓冲的有效载荷交给 `cstring`，
+不再经 `Buffer.text()` 无条件复制。追加末尾 NUL 时容量不足仍可能扩容。
+返回文本保留内嵌 NUL；非法 UTF-8 抛 `ValueError`。
+XLang 内部调用可共享该所有权，通过公开 C 导出调用时仍按普通字符串
+ABI 转换。
 
 两个导出类均有只读属性 `valid`、`inputBytes`、`outputBytes`、`finished`，
 以及 `drain() as Buffer`、`finish() as Buffer`。压缩器 `update` 接收字符串或

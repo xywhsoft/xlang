@@ -25,6 +25,7 @@
   <header class="extlib-head">
     <p><a href="../extlibs.html">扩展库</a> / gzip</p>
     <div class="extlib-title-row"><h1>gzip</h1><span class="extlib-cat-badge">压缩</span></div>
+    <p>2026-10-29：桥接头的宿主模块污染与包含顺序已修，四种严格C组合两平台先红后绿，25个生成原型不变。新全局压缩器用例确认M2主线阻断：Windows/Linux JIT退出0，独立EXE均打印校验PASS后于退出期报状态错误、退出1。两平台完整门禁的旧C/算法/互通与双语JIT/AOT先通过，最后在该新边界报红；默认保留检查，当前不作完整发布签收，不移动全局对象绕开。下列旧通过记录不覆盖这一新增边界。</p>
     <p>2026-10-26 当前 Windows/Linux 发布版的完整包门禁均通过：严格 C、Linux ASan/UBSan、139 项 zlib 互通、文件事务、语言核心与错误边界，以及双语范例独立 EXE 同输出。旧 Linux typed XLIR 与 AOT 缺符号问题在本次发布物中未复现；下方早期失败记录只反映当时的构建。不把本次检查外推为超大文件、并发压力、断电恢复或性能认证。</p>
     <p class="extlib-lead">UTF-8 文本、二进制、增量流与事务文件压缩。直接复用宿主 XRT 的 gzip 编解码器和校验，无额外压缩 DLL。</p>
   </header>

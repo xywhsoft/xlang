@@ -20,6 +20,7 @@ $paths = @('lib/xrt/xrt.h','lib/xruntime/xruntime.h',
     'release/include/xrt_decl.h','release/include/xruntime_decl.h',
     'test/support/extlib_codec_runtime.c','test/cases/extlib_codec_file_allocation.c','tools/check_extlib_gzip.ps1','tools/check_extlib_gzip_interop.py',
     'tools/extlib_smoke_process.ps1','tools/xlir_native_process.ps1','tools/run_extlib_c.ps1',
+    'tools/check_extlib_native_globals.ps1','tools/check_extlib_native_globals.sh',
     'test/phase1_extlibs.json','test/suites/12_phase1_extlibs.bat','tools/check_extlib_gzip.sh',
     'test/cases/extlib_gzip.xl','test/cases/extlib_gzip_progress.xl','release/examples/extlibs/gzip.xl',
     'release/examples/extlibs/gzip_basic.xl','release/examples/extlibs/gzip_basic.expected.txt',
@@ -30,6 +31,7 @@ $paths += Get-ChildItem (Join-Path $Root 'release/extlibs/gzip') -Recurse -File 
     ForEach-Object { $_.FullName.Substring($Root.Length + 1).Replace('\','/') }
 $paths = @($paths | ForEach-Object { Join-Path $Root $_ })
 $paths += @('xl.exe','xl.dll','xlc.dll') | ForEach-Object { Join-Path $RuntimeDirectory $_ }
+$paths += Get-ChildItem (Join-Path $RuntimeDirectory 'include') -Recurse -File | ForEach-Object FullName
 $includes = @('-Ilib/xrt','-Ilib/xruntime')
 if ($XrtInclude) {
     $XrtInclude = (Resolve-Path -LiteralPath $XrtInclude).Path
@@ -56,6 +58,11 @@ $runtime = Join-Path $work 'runtime.o'
 $outcome = 'failed'
 $failure = ''
 try {
+    $null = Check 'compiler-version' $gcc @('--version')
+    foreach ($order in @('ALONE','CORE_FIRST','NATIVE_FIRST','XRT_FIRST')) {
+        $null = Check "native-header-$order" $gcc ($flags + @("-DGZIP_$order",'-fsyntax-only',
+            'release/extlibs/gzip/test/native_header.c'))
+    }
     foreach ($kind in @('compressor','decompressor')) {
         $name = "private_${kind}_negative"
         $args = @('check',"release/extlibs/gzip/test/$name.xl")
@@ -164,6 +171,9 @@ try {
         $cAot -cne $expectedOutput -or $helperOutput -cne $expectedOutput) {
         throw 'C/xlang examples differ from the common golden output'
     }
+    $null = Check 'top-level-lifecycle' (Get-Process -Id $PID).Path @('-NoProfile','-ExecutionPolicy','Bypass',
+        '-File','tools/check_extlib_native_globals.ps1','-Root',$Root,'-RuntimeDirectory',$RuntimeDirectory,
+        '-Package','gzip') 360
     $outcome = 'passed'
 } catch {
     $failure = $_.Exception.Message
