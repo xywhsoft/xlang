@@ -1,0 +1,16 @@
+import cString
+
+// 完整记录长度与 C 文本前缀长度是两种合同，不能混作网络包或文件长度。
+func describe(string name, string text)
+    println(f"{name}: bytes={string.byteLen(text)}, c={cString.length(text)}")
+end
+
+func main(...) as int
+    describe("ascii", "alpha")
+    describe("unicode", "你好")
+    describe("payload", "name\0payload")
+    describe("leading", "\0payload")
+    describe("trailing", "后\0")
+    describe("empty", "")
+    return 0
+end

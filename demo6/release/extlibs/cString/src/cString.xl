@@ -1,3 +1,2 @@
-// Explicit C-string interop: counts bytes before the first NUL, not Unicode
-// scalar values.  Normal xlang text should use string.len/string.byteLen.
+// 显式 C 字符串互操作：只计首个 NUL 前的字节，普通文本用 string.len/byteLen。
 export extern "strlen" @pure @no_raise @nonblocking func length(string text) as c_size
