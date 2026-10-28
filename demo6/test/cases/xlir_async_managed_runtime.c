@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <windows.h>
+#include "test/support/xlir_ownership_wait.h"
 #include "xlir_async_managed_dll.h"
 
 static const XL6_ContinuationFrameRuntimeV2* api;
@@ -25,8 +26,8 @@ static void balance(const xmemdebugsnapshot* before)
 }
 static DWORD WINAPI freezer(void* unused)
 {
-    (void)unused;xrtownershipscope scope={0};ULONGLONG stop=GetTickCount64()+5000;
-    while(!xrtOwnershipFreezeTryBegin(&scope)){assert(GetTickCount64()<stop);SwitchToThread();}
+    (void)unused;xrtownershipscope scope={0};
+    xlirOwnershipFreezeBegin(&scope);
     assert(xrtOwnershipScopeEnd(&scope));return 0;
 }
 static void cross_thread(void)
@@ -37,13 +38,13 @@ static void cross_thread(void)
 static size_t count(void* frame)
 {
     xrtownershipscope scope={0};size_t refs=177;
-    assert(xrtOwnershipFreezeTryBegin(&scope));xrtownershipref root=api->Ownership(frame);
+    xlirOwnershipFreezeBegin(&scope);xrtownershipref root=api->Ownership(frame);
     assert(root.Ops->Count(root.Data,&refs));assert(xrtOwnershipScopeEnd(&scope));return refs;
 }
 static void uninspectable(void* frame)
 {
     xrtownershipscope scope={0};size_t refs=177;
-    assert(xrtOwnershipFreezeTryBegin(&scope));xrtownershipref root=api->Ownership(frame);
+    xlirOwnershipFreezeBegin(&scope);xrtownershipref root=api->Ownership(frame);
     assert(!root.Ops->Count(root.Data,&refs)&&refs==177);
     const xrtownershippreparationv1* preparation=NULL;
     assert(!xl6ContinuationFrameOwnershipAdapterV1(root,&preparation)&&!preparation);
@@ -123,25 +124,25 @@ static void native(unsigned mode,unsigned order)
     }
     assert(count(frame)==2);
     xrtownershipscope freeze={0};const xrtownershippreparationv1* prep=NULL;int token=1;
-    assert(xrtOwnershipFreezeTryBegin(&freeze));
+    xlirOwnershipFreezeBegin(&freeze);
     const xrtownershipadapterv1* adapter=xl6ContinuationFrameOwnershipAdapterV1(root,&prep);
     assert(adapter&&prep&&!prep->Ready(root.Data)&&adapter->Claim(root.Data,&token));
     assert(xrtOwnershipScopeEnd(&freeze));
     assert(prep->Prepare(root.Data,&token)==XRT_OWNERSHIP_PREPARE_BUSY&&!stats.runs&&!stats.finalizers);
-    assert(xrtOwnershipFreezeTryBegin(&freeze));adapter->Restore(root.Data,&token);assert(xrtOwnershipScopeEnd(&freeze));
+    xlirOwnershipFreezeBegin(&freeze);adapter->Restore(root.Data,&token);assert(xrtOwnershipScopeEnd(&freeze));
     XL6_OwnershipPlan* plan=NULL;
-    assert(xl6OwnershipPlanTryCreateV2(root,resolve,&token,&plan)==XL6_OWNERSHIP_PLAN_ERROR&&!plan);++refusals;xrtClearError();
-    assert(xl6OwnershipPlanTryCreateV2(root,resolve,NULL,&plan)==XL6_OWNERSHIP_PLAN_ROOTED&&plan);
-    assert(xl6OwnershipPlanTryCommit(plan)==XL6_OWNERSHIP_PLAN_ROOTED);
-    assert(xl6OwnershipPlanTryDestroy(plan)==XL6_OWNERSHIP_PLAN_READY);plan=NULL;
+    assert(xlirOwnershipPlanCreateV2(root,resolve,&token,&plan)==XL6_OWNERSHIP_PLAN_ERROR&&!plan);++refusals;xrtClearError();
+    assert(xlirOwnershipPlanCreateV2(root,resolve,NULL,&plan)==XL6_OWNERSHIP_PLAN_ROOTED&&plan);
+    assert(xlirOwnershipPlanStep(xl6OwnershipPlanTryCommit,plan)==XL6_OWNERSHIP_PLAN_ROOTED);
+    assert(xlirOwnershipPlanStep(xl6OwnershipPlanTryDestroy,plan)==XL6_OWNERSHIP_PLAN_READY);plan=NULL;
     xl6ContinuationQueueClose(queue);assert(xl6ContinuationRunOne(queue)&&!xl6ContinuationRunOne(queue));
     assert(stats.runs==1&&stats.finalizers==1&&count(frame)==(mode==1?2u:1u));
     assert(xl6ContinuationQueueDestroy(queue));
-    assert(xl6OwnershipPlanTryCreateV2(root,resolve,NULL,&plan)==XL6_OWNERSHIP_PLAN_ROOTED&&plan);
+    assert(xlirOwnershipPlanCreateV2(root,resolve,NULL,&plan)==XL6_OWNERSHIP_PLAN_ROOTED&&plan);
     assert(prep->Ready(root.Data));api->Release(frame);
     if(stats.resurrected)api->Release(stats.resurrected);
-    assert(xl6OwnershipPlanTryCommit(plan)==XL6_OWNERSHIP_PLAN_READY);
-    assert(xl6OwnershipPlanFinish(plan)&&xl6OwnershipPlanTryDestroy(plan)==XL6_OWNERSHIP_PLAN_READY);
+    assert(xlirOwnershipPlanStep(xl6OwnershipPlanTryCommit,plan)==XL6_OWNERSHIP_PLAN_READY);
+    assert(xl6OwnershipPlanFinish(plan)&&xlirOwnershipPlanStep(xl6OwnershipPlanTryDestroy,plan)==XL6_OWNERSHIP_PLAN_READY);
     ++transactions;balance(&before);
 }
 static void complete(xpromise* promise,unsigned outcome)
@@ -254,7 +255,7 @@ static void dll_lifetime(const char* file,bool adapterLast)
     owner.closed=true;xl6ContinuationQueueClose(queue);assert(count(frame)==2&&owner.pins==1&&owner.acquired==1);
     xrtownershipref root=api->Ownership(frame);const xrtownershippreparationv1* prep=NULL;const xrtownershipadapterv1* adapter=NULL;
     if(adapterLast){
-        xrtownershipscope freeze={0};assert(xrtOwnershipFreezeTryBegin(&freeze));
+        xrtownershipscope freeze={0};xlirOwnershipFreezeBegin(&freeze);
         adapter=xl6ContinuationFrameOwnershipAdapterV1(root,&prep);assert(adapter&&prep&&adapter->Hold(root.Data));
         assert(xrtOwnershipScopeEnd(&freeze));api->Release(frame);assert(count(frame)==2);
     }
