@@ -47,6 +47,35 @@ static int test_idempotence(void)
     return 0;
 }
 
+/* 短结果只需一个输出缓冲；合法空结果也必须移交而非额外复制。 */
+static int test_owned_result_budget(void)
+{
+    const char* sources[] = {"Hello, World!", "你好 Café", "", "!!!"};
+    const char* expected[] = {"hello-world", "你好-cafe", "", ""};
+    size_t i;
+    for (i = 0; i < sizeof(sources) / sizeof(sources[0]); ++i) {
+        unsigned budget;
+        for (budget = 0; budget < 2u; ++budget) {
+            char* result;
+            bool triggered;
+            bool memory_error;
+            CHECK(xrtMemDebugFailAfter(budget));
+            result = xsl_slugify(sources[i], (long long)strlen(sources[i]));
+            triggered = xrtMemDebugFailTriggered();
+            memory_error = xrtErrorKind(xrtGetError()) == XERR_MEMORY;
+            xrtMemDebugFailClear();
+            if (budget == 0u) {
+                CHECK(result == NULL && triggered && memory_error);
+            } else {
+                CHECK(result != NULL && !triggered && !memory_error);
+                CHECK(strcmp(result, expected[i]) == 0 && xrtGetError() == NULL);
+                xrtFree(result);
+            }
+        }
+    }
+    return 0;
+}
+
 int main(void)
 {
     char long_text[12001];
@@ -167,6 +196,7 @@ int main(void)
         CHECK(rejected >= 1u && failure < 16u);
     }
 
+    CHECK(test_owned_result_budget() == 0);
     puts("slugify C boundaries: PASS");
     return 0;
 }
