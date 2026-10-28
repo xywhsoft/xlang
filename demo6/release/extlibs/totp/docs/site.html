@@ -18,7 +18,8 @@
 <main class="extlib-layout" id="main-content">
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / totp</p><h1>totp</h1>
     <p class="extlib-lead">基于 HMAC-SHA1 的一次性验证码。</p>
-    <p>支持 Base32 密钥、HOTP/TOTP、可配置位数和有界时钟窗口；Windows 包级 C、XLang 与 AOT 门禁已通过。</p>
+    <p>支持 Base32 密钥、HOTP/TOTP、可配置位数和有界时钟窗口；Windows/Linux 包级 C、XLang 与 AOT 门禁已通过。</p>
+    <p>2026-10-28 修掉三条接管后的返回复制。C/XLang 各六组预算确认三个生成入口均只需一次最终结果分配，完整 cgen 没有后续正文副本；前导零、实时调用及 Linux 时钟故障回归通过。长度扫描、错误作用域和原生计算仍存在，不宣称整个操作零开销。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>

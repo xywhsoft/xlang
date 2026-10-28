@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-/* 返回独立的 XRT 字符串，C 调用方用 xrtFree 释放；失败返回 NULL。 */
+/* 返回独立 XRT 字符串，C 调用方用 xrtFree；失败返回 NULL 并设置 XRT 错误。 */
 char* xtotp_hotp(const char* secret, long long secret_length,
     long long counter, int digits);
 char* xtotp_generate_at(const char* secret, long long secret_length,

@@ -1,5 +1,22 @@
 # totp
 
+2026-10-28 完整返回链复查：此前门禁只检查原生结果被接管，三个可空
+局部返回仍各生成一次 `xlir_string_copy`。现三条生成函数直接返回
+`@owned string`，C 的 NULL 错误由外部调用边界传播；没有改变 HMAC、
+Base32、C ABI、时钟故障或正常验证不匹配的合同。
+
+HOTP、指定时间及实时生成各用 0/1 分配预算，C/XL 共各 6 组，语言
+侧先红后绿；只需一次最终验证码分配，预算 0 仍是内存错误。固定
+向量验证前导零，实时预算用例只验证六位 ASCII 数字，另由既有双语
+范例检查实时生成/验证，不把随墙钟变化的验证码写进黄金文件。
+完整 cgen 夹具显式调用三个入口，接管后没有正文副本；strlen、错误
+作用域和原生计算仍存在，不宣称整个操作对手写 C 零开销。
+
+Windows/Linux 默认完整门禁通过严格 GCC/TCC C、Linux ASan/UBSan、
+RFC/最大密钥/时钟故障、线程、旧新语言回归与双语 JIT/AOT。测试
+运行库按产品 SHA1/TIME 模块加线程/内存调试构建；输入指纹收尾核对，
+失败保留命令和现场，主线/XRT 未改。
+
 2026-10-27 所有权收口：三条验证码生成入口的 C 原型明确为拥有型
 `char*`，XLang 以 `@owned string?` 直接接管 XRT 分配，不再经过
 `point` / `takeCstr`。无效参数、时钟失败及分配故障仍由原有门禁
@@ -64,11 +81,11 @@ Windows `test/check.ps1 -SkipAot` 与 Linux C ASan/UBSan、线程、XLang
 
 在 `demo6/release` 运行 `xl run extlibs/totp/test/boundaries.xl`；在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package totp -Source release/extlibs/totp/test/test_totp.c`。边界覆盖 RFC 向量、长密钥 HMAC、精确时间步、Base32 非法填充、窗口和多线程独立结果。
 
-在 `demo6` 目录还可运行 `release/xl.exe run release/extlibs/totp/test/allocations.xl`；两份包内 XLang 用例均登记在 `coverage.tests`。Linux 运行 `bash release/extlibs/totp/test/check.sh`，以严格 GCC 和 ASan/UBSan 重建 C 边界与线程测试，检查 manifest 模块宏，并运行中央及包内 XLang 用例、逐字节核对 C/XLang 范例输出。2026-10-14 新增 C 输出分配故障、XLang 三个生成入口的内存异常和失败后恢复测试；算法没有更改。
+在 `demo6` 目录还可运行 `release/xl.exe run release/extlibs/totp/test/allocations.xl`；加上 `test/owned_results.xl` 后三份包内 XLang 用例均登记在 `coverage.tests`，`test/owned_probe.xl` 单独核对完整生成返回链。Linux 运行 `bash release/extlibs/totp/test/check.sh`，以严格 GCC 和 ASan/UBSan 重建 C 边界与线程测试，检查 manifest 模块宏，并运行中央及包内 XLang 用例、逐字节核对 C/XLang 范例输出。2026-10-14 新增 C 输出分配故障、XLang 三个生成入口的内存异常和失败后恢复测试；算法没有更改。
 
 Windows 可从 `demo6` 目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/totp/test/check.ps1`：严格 GCC 宏检查、C 边界和线程、中央及包内 XLang 用例，以及包运行器 C、单文件 C、XLang 范例分别与固定 RFC 输出比较。默认还构建运行中央核心与完整范例 AOT，并对照同一固定 RFC 输出；`-SkipAot` 只运行 C/JIT 快测。Linux 专属的系统时钟故障注入仍由 `test/check.sh` 检查。
 
-当前默认门禁还构建并运行包内边界与分配故障两份 AOT，与同次 JIT 输出对照。
+当前默认门禁还构建并运行包内边界、分配故障、拥有型结果预算三份 AOT，与同次 JIT 输出对照；Windows 另用严格 GCC 运行 C 边界及预算。两平台使用独占目录，成功清理，失败保留命令、输入指纹与产物。
 
 2026-10-14 补 C 公开入口的失败后成功/不匹配连续调用回归，修复旧线程错误残留；Windows 严格 GCC、C/XLang 边界与 Linux ASan/UBSan 均通过，完整 AOT 阻断不变。
 
