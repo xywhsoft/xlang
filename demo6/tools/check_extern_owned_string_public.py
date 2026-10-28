@@ -94,9 +94,10 @@ def main():
     error_array_contract = ROOT/'test/cases/xlir_error_array_admission.c'
     reference_boundary_contract = ROOT/'test/cases/xlir_error_transport_contract.c'
     bound_dispatch_contract = ROOT/'test/cases/xlir_bound_dispatch_contract.c'
+    producer_tail_contract = ROOT/'test/cases/xlir_task_producer_tail.c'
     for path in [source, *native, template, contract, oom_contract, task_scalar_contract, task_composition_contract, task_optional_contract,
             task_reference_contract,error_array_contract,
-            reference_boundary_contract,bound_dispatch_contract,
+            reference_boundary_contract,bound_dispatch_contract,producer_tail_contract,
             ROOT/'test/cases/extern_owned_bound_base_dispatch.xl',
             ROOT/'test/cases/extern_owned_error_safe_index.xl',
             ROOT/'test/cases/extern_owned_bound_method_defaults.xl',
@@ -188,6 +189,21 @@ def main():
              '-Wno-unused-parameter','-Wno-missing-field-initializers',unit,*links,'-o',output]),encoding='utf-8')
         run(name+'-build',[cc,'@'+str(response)])
         assert message in run(name,[output])
+    # This pass-level test supplies the task-frame implementation so it can
+    # construct the final producer reference deterministically. Every other
+    # provider comes from the verified cohort, including native worker/join.
+    frame_name='xl6_task_frame.c'
+    tail_links=([row['Path'] for row in build['Objects'] if Path(row['Source']).name!=frame_name and
+                 not Path(row['Source']).name.startswith('xlir_public_source_')]+[str(tool_runtime),
+                 '-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32']) if 'Inputs' in build else [
+                 *[row['object'] for row in build['objects'] if Path(row['source']).name!=frame_name],'-pthread','-ldl','-lm']
+    output=work/('producer-tail-contract'+('.exe' if os.name=='nt' else ''))
+    response=work/'producer-tail-contract.rsp'
+    response.write_text('\n'.join('"'+str(value).replace('\\','/')+'"' for value in
+        [*flags,'-O2','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-parameter',
+         '-Wno-missing-field-initializers',producer_tail_contract,*tail_links,'-o',output]),encoding='utf-8')
+    run('producer-tail-contract-build',[cc,'@'+str(response)])
+    assert '64 deterministic BUSY deferrals' in run('producer-tail-contract',[output])
     # GNU wrapping must reach calls inside the compiler, so link its verified
     # source objects on Linux too, rather than wrapping the shared-library API.
     oom_links = links if 'Inputs' in build else [
