@@ -616,8 +616,36 @@ static int xl6SemCOwnedAdaptCallArguments(XL6_SemContext* ctx,XL6_AstNode* call,
         const XL6_AstNode* parameter=params->children[position];
         const XL6_AstNode* type=parameter->childCount ? xl6SemResolveAliasType(ctx,parameter->children[0]) : NULL;
         const XL6_AstNode* element=xl6SemCOwnedResolvedElement(ctx,type);
-        if(element && xl6TextEquals(element->text,"function") &&
-           !xl6SemCOwnedAdaptCallableExpr(ctx,argument->children[0],type))return 0;
+        if(element && xl6TextEquals(element->text,"function")){
+            /* Probing overloads cannot publish a method selection. Commit it
+             * at the chosen call boundary, using its concrete owner/method
+             * parameters, before any ordinary-result adaptation is applied. */
+            XL6_AstNode* concrete=xl6SemCloneTypeNode(type);
+            const XL6_AstNode* callee=call->children[0];
+            if(callee->kind==XL6_AST_GENERIC_INSTANT && callee->childCount)callee=callee->children[0];
+            if(concrete && callee->kind==XL6_AST_MEMBER && callee->childCount==1){
+                XL6_AstNode* receiver=xl6SemInferAutoTypeNode(ctx,callee->children[0]);
+                const XL6_AstNode* ownerType=xl6SemClassValueType(ctx,receiver);
+                XL6_AstNode* owner=ownerType ? xl6SemFindTypeDecl(ctx,ownerType->text) : NULL;
+                const XL6_AstNode* ownerArgs=xl6SemTypeNodeGenericArgs(ownerType);
+                if(owner && owner->kind==XL6_AST_CLASS && ownerArgs){
+                    XL6_AstNode* closed=xl6SemSubstituteClassType(owner,ownerArgs,concrete);
+                    xl6AstFree(concrete);concrete=closed;
+                }
+                xl6AstFree(receiver);
+            }
+            XL6_AstNode* methodArgs=xl6SemInferCallTypeArgs(ctx,call,(XL6_AstNode*)function);
+            if(concrete && methodArgs){
+                XL6_AstNode* closed=xl6SemSubstituteGenericTypeArgs(xl6SemFuncTypeParams(function),methodArgs,concrete);
+                xl6AstFree(concrete);concrete=closed;
+            }
+            xl6AstFree(methodArgs);
+            int ok=concrete && xl6SemConstrainedBoundMethod(ctx,argument->children[0],
+                xl6SemCOwnedResolvedElement(ctx,concrete),1)!=0 &&
+                xl6SemCOwnedAdaptCallableExpr(ctx,argument->children[0],concrete);
+            xl6AstFree(concrete);
+            if(!ok)return 0;
+        }
     }
     return 1;
 }
