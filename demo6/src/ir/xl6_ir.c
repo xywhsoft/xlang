@@ -14356,6 +14356,24 @@ int xl6IrBoundMethodCandidateMatches(const XL6_IrModule* module,XL6_IrNodeId sou
     }
     return 0;
 }
+static int xl6IrBoundMethodResultMatchesDepth(const XL6_IrModule* module,XL6_IrTypeId fromId,
+    XL6_IrTypeId toId,size_t depth)
+{
+    if(fromId==toId)return 1;
+    const XL6_IrType* from=xl6IrTypeGet(&module->types,fromId);
+    const XL6_IrType* to=xl6IrTypeGet(&module->types,toId);
+    if(!from || !to || depth>module->types.count)return 0;
+    if(xl6IrTypeIsCOwned(from) && (from->kind==XL6_IR_TYPE_NULLABLE)==(to->kind==XL6_IR_TYPE_NULLABLE))
+        return (from->cAbi==XL6_IR_C_ABI_C_STRING && to->cAbi==XL6_IR_C_ABI_MANAGED_STRING) ||
+            (from->cAbi==XL6_IR_C_ABI_C_BYTES && to->cAbi==XL6_IR_C_ABI_MANAGED_BYTES);
+    if(from->cAbi!=XL6_IR_C_ABI_PRODUCT || to->cAbi!=XL6_IR_C_ABI_PRODUCT ||
+       from->paramCount!=to->paramCount)return 0;
+    for(size_t i=0;i<from->paramCount;++i)
+        if(!xl6IrBoundMethodResultMatchesDepth(module,from->params[i],to->params[i],depth+1))return 0;
+    return 1;
+}
+int xl6IrBoundMethodResultMatches(const XL6_IrModule* module,XL6_IrTypeId from,XL6_IrTypeId to)
+{ return module && xl6IrBoundMethodResultMatchesDepth(module,from,to,0); }
 int xl6IrBoundMethodTargetMatches(const XL6_IrModule* module,XL6_IrNodeId sourceId,
     XL6_SymbolId symbol,XL6_IrTypeId signatureId)
 {
@@ -14369,7 +14387,8 @@ int xl6IrBoundMethodTargetMatches(const XL6_IrModule* module,XL6_IrNodeId source
        (target->kind!=XL6_IR_CALL_TARGET_INTERNAL && target->kind!=XL6_IR_CALL_TARGET_INTERNAL_ASYNC &&
         target->kind!=XL6_IR_CALL_TARGET_INTERNAL_GENERATOR && target->kind!=XL6_IR_CALL_TARGET_EXTERN_C) ||
        target->variadicAbi!=XL6_IR_CALL_VARIADIC_NONE ||
-       target->parameterCount<signature->paramCount+1 || target->returnType!=signature->callableResultType ||
+        target->parameterCount<signature->paramCount+1 ||
+        !xl6IrBoundMethodResultMatches(module,target->returnType,signature->callableResultType) ||
        target->parameterAbis[0]!=XL6_IR_PARAMETER_ABI_BORROW) return 0;
     const XL6_IrNode* declaration=xl6IrNodeGet(module,target->declaration);
     const XL6_IrNode* name=declaration && declaration->childCount>2 ? xl6IrNodeGet(module,module->children[declaration->firstChild]) : NULL;
@@ -17013,7 +17032,8 @@ int xl6IrContextualCallableCastRequired(const XL6_IrModule* module,
         type->cAbi == XL6_IR_C_ABI_CLOSURE_PTR &&
         type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
         type->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL &&
-        xl6IrRuntimeCallableFieldSignatureSupported(module, target);
+        (type->callableErasureAbi==XL6_IR_CALLABLE_ERASURE_FIXED ||
+         xl6IrRuntimeCallableFieldSignatureSupported(module, target));
 }
 
 XL6_IrRuntimeOp xl6IrNativeCollectionImportRuntimeOp(const XL6_IrModule* module,
@@ -18690,6 +18710,16 @@ static XL6_IrCastAbi xl6IrClassifyCastAbi(
         return XL6_IR_CAST_INVALID;
     dynamicSource = xl6IrTypeIsDynamicXValueBuiltin(
         module, source->storageType);
+    /* Compiler-only owner signatures have no dynamic TypeId. A selected
+     * instance declaration still admits an exact static closure binding. */
+    if(dynamicSource && target->kind==XL6_IR_TYPE_FUNCTION &&
+       target->callableErasureAbi==XL6_IR_CALLABLE_ERASURE_FIXED && source->targetSymbol &&
+       source->kind==XL6_IR_NODE_MEMBER && source->sourceKind==XL6_AST_MEMBER){
+        const XL6_IrNode* selected=xl6IrSymbolNodeGet(module,source->targetSymbol);
+        if(selected && xl6IrBoundMethodCandidateMatches(module,
+            module->children[node->firstChild],(XL6_IrNodeId)(selected-module->nodes+1)))
+            return XL6_IR_CAST_XVALUE_TO_CLOSURE_CHECKED;
+    }
     if(dynamicSource && xl6IrNativeScalarAsIdentity(module,node->storageType))
         return target->kind==XL6_IR_TYPE_NULLABLE ? XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_SCALAR_TRY :
             XL6_IR_CAST_XVALUE_TO_NATIVE_SCALAR_CHECKED;

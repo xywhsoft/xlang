@@ -7911,13 +7911,6 @@ static XL6_IrValueId xl6IrLowerCheckedXValueCastValue(
             "XLIR checked xvalue cast has no exact open-xvalue source ABI");
         return XL6_IR_VALUE_INVALID;
     }
-    if ( resultType == NULL ||
-         !xl6IrLowerCastAbiMatchesType(
-             ctx->module, resultTypeId, castAbi, resultType) ) {
-        xl6IrLowerDiag(ctx, id,
-            "XLIR checked xvalue cast has no exact target identity and result ownership ABI");
-        return XL6_IR_VALUE_INVALID;
-    }
     if ( errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ) {
         xl6IrLowerDiag(ctx, id,
             "XLIR checked xvalue cast has no MAY_RAISE effect ABI");
@@ -7932,6 +7925,13 @@ static XL6_IrValueId xl6IrLowerCheckedXValueCastValue(
     if(castAbi==XL6_IR_CAST_XVALUE_TO_CLOSURE_CHECKED) {
         int bound=xl6IrLowerTryTypedBoundMethod(ctx,id,sourceId,resultTypeId,&result);
         if(bound) return bound>0 ? result : XL6_IR_VALUE_INVALID;
+    }
+    /* Static owner-result closures never cross the dynamic callable ABI.
+     * Keep actual runtime projections restricted to representable signatures. */
+    if ( resultType == NULL ||
+         !xl6IrLowerCastAbiMatchesType(ctx->module,resultTypeId,castAbi,resultType) ) {
+        xl6IrLowerDiag(ctx,id,"XLIR checked xvalue cast has no exact target identity and result ownership ABI");
+        return XL6_IR_VALUE_INVALID;
     }
     source = xl6IrLowerNode(ctx, sourceId);
     source = xl6IrLowerBorrowRuntimeXValueOperand(
@@ -33331,9 +33331,9 @@ static int xl6IrLowerNamedAdapterBody(
     result = target->returnType == XL6_IR_TYPE_INVALID
         ? XL6_IR_VALUE_INVALID : callResult;
     if ( result != XL6_IR_VALUE_INVALID && target->returnType != function->returnType ) {
-        result = xl6IrLowerEmitValueCopy(
-            ctx, closure->declaration, function->returnType,
-            result);
+        result = offset
+            ? xl6IrLowerBoundMethodResult(ctx,closure->declaration,result,function->returnType)
+            : xl6IrLowerEmitValueCopy(ctx,closure->declaration,function->returnType,result);
         if ( result == XL6_IR_VALUE_INVALID ) goto done;
     }
     if (result != XL6_IR_VALUE_INVALID)

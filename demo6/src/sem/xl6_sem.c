@@ -144,6 +144,8 @@ static int xl6SemCheckKnownCall(XL6_SemContext* ctx, XL6_AstNode* call, XL6_AstN
 static int xl6SemCheckFunc(XL6_SemContext*,XL6_AstNode*);
 static XL6_AstNode* xl6SemCOwnedSpecializeMethod(XL6_SemContext*,XL6_AstNode*,XL6_AstNode*);
 static int xl6SemCOwnedResultListMatches(XL6_SemContext*,const XL6_AstNode*,const XL6_AstNode*);
+static int xl6SemCOwnedResultHasOwner(XL6_SemContext*,const XL6_AstNode*);
+static int xl6SemCOwnedResultMatchDepth(XL6_SemContext*,const XL6_AstNode*,const XL6_AstNode*,unsigned);
 static XL6_AstNode* xl6SemCOwnedOrdinaryFunction(XL6_SemContext*,XL6_AstNode*);
 static XL6_AstNode* xl6SemCOwnedFunctionWithResults(XL6_SemContext*,XL6_AstNode*,const XL6_AstNode*);
 static int xl6SemCOwnedAdaptCallableExpr(XL6_SemContext*,XL6_AstNode*,const XL6_AstNode*);
@@ -8286,6 +8288,9 @@ static int xl6SemConstrainedBoundMethod(XL6_SemContext* ctx,const XL6_AstNode* e
             const XL6_AstNode* method=body->children[m];
             if(!method || !xl6TextEquals(xl6SemMemberName(method),expr->text))continue;
             if(method->flags&(XL6_AST_FLAG_PRIVATE|XL6_AST_FLAG_PROTECTED))constrained=true;
+            const XL6_AstNode* returns=xl6SemCallableReturns(method);
+            for(size_t r=0;returns && r<returns->childCount;++r)
+                if(xl6SemCOwnedResultHasOwner(ctx,returns->children[r]))constrained=true;
             const XL6_AstNode* types=xl6SemFuncTypeParams(method);
             for(size_t t=0;types && t<types->childCount;++t){
                 const XL6_AstNode* constraints=xl6SemGenericConstraintList(types->children[t]);
@@ -8333,7 +8338,13 @@ static int xl6SemConstrainedBoundMethod(XL6_SemContext* ctx,const XL6_AstNode* e
             for(size_t r=0;ok && r<worker->childCount;++r){
                 const XL6_AstNode* formal=worker->children[r];
                 const XL6_AstNode* actual=asyncResult ? asyncResult : resultList->children[r];
-                ok=xl6SemTypeContainsTypeParam(typeParams,formal) ? xl6SemInferGenericTypeFromTypes(ctx,typeParams,inferred,formal,actual) : xl6SemTypeEquals(ctx,formal,actual);
+                if(xl6SemTypeContainsTypeParam(typeParams,formal))
+                    ok=xl6SemInferGenericTypeFromTypes(ctx,typeParams,inferred,formal,actual);
+                else {
+                    int conversion=xl6SemCOwnedResultMatchDepth(ctx,actual,formal,0);
+                    ok=conversion>=0;
+                    if(ok && conversion)ok=xl6CallRankAdd(&rank,10,0)!=0;
+                }
             }
             if(ok)ok=xl6SemCheckGenericInferredConstraints(ctx,typeParams,inferred,expr,0)!=0;
             XL6_AstNode* args=xl6AstNew(XL6_AST_LIST,NULL);
@@ -8346,7 +8357,9 @@ static int xl6SemConstrainedBoundMethod(XL6_SemContext* ctx,const XL6_AstNode* e
             }
             XL6_AstNode* closed=ok ? xl6SemSubstituteGenericTypeArgs(typeParams,args,params) : NULL;
             XL6_AstNode* returns=ok ? xl6SemCloneInvocationReturnTypes(ctx,cls,classArgs,method,args,expr) : NULL;
-            ok=ok && closed && returns && xl6SemFunctionTypeMatchesParts(ctx,signature,closed,returns);
+            ok=ok && closed && returns && (xl6SemFunctionTypeMatchesParts(ctx,signature,closed,returns) ||
+                (xl6SemCOwnedResultListMatches(ctx,expectedReturns,returns) &&
+                 xl6SemCallableParamListMatchesFunctionParams(ctx,expected,closed)));
             if(ok && rank<best){selected=(XL6_AstNode*)method;best=rank;matches=1;}
             else if(ok && rank==best)++matches;
             for(size_t t=0;inferred && typeParams && t<typeParams->childCount;++t)xl6AstFree(inferred[t]);
