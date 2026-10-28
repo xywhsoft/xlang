@@ -31,6 +31,15 @@ assert WsHandshake.keyValid(WsHandshake.key())
 assert WsHandshake.protocolCount("chat, superchat") == 2
 assert WsHandshake.protocolAt("chat, superchat", 1) == "superchat"
 assert (WsHandshake.protocolSelect("chat, superchat", "superchat, chat") as string) == "chat"
+assert WsHandshake.protocolSelect("chat", "other") == null
+assert WsHandshake.protocolCount("") == 0
+bool invalidProtocols = false
+try
+    auto invalid = WsHandshake.protocolCount("chat,")
+catch error
+    invalidProtocols = true
+end
+assert invalidProtocols
 println("websocket-values-handshake-ok")
 
 auto config = WsMessageConfig()

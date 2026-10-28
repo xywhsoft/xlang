@@ -1,0 +1,65 @@
+// Only a logical allocation failure in our own local cancellation delivery.
+extern "xrtMemDebugFailAfter" @no_raise @nonblocking func faultAfter(c_ulonglong count) as c_bool
+extern "xrtMemDebugFailTriggered" @no_raise @nonblocking func faultTriggered() as c_bool
+extern "xrtMemDebugFailClear" @no_raise @nonblocking func faultClear()
+async func verify()
+    // Disable the real node cache so the selected post reaches its allocator;
+    // the normal cached path is covered by stdlib_websocket_stream_v2.
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select).withNodeCacheBytes(uint64(0)))
+    engine.start()
+    auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+    auto transport = TcpStream(engine, listener.localAddress())
+    auto peer = listener.accept(5000)
+    assert transport.wait(TcpWait.open, 5000) == NetStatus.ok
+    auto pending = WsUpgrade.client("local.test")
+    auto request = Http1Head.request(Http1.requestHead("GET", "/", pending.headers()))
+    if request == null then throw ValueError "incomplete request" end
+    auto upgrade = WsUpgrade.server(request)
+    auto response = Http1Head.response(Http1.responseHead(101, "Switching Protocols", upgrade.headers()))
+    if response == null then throw ValueError "incomplete response" end
+    auto options = WsStreamOptions()
+    auto server = await WsStream.attachAsync(peer, NetBuffer(), upgrade, options, func(WsEvent event) as bool
+        return true
+    end)
+    auto client = await WsStream.attachAsync(transport, NetBuffer(), pending.checkResponse(response), options, func(WsEvent event) as bool
+        return true
+    end)
+    auto cancel = CancellationSource()
+    // Await subscription creation itself, so cancellation cannot race ahead
+    // of registration and turn the test into the already-cancelled fast path.
+    auto observer = await engine.submit(func() as future<NetStatus>
+        return server.waitClosedCancelOnWorker(Http1.deadline(5000), cancel.token)
+    end, server.worker)
+    assert faultAfter(c_ulonglong(1000000))
+    faultClear()
+    assert faultAfter(c_ulonglong(0))
+    try
+        cancel.cancel()
+    catch error
+        // A direct checked failure is allowed, but the waiting Future must
+        // also complete with failure, rather than ordinary close success.
+    end
+    bool hit = faultTriggered()
+    faultClear()
+    assert hit, "cancellation must reach the armed allocation"
+    bool rejected = false
+    try
+        auto result = await observer
+    catch error
+        rejected = true
+    end
+    assert rejected, "waiting Future must report the failed post"
+    rejected = false
+    try
+        server.throwIfFailed()
+    catch error
+        rejected = true
+    end
+    assert rejected, "stream must retain the failed post"
+    client.abort()
+    listener.close()
+    engine.close()
+    assert engine.wait(5000)
+    println("websocket-wait-oom-v2-ok")
+end
+await verify()
