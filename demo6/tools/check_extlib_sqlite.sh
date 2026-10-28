@@ -29,7 +29,8 @@ trap 'record_failure "$?" "$LINENO" "$BASH_COMMAND" "${PIPESTATUS[*]}"' ERR
 cc=${CC:-gcc}
 pkg=release/extlibs/sqlite
 mapfile -d '' inputs < <(find "$pkg" -type f \( -name '*.c' -o -name '*.h' -o -name '*.json' -o -name '*.xl' \) -print0 | sort -z)
-inputs+=(lib/xrt/xrt.h release/xl release/libxlc.so
+inputs+=(lib/xrt/xrt.h lib/xruntime/xruntime.h release/xl release/libxl.so release/libxlc.so
+         release/include/xrt_decl.h release/include/xruntime_decl.h release/include/xl_extlib_abi.h
          test/support/extlib_sqlite_runtime.c tools/check_extlib_sqlite.sh
          test/cases/extlib_sqlite.xl release/examples/extlibs/sqlite.xl
          release/examples/extlibs/sqlite_basic.xl
@@ -59,7 +60,7 @@ diff -u "$work/basic.log" "$work/basic_direct.log"
 
 xl=./release/xl
 for source in test/cases/extlib_sqlite.xl "$pkg/test/boundaries.xl" \
-    "$pkg/test/file.xl"; do
+    "$pkg/test/file.xl" "$pkg/test/nul_inputs.xl"; do
     name=$(basename "$source" .xl)
     timeout 90s "$xl" run "$source" > "$work/$name.jit.log"
     timeout 120s "$xl" build "$source" -o "$work/$name"
@@ -79,6 +80,20 @@ diff -u "$work/basic.log" "$work/sqlite_basic.aot.log"
 timeout 120s "$xl" build "$pkg/examples/basic.c" -o "$work/basic_c_aot"
 timeout 30s "$work/basic_c_aot" > "$work/basic_c_aot.log"
 diff -u "$work/basic.log" "$work/basic_c_aot.log"
+
+"$cc" "${flags[@]}" "${strict[@]}" -DNDEBUG "$pkg/examples/text_bytes_c.c" \
+    "${objects[@]}" -lm -ldl -o "$work/text_bytes_gcc"
+timeout 30s "$work/text_bytes_gcc" > "$work/text_bytes_gcc.log"
+diff -u <(printf 'TEXT: 3 bytes\nBLOB: 3 bytes\nmiddle byte: 0\n') "$work/text_bytes_gcc.log"
+for language in c xl; do
+    source="$pkg/examples/text_bytes.xl"
+    if [[ $language == c ]]; then source="$pkg/examples/text_bytes_c.c"; fi
+    timeout 90s "$xl" run "$source" > "$work/text_bytes_$language.jit.log"
+    timeout 120s "$xl" build "$source" -o "$work/text_bytes_$language"
+    timeout 30s "$work/text_bytes_$language" > "$work/text_bytes_$language.aot.log"
+    diff -u "$work/text_bytes_gcc.log" "$work/text_bytes_$language.jit.log"
+    diff -u "$work/text_bytes_gcc.log" "$work/text_bytes_$language.aot.log"
+done
 
 sha256sum "${inputs[@]}" > "$work/inputs.after.sha256"
 diff -u "$work/inputs.before.sha256" "$work/inputs.after.sha256"
