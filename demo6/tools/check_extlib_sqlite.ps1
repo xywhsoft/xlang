@@ -99,22 +99,27 @@ try {
     $helperOutput = Check 'c-example-runner' (Get-Process -Id $PID).Path @('-NoProfile','-File','tools/run_extlib_c.ps1','-Package','sqlite','-Source',$example)
     $golden = [IO.File]::ReadAllText((Join-Path $Root 'release/examples/extlibs/sqlite_basic.expected.txt')).Replace("`r`n","`n").TrimEnd("`n")
     foreach ($text in @($xlangOutput,$cOutput,$jitOutput,$aotOutput,$helperOutput)) { if ($text -cne $golden) { throw 'C/xlang example golden mismatch' } }
-    $bytesGolden = "TEXT: 3 bytes`nBLOB: 3 bytes`nmiddle byte: 0"
-    $bytesSource = "$pkg/examples/text_bytes_c.c"
-    $bytesBinary = Join-Path $work 'text-bytes-gcc.exe'
-    $null = Check 'text-bytes-c-build' $gcc ($flags + @('-DNDEBUG',$bytesSource) + $objects + @('-o',$bytesBinary))
-    $bytesC = Check 'text-bytes-c' $bytesBinary @()
-    $bytesJitC = Check 'text-bytes-c-jit' $xl @('run',$bytesSource)
-    $bytesBinary = Join-Path $work 'text-bytes-c-aot.exe'
-    $null = Check 'text-bytes-c-aot-build' $xl @('build',$bytesSource,'-o',$bytesBinary)
-    $bytesAotC = Check 'text-bytes-c-aot' $bytesBinary @()
-    $bytesSource = "$pkg/examples/text_bytes.xl"
-    $bytesJit = Check 'text-bytes-xl-jit' $xl @('run',$bytesSource)
-    $bytesBinary = Join-Path $work 'text-bytes-xl-aot.exe'
-    $null = Check 'text-bytes-xl-aot-build' $xl @('build',$bytesSource,'-o',$bytesBinary)
-    $bytesAot = Check 'text-bytes-xl-aot' $bytesBinary @()
-    foreach ($text in @($bytesC,$bytesJitC,$bytesAotC,$bytesJit,$bytesAot)) {
-        if ($text -cne $bytesGolden) { throw 'exact-length TEXT/BLOB bilingual example mismatch' }
+    $paired = [ordered]@{
+        text_bytes = "TEXT: 3 bytes`nBLOB: 3 bytes`nmiddle byte: 0"
+        column_storage = "text: 你好`ninteger: 9223372036854775807`nutf8 bytes: 6`nzero blob: 4096"
+    }
+    foreach ($name in $paired.Keys) {
+        $exampleSource = "$pkg/examples/${name}_c.c"
+        $exampleBinary = Join-Path $work "$name-gcc.exe"
+        $null = Check "$name-c-build" $gcc ($flags + @('-DNDEBUG',$exampleSource) + $objects + @('-o',$exampleBinary))
+        $cResult = Check "$name-c" $exampleBinary @()
+        $jitC = Check "$name-c-jit" $xl @('run',$exampleSource)
+        $exampleBinary = Join-Path $work "$name-c-aot.exe"
+        $null = Check "$name-c-aot-build" $xl @('build',$exampleSource,'-o',$exampleBinary)
+        $aotC = Check "$name-c-aot" $exampleBinary @()
+        $exampleSource = "$pkg/examples/$name.xl"
+        $jit = Check "$name-xl-jit" $xl @('run',$exampleSource)
+        $exampleBinary = Join-Path $work "$name-xl-aot.exe"
+        $null = Check "$name-xl-aot-build" $xl @('build',$exampleSource,'-o',$exampleBinary)
+        $aot = Check "$name-xl-aot" $exampleBinary @()
+        foreach ($text in @($cResult,$jitC,$aotC,$jit,$aot)) {
+            if ($text -cne $paired[$name]) { throw "$name bilingual example mismatch" }
+        }
     }
     $bad = Join-Path $work 'const-write.xl'
     [IO.File]::WriteAllText($bad,"import sqlite`nsqlite.SQLITE_OK = 1`n",$utf8)
