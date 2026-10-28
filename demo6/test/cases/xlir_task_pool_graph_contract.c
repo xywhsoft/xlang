@@ -49,7 +49,7 @@ int main(void)
         assert(!strstr(text,"xl6TaskPoolTryQuiesceV1(xlir_async_pool)")&&
             !strstr(text,"if (!teardown && !xl6ContinuationExecutorIsIdle")&&
             !strstr(text,"if (!xl6TaskRuntimeV1Get()->PoolIsClosing"));
-        assert(!!strstr(text,"xl6TaskPoolModulePrepareV1(xlir_async_pool, teardown, wait)")==pools[n]);
+        assert(!!strstr(text,"xl6TaskPoolModulePrepareV1(xlir_async_pool, teardown, stage != 0)")==pools[n]);
         if(n)assert(strstr(text,"xl_script_module_retirement_v4(void)"));
         xrtFree(text);
         assert(xl6OutputOpenMemory(&out));xl6IrDumpModuleText(&out,&ir);text=xl6OutputTakeMemoryText(&out,NULL);

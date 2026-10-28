@@ -2,6 +2,7 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$AggregateDirectory,
     [Parameter(Mandatory=$true)][string]$Directory)
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
 $outputPath=if ([IO.Path]::IsPathRooted($Directory)) { [IO.Path]::GetFullPath($Directory) }
     else { [IO.Path]::GetFullPath((Join-Path (Get-Location) $Directory)) }
 if (Test-Path -LiteralPath $outputPath) { throw 'Use a new strict aggregate directory' }
@@ -37,14 +38,14 @@ $includePath=[IO.Path]::GetFullPath((Join-Path $PublicDirectory 'include'))
 $flags=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
     '-Wno-unused-label','-Wno-unused-but-set-variable','-Wno-unused-const-variable','-Wno-missing-field-initializers',
     '-Wno-pointer-sign','-Wno-format-truncation','-DXL_STATIC_EMBED','-DXLIR_GENERATED_MODULE_PREINCLUDED',
-    "-I$includePath",'-I.','-Irelease','-Ilib/tcc')
+    "-I$includePath",'-I.','-Irelease','-Irelease/include','-Ilib/tcc')
 $links=@($objects | ForEach-Object {$_.Path})+@('release/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
 $results=@()
 foreach ($optimization in @('-O0','-O2')) {
     $name="aggregate$optimization"; $binary="$outputPath/$name.exe"
-    & gcc @flags $optimization -include $generated $hostSource @links -o $binary *> "$outputPath/$name.build.log"
-    $compile=$LASTEXITCODE; $run=$null
-    if ($compile -eq 0) { & $binary *> "$outputPath/$name.run.log"; $run=$LASTEXITCODE }
+    $compile=Invoke-XlirGccToLog ($flags+@($optimization,'-include',$generated,$hostSource)+$links+@('-o',$binary)) "$outputPath/$name.build.log"
+    $run=$null
+    if ($compile -eq 0) { $run=Invoke-XlirNativeToLog $binary @() "$outputPath/$name.run.log" }
     $results+=[pscustomobject]@{Optimization=$optimization;Build=$compile;Run=$run}
     Write-Output "$name build=$compile run=$run"
 }
