@@ -1,5 +1,5 @@
 // Only a logical allocation failure in our own local cancellation delivery.
-extern "xrtMemDebugFailAfter" @no_raise @nonblocking func faultAfter(c_ulonglong count) as c_bool
+extern "xrtMemDebugFailAfter" @no_raise @nonblocking func faultAfter(uint64 count) as c_bool
 extern "xrtMemDebugFailTriggered" @no_raise @nonblocking func faultTriggered() as c_bool
 extern "xrtMemDebugFailClear" @no_raise @nonblocking func faultClear()
 async func verify()
@@ -30,9 +30,9 @@ async func verify()
     auto observer = await engine.submit(func() as future<NetStatus>
         return server.waitClosedCancelOnWorker(Http1.deadline(5000), cancel.token)
     end, server.worker)
-    assert faultAfter(c_ulonglong(1000000))
+    assert faultAfter(uint64(1000000))
     faultClear()
-    assert faultAfter(c_ulonglong(0))
+    assert faultAfter(uint64(0))
     try
         cancel.cancel()
     catch error

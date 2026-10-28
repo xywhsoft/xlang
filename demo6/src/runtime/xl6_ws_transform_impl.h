@@ -61,7 +61,12 @@ void* WS_ENTRY(Create)(void* config)
     Transform* result=xrtCalloc(1,sizeof(*result));
     if(!result){WS_N(Destroy)(value);return NULL;}result->value=value;return result;
 }
-void* WS_ENTRY(CreateDefault)(void){return WS_ENTRY(Create)(NULL);}
+static WS_CONFIG languageDefaults(void)
+{
+    WS_CONFIG config;WS_N(ConfigInit)(&config);
+    config.OutputLimit=XL6_WS_DEFAULT_OUTPUT_LIMIT;return config;
+}
+void* WS_ENTRY(CreateDefault)(void){WS_CONFIG config=languageDefaults();return WS_ENTRY(Create)(&config);}
 void WS_ENTRY(Destroy)(void* raw)
 {Transform* self=raw;if(self){WS_N(Destroy)(self->value);xrtFree(self);}}
 void WS_ENTRY(Begin)(void* raw,bool compressed)
@@ -96,7 +101,7 @@ void WS_ENTRY(Reset)(void* raw,void* config)
     Transform* self=raw;XL6_WsGuard guard={0};if(!xl6WsEnter(&self->gate,&guard))return;
     (void)xl6WsChecked(WS_N(Reset)(self->value,config));xl6WsLeave(&guard);
 }
-void WS_ENTRY(ResetDefault)(void* raw){WS_ENTRY(Reset)(raw,NULL);}
+void WS_ENTRY(ResetDefault)(void* raw){WS_CONFIG config=languageDefaults();WS_ENTRY(Reset)(raw,&config);}
 uint64_t WS_ENTRY(OutputSize)(void* raw)
 {
     Transform* self=raw;XL6_WsGuard guard={0};if(!xl6WsEnter(&self->gate,&guard))return 0;

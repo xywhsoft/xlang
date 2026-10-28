@@ -100,8 +100,27 @@ static void performance(void)
         (unsigned long long)adapter,(unsigned long long)(after.AllocCount-before.AllocCount),(unsigned long long)sum);
     if(xrtMemDebugEnabled())assert(after.AllocCount-before.AllocCount==iterations);
 }
+static void defaultLimits(void)
+{
+    xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);
+    const size_t size=64u*1024u*1024u+1u;uint8* input=xrtCalloc(size,1);assert(input);
+    void* inflater=xl6WsInflaterCreateDefaultV2();void* deflater=xl6WsDeflaterCreateDefaultV2();assert(inflater&&deflater);
+    xbuffer output={0};
+    for(int round=0;round<2;round++){
+        xl6WsInflaterBeginV2(inflater,false);
+        assert(xl6WsInflaterWriteIntoSpanV2(inflater,(xbytesview){input,size},&output,-1)==0);
+        assert(xrtGetError()&&output.Size==0);xrtClearError();
+        xl6WsDeflaterBeginV2(deflater,false);
+        assert(xl6WsDeflaterWriteIntoSpanV2(deflater,(xbytesview){input,size},&output,-1)==0);
+        assert(xrtGetError()&&output.Size==0);xrtClearError();
+        // A default reset uses the same finite language policy as creation.
+        xl6WsInflaterResetDefaultV2(inflater);xl6WsDeflaterResetDefaultV2(deflater);assert(!xrtGetError());
+    }
+    xl6WsInflaterDestroyV2(inflater);xl6WsDeflaterDestroyV2(deflater);xrtBufferUnit(&output);xrtFree(input);balance(&before);
+    puts("WebSocket default create/reset: 64 MiB limit, passthrough boundary rejected before output, balanced");
+}
 int main(int argc,char** argv)
 {
     if(argc==2 && !strcmp(argv[1],"--benchmark-only")){performance();return 0;}
-    assert(xrtMemDebugEnable(true));factories();performance();return 0;
+    assert(xrtMemDebugEnable(true));factories();defaultLimits();performance();return 0;
 }
