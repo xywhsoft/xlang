@@ -35,6 +35,7 @@ auto algorithm = pkcs.wrapSequence(pkcs.concat(oid, pkcs.encodeNull()))
 println(pkcs.tagName(algorithm))
 println(pkcs.decodeOid(oid))</code></pre>
     <h2 id="c-api">C</h2>
+    <p>2026-10-28：11 条文本返回链已删除接管后的重复复制，生成 C 的完整夹具逐一验证全部入口；INTEGER/NULL 两个入口的 C/XLang 分配预算对照一致。Windows/Linux 完整门禁含 GCC/TCC、Linux ASan/UBSan、OpenSSL 互通和新旧语言 JIT/AOT。必要的 DER/HEX 分配、strlen、输入校验及错误检查仍存在，不能称为所有操作零开销。</p>
     <p>包含 <code>include/pkcs_native.h</code>。C 的文本结果由调用方以 <code>xrtFree</code> 释放；整数解码用成功标志和输出参数区分零与错误。XLang 文本输入拒绝内嵌 NUL，避免 C 零结尾接口只处理前缀；构造分配失败与 DER 格式错误分别报告。完整语义及可复跑命令见包内 README。</p>
     <p>Linux 包级门禁 <code>bash release/extlibs/pkcs/test/check.sh</code> 同次执行 C ASan/UBSan、中央与包内 XLang 边界、OpenSSL 独立 DER 解析和双语 AOT 固定输出对照。本次只签收短时包级 ASN.1/DER 构件范围，不代表完整 PKCS 协议、其他架构或全产品准入。</p>
   </section>

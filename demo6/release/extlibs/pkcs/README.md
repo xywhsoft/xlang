@@ -1,6 +1,25 @@
 # pkcs
 
-2026-10-27：11 个拥有型 C 文本结果改为明确的 `char*`，XLang
+2026-10-28 完整返回链复核：可空结果传入 `__pkcs_take` 后又被编译为
+`xlir_string_copy`，旧门禁只确认接管点，未覆盖这一后续副本。现在 11 个
+文本入口直接返回 `@owned string`，删除辅助函数；失败沿 XRT 错误传播，
+普通 string API、空内容、错误类型、NUL 校验和 C `char*` ABI 不变。
+
+生成 C 夹具显式调用全部 11 个入口，核对每个原生结果直接接管，且完整
+夹具不再调用 `xlir_string_copy`。另以 INTEGER/NULL 两个无文本输入入口
+作 C/XLang 分配对照：冻结 XRT 的 DER 临时缓冲、目标缓冲和最终 HEX
+各分配一次，0/1/2 的预算保持 MemoryError，预算 3 成功，不再多分配
+第四份返回文本。两侧各 8 组预算检查，不把“编码只需两次分配”当成假设。
+
+Windows/Linux 默认完整门禁通过，含严格 C、Windows GCC 与 TCC 对照、
+Linux ASan/UBSan、OpenSSL 独立 DER 解析、新旧语言 JIT/AOT 和双语范例。
+中央、分配故障及拥有型结果补齐独立 EXE。验证运行库按产品模块加内存
+调试能力编译，不再启用全 XRT；输入指纹复核、失败保留命令和产物。
+
+仍有 DER/HEX 构造分配、结果长度扫描、输入 NUL 校验及外部调用错误作用域。
+本项消除额外的结果正文副本，不宣称全部操作零分配或相对裸 C 零开销。
+
+2026-10-27 历史记录：11 个拥有型 C 文本结果改为明确的 `char*`，XLang
 用 `@owned string?` 直接接管，删除 `point/takeCstr` 中转。
 输入 NUL 校验不再返回整份文本，校验后直接传原参数。
 生成 C 门禁逐个核对直接指针交接；结果长度仍需一次 `strlen`，
@@ -56,7 +75,7 @@ HEX 输入不区分大小写；输出为小写。除 `concat` 和 `nextOffset` �
 公开声明位于 `include/pkcs_native.h`。文本结果为独立分配的 NUL 结尾 `char*`，调用方须使用 `xrtFree` 释放；失败返回 `NULL`，可通过 `xrtGetError()` 取错误。`xpkcs_decode_int` 使用返回值表示成功，并仅在成功时写入 `int64_t*`，因此零也是有效结果。`xpkcs_decode_int_value` 仅供 XLang 的 `var` 桥接，C 调用方一般应使用前者。
 若 C 侧使用 `xpkcs_decode_int_value`，返回的 `xvalue*` 由调用方以 `xrtValueRelease` 释放。公开头可独立包含；应用需要操作该值时须自行启用 XRT value 模块。
 
-XLang 封装通过 `@owned string?` 接管 C 字符串，无需用户手工释放。包所需 XRT 模块在 `xlang.package.json` 的 `xrtModules` 中声明。
+XLang 封装通过 `@owned string` 接管并直接返回 C 字符串，无需用户手工释放。包所需 XRT 模块在 `xlang.package.json` 的 `xrtModules` 中声明。
 
 ## 范例和验证
 

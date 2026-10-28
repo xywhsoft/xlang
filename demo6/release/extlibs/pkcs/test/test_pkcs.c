@@ -10,6 +10,30 @@
     return 1; \
 } } while (0)
 
+/* 与 XL 对照：DER 先构造临时缓冲并校验，再追加目标，最后分配 HEX。 */
+static int test_owned_return_budget(void)
+{
+    static const char* expected[] = {"02023039", "0500"};
+    for (unsigned operation = 0; operation < 2; ++operation) {
+        for (unsigned budget = 0; budget < 4; ++budget) {
+            xrtClearError();
+            CHECK(xrtMemDebugFailAfter(budget));
+            char* result = operation == 0 ? xpkcs_encode_int(12345) : xpkcs_encode_null();
+            bool triggered = xrtMemDebugFailTriggered();
+            xrtMemDebugFailClear();
+            if (budget < 3) {
+                CHECK(triggered && !result && xrtErrorKind(xrtGetError()) == XERR_MEMORY);
+            } else {
+                CHECK(!triggered && result && strcmp(result, expected[operation]) == 0);
+                CHECK(xrtGetError() == NULL);
+            }
+            xrtFree(result);
+            xrtClearError();
+        }
+    }
+    return 0;
+}
+
 /* 跨 HEX、DER 和文本缓冲的所有权在每个失败点都必须闭合。 */
 static int test_text_allocations(void)
 {
@@ -192,6 +216,7 @@ int main(void)
     xrtFree(zero);
     xrtFree(integer);
     CHECK(test_text_allocations() == 0);
+    CHECK(test_owned_return_budget() == 0);
     puts("pkcs C boundaries: PASS");
     return 0;
 }
