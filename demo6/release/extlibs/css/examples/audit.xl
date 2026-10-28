@@ -1,0 +1,21 @@
+import css
+
+func main(...) as int
+    // 自定义属性可携带转义引号和斜杠；不能将它们误当成字符串或注释开头。
+    string source = "/* theme */ .badge { --quote: \\\"/* removed */; --slash: \\/*literal; content: \"/* kept */\"; color: #3366CC; } @media print { .badge { color: black; } }"
+    string clean = css.stripComments(source)
+    assert css.validate(source) and css.validate(clean)
+    assert css.countRules(clean) == 2 and css.countProps(clean, ".badge") == 4
+    assert css.get(clean, ".badge", "--quote") == "\\\""
+    assert css.get(clean, ".badge", "--slash") == "\\/*literal"
+    assert css.get(clean, ".badge", "content") == "\"/* kept */\""
+    println(f"rules: {css.countRules(clean)}")
+    println(f"properties: {css.countProps(clean, ".badge")}")
+    println("selector: " + css.selectorAt(clean, 0))
+    println("quote: " + css.get(clean, ".badge", "--quote"))
+    println("slash: " + css.get(clean, ".badge", "--slash"))
+    println("content: " + css.get(clean, ".badge", "content"))
+    // 查询器读取首个匹配，不计算 print 条件与浏览器级联。
+    println("color: " + css.get(clean, ".badge", "color"))
+    return 0
+end

@@ -18,6 +18,7 @@
 <main class="extlib-layout" id="main-content">
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / css</p><h1>css</h1>
     <p class="extlib-lead">读取 CSS 规则、选择器与声明的轻量语法查询器。</p>
+    <p>2026-10-29 修复字符串外转义被误当注释/引号，以及空或声明型 at-rule 漏计嵌套层数。新增 C/XLang 扫描回归和样式表审计范例；Windows 43 阶段与 Linux sanitizer、线程、JIT/AOT 门禁通过，公开 API 和返回所有权不变。</p>
     <p>不计算级联、继承、特异性或选择器匹配；不是浏览器样式引擎。2026-10-24 使用更新后的 Windows 发布版复验，默认包门禁含公开范例 AOT，已通过；旧版共享运行时链接缺符号已解除。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
@@ -30,6 +31,7 @@
     </tbody></table>
     <p><code>get</code>、<code>countRules</code>、<code>countProps</code>、<code>selectorAt</code> 均检查整份样式表的受支持语法；首个匹配之后出现坏规则也会报错。嵌套 at-rule 最多 64 层；选择器和声明表达式中的圆括号、方括号必须按顺序闭合，合计最多嵌套 64 层。第 65 层报告 RangeError，交叉闭合报告 ValueError。引号内未转义 CR/LF/FF 拒绝，反斜杠续行有效。C/XLang 均要求整份样式表及查询名为有效 UTF-8，注释中的非法字节也拒绝；XLang 文本入口另拒绝内嵌 NUL。<code>stripComments</code> 仅处理注释与引号，不替代 <code>validate</code>。</p>
     <p>查询名称两侧的注释与空白不参与匹配：<code>a/*x*/ { color/*y*/: red; }</code> 可按 <code>a</code> 和 <code>color</code> 查询；名称中间的注释不合并两个 token。<code>selectorAt</code> 保留原始选择器文本。本包仍是受限查询器，不承诺完整 CSS 语义。</p>
+    <p>字符串外的 <code>\"</code> 不开启字符串，<code>\/*</code> 不开启注释；剥离保留原始转义，不进行 CSS 反转义。64 层上限统一统计块状 at-rule，空块、纯注释块及声明块也计入；即使先命中查询结果，后面第 65 层仍报告 RangeError。普通规则与无块的 at-rule 不增加这一块嵌套层数。<code>stripComments</code> 使用迭代扫描，不额外施加递归查询上限。</p>
     <h2 id="example">xlang</h2>
     <pre><code>import css
 string sheet = "h1 { color: navy; }"
@@ -37,6 +39,8 @@ assert css.get(sheet, "h1", "color") == "navy"
 assert css.countRules(sheet) == 1</code></pre>
     <h2 id="c-api">C</h2>
     <p>包含 <code>include/css_native.h</code>。计数结果与索引参数使用与 XLang <code>int</code> 一致的 <code>int64_t</code>。文本结果由 C 调用方持有，必须使用 <code>xrtFree</code>；XLang 通过 <code>@owned string</code> 直接接管，不在交接处复制正文，但仍需扫描一次取得长度。输入的 NUL 校验也不复制整份样式表。失败时返回 NULL 并保留 XRT 错误。C 范例可直接运行 <code>xl run examples/extlibs/css_c.c</code>。</p>
+    <p>新对照范例为 <code>extlibs/css/examples/audit.xl</code> 与 <code>extlibs/css/examples/audit_c.c</code>：剥离注释后读取带转义的自定义属性与引号文本，检查两条规则并保留首条声明，不计算 print 条件或浏览器级联。发行目录中用 <code>xl run</code> 分别执行，两种语言共用 <code>audit.expected.txt</code> 的七行固定输出。</p>
+    <p>2026-10-29 新 C 回归 73 项从 27 项失败降到零，包含反斜杠奇偶、四类叶块、五个查询入口的 64/65 边界、剥离独立性和 OOM/释放检查。Windows PowerShell 5.1 默认 43 阶段通过，Linux 原生快照通过 ASan/UBSan、线程、六个实际生成原型和双语输出；两平台各九条独立程序路径均通过。门禁保留失败现场和真实退出状态，执行前后核对源件与实际发布依赖。验收仍限本页列出的查询子集。</p>
     <p>2026-10-27 当前发布物的 Windows/Linux 默认门禁均通过：严格 C、ABI、线程、边界与分配故障、C/XLang 双语输出，以及公开 C 与 XLang 范例的独立 EXE AOT 对照；Linux 另含 ASan/UBSan 和四条 XLang AOT 路径。六个公开 XLang 入口的分配故障测试检查内存错误类别和恢复。64/65 层嵌套已有双语回归；合法嵌套样本的逐字符替换矩阵检查 validate、countRules 和 get 的判断与错误状态一致。固定矩阵不代表完整 fuzz，也不意味着完整浏览器 CSS 语义。Linux 门禁为 <code>bash release/extlibs/css/test/check.sh</code>。</p>
     <p>2026-10-19：名称后缀注释的 C/XLang 红绿用例与双语公开范例通过 Windows 和 Linux 包级门禁；注释仅构成属性名的旧拒绝行为也已固定。完整带输出 AOT 未签收。</p>
   </section>
