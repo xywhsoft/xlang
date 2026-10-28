@@ -6,7 +6,7 @@ param(
     [string]$ReportPath = "",
     [string]$NativeRoot = "",
     [string]$Tcc = "",
-    [ValidateRange(1, 8)][int]$MaxParallel = 3,
+    [ValidateRange(1, 8)][int]$MaxParallel = $(if ($env:XL6_TEST_MAX_PARALLEL) { [int]$env:XL6_TEST_MAX_PARALLEL } else { 3 }),
     [switch]$ListOnly
 )
 

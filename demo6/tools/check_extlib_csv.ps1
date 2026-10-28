@@ -9,7 +9,7 @@ $python=(Get-Command python -CommandType Application -ErrorAction Stop|Select-Ob
 $compiler=$null
 $artifact=$null
 if($PublicSourceDirectory){
-    $compilerDir=(Resolve-Path -LiteralPath (Join-Path $Root $PublicSourceDirectory)).Path
+    $compilerDir=(Resolve-Path -LiteralPath $(if([IO.Path]::IsPathRooted($PublicSourceDirectory)){$PublicSourceDirectory}else{Join-Path $Root $PublicSourceDirectory})).Path
     $compiler=Get-Content (Join-Path $compilerDir 'build.json') -Raw|ConvertFrom-Json
     if($compiler.RuntimeOnly -or (Get-FileHash -LiteralPath $compiler.Driver).Hash -ne $compiler.DriverSha256){throw 'Invalid CSV source compiler'}
     foreach($input in @($compiler.Inputs)+@($compiler.Headers)+@($compiler.Objects)){
@@ -31,7 +31,7 @@ if($PublicSourceDirectory){
 }
 $workRoot=Join-Path $Root 'build/test'
 $ownWork=!$WorkDirectory
-$work=if($WorkDirectory){[IO.Path]::GetFullPath((Join-Path $Root $WorkDirectory))}else{
+$work=if($WorkDirectory){[IO.Path]::GetFullPath($(if([IO.Path]::IsPathRooted($WorkDirectory)){$WorkDirectory}else{Join-Path $Root $WorkDirectory}))}else{
     Join-Path $workRoot ('csv_guard_'+[guid]::NewGuid().ToString('N'))
 }
 if($ownWork -and (Test-Path -LiteralPath $work)){throw "CSV work directory already exists: $work"}

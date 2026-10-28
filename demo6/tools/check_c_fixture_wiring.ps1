@@ -94,27 +94,46 @@ function Get-ManualCjsWiringFiles()
 function Get-LiteralCReferencePaths($text)
 {
     $paths = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+    $templatesByVariable = @{}
+    foreach ($template in [regex]::Matches($text,'"(?<path>[^"\r\n]*\$[A-Za-z_][A-Za-z0-9_]*[^"\r\n]*[.]c)"')) {
+        foreach ($variableMatch in [regex]::Matches($template.Groups['path'].Value,'\$(?<name>[A-Za-z_][A-Za-z0-9_]*)')) {
+            $name=$variableMatch.Groups['name'].Value
+            if (!$templatesByVariable.ContainsKey($name)) { $templatesByVariable[$name]=[Collections.Generic.List[string]]::new() }
+            $templatesByVariable[$name].Add($template.Groups['path'].Value)
+        }
+    }
     # Expand the fixed literal matrices once, not once per C/H asset. This is
     # the same finite matching contract; arbitrary interpolations do not count.
     foreach ($loop in [regex]::Matches($text,
         '(?s)foreach\s*\(\s*\$(?<variable>[A-Za-z_][A-Za-z0-9_]*)\s+in\s+@\((?<items>[^)]*)\)')) {
         $variable = $loop.Groups['variable'].Value
+        if (!$templatesByVariable.ContainsKey($variable)) { continue }
         $items = @([regex]::Matches($loop.Groups['items'].Value, '["''](?<item>[A-Za-z0-9_-]+)["'']'))
         if (!$items.Count) { continue }
-        $templates = [regex]::Matches($text,
-            '"(?<path>[^"\r\n]*\$' + [regex]::Escape($variable) + '(?![A-Za-z0-9_])[^"\r\n]*[.]c)"')
-        foreach ($template in $templates) {
+        foreach ($template in @($templatesByVariable[$variable])) {
             foreach ($item in $items) {
-                $expanded = $template.Groups['path'].Value.Replace('$' + $variable, $item.Groups['item'].Value)
+                $expanded = $template.Replace('$' + $variable, $item.Groups['item'].Value)
                 [void]$paths.Add($expanded.Replace('\', '/'))
             }
         }
+    }
+    $caseNames = @([regex]::Matches($text, '(?i)\b(?:Name|Fixture)\s*=\s*["''](?<name>[A-Za-z0-9_.-]+)["'']') |
+        ForEach-Object {$_.Groups['name'].Value} | Sort-Object -Unique)
+    foreach ($template in [regex]::Matches($text, 'test[\\/]cases[\\/]\$\(\$case\.(?:Fixture|Name)\)(?<suffix>_[A-Za-z0-9_]+[.]c)')) {
+        foreach ($name in $caseNames) { [void]$paths.Add('test/cases/' + $name + $template.Groups['suffix'].Value) }
+    }
+    foreach ($template in [regex]::Matches($text, '["'']test[\\/]cases[\\/]["'']\s*\+\s*\$case\.(?:Fixture|Name)\s*\+\s*["''](?<suffix>_[A-Za-z0-9_]+[.]c)["'']')) {
+        foreach ($name in $caseNames) { [void]$paths.Add('test/cases/' + $name + $template.Groups['suffix'].Value) }
     }
     return ,$paths
 }
 
 function Test-DirectReference($text, $relative, $literalPaths)
 {
+    $leafStem = [System.IO.Path]::GetFileNameWithoutExtension($relative)
+    if ($leafStem -match '^[A-Za-z_][A-Za-z0-9_]*$') {
+        return $script:entryIdentifiers.Contains($leafStem) -or $literalPaths.Contains($relative.Replace('\','/'))
+    }
     $slashPath = $relative.Replace("\", "/")
     $backslashPath = $relative.Replace("/", "\")
 
@@ -154,6 +173,23 @@ function Test-SameNameXlangCompanion($asset)
 $entryWiringFiles += Get-TestSuiteWiringFiles
 $entryWiringFiles += Get-CheckScriptWiringFiles
 $entryWiringFiles += Get-ManualCjsWiringFiles
+# Package-local native test entrypoints are executable owners too, not just
+# the central xlang coverage lists. Execution acceptance is recorded separately.
+if (!$CoreOnly) {
+    $packageRoot=Join-Path $Root 'release/extlibs'
+    foreach ($package in @(Get-ChildItem -LiteralPath $packageRoot -Directory)) {
+        foreach ($folder in @('test','tests','examples')) {
+            $directory=Join-Path $package.FullName $folder
+            if (!(Test-Path -LiteralPath $directory -PathType Container)) { continue }
+            foreach ($runner in @(Get-ChildItem -LiteralPath $directory -File | Where-Object {
+                $_.Name -match '^(check|test|run|build)[A-Za-z0-9_.-]*\.(ps1|sh|bat|py)$'
+            })) {
+                $entryWiringFiles += $runner.FullName.Substring(([IO.Path]::GetFullPath($Root)).TrimEnd('\').Length+1)
+            }
+        }
+    }
+}
+. (Join-Path $PSScriptRoot 'wiring_script_references.ps1')
 $entryTextParts = New-Object System.Collections.Generic.List[string]
 foreach ( $relative in $entryWiringFiles ) {
     $path = Join-Path $Root $relative
@@ -165,6 +201,19 @@ foreach ( $relative in $entryWiringFiles ) {
 }
 
 $entryText = [string]::Join("`n", $entryTextParts)
+$closure = @(Get-WiringScriptClosure $Root $entryWiringFiles)
+$entryText += "`n" + [string]::Join("`n", @($closure | ForEach-Object Text))
+$script:entryIdentifiers = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+foreach ($identifier in [regex]::Matches($entryText,'[A-Za-z_][A-Za-z0-9_]*')) {
+    [void]$script:entryIdentifiers.Add($identifier.Value)
+}
+foreach ($record in $closure) {
+    foreach ($value in $record.Literals) {
+        if ($value -match '(?:^|[\\/])(?<stem>[A-Za-z_][A-Za-z0-9_]*)[.](?:c|h)$') {
+            [void]$script:entryIdentifiers.Add($Matches['stem'])
+        }
+    }
+}
 $literalCPaths = Get-LiteralCReferencePaths $entryText
 $rootPath = (Resolve-Path -LiteralPath $Root).Path
 $entryAssetRoots = @("test\cases", "release\examples")
@@ -278,6 +327,8 @@ foreach ( $packageDir in $packageDirs ) {
     function Add-PackageDeclaredSource($sourcePath)
     {
         $sourceFullPath = [System.IO.Path]::GetFullPath($sourcePath)
+        if (!$sourceFullPath.StartsWith($rootPath + [IO.Path]::DirectorySeparatorChar,
+            [StringComparison]::OrdinalIgnoreCase)) { return }
         $sourceKey = $sourceFullPath.ToLowerInvariant()
 
         if ( $packageDeclaredSources.ContainsKey($sourceKey) ) {
@@ -291,7 +342,7 @@ foreach ( $packageDir in $packageDirs ) {
         }
 
         $sourceText = Read-Utf8Text $sourceFullPath
-        $includeMatches = [regex]::Matches($sourceText, '(?m)^\s*#\s*include\s+"([^"]+[.]c)"')
+        $includeMatches = [regex]::Matches($sourceText, '(?m)^\s*#\s*include\s+"([^"\r\n]+[.](?:c|h))"')
         foreach ( $includeMatch in $includeMatches ) {
             $includeName = $includeMatch.Groups[1].Value
             $includePath = Join-Path ([System.IO.Path]::GetDirectoryName($sourceFullPath)) $includeName

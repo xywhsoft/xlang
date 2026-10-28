@@ -77,6 +77,8 @@ test\suites\02_language_frontend.bat
 以下前缀来自 `test/cases` 下递归发现的 `.xl` 用例。新增新前缀时，必须同步更新本节，避免测试资产变成只有批处理知道。
 
 <!-- case-prefix-index:start -->
+- `dynamic`: dynamic-call and runtime conversion regression fixtures.
+- `primitive`: primitive value ABI and ownership regression fixtures.
 - `char`：Unicode 单字符值、整数字面量与字符串索引回归。
 - `syntax`：已移除参数修饰语法的拒绝，以及原关键字作为普通名称的正例。
 - `index`: indexed container read/write and temporary ownership regressions.

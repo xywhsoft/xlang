@@ -133,7 +133,13 @@ foreach ($name in @('check_compiled_packages.ps1',
     'check_xlir_module_product_globals.ps1',
     'check_stdlib_time_core.ps1','check_stdlib_time_calendar.ps1','check_stdlib_time_text.ps1','check_stdlib_environment.ps1',
     'check_stdlib_signal_core.ps1','check_stdlib_signal_queue.ps1','check_stdlib_process_run.ps1',
-    'check_stdlib_process_future_module.ps1')) {
+    'check_stdlib_process_future_module.ps1',
+    'check_c_tool_selection.ps1','check_extlib_bz2.ps1','check_extlib_c_owned.ps1',
+    'check_extlib_chardet.ps1','check_extlib_codec_dll_file.ps1','check_extlib_color.ps1',
+    'check_extlib_companions.ps1','check_extlib_csv.ps1','check_extlib_file_runtime.ps1',
+    'check_extlib_graph.ps1','check_extlib_gzip.ps1','check_extlib_lz4.ps1',
+    'check_extlib_native_contract.ps1','check_extlib_protocol_abi.ps1',
+    'check_foreign_bridges.ps1','check_stdlib_identity_fields.ps1')) {
     $fullRegressionOnly.Add((Normalize-ToolPath ("tools\" + $name))) | Out-Null
 }
 

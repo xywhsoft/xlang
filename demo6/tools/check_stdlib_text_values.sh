@@ -160,12 +160,16 @@ fixture() {
         native_object "$name" "$OUT/$name.native.c" debug || return
         run "$name.managed-oom-build" "$CC" "${strict[@]}" "${sanitize[@]}" -no-pie -include "$OUT/$name.c" \
             test/cases/stdlib_text_iterator_generated_host.c "$native_result" "${objects[@]}" -pthread -ldl -lm -o "$OUT/$name.managed-oom" || return
-        local point terminal=false
-        for ((point=1;point<=512;++point)); do
-            run "$name.managed-oom-$point" "$OUT/$name.managed-oom" "$point" || return
-            if grep -q 'hit=0 balanced' "$OUT/$name.managed-oom-$point.log"; then terminal=true; break; fi
+        local point mode terminal
+        for mode in logical allocator; do
+            terminal=false
+            local extra=(); if [[ "$mode" = allocator ]]; then extra=(allocator); fi
+            for ((point=1;point<=4096;++point)); do
+                run "$name.managed-$mode-oom-$point" "$OUT/$name.managed-oom" "$point" "${extra[@]}" || return
+                if grep -q 'hit=0 balanced' "$OUT/$name.managed-$mode-oom-$point.log"; then terminal=true; break; fi
+            done
+            "$terminal" || return 1
         done
-        "$terminal" || return 1
     fi
     run "$name.selection" python3 -c 'import json,sys;p=next(json.loads(s) for s in open(sys.argv[1]) if s.startswith("{\"Fixture\""));n=sys.argv[2];s=p["Sources"];m=p["NativeModules"];
 if n=="stdlib_text_lower_only": assert "src/runtime/xl6_text_value.c" in s and not any("xl6_text_" in x and "xl6_text_value.c" not in x for x in s)

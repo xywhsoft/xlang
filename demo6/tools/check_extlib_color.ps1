@@ -6,13 +6,13 @@ $pkg='release/extlibs/color'
 $xl=Join-Path $Root 'release/xl.exe'
 $gcc=(Get-Command gcc -CommandType Application|Select-Object -First 1).Source
 $python=(Get-Command python -CommandType Application|Select-Object -First 1).Source
-$work=if($WorkDirectory){[IO.Path]::GetFullPath((Join-Path $Root $WorkDirectory))}else{Join-Path $Root ('build/test/color_guard/run_'+[guid]::NewGuid().ToString('N'))}
+$work=if($WorkDirectory){[IO.Path]::GetFullPath($(if([IO.Path]::IsPathRooted($WorkDirectory)){$WorkDirectory}else{Join-Path $Root $WorkDirectory}))}else{Join-Path $Root ('build/test/color_guard/run_'+[guid]::NewGuid().ToString('N'))}
 [void][IO.Directory]::CreateDirectory($work)
 $utf8=[Text.UTF8Encoding]::new($false)
 . (Join-Path $PSScriptRoot 'extlib_smoke_process.ps1')
 $compiler=$null; $artifact=$null
 if($PublicSourceDirectory){
-    $compilerDir=(Resolve-Path (Join-Path $Root $PublicSourceDirectory)).Path
+    $compilerDir=(Resolve-Path -LiteralPath $(if([IO.Path]::IsPathRooted($PublicSourceDirectory)){$PublicSourceDirectory}else{Join-Path $Root $PublicSourceDirectory})).Path
     $compiler=Get-Content (Join-Path $compilerDir 'build.json') -Raw|ConvertFrom-Json
     $artifact=Get-Content (Join-Path $compilerDir 'artifact_sources.json') -Raw|ConvertFrom-Json
     if($compiler.RuntimeOnly -or (Get-FileHash $compiler.Driver).Hash -ne $compiler.DriverSha256 -or $artifact.DriverSha256 -ne $compiler.DriverSha256){throw 'Invalid color source compiler'}

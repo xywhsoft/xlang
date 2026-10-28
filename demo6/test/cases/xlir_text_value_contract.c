@@ -67,8 +67,15 @@ int main(int argc, char** argv)
         XL6_IrType* type = &ir.types.items[i];
         if (type->nativeProductAbi == XL6_IR_NATIVE_PRODUCT_NONE) continue;
         XL6_IrNativeProductAbi profile = type->nativeProductAbi;
-          assert(profile == XL6_IR_NATIVE_PRODUCT_I64X3_V1 || profile == XL6_IR_NATIVE_PRODUCT_TIMEX2_V1 ||
-              profile == XL6_IR_NATIVE_PRODUCT_BOOLTIME_V1);
+        switch (profile) {
+        case XL6_IR_NATIVE_PRODUCT_I64X3_V1: case XL6_IR_NATIVE_PRODUCT_TIMEX2_V1:
+        case XL6_IR_NATIVE_PRODUCT_BOOLTIME_V1: case XL6_IR_NATIVE_PRODUCT_BOOLI64_V1:
+        case XL6_IR_NATIVE_PRODUCT_BOOLU64_V1: case XL6_IR_NATIVE_PRODUCT_BOOLBOOL_V1:
+        case XL6_IR_NATIVE_PRODUCT_BOOLI32_V1: case XL6_IR_NATIVE_PRODUCT_BOOLU32_V1:
+        case XL6_IR_NATIVE_PRODUCT_I64U64_V1: case XL6_IR_NATIVE_PRODUCT_I64BYTES_V1:
+        case XL6_IR_NATIVE_PRODUCT_BOOLI64I64_V1: break;
+        default: assert(!"Unreviewed native product profile");
+        }
         type->nativeProductAbi = XL6_IR_NATIVE_PRODUCT_NONE;
         assert(!xl6IrVerifyModule(&ir, NULL)); type->nativeProductAbi = profile;
         type->nativeProductAbi = (XL6_IrNativeProductAbi)999;
@@ -79,13 +86,19 @@ int main(int argc, char** argv)
         size_t fields = type->paramCount; --type->paramCount;
         assert(!xl6IrVerifyModule(&ir, NULL)); type->paramCount = fields;
         XL6_IrOwnershipAbi own = type->ownershipAbi;
-        type->ownershipAbi = XL6_IR_OWNERSHIP_ABI_MANAGED;
+        type->ownershipAbi = (XL6_IrOwnershipAbi)999;
         assert(!xl6IrVerifyModule(&ir, NULL)); type->ownershipAbi = own;
         for (size_t field=0; field<fields; ++field) {
             XL6_IrType* item = &ir.types.items[type->params[field]-1];
-            XL6_IrIntegerTarget width = item->integerTarget;
-            item->integerTarget = XL6_IR_INTEGER_TARGET_SIGNED_32;
-            assert(!xl6IrVerifyModule(&ir, NULL)); item->integerTarget = width;
+            XL6_IrTypeKind kind = item->kind;
+            item->kind = (XL6_IrTypeKind)999;
+            assert(!xl6IrVerifyModule(&ir, NULL)); item->kind = kind;
+            if (item->integerTarget != XL6_IR_INTEGER_TARGET_INVALID) {
+                XL6_IrIntegerTarget width = item->integerTarget;
+                item->integerTarget = width == XL6_IR_INTEGER_TARGET_SIGNED_32
+                    ? XL6_IR_INTEGER_TARGET_SIGNED_64 : XL6_IR_INTEGER_TARGET_SIGNED_32;
+                assert(!xl6IrVerifyModule(&ir, NULL)); item->integerTarget = width;
+            }
         }
         assert(xl6IrVerifyModule(&ir, NULL)); ++products;
     }

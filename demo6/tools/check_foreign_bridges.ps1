@@ -19,7 +19,7 @@ $previousPackages = $env:XLANG_PACKAGE_PATH
 $env:XLANG_PACKAGE_PATH = Join-Path $root 'release/extlibs'
 Push-Location $root
 try {
-    $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
+    $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
     $hostExe = Join-Path $work 'resource_host.exe'
     $implementation = $XrtObject
     if (!$implementation) {
