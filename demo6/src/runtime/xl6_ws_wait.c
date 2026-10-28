@@ -41,10 +41,13 @@ static void cancelled(void* data)
         bool pinned=xl6ExecutionResourceNativePinV1(&r->base);
         bool postedOk=pinned&&xrtNetEnginePostOwnedV1(r->parent->engine,r->worker,r,xl6WsWaitPostPolicyV2Get());
         if(!postedOk){
+            xerror* error=xrtTakeError();
             if(pinned)xl6ExecutionResourceNativeDropV1(&r->base);
             xrtAtomic32Store(&r->sweepQueued,0,XMEMORY_RELEASE);
-            /* Engine shutdown owns final observer cancellation. A live queue
-             * failure aborts the physical stream, whose close sweeps waiters. */
+            /* Retain infrastructure failure before stopping the stream. A
+             * failed post must not turn into a successful close result. The
+             * physical close wakes observers and reports this checked error. */
+            xl6WsStreamRecordFailureV2(r,error);
             xwsstream* s=xrtAtomicPtrLoad(&r->native,XMEMORY_ACQUIRE);
             if(s)(void)xrtWsStreamAbort(s);
             xrtClearError();
