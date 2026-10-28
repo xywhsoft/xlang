@@ -80,6 +80,11 @@ static xvalue* dino_shape(void* handle, int* value_count)
 invalid_shape:
     xrtValueRelease(shape);
 invalid:
+    /* 解析 shape 的分配失败不是模型格式错误，不能清掉 XRT 的首因。 */
+    if (xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_MEMORY) {
+        dino_set_error("out of memory");
+        return NULL;
+    }
     xrtClearError();
     dino_set_error("invalid DinoV3 embedding shape or count");
     return NULL;

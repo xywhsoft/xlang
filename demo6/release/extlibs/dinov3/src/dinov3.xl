@@ -14,17 +14,16 @@ extern "ort_result_float_shape_json_native" func dinov3_result_shape_native(poin
 extern "ort_result_float_count_native" func dinov3_result_count_native(point handle) as c_int
 extern "ort_result_float_at_native" func dinov3_result_at_native(point handle, c_int index) as float
 
-func dinov3_take_json(string? value) as string
-	if value == null then throw RuntimeError dinov3_last_error_native() end
-	return value
+func dinov3_json_failure() as string
+	throw RuntimeError dinov3_last_error_native()
 end
 
 func dinov3_embedding_json_native(point result_handle) as string
-	return dinov3_take_json(dinov3_embedding_json_raw_native(result_handle))
+	return dinov3_embedding_json_raw_native(result_handle) ?? dinov3_json_failure()
 end
 
 func dinov3_output_json_native(point result_handle, string source_path) as string
-	return dinov3_take_json(dinov3_output_json_raw_native(result_handle, source_path))
+	return dinov3_output_json_raw_native(result_handle, source_path) ?? dinov3_json_failure()
 end
 
 func dinov3_require_output(point handle)
@@ -96,7 +95,6 @@ class DinoV3Output
 	destroy()
 		if self.handle != null then
 			dinov3_result_release_native(self.handle)
-			self.handle = null
 		end
 	end
 

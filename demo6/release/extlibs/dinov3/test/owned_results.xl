@@ -1,0 +1,61 @@
+import dinov3
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    // OCR 仅提供真实浮点结果来验证传输，不将它冒充 DinoV3 特征模型。
+    assert arg.length == 3, "expected: owned_results MODEL IMAGE"
+    string modelPath = string(arg[1])
+    string imagePath = string(arg[2])
+    auto model = dinov3.DinoV3(modelPath)
+    assert model.set_input_shape(192, 48)
+    assert model.set_direct_resize(true)
+    assert model.set_input_name("x")
+    assert model.set_output_names("[\"save_infer_model/scale_0.tmp_1\"]")
+    auto result = model.op_call(imagePath)
+    assert result.valid() and result.count() == 2, result.error()
+    // 固定 JSON 负载大小；传入绝对夹具路径不应改变本测试的分配预算。
+    result.source_path = "extlibs/xfeat/test/assets/target.png"
+    string held = result.embedding_json()
+    string snapshot = result.to_json()
+    assert json.parse(held).length == 2
+    for operation in range(2)
+        int succeeded = -1
+        // 固定两值/两维结果，分别保留原生解析与写出所需分配，不允许正文副本。
+        int needed = operation == 0 ? 12 : 15
+        for budget in range(needed + 1)
+            string text = ""
+            bool rejected = false
+            bool triggered = false
+            assert failAfter(uint64(budget))
+            try
+                if operation == 0 then text = result.embedding_json() else text = result.to_json() end
+            catch MemoryError error
+                rejected = true
+            finally
+                triggered = failTriggered()
+                failClear()
+            end
+            if triggered then
+                assert rejected, "JSON allocation failure must not be hidden as success"
+            else
+                assert not rejected
+                if operation == 0 then assert text == held else assert text == snapshot end
+                succeeded = budget
+                break
+            end
+        end
+        assert succeeded == needed, "owned JSON was copied or its allocation path changed"
+        println(f"dinov3 XL owned operation {operation}: {succeeded} allocations")
+    end
+    assert result.embedding_json() == held and result.to_json() == snapshot
+    assert result.release() and not result.release()
+    assert json.parse(held).length == 2 and json.parse(snapshot)["count"] == 2
+    // 有效结果自然析构，不靠每处显式 release 掩盖退役字段写回。
+    auto automatic = model.op_call(imagePath)
+    assert automatic.valid() and automatic.count() == 2
+    println("dinov3 real result transport: PASS")
+    return 0
+end
