@@ -95,9 +95,10 @@ def main():
     try:result.result()
     except Exception as error:failures.append(repr(error))
   for n in BAD:
-   q=root/'test/cases'/(n+'.xl');text=run(n,[driver,q,'cgen-default',out/(n+'.c')] if driver else [cli,'cgen',q,'--emit',out/(n+'.c')],negative=True)
-   assert b'exact declared ABI' in text if n.endswith(('no_raise','enum_result')) else b'[sem]' in text,(n,text[-1000:])
-  assert not failures,failures
+   try:
+    q=root/'test/cases'/(n+'.xl');text=run(n,[driver,q,'cgen-default',out/(n+'.c')] if driver else [cli,'cgen',q,'--emit',out/(n+'.c')],negative=True)
+    assert b'exact declared ABI' in text if n.endswith(('no_raise','enum_result')) else b'[sem]' in text,(n,text[-1000:])
+   except Exception as error:failures.append(repr(error))
   if not driver:
    sys.path.insert(0,str(root/'tools'))
    from gen_tcc_vfs_resources import load_resources
@@ -113,12 +114,14 @@ def main():
    strict=[*flags,'-Wno-unused-function','-Wno-unused-parameter','-Wno-unused-variable','-Wno-unused-label','-Wno-unused-const-variable',
     '-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-I'+str(sdk)]
    for n in [n for n in selected if n.endswith(('_v2','language_oom'))]:
-    module=out/(n+'.saved')/'module.c';assert module.is_file()
-    source=root/'test/cases'/('stdlib_codec_template_language_oom_host.c' if n.endswith('language_oom') else 'stdlib_codec_template_language_host.c')
     for opt in ['O0','O2']:
-     binary=isolated/(n+'.'+opt+('.exe' if windows else ''))
-     run(n+'.'+opt+'.build',[cc,*strict,'-'+opt,'-DXLIR_GENERATED_MODULE="'+module.as_posix()+'"',source,root/'test/support/module_product_memory.c',*links,'-o',binary])
-     run(n+'.'+opt+'.lifetime',[binary])
+     try:
+      module=out/(n+'.saved')/'module.c';assert module.is_file(),str(module)
+      source=root/'test/cases'/('stdlib_codec_template_language_oom_host.c' if n.endswith('language_oom') else 'stdlib_codec_template_language_host.c')
+      binary=isolated/(n+'.'+opt+('.exe' if windows else ''))
+      run(n+'.'+opt+'.build',[cc,*strict,'-'+opt,'-DXLIR_GENERATED_MODULE="'+module.as_posix()+'"',source,root/'test/support/module_product_memory.c',*links,'-o',binary])
+      run(n+'.'+opt+'.lifetime',[binary])
+     except Exception as error:failures.append(repr(error))
    report['NativeBenchmarkCompiler']='GCC -O2, matching Linux resident providers'
    if windows:
     # The ordinary Windows DLL build uses GCC -Os. TCC remains the script
@@ -147,6 +150,7 @@ def main():
     features={m.decode() for m in re.findall(rb'^#define XRT_FEATURE_([A-Z0-9_]+)\b',macros,re.M)}
     assert required in features and not features&(forbidden|{'NET_ENGINE','TLS','INFLATE','DEFLATE'}),(kind,features)
    assert all(sha(r['Path'])==r['Sha256'] for r in headerInputs)
+  assert not failures,failures
   report['InputsUnchanged']=all(sha(q)==h for q,h in report['Inputs'].items());report['Complete']=report['InputsUnchanged']
   report['ShippingAcceptance']=report['Complete'] and not driver
  except Exception as error:report['Error']=repr(error)
