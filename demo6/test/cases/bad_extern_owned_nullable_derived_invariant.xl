@@ -1,0 +1,10 @@
+class Base
+end
+class Child extends Base
+end
+func same<T>(array<T> first,array<T> second) as int
+    return first.length+second.length
+end
+array<Base?> first=[null]
+array<Child> second=[Child()]
+same(first,second)

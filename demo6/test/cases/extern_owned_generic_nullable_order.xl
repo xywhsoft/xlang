@@ -1,0 +1,46 @@
+// Invariant containers determine T before direct value arguments, even when
+// a value appears first or arguments are named in the opposite source order.
+func choose<T>(T value,array<T> witness) as int
+    return witness.length
+end
+func reversed<T>(array<T> witness,T value) as int
+    return witness.length
+end
+array<string?> text=[null]
+assert choose(null,text)==1 and choose("text",text)==1
+assert choose(value=null,witness=text)==1
+assert choose(witness=text,value="text")==1
+assert reversed(text,null)==1 and reversed(text,"text")==1
+array<int?> integers=[null]
+assert choose(null,integers)==1 and choose(7,integers)==1
+class Base
+    int value=7
+end
+class Child extends Base
+end
+Child child=Child()
+array<Base?> classes=[null]
+assert choose(child,classes)==1
+assert choose(value=child,witness=classes)==1
+assert reversed(classes,child)==1
+assert choose(null,classes)==1
+// Flow-projected nullable values use their actual value type at the boundary.
+string? present="present"
+if present!=null
+    assert choose(present,text)==1
+end
+// Type probing must never change execution order or evaluate twice.
+int sequence=0
+func valueArgument() as string
+    sequence=sequence*10+1
+    return "value"
+end
+func witnessArgument() as array<string?>
+    sequence=sequence*10+2
+    return [null]
+end
+assert choose(valueArgument(),witnessArgument())==1
+assert sequence==12
+sequence=0
+assert choose(witness=witnessArgument(),value=valueArgument())==1
+assert sequence==21

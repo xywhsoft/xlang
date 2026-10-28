@@ -7858,6 +7858,7 @@ const XL6_IrValueInitializer* xl6IrValueInitializerGet(
     const XL6_IrModule* module, XL6_IrNodeId declaration);
 int xl6IrContextualCallableCastRequired(const XL6_IrModule* module,
     XL6_IrTypeId source, XL6_IrTypeId target);
+int xl6IrNullableAcceptsValue(const XL6_IrModule*,XL6_IrTypeId,XL6_IrTypeId);
 int xl6IrContextualCallableCastAllowed(const XL6_IrModule* module,
     XL6_IrNodeId origin, XL6_IrNodeId source, XL6_IrTypeId target);
 int xl6IrContextualCheckedIntegerConversionAllowed(

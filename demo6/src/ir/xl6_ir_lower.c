@@ -15832,7 +15832,7 @@ static int xl6IrLowerUnifyGenericType(
         }
         const XL6_IrType* fixed=xl6IrTypeGet(&module->types,resolved[index]);
         if(!depth && fixed && fixed->kind==XL6_IR_TYPE_NULLABLE && fixed->paramCount==1 &&
-            fixed->params && (fixed->params[0]==actualId ||
+            fixed->params && (fixed->params[0]==actualId || xl6IrNullableAcceptsValue(module,resolved[index],actualId) ||
             (actual->name && !strcmp(actual->name,"null")))) return 1;
         return resolved[index] == actualId;
     }
@@ -15885,6 +15885,7 @@ static int xl6IrLowerInferGenericCallTypeArgs(
          site->fixedParameterCount > formalArgs->childCount ||
          (resolved = (XL6_IrTypeId*)xrtCalloc(parameterCount, sizeof(*resolved))) == NULL ) goto done;
     /* 命名参数和默认值已经绑定到形参；推断不能重新按源码位置配对。 */
+    for(size_t phase=0;phase<2;++phase)
     for ( i = 0; i < site->fixedParameterCount; ++i ) {
         const XL6_IrNode* formal = xl6IrNodeGet(module, module->children[formalArgs->firstChild + i]);
         const XL6_IrCallArgument* binding = &module->callArguments[site->firstArgument + i];
@@ -15897,6 +15898,9 @@ static int xl6IrLowerInferGenericCallTypeArgs(
          * an integer literal/default to uint64). Requiring identical raw ABIs
          * here would reject valid calls without contributing a T binding. */
         if ( !xl6IrLowerTypeContainsTypeParam(module, formal->storageType, 0) ) continue;
+        const XL6_IrType* pattern=xl6IrTypeGet(&module->types,formal->storageType);
+        bool direct=pattern && pattern->kind==XL6_IR_TYPE_TYPE_PARAM;
+        if((phase==0 && direct) || (phase==1 && !direct))continue;
         /* Infer from the exact value at the call boundary, not a NAME's wider
          * nullable storage. Lowering already materializes that flow projection. */
         actualType = xl6IrNodeMaterializedValueType(module, actual);

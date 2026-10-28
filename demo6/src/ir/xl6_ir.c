@@ -24875,7 +24875,7 @@ static int xl6IrCallableTypesCompatible(
  * are identical and the element relation is already proved by the build
  * model.  Scalar nullable values deliberately do not enter this path: their
  * tagged product ABI requires a distinct instruction family. */
-static int xl6IrNullableAcceptsValue(
+int xl6IrNullableAcceptsValue(
     const XL6_IrModule* module, XL6_IrTypeId nullableType, XL6_IrTypeId sourceType)
 {
     const XL6_IrType* target = xl6IrTypeGet(&module->types, nullableType);
