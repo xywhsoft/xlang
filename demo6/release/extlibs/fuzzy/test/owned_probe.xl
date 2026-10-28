@@ -1,0 +1,8 @@
+import fuzzy
+
+// 五个公开入口共用只读输入校验，生成 C 不应复制参数或已接管的结果。
+assert fuzzy.levenshtein("kitten", "sitting") == 3
+assert fuzzy.ratio("hello", "hallo") == 80
+assert fuzzy.score("fb", "foobar") == 7
+assert not fuzzy.isMatch("xyz", "foobar")
+assert fuzzy.best("pc", "lib/parser.c\nsrc/main.c") == "lib/parser.c"

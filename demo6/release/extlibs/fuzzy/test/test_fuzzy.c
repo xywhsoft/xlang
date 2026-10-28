@@ -133,6 +133,36 @@ static int test_best_reference(void)
     return 0;
 }
 
+/* 正常未匹配也返回拥有型空串；只有最终结果需要一次 XRT 分配。 */
+static int test_owned_result_budget(void)
+{
+    const char* queries[] = {"pc", "missing", "", "any"};
+    const char* lists[] = {"lib/parser.c\nsrc/main.c", "abc\ndef", "first\nsecond", ""};
+    const char* expected[] = {"lib/parser.c", "", "first", ""};
+    size_t i;
+    for (i = 0; i < sizeof(queries) / sizeof(queries[0]); ++i) {
+        unsigned budget;
+        for (budget = 0; budget < 2u; ++budget) {
+            char* result;
+            bool triggered;
+            bool memory_error;
+            CHECK(xrtMemDebugFailAfter(budget));
+            result = xfuzzy_best(queries[i], lists[i]);
+            triggered = xrtMemDebugFailTriggered();
+            memory_error = xrtErrorKind(xrtGetError()) == XERR_MEMORY;
+            xrtMemDebugFailClear();
+            if (budget == 0u) {
+                CHECK(result == NULL && triggered && memory_error);
+            } else {
+                CHECK(result != NULL && !triggered && !memory_error);
+                CHECK(strcmp(result, expected[i]) == 0 && xrtGetError() == NULL);
+                xrtFree(result);
+            }
+        }
+    }
+    return 0;
+}
+
 int main(void)
 {
     char long_text[5001];
@@ -263,6 +293,7 @@ int main(void)
     CHECK(result != NULL && strcmp(result, "lib/parser.c") == 0);
     xrtFree(result);
 
+    CHECK(test_owned_result_budget() == 0);
     puts("fuzzy C boundaries: PASS");
     return 0;
 }
