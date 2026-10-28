@@ -31,7 +31,8 @@ function InputPaths {
     }
     foreach ($path in @('lib/xrt/xrt.h','lib/xruntime/xruntime.h',
         'release/include/xrt_decl.h','release/include/xruntime_decl.h','release/include/xl_extlib_abi.h',
-        'test/support/extlib_codec_runtime.c','tools/check_extlib_bz2.ps1','tools/check_extlib_bz2.sh',
+        'test/support/extlib_codec_runtime.c','test/support/extlib_codec_file_rollback.h',
+        'tools/check_extlib_bz2.ps1','tools/check_extlib_bz2.sh',
         'tools/check_extlib_bz2_interop.py','tools/extlib_smoke_process.ps1','tools/xlir_native_process.ps1',
         'tools/run_extlib_c.ps1','test/featured_extlibs.json','test/suites/11_featured_extlibs_rc.bat',
         'test/cases/extlib_bz2.xl','test/cases/extlib_bz2_progress.xl',
@@ -98,6 +99,17 @@ try {
     $fileTest = Join-Path $work 'files.exe'
     $null = Check 'file-boundaries-build' $gcc ($flags + @('-DNDEBUG','release/extlibs/bz2/test/test_bz2_files.c') + $objects + $links + @('-o',$fileTest))
     $null = Check 'file-boundaries' $fileTest @((Join-Path $work ('files-'+[Guid]::NewGuid().ToString('N'))))
+    $cleanupProbe = 'release/extlibs/bz2/test/test_bz2_cleanup.c'
+    $cleanupTest = Join-Path $work 'cleanup.exe'
+    $null = Check 'cleanup-build' $gcc ($flags + @($cleanupProbe) + $objects + $links + @('-o',$cleanupTest))
+    $null = Check 'cleanup' $cleanupTest @((Join-Path $work ('cleanup-'+[Guid]::NewGuid().ToString('N'))))
+    $null = Check 'cleanup-jit' $xl @('run',$cleanupProbe,'--',
+        (Join-Path $work ('jit-cleanup-'+[Guid]::NewGuid().ToString('N'))))
+    if (!$SkipAot) {
+        $cleanupAot = Join-Path $work 'cleanup-aot.exe'
+        $null = Check 'cleanup-aot-build' $xl @('build',$cleanupProbe,'-o',$cleanupAot)
+        $null = Check 'cleanup-aot' $cleanupAot @((Join-Path $work ('aot-cleanup-'+[Guid]::NewGuid().ToString('N'))))
+    }
     $fileProbe = 'release/extlibs/bz2/test/test_bz2_files.c'
     $null = Check 'file-boundaries-jit' $xl (@('run',$fileProbe) + $sources + $vendorSources + @('--inc-path','lib/xrt','--inc-path','lib/xruntime','--',(Join-Path $work ('jit-files-'+[Guid]::NewGuid().ToString('N')))))
     $null = Check 'file-ops-jit' $xl @('run','release/extlibs/bz2/test/file_ops.xl')
@@ -170,6 +182,11 @@ try {
         if ($cOutput -cne $golden -or $jit -cne $golden -or $helper -cne $golden -or
             (!$SkipAot -and $cAot -cne $golden)) { throw "$name C/XL output mismatch" }
     }
+    # 关闭后提交失败的二次 OOM 不能被打开态回滚修复掩盖。
+    $commitTest = Join-Path $work 'commit-cleanup.exe'
+    $null = Check 'commit-cleanup-build' $gcc ($flags + @(
+        'release/extlibs/bz2/test/test_bz2_commit_cleanup.c') + $objects + $links + @('-o',$commitTest))
+    $null = Check 'commit-cleanup' $commitTest @((Join-Path $work ('commit-cleanup-'+[Guid]::NewGuid().ToString('N'))))
     $outcome = 'passed'
 } catch {
     $failure = $_.Exception.Message
