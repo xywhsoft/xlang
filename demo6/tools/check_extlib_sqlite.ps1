@@ -16,7 +16,7 @@ $hashes = [ordered]@{}
 $pkg = 'release/extlibs/sqlite'
 $sources = @("$pkg/sqlite_native.c", "$pkg/third_party/sqlite3.c")
 $cases = @('test/cases/extlib_sqlite.xl', "$pkg/test/boundaries.xl", "$pkg/test/file.xl",
-    "$pkg/test/nul_inputs.xl")
+    "$pkg/test/nul_inputs.xl", "$pkg/test/owned_results.xl")
 function InputPaths {
     @('release/xl.exe','release/xl.dll','release/xlc.dll','lib/xrt/xrt.h','lib/xruntime/xruntime.h',
       'release/include/xrt_decl.h','release/include/xruntime_decl.h','release/include/xl_extlib_abi.h',

@@ -60,7 +60,7 @@ diff -u "$work/basic.log" "$work/basic_direct.log"
 
 xl=./release/xl
 for source in test/cases/extlib_sqlite.xl "$pkg/test/boundaries.xl" \
-    "$pkg/test/file.xl" "$pkg/test/nul_inputs.xl"; do
+    "$pkg/test/file.xl" "$pkg/test/nul_inputs.xl" "$pkg/test/owned_results.xl"; do
     name=$(basename "$source" .xl)
     timeout 90s "$xl" run "$source" > "$work/$name.jit.log"
     timeout 120s "$xl" build "$source" -o "$work/$name"
