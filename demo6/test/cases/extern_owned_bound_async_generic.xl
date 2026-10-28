@@ -1,0 +1,19 @@
+// A method's logical result T becomes future<T> at the callable boundary.
+extern "owned_text" @owned func Text() as string
+extern "owned_original" @no_raise func original(string value) as bool
+class Box
+    async func Echo<T>(T value) as T
+        return value
+    end
+    async func Read<T>(T ignored) as string
+        string value=Text()
+        assert original(value)
+        return value
+    end
+end
+    Box box=Box()
+    func(string) as future<string> echo=box.Echo
+    assert await echo("text")=="text"
+    func(c_int) as future<string> read=box.Read
+    string text=await read(c_int(7))
+    assert text=="owned text"

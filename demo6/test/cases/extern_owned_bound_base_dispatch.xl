@@ -1,0 +1,33 @@
+// Saving base.Read preserves the same static dispatch as base.Read().
+// Ordinary Base-typed references must still dispatch to Child's override.
+int entered=0
+class Base
+    virtual func Read() as string
+        return "base"
+    end
+end
+class Child extends Base
+    override func Read() as string
+        entered+=1
+        // This guard makes an accidental virtual recursion fail deterministically.
+        if entered>2
+            return "recursive"
+        end
+        func() as string cb=base.Read
+        return cb()
+    end
+    func direct() as string
+        return base.Read()
+    end
+    func getBase() as func() as string
+        return base.Read
+    end
+end
+Child child=Child()
+assert child.direct()=="base"
+func() as string saved=child.getBase()
+assert saved()=="base" and entered==0
+assert child.Read()=="base" and entered==1
+Base parent=child
+func() as string virtualRead=parent.Read
+assert virtualRead()=="base" and entered==2

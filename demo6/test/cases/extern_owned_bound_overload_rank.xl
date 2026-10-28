@@ -1,0 +1,22 @@
+// Match the direct-call rank, independently of declaration order.
+class Box
+    func Pick<T>(T value) as T
+        return value
+    end
+    func Pick(string value) as string
+        return "specific:"+value
+    end
+    func Reverse(string value) as string
+        return "reverse:"+value
+    end
+    func Reverse<T>(T value) as T
+        return value
+    end
+end
+Box box=Box()
+func(string) as string cb=box.Pick
+func(string) as string reverse=box.Reverse
+assert box.Pick("text")==cb("text") and cb("text")=="specific:text"
+assert box.Reverse("text")==reverse("text") and reverse("text")=="reverse:text"
+func(int) as int generic=box.Pick
+assert generic(7)==7

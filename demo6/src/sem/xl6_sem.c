@@ -6,6 +6,7 @@
 #include "src/sem/xl6_type_registry.h"
 #include "src/stdlib/xl6_stdlib.h"
 #include "src/type/xl6_type_model.h"
+#include "src/type/xl6_call_rank.h"
 #include "src/type/xl6_constructor_flow.h"
 #include "src/type/xl6_c_owned_type.h"
 #include "src/abi/xl6_native_generic.h"
@@ -3852,7 +3853,7 @@ static int xl6SemExprParamMatchCostEx(
         return 0;
     }
     if ( xl6SemFindTypeParam(ctx, typeNode->text) ) {
-        return 40;
+        return XL6_CALL_GENERIC_MATCH_COST;
     }
     typeNode = xl6SemResolveAliasType(ctx, typeNode);
     targetType = typeNode != NULL ? typeNode->text : NULL;
@@ -4151,7 +4152,7 @@ static int xl6SemExprGenericParamMatchCost(
         ok = xl6SemInferGenericFromExprShape(
             ctx, expr, typeNode, typeParams, inferredTypes, 0);
         if ( ok ) {
-            return 40;
+            return XL6_CALL_GENERIC_MATCH_COST;
         }
 
         index = xl6SemTypeParamIndexIn(typeParams, typeNode->text);
@@ -4248,19 +4249,6 @@ static int xl6SemExprExplicitGenericParamMatchCost(
     return cost;
 }
 
-/* Lexicographic overload rank: conversion cost first, default count second.
- * Two checked uint32 fields avoid a magic default penalty that can outweigh
- * exact type matches. All callable/member/protocol resolvers share this rank. */
-static int xl6SemCallRankAdd(uint64* rank, uint32 conversion, uint32 defaults)
-{
-    uint32 oldConversion = (uint32)(*rank >> 32);
-    uint32 oldDefaults = (uint32)*rank;
-    if (conversion > UINT32_MAX - oldConversion || defaults > UINT32_MAX - oldDefaults)
-        return 0;
-    *rank = ((uint64)(oldConversion + conversion) << 32) | (oldDefaults + defaults);
-    return 1;
-}
-
 static int xl6SemCallCandidateMatches(XL6_SemContext* ctx, XL6_AstNode* call, XL6_AstNode* func, uint64* outCost)
 {
     XL6_AstNode* params;
@@ -4323,13 +4311,13 @@ static int xl6SemCallCandidateMatches(XL6_SemContext* ctx, XL6_AstNode* call, XL
                     if ( argCost < 0 ) {
                         ok = 0;
                     } else {
-                        if (!xl6SemCallRankAdd(&cost, (uint32)argCost, 0)) ok = 0;
+                        if (!xl6CallRankAdd(&cost, (uint32)argCost, 0)) ok = 0;
                     }
                     provided[index] = 1;
                 } else if ( !hasDictVararg ) {
                     ok = 0;
                 } else {
-                    if (!xl6SemCallRankAdd(&cost, 200, 0)) ok = 0;
+                    if (!xl6CallRankAdd(&cost, 200, 0)) ok = 0;
                 }
             } else {
                 if ( seenNamed ) {
@@ -4348,14 +4336,14 @@ static int xl6SemCallCandidateMatches(XL6_SemContext* ctx, XL6_AstNode* call, XL
                     if ( argCost < 0 ) {
                         ok = 0;
                     } else {
-                        if (!xl6SemCallRankAdd(&cost, (uint32)argCost, 0)) ok = 0;
+                        if (!xl6CallRankAdd(&cost, (uint32)argCost, 0)) ok = 0;
                     }
                     provided[positionalIndex] = 1;
                     positionalIndex += 1;
                 } else if ( !hasArrayVararg && !hasCVararg ) {
                     ok = 0;
                 } else {
-                    if (!xl6SemCallRankAdd(&cost, 200, 0)) ok = 0;
+                    if (!xl6CallRankAdd(&cost, 200, 0)) ok = 0;
                 }
             }
         }
@@ -4366,7 +4354,7 @@ static int xl6SemCallCandidateMatches(XL6_SemContext* ctx, XL6_AstNode* call, XL
         if ( !provided[i] && param->childCount < 2 ) {
             ok = 0;
         } else if ( !provided[i] ) {
-            if (!xl6SemCallRankAdd(&cost, 0, 1)) ok = 0;
+            if (!xl6CallRankAdd(&cost, 0, 1)) ok = 0;
         }
     }
 
@@ -4458,13 +4446,13 @@ static int xl6SemCallCandidateMatchesExplicitGeneric(
                     if ( argCost < 0 ) {
                         ok = 0;
                     } else {
-                        if (!xl6SemCallRankAdd(&cost, (uint32)argCost, 0)) ok = 0;
+                        if (!xl6CallRankAdd(&cost, (uint32)argCost, 0)) ok = 0;
                     }
                     provided[index] = 1;
                 } else if ( !hasDictVararg ) {
                     ok = 0;
                 } else {
-                    if (!xl6SemCallRankAdd(&cost, 200, 0)) ok = 0;
+                    if (!xl6CallRankAdd(&cost, 200, 0)) ok = 0;
                 }
             } else {
                 if ( seenNamed ) {
@@ -4483,14 +4471,14 @@ static int xl6SemCallCandidateMatchesExplicitGeneric(
                     if ( argCost < 0 ) {
                         ok = 0;
                     } else {
-                        if (!xl6SemCallRankAdd(&cost, (uint32)argCost, 0)) ok = 0;
+                        if (!xl6CallRankAdd(&cost, (uint32)argCost, 0)) ok = 0;
                     }
                     provided[positionalIndex] = 1;
                     positionalIndex += 1;
                 } else if ( !hasArrayVararg && !hasCVararg ) {
                     ok = 0;
                 } else {
-                    if (!xl6SemCallRankAdd(&cost, 200, 0)) ok = 0;
+                    if (!xl6CallRankAdd(&cost, 200, 0)) ok = 0;
                 }
             }
         }
@@ -4501,7 +4489,7 @@ static int xl6SemCallCandidateMatchesExplicitGeneric(
         if ( !provided[i] && param->childCount < 2 ) {
             ok = 0;
         } else if ( !provided[i] ) {
-            if (!xl6SemCallRankAdd(&cost, 0, 1)) ok = 0;
+            if (!xl6CallRankAdd(&cost, 0, 1)) ok = 0;
         }
     }
 
@@ -6093,9 +6081,9 @@ static int xl6SemGenericClassPropertyCandidateMatches(
         if ( argCost < 0 ) {
             return 0;
         }
-        if (!xl6SemCallRankAdd(&cost, (uint32)argCost, 0)) return 0;
+        if (!xl6CallRankAdd(&cost, (uint32)argCost, 0)) return 0;
     }
-    if (!xl6SemCallRankAdd(&cost, 0, (uint32)(fixedCount - actualCount))) return 0;
+    if (!xl6CallRankAdd(&cost, 0, (uint32)(fixedCount - actualCount))) return 0;
     if ( outCost != NULL ) {
         *outCost = cost;
     }

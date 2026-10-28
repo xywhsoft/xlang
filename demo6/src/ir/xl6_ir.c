@@ -9757,6 +9757,14 @@ static uint32 xl6IrBuildCallSiteDispatchSlot(
     return 0;
 }
 
+uint32 xl6IrBoundMethodDispatchSlot(const XL6_IrModule* module,
+    XL6_IrNodeId sourceId, XL6_SymbolId target)
+{
+    const XL6_IrNode* source=xl6IrNodeGet(module,sourceId);
+    return source && source->kind==XL6_IR_NODE_MEMBER && source->childCount==1
+        ? xl6IrBuildCallSiteDispatchSlot(module,target,module->children[source->firstChild],XL6_SEM_CALL_DIRECT) : 0;
+}
+
 static size_t xl6IrSyntaxIndexArgumentCount(
     const XL6_IrModule* module, const XL6_IrNode* operation)
 {
@@ -16919,6 +16927,8 @@ int xl6IrContextualCallableCastRequired(const XL6_IrModule* module,
     XL6_IrTypeId source, XL6_IrTypeId target)
 {
     const XL6_IrType* type = module != NULL ? xl6IrTypeGet(&module->types, target) : NULL;
+    if(type && type->kind==XL6_IR_TYPE_NULLABLE && type->paramCount==1 && type->params)
+        target=type->params[0],type=xl6IrTypeGet(&module->types,target);
     return module != NULL && xl6IrTypeIsDynamicXValueBuiltin(module, source) &&
         type != NULL && type->kind == XL6_IR_TYPE_FUNCTION &&
         type->cAbi == XL6_IR_C_ABI_CLOSURE_PTR &&
@@ -19133,6 +19143,21 @@ static XL6_IrErrorAbi xl6IrClassifyImplicitConversionErrorAbi(
 /* Prove a contextual cast against its actual Typed boundary. No C ABI or
  * source spelling can substitute for the initializer, parameter or result
  * type fixed here. This also closes instruction-source mutation holes. */
+/* A nullable closure lift does not change the inner callable identity. Only
+ * the authenticated nullable destination may authorize that inner cast. */
+static int xl6IrCallableBoundaryMatches(const XL6_IrModule* module,
+    XL6_IrTypeId boundary,XL6_IrTypeId requested)
+{
+    if(boundary==requested)return 1;
+    const XL6_IrType* outer=xl6IrTypeGet(&module->types,boundary);
+    const XL6_IrType* inner=xl6IrTypeGet(&module->types,requested);
+    return outer && inner && outer->kind==XL6_IR_TYPE_NULLABLE &&
+        outer->paramCount==1 && outer->params && outer->params[0]==requested &&
+        inner->kind==XL6_IR_TYPE_FUNCTION && inner->cAbi==XL6_IR_C_ABI_CLOSURE_PTR &&
+        outer->cAbi==inner->cAbi && outer->nullAbi==inner->nullAbi &&
+        outer->ownershipAbi==inner->ownershipAbi;
+}
+
 int xl6IrContextualCallableCastAllowed(const XL6_IrModule* module,
     XL6_IrNodeId origin, XL6_IrNodeId sourceId, XL6_IrTypeId targetType)
 {
@@ -19146,14 +19171,14 @@ int xl6IrContextualCallableCastAllowed(const XL6_IrModule* module,
         return 0;
     initializer = xl6IrValueInitializerGet(module, origin);
     if (initializer != NULL && initializer->abi == XL6_IR_INITIALIZER_EXPLICIT &&
-        initializer->expression == sourceId && initializer->type == targetType &&
+        initializer->expression == sourceId && xl6IrCallableBoundaryMatches(module,initializer->type,targetType) &&
         initializer->runtimeOp == XL6_IR_RUNTIME_XVALUE_CLOSURE_CAST_CHECKED &&
         initializer->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE) return 1;
     if (node->implicitConversionErrorAbi != XL6_IR_ERROR_ABI_MAY_RAISE) return 0;
     if (node->kind == XL6_IR_NODE_ASSIGN && node->childCount == 2 &&
         module->children[node->firstChild + 1] == sourceId) {
         const XL6_IrNode* target = xl6IrNodeGet(module, module->children[node->firstChild]);
-        return target != NULL && target->storageType == targetType &&
+        return target != NULL && xl6IrCallableBoundaryMatches(module,target->storageType,targetType) &&
             node->implicitConversionRuntimeOp == XL6_IR_RUNTIME_XVALUE_CLOSURE_CAST_CHECKED;
     }
     if (node->kind == XL6_IR_NODE_RETURN) {
@@ -19167,7 +19192,7 @@ int xl6IrContextualCallableCastAllowed(const XL6_IrModule* module,
         if (returns == NULL || returns->kind != XL6_IR_NODE_LIST || returns->childCount != node->childCount) return 0;
         for (i = 0; i < node->childCount; ++i) {
             const XL6_IrNode* target = xl6IrNodeGet(module, module->children[returns->firstChild + i]);
-            if (module->children[node->firstChild + i] == sourceId && target != NULL && target->type == targetType) return 1;
+            if (module->children[node->firstChild + i] == sourceId && target != NULL && xl6IrCallableBoundaryMatches(module,target->type,targetType)) return 1;
         }
     }
     for (i = 0; i < module->callSiteCount; ++i) {
@@ -19196,7 +19221,7 @@ int xl6IrContextualCallableCastAllowed(const XL6_IrModule* module,
                 const XL6_IrNode* parameter = xl6IrNodeGet(module, module->children[parameters->firstChild + argument->parameter]);
                 if (parameter != NULL) target = parameter->storageType;
             }
-            if (target == targetType) return 1;
+            if (xl6IrCallableBoundaryMatches(module,target,targetType)) return 1;
         }
     }
     return 0;
@@ -40519,7 +40544,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
              if ( module->stage != XL6_IR_STAGE_LOWERED ||
                   (closure->kind==XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER ?
                    (!xl6IrBoundMethodTargetMatches(module,closure->declaration,closure->adaptedTargetSymbol,closure->signatureType) ||
-                    closure->captureCount!=1 || module->closureCaptures[closure->firstCapture].type!=target->parameterTypes[0]) :
+                    closure->boundMethodDispatchSlot!=xl6IrBoundMethodDispatchSlot(module,closure->declaration,closure->adaptedTargetSymbol) ||
+                    closure->captureCount!=1 || !target || module->closureCaptures[closure->firstCapture].type!=target->parameterTypes[0]) :
                    ((declaration->kind!=XL6_IR_NODE_NAME && declaration->sourceKind!=XL6_AST_GENERIC_INSTANT) ||
                     declaration->namedCallableAbi!=XL6_IR_NAMED_CALLABLE_CAPTURE_FREE_ADAPTER ||
                     declaration->namedCallableTargetSymbol!=closure->adaptedTargetSymbol ||
@@ -40552,6 +40578,14 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             for (parameter = adapter->firstInstruction;
                  parameter < adapter->firstInstruction + adapter->instructionCount; ++parameter) {
                 const XL6_IrInstruction* member = &module->instructions[parameter];
+                if(closure->kind==XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER &&
+                   member->origin==closure->declaration &&
+                   (member->kind==XL6_IR_INSTR_CALL || member->kind==XL6_IR_INSTR_VIRTUAL_CALL ||
+                    member->kind==XL6_IR_INSTR_ASYNC_START || member->kind==XL6_IR_INSTR_GENERATOR_START) &&
+                   (member->kind==XL6_IR_INSTR_VIRTUAL_CALL || member->targetSymbol==closure->adaptedTargetSymbol) &&
+                   (member->dispatchSlot!=closure->boundMethodDispatchSlot ||
+                    (member->kind==XL6_IR_INSTR_VIRTUAL_CALL)!=(closure->boundMethodDispatchSlot!=0)))
+                    return xl6IrDiag(diags,declaration,"XLIR bound method changed its source dispatch policy");
                 if (((member->kind == XL6_IR_INSTR_ERROR_UNWIND_BEGIN || member->cleanupPlan != 0) &&
                      member->cleanupPlan != boundary) ||
                     ((member->kind == XL6_IR_INSTR_RELEASE || member->kind == XL6_IR_INSTR_CELL_RELEASE) &&

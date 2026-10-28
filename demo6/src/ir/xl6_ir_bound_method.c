@@ -30,54 +30,93 @@ static int xl6IrLowerTryTypedBoundMethod(XL6_IrLowerContext* ctx,XL6_IrNodeId or
     }
     if(!owner || owner->kind!=XL6_IR_TYPE_CLASS || owner->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR) return 0;
     XL6_SymbolId selected=0;
+    XL6_IrNodeId selectedDeclaration=0;
+    XL6_IrTypeId* selectedArgs=NULL;
+    size_t selectedCount=0;
+    uint64_t bestRank=UINT64_MAX;
+    bool ambiguous=false;
     size_t methodLimit=module->dynamicMethodCount;
+    /* Rank declaration shapes before instantiating a winner. As with a
+     * direct call, an inferred parameter costs GENERIC_MATCH, and omitted
+     * defaults break ties only after all parameter conversion costs. */
     for(size_t i=0;i<methodLimit;++i) {
         XL6_IrDynamicMethod method=module->dynamicMethods[i];
         source=xl6IrNodeGet(module,sourceId);
         signature=xl6IrTypeGet(&module->types,signatureId);
         if(method.ownerType!=ownerId || method.kind!=XL6_IR_DYNAMIC_CALL_METHOD ||
            !method.name || strcmp(method.name,source->text)) continue;
-        XL6_SymbolId symbol=method.targetSymbol;
-        if(xl6IrLowerIsGenericDeclaration(module,method.declaration)) {
-            XL6_IrTypeId* parameters=NULL;size_t count=0;
+        const XL6_IrNode* declaration=xl6IrNodeGet(module,method.declaration);
+        const XL6_IrNode* params=declaration && declaration->childCount>2 ? xl6IrNodeGet(module,module->children[declaration->firstChild+1]) : NULL;
+        const XL6_IrNode* returns=declaration && declaration->childCount>2 ? xl6IrNodeGet(module,module->children[declaration->firstChild+2]) : NULL;
+        if(!params || !returns || params->childCount<signature->paramCount ||
+           (declaration->flags&XL6_AST_FLAG_STATIC))continue;
+        uint64_t rank=0;
+        bool matches=xl6CallRankAdd(&rank,0,(uint32_t)(params->childCount-signature->paramCount));
+        for(size_t p=signature->paramCount;matches && p<params->childCount;++p) {
+            const XL6_IrNode* parameter=xl6IrNodeGet(module,module->children[params->firstChild+p]);
+            matches=parameter && parameter->childCount>=2;
+        }
+        XL6_IrTypeId* parameters=NULL,*resolved=NULL;
+        size_t count=0;
+        bool generic=xl6IrLowerIsGenericDeclaration(module,method.declaration)!=0;
+        if(matches && generic) {
             if(!xl6IrLowerGenericDeclarationTypeParams(module,method.declaration,&parameters,&count) || !count) {xrtFree(parameters);continue;}
-            XL6_IrTypeId* resolved=xrtCalloc(count,sizeof(*resolved));
-            if(!resolved) {xrtFree(parameters);ctx->failed=1;return -1;}
-            const XL6_IrNode* declaration=xl6IrNodeGet(module,method.declaration);
-            const XL6_IrNode* params=declaration && declaration->childCount>2 ? xl6IrNodeGet(module,module->children[declaration->firstChild+1]) : NULL;
-            const XL6_IrNode* returns=declaration && declaration->childCount>2 ? xl6IrNodeGet(module,module->children[declaration->firstChild+2]) : NULL;
-            bool matches=params && returns && params->childCount>=signature->paramCount && returns->childCount==signature->returnCount;
-            for(size_t p=signature->paramCount;matches && p<params->childCount;++p) {
-                const XL6_IrNode* parameter=xl6IrNodeGet(module,module->children[params->firstChild+p]);
-                matches=parameter && parameter->childCount>=2;
-            }
+            resolved=xrtCalloc(count,sizeof(*resolved));
+            if(!resolved) {xrtFree(parameters);xrtFree(selectedArgs);ctx->failed=1;return -1;}
             for(size_t p=0;matches && p<signature->paramCount;++p) {
                 const XL6_IrNode* parameter=xl6IrNodeGet(module,module->children[params->firstChild+p]);
-                matches=parameter && xl6IrLowerUnifyGenericType(module,parameter->storageType,signature->params[p],parameters,count,resolved,1);
+                if(!parameter) {matches=false;break;}
+                XL6_IrNode concrete=*parameter;concrete.storageType=signature->params[p];
+                matches=xl6IrParameterAbiForNode(module,&concrete)==signature->parameterAbis[p] &&
+                    xl6IrLowerUnifyGenericType(module,parameter->storageType,signature->params[p],parameters,count,resolved,1);
+                if(matches && xl6IrLowerTypeContainsTypeParam(module,parameter->storageType,0))
+                    matches=xl6CallRankAdd(&rank,XL6_CALL_GENERIC_MATCH_COST,0)!=0;
             }
-            for(size_t r=0;matches && r<signature->returnCount;++r) {
+            XL6_IrTypeId asyncPayload=0;
+            if(declaration->sourceKind==XL6_AST_ASYNC_FUNC) {
+                const XL6_IrType* future=signature->returnCount==1 ? xl6IrTypeGet(&module->types,signature->returns[0]) : NULL;
+                matches=matches && future && future->cAbi==XL6_IR_C_ABI_RUNTIME_FUTURE_PTR && future->paramCount==1 && future->params;
+                if(matches)asyncPayload=future->params[0];
+                const XL6_IrType* payload=xl6IrTypeGet(&module->types,asyncPayload);
+                matches=matches && (returns->childCount==1 || (!returns->childCount && payload && payload->cAbi==XL6_IR_C_ABI_VOID));
+            }else matches=matches && returns->childCount==signature->returnCount;
+            for(size_t r=0;matches && r<returns->childCount;++r) {
                 const XL6_IrNode* returned=xl6IrNodeGet(module,module->children[returns->firstChild+r]);
-                matches=returned && xl6IrLowerUnifyGenericType(module,returned->storageType,signature->returns[r],parameters,count,resolved,1);
+                matches=returned && xl6IrLowerUnifyGenericType(module,returned->storageType,
+                    asyncPayload ? asyncPayload : signature->returns[r],parameters,count,resolved,1);
             }
-            for(size_t p=0;matches && p<count;++p) matches=resolved[p]!=0;
-            if(matches && output && !xl6IrLowerFindGenericSpecialization(module,method.declaration,resolved,count)) {
-                xrtFree(parameters);xrtFree(resolved);
-                return xl6IrLowerDiag(ctx,origin,"typed bound generic method was not closed before body lowering"),-1;
-            }
-            if(matches && !xl6IrLowerBuildGenericSpecialization(ctx,0,method.declaration,resolved,count,&symbol)) {
-                xrtFree(parameters);xrtFree(resolved);return -1;
-            }
-            xrtFree(parameters);xrtFree(resolved);
-            if(!matches || !output) continue;
-            if(!xl6IrCallTargetGet(module,symbol) &&
-               (symbol>=module->symbolNodeCapacity || !xl6IrLowerRegisterCallTarget(ctx,module->symbolNodes[symbol]))) return -1;
-            signature=xl6IrTypeGet(&module->types,signatureId);
+            for(size_t p=0;matches && p<count;++p)matches=resolved[p]!=0;
+            xrtFree(parameters);
+        }else if(matches)matches=xl6IrBoundMethodTargetMatches(module,sourceId,method.targetSymbol,signatureId)!=0;
+        if(!matches) {xrtFree(resolved);continue;}
+        if(rank<bestRank) {
+            xrtFree(selectedArgs);selectedArgs=resolved;selectedCount=count;
+            selected=method.targetSymbol;selectedDeclaration=method.declaration;
+            bestRank=rank;ambiguous=false;
+        }else {
+            if(rank==bestRank && selectedDeclaration!=method.declaration)ambiguous=true;
+            xrtFree(resolved);
         }
-        if(!output || !xl6IrBoundMethodTargetMatches(module,sourceId,symbol,signatureId)) continue;
-        if(selected && selected!=symbol) return xl6IrLowerDiag(ctx,origin,"typed bound method requires one exact overload"),-1;
-        selected=symbol;
     }
-    if(!output || !selected) return 0;
+    if(ambiguous) {xrtFree(selectedArgs);return xl6IrLowerDiag(ctx,origin,"typed bound method requires one exact overload"),-1;}
+    if(!selectedDeclaration) {xrtFree(selectedArgs);return 0;}
+    if(selectedCount) {
+        if(output && !xl6IrLowerFindGenericSpecialization(module,selectedDeclaration,selectedArgs,selectedCount)) {
+            xrtFree(selectedArgs);return xl6IrLowerDiag(ctx,origin,"typed bound generic method was not closed before body lowering"),-1;
+        }
+        if(!xl6IrLowerBuildGenericSpecialization(ctx,0,selectedDeclaration,selectedArgs,selectedCount,&selected)) {
+            xrtFree(selectedArgs);return -1;
+        }
+        if(output && !xl6IrCallTargetGet(module,selected) &&
+           (selected>=module->symbolNodeCapacity || !xl6IrLowerRegisterCallTarget(ctx,module->symbolNodes[selected]))) {
+            xrtFree(selectedArgs);return -1;
+        }
+    }
+    xrtFree(selectedArgs);
+    if(!output)return 0;
+    if(!xl6IrBoundMethodTargetMatches(module,sourceId,selected,signatureId))
+        return xl6IrLowerDiag(ctx,origin,"typed bound method specialization changed its exact callable ABI"),-1;
+    signature=xl6IrTypeGet(&module->types,signatureId);
     XL6_IrClosureTarget* closure=NULL;
     for(size_t i=0;i<module->closureTargetCount;++i)
         if(xl6IrLowerBoundMethodKind(&module->closureTargets[i]) &&
@@ -95,6 +134,7 @@ static int xl6IrLowerTryTypedBoundMethod(XL6_IrLowerContext* ctx,XL6_IrNodeId or
         closure->kind=XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER;
         closure->declaration=sourceId;closure->targetSymbol=xl6IrLowerNewSyntheticSymbol(ctx);
         closure->adaptedTargetSymbol=selected;closure->signatureType=signatureId;
+        closure->boundMethodDispatchSlot=xl6IrBoundMethodDispatchSlot(module,sourceId,selected);
         closure->firstCapture=module->closureCaptureCount;closure->captureCount=1;
         closure->rawCallbackAbi=XL6_IR_CLOSURE_RAW_CALLBACK_NONE;
         XL6_IrClosureCapture* capture=&module->closureCaptures[module->closureCaptureCount++];
@@ -150,7 +190,7 @@ static int xl6IrLowerMaterializeTypedBoundMethods(XL6_IrLowerContext* ctx)
                signature->callableErasureAbi!=XL6_IR_CALLABLE_ERASURE_FIXED ||
                xl6IrLowerTypeContainsTypeParam(module,(XL6_IrTypeId)t,0)) continue;
             XL6_IrNodeId origin=parent;
-            for(size_t depth=0;origin && depth<5;++depth) {
+            for(size_t depth=0;origin && depth<module->nodeCount;++depth) {
                 const XL6_IrNode* context=xl6IrNodeGet(module,origin);
                 bool explicitCast=context && context->sourceKind==XL6_AST_TYPE_AS && context->storageType==t;
                 if(explicitCast || xl6IrContextualCallableCastAllowed(module,origin,(XL6_IrNodeId)n,(XL6_IrTypeId)t)) {

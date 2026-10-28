@@ -1,0 +1,47 @@
+extern "owned_original" @no_raise func original(string value) as bool
+extern "owned_one_allocation" @no_raise func oneAllocation(string value) as bool
+extern "owned_reset" @no_raise func reset()
+class Native
+    private native point handle
+    extern "typed_bound_open" create()
+    extern "typed_bound_close" destroy()
+    extern "typed_bound_text" @owned func Read(c_int mode=c_int(7)) as string
+end
+typedef Reader=func() as string
+// Nullable destinations retain the same concrete function signature. The
+// lift allocates no second closure and each native read keeps its C pointer.
+func returned(Native box) as Reader?
+    return box.Read
+end
+func accept(Reader? cb)
+    if cb!=null
+        reset()
+        string value=cb()
+        assert original(value) and oneAllocation(value)
+    else
+        assert false
+    end
+end
+class Generic
+    func Echo<T>(T value) as T
+        return value
+    end
+end
+typedef Echo=func(string) as string
+func exercise()
+    Native box=Native()
+    Reader? cb=box.Read
+    accept(cb)
+    cb=box.Read
+    accept(cb)
+    accept(box.Read)
+    accept(returned(box))
+    Generic generic=Generic()
+    Echo? echo=generic.Echo
+    if echo!=null
+        assert echo("text")=="text"
+    else
+        assert false
+    end
+end
+exercise()
