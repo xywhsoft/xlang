@@ -7202,6 +7202,7 @@ int xl6IrBuildDynamicBoundSignatures(XL6_IrModule*,XL6_DiagList*);
 /* Authenticated full bound signature for a statically proved arity adapter. */
 XL6_IrTypeId xl6IrBoundMethodCastIdentityType(const XL6_IrModule*,const XL6_IrInstruction*);
 uint32 xl6IrBoundMethodDispatchSlot(const XL6_IrModule*,XL6_IrNodeId,XL6_SymbolId);
+int xl6IrBoundMethodSelectionMatches(const XL6_IrModule*,XL6_IrNodeId,XL6_SymbolId);
 int xl6IrBoundMethodTargetMatches(const XL6_IrModule*,XL6_IrNodeId,XL6_SymbolId,XL6_IrTypeId);
 int xl6IrVerifyDynamicMethodScalarCodecs(const XL6_IrModule*,XL6_DiagList*);
 const XL6_IrCallableBridgeResult* xl6IrDynamicMethodScalarCodecGet(const XL6_IrModule*,size_t);

@@ -5,6 +5,8 @@ class Box
     async func Echo<T>(T value) as T
         return value
     end
+    async func Run<T>(T ignored)
+    end
     async func Read<T>(T ignored) as string
         string value=Text()
         assert original(value)
@@ -17,3 +19,6 @@ end
     func(c_int) as future<string> read=box.Read
     string text=await read(c_int(7))
     assert text=="owned text"
+// A no-result async method has the ordinary future<null> callable result.
+func(c_int) as future<null> run=box.Run
+await run(c_int(7))
