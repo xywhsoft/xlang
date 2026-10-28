@@ -6,7 +6,12 @@ from pathlib import Path
 import argparse,hashlib,json,os,re,shutil,subprocess
 from gen_tcc_vfs_resources import Resource,load_resources
 
-def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+def sha(path):
+    digest=hashlib.sha256()
+    with Path(path).open('rb') as stream:
+        for block in iter(lambda:stream.read(1024*1024),b''):
+            digest.update(block)
+    return digest.hexdigest()
 
 def verify_compiler_source_inventory(root):
     api=root/'src/api/xl_api.c';normal=root/'tools/build_xlir_public_source_driver.ps1'
@@ -107,7 +112,9 @@ def main():
         for p in strict_sdk.rglob('*'):
             if p.is_file():product(p)
         report['PhaseCount']=len(rows)
-        (out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
+        with (out/'results.json').open('w',encoding='utf-8') as stream:
+            json.dump(report,stream,indent=2)
+            stream.write('\n')
     print('Real nested compiler CLI/VFS/AOT: PASS',flush=True)
 
 if __name__=='__main__':main()
