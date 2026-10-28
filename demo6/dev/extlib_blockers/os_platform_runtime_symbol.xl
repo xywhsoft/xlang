@@ -1,0 +1,2 @@
+// 标准库公开声明已通过检查，但当前 Windows 运行链缺失对应符号。
+println(os.platform())

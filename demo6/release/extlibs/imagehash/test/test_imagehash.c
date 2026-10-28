@@ -3,6 +3,7 @@
 #define XRT_MODULE_DIR_TEMP
 #endif
 #define XRT_MODULE_FILE_WHOLE
+#define XRT_MODULE_MEMORY_DEBUG
 #ifndef XRT_MODULE_PATH
 #define XRT_MODULE_PATH
 #endif

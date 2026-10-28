@@ -1,0 +1,6 @@
+import imagehash
+
+// 完整公开返回链必须覆盖三条物理 C 入口，不能只检查接管点。
+assert imagehash.ahash("release/examples/extlibs/assets/tiny.png") == "ffffffffffffffff"
+assert imagehash.dhash("release/examples/extlibs/assets/tiny.png") == "0000000000000000"
+assert imagehash.phash("release/examples/extlibs/assets/tiny.png") == "0000000000000000"

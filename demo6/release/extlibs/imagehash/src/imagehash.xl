@@ -26,31 +26,24 @@ func __imagehash_path(string path)
     end
 end
 
+// 供拥有型临时结果 ?? 的失败分支使用，普通图片错误保留原诊断。
+func __imagehash_raise_error() as string
+    throw RuntimeError __imagehash_error()
+end
+
 export func ahash(string path) as string
     __imagehash_path(path)
-    string? result = __imagehash_ahash(path)
-    if result == null then
-        throw RuntimeError __imagehash_error()
-    end
-    return result
+    return __imagehash_ahash(path) ?? __imagehash_raise_error()
 end
 
 export func dhash(string path) as string
     __imagehash_path(path)
-    string? result = __imagehash_dhash(path)
-    if result == null then
-        throw RuntimeError __imagehash_error()
-    end
-    return result
+    return __imagehash_dhash(path) ?? __imagehash_raise_error()
 end
 
 export func phash(string path) as string
     __imagehash_path(path)
-    string? result = __imagehash_phash(path)
-    if result == null then
-        throw RuntimeError __imagehash_error()
-    end
-    return result
+    return __imagehash_phash(path) ?? __imagehash_raise_error()
 end
 
 export func hamming(string left, string right) as int

@@ -19,6 +19,7 @@
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / imagehash</p><h1>imagehash</h1>
     <p class="extlib-lead">图片相似性指纹。</p>
     <p>依赖 <code>stb_image</code> 与 <code>stb_image_resize2</code>，不重复捆绑 stb；UTF-8 路径由 XRT 处理。</p>
+    <p>2026-10-28：三条完整公开返回链不再复制哈希结果，保留独立图片错误诊断与内存错误。固定 PNG 的 C/XLang 各六组预算、空路径/缺失图片/NUL 反例、双平台默认门禁与双语 JIT/AOT 通过；Linux ASan/UBSan 完整图像链路和普通构建预算分别验收，未关闭 stb 的 sanitizer 保护。仍有一次路径 NUL 针串分配和长度扫描，不称整条操作零开销。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>

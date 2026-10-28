@@ -26,7 +26,7 @@
                          {"name": "stb_image", "version": "0.1.0", "abiVersion": "1"},
                          {"name": "stb_image_resize2", "version": "0.1.0", "abiVersion": "1"}
                      ],
-    "coverage": { "mode": "suite", "tests": ["test/allocations.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/allocations.xl", "test/owned_results.xl"] },
     "native":  {
                    "singleton":  false,
                    "loadName":  "",
