@@ -4,7 +4,24 @@ set -euo pipefail
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../../.." && pwd)
 cd "$root"
 work=$(mktemp -d "${TMPDIR:-/tmp}/xlang-watch-XXXXXX")
-trap 'rm -rf -- "$work"' EXIT
+cleanup() {
+    result=$?
+    trap - EXIT
+    set +e
+    if ((result == 0)); then
+        rm -rf -- "$work" || result=$?
+    else
+        printf '[watch] FAIL exit=%s artifacts=%s\n' "$result" "$work" >&2
+    fi
+    exit "$result"
+}
+trap cleanup EXIT
+record_failure() {
+    printf 'exit=%s\nline=%s\ncommand=%s\npipeline=%s\n' "$@" > "$work/failure.txt"
+    cat "$work/failure.txt" >&2
+}
+trap 'record_failure "$?" "$LINENO" "$BASH_COMMAND" "${PIPESTATUS[*]}"' ERR
+exec > >(tee "$work/output.log") 2>&1
 mkdir -p "$work/case/build/test/watch_guard"
 cc=${CC:-gcc}
 flags=(-std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror
@@ -13,6 +30,12 @@ flags=(-std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror
        -fno-pie -no-pie -pthread)
 export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1
 export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
+
+mapfile -d '' inputs < <(find release/extlibs/watch release/include -type f -print0)
+inputs+=(lib/xrt/xrt.h lib/xruntime/xruntime.h release/xl release/libxl.so release/libxlc.so
+          release/examples/extlibs/watch.xl)
+sha256sum "${inputs[@]}" > "$work/inputs.before.sha256"
+"$cc" --version > "$work/compiler.txt"
 
 "$cc" "${flags[@]}" -c release/extlibs/watch/test/xrt_runtime.c \
     -o "$work/xrt_runtime.o"
@@ -34,6 +57,7 @@ diff -u "$work/example.txt" "$work/example_direct.txt"
 (cd "$work/case" && timeout 90s "$root/release/xl" run "$root/release/extlibs/watch/test/boundaries.xl")
 (cd "$work/case" && timeout 90s "$root/release/xl" run "$root/release/extlibs/watch/test/cwd_snapshot.xl")
 (cd "$work/case" && timeout 90s "$root/release/xl" run "$root/release/extlibs/watch/test/allocations.xl")
+(cd "$work/case" && timeout 90s "$root/release/xl" run "$root/release/extlibs/watch/test/owned_events.xl")
 (cd "$root/release" && timeout 90s ./xl run extlibs/watch/examples/watch.xl > "$work/xl_example.txt")
 diff -u "$work/example.txt" "$work/xl_example.txt"
 if timeout 90s ./release/xl check release/extlibs/watch/test/private_native.xl > "$work/private_native.txt" 2>&1; then
@@ -46,7 +70,7 @@ if ! grep -Fq 'addNative' "$work/private_native.txt" ||
     printf 'watch: expected private-access diagnostic\n' >&2
     exit 1
 fi
-for name in boundaries cwd_snapshot allocations; do
+for name in boundaries cwd_snapshot allocations owned_events; do
     timeout 120s ./release/xl build "release/extlibs/watch/test/$name.xl" \
         -o "$work/watch_$name"
     (cd "$work/case" && timeout 90s "$work/watch_$name")
@@ -64,4 +88,5 @@ timeout 120s ./release/xl build release/extlibs/watch/examples/watch_c.c \
     -o "$work/watch_example_c_aot"
 timeout 45s "$work/watch_example_c_aot" > "$work/example_c_aot.txt"
 diff -u "$work/example.txt" "$work/example_c_aot.txt"
+sha256sum -c "$work/inputs.before.sha256" > "$work/inputs.after.txt"
 printf 'watch Linux ASan/UBSan, XLang JIT/AOT and C/XLang parity gate: PASS\n'

@@ -12,6 +12,15 @@ $xl = Join-Path $root 'release/xl.exe'
 $flags = @('-std=c11', '-O2', '-Wall', '-Wextra', '-Werror', '-Ilib/xrt',
     '-Irelease/extlibs/watch')
 $links = @('-lWs2_32', '-lAdvapi32', '-lIphlpapi', '-lm')
+$inputs = @(Get-ChildItem (Join-Path $root 'release/extlibs/watch') -Recurse -File |
+    ForEach-Object FullName)
+$inputs += @('release/xl.exe', 'release/xl.dll', 'release/xlc.dll',
+    'lib/xrt/xrt.h', 'lib/xruntime/xruntime.h', 'release/include/xrt_decl.h',
+    'release/include/xruntime_decl.h', 'release/include/xl_extlib_abi.h',
+    'release/examples/extlibs/watch.xl') | ForEach-Object { Join-Path $root $_ }
+$hashes = @{}
+foreach ($path in $inputs) { $hashes[$path] = (Get-FileHash -LiteralPath $path).Hash }
+$passed = $false
 
 function Run([string]$name, [string]$program, [string[]]$arguments) {
     $previousPreference = $ErrorActionPreference
@@ -22,6 +31,8 @@ function Run([string]$name, [string]$program, [string[]]$arguments) {
     } finally {
         $ErrorActionPreference = $previousPreference
     }
+    [IO.File]::AppendAllText((Join-Path $work 'commands.log'),
+        "${name}: $program $($arguments -join ' ')`nexit=$code`n$($output -join "`n")`n")
     if ($code -ne 0) {
         throw "${name}: exit $code`n$($output -join "`n")"
     }
@@ -31,6 +42,7 @@ function Run([string]$name, [string]$program, [string[]]$arguments) {
 
 Push-Location $root
 try {
+    $hashes | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $work 'inputs.before.json')
     $runtime = Join-Path $work 'xrt_runtime.o'
     $runtimeSource = Join-Path $root 'release/extlibs/watch/test/xrt_runtime.c'
     $xrtHeader = Join-Path $root 'lib/xrt/xrt.h'
@@ -91,12 +103,14 @@ try {
     $boundarySource = Join-Path $root 'release/extlibs/watch/test/boundaries.xl'
     $cwdSource = Join-Path $root 'release/extlibs/watch/test/cwd_snapshot.xl'
     $allocationSource = Join-Path $root 'release/extlibs/watch/test/allocations.xl'
+    $ownedSource = Join-Path $root 'release/extlibs/watch/test/owned_events.xl'
     $privateSource = Join-Path $root 'release/extlibs/watch/test/private_native.xl'
     Push-Location $case
     try {
         $null = Run 'XLang boundaries' $xl @('run', $boundarySource)
         $null = Run 'XLang cwd snapshot' $xl @('run', $cwdSource)
         $null = Run 'XLang allocation failures' $xl @('run', $allocationSource)
+        $null = Run 'XLang owned events' $xl @('run', $ownedSource)
         $previousPreference = $ErrorActionPreference
         try {
             $ErrorActionPreference = 'Continue'
@@ -136,7 +150,8 @@ try {
         }
         foreach ($entry in @(
             @{ Name = 'cwd snapshot'; Source = $cwdSource },
-            @{ Name = 'allocations'; Source = $allocationSource }
+            @{ Name = 'allocations'; Source = $allocationSource },
+            @{ Name = 'owned events'; Source = $ownedSource }
         )) {
             $target = Join-Path $work ('watch_' + $entry.Name.Replace(' ', '_') + '.exe')
             $null = Run "XLang $($entry.Name) build" $xl @('build',
@@ -189,6 +204,13 @@ try {
     } finally {
         Pop-Location
     }
+    foreach ($path in $inputs) {
+        if ((Get-FileHash -LiteralPath $path).Hash -cne $hashes[$path]) {
+            throw "watch validation input changed: $path"
+        }
+    }
+    $passed = $true
+    Write-Host 'watch Windows package gate: PASS'
 } finally {
     Pop-Location
     $parentPath = [IO.Path]::GetFullPath($workParent).TrimEnd('\') + '\'
@@ -197,5 +219,9 @@ try {
         [StringComparison]::OrdinalIgnoreCase)) {
         throw "watch temporary work path escaped build/test: $workPath"
     }
-    Remove-Item -LiteralPath $workPath -Recurse -Force
+    if ($passed) {
+        Remove-Item -LiteralPath $workPath -Recurse -Force
+    } else {
+        Write-Warning "watch failure artifacts retained: $workPath"
+    }
 }

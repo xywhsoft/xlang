@@ -1,9 +1,22 @@
 # watch
 
-2026-10-27：`xwatch_poll` 的公开 C 返回类型明确为 `char*`；
+2026-10-28 修复语言侧 OOM 丢事件：旧 `@owned string?` 先接管 C 结果，
+但局部可空字符串的返回又复制正文；C 此时已确认快照，复制失败会让
+`poll()` 抛 MemoryError，重试却再也拿不到事件。新增真实文件创建的
+逐分配点重试回归先红后绿，返回改为直接移动 `@owned string`。
+无变化仍返回独立空串，原生失败通过 XRT 错误传播；事件长度溢出也
+明确发布 Range 错误，不留下无诊断 NULL。没有增加回滚层或事件队列。
+
+`test/owned_events.xl` 覆盖原生取样/事件创建失败后的再次交付、成功后
+不重复交付，以及空事件只需一次原生结果分配；不把一般轮询升级为
+不丢中间状态的 OS 通知系统。Windows/Linux 默认完整门禁通过，包括
+严格 C、Linux ASan/UBSan、目录竞态、新旧语言 JIT/AOT 和双语范例。
+输入指纹结束复核，失败保留实际命令、状态和已有产物；未改主线/XRT。
+
+2026-10-27 历史记录：`xwatch_poll` 的公开 C 返回类型明确为 `char*`；
 XLang 用 `@owned string?` 直接接管独立事件字符串，移除手写
 `point/takeCstr` 交接。无变化的空串与出错的 `NULL` 继续区分。
-生成 C 门禁检查原生返回指针直接赋给字符串数据，不复制正文；
+当时生成 C 门禁只检查接管点，不足以证明后续返回链也没有复制；
 仍需一次 `strlen` 获取长度。Windows 完整门禁与 Linux C
 ASan/UBSan、目录竞态、XLang JIT/AOT、双语输出对照均通过。
 
@@ -59,7 +72,7 @@ XL 的 `add` 拒绝内嵌 NUL 的路径，`exists` 对该路径返回 `false`，
 成对入门范例除索引生命周期外，还在独占临时目录内创建、修改、删除文件，逐条验证并展示 `CREATED`、`MODIFIED`、`DELETED` 事件；门禁核对固定八行输出。
 其中 C 范例已自包含包实现，可从 `demo6` 根目录直接运行
 `release/xl.exe run release/extlibs/watch/examples/watch_c.c`；包门禁也将这一路径的输出与 GCC、XLang 对照。C 范例添加监视目标失败时会销毁已创建的实例。
-三份 XLang 包内用例已登记到 `coverage.tests`；`tools/smoke_extlib_catalog.ps1 -Package watch` 会自动执行它们。Windows 包级脚本从隔离目录运行边界用例，并从 `release` 目录运行 XLang 范例。
+四份 XLang 包内用例已登记到 `coverage.tests`；`tools/smoke_extlib_catalog.ps1 -Package watch` 会自动执行它们。Windows 包级脚本从隔离目录运行边界用例，并从 `release` 目录运行 XLang 范例。
 当前 Windows 严格 GCC、C/XL 边界、双语示例、边界及带输出范例 AOT
 均通过。Linux 包门禁运行跨平台的
 `test/boundaries.xl`；中央 `test/cases/extlib_watch.xl` 使用 Windows 反斜杠路径，

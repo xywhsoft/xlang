@@ -64,6 +64,7 @@ int main(void)
   </section>
   <section id="verify">
     <h2>验证状态</h2>
+    <p>2026-10-28：修复接管事件后的额外复制在 OOM 时导致事件永久丢失的问题。真实文件事件的逐分配点失败重试、成功后不重复交付和空事件一次结果分配均通过；两平台完整门禁还覆盖 C 边界、Linux ASan/UBSan、目录竞态和双语 JIT/AOT。当前直接返回拥有型 string，不增加私有回滚队列。该保证不等于还原两次元数据轮询之间的所有文件变化。</p>
     <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/watch/test/check.ps1
 bash release/extlibs/watch/test/check.sh</code></pre>
     <p>C 范例可从 demo6 根目录直接以 <code>xl run release/extlibs/watch/examples/watch_c.c</code> 运行；Windows/Linux 包门禁均将其与 GCC、XLang 的输出对照。成对范例在独占临时目录验证文件创建、修改、删除事件，并演示索引删除与复用。Windows 严格 GCC、C/XLang 边界、双语范例及带输出 AOT 通过；两平台的定向目录竞争测试覆盖删除、变更类型与真实 I/O 错误，Linux C 文件/目录事件通过 ASan/UBSan，Linux XLang 包内边界用例也通过。文件/工作目录边界用例使用独占临时目录，不再写删固定的 <code>build/test/watch_guard</code>。C 源仅使用公开 XRT 头文件。旧 Windows AOT 缺符号已解除。</p>

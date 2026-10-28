@@ -125,7 +125,10 @@ static char *xwatch_event(const char *kind, const char *path) {
     size_t kind_len = strlen(kind);
     size_t path_len = strlen(path);
     char *result;
-    if (path_len > SIZE_MAX - kind_len - 2) return NULL;
+    if (path_len > SIZE_MAX - kind_len - 2) {
+        xwatch_error(XERR_RANGE, "watch event length exceeds size range");
+        return NULL;
+    }
     result = xrtMalloc(kind_len + path_len + 2);
     if (!result) return NULL;
     memcpy(result, kind, kind_len);
