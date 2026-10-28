@@ -1,0 +1,16 @@
+class Base
+end
+class Source
+    func Echo<T is Base>(T value) as T
+        return value
+    end
+end
+class Sink<K>
+    func Invoke(func(K) as K callback,K value) as K
+        return callback(value)
+    end
+end
+Source source=Source()
+Sink<int> sink=Sink::<int>()
+// The class fixes K=int, which cannot satisfy Source.Echo's Base constraint.
+sink.Invoke(source.Echo,7)

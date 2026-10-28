@@ -15904,6 +15904,20 @@ static XL6_IrTypeId xl6IrLowerGenericCallReceiver(const XL6_IrModule* module,con
     return owner && result && result->kind==XL6_IR_TYPE_CLASS && result->nominalSymbol==owner->nominalSymbol
         ? call->storageType : XL6_IR_TYPE_INVALID;
 }
+static int xl6IrLowerGenericTypeIsBound(const XL6_IrModule* module,XL6_IrTypeId typeId,
+    const XL6_IrTypeId* parameters,size_t count,const XL6_IrTypeId* resolved,size_t depth)
+{
+    if(depth>64)return 0;
+    for(size_t i=0;i<count;++i)if(typeId==parameters[i])
+        return resolved[i] && !xl6IrLowerTypeContainsTypeParam(module,resolved[i],0);
+    const XL6_IrType* type=xl6IrTypeGet(&module->types,typeId);
+    if(!type || type->kind==XL6_IR_TYPE_TYPE_PARAM)return 0;
+    for(size_t i=0;i<type->paramCount;++i)
+        if(!xl6IrLowerGenericTypeIsBound(module,type->params[i],parameters,count,resolved,depth+1))return 0;
+    for(size_t i=0;i<type->returnCount;++i)
+        if(!xl6IrLowerGenericTypeIsBound(module,type->returns[i],parameters,count,resolved,depth+1))return 0;
+    return 1;
+}
 static int xl6IrLowerInferGenericCallTypeArgs(
     XL6_IrLowerContext* ctx, const XL6_IrNode* call, XL6_IrNodeId declaration,
     XL6_IrTypeId** outTypes, size_t* outCount)
@@ -15949,6 +15963,17 @@ static int xl6IrLowerInferGenericCallTypeArgs(
          * here would reject valid calls without contributing a T binding. */
         if ( !xl6IrLowerTypeContainsTypeParam(module, formal->storageType, 0) ) continue;
         const XL6_IrType* pattern=xl6IrTypeGet(&module->types,formal->storageType);
+        /* A method group has no standalone function ABI to infer from. Once
+         * the receiver/other arguments have fixed this entire signature, its
+         * authenticated selection is checked at the concrete call boundary.
+         * Treating its temporary var storage as a type witness loses that
+         * contextual signature before the call can be specialized. */
+        if(pattern && pattern->kind==XL6_IR_TYPE_FUNCTION && actual->kind==XL6_IR_NODE_MEMBER){
+            const XL6_IrNode* selected=xl6IrSymbolNodeGet(module,actual->targetSymbol);
+            if(selected && xl6IrBoundMethodCandidateMatches(module,binding->expression,
+                (XL6_IrNodeId)(selected-module->nodes+1)) &&
+                xl6IrLowerGenericTypeIsBound(module,formal->storageType,parameters,parameterCount,resolved,0))continue;
+        }
         bool direct=pattern && pattern->kind==XL6_IR_TYPE_TYPE_PARAM;
         if((phase==0 && direct) || (phase==1 && !direct))continue;
         /* Infer from the exact value at the call boundary, not a NAME's wider
