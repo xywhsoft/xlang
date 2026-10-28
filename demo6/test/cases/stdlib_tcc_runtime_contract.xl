@@ -1,0 +1,62 @@
+import tcc
+import xlang
+
+bool badOutputRejected = false
+try
+    TccContext invalid = TccContext(c_int(0))
+catch error
+    badOutputRejected = true
+end
+assert badOutputRejected
+
+bool missingFileRejected = false
+try
+    TccHandler invalid = TccHandler("__xlvfs__/missing_tcc_runtime_contract.c")
+catch error
+    missingFileRejected = true
+end
+assert missingFileRejected
+
+TccContext empty = tcc.Context()
+assert empty.compileString("int main(int n,char**v){return n==0 && v && !v[0]?42:90;}") == 0
+assert empty.run() == 42
+
+array<string> arguments = array["host", "abc"]
+TccContext mutable = tcc.Context()
+assert mutable.compileString("#include <string.h>\nint main(int n,char**v){if(n!=2 || v[2] || strcmp(v[1],\"abc\"))return 90;v[1][0]='z';return 17;}") == 0
+assert mutable.run(arguments) == 17
+assert arguments[1] == "abc"
+
+TccContext recovery = tcc.Context()
+assert recovery.compileString("int main(int n,char**v){return n==1 && v && !v[1]?11:90;}") == 0
+bool rejected = false
+try
+    rejected = recovery.run(array["a\0b"]) == -1
+catch error
+    rejected = true
+end
+assert rejected
+assert recovery.run(array["valid"]) == 11
+
+TccContext types = tcc.Context()
+assert types.compileString("int main(int n,char**v){return n==1 && v && !v[1]?12:90;}") == 0
+rejected = false
+try
+    rejected = types.run(array[123]) == -1
+catch error
+    rejected = true
+end
+assert rejected
+assert types.run(array["valid"]) == 12
+
+assert tcc.vfsMount("__xlvfs__/tcc_runtime_contract.c", "#include <string.h>\nstatic int calls;int main(int n,char**v){if(n!=1 || !v || v[1] || strcmp(v[0],\"handler\"))return 90;v[0][0]='z';return 20+(++calls);}")
+TccHandler handler = TccHandler("__xlvfs__/tcc_runtime_contract.c")
+array<string> handlerArguments = array["handler"]
+assert handler.run(handlerArguments) == 21
+assert handler.run(handlerArguments) == 22
+assert handlerArguments[0] == "handler"
+tcc.vfsClear()
+
+XLangContext engine = xlang.Context()
+assert engine.run("assert 21+21==42\n")
+println("stdlib_tcc_runtime_contract=ok")

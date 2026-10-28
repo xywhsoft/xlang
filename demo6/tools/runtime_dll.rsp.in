@@ -2,6 +2,9 @@
     src\api\xl_api.c
     src\api\xl_api_symbols.c
     src\api\xl_api_path.c
+    src\runtime\xl6_tcc_context_policy.c
+    src\runtime\xl6_ownership_domain_tcc_context.c
+    src\runtime\xl6_ownership_domain_tcc_handler.c
     src\api\xl_protocol_registry.c
     src\api\xl_channel_bridge.c
     src\api\xl_future_bridge.c

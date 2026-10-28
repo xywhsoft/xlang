@@ -1,1 +1,2 @@
 *.sh text eol=lf
+demo6/tools/tcc_vfs_manifest_linux_*.txt text eol=lf

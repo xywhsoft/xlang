@@ -72,6 +72,7 @@
 #include "src/cgen/xl6_ir_cgen_emit_native_future.c"
 #include "src/cgen/xl6_ir_cgen_emit_prelude.c"
 #include "src/cgen/xl6_ir_cgen_needs_runtime_analysis.c"
+#include "src/cgen/xl6_ir_cgen_tcc_runtime.c"
 #include "src/cgen/xl6_ir_cgen_native_dependencies.c"
 #include "src/cgen/xl6_ir_cgen_emit_support.c"
 #include "src/cgen/xl6_ir_cgen_emit_xvalue_core.c"

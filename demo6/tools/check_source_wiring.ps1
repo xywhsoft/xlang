@@ -19,6 +19,8 @@ $wiringFiles = @(
     "build.bat",
     "build_dll.bat",
     "test.bat",
+    "tools\runtime_dll.rsp.in",
+    "tools\compiler_dll.rsp.in",
     "tools\rc0_guard.ps1"
 )
 $generatedSourceInputs = @{
@@ -126,8 +128,15 @@ if ( ! (Test-Path -LiteralPath $linuxBuildPath -PathType Leaf) ) {
     # A generated standalone artifact passing does not prove libxl.so exports it.
     $residentUnits = @([regex]::Matches($wiringText, 'src[\\/]runtime[\\/][A-Za-z0-9_]+\.c') |
         ForEach-Object { Normalize-RelativePath $_.Value } | Sort-Object -Unique)
+    $linuxRuntimeSources=@(& python (Join-Path $Root 'tools/runtime_sources.py') --root $Root)
+    if($LASTEXITCODE -ne 0){throw 'Cannot resolve the ordinary Linux runtime source manifest'}
+    $linuxNativeSet=New-Object System.Collections.Generic.HashSet[string]
+    foreach($source in $linuxRuntimeSources){
+        $relative=[IO.Path]::GetFullPath($source).Substring(([IO.Path]::GetFullPath($Root)).Length+1)
+        $linuxNativeSet.Add((Normalize-RelativePath $relative))|Out-Null
+    }
     foreach ( $unit in $residentUnits ) {
-        if ( ! $linuxBuildText.Contains($unit) ) {
+        if ( ! $linuxBuildText.Contains($unit) -and ! $linuxNativeSet.Contains($unit) ) {
             Add-Failure "Linux build omits resident runtime source: $unit"
         }
     }
@@ -170,24 +179,40 @@ foreach ( $match in $embeddedMatches ) {
 	$embeddedSources.Add($relative) | Out-Null
 }
 
-foreach ( $file in $srcFiles ) {
+$pendingIncludes=New-Object 'System.Collections.Generic.Queue[string]'
+$visitedIncludes=New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase)
+foreach($relative in @($directSources)+@($embeddedSources)) {
+    $path=Join-Path $Root $relative
+    if(Test-Path -LiteralPath $path -PathType Leaf){$pendingIncludes.Enqueue([IO.Path]::GetFullPath($path))}
+}
+while($pendingIncludes.Count) {
+    $path=$pendingIncludes.Dequeue()
+    if(!$visitedIncludes.Add($path)){continue}
+    $file=Get-Item -LiteralPath $path
     $text = Read-Utf8Text $file.FullName
-    $matches = [regex]::Matches($text, '(?m)^\s*#\s*include\s+"([^"]+\.c)"')
+    $matches = [regex]::Matches($text, '(?m)^\s*#\s*include\s+"([^"]+\.(?:c|h|inc))"')
 
     foreach ( $match in $matches ) {
         $includeText = Normalize-RelativePath $match.Groups[1].Value
-        if ( $includeText -like "src/*" ) {
-            $includePath = Join-Path $Root ($includeText.Replace("/", "\"))
-        } else {
-            $includePath = Join-Path $file.DirectoryName ($includeText.Replace("/", "\"))
+        $includePath=$null
+        foreach($base in @($file.DirectoryName,$Root,(Join-Path $Root 'release'),(Join-Path $Root 'src'))) {
+            $candidate=Join-Path $base $includeText
+            if(Test-Path -LiteralPath $candidate -PathType Leaf){$includePath=[IO.Path]::GetFullPath($candidate);break}
         }
 
-        if ( ! (Test-Path -LiteralPath $includePath -PathType Leaf) ) {
-            Add-Failure "included source file is missing: $(Relative-From-Root $file): $includeText"
+        if ( !$includePath ) {
+            if($includeText.EndsWith('.c') -or $includeText.EndsWith('.inc')) {
+                Add-Failure "included source file is missing: $(Relative-From-Root $file): $includeText"
+            }
             continue
         }
 
-        $includedSources.Add((Relative-From-Root (Get-Item -LiteralPath $includePath))) | Out-Null
+        if($includePath.EndsWith('.c')) {
+            $includedSources.Add((Relative-From-Root (Get-Item -LiteralPath $includePath))) | Out-Null
+        }
+        if($includePath.StartsWith(([IO.Path]::GetFullPath($srcDir)+[IO.Path]::DirectorySeparatorChar),[StringComparison]::OrdinalIgnoreCase)) {
+            $pendingIncludes.Enqueue($includePath)
+        }
     }
 }
 

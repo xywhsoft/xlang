@@ -298,3 +298,14 @@ pop/take、动态分派和全部 Array source carrier 切换仍需后续完成�
 - `extern_owned_nullable_channel_arguments.xl`: async Channel generic nullable Error/string value arguments; `bad_extern_owned_nullable_invariant.xl` keeps mutable containers invariant.
 - `extern_owned_error_array_extract.xl`: Error/nullable Error pop/take, misses, escaping and discarded owners, with 96 OOM prefixes. The native Error admission contract also checks authenticated extraction before commit, prior diagnostics, unbound projection rejection and cloned arrays.
 - `extern_owned_typed_bound_methods.xl`, `extern_owned_typed_bound_native.xl` / `extern_owned_typed_bound_native_host.c`: nullable receivers, overload/generic selection, defaults/self, void/tuple, inheritance/virtual errors, borrowed string parameters and typed owned-pointer returns. The native fixture checks first-call allocation counts and 160 OOM prefixes; IR mutation controls reject forged bound target/capture/role before emission.
+
+## Embedded Delivery Contracts
+
+- `stdlib_tcc_runtime_contract.xl`: invalid constructors, zero arguments,
+  immutable inputs despite writable C argv, NUL/type rejection, successful retry,
+  repeated Handler runs and a nested xlang context; JIT and independent AOT.
+- `tcc_runtime_generated_host.c`: actual emitted bridge, GCC O0/O2 ASan/UBSan,
+  repeated init/fini, complete argv/ownership-factory failure prefixes and real
+  TCC destruction. The genuine TCC core is linked, not replaced with stubs.
+- `test_runtime_header_staging.py`: directory/file manifest parity, exact bytes,
+  missing sources, shipping first-target precedence and evidence preservation.

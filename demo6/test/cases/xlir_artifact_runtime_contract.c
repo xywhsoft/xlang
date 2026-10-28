@@ -395,6 +395,16 @@ static int fixture_contract(const char* path)
         !xl6ArtifactRuntimePlanBuild(&unit.ir,XL6_ARTIFACT_ENTRY_CHECKED_MODULE_V1,&plan,&unit.parse.diags) ||
         !xl6ArtifactRuntimePlanBuild(&unit.ir,XL6_ARTIFACT_ENTRY_CHECKED_MODULE_V1,&repeat,&unit.parse.diags) ||
         memcmp(&plan,&repeat,sizeof(plan))) goto done;
+    options.debugMode=1;
+    if(!xl6ArtifactRuntimePlanBuildWithOptions(&unit.ir,XL6_ARTIFACT_ENTRY_CHECKED_MODULE_V1,
+        &options,&repeat,&unit.parse.diags))goto done;
+    int debugFormat=0;
+    for(size_t i=0;i<repeat.nativeModuleCount;++i)
+        debugFormat|=!strcmp(repeat.nativeModules[i],"XRT_MODULE_STRING_FORMAT");
+    if(!debugFormat)goto done;
+    options.debugMode=0;
+    if(!xl6ArtifactRuntimePlanBuildWithOptions(&unit.ir,XL6_ARTIFACT_ENTRY_CHECKED_MODULE_V1,
+        &options,&repeat,&unit.parse.diags) || memcmp(&plan,&repeat,sizeof(plan)))goto done;
     if (!xl6IrCgenVisitNativeModules(&unit.ir,&probe,&options,count_native,&visits) || !visits) goto done;
     visits=0;
     if (xl6IrCgenVisitNativeModules(&unit.ir,&probe,&options,reject_native,&visits) || visits!=1) goto done;

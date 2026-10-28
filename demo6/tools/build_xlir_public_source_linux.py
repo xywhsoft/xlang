@@ -12,9 +12,11 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     for name in ('root','native-root','out'): parser.add_argument('--'+name,type=Path,required=True)
     parser.add_argument('--optimization',choices=['O0','O2'],default='O0')
+    parser.add_argument('--sanitize',action='store_true')
+    parser.add_argument('--runtime-resource',type=Path)
     args=parser.parse_args(); root,native,out=[getattr(args,name).resolve() for name in ('root','native_root','out')]
     assert os.name!='nt' and not out.exists()
-    project=Path(__file__).resolve().parents[1]; cc=shutil.which('gcc'); assert cc
+    project=root; cc=shutil.which('gcc'); assert cc
     source_list=root/'tools/build_xlir_public_source_driver.ps1'
     body=source_list.read_text(encoding='utf-8-sig').split('$sources = @(',1)[1].split('$files =',1)[0]
     # This CRT UTF-8 I/O shim is Windows-only (io.h/_wopen). Linux uses its
@@ -35,7 +37,17 @@ def main():
         'xl6_queue_mpmc_admission','xl6_thread','xl6_array_thread_admission'}
     assert required.issubset({path.stem for path in sources})
     runtime=native/'release/libxl.so'; assert runtime.is_file()
+    configuration=native/'build/linux/tcc-source/config.h'
+    assert configuration.is_file(), 'Use a native build with its actual TCC configuration'
+    configured=re.search(r'^#define\s+CONFIG_TRIPLET\s+"([A-Za-z0-9_.+\-]+)"\s*$',
+        configuration.read_text(),re.M)
+    triplet=configured.group(1) if configured else None
     files={Path(__file__).resolve(),source_list,Path(cc),runtime,*sources,*runtime_manifests}
+    files.add(configuration)
+    runtime_resource=args.runtime_resource.resolve() if args.runtime_resource else None
+    if runtime_resource:
+        assert runtime_resource.is_file()
+        files.add(runtime_resource)
     for folder in ('src','lib','res/tcc','release/include','release/extlibs'):
         files.update(path for path in (root/folder).rglob('*') if path.is_file())
     files.update(path for path in (native/'build/linux/tcc-dist').rglob('*') if path.is_file())
@@ -49,7 +61,9 @@ def main():
     rows=[]; objects=[]; headers=[]
     report={'Complete':False,'InputsUnchanged':False,'Inputs':inputs,'Objects':objects,'Headers':headers,
         'Sources':list(map(str,sources)),'Rows':rows,'SourceXrt':True,'RuntimeOnly':False,'EnableExeCompiler':1,
-        'SourceProductAcceptance':False,'ShippingLibraryAcceptance':False,'Scope':__doc__,'NativeRoot':str(native),'Optimization':args.optimization}
+        'SourceProductAcceptance':False,'ShippingLibraryAcceptance':False,'Scope':__doc__,'NativeRoot':str(native),'Optimization':args.optimization,
+        'Sanitize':args.sanitize,'AllSourceProvidersInstrumented':args.sanitize,'ReleasedTccCoreInstrumented':False,
+        'ConfiguredTriplet':triplet,'RuntimeResource':str(runtime_resource) if runtime_resource else None}
     def save(): (out/'build.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     def run(name,command):
         command=list(map(str,command)); result=subprocess.run(command,cwd=root,env=env,capture_output=True,timeout=240)
@@ -75,6 +89,12 @@ def main():
         assert sha(target)==sha(original)
         headers.append({'Path':str(target),'Source':str(original),'Sha256':sha(target)})
     assert len(headers)>=6
+    if runtime_resource:
+        target=out/'include/__xl_compiler/build/linux/tcc_builtin_resources_runtime.c'
+        target.parent.mkdir(parents=True,exist_ok=True)
+        shutil.copy2(runtime_resource,target)
+        assert sha(target)==sha(runtime_resource)
+        headers.append({'Path':str(target),'Source':str(runtime_resource),'Sha256':sha(target)})
     # Mirror manifest-owned native sources for standalone component builds;
     # generated nested compiler resources are deliberately outside this gate.
     for line in manifest.read_text(encoding='utf-8-sig').splitlines():
@@ -94,6 +114,9 @@ def main():
     flags=['-std=c11','-D_GNU_SOURCE','-Wall','-Wextra','-Werror','-'+args.optimization,'-DXL_STATIC_EMBED',
         '-DXL_ENABLE_EXE_COMPILER=1','-DTCC_DISABLE_BUILTIN_VFS',
         '-I'+str(root),'-I'+str(root/'release'),'-I'+str(root/'release/include'),'-I'+str(root/'lib/tcc')]
+    if triplet:flags.append('-DXL6_TCC_CONFIGURED_TRIPLET="'+triplet+'"')
+    instrumentation=['-fsanitize=address,undefined','-fno-omit-frame-pointer','-g'] if args.sanitize else []
+    flags+=instrumentation+(['-fno-pie'] if args.sanitize else [])
     report['CompileFlags']=flags
     compat=['-Wno-unused-function','-Wno-unused-parameter','-Wno-unused-variable','-Wno-unused-label',
         '-Wno-unused-const-variable','-Wno-unused-but-set-variable','-Wno-missing-field-initializers',
@@ -109,7 +132,7 @@ def main():
             objects.append({'Path':str(obj),'Sha256':sha(obj),'Source':str(source)})
             print(f'[{index}/{len(sources)}] compiled {source.name}',flush=True)
         driver=out/'public_source'
-        run('link',[cc,*[row['Path'] for row in objects],'-L'+str(runtime.parent),'-lxl',
+        run('link',[cc,*instrumentation,*(['-no-pie'] if args.sanitize else []),*[row['Path'] for row in objects],'-L'+str(runtime.parent),'-lxl',
             '-Wl,-rpath,'+str(runtime.parent),'-Wl,--export-dynamic','-pthread','-ldl','-lm','-o',driver])
         report.update(Driver=str(driver),DriverSha256=sha(driver))
         report['InputsUnchanged']=all(sha(row['Path'])==row['Sha256'] for row in inputs)

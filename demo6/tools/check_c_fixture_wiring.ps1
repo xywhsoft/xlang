@@ -208,7 +208,7 @@ do {
             continue
         }
         $text = Read-Utf8Text $asset.FullName
-        foreach ( $includeMatch in [regex]::Matches($text, '"([^"]+\.(?:c|h))"') ) {
+        foreach ( $includeMatch in [regex]::Matches($text, '(?m)^\s*#\s*include\s+"([^"\r\n]+\.(?:c|h))"') ) {
             $includeName = $includeMatch.Groups[1].Value.Replace("/", "\")
             $candidates = @(
                 [System.IO.Path]::GetFullPath((Join-Path $asset.DirectoryName $includeName)),

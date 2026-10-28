@@ -1270,3 +1270,13 @@ CRL 和附加谓词、显式补链和缺链分流、IR／C／JIT／module／独�
 源码 cohort 覆盖 IR／C／JIT／module／独立 AOT、最小裁剪与精确语义负例。
 `check_crypto_advanced_evidence.py` 独立重算输入／对象／日志／产物哈希；只验证
 正常离线材料，不代替普通发布产品、密码学安全审计或五组联合封板。
+
+## Embedded Delivery Checks
+
+`stage_runtime_headers.py` mirrors both file and directory rows through the
+shipping VFS resolver, verifies bytes and records header/input hashes. Linux
+contract gates use this private mirror instead of modifying the public SDK.
+`check_compiled_packages_linux.py --public-directory ... --source-only` also
+compiles the actual emitted TCC bridge with GCC O0/O2 sanitizers and exercises
+argument copying, allocation failures and resident resource retirement. The
+released TCC core and TCC-generated machine code are not sanitizer-instrumented.

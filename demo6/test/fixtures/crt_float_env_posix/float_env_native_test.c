@@ -2,15 +2,7 @@
 #include <pthread.h>
 #include <stdint.h>
 
-/* Standalone POSIX component test for float_env_native.c.  A TLS address is
- * sufficient as a per-thread identity here; the language integration test
- * uses the real xrtThreadCurrentId supplied by the host. */
-static _Thread_local unsigned char thread_identity;
-
-uint64_t xrtThreadCurrentId(void)
-{
-    return (uint64_t)(uintptr_t)&thread_identity;
-}
+/* Link the real XRT host for thread identity and compatible snapshot storage. */
 
 extern int xfenv_get_round(void);
 extern int xfenv_set_round(int mode);

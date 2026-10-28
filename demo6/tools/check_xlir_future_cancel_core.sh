@@ -34,12 +34,7 @@ strict=(-std=c11 -Wall -Wextra -Werror -Wno-unused-function -Wno-unused-variable
     -Wno-unused-label -Wno-unused-but-set-variable -Wno-missing-field-initializers -Wno-pointer-sign
     -I. "-I$OUT" "-I$OUT/include")
 libs=(-pthread -ldl -lm)
-while IFS='|' read -r kind target source; do
-    if [[ "$kind" = file && "$target" = include/__xl_runtime/* ]]; then
-        source="${source//%XL6_ROOT%/$ROOT}"
-        mkdir -p "$OUT/$(dirname "$target")"; cp "$source" "$OUT/$target"; cmp "$source" "$OUT/$target"
-    fi
-done < tools/tcc_vfs_manifest_linux_xlc.txt
+python3 tools/stage_runtime_headers.py --root "$ROOT" --out "$OUT"
 run contract-build "$CC" "${strict[@]}" -Ilib/tcc test/cases/xlir_async_cancel_watch_contract.c \
     -Lrelease -lxlc -lxl -Wl,-rpath,"$ROOT/release" "${libs[@]}" -o "$OUT/contract"
 for repeat in '' '.repeat'; do

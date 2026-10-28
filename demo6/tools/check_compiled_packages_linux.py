@@ -29,6 +29,8 @@ def main():
     files={Path(__file__).resolve(),Path(cc),cli}
     files.update((root/'test/cases').glob('*compiled_package*'))
     files.add(root/'test/cases/xlir_artifact_runtime_contract.c')
+    files.add(root/'test/cases/tcc_runtime_generated_host.c')
+    files.add(root/'test/cases/stdlib_tcc_runtime_contract.xl')
     for parent in ('release/include','release/examples/embedded_package'):
         files.update(p for p in (root/parent).rglob('*') if p.is_file())
     for parent in (root/'test/fixtures').glob('compiled_*'):
@@ -55,10 +57,17 @@ def main():
         files=sorted(files);inputs=[dict(Path=str(p),Sha256=sha(p)) for p in files]
         report['Inputs']=inputs
         if args.public_directory:
+            saved_tcc_include=env.get('XL6_TCC_INCLUDE')
             objects=[row['Path'] for row in cohort['Objects'] if Path(row['Path']).stem not in
                      ('xlir_public_source_driver','xlir_public_source_linux_driver')]
+            source_tcc=out/'source-tcc'
+            shutil.copytree(tcc,source_tcc)
+            shutil.copytree(public/'include',source_tcc/'include',dirs_exist_ok=True)
+            env['XL6_TCC_INCLUDE']=str(source_tcc/'include')
+            report['SourceTccInputs']=[dict(Path=str(p),Sha256=sha(p)) for p in sorted(source_tcc.rglob('*')) if p.is_file()]
             flags=cohort['CompileFlags']
-            links=['-L'+str(native/'release'),'-lxl','-Wl,-rpath,'+str(native/'release'),'-pthread','-ldl','-lm']
+            links=['-L'+str(native/'release'),'-lxl','-Wl,-rpath,'+str(native/'release'),
+                   '-Wl,--export-dynamic','-pthread','-ldl','-lm']
             if cohort.get('Sanitize'):links+=['-no-pie']
             compat=['-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-label',
                     '-Wno-unused-but-set-variable','-Wno-unused-const-variable','-Wno-missing-field-initializers']
@@ -74,15 +83,42 @@ def main():
             run('artifact-plan-build',[cc,*flags,*compat,root/'test/cases/xlir_artifact_runtime_contract.c',
                                       *objects,*links,'-o',contract])
             run('artifact-plan',[contract,root/'test/cases/cgen_basic.xl'])
+            registry=out/'source-registry'
+            run('source-registry-build',[cc,*flags,*compat,root/'test/cases/compiled_package_registry.c',
+                                        *objects,*links,'-o',registry])
+            registry_cwd=out/'source-registry-work';registry_cwd.mkdir()
+            poison=registry_cwd/'__xl_compiled__';poison.mkdir()
+            shutil.copy2(root/'test/cases/compiled_package_poison.c',poison/'leaf.c')
+            run('source-registry',[registry,native/'release/libxl.so',source_tcc],registry_cwd)
+            compiler=out/'source-compiler'
+            run('source-compiler-build',[cc,*flags,*compat,root/'test/cases/compiled_package_compiler.c',
+                                        *objects,*links,'-o',compiler])
+            run('source-compiler',[compiler,native/'release/libxl.so',source_tcc,out/'source-compiler-consumer.c'])
             report['SourceAcceptance']=True
+            report['SourceRegistryAcceptance']=True
+            report['SourceCompilerAcceptance']=True
+            env['XL6_SOURCE_NATIVE_ROOT']=str(native)
+            generated_tcc=out/'tcc-runtime.c'
+            run('tcc-runtime-emit',[public/'public_source',root/'test/cases/stdlib_tcc_runtime_contract.xl',
+                'cgen-default',generated_tcc])
+            for opt in ('O0','O2'):
+                host=out/('tcc-runtime-'+opt)
+                run('tcc-runtime-'+opt+'-build',[cc,*flags,*compat,'-'+opt,
+                    '-I'+str(public/'include'),'-include',generated_tcc,
+                    root/'test/cases/tcc_runtime_generated_host.c',*objects,*links,'-o',host])
+                run('tcc-runtime-'+opt,[host,native/'release/libxl.so',source_tcc])
+            report['SourceTccGeneratedBridgeAcceptance']=True
             report['AllSourceProvidersInstrumented']=cohort.get('Sanitize',False)
             if args.source_only:
                 verify_public_build(root,public)
+                assert all(sha(row['Path'])==row['Sha256'] for row in report['SourceTccInputs'])
                 report['InputsUnchanged']=all(sha(row['Path'])==row['Sha256'] for row in inputs)
                 assert report['InputsUnchanged']
                 report['Complete']=True
                 print('Linux compiled package source/sanitizer acceptance passed',flush=True)
                 return
+            if saved_tcc_include is None:env.pop('XL6_TCC_INCLUDE',None)
+            else:env['XL6_TCC_INCLUDE']=saved_tcc_include
         for library in ('xl','xlc'):
             dll=native/'release'/('lib'+library+'.so')
             for opt in ('O0','O2'):

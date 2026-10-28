@@ -969,6 +969,9 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_crypto_poly1305_buffer.c",D(),{"XRT_MODULE_CRYPTO_POLY1305","XRT_MODULE_VALUE","XRT_MODULE_BUFFER"}},
     {"src/runtime/xl6_crypto_poly1305_stream_buffer.c",D(R(CRYPTO_POLY1305_STREAM)),{"XRT_MODULE_BUFFER"}},
     {"src/runtime/xl6_array_error_admission.c",D(R(SEQUENCE),R(ERROR_VALUE)),{"XRT_MODULE_VALUE"}},
+    {"src/runtime/xl6_tcc_context_policy.c",D(R(NATIVE_HANDLE)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_tcc_context.c",D(R(OWNERSHIP_CATALOG),R(TCC_CONTEXT_POLICY)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_tcc_handler.c",D(R(OWNERSHIP_CATALOG),R(TCC_CONTEXT_POLICY)),{NULL}},
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

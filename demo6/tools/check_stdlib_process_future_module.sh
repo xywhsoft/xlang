@@ -23,12 +23,7 @@ run() { local name="$1"; shift; "$@" >"$OUT/$name.log" 2>&1; checks=$((checks+1)
     printf '%s\0' test/cases/xlir_code_owner_binding_contract.c test/cases/xlir_owner_consumption_contract.c
     printf '%s\0' test/support/process_oom_observer.c test/support/process_module_tcc_provider.h
 } | sort -zu | xargs -0 sha256sum >"$OUT/inputs.sha256"
-while IFS='|' read -r kind target source; do
-    if [[ "$kind" = file && "$target" = include/__xl_runtime/* ]]; then
-        source="${source//%XL6_ROOT%/$ROOT}"
-        mkdir -p "$OUT/$(dirname "$target")"; cp "$source" "$OUT/$target"; cmp "$source" "$OUT/$target"
-    fi
-done <tools/tcc_vfs_manifest_linux_xlc.txt
+python3 tools/stage_runtime_headers.py --root "$ROOT" --out "$OUT"
 strict=(-std=c11 -D_GNU_SOURCE -Wall -Wextra -Werror -DXL_STATIC_EMBED
     -Wno-unused-function -Wno-unused-variable -Wno-unused-parameter -Wno-unused-label
     -Wno-pointer-sign -Wno-format-truncation -Wno-missing-field-initializers -Wno-unused-const-variable

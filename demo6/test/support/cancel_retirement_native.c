@@ -34,12 +34,12 @@ static void testRequire(bool condition, const char* message)
 
 
 
-/* �����̷߳������ʾ�ɹ�������ֱֵ�ӱ����ڲ��С� */
+/* A worker's result is stored in its slot and inspected after join. */
 typedef int (*testthreadproc)(ptr pData);
 
 
 
-/* һ���������ͻ��յĿ�ƽ̨�����̲߳ۡ� */
+/* Cross-platform joinable test worker. */
 typedef struct testthread {
 	testthreadproc Proc;
 	ptr Data;
@@ -54,7 +54,7 @@ typedef struct testthread {
 
 
 #if defined(_WIN32) || defined(_WIN64)
-/* Windows �����߳�ͳһ��ڡ� */
+/* Windows worker entry. */
 static DWORD WINAPI testThreadEntry(LPVOID pData)
 {
 	testthread* pThread = (testthread*)pData;
@@ -63,7 +63,7 @@ static DWORD WINAPI testThreadEntry(LPVOID pData)
 	return (DWORD)pThread->Result;
 }
 #else
-/* POSIX �����߳�ͳһ��ڡ� */
+/* POSIX worker entry. */
 static void* testThreadEntry(void* pData)
 {
 	testthread* pThread = (testthread*)pData;
@@ -75,7 +75,7 @@ static void* testThreadEntry(void* pData)
 
 
 
-/* ����һ���Ѿ�����ص������ݵĲ����̡߳� */
+/* Start workers with their prepared callback and input. */
 static void testThreadsStart(testthread* arrThread, size_t iCount)
 {
 	for ( size_t i = 0; i < iCount; i++ ) {
@@ -92,7 +92,7 @@ static void testThreadsStart(testthread* arrThread, size_t iCount)
 
 
 
-/* �ȴ�������һ���Ѿ������Ĳ����̡߳� */
+/* Join workers before inspecting their results. */
 static void testThreadsJoin(testthread* arrThread, size_t iCount)
 {
 	for ( size_t i = 0; i < iCount; i++ ) {
@@ -108,7 +108,7 @@ static void testThreadsJoin(testthread* arrThread, size_t iCount)
 
 
 
-/* �ó���ǰ�����̵߳Ĵ�����ʱ��Ƭ�� */
+/* Yield the current worker's time slice. */
 static inline void testThreadYield(void)
 {
 	#if defined(_WIN32) || defined(_WIN64)
