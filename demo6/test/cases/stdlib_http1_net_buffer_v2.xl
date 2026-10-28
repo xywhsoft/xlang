@@ -1,0 +1,32 @@
+func main(...) as int
+    auto incoming = NetBuffer()
+    incoming.append("POST / HTTP/1.1\r\nHost: example.test\r\nTransfer-Encoding: chu")
+    assert Http1Head.requestFromNetBuffer(incoming) == null
+    incoming.append("nked\r\n\r\n3\r")
+    auto head = Http1Head.requestFromNetBuffer(incoming)
+    if head == null then throw ValueError "missing head" end
+    int original = incoming.length
+    assert head.fieldCount == 2
+    assert incoming.length == original
+    incoming.consume(head.headerBytes)
+    auto reader = Http1BodyReader(head)
+    auto output = Buffer()
+    assert reader.readFromNetBuffer(incoming, output) == HttpBodyStatus.more
+    incoming.append(b"\na\0")
+    incoming.append(b"b\r\n0\r\nDigest: ok\r\n\r\nNEXT")
+    int guard = 0
+    while not reader.done
+        reader.readFromNetBuffer(incoming, output)
+        guard += 1
+        assert guard < 20
+    end
+    assert output.toBytes() == b"a\0b"
+    assert incoming.peek() == b"NEXT"
+    assert (reader.trailers().getText("Digest") as string) == "ok"
+    assert head.method == "POST"
+    auto discard = Http1BodyReader(HttpBodyPlan(HttpBodyMode.fixed, uint64(4)))
+    assert discard.discardFromNetBuffer(incoming) == HttpBodyStatus.data
+    assert discard.done and incoming.length == 0
+    println("HTTP/1 split NetBuffer and discard V2 passed")
+    return 0
+end

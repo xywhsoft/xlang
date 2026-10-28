@@ -1,0 +1,75 @@
+enum Http1TransportState as int
+    head = 0
+    body = 1
+    upgraded = 2
+    detached = 3
+    closed = 4
+    failed = 5
+end
+
+class Http1Limits
+    private int headLimit
+    private int startLimit
+    private int lineLimit
+    private int fieldLimit
+    private int bodyLimit
+    private int chunkLimit
+    private int trailerLimit
+    private int trailerLineLimit
+    private int trailerFieldLimit
+    private int receiveSize
+    private int bufferLimit
+
+    create(int maxHead = 65536, int maxStartLine = 8192, int maxFieldLine = 8192, int maxFields = 100, int maxBody = 16777216, int maxChunkLine = 8192, int maxTrailer = 16384, int maxTrailerLine = 8192, int maxTrailers = 32, int readChunk = 65536, int maxBuffered = 1048576)
+        if maxHead <= 0 or maxStartLine <= 0 or maxFieldLine <= 0 or maxFields < 0 or maxBody < -1 or maxChunkLine <= 0 or maxTrailer <= 0 or maxTrailerLine <= 0 or maxTrailers < 0 or readChunk <= 0 then
+            throw RangeError "invalid HTTP/1 limits"
+        end
+        if maxBuffered <= maxHead or maxBuffered <= maxChunkLine or maxBuffered <= maxTrailer or maxBuffered < readChunk then
+            throw RangeError "HTTP/1 buffer must hold each framing limit and one overflow byte"
+        end
+        self.headLimit = maxHead
+        self.startLimit = maxStartLine
+        self.lineLimit = maxFieldLine
+        self.fieldLimit = maxFields
+        self.bodyLimit = maxBody
+        self.chunkLimit = maxChunkLine
+        self.trailerLimit = maxTrailer
+        self.trailerLineLimit = maxTrailerLine
+        self.trailerFieldLimit = maxTrailers
+        self.receiveSize = readChunk
+        self.bufferLimit = maxBuffered
+    end
+    get maxHead() as int
+        return self.headLimit
+    end
+    get maxStartLine() as int
+        return self.startLimit
+    end
+    get maxFieldLine() as int
+        return self.lineLimit
+    end
+    get maxFields() as int
+        return self.fieldLimit
+    end
+    get maxBody() as int
+        return self.bodyLimit
+    end
+    get maxChunkLine() as int
+        return self.chunkLimit
+    end
+    get maxTrailer() as int
+        return self.trailerLimit
+    end
+    get maxTrailerLine() as int
+        return self.trailerLineLimit
+    end
+    get maxTrailers() as int
+        return self.trailerFieldLimit
+    end
+    get readChunk() as int
+        return self.receiveSize
+    end
+    get maxBuffered() as int
+        return self.bufferLimit
+    end
+end

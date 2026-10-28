@@ -6,7 +6,7 @@
 #include "src/ast/xl6_ast.h"
 
 #define XL6_STDLIB_CONST_COUNT 202
-#define XL6_STDLIB_FUNC_COUNT 1031
+#define XL6_STDLIB_FUNC_COUNT 1064
 extern const char* xl6StdlibNetBackendSource;
 extern const char* xl6StdlibNetEngineStateSource;
 extern const char* xl6StdlibNetEngineOptionsSource;
@@ -224,8 +224,16 @@ extern const char* xl6StdlibTlsStreamClassSource;
 extern const char* xl6StdlibTlsStreamDialSource;
 extern const char* xl6StdlibTlsServerClassSource;
 extern const char* xl6StdlibTlsMetadataSource;
-extern const char* xl6StdlibHttp1ClassSource;
-extern const char* xl6StdlibHttpDecoderClassSource;
+extern const char* xl6StdlibHttpClassSource;
+extern const char* xl6StdlibHttpLimitsSource;
+extern const char* xl6StdlibHttpTcpTransportSource;
+extern const char* xl6StdlibHttpTlsTransportSource;
+extern const char* xl6StdlibHttpHeadSource;
+extern const char* xl6StdlibHttpHeadNetSource;
+extern const char* xl6StdlibHttpHeadTlsSource;
+extern const char* xl6StdlibHttpBodySource;
+extern const char* xl6StdlibHttpBodyNetSource;
+extern const char* xl6StdlibWebSocketLegacyHttpSource;
 extern const char* xl6StdlibWsFrameClassSource;
 extern const char* xl6StdlibWsHandshakeClassSource;
 extern const char* xl6StdlibWsUpgradeClassSource;

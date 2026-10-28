@@ -1,0 +1,35 @@
+func main(...) as int
+    auto head = Http1Head.response("HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n")
+    if head == null then throw ValueError "expected complete HTTP result" end
+    auto reader = Http1BodyReader(head.bodyPlan())
+    auto pending = Buffer()
+    auto output = Buffer()
+    auto source = Buffer(b"3;name=value\r\na\0b\r\n0\r\nDigest: ok\r\n\r\nNEXT")
+    int offset = 0
+    while offset < source.length and not reader.done
+        pending.appendByte(int(source.byteAt(offset)))
+        offset += 1
+        auto state = reader.readInto(pending, output)
+        int consumed = reader.consumed
+        if consumed > 0 then pending.remove(0, consumed) end
+        assert state == HttpBodyStatus.more or state == HttpBodyStatus.data or state == HttpBodyStatus.done
+    end
+    assert reader.done
+    assert output.toBytes() == b"a\0b"
+    assert (reader.trailers().getText("Digest") as string) == "ok"
+    assert offset == source.length - 4
+    reader.reset(head.bodyPlan())
+    assert not reader.done and not reader.failed
+    auto incomplete = Buffer("3\r\na")
+    auto state = reader.readInto(incomplete, output)
+    assert state == HttpBodyStatus.data
+    int rejected = 0
+    try
+        reader.readInto(b"", output, true)
+    catch e
+        rejected += 1
+    end
+    assert rejected == 1 and reader.failed
+    println("HTTP/1 incremental V2 passed")
+    return 0
+end

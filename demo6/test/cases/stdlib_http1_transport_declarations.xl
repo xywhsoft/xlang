@@ -1,0 +1,21 @@
+func tcpHttp(TcpStream stream) as Http1TcpTransport
+    return Http1TcpTransport(stream)
+end
+func tlsHttp(TlsStream stream) as Http1TlsTransport
+    return Http1TlsTransport(stream)
+end
+func main(...) as int
+    auto limits = Http1Limits()
+    assert limits.maxHead == 65536
+    assert limits.maxBody == 16777216
+    assert limits.maxBuffered > limits.maxHead
+    bool rejected = false
+    try
+        auto invalid = Http1Limits(65536, 8192, 8192, 100, 0, 8192, 16384, 8192, 32, 65536, 65536)
+    catch RangeError
+        rejected = true
+    end
+    assert rejected
+    println("HTTP/1 managed transport declarations passed")
+    return 0
+end

@@ -1,0 +1,118 @@
+{
+  "Complete": true,
+  "Date": "2026-10-28",
+  "TestedBase": "fe80cbb57d238509dc6475714899030a10a01230",
+  "TestedTree": "32d5bcc170b12c0fe92bda9e4464a1ecb50db9a4",
+  "Modules": 18,
+  "Classes": 27,
+  "ResidentEntries": 319,
+  "NativeDefinitions": 151,
+  "Windows": {
+    "Stages": 146,
+    "Cases": 16,
+    "NegativeCases": 5
+  },
+  "Linux": {
+    "Stages": 145,
+    "Cases": 16,
+    "NegativeCases": 5
+  },
+  "NativeResourceKinds": 19,
+  "NativeConstructionPrefixesPerProduct": 44,
+  "LanguageFailurePrefixesPerOptimization": 315,
+  "StrictNativeProviders": 38,
+  "Reports": {
+    "windows-build": {
+      "Path": "F:\\xlang-validation\\http-20261028\\shipping-windows-r2\\build.shipping.json",
+      "Sha256": "31152050a370ce187c1b75cd62bdfbd8f015b433a18db60b10459092eace28ec"
+    },
+    "windows-http": {
+      "Path": "F:\\xlang-validation\\http-20261028\\http-windows-r2\\results.json",
+      "Sha256": "a7aa586a6bca71801c63e3ad18a42ae0f7796c98b0c6cf29575fec6e2de9e082"
+    },
+    "linux-build": {
+      "Path": "F:\\xlang-validation\\http-20261028\\linux-final-records\\build.shipping.json",
+      "Sha256": "97a6d4d7771092b7547600660036bfc9ce952dbfb39cc7fa2659de26dea39d43"
+    },
+    "linux-http": {
+      "Path": "F:\\xlang-validation\\http-20261028\\linux-final-records\\http-results.json",
+      "Sha256": "29f6efa6076c30fb0a27997ca5782856cc2f289b805373ccbd4893c8443c6138"
+    },
+    "strict-native": {
+      "Path": "F:\\xlang-validation\\http-20261028\\strict-final-r3\\results.json",
+      "Sha256": "cd85af0119b3dd18941949f005b165a63340401e89aa6d5356073b6dc7f8d204"
+    },
+    "windows-size-query": {
+      "Path": "F:\\xlang-validation\\http-20261028\\size-query-windows-final.json",
+      "Sha256": "0bb991be31654dc40d474c2be0fb958c3e9e63942d9689464d0a74243ead269b"
+    },
+    "linux-size-query": {
+      "Path": "F:\\xlang-validation\\http-20261028\\size-query-linux-final.json",
+      "Sha256": "548a50347fe46ed1f599c9942d1ce6533fad9d3490eb1f74ce3f6cd37c8ee3a9"
+    },
+    "language-sequential-performance": {
+      "Path": "F:\\xlang-validation\\http-20261028\\performance-sequential-windows\\results.json",
+      "Sha256": "01e96fec7a5a13a90f4f63cc93e1af6a5bf367d4f841c5723b906bf7ad16274f"
+    },
+    "native-matched-performance": {
+      "Path": "F:\\xlang-validation\\http-20261028\\performance-native-windows-final\\results.json",
+      "Sha256": "d4e8a3fd27b54a068ceb7a5bb9ef34cec9275b3f89dd5be4a31fdbdfbeca2ead"
+    },
+    "frozen-source": {
+      "Path": "F:\\xlang-validation\\http-20261028\\scoped-r3\\export\\freeze.json",
+      "Sha256": "cbcdc0705c8d440d1a01a26bbd0eec6b5549921d0be4ed896cc4df5f8fa85026"
+    }
+  },
+  "ExtraChecks": [
+    {
+      "Path": "F:\\xlang-validation\\http-20261028\\examples-parse-final.log",
+      "Sha256": "552ba86e7796c5cf79475b2891a5dba252059869c21a6c2edb0fcce6b972db1d"
+    },
+    {
+      "Path": "F:\\xlang-validation\\http-20261028\\examples-tcp-final.log",
+      "Sha256": "6e6a60a04d4b80f19de7d4d613ad8ce7bfeb0fc5c3e57607f92d960be6d6eef2"
+    },
+    {
+      "Path": "F:\\xlang-validation\\http-20261028\\examples-parse-linux-final.log",
+      "Sha256": "552ba86e7796c5cf79475b2891a5dba252059869c21a6c2edb0fcce6b972db1d"
+    },
+    {
+      "Path": "F:\\xlang-validation\\http-20261028\\examples-tcp-linux-final.log",
+      "Sha256": "6e6a60a04d4b80f19de7d4d613ad8ce7bfeb0fc5c3e57607f92d960be6d6eef2"
+    },
+    {
+      "Path": "F:\\xlang-validation\\http-20261028\\ws-core-final.log",
+      "Sha256": "4ecf6e3aa1877da2c264a853272a51df3e1c052ab92d06d4d4ded71287773b6f"
+    }
+  ],
+  "UpstreamFix": "6447bb29b0c822a52ff355f8a9bc9ab067ce3305",
+  "Performance": {
+    "LanguageMedians": {
+      "1": {
+        "HeadMedian": 130263,
+        "BodyMedian": 51120
+      },
+      "2": {
+        "HeadMedian": 135637,
+        "BodyMedian": 50204
+      }
+    },
+    "NativeMedians": {
+      "BorrowedC": 10164,
+      "OwningC": 18525,
+      "Adapter": 17779,
+      "BodyOwningC": 30041,
+      "BodyAdapter": 30249
+    },
+    "Iterations": 20000,
+    "MemoryDebugObserved": true,
+    "Scope": "Same-host sequential microbenchmarks; C baseline/compiler matches resident provider. Owning C and borrowed C are distinct. Full language includes boxing, native field access, checked arithmetic, ownership and cleanup. No stable overall language speedup or network-throughput claim."
+  },
+  "Boundaries": [
+    "Frozen HTTP-only source, excluding unrelated working edits",
+    "Existing workspace release binaries not promoted",
+    "X22 legacy WebSocket declaration island retained; stream ownership migration deferred",
+    "Higher xhttp body/client/server extension work is not completed by these 18 modules",
+    "Normal offline/local-loopback/lifetime/logical-OOM tests only; no security-specialist testing or certification"
+  ]
+}

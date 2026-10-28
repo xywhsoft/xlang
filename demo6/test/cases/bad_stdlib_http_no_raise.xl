@@ -1,0 +1,2 @@
+extern "xl6Http1HeadRequestTextV2" @no_raise @nonblocking func invalid(string input, int maxHead, int maxStart, int maxLine, int maxFields, int size) as Http1Head?
+auto broken = invalid("GET / HTTP/1.1\r\nHost: example.test\r\n\r\n", 65536, 8192, 8192, 100, -1)

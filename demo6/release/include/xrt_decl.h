@@ -31227,6 +31227,15 @@ XRT_API xstrview xrtHttpOwsTrim(xstrview Text);
 
 
 /* 按 RFC 接收方规则读取 token-list，并忽略逗号产生的空元素；Offset 初始为零。 */
+XRT_API xhttpnext xrtHttpListNext(
+	xstrview Value,
+	size_t iOffset,
+	size_t* pNext,
+	xstrview* pElement
+);
+
+
+
 XRT_API xhttpnext xrtHttpTokenNext(
 	xstrview List,
 	size_t* pOffset,
@@ -31439,6 +31448,16 @@ XRT_API size_t xrtHttpFieldCount(
 #if defined(XRT_FEATURE_HTTP_PARAM)
 
 /* 严格读取分号参数；游标和结果可未对齐，错误不推进游标并清空结果。 */
+XRT_API xhttpnext xrtHttpNameValueNext(
+	xstrview Parameters,
+	size_t* pOffset,
+	xhttpparam* pParam,
+	char iSeparator,
+	bool bIgnoreEmpty
+);
+
+
+
 XRT_API xhttpnext xrtHttpParamNext(
 	xstrview Parameters,
 	size_t* pOffset,

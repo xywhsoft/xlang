@@ -4,12 +4,12 @@
 
 ## 契约结论
 
-- XRT 核心公共函数：3445。
-- xruntime 产品公共函数：3910，其中扩展自有 465。
-- 低层能力：3910 个函数全部进入 TCC 符号面，可通过显式 `extern "xrt..."` 使用。
+- XRT 核心公共函数：3447。
+- xruntime 产品公共函数：3912，其中扩展自有 465。
+- 低层能力：3912 个函数全部进入 TCC 符号面，可通过显式 `extern "xrt..."` 使用。
 - 头文件内联辅助函数单独记录于 `headerInlineReferences`，不增加外部符号数量；未声明的新引用仍报错。
 - 显式扩展产品的 42 项 API 引用单列于 `externalProductReferences`，核对真实公共声明、提供方和指定使用方，不增加核心 API／符号或延期数量；引用不代表功能验收。
-- 语言内核或标准库已直接使用：2487 个函数。其余 1423 个保留为低层能力，不视为功能丢失。
+- 语言内核或标准库已直接使用：2580 个函数。其余 1332 个保留为低层能力，不视为功能丢失。
 - 已迁出核心但尚待扩展库适配的旧引用：0，仅包含 xhttp=0、xws=0、xregex=0。
 
 逐 API 详情可执行 `python tools/gen_xrt_xlang_matrix.py --report build/reports/xrt_xlang_api_matrix.json` 生成。
@@ -44,17 +44,17 @@
 | xrt | `include/xrt/future_bridge.h` | 10 | 0 | 10 |
 | xrt | `include/xrt/hash.h` | 9 | 9 | 0 |
 | xrt | `include/xrt/html.h` | 3 | 1 | 2 |
-| xrt | `include/xrt/http.h` | 59 | 0 | 59 |
-| xrt | `include/xrt/http1.h` | 25 | 13 | 12 |
+| xrt | `include/xrt/http.h` | 61 | 47 | 14 |
+| xrt | `include/xrt/http1.h` | 25 | 23 | 2 |
 | xrt | `include/xrt/http1_net.h` | 2 | 0 | 2 |
-| xrt | `include/xrt/http1_tls.h` | 2 | 0 | 2 |
-| xrt | `include/xrt/http_connection.h` | 5 | 0 | 5 |
-| xrt | `include/xrt/http_decode.h` | 10 | 8 | 2 |
-| xrt | `include/xrt/http_encoding.h` | 12 | 0 | 12 |
-| xrt | `include/xrt/http_expect.h` | 8 | 0 | 8 |
-| xrt | `include/xrt/http_te.h` | 10 | 0 | 10 |
-| xrt | `include/xrt/http_trailer.h` | 6 | 0 | 6 |
-| xrt | `include/xrt/http_upgrade.h` | 10 | 0 | 10 |
+| xrt | `include/xrt/http1_tls.h` | 2 | 2 | 0 |
+| xrt | `include/xrt/http_connection.h` | 5 | 1 | 4 |
+| xrt | `include/xrt/http_decode.h` | 10 | 9 | 1 |
+| xrt | `include/xrt/http_encoding.h` | 12 | 12 | 0 |
+| xrt | `include/xrt/http_expect.h` | 8 | 3 | 5 |
+| xrt | `include/xrt/http_te.h` | 10 | 5 | 5 |
+| xrt | `include/xrt/http_trailer.h` | 6 | 6 | 0 |
+| xrt | `include/xrt/http_upgrade.h` | 10 | 5 | 5 |
 | xrt | `include/xrt/io.h` | 46 | 35 | 11 |
 | xrt | `include/xrt/json.h` | 30 | 28 | 2 |
 | xrt | `include/xrt/jsonl.h` | 12 | 11 | 1 |
@@ -65,7 +65,7 @@
 | xrt | `include/xrt/memory.h` | 13 | 5 | 8 |
 | xrt | `include/xrt/memory_debug.h` | 11 | 0 | 11 |
 | xrt | `include/xrt/memory_stats.h` | 4 | 0 | 4 |
-| xrt | `include/xrt/net.h` | 211 | 126 | 85 |
+| xrt | `include/xrt/net.h` | 211 | 127 | 84 |
 | xrt | `include/xrt/net_file.h` | 4 | 0 | 4 |
 | xrt | `include/xrt/net_file_future.h` | 17 | 16 | 1 |
 | xrt | `include/xrt/net_frame.h` | 9 | 7 | 2 |

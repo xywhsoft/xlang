@@ -1,0 +1,67 @@
+func main(...) as int
+    assert http.statusText(200) == "OK"
+    assert http.tokenValid("X-Trace")
+    assert not http.tokenValid("bad name")
+    assert http.tokenEqual("GZip", "gzip")
+    assert http.methodCode("GET") == HttpMethod.get
+    assert not http.methodEqual("GET", "get")
+    assert http.methodSafe("HEAD")
+    assert http.methodIdempotent("PUT")
+    assert not http.responseContentAllowed("HEAD", 200)
+    assert http.trimOws(" \ta b\t ") == "a b"
+    assert http.quality("0.125") == 125
+    assert http.contentLength("18446744073709551615") == uint64(18446744073709551615)
+    assert http.fieldNameEqual("Host", "host")
+    assert http.fieldValueValid(b"a\t\xff")
+    assert not http.fieldValueValid(b"a\0b")
+    auto headers = HttpHeaders(0)
+    headers.add("Set-Cookie", "one=1")
+    headers.add("Set-Cookie", "two=2")
+    headers.add("X-Binary", b"\xff")
+    headers.add("X-Empty", "")
+    assert headers.length == 4
+    assert headers.count("set-cookie") == 2
+    assert headers.find("SET-COOKIE", 1) == 1
+    assert (headers.getBytes("X-Binary") as bytes) == b"\xff"
+    assert (headers.getText("X-Empty") as string) == ""
+    assert headers.getText("missing") == null
+    assert headers.getBytes("missing") == null
+    assert headers.getUniqueBytes("missing") == null
+    int rejected = 0
+    try
+        headers.getUniqueBytes("Set-Cookie")
+    catch e
+        rejected += 1
+    end
+    try
+        headers.getText("X-Binary")
+    catch e
+        rejected += 1
+    end
+    assert rejected == 2
+    auto copy = headers.clone()
+    headers.set("Set-Cookie", "three=3")
+    assert headers.count("Set-Cookie") == 1
+    assert copy.count("Set-Cookie") == 2
+    assert headers.remove("X-Binary") == 1
+    headers.add("Prefix", b"abc", 1)
+    assert (headers.getBytes("Prefix") as bytes) == b"a"
+    headers.set("Prefix", "abc", 99)
+    assert (headers.getText("Prefix") as string) == "abc"
+    auto wire = headers.toBytes()
+    auto parsed = HttpHeaders.parse(wire)
+    assert parsed.length == headers.length
+    assert parsed.nameAt(0) == "X-Empty"
+    auto out = Buffer("prefix:")
+    auto before = out.length
+    assert parsed.writeInto(out) == wire.length
+    assert out.length == before + wire.length
+    auto value = Buffer()
+    parsed.copyValueInto(parsed.find("Prefix"), value)
+    assert value.toBytes() == b"abc"
+    headers.clear()
+    assert headers.length == 0
+    assert copy.length == 4
+    println("HTTP headers V2 passed")
+    return 0
+end

@@ -1,0 +1,12 @@
+// Run: xl run release/examples/http/parse.xl
+auto headers = HttpHeaders()
+headers.add("Host", "example.test")
+headers.add("Content-Length", "3")
+auto wire = Buffer(Http1.requestHead("POST", "/upload", headers))
+wire.append(b"a\0b")
+auto message = Http1Message.request(wire)
+if message == null then throw ValueError "incomplete HTTP message" end
+assert message.head().target == "/upload"
+assert message.body() == b"a\0b"
+println(message.head().method)
+println("HTTP binary message round trip passed")

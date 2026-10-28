@@ -19,6 +19,8 @@
 #include "src/stdlib/xl6_stdlib_fixed_stack.inc"
 #include "src/stdlib/xl6_stdlib_compress.inc"
 #include "src/stdlib/xl6_stdlib_net_backends.inc"
+#include "src/stdlib/xl6_stdlib_http.inc"
+#include "src/stdlib/xl6_stdlib_http_transport.inc"
 
 const char* xl6StdlibFloatClassSource =
     "enum FloatClass as int32\n"
@@ -437,7 +439,8 @@ const char* xl6StdlibSipHasher64ClassEndSource = "end\n";
 #include "src/stdlib/xl6_stdlib_tls_transport.inc"
 #include "src/stdlib/xl6_stdlib_tls_metadata.inc"
 
-const char* xl6StdlibHttp1ClassSource =
+/* X22-only legacy dependency. Default HTTP declarations are resident V2. */
+const char* xl6StdlibWebSocketLegacyHttpSource =
     "extern \"xl6_xrt_http1_request_head\" func __xl_http1_request_head(string method, string target, string fields) as point\n"
     "extern \"xl6_xrt_http1_response_head\" func __xl_http1_response_head(int status, string reason, string fields) as point\n"
     "extern \"xl6_xrt_http1_chunk_head\" func __xl_http1_chunk_head(uint64 size, string extensions) as point\n"
@@ -568,35 +571,6 @@ const char* xl6StdlibHttp1ClassSource =
     "        return __xl_std_runtime_take_cstr(self.trailerValueNative(index))\n"
     "    end\n"
     "end\n";
-
-
-
-const char* xl6StdlibHttpDecoderClassSource =
-    "class HttpDecoder\n"
-    "    native point handle\n"
-    "    extern \"xl6_xrt_http_decoder_create_default\" create()\n"
-    "    extern \"xl6_xrt_http_decoder_create_encoding\" create(string encoding)\n"
-    "    extern \"xl6_xrt_http_decoder_create_limit\" create(string encoding, int outputLimit)\n"
-    "    extern \"xl6_xrt_http_decoder_create\" create(string encoding, int outputLimit, bool allowRaw)\n"
-    "    extern \"xl6_xrt_http_decoder_destroy\" destroy()\n"
-    "    extern \"xl6_xrt_http_decoder_native\" func nativeHandle() as point\n"
-    "    extern \"xl6_xrt_http_decoder_write\" func writeRaw(point data, c_size size, bool isEnd) as bool\n"
-    "    extern \"xl6_xrt_http_decoder_take\" func takeNative() as point\n"
-    "    extern \"xl6_xrt_http_decoder_mode\" get mode() as int\n"
-    "    extern \"xl6_xrt_http_decoder_done\" get done() as bool\n"
-    "    extern \"xl6_xrt_http_decoder_input\" get inputSize() as uint64\n"
-    "    extern \"xl6_xrt_http_decoder_output\" get outputSize() as uint64\n"
-    "    extern \"xl6_xrt_http_decoder_pending\" get pending() as int\n"
-    "\n"
-    "    func write(Buffer input, bool isEnd = false) as bool\n"
-    "        return self.writeRaw(input.data(), c_size(input.len()), isEnd)\n"
-    "    end\n"
-    "\n"
-    "    func take() as Buffer\n"
-    "        return Buffer(point(self.takeNative()))\n"
-    "    end\n"
-    "end\n";
-
 
 
 
@@ -3923,6 +3897,41 @@ const XL6_StdlibConst xl6StdlibConsts[] = {
 };
 
 const XL6_StdlibFunc xl6StdlibFuncs[] = {
+/* BEGIN GENERATED HTTP FUNCTIONS */
+    {"http","statusText","__xl_std_http_statusText",NULL,NULL,0,"string",xl6HttpStatusTextV2Body},
+    {"http","tokenValid","__xl_std_http_tokenValid",NULL,NULL,0,"bool",xl6HttpTokenValidV2Body},
+    {"http","tokenEqual","__xl_std_http_tokenEqual",NULL,NULL,0,"bool",xl6HttpTokenEqualV2Body},
+    {"http","methodCode","__xl_std_http_methodCode",NULL,NULL,0,"HttpMethod",xl6HttpMethodCodeV2Body},
+    {"http","methodEqual","__xl_std_http_methodEqual",NULL,NULL,0,"bool",xl6HttpMethodEqualV2Body},
+    {"http","methodSafe","__xl_std_http_methodSafe",NULL,NULL,0,"bool",xl6HttpMethodSafeV2Body},
+    {"http","methodIdempotent","__xl_std_http_methodIdempotent",NULL,NULL,0,"bool",xl6HttpMethodIdempotentV2Body},
+    {"http","responseContentAllowed","__xl_std_http_responseContentAllowed",NULL,NULL,0,"bool",xl6HttpResponseContentAllowedV2Body},
+    {"http","trimOws","__xl_std_http_trimOws",NULL,NULL,0,"string",xl6HttpTrimOwsV2Body},
+    {"http","quality","__xl_std_http_quality",NULL,NULL,0,"int",xl6HttpQualityV2Body},
+    {"http","contentLength","__xl_std_http_contentLength",NULL,NULL,0,"uint64",xl6HttpContentLengthV2Body},
+    {"http","fieldValueValid","__xl_std_http_fieldValueValid",NULL,NULL,0,"bool",xl6HttpFieldValueValidV2Body},
+    {"http","fieldNameEqual","__xl_std_http_fieldNameEqual",NULL,NULL,0,"bool",xl6HttpFieldNameEqualV2Body},
+    {"http","coding","__xl_std_http_coding",NULL,NULL,0,"HttpCoding",xl6HttpCodingV2Body},
+    {"http","codingName","__xl_std_http_codingName",NULL,NULL,0,"string",xl6HttpCodingNameV2Body},
+    {"http1","targetValid","__xl_std_http1_targetValid",NULL,NULL,0,"bool",xl6Http1TargetValidV2Body},
+    {"http1","requestHead","__xl_std_http1_requestHead",NULL,NULL,0,"bytes",xl6Http1RequestHeadV2Body},
+    {"http1","writeRequestHead","__xl_std_http1_writeRequestHead",NULL,NULL,0,"int",xl6Http1WriteRequestHeadV2Body},
+    {"http1","responseHead","__xl_std_http1_responseHead",NULL,NULL,0,"bytes",xl6Http1ResponseHeadV2Body},
+    {"http1","writeResponseHead","__xl_std_http1_writeResponseHead",NULL,NULL,0,"int",xl6Http1WriteResponseHeadV2Body},
+    {"http1","chunkLine","__xl_std_http1_chunkLine",NULL,NULL,0,"bytes",xl6Http1ChunkLineV2Body},
+    {"http1","writeChunkLine","__xl_std_http1_writeChunkLine",NULL,NULL,0,"int",xl6Http1WriteChunkLineV2Body},
+    {"http1","chunk","__xl_std_http1_chunk",NULL,NULL,0,"bytes",xl6Http1ChunkBytesV2Body},
+    {"http1","writeChunk","__xl_std_http1_writeChunk",NULL,NULL,0,"int",xl6Http1WriteChunkBytesV2Body},
+    {"http1","chunk","__xl_std_http1_chunk",NULL,NULL,0,"bytes",xl6Http1ChunkSpanV2Body},
+    {"http1","writeChunk","__xl_std_http1_writeChunk",NULL,NULL,0,"int",xl6Http1WriteChunkSpanV2Body},
+    {"http1","chunk","__xl_std_http1_chunk",NULL,NULL,0,"bytes",xl6Http1ChunkBufferV2Body},
+    {"http1","writeChunk","__xl_std_http1_writeChunk",NULL,NULL,0,"int",xl6Http1WriteChunkBufferV2Body},
+    {"http1","chunkEnd","__xl_std_http1_chunkEnd",NULL,NULL,0,"bytes",xl6Http1ChunkEndV2Body},
+    {"http1","writeChunkEnd","__xl_std_http1_writeChunkEnd",NULL,NULL,0,"int",xl6Http1WriteChunkEndV2Body},
+    {"http1","deadline","__xl_std_http1_deadline",NULL,NULL,0,"uint64",xl6Http1DeadlineV2Body},
+    {"http","fieldValueValid","__xl_std_http_fieldValueValid",NULL,NULL,0,"bool",xl6HttpFieldValueValidTextV2Body},
+    {"http","fieldValueValid","__xl_std_http_fieldValueValid",NULL,NULL,0,"bool",xl6HttpFieldValueValidSpanV2Body},
+/* END GENERATED HTTP FUNCTIONS */
     {"net","backendCompiled","__xl_std_net_backend_compiled",NULL,NULL,0,"bool",xl6StdNetBackendCompiledSource},
     {"net","backendCapabilities","__xl_std_net_backend_capabilities",NULL,NULL,0,"int",xl6StdNetBackendCapabilitiesSource},
     {"net","backendName","__xl_std_net_backend_name",NULL,NULL,0,"string",xl6StdNetBackendNameSource},

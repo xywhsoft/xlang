@@ -1,0 +1,59 @@
+func main(...) as int
+    auto headers = HttpHeaders.parse("Expect: 100-continue\r\nUpgrade: websocket, h2c/1\r\nTE: gzip;q=0.5, trailers\r\nConnection: keep-alive, Upgrade\r\nTrailer: Digest, X-Count\r\nAccept-Encoding: gzip;q=0.5, deflate;q=1, identity;q=0\r\nContent-Encoding: gzip, deflate\r\n")
+    auto expectations = HttpExpectations.fromHeaders(headers)
+    assert expectations.length == 1
+    assert expectations.result == HttpExpectationResult.continue100
+    assert expectations.nameAt(0) == "100-continue"
+    assert HttpExpectations.parse("extension=\"a\\\"b\"; p=one").result == HttpExpectationResult.unsupported
+    auto extension = HttpExpectations.parse("extension=\"a\\\"b\"; p=one")
+    assert (extension.valueAt(0) as bytes) == b"a\"b"
+    assert (extension.parametersAt(0).valueAt(0) as bytes) == b"one"
+    auto upgrades = HttpUpgrades.fromHeaders(headers)
+    assert upgrades.length == 2
+    assert upgrades.protocolAt(0) == "websocket"
+    assert upgrades.versionAt(1) == "1"
+    assert upgrades.toString() == "websocket, h2c/1"
+    auto upgradeWire = Buffer()
+    assert upgrades.writeInto(upgradeWire) == 16
+    assert upgradeWire.text() == upgrades.toString()
+    auto te = HttpTe.fromHeaders(headers)
+    assert te.length == 2
+    assert te.fieldCount == 1
+    assert te.transferCodingCount == 1
+    assert te.acceptsTrailers
+    assert te.codingAt(0) == "gzip"
+    assert te.qualityAt(0) == 500
+    assert te.quality("gzip") == 500
+    assert te.quality("br") == 0
+    assert HttpTe.parse("gzip; level=one; q=0.5").parametersAt(0).length == 1
+    auto connection = HttpConnection.fromHeaders(headers)
+    assert connection.status == HttpConnectionStatus.persist
+    assert connection.length == 2
+    assert connection.contains("upgrade")
+    assert HttpTokens.fromHeaders(headers, "Connection").length == 2
+    assert HttpTrailers.nameValid("Digest")
+    assert HttpTrailers.declaredCount(headers) == 2
+    assert HttpTrailers.declared(headers, "digest")
+    auto trailers = HttpHeaders.parse("Digest: value\r\nX-Count: 1\r\n")
+    assert HttpTrailers.sectionValid(trailers)
+    assert HttpTrailers.names(trailers) == "Digest, X-Count"
+    auto accept = HttpAcceptEncoding.fromHeaders(headers)
+    assert accept.valid
+    assert accept.quality(HttpCoding.gzip) == 500
+    assert accept.select(HttpCoding.gzip | HttpCoding.deflate) == HttpCoding.deflate
+    auto absent = HttpAcceptEncoding()
+    assert absent.quality(HttpCoding.gzip) == 1000
+    absent.add("")
+    assert absent.quality(HttpCoding.gzip) == 0
+    absent.reset()
+    assert absent.quality(HttpCoding.gzip) == 1000
+    auto chain = HttpContentEncodings.fromHeaders(headers)
+    assert chain.length == 2 and chain.decoderCount == 2
+    assert chain.nameAt(0) == "gzip"
+    assert chain.codingAt(1) == HttpCoding.deflate
+    assert chain.toString() == "gzip, deflate"
+    assert http.coding("x-gzip") == HttpCoding.gzip
+    assert http.codingName(HttpCoding.deflate) == "deflate"
+    println("HTTP field semantics V2 passed")
+    return 0
+end

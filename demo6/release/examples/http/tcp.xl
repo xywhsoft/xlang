@@ -1,0 +1,51 @@
+func main(...) as int
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
+    auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+    auto sender = TcpStream(engine, listener.localAddress())
+    auto receiver = listener.accept(5000)
+    assert sender.wait(TcpWait.open, 5000) == NetStatus.ok
+    auto headers = HttpHeaders.parse("Host: example.test\r\nTransfer-Encoding: chunked\r\n")
+    auto wire = Buffer(Http1.requestHead("POST", "/upload", headers))
+    wire.append(Http1.chunk(b"a\0b"))
+    wire.append(Http1.chunkEnd(HttpHeaders.parse("Digest: ok\r\n")))
+    wire.append(Http1.requestHead("GET", "/next", HttpHeaders.parse("Host: example.test\r\n")))
+    wire.append("NEW")
+    assert sender.send(wire) == NetStatus.ok
+    auto session = Http1TcpTransport(receiver)
+    auto request = session.readRequestHead(5000)
+    if request == null then throw ValueError "missing HTTP request" end
+    assert request.target == "/upload"
+    assert session.state == Http1TransportState.body
+    bool blocked = false
+    try
+        auto invalid = session.readRequestHead(10)
+    catch RuntimeError
+        blocked = true
+    end
+    assert blocked and session.state == Http1TransportState.body
+    auto output = Buffer()
+    assert session.readBodyAllInto(output, 5000) == 3
+    assert output.toBytes() == b"a\0b"
+    assert session.state == Http1TransportState.head
+    assert (session.trailers().getText("Digest") as string) == "ok"
+    auto next = session.readRequestHead(5000)
+    if next == null then throw ValueError "missing pipelined request" end
+    assert next.target == "/next"
+    session.discardBody(5000)
+    auto handoff = session.detach()
+    assert session.state == Http1TransportState.detached
+    auto remaining = Buffer()
+    handoff.buffered.readInto(remaining)
+    while remaining.length < 3
+        remaining.append(handoff.stream.recvOwned(3 - remaining.length, 5000).toBytes())
+    end
+    assert remaining.toBytes() == b"NEW"
+    receiver.close()
+    sender.close()
+    listener.close()
+    engine.close()
+    assert engine.wait(5000)
+    println("HTTP/1 TCP: framing, pipeline, state and buffered handoff passed")
+    return 0
+end

@@ -1,0 +1,4 @@
+auto head = Http1Head.request("GET / HTTP/1.1\r\nHost: example.test\r\n\r\n")
+if head != null then
+    auto unsafe = head.nativeHandle()
+end

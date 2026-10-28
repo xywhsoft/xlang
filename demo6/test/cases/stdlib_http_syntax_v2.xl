@@ -1,0 +1,61 @@
+func main(...) as int
+    auto parameters = HttpParameters.parse("charset=utf-8; filename=\"a\\\"b.txt\"; bare")
+    assert parameters.length == 3
+    assert parameters.nameAt(0) == "charset"
+    assert (parameters.valueAt(0) as bytes) == b"utf-8"
+    assert parameters.tokenValidAt(0)
+    assert parameters.tokenEqualAt(0, "UTF-8")
+    assert (parameters.valueAt(1) as bytes) == b"a\"b.txt"
+    assert parameters.find("FILENAME") == 1
+    assert parameters.find("missing") == -1
+    auto decoded = Buffer()
+    assert parameters.copyValueInto(1, decoded) == 7
+    assert decoded.toBytes() == b"a\"b.txt"
+    assert HttpParameters.quotedValid("\"a\\\"b\"")
+    assert HttpParameters.quote("a\"b") == "\"a\\\"b\""
+    assert HttpParameters.unquote("\"a\\\"b\"") == b"a\"b"
+    assert HttpParameters.build("charset", "utf-8") == "charset=utf-8"
+    assert HttpParameters.directives("max-age=60, public, ext=\"a,b\"").length == 3
+    assert HttpParameters.nameValues("a=1;b=2", 59).length == 2
+    assert HttpParameters.nameValues("a=1,b=2", 44).length == 2
+    auto tokens = HttpTokens.parse(" gzip, , deflate , identity ")
+    assert tokens.length == 3
+    assert tokens.contains("GZIP")
+    assert tokens.at(1) == "deflate"
+    assert tokens.toString() == "gzip, deflate, identity"
+    auto weighted = HttpWeightedTokens.parse("gzip;q=0.5, identity")
+    assert weighted.length == 2
+    assert weighted.at(0) == "gzip"
+    assert weighted.qualityAt(0) == 500
+    assert weighted.qualityAt(1) == 1000
+    auto list = HttpList.parse("a=\"one,two\", three")
+    assert list.length == 2
+    assert list.at(0) == b"a=\"one,two\""
+    assert list.textAt(1) == "three"
+    auto host = HttpAuthority.parse("[2001:db8::1]:8443")
+    assert host.host == "2001:db8::1"
+    assert host.hasPort and host.hasPortValue
+    assert host.port() == 8443
+    assert host.portText == "8443"
+    assert HttpAuthority.hostValid("example.test")
+    assert HttpAuthority.ipv4Valid("127.0.0.1")
+    assert HttpAuthority.ipv6Valid("::1")
+    assert HttpAuthority.hostEqual("EXAMPLE.test", "example.TEST")
+    auto noPort = HttpAuthority.parse("example.test")
+    assert not noPort.hasPort
+    assert noPort.port(443) == 443
+    auto largePort = HttpAuthority.parse("example.test:999999")
+    assert largePort.hasPort and not largePort.hasPortValue
+    auto target = HttpTarget.parse("GET", "https://example.test:443/a?b=1")
+    assert target.form == HttpTargetForm.absolute
+    assert target.scheme == "https"
+    assert target.path == "/a"
+    assert target.query == "b=1"
+    assert target.authority().port() == 443
+    auto origin = HttpTarget.parse("GET", "/path?q")
+    assert origin.authority("example.test:80").port() == 80
+    assert HttpTarget.parse("CONNECT", "example.test:443").form == HttpTargetForm.authority
+    assert HttpTarget.parse("OPTIONS", "*").form == HttpTargetForm.asterisk
+    println("HTTP syntax V2 passed")
+    return 0
+end

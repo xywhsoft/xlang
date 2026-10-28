@@ -6,6 +6,8 @@
 
 ## 当前权威设计
 
+- [HTTP 核心标准库](HTTP标准库实施与验收.md)：18 模块的 OOP、驻留 ABI、TCP/TLS、生命周期、普通产品与性能边界。
+
 - [Embedded Compiler Delivery Closure](embedded-package-delivery-2026-10-28.md): the five requested delivery items, current verification and remaining work.
 - [Embedded Package Example](../release/examples/embedded_package/README.md): source-free host/script deployment.
 - [Extension Blocker Reproductions](../dev/extlib_blockers/README.md): isolated current-source blockers; not completed product features.

@@ -1,0 +1,131 @@
+// Ordinary language orchestration over the exact resident protocol calls.
+// The generator substitutes concrete TCP/TLS calls and sync/await expressions;
+// it never generates a protocol parser, a dispatcher or a helper thread.
+class @NAME@Handoff
+    private @STREAM@ connection
+    private NetBuffer pending
+    private bool ended
+    create(@STREAM@ stream, NetBuffer buffered, bool endOfStream)
+        self.connection = stream
+        self.pending = buffered
+        self.ended = endOfStream
+    end
+    get stream() as @STREAM@
+        return self.connection
+    end
+    get buffered() as NetBuffer
+        return self.pending
+    end
+    get endOfStream() as bool
+        return self.ended
+    end
+end
+
+class @NAME@
+    private @STREAM@ connection
+    private NetBuffer pending
+    private AtomicInt32 phase
+    private Http1BodyReader? activeBody = null
+    private HttpHeaders? finalTrailers = null
+    private bool ended = false
+    private bool hasMessage = false
+    private int headLimit = 65536
+    private int startLimit = 8192
+    private int lineLimit = 8192
+    private int fieldLimit = 100
+    private int bodyLimit = 16777216
+    private int chunkLimit = 8192
+    private int trailerLimit = 16384
+    private int trailerLineLimit = 8192
+    private int trailerFieldLimit = 32
+    private int receiveSize = 65536
+    private int bufferLimit = 1048576
+
+    create(@STREAM@ stream, Http1Limits? limits = null)
+        self.connection = stream
+        if limits != null then
+            self.headLimit = limits.maxHead
+            self.startLimit = limits.maxStartLine
+            self.lineLimit = limits.maxFieldLine
+            self.fieldLimit = limits.maxFields
+            self.bodyLimit = limits.maxBody
+            self.chunkLimit = limits.maxChunkLine
+            self.trailerLimit = limits.maxTrailer
+            self.trailerLineLimit = limits.maxTrailerLine
+            self.trailerFieldLimit = limits.maxTrailers
+            self.receiveSize = limits.readChunk
+            self.bufferLimit = limits.maxBuffered
+        end
+        self.pending = NetBuffer(self.bufferLimit)
+        self.phase = AtomicInt32(0)
+    end
+
+    private func enter(bool bodyOperation = false, bool handoff = false) as int
+        int old = self.phase.load()
+        if old >= 16 then throw RuntimeError "HTTP/1 reader is already active" end
+        if handoff then
+            if old != 0 and old != 2 then throw RuntimeError "HTTP/1 handoff requires a message boundary or upgrade" end
+        elseif bodyOperation then
+            if old != 0 and old != 1 then throw RuntimeError "HTTP/1 body is unavailable" end
+        elseif old != 0 then
+            throw RuntimeError "finish the HTTP/1 body before reading another head"
+        end
+        auto entered, observed = self.phase.compareExchange(old, old + 16)
+        if not entered then throw RuntimeError "concurrent HTTP/1 reader" end
+        return old
+    end
+
+    get state() as Http1TransportState
+        int value = self.phase.load()
+        if value >= 16 then value = value - 16 end
+        if value == 0 then return Http1TransportState.head end
+        if value == 1 then return Http1TransportState.body end
+        if value == 2 then return Http1TransportState.upgraded end
+        if value == 3 then return Http1TransportState.detached end
+        if value == 4 then return Http1TransportState.closed end
+        return Http1TransportState.failed
+    end
+    get busy() as bool
+        return self.phase.load() >= 16
+    end
+
+    func detach() as @NAME@Handoff
+        int old = self.enter(false, true)
+        int next = old
+        try
+            auto result = @NAME@Handoff(self.connection, self.pending, self.ended)
+            next = 3
+            return result
+        finally
+            self.phase.store(next)
+        end
+    end
+
+    func close()
+        int old = self.phase.load()
+        if old == 3 then throw RuntimeError "HTTP/1 transport was detached" end
+        if old == 4 then return end
+        if old >= 16 then throw RuntimeError "cancel the active HTTP/1 read before closing" end
+        auto entered, observed = self.phase.compareExchange(old, old + 16)
+        if not entered then throw RuntimeError "concurrent HTTP/1 reader" end
+        try
+            self.connection.close()
+        finally
+            self.phase.store(4)
+        end
+    end
+
+    func trailers() as HttpHeaders
+        int old = self.enter(true)
+        try
+            if old != 0 or not self.hasMessage then throw RuntimeError "HTTP/1 body is not complete" end
+            auto fields = self.finalTrailers
+            if fields != null then return fields.clone() end
+            return HttpHeaders(0)
+        finally
+            self.phase.store(old)
+        end
+    end
+
+@IO_METHODS@
+end
