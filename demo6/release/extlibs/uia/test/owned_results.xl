@@ -1,0 +1,67 @@
+import uia
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func unexpectedEvent(string payload) as int
+    throw ValueError "empty queue must not invoke the callback"
+end
+
+func main(...) as int
+    auto window = uia.test_window()
+    assert window.valid()
+    auto edit = uia.from_hwnd(window.edit_hwnd())
+    auto events = uia.events()
+    assert edit.valid() and events.valid()
+    assert edit.set_value("owned text")
+    func(string) as int callback = unexpectedEvent
+    for operation in range(7)
+        string expected = "{}"
+        if operation == 0 then expected = edit.name() end
+        if operation == 1 then expected = edit.automation_id() end
+        if operation == 2 then expected = edit.class_name() end
+        if operation == 3 then expected = edit.value() end
+        if operation == 4 then expected = edit.text() end
+        if operation == 5 then assert events.poll_json(0) == expected end
+        if operation == 6 then assert events.poll_callback(callback, 0) == 0 end
+        // TextPattern 缺失诊断 + Value 分配需两次，其余固定路径仅一次。
+        int needed = operation == 4 ? 2 : 1
+        for budget in range(needed + 1)
+            string result = ""
+            int callbackResult = -1
+            bool memoryCaught = false
+            bool triggered = false
+            assert failAfter(uint64(budget))
+            try
+                if operation == 0 then result = edit.name() end
+                if operation == 1 then result = edit.automation_id() end
+                if operation == 2 then result = edit.class_name() end
+                if operation == 3 then result = edit.value() end
+                if operation == 4 then result = edit.text() end
+                if operation == 5 then result = events.poll_json(0) end
+                if operation == 6 then callbackResult = events.poll_callback(callback, 0) end
+            catch MemoryError error
+                memoryCaught = true
+            finally
+                triggered = failTriggered()
+                failClear()
+            end
+            if budget < needed then
+                assert triggered and memoryCaught
+            else
+                assert not triggered and not memoryCaught, "UIA copied the adopted result or empty marker"
+                if operation == 6 then assert callbackResult == 0 else assert result == expected end
+            end
+        end
+    end
+    assert edit.set_value("你好")
+    string held = edit.text()
+    assert edit.set_value("changed")
+    assert held == "你好" and edit.text() == "changed"
+    assert events.poll_json(0) == "{}" and uia.last_error() == ""
+    assert events.release() and edit.release() and window.release()
+    assert uia.shutdown()
+    println("uia owned results and empty poll budgets: PASS")
+    return 0
+end

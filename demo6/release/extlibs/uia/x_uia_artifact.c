@@ -381,6 +381,17 @@ static void x_uia_set_error(const char* text)
 	}
 }
 
+static void x_uia_set_memory_error(const char* text)
+{
+	LONG owner = InterlockedCompareExchange(&g_x_uia_owner_thread, 0, 0);
+	if ( owner != 0 && (DWORD)owner != GetCurrentThreadId() ) {
+		x_uia_set_error(text);
+		return;
+	}
+	x_uia_copy_text(g_x_uia_error, sizeof(g_x_uia_error), text);
+	xrtSetErrorInfo(XERR_MEMORY, "xlang.extlib.uia", 1, g_x_uia_error);
+}
+
 static void x_uia_set_hresult_error(const char* op, HRESULT hr)
 {
 	if ( InterlockedCompareExchange(&g_x_uia_owner_thread, 0, 0) != (LONG)GetCurrentThreadId() ) {
@@ -388,7 +399,14 @@ static void x_uia_set_hresult_error(const char* op, HRESULT hr)
 		return;
 	}
 	snprintf(g_x_uia_error, sizeof(g_x_uia_error), "%s: HRESULT 0x%08lx", op, (unsigned long)hr);
-	xrtSetErrorInfo(XERR_VALUE, "xlang.extlib.uia", (int)hr, g_x_uia_error);
+	xrtSetErrorInfo(hr == E_OUTOFMEMORY || hr == HRESULT_FROM_WIN32(ERROR_NOT_ENOUGH_MEMORY) ?
+		XERR_MEMORY : XERR_VALUE, "xlang.extlib.uia", (int)hr, g_x_uia_error);
+}
+
+static bool x_uia_has_memory_error(void)
+{
+	const xerror* error = xrtGetError();
+	return error != NULL && xrtErrorKind(error) == XERR_MEMORY;
 }
 
 static void x_uia_json_init(XUiaJsonBuilder* json)
@@ -570,7 +588,7 @@ static XUiaElement* x_uia_wrap_element(IUIAutomationElement* element)
 	wrapped = (XUiaElement*)calloc(1u, sizeof(XUiaElement));
 	if ( wrapped == NULL ) {
 		element->lpVtbl->Release(element);
-		x_uia_set_error("element: out of memory");
+		x_uia_set_memory_error("element: out of memory");
 		return NULL;
 	}
 	wrapped->magic = X_UIA_MAGIC_ELEMENT;
@@ -589,7 +607,7 @@ static XUiaCondition* x_uia_wrap_condition(IUIAutomationCondition* condition)
 	wrapped = (XUiaCondition*)calloc(1u, sizeof(XUiaCondition));
 	if ( wrapped == NULL ) {
 		condition->lpVtbl->Release(condition);
-		x_uia_set_error("condition: out of memory");
+		x_uia_set_memory_error("condition: out of memory");
 		return NULL;
 	}
 	wrapped->magic = X_UIA_MAGIC_CONDITION;
@@ -650,7 +668,7 @@ static XUiaCondition* x_uia_condition_create(int kind, const char* text_value, i
 	} else {
 		text = x_uia_utf8_to_bstr(text_value);
 		if ( text == NULL ) {
-			x_uia_set_error("condition: UTF-8 conversion failed");
+			if ( !x_uia_has_memory_error() ) x_uia_set_error("condition: UTF-8 conversion failed");
 			return NULL;
 		}
 		value.vt = VT_BSTR;
@@ -702,6 +720,13 @@ static BSTR x_uia_utf8_to_bstr(const char* text)
 {
 	int wide_len;
 	BSTR out;
+	LONG owner = InterlockedCompareExchange(&g_x_uia_owner_thread, 0, 0);
+	if ( owner != 0 && (DWORD)owner != GetCurrentThreadId() ) {
+		x_uia_set_error("string conversion: wrong thread");
+		return NULL;
+	}
+	/* 只保留本次转换的 OOM，不能把旧故障带给一次新的非法 UTF-8 输入。 */
+	xrtClearError();
 
 	if ( text == NULL ) {
 		text = "";
@@ -712,6 +737,7 @@ static BSTR x_uia_utf8_to_bstr(const char* text)
 	}
 	out = SysAllocStringLen(NULL, (UINT)(wide_len - 1));
 	if ( out == NULL ) {
+		x_uia_set_memory_error("string conversion: out of memory");
 		return NULL;
 	}
 	if ( MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, text, -1, out, wide_len) != wide_len ) {
@@ -1054,7 +1080,7 @@ XL_EXPORT void* x_uia_launch(const char* command)
 
 	command_line = x_uia_utf8_to_bstr(command);
 	if ( command_line == NULL ) {
-		x_uia_set_error("launch: string conversion failed");
+		if ( !x_uia_has_memory_error() ) x_uia_set_error("launch: string conversion failed");
 		return NULL;
 	}
 	memset(&si, 0, sizeof(si));
@@ -1071,7 +1097,7 @@ XL_EXPORT void* x_uia_launch(const char* command)
 		TerminateProcess(pi.hProcess, 1u);
 		CloseHandle(pi.hThread);
 		CloseHandle(pi.hProcess);
-		x_uia_set_error("launch: out of memory");
+		x_uia_set_memory_error("launch: out of memory");
 		return NULL;
 	}
 	process->magic = X_UIA_MAGIC_PROCESS;
@@ -1134,7 +1160,7 @@ XL_EXPORT void* x_uia_test_window_create(void)
 {
 	XUiaTestWindow* win = (XUiaTestWindow*)calloc(1u, sizeof(XUiaTestWindow));
 	if ( win == NULL ) {
-		x_uia_set_error("test_window: out of memory");
+		x_uia_set_memory_error("test_window: out of memory");
 		return NULL;
 	}
 	win->magic = X_UIA_MAGIC_TEST_WINDOW;
@@ -1292,7 +1318,7 @@ XL_EXPORT void* x_uia_events_create(void)
 	}
 	queue = (XUiaEvents*)calloc(1u, sizeof(XUiaEvents));
 	if ( queue == NULL ) {
-		x_uia_set_error("events_create: out of memory");
+		x_uia_set_memory_error("events_create: out of memory");
 		return NULL;
 	}
 	queue->signal = CreateEventA(NULL, TRUE, FALSE, NULL);
@@ -1333,7 +1359,7 @@ XL_EXPORT int x_uia_events_subscribe_focus_changed(void* handle)
 	}
 	handler = (XUiaFocusHandler*)calloc(1u, sizeof(XUiaFocusHandler));
 	if ( handler == NULL ) {
-		x_uia_set_error("events.subscribe_focus_changed: out of memory");
+		x_uia_set_memory_error("events.subscribe_focus_changed: out of memory");
 		return 0;
 	}
 	handler->lpVtbl = (IUIAutomationFocusChangedEventHandlerVtbl*)&g_x_uia_focus_handler_vtbl;
@@ -1377,7 +1403,7 @@ XL_EXPORT int x_uia_events_subscribe_property_changed(void* handle, void* elemen
 	}
 	handler = (XUiaPropertyHandler*)calloc(1u, sizeof(XUiaPropertyHandler));
 	if ( handler == NULL ) {
-		x_uia_set_error("events.subscribe_property_changed: out of memory");
+		x_uia_set_memory_error("events.subscribe_property_changed: out of memory");
 		return 0;
 	}
 	handler->lpVtbl = (IUIAutomationPropertyChangedEventHandlerVtbl*)&g_x_uia_property_handler_vtbl;
@@ -2891,7 +2917,7 @@ XL_EXPORT int x_uia_element_set_value(void* handle, const char* value)
 	bstr = x_uia_utf8_to_bstr(value);
 	if ( bstr == NULL ) {
 		pattern->lpVtbl->Release(pattern);
-		x_uia_set_error("set_value: string conversion failed");
+		if ( !x_uia_has_memory_error() ) x_uia_set_error("set_value: string conversion failed");
 		return 0;
 	}
 	hr = pattern->lpVtbl->SetValue(pattern, bstr);
@@ -2915,6 +2941,7 @@ XL_EXPORT const char* x_uia_element_text(void* handle)
 	const char* text;
 	const char* value;
 
+	xrtClearError();
 	pattern = (IUIAutomationTextPattern*)x_uia_get_pattern(wrapped, UIA_TextPatternId, &X_UIA_IID_IUIAutomationTextPattern, "text");
 	if ( pattern != NULL ) {
 		hr = pattern->lpVtbl->get_DocumentRange(pattern, &range);
@@ -2938,7 +2965,10 @@ XL_EXPORT const char* x_uia_element_text(void* handle)
 		}
 	}
 
+	/* 协议不支持时可以回退，当前操作的内存失败不能被下一次成功读取清掉。 */
+	if ( x_uia_has_memory_error() ) { return ""; }
 	value = x_uia_element_value(handle);
+	if ( x_uia_has_memory_error() ) { return ""; }
 	if ( value[0] != '\0' ) {
 		return value;
 	}

@@ -18,9 +18,7 @@ assert window.focus_button() == true, "uia focus_button failed"
 
 auto desktopElement = uia.desktop()
 assert desktopElement.valid() == true, "uia desktop failed"
-assert string.len(desktopElement.snapshot_json(1, 8)) > 0, "uia desktop snapshot failed"
-auto desktopChildren = desktopElement.children()
-assert desktopChildren.length >= 0, "uia desktop children failed"
+// 自动范例只验证桌面根句柄，不枚举用户正在使用的窗口或读取其内容。
 
 auto root = uia.from_hwnd(window.hwnd())
 assert root.valid() == true, "uia from_hwnd window failed"
@@ -80,15 +78,6 @@ assert parent.valid() == true, "uia parent failed"
 auto rootChildren = root.children()
 assert rootChildren.length >= 0, "uia element children failed"
 
-auto focusElement = uia.focused()
-assert focusElement.valid() == true, "uia focused failed"
-assert string.len(uia.focused_locator()) > 0, "uia focused_locator failed"
-
-auto pointElement = uia.from_point(1, 1)
-if pointElement.valid() == true then
-	assert string.len(pointElement.name()) >= 0, "uia from_point name failed"
-end
-
 point emptyHandle
 auto emptyElement = uia.element(emptyHandle)
 assert emptyElement.valid() == false, "uia element(null) should be invalid"
@@ -101,19 +90,12 @@ assert string.len(eventQueue.poll_json(1)) > 0, "uia poll_json failed"
 
 assert eventQueue.release() == true, "uia events release failed"
 assert emptyElement.release() == false, "uia empty element release should fail"
-for item in desktopChildren
-	item.release()
-end
 for item in foundEdits
 	item.release()
 end
 for item in rootChildren
 	item.release()
 end
-if pointElement.valid() == true then
-	assert pointElement.release() == true, "uia point element release failed"
-end
-assert focusElement.release() == true, "uia focused release failed"
 assert parent.release() == true, "uia parent release failed"
 assert foundEditScoped.release() == true, "uia found scoped release failed"
 assert foundEdit.release() == true, "uia found release failed"
