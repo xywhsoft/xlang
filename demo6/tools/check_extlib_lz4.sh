@@ -11,6 +11,7 @@ pkg=release/extlibs/lz4
 input_paths() {
     find "$pkg" -type f -print0
     printf '%s\0' lib/xrt/xrt.h lib/xruntime/xruntime.h test/support/extlib_codec_runtime.c \
+        test/support/extlib_codec_file_rollback.h \
         tools/check_extlib_lz4.sh tools/check_extlib_lz4_interop.py release/xl \
         release/libxl.so release/libxlc.so release/include/xrt_decl.h \
         release/include/xruntime_decl.h release/include/xl_extlib_abi.h \
