@@ -3,6 +3,7 @@
 #define XL6_WS_ABI_H
 #include "xl6_native_class_abi.h"
 #include "xl6_execution_language.h"
+#define XL6_WS_DEFAULT_OUTPUT_LIMIT UINT64_C(67108864)
 XL6_TEXT_API void* xl6WsFrameConfigCreateV2(uint64_t,int64_t,int64_t,int64_t);
 XL6_TEXT_API void xl6WsFrameConfigDestroyV2(void*);
 XL6_TEXT_API uint64_t xl6WsFrameConfigMaxPayloadV2(void*);

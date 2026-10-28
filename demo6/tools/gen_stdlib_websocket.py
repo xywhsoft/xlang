@@ -6,6 +6,7 @@ from pathlib import Path
 import argparse, json
 
 ROOT = Path(__file__).resolve().parents[1]
+OUTPUT_LIMIT = 64 * 1024 * 1024
 CLASSES, CALLS = {}, []
 STATIC_CLASSES = {'WsHandshake'}
 ENUMS = {
@@ -121,7 +122,7 @@ cls('WsDeflateDirection','WS_DEFLATE');destroy('WsDeflateDirection');get('WsDefl
 method('WsDeflateResponse','direction','WsDeflateDirection',arg('WsRole','role'),arg('bool','sending'),pure=True)
 for stem,comp in [('Inflater','WS_INFLATER'),('Deflater','WS_DEFLATER')]:
  cfg='Ws'+stem+'Config';c='Ws'+stem;cls(cfg,comp)
- args=[arg('uint64','outputLimit','uint64(67108864)'),arg('int','windowBits','15'),arg('bool','noContextTakeover','false'),arg('bool','retain','false')]
+ args=[arg('uint64','outputLimit',f'uint64({OUTPUT_LIMIT})'),arg('int','windowBits','15'),arg('bool','noContextTakeover','false'),arg('bool','retain','false')]
  if stem=='Deflater':args += [arg('int','level','6'),arg('WsDeflateStrategy','strategy','WsDeflateStrategy.default')]
  method(cfg,'create','void',*args,kind='create');destroy(cfg)
  method(cfg,'withDirection',cfg,arg('WsDeflateDirection','direction'),pure=True)
@@ -207,7 +208,7 @@ def declaration(row):
  signature=row['kind']+'('+args+')' if row['kind'] in ('create','destroy') else row['kind']+' '+row['name']+'('+args+')'+(' as '+row['result'] if row['result']!='void' else '')
  return '    '+('private ' if row['private'] else '')+('static ' if row['static'] else '')+'extern "'+row['symbol']+'" '+effects+signature+'\n'
 def outputs():
- files={};header=['/* Generated exact resident WebSocket ABI. */\n#ifndef XL6_WS_ABI_H\n#define XL6_WS_ABI_H\n#include "xl6_native_class_abi.h"\n#include "xl6_execution_language.h"\n'];symbols=[];contracts=[];enumcontracts=[];source=[];upgrade=[];stream=[]
+ files={};header=['/* Generated exact resident WebSocket ABI. */\n#ifndef XL6_WS_ABI_H\n#define XL6_WS_ABI_H\n#include "xl6_native_class_abi.h"\n#include "xl6_execution_language.h"\n',f'#define XL6_WS_DEFAULT_OUTPUT_LIMIT UINT64_C({OUTPUT_LIMIT})\n'];symbols=[];contracts=[];enumcontracts=[];source=[];upgrade=[];stream=[]
  for n,items in ENUMS.items():
   source.append('enum '+n+' as int\n'+''.join('    '+k+' = '+str(v)+'\n' for k,v in items)+'end\n')
   enumcontracts.append('static const XL6_IrNumericEnumMemberContract xl6Ir'+n+'Members[]={'+','.join('{"'+k+'",'+str(v)+',0}' for k,v in items)+'};\nstatic const XL6_IrNumericEnumContract xl6Ir'+n+'Contract={"'+n+'",XL6_IR_C_ABI_I64,XL6_IR_INTEGER_TARGET_SIGNED_64,xl6Ir'+n+'Members,'+str(len(items))+'};\n')

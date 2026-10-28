@@ -142,7 +142,10 @@ def main():
    minimal={'frame':('WEBSOCKET_FRAME',{'WEBSOCKET_CLOSE','WEBSOCKET_HANDSHAKE','WEBSOCKET_KEYGEN'}),
     'close':('WEBSOCKET_CLOSE',{'WEBSOCKET_FRAME','WEBSOCKET_HANDSHAKE','WEBSOCKET_KEYGEN'}),
     'handshake':('WEBSOCKET_HANDSHAKE',{'WEBSOCKET_FRAME','WEBSOCKET_CLOSE','WEBSOCKET_KEYGEN','RANDOM_SECURE'}),
-    'keygen':('WEBSOCKET_KEYGEN',{'WEBSOCKET_FRAME','WEBSOCKET_CLOSE','WEBSOCKET_HANDSHAKE'})}
+    # XRT keygen uses the common handshake error helpers, so its native
+    # module deliberately brings HANDSHAKE. Deterministic accept remains
+    # independent of keygen/RNG; neither direction needs network or codecs.
+    'keygen':('WEBSOCKET_KEYGEN',{'WEBSOCKET_FRAME','WEBSOCKET_CLOSE'})}
    for kind,(required,forbidden) in minimal.items():
     n='stdlib_websocket_'+kind+'_trim'
     if n not in selected:continue
@@ -154,6 +157,7 @@ def main():
   report['InputsUnchanged']=all(sha(q)==h for q,h in report['Inputs'].items());report['Complete']=report['InputsUnchanged']
   report['ShippingAcceptance']=report['Complete'] and not driver
  except Exception as error:report['Error']=repr(error)
+ if 'failures' in locals():report['Failures']=failures
  (out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
  print(json.dumps({k:report[k] for k in ['Complete','SourceDriverOnly','ShippingAcceptance']},ensure_ascii=False),flush=True)
  if 'Error' in report:print(report['Error'],flush=True)
