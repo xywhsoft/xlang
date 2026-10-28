@@ -9,7 +9,7 @@
 - 低层能力：3926 个函数全部进入 TCC 符号面，可通过显式 `extern "xrt..."` 使用。
 - 头文件内联辅助函数单独记录于 `headerInlineReferences`，不增加外部符号数量；未声明的新引用仍报错。
 - 显式扩展产品的 42 项 API 引用单列于 `externalProductReferences`，核对真实公共声明、提供方和指定使用方，不增加核心 API／符号或延期数量；引用不代表功能验收。
-- 语言内核或标准库已直接使用：2616 个函数。其余 1310 个保留为低层能力，不视为功能丢失。
+- 语言内核或标准库已直接使用：2605 个函数。其余 1321 个保留为低层能力，不视为功能丢失。
 - 已迁出核心但尚待扩展库适配的旧引用：0，仅包含 xhttp=0、xws=0、xregex=0。
 
 逐 API 详情可执行 `python tools/gen_xrt_xlang_matrix.py --report build/reports/xrt_xlang_api_matrix.json` 生成。
@@ -45,7 +45,7 @@
 | xrt | `include/xrt/hash.h` | 9 | 9 | 0 |
 | xrt | `include/xrt/html.h` | 3 | 1 | 2 |
 | xrt | `include/xrt/http.h` | 61 | 47 | 14 |
-| xrt | `include/xrt/http1.h` | 25 | 23 | 2 |
+| xrt | `include/xrt/http1.h` | 25 | 19 | 6 |
 | xrt | `include/xrt/http1_net.h` | 2 | 0 | 2 |
 | xrt | `include/xrt/http1_tls.h` | 2 | 2 | 0 |
 | xrt | `include/xrt/http_connection.h` | 5 | 1 | 4 |
@@ -65,7 +65,7 @@
 | xrt | `include/xrt/memory.h` | 13 | 5 | 8 |
 | xrt | `include/xrt/memory_debug.h` | 11 | 0 | 11 |
 | xrt | `include/xrt/memory_stats.h` | 4 | 0 | 4 |
-| xrt | `include/xrt/net.h` | 211 | 127 | 84 |
+| xrt | `include/xrt/net.h` | 211 | 125 | 86 |
 | xrt | `include/xrt/net_file.h` | 4 | 0 | 4 |
 | xrt | `include/xrt/net_file_future.h` | 17 | 16 | 1 |
 | xrt | `include/xrt/net_frame.h` | 9 | 7 | 2 |
@@ -108,7 +108,7 @@
 | xrt | `include/xrt/vfs.h` | 31 | 23 | 8 |
 | xrt | `include/xrt/wait.h` | 3 | 3 | 0 |
 | xrt | `include/xrt/websocket.h` | 57 | 34 | 23 |
-| xrt | `include/xrt/websocket_stream.h` | 51 | 40 | 11 |
+| xrt | `include/xrt/websocket_stream.h` | 51 | 35 | 16 |
 | xrt | `include/xrt/websocket_upgrade.h` | 9 | 9 | 0 |
 | xrt | `include/xrt/x509.h` | 96 | 84 | 12 |
 | xrt | `include/xrt/xid.h` | 11 | 8 | 3 |
