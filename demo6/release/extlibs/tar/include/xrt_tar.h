@@ -100,12 +100,16 @@ XRT_API void xrtTarOptionsInit(xrttaroptions* pOptions);
 XRT_API void xrtTarErrorInit(xrttarerror* pError);
 XRT_API void xrtTarEntryInit(xrttarentry* pEntry);
 
+/* Create 返回 NULL 时输入仍归调用方；非空结果按 bTakeOwnership 接管输入，
+ * 包括选项无效的失败对象。Open* 自己清理内部输入，NULL 时从 XRT 获取首因。
+ * OpenMemory 借用原始字节，调用方必须保持它们存活到 Reader 销毁。 */
 XRT_API xrttarreader* xrtTarReaderCreate(xreader* pReader, bool bTakeOwnership,
 	const xrttaroptions* pOptions);
 XRT_API xrttarreader* xrtTarReaderOpenMemory(const void* pData, uint64 iSize,
 	const xrttaroptions* pOptions);
 XRT_API xrttarreader* xrtTarReaderOpenFile(cstr sPath, const xrttaroptions* pOptions);
 XRT_API const xrttarerror* xrtTarReaderError(const xrttarreader* pReader);
+/* 只有读到实际条目才返回 true；false 时输出不变，用 EOF/Error 区分结束与失败。 */
 XRT_API bool xrtTarReaderNext(xrttarreader* pReader, xrttarentry* pEntry);
 XRT_API bool xrtTarReaderEOF(const xrttarreader* pReader);
 XRT_API xbuffer* xrtTarReaderRead(xrttarreader* pReader);

@@ -221,7 +221,8 @@ static void* xtar_validate_reader(xrttarreader* pReader, xbuffer* pOwnedInput)
 	const xrttarerror* pError = xrtTarReaderError(pReader);
 
 	if ( pReader == NULL || (pError != NULL && pError->iCode != XRT_TAR_OK) ) {
-		xtar_publish_reader_error(pReader);
+		/* 空结果已由构造器报告真实首因，不能覆盖为笼统的 I/O 错误。 */
+		if ( pReader != NULL ) { xtar_publish_reader_error(pReader); }
 		xrtTarReaderDestroy(pReader);
 		xrtBufferDestroy(pOwnedInput);
 		return NULL;

@@ -291,8 +291,8 @@ static bool __xrtTarHeaderEntry(xrttarreader* pReader, const unsigned char* pBlo
 	bool bUstar = memcmp(pBlock + 257u, "ustar", 5u) == 0;
 	bool bV7 = pBlock[257u] == 0u && pBlock[258u] == 0u && pBlock[259u] == 0u &&
 		pBlock[260u] == 0u && pBlock[261u] == 0u && pBlock[262u] == 0u;
-	str sName = __xrtTarFieldString(pBlock, 100u);
-	str sPrefix = bUstar ? __xrtTarFieldString(pBlock + 345u, 155u) : NULL;
+	str sName;
+	str sPrefix = NULL;
 	str sJoined = NULL;
 	uint64 iSize = 0u;
 	uint64 iMode = 0u;
@@ -304,18 +304,34 @@ static bool __xrtTarHeaderEntry(xrttarreader* pReader, const unsigned char* pBlo
 	int iType = __xrtTarType(pBlock[156u]);
 	bool bOk;
 	if ( !bUstar && !bV7 ) {
-		xrtFree(sName);
 		__xrtTarFailReader(pReader, XRT_TAR_ERROR_FORMAT,
 			"unsupported TAR header format");
 		return false;
 	}
-	if ( sPrefix != NULL && sPrefix[0] != 0 ) {
-		sJoined = xrtFormat("%s/%s", sPrefix, sName != NULL ? sName : "");
+	sName = __xrtTarFieldString(pBlock, 100u);
+	if ( bUstar && sName != NULL ) {
+		sPrefix = __xrtTarFieldString(pBlock + 345u, 155u);
 	}
-	else { sJoined = xrtStrDup(sName); }
+	if ( sName == NULL || (bUstar && sPrefix == NULL) ) {
+		xrtFree(sName);
+		xrtFree(sPrefix);
+		__xrtTarFailReader(pReader, XRT_TAR_ERROR_MEMORY,
+			"cannot allocate TAR entry path");
+		return false;
+	}
+	if ( sPrefix != NULL && sPrefix[0] != 0 ) {
+		sJoined = xrtFormat("%s/%s", sPrefix, sName);
+	}
+	/* 无前缀时直接移交路径，避免为每个普通条目再复制一次名称。 */
+	else { sJoined = sName; sName = NULL; }
 	xrtFree(sName);
 	xrtFree(sPrefix);
-	bOk = sJoined != NULL &&
+	if ( sJoined == NULL ) {
+		__xrtTarFailReader(pReader, XRT_TAR_ERROR_MEMORY,
+			"cannot join TAR entry path");
+		return false;
+	}
+	bOk =
 		__xrtTarParseNumber(pBlock + 100u, 8u, false, NULL, &iMode) &&
 		__xrtTarParseNumber(pBlock + 108u, 8u, false, NULL, &iUID) &&
 		__xrtTarParseNumber(pBlock + 116u, 8u, false, NULL, &iGID) &&
@@ -331,9 +347,13 @@ static bool __xrtTarHeaderEntry(xrttarreader* pReader, const unsigned char* pBlo
 		return false;
 	}
 	pReader->Name = sJoined;
-	pReader->LinkName = __xrtTarFieldString(pBlock + 157u, 100u);
-	pReader->UserName = __xrtTarFieldString(pBlock + 265u, 32u);
-	pReader->GroupName = __xrtTarFieldString(pBlock + 297u, 32u);
+	if ( (pReader->LinkName = __xrtTarFieldString(pBlock + 157u, 100u)) == NULL ||
+		(pReader->UserName = __xrtTarFieldString(pBlock + 265u, 32u)) == NULL ||
+		(pReader->GroupName = __xrtTarFieldString(pBlock + 297u, 32u)) == NULL ) {
+		__xrtTarFailReader(pReader, XRT_TAR_ERROR_MEMORY,
+			"cannot allocate TAR entry metadata");
+		return false;
+	}
 	if ( !__xrtTarApplyPaxString(&pReader->Name, pReader->GlobalPax.sPath) ||
 		!__xrtTarApplyPaxString(&pReader->LinkName, pReader->GlobalPax.sLinkPath) ||
 		!__xrtTarApplyPaxString(&pReader->UserName, pReader->GlobalPax.sUserName) ||
@@ -424,6 +444,20 @@ XRT_API xrttarreader* xrtTarReaderCreate(xreader* pInput, bool bTakeOwnership,
 	return pReader;
 }
 
+/* 便利构造器拥有新建的输入；外层分配失败也必须释放输入并保留首因。 */
+static xrttarreader* __xrtTarReaderTakeInput(xreader* pInput, const xrttaroptions* pOptions)
+{
+	xrttarreader* pReader;
+	if ( pInput == NULL ) { return NULL; }
+	pReader = xrtTarReaderCreate(pInput, true, pOptions);
+	if ( pReader == NULL ) {
+		xerror* pError = xrtTakeError();
+		(void)xrtReaderDestroy(pInput);
+		xrtSetErrorTake(pError);
+	}
+	return pReader;
+}
+
 XRT_API xrttarreader* xrtTarReaderOpenMemory(const void* pData, uint64 iSize,
 	const xrttaroptions* pOptions)
 {
@@ -431,13 +465,15 @@ XRT_API xrttarreader* xrtTarReaderOpenMemory(const void* pData, uint64 iSize,
 	if ( pData == NULL && iSize != 0u ) { return xrtTarReaderCreate(NULL, false, pOptions); }
 	if ( iSize > SIZE_MAX ) { return xrtTarReaderCreate(NULL, false, pOptions); }
 	pInput = xrtReaderFromMemory((xbytesview){ (const uint8*)pData, (size_t)iSize });
-	return xrtTarReaderCreate(pInput, true, pOptions);
+	return __xrtTarReaderTakeInput(pInput, pOptions);
 }
 
 XRT_API xrttarreader* xrtTarReaderOpenFile(cstr sPath, const xrttaroptions* pOptions)
 {
-	xreader* pInput = sPath != NULL ? xrtReaderOpen(sPath) : NULL;
-	return xrtTarReaderCreate(pInput, true, pOptions);
+	xreader* pInput;
+	if ( sPath == NULL || sPath[0] == 0 ) { return xrtTarReaderCreate(NULL, false, pOptions); }
+	pInput = xrtReaderOpen(sPath);
+	return __xrtTarReaderTakeInput(pInput, pOptions);
 }
 
 XRT_API const xrttarerror* xrtTarReaderError(const xrttarreader* pReader)
@@ -465,7 +501,10 @@ XRT_API bool xrtTarReaderNext(xrttarreader* pReader, xrttarentry* pEntry)
 	str sLongLink = NULL;
 	bool bResult = false;
 	memset(&tLocal, 0, sizeof(tLocal));
-	if ( pReader == NULL || pReader->Failed || pReader->EOFReached ) { return false; }
+	if ( pReader == NULL || pReader->Failed ) { return false; }
+	/* 成功 EOF 也属于本次操作，不能沿用其他调用留下的线程错误。 */
+	xrtClearError();
+	if ( pReader->EOFReached ) { return false; }
 	if ( pEntry == NULL ) {
 		__xrtTarSetReaderError(pReader, XRT_TAR_ERROR_ARGUMENT,
 			"TAR entry output is null");
@@ -497,28 +536,32 @@ XRT_API bool xrtTarReaderNext(xrttarreader* pReader, xrttarentry* pEntry)
 		}
 		if ( sHeader[156u] == 'x' || sHeader[156u] == 'g' ||
 			sHeader[156u] == 'L' || sHeader[156u] == 'K' ) {
+			bool bExtensionValid;
 			pExtension = __xrtTarReadExtension(pReader, iSize);
 			if ( pExtension == NULL ) { break; }
 			if ( sHeader[156u] == 'x' ) {
 				__xrtTarPaxClear(&tLocal);
-				bResult = __xrtTarParsePax(pReader, &tLocal,
+				bExtensionValid = __xrtTarParsePax(pReader, &tLocal,
 					(const unsigned char*)pExtension->Data, pExtension->Size);
 			}
 			else if ( sHeader[156u] == 'g' ) {
-				bResult = __xrtTarParsePax(pReader, &pReader->GlobalPax,
+				bExtensionValid = __xrtTarParsePax(pReader, &pReader->GlobalPax,
 					(const unsigned char*)pExtension->Data, pExtension->Size);
 			}
 			else if ( sHeader[156u] == 'L' ) {
-				bResult = __xrtTarSetGnuString(&sLongName,
+				bExtensionValid = __xrtTarSetGnuString(&sLongName,
 					(const unsigned char*)pExtension->Data, pExtension->Size);
 			}
 			else {
-				bResult = __xrtTarSetGnuString(&sLongLink,
+				bExtensionValid = __xrtTarSetGnuString(&sLongLink,
 					(const unsigned char*)pExtension->Data, pExtension->Size);
 			}
 			xrtBufferDestroy(pExtension);
-			if ( !bResult ) {
-				__xrtTarFailReader(pReader, XRT_TAR_ERROR_FORMAT,
+			if ( !bExtensionValid ) {
+				const xerror* pCause = xrtGetError();
+				bool bMemory = pCause != NULL && xrtErrorKind(pCause) == XERR_MEMORY;
+				__xrtTarFailReader(pReader, bMemory ? XRT_TAR_ERROR_MEMORY : XRT_TAR_ERROR_FORMAT,
+					bMemory ? "cannot allocate TAR PAX or GNU metadata" :
 					"invalid TAR PAX or GNU extension record");
 				break;
 			}

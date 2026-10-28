@@ -1,5 +1,22 @@
 # tar 扩展库
 
+2026-10-29 Reader 低内存与扩展头收口：路径和四项文本元数据的分配
+失败原会误报格式/参数错误，部分情况下仍返回成功；PAX/GNU 扩展头
+解析成功后遇到 EOF 或截断还会错误返回一次条目。现分别检查分配与
+实际条目提交状态；构造中间层失败会释放内部输入并保留原始错误，
+不会改变低层 `xrtTarReaderCreate` 的输入所有权。普通无前缀名称直接
+移交给条目，减少一次分配和复制。
+
+`test/check_reader.ps1` / `test/check_reader.sh` 独立运行本专题：
+C 对内存/文件构造、普通/USTAR 前缀/PAX local/global/GNU L/K 的
+逐分配点故障做活动分配快照检查，并验证正文输出分配失败后可重读。
+格式错误不会被前一次 OOM 污染；扩展头后 EOF/截断不产生虚假条目。
+同一批夹具由 XLang JIT 与独立 EXE 检查构造、next/readText/info 的
+`MemoryError` 传播、失败状态和扩展尾部。Windows 全部通过，Linux
+另通过 C ASan/UBSan；原 C/TAR 套件和数值专题也再次通过。
+本门禁不承诺任意语言包装层分配失败后均可原地重试，不覆盖下述
+选择提取 M1 和失败原子性 RFS；整包发布签收仍未完成。
+
 2026-10-28 数值边界收口：GNU 二进制 mtime 下溢原先会变成正数或零，
 超宽 mode 原先截断为低32位；C 红例确认后修复。mode/设备号的原生
 桥接改用 unsigned int / c_uint，避免有效高位被读成负数。按用户确认，
@@ -159,7 +176,7 @@ python release/extlibs/tar/test/interop.py release
 没有 Python 3 时明确提示跳过，不将跳过视为格式互通验收。
 
 两个脚本只使用测试目录与临时运行目录；Windows 脚本也运行 C/XLang 最小范例。原生 ABI 中 `point` 对应 `void*`，C `int` getter 在 XLang 侧声明为 `c_int`，避免同一编译单元内的声明冲突与返回值宽度不一致。
-Windows 门禁每次使用独占构建目录，成功或失败后只清理本次产物；`-SkipAot` 只用于聚焦 C/JIT 验证，不代表完整 AOT 签收。
+Windows 门禁每次使用独占构建目录，成功后清理本次产物，失败保留输入和日志；`-SkipAot` 只用于聚焦 C/JIT 验证，不代表完整 AOT 签收。
 2026-10-22：默认门禁原只构建无输出核心；现在还构建、运行公开的
 `examples/basic.xl` 并与 C 范例核对，避免核心通过时误签收带输出的语言路径。
 `-SkipAot` 聚焦门禁已通过；默认门禁仍先停在核心 AOT 缺
