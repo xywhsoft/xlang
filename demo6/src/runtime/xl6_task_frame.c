@@ -150,7 +150,7 @@ const XL6_TaskRuntimeV3* xl6TaskRuntimeV3Get(void)
 /* Every physical reference has a real holder: private caller, accepted job,
  * registration caller, registered Watch or pending language output Future.
  * No synthetic module root. Native job output participation is independent. */
-static void frame_release(TaskFrame* frame)
+static void frame_release(TaskFrame* frame,bool producerTail)
 {
     xrtownershipscope mutation={0}; XL6_CodeLease* lease;XL6_TaskPool* pool;const XL6_TaskFramePoolV1* framePoolBinding;frame_mutation_begin(frame,&mutation);
     if(!frame->references)abort();
@@ -158,10 +158,18 @@ static void frame_release(TaskFrame* frame)
     if(frame->payloadLive || frame->active || frame->source || frame->output)abort();
     lease=frame->lease;pool=frame->pool;framePoolBinding=frame->poolBinding;xerror* cleanupError=frame->cleanupError;frame_unlock(frame);xrtFree(frame);
     xrtErrorFree(cleanupError);
+    /* Promise producer detachment can outlive the Run/Drop/Watch activity
+     * scopes while still executing on a native pool worker. Its last code
+     * lease may reenter module retirement. Keep the real pool alive and mark
+     * this detached tail BUSY until that host callback returns; never ask the
+     * worker to join itself or suppress a genuine native join error. */
+    XL6_TaskNativeScopeV1 activity={0};
+    if(producerTail && pool && lease)framePoolBinding->ActivityEnter(&activity,pool);
     if(pool)framePoolBinding->Drop(pool);
     mutation_end(&mutation);xl6CodeLeaseRelease(lease);
+    if(activity.pool)framePoolBinding->ActivityLeave(&activity);
 }
-static void producer_drop(const void* data) { frame_release((TaskFrame*)data); }
+static void producer_drop(const void* data) { frame_release((TaskFrame*)data,true); }
 static const xfutureproducerownershipv1 producer_policy={sizeof(producer_policy),producer_drop};
 const xfutureproducerownershipv1* xl6TaskProducerPolicyV1Get(void) { return &producer_policy; }
 static bool frame_bind_output(TaskFrame* frame)
@@ -170,7 +178,7 @@ static bool frame_bind_output(TaskFrame* frame)
     if(frame->references==SIZE_MAX)abort();
     ++frame->references;frame_mutation_end(frame,&mutation);
     if(xrtPromiseProducerBindTakeV1(frame->output,(xrtownershipref){frame,&xl6TaskFrameOwnershipOpsInternalV1},&producer_policy))return true;
-    frame_release(frame);return false;
+    frame_release(frame,false);return false;
 }
 static void frame_drop_payload(TaskFrame* frame)
 {
@@ -196,7 +204,7 @@ static void frame_drop_payload(TaskFrame* frame)
     frame_mutation_begin(frame,&mutation);frame->payloadLive=false;--frame->active;
     if(frame->runEntered){--frame->active;frame->runEntered=false;}
     frame_mutation_end(frame,&mutation);
-    frame_release(frame); /* The code scope survives freeing this allocation. */
+    frame_release(frame,false); /* The code scope survives freeing this allocation. */
     xl6CodeScopeLeave(&code);
     if(activity.pool)framePoolBinding->ActivityLeave(&activity);
 }
@@ -297,7 +305,7 @@ static void outcome_release(void* data)
     TaskFrame* frame=data; XL6_CodeScope code={0}; XL6_TaskNativeScopeV1 activity={0};
     const XL6_TaskFramePoolV1* framePoolBinding=frame->poolBinding;
     xl6CodeScopeEnter(&code,frame->lease);if(frame->pool)frame->poolBinding->ActivityEnter(&activity,frame->pool);
-    outcome_detach(frame);frame_release(frame);
+    outcome_detach(frame);frame_release(frame,false);
     xl6CodeScopeLeave(&code);if(activity.pool)framePoolBinding->ActivityLeave(&activity);
 }
 static bool outcome_trace(const void* data,xrtownershipvisitor visit,void* context)
@@ -403,7 +411,7 @@ xfuture* xl6TaskFrameSubmitInternalV1(void* data,xcancel* cancel,
         xrtClearError();xrtSetErrorTake(previous);
     }else future=source;
     frame_mutation_begin(frame,&mutation);frame->committed=true;frame->publishing=false;frame_mutation_end(frame,&mutation);
-    frame_release(frame);if(target->End)target->End(target->context);return future;
+    frame_release(frame,false);if(target->End)target->End(target->context);return future;
 preparation_failed:
     previous=xrtTakeError();xrtCancelDestroy(token);
     if(language){outcome_detach(frame);xrtFutureDestroy(future);}
