@@ -1,5 +1,23 @@
 # SQLite
 
+2026-10-28 拥有型文本全链路复核：旧 `@owned string?` 结果进入
+`__sqlite_take_owned` 后又被编译成 `xlir_string_copy`，因此“接管处不复制”
+不代表整条返回链无额外副本。现删除可空中转；C 已把 SQL NULL 规范化为
+独立空串，原生失败同时发布 XRT 错误，六个公开字符串函数可以直接
+返回 `@owned string`，保持普通 string API、C 物理 ABI 与释放责任不变。
+
+新增 16 条薄接口/对象路径 × 两个分配预算，共 32 组检查：准备当前行后，
+允许一次 XRT 输出分配时成功，禁止该次分配时保持 `MemoryError`；包含
+SQL NULL、空串、UTF-8、元数据、错误消息、rowid 与连接关闭后持有结果。
+Windows/Linux 八份语言用例/范例 JIT/AOT 均通过，44 个生成原型严格 C
+检查通过；新用例已进入双平台默认门禁。此阶段只改语言返回链，未重复
+编译未变的 SQLite C/算法/分配故障矩阵，沿用上一阶段的完整 C 证据。
+
+同一基础范例生成 C 从 621,789 降至 611,811 字节；这是本机固定发布物
+下的生成源码差异，不是最终 EXE 体积或性能认证。SQLite 借用文本仍必须
+复制一次以获得独立寿命，边界也仍有 `strlen`、错误作用域与释放检查，
+不宣称整条 SQL 调用零复制或零开销。历史 Linux 无诊断退出风险不变。
+
 2026-10-28 输入侧 NUL 边界：先红后绿确认 SQL 会执行 NUL 前的有效
 前缀，普通文本绑定也会把 `A\0B` 静默存成 `A`。现在 XLang 的路径、
 VFS 名、SQL、普通 TEXT/BLOB 文本绑定在调用零结尾 C API 前统一检查，
@@ -153,7 +171,7 @@ Statement：
 自行复制。返回的 Buffer 由 C 调用方 `xrtBufferDestroy`，xlang 则由 Buffer 对象释放。
 `*_owned_native` 文本入口返回一份 `xrtFree` 负责释放的独立副本；xlang 直接接管
 这份内存，列值和诊断不再经过临时区与第二次字符串复制。原有 C 入口保持借用合同。
-当前语言声明以 `@owned string?` 直接调用这些 `char*` 入口，不提供额外的
+当前语言声明以 `@owned string` 直接调用这些 `char*` 入口，不提供额外的
 `*_point_native` 转接层。
 
 底层状态码入口不把 SQLite 业务失败变成 XRT 异常；没有状态码的创建、prepare、

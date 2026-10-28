@@ -161,20 +161,17 @@ extern "xsqlite3_column_double_native" func __xl6_native_sqlite_sqlite3_column_d
 export func sqlite3_column_double(point stmt, int column) as float
     return __xl6_native_sqlite_sqlite3_column_double(stmt, __sqlite_c_int(column))
 end
-func __sqlite_take_owned(string? value) as string
-    if value == null then return "" end
-    return value
-end
-
-extern "xsqlite3_column_text_owned_native" @owned func __xl6_native_sqlite_sqlite3_column_text(point stmt, c_int column) as string?
+// C 已将 SQL NULL 规范化为拥有型空串；失败仅在发布 XRT 错误后返回 NULL。
+// 直接返回原生结果，让所有权沿调用链移动，不再经可空参数产生正文副本。
+extern "xsqlite3_column_text_owned_native" @owned func __xl6_native_sqlite_sqlite3_column_text(point stmt, c_int column) as string
 
 export func sqlite3_column_text(point stmt, int column) as string
-    return __sqlite_take_owned(__xl6_native_sqlite_sqlite3_column_text(stmt, __sqlite_c_int(column)))
+    return __xl6_native_sqlite_sqlite3_column_text(stmt, __sqlite_c_int(column))
 end
-extern "xsqlite3_column_text_owned_native" @owned func __xl6_native_sqlite_sqlite3_column_blob_text(point stmt, c_int column) as string?
+extern "xsqlite3_column_text_owned_native" @owned func __xl6_native_sqlite_sqlite3_column_blob_text(point stmt, c_int column) as string
 
 export func sqlite3_column_blob_text(point stmt, int column) as string
-    return __sqlite_take_owned(__xl6_native_sqlite_sqlite3_column_blob_text(stmt, __sqlite_c_int(column)))
+    return __xl6_native_sqlite_sqlite3_column_blob_text(stmt, __sqlite_c_int(column))
 end
 extern "xsqlite3_column_blob_native" func __sqlite_column_blob(point stmt, c_int column) as point
 extern "xsqlite3_column_text_bytes_native" func __sqlite_column_text_bytes(point stmt, c_int column) as point
@@ -191,20 +188,20 @@ extern "xsqlite3_column_bytes_native" func __xl6_native_sqlite_sqlite3_column_by
 export func sqlite3_column_bytes(point stmt, int column) as int
     return __xl6_native_sqlite_sqlite3_column_bytes(stmt, __sqlite_c_int(column))
 end
-extern "xsqlite3_column_name_owned_native" @owned func __xl6_native_sqlite_sqlite3_column_name(point stmt, c_int column) as string?
+extern "xsqlite3_column_name_owned_native" @owned func __xl6_native_sqlite_sqlite3_column_name(point stmt, c_int column) as string
 
 export func sqlite3_column_name(point stmt, int column) as string
-    return __sqlite_take_owned(__xl6_native_sqlite_sqlite3_column_name(stmt, __sqlite_c_int(column)))
+    return __xl6_native_sqlite_sqlite3_column_name(stmt, __sqlite_c_int(column))
 end
-extern "xsqlite3_errmsg_owned_native" @owned func __xl6_native_sqlite_sqlite3_errmsg(point db) as string?
+extern "xsqlite3_errmsg_owned_native" @owned func __xl6_native_sqlite_sqlite3_errmsg(point db) as string
 
 export func sqlite3_errmsg(point db) as string
-    return __sqlite_take_owned(__xl6_native_sqlite_sqlite3_errmsg(db))
+    return __xl6_native_sqlite_sqlite3_errmsg(db)
 end
-extern "xsqlite3_stmt_errmsg_owned_native" @owned func __sqlite_stmt_error(point stmt) as string?
+extern "xsqlite3_stmt_errmsg_owned_native" @owned func __sqlite_stmt_error(point stmt) as string
 
 export func sqlite3_stmt_errmsg(point stmt) as string
-    return __sqlite_take_owned(__sqlite_stmt_error(stmt))
+    return __sqlite_stmt_error(stmt)
 end
 extern "xsqlite3_errstr_native" func __xl6_native_sqlite_sqlite3_errstr(c_int rc) as string
 
@@ -226,10 +223,10 @@ extern "xsqlite3_total_changes_native" func __xl6_native_sqlite_sqlite3_total_ch
 export func sqlite3_total_changes(point db) as int
     return __xl6_native_sqlite_sqlite3_total_changes(db)
 end
-extern "xsqlite3_last_insert_rowid_text_owned_native" @owned func __xl6_native_sqlite_sqlite3_last_insert_rowid_text(point db) as string?
+extern "xsqlite3_last_insert_rowid_text_owned_native" @owned func __xl6_native_sqlite_sqlite3_last_insert_rowid_text(point db) as string
 
 export func sqlite3_last_insert_rowid_text(point db) as string
-    return __sqlite_take_owned(__xl6_native_sqlite_sqlite3_last_insert_rowid_text(db))
+    return __xl6_native_sqlite_sqlite3_last_insert_rowid_text(db)
 end
 extern "xsqlite3_last_insert_rowid_native" func __xl6_native_sqlite_sqlite3_last_insert_rowid(point db) as int64
 

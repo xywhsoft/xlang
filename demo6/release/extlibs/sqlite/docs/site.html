@@ -65,6 +65,7 @@ println(rows[0]["name"])</code></pre>
       <tr><td><code>valid()</code> / <code>finalize()</code></td><td>重复释放是成功空操作；释放后的其他对象操作报 RuntimeError。</td></tr>
     </tbody></table>
     <h2 id="binary">二进制与寿命</h2>
+    <p>列文本、列名、诊断和 rowid 文本直接返回拥有型 string，不再经过可空辅助函数复制正文。2026-10-28 的 32 组分配预算检查与 Windows/Linux JIT/AOT 覆盖正常结果、原生分配失败、SQL NULL 和结果寿命。为了让字符串在语句关闭后仍可使用，SQLite 借用文本到 XRT 拥有内存的一次副本仍然存在，不能把该优化称为整条 SQL 调用零开销。</p>
     <pre><code class="language-xlang">auto stmt = db.prepare("select x'00ff2a'")
 assert stmt.row_ready()
 Buffer bytes = stmt.column_blob(0)
