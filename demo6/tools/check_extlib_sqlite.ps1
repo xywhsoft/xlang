@@ -4,7 +4,7 @@ if (!$Root) { $Root = Split-Path -Parent $PSScriptRoot }
 $Root = (Resolve-Path -LiteralPath $Root).Path
 . (Join-Path $PSScriptRoot 'extlib_smoke_process.ps1')
 $xl = Join-Path $Root 'release/xl.exe'
-$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
+$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $workParent = Join-Path $Root 'build/test/sqlite_guard'
 $runId = [guid]::NewGuid().ToString('N')
 $work = Join-Path $workParent ("run_$runId")
@@ -15,7 +15,8 @@ $checks = [Collections.Generic.List[object]]::new()
 $hashes = [ordered]@{}
 $pkg = 'release/extlibs/sqlite'
 $sources = @("$pkg/sqlite_native.c", "$pkg/third_party/sqlite3.c")
-$cases = @('test/cases/extlib_sqlite.xl', "$pkg/test/boundaries.xl", "$pkg/test/file.xl")
+$cases = @('test/cases/extlib_sqlite.xl', "$pkg/test/boundaries.xl", "$pkg/test/file.xl",
+    "$pkg/test/nul_inputs.xl")
 function InputPaths {
     @('release/xl.exe','release/xl.dll','release/xlc.dll','lib/xrt/xrt.h','lib/xruntime/xruntime.h',
       'release/include/xrt_decl.h','release/include/xruntime_decl.h','release/include/xl_extlib_abi.h',
@@ -30,7 +31,7 @@ function InputPaths {
 foreach ($path in @(InputPaths | Sort-Object -Unique)) { $hashes[$path] = (Get-FileHash -LiteralPath (Join-Path $Root $path)).Hash }
 function Check([string]$Name, [string]$Program, [string[]]$Arguments, [int]$Seconds = 120) {
     $r = Invoke-ExtlibSmokeProcess $Program $Arguments $Root $Seconds
-    $checks.Add([ordered]@{name=$Name;status=$r.status;exitCode=$r.exitCode;elapsedMs=$r.elapsedMs;stdout=$r.stdout;stderr=$r.stderr})
+    $checks.Add([ordered]@{name=$Name;program=$Program;arguments=$Arguments;status=$r.status;exitCode=$r.exitCode;elapsedMs=$r.elapsedMs;stdout=$r.stdout;stderr=$r.stderr})
     if ($r.status -ne 'pass') { throw "$Name failed: $($r.stderr)`n$($r.stdout)" }
     Write-Host "[sqlite] ${Name}: PASS"
     return $r.stdout.Replace("`r`n","`n").TrimEnd("`n")
@@ -98,6 +99,23 @@ try {
     $helperOutput = Check 'c-example-runner' (Get-Process -Id $PID).Path @('-NoProfile','-File','tools/run_extlib_c.ps1','-Package','sqlite','-Source',$example)
     $golden = [IO.File]::ReadAllText((Join-Path $Root 'release/examples/extlibs/sqlite_basic.expected.txt')).Replace("`r`n","`n").TrimEnd("`n")
     foreach ($text in @($xlangOutput,$cOutput,$jitOutput,$aotOutput,$helperOutput)) { if ($text -cne $golden) { throw 'C/xlang example golden mismatch' } }
+    $bytesGolden = "TEXT: 3 bytes`nBLOB: 3 bytes`nmiddle byte: 0"
+    $bytesSource = "$pkg/examples/text_bytes_c.c"
+    $bytesBinary = Join-Path $work 'text-bytes-gcc.exe'
+    $null = Check 'text-bytes-c-build' $gcc ($flags + @('-DNDEBUG',$bytesSource) + $objects + @('-o',$bytesBinary))
+    $bytesC = Check 'text-bytes-c' $bytesBinary @()
+    $bytesJitC = Check 'text-bytes-c-jit' $xl @('run',$bytesSource)
+    $bytesBinary = Join-Path $work 'text-bytes-c-aot.exe'
+    $null = Check 'text-bytes-c-aot-build' $xl @('build',$bytesSource,'-o',$bytesBinary)
+    $bytesAotC = Check 'text-bytes-c-aot' $bytesBinary @()
+    $bytesSource = "$pkg/examples/text_bytes.xl"
+    $bytesJit = Check 'text-bytes-xl-jit' $xl @('run',$bytesSource)
+    $bytesBinary = Join-Path $work 'text-bytes-xl-aot.exe'
+    $null = Check 'text-bytes-xl-aot-build' $xl @('build',$bytesSource,'-o',$bytesBinary)
+    $bytesAot = Check 'text-bytes-xl-aot' $bytesBinary @()
+    foreach ($text in @($bytesC,$bytesJitC,$bytesAotC,$bytesJit,$bytesAot)) {
+        if ($text -cne $bytesGolden) { throw 'exact-length TEXT/BLOB bilingual example mismatch' }
+    }
     $bad = Join-Path $work 'const-write.xl'
     [IO.File]::WriteAllText($bad,"import sqlite`nsqlite.SQLITE_OK = 1`n",$utf8)
     $r = Invoke-ExtlibSmokeProcess $xl @('check',$bad) $Root 30
@@ -115,6 +133,14 @@ try {
         [StringComparison]::OrdinalIgnoreCase)) {
         throw "SQLite temporary work path escaped build/test: $workPath"
     }
-    Remove-Item -LiteralPath $workPath -Recurse -Force
+    if ($outcome -eq 'passed') {
+        # 本次门禁只有平面产物；成功才清理，失败保留 cgen、日志及对象文件。
+        Get-ChildItem -LiteralPath $workPath -File | ForEach-Object {
+            Remove-Item -LiteralPath $_.FullName -Force
+        }
+        Remove-Item -LiteralPath $workPath -Force
+    } else {
+        Write-Warning "SQLite failure artifacts retained: $workPath"
+    }
     Write-Host "[sqlite] report: $reportPath"
 }

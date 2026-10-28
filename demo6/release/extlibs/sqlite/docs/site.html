@@ -40,6 +40,8 @@ insert.finalize()
 var rows = db.query("select name from people")
 println(rows[0]["name"])</code></pre>
     <p>参数从 1 开始，列号从 0 开始。绑定复制数据，不要求调用方保持原字符串或 Buffer 存活。</p>
+    <p>XLang 的路径、VFS 名、SQL 和普通文本绑定会在调用零结尾 C API 前拒绝内嵌 NUL，抛出 ValueError，不会执行 SQL 前缀或静默截断绑定。含 NUL 的 TEXT 使用 <code>bind_text_bytes</code> / <code>column_text_bytes</code>，BLOB 使用 Buffer；成对完整范例见 <code>examples/text_bytes.xl</code> 与 <code>text_bytes_c.c</code>。</p>
+    <p>2026-10-28：Windows 49 项完整门禁、Linux ASan/UBSan、分配故障、线程、26 组输入拒绝及双语 JIT/AOT 通过。旧 Linux 无诊断退出仍未定位，保持待稳定性收口，不能将本次通过解释为该风险已修复。</p>
     <h2 id="database">Database</h2>
     <table class="ext-kv"><thead><tr><th>接口</th><th>合同</th></tr></thead><tbody>
       <tr><td><code>memory()</code> / <code>open(filename)</code> / <code>open_v2(filename, flags, vfs)</code></td><td>独立内存库、读写创建文件、显式打开模式；空 vfs 使用 SQLite 默认值。</td></tr>

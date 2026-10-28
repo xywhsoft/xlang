@@ -6,6 +6,13 @@ func __sqlite_c_int(int value) as c_int
     return c_int(value)
 end
 
+// SQL、路径及普通文本使用零结尾 C 接口；含 NUL 的数据走显式长度 Buffer API。
+func __sqlite_c_text(string value)
+    if string.indexOf(value, "\0", false, string.byteLen(value), 1) >= 0 then
+        throw ValueError "sqlite C string input contains NUL"
+    end
+end
+
 extern "xsqlite_available_native" func __xl6_native_sqlite_available() as c_int
 
 export func available() as bool
@@ -29,11 +36,14 @@ end
 extern "xsqlite3_open_native" func __xl6_native_sqlite_sqlite3_open(string filename) as point
 
 export func sqlite3_open(string filename) as point
+    __sqlite_c_text(filename)
     return __xl6_native_sqlite_sqlite3_open(filename)
 end
 extern "xsqlite3_open_v2_native" func __xl6_native_sqlite_sqlite3_open_v2(string filename, c_int flags, string vfs) as point
 
 export func sqlite3_open_v2(string filename, int flags, string vfs) as point
+    __sqlite_c_text(filename)
+    __sqlite_c_text(vfs)
     return __xl6_native_sqlite_sqlite3_open_v2(filename, __sqlite_c_int(flags), vfs)
 end
 extern "xsqlite3_close_native" func __xl6_native_sqlite_sqlite3_close(point db) as c_int
@@ -49,11 +59,13 @@ end
 extern "xsqlite3_exec_native" func __xl6_native_sqlite_sqlite3_exec(point db, string sql) as c_int
 
 export func sqlite3_exec(point db, string sql) as int
+    __sqlite_c_text(sql)
     return __xl6_native_sqlite_sqlite3_exec(db, sql)
 end
 extern "xsqlite3_prepare_v2_native" func __xl6_native_sqlite_sqlite3_prepare_v2(point db, string sql) as point
 
 export func sqlite3_prepare_v2(point db, string sql) as point
+    __sqlite_c_text(sql)
     return __xl6_native_sqlite_sqlite3_prepare_v2(db, sql)
 end
 extern "xsqlite3_step_native" func __xl6_native_sqlite_sqlite3_step(point stmt) as c_int
@@ -94,11 +106,13 @@ end
 extern "xsqlite3_bind_text_native" func __xl6_native_sqlite_sqlite3_bind_text(point stmt, c_int index, string value) as c_int
 
 export func sqlite3_bind_text(point stmt, int index, string value) as int
+    __sqlite_c_text(value)
     return __xl6_native_sqlite_sqlite3_bind_text(stmt, __sqlite_c_int(index), value)
 end
 extern "xsqlite3_bind_blob_text_native" func __xl6_native_sqlite_sqlite3_bind_blob_text(point stmt, c_int index, string value) as c_int
 
 export func sqlite3_bind_blob_text(point stmt, int index, string value) as int
+    __sqlite_c_text(value)
     return __xl6_native_sqlite_sqlite3_bind_blob_text(stmt, __sqlite_c_int(index), value)
 end
 extern "xsqlite3_bind_blob_native" func __sqlite_bind_blob(point stmt, c_int index, point data, c_size size) as c_int

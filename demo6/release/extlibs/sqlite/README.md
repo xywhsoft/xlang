@@ -1,5 +1,25 @@
 # SQLite
 
+2026-10-28 输入侧 NUL 边界：先红后绿确认 SQL 会执行 NUL 前的有效
+前缀，普通文本绑定也会把 `A\0B` 静默存成 `A`。现在 XLang 的路径、
+VFS 名、SQL、普通 TEXT/BLOB 文本绑定在调用零结尾 C API 前统一检查，
+含 NUL 抛 `ValueError`；对象方法、构造器和公开 `sqlite3_*` 薄接口共用
+同一检查，不复制正文，不改 C ABI。错误 SQL 不执行前缀、不会提前编译
+PRAGMA，失败绑定也不替换旧绑定。26 组拒绝、正常空 SQL/空文本和恢复
+用例已加入 coverage 与双平台 JIT/AOT。
+
+新增 `examples/text_bytes.xl` / `text_bytes_c.c`：将同一组三字节分别
+绑定为 TEXT 和 BLOB，修改原输入后读回，关闭连接后继续使用拥有型
+Buffer；C/XLang JIT/AOT 与 GCC 固定输出一致。C 按其语言规则使用
+零结尾字符串，不能从 `char*` 检测未知长度的 NUL 后缀；需要完整数据
+使用现有 `xsqlite3_bind_text_bytes_native` / `xsqlite3_bind_blob_native`。
+
+本次 Windows 完整门禁 49 项、44 个生成原型与 45 个常量通过；Linux
+完整门禁通过 C ASan/UBSan、149 个 SQLite 分配故障点、线程、新旧
+语言 JIT/AOT 与双语范例。Linux 使用逐文件相同的原生文件系统快照，
+保持原超时和冻结发布物。两平台失败保留现场；既有 Linux 无诊断退出
+仍未定位，本包保持 R，不因这一轮通过而关闭旧风险。
+
 2026-10-28：修复单语句 `prepare` 为检查尾部而再次编译 SQL 的问题。
 被拒绝的尾部 PRAGMA 原可提前修改连接，C/XLang 红例已复现 `query_only`；
 同类测试同时覆盖 `foreign_keys/recursive_triggers`。现只扫描尾部空白、空语句和注释，不编译额外 SQL，
@@ -103,6 +123,10 @@ Statement：
 ## 数据与错误合同
 
 - 普通文本使用 UTF-8；文件路径直接交给 SQLite 的 UTF-8 文件 API。
+- XLang 的文件名、VFS 名、SQL、`bind(string)` / `bind_blob_text` 的
+  文本不能含 NUL，构造器与 `sqlite3_*` 薄接口同样抛 `ValueError`，
+  不会把前缀当作完整输入。NUL 是语言参数错误，不是 SQLite SQL 执行状态。
+  含 NUL 的 TEXT 使用 `bind_text_bytes` / `column_text_bytes`，BLOB 使用 Buffer。
 - BLOB 通过 `Buffer` 保存全部字节。SQL NULL、空 TEXT 与零长度 BLOB 是不同值。
   明确调用 `column_text`/`column_blob` 读取 NULL 会得到空值，区分 NULL 应先看
   `column_type`，或者使用 `value`/`row`。
