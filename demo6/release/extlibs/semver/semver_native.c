@@ -396,7 +396,8 @@ enum {
     XSEMVER_OP_GT,
     XSEMVER_OP_LE,
     XSEMVER_OP_LT,
-    XSEMVER_OP_EQ
+    XSEMVER_OP_EQ,
+    XSEMVER_OP_ANY
 };
 
 typedef struct {
@@ -410,19 +411,15 @@ typedef struct {
 } ComparatorSet;
 
 typedef struct {
-    /* present[i]: part i was a concrete number; star[i]: part was x, X,
-       star, or absent */
+    /* present[i] 标记该段是否具体；缺失段和通配段统一为零。 */
     int present[3];
-    int star[3];
     long long num[3];
     char pre[XSEMVER_MAX_FIELD];
-    char build[XSEMVER_MAX_FIELD];
-    int ok;
 } Partial;
 
 static int semver_parse_partial(const char *s, Partial *out) {
     char buf[XSEMVER_MAX_TEXT];
-    char *parts[4];
+    char *parts[3];
     int count = 0;
     char *meta;
     char *part;
@@ -451,7 +448,6 @@ static int semver_parse_partial(const char *s, Partial *out) {
             return 0;
         }
         strcpy(out->pre, full.pre);
-        strcpy(out->build, full.build);
         *meta = '\0';
     }
 
@@ -471,27 +467,18 @@ static int semver_parse_partial(const char *s, Partial *out) {
         *cursor = '\0';
         part = cursor + 1;
     }
-    for (i = 0; i < 3; i++) {
-        if (i < count) {
-            const char *t = parts[i];
-            if (strcmp(t, "x") == 0 || strcmp(t, "X") == 0 || strcmp(t, "*") == 0) {
-                out->star[i] = 1;
-            } else if (semver_is_numeric_id(t, strlen(t))) {
-                out->present[i] = 1;
-                if (!semver_parse_number(t, &out->num[i])) {
-                    return 0;
-                }
-            } else {
+    for (i = 0; i < count; i++) {
+        const char *t = parts[i];
+        if (strcmp(t, "x") != 0 && strcmp(t, "X") != 0 && strcmp(t, "*") != 0) {
+            if (!semver_is_numeric_id(t, strlen(t)) || !semver_parse_number(t, &out->num[i])) {
                 return 0;
             }
-        } else {
-            out->star[i] = 1;
+            out->present[i] = 1;
         }
         if (i > 0 && out->present[i] && !out->present[i - 1]) {
             return 0;
         }
     }
-    out->ok = 1;
     return 1;
 }
 
@@ -511,6 +498,9 @@ static int semver_add(ComparatorSet *set, int op, long long major,
     if (set->count >= XSEMVER_MAX_SET_COMPARATORS) {
         return 0;
     }
+    /* node-semver 将最低正式版下界归一为无约束，预发布仍须显式准入。 */
+    if (op == XSEMVER_OP_GE && major == 0 && minor == 0 && patch == 0 &&
+        (pre == NULL || pre[0] == '\0')) op = XSEMVER_OP_ANY;
     semver_fill(&set->items[set->count].bound, major, minor, patch, pre);
     set->items[set->count].op = op;
     set->count++;
@@ -540,16 +530,14 @@ static int semver_desugar(ComparatorSet *set, const char *token) {
     if (rest[0] == '\0') {
         return 0;
     }
-    if (strcmp(rest, "*") == 0 || strcmp(rest, "x") == 0 ||
-        strcmp(rest, "X") == 0) {
-        /* "*" matches every version, including none added here. */
-        if (op == XSEMVER_OP_GT || op == XSEMVER_OP_LT) {
-            return 0;
-        }
-        return semver_add(set, XSEMVER_OP_GE, 0, 0, 0, NULL);
-    }
     if (!semver_parse_partial(rest, &p)) {
         return 0;
+    }
+    /* 无约束不能伪装成 >=0.0.0；空集仍是合法分支，不使整个 OR 无效。 */
+    if (!p.present[0]) {
+        bool empty = op == XSEMVER_OP_GT || op == XSEMVER_OP_LT;
+        return semver_add(set, empty ? XSEMVER_OP_LT : XSEMVER_OP_ANY,
+            0, 0, 0, empty ? "0" : NULL);
     }
     /* 仅在简写范围确实要计算排他上界时，检查被加一的版本段。 */
     if (!p.present[2] && (op == XSEMVER_OP_GT ||
@@ -565,7 +553,7 @@ static int semver_desugar(ComparatorSet *set, const char *token) {
     if (next_component >= 0 && p.num[next_component] == LLONG_MAX) {
         return 0;
     }
-    M = p.present[0] ? p.num[0] : 0;
+    M = p.num[0];
     m = p.present[1] ? p.num[1] : 0;
     pt = p.present[2] ? p.num[2] : 0;
 
@@ -575,9 +563,6 @@ static int semver_desugar(ComparatorSet *set, const char *token) {
     }
 
     if (op == XSEMVER_OP_GT || op == XSEMVER_OP_LT || op == XSEMVER_OP_GE) {
-        if (!p.present[0]) {
-            return op == XSEMVER_OP_GE && semver_add(set, XSEMVER_OP_GE, 0, 0, 0, NULL);
-        }
         if (p.present[2]) {
             return semver_add(set, op, M, m, pt, p.pre[0] ? p.pre : NULL);
         }
@@ -585,68 +570,53 @@ static int semver_desugar(ComparatorSet *set, const char *token) {
             if (op == XSEMVER_OP_GT) {
                 return semver_add(set, XSEMVER_OP_GE, M, m + 1, 0, NULL);
             }
-            if (op == XSEMVER_OP_LE) {
-                return semver_add(set, XSEMVER_OP_LT, M, m + 1, 0, NULL);
-            }
             if (op == XSEMVER_OP_LT) {
-                return semver_add(set, XSEMVER_OP_LT, M, m, 0, NULL);
+                return semver_add(set, XSEMVER_OP_LT, M, m, 0, "0");
             }
             return semver_add(set, XSEMVER_OP_GE, M, m, 0, NULL);
         }
         if (op == XSEMVER_OP_GT) {
             return semver_add(set, XSEMVER_OP_GE, M + 1, 0, 0, NULL);
         }
-        if (op == XSEMVER_OP_LE) {
-            return semver_add(set, XSEMVER_OP_LT, M + 1, 0, 0, NULL);
-        }
         if (op == XSEMVER_OP_LT) {
-            return semver_add(set, XSEMVER_OP_LT, M, 0, 0, NULL);
+            return semver_add(set, XSEMVER_OP_LT, M, 0, 0, "0");
         }
         return semver_add(set, XSEMVER_OP_GE, M, 0, 0, NULL);
     }
     if (op == XSEMVER_OP_LE && !p.present[2] && p.present[1]) {
-        return semver_add(set, XSEMVER_OP_LT, M, m + 1, 0, NULL);
+        return semver_add(set, XSEMVER_OP_LT, M, m + 1, 0, "0");
     }
     if (op == XSEMVER_OP_LE && !p.present[1]) {
-        return semver_add(set, XSEMVER_OP_LT, M + 1, 0, 0, NULL);
+        return semver_add(set, XSEMVER_OP_LT, M + 1, 0, 0, "0");
     }
     if (op == 100) { /* tilde */
-        if (!p.present[0]) {
-            return semver_add(set, XSEMVER_OP_GE, 0, 0, 0, NULL);
-        }
         if (!semver_add(set, XSEMVER_OP_GE, M, m, pt, p.pre[0] ? p.pre : NULL)) {
             return 0;
         }
         if (p.present[1]) {
-            return semver_add(set, XSEMVER_OP_LT, M, m + 1, 0, NULL);
+            return semver_add(set, XSEMVER_OP_LT, M, m + 1, 0, "0");
         }
-        return semver_add(set, XSEMVER_OP_LT, M + 1, 0, 0, NULL);
+        return semver_add(set, XSEMVER_OP_LT, M + 1, 0, 0, "0");
     }
     if (op == 101) { /* caret */
-        if (!p.present[0]) {
-            return semver_add(set, XSEMVER_OP_GE, 0, 0, 0, NULL);
-        }
         if (!semver_add(set, XSEMVER_OP_GE, M, m, pt, p.pre[0] ? p.pre : NULL)) {
             return 0;
         }
         if (M > 0) {
-            return semver_add(set, XSEMVER_OP_LT, M + 1, 0, 0, NULL);
+            return semver_add(set, XSEMVER_OP_LT, M + 1, 0, 0, "0");
         }
         if (p.present[1] && m > 0) {
-            return semver_add(set, XSEMVER_OP_LT, 0, m + 1, 0, NULL);
+            return semver_add(set, XSEMVER_OP_LT, 0, m + 1, 0, "0");
         }
         if (p.present[1] && p.present[2] && m == 0) {
-            return semver_add(set, XSEMVER_OP_LT, 0, 0, pt + 1, NULL);
+            return semver_add(set, XSEMVER_OP_LT, 0, 0, pt + 1, "0");
         }
         if (p.present[1] && !p.present[2] && m == 0) {
-            return semver_add(set, XSEMVER_OP_LT, 0, 1, 0, NULL);
+            return semver_add(set, XSEMVER_OP_LT, 0, 1, 0, "0");
         }
-        return semver_add(set, XSEMVER_OP_LT, 1, 0, 0, NULL);
+        return semver_add(set, XSEMVER_OP_LT, 1, 0, 0, "0");
     }
     /* exact or partial equality */
-    if (!p.present[0]) {
-        return semver_add(set, XSEMVER_OP_GE, 0, 0, 0, NULL);
-    }
     if (p.present[2]) {
         return semver_add(set, XSEMVER_OP_EQ, M, m, pt, p.pre[0] ? p.pre : NULL);
     }
@@ -654,9 +624,9 @@ static int semver_desugar(ComparatorSet *set, const char *token) {
         return 0;
     }
     if (p.present[1]) {
-        return semver_add(set, XSEMVER_OP_LT, M, m + 1, 0, NULL);
+        return semver_add(set, XSEMVER_OP_LT, M, m + 1, 0, "0");
     }
-    return semver_add(set, XSEMVER_OP_LT, M + 1, 0, 0, NULL);
+    return semver_add(set, XSEMVER_OP_LT, M + 1, 0, 0, "0");
 }
 
 static int semver_is_range_operator(const char *token) {
@@ -671,26 +641,28 @@ static int semver_add_hyphen_range(ComparatorSet *set, const char *left,
     const char *right) {
     Partial lo;
     Partial hi;
-    if (!semver_parse_partial(left, &lo) ||
-        !semver_parse_partial(right, &hi) ||
-        !lo.present[0] || !hi.present[0]) {
+    if (!semver_parse_partial(left, &lo) || !semver_parse_partial(right, &hi)) {
         return 0;
+    }
+    if (!lo.present[0] && !hi.present[0]) {
+        return semver_add(set, XSEMVER_OP_ANY, 0, 0, 0, NULL);
     }
     if ((!hi.present[1] && hi.num[0] == LLONG_MAX) ||
         (!hi.present[2] && hi.present[1] && hi.num[1] == LLONG_MAX)) {
         return 0;
     }
-    if (!semver_add(set, XSEMVER_OP_GE, lo.num[0],
+    if (lo.present[0] && !semver_add(set, XSEMVER_OP_GE, lo.num[0],
             lo.present[1] ? lo.num[1] : 0,
             lo.present[2] ? lo.num[2] : 0,
             lo.pre[0] ? lo.pre : NULL)) {
         return 0;
     }
+    if (!hi.present[0]) return 1;
     if (!hi.present[2]) {
         if (hi.present[1]) {
-            return semver_add(set, XSEMVER_OP_LT, hi.num[0], hi.num[1] + 1, 0, NULL);
+            return semver_add(set, XSEMVER_OP_LT, hi.num[0], hi.num[1] + 1, 0, "0");
         }
-        return semver_add(set, XSEMVER_OP_LT, hi.num[0] + 1, 0, 0, NULL);
+        return semver_add(set, XSEMVER_OP_LT, hi.num[0] + 1, 0, 0, "0");
     }
     return semver_add(set, XSEMVER_OP_LE, hi.num[0], hi.num[1], hi.num[2],
         hi.pre[0] ? hi.pre : NULL);
@@ -763,6 +735,7 @@ static int semver_parse_set(const char *text, ComparatorSet *set) {
 }
 
 static int semver_comparator_matches(const Comparator *c, const SemVer *v) {
+    if (c->op == XSEMVER_OP_ANY) return 1;
     int r = semver_cmp_core(v, &c->bound);
     switch (c->op) {
         case XSEMVER_OP_GE: return r >= 0;

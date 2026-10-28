@@ -22,7 +22,7 @@
     <h1>semver</h1>
     <p class="extlib-lead">严格解析 SemVer 2.0.0 版本，比较优先级，并匹配常用依赖范围。</p>
     <p>版本 1.0.0 · C / xlang · 无扩展库依赖</p>
-    <p>2026-10-26 当前 Windows/Linux 发布物的严格 C、XLang 边界与分配故障、C/XLang 双语范例及独立 EXE 门禁通过；Linux 另通过 ASan/UBSan。可选 node-semver 7.8.5 外部差分本轮未运行。</p>
+    <p>2026-10-29 修复复合范围的预发布上界与通配边界。Windows/Linux 完整门禁、C/XLang 双语范例和八条独立程序路径通过，Linux 另通过 ASan/UBSan；Windows 对固定 node-semver 7.8.5 的 738,115 组共同语义对照零差异。</p>
   </header>
   <section id="start">
     <h2>快速开始</h2>
@@ -43,14 +43,17 @@ assert semver.satisfies("1.2.2", "&lt;=1.2.3")</code></pre>
       <tr><td><code>satisfies(version, range)</code></td><td>匹配常用依赖范围；非法范围返回 <code>false</code>。</td></tr>
     </tbody></table>
     <p>范围支持完整/部分版本、<code>x</code>/<code>*</code> 通配、比较运算符、<code>~</code>、<code>^</code>、空格交集、<code>||</code> 并集及 <code>A - B</code> 区间。比较符与版本号间可有空格/tab，例如 <code>&gt;= 1.2.3 &lt; 2.0.0</code>；区间的 <code>-</code> 两侧可有多个空格/tab。区间还能与同一分支的其他条件取交集，例如 <code>1.2.3 - 2.3.4 &gt;=2.0.0</code>。空范围或只含空格/tab 的范围匹配正式版本；空的 <code>||</code> 分支及只有运算符而无版本号的范围均属非法。需要显式通配时使用 <code>*</code>。prerelease 需要同一主次修订元组的显式 prerelease 比较器才会参与匹配。这是所列语法的实现，不宣称与 node-semver 的全部 API 或宽松解析模式等价。</p>
+    <p>简写上界保留预发布隔离：<code>^1.0.0 &gt;=2.0.0-alpha</code> 不匹配 <code>2.0.0-alpha</code>，因为其上界是 <code>&lt;2.0.0-0</code>；完整写法 <code>&lt;2.0.0 &gt;=2.0.0-alpha</code> 则可以匹配。部分上界 <code>&lt;=1.2</code> 展开为 <code>&lt;1.3.0-0</code>。全通配 <code>&lt;=*.*</code> 不限制正式版本；<code>&lt;*</code> 是合法空集，不会污染 <code>&lt;* || 1.2.3</code> 的另一分支。<code>* - 1.2.3</code>、<code>1.2.3 - *</code> 支持开放端点。单独通配仍不准入预发布；最低正式版下界 <code>&gt;=0.0.0</code> 按 node-semver 规则归一为无约束，其他正式版下界不消除。</p>
     <p>C 端包含 <code>extlibs/semver/semver_native.h</code>；四个整数结果使用与 XLang <code>int</code> 一致的 <code>int64_t</code>。三个文本入口返回 XRT 堆分配的 <code>char*</code>：C 调用方用 <code>xrtFree</code> 释放，XLang 的 <code>@owned</code> 声明直接接管。九个 C 入口不会带出陈旧 XRT 错误；三个字符串入口分配失败返回 <code>NULL</code> 并保留 <code>XERR_MEMORY</code>，XLang 对应入口抛出 <code>MemoryError</code>。版本分量受非负 64 位整数限制，单个 prerelease/build 字段最长 255 字节，范围文本最长 511 字节；每个 <code>||</code> 分支展开后最多容纳 32 个基础比较器，<code>^</code>、<code>~</code> 等简写可能占用两个。XLang 输入含内嵌 NUL 时按各接口的失败值返回，不会只检查前缀。</p>
   </section>
   <section id="verify">
     <h2>验证与边界</h2>
     <pre><code>xl run release/extlibs/semver/examples/semver_c.c
+xl run release/extlibs/semver/examples/ranges.xl
+xl run release/extlibs/semver/examples/ranges_c.c
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/semver/test/check.ps1
 bash release/extlibs/semver/test/check.sh</code></pre>
-    <p>严格版本与范围解析在格式上限内检查 C 字符串终止符；超限输入不会继续无界扫描。C/XLang 验证了范围长度和元数据字段的恰好上限；C 范例可直接用 xl 单文件运行。完整版本的 <code>&lt;=</code> 按包含式上界处理。三个文本入口的生成 C 直接保存字符串指针，仅扫描一次长度，不经 <code>takeCstr</code> 包装。2026-10-26 从当前源码构建 Windows/Linux 发布物后，两平台默认包门禁均通过 C、XLang JIT/AOT 与双语范例对照；Linux 另通过 ASan/UBSan。验收限本包声明的 SemVer 语法和资源上限，不含可选的 node-semver 外部差分。</p>
+    <p>严格版本与范围解析在格式上限内检查 C 字符串终止符；超限输入不会继续无界扫描。C/XLang 验证了范围长度和元数据字段的恰好上限；C 范例可直接用 xl 单文件运行。三个文本入口的生成 C 直接保存字符串指针，仅扫描一次长度，不经 <code>takeCstr</code> 包装。2026-10-29 默认门禁补齐 9 个实际生成原型、42 组复合范围边界及范围筛选双语黄金对照；Windows 35 阶段、Linux C ASan/UBSan 与两平台八条独立程序路径全部通过。独立对照固定官方 npm 的 node-semver 7.8.5，738,115 组零差异，404 组本包专有区间交集写法跳过；普通使用和日常门禁不依赖 Node.js。验收限本包声明的 SemVer 语法、实现上限与上述平台，不扩大称为完整上游 API 认证。</p>
   </section>
 </main>
 <script src="../main.js"></script>
