@@ -14277,13 +14277,36 @@ XL6_IrTypeId xl6IrBoundMethodCastIdentityType(
 /* Static typed binding authenticates a declaration, not an erased name group.
  * Nullable receiver syntax is admitted here only as a representation input;
  * lowering still materializes the ordinary checked/non-null class value. */
+int xl6IrBoundMethodSelectionMatches(const XL6_IrModule* module,
+    XL6_IrNodeId sourceId,XL6_SymbolId symbol)
+{
+    const XL6_IrNode* source=xl6IrNodeGet(module,sourceId);
+    if(!source)return 0;
+    if(!source->targetSymbol)return 1;
+    /* Concrete class/method clones retain a chain to the declaration chosen
+     * while the semantic generic-constraint evidence was still available. */
+    for(size_t depth=0;symbol && depth<=module->genericSpecializationCount;++depth){
+        if(symbol==source->targetSymbol)return 1;
+        XL6_SymbolId original=0;
+        for(size_t i=0;i<module->genericSpecializationCount;++i)
+            if(module->genericSpecializations[i].symbol==symbol){
+                const XL6_IrNode* declaration=xl6IrNodeGet(module,module->genericSpecializations[i].sourceDeclaration);
+                if(declaration)original=declaration->symbol;
+                break;
+            }
+        if(original==symbol)break;
+        symbol=original;
+    }
+    return 0;
+}
+
 int xl6IrBoundMethodTargetMatches(const XL6_IrModule* module,XL6_IrNodeId sourceId,
     XL6_SymbolId symbol,XL6_IrTypeId signatureId)
 {
     const XL6_IrNode* source=xl6IrNodeGet(module,sourceId);
     const XL6_IrCallTarget* target=xl6IrCallTargetGet(module,symbol);
     const XL6_IrType* signature=xl6IrTypeGet(&module->types,signatureId);
-    if(!source || source->kind!=XL6_IR_NODE_MEMBER || source->sourceKind!=XL6_AST_MEMBER ||
+    if(!xl6IrBoundMethodSelectionMatches(module,sourceId,symbol) || !source || source->kind!=XL6_IR_NODE_MEMBER || source->sourceKind!=XL6_AST_MEMBER ||
        source->childCount!=1 || !source->text || !target || !signature ||
        signature->kind!=XL6_IR_TYPE_FUNCTION || signature->callableErasureAbi!=XL6_IR_CALLABLE_ERASURE_FIXED ||
        !target->parameterCount || !target->parameterTypes || !target->parameterAbis ||

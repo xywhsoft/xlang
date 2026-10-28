@@ -85,6 +85,7 @@ def main():
             ['test/cases/extern_owned_task_scalars_host.c'],[]),
         ('error-array-extract','test/cases/extern_owned_error_array_extract.xl',
             ['test/cases/extern_owned_task_scalars_host.c','test/cases/extern_owned_string_host.c'],[]),
+        ('bound-generic-constraints','test/cases/extern_owned_bound_generic_constraints.xl',[],[]),
         ('generic-nullable-order','test/cases/extern_owned_generic_nullable_order.xl',[],[]),
         ('bound-base-dispatch','test/cases/extern_owned_bound_base_dispatch.xl',[],[]),
         ('bound-async-generic','test/cases/extern_owned_bound_async_generic.xl',
@@ -170,6 +171,8 @@ def main():
                 if args.cli else [binary,entry,'exe',work/'consumer-aot',*extra])
             run('export-C-consumer-aot',[(work/'consumer-aot').with_suffix('.exe' if os.name=='nt' else '')])
     negatives={
+        'test/cases/bad_extern_owned_bound_constraint.xl':'typed bound method violates generic constraints',
+        'test/cases/bad_extern_owned_bound_async_constraint.xl':'typed bound method violates generic constraints',
         'test/cases/bad_extern_owned_nullable_derived_invariant.xl':None,
         'test/cases/bad_extern_owned_bound_ambiguous.xl':'typed bound method requires one exact overload',
         'test/cases/bad_extern_owned_integer.xl':'@owned requires',
@@ -188,7 +191,7 @@ def main():
         'test/cases/bad_extern_owned_task_variadic.xl':'task.spawn argument type does not match func signature',
         'test/cases/bad_extern_owned_task_nullable.xl':'task.spawn first argument must be a func value',
         'test/cases/bad_extern_owned_task_nullable_invalidated.xl':'task.spawn first argument must be a func value',
-        'test/cases/bad_extern_owned_nullable_invariant.xl':'·ºĞÍº¯ÊıÀàĞÍÍÆ¶Ï³åÍ»',
+        'test/cases/bad_extern_owned_nullable_invariant.xl':'æ³›å‹å‡½æ•°ç±»å‹æ¨æ–­å†²çª',
     }
     for relative,message in negatives.items():
         source=ROOT/relative;name=source.stem.removeprefix('bad_extern_owned_')

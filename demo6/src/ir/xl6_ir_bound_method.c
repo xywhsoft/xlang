@@ -44,7 +44,8 @@ static int xl6IrLowerTryTypedBoundMethod(XL6_IrLowerContext* ctx,XL6_IrNodeId or
         source=xl6IrNodeGet(module,sourceId);
         signature=xl6IrTypeGet(&module->types,signatureId);
         if(method.ownerType!=ownerId || method.kind!=XL6_IR_DYNAMIC_CALL_METHOD ||
-           !method.name || strcmp(method.name,source->text)) continue;
+           !method.name || strcmp(method.name,source->text) ||
+           !xl6IrBoundMethodSelectionMatches(module,sourceId,method.targetSymbol)) continue;
         const XL6_IrNode* declaration=xl6IrNodeGet(module,method.declaration);
         const XL6_IrNode* params=declaration && declaration->childCount>2 ? xl6IrNodeGet(module,module->children[declaration->firstChild+1]) : NULL;
         const XL6_IrNode* returns=declaration && declaration->childCount>2 ? xl6IrNodeGet(module,module->children[declaration->firstChild+2]) : NULL;
@@ -78,7 +79,7 @@ static int xl6IrLowerTryTypedBoundMethod(XL6_IrLowerContext* ctx,XL6_IrNodeId or
                 matches=matches && future && future->cAbi==XL6_IR_C_ABI_RUNTIME_FUTURE_PTR && future->paramCount==1 && future->params;
                 if(matches)asyncPayload=future->params[0];
                 const XL6_IrType* payload=xl6IrTypeGet(&module->types,asyncPayload);
-                matches=matches && (returns->childCount==1 || (!returns->childCount && payload && payload->cAbi==XL6_IR_C_ABI_VOID));
+                matches=matches && (returns->childCount==1 || (!returns->childCount && payload && (payload->cAbi==XL6_IR_C_ABI_VOID || (payload->name && !strcmp(payload->name,"null")))));
             }else matches=matches && returns->childCount==signature->returnCount;
             for(size_t r=0;matches && r<returns->childCount;++r) {
                 const XL6_IrNode* returned=xl6IrNodeGet(module,module->children[returns->firstChild+r]);

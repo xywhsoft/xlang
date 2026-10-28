@@ -1,0 +1,33 @@
+// Constrained function values obey the same nominal/protocol checks as calls.
+class Base
+    int value=7
+end
+class Child extends Base
+end
+class Strict
+    func Echo<T is Base>(T value) as T
+        return value
+    end
+    async func Read<T is Base>(T value) as T
+        return value
+    end
+end
+class Fallback
+    func Echo<T is Base>(T value) as T
+        return value
+    end
+    func Echo<U>(U value) as U
+        return value
+    end
+end
+Strict strict=Strict()
+Child child=Child()
+func(Child) as Child echo=strict.Echo
+assert echo(child).value==7
+func(Child) as future<Child> read=strict.Read
+Child returned=await read(child)
+assert returned.value==7
+Fallback fallback=Fallback()
+// The invalid constrained candidate must not create an ambiguity or be instantiated.
+func(int) as int number=fallback.Echo
+assert number(7)==7

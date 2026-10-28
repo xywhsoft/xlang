@@ -8259,6 +8259,99 @@ static int xl6SemCheckXCallConversion(XL6_SemContext* ctx, XL6_AstNode* node)
     return ok;
 }
 
+/* A constrained method group must be resolved while semantic constraint
+ * evidence is available. Retain the erased method-value representation;
+ * only the selected declaration identity crosses into typed binding. */
+static int xl6SemConstrainedBoundMethod(XL6_SemContext* ctx,const XL6_AstNode* expr,
+    const XL6_AstNode* signature,int report)
+{
+    if(!expr || expr->kind!=XL6_AST_MEMBER || expr->childCount!=1 ||
+       !signature || signature->childCount!=2)return -1;
+    XL6_AstNode* receiver=xl6SemInferAutoTypeNode(ctx,expr->children[0]);
+    const XL6_AstNode* valueType=xl6SemClassValueType(ctx,receiver);
+    XL6_AstNode* owner=valueType && valueType->text ? xl6SemFindTypeDecl(ctx,valueType->text) : NULL;
+    if(!owner || owner->kind!=XL6_AST_CLASS){xl6AstFree(receiver);return -1;}
+    bool constrained=false;
+    for(XL6_AstNode* cls=owner;cls && !constrained;cls=xl6SemBaseClassDecl(ctx,cls)){
+        const XL6_AstNode* body=cls->childCount>1 ? cls->children[1] : NULL;
+        for(size_t m=0;body && m<body->childCount;++m){
+            const XL6_AstNode* method=body->children[m];
+            if(!method || !xl6TextEquals(xl6SemMemberName(method),expr->text))continue;
+            const XL6_AstNode* types=xl6SemFuncTypeParams(method);
+            for(size_t t=0;types && t<types->childCount;++t){
+                const XL6_AstNode* constraints=xl6SemGenericConstraintList(types->children[t]);
+                if(constraints && constraints->childCount)constrained=true;
+            }
+        }
+    }
+    if(!constrained){xl6AstFree(receiver);return -1;}
+    const XL6_AstNode* expected=signature->children[0];
+    const XL6_AstNode* expectedReturns=signature->children[1];
+    XL6_AstNode* selected=NULL;
+    uint64_t best=UINT64_MAX;size_t matches=0;
+    for(XL6_AstNode* cls=owner;cls && !matches;cls=xl6SemBaseClassDecl(ctx,cls)){
+        const XL6_AstNode* body=cls->childCount>1 ? cls->children[1] : NULL;
+        const XL6_AstNode* classArgs=cls==owner ? xl6SemTypeNodeGenericArgs(valueType) : NULL;
+        for(size_t m=0;body && m<body->childCount;++m){
+            const XL6_AstNode* method=body->children[m];
+            if(!method || (method->kind!=XL6_AST_FUNC && method->kind!=XL6_AST_ASYNC_FUNC &&
+               method->kind!=XL6_AST_NATIVE_EXTERN_FUNC) || (method->flags&XL6_AST_FLAG_STATIC) ||
+               !xl6SemCanAccessClassMember(ctx,cls,method) || !xl6TextEquals(xl6SemMemberName(method),expr->text))continue;
+            XL6_AstNode* params=classArgs ? xl6SemSubstituteClassType(cls,classArgs,xl6SemCallableParams(method)) : xl6SemCloneTypeNode(xl6SemCallableParams(method));
+            XL6_AstNode* typeParams=classArgs ? xl6SemSubstituteClassType(cls,classArgs,xl6SemFuncTypeParams(method)) : xl6SemCloneTypeNode(xl6SemFuncTypeParams(method));
+            XL6_AstNode** inferred=typeParams && typeParams->childCount ? xrtCalloc(typeParams->childCount,sizeof(*inferred)) : NULL;
+            bool ok=params && expected && params->childCount>=expected->childCount && (!typeParams || !typeParams->childCount || inferred);
+            uint64_t rank=0;
+            if(ok)ok=xl6CallRankAdd(&rank,0,(uint32_t)(params->childCount-expected->childCount));
+            for(size_t p=0;ok && p<params->childCount;++p){
+                const XL6_AstNode* param=params->children[p];
+                if(p>=expected->childCount){ok=param && param->childCount>=2;continue;}
+                const XL6_AstNode* type=param && param->childCount ? param->children[0] : NULL;
+                const XL6_AstNode* actual=xl6SemCallableItemType(expected->children[p]);
+                ok=type && xl6SemParamMode(param)==xl6SemParamMode(expected->children[p]);
+                bool generic=xl6SemTypeContainsTypeParam(typeParams,type)!=0;
+                if(ok)ok=generic ? xl6SemInferGenericTypeFromTypes(ctx,typeParams,inferred,type,actual) : xl6SemTypeEquals(ctx,type,actual);
+                if(ok && generic)ok=xl6CallRankAdd(&rank,XL6_CALL_GENERIC_MATCH_COST,0)!=0;
+            }
+            XL6_AstNode* worker=classArgs ? xl6SemSubstituteClassType(cls,classArgs,xl6SemCallableReturns(method)) : xl6SemCloneTypeNode(xl6SemCallableReturns(method));
+            const XL6_AstNode* resultList=expectedReturns;
+            const XL6_AstNode* asyncResult=NULL;
+            if(method->kind==XL6_AST_ASYNC_FUNC){
+                const XL6_AstNode* future=expectedReturns && expectedReturns->childCount==1 ? xl6SemResolveAliasType(ctx,expectedReturns->children[0]) : NULL;
+                asyncResult=future && xl6TextEquals(future->text,"future") ? xl6SemTypeNodeFirstGenericArg(future) : NULL;
+                ok=ok && worker && worker->childCount<=1 && asyncResult;
+            }else ok=ok && worker && resultList && worker->childCount==resultList->childCount;
+            for(size_t r=0;ok && r<worker->childCount;++r){
+                const XL6_AstNode* formal=worker->children[r];
+                const XL6_AstNode* actual=asyncResult ? asyncResult : resultList->children[r];
+                ok=xl6SemTypeContainsTypeParam(typeParams,formal) ? xl6SemInferGenericTypeFromTypes(ctx,typeParams,inferred,formal,actual) : xl6SemTypeEquals(ctx,formal,actual);
+            }
+            if(ok)ok=xl6SemCheckGenericInferredConstraints(ctx,typeParams,inferred,expr,0)!=0;
+            XL6_AstNode* args=xl6AstNew(XL6_AST_LIST,NULL);
+            for(size_t t=0;ok && typeParams && t<typeParams->childCount;++t){
+                if(!inferred[t]){ok=false;break;}
+                size_t old=args ? args->childCount : 0;
+                XL6_AstNode* arg=xl6SemCloneTypeNode(inferred[t]);
+                if(args && arg)xl6AstAddChild(args,arg);
+                if(!args || !arg || args->childCount!=old+1){xl6AstFree(arg);ok=false;}
+            }
+            XL6_AstNode* closed=ok ? xl6SemSubstituteGenericTypeArgs(typeParams,args,params) : NULL;
+            XL6_AstNode* returns=ok ? xl6SemCloneInvocationReturnTypes(ctx,cls,classArgs,method,args,expr) : NULL;
+            ok=ok && closed && returns && xl6SemFunctionTypeMatchesParts(ctx,signature,closed,returns);
+            if(ok && rank<best){selected=(XL6_AstNode*)method;best=rank;matches=1;}
+            else if(ok && rank==best)++matches;
+            for(size_t t=0;inferred && typeParams && t<typeParams->childCount;++t)xl6AstFree(inferred[t]);
+            xrtFree(inferred);xl6AstFree(typeParams);xl6AstFree(params);xl6AstFree(worker);
+            xl6AstFree(args);xl6AstFree(closed);xl6AstFree(returns);
+        }
+    }
+    xl6AstFree(receiver);
+    if(matches==1){if(report)((XL6_AstNode*)expr)->semanticTargetSymbolId=selected->semanticSymbolId;return 1;}
+    if(report)xl6SemErrorNode(ctx,expr,matches ? "typed bound method requires one exact overload" :
+        "typed bound method violates generic constraints or its exact signature");
+    return 0;
+}
+
 static int xl6SemExprCanMatchFunctionTypeEx(XL6_SemContext* ctx, const XL6_AstNode* expr, const XL6_AstNode* typeNode, int reportError)
 {
     XL6_Symbol* sym;
@@ -8383,6 +8476,10 @@ static int xl6SemExprCanMatchFunctionTypeEx(XL6_SemContext* ctx, const XL6_AstNo
             (typeNode->childCount==0||xl6SemFunctionTypeMatchesParts(ctx,typeNode,
                 concrete->childCount>0?concrete->children[0]:NULL,
                 concrete->childCount>1?concrete->children[1]:NULL));
+    }
+    if(matches && concrete && xl6TextEquals(concrete->text,"var")){
+        int constrained=xl6SemConstrainedBoundMethod(ctx,expr,typeNode,reportError);
+        if(constrained>=0)matches=constrained;
     }
     xl6AstFree(inferred);return matches;
 }
