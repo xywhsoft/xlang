@@ -81,18 +81,24 @@ timeout 120s "$xl" build "$pkg/examples/basic.c" -o "$work/basic_c_aot"
 timeout 30s "$work/basic_c_aot" > "$work/basic_c_aot.log"
 diff -u "$work/basic.log" "$work/basic_c_aot.log"
 
-"$cc" "${flags[@]}" "${strict[@]}" -DNDEBUG "$pkg/examples/text_bytes_c.c" \
-    "${objects[@]}" -lm -ldl -o "$work/text_bytes_gcc"
-timeout 30s "$work/text_bytes_gcc" > "$work/text_bytes_gcc.log"
-diff -u <(printf 'TEXT: 3 bytes\nBLOB: 3 bytes\nmiddle byte: 0\n') "$work/text_bytes_gcc.log"
-for language in c xl; do
-    source="$pkg/examples/text_bytes.xl"
-    if [[ $language == c ]]; then source="$pkg/examples/text_bytes_c.c"; fi
-    timeout 90s "$xl" run "$source" > "$work/text_bytes_$language.jit.log"
-    timeout 120s "$xl" build "$source" -o "$work/text_bytes_$language"
-    timeout 30s "$work/text_bytes_$language" > "$work/text_bytes_$language.aot.log"
-    diff -u "$work/text_bytes_gcc.log" "$work/text_bytes_$language.jit.log"
-    diff -u "$work/text_bytes_gcc.log" "$work/text_bytes_$language.aot.log"
+for name in text_bytes column_storage; do
+    "$cc" "${flags[@]}" "${strict[@]}" -DNDEBUG "$pkg/examples/${name}_c.c" \
+        "${objects[@]}" -lm -ldl -o "$work/${name}_gcc"
+    timeout 30s "$work/${name}_gcc" > "$work/${name}_gcc.log"
+    case "$name" in
+        text_bytes) printf 'TEXT: 3 bytes\nBLOB: 3 bytes\nmiddle byte: 0\n' ;;
+        column_storage) printf 'text: 你好\ninteger: 9223372036854775807\nutf8 bytes: 6\nzero blob: 4096\n' ;;
+    esac > "$work/$name.expected"
+    diff -u "$work/$name.expected" "$work/${name}_gcc.log"
+    for language in c xl; do
+        source="$pkg/examples/$name.xl"
+        if [[ $language == c ]]; then source="$pkg/examples/${name}_c.c"; fi
+        timeout 90s "$xl" run "$source" > "$work/${name}_$language.jit.log"
+        timeout 120s "$xl" build "$source" -o "$work/${name}_$language"
+        timeout 30s "$work/${name}_$language" > "$work/${name}_$language.aot.log"
+        diff -u "$work/${name}_gcc.log" "$work/${name}_$language.jit.log"
+        diff -u "$work/${name}_gcc.log" "$work/${name}_$language.aot.log"
+    done
 done
 
 sha256sum "${inputs[@]}" > "$work/inputs.after.sha256"

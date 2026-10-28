@@ -133,6 +133,7 @@ memory() as Database</code></pre>
     <p>成对范例：<code>examples/extlibs/sqlite_basic.xl</code> 与
     <code>extlibs/sqlite/examples/basic.c</code>，C 范例可直接 <code>xl run</code> 或 <code>xl build</code>。底层状态码入口保留 SQLite 返回码，高层 query 不吞掉 SQL 错误。</p>
     <h2 id="verification">专项验证</h2>
+    <p>2026-10-29：在原有149个 SQLite 分配点之外，新增当前行的五类列访问矩阵，实际覆盖 int64/float 转文本及 UTF-16 存储转 UTF-8 字符串/Buffer 的四条 SQLite OOM 路径。故障保留 MemoryError/SQLITE_NOMEM，释放语句后连接可恢复，最终 SQLite 内存归零，XRT 活动数量/字节回到基线。当前 vendor 在 step 阶段展开 zeroblob，因此其4096字节读回检查不冒充列访问 OOM。新增 <code>examples/column_storage.xl</code> 与 <code>examples/column_storage_c.c</code>，展示 UTF-16 存储、UTF-8结果、完整int64文本和独立结果寿命；可直接 xl run 或 xl build。Windows 默认61项、44原型、45常量及 Linux 完整 ASan/UBSan/JIT/AOT 门禁通过，双语范例与 GCC/TCC 输出一致。未改实现、vendor或主线；历史 Linux 无诊断退出风险仍待定位。</p>
     <p>Windows 37 项检查通过：44 个生成原型、45 个常量、SQLite 的 149 个分配故障点、
     XRT Buffer 与临时文本分配失败、四个独立线程、中文路径/锁竞争和 C/xlang JIT/AOT/GCC 范例输出对照。
     Linux 包级门禁现覆盖 C ASan/UBSan、分配故障与线程、中央/边界/文件 XLang JIT/AOT、公开双语范例的 JIT/AOT 和独立 GCC 固定输出对照。</p>

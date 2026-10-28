@@ -1,5 +1,34 @@
 # SQLite
 
+2026-10-29 延迟列转换补测：原有149个 SQLite 分配点主要覆盖打开、
+编译和执行，并不代表列访问转换已测完。新增五类当前行访问，实际
+命中 int64/float 转文本、UTF-16 存储转 UTF-8 字符串/Buffer 的四条
+SQLite 分配故障路径；均保留 `MemoryError` / `SQLITE_NOMEM`，不返回
+假成功或半成品，释放语句后连接仍可执行，最终 SQLite 内存归零。
+XRT 活动分配数量/字节也回到基线。`zeroblob(4096)` 另外核对全部正文：
+当前固定 vendor 在 step 阶段展开它，列访问阶段没有 SQLite 分配，
+因此不把这项描述为“新增的列 OOM 点”。既有 XRT 输出故障矩阵仍运行。
+
+新增成对范例 `examples/column_storage.xl` / `column_storage_c.c`：
+UTF-16 数据库存储、UTF-8 结果、完整 int64 十进制文本、4096字节 BLOB，
+以及语句和连接释放后继续使用独立拥有的文本/Buffer。C 拥有型文本
+使用 `xrtFree`，Buffer 使用 `xrtBufferDestroy`，不释放 SQLite 借用指针。
+从发布目录执行 `./xl run extlibs/sqlite/examples/column_storage.xl`
+或同名 `_c.c` 即可，均输出：
+
+```text
+text: 你好
+integer: 9223372036854775807
+utf8 bytes: 6
+zero blob: 4096
+```
+
+两平台默认完整门禁通过；Windows 为61项检查、44个生成原型与45个
+常量，Linux 使用原生文件系统隔离快照及 C ASan/UBSan。新旧成对
+范例的 GCC、C/TCC、XLang JIT 和各自独立 EXE 输出一致，输入指纹
+前后相同。本轮未改包实现、vendor、主线或 XRT；没有发现需要修复
+的列转换缺陷，也不据本次通过关闭历史 Linux 无诊断退出风险。
+
 2026-10-28 拥有型文本全链路复核：旧 `@owned string?` 结果进入
 `__sqlite_take_owned` 后又被编译成 `xlir_string_copy`，因此“接管处不复制”
 不代表整条返回链无额外副本。现删除可空中转；C 已把 SQL NULL 规范化为
