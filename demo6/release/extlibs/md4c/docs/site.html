@@ -20,7 +20,7 @@
   <header class="extlib-head">
     <p><a href="../extlibs.html">扩展库</a> / md4c</p>
     <h1>md4c</h1>
-    <p class="extlib-lead">把 CommonMark 或 GitHub 风格 Markdown 渲染成 HTML，也可直接读取 Markdown 文件。</p>
+    <p class="extlib-lead">把 CommonMark 或 GitHub 风格 Markdown 渲染成 HTML，也可直接读取 UTF-8 路径下的 Markdown 文件。</p>
     <p>版本 0.1.0 · C / xlang · 无扩展库依赖</p>
   </header>
   <section id="start">
@@ -46,6 +46,7 @@ print(plain)</code></pre>
       <tr><td><code>available / version / last_error</code></td><td>可用性、内核版本及最近一次原生错误。</td></tr>
     </tbody></table>
     <p>原生 HTML 默认允许。<code>no_html_flag</code> 不是 HTML 净化器；处理不可信 Markdown 时仍须审查链接和图片 URL，并使用应用级安全策略。</p>
+    <p>渲染选项可组合：<code>xhtml_flag()</code> 输出 <code>&lt;br /&gt;</code> / <code>&lt;img ... /&gt;</code>；<code>skip_utf8_bom_flag()</code> 跳过开头 BOM；<code>verbatim_entities_flag()</code> 保留 <code>&amp;copy;</code> 等实体拼写，默认则解码。输入64 MiB限制不等于输出或计算预算，服务端仍需应用级资源约束。</p>
   </section>
   <section id="c-api">
     <h2>C 混编</h2>
@@ -58,13 +59,16 @@ if (html != NULL) {
     xrtFree(html);
 }</code></pre>
     <p>C 渲染结果归调用方所有，失败返回 <code>NULL</code>，可通过线程内 <code>xmd4c_last_error()</code> 取错误。XLang 通过 <code>@owned string</code> 直接接管 XRT 缓冲，无需复制正文；接管时仍需扫描一次取得长度。XLang 文本和路径包含内嵌 NUL 时抛出 <code>ValueError</code>；文件内容中的 NUL 以及内存或文件内容中的非法 UTF-8 都会被拒绝，而非截断或生成非法 HTML。</p>
+    <p>解析器或输出分配失败统一为 <code>XERR_MEMORY</code> / <code>MemoryError</code>，不交回部分HTML；文件读取保留原始XRT错误，恢复后可立即重试。随包内核基于0.5.2并含明确记录的本地修订，来源与变更见包内 <code>third_party/UPSTREAM.md</code>。</p>
   </section>
   <section id="verify">
     <h2>验证与边界</h2>
     <pre><code>xl run release/extlibs/md4c/examples/md4c_c.c
+xl run release/extlibs/md4c/examples/article.xl
+xl run release/extlibs/md4c/examples/article_c.c
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/md4c/test/check.ps1
 bash release/extlibs/md4c/test/check.sh</code></pre>
-    <p>2026-10-27 Windows/Linux 包级门禁通过：严格 C、Linux ASan/UBSan、XLang 边界/分配故障、双语范例 JIT/AOT 与独立 EXE 同输出。三个 HTML 返回直接声明为 <code>@owned string</code>。<code>no_html_flag</code> 不是完整 HTML 安全净化策略。这些是包级证据，不代表整个 xlang 发布版签收。</p>
+    <p>2026-10-29 Windows默认48阶段与Linux完整包级门禁通过：严格C、ASan/UBSan、十二个实际生成原型、两平台各十一条独立程序与共同黄金HTML。解析器CRT逐点测试210预算、184次实际失败注入归零，覆盖连续扩容、属性、引用和围栏；另有XRT输出分配及语言异常恢复。三个HTML返回仍为直接 <code>@owned string</code>，没有在正式路径增加分配测试包装。这些是包级证据，不代表整个xlang发布完成。</p>
   </section>
 </main>
 <script src="../main.js"></script>

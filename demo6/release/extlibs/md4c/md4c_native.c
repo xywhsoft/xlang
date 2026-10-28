@@ -115,7 +115,8 @@ static char* xmd4c_render(const char* markdown, size_t size, unsigned parser_fla
 		xmd4c_append_html, &output, parser_flags, renderer_flags);
 	if ( rc != 0 || output.Failed ) {
 		xrtBufferUnit(&output.Buffer);
-		if ( rc != 0 ) xmd4c_fail(XERR_VALUE, "md4c parse failed");
+		/* 固定 HTML 回调不主动中止，ABI 也固定为 0；解析失败来自上游分配。 */
+		if ( rc != 0 ) xmd4c_fail(XERR_MEMORY, "md4c parser allocation failed");
 		return NULL;
 	}
 	return xmd4c_store_result(&output.Buffer);
