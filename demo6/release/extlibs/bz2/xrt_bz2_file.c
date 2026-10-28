@@ -12,10 +12,10 @@ static bool bz2_file(const char* source, const char* destination, bool compress,
 {
     xreader* reader = NULL;
     xwriter* writer = NULL;
-    xfile file = NULL;
+    xfile file = NULL, transaction = NULL;
     str directory = NULL, temporary = NULL;
     xerror* saved;
-    bool ok = false;
+    bool ok = false, removed = false;
     xrtClearError();
     if (source == NULL || source[0] == 0 || destination == NULL || destination[0] == 0) {
         xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.bz2", XRT_BZ2_ERROR_ARGUMENT,
@@ -37,6 +37,7 @@ static bool bz2_file(const char* source, const char* destination, bool compress,
     if (directory == NULL) goto cleanup;
     file = xrtFileTemp(directory[0] != 0 ? directory : ".", ".xrt-bz2-", ".tmp", &temporary);
     if (file == NULL) goto cleanup;
+    transaction = file; /* 仅借用，生命周期仍由下方的 Writer/文件清理负责。 */
     writer = xrtWriterTakeFile(&file);
     if (writer == NULL) goto cleanup;
     ok = compress ? xrtBz2CompressStream(reader, writer, options, progress, user, NULL) :
@@ -47,6 +48,9 @@ cleanup:
     // 清理错误不能覆盖首个失败，包括调用方的回调错误。
     saved = xrtTakeError();
     if (saved != NULL) ok = false;
+    // 异常时先回滚仍打开的事务，避免为 UTF-8 路径删除临时分配内存。
+    if (!ok && transaction != NULL && temporary != NULL)
+        removed = xrtFileDeleteOpen(transaction, temporary);
     if (writer != NULL && !xrtWriterDestroy(writer) && ok) { ok = false; saved = xrtTakeError(); }
     xrtClearError();
     if (file != NULL && !xrtClose(file) && ok) { ok = false; saved = xrtTakeError(); }
@@ -54,7 +58,7 @@ cleanup:
     if (reader != NULL && !xrtReaderDestroy(reader) && ok) { ok = false; saved = xrtTakeError(); }
     xrtClearError();
     if (ok && !xrtPathRename(temporary, destination, overwrite)) { ok = false; saved = xrtTakeError(); }
-    if (!ok && temporary != NULL) (void)xrtFileDelete(temporary);
+    if (!ok && temporary != NULL && !removed) (void)xrtFileDelete(temporary);
     xrtClearError();
     if (saved != NULL) {
         xrtSetError(saved);

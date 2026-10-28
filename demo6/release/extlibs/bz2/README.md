@@ -1,5 +1,33 @@
 # bz2
 
+2026-10-29：新增真实文件双故障回归。回调先报告错误，再让清理的
+下一次分配失败，Windows C/TCC的压缩/解压、过程/最终回调、新旧
+目标八组都遗留临时文件。现借用已有事务文件，在关闭Writer前复用
+XRT `xrtFileDeleteOpen` 回滚，八组定向转绿，首因和旧目标保持；
+不增加产品包装层、所有者或平台代码，正常文件流程不变。
+
+**RFS发布风险尚未闭环**：成功关闭后提交改名正常失败，再遇路径
+删除的OOM，Windows的16组探针在预算3的压缩与解压各遗留一个临时
+文件，目标目录不变。需要独立XRT上下文补预备事务回滚能力；本任务
+不修改XRT或以重复删除/关闭前提交掩盖问题。默认Windows门禁保留
+红项，旧单点OOM和完整绿灯不能代替该双故障的验收。复现见
+`dev/extlib_blockers/bz2_closed_transaction_oom_cleanup.md`。
+
+本轮Windows默认完整门禁77项中，74项正例与两项预期访问拒绝通过，
+仅最后关闭态回滚失败。包括26个实际生成C原型、269项Python互通、
+74个旧文件分配失败点、新八组C/GCC/TCC/独立EXE及旧语言/双语范例
+JIT/AOT；输入无变化，结果与失败现场保留在
+`build/test/bz2_cleanup_c95e6c58a8e54038a5f4dbfc44546825/results.json`。
+Linux原生快照默认门禁退出0，含ASan/UBSan、24组双故障、56个旧文件
+分配失败点、相同互通和双语JIT/AOT；内外输入均复核一致。该平台
+的按路径删除没有Windows转码分配，不据此关闭Windows风险。
+
+开发测试 `test/test_bz2_cleanup.c`、`test/test_bz2_commit_cleanup.c`
+从完整源码树执行 `xl run` 或 `xl build`，共用
+`test/support/extlib_codec_file_rollback.h`，不复制同一测试矩阵；
+不带参数时建立独占目录，成功清理，失败报告并保留现场，也可传入
+本次独占目录。该夹具只用于开发测试，未进入产品或双语自包含范例。
+
 2026-10-28 修复独立 C 桥接头的包含顺序：原先先包含核心头、再包含
 `bz2_native.h` 会因 `xvalue` 未声明而编译失败。桥接头现在只依赖标准
 bool/size_t 和公开 opaque 类型，不主动打开宿主的 XRT VALUE 模块。
