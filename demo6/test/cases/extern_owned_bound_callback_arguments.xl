@@ -1,0 +1,67 @@
+// Direct callback arguments must keep the same selected method and owner ABI
+// as a typed local, including nullable and lexical-private destinations.
+extern "c_owned_text" @no_raise func rawText() as point
+extern "c_owned_release" @no_raise func release(point data)
+extern "c_owned_text_is_original" @no_raise func original(string value) as bool
+extern "bound_c_owners_balanced" @no_raise func balanced() as bool
+extern "bound_c_owners_one_record" @no_raise func oneRecord() as bool
+extern "owned_reset" @no_raise func reset()
+class Reader
+    func Text() as cstring
+        return cstring.take(rawText(),release)
+    end
+    private func Hidden() as cstring
+        return self.Text()
+    end
+    func Exercise()
+        exact(self.Hidden)
+    end
+end
+typedef TextReader=func() as cstring
+func exact(TextReader? cb)
+    reset()
+    if cb!=null
+        string value=cb()
+        assert original(value) and oneRecord()
+    else
+        assert false
+    end
+end
+func copied(func() as string cb)
+    string value=cb()
+    assert value=="hello" and not original(value)
+end
+class Box<K>
+    func Echo<T>(T value) as T
+        return value
+    end
+    func Invoke(func(K) as K callback,K value) as K
+        return callback(value)
+    end
+    func Apply<T>(T value,func(T) as T callback) as T
+        return callback(value)
+    end
+end
+func apply<T>(func(T) as T callback,T value) as T
+    return callback(value)
+end
+func check()
+    Reader reader=Reader()
+    exact(reader.Text)
+    copied(reader.Text)
+    reader.Exercise()
+    Box<string> text=Box::<string>()
+    Box<int> number=Box::<int>()
+    // The class owner fixes the callback signature before Echo<T> is bound.
+    assert text.Invoke(text.Echo,"owner")=="owner"
+    assert number.Invoke(number.Echo,7)==7
+    // Fully typed callable values are structural witnesses for method T.
+    func(int) as int typed=number.Echo
+    assert text.Apply(11,typed)==11
+    func(string) as string typedText=text.Echo
+    assert number.Apply("method",typedText)=="method"
+    // An explicit global type argument supplies the same concrete boundary.
+    assert apply::<int>(text.Echo,13)==13
+end
+check()
+assert balanced()
