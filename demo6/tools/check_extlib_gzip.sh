@@ -13,6 +13,9 @@ input_paths() {
     printf '%s\0' lib/xrt/xrt.h lib/xruntime/xruntime.h test/support/extlib_codec_runtime.c \
         test/cases/extlib_codec_file_allocation.c tools/check_extlib_gzip.sh \
         tools/check_extlib_gzip_interop.py release/xl \
+        release/libxl.so release/libxlc.so release/include/xrt_decl.h \
+        release/include/xruntime_decl.h release/include/xl_extlib_abi.h \
+        tools/check_extlib_native_globals.ps1 tools/check_extlib_native_globals.sh \
         test/cases/extlib_gzip.xl test/cases/extlib_gzip_progress.xl \
         release/examples/extlibs/gzip.xl \
         release/examples/extlibs/gzip_basic.xl release/examples/extlibs/gzip_basic.expected.txt \
@@ -24,6 +27,10 @@ includes=(-Ilib/xrt -Ilib/xruntime)
 if [[ -n ${XRT_INCLUDE:-} ]]; then includes=("-I$XRT_INCLUDE"); fi
 flags=(-std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror "${includes[@]}"
        -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread)
+# Windows 检出的黄金文本可为 CRLF；只规范化期望行尾，不改实际输出。
+golden_output() {
+    diff -u <(sed 's/\r$//' "$1") "$2"
+}
 export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1
 export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
 sha256sum "${inputs[@]}" > "$work/inputs.before.sha256"
@@ -53,6 +60,9 @@ for kind in compressor decompressor; do
     fi
 done
 "$cc" --version > "$work/compiler.txt"
+for order in ALONE CORE_FIRST NATIVE_FIRST XRT_FIRST; do
+    "$cc" "${flags[@]}" "-DGZIP_$order" -fsyntax-only "$pkg/test/native_header.c"
+done
 "$cc" "${flags[@]}" -DXRT_MODULE_DEFLATE -DXRT_MODULE_INFLATE -DXRT_MODULE_DIR -DXRT_MODULE_FILE_WHOLE -c test/support/extlib_codec_runtime.c -o "$work/runtime.o"
 "$cc" "${flags[@]}" -c "$pkg/xrt_gzip.c" -o "$work/core.o"
 "$cc" "${flags[@]}" -c "$pkg/gzip_native.c" -o "$work/native.o"
@@ -65,7 +75,7 @@ done
 python3 tools/check_extlib_gzip_interop.py "$work/interop" "$work/interop-files" | tee "$work/interop.log"
 "$cc" "${flags[@]}" "$pkg/examples/basic.c" "${objects[@]}" -lm -ldl -o "$work/basic"
 timeout 30s "$work/basic" > "$work/basic.log"
-diff -u release/examples/extlibs/gzip_basic.expected.txt "$work/basic.log"
+golden_output release/examples/extlibs/gzip_basic.expected.txt "$work/basic.log"
 timeout 30s ./release/xl run "$pkg/examples/basic.c" > "$work/basic-direct.log"
 diff -u "$work/basic.log" "$work/basic-direct.log"
 timeout 30s ./release/xl run release/examples/extlibs/gzip_c.c > "$work/central-direct.log"
@@ -77,7 +87,7 @@ timeout 90s ./release/xl run "$pkg/test/file_ops.xl"
 timeout 90s ./release/xl run "$pkg/test/error_dispatch.xl"
 timeout 90s ./release/xl run test/cases/extlib_gzip_progress.xl
 timeout 90s ./release/xl run release/examples/extlibs/gzip_basic.xl > "$work/basic-xl.log"
-diff -u release/examples/extlibs/gzip_basic.expected.txt "$work/basic-xl.log"
+golden_output release/examples/extlibs/gzip_basic.expected.txt "$work/basic-xl.log"
 diff -u "$work/basic.log" "$work/basic-xl.log"
 timeout 90s ./release/xl run test/cases/extlib_gzip.xl
 timeout 90s ./release/xl run release/examples/extlibs/gzip.xl > "$work/gzip-xl.log"
@@ -98,7 +108,8 @@ for source in release/examples/extlibs/gzip.xl \
     if [[ $name == gzip ]]; then
         diff -u "$work/gzip-expected.log" "$work/$name-aot.log"
     else
-        diff -u release/examples/extlibs/gzip_basic.expected.txt \
+        golden_output release/examples/extlibs/gzip_basic.expected.txt \
             "$work/$name-aot.log"
     fi
 done
+bash "$root/tools/check_extlib_native_globals.sh" gzip

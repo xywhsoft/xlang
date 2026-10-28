@@ -4,10 +4,10 @@ set -euo pipefail
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$root"
 packages=("$@")
-if ((${#packages[@]} == 0)); then packages=(lz4 bz2 lzma miniz snappy xxhash zstd); fi
+if ((${#packages[@]} == 0)); then packages=(lz4 bz2 lzma miniz snappy xxhash zstd gzip); fi
 for package in "${packages[@]}"; do
     case "$package" in
-        lz4|bz2|lzma|miniz|snappy|xxhash|zstd) ;;
+        lz4|bz2|lzma|miniz|snappy|xxhash|zstd|gzip) ;;
         *) printf 'unsupported native global fixture: %s\n' "$package" >&2; exit 2 ;;
     esac
 done
