@@ -1,0 +1,84 @@
+// Owner arguments and method arguments form separate ordered parts of one
+// concrete cache key. Two owners may instantiate the same method signature.
+extern "c_owned_text" @no_raise func rawText() as point
+extern "c_owned_release" @no_raise func release(point value)
+extern "c_owned_text_is_original" @no_raise func original(string value) as bool
+extern "bound_c_owners_balanced" @no_raise func balanced() as bool
+extern "bound_c_owners_one_record" @no_raise func oneRecord() as bool
+extern "owned_reset" @no_raise func reset()
+class Box<K>
+    K saved
+    create(K value)
+        self.saved=value
+    end
+    func Echo<T>(T value) as T
+        return value
+    end
+    func Both<T>(T value) as (K,T)
+        return self.saved,value
+    end
+    func Reverse<U,V>(V first,U second) as (V,U,K)
+        return first,second,self.saved
+    end
+    async func Later<T>(T value) as T
+        return value
+    end
+    private func Hidden<T>(T value) as T
+        return value
+    end
+    func HiddenReader() as func(int) as int
+        return self.Hidden
+    end
+    func Forward<T>(T value) as T
+        return self.Echo(value)
+    end
+end
+class Owners<K>
+    K saved
+    create(K value)
+        self.saved=value
+    end
+    func Text<T>(T ignored) as cstring
+        return cstring.take(rawText(),release)
+    end
+end
+func apply<K>(Box<K> box,K value) as K
+    func(K) as K callback=box.Echo
+    return callback(value)
+end
+func check()
+    Box<string> text=Box::<string>("saved")
+    Box<int> number=Box::<int>(11)
+    assert text.Echo(7)==7 and number.Echo("text")=="text"
+    assert text.Forward(9)==9
+    func(int) as int first=text.Echo
+    func(int) as int second=number.Echo
+    assert first(7)==7 and second(9)==9
+    func(int) as (string,int) both=text.Both
+    auto saved,value=both(13)
+    assert saved=="saved" and value==13
+    func(int) as (int,int) numeric=number.Both
+    auto eleven,fifteen=numeric(15)
+    assert eleven==11 and fifteen==15
+    auto inferredFirst,inferredSecond,inferredSaved=text.Reverse(7,"second")
+    assert inferredFirst==7 and inferredSecond=="second" and inferredSaved=="saved"
+    func(int,string) as (int,string,string) reverse=text.Reverse
+    auto reversed,word,old=reverse(8,"word")
+    assert reversed==8 and word=="word" and old=="saved"
+    func(int) as int hidden=text.HiddenReader()
+    assert hidden(19)==19
+    assert apply(text,"applied")=="applied" and apply(number,23)==23
+    Owners<int> owners=Owners::<int>(29)
+    func(c_int) as cstring reader=owners.Text
+    reset()
+    string owned=reader(c_int(7))
+    assert original(owned) and oneRecord()
+end
+func futureValue() as future<int>
+    Box<string> box=Box::<string>("future")
+    func(int) as future<int> later=box.Later
+    return later(17)
+end
+check()
+assert balanced()
+assert await futureValue()==17

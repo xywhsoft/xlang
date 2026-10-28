@@ -1,0 +1,9 @@
+class Base
+end
+class Box<K>
+    func Echo<T is Base>(T value) as T
+        return value
+    end
+end
+Box<string> box=Box::<string>()
+auto callback=box.Echo as func(int) as int

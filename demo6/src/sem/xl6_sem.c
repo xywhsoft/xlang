@@ -8269,9 +8269,9 @@ static int xl6SemCheckXCallConversion(XL6_SemContext* ctx, XL6_AstNode* node)
     return ok;
 }
 
-/* Resolve constrained or nonpublic method groups while their semantic
- * evidence is available. Keep dynamic member visibility separate from a
- * lexically permitted static function binding. */
+/* Resolve fixed method groups while semantic access, owner arguments and
+ * constraint evidence are available. This also preserves the selection inside
+ * generic function templates until their concrete signatures are cloned. */
 static int xl6SemConstrainedBoundMethod(XL6_SemContext* ctx,const XL6_AstNode* expr,
     const XL6_AstNode* signature,int report)
 {
@@ -8281,25 +8281,22 @@ static int xl6SemConstrainedBoundMethod(XL6_SemContext* ctx,const XL6_AstNode* e
     const XL6_AstNode* valueType=xl6SemClassValueType(ctx,receiver);
     XL6_AstNode* owner=valueType && valueType->text ? xl6SemFindTypeDecl(ctx,valueType->text) : NULL;
     if(!owner || owner->kind!=XL6_AST_CLASS){xl6AstFree(receiver);return -1;}
+    const XL6_AstNode* expected=signature->children[0];
+    if(expected && expected->childCount && (xl6SemTypeIsVararg(expected->children[expected->childCount-1]) ||
+        xl6SemTypeIsCVararg(expected->children[expected->childCount-1]))){
+        xl6AstFree(receiver);return -1;
+    }
     bool constrained=false;
     for(XL6_AstNode* cls=owner;cls && !constrained;cls=xl6SemBaseClassDecl(ctx,cls)){
         const XL6_AstNode* body=cls->childCount>1 ? cls->children[1] : NULL;
         for(size_t m=0;body && m<body->childCount;++m){
             const XL6_AstNode* method=body->children[m];
-            if(!method || !xl6TextEquals(xl6SemMemberName(method),expr->text))continue;
-            if(method->flags&(XL6_AST_FLAG_PRIVATE|XL6_AST_FLAG_PROTECTED))constrained=true;
-            const XL6_AstNode* returns=xl6SemCallableReturns(method);
-            for(size_t r=0;returns && r<returns->childCount;++r)
-                if(xl6SemCOwnedResultHasOwner(ctx,returns->children[r]))constrained=true;
-            const XL6_AstNode* types=xl6SemFuncTypeParams(method);
-            for(size_t t=0;types && t<types->childCount;++t){
-                const XL6_AstNode* constraints=xl6SemGenericConstraintList(types->children[t]);
-                if(constraints && constraints->childCount)constrained=true;
-            }
+            if(method && (method->kind==XL6_AST_FUNC || method->kind==XL6_AST_ASYNC_FUNC ||
+                method->kind==XL6_AST_NATIVE_EXTERN_FUNC) && !(method->flags&XL6_AST_FLAG_STATIC) &&
+                xl6TextEquals(xl6SemMemberName(method),expr->text))constrained=true;
         }
     }
     if(!constrained){xl6AstFree(receiver);return -1;}
-    const XL6_AstNode* expected=signature->children[0];
     const XL6_AstNode* expectedReturns=signature->children[1];
     XL6_AstNode* selected=NULL;
     uint64_t best=UINT64_MAX;size_t matches=0;
