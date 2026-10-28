@@ -25,7 +25,7 @@ if($PublicSourceDirectory){
 }
 $manifest=Get-Content (Join-Path $Root "$pkg/xlang.package.json") -Raw|ConvertFrom-Json
 $sources=@($manifest.artifact.cSources|ForEach-Object{"$pkg/$_"})
-$cases=@('test/cases/extlib_color.xl','release/examples/extlibs/color.xl','release/examples/extlibs/color_basic.xl')+@($manifest.coverage.tests|ForEach-Object{"$pkg/$_"})
+$cases=@('test/cases/extlib_color.xl','release/examples/extlibs/color.xl','release/examples/extlibs/color_basic.xl',"$pkg/examples/theme.xl")+@($manifest.coverage.tests|ForEach-Object{"$pkg/$_"})
 $environment=@{XLANG_PACKAGE_PATH=(Join-Path $Root 'release/extlibs')}
 $inputs=[ordered]@{}; $checks=[Collections.Generic.List[object]]::new()
 function InputPaths {
@@ -72,7 +72,7 @@ try {
         $objects+=$object
     }
     $links=$objects+@('-lws2_32','-ladvapi32','-lm')
-    foreach($name in @('test_color','test_threads','oracle')){
+    foreach($name in @('test_color','test_contracts','test_threads','oracle')){
         $exe=Join-Path $work "$name.exe"
         $testFlags=if($name -eq 'oracle'){$flags}else{$flags+@('-DNDEBUG')}
         $null=Check "$name-build" $gcc ($testFlags+@("$pkg/test/$name.c")+$links+@('-o',$exe))
@@ -91,6 +91,7 @@ try {
         $null=Language "$name-cgen" $case 'cgen' $prefix
         $decls+=@(Get-Content "$prefix.c"|Where-Object{$_ -match '^extern .*\bxcolor_\w+\('})
         if($name -eq 'color_basic'){$xlOutput=$jit}
+        if($name -eq 'theme'){$themeOutput=$jit}
         if($compiler -and $name -ne 'allocations'){
             $formal=Check "$name-formal-jit" $xl @('run',$case)
             if($formal -cne $jit){throw "$name formal/source output differs"}
@@ -141,6 +142,20 @@ try {
     $outputs=@($xlOutput,$native,$cjit,$helper)
     if(-not $SkipAot){$outputs+=@($caot)}
     foreach($output in $outputs){if($output -cne $golden){throw 'Color bilingual output mismatch'}}
+    $themeGolden=[IO.File]::ReadAllText((Join-Path $Root "$pkg/examples/theme.expected.txt")).Replace("`r`n","`n").TrimEnd("`n")
+    $themeSource="$pkg/examples/theme_c.c"; $themeExe=Join-Path $work 'theme-c.exe'
+    $null=Check 'theme-c-build' $gcc ($flags+@('-DNDEBUG',$themeSource,$runtime,'-lws2_32','-ladvapi32','-lm','-o',$themeExe))
+    $themeC=Check 'theme-c' $themeExe @()
+    $themeJit=Check 'theme-c-jit' $xl @('run',$themeSource)
+    foreach($output in @($themeOutput,$themeC,$themeJit)){
+        if($output -cne $themeGolden){throw 'Color theme bilingual output mismatch'}
+    }
+    if(-not $SkipAot){
+        $themeExe=Join-Path $work 'theme-c-aot.exe'
+        $null=Check 'theme-c-aot-build' $xl @('build',$themeSource,'-o',$themeExe)
+        $themeAot=Check 'theme-c-aot' $themeExe @()
+        if($themeAot -cne $themeGolden){throw 'Color theme C AOT output mismatch'}
+    }
     foreach($dll in @('xl','xlc')){
         $library=Join-Path $Root "release/$dll.dll"
         Copy-Item -LiteralPath $library -Destination (Join-Path $work "$dll.dll")
