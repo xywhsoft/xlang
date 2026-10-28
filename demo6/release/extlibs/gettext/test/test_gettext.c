@@ -380,7 +380,11 @@ static int test_six_form_plural(void)
         "msgid \"item\"\nmsgid_plural \"items\"\n"
         "msgstr[0] \"zero\"\nmsgstr[1] \"one\"\n"
         "msgstr[2] \"two\"\nmsgstr[3] \"few\"\n"
-        "msgstr[4] \"many\"\nmsgstr[5] \"other\"\n";
+        "msgstr[4] \"many\"\nmsgstr[5] \"other\"\n\n"
+        "msgctxt \"counter\"\nmsgid \"item\"\nmsgid_plural \"items\"\n"
+        "msgstr[0] \"ctx zero\"\nmsgstr[1] \"ctx one\"\n"
+        "msgstr[2] \"ctx two\"\nmsgstr[3] \"ctx few\"\n"
+        "msgstr[4] \"ctx many\"\nmsgstr[5] \"ctx other\"\n";
     static const struct { int64_t count; const char *expected; } cases[] = {
         {0, "zero"}, {1, "one"}, {2, "two"}, {3, "few"},
         {10, "few"}, {11, "many"}, {99, "many"}, {100, "other"},
@@ -395,6 +399,21 @@ static int test_six_form_plural(void)
             char *result = xgt_tn(catalog, "item", "items", cases[i].count);
             if (!result || strcmp(result, cases[i].expected) != 0) ok = 0;
             xrtFree(result);
+        }
+        /* GNU 式无计数查询只取首形式，不能假定第 0 槽就是 n=1。 */
+        for (i = 0; i < 2; ++i) {
+            const char *expected = i ? "ctx zero" : "zero";
+            const char *borrowed = i ? xgt_tc_borrowed(catalog, "counter", "item") :
+                xgt_t_borrowed(catalog, "item");
+            char *owned = i ? xgt_tc(catalog, "counter", "item") : xgt_t(catalog, "item");
+            if (!borrowed || !owned || strcmp(borrowed, expected) != 0 ||
+                strcmp(owned, expected) != 0 || xrtGetError()) ok = 0;
+            xrtFree(owned);
+        }
+        {
+            char *one = xgt_tnc(catalog, "counter", "item", "items", 1);
+            if (!one || strcmp(one, "ctx one") != 0 || xrtGetError()) ok = 0;
+            xrtFree(one);
         }
     }
     xrtValueRelease(catalog);

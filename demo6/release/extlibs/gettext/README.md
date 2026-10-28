@@ -6,6 +6,18 @@
 这是保证目录销毁或输入退役后结果仍有效所需的一次复制，
 不把它误称为可消除的桥接复制。
 
+2026-10-28：修复 C 上下文查询在 `context` 或 `msgid` 为 NULL 时绕过
+目录类型、分隔符和复数规则验证的问题。缺参路径复用既有统一查询，不再
+另写原文返回逻辑；正常借用/拥有合同与有效的原文返回保持不变。
+独立 C 测试覆盖五种非目录值、三种缺参组合、借用/拥有两组接口共 60 个
+类型负例，以及空上下文区别、非法分隔符、计数错误和错误后的恢复。
+Windows 默认完整门禁及 Linux 原生文件系统同源码门禁通过，含
+ASan/UBSan、逐分配故障、八条普通 AOT、双语同输出；Linux 另以 GNU
+`msgfmt` 生成 MO，sanitizer C、XLang JIT/AOT 读取均通过。
+门禁现在成功才清理，失败保留现场；Windows 受控退出 37、Linux 无输出
+退出 37 与缺编译器退出 127 均验证了原始诊断。Linux 复用一次编译的共同
+XRT 对象，未改变生产依赖或宏裁剪口径。
+
 2026-10-26 当前 Windows/Linux 包门禁均退出 0：严格 C、Linux
 ASan/UBSan、中央/重复键/边界/分配故障/输入限额用例 JIT 与独立
 EXE AOT、双语成对范例和公开范例 AOT 全通过。C 单文件范例也由
@@ -39,7 +51,17 @@ PO/MO 解析时，译文片段直接从借用的解析视图构造独立 XRT 字
 | `gettext.tnc(catalog, context, msgid, plural, n)` | 带 `msgctxt` 的复数查询 |
 
 没有 `Plural-Forms` 头时默认按英语 `n != 1` 选择形式。复数数量必须非负。PO 的转义、多行条目、上下文和按顺序编号的复数项均可解析；MO 支持大端、小端。查询结果彼此独立，不会覆盖前一次调用结果。PO/MO 格式错误不作静默降级。目录是数据对象而不是共享全局状态，可同时保留多个语种。
+`t` / `tc` 是**无计数**查询：命中复数条目时取第 0 个形式，不保证它对应
+`n=1`。需要按计数选译文时使用 `tn` / `tnc`，即使计数恰好是 1。
+这沿用 [GNU libintl 的无计数查询语义](https://raw.githubusercontent.com/autotools-mirror/gettext/master/gettext-runtime/intl/dcigettext.c)，
+不同于 [Python GNUTranslations 在复数条目上计算 plural(1)](https://github.com/python/cpython/blob/3.14/Lib/gettext.py#L416)。
+C/XLang 的六形式边界与成对范例均固定此区别，不将 API 差异误作 BUG 改动。
 四种查询的 `catalog` 必须是解析得到的 XRT object；传入 `null`、数字或其他类型时，C 返回 `NULL` 并设置 `XERR_TYPE`，XLang 抛 `TypeError`。只有合法目录中的消息未命中时才返回原文。
+C 的 `tc` / `tnc` 若没有 `context` 或 `msgid`，不查找译文键，按原文规则
+返回结果；这不免除目录类型、其余非空字符串和复数规则的检查。`NULL`
+上下文与 `""` 不同：前者没有查询键，后者可以命中 `msgctxt ""` 条目。
+借用接口仍直接返回目录或输入中的指针，拥有接口仍返回由 `xrtFree` 释放的
+独立字符串；不将这项 C 可空指针规则扩成新的 XLang 语言语法。
 复数公式的总递归深度上限为 48，括号、条件表达式和连续一元运算符共同计数；超限目录报格式错误，不绕过解析器的栈深限制。
 导入时会验证公式语法并抽样常见计数，但不能证明任意计数都不会除零；若某个计数触发公式错误，该次查询报 `ValueError`，其他计数的查询仍可继续。未选中的条件分支不执行除法。
 PO 源文本与 MO 中的原文、译文必须是有效 UTF-8；无效字节及 PO 转义产生的无效字节均报格式错误。包不按目录头的 `charset` 转码；非 UTF-8 目录须在调用前转换为 UTF-8。
@@ -91,6 +113,9 @@ Linux C ASan/UBSan 通过；当次语言门禁受下述旧 Linux `xl` 的 `cbyte
 以下为历史验证记录；共享缺符号的“当前”表述均指记录当时的旧发布版。
 2026-10-22：包内 C/XLang 成对范例新增 `tnc` 上下文复数、`parseMo` 固定二进制夹具和 `loadMo` 文件入口，现覆盖七个公开语言入口；C 范例还展示拥有型 MO 文件字节与目录值的释放。两侧各自核对译文，再比较完整输出。Windows `test/check.ps1 -SkipAot` 与 Linux `test/check.sh`（含 C ASan/UBSan）通过；库实现/API 未改，完整 AOT 仍受下述共享缺符号阻断。
 Windows 门禁每次使用独立的 `build/test/gettext_guard_*` 目录编译 XRT、C 测试和范例，结束时清理本次产物；并行门禁不会复用旧对象或互相覆盖。
+当前门禁只在成功后清理，失败保留目录供排查；运行前后核对包、夹具、
+XRT/声明头及实际 CLI/运行库指纹。PATH 中有多个 GCC 时只选第一个应用路径，
+不把多个命令结果拼接成无法执行的文件名。`-SkipAot` 仍不能替代完整验收。
 当前默认门禁的 C/JIT 阶段通过，首个边界 AOT 构建仍缺共享 `xl6NativeHandleTraceLeaf`；脚本按退出码报告此失败并清理本次目录，不能据此签收完整 AOT。
 对应的 C 示例可单文件运行：`release/xl.exe run release/extlibs/gettext/examples/gettext_c.c`。示例包含目录和复数表达式两个实现文件；正式扩展包仍按 manifest 分别编译，并由 C 测试验证。
 Linux C sanitizer 与 XLang 对照门禁可用 `bash release/extlibs/gettext/test/check.sh` 复跑；

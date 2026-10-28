@@ -35,6 +35,9 @@ msgstr "\\x41\\x42\\?"
     assert gettext.tc(catalog, "menu", "Open") == "打开菜单"
     assert gettext.tn(catalog, "file", "files", 3) == "多个文件"
     assert gettext.tnc(catalog, "toolbar", "file", "files", 2) == "工具栏两个文件"
+    // t/tc 仅取首形式；实际计数必须传给 tn/tnc，不假定首形式永远对应 1。
+    assert gettext.t(catalog, "file") == "一个文件"
+    assert gettext.tc(catalog, "toolbar", "file") == "工具栏文件"
     println("menu:", gettext.tc(catalog, "menu", "Open"))
     println("many:", gettext.tn(catalog, "file", "files", 3))
     println("toolbar:", gettext.tnc(catalog, "toolbar", "file", "files", 2))

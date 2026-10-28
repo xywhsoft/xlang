@@ -581,13 +581,14 @@ static char *xgt_context_key(const char *context, const char *msgid) {
     size_t left;
     size_t right;
     char *key;
-    if (!context || !msgid) return NULL;
+    if (!context) return NULL;
     left = strlen(context);
-    right = strlen(msgid);
     if (memchr(context, '\004', left) != NULL) {
         xgt_error("gettext context separator in context");
         return NULL;
     }
+    if (!msgid) return NULL;
+    right = strlen(msgid);
     if (left > SIZE_MAX - right - 2) {
         xgt_error("context key is too long");
         return NULL;
@@ -655,10 +656,8 @@ const char *xgt_tc_borrowed(xvalue *catalog, const char *context, const char *ms
     const char *result;
     xrtClearError();
     key = xgt_context_key(context, msgid);
-    if (!key) {
-        if (context && msgid) return NULL;
-        return msgid ? msgid : "";
-    }
+    /* 缺参也走统一检查；只有构键的实际错误才直接返回。 */
+    if (!key && xrtGetError()) return NULL;
     result = xgt_translate_borrowed(catalog, key, msgid, NULL, 1, 0);
     xrtFree(key);
     return result;
@@ -674,12 +673,7 @@ const char *xgt_tnc_borrowed(xvalue *catalog, const char *context, const char *m
         return NULL;
     }
     key = xgt_context_key(context, msgid);
-    if (!key) {
-        if (context && msgid) return NULL;
-        const char *fallback = n == 1 || !msgidPlural ?
-            (msgid ? msgid : "") : msgidPlural;
-        return fallback;
-    }
+    if (!key && xrtGetError()) return NULL;
     result = xgt_translate_borrowed(catalog, key, msgid, msgidPlural, n, 1);
     xrtFree(key);
     return result;

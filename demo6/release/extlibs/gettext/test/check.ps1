@@ -5,11 +5,21 @@ $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../..')).Path
 $testRoot = [IO.Path]::GetFullPath((Join-Path $root 'build/test'))
 $workRelative = 'build/test/gettext_guard_' + [guid]::NewGuid().ToString('N')
 $work = Join-Path $root $workRelative
-$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
+$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $xl = Join-Path $root 'release/xl.exe'
 $flags = @('-std=c11', '-O2', '-Wall', '-Wextra', '-Werror', '-Ilib/xrt',
     '-Irelease/extlibs/gettext')
 $links = @('-lWs2_32', '-lAdvapi32', '-lIphlpapi', '-lm')
+$inputs = @('release/xl.exe', 'release/xl.dll', 'release/xlc.dll',
+    'lib/xrt/xrt.h', 'lib/xruntime/xruntime.h', 'release/include/xrt_decl.h',
+    'release/include/xruntime_decl.h', 'release/include/xl_extlib_abi.h',
+    'test/cases/extlib_gettext.xl', 'test/fixtures/gettext_mini.mo',
+    'release/examples/extlibs/gettext.xl') | ForEach-Object { Join-Path $root $_ }
+$inputs += @(Get-ChildItem (Join-Path $root 'release/extlibs/gettext') -Recurse -File |
+    ForEach-Object FullName)
+$hashes = @{}
+foreach ($path in $inputs) { $hashes[$path] = (Get-FileHash -LiteralPath $path).Hash }
+$passed = $false
 
 function Run([string]$name, [string]$program, [string[]]$arguments) {
     $previousPreference = $ErrorActionPreference
@@ -40,6 +50,12 @@ try {
         @('release/extlibs/gettext/test/test_gettext.c', $runtime) +
         $links + @('-o', $test))
     $null = Run 'C test' $test @($workRelative)
+
+    $contextTest = Join-Path $work 'gettext_context_test.exe'
+    $null = Run 'C context compile' $gcc ($flags + $native +
+        @('release/extlibs/gettext/test/test_context_queries.c', $runtime) +
+        $links + @('-o', $contextTest))
+    $null = Run 'C context queries' $contextTest @()
 
     $example = Join-Path $work 'gettext_example.exe'
     $null = Run 'C example compile' $gcc ($flags +
@@ -113,6 +129,12 @@ try {
     } finally {
         Pop-Location
     }
+    foreach ($path in $hashes.Keys) {
+        if ((Get-FileHash -LiteralPath $path).Hash -ne $hashes[$path]) {
+            throw "gettext input changed during gate: $path"
+        }
+    }
+    $passed = $true
 } finally {
     Pop-Location
     $safeWork = [IO.Path]::GetFullPath($work)
@@ -121,6 +143,10 @@ try {
         throw "Unsafe test cleanup path: $safeWork"
     }
     if (Test-Path -LiteralPath $safeWork) {
-        Remove-Item -LiteralPath $safeWork -Recurse -Force
+        if ($passed) {
+            Remove-Item -LiteralPath $safeWork -Recurse -Force
+        } else {
+            Write-Warning "gettext failure artifacts: $safeWork"
+        }
     }
 }
