@@ -124,6 +124,9 @@ static void xl6SemConstructorError(void* context,XL6_ConstructorNode n,const cha
 static int xl6SemCheckConstructorAssignment(XL6_SemContext* sem,const XL6_AstNode* owner,
     const XL6_AstNode* constructor)
 {
+    /* A compiled-package constructor calls the already verified host body.
+     * Its declaration/layout and exact binding are checked again in XLIR. */
+    if(constructor->compiledPackageLink)return 1;
     XL6_SemConstructorView context={sem,owner,NULL,constructor->semanticReceiverSymbolId};
     XL6_ConstructorView view={&context,xl6SemConstructorKind,xl6SemConstructorCount,
         xl6SemConstructorChild,xl6SemConstructorText,xl6SemConstructorFacts,xl6SemConstructorError,1048576};

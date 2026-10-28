@@ -18,6 +18,10 @@ void xl6EmitXlangRuntimeComponent(XL6_Output* out)
         "#include <xl.h>\n"
         "#endif\n", out);
     xl6OutputPuts("\n", out);
+    xl6OutputPuts("#if defined(XL6_COMPILER_SOURCE_VFS)\n#include <__xl_compiler/include/xl_package.h>\n#else\n#include <xl_package.h>\n#endif\n",out);
+    xl6OutputPuts("static const XL_CompiledPackage* xlir_compiled_package_lookup(const char*);\n",out);
+    xl6OutputPuts("void* xl6_xlang_compiled_package(xlir_string name) { const char* text = xlir_string_cstr(name); return text ? (void*)xlir_compiled_package_lookup(text) : NULL; }\n",out);
+    xl6OutputPuts("bool xl6_xlang_context_import_package(void* context, void* package) { return context && xlImportCompiledPackage((XL_Context*)context,(const XL_CompiledPackage*)package) != 0; }\n",out);
 
     xl6OutputPuts("void* xl6_xlang_context_create(void)\n", out);
     xl6OutputPuts("{\n", out);

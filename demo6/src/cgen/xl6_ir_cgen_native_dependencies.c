@@ -252,6 +252,7 @@ int xl6IrCgenVisitNativeModules(const XL6_IrModule* module, XL6_DiagList* diags,
          !visitor(context,"XRT_MODULE_THREAD"))) return 0;
     if ((module->abi.entryKind!=XL6_IR_MODULE_ENTRY_NONE || (options && options->emitScriptEntry)) &&
         !visitor(context,"XRT_MODULE_CONSOLE")) return 0;
+    if(needs.needsDebugConsoleRuntime && !visitor(context,"XRT_MODULE_STRING_FORMAT"))return 0;
 #define XL6_IR_CGEN_NEED(Type, Field, Group) \
     if (needs.Field && !xl6IrCgenVisitNativeGroup(XL6_IR_CGEN_NATIVE_##Group, \
             (uint64_t)needs.Field,visitor,context)) return 0;

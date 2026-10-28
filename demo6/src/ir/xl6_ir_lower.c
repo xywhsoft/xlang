@@ -13343,7 +13343,7 @@ static int xl6IrLowerRegisterCallTarget(XL6_IrLowerContext* ctx, XL6_IrNodeId de
          * Fix the public handle ABI before ordinary async result wrapping so
          * call lowering emits GENERATOR_START and the continuation frame owns
          * the parameters. */
-        if ( (target->kind == XL6_IR_CALL_TARGET_INTERNAL ||
+        if ( !node->compiledPackageLink && (target->kind == XL6_IR_CALL_TARGET_INTERNAL ||
               target->kind == XL6_IR_CALL_TARGET_INTERNAL_ASYNC) &&
              generator != NULL &&
              generator->cAbi == XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR ) {
@@ -14792,6 +14792,14 @@ static int xl6IrLowerPrecomputeCallTargetErrorAbis(XL6_IrLowerContext* ctx)
         XL6_IrCallTarget* target = &module->callTargets[i];
         const XL6_IrNode* declaration = xl6IrNodeGet(module, target->declaration);
         XL6_IrNodeId body;
+        if (declaration && declaration->compiledPackageLink) {
+            if (target->kind != XL6_IR_CALL_TARGET_INTERNAL ||
+                (declaration->compiledPackageError != 1 && declaration->compiledPackageError != 2))
+                return xl6IrLowerDiag(ctx, target->declaration, "invalid compiled package callable ABI");
+            target->errorAbi = declaration->compiledPackageError == 2
+                ? XL6_IR_ERROR_ABI_MAY_RAISE : XL6_IR_ERROR_ABI_NO_RAISE;
+            continue;
+        }
         if ( target->kind == XL6_IR_CALL_TARGET_EXTERN_C ||
              target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY ) {
             if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NONE ) {
@@ -14880,6 +14888,7 @@ static int xl6IrLowerPrecomputeCallTargetErrorAbis(XL6_IrLowerContext* ctx)
              * construction is lazy; launch and worker outcomes are separate. */
             if ( *bodyErrorAbi == XL6_IR_ERROR_ABI_MAY_RAISE ) continue;
             declaration = xl6IrNodeGet(module, target->declaration);
+            if (declaration && declaration->compiledPackageLink) continue;
             body = declaration != NULL && declaration->sourceKind == XL6_AST_CREATE
                 ? xl6IrLowerCreateSignaturePart(module, target->declaration, XL6_IR_NODE_BLOCK)
                 : (declaration != NULL && declaration->childCount >
@@ -15589,6 +15598,9 @@ static XL6_IrNodeId xl6IrLowerSpecializationCloneNode(
      * both owners before any fallible allocation so partial clones are safe. */
     target->text = NULL;
     target->literalData = NULL;
+    target->compiledPackageLink = NULL;
+    if (source.compiledPackageLink &&
+        !(target->compiledPackageLink = xrtStrDup(source.compiledPackageLink))) return 0;
     target->text = source.text != NULL ? xrtStrDupN(source.text, strlen(source.text)) : NULL;
     if ( source.text != NULL && target->text == NULL ) return 0;
     if (source.literalData != NULL) {
@@ -18780,6 +18792,14 @@ static int xl6IrLowerVerifyErrorAbis(XL6_IrLowerContext* ctx)
     for ( i = 0; i < module->callTargetCount; ++i ) {
         const XL6_IrCallTarget* target = &module->callTargets[i];
         size_t functionIndex;
+        const XL6_IrNode* declaration=xl6IrNodeGet(module,target->declaration);
+        if(declaration && declaration->compiledPackageLink) {
+            if(target->kind!=XL6_IR_CALL_TARGET_INTERNAL ||
+                target->errorAbi!=(declaration->compiledPackageError==2
+                    ? XL6_IR_ERROR_ABI_MAY_RAISE:XL6_IR_ERROR_ABI_NO_RAISE))
+                return xl6IrLowerDiag(ctx,target->declaration,"compiled package error ABI changed during lowering");
+            continue;
+        }
         if ( target->kind != XL6_IR_CALL_TARGET_INTERNAL &&
              target->kind != XL6_IR_CALL_TARGET_INTERNAL_ASYNC &&
              target->kind != XL6_IR_CALL_TARGET_INTERNAL_GENERATOR ) continue;
@@ -33766,6 +33786,7 @@ int xl6IrLowerModule(XL6_IrModule* module, XL6_DiagList* diags)
             XL6_IrNodeId candidate = module->children[root->firstChild + i];
             const XL6_IrNode* node = xl6IrNodeGet(module, candidate);
             if ( node != NULL && node->kind == XL6_IR_NODE_FUNC_DECL &&
+                 !node->compiledPackageLink &&
                  node->sourceKind != XL6_AST_EXTERN_FUNC &&
                  node->sourceKind != XL6_AST_NATIVE_EXTERN_SPECIAL &&
                   node->sourceKind != XL6_AST_NATIVE_EXTERN_FUNC && node->childCount > 3 &&
@@ -33801,6 +33822,7 @@ int xl6IrLowerModule(XL6_IrModule* module, XL6_DiagList* diags)
                 xl6IrLowerIsStaticClassMethod(module,candidate,node)) && node->childCount > 3
                 ? module->children[node->firstChild + 3] : XL6_IR_NODE_INVALID);
         if ( node->kind == XL6_IR_NODE_FUNC_DECL &&
+            !node->compiledPackageLink &&
             (node->sourceKind == XL6_AST_CREATE || classProperty ||
               xl6IrLowerIsInstanceClassMethod(module, candidate, node) ||
               xl6IrLowerIsStaticClassMethod(module,candidate,node)) &&

@@ -1075,6 +1075,7 @@ const char* xl6StdlibXlangClassSource =
     "    extern \"xl6_xlang_context_set_save_temps\" func setSaveTemps(bool enabled) as bool\n"
     "    extern \"xl6_xlang_context_run_source\" func run(string source) as bool\n"
     "    extern \"xl6_xlang_context_run_file\" func runFile(string path) as bool\n"
+    "    extern \"xl6_xlang_context_import_package\" func importPackage(point package) as bool\n"
     "    extern \"xl6_xlang_context_run_source_args\" func runArgNative(string source, array args) as bool\n"
     "    extern \"xl6_xlang_context_run_file_args\" func runFileArgNative(string path, array args) as bool\n"
     "    extern \"xl6_xlang_context_clear_last_error\" func clearLastError()\n"
@@ -4002,6 +4003,8 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"tcc", "vfsMount", "__xl_std_tcc_vfs_mount", NULL, NULL, 0, "bool", xl6StdTccVfsMountBody},
     {"tcc", "vfsClear", "__xl_std_tcc_vfs_clear", NULL, NULL, 0, "", xl6StdTccVfsClearBody},
     {"xlang", "Context", "__xl_std_xlang_context", NULL, NULL, 0, "XLangContext", xl6StdXlangContextBody},
+    {"xlang", "compiledPackage", "__xl_std_xlang_compiled_package", NULL, NULL, 0, "point",
+        "extern \"xl6_xlang_compiled_package\" func __xl_std_xlang_compiled_package(string name) as point\n"},
     {"xlang", "run", "__xl_std_xlang_run", NULL, NULL, 0, "bool", xl6StdXlangRunBody},
     {"xlang", "runFile", "__xl_std_xlang_run_file", NULL, NULL, 0, "bool", xl6StdXlangRunFileBody},
 

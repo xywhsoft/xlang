@@ -1,0 +1,60 @@
+import compiled_demo
+import compiled_leaf
+import compiled_demo as hostPackage
+from compiled_demo import Box as ImportedBox, add as importedAdd
+
+assert compiled_demo.next() == 2
+assert compiled_demo.next() == 3
+assert compiled_demo.add(40) == 42
+assert compiled_demo.combined() == 42
+assert compiled_leaf.value() == 21
+assert importedAdd(40) == 42 and hostPackage.answer == 42
+compiled_demo.Count typedCount = 42
+assert typedCount == 42 and int(compiled_demo.Mode.busy) == 2
+assert compiled_demo.add("host", " package") == "host package"
+assert compiled_demo.Recipes.identity(42) == 42
+assert compiled_demo.Recipes.identity("recipe") == "recipe"
+auto counter = compiled_demo.Counter(20)
+assert counter.add(1) == 21
+assert counter.twice() == 42
+auto hostCounter = compiled_demo.makeCounter(21)
+assert hostCounter.twice() == 42
+auto box = compiled_demo.Box(21)
+auto importedBox = ImportedBox(21)
+assert importedBox.read() == 21
+assert box.read() == 21 and box.doubled == 42
+assert compiled_demo.readBox(box) == 21
+auto hostBox = compiled_demo.makeBox(42)
+assert hostBox.read() == 42
+auto operation = func(int value) as int
+    return value * 2
+end
+assert compiled_demo.apply(21, operation) == 42
+auto callbackBox = compiled_demo.CallbackBox(operation)
+assert callbackBox.invoke(21) == 42
+auto fromHost = compiled_demo.callbackFactory(2)
+assert fromHost(40) == 42
+assert compiled_demo.mutateText("host") == "host!"
+auto savedText = compiled_demo.saveText("retained\0text")
+assert savedText() == "retained\0text"
+auto number, text = compiled_demo.pair(42)
+assert number == 42 and text == "paired"
+auto borrowedMethod = hostBox.read
+assert borrowedMethod() == 42
+func(int, int) as int sharedFunction = compiled_demo.add
+assert sharedFunction(40, 2) == 42
+int scaleValue = 21
+assert compiled_demo.scale(scaleValue) == 42
+assert compiled_demo.nativeText() == "owned native text"
+func rawIdentity(int value) as int
+    return value
+end
+assert compiled_demo.applyRaw(rawIdentity, 42) == 42
+assert (await compiled_demo.AsyncWork.immediate(21)) == 42
+assert (await compiled_demo.AsyncWork.chained(21)) == 42
+int sum = 0
+for value in compiled_demo.Generators.values(3)
+    sum += value
+end
+assert sum == 6
+println("compiled_package_script=ok")

@@ -1,0 +1,8 @@
+int count = 0
+
+export func next() as int
+    count += 1
+    return count
+end
+
+export extern "embedded_math_multiply" @no_raise func multiply(int a, int b) as int

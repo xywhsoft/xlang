@@ -1,0 +1,5 @@
+import embedded_math
+
+assert embedded_math.next() == 2
+assert embedded_math.multiply(6, 7) == 42
+println("external package script=42")

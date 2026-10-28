@@ -17,6 +17,7 @@
 #include "src/runtime/xl6_native_value_abi.h"
 #include "src/runtime/xl6_tree_key_abi.h"
 #include "src/abi/xl6_native_generic.h"
+#include "src/ir/xl6_ir_compiled_package.h"
 
 /* One finite closure budget, shared by callable and field initializer graphs. */
 enum { XL6_IR_GENERIC_SPECIALIZATION_LIMIT = 1024 };
@@ -3198,6 +3199,9 @@ typedef struct XL6_IrNode {
     XL6_IrTypeId declarationOwnerType;
     unsigned int flags;
     char* text;
+    char* compiledPackageLink;
+    unsigned int compiledPackageError;
+    int compiledPackageRoot;
     /* Decoded literal payload.  STRING/BYTES retain their exact byte length;
      * CHAR stores one already validated Unicode scalar.  Source quoting and
      * escape syntax never cross this frontend-to-XLIR boundary. */
@@ -6659,6 +6663,8 @@ typedef struct XL6_IrSymbolBinding {
 } XL6_IrSymbolBinding;
 
 typedef struct XL6_IrModule {
+    XL6_IrCompiledPackage* compiledPackages;
+    size_t compiledPackageCount;
     XL6_IrStage stage;
     XL6_IrTypePool types;
     XL6_IrRuntimeTypeMap runtimeTypeMap;

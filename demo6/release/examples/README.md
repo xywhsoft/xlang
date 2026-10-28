@@ -4,6 +4,8 @@
 
 ## 推荐入口
 
+- `embedded_package/README.md`: an EXE explicitly mounts its compiled xlang/native package into a script Context; deployment needs only the EXE and external script.
+
 - `tutorial/README.md`：按学习顺序组织的小型教学范例。
 - `feature_suite/README.md`：按语言特性组织的完整功能范例套件。
 - `apps/README.md`：把语言特性和标准库组合成小工具的复合应用范例。

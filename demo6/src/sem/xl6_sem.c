@@ -12493,6 +12493,12 @@ static XL6_AstNode* xl6SemCloneTypeNode(const XL6_AstNode* node)
     copy->semanticTypeAbiId = node->semanticTypeAbiId;
     copy->semanticSymbolId = node->semanticSymbolId;
     copy->semanticReceiverSymbolId = node->semanticReceiverSymbolId;
+    copy->compiledPackageError = node->compiledPackageError;
+    copy->compiledPackageRoot = node->compiledPackageRoot;
+    if (node->compiledPackageLink &&
+        !(copy->compiledPackageLink = xrtStrDup(node->compiledPackageLink))) {
+        xl6AstFree(copy); return NULL;
+    }
     copy->semanticTargetSymbolId = node->semanticTargetSymbolId;
     copy->semanticCompoundOperatorSymbolId =
         node->semanticCompoundOperatorSymbolId;
