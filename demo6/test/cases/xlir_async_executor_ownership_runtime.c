@@ -123,6 +123,22 @@ static XL6_OwnershipPlanResult create_plan(xrtownershipref root,Resolve* context
         assert(!*output);xrtClearError();assert(!xrtDeadlineExpired(deadline));xrtThreadYield();
     }
 }
+static void prepare_rooted(XL6_OwnershipPlan* plan,Resolve* context)
+{
+    xdeadline deadline=xrtDeadlineAfter(5000000);
+    for(;;){
+        context->busy=false;XL6_OwnershipPlanResult state=xl6OwnershipPlanTryRefresh(plan);
+        if(state==XL6_OWNERSHIP_PLAN_ERROR){assert(context->busy);xrtClearError();}
+        else if(state!=XL6_OWNERSHIP_PLAN_BUSY){
+            assert(state==XL6_OWNERSHIP_PLAN_ROOTED);
+            context->busy=false;XL6_OwnershipStepResult step=xl6OwnershipPlanPrepare(plan);
+            if(step==XL6_OWNERSHIP_STEP_READY)return;
+            if(step==XL6_OWNERSHIP_STEP_ERROR){assert(context->busy);xrtClearError();}
+            else assert(step==XL6_OWNERSHIP_STEP_BUSY);
+        }
+        assert(!xrtDeadlineExpired(deadline));xrtThreadYield();
+    }
+}
 static void prepare_until(XL6_OwnershipPlan* plan,Resolve* context,bool allDone)
 {
     xdeadline deadline=xrtDeadlineAfter(5000000);
@@ -161,8 +177,7 @@ static void cycle(unsigned size,bool waitCleanup,unsigned rootKind,bool feeder)
     assert(create_plan(root,&context,&plan)==XL6_OWNERSHIP_PLAN_ROOTED&&plan);
     if(!rootKind)owner_drop(owner);
     for(unsigned i=!rootKind?1u:0u;i<size;++i)xrtFutureDestroy(outputs[i]);
-    assert(xl6OwnershipPlanTryRefresh(plan)==XL6_OWNERSHIP_PLAN_ROOTED);
-    assert(xl6OwnershipPlanPrepare(plan)==XL6_OWNERSHIP_STEP_READY);
+    prepare_rooted(plan,&context);
     for(unsigned i=0;i<size;++i)assert(!xrtFutureDone(outputs[i])&&!xrtAtomic64Load(&caught[i],XMEMORY_ACQUIRE));
     if(!rootKind)xrtFutureDestroy(outputs[0]);else owner_drop(owner);
     prepare_until(plan,&context,!waitCleanup);
@@ -175,8 +190,7 @@ static void cycle(unsigned size,bool waitCleanup,unsigned rootKind,bool feeder)
             xrtCancelDestroy(cancel);
         }
         assert(requests==1);assert(xrtOwnershipScopeEnd(&freeze));
-        assert(xl6OwnershipPlanTryRefresh(plan)==XL6_OWNERSHIP_PLAN_ROOTED);
-        assert(xl6OwnershipPlanPrepare(plan)==XL6_OWNERSHIP_STEP_READY);++resurrections;
+        prepare_rooted(plan,&context);++resurrections;
         assert(xrtPromiseResolve(cleanupPromise,&payload));prepare_until(plan,&context,true);
     }
     quiet_freeze(executor,&freeze);

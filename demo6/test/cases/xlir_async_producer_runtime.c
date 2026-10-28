@@ -9,6 +9,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <windows.h>
+#include "test/support/xlir_ownership_wait.h"
 
 static const XL6_ContinuationFrameRuntimeV2* api;
 static const XL6_ContinuationFrameRuntimeV3* produced;
@@ -23,8 +24,7 @@ static void balance(const xmemdebugsnapshot* before)
 }
 static DWORD WINAPI freeze_worker(void* unused)
 {
-    (void)unused;xrtownershipscope freeze={0};DWORD started=GetTickCount();
-    while(!xrtOwnershipFreezeTryBegin(&freeze)){assert((DWORD)(GetTickCount()-started)<5000);SwitchToThread();}
+    (void)unused;xrtownershipscope freeze={0};xlirOwnershipFreezeBegin(&freeze);
     assert(xrtOwnershipScopeEnd(&freeze));return 0;
 }
 static void cross_thread(void)
@@ -41,18 +41,18 @@ static bool collect(xrtownershipref ref,void* data)
 }
 static Edges edges_of(xrtownershipref ref)
 {
-    xrtownershipscope freeze={0};Edges edges={0};assert(xrtOwnershipFreezeTryBegin(&freeze));
+    xrtownershipscope freeze={0};Edges edges={0};xlirOwnershipFreezeBegin(&freeze);
     assert(ref.Ops->Trace(ref.Data,collect,&edges));assert(xrtOwnershipScopeEnd(&freeze));return edges;
 }
 static size_t refs(xrtownershipref ref)
 {
-    xrtownershipscope freeze={0};size_t count=0;assert(xrtOwnershipFreezeTryBegin(&freeze));
+    xrtownershipscope freeze={0};size_t count=0;xlirOwnershipFreezeBegin(&freeze);
     assert(ref.Ops->Count(ref.Data,&count));assert(xrtOwnershipScopeEnd(&freeze));return count;
 }
 static xrtownershipref producer_of(xfuture* output,xrtownershipref frame)
 {
     Edges edges=edges_of(xrtFutureOwnership(output));xrtownershipref found={0};
-    xrtownershipscope freeze={0};assert(xrtOwnershipFreezeTryBegin(&freeze));
+    xrtownershipscope freeze={0};xlirOwnershipFreezeBegin(&freeze);
     for(size_t i=0;i<edges.count;++i){const xrtownershippreparationv1* preparation=NULL;
         if(xl6ContinuationFrameOwnershipAdapterV1(edges.items[i],&preparation)){
             assert(!found.Data&&edges.items[i].Ops!=frame.Ops);found=edges.items[i];
@@ -109,21 +109,21 @@ static void generated(unsigned outcome,bool ready,bool allocationSweep)
     /* Each physical child and each exact XRT policy must be admitted independently. */
     Resolve refused[4]={{first,false,false},{producer,false,false},{{0},true,false},{{0},false,true}};
     for(unsigned i=0;i<4;++i){XL6_OwnershipPlan* rejected=NULL;
-        assert(xl6OwnershipPlanTryCreateV2(root,resolve,&refused[i],&rejected)==XL6_OWNERSHIP_PLAN_ERROR&&!rejected);
+        assert(xlirOwnershipPlanCreateV2(root,resolve,&refused[i],&rejected)==XL6_OWNERSHIP_PLAN_ERROR&&!rejected);
         ++denials;xrtClearError();assert(refs(producer)==2&&refs(first)==3);
     }
     if(allocationSweep)for(unsigned budget=0;budget<32;++budget){
         XL6_OwnershipPlan* probe=NULL;assert(xrtMemDebugFailAfter(budget));
-        XL6_OwnershipPlanResult result=xl6OwnershipPlanTryCreateV2(root,resolve,NULL,&probe);
+        XL6_OwnershipPlanResult result=xlirOwnershipPlanCreateV2(root,resolve,NULL,&probe);
         bool failed=xrtMemDebugFailTriggered();xrtMemDebugFailClear();++oomAttempts;
         if(result==XL6_OWNERSHIP_PLAN_ERROR){assert(failed&&!probe);++trueOoms;}
-        else{assert(result==XL6_OWNERSHIP_PLAN_ROOTED&&probe);assert(xl6OwnershipPlanTryDestroy(probe)==XL6_OWNERSHIP_PLAN_READY);}
+        else{assert(result==XL6_OWNERSHIP_PLAN_ROOTED&&probe);assert(xlirOwnershipPlanStep(xl6OwnershipPlanTryDestroy,probe)==XL6_OWNERSHIP_PLAN_READY);}
         xrtClearError();assert(refs(producer)==2&&refs(first)==3);
     }
     XL6_OwnershipPlan* plan=NULL;
-    assert(xl6OwnershipPlanTryCreateV2(root,resolve,NULL,&plan)==XL6_OWNERSHIP_PLAN_ROOTED&&plan);
+    assert(xlirOwnershipPlanCreateV2(root,resolve,NULL,&plan)==XL6_OWNERSHIP_PLAN_ROOTED&&plan);
     assert(refs(producer)==3&&refs(first)==4);xrtFutureDestroy(output); /* real Plan Hold now owns this observer */
-    assert(xl6OwnershipPlanTryCommit(plan)==XL6_OWNERSHIP_PLAN_ROOTED&&!xl6ContinuationRunOne(queue));
+    assert(xlirOwnershipPlanStep(xl6OwnershipPlanTryCommit,plan)==XL6_OWNERSHIP_PLAN_ROOTED&&!xl6ContinuationRunOne(queue));
     cross_thread();complete(promises[0],0);xl6ContinuationQueueClose(queue);
     assert(xl6ContinuationRunOne(queue)&&observations==2&&refs(first)==1);
     xrtownershipref second=api->Ownership(observed[1]);assert(!same(first,second));
@@ -137,8 +137,8 @@ static void generated(unsigned outcome,bool ready,bool allocationSweep)
     assert(xrtFutureState(output)==(!outcome?XFUTURE_RESOLVED:outcome==1?XFUTURE_FAILED:outcome==2?XFUTURE_CLOSED:XFUTURE_CANCELLED));
     if(!outcome)assert(*(int64_t*)xrtFutureValue(output)==172);
     assert(refs(first)==1&&refs(second)==1&&refs(producer)==1);current_is(producer,(xrtownershipref){0});
-    assert(xl6OwnershipPlanTryCommit(plan)==XL6_OWNERSHIP_PLAN_READY);
-    cross_thread();assert(xl6OwnershipPlanFinish(plan)&&xl6OwnershipPlanTryDestroy(plan)==XL6_OWNERSHIP_PLAN_READY);
+    assert(xlirOwnershipPlanStep(xl6OwnershipPlanTryCommit,plan)==XL6_OWNERSHIP_PLAN_READY);
+    cross_thread();assert(xl6OwnershipPlanFinish(plan)&&xlirOwnershipPlanStep(xl6OwnershipPlanTryDestroy,plan)==XL6_OWNERSHIP_PLAN_READY);
     assert(xl6ContinuationQueueDestroy(queue));queue=NULL;
     for(unsigned i=0;i<2;++i){xrtPromiseDestroy(promises[i]);xrtFutureDestroy(sources[i]);sources[i]=NULL;}
     ++graphs;balance(&before);

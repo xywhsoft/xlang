@@ -27,6 +27,7 @@ try {
         'test/cases/xlir_cell_continuation_outcome.xl','test/cases/xlir_async_pool_launch_allocation.xl',
         'test/cases/xlir_async_launch_allocation.xl','test/cases/xlir_async_managed_dll.c','test/cases/xlir_async_managed_dll.h',
         'test/cases/xlir_async_storage_frame.c')+@(Get-Item -LiteralPath $sources)+@(Get-Item -LiteralPath $managedSources)+@(Get-Item -LiteralPath $producerSources)
+    $files+=Get-Item -LiteralPath 'test/support/xlir_ownership_wait.h'
     $inputs=@($public.Inputs)+@($public.Headers)+@($runtime)+@($contracts.Inputs)+@($contracts.Drivers)+
         @($files | ForEach-Object {[pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})
     if(@($inputs | Where-Object {(Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256}).Count){throw 'Stale async-storage inputs'}
