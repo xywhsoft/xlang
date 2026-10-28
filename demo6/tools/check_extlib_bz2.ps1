@@ -71,6 +71,10 @@ try {
         Write-Host "[bz2] ${name}: rejected as expected"
     }
     $null = Check 'compiler-version' $gcc @('--version')
+    foreach ($order in @(@(), @('-DBZ2_CORE_FIRST'), @('-DBZ2_NATIVE_FIRST'), @('-DBZ2_XRT_FIRST'))) {
+        $null = Check 'native-header-order' $gcc ($flags + $order + @('-fsyntax-only',
+            'release/extlibs/bz2/test/native_header.c'))
+    }
     $runtime = Join-Path $work 'runtime.o'
     $null = Check 'runtime' $gcc ($flags + @('-DXRT_MODULE_DIR','-DXRT_MODULE_DIR_TEMP','-DXRT_MODULE_FILE_WHOLE','-DXRT_MODULE_PATH','-c','test/support/extlib_codec_runtime.c','-o',$runtime))
     $objects += $runtime
