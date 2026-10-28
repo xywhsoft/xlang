@@ -25,6 +25,7 @@ try {
     New-Item -ItemType Directory -Path $work|Out-Null
     $utf8=[Text.UTF8Encoding]::new($false)
     $checks=[Collections.Generic.List[object]]::new()
+    $nativeSelections=[Collections.Generic.List[object]]::new()
     $inputs=[ordered]@{}
     $cases=@('stdlib_regex_core_only','stdlib_regex_match','stdlib_regex_errors','stdlib_regex_iterators',
         'stdlib_regex_replace_only','stdlib_regex_replace_buffer','stdlib_regex_replace_buffer_errors',
@@ -61,7 +62,7 @@ try {
     }
     $extra=@($PSCommandPath,'tools/check_stdlib_regex.sh','test/cases/xlir_regex_host.c','test/support/regex_native.c',
         'test/cases/xlir_pattern_host.c','test/support/pattern_native.c','test/cases/xlir_pattern_builder_host.c','test/support/pattern_builder_native.c','test/cases/xlir_error_projection_contract.c','test/cases/xlir_continuation_owner_test.h','test/cases/xlir_synthetic_owner_edit.h',
-        'test/cases/xlir_text_value_contract.c','test/cases/xlir_string_interpolation_host.c','test/cases/xlir_regex_extended_host.c','test/cases/xlir_regex_callback_host.c',
+        'test/cases/xlir_text_value_contract.c','test/cases/xlir_artifact_runtime_contract.c','test/cases/xlir_string_interpolation_host.c','test/cases/xlir_regex_extended_host.c','test/cases/xlir_regex_callback_host.c',
         'test/cases/xlir_constructor_flow_solver.c','test/cases/xlir_constructor_definite_assignment_contract.c',
         'test/cases/xlir_constructor_definite_assignment.xl',
         'tools/extlib_smoke_process.ps1','tools/xlir_native_process.ps1','tools/xlir_resident_closure.ps1',
@@ -104,10 +105,6 @@ try {
             $nativeClosures.builder.Sources+$libs+@('-o',"$work/pattern-builder-native.exe"))
         if((Check 'pattern-builder-native' "$work/pattern-builder-native.exe" @())-notmatch '[1-9][0-9]* actual failures, 10 first no-hit completions'){throw 'Builder adapter OOM oracle incomplete'}
         $compilerObjects=@($build.Objects|Where-Object {[IO.Path]::GetFileName($_.Path)-ne'xlir_public_source_driver.o'}|ForEach-Object Path)
-        $nativeObjects=@($build.Objects|Where-Object {
-            $source=$_.Source.Replace('\','/')
-            $source-match'(?:^|/)src/runtime/'-or$source-match'(?:^|/)(?:tools/xrt_single_header_impl|src/api/xl_task_group_bridge)\.c$'
-        }|ForEach-Object Path)
         Copy-Item release/xl.dll "$work/xl.dll"
         if(!$PatternOnly){
         $null=Check 'callback-native-build' gcc ($flags+@('test/cases/xlir_regex_callback_host.c')+$compilerObjects+@('release/xl.dll')+$libs+@('-o',"$work/callback-native.exe"))
@@ -116,6 +113,9 @@ try {
         }
         $null=Check 'contract-build' gcc ($flags+@('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_text_value_contract.c')+
             $compilerObjects+@('release/xl.dll')+$libs+@('-o',"$work/contract.exe"))
+        $null=Check 'artifact-contract-build' gcc ($flags+@('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_artifact_runtime_contract.c')+
+            $compilerObjects+@('release/xl.dll')+$libs+@('-o',"$work/artifact.exe"))
+        $null=Check 'artifact-registry' "$work/artifact.exe" @('--registry')
         $null=Check 'constructor-flow-solver-build' gcc ($flags+@('test/cases/xlir_constructor_flow_solver.c','-o',"$work/constructor-flow-solver.exe"))
         $null=Check 'constructor-flow-solver' "$work/constructor-flow-solver.exe" @()
         $null=Check 'constructor-assignment-build' gcc ($flags+@('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_constructor_definite_assignment_contract.c')+
@@ -141,11 +141,26 @@ try {
             $generated=Get-Content "$prefix.c" -Raw -Encoding UTF8
             if($generated-match '(?m)^\s*(?:static\s+)?(?:void\s*\*|xstrview|int64_t|bool)\s*xl6(?:Regex|Pattern)\w+\([^;]*\)\s*\{'-or
                 $generated-match 'xl6_xrt_take_cstr|xrtRegexMatcher(?:Find|Capture)\(|xrtPattern(?:CompileManyConfig|Match|Lookup)\('){throw 'Cgen contains matcher implementation'}
-            $null=Check "$case-strict-build" gcc ($flags+@('-include',"$prefix.c",'test/cases/xlir_string_interpolation_host.c')+
-                $nativeObjects+$libs+@('-o',"$prefix.strict.exe"))
+            $nativePlan=Check "$case-native-plan" "$work/artifact.exe" @('--emit-native',$source,"$prefix.native.c")
+            $plan=@($nativePlan-split "`n"|Where-Object {$_-match '^\{"Fixture"'}|ForEach-Object {$_|ConvertFrom-Json})
+            if($plan.Count-ne1-or!$plan[0].Sources.Count){throw 'Missing exact regex fixture runtime plan'}
+            $inputs["$prefix.native.c"]=(Get-FileHash -LiteralPath "$prefix.native.c").Hash
+            foreach($resident in $plan[0].Sources){$path=(Resolve-Path -LiteralPath $resident).Path;$inputs[$path]=(Get-FileHash -LiteralPath $path).Hash}
+            # The executable host adds logical allocation injection. Keep the
+            # emitted fixture TU unchanged; select its diagnostic dependency
+            # explicitly when compiling this host's native provider.
+            $null=Check "$case-native-build" gcc ($flags+@('-DXRT_MODULE_MEMORY_DEBUG','-Ilib/xruntime','-c',"$prefix.native.c",'-o',"$prefix.native.o"))
+            $null=Check "$case-strict-host-build" gcc ($flags+@('-include',"$prefix.c",'-c','test/cases/xlir_string_interpolation_host.c','-o',"$prefix.host.o"))
+            $null=Check "$case-strict-build" gcc ($flags+@("$prefix.host.o","$prefix.native.o")+
+                @($plan[0].Sources)+$libs+@('-o',"$prefix.strict.exe"))
             $null=Check "$case-strict-run" "$prefix.strict.exe" @()
             $null=Check "$case-jit" $build.Driver @($source,'run',"$prefix.jit")
             $null=Check "$case-aot-build" $build.Driver @($source,'exe',"$prefix.aot")
+            $actualNative="$prefix.aot.temps/xl6_xrt_impl.c"
+            $actualNativeHash=(Get-FileHash -LiteralPath $actualNative).Hash
+            if($actualNativeHash-ne(Get-FileHash -LiteralPath "$prefix.native.c").Hash){throw 'Actual regex artifact native selection differs from fixture plan'}
+            $inputs[$actualNative]=$actualNativeHash
+            $nativeSelections.Add([ordered]@{Fixture=$case;Actual=$actualNative;Plan="$prefix.native.c";Sha256=$actualNativeHash})
             $null=Check "$case-aot-run" "$prefix.aot.exe" @()
             $null=Check "$case-formal-run" $formalCli @('run',$source)
             $null=Check "$case-formal-build" $formalCli @('build',$source,'-o',"$prefix.formal.exe")
@@ -180,7 +195,7 @@ try {
     } finally {
         $changed=@($inputs.Keys|Where-Object {(Get-FileHash $_).Hash-ne$inputs[$_]})
         $report=[ordered]@{Complete=($complete-and!$changed.Count);Checks=$checks.Count;PatternOnly=[bool]$PatternOnly;Cases=$cases;Negatives=$negatives;Privacy=$privacy;UndeclaredArrays=$undeclared;
-            ChangedInputs=$changed;Inputs=$inputs;Results=$checks;
+            ChangedInputs=$changed;Inputs=$inputs;Results=$checks;NativeSelections=$nativeSelections;DiagnosticNativeModules=@('XRT_MODULE_MEMORY_DEBUG');
             Scope='B13-B17b Regex and Pattern resources, independent captures, managed tags, options, Builder/key/edit transactions and cleanup. Source strict C/JIT/AOT and rebuilt Windows CLI run/build/execute. Native and language OOM use logical allocation injection, not ASan. Excludes isolated deployment and whole-task release acceptance'}
         [IO.File]::WriteAllText("$work/results.json",($report|ConvertTo-Json -Depth 8),$utf8)
         if($changed.Count){throw 'Regex gate inputs changed'}
