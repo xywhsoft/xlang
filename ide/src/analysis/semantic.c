@@ -11,6 +11,7 @@
 #include "analysis/signature_internal.h"
 #include "analysis/completion_unit.h"
 #include "analysis/cursor_word_view.h"
+#include "analysis/frontend_completion_pool.h"
 #include "src/parser/xl6_parser_api.h"
 #include "src/compile/xl6_imports.h"
 #include "src/stdlib/xl6_stdlib.h"
@@ -33,6 +34,8 @@ struct xls_semantic_completion {
     XL6_SourceOverlay overlay;
     xls_input_batch* inputOwner;
     XL6_CompletionQuery query;
+    xls_completion_pool pool;
+    int poolComplete;
     char *path,*queryError;
     xls_completion_entry_work entryWork;
     xls_entry_parse_work moduleWork;
@@ -78,6 +81,7 @@ void xlsSemanticCompletionDestroy(xls_semantic_completion* r)
     if(!r->wordUnit)xlsInputTopologyDestroy(r->topology);
     xlsModuleGraphRelease(r->modules);
     wordQueryFree(r);
+    xlsCompletionPoolFree(&r->pool);
     xlsFrontendSemTailDestroy(r->tail);
     xl6ParseResultFree(&r->parse);
     xl6ImportDepsFree(&r->deps);
@@ -169,6 +173,8 @@ static xls_semantic_completion* createBody(xls_context* context,const char* entr
         char module[256]; char* stem=xrtPathStem(entry);
         if(!stem) goto invalid;
         snprintf(module,sizeof(module),"%s",*stem ? stem : "module"); xrtFree(stem);
+        xls_completion_pool_scope pool;
+        xlsCompletionPoolBegin(&pool,&r->query,memoEnabled && batch && syntax && !signature ? wordProducerBudget() : 0);
         xls_sem_call_control calls;
         xls_sem_storage_control storage;
         xlsFrontendSemStorageBegin(&storage,xlsFrontendSemStorageBudget());
@@ -184,6 +190,7 @@ static xls_semantic_completion* createBody(xls_context* context,const char* entr
             retry=xlsFrontendSemCheckCursorDeferred(r->parse.root,&r->parse.diags,module,&r->query,entry,&r->report,
                 compatible ? oldReport : NULL,compatible ? memo : NULL,&r->memo,&r->semanticWork,&r->tail)<0;
         } else xl6SemCheckModuleWithQuery(r->parse.root,&r->parse.diags,module,0,&r->query);
+        r->poolComplete=xlsCompletionPoolEnd(&pool,&r->pool);
         xlsFrontendSemCallsEnd(&calls,&r->callWork);
         xlsFrontendSemStorageEnd(&storage,&r->storageWork);
     }

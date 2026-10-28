@@ -748,7 +748,9 @@ analysed:
   okayStats=okayStats && wordWork && put(wordWork,"projected",xrtValueInt((int64)word.projected)) &&
    put(wordWork,"proofNodes",xrtValueInt((int64)word.proofNodes)) && put(wordWork,"candidates",xrtValueInt((int64)word.candidates)) &&
    put(wordWork,"knownBytes",xrtValueInt((int64)word.knownBytes)) && put(wordWork,"astMaterialized",xrtValueInt((int64)word.astMaterialized)) &&
-   put(wordWork,"astFailures",xrtValueInt((int64)word.astFailures));
+   put(wordWork,"astFailures",xrtValueInt((int64)word.astFailures)) &&
+   put(wordWork,"scopeComplete",xrtValueInt((int64)word.scopeComplete)) &&
+   put(wordWork,"scopeCandidates",xrtValueInt((int64)word.scopeCandidates));
   if(okayStats){okayStats=put(stats,"lastBuildWordView",wordWork);wordWork=NULL;}
   xrtValueRelease(wordWork);
   xls_sem_call_work calls=xlsSemanticCompletionCallWork(nativeCompletion);

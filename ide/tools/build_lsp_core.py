@@ -78,6 +78,7 @@ CORE_TESTS = ("analysis_semantic_headers_test", *CORE_TESTS)
 CORE_TESTS = ("semantic_coordinates_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_function_unit_test", "analysis_function_unit_fault_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_completion_unit_test", "analysis_completion_unit_fault_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_completion_pool_fault_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_topology_clone_fault_test", *CORE_TESTS)
 HOST_TESTS += ("navigation_cache_test", "semantic_reference_shard_test", "project_references_test", "project_reference_budget_test", "reference_path_index_test")
 HOST_TESTS += ("path_identity_batch_test", "reference_capture_test")
@@ -403,6 +404,76 @@ def prepare_native_sem(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
         auditedDependencies={str(registry): registry_sha, str(registry_header):registry_header_sha, str(ast): ast_sha})
 
 
+def prepare_native_completion(frontend: Path, output: Path, namespaced: Path) -> tuple[Path, Path, dict]:
+    """Observe original emitter inputs without changing the filtered response."""
+    original = frontend / 'src/sem/xl6_completion.c'
+    digest = '384d4cf57a648900ee1b9d93df1895ba22526639f3393702891027c94053c94c'
+    if sha(original) != digest:
+        raise ValueError('shared completion emitter changed; audit prefix-only filtering, ordering, limits and canonical ownership')
+    namespace_sha = 'de10164dcde8a4f4a0c3044012005850b64ea1d3c0d6d2570b3eecd9541cc658'
+    if sha(namespaced) != namespace_sha:
+        raise ValueError('namespace completion adapter changed; audit complete projected labels before prefix observation')
+    source = namespaced.read_text(encoding='utf-8').replace('\r\n', '\n')
+    seam = ('static int xlsCompletionAddOriginal(XL6_CompletionQuery* q,const char* name,const char* kind,'
+            'XL6_SymbolId symbolId,const XL6_AstNode* selection,char* canonical)')
+    if source.count(seam) != 1:
+        raise ValueError('shared completion emitter observation seam changed')
+    start = source.index(seam)
+    append = source.index(' length=strlen(name);bytes=', start)
+    end = source.index('\n}\n', append) + 2
+    declarations = ' XL6_CompletionItem *item,*items;size_t length,bytes,capacity;\n'
+    guard = ' if (!name||!*name||!q||q->error) {xrtFree(canonical);return 0;}\n'
+    private_filter = 'strchr(name,\'.\')||strncmp(name,"__xl6_",6)==0'
+    prefix_filter = 'q->prefix&&strncmp(name,q->prefix,strlen(q->prefix))'
+    original_prefix = (seam + '\n{\n' + declarations + guard +
+        ' /* Resolver-private and qualified names require the import alias contract. */\n' +
+        ' if (' + private_filter + '||(' + prefix_filter + ')) {xrtFree(canonical);return 1;}\n')
+    if source[start:append] != original_prefix:
+        raise ValueError('shared completion filtering/ownership body changed; audit before composing pool')
+    # The appender's byte/item limits, growth, names and canonical ownership
+    # remain the exact original body. Observe only names that pass its private
+    # filter. Optional records copy text into an XRT buffer; the native prefix
+    # filter's canonical buffers still become reusable immediately.
+    original_append = source[append:end]
+    appender = (seam.replace('xlsCompletionAddOriginal', 'xlsCompletionAppendNative') +
+        '\n{\n' + declarations + original_append + '\n')
+    # The optional collector has independent XRT buffer ownership. Keep every
+    # original limit, growth step and item field. Strings use offsets until
+    # final publication,with extra optional-budget checks. The filtered native
+    # appender remains exact.
+    if original_append.count('xrtStrDupN(name,length)') != 1 or original_append.count('xrtFree(canonical);') != 3:
+        raise ValueError('completion appender ownership operations changed')
+    pool_body = original_append.replace('XL6_CompletionItem', 'xls_completion_pool_record')
+    pool_body = pool_body.replace('xrtStrDupN(name,length)', 'xlsCompletionPoolAppend(owner,name,length)')
+    pool_body = pool_body.replace('xrtFree(canonical);', '(void)canonical;')
+    pool_body = pool_body.replace('capacity=q->capacity?q->capacity*2:64;items=',
+        'capacity=q->capacity?q->capacity*2:64;'
+        'if(!xlsCompletionPoolRecordFits(owner,capacity)){q->error="completion pool budget exceeded";return 0;}items=')
+    pool_body = pool_body.replace('item->canonical=canonical;',
+        'item->canonical=canonical?xlsCompletionPoolAppend(owner,canonical,strlen(canonical)):0;'
+        'if(canonical&&!item->canonical){q->error="cannot copy completion type";return 0;}')
+    pool_appender = (seam.replace('xlsCompletionAddOriginal', 'xlsCompletionAppendPool')
+        .replace('XL6_CompletionQuery* q,', 'xls_completion_pool_scope* owner,') +
+        '\n{\n xls_completion_pool_build* q=&owner->build;\n' +
+        declarations.replace('XL6_CompletionItem', 'xls_completion_pool_record') + pool_body + '\n')
+    observe = 'xlsCompletionPoolObserve(q,name,kind,symbolId,selection,canonical,'
+    filtered = (seam + '\n{\n' + guard +
+        ' if (' + private_filter + ') {xrtFree(canonical);return 1;}\n' +
+        ' if (' + prefix_filter + ') {' + observe + '1);return 1;}\n' +
+        ' ' + observe + '0);\n' +
+        ' return xlsCompletionAppendNative(q,name,kind,symbolId,selection,canonical);\n}\n')
+    source = source[:start] + '#include "analysis/frontend_completion_pool.inc"\n' + appender + pool_appender + filtered + source[end:]
+    compiled = output / 'native_completion/xl6_completion.c'
+    compiled.parent.mkdir(parents=True, exist_ok=True)
+    compiled.write_text(source, encoding='utf-8', newline='\n')
+    return original, compiled, dict(source=str(original), sourceSha256=digest,
+        compiledSource=str(compiled), compiledSha256=sha(compiled),
+        composedFrom=str(namespaced), composedFromSha256=namespace_sha,
+        originalAppenderSha256=hashlib.sha256(original_append.encode('utf-8')).hexdigest(),
+        poolAppenderSha256=hashlib.sha256(pool_body.encode('utf-8')).hexdigest(),
+        change='original namespace/private filters and exact native appender;optional builder preserves original limits/growth/fields with XRT buffer offsets/final pointer publication and immediate original canonical recycling;existing context scope slot')
+
+
 def prepare_native_stdlib(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     """Reject only absent spellings; positive decisions keep the shared rules."""
     original = frontend / 'src/stdlib/xl6_stdlib.c'
@@ -658,6 +729,9 @@ def main() -> None:
         original_lexer, generated_lexer, lexer_overlay = prepare_native_lexer(frontend, output)
         original_stack, generated_stack, stack_overlay = derive_parser_ownership(frontend, output)
         context_overlays = derive_context_runtime(frontend, output)
+        namespaced_completion = next(Path(row['compiledSource']) for row in context_overlays
+                                     if Path(row['source']).name == 'xl6_completion.c')
+        original_completion, generated_completion, completion_overlay = prepare_native_completion(frontend, output, namespaced_completion)
         runtime_overlay = derive_process_runtime(frontend / 'lib/xrt/xrt.h', output / 'native_xrt/xrt.h')
     except ValueError as error:
         parser.error(str(error))
@@ -666,6 +740,7 @@ def main() -> None:
     sources = [(generated_index if path == original_index else path, owned) for path, owned in sources]
     sources = [(generated_ir if path == original_ir else path, owned) for path, owned in sources]
     sources = [(generated_sem if path == original_sem else path, owned) for path, owned in sources]
+    sources = [(generated_completion if path == original_completion else path, owned) for path, owned in sources]
     sources = [(generated_stdlib if path == original_stdlib else path, owned) for path, owned in sources]
     sources = [(generated_types if path == original_types else path, owned) for path, owned in sources]
     sources = [(generated_ast if path == original_ast else path, owned) for path, owned in sources]
@@ -705,8 +780,9 @@ def main() -> None:
     commands, inputs, outputs, runs, imports = [], {str(Path(__file__).resolve()): sha(Path(__file__)),
         str(original_index): index_overlay["sourceSha256"], str(original_ir): ir_overlay["sourceSha256"],
         str(original_sem): sem_overlay["sourceSha256"], str(original_stdlib): stdlib_overlay["sourceSha256"],
+        str(original_completion): completion_overlay["sourceSha256"],
         str(original_types): types_overlay["sourceSha256"]}, {}, [], {}
-    source_overlays = [index_overlay, ir_overlay, sem_overlay, stdlib_overlay, types_overlay, ast_overlay, parser_overlay, lexer_overlay, stack_overlay, *context_overlays, *owner_overlays]
+    source_overlays = [index_overlay, ir_overlay, sem_overlay, completion_overlay, stdlib_overlay, types_overlay, ast_overlay, parser_overlay, lexer_overlay, stack_overlay, *context_overlays, *owner_overlays]
     inputs.update({row['source']: row['sourceSha256'] for row in owner_overlays})
     inputs[str(Path(__file__).with_name('native_cancellation_overlay.py').resolve())] = sha(Path(__file__).with_name('native_cancellation_overlay.py'))
     inputs[str(Path(__file__).with_name('native_ir_memo_overlay.py').resolve())] = sha(Path(__file__).with_name('native_ir_memo_overlay.py'))
@@ -718,6 +794,7 @@ def main() -> None:
     inputs[str(original_lexer)] = lexer_overlay['sourceSha256']
     inputs.update({ast_overlay['source']:ast_overlay['sourceSha256'], ast_overlay['headerSource']:ast_overlay['headerSourceSha256'], ast_overlay['runtimeSource']:ast_overlay['runtimeSourceSha256']})
     inputs.update({row["source"]: row["sourceSha256"] for row in context_overlays})
+    inputs[completion_overlay['composedFrom']] = completion_overlay['composedFromSha256']
     source_overlays.append(runtime_overlay)
     inputs[runtime_overlay['source']] = runtime_overlay['sourceSha256']
     inputs.update(runtime_overlay['sourceMaterials'])
@@ -793,6 +870,9 @@ def main() -> None:
             extra = [str(objects["document_sync"])] if name in ("document_sync_test", "diagnostic_stream_test") else []
             if name == "analysis_index_limit_test":
                 extra.append(str(limited_index))
+            if name == "analysis_completion_pool_fault_test":
+                extra += ["-Wl,--wrap=" + function for function in (
+                    "xrtStrDup", "xrtStrDupN", "xrtRealloc", "xrtFree", "xrtStrBufAppend", "xrtStrBufFree", "xrtMalloc")]
             if name in HOST_TESTS:
                 extra += [str(objects[Path(source).stem]) for source in SERVER_SOURCES
                           if Path(source).stem != "xlang_ls" and

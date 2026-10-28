@@ -69,8 +69,8 @@ def main():
         done('new-same-body-version-restamps-cached-facts')
         complete(c,text,'return re',2,['result'],2,17,owner=owner)
         r,_=complete(c,text,'return res',2,['result'],3,17,owner=owner)
-        assert r['analysis']['builds']==2 and r['analysis']['wordViews']==1 and r['analysis']['lastBuildWordView']['projected']==1,r
-        done('different-cursor-full-broadening-and-independent-narrowing')
+        assert r['analysis']['builds']==1 and r['analysis']['wordViews']==2 and r['analysis']['builds']+r['analysis']['wordViews']==3 and r['analysis']['lastBuildWordView']['projected']==1 and r['analysis']['lastBuildWordView']['scopeComplete']==1,r
+        done('different-cursor-independent-broadening-and-narrowing')
         text=text.replace('result = 7','result = 8');c.change(entry,text,3)
         complete(c,text,'return res',3,['result'],4,17,owner=owner)
         done('changed-body-recomputes')

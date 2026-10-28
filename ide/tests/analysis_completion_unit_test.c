@@ -86,13 +86,16 @@ static int guardedDependency(void)
     char relative[160];snprintf(relative,sizeof(relative),"build/completion-unit-%llu",(unsigned long long)xrtClock());
     char* directory=xrtPathAbs(relative);char* path=xrtPathJoin(directory,"main.xl");char* dep=xrtPathJoin(directory,"dep.xl");CHECK(directory && path && dep && xrtDirCreateAll(directory));
     const char* helper="export func prefixValue() as int\n return 7\nend\n";CHECK(xrtFileWriteAtomic(dep,(xbytesview){(const unsigned char*)helper,strlen(helper)}));
-    const char* a="import dep\nfunc main(...) as int\n return dep.p\nend\n";
-    const char* b="import dep\nfunc main(...) as int\n return dep.pre\nend\n";
+    const char* a="import dep as alias\nfunc main(...) as int\n return alias.p\nend\n";
+    const char* b="import dep as alias\nfunc main(...) as int\n return alias.pre\nend\n";
     xls_completion_session* session=xlsCompletionSessionCreate(NULL);CHECK(session);
     xls_text* old=xlsTextCreate(a,strlen(a),8u*1024u*1024u,NULL);xls_text* next=xlsTextCreate(b,strlen(b),8u*1024u*1024u,NULL);CHECK(old && next);
-    xls_analysis_document doc={"entry",path,old,1,1};xls_semantic_completion* first=xlsCompletionSessionQuery(session,&doc,1,"entry","entry",cursorAt(a,"dep.p"),NULL,NULL,NULL,0);CHECK(first && xlsSemanticCompletionInfo(first).available);
-    doc.text=next;doc.revision=2;xls_semantic_completion* current=xlsCompletionSessionQuery(session,&doc,1,"entry","entry",cursorAt(b,"dep.pre"),NULL,NULL,NULL,0);
-    CHECK(current && xlsSemanticCompletionUnitWork(current).projected && unitParity(current,&doc,cursorAt(b,"dep.pre")));
+    xls_analysis_document doc={"entry",path,old,1,1};xls_semantic_completion* first=xlsCompletionSessionQuery(session,&doc,1,"entry","entry",cursorAt(a,"alias.p"),NULL,NULL,NULL,0);
+    xls_completion_item candidate;CHECK(first && xlsSemanticCompletionInfo(first).available && xlsSemanticCompletionInfo(first).count==1 &&
+        xlsSemanticCompletionItem(first,0,&candidate) && !strcmp(candidate.label,"prefixValue"));
+    doc.text=next;doc.revision=2;xls_semantic_completion* current=xlsCompletionSessionQuery(session,&doc,1,"entry","entry",cursorAt(b,"alias.pre"),NULL,NULL,NULL,0);
+    CHECK(current && xlsSemanticCompletionUnitWork(current).projected && xlsSemanticCompletionUnitWork(current).scopeComplete &&
+        xlsSemanticCompletionInfo(current).count==1 && unitParity(current,&doc,cursorAt(b,"alias.pre")));
     xlsSemanticCompletionDestroy(first);xlsCompletionSessionDestroy(session);xlsTextRelease(old);xlsTextRelease(next);
     CHECK(xlsSemanticCompletionValidate(current));
     const char* changed="export func prefixValue() as string\n return \"different\"\nend\n";CHECK(xrtFileWriteAtomic(dep,(xbytesview){(const unsigned char*)changed,strlen(changed)}));
@@ -220,10 +223,51 @@ static int inputBinding(void)
     xlsSemanticCompletionDestroy(accepted);xlsSyntaxRelease(wp);xlsSyntaxRelease(zp);xl6CompletionFree(&aq);xl6CompletionFree(&bq);xl6CompletionFree(&wq);xl6CompletionFree(&zq);xlsInputBatchDestroy(before);xlsInputBatchDestroy(after);xlsTextRelease(x);xlsTextRelease(y);xlsTextRelease(z);xlsTextRelease(w);xlsTextRelease(copy);xrtFree(path);return 1;
 }
 
+static int completeScope(void)
+{
+    const char* scope="func main(...) as int\n int alphaLocal=1\n int betaLocal=2\n return @word@\nend\nfunc alphaFunction() as int\n return 7\nend\nfunc betaFunction() as int\n return 8\nend\n";
+    CHECK(wordTemplate(scope,"alphaLocal","a","return alphaLocal"));
+    CHECK(wordTemplate(scope,"alpha","beta","return alpha"));
+    CHECK(wordTemplate(scope,"beta","alpha","return beta"));
+    CHECK(wordTemplate(scope,"missing","b","return missing"));
+    const char* member="class Box\n int alphaField\n int betaField\n func betaMethod(int value) as int\n return value\n end\nend\nfunc main(...) as int\n auto box=Box()\n return box.@word@\nend\n";
+    CHECK(wordTemplate(member,"alphaField","b","box.alphaField"));
+    CHECK(wordTemplate(member,"beta","alpha","box.beta"));
+    CHECK(wordTemplate("func main(...) as int\n int 中文变量=1\n int 其他变量=2\n return @word@\nend\n","中文","其他","return 中文"));
+    return 1;
+}
+static int scopeProducerFallback(void)
+{
+    const char* template="func main(...) as int\n int alphaLocal=1\n int betaLocal=2\n return @word@\nend\n";
+    const char* words[]={"alphaLocal","b","beta"};
+    char* path=xrtPathAbs("completion-pool-fallback.xl");CHECK(path);
+    for(unsigned budget=0;budget<3;++budget){
+        xls_completion_session* session=xlsCompletionSessionCreate(NULL);CHECK(session);
+        for(unsigned i=0;i<3;++i){
+            char* source=replace(template,"@word@",words[i]);CHECK(source);
+            const char* token=strstr(source,"return ")+7;size_t at=(size_t)(token-source)+strlen(words[i]);
+            xls_text* text=xlsTextCreate(source,strlen(source),8u*1024u*1024u,NULL);CHECK(text);
+            xls_analysis_document doc={"entry",path,text,1,i+1};xls_completion_unit_control control;
+            if(!i)xlsCompletionUnitBegin(&control,budget==2 ? 256u*1024u*1024u : budget);
+            xls_semantic_completion* result=xlsCompletionSessionQuery(session,&doc,1,"entry","entry",at,NULL,NULL,NULL,0);
+            if(!i)xlsCompletionUnitEnd(&control);
+            CHECK(result && xlsSemanticCompletionInfo(result).available);
+            xls_completion_unit_work work=xlsSemanticCompletionUnitWork(result);
+            CHECK(work.projected==(i && (budget==2 || i==2)));
+            if(work.projected)CHECK(work.scopeComplete && work.scopeCandidates>=xlsSemanticCompletionInfo(result).count &&
+                !xlsSemanticCompletionSemWork(result).checked && !xlsSemanticCompletionMaterializationWork(result).nodes);
+            CHECK(unitParity(result,&doc,at));xlsSemanticCompletionDestroy(result);xlsTextRelease(text);xrtFree(source);
+        }
+        xls_completion_stats stats;xlsCompletionSessionStats(session,&stats);
+        CHECK(stats.builds==(budget==2 ? 1u : 2u) && stats.wordViews==(budget==2 ? 2u : 1u) && stats.builds+stats.wordViews==3);
+        xlsCompletionSessionDestroy(session);
+    }
+    xrtFree(path);return 1;
+}
 int main(void)
 {
     if(cursorOriginalMain())return 1;
-    if(!inputBinding())return 1;
+    if(!inputBinding() || !completeScope() || !scopeProducerFallback())return 1;
     if(!wordSequence("","\n",0) || !wordSequence("\xef\xbb\xbf// 中文 😀\r\n","\r\n",0) ||
        !wordSequence("","\n",1) || !wordSequence("\xef\xbb\xbf// 中文 😀\r\n","\r\n",1))return 1;
     if(!wordTemplate("class Box\n int prefixField\n func prefixMethod(int value) as int\n return value\n end\nend\nfunc main(...) as int\n auto box=Box()\n return box.@word@\nend\n","p","pre","box.p") ||

@@ -1,4 +1,5 @@
 #include "analysis/frontend_context.h"
+#include "analysis/frontend_completion_pool.h"
 #include <xrt.h>
 #include <stdio.h>
 #include <string.h>
@@ -32,16 +33,19 @@ int xlsFrontendContextValid(const xls_context* context,const char* entry,char* e
 int xlsFrontendContextsEqual(const xls_context* a,const xls_context* b)
 { return a==b || (a && b && xlsContextEqual(a,b)); }
 void xlsFrontendContextBegin(xls_frontend_context_scope* scope,const xls_context* context)
-{ *scope=(xls_frontend_context_scope){context,current,0,NULL}; current=scope; }
+{ *scope=(xls_frontend_context_scope){.context=context,.previous=current}; current=scope; }
 int xlsFrontendContextEnd(xls_frontend_context_scope* scope)
 {
     if(current!=scope) return 0;
-    int okay=!scope->failed;
+    int okay=!scope->failed && !scope->completionPool;
+    if(scope->completionPool)xlsCompletionPoolAbort(&scope->completionPool);
     namespace_names* names=scope->namespaceNames;
     if(names) { xrtMapUnit(&names->entries); xrtFree(names); }
     scope->namespaceNames=NULL; current=scope->previous; return okay;
 }
 const xls_context* xlsFrontendContextCurrent(void) { return current ? current->context : NULL; }
+struct xls_completion_pool_scope** xlsFrontendCompletionPoolSlot(void)
+{return current ? &current->completionPool : NULL;}
 char* xlsFrontendContextPackagePath(void)
 {
     const xls_context* context=xlsFrontendContextCurrent();

@@ -273,7 +273,7 @@ static int run(void)
     CHECK(!xlsCompletionSessionQuery(s,docs,1,"entry","absent",at,NULL,NULL,NULL,0));
     CHECK(!xlsCompletionSessionQuery(s,docs,1,"entry","entry",strlen(good)+1,NULL,NULL,NULL,0));
     docs[1]=docs[0]; CHECK(!xlsCompletionSessionQuery(s,docs,2,"entry","entry",at,NULL,NULL,NULL,0));
-    xlsCompletionSessionStats(s,&stats); CHECK(stats.builds==4 && stats.wordViews==1 && stats.wordProofNodes && stats.hits==102);
+    xlsCompletionSessionStats(s,&stats); CHECK(stats.builds==3 && stats.wordViews==2 && stats.builds+stats.wordViews==5 && stats.wordProofNodes && stats.hits==102);
 
     const char* entry="import cursor_dep\nfunc main(...) as int\n return cursor_dep.value()\nend\n";
     const char* dependency="export func value() as int\n int member = 7\n return mem\nend\n";
