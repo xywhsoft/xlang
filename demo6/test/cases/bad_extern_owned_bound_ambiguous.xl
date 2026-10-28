@@ -1,0 +1,10 @@
+class Box
+    func Pick<T>(T first,string second) as string
+        return "first"
+    end
+    func Pick<T>(string first,T second) as string
+        return "second"
+    end
+end
+Box box=Box()
+func(string,string) as string cb=box.Pick

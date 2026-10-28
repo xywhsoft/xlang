@@ -4685,6 +4685,9 @@ typedef struct XL6_IrClosureTarget {
     /* Resolved named call target consumed by a NAMED_ADAPTER body; zero for
      * an anonymous closure whose targetSymbol is its source body symbol. */
     XL6_SymbolId adaptedTargetSymbol;
+    /* Bound method source dispatch: zero is a direct call (including base).
+     * A nonzero index authenticates the same virtual slot as a source call. */
+    uint32 boundMethodDispatchSlot;
     XL6_IrReachability reachability;
     XL6_IrTypeId signatureType;
     XL6_IrClosureRawCallbackAbi rawCallbackAbi;
@@ -7198,6 +7201,7 @@ int xl6IrBuildDynamicMethodScalarCodecs(XL6_IrModule*,XL6_DiagList*);
 int xl6IrBuildDynamicBoundSignatures(XL6_IrModule*,XL6_DiagList*);
 /* Authenticated full bound signature for a statically proved arity adapter. */
 XL6_IrTypeId xl6IrBoundMethodCastIdentityType(const XL6_IrModule*,const XL6_IrInstruction*);
+uint32 xl6IrBoundMethodDispatchSlot(const XL6_IrModule*,XL6_IrNodeId,XL6_SymbolId);
 int xl6IrBoundMethodTargetMatches(const XL6_IrModule*,XL6_IrNodeId,XL6_SymbolId,XL6_IrTypeId);
 int xl6IrVerifyDynamicMethodScalarCodecs(const XL6_IrModule*,XL6_DiagList*);
 const XL6_IrCallableBridgeResult* xl6IrDynamicMethodScalarCodecGet(const XL6_IrModule*,size_t);

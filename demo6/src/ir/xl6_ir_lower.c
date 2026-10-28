@@ -1,5 +1,6 @@
 #include "src/ir/xl6_ir.h"
 #include "src/type/xl6_type_model.h"
+#include "src/type/xl6_call_rank.h"
 
 #include <ctype.h>
 #include <stdint.h>
@@ -4732,7 +4733,8 @@ static XL6_IrValueId xl6IrLowerNodeAsType(
                 targetType, errorPlan);
         }
     }
-    if (xl6IrContextualCallableCastRequired(ctx->module, source->storageType, targetType)) {
+    if (target->kind!=XL6_IR_TYPE_NULLABLE &&
+        xl6IrContextualCallableCastRequired(ctx->module, source->storageType, targetType)) {
         const XL6_IrNode* owner = xl6IrNodeGet(ctx->module, origin);
         if (!xl6IrContextualCallableCastAllowed(ctx->module, origin, sourceId, targetType)) {
             xl6IrLowerDiag(ctx, origin, "XLIR contextual callable cast has no verified source/destination boundary");
@@ -33194,11 +33196,10 @@ static int xl6IrLowerNamedAdapterBody(
     XL6_IrCallTarget userTarget=offset ? xl6IrLowerBoundMethodUserTarget(target) : *target;
     size_t dispatch=SIZE_MAX;
     XL6_IrCallTarget invocation=*target;
-    if(offset) for(size_t i=0;i<ctx->module->classDispatchSlotCount;++i) {
-        const XL6_IrClassDispatchSlot* slot=&ctx->module->classDispatchSlots[i];
-        if(slot->declarationSymbol==target->symbol && slot->receiverType==target->parameterTypes[0]) {
-            dispatch=i;invocation.errorAbi=slot->errorAbi;invocation.errorPhysicalAbi=slot->errorPhysicalAbi;break;
-        }
+    if(offset && closure->boundMethodDispatchSlot) {
+        dispatch=closure->boundMethodDispatchSlot-1;
+        const XL6_IrClassDispatchSlot* slot=&ctx->module->classDispatchSlots[dispatch];
+        invocation.errorAbi=slot->errorAbi;invocation.errorPhysicalAbi=slot->errorPhysicalAbi;
     }
     target=&invocation;
     function = &ctx->module->functions[ctx->functionIndex];
