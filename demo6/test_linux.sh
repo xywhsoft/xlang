@@ -29,6 +29,7 @@ snapshot_runtime_temp() {
 printf 'Running Linux CLI and in-memory VFS smoke tests...\n'
 "$XL" --help >/dev/null
 python3 "$ROOT/test/test_linux_embedded_resources.py"
+python3 "$ROOT/test/test_runtime_header_staging.py"
 python3 "$ROOT/tools/check_linux_embedded_resources.py" \
     --root "$ROOT" --report "$TEST_DIR/embedded-resources-$(date +%Y%m%d-%H%M%S)-$$.json"
 "$XL" check "$ROOT/release/examples/hello.xl"
@@ -44,14 +45,23 @@ printf 'Running Linux ELF build tests...\n'
 printf 'Running Linux C and XRT integration tests...\n'
 # Two-thread component check: restoring a snapshot on the wrong native thread
 # must fail without changing that thread's floating-point environment.
-gcc -std=c11 -Wall -Wextra -Werror -frounding-math -fno-builtin \
+gcc -std=c11 -Wall -Wextra -Werror -frounding-math -fno-builtin -I"$ROOT/lib/xrt" \
     "$ROOT/test/fixtures/crt_float_env_posix/float_env_native_test.c" \
     "$ROOT/release/extlibs/floatEnv/float_env_native.c" \
-    -pthread -lm -o "$TEST_DIR/float_env_native_test"
+    -L"$ROOT/release" -Wl,-rpath,"$ROOT/release" -lxl -pthread -lm -o "$TEST_DIR/float_env_native_test"
 "$TEST_DIR/float_env_native_test"
 "$XL" run "$ROOT/release/examples/stdlib_math_c.c"
 "$XL" build "$ROOT/release/examples/stdlib_math_c.c" -o "$TEST_DIR/stdlib_math_c"
 "$TEST_DIR/stdlib_math_c"
+
+printf 'Running Linux embedded C/xlang compiler contracts...\n'
+mkdir -p "$ROOT/build/test"
+for case_name in stdlib_tcc_embed stdlib_tcc_runtime_contract stdlib_xlang_embed
+do
+    "$XL" run "$ROOT/test/cases/$case_name.xl"
+    "$XL" build "$ROOT/test/cases/$case_name.xl" -o "$TEST_DIR/$case_name"
+    "$TEST_DIR/$case_name"
+done
 
 printf 'Running Linux text declaration, sanitizer and artifact contracts...\n'
 bash "$ROOT/tools/check_stdlib_text_values.sh" \
@@ -240,5 +250,8 @@ bash "$ROOT/tools/check_xlir_module_product_globals.sh" \
 
 python3 "$ROOT/tools/check_stdlib_enum_c_abi.py" --sanitize \
     --out "$TEST_DIR/enum-cabi-$(date +%Y%m%d-%H%M%S)-$$"
+
+python3 "$ROOT/tools/check_compiled_packages_linux.py" --root "$ROOT" \
+    --native-root "$ROOT" --out "$TEST_DIR/compiled-packages-$(date +%Y%m%d-%H%M%S)-$$"
 
 printf 'DEMO6 Linux compatibility tests passed.\n'

@@ -881,6 +881,13 @@ if errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe run test\cases\stdlib_tcc_runtime_contract.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\stdlib_tcc_runtime_contract.xl -o build\test\stdlib_tcc_runtime_contract.exe
+if errorlevel 1 exit /b 1
+build\test\stdlib_tcc_runtime_contract.exe
+if errorlevel 1 exit /b 1
+
 release\xl.exe run release\examples\script_embed_tcc.xl > build\test\script_embed_tcc.out.txt
 if errorlevel 1 exit /b 1
 findstr /C:"script_embed_tcc=ok" build\test\script_embed_tcc.out.txt >nul

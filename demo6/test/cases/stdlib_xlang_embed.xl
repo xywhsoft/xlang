@@ -10,7 +10,7 @@ if not xlang.run("println(\"nested xlang shortcut ok\")\n") then
     assert false
 end
 
-if not xlang.runFile("test\\cases\\xlang_nested_child.xl") then
+if not xlang.runFile("test/cases/xlang_nested_child.xl") then
     assert false
 end
 
@@ -19,7 +19,7 @@ if not ctx.run("println(\"nested xlang context ok\")\n") then
     assert false
 end
 
-if not ctx.runFile("test\\cases\\xlang_nested_child.xl") then
+if not ctx.runFile("test/cases/xlang_nested_child.xl") then
     assert false
 end
 

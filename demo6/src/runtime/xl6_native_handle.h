@@ -25,6 +25,9 @@ typedef struct XL6_NativeHandlePolicyV1 {
 } XL6_NativeHandlePolicyV1;
 #define XL6_NATIVE_HANDLE_POLICY_V1_TAG UINT64_C(0x584C364E484E4431)
 
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6TccContextHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6TccHandlerHandlePolicyV1Get(void);
+
 /* A valid resident policy consumes and clears the independent private slot on
  * both success and allocation/bind failure. Rollback retires its real payload
  * exactly once and preserves the first failure, even without a diagnostic.

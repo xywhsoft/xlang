@@ -67,6 +67,9 @@ if not exist release\xl_run_demo.exe (
     exit /b 1
 )
 
+powershell -NoProfile -Command "$p=Start-Process -FilePath 'release\xl_run_demo.exe' -ArgumentList '--self-test' -WindowStyle Hidden -PassThru -Wait; exit $p.ExitCode"
+if errorlevel 1 exit /b 1
+
 build\test\xl_dll_embed_string_script.exe
 if errorlevel 1 exit /b 1
 

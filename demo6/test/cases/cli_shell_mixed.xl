@@ -1,0 +1,3 @@
+extern "cli_shell_add" func add(int a, int b) as int
+assert add(20, 22) == 42
+println("cli_mixed=42")

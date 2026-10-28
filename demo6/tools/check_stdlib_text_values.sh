@@ -51,14 +51,7 @@ frozen_files() {
 }
 frozen_files | sort -zu >"$OUT/inputs.list"
 xargs -0 sha256sum <"$OUT/inputs.list" >"$OUT/inputs.sha256"
-while IFS='|' read -r kind target source; do
-    if [[ "$kind" = file && "$target" = include/__xl_runtime/* ]]; then
-        source="${source//%XL6_ROOT%/$ROOT}"
-        mkdir -p "$OUT/$(dirname "$target")"
-        cp "$source" "$OUT/$target"
-        cmp "$source" "$OUT/$target"
-    fi
-done < tools/tcc_vfs_manifest_linux_xlc.txt
+python3 tools/stage_runtime_headers.py --root "$ROOT" --out "$OUT"
 strict=(-std=c11 -D_GNU_SOURCE -Wall -Wextra -Werror -DXL_STATIC_EMBED
     -Wno-unused-function -Wno-unused-label -Wno-unused-variable -Wno-unused-parameter
     -Wno-unused-const-variable -Wno-unused-but-set-variable -Wno-missing-field-initializers
@@ -93,7 +86,8 @@ native_probe() {
             src/runtime/xl6_string_value.c src/runtime/xl6_char_type.c src/runtime/xl6_char_value.c src/api/xl_foreign_error.c
             src/runtime/xl6_text_split.c src/runtime/xl6_text_join.c src/runtime/xl6_array_input.c src/runtime/xl6_sequence.c)
             modes=(split lines fields join split-large lines-large fields-large join-large); limit=512;;
-        iterator) sources=(test/cases/stdlib_text_iterator_host.c test/support/text_iterator_native.c src/runtime/xl6_text_iterator.c)
+        iterator) sources=(test/cases/stdlib_text_iterator_host.c test/support/text_iterator_native.c src/runtime/xl6_text_iterator.c
+            src/api/xl_foreign_error.c src/runtime/xl6_native_handle.c)
             modes=(0 1 2); limit=32;;
         *) return 1;;
     esac

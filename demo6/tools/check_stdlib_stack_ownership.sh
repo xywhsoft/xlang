@@ -28,12 +28,7 @@ frozen_files() {
 }
 frozen_files | sort -zu >"$OUT/inputs.list"
 xargs -0 sha256sum <"$OUT/inputs.list" >"$OUT/inputs.sha256"
-while IFS='|' read -r kind target source; do
-    if [[ "$kind" = file && "$target" = include/__xl_runtime/* ]]; then
-        source="${source//%XL6_ROOT%/$ROOT}"
-        mkdir -p "$OUT/$(dirname "$target")"; cp "$source" "$OUT/$target"; cmp "$source" "$OUT/$target"
-    fi
-done < tools/tcc_vfs_manifest_linux_xlc.txt
+python3 tools/stage_runtime_headers.py --root "$ROOT" --out "$OUT"
 strict=(-std=c11 -D_GNU_SOURCE -Wall -Wextra -Werror -I. -Irelease -I"$OUT/include")
 sanitize=(-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie)
 export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1

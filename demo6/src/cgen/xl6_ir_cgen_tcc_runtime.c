@@ -1,0 +1,117 @@
+static int xl6IrCgenNeedsTccRuntime(const XL6_IrModule* module)
+{
+    static const char* const names[] = {
+        "xl6_tcc_context_create", "xl6_tcc_context_create_output",
+        "xl6_tcc_context_destroy", "xl6_tcc_context_run_args", "xl6_tcc_context_output_file",
+        "xl6_tcc_handler_wrap", "xl6_tcc_handler_create", "xl6_tcc_handler_destroy",
+        "xl6_tcc_handler_run_args", "xl6_tcc_vfs_mount_text"
+    };
+    for (size_t i=0;i<module->callTargetCount;++i) {
+        const XL6_IrCallTarget* target=&module->callTargets[i];
+        if (target->reachability==XL6_IR_REACHABILITY_UNREACHABLE || !target->cName) continue;
+        for (size_t n=0;n<sizeof(names)/sizeof(names[0]);++n)
+            if (!strcmp(target->cName,names[n])) return 1;
+    }
+    return 0;
+}
+
+static void xl6IrCgenEmitTccRuntime(XL6_Output* out,const XL6_IrModule* module)
+{
+    if (!xl6IrCgenNeedsTccRuntime(module)) return;
+    xl6OutputPuts(
+        "#ifndef XLIR_TCC_RUNTIME\n#define XLIR_TCC_RUNTIME\n"
+        "#include <limits.h>\n#include <stdint.h>\n#include <string.h>\n"
+        "#include <__xl_runtime/xruntime_decl.h>\n"
+        "#include <__xl_runtime/xl6_array_input.h>\n"
+        "#include <__xl_runtime/xl6_tcc_context_policy.h>\n"
+        "struct TCCState;\n"
+        "extern void* tcc_new(void);\nextern void tcc_delete(void*);\n"
+        "extern int tcc_set_output_type(void*,int);\n"
+        "extern int tcc_add_file(void*,const char*);\n"
+        "extern int tcc_relocate(void*);\nextern void* tcc_get_symbol(void*,const char*);\n"
+        "extern int tcc_output_file(void*,const char*);\n"
+        "extern int tcc_vfs_mount_memory(const char*,const void*,size_t);\n"
+        "extern int xlTccRegisterXrtEnvironment(struct TCCState*,int);\n"
+        "static void* xlir_tcc_create(int output)\n"
+        "{\n"
+        "    if(output<1 || output>5){xrtSetErrorKind(XERR_ARGUMENT);return NULL;}\n"
+        "    void* state=tcc_new();if(!state){xrtSetErrorKind(XERR_MEMORY);return NULL;}\n"
+        "    if(tcc_set_output_type(state,output)!=0 ||\n"
+        "       !xlTccRegisterXrtEnvironment((struct TCCState*)state,output)){tcc_delete(state);if(!xrtGetError())xrtSetErrorKind(XERR_STATE);return NULL;}\n"
+        "    return state;\n"
+        "}\n"
+        "void* xl6_tcc_context_create(void){return xlir_tcc_create(1);}\n"
+        "void* xl6_tcc_context_create_output(int output){return xlir_tcc_create(output);}\n"
+        "void xl6_tcc_context_destroy(void* state){if(state)tcc_delete(state);}\n"
+        "typedef XL6_TccMainProc xlir_tcc_main;\n"
+        "typedef XL6_TccHandler xlir_tcc_handler;\n"
+        "static int xlir_tcc_arguments(xvalue* args,int* count,char*** output)\n"
+        "{\n"
+        "    *count=0;*output=NULL;\n"
+        "    XL6_ArrayInputV1 input={0};\n"
+        "    if(args && !xl6ArrayInputAcquireBoundedV1(args,INT_MAX,&input))return 0;\n"
+        "    size_t size=input.count;\n"
+        "    if(size>SIZE_MAX/sizeof(char*)-1)goto failed;\n"
+        "    if(!size){xl6ArrayInputReleaseV1(&input);return 1;}\n"
+        "    size_t bytes=(size+1)*sizeof(char*);\n"
+        "    for(size_t i=0;i<size;++i){\n"
+        "        xstrview text={0};\n"
+        "        if(!xrtValueGetString(input.items[i],&text) ||\n"
+        "           (text.Size && (!text.Data || memchr(text.Data,0,text.Size))) ||\n"
+        "           text.Size==SIZE_MAX || bytes>SIZE_MAX-text.Size-1)goto failed;\n"
+        "        bytes+=text.Size+1;\n"
+        "    }\n"
+        "    char** argv=(char**)xrtCalloc(1,bytes);if(!argv)goto failed;\n"
+        "    char* next=(char*)(argv+size+1);\n"
+        "    for(size_t i=0;i<size;++i){\n"
+        "        xstrview text={0};\n"
+        "        if(!xrtValueGetString(input.items[i],&text)){xrtFree(argv);goto failed;}\n"
+        "        argv[i]=next;if(text.Size)memcpy(next,text.Data,text.Size);next+=text.Size+1;\n"
+        "    }\n"
+        "    xl6ArrayInputReleaseV1(&input);*count=(int)size;*output=argv;return 1;\n"
+        "failed:\n"
+        "    xl6ArrayInputReleaseV1(&input);return 0;\n"
+        "}\n"
+        "static int xlir_tcc_invoke(xlir_tcc_main main,xvalue* args)\n"
+        "{\n"
+        "    int count;char** argv;char* empty[]={NULL};\n"
+        "    if(!main || !xlir_tcc_arguments(args,&count,&argv))return -1;\n"
+        "    int result=main(count,argv?argv:empty);xrtFree(argv);return result;\n"
+        "}\n"
+        "int xl6_tcc_context_run_args(void* state,xvalue* args)\n"
+        "{\n"
+        "    int count;char** argv;char* empty[]={NULL};\n"
+        "    if(!state || !xlir_tcc_arguments(args,&count,&argv))return -1;\n"
+        "    int result=-1;\n"
+        "    if(tcc_relocate(state)==0){\n"
+        "        xlir_tcc_main main=(xlir_tcc_main)tcc_get_symbol(state,\"main\");\n"
+        "        if(main)result=main(count,argv?argv:empty);\n"
+        "    }\n"
+        "    xrtFree(argv);return result;\n"
+        "}\n"
+        "void* xl6_tcc_handler_wrap(void* handle){return handle;}\n"
+        "void* xl6_tcc_handler_create(const char* path)\n"
+        "{\n"
+        "    if(!path || !path[0]){xrtSetErrorKind(XERR_ARGUMENT);return NULL;}\n"
+        "    xlir_tcc_handler* handler=(xlir_tcc_handler*)xrtCalloc(1,sizeof(*handler));\n"
+        "    if(!handler){xrtSetErrorKind(XERR_MEMORY);return NULL;}\n"
+        "    handler->state=xlir_tcc_create(1);\n"
+        "    if(!handler->state || tcc_add_file(handler->state,path)!=0 || tcc_relocate(handler->state)!=0){\n"
+        "        xl6_tcc_context_destroy(handler->state);xrtFree(handler);if(!xrtGetError())xrtSetErrorKind(XERR_STATE);return NULL;\n"
+        "    }\n"
+        "    handler->main=(xlir_tcc_main)tcc_get_symbol(handler->state,\"main\");\n"
+        "    if(!handler->main){xl6_tcc_context_destroy(handler->state);xrtFree(handler);xrtSetErrorKind(XERR_STATE);return NULL;}\n"
+        "    return handler;\n"
+        "}\n"
+        "void xl6_tcc_handler_destroy(void* value)\n"
+        "{xlir_tcc_handler* handler=(xlir_tcc_handler*)value;if(handler){xl6_tcc_context_destroy(handler->state);xrtFree(handler);}}\n"
+        "int xl6_tcc_handler_run_args(void* value,xvalue* args)\n"
+        "{xlir_tcc_handler* handler=(xlir_tcc_handler*)value;return handler?xlir_tcc_invoke(handler->main,args):-1;}\n"
+        "int xl6_tcc_context_output_file(void* state,const char* path)\n"
+        "{\n#ifdef XL_RUNTIME_ONLY_DLL\n"
+        "    (void)state;(void)path;return -1;\n#else\n"
+        "    return state && path && path[0]?tcc_output_file(state,path):-1;\n#endif\n}\n"
+        "int xl6_tcc_vfs_mount_text(const char* path,const char* text)\n"
+        "{return path && path[0] && text?tcc_vfs_mount_memory(path,text,strlen(text)):0;}\n"
+        "#endif\n",out);
+}

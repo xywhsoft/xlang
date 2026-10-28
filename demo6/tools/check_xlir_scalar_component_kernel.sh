@@ -41,12 +41,7 @@ regressions=(cgen_numeric_literals operators_int_literal_forms type_int_narrowin
         printf '%s\0' "test/cases/$name.xl"
     done
 } | sort -zu | xargs -0 sha256sum >"$OUT/inputs.sha256"
-while IFS='|' read -r kind target source; do
-    if [[ "$kind" = file && "$target" = include/__xl_runtime/* ]]; then
-        source="${source//%XL6_ROOT%/$ROOT}"
-        mkdir -p "$OUT/$(dirname "$target")"; cp "$source" "$OUT/$target"; cmp "$source" "$OUT/$target"
-    fi
-done < tools/tcc_vfs_manifest_linux_xlc.txt
+python3 tools/stage_runtime_headers.py --root "$ROOT" --out "$OUT"
 strict=(-std=c11 -D_GNU_SOURCE -Wall -Wextra -Werror -DXL_STATIC_EMBED
     -Wno-unused-function -Wno-unused-label -Wno-unused-variable -Wno-unused-parameter
     -Wno-unused-const-variable -Wno-unused-but-set-variable -Wno-missing-field-initializers

@@ -142,6 +142,8 @@ $extraMarkdownDocs = @(
     "src\README.md",
     "tools\README.md",
     "release\include\README.md",
+    "release\examples\embedded_package\README.md",
+    "dev\extlib_blockers\README.md",
     "lib\README.md",
     "release\README.md",
 	"release\examples\README.md",

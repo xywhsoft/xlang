@@ -1,5 +1,6 @@
 param(
-    [string]$Root = ""
+    [string]$Root = "",
+    [string]$RuntimeDirectory = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -8,7 +9,9 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$xl = Join-Path $Root "release\xl.exe"
+if (!$RuntimeDirectory) { $RuntimeDirectory = Join-Path $Root 'release' }
+$runtime = (Resolve-Path -LiteralPath $RuntimeDirectory).Path
+$xl = Join-Path $runtime 'xl.exe'
 $tmpDir = Join-Path $Root "build\test"
 $failures = New-Object System.Collections.Generic.List[string]
 
@@ -98,7 +101,7 @@ $helpOut = Join-Path $tmpDir "xlc_shell_help.out.txt"
 $helpErr = Join-Path $tmpDir "xlc_shell_help.err.txt"
 Invoke-XlCapture -Name "help" -CommandArgs @("--help") -Stdout $helpOut -Stderr $helpErr | Out-Null
 $help = Read-Text $helpOut
-foreach ( $cmd in @("xl lex", "xl parse", "xl check", "xl ir", "xl cgen", "xl abi", "xl run", "xl dbg", "xl dap", "xl build") ) {
+foreach ( $cmd in @("xl lex", "xl parse", "xl check", "xl ir", "xl cgen", "xl abi", "xl run", "xl build", "xl c-bridge") ) {
     Assert-Contains "help" $help $cmd
 }
 
@@ -127,14 +130,14 @@ $mixedRunOut = Join-Path $tmpDir "xlc_shell_mixed_c_direct_run.out.txt"
 $mixedRunErr = Join-Path $tmpDir "xlc_shell_mixed_c_direct_run.err.txt"
 Invoke-XlCapture `
     -Name "run xl plus c helper" `
-    -CommandArgs @("run", "test\cases\cgen_task_api.xl", "test\cases\cgen_class_host.c") `
+    -CommandArgs @("run", "test\cases\cli_shell_mixed.xl", "test\cases\cli_shell_native.c") `
     -Stdout $mixedRunOut `
     -Stderr $mixedRunErr | Out-Null
 
 $mixedExe = Join-Path $tmpDir "xlc_shell_mixed_c.exe"
 Invoke-XlCapture `
     -Name "build xl plus c helper" `
-    -CommandArgs @("build", "test\cases\cgen_task_api.xl", "test\cases\cgen_class_host.c", "-o", $mixedExe) `
+    -CommandArgs @("build", "test\cases\cli_shell_mixed.xl", "test\cases\cli_shell_native.c", "-o", $mixedExe) `
     -Stdout (Join-Path $tmpDir "xlc_shell_mixed_c.out.txt") `
     -Stderr (Join-Path $tmpDir "xlc_shell_mixed_c.err.txt") | Out-Null
 Invoke-NativeCapture `
@@ -163,24 +166,36 @@ $badSharedErr = Join-Path $tmpDir "xlc_shell_bad_shared.err.txt"
 Invoke-XlCapture -Name "reject shared main" -CommandArgs @("build", "test\cases\cgen_main_entry.xl", "-shared", "-o", "build\test\xlc_shell_bad_shared.dll") -Stdout (Join-Path $tmpDir "xlc_shell_bad_shared.out.txt") -Stderr $badSharedErr -ExpectedCode 1 | Out-Null
 Assert-Contains "reject shared main" (Read-Text $badSharedErr) "shared build cannot contain xlang main"
 
-$dbgOut = Join-Path $tmpDir "xlc_shell_dbg.out.txt"
-$dbgErr = Join-Path $tmpDir "xlc_shell_dbg.err.txt"
-Invoke-XlCapture -Name "debug" -CommandArgs @("dbg", "release\examples\hello.xl", "--break", "2", "--commands", "test\data\dbg_commands.txt", "--save-temps") -Stdout $dbgOut -Stderr $dbgErr | Out-Null
+foreach($retired in @('dbg','dap')) {
+    $err=Join-Path $tmpDir ("xlc_shell_"+$retired+".err.txt")
+    Invoke-XlCapture -Name ("retired "+$retired) -CommandArgs @($retired) -Stdout (Join-Path $tmpDir ("xlc_shell_"+$retired+".out.txt")) -Stderr $err -ExpectedCode 1 | Out-Null
+    Assert-Contains ("retired "+$retired) (Read-Text $err) ("unknown command: "+$retired)
+}
+$dbgOut = Join-Path $tmpDir "xlc_shell_debug_api.out.txt"
+$dbgErr = Join-Path $tmpDir "xlc_shell_debug_api.err.txt"
+Invoke-NativeCapture -Name "compiler debug API" -FilePath (Join-Path $runtime 'xlc_api_embed.exe') -CommandArgs @() -Stdout $dbgOut -Stderr $dbgErr | Out-Null
+$savedBreak=$env:XL6_DBG_BREAKPOINTS;$savedCommands=$env:XL6_DBG_COMMANDS
+try {
+    $env:XL6_DBG_BREAKPOINTS='2';$env:XL6_DBG_COMMANDS='stack;continue'
+    Invoke-NativeCapture -Name 'debug executable' -FilePath (Join-Path $tmpDir 'xlc_api_debug.exe') -CommandArgs @() -Stdout $dbgOut -Stderr $dbgErr | Out-Null
+} finally {$env:XL6_DBG_BREAKPOINTS=$savedBreak;$env:XL6_DBG_COMMANDS=$savedCommands}
 $dbgText = Read-Text $dbgOut
 Assert-Contains "debug output" $dbgText "xl-debug stopped reason=breakpoint"
 Assert-Contains "debug output" $dbgText "function=add"
 Assert-Contains "debug output" $dbgText "xl-debug frame #0"
-$dbgErrText = Read-Text $dbgErr
+$keptOut=Join-Path $tmpDir 'xlc_shell_kept.out.txt';$keptErr=Join-Path $tmpDir 'xlc_shell_kept.err.txt'
+Invoke-XlCapture -Name 'run save temps' -CommandArgs @('run',$case,'--save-temps') -Stdout $keptOut -Stderr $keptErr | Out-Null
+$dbgErrText = Read-Text $keptErr
 $dbgMatch = [regex]::Match($dbgErrText, "temporary files kept:\s*(.+)")
 if ( ! $dbgMatch.Success ) {
-    Add-Failure "debug did not report kept temporary directory"
+    Add-Failure "run did not report kept temporary directory"
 } else {
     $dbgDir = $dbgMatch.Groups[1].Value.Trim()
     $dbgC = Join-Path $dbgDir "module.c"
     if ( ! (Test-Path -LiteralPath $dbgC -PathType Leaf) ) {
-        Add-Failure "debug module.c is missing: $dbgC"
+        Add-Failure "kept run module.c is missing: $dbgC"
     } else {
-        Assert-Contains "debug module.c" (Read-Text $dbgC) "xl6_debug_probe"
+        Assert-Contains "kept module.c" (Read-Text $dbgC) "xlir_module_init("
     }
     try {
         $resolvedTmp = (Resolve-Path -LiteralPath $tmpDir).Path
@@ -198,10 +213,19 @@ if ( ! $dbgMatch.Success ) {
 
 $cmdOut = Join-Path $tmpDir "xlc_shell_default_links.out.txt"
 $cmdErr = Join-Path $tmpDir "xlc_shell_default_links.err.txt"
+$linkScript = Join-Path $tmpDir 'xlc_shell_default_links.bat'
+[IO.File]::WriteAllText($linkScript, (@(
+    '@echo off',
+    'setlocal',
+    'call tools\xl6_toolchain_env.bat',
+    'if errorlevel 1 exit /b 1',
+    ('"' + $xl + '" run release\examples\stdlib_print.xl %XL6_XL_DEFAULT_LINK_ARGS%'),
+    'exit /b %errorlevel%'
+) -join "`r`n"), [Text.UTF8Encoding]::new($false))
 Invoke-NativeCapture `
     -Name "default link args" `
     -FilePath "cmd.exe" `
-    -CommandArgs @("/v:on", "/s", "/c", "call tools\xl6_toolchain_env.bat && release\xl.exe run release\examples\stdlib_print.xl !XL6_XL_DEFAULT_LINK_ARGS!") `
+    -CommandArgs @('/d', '/c', ('"' + $linkScript + '"')) `
     -Stdout $cmdOut `
     -Stderr $cmdErr | Out-Null
 Assert-Contains "default link args output" (Read-Text $cmdOut) "xlang print 123 done"

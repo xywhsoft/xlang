@@ -23,6 +23,13 @@
 static char xlcShellKeptTempDir[512];
 static char xlcShellProjectKind[16];
 
+static void xlcShellReportKeptTemps(void)
+{
+    if ( xlcShellKeptTempDir[0] != '\0' ) {
+        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "temporary files kept: %s\n", xlcShellKeptTempDir);
+    }
+}
+
 static void xlcShellPrintHelp(void)
 {
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "Usage:\n");
@@ -1502,6 +1509,7 @@ static int xlcShellRunRunCommand(int argc, char** argv)
     }
     ok = xlcShellDoRun(ctx, argc, argv);
     rc = ok ? xlcGetLastExitCode(ctx) : 1;
+    xlcShellReportKeptTemps();
     if ( !ok ) {
         const char* errorText = xlcGetLastError(ctx);
         if ( errorText != NULL && errorText[0] != '\0' ) {
@@ -1546,6 +1554,7 @@ static int xlcShellRunC(int argc, char** argv)
     }
     ok = runtime != NULL && xlRunCSourceFiles(runtime, cInputs, cInputCount, runArgCount, runArgs);
     rc = ok ? xlGetLastExitCode(runtime) : 1;
+    xlcShellReportKeptTemps();
     if ( !ok ) {
         const char* errorText = runtime != NULL ? xlGetLastError(runtime) : xlcGetLastError(ctx);
         if ( errorText != NULL && errorText[0] != '\0' ) {
@@ -1714,9 +1723,7 @@ static int xlcShellDoBuild(XLC_Context* ctx, int argc, char** argv)
     }
     if (ok && xlcShellFindValue(argc,argv,"--input-report",3))
         ok=xlcWriteInputReport(ctx,output,xlcShellFindValue(argc,argv,"--input-report",3));
-    if ( ok && xlcShellHasFlag(argc, argv, "--save-temps") && xlcShellKeptTempDir[0] != '\0' ) {
-        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "temporary files kept: %s\n", xlcShellKeptTempDir);
-    }
+    xlcShellReportKeptTemps();
     return ok;
 }
 
@@ -1759,6 +1766,7 @@ static int xlcShellBuildC(int argc, char** argv)
     }
     if(ok && xlcShellFindValue(argc,argv,"--input-report",3))
         ok=xlcWriteInputReport(ctx,output,xlcShellFindValue(argc,argv,"--input-report",3));
+    xlcShellReportKeptTemps();
     if ( !ok ) {
         const char* errorText = runtime != NULL ? xlGetLastError(runtime) : xlcGetLastError(ctx);
         if ( errorText != NULL && errorText[0] != '\0' ) {

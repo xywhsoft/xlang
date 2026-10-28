@@ -423,6 +423,8 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
 {
     XL6_IrCgenNeeds needs;
     if (!visitor || !xl6IrCgenBuildNeeds(module,&needs,diags,options)) return 0;
+    if (xl6IrCgenNeedsTccRuntime(module) &&
+        !visitor(context,"xl6ArrayInputAcquireBoundedV1")) return 0;
     if (needs.needsNominalIdentityRuntime && !visitor(context,"xl6ValueAdmitsNominalV1")) return 0;
     if ((xl6IrCgenDynamicArgumentAdmissionNeeds(module)&1u) &&
         !visitor(context,"xl6ValueAdmitsV1")) return 0;
