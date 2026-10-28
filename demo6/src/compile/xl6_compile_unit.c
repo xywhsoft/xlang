@@ -384,7 +384,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
         {"XRT_MODULE_VALUE_CONTAINER", "XRUNTIME_MODULE_TYPED_ARRAY", "XRUNTIME_MODULE_RUNTIME_TYPE"}},
     {"src/runtime/xl6_array_extract_string.c", D(R(SEQUENCE)),
         {"XRT_MODULE_VALUE_CONTAINER", "XRUNTIME_MODULE_TYPED_ARRAY"}},
-    {"src/runtime/xl6_array_extract_value.c", D(R(SEQUENCE)),
+    {"src/runtime/xl6_array_extract_value.c", D(R(SEQUENCE),R(ERROR_VALUE)),
         {"XRT_MODULE_VALUE_CONTAINER", "XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}},
     {"src/runtime/xl6_collection_extract_value.c", D(), {"XRT_MODULE_VALUE_CONTAINER"}},
     {"src/runtime/xl6_array_extract_f32.c", D(R(SEQUENCE),R(VALUE_ADMISSION)),
