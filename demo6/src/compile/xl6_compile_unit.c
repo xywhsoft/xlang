@@ -1143,8 +1143,15 @@ static int xl6ArtifactVisitResidentSymbol(void* opaque, const char* symbol)
 int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi entry,
     XL6_ArtifactRuntimePlan* plan, XL6_DiagList* diags)
 {
+    return xl6ArtifactRuntimePlanBuildWithOptions(module,entry,NULL,plan,diags);
+}
+
+int xl6ArtifactRuntimePlanBuildWithOptions(const XL6_IrModule* module, XL6_ArtifactEntryAbi entry,
+    const XL6_IrCgenOptions* options, XL6_ArtifactRuntimePlan* plan, XL6_DiagList* diags)
+{
     XL6_ArtifactTypeWork work;
     XL6_IrCgenOptions cOptions={0};
+    if(options)cOptions=*options;
     XL6_ArtifactRuntimeSet roots=xl6ArtifactRuntimeSetSingleton(R(SLOT));
 #define REQUIRE(...) do { const size_t ids[] = {__VA_ARGS__}; \
     if (!xl6ComponentSetAddMany(roots.words,XL6_ARTIFACT_RUNTIME_COUNT,ids,sizeof(ids)/sizeof(ids[0]))) { \
@@ -1571,6 +1578,8 @@ static void xl6CompileUnitBaseNameNoExt(char* out, size_t outSize, const char* p
     out[len] = '\0';
 }
 
+#include "src/compile/xl6_compiled_packages.inc"
+
 void xl6CompileUnitInit(XL6_CompileUnit* unit)
 {
     if ( unit == NULL ) {
@@ -1622,7 +1631,8 @@ int xl6CompileUnitLoadFile(XL6_CompileUnit* unit, const char* path, int runSem)
     }
     if ( ok && runSem && !(unit->importDeps.sourceOverlay && unit->importDeps.sourceOverlay->completionQuery) ) {
         unit->phase = "ir";
-        ok = xl6IrBuildModuleFromAst(&unit->ir, unit->parse.root, &unit->parse.diags);
+        ok = xl6CompileUnitSelectCompiledPackages(unit) &&
+            xl6IrBuildModuleFromAst(&unit->ir, unit->parse.root, &unit->parse.diags);
         unit->irReady = ok;
     }
     unit->success = ok && unit->parse.diags.count == 0;
@@ -1664,7 +1674,8 @@ int xl6CompileUnitLoadSource(XL6_CompileUnit* unit, const char* source, const ch
     }
     if ( ok && runSem && !(unit->importDeps.sourceOverlay && unit->importDeps.sourceOverlay->completionQuery) ) {
         unit->phase = "ir";
-        ok = xl6IrBuildModuleFromAst(&unit->ir, unit->parse.root, &unit->parse.diags);
+        ok = xl6CompileUnitSelectCompiledPackages(unit) &&
+            xl6IrBuildModuleFromAst(&unit->ir, unit->parse.root, &unit->parse.diags);
         unit->irReady = ok;
     }
     unit->success = ok && unit->parse.diags.count == 0;

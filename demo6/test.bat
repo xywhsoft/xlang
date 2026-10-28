@@ -81,6 +81,8 @@ call test\suites\07_async_generator_channel_docs.bat
 if errorlevel 1 exit /b 1
 call test\suites\08_stdlib_extended.bat
 if errorlevel 1 exit /b 1
+call test\suites\08_compiled_packages.bat
+if errorlevel 1 exit /b 1
 call test\suites\09_artifact_closure.bat
 if errorlevel 1 exit /b 1
 

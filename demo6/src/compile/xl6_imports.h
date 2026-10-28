@@ -5,6 +5,7 @@
 #include "src/diag/xl6_diag.h"
 #include "src/package/xl6_package.h"
 #include "src/compile/xl6_source_overlay.h"
+#include "src/package/xl6_compiled_package.h"
 
 typedef struct XL6_ImportNativeItem {
     char* packageId;
@@ -13,14 +14,28 @@ typedef struct XL6_ImportNativeItem {
     char* version;
 } XL6_ImportNativeItem;
 
+typedef struct XL6_ImportPackageInfo {
+    char* name;
+    char* version;
+    char* abiVersion;
+    char* dir;
+    XL6_PackageStringList dependencies;
+    int compiledRoot;
+} XL6_ImportPackageInfo;
+
 enum {
     XL6_IMPORT_FEATURE_TCC_RUNTIME = 1u << 0,
     XL6_IMPORT_FEATURE_XLANG_RUNTIME = 1u << 1,
-    XL6_IMPORT_FEATURE_XLANG_COMPILER = 1u << 2
+    XL6_IMPORT_FEATURE_XLANG_COMPILER = 1u << 2,
+    XL6_IMPORT_FEATURE_COMPILED_PACKAGE_CONSUMER = 1u << 3,
+    XL6_IMPORT_FEATURE_COMPILED_INTERFACE_EXPANSION = 1u << 4
 };
 
 typedef struct XL6_ImportDeps {
     const XL6_SourceOverlay* sourceOverlay; /* Borrowed during this unit. */
+    const XL6_CompiledPackageSet* compiledPackages; /* Borrowed for this call. */
+    XL6_ImportPackageInfo* packageInfos;
+    size_t packageInfoCount;
     XL6_PackageStringList cSources;
     XL6_PackageStringList includeDirs;
     XL6_PackageStringList xrtModules;

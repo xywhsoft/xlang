@@ -4,6 +4,11 @@
 
 ## 主要入口
 
+- `tools/check_compiled_packages.ps1`: compiled-package source/IR fault prefixes,
+  both DLL native clients, compiler consumers, source-free EXE deployment and
+  executable size comparison. See `docs/compiled-host-packages.md` for supported
+  ABI/lifetime boundaries and fresh-build commands.
+
 - `tools/check_stdlib_time_core.ps1` / `tools/check_stdlib_time_core.sh`：时间核心
   的完整整数参数、UTC 微秒、Unix 毫秒、日历增减与显式容差；严格 C、
   声明合同变异、JIT/AOT、真实错误分配失败和语言 OOM 账本。Linux 原生
@@ -49,6 +54,7 @@ test\suites\02_language_frontend.bat
 - `10_format_extlibs.bat`：gzip/bz2/zip/tar、CSV/INI/TOML/plist/netrc/XML 的 xlang/C 双语测试、Python 双向互操作、严格编译、私有依赖裁剪与按需链接守门。
 
 ## Manual probes
+- `08_compiled_packages.bat`: fresh source/IR fault checks and both DLLs, followed by source-free compiled-package EXE and example deployment.
 
 `tools/check_stdlib_text_values.ps1`（已接入 `03_core_base_09.bat`）覆盖 B1—B9 文本、数字、Unicode/HTML、编码与闭合原生 product：Windows 1040 项冻结输入检查，35 正向/42 负例，严格 C/JIT/AOT、确定性、ABI/私有访问/默认参数、真实 OOM 与回归。`tools/check_xlir_artifact_runtime.ps1` 本轮核对 60 组件、3600 对依赖、384 导出，并完成 B9 八个实际闭包；B7/B8 的闭包仅保留历史证据，不混为本轮重新验收。Linux 的 `check_stdlib_number_values.sh` / `check_stdlib_unicode.sh` / `check_stdlib_encoding.sh` 均接入 `test_linux.sh`，分别保留数字 253、Unicode/HTML 148、编码 B8/B9 216 项专项；sanitizer 只覆盖原生探针，受管层使用逻辑账本，均核对实际闭包与冻结输入。最小 encoding meta/转码/repair/guess 不引入其他文本 resident 或 Buffer；guess 不带转换/元信息 resident 和 charset 根，猜测不是验证。通用三整数 product 的普通函数/函数值与独立 C 提供者回归通过。整个 53 模块目标仍未完成，专项不能代替全仓 RC0。
 
@@ -89,6 +95,7 @@ test\suites\02_language_frontend.bat
 - `container`：容器成员 API 和运算符补全用例。
 - `containers`：容器基础语义用例。
 - `control`：控制流用例。
+- `compiled`: compiled-in package host/script execution, isolation and deployment.
 - `definite`：确定赋值数据流用例。
 - `enum`：数值枚举、带载荷枚举和 match 用例。
 - `export`：xlang 导出 C ABI 用例。

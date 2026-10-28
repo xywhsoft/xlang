@@ -1,0 +1,4 @@
+import xlang
+import compiled_demo
+string name = "compiled_demo"
+auto package = xlang.compiledPackage(name)

@@ -15,6 +15,7 @@ dir|include/__xl_runtime|%XL6_ROOT%\src\runtime|*.h
 # the directory entry above embeds them without depending on release outputs.
 
 file|include/xl.h|%XL6_ROOT%\release\include\xl.h
+file|include/xl_package.h|%XL6_ROOT%\release\include\xl_package.h
 file|include/xl_sync_retirement.h|%XL6_ROOT%\release\include\xl_sync_retirement.h
 file|include/xl_cancellation_retirement.h|%XL6_ROOT%\release\include\xl_cancellation_retirement.h
 file|include/__xl_runtime/xl_runtime.h|%XL6_ROOT%\release\include\xl_runtime.h

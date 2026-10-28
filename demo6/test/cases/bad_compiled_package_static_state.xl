@@ -1,0 +1,3 @@
+import xlang
+import compiled_bad_state
+auto package = xlang.compiledPackage("compiled_bad_state")

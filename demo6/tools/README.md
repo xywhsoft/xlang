@@ -2,6 +2,13 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`check_compiled_packages.ps1 -RuntimeDirectory <fresh-release> -Directory <fresh-evidence>`
+checks resident per-package embedding against both actual DLLs and source-free
+EXEs. Add `-PublicDirectory <verified-source-cohort>` for interface/IR fault and
+strict C checks. `build_xlir_public_source_driver.ps1 -RuntimeResource <fresh-runtime-resource.c>`
+pins/stages the same build's nested runtime VFS without borrowing a default old
+resource. See [Compiled Host Packages](../docs/compiled-host-packages.md).
+
 `check_network_public_shipping.py --manifest tools/tls_surface_public_fixtures.json`
 selects 47 ordinary TLS positives and four semantic negatives; the separate
 `tools/tls_negotiation_public_fixtures.json` exercises twelve restricted policies.

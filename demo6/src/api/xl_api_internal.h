@@ -131,5 +131,7 @@ extern XL_TccApi xl__tcc;
 
 int xlApiAddTccSymbol(TCCState* state, const char* name, const void* value);
 int xlApiAddDefaultRuntimeSymbols(TCCState* state);
+typedef int (*XL_ApiSymbolVisit)(void* user,const char* name,const void* address);
+int xlApiVisitDefaultRuntimeSymbols(XL_ApiSymbolVisit visit,void* user);
 
 #endif

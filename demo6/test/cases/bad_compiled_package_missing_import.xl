@@ -1,0 +1,2 @@
+import xlang
+auto package = xlang.compiledPackage("not_imported")

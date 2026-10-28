@@ -1,0 +1,136 @@
+import compiled_left
+import compiled_right
+int sharedCount = 0
+
+export const int answer = 42
+export typedef Count = int
+export enum Mode as uint8
+    ready = 1
+    busy
+end
+
+func secret() as int
+    return -1
+end
+
+export func combined() as int
+    return compiled_left.value() + compiled_right.value()
+end
+
+export func next() as int
+    sharedCount += 1
+    return sharedCount
+end
+
+export func add(int a, int b = 2) as int
+    return a + b
+end
+
+export func add(string a, string b) as string
+    return a + b
+end
+
+export func checked(int value) as int
+    assert value >= 0, "compiled package checked failure"
+    return value
+end
+
+export class Recipes
+    static func identity<T>(T value) as T
+        return value
+    end
+end
+
+export class Counter
+    native point handle
+    extern "compiled_demo_counter_create" create(int value)
+    extern "compiled_demo_counter_destroy" destroy()
+    extern "compiled_demo_counter_get" func value() as int
+    extern "compiled_demo_counter_add" func add(int delta) as int
+    func twice() as int
+        return self.value() * 2
+    end
+end
+
+export func makeCounter(int initial) as Counter
+    return Counter(initial)
+end
+
+export class Box
+    int value
+    create(int initial)
+        self.value = initial
+    end
+    func read() as int
+        return self.value
+    end
+    get doubled() as int
+        return self.value * 2
+    end
+end
+
+export func readBox(Box box) as int
+    return box.read()
+end
+
+export func makeBox(int value) as Box
+    return Box(value)
+end
+
+export func apply(int value, func(int) as int operation) as int
+    return operation(value)
+end
+
+export func callbackFactory(int delta) as func(int) as int
+    return func(int value) as int
+        return value + delta
+    end
+end
+
+export func mutateText(string value) as string
+    value = value + "!"
+    return value
+end
+
+export func saveText(string value) as func() as string
+    return func() as string
+        return value
+    end
+end
+
+export func pair(int value) as (int, string)
+    return value, "paired"
+end
+
+export extern "compiled_demo_scale" @no_raise func scale(int value) as int
+export extern "compiled_demo_owned_text" @owned func nativeText() as string
+export extern "compiled_demo_apply_raw" @no_raise func applyRaw(c_callback func(int) as int operation, int value) as int
+
+export class AsyncWork
+    static async func immediate(int value) as int
+        return value * 2
+    end
+    static async func chained(int value) as int
+        return await AsyncWork.immediate(value)
+    end
+end
+
+export class Generators
+    static func values(int count) as generator<int>
+        int value = 0
+        while value < count
+            value += 1
+            yield value
+        end
+    end
+end
+
+export class CallbackBox
+    func(int) as int callback
+    create(func(int) as int operation)
+        self.callback = operation
+    end
+    func invoke(int value) as int
+        return self.callback(value)
+    end
+end
