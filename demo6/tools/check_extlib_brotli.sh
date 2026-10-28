@@ -17,7 +17,9 @@ input_paths() {
     find "$pkg" -type f -print0
     printf '%s\0' lib/xrt/xrt.h lib/xruntime/xruntime.h test/support/extlib_codec_runtime.c \
         test/cases/extlib_codec_file_allocation.c tools/check_extlib_brotli.sh \
-        release/xl release/libxlc.so test/cases/extlib_brotli.xl test/cases/extlib_brotli_progress.xl \
+        release/xl release/libxl.so release/libxlc.so release/include/xrt_decl.h \
+        release/include/xruntime_decl.h release/include/xl_extlib_abi.h \
+        test/cases/extlib_brotli.xl test/cases/extlib_brotli_progress.xl \
         release/examples/extlibs/brotli.xl release/examples/extlibs/brotli_basic.xl \
         release/examples/extlibs/brotli_basic.expected.txt
     if [[ -n ${XRT_INCLUDE:-} ]]; then printf '%s\0' "$XRT_INCLUDE/xrt.h" "$XRT_INCLUDE/xruntime.h"; fi
@@ -57,6 +59,9 @@ for kind in compressor decompressor; do
     fi
 done
 "$cc" --version > "$work/compiler.txt"
+for order in ALONE CORE_FIRST NATIVE_FIRST XRT_FIRST; do
+    "$cc" "${flags[@]}" "-DBROTLI_$order" -fsyntax-only "$pkg/test/native_header.c"
+done
 "$cc" "${flags[@]}" -DXRT_MODULE_DIR -DXRT_MODULE_FILE_WHOLE -c test/support/extlib_codec_runtime.c -o "$work/runtime.o"
 objects=()
 for index in "${!sources[@]}"; do
@@ -85,7 +90,7 @@ fi
 stage="$work/stage"
 mkdir -p "$stage/release/extlibs" "$stage/release/examples/extlibs" \
     "$stage/test/cases" "$stage/lib/xrt" "$stage/lib/xruntime"
-cp -a release/xl release/libxlc.so "$stage/release/"
+cp -a release/xl release/libxl.so release/libxlc.so release/include "$stage/release/"
 cp -a "$pkg" "$stage/release/extlibs/"
 cp -a release/examples/extlibs/brotli.xl release/examples/extlibs/brotli_basic.xl \
     release/examples/extlibs/brotli_basic.expected.txt "$stage/release/examples/extlibs/"
@@ -119,3 +124,8 @@ printf '[brotli] C file allocation AOT\n'
 timeout 180s "$xl" build "$pkg/test/file_allocation.c" "${sources[@]}" \
     --inc-path lib/xrt --inc-path lib/xruntime -o "$work/file-allocation-aot"
 timeout 90s "$work/file-allocation-aot" "$work/aot-files-$$" > "$work/file-allocation-aot.log"
+
+printf '[brotli] Top-level native object lifecycle\n'
+timeout 90s "$xl" run "$pkg/test/top_level.xl"
+timeout 180s "$xl" build "$pkg/test/top_level.xl" -o "$work/top-level"
+timeout 90s "$work/top-level" 2>&1 | tee "$work/top-level.log"

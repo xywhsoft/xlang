@@ -56,6 +56,10 @@ $runtime = Join-Path $work 'runtime.o'
 $outcome = 'failed'
 $failure = ''
 try {
+    foreach ($order in @('ALONE','CORE_FIRST','NATIVE_FIRST','XRT_FIRST')) {
+        $null = Check "native-header-$order" $gcc ($flags + @("-DBROTLI_$order",'-fsyntax-only',
+            'release/extlibs/brotli/test/native_header.c'))
+    }
     foreach ($kind in @('compressor','decompressor')) {
         $name = "private_${kind}_negative"
         $args = @('check',"release/extlibs/brotli/test/$name.xl")
@@ -159,6 +163,14 @@ try {
     if (!$SkipAot) {
         $null = Check 'file-allocation-aot-build' $xl (@('build','release/extlibs/brotli/test/file_allocation.c') + $sources + @('--inc-path','lib/xrt','--inc-path','lib/xruntime','-o',$binary))
         $null = Check 'file-allocation-aot' $binary @((Join-Path $work ('aot-files-'+[Guid]::NewGuid().ToString('N'))))
+    }
+    # 顶层真实对象不能通过搬进 main 掩盖退出期的原生析构边界。
+    $topLevel = 'release/extlibs/brotli/test/top_level.xl'
+    $null = Check 'top-level-jit' $xl @('run',$topLevel)
+    if (!$SkipAot) {
+        $topBinary = Join-Path $work 'top-level.exe'
+        $null = Check 'top-level-build' $xl @('build',$topLevel,'-o',$topBinary)
+        $null = Check 'top-level-aot' $topBinary @()
     }
     $outcome = 'passed'
 } catch {
