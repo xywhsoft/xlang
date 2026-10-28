@@ -102,6 +102,13 @@ static void balanced(const xmemdebugsnapshot* before)
     assert(before->InvalidFreeCount == after.InvalidFreeCount && before->DoubleFreeCount == after.DoubleFreeCount);
     assert(before->UseAfterFreeCount == after.UseAfterFreeCount);
 }
+static void snapshot_before(xmemdebugsnapshot* before)
+{
+    /* A Future publishes after semantic cleanup, before the dispatcher's
+     * final native storage release. Earlier unmeasured barrier/cancel cases
+     * must be physically idle before entering a new allocation interval. */
+    callback_boundary_wait_idle();xrtMemDebugSnapshot(before);
+}
 int main(int argc, char** argv)
 {
     unsigned round, kind, mode, errors, executions = 0, cancelled = 0, faults = 0;
@@ -134,7 +141,7 @@ int main(int argc, char** argv)
         xfuturestate expected = expectedCode ? XFUTURE_FAILED
             : forward && mode == 2 ? XFUTURE_CANCELLED
             : forward && mode == 3 ? XFUTURE_CLOSED : XFUTURE_RESOLVED;
-        if (!smoke) xrtMemDebugSnapshot(&before);
+        if (!smoke) snapshot_before(&before);
         raiseDrop = (errors & 1) != 0; raiseCall = (errors & 2) != 0;
         currentKind = kind; currentMode = mode; currentErrors = errors;
         promise = xrtPromiseCreate(&source, NULL); assert(promise);
@@ -213,7 +220,7 @@ int main(int argc, char** argv)
         xpromise* promise; xfuturewatch watch;
         unsigned firstDrop = count(&drops);
         unsigned expectedDrop = firstDrop + ((errors == 1) ? 2u : 1u);
-        if (!smoke) xrtMemDebugSnapshot(&before);
+        if (!smoke) snapshot_before(&before);
         currentKind = 4; currentMode = 0; currentErrors = errors;
         raiseDrop = (errors & 1) != 0; raiseCall = (errors & 2) != 0;
         promise = xrtPromiseCreate(&source, NULL); assert(promise);
@@ -236,7 +243,7 @@ int main(int argc, char** argv)
     for (mode = 0; mode < 28; ++mode) {
         xfuture *source = NULL, *result; xpromise* promise;
         unsigned firstCall = count(&calls); int triggered;
-        raiseDrop = raiseCall = 0; xrtMemDebugSnapshot(&before);
+        raiseDrop = raiseCall = 0; snapshot_before(&before);
         promise = xrtPromiseCreate(&source, NULL); assert(promise);
         assert(xrtMemDebugFailAfter(mode)); result = callback_boundary_start(kind, source);
         triggered = xrtMemDebugFailTriggered(); xrtMemDebugFailClear();
@@ -251,7 +258,7 @@ int main(int argc, char** argv)
     if (!smoke) for (kind = 0; kind < 2; ++kind)
     for (mode = 0; mode < 20; ++mode) {
         xfuture *source = NULL, *result; xpromise* promise; int triggered;
-        raiseDrop = raiseCall = 0; xrtMemDebugSnapshot(&before);
+        raiseDrop = raiseCall = 0; snapshot_before(&before);
         promise = xrtPromiseCreate(&source, NULL); assert(promise);
         result = callback_boundary_start(kind ? 4 : 0, source); assert(result);
         dispatchFaultBudget = mode;
@@ -274,7 +281,7 @@ int main(int argc, char** argv)
         unsigned expectedDrop = count(&drops) + 1;
         int expectedCode = (errors & 2) ? 88 : (errors & 1) ? 77 : 0;
         int cancelWins = mode && !(errors & 2);
-        if (!smoke) xrtMemDebugSnapshot(&before);
+        if (!smoke) snapshot_before(&before);
         raiseDrop = (errors & 1) != 0; raiseCall = (errors & 2) != 0;
         currentKind = 3; currentMode = mode; currentErrors = errors;
         result = callback_boundary_start(3, NULL); assert(result);
