@@ -74,6 +74,11 @@ gcc -std=c11 -O2 -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/ini -c releas
 
 ## 关闭条件
 
+2026-10-29：包内另确认并修复拥有型流关闭覆盖 XRT 首因，以及 Reader
+关闭OOM误报IO；14组C复合失败和两平台默认完整门禁通过，Windows
+本次相同GCC参数的运行库编译没有复发ICE。该修复与evrp内部错误
+无因果证明，不修改上述历史结论或R状态；主线、XRT、编译器未改。
+
 - 固定实际 GCC/cc1、预处理输入、选项和平台，保留再次失败的原始状态；
   必要时用 `-freport-bug` 在独占目录收集诊断，不自动上传源码。
 - 查明原因并修复，或形成有依据的受支持工具链/环境约定后，再运行 INI
