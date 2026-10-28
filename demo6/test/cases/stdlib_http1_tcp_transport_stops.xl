@@ -1,0 +1,63 @@
+func cancelledAndExpired()
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
+    auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+    auto sender = TcpStream(engine, listener.localAddress())
+    auto peer = listener.accept(5000)
+    assert sender.wait(TcpWait.open, 5000) == NetStatus.ok
+    auto session = Http1TcpTransport(peer)
+    auto source = CancellationSource()
+    assert source.cancel()
+    bool cancelled = false
+    try
+        auto missing = session.readRequestHead(5000, source.token)
+    catch CancelledError
+        cancelled = true
+    end
+    assert cancelled and not session.busy and session.state == Http1TransportState.head
+    bool expired = false
+    try
+        auto missing = session.readRequestHead(1)
+    catch TimeoutError
+        expired = true
+    end
+    assert expired and not session.busy and session.state == Http1TransportState.failed
+    session.close()
+    sender.close()
+    listener.close()
+    engine.close()
+    assert engine.wait(5000)
+end
+func ended(bool partial)
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
+    auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+    auto sender = TcpStream(engine, listener.localAddress())
+    auto peer = listener.accept(5000)
+    assert sender.wait(TcpWait.open, 5000) == NetStatus.ok
+    if partial then assert sender.send("GET /") == NetStatus.ok end
+    sender.shutdownWrite()
+    auto session = Http1TcpTransport(peer)
+    bool truncated = false
+    try
+        assert session.readRequestHead(5000) == null
+    catch IOError
+        truncated = true
+    end
+    assert truncated == partial
+    assert not session.busy
+    if partial then
+        assert session.state == Http1TransportState.failed
+    else
+        assert session.state == Http1TransportState.closed
+    end
+    peer.close()
+    sender.close()
+    listener.close()
+    engine.close()
+    assert engine.wait(5000)
+end
+cancelledAndExpired()
+ended(false)
+ended(true)
+println("HTTP/1 TCP: cancellation, whole-operation deadline, EOF and failed-state release passed")

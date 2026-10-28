@@ -1,0 +1,66 @@
+func main(...) as int
+    auto headers = HttpHeaders()
+    headers.add("Host", "example.test")
+    headers.add("Content-Length", "3")
+    auto wire = Http1.requestHead("POST", "/upload?q=1", headers)
+    auto parsed = Http1Head.request(wire)
+    if parsed == null then throw ValueError "expected complete HTTP result" end
+    assert parsed.version == HttpVersion.v11
+    assert parsed.methodCode == HttpMethod.post
+    assert parsed.method == "POST"
+    assert parsed.target == "/upload?q=1"
+    assert parsed.fieldCount == 2
+    assert (parsed.getText("HOST") as string) == "example.test"
+    assert parsed.contentLength == uint64(3)
+    assert parsed.getBytes("missing") == null
+    assert Http1Head.request("GET / HTTP/1.1\r\nHost:") == null
+    auto bodyPlan = parsed.bodyPlan()
+    assert bodyPlan.mode == HttpBodyMode.fixed and bodyPlan.length == uint64(3)
+    assert parsed.bodyMode() == bodyPlan.mode
+    auto reader = Http1BodyReader(bodyPlan)
+    auto out = Buffer()
+    assert reader.readInto(b"a\0bextra", out) == HttpBodyStatus.data
+    assert reader.consumed == 3
+    assert out.toBytes() == b"a\0b"
+    assert reader.readInto(b"extra", out) == HttpBodyStatus.done
+    assert reader.consumed == 0
+    assert reader.done and reader.received == uint64(3)
+    auto request = Buffer(wire)
+    request.append(b"a\0bNEXT")
+    auto message = Http1Message.request(request)
+    if message == null then throw ValueError "expected complete HTTP result" end
+    assert message.body() == b"a\0b"
+    assert message.bodyBytes == 3
+    assert message.wireBytes == parsed.headerBytes + 3
+    assert message.head().method == "POST"
+    assert message.trailers().length == 0
+    auto responseHeaders = HttpHeaders()
+    responseHeaders.add("Transfer-Encoding", "chunked")
+    auto response = Buffer(Http1.responseHead(200, "OK", responseHeaders))
+    response.append(Http1.chunk(b"a\0b"))
+    auto trailers = HttpHeaders.parse("Digest: ok\r\n")
+    response.append(Http1.chunkEnd(trailers))
+    response.append("NEXT")
+    auto chunked = Http1Message.response(response)
+    if chunked == null then throw ValueError "expected complete HTTP result" end
+    assert chunked.body() == b"a\0b"
+    assert (chunked.trailers().getText("Digest") as string) == "ok"
+    assert chunked.wireBytes == response.length - 4
+    auto suppressed = Http1Head.response(Http1.responseHead(200, "OK", headers))
+    if suppressed == null then throw ValueError "expected complete HTTP result" end
+    assert suppressed.bodyPlan("HEAD").mode == HttpBodyMode.none
+    assert suppressed.bodyPlan("CONNECT").mode == HttpBodyMode.tunnel
+    auto noLength = HttpHeaders()
+    auto closeDelimited = Buffer(Http1.responseHead(200, "OK", noLength))
+    closeDelimited.append(b"a\0b")
+    assert Http1Message.response(closeDelimited) == null
+    auto ended = Http1Message.response(closeDelimited, true)
+    if ended == null then throw ValueError "expected EOF message" end
+    assert ended.body() == b"a\0b"
+    auto buffer = Buffer("prefix:")
+    auto written = Http1.writeRequestHead("POST", "/upload?q=1", headers, buffer)
+    assert written == wire.length
+    assert buffer.length == 7 + written
+    println("HTTP/1 value and framing V2 passed")
+    return 0
+end

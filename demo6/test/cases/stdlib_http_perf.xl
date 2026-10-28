@@ -1,0 +1,36 @@
+func languageWork(int iterations) as uint64
+    uint64 total = uint64(0)
+    int i = 0
+    while i < iterations
+        auto head = Http1Head.request("POST / HTTP/1.1\r\nHost: example.test\r\nContent-Length: 3\r\n\r\na\0bNEXT")
+        if head == null then throw ValueError "missing benchmark head" end
+        total += uint64(head.headerBytes)
+        i += 1
+    end
+    return total
+end
+func main(...) as int
+    assert languageWork(1) == uint64(58)
+    auto start = time.clock()
+    auto total = languageWork(20000)
+    auto elapsed = time.clock() - start
+    assert total == uint64(1160000)
+    println("HTTP language iterations=20000 elapsed-us=", elapsed)
+    auto input = Buffer()
+    assert input.resize(65536)
+    auto output = Buffer()
+    assert output.reserve(65536)
+    auto plan = HttpBodyPlan(HttpBodyMode.fixed, uint64(65536))
+    auto reader = Http1BodyReader(plan)
+    start = time.clock()
+    int i = 0
+    while i < 20000
+        output.clear()
+        reader.reset(plan)
+        assert reader.readInto(input, output) == HttpBodyStatus.data
+        i += 1
+    end
+    assert output.length == 65536
+    println("HTTP body language iterations=20000 bytes=1310720000 elapsed-us=", time.clock() - start)
+    return 0
+end

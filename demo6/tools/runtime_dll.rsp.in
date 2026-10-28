@@ -806,6 +806,44 @@
     src\runtime\xl6_codec_percent_value.c
     src\runtime\xl6_compress_deflate_all.c
     src\runtime\xl6_compress_inflate_all.c
+    src\runtime\xl6_http_common.c
+    src\runtime\xl6_http_headers.c
+    src\runtime\xl6_http_parameters.c
+    src\runtime\xl6_http_authority.c
+    src\runtime\xl6_http_target.c
+    src\runtime\xl6_http_tokens.c
+    src\runtime\xl6_http_expect.c
+    src\runtime\xl6_http_upgrade.c
+    src\runtime\xl6_http_te.c
+    src\runtime\xl6_http_connection.c
+    src\runtime\xl6_http_trailer.c
+    src\runtime\xl6_http_encoding.c
+    src\runtime\xl6_http_head.c
+    src\runtime\xl6_http_body.c
+    src\runtime\xl6_http_write.c
+    src\runtime\xl6_http_body_write.c
+    src\runtime\xl6_http_message.c
+    src\runtime\xl6_http_decode.c
+    src\runtime\xl6_http_net.c
+    src\runtime\xl6_http_tls.c
+    src\runtime\xl6_http_headers_domain.c
+    src\runtime\xl6_http_parameters_domain.c
+    src\runtime\xl6_http_authority_domain.c
+    src\runtime\xl6_http_target_domain.c
+    src\runtime\xl6_http_tokens_domain.c
+    src\runtime\xl6_http_expect_domain.c
+    src\runtime\xl6_http_upgrade_domain.c
+    src\runtime\xl6_http_te_domain.c
+    src\runtime\xl6_http_connection_domain.c
+    src\runtime\xl6_http_encoding_domain.c
+    src\runtime\xl6_http_head_domain.c
+    src\runtime\xl6_http_body_domain.c
+    src\runtime\xl6_http_message_domain.c
+    src\runtime\xl6_http_decode_domain.c
+    src\runtime\xl6_http_body_net.c
+    src\runtime\xl6_http_transfer.c
+    src\runtime\xl6_http_deadline.c
+    src\runtime\xl6_http_transfer_domain.c
     src\runtime\xl6_compress_deflater.c
     src\runtime\xl6_compress_inflater.c
     src\runtime\xl6_template_core.c

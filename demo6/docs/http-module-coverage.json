@@ -1,0 +1,1822 @@
+{
+  "Scope": "Inventory every pinned HTTP public definition and its language role.\n\nThis is source/API coverage, not execution coverage or a conformance certificate.\nOnly direct resident calls seed the native dependency walk. Raw view/cursor and\nduplicate allocation helpers remain internal; no missing function is hidden by\ncounting a class name alone.\n",
+  "Modules": {
+    "http": [
+      "http"
+    ],
+    "http_expect": [
+      "http_expect"
+    ],
+    "http_upgrade": [
+      "http_upgrade"
+    ],
+    "http_te": [
+      "http_te"
+    ],
+    "http_upgrade_write": [
+      "http_upgrade_write"
+    ],
+    "http_encoding": [
+      "http_encoding",
+      "http_content_encoding"
+    ],
+    "http_decode": [
+      "http_decode"
+    ],
+    "http_param": [
+      "http_param"
+    ],
+    "http_connection": [
+      "http_connection"
+    ],
+    "http_trailer": [
+      "http_trailer"
+    ],
+    "http_host": [
+      "http_host"
+    ],
+    "http_param_host": [
+      "http_param_host"
+    ],
+    "http_target": [
+      "http_target"
+    ],
+    "http1_head": [
+      "http1",
+      "http1_write"
+    ],
+    "http1_net": [
+      "http1_net"
+    ],
+    "http1_tls": [
+      "http1_tls"
+    ],
+    "http1_body": [
+      "http1_body",
+      "http1_body_write"
+    ],
+    "http1_message": [
+      "http1_message"
+    ]
+  },
+  "DefinitionCount": 151,
+  "Definitions": [
+    {
+      "Name": "xrtHttp1BodyDone",
+      "Module": "http1_body",
+      "Source": "src/http/http1_body.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_body.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttp1BodyInit",
+      "Module": "http1_body",
+      "Source": "src/http/http1_body.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_body.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttp1BodyLimitsInit",
+      "Module": "http1_body",
+      "Source": "src/http/http1_body.c",
+      "Calls": [],
+      "Role": "language-equivalent-or-internal",
+      "ResidentSources": [],
+      "Disposition": "Http1Limits / BodyReader arguments materialize explicit language defaults; maxBody=-1 is explicit unlimited."
+    },
+    {
+      "Name": "xrtHttp1BodyRead",
+      "Module": "http1_body",
+      "Source": "src/http/http1_body.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_body.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttp1BodyTrailers",
+      "Module": "http1_body",
+      "Source": "src/http/http1_body.c",
+      "Calls": [],
+      "Role": "language-equivalent-or-internal",
+      "ResidentSources": [],
+      "Disposition": "BodyReader owns descriptor capacity for maxTrailers up front; reset replaces it. No mid-parse borrowed-array importer."
+    },
+    {
+      "Name": "xrtHttp1ChunkEndWrite",
+      "Module": "http1_body",
+      "Source": "src/http/http1_body_write.c",
+      "Calls": [
+        "xrtHttpTrailerSectionValid"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_body_write.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttp1ChunkLineWrite",
+      "Module": "http1_body",
+      "Source": "src/http/http1_body_write.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_body_write.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttp1ChunkWrite",
+      "Module": "http1_body",
+      "Source": "src/http/http1_body_write.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_body_write.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttp1Field",
+      "Module": "http1_head",
+      "Source": "src/http/http1.c",
+      "Calls": [
+        "xrtHttpFieldFind"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_head.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttp1HeadInit",
+      "Module": "http1_head",
+      "Source": "src/http/http1.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_head.c",
+        "src/runtime/xl6_http_net.c",
+        "src/runtime/xl6_http_tls.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttp1LimitsInit",
+      "Module": "http1_head",
+      "Source": "src/http/http1.c",
+      "Calls": [],
+      "Role": "language-equivalent-or-internal",
+      "ResidentSources": [],
+      "Disposition": "Http1Limits / Head parser arguments materialize explicit language defaults."
+    },
+    {
+      "Name": "xrtHttp1MessageBodyCopy",
+      "Module": "http1_message",
+      "Source": "src/http/http1_message.c",
+      "Calls": [
+        "xrtHttp1BodyInit",
+        "xrtHttp1BodyRead"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_message.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttp1MessageBodyView",
+      "Module": "http1_message",
+      "Source": "src/http/http1_message.c",
+      "Calls": [],
+      "Role": "language-equivalent-or-internal",
+      "ResidentSources": [],
+      "Disposition": "Replaced by owned Message.body() and copyBodyInto(); short-lived views do not escape."
+    },
+    {
+      "Name": "xrtHttp1MessageInit",
+      "Module": "http1_message",
+      "Source": "src/http/http1_message.c",
+      "Calls": [
+        "xrtHttp1HeadInit"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_message.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttp1RequestBodyPlan",
+      "Module": "http1_body",
+      "Source": "src/http/http1_body.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_body.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttp1RequestMessageParse",
+      "Module": "http1_message",
+      "Source": "src/http/http1_message.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_message.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttp1RequestParse",
+      "Module": "http1_head",
+      "Source": "src/http/http1.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_head.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttp1RequestParseBuffer",
+      "Module": "http1_net",
+      "Source": "src/http/http1_net.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_net.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttp1RequestParseTls",
+      "Module": "http1_tls",
+      "Source": "src/http/http1_tls.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_tls.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttp1RequestWrite",
+      "Module": "http1_head",
+      "Source": "src/http/http1_write.c",
+      "Calls": [
+        "xrtHttp1TargetValid",
+        "xrtHttpTokenValid"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_write.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttp1ResponseBodyPlan",
+      "Module": "http1_body",
+      "Source": "src/http/http1_body.c",
+      "Calls": [
+        "xrtHttpMethodParse"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_body.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttp1ResponseMessageParse",
+      "Module": "http1_message",
+      "Source": "src/http/http1_message.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_message.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttp1ResponseParse",
+      "Module": "http1_head",
+      "Source": "src/http/http1.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_head.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttp1ResponseParseBuffer",
+      "Module": "http1_net",
+      "Source": "src/http/http1_net.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_net.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttp1ResponseParseTls",
+      "Module": "http1_tls",
+      "Source": "src/http/http1_tls.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_tls.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttp1ResponseWrite",
+      "Module": "http1_head",
+      "Source": "src/http/http1_write.c",
+      "Calls": [
+        "xrtHttpFieldValueValid"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_write.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttp1TargetValid",
+      "Module": "http1_head",
+      "Source": "src/http/http1.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_write.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttp1TrailersParse",
+      "Module": "http1_body",
+      "Source": "src/http/http1_body.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_body.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttp1TransferCodingNext",
+      "Module": "http1_head",
+      "Source": "src/http/http1.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_transfer.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpAcceptEncodingAdd",
+      "Module": "http_encoding",
+      "Source": "src/http/http_encoding.c",
+      "Calls": [
+        "xrtHttpAcceptEncodingValid",
+        "xrtHttpWeightedTokenNext"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_encoding.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpAcceptEncodingInit",
+      "Module": "http_encoding",
+      "Source": "src/http/http_encoding.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_encoding.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpAcceptEncodingParse",
+      "Module": "http_encoding",
+      "Source": "src/http/http_encoding.c",
+      "Calls": [
+        "xrtHttpAcceptEncodingAdd",
+        "xrtHttpAcceptEncodingInit",
+        "xrtHttpFieldNameEqual"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_encoding.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpAcceptEncodingQuality",
+      "Module": "http_encoding",
+      "Source": "src/http/http_encoding.c",
+      "Calls": [
+        "xrtHttpAcceptEncodingValid"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_encoding.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpAcceptEncodingSelect",
+      "Module": "http_encoding",
+      "Source": "src/http/http_encoding.c",
+      "Calls": [
+        "xrtHttpAcceptEncodingValid"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_encoding.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpAcceptEncodingValid",
+      "Module": "http_encoding",
+      "Source": "src/http/http_encoding.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_encoding.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpAuthorityPort",
+      "Module": "http_host",
+      "Source": "src/http/http_host.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_authority.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpAuthorityValid",
+      "Module": "http_host",
+      "Source": "src/http/http_host.c",
+      "Calls": [],
+      "Role": "language-equivalent-or-internal",
+      "ResidentSources": [],
+      "Disposition": "HttpAuthority is immutable and valid by successful construction."
+    },
+    {
+      "Name": "xrtHttpCodingName",
+      "Module": "http_encoding",
+      "Source": "src/http/http_encoding.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_encoding.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpCodingParse",
+      "Module": "http_encoding",
+      "Source": "src/http/http_encoding.c",
+      "Calls": [
+        "xrtHttpTokenEqual"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_encoding.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpConnectionCount",
+      "Module": "http_connection",
+      "Source": "src/http/http_connection.c",
+      "Calls": [
+        "xrtHttpFieldTokenCount"
+      ],
+      "Role": "language-equivalent-or-internal",
+      "ResidentSources": [],
+      "Disposition": "HttpConnection owns a parsed index: length/find/contains queries do not reparse input."
+    },
+    {
+      "Name": "xrtHttpConnectionCursorInit",
+      "Module": "http_connection",
+      "Source": "src/http/http_connection.c",
+      "Calls": [
+        "xrtHttpFieldTokenCursorInit"
+      ],
+      "Role": "language-equivalent-or-internal",
+      "ResidentSources": [],
+      "Disposition": "HttpConnection uses native validated field/list parsing and owns results; raw cursor/element variants remain internal."
+    },
+    {
+      "Name": "xrtHttpConnectionFind",
+      "Module": "http_connection",
+      "Source": "src/http/http_connection.c",
+      "Calls": [
+        "xrtHttpFieldTokenFind"
+      ],
+      "Role": "native-dependency",
+      "ResidentSources": [],
+      "Disposition": "HttpConnection owns a parsed index: length/find/contains queries do not reparse input."
+    },
+    {
+      "Name": "xrtHttpConnectionNext",
+      "Module": "http_connection",
+      "Source": "src/http/http_connection.c",
+      "Calls": [
+        "xrtHttpFieldTokenNext"
+      ],
+      "Role": "language-equivalent-or-internal",
+      "ResidentSources": [],
+      "Disposition": "HttpConnection uses native validated field/list parsing and owns results; raw cursor/element variants remain internal."
+    },
+    {
+      "Name": "xrtHttpConnectionPersistence",
+      "Module": "http_connection",
+      "Source": "src/http/http_connection.c",
+      "Calls": [
+        "xrtHttpConnectionFind"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_connection.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpContentEncodingCursorInit",
+      "Module": "http_encoding",
+      "Source": "src/http/http_content_encoding.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_encoding.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpContentEncodingNext",
+      "Module": "http_encoding",
+      "Source": "src/http/http_content_encoding.c",
+      "Calls": [
+        "xrtHttpCodingParse",
+        "xrtHttpTokenNext"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_encoding.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpContentEncodingPlan",
+      "Module": "http_encoding",
+      "Source": "src/http/http_content_encoding.c",
+      "Calls": [
+        "xrtHttpContentEncodingCursorInit",
+        "xrtHttpContentEncodingNext",
+        "xrtHttpTokenEqual"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_encoding.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpContentEncodingWrite",
+      "Module": "http_encoding",
+      "Source": "src/http/http_content_encoding.c",
+      "Calls": [
+        "xrtHttpContentEncodingPlan"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_encoding.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpContentLengthParse",
+      "Module": "http",
+      "Source": "src/http/http.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_common.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpDecodeConfigInit",
+      "Module": "http_decode",
+      "Source": "src/http/http_decode.c",
+      "Calls": [],
+      "Role": "native-dependency",
+      "ResidentSources": [],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpDecodeConfigInitSafe",
+      "Module": "http_decode",
+      "Source": "src/http/http_decode.c",
+      "Calls": [
+        "xrtHttpDecodeConfigInit"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_decode.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpDecodeCreate",
+      "Module": "http_decode",
+      "Source": "src/http/http_decode.c",
+      "Calls": [
+        "xrtHttpDecodeDestroy"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_decode.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpDecodeDestroy",
+      "Module": "http_decode",
+      "Source": "src/http/http_decode.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_decode.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpDecodeDone",
+      "Module": "http_decode",
+      "Source": "src/http/http_decode.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_decode.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpDecodeInputSize",
+      "Module": "http_decode",
+      "Source": "src/http/http_decode.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_decode.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpDecodeMode",
+      "Module": "http_decode",
+      "Source": "src/http/http_decode.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_decode.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpDecodeOutputSize",
+      "Module": "http_decode",
+      "Source": "src/http/http_decode.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_decode.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpDecodeReset",
+      "Module": "http_decode",
+      "Source": "src/http/http_decode.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_decode.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpDecodeWrite",
+      "Module": "http_decode",
+      "Source": "src/http/http_decode.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_decode.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpDirectiveCount",
+      "Module": "http_param",
+      "Source": "src/http/http_param.c",
+      "Calls": [
+        "xrtHttpDirectiveNext"
+      ],
+      "Role": "language-equivalent-or-internal",
+      "ResidentSources": [],
+      "Disposition": "HttpParameters.directives owns a parsed index: length/find/contains queries do not reparse input."
+    },
+    {
+      "Name": "xrtHttpDirectiveFind",
+      "Module": "http_param",
+      "Source": "src/http/http_param.c",
+      "Calls": [
+        "xrtHttpDirectiveNext",
+        "xrtHttpTokenEqual",
+        "xrtHttpTokenValid"
+      ],
+      "Role": "language-equivalent-or-internal",
+      "ResidentSources": [],
+      "Disposition": "HttpParameters.directives owns a parsed index: length/find/contains queries do not reparse input."
+    },
+    {
+      "Name": "xrtHttpDirectiveNext",
+      "Module": "http_param",
+      "Source": "src/http/http_param.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_parameters.c"
+      ],
+      "Disposition": "HttpParameters.directives uses native validated field/list parsing and owns results; raw cursor/element variants remain internal."
+    },
+    {
+      "Name": "xrtHttpExpectCount",
+      "Module": "http_expect",
+      "Source": "src/http/http_expect.c",
+      "Calls": [],
+      "Role": "language-equivalent-or-internal",
+      "ResidentSources": [],
+      "Disposition": "HttpExpectations owns a parsed index: length/find/contains queries do not reparse input."
+    },
+    {
+      "Name": "xrtHttpExpectCursorInit",
+      "Module": "http_expect",
+      "Source": "src/http/http_expect.c",
+      "Calls": [],
+      "Role": "language-equivalent-or-internal",
+      "ResidentSources": [],
+      "Disposition": "HttpExpectations uses native validated field/list parsing and owns results; raw cursor/element variants remain internal."
+    },
+    {
+      "Name": "xrtHttpExpectFieldCursorInit",
+      "Module": "http_expect",
+      "Source": "src/http/http_expect.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_expect.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpExpectFieldNext",
+      "Module": "http_expect",
+      "Source": "src/http/http_expect.c",
+      "Calls": [
+        "xrtHttpFieldNameEqual"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_expect.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpExpectFields",
+      "Module": "http_expect",
+      "Source": "src/http/http_expect.c",
+      "Calls": [
+        "xrtHttpExpectFieldCursorInit",
+        "xrtHttpExpectFieldNext",
+        "xrtHttpTokenEqual"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_expect.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpExpectNext",
+      "Module": "http_expect",
+      "Source": "src/http/http_expect.c",
+      "Calls": [],
+      "Role": "language-equivalent-or-internal",
+      "ResidentSources": [],
+      "Disposition": "HttpExpectations uses native validated field/list parsing and owns results; raw cursor/element variants remain internal."
+    },
+    {
+      "Name": "xrtHttpExpectValid",
+      "Module": "http_expect",
+      "Source": "src/http/http_expect.c",
+      "Calls": [],
+      "Role": "language-equivalent-or-internal",
+      "ResidentSources": [],
+      "Disposition": "HttpExpectations uses native validated field/list parsing and owns results; raw cursor/element variants remain internal."
+    },
+    {
+      "Name": "xrtHttpExpectationParse",
+      "Module": "http_expect",
+      "Source": "src/http/http_expect.c",
+      "Calls": [],
+      "Role": "language-equivalent-or-internal",
+      "ResidentSources": [],
+      "Disposition": "HttpExpectations.parse/fromHeaders validates complete elements and preserves values, flags and parameters."
+    },
+    {
+      "Name": "xrtHttpFieldBlockCount",
+      "Module": "http",
+      "Source": "src/http/http.c",
+      "Calls": [
+        "xrtHttpFieldNext"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_headers.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpFieldBlockWrite",
+      "Module": "http",
+      "Source": "src/http/http.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_headers.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpFieldCount",
+      "Module": "http",
+      "Source": "src/http/http.c",
+      "Calls": [
+        "xrtHttpFieldNameEqual"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_headers.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpFieldFind",
+      "Module": "http",
+      "Source": "src/http/http.c",
+      "Calls": [
+        "xrtHttpFieldNameEqual"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_headers.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpFieldGet",
+      "Module": "http",
+      "Source": "src/http/http.c",
+      "Calls": [
+        "xrtHttpFieldFind"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_headers.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpFieldGetUnique",
+      "Module": "http",
+      "Source": "src/http/http.c",
+      "Calls": [
+        "xrtHttpFieldNameEqual"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_headers.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpFieldNameEqual",
+      "Module": "http",
+      "Source": "src/http/http.c",
+      "Calls": [
+        "xrtHttpTokenEqual"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_common.c",
+        "src/runtime/xl6_http_headers.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpFieldNext",
+      "Module": "http",
+      "Source": "src/http/http.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_headers.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpFieldParse",
+      "Module": "http",
+      "Source": "src/http/http.c",
+      "Calls": [],
+      "Role": "language-equivalent-or-internal",
+      "ResidentSources": [],
+      "Disposition": "HttpHeaders.parse uses the native field iterator and returns owned names/byte values."
+    },
+    {
+      "Name": "xrtHttpFieldTokenCount",
+      "Module": "http",
+      "Source": "src/http/http.c",
+      "Calls": [
+        "xrtHttpTokenValid"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_headers.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpFieldTokenCursorInit",
+      "Module": "http",
+      "Source": "src/http/http.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_tokens.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpFieldTokenFind",
+      "Module": "http",
+      "Source": "src/http/http.c",
+      "Calls": [
+        "xrtHttpTokenValid"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_headers.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpFieldTokenNext",
+      "Module": "http",
+      "Source": "src/http/http.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_tokens.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpFieldValueValid",
+      "Module": "http",
+      "Source": "src/http/http.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_common.c",
+        "src/runtime/xl6_http_headers.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpFieldWrite",
+      "Module": "http",
+      "Source": "src/http/http.c",
+      "Calls": [],
+      "Role": "language-equivalent-or-internal",
+      "ResidentSources": [],
+      "Disposition": "HttpHeaders.add plus writeInto/toBytes uses the native complete field-block writer."
+    },
+    {
+      "Name": "xrtHttpHostEqual",
+      "Module": "http_host",
+      "Source": "src/http/http_host.c",
+      "Calls": [
+        "xrtHttpTokenEqual"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_authority.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpHostParse",
+      "Module": "http_host",
+      "Source": "src/http/http_host.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_authority.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpHostValid",
+      "Module": "http_host",
+      "Source": "src/http/http_host.c",
+      "Calls": [
+        "xrtHttpHostParse"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_authority.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpIpv4Valid",
+      "Module": "http_host",
+      "Source": "src/http/http_host.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_authority.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpIpv6Valid",
+      "Module": "http_host",
+      "Source": "src/http/http_host.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_authority.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpListNext",
+      "Module": "http",
+      "Source": "src/http/http.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_tokens.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpMethodEqual",
+      "Module": "http",
+      "Source": "src/http/http.c",
+      "Calls": [
+        "xrtHttpTokenValid"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_common.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpMethodIdempotent",
+      "Module": "http",
+      "Source": "src/http/http.c",
+      "Calls": [
+        "xrtHttpMethodParse"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_common.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpMethodParse",
+      "Module": "http",
+      "Source": "src/http/http.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_common.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpMethodSafe",
+      "Module": "http",
+      "Source": "src/http/http.c",
+      "Calls": [
+        "xrtHttpMethodParse"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_common.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpNameValueNext",
+      "Module": "http_param",
+      "Source": "src/http/http_param.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_parameters.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpOwsTrim",
+      "Module": "http",
+      "Source": "src/http/http.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_common.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpParamBuild",
+      "Module": "http_param",
+      "Source": "src/http/http_param.c",
+      "Calls": [
+        "xrtHttpParamWrite"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_parameters.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpParamCount",
+      "Module": "http_param",
+      "Source": "src/http/http_param.c",
+      "Calls": [
+        "xrtHttpParamNext"
+      ],
+      "Role": "language-equivalent-or-internal",
+      "ResidentSources": [],
+      "Disposition": "HttpParameters owns a parsed index: length/find/contains queries do not reparse input."
+    },
+    {
+      "Name": "xrtHttpParamFind",
+      "Module": "http_param",
+      "Source": "src/http/http_param.c",
+      "Calls": [
+        "xrtHttpParamNext",
+        "xrtHttpTokenEqual",
+        "xrtHttpTokenValid"
+      ],
+      "Role": "language-equivalent-or-internal",
+      "ResidentSources": [],
+      "Disposition": "HttpParameters owns a parsed index: length/find/contains queries do not reparse input."
+    },
+    {
+      "Name": "xrtHttpParamHostValid",
+      "Module": "http_param_host",
+      "Source": "src/http/http_param_host.c",
+      "Calls": [
+        "xrtHttpParamValueWrite"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_parameters.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpParamNext",
+      "Module": "http_param",
+      "Source": "src/http/http_param.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_parameters.c"
+      ],
+      "Disposition": "HttpParameters uses native validated field/list parsing and owns results; raw cursor/element variants remain internal."
+    },
+    {
+      "Name": "xrtHttpParamTokenEqual",
+      "Module": "http_param",
+      "Source": "src/http/http_param.c",
+      "Calls": [
+        "xrtHttpParamTokenValid",
+        "xrtHttpTokenValid"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_parameters.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpParamTokenValid",
+      "Module": "http_param",
+      "Source": "src/http/http_param.c",
+      "Calls": [
+        "xrtHttpTokenValid"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_parameters.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpParamValueCursorInit",
+      "Module": "http_param",
+      "Source": "src/http/http_param.c",
+      "Calls": [],
+      "Role": "language-equivalent-or-internal",
+      "ResidentSources": [],
+      "Disposition": "HttpParameters.valueAt/copyValueInto invokes native decoded-value writing; no ephemeral decoded-byte cursor is exposed."
+    },
+    {
+      "Name": "xrtHttpParamValueNext",
+      "Module": "http_param",
+      "Source": "src/http/http_param.c",
+      "Calls": [
+        "xrtHttpParamValueWrite"
+      ],
+      "Role": "language-equivalent-or-internal",
+      "ResidentSources": [],
+      "Disposition": "HttpParameters.valueAt/copyValueInto invokes native decoded-value writing; no ephemeral decoded-byte cursor is exposed."
+    },
+    {
+      "Name": "xrtHttpParamValueWrite",
+      "Module": "http_param",
+      "Source": "src/http/http_param.c",
+      "Calls": [
+        "xrtHttpTokenValid"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_expect.c",
+        "src/runtime/xl6_http_parameters.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpParamWrite",
+      "Module": "http_param",
+      "Source": "src/http/http_param.c",
+      "Calls": [
+        "xrtHttpTokenValid"
+      ],
+      "Role": "native-dependency",
+      "ResidentSources": [],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpQualityParse",
+      "Module": "http",
+      "Source": "src/http/http.c",
+      "Calls": [
+        "xrtHttpOwsTrim"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_common.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpQuotedBuild",
+      "Module": "http_param",
+      "Source": "src/http/http_param.c",
+      "Calls": [
+        "xrtHttpQuotedWrite"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_parameters.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpQuotedRead",
+      "Module": "http_param",
+      "Source": "src/http/http_param.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_parameters.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpQuotedValid",
+      "Module": "http_param",
+      "Source": "src/http/http_param.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_parameters.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpQuotedWrite",
+      "Module": "http_param",
+      "Source": "src/http/http_param.c",
+      "Calls": [],
+      "Role": "native-dependency",
+      "ResidentSources": [],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpResponseContentAllowed",
+      "Module": "http",
+      "Source": "src/http/http.c",
+      "Calls": [
+        "xrtHttpMethodParse"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_common.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpStatusText",
+      "Module": "http",
+      "Source": "src/http/http.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_common.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpTargetAuthority",
+      "Module": "http_target",
+      "Source": "src/http/http_target.c",
+      "Calls": [
+        "xrtHttpHostParse"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_target.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpTargetParse",
+      "Module": "http_target",
+      "Source": "src/http/http_target.c",
+      "Calls": [
+        "xrtHttpHostParse",
+        "xrtHttpMethodParse"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_target.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpTeAcceptsTrailers",
+      "Module": "http_te",
+      "Source": "src/http/http_te.c",
+      "Calls": [
+        "xrtHttpTeParse"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_te.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpTeCodingParse",
+      "Module": "http_te",
+      "Source": "src/http/http_te.c",
+      "Calls": [],
+      "Role": "language-equivalent-or-internal",
+      "ResidentSources": [],
+      "Disposition": "HttpTe.parse/fromHeaders owns coding, q-value, flags and parameters from native field parsing."
+    },
+    {
+      "Name": "xrtHttpTeCount",
+      "Module": "http_te",
+      "Source": "src/http/http_te.c",
+      "Calls": [],
+      "Role": "language-equivalent-or-internal",
+      "ResidentSources": [],
+      "Disposition": "HttpTe owns a parsed index: length/find/contains queries do not reparse input."
+    },
+    {
+      "Name": "xrtHttpTeCursorInit",
+      "Module": "http_te",
+      "Source": "src/http/http_te.c",
+      "Calls": [],
+      "Role": "language-equivalent-or-internal",
+      "ResidentSources": [],
+      "Disposition": "HttpTe uses native validated field/list parsing and owns results; raw cursor/element variants remain internal."
+    },
+    {
+      "Name": "xrtHttpTeFieldCursorInit",
+      "Module": "http_te",
+      "Source": "src/http/http_te.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_te.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpTeFieldNext",
+      "Module": "http_te",
+      "Source": "src/http/http_te.c",
+      "Calls": [
+        "xrtHttpFieldNameEqual"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_te.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpTeNext",
+      "Module": "http_te",
+      "Source": "src/http/http_te.c",
+      "Calls": [],
+      "Role": "language-equivalent-or-internal",
+      "ResidentSources": [],
+      "Disposition": "HttpTe uses native validated field/list parsing and owns results; raw cursor/element variants remain internal."
+    },
+    {
+      "Name": "xrtHttpTeParse",
+      "Module": "http_te",
+      "Source": "src/http/http_te.c",
+      "Calls": [
+        "xrtHttpFieldNameEqual",
+        "xrtHttpTeFieldCursorInit",
+        "xrtHttpTeFieldNext"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_te.c"
+      ],
+      "Disposition": "HttpTe uses native validated field/list parsing and owns results; raw cursor/element variants remain internal."
+    },
+    {
+      "Name": "xrtHttpTeQuality",
+      "Module": "http_te",
+      "Source": "src/http/http_te.c",
+      "Calls": [
+        "xrtHttpTeFieldCursorInit",
+        "xrtHttpTeFieldNext",
+        "xrtHttpTokenEqual",
+        "xrtHttpTokenValid"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_te.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpTeValid",
+      "Module": "http_te",
+      "Source": "src/http/http_te.c",
+      "Calls": [],
+      "Role": "language-equivalent-or-internal",
+      "ResidentSources": [],
+      "Disposition": "HttpTe uses native validated field/list parsing and owns results; raw cursor/element variants remain internal."
+    },
+    {
+      "Name": "xrtHttpTokenEqual",
+      "Module": "http",
+      "Source": "src/http/http.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_common.c",
+        "src/runtime/xl6_http_parameters.c",
+        "src/runtime/xl6_http_tokens.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpTokenListBuild",
+      "Module": "http",
+      "Source": "src/http/http.c",
+      "Calls": [
+        "xrtHttpTokenListWrite"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_tokens.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpTokenListCount",
+      "Module": "http",
+      "Source": "src/http/http.c",
+      "Calls": [
+        "xrtHttpTokenNext"
+      ],
+      "Role": "language-equivalent-or-internal",
+      "ResidentSources": [],
+      "Disposition": "HttpTokens owns a parsed index: length/find/contains queries do not reparse input."
+    },
+    {
+      "Name": "xrtHttpTokenListHas",
+      "Module": "http",
+      "Source": "src/http/http.c",
+      "Calls": [
+        "xrtHttpTokenEqual",
+        "xrtHttpTokenNext",
+        "xrtHttpTokenValid"
+      ],
+      "Role": "language-equivalent-or-internal",
+      "ResidentSources": [],
+      "Disposition": "HttpTokens owns a parsed index: length/find/contains queries do not reparse input."
+    },
+    {
+      "Name": "xrtHttpTokenListWrite",
+      "Module": "http",
+      "Source": "src/http/http.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_tokens.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpTokenNext",
+      "Module": "http",
+      "Source": "src/http/http.c",
+      "Calls": [],
+      "Role": "native-dependency",
+      "ResidentSources": [],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpTokenValid",
+      "Module": "http",
+      "Source": "src/http/http.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_common.c",
+        "src/runtime/xl6_http_headers.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpTrailerCount",
+      "Module": "http_trailer",
+      "Source": "src/http/http_trailer.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_trailer.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpTrailerFind",
+      "Module": "http_trailer",
+      "Source": "src/http/http_trailer.c",
+      "Calls": [
+        "xrtHttpTrailerNameValid"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_trailer.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpTrailerNameValid",
+      "Module": "http_trailer",
+      "Source": "src/http/http_trailer.c",
+      "Calls": [
+        "xrtHttpFieldNameEqual",
+        "xrtHttpTokenValid"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_trailer.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpTrailerNamesBuild",
+      "Module": "http_trailer",
+      "Source": "src/http/http_trailer.c",
+      "Calls": [
+        "xrtHttpTrailerNamesWrite"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_trailer.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpTrailerNamesWrite",
+      "Module": "http_trailer",
+      "Source": "src/http/http_trailer.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_trailer.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpTrailerSectionValid",
+      "Module": "http_trailer",
+      "Source": "src/http/http_trailer.c",
+      "Calls": [
+        "xrtHttpFieldValueValid",
+        "xrtHttpTrailerNameValid"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_trailer.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpUpgradeBuild",
+      "Module": "http_upgrade_write",
+      "Source": "src/http/http_upgrade_write.c",
+      "Calls": [
+        "xrtHttpUpgradeWrite"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_upgrade.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpUpgradeCount",
+      "Module": "http_upgrade",
+      "Source": "src/http/http_upgrade.c",
+      "Calls": [],
+      "Role": "language-equivalent-or-internal",
+      "ResidentSources": [],
+      "Disposition": "HttpUpgrades owns a parsed index: length/find/contains queries do not reparse input."
+    },
+    {
+      "Name": "xrtHttpUpgradeCursorInit",
+      "Module": "http_upgrade",
+      "Source": "src/http/http_upgrade.c",
+      "Calls": [],
+      "Role": "language-equivalent-or-internal",
+      "ResidentSources": [],
+      "Disposition": "HttpUpgrades uses native validated field/list parsing and owns results; raw cursor/element variants remain internal."
+    },
+    {
+      "Name": "xrtHttpUpgradeElementWrite",
+      "Module": "http_upgrade_write",
+      "Source": "src/http/http_upgrade_write.c",
+      "Calls": [
+        "xrtHttpUpgradeWrite"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_upgrade.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpUpgradeFieldCursorInit",
+      "Module": "http_upgrade",
+      "Source": "src/http/http_upgrade.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_upgrade.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpUpgradeFieldNext",
+      "Module": "http_upgrade",
+      "Source": "src/http/http_upgrade.c",
+      "Calls": [
+        "xrtHttpFieldNameEqual"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_upgrade.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpUpgradeNext",
+      "Module": "http_upgrade",
+      "Source": "src/http/http_upgrade.c",
+      "Calls": [],
+      "Role": "language-equivalent-or-internal",
+      "ResidentSources": [],
+      "Disposition": "HttpUpgrades uses native validated field/list parsing and owns results; raw cursor/element variants remain internal."
+    },
+    {
+      "Name": "xrtHttpUpgradeParse",
+      "Module": "http_upgrade",
+      "Source": "src/http/http_upgrade.c",
+      "Calls": [],
+      "Role": "language-equivalent-or-internal",
+      "ResidentSources": [],
+      "Disposition": "HttpUpgrades uses native validated field/list parsing and owns results; raw cursor/element variants remain internal."
+    },
+    {
+      "Name": "xrtHttpUpgradeValid",
+      "Module": "http_upgrade",
+      "Source": "src/http/http_upgrade.c",
+      "Calls": [],
+      "Role": "language-equivalent-or-internal",
+      "ResidentSources": [],
+      "Disposition": "HttpUpgrades uses native validated field/list parsing and owns results; raw cursor/element variants remain internal."
+    },
+    {
+      "Name": "xrtHttpUpgradeWrite",
+      "Module": "http_upgrade_write",
+      "Source": "src/http/http_upgrade_write.c",
+      "Calls": [],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_upgrade.c"
+      ],
+      "Disposition": null
+    },
+    {
+      "Name": "xrtHttpWeightedTokenNext",
+      "Module": "http",
+      "Source": "src/http/http.c",
+      "Calls": [
+        "xrtHttpQualityParse"
+      ],
+      "Role": "resident",
+      "ResidentSources": [
+        "src/runtime/xl6_http_tokens.c"
+      ],
+      "Disposition": null
+    }
+  ],
+  "PinnedHeaderSha256": "9c42b9ec70639bfc6391a0467a2a20e716d23ebc901d182b0038daa605d95958",
+  "ExecutionCoverage": false,
+  "RoleCoverageComplete": true
+}

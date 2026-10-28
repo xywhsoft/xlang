@@ -1,0 +1,53 @@
+func main(...) as int
+    auto fields = HttpHeaders.parse("Content-Encoding: gzip\r\n")
+    auto decoder = HttpContentDecoder(fields)
+    auto compressed = compress.encode(b"a\0b\xff")
+    auto source = Buffer(compressed)
+    auto output = Buffer()
+    int i = 0
+    while i < source.length
+        auto one = Buffer()
+        one.appendByte(int(source.byteAt(i)))
+        decoder.write(one, output)
+        i += 1
+    end
+    decoder.finish(output)
+    assert decoder.done and not decoder.failed
+    assert decoder.mode == HttpDecodeMode.content
+    assert decoder.inputSize == uint64(compressed.length)
+    assert decoder.outputSize == uint64(4)
+    assert output.toBytes() == b"a\0b\xff"
+    decoder.reset(fields)
+    output.clear()
+    decoder.write(compressed, output, true)
+    assert output.toBytes() == b"a\0b\xff"
+    auto identityFields = HttpHeaders()
+    auto identity = HttpContentDecoder(identityFields)
+    output.clear()
+    identity.write(b"a\0b", output, true)
+    assert identity.done and identity.mode == HttpDecodeMode.identity
+    assert output.toBytes() == b"a\0b"
+    auto unknown = HttpHeaders.parse("Content-Encoding: private-coding\r\n")
+    int rejected = 0
+    try
+        auto unsupported = HttpContentDecoder(unknown)
+    catch e
+        rejected += 1
+    end
+    auto raw = HttpContentDecoder(unknown, passthroughUnknown = true)
+    output.clear()
+    raw.write(b"opaque\0data", output, true)
+    assert raw.mode == HttpDecodeMode.passthrough
+    assert output.toBytes() == b"opaque\0data"
+    auto limited = HttpContentDecoder(fields, outputLimit = 2)
+    output.clear()
+    try
+        limited.write(compressed, output, true)
+    catch e
+        rejected += 1
+    end
+    assert limited.failed
+    assert rejected == 2
+    println("HTTP content decoder V2 passed")
+    return 0
+end

@@ -1,0 +1,50 @@
+func main(...) as int
+    auto headers = HttpHeaders.parse("Host: example.test\r\nContent-Encoding: gzip\r\nAccept-Encoding: gzip\r\nConnection: keep-alive\r\n")
+    headers.set("Host", "example.test")
+    auto copy = headers.clone()
+    assert copy.length == 4
+    assert (copy.getText("Host") as string) == "example.test"
+    auto parameters = HttpParameters.parse("name=\"a\\\"b\"; empty=\"\"; bare")
+    assert (parameters.valueAt(0) as bytes) == b"a\"b"
+    auto authority = HttpAuthority.parse("[::1]:443")
+    assert authority.port() == 443
+    auto target = HttpTarget.parse("GET", "https://example.test/path?q=1")
+    assert target.path == "/path"
+    auto tokens = HttpTokens.parse("gzip, deflate")
+    assert tokens.contains("gzip")
+    auto weighted = HttpWeightedTokens.parse("gzip;q=0.5, deflate")
+    assert weighted.qualityAt(0) == 500
+    auto list = HttpList.parse("one, \"two,three\"")
+    assert list.length == 2
+    auto expect = HttpExpectations.parse("100-continue, custom=\"ok\"; x=one")
+    assert expect.parametersAt(1).length == 1
+    auto upgrades = HttpUpgrades.parse("websocket, example/1")
+    assert upgrades.toString() == "websocket, example/1"
+    auto te = HttpTe.parse("trailers, gzip;q=0.5")
+    assert te.acceptsTrailers
+    auto connection = HttpConnection.fromHeaders(headers)
+    assert connection.contains("keep-alive")
+    auto accept = HttpAcceptEncoding.fromHeaders(headers)
+    assert accept.quality(HttpCoding.gzip) == 1000
+    accept.reset()
+    auto encodings = HttpContentEncodings.fromHeaders(headers)
+    assert encodings.toString() == "gzip"
+    auto head = Http1Head.request(b"POST / HTTP/1.1\r\nHost: example.test\r\nContent-Length: 3\r\n\r\n")
+    if head == null then throw ValueError "expected complete head" end
+    auto plan = HttpBodyPlan(HttpBodyMode.fixed, uint64(3))
+    auto reader = Http1BodyReader(plan)
+    auto body = Buffer()
+    assert reader.readInto(b"a\0b", body) == HttpBodyStatus.data
+    assert body.toBytes() == b"a\0b"
+    auto fromHead = Http1BodyReader(head)
+    auto wire = Buffer(head.wire())
+    wire.append(b"a\0b")
+    auto message = Http1Message.request(wire)
+    if message == null then throw ValueError "expected complete message" end
+    assert message.body() == b"a\0b"
+    assert message.head().method == "POST"
+    auto content = HttpContentDecoder(headers)
+    auto transfer = HttpTransferCodings.parse("gzip; level=one, chunked")
+    assert transfer.parametersAt(0).length == 1
+    return 0
+end

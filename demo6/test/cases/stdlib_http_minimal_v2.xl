@@ -1,0 +1,3 @@
+assert http.statusText(200) == "OK"
+assert http.tokenValid("Content-Type")
+println("minimal HTTP utilities passed")

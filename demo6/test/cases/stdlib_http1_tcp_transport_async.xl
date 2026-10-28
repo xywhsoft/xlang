@@ -1,0 +1,43 @@
+async func exercise() as int
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
+    auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+    auto accepted = listener.acceptAsync()
+    auto sender = await tcp.connectAsync(engine, listener.localAddress())
+    auto receiver = await accepted
+    auto limits = Http1Limits(65536, 8192, 8192, 100, 16777216, 8192, 16384, 8192, 32, 7)
+    auto session = Http1TcpTransport(receiver, limits)
+    auto headers = HttpHeaders.parse("Transfer-Encoding: chunked\r\n")
+    auto wire = Buffer(Http1.responseHead(200, "OK", headers))
+    wire.append(Http1.chunk(b"a\0b"))
+    wire.append(Http1.chunkEnd(HttpHeaders(0)))
+    wire.append(Http1.responseHead(101, "Switching Protocols", HttpHeaders.parse("Connection: Upgrade\r\nUpgrade: example\r\n")))
+    wire.append("NEW")
+    assert sender.send(wire) == NetStatus.ok
+    auto head = await session.readResponseHeadAsync("GET", 5000)
+    if head == null then throw ValueError "missing response" end
+    assert head.statusCode == 200
+    auto output = Buffer()
+    assert await session.readBodyAllIntoAsync(output, 5000) == 3
+    assert output.toBytes() == b"a\0b"
+    auto switching = await session.readResponseHeadAsync("GET", 5000)
+    if switching == null then throw ValueError "missing upgrade" end
+    assert switching.statusCode == 101
+    assert session.state == Http1TransportState.upgraded
+    auto handoff = session.detach()
+    auto remaining = Buffer()
+    handoff.buffered.readInto(remaining)
+    while remaining.length < 3
+        auto chunk = await handoff.stream.recvOwnedAsync(3 - remaining.length)
+        remaining.append(chunk.toBytes())
+    end
+    assert remaining.toBytes() == b"NEW"
+    sender.close()
+    receiver.close()
+    listener.close()
+    engine.close()
+    assert engine.wait(5000)
+    println("HTTP/1 TCP async: split receives, binary body and upgrade passed")
+    return 0
+end
+assert await exercise() == 0

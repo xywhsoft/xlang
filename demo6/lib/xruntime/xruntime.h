@@ -29337,6 +29337,15 @@ XRT_API xstrview xrtHttpOwsTrim(xstrview Text);
 
 
 /* 按 RFC 接收方规则读取 token-list，并忽略逗号产生的空元素；Offset 初始为零。 */
+XRT_API xhttpnext xrtHttpListNext(
+	xstrview Value,
+	size_t iOffset,
+	size_t* pNext,
+	xstrview* pElement
+);
+
+
+
 XRT_API xhttpnext xrtHttpTokenNext(
 	xstrview List,
 	size_t* pOffset,
@@ -29549,6 +29558,16 @@ XRT_API size_t xrtHttpFieldCount(
 #if defined(XRT_FEATURE_HTTP_PARAM)
 
 /* 严格读取分号参数；游标和结果可未对齐，错误不推进游标并清空结果。 */
+XRT_API xhttpnext xrtHttpNameValueNext(
+	xstrview Parameters,
+	size_t* pOffset,
+	xhttpparam* pParam,
+	char iSeparator,
+	bool bIgnoreEmpty
+);
+
+
+
 XRT_API xhttpnext xrtHttpParamNext(
 	xstrview Parameters,
 	size_t* pOffset,
@@ -203389,6 +203408,36 @@ xhttpnext __xrtHttpQuotedListNext(
 
 
 /* 严格读取逗号分隔 token-list 的下一项。 */
+XRT_API xhttpnext xrtHttpListNext(
+	xstrview Value,
+	size_t iOffset,
+	size_t* pNext,
+	xstrview* pElement
+)
+{
+	xstrview Element;
+	size_t iNext;
+	xhttpnext Result;
+
+	if ( !__xrtHttpViewValid(Value) || (iOffset > Value.Size) ||
+		!__xrtRangeValid(pNext, sizeof(iNext)) ||
+		!__xrtRangeValid(pElement, sizeof(Element)) ||
+		__xrtRangesOverlap(pNext, sizeof(iNext), pElement, sizeof(Element)) ||
+		__xrtRangesOverlap(pNext, sizeof(iNext), Value.Data, Value.Size) ||
+		__xrtRangesOverlap(pElement, sizeof(Element), Value.Data, Value.Size) ) {
+		__xrtErrorSetInvalidArgument();
+		return XHTTP_NEXT_ERROR;
+	}
+	Result = __xrtHttpQuotedListNext(Value, iOffset, &iNext, &Element);
+	if ( Result != XHTTP_NEXT_ERROR ) {
+		memcpy(pNext, &iNext, sizeof(iNext));
+		memcpy(pElement, &Element, sizeof(Element));
+	}
+	return Result;
+}
+
+
+
 XRT_API xhttpnext xrtHttpTokenNext(
 	xstrview List,
 	size_t* pOffset,
@@ -229003,6 +229052,25 @@ xhttpnext __xrtHttpNameValueNext(
 
 
 /* 严格读取分号分隔参数列表的下一项。 */
+XRT_API xhttpnext xrtHttpNameValueNext(
+	xstrview Parameters,
+	size_t* pOffset,
+	xhttpparam* pParam,
+	char iSeparator,
+	bool bIgnoreEmpty
+)
+{
+	if ( (iSeparator != ';') && (iSeparator != ',') ) {
+		__xrtErrorSetInvalidArgument();
+		return XHTTP_NEXT_ERROR;
+	}
+	return __xrtHttpNameValueNext(
+		Parameters, pOffset, pParam, iSeparator, bIgnoreEmpty
+	);
+}
+
+
+
 XRT_API xhttpnext xrtHttpParamNext(
 	xstrview Parameters,
 	size_t* pOffset,
@@ -248180,16 +248248,16 @@ XRT_API bool xrtHttpContentEncodingWrite(
 		return false;
 	}
 	*pSize = Plan.JoinedSize;
+	/* A NULL output with zero capacity is the documented size query. */
+	if ( pOutput == NULL ) {
+		return true;
+	}
 	if ( iCapacity < Plan.JoinedSize ) {
 		__xrtErrorSetRange();
 		return false;
 	}
 	if ( Plan.JoinedSize == 0 ) {
 		return true;
-	}
-	if ( pOutput == NULL ) {
-		__xrtErrorSetInvalidArgument();
-		return false;
 	}
 	if ( __xrtHttpFieldArrayOverlap(
 		pFields, iCount,

@@ -1,0 +1,3 @@
+extern "xl6Http1HeadVersionV2" @pure @no_raise @nonblocking func version(Http1Head head) as int
+auto head = Http1Head.request("GET / HTTP/1.1\r\nHost: example.test\r\n\r\n")
+if head != null then println(version(head)) end

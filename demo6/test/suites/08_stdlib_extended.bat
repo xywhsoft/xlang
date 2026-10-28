@@ -1126,14 +1126,14 @@ findstr /C:"stdlib http1 core ok" build\test\stdlib_http1_core.out.txt >nul
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\stdlib_http1_core.xl --emit build\test\stdlib_http1_core.c
 if errorlevel 1 exit /b 1
-for %%S in (XRT_MODULE_HTTP1_BODY XRT_MODULE_HTTP_DECODE xl6_xrt_http1_request_head xl6_xrt_http_decoder_create) do (
+for %%S in (xl6Http1RequestHeadV2 xl6Http1BodyReaderReadBytesV2 xl6HttpContentDecoderCreateV2) do (
     findstr /C:"%%S" build\test\stdlib_http1_core.c >nul
     if errorlevel 1 (
         echo stdlib_http1_core.c missing %%S.
         exit /b 1
     )
 )
-for %%S in (XRT_MODULE_HTTP_CLIENT XRT_MODULE_HTTP_SERVER XRT_MODULE_HTTP_COOKIES XRT_MODULE_HTTP_FORM) do (
+for %%S in (xl6_xrt_http1_ xl6_xrt_http_decoder_ XRT_MODULE_HTTP_CLIENT XRT_MODULE_HTTP_SERVER XRT_MODULE_HTTP_COOKIES XRT_MODULE_HTTP_FORM) do (
     findstr /C:"%%S" build\test\stdlib_http1_core.c >nul
     if not errorlevel 1 (
         echo stdlib_http1_core.c unexpectedly contains %%S.
