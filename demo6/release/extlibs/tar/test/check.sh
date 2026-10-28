@@ -19,6 +19,7 @@ trap cleanup EXIT
 cd "$root"
 sh release/extlibs/tar/test/check_numeric.sh
 sh release/extlibs/tar/test/check_reader.sh
+sh release/extlibs/tar/test/check_writer.sh
 
 cc=${CC:-cc}
 flags='-std=c11 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer'

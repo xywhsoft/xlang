@@ -28,6 +28,7 @@ try {
     $rootPushed = $true
     & (Join-Path $PSScriptRoot 'check_numeric.ps1') -SkipAot:$SkipAot
     & (Join-Path $PSScriptRoot 'check_reader.ps1') -SkipAot:$SkipAot
+    & (Join-Path $PSScriptRoot 'check_writer.ps1') -SkipAot:$SkipAot
     & $gcc -std=c11 -Wall -Wextra -Werror -fsyntax-only -Ilib/xrt `
         -Ilib/xruntime -Irelease/extlibs/tar release/extlibs/tar/tar_native.c
     if ($LASTEXITCODE -ne 0) { throw 'strict GCC TAR bridge syntax failed' }

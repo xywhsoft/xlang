@@ -840,7 +840,8 @@ static void* xtar_validate_writer(xrttarwriter* pWriter)
 	const xrttarerror* pError = xrtTarWriterError(pWriter);
 
 	if ( pWriter == NULL || (pError != NULL && pError->iCode != XRT_TAR_OK) ) {
-		xtar_publish_writer_error(pWriter);
+		/* 空结果保留分配器首因，与 Reader 的便利构造器保持一致。 */
+		if ( pWriter != NULL ) { xtar_publish_writer_error(pWriter); }
 		xrtTarWriterDestroy(pWriter);
 		return NULL;
 	}
