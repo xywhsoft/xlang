@@ -1,0 +1,13 @@
+extern "xrtStrDup" @owned func ownedText(string value) as string
+
+func main(...) as int
+    string source = "owned result"
+    array<string> values = []
+    // 唯一拥有的调用临时值仍先通过复制式 xrtValueString 装箱。
+    values.append(ownedText(source))
+    assert values.length == 1 and values[0] == source
+    source = "changed"
+    assert values[0] == "owned result"
+    println("owned string array boxing: PASS")
+    return 0
+end

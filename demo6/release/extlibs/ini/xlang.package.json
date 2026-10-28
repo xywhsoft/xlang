@@ -26,7 +26,7 @@
     "links": [],
     "loadlibs": [],
     "dependencies": [],
-    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/updates.xl", "test/output_limits.xl", "test/interpolation_refs.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/updates.xl", "test/output_limits.xl", "test/interpolation_refs.xl", "test/owned_results.xl"] },
     "native": {
         "singleton": false,
         "loadName": "",

@@ -1,0 +1,18 @@
+import ini
+
+func main(...) as int
+    auto config = ini.parse("global=root\n[s]\nkey=value\nempty=\n")
+    assert config.get("s", "key") == "value"
+    assert config.get("global") == "root"
+    assert config.getOr("s", "key", "fallback") == "value"
+    assert config.getOr("s", "absent", "fallback") == "fallback"
+    string encoded = config.stringify()
+    auto restored = ini.parse(encoded)
+    assert restored.get("s", "key") == "value"
+    assert restored.get("global") == "root"
+    assert config.errorText() == "INI operation failed"
+    assert config.sectionNames().length == 2
+    assert config.keys("s").length == 2
+    assert config.get("s", "empty") == ""
+    return 0
+end

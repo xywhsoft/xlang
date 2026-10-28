@@ -50,7 +50,7 @@ try {
     $runtime = Join-Path $work 'xrt.o'
     $null = Run 'shared C runtime compile' $gcc ($flags + @('-c',
         'release/extlibs/ini/test/xrt_runtime.c', '-o', $runtime))
-    foreach ($name in @('test_ini', 'test_updates', 'test_output_limits', 'test_interpolation_refs')) {
+    foreach ($name in @('test_ini', 'test_updates', 'test_output_limits', 'test_interpolation_refs', 'test_owned_text')) {
         $target = Join-Path $work "$name.exe"
         $null = Run "GCC $name build" $gcc ($flags + @(
             "release/extlibs/ini/test/$name.c", $runtime, '-o', $target) + $links)
@@ -76,10 +76,13 @@ try {
         $null = Run 'C updates direct run' $xl @('run', 'extlibs/ini/test/test_updates.c')
         $null = Run 'C output limits direct run' $xl @('run', 'extlibs/ini/test/test_output_limits.c')
         $null = Run 'C reference errors direct run' $xl @('run', 'extlibs/ini/test/test_interpolation_refs.c')
+        $null = Run 'C owned text direct run' $xl @('run', 'extlibs/ini/test/test_owned_text.c')
         $null = Run 'XLang boundaries' $xl @('run', 'extlibs/ini/test/boundaries.xl')
         $null = Run 'XLang updates' $xl @('run', 'extlibs/ini/test/updates.xl')
         $null = Run 'XLang output limits' $xl @('run', 'extlibs/ini/test/output_limits.xl')
         $null = Run 'XLang reference errors' $xl @('run', 'extlibs/ini/test/interpolation_refs.xl')
+        $null = Run 'XLang owned text and defaults' $xl @('run', 'extlibs/ini/test/owned_results.xl')
+        $null = Run 'XLang ownership probe' $xl @('run', 'extlibs/ini/test/owned_probe.xl')
         $profilesC = Run 'C profiles direct run' $xl @('run', 'extlibs/ini/examples/profiles_c.c')
         $profilesXl = Run 'XLang profiles' $xl @('run', 'extlibs/ini/examples/profiles.xl')
         if ($profilesC -cne $profilesOutput -or $profilesXl -cne $profilesOutput) {
@@ -99,6 +102,20 @@ try {
             throw 'INI text must not be copied at the native boundary'
         }
         Write-Host '[ini] direct string adoption: PASS'
+        $ownedProbe = Join-Path $work 'owned_probe.c'
+        $null = Run 'whole-return ownership cgen' $xl @('cgen',
+            'extlibs/ini/test/owned_probe.xl', '--emit', $ownedProbe)
+        $ownedText = [IO.File]::ReadAllText($ownedProbe)
+        foreach ($symbol in @('xini_error_text', 'xini_section_name', 'xini_key_name',
+            'xini_get', 'xini_stringify_text')) {
+            if ($ownedText -cnotmatch "\b\w+\.Data\s*=\s*$symbol\s*\(") {
+                throw "$symbol must be directly adopted in the complete probe"
+            }
+        }
+        # 保留借用默认值的独立快照，不把必要的默认值复制当作成功结果复制。
+        if ([regex]::Matches($ownedText, '=\s*xlir_string_copy\s*\(').Count -gt 1) {
+            throw 'INI copied an owned result in the complete return chain'
+        }
         $oldErrorActionPreference = $ErrorActionPreference
         try {
             $ErrorActionPreference = 'Continue'
@@ -158,12 +175,16 @@ try {
             if ($cAotOutput -cne $gccOutput) {
                 throw '[ini] AOT C example output differs from GCC'
             }
-            foreach ($name in @('updates', 'output_limits', 'interpolation_refs')) {
+            foreach ($name in @('updates', 'output_limits', 'interpolation_refs', 'owned_results', 'owned_probe')) {
                 $target = Join-Path $work "$name.exe"
                 $null = Run "AOT $name build" $xl @('build',
                     "extlibs/ini/test/$name.xl", '-o', $target)
                 $null = Run "AOT $name" $target @()
             }
+            $nativeOwned = Join-Path $work 'owned_c.exe'
+            $null = Run 'AOT C owned text build' $xl @('build',
+                'extlibs/ini/test/test_owned_text.c', '-o', $nativeOwned)
+            $null = Run 'AOT C owned text' $nativeOwned @()
             foreach ($source in @('profiles.xl', 'profiles_c.c')) {
                 $profileAot = Join-Path $work ($source.Replace('.', '_') + '.exe')
                 $null = Run "AOT $source build" $xl @('build',

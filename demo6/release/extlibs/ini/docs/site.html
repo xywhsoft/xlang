@@ -52,6 +52,7 @@ println(config.stringify())</code></pre>
   </section>
   <section id="verify">
     <h2>验证与边界</h2>
+    <p>2026-10-28：诊断、get 与 stringify 的三处返回复制已移除，缺失键的 ConfigError、合法空值和内存错误保持区别。C 18 组、XLang 20 组固定预算和名称列表 57 个逐点故障/成功预算通过；完整生成夹具仍保留必要的默认值快照，名称列表的后续装箱复制也未消除，不称整条链路零开销。双平台默认门禁含 Linux ASan/UBSan、Python configparser 互通和双语 JIT/AOT；主线/XRT 未改，旧 GCC ICE 的 R 风险仍保留。</p>
     <p>2026-10-28 插值空键误报 MemoryError 已修复；新增 C 的 9 个合法/9 个错误引用对照、逐点 OOM 与分配恢复、语言消费正反例。Windows/Linux 默认门禁通过严格 C、Linux ASan/UBSan 及新旧双语 JIT/AOT，先前工具链 R 风险仍保留。</p>
     <p>本轮最后的 Windows/Linux 默认门禁完整通过，新增拥有型取值与插值累计预算的 C/XLang JIT/AOT、Linux ASan/UBSan、精确字节边界和 OOM 恢复检查。但 Windows GCC 编译未修改的 XRT 测试翻译单元曾出现一次内部错误；同参数重试成功，原因尚未闭环，当前仍保留工具链 R 风险。另一次 WSL 非正常重启使快照失效，已重新建立输入验证，不把失效运行视为库测试失败。</p>
     <p>2026-10-28 Windows 默认门禁与 Linux 原生文件系统同输入门禁均通过：新增 54 种重复覆盖组合、8 种 BOM 键布局、输出预算与逐点分配故障，保留严格 GCC、Linux ASan/UBSan、Python configparser 独立互通、私有访问负例和双语 JIT/AOT。失败现场及输入指纹会保留；这不是 32 位、TSan 或所有文件系统的压力验收。</p>

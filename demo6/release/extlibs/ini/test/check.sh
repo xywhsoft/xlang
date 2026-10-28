@@ -41,7 +41,7 @@ sha256sum "${inputs[@]}" > "$work/inputs.before.sha256"
 "$cc" --version > "$work/compiler.txt"
 printf '[ini] C sanitizer gate\n'
 "$cc" "${flags[@]}" -c release/extlibs/ini/test/xrt_runtime.c -o "$work/xrt.o"
-for name in test_ini test_updates test_output_limits test_interpolation_refs; do
+for name in test_ini test_updates test_output_limits test_interpolation_refs test_owned_text; do
     "$cc" "${flags[@]}" "release/extlibs/ini/test/$name.c" \
         "$work/xrt.o" -lm -ldl -o "$work/$name"
     timeout 90s "$work/$name"
@@ -61,11 +61,27 @@ timeout 90s ./release/xl run release/extlibs/ini/test/test_ini.c
 timeout 90s ./release/xl run release/extlibs/ini/test/test_updates.c
 timeout 90s ./release/xl run release/extlibs/ini/test/test_output_limits.c
 timeout 90s ./release/xl run release/extlibs/ini/test/test_interpolation_refs.c
+timeout 90s ./release/xl run release/extlibs/ini/test/test_owned_text.c
 timeout 90s ./release/xl run test/cases/extlib_ini.xl
 timeout 90s ./release/xl run release/extlibs/ini/test/boundaries.xl
 timeout 90s ./release/xl run release/extlibs/ini/test/updates.xl
 timeout 90s ./release/xl run release/extlibs/ini/test/output_limits.xl
 timeout 90s ./release/xl run release/extlibs/ini/test/interpolation_refs.xl
+timeout 90s ./release/xl run release/extlibs/ini/test/owned_results.xl
+timeout 90s ./release/xl run release/extlibs/ini/test/owned_probe.xl
+timeout 90s ./release/xl cgen release/extlibs/ini/test/owned_probe.xl --emit "$work/owned_probe.c"
+for symbol in error_text section_name key_name get stringify_text; do
+    if ! grep -Eq "[[:alnum:]_]+\.Data[[:space:]]*=[[:space:]]*xini_${symbol}[[:space:]]*\(" \
+        "$work/owned_probe.c"; then
+        printf 'INI probe did not adopt %s\n' "$symbol" >&2
+        exit 1
+    fi
+done
+copies=$(grep -Ec '= *xlir_string_copy *\(' "$work/owned_probe.c" || true)
+if ((copies > 1)); then
+    printf 'INI copied an owned result in the complete return chain\n' >&2
+    exit 1
+fi
 timeout 90s ./release/xl run release/extlibs/ini/examples/profiles_c.c > "$work/profiles_direct_c.txt"
 timeout 90s ./release/xl run release/extlibs/ini/examples/profiles.xl > "$work/profiles_xl.txt"
 diff -u "$work/profiles_gcc.txt" "$work/profiles_direct_c.txt"
@@ -96,11 +112,13 @@ timeout 90s ./release/xl run release/examples/extlibs/ini.xl \
 diff -u "$work/c_example.txt" "$work/xl_example.txt"
 diff -u "$work/gcc_example.txt" "$work/c_example.txt"
 printf '[ini] XLang AOT gate\n'
-for name in aot_float_core boundaries updates output_limits interpolation_refs; do
+for name in aot_float_core boundaries updates output_limits interpolation_refs owned_results owned_probe; do
     timeout 180s ./release/xl build "release/extlibs/ini/test/$name.xl" \
         -o "$work/ini_$name"
     timeout 90s "$work/ini_$name"
 done
+timeout 180s ./release/xl build release/extlibs/ini/test/test_owned_text.c -o "$work/ini_owned_c"
+timeout 90s "$work/ini_owned_c"
 timeout 180s ./release/xl build release/examples/extlibs/ini.xl \
     -o "$work/ini_example"
 timeout 90s "$work/ini_example" > "$work/aot_example.txt"

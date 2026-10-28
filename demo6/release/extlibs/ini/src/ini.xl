@@ -29,7 +29,7 @@ class Config
     extern "xini_destroy" destroy()
 
     private extern "xini_error_code" func errorCodeNative() as int
-    private extern "xini_error_text" @owned func errorTextNative() as string?
+    private extern "xini_error_text" @owned func errorTextNative() as string
     private extern "xini_error_line" func errorLineNative() as int
     private extern "xini_error_column" func errorColumnNative() as int
     private extern "xini_error_offset" func errorOffsetNative() as int
@@ -56,9 +56,12 @@ class Config
 
     func errorText() as string
         if self.handle == null then return "INI operation failed" end
-        string? value = self.errorTextNative()
-        if value == null then throw MemoryError "INI error text allocation failed" end
-        return value
+        return self.errorTextNative()
+    end
+
+    // 拥有型临时值 ?? 的失败分支，保留配置对象中的精确诊断。
+    private func raiseError() as string
+        throw ConfigError self.errorText()
     end
 
     get errorCode() as int
@@ -124,11 +127,7 @@ class Config
     func get(string section, string key) as string
         __ini_require_c_string(section)
         __ini_require_c_string(key)
-        string? result = self.getNative(section, key)
-        if result == null then
-            throw ConfigError self.errorText()
-        end
-        return result
+        return self.getNative(section, key) ?? self.raiseError()
     end
 
     func get(string key) as string
@@ -217,11 +216,7 @@ class Config
     end
 
     func stringify() as string
-        string? result = self.stringifyTextNative()
-        if result == null then
-            throw ConfigError self.errorText()
-        end
-        return result
+        return self.stringifyTextNative() ?? self.raiseError()
     end
 
     func save(string path)

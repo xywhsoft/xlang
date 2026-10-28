@@ -1,3 +1,13 @@
-#define XRT_MODULE_ALL
+/* 产品依赖与范例清理目录的功能，避免测试编译整个 XRT。 */
+#define XRT_MODULE_CHARSET
+#define XRT_MODULE_FILE_WHOLE
+#define XRT_MODULE_IO_BUFFER
+#define XRT_MODULE_IO_FILE
+#define XRT_MODULE_STRING
+#define XRT_MODULE_NUMBER_FLOAT
+#define XRT_MODULE_NUMBER_INTEGER
+#define XRT_MODULE_DIR_TEMP
+#define XRT_MODULE_FILE_TREE
+#define XRT_MODULE_MEMORY_DEBUG
 #define XRT_IMPLEMENTATION
 #include "xrt.h"
