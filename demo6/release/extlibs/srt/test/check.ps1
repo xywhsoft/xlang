@@ -6,7 +6,7 @@ $release = Join-Path $root 'release'
 $workRoot = Join-Path $root 'build/test'
 $work = Join-Path $workRoot ('srt_guard_' + [guid]::NewGuid().ToString('N'))
 $xl = Join-Path $release 'xl.exe'
-$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
+$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 [void][IO.Directory]::CreateDirectory($work)
 
 function Run([string]$label, [string]$program, [string[]]$arguments) {

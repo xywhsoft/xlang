@@ -4,7 +4,7 @@ $root = (Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
 $release = Join-Path $root 'release'
 $buildRoot = Join-Path $root 'build/test'
 $build = Join-Path $buildRoot ("dinov3_{0}" -f [guid]::NewGuid().ToString('N'))
-$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
+$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 if ($ParallelLive -and (-not $env:DINOV3_MODEL -or -not $env:DINOV3_TEST_IMAGE)) {
     throw '-ParallelLive requires DINOV3_MODEL and DINOV3_TEST_IMAGE'
 }

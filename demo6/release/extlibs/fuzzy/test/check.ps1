@@ -3,7 +3,7 @@ param([switch]$SkipAot)
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../..')).Path
 $xl = Join-Path $root 'release/xl.exe'
-$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
+$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $runner = Join-Path $root 'tools/run_extlib_c.ps1'
 $workRoot = Join-Path $root 'build/test'
 $work = Join-Path $workRoot ("fuzzy_guard_$([guid]::NewGuid().ToString('N'))")

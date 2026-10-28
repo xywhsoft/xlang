@@ -6,7 +6,7 @@ $testRoot = Join-Path $root 'build/test'
 [IO.Directory]::CreateDirectory($testRoot) | Out-Null
 $work = Join-Path $testRoot ('sysinfo_guard_' + [guid]::NewGuid().ToString('N'))
 [IO.Directory]::CreateDirectory($work) | Out-Null
-$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
+$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $xl = Join-Path $root 'release/xl.exe'
 $flags = @('-std=c11', '-O2', '-Wall', '-Wextra', '-Werror', '-Ilib/xrt',
     '-Irelease/extlibs/sysinfo')

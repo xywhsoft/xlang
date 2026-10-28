@@ -8,7 +8,7 @@ $work = Join-Path $testRoot ('hyperloglog_guard_' + [guid]::NewGuid().ToString('
 $xl = Join-Path $root 'release/xl.exe'
 $runner = Join-Path $root 'tools/run_extlib_c.ps1'
 $expected = [string]::Join("`n", (Get-Content -LiteralPath (Join-Path $PSScriptRoot 'hyperloglog.expected.txt') -Encoding UTF8))
-$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
+$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $manifest = Get-Content -LiteralPath (Join-Path $root 'release/extlibs/hyperloglog/xlang.package.json') -Raw | ConvertFrom-Json
 $moduleFlags = @($manifest.artifact.xrtModules | ForEach-Object { "-D$_" })
 

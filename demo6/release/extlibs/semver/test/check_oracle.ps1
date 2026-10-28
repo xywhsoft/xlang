@@ -25,7 +25,7 @@ $cli = Join-Path $work 'semver_oracle_cli.exe'
 Push-Location $root
 try {
     [IO.Directory]::CreateDirectory($work) | Out-Null
-    $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
+    $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
     & $gcc -std=c11 -O2 -Ilib/xrt -c `
         release/extlibs/semver/test/xrt_runtime.c -o $runtime
     if ($LASTEXITCODE -ne 0) { throw 'XRT compile failed' }

@@ -4,7 +4,7 @@ $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../..')).Path
 $workRoot = Join-Path $root 'build/test'
 $work = Join-Path $workRoot ('com_guard_' + [guid]::NewGuid().ToString('N'))
-$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
+$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 [IO.Directory]::CreateDirectory($work) | Out-Null
 $xl = Join-Path $root 'release/xl.exe'
 $flags = @('-std=gnu11', '-O2', '-Wall', '-Wextra', '-Werror',

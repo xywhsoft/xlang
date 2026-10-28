@@ -7,7 +7,7 @@ $build = [IO.Path]::GetFullPath((Join-Path $buildRoot ("{0}_{1}" -f $PID, [guid]
 if (-not $build.StartsWith($buildRoot + '\', [StringComparison]::OrdinalIgnoreCase)) {
     throw 'TAR test directory escaped build/test'
 }
-$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
+$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $xl = Join-Path $root 'release/xl.exe'
 $manifest = Get-Content -LiteralPath (Join-Path $root 'release/extlibs/tar/xlang.package.json') -Raw | ConvertFrom-Json
 $moduleFlags = @($manifest.artifact.xrtModules | ForEach-Object { "-D$_" })

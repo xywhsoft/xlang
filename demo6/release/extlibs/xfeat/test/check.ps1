@@ -4,7 +4,7 @@ $root = (Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
 $buildRoot = Join-Path $root 'build/test/xfeat'
 $build = Join-Path $buildRoot ('guard_' + [guid]::NewGuid().ToString('N'))
 $release = Join-Path $root 'release'
-$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
+$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 if ($ParallelLive -and -not $env:XFEAT_MODEL) {
     throw '-ParallelLive requires XFEAT_MODEL'
 }

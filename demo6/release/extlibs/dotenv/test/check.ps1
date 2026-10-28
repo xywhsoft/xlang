@@ -6,7 +6,7 @@ $pkg = Join-Path $root 'release/extlibs/dotenv'
 $workRoot = Join-Path $root 'build/test'
 $work = Join-Path $workRoot ('dotenv_guard_' + [guid]::NewGuid().ToString('N'))
 [IO.Directory]::CreateDirectory($work) | Out-Null
-$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
+$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $xl = Join-Path $root 'release/xl.exe'
 $modules = @('-DXRT_MODULE_ENVIRONMENT', '-DXRT_MODULE_FILE_WHOLE',
     '-DXRT_MODULE_DIR_TEMP',

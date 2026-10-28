@@ -7,7 +7,7 @@ $work = Join-Path $workParent ('run_' + [guid]::NewGuid().ToString('N'))
 $case = Join-Path $work 'case'
 [IO.Directory]::CreateDirectory($work) | Out-Null
 [IO.Directory]::CreateDirectory((Join-Path $case 'build/test/watch_guard')) | Out-Null
-$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
+$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $xl = Join-Path $root 'release/xl.exe'
 $flags = @('-std=c11', '-O2', '-Wall', '-Wextra', '-Werror', '-Ilib/xrt',
     '-Irelease/extlibs/watch')

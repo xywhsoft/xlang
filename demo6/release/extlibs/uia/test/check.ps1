@@ -59,7 +59,7 @@ try {
     if ($xlExample -cne $cExample) { throw "C/XLang output differs: $xlExample / $cExample" }
 
     if ($StrictC) {
-        $gcc = (Get-Command gcc -ErrorAction Stop).Source
+        $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
         $outputExe = Join-Path $work 'uia_c_test.exe'
         $xrtDir = (Resolve-Path (Join-Path $release '../lib/xrt')).Path
         & $gcc -std=c11 -Wall -Wextra -Werror -fsyntax-only "-I$xrtDir" `

@@ -3,7 +3,7 @@ param([switch]$SkipAot)
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
 $xl = Join-Path $root 'release/xl.exe'
-$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
+$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $workRoot = Join-Path $root 'build/test'
 $work = Join-Path $workRoot ('zip_guard_' + [guid]::NewGuid().ToString('N'))
 $output = Join-Path $work 'zip_aot_core.exe'

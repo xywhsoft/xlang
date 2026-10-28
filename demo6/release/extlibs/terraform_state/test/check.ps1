@@ -6,7 +6,7 @@ $xl = Join-Path $root 'release/xl.exe'
 $runner = Join-Path $root 'tools/run_extlib_c.ps1'
 $workParent = Join-Path $root 'build/test/terraform_state_guard'
 $work = Join-Path $workParent ('run_' + [guid]::NewGuid().ToString('N'))
-$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
+$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 [IO.Directory]::CreateDirectory($work) | Out-Null
 
 function Run([string]$name, [string]$program, [string[]]$arguments) {
