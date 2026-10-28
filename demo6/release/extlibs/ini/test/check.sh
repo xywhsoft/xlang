@@ -41,7 +41,7 @@ sha256sum "${inputs[@]}" > "$work/inputs.before.sha256"
 "$cc" --version > "$work/compiler.txt"
 printf '[ini] C sanitizer gate\n'
 "$cc" "${flags[@]}" -c release/extlibs/ini/test/xrt_runtime.c -o "$work/xrt.o"
-for name in test_ini test_updates test_output_limits test_interpolation_refs test_owned_text; do
+for name in test_ini test_updates test_output_limits test_interpolation_refs test_owned_text test_stream_errors; do
     "$cc" "${flags[@]}" "release/extlibs/ini/test/$name.c" \
         "$work/xrt.o" -lm -ldl -o "$work/$name"
     timeout 90s "$work/$name"
@@ -62,6 +62,7 @@ timeout 90s ./release/xl run release/extlibs/ini/test/test_updates.c
 timeout 90s ./release/xl run release/extlibs/ini/test/test_output_limits.c
 timeout 90s ./release/xl run release/extlibs/ini/test/test_interpolation_refs.c
 timeout 90s ./release/xl run release/extlibs/ini/test/test_owned_text.c
+timeout 90s ./release/xl run release/extlibs/ini/test/test_stream_errors.c
 timeout 90s ./release/xl run test/cases/extlib_ini.xl
 timeout 90s ./release/xl run release/extlibs/ini/test/boundaries.xl
 timeout 90s ./release/xl run release/extlibs/ini/test/updates.xl
@@ -117,8 +118,10 @@ for name in aot_float_core boundaries updates output_limits interpolation_refs o
         -o "$work/ini_$name"
     timeout 90s "$work/ini_$name"
 done
-timeout 180s ./release/xl build release/extlibs/ini/test/test_owned_text.c -o "$work/ini_owned_c"
-timeout 90s "$work/ini_owned_c"
+for name in test_owned_text test_stream_errors; do
+    timeout 180s ./release/xl build "release/extlibs/ini/test/$name.c" -o "$work/$name.c.aot"
+    timeout 90s "$work/$name.c.aot"
+done
 timeout 180s ./release/xl build release/examples/extlibs/ini.xl \
     -o "$work/ini_example"
 timeout 90s "$work/ini_example" > "$work/aot_example.txt"

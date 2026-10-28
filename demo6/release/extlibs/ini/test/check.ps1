@@ -50,7 +50,7 @@ try {
     $runtime = Join-Path $work 'xrt.o'
     $null = Run 'shared C runtime compile' $gcc ($flags + @('-c',
         'release/extlibs/ini/test/xrt_runtime.c', '-o', $runtime))
-    foreach ($name in @('test_ini', 'test_updates', 'test_output_limits', 'test_interpolation_refs', 'test_owned_text')) {
+    foreach ($name in @('test_ini', 'test_updates', 'test_output_limits', 'test_interpolation_refs', 'test_owned_text', 'test_stream_errors')) {
         $target = Join-Path $work "$name.exe"
         $null = Run "GCC $name build" $gcc ($flags + @(
             "release/extlibs/ini/test/$name.c", $runtime, '-o', $target) + $links)
@@ -77,6 +77,7 @@ try {
         $null = Run 'C output limits direct run' $xl @('run', 'extlibs/ini/test/test_output_limits.c')
         $null = Run 'C reference errors direct run' $xl @('run', 'extlibs/ini/test/test_interpolation_refs.c')
         $null = Run 'C owned text direct run' $xl @('run', 'extlibs/ini/test/test_owned_text.c')
+        $null = Run 'C stream first-cause direct run' $xl @('run', 'extlibs/ini/test/test_stream_errors.c')
         $null = Run 'XLang boundaries' $xl @('run', 'extlibs/ini/test/boundaries.xl')
         $null = Run 'XLang updates' $xl @('run', 'extlibs/ini/test/updates.xl')
         $null = Run 'XLang output limits' $xl @('run', 'extlibs/ini/test/output_limits.xl')
@@ -181,10 +182,12 @@ try {
                     "extlibs/ini/test/$name.xl", '-o', $target)
                 $null = Run "AOT $name" $target @()
             }
-            $nativeOwned = Join-Path $work 'owned_c.exe'
-            $null = Run 'AOT C owned text build' $xl @('build',
-                'extlibs/ini/test/test_owned_text.c', '-o', $nativeOwned)
-            $null = Run 'AOT C owned text' $nativeOwned @()
+            foreach ($name in @('test_owned_text', 'test_stream_errors')) {
+                $nativeTest = Join-Path $work "$name.c.exe"
+                $null = Run "AOT C $name build" $xl @('build',
+                    "extlibs/ini/test/$name.c", '-o', $nativeTest)
+                $null = Run "AOT C $name" $nativeTest @()
+            }
             foreach ($source in @('profiles.xl', 'profiles_c.c')) {
                 $profileAot = Join-Path $work ($source.Replace('.', '_') + '.exe')
                 $null = Run "AOT $source build" $xl @('build',

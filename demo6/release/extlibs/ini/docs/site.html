@@ -45,13 +45,14 @@ println(config.stringify())</code></pre>
       <tr><td><code>Config.stringify / save</code></td><td>直接接管原生文本并返回普通 <code>string</code>，或原子保存到文件；无法无损表示的节名、键名或值会明确报错，不会静默改变数据；写入失败不截断旧文件。</td></tr>
       <tr><td><code>Config.errorCode / errorLine / errorColumn / errorOffset</code></td><td>读取最近一次原生操作的错误信息；非法 UTF-8 指向首个错误字节，偏移包含 BOM，首行列号不计 BOM。</td></tr>
     </tbody></table>
-    <p>可设置大小写敏感、重复键检查、插值和资源限额。<code>${key}</code>、<code>${section.key}</code> 在启用插值时生效。<code>parse(string)</code> 直接传入 UTF-8 数据及字节长度，不另建 XLang Buffer 副本；原生读取器在复制正文前检查输入限额并拒绝内嵌 NUL。<code>set()</code> 可以保留内存值；写出时若值有首尾空白、尾随换行或注释形态的续行等无法无损表示的内容，C 端报 <code>FORMAT</code>，XLang 抛 <code>ConfigError</code>。全局节先于具名节写出。C 端包含 <code>extlibs/ini/include/xrt_ini.h</code>，解析结果由 <code>xrtIniDestroy</code> 释放；<code>xrtIniGet</code> 的结果由调用方用 <code>xrtFree</code> 释放。C 选项须先初始化，顶层与内嵌资源限额的版本和结构长度均会校验，失配报 <code>ARGUMENT</code>。拥有型 Reader/Writer 在退出时关闭；正文成功但关闭失败时报告 <code>IO</code>，借用型流由调用方关闭。</p>
+    <p>可设置大小写敏感、重复键检查、插值和资源限额。<code>${key}</code>、<code>${section.key}</code> 在启用插值时生效。<code>parse(string)</code> 直接传入 UTF-8 数据及字节长度，不另建 XLang Buffer 副本；原生读取器在复制正文前检查输入限额并拒绝内嵌 NUL。<code>set()</code> 可以保留内存值；写出时若值有首尾空白、尾随换行或注释形态的续行等无法无损表示的内容，C 端报 <code>FORMAT</code>，XLang 抛 <code>ConfigError</code>。全局节先于具名节写出。C 端包含 <code>extlibs/ini/include/xrt_ini.h</code>，解析结果由 <code>xrtIniDestroy</code> 释放；<code>xrtIniGet</code> 的结果由调用方用 <code>xrtFree</code> 释放。C 选项须先初始化，顶层与内嵌资源限额的版本和结构长度均会校验，失配报 <code>ARGUMENT</code>。拥有型 Reader/Writer 在退出时关闭，对象与 XRT 错误槽同时保留已有首因；正文成功但关闭失败时区分 <code>MEMORY</code>/<code>IO</code>，借用型流由调用方关闭。</p>
     <p>C 配置的顶层及资源限额保留字段必须为零；非零配置在 create/parse 入口报告 ARGUMENT。<code>iMaxEntries</code> 限制所有节的键总数，删除键后恢复额度；不适用的压缩倍率与 iFlags 必须为零，显式设置会报 ARGUMENT。</p>
     <p><code>strictDuplicates=false</code> 时后一次赋值替换旧值，保留键的原顺序和拼写，缩进续行跟随本次更新，不能污染表尾的其他键。默认严格模式仍拒绝重复。首个全局键自身含 U+FEFF 时，写回会按需加一个空行，避免把键的一部分当作文件 BOM；该字节计入输出预算。空键/空节名报 FORMAT，真正的长度超限报 LIMIT。</p>
     <p><code>maxOutput</code> 同时限制拥有型 get 的结果和序列化文本的 UTF-8 字节数，0 表示不限。插值前缀、引用正文与后缀共用累计预算，每次追加/扩容前检查，不先构造超限结果才拒绝。没有插值表达式的值直接按长度复制，不创建插值栈和缓冲。类型化读取复用此取值预算，借用视图 <code>xrtIniGetRaw</code> 不复制或截断存储值；结果限额不是进程总内存上限。</p>
   </section>
   <section id="verify">
     <h2>验证与边界</h2>
+    <p>2026-10-29：修复关闭回调覆盖 XRT 正文首因、Reader 关闭内存错误误报 IO 的问题。新增 <code>test/test_stream_errors.c</code> 的14个组合先有13项失败，修复后核对读取/写入/刷新/关闭复合失败、格式/限额/选项/构造失败、对象与线程错误的类型/域/码/消息、关闭次数及活动分配恢复。新 C 用例在两平台严格编译、TCC 直跑和独立 EXE 通过；Linux 另有 ASan/UBSan。默认完整门禁保留旧所有权、分配预算、Python互通及双语JIT/AOT并全部通过，未改主线或 XRT。历史 GCC ICE 仍未定位，保持 R。</p>
     <p>2026-10-28：诊断、get 与 stringify 的三处返回复制已移除，缺失键的 ConfigError、合法空值和内存错误保持区别。C 18 组、XLang 20 组固定预算和名称列表 57 个逐点故障/成功预算通过；完整生成夹具仍保留必要的默认值快照，名称列表的后续装箱复制也未消除，不称整条链路零开销。双平台默认门禁含 Linux ASan/UBSan、Python configparser 互通和双语 JIT/AOT；主线/XRT 未改，旧 GCC ICE 的 R 风险仍保留。</p>
     <p>2026-10-28 插值空键误报 MemoryError 已修复；新增 C 的 9 个合法/9 个错误引用对照、逐点 OOM 与分配恢复、语言消费正反例。Windows/Linux 默认门禁通过严格 C、Linux ASan/UBSan 及新旧双语 JIT/AOT，先前工具链 R 风险仍保留。</p>
     <p>本轮最后的 Windows/Linux 默认门禁完整通过，新增拥有型取值与插值累计预算的 C/XLang JIT/AOT、Linux ASan/UBSan、精确字节边界和 OOM 恢复检查。但 Windows GCC 编译未修改的 XRT 测试翻译单元曾出现一次内部错误；同参数重试成功，原因尚未闭环，当前仍保留工具链 R 风险。另一次 WSL 非正常重启使快照失效，已重新建立输入验证，不把失效运行视为库测试失败。</p>

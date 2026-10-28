@@ -1,5 +1,24 @@
 # ini
 
+## 2026-10-29 拥有型流的首因保留
+
+原先关闭回调失败时，只保住配置对象内的错误码，却会覆盖 XRT 错误
+槽的正文首因；Reader 关闭时的内存错误也被固定记成 IO。新 C 矩阵
+14个组合中13项先红，现统一在销毁拥有型流前取出已有错误，关闭后
+恢复；正文成功时才让关闭失败成为结果，并区分 MEMORY/IO。不改变
+流的接管语义，Close 回调仍执行一次；借用型流仍由调用方关闭。
+
+矩阵覆盖读取、写入、刷新、关闭的内存/I/O复合失败，以及格式、限额、
+无效选项和配置对象分配失败后的关闭；同时核对对象错误、XRT 错误
+槽的类型/域/码/消息、关闭次数及活动分配数量/字节恢复到基线。
+`test/test_stream_errors.c` 可直接 `xl run` 或 `xl build`，已进入两平台
+默认门禁。Windows 严格 GCC、C/TCC 与独立 EXE 通过；Linux 另通过
+ASan/UBSan。原有所有权、分配预算、Python互通及 C/XLang JIT/AOT
+全部通过，输入与冻结发布物指纹一致。未改 XRT 或编译器主线。
+
+本修复针对确定性的包内错误；下述 GCC ICE/WSL 失效快照的历史
+风险并未因此定位或关闭，INI 仍保持 R，不凭本轮全绿升级发布状态。
+
 当前发布状态为 **R：本体验证通过，工具链风险未闭环**。本轮最后的
 Windows 默认门禁与 Linux 新快照默认门禁均完整通过，但中途曾在 GCC
 16.2.0 编译未修改的 XRT 翻译单元时发生一次 `Illegal instruction` 内部
@@ -215,8 +234,9 @@ XLang 以普通 `string` 直接接管，避免再经 `Buffer.text()` 复制；�
 `xrtIniLoad` 的空路径是 `XRT_INI_ERROR_ARGUMENT`；有效路径打不开时是
 `XRT_INI_ERROR_IO`，打开或读取过程中的内存失败是 `XRT_INI_ERROR_MEMORY`。
 `xrtIniParse` / `xrtIniWrite` 的 `bTakeOwnership=true` 会在退出时关闭流；
-正文成功但关闭失败时报告 `XRT_INI_ERROR_IO`，已有格式、限额或写入错误
-保持首因。`bTakeOwnership=false` 时流由调用方关闭，不被库提前释放。
+正文成功但关闭失败时区分 `XRT_INI_ERROR_MEMORY` 与 `XRT_INI_ERROR_IO`；
+已有格式、限额、读取、写入或刷新错误在配置对象与 XRT 错误槽中同时
+保留首因。`bTakeOwnership=false` 时流由调用方关闭，不被库提前释放。
 传入 C 选项时必须先调用 `xrtIniOptionsInit`；顶层选项及内嵌的
 `xrtresourcelimits` 各自校验版本和结构长度，顶层及限额保留字段必须为零。无效结构报告
 `XRT_INI_ERROR_ARGUMENT`，不会退回默认限额后继续解析。

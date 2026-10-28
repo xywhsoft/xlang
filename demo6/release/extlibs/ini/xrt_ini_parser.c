@@ -266,6 +266,15 @@ static bool __xrtIniParseBuffer(xrtiniconfig* pConfig, const unsigned char* pDat
 
 
 
+/* 所有拥有型退出共用同一路径：关闭始终执行，但不能覆盖已有首因。 */
+static bool __xrtIniCloseReader(xreader* pReader)
+{
+	xerror* pCause = xrtTakeError();
+	bool bClosed = xrtReaderDestroy(pReader);
+	if ( pCause != NULL ) { xrtSetErrorTake(pCause); }
+	return bClosed;
+}
+
 XRT_API xrtiniconfig* xrtIniParse(xreader* pReader, bool bTakeOwnership,
 	const xrtinioptions* pOptions)
 {
@@ -277,7 +286,7 @@ XRT_API xrtiniconfig* xrtIniParse(xreader* pReader, bool bTakeOwnership,
 	size_t iReadLimit;
 	bool bSizeKnown;
 	if ( pConfig == NULL ) {
-		if ( bTakeOwnership ) { xrtReaderDestroy(pReader); }
+		if ( bTakeOwnership ) { __xrtIniCloseReader(pReader); }
 		return NULL;
 	}
 	if ( pConfig->Failed || pReader == NULL ) {
@@ -285,7 +294,7 @@ XRT_API xrtiniconfig* xrtIniParse(xreader* pReader, bool bTakeOwnership,
 			__xrtIniSetError(pConfig, XRT_INI_ERROR_ARGUMENT, 0u, 0u, 0u,
 				"invalid INI reader");
 		}
-		if ( bTakeOwnership ) { xrtReaderDestroy(pReader); }
+		if ( bTakeOwnership ) { __xrtIniCloseReader(pReader); }
 		return pConfig;
 	}
 	iLimit = pConfig->Options.tLimits.iMaxInputBytes;
@@ -338,9 +347,11 @@ XRT_API xrtiniconfig* xrtIniParse(xreader* pReader, bool bTakeOwnership,
 		}
 	}
 	xrtBufferDestroy(pData);
-	if ( bTakeOwnership && !xrtReaderDestroy(pReader) && !pConfig->Failed ) {
+	if ( bTakeOwnership && !__xrtIniCloseReader(pReader) && !pConfig->Failed ) {
 		/* 正文解析成功后，拥有型 Reader 的关闭仍可能失败。 */
-		__xrtIniSetError(pConfig, XRT_INI_ERROR_IO, 0u, 0u, 0u,
+		const xerror* pCause = xrtGetError();
+		__xrtIniSetError(pConfig, pCause != NULL && xrtErrorKind(pCause) == XERR_MEMORY ?
+			XRT_INI_ERROR_MEMORY : XRT_INI_ERROR_IO, 0u, 0u, 0u,
 			"cannot close INI stream");
 	}
 	return pConfig;

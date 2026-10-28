@@ -177,12 +177,21 @@ static int __xrtIniOutputErrorCode(void)
 		XRT_INI_ERROR_MEMORY : XRT_INI_ERROR_IO;
 }
 
+/* 写入/刷新首因同时保存在对象和 XRT 错误槽中，关闭不能只保住其中一份。 */
+static bool __xrtIniCloseWriter(xwriter* pWriter)
+{
+	xerror* pCause = xrtTakeError();
+	bool bClosed = xrtWriterDestroy(pWriter);
+	if ( pCause != NULL ) { xrtSetErrorTake(pCause); }
+	return bClosed;
+}
+
 XRT_API bool xrtIniWrite(const xrtiniconfig* pConfig, xwriter* pWriter, bool bTakeOwnership)
 {
 	xbuffer* pOutput;
 	bool bResult = false;
 	if ( pConfig == NULL || pWriter == NULL ) {
-		if ( bTakeOwnership ) { xrtWriterDestroy(pWriter); }
+		if ( bTakeOwnership ) { __xrtIniCloseWriter(pWriter); }
 		return false;
 	}
 	pOutput = xrtIniStringify(pConfig);
@@ -198,7 +207,7 @@ XRT_API bool xrtIniWrite(const xrtiniconfig* pConfig, xwriter* pWriter, bool bTa
 		}
 	}
 	xrtBufferDestroy(pOutput);
-	if ( bTakeOwnership && !xrtWriterDestroy(pWriter) && bResult ) {
+	if ( bTakeOwnership && !__xrtIniCloseWriter(pWriter) && bResult ) {
 		/* 正文写入与刷新成功后，关闭失败仍表示写出未完成。 */
 		bResult = false;
 		__xrtIniSetError((xrtiniconfig*)pConfig, __xrtIniOutputErrorCode(), 0u, 0u, 0u,

@@ -56,7 +56,8 @@ typedef struct xrtiniconfig xrtiniconfig;
 XRT_API void xrtIniOptionsInit(xrtinioptions* pOptions);
 XRT_API void xrtIniErrorInit(xrtinierror* pError);
 XRT_API xrtiniconfig* xrtIniCreate(const xrtinioptions* pOptions);
-/* 拥有型 Reader 在退出时关闭；正文成功但关闭失败记为 IO。 */
+/* 拥有型 Reader 在所有退出路径销毁；对象和 XRT 错误槽都保留已有首因。
+ * 正文成功后才报告关闭失败，内存故障为 MEMORY，其他关闭错误为 IO。 */
 XRT_API xrtiniconfig* xrtIniParse(xreader* pReader, bool bTakeOwnership,
 	const xrtinioptions* pOptions);
 XRT_API xrtiniconfig* xrtIniParseMemory(const void* pData, uint64 iSize,
@@ -81,7 +82,7 @@ XRT_API bool xrtIniSet(xrtiniconfig* pConfig, str sSection, str sKey, str sValue
 XRT_API bool xrtIniRemove(xrtiniconfig* pConfig, str sSection, str sKey);
 XRT_API bool xrtIniRemoveSection(xrtiniconfig* pConfig, str sSection);
 XRT_API xbuffer* xrtIniStringify(const xrtiniconfig* pConfig);
-/* 拥有型 Writer 关闭失败时返回 false；已有写入错误保持首因。 */
+/* 拥有型 Writer 关闭失败时返回 false；对象和 XRT 错误槽都保留已有首因。 */
 XRT_API bool xrtIniWrite(const xrtiniconfig* pConfig, xwriter* pWriter, bool bTakeOwnership);
 XRT_API bool xrtIniSave(const xrtiniconfig* pConfig, str sPath);
 
