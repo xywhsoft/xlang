@@ -1,0 +1,183 @@
+{
+  "ApprovedModules": 16,
+  "Classes": 22,
+  "ExactResidentDeclarations": 276,
+  "DeclaredRoleCoverageOnly": true,
+  "RuntimeAcceptance": "tools/check_stdlib_websocket.py results.json; native XRT receipts are separate",
+  "Excluded": "xws extension group/writer facade; raw pointers, borrowed callback views and ownership machinery remain internal",
+  "Modules": [
+    {
+      "Module": "websocket_frame",
+      "LanguageClasses": [
+        "WsFrame",
+        "WsFrameConfig"
+      ],
+      "Fixtures": [
+        "test/cases/stdlib_websocket_values_v2.xl",
+        "test/cases/stdlib_websocket_frame_trim.xl"
+      ]
+    },
+    {
+      "Module": "websocket_close",
+      "LanguageClasses": [
+        "WsClose"
+      ],
+      "Fixtures": [
+        "test/cases/stdlib_websocket_values_v2.xl",
+        "test/cases/stdlib_websocket_close_trim.xl"
+      ]
+    },
+    {
+      "Module": "websocket_message",
+      "LanguageClasses": [
+        "WsMessageState",
+        "WsMessageConfig",
+        "WsMessageInfo"
+      ],
+      "Fixtures": [
+        "test/cases/stdlib_websocket_values_v2.xl",
+        "test/cases/stdlib_websocket_stream_v2.xl"
+      ]
+    },
+    {
+      "Module": "websocket_handshake",
+      "LanguageClasses": [
+        "WsHandshake"
+      ],
+      "Fixtures": [
+        "test/cases/stdlib_websocket_values_v2.xl",
+        "test/cases/stdlib_websocket_handshake_trim.xl"
+      ]
+    },
+    {
+      "Module": "websocket_keygen",
+      "LanguageClasses": [
+        "WsHandshake"
+      ],
+      "Fixtures": [
+        "test/cases/stdlib_websocket_values_v2.xl",
+        "test/cases/stdlib_websocket_keygen_trim.xl"
+      ]
+    },
+    {
+      "Module": "websocket_extension",
+      "LanguageClasses": [
+        "WsExtensions",
+        "WsExtension"
+      ],
+      "Fixtures": [
+        "test/cases/stdlib_websocket_extensions_v2.xl"
+      ]
+    },
+    {
+      "Module": "websocket_deflate",
+      "LanguageClasses": [
+        "WsDeflateOffer",
+        "WsDeflateResponse",
+        "WsDeflateDirection"
+      ],
+      "Fixtures": [
+        "test/cases/stdlib_websocket_extensions_v2.xl",
+        "test/cases/stdlib_websocket_upgrade_v2.xl"
+      ]
+    },
+    {
+      "Module": "websocket_inflater",
+      "LanguageClasses": [
+        "WsInflater",
+        "WsInflaterConfig"
+      ],
+      "Fixtures": [
+        "test/cases/stdlib_websocket_codecs_v2.xl",
+        "test/cases/stdlib_websocket_tls_v2.xl"
+      ]
+    },
+    {
+      "Module": "websocket_deflater",
+      "LanguageClasses": [
+        "WsDeflater",
+        "WsDeflaterConfig"
+      ],
+      "Fixtures": [
+        "test/cases/stdlib_websocket_codecs_v2.xl",
+        "test/cases/stdlib_websocket_tls_v2.xl"
+      ]
+    },
+    {
+      "Module": "websocket_stream",
+      "LanguageClasses": [
+        "WsStream",
+        "WsStreamOptions",
+        "WsEvent"
+      ],
+      "Fixtures": [
+        "test/cases/stdlib_websocket_stream_v2.xl",
+        "test/cases/stdlib_websocket_cycle_v2.xl",
+        "test/cases/stdlib_websocket_callback_error_v2.xl"
+      ]
+    },
+    {
+      "Module": "websocket_stream_ref",
+      "LanguageClasses": [
+        "WsStream"
+      ],
+      "Fixtures": [
+        "test/cases/stdlib_websocket_send_v2.xl"
+      ]
+    },
+    {
+      "Module": "websocket_stream_tls",
+      "LanguageClasses": [
+        "WsStream"
+      ],
+      "Fixtures": [
+        "test/cases/stdlib_websocket_tls_v2.xl",
+        "test/cases/stdlib_websocket_upgrade_tls_loopback.xl"
+      ]
+    },
+    {
+      "Module": "websocket_stream_deflate",
+      "LanguageClasses": [
+        "WsStream"
+      ],
+      "Fixtures": [
+        "test/cases/stdlib_websocket_tls_v2.xl"
+      ]
+    },
+    {
+      "Module": "websocket_upgrade",
+      "LanguageClasses": [
+        "WsUpgrade",
+        "WsClientOptions",
+        "WsServerOptions"
+      ],
+      "Fixtures": [
+        "test/cases/stdlib_websocket_upgrade_v2.xl"
+      ]
+    },
+    {
+      "Module": "websocket_upgrade_deflate",
+      "LanguageClasses": [
+        "WsUpgrade",
+        "WsClientOptions",
+        "WsServerOptions"
+      ],
+      "Fixtures": [
+        "test/cases/stdlib_websocket_upgrade_v2.xl",
+        "test/cases/stdlib_websocket_tls_v2.xl"
+      ]
+    },
+    {
+      "Module": "websocket_upgrade_stream",
+      "LanguageClasses": [
+        "WsStream",
+        "WsStreamOptions"
+      ],
+      "Fixtures": [
+        "test/cases/stdlib_websocket_handoff_v2.xl",
+        "test/cases/stdlib_websocket_upgrade_loopback.xl",
+        "test/cases/stdlib_websocket_upgrade_tls_loopback.xl"
+      ]
+    }
+  ]
+}

@@ -9,7 +9,7 @@ import argparse,concurrent.futures,hashlib,json,os,re,shutil,subprocess,sys,thre
 CASES=['stdlib_websocket_values_v2','stdlib_websocket_extensions_v2',
  'stdlib_websocket_codecs_v2','stdlib_websocket_upgrade_v2',
  'stdlib_websocket_stream_v2','stdlib_websocket_handoff_v2','stdlib_websocket_tls_v2','stdlib_websocket_send_v2',
- 'stdlib_websocket_cycle_v2','stdlib_websocket_callback_error_v2','stdlib_websocket_language_oom',
+ 'stdlib_websocket_cycle_v2','stdlib_websocket_callback_error_v2','stdlib_websocket_wait_oom_v2','stdlib_websocket_language_oom',
  'stdlib_websocket_core','stdlib_websocket_upgrade_loopback','stdlib_websocket_upgrade_tls_loopback',
  *['stdlib_websocket_'+n+'_trim' for n in ['frame','close','handshake','keygen','upgrade','stream_config','stream','stream_tls']]]
 BAD=['bad_stdlib_websocket_native_handle','bad_stdlib_websocket_raw_callback',
@@ -39,6 +39,8 @@ def main():
   return data
  try:
   run('metadata',[sys.executable,root/'tools/gen_stdlib_websocket.py','--check'])
+  run('module-roles',[sys.executable,root/'tools/websocket_module_coverage.py','--root',root,'--check'])
+  inputs.update([root/'tools/websocket_module_coverage.py',root/'docs/websocket-module-coverage.json'])
   expected={q.name for q in (root/'src/runtime').glob('xl6_ws_*.c')}
   for n in ['compiler_dll.rsp.in','runtime_dll.rsp.in']:
    template=root/'tools'/n;inputs.add(template)
@@ -110,7 +112,7 @@ def main():
    report['HeaderInputs']=headerInputs
    strict=[*flags,'-Wno-unused-function','-Wno-unused-parameter','-Wno-unused-variable','-Wno-unused-label','-Wno-unused-const-variable',
     '-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-I'+str(sdk)]
-   for n in [n for n in selected if n in CASES[:11]]:
+   for n in [n for n in selected if n.endswith(('_v2','language_oom'))]:
     module=out/(n+'.saved')/'module.c';assert module.is_file()
     source=root/'test/cases'/('stdlib_codec_template_language_oom_host.c' if n.endswith('language_oom') else 'stdlib_codec_template_language_host.c')
     for opt in ['O0','O2']:
@@ -119,12 +121,20 @@ def main():
      run(n+'.'+opt+'.lifetime',[binary])
    report['NativeBenchmarkCompiler']='GCC -O2, matching Linux resident providers'
    if windows:
-    benchmark=isolated/'ws-tcc-benchmark.exe';tcc=bd/'tcc_bootstrap.exe';assert tcc.is_file()
+    # The ordinary Windows DLL build uses GCC -Os. TCC remains the script
+    # compiler/bootstrap; comparing a TCC caller against a GCC provider would
+    # not establish the cost of equivalent handwritten C.
+    build=(root/'build_dll.bat').read_text(encoding='utf-8-sig')
+    assert 'XL6_RELEASE_CC=gcc' in build and '-Os -ffunction-sections -fdata-sections' in build
+    benchmark=isolated/'ws-gcc-os-benchmark.exe'
+    run('same-compiler.benchmark.build',[cc,*[f for f in flags if f!='-O2'],'-Os',native,*links,'-o',benchmark])
+    run('same-compiler.benchmark',[benchmark,'--benchmark-only'])
+    report['NativeBenchmarkCompiler']='GCC -Os, matching ordinary Windows resident providers'
+    benchmark=isolated/'ws-tcc-interop.exe';tcc=bd/'tcc_bootstrap.exe';assert tcc.is_file()
     tccFlags=['-std=c11','-Wall','-Werror','-DXL_STATIC_EMBED','-I'+str(root),'-I'+str(root/'release'),'-I'+str(root/'release/include'),
      '-I'+str(root/'lib/tcc/include'),'-I'+str(dist/'include'),'-I'+str(dist/'include/winapi'),'-L'+str(dist/'lib')]
-    run('same-compiler.benchmark.build',[tcc,*tccFlags,native,root/'release/xlc.def','-o',benchmark])
-    run('same-compiler.benchmark',[benchmark,'--benchmark-only'])
-    report['NativeBenchmarkCompiler']='product TCC, matching Windows resident providers'
+    run('tcc-interoperability.build',[tcc,*tccFlags,native,root/'release/xlc.def','-o',benchmark])
+    run('tcc-interoperability.run',[benchmark,'--benchmark-only'])
    else:run('same-compiler.benchmark',[isolated/(names[2]+'.ws-native'),'--benchmark-only'])
    minimal={'frame':('WEBSOCKET_FRAME',{'WEBSOCKET_CLOSE','WEBSOCKET_HANDSHAKE','WEBSOCKET_KEYGEN'}),
     'close':('WEBSOCKET_CLOSE',{'WEBSOCKET_FRAME','WEBSOCKET_HANDSHAKE','WEBSOCKET_KEYGEN'}),
