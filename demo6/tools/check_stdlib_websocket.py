@@ -8,7 +8,7 @@ import argparse,concurrent.futures,hashlib,json,os,re,shutil,subprocess,sys,thre
 
 CASES=['stdlib_websocket_values_v2','stdlib_websocket_extensions_v2',
  'stdlib_websocket_codecs_v2','stdlib_websocket_upgrade_v2',
- 'stdlib_websocket_stream_v2','stdlib_websocket_handoff_v2','stdlib_websocket_tls_v2',
+ 'stdlib_websocket_stream_v2','stdlib_websocket_handoff_v2','stdlib_websocket_tls_v2','stdlib_websocket_send_v2',
  'stdlib_websocket_cycle_v2','stdlib_websocket_callback_error_v2','stdlib_websocket_language_oom',
  'stdlib_websocket_core','stdlib_websocket_upgrade_loopback','stdlib_websocket_upgrade_tls_loopback',
  *['stdlib_websocket_'+n+'_trim' for n in ['frame','close','handshake','keygen','upgrade','stream_config','stream','stream_tls']]]
@@ -39,6 +39,11 @@ def main():
   return data
  try:
   run('metadata',[sys.executable,root/'tools/gen_stdlib_websocket.py','--check'])
+  expected={q.name for q in (root/'src/runtime').glob('xl6_ws_*.c')}
+  for n in ['compiler_dll.rsp.in','runtime_dll.rsp.in']:
+   template=root/'tools'/n;inputs.add(template)
+   sources=re.findall(r'src[/\\]runtime[/\\](xl6_ws_\w+\.c)\b',template.read_text(encoding='utf-8-sig'))
+   assert len(sources)==len(set(sources)) and set(sources)==expected,(n,'missing or duplicate WebSocket source')
   retired=['xl6_cgen_websocket.c','xl6_cgen_websocket.h','xl6_cgen_websocket_protocol.c','xl6_cgen_websocket_stream.c','xl6_cgen_http1.c','xl6_cgen_http1.h']
   assert not any((root/'src/cgen'/n).exists() for n in retired)
   isolated=out/'isolated';isolated.mkdir();release=isolated/'release';release.mkdir();relocated=out/'relocated';relocated.mkdir()
@@ -105,7 +110,7 @@ def main():
    report['HeaderInputs']=headerInputs
    strict=[*flags,'-Wno-unused-function','-Wno-unused-parameter','-Wno-unused-variable','-Wno-unused-label','-Wno-unused-const-variable',
     '-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-I'+str(sdk)]
-   for n in [n for n in selected if n in CASES[:10]]:
+   for n in [n for n in selected if n in CASES[:11]]:
     module=out/(n+'.saved')/'module.c';assert module.is_file()
     source=root/'test/cases'/('stdlib_codec_template_language_oom_host.c' if n.endswith('language_oom') else 'stdlib_codec_template_language_host.c')
     for opt in ['O0','O2']:

@@ -1,0 +1,63 @@
+async func verify()
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
+    auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+    auto transport = TcpStream(engine, listener.localAddress())
+    auto peer = listener.accept(5000)
+    assert transport.wait(TcpWait.open, 5000) == NetStatus.ok
+    auto pending = WsUpgrade.client("local.test")
+    auto request = Http1Head.request(Http1.requestHead("GET", "/ws", pending.headers()))
+    if request == null then throw ValueError "incomplete request" end
+    auto upgrade = WsUpgrade.server(request)
+    auto response = Http1Head.response(Http1.responseHead(101, "Switching Protocols", upgrade.headers()))
+    if response == null then throw ValueError "incomplete response" end
+    auto options = WsStreamOptions()
+    auto server = await WsStream.attachAsync(peer, NetBuffer(), upgrade, options, func(WsEvent event) as bool
+        if event.kind == WsEventKind.messageData then
+            // Clear server writes retain typed NetBytes, including NUL.
+            assert event.stream.sendRef(WsOpcode.binary, NetBytes(event.data)) == NetStatus.ok
+        end
+        return true
+    end)
+    auto ends = AtomicInt32(0)
+    auto pongs = AtomicInt32(0)
+    auto client = await WsStream.attachAsync(transport, NetBuffer(), pending.checkResponse(response), options, func(WsEvent event) as bool
+        if event.kind == WsEventKind.messageEnd then ends.fetchAdd(1) end
+        if event.kind == WsEventKind.pong then
+            assert event.data == b"p\0"
+            pongs.fetchAdd(1)
+        end
+        return true
+    end)
+    auto sink = Buffer()
+    await client.receiveIntoAsync(sink)
+    auto immutable = NetBytes(b"a\0b")
+    assert (await client.sendRefAsync(WsOpcode.binary, immutable, 20)) == NetStatus.ok
+    auto mutable = Buffer(b"c\0d")
+    bool rejected = false
+    try
+        await client.sendTakeAsync(WsOpcode.binary, mutable, 1)
+    catch error
+        rejected = true
+    end
+    assert rejected and mutable.toBytes() == b"c\0d"
+    assert (await client.sendTakeAsync(WsOpcode.binary, mutable)) == NetStatus.ok
+    assert mutable.len() == 0 and immutable.length == uint64(3)
+    assert (await client.pingAsync(b"p\0")) == NetStatus.ok
+    int elapsed = 0
+    while (ends.load() < 2 or pongs.load() < 1) and elapsed < 5000
+        time.sleep(1)
+        elapsed += 1
+    end
+    assert ends.load() == 2 and pongs.load() == 1
+    assert sink.toBytes() == b"a\0bc\0d"
+    assert (await client.closeAsync()) == NetStatus.ok
+    assert (await server.waitClosedAsync(5000)) == NetStatus.ok
+    server.throwIfFailed()
+    client.throwIfFailed()
+    listener.close()
+    engine.close()
+    assert engine.wait(5000)
+    println("websocket-send-v2-ok")
+end
+await verify()

@@ -866,6 +866,17 @@
     src\runtime\xl6_ws_stream_tls_domain.c
     src\runtime\xl6_ws_wait.c
     src\runtime\xl6_ws_wait_domain.c
+    src\runtime\xl6_ws_close_domain.c
+    src\runtime\xl6_ws_deflater_domain.c
+    src\runtime\xl6_ws_deflate_domain.c
+    src\runtime\xl6_ws_event_domain.c
+    src\runtime\xl6_ws_extension_domain.c
+    src\runtime\xl6_ws_frame_domain.c
+    src\runtime\xl6_ws_inflater_domain.c
+    src\runtime\xl6_ws_message_domain.c
+    src\runtime\xl6_ws_stream_domain.c
+    src\runtime\xl6_ws_stream_options_domain.c
+    src\runtime\xl6_ws_upgrade_domain.c
     src\runtime\xl6_compress_deflater.c
     src\runtime\xl6_compress_inflater.c
     src\runtime\xl6_template_core.c
