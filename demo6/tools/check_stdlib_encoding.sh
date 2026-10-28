@@ -122,7 +122,7 @@ for fixture in "${negative[@]}"; do
         printf 'Invalid Encoding ABI accepted: %s\n' "$fixture" >&2; exit 1
     fi
     [[ ! -e "$OUT/$fixture.c" ]]
-    marker='XLIR direct runtime bridge has no exact declared ABI|has no exact compiler-runtime bridge ABI|C ABI extern product requires exactly three language signed 64-bit results'
+    marker='XLIR direct runtime bridge has no exact declared ABI|has no exact compiler-runtime bridge ABI|C ABI extern product requires (a closed (native|primitive) product profile|exactly three language signed 64-bit results)'
     grep -Eq "$marker" "$OUT/$fixture.log"
     checks=$((checks + 1))
 done
