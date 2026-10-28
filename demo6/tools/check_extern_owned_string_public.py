@@ -95,11 +95,13 @@ def main():
     reference_boundary_contract = ROOT/'test/cases/xlir_error_transport_contract.c'
     bound_dispatch_contract = ROOT/'test/cases/xlir_bound_dispatch_contract.c'
     bound_constraint_contract = ROOT/'test/cases/xlir_bound_constraint_contract.c'
+    bound_access_contract = ROOT/'test/cases/xlir_bound_access_contract.c'
     producer_tail_contract = ROOT/'test/cases/xlir_task_producer_tail.c'
     for path in [source, *native, template, contract, oom_contract, task_scalar_contract, task_composition_contract, task_optional_contract,
             task_reference_contract,error_array_contract,
-            reference_boundary_contract,bound_dispatch_contract,bound_constraint_contract,producer_tail_contract,
+            reference_boundary_contract,bound_dispatch_contract,bound_constraint_contract,bound_access_contract,producer_tail_contract,
             ROOT/'test/cases/extern_owned_bound_constraint_casts.xl',
+            ROOT/'test/cases/extern_owned_bound_nonpublic.xl',
             ROOT/'test/cases/extern_owned_bound_base_dispatch.xl',
             ROOT/'test/cases/extern_owned_error_safe_index.xl',
             ROOT/'test/cases/extern_owned_bound_method_defaults.xl',
@@ -182,6 +184,7 @@ def main():
     for name,unit,message in [
             ('bound-dispatch-contract',bound_dispatch_contract,'6 rejected mutations'),
             ('bound-constraint-contract',bound_constraint_contract,'missing constraint evidence rejected'),
+            ('bound-access-contract',bound_access_contract,'access evidence checked, dynamic registry remains public'),
             ('task-reference-contract',task_reference_contract,'8 mutations rejected'),
             ('reference-boundary-contract',reference_boundary_contract,'6 mutations rejected'),
             ('error-array-admission',error_array_contract,'64 OOM prefixes balanced')]:
