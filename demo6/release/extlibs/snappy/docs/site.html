@@ -74,6 +74,7 @@ func main(...) as int
     return 0
 end</pre></div></div>
     <h2>核心特性</h2>
+    <p>2026-10-28：C 桥接头可单独或与核心/XRT 头按任意顺序包含，不改变宿主的模块选择。Windows/Linux 的四种严格 C 编译与基础 C/XL 范例 JIT/AOT 同输出通过；本次只调整声明，未重复完整算法和压力门禁。</p>
     <ul>
       <li><strong>标准 framing</strong> — 产出符合 Google Snappy framed stream 格式的 <code>.sz</code> 数据</li>
       <li><strong>块校验</strong> — 使用 masked CRC32C；损坏的块会被拒绝</li>

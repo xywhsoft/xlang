@@ -12,6 +12,10 @@ flags=(-std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror
 export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1
 export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
 
+for order in ALONE CORE_FIRST NATIVE_FIRST XRT_FIRST; do
+    "$cc" "${flags[@]}" "-DSNAPPY_$order" -fsyntax-only release/extlibs/snappy/test/native_header.c
+done
+
 for kind in compressor decompressor; do
     case="private_${kind}_negative"
     if timeout 90s ./release/xl check "release/extlibs/snappy/test/$case.xl" > "$work/$case.txt" 2>&1; then

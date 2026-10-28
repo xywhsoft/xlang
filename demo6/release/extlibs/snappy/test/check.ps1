@@ -47,6 +47,10 @@ function Run-C([string]$name, [string]$source) {
 
 Push-Location $root
 try {
+    foreach ($order in @(@(), @('-DSNAPPY_CORE_FIRST'), @('-DSNAPPY_NATIVE_FIRST'), @('-DSNAPPY_XRT_FIRST'))) {
+        $null = Run 'GCC native header order' $gcc ($flags + $order + @('-fsyntax-only',
+            'release/extlibs/snappy/test/native_header.c'))
+    }
     $runtime = Join-Path $work 'runtime.o'
     $null = Run 'GCC runtime build' $gcc ($flags + @('-c',
         'test/support/extlib_codec_runtime.c', '-o', $runtime))

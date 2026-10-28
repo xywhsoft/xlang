@@ -1,9 +1,10 @@
 #ifndef XLANG_SNAPPY_NATIVE_H
 #define XLANG_SNAPPY_NATIVE_H
-#ifndef XRT_MODULE_VALUE
-#define XRT_MODULE_VALUE
-#endif
-#include "xrt.h"
+#include <stdbool.h>
+#include <stddef.h>
+
+/* 只借用回调值，不由桥接头启用宿主不需要的 VALUE 模块。 */
+typedef struct xvalue xvalue;
 
 #ifdef __cplusplus
 extern "C" {

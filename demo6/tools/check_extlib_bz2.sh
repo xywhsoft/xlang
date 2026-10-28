@@ -54,6 +54,9 @@ for kind in compressor decompressor; do
     fi
 done
 "$cc" --version > "$work/compiler.txt"
+for order in ALONE CORE_FIRST NATIVE_FIRST XRT_FIRST; do
+    "$cc" "${flags[@]}" "-DBZ2_$order" -fsyntax-only "$pkg/test/native_header.c"
+done
 "$cc" "${flags[@]}" -DXRT_MODULE_DIR -DXRT_MODULE_DIR_TEMP -DXRT_MODULE_FILE_WHOLE -DXRT_MODULE_PATH \
     -c test/support/extlib_codec_runtime.c -o "$work/runtime.o"
 objects=("$work/runtime.o")

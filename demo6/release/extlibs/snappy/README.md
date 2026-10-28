@@ -1,5 +1,13 @@
 # snappy
 
+2026-10-28 修复独立 C 桥接头的包含顺序：核心头先包含时，旧桥接头
+无法补上 `xvalue` 声明。现使用标准 bool/size_t 和公开 opaque 前向
+声明，既可独立包含，也不再打开宿主未选择的 XRT VALUE 模块。双平台
+默认门禁新增单独、核心头优先、桥接头优先、已配置 XRT 优先四种严格
+C 编译和模块选择不变检查。本次聚焦验证通过 Windows/Linux 四种组合、
+包自有 C 源与基础 C/XL 范例 JIT/AOT 同输出；不以此冒充重跑完整算法、
+分配故障或压力矩阵。压缩实现、运行库和公开 ABI 均未改。
+
 2026-10-26 当前发布物：Windows 默认 `test/check.ps1` 和独立
 `test/check_interop.ps1` 均退出 0；严格 C、分配故障、Python Snappy
 0.7.3 标准 framed stream 双向互通、语言 JIT/AOT 与 C/XLang 范例
