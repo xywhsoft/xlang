@@ -55,14 +55,6 @@ func checkBoundaries(string workDir)
     end
     assert invalidMode
 
-    bool invalidUid = false
-    try
-        writer.add("bad-uid.txt", "value", uid = -1)
-    catch ValueError error
-        invalidUid = true
-    end
-    assert invalidUid
-
     bool invalidPath = false
     try
         tar.open("missing.tar\0hidden")

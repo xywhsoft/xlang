@@ -1,0 +1,17 @@
+import tar
+
+func main(...) as int
+    // PAX 元数据保留完整 uint64 ID；负时间戳使用 int64，不经浮点转换。
+    uint64 uid = uint64("18446744073709551615")
+    uint64 gid = uint64("9223372036854775808")
+    auto writer = tar.create()
+    writer.add("metadata.txt", "", mtime = -1, uid = uid, gid = gid)
+    auto reader = tar.open(writer.finish())
+    assert reader.next()
+    tar.TarInfo entry = reader.info()
+    assert entry.uid == uid and entry.gid == gid and entry.mtime == -1
+    assert entry.mode == 420
+    println(f"mtime={entry.mtime};uid={entry.uid};gid={entry.gid}")
+    assert not reader.next() and reader.eof
+    return 0
+end

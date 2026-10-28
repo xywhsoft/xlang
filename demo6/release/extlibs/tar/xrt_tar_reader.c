@@ -42,6 +42,8 @@ static bool __xrtTarParseBinary(const unsigned char* pField, size_t iLength,
 		iValue = (iValue << 8u) | iByte;
 	}
 	if ( bNegative ) {
+		/* 长字段的符号扩展必须覆盖低 64 位，不能把下溢负数读成正数。 */
+		if ( iLength > 8u && iValue <= (uint64)INT64_MAX ) { return false; }
 		if ( iLength <= 8u ) {
 			uint32 iBits = (uint32)(iLength * 8u - 1u);
 			iValue |= UINT64_MAX << iBits;
@@ -321,7 +323,7 @@ static bool __xrtTarHeaderEntry(xrttarreader* pReader, const unsigned char* pBlo
 		__xrtTarParseNumber(pBlock + 136u, 12u, true, &iMTime, NULL) &&
 		__xrtTarParseNumber(pBlock + 329u, 8u, false, NULL, &iDeviceMajor) &&
 		__xrtTarParseNumber(pBlock + 337u, 8u, false, NULL, &iDeviceMinor) &&
-		iDeviceMajor <= UINT32_MAX && iDeviceMinor <= UINT32_MAX;
+		iMode <= UINT32_MAX && iDeviceMajor <= UINT32_MAX && iDeviceMinor <= UINT32_MAX;
 	if ( !bOk ) {
 		xrtFree(sJoined);
 		__xrtTarFailReader(pReader, XRT_TAR_ERROR_FORMAT,

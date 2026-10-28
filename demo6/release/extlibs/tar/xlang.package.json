@@ -39,7 +39,7 @@
         { "name": "bz2", "version": "1.0.0", "abiVersion": "1" },
         { "name": "lzma", "version": "1.0.0", "abiVersion": "1" }
     ],
-    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/named_type.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/named_type.xl", "test/numeric_ids.xl"] },
     "native": {
         "singleton": false,
         "loadName": "",

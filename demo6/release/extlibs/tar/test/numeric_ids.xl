@@ -1,0 +1,20 @@
+import tar
+
+func main(...) as int
+    uint64 upper = uint64("9223372036854775808")
+    uint64 maximum = uint64("18446744073709551615")
+    auto writer = tar.create()
+    writer.add("text", "text body", uid = maximum, gid = upper)
+    writer.add("bytes", Buffer("byte body"), uid = upper, gid = maximum)
+    auto reader = tar.open(writer.finish())
+    assert reader.next()
+    tar.TarInfo text = reader.info()
+    assert text.uid == maximum and text.gid == upper and reader.readText() == "text body"
+    assert reader.next()
+    tar.TarInfo data = reader.info()
+    assert data.uid == upper and data.gid == maximum and reader.readText() == "byte body"
+    assert not reader.next() and reader.eof
+    assert text.uid == maximum and text.gid == upper and data.gid == maximum
+    println("TAR uint64 identifiers: PASS")
+    return 0
+end

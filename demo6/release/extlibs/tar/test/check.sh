@@ -2,10 +2,22 @@
 set -eu
 
 root=$(CDPATH= cd -- "$(dirname -- "$0")/../../../.." && pwd)
-work=$(mktemp -d "${TMPDIR:-/tmp}/xlang-tar-build-XXXXXX")
-run=$(mktemp -d "${TMPDIR:-/tmp}/xlang-tar-run-XXXXXX")
-trap 'rm -rf -- "$work" "$run"' EXIT
+work_root=$(CDPATH= cd -- "${TMPDIR:-/tmp}" && pwd)
+work=$(mktemp -d "$work_root/xlang-tar-build-XXXXXX")
+run=$(mktemp -d "$work_root/xlang-tar-run-XXXXXX")
+cleanup() {
+    code=$?
+    if [ "$code" -eq 0 ]; then
+        case "$work" in "$work_root"/xlang-tar-build-*) ;; *) exit 1;; esac
+        case "$run" in "$work_root"/xlang-tar-run-*) ;; *) exit 1;; esac
+        rm -rf -- "$work" "$run"
+    else
+        printf 'TAR failure artifacts retained: %s %s\n' "$work" "$run" >&2
+    fi
+}
+trap cleanup EXIT
 cd "$root"
+sh release/extlibs/tar/test/check_numeric.sh
 
 cc=${CC:-cc}
 flags='-std=c11 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer'

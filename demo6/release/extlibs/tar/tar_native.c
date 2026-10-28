@@ -412,44 +412,44 @@ XTAR_EXPORT int64 xtar_reader_mtime(void* pValue)
 
 
 
-XTAR_EXPORT int64 xtar_reader_uid(void* pValue)
+XTAR_EXPORT uint64 xtar_reader_uid(void* pValue)
 {
 	xtar_reader_handle* pHandle = (xtar_reader_handle*)pValue;
-	return pHandle != NULL && pHandle->HasEntry ? (int64)pHandle->Entry.iUID : 0;
+	return pHandle != NULL && pHandle->HasEntry ? pHandle->Entry.iUID : 0;
 }
 
 
 
-XTAR_EXPORT int64 xtar_reader_gid(void* pValue)
+XTAR_EXPORT uint64 xtar_reader_gid(void* pValue)
 {
 	xtar_reader_handle* pHandle = (xtar_reader_handle*)pValue;
-	return pHandle != NULL && pHandle->HasEntry ? (int64)pHandle->Entry.iGID : 0;
+	return pHandle != NULL && pHandle->HasEntry ? pHandle->Entry.iGID : 0;
 }
 
 
 
-XTAR_EXPORT int xtar_reader_mode(void* pValue)
+XTAR_EXPORT unsigned int xtar_reader_mode(void* pValue)
 {
 	xtar_reader_handle* pHandle = (xtar_reader_handle*)pValue;
-	return pHandle != NULL && pHandle->HasEntry ? (int)pHandle->Entry.iMode : 0;
+	return pHandle != NULL && pHandle->HasEntry ? pHandle->Entry.iMode : 0;
 }
 
 
 
-XTAR_EXPORT int xtar_reader_device_major(void* pValue)
+XTAR_EXPORT unsigned int xtar_reader_device_major(void* pValue)
 {
 	xtar_reader_handle* pHandle = (xtar_reader_handle*)pValue;
 	return pHandle != NULL && pHandle->HasEntry ?
-		(int)pHandle->Entry.iDeviceMajor : 0;
+		pHandle->Entry.iDeviceMajor : 0;
 }
 
 
 
-XTAR_EXPORT int xtar_reader_device_minor(void* pValue)
+XTAR_EXPORT unsigned int xtar_reader_device_minor(void* pValue)
 {
 	xtar_reader_handle* pHandle = (xtar_reader_handle*)pValue;
 	return pHandle != NULL && pHandle->HasEntry ?
-		(int)pHandle->Entry.iDeviceMinor : 0;
+		pHandle->Entry.iDeviceMinor : 0;
 }
 
 

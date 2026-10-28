@@ -1,5 +1,18 @@
 # tar 扩展库
 
+2026-10-28 数值边界收口：GNU 二进制 mtime 下溢原先会变成正数或零，
+超宽 mode 原先截断为低32位；C 红例确认后修复。mode/设备号的原生
+桥接改用 unsigned int / c_uint，避免有效高位被读成负数。按用户确认，
+`TarInfo.uid/gid`、其构造参数和两个 `writer.add` 重载的 `uid/gid`
+统一为 `uint64`，默认仍为0；删除旧有符号检查入口，不提供兼容重载。
+
+Windows/Linux 数值专题完整门禁通过：C18组内存归档边界，Python
+独立编码/解码的40组归档分别逐行核对 C、XLang JIT 和独立 EXE，
+以及完整 uint64 文本/Buffer 写入、持有元数据、双语范例和负 ID
+只编译负例。Linux C 使用 ASan/UBSan。两平台原有 C/TAR 套件通过，
+整包门禁仍因 M1 名称数组投影失败，根内原子提交缺口也未关闭；
+不以数值专题通过代替选择提取、完整回调或整包发布签收。
+
 2026-10-24 当前 Windows 发布版复验：严格 C/TAR 主用例、默认读取限额、
 C/TCC 直接运行与构建、内存/文件追加双语范例均通过；默认门禁在中央
 XLang 范例的 `extractSelected(..., ["docs/hello.txt"])` 处报数组类型错误。
@@ -46,8 +59,9 @@ XLang `tar.open(Buffer)` 的原生桥会复制输入并持有至 Reader 销毁�
 UTF-8 **字节数**写入，内嵌 NUL 的正文仍可保存；进入 C 零终止字符串接口的
 路径、条目名、链接目标和用户/组名则拒绝内嵌 NUL。负资源限额在转成
 无符号 C 类型前报 `ValueError`；限额 0 使用 XRT 默认值。XLang 条目
-`mode` 限定为 0..4095 的权限位，`uid/gid` 不允许负数，避免静默截断或
-无符号回绕；XRT 的独立 C API 约定不变。
+写入的 `mode` 限定为 0..4095 的权限位；`uid/gid` 使用 `uint64`，
+负数实参在类型检查时拒绝，不再依赖运行时捕获有符号参数的检查。
+XRT 的独立 C 结构和读写 API 不变。
 `TarReader.extractSelected(destination, names)` 按完整名称精确选择条目；
 名称数组经当前 `xvalue` ABI 读取，含 NUL 的名称在提取前抛 `ValueError`，
 不会意外匹配 NUL 前缀。空白名单不写出条目。
@@ -69,6 +83,45 @@ Windows/Linux 包门禁都会检查“类型未导出”的诊断，不执行伪
 读写器的 `*Native` 成员仅供类内部使用，包外应调用公开方法，由包装层检查参数、计算正文长度并接管原生结果。`test/private_native.xl` 是预期编译失败的可见性负例，不执行其中长度不匹配的写入。
 
 ## 验证
+
+### 数值元数据与双语范例
+
+`TarInfo.mtime` 保留 int64 整秒；GNU 二进制时间戳超出这个范围时报
+格式错误，不截取低64位。读取的 mode/deviceMajor/deviceMinor 保留
+uint32 范围并安全拓宽到 XLang int；超宽字段报格式错误，不回绕。
+uid/gid 的 PAX 记录支持完整 uint64，GNU 短字段继续遵循其编码范围。
+元数据的表示范围不意味着操作系统允许应用任意时间戳或权限。
+读取这些越界归档时，C 为 `XRT_TAR_ERROR_FORMAT`，当前 XLang 映射
+为 `IOError`，domain 为 `xlang.extlib.tar`、code 为3。
+
+在 `demo6/release` 运行两份内存范例，均应输出
+`mtime=-1;uid=18446744073709551615;gid=9223372036854775808`：
+
+```powershell
+./xl run extlibs/tar/examples/metadata.xl
+./xl run extlibs/tar/examples/metadata_c.c
+```
+
+独立数值门禁从 `demo6` 运行，需要 Python 3；Windows 另需 PATH 中
+的 GCC。两套默认都检查 C/JIT/AOT，Windows 的 `-SkipAot` 仅供聚焦
+开发，不代表完整专题通过：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/tar/test/check_numeric.ps1
+```
+
+```sh
+sh release/extlibs/tar/test/check_numeric.sh
+```
+
+40组固定归档通过 Python tarfile 的独立编码器与头字段/PAX解码器
+产生预期：分别批量运行 C、JIT 和 AOT，避免每个数值反复编译程序。
+测试只要求超出本包表示范围的数据被拒绝，不把 Python 的任意精度
+整数能力等同于 int64/uint64。GNU 短 ID 的高位用 PAX 样本覆盖；
+负 size 只进入头字段解码器，不依赖不同 Python 版本的归档偏移策略。
+输入/依赖与发布物指纹、命令和失败现场会保留；成功只清理本次目录。
+
+### 包级门禁
 
 在 `demo6` 目录运行 Windows 门禁：
 
