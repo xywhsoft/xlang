@@ -1,0 +1,2 @@
+assert WsHandshake.key().length == 24
+println("websocket-keygen-trim-ok")

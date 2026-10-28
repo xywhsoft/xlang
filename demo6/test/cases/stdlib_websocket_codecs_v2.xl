@@ -1,0 +1,33 @@
+auto offer = WsDeflateOffer()
+auto response = offer.accept()
+auto sender = WsDeflaterConfig(uint64(1048576), 15, true, true).withDirection(response.direction(WsRole.server, true))
+auto receiver = WsInflaterConfig(uint64(1048576), 15, true, true).withDirection(response.direction(WsRole.client, false))
+auto compressor = WsDeflater(sender)
+auto decompressor = WsInflater(receiver)
+auto wire = Buffer()
+auto clear = Buffer()
+int i = 0
+while i < 3
+    wire.clear()
+    clear.clear()
+    compressor.begin()
+    int first = compressor.writeInto("a\0b你好", wire)
+    int last = compressor.endInto(wire)
+    assert first + last == wire.len()
+    assert compressor.outputSize == uint64(wire.len())
+    decompressor.begin()
+    decompressor.writeInto(wire, clear)
+    decompressor.endInto(clear)
+    assert clear.text() == "a\0b你好"
+    i += 1
+end
+assert WsDeflater.bound(1024) >= 1024
+compressor.reset(sender)
+decompressor.reset(receiver)
+compressor.begin(false)
+wire.clear()
+compressor.writeInto(b"plain\0bytes", wire)
+compressor.endInto(wire)
+assert wire.text() == "plain\0bytes"
+compressor.abort()
+println("websocket-codecs-v2-ok")

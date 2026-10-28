@@ -5,20 +5,25 @@ class @NAME@Handoff
     private @STREAM@ connection
     private NetBuffer pending
     private bool ended
+@HANDOFF_FIELDS@
     create(@STREAM@ stream, NetBuffer buffered, bool endOfStream)
         self.connection = stream
         self.pending = buffered
         self.ended = endOfStream
     end
     get stream() as @STREAM@
+@HANDOFF_CHECK@
         return self.connection
     end
     get buffered() as NetBuffer
+@HANDOFF_CHECK@
         return self.pending
     end
     get endOfStream() as bool
+@HANDOFF_CHECK@
         return self.ended
     end
+@HANDOFF_METHODS@
 end
 
 class @NAME@

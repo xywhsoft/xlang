@@ -1,0 +1,45 @@
+async func verify()
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
+    auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+    auto transport = TcpStream(engine, listener.localAddress())
+    auto peer = listener.accept(5000)
+    assert transport.wait(TcpWait.open, 5000) == NetStatus.ok
+    auto pending = WsUpgrade.client("local.test")
+    auto request = Http1Head.request(Http1.requestHead("GET", "/", pending.headers()))
+    if request == null then throw ValueError "incomplete local request" end
+    auto serverUpgrade = WsUpgrade.server(request)
+    auto response = Http1Head.response(Http1.responseHead(101, "Switching Protocols", serverUpgrade.headers()))
+    if response == null then throw ValueError "incomplete local response" end
+    auto clientUpgrade = pending.checkResponse(response)
+    auto options = WsStreamOptions()
+    auto server = await WsStream.attachAsync(peer, NetBuffer(), serverUpgrade, options, func(WsEvent value) as bool
+        if value.kind == WsEventKind.messageData then throw ValueError "websocket checked callback" end
+        return true
+    end)
+    auto client = await WsStream.attachAsync(transport, NetBuffer(), clientUpgrade, options, func(WsEvent value) as bool
+        return true
+    end)
+    auto finished = server.waitClosedAsync(5000)
+    assert (await client.sendBinaryAsync(b"ordinary")) == NetStatus.ok
+    bool raised = false
+    try
+        auto ignored = await finished
+    catch ValueError error
+        raised = true
+    end
+    assert raised
+    raised = false
+    try
+        server.throwIfFailed()
+    catch ValueError error
+        raised = true
+    end
+    assert raised
+    client.abort()
+    listener.close()
+    engine.close()
+    assert engine.wait(5000)
+    println("websocket-callback-error-v2-ok")
+end
+await verify()

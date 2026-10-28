@@ -4,12 +4,12 @@
 
 ## 契约结论
 
-- XRT 核心公共函数：3447。
-- xruntime 产品公共函数：3912，其中扩展自有 465。
-- 低层能力：3912 个函数全部进入 TCC 符号面，可通过显式 `extern "xrt..."` 使用。
+- XRT 核心公共函数：3461。
+- xruntime 产品公共函数：3926，其中扩展自有 465。
+- 低层能力：3926 个函数全部进入 TCC 符号面，可通过显式 `extern "xrt..."` 使用。
 - 头文件内联辅助函数单独记录于 `headerInlineReferences`，不增加外部符号数量；未声明的新引用仍报错。
 - 显式扩展产品的 42 项 API 引用单列于 `externalProductReferences`，核对真实公共声明、提供方和指定使用方，不增加核心 API／符号或延期数量；引用不代表功能验收。
-- 语言内核或标准库已直接使用：2580 个函数。其余 1332 个保留为低层能力，不视为功能丢失。
+- 语言内核或标准库已直接使用：2616 个函数。其余 1310 个保留为低层能力，不视为功能丢失。
 - 已迁出核心但尚待扩展库适配的旧引用：0，仅包含 xhttp=0、xws=0、xregex=0。
 
 逐 API 详情可执行 `python tools/gen_xrt_xlang_matrix.py --report build/reports/xrt_xlang_api_matrix.json` 生成。
@@ -23,7 +23,7 @@
 | xrt | `include/xrt/atomic.h` | 29 | 18 | 11 |
 | xrt | `include/xrt/avl.h` | 43 | 1 | 42 |
 | xrt | `include/xrt/buffer.h` | 23 | 20 | 3 |
-| xrt | `include/xrt/cancel.h` | 20 | 16 | 4 |
+| xrt | `include/xrt/cancel.h` | 20 | 17 | 3 |
 | xrt | `include/xrt/channel.h` | 42 | 23 | 19 |
 | xrt | `include/xrt/channel_subscribe.h` | 10 | 9 | 1 |
 | xrt | `include/xrt/charset.h` | 72 | 36 | 36 |
@@ -101,15 +101,15 @@
 | xrt | `include/xrt/tls_resume.h` | 7 | 6 | 1 |
 | xrt | `include/xrt/tls_server.h` | 10 | 10 | 0 |
 | xrt | `include/xrt/tls_session.h` | 31 | 22 | 9 |
-| xrt | `include/xrt/tls_stream.h` | 105 | 72 | 33 |
+| xrt | `include/xrt/tls_stream.h` | 106 | 72 | 34 |
 | xrt | `include/xrt/tls_verify.h` | 18 | 9 | 9 |
 | xrt | `include/xrt/udp.h` | 95 | 72 | 23 |
 | xrt | `include/xrt/value.h` | 159 | 130 | 29 |
 | xrt | `include/xrt/vfs.h` | 31 | 23 | 8 |
 | xrt | `include/xrt/wait.h` | 3 | 3 | 0 |
-| xrt | `include/xrt/websocket.h` | 57 | 17 | 40 |
-| xrt | `include/xrt/websocket_stream.h` | 38 | 25 | 13 |
-| xrt | `include/xrt/websocket_upgrade.h` | 9 | 6 | 3 |
+| xrt | `include/xrt/websocket.h` | 57 | 34 | 23 |
+| xrt | `include/xrt/websocket_stream.h` | 51 | 40 | 11 |
+| xrt | `include/xrt/websocket_upgrade.h` | 9 | 9 | 0 |
 | xrt | `include/xrt/x509.h` | 96 | 84 | 12 |
 | xrt | `include/xrt/xid.h` | 11 | 8 | 3 |
 | xrt | `include/xrt/xlon.h` | 36 | 35 | 1 |

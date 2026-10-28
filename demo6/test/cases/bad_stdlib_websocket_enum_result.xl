@@ -1,0 +1,2 @@
+extern "xl6WsFrameFlagsV2" func wrong(WsFrame value) as WsOpcode
+println(wrong(WsFrame.make(WsOpcode.binary, uint64(0))))

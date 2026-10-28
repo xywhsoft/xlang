@@ -284,6 +284,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_template_file.c",D(R(TEMPLATE_CORE)),{"XRT_MODULE_FILE_TEXT"}},
     {"src/runtime/xl6_template_vfs.c",D(R(TEMPLATE_CORE)),{"XRT_MODULE_VFS", "XRT_MODULE_CHARSET", "XRT_MODULE_CHARSET_DETECT"}},
 #include "xl6_http_components.inc"
+#include "xl6_ws_components.inc"
     {"src/runtime/xl6_crc32_bytes.c", D(), {"XRT_MODULE_CRC32", "XRT_MODULE_VALUE"}},
     {"src/runtime/xl6_crc32_buffer.c", D(), {"XRT_MODULE_CRC32", "XRT_MODULE_BUFFER"}},
     {"src/runtime/xl6_sequence.c", D(), {"XRUNTIME_MODULE_TYPED_ARRAY", "XRUNTIME_MODULE_RUNTIME_VALUE_TYPE",

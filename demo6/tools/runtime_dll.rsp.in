@@ -844,6 +844,28 @@
     src\runtime\xl6_http_transfer.c
     src\runtime\xl6_http_deadline.c
     src\runtime\xl6_http_transfer_domain.c
+    src\runtime\xl6_ws_frame.c
+    src\runtime\xl6_ws_close.c
+    src\runtime\xl6_ws_handshake.c
+    src\runtime\xl6_ws_keygen.c
+    src\runtime\xl6_ws_message.c
+    src\runtime\xl6_ws_extension.c
+    src\runtime\xl6_ws_deflate.c
+    src\runtime\xl6_ws_inflater.c
+    src\runtime\xl6_ws_deflater.c
+    src\runtime\xl6_ws_upgrade.c
+    src\runtime\xl6_ws_upgrade_callback.c
+    src\runtime\xl6_ws_stream_options.c
+    src\runtime\xl6_ws_event.c
+    src\runtime\xl6_ws_stream.c
+    src\runtime\xl6_ws_stream_compressed.c
+    src\runtime\xl6_ws_stream_ref.c
+    src\runtime\xl6_ws_stream_take.c
+    src\runtime\xl6_ws_stream_tcp.c
+    src\runtime\xl6_ws_stream_tls.c
+    src\runtime\xl6_ws_stream_tls_domain.c
+    src\runtime\xl6_ws_wait.c
+    src\runtime\xl6_ws_wait_domain.c
     src\runtime\xl6_compress_deflater.c
     src\runtime\xl6_compress_inflater.c
     src\runtime\xl6_template_core.c

@@ -5,18 +5,6 @@ typedef struct XL6_IrCgenNeeds {
 #undef XL6_IR_CGEN_NEED
 } XL6_IrCgenNeeds;
 
-static int xl6IrCgenNeedsWebSocketRuntime(
-    const XL6_IrCgenNeeds* needs)
-{
-    return needs != NULL &&
-        (needs->needsWebSocketFrameRuntime ||
-         needs->needsWebSocketHandshakeRuntime ||
-         needs->needsWebSocketUpgradeRuntime ||
-         needs->needsWebSocketStreamConfigRuntime ||
-         needs->needsWebSocketStreamRuntime ||
-         needs->needsWebSocketStreamTlsRuntime);
-}
-
 static int xl6IrCgenNeedsXrtDeclarations(const XL6_IrCgenNeeds* needs)
 {
     return needs != NULL &&
@@ -55,7 +43,7 @@ static int xl6IrCgenNeedsXrtDeclarations(const XL6_IrCgenNeeds* needs)
          needs->vfsBridgeOperations != 0 ||
          needs->fsBridgeOperations0 != 0 || needs->fsBridgeOperations1 != 0 || needs->fsBridgeOperations2 != 0 ||
          needs->needsStringBytesBridgeRuntime || needs->needsStringCharsBridgeRuntime ||
-         needs->needsHttp1Runtime || needs->needsJsonVisitBridgeRuntime ||
+         needs->needsJsonVisitBridgeRuntime ||
          needs->needsJsonWriterBridgeRuntime || needs->xlonBridgeOperations != 0 ||
          needs->structuredOptionsBridgeOperations != 0 ||
          needs->needsJsonlStringifyBridgeRuntime ||
@@ -67,8 +55,7 @@ static int xl6IrCgenNeedsXrtDeclarations(const XL6_IrCgenNeeds* needs)
          needs->needsJsonlParseBridgeRuntime ||
          needs->needsJsonlValidBridgeRuntime ||
          needs->needsXlonlParseBridgeRuntime ||
-         needs->needsXlonlValidBridgeRuntime ||
-         xl6IrCgenNeedsWebSocketRuntime(needs));
+         needs->needsXlonlValidBridgeRuntime);
 }
 #define XL6_IO_BIT(Name) (UINT64_C(1) << (XL6_IR_RUNTIME_BRIDGE_IO_##Name - XL6_IR_RUNTIME_BRIDGE_IO_READ_FILE))
 #define XL6_VFS_BIT(Name) (UINT64_C(1) << (XL6_IR_RUNTIME_BRIDGE_VFS_##Name - XL6_IR_RUNTIME_BRIDGE_VFS_CREATE))

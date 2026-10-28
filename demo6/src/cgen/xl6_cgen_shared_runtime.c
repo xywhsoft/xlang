@@ -1,14 +1,12 @@
 #include "src/cgen/xl6_cgen_buffer.h"
 #include "src/cgen/xl6_cgen_dir.h"
 #include "src/cgen/xl6_cgen_file.h"
-#include "src/cgen/xl6_cgen_http1.h"
 #include "src/cgen/xl6_cgen_json_value.h"
 #include "src/cgen/xl6_cgen_json_stream.h"
 #include "src/cgen/xl6_cgen_serialization_callback.h"
 #include "src/cgen/xl6_cgen_xlon.h"
 #include "src/cgen/xl6_cgen_structured_options.h"
 #include "src/cgen/xl6_cgen_text_output.h"
-#include "src/cgen/xl6_cgen_websocket.h"
 #include "src/cgen/xl6_cgen_xlang.h"
 
 /* Generated-program runtime component emitters used by the XLIR C backend. */
@@ -21,6 +19,4 @@
 #include "src/cgen/xl6_cgen_serialization_callback.c"
 #include "src/cgen/xl6_cgen_xlon.c"
 #include "src/cgen/xl6_cgen_structured_options.c"
-#include "src/cgen/xl6_cgen_http1.c"
-#include "src/cgen/xl6_cgen_websocket.c"
 #include "src/cgen/xl6_cgen_xlang_runtime.c"

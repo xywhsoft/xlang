@@ -1,0 +1,13 @@
+    async func webSocketAsync(WsUpgrade upgrade, WsStreamOptions options, func(WsEvent) as bool events) as WsStream
+        if self.ended then throw IOError "WebSocket transport already reached EOF" end
+        auto entered, observed = self.transfer.compareExchange(0, 1)
+        if not entered then throw RuntimeError "HTTP handoff is active or already consumed" end
+        int next = 0
+        try
+            auto result = await WsStream.attachAsync(self.connection, self.pending, upgrade, options, events)
+            next = 2
+            return result
+        finally
+            self.transfer.store(next)
+        end
+    end

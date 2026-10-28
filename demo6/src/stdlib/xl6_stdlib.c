@@ -1141,44 +1141,14 @@ static int xl6StdlibNeedsTlsServerClass(const XL6_AstNode* root, const int* used
 
 
 
-/* WebSocket 帧和关闭载荷不隐式带入握手与网络传输。 */
-static int xl6StdlibNeedsWsFrameClass(const XL6_AstNode* root)
+/* Exact declarations are admitted by referenced public type; provider selection
+ * remains reachability-based, so a frame does not link TCP/TLS/DEFLATE. */
+static int xl6StdlibNeedsWs(const XL6_AstNode* root)
 {
-    return xl6StdlibNodeUsesTypeName(root, "WsFrame") ||
-           xl6StdlibNodeUsesTypeName(root, "WsClose");
-}
-
-
-
-/* 握手纯函数可以独立用于代理、测试和协议工具。 */
-static int xl6StdlibNeedsWsHandshakeClass(const XL6_AstNode* root)
-{
-    return xl6StdlibNodeUsesTypeName(root, "WsHandshake");
-}
-
-
-
-/* Upgrade 只依赖严格 HTTP/1 报头，不依赖高级 HTTP 对象层。 */
-static int xl6StdlibNeedsWsUpgradeClass(const XL6_AstNode* root)
-{
-    return xl6StdlibNodeUsesTypeName(root, "WsUpgrade");
-}
-
-
-
-/* WebSocket 流对象依赖 Upgrade，但配置对象可以独立构造和裁剪。 */
-static int xl6StdlibNeedsWebSocketClass(const XL6_AstNode* root)
-{
-    return xl6StdlibNodeUsesTypeName(root, "WebSocket");
-}
-
-
-
-/* TLS 接管仅在源码显式选择 attachTls 时注入。 */
-static int xl6StdlibNeedsWebSocketTls(const XL6_AstNode* root)
-{
-    return xl6StdlibNodeUsesMemberName(root, "attachTls") ||
-           xl6StdlibNodeUsesMemberName(root, "attachTlsWithConfig");
+#define XL6_WS_TYPE(Name) if(xl6StdlibNodeUsesTypeName(root,Name))return 1;
+#include "src/stdlib/xl6_stdlib_ws_types.inc"
+#undef XL6_WS_TYPE
+    return 0;
 }
 
 static int xl6StdlibNeedsFileClass(const XL6_AstNode* root, const int* used)
@@ -1682,13 +1652,10 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsTlsStreamClass;
     int needsTlsServerClass;
     int needsHttp1Class;
+    int needsWsProtocols;
+    int needsWsUpgrade;
+    int needsWsStream;
     int needsHttpTcpTransport,needsHttpTlsTransport,needsHttpLimits;
-    int needsWsFrameClass;
-    int needsWsHandshakeClass;
-    int needsWsUpgradeClass;
-    int needsWebSocketConfigClass;
-    int needsWebSocketClass;
-    int needsWebSocketTls;
     int needsFileClass;
     int needsAsyncFileClass;
     int needsJsonClass;
@@ -1736,7 +1703,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsHttpTcpTransport=xl6StdlibNodeUsesTypeName(root,"Http1TcpTransport")||xl6StdlibNodeUsesTypeName(root,"Http1TcpTransportHandoff");
     needsHttpTlsTransport=xl6StdlibNodeUsesTypeName(root,"Http1TlsTransport")||xl6StdlibNodeUsesTypeName(root,"Http1TlsTransportHandoff");
     needsHttpLimits=needsHttpTcpTransport||needsHttpTlsTransport||xl6StdlibNodeUsesTypeName(root,"Http1Limits")||xl6StdlibNodeUsesTypeName(root,"Http1TransportState");
-    needsTlsStreamClass=needsHttpTlsTransport||xl6StdlibNeedsTlsStreamClass(root,used);
+    needsWsStream=xl6StdlibNodeUsesTypeName(root,"WsStream")||xl6StdlibNodeUsesTypeName(root,"WsEvent")||xl6StdlibNodeUsesMemberName(root,"webSocketAsync");
+    needsTlsStreamClass=needsWsStream||needsHttpTlsTransport||xl6StdlibNeedsTlsStreamClass(root,used);
     needsTlsServerClass=xl6StdlibNeedsTlsServerClass(root,used);
     needsTlsMetadata=needsTlsStreamClass||needsTlsServerClass||
         xl6StdlibNodeUsesTypeName(root,"TlsConnectionInfo")||xl6StdlibNodeUsesTypeName(root,"TlsServerStats")||
@@ -1817,24 +1785,13 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
 #undef XL6_HTTP_TYPE
     for(size_t httpIndex=0;httpIndex<XL6_STDLIB_FUNC_COUNT;++httpIndex)
         if(used[httpIndex] && (!strcmp(xl6StdlibFuncs[httpIndex].ns,"http") || !strcmp(xl6StdlibFuncs[httpIndex].ns,"http1"))) needsHttp1Class=2;
-    needsWsFrameClass = xl6StdlibNeedsWsFrameClass(root);
-    needsWsHandshakeClass = xl6StdlibNeedsWsHandshakeClass(root);
-    needsWsUpgradeClass = xl6StdlibNeedsWsUpgradeClass(root);
-    needsWebSocketConfigClass = xl6StdlibNodeUsesTypeName(root, "WebSocketConfig");
-    needsWebSocketClass = xl6StdlibNeedsWebSocketClass(root);
-    needsWebSocketTls = needsWebSocketClass && xl6StdlibNeedsWebSocketTls(root);
-    if ( needsWebSocketClass ) {
-        needsWebSocketConfigClass = 1;
-        needsWsUpgradeClass = 1;
-    }
-    if ( needsWsUpgradeClass ) {
-        /* X22 retains its entire old declaration island until its approved
-         * ownership migration. Never mix its physical head layout with V2. */
-        needsHttp1Class = 1;
-    }
-    if ( needsWebSocketTls ) {
-        needsTlsStreamClass = 1;
-    }
+    needsWsProtocols = xl6StdlibNeedsWs(root);
+    needsWsUpgrade = xl6StdlibNodeUsesTypeName(root,"WsUpgrade") ||
+        xl6StdlibNodeUsesTypeName(root,"WsClientOptions") ||
+        xl6StdlibNodeUsesTypeName(root,"WsServerOptions");
+    needsWsStream=xl6StdlibNodeUsesTypeName(root,"WsStream")||xl6StdlibNodeUsesTypeName(root,"WsEvent")||xl6StdlibNodeUsesMemberName(root,"webSocketAsync");
+    if(needsWsStream){needsWsUpgrade=1;needsTlsStreamClass=1;}
+    if(needsWsUpgrade)needsHttp1Class=2;
     if ( needsTlsServerClass ) {
         needsTlsStreamClass = 1;
     }
@@ -1861,7 +1818,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsNetLineFramer=xl6StdlibNodeUsesTypeName(root,"NetLineFramer");
     needsNetLengthFramer=xl6StdlibNodeUsesTypeName(root,"NetLengthFramer");
     needsNetFrameResult=needsNetLineFramer||needsNetLengthFramer||xl6StdlibNodeUsesTypeName(root,"NetFrameResult")||xl6StdlibNodeUsesTypeName(root,"NetFrameStatus");
-    needsNetBuffer=needsHttpTcpTransport||needsHttpTlsTransport||needsTlsManagedSession||needsNetProxyHandshake||needsNetLineFramer||needsNetLengthFramer||xl6StdlibNodeUsesTypeName(root,"NetBuffer");
+    needsNetBuffer=needsWsStream||needsHttpTcpTransport||needsHttpTlsTransport||needsTlsManagedSession||needsNetProxyHandshake||needsNetLineFramer||needsNetLengthFramer||xl6StdlibNodeUsesTypeName(root,"NetBuffer");
     needsNetResolverClass=needsTlsStreamClass||needsNetDefaultResolver||xl6StdlibNodeUsesTypeName(root,"NetResolver")||
         xl6StdlibNodeUsesTypeName(root,"NetResolveOperation");
     needsNetResolverOptionsClass=needsNetResolverClass||xl6StdlibNodeUsesTypeName(root,"NetResolverOptions");
@@ -1878,7 +1835,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibNodeUsesTypeName(root,"NetDatagramPacket")||xl6StdlibNodeUsesTypeName(root,"NetBatchProgress");
     if(needsNetSocketClass)needsNetAddressClass=1;
     needsNetInterfaceClass = xl6StdlibNeedsNetInterfaceClass(root, used);
-    needsNetBytesClass = xl6StdlibNodeUsesTypeName(root, "NetBytes") || xl6StdlibNodeUsesMemberName(root,"sendRef") ||
+    needsNetBytesClass = needsWsStream||xl6StdlibNodeUsesTypeName(root, "NetBytes") || xl6StdlibNodeUsesMemberName(root,"sendRef") ||
         xl6StdlibNodeUsesMemberName(root,"sendRefs");
     /* Framer declarations include appendRef(NetBytes) even when that member
      * is not called. Complete their type closure before semantic checking;
@@ -1898,8 +1855,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsNetEngineClass = needsTlsStreamClass || needsNetFileClass || xl6StdlibNeedsNetEngineClass(root, used);
     needsTcpStreamStatsClass = xl6StdlibNodeUsesTypeName(root, "TcpStreamStats");
     needsTcpListenerStatsClass = xl6StdlibNodeUsesTypeName(root, "TcpListenerStats");
-    needsTcpStreamClass = needsHttpTcpTransport||xl6StdlibNeedsTcpStreamClass(root, used);
-    needsTcpStreamClass = needsTcpStreamClass || needsWebSocketClass;
+    needsTcpStreamClass = needsWsStream||needsHttpTcpTransport||xl6StdlibNeedsTcpStreamClass(root, used);
     needsTcpListenerClass = xl6StdlibNeedsTcpListenerClass(root, used);
     needsUdpStatsClass = xl6StdlibNodeUsesTypeName(root, "UdpStats")||
         xl6StdlibNodeUsesTypeName(root,"UdpState")||xl6StdlibNodeUsesTypeName(root,"UdpWait");
@@ -2018,7 +1974,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         needsNetBytesClass ||
         needsTcpStreamClass || needsUdpClass ||
         needsHttp1Class ||
-        needsWsFrameClass || needsWebSocketClass || needsFileClass ||
+        needsWsProtocols || needsFileClass ||
         needsAsyncFileClass || needsCryptoClass || needsCryptoAdvancedClass || needsEd25519Class || needsLoggerClass || needsX509PathIsland;
     needsTccClass = xl6StdlibNeedsTccClass(root, used);
     needsXlangClass = xl6StdlibNeedsXlangClass(root, used);
@@ -2036,17 +1992,13 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         needsTcpServerStats || needsTcpListenerStatsClass || needsTcpStreamClass || needsTcpListenerClass ||
         needsUdpStatsClass || needsUdpClass || needsUdpConfigClass ||
         needsTlsStreamClass || needsTlsServerClass ||
-        needsHttp1Class || needsWsFrameClass ||
-        needsWsHandshakeClass || needsWsUpgradeClass ||
-        needsWebSocketConfigClass || needsWebSocketClass ||
+        needsHttp1Class || needsWsProtocols ||
         needsFileClass || needsAsyncFileClass ||
         needsJsonClass || needsTaskGroupClass ||
         needsLoggerClass || needsTemplateClass ||
         needsCryptoClass || needsTccClass || needsXlangClass;
     if ( needsRandomClass || needsXidClass || needsBufferClass || needsNetRuntime ||
-         needsHttp1Class || needsWsFrameClass ||
-         needsWsHandshakeClass || needsWsUpgradeClass || needsWebSocketClass ||
-         needsWebSocketConfigClass || needsFileClass ||
+         needsHttp1Class || needsWsProtocols || needsFileClass ||
          needsJsonClass ||
          needsCryptoClass || needsXlangClass ) {
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
@@ -2267,33 +2219,14 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
             if(needsHttpTcpTransport||needsHttpTlsTransport||xl6StdlibNodeUsesMemberName(root,"requestFromNetBuffer") || xl6StdlibNodeUsesMemberName(root,"responseFromNetBuffer")) xl6StdlibBuilderAppend(&builder,xl6StdlibHttpHeadNetSource);
             if(xl6StdlibNodeUsesMemberName(root,"requestFromTls") || xl6StdlibNodeUsesMemberName(root,"responseFromTls")) xl6StdlibBuilderAppend(&builder,xl6StdlibHttpHeadTlsSource);
             xl6StdlibBuilderAppend(&builder,"end\n");
-        }else xl6StdlibBuilderAppend(&builder,xl6StdlibWebSocketLegacyHttpSource);
+        }
     }
     if(needsHttpLimits)xl6StdlibBuilderAppend(&builder,xl6StdlibHttpLimitsSource);
-    if(needsHttpTcpTransport)xl6StdlibBuilderAppend(&builder,xl6StdlibHttpTcpTransportSource);
-    if(needsHttpTlsTransport)xl6StdlibBuilderAppend(&builder,xl6StdlibHttpTlsTransportSource);
-    if ( needsWsFrameClass ) {
-        xl6StdlibBuilderAppend(&builder, xl6StdlibWsFrameClassSource);
-    }
-    if ( needsWsHandshakeClass || needsWsUpgradeClass ) {
-        xl6StdlibBuilderAppend(&builder, xl6StdlibWsHandshakeClassSource);
-    }
-    if ( needsWsUpgradeClass ) {
-        xl6StdlibBuilderAppend(&builder, xl6StdlibWsUpgradeClassSource);
-    }
-    if ( needsWebSocketConfigClass ) {
-        xl6StdlibBuilderAppend(&builder, xl6StdlibWebSocketConfigClassSource);
-    }
-    if ( needsWebSocketClass ) {
-        if ( needsWebSocketTls ) {
-            xl6StdlibBuilderAppend(&builder, xl6StdlibWebSocketTlsExternSource);
-        }
-        xl6StdlibBuilderAppend(&builder, xl6StdlibWebSocketClassSource);
-        if ( needsWebSocketTls ) {
-            xl6StdlibBuilderAppend(&builder, xl6StdlibWebSocketTlsMethodSource);
-        }
-        xl6StdlibBuilderAppend(&builder, xl6StdlibWebSocketClassEndSource);
-    }
+    if(needsHttpTcpTransport)xl6StdlibBuilderAppend(&builder,needsWsStream?xl6StdlibHttpTcpTransportWsSource:xl6StdlibHttpTcpTransportSource);
+    if(needsHttpTlsTransport)xl6StdlibBuilderAppend(&builder,needsWsStream?xl6StdlibHttpTlsTransportWsSource:xl6StdlibHttpTlsTransportSource);
+    if ( needsWsProtocols ) xl6StdlibBuilderAppend(&builder,xl6StdlibWsSource);
+    if ( needsWsUpgrade ) xl6StdlibBuilderAppend(&builder,xl6StdlibWsUpgradeSource);
+    if ( needsWsStream ) xl6StdlibBuilderAppend(&builder,xl6StdlibWsStreamSource);
     if ( needsLoggerClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibLoggerClassSource);
         if (xl6StdlibFuncUsed(used,"log","setDefault"))

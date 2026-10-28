@@ -1,0 +1,85 @@
+async func verify()
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
+    auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+    auto tcpClient = TcpStream(engine, listener.localAddress())
+    auto tcpServer = listener.accept(5000)
+    assert tcpClient.wait(TcpWait.open, 5000) == NetStatus.ok
+    auto clientUpgrade = WsUpgrade.client("local.test")
+    auto wire = Buffer(Http1.requestHead("GET", "/ws", clientUpgrade.headers()))
+    auto mask = 305419896
+    wire.append(WsFrame.make(WsOpcode.binary, uint64(3), WsFrameFlags.final | WsFrameFlags.masked, mask).toBytes())
+    auto first = Buffer(b"a\0b")
+    WsFrame.applyMask(first, mask)
+    wire.append(first.toBytes())
+    assert tcpClient.send(wire) == NetStatus.ok
+    auto httpServer = Http1TcpTransport(tcpServer)
+    auto request = await httpServer.readRequestHeadAsync(5000)
+    if request == null then throw ValueError "missing Upgrade request" end
+    auto serverUpgrade = WsUpgrade.server(request)
+    assert tcpServer.send(Http1.responseHead(101, "Switching Protocols", serverUpgrade.headers())) == NetStatus.ok
+    auto httpClient = Http1TcpTransport(tcpClient)
+    auto response = await httpClient.readResponseHeadAsync("GET", 5000)
+    if response == null then throw ValueError "missing Upgrade response" end
+    auto ready = clientUpgrade.checkResponse(response)
+    auto serverHandoff = httpServer.detach()
+    auto clientHandoff = httpClient.detach()
+    auto count = AtomicInt32(0)
+    auto sink = Buffer()
+    auto options = WsStreamOptions()
+    bool rejected = false
+    try
+        auto bad = await serverHandoff.webSocketAsync(clientUpgrade, options, func(WsEvent event) as bool
+            return true
+        end)
+    catch error
+        rejected = true
+    end
+    assert rejected and not serverHandoff.endOfStream
+    auto server = await serverHandoff.webSocketAsync(serverUpgrade, options, func(WsEvent event) as bool
+        if event.kind == WsEventKind.messageData then
+            if count.load() == 0 then
+                assert event.data == b"a\0b"
+            else
+                assert event.data.length == 0 and event.pending == 3
+            end
+            count.fetchAdd(1)
+            return false
+        end
+        return true
+    end)
+    auto client = await clientHandoff.webSocketAsync(ready, options, func(WsEvent event) as bool
+        return true
+    end)
+    rejected = false
+    try
+        auto consumed = serverHandoff.buffered
+    catch RuntimeError
+        rejected = true
+    end
+    assert rejected
+    int spins = 0
+    while count.load() != 1 and spins < 5000
+        time.sleep(1)
+        spins = spins + 1
+    end
+    assert count.load() == 1 and server.paused
+    await server.receiveIntoAsync(sink, true)
+    await server.resumeAsync()
+    assert (await client.sendBinaryAllAsync(b"a\0b", -1, 5000)) == NetStatus.ok
+    spins = 0
+    while count.load() != 2 and spins < 5000
+        time.sleep(1)
+        spins = spins + 1
+    end
+    // Buffer mode owns the payload; chunk events intentionally have no copy.
+    assert sink.toBytes() == b"a\0b"
+    assert (await client.closeAsync()) == NetStatus.ok
+    await server.resumeAsync()
+    assert (await server.waitClosedAsync(5000)) == NetStatus.ok
+    listener.close()
+    engine.close()
+    assert engine.wait(5000)
+    println("websocket-handoff-v2-ok")
+end
+await verify()

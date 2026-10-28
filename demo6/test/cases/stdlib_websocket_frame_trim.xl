@@ -1,6 +1,4 @@
-WsFrame frame = WsFrame.make(1, uint64(0))
-Buffer head = frame.write()
-
-assert frame.ready
-assert head.len() == 2
+auto frame = WsFrame.make(WsOpcode.binary, uint64(3))
+assert frame.payloadSize == uint64(3)
+assert frame.toBytes() == b"\x82\x03"
 println("websocket-frame-trim-ok")

@@ -1,0 +1,47 @@
+class WsCycleState
+    public WsStream? connection = null
+    public WsEvent? saved = null
+    public AtomicInt32 chunks = AtomicInt32(0)
+    func event(WsEvent value) as bool
+        if value.kind == WsEventKind.messageData then
+            self.saved = value
+            self.chunks.fetchAdd(1)
+        end
+        return true
+    end
+end
+
+async func createCycle()
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
+    auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+    auto transport = TcpStream(engine, listener.localAddress())
+    auto peer = listener.accept(5000)
+    assert transport.wait(TcpWait.open, 5000) == NetStatus.ok
+    auto pending = WsUpgrade.client("local.test")
+    auto request = Http1Head.request(Http1.requestHead("GET", "/", pending.headers()))
+    if request == null then throw ValueError "incomplete local request" end
+    auto serverUpgrade = WsUpgrade.server(request)
+    auto response = Http1Head.response(Http1.responseHead(101, "Switching Protocols", serverUpgrade.headers()))
+    if response == null then throw ValueError "incomplete local response" end
+    auto clientUpgrade = pending.checkResponse(response)
+    auto a = WsCycleState()
+    auto b = WsCycleState()
+    auto options = WsStreamOptions()
+    auto server = await WsStream.attachAsync(peer, NetBuffer(), serverUpgrade, options, a.event)
+    auto client = await WsStream.attachAsync(transport, NetBuffer(), clientUpgrade, options, b.event)
+    a.connection = server
+    b.connection = client
+    assert (await client.sendBinaryAsync(b"owned")) == NetStatus.ok
+    int spins = 0
+    while a.chunks.load() == 0 and spins < 5000
+        time.sleep(1)
+        spins = spins + 1
+    end
+    assert a.chunks.load() == 1
+    listener.close()
+    // Both native streams remain open. The closure/state/stream/event cycles
+    // must be discovered and retired by actual module cleanup.
+end
+await createCycle()
+println("websocket-cycle-v2-body-ok")

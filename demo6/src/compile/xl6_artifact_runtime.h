@@ -256,6 +256,7 @@ typedef enum XL6_ArtifactRuntimeId {
     XL6_ARTIFACT_TEMPLATE_FILE,
     XL6_ARTIFACT_TEMPLATE_VFS,
 #include "xl6_http_component_ids.inc"
+#include "xl6_ws_component_ids.inc"
     XL6_ARTIFACT_CRC32_BYTES,
     XL6_ARTIFACT_CRC32_BUFFER,
     XL6_ARTIFACT_SEQUENCE,

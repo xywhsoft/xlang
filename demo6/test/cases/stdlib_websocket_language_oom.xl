@@ -1,0 +1,43 @@
+func main(...) as int
+    auto frame = WsFrame.make(WsOpcode.binary, uint64(3), WsFrameFlags.final | WsFrameFlags.masked, 305419896)
+    auto encoded = frame.toBytes()
+    auto parsed = WsFrame.parse(encoded)
+    if parsed == null then throw ValueError "missing frame" end
+    assert parsed.mask == 305419896
+    auto close = WsClose.parse(WsClose.make(1000, "a\0b").toBytes())
+    assert close.reason == "a\0b"
+    auto state = WsMessageState()
+    auto info = state.beginFrame(WsFrame.make(WsOpcode.text, uint64(3)))
+    state.writePayload("a\0b")
+    state.endFrame()
+    assert info.opcode == WsOpcode.text
+    auto extension = WsExtensions.parse("example; mode=\"fast\"; bare").at(0)
+    assert (extension.parameterValueAt(0) as bytes) == b"fast"
+    assert extension.parameterValueAt(1) == null
+    assert extension.toString() == "example; mode=\"fast\"; bare"
+    auto offer = WsDeflateOffer()
+    auto response = offer.accept()
+    offer.check(response)
+    auto compressor = WsDeflater(WsDeflaterConfig().withDirection(response.direction(WsRole.server, true)))
+    auto inflater = WsInflater(WsInflaterConfig().withDirection(response.direction(WsRole.client, false)))
+    auto wire = Buffer()
+    auto clear = Buffer()
+    compressor.begin()
+    compressor.writeInto("a\0b你好", wire)
+    compressor.endInto(wire)
+    inflater.begin()
+    inflater.writeInto(wire, clear)
+    inflater.endInto(clear)
+    assert clear.text() == "a\0b你好"
+    auto client = WsUpgrade.client("local.test", WsClientOptions("chat").withDeflate(offer))
+    auto request = Http1Head.request(Http1.requestHead("GET", "/ws", client.headers()))
+    if request == null then throw ValueError "missing request" end
+    auto server = WsUpgrade.server(request, WsServerOptions("chat"))
+    auto head = Http1Head.response(Http1.responseHead(101, "Switching Protocols", server.headers()))
+    if head == null then throw ValueError "missing response" end
+    auto ready = client.checkResponse(head)
+    assert ready.ready and ready.protocol == "chat"
+    auto options = WsStreamOptions()
+    assert options.autoPong
+    return 0
+end

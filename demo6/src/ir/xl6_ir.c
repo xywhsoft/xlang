@@ -32748,138 +32748,9 @@ int xl6IrRuntimeBridgeOperationTargetMatches(
         xl6IrRandomBridgeTargetMatches(module, target, contract);
 }
 
-XL6_IrRuntimeBridgeKind xl6IrRuntimeWebSocketBridgeKind(const char* name)
-{
-    if ( name == NULL ) return XL6_IR_RUNTIME_BRIDGE_NONE;
-    if ( strcmp(name, "xl6_xrt_ws_mask") == 0 ||
-         strncmp(name, "xl6_xrt_ws_frame_",
-             sizeof("xl6_xrt_ws_frame_") - 1) == 0 ||
-         strncmp(name, "xl6_xrt_ws_close_",
-             sizeof("xl6_xrt_ws_close_") - 1) == 0 )
-        return XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_FRAME;
-    if ( strncmp(name, "xl6_xrt_ws_key_",
-             sizeof("xl6_xrt_ws_key_") - 1) == 0 ||
-         strncmp(name, "xl6_xrt_ws_accept",
-             sizeof("xl6_xrt_ws_accept") - 1) == 0 ||
-         strncmp(name, "xl6_xrt_ws_protocol",
-             sizeof("xl6_xrt_ws_protocol") - 1) == 0 )
-        return XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_HANDSHAKE;
-    if ( strncmp(name, "xl6_xrt_ws_upgrade_",
-             sizeof("xl6_xrt_ws_upgrade_") - 1) == 0 )
-        return XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_UPGRADE;
-    if ( strncmp(name, "xl6_xrt_ws_stream_config_",
-             sizeof("xl6_xrt_ws_stream_config_") - 1) == 0 )
-        return XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_STREAM_CONFIG;
-    if ( strcmp(name, "xl6_xrt_ws_stream_attach_tls") == 0 )
-        return XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_STREAM_TLS;
-    if ( strncmp(name, "xl6_xrt_ws_stream_",
-             sizeof("xl6_xrt_ws_stream_") - 1) == 0 )
-        return XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_STREAM;
-    return XL6_IR_RUNTIME_BRIDGE_NONE;
-}
 
-int xl6IrRuntimeWebSocketBridgeTargetMatches(
-    const XL6_IrModule* module, const XL6_IrCallTarget* target)
-{
-    XL6_IrRuntimeBridgeKind expected;
-    const XL6_IrType* result;
-    size_t parameter;
-    if ( module == NULL || target == NULL || target->cName == NULL ) return 0;
-    expected = xl6IrRuntimeWebSocketBridgeKind(target->cName);
-    if ( expected == XL6_IR_RUNTIME_BRIDGE_NONE ||
-         target->runtimeBridge != expected ||
-         target->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE ||
-         (target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID &&
-          target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_NONE) ||
-         target->variadicAbi != XL6_IR_CALL_VARIADIC_NONE ||
-         (target->parameterCount != 0 &&
-          (target->parameterTypes == NULL || target->parameterAbis == NULL ||
-           target->parameterPhysicalAbis == NULL ||
-           target->parameterConstraintAbis == NULL ||
-           target->parameterPhysicalFieldDeclarations == NULL)) ) return 0;
-    result = target->returnType == XL6_IR_TYPE_INVALID
-        ? NULL : xl6IrTypeGet(&module->types, target->returnType);
-    if ( target->returnType != XL6_IR_TYPE_INVALID && result == NULL ) return 0;
-    for ( parameter = 0; parameter < target->parameterCount; ++parameter )
-        if ( xl6IrTypeGet(&module->types, target->parameterTypes[parameter]) == NULL ||
-             target->parameterAbis[parameter] == XL6_IR_PARAMETER_ABI_INVALID ||
-             target->parameterPhysicalAbis[parameter] ==
-                 XL6_IR_CALL_PARAMETER_PHYSICAL_INVALID ||
-             target->parameterConstraintAbis[parameter] >
-                 XL6_IR_CALL_PARAMETER_CONSTRAINT_RAW_CALLBACK_DIRECT_THUNK ) return 0;
-    if ( target->kind == XL6_IR_CALL_TARGET_EXTERN_C )
-        return target->resultPhysicalAbi == XL6_IR_CALL_RESULT_PHYSICAL_DIRECT &&
-               target->resultPhysicalFieldDeclaration == XL6_IR_NODE_INVALID &&
-               target->resultPhysicalDestroySymbol == 0;
-    if ( target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY ) {
-        if ( target->resultPhysicalAbi == XL6_IR_CALL_RESULT_PHYSICAL_DIRECT &&
-             target->resultPhysicalFieldDeclaration == XL6_IR_NODE_INVALID &&
-             target->resultPhysicalDestroySymbol == 0 ) return 1;
-        return result != NULL && result->kind == XL6_IR_TYPE_CLASS &&
-               result->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
-               result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
-               result->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL &&
-               target->resultPhysicalAbi ==
-                   XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_FIELD_TAKE &&
-               target->resultPhysicalFieldDeclaration != XL6_IR_NODE_INVALID &&
-               target->resultPhysicalDestroySymbol != 0;
-    }
-    return 0;
-}
 
-int xl6IrRuntimeHttp1BridgeName(const char* name)
-{
-    return name != NULL &&
-        strncmp(name, "xl6_xrt_http1_",
-            sizeof("xl6_xrt_http1_") - 1) == 0;
-}
 
-int xl6IrRuntimeHttp1BridgeTargetMatches(
-    const XL6_IrModule* module, const XL6_IrCallTarget* target)
-{
-    const XL6_IrType* result;
-    size_t parameter;
-    if ( module == NULL || target == NULL ||
-         !xl6IrRuntimeHttp1BridgeName(target->cName) ||
-         target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_HTTP1 ||
-         target->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE ||
-         (target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID &&
-          target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_NONE) ||
-         target->variadicAbi != XL6_IR_CALL_VARIADIC_NONE ||
-         (target->parameterCount != 0 &&
-          (target->parameterTypes == NULL || target->parameterAbis == NULL ||
-           target->parameterPhysicalAbis == NULL ||
-           target->parameterConstraintAbis == NULL ||
-           target->parameterPhysicalFieldDeclarations == NULL)) ) return 0;
-    result = target->returnType == XL6_IR_TYPE_INVALID
-        ? NULL : xl6IrTypeGet(&module->types, target->returnType);
-    if ( target->returnType != XL6_IR_TYPE_INVALID && result == NULL ) return 0;
-    for ( parameter = 0; parameter < target->parameterCount; ++parameter )
-        if ( xl6IrTypeGet(&module->types, target->parameterTypes[parameter]) == NULL ||
-             target->parameterAbis[parameter] == XL6_IR_PARAMETER_ABI_INVALID ||
-             target->parameterPhysicalAbis[parameter] ==
-                 XL6_IR_CALL_PARAMETER_PHYSICAL_INVALID ||
-             target->parameterConstraintAbis[parameter] !=
-                 XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE ) return 0;
-    if ( target->kind == XL6_IR_CALL_TARGET_EXTERN_C )
-        return target->resultPhysicalAbi == XL6_IR_CALL_RESULT_PHYSICAL_DIRECT &&
-               target->resultPhysicalFieldDeclaration == XL6_IR_NODE_INVALID &&
-               target->resultPhysicalDestroySymbol == 0;
-    if ( target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY ) {
-        if ( target->resultPhysicalAbi == XL6_IR_CALL_RESULT_PHYSICAL_DIRECT &&
-             target->resultPhysicalFieldDeclaration == XL6_IR_NODE_INVALID &&
-             target->resultPhysicalDestroySymbol == 0 ) return 1;
-        return result != NULL && result->kind == XL6_IR_TYPE_CLASS &&
-               result->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
-               result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
-               result->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL &&
-               target->resultPhysicalAbi ==
-                   XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_FIELD_TAKE &&
-               target->resultPhysicalFieldDeclaration != XL6_IR_NODE_INVALID &&
-               target->resultPhysicalDestroySymbol != 0;
-    }
-    return 0;
-}
 
 /* 这里只登记现有标准库的 C 适配合同，不改变语言层的字符串语义。
  * 原始字符串缓冲返回 point，由 TAKE_CSTR 接管；split 返回拥有型 var。 */
@@ -33546,11 +33417,6 @@ static int xl6IrRuntimeBridgeTargetMatches(
          xl6IrRuntimeFileBridgeName(target->cName) &&
          !(strcmp(target->cName, "xl6_xrt_file_open") == 0 &&
            target->kind != XL6_IR_CALL_TARGET_NATIVE_FACTORY) ) reserved = 1;
-    if ( target->cName != NULL &&
-         xl6IrRuntimeWebSocketBridgeKind(target->cName) !=
-             XL6_IR_RUNTIME_BRIDGE_NONE ) reserved = 1;
-    if ( target->cName != NULL &&
-         xl6IrRuntimeHttp1BridgeName(target->cName) ) reserved = 1;
     if ( xl6IrRuntimeStringBridgeKind(target->cName) !=
              XL6_IR_RUNTIME_BRIDGE_NONE ) reserved = 1;
     if ( xl6IrRuntimeSerializationBridgeKind(target->cName) !=
@@ -33599,11 +33465,6 @@ static int xl6IrRuntimeBridgeTargetMatches(
          (target->parameterCount != 0 && target->parameterAbis == NULL) ) return 0;
     if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_FILE )
         return xl6IrRuntimeFileBridgeTargetMatches(module, target);
-    if ( target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_FRAME &&
-         target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_STREAM_TLS )
-        return xl6IrRuntimeWebSocketBridgeTargetMatches(module, target);
-    if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_HTTP1 )
-        return xl6IrRuntimeHttp1BridgeTargetMatches(module, target);
     if ( xl6IrRuntimeStringBridgeKindIs(target->runtimeBridge) )
         return xl6IrRuntimeStringBridgeTargetMatches(module, target);
     if ( target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_TEXT_WRITE &&
@@ -49199,15 +49060,6 @@ static const char* xl6IrRuntimeBridgeName(XL6_IrRuntimeBridgeKind bridge)
     case XL6_IR_RUNTIME_BRIDGE_CRYPTO_TEXT_HASH: return "crypto-text-hash";
     case XL6_IR_RUNTIME_BRIDGE_PATH_JOIN: return "path-join";
     case XL6_IR_RUNTIME_BRIDGE_FILE: return "file";
-    case XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_FRAME: return "websocket-frame";
-    case XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_HANDSHAKE: return "websocket-handshake";
-    case XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_UPGRADE: return "websocket-upgrade";
-    case XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_STREAM_CONFIG:
-        return "websocket-stream-config";
-    case XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_STREAM: return "websocket-stream";
-    case XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_STREAM_TLS:
-        return "websocket-stream-tls";
-    case XL6_IR_RUNTIME_BRIDGE_HTTP1: return "http1";
     case XL6_IR_RUNTIME_BRIDGE_LAST_ERROR_TEXT: return "last-error-text";
     default: return "invalid";
     }

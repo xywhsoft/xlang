@@ -1,0 +1,48 @@
+func selectDeflate(WsDeflateOffer offer) as WsDeflateResponse?
+    return offer.accept()
+end
+
+func declineDeflate(WsDeflateOffer offer) as WsDeflateResponse?
+    return null
+end
+
+func main(...) as int
+    auto offer = WsDeflateOffer(WsDeflateFlags.serverNoContext)
+    auto options = WsClientOptions("chat, superchat").withDeflate(offer)
+    auto client = WsUpgrade.client("example.test", options)
+    assert client.role == WsRole.client
+    assert not client.ready
+    assert WsHandshake.keyValid(client.key)
+
+    HttpHeaders fields = client.headers()
+    fields.add("X-Application", "normal-local-fixture")
+    auto wire = Http1.requestHead("GET", "/chat", fields)
+    auto request = Http1Head.request(wire)
+    if request == null then throw ValueError "incomplete request" end
+    auto serverOptions = WsServerOptions("superchat, chat", true)
+    auto server = WsUpgrade.server(request, serverOptions, selectDeflate)
+    assert server.ready
+    assert server.role == WsRole.server
+    assert server.protocol == "chat"
+    assert server.deflateEnabled
+    assert server.deflateResponse() != null
+
+    auto responseWire = Http1.responseHead(101, "Switching Protocols", server.headers())
+    auto response = Http1Head.response(responseWire)
+    if response == null then throw ValueError "incomplete response" end
+    auto ready = client.checkResponse(response)
+    assert ready.ready
+    assert not client.ready
+    assert ready.protocol == "chat"
+    assert ready.deflateEnabled
+
+    auto declined = WsUpgrade.server(request, serverOptions, declineDeflate)
+    assert not declined.deflateEnabled
+    auto automatic = WsUpgrade.server(request, serverOptions)
+    assert automatic.deflateEnabled
+    auto plainClient = WsUpgrade.client("example.test")
+    assert plainClient.headers().length >= 5
+    assert not WsServerOptions().deflateEnabled
+    println("websocket-upgrade-v2-ok")
+    return 0
+end

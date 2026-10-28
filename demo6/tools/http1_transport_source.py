@@ -147,5 +147,8 @@ def sources(root):
         {wait}self.body{suffix}(null, true, Http1.deadline(timeoutMillis), cancel)
     end
 ''')
-        result['xl6StdlibHttp'+wire+'TransportSource']=template.replace('@NAME@',name).replace('@STREAM@',stream).replace('@IO_METHODS@','\n'.join(methods))
+        concrete=template.replace('@NAME@',name).replace('@STREAM@',stream).replace('@IO_METHODS@','\n'.join(methods))
+        result['xl6StdlibHttp'+wire+'TransportSource']=concrete.replace('@HANDOFF_FIELDS@','').replace('@HANDOFF_CHECK@','').replace('@HANDOFF_METHODS@','')
+        ws=(root/'src/stdlib/http1_ws_handoff_methods.xl.in').read_text()
+        result['xl6StdlibHttp'+wire+'TransportWsSource']=concrete.replace('@HANDOFF_FIELDS@','    private AtomicInt32 transfer = AtomicInt32(0)').replace('@HANDOFF_CHECK@','        if self.transfer.load() != 0 then throw RuntimeError "HTTP handoff is active or already consumed" end').replace('@HANDOFF_METHODS@',ws)
     return result

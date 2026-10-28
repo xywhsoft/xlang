@@ -1,0 +1,57 @@
+auto frame = WsFrame.make(WsOpcode.binary, uint64(3), WsFrameFlags.final | WsFrameFlags.masked, 287454020)
+assert frame.opcode == WsOpcode.binary
+assert frame.final and frame.masked
+assert frame.mask == 287454020
+auto head = frame.toBytes()
+assert head.length == 6
+auto incomplete = WsFrame.parse(head, 1)
+assert incomplete == null
+auto parsed = WsFrame.parse(head)
+if parsed == null then throw ValueError "frame is incomplete" end
+assert parsed.mask == frame.mask
+assert parsed.payloadSize == uint64(3)
+auto output = Buffer()
+assert parsed.writeInto(output) == 6
+assert output.len() == 6
+println("websocket-values-frame-ok")
+
+auto closeValue = WsClose.make(1000, "a\0b")
+assert closeValue.reason == "a\0b"
+auto parsedClose = WsClose.parse(closeValue.toBytes())
+assert parsedClose.code == 1000
+assert parsedClose.reason == "a\0b"
+assert not WsClose.codeValid(1006)
+assert WsClose.codeValid(1000)
+println("websocket-values-close-ok")
+
+string sampleKey = "dGhlIHNhbXBsZSBub25jZQ=="
+assert WsHandshake.keyValid(sampleKey)
+assert WsHandshake.accept(sampleKey) == "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
+assert WsHandshake.keyValid(WsHandshake.key())
+assert WsHandshake.protocolCount("chat, superchat") == 2
+assert WsHandshake.protocolAt("chat, superchat", 1) == "superchat"
+assert (WsHandshake.protocolSelect("chat, superchat", "superchat, chat") as string) == "chat"
+println("websocket-values-handshake-ok")
+
+auto config = WsMessageConfig()
+auto state = WsMessageState(config)
+auto first = WsFrame.make(WsOpcode.text, uint64(3))
+auto info = state.beginFrame(first)
+assert info.opcode == WsOpcode.text
+state.writePayload("a\0b")
+assert state.activeSize == 3
+state.endFrame()
+assert state.activeSize == 0
+assert not state.failed
+state.reset()
+assert state.activeSize == 0
+println("websocket-values-message-ok")
+
+bool invalidSize = false
+try
+    auto invalid = WsFrame.parse(head, -2)
+catch RangeError
+    invalidSize = true
+end
+assert invalidSize
+println("websocket-values-v2-ok")

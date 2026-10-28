@@ -1,0 +1,109 @@
+    // Async entry uses the existing owning network task and the actual worker.
+    // No suspended task blocks a network worker or creates a helper thread.
+    static func attachOnWorker(TcpStream transport, NetBuffer buffered, WsUpgrade upgrade, WsStreamOptions options, func(WsEvent) as bool events) as WsStream
+        auto result = WsStream.prepareEventsNative(events)
+        result.bindNative(transport, buffered, upgrade, options)
+        return result
+    end
+    static func attachOnWorker(TlsStream transport, NetBuffer buffered, WsUpgrade upgrade, WsStreamOptions options, func(WsEvent) as bool events) as WsStream
+        auto result = WsStream.prepareEventsNative(events)
+        result.bindNative(transport, buffered, upgrade, options)
+        return result
+    end
+    static func attachAsync(TcpStream transport, NetBuffer buffered, WsUpgrade upgrade, WsStreamOptions options, func(WsEvent) as bool events) as future<WsStream>
+        auto engine = WsStream.engineOf(transport)
+        uint64 worker = WsStream.workerOf(transport)
+        auto result = WsStream.prepareEventsNative(events)
+        func(TcpStream, NetBuffer, WsUpgrade, WsStreamOptions) bind = result.bindNative
+        return engine.submit(func() as WsStream
+            bind(transport, buffered, upgrade, options)
+            return result
+        end, worker)
+    end
+    static func attachAsync(TlsStream transport, NetBuffer buffered, WsUpgrade upgrade, WsStreamOptions options, func(WsEvent) as bool events) as future<WsStream>
+        auto engine = WsStream.engineOf(transport)
+        uint64 worker = WsStream.workerOf(transport)
+        auto result = WsStream.prepareEventsNative(events)
+        func(TlsStream, NetBuffer, WsUpgrade, WsStreamOptions) bind = result.bindNative
+        return engine.submit(func() as WsStream
+            bind(transport, buffered, upgrade, options)
+            return result
+        end, worker)
+    end
+    func sendTextAsync(string text, int size = -1) as future<NetStatus>
+        return self.engine().submit(func() as NetStatus
+            return self.sendText(text, size)
+        end, self.worker)
+    end
+    func sendBinaryAsync(bytes data, int size = -1) as future<NetStatus>
+        return self.engine().submit(func() as NetStatus
+            return self.sendBinary(data, size)
+        end, self.worker)
+    end
+    func closeAsync(int code = 1000, string reason = "", int size = -1) as future<NetStatus>
+        return self.engine().submit(func() as NetStatus
+            return self.close(code, reason, size)
+        end, self.worker)
+    end
+    func sendTextCompressedAsync(string text, int size = -1) as future<NetStatus>
+        return self.engine().submit(func() as NetStatus
+            return self.sendTextCompressed(text, size)
+        end, self.worker)
+    end
+    func sendBinaryCompressedAsync(bytes data, int size = -1) as future<NetStatus>
+        return self.engine().submit(func() as NetStatus
+            return self.sendBinaryCompressed(data, size)
+        end, self.worker)
+    end
+    func sendRefAsync(WsOpcode opcode, NetBytes data, int size = -1) as future<NetStatus>
+        return self.engine().submit(func() as NetStatus
+            return self.sendRef(opcode, data, size)
+        end, self.worker)
+    end
+    func receiveIntoAsync(Buffer output, bool dataEvents = false) as future<null>
+        return self.engine().submit(func()
+            self.receiveInto(output, dataEvents)
+        end, self.worker)
+    end
+    func pauseAsync() as future<null>
+        return self.engine().submit(func()
+            self.pause()
+        end, self.worker)
+    end
+    func resumeAsync() as future<null>
+        return self.engine().submit(func()
+            self.resume()
+        end, self.worker)
+    end
+    func pingAsync(bytes data, int size = -1) as future<NetStatus>
+        return self.engine().submit(func() as NetStatus
+            return self.ping(data, size)
+        end, self.worker)
+    end
+    func pongAsync(bytes data, int size = -1) as future<NetStatus>
+        return self.engine().submit(func() as NetStatus
+            return self.pong(data, size)
+        end, self.worker)
+    end
+    async func sendTextAllAsync(string text, int size = -1, int timeoutMillis = -1, CancellationToken? cancel = null) as NetStatus
+        uint64 due = Http1.deadline(timeoutMillis)
+        uint64 required = self.requiredSize(text, size)
+        while true
+            auto result = await self.sendTextAsync(text, size)
+            if result != NetStatus.again then return result end
+            auto ready = await self.waitWritableUntilAsync(required, due, cancel)
+            if ready != NetStatus.ok then return ready end
+        end
+        return NetStatus.closed
+    end
+    async func sendBinaryAllAsync(bytes data, int size = -1, int timeoutMillis = -1, CancellationToken? cancel = null) as NetStatus
+        uint64 due = Http1.deadline(timeoutMillis)
+        uint64 required = self.requiredSize(data, size)
+        while true
+            auto result = await self.sendBinaryAsync(data, size)
+            if result != NetStatus.again then return result end
+            auto ready = await self.waitWritableUntilAsync(required, due, cancel)
+            if ready != NetStatus.ok then return ready end
+        end
+        return NetStatus.closed
+    end

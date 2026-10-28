@@ -1,8 +1,3 @@
-WsUpgrade client = WsUpgrade.client("example.test")
-Buffer requestWire = Http1.requestHead("GET", "/", client.fields())
-Http1Head request = Http1Head.request(requestWire)
-WsUpgrade server = WsUpgrade.server(request)
-
-assert server.ready
-assert server.role == 1
+auto upgrade = WsUpgrade.client("local.test")
+assert not upgrade.ready and upgrade.headers().length >= 5
 println("websocket-upgrade-trim-ok")
