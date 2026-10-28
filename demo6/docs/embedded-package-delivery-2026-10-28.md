@@ -53,7 +53,7 @@ source-only cohort cannot close the full regression or product-delivery items.
   runners. Tests cover scopes, unbounded arguments, comments, root escapes,
   unquoted batch/package references and excluded generated hash reports.
 - Tool wiring passed for 467 check scripts and 74 reviewed XLIR scenario
-  workers. C ownership/wiring passed for 1,661 entry fixtures and 1,328 package
+  workers. C ownership/wiring passed for 1,662 entry fixtures and 1,328 package
   fixtures. A wired file is not automatically a passed execution.
 - `tools/check_delivery_native_fixtures.py` passed 76 actual native stages:
   compiler mutation contracts, ChaCha20 OOM, TLS, local network shutdown,
@@ -74,6 +74,7 @@ source-only cohort cannot close the full regression or product-delivery items.
   evidence overwrite. Compiler selection and absolute PS5 paths were repaired.
 - `op` standalone C entrypoints are named `delay_native.c` and
   `random_int_native.c`, avoiding accidental same-stem xlang companion loading.
+  Both renamed C programs and both xlang programs passed actual execution.
 - Generated iterator OOM acceptance distinguishes logical allocation failures
   from cold physical allocator failures and permits successful recovery only
   when the program assertions and cleanup/balance checks pass. Linux text
@@ -85,6 +86,12 @@ source-only cohort cannot close the full regression or product-delivery items.
   explicit 32-bit alternatives instead of declaring duplicate alias overloads.
   The Linux numeric continuation passed 509 checks, including native/managed
   fault prefixes, sanitizers and strict generated-C/JIT/AOT execution.
+- Linux Unicode/HTML passed 221 checks after the native probe linked its real
+  foreign-error/native-handle dependencies and enabled ONCE. Encoding passed
+  471 checks after matching the current closed-native-product diagnostic.
+  These continuations are not a passing full-entry result.
+- Test case wiring passed for 3,713 automated assets, one manual probe and 52
+  prefixes. The regression-wiring repair is committed as `fe80cbb57`.
 
 ## Candidate And Evidence
 
@@ -129,6 +136,10 @@ frontend test shard remain outside this repair commit's ownership.
 3. Refresh the still-concurrently-edited frontend test shard: it requires old
    `static char* xlir_fn_` output after native strings moved to their explicit
    ABI. The emitted program and the old textual check are different gates.
+   The Linux scalar continuation also stopped at
+   `xlir_integer_conversion_source_abi.xl`: its exact signed-conversion error
+   text assertion no longer matches the tested runtime. No conversion
+   implementation or assertion was changed while ABI work remains active.
 4. Finish Linux full-regression reruns after pure test-contract repairs, then
    freeze the current merged tree, rebuild a matched SDK/product cohort and
    rerun the complete Windows/Linux entries before shared release promotion.
