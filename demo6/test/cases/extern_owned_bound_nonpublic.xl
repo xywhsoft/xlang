@@ -1,0 +1,72 @@
+extern "owned_original" @no_raise func original(string value) as bool
+extern "owned_text" @owned func Text() as string
+extern "owned_one_allocation" @no_raise func oneAllocation(string value) as bool
+extern "owned_reset" @no_raise func reset()
+extern "typed_bound_handles" @no_raise func handles() as int
+class Reader
+    private func Echo<T>(T value) as T
+        return value
+    end
+    private func Pick(string value) as string
+        return value
+    end
+    private func Pick(int value) as int
+        return value
+    end
+    func Saved() as func(string) as string
+        return self.Echo
+    end
+    func Selected() as func(string) as string
+        return self.Pick
+    end
+end
+class Base
+    protected func Text() as string
+        return "base"
+    end
+end
+class Child extends Base
+    func Saved() as func() as string
+        return base.Text
+    end
+end
+class Native
+    private native point handle
+    extern "typed_bound_open" create()
+    extern "typed_bound_close" destroy()
+    private extern "typed_bound_text" @owned func Read(c_int mode=c_int(7)) as string
+    protected extern "typed_bound_roundtrip" @owned func ReadProtected(string value,c_int mode=c_int(7)) as string
+    func Saved() as func() as string
+        return self.Read
+    end
+    func Protected() as func(string) as string
+        return self.ReadProtected
+    end
+end
+func escaped() as func() as string
+    Native local=Native()
+    return local.Saved()
+end
+func check()
+    Reader reader=Reader()
+    func(string) as string generic=reader.Saved()
+    func(string) as string selected=reader.Selected()
+    assert generic("text")=="text" and selected("selected")=="selected"
+    Child child=Child()
+    func() as string baseRead=child.Saved()
+    assert baseRead()=="base"
+    func() as string nativeRead=escaped()
+    assert handles()==1
+    reset()
+    string value=nativeRead()
+    assert original(value) and oneAllocation(value)
+    Native native=Native()
+    func(string) as string protectedRead=native.Protected()
+    string input=Text()
+    reset()
+    string protectedValue=protectedRead(input)
+    assert original(protectedValue) and oneAllocation(protectedValue)
+end
+assert handles()==0
+check()
+assert handles()==0

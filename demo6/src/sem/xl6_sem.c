@@ -8267,9 +8267,9 @@ static int xl6SemCheckXCallConversion(XL6_SemContext* ctx, XL6_AstNode* node)
     return ok;
 }
 
-/* A constrained method group must be resolved while semantic constraint
- * evidence is available. Retain the erased method-value representation;
- * only the selected declaration identity crosses into typed binding. */
+/* Resolve constrained or nonpublic method groups while their semantic
+ * evidence is available. Keep dynamic member visibility separate from a
+ * lexically permitted static function binding. */
 static int xl6SemConstrainedBoundMethod(XL6_SemContext* ctx,const XL6_AstNode* expr,
     const XL6_AstNode* signature,int report)
 {
@@ -8285,6 +8285,7 @@ static int xl6SemConstrainedBoundMethod(XL6_SemContext* ctx,const XL6_AstNode* e
         for(size_t m=0;body && m<body->childCount;++m){
             const XL6_AstNode* method=body->children[m];
             if(!method || !xl6TextEquals(xl6SemMemberName(method),expr->text))continue;
+            if(method->flags&(XL6_AST_FLAG_PRIVATE|XL6_AST_FLAG_PROTECTED))constrained=true;
             const XL6_AstNode* types=xl6SemFuncTypeParams(method);
             for(size_t t=0;types && t<types->childCount;++t){
                 const XL6_AstNode* constraints=xl6SemGenericConstraintList(types->children[t]);

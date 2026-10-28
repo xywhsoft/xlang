@@ -1,0 +1,7 @@
+class Reader
+    private func Text() as string
+        return "private"
+    end
+end
+Reader reader=Reader()
+func() as string callback=reader.Text

@@ -1,0 +1,7 @@
+class Reader
+    protected func Text() as string
+        return "protected"
+    end
+end
+Reader reader=Reader()
+func() as string callback=reader.Text

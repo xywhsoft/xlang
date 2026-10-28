@@ -14314,6 +14314,48 @@ int xl6IrBoundMethodSelectionMatches(const XL6_IrModule* module,
     return !source->targetSymbol;
 }
 
+/* Public dynamic rows intentionally omit nonpublic methods. A typed binding
+ * may use its authenticated lexical declaration without publishing a row. */
+static int xl6IrBoundMethodAccessAllowed(const XL6_IrModule* module,XL6_IrNodeId sourceId,
+    const XL6_IrNode* declaration)
+{
+    if(!declaration)return 0;
+    if(!(declaration->flags&(XL6_AST_FLAG_PRIVATE|XL6_AST_FLAG_PROTECTED)))return 1;
+    const XL6_IrNode* source=xl6IrNodeGet(module,sourceId);
+    const XL6_IrNode* lexical=xl6IrNodeGet(module,xl6IrBuildEnclosingClass(module,sourceId));
+    if(!source || !source->targetSymbol || !lexical)return 0;
+    return declaration->flags&XL6_AST_FLAG_PRIVATE
+        ? lexical->declarationOwnerType==declaration->declarationOwnerType
+        : xl6IrBuildClassDerivesFrom(module,lexical->declarationOwnerType,declaration->declarationOwnerType);
+}
+int xl6IrBoundMethodCandidateMatches(const XL6_IrModule* module,XL6_IrNodeId sourceId,
+    XL6_IrNodeId declarationId)
+{
+    const XL6_IrNode* source=xl6IrNodeGet(module,sourceId);
+    const XL6_IrNode* declaration=xl6IrNodeGet(module,declarationId);
+    if(!source || source->kind!=XL6_IR_NODE_MEMBER || source->sourceKind!=XL6_AST_MEMBER ||
+       source->childCount!=1 || !source->text || !declaration || declaration->kind!=XL6_IR_NODE_FUNC_DECL ||
+       (declaration->sourceKind!=XL6_AST_FUNC && declaration->sourceKind!=XL6_AST_ASYNC_FUNC &&
+        declaration->sourceKind!=XL6_AST_NATIVE_EXTERN_FUNC) || (declaration->flags&XL6_AST_FLAG_STATIC) ||
+       !xl6IrBoundMethodSelectionMatches(module,sourceId,declaration->symbol) ||
+       !xl6IrBoundMethodAccessAllowed(module,sourceId,declaration))return 0;
+    const XL6_IrNode* name=declaration->childCount ? xl6IrNodeGet(module,module->children[declaration->firstChild]) : NULL;
+    const XL6_IrNode* receiver=xl6IrNodeGet(module,module->children[source->firstChild]);
+    XL6_IrTypeId ownerId=receiver ? xl6IrNodeMaterializedValueType(module,receiver) : 0;
+    const XL6_IrType* owner=xl6IrTypeGet(&module->types,ownerId);
+    if(owner && owner->kind==XL6_IR_TYPE_NULLABLE && owner->paramCount==1)ownerId=owner->params[0];
+    if(!name || !name->text || strcmp(name->text,source->text) ||
+       !xl6IrBuildClassDerivesFrom(module,ownerId,declaration->declarationOwnerType))return 0;
+    if(declaration->flags&(XL6_AST_FLAG_PRIVATE|XL6_AST_FLAG_PROTECTED)){
+        return 1;
+    }
+    if(source->targetSymbol)return 1;
+    for(size_t i=0;i<module->dynamicMethodCount;++i){
+        const XL6_IrDynamicMethod* method=&module->dynamicMethods[i];
+        if(method->ownerType==ownerId && method->kind==XL6_IR_DYNAMIC_CALL_METHOD && method->declaration==declarationId)return 1;
+    }
+    return 0;
+}
 int xl6IrBoundMethodTargetMatches(const XL6_IrModule* module,XL6_IrNodeId sourceId,
     XL6_SymbolId symbol,XL6_IrTypeId signatureId)
 {
@@ -14337,7 +14379,7 @@ int xl6IrBoundMethodTargetMatches(const XL6_IrModule* module,XL6_IrNodeId source
     const XL6_IrType* receiverType=xl6IrTypeGet(&module->types,receiverId);
     if(receiverType && receiverType->kind==XL6_IR_TYPE_NULLABLE && receiverType->paramCount==1)
         receiverId=receiverType->params[0];
-    if(!declaration || (declaration->sourceKind!=XL6_AST_FUNC && declaration->sourceKind!=XL6_AST_ASYNC_FUNC &&
+    if(!xl6IrBoundMethodAccessAllowed(module,sourceId,declaration) || !declaration || (declaration->sourceKind!=XL6_AST_FUNC && declaration->sourceKind!=XL6_AST_ASYNC_FUNC &&
        declaration->sourceKind!=XL6_AST_NATIVE_EXTERN_FUNC) ||
        (declaration->flags & XL6_AST_FLAG_STATIC) || !name || !name->text ||
        strcmp(name->text,source->text) || !params || params->childCount+1!=target->parameterCount ||
