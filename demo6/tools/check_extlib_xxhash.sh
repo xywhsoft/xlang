@@ -3,13 +3,21 @@ set -euo pipefail
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$root"
 work=$(mktemp -d "${TMPDIR:-/tmp}/xlang-xxhash-XXXXXX")
-trap 'rm -rf -- "$work"' EXIT
+cleanup() {
+    result=$?
+    trap - EXIT
+    if ((result == 0)); then rm -rf -- "$work"
+    else printf '[xxhash] FAIL exit=%s artifacts=%s\n' "$result" "$work" >&2; fi
+    exit "$result"
+}
+trap cleanup EXIT
 cc=${CC:-gcc}
 pkg=release/extlibs/xxhash
 input_paths() {
     find "$pkg" -type f -print0
     printf '%s\0' .gitattributes lib/xrt/xrt.h lib/xruntime/xruntime.h \
         test/support/extlib_codec_runtime.c tools/check_extlib_xxhash.sh \
+        tools/check_extlib_native_globals.ps1 tools/check_extlib_native_globals.sh \
         release/xl release/libxlc.so test/cases/extlib_xxhash.xl \
         test/cases/extlib_xxhash_boundaries.xl \
         test/cases/extlib_xxhash_progress.xl \
@@ -104,6 +112,7 @@ done
 diff -u "$work/basic.log" "$work/xxhash_basic_aot.log"
 diff -u "$work/full_jit.log" "$work/xxhash_aot.log"
 cd "$root"
+bash "$root/tools/check_extlib_native_globals.sh" xxhash
 mapfile -d '' after < <(input_paths | sort -z)
 sha256sum "${after[@]}" > "$work/inputs.after.sha256"
 diff -u "$work/inputs.before.sha256" "$work/inputs.after.sha256"

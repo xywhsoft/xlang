@@ -13,6 +13,7 @@ input_paths() {
     printf '%s\0' lib/xrt/xrt.h lib/xruntime/xruntime.h test/support/extlib_codec_runtime.c \
         test/support/extlib_codec_file_rollback.h \
         tools/check_extlib_lz4.sh tools/check_extlib_lz4_interop.py release/xl \
+        tools/check_extlib_native_globals.ps1 tools/check_extlib_native_globals.sh \
         release/libxl.so release/libxlc.so release/include/xrt_decl.h \
         release/include/xruntime_decl.h release/include/xl_extlib_abi.h \
         test/cases/extlib_lz4.xl test/cases/extlib_lz4_progress.xl \
@@ -126,3 +127,4 @@ for name in full basic files; do
         diff -u "$work/example-$name.log" "$work/example-xl-$name-aot.log"
     fi
 done
+bash "$root/tools/check_extlib_native_globals.sh" lz4

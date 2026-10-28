@@ -1,5 +1,68 @@
 # 顶层 native-backed class 在独立 EXE 退出时失败
 
+## 2026-10-29 七包顶层生命周期专项
+
+继续逐包实测，而不是根据相似析构声明推断：LZ4、BZ2、LZMA、miniz、
+Snappy、xxHash、Zstd 各新增 `test/top_level.xl`。六个压缩包在全局
+创建一个真实压缩器，xxHash 创建真实 XXH64 哈希器；main 内断言对象
+有效并打印本包 PASS，退出时自然退役，不主动销毁、不搬入函数。
+
+| 范围 | JIT | 构建独立 EXE | 独立 EXE 运行 |
+| --- | --- | --- | --- |
+| Windows 七包 | 全部退出0并打印各自PASS | 全部退出0 | 全部打印PASS后报同一状态错误、退出1 |
+| Linux x64 七包 | 全部退出0并打印各自PASS | 全部退出0 | 全部打印PASS后报同一状态错误、退出1 |
+
+原始错误均为
+`uncaught xlang error: RuntimeError: operation is not valid in the current state`。
+每平台21个实际阶段是7次JIT、7次构建、7次EXE运行；没有把七个退出1
+改成“预期成功”。两平台使用本矩阵固定的 d64672903 发布物与 XRT，
+未升级主线、运行库或算法，也未为了该补测重跑整组格式/算法认证。
+
+从 demo6 运行完整专项，或指定一个包：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/check_extlib_native_globals.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/check_extlib_native_globals.ps1 -Package lz4
+```
+
+```sh
+bash tools/check_extlib_native_globals.sh
+bash tools/check_extlib_native_globals.sh lz4
+```
+
+Windows 正式结果为
+`build/test/native_globals_6163e0c3ee4940398f48138d04d0d5cf/results.json`：
+14个阶段通过、7个AOT运行失败、输入变动0，全部EXE保留。
+Linux 在原生文件系统快照
+`/var/tmp/xlang-native-globals-src-kQetJP` 运行，详细逐阶段命令、
+stdout/stderr、真实退出码、输入前后指纹保留于
+`tmp/xlang-native-globals-xPQdP7`；外层源件/快照复核一致，整体退出1。
+随后只更新文档与测试工具的UTF-8控制台输出配置，未改变语言用例、
+包实现或发布物。最终工具的Windows单包复验仍为xxHash JIT0/构建0/
+AOT1，现场 `build/test/native_globals_21bd7dd0bda8411fb030543dde077a6a`。
+
+为验证默认接线，另外只选代表性包完整执行，不七包重复全量回归：
+Windows xxHash 默认门禁53项，50个正向阶段和两项预期访问拒绝符合
+预期，25个生成原型、旧JIT/AOT与双语对照均过；只有最后生命周期
+子门禁失败。报告
+`build/test/xxhash_guard/results_050f6dc1a63346df8272a872053fe2ed.json`
+及其同名run目录均保留。Linux Snappy默认完整门禁在原生快照
+`/var/tmp/xlang-snappy-lifecycle-src-DQVhNv` 中先过严格C ASan/UBSan、
+分配故障、语言JIT、七份旧AOT和双语输出，最后同样在新顶层AOT
+失败，整体退出1；内外输入无变动，父/子门禁现场均保留。
+
+各包默认完整门禁已经接入同一专项；Windows快速 `-SkipAot` 只做JIT，
+报告明确AOT跳过，不能当作发布验收。LZ4/BZ2仍保留此前更早报红的
+独立RFS关闭态回滚用例，不能因为默认门禁先停在RFS而漏记本次M2；
+单独跑本专项可以不重跑算法/C/OOM完整门禁地复验该生命周期边界。
+失败不删除生命周期EXE/诊断；不把正常析构改成显式提前释放来换绿。
+
+当前M2已实测涉及包数12增至19。五包G转M、LZ4/BZ2由R转M，但
+RFS涉及包数仍为4，风险没有因状态优先级变化而消失。只是证明同一
+可观察退出边界，不声称19包内部已全部定位为同根。主线建议继续
+核对全局对象、module fini、xlUnit、代码/类型描述与错误作用域的
+退役顺序；不能无条件允许失活模块调用或直接吞掉清理期错误。
+
 ## 2026-10-29 Brotli 扩大已验证覆盖
 
 固定 d64672903 发布版上新增

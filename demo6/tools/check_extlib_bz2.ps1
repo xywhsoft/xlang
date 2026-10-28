@@ -33,6 +33,7 @@ function InputPaths {
         'release/include/xrt_decl.h','release/include/xruntime_decl.h','release/include/xl_extlib_abi.h',
         'test/support/extlib_codec_runtime.c','test/support/extlib_codec_file_rollback.h',
         'tools/check_extlib_bz2.ps1','tools/check_extlib_bz2.sh',
+        'tools/check_extlib_native_globals.ps1','tools/check_extlib_native_globals.sh',
         'tools/check_extlib_bz2_interop.py','tools/extlib_smoke_process.ps1','tools/xlir_native_process.ps1',
         'tools/run_extlib_c.ps1','test/featured_extlibs.json','test/suites/11_featured_extlibs_rc.bat',
         'test/cases/extlib_bz2.xl','test/cases/extlib_bz2_progress.xl',
@@ -187,6 +188,10 @@ try {
     $null = Check 'commit-cleanup-build' $gcc ($flags + @(
         'release/extlibs/bz2/test/test_bz2_commit_cleanup.c') + $objects + $links + @('-o',$commitTest))
     $null = Check 'commit-cleanup' $commitTest @((Join-Path $work ('commit-cleanup-'+[Guid]::NewGuid().ToString('N'))))
+    $lifecycle = @('-NoProfile','-ExecutionPolicy','Bypass','-File','tools/check_extlib_native_globals.ps1',
+        '-Root',$Root,'-RuntimeDirectory',$RuntimeDirectory,'-Package','bz2')
+    if ($SkipAot) { $lifecycle += '-SkipAot' }
+    $null = Check 'top-level-lifecycle' (Get-Process -Id $PID).Path $lifecycle 360
     $outcome = 'passed'
 } catch {
     $failure = $_.Exception.Message
