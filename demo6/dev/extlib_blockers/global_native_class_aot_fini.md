@@ -1,5 +1,43 @@
 # 顶层 native-backed class 在独立 EXE 退出时失败
 
+## 2026-10-29 Dotenv 第21个已实测涉及包
+
+`release/extlibs/dotenv/test/top_level.xl` 在全局创建真实Config，main
+内检查valid及空配置计数，然后自然退出。固定发布版Windows/Linux
+均为JIT退出0、构建退出0，独立EXE打印 `dotenv top-level: PASS`
+后报同一RuntimeError状态错误、退出1；未主动销毁或移动顶层对象。
+
+从demo6运行共享专项即可独立复验，无需重复整包C与算法测试：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/check_extlib_native_globals.ps1 -Package dotenv
+```
+
+```sh
+bash tools/check_extlib_native_globals.sh dotenv
+```
+
+Windows最终完整门禁42项，40个正向阶段和一项预期私有访问拒绝符合
+预期，仅最后生命周期子门禁失败；包括新增同对象借用输入/自别名
+OOM、八组存活分配和非法释放/边界指标、13个真实生成原型，以及
+旧配置/环境/故障边界、新旧C/XLang双语和九条独立AOT。
+输入变动0，正式结果及产物为
+`build/test/dotenv_guard_97a7c3343c524705951cd7678c14dcfd.json` 及同名
+目录，子报告 `build/test/native_globals_302038e3361842eb89de2bfd94a6a90f`。
+
+Linux完整门禁在原生快照
+`/var/tmp/xlang-dotenv-ownership-src-7mIqXx` 先过C ASan/UBSan、同样
+所有权检查、13原型、新旧JIT、九条独立AOT和黄金对照，最后顶层
+AOT失败。父现场 `tmp/xlang-dotenv-3aFwaq`、子现场
+`tmp/xlang-native-globals-QqpZ1y` 保留；内外输入前后复核一致。
+
+这次没有确认需要改动的Dotenv本体BUG，只补测试、双语安全重载
+范例及带超时/指纹/失败保留的门禁；没有修改主线或冻结XRT。
+共享专项现可默认检查九包，当前只新增实测Dotenv。M2涉及20增至
+21包、Dotenv由G转M，不从同症状推断21包内部已全部定位为同根。
+主线仍需核对全局对象、module fini、代码/类型与错误作用域退役次序；
+不能把局部对象通过代替此边界，也不能吞退出错误或放宽失活调用。
+
 ## 2026-10-29 Gzip 第20个已实测涉及包
 
 补 `release/extlibs/gzip/test/top_level.xl`：全局保存一个真实压缩器，
