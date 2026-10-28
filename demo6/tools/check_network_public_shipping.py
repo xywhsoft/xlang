@@ -10,7 +10,12 @@ from pathlib import Path
 import argparse,hashlib,json,os,re,shutil,subprocess,sys,threading,time
 from gen_tcc_vfs_resources import load_resources
 
-def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+def sha(path):
+    digest=hashlib.sha256()
+    with Path(path).open('rb') as stream:
+        for block in iter(lambda:stream.read(1024*1024),b''):
+            digest.update(block)
+    return digest.hexdigest()
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
