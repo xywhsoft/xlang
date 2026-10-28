@@ -10,6 +10,19 @@ $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Obje
 $python = (Get-Command python -CommandType Application -ErrorAction Stop |
     Select-Object -First 1).Source
 [void][IO.Directory]::CreateDirectory($work)
+$flags = @('-std=c11', '-O2', '-Wall', '-Wextra', '-Werror',
+    '-Ilib/xrt', '-Irelease/extlibs/ini')
+$links = @('-lws2_32', '-lbcrypt', '-lshlwapi', '-liphlpapi')
+$inputs = @('release/xl.exe', 'release/xl.dll', 'release/xlc.dll',
+    'lib/xrt/xrt.h', 'lib/xruntime/xruntime.h', 'release/include/xrt_decl.h',
+    'release/include/xruntime_decl.h', 'release/include/xl_extlib_abi.h',
+    'test/cases/extlib_ini.xl', 'release/examples/extlibs/ini.xl',
+    'release/examples/extlibs/ini_c.c') | ForEach-Object { Join-Path $root $_ }
+$inputs += @(Get-ChildItem (Join-Path $root 'release/extlibs/ini') -Recurse -File |
+    ForEach-Object FullName)
+$hashes = @{}
+foreach ($path in $inputs) { $hashes[$path] = (Get-FileHash -LiteralPath $path).Hash }
+$passed = $false
 
 function Run([string]$label, [string]$program, [string[]]$arguments) {
     $previous = $ErrorActionPreference
@@ -20,6 +33,8 @@ function Run([string]$label, [string]$program, [string[]]$arguments) {
     } finally {
         $ErrorActionPreference = $previous
     }
+    [IO.File]::AppendAllText((Join-Path $work 'commands.log'),
+        "${label}: $program $($arguments -join ' ')`nexit=$code`n$($output -join "`n")`n")
     if ($code -ne 0) { throw "${label}: exit $code`n$($output -join "`n")" }
     Write-Host "[ini] ${label}: PASS"
     return ($output -join "`n").Replace("`r", '').TrimEnd("`n")
@@ -27,27 +42,45 @@ function Run([string]$label, [string]$program, [string[]]$arguments) {
 
 Push-Location $root
 try {
+    $hashes | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $work 'inputs.before.json')
+    $null = Run 'GCC version' $gcc @('--version')
     $null = Run 'strict C syntax' $gcc @('-std=c11', '-Wall', '-Wextra', '-Werror',
         '-fsyntax-only', '-Ilib/xrt', '-Irelease/extlibs/ini',
         'release/extlibs/ini/test/test_ini.c', 'release/extlibs/ini/ini_native.c')
+    $runtime = Join-Path $work 'xrt.o'
+    $null = Run 'shared C runtime compile' $gcc ($flags + @('-c',
+        'release/extlibs/ini/test/xrt_runtime.c', '-o', $runtime))
+    foreach ($name in @('test_ini', 'test_updates')) {
+        $target = Join-Path $work "$name.exe"
+        $null = Run "GCC $name build" $gcc ($flags + @(
+            "release/extlibs/ini/test/$name.c", $runtime, '-o', $target) + $links)
+        $null = Run "GCC $name" $target @()
+    }
     $cExampleExe = Join-Path $work 'ini_c.exe'
-    $null = Run 'strict GCC C example build' $gcc @('-std=c11', '-O2',
-        '-Wall', '-Wextra', '-Werror', '-Ilib/xrt', '-Irelease/extlibs/ini',
-        'release/examples/extlibs/ini_c.c', 'release/extlibs/ini/test/xrt_runtime.c',
-        '-o', $cExampleExe, '-lws2_32', '-lbcrypt', '-lshlwapi', '-liphlpapi')
+    $null = Run 'strict GCC C example build' $gcc ($flags + @(
+        'release/examples/extlibs/ini_c.c', $runtime, '-o', $cExampleExe) + $links)
     $gccOutput = Run 'strict GCC C example' $cExampleExe @()
+    $profilesExe = Join-Path $work 'profiles_c.exe'
+    $null = Run 'GCC profiles build' $gcc ($flags + @(
+        'release/extlibs/ini/examples/profiles_c.c', $runtime, '-o', $profilesExe) + $links)
+    $profilesOutput = Run 'GCC profiles' $profilesExe @()
     $interopExe = Join-Path $work 'ini_interop.exe'
-    $null = Run 'independent INI interoperability build' $gcc @('-std=c11', '-O2',
-        '-Wall', '-Wextra', '-Werror', '-Ilib/xrt', '-Irelease/extlibs/ini',
-        'release/extlibs/ini/test/interop.c', 'release/extlibs/ini/test/xrt_runtime.c',
-        '-o', $interopExe, '-lws2_32', '-lbcrypt', '-lshlwapi', '-liphlpapi')
+    $null = Run 'independent INI interoperability build' $gcc ($flags + @(
+        'release/extlibs/ini/test/interop.c', $runtime, '-o', $interopExe) + $links)
     $null = Run 'independent C/Python INI interoperability' $python @(
         'release/extlibs/ini/test/interop.py', $interopExe)
     Push-Location $release
     try {
         $null = Run 'C boundaries' $xl @('run', 'extlibs/ini/test/test_ini.c',
             '--inc-path', '../lib/xrt')
+        $null = Run 'C updates direct run' $xl @('run', 'extlibs/ini/test/test_updates.c')
         $null = Run 'XLang boundaries' $xl @('run', 'extlibs/ini/test/boundaries.xl')
+        $null = Run 'XLang updates' $xl @('run', 'extlibs/ini/test/updates.xl')
+        $profilesC = Run 'C profiles direct run' $xl @('run', 'extlibs/ini/examples/profiles_c.c')
+        $profilesXl = Run 'XLang profiles' $xl @('run', 'extlibs/ini/examples/profiles.xl')
+        if ($profilesC -cne $profilesOutput -or $profilesXl -cne $profilesOutput) {
+            throw 'INI profile GCC/C/XLang outputs differ'
+        }
         $generated = Join-Path $work 'owned_text.c'
         $null = Run 'direct-text cgen' $xl @('cgen',
             'extlibs/ini/test/boundaries.xl', '--emit', $generated)
@@ -121,8 +154,25 @@ try {
             if ($cAotOutput -cne $gccOutput) {
                 throw '[ini] AOT C example output differs from GCC'
             }
+            $updatesExe = Join-Path $work 'updates.exe'
+            $null = Run 'AOT updates build' $xl @('build',
+                'extlibs/ini/test/updates.xl', '-o', $updatesExe)
+            $null = Run 'AOT updates' $updatesExe @()
+            foreach ($source in @('profiles.xl', 'profiles_c.c')) {
+                $profileAot = Join-Path $work ($source.Replace('.', '_') + '.exe')
+                $null = Run "AOT $source build" $xl @('build',
+                    "extlibs/ini/examples/$source", '-o', $profileAot)
+                $output = Run "AOT $source" $profileAot @()
+                if ($output -cne $profilesOutput) { throw "INI $source AOT output differs from GCC" }
+            }
         }
     } finally { Pop-Location }
+    foreach ($path in $hashes.Keys) {
+        if ((Get-FileHash -LiteralPath $path).Hash -ne $hashes[$path]) {
+            throw "INI input changed during gate: $path"
+        }
+    }
+    $passed = $true
 } finally {
     Pop-Location
     $resolvedRoot = [IO.Path]::GetFullPath($workRoot).TrimEnd('\') + '\'
@@ -132,6 +182,12 @@ try {
         throw "INI test directory escapes build/test: $resolvedWork"
     }
     if (Test-Path -LiteralPath $resolvedWork -PathType Container) {
-        Remove-Item -LiteralPath $resolvedWork -Recurse -Force
+        if ($passed) {
+            Get-ChildItem -LiteralPath $resolvedWork -File |
+                ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force }
+            Remove-Item -LiteralPath $resolvedWork
+        } else {
+            Write-Warning "INI failure artifacts: $resolvedWork"
+        }
     }
 }

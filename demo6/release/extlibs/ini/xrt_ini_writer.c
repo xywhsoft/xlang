@@ -117,7 +117,10 @@ static bool __xrtIniOutputSection(xrtiniconfig* pConfig, xbuffer* pOutput,
 				"INI key cannot be written without changing its data");
 			return false;
 		}
+		/* 文件起始的 U+FEFF 会被当作 BOM；用空行保住键自身的同一码点。 */
 		if ( !__xrtIniOutputText(pConfig, pOutput, (const char*)pEntry->Leading) ||
+			(pOutput->Size == 0u && strncmp((const char*)pEntry->Key, "\xef\xbb\xbf", 3u) == 0 &&
+			 !__xrtIniOutputText(pConfig, pOutput, "\n")) ||
 			!__xrtIniOutputText(pConfig, pOutput, (const char*)pEntry->Key) ||
 			!__xrtIniOutputText(pConfig, pOutput, " = ") ||
 			!__xrtIniOutputValue(pConfig, pOutput, (const char*)pEntry->Value) ) {

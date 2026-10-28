@@ -174,7 +174,7 @@ xrt_ini_section* __xrtIniAddSection(xrtiniconfig* pConfig, const char* sName,
 	return pSection;
 }
 
-bool __xrtIniAddEntry(xrtiniconfig* pConfig, xrt_ini_section* pSection,
+xrt_ini_entry* __xrtIniAddEntry(xrtiniconfig* pConfig, xrt_ini_section* pSection,
 	const char* sKey, const char* sValue, const char* sLeading,
 	uint64 iLine, bool bFromParser)
 {
@@ -189,45 +189,45 @@ bool __xrtIniAddEntry(xrtiniconfig* pConfig, xrt_ini_section* pSection,
 			__xrtIniSetError(pConfig, XRT_INI_ERROR_ARGUMENT, iLine, 1u, 0u,
 				"invalid INI key or value");
 		}
-		return false;
+		return NULL;
 	}
 	pEntry = __xrtIniFindEntry(pConfig, pSection, sKey);
 	if ( pEntry != NULL ) {
 		if ( bFromParser && pConfig->Options.bStrictDuplicates ) {
 			__xrtIniSetError(pConfig, XRT_INI_ERROR_DUPLICATE, iLine, 1u, 0u,
 				"duplicate INI key: %s", sKey);
-			return false;
+			return NULL;
 		}
 		sCopy = xrtStrDup(sValue);
 		if ( sCopy == NULL ) {
 			__xrtIniSetError(pConfig, XRT_INI_ERROR_MEMORY, iLine, 1u, 0u,
 				"cannot copy INI value");
-			return false;
+			return NULL;
 		}
 		xrtFree(pEntry->Value);
 		pEntry->Value = sCopy;
-		return true;
+		return pEntry;
 	}
-	if ( !__xrtIniCanAddNode(pConfig) ) { return false; }
+	if ( !__xrtIniCanAddNode(pConfig) ) { return NULL; }
 	if ( pConfig->Options.tLimits.iMaxEntries != 0u &&
 		pConfig->Nodes - pConfig->Count >= pConfig->Options.tLimits.iMaxEntries ) {
 		__xrtIniSetError(pConfig, XRT_INI_ERROR_LIMIT, iLine, 1u, 0u,
 			"INI key count exceeds the configured limit");
-		return false;
+		return NULL;
 	}
 	if ( pSection->Count == pSection->Capacity ) {
 		iCapacity = pSection->Capacity != 0u ? pSection->Capacity * 2u : 8u;
 		if ( iCapacity < pSection->Capacity ) {
 			__xrtIniSetError(pConfig, XRT_INI_ERROR_LIMIT, iLine, 1u, 0u,
 				"too many INI keys");
-			return false;
+			return NULL;
 		}
 		pEntries = (xrt_ini_entry*)xrtRealloc(pSection->Entries,
 			(size_t)iCapacity * sizeof(*pEntries));
 		if ( pEntries == NULL ) {
 			__xrtIniSetError(pConfig, XRT_INI_ERROR_MEMORY, iLine, 1u, 0u,
 				"cannot grow INI key table");
-			return false;
+			return NULL;
 		}
 		pSection->Entries = pEntries;
 		pSection->Capacity = iCapacity;
@@ -245,11 +245,11 @@ bool __xrtIniAddEntry(xrtiniconfig* pConfig, xrt_ini_section* pSection,
 		memset(pEntry, 0, sizeof(*pEntry));
 		__xrtIniSetError(pConfig, XRT_INI_ERROR_MEMORY, iLine, 1u, 0u,
 			"cannot copy INI entry");
-		return false;
+		return NULL;
 	}
 	pSection->Count += 1u;
 	pConfig->Nodes += 1u;
-	return true;
+	return pEntry;
 }
 
 

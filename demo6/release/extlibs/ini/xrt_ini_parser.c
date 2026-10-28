@@ -155,8 +155,10 @@ static bool __xrtIniParseBuffer(xrtiniconfig* pConfig, const unsigned char* pDat
 			if ( iStart == iClose ||
 				(pConfig->Options.tLimits.iMaxItemBytes != 0u &&
 				 (uint64)(iClose - iStart) > pConfig->Options.tLimits.iMaxItemBytes) ) {
-				__xrtIniSetError(pConfig, XRT_INI_ERROR_LIMIT, iLine, 1u, iLineStart,
-					"empty or oversized INI section name");
+				__xrtIniSetError(pConfig, iStart == iClose ? XRT_INI_ERROR_FORMAT :
+					XRT_INI_ERROR_LIMIT, iLine, 1u, iLineStart,
+					iStart == iClose ? "empty INI section name" :
+					"INI section name exceeds the configured item limit");
 				xrtBufferDestroy(pPending);
 				return false;
 			}
@@ -206,8 +208,10 @@ static bool __xrtIniParseBuffer(xrtiniconfig* pConfig, const unsigned char* pDat
 				(pConfig->Options.tLimits.iMaxItemBytes != 0u &&
 				 ((uint64)(iKeyEnd - iKeyStart) > pConfig->Options.tLimits.iMaxItemBytes ||
 				  (uint64)(iValueEnd - iValueStart) > pConfig->Options.tLimits.iMaxItemBytes)) ) {
-				__xrtIniSetError(pConfig, XRT_INI_ERROR_LIMIT, iLine, 1u, iLineStart,
-					"empty or oversized INI key/value");
+				__xrtIniSetError(pConfig, iKeyStart == iKeyEnd ? XRT_INI_ERROR_FORMAT :
+					XRT_INI_ERROR_LIMIT, iLine, 1u, iLineStart,
+					iKeyStart == iKeyEnd ? "empty INI key" :
+					"INI key/value exceeds the configured item limit");
 				xrtBufferDestroy(pPending);
 				return false;
 			}
@@ -227,9 +231,10 @@ static bool __xrtIniParseBuffer(xrtiniconfig* pConfig, const unsigned char* pDat
 			sKey = __xrtIniCopyRange(pData, iKeyStart, iKeyEnd);
 			sValue = __xrtIniCopyRange(pData, iValueStart, iValueEnd);
 			sLeading = __xrtIniTakePending(pPending);
+			/* 覆盖旧键时条目不在表尾，续行必须跟随实际更新的条目。 */
 			if ( sKey == NULL || sValue == NULL || sLeading == NULL ||
-				!__xrtIniAddEntry(pConfig, pSection, (const char*)sKey,
-					(const char*)sValue, (const char*)sLeading, iLine, true) ) {
+				(pLastEntry = __xrtIniAddEntry(pConfig, pSection, (const char*)sKey,
+					(const char*)sValue, (const char*)sLeading, iLine, true)) == NULL ) {
 				xrtFree(sKey);
 				xrtFree(sValue);
 				xrtFree(sLeading);
@@ -243,7 +248,6 @@ static bool __xrtIniParseBuffer(xrtiniconfig* pConfig, const unsigned char* pDat
 			xrtFree(sKey);
 			xrtFree(sValue);
 			xrtFree(sLeading);
-			pLastEntry = &pSection->Entries[pSection->Count - 1u];
 		}
 		iLine += 1u;
 	}

@@ -1,5 +1,56 @@
 # ini
 
+## 2026-10-28 覆盖赋值与无损写回
+
+修复三个 C/XLang 共用的包内错误，公开 ABI 不变：
+
+- `strictDuplicates=false` 时覆盖较早的键，缩进续行曾错误追加到表尾的
+  另一个键。内部插入函数现在直接返回实际插入/更新的条目，不增加二次
+  查找、排序或值复制。覆盖保留原键的顺序和拼写；默认严格模式照常拒绝重复。
+- 首个全局键以 U+FEFF 开头时，写回再读取曾把这个字符误当文件 BOM 删除。
+  现在只在文件起始存在这一歧义时写一个空行，保留键的真实数据；这个字节
+  也纳入输出限额。已有前置键或具名节的普通输出不受影响。
+- 空键名、去除首尾空白后为空的节名统一是 `XRT_INI_ERROR_FORMAT`，
+  不再误报资源超限；真正的名称/值长度超限仍是 `XRT_INI_ERROR_LIMIT`。
+
+`test/test_updates.c` 覆盖 54 种覆盖组合：条目表扩容、首/中/末键、
+大小写敏感/不敏感、全局/具名/重开节，以及 LF/CRLF/CR。每组还验证
+默认严格拒绝、规范文本回读、键数预算、顺序和其他键不被污染。另有
+8 种 BOM 键布局、精确输出预算、格式/真实大小超限及逐点分配失败与
+活动分配恢复检查。`test/updates.xl` 纳入包清单，保持真实语言消费路径。
+
+本轮 Windows 默认门禁和 Linux 原生文件系统同输入快照默认门禁均退出 0，
+包含严格 GCC、Linux ASan/UBSan、内嵌 TCC、Python `configparser` 双向
+互通及覆盖/续行对照、私有访问负例、新旧用例与范例的双语 JIT/AOT。
+测试共用一次编译的 XRT 对象，检查实际输入和发布物指纹；失败保留原始
+命令、状态及输出，成功清理独占产物目录。Linux 验证范围不关闭已登记的
+WSL 挂载盘构建耗时风险；未重建主线或替换 XRT，基线仍见
+[验收矩阵](../../../docs/普通扩展库发布验收矩阵_2026-10-28.md)。
+
+### 部署配置范例
+
+[`examples/profiles.xl`](examples/profiles.xl) 与
+[`examples/profiles_c.c`](examples/profiles_c.c) 展示允许覆盖的配置、
+多行欢迎文本、读取时插值，以及写回后按默认严格模式重新读取。
+两份都检查实际结果，不只比较输出；无需网络、外部服务或数据文件。
+在 `demo6` 目录运行：
+
+```text
+./release/xl.exe run release/extlibs/ini/examples/profiles.xl
+./release/xl.exe run release/extlibs/ini/examples/profiles_c.c
+```
+
+Linux 使用 `./release/xl`。两份的预期输出完全一致：
+
+```text
+http://localhost:9090
+hello
+world
+unchanged
+```
+
+## 所有权与使用说明
+
 2026-10-27 所有权收口：错误文本、节名、键名、值和序列化文本的
 C 出口均明确返回 XRT 拥有的 `char*`；XLang native-backed class 使用
 `@owned string?` 直接接管。生成 C 门禁逐项检查直接保存原生指针，
@@ -122,7 +173,7 @@ C ASan/UBSan 与 XLang 双语门禁也通过。旧发布版的共享缺符号阻
 `release/examples/extlibs/ini.xl` 和 `ini_c.c` 还在独占临时目录里成对展示
 `create`、`save`、`load` 的文件往返，并验证加载后的值；GCC、TCC 和
 XLang 输出一致，范例结束时删除该目录。
-门禁每次使用独占构建目录，失败和成功退出时只清理本次产物；不会复用
+门禁每次使用独占构建目录，成功清理本次产物，失败保留现场；不会复用
 旧 `build/test/ini_guard` 中的可执行文件。
 Linux 门禁使用 ASan/UBSan 验证 C 解析及文件路径边界，另以内嵌 TCC
 执行 C 用例，运行中央/包内 XLang 边界并逐字节核对双语范例。

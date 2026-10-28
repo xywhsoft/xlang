@@ -34,6 +34,7 @@ typedef struct {
 	uint32 iSize;
 	uint32 iVersion;
 	bool bCaseSensitive;
+	/* false 时后一次赋值覆盖旧值，顺序不变，续行跟随本次赋值。 */
 	bool bStrictDuplicates;
 	bool bInterpolation;
 	bool bReserved;

@@ -32,6 +32,7 @@ config.set("server", "port", "9090")
 assert config.getInt("server", "port") == 9090
 println(config.stringify())</code></pre>
     <p>完整的 C/XLang 对照范例还演示 <code>create</code>、<code>save</code>、<code>load</code>：在独占临时目录中保存配置并读回核对，运行结束即清理。Windows 严格 GCC 与 TCC、Linux ASan/UBSan 的输出均和 XLang 对照。</p>
+    <p>包内 <code>examples/profiles.xl</code> / <code>profiles_c.c</code> 另成对演示部署配置覆盖、多行值和读取时插值。可直接 <code>xl run</code>，不需要服务或数据文件；写回后可重新按默认严格模式读取。</p>
   </section>
   <section id="api">
     <h2>接口</h2>
@@ -45,9 +46,11 @@ println(config.stringify())</code></pre>
     </tbody></table>
     <p>可设置大小写敏感、重复键检查、插值和资源限额。<code>${key}</code>、<code>${section.key}</code> 在启用插值时生效。<code>parse(string)</code> 直接传入 UTF-8 数据及字节长度，不另建 XLang Buffer 副本；原生读取器在复制正文前检查输入限额并拒绝内嵌 NUL。<code>set()</code> 可以保留内存值；写出时若值有首尾空白、尾随换行或注释形态的续行等无法无损表示的内容，C 端报 <code>FORMAT</code>，XLang 抛 <code>ConfigError</code>。全局节先于具名节写出。C 端包含 <code>extlibs/ini/include/xrt_ini.h</code>，解析结果由 <code>xrtIniDestroy</code> 释放；<code>xrtIniGet</code> 的结果由调用方用 <code>xrtFree</code> 释放。C 选项须先初始化，顶层与内嵌资源限额的版本和结构长度均会校验，失配报 <code>ARGUMENT</code>。拥有型 Reader/Writer 在退出时关闭；正文成功但关闭失败时报告 <code>IO</code>，借用型流由调用方关闭。</p>
     <p>C 配置的顶层及资源限额保留字段必须为零；非零配置在 create/parse 入口报告 ARGUMENT。<code>iMaxEntries</code> 限制所有节的键总数，删除键后恢复额度；不适用的压缩倍率与 iFlags 必须为零，显式设置会报 ARGUMENT。</p>
+    <p><code>strictDuplicates=false</code> 时后一次赋值替换旧值，保留键的原顺序和拼写，缩进续行跟随本次更新，不能污染表尾的其他键。默认严格模式仍拒绝重复。首个全局键自身含 U+FEFF 时，写回会按需加一个空行，避免把键的一部分当作文件 BOM；该字节计入输出预算。空键/空节名报 FORMAT，真正的长度超限报 LIMIT。</p>
   </section>
   <section id="verify">
     <h2>验证与边界</h2>
+    <p>2026-10-28 Windows 默认门禁与 Linux 原生文件系统同输入门禁均通过：新增 54 种重复覆盖组合、8 种 BOM 键布局、输出预算与逐点分配故障，保留严格 GCC、Linux ASan/UBSan、Python configparser 独立互通、私有访问负例和双语 JIT/AOT。失败现场及输入指纹会保留；这不是 32 位、TSan 或所有文件系统的压力验收。</p>
     <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/ini/test/check.ps1
 bash release/extlibs/ini/test/check.sh</code></pre>
     <p>C Reader 的输入限额从当前读取位置计算，不包含已跳过的前缀；只有 <code>Size</code> 而没有 <code>Tell</code> 的 Reader 由实际读取阶段执行限额。</p>
