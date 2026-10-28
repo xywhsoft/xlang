@@ -3,7 +3,7 @@ import hcl
 
 
 func main(...) as int
-    auto conf = "variable \"name\" {\n  default = \"myapp\"\n  title = \"\\u4F60\\U0001F642\"\n}\n\nresource \"server\" \"main\" {\n  port/* service port */ = 8080/* default */\n  tls = true\n  ratio = 1.5\n}\n"
+    auto conf = "variable \"name\" {\n  default = \"myapp\"\n  title = \"\\u4F60\\U0001F642\"\n}\n\nresource \"server\" \"main\" {\n  port/* service port */ = 8080/* default */\n  tls = true\n  ratio = 1.5\n  filter = \"prod\" == \"dev\" /* expression */\n}\n"
 
     assert hcl.get(conf, "default") == "myapp"
     assert hcl.get(conf, "title") == "你🙂"
@@ -16,7 +16,10 @@ func main(...) as int
     assert hcl.blockLabel(conf, "resource", 0) == "server"
     assert hcl.blockLabelCount(conf, "resource", 0) == 2
     assert hcl.blockLabelAt(conf, "resource", 0, 1) == "main"
-    assert hcl.countAttrs(conf) == 5
+    // 只读查询器不求值：首尾有引号的复合表达式仍保留源码。
+    assert hcl.get(conf, "filter") == "\"prod\" == \"dev\""
+    assert hcl.getRaw(conf, "filter") == "\"prod\" == \"dev\" /* expression */"
+    assert hcl.countAttrs(conf) == 6
     assert hcl.validate(conf)
 
     println("name:   ", hcl.get(conf, "default"))
@@ -27,6 +30,7 @@ func main(...) as int
     println("has none:", hcl.has(conf, "missing"))
     println("blocks: ", hcl.countBlocks(conf, "resource"))
     println("label:  ", hcl.blockLabel(conf, "resource", 0))
+    println("filter: ", hcl.get(conf, "filter"))
     println("valid:  ", hcl.validate(conf))
 
     println("hcl C/XL example: PASS")

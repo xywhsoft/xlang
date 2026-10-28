@@ -44,7 +44,9 @@ export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
 
 mapfile -d '' inputs < <(
     { find "$pkg" -type f -print0
-      printf '%s\0' lib/xrt/xrt.h release/xl release/libxlc.so test/cases/extlib_hcl.xl \
+      printf '%s\0' lib/xrt/xrt.h lib/xruntime/xruntime.h release/xl \
+          release/libxl.so release/libxlc.so release/include/xrt_decl.h \
+          release/include/xruntime_decl.h release/include/xl_extlib_abi.h test/cases/extlib_hcl.xl \
           release/examples/extlibs/hcl.xl release/examples/extlibs/hcl_c.c
     } | sort -zu
 )
@@ -58,6 +60,11 @@ run c-native-compile "$cc" "${flags[@]}" -c release/extlibs/hcl/hcl_native.c \
 run c-test-link "$cc" "${flags[@]}" -no-pie "$work/test_hcl.o" "$work/hcl_native.o" \
     -lm -ldl -o "$work/test_hcl"
 run c-test-run timeout 90s "$work/test_hcl"
+
+# 单字符串解码/复合表达式原文，以及两条返回路径的逐分配点故障。
+run c-expression-compile "$cc" "${flags[@]}" -DXRT_IMPLEMENTATION -no-pie \
+    "$pkg/test/test_expression_strings.c" -lm -ldl -o "$work/hcl_expressions"
+run c-expression-run timeout 90s "$work/hcl_expressions"
 
 # 复用已有四线程用例，只带入查询器和线程实际需要的 XRT 模块。
 run c-threads-compile "$cc" "${flags[@]}" -DXRT_IMPLEMENTATION \
@@ -82,15 +89,20 @@ fi
 run jit-central timeout 90s "$xl" run test/cases/extlib_hcl.xl
 run jit-boundaries timeout 90s "$xl" run release/extlibs/hcl/test/boundaries.xl
 run jit-allocations timeout 90s "$xl" run release/extlibs/hcl/test/allocations.xl
+run jit-expressions timeout 90s "$xl" run "$pkg/test/expression_strings.xl"
+run jit-c-expressions timeout 90s "$xl" run "$pkg/test/test_expression_strings.c"
 run jit-example timeout 90s "$xl" run release/examples/extlibs/hcl.xl > "$work/hcl_xl.txt"
 run jit-c-example timeout 90s "$xl" run release/examples/extlibs/hcl_c.c > "$work/hcl_direct_c.txt"
 run parity-xl diff -u "$work/hcl_c.txt" "$work/hcl_xl.txt"
 run parity-direct-c diff -u "$work/hcl_c.txt" "$work/hcl_direct_c.txt"
-for name in aot_core boundaries allocations; do
+for name in aot_core boundaries allocations expression_strings; do
     run "aot-$name-build" timeout 120s "$xl" build "release/extlibs/hcl/test/$name.xl" \
         -o "$work/hcl_$name"
     run "aot-$name-run" timeout 90s "$work/hcl_$name"
 done
+run aot-c-expressions-build timeout 120s "$xl" build "$pkg/test/test_expression_strings.c" \
+    -o "$work/hcl_c_expressions"
+run aot-c-expressions-run timeout 90s "$work/hcl_c_expressions"
 run aot-example-build timeout 120s "$xl" build release/examples/extlibs/hcl.xl \
     -o "$work/hcl_example_xl"
 run aot-example-run timeout 45s "$work/hcl_example_xl" > "$work/hcl_aot.txt"
