@@ -1,0 +1,27 @@
+import miniz
+
+func main(...) as int
+    array<int> invalid = [-1, -7, -2147483648, 11, 2147483647]
+    for level in invalid
+        bool rejected = false
+        try
+            miniz.MinizCompressor encoder = miniz.MinizCompressor(c_int(level), c_ulonglong(1024), c_ulonglong(1024))
+            assert encoder.valid
+        catch ValueError error
+            rejected = true
+        end
+        assert rejected, "direct native-backed construction must reject every unsupported level"
+    end
+    for level in range(11)
+        miniz.MinizCompressor encoder = miniz.MinizCompressor(c_int(level), c_ulonglong(1024), c_ulonglong(1024))
+        encoder.update("abc")
+        encoder.finish()
+        Buffer packed = encoder.drain()
+        miniz.MinizDecompressor decoder = miniz.MinizDecompressor(c_ulonglong(1024), c_ulonglong(1024), c_uint(1000))
+        decoder.update(packed)
+        decoder.finish()
+        assert decoder.finished and decoder.drain().text() == "abc"
+    end
+    println("miniz language native options: PASS")
+    return 0
+end

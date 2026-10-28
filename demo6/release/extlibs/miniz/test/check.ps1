@@ -7,7 +7,7 @@ $runner = Join-Path $root 'tools/run_extlib_c.ps1'
 $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $python = (Get-Command python -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $flags = @('-std=c11', '-O2', '-Wall', '-Wextra', '-Werror',
-    '-DXRT_MODULE_DEFLATE', '-DXRT_MODULE_INFLATE',
+    '-DXRT_MODULE_DEFLATE', '-DXRT_MODULE_INFLATE', '-DXRT_MODULE_DIR_TEMP',
     '-Ilib/xrt', '-Ilib/xruntime', '-Irelease/extlibs/miniz/include')
 $links = @('-lws2_32', '-ladvapi32', '-liphlpapi', '-lm')
 $workParent = Join-Path $root 'build/test/miniz_guard'
@@ -67,6 +67,10 @@ Push-Location $root
 try {
     $hashes | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $work 'inputs.before.json')
     $null = Run 'GCC version' $gcc @('--version')
+    foreach ($order in @(@(), @('-DMINIZ_CORE_FIRST'))) {
+        $null = Run 'GCC native header order' $gcc ($flags + $order + @('-fsyntax-only',
+            'release/extlibs/miniz/test/native_header.c'))
+    }
     $runtime = Join-Path $work 'runtime.o'
     $null = Run 'GCC runtime build' $gcc ($flags + @('-c',
         'test/support/extlib_codec_runtime.c', '-o', $runtime))
@@ -96,6 +100,11 @@ try {
         'release/extlibs/miniz/test/test_io_errors.c') + $objects + $links + @('-o', $ioBinary))
     $null = Run 'GCC IO error provenance' $ioBinary @()
     $null = Run 'TCC IO error provenance' $xl @('run', 'release/extlibs/miniz/test/test_io_errors.c')
+    $optionsBinary = Join-Path $work 'test_native_options.exe'
+    $null = Run 'GCC native options build' $gcc ($flags + @(
+        'release/extlibs/miniz/test/test_native_options.c') + $objects + $links + @('-o', $optionsBinary))
+    $null = Run 'GCC native options' $optionsBinary @()
+    $null = Run-C 'TCC native options' 'release/extlibs/miniz/test/test_native_options.c'
 
     foreach ($kind in @('compressor', 'decompressor')) {
         $source = "release/extlibs/miniz/test/private_${kind}_negative.xl"
@@ -122,6 +131,7 @@ try {
         'release/extlibs/miniz/test/file_ops.xl',
         'release/extlibs/miniz/test/allocations.xl',
         'release/extlibs/miniz/test/text_transfer.xl',
+        'release/extlibs/miniz/test/native_options.xl',
         'release/examples/extlibs/miniz.xl'
     )) {
         $null = Run "XLang $source" $xl @('run', $source)
@@ -169,6 +179,7 @@ try {
         }
         foreach ($source in @('test/cases/extlib_miniz.xl', 'test/cases/extlib_miniz_progress.xl',
             'release/extlibs/miniz/test/file_ops.xl', 'release/extlibs/miniz/test/allocations.xl',
+            'release/extlibs/miniz/test/native_options.xl',
             'release/examples/extlibs/miniz.xl')) {
             $target = Join-Path $work (([IO.Path]::GetFileNameWithoutExtension($source)) + '.exe')
             $null = Run "AOT build $source" $xl @('build', $source, '-o', $target)

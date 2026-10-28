@@ -24,7 +24,7 @@ trap 'record_failure "$?" "$LINENO" "$BASH_COMMAND" "${PIPESTATUS[*]}"' ERR
 exec > >(tee "$work/output.log") 2>&1
 cc=${CC:-gcc}
 sanitize=(-fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread)
-flags=(-std=c11 -D_GNU_SOURCE -DXRT_MODULE_DEFLATE -DXRT_MODULE_INFLATE
+flags=(-std=c11 -D_GNU_SOURCE -DXRT_MODULE_DEFLATE -DXRT_MODULE_INFLATE -DXRT_MODULE_DIR_TEMP
        -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Ilib/xruntime
        -Irelease/extlibs/miniz/include "${sanitize[@]}")
 export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1
@@ -41,6 +41,8 @@ mapfile -d '' inputs < <(
 )
 sha256sum "${inputs[@]}" > "$work/inputs.before.sha256"
 "$cc" --version > "$work/compiler.txt"
+"$cc" "${flags[@]}" -fsyntax-only release/extlibs/miniz/test/native_header.c
+"$cc" "${flags[@]}" -DMINIZ_CORE_FIRST -fsyntax-only release/extlibs/miniz/test/native_header.c
 for kind in compressor decompressor; do
     case="private_${kind}_negative"
     if timeout 90s ./release/xl check "release/extlibs/miniz/test/$case.xl" > "$work/$case.txt" 2>&1; then
@@ -65,6 +67,8 @@ objects=("$work/runtime.o" "$work/core.o" "$work/bridge.o")
     "${objects[@]}" -lm -ldl -o "$work/test_allocations"
 "$cc" "${flags[@]}" release/extlibs/miniz/test/test_io_errors.c \
     "${objects[@]}" -lm -ldl -o "$work/test_io_errors"
+"$cc" "${flags[@]}" release/extlibs/miniz/test/test_native_options.c \
+    "${objects[@]}" -lm -ldl -o "$work/test_native_options"
 "$cc" "${flags[@]}" release/extlibs/miniz/examples/basic.c \
     "${objects[@]}" -lm -ldl -o "$work/basic"
 "$cc" "${flags[@]}" release/extlibs/miniz/examples/streaming_c.c \
@@ -72,6 +76,7 @@ objects=("$work/runtime.o" "$work/core.o" "$work/bridge.o")
 timeout 90s "$work/test_miniz"
 timeout 30s "$work/test_allocations"
 timeout 30s "$work/test_io_errors"
+timeout 30s "$work/test_native_options"
 timeout 90s ./release/xl run release/extlibs/miniz/test/test_io_errors.c
 timeout 30s "$work/streaming_c" > "$work/streaming_gcc.txt"
 timeout 90s ./release/xl run release/extlibs/miniz/examples/streaming_c.c > "$work/streaming_direct_c.txt"
@@ -87,12 +92,13 @@ timeout 90s ./release/xl run release/extlibs/miniz/test/file_ops.xl > "$work/fil
 timeout 90s ./release/xl run release/examples/extlibs/miniz.xl > "$work/full_xl.txt"
 timeout 90s ./release/xl run release/extlibs/miniz/test/allocations.xl
 timeout 90s ./release/xl run release/extlibs/miniz/test/text_transfer.xl
+timeout 90s ./release/xl run release/extlibs/miniz/test/native_options.xl
 timeout 90s ./release/xl run release/examples/extlibs/miniz_basic.xl > "$work/basic_xl.txt"
 diff -u "$work/basic_c.txt" "$work/basic_xl.txt"
 hex=$(/usr/bin/timeout 30s "$work/test_miniz" --emit)
 python3 -c 'import sys,zlib; assert zlib.decompress(bytes.fromhex(sys.argv[1])) == b"abc"' "$hex"
 printf '[miniz] XLang AOT gate\n'
-for name in central progress file_ops allocations text_transfer basic full; do
+for name in central progress file_ops allocations text_transfer native_options basic full; do
     printf '[miniz] AOT %s\n' "$name"
     case "$name" in
         central) source=test/cases/extlib_miniz.xl ;;

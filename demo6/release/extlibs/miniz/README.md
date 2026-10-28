@@ -1,5 +1,25 @@
 # miniz
 
+2026-10-28 原生构造入口收口：工厂原已拒绝负级别，但导出类的直接构造
+和 C 桥接入口仍把负数当成默认级别。现所有压缩入口统一遵守 0..10，
+内部解压需要默认值时显式传 `XDEFLATE_LEVEL_DEFAULT`，不保留负数别名。
+C 的五个非法级别 × 三种内存/构造入口及文件入口共 20 组负例、0..10
+有效级别往返，以及 XLang 显式类型变量和直接构造器的正反例均已验证。
+非法文件调用不发布目标，内存负例释放后回到活动分配基线。
+
+桥接头 `include/miniz_native.h` 使用标准 bool/size_t 与公开不透明 xvalue
+前向声明，不强制启用 VALUE，也不依赖它与核心头的包含顺序。严格 C
+分别检查两种顺序；测试所用目录能力只加到验证运行时，不扩充产品依赖。
+新增 `test/native_options.xl` 登记到 coverage；本轮默认 Windows/Linux
+门禁通过严格 GCC、Linux ASan/UBSan、Python zlib、新旧双语 JIT/AOT。
+中间一次宿主虚拟内存不足及 WSL 服务中断另行留档，保持原参数串行复验
+后通过；详见[资源事件说明](../../../docs/普通扩展库验证资源事件_2026-10-28.md)，
+不据此关闭其他包的未知风险。
+
+结构化底层错误会直接分发：损坏/截断通常为 `IOError`，输出限额为
+`RangeError`，分配失败为 `MemoryError`；不能按旧注释一概捕获
+`CompressionError`。C 调用方对应检查错误结构及当前 XRT 错误槽。
+
 2026-10-28 流式 IO 首因收口：C 的压缩/解压 Reader 读取失败和两个
 drain 的 Writer 失败原统一报 IO，并丢失后端代码和消息。现复用既有
 XRT 错误映射，保留 ARGUMENT、MEMORY、LIMIT、STATE、CANCELLED、IO

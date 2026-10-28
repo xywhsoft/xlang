@@ -79,7 +79,7 @@ static void xminiz_options(xrtminizoptions* pOptions, int iLevel, uint64 iMaxInp
 	uint64 iMaxOutput, uint32 iMaxRatio)
 {
 	xrtMinizOptionsInit(pOptions);
-	if ( iLevel >= 0 ) { pOptions->iLevel = iLevel; }
+	pOptions->iLevel = iLevel;
 	if ( iMaxInput != 0u ) { pOptions->tLimits.iMaxInputBytes = iMaxInput; }
 	if ( iMaxOutput != 0u ) { pOptions->tLimits.iMaxOutputBytes = iMaxOutput; }
 	if ( iMaxRatio != 0u ) { pOptions->tLimits.iMaxCompressionRatio = iMaxRatio; }
@@ -221,7 +221,7 @@ XMINIZ_EXPORT void* xminiz_decompress(void* pData, size_t iSize, unsigned long l
 	xrtminizerror tError;
 	xbuffer* pOutput = NULL;
 	xrtClearError();
-	xminiz_options(&tOptions, -1, iMaxInput, iMaxOutput, iMaxRatio);
+	xminiz_options(&tOptions, XDEFLATE_LEVEL_DEFAULT, iMaxInput, iMaxOutput, iMaxRatio);
 	if ( !xrtMinizDecompress(pData, iSize, &tOptions, &pOutput, &tError) ) {
 		xminiz_publish_error(&tError);
 		return NULL;
@@ -278,7 +278,7 @@ XMINIZ_EXPORT int xminiz_decompress_file(const char* sSource, const char* sDesti
 {
 	xrtminizoptions tOptions;
 	xrtClearError();
-	xminiz_options(&tOptions, -1, iMaxInput, iMaxOutput, iMaxRatio);
+	xminiz_options(&tOptions, XDEFLATE_LEVEL_DEFAULT, iMaxInput, iMaxOutput, iMaxRatio);
 	return xminiz_transform_file(sSource, sDestination, false, bOverwrite, &tOptions, pCallback);
 }
 
@@ -365,7 +365,7 @@ XMINIZ_EXPORT void* xminiz_decompressor_create(unsigned long long iMaxInput, uns
 	xrtminizoptions tOptions;
 	xrtminizdecompressor* pDecompressor;
 	xrtClearError();
-	xminiz_options(&tOptions, -1, iMaxInput, iMaxOutput, iMaxRatio);
+	xminiz_options(&tOptions, XDEFLATE_LEVEL_DEFAULT, iMaxInput, iMaxOutput, iMaxRatio);
 	pDecompressor = xrtMinizDecompressorCreate(&tOptions);
 	if ( pDecompressor == NULL ) {
 		if ( xrtGetError() == NULL ) {

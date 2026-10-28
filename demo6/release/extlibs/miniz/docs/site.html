@@ -113,7 +113,7 @@ end</pre></div></div>
       <p>提供一次性、文件级和增量流式三种接口。流式类提供 update/drain/finish、inputBytes/outputBytes/finished；每次编码只生成一条 zlib 流，解码拒绝第二条拼接流及旧私有容器。</p>
       <div class="api-note">文件接口末尾支持可空 <code>onProgress(inputBytes, totalBytes, outputBytes)</code>。含 NUL 的源/目标路径报 <code>ValueError</code>；返回 false 删除临时输出并抛 <code>CancelledError</code>；回调异常原样传播。C 层对应 <code>xrtprogressproc</code> + <code>void* userData</code>。C 流式接口的进度从 Reader 当前读取位置起算；无法同时取得总长和当前位置时不设置 <code>TOTAL_KNOWN</code>。</div>
       <div class="api-note">C 流式接口借用 Reader/Writer，不接管关闭。读取或 drain 写出失败时，错误结构保留可识别的 XRT 参数、内存、限额、状态、取消或 IO 首因，以及原始代码和消息；未提供详细首因时才按 IO 处理。</div>
-      <div class="api-note"><code>level</code> 越界抛 <code>ValueError</code>；数据损坏抛 <code>CompressionError</code>。</div>
+      <div class="api-note"><code>level</code> 在工厂和直接原生构造入口都只接受 0..10，越界抛 <code>ValueError</code>。结构化底层错误直接分发：损坏/截断通常为 <code>IOError</code>，限额为 <code>RangeError</code>，分配失败为 <code>MemoryError</code>，不一概改成 CompressionError。</div>
     </div>
   </div>
 
@@ -154,6 +154,7 @@ xl.exe run examples\extlibs\miniz.xl</pre></div></div>
 
   <div class="ext-panel" id="panel-tests">
     <h2>测试覆盖</h2>
+    <p>直接构造器和 C 桥接不接受负级别别名。新增五个非法级别 × 四种入口的 C 负例、0..10 往返、XLang 显式类型/直接构造正反例，以及原生头的两种包含顺序检查。最终 Windows/Linux 默认门禁完整通过；曾遇宿主虚拟内存不足和 WSL 中断，保留现场后按原参数串行复验，不把资源事件当作库功能失败或旧未知风险已修。</p>
     <p>2026-10-28 Windows/Linux 默认门禁通过新增 C IO 首因矩阵：四个入口 × 七类错误共 28 组、真实 Writer 扩容 OOM、关闭归属和活动分配恢复。保留严格 GCC、Linux ASan/UBSan、Python zlib 互通、新旧双语 JIT/AOT；Windows 默认模式也完整构建运行中央、进度、文件、分配和完整范例。失败保留原始状态与输入指纹，不把一次通过写成长期压力或所有平台认证。</p>
     <p>测试文件：<code>extlibs/miniz/test/file_ops.xl</code>、<code>extlibs/miniz/test/test_miniz.c</code>，以及中央 <code>test/cases/extlib_miniz.xl</code>。C 入口先验证选项和资源限制结构的长度、版本、保留字段及 0..10 级别；条目、节点、深度限额及未知标志不适用于单条 zlib 流，显式设置会报参数错误，不读取文件流输入。</p>
     <ul>
