@@ -20,6 +20,7 @@ function InputPaths {
         Get-ChildItem (Join-Path $Root "release/extlibs/$pkg") -Recurse -File | ForEach-Object FullName
     }
     foreach ($p in @('lib/xrt/xrt.h','lib/xruntime/xruntime.h','test/support/extlib_codec_runtime.c',
+        'test/support/extlib_codec_file_rollback.h',
         'tools/check_extlib_lz4.ps1','tools/check_extlib_lz4.sh','tools/check_extlib_lz4_interop.py',
         'tools/extlib_smoke_process.ps1','tools/xlir_native_process.ps1','tools/run_extlib_c.ps1',
         'test/featured_extlibs.json','test/suites/11_featured_extlibs_rc.bat',
