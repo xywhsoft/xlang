@@ -1,0 +1,5 @@
+import diff
+
+// 两个公开入口都显式使用，完整调用链不应复制校验后的输入或结果。
+assert diff.lines("old", "new") == "-old\n+new\n"
+assert diff.stats("old", "new") == "1,1,0"

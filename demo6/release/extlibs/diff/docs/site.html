@@ -18,6 +18,7 @@
 <main class="extlib-layout" id="main-content">
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / diff</p><h1>diff</h1>
     <p class="extlib-lead">中小文本的行级 LCS 差异。</p>
+    <p>2026-10-28：校验不再返回并复制输入，两个原生文本结果直接转移，完整调用夹具没有输入或结果正文副本。固定空/短文本的 C 与 XLang 各 8 组预算、四组 NUL 反例、Windows/Linux 默认门禁和双语 JIT/AOT 均通过，Linux 包含 ASan/UBSan。仍保留两次小型 NUL 针串分配、长度扫描与错误作用域，不称整条调用零开销；C 算法与 ABI 不变。</p>
     <p>保留长行和完整输出，超出明确预算时报错。2026-10-26 当前发布物的 Windows/Linux 默认门禁通过 C 边界与线程、Linux ASan/UBSan、XLang 边界、公开范例 AOT，以及新增 C 单文件范例独立 EXE；GCC、TCC、C AOT、XLang JIT/AOT 对固定输出一致。旧版共享快照缺符号已不阻断双平台 AOT。<code>-SkipAot</code> 仅用于 C/JIT 聚焦验证。本包是有界行级 LCS，不生成 unified patch，也不处理大文件流式 diff。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
