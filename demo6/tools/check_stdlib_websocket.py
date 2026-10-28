@@ -20,7 +20,7 @@ def main():
  p=argparse.ArgumentParser(description=__doc__)
  for n in ['root','out']:p.add_argument('--'+n,type=Path,required=True)
  p.add_argument('--driver',type=Path);p.add_argument('--case',action='append',choices=CASES);p.add_argument('--jobs',type=int,default=2)
- a=p.parse_args();assert 1<=a.jobs<=2;root=a.root.resolve();out=a.out.resolve();selected=a.case or CASES
+ a=p.parse_args();assert 1<=a.jobs<=4;root=a.root.resolve();out=a.out.resolve();selected=a.case or CASES
  assert not out.exists();out.mkdir(parents=True);rows=[];lock=threading.Lock();windows=os.name=='nt';driver=a.driver.resolve() if a.driver else None
  report=dict(Complete=False,SourceDriverOnly=bool(driver),ShippingAcceptance=False,ExternalTraffic=False,NetworkSecurityTests=False,Rows=rows)
  inputs={Path(__file__).resolve(),root/'tools/gen_stdlib_websocket.py',*[root/'test/cases'/(n+'.xl') for n in selected+BAD]}
@@ -35,7 +35,7 @@ def main():
   except subprocess.TimeoutExpired as e:code='timeout';data=(e.stdout or b'')+(e.stderr or b'')
   log.write_bytes(data)
   with lock:rows.append(dict(Name=name,Command=args,Exit=code,Negative=negative,Log=str(log),Sha256=sha(log)))
-  assert isinstance(code,int) and (code!=0 if negative else code==0),(name,data[-4000:].decode(errors='replace'))
+  assert isinstance(code,int) and code==(1 if negative else 0),(name,data[-4000:].decode(errors='replace'))
   return data
  try:
   run('metadata',[sys.executable,root/'tools/gen_stdlib_websocket.py','--check'])
