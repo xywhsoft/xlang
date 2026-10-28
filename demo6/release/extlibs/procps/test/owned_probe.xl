@@ -1,0 +1,4 @@
+import procps
+
+// 成功返回直接转移；缺失分支的抛错代码不应迫使成功结果复制。
+assert procps.name(procps.pid()) != ""

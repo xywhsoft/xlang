@@ -1,0 +1,46 @@
+import procps
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    int selfId = procps.pid()
+    string expected = procps.name(selfId)
+    for budget in range(2)
+        string result = ""
+        bool memoryCaught = false
+        bool triggered = false
+        // 当前短可执行路径只需一次 C 结果分配，不能再复制成功结果。
+        assert failAfter(uint64(budget))
+        try
+            result = procps.name(selfId)
+        catch MemoryError error
+            memoryCaught = true
+        finally
+            triggered = failTriggered()
+            failClear()
+        end
+        if budget == 0 then
+            assert triggered and memoryCaught
+        else
+            assert not triggered and not memoryCaught, "procps copied text after the native result was adopted"
+            assert result == expected and result != ""
+        end
+    end
+
+    // C 的正常 NULL 保持语言 ValueError，不能混成非空结果或通用类型错误。
+    array<int> unavailable = [-1, 0, 9223372036854775807]
+    int rejected = 0
+    for processId in unavailable
+        try
+            procps.name(processId)
+        catch ValueError error
+            rejected += 1
+        end
+    end
+    assert rejected == 3
+    assert procps.name(selfId) == expected
+    println("procps nullable owned result budgets: PASS")
+    return 0
+end

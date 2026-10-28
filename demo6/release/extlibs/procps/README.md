@@ -1,5 +1,22 @@
 # procps
 
+2026-10-28 完整返回链复查：`name` 的可空局部返回仍复制已接管正文。
+不能直接改成非空声明，因为 C 的 NULL 也表示正常不可读取/进程消失。
+现保留 `@owned string?`，使用调用临时值 `??` 仅在缺失时调用原有
+ValueError 抛错函数；成功结果直接转移，不增加 C 适配器或改变 C ABI。
+完整 cgen 夹具从一处返回复制变为零，原生实现未改。
+
+C/XL 在当前短可执行路径各用 0/1 两组预算，语言侧先红后绿：0 保持
+内存错误，1 即成功。三种无效 PID 的 C NULL/无错误与 XL ValueError
+及随后的恢复均通过。该预算不外推 Linux 超长路径回退等内部多次
+分配情形；长度扫描、系统查询及错误作用域仍存在，不宣称整个桥零开销。
+
+Windows/Linux 默认完整门禁通过严格 GCC/TCC C、Linux ASan/UBSan、
+名称回退/长路径/畸形 statm/非法 UTF-8、中央/边界/新预算的语言 JIT/AOT
+与双语固定输出。Windows 新增边界 AOT，不再仅验证核心和公开范例；
+两平台校验输入指纹，失败保留现场，文本黄金只统一行尾。测试运行库
+沿用产品模块并加内存调试，主线/XRT 未改。
+
 2026-10-27：`name(pid)` 直接声明公开的 `xprocps_name` 为
 `@owned string?`，删除只转发指针的 `xprocps_name_abi` 和语言侧
 `point/takeCstr` 交接。进程名不可用仍按原合同报错；生成 C 直接
@@ -85,11 +102,13 @@ release/xl.exe run release/examples/extlibs/procps.xl
 wsl bash release/extlibs/procps/test/check.sh
 ```
 
-Windows 默认包门禁在 C/JIT 之后构建并运行中央用例、公开 XLang
-范例和 C 单文件范例的 AOT 产物，后两者逐行对照固定事实输出；
-Linux 默认包门禁另构建并运行中央、边界及双语范例的独立 EXE。
+Windows/Linux 默认包门禁在 C/JIT 之后构建并运行中央、边界、新结果
+预算、公开 XLang 范例和 C 单文件范例的 AOT 产物，双语范例逐行对照
+固定事实输出。`test/owned_results.xl` 登记到 coverage，
+`test/owned_probe.xl` 独立核对完整可空返回链。
 `-SkipAot` 仅运行 Windows 聚焦 C/JIT 检查，不代表发布签收。
-AOT 文件放在独占系统临时目录，退出时只清理本次产物。
+Windows 产物在 build/test 的独占目录，Linux 在独占系统临时目录；
+成功时只清理本次产物，失败时保留输入指纹、命令与现场。
 
 Windows 独立 GCC、Linux GCC + ASan/UBSan、XL JIT 和 C/XL 范例已通过。
 Windows 包级脚本还逐一核对包运行器 C、单文件 C 与 XLang 范例的固定事实输出；单文件 C 范例只在 TCC 路径包含原生实现，正式包仍按清单分离编译。

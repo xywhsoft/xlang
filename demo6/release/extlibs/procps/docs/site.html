@@ -18,6 +18,7 @@
 <main class="extlib-layout" id="main-content">
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / procps</p><h1>procps</h1>
     <p class="extlib-lead">完整进程快照、UTF-8 名称与常驻内存查询。</p>
+    <p>2026-10-28 保留 C 正常 NULL 合同，以 <code>??</code> 转移成功结果、仅在名称不可用时抛原有 ValueError；不增加 C 适配器。当前短可执行路径的 C/XLang 各两组预算与完整 cgen 检查通过，成功返回不再复制正文。双平台默认门禁及 Linux 长路径/回退/畸形数据/非法 UTF-8、ASan/UBSan 与双语 JIT/AOT 通过；不是任意查询都单次分配或完整零开销保证。</p>
     <p>进程快照接口为返回数组的 <code>pids()</code>，不保留旧字符串接口；C 教学范例也可直接单文件运行。2026-10-26 重建 Windows/Linux x64 发布物后，两平台默认门禁均通过严格 C/ABI、Linux ASan/UBSan、异常 <code>/proc</code> 数据、非法 UTF-8 名称、C/XLang 固定输出、中央与边界用例，以及 C/XLang 范例独立 EXE AOT。旧共享快照缺符号不再复现；短时包级验收不保证进程在跨调用期间保持存在、读取权限或其他架构行为。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>

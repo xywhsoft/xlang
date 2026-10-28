@@ -1,5 +1,6 @@
 #define XRT_MODULE_VALUE_CONTAINER
 #define XRT_MODULE_UNICODE
+#define XRT_MODULE_MEMORY_DEBUG
 #include "xrt.h"
 #include "../include/procps_native.h"
 #include <stdio.h>
@@ -12,6 +13,37 @@
     fprintf(stderr, "procps test failed at line %d: %s\n", __LINE__, #test); \
     return 1; \
 } } while (0)
+
+/* 短的当前可执行路径一次分配即可；名称缺失仍为正常 NULL，无通用错误。 */
+static int test_owned_result_budget(void)
+{
+    int64_t self = xprocps_pid();
+    char* expected = xprocps_name(self);
+    unsigned budget;
+    CHECK(expected != NULL);
+    for (budget = 0; budget < 2u; ++budget) {
+        char* result;
+        bool triggered;
+        bool memory_error;
+        CHECK(xrtMemDebugFailAfter(budget));
+        result = xprocps_name(self);
+        triggered = xrtMemDebugFailTriggered();
+        memory_error = xrtErrorKind(xrtGetError()) == XERR_MEMORY;
+        xrtMemDebugFailClear();
+        if (budget == 0u) {
+            CHECK(result == NULL && triggered && memory_error);
+        } else {
+            CHECK(result != NULL && !triggered && !memory_error);
+            CHECK(strcmp(result, expected) == 0 && xrtGetError() == NULL);
+            xrtFree(result);
+        }
+    }
+    xrtFree(expected);
+    CHECK(xprocps_name(-1) == NULL && xrtGetError() == NULL);
+    CHECK(xprocps_name(0) == NULL && xrtGetError() == NULL);
+    CHECK(xprocps_name(INT64_MAX) == NULL && xrtGetError() == NULL);
+    return 0;
+}
 
 int main(int argc, char** argv)
 {
@@ -86,6 +118,7 @@ int main(int argc, char** argv)
     }
     CHECK(found && xprocps_count() > 0);
     xrtValueRelease(ids);
+    CHECK(test_owned_result_budget() == 0);
     puts("procps C boundaries: PASS");
     return 0;
 }
