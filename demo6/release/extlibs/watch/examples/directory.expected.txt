@@ -1,0 +1,3 @@
+same size: true
+directory modified: true
+no repeated event: true

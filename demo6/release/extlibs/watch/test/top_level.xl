@@ -1,0 +1,11 @@
+import watch
+
+// 保留顶层真实对象并自然退役，不能提前销毁或搬到 main 绕过退出边界。
+auto state = watch.create()
+
+func main(...) as int
+    assert state.valid and state.count == 0
+    assert state.poll() == ""
+    println("watch top-level: PASS")
+    return 0
+end

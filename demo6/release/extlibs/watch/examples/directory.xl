@@ -1,0 +1,25 @@
+import watch
+
+// 目录只监听直接子项，事件指向目录本身，不返回子项名称。
+func main(...) as int
+    string root = dir.temp("", "xlang-watch-directory-", "")
+    try
+        string child = path.join(root, "same-size.txt")
+        assert file.writeText(child, "old!")
+        auto before = file.stat(child)
+        // 调早初始修改时间，让粗粒度文件系统也有可观测的元数据变化。
+        assert file.setTimes(child, modified = before.modified - 2000000)
+        auto watcher = watch.create()
+        assert watcher.add(root) == 0 and watcher.poll() == ""
+        assert file.writeText(child, "new!")
+        assert file.stat(child).size == before.size
+        println("same size:", true)
+        assert watcher.poll() == "MODIFIED:" + root
+        println("directory modified:", true)
+        assert watcher.poll() == ""
+        println("no repeated event:", true)
+    finally
+        assert dir.delete(root)
+    end
+    return 0
+end

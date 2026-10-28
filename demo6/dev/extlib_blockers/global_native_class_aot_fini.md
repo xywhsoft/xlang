@@ -1,5 +1,45 @@
 # 顶层 native-backed class 在独立 EXE 退出时失败
 
+## 2026-10-29 Watch 第22个已实测涉及包
+
+`release/extlibs/watch/test/top_level.xl` 在顶层创建真实Watcher，main内
+检查valid/count/空poll并打印PASS，随后自然退出；没有监听文件，不
+涉及事件修改或资源等待。固定Windows/Linux发布物均JIT退出0、构建
+退出0，独立程序打印PASS后报同一状态RuntimeError并退出1。
+
+另外的最小全局控制只保留valid查询，同样失败；相同操作置于main的
+局部控制退出0。两个平台均验证，不因其他native类相似而直接归类。
+这些只证明相同可观察退役边界，不证明22包内部全部同根。
+
+从demo6可用普通命令复验，不需要更换运行库：
+
+```text
+release/xl run release/extlibs/watch/test/top_level.xl
+release/xl build release/extlibs/watch/test/top_level.xl -o build/test/watch-global.exe
+build/test/watch-global.exe
+```
+
+Windows完整默认门禁49阶段，47正向成功、一项预期私有方法访问拒绝
+符合要求，只有最后全局AOT退役失败；十条普通独立程序均过。报告和
+全部现场保留在 `build/test/watch_guard/run_df5079c2a2a34c098d9cb6053e67a7ab`
+及其旁边的JSON，44项实际依赖指纹变动0。
+
+Linux原生快照 `/var/tmp/xlang-watch-digest-src-EXpcL7` 同样先过C
+ASan/UBSan、目录竞态、15个元数据夹具、八个实际生成原型、旧新
+JIT/十条普通独立程序与双语黄金输出，最后全局AOT退出1。父子现场
+`tmp/xlang-watch-KOsmv2` 与源件41份前后核对均保留；缺编译器还按
+真实127退出并保留诊断。最小控制在该快照controls/，Win控制和初始
+现场在 `build/test/watch_digest_before_b4a0b973b594441482b7cc74c1e937ba`。
+
+包内目录摘要抵消和关闭覆盖首因已独立修复、逐项验证，不是本问题的
+修复。主线应核对全局对象释放、类型/模块/代码和错误上下文退役顺序，
+确保最后一个全局引用释放前析构仍可调用，并保持析构仅一次及异常时
+后续清理；不要全局放宽FINALIZING或把对象挪入main/提前销毁。
+修复后先重跑这个最小正例和局部对照，再跑默认门禁；也要补跨模块
+全局、工厂返回值、容器持有对象和初始化失败的退役顺序覆盖。
+
+Watch从G转M，M2已实测涉及21增至22包；主线/XRT/冻结发布物未改。
+
 ## 2026-10-29 Dotenv 第21个已实测涉及包
 
 `release/extlibs/dotenv/test/top_level.xl` 在全局创建真实Config，main
