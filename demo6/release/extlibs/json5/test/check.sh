@@ -4,7 +4,24 @@ set -euo pipefail
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../../.." && pwd)
 cd "$root"
 work=$(mktemp -d "${TMPDIR:-/tmp}/xlang-json5-XXXXXX")
-trap 'rm -rf -- "$work"' EXIT
+cleanup() {
+    result=$?
+    trap - EXIT
+    set +e
+    if ((result == 0)); then
+        rm -rf -- "$work" || result=$?
+    else
+        printf '[json5] FAIL exit=%s artifacts=%s\n' "$result" "$work" >&2
+    fi
+    exit "$result"
+}
+trap cleanup EXIT
+record_failure() {
+    printf 'exit=%s\nline=%s\ncommand=%s\npipeline=%s\n' "$@" > "$work/failure.txt"
+    cat "$work/failure.txt" >&2
+}
+trap 'record_failure "$?" "$LINENO" "$BASH_COMMAND" "${PIPESTATUS[*]}"' ERR
+exec > >(tee "$work/output.log") 2>&1
 cc=${CC:-gcc}
 pkg=release/extlibs/json5
 flags=(-std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror
@@ -13,11 +30,32 @@ flags=(-std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror
 export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1
 export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
 
+mapfile -d '' inputs < <(
+    { find "$pkg" -type f -print0
+      printf '%s\0' lib/xrt/xrt.h lib/xruntime/xruntime.h release/xl release/libxl.so \
+          release/libxlc.so release/include/xrt_decl.h release/include/xruntime_decl.h \
+          release/include/xl_extlib_abi.h test/cases/extlib_json5.xl \
+          release/examples/extlibs/json5.xl
+    } | sort -zu
+)
+sha256sum "${inputs[@]}" > "$work/inputs.before.sha256"
+"$cc" --version > "$work/compiler.txt"
+
+# 数值/深度是独立的边界，三个 C 测试共用同一组严格编译的对象。
 "$cc" "${flags[@]}" -c "$pkg/test/xrt_runtime.c" -o "$work/xrt_runtime.o"
-sources=("$pkg/json5_native.c" "$pkg/vendor/pdjson5.c")
-"$cc" "${flags[@]}" "${sources[@]}" "$pkg/test/test_boundaries.c" \
-    "$work/xrt_runtime.o" -lm -ldl -o "$work/boundaries"
-timeout 90s "$work/boundaries"
+"$cc" "${flags[@]}" -c "$pkg/json5_native.c" -o "$work/native.o"
+"$cc" "${flags[@]}" -c "$pkg/vendor/pdjson5.c" -o "$work/parser.o"
+objects=("$work/native.o" "$work/parser.o" "$work/xrt_runtime.o")
+for name in boundaries numbers depth; do
+    "$cc" "${flags[@]}" "$pkg/test/test_$name.c" "${objects[@]}" \
+        -lm -ldl -o "$work/$name"
+    timeout 90s "$work/$name"
+done
+if [[ -n "${JSON5_REFERENCE_DIR:-}" ]]; then
+    "$cc" "${flags[@]}" "$pkg/test/reference_probe.c" "${objects[@]}" \
+        -lm -ldl -o "$work/reference_probe"
+    node "$pkg/test/reference_probe.mjs" "$work/reference_probe" "$JSON5_REFERENCE_DIR"
+fi
 "$cc" "${flags[@]}" "$pkg/examples/json5_c.c" \
     "$work/xrt_runtime.o" -lm -ldl -o "$work/example"
 timeout 30s "$work/example" > "$work/json5_c.txt"
@@ -51,4 +89,11 @@ diff -u "$work/json5_public_jit.txt" "$work/json5_public_aot.txt"
 timeout 120s "$xl" build "$pkg/examples/json5_c.c" -o "$work/json5_c_aot"
 timeout 45s "$work/json5_c_aot" > "$work/json5_c_aot.txt"
 diff -u "$work/json5_c.txt" "$work/json5_c_aot.txt"
+sha256sum -c "$work/inputs.before.sha256" > "$work/inputs.checked.txt"
+
+# 保持正确的正例；主线 var 显式转换未修复时，整包门禁必须为红。
+timeout 90s "$xl" run "$pkg/test/numeric_consumer.xl"
+timeout 120s "$xl" build "$pkg/test/numeric_consumer.xl" -o "$work/json5_numeric_consumer"
+timeout 45s "$work/json5_numeric_consumer"
+sha256sum -c "$work/inputs.before.sha256" > "$work/inputs.checked.txt"
 printf 'json5 Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\n'

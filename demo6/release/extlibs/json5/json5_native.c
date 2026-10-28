@@ -62,36 +62,76 @@ static void xjson5_free(void* data, size_t size, void* user) {
     xrtFree(data);
 }
 
+/* JSON5 十六进制整数先按范围选 int64/float64，不借整数错误来试探类型。
+ * 大数前 15 位由 XRT 精确读入；其余位只参与一次 ties-to-even 舍入。
+ * 不能逐位用 double 累加，也不能依赖各平台 strtod 对十六进制的不同支持。 */
+static xvalue* xjson5_hex_number(xstrview raw, size_t start) {
+    const char* first = raw.Data + start + 2u;
+    const char* end = raw.Data + raw.Size;
+    const char* tail;
+    uint64 head, mantissa, discarded, half, bits;
+    unsigned width, shift, exponent;
+    size_t digits;
+    bool negative = raw.Data[0] == '-';
+    double number;
+
+    while (first < end && *first == '0') ++first;
+    digits = (size_t)(end - first);
+    if (digits == 0u) return negative ? xrtValueFloat(-0.0) : xrtValueInt(0);
+    if (digits <= 16u) {
+        if (!xrtUIntParse((xstrview){first, digits}, 16u, 0u, &head)) return NULL;
+        if (head <= INT64_MAX) return xrtValueInt(negative ? -(int64)head : (int64)head);
+        if (negative && head == (UINT64_C(1) << 63)) return xrtValueInt(INT64_MIN);
+        head >>= 4;
+    } else {
+        if (digits > 256u) goto unrepresentable;
+        if (!xrtUIntParse((xstrview){first, 15u}, 16u, 0u, &head)) return NULL;
+    }
+    width = head >= (UINT64_C(1) << 59) ? 60u :
+        head >= (UINT64_C(1) << 58) ? 59u :
+        head >= (UINT64_C(1) << 57) ? 58u : 57u;
+    shift = width - 53u;
+    mantissa = head >> shift;
+    discarded = head & ((UINT64_C(1) << shift) - 1u);
+    half = UINT64_C(1) << (shift - 1u);
+    tail = first + 15u;
+    while (tail < end && *tail == '0') ++tail;
+    if (discarded > half ||
+        (discarded == half && (tail < end || (mantissa & 1u)))) ++mantissa;
+    exponent = width - 1u + (unsigned)(4u * (digits - 15u));
+    if (mantissa == (UINT64_C(1) << 53)) { mantissa >>= 1; ++exponent; }
+    if (exponent > 1023u) goto unrepresentable;
+    bits = ((uint64)(exponent + 1023u) << 52) |
+        (mantissa & ((UINT64_C(1) << 52) - 1u));
+    if (negative) bits |= UINT64_C(1) << 63;
+    memcpy(&number, &bits, sizeof(number));
+    return xrtValueFloat(number);
+unrepresentable:
+    xjson5_error("JSON5 number is not representable as int64 or float64");
+    return NULL;
+}
+
 static xvalue* xjson5_number(xstrview raw) {
     int64 integer;
     double number;
     size_t start = raw.Size > 0 && (raw.Data[0] == '+' || raw.Data[0] == '-') ? 1u : 0u;
     bool hex = raw.Size >= start + 2u && raw.Data[start] == '0' &&
         (raw.Data[start + 1u] == 'x' || raw.Data[start + 1u] == 'X');
-    /* e/E 在十六进制中是数字，只有十进制字面量才把它们当指数标记。 */
+    if (hex) return xjson5_hex_number(raw, start);
+    /* 只有十进制字面量把 e/E 当指数标记，原始语法已由词法器验证。 */
     bool whole = raw.Size > start && memchr(raw.Data, '.', raw.Size) == NULL &&
-        (hex || (memchr(raw.Data, 'e', raw.Size) == NULL &&
-            memchr(raw.Data, 'E', raw.Size) == NULL)) &&
+        memchr(raw.Data, 'e', raw.Size) == NULL && memchr(raw.Data, 'E', raw.Size) == NULL &&
         !((raw.Data[start] >= 'A' && raw.Data[start] <= 'Z') ||
           (raw.Data[start] >= 'a' && raw.Data[start] <= 'z'));
 
-    if (whole && xrtIntParse(raw, 0u, XNUMBER_PARSE_PREFIX, &integer)) {
-        if (integer == 0 && raw.Data[0] == '-') return xrtValueFloat(-0.0);
-        return xrtValueInt(integer);
-    }
-    if (hex) {
-        size_t i;
-        number = 0.0;
-        for (i = start + 2u; i < raw.Size; ++i) {
-            unsigned char c = (unsigned char)raw.Data[i];
-            unsigned digit = c >= '0' && c <= '9' ? (unsigned)(c - '0') :
-                c >= 'a' && c <= 'f' ? (unsigned)(c - 'a') + 10u :
-                (unsigned)(c - 'A') + 10u;
-            number = number * 16.0 + (double)digit;
+    if (whole) {
+        size_t digits = raw.Size - start;
+        const char* limit = raw.Data[0] == '-' ? "9223372036854775808" : "9223372036854775807";
+        if (digits < 19u || (digits == 19u && memcmp(raw.Data + start, limit, 19u) <= 0)) {
+            if (!xrtIntParse(raw, 10u, 0u, &integer)) return NULL;
+            if (integer == 0 && raw.Data[0] == '-') return xrtValueFloat(-0.0);
+            return xrtValueInt(integer);
         }
-        /* 只有显式 Infinity 才能表示无穷大；有限字面量溢出必须报错。 */
-        if (!isfinite(number)) goto unrepresentable;
-        return xrtValueFloat(start && raw.Data[0] == '-' ? -number : number);
     }
     if (xrtNumParse(raw, XNUMBER_PARSE_SPECIAL, &number)) {
         if (!isfinite(number) && raw.Data[start] != 'I' &&
@@ -99,6 +139,7 @@ static xvalue* xjson5_number(xstrview raw) {
         xrtClearError();
         return xrtValueFloat(number);
     }
+    if (xrtGetError() && xrtErrorKind(xrtGetError()) == XERR_MEMORY) return NULL;
 unrepresentable:
     xjson5_error("JSON5 number is not representable as int64 or float64");
     return NULL;
@@ -110,7 +151,7 @@ static xvalue* xjson5_value(pdjson_stream* parser, enum pdjson_type type,
     size_t size;
     cstr text;
 
-    if (depth > XJSON5_MAX_DEPTH) {
+    if ((type == PDJSON_ARRAY || type == PDJSON_OBJECT) && depth >= XJSON5_MAX_DEPTH) {
         xjson5_limit_error("JSON5 nesting exceeds 64 levels");
         return NULL;
     }

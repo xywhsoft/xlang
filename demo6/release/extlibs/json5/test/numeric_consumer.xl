@@ -1,0 +1,11 @@
+import json5
+
+func main(...) as int
+    // 按正式转换规则，显式 float(var) 应转换整数，而不是执行 as 的精确类型取出。
+    var value = json5.getValue("{answer:42}", "answer")
+    assert type(value) == int
+    assert float(value) == 42.0
+    var document = json5.parse("{answer:42}")
+    assert float(document["answer"]) == 42.0
+    return 0
+end

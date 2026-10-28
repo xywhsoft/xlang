@@ -41,6 +41,13 @@ int main(void) {
     path_text = xjson5_get_text_len(config, size, "service");
     if (!path_text || xjson5_has_error() || strcmp(path_text, "xlang") != 0) goto done;
     printf("path=%s\n", path_text);
+    /* 大整数转 float64 只舍入一次；不要依赖显示文本判断精度。 */
+    xrtValueRelease(selected);
+    const char wide_hex[] = "{n:0x8000000000000401}";
+    selected = xjson5_get_value_len(wide_hex, sizeof(wide_hex) - 1u, "n");
+    double number;
+    if (!selected || xjson5_has_error() || !xrtValueGetFloat(selected, &number) ||
+        number != 9223372036854775808.0 + 2048.0) goto done;
     status = 0;
 done:
     xrtFree(path_text);

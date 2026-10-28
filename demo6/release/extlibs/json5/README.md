@@ -1,5 +1,45 @@
 # JSON5 扩展库
 
+## 当前验收状态（2026-10-28）
+
+**待主线修复，不是整包绿灯。** 新增的正确消费用例
+[`test/numeric_consumer.xl`](test/numeric_consumer.xl)要求把解析得到的整数
+`var` 显式转为 float；当前发布版却把 `float(value)` 当成 checked `as`，
+抛 `TypeError`。不导入任何包的 `var value = 42; float(value)` 也失败，
+Windows JIT 和独立 EXE 均已复现。详见
+[M10 最小复现与修复方向](../../../dev/extlib_blockers/var_int_explicit_float.md)。
+包清单和默认门禁保留这一正例，不加包内转换绕过，也不把异常当作成功。
+
+本轮包内修复两处真实错误：
+
+- `0x8000000000000401` 等超出 int64 的十六进制数原用 double 逐位累加，
+  可能比正确结果低一档。现在用 XRT 读取有效前缀，再按余数/粘滞位只做一次
+  nearest ties-to-even 舍入；不依赖 Windows TCC 的 CRT 对 hex `strtod`
+  的不完整支持，也不产生正常 int64 溢出探测用的临时错误。
+- 64 层限制现在明确为**容器数**：根数组/对象算一层，空容器也算一层，
+  标量不另占一层；65 层不能再因最内层为空而越过限制。四个 API 一致。
+
+数值测试独立固定二进制位模式，覆盖 int64 正负边界、舍入中点与两侧、
+前导零、负零、最大有限值及溢出中点。C 深度测试有 140 种数组/对象/混合
+与标量/空叶组合；分配故障同时覆盖大十六进制、大十进制及长小数，检查
+内存错误和活动分配数/字节数恢复，不能把正常的中途恢复说成内存损坏。
+
+Windows 默认门禁本轮通过上述 C 测试、官方 JSON5 2.2.3 的 714 个解析
+对照（其中 526 个比较值）、语言边界/分配故障及既有全部双语 JIT/AOT
+检查，**最后在新消费正例返回 1**。输入与实际依赖的发布物已核对指纹，
+失败目录保留命令、状态与输出。下文旧的全通过记录仅代表当时覆盖范围，
+不覆盖这次新发现的 M10。Linux 同输入原生文件系统快照亦通过 C
+ASan/UBSan、语言边界/分配与既有全部双语 JIT/AOT 对照，再于同一正例
+返回 1；本轮 Linux 未运行可选 Node 参考对照，也不证明挂载盘 AOT 耗时
+风险已解决。编译器仍固定于 `d64672903`，未合入滚动 master
+或替换 XRT；完整基线见[验收矩阵](../../../docs/普通扩展库发布验收矩阵_2026-10-28.md)。
+
+参考对照使用从 npm 官方发布物临时解包的 JSON5 2.2.3，没有安装脚本；
+下载内容核对发布方 SHA-1 `78cd6f1a19bdc12b73db5ad0c61efd66c1e29283`
+及 SHA-512 integrity。参考源码不加入包、构建或产品依赖。
+
+## 使用与历史验证
+
 2026-10-27：`json5.get` 直接声明已有的 C `xjson5_get_text_len`
 为 `@owned string`，删除只转发指针的 `xjson5_get_text_abi` 和语言侧
 `point/takeCstr` 中转。标量文本仍在 C 查询内部按值构造；优化只消除
@@ -99,10 +139,10 @@ C/XLang 对照范例位于 `examples/`。以下共享缺符号描述属于旧发
 Linux C/XL 的 ASan/UBSan 专项门禁为 `bash release/extlibs/json5/test/check.sh`；
 它在隔离临时目录编译 C 测试和范例、运行中央与包内 XLang 用例、构建运行
 核心/边界/公开范例的独立 EXE，并逐字节比较 JIT/AOT 与 C 范例输出。
-`test/boundaries.xl` 和 `test/allocations.xl` 已登记到包清单的 `coverage.tests`；在 `demo6` 目录运行
+`test/boundaries.xl`、`test/allocations.xl` 和 `test/numeric_consumer.xl` 已登记到包清单的 `coverage.tests`；在 `demo6` 目录运行
 `tools/smoke_extlib_catalog.ps1 -Package json5` 可与中央用例一同复验。
 另可指定本地官方 JSON5 2.2.3 源码目录，用 `-ReferenceDir` 运行可选的
-474 例固定解析结果对照，其中 286 例还比较解析后的 JSON 值；覆盖键名、数字、转义、注释及嵌套对象/数组组合。该步骤不参与普通构建和日常门禁。显式 Infinity/NaN 无法表示为标准 JSON，只核对解析结果；JS 可表示而 XRT UTF-8 字符串不能表示的孤立代理项，不纳入同结果矩阵，包内 C/XLang 负例仍要求拒绝。这些固定样本不代表完整规范认证。
+714 例固定解析结果对照，其中 526 例还比较解析后的 JSON 值；覆盖键名、数字、转义、注释及嵌套对象/数组组合，含 240 个 BigInt 精确构造的半 ULP 邻域样本。Linux 可用 `JSON5_REFERENCE_DIR=/绝对路径/package bash release/extlibs/json5/test/check.sh` 开启同一对照。参考版本固定 2.2.3，只是可选开发依赖，不参与产品构建或普通门禁。显式 Infinity/NaN 无法表示为标准 JSON，只核对解析结果；JS 可表示而 XRT UTF-8 字符串不能表示的孤立代理项，不纳入同结果矩阵，包内 C/XLang 负例仍要求拒绝。这些固定样本不代表完整规范认证。
 
 2026-10-16：补 C/XLang 回归，固定查询命中后仍拒绝尾部垃圾、64 层嵌套
 可解析及 65 层拒绝的合同。实现无需修改；Windows 包级门禁与 Linux

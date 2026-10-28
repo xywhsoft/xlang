@@ -1,0 +1,5 @@
+func main(...) as int
+    var value = 42
+    assert float(value) == 42.0
+    return 0
+end

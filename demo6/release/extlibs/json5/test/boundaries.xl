@@ -1,5 +1,24 @@
 import json5
 
+func expectDepthLimit(string text)
+    assert not json5.valid(text)
+    for operation in range(3)
+        bool caught = false
+        try
+            if operation == 0 then
+                json5.parse(text)
+            elseif operation == 1 then
+                json5.getValue(text, "")
+            else
+                json5.get(text, "")
+            end
+        catch RangeError error
+            caught = true
+        end
+        assert caught, "empty container depth is a range error"
+    end
+end
+
 func main(...) as int
     string source = "{ // comment\n unquoted: 'hello', hex: +0x2a, items: [1, 2,], nested: {ok: true}, '你好': '世界', }"
     assert json5.valid(source), "JSON5 document"
@@ -43,6 +62,16 @@ func main(...) as int
     assert json5.parse("-0x1e") == -30 and type(json5.parse("-0x1e")) == int, "negative hex remains int"
     float wideHex = float(json5.parse("0x8000000000000000"))
     assert wideHex > 9e18 and wideHex < 9.3e18, "wide hexadecimal number"
+    float roundedHex = wideHex + 2048.0
+    assert float(json5.parse("0x8000000000000400")) == wideHex, "hex halfway rounds to even"
+    assert float(json5.parse("0x8000000000000401")) == roundedHex, "hex sticky bit rounds up"
+    assert float(json5.parse("-0x8000000000000401")) == -roundedHex, "negative hex rounds once"
+    assert float(json5.getValue("{n:0x8000000000000401}", "n")) == roundedHex
+    assert float(json5.get("{n:0x8000000000000401}", "n")) == roundedHex
+    float maximum = float(json5.parse("1.7976931348623157e308"))
+    assert float(json5.parse("0xfffffffffffff8" + string.repeat("0", 242))) == maximum
+    assert float(json5.parse("0xfffffffffffffb" + string.repeat("f", 242))) == maximum
+    assert not json5.valid("0xfffffffffffffc" + string.repeat("0", 242)), "hex overflow midpoint"
     string hugeHex = "0x1" + string.repeat("0", 256)
     assert not json5.valid(hugeHex), "finite hexadecimal literal cannot overflow to Infinity"
     bool overflowRejected = false
@@ -79,6 +108,17 @@ func main(...) as int
     end
     assert json5.valid(nested), "64 levels of nesting"
     assert not json5.valid("[" + nested + "]"), "nesting beyond 64 levels"
+    // 空数组、空对象也占一层；纯数组、纯对象及混合嵌套保持同一预算。
+    array<string> leaves = ["[]", "{}"]
+    for leaf in leaves
+        string arrays = string.repeat("[", 63) + leaf + string.repeat("]", 63)
+        string objects = string.repeat("{a:", 63) + leaf + string.repeat("}", 63)
+        string mixed = string.repeat("{a:[", 31) + "[" + leaf + "]" + string.repeat("]}", 31)
+        assert json5.valid(arrays) and json5.valid(objects) and json5.valid(mixed)
+        expectDepthLimit("[" + arrays + "]")
+        expectDepthLimit("[" + objects + "]")
+        expectDepthLimit("[" + mixed + "]")
+    end
     bool depthLimited = false
     try
         json5.parse("[" + nested + "]")

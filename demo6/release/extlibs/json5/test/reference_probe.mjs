@@ -7,6 +7,9 @@ if (!executable || !referencePath) {
     throw new Error('usage: node reference_probe.mjs <C probe exe> <json5 reference directory>');
 }
 const require = createRequire(import.meta.url);
+if (require(`${referencePath}/package.json`).version !== '2.2.3') {
+    throw new Error('reference must be the official JSON5 2.2.3 package');
+}
 const reference = require(referencePath);
 const cases = [
     '{}', '{a:1}', '{a:1,}', '{a:"x"}', '{a:\'x\'}',
@@ -75,6 +78,17 @@ for (const value of nestedValues) {
     cases.push(value, `[${value}]`, `{root:${value}}`,
         `/* lead */${value}// end\n`, `\u00A0${value}\u00A0`,
         `[{left:0},${value}]`);
+}
+
+// 用精确 BigInt 构造半 ULP 邻域，避免只比较格式化后看起来相同的近似数字。
+for (const exponent of [63n, 64n, 65n, 95n, 128n, 256n, 511n, 512n, 900n, 1023n]) {
+    const base = 1n << exponent;
+    const half = 1n << (exponent - 53n);
+    for (const offset of [half - 1n, half, half + 1n, 3n * half - 1n, 3n * half, 3n * half + 1n]) {
+        const digits = (base + offset).toString(16);
+        const hex = `0x${digits}`;
+        cases.push(hex, `-${hex}`, `+0X000${digits.toUpperCase()}`, `{n:${hex}}`);
+    }
 }
 
 const input = cases.map((value) => Buffer.from(value).toString('hex')).join('\n') + '\n';
