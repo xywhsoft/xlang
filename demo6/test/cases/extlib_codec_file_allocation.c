@@ -2,6 +2,7 @@
 #define XRT_MODULE_FILE_WHOLE
 #define XRT_MODULE_DIR
 #define XRT_MODULE_MEMORY_DEBUG
+#include "xrt.h"
 #if defined(TEST_CODEC_GZIP)
     #include "../../release/extlibs/gzip/include/gzip_native.h"
     #define CODEC_NAME "gzip"

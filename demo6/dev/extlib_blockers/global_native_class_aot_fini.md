@@ -1,5 +1,40 @@
 # 顶层 native-backed class 在独立 EXE 退出时失败
 
+## 2026-10-29 Brotli 扩大已验证覆盖
+
+固定 d64672903 发布版上新增
+`release/extlibs/brotli/test/top_level.xl`：顶层保存压缩器和解压器，
+main内完成真实往返并校验数据。Windows/Linux JIT均退出0；独立
+EXE均打印 `brotli top-level: PASS` 后，在模块退出期报
+`RuntimeError: operation is not valid in the current state`，退出1。
+更小的 `dev/extlib_blockers/brotli_global_native_aot_fini.xl` 仅在顶层
+创建一个压缩器并打印 `brotli global ready`，不更新或完成流；两平台
+同样为JIT退出0、独立EXE打印后退出1，排除了必须处理数据才能触发。
+
+Windows默认完整门禁80项中，77正例和两项预期访问拒绝符合预期，
+仅最后top-level-aot失败。四种C头组合、26个实际生成C原型、116个
+内存故障点、94个文件故障点、旧C/XL双语JIT/AOT及新顶层JIT都过；
+输入无变化。完整命令、输出、EXE和报告保留于
+`build/test/brotli_header_3dc59ff59b7941c395681901dde995ea`；两份最小
+Windows EXE现场为 `build/test/brotli_top_abe9ccb4f434426fb2e515dc4a053e01`。
+
+Linux默认门禁在原生文件系统快照
+`/var/tmp/xlang-brotli-header-src-qaTe8g` 同样仅在最后顶层AOT失败，
+退出1并保留现场。此前C ASan/UBSan、四种头组合、116个内存故障点、
+76个文件故障点、六份旧语言EXE、C文件EXE和双语输出均过；独立
+单对象探针亦复现，内外输入指纹复核一致。没有靠挂载盘重试或
+提高超时换绿，也没有修改主线、XRT、算法或原生析构函数。
+
+这些结果把已实测的M2涉及包由11增加为12，Brotli从G转M；只是
+同一退出边界的可观察证据，不声称12包的内部因果已全部证明。
+建议主线先核对生成入口中全局槽释放、module fini、xlUnit和代码/
+类型描述退役的次序，以及清理期原生析构的调用/错误作用域权限；
+不能吞掉异常、无条件放宽失活模块调用，或把全局对象搬进main。
+
+恢复时保留单对象最小源和真实双对象用例，分别跑JIT与独立EXE，
+再跑两平台Brotli默认完整门禁。C声明头的模块污染/包含顺序问题已
+独立修复，不能把该包内修复当作退出期主线问题已经解决。
+
 2026-10-26 `consistent_hash` 的 Windows 默认门禁通过严格 C、线程、
 语言 JIT、核心及公开 C/XLang 范例 AOT，随后顶层环对象边界 EXE
 打印 `consistent_hash boundaries: PASS`，在退出期报

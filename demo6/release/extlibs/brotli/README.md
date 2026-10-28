@@ -1,5 +1,27 @@
 # Brotli
 
+2026-10-29：修复C桥接头的模块选择污染和包含顺序。桥接头现在只
+依赖标准bool/size_t及opaque xvalue指针，不主动打开XRT VALUE；
+四种包含组合的严格C红例转绿。“桥接头先于核心头”原先还会使
+xbuffer/xreader/xwriter未声明。共享文件故障测试显式包含自身使用的
+XRT头，不继续依赖桥接头的隐式导入；公开函数原型和ABI未变。
+
+另确认 **M2 主线发布阻断**：`test/top_level.xl` 在顶层保存压缩和
+解压对象，JIT通过；Windows独立EXE在往返验证并打印PASS后，退出
+期报 `RuntimeError: operation is not valid in the current state`，返回1。
+默认完整门禁保留该红项，不能把对象搬进main来签收。此症状与其他
+包的顶层native-backed class退役相同，但尚未证明内部根因完全相同；
+主线复现和修复方向见 `dev/extlib_blockers/global_native_class_aot_fini.md`。
+下列旧通过记录不覆盖本轮新增的顶层退出边界，本包暂不完整签收。
+
+本轮Windows默认完整门禁80项中，仅最后top-level-aot未达到预期，
+其余77正例及两项预期访问拒绝通过，输入无变化；含26个生成原型、
+116个C内存故障点、94个文件分配故障点、旧双语JIT/AOT。Linux
+原生快照同样先通过四种头组合、C ASan/UBSan、116个内存/76个文件
+故障点、六份旧语言EXE及双语对照，最后的顶层EXE退出1。
+两平台“仅创建一个全局对象”的最小对照也复现，未归因为流操作；
+完整现场和恢复顺序见上述M2报告，不在包内绕过模块退出期检查。
+
 2026-10-28 从当前工作树构建的 Windows/Linux 发布版复验：默认
 `tools/check_extlib_brotli.ps1` 与 `tools/check_extlib_brotli.sh` 均退出 0。
 Windows 覆盖严格 C、生成原型、分配故障、进度回调、双语 JIT/AOT；
@@ -50,14 +72,14 @@ output.append(encoder.drain())
 | `compress(Buffer|string, quality=11, window=22, mode=0, maxInput=268435456, maxOutput=536870912)` | 压缩 Buffer；文本按 UTF-8 字节长度处理 |
 | `decompress(Buffer, maxInput=268435456, maxOutput=536870912, maxRatio=1000)` | 解压 Buffer |
 | `decompressText(Buffer, maxInput=268435456, maxOutput=536870912, maxRatio=1000)` | 校验 UTF-8 并接管文本缓冲；任意二进制用 Buffer |
-
-`decompressText` 保留内嵌 NUL，以 `cstring` 接管 XRT 解压缓冲，
-不再经 `Buffer.text()` 无条件复制；追加末尾 NUL 时容量不足仍可能扩容。
-非法 UTF-8 抛 `ValueError`。通过公开 C 导出调用时按普通字符串 ABI 转换。
 | `compressFile(source, destination, quality=11, window=22, mode=0, overwrite=true, maxInput=268435456, maxOutput=536870912, onProgress=null)` | 压缩到目标文件 |
 | `decompressFile(source, destination, overwrite=true, maxInput=268435456, maxOutput=536870912, maxRatio=1000, onProgress=null)` | 解压到目标文件 |
 | `compressor(quality=11, window=22, mode=0, maxInput=268435456, maxOutput=536870912)` | `BrotliCompressor` |
 | `decompressor(maxInput=268435456, maxOutput=536870912, maxRatio=1000)` | `BrotliDecompressor` |
+
+`decompressText` 保留内嵌 NUL，以 `cstring` 接管 XRT 解压缓冲，
+不再经 `Buffer.text()` 无条件复制；追加末尾 NUL 时容量不足仍可能扩容。
+非法 UTF-8 抛 `ValueError`。通过公开 C 导出调用时按普通字符串 ABI 转换。
 
 压缩器支持 `update(Buffer|string)`、`drain() as Buffer`、`finish() as bool`，
 只读属性为 `valid`、`inputBytes`、`outputBytes`。解压器支持 `update(Buffer)`、
@@ -111,6 +133,8 @@ brotli.compressFile("input.txt", "output.br", quality = 4,
 
 公共核心声明在 `include/xrt_brotli.h`，函数为 `xrtBrotli*`；薄绑定物理 ABI 在
 `include/brotli_native.h`，函数为 `xbrotli_*`。C 编写算法通常直接用前者。
+薄绑定头仅声明标准C类型和opaque回调指针；调用XRT函数的C代码需显式
+包含并配置相应XRT头，不能依赖薄绑定头替宿主打开VALUE模块。
 模块选择必须在第一次包含 XRT 单头文件之前完成；包清单的 `artifact.xrtModules`
 给出完整依赖，独立 C 门禁也从清单读取。公共核心头自身选择 IO_BUFFER。
 

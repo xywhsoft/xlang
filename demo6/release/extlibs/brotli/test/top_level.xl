@@ -1,0 +1,16 @@
+import brotli
+
+// 顶层持有真实流对象，不通过搬入 main 绕开模块退出期的析构。
+auto encoder = brotli.compressor(quality = 1)
+auto decoder = brotli.decompressor()
+
+func main(...) as int
+    assert encoder.valid and decoder.valid
+    encoder.update("global stream")
+    encoder.finish()
+    decoder.update(encoder.drain())
+    decoder.finish()
+    assert decoder.drain().text() == "global stream"
+    println("brotli top-level: PASS")
+    return 0
+end

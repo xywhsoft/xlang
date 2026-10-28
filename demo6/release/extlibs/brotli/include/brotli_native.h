@@ -1,10 +1,10 @@
 #ifndef XLANG_BROTLI_NATIVE_H
 #define XLANG_BROTLI_NATIVE_H
 
-#ifndef XRT_MODULE_VALUE
-#define XRT_MODULE_VALUE
-#endif
-#include "xrt.h"
+#include <stdbool.h>
+#include <stddef.h>
+
+/* 声明只需要 opaque 回调指针，不替宿主选择 XRT 的模块。 */
 typedef struct xvalue xvalue;
 
 #ifdef __cplusplus
