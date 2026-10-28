@@ -1,5 +1,20 @@
 # color
 
+2026-10-29：完整阅读 C 核心、八个文本适配入口和语言声明，本轮未确认
+新的产品实现错误，未改算法、公开 API、ABI、返回所有权或冻结 XRT。
+新增 C 合同测试覆盖全部八个文本出口：432 组容量/NULL/非法输入与陈旧
+错误检查、75 组前后部分重叠及同时覆盖两个输入、八个拥有型空结果的
+OOM/独立所有权/恢复；全缓冲哨兵与存活分配、非法释放和上下溢指标均检查。
+XLang 另对八种正常空结果逐分配预算检查 `MemoryError` 与清除故障后的恢复。
+
+Windows 默认门禁 55 阶段通过，输入变动为零；Linux 原生文件系统快照
+通过 C ASan/UBSan/float-cast、四线程 8000 轮、26552 项独立 oracle、
+21 个实际生成原型、语言 JIT/AOT 与双语黄金输出，两平台各八条独立
+程序路径均通过。Linux 现在默认自行生成并核对 C 原型及八条直接接管路径，
+不再依赖外部传入 `COLOR_DECLARATIONS` 才检查 ABI；仍接受该可选附加检查。
+失败现场不再被默认无条件清除，退出时始终核对源文件和实际发布依赖指纹。
+这些是本包的限定验收，不代表整个 xlang 发布版或未测平台签收。
+
 2026-10-27：八个独立 XRT 文本结果改由 `@owned string` 直接接管，
 C 原型明确返回 `char*`；语言包装保留输入 NUL 检查和原有空结果语义，
 不再经过 `point`/`takeCstr` 转发。Windows 默认专项门禁完整通过严格 C、
@@ -104,7 +119,8 @@ bool ok = xcolor_hex(51, 102, 204, output, sizeof(output));
 8000 轮、26552 项独立 oracle 与语言 JIT/AOT 全通过。Linux 门禁新增
 中央语言用例和 C 单文件范例的独立 EXE；后者与 GCC C、TCC C 及
 XLang 基础范例逐字节同输出。两平台的测试目录现在默认独占，Linux
-默认临时产物退出时清理；显式 `COLOR_WORK_DIR` 可保留验证证据。
+当时默认临时产物退出时清理；当前已改为成功才清理、失败保留，显式
+`COLOR_WORK_DIR` 仍可保留验证证据。
 这次复验时，八个拥有型 C 文本结果仍由语言层 `takeCstr` 直接接管，
 不增加复制；2026-10-27 的直接接管迁移见文首。
 本包在上述 Windows/Linux x64 范围签收。脚本仍明确标记
@@ -123,6 +139,11 @@ Linux C ASan/UBSan/float-cast、XLang JIT 与双语门禁全部通过。
 - `release/examples/extlibs/color_basic.xl` 与本包 `examples/basic.c` 覆盖全部 21 个 API，
   实现同一组颜色转换及黑/白前景选择，输出与固定的 expected 文件逐字比较。
 - 原有 `release/examples/extlibs/color.xl` 保留调色板示例。
+- `examples/theme.xl` 与 `examples/theme_c.c` 根据十六进制或命名色生成
+  背景、文字与悬停色 CSS 变量，文字/背景对比度须达到 4.5。两种语言
+  共用 `examples/theme.expected.txt`，不处理透明度合成或网页整体认证。
+  在发行目录分别运行 `xl run extlibs/color/examples/theme.xl` 与
+  `xl run extlibs/color/examples/theme_c.c`；三个主题输出一致。
 - 在发行目录运行 `xl run examples/extlibs/color_basic.xl`。
 - 在 `demo6` 根目录可直接运行 `release/xl.exe run release/extlibs/color/examples/basic.c`；C 范例只内嵌纯 C 颜色核心，不内嵌 XLang 适配层。
 - 在仓库运行 `tools/run_extlib_c.ps1 -Package color -Source release/extlibs/color/examples/basic.c`。
@@ -140,6 +161,9 @@ C 范例以栈缓冲和显式条件检查所有调用；两平台门禁均用 `-
 参照、缓冲边界、重叠输入输出、非有限数、零分配核心、结果寿命、故障注入、线程隔离、
 实际生成原型、JIT/AOT、DLL 上下文复用以及 C/xlang 固定输出。名称夹具来自 W3C，
 日常门禁不联网，也不从待测色表提取期望值。
+`test/test_contracts.c` 与原有 C 测试分开，便于区分调用者缓冲合同和
+拥有型适配层；以 `-DNDEBUG` 编译时仍执行断言内的操作。C 核心无需
+为这些新增覆盖添加分配或包装层，语言层也没有为测试改变返回规则。
 
 当前正式 `xl.exe` 运行 `test/allocations.xl` 已通过，不再把旧的共享异常清理
 阻断列为现存问题。Linux 门禁同次运行 C sanitizer/oracle、中央与包内

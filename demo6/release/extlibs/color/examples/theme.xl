@@ -1,0 +1,24 @@
+import color
+
+// 接受十六进制或命名色，输出可直接用于页面主题的三个 CSS 变量。
+func theme(string name, string input) as string
+    string background = color.normalize(input)
+    if background == "" then background = color.fromName(input) end
+    assert background != "", "unknown theme color"
+
+    // 选择对比度更高的文字色；透明度合成不属于本例的处理范围。
+    string foreground = "#000000"
+    if color.contrast(background, "#FFFFFF") > color.contrast(background, foreground) then
+        foreground = "#FFFFFF"
+    end
+    assert color.contrast(background, foreground) >= 4.5
+    string hover = color.mix(background, foreground, 0.15)
+    return f".{name} {{ --background: {background}; --foreground: {foreground}; --hover: {hover}; }}"
+end
+
+func main(...) as int
+    println(theme("ocean", "#36c"))
+    println(theme("plum", "RebeccaPurple"))
+    println(theme("paper", "#fff"))
+    return 0
+end
