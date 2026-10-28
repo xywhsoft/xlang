@@ -27,7 +27,7 @@ function Invoke-Step($name,$program,$arguments,$expected=0) {
 }
 function Build-Xlang($name,$source,$binary) {
     if($runtime){Invoke-Step $name $driver @('build',$source,'-o',$binary)}
-    else {Invoke-Step $name $driver @($source,'exe',[IO.Path]::ChangeExtension($binary,$null))}
+    else {Invoke-Step $name $driver @($source,'exe',(Join-Path ([IO.Path]::GetDirectoryName($binary)) ([IO.Path]::GetFileNameWithoutExtension($binary))))}
     if(!(Test-Path -LiteralPath $binary)){throw "Missing artifact: $binary"}
 }
 function Reject-Xlang($name,$source,$fragment,[switch]$Run) {
