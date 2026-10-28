@@ -1,178 +1,101 @@
-channel<int> secureServerEvents = channel::<int>(32)
-channel<int> secureClientEvents = channel::<int>(32)
-channel<string> secureServerPayloads = channel::<string>(8)
-channel<string> secureClientPayloads = channel::<string>(8)
+import concurrent
+func makeClient() as TlsClientContext
+ auto store=TrustStore()
+ assert store.add(Certificate.fromDer(b"\x30\x82\x01\x8d\x30\x82\x01\x33\xa0\x03\x02\x01\x02\x02\x01\x01\x30\x0a\x06\x08\x2a\x86\x48\xce\x3d\x04\x03\x02\x30\x1c\x31\x1a\x30\x18\x06\x03\x55\x04\x03\x0c\x11\x6f\x66\x66\x6c\x69\x6e\x65\x20\x70\x32\x35\x36\x20\x72\x6f\x6f\x74\x30\x1e\x17\x0d\x32\x30\x30\x31\x30\x31\x30\x30\x30\x30\x30\x30\x5a\x17\x0d\x34\x30\x30\x31\x30\x31\x30\x30\x30\x30\x30\x30\x5a\x30\x1c\x31\x1a\x30\x18\x06\x03\x55\x04\x03\x0c\x11\x6f\x66\x66\x6c\x69\x6e\x65\x20\x70\x32\x35\x36\x20\x72\x6f\x6f\x74\x30\x59\x30\x13\x06\x07\x2a\x86\x48\xce\x3d\x02\x01\x06\x08\x2a\x86\x48\xce\x3d\x03\x01\x07\x03\x42\x00\x04\x60\xfe\xd4\xba\x25\x5a\x9d\x31\xc9\x61\xeb\x74\xc6\x35\x6d\x68\xc0\x49\xb8\x92\x3b\x61\xfa\x6c\xe6\x69\x62\x2e\x60\xf2\x9f\xb6\x79\x03\xfe\x10\x08\xb8\xbc\x99\xa4\x1a\xe9\xe9\x56\x28\xbc\x64\xf2\xf1\xb2\x0c\x2d\x7e\x9f\x51\x77\xa3\xc2\x94\xd4\x46\x22\x99\xa3\x66\x30\x64\x30\x12\x06\x03\x55\x1d\x13\x01\x01\xff\x04\x08\x30\x06\x01\x01\xff\x02\x01\x02\x30\x1d\x06\x03\x55\x1d\x0e\x04\x16\x04\x14\x1a\x95\x69\x57\x9b\xce\x32\x9a\x94\x2d\x07\x69\xc9\xc0\xb5\x64\x31\x56\x37\x10\x30\x1f\x06\x03\x55\x1d\x23\x04\x18\x30\x16\x80\x14\x1a\x95\x69\x57\x9b\xce\x32\x9a\x94\x2d\x07\x69\xc9\xc0\xb5\x64\x31\x56\x37\x10\x30\x0e\x06\x03\x55\x1d\x0f\x01\x01\xff\x04\x04\x03\x02\x01\x86\x30\x0a\x06\x08\x2a\x86\x48\xce\x3d\x04\x03\x02\x03\x48\x00\x30\x45\x02\x20\x49\xdd\x8f\xad\x65\xbd\xa7\xdb\x7b\x5a\x02\x9d\x79\x10\x8b\x23\x81\x85\x66\xe5\x7a\x9b\xa8\x51\xc5\xef\x8d\xcc\x88\x16\x6f\x9d\x02\x21\x00\xd3\x9d\x8d\x2c\xf4\x02\xc8\x2a\xa9\x31\x57\xdb\x42\xa6\x2d\x6b\x2a\xcc\xd5\x09\xaa\x95\x18\xf8\xa1\x36\xdd\x59\x55\xe8\x9a\xa4"))
+ auto verifier=TlsVerifier(store.snapshot(),TlsVerificationPolicy().withTime(time(1893456000000000)))
+ return TlsClientContext(verifier)
+end
+func makeServer() as TlsServerContext
+ array<Certificate> chain=[Certificate.fromDer(b"\x30\x82\x01\xba\x30\x82\x01\x5f\xa0\x03\x02\x01\x02\x02\x01\x03\x30\x0a\x06\x08\x2a\x86\x48\xce\x3d\x04\x03\x02\x30\x24\x31\x22\x30\x20\x06\x03\x55\x04\x03\x0c\x19\x6f\x66\x66\x6c\x69\x6e\x65\x20\x70\x32\x35\x36\x20\x69\x6e\x74\x65\x72\x6d\x65\x64\x69\x61\x74\x65\x30\x1e\x17\x0d\x32\x30\x30\x31\x30\x31\x30\x30\x30\x30\x30\x30\x5a\x17\x0d\x34\x30\x30\x31\x30\x31\x30\x30\x30\x30\x30\x30\x5a\x30\x19\x31\x17\x30\x15\x06\x03\x55\x04\x03\x0c\x0e\x6f\x66\x66\x6c\x69\x6e\x65\x20\x74\x61\x72\x67\x65\x74\x30\x59\x30\x13\x06\x07\x2a\x86\x48\xce\x3d\x02\x01\x06\x08\x2a\x86\x48\xce\x3d\x03\x01\x07\x03\x42\x00\x04\x60\xfe\xd4\xba\x25\x5a\x9d\x31\xc9\x61\xeb\x74\xc6\x35\x6d\x68\xc0\x49\xb8\x92\x3b\x61\xfa\x6c\xe6\x69\x62\x2e\x60\xf2\x9f\xb6\x79\x03\xfe\x10\x08\xb8\xbc\x99\xa4\x1a\xe9\xe9\x56\x28\xbc\x64\xf2\xf1\xb2\x0c\x2d\x7e\x9f\x51\x77\xa3\xc2\x94\xd4\x46\x22\x99\xa3\x81\x8c\x30\x81\x89\x30\x0c\x06\x03\x55\x1d\x13\x01\x01\xff\x04\x02\x30\x00\x30\x1d\x06\x03\x55\x1d\x0e\x04\x16\x04\x14\x1a\x95\x69\x57\x9b\xce\x32\x9a\x94\x2d\x07\x69\xc9\xc0\xb5\x64\x31\x56\x37\x10\x30\x1f\x06\x03\x55\x1d\x23\x04\x18\x30\x16\x80\x14\x1a\x95\x69\x57\x9b\xce\x32\x9a\x94\x2d\x07\x69\xc9\xc0\xb5\x64\x31\x56\x37\x10\x30\x0e\x06\x03\x55\x1d\x0f\x01\x01\xff\x04\x04\x03\x02\x07\x80\x30\x14\x06\x03\x55\x1d\x11\x04\x0d\x30\x0b\x82\x09\x6c\x6f\x63\x61\x6c\x68\x6f\x73\x74\x30\x13\x06\x03\x55\x1d\x25\x04\x0c\x30\x0a\x06\x08\x2b\x06\x01\x05\x05\x07\x03\x01\x30\x0a\x06\x08\x2a\x86\x48\xce\x3d\x04\x03\x02\x03\x49\x00\x30\x46\x02\x21\x00\xe6\x5b\x12\x12\x3e\x0a\xeb\xd7\x88\x70\xbf\xd3\xd6\xc7\x6c\x2e\x5e\xe9\x19\xf3\x5a\x8c\x95\x8c\xf7\x88\xb8\xf4\x99\x88\x36\x93\x02\x21\x00\xff\xe3\x65\x32\xe4\x8d\x33\xf6\x46\x68\x36\xb4\xbe\x20\x0a\x72\x9c\x81\xdb\x8b\xcf\xcf\x95\x84\x7e\x66\x88\x50\x55\x57\x71\x3f"),Certificate.fromDer(b"\x30\x82\x01\x96\x30\x82\x01\x3b\xa0\x03\x02\x01\x02\x02\x01\x02\x30\x0a\x06\x08\x2a\x86\x48\xce\x3d\x04\x03\x02\x30\x1c\x31\x1a\x30\x18\x06\x03\x55\x04\x03\x0c\x11\x6f\x66\x66\x6c\x69\x6e\x65\x20\x70\x32\x35\x36\x20\x72\x6f\x6f\x74\x30\x1e\x17\x0d\x32\x30\x30\x31\x30\x31\x30\x30\x30\x30\x30\x30\x5a\x17\x0d\x34\x30\x30\x31\x30\x31\x30\x30\x30\x30\x30\x30\x5a\x30\x24\x31\x22\x30\x20\x06\x03\x55\x04\x03\x0c\x19\x6f\x66\x66\x6c\x69\x6e\x65\x20\x70\x32\x35\x36\x20\x69\x6e\x74\x65\x72\x6d\x65\x64\x69\x61\x74\x65\x30\x59\x30\x13\x06\x07\x2a\x86\x48\xce\x3d\x02\x01\x06\x08\x2a\x86\x48\xce\x3d\x03\x01\x07\x03\x42\x00\x04\x60\xfe\xd4\xba\x25\x5a\x9d\x31\xc9\x61\xeb\x74\xc6\x35\x6d\x68\xc0\x49\xb8\x92\x3b\x61\xfa\x6c\xe6\x69\x62\x2e\x60\xf2\x9f\xb6\x79\x03\xfe\x10\x08\xb8\xbc\x99\xa4\x1a\xe9\xe9\x56\x28\xbc\x64\xf2\xf1\xb2\x0c\x2d\x7e\x9f\x51\x77\xa3\xc2\x94\xd4\x46\x22\x99\xa3\x66\x30\x64\x30\x12\x06\x03\x55\x1d\x13\x01\x01\xff\x04\x08\x30\x06\x01\x01\xff\x02\x01\x02\x30\x1d\x06\x03\x55\x1d\x0e\x04\x16\x04\x14\x1a\x95\x69\x57\x9b\xce\x32\x9a\x94\x2d\x07\x69\xc9\xc0\xb5\x64\x31\x56\x37\x10\x30\x1f\x06\x03\x55\x1d\x23\x04\x18\x30\x16\x80\x14\x1a\x95\x69\x57\x9b\xce\x32\x9a\x94\x2d\x07\x69\xc9\xc0\xb5\x64\x31\x56\x37\x10\x30\x0e\x06\x03\x55\x1d\x0f\x01\x01\xff\x04\x04\x03\x02\x01\x86\x30\x0a\x06\x08\x2a\x86\x48\xce\x3d\x04\x03\x02\x03\x49\x00\x30\x46\x02\x21\x00\xe9\x9f\x32\x8b\xed\xc6\xb3\x54\x99\xe1\xc2\xba\x0a\x49\x23\x52\xfb\x75\xa2\xda\x6c\x7b\x5a\xb4\xea\xac\xb6\x01\x41\xbf\xe3\x9c\x02\x21\x00\xdb\x5b\xd4\xd2\x1d\x1b\xae\x16\xb7\x55\xe8\x58\x68\xdb\xb2\x89\xda\xcd\x45\x6b\x47\x1d\x45\x2e\x15\x55\x1e\x7c\x16\x69\xb4\x4a")]
+ auto identity=TlsIdentity.fromP256(chain,P256Key(b"\xc9\xaf\xa9\xd8\x45\xba\x75\x16\x6b\x5c\x21\x57\x67\xb1\xd6\x93\x4e\x50\xc3\xdb\x36\xe8\x9b\x12\x7b\x8a\x62\x2b\x12\x0f\x67\x21"))
+ return TlsServerContext(identity)
+end
 
 
-
-func secureServerHandler(int event, int opcode, int flags, uint64 value, point data, c_size size)
-    secureServerEvents.send(event)
-    if event == 1 then
-        Buffer payload = Buffer()
-        if payload.appendRaw(data, size) then
-            secureServerPayloads.send(payload.text())
-        end
+async func verify()
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
+    auto listener = TlsServer(engine, TcpListenOptions(NetAddress.loopback(4, 0)), makeServer())
+    auto accepted = listener.acceptAsyncTimeout(10000)
+    auto tcpClient = TlsStream(engine, listener.local(), makeClient(), "localhost")
+    assert await tcpClient.waitAsyncTimeout(0, 10000)
+    auto tcpServer = await accepted
+    auto clientUpgrade = WsUpgrade.client("local.test")
+    auto wire = Buffer(Http1.requestHead("GET", "/ws", clientUpgrade.headers()))
+    auto mask = 305419896
+    wire.append(WsFrame.make(WsOpcode.binary, uint64(3), WsFrameFlags.final | WsFrameFlags.masked, mask).toBytes())
+    auto first = Buffer(b"a\0b")
+    WsFrame.applyMask(first, mask)
+    wire.append(first.toBytes())
+    assert await tcpClient.sendAsync(wire) == wire.length
+    auto httpServer = Http1TlsTransport(tcpServer)
+    auto request = await httpServer.readRequestHeadAsync(5000)
+    if request == null then throw ValueError "missing Upgrade request" end
+    auto serverUpgrade = WsUpgrade.server(request)
+    auto responseWire = Http1.responseHead(101, "Switching Protocols", serverUpgrade.headers())
+    assert await tcpServer.sendAsync(responseWire) == responseWire.length
+    auto httpClient = Http1TlsTransport(tcpClient)
+    auto response = await httpClient.readResponseHeadAsync("GET", 5000)
+    if response == null then throw ValueError "missing Upgrade response" end
+    auto ready = clientUpgrade.checkResponse(response)
+    auto serverHandoff = httpServer.detach()
+    auto clientHandoff = httpClient.detach()
+    auto count = AtomicInt32(0)
+    auto sink = Buffer()
+    auto options = WsStreamOptions()
+    bool rejected = false
+    try
+        auto bad = await serverHandoff.webSocketAsync(clientUpgrade, options, func(WsEvent event) as bool
+            return true
+        end)
+    catch error
+        rejected = true
     end
-end
-
-
-
-func secureClientHandler(int event, int opcode, int flags, uint64 value, point data, c_size size)
-    secureClientEvents.send(event)
-    if event == 1 then
-        Buffer payload = Buffer()
-        if payload.appendRaw(data, size) then
-            secureClientPayloads.send(payload.text())
-        end
-    end
-end
-
-
-
-func require(string name, bool condition)
-    assert condition, name
-    println(name + "=ok")
-end
-
-
-
-func waitTlsBytes(TlsStream stream, int minimum, int timeoutMs) as Buffer
-    int elapsed = 0
-    Buffer snapshot = stream.peek()
-    while snapshot.len() < minimum and elapsed < timeoutMs
-        stream.waitReadable(10)
-        time.sleep(1)
-        elapsed += 11
-        snapshot = stream.peek()
-    end
-    return snapshot
-end
-
-
-
-func waitEvent(channel<int> events, int expected, int timeoutMs) as bool
-    int elapsed = 0
-    int event = -1
-    while elapsed < timeoutMs
-        if events.recvTimeoutInto(event, 50) then
-            if event == expected then
-                return true
+    assert rejected and not serverHandoff.endOfStream
+    auto server = await serverHandoff.webSocketAsync(serverUpgrade, options, func(WsEvent event) as bool
+        if event.kind == WsEventKind.messageData then
+            if count.load() == 0 then
+                assert event.data == b"a\0b"
+            else
+                assert event.data.length == 0 and event.pending == 3
             end
+            count.fetchAdd(1)
+            return false
         end
-        elapsed += 50
+        return true
+    end)
+    auto client = await clientHandoff.webSocketAsync(ready, options, func(WsEvent event) as bool
+        return true
+    end)
+    rejected = false
+    try
+        auto consumed = serverHandoff.buffered
+    catch RuntimeError
+        rejected = true
     end
-    return false
+    assert rejected
+    int spins = 0
+    while count.load() != 1 and spins < 5000
+        time.sleep(1)
+        spins = spins + 1
+    end
+    assert count.load() == 1 and server.paused
+    await server.receiveIntoAsync(sink, true)
+    await server.resumeAsync()
+    assert (await client.sendBinaryAllAsync(b"a\0b", -1, 5000)) == NetStatus.ok
+    spins = 0
+    while count.load() != 2 and spins < 5000
+        time.sleep(1)
+        spins = spins + 1
+    end
+    // Buffer mode owns the payload; chunk events intentionally have no copy.
+    assert sink.toBytes() == b"a\0b"
+    assert (await client.closeAsync()) == NetStatus.ok
+    await server.resumeAsync()
+    assert (await server.waitClosedAsync(5000)) == NetStatus.ok
+    listener.close()
+    engine.close()
+    assert engine.wait(5000)
+    println("websocket-upgrade-tls-loopback-ok")
 end
-
-
-
-async func run() as int
-    TlsConfig serverConfig = TlsConfig()
-    require(
-        "wss_identity",
-        serverConfig.certificate(
-            "release/examples/fixtures/tls_cert.pem",
-            "release/examples/fixtures/tls_key.pem"
-        )
-    )
-    require("wss_server_alpn", serverConfig.alpn("http/1.1"))
-    TlsServer listener = tls.listen(0, serverConfig)
-    require("wss_listener", listener.port > 0)
-
-    future<TlsStream> accepting = listener.acceptAsync()
-    TlsConfig clientConfig = TlsConfig()
-    clientConfig.verifyPeer(false)
-    require("wss_client_host", clientConfig.host("localhost"))
-    require("wss_client_alpn", clientConfig.alpn("http/1.1"))
-    TlsStream clientTransport = tls.connect(
-        "127.0.0.1",
-        listener.port,
-        clientConfig,
-        8000
-    )
-    TlsStream serverTransport = await accepting
-    require(
-        "wss_tls_connected",
-        clientTransport.nativeHandle() != null and
-            serverTransport.nativeHandle() != null
-    )
-
-    WsUpgrade clientUpgrade = WsUpgrade.client("localhost", "chat", true, true)
-    Buffer requestHead = Http1.requestHead("GET", "/secure", clientUpgrade.fields())
-    Buffer firstPayload = Buffer()
-    require("wss_first_payload", firstPayload.append("secure-first"))
-    WsFrame firstFrame = WsFrame.make(
-        1,
-        uint64(firstPayload.len()),
-        true,
-        true,
-        uint32(1432778632)
-    )
-    Buffer firstFrameHead = firstFrame.write()
-    require("wss_first_mask", WsFrame.applyMask(firstPayload, uint32(1432778632)))
-    Buffer requestWire = Buffer()
-    require("wss_request_head_copy", requestWire.append(requestHead))
-    require("wss_request_frame_copy", requestWire.append(firstFrameHead))
-    require("wss_request_payload_copy", requestWire.append(firstPayload))
-    require("wss_upgrade_send", clientTransport.send(requestWire, 8000))
-
-    Buffer requestSnapshot = waitTlsBytes(serverTransport, requestWire.len(), 8000)
-    require("wss_upgrade_coalesced", requestSnapshot.len() >= requestWire.len())
-    Http1Head request = Http1Head.request(requestSnapshot)
-    require("wss_request_head", request.ready and request.headerBytes == requestHead.len())
-    require("wss_request_unconsumed", serverTransport.peek().len() == requestSnapshot.len())
-
-    WsUpgrade serverUpgrade = WsUpgrade.server(request, "chat", true, true)
-    require(
-        "wss_server_upgrade",
-        serverUpgrade.ready and serverUpgrade.protocol() == "chat" and
-            serverUpgrade.deflateEnabled
-    )
-    Buffer responseHead = Http1.responseHead(
-        101,
-        "Switching Protocols",
-        serverUpgrade.fields()
-    )
-    require("wss_response_send", serverTransport.send(responseHead, 8000))
-    WebSocket serverSocket = WebSocket.attachTls(
-        serverTransport,
-        serverUpgrade,
-        secureServerHandler,
-        request.headerBytes
-    )
-    require("wss_server_attach", serverSocket.nativeHandle() != null)
-
-    Buffer responseSnapshot = waitTlsBytes(clientTransport, responseHead.len(), 8000)
-    Http1Head response = Http1Head.response(responseSnapshot)
-    require("wss_response_head", response.ready and response.headerBytes == responseHead.len())
-    require("wss_client_upgrade", clientUpgrade.check(response))
-    WebSocket clientSocket = WebSocket.attachTls(
-        clientTransport,
-        clientUpgrade,
-        secureClientHandler,
-        response.headerBytes
-    )
-    require("wss_client_attach", clientSocket.nativeHandle() != null)
-
-    string payload = ""
-    require("wss_first_callback", secureServerPayloads.recvTimeoutInto(payload, 8000))
-    require("wss_first_preserved", payload == "secure-first")
-
-    require("wss_client_compressed_send", clientSocket.send("secure-client", true))
-    require("wss_server_compressed_recv", secureServerPayloads.recvTimeoutInto(payload, 8000))
-    require("wss_server_compressed_data", payload == "secure-client")
-    require("wss_server_compressed_send", serverSocket.send("secure-server", true))
-    require("wss_client_compressed_recv", secureClientPayloads.recvTimeoutInto(payload, 8000))
-    require("wss_client_compressed_data", payload == "secure-server")
-
-    require("wss_close_send", clientSocket.close(1000, "done"))
-    require("wss_close_server_event", waitEvent(secureServerEvents, 9, 8000))
-    require("wss_close_client_event", waitEvent(secureClientEvents, 9, 8000))
-    return 0
-end
-
-
-
-int exitCode = await run()
-assert exitCode == 0
-println("websocket-upgrade-tls-loopback-ok")
+await verify()

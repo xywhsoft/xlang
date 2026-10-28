@@ -451,27 +451,6 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
             needs->needsFileBridgeRuntime = 1;
             needs->needsErrorRuntime = 1;
         } else if ( target->runtimeBridge ==
-                        XL6_IR_RUNTIME_BRIDGE_HTTP1 ) {
-            needs->needsHttp1Runtime = 1;
-        } else if ( target->runtimeBridge ==
-                        XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_FRAME ) {
-            needs->needsWebSocketFrameRuntime = 1;
-        } else if ( target->runtimeBridge ==
-                        XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_HANDSHAKE ) {
-            needs->needsWebSocketHandshakeRuntime = 1;
-        } else if ( target->runtimeBridge ==
-                        XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_UPGRADE ) {
-            needs->needsWebSocketUpgradeRuntime = 1;
-        } else if ( target->runtimeBridge ==
-                        XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_STREAM_CONFIG ) {
-            needs->needsWebSocketStreamConfigRuntime = 1;
-        } else if ( target->runtimeBridge ==
-                        XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_STREAM ) {
-            needs->needsWebSocketStreamRuntime = 1;
-        } else if ( target->runtimeBridge ==
-                        XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_STREAM_TLS ) {
-            needs->needsWebSocketStreamTlsRuntime = 1;
-        } else if ( target->runtimeBridge ==
                         XL6_IR_RUNTIME_BRIDGE_LAST_ERROR_TEXT ) {
             needs->needsLastErrorTextBridgeRuntime = 1;
             needs->needsErrorRuntime = 1;

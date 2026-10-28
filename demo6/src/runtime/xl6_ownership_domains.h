@@ -279,4 +279,5 @@ XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainTlsStreamLangu
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainTlsListenerLanguageV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainForeignResourceV1Get(void);
 #include "xl6_http_ownership_domains.h"
+#include "xl6_ws_ownership_domains.h"
 #endif

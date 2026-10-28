@@ -7,6 +7,7 @@
 ## 当前权威设计
 
 - [HTTP 核心标准库](HTTP标准库实施与验收.md)：18 模块的 OOP、驻留 ABI、TCP/TLS、生命周期、普通产品与性能边界。
+- [WebSocket 标准库](WebSocket标准库实施与验收.md)：16 模块的帧、升级、压缩、受管 TCP/TLS、事件及真实 Future 等待。
 
 - [Embedded Compiler Delivery Closure](embedded-package-delivery-2026-10-28.md): the five requested delivery items, current verification and remaining work.
 - [Embedded Package Example](../release/examples/embedded_package/README.md): source-free host/script deployment.
@@ -164,9 +165,15 @@
 
 - [动态方法多返回值与 Stack 安全接收](stdlib53-b277-dynamic-method-products.md)：规范返回 product、完整绑定向量、原生 Stack 角色检查及双平台专项验收。
 
+- [IDE构建输入记录](IDE构建输入记录.md)：同次实际构建的磁盘输入、失败候选及产物绑定；当前处于独立工具链验收，IDE 任务服务尚未接入。
+
+- [IDE源码范围接口](IDE源码范围接口.md)：入口语法树的完整语法范围、构造 token 范围、UTF-8 字节与标量坐标、输出边界及真实门禁。
+
 - `标准库FixedStack.md`：固定逻辑容量、普通泛型实现、精确资源/可空结果合同与专项验收范围。
 
 - `文件系统标准库实施.md`：22 个原生文件系统模块与 4 个 VFS 模块的接入范围、基础批次验收、资源合同及未完成项。
+
+- `IO与Console标准库设计.md`：原始字节 IO、双文件库边界、控制台 UTF-8、终端会话/事件及清理与平台降级合同。
 
 - `设计理念.md`：xlang DEMO6 的基础设计理念、第一绝对原则、语言取舍原则和代码风格约束。
 - `XRT集成原则.md`：XRT 优先、禁止重复实现、XRT 缺口补全层和同步流程约束。
@@ -258,12 +265,17 @@
 - [Open 动态字段恢复事务](stdlib53-b170-open-restore-native.md)：声明 clone 隔离、独立新存储及整批原子槽提交；B170 原生底座验收，语言切换见 B171。
 - [DynamicFields 原生拥有图与退役合同](stdlib53-b168-dynamic-fields-ownership.md)：逐槽拥有边、精确存储准入、弱提升隔离与分阶段清理；双端原生及语言邻接回归通过，Open 语言切换继续。
 - [XLIR数据恢复构造图](stdlib53-b154-ir-restore-graph.md)：可达根、节点、字段上下文、默认工厂和迁移边界；与旧恢复六表共享失败原子构建，不等同于 Cgen 或语言载体切换完成。
-- `文本标准库接入.md`：精确 string/char/bytes、UTF-8/16/32、BOM、数字与流式文本的公开合同。
-- `XRT扩展标准库API.md`：当前已公开的扩展标准库对象、函数、常量、异步语义和 C/XRT 对照接口。
 - `进程标准库异步等待.md`：Process.waitAsync 的 typed 结果、协作取消、共享源隔离、声明 ABI 与按需原生闭包。
 - `进程文件重定向.md`：Command 的独立 OS 句柄、File/VFS 边界、配置回滚、声明 ABI 与按需重定向组件。
 - `进程终端.md`：PTY/ConPTY 的配置、resize、原始流、独立裁剪及 Windows 原生平台资源限制。
-- `数据格式与归档扩展库设计.md`：JSON/XSON、codec、hash/crypto、archive、template、encoding 等数据格式与归档扩展库设计。
+- `文本标准库接入.md`：精确 string/char/bytes、UTF-8/16/32、BOM、数字与流式文本的公开合同。
+- `结构化数据标准库.md`：JSON、JSONL、XLON、XLONL 的语言入口、配置、流式回调、值和错误边界。
+- `标准库决策清单.md`：标准库重设计的未决策、已决策、待开发和已开发状态账本；后续逐项评估以此为准。
+- `标准库CRT功能决策清单.md`：当前 CRT 公开面、已允许进入的 CRT 分类，以及供逐项决策的 CRT 增加、保留和排除函数清单。
+- `标准库CRT_XRT功能差分清单.md`：当前已公开的 XRT/xruntime 函数快照、CRT 去重后目标功能，以及需补充、替换和迁移的 API 候选。
+- `声明式原生函数效果合同.md`：标准库/FFI 的 `pure`、`no_raise`、`nonblocking` 声明语义、XLIR 保留规则和直接 C 调用验收。
+- `XRT扩展标准库API.md`：当前已公开的扩展标准库对象、函数、常量、异步语义和 C/XRT 对照接口。
+- `数据格式与归档扩展库设计.md`：JSON/XLON、codec、hash/crypto、archive、template、encoding 等数据格式与归档扩展库设计。
 - `网络服务基座补全设计.md`：XRT 网络服务基座、HTTP server 标准库、路由、静态资源、请求响应对象和 xs 静态原型支撑设计。
 - `异常处理与文档注释设计.md`：异常处理、断言、高级错误模型和 `#doc ... #end` 文档注释。
 - `调试器与task_async_generator设计.md`：完整调试器体系、高层 `task` API 和 `async generator<T>` 的设计口径、开发顺序和验收标准。
@@ -343,7 +355,7 @@
 - `stdlib53-b276-dynamic-function-products.md`：动态函数的上下文 product 与独立成功状态；双端 85 项、30 个 IR 变异和完整同步前缀通过，动态方法／绑定方法及 nullable 编解码继续。
 - `XRT与xlang系统整合任务.md`：当前长期整合范围、快照契约、实施顺序和 HTTP/WebSocket 快慢路径边界。
 - `扩展库开发问题清单.md`：六轮扩展库批次发现的语言/编译器/运行时问题账本（P0 崩溃类到 P4 C 库兼容），含最小复现、规避方案与修复优先级。
-- `剩余未压实扩展库清单.md`：删除 22 个占位库后 109 个未压实包的处置规划视图（按编解码改造/平台收编/真外部服务/迁移队列分类）。
+- `剩余未压实扩展库清单.md`：2026-08-21 候选分组与处置规划；登记数量和旧分类不代表当前验收结果。
 - `../release/extlibs/xacme/README.md`：以 XRT XACME 为准的原生绑定、生命周期和验证说明。
 - `XRT与xlang能力矩阵.md`：从双产品快照和当前语言实现生成的模块覆盖、低层符号与扩展延期边界。
 - `xruntime语言桥接契约.md`：定义 xruntime 的语言内核语义、语言级抽象和显式底层能力三层边界。
@@ -352,6 +364,16 @@
 - `featured_extlibs_rc.md`：官网重点扩展库的 RC 范围、清单与可执行门禁。
 - `扩展库ABI迁移队列.md`：仍使用旧 XRT ABI 的历史扩展库迁移顺序与验收约束。
 - `扩展库生态压实计划.md`：扩展库状态模型、首期范围和自动审计入口。
+- `扩展库chardet与graph交付_2026-09-28.md`：两包 API/双语/官网交付、Windows 与 Linux C 限定验证，以及未闭环的共享字符串边界。
+- `扩展库LZ4标准帧交付_2026-09-28.md`：标准 LZ4F、C/XL 物理 ABI、独立互操作、故障注入、文件事务和双语资料的限定验证。
+- `扩展库CSV限定交付_2026-09-28.md`：默认实参/泛型调用修复，CSV/TSV 两平台 C、独立互操作、C/XL 范例及官网交付；正式构建仍待验收。
+- `扩展库现状再评估_2026-09-28.md`：最新 227 包清点、正式/源码配对复测、网络库集成边界和逐包状态；作为本轮现状入口。
+- `扩展库Color限定交付_2026-09-28.md`：color 的 C/XL 所有权、21 个 ABI 原型、两平台 C、独立数值对照与资料验证；本地官网已同步，正式 OOM 和其他平台仍待收口。
+- `扩展库SSH与HTTP绑定复核_2026-09-28.md`：xssh/protocol/body 的 151 个实际生成原型、两平台 ABI、资源边界及初次下游失败记录；后续状态链接到 HTTP 对象专项。
+- `扩展库HTTP对象绑定复核_2026-09-28.md`：后续 multipart/form_data/body_decode 的 104 个原生声明、两平台 ABI 与新增寿命/预算边界；保留异步与 XWS 回环未通过结论。
+- `扩展库现状复核_2026-09-28_当前.md`：截至 06:20 的历史复核及此前专项证据，不代替后续复测结论。
+- `扩展库共享字符串桥接修复_2026-09-28.md`：string.join 及同类分配错误 ABI 修复、两平台限定测试、剩余字符串与迭代边界。
+- `扩展库MQTT边界计划.md`：MQTT 3.1.1 编解码与 TCP 传输的实施、测试、双语范例和官网验收；不代表完整会话引擎。
 - `扩展库占位实现预算评估.md`：简化实现扩展库的代码预算、取舍依据和延期边界。
 - `文档整理收口.md`：本轮文档整理后的索引、收口口径、剩余非阻断文档增强和验证命令。
 - `文档状态矩阵.md`：逐份标明当前文档身份、使用方式、维护触发条件和冲突处理顺序。
@@ -384,6 +406,14 @@
 - `现代类型语义与HIR改造.md`：统一 XLIR 建立前的 TypeId/SymbolId、nullable/weak、protocol、enum 与 match 设计背景；现行 IR 边界以 `XLIR统一中间表示设计.md` 为准。
 - `并发异步长期实现任务.md`：async/await、thread、channel、同步原语和 generator 的长期实现任务边界。
 - `扩展库系统RC实现任务.md`：扩展库系统进入 RC 实现阶段的任务边界和验收口径。
+- `扩展库MQTT边界计划.md`：MQTT 协议校验、传输边界和离线/真实网络验收的阶段任务记录。
+- `扩展库现状复核_2026-09-05.md`：2026-09-05 扩展库代码与验证快照；仅用于追溯当日问题基线。
+- `扩展库当前状态_2026-09-05.md`：2026-09-05 扩展库复测状态快照；其中通过率不是当前发布结论。
+- `扩展库当前状态_2026-09-26.md`：225 个包的清点、136 项固定输入复测、公共 ABI/模块依赖阻塞、独立 C 缺陷与官网缺口。
+- `扩展库现状复核_2026-09-27.md`：16:03 完成的 153 项固定输入回归（51 通过、97 失败、5 超时）、225 包逐包矩阵、十五包限定专项、真实后端与语言绑定差距、官网缺口；此前批次保留为历史记录。
+- `扩展库字符串拥有权收口_2026-09-05.md`：C 字符串返回值拥有权桥接的阶段修复与复测记录。
+- `扩展库字符串桥接收口_2026-09-05.md`：扩展库公共字符串桥接的阶段修复与复测记录。
+- `扩展库串口边界收口_2026-09-05.md`：串口缓冲、参数和平台边界的阶段修复与复测记录。
 
 ## C 发射器合同
 
@@ -399,6 +429,8 @@
 - `../release/examples/tutorial/README.md`：教学范例阅读顺序和运行入口。
 - `../release/examples/feature_suite/README.md`：功能范例套件索引、宿主文件和回归入口。
 - `../release/examples/apps/README.md`：复合应用范例索引和运行入口。
+- `../release/examples/games/README.md`：XGE 游戏范例、资源降级规则和无头冒烟入口。
+- `../release/projects/function_interop/README.md`：C/xlang 双向函数指针互操作范例及构建入口。
 
 ## 测试资产文档
 
@@ -406,6 +438,8 @@
 
 - `../release/extlibs/README.md`：package/import 发布扩展库目录索引和验证入口。
 - `../test/README.md`：测试目录入口、用例前缀索引和测试资产守门脚本说明。
+
+- `IDE源码覆盖接口.md`：编译上下文的未保存入口/递归源码覆盖、CLI 快照、诊断文件来源及加载源码/包描述报告合同。
 
 ## 工程目录文档
 
@@ -477,6 +511,9 @@ batch 和强引用拥有图仍待完成，不能视为 Stack 或全部 53 模块
 - [类字段共享恢复](stdlib53-b152-class-shared-restore.md)：类字段与容器复用恢复事务。
 - [Nullable 恢复错误](stdlib53-b153-nullable-restore.md)：数据拒绝和运行失败的分离。
 
+IDE 编译器接口：[同次检查语义索引](IDE语义索引接口.md)，提供真实声明/目标/类型和源名称范围，同时附带来源/解析观察报告。GUI 接入及显式文件覆盖的既有来源观察边界仍待后续完成。
+
+- [IDE原生C声明桥接接口](IDE原生C声明桥接接口.md)：同次验证的真实 XLIR ABI 声明与源码来源，供未保存 xlang 到 C 分析桥接使用。
 - [C 扩展的资源和数据桥接](foreign-bridges.md)
 
 ## Supplemental Reference Index
@@ -486,41 +523,6 @@ completion claim; each note retains its own scope, evidence and limitations.
 Maintain links when versioned documents are added or removed.
 
 <!-- supplemental-reference-index:start -->
-- [CRC32 标准库](<CRC32标准库.md>)
-- [Channel 同步值编码：闭包与 union](<Channel值编码接入.md>)
-- [Channel 原生调用的逻辑值与存储槽](<Channel原生调用值编码.md>)
-- [Channel 消息准入、递归编码与拥有图](<Channel消息准入与拥有图.md>)
-- [Continuation 拥有调用：当前源码与真实队列验收](<Continuation拥有调用源码验收.md>)
-- [Executor 原子批量提交验收](<Executor原子批量提交验收.md>)
-- [Executor 原生拥有权接入合同](<Executor原生拥有权接入合同.md>)
-- [Executor 标准库接入](<Executor标准库接入.md>)
-- [Executor 真实线程退出与 checked 失败账本](<Executor线程退出验收.md>)
-- [NetAddress 标准库接入](<NetAddress标准库接入.md>)
-- [网络后端能力查询](<NetBackend标准库接入.md>)
-- [NetBuffer 与独立增量分帧](<NetBuffer与增量分帧.md>)
-- [NetEngine 标准库接入](<NetEngine标准库接入.md>)
-- [NetInterface 标准库接入](<NetInterface标准库接入.md>)
-- [NetSocket 基础接入](<NetSocket基础接入.md>)
-- [Nullable union 的非空字段投影](<NullableUnion字段投影.md>)
-- [Null 值表达式求值合同](<Null值表达式求值合同.md>)
-- [Resolver 与拥有型地址列表](<Resolver与拥有型地址列表.md>)
-- [Socket 向量与批量收发](<Socket向量与批量收发.md>)
-- [Socket 数据报接入](<Socket数据报接入.md>)
-- [Socket 消息入口的并发发布前置](<Socket消息入口缓存.md>)
-- [Socket 错误队列与 PMTU](<Socket错误队列与PMTU.md>)
-- [TCP 传输配置](<TCP传输配置.md>)
-- [TCP 原生拥有图前置](<TCP原生拥有图前置.md>)
-- [TLS 传输标准库](<TLS传输标准库.md>)
-- [TLS 恢复票据](<TLS恢复票据.md>)
-- [TLS 类型化服务端选择器](<TLS类型化服务端选择器.md>)
-- [TaskPool 原生线程退出合同](<TaskPool原生线程退出合同.md>)
-- [TaskPool 收尾与完成观察合同](<TaskPool收尾完成合同.md>)
-- [TaskPool 标准库接入](<TaskPool标准库接入.md>)
-- [TaskPool 受管理线程退出与 checked 清理](<TaskPool线程退出验收.md>)
-- [TaskPool 结果与清理合同](<TaskPool结果与清理合同.md>)
-- [XLIR 泛型字段初始化合同](<XLIR泛型字段初始化合同.md>)
-- [XLIR 零负载参数合同](<XLIR零负载参数合同.md>)
-- [XRT 标量域元数据底座](<XRT标量域元数据.md>)
 - [源码包并发发布的 Windows 共享句柄](<artifact-staging-sharing-2026-10-27.md>)
 - [异步清理顺序与任务首错](<async-cleanup-contracts-2026-10-27.md>)
 - [异步模块宿主的真实源码依赖](<async-module-host-cohort-2026-10-27.md>)
@@ -529,19 +531,28 @@ Maintain links when versioned documents are added or removed.
 - [可调用值的完整容器返回类型](<callable-container-results-2026-10-27.md>)
 - [动态方法依赖筛选的重复扫描](<cgen-dynamic-selection-2026-10-27.md>)
 - [Channel 发布路径严格编译修正：2026-10-26](<channel-publish-strict-build-2026-10-26.md>)
+- [Channel 同步值编码：闭包与 union](<Channel值编码接入.md>)
+- [Channel 原生调用的逻辑值与存储槽](<Channel原生调用值编码.md>)
+- [Channel 消息准入、递归编码与拥有图](<Channel消息准入与拥有图.md>)
 - [Class/callable 原生交握验证修正（2026-10-27）](<class-callable-clock-2026-10-27.md>)
 - [类存储与构造发布门禁对齐](<class-storage-publication-contract-2026-10-27.md>)
 - [Closure 与 continuation scope 门禁](<closure-scope-guards-2026-10-27.md>)
 - [参数化源码构建的 GCC 选择](<compiler-tool-selection-2026-10-27.md>)
 - [静态成员补全与函数值预绑定](<completion-static-query-2026-10-27.md>)
 - [条件分支与空值后备的独立拥有权](<conditional-join-owners-2026-10-27.md>)
+- [Continuation 拥有调用：当前源码与真实队列验收](<Continuation拥有调用源码验收.md>)
 - [核心驻留依赖合同修正](<core-resident-closure-2026-10-27.md>)
+- [CRC32 标准库](<CRC32标准库.md>)
 - [受管理 Ed25519 密钥](<crypto-ed25519-managed.md>)
 - [显式密钥格式接入](<crypto-key-formats.md>)
 - [受管理 P-256／P-384 密钥](<crypto-nist-managed.md>)
 - [受管理 RSA 密钥与签名](<crypto-rsa-managed.md>)
 - [受管理 XDH 密钥](<crypto-xdh-managed.md>)
 - [动态方法资格检查：保留语义的编译性能修复](<dynamic-method-eligibility-2026-10-26.md>)
+- [Executor 原子批量提交验收](<Executor原子批量提交验收.md>)
+- [Executor 原生拥有权接入合同](<Executor原生拥有权接入合同.md>)
+- [Executor 标准库接入](<Executor标准库接入.md>)
+- [Executor 真实线程退出与 checked 失败账本](<Executor线程退出验收.md>)
 - [C 所有权返回链路：引用、传输及默认实参边界修复](<extern-owned-boundary-fixes-2026-10-28.md>)
 - [C 字符串链路：方法绑定与异步退役复核修复](<extern-owned-callable-boundaries-2026-10-28.md>)
 - [C 字符串链路：方法约束、owner 回调与嵌套泛型](<extern-owned-method-owner-fixes-2026-10-28.md>)
@@ -566,8 +577,16 @@ Maintain links when versioned documents are added or removed.
 - [Native task contract completion](<native-task-contracts-2026-10-27.md>)
 - [NetEngine 的拥有型结果任务](<net-engine-tasks.md>)
 - [NetFile 拥有型接入](<net-file-owned.md>)
+- [NetAddress 标准库接入](<NetAddress标准库接入.md>)
+- [网络后端能力查询](<NetBackend标准库接入.md>)
+- [NetBuffer 与独立增量分帧](<NetBuffer与增量分帧.md>)
+- [NetEngine 标准库接入](<NetEngine标准库接入.md>)
+- [NetInterface 标准库接入](<NetInterface标准库接入.md>)
+- [NetSocket 基础接入](<NetSocket基础接入.md>)
 - [网络旧 Cgen 清退：源码批次](<network-cgen-retirement-2026-10-26.md>)
 - [网络服务联合拥有图验收](<network-services-owned.md>)
+- [Nullable union 的非空字段投影](<NullableUnion字段投影.md>)
+- [Null 值表达式求值合同](<Null值表达式求值合同.md>)
 - [普通发行产物中的语义修复验收（2026-10-27）](<ordinary-semantic-fixes-2026-10-27.md>)
 - [参数化总门的 driver 角色修正：2026-10-26](<parameterized-driver-roles-2026-10-26.md>)
 - [参数化总门首轮完整发现批次：2026-10-26](<parameterized-first-sweep-2026-10-26.md>)
@@ -585,11 +604,16 @@ Maintain links when versioned documents are added or removed.
 - [Regex／Pattern 原生验收依赖恢复](<regex-native-guard-recovery-2026-10-27.md>)
 - [旧拥有权宿主改用真实 IR 依赖计划](<resident-fixture-plans-2026-10-27.md>)
 - [驻留运行时验证迁移第二批（2026-10-27）](<resident-worker-batch2-2026-10-27.md>)
+- [Resolver 与拥有型地址列表](<Resolver与拥有型地址列表.md>)
 - [运行时跨线程退役排空修复（2026-10-27）](<runtime-drain-thread-contract-2026-10-27.md>)
 - [复合赋值的独立调用效果](<selected-compound-effects-2026-10-27.md>)
 - [计算池与网络任务的共同激活记录](<shared-task-frame.md>)
 - [常规源码构建的完成判定](<shipping-build-supervision-2026-10-27.md>)
 - [普通产品测试清单与恢复凭据迁移](<shipping-fixture-migration-2026-10-27.md>)
+- [Socket 向量与批量收发](<Socket向量与批量收发.md>)
+- [Socket 数据报接入](<Socket数据报接入.md>)
+- [Socket 消息入口的并发发布前置](<Socket消息入口缓存.md>)
+- [Socket 错误队列与 PMTU](<Socket错误队列与PMTU.md>)
 - [现行公共文档合同](<stdlib53-b351-public-guide-contracts.md>)
 - [标准库错误声明的产品拒绝验收](<stdlib53-b352-abi-rejection.md>)
 - [标准库完成要求与证据矩阵](<stdlib53-b353-completion-matrix.md>)
@@ -599,6 +623,11 @@ Maintain links when versioned documents are added or removed.
 - [字符串投影的单次结果检查](<string-projection-outcomes-2026-10-27.md>)
 - [泛型枚举容器与 Stack 返回值所有权](<tagged-enum-sequences-2026-10-27.md>)
 - [Task 完整工作器恢复](<task-guard-recovery-2026-10-27.md>)
+- [TaskPool 原生线程退出合同](<TaskPool原生线程退出合同.md>)
+- [TaskPool 收尾与完成观察合同](<TaskPool收尾完成合同.md>)
+- [TaskPool 标准库接入](<TaskPool标准库接入.md>)
+- [TaskPool 受管理线程退出与 checked 清理](<TaskPool线程退出验收.md>)
+- [TaskPool 结果与清理合同](<TaskPool结果与清理合同.md>)
 - [驻留源码的 TCC 结构体数组初始化兼容性](<tcc-resident-initializer-2026-10-27.md>)
 - [NetBuffer 引用块与跨线程链式接管](<tcp-chain-move.md>)
 - [TCP 聚集发送、文件发送与分帧接收](<tcp-data-paths.md>)
@@ -615,10 +644,15 @@ Maintain links when versioned documents are added or removed.
 - [聚合 Server／Accept Future 原生闭包验收](<tcp-server-owned-native.md>)
 - [Server 固定 ABI 与驻留拥有目录](<tcp-server-pinned-catalog.md>)
 - [聚合 Server 的拥有型非阻塞轮询](<tcp-server-poll.md>)
+- [TCP 传输配置](<TCP传输配置.md>)
+- [TCP 原生拥有图前置](<TCP原生拥有图前置.md>)
 - [TLS 驻留接入](<tls-managed.md>)
 - [拥有式 TLS peer 与附加验证谓词](<tls-peer-policy-2026-10-26.md>)
 - [TLS Verifier 消费者图迁移](<tls-verifier-consumer-ownership-2026-10-26.md>)
 - [TLS Verifier 原生拥有权前置与定点同步](<tls-verifier-native-ownership-2026-10-26.md>)
+- [TLS 传输标准库](<TLS传输标准库.md>)
+- [TLS 恢复票据](<TLS恢复票据.md>)
+- [TLS 类型化服务端选择器](<TLS类型化服务端选择器.md>)
 - [类型别名的所有权规划](<type-alias-ownership-2026-10-27.md>)
 - [UDP 驻留接入进度与依赖](<udp-managed-migration.md>)
 - [原生容器显示的 IR 合同与驻留依赖](<value-display-graph-2026-10-27.md>)
@@ -633,6 +667,9 @@ Maintain links when versioned documents are added or removed.
 - [X.509 公开面覆盖核对（2026-10-24）](<x509-surface-audit.md>)
 - [X.509 信任来源](<x509-trust-sources.md>)
 - [XRT XACME 绑定验收](<xacme_xrt_binding_acceptance.md>)
+- [XLIR 泛型字段初始化合同](<XLIR泛型字段初始化合同.md>)
+- [XLIR 零负载参数合同](<XLIR零负载参数合同.md>)
+- [XRT 标量域元数据底座](<XRT标量域元数据.md>)
 - [五组标准库接入长期任务](<五组标准库接入长期任务.md>)
 - [代理端点与独立协议协商](<代理端点与独立协议协商.md>)
 - [原生 getter 的拥有结果合同](<原生getter拥有结果合同.md>)
@@ -642,16 +679,10 @@ Maintain links when versioned documents are added or removed.
 - [异步拥有图测试的忙碌重试](<异步拥有图测试的忙碌重试.md>)
 - [执行资源生命周期接入合同](<执行资源生命周期接入合同.md>)
 - [扩展库 C 字符串返回审计（2026-10-24）](<扩展库C字符串返回审计_2026-10-24.md>)
-- [MQTT 边界压实计划](<扩展库MQTT边界计划.md>)
 - [DEMO6 扩展库与 X 体系重合审计（2026-10-12）](<扩展库与X体系重合审计_2026-10-12.md>)
-- [扩展库串口边界收口：2026-09-05](<扩展库串口边界收口_2026-09-05.md>)
 - [DEMO6 扩展库发布级完善任务台账](<扩展库发布级完善任务台账.md>)
-- [扩展库字符串拥有权收口：2026-09-05](<扩展库字符串拥有权收口_2026-09-05.md>)
-- [扩展库字符串桥接收口：2026-09-05](<扩展库字符串桥接收口_2026-09-05.md>)
 - [扩展库字符串返回所有权审计（2026-10-23）](<扩展库字符串返回所有权审计_2026-10-23.md>)
-- [扩展库当前状态：2026-09-05](<扩展库当前状态_2026-09-05.md>)
 - [DEMO6 扩展库成熟度清单（2026-10-12）](<扩展库成熟度清单_2026-10-12.md>)
-- [扩展库现状复核：2026-09-05](<扩展库现状复核_2026-09-05.md>)
 - [DEMO6 扩展库生态重整（2026-10-12）](<扩展库生态重整_2026-10-12.md>)
 - [数值枚举位运算](<数值枚举位运算.md>)
 - [DEMO6 普通扩展库开发优先级（2026-10-12）](<普通扩展库开发优先级_2026-10-12.md>)

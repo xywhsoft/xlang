@@ -1,172 +1,61 @@
-channel<int> serverEvents = channel::<int>(32)
-channel<int> clientEvents = channel::<int>(32)
-channel<string> serverPayloads = channel::<string>(8)
-channel<string> clientPayloads = channel::<string>(8)
-
-
-
-func serverWebSocketHandler(int event, int opcode, int flags, uint64 value, point data, c_size size)
-    serverEvents.send(event)
-    if event == 1 then
-        Buffer payload = Buffer()
-        if payload.appendRaw(data, size) then
-            serverPayloads.send(payload.text())
+// A header split across read-ahead and TCP; saved events own their sender.
+class SavedEvent
+    WsEvent? value = null
+end
+async func verify()
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
+    auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+    auto tcp = TcpStream(engine, listener.localAddress())
+    auto peer = listener.accept(5000)
+    assert tcp.wait(TcpWait.open, 5000) == NetStatus.ok
+    auto pending = WsUpgrade.client("local.test")
+    auto request = Http1Head.request(Http1.requestHead("GET", "/ws", pending.headers()))
+    if request == null then throw ValueError "incomplete request" end
+    auto serverUpgrade = WsUpgrade.server(request)
+    auto response = Http1Head.response(Http1.responseHead(101, "Switching Protocols", serverUpgrade.headers()))
+    if response == null then throw ValueError "incomplete response" end
+    auto clientUpgrade = pending.checkResponse(response)
+    auto prefix = NetBuffer()
+    prefix.append(b"\x82")
+    auto tail = Buffer(b"\x83\x12\x34\x56\x78")
+    auto payload = Buffer(b"a\0b")
+    WsFrame.applyMask(payload, 305419896)
+    tail.append(payload.toBytes())
+    assert tcp.send(tail) == NetStatus.ok
+    auto options = WsStreamOptions()
+    auto server = await WsStream.attachAsync(peer, prefix, serverUpgrade, options, func(WsEvent event) as bool
+        if event.kind == WsEventKind.messageData then
+            assert event.stream.sendBinary(event.data) == NetStatus.ok
         end
-    end
-end
-
-
-
-func clientWebSocketHandler(int event, int opcode, int flags, uint64 value, point data, c_size size)
-    clientEvents.send(event)
-    if event == 1 then
-        Buffer payload = Buffer()
-        if payload.appendRaw(data, size) then
-            clientPayloads.send(payload.text())
+        return true
+    end)
+    assert prefix.length == 0
+    auto stored = SavedEvent()
+    auto count = AtomicInt32(0)
+    auto client = await WsStream.attachAsync(tcp, NetBuffer(), clientUpgrade, options, func(WsEvent event) as bool
+        if event.kind == WsEventKind.messageData then
+            stored.value = event
+            count.fetchAdd(1)
         end
-    end
-end
-
-
-
-func require(string name, bool condition)
-    assert condition, name
-    println(name + "=ok")
-end
-
-
-
-func waitTcpBytes(TcpStream stream, int minimum, int timeoutMs) as Buffer
-    int elapsed = 0
-    Buffer snapshot = stream.peek()
-    while snapshot.len() < minimum and elapsed < timeoutMs
-        stream.waitReadable(10)
+        return true
+    end)
+    int spins = 0
+    while count.load() == 0 and spins < 5000
         time.sleep(1)
-        elapsed += 11
-        snapshot = stream.peek()
+        spins = spins + 1
     end
-    return snapshot
+    assert count.load() == 1
+    assert (await client.closeAsync()) == NetStatus.ok
+    assert (await server.waitClosedAsync(5000)) == NetStatus.ok
+    assert (await client.waitClosedAsync(5000)) == NetStatus.ok
+    auto snapshot = stored.value
+    if snapshot == null then throw ValueError "missing saved event" end
+    assert snapshot.data == b"a\0b"
+    assert snapshot.stream.state == WsStreamState.closed
+    listener.close()
+    engine.close()
+    assert engine.wait(5000)
+    println("websocket-upgrade-loopback-ok")
 end
-
-
-
-func waitEvent(channel<int> events, int expected, int timeoutMs) as bool
-    int elapsed = 0
-    int event = -1
-    while elapsed < timeoutMs
-        if events.recvTimeoutInto(event, 50) then
-            if event == expected then
-                return true
-            end
-        end
-        elapsed += 50
-    end
-    return false
-end
-
-
-
-async func run() as int
-    TcpServer listener = tcp.listen(0)
-    require("ws_listener", listener.port() > 0)
-
-    future<TcpStream> accepting = listener.acceptAsync()
-    TcpStream clientTransport = tcp.connect("127.0.0.1", listener.port(), 8000)
-    TcpStream serverTransport = await accepting
-    require("ws_tcp_connected", clientTransport.remotePort() == listener.port())
-
-    WsUpgrade clientUpgrade = WsUpgrade.client("127.0.0.1", "chat", true, true)
-    Buffer requestHead = Http1.requestHead("GET", "/socket", clientUpgrade.fields())
-    Buffer firstPayload = Buffer()
-    require("ws_first_payload", firstPayload.append("first-frame"))
-    WsFrame firstFrame = WsFrame.make(
-        1,
-        uint64(firstPayload.len()),
-        true,
-        true,
-        uint32(287454020)
-    )
-    Buffer firstFrameHead = firstFrame.write()
-    require("ws_first_mask", WsFrame.applyMask(firstPayload, uint32(287454020)))
-    array requestParts = [requestHead, firstFrameHead, firstPayload]
-    require("ws_upgrade_send", clientTransport.sendVec(requestParts))
-    require("ws_upgrade_drain", clientTransport.waitDrain(8000))
-
-    int requestSize = requestHead.len() + firstFrameHead.len() + firstPayload.len()
-    Buffer requestWire = waitTcpBytes(serverTransport, requestSize, 8000)
-    require("ws_upgrade_coalesced", requestWire.len() >= requestSize)
-    Http1Head request = Http1Head.request(requestWire)
-    require("ws_request_head", request.ready and request.headerBytes == requestHead.len())
-    require("ws_request_unconsumed", serverTransport.peek().len() == requestWire.len())
-
-    WsUpgrade serverUpgrade = WsUpgrade.server(request, "chat", true, true)
-    require(
-        "ws_server_upgrade",
-        serverUpgrade.ready and serverUpgrade.protocol() == "chat" and
-            serverUpgrade.deflateEnabled
-    )
-    Buffer responseHead = Http1.responseHead(
-        101,
-        "Switching Protocols",
-        serverUpgrade.fields()
-    )
-    require(
-        "ws_response_send",
-        serverTransport.sendBytes(responseHead.data(), c_size(responseHead.len()))
-    )
-    require("ws_response_drain", serverTransport.waitDrain(8000))
-
-    WebSocket serverSocket = WebSocket.attachTcp(
-        serverTransport,
-        serverUpgrade,
-        serverWebSocketHandler,
-        request.headerBytes
-    )
-    require("ws_server_attach", serverSocket.nativeHandle() != null)
-
-    Buffer responseWire = waitTcpBytes(clientTransport, responseHead.len(), 8000)
-    Http1Head response = Http1Head.response(responseWire)
-    require("ws_response_head", response.ready and response.headerBytes == responseHead.len())
-    require("ws_client_upgrade", clientUpgrade.check(response))
-    require(
-        "ws_client_negotiated",
-        clientUpgrade.ready and clientUpgrade.protocol() == "chat" and
-            clientUpgrade.deflateEnabled
-    )
-    WebSocket clientSocket = WebSocket.attachTcp(
-        clientTransport,
-        clientUpgrade,
-        clientWebSocketHandler,
-        response.headerBytes
-    )
-    require("ws_client_attach", clientSocket.nativeHandle() != null)
-
-    string payload = ""
-    require("ws_first_callback", serverPayloads.recvTimeoutInto(payload, 8000))
-    require("ws_first_preserved", payload == "first-frame")
-
-    require("ws_client_compressed_send", clientSocket.send("client-compressed", true))
-    require("ws_server_compressed_recv", serverPayloads.recvTimeoutInto(payload, 8000))
-    require("ws_server_compressed_data", payload == "client-compressed")
-
-    require("ws_server_compressed_send", serverSocket.send("server-compressed", true))
-    require("ws_client_compressed_recv", clientPayloads.recvTimeoutInto(payload, 8000))
-    require("ws_client_compressed_data", payload == "server-compressed")
-
-    Buffer ping = Buffer()
-    require("ws_ping_payload", ping.append("ping"))
-    require("ws_ping_send", clientSocket.ping(ping))
-    require("ws_ping_server_event", waitEvent(serverEvents, 3, 8000))
-    require("ws_pong_client_event", waitEvent(clientEvents, 4, 8000))
-
-    require("ws_close_send", clientSocket.close(1000, "done"))
-    require("ws_close_server_event", waitEvent(serverEvents, 9, 8000))
-    require("ws_close_client_event", waitEvent(clientEvents, 9, 8000))
-    return 0
-end
-
-
-
-int exitCode = await run()
-assert exitCode == 0
-println("websocket-upgrade-loopback-ok")
+await verify()

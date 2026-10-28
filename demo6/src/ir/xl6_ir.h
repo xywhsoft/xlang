@@ -4284,16 +4284,9 @@ typedef enum XL6_IrRuntimeBridgeKind {
     /* Compiler-owned WebSocket wrappers are emitted as six dependency
      * components.  Lowering assigns the exact component identity from the
      * reserved declaration; Cgen consumes only these verified markers. */
-    XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_FRAME,
-    XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_HANDSHAKE,
-    XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_UPGRADE,
-    XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_STREAM_CONFIG,
-    XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_STREAM,
-    XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_STREAM_TLS,
     /* Public-XRT-backed HTTP/1 head/body/framing component.  WebSocket
      * upgrade depends on its owned parsed-head representation, so that
      * dependency is closed in the verified Cgen feature model. */
-    XL6_IR_RUNTIME_BRIDGE_HTTP1,
     /* The raw runtime API exposes the current XRT error message as borrowed
      * text. The bridge materializes one owned managed string, making the
      * language result and destruction contract exact. */
@@ -7049,13 +7042,11 @@ int xl6IrRuntimeBridgeOperationTargetMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target);
 /* Resolve and validate compiler-owned WebSocket component declarations once
  * while their complete semantic and physical call ABI is available. */
-XL6_IrRuntimeBridgeKind xl6IrRuntimeWebSocketBridgeKind(const char* name);
-int xl6IrRuntimeWebSocketBridgeTargetMatches(
-    const XL6_IrModule* module, const XL6_IrCallTarget* target);
+
+
 /* Resolve HTTP/1 compiler-owned declarations into one verified component. */
-int xl6IrRuntimeHttp1BridgeName(const char* name);
-int xl6IrRuntimeHttp1BridgeTargetMatches(
-    const XL6_IrModule* module, const XL6_IrCallTarget* target);
+
+
 /* Generic class specialization appends concrete layouts and substitutes
  * member result TypeIds before body lowering.  Refresh their canonical
  * MemberAbi identities at that boundary so Cgen never receives a template

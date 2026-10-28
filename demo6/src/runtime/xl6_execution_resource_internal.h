@@ -24,6 +24,7 @@ typedef struct XL6_ExecutionCreateOptionsV1 {
         const struct XL6_NetFileCreateOptionsV1* file;
         const struct XL6_TlsStreamCreateOptionsV1* tlsStream;
         const struct XL6_TlsListenerCreateOptionsV1* tlsListener;
+        const struct XL6_WsCreateOptions* websocket;
     } value;
 } XL6_ExecutionCreateOptionsV1;
 typedef struct XL6_ExecutionFamilyV1 {

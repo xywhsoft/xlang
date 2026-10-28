@@ -102,52 +102,61 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('build\test\stdlib_json_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('build\test\stdlib_json_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib json xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
 if errorlevel 1 exit /b 1
 
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_xson_value_bridge.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_xlon_value_bridge.ps1
 if errorlevel 1 exit /b 1
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_xson_stream_bridge.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_xlon_stream_bridge.ps1
 if errorlevel 1 exit /b 1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_host_error_boundary.ps1
 if errorlevel 1 exit /b 1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_serialization_callback_error.ps1
 if errorlevel 1 exit /b 1
-release\xl.exe check test\cases\stdlib_xson.xl
+release\xl.exe check test\cases\stdlib_xlon.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_xson.xl --emit build\test\stdlib_xson.c
+release\xl.exe cgen test\cases\stdlib_xlon.xl --emit build\test\stdlib_xlon.c
 if errorlevel 1 exit /b 1
-findstr /C:"xvalue* xl6_xrt_xson_parse_options" build\test\stdlib_xson.c >nul
+findstr /C:"xvalue* xl6_xrt_xlon_parse_options" build\test\stdlib_xlon.c >nul
 if errorlevel 1 (
-    echo stdlib_xson.c missing xl6_xrt_xson_parse_options runtime prototype.
+    echo stdlib_xlon.c missing xl6_xrt_xlon_parse_options runtime prototype.
     exit /b 1
 )
-findstr /C:"bool xl6_xrt_xson_valid_options" build\test\stdlib_xson.c >nul
+findstr /C:"bool xl6_xrt_xlon_valid_options" build\test\stdlib_xlon.c >nul
 if errorlevel 1 (
-    echo stdlib_xson.c missing xl6_xrt_xson_valid_options runtime prototype.
+    echo stdlib_xlon.c missing xl6_xrt_xlon_valid_options runtime prototype.
     exit /b 1
 )
-findstr /C:"void* xl6_xrt_xson_stringify_options" build\test\stdlib_xson.c >nul
+findstr /C:"void* xl6_xrt_xlon_stringify_options" build\test\stdlib_xlon.c >nul
 if errorlevel 1 (
-    echo stdlib_xson.c missing xl6_xrt_xson_stringify_options runtime prototype.
+    echo stdlib_xlon.c missing xl6_xrt_xlon_stringify_options runtime prototype.
     exit /b 1
 )
-findstr /C:"= xl6_xrt_xson_stringify_options(" build\test\stdlib_xson.c >nul
+findstr /C:"= xl6_xrt_xlon_stringify_options(" build\test\stdlib_xlon.c >nul
 if errorlevel 1 (
-    echo stdlib_xson.c missing xson.stringify resolved runtime call.
+    echo stdlib_xlon.c missing xlon.stringify resolved runtime call.
     exit /b 1
 )
-"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror -DXLIR_GENERATED_MODULE=\"build/test/stdlib_xson.c\" test\cases\xlir_generated_module_host.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\stdlib_xson.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror -DXLIR_GENERATED_MODULE=\"build/test/stdlib_xlon.c\" test\cases\xlir_generated_module_host.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\stdlib_xlon.exe
 if errorlevel 1 exit /b 1
-build\test\stdlib_xson.exe
+build\test\stdlib_xlon.exe
 if errorlevel 1 exit /b 1
-release\xl.exe run release\examples\stdlib_xson.xl %XL6_XL_DEFAULT_LINK_ARGS% > build\test\stdlib_xson_xlang.out.txt
+release\xl.exe run release\examples\stdlib_xlon.xl %XL6_XL_DEFAULT_LINK_ARGS% > build\test\stdlib_xlon_xlang.out.txt
 if errorlevel 1 exit /b 1
-"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% release\examples\stdlib_xson_c.c %XL6_CGEN_LINKS% -o build\test\stdlib_xson_c.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% release\examples\stdlib_xlon_c.c %XL6_CGEN_LINKS% -o build\test\stdlib_xlon_c.exe
 if errorlevel 1 exit /b 1
-build\test\stdlib_xson_c.exe > build\test\stdlib_xson_c.out.txt
+build\test\stdlib_xlon_c.exe > build\test\stdlib_xlon_c.out.txt
 if errorlevel 1 exit /b 1
-powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('build\test\stdlib_xson_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('build\test\stdlib_xson_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib xson xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
+powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('build\test\stdlib_xlon_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('build\test\stdlib_xlon_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib xlon xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
 if errorlevel 1 exit /b 1
 
+for %%F in (stdlib_structured_lines stdlib_structured_options stdlib_structured_writer_complete stdlib_structured_sink stdlib_structured_visit_options stdlib_json_config_minimal stdlib_json_write_config_minimal stdlib_json_quote_minimal stdlib_xlon_custom_decode) do (
+    release\xl.exe check test\cases\%%F.xl
+    if errorlevel 1 exit /b 1
+    release\xl.exe run test\cases\%%F.xl
+    if errorlevel 1 exit /b 1
+)
+
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_text_output_bridge.ps1
+if errorlevel 1 exit /b 1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_io_console.ps1
 if errorlevel 1 exit /b 1
 release\xl.exe check test\cases\stdlib_print.xl
 if errorlevel 1 exit /b 1
@@ -158,7 +167,7 @@ if not errorlevel 1 (
     echo stdlib_print.c unexpectedly imports the legacy private runtime header.
     exit /b 1
 )
-findstr /C:"    xl6_xrt_print(" build\test\stdlib_print.c >nul
+findstr /C:"= xl6_xrt_print(" build\test\stdlib_print.c >nul
 if errorlevel 1 (
     echo stdlib_print.c missing explicit xvalue print runtime call.
     exit /b 1
@@ -258,9 +267,9 @@ if errorlevel 1 (
     echo stdlib_error_paths.c missing xl6_xrt_json_parse runtime prototype.
     exit /b 1
 )
-findstr /C:"xvalue* xl6_xrt_xson_parse_options" build\test\stdlib_error_paths.c >nul
+findstr /C:"xvalue* xl6_xrt_xlon_parse_options" build\test\stdlib_error_paths.c >nul
 if errorlevel 1 (
-    echo stdlib_error_paths.c missing xl6_xrt_xson_parse_options runtime prototype.
+    echo stdlib_error_paths.c missing xl6_xrt_xlon_parse_options runtime prototype.
     exit /b 1
 )
 findstr /C:"xl6ProcessRunV1" build\test\stdlib_error_paths.c >nul
@@ -405,6 +414,41 @@ build\test\stdlib_hash_c.exe > build\test\stdlib_hash_c.out.txt
 if errorlevel 1 exit /b 1
 powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('build\test\stdlib_hash_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('build\test\stdlib_hash_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib hash xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
 if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\stdlib_siphash.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\stdlib_siphash.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\stdlib_siphash.xl --emit build\test\stdlib_siphash.c
+if errorlevel 1 exit /b 1
+findstr /C:"xrtSipHash(" build\test\stdlib_siphash.c >nul
+if errorlevel 1 (
+    echo stdlib_siphash.c missing direct XRT SipHash call.
+    exit /b 1
+)
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror -DXLIR_GENERATED_MODULE=\"build/test/stdlib_siphash.c\" test\cases\xlir_generated_module_host.c %XL6_CGEN_LINKS% -o build\test\stdlib_siphash.exe
+if errorlevel 1 exit /b 1
+build\test\stdlib_siphash.exe
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\stdlib_siphash_none.xl --emit build\test\stdlib_siphash_none.c
+if errorlevel 1 exit /b 1
+findstr /C:"xrtSipHash(" build\test\stdlib_siphash_none.c >nul
+if not errorlevel 1 (
+    echo siphash code was emitted without a siphash use.
+    exit /b 1
+)
+release\xl.exe cgen test\cases\stdlib_siphash_minimal.xl --emit build\test\stdlib_siphash_minimal.c
+if errorlevel 1 exit /b 1
+findstr /C:"xrtSipHash(" build\test\stdlib_siphash_minimal.c >nul
+if errorlevel 1 (
+    echo minimal siphash use omitted the XRT call.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_siphasher64_" build\test\stdlib_siphash_minimal.c >nul
+if not errorlevel 1 (
+    echo minimal siphash use unexpectedly emitted stream helpers.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\stdlib_crypto.xl
 if errorlevel 1 exit /b 1
@@ -1089,6 +1133,14 @@ if errorlevel 1 (
 
 release\xl.exe run test\cases\stdlib_xid_object.xl
 if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\stdlib_xid_value.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\stdlib_xid_value.xl -o build\test\stdlib_xid_value.exe
+if errorlevel 1 exit /b 1
+build\test\stdlib_xid_value.exe
+if errorlevel 1 exit /b 1
+release\xl.exe run release\examples\stdlib_xid.xl
+if errorlevel 1 exit /b 1
 
 release\xl.exe run release\examples\stdlib_id_net.xl > build\test\stdlib_id_extended_xlang.out.txt
 if errorlevel 1 exit /b 1
@@ -1120,6 +1172,43 @@ if errorlevel 1 exit /b 1
 findstr /C:"xrt_secure_random=ok" build\test\xrt_secure_random.out.txt >nul
 if errorlevel 1 exit /b 1
 
+rem Random adapters must link and execute in JIT, strict generated C and AOT.
+release\xl.exe check test\cases\stdlib_random_extended.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\stdlib_random_extended.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\stdlib_random_extended.xl --emit build\test\stdlib_random_extended.c
+if errorlevel 1 exit /b 1
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror -DXLIR_GENERATED_MODULE=\"build/test/stdlib_random_extended.c\" test\cases\xlir_generated_module_host.c %XL6_CGEN_LINKS% -o build\test\stdlib_random_extended.strict.exe
+if errorlevel 1 exit /b 1
+build\test\stdlib_random_extended.strict.exe
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\stdlib_random_extended.xl -o build\test\stdlib_random_extended.exe
+if errorlevel 1 exit /b 1
+build\test\stdlib_random_extended.exe
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\stdlib_random_minimal.xl --emit build\test\stdlib_random_minimal.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_xrt_secure_" /C:"xl6_xrt_rng_" build\test\stdlib_random_minimal.c >nul
+if not errorlevel 1 (
+    echo Minimal default random code unexpectedly includes secure or explicit-state adapters.
+    exit /b 1
+)
+release\xl.exe cgen test\cases\stdlib_random_object_minimal.xl --emit build\test\stdlib_random_object_minimal.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_xrt_rng_bytes" /C:"xl6_xrt_rng_string" /C:"xl6_xrt_random_" /C:"xl6_xrt_secure_" build\test\stdlib_random_object_minimal.c >nul
+if not errorlevel 1 (
+    echo Minimal Random object code unexpectedly includes unused random adapters.
+    exit /b 1
+)
+release\xl.exe cgen test\cases\stdlib_random_secure_minimal.xl --emit build\test\stdlib_random_secure_minimal.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_xrt_random_" /C:"xl6_xrt_rng_" build\test\stdlib_random_secure_minimal.c >nul
+if not errorlevel 1 (
+    echo Minimal secure random code unexpectedly includes pseudorandom adapters.
+    exit /b 1
+)
+
 release\xl.exe run test\cases\stdlib_http1_core.xl > build\test\stdlib_http1_core.out.txt
 if errorlevel 1 exit /b 1
 findstr /C:"stdlib http1 core ok" build\test\stdlib_http1_core.out.txt >nul
@@ -1147,148 +1236,10 @@ if errorlevel 1 exit /b 1
 findstr /C:"stdlib http1 core ok" build\test\stdlib_http1_core_static.out.txt >nul
 if errorlevel 1 exit /b 1
 
-release\xl.exe run test\cases\stdlib_websocket_core.xl > build\test\stdlib_websocket_core.out.txt
+rem Exact resident WebSocket ABI, owned normal loopback and standalone products.
+set "XL6_WS_CONTRACT_DIR=build\test\stdlib_websocket_%RANDOM%_%RANDOM%"
+python tools\check_stdlib_websocket.py --root . --out "%XL6_WS_CONTRACT_DIR%"
 if errorlevel 1 exit /b 1
-findstr /C:"stdlib websocket core ok" build\test\stdlib_websocket_core.out.txt >nul
-if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_websocket_core.xl --emit build\test\stdlib_websocket_core.c
-if errorlevel 1 exit /b 1
-for %%S in (XRT_MODULE_WEBSOCKET_FRAME XRT_MODULE_WEBSOCKET_CLOSE XRT_MODULE_WEBSOCKET_KEYGEN XRT_MODULE_WEBSOCKET_UPGRADE_DEFLATE xl6_xrt_ws_frame_parse xl6_xrt_ws_upgrade_server) do (
-    findstr /C:"%%S" build\test\stdlib_websocket_core.c >nul
-    if errorlevel 1 (
-        echo stdlib_websocket_core.c missing %%S.
-        exit /b 1
-    )
-)
-for %%S in (XRT_MODULE_HTTP_CLIENT XRT_MODULE_HTTP_SERVER XRT_MODULE_WEBSOCKET_STREAM XRT_MODULE_WEBSOCKET_STREAM_TLS XRT_MODULE_TLS_STREAM XRT_MODULE_NET_ENGINE) do (
-    findstr /C:"%%S" build\test\stdlib_websocket_core.c >nul
-    if not errorlevel 1 (
-        echo stdlib_websocket_core.c unexpectedly contains %%S.
-        exit /b 1
-    )
-)
-release\xl.exe build test\cases\stdlib_websocket_core.xl -o build\test\stdlib_websocket_core.exe
-if errorlevel 1 exit /b 1
-build\test\stdlib_websocket_core.exe > build\test\stdlib_websocket_core_static.out.txt
-if errorlevel 1 exit /b 1
-findstr /C:"stdlib websocket core ok" build\test\stdlib_websocket_core_static.out.txt >nul
-if errorlevel 1 exit /b 1
-
-for %%T in (
-    frame
-    handshake
-    upgrade
-) do (
-    release\xl.exe cgen test\cases\stdlib_websocket_%%T_trim.xl --emit build\test\stdlib_websocket_%%T_trim.c
-    if errorlevel 1 exit /b 1
-    release\xl.exe build test\cases\stdlib_websocket_%%T_trim.xl -o build\test\stdlib_websocket_%%T_trim.exe
-    if errorlevel 1 exit /b 1
-    build\test\stdlib_websocket_%%T_trim.exe > build\test\stdlib_websocket_%%T_trim.out.txt
-    if errorlevel 1 exit /b 1
-)
-for %%S in (XRT_MODULE_WEBSOCKET_KEYGEN XRT_MODULE_WEBSOCKET_UPGRADE_DEFLATE XRT_MODULE_WEBSOCKET_STREAM XRT_MODULE_NET_ENGINE XRT_MODULE_TLS_STREAM) do (
-    findstr /C:"%%S" build\test\stdlib_websocket_frame_trim.c >nul
-    if not errorlevel 1 (
-        echo stdlib_websocket_frame_trim.c unexpectedly contains %%S.
-        exit /b 1
-    )
-)
-for %%S in (XRT_MODULE_WEBSOCKET_FRAME XRT_MODULE_WEBSOCKET_UPGRADE_DEFLATE XRT_MODULE_WEBSOCKET_STREAM XRT_MODULE_NET_ENGINE XRT_MODULE_TLS_STREAM) do (
-    findstr /C:"%%S" build\test\stdlib_websocket_handshake_trim.c >nul
-    if not errorlevel 1 (
-        echo stdlib_websocket_handshake_trim.c unexpectedly contains %%S.
-        exit /b 1
-    )
-)
-for %%S in (XRT_MODULE_WEBSOCKET_FRAME XRT_MODULE_WEBSOCKET_STREAM XRT_MODULE_NET_ENGINE XRT_MODULE_TLS_STREAM) do (
-    findstr /C:"%%S" build\test\stdlib_websocket_upgrade_trim.c >nul
-    if not errorlevel 1 (
-        echo stdlib_websocket_upgrade_trim.c unexpectedly contains %%S.
-        exit /b 1
-    )
-)
-
-for %%T in (
-    stream_config
-    stream
-    stream_tls
-) do (
-    release\xl.exe cgen test\cases\stdlib_websocket_%%T_trim.xl --emit build\test\stdlib_websocket_%%T_trim.c
-    if errorlevel 1 exit /b 1
-    release\xl.exe build test\cases\stdlib_websocket_%%T_trim.xl -o build\test\stdlib_websocket_%%T_trim.exe
-    if errorlevel 1 exit /b 1
-    build\test\stdlib_websocket_%%T_trim.exe > build\test\stdlib_websocket_%%T_trim.out.txt
-    if errorlevel 1 exit /b 1
-)
-for %%S in (XRT_MODULE_NET_ XRT_MODULE_WEBSOCKET_ XRT_MODULE_TLS_ XRT_MODULE_EVENT) do (
-    findstr /C:"%%S" build\test\stdlib_websocket_stream_config_trim.c >nul
-    if not errorlevel 1 (
-        echo stdlib_websocket_stream_config_trim.c unexpectedly contains %%S.
-        exit /b 1
-    )
-)
-for %%S in (XRT_MODULE_HTTP1_BODY XRT_MODULE_WEBSOCKET_KEYGEN XRT_MODULE_WEBSOCKET_UPGRADE_DEFLATE XRT_MODULE_WEBSOCKET_STREAM_REF XRT_MODULE_WEBSOCKET_STREAM_DEFLATE XRT_MODULE_EVENT xl6_xrt_tcp_stream_peek_buffer xl6_xrt_tcp_stream_consume_exact xl6_xrt_ws_stream_attach_tcp xl6_xrt_ws_stream_send_text) do (
-    findstr /C:"%%S" build\test\stdlib_websocket_stream_trim.c >nul
-    if errorlevel 1 (
-        echo stdlib_websocket_stream_trim.c missing %%S.
-        exit /b 1
-    )
-)
-for %%S in (XRT_MODULE_WEBSOCKET_STREAM_TLS XRT_MODULE_HTTP_CLIENT XRT_MODULE_HTTP_SERVER xl6_xrt_ws_stream_attach_tls) do (
-    findstr /C:"%%S" build\test\stdlib_websocket_stream_trim.c >nul
-    if not errorlevel 1 (
-        echo stdlib_websocket_stream_trim.c unexpectedly contains %%S.
-        exit /b 1
-    )
-)
-for %%S in (XRT_MODULE_WEBSOCKET_STREAM_TLS xl6_xrt_tls_stream_peek_buffer xl6_xrt_tls_stream_consume_exact xl6_xrt_ws_stream_attach_tls xrtWsStreamAttachTls) do (
-    findstr /C:"%%S" build\test\stdlib_websocket_stream_tls_trim.c >nul
-    if errorlevel 1 (
-        echo stdlib_websocket_stream_tls_trim.c missing %%S.
-        exit /b 1
-    )
-)
-
-for %%T in (
-    upgrade_loopback
-    upgrade_tls_loopback
-) do (
-    release\xl.exe check test\cases\stdlib_websocket_%%T.xl
-    if errorlevel 1 exit /b 1
-    release\xl.exe run test\cases\stdlib_websocket_%%T.xl > build\test\stdlib_websocket_%%T.out.txt
-    if errorlevel 1 exit /b 1
-    findstr /C:"loopback-ok" build\test\stdlib_websocket_%%T.out.txt >nul
-    if errorlevel 1 exit /b 1
-    release\xl.exe cgen test\cases\stdlib_websocket_%%T.xl --emit build\test\stdlib_websocket_%%T.c
-    if errorlevel 1 exit /b 1
-    release\xl.exe build test\cases\stdlib_websocket_%%T.xl -o build\test\stdlib_websocket_%%T.exe
-    if errorlevel 1 exit /b 1
-    build\test\stdlib_websocket_%%T.exe > build\test\stdlib_websocket_%%T.static.out.txt
-    if errorlevel 1 exit /b 1
-    findstr /C:"loopback-ok" build\test\stdlib_websocket_%%T.static.out.txt >nul
-    if errorlevel 1 exit /b 1
-)
-for %%S in (XRT_MODULE_HTTP1_BODY XRT_MODULE_WEBSOCKET_STREAM_REF XRT_MODULE_WEBSOCKET_STREAM_DEFLATE XRT_MODULE_EVENT xl6_xrt_tcp_stream_peek_buffer xl6_xrt_ws_stream_attach_tcp) do (
-    findstr /C:"%%S" build\test\stdlib_websocket_upgrade_loopback.c >nul
-    if errorlevel 1 (
-        echo stdlib_websocket_upgrade_loopback.c missing %%S.
-        exit /b 1
-    )
-)
-for %%S in (XRT_MODULE_WEBSOCKET_STREAM_TLS XRT_MODULE_TLS_STREAM_FUTURE xl6_xrt_ws_stream_attach_tls) do (
-    findstr /C:"%%S" build\test\stdlib_websocket_upgrade_loopback.c >nul
-    if not errorlevel 1 (
-        echo stdlib_websocket_upgrade_loopback.c unexpectedly contains %%S.
-        exit /b 1
-    )
-)
-for %%S in (XRT_MODULE_WEBSOCKET_STREAM_TLS XRT_MODULE_TLS_STREAM_FUTURE xl6_xrt_tls_stream_peek_buffer xl6_xrt_ws_stream_attach_tls) do (
-    findstr /C:"%%S" build\test\stdlib_websocket_upgrade_tls_loopback.c >nul
-    if errorlevel 1 (
-        echo stdlib_websocket_upgrade_tls_loopback.c missing %%S.
-        exit /b 1
-    )
-)
 
 rem Fresh immutable compiler inputs shared by the three time acceptance gates.
 set "XL6_TIME_CONTRACT_DIR=build\test\stdlib_time_%RANDOM%_%RANDOM%"

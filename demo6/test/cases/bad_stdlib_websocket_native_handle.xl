@@ -1,0 +1,3 @@
+func steal(TcpStream stream) as point
+    return stream.nativeHandle
+end

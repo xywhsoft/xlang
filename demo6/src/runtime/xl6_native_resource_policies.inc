@@ -40,6 +40,7 @@ XL6_NATIVE_RESOURCE_POLICY("xl6TextIteratorDestroyV1",TEXT_ITERATOR,xl6TextItera
 XL6_NATIVE_RESOURCE_POLICY("xl6PatternDestroyV1",PATTERN_CORE,xl6PatternHandlePolicyV1Get)
 XL6_NATIVE_RESOURCE_POLICY("xl6PatternOptionsDestroyV1",PATTERN_OPTIONS,xl6PatternOptionsHandlePolicyV1Get)
 #include "xl6_http_resource_policies.inc"
+#include "xl6_ws_resource_policies.inc"
 XL6_NATIVE_RESOURCE_POLICY("xl6DeflaterDestroyV1",COMPRESS_DEFLATER,xl6DeflaterHandlePolicyV1Get)
 XL6_NATIVE_RESOURCE_POLICY("xl6InflaterDestroyV1",COMPRESS_INFLATER,xl6InflaterHandlePolicyV1Get)
 XL6_NATIVE_RESOURCE_POLICY("xl6PatternMatchDestroyV1",PATTERN_MATCH,xl6PatternMatchHandlePolicyV1Get)

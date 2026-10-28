@@ -1,0 +1,8 @@
+// Offline: framing, exact-sized bytes and a Close reason containing NUL.
+auto frame = WsFrame.make(WsOpcode.binary, uint64(3))
+auto parsed = WsFrame.parse(frame.toBytes())
+if parsed == null then throw ValueError "incomplete frame header" end
+assert parsed.payloadSize == uint64(3)
+auto close = WsClose.parse(WsClose.make(1000, "a\0b").toBytes())
+assert close.reason == "a\0b"
+println("WebSocket frame and Close values are ready")

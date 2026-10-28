@@ -1,0 +1,5 @@
+func callback(int kind, point payload, int size)
+end
+func attach(TcpStream stream, NetBuffer pending, WsUpgrade upgrade) as WsStream
+    return WsStream.attachOnWorker(stream, pending, upgrade, WsStreamOptions(), callback)
+end

@@ -1,7 +1,4 @@
-WebSocketConfig config = WebSocketConfig()
-
-assert config.limits(1048576, 65536, 262144)
-assert config.control(256, 5000)
-config.autoPong(true)
-
+auto options = WsStreamOptions()
+assert options.messageLimit == 16777216
+assert options.autoPong and options.closeTimeoutMillis == 5000
 println("websocket-stream-config-trim-ok")

@@ -117,22 +117,6 @@ int xl6IrCgenEmitCEx(XL6_Output* out, const XL6_IrModule* module,
         xl6CgenEmitBufferRuntime(
             out, needs.needsFileBridgeRuntime,
             xl6IrCgenNeedsXrtDeclarations(&needs));
-    if ( needs.needsHttp1Runtime )
-        xl6CgenEmitHttp1Runtime(out);
-    if ( needs.needsWebSocketFrameRuntime ||
-         needs.needsWebSocketHandshakeRuntime ||
-         needs.needsWebSocketUpgradeRuntime ||
-         needs.needsWebSocketStreamConfigRuntime ||
-         needs.needsWebSocketStreamRuntime ||
-         needs.needsWebSocketStreamTlsRuntime )
-        xl6CgenEmitWebSocketProtocolRuntime(
-            out,
-            needs.needsWebSocketFrameRuntime,
-            needs.needsWebSocketHandshakeRuntime,
-            needs.needsWebSocketUpgradeRuntime,
-            needs.needsWebSocketStreamConfigRuntime,
-            needs.needsWebSocketStreamRuntime,
-            needs.needsWebSocketStreamTlsRuntime);
     if ( !xl6IrCgenEmitAsyncAndCallableRuntime(out, module, &needs, diags) ) return 0;
     if ( !xl6IrCgenEmitResourceRuntime(out, module, &needs, diags) ) return 0;
     if (!xl6IrCgenCompiledPackagePrototypes(out,module,diags)) return 0;

@@ -1,0 +1,47 @@
+// One owned local echo connection; no external service is contacted.
+async func echo()
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
+    auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+    auto transport = TcpStream(engine, listener.localAddress())
+    auto accepted = listener.accept(5000)
+    assert transport.wait(TcpWait.open, 5000) == NetStatus.ok
+    // A server normally parses these heads from Http1TcpTransport and uses
+    // detach().webSocketAsync(...) to preserve HTTP read-ahead bytes.
+    auto pending = WsUpgrade.client("local.test")
+    auto request = Http1Head.request(Http1.requestHead("GET", "/echo", pending.headers()))
+    if request == null then throw ValueError "incomplete request" end
+    auto ready = WsUpgrade.server(request)
+    auto response = Http1Head.response(Http1.responseHead(101, "Switching Protocols", ready.headers()))
+    if response == null then throw ValueError "incomplete response" end
+    auto options = WsStreamOptions()
+    auto server = await WsStream.attachAsync(accepted, NetBuffer(), ready, options, func(WsEvent event) as bool
+        if event.kind == WsEventKind.messageData then
+            assert event.stream.sendBinary(event.data) == NetStatus.ok
+        end
+        return true
+    end)
+    auto received = Buffer()
+    auto count = AtomicInt32(0)
+    auto client = await WsStream.attachAsync(transport, NetBuffer(), pending.checkResponse(response), options, func(WsEvent event) as bool
+        if event.kind == WsEventKind.messageData then
+            received.append(event.data)
+            count.fetchAdd(int32(event.dataSize))
+        end
+        return true
+    end)
+    assert (await client.sendBinaryAllAsync(b"hello\0ws", -1, 5000)) == NetStatus.ok
+    int elapsed = 0
+    while count.load() < 8 and elapsed < 5000
+        time.sleep(1)
+        elapsed += 1
+    end
+    assert received.toBytes() == b"hello\0ws"
+    assert (await client.closeAsync()) == NetStatus.ok
+    assert (await server.waitClosedAsync(5000)) == NetStatus.ok
+    listener.close()
+    engine.close()
+    assert engine.wait(5000)
+    println("WebSocket local echo completed")
+end
+await echo()

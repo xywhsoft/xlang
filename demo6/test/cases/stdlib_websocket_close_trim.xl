@@ -1,0 +1,2 @@
+assert WsClose.make(1000, "a\0b").reason == "a\0b"
+println("websocket-close-trim-ok")

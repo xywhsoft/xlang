@@ -1,0 +1,67 @@
+async func verify()
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
+    auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+    auto tcpClient = TcpStream(engine, listener.localAddress())
+    auto tcpServer = listener.accept(5000)
+    assert tcpClient.wait(TcpWait.open, 5000) == NetStatus.ok
+    auto pending = WsUpgrade.client("local.test", WsClientOptions("chat"))
+    auto request = Http1Head.request(Http1.requestHead("GET", "/ws", pending.headers()))
+    if request == null then throw ValueError "incomplete local request" end
+    auto serverUpgrade = WsUpgrade.server(request, WsServerOptions("chat"))
+    auto response = Http1Head.response(Http1.responseHead(101, "Switching Protocols", serverUpgrade.headers()))
+    if response == null then throw ValueError "incomplete local response" end
+    auto clientUpgrade = pending.checkResponse(response)
+    auto received = AtomicInt32(0)
+    auto closed = AtomicInt32(0)
+    auto sink = Buffer()
+    auto options = WsStreamOptions()
+    auto server = await WsStream.attachAsync(tcpServer, NetBuffer(), serverUpgrade, options, func(WsEvent event) as bool
+        if event.kind == WsEventKind.messageData then
+            assert event.data == b"a\0b"
+            assert event.stream.role == WsRole.server
+            assert event.dataSize == uint64(3) and event.offset == 0
+            received.fetchAdd(1)
+        end
+        if event.kind == WsEventKind.close then closed.fetchAdd(1) end
+        return true
+    end)
+    auto client = await WsStream.attachAsync(tcpClient, NetBuffer(), clientUpgrade, options, func(WsEvent event) as bool
+        if event.kind == WsEventKind.close then closed.fetchAdd(1) end
+        return true
+    end)
+    assert client.protocol() == "chat" and server.protocol() == "chat"
+    assert (await server.waitWritableAsync(uint64(1), 0)) == NetStatus.ok
+    assert (await server.waitClosedAsync(0)) == NetStatus.timeout
+    assert (await server.waitClosedAsync(5)) == NetStatus.timeout
+    auto cancelling = CancellationSource()
+    auto interrupted = server.waitClosedAsync(-1, cancelling.token)
+    cancelling.cancel()
+    assert (await interrupted) == NetStatus.cancelled
+    assert (await client.sendBinaryAllAsync(b"a\0b", -1, 5000)) == NetStatus.ok
+    assert (await client.waitDrainedAsync(5000)) == NetStatus.ok
+    int spins = 0
+    while received.load() != 1 and spins < 10000
+        time.sleep(1)
+        spins = spins + 1
+    end
+    assert received.load() == 1
+    auto closing = server.waitClosedAsync(5000)
+    assert (await client.closeAsync()) == NetStatus.ok
+    assert (await closing) == NetStatus.ok
+    spins = 0
+    while closed.load() != 2 and spins < 10000
+        time.sleep(1)
+        spins = spins + 1
+    end
+    assert closed.load() == 2
+    assert client.state == WsStreamState.closed
+    assert (await client.waitClosedAsync(0)) == NetStatus.ok
+    client.throwIfFailed()
+    server.throwIfFailed()
+    listener.close()
+    engine.close()
+    assert engine.wait(5000)
+    println("websocket-stream-v2-ok")
+end
+await verify()

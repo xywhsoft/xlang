@@ -12697,20 +12697,6 @@ static int xl6IrLowerResolveRuntimeBridge(
                 "XLIR string runtime bridge has no exact parameter/result ABI");
         return 1;
     }
-    if ( xl6IrRuntimeHttp1BridgeName(target->cName) ) {
-        target->runtimeBridge = XL6_IR_RUNTIME_BRIDGE_HTTP1;
-        if ( !xl6IrRuntimeHttp1BridgeTargetMatches(ctx->module, target) )
-            return xl6IrLowerDiag(ctx, target->declaration,
-                "XLIR HTTP/1 runtime bridge has no exact component ABI");
-        return 1;
-    }
-    target->runtimeBridge = xl6IrRuntimeWebSocketBridgeKind(target->cName);
-    if ( target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_NONE ) {
-        if ( !xl6IrRuntimeWebSocketBridgeTargetMatches(ctx->module, target) )
-            return xl6IrLowerDiag(ctx, target->declaration,
-                "XLIR WebSocket runtime bridge has no exact component ABI");
-        return 1;
-    }
     if ( strcmp(target->cName, "xl6_xrt_last_error_text") == 0 ) {
         result = xl6IrTypeGet(&ctx->module->types, target->returnType);
         if ( target->kind != XL6_IR_CALL_TARGET_EXTERN_C ||

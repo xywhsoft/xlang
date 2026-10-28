@@ -1,0 +1,28 @@
+auto extensions = WsExtensions.parse("permessage-deflate; client_max_window_bits; server_no_context_takeover, example; mode=\"fast\"")
+assert extensions.length == 2
+auto deflate = extensions.at(0)
+assert deflate.name == "permessage-deflate"
+assert deflate.parameterCount == 2
+assert deflate.parameterNameAt(0) == "client_max_window_bits"
+assert deflate.parameterValueAt(0) == null
+auto custom = extensions.at(1)
+assert custom.name == "example"
+assert custom.parameterNameAt(0) == "mode"
+auto value = custom.parameterValueAt(0)
+assert value != null
+assert (value as bytes) == b"fast"
+auto rebuilt = WsExtension.make("example", "mode=fast")
+assert rebuilt.toString() == "example; mode=fast"
+
+auto offer = WsDeflateOffer(WsDeflateFlags.serverNoContext | WsDeflateFlags.clientMaxWindow | WsDeflateFlags.clientMaxWindowAny)
+auto parsed = WsDeflateOffer.parse(offer.toString())
+assert parsed.flags == offer.flags
+auto response = parsed.accept()
+parsed.check(response)
+auto send = response.direction(WsRole.server, true)
+assert send.noContextTakeover
+assert send.windowBits == 15
+auto output = Buffer()
+assert response.writeInto(output) > 0
+assert WsDeflateResponse.parse(output).flags == response.flags
+println("websocket-extensions-v2-ok")

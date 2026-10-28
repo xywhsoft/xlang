@@ -300,4 +300,5 @@ XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6TlsResumeHandlePolicyV1Get
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6TlsResumeRequestHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6TlsTicketResultHandlePolicyV1Get(void);
 #include "xl6_http_policy_declarations.h"
+#include "xl6_ws_policy_declarations.h"
 #endif

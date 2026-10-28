@@ -1226,20 +1226,6 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
     }
     if ( !xl6IrCgenAnalyzeCallTargetNeeds(module, needs, diags) )
         return 0;
-    if ( needs->needsWebSocketStreamTlsRuntime )
-        needs->needsWebSocketStreamRuntime = 1;
-    if ( needs->needsWebSocketStreamRuntime ) {
-        needs->needsWebSocketStreamConfigRuntime = 1;
-        needs->needsWebSocketUpgradeRuntime = 1;
-    }
-    if ( needs->needsWebSocketUpgradeRuntime ) {
-        needs->needsWebSocketHandshakeRuntime = 1;
-        needs->needsHttp1Runtime = 1;
-    }
-    if ( needs->needsHttp1Runtime ) {
-        needs->needsBufferBridgeRuntime = 1;
-        needs->needsErrorRuntime = 1;
-    }
     for ( i = 0; i < module->protocolDispatchImplCount; ++i ) {
         const XL6_IrProtocolDispatchImpl* impl =
             &module->protocolDispatchImpls[i];

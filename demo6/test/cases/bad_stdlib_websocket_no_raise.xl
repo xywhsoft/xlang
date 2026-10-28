@@ -1,0 +1,2 @@
+extern "xl6WsHandshakeKeyV2" @no_raise func wrong() as string
+println(wrong())

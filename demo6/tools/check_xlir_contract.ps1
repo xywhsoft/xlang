@@ -4803,16 +4803,19 @@ if ( $cEmitter -notmatch 'xl6CgenEmitFileRuntime\s*\(\s*out,\s*xl6IrCgenNeedsXrt
 $retiredComponentAbiFiles = @(
     'src/cgen/xl6_cgen_buffer.c',
     'src/cgen/xl6_cgen_file.c',
-    'src/cgen/xl6_cgen_http1.c',
     'src/cgen/xl6_cgen_json_stream.c',
     'src/cgen/xl6_cgen_serialization_callback.c',
-    'src/cgen/xl6_cgen_websocket.c',
     'src/cgen/xl6_cgen_xlang_runtime.c',
     'src/cgen/xl6_cgen_xlon.c'
 )
 foreach ($retired in @('src/cgen/xl6_cgen_tls.c', 'src/cgen/xl6_cgen_tls_stream.c', 'src/cgen/xl6_cgen_tls.h')) {
     if (Test-Path -LiteralPath (Join-Path $Root $retired)) {
         throw "Retired TLS library-body emitter returned: $retired"
+    }
+}
+foreach ($retired in @('xl6_cgen_websocket.c','xl6_cgen_websocket.h','xl6_cgen_websocket_protocol.c','xl6_cgen_websocket_stream.c','xl6_cgen_http1.c','xl6_cgen_http1.h')) {
+    if (Test-Path -LiteralPath (Join-Path $Root ('src/cgen/' + $retired))) {
+        throw "Retired WebSocket/HTTP library-body emitter returned: $retired"
     }
 }
 foreach ($path in @('src/stdlib/xl6_stdlib_data.c', 'src/cgen/xl6_ir_cgen_module_emit.c', 'src/ir/xl6_ir.h')) {
