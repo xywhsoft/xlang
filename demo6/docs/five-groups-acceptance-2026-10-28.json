@@ -1,0 +1,174 @@
+{
+  "Complete": true,
+  "Date": "2026-10-28",
+  "ApprovedModules": 198,
+  "Groups": {
+    "concurrency": 33,
+    "crypto_asn1": 57,
+    "x509": 21,
+    "tls": 47,
+    "network": 40
+  },
+  "TestedProductionRevision": "9625fa6a690a54fc81e1bfc6598f8262c8b6daff",
+  "ConcurrentCodeExcluded": [
+    "549d6c246 resident compiled-package feature and other unrelated working-tree changes"
+  ],
+  "Platforms": [
+    "Windows x64",
+    "Linux x86_64"
+  ],
+  "PublicAcceptancePerPlatform": {
+    "Cases": 222,
+    "NegativeCases": 27,
+    "Stages": 1198,
+    "SmallStages": 77,
+    "VfsHeaderClosures": 2
+  },
+  "RoleCoverage": {
+    "ReviewedModules": 198,
+    "Profiles": 112,
+    "NamedNormalCases": 163,
+    "ExhaustiveEntryCoverageClaim": false
+  },
+  "Parameterized": {
+    "Invocations": 75,
+    "UniqueWorkers": 74,
+    "CompletePasses": 73,
+    "ScopePartitions": 2,
+    "WholeOriginalBatchGreen": false
+  },
+  "CrossGroupGaps": [
+    {
+      "Group": "X21",
+      "Cases": [
+        "body_async",
+        "body_codec",
+        "body_stream"
+      ],
+      "Status": "legacy HTTP consumers remain unaccepted; native point ownership admission is absent in body_async"
+    },
+    {
+      "Group": "X22",
+      "Cases": [
+        "stdlib_websocket_stream_trim",
+        "stdlib_websocket_stream_tls_trim"
+      ],
+      "Status": "explicitly deferred by user; managed ownership and callbacks require a later design"
+    }
+  ],
+  "SourceAndProductionInputsFrozen": true,
+  "GlobalRepositoryReleaseAccepted": false,
+  "NetworkSecurityTests": false,
+  "PublicNetworkProbes": false,
+  "CurrentUndecided": {
+    "CRT": [],
+    "XRT": [
+      "X01",
+      "X02",
+      "X07",
+      "X10",
+      "X21",
+      "X22",
+      "X25",
+      "X26",
+      "X27",
+      "X28",
+      "X29"
+    ]
+  },
+  "ObjectPoolLast": true,
+  "Reports": {
+    "windows-shipping": {
+      "Path": "F:\\xlang-validation\\five-groups-20261027\\p7-shipping\\final-shipping-proof-r332\\results.json",
+      "Sha256": "8dae762e679da1b9dd1c924a1ab94c1c4d6ecdffe9ac1135377475ac350fdad5"
+    },
+    "linux-shipping": {
+      "Path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\20261027-p7-shipping\\final-shipping-proof-r348\\results.json",
+      "Sha256": "5c00e71be384a50066adc6b487dd61bf1fcf34f7c575f2ada6d0dc21f96c2052"
+    },
+    "windows-roles": {
+      "Path": "F:\\xlang-validation\\five-groups-20261027\\p7-shipping\\final-roles-proof-r333\\results.json",
+      "Sha256": "ed1d12c975829d52c6e25bf6bc2c6df02cf3c389d4e91290a8b7aef8ca63baf5"
+    },
+    "linux-roles": {
+      "Path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\20261027-p7-shipping\\final-roles-proof-r350\\results.json",
+      "Sha256": "9d74d955eb44bc00b9eb83a3a5396faa926ba8d65c6ac8b93554e88e0f19ea88"
+    },
+    "windows-regex": {
+      "Path": "F:\\xlang-validation\\five-groups-20261027\\p7-shipping\\regex-final-proof-r335\\results.json",
+      "Sha256": "fe04654050f983841cb377e0605ceab67a0cf634e0b9c984d2b794d4c6671356"
+    },
+    "linux-regex": {
+      "Path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\20261027-p7-shipping\\regex-final-proof-r335\\results.json",
+      "Sha256": "30ec0c3d32aed3d6db024824675e1340dc9c9549a57a23bc903fc04d3011f704"
+    },
+    "parameterized": {
+      "Path": "F:\\xlang-validation\\five-groups-20261027\\p7-shipping\\parameterized-scope-proof-r347\\results.json",
+      "Sha256": "542ac0817e2b1235b55290209a18be71fee4a5aa5fcc247e7baf4a5a0ab2cbca"
+    },
+    "windows-nested": {
+      "Path": "F:\\xlang-validation\\five-groups-20261027\\p7-shipping\\nested-final-proof-r349\\results.json",
+      "Sha256": "8b6290dc62454b6c49a664639724da4a75337d878aad0d4814471240c2572f8b"
+    },
+    "artifact-runtime": {
+      "Path": "F:\\xlang-validation\\five-groups-20261027\\p7-shipping\\artifact-proof-r286\\results.json",
+      "Sha256": "6bf735eee0fa0333c1b61f746b1ba6d52976c3ed81c60edadf4ecdfc66b480bd"
+    },
+    "async-busy": {
+      "Path": "F:\\xlang-validation\\five-groups-20261027\\p7-shipping\\async-busy-proof-r271\\results.json",
+      "Sha256": "802c0b1aaf8369bd0b5bf0233840e96d5440af37c1e8564fc94837e31a658ec5"
+    },
+    "void-suspension": {
+      "Path": "F:\\xlang-validation\\five-groups-20261027\\p7-shipping\\void-gate-proof-r283\\results.json",
+      "Sha256": "70b36ec8d10af1a660988b4131221a13beca912739ad6c9c81d53c17f77331e8"
+    },
+    "module-executor": {
+      "Path": "F:\\xlang-validation\\five-groups-20261027\\p7-shipping\\module-contract-proof-r291\\results.json",
+      "Sha256": "47c0c3e80f154270aec902d01aca3e90f297a057f5e47240ad33ce9d0e5581a4"
+    },
+    "remaining-harnesses": {
+      "Path": "F:\\xlang-validation\\five-groups-20261027\\p7-shipping\\remaining-harness-proof-r302\\results.json",
+      "Sha256": "606f4641804f74c15ef147f30693032f8df41492f6f879541fbd6eca6ec275e8"
+    },
+    "streaming-evidence": {
+      "Path": "F:\\xlang-validation\\five-groups-20261027\\p7-shipping\\hash-stream-proof-r327\\results.json",
+      "Sha256": "952f9ca3968f18878b63004b46ab686078ff68b120c1bce66f9d1237f05cc838"
+    },
+    "windows-extract-dependency": {
+      "Path": "F:\\xlang-validation\\five-groups-20261027\\p7-shipping\\extract-dependency-r259\\results.json",
+      "Sha256": "9a6757b68c517918d215743ef0e76260aeff957fba1505c397788fb85507d865"
+    },
+    "linux-extract-dependency": {
+      "Path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\20261027-p7-shipping\\extract-dependency-r257\\results.json",
+      "Sha256": "c606c5347ab61c343aae5cdfad1220f62d3c619c85f6a00a0feb900e80497b9a"
+    },
+    "linux-fixed-corpus": {
+      "Path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\20261027-p7-shipping\\corpus-proof-r252\\results.json",
+      "Sha256": "152d8c3007b86a8ab2a35830b3635ff1b9667bd7999f62dac48669914d1508cc"
+    },
+    "windows-advanced-crypto": {
+      "Path": "F:\\xlang-validation\\five-groups-20261027\\p7-shipping\\advanced-current-r254\\results.json",
+      "Sha256": "fa510bf8fc2d099a60939268044d0e462e193ccd5c89c1402f04888c9a2c1daa"
+    },
+    "windows-actual-build": {
+      "Path": "F:\\xlang-validation\\five-groups-20261027\\p7-shipping\\final-shipping-r294\\build.shipping.json",
+      "Sha256": "3b8ba9654075338d4b1bcd87105f8085393b12a5b20c9d4205470094c85c168e"
+    },
+    "windows-canonical-build": {
+      "Path": "F:\\xlang-validation\\five-groups-20261027\\p7-shipping\\final-canonical-r295\\build.json",
+      "Sha256": "5bc31786d0b44d25f3f02d7bdb26988c41b41454106d83435e4f25c847cdac70"
+    },
+    "linux-advanced-crypto": {
+      "Path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\20261027-p7-shipping\\advanced-current-r254\\results.json",
+      "Sha256": "5b4d6fc7f3129067b279f89d66cfea1484fd25c5f1da6b46ca628e817a1f6bd0"
+    },
+    "linux-actual-build": {
+      "Path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\20261027-p7-shipping\\final-shipping-r294\\build.shipping.json",
+      "Sha256": "babaa45c04c7114bce15f73bc5a6fbc41fdcd8f74cb1de6a96613f541506b0cc"
+    },
+    "linux-canonical-build": {
+      "Path": "\\\\wsl.localhost\\Ubuntu\\home\\ubuntu\\xlang-validation\\20261027-p7-shipping\\final-canonical-r295\\build.json",
+      "Sha256": "7dfa099a4d4532038d5c3124df0394603a2653c21ba5ca2e30fa12eb591e51fd"
+    }
+  }
+}
