@@ -65,7 +65,10 @@ static int xlsSemDeferAnnotations(XL6_SemContext* ctx,XL6_AstNode* root)
 }
 static void xlsSemFinishAnnotations(XL6_SemContext* ctx,XL6_AstNode* root)
 {
+    xls_raw_scope* raw=xlsRawBodyScopeCurrent();
+    if(raw && raw->deferred && (raw->failed || raw->consumed!=raw->deferred)){if(xlsActiveSemBuild)xlsActiveSemBuild->bodyFailure=1;return;}
     if(xlsSemDeferAnnotations(ctx,root))return;
+    if(raw && raw->deferred){if(xlsActiveSemBuild)xlsActiveSemBuild->bodyFailure=1;return;}
     xls_sem_build* build=xlsActiveSemBuild;size_t next=0;
     if(build && build->bodyJobs.Count && !xlsSemBodyMaterialize(root,&build->bodyJobs,&next,&build->queryCursor)){
         /* The owning completion creation retries the original uncached route.

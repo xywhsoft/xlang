@@ -2,6 +2,7 @@
  * are refused while TryWordView runs; all language/checker code remains shared.
  * Track owned labels/report arrays and successful AST clone roots. This does
  * not claim exhaustive failure at every allocator inside the original clone. */
+#define xlsSemanticCompletionRawBodyWork faultCompletionRawBodyWork
 #define xlsSemanticCompletionAst faultCompletionAst
 #define xlsSemanticCompletionCallWork faultCompletionCallWork
 #define xlsSemanticCompletionContext faultCompletionContext

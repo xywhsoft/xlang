@@ -111,7 +111,9 @@ int xlsSyntaxCursorRetainedBytes(const xls_syntax* s,size_t limit,size_t* bytes)
        !cacheTreeBytes(s->parse.root,limit,&tree) || !cacheAdd(&total,tree,limit))return 0;
     for(size_t i=0;i<s->units.Count;++i){
         const syntax_unit* u=((const placement*)xrtArrayConstGet(&s->units,i))->unit;
-        if(!cacheTreeBytes(u->node,limit,&tree) || !cacheAdd(&total,sizeof(*u),limit) || !cacheAdd(&total,tree,limit))return 0;
+        tree=u->storageBytes;
+        if((!u->storageKnown && !cacheTreeBytes(u->node,limit,&tree)) ||
+           !cacheAdd(&total,sizeof(*u),limit) || !cacheAdd(&total,tree,limit))return 0;
     }
     if(!xrtMutexLock(&s->view->lock))return 0;
     int okay=!s->view->root || (cacheTreeBytes(s->view->root,limit,&tree) && cacheAdd(&total,tree,limit));

@@ -91,3 +91,10 @@ int main(void)
  if(!scenario(0) || !scenario(1))return 1;
  printf("analysis_completion_body_test passed: %u checks;complete query/source/AST parity,eager control,relocated symbols/positions,unmaterialized generations,independent lifetime and parallel AST readers\n",checks);return 0;
 }
+
+/* Exercise the original semantic-fact body-view fallback deliberately. The
+ * separate raw-native fixture tests the default compiler-copy producer.
+ * No language/parity/failure assertion below is relaxed. */
+#include "analysis/frontend_raw_body.h"
+int __wrap_xlsRawBodyMemoAdmit(const void* memo,xls_raw_unit* unit,const char* path,const XL6_AstRange* range,size_t* bytes)
+{(void)memo;(void)unit;(void)path;(void)range;(void)bytes;return 0;}

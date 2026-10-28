@@ -35,6 +35,19 @@ void xlsFrontendSemStorageBegin(xls_sem_storage_control* control,size_t bytes);
 void xlsFrontendSemStorageEnd(xls_sem_storage_control* control,xls_sem_storage_work* work);
 size_t xlsFrontendSemStorageBudget(void);
 typedef struct xls_sem_tail xls_sem_tail;
+/* Actual raw compiler-copy omission,distinct from deferred semantic facts.
+ * Failed attempts count discarded copies separately. Known retained raw
+ * metadata has its own32MiB local quota;construction/environment/allocators
+ * and process RSS are separate. Full AST demand reruns the original query. */
+struct xls_semantic_completion;
+typedef struct xls_raw_native_work {
+    uint64_t registered,deferred,restored,retries,fullMaterialized,astFailures;
+    uint64_t discardedFunctions,discardedCopyNodes;
+    size_t capturedUnitBytes,memoBytes;
+} xls_raw_native_work;
+xls_raw_native_work xlsSemanticCompletionRawBodyWork(const struct xls_semantic_completion*);
+size_t xlsFrontendSemRawMemoBytes(const struct xls_sem_memo*);
+
 typedef struct xls_sem_tail_work {
     uint64_t deferred,materialized,retainedBytes;
     uint64_t bodyFunctions,bodyMaterialized,bodyBytes,bodyFailures,bodyRetries;

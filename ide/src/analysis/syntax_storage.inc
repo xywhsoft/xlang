@@ -1,39 +1,40 @@
 /* Private completed-data accounting for ordinary pre-semantic module chunks.
  * Fields are measured before publishing a chunk and never changed afterwards. */
+#include "analysis/syntax_node_storage.h"
+#if TREE_DEPTH != XLS_SYNTAX_STORAGE_DEPTH
+#error Syntax storage depth must retain the original accounting predicate
+#endif
 static int cacheAdd(size_t* total,size_t bytes,size_t limit)
-{
-    if(*total>limit || bytes>limit-*total) return 0;
-    *total+=bytes; return 1;
-}
-static int cacheNodeBytes(const XL6_AstNode* node,size_t depth,xmap* sources,size_t* bytes,size_t limit)
+{return xlsSyntaxStorageAdd(total,bytes,limit);}
+static int cacheNodeBytes(const XL6_AstNode* node,size_t depth,xmap* sources,const XL6_AstSource** recent,size_t* bytes,size_t limit)
 {
     if(!node) return 1;
-    if(depth>TREE_DEPTH || node->xlsStorage || node->childCount>node->childCapacity ||
-       node->childCapacity>SIZE_MAX/sizeof(*node->children) ||
-       !cacheAdd(bytes,sizeof(*node),limit) ||
-       !cacheAdd(bytes,node->childCapacity*sizeof(*node->children),limit)) return 0;
-    if((node->text && !cacheAdd(bytes,strlen(node->text)+1,limit)) ||
-       (node->doc && !cacheAdd(bytes,strlen(node->doc)+1,limit)) ||
-       (node->literalData && (node->literalSize==SIZE_MAX || !cacheAdd(bytes,node->literalSize+1,limit)))) return 0;
+    if(!xlsSyntaxNodeStorage(node,depth,bytes,limit))return 0;
     if(node->source) {
         const XL6_AstSource* source=node->source;
         xbytesview key={(const unsigned char*)&source,sizeof(source)};
-        if(!xrtMapHas(sources,key)) {
-            unsigned char one=1;
-            if(!cacheAdd(bytes,sizeof(*source),limit) ||
-               (source->path && !cacheAdd(bytes,strlen(source->path)+1,limit)) ||
-               !xrtMapSet(sources,key,&one)) return 0;
+        /* An immutable walk may reuse the immediately preceding admitted
+         * source identity. Other identities still use the original XRT map;
+         * equal path text never merges distinct owned source records. */
+        if(source!=*recent) {
+            if(!xrtMapHas(sources,key)) {
+                unsigned char one=1;
+                if(!cacheAdd(bytes,sizeof(*source),limit) ||
+                   (source->path && !cacheAdd(bytes,strlen(source->path)+1,limit)) ||
+                   !xrtMapSet(sources,key,&one)) return 0;
+            }
+            *recent=source;
         }
     }
     for(size_t i=0;i<node->childCount;++i)
-        if(!cacheNodeBytes(node->children[i],depth+1,sources,bytes,limit)) return 0;
-    return cacheNodeBytes(node->inferredType,depth+1,sources,bytes,limit) &&
-        cacheNodeBytes(node->semanticDeclaredType,depth+1,sources,bytes,limit);
+        if(!cacheNodeBytes(node->children[i],depth+1,sources,recent,bytes,limit)) return 0;
+    return cacheNodeBytes(node->inferredType,depth+1,sources,recent,bytes,limit) &&
+        cacheNodeBytes(node->semanticDeclaredType,depth+1,sources,recent,bytes,limit);
 }
 static int cacheTreeBytes(const XL6_AstNode* node,size_t limit,size_t* bytes)
 {
-    xmap sources={0}; *bytes=0;
-    int okay=xrtMapInit(&sources,sizeof(unsigned char)) && cacheNodeBytes(node,0,&sources,bytes,limit);
+    xmap sources={0}; const XL6_AstSource* recent=NULL; *bytes=0;
+    int okay=xrtMapInit(&sources,sizeof(unsigned char)) && cacheNodeBytes(node,0,&sources,&recent,bytes,limit);
     xrtMapUnit(&sources); if(!okay) *bytes=0; return okay;
 }
 static int syntaxCacheBytes(const xls_syntax* s,size_t limit,size_t* bytes,int mode)

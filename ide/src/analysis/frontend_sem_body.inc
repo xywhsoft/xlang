@@ -45,16 +45,16 @@ static int xlsSemBodyProofType(const XL6_AstNode* in,xls_sem_apply* apply,size_t
     return xlsSemBodyProofType(in->inferredType,apply,depth+1,bytes,lastSource,sourceBytes) &&
         xlsSemBodyProofType(in->semanticDeclaredType,apply,depth+1,bytes,lastSource,sourceBytes);
 }
-static int xlsSemBodyPrepare(const xls_sem_entry* old,const xarray* nodes,const xls_sem_moves* moves,
+static int xlsSemBodyPrepareCount(const xls_sem_entry* old,size_t nodeCount,const xls_sem_moves* moves,
     const xmap* sources,xarray* positions,const XL6_AstNode* function,const xls_sem_cursor* cursor,
     XL6_SymbolId start,int shifted,uint64_t* certifiedNodes)
 {
     *certifiedNodes=0;
-    if(!old->unit || old->unit->facts.Count!=nodes->Count ||
+    if(!old->unit || old->unit->facts.Count!=nodeCount ||
        !xrtArrayInit(positions,sizeof(xls_sem_position)))return 0;
     const xls_sem_proof* proof=old->unit->proof;
     if(proof && proof->bytes<=xlsSemProofBudget() &&
-       proof->facts==nodes->Count && proof->cloneBytes<=XLS_SEM_MEMO_BYTES && (!shifted || proof->shiftSafe)){
+       proof->facts==nodeCount && proof->cloneBytes<=XLS_SEM_MEMO_BYTES && (!shifted || proof->shiftSafe)){
         /* All node/scalar symbol fields were classified against the immutable
          * origin. The caller has proved the current local interval fits.
          * All located edges retain the exact original preorder and run the
@@ -94,6 +94,10 @@ static int xlsSemBodyPrepare(const xls_sem_entry* old,const xarray* nodes,const 
     if(!apply.different)xrtArrayUnit(positions);
     return 1;
 }
+static int xlsSemBodyPrepare(const xls_sem_entry* old,const xarray* nodes,const xls_sem_moves* moves,
+    const xmap* sources,xarray* positions,const XL6_AstNode* function,const xls_sem_cursor* cursor,
+    XL6_SymbolId start,int shifted,uint64_t* certifiedNodes)
+{return xlsSemBodyPrepareCount(old,nodes->Count,moves,sources,positions,function,cursor,start,shifted,certifiedNodes);}
 static int xlsSemBodyPositionCount(const XL6_AstNode* node,size_t depth,size_t* count)
 {
     if(!node)return 1;

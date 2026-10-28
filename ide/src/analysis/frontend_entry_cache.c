@@ -1,5 +1,6 @@
 #include "analysis/signature_internal.h"
 #include "analysis/frontend_entry_cache.h"
+#include "analysis/frontend_raw_body.h"
 #include "analysis/module_store.h"
 #include "analysis/frontend_context.h"
 #include "analysis/ast_clone.h"
@@ -119,7 +120,7 @@ static int matches(const xls_entry_cache_data* old,const xls_context* context,co
 static int copy(const xls_entry_cache_data* old,size_t limit,XL6_ParseResult* result)
 {
     if(old->syntax) {
-        if(!xlsSyntaxCopyParse(old->syntax,result)) return 0;
+        if(!xlsRawBodyCopyParse(old->syntax,result)) return 0;
         result->diags.defaultFile=xl6AstSourcePath(result->root); return 1;
     }
     xls_ast_clone_options options={.bytes=limit};XL6_AstNode* tree=xlsAstMaterialize(old->root,&options,NULL);
@@ -154,7 +155,7 @@ static int sharedParse(xls_entry_cache_scope* scope,xls_module_store* store,cons
     size_t length=strlen(text);int exact=0;xls_entry_parse_work* measured=entry ? &scope->work : &scope->moduleWork;
     xls_module_snapshot* old=xlsModuleStoreAcquire(store,path,text,length,&exact);
     if(exact){
-        if(xlsSyntaxCopyParse(xlsModuleSnapshotSyntax(old),result)){
+        if(xlsRawBodyCopyParse(xlsModuleSnapshotSyntax(old),result)){
             result->diags.defaultFile=xl6AstSourcePath(result->root);++measured->reused;xlsModuleSnapshotRelease(old);return 1;
         }
         ++measured->declined;
@@ -164,7 +165,7 @@ static int sharedParse(xls_entry_cache_scope* scope,xls_module_store* store,cons
     xls_text* body=old ? xlsTextCreate(text,length,budget,NULL) : NULL;xls_parse_work work={0};
     xls_syntax* syntax=body ? xlsSyntaxTryFunction(path,body,xlsModuleSnapshotSyntax(old),&work) : NULL;
     if(!entry){scope->moduleSyntaxWork.fragments+=work.fragments;scope->moduleSyntaxWork.bytes+=work.bytes;}
-    if(syntax && xlsSyntaxCopyParse(syntax,result)){
+    if(syntax && xlsRawBodyCopyParse(syntax,result)){
         result->diags.defaultFile=xl6AstSourcePath(result->root);++measured->parsed;
         if(!entry)scope->moduleSyntaxWork.reused+=work.reused;
         stageModule(scope,path,retained<budget ? captureSyntax(scope,path,syntax,budget-retained) : NULL,retained);
@@ -183,6 +184,7 @@ static int sharedParse(xls_entry_cache_scope* scope,xls_module_store* store,cons
             data=syntax ? captureSyntax(scope,path,syntax,budget-retained) : NULL;
             xlsSyntaxRelease(syntax);xlsTextRelease(body);releaseData(copy);
         }
+        if(data && data->syntax)xlsRawBodyRegisterSyntax(data->syntax,result->root);
         stageModule(scope,path,data,retained);
     }
     return okay;
@@ -208,7 +210,7 @@ static int moduleParse(xls_entry_cache_scope* scope,const char* text,const char*
         xls_text* body=xlsTextCreate(text,length,cache->limit,NULL);xls_parse_work work={0};
         xls_syntax* syntax=body ? xlsSyntaxTryFunction(path,body,old->syntax,&work) : NULL;
         scope->moduleSyntaxWork.fragments+=work.fragments;scope->moduleSyntaxWork.bytes+=work.bytes;
-        if(syntax && xlsSyntaxCopyParse(syntax,result)) {
+        if(syntax && xlsRawBodyCopyParse(syntax,result)) {
             result->diags.defaultFile=xl6AstSourcePath(result->root);
             ++scope->moduleWork.parsed;scope->moduleSyntaxWork.reused+=work.reused;
             stageModule(scope,path,retained<budget ? captureSyntax(scope,path,syntax,budget-retained) : NULL,retained);
@@ -227,6 +229,7 @@ static int moduleParse(xls_entry_cache_scope* scope,const char* text,const char*
             xls_entry_cache_data* chunks=syntax ? captureSyntax(scope,path,syntax,budget-retained) : NULL;
             xlsSyntaxRelease(syntax);xlsTextRelease(body);releaseData(data);data=chunks;
         }
+        if(data && data->syntax)xlsRawBodyRegisterSyntax(data->syntax,result->root);
         stageModule(scope,path,data,retained);
     }
     return okay;
@@ -240,7 +243,7 @@ int xlsFrontendEntryParse(const char* text,const char* path,XL6_ParseResult* res
         const xls_syntax* syntax=scope->cursorSyntax;const xls_text* source=xlsSyntaxText(syntax);
         size_t skip=source && xlsTextSize(source)>=3 && !memcmp(xlsTextData(source),"\xef\xbb\xbf",3) ? 3 : 0;
         if(source && !strcmp(path,xlsSyntaxPath(syntax)) && strlen(text)==xlsTextSize(source)-skip &&
-           !memcmp(text,xlsTextData(source)+skip,xlsTextSize(source)-skip) && xlsSyntaxCopyCursorParse(syntax,query,result)) {
+           !memcmp(text,xlsTextData(source)+skip,xlsTextSize(source)-skip) && xlsRawBodyCopyCursorParse(syntax,query,result)) {
             scope->cursorApplied=1;result->diags.defaultFile=xl6AstSourcePath(result->root);return xlsSyntaxAccepted(syntax);
         }
         scope->cursorFailed=1;return 0;
