@@ -12,6 +12,8 @@
   <h1>lz4</h1>
   <p>标准 LZ4 Frame、增量编解码、文件事务和同步进度回调。复用 LZ4F 与 XRT，无需额外压缩 DLL。</p>
   <h2>验证范围</h2>
+  <p>2026-10-29：Windows 八组回调失败加清理 OOM 的红例已在包内修复：文件仍打开时按 XRT 原生文件句柄回滚，首因与旧目标不变。但成功关闭后提交失败，再遇路径删除 OOM 仍会遗留临时文件；16组新探针的压缩和解压预算3复现。默认门禁保留红项，当前不作完整发布签收，须由独立 XRT 上下文补齐预备事务回滚能力。下列旧通过记录不覆盖这一新组合。</p>
+  <p>本轮 Windows 76项门禁仅最后的关闭后回滚项未达到预期，既有功能、新八组、27个生成C原型与514项系统库互通均通过。Linux原生文件系统完整门禁通过 ASan/UBSan、24组双故障、四线程、同等系统库互通、语言JIT/AOT和双语范例；Linux路径删除没有Windows的转码分配，不据此关闭Windows风险。</p>
   <p>2026-10-24：当前 Windows 发布版通过 69 项专项检查，包含综合范例 JIT/AOT、23 个实际生成 C 原型、故障注入、四线程 1000 轮及 C/XL 同输出范例；输入快照无变化。Windows 和 Linux C 驱动各通过 514 项系统 liblz4 互操作检查；Linux C 通过 ASan/UBSan 与泄漏检测，Linux XLang 边界和双语对照也通过。此前的字节位运算 XLIR 阻断已不影响当前 Windows 发布版；Linux XLang AOT、32 位、TSan、长期压力和性能基准尚未验收。</p>
   <p>2026-10-26：当前 Windows 完整门禁再次通过 69 项检查及系统库互通；Linux 门禁通过 C ASan/UBSan、514 项系统 liblz4 互通，以及中央、边界、进度回调和综合/基础/文件范例的 JIT/AOT。基础与文件范例同 C 输出一致。旧 XLIR 阻断已不影响当前双平台发布版；32 位、TSan、长期压力和性能基准仍未由这些门禁证明。</p>
   <h2>快速使用</h2>
@@ -39,7 +41,7 @@ assert lz4.decompressText(wire) == "leftright"</code></pre>
   <p>便捷函数默认 maxInput=268435456、maxOutput=536870912，解压另有 maxRatio=1000，要求正数。倍率按每帧已消费前缀计算，不是最终压缩率，也不是 CPU 或工作内存限制。C 的 maxEntries 限制数据帧及 skippable 帧；OptionsInit 清零无关的单项、节点、深度字段，显式设置这些字段或 iFlags 会报参数错误。原生类 C 类型构造器的有效零限额表示不限，优先使用带校验的工厂。</p>
   <h2>流式与文件</h2>
   <p>finish 成功后重复调用成功，但不能继续 update；finish 后仍需 drain 最后一段。finished 仅表示完整帧边界，members 不含 skippable 帧。串联帧、关联块、标准块大小和跳过帧均可解压，不支持外部字典 ID。已 drain 的前缀无法撤回，完整验证成功后再发布结果；校验和不是加密认证。</p>
-  <p>文件接口经同目录临时文件，完整校验、最终进度、flush/close 成功后提交；支持原地转换。含 NUL 的源/目标路径报 ValueError，不访问前缀路径。取消、回调异常、输入损坏与限额失败不覆盖已有目标，overwrite=false 处理提交竞争。不承诺断电持久性或操作系统拒绝清理时仍能删除临时文件。</p>
+  <p>文件接口经同目录临时文件，完整校验、最终进度、flush/close 成功后提交；支持原地转换。含 NUL 的源/目标路径报 ValueError，不访问前缀路径。取消、回调异常、输入损坏与限额失败不覆盖已有目标，overwrite=false 处理提交竞争。已关闭事务的二次 OOM 仍有文首所列清理风险；不承诺断电持久性或操作系统拒绝清理时仍能删除临时文件。</p>
   <p>onProgress 参数依次为 inputBytes、totalBytes、outputBytes，返回 false 为 CancelledError，最终通知也可以取消；异常保留类型、消息和因果链。同一对象串行使用，可在回调中操作其他独立对象。</p>
   <h2>错误与边界</h2>
   <p>ValueError 为参数错误，RangeError 为限额，RuntimeError 为状态，MemoryError 为内存不足，IOError 为压缩数据/文件错误。共享 string 桥的嵌入 NUL 限制没有由本库消除；任意字节输入走 Buffer 路径。包内 VENDOR.md 保留上游许可、哈希及基础 lz4.c/h 精确来源仍待确认的事实。</p>

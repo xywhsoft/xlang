@@ -3,6 +3,30 @@
 标准 LZ4 Frame 编解码、增量对象、文件事务及同步进度回调。复用官方 LZ4F 和
 XRT 的缓冲、文件、错误、资源限额，不要求额外安装压缩 DLL。
 
+2026-10-29：补齐“回调先失败、回滚再 OOM”的组合。Windows C/TCC
+八组先复现遗留临时文件；文件尚打开时现在通过 XRT 现有
+`xrtFileDeleteOpen` 回滚，再关闭拥有它的 Writer。只借用已有文件，
+不新增所有者、系统实现或路径适配层；首因错误和旧目标均保留。
+按句柄删除的成功路径不做 XRT 堆分配，不等于整个文件操作零开销。
+
+另一个已确认的 **RFS 发布风险尚未修复**：成功关闭后，提交改名正常
+失败，再遇路径删除的 OOM，Windows 会遗留临时文件。16组提交/回滚
+预算探针在压缩和解压的预算3均为 `temporary=1`，目标目录保持不变；
+默认 Windows 门禁必须在该项报红，不能用上面八组通过替代。
+见 `dev/extlib_blockers/lz4_closed_transaction_oom_cleanup.md`，需要独立
+XRT上下文提供准备好的事务回滚能力；本任务不修改 XRT，也不改变
+“成功关闭后才提交”的顺序。这里是既有路径API的能力缺口，不能靠
+重复删除、关闭前提交或复制 Win32 代码来掩盖。
+
+本轮 Windows 默认完整 `-Interop` 门禁共76项，73项正例和两项拒绝
+负例符合预期，仅最后的关闭后回滚项失败；报告保留于
+`build/test/lz4_cleanup_05b8ea3979aa4c22bf4db037c3895167/results.json`。
+Linux 原生文件系统新快照完整门禁退出0，含 ASan/UBSan、上述24组
+双故障、514项系统liblz4互通、四线程、语言JIT/AOT与双语范例；该平台
+的关闭后回滚不会遇到Windows路径转换分配。输入指纹复核一致。
+首次Linux复验停在CRLF黄金行尾与LF实际输出的比较，失败现场保留；
+现只规范化黄金文本行尾，不修改实际输出、格式正文或编译优化参数。
+
 ## 快速使用
 
 ```xlang
@@ -94,7 +118,8 @@ drain/Writer 已交出的前缀无法撤回，完整 finish 成功前不要把�
 
 文件接口使用同目录临时文件，完整处理、最终回调、flush/close 成功后才提交。
 支持源与目标同路径。overwrite=false 同时检查初始存在和提交竞争；失败保留原目标，
-并清理本次临时文件。此处不承诺断电持久性，也无法保证操作系统拒绝删除时仍能清理。
+并尝试清理本次临时文件；已关闭事务的二次 OOM 缺口见文首。
+此处不承诺断电持久性，也无法保证操作系统拒绝删除时仍能清理。
 源或目标路径含 NUL 时抛 `ValueError`，不会访问截断后的前缀路径。
 
 onProgress 同步收到 `(inputBytes, totalBytes, outputBytes)`；返回 false 抛
@@ -136,6 +161,12 @@ options 必须先调用 xrtLz4OptionsInit；传 NULL 使用默认值。版本、
 ./tools/run_extlib_c.ps1 -Package lz4 -Source release/extlibs/lz4/examples/basic.c
 ./tools/check_extlib_lz4.ps1 -Interop
 ```
+
+新增 `test/test_lz4_cleanup.c` 验证压缩/解压、过程/最终回调、新旧目标
+八种组合的首因、零临时文件、活动分配恢复；`test_lz4_commit_cleanup.c`
+单独检查已关闭事务的16组双故障。两份C源可直接 `xl run`，不带参数
+时创建独占目录，成功清理，失败打印并保留现场；也可给出独占目录。
+默认门禁纳入严格 GCC、C/TCC 和独立EXE，不通过跳过红例签收发布。
 
 `basic.c` 和 `files.c` 的 TCC 单文件入口包含各自所需的包内源码，
 可直接 `xl run` 或 `xl build`；正式包仍按 manifest 分离编译，
