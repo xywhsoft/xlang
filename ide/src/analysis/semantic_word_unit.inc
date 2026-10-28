@@ -3,12 +3,19 @@
  * owns only its pre-existing independent facts/readsets/coordinate records. */
 #define XLS_WORD_UNIT_BYTES (256u*1024u*1024u)
 static _Thread_local xls_completion_unit_control* wordControl;
+static xatomic32 wordControlled;
 static size_t wordBudget(void){return wordControl ? wordControl->bytes : XLS_WORD_UNIT_BYTES;}
+/* Ordinary processes never use the test/admission override. Preserve the
+ * original lazy word-control TLS registration instead of moving it before
+ * native semantic controls just to discover the constant default limit. */
+static size_t wordProducerBudget(void)
+{return xrtAtomic32Load(&wordControlled,XMEMORY_ACQUIRE) ? wordBudget() : XLS_WORD_UNIT_BYTES;}
 void xlsCompletionUnitBegin(xls_completion_unit_control* control,size_t bytes)
 {
     if(!control)return;
     size_t available=wordBudget();if(bytes>available)bytes=available;
     *control=(xls_completion_unit_control){wordControl,bytes};wordControl=control;
+    xrtAtomic32Store(&wordControlled,1,XMEMORY_RELEASE);
 }
 void xlsCompletionUnitEnd(xls_completion_unit_control* control)
 {if(control && wordControl==control)wordControl=control->previous;}
@@ -26,6 +33,7 @@ struct xls_completion_word_unit {
     uint64_t usedInputs;int usageKnown;
     unsigned char* querySelections;
     size_t bytes;
+    int scopeComplete;
 };
 static int wordSyntaxInput(const xls_syntax* syntax,const xls_input_batch* batch,const char* key)
 {
@@ -136,6 +144,7 @@ static void wordQueryFree(xls_semantic_completion* r)
 static xls_completion_word_unit* wordUnitCapture(xls_semantic_completion* r,const xls_syntax* syntax,
     int (*cancelled)(void*),void* user)
 {
+    const XL6_CompletionQuery* candidates=r->poolComplete ? &r->pool.query : &r->query;
     size_t syntaxBytes=0,inputBytes=xlsInputBatchStorageBytes(r->inputOwner),bytes=sizeof(xls_completion_word_unit);
     if(!r->inputOwner || !r->cursorSyntaxApplied || !r->query.prefix ||
        !xlsSyntaxCursorMatches(syntax,r->path,r->query.offset) || !xlsSyntaxCursorRetainedBytes(syntax,wordBudget(),&syntaxBytes) ||
@@ -150,17 +159,18 @@ static xls_completion_word_unit* wordUnitCapture(xls_semantic_completion* r,cons
         unit->topology=xlsInputTopologyClone(r->topology,wordBudget()-bytes,cancelled,user);
         if(!unit->topology || !wordCharge(&bytes,xlsInputTopologyInfo(unit->topology).bytes))goto failed;
     }
-    if(!wordReportCopy(&r->report,&unit->report,1,&bytes,cancelled,user) || r->query.count>XL6_COMPLETION_ITEMS ||
-       !wordCharge(&bytes,r->query.count*sizeof(*r->query.items)) || !wordCharge(&bytes,r->query.count) || !wordCharge(&bytes,strlen(r->query.prefix)+1))goto failed;
-    unit->query.prefix=xrtStrDup(r->query.prefix);if(!unit->query.prefix)goto failed;
+    if(!wordReportCopy(&r->report,&unit->report,1,&bytes,cancelled,user) || candidates->count>XL6_COMPLETION_ITEMS ||
+       !wordCharge(&bytes,candidates->count*sizeof(*candidates->items)) || !wordCharge(&bytes,candidates->count) || !wordCharge(&bytes,strlen(r->poolComplete ? "" : r->query.prefix)+1))goto failed;
+    unit->scopeComplete=r->poolComplete;
+    unit->query.prefix=xrtStrDup(r->poolComplete ? "" : r->query.prefix);if(!unit->query.prefix)goto failed;
     unit->query.replacement=r->query.replacement;unit->query.offset=r->query.offset;
-    unit->query.items=r->query.count ? xrtCalloc(r->query.count,sizeof(*r->query.items)) : NULL;
-    unit->querySelections=r->query.count ? xrtCalloc(r->query.count,1) : NULL;
-    if(r->query.count && (!unit->query.items || !unit->querySelections))goto failed;
-    unit->query.capacity=r->query.count;
-    for(size_t i=0;i<r->query.count;++i){
+    unit->query.items=candidates->count ? xrtCalloc(candidates->count,sizeof(*candidates->items)) : NULL;
+    unit->querySelections=candidates->count ? xrtCalloc(candidates->count,1) : NULL;
+    if(candidates->count && (!unit->query.items || !unit->querySelections))goto failed;
+    unit->query.capacity=candidates->count;
+    for(size_t i=0;i<candidates->count;++i){
         if(cancelled && cancelled(user))goto failed;
-        const XL6_CompletionItem* from=&r->query.items[i];XL6_CompletionItem* to=&unit->query.items[i];
+        const XL6_CompletionItem* from=&candidates->items[i];XL6_CompletionItem* to=&unit->query.items[i];
         if(!from->name || !from->kind || !wordCharge(&bytes,strlen(from->name)+1) || !wordCharge(&bytes,strlen(from->kind)+1) ||
            (from->canonical && !wordCharge(&bytes,strlen(from->canonical)+1)))goto failed;
         ++unit->query.count;to->name=xrtStrDup(from->name);to->kind=xrtStrDup(from->kind);
@@ -196,6 +206,7 @@ xls_semantic_completion* xlsSemanticCompletionTryWordView(xls_semantic_completio
     const xls_input_batch* origin=previous->wordUnit ? previous->wordUnit->batch : previous->inputOwner;
     const xls_syntax* oldSyntax=previous->wordUnit ? previous->wordUnit->syntax : previousSyntax;
     const XL6_CompletionQuery* oldQuery=previous->wordUnit ? &previous->wordUnit->query : &previous->query;
+    const char* coverage=previous->wordUnit || !previous->poolComplete ? oldQuery->prefix : "";
     const xls_analysis_document* query=xlsInputBatchFind(batch,queryKey);
     const char* queryPath=syntax ? xlsSyntaxPath(syntax) : NULL;
     if(!ready(previous) || previous->signature || !query || !queryPath || strcmp(previous->path,queryPath) ||
@@ -203,8 +214,8 @@ xls_semantic_completion* xlsSemanticCompletionTryWordView(xls_semantic_completio
     /* All caller-owned snapshots are pinned before the first callback. */
     inputLease=xlsInputBatchRetain(batch);syntaxLease=xlsSyntaxRetain((xls_syntax*)syntax);originLease=xlsSyntaxRetain((xls_syntax*)oldSyntax);
     if(!xlsSyntaxCursorWordProof(oldSyntax,syntax,&edit,cancelled,user) ||
-       !wordRangeEqual(&edit.before,&oldQuery->replacement) || !oldQuery->prefix ||
-       strlen(oldQuery->prefix)>edit.prefixSize || memcmp(oldQuery->prefix,edit.prefix,strlen(oldQuery->prefix)) ||
+       !wordRangeEqual(&edit.before,&oldQuery->replacement) || !coverage ||
+       strlen(coverage)>edit.prefixSize || memcmp(coverage,edit.prefix,strlen(coverage)) ||
        stopped(cancelled,user) || !xlsSemanticCompletionValidate(previous))goto done;
     unit=previous->wordUnit ? wordUnitRetain(previous->wordUnit) : wordUnitCapture(previous,previousSyntax,cancelled,user);
     if(!unit)goto done;
@@ -254,7 +265,8 @@ xls_semantic_completion* xlsSemanticCompletionTryWordView(xls_semantic_completio
     }
     result->available=1;result->cursorSyntaxApplied=1;
     result->usageKnown=wordRemapUsage(unit,batch,&result->usedInputs);result->topology=unit->topology;
-    result->wordWork=(xls_completion_unit_work){.projected=1,.proofNodes=edit.nodes,.candidates=unit->query.count,.knownBytes=viewBytes};
+    result->wordWork=(xls_completion_unit_work){.projected=1,.proofNodes=edit.nodes,.candidates=unit->query.count,.knownBytes=viewBytes,
+        .scopeComplete=unit->scopeComplete,.scopeCandidates=unit->query.count};
     if(!xlsSemanticCompletionValidate(previous) || !xlsSemanticCompletionValidate(result) || stopped(cancelled,user))goto failed;
     goto done;
 failed:xlsSemanticCompletionDestroy(result);result=NULL;

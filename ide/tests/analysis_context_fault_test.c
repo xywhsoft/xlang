@@ -33,6 +33,7 @@ static bool fixtureArrayPush(xarray* array,const void* value) {return fixtureOp(
 #define xlsFrontendNamespaceActive privateNamespaceActive
 #define xlsFrontendNamespaceCount privateNamespaceCount
 #define xlsFrontendNamespaceName privateNamespaceName
+#define xlsFrontendCompletionPoolSlot privateCompletionPoolSlot
 #include "analysis/frontend_context.c"
 static unsigned checks;
 #define CHECK(call) do {++checks;if(!(call)){fprintf(stderr,"analysis_context_fault_test:%d: %s\n",__LINE__,#call);return 1;}}while(0)

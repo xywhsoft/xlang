@@ -8,6 +8,7 @@
  * known admitted payload,not allocator overhead/global RSS/a transient peak. */
 typedef struct xls_completion_unit_work {
     uint64_t projected,proofNodes,candidates,knownBytes,astMaterialized,astFailures;
+    uint64_t scopeComplete,scopeCandidates;
 } xls_completion_unit_work;
 xls_completion_unit_work xlsSemanticCompletionUnitWork(const xls_semantic_completion*);
 /* Same-thread admission/failure verification. Nested controls only shrink
@@ -23,7 +24,8 @@ struct xls_input_batch;struct xls_syntax;
  * original disk/probe/environment validation precedes and follows publication.
  * Current syntax is produced by the original parser. Every logical parser AST
  * value is checked directly on immutable chunks with exact coordinate mapping.
- * Only prefixes narrowing the unit's original candidates are admitted. Any
+ * A complete original-emission pool admits widened/replaced prefixes too;
+ * without that optional producer, only the original prefix subset is valid. Any
  * unknown/missing/cancelled/resource proof returns NULL for ordinary fallback.
  * Both syntax bodies are matched against their actual captured batches. The
  * producer,batches and syntax snapshots are pinned before the first callback;
