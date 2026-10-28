@@ -1,0 +1,36 @@
+// Explicit casts select and authenticate the same constrained declaration as
+// assignments, including aliases, nullable destinations and async results.
+class Base
+    int tag=7
+end
+class Child extends Base
+end
+class Strict
+    func Echo<T is Base>(T value) as T
+        return value
+    end
+    async func Read<T is Base>(T value) as T
+        return value
+    end
+end
+class Fallback
+    func Echo<T is Base>(T value) as T
+        return value
+    end
+    func Echo<U>(U value) as U
+        return value
+    end
+end
+typedef Reader=func(Child) as Child
+Strict box=Strict()
+auto exact=box.Echo as Reader
+assert exact(Child()).tag==7
+auto asynchronous=box.Read as func(Child) as future<Child>
+assert (await asynchronous(Child())).tag==7
+Reader? optional=box.Echo as Reader
+if optional!=null
+    assert optional(Child()).tag==7
+end
+Fallback fallback=Fallback()
+auto number=fallback.Echo as func(int) as int
+assert number(7)==7

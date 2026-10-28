@@ -14277,16 +14277,30 @@ XL6_IrTypeId xl6IrBoundMethodCastIdentityType(
 /* Static typed binding authenticates a declaration, not an erased name group.
  * Nullable receiver syntax is admitted here only as a representation input;
  * lowering still materializes the ordinary checked/non-null class value. */
+static int xl6IrBoundMethodHasConstraints(const XL6_IrModule* module,const XL6_IrNode* declaration)
+{
+    if(!declaration || !declaration->childCount)return 0;
+    const XL6_IrNode* types=xl6IrNodeGet(module,module->children[declaration->firstChild+declaration->childCount-1]);
+    if(!types || types->sourceKind!=XL6_AST_TYPE_PARAMS)return 0;
+    for(size_t t=0;t<types->childCount;++t){
+        const XL6_IrNode* parameter=xl6IrNodeGet(module,module->children[types->firstChild+t]);
+        for(size_t c=0;parameter && c<parameter->childCount;++c){
+            const XL6_IrNode* constraint=xl6IrNodeGet(module,module->children[parameter->firstChild+c]);
+            if(constraint && constraint->sourceKind==XL6_AST_GENERIC_CONSTRAINT && constraint->childCount)return 1;
+        }
+    }
+    return 0;
+}
 int xl6IrBoundMethodSelectionMatches(const XL6_IrModule* module,
     XL6_IrNodeId sourceId,XL6_SymbolId symbol)
 {
     const XL6_IrNode* source=xl6IrNodeGet(module,sourceId);
     if(!source)return 0;
-    if(!source->targetSymbol)return 1;
     /* Concrete class/method clones retain a chain to the declaration chosen
      * while the semantic generic-constraint evidence was still available. */
     for(size_t depth=0;symbol && depth<=module->genericSpecializationCount;++depth){
-        if(symbol==source->targetSymbol)return 1;
+        if(source->targetSymbol && symbol==source->targetSymbol)return 1;
+        if(!source->targetSymbol && xl6IrBoundMethodHasConstraints(module,xl6IrSymbolNodeGet(module,symbol)))return 0;
         XL6_SymbolId original=0;
         for(size_t i=0;i<module->genericSpecializationCount;++i)
             if(module->genericSpecializations[i].symbol==symbol){
@@ -14297,7 +14311,7 @@ int xl6IrBoundMethodSelectionMatches(const XL6_IrModule* module,
         if(original==symbol)break;
         symbol=original;
     }
-    return 0;
+    return !source->targetSymbol;
 }
 
 int xl6IrBoundMethodTargetMatches(const XL6_IrModule* module,XL6_IrNodeId sourceId,

@@ -86,6 +86,7 @@ def main():
         ('error-array-extract','test/cases/extern_owned_error_array_extract.xl',
             ['test/cases/extern_owned_task_scalars_host.c','test/cases/extern_owned_string_host.c'],[]),
         ('bound-generic-constraints','test/cases/extern_owned_bound_generic_constraints.xl',[],[]),
+        ('bound-constraint-casts','test/cases/extern_owned_bound_constraint_casts.xl',[],[]),
         ('generic-nullable-order','test/cases/extern_owned_generic_nullable_order.xl',[],[]),
         ('bound-base-dispatch','test/cases/extern_owned_bound_base_dispatch.xl',[],[]),
         ('bound-async-generic','test/cases/extern_owned_bound_async_generic.xl',
@@ -172,6 +173,9 @@ def main():
             run('export-C-consumer-aot',[(work/'consumer-aot').with_suffix('.exe' if os.name=='nt' else '')])
     negatives={
         'test/cases/bad_extern_owned_bound_constraint.xl':'typed bound method violates generic constraints',
+        'test/cases/bad_extern_owned_bound_constraint_cast.xl':'typed bound method violates generic constraints',
+        'test/cases/bad_extern_owned_bound_async_constraint_cast.xl':'typed bound method violates generic constraints',
+        'test/cases/bad_extern_owned_bound_constraint_nullable_cast.xl':'typed bound method violates generic constraints',
         'test/cases/bad_extern_owned_bound_async_constraint.xl':'typed bound method violates generic constraints',
         'test/cases/bad_extern_owned_nullable_derived_invariant.xl':None,
         'test/cases/bad_extern_owned_bound_ambiguous.xl':'typed bound method requires one exact overload',

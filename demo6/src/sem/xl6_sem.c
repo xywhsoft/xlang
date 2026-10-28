@@ -1576,6 +1576,7 @@ static int xl6SemCheckAwaitExpr(XL6_SemContext* ctx, XL6_AstNode* node);
 static int xl6SemCheckYieldStmt(XL6_SemContext* ctx, XL6_AstNode* node);
 static int xl6SemTypeEquals(XL6_SemContext* ctx, const XL6_AstNode* a, const XL6_AstNode* b);
 static int xl6SemExprCanMatchFunctionTypeEx(XL6_SemContext* ctx, const XL6_AstNode* expr, const XL6_AstNode* typeNode, int reportError);
+static int xl6SemConstrainedBoundMethod(XL6_SemContext*,const XL6_AstNode*,const XL6_AstNode*,int);
 static int xl6SemFuncHasVararg(const XL6_AstNode* params);
 static int xl6SemIsContainerBaseTypeName(const char* name);
 static int xl6SemFixedParamCount(const XL6_AstNode* params);
@@ -7750,6 +7751,13 @@ static int xl6SemCheckRuntimeTypeExpr(XL6_SemContext* ctx, XL6_AstNode* node, in
     effectiveTarget = nullableTargetInner != NULL ?
         xl6SemResolveAliasType(ctx, nullableTargetInner) :
         concreteTarget;
+
+    /* A method-group cast selects a declaration just like a contextual
+     * function binding. A checked runtime cast cannot waive its constraints. */
+    if ( effectiveTarget != NULL && xl6TextEquals(effectiveTarget->text,"function") &&
+         xl6SemConstrainedBoundMethod(ctx,value,effectiveTarget,1)==0 ) {
+        ok=0;
+    }
 
     if ( nullableTargetInner != NULL &&
          concreteSourceType != NULL &&

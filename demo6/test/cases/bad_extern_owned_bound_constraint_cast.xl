@@ -1,0 +1,9 @@
+class Base
+end
+class Strict
+    func Echo<T is Base>(T value) as T
+        return value
+    end
+end
+Strict strict=Strict()
+auto callback=strict.Echo as func(int) as int
