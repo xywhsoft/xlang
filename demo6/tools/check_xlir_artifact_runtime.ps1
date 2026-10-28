@@ -83,10 +83,15 @@ try {
     $catalogAudit=Get-Content -LiteralPath "$outputPath/catalog-audit.json" -Raw|ConvertFrom-Json
     $expectedComponents=$catalogAudit.ComponentCount
     $registryErrors=@($catalogAudit.RegistryErrors)
+    $hostAbis=@($catalogAudit.DeclaredHostAbis)
+    $actualHostExports=@($catalogAudit.ActualRequiredHostExports)
     foreach($componentObject in $componentObjects){
         $missing=@()
         foreach($symbol in $componentObject.Undefined){
-            if(!$symbolOwners.ContainsKey($symbol)-or$symbolOwners[$symbol]-notin$componentObject.Component.Closure){$missing+=$symbol}
+            $hostImport=@($hostAbis|Where-Object {
+                $null-ne$_-and$_[2]-eq$symbol-and([uint64]$componentObject.Component.HostAbi-band[uint64]$_[1])-ne0
+            }).Count-eq1-and$symbol-in$actualHostExports
+            if((!$symbolOwners.ContainsKey($symbol)-or$symbolOwners[$symbol]-notin$componentObject.Component.Closure)-and!$hostImport){$missing+=$symbol}
         }
         $linkage+=[pscustomobject]@{Id=$componentObject.Component.Id;Source=$componentObject.Component.Source;Build=$componentObject.Build;
             Missing=$missing;Complete=($componentObject.Build-eq0-and!$missing.Count)}

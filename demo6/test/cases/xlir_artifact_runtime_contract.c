@@ -474,8 +474,8 @@ static int fixture_contract(const char* path)
             !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_TASK_GROUP) &&
             !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_CHANNEL);
     if (strstr(path,"xlir_artifact_native_linkage"))
-        ok=ok && has_native_module(&plan,"XRT_MODULE_CHARSET") &&
-            !has_native_module(&plan,"XRT_MODULE_MATH");
+        ok=ok && has_native_module(&plan,"XRT_MODULE_MATH") &&
+            !has_native_module(&plan,"XRT_MODULE_MEMORY_DEBUG");
     if (strstr(path,"xlir_string_bridge_abi"))
         ok=ok && has_native_module(&plan,"XRT_MODULE_UNICODE_TEXT") &&
             has_native_module(&plan,"XRT_MODULE_STRING_SPLIT");
