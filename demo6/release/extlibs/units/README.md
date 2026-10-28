@@ -1,5 +1,21 @@
 # units
 
+2026-10-28 完整返回链复查：旧可空局部返回在接管原生文本后仍调用
+`xlir_string_copy`。新 C/XL 对照预算先红后绿，五个格式化入口均只需
+一次最终文本分配；预算 0 保持内存错误，预算 1 成功，不再生成第二份
+正文。现以 `@owned string` 直接返回，C 的真正失败仍通过 XRT 传播，
+公开 API、C ABI、舍入、区域设置与输入错误合同未变。专用 cgen 夹具
+显式调用五个入口，核对各接管一次且没有后续 `string_copy`。
+接管的 `strlen`、外部调用错误作用域和必要结果分配仍存在，不是整条
+操作对手写 C 的零开销认证。
+
+本次标准 `demo6/build.bat` 成功重建三件套，跨包拥有型导出的 JIT/AOT
+用例通过；未合入新主线或更新 XRT。Windows/Linux 默认完整包门禁
+退出 0，包含严格 C/ABI、Linux ASan/UBSan、四线程、中央/包内边界、
+旧分配故障与新结果预算、双语固定输出以及上述语言用例与双语范例
+独立 EXE。测试运行库只启用产品模块及线程/内存调试，不再使用 ALL；
+未改变产品模块依赖。两平台记录输入指纹，失败时保留命令与现场。
+
 2026-10-27 字符串所有权收口：五条格式化函数的 C 原型明确为
 拥有型 `char*`，XLang 用 `@owned string?` 直接接管，去掉
 `point` / `takeCstr` 中转。原生结果复制统一调用 XRT 的
@@ -75,12 +91,12 @@ C/XLang 同输出及核心/公开范例 AOT 均通过。同轮 WSL
 
 在 `demo6/release` 可直接运行 `xl run extlibs/units/examples/units_c.c`；
 普通 C 编译仍按包清单单独链接 `units_native.c`。
-- 边界：包内 `test/test_units.c`、`test/test_threads.c`、`test/boundaries.xl`，以及 `demo6/test/cases/extlib_units.xl`
+- 边界：包内 `test/test_units.c`、`test/test_threads.c`、`test/boundaries.xl`、`test/allocations.xl`、`test/owned_results.xl`，以及 `demo6/test/cases/extlib_units.xl`；`test/owned_probe.xl` 单独检查完整 cgen 返回链。
 
 在 `demo6/release` 运行 `xl run extlibs/units/test/boundaries.xl`；在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package units -Source release/extlibs/units/test/test_units.c`。
 
 Linux 可在 `demo6` 目录运行 `bash release/extlibs/units/test/check.sh`，以严格 GCC 和 ASan/UBSan 复验 C 边界、四线程并发与 C 范例，运行中央及包内 XLang 用例、逐字节比较双语范例输出，并构建运行核心与双语范例独立 EXE。2026-10-14 修复整数显示中的负零；C/XLang 正负舍入边界、双语范例和无输出 AOT 核心均已复跑通过。
-Windows 可在同目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/units/test/check.ps1`，联合验证严格 GCC、C ABI/边界/四线程、中央与包内 XLang 用例、双语范例同输出以及核心与双语范例独立 EXE；`-SkipAot` 仅供聚焦开发，跳过全部 AOT。每次门禁使用独占构建目录并在退出时清理，不写入发布目录临时文件。
+Windows 可在同目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/units/test/check.ps1`，联合验证严格 GCC、C ABI/边界/四线程、中央与包内 XLang 用例、双语范例同输出以及核心与双语范例独立 EXE；`-SkipAot` 仅供聚焦开发，跳过全部 AOT。每次门禁使用独占构建目录，成功时清理，失败时保留命令、输入指纹及产物，不写入发布目录临时文件。默认模式还执行包内三份语言回归的独立 EXE，而不只验收核心和公开范例。
 同日补齐舍入后升档边界；Windows C/XLang 与 Linux ASan/UBSan 已通过。
 
 2026-10-15 原先仅使用 XRT 基础分配和错误接口，空模块集下无输出核心 AOT 为 681,984 字节。现为区域无关的固定小数位写出声明 `XRT_MODULE_NUMBER_FORMAT`，同一核心 AOT 为 700,928 字节且运行通过；Windows C 边界、线程、XLang 边界和双语同输出范例通过。完整边界 AOT 仍缺共享符号 `xl6ValueDataSnapshotV1`，该阻断未变。

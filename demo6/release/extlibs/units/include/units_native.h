@@ -6,7 +6,7 @@
 extern "C" {
 #endif
 
-/* 文本由 XRT 独立分配，调用方使用 xrtFree；非法参数返回 NULL。 */
+/* 文本由 XRT 独立分配，调用方使用 xrtFree；失败返回 NULL 并设置 XRT 错误。 */
 char* xu_bytes(double value);
 char* xu_bytes_decimal(double value);
 char* xu_duration(double seconds);

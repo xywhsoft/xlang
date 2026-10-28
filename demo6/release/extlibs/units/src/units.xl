@@ -1,23 +1,20 @@
-extern "xu_bytes" @owned func __u_bytes(float n) as string?
-extern "xu_bytes_decimal" @owned func __u_bytes_decimal(float n) as string?
+// C 成功时返回自有文本，NULL 伴随 XRT 错误；直接返回以转移所有权。
+extern "xu_bytes" @owned func __u_bytes(float n) as string
+extern "xu_bytes_decimal" @owned func __u_bytes_decimal(float n) as string
 extern "xu_parse_bytes" func __u_parse_bytes(string text, c_longlong length) as float
-extern "xu_duration" @owned func __u_duration(float seconds) as string?
-extern "xu_duration_short" @owned func __u_duration_short(float seconds) as string?
+extern "xu_duration" @owned func __u_duration(float seconds) as string
+extern "xu_duration_short" @owned func __u_duration_short(float seconds) as string
 extern "xu_parse_duration" func __u_parse_duration(string text, c_longlong length) as float
-extern "xu_count" @owned func __u_count(float n) as string?
+extern "xu_count" @owned func __u_count(float n) as string
 extern "xu_is_pow2" func __u_is_pow2(int n) as c_int
 extern "xl6_xrt_last_error_text" func __u_error() as string
 
 export func bytes(float n) as string
-    string? result = __u_bytes(n)
-    if result == null then throw ValueError __u_error() end
-    return result
+    return __u_bytes(n)
 end
 
 export func bytesDecimal(float n) as string
-    string? result = __u_bytes_decimal(n)
-    if result == null then throw ValueError __u_error() end
-    return result
+    return __u_bytes_decimal(n)
 end
 
 export func parseBytes(string text) as float
@@ -27,15 +24,11 @@ export func parseBytes(string text) as float
 end
 
 export func duration(float seconds) as string
-    string? result = __u_duration(seconds)
-    if result == null then throw ValueError __u_error() end
-    return result
+    return __u_duration(seconds)
 end
 
 export func durationShort(float seconds) as string
-    string? result = __u_duration_short(seconds)
-    if result == null then throw ValueError __u_error() end
-    return result
+    return __u_duration_short(seconds)
 end
 
 export func parseDuration(string text) as float
@@ -45,9 +38,7 @@ export func parseDuration(string text) as float
 end
 
 export func count(float n) as string
-    string? result = __u_count(n)
-    if result == null then throw ValueError __u_error() end
-    return result
+    return __u_count(n)
 end
 
 export func isPow2(int n) as bool

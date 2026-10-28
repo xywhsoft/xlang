@@ -106,7 +106,7 @@ static int test_suffix_locale(void)
     return ok;
 }
 
-/* 格式化分配失败必须保留内存错误，清除注入后五条入口都能继续使用。 */
+/* 与语言回归使用相同预算：仅最终文本需要一次 XRT 分配。 */
 static int test_allocation_failure(void)
 {
     char* (*formats[])(double) = {
@@ -117,11 +117,24 @@ static int test_allocation_failure(void)
     };
     size_t i;
     for (i = 0; i < sizeof(formats) / sizeof(formats[0]); ++i) {
-        CHECK(xrtMemDebugFailAfter(0u));
-        CHECK(formats[i](1536.0) == NULL);
-        CHECK(xrtMemDebugFailTriggered());
-        CHECK(xrtErrorKind(xrtGetError()) == XERR_MEMORY);
-        xrtMemDebugFailClear();
+        unsigned budget;
+        for (budget = 0; budget < 2u; ++budget) {
+            char* result;
+            bool triggered;
+            bool memory_error;
+            CHECK(xrtMemDebugFailAfter(budget));
+            result = formats[i](1536.0);
+            triggered = xrtMemDebugFailTriggered();
+            memory_error = xrtErrorKind(xrtGetError()) == XERR_MEMORY;
+            xrtMemDebugFailClear();
+            if (budget == 0u) {
+                CHECK(result == NULL && triggered && memory_error);
+            } else {
+                CHECK(!triggered && !memory_error);
+                CHECK(same(result, expected[i]));
+                CHECK(xrtGetError() == NULL);
+            }
+        }
         CHECK(same(formats[i](1536.0), expected[i]));
         CHECK(xrtGetError() == NULL);
     }
