@@ -3,6 +3,7 @@ Strict generated C O0/O2, physical native contracts, genuine TCC JIT and AOT.
 Compiler and native inputs are immutable; no shipping/full53 claim.
 """
 from pathlib import Path
+from compiler_response import command_with_response
 import argparse, hashlib, json, os, re, shutil, subprocess, sys
 from xlir_public_build_inputs import verify_public_build
 
@@ -45,6 +46,7 @@ def main():
     files.update(path for path in (root/'test/cases').rglob('*')
         if path.is_file() and path.suffix in ('.c','.h','.inc'))
     files={path for path in files if path.is_file()}
+    files.add(Path(__file__).with_name('compiler_response.py'))
     inputs=[{'Path':str(path),'Sha256':sha(path)} for path in sorted(files)]
     assert sha(build['Driver'])==build['DriverSha256'].lower()
     out.mkdir(parents=True); env=dict(os.environ)
@@ -69,7 +71,7 @@ def main():
         'StandaloneImports':[]}
     report['SourceInputsMatch']=True; report['ProductionFiles']=len(compared)
     def run(name,command,rejected=False):
-        result=subprocess.run(list(map(str,command)),cwd=root,env=env,capture_output=True,timeout=360)
+        result=subprocess.run(command_with_response(command,cc,out/(name+'.rsp')),cwd=root,env=env,capture_output=True,timeout=360)
         (out/(name+'.log')).write_bytes(result.stdout+result.stderr)
         rows.append({'Name':name,'Command':list(map(str,command)),'Exit':result.returncode,
             'ExpectedRejection':rejected})

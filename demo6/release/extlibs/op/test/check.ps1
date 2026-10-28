@@ -53,9 +53,9 @@ try {
         Run 'C read-only smoke' (Join-Path $root 'tools/run_extlib_c.ps1') @(
             'op', 'release/extlibs/op/test/readonly_c_smoke.c')
         Run 'C random int boundaries' (Join-Path $root 'tools/run_extlib_c.ps1') @(
-            'op', 'release/extlibs/op/test/random_int.c')
+            'op', 'release/extlibs/op/test/random_int_native.c')
         Run 'C delay boundaries' (Join-Path $root 'tools/run_extlib_c.ps1') @(
-            'op', 'release/extlibs/op/test/delay.c')
+            'op', 'release/extlibs/op/test/delay_native.c')
         Run 'C input parsing' (Join-Path $root 'tools/run_extlib_c.ps1') @(
             'op', 'release/extlibs/op/test/input_parsing_native.c')
         $cExample = @(& (Join-Path $root 'tools/run_extlib_c.ps1') -Package op -Source 'release/examples/extlibs/op_c.c')

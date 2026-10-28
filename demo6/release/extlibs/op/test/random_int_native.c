@@ -1,3 +1,4 @@
+/* Standalone C entrypoint, not an automatic xlang companion. */
 #include <limits.h>
 #include <stdio.h>
 #include "xrt.h"

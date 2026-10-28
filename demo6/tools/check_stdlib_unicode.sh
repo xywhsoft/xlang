@@ -53,7 +53,7 @@ export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
 sanitize=(-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer)
 run native-build "$CC" "${strict[@]}" "${sanitize[@]}" test/cases/stdlib_unicode_host.c \
     test/support/unicode_native.c src/runtime/xl6_unicode.c src/runtime/xl6_unicode_validator.c \
-    src/runtime/xl6_html.c -pthread -lm -o "$OUT/native"
+    src/runtime/xl6_html.c src/api/xl_foreign_error.c src/runtime/xl6_native_handle.c -pthread -lm -o "$OUT/native"
 run native "$OUT/native"
 for ((mode=0; mode<=4; ++mode)); do
     for ((point=1; point<=32; ++point)); do

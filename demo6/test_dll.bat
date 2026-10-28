@@ -29,6 +29,9 @@ if errorlevel 1 exit /b 1
 release\xl_dll_xrt_exports.exe
 if errorlevel 1 exit /b 1
 
+python tools\check_xrt_exports.py --root . --out build\test\xrt_exports_%RANDOM%_%RANDOM%
+if errorlevel 1 exit /b 1
+
 if exist release\libtcc.dll (
     echo release\libtcc.dll should not be generated.
     exit /b 1

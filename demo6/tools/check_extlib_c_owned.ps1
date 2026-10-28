@@ -10,7 +10,7 @@ $public = Get-Content -LiteralPath (Join-Path $publicPath 'build.json') -Raw | C
 if (!$public.SourceXrt) { throw 'A current-source public driver is required' }
 $work = if ([IO.Path]::IsPathRooted($Directory)) { [IO.Path]::GetFullPath($Directory) } else { [IO.Path]::GetFullPath((Join-Path $root $Directory)) }
 if (Test-Path -LiteralPath $work) { throw 'Use a fresh acceptance directory' }
-$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
+$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $utf8 = [Text.UTF8Encoding]::new($false)
 $checks = [Collections.Generic.List[object]]::new()
 $packages = @('terraform_state','redis','bson','gettext','siphash128','blake2','blake3',

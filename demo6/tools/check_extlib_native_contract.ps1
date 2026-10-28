@@ -42,7 +42,9 @@ foreach ($key in @('XL6_TCC_DLL','XL6_TCC_ROOT','XL6_TCC_LIB','XLANG_PACKAGE_PAT
     $oldEnv[$key] = [Environment]::GetEnvironmentVariable($key)
 }
 function Check([string]$name, [string]$program, [string[]]$arguments, [string]$expected = '') {
-    $r = Invoke-ExtlibSmokeProcess $program $arguments $root 120
+    $r = if ($program -eq $gcc) {
+        Invoke-XlirCompilerResponseToLog $program $arguments (Join-Path $work ($name+'.compiler.log')) -PassThru -TimeoutSeconds 120
+    } else { Invoke-ExtlibSmokeProcess $program $arguments $root 120 }
     $checks.Add([ordered]@{name=$name;program=$program;arguments=$arguments;result=$r})
     if ($r.status -ne 'pass') { throw "$name failed: $($r.stderr) $($r.stdout)" }
     if ($expected -and $r.stdout.Replace("`r`n","`n").TrimEnd("`n") -cne $expected) {

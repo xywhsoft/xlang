@@ -57,7 +57,7 @@ rem do not consume generated language-runtime declarations.
 set "XL6_CGEN_CC=%XL6_BOOTSTRAP_CC%"
 set "XL6_CGEN_OBJ=%XL6_ROOT%\build\tmp\xrt_cgen.o"
 set "XL6_CGEN_FLAGS=-std=c11 -Wall -Wextra -Wno-unused-function -Wno-unused-label -Wno-unused-variable -Wno-unused-parameter -Wno-unused-const-variable -Wno-missing-field-initializers"
-set "XL6_CGEN_INCLUDES=-Ibuild\test -Irelease\include -Ilib\xrt -Ilib\xruntime -I."
+set "XL6_CGEN_INCLUDES=-Ibuild\test -Irelease -Irelease\include -Ilib\xrt -Ilib\xruntime -I."
 set XL6_CGEN_XRT_LINKS="%XL6_CGEN_OBJ%" -lWs2_32 -lIPHLPAPI -lShell32
 set XL6_CGEN_LINKS=release\xl.dll -lWs2_32 -lIPHLPAPI -lShell32
 set XL6_CGEN_XLANG_LINKS=release\xl.dll -lWs2_32 -lIPHLPAPI -lShell32

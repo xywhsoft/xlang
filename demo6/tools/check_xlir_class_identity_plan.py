@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+from compiler_response import command_with_response
 import shutil
 import subprocess
 import sys
@@ -39,6 +40,7 @@ def main():
         'test/cases/xlir_module_product_oom_host.c', 'test/support/module_product_memory.c',
         'test/support/module_product_memory.h'])
     files.update(pinned)
+    files.add(Path(__file__).with_name('compiler_response.py'))
     inputs = [dict(Path=str(p.resolve()), Sha256=digest(p)) for p in sorted(files)]
     out.mkdir(parents=True)
     rows = []
@@ -66,7 +68,7 @@ def main():
     if os.name != 'nt': flags += ['-D_GNU_SOURCE']
 
     def run(name, command, timeout=600):
-        result = subprocess.run([str(x) for x in command], cwd=root, env=env,
+        result = subprocess.run(command_with_response(command,cc,out/(name+'.rsp')), cwd=root, env=env,
             capture_output=True, timeout=timeout)
         data = result.stdout + result.stderr; (out / (name + '.log')).write_bytes(data)
         rows.append(dict(Name=name, Command=[str(x) for x in command], Exit=result.returncode))

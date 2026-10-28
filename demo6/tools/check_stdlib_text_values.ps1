@@ -176,6 +176,7 @@ try {
     }
     Run 'unicode-native-build' $gcc ($strict + @('test/cases/stdlib_unicode_host.c','test/support/unicode_native.c',
         'src/runtime/xl6_unicode.c','src/runtime/xl6_unicode_validator.c','src/runtime/xl6_html.c',
+        'src/api/xl_foreign_error.c','src/runtime/xl6_native_handle.c',
         '-o',"$outPath/unicode-native.exe"))
     Run 'unicode-native-run' "$outPath/unicode-native.exe" @()
     foreach ($mode in 0..4) {
@@ -243,12 +244,16 @@ try {
             $hostSource) + $sidecarObjects + $runtime + @('-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',"$outPath/$name.strict.exe"))
         Run "$name.strict-run" "$outPath/$name.strict.exe" @()
         if ($name -match '^stdlib_text_iterator|^stdlib_number_|^stdlib_crt_parse|^stdlib_unicode|^stdlib_html|^stdlib_encoding') {
-            for ($point=1; $point -le 256; ++$point) {
-                $failure = "$name.managed-oom-$point"
-                Run $failure "$outPath/$name.strict.exe" @("$point")
-                if ((Get-Content "$outPath/$failure.log" -Raw) -match 'hit=0 balanced') {break}
+            foreach ($faultMode in @('logical','allocator')) {
+                for ($point=1; $point -le 4096; ++$point) {
+                    $failure = "$name.managed-$faultMode-oom-$point"
+                    $arguments = @("$point")
+                    if ($faultMode -eq 'allocator') { $arguments += 'allocator' }
+                    Run $failure "$outPath/$name.strict.exe" $arguments
+                    if ((Get-Content "$outPath/$failure.log" -Raw) -match 'hit=0 balanced') {break}
+                }
+                if ($point -gt 4096) {throw 'Incomplete managed text/number allocation sweep'}
             }
-            if ($point -gt 256) {throw 'Incomplete managed text/number allocation sweep'}
         }
         Run "$name.jit" $driver (@($source,'run',"$outPath/$name.jit") + $sidecar)
         Run "$name.aot-build" $driver (@($source,'exe',"$outPath/$name.aot") + $sidecar)

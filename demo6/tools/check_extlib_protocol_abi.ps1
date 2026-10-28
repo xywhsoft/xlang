@@ -6,15 +6,15 @@ param(
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
 . (Join-Path $PSScriptRoot 'extlib_smoke_process.ps1')
-$work=[IO.Path]::GetFullPath((Join-Path $root $WorkDirectory))
+$work=[IO.Path]::GetFullPath($(if([IO.Path]::IsPathRooted($WorkDirectory)){$WorkDirectory}else{Join-Path $root $WorkDirectory}))
 if(Test-Path -LiteralPath $work){throw 'Choose a fresh protocol ABI evidence directory'}
 [void][IO.Directory]::CreateDirectory($work)
 $utf8=[Text.UTF8Encoding]::new($false)
-$gcc=(Get-Command gcc -CommandType Application).Source
+$gcc=(Get-Command gcc -CommandType Application | Select-Object -First 1).Source
 $xl=Join-Path $root 'release/xl.exe'
 $driver=$null; $build=$null; $artifact=$null
 if($PublicSourceDirectory){
-    $directory=[IO.Path]::GetFullPath((Join-Path $root $PublicSourceDirectory))
+    $directory=[IO.Path]::GetFullPath($(if([IO.Path]::IsPathRooted($PublicSourceDirectory)){$PublicSourceDirectory}else{Join-Path $root $PublicSourceDirectory}))
     $build=Get-Content (Join-Path $directory 'build.json') -Raw|ConvertFrom-Json
     $artifact=Get-Content (Join-Path $directory 'artifact_sources.json') -Raw|ConvertFrom-Json
     $driver=$build.Driver
@@ -41,7 +41,7 @@ $available=@(
 foreach($name in $Package){if($name -notin $available.name){throw "Unknown ABI package: $name"}}
 $plans=@($available|Where-Object {$_.name -in $Package})
 if(!$plans.Count){throw 'Select at least one ABI package'}
-# 包的依赖也参与本次生成，输入快照必须覆盖完整依赖闭包。
+# Package dependencies belong to the same immutable input closure.
 $packageInputs=@{}
 function IncludePackage([string]$name){
     if($packageInputs.ContainsKey($name)){return}

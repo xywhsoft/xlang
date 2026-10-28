@@ -166,7 +166,7 @@ release\xl.exe build test\cases\import_metadata_combo.xl -o build\test\import_me
 if errorlevel 1 exit /b 1
 build\test\import_metadata_combo.exe
 if errorlevel 1 exit /b 1
-"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% test\cases\import_deps_snapshot_host.c src\compile\xl6_imports.c src\compile\xl6_source_overlay.c src\compile\xl6_source_report.c src\package\xl6_package.c src\abi\xl6_abi_json.c src\abi\xl6_callable.c src\type\xl6_type_model.c src\sem\xl6_type_registry.c src\common\xl6_console.c src\common\xl6_output.c src\parser\xl6_parser_api.c src\parser\xl6_parser.c src\lexer\xl6_lexer_api.c src\lexer\xl6_lexer_gen.c src\lexer\xl6_token.c src\ast\xl6_ast.c src\diag\xl6_diag.c %XL6_CGEN_LINKS% -o build\test\import_deps_snapshot_host.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% test\cases\import_deps_snapshot_host.c src\compile\xl6_imports.c src\compile\xl6_source_overlay.c src\compile\xl6_source_report.c src\compile\xl6_build_inputs.c src\sem\xl6_completion.c src\package\xl6_package.c src\abi\xl6_abi_json.c src\abi\xl6_callable.c src\type\xl6_type_model.c src\sem\xl6_type_registry.c src\common\xl6_console.c src\common\xl6_output.c src\parser\xl6_parser_api.c src\parser\xl6_parser.c src\lexer\xl6_lexer_api.c src\lexer\xl6_lexer_gen.c src\lexer\xl6_token.c src\ast\xl6_ast.c src\diag\xl6_diag.c %XL6_CGEN_LINKS% -o build\test\import_deps_snapshot_host.exe
 if errorlevel 1 exit /b 1
 build\test\import_deps_snapshot_host.exe test\cases\import_metadata_combo.xl
 if errorlevel 1 exit /b 1
@@ -322,7 +322,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% test\cases\import_expand_host.c src\compile\xl6_imports.c src\compile\xl6_source_overlay.c src\compile\xl6_source_report.c src\package\xl6_package.c src\abi\xl6_abi_json.c src\abi\xl6_callable.c src\type\xl6_type_model.c src\sem\xl6_type_registry.c src\common\xl6_console.c src\common\xl6_output.c src\parser\xl6_parser_api.c src\parser\xl6_parser.c src\lexer\xl6_lexer_api.c src\lexer\xl6_lexer_gen.c src\lexer\xl6_token.c src\ast\xl6_ast.c src\diag\xl6_diag.c %XL6_CGEN_LINKS% -o build\test\import_expand_host.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% test\cases\import_expand_host.c src\compile\xl6_imports.c src\compile\xl6_source_overlay.c src\compile\xl6_source_report.c src\compile\xl6_build_inputs.c src\sem\xl6_completion.c src\package\xl6_package.c src\abi\xl6_abi_json.c src\abi\xl6_callable.c src\type\xl6_type_model.c src\sem\xl6_type_registry.c src\common\xl6_console.c src\common\xl6_output.c src\parser\xl6_parser_api.c src\parser\xl6_parser.c src\lexer\xl6_lexer_api.c src\lexer\xl6_lexer_gen.c src\lexer\xl6_token.c src\ast\xl6_ast.c src\diag\xl6_diag.c %XL6_CGEN_LINKS% -o build\test\import_expand_host.exe
 if errorlevel 1 exit /b 1
 build\test\import_expand_host.exe test\cases\import_public_types_namespace.xl test\cases\import_public_types_alias.xl test\cases\import_public_types_selective.xl test\cases\import_public_types_identity.xl test\cases\import_public_types_namespace_upgrade.xl test\cases\import_public_types_qualified_surfaces.xl test\cases\import_source_public_types.xl
 if errorlevel 1 exit /b 1

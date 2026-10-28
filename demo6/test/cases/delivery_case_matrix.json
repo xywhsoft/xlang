@@ -1,0 +1,1275 @@
+{
+  "Scope": "Supplementary compiler/rejection coverage for previously unconnected fixtures; existing JIT/AOT/native gates remain mandatory.",
+  "Cases": [
+    {
+      "Source": "bad_channel_finite_cancel_type.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_channel_finite_private.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_channel_finite_select_array.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_channel_finite_send_type.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_channel_finite_status_width.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_channel_finite_timeout_type.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_channel_finite_until_type.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_native_product_bool_narrow_triple.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_net_file_engine.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_net_file_result.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_net_file_size.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_net_file_token.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_net_task_affinity.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_net_task_callback.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_net_task_explicit_null.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_net_task_generator_result.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_net_task_multi_result.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_net_task_token.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_tcp_data_file_type.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_tcp_data_future_type.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_tcp_data_receive_type.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_tcp_data_vector_class.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_tcp_data_vector_type.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_tcp_dial_addresses.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_tcp_dial_interrupt_deadline.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_tcp_dial_interrupt_private.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_tcp_dial_interrupt_token.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_tcp_dial_private.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_tcp_dial_resolver.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_tcp_dial_sync_deadline.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_tcp_dial_sync_token.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_tcp_managed_bytes.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_tcp_managed_default.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_tcp_managed_enum.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_tcp_managed_handle.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_tcp_managed_raw.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_tcp_managed_snapshot.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_tcp_proxy_deadline.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_tcp_proxy_options.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_tcp_proxy_private.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_tcp_proxy_token.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_tcp_proxy_type.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_tcp_server_future.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_tcp_server_mode.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_tcp_server_options.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_tls_private_handle.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_tls_raw_constructor.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_udp_batch_dynamic_array.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_stdlib_udp_vector_dynamic_array.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_xlir_codec_value_no_raise.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_xlir_codec_value_result.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_xlir_compress_no_raise.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "bad_xlir_template_callback_abi.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "cli_shell_mixed.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "sem_channel_capacity_type.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "sem_channel_ctor_arg_count_many.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "sem_channel_ctor_named_argument.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "sem_channel_generator_element.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "sem_channel_generic_arity.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "sem_channel_owned_extra.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "sem_channel_owned_retired.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "sem_channel_owned_timeout_named.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "sem_channel_owned_timeout_type.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "sem_channel_recv_const_target.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "sem_channel_recv_named_argument.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "sem_channel_recv_target_type.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "sem_channel_recv_timeout_named_argument.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "sem_channel_recv_timeout_target_type.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "sem_channel_recv_timeout_type.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "sem_channel_send_named_argument.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "sem_channel_send_type.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "sem_channel_try_recv_const_target.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "sem_channel_try_recv_named_argument.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "sem_channel_try_recv_target_type.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "sem_channel_unknown_method.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "sem_mpmc_queue_capacity_required.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "sem_mpmc_queue_initializer_required.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "sem_mpsc_queue_capacity_required.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "sem_mpsc_queue_initializer_required.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "sem_native_scalar_generic_nullable.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "sem_native_scalar_generic_string.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "sem_queue_alias_capacity_required.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "sem_queue_alias_initializer_required.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "sem_spsc_queue_capacity_required.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "sem_spsc_queue_initializer_required.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "sem_thread_nullable_receiver.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "sem_wait_queue_extra.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "sem_wait_queue_initializer_required.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "sem_wait_queue_into_retired.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "sem_wait_queue_timeout_type.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "stdlib_array_algorithms_product.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_buffer_class_surface.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_codec_oom.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_compress_oom.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_crypto_key_format_values.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_crypto_normal_public.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_dynamic_f32_conversion.pending.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_list_iterator_checked_families.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_list_iterator_continuation.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_list_methods_continuation.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_list_methods_dict_prune.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_mpmc_pressure.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_mpsc_pressure.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_net_file_errors.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_net_file_unobserved.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_net_file_unsupported.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_net_proxy_authenticated.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_net_proxy_http.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_net_proxy_limits.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_net_proxy_values.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_net_public_backends.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_net_public_file.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_process_class_surface.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_process_convenience_product.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_process_os_alias.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_semaphore_oom_create.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_semaphore_oom_default.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_semaphore_oom_stack.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_spsc_pressure.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_stack_batch_artifact_absent.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_stack_batch_artifact_plain.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_stack_batch_domains.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_stack_batch_resources.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_sync_artifact_cond.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_sync_artifact_mutex.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_sync_artifact_policy.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_sync_artifact_rwlock.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_sync_held_mutex.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_sync_held_primary.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_sync_held_read.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_sync_held_write.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_sync_oom_cond.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_sync_oom_mutex.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_sync_oom_policy.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_sync_oom_rwlock.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_tcp_data_receive.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_tcp_dial_async.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_tcp_dial_host_validation.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_tcp_dial_sync.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_tcp_managed_cancellation.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_tcp_managed_enums.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_tcp_managed_parent.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_tcp_options_dial.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_tcp_options_listen.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_tcp_options_owned.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_tcp_options_stream.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_tcp_proxy_cancel.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_tcp_proxy_options.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_tcp_proxy_sync_closed.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_tcp_recv_owned_lifecycle.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_tcp_send_refs_large.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_tcp_server_sync.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_template_oom.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_text_class_surface.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_thread_artifact_resident.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_tls_close_lifetime.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_tls_stream_options_owned.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_tree_mpmc_values.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_tree_mpsc_values.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_tree_spsc_values.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_udp_config_limits.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_udp_config_owned.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_wait_queue_pressure.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "stdlib_x509_pruning_regression.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/bad_context_private.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "tls_public/bad_request_private.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "tls_public/bad_resume_private.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "tls_public/bad_wrong_resume.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "tls_public/public_tls_data.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/public_tls_dial.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/public_tls_metadata.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/public_tls_proxy.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/restricted_negotiation.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/tls_context_ed25519.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/tls_context_owned.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/tls_context_p256.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/tls_context_p384.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/tls_context_rsa.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/tls_identity_chain.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/tls_identity_ed25519.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/tls_identity_owned.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/tls_identity_p256.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/tls_identity_p384.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/tls_identity_rsa.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/tls_key_update.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/tls_listener_selector.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/tls_listener_selector_namespace.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/tls_resume_lookup.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/tls_resume_lookup_listener.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/tls_selector_ed25519.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/tls_selector_p256.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/tls_selector_p384.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/tls_selector_rsa.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/tls_session_client_live.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/tls_session_ed25519.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/tls_session_p256.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/tls_session_p384.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/tls_session_rsa.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/tls_session_server_live.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/tls_ticket_session.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/tls_transport_tickets.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/tls_verifier_configure.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/tls_verifier_deep.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/tls_verifier_ed25519.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/tls_verifier_owned.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/tls_verifier_p256.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/tls_verifier_p384.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/tls_verifier_rsa.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "tls_public/trust_rebind.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/bad_certificate_handle.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "x509_public/bad_crl_handle.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "x509_public/bad_snapshot_handle.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "x509_public/bad_store_handle.xl",
+      "ExpectedExit": 1,
+      "DiagnosticRegex": "(?i)(\\[(?:sem|checked|ir[^\\]]*|cgen|lower[^\\]]*|abi)\\])"
+    },
+    {
+      "Source": "x509_public/crl_crl_entries.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/crl_crl_issuing.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/crl_crl_nullable.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/crl_crl_parent.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/crl_crl_utilities.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/data_x509_all.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/identity_identity_bool.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/identity_identity_dns.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/identity_identity_owned.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/path_build_callback.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/path_build_issuer.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/path_build_normal.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/path_build_work.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/path_path_callback.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/path_path_normal.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/path_policy_values.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/policy_policy_callback.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/policy_policy_empty.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/policy_policy_normal.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/policy_policy_partial.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/profiles_profiles_all.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/profiles_profiles_constraints.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/profiles_profiles_distribution.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/profiles_profiles_general.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/profiles_profiles_nullable.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/records_records_all.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/records_records_compare.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/records_records_metadata.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/records_records_reads.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/records_records_time.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/store_store_empty.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/store_store_encoded.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/store_store_lifetime.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/store_store_pem.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/store_store_sources_file.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/store_store_sources_system.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/store_store_sources_vfs.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/store_store_versions.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/verify_verify_certificates.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/verify_verify_interop.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    },
+    {
+      "Source": "x509_public/verify_verify_messages.xl",
+      "ExpectedExit": 0,
+      "DiagnosticRegex": ""
+    }
+  ]
+}

@@ -30,6 +30,8 @@ printf 'Running Linux CLI and in-memory VFS smoke tests...\n'
 "$XL" --help >/dev/null
 python3 "$ROOT/test/test_linux_embedded_resources.py"
 python3 "$ROOT/test/test_runtime_header_staging.py"
+python3 "$ROOT/tools/check_xrt_exports.py" --root "$ROOT" \
+    --out "$TEST_DIR/xrt-exports-$(date +%Y%m%d-%H%M%S)-$$"
 python3 "$ROOT/tools/check_linux_embedded_resources.py" \
     --root "$ROOT" --report "$TEST_DIR/embedded-resources-$(date +%Y%m%d-%H%M%S)-$$.json"
 "$XL" check "$ROOT/release/examples/hello.xl"
