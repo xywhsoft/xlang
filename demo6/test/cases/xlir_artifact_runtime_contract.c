@@ -94,6 +94,13 @@ static int closure_contract(void)
     CHECK(xl6ArtifactRuntimeSymbolOwner("xl6StackOwnershipAdapterV1")==XL6_ARTIFACT_RUNTIME_COUNT);
     XL6_ArtifactRuntimeSet sequence=xl6ArtifactRuntimeSetSingleton(XL6_ARTIFACT_SEQUENCE);
     CHECK(xl6ArtifactRuntimeClosePlan(&sequence,&plan) && plan.sourceCount==1);
+    XL6_ArtifactRuntimeSet extraction=xl6ArtifactRuntimeSetSingleton(XL6_ARTIFACT_ARRAY_EXTRACT_VALUE);
+    CHECK(xl6ArtifactRuntimeClosePlan(&extraction,&plan) && plan.sourceCount==3 &&
+        xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_SEQUENCE) &&
+        xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ERROR_VALUE));
+    XL6_ArtifactRuntimeSet textExtraction=xl6ArtifactRuntimeSetSingleton(XL6_ARTIFACT_ARRAY_EXTRACT_STRING);
+    CHECK(xl6ArtifactRuntimeClosePlan(&textExtraction,&plan) &&
+        !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ERROR_VALUE));
     const XL6_ArtifactRuntimeId factories[]={XL6_ARTIFACT_ARRAY_REFERENCE_ADMISSION,
         XL6_ARTIFACT_ARRAY_NOMINAL_ADMISSION,XL6_ARTIFACT_ARRAY_PRIMITIVE_ADMISSION,
         XL6_ARTIFACT_ARRAY_C_SCALAR_ADMISSION,XL6_ARTIFACT_ARRAY_SEQUENCE_ADMISSION,
