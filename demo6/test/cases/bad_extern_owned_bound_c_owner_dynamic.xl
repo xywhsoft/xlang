@@ -1,0 +1,3 @@
+// A compiler C-owner signature cannot be reconstructed from an erased value.
+var unknown=null
+func() as cstring callback=unknown

@@ -89,6 +89,8 @@ def main():
         ('bound-constraint-casts','test/cases/extern_owned_bound_constraint_casts.xl',[],[]),
         ('bound-nonpublic','test/cases/extern_owned_bound_nonpublic.xl',
             ['test/cases/extern_owned_string_host.c','test/cases/extern_owned_typed_bound_native_host.c'],[]),
+        ('bound-c-owners','test/cases/extern_owned_bound_c_owners.xl',
+            ['test/cases/extern_owned_bound_c_owners_host.c','test/cases/extern_owned_string_host.c'],[]),
         ('generic-nullable-order','test/cases/extern_owned_generic_nullable_order.xl',[],[]),
         ('bound-base-dispatch','test/cases/extern_owned_bound_base_dispatch.xl',[],[]),
         ('bound-async-generic','test/cases/extern_owned_bound_async_generic.xl',
@@ -176,6 +178,8 @@ def main():
     negatives={
         'test/cases/bad_extern_owned_bound_constraint.xl':'typed bound method violates generic constraints',
         'test/cases/bad_extern_owned_bound_private.xl':'unknown class/union field',
+        'test/cases/bad_extern_owned_bound_c_owner_kind.xl':'exact signature',
+        'test/cases/bad_extern_owned_bound_c_owner_dynamic.xl':'no exact target identity and result ownership ABI',
         'test/cases/bad_extern_owned_bound_protected.xl':'unknown class/union field',
         'test/cases/bad_extern_owned_bound_constraint_cast.xl':'typed bound method violates generic constraints',
         'test/cases/bad_extern_owned_bound_async_constraint_cast.xl':'typed bound method violates generic constraints',

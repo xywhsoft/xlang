@@ -1,0 +1,7 @@
+class Reader
+    func Data() as cbytes
+        return b"data"
+    end
+end
+Reader reader=Reader()
+func() as cstring callback=reader.Data

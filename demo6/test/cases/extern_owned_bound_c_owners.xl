@@ -1,0 +1,129 @@
+extern "c_owned_text" @no_raise func rawText() as point
+extern "c_owned_binary" @no_raise func rawBytes() as point
+extern "c_owned_release" @no_raise func release(point data)
+extern "c_owned_text_is_original" @no_raise func original(string value) as bool
+extern "c_owned_binary_span_original" @no_raise func originalBytes(cbytes value) as bool
+extern "bound_c_owners_balanced" @no_raise func balanced() as bool
+extern "bound_c_owners_one_record" @no_raise func oneRecord() as bool
+extern "owned_reset" @no_raise func reset()
+extern "owned_debug" @no_raise func debug() as bool
+extern "owned_fail_after" @no_raise func failAfter(int prefix)
+extern "owned_clear_failure" @no_raise func clearFailure()
+extern "owned_outstanding" @no_raise func live() as int
+class Reader
+    func Text() as cstring
+        return cstring.take(rawText(),release)
+    end
+    func Data() as cbytes
+        return cbytes.take(rawBytes(),4,release)
+    end
+    func Echo<T>(T ignored) as cstring
+        return cstring.take(rawText(),release)
+    end
+    func Maybe(bool present) as cstring?
+        return present ? self.Text() : null
+    end
+    func Pair() as (cstring,cbytes,int)
+        return self.Text(),self.Data(),7
+    end
+    private func Secret() as cstring
+        return self.Text()
+    end
+    func Saved() as func() as cstring
+        return self.Secret
+    end
+end
+int entered=0
+class VirtualReader
+    virtual func Text() as cstring
+        return cstring.take(rawText(),release)
+    end
+end
+class DerivedReader extends VirtualReader
+    override func Text() as cstring
+        entered+=1
+        return cstring.take(rawText(),release)
+    end
+end
+func saved() as func() as cstring
+    Reader local=Reader()
+    return local.Saved()
+end
+typedef TextReader=func() as cstring
+func check()
+    Reader reader=Reader()
+    TextReader exact=reader.Text
+    reset()
+    string value=exact()
+    assert original(value) and oneRecord()
+    func() as cbytes binary=reader.Data
+    reset()
+    bytes data=binary()
+    assert originalBytes(data) and oneRecord()
+    func() as string ordinary=reader.Text
+    string copy=ordinary()
+    assert copy=="hello" and not original(copy)
+    func() as bytes ordinaryBytes=reader.Data
+    bytes byteCopy=ordinaryBytes()
+    assert byteCopy==b"\0\xff\x11*" and not originalBytes(byteCopy)
+    func(int) as cstring generic=reader.Echo
+    string genericValue=generic(7)
+    assert original(genericValue)
+    TextReader? optional=reader.Text
+    if optional!=null
+        string optionalValue=optional()
+        assert original(optionalValue)
+    end
+    func(bool) as cstring? maybe=reader.Maybe
+    func(bool) as string? materialized=reader.Maybe
+    assert maybe(false)==null and materialized(false)==null
+    string? maybeValue=maybe(true)
+    if maybeValue!=null
+        assert original(maybeValue)
+    end
+    string? ordinaryValue=materialized(true)
+    if ordinaryValue!=null
+        assert ordinaryValue=="hello" and not original(ordinaryValue)
+    end
+    auto cast=reader.Text as TextReader
+    string castValue=cast()
+    assert original(castValue)
+    func() as cstring escaped=saved()
+    string escapedValue=escaped()
+    assert original(escapedValue)
+    // Partial conversion copies bytes while moving the untouched text owner.
+    func() as (cstring,bytes,int) partial=reader.Pair
+    auto text,binaryCopy,number=partial()
+    assert original(text) and not originalBytes(binaryCopy) and number==7
+    func() as (string,bytes,int) all=reader.Pair
+    auto textCopy,bothCopy,seven=all()
+    assert textCopy=="hello" and not original(textCopy)
+    assert bothCopy==b"\0\xff\x11*" and not originalBytes(bothCopy) and seven==7
+    // Conversion follows the dispatched result, preserving overrides.
+    entered=0
+    VirtualReader virtualReceiver=DerivedReader()
+    func() as cstring virtualRead=virtualReceiver.Text
+    string virtualValue=virtualRead()
+    assert original(virtualValue) and entered==1
+    func() as string virtualCopy=virtualReceiver.Text
+    string virtualCopied=virtualCopy()
+    assert virtualCopied=="hello" and not original(virtualCopied) and entered==2
+end
+assert debug()
+check()
+assert balanced()
+int accepted=0
+int rejected=0
+for prefix in range(192)
+    int before=live()
+    failAfter(prefix)
+    try
+        check()
+        accepted+=1
+    catch problem
+        rejected+=1
+    end
+    clearFailure()
+    assert live()==before and balanced()
+end
+assert accepted>0 and rejected>0

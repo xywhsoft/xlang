@@ -82,8 +82,12 @@ static int xl6IrLowerTryTypedBoundMethod(XL6_IrLowerContext* ctx,XL6_IrNodeId or
             }else matches=matches && returns->childCount==signature->returnCount;
             for(size_t r=0;matches && r<returns->childCount;++r) {
                 const XL6_IrNode* returned=xl6IrNodeGet(module,module->children[returns->firstChild+r]);
-                matches=returned && xl6IrLowerUnifyGenericType(module,returned->storageType,
-                    asyncPayload ? asyncPayload : signature->returns[r],parameters,count,resolved,1);
+                XL6_IrTypeId resultType=asyncPayload ? asyncPayload : signature->returns[r];
+                matches=returned && (xl6IrLowerTypeContainsTypeParam(module,returned->storageType,0)
+                    ? xl6IrLowerUnifyGenericType(module,returned->storageType,resultType,parameters,count,resolved,1)
+                    : xl6IrBoundMethodResultMatches(module,returned->storageType,resultType));
+                if(matches && returned->storageType!=resultType && !xl6IrLowerTypeContainsTypeParam(module,returned->storageType,0))
+                    matches=xl6CallRankAdd(&rank,10,0)!=0;
             }
             for(size_t p=0;matches && p<count;++p)matches=resolved[p]!=0;
             xrtFree(parameters);
@@ -160,6 +164,52 @@ static int xl6IrLowerTryTypedBoundMethod(XL6_IrLowerContext* ctx,XL6_IrNodeId or
        !xl6IrLowerEmitRuntimeErrorEdge(ctx,origin,xl6IrNodeGet(module,origin),*output) ||
        !xl6IrLowerCompleteEvaluationBorrows(ctx,origin,first,output)) return -1;
     return 1;
+}
+
+/* Result conversion stays in the one typed invocation body. Product fields
+ * are detached and protected before any allocation can fail. Unchanged fields
+ * transfer their existing owners; only requested ordinary leaves copy bytes. */
+static XL6_IrValueId xl6IrLowerBoundMethodResult(XL6_IrLowerContext* ctx,XL6_IrNodeId origin,
+    XL6_IrValueId value,XL6_IrTypeId targetId)
+{
+    XL6_IrModule* module=ctx->module;
+    XL6_IrTypeId sourceId=xl6IrLowerValueType(ctx,value);
+    if(sourceId==targetId)return value;
+    const XL6_IrType* source=xl6IrTypeGet(&module->types,sourceId);
+    const XL6_IrType* target=xl6IrTypeGet(&module->types,targetId);
+    if(!xl6IrBoundMethodResultMatches(module,sourceId,targetId))return XL6_IR_VALUE_INVALID;
+    if(xl6IrTypeIsCOwned(source))return xl6IrLowerCOwnedCopy(ctx,origin,targetId,value);
+    size_t count=source->paramCount,first=ctx->evaluationOwnerCount;
+    XL6_IrValueId result=0,*fields=xrtCalloc(count,sizeof(*fields));
+    XL6_SymbolId* owners=xrtCalloc(count,sizeof(*owners));
+    if(!fields || !owners)goto done;
+    for(size_t i=0;i<count;++i){
+        const XL6_IrType* field=xl6IrTypeGet(&module->types,source->params[i]);
+        bool managed=field->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED;
+        if(!xl6IrLowerEmit(ctx,managed ? XL6_IR_INSTR_PRODUCT_TAKE : XL6_IR_INSTR_PRODUCT_GET,
+            origin,source->params[i],0,&value,1,&fields[i]))goto done;
+        module->instructions[module->instructionCount-1].elementIndex=i;
+        if(managed){
+            fields[i]=xl6IrLowerProtectEvaluationValue(ctx,origin,source->params[i],fields[i]);
+            if(!fields[i])goto done;
+            owners[i]=ctx->evaluationOwners[ctx->evaluationOwnerCount-1].storage;
+        }
+    }
+    for(size_t i=0;i<count;++i){
+        if(source->params[i]==target->params[i])continue;
+        size_t owner=first;
+        while(owner<ctx->evaluationOwnerCount && ctx->evaluationOwners[owner].storage!=owners[i])++owner;
+        if(!owners[i] || owner==ctx->evaluationOwnerCount ||
+           !xl6IrLowerCommitEvaluationOwnerRange(ctx,origin,owner,owner+1))goto done;
+        fields[i]=xl6IrLowerBoundMethodResult(ctx,origin,fields[i],target->params[i]);
+        if(!fields[i])goto done;
+        fields[i]=xl6IrLowerProtectEvaluationValue(ctx,origin,target->params[i],fields[i]);
+        if(!fields[i])goto done;
+    }
+    if(!xl6IrLowerCommitEvaluationOwners(ctx,origin,first) ||
+       !xl6IrLowerEmit(ctx,XL6_IR_INSTR_PRODUCT_MAKE,origin,targetId,0,fields,count,&result))result=0;
+done:
+    xrtFree(fields);xrtFree(owners);return result;
 }
 
 /* Specialization is graph construction. Complete it before executable lowering
