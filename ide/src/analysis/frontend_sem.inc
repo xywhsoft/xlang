@@ -4,6 +4,9 @@
 #include "analysis/ast_clone.h"
 #include "analysis/frontend_cancel.h"
 #include "analysis/index_entities.h"
+#include "analysis/frontend_raw_body.h"
+struct xls_raw_memo;
+static struct xls_raw_memo* xlsRawMemoCreate(size_t);
 #define XLS_SEM_MEMO_BYTES (64u*1024u*1024u)
 #define XLS_SEM_KEY_BYTES (8u*1024u*1024u)
 static _Thread_local xls_sem_storage_control* xlsActiveStorage;
@@ -132,6 +135,7 @@ struct xls_sem_memo {
     XL6_SymbolId symbolFloor;
     xls_sem_read_context* readContext;
     xls_sem_read_work readWork;
+    struct xls_raw_memo* raw;
 };
 typedef struct xls_sem_move {
     const xls_text *oldText,*newText;
@@ -274,7 +278,7 @@ static int xlsSemKeyNodePaths(xstrbuf* key,const XL6_AstNode* node,size_t depth,
     for(size_t i=0;i<node->childCount;++i) {
         /* Only direct module functions omit their bodies in this environment
          * key. Classes, aliases, globals and default expressions stay exact. */
-        if(module && depth==1 && xlsSemFunction(node) && i==3) { if(!xlsSemKeyNumber(key,0)) return 0; }
+        if(((module==1 && depth==1) || (module==2 && depth==0)) && xlsSemFunction(node) && i==3) { if(!xlsSemKeyNumber(key,0)) return 0; }
         else if(!xlsSemKeyNodePaths(key,node->children[i],depth+1,module,paths)) return 0;
     }
     return 1;
@@ -425,7 +429,7 @@ static void xlsSemMemoBegin(XL6_SemContext* ctx)
     build->begun=1;
     if(!build->memo || (ctx->diags && ctx->diags->count)) return;
     int candidate=0;
-    for(size_t i=0;i<ctx->root->childCount && !candidate;++i) candidate=xlsSemCandidate(ctx->root->children[i]);
+    for(size_t i=0;i<ctx->root->childCount && !candidate;++i) candidate=xlsSemCandidate(ctx->root->children[i]) || (xlsRawBodyBinding(ctx->root->children[i]) && xlsRawBodyBinding(ctx->root->children[i])->deferred);
     if(!candidate) return;
     xls_sem_memo* m=build->memo;
     m->symbolFloor=ctx->nextSymbolId;
@@ -455,6 +459,7 @@ static void xlsSemMemoBegin(XL6_SemContext* ctx)
         xlsSemEqualKey(&m->context,&build->baseline->context) && m->entries.Count==build->baseline->entries.Count;
     if(build->compatible) ++build->work.contextHits;
     xlsSemReadContextBegin(build,ctx);
+    if(build->deferredQuery)m->raw=xlsRawMemoCreate(m->entries.Count);
 }
 static size_t xlsSemBom(const xls_text* text)
 { return xlsTextSize(text)>=3 && !memcmp(xlsTextData(text),"\xef\xbb\xbf",3) ? 3 : 0; }
@@ -854,9 +859,14 @@ static int xlsSemApplyFacts(const xls_sem_entry* entry,const xarray* nodes,const
 failed: xlsSemFactsFree(&staged); xrtArrayUnit(positions); return 0;
 }
 #include "analysis/frontend_sem_body.inc"
+#include "analysis/frontend_sem_raw.inc"
 static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
 {
     if(xlsFrontendCancelPoint(XLS_CANCEL_SEM_FUNCTION,1))return 0;
+    xls_raw_binding* rawBinding=xlsRawBodyBinding(node);
+    if(rawBinding && rawBinding->deferred)return xlsSemRawCheckFunc(ctx,node,rawBinding);
+    xls_raw_binding* pristine=rawBinding && !rawBinding->consumed ? rawBinding : NULL;
+    if(rawBinding)rawBinding->consumed=1;
     xls_sem_build* build=xlsActiveSemBuild;
     size_t* slot=build && build->enabled ? xrtMapGet(&build->slots,(xbytesview){(const unsigned char*)&node,sizeof(node)}) : NULL;
     if(!slot || ctx->currentClass || ctx->currentFunction || ctx->typeParams || ctx->captureBoundary || ctx->currentReturns) {
@@ -896,8 +906,10 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
         return okay;
     }
     size_t nodes=ctx->queryTypeNodes,bytes=ctx->queryTypeBytes; xstrbuf state={0},after={0}; xarray raw={0};
-    int usable=(!ctx->diags || !ctx->diags->count) && xlsSemGlobalState(ctx,&state) && xlsSemKeyNode(&entry->key,node,0,0) &&
+    xls_raw_capture rawCapture={0};
+    int usable=(!ctx->diags || !ctx->diags->count) && xlsSemGlobalState(ctx,&state) && xlsRawFunctionKey(entry,node,pristine,&rawCapture) &&
         xlsSemKeyBytes(&entry->key,state.Data,state.Size) && xrtArrayInit(&raw,sizeof(xls_sem_raw)) && xlsSemRawNodes(node,&raw,0);
+    if(usable)xlsRawCapturePrepare(&rawCapture,&raw,node);
     int okay=0,reused=0;xls_sem_reads* capturedReads=NULL;
     XL6_CompletionQuery beforeQuery={0}; if(ctx->completionQuery) beforeQuery=*ctx->completionQuery;
     /* Type allocation identity remains exact. Proven local symbol intervals
@@ -970,13 +982,15 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
         }
         if(!entry->unit) { m->bytes-=entry->key.Capacity; xrtStrBufFree(&entry->key); xlsSemEntryFactsClear(entry); }
     } else { xrtStrBufFree(&entry->key); xlsSemEntryFactsClear(entry); }
+    if(okay && entry->unit)xlsRawCaptureCommit(m,*slot,entry,&raw,&rawCapture);
+    xrtStrBufFree(&rawCapture.header);
     xlsSemReadsDestroy(capturedReads);xrtArrayUnit(&raw); xrtStrBufFree(&state); xrtStrBufFree(&after); return okay;
 }
 void xlsFrontendSemMemoDestroy(xls_sem_memo* memo)
 {
     if(!memo || xrtAtomic32FetchSub(&memo->references,1,XMEMORY_ACQ_REL)!=1) return;
     for(size_t i=0;i<memo->entries.Count;++i) { xls_sem_entry* e=xrtArrayGet(&memo->entries,i); xrtStrBufFree(&e->key); xlsSemEntryFactsClear(e); }
-    xrtArrayUnit(&memo->entries); xrtStrBufFree(&memo->context);xlsSemReadContextRelease(memo->readContext);xrtFree(memo->path); xrtFree(memo);
+    xlsRawMemoDestroy(memo->raw);xrtArrayUnit(&memo->entries); xrtStrBufFree(&memo->context);xlsSemReadContextRelease(memo->readContext);xrtFree(memo->path); xrtFree(memo);
 }
 xls_sem_memo* xlsFrontendSemMemoRetain(xls_sem_memo* memo)
 {if(memo)xrtAtomic32FetchAdd(&memo->references,1,XMEMORY_RELAXED);return memo;}
@@ -985,7 +999,9 @@ size_t xlsFrontendSemMemoOwnedBytes(const xls_sem_memo* memo)
     if(!memo)return 0;
     size_t bytes=sizeof(*memo),path=memo->path ? strlen(memo->path)+1 : 0,reads=memo->readContext ? memo->readContext->bytes : 0;
     if(memo->bytes>SIZE_MAX-bytes || path>SIZE_MAX-bytes-memo->bytes || reads>SIZE_MAX-bytes-memo->bytes-path)return SIZE_MAX;
-    return bytes+memo->bytes+path+reads;
+    size_t raw=memo->raw ? memo->raw->bytes : 0;
+    if(raw>SIZE_MAX-bytes-memo->bytes-path-reads)return SIZE_MAX;
+    return bytes+memo->bytes+path+reads+raw;
 }
 xls_ast_intern_work xlsFrontendSemMemoTypes(const xls_sem_memo* memo)
 {return memo ? memo->typeWork : (xls_ast_intern_work){0};}
@@ -1064,6 +1080,8 @@ static int xlsSemCheckMemo(XL6_AstNode* root,XL6_DiagList* diags,const char* mod
     build.memo=memo; xlsActiveSemBuild=&build;
     if(memo && previous && !xlsSemMovesBuild(&build.moves,previousSources,sources)) build.baseline=NULL;
     int okay=xl6SemCheckModuleWithQuery(root,diags,module,captureIndex,query);
+    xls_raw_scope* rawScope=xlsRawBodyScopeCurrent();
+    if(rawScope && rawScope->deferred && (rawScope->failed || rawScope->consumed!=rawScope->deferred || !deferred || !*deferred || !query || !query->available || query->error || (diags && diags->count)))build.bodyFailure=1;
     xlsSemBodyJobsFree(&build.bodyJobs);
     xlsActiveSemBuild=build.previous; xrtMapUnit(&build.slots); xrtMapUnit(&build.sources);
     xrtMapUnit(&build.readCache);

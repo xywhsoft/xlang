@@ -38,7 +38,9 @@ static int fixtureStorage(const xls_syntax* syntax,size_t limit,size_t* bytes)
 #define xlsTextCreate fixtureText
 #define xlsSyntaxAdoptOrdinary fixtureAdopt
 #define xlsSyntaxTryFunction fixtureFunction
+#define xlsRawBodyCopyParse fixtureCopy
 #define xlsSyntaxCopyParse fixtureCopy
+#define xlsRawBodyCopyCursorParse fixtureCursorCopy
 #define xlsSyntaxCopyCursorParse fixtureCursorCopy
 #define xlsSyntaxCacheBytes fixtureStorage
 #define xrtMapInit fixtureMapInit
@@ -70,7 +72,9 @@ static int fixtureStorage(const xls_syntax* syntax,size_t limit,size_t* bytes)
 #undef xlsTextCreate
 #undef xlsSyntaxAdoptOrdinary
 #undef xlsSyntaxTryFunction
+#undef xlsRawBodyCopyParse
 #undef xlsSyntaxCopyParse
+#undef xlsRawBodyCopyCursorParse
 #undef xlsSyntaxCopyCursorParse
 #undef xlsSyntaxCacheBytes
 #undef xrtMapInit

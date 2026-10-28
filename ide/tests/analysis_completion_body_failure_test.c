@@ -120,3 +120,10 @@ int main(void)
  if(!completionFailures() || !signatureFailure())return 1;
  printf("analysis_completion_body_failure_test passed: %u checks;real generated frontend,one-shot container refusals,atomic/delayed/partial AST retry,independent memo lifetime,and original-route completion/signature fallback\n",checks);return 0;
 }
+
+/* Exercise the original semantic-fact body-view fallback deliberately. The
+ * separate raw-native fixture tests the default compiler-copy producer.
+ * No language/parity/failure assertion below is relaxed. */
+#include "analysis/frontend_raw_body.h"
+int __wrap_xlsRawBodyMemoAdmit(const void* memo,xls_raw_unit* unit,const char* path,const XL6_AstRange* range,size_t* bytes)
+{(void)memo;(void)unit;(void)path;(void)range;(void)bytes;return 0;}

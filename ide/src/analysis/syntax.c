@@ -121,7 +121,11 @@ static int decompose(xls_syntax* s)
         u->size=node->range.known ? node->range.endOffset-node->range.startOffset : size;
         u->line=node->range.known ? node->range.startLine : 1; u->column=node->range.known ? node->range.startColumn : 1;
         placement p={u,u->offset,u->line,u->column};
-        if(!xl6AstSetSourceTree(node,s->path) || !xrtArrayPush(&s->units,&p)) { u->node=NULL; releaseUnit(u); return 0; }
+        size_t measured=0;
+        if(!xlsAstSetSourceTreeSized(node,s->path,&measured) || !xrtArrayPush(&s->units,&p)) { u->node=NULL; releaseUnit(u); return 0; }
+        /* Exact complete data is written before publication. Unsupported
+         * forests keep the existing generic accounting and uncached path. */
+        if(measured){u->storageBytes=measured;u->storageKnown=1;}
         root->children[i]=NULL;
         if(!node->range.known || u->offset<previous || u->size>size || u->offset>size-u->size) s->incremental=0;
         previous=u->offset+u->size;
@@ -269,8 +273,10 @@ xls_syntax* xlsSyntaxAdoptOrdinary(const char* path,xls_text* text,XL6_AstNode**
     if(s->parse.root->xlsStorage || !decompose(s)) goto failed;
     for(size_t i=0;i<s->units.Count;++i) {
         syntax_unit* unit=((placement*)xrtArrayGet(&s->units,i))->unit;
-        if(!cacheTreeBytes(unit->node,SIZE_MAX,&unit->storageBytes)) goto failed;
-        unit->storageKnown=1;
+        if(!unit->storageKnown){
+            if(!cacheTreeBytes(unit->node,SIZE_MAX,&unit->storageBytes))goto failed;
+            unit->storageKnown=1;
+        }
     }
     return s;
 failed: xlsSyntaxRelease(s); return NULL;
@@ -419,3 +425,5 @@ int xlsSyntaxDiagnostic(const xls_syntax* syntax,size_t index,xls_syntax_diagnos
     const XL6_Diag* d=&syntax->parse.diags.items[index];
     *result=(xls_syntax_diagnostic){d->line,d->column,d->file ? d->file : syntax->path,d->message}; return 1;
 }
+
+#include "analysis/syntax_raw_body.inc"

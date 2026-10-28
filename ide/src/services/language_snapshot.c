@@ -743,6 +743,16 @@ analysed:
    put(semWork,"proofNodes",xrtValueInt((int64)work.proofNodes));
   if(okayStats) {okayStats=put(stats,"lastBuildSemantics",semWork);semWork=NULL;}
   xrtValueRelease(semWork);
+  xls_raw_native_work raw=xlsSemanticCompletionRawBodyWork(nativeCompletion);
+  xvalue* rawWork=xrtValueObject();
+  okayStats=okayStats && rawWork && put(rawWork,"registered",xrtValueInt((int64)raw.registered)) &&
+   put(rawWork,"deferred",xrtValueInt((int64)raw.deferred)) && put(rawWork,"restored",xrtValueInt((int64)raw.restored)) &&
+   put(rawWork,"retries",xrtValueInt((int64)raw.retries)) && put(rawWork,"fullMaterialized",xrtValueInt((int64)raw.fullMaterialized)) &&
+   put(rawWork,"astFailures",xrtValueInt((int64)raw.astFailures)) && put(rawWork,"discardedFunctions",xrtValueInt((int64)raw.discardedFunctions)) &&
+   put(rawWork,"discardedCopyNodes",xrtValueInt((int64)raw.discardedCopyNodes)) &&
+   put(rawWork,"capturedUnitBytes",xrtValueInt((int64)raw.capturedUnitBytes)) && put(rawWork,"memoBytes",xrtValueInt((int64)raw.memoBytes));
+  if(okayStats){okayStats=put(stats,"lastBuildRawBodies",rawWork);rawWork=NULL;}
+  xrtValueRelease(rawWork);
   xls_completion_unit_work word=xlsSemanticCompletionUnitWork(nativeCompletion);
   xvalue* wordWork=xrtValueObject();
   okayStats=okayStats && wordWork && put(wordWork,"projected",xrtValueInt((int64)word.projected)) &&

@@ -1,6 +1,7 @@
 """Audit and adapt shared resolution inputs without copying its search rules."""
 from pathlib import Path
 import hashlib
+from native_raw_body_overlay import imports as derive_raw_imports
 
 
 def derive(frontend: Path, output: Path) -> list[dict]:
@@ -123,7 +124,8 @@ def derive(frontend: Path, output: Path) -> list[dict]:
                 '    if (!nsInfo->isPrivate && xlsImportsNamespaceCursor(node)) {\n'
                 '        int okay=xlsImportsCaptureNamespace(node,symbols,ns); xrtFree(ns); return okay;\n'
                 '    }\n' + old, 1)
-            seams = 18
+            source=derive_raw_imports(source)
+            seams = 19
         else:
             old = 'int xl6CompletionAdd(XL6_CompletionQuery* q,'
             marker = 'void xl6CompletionFree(XL6_CompletionQuery* q)\n{'

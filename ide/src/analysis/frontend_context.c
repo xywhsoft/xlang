@@ -37,7 +37,7 @@ void xlsFrontendContextBegin(xls_frontend_context_scope* scope,const xls_context
 int xlsFrontendContextEnd(xls_frontend_context_scope* scope)
 {
     if(current!=scope) return 0;
-    int okay=!scope->failed && !scope->completionPool;
+    int okay=!scope->failed && !scope->completionPool && !scope->rawBodies;
     if(scope->completionPool)xlsCompletionPoolAbort(&scope->completionPool);
     namespace_names* names=scope->namespaceNames;
     if(names) { xrtMapUnit(&names->entries); xrtFree(names); }
@@ -46,6 +46,8 @@ int xlsFrontendContextEnd(xls_frontend_context_scope* scope)
 const xls_context* xlsFrontendContextCurrent(void) { return current ? current->context : NULL; }
 struct xls_completion_pool_scope** xlsFrontendCompletionPoolSlot(void)
 {return current ? &current->completionPool : NULL;}
+struct xls_raw_scope** xlsFrontendRawBodySlot(void)
+{return current ? &current->rawBodies : NULL;}
 char* xlsFrontendContextPackagePath(void)
 {
     const xls_context* context=xlsFrontendContextCurrent();

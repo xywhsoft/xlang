@@ -6,6 +6,7 @@ must not be linked into the XGE-owned IDE. It does not replace the shipped LS.
 from __future__ import annotations
 
 import argparse
+from native_raw_body_overlay import stdlib as derive_raw_stdlib,verify_domains
 import hashlib
 import json
 import os
@@ -80,6 +81,7 @@ CORE_TESTS = ("analysis_function_unit_test", "analysis_function_unit_fault_test"
 CORE_TESTS = ("analysis_completion_unit_test", "analysis_completion_unit_fault_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_completion_pool_fault_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_topology_clone_fault_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_raw_native_test", "analysis_raw_body_projection_test", *CORE_TESTS)
 HOST_TESTS += ("navigation_cache_test", "semantic_reference_shard_test", "project_references_test", "project_reference_budget_test", "reference_path_index_test")
 HOST_TESTS += ("path_identity_batch_test", "reference_capture_test")
 HOST_TESTS += ("project_reference_parallel_test",)
@@ -480,7 +482,7 @@ def prepare_native_stdlib(frontend: Path, output: Path) -> tuple[Path, Path, dic
     body = original.read_bytes()
     if hashlib.sha256(body).hexdigest() != 'bf863afd1bdef637388e6e4198813484f90e4eb8f1399580d75304e70a110919':
         raise ValueError('shared stdlib changed; audit scope producers/name lifetimes/free paths and exact-text discovery predicates')
-    source = body.decode('utf-8').replace('\r\n', '\n')
+    source = verify_domains(body.decode('utf-8').replace('\r\n', '\n'))
     changes = {
         '#include <stdio.h>': '#include <stdio.h>\n#include "analysis/frontend_stdlib.inc"',
         '    size_t capacity;\n} XL6_StdlibNameScope;':
@@ -506,6 +508,7 @@ def prepare_native_stdlib(frontend: Path, output: Path) -> tuple[Path, Path, dic
         if source.count(old) != 1:
             raise ValueError('shared stdlib scan seam changed; audit: ' + old)
         source = source.replace(old, new)
+    source=derive_raw_stdlib(source)
     compiled = output / 'frontend/xl6_stdlib.c'
     compiled.write_text(source, encoding='utf-8', newline='\n')
     return original, compiled, dict(source=str(original), sourceSha256=hashlib.sha256(body).hexdigest(),
@@ -640,6 +643,8 @@ def prepare_native_ast(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     # Occupy the existing uint32-to-uint64 alignment hole on 64-bit targets.
     # Native consumers still rebuild; private refs never come from old objects.
     text = text.replace(identity, '    uint32 semanticTypeId;\n    uint32_t xlsLeafReferences;\n    uint64 semanticTypeAbiId;')
+    from native_raw_body_overlay import sized_ast
+    source = sized_ast(source)
     compiled = output / 'frontend/xl6_ast.c'
     compiled_header = output / 'frontend/src/ast/xl6_ast.h'
     compiled_header.parent.mkdir(parents=True, exist_ok=True)
@@ -648,8 +653,8 @@ def prepare_native_ast(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     return original, compiled, dict(source=str(original), sourceSha256=sha(original),
         compiledSource=str(compiled), compiledSha256=sha(compiled), headerSource=str(header),
         headerSourceSha256=sha(header), compiledHeader=str(compiled_header), compiledHeaderSha256=sha(compiled_header),
-        runtimeSource=str(runtime), runtimeSourceSha256=sha(runtime), auditedSeams=5,
-        change='private storage owner plus within-forest bare fact-type leaf edge references;early release retains fields until last edge,then original field/source/final pool release;all native translation units rebuilt')
+        runtimeSource=str(runtime), runtimeSourceSha256=sha(runtime), auditedSeams=6,
+        change='private storage owner plus within-forest bare fact-type leaf edge references;mechanically derived counted source-binding helper with complete generic fallback;original source functions unchanged;all actual native consumers closure-verified')
 
 
 def prepare_reference_owner_fixture(ide: Path, output: Path) -> tuple[Path, Path, list[dict]]:
@@ -700,7 +705,7 @@ def main() -> None:
     sources += [(ide / "src/protocol/input_state.c", True)]
     sources += [(ide / "src/protocol/diagnostic_paths.c", True)]
     sources += [(ide / path, True) for path in (
-    "src/analysis/frontend_cancel.c", "src/analysis/frontend_ir_regions.c", "src/analysis/frontend_symbols.c", "src/analysis/text.c", "src/analysis/context.c", "src/analysis/frontend_context.c", "src/analysis/frontend_entry_cache.c", "src/analysis/module_store.c", "src/analysis/entity_store.c", "src/analysis/module_graph.c", "src/analysis/input_view.c", "src/analysis/input_topology.c", "src/analysis/dependency_graph.c", "src/analysis/ast_storage.c", "src/analysis/ast_materialize.c", "src/analysis/ast_clone.c", "src/analysis/ast_intern.c", "src/analysis/function_unit.c", "src/analysis/syntax.c", "src/analysis/session.c", "src/analysis/worker.c", "src/analysis/projection.c", "src/analysis/folding.c", "src/analysis/semantic.c", "src/analysis/signature.c", "src/analysis/signature_session.c", "src/analysis/check.c", "src/analysis/input_batch.c", "src/analysis/frontend_overlay.c", "src/analysis/check_session.c", "src/analysis/dependency_session.c", "src/analysis/completion_session.c",
+    "src/analysis/frontend_cancel.c", "src/analysis/frontend_ir_regions.c", "src/analysis/frontend_symbols.c", "src/analysis/text.c", "src/analysis/context.c", "src/analysis/frontend_context.c", "src/analysis/frontend_raw_body.c", "src/analysis/frontend_entry_cache.c", "src/analysis/module_store.c", "src/analysis/entity_store.c", "src/analysis/module_graph.c", "src/analysis/input_view.c", "src/analysis/input_topology.c", "src/analysis/dependency_graph.c", "src/analysis/ast_storage.c", "src/analysis/ast_materialize.c", "src/analysis/ast_clone.c", "src/analysis/ast_intern.c", "src/analysis/function_unit.c", "src/analysis/syntax.c", "src/analysis/session.c", "src/analysis/worker.c", "src/analysis/projection.c", "src/analysis/folding.c", "src/analysis/semantic.c", "src/analysis/signature.c", "src/analysis/signature_session.c", "src/analysis/check.c", "src/analysis/input_batch.c", "src/analysis/frontend_overlay.c", "src/analysis/check_session.c", "src/analysis/dependency_session.c", "src/analysis/completion_session.c",
     )]
     if not args.skip_tests:
         sources += [(ide / "src/protocol/document_sync.c", True)]
@@ -735,6 +740,11 @@ def main() -> None:
         runtime_overlay = derive_process_runtime(frontend / 'lib/xrt/xrt.h', output / 'native_xrt/xrt.h')
     except ValueError as error:
         parser.error(str(error))
+    raw_owner_fixture=None
+    if not args.skip_tests:
+        raw_owner_fixture=output/'frontend/syntax_raw_fixture.c'
+        raw_owner_fixture.write_text('#define XLS_RAW_BODY_VERIFY_OWNERS 1\n#include "'+(ide/'src/analysis/syntax.c').as_posix()+'"\n',encoding='utf8',newline='\n')
+        sources.append((raw_owner_fixture,True))
     if owner_snapshot:
         sources.append((owner_snapshot, True))
     sources = [(generated_index if path == original_index else path, owned) for path, owned in sources]
@@ -787,6 +797,7 @@ def main() -> None:
     inputs[str(Path(__file__).with_name('native_cancellation_overlay.py').resolve())] = sha(Path(__file__).with_name('native_cancellation_overlay.py'))
     inputs[str(Path(__file__).with_name('native_ir_memo_overlay.py').resolve())] = sha(Path(__file__).with_name('native_ir_memo_overlay.py'))
     inputs[str(Path(__file__).with_name('native_type_source_overlay.py').resolve())] = sha(Path(__file__).with_name('native_type_source_overlay.py'))
+    inputs[str(Path(__file__).with_name('native_raw_body_overlay.py').resolve())] = sha(Path(__file__).with_name('native_raw_body_overlay.py'))
     inputs[str(Path(__file__).with_name('native_initializer_overlay.py').resolve())] = sha(Path(__file__).with_name('native_initializer_overlay.py'))
     inputs[str(Path(__file__).with_name('native_parser_ownership_overlay.py').resolve())] = sha(Path(__file__).with_name('native_parser_ownership_overlay.py'))
     inputs.update({stack_overlay['source']:stack_overlay['sourceSha256'], stack_overlay['grammarSource']:stack_overlay['grammarSha256']})
@@ -856,7 +867,7 @@ def main() -> None:
             objects[source.stem] = target
         ar = cc.with_name("ar.exe" if os.name == "nt" else "ar")
         core = output / "xlang-analysis-core.a"
-        core_names = {Path(source).stem for source in FRONTEND_SOURCES} | {"runtime", "frontend_cancel", "frontend_ir_regions","frontend_symbols","frontend_entry_cache","module_store","entity_store","module_graph","input_view", "input_topology", "dependency_graph", "text", "context", "frontend_context", "ast_storage", "ast_materialize", "ast_clone", "ast_intern", "function_unit", "syntax", "session", "worker", "projection", "folding", "semantic", "signature", "signature_session", "check", "input_batch", "frontend_overlay", "check_session", "dependency_session", "completion_session", "input_state", "diagnostic_paths"}
+        core_names = {Path(source).stem for source in FRONTEND_SOURCES} | {"runtime", "frontend_cancel", "frontend_ir_regions","frontend_symbols","frontend_entry_cache","module_store","entity_store","module_graph","input_view", "input_topology", "dependency_graph", "text", "context", "frontend_context", "frontend_raw_body", "ast_storage", "ast_materialize", "ast_clone", "ast_intern", "function_unit", "syntax", "session", "worker", "projection", "folding", "semantic", "signature", "signature_session", "check", "input_batch", "frontend_overlay", "check_session", "dependency_session", "completion_session", "input_state", "diagnostic_paths"}
         members = [target for name, target in objects.items() if name in core_names]
         run([str(ar), "rcs", str(core), *map(str, members)], "archive")
         limited_index = output / "xl6_sem_index_limit.o"
@@ -870,6 +881,12 @@ def main() -> None:
             extra = [str(objects["document_sync"])] if name in ("document_sync_test", "diagnostic_stream_test") else []
             if name == "analysis_index_limit_test":
                 extra.append(str(limited_index))
+            if name in ("analysis_completion_body_test", "analysis_completion_body_failure_test", "analysis_semantic_proof_test"):
+                extra.append("-Wl,--wrap=xlsRawBodyMemoAdmit")
+            if name == "analysis_syntax_storage_test":
+                extra += ["-Wl,--wrap=xrtCalloc","-Wl,--wrap=xrtStrDupN"]
+            if name == "analysis_raw_body_projection_test":
+                extra += [str(objects['syntax_raw_fixture']),'-Wl,--wrap=xlsAstMaterialize','-Wl,--wrap=xl6AstFree']
             if name == "analysis_completion_pool_fault_test":
                 extra += ["-Wl,--wrap=" + function for function in (
                     "xrtStrDup", "xrtStrDupN", "xrtRealloc", "xrtFree", "xrtStrBufAppend", "xrtStrBufFree", "xrtMalloc")]
