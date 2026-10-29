@@ -14,24 +14,29 @@ CASES=['stdlib_http1_core','stdlib_http_headers_v2','stdlib_http_syntax_v2','std
     'stdlib_http1_tls_transport','stdlib_http1_tcp_transport_stops','stdlib_http_minimal_v2','stdlib_http_language_oom','stdlib_http_perf']
 BAD=['bad_stdlib_http_native_handle','bad_stdlib_http_legacy_body','bad_stdlib_http_legacy_decoder',
      'bad_stdlib_http_no_raise','bad_stdlib_http_enum_result']
+EXAMPLES=['release/examples/http/parse.xl','release/examples/http/tcp.xl']
 def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     for n in ('root','out'):p.add_argument('--'+n,type=Path,required=True)
-    p.add_argument('--driver',type=Path);p.add_argument('--jobs',type=int,default=2);a=p.parse_args()
+    p.add_argument('--driver',type=Path);p.add_argument('--jobs',type=int,default=2)
+    p.add_argument('--tcc',type=Path,help='Windows native TCC bootstrap; copied before tests (default: build/tmp/tcc_bootstrap.exe)')
+    a=p.parse_args()
     root,out=a.root.resolve(),a.out.resolve();assert not out.exists() and 1<=a.jobs<=2
     windows=os.name=='nt';cc=shutil.which('gcc');assert cc
     cases=root/'test/cases';nativeSource=cases/'stdlib_http_native_host.c'
     inputs={Path(__file__).resolve(),nativeSource,*[cases/(n+'.xl') for n in CASES+BAD]}
+    inputs.update(root/n for n in EXAMPLES)
     inputs.update(cases/n for n in ['stdlib_codec_template_language_host.c','stdlib_codec_template_language_oom_host.c',
         'stdlib_product_fixture_host.c','stdlib_pruning_product_host.c'])
     inputs.update(root/'test/support'/n for n in ['module_product_memory.c','module_product_memory.h'])
+    inputs.update(root/'tools'/n for n in ['stage_runtime_headers.py','gen_tcc_vfs_resources.py'])
     inputs.update(root.glob('src/runtime/xl6_http*'));inputs={p for p in inputs if p.is_file()}
     out.mkdir();isolated=out/'isolated';release=isolated/'release';release.mkdir(parents=True)
     relocated=out/'relocated';relocated.mkdir();rows=[];lock=threading.Lock()
     report=dict(Complete=False,Scope=__doc__,SourceDriverOnly=bool(a.driver),ShippingAcceptance=False,
-        Cases=CASES,NegativeCases=BAD,Rows=rows)
+        Cases=CASES,NegativeCases=BAD,Examples=EXAMPLES,Rows=rows)
     env={k:v for k,v in os.environ.items() if not k.upper().startswith('XL6_') and k.upper() not in
         ('LD_LIBRARY_PATH','LD_PRELOAD','LD_AUDIT','CPATH','C_INCLUDE_PATH','LIBRARY_PATH')}
     def run(name,args,cwd=isolated,negative=False):
@@ -53,6 +58,11 @@ def main():
                 source=root/'release'/name;assert source.is_file();inputs.add(source);shutil.copy2(source,release/name)
                 if windows and source.suffix=='.dll':shutil.copy2(source,isolated/name)
             cli=release/names[0];library=release/names[2]
+            if windows:
+                tccSource=(a.tcc if a.tcc else root/'build/tmp/tcc_bootstrap.exe').resolve()
+                assert tccSource.is_file(),'Build the native TCC bootstrap or supply --tcc'
+                tcc=isolated/'native-tcc.exe';shutil.copy2(tccSource,tcc);inputs.add(tcc)
+                report['NativeTccSource']=dict(Path=str(tccSource),Sha256=sha(tccSource))
             flags=['-std=c11','-Wall','-Wextra','-Werror','-O2','-DXL_STATIC_EMBED']
             links=[library] if windows else ['-L'+str(release),'-lxlc','-Wl,-rpath,$ORIGIN/release','-pthread','-ldl','-lm']
             host=isolated/('host.exe' if windows else 'host');observer=isolated/('observer.exe' if windows else 'observer')
@@ -64,8 +74,9 @@ def main():
                 run(product.stem+'.native.build',[cc,*flags,'-I'+str(root),'-I'+str(root/'release'),'-I'+str(root/'release/include'),nativeSource,*nativeLinks,'-o',binary])
                 run(product.stem+'.native.run',[binary])
         report['Inputs']=[dict(Path=str(p),Sha256=sha(p)) for p in sorted(inputs)]
-        def positive(name):
-            source=cases/(name+'.xl');work=out/(name+'.saved');work.mkdir()
+        def positive(name,source=None):
+            source=source if source is not None else cases/(name+'.xl')
+            work=out/(name+'.saved');work.mkdir()
             if driver:
                 run(name+'.run',[driver,source,'run',work/'jit'],root)
                 run(name+'.cgen',[driver,source,'cgen-default',work/'generated.c'],root)
@@ -87,7 +98,9 @@ def main():
             return name
         failures=[]
         with concurrent.futures.ThreadPoolExecutor(max_workers=a.jobs) as executor:
-            for future in concurrent.futures.as_completed({executor.submit(positive,n):n for n in CASES}):
+            pending=[executor.submit(positive,n) for n in CASES]
+            pending.extend(executor.submit(positive,'example-http-'+Path(n).stem,root/n) for n in EXAMPLES)
+            for future in concurrent.futures.as_completed(pending):
                 try:future.result()
                 except Exception as error:failures.append(repr(error))
         for name in BAD:
@@ -102,21 +115,17 @@ def main():
             # Strict generated-C and allocation-prefix hosts use the exact
             # SDK header inputs of this product's runtime VFS manifest.
             sys.path.insert(0,str(root/'tools'))
-            from gen_tcc_vfs_resources import load_resources
-            sdk=out/'sdk';sdk.mkdir();bd=root/('build/tmp' if windows else 'build/linux')
+            from stage_runtime_headers import stage
+            sdkRoot=out/'sdk';bd=root/('build/tmp' if windows else 'build/linux')
             dist=root/'res/tcc/win64/x86_64' if windows else bd/'tcc-dist'
             manifest=root/'tools'/('tcc_vfs_manifest_win64_runtime.txt' if windows else 'tcc_vfs_manifest_linux_runtime.txt')
-            headerInputs=[]
-            for resource in load_resources(manifest,root,dist,bd/'xrt.o',bd):
-                if resource.virtual.startswith('include/__xl_runtime/'):
-                    dest=sdk/Path(resource.virtual).relative_to('include');dest.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(resource.source,dest)
-                    headerInputs.append(dict(Path=str(resource.source),Sha256=sha(resource.source)))
+            staged=stage(root,sdkRoot,manifest);sdk=sdkRoot/'include'
+            headerInputs=[dict(Path=row['Source'],Sha256=row['Sha256']) for row in staged]
             report['HeaderInputs']=headerInputs
             # The ordinary Windows runtime uses TCC; Linux providers use GCC
             # -O2. Match the handwritten C compiler to that provider compiler.
             benchmark=isolated/('http-tcc-benchmark.exe' if windows else 'libxlc.http-native')
             if windows:
-                tcc=bd/'tcc_bootstrap.exe';assert tcc.is_file()
                 tccFlags=['-std=c11','-Wall','-Werror','-DXL_STATIC_EMBED','-I'+str(root),'-I'+str(root/'release'),'-I'+str(root/'release/include')]
                 tccFlags+=['-I'+str(root/'lib/tcc/include'),'-I'+str(dist/'include'),'-I'+str(dist/'include/winapi'),'-L'+str(dist/'lib')]
                 run('same-compiler.benchmark.build',[tcc,*tccFlags,nativeSource,root/'release/xlc.def','-o',benchmark])

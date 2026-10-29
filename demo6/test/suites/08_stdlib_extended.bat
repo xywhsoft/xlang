@@ -1236,9 +1236,14 @@ if errorlevel 1 exit /b 1
 findstr /C:"stdlib http1 core ok" build\test\stdlib_http1_core_static.out.txt >nul
 if errorlevel 1 exit /b 1
 
+rem HTTP contracts and examples: offline parsing, local TCP and standalone products.
+set "XL6_HTTP_CONTRACT_DIR=build\test\stdlib_http_%RANDOM%_%RANDOM%"
+python tools\check_stdlib_http.py --root . --out "%XL6_HTTP_CONTRACT_DIR%" --tcc "%XL6_TCC%"
+if errorlevel 1 exit /b 1
+
 rem Exact resident WebSocket ABI, owned normal loopback and standalone products.
 set "XL6_WS_CONTRACT_DIR=build\test\stdlib_websocket_%RANDOM%_%RANDOM%"
-python tools\check_stdlib_websocket.py --root . --out "%XL6_WS_CONTRACT_DIR%"
+python tools\check_stdlib_websocket.py --root . --out "%XL6_WS_CONTRACT_DIR%" --tcc "%XL6_TCC%"
 if errorlevel 1 exit /b 1
 
 rem Fresh immutable compiler inputs shared by the three time acceptance gates.

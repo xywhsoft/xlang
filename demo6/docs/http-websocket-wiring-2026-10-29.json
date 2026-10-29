@@ -1,0 +1,107 @@
+{
+  "schema": 1,
+  "date": "2026-10-29",
+  "complete": true,
+  "scope": "Close four HTTP/WebSocket example regression gaps and two statically unrecognized WebSocket trimming cases",
+  "missingWiringBefore": 6,
+  "missingWiringAfter": 0,
+  "static": {
+    "path": "F:\\xlang-validation\\http-ws-wiring-20261029\\static-results.json",
+    "sha256": "e17ca841381c005875236e2bcb0fc3acc269d2c29ef3f5bbefd9229c910d082c"
+  },
+  "caseMatrix": {
+    "path": "F:\\xlang-validation\\http-ws-wiring-20261029\\case-matrix-equivalence.json",
+    "sha256": "73043e0c6711f3aeeeabc2998d7751b2fef39ee5b7cf7087168ab88b7dc8d1fc"
+  },
+  "externalTraffic": false,
+  "networkSecurityTests": false,
+  "compilerOrRuntimeImplementationChanged": false,
+  "entrypoints": {
+    "windows": "test/suites/08_stdlib_extended.bat",
+    "linux": "test_linux.sh"
+  },
+  "groups": {
+    "http": {
+      "caseCount": 16,
+      "exampleCount": 2,
+      "script": {
+        "path": "D:\\GIT\\x-lang\\demo6\\tools\\check_stdlib_http.py",
+        "sha256": "61074a20c8196d355683ee3879d9d104d66441a93e095434931b536263f86435"
+      },
+      "platforms": {
+        "windows": {
+          "complete": true,
+          "evidence": {
+            "path": "F:\\xlang-validation\\http-ws-wiring-20261029\\windows-http-r2\\results.json",
+            "sha256": "0a1ba956b9ed75c951327cd03baa08c558d806173ac1310bcb3c72f066a69952"
+          },
+          "stages": 158,
+          "negativeCases": 5,
+          "exampleStages": 12,
+          "privateHeaders": 473,
+          "inputsUnchanged": true,
+          "nativeTccSource": {
+            "Path": "F:\\xlang-validation\\foundation9-20261029\\final-win-r13\\export\\frozen\\demo6\\build\\tmp\\tcc_bootstrap.exe",
+            "Sha256": "f248fe27ee7c55544140f485f53933156f82519348392ebfa3390946106d3420"
+          }
+        },
+        "linux": {
+          "complete": true,
+          "evidence": {
+            "path": "F:\\xlang-validation\\http-ws-wiring-20261029\\linux-http-r2.json",
+            "sha256": "2a4b1c678e896b532636c17cd20331a5d48700d87599eb4ddfe74b1a089bf91b"
+          },
+          "stages": 157,
+          "negativeCases": 5,
+          "exampleStages": 12,
+          "privateHeaders": 473,
+          "inputsUnchanged": true,
+          "nativeTccSource": null
+        }
+      }
+    },
+    "websocket": {
+      "caseCount": 23,
+      "exampleCount": 2,
+      "script": {
+        "path": "D:\\GIT\\x-lang\\demo6\\tools\\check_stdlib_websocket.py",
+        "sha256": "7de5986ba2b01c6d3e7bf19b98346daffe30afca5ebe36efeb9cd5c45d6c7fc4"
+      },
+      "platforms": {
+        "windows": {
+          "complete": true,
+          "evidence": {
+            "path": "F:\\xlang-validation\\http-ws-wiring-20261029\\windows-websocket-r2\\results.json",
+            "sha256": "97b5801383c8113dc73dc0d822d0e71d23d4fd6ef73a28e8d26e5fd4ee179498"
+          },
+          "stages": 219,
+          "negativeCases": 5,
+          "exampleStages": 12,
+          "privateHeaders": 473,
+          "inputsUnchanged": true,
+          "nativeTccSource": {
+            "Path": "F:\\xlang-validation\\foundation9-20261029\\final-win-r13\\export\\frozen\\demo6\\build\\tmp\\tcc_bootstrap.exe",
+            "Sha256": "f248fe27ee7c55544140f485f53933156f82519348392ebfa3390946106d3420"
+          }
+        },
+        "linux": {
+          "complete": true,
+          "evidence": {
+            "path": "F:\\xlang-validation\\http-ws-wiring-20261029\\linux-websocket-r2.json",
+            "sha256": "648f2ef72ee29b5d59fe33be504d4875e5436919984e9a24ec4fdcafae091971"
+          },
+          "stages": 216,
+          "negativeCases": 5,
+          "exampleStages": 12,
+          "privateHeaders": 473,
+          "inputsUnchanged": true,
+          "nativeTccSource": null
+        }
+      }
+    }
+  },
+  "undecided": {
+    "CRT": 0,
+    "XRT": 0
+  }
+}
