@@ -1,0 +1,6 @@
+import lru
+
+// 不调用字符串检查、读写或淘汰，只验证顶层原生对象的退役。
+auto cache = lru.create(1)
+assert cache.valid and cache.count == 0
+println("lru scope ready")
