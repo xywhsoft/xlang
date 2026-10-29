@@ -1,3 +1,4 @@
+extern "xl6ForeignDataSnapshotV1" func __bson_data(var value) as var
 // bson/src/bson.xl - BSON 编解码库 (var 直转架构)
 // 基于 cloudwu/lua-bson (MIT) 内核，BSON ↔ xlang var 双向自动转换
 // 类型映射: Document→table, Array→array, Date→time,
@@ -57,7 +58,7 @@ end
 // var (table) → BSON bytes
 // 自动推断: int→Int32/Int64, float→Double, xtime→Date, table→Document, array→Array
 export func encode(var doc) as var
-    var result = _bson_encode(doc)
+    var result = _bson_encode(__bson_data(doc))
     if result == null then
         throw ValueError __bson_error()
     end
@@ -77,7 +78,7 @@ end
 // var → BSON 并保存到文件，返回写入字节数
 export func save(string path, var doc) as int
     __bson_cstr(path)
-    int written = _bson_save(path, doc)
+    int written = _bson_save(path, __bson_data(doc))
     if written <= 0 then
         throw FileError __bson_error()
     end

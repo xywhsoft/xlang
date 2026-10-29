@@ -1,3 +1,4 @@
+extern "xl6ForeignDataSnapshotV1" func __msgpack_data(var value) as var
 // MessagePack uses binary Buffer values. Hex is diagnostics only.
 extern "xmsgpack_encode_abi" func __encode(var value) as point
 extern "xmsgpack_decode_abi" func __decode(point data, c_size size) as var
@@ -9,7 +10,7 @@ extern "xmsgpack_error_message" func __error() as string
 extern "xmsgpack_has_error" func __has_error() as bool
 
 export func encode(var value) as Buffer
-    point result = __encode(value)
+    point result = __encode(__msgpack_data(value))
     if result == null then
         throw ValueError __error()
     end

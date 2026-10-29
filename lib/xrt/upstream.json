@@ -1,13 +1,12 @@
 {
-  "revision": "2ca1569d8b6ec39c5880b06fa9221aa0e8a84622",
+  "revision": "9b5d52694c9c53e7c57de9c9d2760a171a97858f",
   "dirty": true,
-  "sourceSha256": "1a70d9724b1a55211e0251cf0ed28a574a821ea77138c8ebc9af9a9169f616b1",
+  "sourceSha256": "254fad6419bf931fdbaa1ea712c1e835d7f3ff0a08704e3f85c70fc870a9e1bc",
   "checks": [
     {
       "tool": "check_release_maturity.py",
       "arguments": [],
-      "exitCode": 1,
-      "diagnostic": "release maturity: product=xrt modules=589 implementation=377 tests=377 single=376 docs=377 benchmarks=25 size_profiles=16 developing=0 review=0\nerror: 实现模块缺少 single_tests 闭包覆盖: net_file_future"
+      "exitCode": 0
     },
     {
       "tool": "amalgamate.py",
