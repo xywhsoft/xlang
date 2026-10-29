@@ -17,7 +17,11 @@ static inline int xlsSyntaxNodeStorage(const XL6_AstNode* node,size_t depth,size
        node->childCapacity>SIZE_MAX/sizeof(*node->children) ||
        !xlsSyntaxStorageAdd(bytes,sizeof(*node),limit) ||
        !xlsSyntaxStorageAdd(bytes,node->childCapacity*sizeof(*node->children),limit))return 0;
-    return (!node->text || xlsSyntaxStorageAdd(bytes,strlen(node->text)+1,limit)) &&
+    return
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+        (!node->compiledPackageLink || xlsSyntaxStorageAdd(bytes,strlen(node->compiledPackageLink)+1,limit)) &&
+#endif
+        (!node->text || xlsSyntaxStorageAdd(bytes,strlen(node->text)+1,limit)) &&
         (!node->doc || xlsSyntaxStorageAdd(bytes,strlen(node->doc)+1,limit)) &&
         (!node->literalData || (node->literalSize!=SIZE_MAX && xlsSyntaxStorageAdd(bytes,node->literalSize+1,limit)));
 }

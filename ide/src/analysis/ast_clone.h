@@ -6,6 +6,8 @@
 /* Private representation copy, never a second parser/semantic rule set.
  * Sources are copied into the new tree, without touching non-atomic source
  * references in an immutable snapshot owned by another thread. */
+/* Transforms project scalar/source coordinates. They must not transfer owned
+ * fields;compiled-package links are copied from input with their own budget. */
 typedef int (*xls_ast_transform)(const XL6_AstNode* input,XL6_AstNode* output,void* user);
 typedef XL6_AstSource* (*xls_ast_source_target)(const XL6_AstSource* input,void* user);
 typedef struct xls_ast_clone_options {
