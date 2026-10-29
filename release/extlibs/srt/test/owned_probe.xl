@@ -1,0 +1,6 @@
+import srt
+
+// 三条完整返回链都必须直接接管，不只核对 C 指针返回点。
+assert srt.formatTime(0) == "00:00:00,000"
+assert srt.build(srt.parse("")) == ""
+assert srt.buildVtt(srt.parseVtt("WEBVTT\n\n")) == "WEBVTT\n\n"

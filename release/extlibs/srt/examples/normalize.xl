@@ -1,0 +1,22 @@
+import srt
+
+func main(...) as int
+    // 外部字幕的行尾和序号可以规范化；解析结果直接用于两种格式写出。
+    string source = "7\r\n00:00:00,500 --> 00:00:01,750\r\nHello\r\n\r\n"
+    string plain = "1\n00:00:00,500 --> 00:00:01,750\nHello\n\n"
+    string web = "WEBVTT\n\n00:00:00.500 --> 00:00:01.750\nHello\n\n"
+    var cues = srt.parse(source)
+    string normalized = srt.build(cues)
+    assert normalized == plain
+    string converted = srt.buildVtt(cues)
+    assert converted == web
+    var roundtrip = srt.parseVtt(converted)
+    assert srt.build(roundtrip) == plain
+    println("cues=" + string(cues.length))
+    println("firstIndex=" + string(int(srt.parse(normalized)[0]["index"])))
+    println("start=" + srt.formatTime(srt.parseTime("00:00.500")))
+    println("end=" + srt.formatTime(srt.parseTime("00:01.750")))
+    println("vtt=true")
+    println("roundtrip=true")
+    return 0
+end

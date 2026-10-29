@@ -1,8 +1,8 @@
 extern "xsrt_parse_n" func __srt_parse(string text, c_size size) as var
 extern "xsrt_parse_vtt_n" func __srt_parse_vtt(string text, c_size size) as var
-extern "xsrt_build" func __srt_build(var cues) as point
-extern "xsrt_build_vtt" func __srt_build_vtt(var cues) as point
-extern "xsrt_format_time" func __srt_format_time(int ms) as point
+extern "xsrt_build" @owned func __srt_build(var cues) as string
+extern "xsrt_build_vtt" @owned func __srt_build_vtt(var cues) as string
+extern "xsrt_format_time" @owned func __srt_format_time(int ms) as string
 extern "xsrt_parse_time_n" func __srt_parse_time(string stamp, c_size size) as int
 
 
@@ -27,23 +27,17 @@ end
 
 // build 由 cue 数组生成 SRT 文本（序号自动重排）
 export func build(var cues) as string
-    point result = __srt_build(cues)
-    if result == null then throw ValueError "srt: invalid cues" end
-    return __xl_runtime.takeCstr(result)
+    return __srt_build(cues)
 end
 
 // buildVtt 由 cue 数组生成 WebVTT 文本
 export func buildVtt(var cues) as string
-    point result = __srt_build_vtt(cues)
-    if result == null then throw ValueError "srt: invalid cues" end
-    return __xl_runtime.takeCstr(result)
+    return __srt_build_vtt(cues)
 end
 
 // formatTime 把毫秒格式化为 "HH:MM:SS,mmm"
 export func formatTime(int ms) as string
-    point result = __srt_format_time(ms)
-    if result == null then throw ValueError "srt: timestamp must be non-negative" end
-    return __xl_runtime.takeCstr(result)
+    return __srt_format_time(ms)
 end
 
 // parseTime 解析 "HH:MM:SS,mmm" 或 "HH:MM:SS.mmm"；非法输入抛 ValueError

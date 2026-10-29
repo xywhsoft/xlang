@@ -19,9 +19,9 @@ xvalue *xsrt_parse_n(const char *text, size_t size);
 xvalue *xsrt_parse_vtt_n(const char *text, size_t size);
 
 /* 生成结果是独立 UTF-8 缓冲，由调用方 xrtFree。 */
-void *xsrt_build(xvalue *cues);
-void *xsrt_build_vtt(xvalue *cues);
-void *xsrt_format_time(int64_t milliseconds);
+char *xsrt_build(xvalue *cues);
+char *xsrt_build_vtt(xvalue *cues);
+char *xsrt_format_time(int64_t milliseconds);
 int64_t xsrt_parse_time(const char *timestamp);
 int64_t xsrt_parse_time_n(const char *timestamp, size_t size);
 

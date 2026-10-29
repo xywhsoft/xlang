@@ -1,5 +1,51 @@
 # srt
 
+## 当前验证（2026-10-30）
+
+三个文本入口 build/buildVtt/formatTime 统一为 `@owned string` 直接返回，
+删除 `point` 局部变量、重复空值分支与 takeCstr 中转。对应 C 声明由
+通用 void* 明确为 `char*`；名字、参数宽度与指针返回的机器 ABI 不变，
+源码前置声明应使用当前公开头，不保留旧声明别名。字幕解析/生成算法、
+格式范围、所有权与原生错误分类不改。
+
+旧 takeCstr 本身已直接接管，不能宣称本轮少复制一份正文或少一次分配。
+固定六种短输入的 C 原生成本为 1/1/1/3/2/8，分别为零/最大时间戳、
+空/非空 SRT、空/带 ID WebVTT；扩容和 ID 去重仍会分配。每条从预算 0
+扫到首个成功，合计 22 组；C 与旧、新 XLang 写法均达到相同预算，
+故障立即恢复并检查独立输出、输入释放后结果仍有效和活动内存平衡。
+这些成本只对应给定夹具与冻结 XRT，不外推长字幕或冷启动所有路径。
+
+`test/owned_probe.xl` 检查三条完整返回链直接接管且不再转交或复制；
+parseTime 的错误消息仍有输入复制，不误称整个生成文件零复制。
+默认门禁另提取六条实际外部声明，与正式 C 头严格编译，保留原静态
+毫秒 ABI、C 畸变/长正文/格式/分配回归及全部原语言字面量正例。
+新增 owned_results.xl 已登记 coverage，不将 M1 原数组输入改为预期失败。
+
+`examples/normalize.xl` 与 `normalize_c.c` 规范化同一外部 CRLF/非连续
+序号字幕，转换为 WebVTT 再读回；共同六行黄金输出覆盖六项公开入口。
+现有中文双语范例仍保留。新 C 范例仅按生产三个模块生成唯一 XRT 后
+真实链接/运行，测试运行库沿用这三项加 MEMORY_DEBUG，不增加生产依赖。
+
+从仓库根运行：
+
+```powershell
+./release/xl.exe run release/extlibs/srt/examples/normalize.xl
+./release/xl.exe run release/extlibs/srt/examples/normalize_c.c
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/srt/test/check.ps1
+bash release/extlibs/srt/test/check.sh
+```
+
+Linux 使用 `release/xl`，门禁需要 GCC/Python3，原生 C 检查启用
+ASan/UBSan/泄漏检测。所有编译/运行有超时，输入前后指纹与原始命令/
+输出/状态可查，成功只清理独占目录，失败留场。默认先验可运行路径与
+七条可运行独立程序，原 core 字面量独立程序仍待 M1 修复；最后仍在
+原语言数组进入 build 的 M1 处报红，不能把
+原生解析结果可写出解释成字面量投影已修复。最终双平台范围与报告见
+根目录验收矩阵和任务台账，`-SkipAot` 不作发布验收。
+
+本轮未改变头部、控制块等解析规则；下文旧日期记录按历史保留，旧
+目录、takeCstr 写法及缺符号描述不是当前入口或实现。
+
 > 2026-10-24 发布版复验：严格 C、C 边界及 C 范例通过；首个
 > XLang 用例在 `srt.build(var cues)` 报 `cues must be an array`。
 > `test/foreign_array_repro.xl` 在 JIT 和 AOT 均复现；语言侧
@@ -41,7 +87,7 @@ SRT/WebVTT 输入整体必须是有效 UTF-8；C 值模型构建时，cue 正文
 
 ## C API 与所有权
 
-公开声明位于 `include/srt_native.h`，依赖 XRT 的 `xvalue`。C 字符串可调用 `xsrt_parse` / `xsrt_parse_vtt`，显式字节长度输入使用 `_n` 后缀入口；XLang 桥只用 `_n` 入口，避免内嵌 NUL 被截断。解析结果由调用方 `xrtValueRelease`；格式错误返回 `XVALUE_NULL`，同时设置 XRT 错误。`xsrt_build` / `xsrt_build_vtt` / `xsrt_format_time` 返回独立 NUL 结尾缓冲，C 调用方须用 `xrtFree` 释放；失败返回 `NULL`。无静态返回缓冲，可并行处理不同文档。XLang 包装通过 `__xl_runtime.takeCstr` 直接接管原分配，字符串生命周期结束时由运行时释放，不额外复制正文。
+公开声明位于 `include/srt_native.h`，依赖 XRT 的 `xvalue`。C 字符串可调用 `xsrt_parse` / `xsrt_parse_vtt`，显式字节长度输入使用 `_n` 后缀入口；XLang 桥只用 `_n` 入口，避免内嵌 NUL 被截断。解析结果由调用方 `xrtValueRelease`；格式错误返回 `XVALUE_NULL`，同时设置 XRT 错误。`xsrt_build` / `xsrt_build_vtt` / `xsrt_format_time` 返回独立 NUL 结尾 `char*`，C 调用方须用 `xrtFree` 释放；失败返回 `NULL`。无静态返回缓冲，可并行处理不同文档。XLang 的 `@owned string` 声明直接接管同一分配，字符串生命周期结束时由运行时释放，接管仍需扫描长度，不额外复制正文。
 
 `_n` 解析只读取指定的字节范围，不要求输入以 NUL 结尾，也不复制整份字幕；返回的 cue 字符串仍由 XRT 独立持有，调用方在解析结束后可以释放原输入。
 cue 行、ID 和设置均从借用的输入切片直接构造独立的 XRT 字符串值，
