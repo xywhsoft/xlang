@@ -11,22 +11,28 @@ CASES=['stdlib_websocket_values_v2','stdlib_websocket_extensions_v2',
  'stdlib_websocket_stream_v2','stdlib_websocket_handoff_v2','stdlib_websocket_tls_v2','stdlib_websocket_send_v2',
  'stdlib_websocket_cycle_v2','stdlib_websocket_callback_error_v2','stdlib_websocket_wait_oom_v2','stdlib_websocket_language_oom',
  'stdlib_websocket_core','stdlib_websocket_upgrade_loopback','stdlib_websocket_upgrade_tls_loopback',
- *['stdlib_websocket_'+n+'_trim' for n in ['frame','close','handshake','keygen','upgrade','stream_config','stream','stream_tls']]]
+ 'stdlib_websocket_frame_trim','stdlib_websocket_close_trim','stdlib_websocket_handshake_trim',
+ 'stdlib_websocket_keygen_trim','stdlib_websocket_upgrade_trim','stdlib_websocket_stream_config_trim',
+ 'stdlib_websocket_stream_trim','stdlib_websocket_stream_tls_trim']
 BAD=['bad_stdlib_websocket_native_handle','bad_stdlib_websocket_raw_callback',
  'bad_stdlib_websocket_no_raise','bad_stdlib_websocket_enum_result','bad_stdlib_websocket_legacy']
+EXAMPLES=['release/examples/websocket/protocol.xl','release/examples/websocket/loopback.xl']
 
 def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 def main():
  p=argparse.ArgumentParser(description=__doc__)
  for n in ['root','out']:p.add_argument('--'+n,type=Path,required=True)
  p.add_argument('--driver',type=Path);p.add_argument('--case',action='append',choices=CASES);p.add_argument('--jobs',type=int,default=2)
+ p.add_argument('--tcc',type=Path,help='Windows native TCC bootstrap; copied before tests (default: build/tmp/tcc_bootstrap.exe)')
  a=p.parse_args();assert 1<=a.jobs<=4;root=a.root.resolve();out=a.out.resolve();selected=a.case or CASES
  assert not out.exists();out.mkdir(parents=True);rows=[];lock=threading.Lock();windows=os.name=='nt';driver=a.driver.resolve() if a.driver else None
- report=dict(Complete=False,SourceDriverOnly=bool(driver),ShippingAcceptance=False,ExternalTraffic=False,NetworkSecurityTests=False,Rows=rows)
+ report=dict(Complete=False,SourceDriverOnly=bool(driver),ShippingAcceptance=False,ExternalTraffic=False,NetworkSecurityTests=False,Examples=EXAMPLES,Rows=rows)
  inputs={Path(__file__).resolve(),root/'tools/gen_stdlib_websocket.py',*[root/'test/cases'/(n+'.xl') for n in selected+BAD]}
+ inputs.update(root/n for n in EXAMPLES)
  inputs.update(q for folder in ['src/runtime','src/stdlib','src/ir','src/compile'] for q in (root/folder).glob('*ws*') if q.is_file())
  inputs.update(root/'test/cases'/n for n in ['stdlib_websocket_native_host.c','stdlib_codec_template_language_host.c','stdlib_codec_template_language_oom_host.c'])
  inputs.update(root/'test/support'/n for n in ['module_product_memory.c','module_product_memory.h'])
+ inputs.update(root/'tools'/n for n in ['stage_runtime_headers.py','gen_tcc_vfs_resources.py'])
  for n in ['lib/xrt/xrt.h','lib/xruntime/xruntime.h','release/include/xruntime_decl.h','src/cgen/xl6_ir_cgen.c','src/cgen/xl6_ir_cgen_module_emit.c']:inputs.add(root/n)
  env={k:v for k,v in os.environ.items() if not k.upper().startswith('XL6_') and k.upper() not in ('LD_LIBRARY_PATH','LD_PRELOAD','LD_AUDIT','CPATH','C_INCLUDE_PATH','LIBRARY_PATH')}
  def run(name,args,cwd=root,negative=False):
@@ -56,6 +62,11 @@ def main():
     q=root/'release'/n;inputs.add(q);shutil.copy2(q,release/n)
     if windows and q.suffix=='.dll':shutil.copy2(q,isolated/n)
    cli=release/names[0];library=release/names[2];cc=shutil.which('gcc');assert cc
+   if windows:
+    tccSource=(a.tcc if a.tcc else root/'build/tmp/tcc_bootstrap.exe').resolve()
+    assert tccSource.is_file(),'Build the native TCC bootstrap or supply --tcc'
+    tcc=isolated/'native-tcc.exe';shutil.copy2(tccSource,tcc);inputs.add(tcc)
+    report['NativeTccSource']=dict(Path=str(tccSource),Sha256=sha(tccSource))
    host=isolated/('host.exe' if windows else 'host');observer=isolated/('observer.exe' if windows else 'observer')
    links=[library] if windows else ['-L'+str(release),'-lxlc','-Wl,-rpath,$ORIGIN/release','-pthread','-ldl','-lm']
    for binary,n in [(host,'stdlib_product_fixture_host.c'),(observer,'stdlib_pruning_product_host.c')]:
@@ -68,8 +79,9 @@ def main():
     nativeLinks=[release/n] if windows else ['-L'+str(release),'-l:'+n,'-Wl,-rpath,$ORIGIN/release','-pthread','-ldl','-lm']
     run(n+'.native.build',[cc,*flags,native,*nativeLinks,'-o',binary]);run(n+'.native.run',[binary])
   report['Inputs']={str(q):sha(q) for q in sorted(inputs)}
-  def positive(n):
-   q=root/'test/cases'/(n+'.xl');saved=out/(n+'.saved');saved.mkdir()
+  def positive(n,q=None):
+   q=q if q is not None else root/'test/cases'/(n+'.xl')
+   saved=out/(n+'.saved');saved.mkdir()
    if driver:
     run(n+'.run',[driver,q,'run',saved/'jit'])
     run(n+'.cgen',[driver,q,'cgen-default',saved/'generated.c'])
@@ -91,7 +103,9 @@ def main():
    print(n,'passed',flush=True)
   failures=[]
   with concurrent.futures.ThreadPoolExecutor(max_workers=a.jobs) as pool:
-   for result in concurrent.futures.as_completed([pool.submit(positive,n) for n in selected]):
+   pending=[pool.submit(positive,n) for n in selected]
+   pending.extend(pool.submit(positive,'example-websocket-'+Path(n).stem,root/n) for n in EXAMPLES)
+   for result in concurrent.futures.as_completed(pending):
     try:result.result()
     except Exception as error:failures.append(repr(error))
   for n in BAD:
@@ -101,15 +115,12 @@ def main():
    except Exception as error:failures.append(repr(error))
   if not driver:
    sys.path.insert(0,str(root/'tools'))
-   from gen_tcc_vfs_resources import load_resources
-   sdk=out/'sdk';sdk.mkdir();bd=root/('build/tmp' if windows else 'build/linux')
+   from stage_runtime_headers import stage
+   sdkRoot=out/'sdk';bd=root/('build/tmp' if windows else 'build/linux')
    dist=root/'res/tcc/win64/x86_64' if windows else bd/'tcc-dist'
    manifest=root/'tools'/('tcc_vfs_manifest_win64_runtime.txt' if windows else 'tcc_vfs_manifest_linux_runtime.txt')
-   headerInputs=[]
-   for resource in load_resources(manifest,root,dist,bd/'xrt.o',bd):
-    if resource.virtual.startswith('include/__xl_runtime/'):
-     dest=sdk/Path(resource.virtual).relative_to('include');dest.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(resource.source,dest)
-     headerInputs.append(dict(Path=str(resource.source),Sha256=sha(resource.source)))
+   staged=stage(root,sdkRoot,manifest);sdk=sdkRoot/'include'
+   headerInputs=[dict(Path=row['Source'],Sha256=row['Sha256']) for row in staged]
    report['HeaderInputs']=headerInputs
    strict=[*flags,'-Wno-unused-function','-Wno-unused-parameter','-Wno-unused-variable','-Wno-unused-label','-Wno-unused-const-variable',
     '-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-I'+str(sdk)]
@@ -133,7 +144,7 @@ def main():
     run('same-compiler.benchmark.build',[cc,*[f for f in flags if f!='-O2'],'-Os',native,*links,'-o',benchmark])
     run('same-compiler.benchmark',[benchmark,'--benchmark-only'])
     report['NativeBenchmarkCompiler']='GCC -Os, matching ordinary Windows resident providers'
-    benchmark=isolated/'ws-tcc-interop.exe';tcc=bd/'tcc_bootstrap.exe';assert tcc.is_file()
+    benchmark=isolated/'ws-tcc-interop.exe'
     tccFlags=['-std=c11','-Wall','-Werror','-DXL_STATIC_EMBED','-I'+str(root),'-I'+str(root/'release'),'-I'+str(root/'release/include'),
      '-I'+str(root/'lib/tcc/include'),'-I'+str(dist/'include'),'-I'+str(dist/'include/winapi'),'-L'+str(dist/'lib')]
     run('tcc-interoperability.build',[tcc,*tccFlags,native,root/'release/xlc.def','-o',benchmark])

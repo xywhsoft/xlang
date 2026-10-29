@@ -214,6 +214,12 @@ do
     "$TEST_DIR/$case_name"
 done
 
+printf 'Running Linux HTTP and WebSocket contracts and examples...\n'
+python3 "$ROOT/tools/check_stdlib_http.py" --root "$ROOT" \
+    --out "$TEST_DIR/http-contract-$(date +%Y%m%d-%H%M%S)-$$" --jobs 2
+python3 "$ROOT/tools/check_stdlib_websocket.py" --root "$ROOT" \
+    --out "$TEST_DIR/websocket-contract-$(date +%Y%m%d-%H%M%S)-$$" --jobs 2
+
 printf 'Running Linux shared-library host API tests...\n'
 "${CC:-gcc}" -std=c11 -Wall -I"$ROOT/release" \
     "$ROOT/release/examples/xl_dll_embed_string.c" \
