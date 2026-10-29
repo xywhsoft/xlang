@@ -181,3 +181,15 @@ Inflate/Deflate。keygen 保留 XRT 的握手辅助依赖。配置单独使用�
 未验收 macOS，也不代表并行工作区和既有 release 目录的整体发布完成。
 全局 `check_xlir_contract.ps1` 仍停在基线已有的旧任务静止文本断言，未计为通过；
 本组退休文件、精确声明、枚举、无裸句柄／旧回调等检查由专用产品验收独立验证。
+
+## 自动回归接线
+
+2026-10-29 补齐四份 HTTP/WebSocket 示例和两份裁剪用例的清单缺口。
+`protocol.xl`、`loopback.xl` 现显式纳入 WebSocket 示例矩阵，共用
+JIT、模块、Cgen、独立 AOT、依赖检查与迁址运行；源文件纳入输入哈希。
+八份裁剪用例改为明确名称，静态库存可识别 close/keygen，不放宽守门规则。
+Windows 标准库套件与 Linux 主回归均调用专项工具，示例守门也登记两个工具。
+严格 C 仅镜像 manifest 中的私有声明；Windows TCC 原生互操作使用启动时
+固定的 bootstrap 副本，`--tcc` 可选择该工具，避免测试期间清理临时目录
+使后续检查失效。互操作仍验证真正的 DLL 入口及分配账本。
+验证结果见 [HTTP/WebSocket 接线收据](http-websocket-wiring-2026-10-29.json)。

@@ -9,6 +9,8 @@ xl run examples/websocket/loopback.xl
 
 `protocol.xl` 离线使用帧和 Close 值；`loopback.xl` 创建仅绑定本机的
 TCP 回显连接，展示 Upgrade、拥有型事件、精确 bytes、异步发送与关闭。
+两份示例已显式登记到 `tools/check_stdlib_websocket.py`，随 Windows 标准库
+套件和 `test_linux.sh` 自动验证 JIT、模块及独立 AOT，收据保留输入哈希。
 真实 HTTP 服务应使用 `Http1TcpTransport`／`Http1TlsTransport` 读取握手，
 再调用 `detach().webSocketAsync(...)`，以保留已预读的帧字节。
 

@@ -12,6 +12,10 @@ release/xl run release/examples/http/tcp.xl
 handles a pipelined request, and hands the retained stream and surplus bytes to
 the next protocol. It binds only a literal loopback address and an ephemeral port.
 
+Both examples are registered in `tools/check_stdlib_http.py` and run through
+JIT, module relocation and independent AOT. The Windows standard-library suite
+and `test_linux.sh` invoke this gate automatically; receipts pin both sources.
+
 For TLS, construct `Http1TlsTransport` from an established `TlsStream`; its
 read methods have the same names and limits as the TCP transport. The complete
 TLS test is `test/cases/stdlib_http1_tls_transport.xl`, using the project's
@@ -37,6 +41,7 @@ leaves the state intact; an error after a read begins marks the reader failed.
 Explicitly close a failed transport. Streamed output already delivered to a
 Buffer is retained when a later error occurs.
 
-Higher-level client/server policy, pooling, routing, cookies and WebSocket
-remain separate extension work. This API exposes the 18 XRT HTTP protocol
+Higher-level client/server policy, pooling, routing and cookies remain separate
+extension work. WebSocket uses its own standard-library module and the transport
+handoff API. This API exposes the 18 XRT HTTP protocol
 modules and composes them with managed TCP/TLS.
