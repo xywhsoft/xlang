@@ -97,7 +97,8 @@ static bool __xrtNetrcAppendAuthField(xbuffer* pOutput, xvalue* pAuth,
 			0u, 0u, 0u, "netrc authentication values must be strings or null");
 		return false;
 	}
-	return __xrtNetrcAppendText(pOutput, "  ", pContext) &&
+	return __xrtNetrcLimitNode(pContext, 0u, 0u, 0u) &&
+		__xrtNetrcAppendText(pOutput, "  ", pContext) &&
 		__xrtNetrcAppendText(pOutput, sKey, pContext) &&
 		__xrtNetrcAppendText(pOutput, " ", pContext) &&
 		__xrtNetrcAppendToken(pOutput, Value.Data, Value.Size, pContext) &&
@@ -180,11 +181,19 @@ static bool __xrtNetrcWriteMacro(xstrview Key, xvalue* pLines,
 		if ( memchr(Line.Data, '\0', Line.Size) != NULL ||
 			memchr(Line.Data, '\r', Line.Size) != NULL ||
 			memchr(Line.Data, '\n', Line.Size) != NULL ||
-			__xrtNetrcMacroLineBlank(Line.Data, Line.Size) ||
-			!xrtUtf8Valid(Line, NULL) ||
-			(pWalk->Context->Options.tLimits.iMaxItemBytes != 0u &&
-			 (uint64)Line.Size > pWalk->Context->Options.tLimits.iMaxItemBytes) ||
-			!__xrtNetrcAppend(pWalk->Output, Line.Data, Line.Size, pWalk->Context) ||
+			__xrtNetrcMacroLineBlank(Line.Data, Line.Size) ) { goto fail; }
+		if ( !xrtUtf8Valid(Line, NULL) ) {
+			__xrtNetrcSetError(pWalk->Context->Error, XRT_NETRC_ERROR_UTF8,
+				0u, 0u, 0u, "netrc macro line is not valid UTF-8");
+			goto fail;
+		}
+		if ( pWalk->Context->Options.tLimits.iMaxItemBytes != 0u &&
+			(uint64)Line.Size > pWalk->Context->Options.tLimits.iMaxItemBytes ) {
+			__xrtNetrcSetError(pWalk->Context->Error, XRT_NETRC_ERROR_LIMIT,
+				0u, 0u, 0u, "netrc macro line exceeds the configured item limit");
+			goto fail;
+		}
+		if ( !__xrtNetrcAppend(pWalk->Output, Line.Data, Line.Size, pWalk->Context) ||
 			!__xrtNetrcAppendText(pWalk->Output, "\n", pWalk->Context) ) { goto fail; }
 	}
 	if ( !__xrtNetrcAppendText(pWalk->Output, "\n", pWalk->Context) ) { goto fail; }
@@ -324,16 +333,21 @@ bool xrtNetrcWrite(xvalue* pDocument, xwriter* pWriter,
 		}
 	}
 	xrtBufferDestroy(pOutput);
-	if ( bTakeOwnership && !xrtWriterDestroy(pWriter) && bResult ) {
-		const xerror* pCloseError = xrtGetError();
-		int iCode = pCloseError != NULL && xrtErrorKind(pCloseError) == XERR_MEMORY ?
-			XRT_NETRC_ERROR_MEMORY : XRT_NETRC_ERROR_IO;
-		/* 写入与刷新成功后，关闭失败仍表示持久化未完成。 */
-		bResult = false;
-		__xrtNetrcSetError(pResolvedError, iCode, 0u, 0u, 0u,
-			iCode == XRT_NETRC_ERROR_MEMORY ?
-			"cannot allocate netrc writer close resources" :
-			"cannot close netrc stream");
+	if ( bTakeOwnership ) {
+		xerror* pCause = bResult ? NULL : xrtTakeError();
+		bool bClosed = xrtWriterDestroy(pWriter);
+		if ( pCause != NULL ) { xrtSetErrorTake(pCause); }
+		if ( !bClosed && bResult ) {
+			const xerror* pCloseError = xrtGetError();
+			int iCode = pCloseError != NULL && xrtErrorKind(pCloseError) == XERR_MEMORY ?
+				XRT_NETRC_ERROR_MEMORY : XRT_NETRC_ERROR_IO;
+			/* 写入与刷新成功后，关闭失败仍表示持久化未完成。 */
+			bResult = false;
+			__xrtNetrcSetError(pResolvedError, iCode, 0u, 0u, 0u,
+				iCode == XRT_NETRC_ERROR_MEMORY ?
+				"cannot allocate netrc writer close resources" :
+				"cannot close netrc stream");
+		}
 	}
 	return bResult;
 }
@@ -366,7 +380,9 @@ bool xrtNetrcSave(str sPath, xvalue* pDocument,
 		if ( File != NULL ) {
 			bResult = xrtWriteFull(File, pOutput->Data, pOutput->Size, NULL) &&
 				xrtFlush(File);
+			xerror* pCause = bResult ? NULL : xrtTakeError();
 			if ( !xrtClose(File) ) { bResult = false; }
+			if ( pCause != NULL ) { xrtSetErrorTake(pCause); }
 			File = NULL;
 			if ( bResult ) { bResult = xrtPathRename(sTemporary, sPath, true); }
 		}
@@ -381,7 +397,11 @@ bool xrtNetrcSave(str sPath, xvalue* pDocument,
 				0u, 0u, 0u, "cannot save netrc file");
 		}
 	}
-	if ( !bResult && sTemporary != NULL ) { xrtFileDelete(sTemporary); }
+	if ( !bResult && sTemporary != NULL ) {
+		xerror* pCause = xrtTakeError();
+		xrtFileDelete(sTemporary);
+		if ( pCause != NULL ) { xrtSetErrorTake(pCause); }
+	}
 	xrtFree(sTemporary);
 	xrtFree(sParent);
 	xrtBufferDestroy(pOutput);

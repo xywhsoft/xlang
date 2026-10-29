@@ -1,0 +1,50 @@
+import netrc
+
+func rejectMacro(string text, int limit, int line, int offset)
+    bool rejected = false
+    try
+        netrc.parse(text, maxItem = limit)
+    catch ConfigError error
+        rejected = true
+    end
+    assert rejected and netrc.errorCode() == 4
+    assert netrc.errorLine() == line and netrc.errorColumn() == 1
+    assert netrc.errorOffset() == offset
+end
+
+func main(...) as int
+    rejectMacro("macdef m\n12345678\n\n", 7, 2, 9)
+    rejectMacro("macdef m\r\n12345678\r\n\r\n", 7, 2, 10)
+    rejectMacro("# note\nmacdef m\n12345678\n\n", 7, 3, 16)
+    rejectMacro("\uFEFFmacdef m\n12345678\n\n", 7, 2, 9)
+    // 单项预算按 UTF-8 字节而非字符计，两个汉字加三位数字共九字节。
+    rejectMacro("macdef m\n你好123\n\n", 8, 2, 9)
+    netrc.Netrc macro = netrc.parse("macdef m\n12345678\n\n", maxItem = 8)
+    assert macro.macros["m"][0] == "12345678"
+    bool rejected = false
+    try
+        macro.stringify(maxItem = 7)
+    catch ConfigError error
+        rejected = true
+    end
+    assert rejected and netrc.errorCode() == 4
+    assert macro.stringify(maxItem = 8) == "macdef m\n12345678\n\n"
+
+    // 一个主机节点和三个非 null 凭据节点；写出也必须遵守四节点预算。
+    string source = "machine h login u account a password p\n"
+    netrc.Netrc config = netrc.parse(source, maxNodes = 4, maxEntries = 1)
+    string expected = config.stringify(maxNodes = 4, maxEntries = 1)
+    for limit in range(1, 4)
+        rejected = false
+        try
+            config.stringify(maxNodes = limit)
+        catch ConfigError error
+            rejected = true
+        end
+        assert rejected and netrc.errorCode() == 4
+    end
+    assert config.stringify(maxNodes = 4) == expected
+    assert netrc.errorCode() == 0
+    println("netrc resource budgets: PASS")
+    return 0
+end

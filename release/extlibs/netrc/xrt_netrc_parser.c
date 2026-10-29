@@ -378,9 +378,13 @@ static xvalue* __xrtNetrcParseMacro(xrt_netrc_parser* pParser,
 				if ( pScanner->iPos < pScanner->iSize ) { __xrtNetrcAdvance(pScanner); }
 				return pLines;
 			}
-			if ( (pScanner->Context->Options.tLimits.iMaxItemBytes != 0u &&
-				(uint64)(iEnd - iStart) > pScanner->Context->Options.tLimits.iMaxItemBytes) ||
-				!__xrtNetrcLimitEntry(pScanner->Context, iLine, 1u, iStart) ||
+			if ( pScanner->Context->Options.tLimits.iMaxItemBytes != 0u &&
+				(uint64)(iEnd - iStart) > pScanner->Context->Options.tLimits.iMaxItemBytes ) {
+				__xrtNetrcSetError(pScanner->Context->Error, XRT_NETRC_ERROR_LIMIT,
+					iLine, 1u, iStart, "netrc macro line exceeds the configured item limit");
+				goto fail;
+			}
+			if ( !__xrtNetrcLimitEntry(pScanner->Context, iLine, 1u, iStart) ||
 				!__xrtNetrcLimitNode(pScanner->Context, iLine, 1u, iStart) ) { goto fail; }
 			{
 				xvalue* pText = __xrtNetrcText(pScanner->pData + iStart, iEnd - iStart);
@@ -620,17 +624,23 @@ xvalue* xrtNetrcParse(xreader* pReader, bool bTakeOwnership,
 
 cleanup:
 	xrtBufferDestroy(pInput);
-	if ( bTakeOwnership && !xrtReaderDestroy(pReader) && pResult != NULL ) {
-		const xerror* pCloseError = xrtGetError();
-		int iCode = pCloseError != NULL && xrtErrorKind(pCloseError) == XERR_MEMORY ?
-			XRT_NETRC_ERROR_MEMORY : XRT_NETRC_ERROR_IO;
-		/* 读取成功不代表拥有型流已经成功关闭。 */
-		xrtValueRelease(pResult);
-		pResult = NULL;
-		__xrtNetrcSetError(pError, iCode, 0u, 0u, 0u,
-			iCode == XRT_NETRC_ERROR_MEMORY ?
-			"cannot allocate netrc reader close resources" :
-			"cannot close netrc stream");
+	if ( bTakeOwnership ) {
+		/* 关闭可以写入另一条 XRT 错误；不能只保住包级错误而丢失首因。 */
+		xerror* pCause = pResult == NULL ? xrtTakeError() : NULL;
+		bool bClosed = xrtReaderDestroy(pReader);
+		if ( pCause != NULL ) { xrtSetErrorTake(pCause); }
+		if ( !bClosed && pResult != NULL ) {
+			const xerror* pCloseError = xrtGetError();
+			int iCode = pCloseError != NULL && xrtErrorKind(pCloseError) == XERR_MEMORY ?
+				XRT_NETRC_ERROR_MEMORY : XRT_NETRC_ERROR_IO;
+			/* 读取成功不代表拥有型流已经成功关闭。 */
+			xrtValueRelease(pResult);
+			pResult = NULL;
+			__xrtNetrcSetError(pError, iCode, 0u, 0u, 0u,
+				iCode == XRT_NETRC_ERROR_MEMORY ?
+				"cannot allocate netrc reader close resources" :
+				"cannot close netrc stream");
+		}
 	}
 	return pResult;
 }
