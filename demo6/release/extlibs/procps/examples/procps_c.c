@@ -10,11 +10,13 @@
 int main(void)
 {
     int64_t self = xprocps_pid();
+    int64_t parent = xprocps_ppid();
+    int64_t count = xprocps_count();
     xvalue* pids = xprocps_pids();
     char* name = xprocps_name(self);
     size_t i;
     int found = 0;
-    if (pids == NULL || name == NULL) {
+    if (pids == NULL || name == NULL || parent < 0 || count <= 0) {
         xrtValueRelease(pids);
         xrtFree(name);
         return 1;
@@ -28,6 +30,9 @@ int main(void)
     printf("name known: %s\n", *name ? "true" : "false");
     printf("self listed: %s\n", found ? "true" : "false");
     printf("rss positive: %s\n", xprocps_mem_kb(self) > 0 ? "true" : "false");
+    /* PID 1 的父进程可以为 0；不同查询时刻的 count 不要求与数组长度相等。 */
+    printf("parent query: %s\n", parent >= 0 ? "true" : "false");
+    printf("count positive: %s\n", count > 0 ? "true" : "false");
     xrtValueRelease(pids);
     xrtFree(name);
     return 0;

@@ -31,9 +31,6 @@ static void xprocps_error(xerrkind kind, const char* message)
 
 #ifdef _WIN32
 #include <windows.h>
-#ifndef WC_ERR_INVALID_CHARS
-#define WC_ERR_INVALID_CHARS 0x00000080u
-#endif
 
 /* TCC 的精简 WinAPI 头不包含 tlhelp32.h；只声明本包使用的结构。 */
 typedef struct xprocps_entry {
@@ -275,25 +272,15 @@ char* xprocps_name(int64_t pid)
     xrtClearError();
 #ifdef _WIN32
     xprocps_lookup lookup;
-    int size;
-    char* result;
     if (!xprocps_find(pid, &lookup)) return NULL;
-    size = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS,
-        lookup.name, -1, NULL, 0, NULL, NULL);
-    if (size <= 0) return NULL;
-    result = (char*)xrtMalloc((size_t)size);
-    if (result == NULL) return NULL;
-    if (!WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS,
-        lookup.name, -1, result, size, NULL, NULL)) {
-        xrtFree(result);
-        return NULL;
-    }
-    return result;
+    /* 严格 Unicode 转换与失败诊断都复用 XRT，避免空指针丢失错误原因。 */
+    return xrtUtf16To8((const uint16*)lookup.name, NULL);
 #else
     char path[64], stack[4096];
     char* target = stack;
     size_t capacity = sizeof(stack);
     char* fallback;
+    size_t fallback_size;
     ssize_t size;
     const char* base;
     char* result;
@@ -333,12 +320,16 @@ char* xprocps_name(int64_t pid)
     }
     if (target != stack) xrtFree(target);
     snprintf(path, sizeof(path), "/proc/%lld/comm", (long long)pid);
-    fallback = (char*)xrtFileReadAllLimit(path, 256u, NULL);
+    fallback = (char*)xrtFileReadAllLimit(path, 256u, &fallback_size);
     if (fallback != NULL) {
-        fallback[strcspn(fallback, "\r\n")] = '\0';
-        if (!xrtUtf8Valid(xrtStrView(fallback), NULL)) {
+        /* comm 原样输出名称后附加一个 LF；内部/名称末尾的 CR、LF 都是数据。 */
+        if (fallback_size != 0 && fallback[fallback_size - 1] == '\n')
+            fallback[--fallback_size] = '\0';
+        bool contains_nul = memchr(fallback, '\0', fallback_size) != NULL;
+        if (contains_nul || !xrtUtf8Valid((xstrview){fallback, fallback_size}, NULL)) {
             xrtFree(fallback);
-            xprocps_error(XERR_VALUE, "process name is not valid UTF-8");
+            xprocps_error(XERR_VALUE, contains_nul ? "process name contains NUL" :
+                "process name is not valid UTF-8");
             return NULL;
         }
     } else {

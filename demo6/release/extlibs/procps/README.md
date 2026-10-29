@@ -1,5 +1,19 @@
 # procps
 
+2026-10-29 名称字节与诊断复核：修复 Linux `comm` 回退截断合法 CR/LF、
+并因前缀截断漏掉后续非法 UTF-8/NUL 的问题；现在按真实读取长度验证，
+只移除内核最后附加的一个 LF，名称内部与名称末尾的 CR/LF 均保留。
+Windows 删除包内 WinAPI 测长/分配/转换代码，直接复用 XRT 的严格
+`xrtUtf16To8`，非法 UTF-16 明确给出 `XERR_VALUE`，不再与正常不可用混淆。
+没有新增 API 或改变所有权；正常不可用仍为 C NULL、语言 ValueError。
+
+受控 Linux 23 检查由十失败归零，并用当前进程真实内核 comm 验证
+CR/LF 完整保留；Windows 11 检查由三诊断失败归零，含代理对/单个
+代理项、最长快照名、一次分配预算、关闭与内存平衡。最终 Windows
+默认35阶段和Linux原生快照门禁通过，包含七项实际生成原型与C头、
+旧长路径/statm/OOM、完整返回无副本、双语六行黄金输出、Windows六条/
+Linux五条独立程序。范围限当前冻结 x64 发布物，不外推其他架构。
+
 2026-10-28 完整返回链复查：`name` 的可空局部返回仍复制已接管正文。
 不能直接改成非空声明，因为 C 的 NULL 也表示正常不可读取/进程消失。
 现保留 `@owned string?`，使用调用临时值 `??` 仅在缺失时调用原有
@@ -75,6 +89,13 @@ Linux 优先读取 `/proc/pid/exe`，无可执行路径时回退 `comm`（内核
 误判为读取失败；两条路径都校验 UTF-8。若系统文件名包含非法 UTF-8 字节，
 `name()` 抛 `ValueError`，C 接口返回 `NULL` 并设置 `XERR_VALUE`，不返回
 非法字符串。错误和权限不会由静态缓冲或固定文本长度静默截断。
+`comm` 不是按行拆分的文本列表：保留真实名称中的换行/回车，仅去掉
+内核附加的最终 LF；其原始输出方式见 Linux
+[comm_show](https://github.com/torvalds/linux/blob/v6.12/fs/proc/base.c#L1641)
+和 [proc_task_name](https://github.com/torvalds/linux/blob/v6.12/fs/proc/array.c#L96)。
+完整原始名称含 NUL 或非法 UTF-8 时拒绝，不只校验有效前缀。Windows
+同样严格拒绝不完整 UTF-16，沿 XRT 保留 Unicode 错误位置与类别；
+Windows 转换失败规则可参阅 [WideCharToMultiByte](https://learn.microsoft.com/en-us/windows/win32/api/stringapiset/nf-stringapiset-widechartomultibyte)。
 进程已退出或名称不可读时，C 接口返回 `NULL` 且不留文件错误，XLang
 包装抛 `ValueError`；真正的内存失败仍保留 `XERR_MEMORY` 并抛 `MemoryError`。
 
@@ -89,6 +110,10 @@ XRT `xvalue*` 数组，使用 `xrtValueRelease`；`xprocps_name` 返回独立
 UTF-8 字符串，使用 `xrtFree`。结果没有共享全局缓冲。公开 C 入口
 在开始时清理上次调用残留的 XRT 错误；失败路径若产生诊断，调用方可读取本次错误。
 公开头可独立包含；应用要遍历 PID 数组时自行启用 XRT value container 模块。
+名字可能含 CR/LF 等控制字符，不应未经转义直接拼入日志的一行。
+父进程 ID 可以为 0（如 Linux PID 1）；`count` 与 `pids` 是分别查询，
+不能要求它们在进程变化期间严格相等。Windows 快照可能列出 PID 0
+空闲项，但 `exists/name/memKb` 对非正 PID 仍按不可访问规则处理。
 
 定向验证（在 `demo6` 目录）：
 
@@ -109,6 +134,27 @@ Windows/Linux 默认包门禁在 C/JIT 之后构建并运行中央、边界、�
 `-SkipAot` 仅运行 Windows 聚焦 C/JIT 检查，不代表发布签收。
 Windows 产物在 build/test 的独占目录，Linux 在独占系统临时目录；
 成功时只清理本次产物，失败时保留输入指纹、命令与现场。
+
+当前双语范例补齐 `ppid/count`，七个公开入口均有对应调用；用六行
+事实输出比较，不固定动态 PID、进程数或 RSS 数值。Windows 另以
+独立 GCC 编译 C 范例，对照 TCC 直跑/包运行器与 XLang，不只比较两条
+同后端路径。成功名称的单次分配与直接移交保持，仍有编码测长/转换、
+语言侧 strlen、系统查询与错误作用域，不宣称零扫描或全链零开销。
+
+新增 `test/name_windows_c.c` 只在本测试翻译单元替换快照入口，实际
+Unicode 转换不替换：验证 UTF-16 正/负例、旧错清除、预算、每次快照
+只关闭一次及活动分配。Linux `test/name_fallback.c` 扩至23检查，
+包括多行、末尾换行、中文、空名、NUL/非法字节、不可用/内存区分及
+直接移交；`test/comm_real_c.c` 则只强制 readlink 回退，comm 内容
+来自真实内核，仅修改并恢复本测试进程自身名称，不修改其他进程。
+
+门禁当前逐进程有界，成功/失败都核对完整包/头/运行库/工具输入并
+保留报告，成功清理独占产物、失败保留现场。最终 Windows 35阶段、
+43指纹变化0；Linux 38源件快照内外一致，含GCC共39项指纹不变。
+缺C编译器实测退出127，不伪报通过。Linux首轮新超时包装遇到uutils
+拒绝非法UTF-8 argv的测试工具问题；现仅经环境传递原路径字节，由
+有界bash exec启动同一个非法文件名程序，真实负例保留，完整复验通过。
+没有为换绿灯而将文件改成有效UTF-8、删掉负例或解除超时。
 
 Windows 独立 GCC、Linux GCC + ASan/UBSan、XL JIT 和 C/XL 范例已通过。
 Windows 包级脚本还逐一核对包运行器 C、单文件 C 与 XLang 范例的固定事实输出；单文件 C 范例只在 TCC 路径包含原生实现，正式包仍按清单分离编译。

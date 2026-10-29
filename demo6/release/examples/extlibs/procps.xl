@@ -1,6 +1,8 @@
 import procps
 
 int selfId = procps.pid()
+int parentId = procps.ppid()
+int visibleCount = procps.count()
 array<int> ids = procps.pids()
 bool found = false
 for processId in ids
@@ -11,3 +13,6 @@ println("self exists: " + string(procps.exists(selfId)))
 println("name known: " + string(procps.name(selfId) != ""))
 println("self listed: " + string(found))
 println("rss positive: " + string(procps.memKb(selfId) > 0))
+// PID 1 的父进程可以为 0；两次查询的进程集合可能变化，不比较数量相等。
+println("parent query: " + string(parentId >= 0))
+println("count positive: " + string(visibleCount > 0))
