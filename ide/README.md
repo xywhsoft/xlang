@@ -1,5 +1,7 @@
 # xlang IDE
 
+2026-10-29 起，运行与发布目录统一为仓库根目录的 `../release/`：[启动 IDE](../release/xlang_ide.exe)。IDE 默认使用同目录的 `xl.exe`，共享引擎的 `include/` 和 `extlibs/`；clangd 保留在 `toolchains/clangd/`。不再生成 `ide/release/` 或重复的 `toolchains/xlang/`。测试产物留在 `ide/build/`，详见[统一发布目录](docs/unified-release.md)。以下带日期的候选记录保留其当时的验收范围。
+
 2026-10-22 已支持 C／xlang 单文件、独立 `.xlp` 和 `.xlw` 工作空间构建运行。无项目时 F7／F5 使用当前源文件；项目上下文保持所选／启动目标规则，新增“项目 → 构建当前文件／构建并运行当前文件”。显式源文件启动优先于历史工作空间恢复。严格构建 `cb-bd75b462` 为 88 个编译对象／109 项产物，构建期间源码变化为空。20 个相关原生 fixture、40 项单文件断言、7 次真实主程序入口与便携验收通过；发布目录已更新。SDK、默认编译器和 C 服务器沿用上一候选。本轮为相关范围回归，未重复全量标准／ABI 专项。见 [四种构建形态](docs/standalone-builds.md) 和 [当前候选](CURRENT-CANDIDATE.md)。
 
 2026-10-21 当前版本已升级为 **XGE 3.0.0**，完成文本／DPI、资源、编译器时间协议及原生窗口消息链适配。`release/xlang_ide.exe` 可直接启动，`dist` 保留新的已核验便携包。更新说明见 [XGE 3 更新](docs/xge3-upgrade.md)，精确版本与验收范围见 [当前候选](CURRENT-CANDIDATE.md)。
@@ -145,9 +147,9 @@ $build = Get-Content .\build\current-build.json -Raw | ConvertFrom-Json
 & (Join-Path $build.root 'release\xlang_ide.exe')
 ```
 
-当前整理好的运行副本可直接执行 `.\release\xlang_ide.exe`。源码构建输出位于新的 `build/cb-xxxxxxxx/release`，不会覆盖这个副本。`-Tests` 只编译测试；运行回归时使用对应快照的 `tools/test.ps1 -SkipBuild`，按验收范围传入编译器与 C 服务器参数。生成新候选使用 `package_current.bat`。直接入口 `build.bat`、`test.bat` 会重新写入工作区 `release`，不适用于保持发布目录整洁的日常流程。
+从本目录执行 `..\release\xlang_ide.exe` 可启动统一运行副本。源码快照输出位于 `build/cb-xxxxxxxx/release`，不会覆盖运行副本。`-Tests` 构建会执行原生分析核心测试并编译 GUI fixtures；GUI 回归使用对应快照的 `tools/test.ps1 -Configuration Release -SkipBuild -ReleaseDirectory <快照目录>\release`，按范围传入编译器与 C 服务器参数。生成新候选使用 `package_current.bat`。直接 `build.bat` 的普通构建更新仓库根 `release`，带 `-Tests` 时与 `test.bat` 一样使用 `ide/build/<配置>/release`。
 
-诊断版本为 `release/xlang_ide_console.exe`，支持 `--help`。可用 `--workspace PATH.xlw`、`--project PATH.xlp` 和 `--open-file PATH` 启动时打开工程或文件。工作空间与项目文件路径使用 UTF-8；命令行从 Windows Unicode 参数转换。测试使用隐藏的本程序窗口，截图写入 `build/tests/render/`。构建仅使用本目录固定 SDK；不依赖另外三个参考项目的业务源码或二进制。
+诊断版本为 `../release/xlang_ide_console.exe`，支持 `--help`。可用 `--workspace PATH.xlw`、`--project PATH.xlp` 和 `--open-file PATH` 启动时打开工程或文件。工作空间与项目文件路径使用 UTF-8；命令行从 Windows Unicode 参数转换。测试使用隐藏的本程序窗口，截图写入 `build/tests/render/`。构建仅使用本目录固定 SDK；不依赖另外三个参考项目的业务源码或二进制。
 F7 构建当前所选项目；F5 先构建再运行启动项目；Shift+F5 停止活动与排队任务。编译器可从“文件 → 选择 xlang 编译器”指定，也支持 `--compiler` 或 `XLANG_COMPILER`。开发目录会查找同仓库 `release/xl.exe`。构建与运行分别使用目标项目当前配置，也可用 `--configuration ID` 覆盖。运行会话提供 stdin/stdout 管道交互，完整系统 shell / ConPTY 仍需独立验收。参见 [构建运行说明](docs/tasks-and-toolchain.md)。
 构建配置可从项目菜单或右侧项目属性编辑，支持路径、库、运行参数和环境变量列表；每个项目独立保存当前配置。编译器选择保存到 `release/option/settings.json`，下次启动恢复。配置页使用独立草稿，取消不会修改项目。
 帮助窗格顶部提供章节选择；超过 64 章时可切换章节分组，正文在同一个中央滚动区内阅读。目录缺失或损坏会显示真实错误，修复文件后可在左侧重新加载。诊断程序支持 --help-chapter N 和 --size WIDTH HEIGHT，用于长文档与窄窗口验收。

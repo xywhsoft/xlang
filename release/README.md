@@ -1,10 +1,17 @@
-# release 构建产物目录
+# xlang 统一运行与发布目录
 
-本目录保存 DEMO6 构建和验证生成的产物，不作为源码或设计真相来源。
+IDE、语言服务、工具和 xlang 引擎统一放在仓库根目录的 `release/`，不再使用 `ide/release/`。编译器源码已从 `demo6/` 移到仓库根目录。
+
+直接运行 `xlang_ide.exe`。IDE 默认使用同目录的 `xl.exe`，共享 `xl.dll`、`xlc.dll`、`include/`、`extlibs/` 和范例；C 语言分析工具位于 `toolchains/clangd/`，不再复制一套 `toolchains/xlang/`。`data/` 保存命令帮助和字体，`option/` 保存可迁移的 IDE 设置和会话。
+
+`ide/build_current.bat` 的隔离输出位于 `ide/build/cb-*/release/`。`ide/build.bat` 普通构建更新本目录；带 `-Tests` 的构建和 `ide/test.bat` 使用 `ide/build/<配置>/release/`，避免混入测试程序。显式 `-ReleaseDirectory` 可选择其他构建输出位置。详见 [统一发布目录](../ide/docs/unified-release.md)。
 
 ## 常见产物
 
-- `xl.exe`：DEMO6 CLI。
+- `xlang_ide.exe`、`xlang_ide_console.exe`：IDE 图形入口和控制台入口。
+- `xlang-ls.exe`：xlang 语言服务。
+- `xge.dll`：IDE 使用的 XGE / XUI 运行库。
+- `xl.exe`：xlang CLI。
 - `xl.dll`：嵌入式运行库 DLL。
 - `xlc.dll`：带编译能力的嵌入式运行库 DLL。
 - `xl.def`：由 `build_dll.bat` 生成的 DLL import definition。
@@ -21,4 +28,4 @@
 - 不手工修改构建产物来修复问题；应修改源码、构建脚本或工具链配置后重新构建。
 - 如果产物和源码行为不一致，以源码、测试和构建脚本为准。
 - 发布目录不保存临时产物；构建中间文件进入 `build/tmp`，测试与范例回归产物进入 `build/test`。
-- `release/libtcc.dll` 不属于发布物；`xl.dll` / `xlc.dll` 均静态链接 demo6 自带 libtcc。
+- `release/libtcc.dll` 不属于发布物；`xl.dll` / `xlc.dll` 均静态链接仓库自带 libtcc。

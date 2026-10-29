@@ -177,7 +177,7 @@ def check(args) -> Path:
             require(all(not (source / 'release' / name).exists() for name in ('xl.exe', 'xl.dll', 'xlc.dll'))
                 and not (source / 'build').exists(), 'A prebuilt compiler or object directory was copied')
             extensions = []
-            prefix = 'toolchains/xlang/extlibs/'
+            prefix = 'extlibs/'
             for row in manifest['files']:
                 if row['path'].startswith(prefix):
                     name = row['path'][len(prefix):]
@@ -240,7 +240,7 @@ def check(args) -> Path:
         compiler = source / 'release/xl.exe'
         result['rebuiltArtifacts'] = rebuilt
         publish()
-        baseline_log = run('published-native-environment', [package / 'toolchains/xlang/xl.exe', 'c-bridge',
+        baseline_log = run('published-native-environment', [package / 'xl.exe', 'c-bridge',
             project, '--json', '--c-environment'], cwd=project_root)
         rebuilt_log = run('relinked-native-environment', [compiler, 'c-bridge', project, '--json', '--c-environment'], cwd=project_root)
         for path in (baseline_log, rebuilt_log): require(path.stat().st_size <= 64*1024*1024, 'C environment response exceeds its 64 MiB contract')

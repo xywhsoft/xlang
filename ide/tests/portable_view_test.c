@@ -30,7 +30,7 @@ static int verify(void* user)
  xide_app app={0}; xide_model_error error={0}; xide_project project={0}; xide_workspace workspace={0}; int began=0; char* owned[24]={0}; size_t count=0; unsigned char* runBytes=NULL; size_t runLength=0; xvalue *result=NULL,*testConfigs=NULL;
  #define KEEP(p) (owned[count++]=(p))
  char *root=KEEP(xidePathResolve(f->directory,f->moved ? "迁移后 工程😀" : "初次 工程😀")),*entry=KEEP(xidePathResolve(root,"入口😀.xl")),*native=KEEP(xidePathResolve(root,"native.c")),*manifest=KEEP(xidePathResolve(root,"工程.xlp")),*scene=KEEP(xidePathResolve(root,"工作空间.xlw"));
- char *defaultSettings=KEEP(xideSettingsDefaultPath()),*options=KEEP(defaultSettings ? xidePathDirectory(defaultSettings) : NULL),*program=KEEP(options ? xidePathDirectory(options) : NULL),*compiler=KEEP(program ? xidePathResolve(program,"toolchains/xlang/xl.exe") : NULL),*server=KEEP(program ? xidePathResolve(program,"toolchains/clangd/bin/clangd.exe") : NULL),*catalog=KEEP(program ? xidePathResolve(program,"data/commands.json") : NULL);
+ char *defaultSettings=KEEP(xideSettingsDefaultPath()),*options=KEEP(defaultSettings ? xidePathDirectory(defaultSettings) : NULL),*program=KEEP(options ? xidePathDirectory(options) : NULL),*compiler=KEEP(program ? xidePathResolve(program,"xl.exe") : NULL),*server=KEEP(program ? xidePathResolve(program,"toolchains/clangd/bin/clangd.exe") : NULL),*catalog=KEEP(program ? xidePathResolve(program,"data/commands.json") : NULL);
  char *light=KEEP(xidePathResolve(root,"portable-light.png")),*dark=KEEP(xidePathResolve(root,"portable-dark.png")),*cImage=KEEP(xidePathResolve(root,"portable-c.png")),*runImage=KEEP(xidePathResolve(root,"portable-run.png")),*report=KEEP(xidePathResolve(root,"native-result.json"));
  const char* saved="export \"xl_add\" func 原稿(c_int a,c_int b) as c_int\n return a+b\nend\n";
  const char* draft="// 中文 😀 unsaved package source\nexport \"xl_add\" func 便携(c_int a,c_int b) as c_int\n return a+b\nend\n";
@@ -81,7 +81,7 @@ static int verify(void* user)
  xrtFree(runBytes); runBytes=xrtFileReadAllLimit(xideTaskTestLog(task),1024*1024,&runLength); CHECK(runBytes && runLength && strstr((char*)runBytes,"PORTABLE_MIXED_42"));
  CHECK(xideSettingsSetCompiler(&app.preferences,compiler,&error) && xideSettingsSetCServer(&app.preferences,server,&error));
  xvalue* tools=xrtValueObjectGet(app.preferences.source,(xstrview){"toolchain",9}); xstrview compilerSetting={0},serverSetting={0};
- CHECK(tools && xrtValueGetString(xrtValueObjectGet(tools,(xstrview){"compiler",8}),&compilerSetting) && compilerSetting.Size==strlen("../toolchains/xlang/xl.exe") && !memcmp(compilerSetting.Data,"../toolchains/xlang/xl.exe",compilerSetting.Size));
+ CHECK(tools && xrtValueGetString(xrtValueObjectGet(tools,(xstrview){"compiler",8}),&compilerSetting) && compilerSetting.Size==strlen("../xl.exe") && !memcmp(compilerSetting.Data,"../xl.exe",compilerSetting.Size));
  CHECK(xrtValueGetString(xrtValueObjectGet(tools,(xstrview){"cServer",7}),&serverSetting) && serverSetting.Size==strlen("../toolchains/clangd/bin/clangd.exe") && !memcmp(serverSetting.Data,"../toolchains/clangd/bin/clangd.exe",serverSetting.Size));
  CHECK(xrtValueObjectGet(app.preferences.source,(xstrview){"packageFixture",14}));
  CHECK(xideSettingsSetUiFont(&app.preferences,app.uiFontPath,18,&error) && xideSettingsSetEditorFont(&app.preferences,app.codeFontPath,18,&error));

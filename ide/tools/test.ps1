@@ -1,13 +1,13 @@
 [CmdletBinding()]
-param([ValidateSet('Debug','Release')][string]$Configuration='Debug', [switch]$SkipBuild, [switch]$SkipRender, [string]$CompilerPath, [string]$CompletionCompilerPath, [string]$CServerPath, [string]$CInputTraceServerPath, [string]$BridgeCompilerPath, [string]$MappingCompilerPath, [string]$PortablePackagePath, [string]$BuildInputCompilerPath, [string]$TestRoot, [string]$TypeFactsCompilerPath, [string]$PublicTypeCompilerPath, [string]$ClassScalarCompilerPath, [string]$NativeScalarCompilerPath, [switch]$NativeDebugTrace, [string]$CServerMaterialsManifest, [string]$NativeAggregateCompilerPath, [string]$NativeExtensionCompilerPath)
+param([ValidateSet('Debug','Release')][string]$Configuration='Debug', [switch]$SkipBuild, [switch]$SkipRender, [string]$CompilerPath, [string]$CompletionCompilerPath, [string]$CServerPath, [string]$CInputTraceServerPath, [string]$BridgeCompilerPath, [string]$MappingCompilerPath, [string]$PortablePackagePath, [string]$BuildInputCompilerPath, [string]$TestRoot, [string]$TypeFactsCompilerPath, [string]$PublicTypeCompilerPath, [string]$ClassScalarCompilerPath, [string]$NativeScalarCompilerPath, [switch]$NativeDebugTrace, [string]$CServerMaterialsManifest, [string]$NativeAggregateCompilerPath, [string]$NativeExtensionCompilerPath, [string]$ReleaseDirectory='')
 $ErrorActionPreference='Stop'
 $ideRoot=Split-Path -Parent $PSScriptRoot
-$releaseRoot=Join-Path $ideRoot 'release'
+$releaseRoot=if ($ReleaseDirectory) { [IO.Path]::GetFullPath($ReleaseDirectory) } else { Join-Path $ideRoot ('build\'+$Configuration+'\release') }
 $testRoot=if ($TestRoot) { [IO.Path]::GetFullPath($TestRoot) } else { Join-Path $ideRoot 'build\tests' }
 [void](New-Item -ItemType Directory -Path $testRoot -Force)
 $projectTestRoot = Join-Path $testRoot ('project-tests-'+[Guid]::NewGuid().ToString('N'))
 if (-not $SkipBuild) {
-    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'build.ps1') -Configuration $Configuration -Tests
+    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'build.ps1') -Configuration $Configuration -Tests -ReleaseDirectory $releaseRoot
     if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
 }
 & python -X utf8 -B (Join-Path $PSScriptRoot 'check_lsp_folding.py') --server (Join-Path $releaseRoot 'xlang-ls.exe') --output (Join-Path $testRoot ('resident-folding-'+[Guid]::NewGuid().ToString('N')))

@@ -91,7 +91,8 @@ def check(args):
     manifest = verify_payload(candidate/"xlang-ide")
     inspect_zip(archive)
     fixture = Path(args.fixture).resolve()
-    require(fixture.is_relative_to(ide/"release") and fixture.name == "portable_view_test.exe", "Native acceptance fixture must be the local built helper")
+    private = fixture.is_relative_to(ide/"build") or (ide.parent.name == "build" and fixture.is_relative_to(ide/"release"))
+    require(private and fixture.name == "portable_view_test.exe", "Native acceptance fixture must be the private built helper")
     fixture_hash = sha(fixture)
     proof = ide/"build/tests/portable"/("acceptance-"+uuid.uuid4().hex)
     proof.mkdir(parents=True)
@@ -128,9 +129,9 @@ def check(args):
             record["negative"].append(expect_reject("tampered-catalog", lambda: verify_payload(payload), "Payload mismatch: data/commands.json"))
         finally:
             catalog.write_bytes(original_catalog)
-        missing = payload/"toolchains/xlang/include/xlang.h"
+        missing = payload/"include/xlang.h"
         if not missing.exists():
-            missing = next((payload/"toolchains/xlang/include").rglob("*.h"))
+            missing = next((payload/"include").rglob("*.h"))
         temporary = proof/"owned-header-original"
         original_header_hash = sha(missing); missing.rename(temporary)
         try:
@@ -185,7 +186,7 @@ def check(args):
             require(value.get("explicitTest") is True, "Native fixture did not run the explicitly configured C/xlang test program")
             expected = payload if value["moved"] else Path(record["initialRootRemoved"])
             require(Path(value["program"]).resolve() == expected.resolve(), "Fixture used an external program directory")
-            require(Path(value["compiler"]).resolve() == (expected/"toolchains/xlang/xl.exe").resolve(), "Fixture used an external compiler")
+            require(Path(value["compiler"]).resolve() == (expected/"xl.exe").resolve(), "Fixture used an external compiler")
             require(Path(value["cServer"]).resolve() == (expected/"toolchains/clangd/bin/clangd.exe").resolve(), "Fixture used an external C server")
         record["renders"]=[{"path":str(p),"sha256":sha(p),"size":p.stat().st_size} for p in proof.rglob("*.png")]
         require(len(record["renders"])==12, "Expected eight native fixture and four packaged executable renders")

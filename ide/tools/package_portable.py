@@ -25,7 +25,7 @@ MAX_FILES = 10000
 MAX_FILE = 256 * 1024 * 1024
 MAX_TOTAL = 1024 * 1024 * 1024
 CORE = ("xlang_ide.exe", "xlang_ide_console.exe", "xlang-ls.exe", "xge.dll",
-        "toolchains/xlang/xl.exe", "toolchains/xlang/xl.dll", "toolchains/xlang/xlc.dll",
+        "xl.exe", "xl.dll", "xlc.dll",
         "toolchains/clangd/bin/clangd.exe")
 SYSTEM_DLLS = set("advapi32.dll bcrypt.dll comdlg32.dll dbghelp.dll gdi32.dll imm32.dll iphlpapi.dll kernel32.dll msvcrt.dll ntdll.dll ole32.dll oleaut32.dll shell32.dll user32.dll version.dll winhttp.dll winmm.dll ws2_32.dll wsock32.dll".split())
 RESERVED = {"con", "prn", "aux", "nul", *(f"com{i}" for i in range(10)), *(f"lpt{i}" for i in range(10))}
@@ -294,7 +294,7 @@ def current_build_release(ide, report_path):
 
 def assemble(args):
     ide = Path(__file__).resolve().parents[1]
-    release, sdk = ide / "release", ide / "third_party/xge_sdk"
+    release, sdk = ide.parent / "release", ide / "third_party/xge_sdk"
     build_report = getattr(args, 'build_report', None)
     current_build = None
     if build_report:
@@ -346,7 +346,7 @@ def assemble(args):
     for source in compiler_files:
         rel = source.relative_to(compiler).as_posix()
         require(rel in expected_c, f"Compiler runtime file is not in frozen manifest: {rel}")
-        add(source, "toolchains/xlang/"+rel, expected_c[rel])
+        add(source, rel, expected_c[rel])
     # Files removed from selected runtime trees must be detected as well as added ones.
     selected_c = {p.relative_to(compiler).as_posix() for p in compiler_files}
     frozen_c = {p for p in expected_c if p in ("xl.exe", "xl.dll", "xlc.dll") or p.startswith(("include/", "extlibs/"))}
@@ -408,7 +408,7 @@ def assemble(args):
     if compiler_sources["copiedFiles"]:
         write_json(payload/"sources/xlang/SOURCE-MATERIALS.json", compiler_sources)
         (payload/"sources/COMPILER-REBUILD.md").write_text(REBUILD_README, encoding="utf8")
-    settings = {"format": "xlang-ide-settings-1", "toolchain": {"compiler": "../toolchains/xlang/xl.exe", "cServer": "../toolchains/clangd/bin/clangd.exe"}}
+    settings = {"format": "xlang-ide-settings-1", "toolchain": {"compiler": "../xl.exe", "cServer": "../toolchains/clangd/bin/clangd.exe"}}
     (payload/"option").mkdir()
     write_json(payload/"option/settings.json", settings)
     write_json(payload/"notices/material-index.json", {
@@ -434,7 +434,7 @@ def assemble(args):
         "mutableState": {"directory": "option/", "initialSeedHashed": True, "userDataNotCopied": True},
         "corePE": check_core(payload), "coreDependencyScope": "Declared core binaries only; extension modules/assets preserved but not all exercised",
         "catalog": {"commands": len(catalog["entries"]), "documents": len(catalog["documents"]), "compilerSha256": catalog["compilerSha256"], "embeddedMarkdown": True},
-        "toolchains": {"xlang": {"sha256": sha(payload/"toolchains/xlang/xl.exe"), "provenance": "provenance/compiler-inputs.json"},
+        "toolchains": {"xlang": {"path": "xl.exe", "sha256": sha(payload/"xl.exe"), "provenance": "provenance/compiler-inputs.json"},
             "clangd": {"tag": server_info.get("tag"), "sha256": sha(payload/"toolchains/clangd/bin/clangd.exe"), "provenance": "provenance/clangd-inputs.json", "inputTraceProtocol": c_server_materials['inputTraceProtocol']}},
         "sdk": sdk_info["provenance"], "fonts": font_materials, "releaseMaterials": "notices/material-index.json"}
     write_json(payload/"package-manifest.json", manifest)
