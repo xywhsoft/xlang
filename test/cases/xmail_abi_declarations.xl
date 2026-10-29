@@ -1,0 +1,206 @@
+// Compile/link only. Do not call: arguments intentionally have no resources.
+import xmail
+extern "xmail_last_error" func __mail_abi_0() as string
+extern "xmail_message_valid_native" func __mail_abi_1(var message) as bool
+extern "xmail_compose_native" func __mail_abi_2(var message) as point
+extern "xmail_parse_native" func __mail_abi_3(string source, c_size sourceSize, c_ulonglong maxDepth, c_ulonglong maxParts, c_ulonglong maxSourceBytes, c_ulonglong maxDecodedBytes) as var
+extern "xmail_smtp_open" func __mail_abi_4(var engine, string host, c_size hostSize, c_ulonglong port, c_ulonglong security, string hello, c_size helloSize, c_ulonglong lineLimit, c_longlong timeoutMs, var tlsConfig, var postRelease) as point
+extern "xmail_pop3_open" func __mail_abi_5(var engine, string host, c_size hostSize, c_ulonglong port, c_ulonglong security, bool readCapabilities, c_ulonglong lineLimit, c_longlong timeoutMs, var tlsConfig, var postRelease) as point
+extern "xmail_imap_open" func __mail_abi_6(var engine, string host, c_size hostSize, c_ulonglong port, c_ulonglong security, c_ulonglong lineLimit, c_ulonglong commandLineLimit, c_longlong timeoutMs, var tlsConfig, var postRelease) as point
+extern "xmail_smtp_wrap" func __mail_abi_7(point handle) as point
+extern "xmail_smtp_state" func __mail_abi_8(point instance) as c_longlong
+extern "xmail_smtp_capabilities" func __mail_abi_9(point instance) as c_ulonglong
+extern "xmail_smtp_size_limit" func __mail_abi_10(point instance) as c_ulonglong
+extern "xmail_smtp_security" func __mail_abi_11(point instance) as c_longlong
+extern "xmail_smtp_authenticated" func __mail_abi_12(point instance) as bool
+extern "xmail_smtp_reply_code" func __mail_abi_13(point instance) as c_longlong
+extern "xmail_smtp_reply_text" func __mail_abi_14(point instance) as point
+extern "xmail_smtp_send" func __mail_abi_15(point instance, string line, c_size size, c_longlong timeoutMs) as bool
+extern "xmail_smtp_receive" func __mail_abi_16(point instance, c_longlong timeoutMs) as bool
+extern "xmail_smtp_command" func __mail_abi_17(point instance, string verb, c_size verbSize, string arguments, c_size argumentsSize, c_longlong timeoutMs) as bool
+extern "xmail_smtp_mail" func __mail_abi_18(point instance, string path, c_size pathSize, string parameters, c_size parametersSize, c_longlong timeoutMs) as bool
+extern "xmail_smtp_rcpt" func __mail_abi_19(point instance, string path, c_size pathSize, string parameters, c_size parametersSize, c_longlong timeoutMs) as bool
+extern "xmail_smtp_data_begin" func __mail_abi_20(point instance, c_longlong timeoutMs) as bool
+extern "xmail_smtp_data_write_text" func __mail_abi_21(point instance, string data, c_size size, c_longlong timeoutMs) as bool
+extern "xmail_smtp_data_write" func __mail_abi_22(point instance, point data, c_size size, c_longlong timeoutMs) as bool
+extern "xmail_smtp_data_end" func __mail_abi_23(point instance, c_longlong timeoutMs) as bool
+extern "xmail_smtp_data" func __mail_abi_24(point instance, string message, c_size size, c_longlong timeoutMs) as bool
+extern "xmail_smtp_bdat_begin" func __mail_abi_25(point instance, c_ulonglong size, bool last, c_longlong timeoutMs) as bool
+extern "xmail_smtp_bdat_write" func __mail_abi_26(point instance, point data, c_size size, c_longlong timeoutMs) as bool
+extern "xmail_smtp_bdat_end" func __mail_abi_27(point instance, c_longlong timeoutMs) as bool
+extern "xmail_smtp_bdat" func __mail_abi_28(point instance, point data, c_size size, bool last, c_longlong timeoutMs) as bool
+extern "xmail_smtp_auth" func __mail_abi_29(point instance, c_ulonglong method, string username, c_size usernameSize, string secret, c_size secretSize, string authorizationId, c_size authorizationIdSize, bool initialResponse, bool allowPlaintext, c_longlong timeoutMs) as bool
+extern "xmail_smtp_submit" func __mail_abi_30(point instance, var message, c_longlong timeoutMs) as bool
+extern "xmail_smtp_reset" func __mail_abi_31(point instance, c_longlong timeoutMs) as bool
+extern "xmail_smtp_noop" func __mail_abi_32(point instance, c_longlong timeoutMs) as bool
+extern "xmail_smtp_quit" func __mail_abi_33(point instance, c_longlong timeoutMs) as bool
+extern "xmail_smtp_close" func __mail_abi_34(point instance, c_longlong timeoutMs) as bool
+extern "xmail_smtp_abort" func __mail_abi_35(point instance) as bool
+extern "xmail_pop3_wrap" func __mail_abi_36(point handle) as point
+extern "xmail_pop3_state" func __mail_abi_37(point instance) as c_longlong
+extern "xmail_pop3_capabilities" func __mail_abi_38(point instance) as c_ulonglong
+extern "xmail_pop3_sasl" func __mail_abi_39(point instance) as c_ulonglong
+extern "xmail_pop3_security" func __mail_abi_40(point instance) as c_longlong
+extern "xmail_pop3_reply_ok" func __mail_abi_41(point instance) as bool
+extern "xmail_pop3_reply_text" func __mail_abi_42(point instance) as point
+extern "xmail_pop3_reply_source" func __mail_abi_43(point instance) as point
+extern "xmail_pop3_send" func __mail_abi_44(point instance, string line, c_size size, c_longlong timeoutMs) as bool
+extern "xmail_pop3_line" func __mail_abi_45(point instance, c_longlong timeoutMs) as bool
+extern "xmail_pop3_receive" func __mail_abi_46(point instance, c_longlong timeoutMs) as bool
+extern "xmail_pop3_command" func __mail_abi_47(point instance, string verb, c_size verbSize, string arguments, c_size argumentsSize, c_longlong timeoutMs) as bool
+extern "xmail_pop3_begin" func __mail_abi_48(point instance, string verb, c_size verbSize, string arguments, c_size argumentsSize, c_longlong timeoutMs) as bool
+extern "xmail_pop3_next" func __mail_abi_49(point instance, c_longlong timeoutMs) as c_longlong
+extern "xmail_pop3_last_line" func __mail_abi_50(point instance) as point
+extern "xmail_pop3_stat" func __mail_abi_51(point instance, c_longlong timeoutMs) as bool
+extern "xmail_pop3_list" func __mail_abi_52(point instance, c_ulonglong message, c_longlong timeoutMs) as bool
+extern "xmail_pop3_uidl" func __mail_abi_53(point instance, c_ulonglong message, c_longlong timeoutMs) as bool
+extern "xmail_pop3_first" func __mail_abi_54(point instance) as c_ulonglong
+extern "xmail_pop3_second" func __mail_abi_55(point instance) as c_ulonglong
+extern "xmail_pop3_list_all" func __mail_abi_56(point instance, c_longlong timeoutMs) as bool
+extern "xmail_pop3_uidl_all" func __mail_abi_57(point instance, c_longlong timeoutMs) as bool
+extern "xmail_pop3_retr" func __mail_abi_58(point instance, c_ulonglong message, c_longlong timeoutMs) as bool
+extern "xmail_pop3_top" func __mail_abi_59(point instance, c_ulonglong message, c_ulonglong lines, c_longlong timeoutMs) as bool
+extern "xmail_pop3_auth" func __mail_abi_60(point instance, c_ulonglong method, string username, c_size usernameSize, string secret, c_size secretSize, string authorizationId, c_size authorizationIdSize, bool initialResponse, bool allowPlaintext, c_longlong timeoutMs) as bool
+extern "xmail_pop3_delete" func __mail_abi_61(point instance, c_ulonglong message, c_longlong timeoutMs) as bool
+extern "xmail_pop3_reset" func __mail_abi_62(point instance, c_longlong timeoutMs) as bool
+extern "xmail_pop3_noop" func __mail_abi_63(point instance, c_longlong timeoutMs) as bool
+extern "xmail_pop3_quit" func __mail_abi_64(point instance, c_longlong timeoutMs) as bool
+extern "xmail_pop3_close" func __mail_abi_65(point instance, c_longlong timeoutMs) as bool
+extern "xmail_pop3_abort" func __mail_abi_66(point instance) as bool
+extern "xmail_imap_wrap" func __mail_abi_67(point handle) as point
+extern "xmail_imap_state" func __mail_abi_68(point instance) as c_longlong
+extern "xmail_imap_capabilities" func __mail_abi_69(point instance) as c_ulonglong
+extern "xmail_imap_security" func __mail_abi_70(point instance) as c_longlong
+extern "xmail_imap_literal_remaining" func __mail_abi_71(point instance) as c_ulonglong
+extern "xmail_imap_command_limit" func __mail_abi_72(point instance) as c_ulonglong
+extern "xmail_imap_append_limit" func __mail_abi_73(point instance) as c_ulonglong
+extern "xmail_imap_tag" func __mail_abi_74(point instance) as point
+extern "xmail_imap_last_response_text" func __mail_abi_75(point instance, c_longlong field) as point
+extern "xmail_imap_last_response_value" func __mail_abi_76(point instance, c_longlong field) as c_longlong
+extern "xmail_imap_send" func __mail_abi_77(point instance, string tag, c_size tagSize, string command, c_size commandSize, string arguments, c_size argumentsSize, c_longlong timeoutMs) as bool
+extern "xmail_imap_write" func __mail_abi_78(point instance, point data, c_size size, c_longlong timeoutMs) as bool
+extern "xmail_imap_continue" func __mail_abi_79(point instance, string data, c_size size, c_longlong timeoutMs) as bool
+extern "xmail_imap_receive" func __mail_abi_80(point instance, c_longlong timeoutMs) as bool
+extern "xmail_imap_begin" func __mail_abi_81(point instance, string command, c_size commandSize, string arguments, c_size argumentsSize, c_longlong timeoutMs) as bool
+extern "xmail_imap_next" func __mail_abi_82(point instance, c_longlong timeoutMs) as c_longlong
+extern "xmail_imap_event_value" func __mail_abi_83(point instance, c_longlong field) as c_longlong
+extern "xmail_imap_event_literal_size" func __mail_abi_84(point instance) as c_ulonglong
+extern "xmail_imap_event_text" func __mail_abi_85(point instance, c_longlong field) as point
+extern "xmail_imap_read_literal" func __mail_abi_86(point instance, c_ulonglong maximum, c_longlong timeoutMs) as point
+extern "xmail_imap_auth" func __mail_abi_87(point instance, c_ulonglong method, string username, c_size usernameSize, string secret, c_size secretSize, string authorizationId, c_size authorizationIdSize, bool initialResponse, bool allowPlaintext, c_longlong timeoutMs) as bool
+extern "xmail_imap_simple" func __mail_abi_88(point instance, c_longlong operation, c_longlong timeoutMs) as bool
+extern "xmail_imap_select" func __mail_abi_89(point instance, string mailbox, c_size size, bool readOnly, c_longlong timeoutMs) as bool
+extern "xmail_imap_mailbox_value" func __mail_abi_90(point instance, c_longlong field) as c_ulonglong
+extern "xmail_imap_logout" func __mail_abi_91(point instance, c_longlong timeoutMs) as bool
+extern "xmail_imap_close" func __mail_abi_92(point instance, c_longlong timeoutMs) as bool
+extern "xmail_imap_abort" func __mail_abi_93(point instance) as bool
+extern "xmail_smtp_raw_destroy" func __mail_abi_94(point raw)
+extern "xmail_smtp_manage" func __mail_abi_95(point raw, var releaser) as point
+extern "xmail_pop3_raw_destroy" func __mail_abi_96(point raw)
+extern "xmail_pop3_manage" func __mail_abi_97(point raw, var releaser) as point
+extern "xmail_imap_raw_destroy" func __mail_abi_98(point raw)
+extern "xmail_imap_manage" func __mail_abi_99(point raw, var releaser) as point
+extern "xmail_post_destroy" func __mail_abi_100(point raw)
+export func mailAbiDeclarations(point instance)
+    __mail_abi_0()
+    __mail_abi_1(null)
+    __mail_abi_2(null)
+    __mail_abi_3("", c_size(0), c_ulonglong(0), c_ulonglong(0), c_ulonglong(0), c_ulonglong(0))
+    __mail_abi_4(null, "", c_size(0), c_ulonglong(0), c_ulonglong(0), "", c_size(0), c_ulonglong(0), c_longlong(0), null, null)
+    __mail_abi_5(null, "", c_size(0), c_ulonglong(0), c_ulonglong(0), false, c_ulonglong(0), c_longlong(0), null, null)
+    __mail_abi_6(null, "", c_size(0), c_ulonglong(0), c_ulonglong(0), c_ulonglong(0), c_ulonglong(0), c_longlong(0), null, null)
+    __mail_abi_7(null)
+    __mail_abi_8(instance)
+    __mail_abi_9(instance)
+    __mail_abi_10(instance)
+    __mail_abi_11(instance)
+    __mail_abi_12(instance)
+    __mail_abi_13(instance)
+    __mail_abi_14(instance)
+    __mail_abi_15(instance, "", c_size(0), c_longlong(0))
+    __mail_abi_16(instance, c_longlong(0))
+    __mail_abi_17(instance, "", c_size(0), "", c_size(0), c_longlong(0))
+    __mail_abi_18(instance, "", c_size(0), "", c_size(0), c_longlong(0))
+    __mail_abi_19(instance, "", c_size(0), "", c_size(0), c_longlong(0))
+    __mail_abi_20(instance, c_longlong(0))
+    __mail_abi_21(instance, "", c_size(0), c_longlong(0))
+    __mail_abi_22(instance, null, c_size(0), c_longlong(0))
+    __mail_abi_23(instance, c_longlong(0))
+    __mail_abi_24(instance, "", c_size(0), c_longlong(0))
+    __mail_abi_25(instance, c_ulonglong(0), false, c_longlong(0))
+    __mail_abi_26(instance, null, c_size(0), c_longlong(0))
+    __mail_abi_27(instance, c_longlong(0))
+    __mail_abi_28(instance, null, c_size(0), false, c_longlong(0))
+    __mail_abi_29(instance, c_ulonglong(0), "", c_size(0), "", c_size(0), "", c_size(0), false, false, c_longlong(0))
+    __mail_abi_30(instance, null, c_longlong(0))
+    __mail_abi_31(instance, c_longlong(0))
+    __mail_abi_32(instance, c_longlong(0))
+    __mail_abi_33(instance, c_longlong(0))
+    __mail_abi_34(instance, c_longlong(0))
+    __mail_abi_35(instance)
+    __mail_abi_36(null)
+    __mail_abi_37(instance)
+    __mail_abi_38(instance)
+    __mail_abi_39(instance)
+    __mail_abi_40(instance)
+    __mail_abi_41(instance)
+    __mail_abi_42(instance)
+    __mail_abi_43(instance)
+    __mail_abi_44(instance, "", c_size(0), c_longlong(0))
+    __mail_abi_45(instance, c_longlong(0))
+    __mail_abi_46(instance, c_longlong(0))
+    __mail_abi_47(instance, "", c_size(0), "", c_size(0), c_longlong(0))
+    __mail_abi_48(instance, "", c_size(0), "", c_size(0), c_longlong(0))
+    __mail_abi_49(instance, c_longlong(0))
+    __mail_abi_50(instance)
+    __mail_abi_51(instance, c_longlong(0))
+    __mail_abi_52(instance, c_ulonglong(0), c_longlong(0))
+    __mail_abi_53(instance, c_ulonglong(0), c_longlong(0))
+    __mail_abi_54(instance)
+    __mail_abi_55(instance)
+    __mail_abi_56(instance, c_longlong(0))
+    __mail_abi_57(instance, c_longlong(0))
+    __mail_abi_58(instance, c_ulonglong(0), c_longlong(0))
+    __mail_abi_59(instance, c_ulonglong(0), c_ulonglong(0), c_longlong(0))
+    __mail_abi_60(instance, c_ulonglong(0), "", c_size(0), "", c_size(0), "", c_size(0), false, false, c_longlong(0))
+    __mail_abi_61(instance, c_ulonglong(0), c_longlong(0))
+    __mail_abi_62(instance, c_longlong(0))
+    __mail_abi_63(instance, c_longlong(0))
+    __mail_abi_64(instance, c_longlong(0))
+    __mail_abi_65(instance, c_longlong(0))
+    __mail_abi_66(instance)
+    __mail_abi_67(null)
+    __mail_abi_68(instance)
+    __mail_abi_69(instance)
+    __mail_abi_70(instance)
+    __mail_abi_71(instance)
+    __mail_abi_72(instance)
+    __mail_abi_73(instance)
+    __mail_abi_74(instance)
+    __mail_abi_75(instance, c_longlong(0))
+    __mail_abi_76(instance, c_longlong(0))
+    __mail_abi_77(instance, "", c_size(0), "", c_size(0), "", c_size(0), c_longlong(0))
+    __mail_abi_78(instance, null, c_size(0), c_longlong(0))
+    __mail_abi_79(instance, "", c_size(0), c_longlong(0))
+    __mail_abi_80(instance, c_longlong(0))
+    __mail_abi_81(instance, "", c_size(0), "", c_size(0), c_longlong(0))
+    __mail_abi_82(instance, c_longlong(0))
+    __mail_abi_83(instance, c_longlong(0))
+    __mail_abi_84(instance)
+    __mail_abi_85(instance, c_longlong(0))
+    __mail_abi_86(instance, c_ulonglong(0), c_longlong(0))
+    __mail_abi_87(instance, c_ulonglong(0), "", c_size(0), "", c_size(0), "", c_size(0), false, false, c_longlong(0))
+    __mail_abi_88(instance, c_longlong(0), c_longlong(0))
+    __mail_abi_89(instance, "", c_size(0), false, c_longlong(0))
+    __mail_abi_90(instance, c_longlong(0))
+    __mail_abi_91(instance, c_longlong(0))
+    __mail_abi_92(instance, c_longlong(0))
+    __mail_abi_93(instance)
+    __mail_abi_94(null)
+    __mail_abi_95(null, null)
+    __mail_abi_96(null)
+    __mail_abi_97(null, null)
+    __mail_abi_98(null)
+    __mail_abi_99(null, null)
+    __mail_abi_100(null)
+end
