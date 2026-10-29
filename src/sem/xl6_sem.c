@@ -8430,7 +8430,7 @@ static int xl6SemBindContextualMethod(XL6_SemContext* ctx,XL6_AstNode* expr,
     binding->children=parts;binding->childCount=binding->childCapacity=2;
     *old=*expr;parts[0]=old;parts[1]=type;*expr=*binding;xrtFree(binding);
     if(changed)*changed=1;
-    return xl6SemCheckRuntimeTypeExpr(ctx,expr,1);
+    return xl6SemCheckExpr(ctx,expr);
 }
 
 /* Defaults are checked in three declaration scopes (language, extern and

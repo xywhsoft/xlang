@@ -139,6 +139,24 @@ string text=read()
 本轮修复及安全验证见
 [可空和可变参数方法绑定](extern-owned-callable-final-fixes-2026-10-29.md)。
 
+精确函数类型还会传入条件表达式和 `??` 的方法分支。例如
+`func() as cstring read=pick ? first.Text : second.Text`，以及
+`func() as cstring selected=optionalRead ?? first.Text`，都在编译期完成分支内
+绑定；只求值实际选中的接收者。变量、赋值、返回值、函数实参和整个表达式的
+显式转换使用同一规则，支持嵌套表达式和已有非空流证明。
+
+回调默认值也可直接写成 `func Read(func() as cstring callback=self.Text)`。
+默认值在原声明作用域检查访问和约束，每次需要默认值时绑定一次；回调可随
+返回值逃逸。别名、可空回调、继承、泛型、前序参数及 `...`/`***` 沿用同一
+精确绑定，不必手写 `as`。默认值仅经缩短签名的函数值使用时同样有效。
+完整程序见 [条件回调](../test/cases/extern_owned_bound_compound.xl)、
+[回调默认值](../test/cases/extern_owned_bound_callback_defaults.xl) 和
+[嵌套及泛型上下文](../test/cases/extern_owned_bound_callable_contexts.xl)。
+
+这些上下文保持精确 `cstring/cbytes` 和 `@owned string` 返回 ABI；显式要求
+普通 `string/bytes` 回调结果时，继续只复制所需的结果。任意 `var` 分支不能
+凭另一个合法方法分支取得 compiler-only owner ABI 的静态授权。
+
 绑定只求值一次接收者，闭包保留它直到最后一个引用释放。绑定本身仍有普通
 闭包分配、引用与代码 lease 成本；调用保留闭包读取协议、错误作用域及必要的
 strlen。本路径消除动态参数/结果装箱和返回字符串复制，没有宣称整个闭包
