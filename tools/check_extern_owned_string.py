@@ -104,6 +104,9 @@ def main():
         ('bound-compound','test/cases/extern_owned_bound_compound.xl',
             ['test/cases/extern_owned_bound_c_owners_host.c','test/cases/extern_owned_string_host.c',
              'test/cases/extern_owned_typed_bound_native_host.c'],[]),
+        ('bound-callback-defaults','test/cases/extern_owned_bound_callback_defaults.xl',
+            ['test/cases/extern_owned_bound_c_owners_host.c','test/cases/extern_owned_string_host.c',
+             'test/cases/extern_owned_typed_bound_native_host.c'],[]),
         ('generic-nullable-order','test/cases/extern_owned_generic_nullable_order.xl',[],[]),
         ('bound-base-dispatch','test/cases/extern_owned_bound_base_dispatch.xl',[],[]),
         ('bound-async-generic','test/cases/extern_owned_bound_async_generic.xl',
@@ -189,6 +192,8 @@ def main():
                 if args.cli else [binary,entry,'exe',work/'consumer-aot',*extra])
             run('export-C-consumer-aot',[(work/'consumer-aot').with_suffix('.exe' if os.name=='nt' else '')])
     negatives={
+        'test/cases/bad_extern_owned_bound_callback_default_constraint.xl':'typed bound method violates generic constraints',
+        'test/cases/bad_extern_owned_bound_callback_default_private.xl':'unknown class/union field',
         'test/cases/bad_extern_owned_bound_compound_constraint.xl':'typed bound method violates generic constraints',
         'test/cases/bad_extern_owned_bound_compound_private.xl':'unknown class/union field',
         'test/cases/bad_extern_owned_bound_constraint.xl':'typed bound method violates generic constraints',
