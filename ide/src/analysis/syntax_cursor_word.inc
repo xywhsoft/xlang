@@ -52,6 +52,7 @@ static int cursorWordNode(const XL6_AstNode* a,const placement* ap,const XL6_Ast
     XLS_CURSOR_SAME(semanticOwnership);XLS_CURSOR_SAME(semanticExitKind);XLS_CURSOR_SAME(semanticScopeDepth);XLS_CURSOR_SAME(semanticTargetScopeDepth);
     XLS_CURSOR_SAME(semanticRegionId);XLS_CURSOR_SAME(semanticTargetRegionId);XLS_CURSOR_SAME(line);
 #undef XLS_CURSOR_SAME
+    if(!xlsAstPackageScalarsEqual(&left,&right) || !xlsAstPackageLinkEqual(&left,&right))return 0;
     if(!cursorWordText(left.text,right.text) || !cursorWordText(left.doc,right.doc) ||
        (left.literalData!=NULL)!=(right.literalData!=NULL) ||
        (left.literalData && left.literalSize && memcmp(left.literalData,right.literalData,left.literalSize)) ||

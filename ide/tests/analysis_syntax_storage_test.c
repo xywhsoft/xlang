@@ -256,4 +256,37 @@ static int run(void)
     CHECK(!maps && !invalidLifetime && !strcmp(xlsTextData(text),source));xlsTextRelease(text);xlsTextRelease(next);
     printf("Syntax storage seams: adopt=%zu,update=%zu,measure=%zu; actual map calls independently failed/recovered\n",adoptCalls,updateCalls,measureCalls);return 1;
 }
-int main(void){if(!exactSourceBytes() || !fusedSourceStorage() || !run())return 1;printf("analysis_syntax_storage_test passed: %u checks; real adopted/shared chunks,exact/short budgets,storage-map faults and independent generations\n",checks);return 0;}
+static int cursorPackageProof(void)
+{
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    const char* source="func edited()\n int result = 7\n return res\nend\n";
+    const char* changed="func edited()\n int result = 7\n return result\nend\n";
+    char* path=xrtPathAbs("cursor-package-proof.xl");CHECK(path);
+    xls_text *ta=xlsTextCreate(source,strlen(source),1024,NULL),*tb=xlsTextCreate(changed,strlen(changed),1024,NULL);CHECK(ta && tb);
+    XL6_CompletionQuery qa={.path=path,.offset=(size_t)(strstr(source,"return res")-source)+strlen("return res")};
+    XL6_CompletionQuery qb={.path=path,.offset=(size_t)(strstr(changed,"return result")-changed)+strlen("return result")};
+    xls_parse_work work={0};xls_syntax* a=privateCursor(path,ta,NULL,&qa,&work);xls_syntax* b=privateCursor(path,tb,NULL,&qb,&work);
+    CHECK(a && b && a->accepted && b->accepted && a->units.Count==1 && b->units.Count==1);
+    xls_cursor_word_view view;CHECK(privateExtraxlsSyntaxCursorWordProof(a,b,&view,NULL,NULL));
+    /* Mutate only these exclusively owned private fixture nodes, never a
+     * published reader's AST. Exercise module, chunk and inferred-type edges. */
+    XL6_AstNode *ac=((placement*)xrtArrayGet(&a->units,0))->unit->node,*bc=((placement*)xrtArrayGet(&b->units,0))->unit->node;
+    ac->inferredType=xl6AstNew(XL6_AST_TYPE,NULL);bc->inferredType=xl6AstNew(XL6_AST_TYPE,NULL);CHECK(ac->inferredType && bc->inferredType);
+    XL6_AstNode* left[]={a->parse.root,ac,ac->inferredType};XL6_AstNode* right[]={b->parse.root,bc,bc->inferredType};
+    for(size_t i=0;i<3;++i){
+#define CHECK_FIELD(field) do {left[i]->field=19;CHECK(!privateExtraxlsSyntaxCursorWordProof(a,b,&view,NULL,NULL));right[i]->field=19;CHECK(privateExtraxlsSyntaxCursorWordProof(a,b,&view,NULL,NULL));left[i]->field=right[i]->field=0;} while(0)
+        CHECK_FIELD(semanticReceiverSymbolId);CHECK_FIELD(compiledPackageError);CHECK_FIELD(compiledPackageRoot);
+#undef CHECK_FIELD
+        left[i]->compiledPackageLink=xrtStrDup("");CHECK(left[i]->compiledPackageLink);
+        CHECK(!privateExtraxlsSyntaxCursorWordProof(a,b,&view,NULL,NULL));
+        right[i]->compiledPackageLink=xrtStrDup("owned-包");CHECK(right[i]->compiledPackageLink);
+        CHECK(!privateExtraxlsSyntaxCursorWordProof(a,b,&view,NULL,NULL));
+        xrtFree(left[i]->compiledPackageLink);left[i]->compiledPackageLink=xrtStrDup("owned-包");CHECK(left[i]->compiledPackageLink);
+        CHECK(privateExtraxlsSyntaxCursorWordProof(a,b,&view,NULL,NULL));
+        xrtFree(left[i]->compiledPackageLink);xrtFree(right[i]->compiledPackageLink);left[i]->compiledPackageLink=right[i]->compiledPackageLink=NULL;
+    }
+    xl6CompletionFree(&qa);xl6CompletionFree(&qb);privateRelease(a);privateRelease(b);xlsTextRelease(ta);xlsTextRelease(tb);xrtFree(path);
+#endif
+    return 1;
+}
+int main(void){if(!exactSourceBytes() || !fusedSourceStorage() || !run() || !cursorPackageProof())return 1;printf("analysis_syntax_storage_test passed: %u checks; real adopted/shared chunks,exact/short budgets,storage-map faults and independent generations\n",checks);return 0;}

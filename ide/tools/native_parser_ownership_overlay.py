@@ -10,13 +10,22 @@ import re
 
 
 def derive(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
+    from native_signature_overlay import profile
+    audited = profile(frontend)
     original = frontend / 'src/parser/xl6_parser.c'
     grammar = frontend / 'src/parser/xl6_parser.y'
-    expected = '3fdd30d906a26f885777a9ab05cd08df7736a52b2eef2148c6ead75950e5651e'
-    grammar_sha = '639ba6823c4dc9dffb6d9bf6a8e14fded358613a57c071ad3ddcd968eff628b7'
+    profiles = {
+        '3fdd30d906a26f885777a9ab05cd08df7736a52b2eef2148c6ead75950e5651e':
+            '639ba6823c4dc9dffb6d9bf6a8e14fded358613a57c071ad3ddcd968eff628b7',
+        # 9192a99f: same AST union tag/ownership controls; one c_vararg rule.
+        'e2afa53003d34fd77de0f8fd44ec65499f8dab5ff1f971f653a5f7c32fa88f95':
+            '9d82450476c4a1784f220177bfda545c34bb85878bf9203558aea23a31baefe0',
+    }
     sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
-    if sha(original) != expected or sha(grammar) != grammar_sha:
+    expected = sha(original)
+    if expected not in profiles or sha(grammar) != profiles[expected]:
         raise ValueError('shared Lemon grammar/parser changed; audit AST stack ownership and union tags')
+    grammar_sha = profiles[expected]
     source = original.read_text(encoding='utf8')
     rules = grammar.read_text(encoding='utf8')
     assert '%default_type { XL6_AstNode* }' in rules
@@ -47,6 +56,7 @@ def derive(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     compiled.write_text(source, encoding='utf8', newline='\n')
     return original, compiled, dict(source=str(original), sourceSha256=expected,
         grammarSource=str(grammar), grammarSha256=grammar_sha, compiledSource=str(compiled),
+        auditedDependencies=audited,
         compiledSha256=sha(compiled), ownedStackSymbols=len(owned),
         excludedControls=sorted(controls), ownedSymbols=sorted(owned),
         change='AST-valued discarded Lemon stack cleanup;original grammar/actions/tables/diagnostics retained')
