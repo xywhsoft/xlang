@@ -1,0 +1,23 @@
+import statistics
+
+func main(...) as int
+    // 大基数上的小波动，不能先把均值舍入到1e16+2再计算偏差。
+    var readings = [1e16, 1e16+2, 1e16+2]
+    var response = [0.0, 1.0, 1.0]
+    assert math.abs(statistics.variance(readings)-8.0/9.0) < 1e-12
+    println("variance: 8/9")
+    assert math.abs(statistics.varianceSample(readings)-4.0/3.0) < 1e-12
+    println("sample variance: 4/3")
+    assert math.abs(statistics.stdev(readings)-math.sqrt(8.0)/3.0) < 1e-12
+    println("stdev: sqrt(8)/3")
+    assert math.abs(statistics.mad(readings)-8.0/9.0) < 1e-12
+    println("MAD: 8/9")
+    auto slope, intercept = statistics.linearFit(readings, response)
+    assert math.abs(slope-0.5) < 1e-12 and math.abs(intercept+5e15) < 1
+    assert math.abs(statistics.correlation(readings,response)-1) < 1e-12
+    println("trend: slope=0.5 correlation=1")
+    // 计算只使用临时数组，不能改写传入的原始测量数据。
+    assert readings[0] == 1e16 and readings[1] == 1e16+2
+    println("statistics offset example: PASS")
+    return 0
+end
