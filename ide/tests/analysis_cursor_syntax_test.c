@@ -1,4 +1,5 @@
 #include "analysis/frontend_internal.h"
+#include "analysis/ast_package_fields.h"
 #include "src/sem/xl6_completion.h"
 #include <xrt.h>
 #include <stdio.h>
@@ -11,6 +12,7 @@ static int sameRange(XL6_AstRange a,XL6_AstRange b)
 static int sameAst(const XL6_AstNode* a,const XL6_AstNode* b)
 {
     if(!a || !b) return a==b;
+    if(!xlsAstPackageScalarsEqual(a,b) || !xlsAstPackageLinkEqual(a,b))return 0;
     if(!!a->source!=!!b->source) return 0;
     if(a->source && (a->source->completionQuery!=b->source->completionQuery ||
        a->source->completionStart!=b->source->completionStart || a->source->completionEnd!=b->source->completionEnd)) return 0;

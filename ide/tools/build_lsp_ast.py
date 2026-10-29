@@ -20,9 +20,11 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def main():
+def main(syntax=False):
     ide = Path(__file__).resolve().parents[1]
-    parser = argparse.ArgumentParser(description=__doc__)
+    scope = ('Guarded original lexer/parser and editing syntax; semantic/IR admission remains closed.'
+             if syntax else __doc__)
+    parser = argparse.ArgumentParser(description=scope)
     parser.add_argument('--frontend-root', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--cc', default=shutil.which('gcc') or 'E:/software/w64devkit/bin/gcc.exe')
@@ -30,7 +32,7 @@ def main():
     frontend, output, cc = args.frontend_root.resolve(strict=True), args.output.resolve(), Path(args.cc).resolve(strict=True)
     output.mkdir(parents=True, exist_ok=False)
     commands, runs, outputs, inputs, consumers = [], [], {}, {}, []
-    report = dict(status='running', accepted=False, scope=__doc__, commands=commands,
+    report = dict(status='running', accepted=False, scope=scope, commands=commands,
                   runs=runs, outputs=outputs, inputs=inputs, astConsumers=consumers)
     started = time.monotonic()
 
@@ -64,7 +66,41 @@ def main():
         core_sources = [ide/'src/analysis/runtime.c', ast, *[
             ide/'src/analysis'/name for name in
             ('ast_storage.c', 'ast_clone.c', 'ast_intern.c', 'ast_materialize.c')]]
-        sources = core_sources+[ide/'tests'/(name+'.c') for name in tests]
+        adapters = [Path(__file__).with_name('native_ast_overlay.py'),
+                    Path(__file__).with_name('native_raw_body_overlay.py')]
+        shared_sources = [ast, ide/'src/analysis/runtime.c']
+        references = []
+        fixture_support = []
+        if syntax:
+            from native_signature_overlay import parser as derive_parser, lexer as derive_lexer
+            from native_parser_ownership_overlay import derive as derive_ownership
+            overlays = [derive_parser(frontend, output), derive_lexer(frontend, output),
+                        derive_ownership(frontend, output)]
+            report['parserOverlays'] = [row[2] for row in overlays]
+            shared_sources += [row[1] for row in overlays]+[frontend/name for name in
+                ('src/lexer/xl6_token.c', 'src/lexer/xl6_lexer_api.c',
+                 'src/diag/xl6_diag.c', 'src/common/xl6_output.c',
+                 'src/common/xl6_console.c', 'src/sem/xl6_completion.c')]
+            core_sources += shared_sources[2:]+[ide/'src/analysis/text.c', ide/'src/analysis/syntax.c']
+            tests += ['analysis_cursor_syntax_test', 'analysis_syntax_storage_test',
+                      'analysis_call_context_test', 'analysis_parser_profile_test']
+            adapters += [Path(__file__).with_name('native_signature_overlay.py'),
+                         Path(__file__).with_name('native_parser_ownership_overlay.py'),
+                         Path(__file__).with_name('build_lsp_syntax.py')]
+            # Independent original API and Lemon tables/actions. No projection
+            # adapter or discarded-stack cleanup in these reference objects.
+            reference = output/'reference'
+            reference.mkdir()
+            for rel in ('src/parser/xl6_parser_api.c', 'src/parser/xl6_parser.c'):
+                target = reference/('reference_'+Path(rel).name)
+                target.write_bytes((frontend/rel).read_bytes())
+                references.append(target)
+            report['referenceSources'] = {str(p): str(frontend/'src/parser'/p.name.removeprefix('reference_'))
+                                          for p in references}
+            fixture_support = [ide/'tests/analysis_syntax_link_fence.c']
+            for p in [frontend/'src/parser/xl6_parser.y', *[row[0] for row in overlays]]:
+                inputs[str(p)] = sha(p)
+        sources = core_sources+references+fixture_support+[ide/'tests'/(name+'.c') for name in tests]
         common = ['-std=c11', '-O2', '-ffunction-sections', '-fdata-sections',
                   '-DXRT_MODULE_ALL=', '-DXLS_COMPILER_XRT=1', '-DXRT_EXCLUDE_MEMORY_DEBUG=',
                   '-finput-charset=UTF-8', '-fexec-charset=UTF-8',
@@ -75,7 +111,14 @@ def main():
         strict = ['-Wall', '-Wextra', '-Werror', '-Wno-unused-parameter']
         shared = ['-Wall', '-Wno-pointer-sign', '-Wno-unused-function', '-Wno-unused-variable',
                   '-Wno-unused-but-set-variable', '-Wno-format-truncation', '-Wno-dangling-pointer']
-        flags = lambda source: common+(shared if source in (ast, ide/'src/analysis/runtime.c') else strict)
+        reference_flags = ['-D'+name+'=xlsReference'+name.removeprefix('xl6') for name in
+            ('xl6ParseSource', 'xl6ParseSourceWithCompletion', 'xl6ParseFile',
+             'xl6ParseResultInit', 'xl6ParseResultFree', 'xl6ParseAlloc', 'xl6Parse', 'xl6ParseFree')]
+        reference_flags += ['-D'+name+'=xlsReference'+name.removeprefix('xl6') for name in
+            ('xl6ParseTrace', 'xl6ParseInit', 'xl6ParseFinalize', 'xl6ParseStackPeak',
+             'xl6ParseCoverage', 'xl6ParseFallback')]
+        flags = lambda source: (common+(shared if source in shared_sources or source in references else strict)+
+                                (reference_flags if source in references else []))
         profiles = []
         report['runtimeProfiles'] = profiles
         for source in (ide/'src/analysis/runtime.c', ast, ide/'src/analysis/ast_clone.c'):
@@ -89,8 +132,7 @@ def main():
                 raise RuntimeError('inconsistent native AST field schema: '+str(source))
             profiles.append(dict(source=str(source), memoryDebug=False, astPackageFields=package_fields,
                                  macroSha256=hashlib.sha256(result.stdout).hexdigest()))
-        for p in (Path(__file__), Path(__file__).with_name('native_ast_overlay.py'),
-                  Path(__file__).with_name('native_raw_body_overlay.py'),
+        for p in (Path(__file__), *adapters,
                   Path(__file__).with_name('build_lsp_core.py'), frontend/'src/ast/xl6_ast.c',
                   frontend/'src/ast/xl6_ast.h', cc):
             inputs[str(p)] = sha(p)
@@ -113,7 +155,7 @@ def main():
             run([str(cc), *flags(source), '-c', str(source), '-o', str(target)], source.stem)
             objects[source.stem] = target
         ar = cc.with_name('ar.exe' if os.name == 'nt' else 'ar')
-        archive = output/'xlang-ast-core.a'
+        archive = output/('xlang-syntax-core.a' if syntax else 'xlang-ast-core.a')
         run([str(ar), 'rcs', str(archive), *[str(objects[p.stem]) for p in core_sources]], 'archive')
         libraries = ['-lm']
         if os.name == 'nt':
@@ -123,7 +165,12 @@ def main():
             libraries += ['-pthread', '-ldl']
         for name in tests:
             program = output/(name+('.exe' if os.name == 'nt' else ''))
-            run([str(cc), str(objects[name]), str(archive), '-Wl,--gc-sections', *libraries, '-o', str(program)], name+'-link')
+            extra = [str(objects[p.stem]) for p in fixture_support]
+            if name=='analysis_syntax_storage_test':
+                extra += ['-Wl,--wrap=xrtCalloc', '-Wl,--wrap=xrtStrDupN']
+            if name=='analysis_parser_profile_test':
+                extra += [str(objects[p.stem]) for p in references]
+            run([str(cc), str(objects[name]), *extra, str(archive), '-Wl,--gc-sections', *libraries, '-o', str(program)], name+'-link')
             run([str(program)], name+'-run')
             runs.append(dict(name=name, status='passed', program=str(program)))
             outputs[program.name] = sha(program)

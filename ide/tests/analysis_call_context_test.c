@@ -103,8 +103,8 @@ static int benchmark(void)
 {
  for(unsigned count=1000;count<=10000;count*=10){
   xstrbuf body={0};for(unsigned i=0;i<count;++i)if(!xrtStrBufAppendFormat(&body,"foo(%u,inner(2,3),4)\n",i))return 1;xls_text* text=xlsTextCreate(body.Data,body.Size,8u*1024u*1024u,NULL);if(!text)return 1;
-  uint64 began=xrtClock();xls_call_context* c=xlsCallContextCreate(text,64u*1024u*1024u,NULL,NULL,NULL,0);uint64 build=xrtClock()-began;if(!c)return 1;
-  size_t offset=(size_t)(strrchr(body.Data,'4')-body.Data);xls_call_site site;began=xrtClock();for(unsigned i=0;i<100000;++i)if(xlsCallContextLookup(c,offset,&site)!=1 || site.argument!=2 || !site.closed || !site.argumentKnown)return 1;uint64 query=xrtClock()-began;
+  double began=xrtTimer();xls_call_context* c=xlsCallContextCreate(text,64u*1024u*1024u,NULL,NULL,NULL,0);uint64 build=(uint64)((xrtTimer()-began)*1000000.0);if(!c)return 1;
+  size_t offset=(size_t)(strrchr(body.Data,'4')-body.Data);xls_call_site site;began=xrtTimer();for(unsigned i=0;i<100000;++i)if(xlsCallContextLookup(c,offset,&site)!=1 || site.argument!=2 || !site.closed || !site.argumentKnown)return 1;uint64 query=(uint64)((xrtTimer()-began)*1000000.0);
   xls_call_context_work work=xlsCallContextWork(c);printf("{\"lines\":%u,\"tokens\":%zu,\"calls\":%zu,\"buildUs\":%llu,\"queryBatchUs\":%llu,\"queries\":100000,\"chargedBytes\":%zu,\"constructionBytes\":%zu}\n",count,work.tokens,work.calls,(unsigned long long)build,(unsigned long long)query,work.chargedBytes,work.constructionBytes);xlsCallContextRelease(c);xlsTextRelease(text);xrtStrBufFree(&body);
  }
  return 0;

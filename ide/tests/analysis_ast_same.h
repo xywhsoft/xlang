@@ -1,6 +1,7 @@
 #ifndef XLS_TEST_AST_SAME_H
 #define XLS_TEST_AST_SAME_H
 #include "analysis/frontend_internal.h"
+#include "analysis/ast_package_fields.h"
 #include <string.h>
 static int sameText(const char* a,const char* b) { return a && b ? !strcmp(a,b) : a==b; }
 static int sameRange(XL6_AstRange a,XL6_AstRange b)
@@ -8,6 +9,7 @@ static int sameRange(XL6_AstRange a,XL6_AstRange b)
 static int sameAst(const XL6_AstNode* a,const XL6_AstNode* b)
 {
     if(!a || !b) return a==b;
+    if(!xlsAstPackageScalarsEqual(a,b) || !xlsAstPackageLinkEqual(a,b))return 0;
     if(a->kind!=b->kind || a->flags!=b->flags || !sameText(a->text,b->text) || !sameText(a->doc,b->doc) ||
        a->literalSize!=b->literalSize || a->literalScalar!=b->literalScalar || a->literalDecoded!=b->literalDecoded || !!a->literalData!=!!b->literalData ||
        (a->literalSize && memcmp(a->literalData,b->literalData,a->literalSize)) || a->line!=b->line || a->column!=b->column ||

@@ -1,5 +1,6 @@
 /* Included after the original token finalizer,within the shared parser TU. */
 #include "analysis/signature_internal.h"
+#include "analysis/frontend_completion_path.h"
 static _Thread_local xls_signature_scope* xlsActiveSignature;
 void xlsSignatureScopeBegin(xls_signature_scope* scope,xls_signature_data* data,int (*cancelled)(void*),void* user)
 {
@@ -28,7 +29,7 @@ static int xlsSignatureReadTokens(XL6_Lexer* lexer,XL6_ParseTokenStream* stream,
     xls_signature_data* data=scope->data;const char* source=raw;size_t size=strlen(raw);
     if(size>=3 && !memcmp(source,"\xef\xbb\xbf",3)){source+=3;size-=3;}
     const xls_call_site* site=&data->site;
-    if(size!=data->size || memcmp(source,data->source,size) || !xl6CompletionPathEqual(data->path,query->path) || query->offset!=data->offset ||
+    if(size!=data->size || memcmp(source,data->source,size) || !xlsCompletionPathEqual(data->path,query->path) || query->offset!=data->offset ||
        !site->argumentsStart || site->argumentsStart>size || source[site->argumentsStart-1]!='(' || site->argumentStart<site->argumentsStart || site->argumentStart>data->offset){query->error="signature projection does not match the original source";return 0;}
     XL6_TokenKind stack[256];size_t depth=0;int opened=0,projected=0;
     for(;;){

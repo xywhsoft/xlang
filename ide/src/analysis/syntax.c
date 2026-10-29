@@ -3,6 +3,8 @@
 #include "analysis/frontend_internal.h"
 #include "analysis/ast_clone.h"
 #include "analysis/ast_materialize.h"
+#include "analysis/ast_package_fields.h"
+#include "analysis/frontend_completion_path.h"
 #include "src/sem/xl6_completion.h"
 #include <limits.h>
 #include <string.h>
@@ -373,7 +375,7 @@ xls_syntax* xlsSyntaxTrySignatureFunction(const char* path,xls_text* text,const 
 }
 xls_syntax* xlsSyntaxCaptureSignature(const char* path,xls_text* text,const XL6_AstNode* root,const XL6_CompletionQuery* query,size_t bytes)
 {
-    if(!path || !text || !root || !query || !xl6CompletionTarget(query,path) || query->parsed!=1 || query->error || !query->prefix || *query->prefix || !query->replacement.known ||
+    if(!path || !text || !root || !query || !xlsCompletionTargetConst(query,path) || query->parsed!=1 || query->error || !query->prefix || *query->prefix || !query->replacement.known ||
        query->replacement.startOffset==SIZE_MAX || query->replacement.endOffset!=query->replacement.startOffset+1 || query->offset<query->replacement.endOffset ||
        query->offset>xlsTextSize(text)-bom(text) || xlsTextData(text)[bom(text)+query->replacement.startOffset]!='(')return NULL;
     xls_syntax* s=allocate(path,text);if(!s)return NULL;

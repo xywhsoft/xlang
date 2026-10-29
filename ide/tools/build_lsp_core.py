@@ -560,56 +560,13 @@ def prepare_native_types(frontend: Path, output: Path) -> tuple[Path, Path, dict
 
 
 def prepare_native_parser(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
-    """Share token finalization with an opt-in incomplete-call projection."""
-    original = frontend / 'src/parser/xl6_parser_api.c'
-    expected = '9bef77532acc35d8b7da1c4d801bcfb81221b2d99747d29609dfb9a54f0ba6f6'
-    if sha(original) != expected:
-        raise ValueError('shared parser changed; audit signature projection, token finalization and original type matcher')
-    source = original.read_text(encoding='utf8').replace('\r\n', '\n')
-    start = source.index('static int xl6ParserReadTokens(')
-    end = source.index('\n}\n\n/* Replace exactly one', start)
-    at = source.index('    /*\n     * EOF ', start)
-    tail = source[at:end]
-    assert tail.endswith('    return 1;')
-    helper = ('static int xlsParserFinishTokens(XL6_ParseTokenStream* stream, XL6_DiagList* diags)\n{\n'
-              '    XL6_Token token=stream->count ? stream->tokens[stream->count-1] : (XL6_Token){0};\n'
-              '    XL6_Token eofToken,separator;\n' + tail + '\n}\n\n')
-    reader = source[start:at].replace('    XL6_Token eofToken;\n    XL6_Token separator;\n', '')
-    source = source[:start] + helper + reader + '    return xlsParserFinishTokens(stream,diags);' + source[end:]
-    marker = 'static int xl6ParseSourceInternal('
-    assert source.count(marker) == 1
-    source = source.replace(marker, '#include "analysis/frontend_signature_parser.inc"\n\n' + marker)
-    for old, new in {
-        'ok = xl6ParserReadTokens(&lexer, &stream, &result->diags);': 'ok = xlsSignatureReadTokens(&lexer, &stream, &result->diags,source,query);',
-        'else if (ok) ok = xl6ParserCompletionToken(&stream, source, query);': 'else if (ok) ok = xlsSignatureCompletionToken(&stream, source, query);',
-    }.items():
-        assert source.count(old) == 1, old
-        source = source.replace(old,new)
-    compiled = output / 'frontend/xl6_parser_api.c'
-    compiled.write_text(source+'\n#include "analysis/frontend_call_context.inc"\n',encoding='utf8',newline='\n')
-    return original, compiled, dict(source=str(original), sourceSha256=expected,
-        compiledSource=str(compiled), compiledSha256=sha(compiled), auditedSeams=5,
-        change='single original token finalizer; opt-in original-source signature projection; default lexer/parser rules retained',
-        originalFunctionsUnchanged=False, originalFinalizerRulesUnchanged=True,
-        originalFinalizerSha256=hashlib.sha256(tail.encode('utf8')).hexdigest(),
-        maximumIndexBytes=64*1024*1024, maximumGenericProofTokens=512, maximumDelimiterDepth=256)
+    from native_signature_overlay import parser
+    return parser(frontend, output)
 
 
 def prepare_native_lexer(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
-    original = frontend / 'src/lexer/xl6_lexer_gen.c'
-    expected = 'b6473ca60b800755e4bb3f993189040673a7c251c7af53163ad42e3d1a551fe1'
-    if sha(original) != expected:
-        raise ValueError('shared scanner changed; audit buffer lifetime,resume and original position advance')
-    literal = frontend / 'src/lexer/xl6_literal_span.h'
-    literal_sha = '3d1b3f3a71adaeb8d76910ece765f433e899190b2f153990feb9c7c6529e0db7'
-    if sha(literal) != literal_sha:
-        raise ValueError('shared literal spans changed; audit signature error/interpolation recovery')
-    compiled = output / 'frontend/xl6_lexer_gen.c'
-    compiled.write_bytes(original.read_bytes()+b'\n#include <limits.h>\n#include "analysis/frontend_signature_lexer.inc"\n')
-    return original,compiled,dict(source=str(original),sourceSha256=expected,
-        compiledSource=str(compiled),compiledSha256=sha(compiled),auditedSeams=1,
-        change='append scanner resume using original native position advance;original scanner unchanged',originalFunctionsUnchanged=True,
-        auditedDependencies={str(literal):literal_sha})
+    from native_signature_overlay import lexer
+    return lexer(frontend, output)
 
 
 def prepare_native_ast(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
@@ -761,6 +718,7 @@ def main() -> None:
     inputs[str(Path(__file__).with_name('native_ast_overlay.py').resolve())] = sha(Path(__file__).with_name('native_ast_overlay.py'))
     inputs[str(Path(__file__).with_name('native_initializer_overlay.py').resolve())] = sha(Path(__file__).with_name('native_initializer_overlay.py'))
     inputs[str(Path(__file__).with_name('native_parser_ownership_overlay.py').resolve())] = sha(Path(__file__).with_name('native_parser_ownership_overlay.py'))
+    inputs[str(Path(__file__).with_name('native_signature_overlay.py').resolve())] = sha(Path(__file__).with_name('native_signature_overlay.py'))
     inputs.update({stack_overlay['source']:stack_overlay['sourceSha256'], stack_overlay['grammarSource']:stack_overlay['grammarSha256']})
     inputs[str(original_parser)] = parser_overlay['sourceSha256']
     inputs[str(original_lexer)] = lexer_overlay['sourceSha256']
