@@ -75,7 +75,7 @@ def main():
             assert not any(name.startswith(('XRT_MODULE_TASK','XRT_MODULE_COROUTINE')) for name in modules)
             flags+=['-DXL6_CHANNEL_DEADLINE_SOURCE_PROBE','-DTEST_SELECT='+str(int(not args.direct))]
         native=out/'native.c';native.write_text(''.join('#define '+name+'\n' for name in sorted(modules))+
-            '#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n',encoding='utf8')
+            '#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"\n',encoding='utf8')
         report['NativeSha256']=hashlib.sha256(native.read_bytes()).hexdigest()
         if args.sanitize:flags+=['-g','-fno-omit-frame-pointer','-fsanitize='+args.sanitize]
         if args.sanitize=='thread':flags+=['-Wno-error=tsan']

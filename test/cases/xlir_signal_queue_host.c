@@ -1,6 +1,7 @@
 /* Private child process only: INT is raised only while a watch is installed.
  * Including the actual adapter allows deterministic overflow/race witnesses;
  * no production hook, substitute queue, or alternative algorithm is used. */
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_signal_queue.c"
 #include <assert.h>
 #include <stdio.h>
@@ -230,7 +231,7 @@ static void absoluteDeadline(void)
     xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);
     SignalQueue* q=xl6SignalQueueCreateV1(XSIGNAL_INT,false,2);assert(q);
     xthread* thread=xrtThreadCreate(spuriousWake,q,0);assert(thread);
-    uint64 start=xrtClock();assert(!xl6SignalQueuePrepareV1(q,30));uint64 elapsed=xrtClock()-start;
+    uint64 start=xl6MonotonicMillisecondsV1();assert(!xl6SignalQueuePrepareV1(q,30));uint64 elapsed=xl6MonotonicMillisecondsV1()-start;
     assert(elapsed>=UINT64_C(25000) && elapsed<UINT64_C(1000000));
     assert(xrtThreadWait(thread)==XWAIT_OK);xrtThreadDestroy(thread);
     xl6SignalQueueDestroyV1(q);xrtSignalShutdown();assert(!xrtGetError());balanced(before);
@@ -250,8 +251,8 @@ static void globalRetirement(void)
     for(unsigned action=0;action<3;++action) {
         SignalQueue* q=xl6SignalQueueCreateV1(XSIGNAL_INT,false,2);assert(q);
         xthread* thread=xrtThreadCreate(retireWhileWaiting,&action,0);assert(thread);
-        uint64 start=xrtClock();assert(!xl6SignalQueuePrepareV1(q,-1));
-        assert(xrtClock()-start<UINT64_C(2000000));
+        uint64 start=xl6MonotonicMillisecondsV1();assert(!xl6SignalQueuePrepareV1(q,-1));
+        assert(xl6MonotonicMillisecondsV1()-start<UINT64_C(2000));
         assert(xrtThreadWait(thread)==XWAIT_OK);xrtThreadDestroy(thread);
         xl6SignalQueueDestroyV1(q);xrtSignalShutdown();assert(!xrtGetError());
     }

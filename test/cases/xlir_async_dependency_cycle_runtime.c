@@ -2,7 +2,11 @@
 #define XRT_MODULE_FUTURE
 #define XRT_MODULE_THREAD
 #define XRT_MODULE_VALUE
+#ifndef XRT_MODULE_WAIT
+#define XRT_MODULE_WAIT
+#endif
 #include "lib/xrt/xrt.h"
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_continuation_future.h"
 #include "src/runtime/xl6_ownership_plan.h"
 #include "src/runtime/xl6_future_payload.h"
@@ -178,11 +182,11 @@ static void cycle(unsigned size,bool waitCleanup,unsigned rootKind,bool allocati
     /* TryCommit may lose the global freeze to an unrelated worker's physical
      * transition. It invokes no language cleanup on BUSY; all work above is
      * already terminal. Require the actual commit before finishing the plan. */
-    xdeadline commitDeadline=xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 commitDeadline=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){
         XL6_OwnershipPlanResult result=xl6OwnershipPlanTryCommit(plan);
         if(result==XL6_OWNERSHIP_PLAN_READY)break;
-        assert(result==XL6_OWNERSHIP_PLAN_BUSY&&!xrtGetError()&&!xrtDeadlineExpired(commitDeadline));
+        assert(result==XL6_OWNERSHIP_PLAN_BUSY&&!xrtGetError()&&!xl6DeadlineExpiredV1(commitDeadline));
         xrtThreadYield();
     }
     assert(xl6OwnershipPlanFinish(plan)&&xl6OwnershipPlanTryDestroy(plan)==XL6_OWNERSHIP_PLAN_READY);owner=NULL;

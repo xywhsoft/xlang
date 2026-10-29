@@ -1,6 +1,7 @@
 /* Reuse the actual TCP carrier/callback baseline, including its OOM cases. */
 #define XRT_MODULE_FILE_TEMP
 #define main tcpDataBaselineMain
+#include "release/include/xl_clock.h"
 #include "tcp_language_runtime.c"
 #undef main
 #include "src/runtime/xl6_fs_file.h"
@@ -53,9 +54,9 @@ static void exercise(xnetportbackend backend)
     xl6NetBufferDestroyV1(chain);receiveExact(services,receiver,NULL,"a\0b",3,false);
     xl6TcpStreamAbortV1(sender);xl6TcpStreamAbortV1(receiver);xl6TcpStreamDestroyV1(sender);xl6TcpStreamDestroyV1(receiver);
     xl6TcpListenerDestroyV1(listener);xl6NetAddressDestroyV1(address);xl6ExecutionResourceReleaseV1(engine);
-    CHECK(xl6ExecutionSourceCloseV1(source));xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
+    CHECK(xl6ExecutionSourceCloseV1(source));XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){XL6_ExecutionRetireResultV1 result=xl6ExecutionSourceDestroyV1(&source);CHECK(result.ok);if(result.ready)break;
-        CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+        CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
     xl6ContinuationExecutorClose(services.executor);CHECK(xl6ContinuationExecutorDestroy(services.executor));balanced(&before);
 }
 int main(int argc,char** argv)

@@ -1,4 +1,6 @@
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
+#include "include/xl_clock.h"
 #include "xl6_ownership_domain_impl.h"
 /* Source/list/producer/watch/result slots remain actual XRT owners. No
  * opaque activation leaves, fabricated holds, or callback-name inference. */

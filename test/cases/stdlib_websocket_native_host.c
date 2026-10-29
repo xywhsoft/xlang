@@ -1,4 +1,5 @@
 /* Actual product providers; ordinary vectors and logical allocation prefixes. */
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_ws_internal.h"
 #include <assert.h>
 #include <stdio.h>
@@ -82,19 +83,19 @@ static void factories(void)
 static void performance(void)
 {
     enum{iterations=100000};volatile uint64 sum=0;xwsframeconfig config;xrtWsFrameConfigInit(&config);config.MaxPayload=1048576;
-    xbytesview input={frame,sizeof(frame)};uint64 begin=xrtClock();
+    xbytesview input={frame,sizeof(frame)};uint64 begin=xl6MonotonicMillisecondsV1();
     for(int i=0;i<iterations;i++){xwsframe value;assert(xrtWsFrameParse(input,&value,&config,NULL)==XWS_FRAME_READY);sum+=value.HeadSize;}
-    uint64 borrowed=xrtClock()-begin;begin=xrtClock();
+    uint64 borrowed=xl6MonotonicMillisecondsV1()-begin;begin=xl6MonotonicMillisecondsV1();
     for(int i=0;i<iterations;i++){
         XL6_WsFrame value={0};value.config=config;
         assert(xrtWsFrameParse(input,&value.value,&value.config,NULL)==XWS_FRAME_READY);
         XL6_WsFrame* owned=xrtMalloc(sizeof(*owned));assert(owned);*owned=value;sum+=owned->value.HeadSize;xrtFree(owned);
     }
-    uint64 handwritten=xrtClock()-begin;xmemdebugsnapshot before,after;xrtMemDebugSnapshot(&before);begin=xrtClock();
+    uint64 handwritten=xl6MonotonicMillisecondsV1()-begin;xmemdebugsnapshot before,after;xrtMemDebugSnapshot(&before);begin=xl6MonotonicMillisecondsV1();
     for(int i=0;i<iterations;i++){
         void* owned=xl6WsFrameParseDefaultSpanV2(input,-1);assert(owned);sum+=xl6WsFrameHeaderSizeV2(owned);xl6WsFrameDestroyV2(owned);
     }
-    uint64 adapter=xrtClock()-begin;xrtMemDebugSnapshot(&after);balance(&before);
+    uint64 adapter=xl6MonotonicMillisecondsV1()-begin;xrtMemDebugSnapshot(&after);balance(&before);
     printf("WebSocket frame cost (%d iterations, same product runtime, memdebug=%d): borrowed-C=%llu us; owning-C=%llu us; owned-adapter=%llu us; adapter allocations=%llu; payload copies=0; checksum=%llu\n",
         iterations,(int)xrtMemDebugEnabled(),(unsigned long long)borrowed,(unsigned long long)handwritten,
         (unsigned long long)adapter,(unsigned long long)(after.AllocCount-before.AllocCount),(unsigned long long)sum);

@@ -119,12 +119,12 @@ bool xl6SignalQueueClosedV1(void* handle)
 bool xl6SignalQueuePrepareV1(void* handle, int64_t timeoutMs)
 {
     SignalQueue* q=check(handle);if(!q)return false;
-    if (timeoutMs < -1 || (timeoutMs>=0 && (uint64_t)timeoutMs>UINT64_MAX/1000)) {
+    if (timeoutMs < -1) {
         xrtSetErrorKind(XERR_RANGE);return false;
     }
-    uint64 now=xrtClock(), delta=timeoutMs<0 ? 0 : (uint64_t)timeoutMs*1000;
+    uint64 now=xl6MonotonicMillisecondsV1(), delta=timeoutMs<0 ? 0 : (uint64_t)timeoutMs;
     if (timeoutMs>=0 && delta>=UINT64_MAX-now) {xrtSetErrorKind(XERR_RANGE);return false;}
-    xdeadline deadline=timeoutMs<0 ? XRT_DEADLINE_NEVER : now+delta;
+    XL6_DeadlineV1 deadline=timeoutMs<0 ? XL6_DEADLINE_NEVER : now+delta;
     lock(q);
     for (;;) {
         if (q->prepared) {unlock(q);return true;}
@@ -144,12 +144,12 @@ bool xl6SignalQueuePrepareV1(void* handle, int64_t timeoutMs)
             if (q->used) continue;
             unlock(q);return false;
         }
-        if (!timeoutMs || xrtDeadlineExpired(deadline)) {unlock(q);return false;}
+        if (!timeoutMs || xl6DeadlineExpiredV1(deadline)) {unlock(q);return false;}
         /* Restore/ignore/shutdown are process-global XRT operations and do
          * not signal this private cond. Recheck disposition/health at most
          * every 10ms; use one absolute deadline across spurious wakes. */
-        uint64 remaining=xrtDeadlineRemaining(deadline);
-        xwaitresult result=xrtCondWaitFor(q->changed,q->lock,remaining<10000?remaining:10000);
+        uint64 remaining=xl6DeadlineRemainingV1(deadline);
+        xwaitresult result=xrtCondWaitFor(q->changed,q->lock,(int64)(remaining<10?remaining:10));
         if (result!=XWAIT_OK && result!=XWAIT_TIMEOUT) {unlock(q);return false;}
     }
 }

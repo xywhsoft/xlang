@@ -3,10 +3,9 @@
 #   dir|virtual-prefix|source-directory
 #   file|virtual-name|source-file
 #
-# xl.dll only needs enough resources to compile and relocate generated C inside
-# the host process. XRT/xruntime functions are provided by tcc_add_symbol;
-# these compatibility paths therefore expose declaration-only SDKs. The runtime
-# object and executable import libraries stay in the compiler-capable manifest.
+# In-process C uses host symbols. External C output links a target-specific
+# native XRT object. Public compatibility paths expose declarations; private
+# implementation paths are reserved for selected language artifact closures.
 
 dir|include|%XL6_EMBED_TCC_DIST_X64%\include
 dir|include/__xl_runtime|%XL6_ROOT%\src\runtime|*.h
@@ -21,8 +20,16 @@ file|include/xl_cancellation_retirement.h|%XL6_ROOT%\release\include\xl_cancella
 file|include/__xl_runtime/xl_runtime.h|%XL6_ROOT%\release\include\xl_runtime.h
 file|include/__xl_runtime/xl_extlib_abi.h|%XL6_ROOT%\release\include\xl_extlib_abi.h
 file|include/__xl_runtime/xruntime_decl.h|%XL6_ROOT%\release\include\xruntime_decl.h
+file|include/__xl_runtime/xrt_decl.h|%XL6_ROOT%\release\include\xrt_decl.h
+file|include/__xl_runtime/xl_clock.h|%XL6_ROOT%\release\include\xl_clock.h
 file|lib/libtcc1.a|%XL6_EMBED_TCC_DIST_X64%\lib\libtcc1.a
 # Keep native C source compatibility without embedding either implementation
 # product. Generated xlang C already reaches xruntime_decl.h through xl_runtime.h.
 file|lib/xrt/xrt.h|%XL6_ROOT%\release\include\xrt_decl.h
 file|lib/xruntime/xruntime.h|%XL6_ROOT%\release\include\xruntime_decl.h
+
+file|include/xl_clock.h|%XL6_ROOT%/release/include/xl_clock.h
+
+file|include/xrt_decl.h|%XL6_ROOT%/release/include/xrt_decl.h
+
+file|include/xruntime_decl.h|%XL6_ROOT%/release/include/xruntime_decl.h

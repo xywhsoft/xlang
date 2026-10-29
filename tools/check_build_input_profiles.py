@@ -29,7 +29,7 @@ def call(name, argv, expected=0):
 
 def receipt(name):
     value = json.loads((work / name).read_text(encoding='utf8'))
-    check(name + ' complete', value['schema'] == 1 and value['complete'] is True and
+    check(name + ' complete', value['schema'] == 2 and value['complete'] is True and
           value['scope'] == 'xlang-native-build-disk-inputs')
     for row in [*value['files'], value['artifact']]:
         p = Path(row['path'])

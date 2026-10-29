@@ -885,7 +885,7 @@ def main():
                 assert not forbidden & set(plan['NativeModules'])
                 native=out/(symbol+'.native.c')
                 native.write_text(''.join('#define '+name+'\n' for name in plan['NativeModules'])+
-                    '#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n',encoding='utf8')
+                    '#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"\n',encoding='utf8')
                 binary=isolated/(symbol+'.pruned'+('.exe' if win else ''))
                 systems=['-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32'] if win else ['-pthread','-ldl','-lm']
                 run(symbol+'.pruned.build',[cc,*flags,'-O2','-DTEST_KIND='+str(kind),'-I'+str(root),'-I'+str(root/'release'),

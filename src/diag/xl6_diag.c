@@ -182,7 +182,7 @@ static void xl6DiagPrintJsonExtended(XL6_Output* out, const XL6_DiagList* list,
     }
     xl6OutputPutc(']', out);
     if (report) {
-        xl6OutputPrintf(out, ",\"sourceReport\":{\"schema\":1,\"scope\":\"loaded-sources-and-manifests\",\"complete\":%s,\"error\":\"",
+        xl6OutputPrintf(out, ",\"sourceReport\":{\"schema\":2,\"scope\":\"loaded-sources-and-manifests\",\"complete\":%s,\"error\":\"",
                          report->complete ? "true" : "false");
         xl6DiagJsonEscaped(out, report->error);
         xl6OutputPuts("\",\"errorFile\":\"", out);
@@ -198,7 +198,7 @@ static void xl6DiagPrintJsonExtended(XL6_Output* out, const XL6_DiagList* list,
             xl6DiagJsonHash(out, item->textSha256);
             xl6OutputPuts("\",\"rawSha256\":\"", out);
             xl6DiagJsonHash(out, item->rawSha256);
-            xl6OutputPrintf(out, "\",\"metadata\":{\"available\":%u,\"device\":\"%016llx\",\"identity\":\"%016llx\",\"modifiedUs\":\"%lld\",\"changedUs\":\"%lld\",\"attributes\":%u}}",
+            xl6OutputPrintf(out, "\",\"metadata\":{\"available\":%u,\"device\":\"%016llx\",\"identity\":\"%016llx\",\"modifiedMs\":\"%lld\",\"changedMs\":\"%lld\",\"attributes\":%u}}",
                 (unsigned)item->info.Available, (unsigned long long)item->info.Device,
                 (unsigned long long)item->info.Identity, (long long)item->info.Modified,
                 (long long)item->info.Changed, (unsigned)item->info.Attributes);

@@ -1,7 +1,7 @@
 #include "xl6_closure_capture_v3.h"
 #include "src/api/xl_foreign_error.h"
 #define XRT_MODULE_MEMORY
-#include "lib/xrt/xrt.h"
+#include "src/common/xl6_xrt.h"
 static bool admit(xrtownershipref ref,void* context){(void)ref;(void)context;return true;}
 static bool valid(const void* raw,const void* environment,size_t bytes)
 {

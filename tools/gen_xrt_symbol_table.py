@@ -46,16 +46,23 @@ def _api_names(header: Path) -> list[str]:
     unique = sorted(set(names))
     if len(unique) != len(names):
         raise ValueError(f"duplicate XRT_API function declarations were found: {header}")
-    if len(unique) < 1000:
-        raise ValueError(f"too few runtime API functions were found: {len(unique)}")
+    if not unique:
+        raise ValueError(f"no runtime API functions were found: {header}")
     return unique
 
 
 
-def _render(header: Path) -> str:
+def _render(*headers: Path) -> str:
     """按稳定顺序渲染 TCC 运行时函数清单。"""
 
-    unique = _api_names(header)
+    names: set[str] = set()
+    for header in headers:
+        owned = set(_api_names(header))
+        overlap = names & owned
+        if overlap:
+            raise ValueError(f"runtime products duplicate API ownership: {sorted(overlap)[:5]}")
+        names.update(owned)
+    unique = sorted(names)
 
     lines = [
         "/* 由 tools/gen_xrt_symbol_table.py 或 .ps1 生成；不要手工修改。 */",
@@ -76,7 +83,7 @@ def main() -> int:
     root = arguments.root.resolve()
     header = root / "lib" / "xruntime" / "xruntime.h"
     output = root / "src" / "api" / "xl_xrt_symbols.inc"
-    expected = _render(header)
+    expected = _render(root / "lib" / "xrt" / "xrt.h", header)
 
     if arguments.check:
         actual = output.read_text(encoding="utf-8") if output.is_file() else ""

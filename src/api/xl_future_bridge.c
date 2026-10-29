@@ -2,7 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
+#include "include/xl_clock.h"
 
 #include "xl_future_bridge.h"
 #include "src/runtime/xl6_future_payload.h"
@@ -11,15 +13,9 @@
 
 
 
-/* Native duration conversion; observation is owned by the physical Future. */
-static uint64 __xl6FutureTimeout(long long milliseconds)
-{
-    if (milliseconds <= 0) return 0;
-    return (unsigned long long)milliseconds > UINT64_MAX / UINT64_C(1000)
-        ? UINT64_MAX : (uint64)milliseconds * UINT64_C(1000);
-}
-static xdeadline __xl6FutureDeadline(long long milliseconds)
-{ return (xdeadline)__xl6FutureTimeout(milliseconds); }
+/* Observation is owned by the physical Future; waits use milliseconds. */
+static XL6_DeadlineV1 __xl6FutureDeadline(long long milliseconds)
+{ return milliseconds <= 0 ? 0 : (XL6_DeadlineV1)milliseconds; }
 
 /* 释放旧结果中仍由适配层持有的值和错误。 */
 static void __xl6FutureResultFree(xl6_future_result* pResult)
@@ -313,9 +309,7 @@ XL_API bool xl6FutureWait(xfuture* pFuture)
 XL_API bool xl6FutureWaitFor(xfuture* pFuture, long long iTimeoutMs)
 {
 	bool bResult = xrtFutureWaitFor(
-		pFuture,
-		__xl6FutureTimeout(iTimeoutMs)
-	) == XWAIT_OK;
+		pFuture,iTimeoutMs) == XWAIT_OK;
 
 	return bResult && (xrtFutureState(pFuture) == XFUTURE_RESOLVED);
 }
@@ -325,10 +319,8 @@ XL_API bool xl6FutureWaitFor(xfuture* pFuture, long long iTimeoutMs)
 /* 等待 Future 到语言层单调毫秒截止时间。 */
 XL_API bool xl6FutureWaitUntil(xfuture* pFuture, long long iDeadlineMs)
 {
-	bool bResult = xrtFutureWaitUntil(
-		pFuture,
-		__xl6FutureDeadline(iDeadlineMs)
-	) == XWAIT_OK;
+	bool bResult = xrtFutureWaitFor(
+		pFuture,xl6DeadlineRemainingMillisecondsV1(__xl6FutureDeadline(iDeadlineMs))) == XWAIT_OK;
 
 	return bResult && (xrtFutureState(pFuture) == XFUTURE_RESOLVED);
 }

@@ -59,7 +59,7 @@ def main():
 
     def report(parsed, expected, complete=True):
         value = parsed["sourceReport"]
-        assert value["schema"] == 1 and value["scope"] == "loaded-sources-and-manifests"
+        assert value["schema"] == 2 and value["scope"] == "loaded-sources-and-manifests"
         assert value["complete"] is complete and isinstance(value["error"], str)
         if not complete:
             assert value["error"] and value["errorFile"]
@@ -77,7 +77,7 @@ def main():
             metadata = item["metadata"]
             assert len(metadata["device"]) == 16 and len(metadata["identity"]) == 16
             int(metadata["device"], 16); int(metadata["identity"], 16)
-            int(metadata["modifiedUs"]); int(metadata["changedUs"])
+            int(metadata["modifiedMs"]); int(metadata["changedMs"])
             if origin == "disk":
                 assert metadata["available"] & 0x49 == 0x49 and int(metadata["identity"], 16)
             else:

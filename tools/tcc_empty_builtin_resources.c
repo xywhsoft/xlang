@@ -6,7 +6,7 @@
 #include "tcc_builtin_vfs.h"
 
 const TCCBuiltinResource tcc_builtin_resources[] = {
-    { "", 0, 0u, 0u, TCC_BUILTIN_RESOURCE_STORE }
+    { "", 0, 0u, 0u }
 };
 
 const unsigned int tcc_builtin_resources_count = 0u;

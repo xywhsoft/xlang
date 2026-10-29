@@ -38,7 +38,7 @@ def main():
     assert not ({'XRT_MODULE_NET','XRT_MODULE_TLS'}&modules)
     out.mkdir(parents=True);native=out/'native.c'
     native.write_text(''.join('#define '+name+'\n' for name in sorted(modules))+
-                      '#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
+                      '#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
     cases=('xlir_continuation_fixed_contract','xlir_continuation_executor_contract',
            'xlir_continuation_progress_contract','xlir_continuation_handoff_contract',
            'xlir_executor_ownership_contract')

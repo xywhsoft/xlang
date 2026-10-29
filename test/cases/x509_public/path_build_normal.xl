@@ -7,7 +7,7 @@ func detached(bytes rootDer,bytes midDer,bytes leafDer) as X509Path
     auto target=Certificate.fromDer(leafDer)
     auto mid=Certificate.fromDer(midDer)
     array<Certificate> candidates=[root,target,mid,mid]
-    auto policy=X509PathPolicy(time(1893456000000000),X509PathFlags.requireKeyUsage | X509PathFlags.requirePurpose,X509KeyUsageFlags.digitalSignature,"1.3.6.1.5.5.7.3.1")
+    auto policy=X509PathPolicy(time.fromUnixMs(1893456000000),X509PathFlags.requireKeyUsage | X509PathFlags.requirePurpose,X509KeyUsageFlags.digitalSignature,"1.3.6.1.5.5.7.3.1")
     auto mutableResult=X509Path.build(target,candidates,store,policy)
     if mutableResult.status != X509ValidationStatus.valid then throw RuntimeError "mutable store entry" end
     auto result=X509Path.build(target,candidates,version,policy)

@@ -43,7 +43,7 @@ def main():
                   Rows=rows, Products=products, Failures=failures, OrdinaryLiteralLoopback=True,
                   ExternalNetworkTests=False, NetworkSecurityTests=False, ShippingLibraryAcceptance=False,
                   DiscoveryOnly=args.probe,PublicLanguageApiAccepted=False,
-                  PinnedDeadlineAbi='uint64 microseconds/xdeadline; no native millisecond ABI import', Scope=__doc__)
+                  PinnedDeadlineAbi='signed relative milliseconds; language absolute monotonic milliseconds', Scope=__doc__)
 
     def save():
         (out/'results.json').write_text(json.dumps(report, indent=2)+'\n', encoding='utf-8')

@@ -2,6 +2,7 @@
  * Execute valid fixed replies and normal own-loopback lifecycle only. */
 #ifdef TEST_PROXY_RUNTIME_PRODUCT
 #define XRUNTIME_IMPLEMENTATION
+#include "release/include/xl_clock.h"
 #include "xruntime.h"
 #else
 #define XRT_IMPLEMENTATION
@@ -59,9 +60,9 @@ static xnetaddrlist* futureProxyLookup(cstr host, xnetfamily family, ptr data)
 {
     (void)host; (void)family; FutureProxyScene* s = data;
     xrtAtomic32Store(&s->lookupEntered, 1, XMEMORY_RELEASE);
-    xdeadline due = xrtDeadlineAfter(UINT64_C(10000000));
+    XL6_DeadlineV1 due = xl6DeadlineAfterMillisecondsV1(10000);
     while (!xrtAtomic32Load(&s->lookupProceed, XMEMORY_ACQUIRE)) {
-        CHECK(!xrtDeadlineExpired(due)); xrtThreadYield();
+        CHECK(!xl6DeadlineExpiredV1(due)); xrtThreadYield();
     }
     xnetaddr address; CHECK(xrtNetAddrLoopback(&address, XNET_FAMILY_IPV4, 0));
     return xrtNetAddrListCreate(&address, 1);
@@ -128,10 +129,10 @@ static bool futureProxyAdmit(xrtownershipref ref, ptr data)
 }
 static void futureProxySnapshot(FutureProxyScene* s)
 {
-    xrtownershipref root = {s, &futureProxyOps}; xdeadline due = xrtDeadlineAfter(UINT64_C(10000000));
+    xrtownershipref root = {s, &futureProxyOps}; XL6_DeadlineV1 due = xl6DeadlineAfterMillisecondsV1(10000);
     for (;;) {
         xrtownershipscope freeze = {0};
-        if (!xrtOwnershipFreezeTryBegin(&freeze)) { CHECK(!xrtDeadlineExpired(due)); xrtThreadYield(); continue; }
+        if (!xrtOwnershipFreezeTryBegin(&freeze)) { CHECK(!xl6DeadlineExpiredV1(due)); xrtThreadYield(); continue; }
         s->busy = xrtNetEngineOwnershipQuiescenceV1Get()->Busy(s->engine);
         xrtownershipsnapshot* snapshot = NULL;
         bool ok = !s->busy && xrtOwnershipSnapshotCreate(&root, 1, &root, 1, futureProxyAdmit, s, &snapshot);
@@ -143,7 +144,7 @@ static void futureProxySnapshot(FutureProxyScene* s)
             xrtOwnershipSnapshotDestroy(snapshot); CHECK(xrtOwnershipScopeEnd(&freeze)); ++snapshots; return;
         }
         CHECK(s->busy); xrtClearError();
-        CHECK(xrtOwnershipScopeEnd(&freeze) && !xrtDeadlineExpired(due)); xrtThreadYield();
+        CHECK(xrtOwnershipScopeEnd(&freeze) && !xl6DeadlineExpiredV1(due)); xrtThreadYield();
     }
 }
 typedef struct FutureProxyGate { xatomic32 entered, proceed; } FutureProxyGate;
@@ -158,8 +159,8 @@ static void futureProxyRead(xnetworker* worker, ptr data)
 static void futureProxyGate(xnetworker* worker, ptr data)
 {
     (void)worker; FutureProxyGate* gate = data;
-    xrtAtomic32Store(&gate->entered, 1, XMEMORY_RELEASE); xdeadline due = xrtDeadlineAfter(UINT64_C(10000000));
-    while (!xrtAtomic32Load(&gate->proceed, XMEMORY_ACQUIRE)) { CHECK(!xrtDeadlineExpired(due)); xrtThreadYield(); }
+    xrtAtomic32Store(&gate->entered, 1, XMEMORY_RELEASE); XL6_DeadlineV1 due = xl6DeadlineAfterMillisecondsV1(10000);
+    while (!xrtAtomic32Load(&gate->proceed, XMEMORY_ACQUIRE)) { CHECK(!xl6DeadlineExpiredV1(due)); xrtThreadYield(); }
 }
 static bool futureProxyCase(xnetportbackend backend, unsigned mode, int64 budget)
 {
@@ -218,8 +219,8 @@ static bool futureProxyCase(xnetportbackend backend, unsigned mode, int64 budget
             CHECK(xrtNetStreamState(s->stream) == XNET_STREAM_OPEN);
         }
         CHECK(xrtNetStreamSend(value, "ping", 4) == XNET_RESULT_OK);
-        xdeadline readDue = xrtDeadlineAfter(UINT64_C(10000000));
-        while (xrtNetStreamAvailable(value) < 11) { CHECK(!xrtDeadlineExpired(readDue)); xrtThreadYield(); }
+        XL6_DeadlineV1 readDue = xl6DeadlineAfterMillisecondsV1(10000);
+        while (xrtNetStreamAvailable(value) < 11) { CHECK(!xl6DeadlineExpiredV1(readDue)); xrtThreadYield(); }
         FutureProxyRead read = {0}; read.stream = value; xrtAtomic32Init(&read.done, 0);
         CHECK(xrtNetEnginePost(s->engine, 0, futureProxyRead, &read));
         testProxyDialWait(&read.done, 1, "Future tunnel roundtrip"); ++roundtrips;
@@ -236,8 +237,8 @@ cleanup:
     xrtNetStreamDestroy(peer.Server); xrtNetListenerDestroy(listener); CHECK(xrtNetEngineDestroy(peerEngine));
     xrtNetStreamDestroy(s->stream); s->stream = NULL; xrtFutureDestroy(s->future); s->future = NULL;
     xrtNetProxyRelease(s->proxy); s->proxy = NULL; CHECK(xrtNetResolverDestroy(s->resolver)); s->resolver = NULL;
-    xdeadline due = xrtDeadlineAfter(UINT64_C(10000000));
-    while (!xrtNetEngineDestroy(s->engine)) { xrtClearError(); CHECK(!xrtDeadlineExpired(due)); xrtThreadYield(); }
+    XL6_DeadlineV1 due = xl6DeadlineAfterMillisecondsV1(10000);
+    while (!xrtNetEngineDestroy(s->engine)) { xrtClearError(); CHECK(!xl6DeadlineExpiredV1(due)); xrtThreadYield(); }
     s->engine = NULL; CHECK(__xrtAtomicRefLoad(&s->refs) == 1); futureProxyDrop(s); xrtClearError();
     xmemdebugsnapshot after; xrtMemDebugSnapshot(&after);
     CHECK(before.LiveCount == after.LiveCount && before.LiveBytes == after.LiveBytes &&

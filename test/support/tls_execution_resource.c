@@ -1,5 +1,7 @@
 /* Fixed ordinary certificate chains, real managed TLS, literal loopback only.
  * No public endpoints, DNS, malformed traffic or security-style testing. */
+#include "release/include/xl_clock.h"
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
 #include "src/runtime/xl6_execution_tls_internal.h"
 #include "src/runtime/xl6_tls_role_context_internal.h"
@@ -28,8 +30,8 @@ static void balanced(xmemdebugsnapshot before)
 }
 static void drain(XL6_ExecutionSourceV1** source)
 {
-    CHECK(xl6ExecutionSourceCloseV1(*source));xdeadline due=xrtDeadlineAfter(UINT64_C(10000000));
-    while(*source){XL6_ExecutionRetireResultV1 result=xl6ExecutionSourceDestroyV1(source);CHECK(result.ok);if(result.ready)break;CHECK(!xrtDeadlineExpired(due));xrtThreadYield();}
+    CHECK(xl6ExecutionSourceCloseV1(*source));XL6_DeadlineV1 due=xl6DeadlineAfterMillisecondsV1(10000);
+    while(*source){XL6_ExecutionRetireResultV1 result=xl6ExecutionSourceDestroyV1(source);CHECK(result.ok);if(result.ready)break;CHECK(!xl6DeadlineExpiredV1(due));xrtThreadYield();}
 }
 static void contexts(void** client,void** server)
 {
@@ -91,7 +93,7 @@ static bool admit(xrtownershipref ref,void* raw)
 }
 static xrtownershipsnapshot* snapshot(Scene* s,xrtownershipscope* freeze)
 {
-    xdeadline due=xrtDeadlineAfter(UINT64_C(10000000));
+    XL6_DeadlineV1 due=xl6DeadlineAfterMillisecondsV1(10000);
     for(;;){if(xrtOwnershipFreezeTryBegin(freeze)){
         s->busy=false;xrtownershipref anchors[CAPACITY+6]={xl6ExecutionSourceOwnershipV1(s->source),xl6ExecutionResourceOwnershipV1(s->engine),
             xl6ExecutionResourceOwnershipV1(s->listener),xl6ExecutionResourceOwnershipV1(s->client),xl6ExecutionResourceOwnershipV1(s->peer)};
@@ -100,7 +102,7 @@ static xrtownershipsnapshot* snapshot(Scene* s,xrtownershipscope* freeze)
         if(s->pinned)for(size_t i=0;i<s->count;i++){anchors[a++]=s->nodes[i].ref;slots[n++]=s->nodes[i].ref;}
         xrtownershipsnapshot* proof=NULL;if(xrtOwnershipSnapshotCreate(anchors,a,slots,n,admit,s,&proof))return proof;
         CHECK(s->busy);xrtClearError();CHECK(xrtOwnershipScopeEnd(freeze));}
-        CHECK(!xrtDeadlineExpired(due));xrtThreadYield();}
+        CHECK(!xl6DeadlineExpiredV1(due));xrtThreadYield();}
 }
 static void discover(Scene* s,xrtownershipsnapshot* proof)
 {
@@ -116,7 +118,7 @@ static void discover(Scene* s,xrtownershipsnapshot* proof)
 static void collect(Scene* s,unsigned order)
 {
     xrtownershipscope freeze={0};xrtownershipsnapshot* proof=snapshot(s,&freeze);discover(s,proof);xrtOwnershipSnapshotDestroy(proof);CHECK(xrtOwnershipScopeEnd(&freeze));
-    xdeadline due=xrtDeadlineAfter(UINT64_C(10000000));
+    XL6_DeadlineV1 due=xl6DeadlineAfterMillisecondsV1(10000);
     for(;;){bool all=true;
         for(size_t j=0;j<s->count;j++){size_t i=order&1?s->count-1-j:j;Node* n=&s->nodes[i];
             if(n->prepare){xrtownershipprepareresult result=n->prepare->Prepare(n->ref.Data,s);
@@ -125,14 +127,14 @@ static void collect(Scene* s,unsigned order)
         if(old!=s->count)all=false;
         for(size_t i=0;i<s->count;i++)if(s->nodes[i].prepare&&!s->nodes[i].prepare->Ready(s->nodes[i].ref.Data))all=false;
         if(all){for(size_t i=0;i<s->count;i++)s->nodes[i].adapter->Clear(s->nodes[i].ref.Data,s);CHECK(xrtOwnershipScopeEnd(&freeze));break;}
-        CHECK(xrtOwnershipScopeEnd(&freeze));CHECK(!xrtDeadlineExpired(due));xrtThreadYield();}
+        CHECK(xrtOwnershipScopeEnd(&freeze));CHECK(!xl6DeadlineExpiredV1(due));xrtThreadYield();}
     for(;;){bool all=true;
         for(size_t j=0;j<s->count;j++){size_t i=order&2?s->count-1-j:j;Node* n=&s->nodes[i];if(n->done)continue;
             xrtownershipfinishresult result=n->finish?n->finish->Step(n->ref.Data,s):
                 (!n->adapter->Finish||n->adapter->Finish(n->ref.Data,s)?XRT_OWNERSHIP_FINISH_READY:XRT_OWNERSHIP_FINISH_FAILED);
             CHECK(result!=XRT_OWNERSHIP_FINISH_FAILED);n->done=result==XRT_OWNERSHIP_FINISH_READY;if(!n->done)all=false;}
         if(all)break;
-        CHECK(!xrtDeadlineExpired(due));xrtThreadYield();}
+        CHECK(!xl6DeadlineExpiredV1(due));xrtThreadYield();}
     xrtFutureDestroy(s->pending);xl6ExecutionResourceReleaseV1(s->client);xl6ExecutionResourceReleaseV1(s->peer);xl6ExecutionResourceReleaseV1(s->listener);
     drain(&s->source);for(size_t i=0;i<s->count;i++)s->nodes[i].adapter->Drop(s->nodes[i].ref.Data);graphs++;
 }
@@ -148,8 +150,8 @@ static void holdTlsWorker(xnetworker* worker,void* raw)
 }
 static void closeInspection(xrtownershipscope* scope)
 {
-    xdeadline due=xrtDeadlineAfter(UINT64_C(10000000));
-    while(!xrtOwnershipFreezeTryBegin(scope)){CHECK(!xrtDeadlineExpired(due));xrtThreadYield();}
+    XL6_DeadlineV1 due=xl6DeadlineAfterMillisecondsV1(10000);
+    while(!xrtOwnershipFreezeTryBegin(scope)){CHECK(!xl6DeadlineExpiredV1(due));xrtThreadYield();}
 }
 static void gracefulLastOwner(xnetportbackend backend)
 {
@@ -176,12 +178,12 @@ static void gracefulLastOwner(xnetportbackend backend)
     xl6ExecutionResourceReleaseV1(sender);s.client=NULL;
     /* A catalog inspection pin is not a language owner. The real retirement
      * worker must observe owner zero before the queued send can progress. */
-    xdeadline due=xrtDeadlineAfter(UINT64_C(10000000));
+    XL6_DeadlineV1 due=xl6DeadlineAfterMillisecondsV1(10000);
     for(;;){
         closeInspection(&inspection);bool attempted=sender->cycle!=cycle&&!sender->retiring;
         CHECK(sender->owners==0&&sender->requested&&sender->source);
         CHECK(xrtOwnershipScopeEnd(&inspection));if(attempted)break;
-        CHECK(!xrtDeadlineExpired(due));xrtThreadYield();
+        CHECK(!xl6DeadlineExpiredV1(due));xrtThreadYield();
     }
     CHECK(xrtNetStreamState(tcp)!=XNET_STREAM_CLOSED);CHECK(xrtEventSet(gate.resume));
     CHECK(xrtFutureWaitFor(sent,UINT64_C(10000000))==XWAIT_OK&&xrtFutureState(sent)==XFUTURE_RESOLVED);
@@ -194,9 +196,9 @@ static void gracefulLastOwner(xnetportbackend backend)
         CHECK(view.Size&&view.Size<=sizeof(payload)-received&&!memcmp(view.Data,payload+received,view.Size));
         received+=view.Size;xrtFutureDestroy(read);
     }
-    due=xrtDeadlineAfter(UINT64_C(10000000));
+    due=xl6DeadlineAfterMillisecondsV1(10000);
     while(xrtTlsStreamState(observer)!=XTLS_STREAM_CLOSED||xrtNetStreamState(tcp)!=XNET_STREAM_CLOSED){
-        CHECK(!xrtDeadlineExpired(due));xrtThreadYield();}
+        CHECK(!xl6DeadlineExpiredV1(due));xrtThreadYield();}
     xrtTlsStreamDestroy(observer);adapter->Drop(sender);
     /* Join physical engine callback tails before destroying their event data. */
     xl6ExecutionResourceReleaseV1(s.peer);xl6ExecutionResourceReleaseV1(s.listener);drain(&s.source);

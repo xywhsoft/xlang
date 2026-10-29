@@ -1,7 +1,7 @@
 #define XRT_MODULE_MEMORY
 #define XRT_MODULE_FUTURE
 #define XRUNTIME_MODULE_RUNTIME_TYPE
-#include "lib/xruntime/xruntime.h"
+#include "src/common/xl6_xrt.h"
 #include "xl6_native_future_payload.h"
 #include "src/api/xl_foreign_error.h"
 #include <string.h>

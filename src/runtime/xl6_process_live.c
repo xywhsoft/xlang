@@ -165,14 +165,14 @@ bool xl6ProcessKillTreeV1(void* handle)
 bool xl6ProcessWaitReadyV1(void* handle,int64_t timeoutMs)
 {
     XL6_ProcessLive* p=xl6ProcessLiveCheck(handle); if (!p) return false;
-    xdeadline deadline=XRT_DEADLINE_NEVER;
+    XL6_DeadlineV1 deadline=XL6_DEADLINE_NEVER;
     if (timeoutMs!=-1) {
-        uint64 duration,now=xrtClock();
+        uint64 duration,now=xl6MonotonicMillisecondsV1();
         if (!xl6ProcessDuration(timeoutMs,&duration)) return false;
         if (duration>=UINT64_MAX-now) { xrtSetErrorKind(XERR_RANGE); return false; }
         deadline=now+duration;
     }
-    xwaitresult result=xrtProcessWaitUntil(p->native,deadline);
+    xwaitresult result=xrtProcessWaitFor(p->native,xl6DeadlineRemainingMillisecondsV1(deadline));
     /* Timeout is absence, not an invented exit code. A successful wait does
      * not join the native waiter: future callbacks may still be retiring. */
     if (result==XWAIT_OK) return true;

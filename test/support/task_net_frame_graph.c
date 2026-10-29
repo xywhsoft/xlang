@@ -1,3 +1,4 @@
+#include "release/include/xl_clock.h"
 #include "net_task_owned_test_clock.h"
 #include "src/runtime/xl6_ownership_plan.h"
 #include "src/runtime/xl6_ownership_catalog.h"
@@ -189,7 +190,7 @@ static void one(unsigned mode,bool resurrect)
     xrtownershipscope freeze={0};idle_freeze(root->engine,&freeze);assert(root_hold(root));
     Work* work=create_work(root);
     root->future=xl6TaskNetSubmitOwnedPolicyV1(root->engine,0,work,NULL,&payload_policy,delayed,
-        xrtDeadlineAfter(mode==4?0:TEST_DELAY));
+        xl6DeadlineAfterMillisecondsV1(mode==4?0:TEST_DELAY));
     assert(root->future);xrtownershipref ref=root_ref(root);xrtownershipresult graph={0};
     assert(xrtOwnershipInspect(&ref,1,NULL,0,&graph)&&graph.NodeCount==(delayed?12u:11u)&&graph.ExternalRootCount==1);
     if(!pending_graphs||pending_graphs==2)printf("Shared task graph: delayed=%u nodes=%zu edges=%zu\n",delayed,graph.NodeCount,graph.EdgeCount);

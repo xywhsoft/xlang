@@ -1,7 +1,7 @@
 #define XRT_MODULE_MEMORY
 #define XRT_MODULE_ATOMIC
 #define XRT_MODULE_THREAD
-#include "lib/xrt/xrt.h"
+#include "src/common/xl6_xrt.h"
 #include "xl6_code_lease.h"
 #include "xl6_ownership_scope.h"
 #include <stdlib.h>

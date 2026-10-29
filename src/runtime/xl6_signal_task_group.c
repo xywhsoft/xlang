@@ -158,10 +158,10 @@ static bool taskGroupWaitResult(int32_t state)
 }
 static bool taskGroupTimeout(int64_t milliseconds,uint64_t* deadline)
 {
-    if(milliseconds<0 || (uint64_t)milliseconds>UINT64_MAX/UINT64_C(1000)){
+    if(milliseconds<0){
         xrtSetErrorKind(XERR_RANGE);return false;
     }
-    *deadline=xrtDeadlineAfter((uint64_t)milliseconds*UINT64_C(1000));return true;
+    *deadline=xl6DeadlineAfterMillisecondsV1((uint64_t)milliseconds);return true;
 }
 bool xl6TaskGroupUntilLanguageV1(void* group,uint64_t deadline)
 { return taskGroupWaitResult(xl6TaskGroupWaitV1(group,deadline,NULL)); }
@@ -170,7 +170,7 @@ bool xl6TaskGroupTimeoutLanguageV1(void* group,int64_t milliseconds)
 bool xl6TaskGroupWaitCancelLanguageV1(void* group,void* cancel)
 {
     if(!cancel){xrtSetErrorKind(XERR_ARGUMENT);return false;}
-    return taskGroupWaitResult(xl6TaskGroupWaitV1(group,XRT_DEADLINE_NEVER,cancel));
+    return taskGroupWaitResult(xl6TaskGroupWaitV1(group,XL6_DEADLINE_NEVER,cancel));
 }
 bool xl6TaskGroupUntilCancelLanguageV1(void* group,uint64_t deadline,void* cancel)
 {

@@ -1,4 +1,6 @@
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
+#include "include/xl_clock.h"
 #include "xl6_native_class_result.h"
 #include "xl6_native_handle.h"
 #include "src/api/xl_foreign_error.h"

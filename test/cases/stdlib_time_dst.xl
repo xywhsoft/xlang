@@ -1,9 +1,9 @@
 // Checker runs this process under America/New_York; it never alters OS timezone.
-auto fold = DateTime(2024, 11, 3, 1, 30, 0, 123456)
-assert time.fromLocal(fold, TimeFold.earlier) == time(1730611800123456)
-assert time.fromLocal(fold, TimeFold.later) == time(1730615400123456)
-auto first = time.local(time(1730611800123456))
-auto second = time.local(time(1730615400123456))
+auto fold = DateTime(2024, 11, 3, 1, 30, 0, 123)
+assert time.fromLocal(fold, TimeFold.earlier) == time.fromUnixMs(1730611800123)
+assert time.fromLocal(fold, TimeFold.later) == time.fromUnixMs(1730615400123)
+auto first = time.local(time.fromUnixMs(1730611800123))
+auto second = time.local(time.fromUnixMs(1730615400123))
 assert first.offset == -14400 and second.offset == -18000
 assert first.isDST == 1 and second.isDST == 0
 assert first.hour == 1 and second.hour == 1 and first.toTime() != second.toTime()

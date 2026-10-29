@@ -84,7 +84,7 @@ xl check main.xl --json --source-report --source-overlay main.xl main.utf8
 | `textSize/textSha256` | 实际参与解析的 UTF-8 正文长度/摘要；磁盘 UTF-8 BOM 移除，CRLF 保留 |
 | `metadata.available` | XRT 文件信息可用位，磁盘要求 size/modify-time/identity，内存为 0 |
 | `metadata.device/identity` | 16 位十六进制字符串，防止 JSON 数字丢失 64 位精度 |
-| `metadata.modifiedUs/changedUs` | Unix Epoch 微秒的十进制字符串；changed 仅在其可用位存在时有意义 |
+| `metadata.modifiedMs/changedMs` | 公元起点毫秒的十进制字符串；changed 仅在其可用位存在时有意义 |
 | `metadata.attributes` | 文件属性；内存输入各元数据为 0 |
 
 同一次检查最多 512 个实际加载的词法路径，每份原文件/文本最多 8 MiB，保留正文合计最多 64 MiB。覆盖表自身仍受 64 份/32 MiB 上限约束。未被读取的覆盖不出现在报告中。报告由本次检查局部持有并释放，不缓存到其他检查或上下文；不返回全文，也不修改磁盘源码。

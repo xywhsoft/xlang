@@ -1,3 +1,4 @@
+#include "release/include/xl_clock.h"
 #include <assert.h>
 #include <stdio.h>
 #ifndef XLIR_GENERATOR_STORAGE_SOURCE
@@ -28,9 +29,9 @@ void payload_pool_finish(int fault)
 {
     /* BUSY is not semantic completion. Wait for the real execution credit,
      * then join physical worker tails before inspecting allocator balance. */
-    xdeadline deadline=xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
     while(!xlir_continuation_quiesce(false)) {
-        assert(!xrtGetError()&&!xrtDeadlineExpired(deadline));xrtThreadYield();
+        assert(!xrtGetError()&&!xl6DeadlineExpiredV1(deadline));xrtThreadYield();
     }
     xlir_module_fini(); assert(!xrtGetError());
     assert(starts == finals && starts <= 1 && (fault >= 0 || starts == 1));

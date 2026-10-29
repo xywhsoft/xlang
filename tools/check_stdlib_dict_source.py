@@ -134,7 +134,7 @@ def main():
                 products.append(dict(Path=str(binary),Sha256=sha(binary)))
                 plan=report['Plan']; native=out/(opt+'-pruned-native.c'); selected=[]
                 native.write_text(''.join('#define '+m+'\n' for m in plan['NativeModules'])+
-                    '#define XRT_MODULE_MEMORY_DEBUG\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
+                    '#define XRT_MODULE_MEMORY_DEBUG\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
                 for i,source in enumerate([native,*[root/s for s in plan['Sources']]]):
                     obj=out/(opt+'-pruned-'+str(i)+'.o'); run(opt+'-pruned-compile-'+str(i),[cc,*full,'-'+opt,'-c',source,'-o',obj]); selected.append(obj)
                     objects.append(dict(Path=str(obj),Sha256=sha(obj)))
@@ -155,7 +155,7 @@ def main():
             for opt in ('O0','O2'):
                 plan=report['LeafPlan']; native=out/(opt+'-leaf-native.c'); selected=[]
                 native.write_text(''.join('#define '+m+'\n' for m in plan['NativeModules'])+
-                    '#define XRT_MODULE_MEMORY_DEBUG\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
+                    '#define XRT_MODULE_MEMORY_DEBUG\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
                 for i,source in enumerate([native,*[root/s for s in plan['Sources']]]):
                     obj=out/(opt+'-leaf-'+str(i)+'.o'); run(opt+'-leaf-compile-'+str(i),[cc,*full,'-'+opt,'-c',source,'-o',obj]); selected.append(obj)
                     objects.append(dict(Path=str(obj),Sha256=sha(obj)))

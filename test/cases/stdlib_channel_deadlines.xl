@@ -1,8 +1,8 @@
-func sendBy<T>(channel<T> pipe, T value, uint64 deadlineUs) as bool
-    return pipe.sendUntil(value, deadlineUs)
+func sendBy<T>(channel<T> pipe, T value, uint64 deadlineMs) as bool
+    return pipe.sendUntil(value, deadlineMs)
 end
-func receiveBy<T>(channel<T> pipe, uint64 deadlineUs) as (int, T?)
-    return pipe.recvUntil(deadlineUs)
+func receiveBy<T>(channel<T> pipe, uint64 deadlineMs) as (int, T?)
+    return pipe.recvUntil(deadlineMs)
 end
 func deadlines()
     channel<int> pipe = channel::<int>(1)

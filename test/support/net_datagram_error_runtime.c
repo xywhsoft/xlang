@@ -1,5 +1,6 @@
 /* Offline snapshots and empty local queues only. No error-producing packets,
  * ICMP, external names/peers, multicast or network-security tests. */
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
 #include "src/runtime/xl6_net_datagram_error_internal.h"
 #include "src/runtime/xl6_native_handle.h"

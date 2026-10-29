@@ -4,7 +4,7 @@
 static xfuture* receive(XL6_RuntimeServicesV1 services,XL6_NativeClassFieldContextV1 context,
     void* receiver,const xvalue* object,int64_t maximum,uint64_t due,void* parent,bool requireParent)
 {
-    if(!services.executor||(due!=XRT_DEADLINE_NEVER&&!services.deadline)||(requireParent&&!parent)){
+    if(!services.executor||(due!=XL6_DEADLINE_NEVER&&!services.deadline)||(requireParent&&!parent)){
         xrtSetErrorKind(XERR_ARGUMENT);xl6TcpFailedV1();return NULL;
     }
     size_t bytes=0;XL6_TcpClassCaptureV1* capture=xl6TcpRecvOwnedPrepareInternalV1(context,receiver,object,maximum,&bytes);
@@ -19,7 +19,7 @@ static xfuture* receive(XL6_RuntimeServicesV1 services,XL6_NativeClassFieldConte
 }
 xfuture* xl6TcpStreamRecvOwnedStartCancelV1(XL6_RuntimeServicesV1 s,XL6_NativeClassFieldContextV1 c,
     void* r,const xvalue* o,void* cancel,int64_t maximum)
-{return receive(s,c,r,o,maximum,XRT_DEADLINE_NEVER,cancel,true);}
+{return receive(s,c,r,o,maximum,XL6_DEADLINE_NEVER,cancel,true);}
 xfuture* xl6TcpStreamRecvOwnedStartUntilV1(XL6_RuntimeServicesV1 s,XL6_NativeClassFieldContextV1 c,
     void* r,const xvalue* o,uint64_t due,int64_t maximum)
 {return receive(s,c,r,o,maximum,due,NULL,false);}

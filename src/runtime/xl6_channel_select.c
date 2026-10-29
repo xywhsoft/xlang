@@ -117,10 +117,10 @@ bool xl6ChannelSelectV1(const XL6_ChannelCaseV1* cases,size_t count,XL6_ChannelW
 {
     xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) abort();
     XL6_ChannelSelectFrameV1 frame={0}; XL6_ChannelSelectionV1 selected={SIZE_MAX,XL6_CHANNEL_TIMEOUT_V1};
-    xdeadline deadline=0; bool ok=false;
+    XL6_DeadlineV1 deadline=0; bool ok=false;
     if (xl6ChannelWaitDeadline(options,&deadline) && xl6ChannelSelectPrepareV1(cases,count,output,&frame)) {
         xchannelselectresult native=options.mode==XL6_CHANNEL_TRY_V1 ? xrtChannelSelectTry(frame.native,frame.count) :
-            xrtChannelSelectUntil(frame.native,frame.count,deadline);
+            xrtChannelSelectFor(frame.native,frame.count,xl6DeadlineRemainingMillisecondsV1(deadline));
         ok=xl6ChannelSelectCompleteV1(&frame,native,&selected);
     }
     if (!ok || xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);

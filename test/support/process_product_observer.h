@@ -9,6 +9,11 @@
 #endif
 #define XRT_MODULE_ALL
 #define XRUNTIME_MODULE_ALL
+#include "lib/xruntime/xruntime_features.h"
+#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)
+#define XRT_IMPLEMENTATION
+#endif
+#include "lib/xrt/xrt.h"
 #include "lib/xruntime/xruntime.h"
 #if defined(_WIN32)
 #include <windows.h>

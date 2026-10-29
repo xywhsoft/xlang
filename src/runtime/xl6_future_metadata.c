@@ -29,12 +29,12 @@ xstrview xl6FutureDebugNameCopyV2(xfuture* future)
 int64_t xl6FutureFirstObservedMsV2(xfuture* future)
 {
     xfuturedebugsnapshot snapshot;
-    return readSnapshot(future,&snapshot) ? (int64_t)(snapshot.FirstObserved/UINT64_C(1000)) : 0;
+    return readSnapshot(future,&snapshot) ? (int64_t)(snapshot.FirstObserved) : 0;
 }
 int64_t xl6FutureFirstTerminalObservedMsV2(xfuture* future)
 {
     xfuturedebugsnapshot snapshot;
-    return readSnapshot(future,&snapshot) ? (int64_t)(snapshot.FirstTerminalObserved/UINT64_C(1000)) : 0;
+    return readSnapshot(future,&snapshot) ? (int64_t)(snapshot.FirstTerminalObserved) : 0;
 }
 int64_t xl6FuturePendingWatchesV2(xfuture* future)
 {

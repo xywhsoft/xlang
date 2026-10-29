@@ -216,7 +216,8 @@ static int xl6IrCgenEmitHeaderBody(
     xl6IrCgenEmitPublicLinkage(out);
     xl6OutputPuts("#include <stdbool.h>\n#include <stddef.h>\n#include <stdint.h>\n#include <limits.h>\n#include <stdlib.h>\n#include <wchar.h>\n", out);
     if ( opaqueNeeds.string )
-        xl6OutputPuts("#include <__xl_runtime/xruntime_decl.h>\n"
+        xl6OutputPuts("#include <__xl_runtime/xrt_decl.h>\n"
+            "#include <__xl_runtime/xruntime_decl.h>\n"
                       "/* Data/Size are exact UTF-8 bytes; Data[Size] is a trailing NUL sentinel. */\n"
                       "typedef xstrview xlir_string;\n", out);
     xl6OutputPuts("\n", out);

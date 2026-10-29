@@ -2,6 +2,11 @@
 #define XRT_MODULE_VALUE_GRAPH
 #define XRT_MODULE_FUTURE
 #define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
+#include "lib/xruntime/xruntime_features.h"
+#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)
+#define XRT_IMPLEMENTATION
+#endif
+#include "lib/xrt/xrt.h"
 #include "lib/xruntime/xruntime.h"
 #include "src/runtime/xl6_closure.h"
 #include "src/runtime/xl6_continuation_future.h"

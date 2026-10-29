@@ -17,6 +17,7 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 #ifdef _WIN32
 # include <io.h>
@@ -29,6 +30,10 @@
 #endif
 
 #include "LzmaDec.h"
+
+#ifndef EOVERFLOW
+# define EOVERFLOW EINVAL
+#endif
 
 #ifndef O_BINARY
 # define O_BINARY 0
@@ -43,6 +48,7 @@
 
 typedef struct TCCVfsOpenFile {
     const unsigned char *data;
+    const TCCBuiltinResource *resource;
     unsigned char *owned_data;
     size_t size;
     size_t pos;
@@ -197,6 +203,17 @@ static int tcc_vfs_find_dynamic_key(const char *key)
     return -1;
 }
 
+static int tcc_vfs_lookup_fixed_object(const char *path,const TCCBuiltinResource **result)
+{
+    char key[TCC_VFS_KEY_MAX];
+    if(!path)return 0;
+    tcc_vfs_normalize_key(path,key,sizeof(key));
+    if(strncmp(key,"__xl_objects/",13)!=0)return 0;
+    *result=tcc_vfs_lookup_exact(key);
+    if(!*result)errno=ENOENT;
+    return 1;
+}
+
 static const TCCVfsDynamicResource *tcc_vfs_lookup_dynamic(const char *path)
 {
     char norm[TCC_VFS_KEY_MAX];
@@ -216,6 +233,8 @@ static void tcc_vfs_free_dynamic_resource(TCCVfsDynamicResource *res)
     memset(res, 0, sizeof *res);
 }
 
+static void tcc_vfs_clear_cache(void);
+
 TCC_VFS_API void tcc_vfs_clear_dynamic(void)
 {
     unsigned int i;
@@ -226,6 +245,7 @@ TCC_VFS_API void tcc_vfs_clear_dynamic(void)
     tcc_vfs_dynamic_resources = NULL;
     tcc_vfs_dynamic_count = 0;
     tcc_vfs_dynamic_capacity = 0;
+    tcc_vfs_clear_cache();
 }
 
 TCC_VFS_API int tcc_vfs_mount_memory(const char *path, const void *data, size_t size)
@@ -309,6 +329,7 @@ static int tcc_vfs_alloc_materialized_fd(const unsigned char *data, unsigned cha
         TCCVfsOpenFile *vf = &tcc_vfs_open_files[i];
         if (!vf->used) {
             vf->data = data;
+            vf->resource = NULL;
             vf->owned_data = owned_data;
             vf->size = size;
             vf->pos = 0;
@@ -350,14 +371,10 @@ static int tcc_vfs_alloc_dynamic_fd(const TCCVfsDynamicResource *res)
 
 static int tcc_vfs_alloc_fd(const TCCBuiltinResource *res)
 {
-    const unsigned char *data;
-    unsigned char *owned_data;
-    size_t size;
-
-    if (!tcc_vfs_materialize_resource(res, &data, &owned_data, &size))
-        return -1;
-
-    return tcc_vfs_alloc_materialized_fd(data, owned_data, size);
+    int fd = tcc_vfs_alloc_materialized_fd(NULL, NULL, res->size);
+    TCCVfsOpenFile *vf = tcc_vfs_get_file(fd);
+    if (vf) vf->resource = res;
+    return fd;
 }
 
 static int tcc_vfs_is_readonly_open(int flags)
@@ -416,72 +433,117 @@ static int tcc_vfs_decode_lzma(
         && in_size == (SizeT)(src_size - LZMA_PROPS_SIZE);
 }
 
-static int tcc_vfs_materialize_resource(
-    const TCCBuiltinResource *res,
-    const unsigned char **out_data,
-    unsigned char **out_owned_data,
-    size_t *out_size)
+/* Fixed capacity: 8 x 1 MiB decoded blocks (8 MiB maximum). File
+ * descriptors retain catalog extents, never an evictable cache address. */
+#define TCC_VFS_CACHE_SLOTS 8
+#define TCC_VFS_CACHE_BLOCK_MAX 1048576u
+typedef struct TCCVfsCacheEntry {
+    const TCCBuiltinBlob *blob;
+    unsigned char *data;
+    uint64_t age;
+} TCCVfsCacheEntry;
+static TCCVfsCacheEntry tcc_vfs_cache[TCC_VFS_CACHE_SLOTS];
+static uint64_t tcc_vfs_cache_age;
+static void tcc_vfs_clear_cache(void)
+{
+    unsigned int i;
+    for (i=0;i<TCC_VFS_CACHE_SLOTS;++i) {
+        free(tcc_vfs_cache[i].data);
+        memset(&tcc_vfs_cache[i],0,sizeof(tcc_vfs_cache[i]));
+    }
+    tcc_vfs_cache_age=0;
+}
+static const unsigned char *tcc_vfs_blob_data(const TCCBuiltinBlob *blob, unsigned char **temporary)
+{
+    unsigned int i, victim=0;
+    unsigned char *data;
+    *temporary=NULL;
+    if (!blob || !blob->data) { errno=EINVAL; return NULL; }
+    if (blob->method==TCC_BUILTIN_RESOURCE_STORE) {
+        if (blob->packed_size!=blob->size) { errno=EINVAL; return NULL; }
+        return blob->data;
+    }
+    if (blob->method!=TCC_BUILTIN_RESOURCE_LZMA) { errno=EINVAL; return NULL; }
+    if (++tcc_vfs_cache_age==0) {
+        for (i=0;i<TCC_VFS_CACHE_SLOTS;++i) tcc_vfs_cache[i].age=0;
+        tcc_vfs_cache_age=1;
+    }
+    for (i=0;i<TCC_VFS_CACHE_SLOTS;++i) {
+        if (tcc_vfs_cache[i].blob==blob) {
+            tcc_vfs_cache[i].age=tcc_vfs_cache_age;
+            return tcc_vfs_cache[i].data;
+        }
+        if (tcc_vfs_cache[i].age<tcc_vfs_cache[victim].age) victim=i;
+    }
+    data=(unsigned char*)malloc(blob->size?blob->size:1u);
+    if (!data) { errno=ENOMEM; return NULL; }
+    if (!tcc_vfs_decode_lzma(blob->data,blob->packed_size,data,blob->size)) {
+        free(data); errno=EINVAL; return NULL;
+    }
+    if (blob->size>TCC_VFS_CACHE_BLOCK_MAX) { *temporary=data; return data; }
+    free(tcc_vfs_cache[victim].data);
+    tcc_vfs_cache[victim].blob=blob;
+    tcc_vfs_cache[victim].data=data;
+    tcc_vfs_cache[victim].age=tcc_vfs_cache_age;
+    return data;
+}
+static int tcc_vfs_resource_read(const TCCBuiltinResource *res, size_t pos, void *buffer, size_t size)
+{
+    size_t total=0, copied=0;
+    unsigned int i;
+    if (!res || pos>res->size || size>res->size-pos || (size&&!buffer) ||
+        (res->span_count&&!res->spans)) { errno=EINVAL; return 0; }
+    for (i=0;i<res->span_count;++i) {
+        const TCCBuiltinSpan *span=&res->spans[i];
+        if (!span->blob || span->offset>span->blob->size ||
+            span->size>span->blob->size-span->offset || span->size>SIZE_MAX-total) {
+            errno=EINVAL; return 0;
+        }
+        total+=span->size;
+    }
+    if (total!=res->size) { errno=EINVAL; return 0; }
+    total=0;
+    for (i=0;i<res->span_count && copied<size;++i) {
+        const TCCBuiltinSpan *span=&res->spans[i];
+        size_t end=total+span->size;
+        if (pos<end) {
+            size_t offset=pos>total?pos-total:0;
+            size_t n=span->size-offset;
+            unsigned char *temporary=NULL;
+            const unsigned char *data;
+            if (n>size-copied) n=size-copied;
+            data=tcc_vfs_blob_data(span->blob,&temporary);
+            if (!data) return 0;
+            memcpy((unsigned char*)buffer+copied,data+span->offset+offset,n);
+            free(temporary);
+            copied+=n; pos+=n;
+        }
+        total=end;
+    }
+    return copied==size;
+}
+static int tcc_vfs_materialize_resource(const TCCBuiltinResource *res,
+    const unsigned char **out_data,unsigned char **out_owned_data,size_t *out_size)
 {
     unsigned char *data;
-
-    if (!out_data || !out_owned_data || !out_size)
-        return 0;
-    *out_data = NULL;
-    *out_owned_data = NULL;
-    *out_size = 0;
-
-    if (!res || !res->data) {
-        errno = ENOENT;
-        return 0;
-    }
-
-    if (res->method == TCC_BUILTIN_RESOURCE_STORE) {
-        *out_data = res->data;
-        *out_size = res->size;
-        return 1;
-    }
-
-    if (res->method != TCC_BUILTIN_RESOURCE_LZMA) {
-        errno = EINVAL;
-        return 0;
-    }
-
-    data = (unsigned char *)malloc(res->size ? res->size : 1u);
-    if (!data) {
-        errno = ENOMEM;
-        return 0;
-    }
-    if (!tcc_vfs_decode_lzma(res->data, res->packed_size, data, res->size)) {
-        free(data);
-        errno = EINVAL;
-        return 0;
-    }
-
-    *out_data = data;
-    *out_owned_data = data;
-    *out_size = res->size;
-    return 1;
+    *out_data=NULL; *out_owned_data=NULL; *out_size=0;
+    if (!res) { errno=ENOENT; return 0; }
+    data=(unsigned char*)malloc(res->size?res->size:1u);
+    if (!data) { errno=ENOMEM; return 0; }
+    if (!tcc_vfs_resource_read(res,0,data,res->size)) { free(data); return 0; }
+    *out_data=data; *out_owned_data=data; *out_size=res->size; return 1;
 }
-
-int tcc_vfs_read_builtin(const char *path, void *buffer, size_t capacity, size_t *size)
+int tcc_vfs_read_builtin(const char *path,void *buffer,size_t capacity,size_t *size)
 {
     const TCCBuiltinResource *res;
-    const unsigned char *data = NULL;
-    unsigned char *owned = NULL;
-    size_t length = 0;
-    int ok;
-    if (size) *size = 0;
-    if (!path || !size || strlen(path) >= TCC_VFS_KEY_MAX || (!buffer && capacity)) { errno = EINVAL; return 0; }
-    res = tcc_vfs_lookup_resource(path);
-    if (!res) { errno = ENOENT; return 0; }
-    *size = res->size;
+    if (size) *size=0;
+    if (!path || !size || strlen(path)>=TCC_VFS_KEY_MAX || (!buffer&&capacity)) { errno=EINVAL; return 0; }
+    res=tcc_vfs_lookup_resource(path);
+    if (!res) { errno=ENOENT; return 0; }
+    *size=res->size;
     if (!buffer) return 1;
-    if (capacity < res->size) { errno = ENOSPC; return 0; }
-    ok = tcc_vfs_materialize_resource(res, &data, &owned, &length);
-    if (ok && length == res->size) { if (length) memcpy(buffer, data, length); }
-    else ok = 0;
-    free(owned);
-    return ok;
+    if (capacity<res->size) { errno=ENOSPC; return 0; }
+    return tcc_vfs_resource_read(res,0,buffer,res->size);
 }
 
 #ifdef _WIN32
@@ -582,7 +644,9 @@ TCC_VFS_API int tcc_vfs_open(const char *path, int flags, ...)
     }
 
     if (tcc_vfs_is_readonly_open(flags)) {
-        dynamic_res = tcc_vfs_lookup_dynamic(path);
+        if (tcc_vfs_is_readonly_open(flags) && tcc_vfs_lookup_fixed_object(path,&res))
+        return res?tcc_vfs_alloc_fd(res):-1;
+    dynamic_res = tcc_vfs_lookup_dynamic(path);
         if (dynamic_res)
             return tcc_vfs_alloc_dynamic_fd(dynamic_res);
         if (tcc_vfs_disk_reader) {
@@ -633,8 +697,11 @@ TCC_VFS_API int tcc_vfs_read(int fd, void *buf, size_t count)
             if (n > count)
                 n = count;
         }
+        if (n > (size_t)INT_MAX) n=INT_MAX;
         if (n) {
-            memcpy(buf, vf->data + vf->pos, n);
+            if (vf->resource) {
+                if (!tcc_vfs_resource_read(vf->resource,vf->pos,buf,n)) return -1;
+            } else memcpy(buf, vf->data + vf->pos, n);
             vf->pos += n;
         }
         if (n > (size_t)INT_MAX)
@@ -668,6 +735,7 @@ TCC_VFS_API long tcc_vfs_lseek(int fd, long offset, int whence)
             errno = EINVAL;
             return -1;
         }
+        if ((offset>0&&base>LONG_MAX-offset)||(offset<0&&base<LONG_MIN-offset)) { errno=EINVAL; return -1; }
         pos = base + offset;
         if (pos < 0) {
             errno = EINVAL;
@@ -690,7 +758,9 @@ TCC_VFS_API FILE *tcc_vfs_fopen(const char *path, const char *mode)
     const TCCVfsDynamicResource *dynamic_res;
 
     if (tcc_vfs_is_readonly_fopen(mode)) {
-        dynamic_res = tcc_vfs_lookup_dynamic(path);
+        if (tcc_vfs_is_readonly_fopen(mode) && tcc_vfs_lookup_fixed_object(path,&res))
+        return res?tcc_vfs_fopen_resource(res):NULL;
+    dynamic_res = tcc_vfs_lookup_dynamic(path);
         if (dynamic_res)
             return tcc_vfs_fopen_dynamic(dynamic_res);
         if (tcc_vfs_disk_reader) {
@@ -716,4 +786,117 @@ TCC_VFS_API FILE *tcc_vfs_fopen(const char *path, const char *mode)
 TCC_VFS_API int tcc_vfs_fclose(FILE *file)
 {
     return fclose(file);
+}
+
+/* Catalog code is generated on demand for a nested host. Physical compressed
+ * bytes are stored once in each host; logical aliases keep their own names. */
+typedef struct TCCVfsSourceWriter { char *buffer; size_t capacity, used; int ok; } TCCVfsSourceWriter;
+static void tcc_vfs_source_append(TCCVfsSourceWriter *w,const char *text,size_t size)
+{
+    if (!w->ok || size>SIZE_MAX-w->used) { w->ok=0; return; }
+    if (w->buffer && size && w->used<w->capacity) {
+        size_t n=w->capacity-w->used;
+        if (n>size) n=size;
+        memcpy(w->buffer+w->used,text,n);
+    }
+    w->used+=size;
+}
+static void tcc_vfs_source_format(TCCVfsSourceWriter *w,const char *format,...)
+{
+    char text[256]; int size; va_list args;
+    va_start(args,format); size=vsnprintf(text,sizeof(text),format,args); va_end(args);
+    if (size<0 || (size_t)size>=sizeof(text)) { w->ok=0; return; }
+    tcc_vfs_source_append(w,text,(size_t)size);
+}
+static int tcc_vfs_catalog_selected(const TCCBuiltinResource *r,int compiler)
+{
+    if (compiler || strcmp(r->name,"__xl_objects/static-native/xrt.o")==0 ||
+        strcmp(r->name,"__xl_objects/shared-native/xrt.o")==0) return 1;
+    return strncmp(r->name,"__xl_compiler/",14)!=0 &&
+        strncmp(r->name,"__xl_objects/",13)!=0 &&
+        strcmp(r->name,"include/__xl_runtime/xrt.h")!=0 &&
+        strcmp(r->name,"include/__xl_runtime/xruntime.h")!=0 &&
+        strcmp(r->name,"include/__xl_runtime/xruntime_features.h")!=0;
+}
+static size_t tcc_vfs_blob_index(const TCCBuiltinBlob **blobs,size_t count,const TCCBuiltinBlob *blob)
+{
+    size_t i; for(i=0;i<count;++i) if(blobs[i]==blob) return i;
+    return count;
+}
+int tcc_vfs_write_catalog_source(int compiler,char *buffer,size_t capacity,size_t *size)
+{
+    const TCCBuiltinBlob **blobs=NULL;
+    size_t count=0,maximum=0,b,i,j;
+    TCCVfsSourceWriter w={buffer,capacity,0,1};
+    if(size)*size=0;
+    if(!size || (!buffer&&capacity)) { errno=EINVAL; return 0; }
+    for(i=0;i<tcc_builtin_resources_count;++i) {
+        const TCCBuiltinResource *r=&tcc_builtin_resources[i];
+        if(!tcc_vfs_catalog_selected(r,compiler))continue;
+        if(r->span_count>SIZE_MAX-maximum) { errno=EINVAL; return 0; }
+        maximum+=r->span_count;
+    }
+    if(maximum>SIZE_MAX/sizeof(*blobs)) { errno=EINVAL; return 0; }
+    blobs=(const TCCBuiltinBlob**)malloc((maximum?maximum:1)*sizeof(*blobs));
+    if(!blobs) { errno=ENOMEM; return 0; }
+    for(i=0;i<tcc_builtin_resources_count;++i) {
+        const TCCBuiltinResource *r=&tcc_builtin_resources[i];
+        if(!tcc_vfs_catalog_selected(r,compiler))continue;
+        for(j=0;j<r->span_count;++j) {
+            const TCCBuiltinBlob *blob=r->spans[j].blob;
+            if(tcc_vfs_blob_index(blobs,count,blob)==count)blobs[count++]=blob;
+        }
+    }
+    tcc_vfs_source_format(&w,"#include \"tcc_builtin_vfs.h\"\n#if TCC_BUILTIN_CATALOG_VERSION != 2\n#error catalog_version\n#endif\n");
+    for(b=0;b<count;++b) {
+        const TCCBuiltinBlob *blob=blobs[b];
+        const char hex[]="0123456789abcdef";
+        tcc_vfs_source_format(&w,"static const unsigned char vd%llu[]={\n",(unsigned long long)b);
+        for(i=0;i<blob->packed_size;) {
+            char line[81]; size_t n=0;
+            for(j=0;j<16&&i<blob->packed_size;++j,++i) {
+                unsigned int byte=blob->data[i];
+                line[n++]='0';line[n++]='x';line[n++]=hex[byte>>4];line[n++]=hex[byte&15];line[n++]=',';
+            }
+            line[n++]='\n';tcc_vfs_source_append(&w,line,n);
+        }
+        if(!blob->packed_size)tcc_vfs_source_format(&w,"0\n");
+        tcc_vfs_source_format(&w,"};\nstatic const TCCBuiltinBlob vb%llu={vd%llu,%llu,%llu,%u};\n",
+            (unsigned long long)b,(unsigned long long)b,(unsigned long long)blob->packed_size,
+            (unsigned long long)blob->size,blob->method);
+    }
+    for(i=0;i<tcc_builtin_resources_count;++i) {
+        const TCCBuiltinResource *r=&tcc_builtin_resources[i];
+        if(!tcc_vfs_catalog_selected(r,compiler))continue;
+        tcc_vfs_source_format(&w,"static const TCCBuiltinSpan vs%llu[]={\n",(unsigned long long)i);
+        for(j=0;j<r->span_count;++j) {
+            const TCCBuiltinSpan *span=&r->spans[j];b=tcc_vfs_blob_index(blobs,count,span->blob);
+            tcc_vfs_source_format(&w,"{&vb%llu,%llu,%llu},\n",(unsigned long long)b,
+                (unsigned long long)span->offset,(unsigned long long)span->size);
+        }
+        if(!r->span_count)tcc_vfs_source_format(&w,"{0}\n");
+        tcc_vfs_source_format(&w,"};\n");
+    }
+    tcc_vfs_source_format(&w,"const TCCBuiltinResource tcc_builtin_resources[]={\n");
+    b=0;
+    for(i=0;i<tcc_builtin_resources_count;++i) {
+        const TCCBuiltinResource *r=&tcc_builtin_resources[i];const unsigned char *name;
+        if(!tcc_vfs_catalog_selected(r,compiler))continue;
+        ++b;tcc_vfs_source_format(&w,"{\"");
+        for(name=(const unsigned char*)r->name;*name;++name) {
+            if(*name=='"'||*name=='\\')tcc_vfs_source_format(&w,"\\%c",*name);
+            else if(*name>=32&&*name<127)tcc_vfs_source_append(&w,(const char*)name,1);
+            else tcc_vfs_source_format(&w,"\\%03o",*name);
+        }
+        tcc_vfs_source_format(&w,"\",vs%llu,%u,%llu},\n",(unsigned long long)i,r->span_count,(unsigned long long)r->size);
+    }
+    if(!b)tcc_vfs_source_format(&w,"{0}\n");
+    tcc_vfs_source_format(&w,"};\nconst unsigned int tcc_builtin_resources_count=%llu;\n",(unsigned long long)b);
+    free(blobs);*size=w.used;
+    if(!w.ok) { errno=EOVERFLOW; return 0; }
+    if(buffer) {
+        if(capacity<=w.used) { errno=ENOSPC; return 0; }
+        buffer[w.used]=0;
+    }
+    return 1;
 }

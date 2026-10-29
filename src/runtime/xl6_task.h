@@ -145,7 +145,7 @@ typedef struct XL6_TaskPoolControlV1 {
      * True reports READY/TIMEOUT/CANCELLED separately. Output starts TIMEOUT
      * even on failure; no partial stats are returned. -1 waits indefinitely,
      * 0 polls, positive milliseconds are finite and checked for overflow.
-     * Until is an absolute finite pinned microsecond deadline, never MAX. */
+     * Until is an absolute finite pinned millisecond deadline, never MAX. */
     bool (*WaitFor)(XL6_TaskPool*,int64_t,struct xcancel*,XL6_TaskPoolWaitStatusV1*);
     bool (*WaitUntil)(XL6_TaskPool*,uint64_t,struct xcancel*,XL6_TaskPoolWaitStatusV1*);
     /* Caller supplies size==sizeof(Stats). Never creates a native pool;

@@ -1,3 +1,4 @@
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_process_pipeline_internal.h"
 #include "src/runtime/xl6_process_run_internal.h"
 #include <assert.h>
@@ -132,7 +133,7 @@ int main(int argc,char** argv)
     result=xl6ProcessPipelineRunV1(p,options,input,-1);assert(result && xl6PipelineResultCancelledV1(result));
     assert(xrtThreadWait(worker)==XWAIT_OK);xrtThreadDestroy(worker);xl6PipelineResultDestroyV1(result);
     xl6ProcessRunOptionsDestroyV1(options);
-    options=xl6ProcessRunOptionsCreateV1(-1,1024,1024,0,0,xrtClock()+10000);assert(options);
+    options=xl6ProcessRunOptionsCreateV1(-1,1024,1024,0,0,xl6MonotonicMillisecondsV1()+10000);assert(options);
     result=xl6ProcessPipelineRunV1(p,options,input,-1);assert(result && xl6PipelineResultTimedOutV1(result));
     xl6PipelineResultDestroyV1(result);xl6ProcessRunOptionsDestroyV1(options);xrtValueRelease(input);
     xrtSetErrorKind(XERR_IO);const xerror* ambient=xrtGetError();xl6ProcessPipelineDestroyV1(p);

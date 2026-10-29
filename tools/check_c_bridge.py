@@ -26,7 +26,7 @@ def main():
   validated+=1;assert v['ok'] and v['sourceReport']['complete'] and not v['diagnostics']
   b=v['cBridge'];assert b['schema']==1 and b['scope']=='lowered-xlang-native-declarations' and b['complete']
   assert b['headerGuard']=='XL6_MODULE_H' and b['cInputsObserved'] is False
-  assert b['runtimePreamble']=='#include <__xl_runtime/xruntime_decl.h>\n'
+  assert b['runtimePreamble']=='#include <__xl_runtime/xrt_decl.h>\n#include <__xl_runtime/xruntime_decl.h>\n'
   assert '#ifndef XL6_MODULE_H' in b['declarations'] and len(b['declarations'].encode())<=1024*1024
   assert v['resolutionReport']['scope']=='xlang-import-resolution';return b
  def failed(v):

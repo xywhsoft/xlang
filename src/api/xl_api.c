@@ -1641,7 +1641,15 @@ static int xlOutputNormalizedCIncludePath(XL_Context* ctx, XL6_Output* out, cons
     return 1;
 }
 
-static const char xlNativeCPreamble[] = "#include <__xl_runtime/xruntime_decl.h>\n";
+/* External outputs must own relocatable code, never process-local addresses. */
+static int xlAddNativeObject(TCCState* state,int outputType)
+{
+    if(outputType==TCC_OUTPUT_PREPROCESS)return 1;
+    return xl__tcc.tcc_add_file(state,outputType==TCC_OUTPUT_DLL
+        ? "__xl_objects/shared-native/xrt.o" : "__xl_objects/static-native/xrt.o")==0;
+}
+
+static const char xlNativeCPreamble[] = "#include <__xl_runtime/xrt_decl.h>\n#include <__xl_runtime/xruntime_decl.h>\n";
 static const char xlNativeCHeaderGuard[] = "XL6_MODULE_H";
 
 static int xlBuildCSourceWrapperText(XL_Context* ctx, const char* sourcePath,
@@ -1836,26 +1844,24 @@ static int xlEmbeddedSourcePath(char* out, size_t outSize, const char* relativeP
     return 1;
 }
 
-static int xlAddTccSourceFile(XL_Context* ctx, TCCState* s, const char* path)
+static int xlAddPrecompiledSourceFile(XL_Context* ctx,TCCState* s,
+    const char* path,const char* profile)
 {
-    char resolvedPath[2048];
-
-    if ( path == NULL || path[0] == '\0' ) {
-        xlSetError(ctx, "embedded TCC source path is empty");
-        return 0;
+    char objectPath[2048];
+    int length;
+    if(!path||!profile) { xlSetError(ctx,"missing fixed object contract");return 0; }
+    length=snprintf(objectPath,sizeof(objectPath),"__xl_objects/%s/%s.o",profile,path);
+    if(length<=0||(size_t)length>=sizeof(objectPath)) {
+        xlSetError(ctx,"fixed object path exceeds limit");return 0;
     }
-    if ( !xlEmbeddedSourcePath(resolvedPath, sizeof(resolvedPath), path) ) {
-        xlSetError2(ctx, "cannot resolve embedded source", path);
-        return 0;
-    }
-    if ( xl__tcc.tcc_add_file(s, resolvedPath) != 0 ) {
-        if ( ctx->lastError == NULL ) {
-            xlSetError2(ctx, "cannot compile embedded TCC source", path);
-        }
+    if(xl__tcc.tcc_add_file(s,objectPath)!=0) {
+        if(!ctx->lastError)xlSetError2(ctx,"cannot load fixed precompiled object",objectPath);
         return 0;
     }
     return 1;
 }
+static int xlAddTccSourceFile(XL_Context* ctx,TCCState* s,const char* path)
+{ return xlAddPrecompiledSourceFile(ctx,s,path,"static-compiler"); }
 
 
 
@@ -1885,6 +1891,7 @@ static int xlAddEmbeddedTccRuntimeSources(
     int outputType)
 {
     unsigned int features;
+    const char* profile=outputType==TCC_OUTPUT_DLL?"shared-compiler":"static-compiler";
 
     if ( ctx == NULL || s == NULL || unit == NULL ) {
         return 1;
@@ -1922,21 +1929,34 @@ static int xlAddEmbeddedTccRuntimeSources(
     (void)xl__tcc.tcc_add_include_path(s, "release/include");
     xlAddEmbeddedSourceIncludePaths(s);
 
-	if ( !xlAddTccSourceFile(ctx, s, "lib/tcc/libtcc.c") ||
-		 !xlAddTccSourceFile(ctx, s, "lib/tcc/tcctools.c") ||
-		 !xlAddTccSourceFile(ctx, s, "lib/tcc/tcc_builtin_vfs.c") ||
-		 !xlAddTccSourceFile(ctx, s, "lib/lzma/LzmaDec.c") ||
-		 !xlAddTccSourceFile(ctx, s, XL6_TCC_RUNTIME_RESOURCE_SOURCE) ) {
+	if ( !xlAddPrecompiledSourceFile(ctx,s,"lib/tcc/libtcc.c",profile) ||
+		 !xlAddPrecompiledSourceFile(ctx,s,"lib/tcc/tcctools.c",profile) ||
+		 !xlAddPrecompiledSourceFile(ctx,s,"lib/tcc/tcc_builtin_vfs.c",profile) ||
+		 !xlAddPrecompiledSourceFile(ctx,s,"lib/lzma/LzmaDec.c",profile) ) {
 		return 0;
 	}
+    {
+        char* source;
+        size_t size=0;
+        int compiler=(features & XL6_IMPORT_FEATURE_XLANG_COMPILER)!=0;
+        if(!tcc_vfs_write_catalog_source(compiler,NULL,0,&size) || size==SIZE_MAX ||
+            !(source=(char*)xrtMalloc(size+1))) {
+            xlSetError(ctx,"cannot allocate nested VFS catalog");return 0;
+        }
+        if(!tcc_vfs_write_catalog_source(compiler,source,size+1,&size) ||
+            xl__tcc.tcc_compile_string(s,source)!=0) {
+            xrtFree(source);xlSetError(ctx,"cannot compile nested VFS catalog");return 0;
+        }
+        xrtFree(source);
+    }
 	if ( (features & XL6_IMPORT_FEATURE_TCC_RUNTIME) != 0 &&
 		 (features & (XL6_IMPORT_FEATURE_XLANG_RUNTIME |
 					  XL6_IMPORT_FEATURE_XLANG_COMPILER)) == 0 &&
-		 !xlAddTccSourceFile(ctx, s, "src/api/xl_tcc_standalone_env.c") ) {
+		 !xlAddPrecompiledSourceFile(ctx,s,"src/api/xl_tcc_standalone_env.c",profile) ) {
 		return 0;
 	}
 #ifdef _WIN32
-    if ( !xlAddTccSourceFile(ctx, s, "lib/tcc/tcc_utf8_io.c") ) {
+    if ( !xlAddPrecompiledSourceFile(ctx,s,"lib/tcc/tcc_utf8_io.c",profile) ) {
         return 0;
     }
 #endif
@@ -1995,12 +2015,16 @@ static int xlAddEmbeddedXlangRuntimeSources(
         "src/ir/xl6_ir_dump.c"
     };
     unsigned int features;
+    const char* profile;
     size_t i;
 
     if ( ctx == NULL || s == NULL || unit == NULL ) {
         return 1;
     }
     features = unit->importDeps.features;
+    profile=outputType==TCC_OUTPUT_DLL
+        ? ((features&XL6_IMPORT_FEATURE_XLANG_COMPILER)?"shared-compiler":"shared-runtime")
+        : ((features&XL6_IMPORT_FEATURE_XLANG_COMPILER)?"static-compiler":"static-runtime");
     if ( (features & (XL6_IMPORT_FEATURE_XLANG_RUNTIME |
                       XL6_IMPORT_FEATURE_XLANG_COMPILER)) == 0 ) {
         return 1;
@@ -2030,7 +2054,7 @@ static int xlAddEmbeddedXlangRuntimeSources(
     xlAddEmbeddedSourceIncludePaths(s);
 
     for ( i = 0; i < sizeof(runtimeSources) / sizeof(runtimeSources[0]); ++i ) {
-        if ( !xlAddTccSourceFile(ctx, s, runtimeSources[i]) ) {
+        if ( !xlAddPrecompiledSourceFile(ctx,s,runtimeSources[i],profile) ) {
             return 0;
         }
     }
@@ -2043,11 +2067,11 @@ static int xlAddEmbeddedXlangRuntimeSources(
         const XL6_ArtifactRuntimeComponent* component =
             xl6ArtifactRuntimeComponentGet((unsigned)i);
         if (component == NULL || component->source == NULL ||
-            !xlAddTccSourceFile(ctx, s, component->source)) return 0;
+            !xlAddPrecompiledSourceFile(ctx,s,component->source,"static-compiler")) return 0;
     }
     if ( (features & XL6_IMPORT_FEATURE_XLANG_COMPILER) != 0 ) {
         for ( i = 0; i < sizeof(compilerSources) / sizeof(compilerSources[0]); ++i ) {
-            if ( !xlAddTccSourceFile(ctx, s, compilerSources[i]) ) {
+            if ( !xlAddPrecompiledSourceFile(ctx,s,compilerSources[i],profile) ) {
                 return 0;
             }
         }
@@ -2339,6 +2363,11 @@ static int xlCompileUnitToExternalOutputWithC(
     if ( !xlAddEmbeddedXlangRuntimeSources(ctx, s, unit, outputType) ) {
         goto cleanup;
     }
+    if(xl6XrtTrimRequiresFull(&unit->importDeps,cSourceFiles?cSourceFiles->count:0)) {
+        if(!xlAddNativeObject(s,outputType)) {
+            xlSetError(ctx,"cannot load shared precompiled XRT implementation");goto cleanup;
+        }
+    } else {
     if ( !xl6XrtTrimBuildImplementationSourceFromArtifact(&unit->importDeps,
             cSourceFiles != NULL ? cSourceFiles->count : 0,
             artifactRuntime.nativeModules, artifactRuntime.nativeModuleCount, &runtimeSource) ) {
@@ -2350,6 +2379,7 @@ static int xlCompileUnitToExternalOutputWithC(
     }
 	if ( !xlTccCompileSourceText(ctx, s, XL_TCC_VFS_XRT_C, runtimeSource, "cannot compile selected XRT/xruntime product") ) {
         goto cleanup;
+    }
     }
     ok = xl6BuildInputOutputValid(outputPath) && xl__tcc.tcc_output_file(s, outputPath) == 0;
     if ( !ok ) {
@@ -3102,8 +3132,8 @@ XL_RuntimeDrainResult xlRuntimeDrainRetiringChecked(long long milliseconds)
     xl6_error_scope scope={0};bool ready=false;
     if(!xl6ErrorScopeBegin(&scope))return (XL_RuntimeDrainResult){0,0};
     if(milliseconds< -1){xrtSetErrorKind(XERR_ARGUMENT);xl6ErrorScopeCaptureFailure(&scope);goto drain_end;}
-    uint64 timeout=milliseconds<0 || (uint64)milliseconds>UINT64_MAX/1000u ? UINT64_MAX : (uint64)milliseconds*1000u;
-    xdeadline deadline=xrtDeadlineAfter(timeout);
+    uint64 timeout=milliseconds<0 ? UINT64_MAX : (uint64)milliseconds;
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(timeout);
     const uint64 caller=xrtThreadCurrentId();
     for(;;){
         xlApiLock();bool active=xl__collectingRetirements || xl__ownershipDriverRunning,recovery=false;
@@ -3136,7 +3166,7 @@ XL_RuntimeDrainResult xlRuntimeDrainRetiringChecked(long long milliseconds)
             ready=xl__retiringModules==NULL;
         }
         xlApiUnlock();
-        if(ready || reentry || recovery || (milliseconds>=0 && xrtDeadlineExpired(deadline)))break;
+        if(ready || reentry || recovery || (milliseconds>=0 && xl6DeadlineExpiredV1(deadline)))break;
         xrtThreadYield();
     }
 drain_end:;
@@ -4533,7 +4563,7 @@ XL_API int xlTccRegisterXrtEnvironment(TCCState* state, int outputType)
     xlApiLock();
     ok = xlEnsureTcc(NULL) &&
          xlConfigureTccStateEnvironment(NULL, state, outputType) &&
-         xlApiAddDefaultRuntimeSymbols(state);
+         (outputType==TCC_OUTPUT_MEMORY ? xlApiAddDefaultRuntimeSymbols(state) : xlAddNativeObject(state,outputType));
     xlApiUnlock();
     return ok;
 }
@@ -4549,13 +4579,13 @@ XL_API int xlTccRegisterContextEnvironment(XL_Context* ctx, TCCState* state, int
     }
     xlApiLock();
     xlClearLastErrorUnlocked(ctx);
-    if(outputType!=TCC_OUTPUT_MEMORY && ctx->compiledPackages.count) {
-        xlSetError(ctx,"compiled package addresses may only be registered for in-process execution");
+    if(outputType!=TCC_OUTPUT_MEMORY && (ctx->compiledPackages.count || ctx->symbolCount)) {
+        xlSetError(ctx,"process-local symbols may only be registered for in-process execution");
         xlApiUnlock();return 0;
     }
     ok = xlEnsureTcc(ctx) &&
          xlConfigureTccStateEnvironment(ctx, state, outputType) &&
-         xlAddContextSymbols(ctx, state);
+         (outputType==TCC_OUTPUT_MEMORY ? xlAddContextSymbols(ctx,state) : xlAddNativeObject(state,outputType));
     xlApiUnlock();
     return ok;
 }
@@ -4695,10 +4725,7 @@ static int xlCompileCSourceFilesToExternalOutput(
          xlAddCSourceFilesToTcc(ctx, s, paths, pathCount) &&
          xlAddDependenciesToTcc(ctx, s, NULL) &&
          xlAddResourceFilesToTcc(ctx, s) &&
-         xlTccCompileSourceText(ctx, s, XL_TCC_VFS_XRT_C,
-             "#define XRUNTIME_IMPLEMENTATION\n"
-             "#include \"xruntime.h\"\n",
-             "cannot compile XRT/xruntime single header");
+         xlAddNativeObject(s,outputType);
     if ( ok ) {
         ok = xl6BuildInputOutputValid(outputPath) && xl__tcc.tcc_output_file(s, outputPath) == 0;
     }

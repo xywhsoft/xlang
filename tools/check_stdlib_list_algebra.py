@@ -132,7 +132,7 @@ def main():
             for mode in ('oom','providers'): closed(lane+'.'+mode,binary,mode,True)
             impl=out/(lane+'.pruned.c'); pruned=out/(lane+'.pruned'+suffix); selected=[]
             impl.write_text(''.join('#define '+m+'\n' for m in plan['NativeModules'])+
-                '#define XRT_MODULE_MEMORY_DEBUG\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
+                '#define XRT_MODULE_MEMORY_DEBUG\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
             for i,source in enumerate([impl,*[root/name for name in plan['Sources']]]):
                 obj=out/(lane+'.pruned.'+str(i)+'.o')
                 run(lane+'.pruned.provider.'+str(i),[cc,*full_flags,'-O'+str(level),'-c',source,'-o',obj]); selected.append(obj)

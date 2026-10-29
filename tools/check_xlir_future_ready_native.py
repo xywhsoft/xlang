@@ -63,7 +63,7 @@ def main():
         assert not ({'XRT_MODULE_NET','XRT_MODULE_TLS'}&modules)
         native=out/'native.c'
         native.write_text(''.join('#define '+name+'\n' for name in sorted(modules))+
-            '#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
+            '#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
         report['GeneratedNativeSha256']=hashlib.sha256(native.read_bytes()).hexdigest()
         if args.sanitize:
             flags+=['-g','-fno-omit-frame-pointer','-fsanitize='+args.sanitize]

@@ -1,6 +1,7 @@
 /* Reuse only the existing NETWORK outcome fixture's environment/check helpers.
  * Its renamed entry has no TaskPool symbols or synthetic frame implementation. */
 #define main old_net_frame_outcome_main
+#include "release/include/xl_clock.h"
 #include "task_net_frame_outcome.c"
 #undef main
 #include "src/runtime/xl6_task_net_language.h"
@@ -33,9 +34,9 @@ static void destroyEngine(XL6_ExecutionSourceV1** source,XL6_ExecutionResourceV1
     assert(xl6ExecutionNetEngineWaitV1(engine,10000,&ready)&&ready);
     xl6ExecutionResourceReleaseV1(engine);
     assert(xl6ExecutionSourceCloseV1(*source));
-    uint64 until=xrtClock()+UINT64_C(10000000);
+    uint64 until=xl6MonotonicMillisecondsV1()+UINT64_C(10000000);
     while(*source){XL6_ExecutionRetireResultV1 r=xl6ExecutionSourceDestroyV1(source);assert(r.ok);
-        if(!r.ready){assert(xrtClock()<until);xrtThreadYield();}}
+        if(!r.ready){assert(xl6MonotonicMillisecondsV1()<until);xrtThreadYield();}}
 }
 static void accepted(unsigned body,unsigned cleanup,bool preCancelled,bool delayed)
 {

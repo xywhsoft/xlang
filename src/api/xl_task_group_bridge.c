@@ -1,8 +1,9 @@
 #include <limits.h>
 #include <stdlib.h>
 #define XRT_MODULE_TASK_GROUP
-#include "lib/xrt/xrt.h"
+#include "src/common/xl6_xrt.h"
 #include "xl_task_group_bridge.h"
+#include "xl_clock.h"
 
 /* Creator, owned parent Data and every in-flight operation have distinct
  * actual rights. Group remains owned until physical release or Finish. */
@@ -63,11 +64,10 @@ static void leave(xl6_task_group* group)
     if(!group->Busy)abort();
     --group->Busy;end(group,&scope);drop(group);
 }
-static uint64 timeout_us(long long milliseconds)
+static uint64 deadline_ms(long long milliseconds)
 {
     if(milliseconds<=0)return 0;
-    return (unsigned long long)milliseconds>UINT64_MAX/UINT64_C(1000)
-        ? UINT64_MAX:(uint64)milliseconds*UINT64_C(1000);
+    return (uint64)milliseconds;
 }
 static xl6_task_group* wrap(xtaskgroup* native)
 {
@@ -289,7 +289,7 @@ XL_API bool xl6TaskGroupReapV1(xl6_task_group* group,uint64_t* output)
 XL_API int32_t xl6TaskGroupWaitV1(xl6_task_group* group,uint64_t deadline,xcancel* cancel)
 {
     xtaskgroup* native=enter(group,true);if(!native)return XWAIT_ERROR;
-    xwaitresult result=xrtTaskGroupWaitUntilCancel(native,(xdeadline)deadline,cancel);
+    xwaitresult result=xrtTaskGroupWaitForCancel(native,xl6DeadlineRemainingMillisecondsV1((XL6_DeadlineV1)deadline),cancel);
     leave(group);return (int32_t)result;
 }
 XL_API void xl6TaskGroupDestroy(xl6_task_group* group)
@@ -376,10 +376,10 @@ XL_API bool xl6TaskGroupJoin(xl6_task_group* group)
 XL_API bool xl6TaskGroupJoinFor(xl6_task_group* group,long long milliseconds)
 {
     xtaskgroup* native=enter(group,true);if(!native)return false;
-    bool result=xrtTaskGroupWaitFor(native,timeout_us(milliseconds))==XWAIT_OK;leave(group);return result;
+    bool result=xrtTaskGroupWaitFor(native,milliseconds)==XWAIT_OK;leave(group);return result;
 }
 XL_API bool xl6TaskGroupJoinUntil(xl6_task_group* group,long long milliseconds)
 {
     xtaskgroup* native=enter(group,true);if(!native)return false;
-    bool result=xrtTaskGroupWaitUntil(native,(xdeadline)timeout_us(milliseconds))==XWAIT_OK;leave(group);return result;
+    bool result=xrtTaskGroupWaitFor(native,xl6DeadlineRemainingMillisecondsV1(deadline_ms(milliseconds)))==XWAIT_OK;leave(group);return result;
 }

@@ -5,6 +5,7 @@
     Bind(xl6StackTryTakeV2); Bind(xl6StackReserveV1); Bind(xl6StackCloneV1); \
     Bind(xl6StackEqualsV1); Bind(xl6StackTrimV1); Bind(xl6StackClearV1); Bind(xl6StackSizeV1);
 #define main unused_stack_lifetime_main
+#include "release/include/xl_clock.h"
 #include "xlir_one_shot_tcc_host.c"
 #undef main
 typedef struct StackGraphHooks {
@@ -64,10 +65,10 @@ int main(int argc, char** argv)
             assert(!atomic_load(&deleted) && !droppedMarkers);
             xrtValueRelease(escaped); escaped = NULL;
         }
-        xdeadline deadline = xrtDeadlineAfter(5000000);
+        XL6_DeadlineV1 deadline = xl6DeadlineAfterMillisecondsV1(5000);
         while (!atomic_load(&deleted)) {
             collect();
-            if (xrtDeadlineExpired(deadline)) {
+            if (xl6DeadlineExpiredV1(deadline)) {
                 fprintf(stderr,"stack retirement mode=%u round=%u drops=%u phase=%u leases=%zu snapshots=%zu failed=%u plan=%p error=%s\n",
                     selected,round,droppedMarkers,module->ownershipPhase,module->codeLeases,module->snapshotRefs,
                     module->retirementFailed,(void*)module->ownershipPlan,

@@ -1,6 +1,10 @@
 #define XRT_MODULE_MEMORY_DEBUG
 #define XRT_MODULE_NET_ENGINE
+#ifndef XRT_MODULE_WAIT
+#define XRT_MODULE_WAIT
+#endif
 #include "lib/xrt/xrt.h"
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_ownership_plan.h"
 #include <assert.h>
 #include <stdio.h>
@@ -29,7 +33,7 @@ static const xnetportownershipv1 policy,wrong_policy;
 static void begin(xrtownershipscope* s){assert(xrtOwnershipMutationBegin(s));}
 static void end(xrtownershipscope* s){assert(xrtOwnershipScopeEnd(s));}
 static void freeze(xrtownershipscope* s)
-{xdeadline d=xrtDeadlineAfter(5000000);while(!xrtOwnershipFreezeTryBegin(s)){assert(!xrtDeadlineExpired(d));xrtThreadYield();}}
+{XL6_DeadlineV1 d=xl6DeadlineAfterMillisecondsV1(5000);while(!xrtOwnershipFreezeTryBegin(s)){assert(!xl6DeadlineExpiredV1(d));xrtThreadYield();}}
 static bool hold(const void* data)
 {Root* r=(Root*)data;xrtownershipscope s={0};begin(&s);bool ok=!r->cleared&&xrtRefRetain(&r->refs)>0;end(&s);return ok;}
 static void drop(const void* data)
@@ -81,9 +85,9 @@ static void install(xnetworker* worker,ptr data)
 static void task_drop(ptr data){drop(data);}
 static const xnettaskownershipv1 task_policy={sizeof(task_policy),install,task_drop,&ops};
 static void admission_gate(xnetworker* worker,ptr data)
-{Root* r=data;(void)worker;xdeadline d=xrtDeadlineAfter(5000000);
+{Root* r=data;(void)worker;XL6_DeadlineV1 d=xl6DeadlineAfterMillisecondsV1(5000);
  xrtAtomic32Store(&r->gate_entered,1,XMEMORY_RELEASE);
- while(!xrtAtomic32Load(&r->gate_release,XMEMORY_ACQUIRE)){assert(!xrtDeadlineExpired(d));xrtThreadYield();}}
+ while(!xrtAtomic32Load(&r->gate_release,XMEMORY_ACQUIRE)){assert(!xl6DeadlineExpiredV1(d));xrtThreadYield();}}
 static const xnettaskownershipv1 gate_policy={sizeof(gate_policy),admission_gate,task_drop,&ops};
 static bool resolve(xrtownershipref ref,void* data,const XL6_OwnershipAdapterV1** output,
     const xrtownershippreparationv1** preparation)
@@ -111,14 +115,14 @@ static bool resolve(xrtownershipref ref,void* data,const XL6_OwnershipAdapterV1*
     return *output!=NULL;
 }
 static XL6_OwnershipPlanResult create_plan(Root* r,XL6_OwnershipPlan** plan)
-{xdeadline d=xrtDeadlineAfter(5000000);for(;;){r->snapshot_unavailable=false;
+{XL6_DeadlineV1 d=xl6DeadlineAfterMillisecondsV1(5000);for(;;){r->snapshot_unavailable=false;
  XL6_OwnershipPlanResult state=xl6OwnershipPlanTryCreateV2(reference(r),resolve,r,plan);
  if(state==XL6_OWNERSHIP_PLAN_ERROR&&r->snapshot_unavailable){
     assert(!*plan&&xrtErrorKind(xrtGetError())==XERR_STATE);++create_snapshot_retries;xrtClearError();
  }else if(state!=XL6_OWNERSHIP_PLAN_BUSY)return state;
- assert(!xrtDeadlineExpired(d));xrtThreadYield();}}
+ assert(!xl6DeadlineExpiredV1(d));xrtThreadYield();}}
 static XL6_OwnershipPlanResult settle(XL6_OwnershipPlan* plan)
-{xdeadline d=xrtDeadlineAfter(5000000);for(;;){XL6_OwnershipStepResult step=xl6OwnershipPlanPrepare(plan);
+{XL6_DeadlineV1 d=xl6DeadlineAfterMillisecondsV1(5000);for(;;){XL6_OwnershipStepResult step=xl6OwnershipPlanPrepare(plan);
  /* The public protocol distinguishes transient snapshot refusal while a
   * worker is leaving Wait from FAILED semantic preparation. Keep the same
   * plan/pins; retry only the read-only snapshot, with a finite deadline. */
@@ -126,12 +130,12 @@ static XL6_OwnershipPlanResult settle(XL6_OwnershipPlan* plan)
  if(step==XL6_OWNERSHIP_STEP_ERROR)++snapshot_retries;
  XL6_OwnershipPlanResult state=xl6OwnershipPlanTryRefresh(plan);
  if(state==XL6_OWNERSHIP_PLAN_FINALIZERS||state==XL6_OWNERSHIP_PLAN_ROOTED)return state;
- assert(!xrtDeadlineExpired(d));xrtClearError();xrtThreadYield();}}
+ assert(!xl6DeadlineExpiredV1(d));xrtClearError();xrtThreadYield();}}
 static XL6_OwnershipPlanResult finalizers_commit(XL6_OwnershipPlan* plan)
-{xdeadline d=xrtDeadlineAfter(5000000);for(;;){assert(xl6OwnershipPlanFinalizeV2(plan)>=XL6_OWNERSHIP_STEP_BUSY);
+{XL6_DeadlineV1 d=xl6DeadlineAfterMillisecondsV1(5000);for(;;){assert(xl6OwnershipPlanFinalizeV2(plan)>=XL6_OWNERSHIP_STEP_BUSY);
  XL6_OwnershipPlanResult state=xl6OwnershipPlanTryCommit(plan);
  if(state==XL6_OWNERSHIP_PLAN_READY||state==XL6_OWNERSHIP_PLAN_ROOTED)return state;
- assert((state==XL6_OWNERSHIP_PLAN_BUSY||state==XL6_OWNERSHIP_PLAN_FINALIZERS)&&!xrtDeadlineExpired(d));xrtThreadYield();}}
+ assert((state==XL6_OWNERSHIP_PLAN_BUSY||state==XL6_OWNERSHIP_PLAN_FINALIZERS)&&!xl6DeadlineExpiredV1(d));xrtThreadYield();}}
 static void destroy_plan(XL6_OwnershipPlan* plan)
 {assert(xl6OwnershipPlanTryDestroy(plan)==XL6_OWNERSHIP_PLAN_READY);}
 static void one(xnetportbackend backend,unsigned kind,unsigned mode)
@@ -143,18 +147,18 @@ static void one(xnetportbackend backend,unsigned kind,unsigned mode)
     r->socket=xrtNetSocketOpen(XNET_FAMILY_IPV4,XNET_SOCKET_DGRAM,XNET_SOCKET_NONBLOCK);xnetaddr address;
     assert(r->socket&&xrtNetAddrLoopback(&address,XNET_FAMILY_IPV4,0)&&xrtNetSocketBind(r->socket,&address));
     xrtNetCompletionInit(&r->completion,complete,r);assert(hold(r)&&xrtNetEnginePostOwnedV1(r->engine,0,r,&task_policy));
-    xdeadline deadline=xrtDeadlineAfter(5000000);xrtownershipscope s={0};
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);xrtownershipscope s={0};
     for(;;){freeze(&s);size_t refs;xrtownershipref engine=xrtNetEngineOwnership(r->engine);
         if(xrtAtomic32Load(&r->installed,XMEMORY_ACQUIRE)&&r->callbacks==(kind==1?1u:0u)&&
             engine.Ops->Count(engine.Data,&refs)&&r->refs==2)break;
-        end(&s);assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+        end(&s);assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
     xrtownershipref root=reference(r);xrtownershipresult graph={0};
     assert(xrtOwnershipInspect(&root,1,NULL,0,&graph)&&graph.NodeCount==5&&graph.EdgeCount==6&&graph.ExternalRootCount==1);end(&s);
     XL6_OwnershipPlan* plan=NULL;
     if(mode&1){r->wrong=true;assert(create_plan(r,&plan)==XL6_OWNERSHIP_PLAN_ERROR&&!plan);r->wrong=false;xrtClearError();++refusals;}
     if(mode==0&&kind==0){
         assert(hold(r)&&xrtNetEnginePostOwnedV1(r->engine,0,r,&gate_policy));
-        while(!xrtAtomic32Load(&r->gate_entered,XMEMORY_ACQUIRE)){assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+        while(!xrtAtomic32Load(&r->gate_entered,XMEMORY_ACQUIRE)){assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
     }
     assert(create_plan(r,&plan)==XL6_OWNERSHIP_PLAN_ROOTED&&plan);++rooted;
     /* The constructor really owns this reference until the plan pins it. */

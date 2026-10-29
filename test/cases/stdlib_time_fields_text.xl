@@ -1,8 +1,8 @@
-auto fields = time.parseFields("2024-03-01 07:58:57.123456 +08:00", "%F %T.%f %:z")
+auto fields = time.parseFields("2024-03-01 07:58:57.123 +08:00", "%F %T.%f %:z")
 assert fields.year == 2024 and fields.month == 3 and fields.day == 1
-assert fields.hour == 7 and fields.microsecond == 123456 and fields.offset == 28800
-assert fields.toTime() == time.fromDateTime(2024, 2, 29, 23, 58, 57, 123456)
-assert fields.format("%F %T.%f %:z") == "2024-03-01 07:58:57.123456 +08:00"
+assert fields.hour == 7 and fields.millisecond == 123 and fields.offset == 28800
+assert fields.toTime() == time.fromDateTime(2024, 2, 29, 23, 58, 57, 123)
+assert fields.format("%F %T.%f %:z") == "2024-03-01 07:58:57.123 +08:00"
 assert fields.format() == "2024-03-01 07:58:57"
 assert fields.format("%F\0junk", 2) == "2024-03-01"
 auto next = DateTime("2024/02/29junk", "%Y/%m/%djunk", 10, 8)

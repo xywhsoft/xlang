@@ -1,6 +1,8 @@
 /* Ordinary literal-loopback listener lifecycle, without client traffic.
  * A real extra native reference models delayed aggregate Data retirement.
  * Capture cleanup must run on the checked source tail, not the Data thread. */
+#include "release/include/xl_clock.h"
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
 #include "src/runtime/xl6_execution_tls_internal.h"
 #include "src/runtime/xl6_tls_role_context_internal.h"
@@ -57,11 +59,11 @@ static void roundTrip(unsigned failure)
     XL6_TlsScopeV1 scope={0};assert(xl6ExecutionTlsListenerEnterV1(listener,false,&scope));
     xtlslistener* held=xrtTlsListenerRef(scope.listener);assert(held);xl6ExecutionTlsLeaveV1(&scope);
     assert(xl6ExecutionResourceCloseV1(listener));xl6ExecutionResourceReleaseV1(listener);
-    uint64 deadline=xrtClock()+UINT64_C(10000000);XL6_ExecutionResourceSnapshotV1 snapshot={.size=sizeof(snapshot)};
+    uint64 deadline=xl6MonotonicMillisecondsV1()+UINT64_C(10000000);XL6_ExecutionResourceSnapshotV1 snapshot={.size=sizeof(snapshot)};
     for(;;){
         assert(xl6ExecutionResourceSnapshotV1Get(listener,&snapshot));
         if(!snapshot.nativePresent)break;
-        assert(xrtClock()<deadline);xrtSleep(1);
+        assert(xl6MonotonicMillisecondsV1()<deadline);xrtSleep(1);
     }
     assert(!snapshot.owners&&!snapshot.stalled&&!xrtAtomic32Load(&capture.drops,XMEMORY_ACQUIRE));
     /* Once the creator is detached, the actual native Data owner still keeps
@@ -76,17 +78,17 @@ static void roundTrip(unsigned failure)
             }
             done(&frozen);
         }
-        assert(xrtClock()<deadline);if(!observed)xrtSleep(1);
+        assert(xl6MonotonicMillisecondsV1()<deadline);if(!observed)xrtSleep(1);
     }
     XL6_ExecutionSourceSnapshotV1 status={.size=sizeof(status)};
     assert(xl6ExecutionSourceSnapshotV1Get(source,&status)&&status.resources==2&&!status.failed);
     xrtTlsListenerDestroy(held); /* Data drop only signals; no capture cleanup. */
     assert(!xrtGetError());
-    while(!xrtAtomic32Load(&capture.drops,XMEMORY_ACQUIRE)){assert(xrtClock()<deadline);xrtSleep(1);}
+    while(!xrtAtomic32Load(&capture.drops,XMEMORY_ACQUIRE)){assert(xl6MonotonicMillisecondsV1()<deadline);xrtSleep(1);}
     assert(capture.thread!=xrtThreadCurrentId()&&!xrtAtomic32Load(&capture.refs,XMEMORY_ACQUIRE));
     assert(xl6ExecutionResourceCloseV1(engine));xl6ExecutionResourceReleaseV1(engine);assert(xl6ExecutionSourceCloseV1(source));
     XL6_ExecutionRetireResultV1 result={0};
-    do{result=xl6ExecutionSourceDestroyV1(&source);if(!result.ready){assert(source&&xrtClock()<deadline);xrtClearError();xrtSleep(1);}}while(!result.ready);
+    do{result=xl6ExecutionSourceDestroyV1(&source);if(!result.ready){assert(source&&xl6MonotonicMillisecondsV1()<deadline);xrtClearError();xrtSleep(1);}}while(!result.ready);
     assert(!source&&result.ok==(failure==0));
     if(failure==1)assert(xrtGetError()&&xrtErrorKind(xrtGetError())==XERR_RANGE);
     else assert(!xrtGetError());

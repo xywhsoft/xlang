@@ -17,13 +17,13 @@ static inline bool xl6TimeComponent(int64_t value, int* result)
 }
 static inline bool xl6TimeFields(xdatetime* fields, int64_t year, int64_t month,
     int64_t day, int64_t hour, int64_t minute, int64_t second,
-    int64_t microsecond, int64_t offset)
+    int64_t millisecond, int64_t offset)
 {
     *fields = (xdatetime){0};
     fields->Year = year;
     return xl6TimeComponent(month, &fields->Month) && xl6TimeComponent(day, &fields->Day) &&
         xl6TimeComponent(hour, &fields->Hour) && xl6TimeComponent(minute, &fields->Minute) &&
-        xl6TimeComponent(second, &fields->Second) && xl6TimeComponent(microsecond, &fields->Microsecond) &&
+        xl6TimeComponent(second, &fields->Second) && xl6TimeComponent(millisecond, &fields->Millisecond) &&
         xl6TimeComponent(offset, &fields->Offset);
 }
 static inline void* xl6DateTimeTake(const xdatetime* fields)

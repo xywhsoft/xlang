@@ -1,6 +1,10 @@
 #define XRT_MODULE_TASK_POOL
 #define XRT_MODULE_MEMORY_DEBUG
+#ifndef XRT_MODULE_WAIT
+#define XRT_MODULE_WAIT
+#endif
 #include "lib/xrt/xrt.h"
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_task.h"
 #include <assert.h>
 #include <stdio.h>
@@ -29,7 +33,7 @@ static bool native_slot(xrtownershipref ref,void* data)
 }
 static void quiet(XL6_TaskPool* pool,xrtownershipscope* freeze,xrtownershipref* native)
 {
-    xdeadline end=xrtDeadlineAfter(5000000);xrtownershipref root=xl6TaskPoolOwnership(pool);
+    XL6_DeadlineV1 end=xl6DeadlineAfterMillisecondsV1(5000);xrtownershipref root=xl6TaskPoolOwnership(pool);
     for(;;){
         if(xrtOwnershipFreezeTryBegin(freeze)){
             size_t count;*native=(xrtownershipref){0};
@@ -37,7 +41,7 @@ static void quiet(XL6_TaskPool* pool,xrtownershipscope* freeze,xrtownershipref* 
                 (!native->Data||native->Ops->Count(native->Data,&count)))return;
             assert(xrtOwnershipScopeEnd(freeze));
         }
-        assert(!xrtDeadlineExpired(end));xrtThreadYield();
+        assert(!xl6DeadlineExpiredV1(end));xrtThreadYield();
     }
 }
 static void balance(const xmemdebugsnapshot* before)
@@ -83,12 +87,12 @@ static void transaction(unsigned jobs,bool language,bool nativeFirst)
     assert(xrtOwnershipInspect(&root,1,internal,native.Data?3:2,&graph)&&graph.ExternalRootCount==0);
     assert(poolAdapter->Claim(pool,&token));if(native.Data)assert(nativeAdapter->Claim(native.Data,&token));
     assert(xrtOwnershipScopeEnd(&freeze));
-    xdeadline settled=xrtDeadlineAfter(5000000);
-    while(poolPrep->Prepare(pool,&token)!=XRT_OWNERSHIP_PREPARE_READY){assert(!xrtDeadlineExpired(settled));xrtThreadYield();}
+    XL6_DeadlineV1 settled=xl6DeadlineAfterMillisecondsV1(5000);
+    while(poolPrep->Prepare(pool,&token)!=XRT_OWNERSHIP_PREPARE_READY){assert(!xl6DeadlineExpiredV1(settled));xrtThreadYield();}
     ++preparations;
     if(native.Data){
-        xdeadline end=xrtDeadlineAfter(5000000);
-        while(nativePrep->Prepare(native.Data,&token)!=XRT_OWNERSHIP_PREPARE_READY){assert(!xrtDeadlineExpired(end));xrtThreadYield();}
+        XL6_DeadlineV1 end=xl6DeadlineAfterMillisecondsV1(5000);
+        while(nativePrep->Prepare(native.Data,&token)!=XRT_OWNERSHIP_PREPARE_READY){assert(!xl6DeadlineExpiredV1(end));xrtThreadYield();}
         ++preparations;
     }
     quiet(pool,&freeze,&native);

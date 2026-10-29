@@ -1,4 +1,6 @@
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
+#include "include/xl_clock.h"
 #include "lib/tcc/libtcc.h"
 #include "xl6_tcc_context_policy.h"
 #include "src/api/xl_foreign_error.h"

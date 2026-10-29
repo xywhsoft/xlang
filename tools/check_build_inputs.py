@@ -16,7 +16,7 @@ def call(argv,name,input=None,ok=True):
  check(name+' exit',result.returncode==0 if ok else result.returncode!=0);return result
 def verify_receipt(name):
  data=json.loads((work/name).read_text(encoding='utf8'))
- check(name+' complete schema',data['schema']==1 and data['complete'] is True and data['scope']=='xlang-native-build-disk-inputs')
+ check(name+' complete schema',data['schema']==2 and data['complete'] is True and data['scope']=='xlang-native-build-disk-inputs')
  for row in [*data['files'],data['artifact']]:
   p=Path(row['path']);check('bytes '+p.name,p.is_absolute() and p.is_file() and p.stat().st_size==row['size'] and hashlib.sha256(p.read_bytes()).hexdigest()==row['sha256'])
  check(name+' missing candidates',all(not Path(p).exists() for p in data['nativeMissing']))

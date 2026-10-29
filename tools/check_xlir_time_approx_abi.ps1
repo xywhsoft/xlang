@@ -79,7 +79,7 @@ if ( ! [System.Linq.Enumerable]::SequenceEqual(
 $generated = [System.IO.File]::ReadAllText(
     $generatedPath, [System.Text.Encoding]::UTF8)
 if ( ([regex]::Matches($generated, 'xrtTimeNear\(').Count) -ne 2 -or
-     ! $generated.Contains("UINT64_C(10000000)") ) {
+     ! $generated.Contains("UINT64_C(10000)") ) {
     throw "XLIR time approximate C emission lost its fixed xrtTimeNear tolerance ABI"
 }
 

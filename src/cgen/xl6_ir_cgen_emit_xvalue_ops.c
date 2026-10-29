@@ -152,7 +152,7 @@ static int xl6IrCgenEmitXValueOperationRuntime(
                 "        int64_t a = 0; int64_t b = 0;\n"
                 "        return leftType == XVALUE_TIME && rightType == XVALUE_TIME &&\n"
                 "               xrtValueGetTime(left, &a) && xrtValueGetTime(right, &b) &&\n"
-                "               xrtTimeNear(a, b, UINT64_C(10000000));\n"
+                "               xrtTimeNear(a, b, UINT64_C(10000));\n"
                 "    }\n"
                 "    if (!xlir_xvalue_is_numeric(leftType) || !xlir_xvalue_is_numeric(rightType)) return false;\n"
                 "    if (leftType == XVALUE_FLOAT || rightType == XVALUE_FLOAT)\n"

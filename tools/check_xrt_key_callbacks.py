@@ -52,7 +52,8 @@ def main():
                 command = [args.compiler, '-std=c11', '-Wall', '-Wextra', '-Werror',
                            '-DXRT_MODULE_VALUE_GRAPH', '-DXRT_MODULE_VALUE_COLLECTION', '-DXRT_MODULE_SET']
                 if product == 'xruntime':
-                    command += ['-DXRUNTIME_MODULE_RUNTIME_TYPE', '-DXRUNTIME_IMPLEMENTATION']
+                    command += ['-DXRUNTIME_MODULE_RUNTIME_TYPE', '-DXRUNTIME_IMPLEMENTATION','-DXRT_IMPLEMENTATION',
+                        '-include',str(root/'lib/xruntime/xruntime_features.h'),'-include',str(root/'lib/xrt/xrt.h')]
                 else:
                     command += ['-DXRT_IMPLEMENTATION']
                 if mode == 'sanitized':

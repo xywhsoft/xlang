@@ -1,7 +1,11 @@
 #define XRT_MODULE_MEMORY_DEBUG
 #define XRT_MODULE_THREAD
 #define XRT_MODULE_FUTURE
+#ifndef XRT_MODULE_WAIT
+#define XRT_MODULE_WAIT
+#endif
 #include "lib/xrt/xrt.h"
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_continuation_executor.h"
 #include <assert.h>
 #include <stdatomic.h>
@@ -22,9 +26,9 @@ typedef struct work {
 } work;
 static void await_count(atomic_int* value, int count)
 {
-    xdeadline deadline = xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 deadline = xl6DeadlineAfterMillisecondsV1(5000);
     while (atomic_load_explicit(value, memory_order_acquire) != count) {
-        assert(!xrtDeadlineExpired(deadline)); xrtThreadYield();
+        assert(!xl6DeadlineExpiredV1(deadline)); xrtThreadYield();
     }
 }
 static void execute(void* data)
@@ -74,9 +78,9 @@ static void publish(work* item)
 }
 static void finish(XL6_ContinuationExecutor* executor)
 {
-    xdeadline deadline = xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 deadline = xl6DeadlineAfterMillisecondsV1(5000);
     while (!xl6ContinuationExecutorDestroy(executor)) {
-        assert(!xrtDeadlineExpired(deadline)); xrtThreadYield();
+        assert(!xl6DeadlineExpiredV1(deadline)); xrtThreadYield();
     }
 }
 static void balanced(xmemdebugsnapshot* before)

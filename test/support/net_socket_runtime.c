@@ -3,7 +3,16 @@
 #include "net-socket-modules.h"
 #define XRT_MODULE_MEMORY_DEBUG
 #define XRUNTIME_IMPLEMENTATION
+#ifndef XRT_MODULE_WAIT
+#define XRT_MODULE_WAIT
+#endif
+#include "lib/xruntime/xruntime_features.h"
+#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)
+#define XRT_IMPLEMENTATION
+#endif
+#include "lib/xrt/xrt.h"
 #include "lib/xruntime/xruntime.h"
+#include "release/include/xl_clock.h"
 #define XL6_TEXT_API
 #include "src/runtime/xl6_net_socket_abi.h"
 #include "src/runtime/xl6_native_handle.h"
@@ -17,7 +26,7 @@
 typedef XL6_NetSocketOwnerV1 Owner;
 static XL6_OwnershipCatalog* catalog;
 static void frozen(xrtownershipscope* scope)
-{xdeadline end=xrtDeadlineAfter(5000000);while(!xrtOwnershipFreezeTryBegin(scope)){assert(!xrtDeadlineExpired(end));xrtThreadYield();}}
+{XL6_DeadlineV1 end=xl6DeadlineAfterMillisecondsV1(5000);while(!xrtOwnershipFreezeTryBegin(scope)){assert(!xl6DeadlineExpiredV1(end));xrtThreadYield();}}
 static void balanced(const xmemdebugsnapshot* before)
 {
     xrtClearError();xmemdebugsnapshot after;xrtMemDebugSnapshot(&after);
@@ -75,10 +84,10 @@ static void ordinary_tcp(void)
     xnetaddr loop;assert(xrtNetAddrLoopback(&loop,XNET_FAMILY_IPV4,0));xl6NetSocketBindV1(listener,&loop);xl6NetSocketListenV1(listener,8);
     xnetaddr* local=xl6NetSocketLocalV1(listener);assert(local&&local->Port&&xrtNetAddrIsLoopback(local));
     int64 status=xl6NetSocketConnectV1(client,local);assert(status==XNET_RESULT_OK||status==XNET_RESULT_AGAIN);
-    xdeadline end=xrtDeadlineAfter(5000000);
-    while((status=xl6NetSocketAcceptIntoV1(listener,peer))==XNET_RESULT_AGAIN){assert(!xrtDeadlineExpired(end));xrtThreadYield();}
+    XL6_DeadlineV1 end=xl6DeadlineAfterMillisecondsV1(5000);
+    while((status=xl6NetSocketAcceptIntoV1(listener,peer))==XNET_RESULT_AGAIN){assert(!xl6DeadlineExpiredV1(end));xrtThreadYield();}
     assert(status==XNET_RESULT_OK);
-    while((status=xl6NetSocketFinishConnectV1(client))==XNET_RESULT_AGAIN){assert(!xrtDeadlineExpired(end));xrtThreadYield();}
+    while((status=xl6NetSocketFinishConnectV1(client))==XNET_RESULT_AGAIN){assert(!xl6DeadlineExpiredV1(end));xrtThreadYield();}
     assert(status==XNET_RESULT_OK&&xl6NetSocketKindV1(peer)==XNET_SOCKET_STREAM&&xl6NetSocketFamilyV1(peer)==4);
     assert(xl6NetSocketGetV1(peer,XNET_OPTION_NONBLOCK)==1);xl6NetSocketSetV1(peer,XNET_OPTION_NO_DELAY,1);
     const char payload[]={'a',0,'b',(char)0xe4,(char)0xbd,(char)0xa0};
@@ -90,14 +99,14 @@ static void ordinary_tcp(void)
     xl6_error_result failure=xl6ErrorScopeEnd(&failedRead);assert(hit&&!failure.ok&&read.e0==XNET_RESULT_ERROR&&!read.e1&&!output.Size);xrtErrorFree(failure.error);
     while(output.Size<sizeof(payload)){
         read=xl6NetSocketReceiveIntoV1(peer,&output,64);assert(read.e0==XNET_RESULT_OK||read.e0==XNET_RESULT_AGAIN);
-        assert(!xrtDeadlineExpired(end));xrtThreadYield();}
+        assert(!xl6DeadlineExpiredV1(end));xrtThreadYield();}
     assert(output.Size==sizeof(payload)&&!memcmp(output.Data,payload,sizeof(payload)));
     size_t size=output.Size;read=xl6NetSocketReceiveIntoV1(peer,&output,64);assert(read.e0==XNET_RESULT_AGAIN&&!read.e1&&output.Size==size);
     xvalue* bytes=xrtValueBytes((xbytesview){(const uint8_t*)payload,sizeof(payload)});assert(bytes);
     sent=xl6NetSocketSendBytesV1(client,bytes,3);assert(sent.e0==XNET_RESULT_OK&&sent.e1==3);xrtValueRelease(bytes);
     xl6NetSocketShutdownV1(client,XNET_SHUTDOWN_WRITE);
     while((read=xl6NetSocketReceiveIntoV1(peer,&output,64)).e0!=XNET_RESULT_CLOSED){
-        assert(read.e0==XNET_RESULT_OK||read.e0==XNET_RESULT_AGAIN);assert(!xrtDeadlineExpired(end));xrtThreadYield();}
+        assert(read.e0==XNET_RESULT_OK||read.e0==XNET_RESULT_AGAIN);assert(!xl6DeadlineExpiredV1(end));xrtThreadYield();}
     assert(!read.e1&&output.Size==sizeof(payload)+3);
     xrtBufferUnit(&output);xrtFree(local);xl6NetSocketDestroyV1(peer);xl6NetSocketDestroyV1(client);xl6NetSocketDestroyV1(listener);balanced(&before);
 }

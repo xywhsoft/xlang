@@ -50,7 +50,7 @@ def main():
             modules=run(name+'.modules',[binary,'--modules',name]);assert '_MODULE_ALL' not in modules
             plans[name]=dict(ApiSources=api,TestSources=sources);save()
             impl=out/(name+'.impl.c')
-            impl.write_text(modules+'\n#define XRT_MODULE_MEMORY_DEBUG\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
+            impl.write_text(modules+'\n#define XRT_MODULE_MEMORY_DEBUG\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
             for cindex,c in enumerate(cc):
                 modes=[('O0',[])] if args.discovery else [('O0',[]),('O2',[])]
                 if args.sanitize and cindex==0:

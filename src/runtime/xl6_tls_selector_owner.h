@@ -1,7 +1,9 @@
 #ifndef XL6_TLS_SELECTOR_OWNER_H
 #define XL6_TLS_SELECTOR_OWNER_H
 #if !defined(XRT_SINGLE_HEADER) && !defined(XRUNTIME_DECLARATIONS_H)
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
+#include "include/xl_clock.h"
 #endif
 /* Only the trusted typed-selector producer installs these permanent resident
  * operations. data is one real counted closure owner, never borrowed module

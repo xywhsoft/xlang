@@ -1,4 +1,6 @@
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
+#include "include/xl_clock.h"
 #include "xl6_execution_module_abi.h"
 #include "xl6_execution_resource.h"
 bool xl6ExecutionModuleInitializeV1(XL6_ExecutionSourceV1** slot)
@@ -17,11 +19,11 @@ XL6_ModuleRetireResult xl6ExecutionModuleRetireV1(XL6_ExecutionSourceV1** slot,b
     if(!slot){xrtSetErrorKind(XERR_ARGUMENT);return XL6_MODULE_RETIRE_FAILED;}
     if(!*slot)return XL6_MODULE_RETIRE_READY;
     if(!xl6ExecutionSourceCloseV1(*slot))return XL6_MODULE_RETIRE_FAILED;
-    xdeadline deadline=wait?xrtDeadlineAfter(UINT64_C(5000000)):0;
+    XL6_DeadlineV1 deadline=wait?xl6DeadlineAfterMillisecondsV1(5000):0;
     for(;;){XL6_ExecutionRetireResultV1 result=xl6ExecutionSourceDestroyV1(slot);
         if(!result.ok)return XL6_MODULE_RETIRE_FAILED;
         if(result.ready)return XL6_MODULE_RETIRE_READY;
-        if(!wait||xrtDeadlineExpired(deadline))return XL6_MODULE_RETIRE_BUSY;
+        if(!wait||xl6DeadlineExpiredV1(deadline))return XL6_MODULE_RETIRE_BUSY;
         xrtSleep(1);
     }
 }

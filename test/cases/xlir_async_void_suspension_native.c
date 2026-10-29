@@ -2,16 +2,20 @@
 #define XRT_MODULE_ERROR
 #define XRT_MODULE_FUTURE
 #define XRT_MODULE_THREAD
+#ifndef XRT_MODULE_WAIT
+#define XRT_MODULE_WAIT
+#endif
 #include "lib/xrt/xrt.h"
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_continuation_future.h"
 
 static xpromise* gate;
 static xfuture* gateSource;
 
-static bool freeze_begin(xrtownershipscope* freeze,xdeadline deadline)
+static bool freeze_begin(xrtownershipscope* freeze,XL6_DeadlineV1 deadline)
 {
     while(!xrtOwnershipFreezeTryBegin(freeze)){
-        if(xrtDeadlineExpired(deadline)){xrtSetErrorKind(XERR_STATE);return false;}
+        if(xl6DeadlineExpiredV1(deadline)){xrtSetErrorKind(XERR_STATE);return false;}
         xrtThreadYield();
     }
     return true;
@@ -26,7 +30,7 @@ static bool parked_frame(xrtownershipref ref,void* context)
 xfuture* xlir_void_gate_open(void)
 {
     xfuture* future = NULL;xrtownershipscope freeze={0};
-    if(!freeze_begin(&freeze,xrtDeadlineAfter(5000000)))return NULL;
+    if(!freeze_begin(&freeze,xl6DeadlineAfterMillisecondsV1(5000))return NULL;
     if (gate != NULL) {
         xrtOwnershipScopeEnd(&freeze);xrtSetErrorKind(XERR_STATE);return NULL;
     }
@@ -40,7 +44,7 @@ bool xlir_void_gate_finish(int64_t outcome)
 {
     bool ok = false;
     xerror* error;xpromise* promise=NULL;xfuture* source=NULL;
-    xdeadline deadline=xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
     /* Async roots start on workers. Complete only after the actual pending
      * source has a parked, inspectable continuation Watch. The shared freeze
      * also serializes publication/access of these test-owned native handles. */
@@ -55,7 +59,7 @@ bool xlir_void_gate_finish(int64_t outcome)
         }
         xrtOwnershipScopeEnd(&freeze);
         if(promise)break;
-        if(xrtDeadlineExpired(deadline)){xrtSetErrorKind(XERR_STATE);return false;}
+        if(xl6DeadlineExpiredV1(deadline)){xrtSetErrorKind(XERR_STATE);return false;}
         xrtThreadYield();
     }
     switch (outcome) {

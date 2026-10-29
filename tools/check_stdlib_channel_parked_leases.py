@@ -44,7 +44,7 @@ def main():
     out.mkdir(parents=True)
     native=out/'native.c'
     native.write_text(''.join('#define '+name+'\n' for name in sorted(modules))+
-        '#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
+        '#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
     cases=('stdlib_channel_parked_leases.c','stdlib_channel_cases_native.c','stdlib_channel_cases_pruned.c')
     files={Path(__file__).resolve(),Path(compiler).resolve(),planfile,native}
     for folder in ('src','lib/xrt','lib/xruntime','release/include','test/support'):

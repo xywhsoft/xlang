@@ -2,7 +2,8 @@
 
 #if !defined(TEST_PROXY_DIAL_HTTP_CONNECT) || \
 	!(TEST_PROXY_DIAL_HTTP_CONNECT)
-	#include "tcp_proxy_socks5_peer.h"
+	#include "release/include/xl_clock.h"
+#include "tcp_proxy_socks5_peer.h"
 #endif
 
 
@@ -71,10 +72,10 @@ static inline void testProxyDialWait(
 	cstr sMessage
 )
 {
-	xdeadline Deadline = xrtDeadlineAfter(UINT64_C(5000000));
+	XL6_DeadlineV1 Deadline = xl6DeadlineAfterMillisecondsV1(5000);
 
 	while ( xrtAtomic32Load(pValue, XMEMORY_ACQUIRE) < iExpected ) {
-		testRequire(!xrtDeadlineExpired(Deadline), sMessage);
+		testRequire(!xl6DeadlineExpiredV1(Deadline), sMessage);
 		xrtThreadYield();
 	}
 }
@@ -87,10 +88,10 @@ static inline void testProxyDialWaitClosed(
 	cstr sMessage
 )
 {
-	xdeadline Deadline = xrtDeadlineAfter(UINT64_C(5000000));
+	XL6_DeadlineV1 Deadline = xl6DeadlineAfterMillisecondsV1(5000);
 
 	while ( xrtNetStreamState(pStream) != XNET_STREAM_CLOSED ) {
-		testRequire(!xrtDeadlineExpired(Deadline), sMessage);
+		testRequire(!xl6DeadlineExpiredV1(Deadline), sMessage);
 		xrtThreadYield();
 	}
 }
@@ -103,7 +104,7 @@ static inline void testProxyDialWaitBytes(
 	uint32 iExpected
 )
 {
-	xdeadline Deadline = xrtDeadlineAfter(UINT64_C(5000000));
+	XL6_DeadlineV1 Deadline = xl6DeadlineAfterMillisecondsV1(5000);
 	uint32 iReceived;
 
 	for ( ;; ) {
@@ -114,7 +115,7 @@ static inline void testProxyDialWaitBytes(
 		if ( iReceived >= iExpected ) {
 			return;
 		}
-		if ( xrtDeadlineExpired(Deadline) ) {
+		if ( xl6DeadlineExpiredV1(Deadline) ) {
 			fprintf(
 				stderr,
 				"[INFO] received=%u expected=%u stage=%d result=%d "

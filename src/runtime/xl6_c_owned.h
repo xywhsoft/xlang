@@ -4,7 +4,9 @@
 #include <stdint.h>
 #include <string.h>
 #if !defined(XRT_SINGLE_HEADER) && !defined(XRUNTIME_DECLARATIONS_H)
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
+#include "include/xl_clock.h"
 #endif
 
 /* Compiler-private owners. Ordinary string/bytes and XRT layouts are unchanged.

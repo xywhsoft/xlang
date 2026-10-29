@@ -1,3 +1,4 @@
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_channel_internal.h"
 #include "src/runtime/xl6_array_admission.h"
 #include "src/runtime/xl6_ownership_plan.h"
@@ -171,10 +172,10 @@ static void threads(void)
         assert(state.token); xrtAtomic32Init(&state.started,0); int64_t value=31;
         if(state.send) assert(send(state.q,xrtTypeInt64(),SLOT(value)));
         xthread* worker=xrtThreadCreate(actor,&state,0); assert(worker);
-        xdeadline limit=xrtDeadlineAfter(UINT64_C(5000000)); size_t refs=0;
+        XL6_DeadlineV1 limit=xl6DeadlineAfterMillisecondsV1(5000); size_t refs=0;
         xrtownershipref native=xrtCancelOwnership(state.token);
         while(!xrtAtomic32Load(&state.started,XMEMORY_ACQUIRE) || !native.Ops->Count(native.Data,&refs) || refs<3) {
-            assert(xrtClock()<limit); xrtThreadYield();
+            assert(xl6MonotonicMillisecondsV1()<limit); xrtThreadYield();
         }
         for(unsigned root=0;root<(state.select ? 2u : 1u);++root) {
             /* Legacy V1 admission refuses an active owner with ERROR. A

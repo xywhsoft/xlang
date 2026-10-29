@@ -1,4 +1,6 @@
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
+#include "include/xl_clock.h"
 #include "xl6_ownership_domain_impl.h"
 /* Actual source/list/producer/Watch/payload slots. No callback inference,
  * opaque leaves or extra reference counts; native algorithms stay in XRT. */

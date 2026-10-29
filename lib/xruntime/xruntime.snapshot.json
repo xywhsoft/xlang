@@ -1,16 +1,22 @@
 {
-  "schema": 3,
+  "schema": 4,
   "product": "xruntime",
   "implementation": {
-    "source": "xrt/extlibs/xruntime/single/xruntime.h",
-    "sha256": "A39F078B1C3B01298C828526333E9A86E2DE4DA6E99B1B5D877F108763D41CC5",
-    "bytes": 9729511
+    "source": "xrt/single/extlibs/xruntime.h",
+    "sha256": "E202FFB9E81B6A43271AAF149A6C088A24858BCDDD295D720957CF84B7EB98E7",
+    "bytes": 682392
   },
   "declarations": {
-    "source": "xrt/extlibs/xruntime/single/xruntime_decl.h",
-    "sha256": "770697407CDBBCC8ACBBE2DF4483FAD0507DBCB2C28FC2D620C596D94155AEA5",
-    "bytes": 1625551
+    "source": "xrt/single/extlibs/xruntime_decl.h",
+    "sha256": "1D59CA49004A33027D773B3E5C8F479DBCFAE1251A643569171F2F01E621C7DD",
+    "bytes": 302039
   },
-  "publicApiCount": 3926,
-  "ownedPublicApiCount": 465
+  "publicApiCount": 465,
+  "ownedPublicApiCount": 465,
+  "features": {
+    "source": "xrt/extlibs/xruntime/include/xruntime/features.h",
+    "sha256": "393626877D28FA626E7B1FF5C17BD81C6E45A2D0CD9063D06567A3FBD9919BF9",
+    "bytes": 13516
+  },
+  "upstreamSha256": "7E6D2AF103A03645D99760E4E530E57B6AB573DA7A34F0B4DC0A41BEA717FD78"
 }

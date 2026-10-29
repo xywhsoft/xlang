@@ -48,7 +48,8 @@ def main():
                 for mode,header in enumerate(headers):
                     name=f'{index}.{opt}.{mode}';binary=out/(name+('.exe' if os.name=='nt' else ''))
                     options=['-DTEST_SOCKET_CACHE_HEADER="'+str(header).replace('\\','/')+'"']
-                    if header.name=='xruntime.h':options+=['-DXRUNTIME_IMPLEMENTATION']
+                    if header.name=='xruntime.h':options+=['-DXRUNTIME_IMPLEMENTATION','-DXRT_IMPLEMENTATION',
+                        '-include',str(root/'lib/xruntime/xruntime_features.h'),'-include',str(root/'lib/xrt/xrt.h')]
                     run(name+'.build',[*flags,'-'+opt,*options,fixture,*libraries,'-o',binary])
                     products.append(dict(Path=str(binary),Sha256=sha(binary)));save()
                     proof=run(name+'.run',[binary]);assert 'eight simultaneous first users, canonical publication; no traffic' in proof

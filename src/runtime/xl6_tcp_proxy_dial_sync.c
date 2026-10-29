@@ -12,7 +12,7 @@ static void* dial(XL6_ExecutionServicesV1 services,void* engine,void* resolver,c
     if(!host){xl6TcpFailedV1();return NULL;}
     if(!xl6TcpDialMayWaitInternalV1(engine)){xrtFree(host);xl6TcpFailedV1();return NULL;}
     bool cancelled=parent&&xrtCancelRequested(parent);
-    if(cancelled||xrtDeadlineExpired(due)){
+    if(cancelled||xl6DeadlineExpiredV1(due)){
         if(cancelled)(void)xl6PayloadObserveOutcome(XFUTURE_CANCELLED,NULL);else xrtSetErrorKind(XERR_TIMEOUT);
         xrtFree(host);xl6TcpFailedV1();return NULL;
     }
@@ -21,13 +21,13 @@ static void* dial(XL6_ExecutionServicesV1 services,void* engine,void* resolver,c
     xrtFree(host);return xl6TcpDialFinishUntilInternalV1(carrier,source,due,parent);
 }
 void* xl6TcpProxyDialDefaultV1(XL6_ExecutionServicesV1 services,void* engine,void* resolver,const void* proxy,xstrview host,int64_t port)
-{return dial(services,engine,resolver,proxy,host,port,NULL,XRT_DEADLINE_NEVER,NULL,false);}
+{return dial(services,engine,resolver,proxy,host,port,NULL,XL6_DEADLINE_NEVER,NULL,false);}
 void* xl6TcpProxyDialV1(XL6_ExecutionServicesV1 services,void* engine,void* resolver,const void* proxy,xstrview host,int64_t port,const void* options)
-{return dial(services,engine,resolver,proxy,host,port,options,XRT_DEADLINE_NEVER,NULL,false);}
+{return dial(services,engine,resolver,proxy,host,port,options,XL6_DEADLINE_NEVER,NULL,false);}
 void* xl6TcpProxyDialCancelDefaultV1(XL6_ExecutionServicesV1 services,void* engine,void* resolver,const void* proxy,xstrview host,int64_t port,void* parent)
-{return dial(services,engine,resolver,proxy,host,port,NULL,XRT_DEADLINE_NEVER,parent,true);}
+{return dial(services,engine,resolver,proxy,host,port,NULL,XL6_DEADLINE_NEVER,parent,true);}
 void* xl6TcpProxyDialCancelV1(XL6_ExecutionServicesV1 services,void* engine,void* resolver,const void* proxy,xstrview host,int64_t port,const void* options,void* parent)
-{return dial(services,engine,resolver,proxy,host,port,options,XRT_DEADLINE_NEVER,parent,true);}
+{return dial(services,engine,resolver,proxy,host,port,options,XL6_DEADLINE_NEVER,parent,true);}
 void* xl6TcpProxyDialUntilDefaultV1(XL6_ExecutionServicesV1 services,void* engine,void* resolver,const void* proxy,xstrview host,int64_t port,uint64_t due)
 {return dial(services,engine,resolver,proxy,host,port,NULL,due,NULL,false);}
 void* xl6TcpProxyDialUntilV1(XL6_ExecutionServicesV1 services,void* engine,void* resolver,const void* proxy,xstrview host,int64_t port,const void* options,uint64_t due)

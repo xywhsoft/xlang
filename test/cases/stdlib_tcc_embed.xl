@@ -34,7 +34,8 @@ int runFileRc = tcc.runFile("__xlvfs__/embed_test.c")
 println("tcc.runFile rc", runFileRc)
 expect(runFileRc, 0, "tcc.runFile dynamic vfs")
 
-int compileRc2 = tcc.compile("int main(void){ return 0; }\n", "build/test/stdlib_tcc_compile.exe", tcc.EXE)
+string nativeTimeSource = "#define XRT_MODULE_TIME\n#include <xrt.h>\nint main(void){ xtime t; int64 ms; return (!xrtTimeFromUnixMs(1234, &t) || !xrtTimeToUnixMs(t, &ms) || ms != 1234) ? 1 : 0; }\n"
+int compileRc2 = tcc.compile(nativeTimeSource, "build/test/stdlib_tcc_compile.exe", tcc.EXE)
 println("tcc.compile rc", compileRc2)
 expect(compileRc2, 0, "tcc.compile")
 

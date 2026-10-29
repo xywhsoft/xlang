@@ -1,4 +1,6 @@
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
+#include "include/xl_clock.h"
 #include "xl6_ownership_domain_impl.h"
 /* Core Dial capabilities, without selecting TCP Future. The older composite
  * NetDialNative domain remains valid: the catalog deduplicates exact policies

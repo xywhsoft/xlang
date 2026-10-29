@@ -15,7 +15,7 @@ static void* dial(XL6_ExecutionServicesV1 services,void* engine,void* resolver,
         if(!host){xl6TcpFailedV1();return NULL;}}
     if(!xl6TcpDialMayWaitInternalV1(engine)){xrtFree(host);xl6TcpFailedV1();return NULL;}
     bool cancelled=parent&&xrtCancelRequested(parent);
-    if(cancelled||xrtDeadlineExpired(due)){
+    if(cancelled||xl6DeadlineExpiredV1(due)){
         if(cancelled)(void)xl6PayloadObserveOutcome(XFUTURE_CANCELLED,NULL);
         else xrtSetErrorKind(XERR_TIMEOUT);
         xrtFree(host);xl6TcpFailedV1();return NULL;
@@ -26,13 +26,13 @@ static void* dial(XL6_ExecutionServicesV1 services,void* engine,void* resolver,
     xrtFree(host);return xl6TcpDialFinishUntilInternalV1(carrier,source,due,parent);
 }
 void* xl6TcpDialCancelDefaultV1(XL6_ExecutionServicesV1 services,void* engine,void* resolver,xstrview host,int64_t port,void* parent)
-{return dial(services,engine,resolver,host,port,NULL,NULL,XRT_DEADLINE_NEVER,parent,false,true);}
+{return dial(services,engine,resolver,host,port,NULL,NULL,XL6_DEADLINE_NEVER,parent,false,true);}
 void* xl6TcpDialCancelV1(XL6_ExecutionServicesV1 services,void* engine,void* resolver,xstrview host,int64_t port,const void* options,void* parent)
-{return dial(services,engine,resolver,host,port,NULL,options,XRT_DEADLINE_NEVER,parent,false,true);}
+{return dial(services,engine,resolver,host,port,NULL,options,XL6_DEADLINE_NEVER,parent,false,true);}
 void* xl6TcpDialAddressesCancelDefaultV1(XL6_ExecutionServicesV1 services,void* engine,const void* addresses,void* parent)
-{return dial(services,engine,NULL,(xstrview){0},0,addresses,NULL,XRT_DEADLINE_NEVER,parent,true,true);}
+{return dial(services,engine,NULL,(xstrview){0},0,addresses,NULL,XL6_DEADLINE_NEVER,parent,true,true);}
 void* xl6TcpDialAddressesCancelV1(XL6_ExecutionServicesV1 services,void* engine,const void* addresses,const void* options,void* parent)
-{return dial(services,engine,NULL,(xstrview){0},0,addresses,options,XRT_DEADLINE_NEVER,parent,true,true);}
+{return dial(services,engine,NULL,(xstrview){0},0,addresses,options,XL6_DEADLINE_NEVER,parent,true,true);}
 void* xl6TcpDialUntilDefaultV1(XL6_ExecutionServicesV1 services,void* engine,void* resolver,xstrview host,int64_t port,uint64_t due)
 {return dial(services,engine,resolver,host,port,NULL,NULL,due,NULL,false,false);}
 void* xl6TcpDialUntilV1(XL6_ExecutionServicesV1 services,void* engine,void* resolver,xstrview host,int64_t port,const void* options,uint64_t due)

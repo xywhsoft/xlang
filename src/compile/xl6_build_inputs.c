@@ -208,7 +208,7 @@ static void fileJson(XL6_Output* out,const char* path,size_t size,const unsigned
     size_t i; xl6OutputPuts("{\"path\":",out); quote(out,path);
     xl6OutputPrintf(out,",\"size\":%llu,\"sha256\":\"",(unsigned long long)size);
     for(i=0;i<32;++i) xl6OutputPrintf(out,"%02x",hash[i]);
-    xl6OutputPrintf(out,"\",\"metadata\":{\"available\":%u,\"device\":\"%016llx\",\"identity\":\"%016llx\",\"modifiedUs\":\"%lld\",\"changedUs\":\"%lld\",\"attributes\":%u}}",
+    xl6OutputPrintf(out,"\",\"metadata\":{\"available\":%u,\"device\":\"%016llx\",\"identity\":\"%016llx\",\"modifiedMs\":\"%lld\",\"changedMs\":\"%lld\",\"attributes\":%u}}",
         (unsigned)info->Available,(unsigned long long)info->Device,(unsigned long long)info->Identity,
         (long long)info->Modified,(long long)info->Changed,(unsigned)info->Attributes);
 }
@@ -225,7 +225,7 @@ int xl6BuildInputsWrite(XL6_BuildInputs* r,const char* artifact,const char* rece
       int overlap=target && (equalPath(target,absolute)||(xrtPathStat(target,true,&receiptInfo)&&receiptInfo.Device==info.Device&&receiptInfo.Identity==info.Identity));
       xrtFree(target); if(overlap) { xrtFree(absolute); return fail(r,receipt,"receipt overlaps artifact"); } }
     if(!xl6OutputOpenMemory(&out)) { xrtFree(absolute); return fail(r,receipt,"cannot allocate receipt"); }
-    xl6OutputPuts("{\"schema\":1,\"scope\":\"xlang-native-build-disk-inputs\",\"complete\":true,\"artifact\":",&out);
+    xl6OutputPuts("{\"schema\":2,\"scope\":\"xlang-native-build-disk-inputs\",\"complete\":true,\"artifact\":",&out);
     fileJson(&out,absolute,n,hash,&info); xrtFree(absolute);
     xl6OutputPuts(",\"files\":[",&out);
     for(i=0;i<r->sources.count;++i) { const XL6_SourceReportItem* f=&r->sources.items[i];

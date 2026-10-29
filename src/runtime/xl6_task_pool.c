@@ -1,7 +1,7 @@
 #define XRT_MODULE_TASK_POOL
 #define XRT_MODULE_MEMORY
 #define XRT_MODULE_ATOMIC
-#include "lib/xrt/xrt.h"
+#include "src/common/xl6_xrt.h"
 #include "xl6_task.h"
 #include "xl6_ownership_scope.h"
 #include "src/api/xl_foreign_error.h"
@@ -502,7 +502,7 @@ static void control_wake(void* data)
     if(!xrtCondBroadcast(pool->changed))abort();
     unlock_pool(pool);
 }
-static xwaitresult control_join(XL6_TaskPool* pool,xtaskpool* native,xdeadline deadline,xcancel* cancel)
+static xwaitresult control_join(XL6_TaskPool* pool,xtaskpool* native,XL6_DeadlineV1 deadline,xcancel* cancel)
 {
     /* Work and accepted capture tails are already drained. Close registered
      * asynchronous resources BEFORE requesting native stop, so a TLS value
@@ -521,17 +521,17 @@ static xwaitresult control_join(XL6_TaskPool* pool,xtaskpool* native,xdeadline d
         lock_pool(pool);bool complete=pool->exitComplete;unlock_pool(pool);
         if(complete)return XWAIT_OK; /* another waiter published physical completion */
         if(cancel&&xrtCancelRequested(cancel))return XWAIT_CANCELLED;
-        if(xrtDeadlineExpired(deadline))return XWAIT_TIMEOUT;
+        if(xl6DeadlineExpiredV1(deadline))return XWAIT_TIMEOUT;
         /* Explicit synchronous wait only. The native zero-time join remains
          * nonblocking for the resource source. A bounded cond heartbeat avoids
          * spinning on TLS/native wrapper tails without adding a new timer,
          * thread or callback ownership edge. Completion wins the next probe. */
-        xdeadline heartbeat=xrtDeadlineAfter(1000);if(deadline<heartbeat)heartbeat=deadline;
-        lock_pool(pool);state=xrtCondWaitUntil(pool->changed,pool->gate,heartbeat);unlock_pool(pool);
+        XL6_DeadlineV1 heartbeat=xl6DeadlineAfterMillisecondsV1(1);if(deadline<heartbeat)heartbeat=deadline;
+        lock_pool(pool);state=xrtCondWaitFor(pool->changed,pool->gate,xl6DeadlineRemainingMillisecondsV1(heartbeat));unlock_pool(pool);
         if(state==XWAIT_ERROR)return state;
     }
 }
-static bool control_wait(XL6_TaskPool* pool,xdeadline deadline,xcancel* cancel,XL6_TaskPoolWaitStatusV1* status)
+static bool control_wait(XL6_TaskPool* pool,XL6_DeadlineV1 deadline,xcancel* cancel,XL6_TaskPoolWaitStatusV1* status)
 {
     if(!status){xrtSetErrorKind(XERR_ARGUMENT);return false;}
     *status=XL6_TASK_POOL_TIMEOUT_V1;
@@ -556,7 +556,7 @@ static bool control_wait(XL6_TaskPool* pool,xdeadline deadline,xcancel* cancel,X
     }
     lock_pool(pool);submitting=pool->submitting!=0;
     bool cancelled=submitting&&cancel&&xrtCancelRequested(cancel);
-    bool expired=submitting&&xrtDeadlineExpired(deadline);unlock_pool(pool);
+    bool expired=submitting&&xl6DeadlineExpiredV1(deadline);unlock_pool(pool);
     if(cancelled||expired){
         if(cancelled)*status=XL6_TASK_POOL_CANCELLED_V1;
         control_end(pool,&activity);return true;
@@ -567,8 +567,8 @@ static bool control_wait(XL6_TaskPool* pool,xdeadline deadline,xcancel* cancel,X
     lock_pool(pool);
     while(pool->submitting){
         if(cancel&&xrtCancelRequested(cancel)){result=XWAIT_CANCELLED;break;}
-        if(xrtDeadlineExpired(deadline)){result=XWAIT_TIMEOUT;break;}
-        result=xrtCondWaitUntil(pool->changed,pool->gate,deadline);
+        if(xl6DeadlineExpiredV1(deadline)){result=XWAIT_TIMEOUT;break;}
+        result=xrtCondWaitFor(pool->changed,pool->gate,xl6DeadlineRemainingMillisecondsV1(deadline));
         if(result!=XWAIT_OK)break;
     }
     if(result==XWAIT_TIMEOUT&&!pool->submitting)result=XWAIT_OK;
@@ -576,7 +576,7 @@ static bool control_wait(XL6_TaskPool* pool,xdeadline deadline,xcancel* cancel,X
     if(result==XWAIT_OK){
         if(native){
             if(!xrtTaskPoolClose(native))result=XWAIT_ERROR;
-            else result=xrtTaskPoolWaitUntilCancel(native,deadline,cancel);
+            else result=xrtTaskPoolWaitForCancel(native,xl6DeadlineRemainingMillisecondsV1(deadline),cancel);
             if(result==XWAIT_OK&&ownedExit)result=control_join(pool,native,deadline,cancel);
         }
     }
@@ -589,13 +589,13 @@ static bool control_wait(XL6_TaskPool* pool,xdeadline deadline,xcancel* cancel,X
 static bool control_wait_for(XL6_TaskPool* pool,int64_t milliseconds,xcancel* cancel,XL6_TaskPoolWaitStatusV1* status)
 {
     if(status)*status=XL6_TASK_POOL_TIMEOUT_V1;
-    xdeadline deadline;if(!xl6ConcurrentDeadline(milliseconds,&deadline))return false;
+    XL6_DeadlineV1 deadline;if(!xl6ConcurrentDeadline(milliseconds,&deadline))return false;
     return control_wait(pool,deadline,cancel,status);
 }
 static bool control_wait_until(XL6_TaskPool* pool,uint64_t deadline,xcancel* cancel,XL6_TaskPoolWaitStatusV1* status)
 {
     if(status)*status=XL6_TASK_POOL_TIMEOUT_V1;
-    if(deadline==XRT_DEADLINE_NEVER){xrtSetErrorKind(XERR_RANGE);return false;}
+    if(deadline==XL6_DEADLINE_NEVER){xrtSetErrorKind(XERR_RANGE);return false;}
     return control_wait(pool,deadline,cancel,status);
 }
 static bool control_snapshot(XL6_TaskPool* pool,XL6_TaskPoolStatsV1* output)

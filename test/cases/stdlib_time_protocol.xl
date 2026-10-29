@@ -1,9 +1,9 @@
-time value = time.fromDateTime(2024, 2, 29, 23, 58, 57, 123456)
-assert time.rfc3339(value) == "2024-02-29T23:58:57.123456Z"
-assert time.rfc3339(value, 28800) == "2024-03-01T07:58:57.123456+08:00"
+time value = time.fromDateTime(2024, 2, 29, 23, 58, 57, 123)
+assert time.rfc3339(value) == "2024-02-29T23:58:57.123Z"
+assert time.rfc3339(value, 28800) == "2024-03-01T07:58:57.123+08:00"
 assert time.parseRFC3339(time.rfc3339(value, -18000)) == value
 assert time.parse(time.rfc3339(value)) == value
-assert time.parseRFC3339("2024-02-29T23:58:57.123456789Z") == value
+assert time.parseRFC3339("2024-02-29T23:58:57.123789Z") == value
 assert time.parseRFC3339("2024-02-29T23:58:57Z\0bad", 20) == #2024-02-29 23:58:57#
 auto ok, parsed = time.tryParseRFC3339(time.rfc3339(value))
 assert ok and parsed == value
@@ -11,7 +11,7 @@ auto bad, invalid = time.tryParseRFC3339("2024-02-30T00:00:00Z")
 assert not bad and invalid == time(0)
 time httpValue = #1994-11-06 08:49:37#
 assert time.httpDate(httpValue) == "Sun, 06 Nov 1994 08:49:37 GMT"
-assert time.httpDate(time.addMicroseconds(httpValue, 999999)) == time.httpDate(httpValue)
+assert time.httpDate(time.addMilliseconds(httpValue, 999)) == time.httpDate(httpValue)
 assert time.parseHTTPDate(time.httpDate(httpValue)) == httpValue
 assert time.parseHTTPDate("Sunday, 06-Nov-94 08:49:37 GMT") == httpValue
 assert time.parseHTTPDate("Sun Nov  6 08:49:37 1994") == httpValue

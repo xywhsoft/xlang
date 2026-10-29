@@ -1,6 +1,8 @@
 #ifndef XL6_CHANNEL_FUTURE_CORE_H
 #define XL6_CHANNEL_FUTURE_CORE_H
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
+#include "include/xl_clock.h"
 #include "xl6_channel_future.h"
 #include "xl6_future_payload.h"
 

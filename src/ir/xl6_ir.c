@@ -21177,7 +21177,7 @@ int xl6IrBuildModuleFromAst(XL6_IrModule* module, const XL6_AstNode* root, XL6_D
          * This is typed IR vocabulary, not a source/library dummy variable or
          * a backend fallback. Append without renumbering existing source IDs. */
         {"int","xrt.int64"},
-        /* Native absolute deadlines use the monotonic unsigned microsecond
+        /* Native absolute deadlines use the monotonic unsigned millisecond
          * domain, including calls whose only time operand is a literal. */
         {"uint64","xrt.uint64"}
     };

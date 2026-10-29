@@ -1,7 +1,7 @@
 #define XRT_MODULE_SEM
 #define XRT_MODULE_ATOMIC
 #define XRUNTIME_MODULE_RUNTIME_VALUE_TYPE
-#include "lib/xruntime/xruntime.h"
+#include "src/common/xl6_xrt.h"
 #include "src/runtime/xl6_semaphore.h"
 #include "src/api/xl_foreign_error.h"
 #include <limits.h>
@@ -208,9 +208,8 @@ static bool run(const xvalue* value, uint64_t identity, unsigned operation, int6
         case 0: ok = xrtSemWait(&owner->storage) == 0; break;
         case 1: ok = xrtSemTryWait(&owner->storage) == 0; break;
         case 2: {
-            uint64_t timeout = argument <= 0 ? 0 :
-                (uint64_t)argument > UINT64_MAX / 1000u ? UINT64_MAX : (uint64_t)argument * 1000u;
-            ok = xrtSemWaitFor(&owner->storage, timeout) == 0;
+            int64_t timeout = argument <= 0 ? 0 : argument;
+            ok = xrtSemWaitFor(&owner->storage,timeout) == 0;
             break;
         }
         case 3: ok = xrtSemPost(&owner->storage); break;

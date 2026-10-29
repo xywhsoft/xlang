@@ -409,7 +409,7 @@ static bool legacyOperation(const xvalue* value,uint64_t identity,uint64_t eleme
 {
     xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) abort();
     XL6_ChannelOperationV1 operation={0}; bool ok=false;
-    xdeadline deadline=XRT_DEADLINE_NEVER;
+    XL6_DeadlineV1 deadline=XL6_DEADLINE_NEVER;
     XL6_ChannelStatusV1 actual=XL6_CHANNEL_OK_V1;
     bool valid=mode>=XL6_CHANNEL_TRY_V1 && mode<=XL6_CHANNEL_FOR_V1 && milliseconds>=0 &&
         (mode==XL6_CHANNEL_FOR_V1 || !milliseconds);
@@ -419,8 +419,8 @@ static bool legacyOperation(const xvalue* value,uint64_t identity,uint64_t eleme
         if (xl6ChannelOperationOpenV1(value,identity,element,type,slot,sending,status,&operation)) {
             ok=mode==XL6_CHANNEL_TRY_V1 ? statusFromTry(sending ?
                 xrtChannelTrySend(operation.native,operation.message) : xrtChannelTryRecv(operation.native,&operation.received),&actual) :
-                statusFromWait(sending ? xrtChannelSendUntil(operation.native,operation.message,deadline) :
-                    xrtChannelRecvUntil(operation.native,&operation.received,deadline),&actual);
+                statusFromWait(sending ? xrtChannelSendFor(operation.native,operation.message,xl6DeadlineRemainingMillisecondsV1(deadline)) :
+                    xrtChannelRecvFor(operation.native,&operation.received,xl6DeadlineRemainingMillisecondsV1(deadline)),&actual);
             if (ok && actual==XL6_CHANNEL_OK_V1) ok=xl6ChannelOperationCommitV1(&operation);
         }
     }

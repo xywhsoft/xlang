@@ -3,7 +3,11 @@
 #define XRT_MODULE_FUTURE
 #define XRT_MODULE_THREAD
 #define XRT_MODULE_ATOMIC
+#ifndef XRT_MODULE_WAIT
+#define XRT_MODULE_WAIT
+#endif
 #include "lib/xrt/xrt.h"
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_continuation_future.h"
 #include "src/api/xl_foreign_error.h"
 #include <assert.h>
@@ -161,8 +165,8 @@ static void interrupt(unsigned mode,unsigned ready,unsigned second,int raisingFi
 typedef struct Race {xatomic32 start,completed;unsigned order;bool accepted;xpromise* source;void* frame;} Race;
 static void wait_flag(const xatomic32* flag)
 {
-    uint64 deadline=xrtClock()+UINT64_C(5000000);
-    while(!xrtAtomic32Load(flag,XMEMORY_ACQUIRE)){assert(xrtClock()<deadline);xrtThreadYield();}
+    uint64 deadline=xl6MonotonicMillisecondsV1()+UINT64_C(5000000);
+    while(!xrtAtomic32Load(flag,XMEMORY_ACQUIRE)){assert(xl6MonotonicMillisecondsV1()<deadline);xrtThreadYield();}
 }
 static int32 cancelling_worker(void* data)
 {

@@ -7,6 +7,8 @@ void* xl6TlsStreamOptionsCopyV1(const xtlsstreamconfig* value)
     if(!value){xl6TlsFailV1(XERR_ARGUMENT,"missing TLS stream configuration");return NULL;}
     if(!value->AsyncBytesLimit||!value->AsyncCountLimit||!value->AsyncBatch){
         xl6TlsFailV1(XERR_RANGE,"TLS asynchronous limits must be positive");return NULL;}
+    if(value->HandshakeTimeout>INT64_MAX||value->CloseTimeout>INT64_MAX){
+        xl6TlsFailV1(XERR_RANGE,"TLS timeout exceeds signed milliseconds");return NULL;}
     xtlsstreamconfig* result=xrtMalloc(sizeof(*result));if(result)*result=*value;return result;
 }
 void xl6TlsStreamOptionsDefaultsV1(xtlsstreamconfig* output)
@@ -32,17 +34,17 @@ static const xtlsstreamconfig* checked(void* raw)
     if(!raw)xl6TlsFailV1(XERR_ARGUMENT,"missing TLS stream options");
     return raw;
 }
-/* Pinned native ABI: microseconds, zero disables. Match TCP's language
+/* Native configuration uses milliseconds; zero disables. Match TCP's language
  * convention: -1 disables, finite zero is rejected rather than made infinite. */
 static bool timeout(int64_t millis,uint64* result)
 {
     if(millis==-1){*result=0;return true;}
-    if(millis<=0||(uint64_t)millis>UINT64_MAX/1000)
-        return xl6TlsFailV1(XERR_RANGE,"TLS timeout must be positive milliseconds or -1, without native overflow");
-    *result=(uint64)millis*1000;return true;
+    if(millis<=0)
+        return xl6TlsFailV1(XERR_RANGE,"TLS timeout must be positive milliseconds or -1");
+    *result=(uint64)millis;return true;
 }
-static int64_t milliseconds(uint64 micros)
-{return micros?(int64_t)(micros/1000+(micros%1000!=0)):-1;}
+static int64_t milliseconds(uint64 value)
+{return value?(int64_t)value:-1;}
 #define XL6_TLS_STREAM_MILLIS(Field,Name) int64_t xl6TlsStreamOptions##Field##V1(void* raw){const xtlsstreamconfig* self=checked(raw);return self?milliseconds(self->Field):0;}
 #define XL6_TLS_STREAM_BYTES(Field,Name) uint64_t xl6TlsStreamOptions##Field##V1(void* raw){const xtlsstreamconfig* self=checked(raw);return self?(uint64_t)self->Field:0;}
 #define XL6_TLS_STREAM_COUNT(Field,Name) int64_t xl6TlsStreamOptions##Field##V1(void* raw){const xtlsstreamconfig* self=checked(raw);return self?(int64_t)self->Field:0;}

@@ -1,6 +1,7 @@
 /* Reuse the real native implementation/catalog and ordinary graph helpers.
  * No production seam, native replacement, public network or protocol test. */
 #define main existingServerResourceMain
+#include "release/include/xl_clock.h"
 #include "tcp_server_execution_resource.c"
 #undef main
 #include "src/runtime/xl6_execution_language.h"
@@ -23,13 +24,13 @@ static void testPoll(xnetportbackend backend,unsigned budget,unsigned* refusedCo
     xnetaddr address;CHECK(serverLocal(graph.server,&address));
     xnetstreamconfig config;xrtNetStreamConfigInit(&config);config.ReadMode=XNET_STREAM_READ_PROBE;
     Resource* client=xl6ExecutionTcpConnectV1(graph.source,graph.engine,&address,0,&config);CHECK(client);
-    xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
+    XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){
         XL6_TcpServerScopeV1 scope={0};xnetserverstats stats={0};
         CHECK(xl6ExecutionTcpServerEnterInternalV1(graph.server,false,&scope));
         CHECK(xrtNetServerStats(scope.server,&stats));xl6ExecutionTcpServerLeaveInternalV1(&scope);
         if(stats.QueuedAccepts==1)break;
-        CHECK(!xrtDeadlineExpired(until));xrtThreadYield();
+        CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();
     }
     CHECK(xrtMemDebugFailAfter(budget));
     Resource* peer=pollServer(&graph,&ok);bool triggered=xrtMemDebugFailTriggered();xrtMemDebugFailClear();

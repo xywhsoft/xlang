@@ -1,6 +1,7 @@
 /* Actual Dial/winning Stream/shared binding/candidate/Future cycles through
  * the unchanged production XLIR planner. Code stays resident: not DLL proof. */
 #define main dial_parent_network_main
+#include "release/include/xl_clock.h"
 #include "tests/network/test_net_dial_parent_ownership.c"
 #undef main
 #include "src/runtime/xl6_ownership_plan.h"
@@ -125,22 +126,22 @@ static bool lp_resolve(xrtownershipref ref,void* data,const XL6_OwnershipAdapter
 }
 static XL6_OwnershipPlanResult lp_create(DialPlanOwner* p,XL6_OwnershipPlan** plan)
 {
-    xdeadline deadline=xrtDeadlineAfter(10000000);
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(10000);
     for(;;){XL6_OwnershipPlanResult r=xl6OwnershipPlanTryCreateV2((xrtownershipref){p,&lp_ops},lp_resolve,NULL,plan);
         if(r>XL6_OWNERSHIP_PLAN_BUSY)return r;
-        if(xrtDeadlineExpired(deadline))fprintf(stderr,"Dial plan refusal: data=%p ops=%p\n",lp_refused.Data,(const void*)lp_refused.Ops);
-        assert(!*plan&&!xrtDeadlineExpired(deadline));xrtClearError();xrtThreadYield();++lp_busy;}
+        if(xl6DeadlineExpiredV1(deadline))fprintf(stderr,"Dial plan refusal: data=%p ops=%p\n",lp_refused.Data,(const void*)lp_refused.Ops);
+        assert(!*plan&&!xl6DeadlineExpiredV1(deadline));xrtClearError();xrtThreadYield();++lp_busy;}
 }
 static void lp_prepare(XL6_OwnershipPlan* plan)
 {
-    xdeadline deadline=xrtDeadlineAfter(15000000);
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(15000);
     for(;;){XL6_OwnershipStepResult r=xl6OwnershipPlanPrepare(plan);if(r==XL6_OWNERSHIP_STEP_READY)return;
-        assert(r!=XL6_OWNERSHIP_STEP_FAILED&&!xrtDeadlineExpired(deadline));xrtClearError();xrtThreadYield();++lp_busy;}
+        assert(r!=XL6_OWNERSHIP_STEP_FAILED&&!xl6DeadlineExpiredV1(deadline));xrtClearError();xrtThreadYield();++lp_busy;}
 }
 static void lp_destroy(XL6_OwnershipPlan* plan)
 {
-    xdeadline deadline=xrtDeadlineAfter(10000000);XL6_OwnershipPlanResult r;
-    do{r=xl6OwnershipPlanTryDestroy(plan);assert(r!=XL6_OWNERSHIP_PLAN_ERROR&&!xrtDeadlineExpired(deadline));
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(10000);XL6_OwnershipPlanResult r;
+    do{r=xl6OwnershipPlanTryDestroy(plan);assert(r!=XL6_OWNERSHIP_PLAN_ERROR&&!xl6DeadlineExpiredV1(deadline));
         if(r==XL6_OWNERSHIP_PLAN_BUSY)xrtThreadYield();}while(r==XL6_OWNERSHIP_PLAN_BUSY);
     assert(r==XL6_OWNERSHIP_PLAN_READY);
 }

@@ -1,15 +1,16 @@
 {
-  "schema": 3,
+  "schema": 4,
   "product": "xrt",
   "implementation": {
     "source": "xrt/single/xrt.h",
-    "sha256": "AD4F9BF57D7181842CB50C67387BF03BF72A46C2DC020378FC0292CCC30D4A25",
-    "bytes": 9049056
+    "sha256": "D8C4D3CB7DA7D91C35B38CDB22BE516425D3CBD2ED69DDB90B59EC5DFB5714CC",
+    "bytes": 9090338
   },
   "declarations": {
     "source": "xrt/single/xrt_decl.h",
-    "sha256": "6BD27B7ED8151B1E956C03206B04A27A35FCC9CF5189DDA6518A3CCE5785AA85",
-    "bytes": 1476014
+    "sha256": "442BADFD81330E9B9CB93B12CA1D1DD7000691A018B0A77372E5553BB024906B",
+    "bytes": 1478320
   },
-  "publicApiCount": 3461
+  "publicApiCount": 3442,
+  "upstreamSha256": "7E6D2AF103A03645D99760E4E530E57B6AB573DA7A34F0B4DC0A41BEA717FD78"
 }

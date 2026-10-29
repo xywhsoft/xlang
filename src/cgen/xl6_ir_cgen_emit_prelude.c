@@ -314,17 +314,16 @@ static int xl6IrCgenEmitRuntimePrelude(
                 xl6OutputPuts("static uint64_t xlir_future_milliseconds(int64_t milliseconds)\n"
                               "{\n"
                               "    if (milliseconds <= 0) return UINT64_C(0);\n"
-                              "    if ((uint64_t)milliseconds > UINT64_MAX / UINT64_C(1000)) return UINT64_MAX;\n"
-                              "    return (uint64_t)milliseconds * UINT64_C(1000);\n"
+                              "    return (uint64_t)milliseconds;\n"
                               "}\n", out);
             if ( (needs->needsFutureMemberRuntime & (1u << 1)) != 0 )
-                xl6OutputPuts("#ifndef XLIR_XRT_DECLARATIONS\nextern int xrtFutureWaitFor(xfuture*, uint64_t);\n#endif\n"
+                xl6OutputPuts("#ifndef XLIR_XRT_DECLARATIONS\nextern int xrtFutureWaitFor(xfuture*, int64_t);\n#endif\n"
                               "static bool xlir_future_wait_timeout(xfuture* future, int64_t milliseconds)\n"
-                              "{ return future != NULL && xrtFutureWaitFor(future, xlir_future_milliseconds(milliseconds)) == 0 && xrtFutureState(future) == XFUTURE_RESOLVED; }\n", out);
+                              "{ return future != NULL && xrtFutureWaitFor(future, milliseconds) == 0 && xrtFutureState(future) == XFUTURE_RESOLVED; }\n", out);
             if ( (needs->needsFutureMemberRuntime & (1u << 2)) != 0 )
-                xl6OutputPuts("#ifndef XLIR_XRT_DECLARATIONS\nextern int xrtFutureWaitUntil(xfuture*, uint64_t);\n#endif\n"
+                xl6OutputPuts("#ifndef XLIR_XRT_DECLARATIONS\nextern int xrtFutureWaitFor(xfuture*, int64_t);\n#endif\n"
                               "static bool xlir_future_wait_until(xfuture* future, int64_t milliseconds)\n"
-                              "{ return future != NULL && xrtFutureWaitUntil(future, xlir_future_milliseconds(milliseconds)) == 0 && xrtFutureState(future) == XFUTURE_RESOLVED; }\n", out);
+                              "{ return future != NULL && xrtFutureWaitFor(future, xl6DeadlineRemainingMillisecondsV1(xlir_future_milliseconds(milliseconds))) == 0 && xrtFutureState(future) == XFUTURE_RESOLVED; }\n", out);
             if ( (needs->needsFutureMemberRuntime & (1u << 3)) != 0 )
                 xl6OutputPuts("static bool xlir_future_is_done(xfuture* future)\n"
                               "{ return future != NULL && xrtFutureState(future) != XFUTURE_PENDING; }\n", out);

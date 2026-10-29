@@ -1,3 +1,4 @@
+#include "release/include/xl_clock.h"
 /* One valid local CONNECT tunnel endpoint followed by ordinary TLS. No
  * external target is contacted: 127.0.0.1:443 is only the fixed wire authority.
  * Test stack data survives all callbacks through explicit peer shutdown/join. */
@@ -31,8 +32,8 @@ static void proxyRead(xnetstream* stream,xnetbuf* buffer,void* raw)
 }
 static void peerWait(const xatomic32* value)
 {
-    xdeadline due=xrtDeadlineAfter(UINT64_C(10000000));
-    while(!xrtAtomic32Load(value,XMEMORY_ACQUIRE)){CHECK(!xrtDeadlineExpired(due));xrtThreadYield();}
+    XL6_DeadlineV1 due=xl6DeadlineAfterMillisecondsV1(10000);
+    while(!xrtAtomic32Load(value,XMEMORY_ACQUIRE)){CHECK(!xl6DeadlineExpiredV1(due));xrtThreadYield();}
 }
 static xnetproxy* proxyStart(TlsProxyPeer* peer,xnetportbackend backend)
 {
@@ -54,8 +55,8 @@ static void proxyStop(TlsProxyPeer* peer)
     CHECK(xrtTlsStreamAbort(stream));peerWait(&peer->closed);
     CHECK(xrtNetListenerClose(peer->listener));peerWait(&peer->listenerClosed);
     xrtTlsStreamDestroy(stream);xrtNetListenerDestroy(peer->listener);
-    xdeadline due=xrtDeadlineAfter(UINT64_C(10000000));
+    XL6_DeadlineV1 due=xl6DeadlineAfterMillisecondsV1(10000);
     for(;;){xnetretireresult state=xrtNetEngineTryDestroy(peer->engine);if(state==XNET_RETIRE_READY)break;
-        CHECK(state==XNET_RETIRE_BUSY&&!xrtDeadlineExpired(due));xrtThreadYield();}
+        CHECK(state==XNET_RETIRE_BUSY&&!xl6DeadlineExpiredV1(due));xrtThreadYield();}
     xl6TlsServerContextDestroyV1(peer->role);
 }

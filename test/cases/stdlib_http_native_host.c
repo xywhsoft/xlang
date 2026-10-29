@@ -1,5 +1,6 @@
 /* Actual product runtime, not replacement providers. Ordinary offline vectors
  * plus logical allocation failures at every successful-construction prefix. */
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_text_value.h"
 #include <assert.h>
 #include <stdio.h>
@@ -110,19 +111,19 @@ static void performance(void)
 {
     enum{iterations=20000};volatile uint64 sum=0;
     xhttp1limits limits;xrtHttp1LimitsInit(&limits);
-    uint64 begin=xrtClock();
+    uint64 begin=xl6MonotonicMillisecondsV1();
     for(int i=0;i<iterations;++i){xhttpfield fields[100];xhttp1head head;
         xrtHttp1HeadInit(&head,fields,100);
         assert(xrtHttp1RequestParse((xbytesview){(const uint8*)request.Data,request.Size},&head,&limits,NULL)==XHTTP1_READY);
         sum+=head.Bytes;}
-    uint64 rawTicks=xrtClock()-begin;
-    begin=xrtClock();
+    uint64 rawTicks=xl6MonotonicMillisecondsV1()-begin;
+    begin=xl6MonotonicMillisecondsV1();
     for(int i=0;i<iterations;++i){OwnedHead* owned=handwritten(&limits);sum+=owned->head.Bytes;xrtFree(owned);}
-    uint64 handwrittenTicks=xrtClock()-begin;
-    xmemdebugsnapshot before,after;xrtMemDebugSnapshot(&before);begin=xrtClock();
+    uint64 handwrittenTicks=xl6MonotonicMillisecondsV1()-begin;
+    xmemdebugsnapshot before,after;xrtMemDebugSnapshot(&before);begin=xl6MonotonicMillisecondsV1();
     for(int i=0;i<iterations;++i){void* head=xl6Http1HeadRequestTextV2(request,65536,8192,8192,100,-1);assert(head);
         sum+=(uint64)xl6Http1HeadHeaderBytesV2(head);xl6Http1HeadDestroyV2(head);}
-    uint64 ownedTicks=xrtClock()-begin;xrtMemDebugSnapshot(&after);balance(&before);
+    uint64 ownedTicks=xl6MonotonicMillisecondsV1()-begin;xrtMemDebugSnapshot(&after);balance(&before);
     printf("HTTP head cost (same runtime, %d iterations, memory-debug=%d): borrowed-C=%llu us; owning-C=%llu us; owned-adapter=%llu us; adapter allocs=%llu; copied bytes=%llu; no second parse\n",
         iterations,(int)xrtMemDebugEnabled(),(unsigned long long)rawTicks,(unsigned long long)handwrittenTicks,(unsigned long long)ownedTicks,(unsigned long long)(after.AllocCount-before.AllocCount),
         (unsigned long long)(sum/3));
@@ -133,20 +134,20 @@ static void bodyPerformance(void)
     enum{iterations=20000};static const uint8 data[65536]={0};xbuffer out={0};
     assert(xrtBufferReserve(&out,sizeof(data)));xhttp1bodyplan plan={XHTTP1_BODY_FIXED,sizeof(data)};
     xhttp1bodylimits limits;xrtHttp1BodyLimitsInit(&limits);volatile uint64 total=0;
-    uint64 start=xrtClock();
+    uint64 start=xl6MonotonicMillisecondsV1();
     for(int i=0;i<iterations;++i){xhttp1body body;size_t consumed=0;xbytesview part={0};out.Size=0;
         assert(xrtHttp1BodyInit(&body,&plan,NULL,0,&limits));
         assert(xrtHttp1BodyRead(&body,(xbytesview){data,sizeof(data)},false,&consumed,&part,NULL)==XHTTP1_BODY_DATA);
         assert(xrtBufferAppend(&out,part));total+=consumed;}
-    uint64 raw=xrtClock()-start;
+    uint64 raw=xl6MonotonicMillisecondsV1()-start;
     void* ownedPlan=xl6HttpBodyPlanCreateV2(XHTTP1_BODY_FIXED,sizeof(data));assert(ownedPlan);
     void* reader=xl6Http1BodyReaderCreateV2(ownedPlan,16777216,8192,16384,8192,32);assert(reader);
-    start=xrtClock();
+    start=xl6MonotonicMillisecondsV1();
     for(int i=0;i<iterations;++i){out.Size=0;xl6Http1BodyReaderResetV2(reader,ownedPlan,16777216,8192,16384,8192,32);
         assert(xl6Http1BodyReaderReadSpanV2(reader,(xbytesview){data,sizeof(data)},&out,false,-1)==XHTTP1_BODY_DATA);
         total+=out.Size;}
     printf("HTTP body reuse iterations=%d bytes=%llu owning-C-us=%llu adapter-us=%llu\n",iterations,
-        (unsigned long long)(total/2),(unsigned long long)raw,(unsigned long long)(xrtClock()-start));
+        (unsigned long long)(total/2),(unsigned long long)raw,(unsigned long long)(xl6MonotonicMillisecondsV1()-start));
     if(xrtMemDebugEnabled()){
         assert(xrtMemDebugFailAfter(0));out.Size=0;
         xl6Http1BodyReaderResetV2(reader,ownedPlan,16777216,8192,16384,8192,32);

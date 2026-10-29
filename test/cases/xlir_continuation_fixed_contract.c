@@ -1,6 +1,10 @@
 #define XRT_MODULE_MEMORY_DEBUG
 #define XRT_MODULE_THREAD
+#ifndef XRT_MODULE_WAIT
+#define XRT_MODULE_WAIT
+#endif
 #include "lib/xrt/xrt.h"
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_continuation_executor.h"
 #include <assert.h>
 #include <stdatomic.h>
@@ -25,9 +29,9 @@ typedef struct Frame {
 } Frame;
 static void await_count(atomic_uint* count,unsigned expected)
 {
-    xdeadline deadline=xrtDeadlineAfter(10000000);
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(10000);
     while(atomic_load_explicit(count,memory_order_acquire)!=expected){
-        assert(!xrtDeadlineExpired(deadline));xrtThreadYield();
+        assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();
     }
 }
 static void publish(Frame* frame)
@@ -59,10 +63,10 @@ static void run(void* data)
 }
 static void finish(XL6_ContinuationExecutor* executor)
 {
-    xdeadline deadline=xrtDeadlineAfter(10000000);
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(10000);
     xl6ContinuationExecutorClose(executor);
     while(!xl6ContinuationExecutorDestroy(executor)){
-        assert(!xrtDeadlineExpired(deadline));xrtThreadYield();
+        assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();
     }
 }
 typedef struct Edges {size_t count;} Edges;
@@ -71,7 +75,7 @@ static bool edge(xrtownershipref ref,void* data)
 static void parked(XL6_ContinuationExecutor* executor,size_t workers)
 {
     xrtownershipref ref=xl6ContinuationExecutorOwnership(executor);
-    xdeadline deadline=xrtDeadlineAfter(10000000);
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(10000);
     for(;;){
         xrtownershipscope freeze={0};
         if(xrtOwnershipFreezeTryBegin(&freeze)){
@@ -79,7 +83,7 @@ static void parked(XL6_ContinuationExecutor* executor,size_t workers)
             if(quiet){Edges edges={0};assert(count==1&&ref.Ops->Trace(ref.Data,edge,&edges));assert(edges.count==workers+1);}
             assert(xrtOwnershipScopeEnd(&freeze));if(quiet)return;
         }
-        assert(!xrtDeadlineExpired(deadline));xrtThreadYield();
+        assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();
     }
 }
 static void balanced(const xmemdebugsnapshot* before)

@@ -1,5 +1,6 @@
 /* Real public module retirement, parked in a valid checked preflight.
  * No network, fake module records, sleeps or replacement runtime providers. */
+#include "release/include/xl_clock.h"
 #include "xl.h"
 #include "xruntime_decl.h"
 #include <assert.h>
@@ -20,9 +21,9 @@ static int park(void)
         assert(!r.ready&&r.ok&&!xrtGetError());++reentries;
     }
     xrtAtomic32Store(&entered,1,XMEMORY_RELEASE);
-    xdeadline limit=xrtDeadlineAfter(5*XRT_TIME_SECOND);
+    XL6_DeadlineV1 limit=xl6DeadlineAfterMillisecondsV1(5*XRT_TIME_SECOND);
     while(!xrtAtomic32Load(&release_preflight,XMEMORY_ACQUIRE)) {
-        assert(!xrtDeadlineExpired(limit));xrtThreadYield();
+        assert(!xl6DeadlineExpiredV1(limit));xrtThreadYield();
     }
     return 1;
 }
@@ -35,8 +36,8 @@ static int32 retire(void* unused)
 }
 static int32 unpark(void* unused)
 {
-    (void)unused;xdeadline limit=xrtDeadlineAfter(20*XRT_TIME_MILLISECOND);
-    while(!xrtDeadlineExpired(limit))xrtThreadYield();
+    (void)unused;XL6_DeadlineV1 limit=xl6DeadlineAfterMillisecondsV1(20*XRT_TIME_MILLISECOND);
+    while(!xl6DeadlineExpiredV1(limit))xrtThreadYield();
     xrtAtomic32Store(&release_preflight,1,XMEMORY_RELEASE);return 0;
 }
 static const char artifact[]=
@@ -74,13 +75,13 @@ static void cycle(int argc,char** argv,unsigned phase)
     assert(retiring&&xlActivateModule(context,retiring,NULL));
     if(phase==1){xlDestroyModule(retiring);assert(!xrtGetError());armed=true;}
     xthread* worker=xrtThreadCreate(retire,NULL,0);assert(worker);
-    xdeadline limit=xrtDeadlineAfter(5*XRT_TIME_SECOND);
+    XL6_DeadlineV1 limit=xl6DeadlineAfterMillisecondsV1(5*XRT_TIME_SECOND);
     while(!xrtAtomic32Load(&entered,XMEMORY_ACQUIRE)) {
-        assert(!xrtDeadlineExpired(limit));xrtThreadYield();
+        assert(!xl6DeadlineExpiredV1(limit));xrtThreadYield();
     }
     XL_RuntimeDrainResult zero=xlRuntimeDrainRetiringChecked(0);
-    uint64 begin=xrtClock();XL_RuntimeDrainResult bounded=xlRuntimeDrainRetiringChecked(20);
-    uint64 elapsed=xrtClock()-begin;
+    uint64 begin=xl6MonotonicMillisecondsV1();XL_RuntimeDrainResult bounded=xlRuntimeDrainRetiringChecked(20);
+    uint64 elapsed=xl6MonotonicMillisecondsV1()-begin;
     xthread* releaser=xrtThreadCreate(unpark,NULL,0);assert(releaser);
     XL_RuntimeDrainResult waiting=xlRuntimeDrainRetiringChecked(-1);
     bool released=xrtAtomic32Load(&release_preflight,XMEMORY_ACQUIRE)!=0;

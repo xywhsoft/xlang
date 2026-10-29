@@ -49,7 +49,7 @@ def main():
         assert 'src/runtime/xl6_queue_mpmc.c' not in plan['Sources']
         assert 'XRUNTIME_MODULE_TYPED_QUEUE_MPMC' in plan['NativeModules'] and 'XRT_MODULE_CHANNEL' not in plan['NativeModules']
         native=out/'native.c';modules=sorted(set(plan['NativeModules']+['XRT_MODULE_MEMORY_DEBUG','XRT_MODULE_THREAD','XRT_MODULE_FUTURE']))
-        native.write_text(''.join('#define '+n+'\n' for n in modules)+'#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n')
+        native.write_text(''.join('#define '+n+'\n' for n in modules)+'#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"\n')
         product(native);sources=[native,*[root/name for name in plan['Sources']],memory];cached={}
         for opt in ('O0','O2'):
             providers=[]
@@ -65,8 +65,10 @@ def main():
             assert 'xrtChannelCreate' not in names and 'xl6MpmcQueueCreateTakeV1' not in names
             assert {'xl6WaitQueueReceiveV1','xrtTypedMPMCQueueTryPop'}<=names
             probe=out/(opt+'-probe.o')
-            probes=['-Dxl6CondSignalV1=xl6WaitProbeSignal','-Dxl6CondWaitUntilNative=xl6WaitProbeUntil','-DxrtDeadlineAfter=xl6WaitProbeDeadlineAfter']
-            run(opt+'-probe-build',[cc,*flags,'-'+opt,*probes,'-c',provider,'-o',probe]);product(probe)
+            probes=['-Dxl6CondSignalV1=xl6WaitProbeSignal','-Dxl6CondWaitUntilNative=xl6WaitProbeUntil']
+            clockProbe='#include "release/include/xl_clock.h"\nXL6_DeadlineV1 xl6WaitProbeDeadlineAfter(uint64_t);\n#define xl6DeadlineAfterMillisecondsV1 xl6WaitProbeDeadlineAfter\n'
+            probeSource=out/(opt+'-probe.c');probeSource.write_text(clockProbe+'#include "src/runtime/xl6_wait_queue.c"\n');product(probeSource)
+            run(opt+'-probe-build',[cc,*flags,'-'+opt,*probes,'-c',probeSource,'-o',probe]);product(probe)
             replacements=providers[:];replacements[plan['Sources'].index('src/runtime/xl6_wait_queue.c')+1]=probe
             mutex=out/(opt+'-mutex-probe.o')
             run(opt+'-mutex-probe-build',[cc,*flags,'-'+opt,'-DxrtMutexUnit=xl6WaitProbeMutexUnit','-c',root/'src/runtime/xl6_mutex.c','-o',mutex]);product(mutex)
@@ -78,10 +80,10 @@ def main():
             'false-absence':('actual=XL6_CHANNEL_EMPTY_V1;ok=true;break;','actual=XL6_CHANNEL_OK_V1;ok=true;break;'),
             'ignored-notify-error':('if(result==XQUEUE_OK && !xl6CondSignalV1(owner->available,identity))xl6ErrorScopeCaptureFailure(&scope);','if(result==XQUEUE_OK)(void)xl6CondSignalV1(owner->available,identity);'),
             'reset-deadline':('xwaitresult waited=xl6CondWaitUntilNative',
-                'deadline=xrtDeadlineAfter(micros);\n        xwaitresult waited=xl6CondWaitUntilNative'),
+                'deadline=xl6DeadlineAfterMillisecondsV1((uint64_t)milliseconds);\n        xwaitresult waited=xl6CondWaitUntilNative'),
         }
         for tag,(before,after) in changes.items():
-            assert original.count(before)==1;mutant=out/(tag+'.c');mutant.write_text(prefix+original.replace(before,after));product(mutant)
+            assert original.count(before)==1;mutant=out/(tag+'.c');mutant.write_text(clockProbe+prefix+original.replace(before,after));product(mutant)
             obj=out/(tag+'.o');run(tag+'-build',[cc,*flags,'-O0',*probes,'-c',mutant,'-o',obj]);product(obj)
             providers=cached['O0'][:];providers[plan['Sources'].index('src/runtime/xl6_wait_queue.c')+1]=obj
             providers[plan['Sources'].index('src/runtime/xl6_mutex.c')+1]=out/'O0-mutex-probe.o'

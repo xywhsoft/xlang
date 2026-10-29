@@ -1,4 +1,6 @@
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
+#include "include/xl_clock.h"
 #include "xl6_ownership_domain_impl.h"
 /* Session/configuration lifetime belongs to the actual owned Data graph.
  * Admit only permanent policies populated by the selected resident producer. */

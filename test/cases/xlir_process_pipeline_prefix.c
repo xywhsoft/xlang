@@ -6,7 +6,11 @@
 #define XRT_MODULE_PROCESS_PIPELINE
 #define XRT_MODULE_MEMORY_DEBUG
 #define XRT_IMPLEMENTATION
+#ifndef XRT_MODULE_WAIT
+#define XRT_MODULE_WAIT
+#endif
 #include "lib/xrt/xrt.h"
+#include "release/include/xl_clock.h"
 #else
 #include "../test.h"
 #endif
@@ -63,7 +67,7 @@ static unsigned pipelinePrefix(const char* program,bool badLast)
     for(size_t point=0;point<512;++point) {
         xmemdebugsnapshot before; xrtMemDebugSnapshot(&before);
         xprocesspipelineresult result;
-        options.Deadline=xrtDeadlineAfter(UINT64_C(5000000));
+        options.Deadline=xl6DeadlineAfterMillisecondsV1(5000);
         assert(xrtMemDebugFailAfter(point));
         bool ok=xrtProcessPipeline(stages,2,&options,&result);
         bool hit=xrtMemDebugFailTriggered(); xrtMemDebugFailClear();

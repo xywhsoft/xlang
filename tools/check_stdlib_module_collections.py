@@ -76,7 +76,7 @@ def main():
             for opt in ('O0','O2'):
                 san=sanitized if opt=='O0' else []; lane=tag+'.'+opt; impl=out/(lane+'.runtime.c')
                 impl.write_text(''.join('#define '+module+'\n' for module in plan['NativeModules'])+
-                    '#define XRT_MODULE_MEMORY_DEBUG\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
+                    '#define XRT_MODULE_MEMORY_DEBUG\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
                 providers=[]
                 for position,source in enumerate([impl,*[root/source for source in plan['Sources']],memory]):
                     obj=out/(lane+'.'+str(position)+'.o'); run(lane+'.provider.'+str(position),[cc,*flags,*san,'-'+opt,'-c',source,'-o',obj])

@@ -1,5 +1,7 @@
 /* Actual managed handles and native graph. Normal literal loopback traffic
  * only; error-packet fields are tested using an offline native fixture. */
+#include "release/include/xl_clock.h"
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
 #include "src/runtime/xl6_text_value.h"
 #include "src/runtime/xl6_native_handle.h"
@@ -55,9 +57,9 @@ static bool admit(xrtownershipref ref,void* raw)
 }
 static xrtownershipsnapshot* snapshot(Graph* graph,xrtownershipscope* frozen)
 {
-    xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
+    XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){
-        while(!xrtOwnershipFreezeTryBegin(frozen)){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+        while(!xrtOwnershipFreezeTryBegin(frozen)){CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
         graph->busy=false;xrtownershipref anchors[CAP+ROOTS+5],slots[CAP+ROOTS+4];size_t a=0,s=0;
         anchors[a++]=xl6ExecutionSourceOwnershipV1(graph->source);slots[s++]=anchors[0];
         anchors[a++]=xl6ExecutionResourceOwnershipV1(graph->engine); // only children own Engine
@@ -66,7 +68,7 @@ static xrtownershipsnapshot* snapshot(Graph* graph,xrtownershipscope* frozen)
         anchors[a++]=xl6ContinuationExecutorOwnership(executor);slots[s++]=anchors[a-1];
         for(size_t i=0;i<resultCount;++i){anchors[a++]=xrtFutureOwnership(results[i]);slots[s++]=anchors[a-1];}
         xrtownershipsnapshot* proof=NULL;if(xrtOwnershipSnapshotCreate(anchors,a,slots,s,admit,graph,&proof))return proof;
-        CHECK(graph->busy);xrtClearError();CHECK(xrtOwnershipScopeEnd(frozen)&&!xrtDeadlineExpired(until));xrtThreadYield();
+        CHECK(graph->busy);xrtClearError();CHECK(xrtOwnershipScopeEnd(frozen)&&!xl6DeadlineExpiredV1(until));xrtThreadYield();
     }
 }
 static void discover(Graph* graph,xrtownershipsnapshot* proof)
@@ -83,25 +85,25 @@ static void collect(Graph* graph,unsigned order)
 {
     xrtownershipscope frozen={0};xrtownershipsnapshot* proof=snapshot(graph,&frozen);discover(graph,proof);
     xrtOwnershipSnapshotDestroy(proof);CHECK(xrtOwnershipScopeEnd(&frozen));CHECK(graph->count>graph->rootsCount+4);
-    xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
+    XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){bool ready=true;
         for(size_t step=0;step<graph->count;++step){size_t i=order&1?graph->count-1-step:step;Node* node=&graph->nodes[i];if(!node->prepare||node->ready)continue;
             proof=snapshot(graph,&frozen);discover(graph,proof);xrtOwnershipSnapshotDestroy(proof);CHECK(xrtOwnershipScopeEnd(&frozen));
             xrtownershipprepareresult result=node->prepare->Prepare(node->ref.Data,graph);CHECK(result!=XRT_OWNERSHIP_PREPARE_FAILED);
             node->ready=result==XRT_OWNERSHIP_PREPARE_READY;ready=ready&&node->ready;}
         if(ready)break;
-        CHECK(!xrtDeadlineExpired(until));xrtThreadYield();
+        CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();
     }
     proof=snapshot(graph,&frozen);discover(graph,proof);xrtOwnershipSnapshotDestroy(proof);
     for(size_t i=0;i<graph->count;++i){Node* node=&graph->nodes[i];CHECK(!node->prepare||node->prepare->Ready(node->ref.Data));node->adapter->Clear(node->ref.Data,graph);}
-    CHECK(xrtOwnershipScopeEnd(&frozen));until=xrtDeadlineAfter(UINT64_C(5000000));
+    CHECK(xrtOwnershipScopeEnd(&frozen));until=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){bool done=true;
         for(size_t step=0;step<graph->count;++step){size_t i=order&2?graph->count-1-step:step;Node* node=&graph->nodes[i];if(node->done)continue;
             if(node->finish){xrtownershipfinishresult result=node->finish->Step(node->ref.Data,graph);CHECK(result!=XRT_OWNERSHIP_FINISH_FAILED);node->done=result==XRT_OWNERSHIP_FINISH_READY;}
             else node->done=!node->adapter->Finish||node->adapter->Finish(node->ref.Data,graph);
             done=done&&node->done;}
         if(done)break;
-        CHECK(!xrtDeadlineExpired(until));xrtThreadYield();
+        CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();
     }
     for(size_t i=0;i<graph->rootsCount;++i)xrtValueRelease(graph->roots[i]);
     for(size_t i=0;i<resultCount;++i){xrtFutureDestroy(results[i]);results[i]=NULL;}resultCount=0;
@@ -185,7 +187,7 @@ static void afterHostClose(xnetportbackend backend)
     CHECK(owner.refs==1&&owner.acquires==1);xrtFutureDestroy(result);CHECK(!owner.refs&&owner.acquires==owner.releases);
     for(size_t i=0;i<graph.rootsCount;++i)xrtValueRelease(graph.roots[i]);
     CHECK(xl6ExecutionSourceCloseV1(graph.source));
-    xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));for(;;){XL6_ExecutionRetireResultV1 retired=xl6ExecutionSourceDestroyV1(&graph.source);CHECK(retired.ok);if(retired.ready)break;CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+    XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);for(;;){XL6_ExecutionRetireResultV1 retired=xl6ExecutionSourceDestroyV1(&graph.source);CHECK(retired.ok);if(retired.ready)break;CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
     balanced(&before);
 }
 /* Real queue/Watch owners with deterministic inspection INSIDE Notify, before

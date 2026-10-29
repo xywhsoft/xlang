@@ -247,7 +247,7 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                             instruction->origin,
                             "XLIR C emitter time approximate ABI is unresolved");
                     xl6OutputPrintf(out,
-                        "    v%u = xrtTimeNear(v%u, v%u, UINT64_C(10000000));\n",
+                        "    v%u = xrtTimeNear(v%u, v%u, UINT64_C(10000));\n",
                         (unsigned int)instruction->result,
                         (unsigned int)module->operands[
                             instruction->firstOperand],

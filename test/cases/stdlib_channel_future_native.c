@@ -1,4 +1,5 @@
 /* Real unbounded native producer, no language/finite-deadline claim. */
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_channel_future.h"
 #include "src/runtime/xl6_channel_case.h"
 #include "src/runtime/xl6_channel_internal.h"
@@ -41,8 +42,8 @@ static const xvalue* outcome(xfuture* future)
 }
 static void idle(XL6_ContinuationExecutor* executor)
 {
-    xdeadline deadline=xrtDeadlineAfter(10000000);
-    while(!xl6ContinuationExecutorIsIdle(executor)){assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(10000);
+    while(!xl6ContinuationExecutorIsIdle(executor)){assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
 }
 static void finish(XL6_ContinuationExecutor* executor)
 {idle(executor);xl6ContinuationExecutorClose(executor);assert(xl6ContinuationExecutorDestroy(executor));}
@@ -79,8 +80,8 @@ static void inspect(XL6_ChannelFutureFrameV1* frame,NativePin* pin)
     const XL6_OwnershipDomainV1 observer={sizeof(observer),NULL,policies,NULL};
     const XL6_OwnershipDomainV1* domains[]={&observer,xl6OwnershipDomainChannelFutureV1Get()};
     XL6_OwnershipCatalog* catalog=xl6OwnershipCatalogCreateV1(domains,2);assert(catalog);
-    xrtownershipscope freeze={0};xdeadline deadline=xrtDeadlineAfter(10000000);
-    while(!xrtOwnershipFreezeTryBegin(&freeze)){assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+    xrtownershipscope freeze={0};XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(10000);
+    while(!xrtOwnershipFreezeTryBegin(&freeze)){assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
     xrtownershipref ref=api->Ownership(frame);size_t count=0,edges=0;
     assert(ref.Ops->Count(ref.Data,&count)&&count==4);
     assert(ref.Ops->Trace(ref.Data,edge,&edges)&&edges==8);
@@ -136,7 +137,7 @@ int main(void)
             inspect(frame,&pin);XL6_ChannelOperationV1 sender={0};XL6_ChannelStatusV1 status;int64_t value=218;
             assert(xl6ChannelOperationOpenV1(q,ID,ELEMENT,xrtTypeInt64(),SLOT(value),true,&status,&sender));
             assert(xrtMemDebugFailAfter(0));
-            assert(xrtChannelSendUntil(sender.native,sender.message,XRT_DEADLINE_NEVER)==XWAIT_OK);
+            assert(xrtChannelSendFor(sender.native,sender.message,xl6DeadlineRemainingMillisecondsV1(XL6_DEADLINE_NEVER))==XWAIT_OK);
             assert(xl6ChannelOperationCommitV1(&sender));xl6ChannelOperationCloseV1(&sender);
         }
         if(mode==3)assert(xrtFutureCancel(future));
@@ -230,8 +231,8 @@ int main(void)
         xvalue* q=channel(1);XL6_ChannelCaseOwnerV1* item=xl6ChannelReceiveCaseCreateV1(q,ID,ELEMENT,xrtTypeInt64(),sizeof(int64_t));assert(item);
         XL6_ChannelFutureFrameV1* frame=api->Prepare(&item,1);assert(frame);Race race={.channel=q};
         xthread* producer=xrtThreadCreate(race_send,&race,0);assert(producer);
-        xdeadline deadline=xrtDeadlineAfter(10000000);
-        while(!atomic_load_explicit(&race.entered,memory_order_acquire)){assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+        XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(10000);
+        while(!atomic_load_explicit(&race.entered,memory_order_acquire)){assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
         atomic_store_explicit(&race.go,true,memory_order_release);
         xfuture* future=api->Start(executor,frame,api->ResultHandle(frame),NULL,0,NULL);assert(future);
         int64_t value=0;assert(xl6ChannelSelectionValueV1(selection(outcome(future),false),item,ELEMENT,xrtTypeInt64(),SLOT(value))&&value==234);

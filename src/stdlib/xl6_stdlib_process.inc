@@ -34,7 +34,7 @@ const char* xl6StdlibProcessClassSource =
     "        return ProcessExitStatus(self)\n"
     "    end\n"
     "    get durationMs() as uint64\n"
-    "        return self.duration / 1000\n"
+    "        return self.duration\n"
     "    end\n"
     "end\n";
 
@@ -165,7 +165,7 @@ const char* xl6StdlibProcessPipelineSource =
     "        return self.readStdout()\n"
     "    end\n"
     "    get durationMs() as uint64\n"
-    "        return self.duration / 1000\n"
+    "        return self.duration\n"
     "    end\n"
     "end\n"
     "class ProcessStageResult\n"

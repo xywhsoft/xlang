@@ -9,6 +9,11 @@
 #define XRT_MODULE_ATOMIC
 #define XRUNTIME_IMPLEMENTATION
 #define XRT_MODULE_ONCE
+#include "lib/xruntime/xruntime_features.h"
+#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)
+#define XRT_IMPLEMENTATION
+#endif
+#include "lib/xrt/xrt.h"
 #include "lib/xruntime/xruntime.h"
 #include "src/api/xl_foreign_error.c"
 #include "src/runtime/xl6_native_handle.c"

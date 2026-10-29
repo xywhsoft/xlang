@@ -1,7 +1,11 @@
 #define XRT_MODULE_MEMORY_DEBUG
 #define XRT_MODULE_ATOMIC
 #define XRT_MODULE_THREAD
+#ifndef XRT_MODULE_WAIT
+#define XRT_MODULE_WAIT
+#endif
 #include "lib/xrt/xrt.h"
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_continuation_executor.h"
 #include "src/runtime/xl6_ownership_plan.h"
 #include <assert.h>
@@ -30,22 +34,22 @@ static void balanced(const xmemdebugsnapshot* before)
 }
 static void quiet_freeze(xrtownershipref ref,xrtownershipscope* freeze)
 {
-    xdeadline deadline=xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){
         if(xrtOwnershipFreezeTryBegin(freeze)){
             size_t count;if(ref.Ops->Count(ref.Data,&count))return;
             assert(xrtOwnershipScopeEnd(freeze));
         }
-        assert(!xrtDeadlineExpired(deadline));xrtThreadYield();
+        assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();
     }
 }
 static XL6_OwnershipPlanResult create_plan(xrtownershipref root,Resolve* context,XL6_OwnershipPlan** output)
 {
-    xdeadline deadline=xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){
         context->busy=false;XL6_OwnershipPlanResult result=xl6OwnershipPlanTryCreateV2(root,resolve,context,output);
         if(result!=XL6_OWNERSHIP_PLAN_BUSY&&!(result==XL6_OWNERSHIP_PLAN_ERROR&&context->busy))return result;
-        assert(!*output);xrtClearError();assert(!xrtDeadlineExpired(deadline));xrtThreadYield();
+        assert(!*output);xrtClearError();assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();
     }
 }
 typedef struct Edges {xrtownershipref queue;size_t count;} Edges;
@@ -57,7 +61,7 @@ static bool edge(xrtownershipref ref,void* data)
 }
 static void reclaim(XL6_OwnershipPlan* plan,Resolve* context)
 {
-    xdeadline deadline=xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){
         context->busy=false;XL6_OwnershipStepResult step=xl6OwnershipPlanPrepare(plan);
         if(step==XL6_OWNERSHIP_STEP_ERROR){assert(context->busy);xrtClearError();}
@@ -67,7 +71,7 @@ static void reclaim(XL6_OwnershipPlan* plan,Resolve* context)
             if(state==XL6_OWNERSHIP_PLAN_ERROR){assert(context->busy);xrtClearError();}
             else assert(state==XL6_OWNERSHIP_PLAN_BUSY||state==XL6_OWNERSHIP_PLAN_PREPARATIONS);
         }
-        assert(!xrtDeadlineExpired(deadline));xrtThreadYield();
+        assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();
     }
     assert(xl6OwnershipPlanFinish(plan)&&xl6OwnershipPlanTryDestroy(plan)==XL6_OWNERSHIP_PLAN_READY);
 }
@@ -133,8 +137,8 @@ static void retained_shell(void)
 typedef struct Work {XL6_ContinuationTicket ticket;xatomic64 phase,proceed;bool blockRelease;} Work;
 static void pause_work(Work* work)
 {
-    xrtAtomic64Store(&work->phase,1,XMEMORY_RELEASE);xdeadline deadline=xrtDeadlineAfter(5000000);
-    while(!xrtAtomic64Load(&work->proceed,XMEMORY_ACQUIRE)){assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+    xrtAtomic64Store(&work->phase,1,XMEMORY_RELEASE);XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
+    while(!xrtAtomic64Load(&work->proceed,XMEMORY_ACQUIRE)){assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
 }
 static void run_work(void* data) {Work* work=data;if(!work->blockRelease)pause_work(work);}
 static void release_work(void* data) {Work* work=data;if(work->blockRelease)pause_work(work);}
@@ -144,14 +148,14 @@ static void active_graph(bool blockRelease)
     XL6_ContinuationExecutor* executor=xl6ContinuationExecutorCreateGuaranteed(1,1);assert(executor);
     assert(xl6ContinuationExecutorReserve(executor,&work.ticket,run_work,release_work,&work)==XL6_CONTINUATION_ADMITTED);
     xl6ContinuationReady(&work.ticket);xl6ContinuationTransportReleased(&work.ticket);xl6ContinuationCommit(&work.ticket);
-    xdeadline deadline=xrtDeadlineAfter(5000000);
-    while(!xrtAtomic64Load(&work.phase,XMEMORY_ACQUIRE)){assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
-    xrtownershipscope freeze={0};while(!xrtOwnershipFreezeTryBegin(&freeze)){assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
+    while(!xrtAtomic64Load(&work.phase,XMEMORY_ACQUIRE)){assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
+    xrtownershipscope freeze={0};while(!xrtOwnershipFreezeTryBegin(&freeze)){assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
     xrtownershipref ref=xl6ContinuationExecutorOwnership(executor);size_t count;const xrtownershippreparationv1* preparation=NULL;
     assert(!ref.Ops->Count(ref.Data,&count)&&!xl6ContinuationExecutorOwnershipAdapterV1(ref,&preparation));++activeRefusals;
     assert(xrtOwnershipScopeEnd(&freeze));xrtAtomic64Store(&work.proceed,1,XMEMORY_RELEASE);
     xl6ContinuationExecutorClose(executor);
-    while(!xl6ContinuationExecutorDestroy(executor)){assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+    while(!xl6ContinuationExecutorDestroy(executor)){assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
     balanced(&before);
 }
 typedef struct EntryProbe {XL6_ContinuationExecutor* executor;unsigned acquired,released,refusals;} EntryProbe;

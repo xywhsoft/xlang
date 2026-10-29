@@ -1,5 +1,6 @@
 #ifndef XL6_DEADLINE_MODULE_ABI_H
 #define XL6_DEADLINE_MODULE_ABI_H
+#include "xl_clock.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include "xl6_code_lease.h"

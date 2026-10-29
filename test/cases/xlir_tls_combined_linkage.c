@@ -1,7 +1,8 @@
 #if defined(XL6_OBSERVER_CORE)
     #include "include/xrt_decl.h"
 #else
-    #include "include/xruntime_decl.h"
+    #include "include/xrt_decl.h"
+#include "include/xruntime_decl.h"
 #endif
 #include <assert.h>
 /* A real relocation with the exact public type; never called by this probe. */

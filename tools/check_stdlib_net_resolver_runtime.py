@@ -95,7 +95,7 @@ def main():
                         product(target)
                     impl = out / (name + '.impl.c')
                     impl.write_text('#include "' + name + '.modules.h"\n#define XRT_MODULE_MEMORY_DEBUG\n'
-                                    '#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n', encoding='utf-8')
+                                    '#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"\n', encoding='utf-8')
                     product(impl)
         for index, name in enumerate(names):
             providers = [root / path for path in plans[name]['Sources']]

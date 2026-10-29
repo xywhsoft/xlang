@@ -49,7 +49,7 @@ def main():
         implementation=out/'native-implementation.c'
         write(implementation,'#include "tls-resource-modules.h"\n#define XRT_MODULE_MEMORY_DEBUG\n#define XRT_MODULE_TLS_IDENTITY_RSA\n#define XRT_MODULE_NET_PORT_SELECT\n'+
             ('#define XRT_MODULE_NET_PORT_IOCP\n' if os.name=='nt' else '#define XRT_MODULE_NET_PORT_EPOLL\n')+
-            '#define XRT_IMPLEMENTATION\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n')
+            '#define XRT_IMPLEMENTATION\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"\n')
         r['Sources']=sources;save()
         libraries=['-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32'] if os.name=='nt' else ['-pthread','-ldl','-lm']
         for index,cc in enumerate(compilers):

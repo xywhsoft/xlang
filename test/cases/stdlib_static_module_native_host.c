@@ -3,6 +3,11 @@
 #include "src/runtime/xl6_code_lease.h"
 #include "src/runtime/xl6_sequence.h"
 #include "src/runtime/xl6_stack.h"
+#include "lib/xruntime/xruntime_features.h"
+#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)
+#define XRT_IMPLEMENTATION
+#endif
+#include "lib/xrt/xrt.h"
 #include "lib/xruntime/xruntime.h"
 #include <assert.h>
 #include <stdio.h>

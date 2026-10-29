@@ -1,4 +1,6 @@
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
+#include "include/xl_clock.h"
 #include "xl6_ownership_domain_impl.h"
 /* Transport graph capabilities without Future/producer dependencies. Event
  * contexts are admitted only by separately selected exact resident policies. */

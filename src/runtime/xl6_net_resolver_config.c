@@ -20,10 +20,10 @@ void* xl6NetResolverConfigWith##Field##V1(const void* raw,uint64_t input) \
 #undef XL6_NET_RESOLVER_CONFIG_SIZE
 #define TTL(Field) \
 uint64_t xl6NetResolverConfig##Field##MillisV1(const void* raw) \
-{uint64_t us=((const xnetresolverconfig*)raw)->Field;return us/1000+(us%1000!=0);} \
+{return ((const xnetresolverconfig*)raw)->Field;} \
 void* xl6NetResolverConfigWith##Field##MillisV1(const void* raw,uint64_t millis) \
-{if(millis>UINT64_MAX/1000){xrtSetErrorKind(XERR_RANGE);xl6NetResolverFailedV1();return NULL;} \
- xnetresolverconfig value=*(const xnetresolverconfig*)raw;value.Field=millis*1000;return copy(&value);}
+{ \
+ xnetresolverconfig value=*(const xnetresolverconfig*)raw;value.Field=millis;return copy(&value);}
 TTL(SuccessTTL)
 TTL(FailureTTL)
 #undef TTL

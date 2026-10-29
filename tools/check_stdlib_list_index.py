@@ -164,7 +164,7 @@ def main():
                     # ledger extension, not a production component root.
                     impl=out/(lane+'.pruned-native.c'); pruned=out/(lane+'.pruned'+suffix)
                     impl.write_text(''.join('#define '+m+'\n' for m in plan['NativeModules'])+
-                        '#define XRT_MODULE_MEMORY_DEBUG\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
+                        '#define XRT_MODULE_MEMORY_DEBUG\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
                     system_links=['-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32'] if os.name=='nt' else ['-pthread','-ldl','-lm']
                     selected=[]
                     for j,source in enumerate([impl,*[root/p for p in plan['Sources']]]):

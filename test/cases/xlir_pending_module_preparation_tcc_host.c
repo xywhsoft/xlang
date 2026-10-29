@@ -1,6 +1,7 @@
 #define JOINT_TCC_ASYNC
 #define JOINT_TCC_SOURCE_FILE "test/cases/xlir_pending_module_preparation_artifact.c"
 #define main unused_pending_lifetime_main
+#include "release/include/xl_clock.h"
 #include "xlir_one_shot_tcc_host.c"
 #undef main
 
@@ -103,8 +104,8 @@ static void pending_transaction(void)
         }
     }
     if(choice==2){
-        xdeadline deadline=xrtDeadlineAfter(5000000);
-        while(events!=12){collect();assert(!atomic_load(&deleted)&&!xrtDeadlineExpired(deadline));xrtThreadYield();}
+        XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
+        while(events!=12){collect();assert(!atomic_load(&deleted)&&!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
         collect();assert(pending_alias&&!atomic_load(&deleted)&&!module->retirementFailed);++deferrals;
         xrtValueRelease(pending_alias);pending_alias=NULL;
     }

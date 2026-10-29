@@ -33,7 +33,7 @@ xfuture* xl6NetEngineSubmitV1(XL6_FutureValueProfileV1 profile,void* engine,
 xfuture* xl6NetEngineSubmitAfterCancelV1(XL6_FutureValueProfileV1 profile,void* engine,int64_t millis,
     XL6_CheckedResultClosureBorrowV1 callback,void* cancel,uint64_t affinity)
 {
-    xdeadline deadline;
+    XL6_DeadlineV1 deadline;
     if(millis<0||!xl6ConcurrentDeadline(millis,&deadline)){
         if(millis<0)xrtSetErrorKind(XERR_RANGE);
         xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()});return NULL;}

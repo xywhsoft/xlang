@@ -23,14 +23,14 @@ bool xl6TcpReceiveIntoAppendInternalV1(void* raw,xbytesview bytes)
 }
 static int64_t receive(void* receiver,void* target,int64_t maximum,int64_t millis)
 {
-    size_t count;xdeadline deadline;
+    size_t count;XL6_DeadlineV1 deadline;
     if(!target||!xl6TcpPositiveSizeV1(maximum,&count)||!xl6ConcurrentDeadline(millis,&deadline)){
         if(!target)xrtSetErrorKind(XERR_ARGUMENT);
         xl6TcpFailedV1();return 0;}
     XL6_TcpScopeV1 scope={0};if(!xl6TcpEnterV1(receiver,XL6_EXECUTION_TCP_STREAM_V1,true,&scope))return 0;
     if(!xl6TcpReceiveIntoPrepareInternalV1(target,&count)){
         xl6ExecutionTcpLeaveInternalV1(&scope);xl6TcpFailedV1();return 0;}
-    xnetbytes* bytes=xrtNetStreamRecv(scope.stream,count,deadline,NULL);bool ok=false;int64_t result=0;
+    xnetbytes* bytes=xrtNetStreamRecv(scope.stream,count,xl6DeadlineRemainingMillisecondsV1(deadline),NULL);bool ok=false;int64_t result=0;
     if(bytes){xbytesview view=xrtNetBytesView(bytes);ok=xl6TcpReceiveIntoAppendInternalV1(target,view);result=(int64_t)view.Size;xrtNetBytesDestroy(bytes);}
     else if(xrtErrorKind(xrtGetError())==XERR_CLOSED){xrtClearError();ok=true;}
     xl6ExecutionTcpLeaveInternalV1(&scope);if(!ok)xl6TcpFailedV1();return result;

@@ -66,7 +66,7 @@ def main():
                     # data-layout definitions leaking from an implementation TU.
                     impl=out/(name+'.impl.c')
                     impl.write_text('#include "'+name+'.modules.h"\n#define XRT_MODULE_MEMORY_DEBUG\n'
-                        '#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n',encoding='utf8');product(impl)
+                        '#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"\n',encoding='utf8');product(impl)
                     domains=out/(name+'.domain.inc');domains.write_text('#include "'+name+'.domains.h"\n',encoding='utf8');product(domains)
         defines={'values':['-DTEST_DATAGRAM_VALUES_ONLY'],'control':['-DTEST_DATAGRAM_CONTROL_ONLY'],
             'io':['-DTEST_DATAGRAM_IO'],'integration':['-DTEST_DATAGRAM_IO','-DTEST_DATAGRAM_INTEGRATION']}

@@ -1,6 +1,7 @@
 /* Extend the real resource graph fixture, not a duplicated coordinator. Its
  * original TCP/Accept suite also runs, proving the shared carrier regression. */
 #define main tcpResourceRegressionMain
+#include "release/include/xl_clock.h"
 #include "tcp_execution_resource.c"
 #undef main
 #include "src/runtime/xl6_execution_tcp_dial.h"
@@ -61,8 +62,8 @@ static void dialStart(Graph* graph,bool promote)
         XL6_TcpScopeV1 scope={0};CHECK(xl6ExecutionTcpEnterInternalV1(graph->pending,XL6_EXECUTION_TCP_STREAM_V1,true,&scope));
         CHECK(xrtNetStreamSend(scope.stream,"a\0b",3)==XNET_RESULT_OK);xl6ExecutionTcpLeaveInternalV1(&scope);
         CHECK(xl6ExecutionTcpEnterInternalV1(graph->listener,XL6_EXECUTION_TCP_LISTENER_V1,true,&scope));
-        xnetstream* peer=NULL;xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
-        while(!(peer=xrtNetListenerAccept(scope.listener))){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+        xnetstream* peer=NULL;XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
+        while(!(peer=xrtNetListenerAccept(scope.listener))){CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
         xl6ExecutionTcpLeaveInternalV1(&scope);
         size_t offset=0;while(offset<3){xfuture* read=xrtNetStreamRecvAsync(peer,3-offset);CHECK(read);
             CHECK(xrtFutureWaitFor(read,UINT64_C(5000000))==XWAIT_OK&&xrtFutureState(read)==XFUTURE_RESOLVED);
@@ -98,8 +99,8 @@ static void dialAbandon(xnetportbackend backend)
     CHECK(xrtFutureWaitFor(future,UINT64_C(5000000))==XWAIT_OK&&xrtFutureState(future)==XFUTURE_RESOLVED);
     xnetstream* observer=xrtNetStreamRef(xrtFutureValue(future));CHECK(observer);
     xl6ExecutionResourceReleaseV1(graph.pending);graph.pending=NULL;xrtFutureDestroy(future);
-    xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
-    while(xrtNetStreamState(observer)!=XNET_STREAM_CLOSED){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+    XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
+    while(xrtNetStreamState(observer)!=XNET_STREAM_CLOSED){CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
     xrtNetStreamDestroy(observer);dropOrdinary(&graph);balanced(&before);++dialAbandoned;
 }
 int main(int argc,char** argv)

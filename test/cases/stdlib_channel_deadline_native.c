@@ -1,4 +1,5 @@
 /* Native finite provider proof only; no public finite-language claim. */
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_channel_direct_deadline.h"
 #include "src/runtime/xl6_channel_select_deadline.h"
 #include "src/runtime/xl6_channel_future_core.h"
@@ -25,7 +26,7 @@ static const XL6_ChannelSelectDeadlineRuntimeV1* api;
 static const XL6_ChannelDirectDeadlineRuntimeV1* api;
 #endif
 static void wait_flag(atomic_bool* flag)
-{xdeadline until=xrtDeadlineAfter(10000000);while(!atomic_load_explicit(flag,memory_order_acquire)){assert(!xrtDeadlineExpired(until));xrtThreadYield();}}
+{XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(10000);while(!atomic_load_explicit(flag,memory_order_acquire)){assert(!xl6DeadlineExpiredV1(until));xrtThreadYield();}}
 #ifdef XL6_CHANNEL_DEADLINE_SOURCE_PROBE
 static atomic_bool captureSource,captureThreads,stopBeforeStart,timeoutStopped,holdTail,tailEntered,tailGo;
 static atomic_bool holdNotify,notifyEntered,notifyGo,sourceStopped;
@@ -34,8 +35,8 @@ static _Atomic(xcond*) sourceCondition;
 xcond* __real_xrtCondCreate(void);
 xcond* __wrap_xrtCondCreate(void)
 {xcond* value=__real_xrtCondCreate();if(atomic_load(&captureSource)&&!atomic_load(&sourceCondition))atomic_store(&sourceCondition,value);return value;}
-xwaitresult __real_xrtCondWaitUntil(xcond*,xmutex*,xdeadline);
-xwaitresult __wrap_xrtCondWaitUntil(xcond* condition,xmutex* mutex,xdeadline until)
+xwaitresult __real_xrtCondWaitUntil(xcond*,xmutex*,XL6_DeadlineV1);
+xwaitresult __wrap_xrtCondWaitUntil(xcond* condition,xmutex* mutex,XL6_DeadlineV1 until)
 {
     unsigned mode=condition==atomic_load(&sourceCondition)?atomic_exchange(&failWait,0):0;
     if(mode){xrtClearError();if(mode==1)xrtSetErrorKind(XERR_RANGE);return XWAIT_ERROR;}
@@ -93,7 +94,7 @@ static void send(xvalue* q,unsigned transfer,const void* data)
 }
 static int64_t take(xvalue* q)
 {int64_t value=0;XL6_ChannelStatusV1 status;assert(xl6ChannelReceiveV1(q,ID,ELEMENT,xrtTypeInt64(),SLOT(value),XL6_CHANNEL_WAIT_V1,0,&status)&&status==XL6_CHANNEL_OK_V1);return value;}
-static Prepared prepare(xvalue* q,unsigned transfer,bool sending,const void* value,bool relative,int64_t ms,xdeadline until)
+static Prepared prepare(xvalue* q,unsigned transfer,bool sending,const void* value,bool relative,int64_t ms,XL6_DeadlineV1 until)
 {
     Prepared p={NULL,NULL,sending,transfer};XL6_SequenceLayoutV1 l=layout(transfer);
 #if TEST_SELECT
@@ -152,7 +153,7 @@ static void read_value(xfuture* future,Prepared p,void* output)
 #endif
 }
 static void idle(XL6_ContinuationExecutor* executor)
-{xdeadline until=xrtDeadlineAfter(10000000);while(!xl6ContinuationExecutorIsIdle(executor)){assert(!xrtDeadlineExpired(until));xrtThreadYield();}}
+{XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(10000);while(!xl6ContinuationExecutorIsIdle(executor)){assert(!xl6DeadlineExpiredV1(until));xrtThreadYield();}}
 static void finish(XL6_ContinuationExecutor* executor,XL6_DeadlineServiceV1* source)
 {
     idle(executor);xl6ContinuationExecutorClose(executor);assert(xl6ContinuationExecutorDestroy(executor));
@@ -180,11 +181,11 @@ static bool edge(xrtownershipref ref,void* data)
 }
 static void freeze_source(XL6_DeadlineServiceV1* source,xrtownershipscope* freeze)
 {
-    xdeadline until=xrtDeadlineAfter(10000000);
+    XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(10000);
     for(;;){if(xrtOwnershipFreezeTryBegin(freeze)){size_t count;xrtownershipref ref=xl6DeadlineServiceOwnershipV1(source);
             if(ref.Ops->Count(ref.Data,&count))return;
             assert(xrtOwnershipScopeEnd(freeze));}
-        assert(!xrtDeadlineExpired(until));xrtThreadYield();}
+        assert(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
 }
 typedef struct Peer {xvalue* q;unsigned turns;} Peer;
 static int32_t peer_send(void* data)
@@ -212,9 +213,9 @@ int main(void)
     // Invalid budgets are rejected before dereferencing/copying inputs.
     for(unsigned mode=0;mode<3;++mode){xl6_error_scope scope={0};assert(xl6ErrorScopeBegin(&scope));Frame* frame=NULL;
 #if TEST_SELECT
-        frame=mode==2?api->PrepareUntil(NULL,0,XRT_DEADLINE_NEVER):api->PrepareFor(NULL,0,mode==0?-1:INT64_MAX);
+        frame=mode==2?api->PrepareUntil(NULL,0,XL6_DEADLINE_NEVER):api->PrepareFor(NULL,0,mode==0?-1:INT64_MAX);
 #else
-        frame=mode==2?api->PrepareSendUntil(layout(1),NULL,NULL,XRT_DEADLINE_NEVER):api->PrepareSendFor(layout(1),NULL,NULL,mode==0?-1:INT64_MAX);
+        frame=mode==2?api->PrepareSendUntil(layout(1),NULL,NULL,XL6_DEADLINE_NEVER):api->PrepareSendFor(layout(1),NULL,NULL,mode==0?-1:INT64_MAX);
 #endif
         assert(!frame);xl6ErrorScopeCaptureFailure(&scope);xl6_error_result result=xl6ErrorScopeEnd(&scope);
         assert(!result.ok&&result.error&&xrtErrorKind(result.error)==(mode==2?XERR_ARGUMENT:XERR_RANGE));xrtErrorFree(result.error);}
@@ -229,7 +230,7 @@ int main(void)
         xcancel* parent=xrtCancelCreate();assert(parent);
         if(mode==6||mode==7)assert(xrtCancelRequest(parent));
         bool immediate=mode==0||mode==2||mode==7;int64_t ms=immediate?0:mode==1?2:60000;
-        xdeadline due=immediate?0:xrtClock()+(mode==1?2000:60000000);
+        XL6_DeadlineV1 due=immediate?0:xl6MonotonicMillisecondsV1()+(mode==1?2:60000);
         Prepared p=prepare(q,1,sending,&value,relative,ms,due);assert(p.frame);
 #ifdef XL6_CHANNEL_DEADLINE_SOURCE_PROBE
         atomic_store(&timeoutStopped,false);atomic_store(&stopBeforeStart,immediate);
@@ -328,7 +329,7 @@ int main(void)
         atomic_store(&threadCreates,0);atomic_store(&captureThreads,true);
 #endif
         XL6_DeadlineServiceV1* source=service(N);XL6_ContinuationExecutor* executor=xl6ContinuationExecutorCreateFixedV1(N,1);assert(executor);
-        xvalue* q=channel(1,1);Prepared items[N];xfuture* futures[N];xdeadline due=xrtClock()+60000000;
+        xvalue* q=channel(1,1);Prepared items[N];xfuture* futures[N];XL6_DeadlineV1 due=xl6MonotonicMillisecondsV1()+60000000;
         for(size_t i=0;i<N;++i){items[i]=prepare(q,1,false,NULL,false,0,due);assert(items[i].frame);futures[i]=start(executor,source,items[i],NULL);assert(futures[i]);}
 #ifdef XL6_CHANNEL_DEADLINE_SOURCE_PROBE
         atomic_store(&captureThreads,false);assert(atomic_load(&threadCreates)==2);
@@ -345,7 +346,7 @@ int main(void)
     // peer's message queued, while success owns it exactly once.
     for(unsigned turn=0;turn<100;++turn){xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);
         XL6_DeadlineServiceV1* source=service(1);XL6_ContinuationExecutor* executor=xl6ContinuationExecutorCreateFixedV1(1,1);assert(executor);
-        xvalue* q=channel(1,1);Prepared p=prepare(q,1,false,NULL,false,0,xrtClock()+100);assert(p.frame);
+        xvalue* q=channel(1,1);Prepared p=prepare(q,1,false,NULL,false,0,xl6MonotonicMillisecondsV1()+100);assert(p.frame);
         Peer peer={q,turn%16};xthread* thread=xrtThreadCreate(peer_send,&peer,0);assert(thread);xfuture* future=start(executor,source,p,NULL);assert(future);
         if(turn%3==0)(void)xrtFutureCancel(future);
         int64_t state=status(future,p);
@@ -375,8 +376,8 @@ int main(void)
         atomic_store(&tailEntered,false);atomic_store(&tailGo,false);atomic_store(&holdTail,true);
         Prepared p=prepare(q,1,false,NULL,true,2,0);assert(p.frame);xfuture* future=start(executor,source,p,NULL);assert(future);
         wait_flag(&tailEntered);assert(status(future,p)==XL6_CHANNEL_TIMEOUT_V1);idle(executor);
-        xrtownershipscope freeze={0};xdeadline until=xrtDeadlineAfter(10000000);
-        while(!xrtOwnershipFreezeTryBegin(&freeze)){assert(!xrtDeadlineExpired(until));xrtThreadYield();}
+        xrtownershipscope freeze={0};XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(10000);
+        while(!xrtOwnershipFreezeTryBegin(&freeze)){assert(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
         xrtownershipref frame=api->Ownership(p.frame);size_t refs=0;
         assert(frame.Ops->Count(frame.Data,&refs)&&refs==2);
         const xrtownershippreparationv1* preparation=NULL;const xrtownershipadapterv1* adapter=

@@ -12,7 +12,7 @@ typedef struct XL6_TlsVerifiedPeerPacketV1 XL6_TlsVerifiedPeerPacketV1;
  * its name, complete presented chain, selected path and anchor certificate.
  * It contains no language value, closure, generated address or native owner.
  * Role identifies the peer, not the local endpoint. Time is copied unchanged
- * from the native callback (microseconds in xlang's pinned snapshot).
+ * from the native callback (milliseconds in xlang's pinned snapshot).
  */
 XL6_TlsVerifiedPeerPacketV1* xl6TlsVerifiedPeerPacketCopyV1(const struct xtlsverifiedpeer*);
 XL6_TlsVerifiedPeerPacketV1* xl6TlsVerifiedPeerPacketRefV1(XL6_TlsVerifiedPeerPacketV1*);

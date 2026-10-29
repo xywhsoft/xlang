@@ -1,7 +1,7 @@
 #define XRT_MODULE_FILE_ASYNC
 #define XRT_MODULE_MEMORY
 #define XRT_MODULE_ATOMIC
-#include "lib/xrt/xrt.h"
+#include "src/common/xl6_xrt.h"
 #include "xl6_task.h"
 #include <stdlib.h>
 /* Resident driver selected only for stateful asynchronous file owners. */

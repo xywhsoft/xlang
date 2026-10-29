@@ -1,5 +1,6 @@
 /* The original real TCP/Accept/Connected suite is part of this regression. */
 #define main tcpLanguageRegressionMain
+#include "release/include/xl_clock.h"
 #include "tcp_language_runtime.c"
 #undef main
 #include "src/runtime/xl6_execution_tcp_internal.h"
@@ -20,22 +21,22 @@ static void workerGuard(XL6_ExecutionServicesV1 services,void* engine,const xnet
     WorkerGuard test={.services=services,.engine=engine,.addresses=addresses};xrtAtomic32Init(&test.done,0);
     XL6_ExecutionScopeV1 scope={0};CHECK(xl6ExecutionResourceEnterV1(engine,true,&scope));
     CHECK(xrtNetEnginePost(scope.engine,0,workerGuardRun,&test));
-    xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
-    while(!xrtAtomic32Load(&test.done,XMEMORY_ACQUIRE)){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+    XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
+    while(!xrtAtomic32Load(&test.done,XMEMORY_ACQUIRE)){CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
     /* Completion publication is not physical return. Keep the stack borrow
      * alive until the real Engine's frozen quiescence proves that tail ended. */
     for(;;){xrtownershipscope frozen={0};
         if(xrtOwnershipFreezeTryBegin(&frozen)){
             bool busy=xrtNetEngineOwnershipQuiescenceV1Get()->Busy(scope.engine);
             CHECK(xrtOwnershipScopeEnd(&frozen));if(!busy)break;}
-        CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+        CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
     xl6ExecutionResourceLeaveV1(&scope);
 }
 static void gateRun(void* raw)
 {
     DialGate* gate=raw;xrtAtomic32Store(&gate->entered,1,XMEMORY_RELEASE);
-    xdeadline until=xrtDeadlineAfter(UINT64_C(10000000));
-    while(!xrtAtomic32Load(&gate->open,XMEMORY_ACQUIRE)){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+    XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(10000);
+    while(!xrtAtomic32Load(&gate->open,XMEMORY_ACQUIRE)){CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
 }
 static void gateRelease(void* raw){xrtAtomic32Store(&((DialGate*)raw)->released,1,XMEMORY_RELEASE);}
 static void gateStart(XL6_ContinuationExecutor* executor,DialGate* gate)
@@ -43,13 +44,13 @@ static void gateStart(XL6_ContinuationExecutor* executor,DialGate* gate)
     *gate=(DialGate){0};xrtAtomic32Init(&gate->entered,0);xrtAtomic32Init(&gate->open,0);xrtAtomic32Init(&gate->released,0);
     CHECK(xl6ContinuationExecutorReserve(executor,&gate->ticket,gateRun,gateRelease,gate)==XL6_CONTINUATION_ADMITTED);
     xl6ContinuationCommit(&gate->ticket);xl6ContinuationReady(&gate->ticket);xl6ContinuationTransportReleased(&gate->ticket);
-    xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
-    while(!xrtAtomic32Load(&gate->entered,XMEMORY_ACQUIRE)){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+    XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
+    while(!xrtAtomic32Load(&gate->entered,XMEMORY_ACQUIRE)){CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
 }
 static void gateOpen(DialGate* gate)
 {
-    xrtAtomic32Store(&gate->open,1,XMEMORY_RELEASE);xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
-    while(!xrtAtomic32Load(&gate->released,XMEMORY_ACQUIRE)){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+    xrtAtomic32Store(&gate->open,1,XMEMORY_RELEASE);XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
+    while(!xrtAtomic32Load(&gate->released,XMEMORY_ACQUIRE)){CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
 }
 static xfuture* pendingSource(void* resource)
 {
@@ -92,8 +93,8 @@ static void dialRun(xnetportbackend backend,unsigned mode)
         CHECK(xrtFutureState(future)==(mode==1?XFUTURE_FAILED:XFUTURE_CANCELLED));
     }
     xrtFutureDestroy(future);xrtValueRelease(carrier);idle(services.executor);
-    xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
-    while(xrtNetStreamState(observer)!=XNET_STREAM_CLOSED){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+    XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
+    while(xrtNetStreamState(observer)!=XNET_STREAM_CLOSED){CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
     xrtFutureDestroy(native);xrtNetStreamDestroy(observer);xl6TcpStreamDestroyV1(peer);
     /* Constructor/capture/publication prefixes: no worker dispatch may hide
      * caller-thread allocation failures. Every actual accepted operation is
@@ -109,10 +110,10 @@ static void dialRun(xnetportbackend backend,unsigned mode)
         xrtErrorFree(outcome.error);xrtValueRelease(carrier);idle(services.executor);
     }
     xrtNetAddrListDestroy(list);xl6TcpListenerDestroyV1(listener);xl6ExecutionResourceReleaseV1(engine);
-    CHECK(xl6ExecutionSourceCloseV1(source));until=xrtDeadlineAfter(UINT64_C(5000000));
+    CHECK(xl6ExecutionSourceCloseV1(source));until=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){XL6_ExecutionRetireResultV1 outcome=xl6ExecutionSourceDestroyV1(&source);CHECK(outcome.ok);
         if(outcome.ready)break;
-        CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+        CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
     xl6ContinuationExecutorClose(services.executor);CHECK(xl6ContinuationExecutorDestroy(services.executor));
     balanced(&before);++dialCases;
 }

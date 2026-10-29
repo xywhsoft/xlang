@@ -158,11 +158,11 @@ if ( (Test-Path -LiteralPath $apiPath -PathType Leaf) -and
             Add-Failure "DLL API must honor centralized toolchain environment variable: $name"
         }
     }
-    if ( $apiText -notmatch 'XRUNTIME_IMPLEMENTATION' -or
-         $apiText -notmatch '#include \\"xruntime[.]h\\"' -or
+    if ( $apiText -notmatch 'xlAddNativeObject' -or
+         $apiText -notmatch '__xl_runtime/xruntime_decl[.]h' -or
          $apiText -notmatch 'src/common/xl6_xrt[.]h' -or
-         $xrtBridgeText -notmatch 'lib/xruntime/xruntime[.]h' ) {
-        Add-Failure "DLL compiler API must embed XRT/xruntime through the product single-header path"
+         $xrtBridgeText -notmatch 'release/include/xruntime_decl[.]h' ) {
+        Add-Failure "DLL compiler API must use complete declarations and relocatable native objects"
     }
 
     foreach ( $name in @(

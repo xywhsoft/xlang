@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <string.h>
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
 static const char* original;
 static bool sawOriginal, failWrite;

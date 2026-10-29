@@ -3,7 +3,7 @@
 #define XRT_MODULE_THREAD
 #define XRUNTIME_MODULE_RUNTIME_CALL
 #define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
-#include "lib/xruntime/xruntime.h"
+#include "src/common/xl6_xrt.h"
 #include "xl6_detached_work.h"
 #include "src/api/xl_foreign_error.h"
 #include <stdlib.h>

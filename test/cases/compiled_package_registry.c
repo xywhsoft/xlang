@@ -1,5 +1,6 @@
 #define XL_RUNTIME_ONLY_API
 #include "include/xl_package.h"
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
 #include "src/ast/xl6_ast.h"
 #include <assert.h>

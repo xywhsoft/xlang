@@ -1,7 +1,11 @@
 #define XRT_MODULE_MEMORY_DEBUG
 #define XRT_MODULE_FUTURE
 #define XRT_MODULE_THREAD
+#ifndef XRT_MODULE_WAIT
+#define XRT_MODULE_WAIT
+#endif
 #include "lib/xrt/xrt.h"
+#include "release/include/xl_clock.h"
 #include <assert.h>
 #include <stdatomic.h>
 static xmemdebugsnapshot before;
@@ -50,9 +54,9 @@ xfuturewatchresult dispatch_watch_add(xfuture* future, xfuturewatch* watch)
 }
 void dispatch_wait_watches(int count)
 {
-    xdeadline deadline = xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 deadline = xl6DeadlineAfterMillisecondsV1(5000);
     while (atomic_load_explicit(&watch_count, memory_order_acquire) < count) {
-        assert(!xrtDeadlineExpired(deadline)); xrtThreadYield();
+        assert(!xl6DeadlineExpiredV1(deadline)); xrtThreadYield();
     }
 }
 void dispatch_enable_blocking(void)
@@ -62,9 +66,9 @@ void dispatch_enable_blocking(void)
 }
 void dispatch_wait_blocked(void)
 {
-    xdeadline deadline = xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 deadline = xl6DeadlineAfterMillisecondsV1(5000);
     while (!atomic_load_explicit(&entered, memory_order_acquire)) {
-        assert(!xrtDeadlineExpired(deadline)); xrtThreadYield();
+        assert(!xl6DeadlineExpiredV1(deadline)); xrtThreadYield();
     }
 }
 int64_t dispatch_probe(int64_t value)

@@ -1,6 +1,8 @@
 #ifndef XL6_OWNERSHIP_CANCEL_H
 #define XL6_OWNERSHIP_CANCEL_H
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
+#include "include/xl_clock.h"
 #include "xl6_ownership_catalog.h"
 
 /* One physical cancellation retirement protocol in every resident domain.

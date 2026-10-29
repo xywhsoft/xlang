@@ -3,7 +3,16 @@
 #include "tcp-language-modules.h"
 #define XRT_MODULE_MEMORY_DEBUG
 #define XRUNTIME_IMPLEMENTATION
+#ifndef XRT_MODULE_WAIT
+#define XRT_MODULE_WAIT
+#endif
+#include "lib/xruntime/xruntime_features.h"
+#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)
+#define XRT_IMPLEMENTATION
+#endif
+#include "lib/xrt/xrt.h"
 #include "lib/xruntime/xruntime.h"
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_text_value.h"
 #include "src/runtime/xl6_native_handle.h"
 #include "src/api/xl_foreign_error.h"
@@ -43,8 +52,8 @@ static xvalue* value(xfuture* future)
 }
 static void idle(XL6_ContinuationExecutor* executor)
 {
-    xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
-    while(!xl6ContinuationExecutorIsIdle(executor)){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+    XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
+    while(!xl6ContinuationExecutorIsIdle(executor)){CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
 }
 static void receiveExact(XL6_RuntimeServicesV1 services,void* receiver,xfuture* first,
     const void* expected,size_t size,bool asynchronous)
@@ -143,10 +152,10 @@ static void run(xnetportbackend backend,bool cancelFirst)
     stats=xl6TcpStreamSnapshotV1(client);CHECK(stats&&stats->SentBytes==9);
     xnetlistenerstats* listenerStats=xl6TcpListenerSnapshotV1(listener);CHECK(listenerStats&&listenerStats->Accepted==2);
     idle(services.executor);xrtValueRelease(peerObject);xrtValueRelease(clientObject);xl6TcpListenerDestroyV1(listener);
-    CHECK(xl6ExecutionSourceCloseV1(source));xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
+    CHECK(xl6ExecutionSourceCloseV1(source));XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){XL6_ExecutionRetireResultV1 outcome=xl6ExecutionSourceDestroyV1(&source);CHECK(outcome.ok);
         if(outcome.ready)break;
-        CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+        CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
     xl6ContinuationExecutorClose(services.executor);CHECK(xl6ContinuationExecutorDestroy(services.executor));
     CHECK(xl6TcpStreamStatsSentBytesV1(stats)==9&&xl6TcpListenerStatsAcceptedV1(listenerStats)==2);
     xl6TcpStreamStatsDestroyV1(stats);xl6TcpListenerStatsDestroyV1(listenerStats);xl6NetAddressDestroyV1(address);

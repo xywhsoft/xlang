@@ -1,6 +1,7 @@
 /* Canonical empty-source behavior in both shipped implementation and
  * declaration families. Normal offline certificates and ABI checks only. */
 #if defined(XL6_TEST_XRUNTIME_DECL)
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
 #else
 #include "include/xrt_decl.h"

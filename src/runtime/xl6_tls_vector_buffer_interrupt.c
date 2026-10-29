@@ -6,7 +6,7 @@ xfuture* xl6TlsStreamSendVectorBufferAsyncCancelV1(XL6_RuntimeServicesV1 service
     if(!services.executor){xrtSetErrorKind(XERR_ARGUMENT);return xl6TlsFutureFailV1(NULL,NULL);}
     void* capture=xl6TlsIoFuturePrepareV1(XL6_TLS_IO_SEND_V1,receiver,0,(xbytesview){0});
     if(!capture)return NULL;
-    if(!xl6FutureCallbackInterruptArmV1(capture,parent,services.deadline,XRT_DEADLINE_NEVER))return xl6TlsFutureFailV1(capture,NULL);
+    if(!xl6FutureCallbackInterruptArmV1(capture,parent,services.deadline,XL6_DEADLINE_NEVER))return xl6TlsFutureFailV1(capture,NULL);
     bool stopped=xl6FutureCallbackInterruptStoppedV1(capture);
     size_t count=0;
     xfuture* source=stopped?NULL:xl6TlsVectorSourceV1(xl6NetVectorBuffersCaptureV1,context,receiver,input,size,&count);
@@ -49,7 +49,7 @@ xfuture* xl6TlsStreamSendVectorBufferAsyncUntilCancelV1(XL6_RuntimeServicesV1 se
 }
 xfuture* xl6TlsStreamSendVectorBufferAsyncTimeoutV1(XL6_RuntimeServicesV1 services,XL6_NativeClassArrayContextV1 context,void* receiver,const xvalue* input,int64_t size,int64_t millis)
 {
-    xdeadline due;if(!xl6ConcurrentDeadline(millis,&due)){return xl6TlsFutureFailV1(NULL,NULL);}
+    XL6_DeadlineV1 due;if(!xl6ConcurrentDeadline(millis,&due)){return xl6TlsFutureFailV1(NULL,NULL);}
     if(!services.executor){xrtSetErrorKind(XERR_ARGUMENT);return xl6TlsFutureFailV1(NULL,NULL);}
     void* capture=xl6TlsIoFuturePrepareV1(XL6_TLS_IO_SEND_V1,receiver,0,(xbytesview){0});
     if(!capture)return NULL;
@@ -65,7 +65,7 @@ xfuture* xl6TlsStreamSendVectorBufferAsyncTimeoutV1(XL6_RuntimeServicesV1 servic
 }
 xfuture* xl6TlsStreamSendVectorBufferAsyncTimeoutCancelV1(XL6_RuntimeServicesV1 services,XL6_NativeClassArrayContextV1 context,void* receiver,const xvalue* input,int64_t size,void* parent,int64_t millis)
 {
-    xdeadline due;if(!xl6ConcurrentDeadline(millis,&due)){return xl6TlsFutureFailV1(NULL,NULL);}
+    XL6_DeadlineV1 due;if(!xl6ConcurrentDeadline(millis,&due)){return xl6TlsFutureFailV1(NULL,NULL);}
     if(!parent){xrtSetErrorKind(XERR_ARGUMENT);return xl6TlsFutureFailV1(NULL,NULL);}
     if(!services.executor){xrtSetErrorKind(XERR_ARGUMENT);return xl6TlsFutureFailV1(NULL,NULL);}
     void* capture=xl6TlsIoFuturePrepareV1(XL6_TLS_IO_SEND_V1,receiver,0,(xbytesview){0});

@@ -1,6 +1,8 @@
 #include <limits.h>
 #include <stdlib.h>
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
+#include "include/xl_clock.h"
 #include "src/api/xl_future_bridge.h"
 #include "src/runtime/xl6_future_payload.h"
 #include "src/runtime/xl6_future_aggregate.h"

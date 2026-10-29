@@ -20,9 +20,10 @@ foreach ( $requiredPath in @($xl, $trimSourcePath) ) {
 }
 $trimSource = Get-Content -LiteralPath $trimSourcePath -Raw
 if ( $trimSource -match 'xl6XrtTrimNeedsRuntimeProduct' -or
-    $trimSource -match '#define XRT_IMPLEMENTATION' -or
-    $trimSource -match '#include \\"xrt[.]h\\"' ) {
-    throw "xlang compiler retained a second core-only implementation path"
+    $trimSource -notmatch '__xl_runtime/xruntime_features[.]h' -or
+    $trimSource -notmatch '__xl_runtime/xrt[.]h' -or
+    $trimSource -notmatch '__xl_runtime/xruntime[.]h' ) {
+    throw "xlang compiler must select core plus thin xruntime from one module closure"
 }
 New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
 
@@ -92,12 +93,12 @@ foreach ( $case in $cases ) {
         }
         $implementation = Get-Content -LiteralPath $implementationPath -Raw
         if ( $implementation -notmatch "(?m)^#define XRUNTIME_IMPLEMENTATION\r?$" -or
-            $implementation -notmatch "(?m)^#include `"xruntime[.]h`"\r?$" ) {
+            $implementation -notmatch '(?m)^#include <__xl_runtime/xruntime[.]h>\r?$' ) {
             throw "generated program did not select the xruntime product: $($case.Name)"
         }
-        if ( $implementation -match "(?m)^#define XRT_IMPLEMENTATION\r?$" -or
-            $implementation -match "(?m)^#include `"xrt[.]h`"\r?$" ) {
-            throw "generated program compiled a second XRT implementation: $($case.Name)"
+        if ( ([regex]::Matches($implementation, '(?m)^#define XRT_IMPLEMENTATION\r?$')).Count -ne 1 -or
+            ([regex]::Matches($implementation, '(?m)^#include <__xl_runtime/xrt[.]h>\r?$')).Count -ne 1 ) {
+            throw "generated program must compile its selected core exactly once: $($case.Name)"
         }
         foreach ( $required in $case.Required ) {
             if ( $implementation -notmatch [regex]::Escape($required) ) {

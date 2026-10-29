@@ -78,7 +78,10 @@ def definitions(text: str, public: set[str]) -> dict[str, str]:
 
 def generate(root: Path, native: Path, compiler: Path, cache: Path) -> tuple[str, dict]:
     header_path = root / "lib/xruntime/xruntime.h"
-    header = header_path.read_text(encoding="utf-8")
+    core_path = root / "lib/xrt/xrt.h"
+    features_path = root / "lib/xruntime/xruntime_features.h"
+    header = "\n".join(path.read_text(encoding="utf-8")
+                       for path in (features_path, core_path, header_path))
     declarations = set(re.findall(r"XL_XRT_SYMBOL\((\w+)\)",
                                   (root / "src/api/xl_xrt_symbols.inc").read_text(encoding="utf-8")))
     manifests = [native / "config/modules.json", native / "extlibs/xruntime/config/modules.json"]
@@ -105,7 +108,7 @@ def generate(root: Path, native: Path, compiler: Path, cache: Path) -> tuple[str
     def preprocess(selection):
         selections = ["XRT_MODULE_ALL", "XRUNTIME_MODULE_ALL"] if selection is None else (
             list(selection) if isinstance(selection,tuple) else ([selection] if selection else []))
-        arguments = [str(compiler), "-E", "-dD", "-x", "c", "-DXRUNTIME_IMPLEMENTATION"]
+        arguments = [str(compiler), "-E", "-dD", "-x", "c", "-DXRT_IMPLEMENTATION", "-DXRUNTIME_IMPLEMENTATION"]
         arguments += ["-D" + item for item in selections]
         arguments += ["-"]
         key = digest((fingerprint + json.dumps(arguments)).encode())
@@ -171,7 +174,7 @@ def generate(root: Path, native: Path, compiler: Path, cache: Path) -> tuple[str
         for selection in row["Modules"] or [None]:
             value = f'"{selection}"' if selection else "NULL"
             lines.append(f'XL6_ARTIFACT_NATIVE_SYMBOL("{row["Symbol"]}", {value})')
-    inputs = [header_path, *manifests, compiler, Path(__file__).resolve(), root / "src/api/xl_xrt_symbols.inc"]
+    inputs = [core_path, features_path, header_path, *manifests, compiler, Path(__file__).resolve(), root / "src/api/xl_xrt_symbols.inc"]
     report = {"Symbols": len(rows), "Roots": len(candidates), "Definitions": rows,
               "WholeCatalogVerified": True,
               "CombinedDefinitions":combined,

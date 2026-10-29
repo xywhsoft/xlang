@@ -17,7 +17,7 @@ def stage(root,out):
     implementation=provider.read_text(encoding='utf-8-sig')
     for macro in ('XRT_MODULE_ALL','XRUNTIME_MODULE_ALL','XRUNTIME_IMPLEMENTATION'):
         assert re.search(r'^#define '+macro+r'\s*$',implementation,re.M),(provider,macro)
-    assert '#include "lib/xruntime/xruntime.h"' in implementation
+    assert '#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"' in implementation
     pattern=r'^struct xprocess \{\n.*?^\};'
     matches=re.findall(pattern,single.read_text(encoding='utf-8-sig'),re.M|re.S)
     other=re.findall(pattern,xrt.read_text(encoding='utf-8-sig'),re.M|re.S)

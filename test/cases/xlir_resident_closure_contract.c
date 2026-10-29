@@ -1,6 +1,11 @@
 #define XRT_MODULE_MEMORY_DEBUG
 #define XRT_MODULE_VALUE_CONTAINER
 #define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
+#include "lib/xruntime/xruntime_features.h"
+#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)
+#define XRT_IMPLEMENTATION
+#endif
+#include "lib/xrt/xrt.h"
 #include "lib/xruntime/xruntime.h"
 #include "xlir_resident_closure_dll.h"
 #include <assert.h>

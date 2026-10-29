@@ -1,3 +1,3 @@
-assert time.fromUnixMs(-1) == time(-1000)
-assert time.toUnix(time(-1)) == -1
-assert time.addMicroseconds(time(0), 1) == time(1)
+assert time.fromDate(1, 1, 1) == time(0)
+assert time.fromDate(1970, 1, 1) == time.fromUnixMs(0)
+assert time.addMilliseconds(time(0), 1) == time(1)

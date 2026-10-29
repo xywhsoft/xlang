@@ -1,3 +1,4 @@
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_deadline_service.h"
 #include "src/runtime/xl6_ownership_domains.h"
 #include "src/api/xl_foreign_error.h"
@@ -12,7 +13,7 @@ typedef struct Probe {
     atomic_uint fired,drops,kind,errorKind,sequence;
     atomic_bool entered,go;
     atomic_uint_fast64_t thread;
-    xdeadline due;
+    XL6_DeadlineV1 due;
     bool detach,block,freeOnDrop,selfDestroy;
 } Probe;
 static atomic_uint sequence;
@@ -32,8 +33,8 @@ xcond* __wrap_xrtCondCreate(void)
     atomic_fetch_add_explicit(&conditionCreates,1,memory_order_relaxed);
     return __real_xrtCondCreate();
 }
-xwaitresult __real_xrtCondWaitUntil(xcond*,xmutex*,xdeadline);
-xwaitresult __wrap_xrtCondWaitUntil(xcond* condition,xmutex* gate,xdeadline due)
+xwaitresult __real_xrtCondWaitUntil(xcond*,xmutex*,XL6_DeadlineV1);
+xwaitresult __wrap_xrtCondWaitUntil(xcond* condition,xmutex* gate,XL6_DeadlineV1 due)
 {
     unsigned fail=atomic_exchange_explicit(&failWait,0,memory_order_acq_rel);
     if(fail){xrtClearError();if(fail==1)xrtSetErrorKind(XERR_RANGE);return XWAIT_ERROR;}
@@ -41,9 +42,9 @@ xwaitresult __wrap_xrtCondWaitUntil(xcond* condition,xmutex* gate,xdeadline due)
 }
 #endif
 static void wait_flag(atomic_bool* flag)
-{xdeadline until=xrtDeadlineAfter(10000000);while(!atomic_load_explicit(flag,memory_order_acquire)){assert(!xrtDeadlineExpired(until));xrtThreadYield();}}
+{XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(10000);while(!atomic_load_explicit(flag,memory_order_acquire)){assert(!xl6DeadlineExpiredV1(until));xrtThreadYield();}}
 static void wait_number(atomic_uint* value,unsigned number)
-{xdeadline until=xrtDeadlineAfter(10000000);while(atomic_load_explicit(value,memory_order_acquire)!=number){assert(!xrtDeadlineExpired(until));xrtThreadYield();}}
+{XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(10000);while(atomic_load_explicit(value,memory_order_acquire)!=number){assert(!xl6DeadlineExpiredV1(until));xrtThreadYield();}}
 static bool probe_count(const void* data,size_t* count)
 {const Probe* probe=data;*count=atomic_load_explicit(&probe->refs,memory_order_relaxed);return *count!=0;}
 static bool probe_trace(const void* data,xrtownershipvisitor visit,void* context)
@@ -59,7 +60,7 @@ static void probe_drop(const void* data)
 static void notify(const void* data,XL6_DeadlineResultV1 result,const xerror* error)
 {
     Probe* probe=(Probe*)data;
-    if(result==XL6_DEADLINE_EXPIRED_V1)assert(xrtClock()>=probe->due);
+    if(result==XL6_DEADLINE_EXPIRED_V1)assert(xl6MonotonicMillisecondsV1()>=probe->due);
     atomic_store_explicit(&probe->kind,(unsigned)result,memory_order_relaxed);
     atomic_store_explicit(&probe->errorKind,error?(unsigned)xrtErrorKind(error):0,memory_order_relaxed);
     atomic_store_explicit(&probe->thread,xrtThreadCurrentId(),memory_order_relaxed);
@@ -72,7 +73,7 @@ static void notify(const void* data,XL6_DeadlineResultV1 result,const xerror* er
     if(probe->block)wait_flag(&probe->go);
 }
 static const XL6_DeadlineTargetV1 policy={sizeof(policy),notify,probe_drop,probe_ownership};
-static void init(Probe* probe,XL6_DeadlineServiceV1* service,xdeadline due,bool detach)
+static void init(Probe* probe,XL6_DeadlineServiceV1* service,XL6_DeadlineV1 due,bool detach)
 {memset(probe,0,sizeof(*probe));probe->service=service;probe->due=due;probe->detach=detach;atomic_init(&probe->refs,1);}
 static bool bind(Probe* probe)
 {
@@ -94,12 +95,12 @@ static bool edge(xrtownershipref ref,void* count)
 {if(ref.Data){assert(ref.Ops);++*(size_t*)count;}return true;}
 static void freeze_service(XL6_DeadlineServiceV1* service,xrtownershipscope* freeze)
 {
-    xdeadline until=xrtDeadlineAfter(10000000);
+    XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(10000);
     for(;;){if(xrtOwnershipFreezeTryBegin(freeze)){size_t count;
             xrtownershipref ref=xl6DeadlineServiceOwnershipV1(service);
             if(ref.Ops->Count(ref.Data,&count))return;
             assert(xrtOwnershipScopeEnd(freeze));}
-        assert(!xrtDeadlineExpired(until));xrtThreadYield();}
+        assert(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
 }
 typedef struct Race {
     Probe* probes;
@@ -137,11 +138,11 @@ int main(void)
         if(!hit){prefix=(unsigned)point;break;}assert(point<127);
     }
     // Explicit units, bounded arithmetic, no output mutation on invalid values.
-    {xdeadline due=17;assert(!xl6DeadlineFromMillisecondsV1(-1,&due)&&due==17);xrtClearError();
+    {XL6_DeadlineV1 due=17;assert(!xl6DeadlineFromMillisecondsV1(-1,&due)&&due==17);xrtClearError();
         assert(!xl6DeadlineFromMillisecondsV1(INT64_MAX,&due)&&due==17);xrtClearError();
-        uint64_t now=xrtClock();assert(xl6DeadlineFromMillisecondsV1(0,&due)&&due>=now&&due!=XRT_DEADLINE_NEVER);}
+        uint64_t now=xl6MonotonicMillisecondsV1();assert(xl6DeadlineFromMillisecondsV1(0,&due)&&due>=now&&due!=XL6_DEADLINE_NEVER);}
     {xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);XL6_DeadlineServiceV1* service=xl6DeadlineServiceCreateV1(1);assert(service);
-        Probe first,second;init(&first,service,xrtClock()+10000000,false);init(&second,service,0,true);
+        Probe first,second;init(&first,service,xl6MonotonicMillisecondsV1()+10000000,false);init(&second,service,0,true);
         assert(bind(&first));assert(!bind(&second)&&xl6DeadlineTicketIsIdleV1(&second.ticket));xrtClearError();
         assert(!xl6DeadlineServiceDestroyV1(service));xl6DeadlineDetachV1(&first.ticket);xl6DeadlineDetachV1(&first.ticket);
         assert(xl6DeadlineTicketIsIdleV1(&first.ticket)&&atomic_load(&first.refs)==1&&atomic_load(&first.drops)==1&&!atomic_load(&first.fired));
@@ -166,15 +167,15 @@ int main(void)
         Probe* probe=xrtCalloc(1,sizeof(*probe));assert(probe);init(probe,service,0,true);probe->freeOnDrop=true;
         const void* data=probe;assert(xl6DeadlineBindTakeV1(service,&probe->ticket,0,&policy,&data)&&!data);
         xl6DeadlineServiceCloseV1(service);
-        xdeadline until=xrtDeadlineAfter(10000000);while(!xl6DeadlineServiceDestroyV1(service)){assert(!xrtDeadlineExpired(until));xrtThreadYield();}
+        XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(10000);while(!xl6DeadlineServiceDestroyV1(service)){assert(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
         balanced(&before);}
     // No allocation between binding, expiration/reentrant detach, and delivery.
     {xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);XL6_DeadlineServiceV1* service=xl6DeadlineServiceCreateV1(1);assert(service);
-        Probe probe;init(&probe,service,xrtClock()+10000,true);assert(xrtMemDebugFailAfter(0));assert(bind(&probe));
+        Probe probe;init(&probe,service,xl6MonotonicMillisecondsV1()+10000,true);assert(xrtMemDebugFailAfter(0));assert(bind(&probe));
         wait_number(&probe.drops,1);finish(service);assert(!xrtMemDebugFailTriggered());xrtMemDebugFailClear();balanced(&before);}
     // Min-heap ordering, reverse insertion, complete target reference accounting.
     {enum{N=32};xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);XL6_DeadlineServiceV1* service=xl6DeadlineServiceCreateV1(N);assert(service);
-        Probe probes[N];atomic_store(&sequence,0);uint64_t start=xrtClock()+100000;
+        Probe probes[N];atomic_store(&sequence,0);uint64_t start=xl6MonotonicMillisecondsV1()+100000;
         for(size_t i=0;i<N;++i)init(&probes[i],service,start+i*1000,true);
         for(size_t i=N;i;--i)assert(bind(&probes[i-1]));
         xl6DeadlineServiceCloseV1(service);for(size_t i=0;i<N;++i)wait_number(&probes[i].drops,1);finish(service);
@@ -184,7 +185,7 @@ int main(void)
     // 1024 concurrent future deadlines; real catalog, exact owning graph, and
     // arbitrary removal/reuse exercise both upward and downward heap repair.
     {enum{N=1024};xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);XL6_DeadlineServiceV1* service=xl6DeadlineServiceCreateV1(N);assert(service);
-        Probe probes[N];for(size_t i=0;i<N;++i){init(&probes[i],service,xrtClock()+10000000+(i*73)%N,false);assert(bind(&probes[i]));}
+        Probe probes[N];for(size_t i=0;i<N;++i){init(&probes[i],service,xl6MonotonicMillisecondsV1()+10000000+(i*73)%N,false);assert(bind(&probes[i]));}
         const XL6_OwnershipDomainV1* domain=xl6OwnershipDomainDeadlineServiceV1Get();
         XL6_OwnershipCatalog* catalog=xl6OwnershipCatalogCreateV1(&domain,1);assert(catalog);
         xrtownershipscope freeze={0};freeze_service(service,&freeze);xrtownershipref ref=xl6DeadlineServiceOwnershipV1(service);
@@ -204,15 +205,15 @@ int main(void)
         const xrtownershippreparationv1* preparation=NULL;
         const xrtownershipadapterv1* adapter=xl6DeadlineServiceOwnershipAdapterV1(ref,&preparation);assert(adapter&&preparation);
         int token=0;assert(adapter->Hold(ref.Data)&&adapter->Claim(ref.Data,&token));adapter->Restore(ref.Data,&token);
-        assert(xrtOwnershipScopeEnd(&freeze));Probe probe;init(&probe,service,xrtClock()+10000000,false);
+        assert(xrtOwnershipScopeEnd(&freeze));Probe probe;init(&probe,service,xl6MonotonicMillisecondsV1()+10000000,false);
         assert(bind(&probe));xl6DeadlineDetachV1(&probe.ticket);
         freeze_service(service,&freeze);assert(adapter->Claim(ref.Data,&token));assert(xrtOwnershipScopeEnd(&freeze));
         assert(!xl6DeadlineServiceDestroyV1(service)&&!xl6DeadlineServiceDestroyCompletedV1(service));
         assert(!bind(&probe)&&xl6DeadlineTicketIsIdleV1(&probe.ticket));xrtClearError();
-        xdeadline until=xrtDeadlineAfter(10000000);
+        XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(10000);
         for(;;){xrtownershipprepareresult result=preparation->Prepare(ref.Data,&token);
             if(result==XRT_OWNERSHIP_PREPARE_READY)break;
-            assert(result==XRT_OWNERSHIP_PREPARE_BUSY&&!xrtDeadlineExpired(until));xrtThreadYield();}
+            assert(result==XRT_OWNERSHIP_PREPARE_BUSY&&!xl6DeadlineExpiredV1(until));xrtThreadYield();}
         freeze_service(service,&freeze);assert(preparation->Ready(ref.Data));adapter->Clear(ref.Data,&token);
         assert(xrtOwnershipScopeEnd(&freeze));assert(xl6DeadlineServiceDestroyCompletedV1(service));
         adapter->Drop(ref.Data);balanced(&before);}
@@ -221,7 +222,7 @@ int main(void)
     for(unsigned round=0;round<16;++round){enum{WORKERS=4,N=32};xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);
         XL6_DeadlineServiceV1* service=xl6DeadlineServiceCreateV1(WORKERS*N);assert(service);
         Probe probes[WORKERS*N];Race races[WORKERS];xthread* threads[WORKERS];atomic_bool go=false;
-        for(size_t i=0;i<WORKERS*N;++i)init(&probes[i],service,i%2?0:xrtClock()+10000000,true);
+        for(size_t i=0;i<WORKERS*N;++i)init(&probes[i],service,i%2?0:xl6MonotonicMillisecondsV1()+10000000,true);
         for(size_t i=0;i<WORKERS;++i){races[i]=(Race){probes+i*N,N,&go,i==0};threads[i]=xrtThreadCreate(race_bind_detach,&races[i],0);assert(threads[i]);}
         atomic_store_explicit(&go,true,memory_order_release);
         for(size_t i=0;i<WORKERS;++i){assert(xrtThreadWait(threads[i])==XWAIT_OK);xrtThreadDestroy(threads[i]);}
@@ -233,7 +234,7 @@ int main(void)
     // Native wait failure is FAILED (including false/NULL), never fake expiration.
     for(unsigned mode=1;mode<=2;++mode){xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);
         XL6_DeadlineServiceV1* service=xl6DeadlineServiceCreateV1(2);assert(service);Probe probe;
-        init(&probe,service,xrtClock()+10000000,true);assert(bind(&probe));
+        init(&probe,service,xl6MonotonicMillisecondsV1()+10000000,true);assert(bind(&probe));
         xrtownershipscope freeze={0};freeze_service(service,&freeze);atomic_store(&failWait,mode);assert(xrtOwnershipScopeEnd(&freeze));
         xl6DeadlineServiceCloseV1(service);wait_number(&probe.drops,1);
         assert(atomic_load(&probe.kind)==XL6_DEADLINE_FAILED_V1&&atomic_load(&probe.errorKind)==(mode==1?XERR_RANGE:0));

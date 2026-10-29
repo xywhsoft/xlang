@@ -2,6 +2,7 @@
 static void* publish(const xnetdialconfig* value)
 {
     if(!xrtNetDialConfigValid(value)){xl6TcpOptionsFailedV1();return NULL;}
+    if(!xl6TcpOptionsRangeV1(value->Timeout<=INT64_MAX&&value->FallbackDelay<=INT64_MAX))return NULL;
     xnetdialconfig* result=xrtMalloc(sizeof(*result));if(result)*result=*value;else xl6TcpOptionsFailedV1();return result;
 }
 void* xl6TcpDialOptionsCreateV1(void)
@@ -25,9 +26,9 @@ void* xl6TcpDialOptionsWithFamilyV1(const void* raw,int64_t family)
 void* xl6TcpDialOptionsWithAffinityV1(const void* raw,uint64_t affinity)
 {xnetdialconfig value=*(const xnetdialconfig*)raw;value.Affinity=affinity;return publish(&value);}
 void* xl6TcpDialOptionsWithTimeoutV1(const void* raw,int64_t millis)
-{uint64_t micros;if(!xl6TcpOptionsTimeoutV1(millis,&micros))return NULL;xnetdialconfig value=*(const xnetdialconfig*)raw;value.Timeout=micros;return publish(&value);}
+{uint64_t milliseconds;if(!xl6TcpOptionsTimeoutV1(millis,&milliseconds))return NULL;xnetdialconfig value=*(const xnetdialconfig*)raw;value.Timeout=milliseconds;return publish(&value);}
 void* xl6TcpDialOptionsWithFallbackDelayV1(const void* raw,int64_t millis)
-{uint64_t micros;if(!xl6TcpOptionsFiniteMillisV1(millis,&micros))return NULL;xnetdialconfig value=*(const xnetdialconfig*)raw;value.FallbackDelay=micros;return publish(&value);}
+{uint64_t milliseconds;if(!xl6TcpOptionsFiniteMillisV1(millis,&milliseconds))return NULL;xnetdialconfig value=*(const xnetdialconfig*)raw;value.FallbackDelay=milliseconds;return publish(&value);}
 void* xl6TcpDialOptionsWithMaxAttemptsV1(const void* raw,int64_t attempts)
 {
     if(!xl6TcpOptionsRangeV1(attempts>0&&(uint64_t)attempts<=UINT32_MAX))return NULL;

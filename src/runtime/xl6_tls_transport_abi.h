@@ -2,7 +2,9 @@
 #define XL6_TLS_TRANSPORT_ABI_H
 #include "xl6_runtime_export.h"
 #if !defined(XRT_SINGLE_HEADER) && !defined(XRUNTIME_DECLARATIONS_H)
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
+#include "include/xl_clock.h"
 #endif
 #include "xl6_runtime_services.h"
 #include "xl6_execution_language.h"

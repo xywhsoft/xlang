@@ -27,7 +27,7 @@ def main():
     report=dict(Complete=False,InputsUnchanged=False,LogsUnchanged=False,ProductsUnchanged=False,
         Inputs=inputs,Rows=rows,Products=products,Failures=failures,Sources=[],Domains='',Modules='',NegativeControls=[],
         OrdinaryLiteralLoopback=True,ExternalNetworkTests=False,NetworkSecurityTests=False,
-        ShippingLibraryAcceptance=False,PinnedDeadlineAbi='uint64 microseconds/xdeadline',Scope=__doc__)
+        ShippingLibraryAcceptance=False,PinnedDeadlineAbi='absolute uint64 milliseconds; native int64 milliseconds/For',Scope=__doc__)
     def save():(out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf8')
     def product(path):products.append(dict(Path=str(path),Sha256=sha(path)));save()
     def run(name,command,instrumented=False,reject=False):

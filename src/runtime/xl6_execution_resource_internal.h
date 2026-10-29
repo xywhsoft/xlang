@@ -1,6 +1,8 @@
 #ifndef XL6_EXECUTION_RESOURCE_INTERNAL_H
 #define XL6_EXECUTION_RESOURCE_INTERNAL_H
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
+#include "include/xl_clock.h"
 #include "xl6_execution_resource.h"
 /* Same resident build only. Concrete family tables and every transitive
  * callback are permanent runtime code, never generated/module-local policy.

@@ -1,3 +1,4 @@
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
 
 int xlang_main(xvalue* arg);

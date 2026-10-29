@@ -3,7 +3,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 #if !defined(XRT_SINGLE_HEADER) && !defined(XRUNTIME_DECLARATIONS_H)
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
+#include "include/xl_clock.h"
 #endif
 
 #if defined(_WIN32) && defined(XL_BUILD_DLL)

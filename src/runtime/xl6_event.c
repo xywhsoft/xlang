@@ -64,12 +64,12 @@ bool xl6EventWaitV1(void* raw, int64_t milliseconds)
 {
     xl6_error_scope work = {0};
     if (!xl6ErrorScopeBegin(&work)) abort();
-    xdeadline deadline;
+    XL6_DeadlineV1 deadline;
     XL6_EventOwner* owner = NULL;
     xwaitresult waited = XWAIT_ERROR;
     if (xl6ConcurrentDeadline(milliseconds, &deadline)) {
         owner = begin(raw);
-        if (owner) waited = xrtEventWaitUntil(&owner->event, deadline);
+        if (owner) waited = xrtEventWaitFor(&owner->event,xl6DeadlineRemainingMillisecondsV1(deadline));
     }
     xl6SyncOwnerEndNative(owner ? &owner->base : NULL);
     finish(&work, waited != XWAIT_ERROR);

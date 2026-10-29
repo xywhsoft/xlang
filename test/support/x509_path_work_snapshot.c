@@ -1,6 +1,7 @@
 /* Ordinary fixed certificate profiles, declaration ABI and resource budgets.
  * No network, malformed crypto or original security tests. */
 #if defined(XL6_TEST_XRUNTIME_DECL)
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
 #else
 #include "include/xrt_decl.h"

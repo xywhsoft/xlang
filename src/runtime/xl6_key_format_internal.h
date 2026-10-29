@@ -1,6 +1,8 @@
 #ifndef XL6_KEY_FORMAT_INTERNAL_H
 #define XL6_KEY_FORMAT_INTERNAL_H
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
+#include "include/xl_clock.h"
 #include <string.h>
 
 /* Resident wire-format support only. No private scalar arithmetic, dispatch

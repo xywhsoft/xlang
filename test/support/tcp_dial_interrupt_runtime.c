@@ -1,4 +1,5 @@
 #define XL6_TCP_DIAL_TEST_ENTRY dialBasicRegressionMain
+#include "release/include/xl_clock.h"
 #include "tcp_dial_language_runtime.c"
 #undef XL6_TCP_DIAL_TEST_ENTRY
 #include "src/runtime/xl6_deadline_service.h"
@@ -18,7 +19,7 @@ static void interruptRun(xnetportbackend backend,unsigned mode)
     xl6NetAddressDestroyV1(address);void* options=xl6TcpDialOptionsCreateV1();CHECK(options);
     xvalue* carrier=object(xl6TcpPrepareDialAddressesV1(execution,engine));void* raw=resource(carrier);
     if(mode==1)CHECK(xrtCancelRequest(parent));
-    uint64_t due=mode==2?xrtClock():mode==4?xrtDeadlineAfter(UINT64_C(100000)):mode==5?XRT_DEADLINE_NEVER:xrtDeadlineAfter(UINT64_C(5000000));
+    uint64_t due=mode==2?xl6MonotonicMillisecondsV1():mode==4?xl6DeadlineAfterMillisecondsV1(100):mode==5?XL6_DEADLINE_NEVER:xl6DeadlineAfterMillisecondsV1(5000);
     DialGate gate;gateStart(services.executor,&gate);
     xfuture* future=mode==1?xl6TcpDialAddressesStartCancelDefaultV1(services,context,raw,carrier,list,parent):
         mode==2||mode==4||mode==5?xl6TcpDialAddressesStartUntilV1(services,context,raw,carrier,list,options,due):
@@ -31,8 +32,8 @@ static void interruptRun(xnetportbackend backend,unsigned mode)
         peer=xl6TcpListenerAcceptV1(execution,listener,5000);CHECK(peer);
     }
     if(mode==3)CHECK(xrtCancelRequest(parent));
-    if(mode==4){xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
-        while(!xrtDeadlineExpired(due)){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}}
+    if(mode==4){XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
+        while(!xl6DeadlineExpiredV1(due)){CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}}
     if(mode==6){xvalue* wrong=xrtValueInt(9);CHECK(wrong&&xrtValueObjectSet(carrier,key,wrong));xrtValueRelease(wrong);}
     xvalue* expected=carrier;bool succeeds=mode==0||mode==5;
     if(!succeeds){xrtValueRelease(carrier);carrier=NULL;}
@@ -44,13 +45,13 @@ static void interruptRun(xnetportbackend backend,unsigned mode)
     else{xfutureresult result={0};CHECK(xrtFutureResult(future,&result)&&result.State==XFUTURE_FAILED);
         CHECK(xrtErrorKind(result.Error)==(mode==6?XERR_STATE:XERR_TIMEOUT));}
     xrtFutureDestroy(future);xrtValueRelease(carrier);idle(services.executor);
-    if(observer){xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
-        while(xrtNetStreamState(observer)!=XNET_STREAM_CLOSED){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}}
+    if(observer){XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
+        while(xrtNetStreamState(observer)!=XNET_STREAM_CLOSED){CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}}
     xrtFutureDestroy(native);xrtNetStreamDestroy(observer);xl6TcpStreamDestroyV1(peer);
     if(mode==0)for(unsigned budget=0;budget<64;++budget){
         carrier=object(xl6TcpPrepareDialAddressesV1(execution,engine));raw=resource(carrier);
         xl6_error_scope scope={0};CHECK(xl6ErrorScopeBegin(&scope));CHECK(xrtMemDebugFailAfter(budget));++interruptPrefixes;
-        future=xl6TcpDialAddressesStartUntilCancelV1(services,context,raw,carrier,list,options,xrtDeadlineAfter(UINT64_C(5000000)),parent);
+        future=xl6TcpDialAddressesStartUntilCancelV1(services,context,raw,carrier,list,options,xl6DeadlineAfterMillisecondsV1(5000),parent);
         bool hit=xrtMemDebugFailTriggered();xrtMemDebugFailClear();xl6_error_result result=xl6ErrorScopeEnd(&scope);
         if(!future){CHECK(hit&&!result.ok);++interruptFailures;}
         else{CHECK(result.ok);(void)xrtFutureCancel(future);CHECK(xrtFutureWaitFor(future,UINT64_C(5000000))==XWAIT_OK);xrtFutureDestroy(future);}
@@ -58,9 +59,9 @@ static void interruptRun(xnetportbackend backend,unsigned mode)
     }
     xl6TcpDialOptionsDestroyV1(options);xrtCancelDestroy(parent);xrtNetAddrListDestroy(list);
     xl6TcpListenerDestroyV1(listener);xl6ExecutionResourceReleaseV1(engine);CHECK(xl6ExecutionSourceCloseV1(source));
-    xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
+    XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){XL6_ExecutionRetireResultV1 result=xl6ExecutionSourceDestroyV1(&source);CHECK(result.ok);if(result.ready)break;
-        CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+        CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
     xl6ContinuationExecutorClose(services.executor);CHECK(xl6ContinuationExecutorDestroy(services.executor));
     xl6DeadlineServiceCloseV1(services.deadline);CHECK(xl6DeadlineServiceDestroyCompletedV1(services.deadline));
     balanced(&before);++interruptCases;

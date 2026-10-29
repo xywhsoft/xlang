@@ -1,7 +1,16 @@
 #include "executor-jobs-modules.h"
 #define XRT_MODULE_MEMORY_DEBUG
 #define XRUNTIME_IMPLEMENTATION
+#ifndef XRT_MODULE_WAIT
+#define XRT_MODULE_WAIT
+#endif
+#include "lib/xruntime/xruntime_features.h"
+#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)
+#define XRT_IMPLEMENTATION
+#endif
+#include "lib/xrt/xrt.h"
 #include "lib/xruntime/xruntime.h"
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_executor_jobs.h"
 #include "src/runtime/xl6_ownership_catalog.h"
 #include "src/runtime/xl6_ownership_domains.h"
@@ -25,13 +34,13 @@ static bool loadCopy(XL6_OwnershipCatalog* target)
 static const XL6_OwnershipDomainV1 copiedDomain={sizeof(copiedDomain),loadCopy,NULL,NULL};
 static void freeze(xrtownershipscope* scope)
 {
-    xdeadline end=xrtDeadlineAfter(UINT64_C(5000000));
-    while(!xrtOwnershipFreezeTryBegin(scope)){assert(!xrtDeadlineExpired(end));xrtThreadYield();}
+    XL6_DeadlineV1 end=xl6DeadlineAfterMillisecondsV1(5000);
+    while(!xrtOwnershipFreezeTryBegin(scope)){assert(!xl6DeadlineExpiredV1(end));xrtThreadYield();}
 }
 static void waitFor(xatomic32* value,uint32_t expected)
 {
-    xdeadline end=xrtDeadlineAfter(UINT64_C(5000000));
-    while(xrtAtomic32Load(value,XMEMORY_ACQUIRE)<expected){assert(!xrtDeadlineExpired(end));xrtThreadYield();}
+    XL6_DeadlineV1 end=xl6DeadlineAfterMillisecondsV1(5000);
+    while(xrtAtomic32Load(value,XMEMORY_ACQUIRE)<expected){assert(!xl6DeadlineExpiredV1(end));xrtThreadYield();}
 }
 static void contextInit(Context* c,int mode,int dropMode)
 {*c=(Context){0};c->mode=mode;c->dropMode=dropMode;xrtAtomic32Init(&c->resume,1);xrtAtomic32Init(&c->dropResume,1);}

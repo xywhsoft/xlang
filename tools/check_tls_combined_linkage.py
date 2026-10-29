@@ -24,7 +24,9 @@ def main():
     libraries=['-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32'] if os.name=='nt' else ['-pthread','-ldl','-lm']
     try:
         for product in ['core','runtime']:
-            source=out/(product+'.c');source.write_text('#define '+('XRT_IMPLEMENTATION' if product=='core' else 'XRUNTIME_IMPLEMENTATION')+'\n#include "lib/'+('xrt/xrt.h' if product=='core' else 'xruntime/xruntime.h')+'"\n',encoding='utf8')
+            source=out/(product+'.c');source.write_text('#define '+('XRT_IMPLEMENTATION' if product=='core' else 'XRUNTIME_IMPLEMENTATION')+'\n'+
+                ('#include "lib/xruntime/xruntime_features.h"\n#define XRT_IMPLEMENTATION\n#include "lib/xrt/xrt.h"\n' if product=='runtime' else '')+
+                '#include "lib/'+('xrt/xrt.h' if product=='core' else 'xruntime/xruntime.h')+'"\n',encoding='utf8')
             for label,cc,options in [('O0',gcc,['-O0']),('O2',gcc,['-O2']),('tcc',tcc,[])]:
                 name=product+'.'+label;obj=out/(name+'.o');binary=out/(name+('.exe' if os.name=='nt' else ''));strict=['-Wall','-Wextra','-Werror'] if cc==gcc else []
                 run(name+'.implementation',[cc,*flags,*options,*strict,'-c',source,'-o',obj])

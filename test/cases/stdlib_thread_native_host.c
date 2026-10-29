@@ -1,3 +1,4 @@
+#include "release/include/xl_clock.h"
 #include "release/include/xrt_decl.h"
 #include "src/runtime/xl6_thread.h"
 #include "src/api/xl_foreign_error.h"
@@ -20,9 +21,9 @@ xwaitresult __wrap_xrtThreadWait(xthread* thread)
 static xvalue* transferred;
 static void await(_Atomic(unsigned)* flag)
 {
-    xdeadline deadline=xrtDeadlineAfter(UINT64_C(30000000));
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(30000);
     while (!atomic_load_explicit(flag,memory_order_acquire)) {
-        assert(!xrtDeadlineExpired(deadline)); xrtThreadYield();
+        assert(!xl6DeadlineExpiredV1(deadline)); xrtThreadYield();
     }
 }
 static void reset(void)
@@ -38,8 +39,8 @@ static bool blocked(void* environment,int64_t* result)
 static bool stopping(void* environment,int64_t* result)
 {
     (void)environment; atomic_store_explicit(&started,1,memory_order_release);
-    xdeadline deadline=xrtDeadlineAfter(UINT64_C(30000000));
-    while (!xrtThreadStopping()) { assert(!xrtDeadlineExpired(deadline)); xrtThreadYield(); }
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(30000);
+    while (!xrtThreadStopping()) { assert(!xl6DeadlineExpiredV1(deadline)); xrtThreadYield(); }
     *result=23; return true;
 }
 static bool selfDrop(void* environment,int64_t* result)
@@ -142,10 +143,10 @@ static void stopVector(void)
 }
 static int32 freezeHelper(void* raw)
 {
-    const xvalue* weak=raw; xdeadline deadline=xrtDeadlineAfter(UINT64_C(30000000));
-    while (!xrtValueWeakRefExpired(weak)) { assert(!xrtDeadlineExpired(deadline)); xrtThreadYield(); }
+    const xvalue* weak=raw; XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(30000);
+    while (!xrtValueWeakRefExpired(weak)) { assert(!xl6DeadlineExpiredV1(deadline)); xrtThreadYield(); }
     xrtownershipscope freeze={0};
-    while (!xrtOwnershipFreezeTryBegin(&freeze)) { assert(!xrtDeadlineExpired(deadline)); xrtThreadYield(); }
+    while (!xrtOwnershipFreezeTryBegin(&freeze)) { assert(!xl6DeadlineExpiredV1(deadline)); xrtThreadYield(); }
     assert(xrtOwnershipScopeEnd(&freeze));
     atomic_store_explicit(&proceed,1,memory_order_release); return 0;
 }
@@ -171,14 +172,14 @@ static void activeRelease(void)
     xrtownershipscope freeze={0}; assert(xrtOwnershipFreezeTryBegin(&freeze));
     xrtownershipref owner=ownerRef(thread); assert(xrtOwnershipScopeEnd(&freeze));
     MethodWork work={thread,false}; xthread* helper=xrtThreadCreate(methodWait,&work,0); assert(helper);
-    xdeadline deadline=xrtDeadlineAfter(UINT64_C(30000000)); bool busy=false;
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(30000); bool busy=false;
     while (!busy) {
         if (xrtOwnershipFreezeTryBegin(&freeze)) {
             size_t refs=0; busy=!owner.Ops->Count(owner.Data,&refs);
             if (busy) assert(!xl6ThreadOwnershipAdapterV1(owner));
             assert(xrtOwnershipScopeEnd(&freeze));
         }
-        assert(!xrtDeadlineExpired(deadline)); if (!busy) xrtThreadYield();
+        assert(!xl6DeadlineExpiredV1(deadline)); if (!busy) xrtThreadYield();
     }
     xrtValueRelease(thread); assert(xrtValueWeakRefExpired(weak));
     atomic_store_explicit(&proceed,1,memory_order_release);
@@ -234,11 +235,11 @@ static void leaseVector(void)
 }
 static void heapQuiescence(const xmemdebugsnapshot* before)
 {
-    xdeadline deadline=xrtDeadlineAfter(UINT64_C(30000000)); xmemdebugsnapshot after;
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(30000); xmemdebugsnapshot after;
     do {
         xrtMemDebugSnapshot(&after);
         if (before->LiveCount==after.LiveCount && before->LiveBytes==after.LiveBytes) return;
-        assert(!xrtDeadlineExpired(deadline)); xrtThreadYield();
+        assert(!xl6DeadlineExpiredV1(deadline)); xrtThreadYield();
     } while (true);
 }
 static void blockedCaptureDrop(void* raw,void* context)
@@ -271,10 +272,10 @@ static void captureRetirement(void)
     xrtownershipref owner=ownerRef(thread); assert(xrtOwnershipScopeEnd(&freeze));
     atomic_store_explicit(&proceed,1,memory_order_release); await(&captureEntered);
     captureWindow=true; xthread* releaser=xrtThreadCreate(captureShellRelease,thread,0); assert(releaser);
-    xdeadline deadline=xrtDeadlineAfter(UINT64_C(30000000));
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(30000);
     while (!atomic_load_explicit(&waitEntered,memory_order_acquire) &&
         !atomic_load_explicit(&releaseReturned,memory_order_acquire)) {
-        assert(!xrtDeadlineExpired(deadline)); xrtThreadYield();
+        assert(!xl6DeadlineExpiredV1(deadline)); xrtThreadYield();
     }
     assert(!atomic_load(&releaseReturned) && atomic_load(&waitEntered));
     /* The wait must not hold a mutation or metadata gate. The real worker

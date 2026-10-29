@@ -4,7 +4,7 @@
 #define XRT_MODULE_FUTURE
 #define XRUNTIME_MODULE_RUNTIME_CALL
 #define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
-#include "lib/xruntime/xruntime.h"
+#include "src/common/xl6_xrt.h"
 #include "xl6_closure.h"
 #include "src/api/xl_foreign_error.h"
 #include "xl6_cell.h"

@@ -44,7 +44,7 @@ def main():
                 report['Sources']=sources;assert not any('execution_' in source for source in sources);save()
                 implementation=out/'udp-config-implementation.c'
                 implementation.write_text('#include "udp-config-modules.h"\n#define XRT_MODULE_MEMORY_DEBUG\n'
-                    '#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n',encoding='utf8');product(implementation)
+                    '#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"\n',encoding='utf8');product(implementation)
         for ci,cc in enumerate(compilers):
             modes=[('O0',['-O0']),('O2',['-O2'])]
             if a.sanitize and cc.stem!='tcc':modes.append(('instrumented',

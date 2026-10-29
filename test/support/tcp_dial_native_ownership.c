@@ -1,7 +1,8 @@
-/* XRT dbd5f71c fixture; only bootstrap and pinned microsecond deadlines adapted. */
+/* XRT dbd5f71c fixture; only bootstrap and pinned millisecond deadlines adapted. */
 /* Owned Dial/Future graph and valid own-loopback only. No DNS, external
  * endpoint, protocol attacks, malformed traffic or security tests. */
 #define XRT_IMPLEMENTATION
+#include "release/include/xl_clock.h"
 #include "xrt.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -73,8 +74,8 @@ static xnetaddrlist* lookup(cstr host,xnetfamily family,ptr raw)
 {
     (void)host;(void)family;State* state=raw;
     xrtAtomic32Store(&state->entered,1,XMEMORY_RELEASE);
-    xdeadline deadline=xrtDeadlineAfter(UINT64_C(10000000));
-    while(!xrtAtomic32Load(&state->gate,XMEMORY_ACQUIRE)){CHECK(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(10000);
+    while(!xrtAtomic32Load(&state->gate,XMEMORY_ACQUIRE)){CHECK(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
     xnetaddr address;CHECK(xrtNetAddrLoopback(&address,XNET_FAMILY_IPV4,0));
     return xrtNetAddrListCreate(&address,1);
 }
@@ -89,8 +90,8 @@ static void done(xnetdial* dial,xnetresult result,xnetstream* stream,const xerro
 static const xnetdialownershipv1 donePolicy={sizeof(donePolicy),done,stateDrop,&stateOps};
 static void freeze(xrtownershipscope* scope)
 {
-    xdeadline deadline=xrtDeadlineAfter(UINT64_C(10000000));
-    while(!xrtOwnershipFreezeTryBegin(scope)){CHECK(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(10000);
+    while(!xrtOwnershipFreezeTryBegin(scope)){CHECK(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
 }
 static void balanced(const xmemdebugsnapshot* before)
 {
@@ -160,7 +161,7 @@ static bool admit(xrtownershipref ref,ptr raw)
 {const xrtownershippreparationv1* preparation=NULL;return resolve(raw,ref,&preparation)!=NULL;}
 static xrtownershipsnapshot* snapshot(Graph* graph,xrtownershipscope* scope)
 {
-    xdeadline deadline=xrtDeadlineAfter(UINT64_C(10000000));
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(10000);
     for(;;){
         freeze(scope);graph->busy=false;xrtownershipref roots[72],slots[72];size_t r=0,s=0;
         roots[r++]=xrtNetEngineOwnership(graph->engine);
@@ -174,7 +175,7 @@ static xrtownershipsnapshot* snapshot(Graph* graph,xrtownershipscope* scope)
         xrtownershipsnapshot* result=NULL;
         if(xrtOwnershipSnapshotCreate(roots,r,slots,s,admit,graph,&result))return result;
         CHECK(graph->busy);xrtClearError();CHECK(xrtOwnershipScopeEnd(scope));
-        CHECK(!xrtDeadlineExpired(deadline));xrtThreadYield();
+        CHECK(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();
     }
 }
 static void discover(Graph* graph,xrtownershipsnapshot* proof)
@@ -213,7 +214,7 @@ static void collect(Graph* graph,unsigned order)
         }
     }
     discover(graph,proof);xrtOwnershipSnapshotDestroy(proof);CHECK(xrtOwnershipScopeEnd(&scope));
-    xdeadline deadline=xrtDeadlineAfter(UINT64_C(10000000));
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(10000);
     for(;;){bool all=true;
         for(size_t step=0;step<graph->count;++step){size_t i=order&1?graph->count-1-step:step;Node* node=&graph->nodes[i];
             if(!node->preparation||node->ready)continue;
@@ -222,7 +223,7 @@ static void collect(Graph* graph,unsigned order)
             node->ready=result==XRT_OWNERSHIP_PREPARE_READY;all=all&&node->ready;
         }
         if(all)break;
-        CHECK(!xrtDeadlineExpired(deadline));xrtThreadYield();
+        CHECK(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();
     }
     proof=snapshot(graph,&scope);discover(graph,proof);xrtOwnershipSnapshotDestroy(proof);
     for(size_t i=0;i<graph->count;++i){Node* node=&graph->nodes[i];CHECK(!node->preparation||node->preparation->Ready(node->ref.Data));node->adapter->Clear(node->ref.Data,graph);}
@@ -242,13 +243,13 @@ static void owned(xnetportbackend backend,unsigned order,bool cancel)
     xnetaddr address;CHECK(xrtNetListenerLocal(graph.listener,&address));xnetdialconfig config;xrtNetDialConfigInit(&config);
     config.Stream.ReadMode=XNET_STREAM_READ_PROBE;config.Timeout=0;
     CHECK(stateHold(graph.state));graph.dial=xrtNetDialOwnedV1(graph.engine,graph.resolver,"owned.invalid",address.Port,&config,NULL,NULL,graph.state,&donePolicy);CHECK(graph.dial);
-    xdeadline deadline=xrtDeadlineAfter(UINT64_C(10000000));
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(10000);
     if(cancel){
-        while(!xrtAtomic32Load(&graph.state->entered,XMEMORY_ACQUIRE)){CHECK(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+        while(!xrtAtomic32Load(&graph.state->entered,XMEMORY_ACQUIRE)){CHECK(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
         xrtownershipscope scope={0};const xrtownershippreparationv1* preparation=NULL;const xrtownershipadapterv1* adapter=NULL;
         xrtownershipref ref=xrtNetDialOwnership(graph.dial);const xnetdialownershipv1* allowed[]={&donePolicy};
         for(;;){freeze(&scope);if(!xrtNetDialOwnershipQuiescenceV1Get()->Busy(graph.dial))break;
-            CHECK(xrtOwnershipScopeEnd(&scope));CHECK(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+            CHECK(xrtOwnershipScopeEnd(&scope));CHECK(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
         size_t references;CHECK(ref.Ops->Count(ref.Data,&references)&&references==3);
         const xrtownershippreparationv1* marker=(const xrtownershippreparationv1*)(uintptr_t)1;preparation=marker;
         CHECK(!xrtNetDialOwnershipAdapterV1(ref,NULL,0,&preparation)&&preparation==marker);++refusals;
@@ -258,23 +259,23 @@ static void owned(xnetportbackend backend,unsigned order,bool cancel)
         CHECK(xrtOwnershipScopeEnd(&scope));
         for(;;){xrtownershipprepareresult result=preparation->Prepare(graph.dial,&graph);CHECK(result!=XRT_OWNERSHIP_PREPARE_FAILED);
             if(result==XRT_OWNERSHIP_PREPARE_READY)break;
-            CHECK(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+            CHECK(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
         CHECK(xrtAtomic32Load(&graph.state->done,XMEMORY_ACQUIRE)&&graph.state->result==XNET_RESULT_CANCELLED);
         /* READY removes the runtime slot; its final local Drop may still be
          * in flight. Re-prove actual Worker quiescence, then verify all three
          * remaining real references rather than assuming epilogue timing. */
         for(;;){freeze(&scope);if(!xrtNetEngineOwnershipQuiescenceV1Get()->Busy(graph.engine))break;
-            CHECK(xrtOwnershipScopeEnd(&scope));CHECK(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+            CHECK(xrtOwnershipScopeEnd(&scope));CHECK(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
         CHECK(ref.Ops->Count(ref.Data,&references)&&references==3); /* user, real pin, still-owned Resolver Data */
         adapter->Restore(graph.dial,&graph);CHECK(xrtOwnershipScopeEnd(&scope));adapter->Drop(graph.dial);
         xrtAtomic32Store(&graph.state->gate,1,XMEMORY_RELEASE);++pending;
     }else{
-        while(!xrtAtomic32Load(&graph.state->done,XMEMORY_ACQUIRE)){CHECK(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+        while(!xrtAtomic32Load(&graph.state->done,XMEMORY_ACQUIRE)){CHECK(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
         CHECK(graph.state->result==XNET_RESULT_OK);
-        while(!(graph.server=xrtNetListenerAccept(graph.listener))){CHECK(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+        while(!(graph.server=xrtNetListenerAccept(graph.listener))){CHECK(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
         xnetstream* client=xrtAtomicPtrLoad(&graph.state->client,XMEMORY_ACQUIRE);CHECK(client);
         CHECK(xrtNetStreamSend(client,"a\0b",3)==XNET_RESULT_OK);
-        size_t offset=0;while(offset<3){xnetbytes* bytes=xrtNetStreamRecv(graph.server,3-offset,xrtDeadlineAfter(UINT64_C(5000000)),NULL);CHECK(bytes);
+        size_t offset=0;while(offset<3){xnetbytes* bytes=xrtNetStreamRecv(graph.server,3-offset,xl6DeadlineAfterMillisecondsV1(5000),NULL);CHECK(bytes);
             xbytesview view=xrtNetBytesView(bytes);CHECK(view.Size&&view.Size<=3-offset&&!memcmp(view.Data,"a\0b"+offset,view.Size));offset+=view.Size;xrtNetBytesDestroy(bytes);}
         ++ordinary;
     }
@@ -305,11 +306,11 @@ static void construction(xnetportbackend backend)
         xnetaddr address;CHECK(xrtNetListenerLocal(graph.listener,&address));
         xnetaddrlist* list=addresses?endpoints(&graph):NULL;CHECK(!addresses||list);
         xnetdialconfig config;xrtNetDialConfigInit(&config);config.Family=XNET_FAMILY_IPV4;config.Stream.ReadMode=XNET_STREAM_READ_PROBE;
-        xrtownershipscope scope={0};xdeadline deadline=xrtDeadlineAfter(UINT64_C(10000000));
+        xrtownershipscope scope={0};XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(10000);
         /* Park the actual Engine before injecting caller-thread constructor
          * failures. No native counts, queues or lifecycle slots are forged. */
         for(;;){freeze(&scope);if(!xrtNetEngineOwnershipQuiescenceV1Get()->Busy(graph.engine))break;
-            CHECK(xrtOwnershipScopeEnd(&scope));CHECK(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+            CHECK(xrtOwnershipScopeEnd(&scope));CHECK(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
         CHECK(xrtMemDebugFailAfter(budget));++budgets;
         graph.future=addresses?xrtNetDialAddressesAsync(graph.engine,list,&config,NULL,NULL):
             xrtNetDialAsync(graph.engine,graph.resolver,"budget.invalid",address.Port,&config,NULL,NULL);

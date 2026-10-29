@@ -5,7 +5,11 @@
 #define XRT_MODULE_MEMORY_DEBUG
 #define XRT_MODULE_FUTURE
 #define XRT_MODULE_THREAD
+#ifndef XRT_MODULE_WAIT
+#define XRT_MODULE_WAIT
+#endif
 #include "lib/xrt/xrt.h"
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_code_owner.h"
 #include "xlir_async_source_sync.h"
 #include <assert.h>
@@ -15,8 +19,8 @@ static atomic_uint acquisitions,returns,watches;
 static atomic_bool fault;
 void xlir_async_test_pause(unsigned long long* started)
 {
-    if(!*started)*started=xrtDeadlineAfter(5000000);
-    assert(!xrtDeadlineExpired((xdeadline)*started));xrtThreadYield();
+    if(!*started)*started=xl6DeadlineAfterMillisecondsV1(5000);
+    assert(!xl6DeadlineExpiredV1((XL6_DeadlineV1)*started));xrtThreadYield();
 }
 static int acquire(void* data) {(void)data;atomic_fetch_add_explicit(&acquisitions,1,memory_order_acq_rel);return 1;}
 static void release(void* data)

@@ -13,11 +13,8 @@ void* xl6ProcessRunV1(void* commandHandle,void* optionsHandle,const xvalue* inpu
     xstrview selected={(const char*)data.Data,data.Size};if(!xl6TextSelectRaw(&selected,size))return NULL;
     XL6_ProcessRunOptions* source=optionsHandle;
     xprocessrunoptions options=source->options;options.Input=(xbytesview){(const unsigned char*)selected.Data,selected.Size};
-    if(source->timeoutMs>=0) {
-        uint64 duration,now=xrtClock();if(!xl6ProcessDuration(source->timeoutMs,&duration))return NULL;
-        if(duration>=UINT64_MAX-now){xrtSetErrorKind(XERR_RANGE);return NULL;}
-        options.Deadline=now+duration;
-    }
+    options.Timeout=source->timeoutMs>=0 ? source->timeoutMs :
+        xl6DeadlineRemainingMillisecondsV1(source->deadline);
     xprocessresult* result=xrtCalloc(1,sizeof(*result));if(!result)return NULL;
     /* Infrastructure failure remains an exception, never a fabricated exit
      * code/result. Nonzero exit, timeout and cancellation are real results. */

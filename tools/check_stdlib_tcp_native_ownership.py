@@ -39,7 +39,7 @@ def main():
     report = dict(Complete=False, InputsUnchanged=False, LogsUnchanged=False, Inputs=inputs,
                   Rows=rows, Products=products, Failures=failures, OrdinaryLiteralLoopback=True,
                   ExternalNetworkTests=False, NetworkSecurityTests=False, ShippingLibraryAcceptance=False,
-                  PinnedDeadlineAbi='uint64 microseconds/xdeadline; no native millisecond ABI import', Scope=__doc__)
+                  PinnedDeadlineAbi='absolute uint64 milliseconds; native int64 milliseconds/For', Scope=__doc__)
 
     def save():
         (out/'results.json').write_text(json.dumps(report, indent=2)+'\n', encoding='utf-8')

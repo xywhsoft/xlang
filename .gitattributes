@@ -52,3 +52,10 @@ release/examples/extlibs/md5_basic.expected.txt text eol=lf
 /release/examples/extlibs/siphash_basic.expected.txt text eol=lf
 /release/examples/extlibs/siphash.expected.txt text eol=lf
 /release/extlibs/siphash/test/reference/* text eol=lf
+
+/lib/xruntime/xruntime_features.h text eol=lf
+/lib/xrt/upstream.json text eol=lf
+/release/include/xl_clock.h text eol=lf
+
+/lib/tcc/tcc_builtin_vfs.h text eol=lf
+/release/include/tcc_builtin_vfs.h text eol=lf

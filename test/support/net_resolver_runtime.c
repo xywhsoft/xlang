@@ -1,5 +1,7 @@
 /* Only offline state/ownership and literal numeric fast paths. No lookup of
  * names, sockets, external DNS/traffic, probes or network-security tests. */
+#include "release/include/xl_clock.h"
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
 #include "src/runtime/xl6_text_value.h"
 #include "src/runtime/xl6_execution_net_resolver.h"
@@ -98,10 +100,10 @@ static void freeze(xrtownershipscope* scope)
 {while(!xrtOwnershipFreezeTryBegin(scope))xrtThreadYield();}
 static void destroy_source(XL6_ExecutionSourceV1** source)
 {
-    assert(xl6ExecutionSourceCloseV1(*source));xdeadline deadline=xrtDeadlineAfter(UINT64_C(5000000));
+    assert(xl6ExecutionSourceCloseV1(*source));XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
     while(*source){XL6_ExecutionRetireResultV1 done=xl6ExecutionSourceDestroyV1(source);assert(done.ok);
         if(done.ready)break;
-        assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+        assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
 }
 static void graph_case(unsigned order,bool restore)
 {
@@ -109,9 +111,9 @@ static void graph_case(unsigned order,bool restore)
     XL6_ExecutionSourceV1* source=xl6ExecutionSourceCreateV1();assert(source);
     xnetresolverconfig config;xrtNetResolverConfigInit(&config);config.Workers=1;
     XL6_ExecutionResourceV1* resource=xl6ExecutionNetResolverCreateV1(source,&config);assert(resource);
-    Graph graph;xrtownershipscope frozen={0};xdeadline deadline=xrtDeadlineAfter(UINT64_C(5000000));
+    Graph graph;xrtownershipscope frozen={0};XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){freeze(&frozen);if(collect(&graph,source))break;
-        assert(xrtOwnershipScopeEnd(&frozen)&&!xrtDeadlineExpired(deadline));xrtThreadYield();}
+        assert(xrtOwnershipScopeEnd(&frozen)&&!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
     /* Native Resolver also owns its prebuilt cancellation error. */
     assert(graph.count==4);int token=0;
     for(size_t i=0;i<graph.count;++i)assert(graph.nodes[i].adapter->Hold(graph.nodes[i].ref.Data)&&graph.nodes[i].adapter->Claim(graph.nodes[i].ref.Data,&token));
@@ -120,7 +122,7 @@ static void graph_case(unsigned order,bool restore)
         if(ready[i])continue;
         xrtownershipprepareresult result=node->prepare?node->prepare->Prepare(node->ref.Data,&token):XRT_OWNERSHIP_PREPARE_READY;
         assert(result!=XRT_OWNERSHIP_PREPARE_FAILED);if(result==XRT_OWNERSHIP_PREPARE_READY){ready[i]=true;--pending;}}
-        assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+        assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
     freeze(&frozen);
     for(size_t i=0;i<graph.count;++i){Node* node=&graph.nodes[i];assert(!node->prepare||node->prepare->Ready(node->ref.Data));
         if(restore)node->adapter->Restore(node->ref.Data,&token);else node->adapter->Clear(node->ref.Data,&token);}
@@ -164,8 +166,8 @@ static void lifecycle(void)
     assert(xl6ErrorScopeBegin(&error));assert(!xl6NetResolverQueryV1(resolver,(xstrview){"127.0.0.1",9},4));checked(&error,XERR_STATE);
     void* copied=xl6NetResolverConfigurationV1(resolver);assert(copied&&xl6NetResolverConfigWorkersV1(copied)==1);xl6NetResolverConfigDestroyV1(copied);
     xl6NetResolverDestroyV1(resolver);xl6NetResolverSnapshotDestroyV1(snapshot);assert(xl6ExecutionSourceCloseV1(source));
-    xdeadline limit=xrtDeadlineAfter(UINT64_C(5000000));
-    while(source){XL6_ExecutionRetireResultV1 done=xl6ExecutionSourceDestroyV1(&source);assert(done.ok);if(done.ready)break;assert(!xrtDeadlineExpired(limit));xrtThreadYield();}
+    XL6_DeadlineV1 limit=xl6DeadlineAfterMillisecondsV1(5000);
+    while(source){XL6_ExecutionRetireResultV1 done=xl6ExecutionSourceDestroyV1(&source);assert(done.ok);if(done.ready)break;assert(!xl6DeadlineExpiredV1(limit));xrtThreadYield();}
     assert(!source);balanced(before);
 }
 #endif

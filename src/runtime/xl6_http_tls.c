@@ -46,7 +46,7 @@ static XL6_TaskOutcome run(xcancel* cancel,void* raw,XL6_TaskResult* output)
 }
 static void* perform(void* receiver,const xhttp1limits* limits,bool response,int64_t millis)
 {
-    xdeadline due;if(!xl6ConcurrentDeadline(millis,&due)||!xl6TlsIoPreWaitV1(due,NULL))return NULL;
+    XL6_DeadlineV1 due;if(!xl6ConcurrentDeadline(millis,&due)||!xl6TlsIoPreWaitV1(due,NULL))return NULL;
     XL6_TlsScopeV1 stream={0};XL6_ExecutionScopeV1 engine={0};xfuture* future=NULL;
     HttpTlsWork* work=NULL;void* result=NULL;
     if(!xl6ExecutionTlsStreamEnterV1(receiver,false,&stream))return NULL;

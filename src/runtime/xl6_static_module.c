@@ -3,11 +3,12 @@
 #define XRT_MODULE_ATOMIC
 #define XRT_MODULE_THREAD
 #define XRT_MODULE_VALUE_GRAPH
-#include "lib/xrt/xrt.h"
+#include "src/common/xl6_xrt.h"
 #include "xl6_static_module.h"
 #include "xl6_code_lease.h"
 #include "xl6_ownership_scope.h"
 #include "src/api/xl_foreign_error.h"
+#include "xl_clock.h"
 #include <stdlib.h>
 
 enum { STATIC_START, STATIC_PREPARE, STATIC_FINALIZE, STATIC_COMMIT,
@@ -380,8 +381,8 @@ XL6_StaticModuleResultV1 xl6StaticModuleDrainV1(XL6_StaticModule* module)
 XL6_StaticModuleResultV1 xl6StaticModuleDrainForV1(XL6_StaticModule* module,long long milliseconds)
 {
     if(!module || milliseconds< -1){xrtSetErrorKind(XERR_ARGUMENT);return (XL6_StaticModuleResultV1){false,false};}
-    uint64 timeout=milliseconds<0 || (uint64)milliseconds>UINT64_MAX/1000u ? UINT64_MAX : (uint64)milliseconds*1000u;
-    xdeadline deadline=xrtDeadlineAfter(timeout);
+    uint64 timeout=milliseconds<0 ? UINT64_MAX : (uint64)milliseconds;
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(timeout);
     for(;;){
         XL6_StaticModuleResultV1 result={false,!staticFailed(module)};
         if(!staticBoundaryEnter(STATIC_BOUNDARY_RETIRE)){
@@ -390,7 +391,7 @@ XL6_StaticModuleResultV1 xl6StaticModuleDrainForV1(XL6_StaticModule* module,long
             bool failed=false;result=staticRetire(module,&failed);
             staticBoundaryLeave();if(result.ready || failed)return result;
         }
-        if(milliseconds>=0 && xrtDeadlineExpired(deadline))return result;
+        if(milliseconds>=0 && xl6DeadlineExpiredV1(deadline))return result;
         xrtThreadYield();
     }
 }

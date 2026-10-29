@@ -5,6 +5,7 @@
 #define XL_STATIC_EMBED
 #endif
 #define XL_ENABLE_EXE_COMPILER 0
+#include "release/include/xl_clock.h"
 #include "src/api/xl_api.c"
 #include "src/api/xl_api_path.c"
 #include "src/common/xl6_console.c"
@@ -71,17 +72,17 @@ static void collect(void)
 { xlApiLock(); xlCollectRetiringModulesUnlocked(); xlApiUnlock(); }
 static void await_cleanups(unsigned count)
 {
-    xdeadline deadline=xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
     while(atomic_load(&cleanups)<count) {
-        assert(!xrtDeadlineExpired(deadline)); xrtThreadYield();
+        assert(!xl6DeadlineExpiredV1(deadline)); xrtThreadYield();
     }
 }
 static void finish(void)
 {
-    xdeadline deadline=xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
     while(!atomic_load(&deleted)) {
         collect();
-        if(xrtDeadlineExpired(deadline)) {
+        if(xl6DeadlineExpiredV1(deadline)) {
             xlApiLock();
             for(XL_Module* item=xl__retiringModules;item;item=item->retirementNext) {
                 if(item!=module) continue;

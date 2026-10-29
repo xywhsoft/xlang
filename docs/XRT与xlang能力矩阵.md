@@ -4,12 +4,12 @@
 
 ## 契约结论
 
-- XRT 核心公共函数：3461。
-- xruntime 产品公共函数：3926，其中扩展自有 465。
-- 低层能力：3926 个函数全部进入 TCC 符号面，可通过显式 `extern "xrt..."` 使用。
+- XRT 核心公共函数：3442。
+- xruntime 产品公共函数：3907，其中扩展自有 465。
+- 低层能力：3907 个函数全部进入 TCC 符号面，可通过显式 `extern "xrt..."` 使用。
 - 头文件内联辅助函数单独记录于 `headerInlineReferences`，不增加外部符号数量；未声明的新引用仍报错。
 - 显式扩展产品的 42 项 API 引用单列于 `externalProductReferences`，核对真实公共声明、提供方和指定使用方，不增加核心 API／符号或延期数量；引用不代表功能验收。
-- 语言内核或标准库已直接使用：2612 个函数。其余 1314 个保留为低层能力，不视为功能丢失。
+- 语言内核或标准库已直接使用：2600 个函数。其余 1307 个保留为低层能力，不视为功能丢失。
 - 已迁出核心但尚待扩展库适配的旧引用：0，仅包含 xhttp=0、xws=0、xregex=0。
 
 逐 API 详情可执行 `python tools/gen_xrt_xlang_matrix.py --report build/reports/xrt_xlang_api_matrix.json` 生成。
@@ -24,23 +24,23 @@
 | xrt | `include/xrt/avl.h` | 43 | 1 | 42 |
 | xrt | `include/xrt/buffer.h` | 23 | 20 | 3 |
 | xrt | `include/xrt/cancel.h` | 20 | 17 | 3 |
-| xrt | `include/xrt/channel.h` | 42 | 23 | 19 |
+| xrt | `include/xrt/channel.h` | 34 | 22 | 12 |
 | xrt | `include/xrt/channel_subscribe.h` | 10 | 9 | 1 |
 | xrt | `include/xrt/charset.h` | 72 | 36 | 36 |
 | xrt | `include/xrt/codec.h` | 20 | 11 | 9 |
 | xrt | `include/xrt/compress.h` | 18 | 18 | 0 |
 | xrt | `include/xrt/console.h` | 22 | 22 | 0 |
 | xrt | `include/xrt/core.h` | 16 | 12 | 4 |
-| xrt | `include/xrt/coroutine.h` | 51 | 0 | 51 |
+| xrt | `include/xrt/coroutine.h` | 47 | 0 | 47 |
 | xrt | `include/xrt/crc32.h` | 2 | 1 | 1 |
-| xrt | `include/xrt/crypto.h` | 122 | 112 | 10 |
+| xrt | `include/xrt/crypto.h` | 123 | 112 | 11 |
 | xrt | `include/xrt/environment.h` | 4 | 4 | 0 |
 | xrt | `include/xrt/error.h` | 36 | 33 | 3 |
 | xrt | `include/xrt/error_format.h` | 1 | 0 | 1 |
-| xrt | `include/xrt/executor.h` | 19 | 14 | 5 |
-| xrt | `include/xrt/file.h` | 100 | 94 | 6 |
+| xrt | `include/xrt/executor.h` | 18 | 13 | 5 |
+| xrt | `include/xrt/file.h` | 101 | 94 | 7 |
 | xrt | `include/xrt/file_async.h` | 34 | 28 | 6 |
-| xrt | `include/xrt/future.h` | 77 | 60 | 17 |
+| xrt | `include/xrt/future.h` | 75 | 59 | 16 |
 | xrt | `include/xrt/future_bridge.h` | 10 | 0 | 10 |
 | xrt | `include/xrt/hash.h` | 9 | 9 | 0 |
 | xrt | `include/xrt/html.h` | 3 | 1 | 2 |
@@ -62,7 +62,7 @@
 | xrt | `include/xrt/logger.h` | 80 | 55 | 25 |
 | xrt | `include/xrt/map.h` | 62 | 11 | 51 |
 | xrt | `include/xrt/math.h` | 20 | 19 | 1 |
-| xrt | `include/xrt/memory.h` | 13 | 5 | 8 |
+| xrt | `include/xrt/memory.h` | 20 | 5 | 15 |
 | xrt | `include/xrt/memory_debug.h` | 11 | 3 | 8 |
 | xrt | `include/xrt/memory_stats.h` | 4 | 4 | 0 |
 | xrt | `include/xrt/net.h` | 211 | 125 | 86 |
@@ -75,7 +75,7 @@
 | xrt | `include/xrt/pattern.h` | 47 | 34 | 13 |
 | xrt | `include/xrt/pem.h` | 7 | 5 | 2 |
 | xrt | `include/xrt/pool.h` | 58 | 0 | 58 |
-| xrt | `include/xrt/process.h` | 40 | 29 | 11 |
+| xrt | `include/xrt/process.h` | 39 | 29 | 10 |
 | xrt | `include/xrt/proxy.h` | 40 | 31 | 9 |
 | xrt | `include/xrt/queue.h` | 46 | 0 | 46 |
 | xrt | `include/xrt/random.h` | 39 | 25 | 14 |
@@ -86,15 +86,15 @@
 | xrt | `include/xrt/spin.h` | 7 | 3 | 4 |
 | xrt | `include/xrt/stack.h` | 74 | 0 | 74 |
 | xrt | `include/xrt/string.h` | 85 | 50 | 35 |
-| xrt | `include/xrt/sync.h` | 48 | 42 | 6 |
-| xrt | `include/xrt/task.h` | 56 | 41 | 15 |
+| xrt | `include/xrt/sync.h` | 45 | 40 | 5 |
+| xrt | `include/xrt/task.h` | 52 | 40 | 12 |
 | xrt | `include/xrt/task_net.h` | 15 | 8 | 7 |
 | xrt | `include/xrt/tcp.h` | 101 | 68 | 33 |
 | xrt | `include/xrt/tcp_server.h` | 26 | 23 | 3 |
 | xrt | `include/xrt/temp.h` | 17 | 1 | 16 |
 | xrt | `include/xrt/template.h` | 32 | 25 | 7 |
-| xrt | `include/xrt/thread.h` | 23 | 18 | 5 |
-| xrt | `include/xrt/time.h` | 58 | 46 | 12 |
+| xrt | `include/xrt/thread.h` | 22 | 18 | 4 |
+| xrt | `include/xrt/time.h` | 57 | 43 | 14 |
 | xrt | `include/xrt/tls.h` | 140 | 9 | 131 |
 | xrt | `include/xrt/tls_client.h` | 13 | 13 | 0 |
 | xrt | `include/xrt/tls_identity.h` | 13 | 5 | 8 |
@@ -106,7 +106,6 @@
 | xrt | `include/xrt/udp.h` | 95 | 72 | 23 |
 | xrt | `include/xrt/value.h` | 159 | 130 | 29 |
 | xrt | `include/xrt/vfs.h` | 31 | 23 | 8 |
-| xrt | `include/xrt/wait.h` | 3 | 3 | 0 |
 | xrt | `include/xrt/websocket.h` | 57 | 34 | 23 |
 | xrt | `include/xrt/websocket_stream.h` | 51 | 35 | 16 |
 | xrt | `include/xrt/websocket_upgrade.h` | 9 | 9 | 0 |

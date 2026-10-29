@@ -1,7 +1,16 @@
 #include "net-engine-modules.h"
 #define XRT_MODULE_MEMORY_DEBUG
 #define XRUNTIME_IMPLEMENTATION
+#ifndef XRT_MODULE_WAIT
+#define XRT_MODULE_WAIT
+#endif
+#include "lib/xruntime/xruntime_features.h"
+#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)
+#define XRT_IMPLEMENTATION
+#endif
+#include "lib/xrt/xrt.h"
 #include "lib/xruntime/xruntime.h"
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_execution_resource_internal.h"
 #include "src/runtime/xl6_execution_net_engine.h"
 #include "src/runtime/xl6_detached_work.h"
@@ -17,26 +26,26 @@ typedef struct Environment {Context* context;Resource* owned;} Environment;
 static const int layout=3;
 static XL6_OwnershipCatalog* catalog;
 static void waitFor(xatomic32* value,uint32 target)
-{xdeadline end=xrtDeadlineAfter(UINT64_C(5000000));while(xrtAtomic32Load(value,XMEMORY_ACQUIRE)<target){assert(!xrtDeadlineExpired(end));xrtThreadYield();}}
+{XL6_DeadlineV1 end=xl6DeadlineAfterMillisecondsV1(5000);while(xrtAtomic32Load(value,XMEMORY_ACQUIRE)<target){assert(!xl6DeadlineExpiredV1(end));xrtThreadYield();}}
 static void freeze(xrtownershipscope* scope)
-{xdeadline end=xrtDeadlineAfter(UINT64_C(5000000));while(!xrtOwnershipFreezeTryBegin(scope)){assert(!xrtDeadlineExpired(end));xrtThreadYield();}}
+{XL6_DeadlineV1 end=xl6DeadlineAfterMillisecondsV1(5000);while(!xrtOwnershipFreezeTryBegin(scope)){assert(!xl6DeadlineExpiredV1(end));xrtThreadYield();}}
 static void balanced(const xmemdebugsnapshot* before)
 {xrtClearError();xmemdebugsnapshot after;xrtMemDebugSnapshot(&after);assert(before->LiveCount==after.LiveCount&&before->LiveBytes==after.LiveBytes&&
     after.AllocCount-before->AllocCount==after.FreeCount-before->FreeCount&&before->InvalidFreeCount==after.InvalidFreeCount&&
     before->DoubleFreeCount==after.DoubleFreeCount&&before->UseAfterFreeCount==after.UseAfterFreeCount);}
 static void destroy(XL6_ExecutionSourceV1** source,bool expected)
 {
-    assert(xl6ExecutionSourceCloseV1(*source));xdeadline end=xrtDeadlineAfter(UINT64_C(5000000));
+    assert(xl6ExecutionSourceCloseV1(*source));XL6_DeadlineV1 end=xl6DeadlineAfterMillisecondsV1(5000);
     while(*source){XL6_ExecutionRetireResultV1 result=xl6ExecutionSourceDestroyV1(source);assert(result.ok==expected);
         if(result.ready)break;
-        assert(!xrtDeadlineExpired(end));xrtClearError();xrtThreadYield();}
+        assert(!xl6DeadlineExpiredV1(end));xrtClearError();xrtThreadYield();}
 }
 static void drain(XL6_ExecutionSourceV1* source)
 {
-    xdeadline end=xrtDeadlineAfter(UINT64_C(5000000));
+    XL6_DeadlineV1 end=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){XL6_ExecutionSourceSnapshotV1 state={.size=sizeof(state)};assert(xl6ExecutionSourceSnapshotV1Get(source,&state));
         if(!state.resources&&!state.active)return;
-        assert(!xrtDeadlineExpired(end));xrtThreadYield();}
+        assert(!xl6DeadlineExpiredV1(end));xrtThreadYield();}
 }
 static bool validate(const void* descriptor,const void* raw,size_t bytes)
 {return descriptor==&layout&&raw&&bytes==sizeof(Environment);}
@@ -156,15 +165,15 @@ static void graph(unsigned order,bool restore,bool timer)
     xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);XL6_ExecutionSourceV1* source=xl6ExecutionSourceCreateV1();Resource* r=create(source);assert(r);
     Context c={0};if(timer){XL6_Closure* callback=make(&c,r);uint64_t id=0;assert(xl6ExecutionNetEngineStartV1(r)&&
         xl6ExecutionNetEngineAfterV1(r,0,60000,callback,&id));xl6ClosureRuntimeV1Get()->Release(callback);}
-    Graph g;xrtownershipscope frozen={0};xdeadline deadline=xrtDeadlineAfter(UINT64_C(5000000));
-    for(;;){freeze(&frozen);if(collect(&g,source))break;assert(xrtOwnershipScopeEnd(&frozen)&&!xrtDeadlineExpired(deadline));xrtThreadYield();}
+    Graph g;xrtownershipscope frozen={0};XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
+    for(;;){freeze(&frozen);if(collect(&g,source))break;assert(xrtOwnershipScopeEnd(&frozen)&&!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
     assert(g.count==(timer?7u:4u));int token=0; /* started Worker owns one actual pool */
     for(size_t i=0;i<g.count;++i)assert(g.nodes[i].adapter->Hold(g.nodes[i].ref.Data)&&g.nodes[i].adapter->Claim(g.nodes[i].ref.Data,&token));
     assert(xrtOwnershipScopeEnd(&frozen));bool ready[LIMIT]={false};size_t pending=g.count;
     while(pending){for(size_t step=0;step<g.count;++step){size_t i=order&1?g.count-1-step:step;Node* n=&g.nodes[i];if(ready[i])continue;
         xrtownershipprepareresult result=n->prepare?n->prepare->Prepare(n->ref.Data,&token):XRT_OWNERSHIP_PREPARE_READY;
         assert(result!=XRT_OWNERSHIP_PREPARE_FAILED);if(result==XRT_OWNERSHIP_PREPARE_READY){ready[i]=true;--pending;}}
-        assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+        assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
     freeze(&frozen);for(size_t i=0;i<g.count;++i)assert(!g.nodes[i].prepare||g.nodes[i].prepare->Ready(g.nodes[i].ref.Data));
     for(size_t i=0;i<g.count;++i){if(restore)g.nodes[i].adapter->Restore(g.nodes[i].ref.Data,&token);else g.nodes[i].adapter->Clear(g.nodes[i].ref.Data,&token);}
     assert(xrtOwnershipScopeEnd(&frozen));

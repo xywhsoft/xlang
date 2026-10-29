@@ -5,7 +5,7 @@ static void* acceptUntil(XL6_ExecutionServicesV1 services,void* receiver,uint64_
 {
     if(requireCancel&&!cancel){xrtSetErrorKind(XERR_ARGUMENT);xl6TcpServerFailedV1();return NULL;}
     XL6_TcpServerScopeV1 scope={0};if(!xl6TcpServerEnterV1(receiver,true,&scope))return NULL;
-    xnetstream* accepted=xrtNetServerAcceptWait(scope.server,due,cancel);void* result=NULL;
+    xnetstream* accepted=xrtNetServerAcceptWait(scope.server,xl6DeadlineRemainingMillisecondsV1(due),cancel);void* result=NULL;
     if(accepted){
         result=xl6ExecutionTcpAdoptV1(services.source,scope.engineOwner,accepted);
         if(!result){xerror* error=xrtTakeError();(void)xrtNetStreamAbort(accepted);xrtClearError();xrtSetErrorTake(error);}
@@ -15,12 +15,12 @@ static void* acceptUntil(XL6_ExecutionServicesV1 services,void* receiver,uint64_
 }
 void* xl6TcpServerAcceptV1(XL6_ExecutionServicesV1 services,void* receiver,int64_t millis)
 {
-    xdeadline due;if(!xl6ConcurrentDeadline(millis,&due)){xl6TcpServerFailedV1();return NULL;}
+    XL6_DeadlineV1 due;if(!xl6ConcurrentDeadline(millis,&due)){xl6TcpServerFailedV1();return NULL;}
     return acceptUntil(services,receiver,due,NULL,false);
 }
 void* xl6TcpServerAcceptCancelV1(XL6_ExecutionServicesV1 services,void* receiver,void* cancel,int64_t millis)
 {
-    xdeadline due;if(!xl6ConcurrentDeadline(millis,&due)){xl6TcpServerFailedV1();return NULL;}
+    XL6_DeadlineV1 due;if(!xl6ConcurrentDeadline(millis,&due)){xl6TcpServerFailedV1();return NULL;}
     return acceptUntil(services,receiver,due,cancel,true);
 }
 void* xl6TcpServerAcceptUntilV1(XL6_ExecutionServicesV1 services,void* receiver,uint64_t due)

@@ -3,7 +3,11 @@
 #ifndef XL6_TASK_CHECKED_MINIMAL
 #define XRT_MODULE_MEMORY_DEBUG
 #endif
+#ifndef XRT_MODULE_WAIT
+#define XRT_MODULE_WAIT
+#endif
 #include "lib/xrt/xrt.h"
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_task_net.h"
 #include "src/runtime/xl6_closure.h"
 #include "src/api/xl_foreign_error.h"
@@ -99,7 +103,7 @@ static void check(unsigned body,unsigned cleanup,bool preCancelled,bool delayed)
     xnetengine* engine=xrtNetEngineCreate(&config);assert(engine&&xrtNetEngineStart(engine));Data* data=create(&hooks);
     xcancel* parent=preCancelled?xrtCancelCreate():NULL;
     if(preCancelled){assert(parent&&xrtCancelRequest(parent));}
-    xfuture* future=xl6TaskNetSubmitOwnedPolicyV1(engine,0,data,parent,xl6PayloadPolicyGet(XL6_FUTURE_PAYLOAD_VALUE),delayed,xrtDeadlineAfter(0));assert(future);
+    xfuture* future=xl6TaskNetSubmitOwnedPolicyV1(engine,0,data,parent,xl6PayloadPolicyGet(XL6_FUTURE_PAYLOAD_VALUE),delayed,xl6DeadlineAfterMillisecondsV1(0);assert(future);
     xrtCancelDestroy(parent);
     assert(xrtFutureWaitFor(future,5000000)==XWAIT_OK);
     assert(xrtNetEngineStop(engine));xfutureresult result={0};assert(xrtFutureResult(future,&result));

@@ -69,7 +69,7 @@ if [[ -n "$TCC_CONFIGURED_TRIPLET" && ! "$TCC_CONFIGURED_TRIPLET" =~ ^[A-Za-z0-9
 fi
 
 printf 'Building Linux XRT object and VFS packer...\n'
-"$CC" -std=c11 -O2 -fPIC -I"$ROOT" \
+"$BUILD_DIR/tcc" -std=c11 -fPIC -I"$ROOT" \
     -c "$ROOT/tools/xrt_single_header_impl.c" \
     -o "$BUILD_DIR/xrt.o"
 
@@ -79,6 +79,9 @@ printf 'Building Linux XRT object and VFS packer...\n'
     "$ROOT/lib/lzma/LzFind.c" \
     "$ROOT/lib/lzma/CpuArch.c" \
     -o "$PACK_TOOL"
+
+"$PYTHON" "$ROOT/tools/precompile_builtin.py" --root "$ROOT" --tcc "$BUILD_DIR/tcc" \
+    --tcc-dist "$TCC_DIST_DIR" --output "$BUILD_DIR/precompiled" --triplet "$TCC_CONFIGURED_TRIPLET"
 
 printf 'Generating Linux embedded TCC resources...\n'
 "$PYTHON" "$ROOT/tools/gen_tcc_vfs_resources.py" \

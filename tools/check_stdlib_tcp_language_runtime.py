@@ -97,7 +97,7 @@ def main():
                 report['Plans'][kind]=selected;save()
         impl=out/'shared-callback-impl.c'
         impl.write_text('#include "callback-modules.h"\n#define XRT_MODULE_MEMORY_DEBUG\n'
-            '#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n',encoding='utf8');product(impl)
+            '#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"\n',encoding='utf8');product(impl)
         for index,cc in enumerate(compilers):
             modes=[('O0',['-O0']),('O2',['-O2'])]
             if args.sanitize and cc.stem!='tcc':modes.append(('instrumented',

@@ -5,7 +5,7 @@ Xid first = id.make()
 string encoded = first.toString()
 assert string.byteLen(encoded) == 32
 assert first.toBytes().length == 24
-assert first.timestampMicros() > 0
+assert first.timestampMillis() > 0
 assert not first.isZero()
 
 Xid parsed = id.parse(encoded)

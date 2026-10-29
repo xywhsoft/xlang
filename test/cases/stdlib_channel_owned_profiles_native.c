@@ -1,6 +1,7 @@
 /* Ordinary in-memory ABI/lifetime test. No provider replacement, external
  * network, fabricated Value shell or synthetic ownership count is used. */
 #define XRUNTIME_MODULE_RUNTIME_TYPE_FUTURE
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_channel_direct_future.h"
 #include "src/runtime/xl6_channel_internal.h"
 #include "src/runtime/xl6_channel_case.h"
@@ -90,8 +91,8 @@ static XL6_ChannelReceiveResultV1* receive(XL6_ContinuationExecutor* executor,XL
 }
 static void idle(XL6_ContinuationExecutor* executor)
 {
-    xdeadline due=xrtDeadlineAfter(10000000);
-    while(!xl6ContinuationExecutorIsIdle(executor)){assert(!xrtDeadlineExpired(due));xrtThreadYield();}
+    XL6_DeadlineV1 due=xl6DeadlineAfterMillisecondsV1(10000);
+    while(!xl6ContinuationExecutorIsIdle(executor)){assert(!xl6DeadlineExpiredV1(due));xrtThreadYield();}
 }
 static void finish(XL6_ContinuationExecutor* executor)
 {idle(executor);xl6ContinuationExecutorClose(executor);assert(xl6ContinuationExecutorDestroy(executor));}
@@ -111,7 +112,7 @@ static bool channelEdge(xrtownershipref ref,void* data)
 static bool resultEdge(xrtownershipref ref,void* data)
 {return ref.Ops && ref.Ops->Trace(ref.Data,edge,data);}
 static void freeze(xrtownershipscope* scope)
-{xdeadline due=xrtDeadlineAfter(10000000);while(!xrtOwnershipFreezeTryBegin(scope)){assert(!xrtDeadlineExpired(due));xrtThreadYield();}}
+{XL6_DeadlineV1 due=xl6DeadlineAfterMillisecondsV1(10000);while(!xrtOwnershipFreezeTryBegin(scope)){assert(!xl6DeadlineExpiredV1(due));xrtThreadYield();}}
 static void futureEdge(const xvalue* q,xfuture* input)
 {
     if(!input)return;

@@ -1,6 +1,6 @@
 #define XRT_MODULE_MUTEX
 #define XRUNTIME_MODULE_RUNTIME_VALUE_TYPE
-#include "lib/xruntime/xruntime.h"
+#include "src/common/xl6_xrt.h"
 #include "src/runtime/xl6_mutex_internal.h"
 static bool nativeUnlock(XL6_SyncOwner* base,unsigned int mode)
 { return mode==1 && xrtMutexUnlock(&((XL6_MutexOwner*)base)->storage); }

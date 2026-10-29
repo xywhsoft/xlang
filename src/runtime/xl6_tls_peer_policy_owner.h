@@ -1,6 +1,8 @@
 #ifndef XL6_TLS_PEER_POLICY_OWNER_H
 #define XL6_TLS_PEER_POLICY_OWNER_H
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
+#include "include/xl_clock.h"
 /* Installed only by a trusted typed producer. One real owner reference is
  * retained, traced and dropped; no borrowed/generated descriptor is kept.
  * Verify is an ADDITIONAL policy after the native chain/name checks succeed.

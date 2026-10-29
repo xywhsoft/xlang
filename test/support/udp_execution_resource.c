@@ -3,7 +3,16 @@
 #include "udp-modules.h"
 #define XRT_MODULE_MEMORY_DEBUG
 #define XRUNTIME_IMPLEMENTATION
+#ifndef XRT_MODULE_WAIT
+#define XRT_MODULE_WAIT
+#endif
+#include "lib/xruntime/xruntime_features.h"
+#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)
+#define XRT_IMPLEMENTATION
+#endif
+#include "lib/xrt/xrt.h"
 #include "lib/xruntime/xruntime.h"
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_execution_udp_internal.h"
 #include "src/runtime/xl6_execution_net_engine.h"
 #include "src/runtime/xl6_ownership_catalog.h"
@@ -34,7 +43,7 @@ static void balanced(const xmemdebugsnapshot* before)
         before->UseAfterFreeCount==after.UseAfterFreeCount&&before->OverflowCount==after.OverflowCount&&before->UnderflowCount==after.UnderflowCount);
 }
 static void freeze(xrtownershipscope* scope)
-{xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));while(!xrtOwnershipFreezeTryBegin(scope)){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}}
+{XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);while(!xrtOwnershipFreezeTryBegin(scope)){CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}}
 static bool admit(xrtownershipref ref,void* raw)
 {
     Graph* graph=raw;const xrtownershipadapterv1* adapter=NULL;const xrtownershippreparationv1* prepare=NULL;
@@ -45,7 +54,7 @@ static bool admit(xrtownershipref ref,void* raw)
 }
 static xrtownershipsnapshot* snapshot(Graph* graph,xrtownershipscope* scope)
 {
-    xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
+    XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){
         freeze(scope);graph->busy=false;
         xrtownershipref anchors[CAPACITY+5]={xl6ExecutionSourceOwnershipV1(graph->source),xl6ExecutionResourceOwnershipV1(graph->engine),
@@ -59,7 +68,7 @@ static xrtownershipsnapshot* snapshot(Graph* graph,xrtownershipscope* scope)
         if(graph->pinned)for(size_t i=0;i<graph->count;++i){anchors[a++]=graph->nodes[i].ref;slots[s++]=graph->nodes[i].ref;}
         xrtownershipsnapshot* proof=NULL;
         if(xrtOwnershipSnapshotCreate(anchors,a,slots,s,admit,graph,&proof))return proof;
-        CHECK(graph->busy);xrtClearError();CHECK(xrtOwnershipScopeEnd(scope));CHECK(!xrtDeadlineExpired(until));xrtThreadYield();
+        CHECK(graph->busy);xrtClearError();CHECK(xrtOwnershipScopeEnd(scope));CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();
     }
 }
 static void discover(Graph* graph,xrtownershipsnapshot* proof)
@@ -76,9 +85,9 @@ static void discover(Graph* graph,xrtownershipsnapshot* proof)
 }
 static void waitOpen(Resource* resource)
 {
-    xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));int state=-1;
+    XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);int state=-1;
     for(;;){CHECK(xl6ExecutionUdpStateV1(resource,&state));if(state==XNET_UDP_OPEN)return;
-        CHECK(state!=XNET_UDP_CLOSED&&!xrtDeadlineExpired(until));xrtThreadYield();}
+        CHECK(state!=XNET_UDP_CLOSED&&!xl6DeadlineExpiredV1(until));xrtThreadYield();}
 }
 static void create(Graph* graph,xnetportbackend backend)
 {
@@ -98,8 +107,8 @@ static void create(Graph* graph,xnetportbackend backend)
 }
 static xnetudppacket* receive(Graph* graph,const void* data,size_t size)
 {
-    xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));xnetudppacket* packet=NULL;
-    while(!(packet=xl6ExecutionUdpReceiveV1(graph->receiver))){CHECK(!xrtGetError()&&!xrtDeadlineExpired(until));xrtThreadYield();}
+    XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);xnetudppacket* packet=NULL;
+    while(!(packet=xl6ExecutionUdpReceiveV1(graph->receiver))){CHECK(!xrtGetError()&&!xl6DeadlineExpiredV1(until));xrtThreadYield();}
     CHECK(xrtNetUdpPacketSize(packet)==size&&(!size||!memcmp(xrtNetUdpPacketData(packet),data,size)));
     CHECK(!xrtNetUdpPacketTruncated(packet));return packet;
 }
@@ -134,15 +143,15 @@ static void roundTrip(Graph* graph)
 static void dropOrdinary(Graph* graph)
 {
     xl6ExecutionResourceReleaseV1(graph->sender);xl6ExecutionResourceReleaseV1(graph->receiver);
-    CHECK(xl6ExecutionSourceCloseV1(graph->source));xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
+    CHECK(xl6ExecutionSourceCloseV1(graph->source));XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){XL6_ExecutionRetireResultV1 result=xl6ExecutionSourceDestroyV1(&graph->source);CHECK(result.ok);
         if(result.ready)break;
-        CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+        CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
 }
 static void collect(Graph* graph,unsigned order)
 {
     xrtownershipscope scope={0};xrtownershipsnapshot* proof=snapshot(graph,&scope);discover(graph,proof);
-    xrtOwnershipSnapshotDestroy(proof);CHECK(xrtOwnershipScopeEnd(&scope));xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
+    xrtOwnershipSnapshotDestroy(proof);CHECK(xrtOwnershipScopeEnd(&scope));XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){bool ready=true;
         for(size_t step=0;step<graph->count;++step){size_t i=order&1?graph->count-1-step:step;Node* n=&graph->nodes[i];
             if(!n->prepare||n->ready)continue;
@@ -150,17 +159,17 @@ static void collect(Graph* graph,unsigned order)
             xrtownershipprepareresult result=n->prepare->Prepare(n->ref.Data,graph);CHECK(result!=XRT_OWNERSHIP_PREPARE_FAILED);
             n->ready=result==XRT_OWNERSHIP_PREPARE_READY;ready=ready&&n->ready;}
         if(ready)break;
-        CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+        CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
     proof=snapshot(graph,&scope);discover(graph,proof);xrtOwnershipSnapshotDestroy(proof);
     for(size_t i=0;i<graph->count;++i){Node* n=&graph->nodes[i];CHECK(!n->prepare||n->prepare->Ready(n->ref.Data));n->adapter->Clear(n->ref.Data,graph);}
-    CHECK(xrtOwnershipScopeEnd(&scope));until=xrtDeadlineAfter(UINT64_C(5000000));
+    CHECK(xrtOwnershipScopeEnd(&scope));until=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){bool done=true;
         for(size_t step=0;step<graph->count;++step){size_t i=order&2?graph->count-1-step:step;Node* n=&graph->nodes[i];if(n->done)continue;
             if(n->finish){xrtownershipfinishresult result=n->finish->Step(n->ref.Data,graph);CHECK(result!=XRT_OWNERSHIP_FINISH_FAILED);n->done=result==XRT_OWNERSHIP_FINISH_READY;}
             else n->done=!n->adapter->Finish||n->adapter->Finish(n->ref.Data,graph);
             done=done&&n->done;}
         if(done)break;
-        CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+        CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
     #ifdef UDP_FUTURE_ACCEPTANCE
     xrtFutureDestroy(graph->pending);graph->pending=NULL;
     #endif

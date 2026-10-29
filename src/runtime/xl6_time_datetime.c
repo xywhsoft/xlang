@@ -11,11 +11,11 @@ void* xl6DateTimeSplitV1(int64_t value, int64_t offset)
         ? xl6DateTimeTake(&fields) : NULL;
 }
 void* xl6DateTimeFieldsV1(int64_t year, int64_t month, int64_t day,
-    int64_t hour, int64_t minute, int64_t second, int64_t microsecond, int64_t offset)
+    int64_t hour, int64_t minute, int64_t second, int64_t millisecond, int64_t offset)
 {
     xdatetime fields;
     xtime value;
-    if (!xl6TimeFields(&fields, year, month, day, hour, minute, second, microsecond, offset) ||
+    if (!xl6TimeFields(&fields, year, month, day, hour, minute, second, millisecond, offset) ||
         !xrtTimeMake(&fields, &value) || !xrtTimeSplitAt(value, fields.Offset, &fields)) return NULL;
     return xl6DateTimeTake(&fields);
 }
@@ -29,7 +29,7 @@ FIELD(Day, Day)
 FIELD(Hour, Hour)
 FIELD(Minute, Minute)
 FIELD(Second, Second)
-FIELD(Microsecond, Microsecond)
+FIELD(Millisecond, Millisecond)
 FIELD(Offset, Offset)
 FIELD(Weekday, Weekday)
 FIELD(DayOfYear, YearDay)

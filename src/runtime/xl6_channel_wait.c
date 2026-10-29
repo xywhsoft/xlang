@@ -5,7 +5,7 @@ static bool waitOne(const xvalue* channel,uint64_t identity,uint64_t element,con
 {
     xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) abort();
     XL6_ChannelOperationV1 operation={0}; XL6_ChannelStatusV1 actual=XL6_CHANNEL_OK_V1;
-    xdeadline deadline=0; bool ok=false;
+    XL6_DeadlineV1 deadline=0; bool ok=false;
     if (xl6ChannelWaitDeadline(options,&deadline) &&
         xl6ChannelOperationOpenV1(channel,identity,element,type,slot,sending,status,&operation)) {
         if (options.mode==XL6_CHANNEL_TRY_V1) {
@@ -19,8 +19,8 @@ static bool waitOne(const xvalue* channel,uint64_t identity,uint64_t element,con
             default: break;
             }
         } else {
-            xwaitresult native=sending ? xrtChannelSendUntil(operation.native,operation.message,deadline) :
-                xrtChannelRecvUntil(operation.native,&operation.received,deadline);
+            xwaitresult native=sending ? xrtChannelSendFor(operation.native,operation.message,xl6DeadlineRemainingMillisecondsV1(deadline)) :
+                xrtChannelRecvFor(operation.native,&operation.received,xl6DeadlineRemainingMillisecondsV1(deadline));
             ok=xl6ChannelWaitStatus(native,sending,options.mode,&actual);
         }
         if (ok && actual==XL6_CHANNEL_OK_V1) ok=xl6ChannelOperationCommitV1(&operation);

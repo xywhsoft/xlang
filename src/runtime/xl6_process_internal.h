@@ -43,9 +43,9 @@ static inline XL6_ProcessCommand* xl6ProcessCommandCheck(void* handle)
 }
 static inline bool xl6ProcessDuration(int64_t milliseconds,uint64* duration)
 {
-    if (milliseconds<0 || (uint64_t)milliseconds>UINT64_MAX/1000u) {
+    if (milliseconds<0) {
         xrtSetErrorKind(XERR_RANGE);return false;
     }
-    *duration=(uint64_t)milliseconds*1000u;return true;
+    *duration=(uint64_t)milliseconds;return true;
 }
 #endif

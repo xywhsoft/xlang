@@ -4,7 +4,7 @@ The fixture's resolver uses the real catalog. Its pinned-node driver also
 honors the catalog's three-state completion descriptors after all ordinary
 Finish calls, rather than treating BUSY as a bool failure. Native operations,
 discovery, references, callbacks and OOM checks are unchanged. Explicit
-test-only ms/us conversion preserves the pinned ABI.
+the current native millisecond ABI is used directly.
 No external endpoints, DNS, malformed traffic or security tests.
 """
 from pathlib import Path
@@ -70,7 +70,7 @@ def main():
             if kind>=4:expected.add(4)
             if kind in [5,7]:expected.add(5)
             if kind in [6,7]:expected.add(6)
-            text='\n'.join(r['Plans'][str(kind)]['modules'])+'\n#include "lib/xruntime/xruntime.h"\n'
+            text='\n'.join(r['Plans'][str(kind)]['modules'])+'\n#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"\n'
             for index,feature in enumerate(features):
                 text+=('#if !defined(' if index in expected else '#if defined(')+'XRT_FEATURE_'+feature+')\n#error unexpected_'+feature+'\n#endif\n'
             text+='int main(void){return 0;}\n';source=out/('selector.'+str(kind)+'.c');write(source,text)
@@ -112,7 +112,7 @@ static bool testCompletion(xrtownershipref ref){
     return false;
 }
 static void testFinishCompletions(const void* token){
-    xdeadline due=xrtDeadlineAfter(UINT64_C(10000000));
+    XL6_DeadlineV1 due=xl6DeadlineAfterMillisecondsV1(UINT64_C(10000));
     for(;;){bool all=true;
         for(size_t i=0;i<testCompletionCount;i++)if(!testCompletions[i].done){
             xrtownershipfinishresult state=testCompletions[i].completion->Step(testCompletions[i].ref.Data,token);
@@ -122,7 +122,7 @@ static void testFinishCompletions(const void* token){
             }else all=false;
         }
         if(all)return;
-        CHECK(!xrtDeadlineExpired(due));xrtThreadYield();
+        CHECK(!xl6DeadlineExpiredV1(due));xrtThreadYield();
     }
 }
 static bool fixtureLoad(XL6_OwnershipCatalog* c){
@@ -162,7 +162,6 @@ static void testRegisterPinnedCompletion(xrtownershipref ref,const xrtownershipa
             body=body.replace('CHECK(xrtMemDebugEnable(true));','CHECK(xrtMemDebugEnable(true));testCatalog=testCreateCatalog();CHECK(testCatalog);',1)
             body=body.replace('CHECK(xrtMemDebugReset());','xl6OwnershipCatalogDestroyV1(testCatalog);testCatalog=NULL;CHECK(xrtMemDebugReset());',1)
             body=body.replace('#include "../fixtures/tls_server.h"','#include "'+(native/'tests/fixtures/tls_server.h').as_posix()+'"')
-            body=body.replace('double due=__xrtWaitAfter(','xdeadline due=__xrtWaitAfter(')
             # All real targets stay pinned through BOTH physical finish phases.
             if fixtureName=='tls_stream_future_ownership':
                 marker='CHECK(s.adapters[i]->Hold(s.refs[i].Data)&&s.adapters[i]->Claim(s.refs[i].Data,&s));'
@@ -195,13 +194,14 @@ static void testRegisterPinnedCompletion(xrtownershipref ref,const xrtownershipa
 '''+('#define XRT_MODULE_NET_PORT_IOCP\n' if os.name=='nt' else '#define XRT_MODULE_NET_PORT_EPOLL\n')+'''
 #define XRUNTIME_IMPLEMENTATION
 #define XRT_IMPLEMENTATION
+#include "lib/xruntime/xruntime_features.h"
+#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)
+#define XRT_IMPLEMENTATION
+#endif
+#include "lib/xrt/xrt.h"
 #include "lib/xruntime/xruntime.h"
+#include "release/include/xl_clock.h"
 #define TLS_DIAL_OWNERSHIP_PINNED
-#define TLS_DIAL_TEST_DURATION(n) ((uint64)(n)*1000u)
-#define TLS_DIAL_TEST_DEADLINE xdeadline
-#define __xrtWaitAfter(n) xrtDeadlineAfter((uint64)(n)*1000u)
-#define __xrtWaitExpired(n) xrtDeadlineExpired(n)
-#define xrtFutureWaitFor(f,n) (xrtFutureWaitFor((f),(uint64)(n)*1000u))
 #include "'''+fixtureName+'''.fixture.c"
 ''')
             generated.append((fixtureName,source,expected))

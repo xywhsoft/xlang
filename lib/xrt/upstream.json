@@ -1,0 +1,38 @@
+{
+  "revision": "2ca1569d8b6ec39c5880b06fa9221aa0e8a84622",
+  "dirty": true,
+  "sourceSha256": "1a70d9724b1a55211e0251cf0ed28a574a821ea77138c8ebc9af9a9169f616b1",
+  "checks": [
+    {
+      "tool": "check_release_maturity.py",
+      "arguments": [],
+      "exitCode": 1,
+      "diagnostic": "release maturity: product=xrt modules=589 implementation=377 tests=377 single=376 docs=377 benchmarks=25 size_profiles=16 developing=0 review=0\nerror: 实现模块缺少 single_tests 闭包覆盖: net_file_future"
+    },
+    {
+      "tool": "amalgamate.py",
+      "arguments": [
+        "--check"
+      ],
+      "exitCode": 0
+    },
+    {
+      "tool": "check_release_maturity.py",
+      "arguments": [
+        "--release",
+        "--manifest",
+        "extlibs/xruntime/config/modules.json"
+      ],
+      "exitCode": 0
+    },
+    {
+      "tool": "amalgamate.py",
+      "arguments": [
+        "--check",
+        "--manifest",
+        "extlibs/xruntime/config/modules.json"
+      ],
+      "exitCode": 0
+    }
+  ]
+}

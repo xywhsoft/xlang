@@ -1,5 +1,6 @@
 /* Actual owned TLS data, fixed certificate and literal loopback only. */
 #define main tlsResourceBaselineMain
+#include "release/include/xl_clock.h"
 #include "tls_execution_resource.c"
 #undef main
 #include "src/runtime/xl6_tls_data_abi.h"
@@ -58,8 +59,8 @@ static void clearFault(xnetworker* worker,void* raw)
 static void faultPost(Fault* f,xnetworker* worker,xnettaskproc proc)
 {
     xrtAtomic32Store(&f->done,0,XMEMORY_RELAXED);CHECK(xrtNetPost(worker,&f->post,proc,f));
-    xdeadline due=xrtDeadlineAfter(UINT64_C(10000000));
-    while(!xrtAtomic32Load(&f->done,XMEMORY_ACQUIRE)){CHECK(!xrtDeadlineExpired(due));xrtThreadYield();}
+    XL6_DeadlineV1 due=xl6DeadlineAfterMillisecondsV1(10000);
+    while(!xrtAtomic32Load(&f->done,XMEMORY_ACQUIRE)){CHECK(!xl6DeadlineExpiredV1(due));xrtThreadYield();}
 }
 static void workerAllocation(xnetportbackend backend)
 {

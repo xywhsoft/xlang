@@ -1,12 +1,22 @@
 /* Independent XRT c09e357a comparison: only include/time ABI adaptation.
  * Ordinary self-created literal loopback; no external or security traffic. */
+#define XRT_MODULE_WAIT
 #ifdef SERVER_PINNED_XRUNTIME
 #define XRUNTIME_IMPLEMENTATION
+#ifndef XRT_MODULE_WAIT
+#define XRT_MODULE_WAIT
+#endif
+#include "lib/xruntime/xruntime_features.h"
+#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)
+#define XRT_IMPLEMENTATION
+#endif
+#include "lib/xrt/xrt.h"
 #include "lib/xruntime/xruntime.h"
 #else
 #define XRT_IMPLEMENTATION
 #include "xrt.h"
 #endif
+#include "release/include/xl_clock.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,10 +25,10 @@ static void testRequire(bool condition,const char* message)
 #define testMemoryDebugDrain(Message) testRequire(xrtMemDebugReset(),(Message))
 static bool testTcpServerEngineDestroy(xnetengine* engine)
 {
-    xdeadline due=xrtDeadlineAfter(UINT64_C(10000000));
+    XL6_DeadlineV1 due=xl6DeadlineAfterMillisecondsV1(10000);
     for(;;){xnetretireresult result=xrtNetEngineTryDestroy(engine);
         if(result==XNET_RETIRE_READY)return true;
-        if(result!=XNET_RETIRE_BUSY||xrtDeadlineExpired(due))return false;
+        if(result!=XNET_RETIRE_BUSY||xl6DeadlineExpiredV1(due))return false;
         xrtThreadYield();}
 }
 #define CHECK(c) do{if(!(c)){fprintf(stderr,"line %u: ",(unsigned)__LINE__);testRequire(false,#c);}}while(0)
@@ -31,14 +41,14 @@ typedef struct Scene {
 static unsigned graphs,refusals,oomBudgets,oomFailures,transfers,dropRaces;
 static void freeze(xrtownershipscope* scope)
 {
-    xdeadline due=xrtDeadlineAfter(UINT64_C(10000000));
-    while(!xrtOwnershipFreezeTryBegin(scope)){CHECK(!xrtDeadlineExpired(due));xrtThreadYield();}
+    XL6_DeadlineV1 due=xl6DeadlineAfterMillisecondsV1(10000);
+    while(!xrtOwnershipFreezeTryBegin(scope)){CHECK(!xl6DeadlineExpiredV1(due));xrtThreadYield();}
 }
 static void idle(xnetengine* engine,xrtownershipscope* scope)
 {
-    xdeadline due=xrtDeadlineAfter(UINT64_C(10000000));
+    XL6_DeadlineV1 due=xl6DeadlineAfterMillisecondsV1(10000);
     for(;;){freeze(scope);if(!xrtNetEngineOwnershipQuiescenceV1Get()->Busy(engine))return;
-        CHECK(xrtOwnershipScopeEnd(scope));CHECK(!xrtDeadlineExpired(due));xrtThreadYield();}
+        CHECK(xrtOwnershipScopeEnd(scope));CHECK(!xl6DeadlineExpiredV1(due));xrtThreadYield();}
 }
 static void balanced(xmemdebugsnapshot before)
 {
@@ -83,7 +93,7 @@ static bool admit(xrtownershipref ref,ptr data)
 {const xrtownershippreparationv1* prep=NULL;return resolve(data,ref,&prep)!=NULL;}
 static xrtownershipsnapshot* snapshot(Scene* scene,xrtownershipscope* scope)
 {
-    xdeadline due=xrtDeadlineAfter(UINT64_C(10000000));
+    XL6_DeadlineV1 due=xl6DeadlineAfterMillisecondsV1(10000);
     for(;;){freeze(scope);scene->busy=false;xrtownershipref roots[MAX_NODES+8],slots[MAX_NODES+8];size_t count=0,owned=0;
         roots[count++]=xrtNetEngineOwnership(scene->engine);roots[count++]=xrtNetServerOwnership(scene->server);
         if(scene->client)roots[count++]=xrtNetStreamOwnership(scene->client);
@@ -96,7 +106,7 @@ static xrtownershipsnapshot* snapshot(Scene* scene,xrtownershipscope* scope)
         if(!scene->busy)fprintf(stderr,"snapshot metadata refused at nodes=%zu, server refs=%d bindings=%u active=%u\n",scene->count,
             (int)__xrtAtomicRefLoad(&scene->server->References),(unsigned)xrtAtomic32Load(&scene->server->Bindings,XMEMORY_ACQUIRE),
             (unsigned)xrtAtomic32Load(&scene->server->OwnershipActive,XMEMORY_ACQUIRE));
-        CHECK(scene->busy);xrtClearError();CHECK(xrtOwnershipScopeEnd(scope));CHECK(!xrtDeadlineExpired(due));xrtThreadYield();}
+        CHECK(scene->busy);xrtClearError();CHECK(xrtOwnershipScopeEnd(scope));CHECK(!xl6DeadlineExpiredV1(due));xrtThreadYield();}
 }
 typedef struct DropRace {Node* node;xatomic32 entered,go;} DropRace;
 static int32 raceDrop(ptr data)
@@ -109,8 +119,8 @@ static void concurrentDrop(Node* node)
 {
     DropRace race={0};race.node=node;xrtAtomic32Init(&race.entered,0);xrtAtomic32Init(&race.go,0);
     xthread* a=xrtThreadCreate(raceDrop,&race,0);xthread* b=xrtThreadCreate(raceDrop,&race,0);CHECK(a&&b);
-    xdeadline due=xrtDeadlineAfter(UINT64_C(10000000));
-    while(xrtAtomic32Load(&race.entered,XMEMORY_ACQUIRE)!=2){CHECK(!xrtDeadlineExpired(due));xrtThreadYield();}
+    XL6_DeadlineV1 due=xl6DeadlineAfterMillisecondsV1(10000);
+    while(xrtAtomic32Load(&race.entered,XMEMORY_ACQUIRE)!=2){CHECK(!xl6DeadlineExpiredV1(due));xrtThreadYield();}
     xrtAtomic32Store(&race.go,1,XMEMORY_RELEASE);node->adapter->Drop(node->ref.Data);
     CHECK(xrtThreadWaitFor(a,UINT64_C(10000000))==XWAIT_OK&&xrtThreadExitCode(a)==0);
     CHECK(xrtThreadWaitFor(b,UINT64_C(10000000))==XWAIT_OK&&xrtThreadExitCode(b)==0);xrtThreadDestroy(a);xrtThreadDestroy(b);++dropRaces;
@@ -158,14 +168,14 @@ static void graphCase(xnetportbackend backend,bool pending)
     CHECK(!xrtNetServerAcceptAsync(scene.server));xrtClearError();
     CHECK(!xrtNetServerAccept(scene.server));xrtClearError();
     CHECK(!xrtNetServerListener(scene.server,0));xrtClearError();
-    xdeadline due=xrtDeadlineAfter(UINT64_C(10000000));
+    XL6_DeadlineV1 due=xl6DeadlineAfterMillisecondsV1(10000);
     for(;;){bool all=true;
         for(size_t step=0;step<scene.count;++step){Node* node=&scene.nodes[(step+1)%scene.count];
             if(!node->prep||node->ready)continue;
             xrtownershipprepareresult result=node->prep->Prepare(node->ref.Data,&scene);
             CHECK(result!=XRT_OWNERSHIP_PREPARE_FAILED);node->ready=result==XRT_OWNERSHIP_PREPARE_READY;all=all&&node->ready;}
         if(all)break;
-        CHECK(!xrtDeadlineExpired(due));xrtThreadYield();}
+        CHECK(!xl6DeadlineExpiredV1(due));xrtThreadYield();}
     if(pending)CHECK(xrtFutureState(scene.future)==XFUTURE_CLOSED);
     freeze(&scope);
     for(size_t i=0;i<scene.count;++i){Node* n=&scene.nodes[i];
@@ -188,7 +198,7 @@ static void closedShell(xnetportbackend backend)
     CHECK(xrtNetServerClose(scene.server));CHECK(testTcpServerEngineDestroy(scene.engine));
     /* Engine allocation is now genuinely freed; keep only the Server shell. */
     #if defined(XRT_FEATURE_NET_TCP_SERVER_SYNC)
-    CHECK(!xrtNetServerAcceptWait(scene.server,xrtDeadlineAfter(0),NULL)&&xrtErrorKind(xrtGetError())==XERR_CLOSED);xrtClearError();
+    CHECK(!xrtNetServerAcceptWait(scene.server,xl6DeadlineAfterMillisecondsV1(0),NULL)&&xrtErrorKind(xrtGetError())==XERR_CLOSED);xrtClearError();
     #endif
     xfuture* future=xrtNetServerAcceptAsync(scene.server);CHECK(future&&xrtFutureState(future)==XFUTURE_CLOSED);
     xrtFutureDestroy(future);xrtNetServerDestroy(scene.server);balanced(before);
@@ -218,8 +228,8 @@ static void closeCancelRaces(xnetportbackend backend)
          * remain. Main's old alias is never used after this creator Drop. */
         xrtNetServerDestroy(scene.server);scene.server=NULL;
         xthread* a=xrtThreadCreate(closeRace,&race,0);xthread* b=xrtThreadCreate(cancelRace,&race,0);CHECK(a&&b);
-        xdeadline due=xrtDeadlineAfter(UINT64_C(10000000));
-        while(xrtAtomic32Load(&race.ready,XMEMORY_ACQUIRE)!=2){CHECK(!xrtDeadlineExpired(due));xrtThreadYield();}
+        XL6_DeadlineV1 due=xl6DeadlineAfterMillisecondsV1(10000);
+        while(xrtAtomic32Load(&race.ready,XMEMORY_ACQUIRE)!=2){CHECK(!xl6DeadlineExpiredV1(due));xrtThreadYield();}
         xrtAtomic32Store(&race.go,1,XMEMORY_RELEASE);
         CHECK(xrtFutureWaitFor(scene.future,UINT64_C(10000000))==XWAIT_OK);
         CHECK(xrtFutureState(scene.future)==XFUTURE_CLOSED||xrtFutureState(scene.future)==XFUTURE_CANCELLED);
@@ -260,8 +270,8 @@ static void opaque(xnetportbackend backend)
 }
 typedef struct Gate {xatomic32 entered,open;} Gate;
 static void gateTask(xnetworker* worker,ptr data)
-{(void)worker;Gate* gate=data;xrtAtomic32Store(&gate->entered,1,XMEMORY_RELEASE);xdeadline due=xrtDeadlineAfter(UINT64_C(10000000));
-    while(!xrtAtomic32Load(&gate->open,XMEMORY_ACQUIRE)){CHECK(!xrtDeadlineExpired(due));xrtThreadYield();}}
+{(void)worker;Gate* gate=data;xrtAtomic32Store(&gate->entered,1,XMEMORY_RELEASE);XL6_DeadlineV1 due=xl6DeadlineAfterMillisecondsV1(10000);
+    while(!xrtAtomic32Load(&gate->open,XMEMORY_ACQUIRE)){CHECK(!xl6DeadlineExpiredV1(due));xrtThreadYield();}}
 static void allocations(xnetportbackend backend)
 {
     xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);xnetengineconfig ec;xrtNetEngineConfigInit(&ec);ec.Backend=backend;ec.Workers=1;ec.NodeCacheBytes=0;
@@ -269,14 +279,14 @@ static void allocations(xnetportbackend backend)
     CHECK(xrtNetAddrLoopback(&config.Listen.Address,XNET_FAMILY_IPV4,0));xnetlistenconfig second=config.Listen;config.Additional=&second;config.AdditionalCount=1;
     bool converged=false;
     for(size_t budget=0;budget<128;++budget){Gate gate;xrtAtomic32Init(&gate.entered,0);xrtAtomic32Init(&gate.open,0);
-        CHECK(xrtNetEnginePost(engine,0,gateTask,&gate));xdeadline due=xrtDeadlineAfter(UINT64_C(10000000));
-        while(!xrtAtomic32Load(&gate.entered,XMEMORY_ACQUIRE)){CHECK(!xrtDeadlineExpired(due));xrtThreadYield();}
+        CHECK(xrtNetEnginePost(engine,0,gateTask,&gate));XL6_DeadlineV1 due=xl6DeadlineAfterMillisecondsV1(10000);
+        while(!xrtAtomic32Load(&gate.entered,XMEMORY_ACQUIRE)){CHECK(!xl6DeadlineExpiredV1(due));xrtThreadYield();}
         CHECK(xrtMemDebugFailAfter(budget));xnetserver* server=xrtNetServerStart(engine,&config,NULL,NULL,NULL);
         bool hit=xrtMemDebugFailTriggered();xrtMemDebugFailClear();++oomBudgets;if(hit)++oomFailures;xrtClearError();
         xrtAtomic32Store(&gate.open,1,XMEMORY_RELEASE);
         if(server){CHECK(!hit&&xrtNetServerClose(server));xrtNetServerDestroy(server);converged=true;}
         xrtownershipscope scope={0};for(;;){idle(engine,&scope);bool clean=!engine->RuntimeOwnerCount&&!xrtAtomic32Load(&engine->LiveObjects,XMEMORY_ACQUIRE);
-            CHECK(xrtOwnershipScopeEnd(&scope));if(clean)break;CHECK(!xrtDeadlineExpired(due));xrtThreadYield();}
+            CHECK(xrtOwnershipScopeEnd(&scope));if(clean)break;CHECK(!xl6DeadlineExpiredV1(due));xrtThreadYield();}
         if(converged)break;
         CHECK(hit);}
     CHECK(converged);CHECK(testTcpServerEngineDestroy(engine));balanced(before);

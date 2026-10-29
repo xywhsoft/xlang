@@ -1,5 +1,6 @@
 /* Preinclude generated C and the canonical async target binding. No sockets,
  * delays or network worker scheduling are needed to expose producer execution. */
+#include "release/include/xl_clock.h"
 #include <assert.h>
 #include <stdio.h>
 typedef struct xthread xthread;
@@ -8,8 +9,8 @@ extern void xrtThreadDestroy(xthread*);
 extern uint64_t xrtThreadCurrentId(void);
 extern bool xrtFutureDone(const xfuture*);
 extern bool xrtPromiseResolve(xpromise*, void*);
-extern uint64_t xrtDeadlineAfter(uint64_t);
-extern bool xrtDeadlineExpired(uint64_t);
+extern uint64_t xl6DeadlineAfterMillisecondsV1(uint64_t);
+extern bool xl6DeadlineExpiredV1(uint64_t);
 extern void xrtThreadYield(void);
 
 static int64_t payload = 41;
@@ -91,9 +92,9 @@ int main(void)
         xrtPromiseDestroy(promise); xrtErrorFree(error); xrtClearError();
     }
     {
-        uint64_t deadline = xrtDeadlineAfter(5000000);
+        uint64_t deadline = xl6DeadlineAfterMillisecondsV1(5000);
         while (!xlir_module_fini_body().ok) {
-            assert(xrtGetError() == NULL && !xrtDeadlineExpired(deadline)); xrtThreadYield();
+            assert(xrtGetError() == NULL && !xl6DeadlineExpiredV1(deadline)); xrtThreadYield();
         }
         assert(xlir_module_initialized == 0 && xlir_continuation_executor == NULL);
     }

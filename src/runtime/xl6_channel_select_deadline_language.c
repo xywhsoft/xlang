@@ -17,10 +17,10 @@ XL6_DEFINE_NATIVE_HANDLE_POLICY(xl6ChannelDeadlineSelectBuilderHandlePolicyV1Get
 static void* prepare(XL6_NativeClassArrayContextV1 context,const xvalue* input,bool relative,int64_t ms,uint64_t until)
 {
     xl6_error_scope scope={0};if(!xl6ErrorScopeBegin(&scope))return NULL;
-    XL6_ChannelCasesSnapshotV1 cases={0};XL6_ChannelFutureFrameV1* frame=NULL;xdeadline due=until;bool ok=false;
+    XL6_ChannelCasesSnapshotV1 cases={0};XL6_ChannelFutureFrameV1* frame=NULL;XL6_DeadlineV1 due=until;bool ok=false;
     /* Budget includes projection/case copies; never restart it after capture. */
     if(relative){if(!xl6DeadlineFromMillisecondsV1(ms,&due))goto done;}
-    else if(due==XRT_DEADLINE_NEVER){xrtSetErrorKind(XERR_ARGUMENT);goto done;}
+    else if(due==XL6_DEADLINE_NEVER){xrtSetErrorKind(XERR_ARGUMENT);goto done;}
     ok=xl6ChannelCasesSnapshotCaptureV1(&cases,context,input);
     if(ok){frame=xl6ChannelSelectDeadlineRuntimeV1Get()->PrepareUntil(cases.values,cases.count,due);
         ok=frame&&xl6ChannelFutureCorePublishBuilderV1(frame);}

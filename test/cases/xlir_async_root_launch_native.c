@@ -3,7 +3,11 @@
 #define XRT_MODULE_SEM
 #define XRT_MODULE_THREAD
 #define XRT_MODULE_VALUE
+#ifndef XRT_MODULE_WAIT
+#define XRT_MODULE_WAIT
+#endif
 #include "lib/xrt/xrt.h"
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_continuation_future.h"
 #include "src/runtime/xl6_continuation_executor.h"
 #include "src/api/xl_foreign_error.h"
@@ -64,8 +68,8 @@ static xfuture* start(Harness* host,XL6_ContinuationExecutor* executor)
 static void finish(XL6_ContinuationExecutor* executor)
 {
     xl6ContinuationExecutorClose(executor);
-    xdeadline limit=xrtDeadlineAfter(10000000);
-    while(!xl6ContinuationExecutorDestroy(executor)){assert(!xrtDeadlineExpired(limit));xrtThreadYield();}
+    XL6_DeadlineV1 limit=xl6DeadlineAfterMillisecondsV1(10000);
+    while(!xl6ContinuationExecutorDestroy(executor)){assert(!xl6DeadlineExpiredV1(limit));xrtThreadYield();}
 }
 static void balanced(const xmemdebugsnapshot* before)
 {

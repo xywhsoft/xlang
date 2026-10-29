@@ -2,24 +2,10 @@
 
 #define XRT_MODULE_CHANNEL_SELECT_CANCEL
 #define XRT_MODULE_CHANNEL_COROUTINE
-#include "lib/xrt/xrt.h"
+#include "src/common/xl6_xrt.h"
 
 #include "xl_channel_bridge.h"
-
-
-
-/* 把语言层毫秒相对时间转换为 XRT 微秒。 */
-static uint64 __xl6ChannelTimeout(long long iMilliseconds)
-{
-	if ( iMilliseconds <= 0 ) {
-		return 0;
-	}
-	if ( (unsigned long long)iMilliseconds >
-		(UINT64_MAX / UINT64_C(1000)) ) {
-		return UINT64_MAX;
-	}
-	return (uint64)iMilliseconds * UINT64_C(1000);
-}
+#include "xl_clock.h"
 
 
 
@@ -141,9 +127,7 @@ XL_API xl6_channel_result xl6ChannelRecvFor(
 	return __xl6ChannelWaitResult(
 		xrtChannelRecvFor(
 			(xchannel*)pChannel,
-			pItem,
-			__xl6ChannelTimeout(iTimeoutMs)
-		)
+			pItem,iTimeoutMs)
 	);
 }
 

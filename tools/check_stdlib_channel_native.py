@@ -112,7 +112,7 @@ def main():
         modules=plan['NativeModules']+['XRT_MODULE_MEMORY_DEBUG','XRT_MODULE_THREAD']
         assert not any(n in ('XRT_MODULE_ALL','XRUNTIME_MODULE_ALL') for n in modules)
         native.write_text(''.join('#define '+n+'\n' for n in sorted(set(modules)))+
-            '#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8'); product(native)
+            '#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8'); product(native)
         instrumentation=['-fsanitize=address,undefined','-fno-omit-frame-pointer','-fno-pie','-no-pie'] if a.sanitize else []
         for opt in ('O0','O2'):
             selected=[]

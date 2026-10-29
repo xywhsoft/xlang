@@ -1,4 +1,5 @@
 #define main existingServerResourceMain
+#include "release/include/xl_clock.h"
 #include "tcp_server_execution_resource.c"
 #undef main
 #define XL6_TEXT_API
@@ -8,7 +9,7 @@
 #include "src/runtime/xl6_native_handle.h"
 static void graphProof(Graph* graph,xvalue* buffer,xvalue* input,void* bytes)
 {
-    xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
+    XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){
         xrtownershipscope frozen={0};freeze(&frozen);graph->busy=false;
         xrtownershipref anchors[7]={{0}},slots[6]={{0}};
@@ -24,7 +25,7 @@ static void graphProof(Graph* graph,xvalue* buffer,xvalue* input,void* bytes)
             }
             CHECK(found);xrtOwnershipSnapshotDestroy(proof);CHECK(xrtOwnershipScopeEnd(&frozen));return;
         }
-        CHECK(graph->busy);xrtClearError();CHECK(xrtOwnershipScopeEnd(&frozen)&&!xrtDeadlineExpired(until));xrtThreadYield();
+        CHECK(graph->busy);xrtClearError();CHECK(xrtOwnershipScopeEnd(&frozen)&&!xl6DeadlineExpiredV1(until));xrtThreadYield();
     }
 }
 static void checkBytes(void* buffer,const void* expected,size_t size)

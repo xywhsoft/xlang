@@ -2,7 +2,11 @@
 #define XRT_MODULE_THREAD
 #define XRT_MODULE_TIME
 #define XRT_MODULE_FUTURE
+#ifndef XRT_MODULE_WAIT
+#define XRT_MODULE_WAIT
+#endif
 #include "lib/xrt/xrt.h"
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_continuation_executor.h"
 #include "src/runtime/xl6_continuation_future.h"
 #include <assert.h>
@@ -86,9 +90,9 @@ static void chain_release(void* data)
 
 static void await_value(atomic_uint* value, unsigned wanted)
 {
-    xdeadline deadline = xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 deadline = xl6DeadlineAfterMillisecondsV1(5000);
     while (atomic_load_explicit(value, memory_order_acquire) != wanted) {
-        assert(!xrtDeadlineExpired(deadline)); xrtThreadYield();
+        assert(!xl6DeadlineExpiredV1(deadline)); xrtThreadYield();
     }
 }
 typedef struct concurrent_seen {
@@ -213,7 +217,7 @@ int main(void)
     for (order = 0; order < 3; ++order)
     for (mode = 0; mode < 4; ++mode) {
         xmemdebugsnapshot before; XL6_ContinuationExecutor* executor; concurrent_frame* first;
-        concurrent_seen seen = {0}; xdeadline deadline; xpromise* promise;
+        concurrent_seen seen = {0}; XL6_DeadlineV1 deadline; xpromise* promise;
         seen.mode = mode;
         xrtMemDebugSnapshot(&before);
         promise = xrtPromiseCreate(&seen.input, NULL); assert(promise && seen.input);
@@ -234,9 +238,9 @@ int main(void)
             complete_future(promise, mode);
         }
         await_value(&seen.child_done, 1);
-        deadline = xrtDeadlineAfter(5000000);
+        deadline = xl6DeadlineAfterMillisecondsV1(5000);
         while (!xl6ContinuationExecutorDestroy(executor)) {
-            assert(!xrtDeadlineExpired(deadline)); xrtThreadYield();
+            assert(!xl6DeadlineExpiredV1(deadline)); xrtThreadYield();
         }
         assert(seen.child_runs == 1 && seen.child_releases == 1);
         xrtFutureDestroy(seen.input); xrtPromiseDestroy(promise); balanced(&before);

@@ -1,3 +1,4 @@
+#include "release/include/xl_clock.h"
 #include <assert.h>
 #include <stddef.h>
 extern void* callback_boundary_dispatch_malloc(size_t);
@@ -10,18 +11,18 @@ extern void* callback_boundary_dispatch_malloc(size_t);
 int callback_boundary_init(void) { return xlir_module_init(); }
 void callback_boundary_wait_idle(void)
 {
-    xdeadline deadline=xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
     while(!xl6ContinuationExecutorIsIdle(xlir_continuation_executor)){
-        assert(!xrtGetError()&&!xrtDeadlineExpired(deadline));xrtThreadYield();
+        assert(!xrtGetError()&&!xl6DeadlineExpiredV1(deadline));xrtThreadYield();
     }
 }
 void callback_boundary_fini(void)
 {
-    xdeadline deadline=xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){
         XL6_ModulePrepareResult result=xlir_module_prepare_resources(true,false);
         if(result==XL6_MODULE_PREPARE_READY){xlir_module_fini();return;}
-        assert(result==XL6_MODULE_PREPARE_BUSY&&!xrtGetError()&&!xrtDeadlineExpired(deadline));
+        assert(result==XL6_MODULE_PREPARE_BUSY&&!xrtGetError()&&!xl6DeadlineExpiredV1(deadline));
         xrtThreadYield();
     }
 }

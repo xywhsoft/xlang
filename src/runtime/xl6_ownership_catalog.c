@@ -1,7 +1,7 @@
 #define XRT_MODULE_MEMORY
 #define XRT_MODULE_VALUE_GRAPH
 #define XRT_MODULE_VALUE_CONTAINER
-#include "lib/xrt/xrt.h"
+#include "src/common/xl6_xrt.h"
 #include "xl6_ownership_catalog.h"
 #include "xl6_native_handle.h"
 #include "src/api/xl_foreign_error.h"

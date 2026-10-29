@@ -1,5 +1,7 @@
 /* Independent native capability: never pulled in by default async execution. */
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
+#include "include/xl_clock.h"
 #include "xl6_ownership_domain_impl.h"
 
 static bool load(XL6_OwnershipCatalog* catalog)

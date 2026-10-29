@@ -1,3 +1,4 @@
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_process_internal.h"
 #include <assert.h>
 #include <stdio.h>
@@ -126,7 +127,7 @@ int main(int argc,char** argv)
     assert(result && xl6ProcessResultCancelledV1(result) && !xl6ProcessResultSuccessV1(result));
     assert(xrtThreadWait(worker)==XWAIT_OK);xrtThreadDestroy(worker);
     xl6ProcessResultDestroyV1(result);xl6ProcessRunOptionsDestroyV1(runOptions);
-    runOptions=xl6ProcessRunOptionsCreateV1(-1,1024,1024,0,10,xrtClock()+10000);assert(runOptions);
+    runOptions=xl6ProcessRunOptionsCreateV1(-1,1024,1024,0,10,xl6MonotonicMillisecondsV1()+10000);assert(runOptions);
     result=xl6ProcessRunV1(runCommand,runOptions,input,-1);assert(result && xl6ProcessResultTimedOutV1(result));
     xl6ProcessResultDestroyV1(result);xl6ProcessRunOptionsDestroyV1(runOptions);xl6ProcessCommandDestroyV1(runCommand);
     xrtValueRelease(input);xrtClearError();balanced(&before);

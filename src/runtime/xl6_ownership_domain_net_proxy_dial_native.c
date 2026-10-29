@@ -1,4 +1,6 @@
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
+#include "include/xl_clock.h"
 #include "xl6_ownership_domain_impl.h"
 /* Only exact resident policies. Inner TCP Dial and protocol event bindings are
  * separate real owners, not opaque leaves hidden by the outer Future. */

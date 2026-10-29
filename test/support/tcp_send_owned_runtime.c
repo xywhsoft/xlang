@@ -1,5 +1,6 @@
 /* Real source/native resources and their current graph; normal loopback only. */
 #define main existingServerResourceMain
+#include "release/include/xl_clock.h"
 #include "tcp_server_execution_resource.c"
 #undef main
 #define XL6_TEXT_API
@@ -27,7 +28,7 @@ static void readExact(Graph* graph,const uint8* expected,size_t count)
 }
 static void completeGraph(Graph* graph,xvalue* payload)
 {
-    xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
+    XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){
         xrtownershipscope frozen={0};freeze(&frozen);graph->busy=false;
         xrtownershipref anchors[6]={{0}},slots[5]={{0}};
@@ -44,7 +45,7 @@ static void completeGraph(Graph* graph,xvalue* payload)
             }
             CHECK(seen);xrtOwnershipSnapshotDestroy(proof);CHECK(xrtOwnershipScopeEnd(&frozen));return;
         }
-        CHECK(graph->busy);xrtClearError();CHECK(xrtOwnershipScopeEnd(&frozen)&&!xrtDeadlineExpired(until));xrtThreadYield();
+        CHECK(graph->busy);xrtClearError();CHECK(xrtOwnershipScopeEnd(&frozen)&&!xl6DeadlineExpiredV1(until));xrtThreadYield();
     }
 }
 int main(int argc,char** argv)

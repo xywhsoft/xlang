@@ -54,7 +54,7 @@ static inline bool allocated(bool ok)
     return ok;
 }
 
-static inline bool index(const ArrayView* view, int64_t value, bool insertion)
+static inline bool arrayIndex(const ArrayView* view, int64_t value, bool insertion)
 {
     if (!extent(value)) return false;
     size_t size = count(view), at = (size_t)value;

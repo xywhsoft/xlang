@@ -4,7 +4,16 @@
 #define XRT_MODULE_VALUE_CONTAINER
 #define XRT_MODULE_STRING
 #define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
+#ifndef XRT_MODULE_WAIT
+#define XRT_MODULE_WAIT
+#endif
+#include "lib/xruntime/xruntime_features.h"
+#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)
+#define XRT_IMPLEMENTATION
+#endif
+#include "lib/xrt/xrt.h"
 #include "lib/xruntime/xruntime.h"
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_closure.h"
 #include "src/runtime/xl6_cell.h"
 #include "src/runtime/xl6_ownership_plan.h"
@@ -224,8 +233,8 @@ static bool active_entry(void* data,const xrtcallframe* frame,xrtcallresult* res
     Active* a=data;(void)frame;(void)result;xrtAtomic32Store(&a->entered,1,XMEMORY_RELEASE);
     /* The pinned snapshot uses microseconds. Keep a five-second handshake
      * budget rather than a scheduler-sensitive five-millisecond deadline. */
-    xdeadline deadline=xrtDeadlineAfter(5*XRT_TIME_SECOND);
-    while(!xrtAtomic32Load(&a->leave,XMEMORY_ACQUIRE)){assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5*XRT_TIME_SECOND);
+    while(!xrtAtomic32Load(&a->leave,XMEMORY_ACQUIRE)){assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
     return true;
 }
 static void active_drop(void* data) { (void)data; }
@@ -241,9 +250,9 @@ static void active_native(void)
 {
     xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);Active a={0};xrtownershipscope freeze={0};XL6_OwnershipPlan* plan=NULL;
     a.callable=xrtCallableCreate(NULL,active_entry,&a,active_drop);assert(a.callable && xrtCallableOwnershipBindV1(a.callable,&active_policy));
-    xthread* thread=xrtThreadCreate(worker,&a,0);assert(thread);xdeadline deadline=xrtDeadlineAfter(5*XRT_TIME_SECOND);
-    while(!xrtAtomic32Load(&a.entered,XMEMORY_ACQUIRE)){assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
-    while(!xrtOwnershipFreezeTryBegin(&freeze)){assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+    xthread* thread=xrtThreadCreate(worker,&a,0);assert(thread);XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5*XRT_TIME_SECOND);
+    while(!xrtAtomic32Load(&a.entered,XMEMORY_ACQUIRE)){assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
+    while(!xrtOwnershipFreezeTryBegin(&freeze)){assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
     assert(!xrtCallableOwnershipAdapterV1(xrtCallableOwnership(a.callable),&active_policy));
     assert(xrtOwnershipScopeEnd(&freeze));
     assert(xl6OwnershipPlanTryCreate(xrtCallableOwnership(a.callable),active_resolve,NULL,&plan)==XL6_OWNERSHIP_PLAN_ERROR && !plan && !legacy_traced);xrtClearError();

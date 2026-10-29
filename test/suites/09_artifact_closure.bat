@@ -83,6 +83,8 @@ build\test\trim_stdlib_tcc_embed.exe > build\test\trim_stdlib_tcc_embed.out
 if errorlevel 1 exit /b 1
 findstr /C:"stdlib tcc embed ok" build\test\trim_stdlib_tcc_embed.out >nul
 if errorlevel 1 exit /b 1
+build\test\stdlib_tcc_compile.exe
+if errorlevel 1 exit /b 1
 
 release\xl.exe build release\examples\script_embed_xlang.xl -o build\test\trim_script_embed_xlang.exe
 if errorlevel 1 exit /b 1

@@ -4,6 +4,7 @@
  * real native process before managed boxing can fail. No provider implementation
  * or synthetic process, stream, allocator, Future or completion is installed.
  * The matching full snapshot supplies the PRIVATE waiter layout. Keep loaded. */
+#include "release/include/xl_clock.h"
 #include "test/support/process_product_observer.h"
 #include <assert.h>
 #include <stdio.h>
@@ -49,8 +50,8 @@ size_t testLanguageProcessRetireObserved(void)
         /* Failed language assembly can otherwise leave the real echo child
          * waiting for EOF because the TEST owns an additional user reference. */
         assert(xrtProcessClose(process,XPROCESS_STDIN));
-        assert(xrtProcessWaitUntil(process,xrtDeadlineAfter(UINT64_C(5000000)))==XWAIT_OK);
-        assert(xrtThreadWaitUntil(process->Waiter,xrtDeadlineAfter(UINT64_C(5000000)))==XWAIT_OK);
+        assert(xrtProcessWaitFor(process,xl6DeadlineRemainingMillisecondsV1(xl6DeadlineAfterMillisecondsV1(5000)))==XWAIT_OK);
+        assert(xrtThreadWaitFor(process->Waiter,xl6DeadlineRemainingMillisecondsV1(xl6DeadlineAfterMillisecondsV1(5000)))==XWAIT_OK);
         xrtProcessDestroy(process);observed[i]=NULL;
     }
     observedCount=0;return count;

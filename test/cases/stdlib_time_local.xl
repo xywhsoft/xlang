@@ -1,7 +1,7 @@
 extern "xl6TimeFromLocalV1" func invalidFold(DateTime value, int fold) as time
-time instant = time.fromDateTime(2024, 6, 14, 12, 30, 59, 123456)
+time instant = time.fromDateTime(2024, 6, 14, 12, 30, 59, 123)
 auto local = time.local(instant)
-assert local.toTime() == instant and local.microsecond == 123456
+assert local.toTime() == instant and local.millisecond == 123
 assert local.offset == time.timezoneOffset(instant)
 assert local.isDST >= -1 and local.isDST <= 1
 auto legacy = time.utcToLocal(instant)

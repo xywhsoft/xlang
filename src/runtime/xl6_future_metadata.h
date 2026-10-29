@@ -1,7 +1,9 @@
 #ifndef XL6_FUTURE_METADATA_H
 #define XL6_FUTURE_METADATA_H
 #if !defined(XRT_SINGLE_HEADER) && !defined(XRUNTIME_DECLARATIONS_H)
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
+#include "include/xl_clock.h"
 #endif
 #if defined(_WIN32) && defined(XL_BUILD_DLL)
 #define XL6_FUTURE_METADATA_API __declspec(dllexport)

@@ -1,3 +1,4 @@
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_wait_queue.h"
 #include "src/runtime/xl6_array_admission.h"
 #include "src/runtime/xl6_ownership_plan.h"
@@ -149,16 +150,16 @@ static void threads(void)
     }
 }
 #ifndef XL6_QUEUE_PRODUCT_TEST
-static bool failSignal,scriptedWait,failMutexUnit,pauseWait;static unsigned wakes,deadlineCalls;static xdeadline firstDeadline;
+static bool failSignal,scriptedWait,failMutexUnit,pauseWait;static unsigned wakes,deadlineCalls;static XL6_DeadlineV1 firstDeadline;
 static xatomic32 waitEntered,waitLeave;
 static xvalue* scriptQueue;
 bool xl6WaitProbeMutexUnit(xmutex* mutex)
 {return failMutexUnit?false:xrtMutexUnit(mutex);}
 bool xl6WaitProbeSignal(const xvalue* cond,uint64_t identity)
 {bool ok=xl6CondSignalV1(cond,identity);return failSignal?false:ok;}
-xdeadline xl6WaitProbeDeadlineAfter(uint64 timeout)
-{xdeadline result=xrtDeadlineAfter(timeout);return scriptedWait?result+deadlineCalls++:result;}
-xwaitresult xl6WaitProbeUntil(const xvalue* cond,uint64_t condId,const xvalue* mutex,uint64_t mutexId,xdeadline deadline)
+XL6_DeadlineV1 xl6WaitProbeDeadlineAfter(uint64 timeout)
+{XL6_DeadlineV1 result=xl6DeadlineAfterMillisecondsV1(timeout);return scriptedWait?result+deadlineCalls++:result;}
+xwaitresult xl6WaitProbeUntil(const xvalue* cond,uint64_t condId,const xvalue* mutex,uint64_t mutexId,XL6_DeadlineV1 deadline)
 {
     if(pauseWait) {
         xrtAtomic32Store(&waitEntered,1,XMEMORY_RELEASE);

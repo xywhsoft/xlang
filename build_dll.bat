@@ -347,6 +347,9 @@ if "%XL6_REUSE_VFS_RESOURCES%"=="1" (
         exit /b 1
     )
 
+    python tools\precompile_builtin.py --root "%XL6_ROOT%" --tcc "%XL6_TCC%" --tcc-dist "%XL6_EMBED_TCC_DIST_X64%" --output "%XL6_BUILD_TMP%\precompiled"
+    if errorlevel 1 exit /b 1
+    if not errorlevel 0 exit /b 1
     echo Generating runtime embedded TCC VFS resources...
     powershell -NoProfile -ExecutionPolicy Bypass -File tools\gen_tcc_vfs_resources.ps1 -Root "%XL6_ROOT%" -Manifest tools\tcc_vfs_manifest_win64_runtime.txt -Output "%XL6_BUILD_TMP%\tcc_builtin_resources_runtime.c" -TccDist "%XL6_EMBED_TCC_DIST_X64%" -XrtObj "%XL6_XRT_OBJ%" -PackTool "%XL6_BUILD_TMP%\tcc_vfs_lzma_pack.exe"
     if errorlevel 1 (
