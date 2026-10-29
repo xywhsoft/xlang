@@ -1,5 +1,34 @@
 # cuckoo
 
+2026-10-29：**整包发布验收重新记为主线阻断 M2**。新增合法模块级
+`CuckooFilter` 自然退役正例后，当前固定 Windows 发布物的 JIT 和
+独立程序构建均退出 0，但 EXE 打印 `cuckoo lifetime: PASS` 后报
+`RuntimeError: operation is not valid in the current state`、退出 1。
+仅查询 `valid`、不操作桶且不打印的全局最小例同样失败；相同操作
+置于局部的对照程序退出 0。这不是用近似查询的假阳性解释退出错误，
+也不能靠移动示例、主动销毁对象或吞掉错误签收。
+
+默认门禁新增八条普通独立程序，再分别检查两条全局合法正例；失败
+仍必须非零，不改成“预期失败”。严格 C 高装载/回滚与分配、八条实际
+生成原型、原有私有方法访问负例、C/XLang 黄金输出及局部对照也均
+保留。Linux 同样执行此边界并使用 ASan/UBSan 验原生代码。新门禁
+有子进程超时、全部包/运行库/编译器/公开头/范例的前后输入指纹，
+Windows JSON 与 Linux `.report.txt` 保存命令、原始输出和真实状态，
+失败保留现场、成功只清理本次目录。测试 XRT 仅启用 HASH64 和内存
+诊断，产品算法、API、ABI、键的二进制语义及近似查询合同均未改。
+修复责任与最小复现见 `dev/extlib_blockers/global_native_class_aot_fini.md`。
+
+可从 `demo6` 复验：
+
+```powershell
+release/xl.exe run release/extlibs/cuckoo/test/global_lifetime.xl
+release/xl.exe build release/extlibs/cuckoo/test/global_lifetime.xl -o build/test/cuckoo_global.exe
+build/test/cuckoo_global.exe
+```
+
+以下 2026-10-26 的全绿只覆盖当时的局部对象路径，没有覆盖新增顶层
+正例，不再代表当前整包验收。`-SkipAot` 只是日常快测，不能关闭 M2。
+
 2026-10-26 重建 Windows/Linux x64 发布物后，两平台默认包门禁
 均退出 0：严格 C、Linux ASan/UBSan、同双桶碰撞与高装载、
 分配故障/失败回滚、私有原生入口负例、C/XLang 固定输出，

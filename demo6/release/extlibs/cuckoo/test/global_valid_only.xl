@@ -1,0 +1,9 @@
+import cuckoo
+
+// 最小全局正例不读写桶、不打印；用于区分算法/输出与对象退役边界。
+cuckoo.CuckooFilter filter = cuckoo.create(16)
+
+func main(...) as int
+    assert filter.valid
+    return 0
+end
