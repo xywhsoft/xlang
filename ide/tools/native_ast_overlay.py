@@ -73,4 +73,3 @@ def derive(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
         runtimeSource=str(runtime), runtimeSourceSha256=sha(runtime), auditedSeams=6,
         astPackageFields=profile['packageFields'],
         change='private storage owner plus within-forest bare fact-type leaf edge references;mechanically derived counted source-binding helper with complete generic fallback;original source functions unchanged;all actual native consumers closure-verified')
-
