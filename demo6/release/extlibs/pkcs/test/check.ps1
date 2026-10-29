@@ -10,41 +10,49 @@ $work = Join-Path $workRoot ('pkcs_guard_' + [guid]::NewGuid().ToString('N'))
 [IO.Directory]::CreateDirectory($work) | Out-Null
 $flags = @('-std=c11', '-O2', '-Wall', '-Wextra', '-Werror', '-Ilib/xrt')
 $links = @('-lWs2_32', '-lAdvapi32', '-lIphlpapi', '-lm')
-$inputs = @(Get-ChildItem (Join-Path $root 'release/extlibs/pkcs') -Recurse -File |
-    ForEach-Object FullName)
-$inputs += @('release/xl.exe', 'release/xl.dll', 'release/xlc.dll', 'lib/xrt/xrt.h',
-    'lib/xruntime/xruntime.h', 'release/include/xrt_decl.h', 'release/include/xruntime_decl.h',
-    'release/include/xl_extlib_abi.h', 'tools/run_extlib_c.ps1',
-    'test/cases/extlib_pkcs.xl', 'release/examples/extlibs/pkcs.xl') |
-    ForEach-Object { Join-Path $root $_ }
-$hashes = @{}
+$powershell = Join-Path $env:WINDIR 'System32/WindowsPowerShell/v1.0/powershell.exe'
+. (Join-Path $root 'tools/extlib_smoke_process.ps1')
+$checks = [Collections.Generic.List[object]]::new()
+$environment = @{XLANG_PACKAGE_PATH = Join-Path $root 'release/extlibs'}
+$utf8 = [Text.UTF8Encoding]::new($false)
+function InputPaths {
+    Get-ChildItem -LiteralPath (Join-Path $root 'release/extlibs/pkcs') -Recurse -File | ForEach-Object FullName
+    Get-ChildItem -LiteralPath (Join-Path $root 'release/include') -Recurse -File | ForEach-Object FullName
+    foreach ($item in @('release/xl.exe','release/xl.dll','release/xlc.dll','lib/xrt/xrt.h',
+        'lib/xruntime/xruntime.h','tools/run_extlib_c.ps1','tools/extlib_smoke_process.ps1',
+        'tools/xlir_native_process.ps1','test/cases/extlib_pkcs.xl','release/examples/extlibs/pkcs.xl')) {
+        Join-Path $root $item
+    }
+    $gcc
+    $powershell
+}
+$inputs = @(InputPaths | Sort-Object -Unique)
+$hashes = [ordered]@{}
 foreach ($path in $inputs) { $hashes[$path] = (Get-FileHash -LiteralPath $path).Hash }
 $passed = $false
+$failure = ''
 $ownedSymbols = @('get_content', 'encode_int', 'encode_oid', 'decode_oid',
     'wrap_sequence', 'wrap_set', 'encode_octet', 'encode_null', 'encode_bitstring',
     'concat', 'tag_name')
 
 function Run([string]$name, [string]$program, [string[]]$arguments) {
-    $prior = $ErrorActionPreference
-    $ErrorActionPreference = 'Continue'
-    try {
-        $output = @(& $program @arguments 2>&1 | ForEach-Object { $_.ToString() })
-        $code = $LASTEXITCODE
-    } finally {
-        $ErrorActionPreference = $prior
+    if ([IO.Path]::GetExtension($program) -eq '.ps1') {
+        $arguments = @('-NoProfile','-ExecutionPolicy','Bypass','-File',$program) + $arguments
+        $program = $powershell
     }
-    [IO.File]::AppendAllText((Join-Path $work 'commands.log'),
-        "${name}: $program $($arguments -join ' ')`nexit=$code`n$($output -join "`n")`n")
-    if ($code -ne 0) {
-        throw "${name}: exit $code`n$($output -join "`n")"
+    $result = Invoke-ExtlibSmokeProcess $program $arguments $root 120 $environment
+    $checks.Add([ordered]@{name=$name;program=$program;arguments=$arguments;result=$result})
+    if ($result.status -ne 'pass') {
+        throw "${name}: $($result.status) exit=$($result.exitCode)`n$($result.stderr)`n$($result.stdout)"
     }
     Write-Host "[pkcs] ${name}: PASS"
-    return ($output -join "`n").Replace("`r", '').TrimEnd("`n")
+    return $result.stdout.Replace("`r`n", "`n").TrimEnd("`n")
 }
 
 Push-Location $root
 try {
     $hashes | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $work 'inputs.before.json')
+    $null = Run 'compiler version' $gcc @('--version')
     $null = Run 'public header' $gcc @('-std=c11', '-Wall', '-Wextra',
         '-Werror', '-fsyntax-only', '-x', 'c', '-Ilib/xrt',
         'release/extlibs/pkcs/include/pkcs_native.h')
@@ -76,10 +84,18 @@ try {
     $null = Run 'XLang owned result budgets' $xl @('run',
         'release/extlibs/pkcs/test/owned_results.xl')
     $null = Run 'XLang existing test' $xl @('run', 'test/cases/extlib_pkcs.xl')
+    $null = Run 'XLang OID errors' $xl @('run', 'release/extlibs/pkcs/test/oid_errors.xl')
     $generated = Join-Path $work 'owned_text.c'
     $null = Run 'owned-text cgen' $xl @('cgen',
         'release/examples/extlibs/pkcs.xl', '--emit', $generated)
     $generatedText = [IO.File]::ReadAllText($generated)
+    $decls = @($generatedText -split "`r?`n" | Where-Object { $_ -match '^extern .*\bxpkcs_[a-z0-9_]+\(' } | Sort-Object -Unique)
+    $expected = @([regex]::Matches([IO.File]::ReadAllText((Join-Path $root 'release/extlibs/pkcs/src/pkcs.xl')),'extern "(xpkcs_[a-z0-9_]+)"') | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique)
+    $actual = @([regex]::Matches(($decls -join "`n"),'\bxpkcs_[a-z0-9_]+(?=\()') | ForEach-Object Value | Sort-Object -Unique)
+    if ($decls.Count -ne 16 -or @(Compare-Object $expected $actual).Count) { throw 'Incomplete PKCS generated ABI coverage' }
+    $abi = Join-Path $work 'abi.c'
+    [IO.File]::WriteAllText($abi,"#include `"pkcs_native.h`"`n" + ($decls -join "`n"),$utf8)
+    $null = Run 'sixteen actual prototypes' $gcc ($flags + @('-Irelease/extlibs/pkcs/include','-fsyntax-only',$abi))
     foreach ($symbol in $ownedSymbols) {
         $pattern = '\b\w+\.Data\s*=\s*xpkcs_' + $symbol + '\s*\('
         if ([regex]::Matches($generatedText, $pattern).Count -ne 1) {
@@ -109,7 +125,8 @@ try {
         foreach ($entry in @(
             @{Name='central'; Source='test/cases/extlib_pkcs.xl'},
             @{Name='allocations'; Source='release/extlibs/pkcs/test/allocations.xl'},
-            @{Name='owned'; Source='release/extlibs/pkcs/test/owned_results.xl'}
+            @{Name='owned'; Source='release/extlibs/pkcs/test/owned_results.xl'},
+            @{Name='oid'; Source='release/extlibs/pkcs/test/oid_errors.xl'}
         )) {
             $binary = Join-Path $work ($entry.Name + '.exe')
             $null = Run "$($entry.Name) AOT build" $xl @('build', $entry.Source, '-o', $binary)
@@ -130,15 +147,24 @@ try {
         $cAotOutput = Run 'C example AOT' $cExampleAot @()
         if ($cAotOutput -cne $cOutput) { throw 'C AOT output differs' }
     }
-    foreach ($path in $inputs) {
-        if ((Get-FileHash -LiteralPath $path).Hash -cne $hashes[$path]) {
-            throw "pkcs validation input changed: $path"
-        }
-    }
+    $oid = Join-Path $work 'oid_errors.exe'
+    $null = Run 'C OID errors compile' $gcc ($flags + @('-DNDEBUG',
+        'release/extlibs/pkcs/test/oid_errors_c.c','release/extlibs/pkcs/pkcs_native.c',$runtime) + $links + @('-o',$oid))
+    $null = Run 'C OID error diagnostics' $oid @()
     $passed = $true
     Write-Host 'pkcs Windows package gate: PASS'
+} catch {
+    $failure = $_.Exception.Message
+    throw
 } finally {
     Pop-Location
+    $changed = @($hashes.Keys | Where-Object { !(Test-Path -LiteralPath $_) -or (Get-FileHash -LiteralPath $_).Hash -cne $hashes[$_] })
+    $changed += @(InputPaths | Where-Object { !$hashes.Contains($_) })
+    if ($changed.Count) { $passed = $false }
+    [IO.File]::WriteAllText(($work+'.json'),([ordered]@{date=(Get-Date).ToString('o');passed=$passed;
+        failure=$failure;aotSkipped=[bool]$SkipAot;inputs=$hashes;changedInputs=$changed;
+        checks=@($checks.ToArray())} | ConvertTo-Json -Depth 8),$utf8)
+    Write-Host "[pkcs] report: $work.json"
     if (Test-Path -LiteralPath $work -PathType Container) {
         $resolved = (Resolve-Path -LiteralPath $work).Path
         $base = [IO.Path]::GetFullPath($workRoot).TrimEnd('\', '/')
@@ -155,4 +181,5 @@ try {
             Write-Warning "pkcs failure artifacts retained: $resolved"
         }
     }
+    if ($changed.Count) { throw 'PKCS inputs changed during validation' }
 }

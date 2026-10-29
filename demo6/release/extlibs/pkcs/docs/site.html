@@ -18,7 +18,7 @@
 <main class="extlib-layout" id="main-content">
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / pkcs</p><h1>pkcs</h1>
     <p class="extlib-lead">常用 ASN.1 DER 构件的 HEX 编码、解析和组合。</p>
-    <p>底层复用 XRT ASN.1/DER；不承诺 PKCS#7/#8/#11/#12、证书或密钥管理。2026-10-26 重建发布物后，Windows/Linux x64 默认包门禁通过公开 C 头、严格 GCC、Linux ASan/UBSan、C/XLang 边界与分配故障、双语固定输出和边界/C/XLang 范例独立 EXE AOT。旧 VFS 缺头和共享快照缺符号不再复现。</p>
+    <p>底层复用 XRT ASN.1/DER；不承诺 PKCS#7/#8/#11/#12、证书或密钥管理。2026-10-29 当前存在 C/XRT 诊断风险：八类非法点分 OID 返回失败但缺少新错误，或保留旧 I/O 错误。语言的非空字符串检查会兜底抛异常，不是接受非法编码；C 侧仍必须检查返回值，不能把空错误槽当作成功。来源修复尚未同步，不签收整包发布。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>
@@ -37,7 +37,7 @@ println(pkcs.decodeOid(oid))</code></pre>
     <h2 id="c-api">C</h2>
     <p>2026-10-28：11 条文本返回链已删除接管后的重复复制，生成 C 的完整夹具逐一验证全部入口；INTEGER/NULL 两个入口的 C/XLang 分配预算对照一致。Windows/Linux 完整门禁含 GCC/TCC、Linux ASan/UBSan、OpenSSL 互通和新旧语言 JIT/AOT。必要的 DER/HEX 分配、strlen、输入校验及错误检查仍存在，不能称为所有操作零开销。</p>
     <p>包含 <code>include/pkcs_native.h</code>。C 的文本结果由调用方以 <code>xrtFree</code> 释放；整数解码用成功标志和输出参数区分零与错误。XLang 文本输入拒绝内嵌 NUL，避免 C 零结尾接口只处理前缀；构造分配失败与 DER 格式错误分别报告。完整语义及可复跑命令见包内 README。</p>
-    <p>Linux 包级门禁 <code>bash release/extlibs/pkcs/test/check.sh</code> 同次执行 C ASan/UBSan、中央与包内 XLang 边界、OpenSSL 独立 DER 解析和双语 AOT 固定输出对照。本次只签收短时包级 ASN.1/DER 构件范围，不代表完整 PKCS 协议、其他架构或全产品准入。</p>
+    <p>当前两平台默认门禁先通过严格 C、十六项实际原型、分配故障、文本接管检查、22 项新语言边界、七条 AOT 与双语输出，Linux 还包含 C ASan/UBSan 和 OpenSSL 独立解析；最后的 C OID 回归在 133 检查中有 48 诊断失败，门禁如实退出 1。已有成功路径不能代替 C/XRT 完整错误合同，完整复现与修复责任见包内 README。编译器和冻结 XRT 未修改。</p>
   </section>
 </main>
 </body>

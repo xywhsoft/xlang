@@ -8,11 +8,18 @@ cleanup() {
     result=$?
     trap - EXIT
     set +e
+    cd "$root" || exit 125
+    mapfile -d '' after < <(input_paths | sort -zu)
+    sha256sum "${after[@]}" > "$work/inputs.after.sha256"
+    if ! diff -u "$work/inputs.before.sha256" "$work/inputs.after.sha256"; then result=125; fi
+    printf 'exit=%s\n' "$result" > "$work.report.txt"
+    cp -- "$work/inputs.before.sha256" "$work.inputs.sha256"
     if ((result == 0)); then
         rm -rf -- "$work" || result=$?
     else
         printf '[pkcs] FAIL exit=%s artifacts=%s\n' "$result" "$work" >&2
     fi
+    printf '[pkcs] report: %s.report.txt\n' "$work"
     exit "$result"
 }
 trap cleanup EXIT
@@ -21,31 +28,37 @@ record_failure() {
     cat "$work/failure.txt" >&2
 }
 trap 'record_failure "$?" "$LINENO" "$BASH_COMMAND" "${PIPESTATUS[*]}"' ERR
-exec > >(tee "$work/output.log") 2>&1
 cc=${CC:-gcc}
+cc_path=$(command -v "$cc" || true)
 flags=(-std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt
        -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread)
 export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1
 export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
-mapfile -d '' inputs < <(find release/extlibs/pkcs release/include -type f -print0)
-inputs+=(lib/xrt/xrt.h lib/xruntime/xruntime.h release/xl release/libxl.so release/libxlc.so
-          test/cases/extlib_pkcs.xl release/examples/extlibs/pkcs.xl)
+export XLANG_PACKAGE_PATH="$root/release/extlibs"
+input_paths() {
+    find release/extlibs/pkcs release/include -type f -print0
+    printf '%s\0' lib/xrt/xrt.h lib/xruntime/xruntime.h release/xl release/libxl.so release/libxlc.so \
+        test/cases/extlib_pkcs.xl release/examples/extlibs/pkcs.xl
+    if [[ -n "$cc_path" ]]; then printf '%s\0' "$cc_path"; fi
+}
+mapfile -d '' inputs < <(input_paths | sort -zu)
 sha256sum "${inputs[@]}" > "$work/inputs.before.sha256"
 "$cc" --version > "$work/compiler.txt"
+compile() { timeout 180s "$cc" "$@"; }
 
-"$cc" -std=c11 -D_GNU_SOURCE -Wall -Wextra -Werror -Ilib/xrt \
+compile -std=c11 -D_GNU_SOURCE -Wall -Wextra -Werror -Ilib/xrt \
     -x c -fsyntax-only release/extlibs/pkcs/include/pkcs_native.h
-"$cc" -std=c11 -D_GNU_SOURCE -Wall -Wextra -Werror -Ilib/xrt \
+compile -std=c11 -D_GNU_SOURCE -Wall -Wextra -Werror -Ilib/xrt \
     -DXRT_MODULE_VALUE -x c -fsyntax-only \
     release/extlibs/pkcs/include/pkcs_native.h
 
-"$cc" "${flags[@]}" -c release/extlibs/pkcs/test/xrt_runtime.c \
+compile "${flags[@]}" -c release/extlibs/pkcs/test/xrt_runtime.c \
     -o "$work/xrt_runtime.o"
-"$cc" "${flags[@]}" release/extlibs/pkcs/pkcs_native.c \
+compile "${flags[@]}" release/extlibs/pkcs/pkcs_native.c \
     release/extlibs/pkcs/test/test_pkcs.c "$work/xrt_runtime.o" \
     -lm -ldl -o "$work/test_pkcs"
 timeout 90s "$work/test_pkcs"
-"$cc" "${flags[@]}" release/extlibs/pkcs/pkcs_native.c \
+compile "${flags[@]}" release/extlibs/pkcs/pkcs_native.c \
     release/extlibs/pkcs/examples/pkcs_c.c "$work/xrt_runtime.o" \
     -lm -ldl -o "$work/pkcs_example"
 timeout 30s "$work/pkcs_example" > "$work/c_example.txt"
@@ -56,6 +69,16 @@ timeout 90s ./release/xl run test/cases/extlib_pkcs.xl
 timeout 90s ./release/xl run release/extlibs/pkcs/test/boundaries.xl
 timeout 90s ./release/xl run release/extlibs/pkcs/test/allocations.xl
 timeout 90s ./release/xl run release/extlibs/pkcs/test/owned_results.xl
+timeout 90s ./release/xl run release/extlibs/pkcs/test/oid_errors.xl
+timeout 90s ./release/xl cgen release/examples/extlibs/pkcs.xl --emit "$work/module.c"
+grep -E '^extern .*xpkcs_[a-z0-9_]+[(]' "$work/module.c" | sort -u > "$work/abi.decls"
+grep -oE '"xpkcs_[a-z0-9_]+"' release/extlibs/pkcs/src/pkcs.xl | tr -d '"' | sort -u > "$work/abi.expected"
+grep -oE 'xpkcs_[a-z0-9_]+[(]' "$work/abi.decls" | tr -d '(' | sort -u > "$work/abi.actual"
+test "$(wc -l < "$work/abi.decls")" -eq 16
+diff -u "$work/abi.expected" "$work/abi.actual"
+printf '#include "pkcs_native.h"\n' > "$work/abi.c"
+cat "$work/abi.decls" >> "$work/abi.c"
+compile "${flags[@]}" -Irelease/extlibs/pkcs/include -fsyntax-only "$work/abi.c"
 timeout 90s ./release/xl cgen release/extlibs/pkcs/test/owned_probe.xl --emit "$work/owned_probe.c"
 for symbol in get_content encode_int encode_oid decode_oid wrap_sequence wrap_set \
               encode_octet encode_null encode_bitstring concat tag_name; do
@@ -109,7 +132,7 @@ grep -q 'OBJECT.*2.999.3' "$work/large_first_arc.txt"
 
 timeout 90s ./release/xl build release/extlibs/pkcs/test/boundaries.xl -o "$work/pkcs_boundaries"
 timeout 30s "$work/pkcs_boundaries"
-for name in central allocations owned_results; do
+for name in central allocations owned_results oid_errors; do
     source="release/extlibs/pkcs/test/$name.xl"
     if [[ $name == central ]]; then source=test/cases/extlib_pkcs.xl; fi
     timeout 90s ./release/xl build "$source" -o "$work/pkcs_$name"
@@ -121,5 +144,8 @@ diff -u "$work/c_example.txt" "$work/xl_aot.txt"
 timeout 90s ./release/xl build release/extlibs/pkcs/examples/pkcs_c.c -o "$work/pkcs_c_aot"
 timeout 30s "$work/pkcs_c_aot" > "$work/c_aot.txt"
 diff -u "$work/c_example.txt" "$work/c_aot.txt"
-sha256sum -c "$work/inputs.before.sha256" > "$work/inputs.after.txt"
+# 不把语言非空字符串的兜底异常当作 C/XRT 错误合同已完善。
+compile "${flags[@]}" -DNDEBUG release/extlibs/pkcs/test/oid_errors_c.c \
+    release/extlibs/pkcs/pkcs_native.c "$work/xrt_runtime.o" -lm -ldl -o "$work/oid_errors"
+timeout 90s "$work/oid_errors"
 printf 'pkcs Linux C ASan/UBSan, OpenSSL interop and bilingual AOT gate: PASS\n'
