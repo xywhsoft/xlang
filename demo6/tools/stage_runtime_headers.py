@@ -7,9 +7,9 @@ import shutil
 from gen_tcc_vfs_resources import load_resources
 
 
-def stage(root, out):
+def stage(root, out, manifest=None):
     root, out = Path(root).resolve(), Path(out).resolve()
-    manifest = root / 'tools/tcc_vfs_manifest_linux_xlc.txt'
+    manifest = Path(manifest).resolve() if manifest is not None else root / 'tools/tcc_vfs_manifest_linux_xlc.txt'
     rows = []
     for line in manifest.read_text(encoding='utf-8-sig').splitlines():
         parts = line.strip().split('|')

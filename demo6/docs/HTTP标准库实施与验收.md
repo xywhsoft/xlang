@@ -129,6 +129,17 @@ python tools/check_stdlib_http.py --root <built-source> --out <fresh-report> --j
 通过后，统一加入无正文消息免建 BodyReader 与不可变标量 getter 的
 `pure + no-raise + nonblocking` 合同，再进行上述最终验收。
 
+## 自动回归接线
+
+2026-10-29 的自动接线补齐：`parse.xl`、`tcp.xl` 已显式纳入
+`check_stdlib_http.py` 的示例矩阵，与原有用例共用 JIT、模块、Cgen、
+独立 AOT、依赖检查及迁址运行路径，输入哈希纳入收据。
+Windows `08_stdlib_extended.bat` 与 Linux `test_linux.sh` 均自动调用该门。
+私有声明通过发布 manifest 单独镜像，不要求 Linux 的 TCC 构建目录留存；
+Windows 原生互操作所需的 TCC 在测试开始时复制并固定哈希，也可用
+`--tcc <bootstrap.exe>` 显式提供，主回归沿用 `XL6_TCC` 配置。
+后续接线验证见 [HTTP/WebSocket 接线收据](http-websocket-wiring-2026-10-29.json)。
+
 ## 性能实测与下一层成本
 
 Windows 本机顺序采样，20,000 次 58 字节头部；同一普通产品、同一 XRT，
