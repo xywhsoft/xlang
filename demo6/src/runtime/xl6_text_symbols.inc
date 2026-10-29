@@ -26,6 +26,7 @@ XL6_TEXT_EXPORT(xl6TextLowerV1, TEXT_VALUE)
 #include "xl6_compress_symbols.inc"
 #include "xl6_http_symbols.inc"
 #include "xl6_ws_symbols.inc"
+#include "xl6_foundation_symbols.inc"
 #include "xl6_template_symbols.inc"
 XL6_TEXT_EXPORT(xl6CodecHexTextV1, CODEC_HEX)
 XL6_TEXT_EXPORT(xl6CodecHexBytesV1, CODEC_HEX_VALUE)

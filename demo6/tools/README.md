@@ -1280,3 +1280,10 @@ contract gates use this private mirror instead of modifying the public SDK.
 compiles the actual emitted TCC bridge with GCC O0/O2 sanitizers and exercises
 argument copying, allocation failures and resident resource retirement. The
 released TCC core and TCC-generated machine code are not sanitizer-instrumented.
+
+## 基础九组的普通产品验收
+
+`python tools/check_stdlib_foundation.py --root <同次普通构建的demo6> --out <新证据目录> --jobs 2`
+验证系统查询、显式 memory、对象拥有组及核心类型/复制/调用/容器合同，
+批量收集错误，含 JIT/模块/独立 AOT、严格 C、堆账本/逻辑 OOM 和裁剪。
+`--driver` 为开发快速门，不能计为普通产品验收。

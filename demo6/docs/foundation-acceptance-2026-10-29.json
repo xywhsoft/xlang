@@ -1,0 +1,426 @@
+{
+  "schema": 1,
+  "date": "2026-10-29",
+  "complete": true,
+  "scope": "Approved nine remaining XRT boundary decisions, OS queries, opt-in memory diagnostics and lifetime ownership pools; focused core regression fixes.",
+  "externalTraffic": false,
+  "securitySpecialistTesting": false,
+  "decisions": [
+    "X01",
+    "X02",
+    "X07",
+    "X10",
+    "X25",
+    "X26",
+    "X27",
+    "X28",
+    "X29"
+  ],
+  "undecided": {
+    "CRT": 0,
+    "XRT": 0
+  },
+  "residentDeclarations": 72,
+  "windowsSdkCheck": {
+    "path": "F:\\xlang-validation\\foundation9-20261029\\sdk-fixed-r13\\results.json",
+    "sha256": "9252726682be0b9e81990de30915ed3cb46df0c0b296d7335431ecdf126a747e"
+  },
+  "sources": {
+    "windowsTree": "f957f3261ab67b5642adeee62550f5709e356dd9",
+    "linuxTree": "da12eaeeff442b04c3392cc7d8b9e48ae2fc2236",
+    "platformDifference": {
+      "Complete": true,
+      "Changed": [
+        "demo6/res/tcc/win64/x86_64/include/winapi/winbase.h",
+        "demo6/res/tcc/win64/x86_64/include/winapi/winnt.h"
+      ],
+      "PortableSourceIdentical": true
+    },
+    "ownCodeMatchesTestedCandidate": true,
+    "files": [
+      {
+        "path": "demo6/src/cgen/xl6_ir_cgen_emit_xvalue_core.c",
+        "testedNormalizedSha256": "b554b84d5abfa5ae455b279b66bf1e2eef41afac377f7aaa27e8c55d9f643b99"
+      },
+      {
+        "path": "demo6/src/compile/xl6_artifact_runtime.h",
+        "testedNormalizedSha256": "6114b6ce90098eff305c01af1d77061491e43f6469fbb201f9d463884c3ef5df"
+      },
+      {
+        "path": "demo6/src/compile/xl6_compile_unit.c",
+        "testedNormalizedSha256": "276425e788ab7e8f4ce553b01383f953b5cab01a7cf16b0f143ac44f8e07a401"
+      },
+      {
+        "path": "demo6/src/compile/xl6_imports.c",
+        "testedNormalizedSha256": "d13cc6244a91a03cef0bd493f8d8a6f477c745730e2aa3348015b9801c37c4ef"
+      },
+      {
+        "path": "demo6/src/ir/xl6_ir_direct_bridge.c",
+        "testedNormalizedSha256": "fbc18a217ae0c9e5aaa9835eb4c88c37c758120136e68078e820f70175272663"
+      },
+      {
+        "path": "demo6/src/ir/xl6_ir_foundation_contracts.inc",
+        "testedNormalizedSha256": "a73287f2c025a8a58fdefaa829ddf3f93bc3e9c527cbab6d435e98222898edb6"
+      },
+      {
+        "path": "demo6/src/runtime/xl6_array_import_chain.c",
+        "testedNormalizedSha256": "e24a79b320f91e078383cb5ca2ed0f369f34bf44374e5a18c4ab26045c84e2ee"
+      },
+      {
+        "path": "demo6/src/runtime/xl6_foundation_abi.h",
+        "testedNormalizedSha256": "e483d798f7e5ce11fb99f9a75c4717c47d33d0ef90c36fc0509517e3cf7a3578"
+      },
+      {
+        "path": "demo6/src/runtime/xl6_foundation_symbols.inc",
+        "testedNormalizedSha256": "533b5172c36101f88eb11041d5dfb3efff593edf5e9d9c12096d8d71d5c9f2fe"
+      },
+      {
+        "path": "demo6/src/runtime/xl6_memory_debug_fields.inc",
+        "testedNormalizedSha256": "ee7c85e6bfa4b1ac0578e50e087f2c1c162c027e98ad27021ba41f713b5a7458"
+      },
+      {
+        "path": "demo6/src/runtime/xl6_memory_diagnostics.c",
+        "testedNormalizedSha256": "000721e1462d381a41a57e78269d6048d0367d2a16251b703b5232b4b78955cd"
+      },
+      {
+        "path": "demo6/src/runtime/xl6_memory_diagnostics_domain.c",
+        "testedNormalizedSha256": "81d287635d230eb3f6a178b846c17e5751fa70ccd2ad862aa8ccb92b3bd786a7"
+      },
+      {
+        "path": "demo6/src/runtime/xl6_memory_report.c",
+        "testedNormalizedSha256": "cda064fad4fe365b09c156a2506dfb7e3ebb629ca1074dbbb316d6d07e9e8fbb"
+      },
+      {
+        "path": "demo6/src/runtime/xl6_memory_stats.c",
+        "testedNormalizedSha256": "049cf69aec57357ab3ca2760aca16bc4f167a73bd33860435625f11d735b7e70"
+      },
+      {
+        "path": "demo6/src/runtime/xl6_memory_stats_domain.c",
+        "testedNormalizedSha256": "92aba505ea970ce8e4c7aa79c92bcc220a677986e6f62c968170623a393c0945"
+      },
+      {
+        "path": "demo6/src/runtime/xl6_memory_stats_fields.inc",
+        "testedNormalizedSha256": "31bbc6c7e7a9a3cb7888d10ff9fe72b6d7e1aea6a37c10ce88c3f9598ffaa756"
+      },
+      {
+        "path": "demo6/src/runtime/xl6_native_handle.h",
+        "testedNormalizedSha256": "10584ffae2729540b4d5439fc574d7447df71178455d53886c4bb7c2f8e33804"
+      },
+      {
+        "path": "demo6/src/runtime/xl6_native_resource_policies.inc",
+        "testedNormalizedSha256": "c9f4454e15167498711ae6beac3af573e21bf15238a064a4d3bf465ac5a83ed8"
+      },
+      {
+        "path": "demo6/src/runtime/xl6_object_pool_control.c",
+        "testedNormalizedSha256": "58185879b8bc9e6b822f9d3403a41d64d48ed71403465bf16b93266668087a14"
+      },
+      {
+        "path": "demo6/src/runtime/xl6_object_pool_control_domain.c",
+        "testedNormalizedSha256": "710adfe25cb3f5e2a2b74bd14f6e4877aad3280e217e0f0bd9914a44f0ad5184"
+      },
+      {
+        "path": "demo6/src/runtime/xl6_ownership_domains.h",
+        "testedNormalizedSha256": "45becf2cdd00f0d11bc3345817ae3156f5e7abc3c839b8f3f5b0e1a8157a9ef7"
+      },
+      {
+        "path": "demo6/src/runtime/xl6_ownership_domains.inc",
+        "testedNormalizedSha256": "655d91d366a9f7dc5dd61ce63ab1191edccd5f5c52e80f964e410603b78acc65"
+      },
+      {
+        "path": "demo6/src/runtime/xl6_system_info.c",
+        "testedNormalizedSha256": "d5f02705d7b394926c4c3773483715b5965fdb6d3dcc6a7adc5440ecae6f44a6"
+      },
+      {
+        "path": "demo6/src/runtime/xl6_text_symbols.inc",
+        "testedNormalizedSha256": "1a17aadc2d24dd64f46e9912a19819e9a6c6247e52a3f94c27d09f107b141052"
+      },
+      {
+        "path": "demo6/src/runtime/xl6_text_value.h",
+        "testedNormalizedSha256": "94793ea737212671c28bdbc22882cf1484f2d82c38d766fd1b72053637b71f35"
+      },
+      {
+        "path": "demo6/src/stdlib/object_pools.xl.in",
+        "testedNormalizedSha256": "daa0bd4f71c68f4a0cbd57574bca44373d8e7293ab67f39ad2eb784be5c40f2e"
+      },
+      {
+        "path": "demo6/src/stdlib/xl6_stdlib.c",
+        "testedNormalizedSha256": "ad56c322ae3b1fb643baf13e2d40fa107f41d1151458d0886a63949753de82bd"
+      },
+      {
+        "path": "demo6/src/stdlib/xl6_stdlib_data.c",
+        "testedNormalizedSha256": "883471f25db85273198f25f61c298fae61e8cbf5fccbd9517743a17bff31d092"
+      },
+      {
+        "path": "demo6/src/stdlib/xl6_stdlib_data.h",
+        "testedNormalizedSha256": "b2884e11ddd87a55b6af6683c63f81b68a3c143ba1f7981875aff57774a9e872"
+      },
+      {
+        "path": "demo6/src/stdlib/xl6_stdlib_deps.inc",
+        "testedNormalizedSha256": "f8fdf398d380d96195be3a9ada4ab65d89c06355f11826ef2e6ab660ba6ab4e1"
+      },
+      {
+        "path": "demo6/src/stdlib/xl6_stdlib_foundation.inc",
+        "testedNormalizedSha256": "1d4fc541d7e9826044bdf4d7cced9db358d6a036f18c974f9a2cf58beb09c4ad"
+      },
+      {
+        "path": "demo6/src/stdlib/xl6_stdlib_func_index.inc",
+        "testedNormalizedSha256": "a8fff4a01221f64a6d35a55ff07cc553ec14d4ef375f79615da80a791613ffca"
+      },
+      {
+        "path": "demo6/tools/check_stdlib_foundation.py",
+        "testedNormalizedSha256": "e9ab7eeeea81983aedd04d9c1ba13bb2c124ef3ccb7ae1ff1e3a646c55102cd1",
+        "scope": "Acceptance harness corrected after product build: Windows hosts staged beside candidate DLLs; Linux branch unchanged"
+      },
+      {
+        "path": "demo6/tools/compiler_dll.rsp.in",
+        "testedNormalizedSha256": "b65a697d8864ee053c7a007c829a9c32ce3be7931241f2c51c8a88b97637a490",
+        "scope": "Eight own providers; unrelated existing worktree response edits excluded"
+      },
+      {
+        "path": "demo6/tools/gen_stdlib_foundation.py",
+        "testedNormalizedSha256": "4d343f0620dfd4e383ddddf5e7b456d57897489cc6a066fedbd2714430fdf2d5"
+      },
+      {
+        "path": "demo6/tools/runtime_dll.rsp.in",
+        "testedNormalizedSha256": "599ba958ae8782e4f72889eb85652980f5e6957ca475f038d1a4da40da59fd4e",
+        "scope": "Eight own providers; unrelated existing worktree response edits excluded"
+      },
+      {
+        "path": "demo6/res/tcc/win64/x86_64/include/winapi/winbase.h",
+        "testedNormalizedSha256": "77cc917826a8d526309a0ad6438a63e13e5bb94a9fac77f2edfcdb292877eb31"
+      },
+      {
+        "path": "demo6/res/tcc/win64/x86_64/include/winapi/winnt.h",
+        "testedNormalizedSha256": "6c20fdefd515010d34d9e368b011d93402b0bb5b96bd6c8d31f8df2a57f36301"
+      },
+      {
+        "path": "demo6/test/cases/bad_stdlib_foundation_memory_handle.xl",
+        "testedNormalizedSha256": "86e6d99d1f6398e2e5c3d306cf9142b10aa7c5c7cc064d2b2ec0bc83baec71e0"
+      },
+      {
+        "path": "demo6/test/cases/bad_stdlib_foundation_memory_import.xl",
+        "testedNormalizedSha256": "19523f7bcd2ae635e083d26dcfe8a742b64b41faa6d10b13879331fb62331cf4"
+      },
+      {
+        "path": "demo6/test/cases/bad_stdlib_foundation_pool_private.xl",
+        "testedNormalizedSha256": "40a0478386c1ccc1b93ef0d59203138764f202887c08ad822ec441817d19f92b"
+      },
+      {
+        "path": "demo6/test/cases/bad_stdlib_foundation_pool_scalar.xl",
+        "testedNormalizedSha256": "d7c54a15dd004387d843ce5d2ab4ceb50d630ff24492e43a77b6e7b56b761e3d"
+      },
+      {
+        "path": "demo6/test/cases/bad_stdlib_foundation_stats_no_raise.xl",
+        "testedNormalizedSha256": "bd809274941b615171bb670cbeb68f9d17c1777509b522bda94eeac23a5e74d9"
+      },
+      {
+        "path": "demo6/test/cases/stdlib_foundation_casts.xl",
+        "testedNormalizedSha256": "b9ecf31bc15602f30737f8c6e4642616ba32ea343dafc25a531eba8e6c3645ef"
+      },
+      {
+        "path": "demo6/test/cases/stdlib_foundation_casts_async.xl",
+        "testedNormalizedSha256": "634b5fb5066c0234b990d2efd157efa3e3b1134df7cd92a7cb8b15db433b6319"
+      },
+      {
+        "path": "demo6/test/cases/stdlib_foundation_core.xl",
+        "testedNormalizedSha256": "d16ca5b3509f74483c6845877606647ca8364eba42a8f405f35d34410fdd3b20"
+      },
+      {
+        "path": "demo6/test/cases/stdlib_foundation_language_oom.xl",
+        "testedNormalizedSha256": "7f224175b43b39af6538cc3c30747a15d3b75b08edc4cf51bbcee568cc5d673e"
+      },
+      {
+        "path": "demo6/test/cases/stdlib_foundation_memory.xl",
+        "testedNormalizedSha256": "559e27dd8ce1556e3324ce7c73e6289635122d0c2956eca2ffc1c804494c0298"
+      },
+      {
+        "path": "demo6/test/cases/stdlib_foundation_memory_trim.xl",
+        "testedNormalizedSha256": "427ad47febba71d7ffa533b68bbd7cfa5c5c7aa223957ada6cb144c71970b1bb"
+      },
+      {
+        "path": "demo6/test/cases/stdlib_foundation_native_host.c",
+        "testedNormalizedSha256": "4a461b1bc3e9e3458ca16fcbba8249b73d741c490a49a3d0d198975d7d77d8e6"
+      },
+      {
+        "path": "demo6/test/cases/stdlib_foundation_pools.xl",
+        "testedNormalizedSha256": "5ee537f1ad84cd47f7b863fce9a7dc6a8f12529bace6ffdce37327253b1e1375"
+      },
+      {
+        "path": "demo6/test/cases/stdlib_foundation_restore.xl",
+        "testedNormalizedSha256": "9d178f61a896c0f83acd05a6c0fb90d5b49f698d18c7c33a5d3b3098c9941cad"
+      },
+      {
+        "path": "demo6/test/cases/stdlib_foundation_system.xl",
+        "testedNormalizedSha256": "8421f904690d66e5af25659817e8a1b09fdd720feb166193bd5c2f58edbaadb6"
+      },
+      {
+        "path": "demo6/test/cases/stdlib_foundation_system_trim.xl",
+        "testedNormalizedSha256": "7e3c7ee6cd27ec120d388f30c83df8a1d6924effa0050fe4c26fbd394f9ba5ab"
+      },
+      {
+        "path": "demo6/release/examples/foundation/memory.xl",
+        "testedNormalizedSha256": "ffad75e88471eab4cca3381d19b5cd0e202a52e34d1dfc46a1dccfc9cb7740c2"
+      },
+      {
+        "path": "demo6/release/examples/foundation/pools.xl",
+        "testedNormalizedSha256": "b8b75b8e1ccd57490187c06c307308e8aa6048fc682cea62018a57b3add3bdef"
+      },
+      {
+        "path": "demo6/release/examples/foundation/system.xl",
+        "testedNormalizedSha256": "6bb77b79108571f7b3574e32c0a376a72fd2765d2197f1deda9d7cc9db7e1bdf"
+      }
+    ]
+  },
+  "platforms": {
+    "windows": {
+      "build": {
+        "path": "F:\\xlang-validation\\foundation9-20261029\\shipping-win-r13\\build.shipping.json",
+        "sha256": "0bf0a900955b241ff460c2b886d73e53ee2ac3f7dae96a564f099d3bed53944c"
+      },
+      "acceptance": {
+        "path": "F:\\xlang-validation\\foundation9-20261029\\acceptance-win-r14\\results.json",
+        "sha256": "72ae3e888d742d5c8f292a7222cb24cb1793830757dd9777cab47f9e22d0e800"
+      },
+      "examples": {
+        "path": "F:\\xlang-validation\\foundation9-20261029\\examples-win-r13\\results.json",
+        "sha256": "c17edbc8a5b37c6188d6b1ebcf940be338efc2f30e55a80408febe5c98ce9ae0"
+      },
+      "nativeStrict": {
+        "path": "F:\\xlang-validation\\foundation9-20261029\\native-strict-win-r12\\results.json",
+        "sha256": "0a268775e4ea6656e625174d547729f17dd939c23f1804bfaad77f6e88420494"
+      },
+      "products": [
+        {
+          "Path": "F:\\xlang-validation\\foundation9-20261029\\final-win-r13\\export\\frozen\\demo6\\release\\xl.dll",
+          "Sha256": "6892a2edcef77ad1e4c366f61e8ff9eb43c96add5e6b99b6f081ef2a156db273"
+        },
+        {
+          "Path": "F:\\xlang-validation\\foundation9-20261029\\final-win-r13\\export\\frozen\\demo6\\release\\xlc.dll",
+          "Sha256": "0045d92531af1a1b271ee978caca25d5678db347b7b0ae55c57438e5ca698d8c"
+        },
+        {
+          "Path": "F:\\xlang-validation\\foundation9-20261029\\final-win-r13\\export\\frozen\\demo6\\release\\xl.exe",
+          "Sha256": "1877a60cbc54361cdda3e6932855534e45e84a9f9cc037ba8a6844d436473eef"
+        },
+        {
+          "Path": "F:\\xlang-validation\\foundation9-20261029\\final-win-r13\\export\\frozen\\demo6\\build\\tmp\\tcc_bootstrap.exe",
+          "Sha256": "f248fe27ee7c55544140f485f53933156f82519348392ebfa3390946106d3420"
+        },
+        {
+          "Path": "F:\\xlang-validation\\foundation9-20261029\\final-win-r13\\export\\frozen\\demo6\\build\\tmp\\xrt.o",
+          "Sha256": "587a0bb1c843a83f68139beebbae9ef833722739483d36c295ab79ae5bc6f809"
+        },
+        {
+          "Path": "F:\\xlang-validation\\foundation9-20261029\\final-win-r13\\export\\frozen\\demo6\\build\\tmp\\tcc_builtin_resources.c",
+          "Sha256": "149596f98bfc51e5da72635ed7ed7d65ced8c7ad08f784b3938ed5d26e2d228e"
+        },
+        {
+          "Path": "F:\\xlang-validation\\foundation9-20261029\\final-win-r13\\export\\frozen\\demo6\\build\\tmp\\tcc_builtin_resources_runtime.c",
+          "Sha256": "a1fd57cf85679c5dd9a7d86c8cb983f591d9431d25c5b38d9ba6de97f2e53237"
+        }
+      ],
+      "successfulStages": 197,
+      "positiveCases": 25,
+      "negativeCases": 5,
+      "positiveStages": [
+        "jit",
+        "module",
+        "cgen",
+        "aot-build",
+        "imports",
+        "relocated"
+      ],
+      "strictGeneratedCBuilds": 16,
+      "strictNativeSources": 8,
+      "nativeLibraries": 2,
+      "runnableExamples": 3,
+      "completeAllocationPrefixes": {
+        "stdlib_foundation_casts.O0.lifetime": 25,
+        "stdlib_foundation_casts.O2.lifetime": 25,
+        "stdlib_foundation_restore.O0.lifetime": 418,
+        "stdlib_foundation_restore.O2.lifetime": 418,
+        "stdlib_foundation_language_oom.O0.lifetime": 163,
+        "stdlib_foundation_language_oom.O2.lifetime": 163
+      }
+    },
+    "linux": {
+      "build": {
+        "path": "F:\\xlang-validation\\foundation9-20261029\\linux-build.shipping.json",
+        "sha256": "4a11c2b3cd4f6f14102f4644f223a7909b564abff0dbcb20aa791c690983a1e5"
+      },
+      "acceptance": {
+        "path": "F:\\xlang-validation\\foundation9-20261029\\linux-results.json",
+        "sha256": "6d793ec6867c469e16fbeea9e515fa48754ebaaa4900786b8cbc6191eae2a656"
+      },
+      "examples": {
+        "path": "F:\\xlang-validation\\foundation9-20261029\\linux-examples.json",
+        "sha256": "8a1f1f286c871537684110cdc08378d725819cf342769b4f93b655f0aaac9e75"
+      },
+      "nativeStrict": {
+        "path": "F:\\xlang-validation\\foundation9-20261029\\linux-native-strict.json",
+        "sha256": "bab4877dba45b80e090fc3906f565d901021a205100eb47981d643c318128e76"
+      },
+      "products": [
+        {
+          "Path": "/home/ubuntu/xlang-validation/foundation9-20261029/r12/demo6/release/libxl.so",
+          "Sha256": "92e2abba6d813538a95acf6ffd20951ff655c0565473fbc3bc4b095d1022a074"
+        },
+        {
+          "Path": "/home/ubuntu/xlang-validation/foundation9-20261029/r12/demo6/release/libxlc.so",
+          "Sha256": "3fcb75c7a487079a5d2a8446dc5c5f446ec77cbaa2ae2e5b57467071d52d5822"
+        },
+        {
+          "Path": "/home/ubuntu/xlang-validation/foundation9-20261029/r12/demo6/release/xl",
+          "Sha256": "b91850a3ffb33db85b77e6f05cc0d447e15a2f8404cdc2a4e23eb4ae21080361"
+        },
+        {
+          "Path": "/home/ubuntu/xlang-validation/foundation9-20261029/r12/demo6/build/linux/tcc",
+          "Sha256": "ba0091cafcb6a6e6d5b12b9220015b7492153266b45106ad5f9a59d635fa05bf"
+        },
+        {
+          "Path": "/home/ubuntu/xlang-validation/foundation9-20261029/r12/demo6/build/linux/xrt.o",
+          "Sha256": "89bb8c4e7072e919de0945ebac275fbc27865150e392608e42676c2a58f75123"
+        },
+        {
+          "Path": "/home/ubuntu/xlang-validation/foundation9-20261029/r12/demo6/build/linux/tcc_builtin_resources.c",
+          "Sha256": "ffbb03222b803cef68c80d18f57ca6724f53e4c5ee0198f57c3431d2fd8d97af"
+        },
+        {
+          "Path": "/home/ubuntu/xlang-validation/foundation9-20261029/r12/demo6/build/linux/tcc_builtin_resources_runtime.c",
+          "Sha256": "389b521d968fc7269c2303e8598bc7523757b09e2d40caa46119d07c43f148c8"
+        }
+      ],
+      "successfulStages": 197,
+      "positiveCases": 25,
+      "negativeCases": 5,
+      "positiveStages": [
+        "jit",
+        "module",
+        "cgen",
+        "aot-build",
+        "imports",
+        "relocated"
+      ],
+      "strictGeneratedCBuilds": 16,
+      "strictNativeSources": 8,
+      "nativeLibraries": 2,
+      "runnableExamples": 3,
+      "completeAllocationPrefixes": {
+        "stdlib_foundation_casts.O0.lifetime": 25,
+        "stdlib_foundation_casts.O2.lifetime": 25,
+        "stdlib_foundation_restore.O0.lifetime": 418,
+        "stdlib_foundation_restore.O2.lifetime": 418,
+        "stdlib_foundation_language_oom.O0.lifetime": 165,
+        "stdlib_foundation_language_oom.O2.lifetime": 165
+      }
+    }
+  },
+  "limitations": [
+    "ObjectPool<T>/ObjectArena own ordinary class roots on the existing shared heap; no independent slab allocation domain or live-object recycling, and no allocation speedup claim.",
+    "Pool operations are creator-thread operations; clear/close release only pool roots; escaped strong references remain valid.",
+    "Current throw file is optional/empty by existing ABI; line and column remain checked.",
+    "The Windows-specific SDK declaration fix does not affect portable C sources or the native Linux resource manifest.",
+    "Focused acceptance does not certify every repository test, all platforms, attack resistance or measured zero bridge overhead.",
+    "Isolated products are validated; workspace release binaries are not promoted."
+  ]
+}

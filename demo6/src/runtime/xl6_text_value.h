@@ -74,6 +74,7 @@ struct xlir_closure;
 #include "xl6_compress_abi.h"
 #include "xl6_http_abi.h"
 #include "xl6_ws_abi.h"
+#include "xl6_foundation_abi.h"
 #include "xl6_template_abi.h"
 struct xfuture;
 struct XL6_NativeHandlePolicyV1;

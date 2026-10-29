@@ -1,0 +1,82 @@
+#ifndef XL6_FOUNDATION_ABI_H
+#define XL6_FOUNDATION_ABI_H
+#include "xl6_runtime_export.h"
+#include "xl6_native_handle.h"
+#include <stdint.h>
+#include <stdbool.h>
+XL6_TEXT_API xstrview xl6SystemPlatformV1(void);
+XL6_TEXT_API xstrview xl6SystemArchitectureV1(void);
+XL6_TEXT_API int64_t xl6SystemPointerBitsV1(void);
+XL6_TEXT_API bool xl6SystemLittleEndianV1(void);
+XL6_TEXT_API int64_t xl6SystemLogicalProcessorCountV1(void);
+XL6_TEXT_API bool xl6MemoryStatisticsEnabledV1(void);
+XL6_TEXT_API void xl6MemoryStatsEnableV1(bool);
+XL6_TEXT_API void xl6MemoryStatsResetV1(void);
+XL6_TEXT_API void* xl6MemoryStatsCaptureV1(void);
+XL6_TEXT_API bool xl6MemoryDebugEnabledV1(void);
+XL6_TEXT_API void* xl6MemoryDebugCaptureV1(void);
+XL6_TEXT_API xstrview xl6MemoryReportTextV1(int64_t);
+XL6_TEXT_API xstrview xl6MemoryReportJsonV1(int64_t);
+XL6_TEXT_API void xl6MemoryStatsDestroyV1(void*);
+XL6_TEXT_API bool xl6MemoryStatsEnabledV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryStatsClassStepV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryStatsClassCutoffV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryStatsClassCountV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryStatsMallocCallsV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryStatsMallocBytesV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryStatsCallocCallsV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryStatsCallocBytesV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryStatsReallocCallsV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryStatsReallocBytesV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryStatsMemDupCallsV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryStatsMemDupBytesV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryStatsFreeCallsV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryStatsTempCallsV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryStatsTempBytesV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryStatsBlockAllocCallsV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryStatsBlockAllocBytesV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryStatsBlockFreeCallsV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryStatsBlockFreeBytesV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryStatsPooledAllocCallsV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryStatsPooledAllocBytesV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryStatsDirectAllocCallsV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryStatsDirectAllocBytesV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryStatsBackingAllocCallsV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryStatsBackingAllocBytesV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryStatsBackingReallocCallsV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryStatsBackingReallocBytesV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryStatsBackingFreeCallsV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryStatsClassCallsV1(void*,int64_t);
+XL6_TEXT_API uint64_t xl6MemoryStatsClassBytesV1(void*,int64_t);
+XL6_TEXT_API void xl6MemoryDebugSnapshotDestroyV1(void*);
+XL6_TEXT_API bool xl6MemoryDebugSnapshotEnabledV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryDebugSnapshotLiveCountV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryDebugSnapshotLiveBytesV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryDebugSnapshotPeakCountV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryDebugSnapshotPeakBytesV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryDebugSnapshotQuarantineCountV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryDebugSnapshotQuarantineBytesV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryDebugSnapshotAllocCountV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryDebugSnapshotFreeCountV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryDebugSnapshotReallocCountV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryDebugSnapshotDoubleFreeCountV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryDebugSnapshotInvalidFreeCountV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryDebugSnapshotOverflowCountV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryDebugSnapshotUnderflowCountV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryDebugSnapshotUseAfterFreeCountV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryDebugSnapshotTempCurrentBytesV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryDebugSnapshotTempPeakBytesV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryDebugSnapshotTempResetCountV1(void*);
+XL6_TEXT_API uint64_t xl6MemoryDebugSnapshotEventCountV1(void*);
+XL6_TEXT_API void* xl6ObjectPoolControlCreateV1(void);
+XL6_TEXT_API void xl6ObjectPoolControlDestroyV1(void*);
+XL6_TEXT_API void xl6ObjectPoolControlCheckV1(void*);
+XL6_TEXT_API void xl6ObjectPoolControlEnterV1(void*);
+XL6_TEXT_API void xl6ObjectPoolControlLeaveV1(void*);
+XL6_TEXT_API void xl6ObjectPoolControlCloseV1(void*);
+XL6_TEXT_API void xl6ObjectPoolControlIdleV1(void*);
+XL6_TEXT_API bool xl6ObjectPoolControlClosedV1(void*);
+XL6_TEXT_API const XL6_NativeHandlePolicyV1* xl6MemoryStatsHandlePolicyV1Get(void);
+XL6_TEXT_API const XL6_NativeHandlePolicyV1* xl6MemoryDebugSnapshotHandlePolicyV1Get(void);
+XL6_TEXT_API const XL6_NativeHandlePolicyV1* xl6ObjectPoolControlHandlePolicyV1Get(void);
+#endif

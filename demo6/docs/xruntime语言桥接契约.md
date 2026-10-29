@@ -28,15 +28,20 @@
 - 普通无 class 程序不注入 `DynamicFields/object`，需要该能力时自动闭合 `XRUNTIME_MODULE_RUNTIME_DYNAMIC_FIELD`；
 - 解释执行、生成 C 和 standalone 裁剪产物使用相同的 ABI 与模块边界。
 
-class 实例与弱引用已经完成底层统一：
+当前 XLIR 类实例通过驻留 `XL6_ClassRuntimeV3` 和 XRT `xvalue` Object
+的 shell/backing 承载；稳定 schema 保留 TypeUID、字段身份和动态字段路径。
+weak 使用 `xrtValueWeakRef/Lock`，拥有图枚举 backing、字段、native handle、
+闭包与真实代码寿命节点。清理采用 checked 的分阶段退役，不把循环当作叶子。
+旧 `xl_runtime.h` 中的 xrtobject 兼容适配不能作为现行类表示的依据。
 
-- 普通语言 class 由 `xrtobject` 承载身份和字段负载，语言类型描述按进程期惰性映射为稳定 `xrttype`；
-- `weak<T>` 直接使用 `xrtweak` 的复制、移动、过期判断和强引用锁定，不再维护 xlang 私有控制块与互斥锁；
-- `self` 反向装箱统一返回新的强 `xvalue` 引用，异步接收者、闭包捕获和 `var self` 使用同一所有权口径；
-- record 与纯 native handle 继续使用轻量私有 box，不承担类对象身份和弱引用成本；
-- 继承、动态派发、协议、异步存活、C ABI、析构顺序和 standalone 裁剪均由回归套件覆盖。
+此前“InstanceOps.Trace 为空，因此语言类图尚未接入”的描述已经过期。
+对象图收口证据见《五组标准库最终验收》及《WebSocket标准库实施与验收》；
+这不等于允许普通语言代码直接操纵原始收集计划。
 
-当前没有把语言 class 自动加入 `runtime_object_graph`。类实例的 `xrttype::InstanceOps.Trace` 暂为空，原始对象图 API 仍作为显式底层能力公开；在字段描述与动态字段都能无遗漏枚举强引用前，不把循环收集标记为语言内核已完成能力。
+2026-10-29 用户已批准最后九组边界，当前 CRT/XRT 未决策均为 0。
+新的系统查询、显式 memory 模块与对象拥有组见
+[基础九组边界与验收](基础九组标准库边界与验收.md)。后文 B128 等旧批次
+保留历史事实，其中“语言入口仍待迁移”的结论不覆盖后来已完成批次。
 
 ### 语言级抽象
 

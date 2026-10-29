@@ -186,7 +186,7 @@ static int xl6ImportsTryBuiltinFeatureImport(const char* target, XL6_ImportDeps*
     }
     /* Resident advanced declarations are selected by explicit import; actual
      * native source dependencies are derived from verified IR, not this name. */
-    if ( xl6ImportsTextEquals(target, "concurrent") ) return 1;
+    if ( xl6ImportsTextEquals(target, "concurrent") || xl6ImportsTextEquals(target, "memory") ) return 1;
     return 0;
 }
 

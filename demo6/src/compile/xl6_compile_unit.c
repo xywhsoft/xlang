@@ -285,6 +285,15 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_template_vfs.c",D(R(TEMPLATE_CORE)),{"XRT_MODULE_VFS", "XRT_MODULE_CHARSET", "XRT_MODULE_CHARSET_DETECT"}},
 #include "xl6_http_components.inc"
 #include "xl6_ws_components.inc"
+    {"src/runtime/xl6_system_info.c",D(),{"XRT_MODULE_STRING"}},
+    {"src/runtime/xl6_memory_stats.c",D(R(NATIVE_HANDLE)),{"XRT_MODULE_MEMORY_STATS"}},
+    {"src/runtime/xl6_memory_diagnostics.c",D(R(NATIVE_HANDLE)),{"XRT_MODULE_MEMORY_DEBUG"}},
+    {"src/runtime/xl6_memory_report.c",D(),{"XRT_MODULE_MEMORY_DEBUG_REPORT","XRT_MODULE_BUFFER","XRT_MODULE_UNICODE_TEXT"}},
+    {"src/runtime/xl6_memory_stats_domain.c",D(R(OWNERSHIP_CATALOG),R(MEMORY_STATS)),{NULL}},
+    {"src/runtime/xl6_memory_diagnostics_domain.c",D(R(OWNERSHIP_CATALOG),R(MEMORY_DIAGNOSTICS)),{NULL}},
+    {"src/runtime/xl6_object_pool_control.c",D(R(NATIVE_HANDLE)),{"XRT_MODULE_THREAD"}},
+    {"src/runtime/xl6_object_pool_control_domain.c",D(R(OWNERSHIP_CATALOG),R(OBJECT_POOL_CONTROL)),{NULL}},
+
     {"src/runtime/xl6_crc32_bytes.c", D(), {"XRT_MODULE_CRC32", "XRT_MODULE_VALUE"}},
     {"src/runtime/xl6_crc32_buffer.c", D(), {"XRT_MODULE_CRC32", "XRT_MODULE_BUFFER"}},
     {"src/runtime/xl6_sequence.c", D(), {"XRUNTIME_MODULE_TYPED_ARRAY", "XRUNTIME_MODULE_RUNTIME_VALUE_TYPE",

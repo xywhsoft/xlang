@@ -1,0 +1,5 @@
+import memory
+auto arena = ObjectArena()
+arena.make(func() as int
+    return 1
+end)

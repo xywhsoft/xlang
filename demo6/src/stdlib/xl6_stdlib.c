@@ -874,6 +874,16 @@ static int xl6StdlibUsesX509PathClasses(const XL6_AstNode* root)
     return 0;
 }
 
+static int xl6StdlibHasMemoryImport(const XL6_AstNode* node)
+{
+    if (!node) return 0;
+    if (node->kind == XL6_AST_IMPORT && node->text &&
+        (!strcmp(node->text, "memory") || !strcmp(node->text, "\"memory\""))) return 1;
+    for (size_t i=0;i<node->childCount;++i)
+        if (xl6StdlibHasMemoryImport(node->children[i])) return 1;
+    return 0;
+}
+
 static int xl6StdlibHasConcurrentImport(const XL6_AstNode* node)
 {
     if (!node) return 0;
@@ -1685,6 +1695,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsPattern;
     int needsDateTime;
     int needsVfs,needsX509PathIsland,needsX509Island;
+    int needsMemory, needsMemorySnapshots, needsObjectPools;
     int needsConsoleSession, needsConsoleOptions;
     int ok;
 
@@ -1696,6 +1707,20 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     ok = xl6StdlibRewriteRefsScoped(root, used, diags, NULL);
     if ( !ok ) {
         return 0;
+    }
+    needsMemory = xl6StdlibHasMemoryImport(root);
+    needsMemorySnapshots = needsMemory && (xl6StdlibFuncUsed(used,"memory","stats") ||
+        xl6StdlibFuncUsed(used,"memory","debugSnapshot") || xl6StdlibNodeUsesTypeName(root,"MemoryStats") ||
+        xl6StdlibNodeUsesTypeName(root,"MemoryDebugSnapshot"));
+    needsObjectPools = needsMemory && (xl6StdlibNodeUsesTypeName(root,"ObjectPool") ||
+        xl6StdlibNodeUsesTypeName(root,"ObjectArena"));
+    if (!needsMemory) {
+        for (size_t n=0;n<XL6_STDLIB_FUNC_COUNT;++n) {
+            if (used[n] && !strcmp(xl6StdlibFuncs[n].ns,"memory")) {
+                xl6DiagAdd(diags,1,1,"memory diagnostics require explicit import memory");
+                return 0;
+            }
+        }
     }
     xl6StdlibApplyDeps(used);
     /* Resolve the whole declaration island before deriving X.509 and network
@@ -1984,7 +2009,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( xl6StdlibFuncUsed(used, "signal", "cancelOn") ) {
         needsTaskGroupClass = 1;
     }
-    needsCoreClass = needsCoreClass || needsTcpStreamOptions || needsNetResolverOptionsClass || needsCompress || needsDateTime || needsConsoleOptions || needsIoReader || needsIoWriter || needsIoLines || needsStringIterator || needsUtf8Validator || needsRegex || needsRandomClass || needsSipHasher64Class || needsXidClass ||
+    needsCoreClass = needsMemorySnapshots || needsObjectPools || needsCoreClass || needsTcpStreamOptions || needsNetResolverOptionsClass || needsCompress || needsDateTime || needsConsoleOptions || needsIoReader || needsIoWriter || needsIoLines || needsStringIterator || needsUtf8Validator || needsRegex || needsRandomClass || needsSipHasher64Class || needsXidClass ||
         needsBufferClass || needsNetAddressClass || needsNetInterfaceClass ||
         needsNetBytesClass ||
         needsNetEngineStatsClass || needsNetResolverStatsClass ||
@@ -2021,6 +2046,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( needsCoreClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibCoreClassSource);
     }
+    if (needsMemorySnapshots) xl6StdlibBuilderAppend(&builder,xl6StdlibMemorySource);
+    if (needsObjectPools) xl6StdlibBuilderAppend(&builder,xl6StdlibObjectPoolsSource);
     if (needsIoProtocols) xl6StdlibBuilderAppend(&builder, xl6StdlibIoProtocolsSource);
     if (needsConsoleOptions) xl6StdlibBuilderAppend(&builder, xl6StdlibConsoleOptionsSource);
     if (needsConsoleSession) xl6StdlibBuilderAppend(&builder, xl6StdlibConsoleSessionSource);
