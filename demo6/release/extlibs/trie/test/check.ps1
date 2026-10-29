@@ -94,6 +94,9 @@ try {
         Confirm-Output 'C example AOT' $cAotLines
     }
 
+    if (-not $SkipAot) {
+        & (Join-Path $root 'tools/check_extlib_native_globals.ps1') -Root $root -Package trie
+    }
     if ($SkipAot) {
         Write-Output 'trie Windows C/XLang fast gate: PASS (AOT skipped)'
     } else {

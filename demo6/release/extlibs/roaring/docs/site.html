@@ -21,6 +21,7 @@
     <p>高 16 位分桶，桶内有序数组按密度升级为位图；删除后会回退并收缩，适合 ID 去重。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <p>2026-10-29 发布阻断 M2：模块级空位图仅查询 valid/count，Windows/Linux 独立 EXE 打印 PASS 后状态错误、退出 1；JIT 和相同局部对象对照正常。默认门禁已接入共享生命周期专项，保留合法全局正例和失败现场，不借搬入 main 或提前销毁换绿灯。算法、API 和 ABI 未改，此问题不涉及未执行的数组投影或集合运算。</p>
     <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
       <tr><td><code>roaring.create()</code></td><td>创建空集合</td></tr>
       <tr><td><code>add / contains / remove</code></td><td>插入、查询、删除整数</td></tr>

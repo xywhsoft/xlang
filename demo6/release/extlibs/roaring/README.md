@@ -1,5 +1,21 @@
 # roaring
 
+2026-10-29：**当前发布验收受主线 M2 阻断**。新 `test/top_level.xl`
+只在模块级创建真实空位图，检查 valid/count 并打印 PASS，自然退出。
+固定 Windows/Linux 发布物均 JIT/构建成功，但独立 EXE 打印后报
+状态 RuntimeError、退出 1；相同操作的局部对照正常退出。它没有
+数组投影、集合运算或序列化，不能将退出错误归为这些未执行的路径。
+
+默认包门禁接入共享生命周期专项，合法全局正例仍必须正常退出；
+不提前销毁、不把全局搬入 main、不吞错误。可从 `demo6` 单独执行
+`powershell -NoProfile -ExecutionPolicy Bypass -File tools/check_extlib_native_globals.ps1 -Package roaring`
+或 `bash tools/check_extlib_native_globals.sh roaring`。专项有超时、
+实际输入指纹和失败现场，不重复认证底层算法；产品代码/API/ABI
+及 uint32 集合范围未改，旧局部对象绿灯不再代表整包。共享报告见
+`dev/extlib_blockers/global_native_class_aot_fini.md`；`-SkipAot` 仅供快测。
+独立测试运行库只启用 Value Container 与内存诊断，产品和 XRT 来源
+未裁改；原生内存安全/集合差分与语言生命周期的证据分开记录。
+
 2026-10-26 重建 Windows/Linux x64 发布物后，两平台默认包门禁
 均退出 0：严格 C、Linux ASan/UBSan、朴素集合差分、桶升级
 与分配失败回滚、私有原生入口负例、C/XLang 固定输出，以及

@@ -104,6 +104,9 @@ try {
             throw 'C example AOT differs from the fixed expected output'
         }
     }
+    if (-not $SkipAot) {
+        & (Join-Path $root 'tools/check_extlib_native_globals.ps1') -Root $root -Package progress
+    }
     Write-Host $(if ($SkipAot) { '[progress] Windows C/XLang quick gate: PASS (AOT skipped)' }
         else { '[progress] Windows C/XLang/AOT gate: PASS' })
 } finally {

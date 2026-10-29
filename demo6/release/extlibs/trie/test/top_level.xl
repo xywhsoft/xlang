@@ -1,0 +1,10 @@
+import trie
+
+// 空前缀树自然退役，与深键/递归删除或词串编码无关。
+trie.Trie tree = trie.create()
+
+func main(...) as int
+    assert tree.valid and tree.count == 0
+    println("trie top-level: PASS")
+    return 0
+end

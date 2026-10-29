@@ -1,0 +1,10 @@
+import roaring
+
+// 空位图也应在模块退出时自然回收，不依赖集合算法或数组投影。
+roaring.RoaringBitmap bitmap = roaring.create()
+
+func main(...) as int
+    assert bitmap.valid and bitmap.count == 0
+    println("roaring top-level: PASS")
+    return 0
+end

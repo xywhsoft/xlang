@@ -1,5 +1,23 @@
 # trie
 
+2026-10-29：**当前发布验收受主线 M2 阻断**。新增模块级真实空树
+`test/top_level.xl`，仅断言 valid/count、打印 PASS 并自然退役。
+固定 Windows/Linux 发布物 JIT 与独立构建均成功，EXE 却打印后报
+状态 RuntimeError、退出 1；相同操作的局部对象对照正常退出。
+没有插入、深键递归、编码或内存故障，不能将此错误归到这些路径。
+
+默认包门禁现接共享顶层生命周期专项，保留该合法正例，不搬到 main
+或主动清理来绕过。单项命令：从 `demo6` 执行
+`powershell -NoProfile -ExecutionPolicy Bypass -File tools/check_extlib_native_globals.ps1 -Package trie`
+或 `bash tools/check_extlib_native_globals.sh trie`。专项只测创建/状态/
+自然退役，有超时、输入指纹、原始退出状态并保留失败 EXE/报告，
+不重复认证前缀算法。产品/API/ABI 与二进制键语义未改，旧局部对象
+通过仍是历史证据，但不能代表当前整包验收。主线恢复方向见
+`dev/extlib_blockers/global_native_class_aot_fini.md`；快测不能关闭 M2。
+Linux 黄金输出先统一 CRLF/LF，避免 Windows 源件产生行尾假失败。
+独立测试运行库只使用 XRT 基础内存/错误和内存诊断，不再全开模块；
+没有更改按字节前缀集合语义或冻结 XRT 源码。
+
 2026-10-26 当前 Windows/Linux 发布物复验：默认 `test/check.ps1` 与
 `test/check.sh` 均退出 0。严格 C、Linux ASan/UBSan、独立键集合模型、
 深键和分配故障、包外原生访问拒绝，以及中央/边界/分配/公开范例

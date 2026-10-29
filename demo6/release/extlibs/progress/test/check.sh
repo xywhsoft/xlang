@@ -43,8 +43,9 @@ if ! grep -Fq 'setPrefixNative' "$work/private_native.txt" ||
 fi
 ./release/xl run release/examples/extlibs/progress.xl > "$work/xl.txt"
 ./release/xl run release/examples/extlibs/progress_c.c > "$work/c_direct.txt"
-diff -u release/extlibs/progress/test/progress.expected.txt "$work/c.txt"
-diff -u release/extlibs/progress/test/progress.expected.txt "$work/xl.txt"
+sed 's/\r$//' release/extlibs/progress/test/progress.expected.txt > "$work/expected.txt"
+diff -u "$work/expected.txt" "$work/c.txt"
+diff -u "$work/expected.txt" "$work/xl.txt"
 diff -u "$work/c.txt" "$work/xl.txt"
 diff -u "$work/c.txt" "$work/c_direct.txt"
 for source in release/extlibs/progress/test/boundaries.xl \
@@ -61,4 +62,5 @@ timeout 120s ./release/xl build release/examples/extlibs/progress_c.c \
     -o "$work/progress_c_example_aot"
 timeout 45s "$work/progress_c_example_aot" > "$work/c_aot.txt"
 diff -u "$work/c.txt" "$work/c_aot.txt"
+bash tools/check_extlib_native_globals.sh progress
 printf 'progress Linux C ASan/UBSan and XLang gate: PASS\n'

@@ -55,4 +55,5 @@ timeout 120s ./release/xl build release/extlibs/roaring/examples/roaring.c \
     -o "$work/roaring_example_c"
 timeout 30s "$work/roaring_example_c" > "$work/c_aot.txt"
 diff -u "$work/c_example.txt" "$work/c_aot.txt"
+bash tools/check_extlib_native_globals.sh roaring
 printf 'roaring Linux C ASan/UBSan, XLang JIT and bilingual AOT gate: PASS\n'

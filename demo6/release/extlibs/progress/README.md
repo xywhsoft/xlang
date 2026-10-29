@@ -1,5 +1,22 @@
 # progress
 
+2026-10-29：**当前发布验收受主线 M2 阻断**。新 `test/top_level.xl`
+在模块级创建真实进度对象，只查询初始状态并打印 PASS，自然退出。
+固定 Windows/Linux 发布物的 JIT 和独立构建均成功，但独立 EXE
+打印后报状态 RuntimeError、退出 1；同构造/查询/输出的局部对照
+`test/local_top_level_control.xl` 在两平台正常退出。没有渲染、终端
+写入或主动析构，不能用改成局部变量或忽略退出错误代替修复。
+
+默认包门禁现调用共享顶层生命周期专项；`-SkipAot` 不用于签收。
+从 `demo6` 可单独运行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/check_extlib_native_globals.ps1 -Package progress` 或 Linux
+`bash tools/check_extlib_native_globals.sh progress`。专项只核对真实对象
+创建、状态和自然退役，有超时/输入指纹/原始状态，失败保留 EXE 与
+报告；不把它当作重新认证百分比/前缀/渲染算法。产品代码、ABI 与
+字符串直接接管路径未改，旧局部作用域的通过记录仍保留为历史证据。
+主线修复方向见 `dev/extlib_blockers/global_native_class_aot_fini.md`。
+Linux 黄金输出先统一 CRLF/LF，避免从 Windows 复制源码后产生假失败；
+测试运行库仅启用 Unicode 与内存诊断，不改产品能力或冻结 XRT。
+
 2026-10-27：`xprog_render` 的 C 原型明确为 XRT 自有 `char*`，
 `ProgressBar.render()` 通过私有 native 方法的 `@owned string` 直接接管，
 去掉手工 `point` / `takeCstr` 分支。生成 C 不复制渲染正文，仍扫描一次
