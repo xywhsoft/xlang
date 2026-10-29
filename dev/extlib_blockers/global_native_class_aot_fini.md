@@ -482,3 +482,23 @@ build/test/lru_text_before_ce9052ff9792499ca842e4fbc269360c/windows-scope.json
 Linux缺编译器原始127，均保留命令、状态与失败现场。Linux的timeout
 诊断不一定带文件名，探针应核对保存的command，而不是假定本地化
 stderr文本包含路径。它们不是库BUG，也不是默认门禁签收通过。
+
+## 2026-10-30 R-tree 完整门禁复核
+
+原allocations.xl未改，依然顶层持有tree/many；两平台JIT正常，独立程序
+构建成功，运行到退出期报operation is not valid in the current state并
+退出1。默认门禁把这项原正例留在最后且要求0，不转成预期失败。前面的
+旧查询oracle/极值分裂、新多层回滚、八个生成原型、双语golden及七条
+普通独立程序均通过；不把这些局部结果外推为顶层退役已修。
+
+Windows完整42阶段（前41符合预期）的报告为
+build/test/rtree_guard/run_d897ee9e86ef45b9bc09554464b56c20.json，
+42输入不变、0警告。Linux原生快照/var/tmp/xlang-rtree-final-src-dkHOgx，
+48阶段前47符合预期，最后original-global-run为1；40门禁输入、76复制
+源与原件前后不变，native/narrow两档C含sanitizer，0警告。现场为
+tmp/xlang-rtree-vhJCWB。两个非零记录中另一个是私有访问的正常拒绝。
+
+本轮没有修改算法/ABI或主线，主要补全多层回滚和失败留档；历史最小源
+rtree_global_native_aot_fini.xl继续保留为主线修复入口。Windows静默
+编译器内部37/外层1、Linux缺工具原始127的实测均保存现场，不当作门禁
+通过。证据索引build/test/rtree_audit_676f28c4c6a34d36b8b0c4e9fb0f5f29。

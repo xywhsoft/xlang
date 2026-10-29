@@ -20,6 +20,62 @@ C API 见 `include/rtree_native.h`。句柄由 `xrtree_destroy` 释放，`xrtree
 
 ## 范例与验证
 
+### 2026-10-30 多层分裂与失败现场
+
+本轮没有确认新的索引算法错误，也未修改 `rtree_native.c`、语言绑定或
+公开头。补强的是原测试仅覆盖首次根分裂、门禁失败后删除现场的缺口。
+
+- `test/cascade_rollback.c` 在完全重叠、按坐标递增两种布局下，分别捕获
+  需要 2/3/4 个预分配节点的分裂各两次，共 12 次事件、36 个失败点。
+  每次失败检查原树逐字节未变、全部 ID 完整、存活分配/字节及非法释放
+  计数不变；同一插入随后用恰好足够的预算立即恢复。另独立重算父包围盒、
+  叶层深度与叶条目数；测试在 853/1719 项时完成，不是只校验根计数。
+- 补 `INT64_MIN/MAX`、超过 32 位的 ID、重复 ID 的完整查询/逐项删除；
+  持有的结果在清空/销毁树后仍有效，删除/计数/清空/销毁在零分配预算
+  下完成。整份夹具每次执行 2,488,071 条断言，主要是重复结构巡检，
+  **不把断言数称为同等数量的独立输入**。三个隔离破坏副本（改总数、
+  改叶 ID、遗漏预分配回收）均被对应检查拒绝；正式实现没有测试钩子。
+- C 独立夹具只启用 Math/Value Container/Memory Debug，避免原 ALL
+  引入与本包无关的网络链接依赖。正式包的模块声明与 ABI 未变。八个
+  真实 cgen 原型均用正式 C 头检查，故意错配返回类型的副本确实编译失败。
+  初始 ABI 夹具漏启用 Value Container、初始黄金文本比较未统一 CRLF，
+  都是测试建设问题，已纠正，不计作产品 BUG。
+- 新的 `examples/scene.xl` 与 `scene_c.c` 覆盖视野查询、边缘相交、点、
+  大 ID、移动、缺失删除、结果快照、重复 ID 与复用，六行固定输出一致。
+  `remove` 后 `insert` 是两次独立修改，不承诺失败原子的移动事务；
+  `search` 顺序未定义，例子不依赖树的遍历次序。两份例子都只建立局部
+  场景对象，原有顶层故障测试没有移入函数。
+- Windows 默认 42 阶段前 41 符合预期，Linux 默认 48 阶段前 47 符合
+  预期，均含一项真实私有访问拒绝；八原型、旧查询 oracle/分裂回归、
+  新旧双语固定输出、七条普通独立程序均通过。Linux 同时覆盖 native/
+  narrow long double 的 ASan/UBSan/泄漏检查。最后未改的
+  `test/allocations.xl` 独立程序仍报运行时状态错误并退出 1，**M2 未关闭，
+  不是整包门禁通过**。42/40 项门禁输入前后未变、编译警告均为零。
+
+Windows 每个子进程限时 120 秒，报告保存在 `build/test/rtree_guard/run_*.json`；
+失败保留该目录内生成物、原始状态与输出，成功才删除临时目录。Linux 同样
+逐阶段保存命令、stdout/stderr、原始退出码、前后指纹及 `*.report.txt`。
+真实失效探针验证 Windows 静默编译器内部 37/脚本外层 1、Linux 缺工具
+原始 127 都保留现场，不能因为没有输出或找不到工具而被算成通过。
+`-SkipAot` 仅用于开发快测，不用于发布签收。
+
+在仓库根目录运行新范例：
+
+```powershell
+release/xl.exe run release/extlibs/rtree/examples/scene.xl
+release/xl.exe run release/extlibs/rtree/examples/scene_c.c
+```
+
+Linux 将 `release/xl.exe` 换成 `release/xl`，从相同根目录运行。预期输出见
+`examples/scene.expected.txt`，无网络、模型或外部服务前提；索引和结果均在
+作用域结束时回收，C 例子显式释放结果和句柄。完整门禁入口仍为
+`powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/rtree/test/check.ps1`
+和 `bash release/extlibs/rtree/test/check.sh`。本轮完整 Linux 复验在原生
+`/var/tmp/xlang-rtree-final-src-dkHOgx` 快照执行，76 个复制源与原件前后一致，
+失败现场为 `tmp/xlang-rtree-vhJCWB`；Windows 对应报告为
+`build/test/rtree_guard/run_d897ee9e86ef45b9bc09554464b56c20.json`。
+全部证据索引在 `build/test/rtree_audit_676f28c4c6a34d36b8b0c4e9fb0f5f29`。
+
 2026-10-26：当前发布版已越过旧的 `xl6ValueDataSnapshotV1` 缺符号点。
 Windows 默认门禁的严格 C、查询 oracle、语言边界 AOT 通过，
 但 `allocations.xl` 独立 EXE 在退出清理阶段抛运行时状态错误；
@@ -47,7 +103,7 @@ oracle 与分裂回归通过，中央 XLang 用例先报共享 VFS 头文件
 
 在仓库根目录可运行 `tools/smoke_extlib_catalog.ps1 -Package rtree`；Linux C/XL sanitizer 门禁为 `bash release/extlibs/rtree/test/check.sh`。它同时编译运行公开 C 范例、运行中央与包内 XLang 用例，并逐字节比较两种语言的范例输出；`xl run release/examples/extlibs/rtree_c.c` 也可直接运行。
 
-Windows 聚焦快测为 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/rtree/test/check.ps1 -SkipAot`，同次验证 C 查询参照、包外原生方法访问拒绝、XLang 边界及三条范例路径的固定输出。不带 `-SkipAot` 时，默认还构建运行核心、边界、分配故障、公开 XLang/C 范例的独立 EXE，并核对范例固定输出。构建使用单次独占目录，失败后也清理。当前默认门禁在分配故障 AOT 的顶层对象退出清理处失败，不可据快测签收。
+Windows 聚焦快测为 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/rtree/test/check.ps1 -SkipAot`，同次验证 C 查询参照、包外原生方法访问拒绝、XLang 边界及双语范例固定输出。不带 `-SkipAot` 时，默认还构建运行核心、边界、分配故障、公开 XLang/C 范例的独立 EXE，并核对范例固定输出。构建使用单次独占目录，失败后保留报告和现场。当前默认门禁在分配故障 AOT 的顶层对象退出清理处失败，不可据快测签收。
 
 2026-10-12：Windows 严格 GCC、Linux ASan/UBSan、C/XLang 边界、双语同输出及无输出边界 AOT 通过。2026-10-13 补原生创建的首、次分配故障与失败后恢复测试，复跑 C 查询 oracle、XLang 边界和双语范例。2026-10-14 修复合法极值坐标在窄 `long double` 目标上使面积溢出、分裂复制错误 ID 的问题；面积启发式限幅到有限 `DBL_MAX`，不限制可插入坐标。C 回归逐一核对全部 ID，`test/check.sh` 在支持时额外用 `-mlong-double-64` 运行严格 GCC/ASan/UBSan。带输出范例 AOT 仍受共享 `xl6ValueDataSnapshotV1` 缺符号阻断；发布验收未完成，见 `demo6/dev/extlib_blockers/text_snapshot_link.md`。
 

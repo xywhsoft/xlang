@@ -19,6 +19,7 @@
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / rtree</p><h1>rtree</h1>
     <p class="extlib-lead">二维空间索引。</p>
     <p>以 R-tree 保存矩形及整数 ID，支持完整结果集查询、相交计数、删除和复用；无共享结果缓冲。</p>
+    <p>2026-10-30 补多层分裂的 12 次事件、36 个分配失败点，检查树字节、完整 ID、存活内存和立即恢复；Linux 两档 long double 均有 sanitizer 验证。新增 C/XLang 场景视野范例展示边缘相交、大 ID、移动及独立结果；删除再插入不是原子移动，查询顺序不固定。八个生成原型与正式 C 头一致，两平台七条普通独立程序通过；原顶层分配用例仍在 AOT 退出期失败，尚不签收整包。默认门禁保留失败现场及原始退出码，不将工具缺失或静默失败算作通过。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
