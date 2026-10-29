@@ -1,0 +1,30 @@
+func castOwned(var value) as string
+    return value as string
+end
+func outliveSource() as string
+    var original = "a\0你\0b"
+    return castOwned(original)
+end
+func main(...)
+    var source = "a\0你\0b"
+    string copied = source as string
+    source = "replaced"
+    assert copied == "a\0你\0b"
+    assert string.byteLen(copied) == 7
+    assert outliveSource() == copied
+    var empty = ""
+    string emptyString = empty as string
+    assert emptyString == "" and emptyString.length == 0
+    string? maybe = empty as string?
+    assert maybe != null and maybe == ""
+    var mismatch = 42
+    string? absent = mismatch as string?
+    assert absent == null
+    int rejected = 0
+    try
+        string invalid = mismatch as string
+    catch TypeError e
+        rejected += 1
+    end
+    assert rejected == 1
+end
