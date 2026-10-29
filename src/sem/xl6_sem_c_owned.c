@@ -640,7 +640,8 @@ static int xl6SemCOwnedAdaptCallArguments(XL6_SemContext* ctx,XL6_AstNode* call,
                 xl6AstFree(concrete);concrete=closed;
             }
             xl6AstFree(methodArgs);
-            int ok=concrete && xl6SemConstrainedBoundMethod(ctx,argument->children[0],
+            int ok=concrete && xl6SemContextualCallableCost(ctx,argument->children[0],concrete,1,NULL)!=-1 &&
+                xl6SemConstrainedBoundMethod(ctx,argument->children[0],
                 xl6SemCOwnedResolvedElement(ctx,concrete),1)!=0 &&
                 xl6SemCOwnedAdaptCallableExpr(ctx,argument->children[0],concrete);
             xl6AstFree(concrete);

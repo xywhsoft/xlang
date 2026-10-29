@@ -1,0 +1,129 @@
+// Expected signatures reach only the selected branch. Neither callback
+// selection nor invocation may erase an exact owner/string result to var.
+extern "c_owned_text" @no_raise func rawText() as point
+extern "c_owned_binary" @no_raise func rawBytes() as point
+extern "c_owned_release" @no_raise func release(point value)
+extern "c_owned_text_is_original" @no_raise func original(string value) as bool
+extern "c_owned_binary_span_original" @no_raise func originalBytes(cbytes value) as bool
+extern "bound_c_owners_balanced" @no_raise func balanced() as bool
+extern "bound_c_owners_one_record" @no_raise func oneRecord() as bool
+extern "owned_original" @no_raise func nativeOriginal(string value) as bool
+extern "owned_one_allocation" @no_raise func oneAllocation(string value) as bool
+extern "owned_reset" @no_raise func reset()
+extern "owned_debug" @no_raise func debug() as bool
+extern "owned_fail_after" @no_raise func failAfter(int prefix)
+extern "owned_clear_failure" @no_raise func clearFailure()
+extern "owned_outstanding" @no_raise func live() as int
+extern "typed_bound_handles" @no_raise func handles() as int
+class Reader
+    func Text() as cstring
+        return cstring.take(rawText(),release)
+    end
+    func Data() as cbytes
+        return cbytes.take(rawBytes(),4,release)
+    end
+    func Args(...) as cstring
+        assert arg.length==1
+        return self.Text()
+    end
+    func Options(***) as cbytes
+        assert arg["key"]==7
+        return self.Data()
+    end
+end
+class Native
+    private native point handle
+    extern "typed_bound_open" create()
+    extern "typed_bound_close" destroy()
+    extern "typed_bound_text" @owned func Read(c_int mode=c_int(7)) as string
+end
+class Box<K>
+    func Echo<T>(T value) as T
+        return value
+    end
+end
+int evaluations=0
+func receiver() as Reader
+    evaluations+=1
+    return Reader()
+end
+typedef Text=func() as cstring
+func saved(bool choose) as Text
+    return choose ? Reader().Text : Reader().Text
+end
+func consume(Text callback) as cstring
+    return callback()
+end
+func exercise(bool choose)
+    evaluations=0
+    Text text=choose ? receiver().Text : receiver().Text
+    assert evaluations==1
+    reset()
+    string value=text()
+    assert original(value) and oneRecord()
+    Reader left=Reader()
+    Reader right=Reader()
+    func() as cbytes data=choose ? left.Data : right.Data
+    reset()
+    bytes binary=data()
+    assert originalBytes(binary) and oneRecord()
+    Text returned=saved(choose)
+    string escaped=returned()
+    assert original(escaped)
+    string argument=consume(choose ? left.Text : right.Text)
+    assert original(argument)
+    auto cast=(choose ? left.Text : right.Text) as Text?
+    if cast!=null
+        string castValue=cast()
+        assert original(castValue)
+    else
+        assert false
+    end
+    Text? maybe=choose ? left.Text : null
+    evaluations=0
+    Text selected=maybe ?? receiver().Text
+    assert evaluations==(choose ? 0 : 1)
+    string selectedValue=selected()
+    assert original(selectedValue)
+    func(...) as cstring arrayCallback=choose ? left.Args : right.Args
+    string arrayValue=arrayCallback(7)
+    assert original(arrayValue)
+    func(***) as cbytes dictCallback=choose ? left.Options : right.Options
+    bytes dictValue=dictCallback(key=7)
+    assert originalBytes(dictValue)
+    Box<string> a=Box::<string>()
+    Box<string> b=Box::<string>()
+    func(int) as int generic=choose ? a.Echo : b.Echo
+    assert generic(7)==7
+    // Both source methods already return an ordinary owned string. The
+    // callback must retain that ABI, including omitted native defaults.
+    Native first=Native()
+    Native second=Native()
+    func() as string nativeShort=choose ? first.Read : second.Read
+    reset()
+    string shortValue=nativeShort()
+    assert nativeOriginal(shortValue) and oneAllocation(shortValue)
+    func(c_int) as string nativeFull=choose ? first.Read : second.Read
+    reset()
+    string fullValue=nativeFull(c_int(7))
+    assert nativeOriginal(fullValue) and oneAllocation(fullValue)
+end
+assert debug()
+exercise(true)
+exercise(false)
+assert balanced() and handles()==0
+int accepted=0
+int rejected=0
+for prefix in range(512)
+    int before=live()
+    failAfter(prefix)
+    try
+        exercise(prefix%2==0)
+        accepted+=1
+    catch problem
+        rejected+=1
+    end
+    clearFailure()
+    assert live()==before and balanced() and handles()==0
+end
+assert accepted>0 and rejected>0

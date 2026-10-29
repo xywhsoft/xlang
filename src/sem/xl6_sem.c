@@ -1579,6 +1579,7 @@ static int xl6SemCheckYieldStmt(XL6_SemContext* ctx, XL6_AstNode* node);
 static int xl6SemTypeEquals(XL6_SemContext* ctx, const XL6_AstNode* a, const XL6_AstNode* b);
 static int xl6SemExprCanMatchFunctionTypeEx(XL6_SemContext* ctx, const XL6_AstNode* expr, const XL6_AstNode* typeNode, int reportError);
 static int xl6SemConstrainedBoundMethod(XL6_SemContext*,const XL6_AstNode*,const XL6_AstNode*,int);
+static int xl6SemContextualCallableCost(XL6_SemContext*,XL6_AstNode*,const XL6_AstNode*,int,int*);
 static int xl6SemFuncHasVararg(const XL6_AstNode* params);
 static int xl6SemIsContainerBaseTypeName(const char* name);
 static int xl6SemFixedParamCount(const XL6_AstNode* params);
@@ -3862,6 +3863,9 @@ static int xl6SemExprParamMatchCostEx(
     if ( targetType == NULL ) {
         return 0;
     }
+
+    int contextual=xl6SemContextualCallableCost(ctx,(XL6_AstNode*)expr,typeNode,reportError,NULL);
+    if(contextual!=-2)return contextual;
 
     exprType = xl6SemExprStaticTypeName(ctx, (XL6_AstNode*)expr);
     /* Match optional callables before stripping the receiving nullable shell;
@@ -7754,6 +7758,14 @@ static int xl6SemCheckRuntimeTypeExpr(XL6_SemContext* ctx, XL6_AstNode* node, in
         xl6SemResolveAliasType(ctx, nullableTargetInner) :
         concreteTarget;
 
+    int changed=0;
+    int contextual=xl6SemContextualCallableCost(ctx,value,concreteTarget,1,&changed);
+    if(contextual==-1)ok=0;
+    if(ok && changed){
+        xl6AstFree(sourceType);
+        return xl6SemCheckRuntimeTypeExpr(ctx,node,isCast);
+    }
+
     /* A method-group cast selects a declaration just like a contextual
      * function binding. A checked runtime cast cannot waive its constraints. */
     int methodCast=effectiveTarget && xl6TextEquals(effectiveTarget->text,"function")
@@ -8395,6 +8407,66 @@ static int xl6SemConstrainedBoundMethod(XL6_SemContext* ctx,const XL6_AstNode* e
     if(report)xl6SemErrorNode(ctx,expr,matches ? "typed bound method requires one exact overload" :
         "typed bound method violates generic constraints or its exact signature");
     return 0;
+}
+
+/* Carry the expected ABI into method leaves before a lazy join can erase
+ * them to var. Explicit casts already own the verified typed-binding path;
+ * normalization reuses that path without adding a runtime cast or adapter.
+ * Candidate ranking is read-only. Only the selected context may rewrite. */
+static int xl6SemBindContextualMethod(XL6_SemContext* ctx,XL6_AstNode* expr,
+    const XL6_AstNode* signature,int report,int* changed)
+{
+    int match=xl6SemConstrainedBoundMethod(ctx,expr,signature,report);
+    if(match<=0 || !report)return match;
+    XL6_AstNode* binding=xl6AstNewText(XL6_AST_TYPE_AS,"as",2,NULL);
+    XL6_AstNode* type=xl6SemCloneTypeNode(signature);
+    XL6_AstNode* old=xrtMalloc(sizeof(*old));
+    XL6_AstNode** parts=xrtCalloc(2,sizeof(*parts));
+    if(!binding || !type || !old || !parts){
+        xl6AstFree(binding);xl6AstFree(type);xrtFree(old);xrtFree(parts);
+        xl6SemErrorNode(ctx,expr,"out of memory while binding a contextual method");return 0;
+    }
+    binding->line=expr->line;binding->column=expr->column;xl6AstCopySource(binding,expr);
+    binding->children=parts;binding->childCount=binding->childCapacity=2;
+    *old=*expr;parts[0]=old;parts[1]=type;*expr=*binding;xrtFree(binding);
+    if(changed)*changed=1;
+    return xl6SemCheckRuntimeTypeExpr(ctx,expr,1);
+}
+
+/* -2: no compound callable context, -1: mismatch, otherwise match cost. */
+static int xl6SemContextualCallableCost(XL6_SemContext* ctx,XL6_AstNode* expr,
+    const XL6_AstNode* type,int report,int* changed)
+{
+    type=xl6SemResolveAliasType(ctx,type);
+    const XL6_AstNode* inner=xl6SemNullableInnerType(type);
+    const XL6_AstNode* signature=xl6SemResolveAliasType(ctx,inner ? inner : type);
+    int conditional=expr && expr->kind==XL6_AST_CONDITIONAL && expr->childCount==3;
+    int coalesce=expr && expr->kind==XL6_AST_BINARY && expr->childCount==2 && xl6TextEquals(expr->text,"??");
+    if(!signature || !xl6TextEquals(signature->text,"function") || signature->childCount!=2 ||
+       (!conditional && !coalesce))return -2;
+    int cost=0,ok=1;
+    size_t mark=ctx->flowFactCount;
+    for(size_t b=conditional ? 1 : 0;b<expr->childCount;++b){
+        XL6_AstNode* branch=expr->children[b];
+        XL6_AstNode* lifted=coalesce && b==0 ? xl6SemLiftNullableType(xl6SemCloneTypeNode(signature),expr) : NULL;
+        const XL6_AstNode* expected=lifted ? lifted : type;
+        if(coalesce && b==0 && !lifted){ok=0;break;}
+        if(conditional && !xl6SemApplyConditionFlow(ctx,expr->children[0],b==1))ok=0;
+        int bound=ok ? xl6SemBindContextualMethod(ctx,branch,signature,report,changed) : 0;
+        int branchCost=bound>=0 ? (bound ? 0 : -1) :
+            xl6SemContextualCallableCost(ctx,branch,expected,report,changed);
+        if(branchCost==-2)branchCost=xl6SemExprParamMatchCostEx(ctx,branch,expected,report);
+        if(branchCost<0)ok=0;else if(branchCost>cost)cost=branchCost;
+        xl6AstFree(lifted);xl6SemRestoreFlowFacts(ctx,mark);
+        if(!ok)break;
+    }
+    if(ok && report){
+        xl6AstFree(expr->inferredType);expr->inferredType=NULL;
+        XL6_AstNode* joined=xl6SemInferAutoTypeNode(ctx,expr);
+        if(!joined){xl6SemErrorNode(ctx,expr,"out of memory while typing a contextual callable join");ok=0;}
+        xl6AstFree(joined);
+    }
+    return ok ? cost : -1;
 }
 
 static int xl6SemExprCanMatchFunctionTypeEx(XL6_SemContext* ctx, const XL6_AstNode* expr, const XL6_AstNode* typeNode, int reportError)
@@ -15680,6 +15752,17 @@ static int xl6SemCheckBinaryExpr(XL6_SemContext* ctx, XL6_AstNode* node)
         bodyMark = ctx->flowFactCount;
         if ( !xl6SemCheckExpr(ctx, node->children[1]) ) {
             ok = 0;
+        }
+        if(ok && !logical){
+            XL6_AstNode* left=xl6SemInferAutoTypeNode(ctx,node->children[0]);
+            const XL6_AstNode* inner=xl6SemNullableInnerType(xl6SemResolveAliasType(ctx,left));
+            const XL6_AstNode* signature=xl6SemResolveAliasType(ctx,inner);
+            if(signature && xl6TextEquals(signature->text,"function") && signature->childCount==2){
+                int bound=xl6SemBindContextualMethod(ctx,node->children[1],signature,1,NULL);
+                if(bound==0 || (bound<0 &&
+                    xl6SemContextualCallableCost(ctx,node->children[1],signature,1,NULL)==-1))ok=0;
+            }
+            xl6AstFree(left);
         }
         if ( logical && !xl6SemCheckBoolExpr(
                  ctx,
