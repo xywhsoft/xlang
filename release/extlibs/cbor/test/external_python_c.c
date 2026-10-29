@@ -50,10 +50,10 @@ int main(int argc, char **argv) {
         bytes.Data[0] == 0 && bytes.Data[1] == 255);
     item = field(doc, "when");
     CHECK(item && xrtValueGetTime(item, &when) &&
-        when == INT64_C(1786930200123456));
+        when == XRT_TIME_UNIX_EPOCH + INT64_C(1786930200123));
     item = field(doc, "epoch");
     CHECK(item && xrtValueGetTime(item, &when) &&
-        when == INT64_C(1786930200250000));
+        when == XRT_TIME_UNIX_EPOCH + INT64_C(1786930200250));
     xrtValueRelease(doc);
     puts("Python to C CBOR: PASS");
     return 0;

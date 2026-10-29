@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
     CHECK(item && xrtValueGetBytes(item, &bytes) && bytes.Size == 2 &&
         bytes.Data[0] == 0 && bytes.Data[1] == 255);
     item = field(doc, "when");
-    CHECK(item && xrtValueGetTime(item, &moment) && moment == -500000);
+    CHECK(item && xrtValueGetTime(item, &moment) && moment == XRT_TIME_UNIX_EPOCH - 500);
     xrtValueRelease(doc);
     puts("Python to C MessagePack: PASS");
     return 0;

@@ -14,7 +14,7 @@ func main(...) as int
     assert raw.length == 2
     assert raw[0] == 0
     assert raw[1] == 255
-    assert doc["when"] == time(-500000)
+    assert doc["when"] == time.fromUnixMs(-500)
     println("Python to XLang MessagePack: PASS")
     return 0
 end
