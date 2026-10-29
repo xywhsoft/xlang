@@ -20,7 +20,9 @@ static int xl6IrLowerTryTypedBoundMethod(XL6_IrLowerContext* ctx,XL6_IrNodeId or
     const XL6_IrType* signature=xl6IrTypeGet(&module->types,signatureId);
     if(!source || source->kind!=XL6_IR_NODE_MEMBER || source->sourceKind!=XL6_AST_MEMBER ||
        source->childCount!=1 || !source->text || !signature || signature->kind!=XL6_IR_TYPE_FUNCTION ||
-       signature->callableErasureAbi!=XL6_IR_CALLABLE_ERASURE_FIXED) return 0;
+       (signature->callableErasureAbi!=XL6_IR_CALLABLE_ERASURE_FIXED &&
+        signature->callableErasureAbi!=XL6_IR_CALLABLE_ERASURE_ARRAY_VARIADIC &&
+        signature->callableErasureAbi!=XL6_IR_CALLABLE_ERASURE_DICT_VARIADIC)) return 0;
     XL6_IrNodeId receiverId=module->children[source->firstChild];
     const XL6_IrNode* receiverNode=xl6IrNodeGet(module,receiverId);
     XL6_IrTypeId ownerId=receiverNode ? xl6IrNodeMaterializedValueType(module,receiverNode) : 0;
@@ -52,9 +54,14 @@ static int xl6IrLowerTryTypedBoundMethod(XL6_IrLowerContext* ctx,XL6_IrNodeId or
         const XL6_IrNode* returns=declaration && declaration->childCount>2 ? xl6IrNodeGet(module,module->children[declaration->firstChild+2]) : NULL;
         if(!params || !returns || params->childCount<signature->paramCount ||
            (declaration->flags&XL6_AST_FLAG_STATIC))continue;
+        XL6_IrCallTarget user={.parameterCount=params->childCount,
+            .variadicAbi=xl6IrLowerCallableTargetVariadicAbi(signature->callableErasureAbi)};
+        const XL6_IrNode* tail=params->childCount ? xl6IrNodeGet(module,module->children[params->firstChild+params->childCount-1]) : NULL;
+        if((tail ? xl6IrCallVariadicAbiForParameter(module,tail) : XL6_IR_CALL_VARIADIC_NONE)!=user.variadicAbi)continue;
         uint64_t rank=0;
         bool matches=xl6CallRankAdd(&rank,0,(uint32_t)(params->childCount-signature->paramCount));
-        for(size_t p=signature->paramCount;matches && p<params->childCount;++p) {
+        for(size_t p=0;matches && p<params->childCount;++p) {
+            if(xl6IrLowerNamedAdapterSignatureParameter(signature,&user,p)!=SIZE_MAX)continue;
             const XL6_IrNode* parameter=xl6IrNodeGet(module,module->children[params->firstChild+p]);
             matches=parameter && parameter->childCount>=2;
         }
@@ -68,7 +75,8 @@ static int xl6IrLowerTryTypedBoundMethod(XL6_IrLowerContext* ctx,XL6_IrNodeId or
             size_t ownerCount=0;
             matches=xl6IrLowerSeedGenericOwner(module,declarationId,ownerId,parameters,count,resolved,&ownerCount)!=0;
             for(size_t p=0;matches && p<signature->paramCount;++p) {
-                const XL6_IrNode* parameter=xl6IrNodeGet(module,module->children[params->firstChild+p]);
+                size_t mapped=xl6IrLowerNamedAdapterTargetParameter(signature,&user,p);
+                const XL6_IrNode* parameter=mapped<params->childCount ? xl6IrNodeGet(module,module->children[params->firstChild+mapped]) : NULL;
                 if(!parameter) {matches=false;break;}
                 XL6_IrNode concrete=*parameter;concrete.storageType=signature->params[p];
                 matches=xl6IrParameterAbiForNode(module,&concrete)==signature->parameterAbis[p] &&
@@ -236,7 +244,9 @@ static int xl6IrLowerMaterializeTypedBoundMethods(XL6_IrLowerContext* ctx)
         for(size_t t=1;t<=typeLimit;++t) {
             const XL6_IrType* signature=xl6IrTypeGet(&module->types,(XL6_IrTypeId)t);
             if(!signature || signature->kind!=XL6_IR_TYPE_FUNCTION ||
-               signature->callableErasureAbi!=XL6_IR_CALLABLE_ERASURE_FIXED ||
+               (signature->callableErasureAbi!=XL6_IR_CALLABLE_ERASURE_FIXED &&
+                signature->callableErasureAbi!=XL6_IR_CALLABLE_ERASURE_ARRAY_VARIADIC &&
+                signature->callableErasureAbi!=XL6_IR_CALLABLE_ERASURE_DICT_VARIADIC) ||
                xl6IrLowerTypeContainsTypeParam(module,(XL6_IrTypeId)t,0)) continue;
             XL6_IrNodeId origin=parent;
             for(size_t depth=0;origin && depth<module->nodeCount;++depth) {

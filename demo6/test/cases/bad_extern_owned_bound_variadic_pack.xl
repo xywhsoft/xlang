@@ -1,0 +1,8 @@
+extern "c_owned_release" @no_raise func release(point value)
+class Reader
+    func Read(***) as cstring
+        return cstring.take(null,release)
+    end
+end
+Reader reader=Reader()
+func(...) as cstring callback=reader.Read
