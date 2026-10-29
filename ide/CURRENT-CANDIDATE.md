@@ -15,7 +15,7 @@
 
 - [启动 IDE](release/xlang_ide.exe)
 - [Windows x64 便携 ZIP](dist/portable-20261022-standalone-v2/xlang-ide-windows-x64.zip)
-- [使用说明](dist/portable-20261022-standalone-v2/xlang-ide/QUICKSTART.md)
+- [使用说明](release/QUICKSTART.md)
 - [本轮核验](build/standalone-targets-20261021/result.json)
 - [源码构建](docs/current-source-build.md)
 
