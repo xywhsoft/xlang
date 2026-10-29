@@ -1,0 +1,111 @@
+{
+  "complete": true,
+  "date": "2026-10-30",
+  "scope": "Six delivery acceptance limitations, with general foreign graph and complete mail migration",
+  "coreSourceFingerprint": "fc17693c4142bf085120fcbaf939ae88f75fd3d4a53d5ba7dd6e5f13c133b34d",
+  "xrtRevision": "9b5d52694c9c53e7c57de9c9d2760a171a97858f",
+  "foreignGraphCommit": "fc2cf2414",
+  "mailCommit": "6b1929f81",
+  "nativeFixtureCoverage": 24,
+  "mailNativeDeclarations": 101,
+  "reports": {
+    "windowsBuild": {
+      "report": "final-build.json",
+      "sha256": "ca419531ad552f84db405b971510541289cd7a82226121b064a4fce10e9c969f",
+      "phases": 0
+    },
+    "windowsMail": {
+      "report": "mail-shipping-r3/results.json",
+      "sha256": "4ac813f5797bb1b0b27eefbb85ffebbea4afa4d0553178b9c4b364f3cf047ece",
+      "phases": 23
+    },
+    "linuxMail": {
+      "report": "linux-evidence/mail-shipping-r3/results.json",
+      "sha256": "3a1bfa00d475737a19c2360a8c8f66d05335e14d5463ed6d34668be1d03aff8b",
+      "phases": 23
+    },
+    "windowsTerminal": {
+      "report": "terminal-shipping-final/results.json",
+      "sha256": "b94275bfee9cfc7658769976448c078e85a9d56e5e20fc3674a5eb2e39ad5bfe",
+      "phases": 21
+    },
+    "linuxTerminal": {
+      "report": "linux-evidence/terminal/results.json",
+      "sha256": "fbc736b6af76f6ce687dd1802f086f9e9f776d807c8955c3b50718c26cb816e4",
+      "phases": 21
+    },
+    "windowsDelivery": {
+      "report": "delivery-final/results.json",
+      "sha256": "7095fa5bd0aa0f73225592ae073b5586abcd683183be521367f89b0c287eb718",
+      "phases": 10
+    },
+    "linuxDelivery": {
+      "report": "linux-evidence/delivery/results.json",
+      "sha256": "cf36c5bfb91fef0ae7f9a96c7203efb6176d8968ef859a9f3b47ce180f705b36",
+      "phases": 10
+    },
+    "windowsForeignGraph": {
+      "report": "foreign-graph-task-r2/results.json",
+      "sha256": "28e03847d68b92a586ac372bd535a114f812274157ba2cab2679f03a15929d3b",
+      "phases": 13
+    },
+    "linuxForeignGraph": {
+      "report": "linux-evidence/foreign-graph/results.json",
+      "sha256": "3a60fc7ca9220a6ed2ee673bbd88e97809f04c5f1e9e66458070f819ad4b8088",
+      "phases": 13
+    },
+    "windowsBridge": {
+      "report": "bridge-shipping-final/results.json",
+      "sha256": "37b3952f03ee3b7f682a09a4bdcbccf53efa1ffe4b3dfac436880e5c0cf3f741",
+      "phases": 24
+    },
+    "nativeFixtures": {
+      "report": "configured-fixture-coverage.json",
+      "sha256": "8fb8595af067855aa142ecc3c2f7eb2f3d4d9965fba9f4e573ef6c46ed0cc0bf",
+      "phases": 0
+    },
+    "linuxCodecs": {
+      "report": "linux-evidence/codecs/results.json",
+      "sha256": "849a1748784a12bce1c0ae2131591ab3981cd77d8c2207c5896962c23b9849e7",
+      "phases": 12
+    },
+    "wireInterop": {
+      "report": "wire-interop/results.json",
+      "sha256": "91fe33c22dee925aeb9144550f5b908d7c5d0798f6ed28e98bf023eb8a73f75f",
+      "phases": 11
+    }
+  },
+  "products": [
+    {
+      "path": "D:\\GIT\\x-lang\\release\\xl.dll",
+      "bytes": 14259712,
+      "sha256": "66296bcce668dbbd97c6807a71f63cda652a9d99c74d8784ad1f32ef9f0b0c0b"
+    },
+    {
+      "path": "D:\\GIT\\x-lang\\release\\xlc.dll",
+      "bytes": 19597824,
+      "sha256": "b7347d659bea4afe0276eb353c1f473d7677b6e5741312341d2cd7120f6be89d"
+    },
+    {
+      "path": "D:\\GIT\\x-lang\\release\\libxl.so",
+      "bytes": 15971888,
+      "sha256": "68ac5f0e148e2c51816e9f42b55aec390a2660f48b932c900478d4b174a14894"
+    },
+    {
+      "path": "D:\\GIT\\x-lang\\release\\libxlc.so",
+      "bytes": 21260144,
+      "sha256": "f88d23afcf1d646ed609c585658c2dd68f820f910e1b63588c23fb0f3cf18038"
+    },
+    {
+      "path": "D:\\GIT\\x-lang\\release\\xl",
+      "bytes": 43136,
+      "sha256": "3c29ad43e163bb05055bd42f67760f64619a8e1198ee05de7bda01ca665e7e81"
+    }
+  ],
+  "securityTests": false,
+  "externalEndpoints": false,
+  "tlsHandshakeTests": false,
+  "evidenceRoot": "F:\\xlang-validation\\acceptance-closure-20261030",
+  "linuxBuildEvidenceMethod": "Isolated producer with precompiler source fingerprint rechecked by VFS generator and after full shared build; individual hashes recorded after build",
+  "costs": "Foreign records/argument/releaser construction, method atomic/refcount and mutation scopes, native handle pins/execution scope, STARTTLS request/task allocations, host-name scan, MIME container projection. Zero bridge overhead is not claimed."
+}
