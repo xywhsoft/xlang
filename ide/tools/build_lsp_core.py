@@ -98,41 +98,8 @@ def sha(path: Path) -> str:
 
 
 def prepare_native_index(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
-    """Expose the shared collector and parameterize its limit, keeping upstream immutable."""
-    original = frontend / "src/sem/xl6_sem_index.c"
-    body = original.read_bytes()
-    if hashlib.sha256(body).hexdigest() != '215ffbdfe8cf2a0d54b36c76a96f5c0ff603020b7aee6868b9e819bca70b1c54':
-        raise ValueError('shared index changed; audit typed arena/JSON budget separation and unchanged collector rules')
-    type_model = frontend / 'src/type/xl6_type_model.c'
-    type_sha = 'fdf35faa5dc2366a0625317d70cc82dbe8031762fcb7c81439e99a3a8de2a051'
-    if sha(type_model) != type_sha:
-        raise ValueError('shared canonical builder changed; audit minimum capacity and geometric allocation charge')
-    source = body.decode("utf-8").replace("\r\n", "\n")
-    definition = "#define XL6_INDEX_BYTES (8u * 1024u * 1024u)"
-    if source.count(definition) != 1:
-        raise ValueError("shared index budget declaration changed; audit its native build overlay")
-    for old, new in {
-        '} XL6_IndexBuild;': '    size_t factsCapacity, sourcesCapacity;\n} XL6_IndexBuild;\n#include "analysis/frontend_index_budget.inc"',
-        'if (!xl6IndexBudget(b, 1536)) return 0;': 'if (!xlsIndexRecordBudget(b)) return 0;',
-        'b->count >= XL6_INDEX_NODES': 'b->count >= xlsIndexNodeLimit(b)',
-        '    f = &b->facts[b->count++];': '    if (!xlsIndexReserveFact(b)) return 0;\n    f = &b->facts[b->count++];',
-        '    if (b->sourceCount >= XL6_INDEX_NODES) {': '    if (!xlsIndexReserveSource(b)) {',
-        '        b->error = "semantic index exceeds source identity limit";': '        if (!b->error) b->error = "semantic index exceeds source identity limit";',
-    }.items():
-        if source.count(old) != 1:
-            raise ValueError('shared typed-index allocation seam changed: ' + old)
-        source = source.replace(old, new)
-    generated_root = output / "frontend"
-    generated_root.mkdir()
-    compiled = generated_root / "xl6_sem_index.c"
-    compiled.write_bytes((source.replace(definition,
-        "#ifndef XL6_INDEX_BYTES\n" + definition + "\n#endif") +
-        '\n#include "analysis/frontend_index.inc"\n').encode("utf-8"))
-    return original, compiled, dict(source=str(original), sourceSha256=hashlib.sha256(body).hexdigest(),
-        compiledSource=str(compiled), compiledSha256=sha(compiled),
-        change="preserve shared collector; typed arenas grow within byte budget, legacy JSON retains fixed node/record limits", indexBytes=NATIVE_INDEX_BYTES,
-        auditedSeams=8, nativeRecordBytes=64, legacyJsonRecordBytes=1536,
-        auditedDependencies={str(type_model): type_sha})
+    from native_index_overlay import index
+    return index(frontend, output)
 
 
 def prepare_native_ir(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
@@ -540,23 +507,8 @@ def dependencies(body: str) -> list[Path]:
 
 
 def prepare_native_types(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
-    """Filter immutable-scope alias candidates without changing alias rules."""
-    original = frontend / 'src/type/xl6_type_model.c'
-    body = original.read_bytes()
-    if hashlib.sha256(body).hexdigest() != 'fdf35faa5dc2366a0625317d70cc82dbe8031762fcb7c81439e99a3a8de2a051':
-        raise ValueError('shared type model changed; audit alias predicate, lookup and immutable scope contract')
-    source = body.decode('utf-8').replace('\r\n', '\n')
-    old = 'static const XL6_AstNode* xl6TypeFindAlias(const XL6_AstNode* root, const char* name)\n{'
-    if source.count(old) != 1:
-        raise ValueError('shared alias lookup seam changed')
-    source = source.replace(old, '#include "analysis/frontend_types.inc"\n'
-        'static const XL6_AstNode* xlsTypeFindAliasOriginal(const XL6_AstNode* root, const char* name)\n{')
-    compiled = output / 'frontend/xl6_type_model.c'
-    compiled.write_text(source, encoding='utf-8', newline='\n')
-    return original, compiled, dict(source=str(original), sourceSha256=hashlib.sha256(body).hexdigest(),
-        compiledSource=str(compiled), compiledSha256=sha(compiled), auditedSeams=1,
-        change='ordered alias candidates in explicit immutable IR scope; original alias rules retained',
-        pointerBudgetBytes=8 * 1024 * 1024)
+    from native_index_overlay import types
+    return types(frontend, output)
 
 
 def prepare_native_parser(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
@@ -719,6 +671,7 @@ def main() -> None:
     inputs[str(Path(__file__).with_name('native_initializer_overlay.py').resolve())] = sha(Path(__file__).with_name('native_initializer_overlay.py'))
     inputs[str(Path(__file__).with_name('native_parser_ownership_overlay.py').resolve())] = sha(Path(__file__).with_name('native_parser_ownership_overlay.py'))
     inputs[str(Path(__file__).with_name('native_signature_overlay.py').resolve())] = sha(Path(__file__).with_name('native_signature_overlay.py'))
+    inputs[str(Path(__file__).with_name('native_index_overlay.py').resolve())] = sha(Path(__file__).with_name('native_index_overlay.py'))
     inputs.update({stack_overlay['source']:stack_overlay['sourceSha256'], stack_overlay['grammarSource']:stack_overlay['grammarSha256']})
     inputs[str(original_parser)] = parser_overlay['sourceSha256']
     inputs[str(original_lexer)] = lexer_overlay['sourceSha256']
