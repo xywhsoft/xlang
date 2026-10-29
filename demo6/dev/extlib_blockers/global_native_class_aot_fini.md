@@ -1,5 +1,45 @@
 # 顶层 native-backed class 在独立 EXE 退出时失败
 
+## 2026-10-29 Cuckoo 第23个已实测涉及包
+
+新增三条合法用例，固定Windows/Linux发布物逐条实测，不按声明相似
+直接归类：
+
+| 用例 | JIT | 独立构建 | 独立运行 |
+| --- | --- | --- | --- |
+| `cuckoo/test/global_lifetime.xl`，顶层真实过滤器，main内读写并移除/清空 | 0，打印PASS | 0 | 打印PASS后状态RuntimeError，退出1 |
+| `cuckoo/test/global_valid_only.xl`，顶层创建，仅valid断言，无桶操作/输出 | 0 | 0 | 同一状态错误，退出1 |
+| `cuckoo/test/local_lifetime_control.xl`，与首例相同操作但局部对象 | 0，打印PASS | 0 | 0，打印相同PASS |
+
+完整默认包门禁两平台各44阶段，41正向成功，一项私有方法访问拒绝
+符合预期，两条全局合法正例AOT失败。八条普通独立程序、严格C的
+同桶碰撞/失败回滚/高装载/内存故障、八条实际生成原型及双语黄金输出
+先全部通过，Linux额外ASan/UBSan。两失败保留为正例，未改为预期
+失败、搬入main、提前释放或清除状态错误；包算法/API/ABI未改。
+
+Windows报告/完整生成C/EXE/原始状态：
+`build/test/cuckoo_guard/run_59e781001d67439eb00ca5052683220a.json`
+及同名目录，41输入指纹变动0。最初三路对照在
+`build/test/cuckoo_global_probe_495d0fc9193d47b6823bfab0186b92b4`。
+Linux原生快照 `/var/tmp/xlang-cuckoo-global-src-YTVSAH`，父结果1，
+现场 `tmp/xlang-cuckoo-PR5t7y` 及旁边报告。38源件执行前后与原位置
+相同，含GCC39指纹不变，缺CC127现场WrwpTL也保留。
+
+复验不需要算法负载或外部服务：
+
+```text
+release/xl run release/extlibs/cuckoo/test/global_lifetime.xl
+release/xl build release/extlibs/cuckoo/test/global_lifetime.xl -o build/test/cuckoo-global.exe
+build/test/cuckoo-global.exe
+```
+
+Cuckoo由G转M，M2已实测涉及22增至23包，总计G33/R7/M56/X4。
+此例只拥有内存桶，没有文件/网络/等待资源，有助于排除这些额外机制，
+但不证明23包内部全部同根。主线修复应核对全局对象最终释放、模块
+fini、代码/类型/错误作用域退役次序，保证析构可用且只调用一次；
+不要放松全局失活保护。先恢复这三条最小对照，再验完整门禁、跨模块
+全局和初始化失败路径。本任务未修改主线、XRT或冻结发布物。
+
 ## 2026-10-29 Watch 第22个已实测涉及包
 
 `release/extlibs/watch/test/top_level.xl` 在顶层创建真实Watcher，main内
