@@ -2,6 +2,8 @@
 #define XL6_FOREIGN_RESOURCE_H
 #include "xl6_text_value.h"
 #include "xl6_ownership_catalog.h"
+#include <xl_foreign_graph.h>
+#include <xl_foreign_net.h>
 
 /* Explicit leaf-payload contract: raw owns no hidden language/async graph
  * edges. The callable is an owned, traced dependency, never a raw callback.
@@ -15,4 +17,8 @@
 XL6_TEXT_API xvalue* xl6ForeignResourceCreateV1(void* raw,const xvalue* releaser);
 XL6_TEXT_API void* xl6ForeignResourcePointerV1(const xvalue* token);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainForeignResourceV1Get(void);
+#include "xl6_native_class_abi.h"
+XL6_TEXT_API xvalue* xl6ForeignNetEngineOwnerV1(XL6_NativeClassFieldContextV1,const xvalue*);
+XL6_TEXT_API xvalue* xl6ForeignTlsClientOwnerV1(XL6_NativeClassFieldContextV1,const xvalue*);
+
 #endif

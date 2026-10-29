@@ -2322,6 +2322,10 @@ static int xlCompileUnitToExternalOutputWithC(
         xlSetCompileDiagError(ctx, unit);
         goto cleanup;
     }
+    if(!xl6ArtifactRuntimeRequireSymbols(&artifactRuntime,
+        (const char* const*)unit->importDeps.runtimeSymbols.items,unit->importDeps.runtimeSymbols.count)){
+        xlSetError(ctx,"package declares an unknown resident runtime symbol");goto cleanup;
+    }
     if ((artifactRuntime.hostAbi & XL6_ARTIFACT_HOST_XLANG_RUNTIME_V1) &&
         !(unit->importDeps.features & (XL6_IMPORT_FEATURE_XLANG_RUNTIME | XL6_IMPORT_FEATURE_XLANG_COMPILER))) {
         xlSetError(ctx,"artifact requires the declared embedded xlang runtime host ABI");goto cleanup;
@@ -2332,6 +2336,7 @@ static int xlCompileUnitToExternalOutputWithC(
             if(!xl6ArtifactOwnershipPlanBuild(&artifactRuntime,&entryOwnership)){
                 xlSetError(ctx,"cannot build executable ownership deployment");goto cleanup;
             }
+            artifactRuntime=entryOwnership.runtime;
             entryContract.domains=entryOwnership.domains;entryContract.domainCount=entryOwnership.domainCount;
             if(xl6ArtifactRuntimeSetHas(&artifactRuntime.components,XL6_ARTIFACT_CODE_FINALIZER))
                 entryContract.discoverSymbol="xl6ClassOwnershipDiscoverV1";

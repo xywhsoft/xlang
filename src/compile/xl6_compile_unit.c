@@ -983,6 +983,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_tcc_context_policy.c",D(R(NATIVE_HANDLE)),{NULL}},
     {"src/runtime/xl6_ownership_domain_tcc_context.c",D(R(OWNERSHIP_CATALOG),R(TCC_CONTEXT_POLICY)),{NULL}},
     {"src/runtime/xl6_ownership_domain_tcc_handler.c",D(R(OWNERSHIP_CATALOG),R(TCC_CONTEXT_POLICY)),{NULL}},
+    {"src/runtime/xl6_foreign_net.c",D(R(NET_ENGINE_LANGUAGE),R(TLS_CLIENT_CONTEXT)),{"XRT_MODULE_TLS_CLIENT"}},
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
@@ -1087,6 +1088,41 @@ int xl6ArtifactRuntimeClosePlan(const XL6_ArtifactRuntimeSet* roots, XL6_Artifac
     }
     *plan=result;
     return 1;
+}
+
+int xl6ArtifactRuntimeRequireSymbols(XL6_ArtifactRuntimePlan* plan,const char* const* symbols,size_t count)
+{
+    if(!plan||(count&&!symbols))return 0;
+    if(!count)return 1;
+    XL6_ArtifactRuntimeSet roots=plan->roots;
+    for(size_t i=0;i<count;++i){
+        XL6_ArtifactRuntimeId owner=xl6ArtifactRuntimeSymbolOwner(symbols[i]);
+        if(owner==XL6_ARTIFACT_RUNTIME_COUNT||!xl6ComponentSetAdd(roots.words,XL6_ARTIFACT_RUNTIME_COUNT,owner))return 0;
+    }
+    XL6_ArtifactRuntimePlan result;
+    if(!xl6ArtifactRuntimeClosePlan(&roots,&result))return 0;
+    /* Resolved native externs can select modules independently of resident
+     * components. Reclosing resident roots must preserve that exact closure. */
+    for(size_t i=0;i<plan->nativeModuleCount;++i)
+        if(!xl6ArtifactNativeModuleRequire(&result,plan->nativeModules[i]))return 0;
+    result.entry=plan->entry;result.entryOwnershipAbi=plan->entryOwnershipAbi;
+    if(result.entry==XL6_ARTIFACT_ENTRY_EXECUTABLE_V1&&
+       (xl6ArtifactRuntimeSetHas(&result.components,R(CLOSURE))||
+        xl6ArtifactRuntimeSetHas(&result.components,R(OWNERSHIP_CATALOG))))
+        result.entryOwnershipAbi=XL6_ARTIFACT_ENTRY_OWNERSHIP_GRAPH;
+    if(result.entryOwnershipAbi==XL6_ARTIFACT_ENTRY_OWNERSHIP_GRAPH){
+        XL6_ArtifactRuntimeSet entryRoots=result.roots;
+        XL6_ArtifactRuntimePlan entryPlan;
+        XL6_ArtifactOwnershipPlan ownership;
+        if(!xl6ComponentSetAdd(entryRoots.words,XL6_ARTIFACT_RUNTIME_COUNT,R(STATIC_MODULE))||
+           !xl6ArtifactRuntimeClosePlan(&entryRoots,&entryPlan))return 0;
+        for(size_t i=0;i<result.nativeModuleCount;++i)
+            if(!xl6ArtifactNativeModuleRequire(&entryPlan,result.nativeModules[i]))return 0;
+        entryPlan.entry=result.entry;entryPlan.entryOwnershipAbi=result.entryOwnershipAbi;
+        if(!xl6ArtifactOwnershipPlanBuild(&entryPlan,&ownership))return 0;
+        result=ownership.runtime;
+    }
+    result.hostAbi|=plan->hostAbi;*plan=result;return 1;
 }
 
 /* Each physical type is visited once, including the nested payload of a

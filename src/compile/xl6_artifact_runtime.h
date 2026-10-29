@@ -887,6 +887,7 @@ typedef enum XL6_ArtifactRuntimeId {
     XL6_ARTIFACT_TCC_CONTEXT_POLICY,
     XL6_ARTIFACT_OWNERSHIP_DOMAIN_TCC_CONTEXT,
     XL6_ARTIFACT_OWNERSHIP_DOMAIN_TCC_HANDLER,
+    XL6_ARTIFACT_FOREIGN_NET,
     XL6_ARTIFACT_RUNTIME_COUNT
 } XL6_ArtifactRuntimeId;
 #define XL6_ARTIFACT_RUNTIME_WORD_COUNT (XL6_ARTIFACT_RUNTIME_COUNT / 64u + (XL6_ARTIFACT_RUNTIME_COUNT % 64u != 0))
@@ -968,6 +969,7 @@ typedef struct XL6_ArtifactOwnershipPlan {
     const char* domains[XL6_ARTIFACT_RUNTIME_COUNT];
 } XL6_ArtifactOwnershipPlan;
 int xl6ArtifactOwnershipPlanBuild(const XL6_ArtifactRuntimePlan*,XL6_ArtifactOwnershipPlan*);
+int xl6ArtifactRuntimeRequireSymbols(XL6_ArtifactRuntimePlan*,const char* const*,size_t);
 
 const XL6_ArtifactRuntimeComponent* xl6ArtifactRuntimeComponentGet(unsigned id);
 /* RUNTIME_COUNT denotes no resident owner, not an empty scalar mask. */

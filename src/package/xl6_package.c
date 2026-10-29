@@ -160,6 +160,7 @@ void xl6PackageManifestFree(XL6_PackageManifest* manifest)
     xl6PackageStringListFree(&manifest->includeDirs);
     xl6PackageStringListFree(&manifest->xlSources);
     xl6PackageStringListFree(&manifest->xrtModules);
+    xl6PackageStringListFree(&manifest->runtimeSymbols);
     xl6PackageStringListFree(&manifest->links);
     xl6PackageStringListFree(&manifest->loadlibs);
     for ( i = 0; i < manifest->dependencyCount; ++i ) {
@@ -379,7 +380,8 @@ static int xl6PackageValueReadArtifact(const xvalue* root, XL6_PackageManifest* 
          !xl6PackageValueReadStringArray(artifact, "cSources", &manifest->cSources) ||
          !xl6PackageValueReadStringArray(artifact, "includeDirs", &manifest->includeDirs) ||
          !xl6PackageValueReadStringArray(artifact, "xlSources", &manifest->xlSources) ||
-         !xl6PackageValueReadStringArray(artifact, "xrtModules", &manifest->xrtModules) ) {
+         !xl6PackageValueReadStringArray(artifact, "xrtModules", &manifest->xrtModules) ||
+         !xl6PackageValueReadStringArray(artifact, "runtimeSymbols", &manifest->runtimeSymbols) ) {
         return 0;
     }
 

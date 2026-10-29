@@ -14,6 +14,8 @@ dir|include/__xl_runtime|%XL6_ROOT%\src\runtime|*.h
 # The tracked TCC include directory owns the same compatibility surface used
 # by xl.dll; package builds therefore do not depend on release outputs.
 
+file|include/xl_foreign_graph.h|%XL6_ROOT%\release\include\xl_foreign_graph.h
+file|include/xl_foreign_net.h|%XL6_ROOT%\release\include\xl_foreign_net.h
 file|include/xl.h|%XL6_ROOT%\release\include\xl.h
 file|include/xl_package.h|%XL6_ROOT%\release\include\xl_package.h
 file|include/xl_sync_retirement.h|%XL6_ROOT%\release\include\xl_sync_retirement.h
@@ -26,6 +28,8 @@ file|include/__xl_runtime/xrt_decl.h|%XL6_ROOT%\release\include\xrt_decl.h
 file|include/__xl_runtime/xl_clock.h|%XL6_ROOT%\release\include\xl_clock.h
 # 内嵌 xlang 编译器源仍按开发树包含 include/xl_runtime.h。
 # 该私有根只服务于 __xl_compiler/src，不影响用户 C 源的公开头文件布局。
+file|__xl_compiler/include/xl_foreign_graph.h|%XL6_ROOT%\release\include\xl_foreign_graph.h
+file|__xl_compiler/include/xl_foreign_net.h|%XL6_ROOT%\release\include\xl_foreign_net.h
 file|__xl_compiler/include/xl.h|%XL6_ROOT%\release\include\xl.h
 file|__xl_compiler/include/xl_package.h|%XL6_ROOT%\release\include\xl_package.h
 file|__xl_compiler/include/xl_sync_retirement.h|%XL6_ROOT%\release\include\xl_sync_retirement.h

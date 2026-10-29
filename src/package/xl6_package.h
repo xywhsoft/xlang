@@ -53,6 +53,7 @@ typedef struct XL6_PackageManifest {
     XL6_PackageStringList includeDirs;
     XL6_PackageStringList xlSources;
     XL6_PackageStringList xrtModules;
+    XL6_PackageStringList runtimeSymbols;
     int xrtModulesDeclared;
     XL6_PackageStringList links;
     XL6_PackageStringList loadlibs;
