@@ -1,3 +1,4 @@
+#include "platform/receipt_time.h"
 #include "ui/language_view.h"
 #include "services/analysis_configuration.h"
 #include "editor/lsp_coordinates.h"
@@ -539,8 +540,7 @@ static int diskIdentity(const char* path,const xvalue* group)
  if(!xideIoReceiptStat(path,&info) || info.Type!=XFILE_TYPE_FILE || !number(get(input,"rawSize"),&size) || (uint64)size!=info.Size || !xrtValueGetInt(get(m,"available"),&available) || available!=info.Available || !xrtValueGetInt(get(m,"attributes"),&attributes) || attributes!=info.Attributes) return 0;
  snprintf(text,sizeof(text),"%016llx",(unsigned long long)info.Device); if(!formatted(get(m,"device"),text)) return 0;
  snprintf(text,sizeof(text),"%016llx",(unsigned long long)info.Identity); if(!formatted(get(m,"identity"),text)) return 0;
- snprintf(text,sizeof(text),"%lld",(long long)info.Modified); if(!formatted(get(m,"modifiedUs"),text)) return 0;
- snprintf(text,sizeof(text),"%lld",(long long)info.Changed); return formatted(get(m,"changedUs"),text);
+ return xideReceiptMetadataTimesMatch(m,&info);
 }
 static int diagnosticPositions(const xvalue* diagnostic,xide_lsp_position* positions)
 {
@@ -568,7 +568,7 @@ static int applySnapshots(xide_app* app,const xvalue* result)
   if(b) { int wire=0; okay=!strcmp(origin,"overlay") && number(get(g,"version"),&wire) && wire==b->wireVersion && d==b->document && d->id==b->id && textMatches(g,d); ++overlayCount; }
   else {
    const xvalue* input=get(g,"input"),*m=get(input,"metadata"); int rawSize=0; int64 available=0,attributes=0;
-   okay=!strcmp(origin,"disk") && !get(g,"version") && formatted(get(input,"origin"),"disk") && xidePathLexicalEqual(path,string(get(input,"path"))) && number(get(input,"rawSize"),&rawSize) && (size_t)rawSize<=TEXT_LIMIT && hexDigest(get(input,"rawSha256")) && xrtValueGetInt(get(m,"available"),&available) && xrtValueGetInt(get(m,"attributes"),&attributes) && string(get(m,"device")) && string(get(m,"identity")) && string(get(m,"modifiedUs")) && string(get(m,"changedUs"));
+   okay=!strcmp(origin,"disk") && !get(g,"version") && formatted(get(input,"origin"),"disk") && xidePathLexicalEqual(path,string(get(input,"path"))) && number(get(input,"rawSize"),&rawSize) && (size_t)rawSize<=TEXT_LIMIT && hexDigest(get(input,"rawSha256")) && xrtValueGetInt(get(m,"available"),&available) && xrtValueGetInt(get(m,"attributes"),&attributes) && string(get(m,"device")) && string(get(m,"identity")) && xideReceiptMetadataSchema(m)!=0;
    if(okay && d) okay=!d->externalState && textMatches(g,d) && matchesHash(d->baseline.raw,d->baseline.rawLength,get(input,"rawSha256")) && diskIdentity(path,g);
   }
   if(!okay) break;

@@ -1,6 +1,7 @@
 #include "services/build_inputs.h"
 #include "platform/path.h"
 #include "platform/file_io.h"
+#include "platform/receipt_time.h"
 #include <windows.h>
 #include <bcrypt.h>
 #include <stdlib.h>
@@ -13,7 +14,7 @@
 #define FILES_LIMIT 1536u
 #define NATIVE_LIMIT 4096u
 #define XLANG_LIMIT 2048u
-typedef struct input { char* path; wchar_t* key; xfileinfo info; unsigned char hash[32]; } input;
+typedef struct input { char* path; wchar_t* key; xfileinfo info; unsigned char hash[32]; int schema; } input;
 typedef struct probe { char* path; wchar_t* key; int exists,native; } probe;
 struct xide_build_inputs {
  input *files,artifact; probe* probes; size_t count,probeCount,nativeCount;
@@ -47,9 +48,10 @@ static int infoEqual(const xfileinfo* a,const xfileinfo* b) {
  uint32 required=XFILE_INFO_SIZE|XFILE_INFO_MODIFY_TIME|XFILE_INFO_IDENTITY;
  return a->Type==XFILE_TYPE_FILE && b->Type==XFILE_TYPE_FILE && (a->Available&required)==required && (b->Available&required)==required && a->Available==b->Available && a->Size==b->Size && a->Device==b->Device && a->Identity==b->Identity && a->Modified==b->Modified && a->Attributes==b->Attributes && (!(a->Available&XFILE_INFO_CHANGE_TIME) || a->Changed==b->Changed);
 }
-static int parseFile(const xvalue* row,input* f) {
+static int parseFile(const xvalue* row,input* f,int schema) {
  const xvalue* m=get(row,"metadata"); int64 size=0,available=0,attributes=0;
- if(xrtValueCount(row)!=4 || xrtValueCount(m)!=6 || !canonical(get(row,"path"),&f->path,&f->key) || !integer(get(row,"size"),&size,FILE_LIMIT) || !hex(get(row,"sha256"),f->hash,32) || !integer(get(m,"available"),&available,UINT32_MAX) || !integer(get(m,"attributes"),&attributes,UINT32_MAX) || !hex64(get(m,"device"),&f->info.Device) || !hex64(get(m,"identity"),&f->info.Identity) || !decimal(get(m,"modifiedUs"),&f->info.Modified) || !decimal(get(m,"changedUs"),&f->info.Changed)) return 0;
+ if(xrtValueCount(row)!=4 || xideReceiptMetadataSchema(m)!=schema || !canonical(get(row,"path"),&f->path,&f->key) || !integer(get(row,"size"),&size,FILE_LIMIT) || !hex(get(row,"sha256"),f->hash,32) || !integer(get(m,"available"),&available,UINT32_MAX) || !integer(get(m,"attributes"),&attributes,UINT32_MAX) || !hex64(get(m,"device"),&f->info.Device) || !hex64(get(m,"identity"),&f->info.Identity) || !decimal(get(m,schema==1 ? "modifiedUs" : "modifiedMs"),&f->info.Modified) || !decimal(get(m,schema==1 ? "changedUs" : "changedMs"),&f->info.Changed)) return 0;
+ f->schema=schema;
  f->info.Type=XFILE_TYPE_FILE; f->info.Size=(uint64)size; f->info.Available=(uint32)available; f->info.Attributes=(uint32)attributes;
  return infoEqual(&f->info,&f->info);
 }
@@ -59,7 +61,8 @@ static int stopped(xide_build_inputs* r,xide_model_error* e) { if(r->cancel && r
 static int verifyFile(xide_build_inputs* r,const input* expected,const char* path,int identity,xide_model_error* e) {
  xfile file=NULL; xfileinfo first,last,named; unsigned char block[65536],digest[32],extra; size_t n=0;
  BCRYPT_ALG_HANDLE algorithm=NULL; BCRYPT_HASH_HANDLE hash=NULL; unsigned char* object=NULL; DWORD bytes=0,returned=0;
- int okay=!stopped(r,e) && (file=xideIoOpen(path,XFILE_READ)) && xideIoReceiptFileStat(file,&first) && infoEqual(&first,&first) && first.Size==expected->info.Size && (!identity || infoEqual(&first,&expected->info));
+ int okay=!stopped(r,e) && (file=xideIoOpen(path,XFILE_READ)) && xideIoReceiptFileStat(file,&first) && infoEqual(&first,&first) && first.Size==expected->info.Size;
+ if(okay && identity) { xfileinfo wire=xideReceiptInfo(&first,expected->schema); okay=infoEqual(&wire,&expected->info); }
  NTSTATUS status=okay ? BCryptOpenAlgorithmProvider(&algorithm,BCRYPT_SHA256_ALGORITHM,NULL,0) : -1;
  if(status==0) status=BCryptGetProperty(algorithm,BCRYPT_OBJECT_LENGTH,(PUCHAR)&bytes,sizeof(bytes),&returned,0);
  if(status==0) { object=malloc(bytes); if(object) status=BCryptCreateHash(algorithm,&hash,object,bytes,NULL,0,0); else status=-1; }
@@ -117,13 +120,13 @@ xide_build_inputs* xideBuildInputsLoad(const char* receipt,const char* artifact,
  xide_build_inputs* r=NULL; int64 schema=0; bool complete=false,observed=false;
  const xvalue *files=get(root,"files"),*native=get(root,"nativeMissing"),*probes=get(root,"xlangProbes"),*env=get(root,"XLANG_PACKAGE_PATH");
  const char* scope=text(get(root,"scope")),*package=text(env);
- if(!root || xrtValueCount(root)!=9 || !integer(get(root,"schema"),&schema,1) || schema!=1 || !scope || strcmp(scope,"xlang-native-build-disk-inputs") || !xrtValueGetBool(get(root,"complete"),&complete) || !complete || !xrtValueGetBool(get(root,"packagePathObserved"),&observed) || !env || (!package && xrtValueType(env)!=XVALUE_NULL) || (!observed && package) || (observed && (package && packagePath ? strcmp(package,packagePath)!=0 : package!=packagePath)) || xrtValueType(files)!=XVALUE_ARRAY || !xrtValueCount(files) || xrtValueCount(files)>FILES_LIMIT || xrtValueType(native)!=XVALUE_ARRAY || xrtValueCount(native)>NATIVE_LIMIT || xrtValueType(probes)!=XVALUE_ARRAY || xrtValueCount(probes)>XLANG_LIMIT) { fail(e,"Incomplete, malformed or out-of-scope compiler input receipt",receipt); goto done; }
+ if(!root || xrtValueCount(root)!=9 || !integer(get(root,"schema"),&schema,2) || schema<1 || !scope || strcmp(scope,"xlang-native-build-disk-inputs") || !xrtValueGetBool(get(root,"complete"),&complete) || !complete || !xrtValueGetBool(get(root,"packagePathObserved"),&observed) || !env || (!package && xrtValueType(env)!=XVALUE_NULL) || (!observed && package) || (observed && (package && packagePath ? strcmp(package,packagePath)!=0 : package!=packagePath)) || xrtValueType(files)!=XVALUE_ARRAY || !xrtValueCount(files) || xrtValueCount(files)>FILES_LIMIT || xrtValueType(native)!=XVALUE_ARRAY || xrtValueCount(native)>NATIVE_LIMIT || xrtValueType(probes)!=XVALUE_ARRAY || xrtValueCount(probes)>XLANG_LIMIT) { fail(e,"Incomplete, malformed or out-of-scope compiler input receipt",receipt); goto done; }
  r=calloc(1,sizeof(*r)); if(!r) goto invalid; r->cancel=cancel; r->user=user; r->count=xrtValueCount(files); r->nativeCount=xrtValueCount(native); r->probeCount=r->nativeCount+xrtValueCount(probes);
  r->files=calloc(r->count,sizeof(*r->files)); r->probes=calloc(r->probeCount+1,sizeof(*r->probes)); r->receipt=xidePathResolveLexical(NULL,receipt);
- if(!r->files || !r->probes || !r->receipt || !parseFile(get(root,"artifact"),&r->artifact) || !xidePathLexicalEqual(r->artifact.path,artifact)) goto invalid;
+ if(!r->files || !r->probes || !r->receipt || !parseFile(get(root,"artifact"),&r->artifact,(int)schema) || !xidePathLexicalEqual(r->artifact.path,artifact)) goto invalid;
  uint64 total=0;
  for(size_t i=0;i<r->count;++i) {
-  input* f=&r->files[i]; if(stopped(r,e) || !parseFile(xrtValueArrayGet(files,i),f) || f->info.Size>TOTAL_LIMIT-total || same(f->key,r->artifact.key) || (f->info.Device==r->artifact.info.Device && f->info.Identity==r->artifact.info.Identity) || xidePathLexicalEqual(f->path,r->receipt) || xidePathEqual(f->path,r->receipt)) goto invalid; total+=f->info.Size;
+  input* f=&r->files[i]; if(stopped(r,e) || !parseFile(xrtValueArrayGet(files,i),f,(int)schema) || f->info.Size>TOTAL_LIMIT-total || same(f->key,r->artifact.key) || (f->info.Device==r->artifact.info.Device && f->info.Identity==r->artifact.info.Identity) || xidePathLexicalEqual(f->path,r->receipt) || xidePathEqual(f->path,r->receipt)) goto invalid; total+=f->info.Size;
   for(size_t j=0;j<i;++j) if(same(f->key,r->files[j].key)) goto invalid;
  }
  for(size_t i=0;i<r->probeCount;++i) {

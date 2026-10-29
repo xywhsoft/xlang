@@ -11,8 +11,9 @@ int xideIoCopy(const char* source,const char* target,int overwrite);
 int xideIoMove(const char* source,const char* target,int overwrite);
 xfile xideIoOpen(const char* path,uint32 flags);
 int xideIoStat(const char* path,int follow,xfileinfo* info);
-/* Compiler wire receipts retain Unix microseconds, independently of XRT's
-   timestamp representation. Identity, size and times come from one handle. */
+/* Observe Unix microseconds independently of the SDK's time representation.
+   Receipt adapters convert to the wire schema only when comparing metadata.
+   Identity, size and times come from one handle. */
 int xideIoReceiptFileStat(xfile file,xfileinfo* info);
 int xideIoReceiptStat(const char* path,xfileinfo* info);
 int xideIoExists(const char* path);
