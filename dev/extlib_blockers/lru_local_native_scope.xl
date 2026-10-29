@@ -1,0 +1,9 @@
+import lru
+
+func main(...) as int
+    // 相同原生操作放在函数内，用于与顶层对象作对照。
+    auto cache = lru.create(1)
+    assert cache.valid and cache.count == 0
+    println("lru scope ready")
+    return 0
+end

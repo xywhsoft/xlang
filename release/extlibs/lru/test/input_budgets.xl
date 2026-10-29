@@ -1,0 +1,90 @@
+import lru
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    // 输入提前建立：这里只计一次公开操作，不把测试本身的常量/比较算进去。
+    string key = "a"
+    string other = "b"
+    string missing = "missing"
+    string inserted = "c"
+    string old = "old"
+    string value = "new"
+    string second = "second"
+    string third = "third"
+    string fallback = "fallback"
+    array<int> required = [3, 3, 3, 1, 1, 1, 6, 4]
+    int checks = 0
+    int failures = 0
+    for mode in range(2)
+        for kind in range(8)
+            for budget in range(required[kind] + 1)
+                lru.LruCache cache = lru.create(2)
+                if mode == 1 then cache = lru.createLFU(2) end
+                cache.put(key, old)
+                cache.put(other, second)
+                string held = cache.get(key, fallback)
+                string actual = ""
+                bool truth = false
+                bool caught = false
+                bool injected = false
+                assert failAfter(uint64(budget))
+                try
+                    if kind == 0 then
+                        cache.put(key, value)
+                    elseif kind == 1 then
+                        actual = cache.get(key, fallback)
+                    elseif kind == 2 then
+                        actual = cache.get(missing, fallback)
+                    elseif kind == 3 then
+                        truth = cache.contains(key)
+                    elseif kind == 4 then
+                        truth = cache.remove(key)
+                    elseif kind == 5 then
+                        truth = cache.remove(missing)
+                    elseif kind == 6 then
+                        cache.put(inserted, third)
+                    else
+                        actual = cache.get(key)
+                    end
+                catch MemoryError error
+                    caught = true
+                finally
+                    injected = failTriggered()
+                    failClear()
+                end
+                checks += 1
+                if caught != (budget < required[kind]) or injected != caught then failures += 1 end
+                assert cache.count == 2 - int(not caught and kind == 4)
+                assert cache.hits == 1 + int(not caught and (kind == 1 or kind == 7))
+                assert cache.misses == int(not caught and kind == 2)
+                if not caught then
+                    if kind == 1 or kind == 7 then assert actual == old end
+                    if kind == 2 then assert actual == fallback end
+                    if kind == 3 or kind == 4 then assert truth end
+                    if kind == 5 then assert not truth end
+                end
+                if not caught and kind == 6 then
+                    assert cache.contains(key) and not cache.contains(other) and cache.contains(inserted)
+                else
+                    assert cache.contains(other) and not cache.contains(inserted)
+                end
+                if not caught and kind == 4 then
+                    assert not cache.contains(key)
+                elseif not caught and kind == 0 then
+                    assert cache.get(key, fallback) == value
+                else
+                    assert cache.get(key, fallback) == old
+                end
+                cache.clear()
+                assert cache.count == 0 and cache.hits == 0 and cache.misses == 0
+                assert held == old
+            end
+        end
+    end
+    println("lru input budgets:", checks, "checks,", failures, "failures")
+    assert checks == 60 and failures == 0
+    return 0
+end

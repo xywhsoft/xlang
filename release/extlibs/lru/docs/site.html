@@ -32,6 +32,7 @@ auto cache = lru.create(2)
 cache.put("user:1", "Alice")
 println(cache.get("user:1", "missing"))</code></pre>
     <p>LFU 淘汰时 O(capacity) 扫描，同频选择最久未访问条目。XLang 的键、值和默认值拒绝内嵌 NUL；无 TTL 或持久化。C/XLang 边界覆盖只在末字节不同的 8 KiB 键、淘汰后返回文本的独立所有权。C 原生读取分配失败不计命中；若读取成功后周边 XLang 表达式才分配失败，命中可能已计入。C 教学范例现可在 Windows/Linux 单文件 <code>xl run</code>；两平台包级门禁覆盖严格 C、线程、XLang 与双语输出，并与固定输出逐字核对。Windows 默认门禁还要求公开 XLang 范例完成 AOT 构建和运行。边界 EXE 打印 <code>lru boundaries: PASS</code> 后，在顶层原生对象清理时抛 <code>RuntimeError</code> 并以非零状态退出；因此尚未签收发布级。所有权与并发限制见包内 README。</p>
+    <p>2026-10-30：输入检查改为只验证借用文本，六个参数位置不再为返回校验结果复制正文，C实现/ABI/所有权和淘汰规则不变。固定输入的覆盖/显式默认读取分配预算5降3，contains/remove为2降1，满容量插入8降6；仍有NUL针串和原生存储/快照成本，不是整个调用零开销。新C32组、XL60组预算、完整生成原型及UTF-8长文本/临时参数/NUL边界进入默认门禁，旧XL有16组超预算，修正后归零。新增 <code>examples/snapshots.xl</code> / <code>snapshots_c.c</code> 的八行对照例。两平台默认门禁保留原顶层AOT正例，Linux也补齐独立程序要求；当前退出清理的M2阻断仍开放，详情与实际证据见包内README和仓库验收矩阵。本页是官网源，不代表已向外部站点部署。</p>
   </section>
 </main>
 </body>

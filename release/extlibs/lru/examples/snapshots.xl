@@ -1,0 +1,40 @@
+import lru
+
+func main(...) as int
+    auto cache = lru.create(2)
+    cache.put("a", "old")
+    string saved = cache.get("a")
+    cache.put("a", "new")
+    string current = cache.get("a")
+    assert saved == "old" and current == "new"
+    println("saved:", saved)
+    println("current:", current)
+    cache.clear()
+    assert saved == "old"
+    println("after clear:", saved)
+
+    // 缺失返回默认文本，已存储的空值则用 contains 区分。
+    string missing = cache.get("missing", "fallback")
+    assert missing == "fallback" and cache.misses == 1
+    println("missing:", missing)
+    cache.put("", "")
+    bool stored = cache.contains("")
+    assert stored and cache.get("", "fallback") == ""
+    println("empty stored:", stored)
+    bool removed = cache.remove("")
+    assert removed
+    println("empty removed:", removed)
+    cache.clear()
+    assert cache.count == 0 and cache.hits == 0 and cache.misses == 0 and cache.capacity == 2
+    println("reset:", cache.count, cache.hits, cache.misses, cache.capacity)
+
+    auto lfu = lru.createLFU(2)
+    lfu.put("hot", "h")
+    lfu.put("cold", "c")
+    lfu.get("hot")
+    lfu.put("new", "n")
+    bool retained = lfu.contains("hot")
+    assert retained and lfu.contains("new") and not lfu.contains("cold")
+    println("LFU retains hot:", retained)
+    return 0
+end

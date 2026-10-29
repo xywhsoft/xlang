@@ -1,0 +1,8 @@
+saved: old
+current: new
+after clear: old
+missing: fallback
+empty stored: true
+empty removed: true
+reset: 0 0 0 2
+LFU retains hot: true

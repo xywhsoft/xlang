@@ -452,3 +452,33 @@ Windows 默认 `rtree/test/check.ps1` 已越过严格 C、查询 oracle、
 主线应检查顶层 native-backed class 对象的所有权、模块退役顺序与
 错误作用域，并以这个最小文件和两平台默认包门禁作回归；不要把
 测试对象挪入函数局部来掩盖问题。本扩展包任务不修改主线。
+
+## 2026-10-30 LRU 空缓存范围对照
+
+新增 [global](lru_global_native_scope.xl) 与 [local](lru_local_native_scope.xl)
+两份最小源：同样只 create(1)、检查 valid/count 并打印 lru scope ready，
+不调用 put/get/contains/remove 的字符串校验，不写入条目或触发淘汰。
+Windows/Linux固定发布物下，两份JIT与build均0；仅global独立程序打印
+后报 operation is not valid in the current state、退出1，local为0。
+这把LRU症状缩小到无需文本读写的顶层对象退役，但还不是与26包完全
+相同内部根因的证明；不在包侧新增强制释放或挪动顶层变量绕过。
+
+本轮仅优化输入校验的正文副本，原生C实现/头/ABI不变。更新后的两平台
+默认门禁均50阶段：前49满足预期，含原C模型/线程/故障、新C32/XL60
+预算、十一真实原型与C头、双语黄金输出及十条可运行独立程序；最后
+未改的 boundaries.xl 顶层正例仍真实失败。原 allocations.xl 的JIT/AOT
+正常，不能把所有用例一概描述为退出失败。Linux原门禁曾只到JIT，现已
+补强AOT并保留这项失败；没有把它当成预期非零或删除正例。
+
+Windows完整报告为
+build/test/lru_guard/run_db12dfab2f2d453ca4bbff65b8df8bdd.json，
+44输入变化0。Linux原生快照/var/tmp/xlang-lru-final-src-DzurYs，
+默认现场tmp/xlang-lru-rERuyF，42门禁输入、2445复制源与原件变化0，
+C含ASan/UBSan/泄漏；两平台编译警告均0。Scope对照保存在Windows
+build/test/lru_text_before_ce9052ff9792499ca842e4fbc269360c/windows-scope.json
+和Linux快照scope/results.tsv。八项固定发布物/单头库未换。
+
+真实门禁的失效探针另验证：Windows静默编译器内部37/脚本外层1，
+Linux缺编译器原始127，均保留命令、状态与失败现场。Linux的timeout
+诊断不一定带文件名，探针应核对保存的command，而不是假定本地化
+stderr文本包含路径。它们不是库BUG，也不是默认门禁签收通过。

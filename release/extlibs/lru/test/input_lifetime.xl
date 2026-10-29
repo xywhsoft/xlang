@@ -1,0 +1,66 @@
+import lru
+
+func exercise(int mode)
+    lru.LruCache cache = lru.create(2)
+    if mode == 1 then cache = lru.createLFU(2) end
+    string key = string.repeat("k", 8191) + "中"
+    string value = "正文" + string.repeat("v", 8192)
+    string fallback = string.repeat("f", 8192)
+    cache.put(key, value)
+    string held = cache.get(key, fallback)
+
+    // 原生层复制存储内容；校验层借用输入不能改变这个所有权合同。
+    string originalKey = key
+    key = "rebound"
+    cache.put(originalKey, "replacement")
+    assert held == value and cache.get(originalKey) == "replacement"
+    cache.clear()
+    assert held == value
+    string missed = cache.get(key, fallback)
+    fallback = "rebound fallback"
+    assert string.byteLen(missed) == 8192 and missed == string.repeat("f", 8192)
+
+    // 调用临时文本在原生写入期间保持存活，返回后可正常销毁。
+    cache.put("temp:" + string(mode), "临时" + string.repeat("t", 4096))
+    assert cache.get("temp:" + string(mode)) == "临时" + string.repeat("t", 4096)
+    cache.clear()
+    cache.put("safe", "keep")
+    string invalid = "bad\0tail"
+    for kind in range(6)
+        int count = cache.count
+        int hits = cache.hits
+        int misses = cache.misses
+        bool caught = false
+        try
+            if kind == 0 then
+                cache.put(invalid, "bad")
+            elseif kind == 1 then
+                cache.put("safe", invalid)
+            elseif kind == 2 then
+                cache.get(invalid, "fallback")
+            elseif kind == 3 then
+                // 即使命中，非法默认值也必须先拒绝，不能调用原生读取。
+                cache.get("safe", invalid)
+            elseif kind == 4 then
+                cache.contains(invalid)
+            else
+                cache.remove(invalid)
+            end
+        catch ValueError error
+            caught = true
+        end
+        assert caught and cache.count == count
+        assert cache.hits == hits and cache.misses == misses
+        assert cache.get("safe") == "keep"
+    end
+    cache.put("", "")
+    assert cache.contains("") and cache.get("", "fallback") == ""
+    assert cache.remove("") and not cache.contains("")
+end
+
+func main(...) as int
+    exercise(0)
+    exercise(1)
+    println("lru input lifetime: PASS")
+    return 0
+end
