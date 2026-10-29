@@ -19,7 +19,7 @@ int main(int argc,char** argv)
     headers[size]='\0'; char* slash=strrchr(headers,'/'); if(!slash) return 3;
     if((size_t)(slash-headers)+sizeof("/include")>sizeof(headers)) return 3;
     memcpy(slash,"/include",sizeof("/include"));
-    int n=snprintf(runtime,sizeof(runtime),"%s/release/libxl.so",native);
+    int n=snprintf(runtime,sizeof(runtime),"%s/release/libxlc.so",native);
     int m=snprintf(libraries,sizeof(libraries),"%s/build/linux/tcc-dist",native);
     int t=snprintf(temporary,sizeof(temporary),"%s.temps",argv[3]);
     if(n<0 || (size_t)n>=sizeof(runtime) || m<0 || (size_t)m>=sizeof(libraries) ||
@@ -34,7 +34,13 @@ int main(int argc,char** argv)
     for(int index=4; ok && index<argc; ++index) ok=xlcAddCSourceFile(compiler,argv[index]);
     if(ok) ok=xlcCompile(compiler);
     if(ok) {
-        if(!strcmp(argv[2],"cgen-default")) ok=xlcEmitC(compiler,argv[3]);
+        if(!strcmp(argv[2],"emit")) {
+            char cpath[8192],hpath[8192];
+            int a=snprintf(cpath,sizeof(cpath),"%s.c",argv[3]);
+            int b=snprintf(hpath,sizeof(hpath),"%s.h",argv[3]);
+            ok=a>=0 && (size_t)a<sizeof(cpath) && b>=0 && (size_t)b<sizeof(hpath) &&
+                xlcEmitC(compiler,cpath) && xlcEmitHeader(compiler,hpath,"SOURCE_DRIVER_HEADER");
+        } else if(!strcmp(argv[2],"cgen-default")) ok=xlcEmitC(compiler,argv[3]);
         else if(!strcmp(argv[2],"ir-typed")) ok=xlcEmitIr(compiler,argv[3],1);
         else if(!strcmp(argv[2],"ir-lowered")) ok=xlcEmitLoweredIr(compiler,argv[3],1);
         else if(!strcmp(argv[2],"run")) ok=xlcRun(compiler,0,NULL);

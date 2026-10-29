@@ -67,8 +67,12 @@ int main(int argc, char** argv)
     }
     rootLength = GetCurrentDirectoryA((DWORD)sizeof(root), root);
     if (!rootLength || rootLength >= sizeof(root)) return 3;
-    pathLength = snprintf(runtime, sizeof(runtime), "%s/release/xl.dll", root);
-    if (pathLength < 0 || (size_t)pathLength >= sizeof(runtime)) return 3;
+    /* Pin the compiler-capable core copied beside this verified driver. The
+     * runtime-only xl.dll intentionally omits language artifact objects. */
+    moduleLength=GetModuleFileNameA(NULL,runtime,(DWORD)sizeof(runtime));
+    if(!moduleLength || moduleLength>=sizeof(runtime) || !(slash=strrchr(runtime,'\\')))return 3;
+    if((size_t)(slash-runtime)+sizeof("\\xlc.dll")>sizeof(runtime))return 3;
+    memcpy(slash,"\\xlc.dll",sizeof("\\xlc.dll"));
     pathLength = snprintf(libraries, sizeof(libraries), "%s/res/tcc/win64/x86_64", root);
     if (pathLength < 0 || (size_t)pathLength >= sizeof(libraries)) return 3;
     /* A batch may execute independent public drivers concurrently. Each

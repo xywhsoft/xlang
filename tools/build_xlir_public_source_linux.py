@@ -37,12 +37,13 @@ def main():
         'xl6_queue_mpmc_admission','xl6_thread','xl6_array_thread_admission'}
     assert required.issubset({path.stem for path in sources})
     runtime=native/'release/libxl.so'; assert runtime.is_file()
+    tcc_core=native/'release/libxlc.so'; assert tcc_core.is_file()
     configuration=native/'build/linux/tcc-source/config.h'
     assert configuration.is_file(), 'Use a native build with its actual TCC configuration'
     configured=re.search(r'^#define\s+CONFIG_TRIPLET\s+"([A-Za-z0-9_.+\-]+)"\s*$',
         configuration.read_text(),re.M)
     triplet=configured.group(1) if configured else None
-    files={Path(__file__).resolve(),source_list,Path(cc),runtime,*sources,*runtime_manifests}
+    files={Path(__file__).resolve(),source_list,Path(cc),runtime,tcc_core,*sources,*runtime_manifests}
     files.add(configuration)
     runtime_resource=args.runtime_resource.resolve() if args.runtime_resource else None
     if runtime_resource:
@@ -63,7 +64,8 @@ def main():
         'Sources':list(map(str,sources)),'Rows':rows,'SourceXrt':True,'RuntimeOnly':False,'EnableExeCompiler':1,
         'SourceProductAcceptance':False,'ShippingLibraryAcceptance':False,'Scope':__doc__,'NativeRoot':str(native),'Optimization':args.optimization,
         'Sanitize':args.sanitize,'AllSourceProvidersInstrumented':args.sanitize,'ReleasedTccCoreInstrumented':False,
-        'ConfiguredTriplet':triplet,'RuntimeResource':str(runtime_resource) if runtime_resource else None}
+        'ConfiguredTriplet':triplet,'RuntimeResource':str(runtime_resource) if runtime_resource else None,
+        'TccCore':str(tcc_core),'TccCoreSha256':sha(tcc_core),'RuntimeLibrary':str(runtime)}
     def save(): (out/'build.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     def run(name,command):
         command=list(map(str,command)); result=subprocess.run(command,cwd=root,env=env,capture_output=True,timeout=240)

@@ -14,6 +14,7 @@ if (Test-Path -LiteralPath $batchPath) { throw 'Choose a fresh public build dire
 $buildTimer = [Diagnostics.Stopwatch]::StartNew()
 $buildContext = New-XlirCBuildContext -Root $rootPath -Directory $batchPath -NoCache:$NoCache -CacheDirectory $CacheDirectory
 $driverSource = if ($RuntimeOnly) { 'test/cases/xlir_public_runtime_driver.c' } else { 'test/cases/xlir_public_source_driver.c' }
+$tccCore = if ($RuntimeOnly) { 'release/xl.dll' } else { 'release/xlc.dll' }
 $binaryName = if ($RuntimeOnly) { 'runtime_source.exe' } else { 'public_source.exe' }
 $enableExe = if ($RuntimeOnly) { 0 } else { 1 }
 $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.c',
@@ -653,12 +654,13 @@ foreach($runtimeManifest in $runtimeManifests) {
     }
 }
 $files = @(@(Get-ChildItem src,lib,release/include,res/tcc -Recurse -File) +
-    @(Get-Item $driverSource,$PSCommandPath,tools/xlir_c_object_cache.ps1,tools/xrt_single_header_impl.c,release/xl.dll,tools/tcc_vfs_manifest_win64_xlc.txt,tools/compiler_dll.rsp.in,build_dll.bat) +
+    @(Get-Item $driverSource,$PSCommandPath,tools/xlir_c_object_cache.ps1,tools/xrt_single_header_impl.c,release/xl.dll,$tccCore,tools/tcc_vfs_manifest_win64_xlc.txt,tools/compiler_dll.rsp.in,build_dll.bat) +
     @(Get-Item -LiteralPath $buildContext.Toolchain.Path)) | Sort-Object FullName -Unique
 if($runtimeResourcePath){$files=@($files)+@(Get-Item -LiteralPath $runtimeResourcePath)}
 $records = @($files | ForEach-Object { [pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash} })
 New-Item -ItemType Directory -Force -Path $batchPath | Out-Null
 Copy-Item -LiteralPath release/xl.dll -Destination (Join-Path $batchPath 'xl.dll') -Force
+if(!$RuntimeOnly){Copy-Item -LiteralPath $tccCore -Destination (Join-Path $batchPath 'xlc.dll')}
 $headers = @()
 # Stage the declared package layout, not a generated VFS or a release update.
 foreach ($entry in (Get-Content -LiteralPath tools/tcc_vfs_manifest_win64_xlc.txt -Encoding UTF8)) {
@@ -756,6 +758,8 @@ $manifest = [pscustomobject]@{RecordedAt=(Get-Date).ToString('o');Complete=$true
     CacheHits=@($objectRecords | Where-Object CacheHit).Count;CacheMisses=@($objectRecords | Where-Object {!$_.CacheHit}).Count;
     BuildSeconds=[Math]::Round($buildTimer.Elapsed.TotalSeconds,3);
     RuntimeSha256=(Get-FileHash release/xl.dll).Hash;
+    TccCore=(Join-Path $batchPath ([IO.Path]::GetFileName($tccCore)));
+    TccCoreSha256=(Get-FileHash -LiteralPath $tccCore).Hash;
     SourceXrt=$true;
     RuntimeResource=$runtimeResourcePath;
     Scope='Current-source public API/compiler/import/stdlib/Cgen/continuation runtime, generated XRT/xruntime implementation and TCC utilities. Released TCC core loaded dynamically; no release/VFS rebuild.'}
