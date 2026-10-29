@@ -1,0 +1,73 @@
+// The owner fixes K before any callback argument is lowered. A method group,
+// typed function, null or nullable function uses the same concrete boundary.
+extern "c_owned_text" @no_raise func rawText() as point
+extern "c_owned_binary" @no_raise func rawBytes() as point
+extern "c_owned_release" @no_raise func release(point value)
+extern "c_owned_text_is_original" @no_raise func original(string value) as bool
+extern "c_owned_binary_span_original" @no_raise func originalBytes(cbytes value) as bool
+extern "bound_c_owners_balanced" @no_raise func balanced() as bool
+extern "bound_c_owners_one_record" @no_raise func oneRecord() as bool
+extern "owned_reset" @no_raise func reset()
+class Box<K>
+    func Echo<T>(T value) as T
+        return value
+    end
+    func Invoke((func(K) as K)? callback,K value) as K
+        if callback!=null
+            return callback(value)
+        end
+        return value
+    end
+end
+func echo(int value) as int
+    return value
+end
+class Reader
+    func Text(c_int ignored) as cstring
+        return cstring.take(rawText(),release)
+    end
+    func Data(c_int ignored) as cbytes
+        return cbytes.take(rawBytes(),4,release)
+    end
+end
+class Sink<K>
+    func Text((func(K) as cstring)? callback,K value) as cstring
+        if callback!=null
+            reset()
+            string result=callback(value)
+            assert oneRecord()
+            return result
+        end
+        return cstring.take(rawText(),release)
+    end
+    func Data((func(K) as cbytes)? callback,K value) as cbytes
+        if callback!=null
+            reset()
+            bytes result=callback(value)
+            assert oneRecord()
+            return result
+        end
+        return cbytes.take(rawBytes(),4,release)
+    end
+end
+func check()
+    Box<int> box=Box::<int>()
+    assert box.Invoke(box.Echo,7)==7,"direct method"
+    func(int) as int typed=box.Echo
+    assert box.Invoke(typed,11)==11,"typed method"
+    assert box.Invoke(echo,13)==13,"named function"
+    assert box.Invoke(null,17)==17,"null callback"
+    (func(int) as int)? optional=box.Echo
+    assert box.Invoke(optional,19)==19,"optional callback"
+    assert box.Invoke(value=23,callback=box.Echo)==23,"named arguments"
+    Box<string> words=Box::<string>()
+    assert words.Invoke(words.Echo,"word")=="word","text callback"
+    Reader reader=Reader()
+    Sink<c_int> sink=Sink::<c_int>()
+    string text=sink.Text(reader.Text,c_int(7))
+    assert original(text),"text pointer"
+    bytes data=sink.Data(reader.Data,c_int(9))
+    assert originalBytes(data),"binary pointer"
+end
+check()
+assert balanced()
