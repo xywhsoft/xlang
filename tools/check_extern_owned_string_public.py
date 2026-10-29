@@ -40,11 +40,18 @@ def main():
             assert sha(row['Path']).lower() == row['Sha256'].lower(), row['Path']
             inputs[Path(row['Path'])] = sha(row['Path'])
         assert sha(binary).lower() == build['DriverSha256'].lower()
+        if build.get('TccCore'):
+            assert sha(build['TccCore']).lower() == build['TccCoreSha256'].lower()
+            inputs[Path(build['TccCore'])] = sha(build['TccCore'])
         links = [row['Path'] for row in build['Objects']
                  if Path(row['Path']).name not in ('xlir_public_source_driver.o', 'xlir_public_source_linux_driver.o')]
-        tool_runtime = receipt.parent / 'xl.dll'
-        if not tool_runtime.exists(): tool_runtime = ROOT / 'release/xl.dll'
-        links += [str(tool_runtime), '-lws2_32', '-liphlpapi', '-lshell32', '-lole32', '-ladvapi32']
+        if os.name == 'nt':
+            tool_runtime = receipt.parent / 'xl.dll'
+            if not tool_runtime.exists(): tool_runtime = ROOT / 'release/xl.dll'
+            links += [str(tool_runtime), '-lws2_32', '-liphlpapi', '-lshell32', '-lole32', '-ladvapi32']
+        else:
+            tool_runtime = Path(build['RuntimeLibrary'])
+            links += [str(tool_runtime), '-Wl,-rpath,'+str(tool_runtime.parent), '-pthread', '-ldl', '-lm']
         includes = [ROOT, ROOT/'release', ROOT/'release/include', receipt.parent/'include']
     else:
         assert os.name != 'nt' and build['complete']
@@ -214,9 +221,8 @@ def main():
     # construct the final producer reference deterministically. Every other
     # provider comes from the verified cohort, including native worker/join.
     frame_name='xl6_task_frame.c'
-    tail_links=([row['Path'] for row in build['Objects'] if Path(row['Source']).name!=frame_name and
-                 not Path(row['Source']).name.startswith('xlir_public_source_')]+[str(tool_runtime),
-                 '-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32']) if 'Inputs' in build else [
+    frame_objects={row['Path'] for row in build.get('Objects',[]) if Path(row['Source']).name==frame_name}
+    tail_links=[value for value in links if value not in frame_objects] if 'Inputs' in build else [
                  *[row['object'] for row in build['objects'] if Path(row['source']).name!=frame_name],'-pthread','-ldl','-lm']
     output=work/('producer-tail-contract'+('.exe' if os.name=='nt' else ''))
     response=work/'producer-tail-contract.rsp'

@@ -1939,11 +1939,25 @@ static int xlAddEmbeddedTccRuntimeSources(
         char* source;
         size_t size=0;
         int compiler=(features & XL6_IMPORT_FEATURE_XLANG_COMPILER)!=0;
-        if(!tcc_vfs_write_catalog_source(compiler,NULL,0,&size) || size==SIZE_MAX ||
+        /* Serialize the catalog of the selected TCC core. A source host can
+         * link the runtime DLL while loading a compiler-capable core; those
+         * catalogs deliberately contain different fixed-object populations. */
+        typedef int (*XL_WriteCatalog)(int,char*,size_t,size_t*);
+#ifdef XL_STATIC_TCC_VFS
+        XL_WriteCatalog writeCatalog=tcc_vfs_write_catalog_source;
+#elif !defined(XL_STATIC_TCC)
+        XL_WriteCatalog writeCatalog=(XL_WriteCatalog)xlLoadProc(&xl__tcc,"tcc_vfs_write_catalog_source");
+#else
+        XL_WriteCatalog writeCatalog=NULL;
+#endif
+        if(!writeCatalog) {
+            xlSetError(ctx,"selected TCC core has no builtin catalog serializer");return 0;
+        }
+        if(!writeCatalog(compiler,NULL,0,&size) || size==SIZE_MAX ||
             !(source=(char*)xrtMalloc(size+1))) {
             xlSetError(ctx,"cannot allocate nested VFS catalog");return 0;
         }
-        if(!tcc_vfs_write_catalog_source(compiler,source,size+1,&size) ||
+        if(!writeCatalog(compiler,source,size+1,&size) ||
             xl__tcc.tcc_compile_string(s,source)!=0) {
             xrtFree(source);xlSetError(ctx,"cannot compile nested VFS catalog");return 0;
         }
