@@ -202,6 +202,12 @@ int xm_rate_checked(int64_t amount, double rate, int64_t *out) {
         *out = amount;
         return 1;
     }
+    /* 单位负倍率同样保留全部整数位，不依赖平台 long double 的精度。 */
+    if (rate == -1.0) {
+        if (amount == INT64_MIN) return xm_fail(XERR_RANGE, "money rate overflow");
+        *out = -amount;
+        return 1;
+    }
     rounded = roundl((long double)amount * (long double)rate);
     if (rounded < -9223372036854775808.0L || rounded >= 9223372036854775808.0L)
         return xm_fail(XERR_RANGE, "money rate overflow");
@@ -216,27 +222,33 @@ static xvalue *xm_result(int ok, int64_t amount) {
 
 xvalue *xm_add(int64_t a, int64_t b) {
     int64_t result = 0;
-    return xm_result(xm_add_checked(a, b, &result), result);
+    /* 先完成写入，再读取结果；C 不保证函数实参从左到右求值。 */
+    int ok = xm_add_checked(a, b, &result);
+    return xm_result(ok, result);
 }
 
 xvalue *xm_sub(int64_t a, int64_t b) {
     int64_t result = 0;
-    return xm_result(xm_sub_checked(a, b, &result), result);
+    int ok = xm_sub_checked(a, b, &result);
+    return xm_result(ok, result);
 }
 
 xvalue *xm_mul(int64_t a, int64_t b) {
     int64_t result = 0;
-    return xm_result(xm_mul_checked(a, b, &result), result);
+    int ok = xm_mul_checked(a, b, &result);
+    return xm_result(ok, result);
 }
 
 xvalue *xm_scale(int64_t amount, int64_t numerator, int64_t denominator) {
     int64_t result = 0;
-    return xm_result(xm_scale_checked(amount, numerator, denominator, &result), result);
+    int ok = xm_scale_checked(amount, numerator, denominator, &result);
+    return xm_result(ok, result);
 }
 
 xvalue *xm_rate(int64_t amount, double rate) {
     int64_t result = 0;
-    return xm_result(xm_rate_checked(amount, rate, &result), result);
+    int ok = xm_rate_checked(amount, rate, &result);
+    return xm_result(ok, result);
 }
 
 xvalue *xm_split(int64_t amount, int64_t n) {

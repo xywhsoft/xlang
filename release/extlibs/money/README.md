@@ -1,5 +1,48 @@
 # money
 
+## 当前验证（2026-10-30）
+
+修复五个装箱算术入口依赖 C 实参求值顺序的问题。原写法在同一次调用中
+执行 checked 并读取它的输出变量，GCC 会装箱初始零值，TCC 则碰巧读取
+计算后的值。现在显式先计算，再装箱，不改公开 ABI、错误分类或结果
+所有权。首版 649 项测试在旧 GCC 源上出现 363 项失败检查，不是 363 个
+独立 BUG；原测试以 checked 为主，未覆盖五条正常装箱路径。独立参照
+另发现 TCC 的负单位倍率会丢失极值低位，现在 -1.0 和已有 1.0 一样以
+整数计算；最小整数取反仍报 RangeError 且不写输出，其他倍率算法不改。
+
+新增 `test/boxed_records_c.c`：657 项正负/极值、比例半值、越界、零分母、
+有限与非有限倍率、旧错误清除及输出保留检查；五条装箱分配路径逐点失败
+后立即恢复，核对活动分配/字节和非法释放。独立 Python 用任意精度整数与
+Fraction 核对完整记录，GCC、TCC 内存运行及独立程序逐条比较。rate 参照
+只涵盖精确二进制倍率及明确越界，不改变其浮点估算合同，不声称任意
+十进制倍率都能跨平台精确取整。
+
+新 `examples/settlement.xl` / `settlement_c.c` 使用相同七行黄金输出，
+展示五种算术、溢出拒绝和恢复；C 这次直接使用五条公开装箱入口，而非
+只用 checked。旧订单、币种、分摊范例及原测试均保留。
+
+默认门禁先验可运行路径、全部九条实际生成原型、字符串直接接管、
+新旧双语及十条独立程序，最后仍强制原分配用例中的数组相等性断言。
+该 M6 边界尚未修复，不能把新算术验证通过当作整包发布通过。
+生产仍仅 VALUE_CONTAINER/STRING 两模块；独立范例按同清单生成唯一
+XRT 并链接运行，测试运行库从全模块收敛为上述两项加 MEMORY_DEBUG。
+逐进程有超时，输入前后指纹与命令/输出/退出值可查；成功只清理独占
+目录，失败保留现场，外部报告不删除。CC/PYTHON 可配置，缺工具报错
+不跳过。最终双平台范围与报告见根目录验收矩阵和任务台账。
+
+从仓库根运行（不是活动 `demo6/` 子目录）：
+
+```powershell
+./release/xl.exe run release/extlibs/money/examples/settlement.xl
+./release/xl.exe run release/extlibs/money/examples/settlement_c.c
+powershell -NoProfile -File release/extlibs/money/test/check.ps1
+bash release/extlibs/money/test/check.sh
+```
+
+Linux 使用 `release/xl`；默认门禁需要 GCC、Python3，C 检查另启用
+ASan/UBSan/泄漏检测。`-SkipAot` 只用于开发，不用于发布签收。
+以下旧日期记录按历史保留，旧缺符号、清理行为或目录描述不是当前验收。
+
 2026-10-27：`xm_format` 明确返回 XRT 分配的 `char*`，XLang 声明为
 `@owned string`，由生成代码直接接管指针，不再经过 `point` 和
 `takeCstr` 包装，也不通过可空局部变量再复制。新增独立的 JIT/AOT

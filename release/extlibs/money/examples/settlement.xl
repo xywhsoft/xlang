@@ -1,0 +1,22 @@
+import money
+
+func main(...) as int
+    // 最小货币单位结算；整数比例用于正式金额，浮点只作估算。
+    int subtotal = money.add(799, 349)
+    int refund = money.sub(subtotal, 199)
+    println("subtotal=" + string(subtotal))
+    println("refund=" + string(refund))
+    println("bundle=" + string(money.mul(125, 3)))
+    println("discount=" + string(money.scale(refund, 9, 10)))
+    println("estimate=" + string(money.rate(125, 0.5)))
+    bool rejected = false
+    try
+        money.add(9223372036854775807, 1)
+    catch RangeError error
+        rejected = true
+    end
+    assert rejected
+    println("overflow=rejected")
+    println("recovered=" + string(money.add(1, 2)))
+    return 0
+end
