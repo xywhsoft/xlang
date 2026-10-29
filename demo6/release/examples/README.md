@@ -4,6 +4,8 @@
 
 ## 推荐入口
 
+- `foundation/README.md`：系统查询、显式内存诊断、对象拥有组；由 `tools/check_stdlib_foundation.py` 在 Windows/Linux 主回归中运行。
+
 - `embedded_package/README.md`: an EXE explicitly mounts its compiled xlang/native package into a script Context; deployment needs only the EXE and external script.
 
 - `tutorial/README.md`：按学习顺序组织的小型教学范例。
