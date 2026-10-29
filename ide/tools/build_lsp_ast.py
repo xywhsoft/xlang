@@ -8,6 +8,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import time
@@ -20,9 +21,11 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def main(syntax=False):
+def main(syntax=False,semantic=False):
     ide = Path(__file__).resolve().parents[1]
-    scope = ('Guarded original lexer/parser and editing syntax; semantic/IR admission remains closed.'
+    syntax = syntax or semantic
+    scope = ('Original current semantic checker and guarded typed-index/type assets; semantic memo/IR admission remains closed.'
+             if semantic else 'Guarded original lexer/parser and editing syntax; semantic/IR admission remains closed.'
              if syntax else __doc__)
     parser = argparse.ArgumentParser(description=scope)
     parser.add_argument('--frontend-root', type=Path, required=True)
@@ -100,6 +103,42 @@ def main(syntax=False):
             fixture_support = [ide/'tests/analysis_syntax_link_fence.c']
             for p in [frontend/'src/parser/xl6_parser.y', *[row[0] for row in overlays]]:
                 inputs[str(p)] = sha(p)
+        if semantic:
+            from native_index_overlay import index as derive_index, types as derive_types
+            index_assets = [derive_index(frontend, output), derive_types(frontend, output)]
+            report['indexOverlays'] = [row[2] for row in index_assets]
+            semantic_sources = [frontend/name for name in
+                ('src/sem/xl6_sem.c', 'src/sem/xl6_type_registry.c', 'src/sem/xl6_protocol.c',
+                 'src/sem/xl6_sem_docs.c', 'src/sem/xl6_sem_field_attrs.c',
+                 'src/stdlib/xl6_stdlib.c', 'src/stdlib/xl6_stdlib_data.c', 'src/abi/xl6_callable.c')]
+            shared_sources += [row[1] for row in index_assets]+semantic_sources
+            core_sources += [row[1] for row in index_assets]+semantic_sources+[ide/'src/analysis'/name
+                for name in ('context.c','entity_store.c','module_store.c','module_graph.c','frontend_cancel.c')]
+            tests += ['analysis_native_index_profile_test','analysis_entity_package_key_test']
+            adapters += [Path(__file__).with_name('native_index_overlay.py'),
+                         Path(__file__).with_name('build_lsp_semantic.py')]
+            original_index = frontend/'src/sem/xl6_sem_index.c'
+            reference_index = output/'reference/reference_xl6_sem_index.c'
+            reference_index.write_bytes(original_index.read_bytes())
+            references.append(reference_index)
+            report['referenceSources'][str(reference_index)] = str(original_index)
+            report['originalSemanticSources'] = {str(p):sha(p) for p in semantic_sources}
+            for row in index_assets:
+                inputs.update(row[2]['auditedDependencies'])
+                inputs[str(row[0])] = sha(row[0])
+            # A fixture-only private copy of the real serializer. Namespace
+            # its defined public exports, leaving imported dependencies real.
+            probe_inputs = [index_assets[0][1], *[ide/'src/analysis'/name for name in
+                ('frontend_index.inc','frontend_entities.inc','frontend_entity_versions.inc')]]
+            definitions = '\n'.join(p.read_text('utf8') for p in probe_inputs)
+            public = sorted(set(re.findall(r'(?m)^(?!static\b)(?:const\s+)?[A-Za-z_]\w*[ \t*]+(xls\w+|xl6Sem(?:IndexJson|CBridgeMapJson))\s*\([^;{}]*\)\s*\{',definitions)))
+            if len(public)<26 or not {'xlsFrontendIndexCreate','xl6SemCBridgeMapJson'}<=set(public):
+                raise RuntimeError('index probe export discovery changed')
+            probe = output/'frontend/xls_index_package_probe.h'
+            probe.write_text(''.join('#define '+name+' xlsProbe_'+name+'\n' for name in public)+
+                '#include "'+index_assets[0][1].as_posix()+'"\n'+
+                ''.join('#undef '+name+'\n' for name in public),encoding='utf8',newline='\n')
+            report['privateIndexProbe'] = dict(header=str(probe),namespacedExports=public)
         sources = core_sources+references+fixture_support+[ide/'tests'/(name+'.c') for name in tests]
         common = ['-std=c11', '-O2', '-ffunction-sections', '-fdata-sections',
                   '-DXRT_MODULE_ALL=', '-DXLS_COMPILER_XRT=1', '-DXRT_EXCLUDE_MEMORY_DEBUG=',
@@ -108,6 +147,8 @@ def main(syntax=False):
                   '-I'+str(frontend/'lib/xrt'), '-include', str(frontend/'lib/xrt/xrt.h')]
         if os.name != 'nt':
             common += ['-D_GNU_SOURCE=1']
+        if semantic:
+            common += ['-DXL6_INDEX_BYTES=33554432u']
         strict = ['-Wall', '-Wextra', '-Werror', '-Wno-unused-parameter']
         shared = ['-Wall', '-Wno-pointer-sign', '-Wno-unused-function', '-Wno-unused-variable',
                   '-Wno-unused-but-set-variable', '-Wno-format-truncation', '-Wno-dangling-pointer']
@@ -117,8 +158,16 @@ def main(syntax=False):
         reference_flags += ['-D'+name+'=xlsReference'+name.removeprefix('xl6') for name in
             ('xl6ParseTrace', 'xl6ParseInit', 'xl6ParseFinalize', 'xl6ParseStackPeak',
              'xl6ParseCoverage', 'xl6ParseFallback')]
-        flags = lambda source: (common+(shared if source in shared_sources or source in references else strict)+
-                                (reference_flags if source in references else []))
+        reference_flags += ['-D'+name+'=xlsReference'+name.removeprefix('xl6') for name in
+            ('xl6SemIndexJson','xl6SemCBridgeMapJson')]
+        def flags(source):
+            preset = common
+            if source.stem=='reference_xl6_sem_index':
+                # Original JSON keeps its own literal 8 MiB budget; only the
+                # guarded native collector takes the configured typed budget.
+                preset = [flag for flag in common if not flag.startswith('-DXL6_INDEX_BYTES=')]
+            return preset+(shared if source in shared_sources or source in references else strict)+(
+                reference_flags if source in references else [])
         profiles = []
         report['runtimeProfiles'] = profiles
         for source in (ide/'src/analysis/runtime.c', ast, ide/'src/analysis/ast_clone.c'):
@@ -155,7 +204,7 @@ def main(syntax=False):
             run([str(cc), *flags(source), '-c', str(source), '-o', str(target)], source.stem)
             objects[source.stem] = target
         ar = cc.with_name('ar.exe' if os.name == 'nt' else 'ar')
-        archive = output/('xlang-syntax-core.a' if syntax else 'xlang-ast-core.a')
+        archive = output/('xlang-semantic-substrate.a' if semantic else 'xlang-syntax-core.a' if syntax else 'xlang-ast-core.a')
         run([str(ar), 'rcs', str(archive), *[str(objects[p.stem]) for p in core_sources]], 'archive')
         libraries = ['-lm']
         if os.name == 'nt':
@@ -169,7 +218,9 @@ def main(syntax=False):
             if name=='analysis_syntax_storage_test':
                 extra += ['-Wl,--wrap=xrtCalloc', '-Wl,--wrap=xrtStrDupN']
             if name=='analysis_parser_profile_test':
-                extra += [str(objects[p.stem]) for p in references]
+                extra += [str(objects[p.stem]) for p in references if p.stem!='reference_xl6_sem_index']
+            if name=='analysis_native_index_profile_test':
+                extra += [str(objects['reference_xl6_sem_index'])]
             run([str(cc), str(objects[name]), *extra, str(archive), '-Wl,--gc-sections', *libraries, '-o', str(program)], name+'-link')
             run([str(program)], name+'-run')
             runs.append(dict(name=name, status='passed', program=str(program)))

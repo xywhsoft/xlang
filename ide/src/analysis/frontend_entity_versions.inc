@@ -46,6 +46,14 @@ static int xlsEntityVersionHeader(xstrbuf* key,const xls_entity_view* view,const
     !xlsEntityVersionId(key,view,n->semanticDeclaredSymbolId,0) || !xlsEntityVersionId(key,view,n->semanticTargetSymbolId,0) ||
     !xlsEntityVersionId(key,view,n->semanticCompoundOperatorSymbolId,0) ||
     !xlsEntityVersionHeader(key,view,n->inferredType,depth+1) || !xlsEntityVersionHeader(key,view,n->semanticDeclaredType,depth+1))return 0;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+ /* Receiver IDs use the same proven entity/exact-native domains as other
+  * symbols. Owned package text is value identity,including NULL versus empty. */
+ uint64_t package[]={n->compiledPackageError,n->compiledPackageRoot};
+ if(!xlsEntityBytes(key,package,sizeof(package)) ||
+    !xlsEntityVersionText(key,n->compiledPackageLink) ||
+    !xlsEntityVersionId(key,view,n->semanticReceiverSymbolId,0))return 0;
+#endif
  size_t count=0;
  for(size_t i=0;i<n->childCount;++i)if(!(xlsEntityCallable(n) && n->children[i] && n->children[i]->kind==XL6_AST_BLOCK))++count;
  if(!xlsEntityNumber(key,count))return 0;
