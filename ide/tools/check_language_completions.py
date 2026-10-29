@@ -7,7 +7,7 @@ from check_language_definitions import position
 def sha(p): return hashlib.sha256(p.read_bytes()).hexdigest()
 def main():
  ap=argparse.ArgumentParser(); ap.add_argument('--compiler',type=Path,required=True); ap.add_argument('--server',type=Path); ap.add_argument('--gcc',default='gcc'); a=ap.parse_args()
- ide=Path(__file__).resolve().parents[1]; compiler=a.compiler.resolve(); server=(a.server or ide/'release/xlang-ls.exe').resolve(); work=ide/'build/targeted'/('completions-'+str(uuid.uuid4())); root=work/'中文 补全😀'; root.mkdir(parents=True); entry=root/'main.xl'; dep=root/'dep.xl'; extra=root/'extra.xl'
+ ide=Path(__file__).resolve().parents[1]; compiler=a.compiler.resolve(); server=(a.server or (ide/'release/xlang-ls.exe' if ide.parent.name=='build' and ide.name.startswith('cb-') else ide.parent/'release/xlang-ls.exe')).resolve(); work=ide/'build/targeted'/('completions-'+str(uuid.uuid4())); root=work/'中文 补全😀'; root.mkdir(parents=True); entry=root/'main.xl'; dep=root/'dep.xl'; extra=root/'extra.xl'
  original=b'func main(...) as int\n    return 0\nend\n'; entry.write_bytes(original)
  protected={str(p):sha(p) for p in [compiler,compiler.with_name('xlc.dll'),compiler.with_name('xl.dll'),ide/'third_party/xge_sdk/xge.dll']}; cases=[]; clients=[]; status='failed'; rid=10; temp_before={p.name for p in Path(os.environ['TEMP']).glob('xide-check-*')}
  def done(name): cases.append({'name':name,'passed':True})

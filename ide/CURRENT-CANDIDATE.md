@@ -1,5 +1,7 @@
 # 当前 xlang IDE 开发验收候选
 
+2026-10-29 目录调整：当前运行入口改为 [根目录 release/xlang_ide.exe](../release/xlang_ide.exe)，使用同目录的 xlang 引擎。以下 `ide/release` 的候选说明与 ZIP 摘要属于历史记录；本次迁移见[统一发布目录](docs/unified-release.md)。
+
 2026-10-22 已支持四种构建形态，无需先创建工作空间：
 
 | 打开形态 | F7 构建 | F5 运行 |
@@ -13,9 +15,9 @@
 
 `release` 已同步为本候选的完整运行副本，`dist` 仅保留本候选；旧发布与本轮中间包移入工作区外可恢复归档，见 [工作区与发布目录](docs/workspace-hygiene.md)。
 
-- [启动 IDE](release/xlang_ide.exe)
+- [启动 IDE](../release/xlang_ide.exe)
 - [Windows x64 便携 ZIP](dist/portable-20261022-standalone-v2/xlang-ide-windows-x64.zip)
-- [使用说明](release/QUICKSTART.md)
+- [使用说明](../release/QUICKSTART.md)
 - [本轮核验](build/standalone-targets-20261021/result.json)
 - [源码构建](docs/current-source-build.md)
 

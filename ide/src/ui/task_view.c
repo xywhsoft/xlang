@@ -163,7 +163,9 @@ static char* discoverCompiler(const char* requested,const char* saved)
     if(saved && *saved) return xidePathResolve(NULL,saved);
     wchar_t binary[32768]; if(!GetModuleFileNameW(NULL,binary,32768)) return NULL;
     char* text=utf8(xideStartupResourceModule(binary)); char* directory=text ? xidePathDirectory(text) : NULL; free(text);
-    char* path=directory ? xidePathResolve(directory,"../../release/xl.exe") : NULL; free(directory);
+    char* path=directory ? xidePathResolve(directory,"xl.exe") : NULL;
+    if(path && !xidePathExists(path)) { free(path); path=directory ? xidePathResolve(directory,"../../release/xl.exe") : NULL; }
+    free(directory);
     if(path && !xidePathExists(path)) { free(path); path=NULL; } return path;
 }
 int xideTaskViewCreate(xide_app* app)

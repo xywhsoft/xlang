@@ -63,7 +63,7 @@ end
 def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 def main():
  ap=argparse.ArgumentParser();ap.add_argument('--compiler',type=Path,required=True);ap.add_argument('--server',type=Path);ap.add_argument('--baseline',type=Path);ap.add_argument('--skip-lsp',action='store_true');args=ap.parse_args()
- ide=Path(__file__).resolve().parents[1];compiler=args.compiler.resolve();baseline=args.baseline.resolve() if args.baseline else None;server=(args.server or ide/'release/xlang-ls.exe').resolve();work=ide/'build/targeted'/('type-facts-'+uuid.uuid4().hex);work.mkdir(parents=True);entry=work/'入口😀.xl';entry.write_bytes(b'\xef\xbb\xbf'+SOURCE.replace('\n','\r\n').encode());abi=work/'abi.xl';abi.write_text(ABI,encoding='utf8')
+ ide=Path(__file__).resolve().parents[1];compiler=args.compiler.resolve();baseline=args.baseline.resolve() if args.baseline else None;server=(args.server or (ide/'release/xlang-ls.exe' if ide.parent.name=='build' and ide.name.startswith('cb-') else ide.parent/'release/xlang-ls.exe')).resolve();work=ide/'build/targeted'/('type-facts-'+uuid.uuid4().hex);work.mkdir(parents=True);entry=work/'入口😀.xl';entry.write_bytes(b'\xef\xbb\xbf'+SOURCE.replace('\n','\r\n').encode());abi=work/'abi.xl';abi.write_text(ABI,encoding='utf8')
  protected={str(p):sha(p) for p in (entry,abi,compiler,compiler.with_name('xlc.dll'),compiler.with_name('xl.dll'))};results=[];clients=[];status='failed';request=10;start=datetime.datetime.now(datetime.timezone.utc).isoformat()
  def done(name,**data):results.append({'name':name,'passed':True,**data})
  def command(label,tool,args):

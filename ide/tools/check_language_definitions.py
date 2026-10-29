@@ -9,7 +9,7 @@ def position(text,at):
  return {'line':len(pieces)-1,'character':len(pieces[-1].encode('utf-16-le'))//2}
 def main():
  ap=argparse.ArgumentParser(); ap.add_argument('--compiler',type=Path,required=True); ap.add_argument('--server',type=Path); ap.add_argument('--gcc',default='gcc'); args=ap.parse_args()
- ide=Path(__file__).resolve().parents[1]; compiler=args.compiler.resolve(); server=(args.server or ide/'release/xlang-ls.exe').resolve()
+ ide=Path(__file__).resolve().parents[1]; compiler=args.compiler.resolve(); server=(args.server or (ide/'release/xlang-ls.exe' if ide.parent.name=='build' and ide.name.startswith('cb-') else ide.parent/'release/xlang-ls.exe')).resolve()
  work=ide/'build/targeted'/('definitions-'+str(uuid.uuid4())); root=work/'源码😀'; root.mkdir(parents=True); entry=root/'main.xl'; dep=root/'helper.xl'
  protected={str(p):sha(p) for p in [compiler,compiler.with_name('xlc.dll'),compiler.with_name('xl.dll'),ide/'third_party/xge_sdk/xge.dll']}
  results=[]; clients=[]; status='failed'; start=datetime.datetime.now(datetime.timezone.utc).isoformat(); rid=10

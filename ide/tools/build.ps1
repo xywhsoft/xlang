@@ -1,5 +1,5 @@
 ﻿[CmdletBinding()]
-param([ValidateSet('Debug','Release')][string]$Configuration='Debug', [switch]$Tests, [string]$FrontendRoot='')
+param([ValidateSet('Debug','Release')][string]$Configuration='Debug', [switch]$Tests, [string]$FrontendRoot='', [string]$ReleaseDirectory='')
 $ErrorActionPreference='Stop'
 function Get-XideSha256([string]$Path) {
     $stream=[IO.File]::OpenRead($Path)
@@ -13,7 +13,8 @@ $sdkRoot = Join-Path $ideRoot 'third_party\xge_sdk'
 if ($LASTEXITCODE -ne 0) { throw 'SDK verification failed.' }
 $compiler = (Get-Command gcc -ErrorAction Stop).Source
 $objectRoot = Join-Path $ideRoot ('build\' + $Configuration)
-$releaseRoot = Join-Path $ideRoot 'release'
+# Development tests stay private; the shared runtime never receives fixtures.
+$releaseRoot = if ($ReleaseDirectory) { [IO.Path]::GetFullPath($ReleaseDirectory) } elseif ($Tests) { Join-Path $objectRoot 'release' } else { Join-Path (Split-Path -Parent $ideRoot) 'release' }
 [void](New-Item -ItemType Directory -Path $objectRoot -Force)
 [void](New-Item -ItemType Directory -Path $releaseRoot -Force)
 $flags = @('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-parameter','-DXGE_DLL','-DXUI_DLL','-DXGE_XRT_PROFILE_IDE=','-DXGE_DEBUGMODE=0','-finput-charset=UTF-8','-fexec-charset=UTF-8','-I'+(Join-Path $ideRoot 'src'),'-I'+$sdkRoot,'-I'+(Join-Path $sdkRoot 'lib\xrt'))
@@ -67,7 +68,10 @@ if (-not $FrontendRoot) {
         $portableConfig=Get-Content -LiteralPath $portableInputs -Raw | ConvertFrom-Json
         if ($portableConfig.compiler_root) { $candidateFrontend=Split-Path -Parent (Join-Path $ideRoot $portableConfig.compiler_root); if (Test-Path -LiteralPath (Join-Path $candidateFrontend 'src\parser\xl6_parser.c')) { $FrontendRoot=$candidateFrontend } }
     }
-    if (-not $FrontendRoot) { $FrontendRoot=Join-Path (Split-Path -Parent $ideRoot) 'demo6' }
+    if (-not $FrontendRoot) {
+        $shippedFrontend=Join-Path (Split-Path -Parent $ideRoot) 'release\sources\xlang'
+        $FrontendRoot=if (Test-Path -LiteralPath (Join-Path $shippedFrontend 'src\parser\xl6_parser.c')) { $shippedFrontend } else { Split-Path -Parent $ideRoot }
+    }
 }
 $nativeRoot=Join-Path $objectRoot ('lsp-'+[Guid]::NewGuid().ToString('N'))
 $nativeArguments=@('-X','utf8','-B',(Join-Path $PSScriptRoot 'build_lsp_core.py'),'--server','--frontend-root',$FrontendRoot,'--output',$nativeRoot,'--cc',$compiler,'--configuration',$Configuration)

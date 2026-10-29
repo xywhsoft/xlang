@@ -4,7 +4,7 @@
 
 2026-10-21 已更新为 XGE 3.0.0（`f248fd17`，XUI 代理 16），保留有来源记录的 Unicode 查找兼容补丁。严格构建 `cb-4a6a6215` 为 88 个编译对象（87 个 IDE 模块与 1 个 C 输入观察辅助对象）／108 项产物，构建期间源码变化为空；当前提供者对应的标准检查分段完成（含 29 张基础渲染，原脚本资源夹具分支失败保留），14 项实际编译器／语言服务检查及便携搬迁验收通过。`release` 为完整干净载荷，`dist` 仅保留本候选。适配、证据与范围见 [XGE 3 更新](xge3-upgrade.md) 和 [当前候选](../CURRENT-CANDIDATE.md)。下文保留历史阶段记录。
 
-2026-10-21 工作区整理后，`ide/release` 已改为[当前候选](../CURRENT-CANDIDATE.md)的完整干净副本，`ide/dist` 仅保留该候选；历史阶段的包已归档。此前直接开发构建会向 `release` 写入测试程序，后续请使用 `build_current.bat` 的隔离构建目录，再用 `package_current.bat` 生成候选。目录职责与归档清单见[工作区与发布目录](workspace-hygiene.md)。下文旧阶段的链接与验收数量保留作历史记录。
+2026-10-29 起，运行目录统一为仓库根 `release/`，便携包内的 IDE 与引擎也改为同层布局，见[统一发布目录](unified-release.md)。此前 2026-10-21 的独立 `ide/release` 候选已经成为历史记录；`ide/dist` 的既有候选与摘要不重写。开发与测试使用 `build_current.bat` 的隔离输出，再用 `package_current.bat` 生成新候选。
 
 2026-10-11 当前扩展库交付：SDK67，84 模块／106 产物重新严格构建，含渲染的完整回归和十项实际便携门通过。默认编译器修正 stdio 外部／内联声明冲突，并为真实扩展函数 C 原型提供可验证的 xlang 来源映射。CRC32、MD5 的实际混编、stdio 格式化、诊断、悬停、补全、F12 和间接头变化撤回已通过开发与包内检查；最终构建的 17 项原生界面断言和三张截图、九项编译器兼容、41 项源码材料及原有 74 项聚合／37 项标量对照通过。 详见[扩展库分析与导航](c-native-extensions.md)与[当前候选](../CURRENT-CANDIDATE.md)。下文保留此前阶段的数量和验收记录。
 
@@ -25,7 +25,8 @@ xlang-ide/
   data/commands.json
   data/fonts/{NotoSansMonoCJKsc-Regular.otf,LICENSE,COPYRIGHT.txt,source.json}
   option/settings.json
-  toolchains/xlang/{xl.exe,xl.dll,xlc.dll,include/,extlibs/}
+  xl.exe、xl.dll、xlc.dll
+  include/、extlibs/
   toolchains/clangd/{bin/,lib/,LICENSE.TXT}
   provenance/
   notices/
@@ -35,7 +36,7 @@ xlang-ide/
   QUICKSTART.md
 ```
 
-默认设置使用相对于 option/settings.json 的编译器和 C 服务器路径。程序自己的默认设置重新选择 toolchains 下的工具时也保存相对路径；外部工具或 --settings 指定的外部配置保持绝对绑定。命令文档原文已嵌入 commands.json，不依赖仓库 Markdown 路径。默认优先使用 Windows 字体，缺失时使用随包的开放许可中文等宽字体；随包字体偏好可相对保存。用户选择的外部字体和工作空间不会被打包。
+默认设置使用相对于 option/settings.json 的编译器和 C 服务器路径。程序自己的默认设置重新选择同目录引擎或 toolchains 下的工具时也保存相对路径；外部工具或 --settings 指定的外部配置保持绝对绑定。命令文档原文已嵌入 commands.json，不依赖仓库 Markdown 路径。默认优先使用 Windows 字体，缺失时使用随包的开放许可中文等宽字体；随包字体偏好可相对保存。用户选择的外部字体和工作空间不会被打包。
 
 解压到可写目录。option 是用户可变状态区；打包器不读取开发目录的 option，也不覆盖已经存在的候选目录或用户数据。Windows 字体和系统 DLL 属于运行环境；不复制 Windows 字体或系统 DLL。随包 Noto 字体、上游许可证与来源记录属于发行载荷。独立 xlang 服务和编译器各自使用匹配运行时，GUI 的唯一 XRT 仍由固定 xge.dll 提供。
 
@@ -58,7 +59,7 @@ xlang-ide/
 
 ## 验收
 
-候选创建后运行 `tools/test.ps1 -SkipBuild -PortablePackagePath <候选目录>`；完整功能回归还需按 [README](../README.md) 同时指定全部已验证编译器与 C 服务器。也可单独执行 `python tools/check_portable.py --package <候选目录> --fixture release/portable_view_test.exe`。原生夹具只注入私有解压副本，不进入发行 ZIP。
+候选创建后运行 `tools/test.ps1 -SkipBuild -PortablePackagePath <候选目录>`；完整功能回归还需按 [README](../README.md) 同时指定全部已验证编译器与 C 服务器。也可单独执行 `python tools/check_portable.py --package <候选目录> --fixture build/Release/release/portable_view_test.exe`。原生夹具只注入私有解压副本，不进入发行 ZIP。
 
 在脱离仓库布局、中文空格路径、仅 Windows 系统 PATH 的副本中验证：相对默认设置、4,465 条命令及 45 份长文档、真实 C/xlang 高亮、未保存 xlang 的 C 分析和 F12、混编构建运行、主题与用户偏好保持。归档解压前拒绝越界、重复、连接点/符号链接和超限内容；复核载荷摘要后运行。既有目标和已修改用户配置不能被重打包覆盖。
 

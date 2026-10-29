@@ -61,8 +61,8 @@ M1 的文本增量同步不等于语法／语义增量分析；M3 的常驻进�
 
 ```powershell
 python -X utf8 -B .\tools\benchmark_lsp.py `
-  --server .\release\xlang-ls.exe `
-  --compiler .\release\toolchains\xlang\xl.exe `
+  --server ..\release\xlang-ls.exe `
+  --compiler ..\release\xl.exe `
   --output .\build\lsp-next-20261022\baseline-initial
 ```
 

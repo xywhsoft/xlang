@@ -50,7 +50,7 @@ end
 def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 def main():
  ap=argparse.ArgumentParser();ap.add_argument('--compiler',type=Path,required=True);ap.add_argument('--server',type=Path);ap.add_argument('--gcc',default='gcc');ap.add_argument('--type-facts',action='store_true');args=ap.parse_args()
- ide=Path(__file__).resolve().parents[1];compiler=args.compiler.resolve();server=(args.server or ide/'release/xlang-ls.exe').resolve()
+ ide=Path(__file__).resolve().parents[1];compiler=args.compiler.resolve();server=(args.server or (ide/'release/xlang-ls.exe' if ide.parent.name=='build' and ide.name.startswith('cb-') else ide.parent/'release/xlang-ls.exe')).resolve()
  work=ide/'build/targeted'/('types-'+uuid.uuid4().hex);root=work/'来源😀';root.mkdir(parents=True);entry=root/'main.xl';dep=root/'helper.xl'
  entry.write_text('func main(...) as int\n    return 0\nend\n',encoding='utf8');dep.write_bytes(b'\xef\xbb\xbf'+DEPENDENCY.replace('\n','\r\n').encode())
  protected={str(p):sha(p) for p in (entry,dep,compiler,compiler.with_name('xlc.dll'),compiler.with_name('xl.dll'),ide/'third_party/xge_sdk/xge.dll')}

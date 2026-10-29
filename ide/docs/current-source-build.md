@@ -1,5 +1,7 @@
 # 当前开发源码与构建入口
 
+2026-10-29 起，[统一运行目录](unified-release.md)为仓库根 `release/`；下文历史 `ide/release` 路径均以该目录取代。隔离快照内部的 `release/` 路径保持不变。
+
 2026-10-22 已支持 C／xlang 单文件、独立 `.xlp` 和 `.xlw` 工作空间构建运行。无项目时 F7／F5 使用当前源文件；项目上下文保持所选／启动目标规则，新增“项目 → 构建当前文件／构建并运行当前文件”。显式源文件启动优先于历史工作空间恢复。严格构建 `cb-bd75b462` 为 88 个编译对象／109 项产物，构建期间源码变化为空。20 个相关原生 fixture、40 项单文件断言、7 次真实主程序入口与便携验收通过；发布目录已更新。SDK、默认编译器和 C 服务器沿用上一候选。本轮为相关范围回归，未重复全量标准／ABI 专项。见 [四种构建形态](standalone-builds.md) 和 [当前候选](../CURRENT-CANDIDATE.md)。
 
 2026-10-21 已更新为 XGE 3.0.0（`f248fd17`，XUI 代理 16），保留有来源记录的 Unicode 查找兼容补丁。严格构建 `cb-4a6a6215` 为 88 个编译对象（87 个 IDE 模块与 1 个 C 输入观察辅助对象）／108 项产物，构建期间源码变化为空；当前提供者对应的标准检查分段完成（含 29 张基础渲染，原脚本资源夹具分支失败保留），14 项实际编译器／语言服务检查及便携搬迁验收通过。`release` 为完整干净载荷，`dist` 仅保留本候选。适配、证据与范围见 [XGE 3 更新](xge3-upgrade.md) 和 [当前候选](../CURRENT-CANDIDATE.md)。下文保留历史阶段记录。
@@ -22,7 +24,7 @@
 
 每次调用都会复制当前的 `src`、`tests`、`tools`、`data` 和成套 SDK 到新的 `build/cb-xxxxxxxx`，校验复制内容后从源码编译。输出在该目录的 `release`；终端最后会打印 IDE 路径。`build/current-build.json` 指向最近一次已开始的尝试，包括准备阶段失败、编译失败和中断，不能用上一份成功记录冒充本次成功。具体源码哈希、编译日志、实际退出码和输出哈希保存在该构建目录的 `current-build-report.json`。修改源码后重新调用即可生成新的版本。
 
-`-Tests` 只编译测试程序，运行测试仍是独立步骤。构建期间发生源码变更会列在报告中；本次可执行文件对应复制时的源码快照。`build.bat` 仍是直接构建入口，会写入工作区的 `release` 和 `build/Debug` 或 `build/Release`；建议使用 `build_current.bat` 进行当前开发，以保留已验收的输出。
+`-Tests` 会执行原生分析核心测试并编译 GUI 测试程序；GUI 回归仍是独立步骤。运行快照的 `tools/test.ps1 -SkipBuild` 时，传入 `-ReleaseDirectory <快照目录>\release` 和对应配置。构建期间的源码变化会列入报告。直接 `build.bat` 的普通构建更新仓库根 `release`，带 `-Tests` 时输出 `ide/build/<配置>/release`；日常开发建议使用 `build_current.bat` 的独立快照。
 
 语义服务和真实项目编译需要选择 xlang 编译器、clangd 及相关工程工具链。源码构建生成 IDE 与内置 xlang 语言服务器，不自动把这些外部工具装入输出目录。直接体验已配好工具链的版本，使用 [当前便携候选](../CURRENT-CANDIDATE.md)。
 
@@ -38,7 +40,7 @@
 
 默认工具链和源码来源由 `data/portable-build-inputs.json` 明确指定，采用相对路径和固定来源清单摘要，沿用已验收的编译器、clangd，并绑定 SDK67 完整源码。另一台开发机需要准备对应材料或用 `--profile` 提供自己的固定输入配置。编译器、服务器与 SDK 源码均由打包校验核对，不能只改摘要跳过实际产物验证。
 
-输出为 `ide/dist` 下的新目录，包含可直接启动的 `xlang-ide/xlang_ide.exe`、工具链、字体、来源材料和 ZIP，不会覆盖已有便携版本。可用 `--output D:\GIT\x-lang\ide\dist\自己的新目录` 指定新目标。来源目录额外收录实际 IDE 源码构建报告。普通 `tools/package_portable.py` 仍支持显式输入参数，新增 `--build-report` 可选择上述构建快照；不传该参数时继续读取原有 `ide/release`，并按成套 SDK 校验拒绝旧 DLL。
+输出为 `ide/dist` 下的新目录，包含可直接启动的 `xlang-ide/xlang_ide.exe`、同层的 xlang 引擎、工具、字体、来源材料和 ZIP，不会覆盖已有便携版本。可用 `--output D:\GIT\x-lang\ide\dist\自己的新目录` 指定新目标。来源目录额外收录实际 IDE 源码构建报告。普通 `tools/package_portable.py` 仍支持显式输入；`--build-report` 选择上述快照，不传时读取仓库根 `release`，并按成套 SDK 校验拒绝旧 DLL。
 
 SDK 头文件、导入库、DLL、资源和来源描述作为一组替换。SDK67 材料覆盖 243 份文件、119 个编译单元和 213 项实际预处理依赖；完整 SDK 与应用严格构建记录及公开接口比较见[正则边界](find-boundaries.md)。本次完整回归和便携验收使用 `build/cb-dde2c833` 的同一精确构建，之后仅更新工作区说明和候选链接；没有重编产品或修改已验收的包。SDK65、SDK66 和私有失败候选的源码、构建及原始记录继续保留。
 

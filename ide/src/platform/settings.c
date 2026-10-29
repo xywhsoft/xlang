@@ -95,12 +95,16 @@ static char* portablePath(const xide_settings* settings,const char* resource,con
     if(!defaults || !xidePathLexicalEqual(settings->path,defaults)) { free(defaults); return NULL; }
     char* options=xidePathDirectory(defaults); char* program=options ? xidePathDirectory(options) : NULL;
     char* relative=program ? xidePathRelative(program,resource) : NULL;
-    int bundled=relative && !strncmp(relative,prefix,strlen(prefix));
+    size_t length=strlen(prefix);
+    int bundled=relative && (!strcmp(relative,prefix) || (length && prefix[length-1]=='/' && !strncmp(relative,prefix,length)));
     char* stored=bundled ? xidePathRelative(options,resource) : NULL;
     free(defaults); free(options); free(program); free(relative); return stored;
 }
 static char* portableExecutablePath(const xide_settings* settings,const char* executable)
-{ return portablePath(settings,executable,"toolchains/"); }
+{
+    char* path=portablePath(settings,executable,"toolchains/");
+    return path ? path : portablePath(settings,executable,"xl.exe");
+}
 static int writeSettings(xide_settings* settings,xvalue* root,xide_model_error* error)
 {
     size_t size=0; char* text=xrtJsonStringify(root,true,&size); int okay=text && size<=256u*1024u; xrtFree(text);
