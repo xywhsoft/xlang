@@ -7756,9 +7756,27 @@ static int xl6SemCheckRuntimeTypeExpr(XL6_SemContext* ctx, XL6_AstNode* node, in
 
     /* A method-group cast selects a declaration just like a contextual
      * function binding. A checked runtime cast cannot waive its constraints. */
-    if ( effectiveTarget != NULL && xl6TextEquals(effectiveTarget->text,"function") &&
-         xl6SemConstrainedBoundMethod(ctx,value,effectiveTarget,1)==0 ) {
-        ok=0;
+    int methodCast=effectiveTarget && xl6TextEquals(effectiveTarget->text,"function")
+        ? xl6SemConstrainedBoundMethod(ctx,value,effectiveTarget,1) : -1;
+    if(methodCast==0)ok=0;
+    if(ok && methodCast>0 && nullableTargetInner){
+        /* A selected method group is already known to match the exact inner
+         * signature. Normalize M as F? to (M as F) as F?: one receiver
+         * evaluation, the existing typed binding, then a pointer-only lift.
+         * An erased dynamic value is not authorized by this static proof. */
+        XL6_AstNode* binding=xl6AstNewText(XL6_AST_TYPE_AS,"as",2,NULL);
+        XL6_AstNode* signature=xl6SemCloneTypeNode(effectiveTarget);
+        XL6_AstNode** parts=xrtCalloc(2,sizeof(*parts));
+        if(!binding || !signature || !parts){
+            xl6AstFree(binding);xl6AstFree(signature);xrtFree(parts);xl6AstFree(sourceType);
+            xl6SemErrorNode(ctx,node,"out of memory while binding a nullable method cast");
+            return 0;
+        }
+        binding->line=node->line;binding->column=node->column;
+        binding->children=parts;binding->childCapacity=binding->childCount=2;
+        parts[0]=value;parts[1]=signature;node->children[0]=binding;
+        xl6AstFree(sourceType);
+        return xl6SemCheckRuntimeTypeExpr(ctx,node,isCast);
     }
 
     if ( nullableTargetInner != NULL &&

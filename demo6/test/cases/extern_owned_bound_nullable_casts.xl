@@ -1,0 +1,113 @@
+// A nullable cast reuses one exact method binding. Its receiver expression is
+// evaluated once, and the nullable lift creates no second closure.
+extern "c_owned_text" @no_raise func rawText() as point
+extern "c_owned_binary" @no_raise func rawBytes() as point
+extern "c_owned_release" @no_raise func release(point value)
+extern "c_owned_text_is_original" @no_raise func original(string value) as bool
+extern "c_owned_binary_span_original" @no_raise func originalBytes(cbytes value) as bool
+extern "bound_c_owners_balanced" @no_raise func balanced() as bool
+extern "bound_c_owners_one_record" @no_raise func oneRecord() as bool
+extern "owned_reset" @no_raise func reset()
+extern "owned_debug" @no_raise func debug() as bool
+extern "owned_fail_after" @no_raise func failAfter(int prefix)
+extern "owned_clear_failure" @no_raise func clearFailure()
+extern "owned_outstanding" @no_raise func live() as int
+int evaluated=0
+class Reader
+    func Echo<T>(T value) as T
+        return value
+    end
+    private func Hidden(int value) as int
+        return value
+    end
+    func Secret() as (func(int) as int)?
+        return self.Hidden as (func(int) as int)?
+    end
+    func Text() as cstring
+        return cstring.take(rawText(),release)
+    end
+    func Data() as cbytes
+        return cbytes.take(rawBytes(),4,release)
+    end
+    async func Later(int value) as int
+        return value
+    end
+end
+func receiver() as Reader
+    evaluated+=1
+    return Reader()
+end
+typedef Echo=func(int) as int
+class Box<K>
+    func Echo<T>(T value) as T
+        return value
+    end
+end
+func check()
+    evaluated=0
+    auto cb=receiver().Echo as Echo?
+    assert evaluated==1
+    if cb!=null
+        assert cb(7)==7
+    else
+        assert false
+    end
+    Reader reader=Reader()
+    auto privateCb=reader.Secret()
+    if privateCb!=null
+        assert privateCb(11)==11
+    else
+        assert false
+    end
+    Box<string> box=Box::<string>()
+    auto generic=box.Echo as (func(int) as int)?
+    if generic!=null
+        assert generic(13)==13
+    else
+        assert false
+    end
+    auto textReader=reader.Text as (func() as cstring)?
+    if textReader!=null
+        reset()
+        string text=textReader()
+        assert original(text) and oneRecord()
+    else
+        assert false
+    end
+    auto dataReader=reader.Data as (func() as cbytes)?
+    if dataReader!=null
+        reset()
+        bytes data=dataReader()
+        assert originalBytes(data) and oneRecord()
+    else
+        assert false
+    end
+end
+func later() as future<int>
+    Reader reader=Reader()
+    auto callback=reader.Later as (func(int) as future<int>)?
+    if callback!=null
+        return callback(17)
+    end
+    assert false
+    return reader.Later(0)
+end
+assert debug()
+check()
+assert balanced()
+int accepted=0
+int rejected=0
+for prefix in range(128)
+    int before=live()
+    failAfter(prefix)
+    try
+        check()
+        accepted+=1
+    catch problem
+        rejected+=1
+    end
+    clearFailure()
+    assert live()==before and balanced()
+end
+assert accepted>0 and rejected>0
+assert await later()==17
