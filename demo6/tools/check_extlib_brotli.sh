@@ -12,17 +12,20 @@ else
 fi
 cc=${CC:-gcc}
 pkg=release/extlibs/brotli
-sources=("$pkg/xrt_brotli.c" "$pkg/brotli_native.c" "$pkg"/third_party/{common,dec,enc}/*.c)
+sources=("$pkg/xrt_brotli.c" "$pkg/xrt_brotli_file.c" "$pkg/brotli_native.c" "$pkg"/third_party/{common,dec,enc}/*.c)
+cc_path=$(command -v "$cc" || true)
 input_paths() {
     find "$pkg" -type f -print0
+    find release/include -type f -print0
     printf '%s\0' lib/xrt/xrt.h lib/xruntime/xruntime.h test/support/extlib_codec_runtime.c \
-        test/cases/extlib_codec_file_allocation.c tools/check_extlib_brotli.sh \
+        test/cases/extlib_codec_file_allocation.c test/support/extlib_codec_file_rollback.h tools/check_extlib_brotli.sh \
         release/xl release/libxl.so release/libxlc.so release/include/xrt_decl.h \
         release/include/xruntime_decl.h release/include/xl_extlib_abi.h \
         test/cases/extlib_brotli.xl test/cases/extlib_brotli_progress.xl \
         release/examples/extlibs/brotli.xl release/examples/extlibs/brotli_basic.xl \
         release/examples/extlibs/brotli_basic.expected.txt
     if [[ -n ${XRT_INCLUDE:-} ]]; then printf '%s\0' "$XRT_INCLUDE/xrt.h" "$XRT_INCLUDE/xruntime.h"; fi
+    if [[ -n "$cc_path" ]]; then printf '%s\0' "$cc_path"; fi
 }
 mapfile -d '' inputs < <(input_paths | sort -zu)
 includes=(-Ilib/xrt -Ilib/xruntime)
@@ -59,27 +62,38 @@ for kind in compressor decompressor; do
     fi
 done
 "$cc" --version > "$work/compiler.txt"
+compile() { timeout 180s "$cc" "$@"; }
 for order in ALONE CORE_FIRST NATIVE_FIRST XRT_FIRST; do
-    "$cc" "${flags[@]}" "-DBROTLI_$order" -fsyntax-only "$pkg/test/native_header.c"
+    compile "${flags[@]}" "-DBROTLI_$order" -fsyntax-only "$pkg/test/native_header.c"
 done
-"$cc" "${flags[@]}" -DXRT_MODULE_DIR -DXRT_MODULE_FILE_WHOLE -c test/support/extlib_codec_runtime.c -o "$work/runtime.o"
+compile "${flags[@]}" -DXRT_MODULE_DIR -DXRT_MODULE_FILE_WHOLE -c test/support/extlib_codec_runtime.c -o "$work/runtime.o"
 objects=()
+core_objects=()
 for index in "${!sources[@]}"; do
     object="$work/native-$index.o"
-    "$cc" "${flags[@]}" -c "${sources[$index]}" -o "$object"
+    compile "${flags[@]}" -c "${sources[$index]}" -o "$object"
     objects+=("$object")
+    if [[ ${sources[$index]} != "$pkg/brotli_native.c" ]]; then core_objects+=("$object"); fi
+done
+compile "${flags[@]}" -c "$pkg/test/xrt_file_runtime.c" -o "$work/xrt-file-runtime.o"
+for name in files_c file_rollback_open; do
+    compile "${flags[@]}" -DNDEBUG "$pkg/test/$name.c" "${core_objects[@]}" "$work/xrt-file-runtime.o" -lm -ldl -o "$work/$name"
+    timeout 90s "$work/$name" 2>&1 | tee "$work/$name.log"
 done
 for name in test_brotli test_brotli_alloc; do
-    "$cc" "${flags[@]}" -DNDEBUG "$pkg/test/$name.c" "${objects[@]}" "$work/runtime.o" -lm -ldl -o "$work/$name"
+    compile "${flags[@]}" -DNDEBUG "$pkg/test/$name.c" "${objects[@]}" "$work/runtime.o" -lm -ldl -o "$work/$name"
     timeout 60s "$work/$name" 2>&1 | tee "$work/$name.log"
 done
-"$cc" "${flags[@]}" -DNDEBUG "$pkg/examples/basic.c" "${objects[@]}" "$work/runtime.o" -lm -ldl -o "$work/basic"
+compile "${flags[@]}" -DNDEBUG "$pkg/examples/basic.c" "${objects[@]}" "$work/runtime.o" -lm -ldl -o "$work/basic"
 timeout 30s "$work/basic" > "$work/basic.log"
 # 已有 Windows 工作树可能仍将黄金文件检出为 CRLF。
 sed 's/\r$//' release/examples/extlibs/brotli_basic.expected.txt > "$work/basic.expected.txt"
 diff -u "$work/basic.expected.txt" "$work/basic.log"
-"$cc" "${flags[@]}" -DNDEBUG "$pkg/test/file_allocation.c" "${objects[@]}" "$work/runtime.o" -lm -ldl -o "$work/file-allocation"
+compile "${flags[@]}" -DNDEBUG "$pkg/test/file_allocation.c" "${objects[@]}" "$work/runtime.o" -lm -ldl -o "$work/file-allocation"
 timeout 90s "$work/file-allocation" "$work/files-$$" 2>&1 | tee "$work/file-allocation.log"
+compile "${flags[@]}" -DNDEBUG "$pkg/examples/files_c.c" "${core_objects[@]}" "$work/xrt-file-runtime.o" -lm -ldl -o "$work/files-example"
+timeout 30s "$work/files-example" > "$work/files-example.log"
+diff -u <(sed 's/\r$//' "$pkg/examples/files.expected.txt") "$work/files-example.log"
 
 xl=release/xl
 if [[ ! -x "$xl" ]]; then
@@ -107,6 +121,12 @@ timeout 90s "$xl" run release/examples/extlibs/brotli.xl > "$work/full_xl.log"
 timeout 90s "$xl" run release/examples/extlibs/brotli_basic.xl > "$work/basic_xl.log"
 diff -u "$work/basic.expected.txt" "$work/basic_xl.log"
 diff -u "$work/basic.log" "$work/basic_xl.log"
+timeout 90s "$xl" run "$pkg/examples/files.xl" > "$work/files-xl.log"
+diff -u "$work/files-example.log" "$work/files-xl.log"
+timeout 90s "$xl" run "$pkg/examples/files_c.c" "${sources[@]}" \
+    --inc-path lib/xrt --inc-path lib/xruntime > "$work/files-c-direct.log"
+diff -u "$work/files-example.log" "$work/files-c-direct.log"
+timeout 90s "$xl" run "$pkg/test/files_c.c" "${sources[@]}" --inc-path lib/xrt --inc-path lib/xruntime
 printf '[brotli] XLang AOT gate\n'
 for name in extlib_brotli extlib_brotli_progress error_dispatch wire_fixture brotli brotli_basic; do
     printf '[brotli] AOT %s\n' "$name"
@@ -124,8 +144,23 @@ printf '[brotli] C file allocation AOT\n'
 timeout 180s "$xl" build "$pkg/test/file_allocation.c" "${sources[@]}" \
     --inc-path lib/xrt --inc-path lib/xruntime -o "$work/file-allocation-aot"
 timeout 90s "$work/file-allocation-aot" "$work/aot-files-$$" > "$work/file-allocation-aot.log"
+for source in "$pkg/examples/files.xl" "$pkg/examples/files_c.c" "$pkg/test/files_c.c"; do
+    binary="$work/$(basename "${source%.*}")-$(basename "$(dirname "$source")")"
+    extra=()
+    if [[ $source == *.c ]]; then extra=("${sources[@]}" --inc-path lib/xrt --inc-path lib/xruntime); fi
+    timeout 180s "$xl" build "$source" "${extra[@]}" -o "$binary"
+    timeout 90s "$binary" > "$binary.log"
+    if [[ $source == "$pkg/examples/"* ]]; then diff -u "$work/files-example.log" "$binary.log"; fi
+done
+
+cd "$root"
+compile "${flags[@]}" -DNDEBUG "$pkg/test/file_rollback_closed.c" "${core_objects[@]}" "$work/xrt-file-runtime.o" -lm -ldl -o "$work/rollback-closed"
+if timeout 90s "$work/rollback-closed" "$work/closed-files" > "$work/rollback-closed.log" 2>&1; then closed_result=0
+else closed_result=$?; cat "$work/rollback-closed.log"; fi
+cd "$stage"
 
 printf '[brotli] Top-level native object lifecycle\n'
 timeout 90s "$xl" run "$pkg/test/top_level.xl"
 timeout 180s "$xl" build "$pkg/test/top_level.xl" -o "$work/top-level"
 timeout 90s "$work/top-level" 2>&1 | tee "$work/top-level.log"
+test "$closed_result" -eq 0
