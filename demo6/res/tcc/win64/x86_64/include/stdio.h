@@ -249,7 +249,9 @@ extern FILE (*_imp___iob)[];    /* A pointer to an array of FILE */
   extern
   __attribute__((format(gnu_printf, 3, 4))) __attribute__((nonnull (3)))
   int __mingw_snprintf(char* s, size_t n, const char*  format, ...);
+#ifdef __NO_ISOCEXT
   int __cdecl vsnprintf(char *_DstBuf,size_t _MaxCount,const char *_Format,va_list _ArgList);
+#endif
   _CRTIMP int __cdecl _snprintf(char *_Dest,size_t _Count,const char *_Format,...);
   _CRTIMP int __cdecl _vsnprintf(char *_Dest,size_t _Count,const char *_Format,va_list _Args);
   int __cdecl sprintf(char *_Dest,const char *_Format,...);

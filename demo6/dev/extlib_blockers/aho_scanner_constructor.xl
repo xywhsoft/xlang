@@ -1,0 +1,4 @@
+import aho_corasick
+
+// 仅运行 xl check，不执行：包外不应直接提供原生 Scanner 句柄。
+auto scanner = aho_corasick.Scanner(null)

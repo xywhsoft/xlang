@@ -1,0 +1,16 @@
+import zstd
+
+func main(...) as int
+    Buffer packed = zstd.compress("abc")
+    auto decoder = zstd.decompressor()
+    decoder.update(packed)
+    decoder.finish()
+    bool rejected = false
+    try
+        decoder.update(packed)
+    catch CompressionError e
+        rejected = true
+    end
+    assert rejected
+    return 0
+end

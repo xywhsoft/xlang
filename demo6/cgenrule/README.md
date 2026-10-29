@@ -6,7 +6,7 @@
 
 - `src/cgen/xl6_ir_cgen.c`：统一 XLIR C emitter 的 unity translation unit；其 `xl6_ir_cgen_*` 分片按验证、需求分析、函数/指令发射、异步与 generator、header 和模块装配划分职责。
 - `src/cgen/xl6_ir_cgen.h`：C/header 发射的公开编译器内接口。
-- `src/cgen/xl6_cgen_shared_runtime.c`：生成程序使用的共享运行时组件 emitter；buffer、file、network、TLS、WebSocket、JSON/XSON 等组件只输出已由 XLIR artifact plan 选择的运行时桥，不解析 AST，也不决定语言语义。
+- `src/cgen/xl6_cgen_shared_runtime.c`：生成程序使用的共享运行时组件 emitter；buffer、file、network、TLS、WebSocket、JSON/XLON 等组件只输出已由 XLIR artifact plan 选择的运行时桥，不解析 AST，也不决定语言语义。
 
 `src/cgen` 中保留 `xl6_cgen_*` 名称的文件只属于上述共享运行时组件体系，不是旧 AST 后端。它们由 `xl6_cgen_shared_runtime.c` 统一装配，供 XLIR emitter 复用。
 
@@ -25,6 +25,17 @@
 C emitter 直接发射 bool/typed-out 的闭包入口函数体，不再套转发 thunk；
 参数/结果不经过动态 Value，owned 字符串沿用普通接管路径。动态擦除调用
 仍使用其原有 ABI，不能用这个 role 绕过来源及签名校验。
+
+## IO 与 Console
+
+`src/ir/xl6_ir_io_bridge.c` 封闭登记参数/结果类型、借入、错误 ABI、
+native 工厂/析构身份；`xl6_ir_cgen_emit_io.c` 与
+`xl6_ir_cgen_emit_console.c` 只输出已选中的薄边界适配器。
+系统 IO、短操作、行扫描、终端解析与模式恢复在 XRT 实现，不搬入 emitter。
+text write/writeln/print 返回 bool 状态，语言层转 IOError，不隐含每次 flush。
+Screen 查询、Console 输入和 Session 分别选择不同 XRT 模块；
+生成 C 仅引入声明头，不嵌入第二份 XRT/xruntime 实现。
+`check_stdlib_io_console.ps1` 检查确定性、依赖隔离、严格 C、JIT/AOT 与错误 ABI。
 
 ## Process 配置与同步捕获
 

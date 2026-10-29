@@ -1,0 +1,14 @@
+class OptionalCallback
+    func invoke((func(int) as int)? callback = null) as int
+        if callback == null
+            return -1
+        end
+        return callback(40)
+    end
+end
+func plusOne(int value) as int
+    return value + 1
+end
+var object = OptionalCallback()
+assert int(object.invoke()) == -1
+assert int(object.invoke(xcall(plusOne))) == 41

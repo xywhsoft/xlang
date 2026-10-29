@@ -1,0 +1,5 @@
+extern "xl_sdk_feature_probe" func nativeProbe() as c_int
+
+export func probe() as c_int
+    return nativeProbe()
+end

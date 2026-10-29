@@ -1,0 +1,6 @@
+import stb_image_write
+
+func main(...) as int
+    assert stb_image_write.available()
+    return 0
+end

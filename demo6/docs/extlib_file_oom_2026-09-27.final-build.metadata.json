@@ -1,0 +1,142 @@
+{
+  "recordedAt": "2026-09-27T19:14:33.5791606+08:00",
+  "stage": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-final-20260927",
+  "buildExit": 0,
+  "buildLog": "build/test/extlib-runtime-final-20260927/build-synchronized.log",
+  "buildLogSha256": "5B7BAF7ACD8AE04DE31664F1D6D7DA657A8F7DF83793CAD3A82DCFD1B5432269",
+  "snapshotPolicy": "Four file implementation blocks backported only; no whole upstream XRT update",
+  "resources": "Both packs regenerated; compiler nested runtime is from this same output directory",
+  "currentBuildInputs": [
+    {
+      "path": "build_dll.bat",
+      "sha256": "D87EAF09DB6CE675020986303DF242FAC745A855322003B3931D3429C5B3D2FC"
+    },
+    {
+      "path": "build.bat",
+      "sha256": "F4B0FDA4147AF0C3F28F04B21D3C0D77F8683095280867A52A02A3220E6E0773"
+    },
+    {
+      "path": "lib/xrt/xrt.h",
+      "sha256": "4C8CA837C7BAA2B865D6A6C8437449A90186639618888B929F6C3743327A0AC5"
+    },
+    {
+      "path": "lib/xrt/xrt.snapshot.json",
+      "sha256": "CB911BDE754F4328F9500F5F0A04EE7C62589B98BC3B739E3C8CD55F86C198CB"
+    },
+    {
+      "path": "lib/xruntime/xruntime.h",
+      "sha256": "5E47B36DC21FDFF54C230D1FCA99175F429AD541409F1D44194F00E0FDF10F53"
+    },
+    {
+      "path": "lib/xruntime/xruntime.snapshot.json",
+      "sha256": "534E43536E56B853001DC8616CA979F716D0BBD0DC82DDE9F6A4724F8D090A9D"
+    },
+    {
+      "path": "src/driver/xl6_xlc_shell.c",
+      "sha256": "E9A1804EF3586DAD52982C1CA97A2E07D2155066E340ACB54533269B990ACAFE"
+    },
+    {
+      "path": "tools/build_xrt_obj.bat",
+      "sha256": "080B5974519D38307DF5359AB41CDC8F6718461F3142A61864298B9728911B1B"
+    },
+    {
+      "path": "tools/check_tcc_vfs_resources.ps1",
+      "sha256": "A85687BAEDC1B28ED518FD8A7093658EF4536BBF5DB68AF7432BD938E787A4E8"
+    },
+    {
+      "path": "tools/gen_tcc_vfs_resources.ps1",
+      "sha256": "650BB75BE9BC0BDBCC52D1F0D86D22A097D551F77DE52467F16D7F62DEAEBD78"
+    },
+    {
+      "path": "tools/gen_tcc_vfs_resources.py",
+      "sha256": "D18FA33490A266F5778092FCE791FB0240973EF24F6166AB421A6609789E09C0"
+    },
+    {
+      "path": "tools/tcc_vfs_manifest_linux_xlc.txt",
+      "sha256": "E1C2BF23C21554861C755EE2FF0D0357D2E9EF7DCF53CDFA26C5796F724C489D"
+    },
+    {
+      "path": "tools/tcc_vfs_manifest_win64_runtime.txt",
+      "sha256": "239CEFBC5233537E4CA0A7014CCAA4FF548E884B0CE0DCC73243FA703C3CFEE9"
+    },
+    {
+      "path": "tools/tcc_vfs_manifest_win64_xlc.txt",
+      "sha256": "52F709A242785B5E256F59760EEA4DEB3D8EF5BDFEB184F99B0902B712F5CC14"
+    },
+    {
+      "path": "tools/test_tcc_vfs_output_directory.py",
+      "sha256": "3F8A1995398E2394DF7C7558336761694A3B249421CF991EF6E4CE16B4BD30D4"
+    },
+    {
+      "path": "tools/xl6_toolchain_env.bat",
+      "sha256": "EBEC6E58BD566836266E6BC35F8C0933E0734E3FCE818C1E7119E9F09E9BCEBD"
+    }
+  ],
+  "postBuildScriptOnlyChange": "build_dll.bat stale libtcc.dll cleanup now targets XL6_RELEASE_DIR; compiled sources and flags unchanged",
+  "artifacts": [
+    {
+      "path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-final-20260927\\runtime\\xl.exe",
+      "bytes": 39424,
+      "sha256": "3376E9514B52E9AD5F43A22C5EA3DA3294D261F4EFDB57CB6E147116A4695FBA"
+    },
+    {
+      "path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-final-20260927\\runtime\\xl.dll",
+      "bytes": 6304768,
+      "sha256": "3C2E270F39D02C97D0DE6AC7CE0373B0FC16783EF81DC73EC6CEF8D63ADE90BC"
+    },
+    {
+      "path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-final-20260927\\runtime\\xlc.dll",
+      "bytes": 10182144,
+      "sha256": "0D3AE2C08A659845B3F7630DB1FF715887B7FCEDC3A57F211909731130D2476A"
+    },
+    {
+      "path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-final-20260927\\intermediate\\tcc_builtin_resources.c",
+      "bytes": 29778198,
+      "sha256": "BFCB8348378FF3EFDBE3233861D3964C47D3902606AFD2950D570CE4D8DF7BAC"
+    },
+    {
+      "path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-final-20260927\\intermediate\\tcc_builtin_resources_runtime.c",
+      "bytes": 6032005,
+      "sha256": "B0F37E9FA1B2C0DA14495246A281E3C9D82D8088F1912D5C2604AC2C339478AA"
+    }
+  ],
+  "nestedRuntime": [
+    {
+      "virtual": "__xl_compiler/build/tmp/tcc_builtin_resources_runtime.c",
+      "source": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-final-20260927\\intermediate\\tcc_builtin_resources_runtime.c",
+      "sha256": "b0f37e9fa1b2c0da14495246a281e3c9d82d8088f1912d5c2604ac2c339478aa"
+    }
+  ],
+  "runtimeResources": 134,
+  "compilerResources": 437,
+  "publishedReplaced": false,
+  "release": [
+    {
+      "path": "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+      "before": "5A3F20B4CF9333D393560CB2361D0EBAB8A13F0D07C64A78A1F5FFF5385D9EEB",
+      "after": "5A3F20B4CF9333D393560CB2361D0EBAB8A13F0D07C64A78A1F5FFF5385D9EEB",
+      "unchanged": true
+    },
+    {
+      "path": "D:\\GIT\\x-lang\\demo6\\release\\xl.dll",
+      "before": "2A07C481C04CAD71D31D46722A27E62027318DF24E95A63126E061FD4CA46902",
+      "after": "2A07C481C04CAD71D31D46722A27E62027318DF24E95A63126E061FD4CA46902",
+      "unchanged": true
+    },
+    {
+      "path": "D:\\GIT\\x-lang\\demo6\\release\\xlc.dll",
+      "before": "7C672FD0B2852690D09E2EF1046C56EE1586FD1FCCC0CAEA61E19C0FE7C6E1F0",
+      "after": "7C672FD0B2852690D09E2EF1046C56EE1586FD1FCCC0CAEA61E19C0FE7C6E1F0",
+      "unchanged": true
+    }
+  ],
+  "gates": [
+    "extlib_file_oom_2026-09-27.final-runtime.results.json",
+    "extlib_file_oom_2026-09-27.final-gzip.results.json",
+    "extlib_file_oom_2026-09-27.final-brotli.results.json",
+    "extlib_file_oom_2026-09-27.final-bz2.results.json",
+    "extlib_file_oom_2026-09-27.final-boundaries.results.json",
+    "extlib_file_oom_2026-09-27.final-extensions.results.json",
+    "extlib_file_oom_2026-09-27.final-dll-host.results.json"
+  ]
+}

@@ -1,0 +1,173 @@
+{
+    "date":  "2026-09-27T08:43:18.0168667+08:00",
+    "outcome":  "passed",
+    "scope":  "Existing MySQL status formatting and FAISS scalar CSV distance helpers only, not complete database/vector backends",
+    "inputs":  {
+                   "lib/xrt/xrt.h":  "7C78B4B3D13FC64AC1009E2EDFAE73E9FB092C896DA1A70CF5BE859D153851E8",
+                   "lib/xruntime/xruntime.h":  "FF23FDB9AC90F63DEED1606A78F21707A9FA677AA766044B8AF3B4F5202F4BA9",
+                   "release/extlibs/faiss/faiss_native.c":  "5F670B20A1B6CCCCB7F3AC37044488A4C370086F467570F640F97CD278E03E08",
+                   "release/extlibs/faiss/src/faiss.xl":  "89FA6049710EF673F2EEA6A51562C965FD7A287E8FC0B6D72DF060AD400E2EB8",
+                   "release/extlibs/faiss/xlang.package.json":  "D1B0A130DFF561FB2F04A3D1BD83E896C835EE7451AC2CC668E3A550421E31A6",
+                   "release/extlibs/mysql/mysql_native.c":  "E647EB43D32BA75AE1BEE5AAD4DF6F024B5984B76AE865DBB152DFDD5C6A8D30",
+                   "release/extlibs/mysql/src/mysql.xl":  "E3D0E65D940933153FB5E904F5355ED10B7AD8D24B430F32B116004F3F7369C5",
+                   "release/extlibs/mysql/xlang.package.json":  "383C1FA65A7EAB1C6ECF904425841DEC5EAEE07F21D980563C0F865AD0EAEB9B",
+                   "release/include/xrt_decl.h":  "3356BCCABBCBC877AD19C5E2D3336C909C2A742DE62E7B92BB79FE2AF3F4CEE6",
+                   "release/include/xruntime_decl.h":  "4B7CFAA2015F39E08159F4B10108B9BB1764D2370074333335651FE5C1BA87AC",
+                   "release/xl.dll":  "2A07C481C04CAD71D31D46722A27E62027318DF24E95A63126E061FD4CA46902",
+                   "release/xl.exe":  "5A3F20B4CF9333D393560CB2361D0EBAB8A13F0D07C64A78A1F5FFF5385D9EEB",
+                   "release/xlc.dll":  "7C672FD0B2852690D09E2EF1046C56EE1586FD1FCCC0CAEA61E19C0FE7C6E1F0",
+                   "test/cases/extlib_partial_helper_boundaries.xl":  "9FEDC650540E6423A61FF2B299ED75CB30269C58F0D0E025E7BF2A2A83371AB2",
+                   "test/cases/extlib_partial_helper_boundaries_c.c":  "338101A74ACAADA64739DC65A5D3B34252E1389CB135D4D6515495E5C2CB4C9F",
+                   "test/suites/12_phase1_extlibs.bat":  "89D228245067F79CB12B6BC4020220916FB8AD535AA44DAA3335F83ABEC46DBF",
+                   "test/support/extlib_helper_runtime.c":  "1ADC18158DED61B34BF884E462C6AA5A0CB4AD636FB90DDA243CE52CA1BA923D",
+                   "tools/check_extlib_helper_boundaries.ps1":  "B735A0BA6F2145F362985D29CA46D60ACC4AA93D77D6A49B459B25641000F723",
+                   "tools/check_extlib_helper_boundaries.sh":  "04B05A3C2CB6E4120B08C5C2FAA87C1924AE8AD52637A8012FCA9ABEBD7B82B2",
+                   "tools/extlib_smoke_process.ps1":  "87C3D050B1F492E3F0C4307BA39F454E42B65E37DBCDEC4BE3E938BC2F32D2F7",
+                   "tools/rc0_guard.ps1":  "C4639F8CC0F07562CFF5C751B66682C3806EA06AEBC8D0DB0BA926349EF09A53",
+                   "tools/xlir_native_process.ps1":  "2BE2787D2316CE07E0D0AC3BDF1A1CAABA14D72F249CCAC847BB1C05D1DBFC9D"
+               },
+    "checks":  [
+                   {
+                       "name":  "gcc-build",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "test/cases/extlib_partial_helper_boundaries_c.c",
+                                         "release/extlibs/mysql/mysql_native.c",
+                                         "release/extlibs/faiss/faiss_native.c",
+                                         "test/support/extlib_helper_runtime.c",
+                                         "-lWs2_32",
+                                         "-lAdvapi32",
+                                         "-lm",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\partial_helpers\\native.exe"
+                                     ],
+                       "result":  {
+                                      "status":  "pass",
+                                      "exitCode":  0,
+                                      "stdout":  "",
+                                      "stderr":  "",
+                                      "elapsedMs":  1881
+                                  }
+                   },
+                   {
+                       "name":  "gcc",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\partial_helpers\\native.exe",
+                       "arguments":  [
+
+                                     ],
+                       "result":  {
+                                      "status":  "pass",
+                                      "exitCode":  0,
+                                      "stdout":  "partial helpers: 128 status combinations and numeric boundaries passed\r\n",
+                                      "stderr":  "",
+                                      "elapsedMs":  24
+                                  }
+                   },
+                   {
+                       "name":  "c-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "test/cases/extlib_partial_helper_boundaries_c.c",
+                                         "release/extlibs/mysql/mysql_native.c",
+                                         "release/extlibs/faiss/faiss_native.c",
+                                         "--inc-path",
+                                         "lib/xrt"
+                                     ],
+                       "result":  {
+                                      "status":  "pass",
+                                      "exitCode":  0,
+                                      "stdout":  "partial helpers: 128 status combinations and numeric boundaries passed\r\n",
+                                      "stderr":  "",
+                                      "elapsedMs":  102
+                                  }
+                   },
+                   {
+                       "name":  "xl-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "test/cases/extlib_partial_helper_boundaries.xl"
+                                     ],
+                       "result":  {
+                                      "status":  "pass",
+                                      "exitCode":  0,
+                                      "stdout":  "partial helpers: xlang boundaries passed\n",
+                                      "stderr":  "",
+                                      "elapsedMs":  179
+                                  }
+                   },
+                   {
+                       "name":  "c-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "test/cases/extlib_partial_helper_boundaries_c.c",
+                                         "release/extlibs/mysql/mysql_native.c",
+                                         "release/extlibs/faiss/faiss_native.c",
+                                         "--inc-path",
+                                         "lib/xrt",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\partial_helpers\\c-aot.exe"
+                                     ],
+                       "result":  {
+                                      "status":  "pass",
+                                      "exitCode":  0,
+                                      "stdout":  "",
+                                      "stderr":  "",
+                                      "elapsedMs":  299
+                                  }
+                   },
+                   {
+                       "name":  "c-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\partial_helpers\\c-aot.exe",
+                       "arguments":  [
+
+                                     ],
+                       "result":  {
+                                      "status":  "pass",
+                                      "exitCode":  0,
+                                      "stdout":  "partial helpers: 128 status combinations and numeric boundaries passed\r\n",
+                                      "stderr":  "",
+                                      "elapsedMs":  76
+                                  }
+                   },
+                   {
+                       "name":  "xl-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "test/cases/extlib_partial_helper_boundaries.xl",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\partial_helpers\\xl-aot.exe"
+                                     ],
+                       "result":  {
+                                      "status":  "pass",
+                                      "exitCode":  0,
+                                      "stdout":  "",
+                                      "stderr":  "",
+                                      "elapsedMs":  549
+                                  }
+                   },
+                   {
+                       "name":  "xl-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\partial_helpers\\xl-aot.exe",
+                       "arguments":  [
+
+                                     ],
+                       "result":  {
+                                      "status":  "pass",
+                                      "exitCode":  0,
+                                      "stdout":  "partial helpers: xlang boundaries passed\n",
+                                      "stderr":  "",
+                                      "elapsedMs":  65
+                                  }
+                   }
+               ]
+}

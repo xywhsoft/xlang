@@ -1,0 +1,40 @@
+{
+  "date": "2026-09-27T13:45:14.1106442+08:00",
+  "scope": "XRT declaration generator feature tests and existing generator unit tests on Windows GCC and WSL Linux GCC",
+  "inputRoot": "D:\\GIT\\xrt",
+  "inputs": {
+    "tools/amalgamate.py": "8FE7F92666FB03A3BA6983BCD54EBF3DC771860A8D7B1AB030CC7902FA745281",
+    "tools/test_declaration_features.py": "A87E345711E6E9F7C6A382CB90C89541FD09D6208A545FC8BC1D4EE79F74C509",
+    "tools/test_build.py": "D99EA4C812AA387A1ED473FF34738C42A9A6EBB431C4428CEBF831DDB6728187",
+    "include/xrt/features.h": "45959EEA0D0A1C7560AF258F41CC05E67B84B4B1FC6CC608D4F2B8414FCB866F",
+    "extlibs/xruntime/include/xruntime/features.h": "393626877D28FA626E7B1FF5C17BD81C6E45A2D0CD9063D06567A3FBD9919BF9",
+    "single/xrt.h": "7C78B4B3D13FC64AC1009E2EDFAE73E9FB092C896DA1A70CF5BE859D153851E8",
+    "single/xrt_decl.h": "A2D9D17C569DC74B974F8FD2FED0AC00E20A819FCDA09473630951031E0BCE8E",
+    "extlibs/xruntime/single/xruntime.h": "FF23FDB9AC90F63DEED1606A78F21707A9FA677AA766044B8AF3B4F5202F4BA9",
+    "extlibs/xruntime/single/xruntime_decl.h": "97BEE29DBA82A3BB9D6A6A05681B90F456B35EF74741E9AD08B6E6B784060CFD"
+  },
+  "inputsStable": true,
+  "changedInputs": [],
+  "checks": [
+    {
+      "name": "windows-gcc-feature-and-generator",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "[test] out\\target\\test_case\r\n[reuse] objects=1 rebuilt=1 dir=objects\r\n[trim-pass] module=target\r\n[trim-missing] module=target dependency=dependency_a\r\n[trim-missing] module=target dependency=dependency_b\r\n",
+        "stderr": "...............................................\r\n----------------------------------------------------------------------\r\nRan 47 tests in 9.538s\r\n\r\nOK\r\n",
+        "elapsedMs": 9702
+      }
+    },
+    {
+      "name": "linux-gcc-feature-and-generator",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "[test] out/target/test_case\n[reuse] objects=1 rebuilt=1 dir=objects\n[trim-pass] module=target\n[trim-missing] module=target dependency=dependency_a\n[trim-missing] module=target dependency=dependency_b\n",
+        "stderr": "...............................................\n----------------------------------------------------------------------\nRan 47 tests in 86.697s\n\nOK\n",
+        "elapsedMs": 92150
+      }
+    }
+  ]
+}

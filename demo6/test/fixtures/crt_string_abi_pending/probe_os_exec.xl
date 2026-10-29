@@ -1,0 +1,1 @@
+string out = os.exec("cmd /c echo x")

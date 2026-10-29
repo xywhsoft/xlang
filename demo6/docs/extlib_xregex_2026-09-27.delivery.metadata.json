@@ -1,0 +1,131 @@
+{
+  "recordedAt": "2026-09-27T22:06:53.7995869+08:00",
+  "scope": "xregex implementation/documentation follow-up; not a rerun of all libraries",
+  "windowsChecks": 37,
+  "generatedPrototypes": 49,
+  "allocationFailuresPerPlatform": 169,
+  "site": {
+    "results": [
+      {
+        "name": "desktop",
+        "width": 1280,
+        "scrollWidth": 1280,
+        "title": "xregex - 扩展库 - xlang",
+        "apiRows": 18,
+        "local": [
+          "file:///D:/GIT/home/host/xlang/wwwroot/favicon.png",
+          "file:///D:/GIT/home/host/xlang/wwwroot/style.css",
+          "file:///D:/GIT/home/host/xlang/wwwroot/extlibs.css",
+          "file:///D:/GIT/home/host/xlang/wwwroot/refactor.css",
+          "file:///D:/GIT/home/host/xlang/wwwroot/extlibs/xregex.html#main-content",
+          "file:///D:/GIT/home/host/xlang/wwwroot/index.html",
+          "file:///D:/GIT/home/host/xlang/wwwroot/tour.html",
+          "file:///D:/GIT/home/host/xlang/wwwroot/stdlib.html",
+          "file:///D:/GIT/home/host/xlang/wwwroot/extlibs.html",
+          "file:///D:/GIT/home/host/xlang/wwwroot/guide.html",
+          "file:///D:/GIT/home/host/xlang/wwwroot/download.html",
+          "file:///D:/GIT/home/host/xlang/wwwroot/extlibs.html",
+          "file:///D:/GIT/home/host/xlang/wwwroot/main.js"
+        ],
+        "badAnchors": [],
+        "missingFiles": [],
+        "errors": []
+      },
+      {
+        "name": "mobile",
+        "width": 390,
+        "scrollWidth": 390,
+        "title": "xregex - 扩展库 - xlang",
+        "apiRows": 18,
+        "local": [
+          "file:///D:/GIT/home/host/xlang/wwwroot/favicon.png",
+          "file:///D:/GIT/home/host/xlang/wwwroot/style.css",
+          "file:///D:/GIT/home/host/xlang/wwwroot/extlibs.css",
+          "file:///D:/GIT/home/host/xlang/wwwroot/refactor.css",
+          "file:///D:/GIT/home/host/xlang/wwwroot/extlibs/xregex.html#main-content",
+          "file:///D:/GIT/home/host/xlang/wwwroot/index.html",
+          "file:///D:/GIT/home/host/xlang/wwwroot/tour.html",
+          "file:///D:/GIT/home/host/xlang/wwwroot/stdlib.html",
+          "file:///D:/GIT/home/host/xlang/wwwroot/extlibs.html",
+          "file:///D:/GIT/home/host/xlang/wwwroot/guide.html",
+          "file:///D:/GIT/home/host/xlang/wwwroot/download.html",
+          "file:///D:/GIT/home/host/xlang/wwwroot/extlibs.html",
+          "file:///D:/GIT/home/host/xlang/wwwroot/main.js"
+        ],
+        "badAnchors": [],
+        "missingFiles": [],
+        "errors": []
+      }
+    ],
+    "catalog": {
+      "count": 210,
+      "c": 204,
+      "text": 13,
+      "xregex": [
+        "extlibs/xregex.html"
+      ]
+    }
+  },
+  "siteExamples": [
+    {
+      "name": "example-0.xl",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "42\n",
+        "stderr": "",
+        "elapsedMs": 1426
+      }
+    },
+    {
+      "name": "example-1.xl",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "a[1] b[22]\n",
+        "stderr": "",
+        "elapsedMs": 1463
+      }
+    },
+    {
+      "name": "example-2.xl",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "1\n1\n",
+        "stderr": "",
+        "elapsedMs": 1401
+      }
+    }
+  ],
+  "artifactHashes": {
+    "release/extlibs/xregex/README.md": "757123C49962792BDEF17ED19CE0E7BE9C61AD0D1C7507DD2DD8070C67CA12F3",
+    "release/extlibs/xregex/docs/site.html": "82A8D62B79D2F05A4BF15F9F86F75E4766A953D7252433B10B574FBB9FBD0215",
+    "D:/GIT/home/host/xlang/wwwroot/extlibs/xregex.html": "82A8D62B79D2F05A4BF15F9F86F75E4766A953D7252433B10B574FBB9FBD0215",
+    "D:/GIT/home/host/xlang/wwwroot/extlibs/generated/xregex.html": "B19BBB7FE5C3ABA0B32A16548BF7F7425F28EB773BF4D0000395B1E5A8010AC5",
+    "D:/GIT/home/host/xlang/wwwroot/extlibs.html": "883320A4198DACEAE6054A1BA534BA26F466A16E4FEB607F61AB35F5A94C1291",
+    "build/test/xregex-site-check.cjs": "FED6D70F15AC6C740C7105CBB3D49A0CC1A5348EB35F9FBCB6EC1E614DAAC616",
+    "build/test/xregex-delivery-linux.sh": "EEBC64804E94068DD6C97FFE2BD747EC52B4627B33C7C7008D36EF3C9DD561CA"
+  },
+  "baseline": "extlib_reassessment_2026-09-27_current.results.json",
+  "baselineInputCount": 1964,
+  "changedSinceBaseline": [
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xregex\\test\\xregex_lifetime_test.xl",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xregex\\test\\test_xregex_native.c",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xregex\\xregex_native.c"
+  ],
+  "newSourceInputsSinceBaseline": [],
+  "deliveryCounts": {
+    "packageSiteSources": 17,
+    "publicDirectPages": 24,
+    "publicWithoutPage": 34,
+    "websiteCatalogEntries": 210
+  },
+  "unverified": [
+    "Linux xlang JIT/AOT",
+    "32-bit and ARM",
+    "Concurrent mutation of one matcher or splitter",
+    "Complete performance/resource-budget benchmarks",
+    "Latest separately rebuilt release DLL APIs"
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "date": "2026-09-27T07:05:15.3073502+08:00",
+  "package": "xxhash",
+  "documentationLinks": 13,
+  "websiteLinks": 15,
+  "detailSha256": "234F954F9209AB81A03EEDBC8CF7920C673F6FA52CF33C5526F331F7AE89FD80",
+  "sourceMatches": true,
+  "visualVerification": false,
+  "remoteDeployment": false,
+  "inputSetProbe": {
+    "method": "Extract Inputs through PowerShell AST; enumerate isolated fixture before/add/remove JSON",
+    "sourceSha256": "1EB1442D443902E4E6187D5080F4983BA73238FD3DECB3E8620513A5700B5A80",
+    "addedDetected": true,
+    "removedDetected": true,
+    "baselineRestored": true
+  },
+  "windowsEvidence": "extlib_xxhash_2026-09-27.windows.results.json",
+  "linuxEvidence": "extlib_xxhash_2026-09-27.linux.results.json",
+  "windowsInputs": 43,
+  "linuxInputs": 27,
+  "catalogRerun": false,
+  "scope": "xxhash scoped hardening and delivery; previous 146-case catalog remains a historical baseline"
+}

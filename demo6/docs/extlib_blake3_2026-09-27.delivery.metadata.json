@@ -1,0 +1,31 @@
+{
+  "date": "2026-09-27T05:59:46.1789321+08:00",
+  "scope": "BLAKE3 delivery completion and documentation metadata refresh; previous full JIT catalog was not rerun",
+  "windowsEvidence": "extlib_blake3_2026-09-27.delivery.windows.results.json",
+  "linuxEvidence": "extlib_blake3_2026-09-27.delivery.linux.results.json",
+  "windowsInputs": 44,
+  "linuxInputs": 28,
+  "catalogEvidence": "extlib_reassessment_2026-09-27.reanalysis.results.json",
+  "catalogRecordedInputsStillMatch": 1948,
+  "catalogRerun": false,
+  "readmeCount": 25,
+  "siteSourceCount": 8,
+  "delivery": {
+    "date": "2026-09-27T05:57:37.1840635+08:00",
+    "package": "blake3",
+    "documentationLinks": 11,
+    "websiteLinks": 15,
+    "detailSha256": "F3B22789342C3A40AD87549F6DA56CDD4F48467869F8A06D134A0807ED0E934D",
+    "sourceMatches": true,
+    "visualVerification": false,
+    "remoteDeployment": false
+  },
+  "inputSetProbe": {
+    "source": "tools/check_extlib_blake3.ps1",
+    "sourceSha256": "CED6EDC5CBC2C5A3D30BF085C5377D4FDAEEA71D5E01E39F90F32500C285CE6E",
+    "method": "Extract Get-Blake3InputPaths through PowerShell AST; enumerate isolated fixture, add JSON, remove JSON, compare all three inventories",
+    "addedDetected": true,
+    "removedDetected": true,
+    "baselineRestored": true
+  }
+}

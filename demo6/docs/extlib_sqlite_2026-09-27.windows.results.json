@@ -1,0 +1,338 @@
+{
+  "date": "2026-09-27T02:53:41.4487818+08:00",
+  "outcome": "passed",
+  "scope": "SQLite wrapper ABI/constants, C/state/allocator/thread tests, xlang JIT/AOT/file locks and paired examples",
+  "generatedPrototypes": 44,
+  "constants": 45,
+  "inputs": {
+    "lib/xrt/xrt.h": "7C78B4B3D13FC64AC1009E2EDFAE73E9FB092C896DA1A70CF5BE859D153851E8",
+    "lib/xruntime/xruntime.h": "FF23FDB9AC90F63DEED1606A78F21707A9FA677AA766044B8AF3B4F5202F4BA9",
+    "release/examples/extlibs/sqlite_basic.expected.txt": "EECA0AA74DF20CC8930827D033246ABE8C4E5AFB795D03B64F9B3D4813C16102",
+    "release/examples/extlibs/sqlite_basic.xl": "66AAEECBA8894F6CD4EEA6CC0A05265A2229641B1C727A31CB845641D22C6DF5",
+    "release/examples/extlibs/sqlite.xl": "472861C362B5004FE702845FD38A9B756712DADFB99D234138C1D8A72F809D1D",
+    "release/extlibs/sqlite/examples/basic.c": "97183FF03778466C1EAF569B70603BB609C2B123C1EBA329B95170404B2C423C",
+    "release/extlibs/sqlite/include/sqlite_native.h": "C1B33DDA0B4FFE125D3A4EDAAA5102FCE2E11BA0CA02B2566D3DA485A998A08B",
+    "release/extlibs/sqlite/sqlite_native.c": "F21B9916D1B65AEF7349CB07D41D2552A6D9760E792513FCFFA4148A6FFDAC0D",
+    "release/extlibs/sqlite/src/sqlite.xl": "786993165FC46E1A0C6DC377B6743B92CCC00022086A6C24B9818FCB8EB6811E",
+    "release/extlibs/sqlite/test/boundaries.xl": "CAC4A1665A5D68DAAEDDF65A3A0468C867177488885F2581AC45D3739DBFCC2D",
+    "release/extlibs/sqlite/test/file.xl": "DB87216B582D29CE56C3644DE444D771EF5A9F1A0E662FC19E1E8F5DF72AD564",
+    "release/extlibs/sqlite/test/test_sqlite_alloc.c": "6BC23AF29152C645C5DE39B5C174A76F0881E98877419EEFC4C9B0EC8776E019",
+    "release/extlibs/sqlite/test/test_sqlite_threads.c": "29949A7B12E0D6A6FFF0A23B292777FC793CE66AAA65B3FBDAD8EC05B42F7E17",
+    "release/extlibs/sqlite/test/test_sqlite.c": "1599B26C34A260B5C8EA586E5AFC8C73EC1C07F6376D03AEB9D97B573F2328F2",
+    "release/extlibs/sqlite/third_party/sqlite3.c": "47C2BE8440A285D26BB9D4A176568CEAE0B7A44059CBBD36BECB6C9334F01D63",
+    "release/extlibs/sqlite/third_party/sqlite3.h": "8FF4EB239E86A498DA5FEA9931A9A72A82CB815CD8B798CB238706E4E903BE61",
+    "release/extlibs/sqlite/third_party/sqlite3ext.h": "A3CA6E430C8E97EDF8CBD66867AC178AB179A41D85C04CAD48889A8B84806DCD",
+    "release/extlibs/sqlite/xlang.package.json": "860BFDD5225165579C33CCAD8BD301D3B15EE0FD6C27834C58A6EDD1EA2DD5B4",
+    "release/include/xl_extlib_abi.h": "33B33F690EF8610749E399D612984B6D02F6140767D4B92BBB65B28A89FCA244",
+    "release/include/xrt_decl.h": "3356BCCABBCBC877AD19C5E2D3336C909C2A742DE62E7B92BB79FE2AF3F4CEE6",
+    "release/include/xruntime_decl.h": "4B7CFAA2015F39E08159F4B10108B9BB1764D2370074333335651FE5C1BA87AC",
+    "release/xl.dll": "2A07C481C04CAD71D31D46722A27E62027318DF24E95A63126E061FD4CA46902",
+    "release/xl.exe": "5A3F20B4CF9333D393560CB2361D0EBAB8A13F0D07C64A78A1F5FFF5385D9EEB",
+    "release/xlc.dll": "7C672FD0B2852690D09E2EF1046C56EE1586FD1FCCC0CAEA61E19C0FE7C6E1F0",
+    "test/cases/extlib_sqlite.xl": "DC5FC6F4C096679DC8EDEAE99CF1DF37499DC21D300339C8218A83A3A16C5CA2",
+    "test/phase1_extlibs.json": "6811FA28C32AC6200F7AA1A34507E1BA15CFAD5A2EDCAB0919D5D5E3812C4CF1",
+    "test/suites/12_phase1_extlibs.bat": "4F32C07D93A48FBEBE3FD9CC259FD68D92F586108EFC1EFDA79EA85DEEE491EF",
+    "test/support/extlib_sqlite_runtime.c": "1E311A824B0FA2C232A7A77506848CDD4B92AC59CD238C8511AFC37DEAE96FEA",
+    "tools/check_extlib_sqlite.ps1": "C079208B9EDFC392B088E8E9D9E7EE973E71DAF221F6BE9BF31942F4AF71760F",
+    "tools/check_extlib_sqlite.sh": "CA7AB376F9253A36F906B4137E0ABE707243CF4AD928ED8003DB17DAAD5275B5",
+    "tools/extlib_smoke_process.ps1": "87C3D050B1F492E3F0C4307BA39F454E42B65E37DBCDEC4BE3E938BC2F32D2F7",
+    "tools/run_extlib_c.ps1": "0ABBC3A4B3B0AE45587CCBB069F075F3FBF965D6485FC176C51865FA293FEDA5",
+    "tools/xlir_native_process.ps1": "2BE2787D2316CE07E0D0AC3BDF1A1CAABA14D72F249CCAC847BB1C05D1DBFC9D"
+  },
+  "checks": [
+    {
+      "name": "runtime",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 2593,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "bridge",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 232,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "sqlite-vendor",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 26064,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "test_sqlite-build",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 290,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "test_sqlite",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 22,
+      "stdout": "sqlite C: ABI/constants, storage/binary, statement states, errors and lifetimes passed\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "test_sqlite_alloc-build",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 242,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "test_sqlite_alloc",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 37,
+      "stdout": "sqlite allocator: 149 injected allocation points, clean recovery passed\r\nsqlite XRT buffer allocator: failed=2 passed=6\r\nsqlite XRT temporary allocator: failed=1 passed=7\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "test_sqlite_threads-build",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 211,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "test_sqlite_threads",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 36,
+      "stdout": "sqlite threads: 4 independent connections, text lifetime and error isolation passed\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "test_sqlite-jit",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 178,
+      "stdout": "sqlite C: ABI/constants, storage/binary, statement states, errors and lifetimes passed\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "test_sqlite_threads-jit",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 201,
+      "stdout": "sqlite threads: 4 independent connections, text lifetime and error isolation passed\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "extlib_sqlite-jit",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 930,
+      "stdout": "sqlite case ok\n",
+      "stderr": ""
+    },
+    {
+      "name": "extlib_sqlite-build",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 1281,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "extlib_sqlite-aot",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 28,
+      "stdout": "sqlite case ok\n",
+      "stderr": ""
+    },
+    {
+      "name": "extlib_sqlite-cgen",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 566,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "boundaries-jit",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 1665,
+      "stdout": "sqlite xlang boundaries ok\n",
+      "stderr": ""
+    },
+    {
+      "name": "boundaries-build",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 2270,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "boundaries-aot",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 42,
+      "stdout": "sqlite xlang boundaries ok\n",
+      "stderr": ""
+    },
+    {
+      "name": "boundaries-cgen",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 1171,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "file-jit",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 984,
+      "stdout": "sqlite file/locking boundaries ok\n",
+      "stderr": ""
+    },
+    {
+      "name": "file-build",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 1335,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "file-aot",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 45,
+      "stdout": "sqlite file/locking boundaries ok\n",
+      "stderr": ""
+    },
+    {
+      "name": "file-cgen",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 594,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "generated-prototypes-and-constants",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 45,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "sqlite-example-jit",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 1189,
+      "stdout": "sqlite extlib ok\n",
+      "stderr": ""
+    },
+    {
+      "name": "sqlite-example-build",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 1617,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "sqlite-example-aot",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 66,
+      "stdout": "sqlite extlib ok\n",
+      "stderr": ""
+    },
+    {
+      "name": "sqlite_basic-example-jit",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 885,
+      "stdout": "sqlite demo\n1: Ada\n2: O'Reilly\nrollback: 2\nblob: 3 bytes\n",
+      "stderr": ""
+    },
+    {
+      "name": "sqlite_basic-example-build",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 1291,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "sqlite_basic-example-aot",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 29,
+      "stdout": "sqlite demo\n1: Ada\n2: O'Reilly\nrollback: 2\nblob: 3 bytes\n",
+      "stderr": ""
+    },
+    {
+      "name": "c-example-build",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 194,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "c-example",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 24,
+      "stdout": "sqlite demo\r\n1: Ada\r\n2: O'Reilly\r\nrollback: 2\r\nblob: 3 bytes\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "c-example-jit",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 179,
+      "stdout": "sqlite demo\r\n1: Ada\r\n2: O'Reilly\r\nrollback: 2\r\nblob: 3 bytes\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "c-example-aot-build",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 376,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "c-example-aot",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 28,
+      "stdout": "sqlite demo\r\n1: Ada\r\n2: O'Reilly\r\nrollback: 2\r\nblob: 3 bytes\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "c-example-runner",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 853,
+      "stdout": "sqlite demo\r\n1: Ada\r\n2: O'Reilly\r\nrollback: 2\r\nblob: 3 bytes\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "constant-write-rejected",
+      "status": "pass",
+      "exitCode": 1,
+      "stderr": "D:\\GIT\\x-lang\\demo6\\build\\test\\sqlite_guard\\const-write.xl:2:8: [sem] const 不能被重新赋值\n"
+    }
+  ]
+}

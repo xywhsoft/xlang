@@ -1,0 +1,114 @@
+{
+  "recordedAt": "2026-09-27T19:10:38.6450507+08:00",
+  "runtime": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-final-20260927\\runtime",
+  "checks": [
+    {
+      "name": "runtime-vfs-stamp",
+      "command": [
+        "C:\\Users\\Administrator\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe",
+        "-NoProfile",
+        "-File",
+        "tools/check_tcc_vfs_resources.ps1",
+        "-Resource",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-final-20260927\\intermediate\\tcc_builtin_resources_runtime.c"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "TCC VFS resource snapshot is current: D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-final-20260927\\intermediate\\tcc_builtin_resources_runtime.c\r\n",
+        "stderr": "",
+        "elapsedMs": 784
+      }
+    },
+    {
+      "name": "compiler-vfs-stamp",
+      "command": [
+        "C:\\Users\\Administrator\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe",
+        "-NoProfile",
+        "-File",
+        "tools/check_tcc_vfs_resources.ps1",
+        "-Resource",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-final-20260927\\intermediate\\tcc_builtin_resources.c"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "TCC VFS resource snapshot is current: D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-final-20260927\\intermediate\\tcc_builtin_resources.c\r\n",
+        "stderr": "",
+        "elapsedMs": 978
+      }
+    },
+    {
+      "name": "standalone-compiler-vfs",
+      "command": [
+        "C:\\Users\\Administrator\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe",
+        "-NoProfile",
+        "-File",
+        "tools/check_standalone_compiler_vfs.ps1",
+        "-RuntimeDirectory",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-final-20260927\\runtime"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "Standalone compiler VFS ok: public headers and embedded xlang runtime/compiler work without repository files.\r\n",
+        "stderr": "",
+        "elapsedMs": 10043
+      }
+    },
+    {
+      "name": "cli-temp-cleanup",
+      "command": [
+        "C:\\Users\\Administrator\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe",
+        "-NoProfile",
+        "-File",
+        "tools/check_cli_temp_cleanup.ps1",
+        "-RuntimeDirectory",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-final-20260927\\runtime",
+        "-WorkDirectory",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-final-20260927\\cli-cleanup"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "CLI temp cleanup ok: release tmp build dirs=0, run dirs=0.\r\n",
+        "stderr": "",
+        "elapsedMs": 1274
+      }
+    },
+    {
+      "name": "vfs-output-dir-windows",
+      "command": [
+        "C:\\Program Files\\Python312\\python.exe",
+        "-B",
+        "tools/test_tcc_vfs_output_directory.py"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "...\r\n----------------------------------------------------------------------\r\nRan 3 tests in 0.008s\r\n\r\nOK\r\n",
+        "elapsedMs": 107
+      }
+    },
+    {
+      "name": "vfs-output-dir-linux",
+      "command": [
+        "wsl.exe",
+        "-d",
+        "Ubuntu",
+        "--",
+        "python3",
+        "-B",
+        "/mnt/d/GIT/x-lang/demo6/tools/test_tcc_vfs_output_directory.py"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "...\n----------------------------------------------------------------------\nRan 3 tests in 0.005s\n\nOK\n",
+        "elapsedMs": 4870
+      }
+    }
+  ]
+}

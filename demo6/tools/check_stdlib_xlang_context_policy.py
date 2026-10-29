@@ -14,7 +14,7 @@ def fields(text,name):
     body=re.sub(r'^\s*#.*$','',body,flags=re.M)
     return [re.sub(r'\s+','',part) for part in body.split(';') if part.strip()]
 
-def audited_layout(text):
+def audited_layout(text,packages,public_package):
     expected={
         'XL_StringList':['char**items','size_tcount'],
         'XL_CSymbol':['char*name','void*value'],
@@ -24,8 +24,19 @@ def audited_layout(text):
             ['intsaveTemps','char*lastError','intlastExitCode']+
             ['XL_StringList'+name for name in ('includePaths','libraryPaths','linkLibraries','resourceFiles')]+
             ['XL_CSymbol*symbols','size_tsymbolCount','XL_LoadedLibrary*loadedLibraries','size_tloadedLibraryCount',
-             'unsignedintactiveCalls','intdestroyRequested']}
-    return all(fields(text,name)==layout for name,layout in expected.items())
+             'unsignedintactiveCalls','intdestroyRequested','XL6_BuildInputs*buildInputs',
+             'XL6_CompiledPackageSetcompiledPackages']}
+    native={
+        'XL6_CompiledPackageSet':['XL_CompiledPackage*items','size_tcount'],
+        'XL_PackageEntry':['constchar*name','constvoid*address'],
+        'XL_CompiledPackage':['size_tsize','unsignedintversion','unsignedintpointerBytes','uint64_tcompilerAbi',
+            'constvoid*runtimeIdentity','constchar*name','constchar*packageVersion','constchar*abiVersion',
+            'constunsignedchar*interfaceData','size_tinterfaceSize','uint64_tinterfaceHash',
+            'constXL_PackageEntry*entries','size_tentryCount',
+            'conststructXL_CompiledPackage*const*dependencies','size_tdependencyCount']}
+    combined=packages+'\n'+public_package
+    return all(fields(text,name)==layout for name,layout in expected.items()) and \
+        all(fields(combined,name)==layout for name,layout in native.items())
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
@@ -60,14 +71,25 @@ def main():
     links=[runtime,*systems,*([] if windows else ['-Wl,-rpath,'+str(runtime.parent)])]
     def run(name,command):
         start=time.monotonic();command=list(map(str,command))
-        result=subprocess.run(command,cwd=root,env=env,capture_output=True,timeout=180);data=result.stdout+result.stderr
+        actual_command=command
+        response=None
+        if windows and command[0]==cc:
+            response=out/(name+'.rsp')
+            response.write_text('\n'.join('"'+arg.replace('\\','/').replace('"','\\"')+'"' for arg in command[1:])+'\n',encoding='utf-8')
+            actual_command=[cc,'@'+str(response)]
+        result=subprocess.run(actual_command,cwd=root,env=env,capture_output=True,timeout=180);data=result.stdout+result.stderr
         log=out/(name+'.log');log.write_bytes(data);rows.append(dict(Name=name,Command=command,Exit=result.returncode,
             Log=str(log),LogSha256=sha(log),Seconds=time.monotonic()-start))
+        if response:rows[-1].update(ConsumedCommand=actual_command,Response=str(response),ResponseSha256=sha(response))
         assert result.returncode==0,(name,data[-5000:].decode(errors='replace'));return data
     try:
-        source=(root/'src/api/xl_api.c').read_text(encoding='utf-8-sig');assert audited_layout(source)
-        assert not audited_layout(source.replace('struct XL_Context {','struct XL_Context { xvalue* owned;'))
-        assert not audited_layout(source.replace('char** items;','xvalue** items;'))
+        source=(root/'src/api/xl_api.c').read_text(encoding='utf-8-sig')
+        packages=(root/'src/package/xl6_compiled_package.h').read_text(encoding='utf-8-sig')
+        public_package=(root/'release/include/xl_package.h').read_text(encoding='utf-8-sig')
+        assert audited_layout(source,packages,public_package)
+        assert not audited_layout(source.replace('struct XL_Context {','struct XL_Context { xvalue* owned;'),packages,public_package)
+        assert not audited_layout(source.replace('char** items;','xvalue** items;'),packages,public_package)
+        assert not audited_layout(source,packages,public_package.replace('const void* address;','xvalue* address;'))
         assert fields((root/'lib/xrt/xrt.h').read_text(encoding='utf-8-sig'),'xbuffer')==['bytesData','size_tSize','size_tCapacity']
         report['AuditedContextAndNestedNativeLayouts']=True
         for opt in ('O0','O2'):

@@ -1,0 +1,38 @@
+{
+  "date": "2026-09-27T17:32:49.8556190+08:00",
+  "upstream": "D:/GIT/xrt",
+  "baseCommit": "18747e36866aee4a584f3a2a72d0d942356297b7",
+  "recipe": "Normalize CRLF to LF; strip quoted internal includes and Trim from four old/new source blocks; require each old block occurs exactly once; replace only those four blocks in each frozen header. No demo6 frozen header/binary modified.",
+  "sources": [
+    {
+      "Path": "D:\\GIT\\xrt\\src\\internal\\xrt_file.h",
+      "Hash": "ECEB2EB9225A46BAF455CEC7B24B084B3030EDFF73C4935F370145E8E2D225AD"
+    },
+    {
+      "Path": "D:\\GIT\\xrt\\src\\fs\\file.c",
+      "Hash": "857BA8A89BA9B73111FB69482776F465796C393ED81DC7D429D61541CC1AE239"
+    },
+    {
+      "Path": "D:\\GIT\\xrt\\src\\fs\\file_root_posix.c",
+      "Hash": "6E11C9D4D408A1C6FAEE1DD88F120A84E318972020D5EDCE361A68910C6DD747"
+    },
+    {
+      "Path": "D:\\GIT\\xrt\\src\\fs\\file_root_windows.c",
+      "Hash": "3073AA5AA844F274BD71C0008E34688C4DE3741E5623CD9F21D27F91629CACE6"
+    }
+  ],
+  "headers": [
+    {
+      "frozen": "lib/xrt/xrt.h",
+      "frozenSha256": "7C78B4B3D13FC64AC1009E2EDFAE73E9FB092C896DA1A70CF5BE859D153851E8",
+      "isolated": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_file_oom\\fixed-xrt\\xrt.h",
+      "isolatedSha256": "4C8CA837C7BAA2B865D6A6C8437449A90186639618888B929F6C3743327A0AC5"
+    },
+    {
+      "frozen": "lib/xruntime/xruntime.h",
+      "frozenSha256": "FF23FDB9AC90F63DEED1606A78F21707A9FA677AA766044B8AF3B4F5202F4BA9",
+      "isolated": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_file_oom\\fixed-xrt\\xruntime.h",
+      "isolatedSha256": "5E47B36DC21FDFF54C230D1FCA99175F429AD541409F1D44194F00E0FDF10F53"
+    }
+  ]
+}

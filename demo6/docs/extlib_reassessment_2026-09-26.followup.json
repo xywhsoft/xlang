@@ -1,0 +1,66 @@
+{
+  "format": "xlang-extlib-reassessment-followup-1",
+  "recordedAt": "2026-09-26T22:49:40+08:00",
+  "baseline": "extlib_reassessment_2026-09-26.results.json",
+  "scope": "Read-only reassessment; five bounded Windows x64 JIT reruns after two declaration files changed. Not a full rerun or release certification.",
+  "baselineInputCheck": {
+    "recordedInputs": 1908,
+    "unchanged": 1906,
+    "changed": 2,
+    "missing": 0
+  },
+  "inputOverrides": {
+    "release/extlibs/argon2/src/argon2.xl": "41FCE6FFD2AE4403E26BF08E9F546D338E4D8642BC27A3C9D630EB5BBD4A6A15",
+    "release/extlibs/bloom/src/bloom.xl": "DF7BB2E64ADCDCAEC7575402980BE2DEA3DEFA540BAA67887B110FB41C86CEBB"
+  },
+  "runner": "tools/extlib_smoke_process.ps1",
+  "executable": "release/xl.exe",
+  "workingDirectory": "D:/GIT/x-lang/demo6",
+  "arguments": [
+    "run",
+    "<absolute case path>"
+  ],
+  "timeoutSeconds": 30,
+  "results": [
+    {
+      "case": "test/cases/extlib_argon2.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "elapsedMs": 1776,
+      "stdout": "auto-salt:  $argon2id$v=19$m=64,t=2,p=1$TR4aiLEVlnenUC9jYG4MNA$CoGZsZLaVyZlgz/vitDlrdsWWUTIDBjedv8T39EU0B0\n",
+      "stderr": "uncaught xlang error: TypeError: argon2 costs must be positive and memory cost must not exceed 2097152 KiB\nuncaught xlang error: argon2 costs must be positive and memory cost must not exceed 2097152 KiB\n"
+    },
+    {
+      "case": "test/cases/extlib_bloom.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "elapsedMs": 2704,
+      "stdout": "",
+      "stderr": "uncaught xlang error: TypeError: bloom: invalid serialized data\nuncaught xlang error: bloom: invalid serialized data\n"
+    },
+    {
+      "case": "release/extlibs/xhttp.body/test/xhttp_body_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "elapsedMs": 773,
+      "stdout": "",
+      "stderr": "tcc: In file included from __xlvfs__/csrc_3.c:107:\nD:/GIT/x-lang/demo6/release/extlibs/xhttp.body/src/xlang/xhttp_body_native.c:18: error: incompatible types for redefinition of 'xhttp_body_create_copy'\n"
+    },
+    {
+      "case": "release/extlibs/xregex/test/xregex_test.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "elapsedMs": 2607,
+      "stdout": "",
+      "stderr": "tcc: In file included from __xlvfs__/csrc_7.c:133:\nD:/GIT/x-lang/demo6/release/extlibs/xregex/xregex_native.c:686: error: incompatible types for redefinition of 'xregex_set_compile_native'\n"
+    },
+    {
+      "case": "release/extlibs/mqtt/test/mqtt_boundaries.xl",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 1254,
+      "stdout": "mqtt xlang codec boundaries: PASS\n",
+      "stderr": ""
+    }
+  ]
+}

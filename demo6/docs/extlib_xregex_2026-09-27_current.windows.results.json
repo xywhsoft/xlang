@@ -1,0 +1,800 @@
+{
+  "date": "2026-09-27T21:32:59.0281290+08:00",
+  "outcome": "passed",
+  "runtimeDirectory": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-audit-release-20260927",
+  "scope": "Windows native ownership/OOM, xlang and C JIT/AOT, all generated binding prototypes, paired examples",
+  "generatedPrototypes": 49,
+  "inputs": {
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-audit-release-20260927\\xl.dll": "8B448D59C60AAFC8E8F0799AE08A20C4FFD8B893F3112EB0F7F7E7DDA3A5EC39",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-audit-release-20260927\\xl.exe": "3376E9514B52E9AD5F43A22C5EA3DA3294D261F4EFDB57CB6E147116A4695FBA",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-audit-release-20260927\\xlc.dll": "EC90457FAC818779E1D83B855E7A2A84B81362EE86C5C6D642A823822EF09940",
+    "D:\\GIT\\x-lang\\demo6\\lib\\xrt\\xrt.h": "4C8CA837C7BAA2B865D6A6C8437449A90186639618888B929F6C3743327A0AC5",
+    "D:\\GIT\\x-lang\\demo6\\lib\\xruntime\\xruntime.h": "5E47B36DC21FDFF54C230D1FCA99175F429AD541409F1D44194F00E0FDF10F53",
+    "D:\\GIT\\x-lang\\demo6\\release\\examples\\extlibs\\xregex_basic.expected.txt": "A1C2E47BDAFD596FDF7A6CAD272E664BA40A73C7F75D774F1923A1A901F8DE50",
+    "D:\\GIT\\x-lang\\demo6\\release\\examples\\extlibs\\xregex_basic.xl": "14B2D83F98B513F687A0A81608C5B875AB6477CE62427E15EC78D28EC1A1F4B6",
+    "D:\\GIT\\x-lang\\demo6\\release\\examples\\extlibs\\xregex.xl": "DAC08E65632BBC53E7CB9AD649BE4E8834DFCBB42755CF039DD9C15168BC9CBC",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xregex\\examples\\basic.c": "418DE11DD62B6BE1C35BBD542FDE9F69F96D15C9BBABC6FE18EF5A1D6CA12244",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xregex\\include\\xregex.h": "F9177D953DF698BE5594EFB95E3B8F984DA0E05D22577547B2FF4489B9D34009",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xregex\\README.md": "9D7D75FCE616D7308963B1BE99FE736B5C5FD23D6EEE3FBF5FDA255BC756A6E3",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xregex\\src\\internal\\xrt_regex.h": "7F1938909D3105E129CE1B46DCF8D5D807D8E13EC3DFEA1F4725CB898FBA6B8A",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xregex\\src\\text\\regex_core.c": "CD7C0B07AB36643A78E6DE28ADC2998338A42417DD3A8C019FC8ADA6DFF22B92",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xregex\\src\\text\\regex_escape.c": "759D1CE4C7873AC65BE447BEEAD0E9093D493F43D76DAEB6056311FC4E031573",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xregex\\src\\text\\regex_match.c": "93DF8C8D6829F7D27387A42B5431B68AF38A2F53696B38F26BEA04C8FC52A7DC",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xregex\\src\\text\\regex_replace.c": "42DF720A80CB24F57497AE8E7508A76A9C7557621653B8270F324CEC4FAFB5D8",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xregex\\src\\text\\regex_set.c": "DF71E60E1B752C0B3D9EC6BE52AD96BEE3DB7EE2C4ED27C3817348F94ABF81F7",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xregex\\src\\text\\regex_split.c": "6A6C6B077733727A913CA3A31E8F7F91B8EBCC1BF6E286B52E13A3335AF165AA",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xregex\\src\\third_party\\bbre\\bbre_xrt.h": "0FA4C1618EDF305BB97CE43802574A935BAE4E3573906D3B833A2A8FD4B2C2A3",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xregex\\src\\third_party\\bbre\\bbre.c": "EBEC97A17C4E76665A8A1D4AEB7EADABFC5CEE63754237C78A48D62676F7A259",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xregex\\src\\third_party\\bbre\\bbre.h": "752001A7E67662AE3EFA5AC6BD4D31A7105DA88AAEB746AF5452B49DACE98ABA",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xregex\\src\\third_party\\bbre\\LICENSE.md": "B519117BE5F901C4E13B2FF1796E5254693EC5E78418FB15518A810D80D3D2D0",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xregex\\src\\xlang\\xregex.xl": "8F47EBE2E13D262761983D2453743297418B4A4B51D330E1FA53DBB4A28EC9BF",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xregex\\test\\test_xregex_native.c": "45FDAAB6B1A97136B07AE0C20F655F80D4FEFABD98B046C15252B2E0AE61FE29",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xregex\\test\\xregex_lifetime_test.xl": "456EED98B6122AC1DA8BDD7A6730E2FC88A7D91B251B1314751DE88AEFA7DD6F",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xregex\\test\\xregex_test.xl": "CBDCD68227FD338158CC80D5D99F37CE9B0253F3A0BE25402400D0DD3DB1F5BE",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xregex\\xlang.package.json": "7B8135E3BA8A7DDCD3FC6E2AC53BB0C6DB7699FEC1379C6DD212A37D487FF504",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xregex\\xregex_engine.c": "7F545E225813A067D8198D91C832564A301F9E7AA96C0DB384322770D600F6D9",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xregex\\xregex_native.c": "9E24BCEE24A4CB86B890126C939EFF23BC64A6DE0BB2F37052843B8D8B381FEC",
+    "D:\\GIT\\x-lang\\demo6\\test\\cases\\extlib_xregex.xl": "FC68ECADBBABC3A35D9D77FFE03FC035DBD484AFAD3544726C9487DB91837A82",
+    "D:\\GIT\\x-lang\\demo6\\test\\support\\extlib_xregex_runtime.c": "6B417C7EB60C2F89CE924C5C3B13BAD942E940B3D391B76A575FC4D62F1A336E",
+    "D:\\GIT\\x-lang\\demo6\\tools\\check_extlib_xregex.ps1": "935F070E55C3A92DACC97F54C21A7B2B4B369FB3263661891AEF67C2C90073DF",
+    "D:\\GIT\\x-lang\\demo6\\tools\\check_extlib_xregex.sh": "F4696FF993983C725ABE96BB2A22824D8F4E939F3E796E46C86EA9F83642528A",
+    "D:\\GIT\\x-lang\\demo6\\tools\\extlib_smoke_process.ps1": "294FCC133C2E4F3E5786080D6DCFEDD3BFBC51656AF892433CCE08BB3EAF635F",
+    "D:\\GIT\\x-lang\\demo6\\tools\\run_extlib_c.ps1": "5183F14DBF4444B47D8832B60A0D6A6B570C8E933874785BEF85DD1ECB024A44",
+    "D:\\GIT\\x-lang\\demo6\\tools\\xlir_native_process.ps1": "2BE2787D2316CE07E0D0AC3BDF1A1CAABA14D72F249CCAC847BB1C05D1DBFC9D",
+    "E:/software/w64devkit/bin\\gcc.exe": "F643D0DF5081344D6AAE27A9C1E4567B1A5F621F964671E531563E34306F68BA"
+  },
+  "changedInputs": [],
+  "checks": [
+    {
+      "name": "runtime-build",
+      "program": "E:/software/w64devkit/bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "-Irelease/extlibs/xregex/include",
+        "-c",
+        "test/support/extlib_xregex_runtime.c",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\runtime.o"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 6219
+      }
+    },
+    {
+      "name": "native-0",
+      "program": "E:/software/w64devkit/bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "-Irelease/extlibs/xregex/include",
+        "-DXRT_MODULE_ERROR_FORMAT",
+        "-DXRT_MODULE_IO_BUFFER",
+        "-DXRT_MODULE_STRING_SPLIT",
+        "-DXRT_MODULE_UNICODE",
+        "-DXRT_MODULE_VALUE_CONTAINER",
+        "-c",
+        "release/extlibs/xregex/xregex_engine.c",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\native-0.o"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 1365
+      }
+    },
+    {
+      "name": "native-1",
+      "program": "E:/software/w64devkit/bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "-Irelease/extlibs/xregex/include",
+        "-DXRT_MODULE_ERROR_FORMAT",
+        "-DXRT_MODULE_IO_BUFFER",
+        "-DXRT_MODULE_STRING_SPLIT",
+        "-DXRT_MODULE_UNICODE",
+        "-DXRT_MODULE_VALUE_CONTAINER",
+        "-c",
+        "release/extlibs/xregex/src/text/regex_core.c",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\native-1.o"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 200
+      }
+    },
+    {
+      "name": "native-2",
+      "program": "E:/software/w64devkit/bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "-Irelease/extlibs/xregex/include",
+        "-DXRT_MODULE_ERROR_FORMAT",
+        "-DXRT_MODULE_IO_BUFFER",
+        "-DXRT_MODULE_STRING_SPLIT",
+        "-DXRT_MODULE_UNICODE",
+        "-DXRT_MODULE_VALUE_CONTAINER",
+        "-c",
+        "release/extlibs/xregex/src/text/regex_escape.c",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\native-2.o"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 209
+      }
+    },
+    {
+      "name": "native-3",
+      "program": "E:/software/w64devkit/bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "-Irelease/extlibs/xregex/include",
+        "-DXRT_MODULE_ERROR_FORMAT",
+        "-DXRT_MODULE_IO_BUFFER",
+        "-DXRT_MODULE_STRING_SPLIT",
+        "-DXRT_MODULE_UNICODE",
+        "-DXRT_MODULE_VALUE_CONTAINER",
+        "-c",
+        "release/extlibs/xregex/src/text/regex_match.c",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\native-3.o"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 189
+      }
+    },
+    {
+      "name": "native-4",
+      "program": "E:/software/w64devkit/bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "-Irelease/extlibs/xregex/include",
+        "-DXRT_MODULE_ERROR_FORMAT",
+        "-DXRT_MODULE_IO_BUFFER",
+        "-DXRT_MODULE_STRING_SPLIT",
+        "-DXRT_MODULE_UNICODE",
+        "-DXRT_MODULE_VALUE_CONTAINER",
+        "-c",
+        "release/extlibs/xregex/src/text/regex_replace.c",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\native-4.o"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 214
+      }
+    },
+    {
+      "name": "native-5",
+      "program": "E:/software/w64devkit/bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "-Irelease/extlibs/xregex/include",
+        "-DXRT_MODULE_ERROR_FORMAT",
+        "-DXRT_MODULE_IO_BUFFER",
+        "-DXRT_MODULE_STRING_SPLIT",
+        "-DXRT_MODULE_UNICODE",
+        "-DXRT_MODULE_VALUE_CONTAINER",
+        "-c",
+        "release/extlibs/xregex/src/text/regex_set.c",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\native-5.o"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 211
+      }
+    },
+    {
+      "name": "native-6",
+      "program": "E:/software/w64devkit/bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "-Irelease/extlibs/xregex/include",
+        "-DXRT_MODULE_ERROR_FORMAT",
+        "-DXRT_MODULE_IO_BUFFER",
+        "-DXRT_MODULE_STRING_SPLIT",
+        "-DXRT_MODULE_UNICODE",
+        "-DXRT_MODULE_VALUE_CONTAINER",
+        "-c",
+        "release/extlibs/xregex/src/text/regex_split.c",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\native-6.o"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 197
+      }
+    },
+    {
+      "name": "native-test-build",
+      "program": "E:/software/w64devkit/bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "-Irelease/extlibs/xregex/include",
+        "-DXRT_MODULE_ERROR_FORMAT",
+        "-DXRT_MODULE_IO_BUFFER",
+        "-DXRT_MODULE_STRING_SPLIT",
+        "-DXRT_MODULE_UNICODE",
+        "-DXRT_MODULE_VALUE_CONTAINER",
+        "release/extlibs/xregex/test/test_xregex_native.c",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\native-0.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\native-1.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\native-2.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\native-3.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\native-4.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\native-5.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\native-6.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\runtime.o",
+        "-lws2_32",
+        "-ladvapi32",
+        "-lm",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\native-test.exe"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 421
+      }
+    },
+    {
+      "name": "native-ownership-oom",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\native-test.exe",
+      "arguments": [],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "xregex native ownership: 139 allocation failures checked\r\n",
+        "stderr": "",
+        "elapsedMs": 25
+      }
+    },
+    {
+      "name": "extlib_xregex-jit",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-audit-release-20260927\\xl.exe",
+      "arguments": [
+        "run",
+        "test/cases/extlib_xregex.xl"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 1517
+      }
+    },
+    {
+      "name": "extlib_xregex-build",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-audit-release-20260927\\xl.exe",
+      "arguments": [
+        "build",
+        "test/cases/extlib_xregex.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\extlib_xregex.exe"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 2008
+      }
+    },
+    {
+      "name": "extlib_xregex-aot",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\extlib_xregex.exe",
+      "arguments": [],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 25
+      }
+    },
+    {
+      "name": "extlib_xregex-cgen",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-audit-release-20260927\\xl.exe",
+      "arguments": [
+        "cgen",
+        "test/cases/extlib_xregex.xl",
+        "--emit",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\extlib_xregex.c"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 884
+      }
+    },
+    {
+      "name": "xregex_test-jit",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-audit-release-20260927\\xl.exe",
+      "arguments": [
+        "run",
+        "release/extlibs/xregex/test/xregex_test.xl"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "xregex package ok\n",
+        "stderr": "",
+        "elapsedMs": 2975
+      }
+    },
+    {
+      "name": "xregex_test-build",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-audit-release-20260927\\xl.exe",
+      "arguments": [
+        "build",
+        "release/extlibs/xregex/test/xregex_test.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\xregex_test.exe"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 3866
+      }
+    },
+    {
+      "name": "xregex_test-aot",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\xregex_test.exe",
+      "arguments": [],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "xregex package ok\n",
+        "stderr": "",
+        "elapsedMs": 30
+      }
+    },
+    {
+      "name": "xregex_test-cgen",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-audit-release-20260927\\xl.exe",
+      "arguments": [
+        "cgen",
+        "release/extlibs/xregex/test/xregex_test.xl",
+        "--emit",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\xregex_test.c"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 1933
+      }
+    },
+    {
+      "name": "xregex_lifetime_test-jit",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-audit-release-20260927\\xl.exe",
+      "arguments": [
+        "run",
+        "release/extlibs/xregex/test/xregex_lifetime_test.xl"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "xregex lifetime ok\n",
+        "stderr": "",
+        "elapsedMs": 2409
+      }
+    },
+    {
+      "name": "xregex_lifetime_test-build",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-audit-release-20260927\\xl.exe",
+      "arguments": [
+        "build",
+        "release/extlibs/xregex/test/xregex_lifetime_test.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\xregex_lifetime_test.exe"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 3045
+      }
+    },
+    {
+      "name": "xregex_lifetime_test-aot",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\xregex_lifetime_test.exe",
+      "arguments": [],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "xregex lifetime ok\n",
+        "stderr": "",
+        "elapsedMs": 27
+      }
+    },
+    {
+      "name": "xregex_lifetime_test-cgen",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-audit-release-20260927\\xl.exe",
+      "arguments": [
+        "cgen",
+        "release/extlibs/xregex/test/xregex_lifetime_test.xl",
+        "--emit",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\xregex_lifetime_test.c"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 1455
+      }
+    },
+    {
+      "name": "xregex-jit",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-audit-release-20260927\\xl.exe",
+      "arguments": [
+        "run",
+        "release/examples/extlibs/xregex.xl"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "user id:  42\norder [120], customer [42]\nmatching pattern count:  2\n",
+        "stderr": "",
+        "elapsedMs": 1627
+      }
+    },
+    {
+      "name": "xregex-build",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-audit-release-20260927\\xl.exe",
+      "arguments": [
+        "build",
+        "release/examples/extlibs/xregex.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\xregex.exe"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 2200
+      }
+    },
+    {
+      "name": "xregex-aot",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\xregex.exe",
+      "arguments": [],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "user id:  42\norder [120], customer [42]\nmatching pattern count:  2\n",
+        "stderr": "",
+        "elapsedMs": 25
+      }
+    },
+    {
+      "name": "xregex-cgen",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-audit-release-20260927\\xl.exe",
+      "arguments": [
+        "cgen",
+        "release/examples/extlibs/xregex.xl",
+        "--emit",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\xregex.c"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 991
+      }
+    },
+    {
+      "name": "xregex_basic-jit",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-audit-release-20260927\\xl.exe",
+      "arguments": [
+        "run",
+        "release/examples/extlibs/xregex_basic.xl"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "word=ab, id=1\nword=cd, id=22\na<1> b<22>\nfield=left\nfield=right\npattern=1\npattern=2\n",
+        "stderr": "",
+        "elapsedMs": 1796
+      }
+    },
+    {
+      "name": "xregex_basic-build",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-audit-release-20260927\\xl.exe",
+      "arguments": [
+        "build",
+        "release/examples/extlibs/xregex_basic.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\xregex_basic.exe"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 2254
+      }
+    },
+    {
+      "name": "xregex_basic-aot",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\xregex_basic.exe",
+      "arguments": [],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "word=ab, id=1\nword=cd, id=22\na<1> b<22>\nfield=left\nfield=right\npattern=1\npattern=2\n",
+        "stderr": "",
+        "elapsedMs": 26
+      }
+    },
+    {
+      "name": "xregex_basic-cgen",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-audit-release-20260927\\xl.exe",
+      "arguments": [
+        "cgen",
+        "release/examples/extlibs/xregex_basic.xl",
+        "--emit",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\xregex_basic.c"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 1011
+      }
+    },
+    {
+      "name": "generated-prototypes",
+      "program": "E:/software/w64devkit/bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "-Irelease/extlibs/xregex/include",
+        "-DXRT_MODULE_ERROR_FORMAT",
+        "-DXRT_MODULE_IO_BUFFER",
+        "-DXRT_MODULE_STRING_SPLIT",
+        "-DXRT_MODULE_UNICODE",
+        "-DXRT_MODULE_VALUE_CONTAINER",
+        "-fsyntax-only",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\abi.c"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 128
+      }
+    },
+    {
+      "name": "c-example-build",
+      "program": "E:/software/w64devkit/bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "-Irelease/extlibs/xregex/include",
+        "-DXRT_MODULE_ERROR_FORMAT",
+        "-DXRT_MODULE_IO_BUFFER",
+        "-DXRT_MODULE_STRING_SPLIT",
+        "-DXRT_MODULE_UNICODE",
+        "-DXRT_MODULE_VALUE_CONTAINER",
+        "release/extlibs/xregex/examples/basic.c",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\native-0.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\native-1.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\native-2.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\native-3.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\native-4.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\native-5.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\native-6.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\runtime.o",
+        "-lws2_32",
+        "-ladvapi32",
+        "-lm",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\c-example.exe"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 219
+      }
+    },
+    {
+      "name": "c-example",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\c-example.exe",
+      "arguments": [],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "word=ab, id=1\r\nword=cd, id=22\r\na<1> b<22>\r\nfield=left\r\nfield=right\r\npattern=1\r\npattern=2\r\n",
+        "stderr": "",
+        "elapsedMs": 28
+      }
+    },
+    {
+      "name": "c-example-jit",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-audit-release-20260927\\xl.exe",
+      "arguments": [
+        "run",
+        "release/extlibs/xregex/examples/basic.c",
+        "release/extlibs/xregex/xregex_engine.c",
+        "release/extlibs/xregex/src/text/regex_core.c",
+        "release/extlibs/xregex/src/text/regex_escape.c",
+        "release/extlibs/xregex/src/text/regex_match.c",
+        "release/extlibs/xregex/src/text/regex_replace.c",
+        "release/extlibs/xregex/src/text/regex_set.c",
+        "release/extlibs/xregex/src/text/regex_split.c",
+        "release/extlibs/xregex/xregex_native.c",
+        "--inc-path",
+        "lib/xrt",
+        "--inc-path",
+        "release/extlibs/xregex/include"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "word=ab, id=1\r\nword=cd, id=22\r\na<1> b<22>\r\nfield=left\r\nfield=right\r\npattern=1\r\npattern=2\r\n",
+        "stderr": "",
+        "elapsedMs": 296
+      }
+    },
+    {
+      "name": "c-example-aot-build",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-audit-release-20260927\\xl.exe",
+      "arguments": [
+        "build",
+        "release/extlibs/xregex/examples/basic.c",
+        "release/extlibs/xregex/xregex_engine.c",
+        "release/extlibs/xregex/src/text/regex_core.c",
+        "release/extlibs/xregex/src/text/regex_escape.c",
+        "release/extlibs/xregex/src/text/regex_match.c",
+        "release/extlibs/xregex/src/text/regex_replace.c",
+        "release/extlibs/xregex/src/text/regex_set.c",
+        "release/extlibs/xregex/src/text/regex_split.c",
+        "release/extlibs/xregex/xregex_native.c",
+        "--inc-path",
+        "lib/xrt",
+        "--inc-path",
+        "release/extlibs/xregex/include",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\c-example-tcc.exe"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 569
+      }
+    },
+    {
+      "name": "c-example-aot",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-reassessment-xregex-20260927\\c-example-tcc.exe",
+      "arguments": [],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "word=ab, id=1\r\nword=cd, id=22\r\na<1> b<22>\r\nfield=left\r\nfield=right\r\npattern=1\r\npattern=2\r\n",
+        "stderr": "",
+        "elapsedMs": 28
+      }
+    },
+    {
+      "name": "c-example-package-runner",
+      "program": "C:\\Users\\Administrator\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe",
+      "arguments": [
+        "-NoProfile",
+        "-File",
+        "tools/run_extlib_c.ps1",
+        "-Package",
+        "xregex",
+        "-Source",
+        "release/extlibs/xregex/examples/basic.c",
+        "-RuntimeDirectory",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-audit-release-20260927"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "word=ab, id=1\r\nword=cd, id=22\r\na<1> b<22>\r\nfield=left\r\nfield=right\r\npattern=1\r\npattern=2\r\n",
+        "stderr": "",
+        "elapsedMs": 1000
+      }
+    }
+  ]
+}

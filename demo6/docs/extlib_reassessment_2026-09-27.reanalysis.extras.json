@@ -1,0 +1,32 @@
+{
+    "format":  "xlang-extlib-reanalysis-extras-1",
+    "generatedAt":  "2026-09-27T05:43:54.3628993+08:00",
+    "scope":  "Diagnostic reproduction, not a release acceptance test",
+    "predicate":  {
+                      "generatedAt":  "2026-09-27T05:38:18.0618478+08:00",
+                      "scope":  "Local diagnostics only; success means the currently observed predicate exception contract was reproduced, not accepted",
+                      "source":  "build/test/extlib_reanalysis/predicate_probe.xl",
+                      "sourceSha256":  "24376616E76B1706F78B378415B168199A83599B8C91BD46C8425784BDD7E7F2",
+                      "result":  {
+                                     "status":  "pass",
+                                     "exitCode":  0,
+                                     "stdout":  "valid inputs passed\ncss predicate raised: CSS block is not terminated\ndns predicate raised: invalid numeric IP address\nrecovery passed\n",
+                                     "stderr":  "",
+                                     "elapsedMs":  183
+                                 }
+                  },
+    "sourceText":  "import css\nimport dns\n\nfunc main(...) as int\n    // 先验证正常输入，再单独观察谓词的非法输入合同。\n    assert css.validate(\"a { color: red; }\")\n    assert dns.isIpv4(\"127.0.0.1\") == 1\n    println(\"valid inputs passed\")\n\n    int caught = 0\n    try\n        bool valid = css.validate(\"a { color: red;\")\n        println(valid)\n    catch IOError e\n        println(\"css predicate raised: \" + e.message)\n        caught += 1\n    end\n    try\n        int valid = dns.isIpv4(\"256.1.1.1\")\n        println(valid)\n    catch ValueError e\n        println(\"dns predicate raised: \" + e.message)\n        caught += 1\n    end\n    assert caught == 2\n\n    // 异常处理后再调用，区分错误传播合同与持久状态损坏。\n    assert css.validate(\"a { color: blue; }\")\n    assert dns.isIpv4(\"127.0.0.1\") == 1\n    println(\"recovery passed\")\n    return 0\nend\n",
+    "inputs":  {
+                   "release/xl.exe":  "5A3F20B4CF9333D393560CB2361D0EBAB8A13F0D07C64A78A1F5FFF5385D9EEB",
+                   "release/xl.dll":  "2A07C481C04CAD71D31D46722A27E62027318DF24E95A63126E061FD4CA46902",
+                   "release/xlc.dll":  "7C672FD0B2852690D09E2EF1046C56EE1586FD1FCCC0CAEA61E19C0FE7C6E1F0",
+                   "lib/xrt/xrt.h":  "7C78B4B3D13FC64AC1009E2EDFAE73E9FB092C896DA1A70CF5BE859D153851E8",
+                   "lib/xruntime/xruntime.h":  "FF23FDB9AC90F63DEED1606A78F21707A9FA677AA766044B8AF3B4F5202F4BA9",
+                   "release/extlibs/css/css_native.c":  "1C043A6303799D24129602F17C4831AC5E73597F4B2D25ED2CC93A7AD656CC87",
+                   "release/extlibs/css/src/css.xl":  "FDCA45EFDC3C0A527258B52F3D202ECD1151D2700337254EF4868699591BE35F",
+                   "release/extlibs/dns/dns_native.c":  "362815EB7FF8A3C93EA69D3A2842D1C89254826DB86A440514862209274C235A",
+                   "release/extlibs/dns/src/dns.xl":  "A0E48BEBCD46F9F52866EA64ED38B0E5A01DE0EE020A438750447D9C23F28D23",
+                   "build/test/extlib_reanalysis/predicate_probe.xl":  "24376616E76B1706F78B378415B168199A83599B8C91BD46C8425784BDD7E7F2"
+               },
+    "interpretation":  "CSS and DNS valid inputs succeed; invalid predicates raise IOError/ValueError rather than return false/zero; subsequent valid inputs succeed. Other runtime failures require separate diagnosis."
+}

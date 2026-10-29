@@ -1,0 +1,106 @@
+{
+  "date": "2026-09-26T22:28:24.8458108+08:00",
+  "package": "serial",
+  "outcome": "failed",
+  "scope": "Windows x64 loopback, C ABI, ownership, threads, allocation, JIT/AOT; no physical device",
+  "artifacts": {
+    "lib/xrt/xrt.h": "7C78B4B3D13FC64AC1009E2EDFAE73E9FB092C896DA1A70CF5BE859D153851E8",
+    "release/xl.dll": "2A07C481C04CAD71D31D46722A27E62027318DF24E95A63126E061FD4CA46902",
+    "release/xlc.dll": "7C672FD0B2852690D09E2EF1046C56EE1586FD1FCCC0CAEA61E19C0FE7C6E1F0",
+    "release/xl.exe": "5A3F20B4CF9333D393560CB2361D0EBAB8A13F0D07C64A78A1F5FFF5385D9EEB"
+  },
+  "sources": {
+    "tools/check_extlib_serial.ps1": "67C22A8A6EE02A3EF84D560F71DF87ABC0667DE15AE1B4AD510CBEA72124DC3D",
+    "release/extlibs/serial/test/test_serial_alloc.c": "09C3F53F52B95C438DC5E32DD9A38EBED51544AD87C4576B63A38FA3C5B99598",
+    "release/examples/extlibs/serial.xl": "345EA51563633DD65A2259F15758F8671ADDE6955371CA3801B236F441F99F40",
+    "release/extlibs/serial/include/serial.h": "08BB89ED777A26DD658D651A5CE36529827D0731D978595E7A7D98988442ABF6",
+    "test/cases/extlib_serial.xl": "21B1DCD49B26A92771D3FBC7D4FD5EB6C172B8662CFA00A26C2542DEEE13A9F9",
+    "release/extlibs/serial/serial_native.c": "D28704AFDEE57F7BA4861F274411974FBC28E2D02D927A20456F30B39EC0F9DD",
+    "release/extlibs/serial/xlang.package.json": "9A4F407771E44D18D14F4CAA016E2429E78E61B70C0AF73729A911183A2AB5B2",
+    "release/extlibs/serial/test/test_serial.c": "AEEFDFB81480EE810EE9B69A331633BEBF1915FDF11ECC5A54FAC4BAA15A5BCB",
+    "release/examples/extlibs/serial_c.c": "584017D57E5F5DD67E122AA905837C23C61BCAB2909B832C1336881EE442619B",
+    "release/extlibs/serial/test/serial_runtime.c": "47721632E9216604E1D951BE98C850A6EC24954B13A64A06B0C5104C1A8AB837",
+    "release/extlibs/serial/src/serial.xl": "B8412DE84FC856ADFF5E97F72BC6253873C422D36C42234DDB7CAF8CB2BA01F5"
+  },
+  "checks": [
+    {
+      "name": "gcc-runtime",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "gcc-native",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "gcc-test_serial",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "test_serial",
+      "exitCode": 0,
+      "stdout": "serial C boundaries: PASS",
+      "stderr": ""
+    },
+    {
+      "name": "gcc-test_serial_alloc",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "test_serial_alloc",
+      "exitCode": 0,
+      "stdout": "serial allocation checks: rejected=6 completed=90",
+      "stderr": ""
+    },
+    {
+      "name": "cgen",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "generated-c-prototypes",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "c-jit",
+      "exitCode": 0,
+      "stdout": "serial C boundaries: PASS",
+      "stderr": ""
+    },
+    {
+      "name": "xlang-jit",
+      "exitCode": 0,
+      "stdout": "serial xlang boundaries: PASS",
+      "stderr": ""
+    },
+    {
+      "name": "xlang-build",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "xlang-aot",
+      "exitCode": 0,
+      "stdout": "serial xlang boundaries: PASS",
+      "stderr": ""
+    },
+    {
+      "name": "example-xlang",
+      "exitCode": 1,
+      "stdout": "",
+      "stderr": "release/examples/extlibs/serial.xl:14:13: [parse] invalid f-string interpolation expression\n"
+    }
+  ],
+  "evidenceValid": true
+}

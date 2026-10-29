@@ -1,0 +1,450 @@
+{
+  "format": "xlang-extlib-focused-verification-1",
+  "generatedAt": "2026-09-26T19:53:48.7070471Z",
+  "scope": "Aho incremental verification only: Windows GCC C, xlang JIT and boundary AOT; Linux independent C ASan/UBSan/LSan. Not full package acceptance, native ABI declaration completeness, concurrent scanners, or paired example golden verification.",
+  "inputs": {
+    "lib/xrt/xrt.h": "7C78B4B3D13FC64AC1009E2EDFAE73E9FB092C896DA1A70CF5BE859D153851E8",
+    "lib/xruntime/xruntime.h": "FF23FDB9AC90F63DEED1606A78F21707A9FA677AA766044B8AF3B4F5202F4BA9",
+    "release/examples/extlibs/aho_corasick_c.c": "F6040E4A9E49BFE684FB8A08DEEE3A869DD6D2075F26BB097A5D4FDF7D136E02",
+    "release/examples/extlibs/aho_corasick.xl": "A1A6AB1765C282DC94C0686E9E6108F16F064172FD483A23DE8CA66094AB071D",
+    "release/extlibs/aho_corasick/aho_corasick_native.c": "B1D24CF9FC0E121CC46F788F24A209EF6301779FD784F5732361302FC7776EBD",
+    "release/extlibs/aho_corasick/include/aho_corasick_native.h": "6BC2329DEF9C6FB7966EBB2CEBE9C42F6C58DB7C91929114A1EAA5B8F15D214E",
+    "release/extlibs/aho_corasick/include/xrt_aho_corasick.h": "7CD7A43457D1964FD534F3CF6CCB7A08E4563CA60162D0CEE98635AAF972D606",
+    "release/extlibs/aho_corasick/src/aho_corasick.xl": "D982E20136511FB9006469EDEBF7CE3D55E2B9211CE53398A8DF6132165A2D9D",
+    "release/extlibs/aho_corasick/test/boundaries.xl": "299CA540C890D0FB155022B396748F46FA4668299E37EAD7D62A5A31206EEC8D",
+    "release/extlibs/aho_corasick/test/test_aho_alloc.c": "713AE22F6CC0F0DD174554E8949BD3D5F23804DC82FB9DCBBF3106DDF4A521EF",
+    "release/extlibs/aho_corasick/test/test_aho_corasick.c": "452514372F5AA1602D8DE86B60AD943E582CB260DAEBCC62BF7D2B5013178644",
+    "release/extlibs/aho_corasick/test/test_aho_native.c": "D6E8F59BA233A70281D4E02F3EBB9E3861FB9D0158237504A918A5DA2C639B91",
+    "release/extlibs/aho_corasick/xlang.package.json": "BE4F0A841A595AAF6FDBF7ECFD35CC16441BED9263688824F7E8F61FCDEB4796",
+    "release/extlibs/aho_corasick/xrt_aho_corasick.c": "9F52B004C9DA3F4E7C0EB94D84DC55ACE22B104DD4E43EDB66D2D5F2F80BD08E",
+    "release/include/xl_extlib_abi.h": "33B33F690EF8610749E399D612984B6D02F6140767D4B92BBB65B28A89FCA244",
+    "release/include/xrt_decl.h": "3356BCCABBCBC877AD19C5E2D3336C909C2A742DE62E7B92BB79FE2AF3F4CEE6",
+    "release/include/xruntime_decl.h": "4B7CFAA2015F39E08159F4B10108B9BB1764D2370074333335651FE5C1BA87AC",
+    "release/xl.dll": "2A07C481C04CAD71D31D46722A27E62027318DF24E95A63126E061FD4CA46902",
+    "release/xl.exe": "5A3F20B4CF9333D393560CB2361D0EBAB8A13F0D07C64A78A1F5FFF5385D9EEB",
+    "release/xlc.dll": "7C672FD0B2852690D09E2EF1046C56EE1586FD1FCCC0CAEA61E19C0FE7C6E1F0",
+    "test/cases/extlib_aho_corasick.xl": "74A36C28FF953D7BF4937AE32D67F59115E213334B22CF4D288E2669C92E1B68",
+    "test/support/extlib_aho_runtime.c": "993934F12B57D049E69E4EB53F7E8A86397D724E81E7D473F95EC019D0CFA523",
+    "tools/extlib_smoke_process.ps1": "87C3D050B1F492E3F0C4307BA39F454E42B65E37DBCDEC4BE3E938BC2F32D2F7",
+    "tools/xlir_native_process.ps1": "2BE2787D2316CE07E0D0AC3BDF1A1CAABA14D72F249CCAC847BB1C05D1DBFC9D"
+  },
+  "changedInputs": [],
+  "evidenceValid": true,
+  "checks": [
+    {
+      "name": "windows-core-build",
+      "file": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "test/support/extlib_aho_runtime.c",
+        "release/extlibs/aho_corasick/test/test_aho_corasick.c",
+        "-o",
+        "build/test/aho_probe/core.exe",
+        "-lAdvapi32",
+        "-lWs2_32"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 3785
+      }
+    },
+    {
+      "name": "windows-core-run",
+      "file": "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_probe\\core.exe",
+      "arguments": [],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "test_aho_corasick: ok\r\n",
+        "stderr": "",
+        "elapsedMs": 28
+      }
+    },
+    {
+      "name": "windows-native-build",
+      "file": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "test/support/extlib_aho_runtime.c",
+        "release/extlibs/aho_corasick/xrt_aho_corasick.c",
+        "release/extlibs/aho_corasick/aho_corasick_native.c",
+        "release/extlibs/aho_corasick/test/test_aho_native.c",
+        "-o",
+        "build/test/aho_probe/native.exe",
+        "-lAdvapi32",
+        "-lWs2_32"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 3956
+      }
+    },
+    {
+      "name": "windows-native-run",
+      "file": "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_probe\\native.exe",
+      "arguments": [],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "aho native: ownership, result states, limits and stream recovery passed\r\n",
+        "stderr": "",
+        "elapsedMs": 54
+      }
+    },
+    {
+      "name": "windows-alloc-build",
+      "file": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "test/support/extlib_aho_runtime.c",
+        "release/extlibs/aho_corasick/xrt_aho_corasick.c",
+        "release/extlibs/aho_corasick/aho_corasick_native.c",
+        "release/extlibs/aho_corasick/test/test_aho_alloc.c",
+        "-o",
+        "build/test/aho_probe/alloc.exe",
+        "-lAdvapi32",
+        "-lWs2_32"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 3889
+      }
+    },
+    {
+      "name": "windows-alloc-run",
+      "file": "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_probe\\alloc.exe",
+      "arguments": [],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "aho allocator: 38 injected points, clean recovery passed\r\n",
+        "stderr": "",
+        "elapsedMs": 78
+      }
+    },
+    {
+      "name": "jit-test/cases/extlib_aho_corasick.xl",
+      "file": "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+      "arguments": [
+        "run",
+        "test/cases/extlib_aho_corasick.xl"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "aho_corasick: all tests passed\n",
+        "stderr": "",
+        "elapsedMs": 3498
+      }
+    },
+    {
+      "name": "jit-release/extlibs/aho_corasick/test/boundaries.xl",
+      "file": "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+      "arguments": [
+        "run",
+        "release/extlibs/aho_corasick/test/boundaries.xl"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "aho boundaries: lifetime, callbacks, recovery and limits passed\n",
+        "stderr": "",
+        "elapsedMs": 1608
+      }
+    },
+    {
+      "name": "jit-release/examples/extlibs/aho_corasick.xl",
+      "file": "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+      "arguments": [
+        "run",
+        "release/examples/extlibs/aho_corasick.xl"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "=== 1. 创建自动机 ===\n有效:  true\n已构建:  true\n模式数:  4\n\n=== 2. search 结构化搜索 ===\n匹配数:  3\n   she  @ [ 1 ,  4 ) len= 3\n   he  @ [ 2 ,  4 ) len= 2\n   hers  @ [ 2 ,  6 ) len= 4\n无匹配:  0\n\n=== 3. searchFirst ===\n首个匹配:  she  @ 1\n无匹配返回 null:  true\n\n=== 4. contains / count ===\n包含:  true\n不含:  false\n计数:  3\n零:    0\n\n=== 5. replace 固定替换 ===\n替换:  u*\n多区间:  [x] said [x] [x]\n\n=== 6. mask 遮盖 ===\n遮盖:  u#####\nUnicode 遮盖:  甲***界\n\n=== 7. highlight 高亮 ===\nHTML:  u<b>shers</b>\n\n=== 8. replaceWith 回调替换 ===\n标注:  u[she]rs\n链接:  use <a href='http://'>http</a> or <a href='ftp://'>ftp</a>\n\n=== 9. scan 流式扫描 ===\n完成:  true  命中:  3\n中断:  true  找到:  she\n  严重错误位于偏移  35\n  跨分块命中:  fatal  @ 0\n累计字节:  12 ，累计匹配:  1\n\n=== 10. ignoreCase 大小写忽略 ===\n小写:  true\n大写:  true\n混合:  true\n计数:  3\n\n=== 11. 手动构建 ===\n初始 built:  false\n模式数:  4\n构建后:  true\n搜索:  4\n限制配置搜索:  true\n正确拒绝:  Aho-Corasick patterns cannot be added after build\n异常捕获:  true\n\n=== 12. 综合实战：敏感词过滤 ===\n命中数:  2\n过滤后:  这个网站涉及[已过滤]和[已过滤]内容\n  命中: ' 赌博 ' @ 18\n  命中: ' 色情 ' @ 27\n\naho_corasick 教学范例: 全部完成\n",
+        "stderr": "",
+        "elapsedMs": 3763
+      }
+    },
+    {
+      "name": "aot-boundaries-build",
+      "file": "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+      "arguments": [
+        "build",
+        "release/extlibs/aho_corasick/test/boundaries.xl",
+        "-o",
+        "build/test/aho_probe/boundaries.exe"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 2366
+      }
+    },
+    {
+      "name": "aot-boundaries-run",
+      "file": "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_probe\\boundaries.exe",
+      "arguments": [],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "aho boundaries: lifetime, callbacks, recovery and limits passed\n",
+        "stderr": "",
+        "elapsedMs": 33
+      }
+    },
+    {
+      "name": "linux-runtime-build",
+      "file": "C:\\WINDOWS\\System32\\wsl.exe",
+      "arguments": [
+        "-d",
+        "Ubuntu",
+        "--cd",
+        "/mnt/d/GIT/x-lang/demo6",
+        "--",
+        "gcc",
+        "-std=c11",
+        "-D_GNU_SOURCE",
+        "-O1",
+        "-g",
+        "-Ilib/xrt",
+        "-fsanitize=address,undefined",
+        "-fno-omit-frame-pointer",
+        "-fno-pie",
+        "-no-pie",
+        "-pthread",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-c",
+        "test/support/extlib_aho_runtime.c",
+        "-o",
+        "build/test/aho_linux_reassessment/runtime.o"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 8238
+      }
+    },
+    {
+      "name": "linux-core-build",
+      "file": "C:\\WINDOWS\\System32\\wsl.exe",
+      "arguments": [
+        "-d",
+        "Ubuntu",
+        "--cd",
+        "/mnt/d/GIT/x-lang/demo6",
+        "--",
+        "gcc",
+        "-std=c11",
+        "-D_GNU_SOURCE",
+        "-O1",
+        "-g",
+        "-Ilib/xrt",
+        "-fsanitize=address,undefined",
+        "-fno-omit-frame-pointer",
+        "-fno-pie",
+        "-no-pie",
+        "-pthread",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "release/extlibs/aho_corasick/test/test_aho_corasick.c",
+        "build/test/aho_linux_reassessment/runtime.o",
+        "-lm",
+        "-ldl",
+        "-o",
+        "build/test/aho_linux_reassessment/core"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 1170
+      }
+    },
+    {
+      "name": "linux-core-run",
+      "file": "C:\\WINDOWS\\System32\\wsl.exe",
+      "arguments": [
+        "-d",
+        "Ubuntu",
+        "--cd",
+        "/mnt/d/GIT/x-lang/demo6",
+        "--",
+        "env",
+        "ASAN_OPTIONS=detect_leaks=1:halt_on_error=1",
+        "UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1",
+        "timeout",
+        "60s",
+        "./build/test/aho_linux_reassessment/core"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "test_aho_corasick: ok\n",
+        "stderr": "",
+        "elapsedMs": 167
+      }
+    },
+    {
+      "name": "linux-native-build",
+      "file": "C:\\WINDOWS\\System32\\wsl.exe",
+      "arguments": [
+        "-d",
+        "Ubuntu",
+        "--cd",
+        "/mnt/d/GIT/x-lang/demo6",
+        "--",
+        "gcc",
+        "-std=c11",
+        "-D_GNU_SOURCE",
+        "-O1",
+        "-g",
+        "-Ilib/xrt",
+        "-fsanitize=address,undefined",
+        "-fno-omit-frame-pointer",
+        "-fno-pie",
+        "-no-pie",
+        "-pthread",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "release/extlibs/aho_corasick/xrt_aho_corasick.c",
+        "release/extlibs/aho_corasick/aho_corasick_native.c",
+        "release/extlibs/aho_corasick/test/test_aho_native.c",
+        "build/test/aho_linux_reassessment/runtime.o",
+        "-lm",
+        "-ldl",
+        "-o",
+        "build/test/aho_linux_reassessment/native"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 1419
+      }
+    },
+    {
+      "name": "linux-native-run",
+      "file": "C:\\WINDOWS\\System32\\wsl.exe",
+      "arguments": [
+        "-d",
+        "Ubuntu",
+        "--cd",
+        "/mnt/d/GIT/x-lang/demo6",
+        "--",
+        "env",
+        "ASAN_OPTIONS=detect_leaks=1:halt_on_error=1",
+        "UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1",
+        "timeout",
+        "60s",
+        "./build/test/aho_linux_reassessment/native"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "aho native: ownership, result states, limits and stream recovery passed\n",
+        "stderr": "",
+        "elapsedMs": 168
+      }
+    },
+    {
+      "name": "linux-alloc-build",
+      "file": "C:\\WINDOWS\\System32\\wsl.exe",
+      "arguments": [
+        "-d",
+        "Ubuntu",
+        "--cd",
+        "/mnt/d/GIT/x-lang/demo6",
+        "--",
+        "gcc",
+        "-std=c11",
+        "-D_GNU_SOURCE",
+        "-O1",
+        "-g",
+        "-Ilib/xrt",
+        "-fsanitize=address,undefined",
+        "-fno-omit-frame-pointer",
+        "-fno-pie",
+        "-no-pie",
+        "-pthread",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "release/extlibs/aho_corasick/xrt_aho_corasick.c",
+        "release/extlibs/aho_corasick/aho_corasick_native.c",
+        "release/extlibs/aho_corasick/test/test_aho_alloc.c",
+        "build/test/aho_linux_reassessment/runtime.o",
+        "-lm",
+        "-ldl",
+        "-o",
+        "build/test/aho_linux_reassessment/alloc"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 1365
+      }
+    },
+    {
+      "name": "linux-alloc-run",
+      "file": "C:\\WINDOWS\\System32\\wsl.exe",
+      "arguments": [
+        "-d",
+        "Ubuntu",
+        "--cd",
+        "/mnt/d/GIT/x-lang/demo6",
+        "--",
+        "env",
+        "ASAN_OPTIONS=detect_leaks=1:halt_on_error=1",
+        "UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1",
+        "timeout",
+        "60s",
+        "./build/test/aho_linux_reassessment/alloc"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "aho allocator: 38 injected points, clean recovery passed\n",
+        "stderr": "",
+        "elapsedMs": 170
+      }
+    }
+  ]
+}

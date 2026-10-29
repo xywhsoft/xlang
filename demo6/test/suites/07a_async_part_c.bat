@@ -9,9 +9,9 @@ if not errorlevel 1 (
     echo sem_task_spawn_arg_byref.xl should fail.
     exit /b 1
 )
-findstr /C:"task.spawn cannot capture byref or out caller storage" build\test\sem_task_spawn_arg_byref.err.txt >nul
+findstr /C:"[parse]" build\test\sem_task_spawn_arg_byref.err.txt >nul
 if errorlevel 1 (
-    echo sem_task_spawn_arg_byref.xl missing task capture mode diagnostic.
+    echo sem_task_spawn_arg_byref.xl missing removed-syntax diagnostic.
     exit /b 1
 )
 
@@ -20,9 +20,9 @@ if not errorlevel 1 (
     echo sem_task_spawn_arg_out.xl should fail.
     exit /b 1
 )
-findstr /C:"task.spawn cannot capture byref or out caller storage" build\test\sem_task_spawn_arg_out.err.txt >nul
+findstr /C:"[parse]" build\test\sem_task_spawn_arg_out.err.txt >nul
 if errorlevel 1 (
-    echo sem_task_spawn_arg_out.xl missing task capture mode diagnostic.
+    echo sem_task_spawn_arg_out.xl missing removed-syntax diagnostic.
     exit /b 1
 )
 

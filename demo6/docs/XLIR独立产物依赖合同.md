@@ -1,10 +1,42 @@
 # XLIR 独立产物依赖合同
 
+## 2026-09-27 原生源与公开产物合同
+
 float32 显式转换入口归属独立 `FLOAT_CONVERT` 驻留组件，绑定 XRT
 数字解析和 xruntime 显式 Value 转换的依赖闭包，未使用时裁剪。
 接口与验收边界见 [动态标量装箱与 float32 显式转换](stdlib53-b279-scalar-conversion.md)。
 
-当前实现：2026-09-14，v205。XLIR 产物装配改为消费经验证的 C 实现需求
+原生模块策略现在同时接收包合同与显式追加 C 源数量，由
+`xl6XrtTrimRequiresFull(deps, additionalCSourceCount)` 决定是否选择完整产品。
+命令行或项目文件追加的 C 源没有模块合同，因此默认提供完整 XRT/xruntime；
+无模块声明的原生包、TCC/语言运行时/编译器嵌入同样使用完整产品。声明模块
+的包以及纯 XL 仍按明确的原生根闭包裁剪，不因这次修复扩大到完整产品。
+
+`xlTccPrepareNativeSources` 的声明选择和
+`xl6XrtTrimBuildImplementationSourceFromArtifact` 的实现选择复用这一规则。
+后者不读取 C 文本，也不根据链接失败追加实现。混合包与直接 C 源同时存在时，
+无合同 C 源不能被包的较小模块清单遮蔽；多文件与 `.xlp` 使用同一路径。
+
+EXE 的运行时入口需求取决于实际是否生成语言 `main` 包装：显式追加 C 且没有
+语言执行入口时采用 checked module，由 C 提供 `main`；有语言 main/顶层执行
+语句时采用 executable。纯 XL 仍允许仅全局初始化脚本。缺失或重复 main 由
+链接诊断拒绝，不解析 C 推断入口，不引入另一套入口回退。
+
+生成 DLL 的实际定义和公共头一致导出八个错误作用域接口与 `xrtErrorFree`，
+消费者消费错误时使用同一 DLL 的运行库。生成头先后包含的类型 guard 不得
+吞掉链接属性；C++ 声明使用 C 链接，字符串化声明不得固化宿主 C 的 NULL 宏。
+
+Windows 当前源码隔离构建通过 41 项原生合同、17 程序的 68 项回归和 26 项
+损坏导出 IR 反例。24 个常驻组件、576 个双根组合、181 个真实导出一致，
+17 份实际 AOT 实现与计划相同。详见
+[生态复核与证据](扩展库现状复核_2026-09-27.md) 和
+[重跑说明](../test/fixtures/native_source_contract/README.md)。
+未替换发布二进制或 XRT/xruntime 实现；纯 VFS 发布、Linux 共享库与多 DLL
+卸载压力不在本次范围。下面的 v205 数据保留其原始日期，不能作为最新全量结果。
+
+## v205 基线
+
+2026-09-14，v205。XLIR 产物装配改为消费经验证的 C 实现需求
 和原生根模块清单，不再走历史 AST/生成 C 文本扫描。17 个独立程序的
 Cgen/JIT/AOT/EXE 共 68 项专项已通过，实际 AOT 原生实现与计划逐字节一致。
 保留全部原 37 项、增加适配器检查的唯一一轮 38 项统一复测全部通过，
@@ -48,7 +80,7 @@ RuntimeOp 选择 Unicode text 根模块，不能把它当作普通字节串存�
 `xl6IrCgenBuildNeeds` 先验证 Lowered XLIR，再执行同一组实现选择分析；
 生成 C 与 `xl6IrCgenVisitNativeModules` 共同使用这份结果。54 个组是后端
 实现库的显式元数据，不是第二个语义 IR，也不是对生成文本做统计或猜测。
-JSON/XSON 等实现的模式位直接选择对应读写模块；网络公共生命周期需求
+JSON/XLON 等实现的模式位直接选择对应读写模块；网络公共生命周期需求
 独立表达，避免只有 TLS 操作时遗漏已经发出的 engine/resolver/DNS 支持体。
 
 产物计划另外声明公开 `xlValueRetain/Release/Clone/IsNull/Data` ABI 的固定
@@ -57,8 +89,8 @@ JSON/XSON 等实现的模式位直接选择对应读写模块；网络公共生�
 组明确要求 NUMBER_FORMAT，而不是根据某次输入是否打印数字推断依赖。
 组对应当前发出的完整支持组件，不承诺每个程序的最终原生代码全局最小。
 
-`xl6XrtTrimBuildImplementationSourceFromArtifact` 仅接收明确包需求和原生
-模块清单；不接收 AST 或 C 文本，也不隐式补入旧 keep 标记。要求 TCC、语言
+`xl6XrtTrimBuildImplementationSourceFromArtifact` 接收明确包需求、原生
+模块清单和显式 C 源数量；不接收 AST 或 C 文本，也不隐式补入旧 keep 标记。要求 TCC、语言
 运行时、编译器或未声明 C 源模块的包仍按明确策略选择完整产品。普通 XLIR
 分支使用此入口，历史扫描只隔离保留在 legacy 分支，尚未删除旧后端。
 

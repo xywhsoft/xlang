@@ -1,0 +1,37 @@
+{
+  "format": "xlang-extlib-aho-linux-evidence-1",
+  "archivedAt": "2026-09-27T04:21:28.8141347+08:00",
+  "completedAt": "2026-09-27T04:19:35.1809706+08:00",
+  "command": "bash tools/check_extlib_aho.sh",
+  "platform": "WSL Ubuntu x86_64",
+  "compiler": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+  "scope": "Independent C core/native/allocator/thread tests and two examples with ASan/UBSan/leak detection; not Linux xlang, simultaneous use of one scanner or performance certification",
+  "outcome": "passed",
+  "inputs": {
+    "release/extlibs/aho_corasick/aho_corasick_native.c": "B1D24CF9FC0E121CC46F788F24A209EF6301779FD784F5732361302FC7776EBD",
+    "release/extlibs/aho_corasick/examples/basic.c": "877F6C86FBED8D7F7B5783F78D9B8DC56CF3F31C9BFE4A61F097687E6AC56C0B",
+    "release/extlibs/aho_corasick/include/aho_corasick_native.h": "6BC2329DEF9C6FB7966EBB2CEBE9C42F6C58DB7C91929114A1EAA5B8F15D214E",
+    "release/extlibs/aho_corasick/include/xrt_aho_corasick.h": "7CD7A43457D1964FD534F3CF6CCB7A08E4563CA60162D0CEE98635AAF972D606",
+    "release/extlibs/aho_corasick/src/aho_corasick.xl": "CABCC38A4CE38FA24ADFEA7AE58FD55CBD96AD0CE705E6DFB8513EE53E5383CE",
+    "release/extlibs/aho_corasick/test/boundaries.xl": "299CA540C890D0FB155022B396748F46FA4668299E37EAD7D62A5A31206EEC8D",
+    "release/extlibs/aho_corasick/test/test_aho_alloc.c": "713AE22F6CC0F0DD174554E8949BD3D5F23804DC82FB9DCBBF3106DDF4A521EF",
+    "release/extlibs/aho_corasick/test/test_aho_corasick.c": "10661CB7ACD83318C0DDA5B20F451985B216F70509F12ED01A7CF7609E6CD9DF",
+    "release/extlibs/aho_corasick/test/test_aho_native.c": "D6E8F59BA233A70281D4E02F3EBB9E3861FB9D0158237504A918A5DA2C639B91",
+    "release/extlibs/aho_corasick/test/test_aho_threads.c": "30ADB059E38BBBB54CD1FBEBA126928E6057C7CF45DE6DD0C42579675973A5F5",
+    "release/extlibs/aho_corasick/xlang.package.json": "077E0188B6775F1FB6A24BC90481614B6972E7137BB308AE6E47E9F1D2416B32",
+    "release/extlibs/aho_corasick/xrt_aho_corasick.c": "9E4E1BB4AC279D5F567F504A9D2A4A533F617A569C1EA52D54124C36BE92F61F",
+    "lib/xrt/xrt.h": "7C78B4B3D13FC64AC1009E2EDFAE73E9FB092C896DA1A70CF5BE859D153851E8",
+    "test/support/extlib_aho_runtime.c": "993934F12B57D049E69E4EB53F7E8A86397D724E81E7D473F95EC019D0CFA523",
+    "tools/check_extlib_aho.sh": "9445343583002383076FE1DC42125887BCDF2D1C5D1AEBD78B8225676073CA79",
+    "release/examples/extlibs/aho_corasick_c.c": "F6040E4A9E49BFE684FB8A08DEEE3A869DD6D2075F26BB097A5D4FDF7D136E02",
+    "release/examples/extlibs/aho_corasick_basic.expected.txt": "14FB2322632BDDE83C9C60BCE4F79ECF7B8FA43737EC2D7780A2A2473DF6EDD3"
+  },
+  "logs": {
+    "test_aho_corasick": "test_aho_corasick: ok\n",
+    "test_aho_native": "aho native: ownership, result states, limits and stream recovery passed\n",
+    "test_aho_alloc": "aho allocator: 38 injected points, clean recovery passed\n",
+    "test_aho_threads": "aho threads: shared immutable automaton, 1000 independent scans and error isolation passed\n",
+    "basic": "sorted:\nshe:1:4\nhe:2:4\nhers:2:6\nfirst=she\ncount=3\nreplace=u*\nhighlight=u<shers>\nmask=u#####\nstream:\nshe:1:4\nhe:2:4\nhers:2:6\nunicode=甲***界\nascii=1\n",
+    "tutorial": "nodes=10 transitions=9 allocated=880 bytes\nsorted search:\nshe @1..4\nhe @2..4\nhers @2..6\nincremental scan:\nshe @1..4\nhe @2..4\nhers @2..6\n"
+  }
+}

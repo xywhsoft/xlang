@@ -1,0 +1,727 @@
+{
+  "date": "2026-09-28T00:25:13.8729420+08:00",
+  "outcome": "passed-scoped",
+  "releaseReady": false,
+  "runtimeDirectory": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime",
+  "scope": "Graph C boundary/oracle/OOM/threads, Windows C and xlang JIT/AOT, 9 generated prototypes and paired examples; shared string gaps recorded separately",
+  "inputs": {
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\include\\libtcc.h": "FC77217B1E8AB783D512DF2B0A8249C801BDD8B5A4D2C5643169BD2C61ECE3AB",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\include\\README.md": "C950EE90CF5D57078C010BF4CFE65A6C7701E5ACA7B06DD3D8EE5EEE80E8B0B7",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\include\\tcc_builtin_vfs.h": "2ED7047361E240D5837533215310D8044298D160D7DD6E6C6B999EAAB935D05C",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\include\\xl_extlib_abi.h": "33B33F690EF8610749E399D612984B6D02F6140767D4B92BBB65B28A89FCA244",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\include\\xl_runtime.h": "F0503CACFC2165ABD35A25F417A4B147126783DB355C81E1B62643EF709DEACD",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\include\\xl.h": "2A564C90F90EFD80C6257072819D215BA26C8890D8D86B3C134C153BE293EBEC",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\include\\xlc.h": "3187BB8C540CE6F957B165F060EE7C8E2E27AC729B269763A1128004A0EAEEF1",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\include\\xrt_decl.h": "A2D9D17C569DC74B974F8FD2FED0AC00E20A819FCDA09473630951031E0BCE8E",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\include\\xruntime_decl.h": "97BEE29DBA82A3BB9D6A6A05681B90F456B35EF74741E9AD08B6E6B784060CFD",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\xl.dll": "D46C35906A63EB022A1EE2C102D2D9700B1EFB957820FDF6DAEFA845E9B04288",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\xl.exe": "3376E9514B52E9AD5F43A22C5EA3DA3294D261F4EFDB57CB6E147116A4695FBA",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\xlc.dll": "6506885FF110C8CCAB14C13152426B0635E4FE0BCAFB2371B43A66CFEBB591D3",
+    "D:\\GIT\\x-lang\\demo6\\lib\\xrt\\xrt.h": "4C8CA837C7BAA2B865D6A6C8437449A90186639618888B929F6C3743327A0AC5",
+    "D:\\GIT\\x-lang\\demo6\\lib\\xruntime\\xruntime.h": "5E47B36DC21FDFF54C230D1FCA99175F429AD541409F1D44194F00E0FDF10F53",
+    "D:\\GIT\\x-lang\\demo6\\release\\examples\\extlibs\\graph_basic.expected.txt": "4023D2F9D9376F8D06CD56F244BA68F1CF21C67E25F4D38F0C35CE79014D86B1",
+    "D:\\GIT\\x-lang\\demo6\\release\\examples\\extlibs\\graph_basic.xl": "E1009B5468DFB7455DD6C71D334A8BBB636FB234C0C9859C3450AA9ED2509EAE",
+    "D:\\GIT\\x-lang\\demo6\\release\\examples\\extlibs\\graph.xl": "8C6E6CE646D3190311BF20DFCD3383EB2E22454E4649D840B3296B13FBE6D538",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\examples\\basic.c": "3DF362232DB9483B4B84FEC3D0E0E9EF2C2352F7D51ABDB25C80905BA6F31454",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\graph_components.c": "BD5D0813BA6B5C3882684026F449E263863EA0B0C0DBA0A98FC7AA2C413E9113",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\graph_distance.c": "91C541816595964270569591139115FABF8E733C73C11BF2B632B649FB6D0B77",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\graph_internal.h": "F3431C8AC1F383FFE8E662E6942E70E0A245D58026A0C112AE55D71314AB8D1D",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\graph_native.c": "A6F38C603C060BBE6B03820C7912CA6C746B6C20B457EE4C8EFE95EA229CA624",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\graph_traversal.c": "E397A5B4CCB1E7354FDACA0BEA6BF4962BBF3C5970A82B2E02B2D79879726A8A",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\include\\graph.h": "082305A5F090D43443C0E20094EFD538CA005343ABF81C7FD856FFA9EF638B85",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\src\\graph.xl": "BA4BD82545EFC425844825D6BCFCCAEB328E444FEF399613F36AA6A4D6580959",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\test\\boundaries.xl": "E122E9E14BE6916A198EBEE2DD4C6DC2B410C807F62441E0DBF57B3F0D32E6A8",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\test\\graph_test.h": "7734BC3BC162B50A0ACAD2A94ED002528DB7102CDA85F39B286718FF690C6624",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\test\\test_graph_alloc.c": "16CF24E25AF3FC04F22F42E231D26850C8D08E1C5364EE9A541CF44B662FD30D",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\test\\test_graph_threads.c": "A558C5E47163AC3E06F745145737AACBB37907D7D8AA184433675E4FD1C92919",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\test\\test_graph.c": "CBF06ED970C4CD0AAA0F45CDADDBA0E37E989C5BBF4EDBF6A5C8192648039305",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\xlang.package.json": "EF5E8140A8EE8E07CB4767251172B664BD9F2A47BEB8BC773986221B1573B0AB",
+    "D:\\GIT\\x-lang\\demo6\\test\\cases\\extlib_graph.xl": "1A37FC1F894B3286E78DDB4BFCAE22317965467E34B7B594FBB8C8FFDE2414AA",
+    "D:\\GIT\\x-lang\\demo6\\test\\fixtures\\extlib_boundary_pending\\graph_nul_name.xl": "DEED4C4FB584C83A7B66E866094920B6EEC09F870912FA960A5BC8B231043DB3",
+    "D:\\GIT\\x-lang\\demo6\\test\\fixtures\\extlib_boundary_pending\\string_byte_len_nul.xl": "0507E0D842E43046B4D474AC08E206FB9D4A97CBBF1F9FFEB83F2B5AA69E11F7",
+    "D:\\GIT\\x-lang\\demo6\\test\\fixtures\\extlib_boundary_pending\\string_join_symbol.xl": "027491498B72464A474396E0A84EAF670DA6007178E9DA88910D865698B9ADBB",
+    "D:\\GIT\\x-lang\\demo6\\test\\support\\extlib_graph_runtime.c": "59AAE32E7FFACB976971DA26865D6C8C3EB6B74A468FCD976BEE86FBC82DA48B",
+    "D:\\GIT\\x-lang\\demo6\\tools\\check_extlib_graph.ps1": "A406C23C01F515ACAEAE7CF0E8C243AD0DA608947B63A49AC05969C874517F3B",
+    "D:\\GIT\\x-lang\\demo6\\tools\\check_extlib_graph.sh": "CEC032ADDEDF10E5EE5D70BC058EED7EFB3DD2D06E74DC3693254795D3E293E5",
+    "D:\\GIT\\x-lang\\demo6\\tools\\extlib_smoke_process.ps1": "294FCC133C2E4F3E5786080D6DCFEDD3BFBC51656AF892433CCE08BB3EAF635F",
+    "D:\\GIT\\x-lang\\demo6\\tools\\run_extlib_c.ps1": "5183F14DBF4444B47D8832B60A0D6A6B570C8E933874785BEF85DD1ECB024A44",
+    "D:\\GIT\\x-lang\\demo6\\tools\\xlir_native_process.ps1": "2BE2787D2316CE07E0D0AC3BDF1A1CAABA14D72F249CCAC847BB1C05D1DBFC9D",
+    "E:\\software\\w64devkit\\bin\\gcc.exe": "F643D0DF5081344D6AAE27A9C1E4567B1A5F621F964671E531563E34306F68BA"
+  },
+  "changedInputs": [],
+  "generatedPrototypes": 9,
+  "checks": [
+    {
+      "name": "runtime-build",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "-Irelease/extlibs/graph/include",
+        "-c",
+        "test/support/extlib_graph_runtime.c",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\runtime.o"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 4814
+      }
+    },
+    {
+      "name": "native-0",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "-Irelease/extlibs/graph/include",
+        "-c",
+        "release/extlibs/graph/graph_native.c",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\native-0.o"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 195
+      }
+    },
+    {
+      "name": "native-1",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "-Irelease/extlibs/graph/include",
+        "-c",
+        "release/extlibs/graph/graph_traversal.c",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\native-1.o"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 170
+      }
+    },
+    {
+      "name": "native-2",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "-Irelease/extlibs/graph/include",
+        "-c",
+        "release/extlibs/graph/graph_components.c",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\native-2.o"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 165
+      }
+    },
+    {
+      "name": "native-3",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "-Irelease/extlibs/graph/include",
+        "-c",
+        "release/extlibs/graph/graph_distance.c",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\native-3.o"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 179
+      }
+    },
+    {
+      "name": "test_graph-build",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "-Irelease/extlibs/graph/include",
+        "release/extlibs/graph/test/test_graph.c",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\native-0.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\native-1.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\native-2.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\native-3.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\runtime.o",
+        "-lws2_32",
+        "-ladvapi32",
+        "-lm",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\test_graph.exe"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 381
+      }
+    },
+    {
+      "name": "test_graph",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\test_graph.exe",
+      "arguments": [],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "graph: boundaries, 128 independent oracle graphs, capacity and ownership PASS\r\n",
+        "stderr": "",
+        "elapsedMs": 306
+      }
+    },
+    {
+      "name": "test_graph_alloc-build",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "-Irelease/extlibs/graph/include",
+        "release/extlibs/graph/test/test_graph_alloc.c",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\native-0.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\native-1.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\native-2.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\native-3.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\runtime.o",
+        "-lws2_32",
+        "-ladvapi32",
+        "-lm",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\test_graph_alloc.exe"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 275
+      }
+    },
+    {
+      "name": "test_graph_alloc",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\test_graph_alloc.exe",
+      "arguments": [],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "graph allocation: 218 failure points, all 9 APIs, success/error cleanup PASS\r\n",
+        "stderr": "",
+        "elapsedMs": 42
+      }
+    },
+    {
+      "name": "test_graph_threads-build",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "-Irelease/extlibs/graph/include",
+        "release/extlibs/graph/test/test_graph_threads.c",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\native-0.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\native-1.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\native-2.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\native-3.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\runtime.o",
+        "-lws2_32",
+        "-ladvapi32",
+        "-lm",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\test_graph_threads.exe"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 203
+      }
+    },
+    {
+      "name": "test_graph_threads",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\test_graph_threads.exe",
+      "arguments": [],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "graph threads: 4 workers, 1000 rounds, shared immutable input and TLS PASS\r\n",
+        "stderr": "",
+        "elapsedMs": 364
+      }
+    },
+    {
+      "name": "extlib_graph-jit",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\xl.exe",
+      "arguments": [
+        "run",
+        "test/cases/extlib_graph.xl"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 704
+      }
+    },
+    {
+      "name": "extlib_graph-build",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\xl.exe",
+      "arguments": [
+        "build",
+        "test/cases/extlib_graph.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\extlib_graph.exe"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 1044
+      }
+    },
+    {
+      "name": "extlib_graph-aot",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\extlib_graph.exe",
+      "arguments": [],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 24
+      }
+    },
+    {
+      "name": "extlib_graph-cgen",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\xl.exe",
+      "arguments": [
+        "cgen",
+        "test/cases/extlib_graph.xl",
+        "--emit",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\extlib_graph.c"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 415
+      }
+    },
+    {
+      "name": "boundaries-jit",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\xl.exe",
+      "arguments": [
+        "run",
+        "release/extlibs/graph/test/boundaries.xl"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 613
+      }
+    },
+    {
+      "name": "boundaries-build",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\xl.exe",
+      "arguments": [
+        "build",
+        "release/extlibs/graph/test/boundaries.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\boundaries.exe"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 865
+      }
+    },
+    {
+      "name": "boundaries-aot",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\boundaries.exe",
+      "arguments": [],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 39
+      }
+    },
+    {
+      "name": "boundaries-cgen",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\xl.exe",
+      "arguments": [
+        "cgen",
+        "release/extlibs/graph/test/boundaries.xl",
+        "--emit",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\boundaries.c"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 307
+      }
+    },
+    {
+      "name": "graph-jit",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\xl.exe",
+      "arguments": [
+        "run",
+        "release/examples/extlibs/graph.xl"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "call order: [\"gateway\",\"auth\",\"orders\",\"billing\",\"users\"]\nis dag: true\ngateway -> users: [\"gateway\",\"auth\",\"users\"]\nlatency from core:\n   core = 0.0 ms\n   edge-1 = 4.0 ms\n   edge-2 = 2.0 ms\n   cache = 3.0 ms\n   db = 5.0 ms\nscc groups: [[\"a\",\"b\",\"c\"],[\"d\",\"e\"],[\"f\"]]\nislands: [[\"a\",\"b\",\"c\",\"d\",\"e\"],[\"f\"]]\ncircular dependency: true\ngraph example: PASS\n",
+        "stderr": "",
+        "elapsedMs": 399
+      }
+    },
+    {
+      "name": "graph-build",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\xl.exe",
+      "arguments": [
+        "build",
+        "release/examples/extlibs/graph.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\graph.exe"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 714
+      }
+    },
+    {
+      "name": "graph-aot",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\graph.exe",
+      "arguments": [],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "call order: [\"gateway\",\"auth\",\"orders\",\"billing\",\"users\"]\nis dag: true\ngateway -> users: [\"gateway\",\"auth\",\"users\"]\nlatency from core:\n   core = 0.0 ms\n   edge-1 = 4.0 ms\n   edge-2 = 2.0 ms\n   cache = 3.0 ms\n   db = 5.0 ms\nscc groups: [[\"a\",\"b\",\"c\"],[\"d\",\"e\"],[\"f\"]]\nislands: [[\"a\",\"b\",\"c\",\"d\",\"e\"],[\"f\"]]\ncircular dependency: true\ngraph example: PASS\n",
+        "stderr": "",
+        "elapsedMs": 23
+      }
+    },
+    {
+      "name": "graph-cgen",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\xl.exe",
+      "arguments": [
+        "cgen",
+        "release/examples/extlibs/graph.xl",
+        "--emit",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\graph.c"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 175
+      }
+    },
+    {
+      "name": "graph_basic-jit",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\xl.exe",
+      "arguments": [
+        "run",
+        "release/examples/extlibs/graph_basic.xl"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "dag=true\ntopo=parse>docs>check>emit\nbfs=parse>check>emit\nnodes=check,docs,emit,parse\nneighbors=check,emit\nfewest-edges=parse>emit\ncost=5\nweak=2; first-size=3\nscc=2; first-size=2\ncycle=rejected\n",
+        "stderr": "",
+        "elapsedMs": 334
+      }
+    },
+    {
+      "name": "graph_basic-build",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\xl.exe",
+      "arguments": [
+        "build",
+        "release/examples/extlibs/graph_basic.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\graph_basic.exe"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 524
+      }
+    },
+    {
+      "name": "graph_basic-aot",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\graph_basic.exe",
+      "arguments": [],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "dag=true\ntopo=parse>docs>check>emit\nbfs=parse>check>emit\nnodes=check,docs,emit,parse\nneighbors=check,emit\nfewest-edges=parse>emit\ncost=5\nweak=2; first-size=3\nscc=2; first-size=2\ncycle=rejected\n",
+        "stderr": "",
+        "elapsedMs": 40
+      }
+    },
+    {
+      "name": "graph_basic-cgen",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\xl.exe",
+      "arguments": [
+        "cgen",
+        "release/examples/extlibs/graph_basic.xl",
+        "--emit",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\graph_basic.c"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 115
+      }
+    },
+    {
+      "name": "generated-prototypes",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "-Irelease/extlibs/graph/include",
+        "-fsyntax-only",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\abi.c"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 99
+      }
+    },
+    {
+      "name": "c-example-build",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "-Irelease/extlibs/graph/include",
+        "release/extlibs/graph/examples/basic.c",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\native-0.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\native-1.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\native-2.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\native-3.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\runtime.o",
+        "-lws2_32",
+        "-ladvapi32",
+        "-lm",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\c-example.exe"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 203
+      }
+    },
+    {
+      "name": "c-example",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\c-example.exe",
+      "arguments": [],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "dag=true\r\ntopo=parse>docs>check>emit\r\nbfs=parse>check>emit\r\nnodes=check,docs,emit,parse\r\nneighbors=check,emit\r\nfewest-edges=parse>emit\r\ncost=5\r\nweak=2; first-size=3\r\nscc=2; first-size=2\r\ncycle=rejected\r\n",
+        "stderr": "",
+        "elapsedMs": 23
+      }
+    },
+    {
+      "name": "c-example-jit",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\xl.exe",
+      "arguments": [
+        "run",
+        "release/extlibs/graph/examples/basic.c",
+        "release/extlibs/graph/graph_native.c",
+        "release/extlibs/graph/graph_traversal.c",
+        "release/extlibs/graph/graph_components.c",
+        "release/extlibs/graph/graph_distance.c",
+        "--inc-path",
+        "lib/xrt",
+        "--inc-path",
+        "release/extlibs/graph/include"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "dag=true\r\ntopo=parse>docs>check>emit\r\nbfs=parse>check>emit\r\nnodes=check,docs,emit,parse\r\nneighbors=check,emit\r\nfewest-edges=parse>emit\r\ncost=5\r\nweak=2; first-size=3\r\nscc=2; first-size=2\r\ncycle=rejected\r\n",
+        "stderr": "",
+        "elapsedMs": 155
+      }
+    },
+    {
+      "name": "c-example-aot-build",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\xl.exe",
+      "arguments": [
+        "build",
+        "release/extlibs/graph/examples/basic.c",
+        "release/extlibs/graph/graph_native.c",
+        "release/extlibs/graph/graph_traversal.c",
+        "release/extlibs/graph/graph_components.c",
+        "release/extlibs/graph/graph_distance.c",
+        "--inc-path",
+        "lib/xrt",
+        "--inc-path",
+        "release/extlibs/graph/include",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\c-tcc.exe"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 347
+      }
+    },
+    {
+      "name": "c-example-aot",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-r2\\c-tcc.exe",
+      "arguments": [],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "dag=true\r\ntopo=parse>docs>check>emit\r\nbfs=parse>check>emit\r\nnodes=check,docs,emit,parse\r\nneighbors=check,emit\r\nfewest-edges=parse>emit\r\ncost=5\r\nweak=2; first-size=3\r\nscc=2; first-size=2\r\ncycle=rejected\r\n",
+        "stderr": "",
+        "elapsedMs": 105
+      }
+    },
+    {
+      "name": "c-example-runner",
+      "program": "C:\\Users\\Administrator\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe",
+      "arguments": [
+        "-NoProfile",
+        "-File",
+        "tools/run_extlib_c.ps1",
+        "-Package",
+        "graph",
+        "-Source",
+        "release/extlibs/graph/examples/basic.c",
+        "-RuntimeDirectory",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "dag=true\r\ntopo=parse>docs>check>emit\r\nbfs=parse>check>emit\r\nnodes=check,docs,emit,parse\r\nneighbors=check,emit\r\nfewest-edges=parse>emit\r\ncost=5\r\nweak=2; first-size=3\r\nscc=2; first-size=2\r\ncycle=rejected\r\n",
+        "stderr": "",
+        "elapsedMs": 832
+      }
+    }
+  ],
+  "sharedBoundaries": [
+    {
+      "name": "string_byte_len_nul",
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "uncaught xlang error: AssertionError: string.byteLen must preserve embedded NUL\nuncaught xlang error: string.byteLen must preserve embedded NUL\n",
+        "elapsedMs": 38
+      }
+    },
+    {
+      "name": "graph_nul_name",
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "uncaught xlang error: AssertionError: different names must not collapse at embedded NUL\nuncaught xlang error: different names must not collapse at embedded NUL\n",
+        "elapsedMs": 222
+      }
+    },
+    {
+      "name": "string_join_symbol",
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_join'\n",
+        "elapsedMs": 54
+      }
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+func main(...) as int
+    var values = [1]
+    var first = values[0]
+    assert first == 1
+    return 0
+end

@@ -1,0 +1,31 @@
+{
+  "date": "2026-09-27T18:51:37.5807851+08:00",
+  "scope": "Investigation probe only: cooperative cancellation request versus completion order still needs a deterministic audit. Both runtimes are compared, not a newly introduced regression claim.",
+  "case": "test/cases/cgen_task_race_source_cancel.xl",
+  "source": "// race 的首个 source 取消后，其余未完成的 source 也必须收到取消请求。\n// 从 cgen_task_api.xl 的全量边界用例提取，避免每次排查都编译数千行程序。\nasync func delayed(int value) as int\n    time.sleep(250)\n    return value\nend\n\nfuture<int> first = delayed(187)\nfuture<int> second = delayed(188)\nfuture<int> group = task.race([first, second])\nassert task.cancel(first), \"first cancellation must be accepted\"\n\nint groupState = 0\ntry\n    int value = await group\n    groupState = value\ncatch e\n    println(\"race group error: \", e.message)\n    if e.message == \"future cancel requested.\" then\n        groupState = 42\n    end\nend\nprintln(\"race group state: \", groupState)\nassert groupState == 42, \"race must propagate source cancellation\"\n\nint secondState = 0\ntry\n    secondState = await second\ncatch e\n    if e.message == \"future cancel requested.\" then\n        secondState = 42\n    end\nend\nassert secondState == 42, \"race must cancel its pending loser\"\n\ntime.sleep(300)\nint lateState = 0\ntry\n    lateState = await second\ncatch e\n    if e.message == \"future cancel requested.\" then\n        lateState = 42\n    end\nend\nassert lateState == 42, \"late completion must not replace loser cancellation\"\nassert not task.cancel(first), \"source cancellation must remain terminal\"\nprintln(\"task race source cancellation: passed\")\n",
+  "sourceSha256": "0472B7AC1F2130E2310A9C83EB40C043FE48489A7104E98DDA29A742DB589FD2",
+  "checks": [
+    {
+      "directory": "D:\\GIT\\x-lang\\demo6\\release",
+      "xlcSha256": "7C672FD0B2852690D09E2EF1046C56EE1586FD1FCCC0CAEA61E19C0FE7C6E1F0",
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "stdout": "race group error:  future cancel requested.\nrace group state:  42\n",
+        "stderr": "uncaught xlang error: AssertionError: race must cancel its pending loser\nuncaught xlang error: race must cancel its pending loser\n",
+        "elapsedMs": 336
+      }
+    },
+    {
+      "directory": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-candidate-20260927\\runtime",
+      "xlcSha256": "62136BE00C614824377196CE260CC5F9CC5DA2574CFBA84148EAEB87197F39D1",
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "stdout": "race group state:  188\n",
+        "stderr": "uncaught xlang error: AssertionError: race must propagate source cancellation\nuncaught xlang error: race must propagate source cancellation\n",
+        "elapsedMs": 322
+      }
+    }
+  ]
+}

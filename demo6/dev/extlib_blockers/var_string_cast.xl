@@ -1,0 +1,5 @@
+func main(...) as int
+    var value = "probe"
+    assert (value as string) == "probe", "var to string cast"
+    return 0
+end

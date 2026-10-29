@@ -136,12 +136,12 @@ bool deleted = await dir.deleteAsync(path)
 
 错误码：`http.errorNone`、`http.errorInvalidArgument`、`http.errorOutOfMemory`、`http.errorInvalidUrl`、`http.errorConnect`、`http.errorWrite`、`http.errorProtocol`、`http.errorCallbackAbort`、`http.errorTimeoutTotal`、`http.errorTimeoutIdle`、`http.errorCancelled`、`http.errorConnectionClosed`、`http.errorTransport`。
 
-## JSON、XSON 与模板
+## JSON、XLON 与模板
 
 ```xlang
 int status = json.visit(text, visitor)
 JsonWriter writer = json.writer(true)
-XsonOptions options = xson.options(true, false, false)
+XlonOptions options = xlon.options(true, false, false)
 
 TemplateEngine engine = template.engine()
 Template compiled = engine.compile(source)
@@ -154,10 +154,22 @@ JSON 访问状态为 `json.visitComplete`、`json.visitStopped`、`json.visitInv
 
 ```xlang
 Xid value = id.make()
-string xidText = id.encode(value)
-Xid decoded = id.decode(xidText)
-bool same = id.compare(value, decoded)
+string xidText = value.toString()
+Xid decoded = id.parse(xidText)
+bool same = value == decoded
+bytes raw = value.toBytes()
+Xid restored = id.fromBytes(raw)
+Xid? maybe = id.tryParse(xidText)
+array<Xid> batch = id.makeMany(100)
 ```
+
+`Xid` 是不可直接构造的 24 字节名义值。`toString()` 给出 32 字符规范文本；
+`timestampMicros()`、`compare(other)`、`isZero()` 和 `==` 均基于 XRT 的 XID
+实现。`id.xid()` 保留直接生成文本的便利入口。`parse` 对非法文本抛
+`ValueError`（附偏移），`tryParse` 在格式错误时返回 `null`；生成失败等
+其他错误仍向外传播。`fromBytes` 仅接受恰好 24 字节，含 NUL 的输入按
+实际长度处理。XID 的时间字段只用于标识与排序，不是认证信息；随机部分
+来自系统安全随机源，失败不降级到伪随机源。
 
 完整 URL、Query 参数和表单编码属于 xhttp 扩展产品，不在核心标准库注册。核心保留 `xrtHttpTarget*`、`xrtHttpHost*` 的 HTTP 线路底座，以及 `codec.percentEncode/Decode` 的 RFC 3986 百分号编解码。
 

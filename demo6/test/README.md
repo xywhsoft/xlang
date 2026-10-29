@@ -26,6 +26,10 @@
 - `test_dll.bat`：`xl.dll` 嵌入式运行库回归。
 - `cases/stdlib_release_string_abi.xl`：双字段 string 跨转换、动态值/nullable 投影、稀疏列表读取与容器 take/pop、内嵌 NUL 字典键/动态字段、product move、Future 名称及异步结果的综合回归；Windows 核心套件和 Linux JIT/AOT 都运行。
 
+- `tools/check_source_overlay.py` / `cases/source_overlay_host.c`：Windows 原生编译上下文覆盖门，检查未保存入口和递归模块、虚拟新文件、包依赖、真实诊断来源、并发隔离、失败更新及上限，另验证 CLI 生成/构建/运行和原字节不变。使用独立工具链运行，见 [接口合同](../docs/IDE源码覆盖接口.md)。
+
+- `tools/check_source_report.py` / `cases/source_report_host.c` / `cases/source_report_api_host.c`：实际加载源码/包描述的不可变报告门，验证同句柄摘要/身份、同内容替换/删除/改写、编码/上限、公开 API 隔离和递归 CLI；完整范围见 [接口合同](../docs/IDE源码覆盖接口.md)。
+
 ## 分类套件
 
 `test/suites/common.bat` 是分类套件的公共初始化入口。单独运行某个套件时，它会切换到 demo6 根目录，设置 `XLANG_PACKAGE_PATH=release\extlibs;test\fixtures`，在缺少 `release\xl.exe` 或 `release\xlc.dll` 时自动构建，并准备 TCC bootstrap 与 XRT object。
@@ -52,11 +56,11 @@ test\suites\02_language_frontend.bat
 - `06_task_api_spawn.bat`：future/task API、task.spawn、task.all/race/cancel、任务边界和重复运行稳定性。
 - `07_async_generator_channel_docs.bat`：async class await、async generator、generator、channel、并发负例、文档注释和 f-string/语法负例。
 - `08_stdlib_extended.bat`：JSON/XLON、codec/hash/crypto、IO/Console、URL/query、log/template/regex/process 等扩展标准库；HTTP client/server 当前随 XRT 网络层更新暂缓，默认跳过，设置 `XL6_ENABLE_DEFERRED_HTTP=1` 可显式运行。
+- `08_compiled_packages.bat`: fresh source/IR fault checks and both DLLs, followed by source-free compiled-package EXE and example deployment.
 - `09_artifact_closure.bat`：负例诊断产物和 `build\tmp` 文本产物收口检查，通常作为 `test.bat` 全量调度的最后一步运行。
 - `10_format_extlibs.bat`：gzip/bz2/zip/tar、CSV/INI/TOML/plist/netrc/XML 的 xlang/C 双语测试、Python 双向互操作、严格编译、私有依赖裁剪与按需链接守门。
 
 ## Manual probes
-- `08_compiled_packages.bat`: fresh source/IR fault checks and both DLLs, followed by source-free compiled-package EXE and example deployment.
 
 `tools/check_stdlib_text_values.ps1`（已接入 `03_core_base_09.bat`）覆盖 B1—B9 文本、数字、Unicode/HTML、编码与闭合原生 product：Windows 1040 项冻结输入检查，35 正向/42 负例，严格 C/JIT/AOT、确定性、ABI/私有访问/默认参数、真实 OOM 与回归。`tools/check_xlir_artifact_runtime.ps1` 本轮核对 60 组件、3600 对依赖、384 导出，并完成 B9 八个实际闭包；B7/B8 的闭包仅保留历史证据，不混为本轮重新验收。Linux 的 `check_stdlib_number_values.sh` / `check_stdlib_unicode.sh` / `check_stdlib_encoding.sh` 均接入 `test_linux.sh`，分别保留数字 253、Unicode/HTML 148、编码 B8/B9 216 项专项；sanitizer 只覆盖原生探针，受管层使用逻辑账本，均核对实际闭包与冻结输入。最小 encoding meta/转码/repair/guess 不引入其他文本 resident 或 Buffer；guess 不带转换/元信息 resident 和 charset 根，猜测不是验证。通用三整数 product 的普通函数/函数值与独立 C 提供者回归通过。整个 53 模块目标仍未完成，专项不能代替全仓 RC0。
 
@@ -95,11 +99,11 @@ test\suites\02_language_frontend.bat
 - `class`：class/native-backed class 基础语义用例。
 - `cli`：CLI link/loadlib 用例。
 - `companion`：同名 C companion 用例。
+- `compiled`: compiled-in package host/script execution, isolation and deployment.
 - `comments`：注释词法语法用例。
 - `container`：容器成员 API 和运算符补全用例。
 - `containers`：容器基础语义用例。
 - `control`：控制流用例。
-- `compiled`: compiled-in package host/script execution, isolation and deployment.
 - `definite`：确定赋值数据流用例。
 - `enum`：数值枚举、带载荷枚举和 match 用例。
 - `export`：xlang 导出 C ABI 用例。
@@ -270,6 +274,13 @@ Array/Stack 父门接线；pop/take、resize 默认值、动态分派及整个�
 `test/cases/stdlib_array_resize_only.xl` 用于真实 artifact 组件裁剪。
 Array/Stack 父门接入新 native 子门，Stack 父门同时接入语言子门。
 pop/take、动态分派和全部 Array source carrier 切换仍需后续完成。
+
+
+新增 `cases/resolution_report_host.c`，链接唯一的外部 XRT DLL，测试普通文件候选创建/删除/类型变化、Unicode 别名、2,048 候选上限和包搜索环境缺失/空/非空的不可变首次副本。运行 `tools/check_resolution_report.py` 同时检查真实 CLI 报告，完整合同见 [IDE 源码覆盖接口](../docs/IDE源码覆盖接口.md)。
+
+- `tools/check_c_bridge.py` / `test/cases/c_bridge_host.c`：真实同次来源核验和 XLIR C ABI 声明、覆盖刷新、失败清空、DLL 上下文隔离及原生混编执行；见 [桥接查询合同](../docs/IDE原生C声明桥接接口.md)。
+
+- `tools/check_c_bridge_environment.py` / `test/cases/c_bridge_environment_host.c`：同次 TCC 配置访问器、准确资源解包/字节/摘要、覆盖优先级、容量拒绝、真实 Clang C 分析及混编运行，见 [桥接接口](../docs/IDE原生C声明桥接接口.md)。
 
 自有字符串专项：`extern_c_variadic_text.xl` 配合 `extern_c_variadic_text_host.c` 覆盖 no_raise 实参准备与 C 默认提升；`extern_owned_string_public.xl`、`extern_owned_string_public_host.c`、`extern_owned_string_public_consumer.in` 由 `tools/check_extern_owned_string_public.py` 验证独立 C 头文件及 120 个 OOM 前缀。
 

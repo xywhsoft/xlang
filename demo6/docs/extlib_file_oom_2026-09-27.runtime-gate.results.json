@@ -1,0 +1,183 @@
+{
+  "date": "2026-09-27T18:12:05.3892046+08:00",
+  "outcome": "failed",
+  "scope": "Same C file-open fault sweep against source, xl.dll, xlc.dll, C JIT and AOT; all layers must pass",
+  "runtimeDirectory": "D:\\GIT\\x-lang\\demo6\\release",
+  "inputs": {
+    "E:\\software\\w64devkit\\bin\\gcc.exe": "F643D0DF5081344D6AAE27A9C1E4567B1A5F621F964671E531563E34306F68BA",
+    "D:\\GIT\\x-lang\\demo6\\test\\cases\\extlib_file_open_oom.c": "3FC6DA77E646A336D15CCD01B9E365744F01F1AD048E5E646667BA9A3389445A",
+    "D:\\GIT\\x-lang\\demo6\\tools\\check_extlib_file_runtime.ps1": "3103C057A9AA9F3E9CC87D465835C40CB0D64BA8C9191330B88DEBB2105D88FB",
+    "D:\\GIT\\x-lang\\demo6\\release\\xl.exe": "5A3F20B4CF9333D393560CB2361D0EBAB8A13F0D07C64A78A1F5FFF5385D9EEB",
+    "D:\\GIT\\x-lang\\demo6\\release\\xl.dll": "2A07C481C04CAD71D31D46722A27E62027318DF24E95A63126E061FD4CA46902",
+    "D:\\GIT\\x-lang\\demo6\\release\\xlc.dll": "7C672FD0B2852690D09E2EF1046C56EE1586FD1FCCC0CAEA61E19C0FE7C6E1F0",
+    "D:\\GIT\\x-lang\\demo6\\lib\\xrt\\xrt.h": "4C8CA837C7BAA2B865D6A6C8437449A90186639618888B929F6C3743327A0AC5",
+    "D:\\GIT\\x-lang\\demo6\\lib\\xruntime\\xruntime.h": "5E47B36DC21FDFF54C230D1FCA99175F429AD541409F1D44194F00E0FDF10F53",
+    "D:\\GIT\\x-lang\\demo6\\lib\\xrt\\xrt.snapshot.json": "CB911BDE754F4328F9500F5F0A04EE7C62589B98BC3B739E3C8CD55F86C198CB",
+    "D:\\GIT\\x-lang\\demo6\\lib\\xruntime\\xruntime.snapshot.json": "534E43536E56B853001DC8616CA979F716D0BBD0DC82DDE9F6A4724F8D090A9D",
+    "D:\\GIT\\x-lang\\demo6\\tools\\extlib_smoke_process.ps1": "87C3D050B1F492E3F0C4307BA39F454E42B65E37DBCDEC4BE3E938BC2F32D2F7",
+    "D:\\GIT\\x-lang\\demo6\\tools\\xlir_native_process.ps1": "2BE2787D2316CE07E0D0AC3BDF1A1CAABA14D72F249CCAC847BB1C05D1DBFC9D"
+  },
+  "changedInputs": [],
+  "checks": [
+    {
+      "name": "source-build",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-ID:\\GIT\\x-lang\\demo6\\lib\\xrt",
+        "-DXRT_IMPLEMENTATION",
+        "D:\\GIT\\x-lang\\demo6\\test\\cases\\extlib_file_open_oom.c",
+        "-lWs2_32",
+        "-lAdvapi32",
+        "-lm",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_file_runtime\\source.exe"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 3531
+      }
+    },
+    {
+      "name": "source-runtime",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_file_runtime\\source.exe",
+      "arguments": [],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "file runtime: failures=2 successes=2 result=pass\r\n",
+        "stderr": "",
+        "elapsedMs": 28
+      }
+    },
+    {
+      "name": "xl-build",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-ID:\\GIT\\x-lang\\demo6\\lib\\xrt",
+        "D:\\GIT\\x-lang\\demo6\\test\\cases\\extlib_file_open_oom.c",
+        "D:\\GIT\\x-lang\\demo6\\release\\xl.dll",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_file_runtime\\dll-xl.exe"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 204
+      }
+    },
+    {
+      "name": "xl-runtime",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_file_runtime\\dll-xl.exe",
+      "arguments": [],
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "stdout": "file runtime: failures=2 successes=2 result=fail\r\n",
+        "stderr": "file runtime: allocation failure truncated the destination\r\n",
+        "elapsedMs": 32
+      }
+    },
+    {
+      "name": "xlc-build",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-ID:\\GIT\\x-lang\\demo6\\lib\\xrt",
+        "D:\\GIT\\x-lang\\demo6\\test\\cases\\extlib_file_open_oom.c",
+        "D:\\GIT\\x-lang\\demo6\\release\\xlc.dll",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_file_runtime\\dll-xlc.exe"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 214
+      }
+    },
+    {
+      "name": "xlc-runtime",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_file_runtime\\dll-xlc.exe",
+      "arguments": [],
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "stdout": "file runtime: failures=2 successes=2 result=fail\r\n",
+        "stderr": "file runtime: allocation failure truncated the destination\r\n",
+        "elapsedMs": 34
+      }
+    },
+    {
+      "name": "c-jit",
+      "program": "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+      "arguments": [
+        "run",
+        "D:\\GIT\\x-lang\\demo6\\test\\cases\\extlib_file_open_oom.c",
+        "--inc-path",
+        "D:\\GIT\\x-lang\\demo6\\lib\\xrt",
+        "--inc-path",
+        "D:\\GIT\\x-lang\\demo6\\lib\\xruntime"
+      ],
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "stdout": "file runtime: failures=2 successes=2 result=fail\r\n",
+        "stderr": "file runtime: allocation failure truncated the destination\r\n",
+        "elapsedMs": 53
+      }
+    },
+    {
+      "name": "c-aot-build",
+      "program": "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+      "arguments": [
+        "build",
+        "D:\\GIT\\x-lang\\demo6\\test\\cases\\extlib_file_open_oom.c",
+        "--inc-path",
+        "D:\\GIT\\x-lang\\demo6\\lib\\xrt",
+        "--inc-path",
+        "D:\\GIT\\x-lang\\demo6\\lib\\xruntime",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_file_runtime\\aot.exe"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 264
+      }
+    },
+    {
+      "name": "c-aot-runtime",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_file_runtime\\aot.exe",
+      "arguments": [],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "file runtime: failures=2 successes=2 result=pass\r\n",
+        "stderr": "",
+        "elapsedMs": 44
+      }
+    }
+  ]
+}

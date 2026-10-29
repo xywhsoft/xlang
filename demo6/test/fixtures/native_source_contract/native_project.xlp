@@ -1,0 +1,6 @@
+{
+    "format": "xlang-project-1",
+    "kind": "exe",
+    "entry": "direct.xl",
+    "cSources": ["../sdk_feature_probe/sdk_features_native.c"]
+}

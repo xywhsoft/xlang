@@ -1,0 +1,5765 @@
+{
+  "recordedAt": "2026-09-28T06:20:48.9586404+08:00",
+  "scope": "Fresh manifest and local site inventory after CSV delivery; no maturity inferred from registration or file presence",
+  "counts": {
+    "packages": 227,
+    "public": 220,
+    "internal": 7,
+    "cSources": 636,
+    "xlSources": 248,
+    "registered": 116,
+    "coveragePackages": 26,
+    "coverageEntries": 39,
+    "readmes": 38,
+    "siteSources": 21,
+    "identicalSite": 21,
+    "directPublic": 27,
+    "generatedPublic": 185,
+    "missingPublicPages": 35,
+    "oldGenerated": 31,
+    "focusedPublic": 199,
+    "examplesPublic": 203,
+    "invalidReferences": 0
+  },
+  "entries": [
+    {
+      "name": "_bzip2",
+      "public": false,
+      "version": "1.0.8",
+      "manifestSha256": "022A549C4BD0A80EE31822944CDEBF587A716B6CB5E8C973211E800BDB74FEC9",
+      "cSources": [
+        "third_party/bzip2/blocksort.c",
+        "third_party/bzip2/huffman.c",
+        "third_party/bzip2/crctable.c",
+        "third_party/bzip2/randtable.c",
+        "third_party/bzip2/compress.c",
+        "third_party/bzip2/decompress.c",
+        "third_party/bzip2/bzlib.c"
+      ],
+      "xlSources": [],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": false,
+      "example": false,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "_expat",
+      "public": false,
+      "version": "2.8.2",
+      "manifestSha256": "9537D75C8C760FF2762DD2054C6F5DD3255DF3AF88E21736FC5697ED4E83C3A9",
+      "cSources": [
+        "vendor/expat/lib/xmlparse.c",
+        "vendor/expat/lib/xmlrole.c",
+        "vendor/expat/lib/xmltok.c",
+        "expat_random.c"
+      ],
+      "xlSources": [],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": false,
+      "example": false,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "_libzip",
+      "public": false,
+      "version": "1.11.4",
+      "manifestSha256": "4D11DBA4CBB02485DB887F66C951A8216CC465F090F9FA612D48B92B4E79F262",
+      "cSources": [
+        "third_party/libzip/lib/zip_add.c",
+        "third_party/libzip/lib/zip_add_dir.c",
+        "third_party/libzip/lib/zip_add_entry.c",
+        "third_party/libzip/lib/zip_algorithm_deflate.c",
+        "third_party/libzip/lib/zip_buffer.c",
+        "third_party/libzip/lib/zip_close.c",
+        "third_party/libzip/lib/zip_delete.c",
+        "third_party/libzip/lib/zip_dir_add.c",
+        "third_party/libzip/lib/zip_dirent.c",
+        "third_party/libzip/lib/zip_discard.c",
+        "third_party/libzip/lib/zip_entry.c",
+        "third_party/libzip/lib/zip_error.c",
+        "third_party/libzip/lib/zip_error_clear.c",
+        "third_party/libzip/lib/zip_error_get.c",
+        "third_party/libzip/lib/zip_error_get_sys_type.c",
+        "third_party/libzip/lib/zip_error_strerror.c",
+        "third_party/libzip/lib/zip_error_to_str.c",
+        "third_party/libzip/lib/zip_extra_field.c",
+        "third_party/libzip/lib/zip_extra_field_api.c",
+        "third_party/libzip/lib/zip_fclose.c",
+        "third_party/libzip/lib/zip_file_add.c",
+        "third_party/libzip/lib/zip_file_error_clear.c",
+        "third_party/libzip/lib/zip_file_error_get.c",
+        "third_party/libzip/lib/zip_file_get_comment.c",
+        "third_party/libzip/lib/zip_file_get_external_attributes.c",
+        "third_party/libzip/lib/zip_file_get_offset.c",
+        "third_party/libzip/lib/zip_file_rename.c",
+        "third_party/libzip/lib/zip_file_replace.c",
+        "third_party/libzip/lib/zip_file_set_comment.c",
+        "third_party/libzip/lib/zip_file_set_encryption.c",
+        "third_party/libzip/lib/zip_file_set_external_attributes.c",
+        "third_party/libzip/lib/zip_file_set_mtime.c",
+        "third_party/libzip/lib/zip_file_strerror.c",
+        "third_party/libzip/lib/zip_fopen.c",
+        "third_party/libzip/lib/zip_fopen_encrypted.c",
+        "third_party/libzip/lib/zip_fopen_index.c",
+        "third_party/libzip/lib/zip_fopen_index_encrypted.c",
+        "third_party/libzip/lib/zip_fread.c",
+        "third_party/libzip/lib/zip_fseek.c",
+        "third_party/libzip/lib/zip_ftell.c",
+        "third_party/libzip/lib/zip_get_archive_comment.c",
+        "third_party/libzip/lib/zip_get_archive_flag.c",
+        "third_party/libzip/lib/zip_get_encryption_implementation.c",
+        "third_party/libzip/lib/zip_get_file_comment.c",
+        "third_party/libzip/lib/zip_get_name.c",
+        "third_party/libzip/lib/zip_get_num_entries.c",
+        "third_party/libzip/lib/zip_get_num_files.c",
+        "third_party/libzip/lib/zip_hash.c",
+        "third_party/libzip/lib/zip_io_util.c",
+        "third_party/libzip/lib/zip_libzip_version.c",
+        "third_party/libzip/lib/zip_memdup.c",
+        "third_party/libzip/lib/zip_name_locate.c",
+        "third_party/libzip/lib/zip_new.c",
+        "third_party/libzip/lib/zip_open.c",
+        "third_party/libzip/lib/zip_pkware.c",
+        "third_party/libzip/lib/zip_progress.c",
+        "third_party/libzip/lib/zip_realloc.c",
+        "third_party/libzip/lib/zip_rename.c",
+        "third_party/libzip/lib/zip_replace.c",
+        "third_party/libzip/lib/zip_set_archive_comment.c",
+        "third_party/libzip/lib/zip_set_archive_flag.c",
+        "third_party/libzip/lib/zip_set_default_password.c",
+        "third_party/libzip/lib/zip_set_file_comment.c",
+        "third_party/libzip/lib/zip_set_file_compression.c",
+        "third_party/libzip/lib/zip_set_name.c",
+        "third_party/libzip/lib/zip_source_accept_empty.c",
+        "third_party/libzip/lib/zip_source_begin_write.c",
+        "third_party/libzip/lib/zip_source_begin_write_cloning.c",
+        "third_party/libzip/lib/zip_source_buffer.c",
+        "third_party/libzip/lib/zip_source_call.c",
+        "third_party/libzip/lib/zip_source_close.c",
+        "third_party/libzip/lib/zip_source_commit_write.c",
+        "third_party/libzip/lib/zip_source_compress.c",
+        "third_party/libzip/lib/zip_source_crc.c",
+        "third_party/libzip/lib/zip_source_error.c",
+        "third_party/libzip/lib/zip_source_free.c",
+        "third_party/libzip/lib/zip_source_function.c",
+        "third_party/libzip/lib/zip_source_get_dostime.c",
+        "third_party/libzip/lib/zip_source_get_file_attributes.c",
+        "third_party/libzip/lib/zip_source_is_deleted.c",
+        "third_party/libzip/lib/zip_source_layered.c",
+        "third_party/libzip/lib/zip_source_open.c",
+        "third_party/libzip/lib/zip_source_pass_to_lower_layer.c",
+        "third_party/libzip/lib/zip_source_pkware_decode.c",
+        "third_party/libzip/lib/zip_source_pkware_encode.c",
+        "third_party/libzip/lib/zip_source_read.c",
+        "third_party/libzip/lib/zip_source_remove.c",
+        "third_party/libzip/lib/zip_source_rollback_write.c",
+        "third_party/libzip/lib/zip_source_seek.c",
+        "third_party/libzip/lib/zip_source_seek_write.c",
+        "third_party/libzip/lib/zip_source_stat.c",
+        "third_party/libzip/lib/zip_source_supports.c",
+        "third_party/libzip/lib/zip_source_tell.c",
+        "third_party/libzip/lib/zip_source_tell_write.c",
+        "third_party/libzip/lib/zip_source_window.c",
+        "third_party/libzip/lib/zip_source_write.c",
+        "third_party/libzip/lib/zip_source_zip.c",
+        "third_party/libzip/lib/zip_source_zip_new.c",
+        "third_party/libzip/lib/zip_stat.c",
+        "third_party/libzip/lib/zip_stat_index.c",
+        "third_party/libzip/lib/zip_stat_init.c",
+        "third_party/libzip/lib/zip_strerror.c",
+        "third_party/libzip/lib/zip_string.c",
+        "third_party/libzip/lib/zip_unchange.c",
+        "third_party/libzip/lib/zip_unchange_all.c",
+        "third_party/libzip/lib/zip_unchange_archive.c",
+        "third_party/libzip/lib/zip_unchange_data.c",
+        "third_party/libzip/lib/zip_utf-8.c",
+        "third_party/libzip/lib/zip_err_str.c",
+        "platform/zip_source_file_xrt.c",
+        "platform/zip_random_xrt.c"
+      ],
+      "xlSources": [],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": false,
+      "example": false,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "_tomlc17",
+      "public": false,
+      "version": "260618",
+      "manifestSha256": "F25EFEF9DE86489B87A77FB7B2FCDDFCF2A47E0C253254BDB34A1AC2B33E6A12",
+      "cSources": [
+        "tomlc17_xrt.c"
+      ],
+      "xlSources": [],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": false,
+      "example": false,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "_xge_native",
+      "public": false,
+      "version": "2.0.0",
+      "manifestSha256": "C65D7CBB62FD0C33FA74B26B3026868D627554E3B5D4C5E28B79D1EC38814336",
+      "cSources": [
+        "xge_compile.c",
+        "lib/xlayout/xlayout.c",
+        "src/xui_accordion.c",
+        "src/xui_assets.c",
+        "src/xui_breadcrumb.c",
+        "src/xui_builtin_atlas.c",
+        "src/xui_button.c",
+        "src/xui_canvas.c",
+        "src/xui_carousel.c",
+        "src/xui_cascader.c",
+        "src/xui_chart.c",
+        "src/xui_check_card.c",
+        "src/xui_checkbox.c",
+        "src/xui_code_annotation.c",
+        "src/xui_code_command.c",
+        "src/xui_code_document.c",
+        "src/xui_code_edit.c",
+        "src/xui_code_editing.c",
+        "src/xui_code_fold.c",
+        "src/xui_code_fold_state.c",
+        "src/xui_code_language.c",
+        "src/xui_code_layout.c",
+        "src/xui_code_lexer.c",
+        "src/xui_code_lexer_c.c",
+        "src/xui_code_margin.c",
+        "src/xui_code_provider.c",
+        "src/xui_code_search.c",
+        "src/xui_code_selection.c",
+        "src/xui_code_theme.c",
+        "src/xui_code_token_buffer.c",
+        "src/xui_color_picker.c",
+        "src/xui_combobox.c",
+        "src/xui_core.c",
+        "src/xui_date_picker.c",
+        "src/xui_dock_panel.c",
+        "src/xui_file_dialog.c",
+        "src/xui_find.c",
+        "src/xui_flow_graph.c",
+        "src/xui_flow_graph_widget.c",
+        "src/xui_hyperlink.c",
+        "src/xui_icon.c",
+        "src/xui_icon_picker.c",
+        "src/xui_image.c",
+        "src/xui_input.c",
+        "src/xui_input_widget.c",
+        "src/xui_inventory_grid.c",
+        "src/xui_label.c",
+        "src/xui_layout.c",
+        "src/xui_list_view.c",
+        "src/xui_menu.c",
+        "src/xui_menubar.c",
+        "src/xui_message_list.c",
+        "src/xui_msgbox.c",
+        "src/xui_msgtip.c",
+        "src/xui_numeric_input.c",
+        "src/xui_page.c",
+        "src/xui_panel.c",
+        "src/xui_popup.c",
+        "src/xui_progress.c",
+        "src/xui_property_grid.c",
+        "src/xui_proxy_xge.c",
+        "src/xui_qrcode.c",
+        "src/xui_radio.c",
+        "src/xui_range_slider.c",
+        "src/xui_rich_document.c",
+        "src/xui_rich_edit.c",
+        "src/xui_scroll_frame.c",
+        "src/xui_scroll_model.c",
+        "src/xui_scroll_view.c",
+        "src/xui_scrollbar.c",
+        "src/xui_separator.c",
+        "src/xui_slider.c",
+        "src/xui_split_layout.c",
+        "src/xui_statusbar.c",
+        "src/xui_step_bar.c",
+        "src/xui_table_grid.c",
+        "src/xui_table_view.c",
+        "src/xui_tabs.c",
+        "src/xui_tag_input.c",
+        "src/xui_terminal.c",
+        "src/xui_text.c",
+        "src/xui_text_edit.c",
+        "src/xui_timeline_view.c",
+        "src/xui_toast.c",
+        "src/xui_toggle.c",
+        "src/xui_toolbar.c",
+        "src/xui_tree_view.c",
+        "src/xui_unicode.c",
+        "src/xui_virtual_joystick.c",
+        "src/xui_widget.c",
+        "src/xui_window.c",
+        "src/xui_workflow.c",
+        "src/xui_workflow_widget.c",
+        "xge_native.c",
+        "xui_native.c",
+        "xge_math_compat.c"
+      ],
+      "xlSources": [],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": false,
+      "example": false,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "_zlib",
+      "public": false,
+      "version": "1.3.2",
+      "manifestSha256": "FB0C769AE42E86223430C5A78E8D918F15594EF471064C27C9DCFD66F3B63198",
+      "cSources": [
+        "third_party/zlib/adler32.c",
+        "third_party/zlib/compress.c",
+        "third_party/zlib/crc32.c",
+        "third_party/zlib/deflate.c",
+        "third_party/zlib/infback.c",
+        "third_party/zlib/inffast.c",
+        "third_party/zlib/inflate.c",
+        "third_party/zlib/inftrees.c",
+        "third_party/zlib/trees.c",
+        "third_party/zlib/uncompr.c",
+        "third_party/zlib/zutil.c"
+      ],
+      "xlSources": [],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": false,
+      "example": false,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "acme",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "C7BE6C8747F12384AE348D5205E0E1625FB6F3D4B684A97B6CE0E698F5DAC061",
+      "cSources": [
+        "acme_native.c"
+      ],
+      "xlSources": [
+        "src/acme.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "aho_corasick",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "077E0188B6775F1FB6A24BC90481614B6972E7137BB308AE6E47E9F1D2416B32",
+      "cSources": [
+        "xrt_aho_corasick.c",
+        "aho_corasick_native.c"
+      ],
+      "xlSources": [
+        "src/aho_corasick.xl"
+      ],
+      "coverageTests": [
+        "test/boundaries.xl"
+      ],
+      "registration": [
+        "featured"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": true,
+      "siteSource": true,
+      "directSitePage": true,
+      "generatedSitePage": true,
+      "siteIdentical": true
+    },
+    {
+      "name": "ansi",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "1193AC545D51B2B13E54EE0596FECA2D689DBA2A09D084859CB98BDB526DFDFC",
+      "cSources": [
+        "ansi_native.c"
+      ],
+      "xlSources": [
+        "src/ansi.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "argon2",
+      "public": true,
+      "version": "2.0.0",
+      "manifestSha256": "22626A95C162DC340B45C4FEB3A94FBC95DE58ABFD1AB0C478469A1233205082",
+      "cSources": [
+        "argon2_native.c",
+        "vendor/argon2.c",
+        "vendor/core.c",
+        "vendor/encoding.c",
+        "vendor/ref.c",
+        "vendor/blake2/blake2b.c"
+      ],
+      "xlSources": [
+        "src/argon2.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "featured"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": true,
+      "siteSource": true,
+      "directSitePage": true,
+      "generatedSitePage": true,
+      "siteIdentical": true
+    },
+    {
+      "name": "barcode",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "B1D1873AEFAA60704176F8A32BD7C40BF4FAC3D39CB6F8FC8652DD4EE3670965",
+      "cSources": [
+        "barcode_native.c"
+      ],
+      "xlSources": [
+        "src/barcode.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "blake2",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "8D4AB376297EAE687C3B6D17D222745A004AA1A795167D87EE01651AC02BE852",
+      "cSources": [
+        "third_party/blake2.c",
+        "xrt_blake2.c",
+        "blake2_native.c"
+      ],
+      "xlSources": [
+        "src/blake2.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "featured"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": true,
+      "siteSource": true,
+      "directSitePage": true,
+      "generatedSitePage": true,
+      "siteIdentical": true
+    },
+    {
+      "name": "blake3",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "43D20C889BE66EA649B6264955A49B56B6938A17CE9A3AF433C0AA01F4DC724F",
+      "cSources": [
+        "blake3_portable.c",
+        "xrt_blake3.c",
+        "blake3_native.c"
+      ],
+      "xlSources": [
+        "src/blake3.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "featured"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": true,
+      "siteSource": true,
+      "directSitePage": true,
+      "generatedSitePage": true,
+      "siteIdentical": true
+    },
+    {
+      "name": "bloom",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "2B1FC17AE5D19CEC77685D07A682832D5EEB0514C36EB7BADC76F357E78A1001",
+      "cSources": [
+        "bloom_native.c"
+      ],
+      "xlSources": [
+        "src/bloom.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "featured"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": true,
+      "siteSource": true,
+      "directSitePage": true,
+      "generatedSitePage": true,
+      "siteIdentical": true
+    },
+    {
+      "name": "brotli",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "EAECD41FF8E86A83EB34321FCE2DE21A3A407CC53D345F0309C70CA74D191A08",
+      "cSources": [
+        "xrt_brotli.c",
+        "brotli_native.c",
+        "third_party/common/constants.c",
+        "third_party/common/context.c",
+        "third_party/common/dictionary.c",
+        "third_party/common/platform.c",
+        "third_party/common/shared_dictionary.c",
+        "third_party/common/transform.c",
+        "third_party/dec/bit_reader.c",
+        "third_party/dec/decode.c",
+        "third_party/dec/huffman.c",
+        "third_party/dec/state.c",
+        "third_party/enc/backward_references.c",
+        "third_party/enc/backward_references_hq.c",
+        "third_party/enc/bit_cost.c",
+        "third_party/enc/block_splitter.c",
+        "third_party/enc/brotli_bit_stream.c",
+        "third_party/enc/cluster.c",
+        "third_party/enc/command.c",
+        "third_party/enc/compound_dictionary.c",
+        "third_party/enc/compress_fragment.c",
+        "third_party/enc/compress_fragment_two_pass.c",
+        "third_party/enc/dictionary_hash.c",
+        "third_party/enc/encode.c",
+        "third_party/enc/encoder_dict.c",
+        "third_party/enc/entropy_encode.c",
+        "third_party/enc/fast_log.c",
+        "third_party/enc/histogram.c",
+        "third_party/enc/literal_cost.c",
+        "third_party/enc/memory.c",
+        "third_party/enc/metablock.c",
+        "third_party/enc/static_dict.c",
+        "third_party/enc/utf8_util.c"
+      ],
+      "xlSources": [
+        "src/brotli.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "featured"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": true,
+      "siteSource": true,
+      "directSitePage": true,
+      "generatedSitePage": true,
+      "siteIdentical": true
+    },
+    {
+      "name": "bson",
+      "public": true,
+      "version": "3.0.0",
+      "manifestSha256": "AD804379153203DD5A6A5DEDBF31D5BBA328B01ADDABE5D4529961A22120F519",
+      "cSources": [
+        "bson_native.c"
+      ],
+      "xlSources": [
+        "src/bson.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "featured"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": true,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "bz2",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "90787A953D30400E382E4C3DF79038D8475F691CE76D7AE1FB7E69E70FE8D463",
+      "cSources": [
+        "xrt_bz2.c",
+        "xrt_bz2_file.c",
+        "bz2_native.c"
+      ],
+      "xlSources": [
+        "src/bz2.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "featured"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": true,
+      "siteSource": true,
+      "directSitePage": true,
+      "generatedSitePage": true,
+      "siteIdentical": true
+    },
+    {
+      "name": "canbus",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "6A999DD594184C3D2F8142E63A2BC3EB049E64DAFAC06F88E78DC56133261D13",
+      "cSources": [
+        "canbus_native.c"
+      ],
+      "xlSources": [
+        "src/canbus.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "cbor",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "0A6ACE346187CE0C716F25BAFEBF08853AC11960A811242DDAE463613695CE37",
+      "cSources": [
+        "cbor_native.c"
+      ],
+      "xlSources": [
+        "src/cbor.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "chardet",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "397101B4F9734129C45FC35AD6CB4713E59EA53982DA524FAC1A1D337A9AF9CE",
+      "cSources": [
+        "chardet_native.c"
+      ],
+      "xlSources": [
+        "src/chardet.xl"
+      ],
+      "coverageTests": [
+        "test/boundaries.xl"
+      ],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": true,
+      "siteSource": true,
+      "directSitePage": true,
+      "generatedSitePage": true,
+      "siteIdentical": true
+    },
+    {
+      "name": "cli",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "5B3525EADE3B9288659111CCB162A955B8CA0047AD3889104DCD2128907B0042",
+      "cSources": [
+        "cli_native.c"
+      ],
+      "xlSources": [
+        "src/cli.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "clickhouse",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "4F5467C98FF602BFF820EA661826FA71B8103CD946E8519FC3623C820B24C5DB",
+      "cSources": [
+        "clickhouse_native.c"
+      ],
+      "xlSources": [
+        "src/clickhouse.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "clip",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "24AEEEA4E6466741B51C3D761DC2C6D2221D4A93FFB7F054D7EF146A2B260FDD",
+      "cSources": [
+        "clip_native.c"
+      ],
+      "xlSources": [
+        "src/clip.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "clipboard",
+      "public": true,
+      "version": "0.1.0",
+      "manifestSha256": "AD6D0EB068082C7B0F8BF8178EE0742659026D66125B5B62E47DC0037DD866D1",
+      "cSources": [
+        "clipboard_native.c"
+      ],
+      "xlSources": [
+        "src/clipboard.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "platform"
+      ],
+      "issues": [],
+      "focusedCase": false,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "coap",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "C46BB230C294E55D206C969F1D6A4645843CE92A0D01DE6A894004FD7813B141",
+      "cSources": [
+        "coap_native.c"
+      ],
+      "xlSources": [
+        "src/coap.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "color",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "9712C19593182F70BC150873923076894EC26E243A39C38133785DD1937A78FF",
+      "cSources": [
+        "color_native.c"
+      ],
+      "xlSources": [
+        "src/color.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "com",
+      "public": true,
+      "version": "0.1.0",
+      "manifestSha256": "6C575822252EB768BC5959B809761EA5CD2723133EF7119A939E3DAB35AF2FD5",
+      "cSources": [
+        "x_com_artifact.c"
+      ],
+      "xlSources": [
+        "src/com.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "platform"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "consistent_hash",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "843DEBD4494063B335BB8A55D97699B49625016640A3F025A1F964D9EDC5F464",
+      "cSources": [
+        "consistent_hash_native.c"
+      ],
+      "xlSources": [
+        "src/consistent_hash.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "crc32",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "E35EC33BC675090A3E550DFE55A5D5CDFE8BC2C8E08AC1A592D57C5313560437",
+      "cSources": [
+        "xrt_crc32.c",
+        "crc32_native.c"
+      ],
+      "xlSources": [
+        "src/crc32.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "featured"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": true,
+      "siteSource": true,
+      "directSitePage": true,
+      "generatedSitePage": true,
+      "siteIdentical": true
+    },
+    {
+      "name": "crontab",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "E9E2870CB4D8D4F7B23DC067CA7454E703AD3584CBD4EAAFF9BE273633A29F2A",
+      "cSources": [
+        "crontab_native.c"
+      ],
+      "xlSources": [
+        "src/crontab.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "css",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "6A984966E5F72C7BA884287DAC496820928193D28A8AE6B4F5B0B5B09BD042FC",
+      "cSources": [
+        "css_native.c"
+      ],
+      "xlSources": [
+        "src/css.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "cString",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "D99D9D9A7F8B59056FD049C2549606E42DE58F0EEB5FB610B423B53B9A2950BD",
+      "cSources": [],
+      "xlSources": [
+        "src/cString.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": false,
+      "example": false,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "csv",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "3DF5A6D49E48897E0718AFDA6274D0E3B800E5942A0786EFD825D90AB1A0A5AD",
+      "cSources": [
+        "xrt_csv_common.c",
+        "xrt_csv_reader.c",
+        "xrt_csv_writer.c",
+        "csv_native.c"
+      ],
+      "xlSources": [
+        "src/csv.xl"
+      ],
+      "coverageTests": [
+        "test/boundaries.xl",
+        "test/files.xl"
+      ],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": true,
+      "siteSource": true,
+      "directSitePage": true,
+      "generatedSitePage": true,
+      "siteIdentical": true
+    },
+    {
+      "name": "cuckoo",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "E39E8A1725A19FB92A4D59F13A77553B8218CFF2FCC5752D8D6E704FEE70A45B",
+      "cSources": [
+        "cuckoo_native.c"
+      ],
+      "xlSources": [
+        "src/cuckoo.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "daemon",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "602193C138B812C881F22C058874EB6A208FD8626D914C717F4599FFE45A6AA5",
+      "cSources": [
+        "daemon_native.c"
+      ],
+      "xlSources": [
+        "src/daemon.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "platform"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "dataframe",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "5FD0BB480B688A3512F59C78AAE5639CFE9F4326EAE98578F44B00F7437218AE",
+      "cSources": [
+        "dataframe_native.c"
+      ],
+      "xlSources": [
+        "src/dataframe.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "diff",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "6FF68E8189C78BF500F46ACC0E1FF5F304AD2063453B306AAC0341CF49E8BB78",
+      "cSources": [
+        "diff_native.c"
+      ],
+      "xlSources": [
+        "src/diff.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "dinov3",
+      "public": true,
+      "version": "0.1.0",
+      "manifestSha256": "78B58AEF58656D453E1C27C81787341E42E8516D9116A2C945CBC1287424F8AB",
+      "cSources": [
+        "src/dinov3_artifact.c"
+      ],
+      "xlSources": [
+        "src/dinov3.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "dns",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "0B3F86A54FAD520A1FA9C57898A03705CC14D56CCEDDBE15FB8021659BFC7DBC",
+      "cSources": [
+        "dns_native.c"
+      ],
+      "xlSources": [
+        "src/dns.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "docker",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "DF2F9D8FFAC39D16D5357CFA30B88C5A70A3839C470F4AE7CA2077E5023DB362",
+      "cSources": [
+        "docker_native.c"
+      ],
+      "xlSources": [
+        "src/docker.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "docx",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "1798C68479D831806A5A56B69EC2A33AD537AE3264C054E8B43092E0E08FC346",
+      "cSources": [
+        "docx_native.c"
+      ],
+      "xlSources": [
+        "src/docx.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "dotenv",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "469219C3133989D83D6FF902A72B70F9AB63A45AFF1878D0636596AAE34662D9",
+      "cSources": [
+        "dotenv_native.c"
+      ],
+      "xlSources": [
+        "src/dotenv.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "duckdb",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "E3871493A9FB16BA40348E3A3EFA4E432644C541BDF8129D84A0B7E34460A8FA",
+      "cSources": [
+        "duckdb_native.c"
+      ],
+      "xlSources": [
+        "src/duckdb.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "embeddings",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "7706693B7B6A2C3480BE3F0B87A0A229EC1CEE95506D5196AFFE57F36A6ED128",
+      "cSources": [
+        "embeddings_native.c"
+      ],
+      "xlSources": [
+        "src/embeddings.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "enet",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "ED2A6FB40D7A5D342DA699C0FB93C169F9A7051DB0CB56006258B015B4CA68AA",
+      "cSources": [
+        "enet_native.c"
+      ],
+      "xlSources": [
+        "src/enet.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "epub",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "A950ADC28B9C47186CFE4A1547F960D348346914116DD6BCD079618FF72691A0",
+      "cSources": [
+        "epub_native.c"
+      ],
+      "xlSources": [
+        "src/epub.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "etcd",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "06182687E0B876CDBE88AB50BFB9C350BD31CA98BC6B3D5A9F6079E13820903D",
+      "cSources": [
+        "etcd_native.c"
+      ],
+      "xlSources": [
+        "src/etcd.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "faiss",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "D1B0A130DFF561FB2F04A3D1BD83E896C835EE7451AC2CC668E3A550421E31A6",
+      "cSources": [
+        "faiss_native.c"
+      ],
+      "xlSources": [
+        "src/faiss.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "ffmpeg",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "AA0471795A44B062478D68590F70489A44E2801D462E6D6D9DBE8307B8455A6F",
+      "cSources": [
+        "ffmpeg_native.c"
+      ],
+      "xlSources": [
+        "src/ffmpeg.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "fix",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "3317496D31269745A8DD350FBC92C64315D9430A3AFA8EFDD11BACD71866AA5C",
+      "cSources": [
+        "fix_native.c"
+      ],
+      "xlSources": [
+        "src/fix.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "flatbuffers",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "F582953172CE8BCCDC85229D7DF8010D52E6F691902D3048256A7A3729EFC800",
+      "cSources": [
+        "flatbuffers_native.c"
+      ],
+      "xlSources": [
+        "src/flatbuffers.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "floatEnv",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "824B86C9D9F18F0AEFD1BFA9A6DDFF816435A66CC79795A3D41A796B86AFD688",
+      "cSources": [
+        "float_env_native.c"
+      ],
+      "xlSources": [
+        "src/floatEnv.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": false,
+      "example": false,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "freetype",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "07DEEE5179EF51437E96AB8744C087E546D76C0D3FAC00EC7726443C481EE426",
+      "cSources": [
+        "freetype_native.c"
+      ],
+      "xlSources": [
+        "src/freetype.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "ftp",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "816C89CF5D37C9CA80A3FD6DCCD4AA0BAACD35057ECA30B9E47ED848EE6E135F",
+      "cSources": [
+        "ftp_native.c"
+      ],
+      "xlSources": [
+        "src/ftp.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "fuzzy",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "98D465A8728DE5D9E4FA6A520EFDFA6A13DD2E458D00D330A60F70EDF7FAE3A3",
+      "cSources": [
+        "fuzzy_native.c"
+      ],
+      "xlSources": [
+        "src/fuzzy.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "geohash",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "86934578EBD8CB235931D9FE6D1F77CD2199EC4922D42BF15C1E97BA485CD1F7",
+      "cSources": [
+        "geohash_native.c"
+      ],
+      "xlSources": [
+        "src/geohash.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "gettext",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "FDB190DFD32C1B0264D11470B5141E393B8FE209573F8AE995EC598B617EFE62",
+      "cSources": [
+        "gettext_native.c"
+      ],
+      "xlSources": [
+        "src/gettext.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "ggml",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "28E1FA85EB796C67C3CFC5F24E0B1569C31AF416A20334E39E784B72E554169D",
+      "cSources": [
+        "ggml_native.c"
+      ],
+      "xlSources": [
+        "src/ggml.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "git",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "7BAEFEE6900E9D3D6282C8ED0E3A5CD7D767EAA086D89C83D6B080712FEC7E0E",
+      "cSources": [
+        "git_native.c"
+      ],
+      "xlSources": [
+        "src/git.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "glad",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "7C54FB51B6464CC99E7A9C1103BD3787215A8850BAED957D228F6DAE9F426679",
+      "cSources": [
+        "glad_native.c"
+      ],
+      "xlSources": [
+        "src/glad.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "gpio",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "BE33138FF0854512CE699C028FB8529AFBC2CFA7B78654773E46D1420EA3450B",
+      "cSources": [
+        "gpio_native.c"
+      ],
+      "xlSources": [
+        "src/gpio.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "graph",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "EF5E8140A8EE8E07CB4767251172B664BD9F2A47BEB8BC773986221B1573B0AB",
+      "cSources": [
+        "graph_native.c",
+        "graph_traversal.c",
+        "graph_components.c",
+        "graph_distance.c"
+      ],
+      "xlSources": [
+        "src/graph.xl"
+      ],
+      "coverageTests": [
+        "test/boundaries.xl"
+      ],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": true,
+      "siteSource": true,
+      "directSitePage": true,
+      "generatedSitePage": true,
+      "siteIdentical": true
+    },
+    {
+      "name": "grpc",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "B70AD30B59711B58F07DDA0A905CE89604E509C5B3D490134C4BF1DD6FB29279",
+      "cSources": [
+        "grpc_native.c"
+      ],
+      "xlSources": [
+        "src/grpc.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "gzip",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "3954B92509875ACCDB2AC89300874087D800A965CF4FC8A74DBFA01D9CEBCFE8",
+      "cSources": [
+        "xrt_gzip.c",
+        "gzip_native.c"
+      ],
+      "xlSources": [
+        "src/gzip.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": true,
+      "siteSource": true,
+      "directSitePage": true,
+      "generatedSitePage": true,
+      "siteIdentical": true
+    },
+    {
+      "name": "harfbuzz",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "641AA77F26F7F131ECE9DC9776AA149A718EAFC610EA5B2B63AB5E5DE06AE9BD",
+      "cSources": [
+        "harfbuzz_native.c"
+      ],
+      "xlSources": [
+        "src/harfbuzz.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "hcl",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "61855898C77C66A15DF1D70EB5757E5C588CF5BC1FF7F699718C0FBF76DC9A82",
+      "cSources": [
+        "hcl_native.c"
+      ],
+      "xlSources": [
+        "src/hcl.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "hnswlib",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "446548CE6873536BD873DCC545C4FFF1D22D530AF96815A5410383C7E73820F7",
+      "cSources": [
+        "hnswlib_native.c"
+      ],
+      "xlSources": [
+        "src/hnswlib.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "html5",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "79A42AEF0FC1E63FFD8EE03EEA968185D40C52AA11B367D9D3D6F7BCB458CE08",
+      "cSources": [
+        "html5_native.c"
+      ],
+      "xlSources": [
+        "src/html5.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "hyperloglog",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "F8DC7D9CA2BE88D790D79A898BE72B6C08C70787D4B3BC71144338748B2D1AC1",
+      "cSources": [
+        "hyperloglog_native.c"
+      ],
+      "xlSources": [
+        "src/hyperloglog.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "ical",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "7294E8CDE9F3202A3978B17342E3F9433FF0535271CACED5D966E356DF8A233A",
+      "cSources": [
+        "ical_native.c"
+      ],
+      "xlSources": [
+        "src/ical.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "icu",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "248CC76467A94F99D171266869AAF763A33B8D9E25BE2BB0936A8194308100FC",
+      "cSources": [
+        "icu_native.c"
+      ],
+      "xlSources": [
+        "src/icu.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "imagehash",
+      "public": true,
+      "version": "0.1.0",
+      "manifestSha256": "4DC7E16332D20BCB4926E75939BFEB6583460E2B6213A5BC71C4F9D8DD96CE6C",
+      "cSources": [
+        "imagehash_native.c"
+      ],
+      "xlSources": [
+        "src/imagehash.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "imgui",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "90D5A2D460AECDA9E3CC72AE4A47B587B531A0D3D0C05AF0E017EC418B37FBF3",
+      "cSources": [
+        "imgui_native.c"
+      ],
+      "xlSources": [
+        "src/imgui.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "influxdb",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "A44AFBEB1924C45EB4E6DDD911A478E703F380EEC29AB6C462EFE2A7E197C161",
+      "cSources": [
+        "influxdb_native.c"
+      ],
+      "xlSources": [
+        "src/influxdb.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "ini",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "F2DE91012E5B62124105F958B28223940EB932C83B38197874BDCBF1FE247654",
+      "cSources": [
+        "xrt_ini_model.c",
+        "xrt_ini_parser.c",
+        "xrt_ini_writer.c",
+        "ini_native.c"
+      ],
+      "xlSources": [
+        "src/ini.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "jieba",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "0C1F174ACBAB4177A6BDB0FA86266F63009435B75AFB326959D65468FB9B210A",
+      "cSources": [
+        "jieba_native.c"
+      ],
+      "xlSources": [
+        "src/jieba.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "json.patch",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "7A8A2D2F4C3C1AF1A24305A447ED2A2371A762777BD093AFFC5EE34FCF6D9A78",
+      "cSources": [
+        "json_patch_native.c"
+      ],
+      "xlSources": [
+        "src/json_patch.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "json5",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "E8AEC0C7F94F7B2B139B77596C97A8E0C7E92E4A9963011AA5BB8AE247B26BF6",
+      "cSources": [
+        "json5_native.c"
+      ],
+      "xlSources": [
+        "src/json5.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "jwt",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "88692CDB82FA3CF9DC76FB811B3343224E300930D6F1C9A90C7C57E643F887AF",
+      "cSources": [
+        "jwt_native.c"
+      ],
+      "xlSources": [
+        "src/jwt.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "kubernetes",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "C4753A861814EA3D0DF5086ED21C81DB961F3D769D834D6BD003086B13A4C3BA",
+      "cSources": [
+        "kubernetes_native.c"
+      ],
+      "xlSources": [
+        "src/kubernetes.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "langdetect",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "4B2C3C0B8AB495C0878DB762DE0D3126F5224AF6CC8939B91D3FD6E61937E73A",
+      "cSources": [
+        "langdetect_native.c"
+      ],
+      "xlSources": [
+        "src/langdetect.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "ldap",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "9884D3C9A0373637804621EABFC37A621BB6D66CA91453E091B56E9BDBB47BCF",
+      "cSources": [
+        "ldap_native.c"
+      ],
+      "xlSources": [
+        "src/ldap.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "leveldb",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "4CBB51D084DAEBA2CE8C3377EC21587D354D1CA84B31E58497EB3F7D2B648C32",
+      "cSources": [
+        "leveldb_native.c"
+      ],
+      "xlSources": [
+        "src/leveldb.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "libsndfile",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "68D73BCE4587CEEC47D23CF0FF287C6ABFE3F50600ABC1605ABB363BC84179C5",
+      "cSources": [
+        "libsndfile_native.c"
+      ],
+      "xlSources": [
+        "src/libsndfile.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "libsvm",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "CE83792348FE669C580C0BCAC81B778122B6093F6C14FCD51CABB294748749F2",
+      "cSources": [
+        "libsvm_native.c"
+      ],
+      "xlSources": [
+        "src/libsvm.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "libtorch",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "B4E7DD66409A8A2095B3B83DD2728E7008ED0FE7AFAB02848E1CF8C76ACEA1F1",
+      "cSources": [
+        "libtorch_native.c"
+      ],
+      "xlSources": [
+        "src/libtorch.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "libusb",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "1D41AFF8DA7C7285D09C37317C8BE33FCEBE19374921910DA73FC81B39271BA7",
+      "cSources": [
+        "libusb_native.c"
+      ],
+      "xlSources": [
+        "src/libusb.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "linalg",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "3E25D1C0BAEBA7EDC7F6ECE8B16602A25E16AA5D12AA9DFA02848C5796BA344D",
+      "cSources": [
+        "linalg_native.c"
+      ],
+      "xlSources": [
+        "src/linalg.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "llama",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "0ACEF4198223C058AA7C7BFE2227E8F95868991B330510576D1C23673639E2AE",
+      "cSources": [
+        "llama_native.c"
+      ],
+      "xlSources": [
+        "src/llama.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "lmdb",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "194EE18580F99E01BB7D7F7D2CA486F2C879D327BE18F2E19BBED6EA9C614404",
+      "cSources": [
+        "lmdb_native.c"
+      ],
+      "xlSources": [
+        "src/lmdb.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "lru",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "6677AEF0D2576D3EDE209200E01F919218B9205BA9B2C4679EFC1611B1EC8C33",
+      "cSources": [
+        "lru_native.c"
+      ],
+      "xlSources": [
+        "src/lru.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "lz4",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "0C54A8124D4B27D790656F25BD07408ABE705A2FC511F11AD2471D8761A78CD7",
+      "cSources": [
+        "xrt_lz4.c",
+        "xrt_lz4_file.c",
+        "lz4_native.c",
+        "lz4_frame.c",
+        "lz4_hash.c",
+        "third_party/lz4.c",
+        "third_party/lz4hc.c"
+      ],
+      "xlSources": [
+        "src/lz4.xl"
+      ],
+      "coverageTests": [
+        "test/boundaries.xl"
+      ],
+      "registration": [
+        "featured"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": true,
+      "siteSource": true,
+      "directSitePage": true,
+      "generatedSitePage": true,
+      "siteIdentical": true
+    },
+    {
+      "name": "lzma",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "9034BA5E00C994449942BD01147A2DFF3591B48DE9630C70CA1FB94EF4BFFEF5",
+      "cSources": [
+        "xrt_lzma.c",
+        "lzma_native.c",
+        "third_party/Alloc.c",
+        "third_party/CpuArch.c",
+        "third_party/LzFind.c",
+        "third_party/LzmaDec.c",
+        "third_party/LzmaEnc.c"
+      ],
+      "xlSources": [
+        "src/lzma.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "featured"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": true,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "md4c",
+      "public": true,
+      "version": "0.1.0",
+      "manifestSha256": "A8DBF84C367C3A63D931D521DBAA8BB528DBB542369CC084FE7FF96F7DE2B75F",
+      "cSources": [
+        "md4c_native.c",
+        "third_party/md4c/md4c.c",
+        "third_party/md4c/md4c-html.c",
+        "third_party/md4c/entity.c"
+      ],
+      "xlSources": [
+        "src/md4c.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "md5",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "B382B0BE4603BC43E6759CB8134E86397572FACABC95B5C2B5CD6A7102910FB5",
+      "cSources": [
+        "xrt_md5.c",
+        "md5_native.c"
+      ],
+      "xlSources": [
+        "src/md5.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "featured"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": true,
+      "siteSource": true,
+      "directSitePage": true,
+      "generatedSitePage": true,
+      "siteIdentical": true
+    },
+    {
+      "name": "mdns",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "1B6061255A6C48304F737913BFA37AB138563EA76BC3A277031905693874626E",
+      "cSources": [
+        "mdns_native.c"
+      ],
+      "xlSources": [
+        "src/mdns.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "memcached",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "3CDF385ABB4D73C65DD431F426B2A4CC79ECE3D9E5E5FDB8092222B14CFDAA48",
+      "cSources": [
+        "memcached_native.c"
+      ],
+      "xlSources": [
+        "src/memcached.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "minio",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "1226BC8222D4BA7E3B72CB201CCCC5DCDD4C5890F4CF34B3F740539CA6BC904E",
+      "cSources": [
+        "minio_native.c"
+      ],
+      "xlSources": [
+        "src/minio.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "miniz",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "853B21D4CD7E3FA1000B69AD96D1963E3A30D00C24943C463002CA31EF038E17",
+      "cSources": [
+        "xrt_miniz.c",
+        "miniz_native.c"
+      ],
+      "xlSources": [
+        "src/miniz.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "featured"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": true,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "mnn",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "798830FC035212191FD3209F0610E036A9C5532FB545359841DB3C28DA21673E",
+      "cSources": [
+        "mnn_native.c"
+      ],
+      "xlSources": [
+        "src/mnn.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "modbus",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "AED3A5F44AA83637CA5E0BB8FA6664D14E4295820AE53FB0553082C8618BC17E",
+      "cSources": [
+        "modbus_native.c"
+      ],
+      "xlSources": [
+        "src/modbus.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "money",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "CFB57F55138571333AD25D211006DAC867BD3B47701239FF209DA0E6675B801E",
+      "cSources": [
+        "money_native.c"
+      ],
+      "xlSources": [
+        "src/money.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "mongodb",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "F5EA13F8FCB5F4708CF128DD7634D4EF34CC5C3E246D79C5534BB97BA0363329",
+      "cSources": [
+        "mongodb_native.c"
+      ],
+      "xlSources": [
+        "src/mongodb.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "mqtt",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "D0965A5E412139A183D01E4CD4B5288073185CB02494892BCD2D084F393278EB",
+      "cSources": [
+        "mqtt_frame.c",
+        "mqtt_build.c",
+        "mqtt_parse.c",
+        "mqtt_net.c",
+        "mqtt_native.c"
+      ],
+      "xlSources": [
+        "src/mqtt.xl",
+        "src/mqtt_net.xl"
+      ],
+      "coverageTests": [
+        "test/mqtt_boundaries.xl"
+      ],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": true,
+      "siteSource": true,
+      "directSitePage": true,
+      "generatedSitePage": true,
+      "siteIdentical": true
+    },
+    {
+      "name": "msgpack",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "1CC90833D72D155793FFC3865FD6A30E7FD9C37ACE145D951DD30E1D614F31B2",
+      "cSources": [
+        "msgpack_native.c"
+      ],
+      "xlSources": [
+        "src/msgpack.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "murmur3",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "A322B149387682A490E59C713FE348D4AEBD36E657FF998EE8023A9F851ECF55",
+      "cSources": [
+        "third_party/MurmurHash3.c",
+        "xrt_murmur3.c",
+        "murmur3_native.c"
+      ],
+      "xlSources": [
+        "src/murmur3.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "featured"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": true,
+      "siteSource": true,
+      "directSitePage": true,
+      "generatedSitePage": true,
+      "siteIdentical": true
+    },
+    {
+      "name": "mysql",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "383C1FA65A7EAB1C6ECF904425841DEC5EAEE07F21D980563C0F865AD0EAEB9B",
+      "cSources": [
+        "mysql_native.c"
+      ],
+      "xlSources": [
+        "src/mysql.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": true,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "nanomsg",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "2739317F8D04369D93E6A3D8A9AC59AD040A1ADCF29B846C0334AEC42D6065C9",
+      "cSources": [
+        "nanomsg_native.c"
+      ],
+      "xlSources": [
+        "src/nanomsg.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "nats",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "6D7881F7C5259A059339B7BAF5440172387686C59C3EDAD9DC7EC353F119B4AF",
+      "cSources": [
+        "nats_native.c"
+      ],
+      "xlSources": [
+        "src/nats.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "ncnn",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "D77A3EB3868C5ED2A57EF72478EE9FB96A0FF4A60C576A5B4A3B1B5192FBC673",
+      "cSources": [
+        "ncnn_native.c"
+      ],
+      "xlSources": [
+        "src/ncnn.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "neo4j",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "3DCD2CDA9DD772082254A7BDAAD531ADBAFD265B1A296D1C0F06B13AFB0F322D",
+      "cSources": [
+        "neo4j_native.c"
+      ],
+      "xlSources": [
+        "src/neo4j.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "netrc",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "802B12DAAB32E3232873E0E54F2F44F443F975E85213B97108DA5F2B2AD52F39",
+      "cSources": [
+        "xrt_netrc_common.c",
+        "xrt_netrc_parser.c",
+        "xrt_netrc_writer.c",
+        "netrc_native.c"
+      ],
+      "xlSources": [
+        "src/netrc.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "nsq",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "8F21C60AF3C955744F5954CCB42F8C502495AC1117A5903F3DEDC5FE1AC565BE",
+      "cSources": [
+        "nsq_native.c"
+      ],
+      "xlSources": [
+        "src/nsq.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "ntp",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "2F4E1A63790B1FA8AD93360C0CBB5A1C113A21C459C657E0A4CD4428E5C4E60C",
+      "cSources": [
+        "ntp_native.c"
+      ],
+      "xlSources": [
+        "src/ntp.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "oauth2",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "A76E61A82CDB3C9A18EA6CF9197B9290B2E4F7F5B17EB060C5415F6F6C1C0575",
+      "cSources": [
+        "oauth2_native.c"
+      ],
+      "xlSources": [
+        "src/oauth2.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "onnxruntime",
+      "public": true,
+      "version": "0.1.0",
+      "manifestSha256": "82DA1DD31B306F6A3C8B8024DBA97850A55444E7043138FEE9471E5C4B77726B",
+      "cSources": [
+        "src/onnxruntime_artifact.c"
+      ],
+      "xlSources": [
+        "src/onnxruntime.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "op",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "0C0BC15130E4D7C26E3DAEADBEDE2F11375667D3F6BB06E4074831C8A909613A",
+      "cSources": [
+        "op_native.c"
+      ],
+      "xlSources": [
+        "src/op.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "opencv",
+      "public": true,
+      "version": "0.1.0",
+      "manifestSha256": "50A2CE2A0760AB93629BED5EFB30606F2A6739A5246CC4F2623C69437F55B1D9",
+      "cSources": [
+        "opencv_artifact.c"
+      ],
+      "xlSources": [
+        "src/opencv.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "opentelemetry",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "DA40D57AFACC9C6036DDDB89AF544DF5FB7EA717CA6D55A528060FF49C4813F0",
+      "cSources": [
+        "opentelemetry_native.c"
+      ],
+      "xlSources": [
+        "src/opentelemetry.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "openvino",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "22179421908E776FC87BE3A5ED95875DB16609D51D9F56E17AC32181981619A1",
+      "cSources": [
+        "openvino_native.c"
+      ],
+      "xlSources": [
+        "src/openvino.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "opus",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "CE041823CF9E96F1D8AA1A6BF242262B9B94A2F0F7FA671A58EA15A028A01735",
+      "cSources": [
+        "opus_native.c"
+      ],
+      "xlSources": [
+        "src/opus.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "passkey",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "4BF54D7704C6D1C9D75CC5F19F2A8558E10899ED71CD5D4D20166C5F0552F7DF",
+      "cSources": [
+        "passkey_native.c"
+      ],
+      "xlSources": [
+        "src/passkey.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "pcap",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "8E066CD0B4B31CFA3D971FB821380457345FB586FBD28C89C02270D54B34600D",
+      "cSources": [
+        "pcap_native.c"
+      ],
+      "xlSources": [
+        "src/pcap.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "pdf",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "6FD9C5DAE0FD4F8524F633AFF3A9615F09995755A26CC1CC15F16FDA344905E1",
+      "cSources": [
+        "pdf_native.c"
+      ],
+      "xlSources": [
+        "src/pdf.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "pdfium",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "25BC3FA7F898E9EB29A78AD0251DE0A43C91AC659421DEED5269C4886CA91F9F",
+      "cSources": [
+        "pdfium_native.c"
+      ],
+      "xlSources": [
+        "src/pdfium.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "pinyin",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "639FBDA0A73238020EE11B20789B7F7F0106486484B232ADFCDAD8CBD3EA1144",
+      "cSources": [
+        "pinyin_native.c"
+      ],
+      "xlSources": [
+        "src/pinyin.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "pkcs",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "BF7A461C8EB0E7E19826D9E5A17B3995EEFE0E8E2AA8B4228A940BC87888934A",
+      "cSources": [
+        "pkcs_native.c"
+      ],
+      "xlSources": [
+        "src/pkcs.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "pkg.math",
+      "public": false,
+      "version": "1.0.0",
+      "manifestSha256": "7B2A427F08FB37B1002980A24EBAC3DD0C4AD64B3E69D8B17CB79725622AC81A",
+      "cSources": [],
+      "xlSources": [
+        "src/math_pkg_impl.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "plist",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "A70EE8BAB9B5665FCCEE6FB0FB584779EB1383627C8ED90BD8A60403E799DC76",
+      "cSources": [
+        "xrt_plist_tree.c",
+        "xrt_plist_io.c",
+        "xrt_plist_xml.c",
+        "xrt_plist_binary.c",
+        "xrt_plist_xml_writer.c",
+        "xrt_plist_binary_writer.c",
+        "plist_native.c"
+      ],
+      "xlSources": [
+        "src/plist.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "portaudio",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "E77E6DD6489D8C76645266BDC72BD9D473A6640001049BE3D99C58985FF7C20D",
+      "cSources": [
+        "portaudio_native.c"
+      ],
+      "xlSources": [
+        "src/portaudio.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "postgresql",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "B2AED2B3CD92F0B5C0B8170A827FD86E9E300550B4585BF01B570367DB4D4CCF",
+      "cSources": [
+        "postgresql_native.c"
+      ],
+      "xlSources": [
+        "src/postgresql.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "pptx",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "6BF463EBF895EF8963D47CE4982E04FBA20C76844ADCD42911D0E8F21DECA885",
+      "cSources": [
+        "pptx_native.c"
+      ],
+      "xlSources": [
+        "src/pptx.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "procps",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "ADC520EA131A2D90F98556FFC458F23A68DF5409BF7B0A5AAFF856E1A62D93C9",
+      "cSources": [
+        "procps_native.c"
+      ],
+      "xlSources": [
+        "src/procps.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "progress",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "5ED33B264BDCB4DFF670C221C5B6AC9F99825BA4FADF5B8E35EC3740718F6C02",
+      "cSources": [
+        "progress_native.c"
+      ],
+      "xlSources": [
+        "src/progress.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "prometheus",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "F542ACD57F7EF541110E86D8819BA8C63966E5F4F4FE553127879578E6113884",
+      "cSources": [
+        "prometheus_native.c"
+      ],
+      "xlSources": [
+        "src/prometheus.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "protobuf",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "0FE3F93089FFF95C1A33CD7F874AD0719D758243BF5185903DEACBDBFB315AF3",
+      "cSources": [
+        "protobuf_native.c"
+      ],
+      "xlSources": [
+        "src/protobuf.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "qr",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "0B32C99296D9D7653ABC0076E068A928AED830BE8B6FCE1366A2AA212DE068E5",
+      "cSources": [
+        "qr_native.c"
+      ],
+      "xlSources": [
+        "src/qr.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "quic",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "74CE4AA29E183C51F8FBBEECDAC70733449FD8FED8FF9533D26A7309ABF3FB69",
+      "cSources": [
+        "quic_native.c"
+      ],
+      "xlSources": [
+        "src/quic.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "rabbitmq",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "12F0D2A288199CC30BC9946CD9B1119EC7B7774ED497F30A68B960CCCD5C3A05",
+      "cSources": [
+        "rabbitmq_native.c"
+      ],
+      "xlSources": [
+        "src/rabbitmq.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "rapidocr",
+      "public": true,
+      "version": "0.1.0",
+      "manifestSha256": "24B0B467CB1C0C84373EB46817D62EE463891B7F299A1B9CB4AA0E29B6107016",
+      "cSources": [
+        "src/rapidocr_artifact.c"
+      ],
+      "xlSources": [
+        "src/rapidocr.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": true,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "ratatui",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "4020D3C0035D3EA0C2E179447FF35C0C1FED030A82C7CE97EC3CF1AE97227830",
+      "cSources": [
+        "ratatui_native.c"
+      ],
+      "xlSources": [
+        "src/ratatui.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "redis",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "19F3D2DED67D2D1ADBA357D11C97B7EC4F38A2F75D2A0B70413C03DE5E42BA11",
+      "cSources": [
+        "redis_native.c"
+      ],
+      "xlSources": [
+        "src/redis.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "roaring",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "7739D9BE3D1531A60A571BBC5CAEADEA8B43B6DB5017EAF7A8BCB86AE40D75DD",
+      "cSources": [
+        "roaring_native.c"
+      ],
+      "xlSources": [
+        "src/roaring.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "rocksdb",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "DBD209E873B5B403E1377E45C4E131852C64E7FFDF4C51808E6F84D5987BCBCF",
+      "cSources": [
+        "rocksdb_native.c"
+      ],
+      "xlSources": [
+        "src/rocksdb.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "rss",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "45EF36A7ADAD5A65F699EA96D2D5FB0A825A0DF0EF17123D295F83FCB5E6821D",
+      "cSources": [
+        "rss_native.c"
+      ],
+      "xlSources": [
+        "src/rss.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "rtmp",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "5A3CE8F4E2A7B12472CA6BF4C2075298B4837E1BCCFEDC25EA37A722BC460168",
+      "cSources": [
+        "rtmp_native.c"
+      ],
+      "xlSources": [
+        "src/rtmp.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "rtree",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "900A4F0F9EB0EB089B0487D76751C15BD3149AF0C49CE55B7844715461CBC4D3",
+      "cSources": [
+        "rtree_native.c"
+      ],
+      "xlSources": [
+        "src/rtree.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "sciter",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "08740A40B246377ABBE50BE8FEAB5E4342141566DDB2911328B84E51C47AA364",
+      "cSources": [
+        "sciter_native.c"
+      ],
+      "xlSources": [
+        "src/sciter.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "semver",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "CF69BF8139959380D3C0C9C22595F4A436E97DC1E415DFB26D2277E056D9B7B1",
+      "cSources": [
+        "semver_native.c"
+      ],
+      "xlSources": [
+        "src/semver.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "sentencepiece",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "E98FA2C8370893E7727C24CC669A9B45567FAC4D85DFD8DE19519AA5576FE44A",
+      "cSources": [
+        "sentencepiece_native.c"
+      ],
+      "xlSources": [
+        "src/sentencepiece.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "serial",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "9A4F407771E44D18D14F4CAA016E2429E78E61B70C0AF73729A911183A2AB5B2",
+      "cSources": [
+        "serial_native.c"
+      ],
+      "xlSources": [
+        "src/serial.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "platform"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": true,
+      "siteSource": false,
+      "directSitePage": true,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "sha3",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "AFD925B68098B7A22F7C4D67F44369B118BDE018B4102FE6E49A900726F4CBAC",
+      "cSources": [
+        "third_party/sha3.c",
+        "xrt_sha3.c",
+        "sha3_native.c"
+      ],
+      "xlSources": [
+        "src/sha3.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "featured"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": true,
+      "siteSource": true,
+      "directSitePage": true,
+      "generatedSitePage": true,
+      "siteIdentical": true
+    },
+    {
+      "name": "sharedmem",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "9A0B02DEB446EF7A5D2A92E72832E66FEF178CEA62AE65620E9CE8F967B477BB",
+      "cSources": [
+        "sharedmem_native.c"
+      ],
+      "xlSources": [
+        "src/sharedmem.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "platform"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "shellwords",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "51D20480288F99A3BB9639F637037CFB031882CA02AB1D7FE9565945DBBAE2BB",
+      "cSources": [
+        "shellwords_native.c"
+      ],
+      "xlSources": [
+        "src/shellwords.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "singleinstance",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "044CD8741827E79F3E27A99FCA086FC64CBBB35682F68A397738D94D13FCAE35",
+      "cSources": [
+        "singleinstance_native.c"
+      ],
+      "xlSources": [
+        "src/singleinstance.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "platform"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "siphash",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "22AF968BD9E3AD886BADEF8F77665E00549AD827D123D47B6E3280E60306A825",
+      "cSources": [
+        "third_party/siphash.c",
+        "xrt_siphash.c",
+        "siphash_native.c"
+      ],
+      "xlSources": [
+        "src/siphash.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "featured"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": true,
+      "siteSource": true,
+      "directSitePage": true,
+      "generatedSitePage": true,
+      "siteIdentical": true
+    },
+    {
+      "name": "sitemap",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "2BFE0619878D93C6F6C5D8DFE822E7696F2D49576156A59E85B4F47DBC6EDCAE",
+      "cSources": [
+        "sitemap_native.c"
+      ],
+      "xlSources": [
+        "src/sitemap.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "skiplist",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "AF2E212AF9E65CC6684FE7E134CBF7505068C9382EEBF0D84528D40B71B6ED49",
+      "cSources": [
+        "skiplist_native.c"
+      ],
+      "xlSources": [
+        "src/skiplist.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "slugify",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "B0C260EE42EA505E6DD624ABD69F7AF7EDC466D64B3A8160A15C641B06E4427D",
+      "cSources": [
+        "slugify_native.c"
+      ],
+      "xlSources": [
+        "src/slugify.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "snappy",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "94EAAC09F27B34842B2D38D60F3ED0F66D5C39F70D3686881F8FB90AFBF076B4",
+      "cSources": [
+        "xrt_snappy.c",
+        "snappy_native.c",
+        "third_party/xrt_snappy.c"
+      ],
+      "xlSources": [
+        "src/snappy.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "featured"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": true,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "snmp",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "6B7CFF58BEF6D0261FBF138176AC67FF7E082257957B2C7282FCF8947A2FAB19",
+      "cSources": [
+        "snmp_native.c"
+      ],
+      "xlSources": [
+        "src/snmp.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "socks",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "5F00E3B5CD262A23B68C547BC1B839D996B25D792C721674132EBB32641AD3CC",
+      "cSources": [
+        "socks_native.c"
+      ],
+      "xlSources": [
+        "src/socks.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "sox",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "054B60E40169A367F0AD3976EBC2827F1381627842497AC736CFB269B347563F",
+      "cSources": [
+        "sox_native.c"
+      ],
+      "xlSources": [
+        "src/sox.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "sqlite",
+      "public": true,
+      "version": "0.1.0",
+      "manifestSha256": "860BFDD5225165579C33CCAD8BD301D3B15EE0FD6C27834C58A6EDD1EA2DD5B4",
+      "cSources": [
+        "sqlite_native.c",
+        "third_party/sqlite3.c"
+      ],
+      "xlSources": [
+        "src/sqlite.xl"
+      ],
+      "coverageTests": [
+        "test/boundaries.xl",
+        "test/file.xl"
+      ],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": true,
+      "siteSource": true,
+      "directSitePage": true,
+      "generatedSitePage": true,
+      "siteIdentical": true
+    },
+    {
+      "name": "srt",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "DBCF6805D1B9E2E791BF3B9695931E81FFE8143B82646818F21EEFF8E4FFABA2",
+      "cSources": [
+        "srt_native.c"
+      ],
+      "xlSources": [
+        "src/srt.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "stablediffusion",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "77D06659A36D80A38D1122FBB6E08C29B451010FD9DA864AC9C49ABFB9650584",
+      "cSources": [
+        "stablediffusion_native.c"
+      ],
+      "xlSources": [
+        "src/stablediffusion.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "statistics",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "818D23241D18C585202C3517D2FB69536BD1C57F9762A9BBFAC6ACE3D2D67967",
+      "cSources": [
+        "statistics_native.c"
+      ],
+      "xlSources": [
+        "src/statistics.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "stb_image",
+      "public": true,
+      "version": "0.1.0",
+      "manifestSha256": "99797C25365D644926799D029EE3696DB1E06DF0959A570DA5E9EBA33B7BA04D",
+      "cSources": [
+        "stb_image_native.c"
+      ],
+      "xlSources": [
+        "src/stb_image.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "stb_image_resize2",
+      "public": true,
+      "version": "0.1.0",
+      "manifestSha256": "FF6CB686725DEB6A8C451E222B8DC68ECCE6954DF20FDAC0E3F7AD5AE9B4693C",
+      "cSources": [
+        "stb_image_resize2_native.c"
+      ],
+      "xlSources": [
+        "src/stb_image_resize2.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "stb_image_write",
+      "public": true,
+      "version": "0.1.0",
+      "manifestSha256": "98A37EFEB1160DE4DF30732B81F38989B042C05901F8BDB633B8C306E46FFDC1",
+      "cSources": [
+        "stb_image_write_native.c"
+      ],
+      "xlSources": [
+        "src/stb_image_write.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "stb_truetype",
+      "public": true,
+      "version": "0.1.0",
+      "manifestSha256": "A63EB74C907967DB7326A99E97089D00355BC9C8B30A8C1F3C0E47321C57CF20",
+      "cSources": [
+        "stb_truetype_native.c"
+      ],
+      "xlSources": [
+        "src/stb_truetype.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "sysinfo",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "B4DE2A857E6C7E09147B66309596F588F0436980603A8225E0DC71CF28769A3C",
+      "cSources": [
+        "sysinfo_native.c"
+      ],
+      "xlSources": [
+        "src/sysinfo.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "platform"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "tabulate",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "DAD8ADA1E145E4D04303596846928ED4D2AA3133069A6A0642D41FA68CD82B14",
+      "cSources": [
+        "tabulate_native.c"
+      ],
+      "xlSources": [
+        "src/tabulate.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "taglib",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "7355D3D4DFA7ED8B6F69E79B30BA67C906893053BA1B7E1D5B68307BC7232F3E",
+      "cSources": [
+        "taglib_native.c"
+      ],
+      "xlSources": [
+        "src/taglib.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "tar",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "BE35FF39BA07B61C2CF9711CDA16D92BFE7C0F652818232A88FB8371EE83C473",
+      "cSources": [
+        "xrt_tar_common.c",
+        "xrt_tar_reader.c",
+        "xrt_tar_writer.c",
+        "xrt_tar_extract.c",
+        "tar_native.c"
+      ],
+      "xlSources": [
+        "src/tar.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "tdengine",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "37BCBB1382B45F0D0BE0098368995AB60179950A59AE1F96016EE56D0FAF1F72",
+      "cSources": [
+        "tdengine_native.c"
+      ],
+      "xlSources": [
+        "src/tdengine.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "tensorrt",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "CB906837F99AD07822F0A81D7F33B6582E036204F297FE905209528733A60B85",
+      "cSources": [
+        "tensorrt_native.c"
+      ],
+      "xlSources": [
+        "src/tensorrt.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "terraform_state",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "5220E109EC682DF2463062A87DB05177EC62B27B6942F2FB894ECE06D9E84AFE",
+      "cSources": [
+        "terraform_state_native.c"
+      ],
+      "xlSources": [
+        "src/terraform_state.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "tokenizers",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "0CEC2904C6B9235A8C1756386833FA936CBD2A4DA891C65F40DE9CECD2C624F5",
+      "cSources": [
+        "tokenizers_native.c"
+      ],
+      "xlSources": [
+        "src/tokenizers.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "toml",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "99A4C570AADA00169301E08E597ACF69ABF022EEA368DB2A509E9BCD320B76EC",
+      "cSources": [
+        "xrt_toml_types.c",
+        "xrt_toml_parser.c",
+        "xrt_toml_writer.c",
+        "toml_native.c"
+      ],
+      "xlSources": [
+        "src/toml.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "totp",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "C9CC051D12DAA76AD206E47AD1F2697D479D17BD3FBF4BDB86D3B8F822D6C81D",
+      "cSources": [
+        "totp_native.c"
+      ],
+      "xlSources": [
+        "src/totp.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "treesitter",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "C4CE59D9B2616BF9B40429A64F843D5A06988D95DFDA24F7996725CE88573B8B",
+      "cSources": [
+        "treesitter_native.c"
+      ],
+      "xlSources": [
+        "src/treesitter.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "trie",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "1E54685DEC5782338C61EC64F6249BB8C91D9E39F9AC82497A389E896FB72382",
+      "cSources": [
+        "trie_native.c"
+      ],
+      "xlSources": [
+        "src/trie.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "ui.auto",
+      "public": true,
+      "version": "0.1.0",
+      "manifestSha256": "0EE861A3F2561378D7D90FB45A8D9A1E3023DC4C09CAF31D1BB75C7C6AACAB5B",
+      "cSources": [],
+      "xlSources": [
+        "src/auto.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "platform"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "uia",
+      "public": true,
+      "version": "0.1.0",
+      "manifestSha256": "6702C882F2C03DC829645207D73BC4A812056926DE1211F55721ED1E44DAD524",
+      "cSources": [
+        "x_uia_artifact.c"
+      ],
+      "xlSources": [
+        "src/uia.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "platform"
+      ],
+      "issues": [],
+      "focusedCase": false,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "units",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "F22F961723D5C71A66F5A6CD61B46B61B3A876D4DAB672C6FA4B452183231A1F",
+      "cSources": [
+        "units_native.c"
+      ],
+      "xlSources": [
+        "src/units.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "upnp",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "3087CE327CAE8115A5E66DA50B642B9922E5FBEF32E3E3D48454EB0E4D788E76",
+      "cSources": [
+        "upnp_native.c"
+      ],
+      "xlSources": [
+        "src/upnp.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "vault",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "BF03BC023C61390D2FE0C35C5A56AB5D66BC15142F5429997448BC52EC8CB7E2",
+      "cSources": [
+        "vault_native.c"
+      ],
+      "xlSources": [
+        "src/vault.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "vcard",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "05F4ED857406B976F237557074A56D3A0EAB534C41AC6F5D4DE0923535F29F2B",
+      "cSources": [
+        "vcard_native.c"
+      ],
+      "xlSources": [
+        "src/vcard.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "vectordb",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "307C09ACD59E301B10AB855BCCEAF7A1CC8295F1365D6D9BAAA6AF20D864C56A",
+      "cSources": [
+        "vectordb_native.c"
+      ],
+      "xlSources": [
+        "src/vectordb.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "volc.core",
+      "public": true,
+      "version": "0.1.0",
+      "manifestSha256": "963EE0B1F41A2A04F063B07D5956983447575872C854E0C43D9CCB4CEE4413ED",
+      "cSources": [
+        "x_volc_core_native.c"
+      ],
+      "xlSources": [
+        "src/volc_core.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "volc.phone",
+      "public": true,
+      "version": "0.1.0",
+      "manifestSha256": "2DF2CCA0F412B79BC59F1BF7B55836041B31B611424CA771E5E98EDDA9E30077",
+      "cSources": [
+        "x_volc_phone_native.c"
+      ],
+      "xlSources": [
+        "src/phone.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": false,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "volc.sts",
+      "public": true,
+      "version": "0.1.0",
+      "manifestSha256": "C2CAF8DE7790F4D197AD7A6FD09740B7276D57EF41AA81A9EC829B46E20CF78C",
+      "cSources": [],
+      "xlSources": [
+        "src/sts.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": false,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "watch",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "F66FBBBA703AA20D3191D877C427B96C2926660A560DAB33D1FDE935EA3223B9",
+      "cSources": [
+        "watch_native.c"
+      ],
+      "xlSources": [
+        "src/watch.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "platform"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "webrtc",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "A003E1280436C4F52F60060D78A92794FBECF2C22A6F8982282CF1EB46C2E463",
+      "cSources": [
+        "webrtc_native.c"
+      ],
+      "xlSources": [
+        "src/webrtc.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "webview",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "AC1763C5BA8D61116838066F390060FD88AB36FCB3FCC6C245C4ECDE1C19E406",
+      "cSources": [
+        "webview_native.c"
+      ],
+      "xlSources": [
+        "src/webview.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "whisper",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "31FC1B57188F7514253334D322AC87CC41F20F2F1261150CDAB37B5229B44FEA",
+      "cSources": [
+        "whisper_native.c"
+      ],
+      "xlSources": [
+        "src/whisper.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "xbot",
+      "public": true,
+      "version": "0.1.0",
+      "manifestSha256": "0CE04ECDBB401496FF2AE91521E74222AE5E9A84DA53763C4A12EAE122A313F8",
+      "cSources": [],
+      "xlSources": [
+        "src/xbot_core_types.xl"
+      ],
+      "coverageTests": [
+        "test/xbot_test.xl"
+      ],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "xbot.agent",
+      "public": true,
+      "version": "0.1.0",
+      "manifestSha256": "63F7CAE0A5A8B7A70F6310ABA3A3FA7EB8935CE06666EFD3487FABF179461E64",
+      "cSources": [],
+      "xlSources": [
+        "src/agent.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "xfeat",
+      "public": true,
+      "version": "0.1.0",
+      "manifestSha256": "79FD0E04822DCC8D3087A770F04F8F8F4A5425C4818DA697DCA1C919BEED22AA",
+      "cSources": [
+        "src/xfeat_artifact.c"
+      ],
+      "xlSources": [
+        "src/xfeat.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "xge",
+      "public": true,
+      "version": "2.0.0",
+      "manifestSha256": "4B96596B2BF7703D40F9508D8F134077E4B36B61667EEADF76F8F515542B5965",
+      "cSources": [],
+      "xlSources": [
+        "src/xge_core.xl",
+        "src/xge_bridge.xl",
+        "src/xge_render.xl",
+        "src/xge_texture.xl",
+        "src/xge_font.xl",
+        "src/xge_audio.xl",
+        "src/xge_input.xl",
+        "src/xge_shape.xl",
+        "src/xge_scene.xl",
+        "src/xge_async.xl",
+        "src/xge_platform.xl",
+        "src/xge_oop.xl"
+      ],
+      "coverageTests": [
+        "test/import.xl"
+      ],
+      "registration": [],
+      "issues": [],
+      "focusedCase": false,
+      "example": false,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "xge_shape_ex",
+      "public": true,
+      "version": "2.0.0",
+      "manifestSha256": "ABF6C06B6D59FB061DFA718174AFF3F643E2F2F250216930D205D1E1E6C0CE41",
+      "cSources": [],
+      "xlSources": [
+        "src/xge_shape_ex.xl",
+        "src/xge_svg.xl",
+        "src/xge_shape_ex_oop.xl"
+      ],
+      "coverageTests": [
+        "test/import.xl"
+      ],
+      "registration": [],
+      "issues": [],
+      "focusedCase": false,
+      "example": false,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "xhttp",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "AFE1437CD8C931DAD81C4D9098FA0C9335711FDD24D9B15ACDAAA198928BD3C9",
+      "cSources": [
+        "src/url/url.c",
+        "src/url/query.c",
+        "src/url/query_codec.c",
+        "src/url/form.c",
+        "src/url/query_params.c",
+        "src/xlang/xhttp_native_common.c",
+        "src/xlang/xhttp_native_url.c",
+        "src/xlang/xhttp_native_query.c"
+      ],
+      "xlSources": [
+        "src/xlang/xhttp.xl"
+      ],
+      "coverageTests": [
+        "test/xhttp_url_test.xl",
+        "test/xhttp_query_test.xl"
+      ],
+      "registration": [],
+      "issues": [],
+      "focusedCase": false,
+      "example": false,
+      "rootReadme": true,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "xhttp.body",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "ACE51C033CEC581D0BAEB19BCBAD6382DFC9A8A314C43586D10E1EE2BC1AA1E6",
+      "cSources": [
+        "src/http/http_body.c",
+        "src/http/http_body_compose.c",
+        "src/xlang/xhttp_body_native_common.c",
+        "src/xlang/xhttp_body_native.c"
+      ],
+      "xlSources": [
+        "src/xlang/xhttp_body.xl"
+      ],
+      "coverageTests": [
+        "test/xhttp_body_test.xl"
+      ],
+      "registration": [],
+      "issues": [],
+      "focusedCase": false,
+      "example": false,
+      "rootReadme": true,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "xhttp.body_async",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "3B914D61561A9B5892765592C4AFB7073D31198FABD8C4C51BFBB7D1B6F1C3FF",
+      "cSources": [
+        "src/http/http_body_async.c",
+        "src/xlang/xhttp_body_async_native.c"
+      ],
+      "xlSources": [
+        "src/xlang/xhttp_body_async.xl"
+      ],
+      "coverageTests": [
+        "test/xhttp_body_async_test.xl"
+      ],
+      "registration": [],
+      "issues": [],
+      "focusedCase": false,
+      "example": false,
+      "rootReadme": true,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "xhttp.body_codec",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "E92E245E2D7B9CCDD4521744CFD78BD48379F1B729C7D9691A55D7D8129C8C8F",
+      "cSources": [
+        "src/http/http_body_transform.c",
+        "src/http/http_body_deflate.c",
+        "src/http/http_body_inflate.c",
+        "src/xlang/xhttp_body_codec_native.c"
+      ],
+      "xlSources": [
+        "src/xlang/xhttp_body_codec.xl"
+      ],
+      "coverageTests": [
+        "test/xhttp_body_codec_test.xl"
+      ],
+      "registration": [],
+      "issues": [],
+      "focusedCase": false,
+      "example": false,
+      "rootReadme": true,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "xhttp.body_decode",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "F5F2C5ECA39385831A48FC69D875ED1ED2CCFD599D4F9C9765E532A60EFD14FF",
+      "cSources": [
+        "src/http/http_body_decode.c",
+        "src/xlang/xhttp_body_decode_native.c"
+      ],
+      "xlSources": [
+        "src/xlang/xhttp_body_decode.xl"
+      ],
+      "coverageTests": [
+        "test/xhttp_body_decode_test.xl"
+      ],
+      "registration": [],
+      "issues": [],
+      "focusedCase": false,
+      "example": false,
+      "rootReadme": true,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "xhttp.body_file",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "5FCFA711E3BD4E080873793BDAAF5F8AD6954901E9861A97C3FFB685BB983A26",
+      "cSources": [
+        "src/http/http_body_file.c",
+        "src/xlang/xhttp_body_file_native.c"
+      ],
+      "xlSources": [
+        "src/xlang/xhttp_body_file.xl"
+      ],
+      "coverageTests": [
+        "test/xhttp_body_file_test.xl"
+      ],
+      "registration": [],
+      "issues": [],
+      "focusedCase": false,
+      "example": false,
+      "rootReadme": true,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "xhttp.body_stream",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "71C2435729FDDB4CA0C709BA2AB2D1FF011D844CCDCBFF7D28C59BC0F19F79F4",
+      "cSources": [
+        "src/http/http_body_stream.c",
+        "src/xlang/xhttp_body_stream_native.c"
+      ],
+      "xlSources": [
+        "src/xlang/xhttp_body_stream.xl"
+      ],
+      "coverageTests": [
+        "test/xhttp_body_stream_test.xl"
+      ],
+      "registration": [],
+      "issues": [],
+      "focusedCase": false,
+      "example": false,
+      "rootReadme": true,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "xhttp.client",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "85F945A4D525AC685B8DB3DEB09C2B104BCD3581E14EBCE0C6C708F4CC375E0F",
+      "cSources": [
+        "src/http/http_client_request.c",
+        "src/http/http_client_request_trailers.c",
+        "src/http/http_client_request_te.c",
+        "src/http/http_client_request_query.c",
+        "src/http/http_client_request_form.c",
+        "src/http/http_client_request_form_data.c",
+        "src/http/http_client_prepare.c",
+        "src/http/http_client_response.c",
+        "src/http/http_client_exchange.c",
+        "src/http/http_client_exchange_output.c",
+        "src/http/http_client_exchange_input.c",
+        "src/http/http_client_stream.c",
+        "src/http/http_client_runtime.c",
+        "src/http/http_client_tcp.c",
+        "src/http/http_client_future.c",
+        "src/http/http_client_https.c",
+        "src/xlang/xhttp_client_native_common.c",
+        "src/xlang/xhttp_client_native_request.c",
+        "src/xlang/xhttp_client_native_response.c",
+        "src/xlang/xhttp_client_native_exchange.c",
+        "src/xlang/xhttp_client_native_transport.c"
+      ],
+      "xlSources": [
+        "src/xlang/xhttp_client.xl"
+      ],
+      "coverageTests": [
+        "test/xhttp_client_request_test.xl",
+        "test/xhttp_client_exchange_test.xl",
+        "test/xhttp_client_transport_test.xl"
+      ],
+      "registration": [],
+      "issues": [],
+      "focusedCase": false,
+      "example": false,
+      "rootReadme": true,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "xhttp.form_data",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "D04F181854FA7EE4D2BE4C9D94A829B95CB8DA3E43D63E9DA5EC3D58906BCB62",
+      "cSources": [
+        "src/http/form_data.c",
+        "src/http/form_data_multipart.c",
+        "src/http/form_data_parse.c",
+        "src/xlang/xhttp_form_data_native_common.c",
+        "src/xlang/xhttp_form_data_native.c",
+        "src/xlang/xhttp_form_data_native_parse.c"
+      ],
+      "xlSources": [
+        "src/xlang/xhttp_form_data.xl"
+      ],
+      "coverageTests": [
+        "test/xhttp_form_data_test.xl"
+      ],
+      "registration": [],
+      "issues": [],
+      "focusedCase": false,
+      "example": false,
+      "rootReadme": true,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "xhttp.multipart",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "E91690DBAD4DE28C4D2D3FE642782AD40BBF6FB5354B22938F370CB922F01B2D",
+      "cSources": [
+        "src/http/http_language_common.c",
+        "src/http/http_ext_value.c",
+        "src/http/http_content_disposition.c",
+        "src/http/multipart.c",
+        "src/http/multipart_write.c",
+        "src/http/multipart_stream.c",
+        "src/http/multipart_random.c",
+        "src/xlang/xhttp_multipart_native_common.c",
+        "src/xlang/xhttp_multipart_native_parser.c",
+        "src/xlang/xhttp_multipart_native_writer.c",
+        "src/xlang/xhttp_multipart_native_stream.c"
+      ],
+      "xlSources": [
+        "src/xlang/xhttp_multipart.xl"
+      ],
+      "coverageTests": [
+        "test/xhttp_multipart_test.xl"
+      ],
+      "registration": [],
+      "issues": [],
+      "focusedCase": false,
+      "example": false,
+      "rootReadme": true,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "xhttp.protocol",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "AE1F41E47403D717F1BCB06DE2637352F0F3222C2446709B3D8488FC7917CE79",
+      "cSources": [
+        "src/http/http_headers.c",
+        "src/http/cookie.c",
+        "src/http/set_cookie.c",
+        "src/http/mime.c",
+        "src/http/mime_types.c",
+        "src/xlang/xhttp_protocol_native_common.c",
+        "src/xlang/xhttp_protocol_native_headers.c",
+        "src/xlang/xhttp_protocol_native_cookie.c",
+        "src/xlang/xhttp_protocol_native_mime.c"
+      ],
+      "xlSources": [
+        "src/xlang/xhttp_protocol.xl"
+      ],
+      "coverageTests": [
+        "test/xhttp_protocol_headers_test.xl",
+        "test/xhttp_protocol_cookie_test.xl",
+        "test/xhttp_protocol_mime_test.xl"
+      ],
+      "registration": [],
+      "issues": [],
+      "focusedCase": false,
+      "example": false,
+      "rootReadme": true,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "xlsx",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "62FC2DD536A5C4851A83F3A9C469D8E85A7E241549E34A3BC7B9029192BAA012",
+      "cSources": [
+        "xlsx_native.c"
+      ],
+      "xlSources": [
+        "src/xlsx.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "xmail",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "7B630B604BD1AED1A451942A4FED1702191B71919753F89B6F4A4124784CC204",
+      "cSources": [
+        "xmail_native.c"
+      ],
+      "xlSources": [
+        "src/xlang/xmail.xl"
+      ],
+      "coverageTests": [
+        "test/xmail_test.xl",
+        "test/xmail_smtp_loopback_test.xl",
+        "test/xmail_pop3_loopback_test.xl",
+        "test/xmail_imap_loopback_test.xl"
+      ],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": true,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "xml.dom",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "7F82FCAB59F561D50FFE5EB67A344922643492C54ADC6240076C4725B724CF49",
+      "cSources": [
+        "xrt_xml_dom_tree.c",
+        "xrt_xml_dom_parser.c",
+        "xrt_xml_dom_writer.c",
+        "xml_dom_native.c"
+      ],
+      "xlSources": [
+        "src/dom.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "xml.etree",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "A8748474975331F7A7587B3627D6EDA5D9B043CCF696E4CF06132DBB82841828",
+      "cSources": [
+        "xrt_xml_etree_tree.c",
+        "xrt_xml_etree_parser.c",
+        "xrt_xml_etree_writer.c",
+        "xml_etree_native.c"
+      ],
+      "xlSources": [
+        "src/etree.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "xml.sax",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "7A77454C0AFE2B89D5B2DB83D5FCB98A891AA6DBBC856577D292D3DCFAF0E847",
+      "cSources": [
+        "xrt_xml_common.c",
+        "xrt_xml_sax.c",
+        "xml_sax_native.c"
+      ],
+      "xlSources": [
+        "src/sax.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "xregex",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "7B8135E3BA8A7DDCD3FC6E2AC53BB0C6DB7699FEC1379C6DD212A37D487FF504",
+      "cSources": [
+        "xregex_engine.c",
+        "src/text/regex_core.c",
+        "src/text/regex_escape.c",
+        "src/text/regex_match.c",
+        "src/text/regex_replace.c",
+        "src/text/regex_set.c",
+        "src/text/regex_split.c",
+        "xregex_native.c"
+      ],
+      "xlSources": [
+        "src/xlang/xregex.xl"
+      ],
+      "coverageTests": [
+        "test/xregex_test.xl",
+        "test/xregex_lifetime_test.xl"
+      ],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": true,
+      "siteSource": true,
+      "directSitePage": true,
+      "generatedSitePage": true,
+      "siteIdentical": true
+    },
+    {
+      "name": "xssh",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "48A43F8A0357A56AC3B36AF8B8A44BD3752A78B70B7B758590C1C52C21395E35",
+      "cSources": [
+        "xssh_native.c"
+      ],
+      "xlSources": [
+        "src/xlang/xssh.xl"
+      ],
+      "coverageTests": [
+        "test/xssh_test.xl"
+      ],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": true,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "xui",
+      "public": true,
+      "version": "2.0.0",
+      "manifestSha256": "4C7D1942F475778D25C177E29F818453A26756E3FF0443BC1013395D65B4F147",
+      "cSources": [],
+      "xlSources": [
+        "src/xui_core.xl",
+        "src/xui_widget.xl",
+        "src/xui_controls.xl",
+        "src/xui_containers.xl",
+        "src/xui_data.xl",
+        "src/xui_overlay.xl",
+        "src/xui_picker.xl",
+        "src/xui_advanced.xl",
+        "src/xui_style.xl",
+        "src/xui_surface.xl",
+        "src/xui_input.xl",
+        "src/xui_icon.xl",
+        "src/xui_i18n.xl",
+        "src/xui_oop.xl"
+      ],
+      "coverageTests": [
+        "test/import.xl"
+      ],
+      "registration": [],
+      "issues": [],
+      "focusedCase": false,
+      "example": false,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "xws",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "0C03315A093788C4166FC0D2A88FCE48696B7B075492D89197DD117FB0503FA9",
+      "cSources": [
+        "src/websocket/connection.c",
+        "src/websocket/connection_ref.c",
+        "src/websocket/writer.c",
+        "src/websocket/writer_deflate.c",
+        "src/websocket/connection_future.c",
+        "src/websocket/group.c",
+        "src/websocket/group_future.c",
+        "src/websocket/group_broadcast.c",
+        "src/xlang/xws_native_common.c",
+        "src/xlang/xws_native_connection.c",
+        "src/xlang/xws_native_writer.c",
+        "src/xlang/xws_native_group.c"
+      ],
+      "xlSources": [
+        "src/xlang/xws.xl"
+      ],
+      "coverageTests": [
+        "test/xws_test.xl",
+        "test/xws_loopback_test.xl",
+        "test/xws_tls_loopback_test.xl"
+      ],
+      "registration": [],
+      "issues": [],
+      "focusedCase": false,
+      "example": false,
+      "rootReadme": true,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": false,
+      "siteIdentical": false
+    },
+    {
+      "name": "xxhash",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "1CD69C62C12A312C1B5BB1005B8100F5A260330AC9E0E6EA7AC0C9E4A7DC9DEF",
+      "cSources": [
+        "xrt_xxhash.c",
+        "xxhash_native.c",
+        "third_party/xxhash.c"
+      ],
+      "xlSources": [
+        "src/xxhash.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "featured"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": true,
+      "siteSource": true,
+      "directSitePage": true,
+      "generatedSitePage": true,
+      "siteIdentical": true
+    },
+    {
+      "name": "yaml",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "467A0D394085A7E9F2A2210F5C97EF15F7A7F167F0446DBC197988D5D98D3F29",
+      "cSources": [
+        "yaml_native.c"
+      ],
+      "xlSources": [
+        "src/yaml.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "zeromq",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "5704C92774AC12A04445B0E3370D24B52A6C6ABC4E9106057BB1BA06464B7E13",
+      "cSources": [
+        "zeromq_native.c"
+      ],
+      "xlSources": [
+        "src/zeromq.xl"
+      ],
+      "coverageTests": [],
+      "registration": [],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "zip",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "CA657C7F42627F7C9FBFB6E88ACB4C5BE55D06DF24EE56C4D97375772E536255",
+      "cSources": [
+        "xrt_zip_source.c",
+        "xrt_zip_archive.c",
+        "xrt_zip_extract.c",
+        "zip_native.c"
+      ],
+      "xlSources": [
+        "src/zip.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "phase1"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": false,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    },
+    {
+      "name": "zstd",
+      "public": true,
+      "version": "1.0.0",
+      "manifestSha256": "80FB54021DE15168197A2D588B7AB82E4797A2FADA53C41BE7786B4E0A5F070C",
+      "cSources": [
+        "xrt_zstd.c",
+        "zstd_native.c",
+        "third_party/zstd.c"
+      ],
+      "xlSources": [
+        "src/zstd.xl"
+      ],
+      "coverageTests": [],
+      "registration": [
+        "featured"
+      ],
+      "issues": [],
+      "focusedCase": true,
+      "example": true,
+      "rootReadme": false,
+      "siteSource": false,
+      "directSitePage": true,
+      "generatedSitePage": true,
+      "siteIdentical": false
+    }
+  ],
+  "staleGeneratedPages": [
+    "_xge_native.html",
+    "ceres.html",
+    "eigen.html",
+    "fftw.html",
+    "gdal.html",
+    "geos.html",
+    "gmp.html",
+    "gsl.html",
+    "kafka.html",
+    "lapack.html",
+    "lightgbm.html",
+    "mail_imap.html",
+    "mail_mime.html",
+    "mail_pop3.html",
+    "mail_smtp.html",
+    "mpfr.html",
+    "ncurses.html",
+    "nlopt.html",
+    "parquet.html",
+    "pkg_math.html",
+    "plot.html",
+    "proj.html",
+    "pulsar.html",
+    "rdkit.html",
+    "s2geometry.html",
+    "ssh.html",
+    "ta_lib.html",
+    "unqlite.html",
+    "xbot_all.html",
+    "xbot_core.html",
+    "xgboost.html"
+  ]
+}

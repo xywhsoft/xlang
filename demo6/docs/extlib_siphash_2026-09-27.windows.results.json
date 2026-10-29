@@ -1,0 +1,800 @@
+{
+    "date":  "2026-09-27T12:39:51.6685723+08:00",
+    "outcome":  "passed",
+    "scope":  "SipHash-2-4: 128 official answers, 4 keys x 8 alignments x 81 lengths, split streams, strict 16-byte keys, UTF-8/Buffer, unsigned results, state/readers/callbacks, exact generated ABI, four independent threads, 192 ordinary/temp allocation failure positions, paired C/XL JIT/AOT/GCC examples and pinned reference goldens; not Linux XL, big-endian, 32-bit/ARM or performance certification",
+    "generatedPrototypes":  41,
+    "inputs":  {
+                   ".gitattributes":  "70CACAD34D30DB619A96DE70B8A5D3C6CCC69AB733C74DCBFCDA8EB8FA95D1B0",
+                   "lib/xrt/xrt.h":  "7C78B4B3D13FC64AC1009E2EDFAE73E9FB092C896DA1A70CF5BE859D153851E8",
+                   "lib/xruntime/xruntime.h":  "FF23FDB9AC90F63DEED1606A78F21707A9FA677AA766044B8AF3B4F5202F4BA9",
+                   "release/examples/extlibs/siphash.expected.txt":  "747DF6263C66EEC3CA38C402C1BF067EEC086DDD92DA7B0E952DD999AEC75F6B",
+                   "release/examples/extlibs/siphash.xl":  "D8FFC68B10EFA1312CA28BA434B792CE63EC9A9B2D1EA30C71D0F40E71291D7B",
+                   "release/examples/extlibs/siphash_basic.expected.txt":  "9347F5AEB8453CD2353E5AAFB852571B77E0D9399B860002AB0382897B6809BB",
+                   "release/examples/extlibs/siphash_basic.xl":  "D8ED8505C645C48C6801BC80FC947CBDD119B5EA6CF6089D0DDF1710EFD6103F",
+                   "release/extlibs/siphash/docs/site.html":  "1A97F60430C35180348A0319A50F2DE24DA2AE4CD970B49E2115501FEF72261F",
+                   "release/extlibs/siphash/examples/basic.c":  "93446D78864B1D654076601CD6A2E59DFB7EC4D1941FEBA16CB267E03B275C8A",
+                   "release/extlibs/siphash/examples/files.c":  "82472A199A7233AA46636BD05730C40ACD081BB9CCB3336236DE014A1982A3EE",
+                   "release/extlibs/siphash/include/siphash_native.h":  "2792597C73FFE1321E925EF4E72F015439950121F01A287D5A600BF856CCE8D0",
+                   "release/extlibs/siphash/include/xrt_siphash.h":  "72C36633E62B65205B94748D3D939C03C9E013464ACD0F8137200FFC5AB49C15",
+                   "release/extlibs/siphash/README.md":  "23D2BA3648F7A37E0548E97794A24E55E22D5977B2763CC867BE39721B5067AE",
+                   "release/extlibs/siphash/siphash_native.c":  "BEB34AC30FD018B2A56C624F4B74626752E920DCC30C84B8DF3EC12A9453C2CC",
+                   "release/extlibs/siphash/src/siphash.xl":  "87729525B3E0876B92443AB0F75519D3371895BF0D1A449C02A6472B9718B7EB",
+                   "release/extlibs/siphash/test/reference/LICENSE_CC0":  "5537D4D10B76B81B6E8DFD8B644480A4B1EFA332FBB0CDB61126C5BE781EF7B4",
+                   "release/extlibs/siphash/test/reference/LICENSE_MIT":  "F2E682ACDA10FEAD70F7A72918F5B229DB02AAEA32769A62C1378654E942BC98",
+                   "release/extlibs/siphash/test/reference/siphash.c":  "94B6C1F3A24072A8A5AFC4FEA7FB9E95C5FC2E99657B6B712D991029FFDAA88C",
+                   "release/extlibs/siphash/test/reference/siphash.h":  "30D4269093E5886CB9E7EA826899EF02DADDAC682E73C335C53DD748B9E20BFB",
+                   "release/extlibs/siphash/test/reference/vectors.h":  "212C44114A63C6D84710B8627F3BC5CE155698ACCF2EA7BBFF1C4B69C9F48D31",
+                   "release/extlibs/siphash/test/reference_examples.c":  "B4FFEEFA0B2BAB421C6295B8850E1E9A228884AA701220F3DBF2A7C5680D6F7A",
+                   "release/extlibs/siphash/test/test_siphash.c":  "877603E9BD4B07CE52C53C5E7CAAC4B12E4B461D3E8186F130AF225EAB0B29F7",
+                   "release/extlibs/siphash/test/test_siphash_native.c":  "029C5A3F915F725C11DED334F58180D76E16DDB9D533DAA245AA1BF1059BE74A",
+                   "release/extlibs/siphash/test/test_siphash_standalone.c":  "353CFE6BBF97EFFB846F43A2AAB6AFC836F18E854157FBBC04614582BAB018F2",
+                   "release/extlibs/siphash/third_party/PROVENANCE.md":  "A57E4A8DFF4AFA66966292A6999F8E19520E85F31EC11329D2ADD1280F126F82",
+                   "release/extlibs/siphash/third_party/siphash.c":  "25225DAD0C5C87E321E2DD76F6F0A2B74B1A140884BE72EF094D6CC99C35CFAF",
+                   "release/extlibs/siphash/third_party/siphash.h":  "CC1B56FC0317530B3A3A5867210D28FF0CFFD59771D63DE8F777C707DA0314A4",
+                   "release/extlibs/siphash/xlang.package.json":  "22AF968BD9E3AD886BADEF8F77665E00549AD827D123D47B6E3280E60306A825",
+                   "release/extlibs/siphash/xrt_siphash.c":  "E7E5EB9083067D2CFC0A394E6F5E06823C82E8AB85EE5424A4E8F6DE9AC5EB58",
+                   "release/include/xrt_decl.h":  "3356BCCABBCBC877AD19C5E2D3336C909C2A742DE62E7B92BB79FE2AF3F4CEE6",
+                   "release/include/xruntime_decl.h":  "4B7CFAA2015F39E08159F4B10108B9BB1764D2370074333335651FE5C1BA87AC",
+                   "release/xl.dll":  "2A07C481C04CAD71D31D46722A27E62027318DF24E95A63126E061FD4CA46902",
+                   "release/xl.exe":  "5A3F20B4CF9333D393560CB2361D0EBAB8A13F0D07C64A78A1F5FFF5385D9EEB",
+                   "release/xlc.dll":  "7C672FD0B2852690D09E2EF1046C56EE1586FD1FCCC0CAEA61E19C0FE7C6E1F0",
+                   "test/cases/extlib_siphash.xl":  "2245A2B23C8AC8CB823A0F38EC476F642436D9D7CD5BA8533C1B9342683BE57B",
+                   "test/cases/extlib_siphash_progress.xl":  "E92C0AC0EC0CC0B6FB789F98D08D58750DAF0B3D92DC9F7F74B52C0A5D67B682",
+                   "test/featured_extlibs.json":  "D71F74824883206BA945FC7AD1D694794711870E320822DEC9B3F9FD7AF54501",
+                   "test/suites/11_featured_extlibs_rc.bat":  "784FA1A607FF29E8605A8B592F3DED2F61BFDC48F59C8B82AD278B64E3AA7431",
+                   "test/support/extlib_codec_runtime.c":  "ACD01CA7C8ACFA2F63C1257DDA52A0B575C0F2679B5432588014023F105C65FA",
+                   "tools/check_extlib_siphash.ps1":  "4DB36E44ABC24AB2A5E81A7324B9CD727CC2B6AC9872503700A87DDBF2731ACF",
+                   "tools/check_extlib_siphash.sh":  "9CD437E8914C54BC0F2DCF323A32549BA8D4B3DB7E9A866D9E00F8ED35C5C51B",
+                   "tools/extlib_smoke_process.ps1":  "87C3D050B1F492E3F0C4307BA39F454E42B65E37DBCDEC4BE3E938BC2F32D2F7",
+                   "tools/run_extlib_c.ps1":  "0ABBC3A4B3B0AE45587CCBB069F075F3FBF965D6485FC176C51865FA293FEDA5",
+                   "tools/xlir_native_process.ps1":  "2BE2787D2316CE07E0D0AC3BDF1A1CAABA14D72F249CCAC847BB1C05D1DBFC9D"
+               },
+    "checks":  [
+                   {
+                       "name":  "runtime",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_HASH_KEYED",
+                                         "-DXRT_MODULE_THREAD",
+                                         "-DXRT_MODULE_ATOMIC",
+                                         "-DXRT_MODULE_CODEC_HEX",
+                                         "-DXRT_MODULE_BUFFER",
+                                         "-DXRT_MODULE_DIR",
+                                         "-DXRT_MODULE_FILE_WHOLE",
+                                         "-c",
+                                         "test/support/extlib_codec_runtime.c",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\runtime.o"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  6262,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "native-0",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_HASH_KEYED",
+                                         "-DXRT_MODULE_IO_BUFFER",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_BUFFER",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "-DXRT_MODULE_CODEC_HEX",
+                                         "-DXRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE",
+                                         "-c",
+                                         "release/extlibs/siphash/third_party/siphash.c",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\source-0.o"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  108,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "native-1",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_HASH_KEYED",
+                                         "-DXRT_MODULE_IO_BUFFER",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_BUFFER",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "-DXRT_MODULE_CODEC_HEX",
+                                         "-DXRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE",
+                                         "-c",
+                                         "release/extlibs/siphash/xrt_siphash.c",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\source-1.o"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  234,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "native-2",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_HASH_KEYED",
+                                         "-DXRT_MODULE_IO_BUFFER",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_BUFFER",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "-DXRT_MODULE_CODEC_HEX",
+                                         "-DXRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE",
+                                         "-c",
+                                         "release/extlibs/siphash/siphash_native.c",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\source-2.o"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  330,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "standalone-build",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "release/extlibs/siphash/test/test_siphash_standalone.c",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\source-0.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\source-1.o",
+                                         "-lWs2_32",
+                                         "-lAdvapi32",
+                                         "-lm",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\standalone.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  1953,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "standalone",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\standalone.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  24,
+                       "stdout":  "siphash standalone: PASS\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "test_siphash-build",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_HASH_KEYED",
+                                         "-DXRT_MODULE_IO_BUFFER",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_BUFFER",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "-DXRT_MODULE_CODEC_HEX",
+                                         "-DXRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE",
+                                         "release/extlibs/siphash/test/test_siphash.c",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\runtime.o",
+                                         "-lWs2_32",
+                                         "-lAdvapi32",
+                                         "-lm",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\test_siphash.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  562,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "test_siphash",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\test_siphash.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  136,
+                       "stdout":  "siphash core: 128 official answers, 4 keys x 8 alignments x 81 lengths, splits, states and readers passed\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "test_siphash_native-build",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_HASH_KEYED",
+                                         "-DXRT_MODULE_IO_BUFFER",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_BUFFER",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "-DXRT_MODULE_CODEC_HEX",
+                                         "-DXRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE",
+                                         "release/extlibs/siphash/test/test_siphash_native.c",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\source-0.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\source-1.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\source-2.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\runtime.o",
+                                         "-lWs2_32",
+                                         "-lAdvapi32",
+                                         "-lm",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\test_siphash_native.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  480,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "test_siphash_native",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\test_siphash_native.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  30,
+                       "stdout":  "siphash allocations: rejected=26 completed=166\r\nsiphash native: all 43 bindings, 4 threads and temporary/Buffer lifetimes passed\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "core-c-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "release/extlibs/siphash/test/test_siphash.c",
+                                         "--inc-path",
+                                         "lib/xrt"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  420,
+                       "stdout":  "siphash core: 128 official answers, 4 keys x 8 alignments x 81 lengths, splits, states and readers passed\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "core-c-package-runner",
+                       "program":  "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+                       "arguments":  [
+                                         "-NoProfile",
+                                         "-ExecutionPolicy",
+                                         "Bypass",
+                                         "-File",
+                                         "tools/run_extlib_c.ps1",
+                                         "-Package",
+                                         "siphash",
+                                         "-Source",
+                                         "release/extlibs/siphash/test/test_siphash.c"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  735,
+                       "stdout":  "siphash core: 128 official answers, 4 keys x 8 alignments x 81 lengths, splits, states and readers passed\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_siphash-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "test/cases/extlib_siphash.xl"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  3353,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_siphash-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "test/cases/extlib_siphash.xl",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\extlib_siphash.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  4362,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_siphash-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\extlib_siphash.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  44,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_siphash-cgen",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "cgen",
+                                         "test/cases/extlib_siphash.xl",
+                                         "--emit",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\extlib_siphash.c"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  2298,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_siphash_progress-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "test/cases/extlib_siphash_progress.xl"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  1507,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_siphash_progress-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "test/cases/extlib_siphash_progress.xl",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\extlib_siphash_progress.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  1925,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_siphash_progress-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\extlib_siphash_progress.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  239,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_siphash_progress-cgen",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "cgen",
+                                         "test/cases/extlib_siphash_progress.xl",
+                                         "--emit",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\extlib_siphash_progress.c"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  957,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "generated-prototypes",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_HASH_KEYED",
+                                         "-DXRT_MODULE_IO_BUFFER",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_BUFFER",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "-DXRT_MODULE_CODEC_HEX",
+                                         "-DXRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE",
+                                         "-Irelease/extlibs/siphash/include",
+                                         "-fsyntax-only",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\abi.c"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  111,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "reference-build",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "release/extlibs/siphash/test/reference_examples.c",
+                                         "release/extlibs/siphash/test/reference/siphash.c",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\reference.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  186,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "reference-basic",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\reference.exe",
+                       "arguments":  [
+                                         "basic"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  49,
+                       "stdout":  "number=976762692030837533\r\ntag64=1d335a487e288e0d\r\ntag128=ad08be8d3ce901de53147aba7f767ceb\r\nbinary=58c5480b2798142913ef9be1dfe97476\r\nutf8-key=dd577f1192422b64\r\nstream=1d335a487e288e0d\r\nbranch=1b7e3a999a990ff4\r\ninput=3\r\nreset=true\r\nempty=b89eddd48ac332ae\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "reference-files",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\reference.exe",
+                       "arguments":  [
+                                         "files"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  20,
+                       "stdout":  "file128=ad08be8d3ce901de53147aba7f767ceb\r\ncallbacks=2\r\nbytes=16\r\nfile64=976762692030837533\r\ncancelled=true\r\ncallback-error=true\r\nbudget=true\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "siphash-example-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "release/examples/extlibs/siphash.xl"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  954,
+                       "stdout":  "file128=ad08be8d3ce901de53147aba7f767ceb\ncallbacks=2\nbytes=16\nfile64=976762692030837533\ncancelled=true\ncallback-error=true\nbudget=true\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "siphash-example-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "release/examples/extlibs/siphash.xl",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\siphash-example.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  1431,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "siphash-example-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\siphash-example.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  25,
+                       "stdout":  "file128=ad08be8d3ce901de53147aba7f767ceb\ncallbacks=2\nbytes=16\nfile64=976762692030837533\ncancelled=true\ncallback-error=true\nbudget=true\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "siphash_basic-example-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "release/examples/extlibs/siphash_basic.xl"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  937,
+                       "stdout":  "number=976762692030837533\ntag64=1d335a487e288e0d\ntag128=ad08be8d3ce901de53147aba7f767ceb\nbinary=58c5480b2798142913ef9be1dfe97476\nutf8-key=dd577f1192422b64\nstream=1d335a487e288e0d\nbranch=1b7e3a999a990ff4\ninput=3\nreset=true\nempty=b89eddd48ac332ae\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "siphash_basic-example-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "release/examples/extlibs/siphash_basic.xl",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\siphash_basic-example.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  1430,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "siphash_basic-example-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\siphash_basic-example.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  33,
+                       "stdout":  "number=976762692030837533\ntag64=1d335a487e288e0d\ntag128=ad08be8d3ce901de53147aba7f767ceb\nbinary=58c5480b2798142913ef9be1dfe97476\nutf8-key=dd577f1192422b64\nstream=1d335a487e288e0d\nbranch=1b7e3a999a990ff4\ninput=3\nreset=true\nempty=b89eddd48ac332ae\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-basic-build",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_HASH_KEYED",
+                                         "-DXRT_MODULE_IO_BUFFER",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_BUFFER",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "-DXRT_MODULE_CODEC_HEX",
+                                         "-DXRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE",
+                                         "release/extlibs/siphash/examples/basic.c",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\source-0.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\source-1.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\source-2.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\runtime.o",
+                                         "-lWs2_32",
+                                         "-lAdvapi32",
+                                         "-lm",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\c-basic.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  193,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-basic",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\c-basic.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  23,
+                       "stdout":  "number=976762692030837533\r\ntag64=1d335a487e288e0d\r\ntag128=ad08be8d3ce901de53147aba7f767ceb\r\nbinary=58c5480b2798142913ef9be1dfe97476\r\nutf8-key=dd577f1192422b64\r\nstream=1d335a487e288e0d\r\nbranch=1b7e3a999a990ff4\r\ninput=3\r\nreset=true\r\nempty=b89eddd48ac332ae\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-basic-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "release/extlibs/siphash/examples/basic.c",
+                                         "release/extlibs/siphash/third_party/siphash.c",
+                                         "release/extlibs/siphash/xrt_siphash.c",
+                                         "release/extlibs/siphash/siphash_native.c",
+                                         "--inc-path",
+                                         "lib/xrt",
+                                         "--inc-path",
+                                         "lib/xruntime"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  112,
+                       "stdout":  "number=976762692030837533\r\ntag64=1d335a487e288e0d\r\ntag128=ad08be8d3ce901de53147aba7f767ceb\r\nbinary=58c5480b2798142913ef9be1dfe97476\r\nutf8-key=dd577f1192422b64\r\nstream=1d335a487e288e0d\r\nbranch=1b7e3a999a990ff4\r\ninput=3\r\nreset=true\r\nempty=b89eddd48ac332ae\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-basic-aot-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "release/extlibs/siphash/examples/basic.c",
+                                         "release/extlibs/siphash/third_party/siphash.c",
+                                         "release/extlibs/siphash/xrt_siphash.c",
+                                         "release/extlibs/siphash/siphash_native.c",
+                                         "--inc-path",
+                                         "lib/xrt",
+                                         "--inc-path",
+                                         "lib/xruntime",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\c-basic-tcc.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  314,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-basic-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\c-basic-tcc.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  42,
+                       "stdout":  "number=976762692030837533\r\ntag64=1d335a487e288e0d\r\ntag128=ad08be8d3ce901de53147aba7f767ceb\r\nbinary=58c5480b2798142913ef9be1dfe97476\r\nutf8-key=dd577f1192422b64\r\nstream=1d335a487e288e0d\r\nbranch=1b7e3a999a990ff4\r\ninput=3\r\nreset=true\r\nempty=b89eddd48ac332ae\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-files-build",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_HASH_KEYED",
+                                         "-DXRT_MODULE_IO_BUFFER",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_BUFFER",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "-DXRT_MODULE_CODEC_HEX",
+                                         "-DXRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE",
+                                         "release/extlibs/siphash/examples/files.c",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\source-0.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\source-1.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\source-2.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\runtime.o",
+                                         "-lWs2_32",
+                                         "-lAdvapi32",
+                                         "-lm",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\c-files.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  205,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-files",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\c-files.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  24,
+                       "stdout":  "file128=ad08be8d3ce901de53147aba7f767ceb\r\ncallbacks=2\r\nbytes=16\r\nfile64=976762692030837533\r\ncancelled=true\r\ncallback-error=true\r\nbudget=true\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-files-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "release/extlibs/siphash/examples/files.c",
+                                         "release/extlibs/siphash/third_party/siphash.c",
+                                         "release/extlibs/siphash/xrt_siphash.c",
+                                         "release/extlibs/siphash/siphash_native.c",
+                                         "--inc-path",
+                                         "lib/xrt",
+                                         "--inc-path",
+                                         "lib/xruntime"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  115,
+                       "stdout":  "file128=ad08be8d3ce901de53147aba7f767ceb\r\ncallbacks=2\r\nbytes=16\r\nfile64=976762692030837533\r\ncancelled=true\r\ncallback-error=true\r\nbudget=true\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-files-aot-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "release/extlibs/siphash/examples/files.c",
+                                         "release/extlibs/siphash/third_party/siphash.c",
+                                         "release/extlibs/siphash/xrt_siphash.c",
+                                         "release/extlibs/siphash/siphash_native.c",
+                                         "--inc-path",
+                                         "lib/xrt",
+                                         "--inc-path",
+                                         "lib/xruntime",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\c-files-tcc.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  313,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-files-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\siphash_guard\\c-files-tcc.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  46,
+                       "stdout":  "file128=ad08be8d3ce901de53147aba7f767ceb\r\ncallbacks=2\r\nbytes=16\r\nfile64=976762692030837533\r\ncancelled=true\r\ncallback-error=true\r\nbudget=true\r\n",
+                       "stderr":  ""
+                   }
+               ]
+}

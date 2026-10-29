@@ -1,0 +1,332 @@
+{
+  "date": "2026-09-27T02:12:04.4753650+08:00",
+  "outcome": "passed",
+  "scope": "Windows C boundaries, 216 known answers, allocation failures, xlang/C JIT/AOT, callbacks and readers, generated ABI and paired examples",
+  "generatedPrototypes": 38,
+  "inputs": {
+    "lib/xrt/xrt.h": "7C78B4B3D13FC64AC1009E2EDFAE73E9FB092C896DA1A70CF5BE859D153851E8",
+    "lib/xruntime/xruntime.h": "FF23FDB9AC90F63DEED1606A78F21707A9FA677AA766044B8AF3B4F5202F4BA9",
+    "release/examples/extlibs/blake2_basic.expected.txt": "9B71764C1C347CB6C54816E49A3C8F57F0ECCBBB473159C4D071EE5C888DD16E",
+    "release/examples/extlibs/blake2_basic.xl": "052144336E143CD31A929AB8655E37828A2C08F5EF1976F9238BA8334E5DA010",
+    "release/examples/extlibs/blake2.xl": "AC92B7C318A6D3FD7B2190DE6D596B838B821D1D86E17E94827C91EEA5E150C6",
+    "release/extlibs/blake2/blake2_native.c": "8A88F03421D59343ACB1DBB894247C4EB07FB2FFA5AEAA3E4F84CE674A6B5508",
+    "release/extlibs/blake2/examples/basic.c": "2E692BDFE12D422AC61AC9979CD582ACE0F921BEE6F2B3ECD0431374DFB412B7",
+    "release/extlibs/blake2/include/blake2_native.h": "E52B9F715387EA83ECF282FDA19DBE68ABBC82291E095CBA21E6F38764F29A56",
+    "release/extlibs/blake2/include/xrt_blake2.h": "00FE7AD0A2520142971D9AB8EBD1E2AF30807F2D74555905727CCD762BFB0345",
+    "release/extlibs/blake2/src/blake2.xl": "72E06724A2FC31FE5DEB2F0A621AFF2B87D2992384EC33DEC6A9C7854BBC5AE1",
+    "release/extlibs/blake2/test/test_blake2_alloc.c": "BB76589D49A4F5FEBFC025FF81BE4CA5470CA518DB9045D6B96EA50884549F9B",
+    "release/extlibs/blake2/test/test_blake2_native.c": "A6D75FCE165ED3926EF6573A2F8501DEEC36F1ACE48A6A8D3A6492A05CB40E05",
+    "release/extlibs/blake2/test/test_blake2.c": "338FD174BEFE2F1C169485C536F5BB39B3F1FC11FCA607D132078FDE7893AD6F",
+    "release/extlibs/blake2/test/vectors.h": "038F126B3762B12F4092C5935633D76388C94B70C0422D4E3237A00F548B5156",
+    "release/extlibs/blake2/third_party/blake2.c": "584C507CC77820AFC671FAD05F2872E4D2830C55FF84FAC29E1D47EF9AEE90D2",
+    "release/extlibs/blake2/third_party/blake2.h": "68DAE1D2C83178160283044356D8E38E2AFC3840940D2D7C62FB937FE7E27ADA",
+    "release/extlibs/blake2/xlang.package.json": "8D4AB376297EAE687C3B6D17D222745A004AA1A795167D87EE01651AC02BE852",
+    "release/extlibs/blake2/xrt_blake2.c": "73EFF87E50A6BDDC388FC18BAC616AB64AE40406583D139A28F9BB293192B99D",
+    "release/include/xrt_decl.h": "3356BCCABBCBC877AD19C5E2D3336C909C2A742DE62E7B92BB79FE2AF3F4CEE6",
+    "release/include/xruntime_decl.h": "4B7CFAA2015F39E08159F4B10108B9BB1764D2370074333335651FE5C1BA87AC",
+    "release/xl.dll": "2A07C481C04CAD71D31D46722A27E62027318DF24E95A63126E061FD4CA46902",
+    "release/xl.exe": "5A3F20B4CF9333D393560CB2361D0EBAB8A13F0D07C64A78A1F5FFF5385D9EEB",
+    "release/xlc.dll": "7C672FD0B2852690D09E2EF1046C56EE1586FD1FCCC0CAEA61E19C0FE7C6E1F0",
+    "test/cases/extlib_blake2_boundaries.xl": "77120269B1984C869116CE7E3E4969B02BD6BC7B7E70261A2B29C2E715EE04A1",
+    "test/cases/extlib_blake2_progress.xl": "7602F0A090D1FA7A396F42BBD74ABAB4F9C96207583264EF92C067DDC588E211",
+    "test/cases/extlib_blake2.xl": "AF878908CC91551CCA16202A06AF09E7A632B7E8F90EFD7B5CF27E589E5EB8A4",
+    "test/featured_extlibs.json": "A1D31BBA2A80E822F71B27E012E0FB2001A60F27A829F1C738B3C1C2164FF550",
+    "test/suites/11_featured_extlibs_rc.bat": "3FE45498A7FF13618AF34F579F9712B1C527921FA5DDD3889B39BFC5CA381473",
+    "test/support/extlib_codec_runtime.c": "ACD01CA7C8ACFA2F63C1257DDA52A0B575C0F2679B5432588014023F105C65FA",
+    "tools/check_extlib_blake2.ps1": "CD4C99AD89C353123C9FB2224A4419322B1C660D3B65CAB9E92B2893D6AF7ACA",
+    "tools/check_extlib_blake2.sh": "ABE9C90C1F2B7A79CE04D6E4461E254BB2A11365698B2D8BD26DC4D409803A9C",
+    "tools/extlib_smoke_process.ps1": "87C3D050B1F492E3F0C4307BA39F454E42B65E37DBCDEC4BE3E938BC2F32D2F7",
+    "tools/run_extlib_c.ps1": "0ABBC3A4B3B0AE45587CCBB069F075F3FBF965D6485FC176C51865FA293FEDA5",
+    "tools/xlir_native_process.ps1": "2BE2787D2316CE07E0D0AC3BDF1A1CAABA14D72F249CCAC847BB1C05D1DBFC9D"
+  },
+  "checks": [
+    {
+      "name": "runtime",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 5429,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "native-0",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 239,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "native-1",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 263,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "native-2",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 323,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "c-build",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 343,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "c-boundaries",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 56,
+      "stdout": "blake2 C: 216 known answers, streaming/state/reader boundaries passed\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "allocation-build",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 232,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "allocation",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 25,
+      "stdout": "blake2 allocation: rejected=16 completed=128\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "native-boundaries-build",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 268,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "native-boundaries",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 25,
+      "stdout": "blake2 native: invalid handles, 4 independent threads, temporary results and errors passed\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "c-jit",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 276,
+      "stdout": "blake2 C: 216 known answers, streaming/state/reader boundaries passed\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "extlib_blake2-jit",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 1567,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "extlib_blake2-build",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 2194,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "extlib_blake2-aot",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 34,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "extlib_blake2_boundaries-jit",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 2703,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "extlib_blake2_boundaries-build",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 3630,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "extlib_blake2_boundaries-aot",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 32,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "extlib_blake2_progress-jit",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 1447,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "extlib_blake2_progress-build",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 1851,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "extlib_blake2_progress-aot",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 204,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "extlib_blake2-cgen",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 1082,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "extlib_blake2_boundaries-cgen",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 1956,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "extlib_blake2_progress-cgen",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 929,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "generated-prototypes",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 98,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "blake2-example-jit",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 1094,
+      "stdout": "BLAKE2b: f25659d47887ac06b68adcdebccf8764b204d98f38a93cead18713e9b5527bca30c5d6b6c97fd04ec372c0ff8e8183a74cf0790a51309fd6613dd911a3bdb6dc\nBLAKE2s: 68e2a5c3b929561cb3e70178597d4844e15b133a0164dac078bde4dfc976a0da\nBLAKE2b (32B): d067960eb385ce7e6da0ad842ab61dec7af3d85b74f6c3cdd987c1b9750d134c\nBLAKE2b MAC: 010aa633a7afdbf3aacd2c533aee9080a94f07cee76bfb100115d3152bb3c2f959e15c2d8d1dd3d6504b0897d4acee17816513a3b6bc79b8e1e3901772573371\nstreaming inputBytes: 11\nclone h1: 68e2a5c3b929561cb3e70178597d4844e15b133a0164dac078bde4dfc976a0da\nclone h2: 9aec6806794561107e594b1f6a8a6b0c92a0cba9acf5e5e93cca06f781813b0b\nblake2 extlib ok\n",
+      "stderr": ""
+    },
+    {
+      "name": "blake2-example-build",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 1633,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "blake2-example-aot",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 48,
+      "stdout": "BLAKE2b: f25659d47887ac06b68adcdebccf8764b204d98f38a93cead18713e9b5527bca30c5d6b6c97fd04ec372c0ff8e8183a74cf0790a51309fd6613dd911a3bdb6dc\nBLAKE2s: 68e2a5c3b929561cb3e70178597d4844e15b133a0164dac078bde4dfc976a0da\nBLAKE2b (32B): d067960eb385ce7e6da0ad842ab61dec7af3d85b74f6c3cdd987c1b9750d134c\nBLAKE2b MAC: 010aa633a7afdbf3aacd2c533aee9080a94f07cee76bfb100115d3152bb3c2f959e15c2d8d1dd3d6504b0897d4acee17816513a3b6bc79b8e1e3901772573371\nstreaming inputBytes: 11\nclone h1: 68e2a5c3b929561cb3e70178597d4844e15b133a0164dac078bde4dfc976a0da\nclone h2: 9aec6806794561107e594b1f6a8a6b0c92a0cba9acf5e5e93cca06f781813b0b\nblake2 extlib ok\n",
+      "stderr": ""
+    },
+    {
+      "name": "blake2_basic-example-jit",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 1023,
+      "stdout": "b2b/16: cf4ab791c62b8d2b2109c90275287816\nclone: c60153445dafca3c68639fe63c7c6312\nreset: cf4ab791c62b8d2b2109c90275287816\nb2s/16: aa4938119b1dc7b87cbad0ffd200d0ae\nkeyed: fcb3ea1d2fca1aedd097d8362df66ae1\nbytes: 3\n",
+      "stderr": ""
+    },
+    {
+      "name": "blake2_basic-example-build",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 1514,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "blake2_basic-example-aot",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 32,
+      "stdout": "b2b/16: cf4ab791c62b8d2b2109c90275287816\nclone: c60153445dafca3c68639fe63c7c6312\nreset: cf4ab791c62b8d2b2109c90275287816\nb2s/16: aa4938119b1dc7b87cbad0ffd200d0ae\nkeyed: fcb3ea1d2fca1aedd097d8362df66ae1\nbytes: 3\n",
+      "stderr": ""
+    },
+    {
+      "name": "c-example-build",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 190,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "c-example",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 22,
+      "stdout": "b2b/16: cf4ab791c62b8d2b2109c90275287816\r\nclone: c60153445dafca3c68639fe63c7c6312\r\nreset: cf4ab791c62b8d2b2109c90275287816\r\nb2s/16: aa4938119b1dc7b87cbad0ffd200d0ae\r\nkeyed: fcb3ea1d2fca1aedd097d8362df66ae1\r\nbytes: 3\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "c-example-jit",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 145,
+      "stdout": "b2b/16: cf4ab791c62b8d2b2109c90275287816\r\nclone: c60153445dafca3c68639fe63c7c6312\r\nreset: cf4ab791c62b8d2b2109c90275287816\r\nb2s/16: aa4938119b1dc7b87cbad0ffd200d0ae\r\nkeyed: fcb3ea1d2fca1aedd097d8362df66ae1\r\nbytes: 3\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "c-example-aot-build",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 333,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "c-example-aot",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 47,
+      "stdout": "b2b/16: cf4ab791c62b8d2b2109c90275287816\r\nclone: c60153445dafca3c68639fe63c7c6312\r\nreset: cf4ab791c62b8d2b2109c90275287816\r\nb2s/16: aa4938119b1dc7b87cbad0ffd200d0ae\r\nkeyed: fcb3ea1d2fca1aedd097d8362df66ae1\r\nbytes: 3\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "c-example-package-runner",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 797,
+      "stdout": "b2b/16: cf4ab791c62b8d2b2109c90275287816\r\nclone: c60153445dafca3c68639fe63c7c6312\r\nreset: cf4ab791c62b8d2b2109c90275287816\r\nb2s/16: aa4938119b1dc7b87cbad0ffd200d0ae\r\nkeyed: fcb3ea1d2fca1aedd097d8362df66ae1\r\nbytes: 3\r\n",
+      "stderr": ""
+    }
+  ]
+}

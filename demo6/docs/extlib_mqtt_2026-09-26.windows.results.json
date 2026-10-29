@@ -1,0 +1,261 @@
+{
+    "Date":  "2026-09-26T21:54:55.4982847+08:00",
+    "Package":  "mqtt",
+    "Outcome":  "passed",
+    "Scope":  "MQTT 3.1.1 codec, allocation failure, local TCP framing, xlang JIT/AOT; no public broker or session engine",
+    "Inputs":  {
+                   "release/examples/extlibs/mqtt_tcp.expected.txt":  "7937AD592CFFA60B9DA27410BF442E7F5820B11D646BB61F6077D92037067320",
+                   "release/extlibs/mqtt/test/mqtt_fixture.c":  "B217A3E16861CB0C9B907E52C9BCE4818955C754545C1FE4EEBE46539D94FD7E",
+                   "release/extlibs/mqtt/test/test_mqtt_net.c":  "05D9048F6DED9D44E502AD8D743108E9B67B0DC6EDA1B4AB22BBE0FF402A59D6",
+                   "release/extlibs/mqtt/test/mqtt_fixture.h":  "C60ECDFBAB8D39F32B36F9749BF449CCB43DB4053CCF80A1661DF2914BA9A5D0",
+                   "release/extlibs/mqtt/test/mqtt_runtime.c":  "DA094511139B864833706D8ABF7B08FA5BE8A749CA7ACA37BA3C32B72A7AC449",
+                   "release/extlibs/mqtt/test/test_mqtt_alloc.c":  "B2C017A76EF04695169ABC7A713F65C573DC09B642362CF05640E5A09F96D641",
+                   "release/extlibs/mqtt/include/xrt_mqtt_net.h":  "8AFB19D859A36A3BF0E6C04E81A51ACA2B4998015A202622C3D6AAB65F23C982",
+                   "release/extlibs/mqtt/mqtt_parse.c":  "1BE94E88EA4F514757F1488D471107DAD28C46D72E95494AA1384FF11119BD14",
+                   "release/extlibs/mqtt/src/mqtt_net.xl":  "DCDCEF2640E4CE00B68238C0A1D3153C497DF77AA9D674C1D3AEC6D0E8ED8D3E",
+                   "release/extlibs/mqtt/test/mqtt_net_test.xl":  "5F34E72B2EF7B192356E16D1293CAD501F7804344DFF90CFA36F45E933FA5B65",
+                   "tools/check_extlib_mqtt.ps1":  "AAF1C94477FCFF6461575C794F02AD2CA23B722C1A9716B3B56906E1E0F4C423",
+                   "release/examples/extlibs/mqtt_c.c":  "30ED7A013D148EDECE554F10E0D4EF6F7A2405E24B543EBB4FF30EC808B18E42",
+                   "release/extlibs/mqtt/mqtt_frame.c":  "20EC532E509FFD09D8229E47C30D93EF92026E431AB4CF139351AB12D33B3A3A",
+                   "release/examples/extlibs/mqtt.expected.txt":  "1F5A6F298DEE7E5B753034510201C1652D3AB92F822744260FA2A9AFBE256D6E",
+                   "release/extlibs/mqtt/mqtt_build.c":  "EC345BAD94DD3F798AF93E67C1183020580386785C9830788868AB9472AFA77C",
+                   "release/examples/extlibs/mqtt.xl":  "E1A5B161ADD02377324149B717D05E2BE98394A1559EE55DA9B19F6D0EF8633C",
+                   "release/extlibs/mqtt/test/test_mqtt.c":  "C0B60E52EAB5F593BA7D7B53B06103667EA2D4FF219607DC8BABDC13D3F00064",
+                   "release/examples/extlibs/mqtt_tcp.xl":  "52C46E86BAC1E568FD7D862945F0B63EE53C036AB0786191E1F3E043DCB0CE1D",
+                   "release/extlibs/mqtt/test/test_mqtt_exchange.c":  "50D0A136BA2DA7D678C68173E6A031CC0659DABD0215711CC7EBC5F0FBE53C94",
+                   "release/extlibs/mqtt/include/mqtt_native.h":  "9C5EB4B878E2BD28D28F5EC9107E0E5E1F9B93E1C7EA1536E11678182605F95B",
+                   "release/extlibs/mqtt/mqtt_native.c":  "AC453EC96CC942D5CB11317F2C8C3C8481B0E5BCE4019CCC94F32ACB1425E3AF",
+                   "release/extlibs/mqtt/xlang.package.json":  "D0965A5E412139A183D01E4CD4B5288073185CB02494892BCD2D084F393278EB",
+                   "release/extlibs/mqtt/include/xrt_mqtt.h":  "C42E3BD61A8669AE52EC70CF90B0D280B5FB1EEB1D2AA321AA03B943EA16D3B6",
+                   "release/examples/extlibs/mqtt_tcp_c.c":  "3E285E9ED94D0987DCFDADFEE156B85F0AD3B1113FD694D7E9A2A6A7C40995BE",
+                   "test/cases/extlib_mqtt.xl":  "B2F614BF5BD04D6EBDEC700F93B8CD285B87CA7480385FCD1CE05886B789ACF4",
+                   "release/extlibs/mqtt/test/mqtt_boundaries.xl":  "F67337ABC1042F41DF007CEB3FBFC51711407D9498336266DB14648DE9DCBA00",
+                   "release/extlibs/mqtt/mqtt_net.c":  "EA2B42C8F87CE0FBC7247B79F9832E48D28F789DB8F9C9AD7A080040BE125445",
+                   "release/extlibs/mqtt/src/mqtt.xl":  "1D90417145721EA9CA9EE71AA78FC8C90245E09C38F80FEEECF29D31E9261CAF",
+                   "release/extlibs/mqtt/mqtt_internal.h":  "498EB1EE023EC55B91EBA0E051BFB8628E465BA3204B29FFADE490A6F75147EB"
+               },
+    "Products":  {
+                     "lib/xrt/xrt.h":  "7C78B4B3D13FC64AC1009E2EDFAE73E9FB092C896DA1A70CF5BE859D153851E8",
+                     "release/xl.dll":  "2A07C481C04CAD71D31D46722A27E62027318DF24E95A63126E061FD4CA46902",
+                     "release/xlc.dll":  "7C672FD0B2852690D09E2EF1046C56EE1586FD1FCCC0CAEA61E19C0FE7C6E1F0",
+                     "release/xl.exe":  "5A3F20B4CF9333D393560CB2361D0EBAB8A13F0D07C64A78A1F5FFF5385D9EEB"
+                 },
+    "Checks":  [
+                   {
+                       "Name":  "gcc-runtime",
+                       "ExitCode":  0,
+                       "Stdout":  "",
+                       "Stderr":  ""
+                   },
+                   {
+                       "Name":  "gcc-test_mqtt",
+                       "ExitCode":  0,
+                       "Stdout":  "",
+                       "Stderr":  ""
+                   },
+                   {
+                       "Name":  "test_mqtt",
+                       "ExitCode":  0,
+                       "Stdout":  "mqtt C codec boundaries: PASS",
+                       "Stderr":  ""
+                   },
+                   {
+                       "Name":  "gcc-test_mqtt_alloc",
+                       "ExitCode":  0,
+                       "Stdout":  "",
+                       "Stderr":  ""
+                   },
+                   {
+                       "Name":  "test_mqtt_alloc",
+                       "ExitCode":  0,
+                       "Stdout":  "mqtt allocation checks: rejected=94 completed=802",
+                       "Stderr":  ""
+                   },
+                   {
+                       "Name":  "gcc-test_mqtt_net",
+                       "ExitCode":  0,
+                       "Stdout":  "",
+                       "Stderr":  ""
+                   },
+                   {
+                       "Name":  "test_mqtt_net",
+                       "ExitCode":  0,
+                       "Stdout":  "mqtt C TCP boundaries: PASS",
+                       "Stderr":  ""
+                   },
+                   {
+                       "Name":  "gcc-test_mqtt_exchange",
+                       "ExitCode":  0,
+                       "Stdout":  "",
+                       "Stderr":  ""
+                   },
+                   {
+                       "Name":  "test_mqtt_exchange",
+                       "ExitCode":  0,
+                       "Stdout":  "mqtt receive allocation checks: rejected=18 completed=30\nmqtt C exchange boundaries: PASS",
+                       "Stderr":  ""
+                   },
+                   {
+                       "Name":  "cgen-abi",
+                       "ExitCode":  0,
+                       "Stdout":  "",
+                       "Stderr":  ""
+                   },
+                   {
+                       "Name":  "generated-c-prototypes",
+                       "ExitCode":  0,
+                       "Stdout":  "",
+                       "Stderr":  ""
+                   },
+                   {
+                       "Name":  "c-codec-jit",
+                       "ExitCode":  0,
+                       "Stdout":  "mqtt C codec boundaries: PASS",
+                       "Stderr":  ""
+                   },
+                   {
+                       "Name":  "c-net-jit",
+                       "ExitCode":  0,
+                       "Stdout":  "mqtt C TCP boundaries: PASS",
+                       "Stderr":  ""
+                   },
+                   {
+                       "Name":  "xlang-focused-jit",
+                       "ExitCode":  0,
+                       "Stdout":  "",
+                       "Stderr":  ""
+                   },
+                   {
+                       "Name":  "xlang-codec-jit",
+                       "ExitCode":  0,
+                       "Stdout":  "mqtt xlang codec boundaries: PASS",
+                       "Stderr":  ""
+                   },
+                   {
+                       "Name":  "xlang-net-jit",
+                       "ExitCode":  0,
+                       "Stdout":  "mqtt xlang TCP boundaries: PASS",
+                       "Stderr":  ""
+                   },
+                   {
+                       "Name":  "xlang-codec-build",
+                       "ExitCode":  0,
+                       "Stdout":  "",
+                       "Stderr":  ""
+                   },
+                   {
+                       "Name":  "xlang-codec-aot",
+                       "ExitCode":  0,
+                       "Stdout":  "mqtt xlang codec boundaries: PASS",
+                       "Stderr":  ""
+                   },
+                   {
+                       "Name":  "xlang-net-build",
+                       "ExitCode":  0,
+                       "Stdout":  "",
+                       "Stderr":  ""
+                   },
+                   {
+                       "Name":  "xlang-net-aot",
+                       "ExitCode":  0,
+                       "Stdout":  "mqtt xlang TCP boundaries: PASS",
+                       "Stderr":  ""
+                   },
+                   {
+                       "Name":  "mqtt-example-xlang-jit",
+                       "ExitCode":  0,
+                       "Stdout":  "connect: 101400044d51545404020000000873656e736f722d31\nkeepalive: 0\npublish: 32110009686f6d652f74656d70002a32322e35\ntopic: home/temp\npayload: 22.5\npacketId: 42\nsubscribe: 82100007000b686f6d652f2b2f74656d7001\ngranted: 1\npuback: 4002002a\nping: c000\ndisconnect: e000\nbinary: 00ff61\nframeSize: 131\nconnack: 0\nmqtt example: PASS",
+                       "Stderr":  ""
+                   },
+                   {
+                       "Name":  "mqtt-example-c-jit",
+                       "ExitCode":  0,
+                       "Stdout":  "connect: 101400044d51545404020000000873656e736f722d31\nkeepalive: 0\npublish: 32110009686f6d652f74656d70002a32322e35\ntopic: home/temp\npayload: 22.5\npacketId: 42\nsubscribe: 82100007000b686f6d652f2b2f74656d7001\ngranted: 1\npuback: 4002002a\nping: c000\ndisconnect: e000\nbinary: 00ff61\nframeSize: 131\nconnack: 0\nmqtt example: PASS",
+                       "Stderr":  ""
+                   },
+                   {
+                       "Name":  "mqtt-example-gcc-build",
+                       "ExitCode":  0,
+                       "Stdout":  "",
+                       "Stderr":  ""
+                   },
+                   {
+                       "Name":  "mqtt-example-gcc",
+                       "ExitCode":  0,
+                       "Stdout":  "connect: 101400044d51545404020000000873656e736f722d31\nkeepalive: 0\npublish: 32110009686f6d652f74656d70002a32322e35\ntopic: home/temp\npayload: 22.5\npacketId: 42\nsubscribe: 82100007000b686f6d652f2b2f74656d7001\ngranted: 1\npuback: 4002002a\nping: c000\ndisconnect: e000\nbinary: 00ff61\nframeSize: 131\nconnack: 0\nmqtt example: PASS",
+                       "Stderr":  ""
+                   },
+                   {
+                       "Name":  "mqtt-example-xl-build",
+                       "ExitCode":  0,
+                       "Stdout":  "",
+                       "Stderr":  ""
+                   },
+                   {
+                       "Name":  "mqtt-example-xl-aot",
+                       "ExitCode":  0,
+                       "Stdout":  "connect: 101400044d51545404020000000873656e736f722d31\nkeepalive: 0\npublish: 32110009686f6d652f74656d70002a32322e35\ntopic: home/temp\npayload: 22.5\npacketId: 42\nsubscribe: 82100007000b686f6d652f2b2f74656d7001\ngranted: 1\npuback: 4002002a\nping: c000\ndisconnect: e000\nbinary: 00ff61\nframeSize: 131\nconnack: 0\nmqtt example: PASS",
+                       "Stderr":  ""
+                   },
+                   {
+                       "Name":  "mqtt-example-c-build",
+                       "ExitCode":  0,
+                       "Stdout":  "",
+                       "Stderr":  ""
+                   },
+                   {
+                       "Name":  "mqtt-example-c-aot",
+                       "ExitCode":  0,
+                       "Stdout":  "connect: 101400044d51545404020000000873656e736f722d31\nkeepalive: 0\npublish: 32110009686f6d652f74656d70002a32322e35\ntopic: home/temp\npayload: 22.5\npacketId: 42\nsubscribe: 82100007000b686f6d652f2b2f74656d7001\ngranted: 1\npuback: 4002002a\nping: c000\ndisconnect: e000\nbinary: 00ff61\nframeSize: 131\nconnack: 0\nmqtt example: PASS",
+                       "Stderr":  ""
+                   },
+                   {
+                       "Name":  "mqtt_tcp-example-xlang-jit",
+                       "ExitCode":  0,
+                       "Stdout":  "connect: sensor-1\npublish: home/temp=22.5\npuback: 42\nmqtt TCP example: PASS",
+                       "Stderr":  ""
+                   },
+                   {
+                       "Name":  "mqtt_tcp-example-c-jit",
+                       "ExitCode":  0,
+                       "Stdout":  "connect: sensor-1\npublish: home/temp=22.5\npuback: 42\nmqtt TCP example: PASS",
+                       "Stderr":  ""
+                   },
+                   {
+                       "Name":  "mqtt_tcp-example-gcc-build",
+                       "ExitCode":  0,
+                       "Stdout":  "",
+                       "Stderr":  ""
+                   },
+                   {
+                       "Name":  "mqtt_tcp-example-gcc",
+                       "ExitCode":  0,
+                       "Stdout":  "connect: sensor-1\npublish: home/temp=22.5\npuback: 42\nmqtt TCP example: PASS",
+                       "Stderr":  ""
+                   },
+                   {
+                       "Name":  "mqtt_tcp-example-xl-build",
+                       "ExitCode":  0,
+                       "Stdout":  "",
+                       "Stderr":  ""
+                   },
+                   {
+                       "Name":  "mqtt_tcp-example-xl-aot",
+                       "ExitCode":  0,
+                       "Stdout":  "connect: sensor-1\npublish: home/temp=22.5\npuback: 42\nmqtt TCP example: PASS",
+                       "Stderr":  ""
+                   },
+                   {
+                       "Name":  "mqtt_tcp-example-c-build",
+                       "ExitCode":  0,
+                       "Stdout":  "",
+                       "Stderr":  ""
+                   },
+                   {
+                       "Name":  "mqtt_tcp-example-c-aot",
+                       "ExitCode":  0,
+                       "Stdout":  "connect: sensor-1\npublish: home/temp=22.5\npuback: 42\nmqtt TCP example: PASS",
+                       "Stderr":  ""
+                   }
+               ]
+}

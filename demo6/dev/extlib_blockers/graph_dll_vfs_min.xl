@@ -1,0 +1,8 @@
+import graph
+
+func main(...) as int
+    if graph.nodes([]).length == 0 then
+        return 0
+    end
+    return 1
+end

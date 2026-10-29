@@ -1,0 +1,297 @@
+[
+  {
+    "file": "extlib_aho_2026-09-27.windows.results.json",
+    "outcome": "passed",
+    "scope": "Aho core/native boundaries, differential chunks, OOM, shared immutable automaton threads, generated ABI, xlang/C JIT/AOT and paired examples; not simultaneous use of one scanner or performance certification",
+    "checks": 44,
+    "unknown": 0,
+    "inputs": 33,
+    "changed": [
+      "release/include/xrt_decl.h",
+      "release/include/xruntime_decl.h",
+      "test/featured_extlibs.json",
+      "test/suites/11_featured_extlibs_rc.bat"
+    ],
+    "verification": "Historical suite outcome retained; processZeroExit is not assertion success (negative cases may require nonzero). Only recorded hashes checked, not new unrecorded inputs.",
+    "processZeroExit": 44
+  },
+  {
+    "file": "extlib_argon2_bloom_2026-09-26.windows.results.json",
+    "outcome": "passed",
+    "scope": "Windows x64 strict C ABI, boundary/allocation, JIT/AOT, paired examples",
+    "checks": 44,
+    "unknown": 0,
+    "inputs": 42,
+    "changed": [
+      "release/include/xrt_decl.h"
+    ],
+    "verification": "Historical suite outcome retained; processZeroExit is not assertion success (negative cases may require nonzero). Only recorded hashes checked, not new unrecorded inputs.",
+    "processZeroExit": 44
+  },
+  {
+    "file": "extlib_blake2_2026-09-27.windows.results.json",
+    "outcome": "passed",
+    "scope": "Windows C boundaries, 216 known answers, allocation failures, xlang/C JIT/AOT, callbacks and readers, generated ABI and paired examples",
+    "checks": 36,
+    "unknown": 0,
+    "inputs": 34,
+    "changed": [
+      "release/include/xrt_decl.h",
+      "release/include/xruntime_decl.h",
+      "test/featured_extlibs.json",
+      "test/suites/11_featured_extlibs_rc.bat"
+    ],
+    "verification": "Historical suite outcome retained; processZeroExit is not assertion success (negative cases may require nonzero). Only recorded hashes checked, not new unrecorded inputs.",
+    "processZeroExit": 36
+  },
+  {
+    "file": "extlib_blake3_2026-09-27.delivery.windows.results.json",
+    "outcome": "passed",
+    "scope": "Windows C boundaries, 35 upstream vectors in three modes and six lengths, allocation failures, independent threads, xlang/C JIT/AOT, callbacks and readers, generated ABI and paired examples; not shared mutable hasher concurrency or benchmark certification",
+    "checks": 38,
+    "unknown": 0,
+    "inputs": 44,
+    "changed": [
+      ".gitattributes",
+      "release/include/xrt_decl.h",
+      "release/include/xruntime_decl.h",
+      "test/featured_extlibs.json",
+      "test/suites/11_featured_extlibs_rc.bat"
+    ],
+    "verification": "Historical suite outcome retained; processZeroExit is not assertion success (negative cases may require nonzero). Only recorded hashes checked, not new unrecorded inputs.",
+    "processZeroExit": 38
+  },
+  {
+    "file": "extlib_blake3_2026-09-27.windows.results.json",
+    "outcome": "passed",
+    "scope": "Windows C boundaries, 35 upstream vectors in three modes and six lengths, allocation failures, independent threads, xlang/C JIT/AOT, callbacks and readers, generated ABI and paired examples; not shared mutable hasher concurrency or benchmark certification",
+    "checks": 38,
+    "unknown": 0,
+    "inputs": 40,
+    "changed": [
+      "release/include/xrt_decl.h",
+      "release/include/xruntime_decl.h",
+      "test/featured_extlibs.json",
+      "test/suites/11_featured_extlibs_rc.bat",
+      "tools/check_extlib_blake3.ps1",
+      "tools/check_extlib_blake3.sh"
+    ],
+    "verification": "Historical suite outcome retained; processZeroExit is not assertion success (negative cases may require nonzero). Only recorded hashes checked, not new unrecorded inputs.",
+    "processZeroExit": 38
+  },
+  {
+    "file": "extlib_brotli_2026-09-27.windows.results.json",
+    "outcome": "passed",
+    "scope": "Windows C interop, allocation failures, xlang/C JIT/AOT, callbacks and transactional files, 23 generated prototypes, tutorials and paired golden output",
+    "checks": 60,
+    "unknown": 0,
+    "inputs": 120,
+    "changed": [
+      "release/include/xrt_decl.h",
+      "release/include/xruntime_decl.h",
+      "test/featured_extlibs.json",
+      "test/suites/11_featured_extlibs_rc.bat"
+    ],
+    "verification": "Historical suite outcome retained; processZeroExit is not assertion success (negative cases may require nonzero). Only recorded hashes checked, not new unrecorded inputs.",
+    "processZeroExit": 60
+  },
+  {
+    "file": "extlib_crc32_2026-09-27.windows.results.json",
+    "outcome": "passed",
+    "scope": "CRC-32/ISO-HDLC: fixed vectors and 1536 bitwise differential cases, exact ABI, UTF-8/Buffer, state/readers/callbacks, concurrent first use, allocation failures, C/XL JIT/AOT/GCC examples; not Linux XL, big-endian target or performance certification",
+    "checks": 31,
+    "unknown": 0,
+    "inputs": 33,
+    "changed": [
+      ".gitattributes",
+      "release/include/xrt_decl.h",
+      "release/include/xruntime_decl.h",
+      "test/featured_extlibs.json",
+      "test/suites/11_featured_extlibs_rc.bat"
+    ],
+    "verification": "Historical suite outcome retained; processZeroExit is not assertion success (negative cases may require nonzero). Only recorded hashes checked, not new unrecorded inputs.",
+    "processZeroExit": 31
+  },
+  {
+    "file": "extlib_gzip_2026-09-27.windows.results.json",
+    "outcome": "passed",
+    "scope": "Windows C/zlib interop, allocation failures, xlang/C JIT/AOT, callbacks and transactional files, generated prototype coverage, tutorials and paired golden output",
+    "checks": 34,
+    "unknown": 0,
+    "inputs": 34,
+    "changed": [
+      "test/suites/12_phase1_extlibs.bat"
+    ],
+    "verification": "Historical suite outcome retained; processZeroExit is not assertion success (negative cases may require nonzero). Only recorded hashes checked, not new unrecorded inputs.",
+    "processZeroExit": 34
+  },
+  {
+    "file": "extlib_md5_2026-09-27.windows.results.json",
+    "outcome": "passed",
+    "scope": "MD5 using XRT: 149 independent vectors across 8 alignments, padding/chunks and million-a, exact ABI, UTF-8/Buffer, state/readers/callbacks, concurrent first use, allocation failures, C/XL JIT/AOT/GCC examples; not Linux XL, big-endian target or performance certification",
+    "checks": 31,
+    "unknown": 0,
+    "inputs": 34,
+    "changed": [
+      ".gitattributes",
+      "release/include/xrt_decl.h",
+      "release/include/xruntime_decl.h",
+      "test/featured_extlibs.json",
+      "test/suites/11_featured_extlibs_rc.bat"
+    ],
+    "verification": "Historical suite outcome retained; processZeroExit is not assertion success (negative cases may require nonzero). Only recorded hashes checked, not new unrecorded inputs.",
+    "processZeroExit": 31
+  },
+  {
+    "file": "extlib_mqtt_2026-09-26.windows.results.json",
+    "outcome": "passed",
+    "scope": "MQTT 3.1.1 codec, allocation failure, local TCP framing, xlang JIT/AOT; no public broker or session engine",
+    "checks": 36,
+    "unknown": 0,
+    "inputs": 29,
+    "changed": [],
+    "verification": "Historical suite outcome retained; processZeroExit is not assertion success (negative cases may require nonzero). Only recorded hashes checked, not new unrecorded inputs.",
+    "processZeroExit": 36
+  },
+  {
+    "file": "extlib_murmur3_2026-09-27.windows.results.json",
+    "outcome": "passed",
+    "scope": "MurmurHash3 x86_32/x64_128: 576 upstream known-answer vectors x 8 alignments, splits, unsigned seeds, UTF-8/Buffer, state/readers/callbacks, exact generated ABI, four independent threads, ordinary/temp allocation failures, paired C/XL JIT/AOT/GCC examples; not Linux XL, big-endian, 32-bit/ARM or performance certification",
+    "checks": 37,
+    "unknown": 0,
+    "inputs": 41,
+    "changed": [
+      ".gitattributes",
+      "release/include/xrt_decl.h",
+      "release/include/xruntime_decl.h",
+      "test/featured_extlibs.json",
+      "test/suites/11_featured_extlibs_rc.bat"
+    ],
+    "verification": "Historical suite outcome retained; processZeroExit is not assertion success (negative cases may require nonzero). Only recorded hashes checked, not new unrecorded inputs.",
+    "processZeroExit": 37
+  },
+  {
+    "file": "extlib_mysql_helpers_2026-09-27.windows.results.json",
+    "outcome": "passed",
+    "scope": "MySQL protocol/text helpers and FAISS scalar CSV distance helpers, plus matched C/xlang MySQL examples; not complete database/vector backends",
+    "checks": 19,
+    "unknown": 0,
+    "inputs": 28,
+    "changed": [
+      "release/include/xrt_decl.h",
+      "release/include/xruntime_decl.h",
+      "test/suites/12_phase1_extlibs.bat",
+      "tools/rc0_guard.ps1"
+    ],
+    "verification": "Historical suite outcome retained; processZeroExit is not assertion success (negative cases may require nonzero). Only recorded hashes checked, not new unrecorded inputs.",
+    "processZeroExit": 19
+  },
+  {
+    "file": "extlib_native_contract_2026-09-27.windows.results.json",
+    "outcome": "passed",
+    "scope": "Current-source isolated compiler/API and staged SDK; explicit C, project, package+direct, precise package trim, pure XL trim, C main, DLL consumer and unknown-symbol rejection. No release/VFS replacement.",
+    "checks": 41,
+    "unknown": 0,
+    "inputs": 594,
+    "changed": [],
+    "verification": "Historical suite outcome retained; processZeroExit is not assertion success (negative cases may require nonzero). Only recorded hashes checked, not new unrecorded inputs.",
+    "processZeroExit": 37
+  },
+  {
+    "file": "extlib_partial_helpers_2026-09-27.windows.results.json",
+    "outcome": "passed",
+    "scope": "Existing MySQL status formatting and FAISS scalar CSV distance helpers only, not complete database/vector backends",
+    "checks": 8,
+    "unknown": 0,
+    "inputs": 22,
+    "changed": [
+      "release/extlibs/mysql/mysql_native.c",
+      "release/extlibs/mysql/src/mysql.xl",
+      "release/include/xrt_decl.h",
+      "release/include/xruntime_decl.h",
+      "test/cases/extlib_partial_helper_boundaries.xl",
+      "test/cases/extlib_partial_helper_boundaries_c.c",
+      "test/suites/12_phase1_extlibs.bat",
+      "tools/check_extlib_helper_boundaries.ps1",
+      "tools/check_extlib_helper_boundaries.sh",
+      "tools/rc0_guard.ps1"
+    ],
+    "verification": "Historical suite outcome retained; processZeroExit is not assertion success (negative cases may require nonzero). Only recorded hashes checked, not new unrecorded inputs.",
+    "processZeroExit": 8
+  },
+  {
+    "file": "extlib_sdk_features_2026-09-27.windows.results.json",
+    "outcome": "passed",
+    "scope": "Frozen Windows CLI with current manifest-selected external SDK assets; C and xlang package JIT/AOT; percent codec, zlib and typed-array calls. Not a rebuilt or VFS-only release certification.",
+    "checks": 6,
+    "unknown": 0,
+    "inputs": 18,
+    "changed": [],
+    "verification": "Historical suite outcome retained; processZeroExit is not assertion success (negative cases may require nonzero). Only recorded hashes checked, not new unrecorded inputs.",
+    "processZeroExit": 6
+  },
+  {
+    "file": "extlib_sha3_2026-09-27.windows.results.json",
+    "outcome": "passed",
+    "scope": "SHA3/SHAKE: 546 OpenSSL boundary vectors x 8 alignments, 12 known answers, splits, strict algorithms/lengths, UTF-8/Buffer, state/readers/callbacks, exact generated ABI, four independent threads, 176 ordinary/temp allocation failure positions, paired C/XL JIT/AOT/GCC examples; not Linux XL, big-endian, 32-bit/ARM or performance certification",
+    "checks": 37,
+    "unknown": 0,
+    "inputs": 41,
+    "changed": [
+      ".gitattributes",
+      "release/include/xrt_decl.h",
+      "release/include/xruntime_decl.h",
+      "test/featured_extlibs.json",
+      "test/suites/11_featured_extlibs_rc.bat"
+    ],
+    "verification": "Historical suite outcome retained; processZeroExit is not assertion success (negative cases may require nonzero). Only recorded hashes checked, not new unrecorded inputs.",
+    "processZeroExit": 37
+  },
+  {
+    "file": "extlib_siphash_2026-09-27.windows.results.json",
+    "outcome": "passed",
+    "scope": "SipHash-2-4: 128 official answers, 4 keys x 8 alignments x 81 lengths, split streams, strict 16-byte keys, UTF-8/Buffer, unsigned results, state/readers/callbacks, exact generated ABI, four independent threads, 192 ordinary/temp allocation failure positions, paired C/XL JIT/AOT/GCC examples and pinned reference goldens; not Linux XL, big-endian, 32-bit/ARM or performance certification",
+    "checks": 40,
+    "unknown": 0,
+    "inputs": 44,
+    "changed": [
+      "release/include/xrt_decl.h",
+      "release/include/xruntime_decl.h"
+    ],
+    "verification": "Historical suite outcome retained; processZeroExit is not assertion success (negative cases may require nonzero). Only recorded hashes checked, not new unrecorded inputs.",
+    "processZeroExit": 40
+  },
+  {
+    "file": "extlib_sqlite_2026-09-27.windows.results.json",
+    "outcome": "passed",
+    "scope": "SQLite wrapper ABI/constants, C/state/allocator/thread tests, xlang JIT/AOT/file locks and paired examples",
+    "checks": 37,
+    "unknown": 0,
+    "inputs": 33,
+    "changed": [
+      "release/include/xrt_decl.h",
+      "release/include/xruntime_decl.h",
+      "test/phase1_extlibs.json",
+      "test/suites/12_phase1_extlibs.bat"
+    ],
+    "verification": "Historical suite outcome retained; processZeroExit is not assertion success (negative cases may require nonzero). Only recorded hashes checked, not new unrecorded inputs.",
+    "processZeroExit": 37
+  },
+  {
+    "file": "extlib_xxhash_2026-09-27.windows.results.json",
+    "outcome": "passed",
+    "scope": "XXH32/XXH64: 124 independent vectors, exact native ABI, UTF-8, state/readers/callbacks, allocation failures, independent threads, C/XL JIT/AOT/GCC examples; not XXH3 language API, Linux XL, 32-bit/ARM or performance certification",
+    "checks": 37,
+    "unknown": 0,
+    "inputs": 43,
+    "changed": [
+      ".gitattributes",
+      "release/include/xrt_decl.h",
+      "release/include/xruntime_decl.h",
+      "test/featured_extlibs.json",
+      "test/suites/11_featured_extlibs_rc.bat"
+    ],
+    "verification": "Historical suite outcome retained; processZeroExit is not assertion success (negative cases may require nonzero). Only recorded hashes checked, not new unrecorded inputs.",
+    "processZeroExit": 37
+  }
+]

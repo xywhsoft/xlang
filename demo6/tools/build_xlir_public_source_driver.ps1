@@ -1,8 +1,10 @@
 param([string]$Directory = 'build/test/xlir_public_source', [switch]$RuntimeOnly, [switch]$NoCache,
-    [string]$CacheDirectory = '', [ValidateSet('O0','O2')][string]$Optimization = 'O0')
+    [string]$CacheDirectory = '', [ValidateSet('O0','O2')][string]$Optimization = 'O0',
+    [string]$RuntimeResource = '')
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'xlir_c_object_cache.ps1')
 $rootPath = (Get-Location).Path
+$runtimeResourcePath = if($RuntimeResource){(Resolve-Path -LiteralPath $RuntimeResource).Path}else{''}
 $batchPath = if ([IO.Path]::IsPathRooted($Directory)) {
     [IO.Path]::GetFullPath($Directory)
 } else {
@@ -653,6 +655,7 @@ foreach($runtimeManifest in $runtimeManifests) {
 $files = @(@(Get-ChildItem src,lib,release/include,res/tcc -Recurse -File) +
     @(Get-Item $driverSource,$PSCommandPath,tools/xlir_c_object_cache.ps1,tools/xrt_single_header_impl.c,release/xl.dll,tools/tcc_vfs_manifest_win64_xlc.txt,tools/compiler_dll.rsp.in,build_dll.bat) +
     @(Get-Item -LiteralPath $buildContext.Toolchain.Path)) | Sort-Object FullName -Unique
+if($runtimeResourcePath){$files=@($files)+@(Get-Item -LiteralPath $runtimeResourcePath)}
 $records = @($files | ForEach-Object { [pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash} })
 New-Item -ItemType Directory -Force -Path $batchPath | Out-Null
 Copy-Item -LiteralPath release/xl.dll -Destination (Join-Path $batchPath 'xl.dll') -Force
@@ -688,9 +691,12 @@ if ($headers.Count -lt 6) { throw 'Private runtime package manifest is incomplet
 # not a shipping SDK or the nested import-xlang compiler resource package.
 foreach ($entry in Get-Content -LiteralPath tools/tcc_vfs_manifest_win64_xlc.txt -Encoding UTF8) {
     $parts = $entry.Split('|')
-    if ($parts.Length -lt 3 -or !$parts[1].StartsWith('__xl_compiler/') -or !$parts[2].StartsWith('%XL6_ROOT%')) { continue }
+    if ($parts.Length -lt 3 -or !$parts[1].StartsWith('__xl_compiler/')) { continue }
+    $generatedRuntime=$parts[1] -eq '__xl_compiler/build/tmp/tcc_builtin_resources_runtime.c' -and
+        $parts[2].StartsWith('%XL6_VFS_OUTPUT_DIR%')
+    if(!$parts[2].StartsWith('%XL6_ROOT%') -and !($generatedRuntime -and $runtimeResourcePath)){continue}
     if ($parts[1].Contains('..')) { throw "Unsafe private source target: $entry" }
-    $sourceRoot = $parts[2].Replace('%XL6_ROOT%', $rootPath)
+    $sourceRoot = if($generatedRuntime){$runtimeResourcePath}else{$parts[2].Replace('%XL6_ROOT%', $rootPath)}
     $sourcesToStage = if ($parts[0] -eq 'dir') {
         $patterns = $parts[3].Split(';')
         @(Get-ChildItem -LiteralPath $sourceRoot -Recurse -File | Where-Object {
@@ -751,6 +757,7 @@ $manifest = [pscustomobject]@{RecordedAt=(Get-Date).ToString('o');Complete=$true
     BuildSeconds=[Math]::Round($buildTimer.Elapsed.TotalSeconds,3);
     RuntimeSha256=(Get-FileHash release/xl.dll).Hash;
     SourceXrt=$true;
+    RuntimeResource=$runtimeResourcePath;
     Scope='Current-source public API/compiler/import/stdlib/Cgen/continuation runtime, generated XRT/xruntime implementation and TCC utilities. Released TCC core loaded dynamically; no release/VFS rebuild.'}
 [IO.File]::WriteAllText((Join-Path $batchPath 'build.json'), ($manifest | ConvertTo-Json -Depth 6), [Text.UTF8Encoding]::new($false))
 Write-Output "Public source driver built from $($sources.Count) translation units: $batchPath"

@@ -1,0 +1,1092 @@
+{
+    "date":  "2026-09-27T17:15:01.3757094+08:00",
+    "outcome":  "failed",
+    "failure":  "file-boundaries failed: orphan temporary: D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\files-b947780c168f4cc2ba1dc21d94c0bddc/.xrt-bz2-b458f45652601844.tmp\r\nAssertion failed: strncmp(entry.Name.Data, \".xrt-bz2-\", 9) != 0, file release/extlibs/bz2/test/test_bz2_files.c, line 30\r\n\n",
+    "scope":  "Windows strict C, independent Python bz2 interop, allocation, IO/reentry, transactions, generated ABI, XL/C JIT/AOT and paired examples",
+    "cRuntimeOverride":  "",
+    "runtimeNote":  "XrtInclude overrides independent GCC C only. XL JIT/AOT always use frozen release binaries and their normal runtime.",
+    "inputs":  {
+                   "D:\\GIT\\x-lang\\demo6\\lib\\xrt\\xrt.h":  "7C78B4B3D13FC64AC1009E2EDFAE73E9FB092C896DA1A70CF5BE859D153851E8",
+                   "D:\\GIT\\x-lang\\demo6\\lib\\xruntime\\xruntime.h":  "FF23FDB9AC90F63DEED1606A78F21707A9FA677AA766044B8AF3B4F5202F4BA9",
+                   "D:\\GIT\\x-lang\\demo6\\release\\examples\\extlibs\\bz2.xl":  "7D5CB34001C33A06865AB934908538787C34198F7961C10C6D53A408E7EE5CA8",
+                   "D:\\GIT\\x-lang\\demo6\\release\\examples\\extlibs\\bz2_basic.expected.txt":  "0181F80046B4E886C2D52A12D05C90141C2420738CB63D46926F911AEE1D5BCD",
+                   "D:\\GIT\\x-lang\\demo6\\release\\examples\\extlibs\\bz2_basic.xl":  "FDB762D9FEFC81311F517EA9D7F77B9E31F94D102D3A68DA30EC839E8111DB7A",
+                   "D:\\GIT\\x-lang\\demo6\\release\\examples\\extlibs\\bz2_files.expected.txt":  "5B394E7AF79B3DD1864699F9573F2B470071AE50AD8D1E1BD5146948DDEDBE42",
+                   "D:\\GIT\\x-lang\\demo6\\release\\examples\\extlibs\\bz2_files.xl":  "4D6A0998B0F030DA67CC786511CC461CFBCD7CD6074B8FAECB2FCC82B0085E75",
+                   "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\_bzip2\\third_party\\bzip2\\blocksort.c":  "4E48CD2CCFF44699E67A7C949B0E9576C05B8DCBE20F863475C4FCC8DB11A409",
+                   "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\_bzip2\\third_party\\bzip2\\bzlib.c":  "D06CF1BD991DF1F2DC8EF4F7713D186EB636767111CBD4807EF5FC4A54CA6838",
+                   "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\_bzip2\\third_party\\bzip2\\bzlib.h":  "6AC62E811669598EE30C9E1C379B9E627F6FF17A5A3DC1E0B4FA8B8EA75E580D",
+                   "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\_bzip2\\third_party\\bzip2\\bzlib_private.h":  "C0CDA4F35EE1F2D54C9BEACD524F8D28E0DBF8494ACA30D854AF3F143AF4341B",
+                   "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\_bzip2\\third_party\\bzip2\\CHANGES":  "67D96E05C081C0784ABBB566A70A36BC856CB5F913D52B96832D1D35C4F68EAF",
+                   "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\_bzip2\\third_party\\bzip2\\compress.c":  "75995BD6E8C5F1E1DAD05178F3CF53137DF99CE860A1984324F78591F28DEED3",
+                   "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\_bzip2\\third_party\\bzip2\\crctable.c":  "2FB7A564629386456E731F431A5CF4F5026747BACE4CD10BE8F5ECF082066A92",
+                   "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\_bzip2\\third_party\\bzip2\\decompress.c":  "31A89F8BF408EF0E4ACAE83E8BE60A8EB4EDECE6C866D6E32B8F7E557CA54BC6",
+                   "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\_bzip2\\third_party\\bzip2\\huffman.c":  "BDEB45F3F535546A672811B68AA87CC58FD395B28ECEBC34FA3566A656A4D1D1",
+                   "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\_bzip2\\third_party\\bzip2\\LICENSE":  "C6DBBF828498BE844A89EAA3B84ADBAB3199E342EB5CB2ED2F0D4BA7EC0F38A3",
+                   "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\_bzip2\\third_party\\bzip2\\randtable.c":  "407054CA6F54CD737DBC26CEB6B7874B55A0FCFF86C2EB23CBEC2FBDBB884815",
+                   "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\_bzip2\\third_party\\bzip2\\README":  "152F0DA2867A1160A8F956628296FF45E766E492AD0D7054FFB8D981F7518782",
+                   "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\_bzip2\\VENDOR.md":  "28AA8958F2899C031B6ECFE7795B882DC32412B3D8AB34C9B4EBF2E1236CDCD9",
+                   "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\_bzip2\\xlang.package.json":  "022A549C4BD0A80EE31822944CDEBF587A716B6CB5E8C973211E800BDB74FEC9",
+                   "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\bz2\\bz2_native.c":  "7F7DED78B77959FAA2927E3582A3C988F3B09876D8B47B21BDA93459B7ABCD8A",
+                   "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\bz2\\docs\\site.html":  "76638A8B83ABD78E2C4EB52A7022EEBCF5704D1C049492005F5A25DF75AF8417",
+                   "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\bz2\\examples\\basic.c":  "BEA01FE48021CABE75A11B9035E8A0CF1FBEED74DD92B19F1E491C14DE7BC754",
+                   "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\bz2\\examples\\files.c":  "0FB0D8C064709FFFE715FF43F31149EA5B3E2E2756D5E10CCA1E20B227E4B66A",
+                   "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\bz2\\include\\bz2_native.h":  "0CF0ED588C2E5B7EB8592AB14AE98A23970459AF60755E0A713641DB8EFC728F",
+                   "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\bz2\\include\\xrt_bz2.h":  "FEF0E735F60E0385087DE66D1E15FAB7E7EEAC6EF6C337FDE54398E465342D4B",
+                   "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\bz2\\README.md":  "BD30772EF713C68AEF9A60FE3F48DDF7BEED6951AA4AAEA74B1FCC9B5FBBF2F7",
+                   "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\bz2\\src\\bz2.xl":  "891759F58184EE435EB65DC64134679A70C301CBD2BE7991213A572CEEDB9DEA",
+                   "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\bz2\\test\\bz2_interop.c":  "363AFE8ED0767E19095851FB75097DF6DDDE8A57D1AFDC1318ABE4AEA2D7B10F",
+                   "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\bz2\\test\\test_bz2.c":  "A65222BE7B33CC5F9B563304CA5BEDCF7C75D11A5CE07C25992A7EBEC56E24CF",
+                   "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\bz2\\test\\test_bz2_alloc.c":  "B5E7E638F13456D264B039690F821AD3ACF6249EA25177051498651866CE7794",
+                   "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\bz2\\test\\test_bz2_boundaries.c":  "5417EC8E284AEBD2F19E1C1CD010ACB35F63BA1F9FA5E6F601D15CA34C8B3CCC",
+                   "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\bz2\\test\\test_bz2_files.c":  "552FBE8778EF2398209858ABBBD2EB16402A7438C18AF86B416B7088039668C7",
+                   "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\bz2\\test\\test_bz2_stream.c":  "AD27F5C521C978907F81C63E44E535243BD520EB996D40D02772D3C25153A4EC",
+                   "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\bz2\\xlang.package.json":  "90787A953D30400E382E4C3DF79038D8475F691CE76D7AE1FB7E69E70FE8D463",
+                   "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\bz2\\xrt_bz2.c":  "FCF5DC60433DEA3830F5EEEA477F311BF5B44DA8E005B1AC5EB80E7ACF99DB99",
+                   "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\bz2\\xrt_bz2_file.c":  "3F5C7E5FC65E5631D9CC46DC7AF5742214C45C1C4976CF4F604A041EFBFD2918",
+                   "D:\\GIT\\x-lang\\demo6\\release\\include\\xl_extlib_abi.h":  "33B33F690EF8610749E399D612984B6D02F6140767D4B92BBB65B28A89FCA244",
+                   "D:\\GIT\\x-lang\\demo6\\release\\include\\xrt_decl.h":  "A2D9D17C569DC74B974F8FD2FED0AC00E20A819FCDA09473630951031E0BCE8E",
+                   "D:\\GIT\\x-lang\\demo6\\release\\include\\xruntime_decl.h":  "97BEE29DBA82A3BB9D6A6A05681B90F456B35EF74741E9AD08B6E6B784060CFD",
+                   "D:\\GIT\\x-lang\\demo6\\release\\xl.dll":  "2A07C481C04CAD71D31D46722A27E62027318DF24E95A63126E061FD4CA46902",
+                   "D:\\GIT\\x-lang\\demo6\\release\\xl.exe":  "5A3F20B4CF9333D393560CB2361D0EBAB8A13F0D07C64A78A1F5FFF5385D9EEB",
+                   "D:\\GIT\\x-lang\\demo6\\release\\xlc.dll":  "7C672FD0B2852690D09E2EF1046C56EE1586FD1FCCC0CAEA61E19C0FE7C6E1F0",
+                   "D:\\GIT\\x-lang\\demo6\\test\\cases\\extlib_bz2.xl":  "001825CC43EBC442E44F0F4DE7708DBE23448F651D13111BF918A20B9AFE1068",
+                   "D:\\GIT\\x-lang\\demo6\\test\\cases\\extlib_bz2_progress.xl":  "C27C42D9AF256B90464CC4F4A0167C7D3CAB3BA5A91E90BBE4EB1855FCD14360",
+                   "D:\\GIT\\x-lang\\demo6\\test\\featured_extlibs.json":  "C7939E1CC884ABC2E2D991B4ECC14414F0F2C7CB8802FE6362459A0EB7E9AAAF",
+                   "D:\\GIT\\x-lang\\demo6\\test\\suites\\11_featured_extlibs_rc.bat":  "C2C59AFACAB109F453AFB4F4E3D78262C2C9F09F3D8F729E7EF18AE1BC0E87A8",
+                   "D:\\GIT\\x-lang\\demo6\\test\\support\\extlib_codec_runtime.c":  "ACD01CA7C8ACFA2F63C1257DDA52A0B575C0F2679B5432588014023F105C65FA",
+                   "D:\\GIT\\x-lang\\demo6\\tools\\check_extlib_bz2.ps1":  "E2B01934979C2A71093AF2BD44BC89B503D5AE0B3ACEDA73D164A32CB86598FB",
+                   "D:\\GIT\\x-lang\\demo6\\tools\\check_extlib_bz2.sh":  "C8734F3C5CE2B0BC423CF122DD76BA94828FCE35DC2DEDC775A373A3F15257AA",
+                   "D:\\GIT\\x-lang\\demo6\\tools\\check_extlib_bz2_interop.py":  "19D931071B688E178C3F56347CCB90248482C497A83CA6E3DA1CDDA4855B0937",
+                   "D:\\GIT\\x-lang\\demo6\\tools\\extlib_smoke_process.ps1":  "87C3D050B1F492E3F0C4307BA39F454E42B65E37DBCDEC4BE3E938BC2F32D2F7",
+                   "D:\\GIT\\x-lang\\demo6\\tools\\run_extlib_c.ps1":  "0ABBC3A4B3B0AE45587CCBB069F075F3FBF965D6485FC176C51865FA293FEDA5",
+                   "D:\\GIT\\x-lang\\demo6\\tools\\xlir_native_process.ps1":  "2BE2787D2316CE07E0D0AC3BDF1A1CAABA14D72F249CCAC847BB1C05D1DBFC9D"
+               },
+    "changedInputs":  [
+
+                      ],
+    "checks":  [
+                   {
+                       "name":  "compiler-version",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "--version"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  39,
+                       "stdout":  "gcc.exe (GCC) 16.1.0\r\nCopyright (C) 2026 Free Software Foundation, Inc.\r\nThis is free software; see the source for copying conditions.  There is NO\r\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\r\n\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "runtime",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_DIR",
+                                         "-DXRT_MODULE_FILE_WHOLE",
+                                         "-c",
+                                         "test/support/extlib_codec_runtime.c",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\runtime.o"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  5648,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "source-0",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-c",
+                                         "release/extlibs/bz2/xrt_bz2.c",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-0.o"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  869,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "source-1",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-c",
+                                         "release/extlibs/bz2/xrt_bz2_file.c",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-1.o"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  143,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "source-2",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-c",
+                                         "release/extlibs/bz2/bz2_native.c",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-2.o"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  261,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "source-3",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-c",
+                                         "release/extlibs/_bzip2/third_party/bzip2/blocksort.c",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-3.o"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  945,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "source-4",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-c",
+                                         "release/extlibs/_bzip2/third_party/bzip2/huffman.c",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-4.o"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  693,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "source-5",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-c",
+                                         "release/extlibs/_bzip2/third_party/bzip2/crctable.c",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-5.o"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  601,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "source-6",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-c",
+                                         "release/extlibs/_bzip2/third_party/bzip2/randtable.c",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-6.o"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  619,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "source-7",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-c",
+                                         "release/extlibs/_bzip2/third_party/bzip2/compress.c",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-7.o"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  1266,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "source-8",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-c",
+                                         "release/extlibs/_bzip2/third_party/bzip2/decompress.c",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-8.o"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  1099,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "source-9",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-c",
+                                         "release/extlibs/_bzip2/third_party/bzip2/bzlib.c",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-9.o"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  986,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "test_bz2-build",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "release/extlibs/bz2/test/test_bz2.c",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\runtime.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-0.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-1.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-2.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-3.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-4.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-5.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-6.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-7.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-8.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-9.o",
+                                         "-lWs2_32",
+                                         "-lAdvapi32",
+                                         "-lm",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\test_bz2.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  224,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "test_bz2",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\test_bz2.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  50,
+                       "stdout":  "test_bz2: PASS\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "test_bz2_boundaries-build",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "release/extlibs/bz2/test/test_bz2_boundaries.c",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\runtime.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-0.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-1.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-2.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-3.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-4.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-5.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-6.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-7.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-8.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-9.o",
+                                         "-lWs2_32",
+                                         "-lAdvapi32",
+                                         "-lm",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\test_bz2_boundaries.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  241,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "test_bz2_boundaries",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\test_bz2_boundaries.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  50,
+                       "stdout":  "bz2 C boundaries: options, limits, ownership, state and members passed\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "test_bz2_stream-build",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "release/extlibs/bz2/test/test_bz2_stream.c",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\runtime.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-0.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-1.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-2.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-3.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-4.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-5.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-6.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-7.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-8.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-9.o",
+                                         "-lWs2_32",
+                                         "-lAdvapi32",
+                                         "-lm",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\test_bz2_stream.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  227,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "test_bz2_stream",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\test_bz2_stream.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  47,
+                       "stdout":  "bz2 C streams: progress, cancellation, ownership, IO and reentry passed\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "test_bz2_alloc-build",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "release/extlibs/bz2/test/test_bz2_alloc.c",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\runtime.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-0.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-1.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-2.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-3.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-4.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-5.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-6.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-7.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-8.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-9.o",
+                                         "-lWs2_32",
+                                         "-lAdvapi32",
+                                         "-lm",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\test_bz2_alloc.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  225,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "test_bz2_alloc",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\test_bz2_alloc.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  67,
+                       "stdout":  "bz2 allocation: rejected=19, recovery and ownership passed\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "interop-build",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "release/extlibs/bz2/test/bz2_interop.c",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\runtime.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-0.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-1.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-2.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-3.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-4.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-5.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-6.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-7.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-8.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-9.o",
+                                         "-lWs2_32",
+                                         "-lAdvapi32",
+                                         "-lm",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\interop.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  186,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "python-bz2-interop",
+                       "program":  "C:\\Program Files\\Python312\\python.exe",
+                       "arguments":  [
+                                         "tools/check_extlib_bz2_interop.py",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\interop.exe",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\interop-files"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  2211,
+                       "stdout":  "bz2 independent interoperability: 269 checks passed\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_bz2-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "test/cases/extlib_bz2.xl"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  1297,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_bz2-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "test/cases/extlib_bz2.xl",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\extlib_bz2.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  1733,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_bz2-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\extlib_bz2.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  74,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_bz2_progress-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "test/cases/extlib_bz2_progress.xl"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  1587,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_bz2_progress-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "test/cases/extlib_bz2_progress.xl",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\extlib_bz2_progress.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  1932,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_bz2_progress-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\extlib_bz2_progress.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  256,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_bz2-cgen",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "cgen",
+                                         "test/cases/extlib_bz2.xl",
+                                         "--emit",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\extlib_bz2.c"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  659,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_bz2_progress-cgen",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "cgen",
+                                         "test/cases/extlib_bz2_progress.xl",
+                                         "--emit",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\extlib_bz2_progress.c"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  729,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "generated-23-prototypes",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-Irelease/extlibs/bz2/include",
+                                         "-fsyntax-only",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\abi.c"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  129,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "bz2-example-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "release/examples/extlibs/bz2.xl"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  951,
+                       "stdout":  "bz2 example: PASS\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "bz2-example-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "release/examples/extlibs/bz2.xl",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\bz2-example.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  1308,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "bz2-example-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\bz2-example.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  39,
+                       "stdout":  "bz2 example: PASS\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "bz2_basic-example-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "release/examples/extlibs/bz2_basic.xl"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  903,
+                       "stdout":  "utf8: ok\nbinary: ok\nstream: ok\ntruncated: rejected\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "bz2_basic-example-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "release/examples/extlibs/bz2_basic.xl",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\bz2_basic-example.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  1286,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "bz2_basic-example-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\bz2_basic-example.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  40,
+                       "stdout":  "utf8: ok\nbinary: ok\nstream: ok\ntruncated: rejected\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "bz2_basic-c-build",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "release/extlibs/bz2/examples/basic.c",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\runtime.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-0.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-1.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-2.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-3.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-4.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-5.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-6.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-7.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-8.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-9.o",
+                                         "-lWs2_32",
+                                         "-lAdvapi32",
+                                         "-lm",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\bz2_basic-c.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  197,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "bz2_basic-c",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\bz2_basic-c.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  34,
+                       "stdout":  "utf8: ok\r\nbinary: ok\r\nstream: ok\r\ntruncated: rejected\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "bz2_basic-c-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "release/extlibs/bz2/examples/basic.c",
+                                         "release/extlibs/bz2/xrt_bz2.c",
+                                         "release/extlibs/bz2/xrt_bz2_file.c",
+                                         "release/extlibs/bz2/bz2_native.c",
+                                         "release/extlibs/_bzip2/third_party/bzip2/blocksort.c",
+                                         "release/extlibs/_bzip2/third_party/bzip2/huffman.c",
+                                         "release/extlibs/_bzip2/third_party/bzip2/crctable.c",
+                                         "release/extlibs/_bzip2/third_party/bzip2/randtable.c",
+                                         "release/extlibs/_bzip2/third_party/bzip2/compress.c",
+                                         "release/extlibs/_bzip2/third_party/bzip2/decompress.c",
+                                         "release/extlibs/_bzip2/third_party/bzip2/bzlib.c",
+                                         "--inc-path",
+                                         "lib/xrt",
+                                         "--inc-path",
+                                         "lib/xruntime"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  350,
+                       "stdout":  "utf8: ok\r\nbinary: ok\r\nstream: ok\r\ntruncated: rejected\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "bz2_basic-c-aot-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "release/extlibs/bz2/examples/basic.c",
+                                         "release/extlibs/bz2/xrt_bz2.c",
+                                         "release/extlibs/bz2/xrt_bz2_file.c",
+                                         "release/extlibs/bz2/bz2_native.c",
+                                         "release/extlibs/_bzip2/third_party/bzip2/blocksort.c",
+                                         "release/extlibs/_bzip2/third_party/bzip2/huffman.c",
+                                         "release/extlibs/_bzip2/third_party/bzip2/crctable.c",
+                                         "release/extlibs/_bzip2/third_party/bzip2/randtable.c",
+                                         "release/extlibs/_bzip2/third_party/bzip2/compress.c",
+                                         "release/extlibs/_bzip2/third_party/bzip2/decompress.c",
+                                         "release/extlibs/_bzip2/third_party/bzip2/bzlib.c",
+                                         "--inc-path",
+                                         "lib/xrt",
+                                         "--inc-path",
+                                         "lib/xruntime",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\bz2_basic-c-tcc.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  537,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "bz2_basic-c-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\bz2_basic-c-tcc.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  29,
+                       "stdout":  "utf8: ok\r\nbinary: ok\r\nstream: ok\r\ntruncated: rejected\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "bz2_basic-c-package-runner",
+                       "program":  "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+                       "arguments":  [
+                                         "-NoProfile",
+                                         "-File",
+                                         "tools/run_extlib_c.ps1",
+                                         "-Package",
+                                         "bz2",
+                                         "-Source",
+                                         "release/extlibs/bz2/examples/basic.c"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  622,
+                       "stdout":  "utf8: ok\r\nbinary: ok\r\nstream: ok\r\ntruncated: rejected\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "bz2_files-example-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "release/examples/extlibs/bz2_files.xl"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  984,
+                       "stdout":  "files: ok\nprogress: ok\ncancel: preserved\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "bz2_files-example-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "release/examples/extlibs/bz2_files.xl",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\bz2_files-example.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  1326,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "bz2_files-example-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\bz2_files-example.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  32,
+                       "stdout":  "files: ok\nprogress: ok\ncancel: preserved\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "bz2_files-c-build",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "release/extlibs/bz2/examples/files.c",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\runtime.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-0.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-1.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-2.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-3.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-4.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-5.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-6.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-7.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-8.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-9.o",
+                                         "-lWs2_32",
+                                         "-lAdvapi32",
+                                         "-lm",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\bz2_files-c.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  196,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "bz2_files-c",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\bz2_files-c.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  31,
+                       "stdout":  "files: ok\r\nprogress: ok\r\ncancel: preserved\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "bz2_files-c-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "release/extlibs/bz2/examples/files.c",
+                                         "release/extlibs/bz2/xrt_bz2.c",
+                                         "release/extlibs/bz2/xrt_bz2_file.c",
+                                         "release/extlibs/bz2/bz2_native.c",
+                                         "release/extlibs/_bzip2/third_party/bzip2/blocksort.c",
+                                         "release/extlibs/_bzip2/third_party/bzip2/huffman.c",
+                                         "release/extlibs/_bzip2/third_party/bzip2/crctable.c",
+                                         "release/extlibs/_bzip2/third_party/bzip2/randtable.c",
+                                         "release/extlibs/_bzip2/third_party/bzip2/compress.c",
+                                         "release/extlibs/_bzip2/third_party/bzip2/decompress.c",
+                                         "release/extlibs/_bzip2/third_party/bzip2/bzlib.c",
+                                         "--inc-path",
+                                         "lib/xrt",
+                                         "--inc-path",
+                                         "lib/xruntime"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  381,
+                       "stdout":  "files: ok\r\nprogress: ok\r\ncancel: preserved\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "bz2_files-c-aot-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "release/extlibs/bz2/examples/files.c",
+                                         "release/extlibs/bz2/xrt_bz2.c",
+                                         "release/extlibs/bz2/xrt_bz2_file.c",
+                                         "release/extlibs/bz2/bz2_native.c",
+                                         "release/extlibs/_bzip2/third_party/bzip2/blocksort.c",
+                                         "release/extlibs/_bzip2/third_party/bzip2/huffman.c",
+                                         "release/extlibs/_bzip2/third_party/bzip2/crctable.c",
+                                         "release/extlibs/_bzip2/third_party/bzip2/randtable.c",
+                                         "release/extlibs/_bzip2/third_party/bzip2/compress.c",
+                                         "release/extlibs/_bzip2/third_party/bzip2/decompress.c",
+                                         "release/extlibs/_bzip2/third_party/bzip2/bzlib.c",
+                                         "--inc-path",
+                                         "lib/xrt",
+                                         "--inc-path",
+                                         "lib/xruntime",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\bz2_files-c-tcc.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  534,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "bz2_files-c-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\bz2_files-c-tcc.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  37,
+                       "stdout":  "files: ok\r\nprogress: ok\r\ncancel: preserved\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "bz2_files-c-package-runner",
+                       "program":  "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+                       "arguments":  [
+                                         "-NoProfile",
+                                         "-File",
+                                         "tools/run_extlib_c.ps1",
+                                         "-Package",
+                                         "bz2",
+                                         "-Source",
+                                         "release/extlibs/bz2/examples/files.c"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  635,
+                       "stdout":  "files: ok\r\nprogress: ok\r\ncancel: preserved\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "file-boundaries-build",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "release/extlibs/bz2/test/test_bz2_files.c",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\runtime.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-0.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-1.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-2.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-3.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-4.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-5.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-6.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-7.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-8.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\source-9.o",
+                                         "-lWs2_32",
+                                         "-lAdvapi32",
+                                         "-lm",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\files.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  268,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "file-boundaries",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\files.exe",
+                       "arguments":  [
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\files-b947780c168f4cc2ba1dc21d94c0bddc"
+                                     ],
+                       "status":  "fail",
+                       "exitCode":  3,
+                       "elapsedMs":  346,
+                       "stdout":  "",
+                       "stderr":  "orphan temporary: D:\\GIT\\x-lang\\demo6\\build\\test\\bz2_guard_frozen_final\\files-b947780c168f4cc2ba1dc21d94c0bddc/.xrt-bz2-b458f45652601844.tmp\r\nAssertion failed: strncmp(entry.Name.Data, \".xrt-bz2-\", 9) != 0, file release/extlibs/bz2/test/test_bz2_files.c, line 30\r\n"
+                   }
+               ]
+}

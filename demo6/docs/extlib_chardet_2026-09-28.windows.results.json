@@ -1,0 +1,656 @@
+{
+  "date": "2026-09-28T01:01:55.6974364+08:00",
+  "outcome": "passed-scoped",
+  "runtimeDirectory": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-current-20260928-003042\\runtime",
+  "scope": "Windows C/XL JIT/AOT, xl/xlc DLL context reuse, 10 generated physical ABIs, borrowed string copies, zero-allocation, threads and paired examples. No other package or platform admission.",
+  "inputs": {
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-current-20260928-003042\\runtime\\include\\libtcc.h": "FC77217B1E8AB783D512DF2B0A8249C801BDD8B5A4D2C5643169BD2C61ECE3AB",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-current-20260928-003042\\runtime\\include\\README.md": "C950EE90CF5D57078C010BF4CFE65A6C7701E5ACA7B06DD3D8EE5EEE80E8B0B7",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-current-20260928-003042\\runtime\\include\\tcc_builtin_vfs.h": "2ED7047361E240D5837533215310D8044298D160D7DD6E6C6B999EAAB935D05C",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-current-20260928-003042\\runtime\\include\\xl_extlib_abi.h": "33B33F690EF8610749E399D612984B6D02F6140767D4B92BBB65B28A89FCA244",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-current-20260928-003042\\runtime\\include\\xl_runtime.h": "F0503CACFC2165ABD35A25F417A4B147126783DB355C81E1B62643EF709DEACD",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-current-20260928-003042\\runtime\\include\\xl.h": "2A564C90F90EFD80C6257072819D215BA26C8890D8D86B3C134C153BE293EBEC",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-current-20260928-003042\\runtime\\include\\xlc.h": "3187BB8C540CE6F957B165F060EE7C8E2E27AC729B269763A1128004A0EAEEF1",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-current-20260928-003042\\runtime\\include\\xrt_decl.h": "A2D9D17C569DC74B974F8FD2FED0AC00E20A819FCDA09473630951031E0BCE8E",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-current-20260928-003042\\runtime\\include\\xruntime_decl.h": "97BEE29DBA82A3BB9D6A6A05681B90F456B35EF74741E9AD08B6E6B784060CFD",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-current-20260928-003042\\runtime\\xl.dll": "D46C35906A63EB022A1EE2C102D2D9700B1EFB957820FDF6DAEFA845E9B04288",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-current-20260928-003042\\runtime\\xl.exe": "3376E9514B52E9AD5F43A22C5EA3DA3294D261F4EFDB57CB6E147116A4695FBA",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-current-20260928-003042\\runtime\\xlc.dll": "3FC6C224A381F5143849C5FEB7F0CA44C7B496FE537E27208D94B483D75C7DE8",
+    "D:\\GIT\\x-lang\\demo6\\lib\\xrt\\xrt.h": "4C8CA837C7BAA2B865D6A6C8437449A90186639618888B929F6C3743327A0AC5",
+    "D:\\GIT\\x-lang\\demo6\\lib\\xruntime\\xruntime.h": "5E47B36DC21FDFF54C230D1FCA99175F429AD541409F1D44194F00E0FDF10F53",
+    "D:\\GIT\\x-lang\\demo6\\release\\examples\\extlibs\\chardet_basic.expected.txt": "51B2541C8E84392CCA1543C33981D0DF27F7E0194B6EB03DE589939EAAA5CFEE",
+    "D:\\GIT\\x-lang\\demo6\\release\\examples\\extlibs\\chardet_basic.xl": "8EF5D39B6632AD1C7E7D99108DDFD153FA63E81B6FE9D6204E640BDF3686D0FC",
+    "D:\\GIT\\x-lang\\demo6\\release\\examples\\extlibs\\chardet.xl": "06F3F63127F626C4B6C940ED663AEB3FABE510D5E39B46F18CCC20D3BD7E4169",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\chardet\\chardet_native.c": "897A587A0BF3D47CE2B0B049AF6FC0DF50F7A7972CC477F83D0CC41D2444EDD8",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\chardet\\examples\\basic.c": "9E7EBE0CBF70421FEF7C12E3DA70E5F5B661112C1ADC97DBC61BCE5473F19F76",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\chardet\\include\\chardet.h": "D6ED80E754D1B7BD9F9FDAB8A648139CEF7585B51D425B096CB969DCA3D92C75",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\chardet\\src\\chardet.xl": "4DFE1870B3B20211ABED50A295910FA75F7D117FC1C143D2AC2CA047CAE7D6D0",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\chardet\\test\\boundaries.xl": "0C87D323DA176F82D464225785C4122D683D7014CD0A9825F1718ED432EC4A98",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\chardet\\test\\test_chardet.c": "15441832F39F04C230986A7E475BD3B1EAA53FBADB63E0E3EFAF2C7B619C5AC5",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\chardet\\test\\test_threads.c": "8839458A31F9E4205943ECE8A33F3369C54F029AD0244D77311C767F418A4C9A",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\chardet\\xlang.package.json": "397101B4F9734129C45FC35AD6CB4713E59EA53982DA524FAC1A1D337A9AF9CE",
+    "D:\\GIT\\x-lang\\demo6\\test\\cases\\extlib_chardet.xl": "EDD9F25BB22397F9BACB8BEDBAC847DBF90A670779DAF73064DED316F60CCB12",
+    "D:\\GIT\\x-lang\\demo6\\test\\support\\extlib_chardet_runtime.c": "ABA7AA220A88DF9535738E0ABA53C32DE6990317D963963CE73E6195FBD534D2",
+    "D:\\GIT\\x-lang\\demo6\\test\\support\\extlib_runtime_host.c": "4D93413202A04F7B984AB8D38D09E3194AFA189FAB8D0676584E316AF6CF71C5",
+    "D:\\GIT\\x-lang\\demo6\\tools\\check_extlib_chardet.ps1": "F8BD13F6908D8963FEA5AF87C3CE1FDA25DC7BC4344DD40ED26D56AC73564F73",
+    "D:\\GIT\\x-lang\\demo6\\tools\\check_extlib_chardet.sh": "937D1626403D9448B47685BE437CD5C96B51F459C3ECD685BD40C0E4AE16DB92",
+    "D:\\GIT\\x-lang\\demo6\\tools\\extlib_smoke_process.ps1": "294FCC133C2E4F3E5786080D6DCFEDD3BFBC51656AF892433CCE08BB3EAF635F",
+    "D:\\GIT\\x-lang\\demo6\\tools\\run_extlib_c.ps1": "5183F14DBF4444B47D8832B60A0D6A6B570C8E933874785BEF85DD1ECB024A44",
+    "D:\\GIT\\x-lang\\demo6\\tools\\xlir_native_process.ps1": "2BE2787D2316CE07E0D0AC3BDF1A1CAABA14D72F249CCAC847BB1C05D1DBFC9D",
+    "E:\\software\\w64devkit\\bin\\gcc.exe": "F643D0DF5081344D6AAE27A9C1E4567B1A5F621F964671E531563E34306F68BA"
+  },
+  "changedInputs": [],
+  "generatedPrototypes": 10,
+  "checks": [
+    {
+      "name": "runtime-build",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "-Irelease/extlibs/chardet/include",
+        "-c",
+        "test/support/extlib_chardet_runtime.c",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-r2\\runtime.o"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 2267
+      }
+    },
+    {
+      "name": "native-0",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "-Irelease/extlibs/chardet/include",
+        "-c",
+        "release/extlibs/chardet/chardet_native.c",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-r2\\native-0.o"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 141
+      }
+    },
+    {
+      "name": "test_chardet-build",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "-Irelease/extlibs/chardet/include",
+        "release/extlibs/chardet/test/test_chardet.c",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-r2\\native-0.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-r2\\runtime.o",
+        "-lws2_32",
+        "-ladvapi32",
+        "-lm",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-r2\\test_chardet.exe"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 192
+      }
+    },
+    {
+      "name": "test_chardet",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-r2\\test_chardet.exe",
+      "arguments": [],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "chardet C: 22 vectors, 10 ABIs, invalid pointers, zero allocation and ownership PASS\r\n",
+        "stderr": "",
+        "elapsedMs": 30
+      }
+    },
+    {
+      "name": "test_threads-build",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "-Irelease/extlibs/chardet/include",
+        "release/extlibs/chardet/test/test_threads.c",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-r2\\native-0.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-r2\\runtime.o",
+        "-lws2_32",
+        "-ladvapi32",
+        "-lm",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-r2\\test_threads.exe"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 183
+      }
+    },
+    {
+      "name": "test_threads",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-r2\\test_threads.exe",
+      "arguments": [],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "chardet threads: four workers, 8000 rounds, borrowed results and TLS PASS\r\n",
+        "stderr": "",
+        "elapsedMs": 29
+      }
+    },
+    {
+      "name": "extlib_chardet-jit",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-current-20260928-003042\\runtime\\xl.exe",
+      "arguments": [
+        "run",
+        "test/cases/extlib_chardet.xl"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 192
+      }
+    },
+    {
+      "name": "extlib_chardet-build",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-current-20260928-003042\\runtime\\xl.exe",
+      "arguments": [
+        "build",
+        "test/cases/extlib_chardet.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-r2\\extlib_chardet.exe"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 439
+      }
+    },
+    {
+      "name": "extlib_chardet-aot",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-r2\\extlib_chardet.exe",
+      "arguments": [],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 47
+      }
+    },
+    {
+      "name": "extlib_chardet-cgen",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-current-20260928-003042\\runtime\\xl.exe",
+      "arguments": [
+        "cgen",
+        "test/cases/extlib_chardet.xl",
+        "--emit",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-r2\\extlib_chardet.c"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 115
+      }
+    },
+    {
+      "name": "boundaries-jit",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-current-20260928-003042\\runtime\\xl.exe",
+      "arguments": [
+        "run",
+        "release/extlibs/chardet/test/boundaries.xl"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "chardet boundaries: PASS\n",
+        "stderr": "",
+        "elapsedMs": 431
+      }
+    },
+    {
+      "name": "boundaries-build",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-current-20260928-003042\\runtime\\xl.exe",
+      "arguments": [
+        "build",
+        "release/extlibs/chardet/test/boundaries.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-r2\\boundaries.exe"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 757
+      }
+    },
+    {
+      "name": "boundaries-aot",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-r2\\boundaries.exe",
+      "arguments": [],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "chardet boundaries: PASS\n",
+        "stderr": "",
+        "elapsedMs": 27
+      }
+    },
+    {
+      "name": "boundaries-cgen",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-current-20260928-003042\\runtime\\xl.exe",
+      "arguments": [
+        "cgen",
+        "release/extlibs/chardet/test/boundaries.xl",
+        "--emit",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-r2\\boundaries.c"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 319
+      }
+    },
+    {
+      "name": "chardet-jit",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-current-20260928-003042\\runtime\\xl.exe",
+      "arguments": [
+        "run",
+        "release/examples/extlibs/chardet.xl"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "detect(' Hello, World! ') =  UTF-8\n  confidence:  40\ndetect(UTF-8 bytes) =  UTF-8\n  confidence:  90\n  isUtf8:  true\nchardet example: PASS\n",
+        "stderr": "",
+        "elapsedMs": 210
+      }
+    },
+    {
+      "name": "chardet-build",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-current-20260928-003042\\runtime\\xl.exe",
+      "arguments": [
+        "build",
+        "release/examples/extlibs/chardet.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-r2\\chardet.exe"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 454
+      }
+    },
+    {
+      "name": "chardet-aot",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-r2\\chardet.exe",
+      "arguments": [],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "detect(' Hello, World! ') =  UTF-8\n  confidence:  40\ndetect(UTF-8 bytes) =  UTF-8\n  confidence:  90\n  isUtf8:  true\nchardet example: PASS\n",
+        "stderr": "",
+        "elapsedMs": 22
+      }
+    },
+    {
+      "name": "chardet-cgen",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-current-20260928-003042\\runtime\\xl.exe",
+      "arguments": [
+        "cgen",
+        "release/examples/extlibs/chardet.xl",
+        "--emit",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-r2\\chardet.c"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 115
+      }
+    },
+    {
+      "name": "chardet_basic-jit",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-current-20260928-003042\\runtime\\xl.exe",
+      "arguments": [
+        "run",
+        "release/examples/extlibs/chardet_basic.xl"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "text=UTF-8; confidence=90; bom=0\nascii=true; utf8=true\nempty=UNKNOWN; ascii=true; utf8=true\nutf16=UTF-16LE; confidence=100; bom=2\nbom-only=UTF-8-BOM; confidence=100\nbom-invalid=UTF-8-BOM; valid=false\nbinary=UNKNOWN; valid=false\n",
+        "stderr": "",
+        "elapsedMs": 284
+      }
+    },
+    {
+      "name": "chardet_basic-build",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-current-20260928-003042\\runtime\\xl.exe",
+      "arguments": [
+        "build",
+        "release/examples/extlibs/chardet_basic.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-r2\\chardet_basic.exe"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 546
+      }
+    },
+    {
+      "name": "chardet_basic-aot",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-r2\\chardet_basic.exe",
+      "arguments": [],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "text=UTF-8; confidence=90; bom=0\nascii=true; utf8=true\nempty=UNKNOWN; ascii=true; utf8=true\nutf16=UTF-16LE; confidence=100; bom=2\nbom-only=UTF-8-BOM; confidence=100\nbom-invalid=UTF-8-BOM; valid=false\nbinary=UNKNOWN; valid=false\n",
+        "stderr": "",
+        "elapsedMs": 22
+      }
+    },
+    {
+      "name": "chardet_basic-cgen",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-current-20260928-003042\\runtime\\xl.exe",
+      "arguments": [
+        "cgen",
+        "release/examples/extlibs/chardet_basic.xl",
+        "--emit",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-r2\\chardet_basic.c"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 170
+      }
+    },
+    {
+      "name": "generated-prototypes",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "-Irelease/extlibs/chardet/include",
+        "-fsyntax-only",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-r2\\abi.c"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 99
+      }
+    },
+    {
+      "name": "c-example-build",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "-Irelease/extlibs/chardet/include",
+        "release/extlibs/chardet/examples/basic.c",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-r2\\native-0.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-r2\\runtime.o",
+        "-lws2_32",
+        "-ladvapi32",
+        "-lm",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-r2\\c-example.exe"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 175
+      }
+    },
+    {
+      "name": "c-example",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-r2\\c-example.exe",
+      "arguments": [],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "text=UTF-8; confidence=90; bom=0\r\nascii=true; utf8=true\r\nempty=UNKNOWN; ascii=true; utf8=true\r\nutf16=UTF-16LE; confidence=100; bom=2\r\nbom-only=UTF-8-BOM; confidence=100\r\nbom-invalid=UTF-8-BOM; valid=false\r\nbinary=UNKNOWN; valid=false\r\n",
+        "stderr": "",
+        "elapsedMs": 22
+      }
+    },
+    {
+      "name": "c-example-jit",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-current-20260928-003042\\runtime\\xl.exe",
+      "arguments": [
+        "run",
+        "release/extlibs/chardet/examples/basic.c",
+        "release/extlibs/chardet/chardet_native.c",
+        "--inc-path",
+        "lib/xrt",
+        "--inc-path",
+        "release/extlibs/chardet/include"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "text=UTF-8; confidence=90; bom=0\r\nascii=true; utf8=true\r\nempty=UNKNOWN; ascii=true; utf8=true\r\nutf16=UTF-16LE; confidence=100; bom=2\r\nbom-only=UTF-8-BOM; confidence=100\r\nbom-invalid=UTF-8-BOM; valid=false\r\nbinary=UNKNOWN; valid=false\r\n",
+        "stderr": "",
+        "elapsedMs": 72
+      }
+    },
+    {
+      "name": "c-example-aot-build",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-current-20260928-003042\\runtime\\xl.exe",
+      "arguments": [
+        "build",
+        "release/extlibs/chardet/examples/basic.c",
+        "release/extlibs/chardet/chardet_native.c",
+        "--inc-path",
+        "lib/xrt",
+        "--inc-path",
+        "release/extlibs/chardet/include",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-r2\\c-tcc.exe"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 259
+      }
+    },
+    {
+      "name": "c-example-aot",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-r2\\c-tcc.exe",
+      "arguments": [],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "text=UTF-8; confidence=90; bom=0\r\nascii=true; utf8=true\r\nempty=UNKNOWN; ascii=true; utf8=true\r\nutf16=UTF-16LE; confidence=100; bom=2\r\nbom-only=UTF-8-BOM; confidence=100\r\nbom-invalid=UTF-8-BOM; valid=false\r\nbinary=UNKNOWN; valid=false\r\n",
+        "stderr": "",
+        "elapsedMs": 60
+      }
+    },
+    {
+      "name": "c-example-runner",
+      "program": "C:\\Users\\Administrator\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe",
+      "arguments": [
+        "-NoProfile",
+        "-File",
+        "tools/run_extlib_c.ps1",
+        "-Package",
+        "chardet",
+        "-Source",
+        "release/extlibs/chardet/examples/basic.c",
+        "-RuntimeDirectory",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-current-20260928-003042\\runtime"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "text=UTF-8; confidence=90; bom=0\r\nascii=true; utf8=true\r\nempty=UNKNOWN; ascii=true; utf8=true\r\nutf16=UTF-16LE; confidence=100; bom=2\r\nbom-only=UTF-8-BOM; confidence=100\r\nbom-invalid=UTF-8-BOM; valid=false\r\nbinary=UNKNOWN; valid=false\r\n",
+        "stderr": "",
+        "elapsedMs": 714
+      }
+    },
+    {
+      "name": "c-smoke-runner",
+      "program": "C:\\Users\\Administrator\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe",
+      "arguments": [
+        "-NoProfile",
+        "-File",
+        "tools/run_extlib_c.ps1",
+        "-Package",
+        "chardet",
+        "-Source",
+        "release/extlibs/chardet/test/test_chardet.c",
+        "-RuntimeDirectory",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-current-20260928-003042\\runtime"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "chardet C: 22 vectors, 10 ABIs, invalid pointers, zero allocation and ownership PASS\r\n",
+        "stderr": "",
+        "elapsedMs": 702
+      }
+    },
+    {
+      "name": "xl-host-build",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-I",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-current-20260928-003042\\runtime\\include",
+        "test/support/extlib_runtime_host.c",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-current-20260928-003042\\runtime\\xl.dll",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-r2\\xl-host.exe"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 110
+      }
+    },
+    {
+      "name": "xl-host-reuse",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-r2\\xl-host.exe",
+      "arguments": [
+        "D:\\GIT\\x-lang\\demo6",
+        "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\chardet\\test\\boundaries.xl"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "chardet boundaries: PASS\nchardet boundaries: PASS\nchardet boundaries: PASS\n",
+        "stderr": "",
+        "elapsedMs": 1221
+      }
+    },
+    {
+      "name": "xlc-host-build",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-I",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-current-20260928-003042\\runtime\\include",
+        "test/support/extlib_runtime_host.c",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-current-20260928-003042\\runtime\\xlc.dll",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-r2\\xlc-host.exe"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 111
+      }
+    },
+    {
+      "name": "xlc-host-reuse",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-r2\\xlc-host.exe",
+      "arguments": [
+        "D:\\GIT\\x-lang\\demo6",
+        "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\chardet\\test\\boundaries.xl"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "chardet boundaries: PASS\nchardet boundaries: PASS\nchardet boundaries: PASS\n",
+        "stderr": "",
+        "elapsedMs": 1263
+      }
+    }
+  ]
+}

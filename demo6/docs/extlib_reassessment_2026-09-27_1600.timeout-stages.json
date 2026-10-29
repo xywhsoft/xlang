@@ -1,0 +1,68 @@
+{
+  "date": "2026-09-27T08:07:08.5304094Z",
+  "scope": "Semantic check probes for five JIT timeouts; not a replacement JIT result",
+  "checks": [
+    {
+      "case": "release/extlibs/xhttp.client/test/xhttp_client_exchange_test.xl",
+      "mode": "check",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "ok\n",
+        "stderr": "",
+        "elapsedMs": 12372
+      }
+    },
+    {
+      "case": "release/extlibs/xhttp.client/test/xhttp_client_request_test.xl",
+      "mode": "check",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "ok\n",
+        "stderr": "",
+        "elapsedMs": 12471
+      }
+    },
+    {
+      "case": "release/extlibs/xhttp.client/test/xhttp_client_transport_test.xl",
+      "mode": "check",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "ok\n",
+        "stderr": "",
+        "elapsedMs": 15330
+      }
+    },
+    {
+      "case": "release/extlibs/xui/test/import.xl",
+      "mode": "check",
+      "result": {
+        "status": "timeout",
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 30120
+      }
+    },
+    {
+      "case": "test/cases/extlib_volc_core.xl",
+      "mode": "check",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "ok\n",
+        "stderr": "",
+        "elapsedMs": 12690
+      }
+    }
+  ],
+  "inputReference": "extlib_reassessment_2026-09-27_1600.results.json",
+  "workingDirectory": "D:\\GIT\\x-lang\\demo6",
+  "program": "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+  "packagePathEnvironment": null,
+  "inputsStillMatch": true,
+  "changedInputs": [],
+  "addedPackageInputs": []
+}

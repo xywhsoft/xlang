@@ -30,9 +30,9 @@
 - `derive copy` / `derive clone` 自动生成 `__copy__` / `__clone__`。
 - `copy()` / `clone()` 与 class、var、容器、function 值的生成器融合。
 - `derive value` 自动生成 `__toValue__` / `__fromValue__`。
-- `derive json` / `derive xson` 基于 value 能力接入标准库持久化。
+- `derive json` / `derive xlon` 基于 value 能力接入标准库持久化。
 - `json.stringify(class)` / `json.parse::<Class>(text)` roundtrip。
-- `xson.stringify(class)` / `xson.parse::<Class>(text)` roundtrip。
+- `xlon.stringify(class)` / `xlon.parse::<Class>(text)` roundtrip。
 - class 命名变量接收者的运算符协议、一元协议、比较协议。
 - class 命名变量接收者的 `__contains__` 与 `in`。
 - class 命名变量接收者的 `__call__` 与 `obj(...)`。
@@ -92,7 +92,7 @@ print(p.sum())
 - 字段写入协议。
 - 字段调用协议。
 - 转换为字典/xvalue 的能力。
-- json/xson 持久化辅助能力。
+- json/xlon 持久化辅助能力。
 
 典型写法：
 
@@ -626,7 +626,7 @@ class Player
     derive value
     derive copy
     derive json
-    derive xson
+    derive xlon
 
     int id
     string name
@@ -642,7 +642,7 @@ end
 | `derive moveOnly` | 禁止复制，只允许移动 |
 | `derive value` | 生成 class 与 xvalue/dict 互转能力 |
 | `derive json` | 基于 value 生成 JSON 序列化与反序列化 |
-| `derive xson` | 基于 value 生成 XSON 序列化与反序列化 |
+| `derive xlon` | 基于 value 生成 XLON 序列化与反序列化 |
 | `derive string` | 生成默认字符串表示 |
 | `derive hash` | 生成哈希协议 |
 | `derive equals` | 生成相等比较协议 |
@@ -650,7 +650,7 @@ end
 约束：
 
 - `derive json` 依赖 `derive value` 能力；可以由编译器自动补齐内部依赖。
-- `derive xson` 依赖 `derive value` 能力。
+- `derive xlon` 依赖 `derive value` 能力。
 - `derive copy` 要求所有字段可浅拷贝。
 - `derive clone` 要求所有字段可深拷贝。
 - `derive moveOnly` 与 `derive copy` 冲突。
@@ -658,7 +658,7 @@ end
 
 ## 8. 字段级持久化注解
 
-字段级 json/xson 配置采用字段尾部注解，不使用 class 内配置块。
+字段级 json/xlon 配置采用字段尾部注解，不使用 class 内配置块。
 
 这样字段名、类型、默认值和持久化规则集中在同一行，阅读和工具处理都更直接。
 
@@ -667,12 +667,12 @@ end
 ```xlang
 class Player
     derive json
-    derive xson
+    derive xlon
 
     int id
-    string playerName @json("player_name") @xson("player_name")
+    string playerName @json("player_name") @xlon("player_name")
     string nick @json(omit=empty) = ""
-    private string password @json(skip) @xson(skip)
+    private string password @json(skip) @xlon(skip)
     private int internalId @json(include, required)
 end
 ```
@@ -680,8 +680,8 @@ end
 支持的注解：
 
 - `@json(...)`：只影响 JSON 序列化与反序列化。
-- `@xson(...)`：只影响 XSON 序列化与反序列化。
-- `@persist(...)`：同时影响 JSON 与 XSON，可作为公共配置。
+- `@xlon(...)`：只影响 XLON 序列化与反序列化。
+- `@persist(...)`：同时影响 JSON 与 XLON，可作为公共配置。
 
 支持的参数：
 
@@ -700,7 +700,7 @@ end
 - `skip` 与 `include` 冲突。
 - `skip` 与 `required` 冲突。
 - `@json(...)` 覆盖 `@persist(...)` 中与 JSON 相关的同名配置。
-- `@xson(...)` 覆盖 `@persist(...)` 中与 XSON 相关的同名配置。
+- `@xlon(...)` 覆盖 `@persist(...)` 中与 XLON 相关的同名配置。
 - 注解只描述持久化策略，不改变字段访问控制、不改变内存布局。
 
 后续可扩展：
@@ -720,17 +720,17 @@ Player p = json.parse::<Player>(text)
 json.write("player.json", value)
 Player jp = json.read::<Player>("player.json")
 
-string data = xson.stringify(value)
-Player q = xson.parse::<Player>(data)
-xson.write("player.xson", value)
-Player r = xson.read::<Player>("player.xson")
+string data = xlon.stringify(value)
+Player q = xlon.parse::<Player>(data)
+xlon.write("player.xlon", value)
+Player r = xlon.read::<Player>("player.xlon")
 ```
 
 规则：
 
 - 基础类型直接序列化。
 - 容器递归序列化。
-- class 需要 `derive value`、`derive json` 或 `derive xson`。
+- class 需要 `derive value`、`derive json` 或 `derive xlon`。
 - native-backed class 默认不可序列化，除非显式绑定转换协议或 derive 持久化能力。
 - object 动态字段由 object 基类的 value 能力参与序列化。
 
@@ -841,7 +841,7 @@ ABI 元数据 建议字段：
 - object 动态字段通过 object 基类真实函数实现。
 - copy/clone 通过标准库入口或已解析协议函数生成。
 - derive 生成函数应进入普通 cgen 流程，避免特殊分支膨胀。
-- json/xson 持久化优先复用 XRT/xvalue/json/xson 能力。
+- json/xlon 持久化优先复用 XRT/xvalue/json/xlon 能力。
 
 ## 15. 实现阶段
 
@@ -863,7 +863,7 @@ ABI 元数据 建议字段：
 - `__len__` / `__contains__` / `__call__`。
 - 普通 class 的 `__iter__` / `__next__`。
 - `derive value`。
-- `derive json` / `derive xson`。
+- `derive json` / `derive xlon`。
 - 持久化标准库 API。
 
 第三批实现：
@@ -914,7 +914,7 @@ ABI 元数据 建议字段：
 ### 本批新增开发列表
 
 - 泛型约束系统，语法为 `<T is Constraint>`，多个约束使用 `and`。
-- 字段级持久化注解：`@json(...)`、`@xson(...)`、`@persist(...)`。
+- 字段级持久化注解：`@json(...)`、`@xlon(...)`、`@persist(...)`。
 - 泛型 class 的 `__iter__` / `__next__` 协议。
 - custom 融合到 class，形成 native-backed class。
 - class 数据 ABI 与成员函数 C export ABI。
@@ -929,7 +929,7 @@ ABI 元数据 建议字段：
 - 错误路径均有负例诊断测试。
 - class/object/protocol 有功能范例。
 - copy/clone 有基础类型、容器、class、native-backed class 边界测试。
-- json/xson 持久化有 roundtrip 测试。
+- json/xlon 持久化有 roundtrip 测试。
 - ABI 元数据 输出包含协议与 derive 元数据测试。
 - C 混编不被 object/protocol 破坏。
 - `test.bat` 通过。

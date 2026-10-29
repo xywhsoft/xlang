@@ -1,0 +1,1535 @@
+{
+  "date": "2026-09-27T15:32:32.6380295+08:00",
+  "scope": "Local filesystem only, no remote deployment or browser preview",
+  "sourcePages": 15,
+  "matchingSources": 15,
+  "missingEntries": 35,
+  "rows": [
+    {
+      "name": "acme",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "aho_corasick",
+      "source": true,
+      "ordinary": true,
+      "generated": true,
+      "sourceMatchesLocal": true
+    },
+    {
+      "name": "ansi",
+      "source": false,
+      "ordinary": false,
+      "generated": false,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "argon2",
+      "source": true,
+      "ordinary": true,
+      "generated": true,
+      "sourceMatchesLocal": true
+    },
+    {
+      "name": "barcode",
+      "source": false,
+      "ordinary": false,
+      "generated": false,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "blake2",
+      "source": true,
+      "ordinary": true,
+      "generated": true,
+      "sourceMatchesLocal": true
+    },
+    {
+      "name": "blake3",
+      "source": true,
+      "ordinary": true,
+      "generated": true,
+      "sourceMatchesLocal": true
+    },
+    {
+      "name": "bloom",
+      "source": true,
+      "ordinary": true,
+      "generated": true,
+      "sourceMatchesLocal": true
+    },
+    {
+      "name": "brotli",
+      "source": true,
+      "ordinary": true,
+      "generated": true,
+      "sourceMatchesLocal": true
+    },
+    {
+      "name": "bson",
+      "source": false,
+      "ordinary": true,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "bz2",
+      "source": false,
+      "ordinary": true,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "canbus",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "cbor",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "chardet",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "cli",
+      "source": false,
+      "ordinary": false,
+      "generated": false,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "clickhouse",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "clip",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "clipboard",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "coap",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "color",
+      "source": false,
+      "ordinary": false,
+      "generated": false,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "com",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "consistent_hash",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "crc32",
+      "source": true,
+      "ordinary": true,
+      "generated": true,
+      "sourceMatchesLocal": true
+    },
+    {
+      "name": "crontab",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "css",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "csv",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "cuckoo",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "daemon",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "dataframe",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "diff",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "dinov3",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "dns",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "docker",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "docx",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "dotenv",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "duckdb",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "embeddings",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "enet",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "epub",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "etcd",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "faiss",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "ffmpeg",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "fix",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "flatbuffers",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "freetype",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "ftp",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "fuzzy",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "geohash",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "gettext",
+      "source": false,
+      "ordinary": false,
+      "generated": false,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "ggml",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "git",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "glad",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "gpio",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "graph",
+      "source": false,
+      "ordinary": false,
+      "generated": false,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "grpc",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "gzip",
+      "source": true,
+      "ordinary": true,
+      "generated": true,
+      "sourceMatchesLocal": true
+    },
+    {
+      "name": "harfbuzz",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "hcl",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "hnswlib",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "html5",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "hyperloglog",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "ical",
+      "source": false,
+      "ordinary": false,
+      "generated": false,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "icu",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "imagehash",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "imgui",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "influxdb",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "ini",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "jieba",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "json.patch",
+      "source": false,
+      "ordinary": false,
+      "generated": false,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "json5",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "jwt",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "kubernetes",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "langdetect",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "ldap",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "leveldb",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "libsndfile",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "libsvm",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "libtorch",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "libusb",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "linalg",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "llama",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "lmdb",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "lru",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "lz4",
+      "source": false,
+      "ordinary": true,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "lzma",
+      "source": false,
+      "ordinary": true,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "md4c",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "md5",
+      "source": true,
+      "ordinary": true,
+      "generated": true,
+      "sourceMatchesLocal": true
+    },
+    {
+      "name": "mdns",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "memcached",
+      "source": false,
+      "ordinary": false,
+      "generated": false,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "minio",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "miniz",
+      "source": false,
+      "ordinary": true,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "mnn",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "modbus",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "money",
+      "source": false,
+      "ordinary": false,
+      "generated": false,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "mongodb",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "mqtt",
+      "source": true,
+      "ordinary": true,
+      "generated": true,
+      "sourceMatchesLocal": true
+    },
+    {
+      "name": "msgpack",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "murmur3",
+      "source": true,
+      "ordinary": true,
+      "generated": true,
+      "sourceMatchesLocal": true
+    },
+    {
+      "name": "mysql",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "nanomsg",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "nats",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "ncnn",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "neo4j",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "netrc",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "nsq",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "ntp",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "oauth2",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "onnxruntime",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "op",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "opencv",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "opentelemetry",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "openvino",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "opus",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "passkey",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "pcap",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "pdf",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "pdfium",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "pinyin",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "pkcs",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "plist",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "portaudio",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "postgresql",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "pptx",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "procps",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "progress",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "prometheus",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "protobuf",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "qr",
+      "source": false,
+      "ordinary": false,
+      "generated": false,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "quic",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "rabbitmq",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "rapidocr",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "ratatui",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "redis",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "roaring",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "rocksdb",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "rss",
+      "source": false,
+      "ordinary": false,
+      "generated": false,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "rtmp",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "rtree",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "sciter",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "semver",
+      "source": false,
+      "ordinary": false,
+      "generated": false,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "sentencepiece",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "serial",
+      "source": false,
+      "ordinary": true,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "sha3",
+      "source": true,
+      "ordinary": true,
+      "generated": true,
+      "sourceMatchesLocal": true
+    },
+    {
+      "name": "sharedmem",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "shellwords",
+      "source": false,
+      "ordinary": false,
+      "generated": false,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "singleinstance",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "siphash",
+      "source": true,
+      "ordinary": true,
+      "generated": true,
+      "sourceMatchesLocal": true
+    },
+    {
+      "name": "sitemap",
+      "source": false,
+      "ordinary": false,
+      "generated": false,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "skiplist",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "slugify",
+      "source": false,
+      "ordinary": false,
+      "generated": false,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "snappy",
+      "source": false,
+      "ordinary": true,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "snmp",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "socks",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "sox",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "sqlite",
+      "source": true,
+      "ordinary": true,
+      "generated": true,
+      "sourceMatchesLocal": true
+    },
+    {
+      "name": "srt",
+      "source": false,
+      "ordinary": false,
+      "generated": false,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "stablediffusion",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "statistics",
+      "source": false,
+      "ordinary": false,
+      "generated": false,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "stb_image",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "stb_image_resize2",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "stb_image_write",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "stb_truetype",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "sysinfo",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "tabulate",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "taglib",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "tar",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "tdengine",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "tensorrt",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "terraform_state",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "tokenizers",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "toml",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "totp",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "treesitter",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "trie",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "ui.auto",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "uia",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "units",
+      "source": false,
+      "ordinary": false,
+      "generated": false,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "upnp",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "vault",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "vcard",
+      "source": false,
+      "ordinary": false,
+      "generated": false,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "vectordb",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "volc.core",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "volc.phone",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "volc.sts",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "watch",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "webrtc",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "webview",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "whisper",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "xbot",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "xbot.agent",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "xfeat",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "xge",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "xge_shape_ex",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "xhttp",
+      "source": false,
+      "ordinary": false,
+      "generated": false,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "xhttp.body",
+      "source": false,
+      "ordinary": false,
+      "generated": false,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "xhttp.body_async",
+      "source": false,
+      "ordinary": false,
+      "generated": false,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "xhttp.body_codec",
+      "source": false,
+      "ordinary": false,
+      "generated": false,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "xhttp.body_decode",
+      "source": false,
+      "ordinary": false,
+      "generated": false,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "xhttp.body_file",
+      "source": false,
+      "ordinary": false,
+      "generated": false,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "xhttp.body_stream",
+      "source": false,
+      "ordinary": false,
+      "generated": false,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "xhttp.client",
+      "source": false,
+      "ordinary": false,
+      "generated": false,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "xhttp.form_data",
+      "source": false,
+      "ordinary": false,
+      "generated": false,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "xhttp.multipart",
+      "source": false,
+      "ordinary": false,
+      "generated": false,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "xhttp.protocol",
+      "source": false,
+      "ordinary": false,
+      "generated": false,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "xlsx",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "xmail",
+      "source": false,
+      "ordinary": false,
+      "generated": false,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "xml.dom",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "xml.etree",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "xml.sax",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "xregex",
+      "source": false,
+      "ordinary": false,
+      "generated": false,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "xssh",
+      "source": false,
+      "ordinary": false,
+      "generated": false,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "xui",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "xws",
+      "source": false,
+      "ordinary": false,
+      "generated": false,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "xxhash",
+      "source": true,
+      "ordinary": true,
+      "generated": true,
+      "sourceMatchesLocal": true
+    },
+    {
+      "name": "yaml",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "zeromq",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "zip",
+      "source": false,
+      "ordinary": false,
+      "generated": true,
+      "sourceMatchesLocal": null
+    },
+    {
+      "name": "zstd",
+      "source": false,
+      "ordinary": true,
+      "generated": true,
+      "sourceMatchesLocal": null
+    }
+  ]
+}

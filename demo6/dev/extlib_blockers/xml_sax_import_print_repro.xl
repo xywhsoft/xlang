@@ -1,0 +1,7 @@
+import xml.sax
+
+func main(...) as int
+    var event = {"name": "root"}
+    println(event["name"])
+    return 0
+end

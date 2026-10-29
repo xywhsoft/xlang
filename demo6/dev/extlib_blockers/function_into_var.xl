@@ -1,0 +1,7 @@
+func main(...) as int
+    auto callback = func() as int
+        return 1
+    end
+    var boxed = callback
+    return 0
+end

@@ -44,7 +44,7 @@
 ## 当前风险与维护要求
 
 - cgen 已拆成多个分片，但少数分片仍偏大；后续优化应继续沿职责边界细拆。
-- ABI 元数据 读取器仍是编译器内部严格读取器，后续如果迁入 XRT JSON/XSON，需要保持错误诊断和未知字段兼容行为不退化。
+- ABI 元数据 读取器仍是编译器内部严格读取器，后续如果迁入 XRT JSON/XLON，需要保持错误诊断和未知字段兼容行为不退化。
 - package 自动链接已进入 CLI 链接流程，后续需要继续压测相对路径、重复链接去重和动态库加载顺序。
 - ABI 元数据 消费侧已经覆盖函数、变量、class、union 和 native-backed class 占位；xcall/function object/native-backed class 方法的完整消费仍属于后续深化项。
 

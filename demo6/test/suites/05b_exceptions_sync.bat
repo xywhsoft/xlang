@@ -497,7 +497,7 @@ if not errorlevel 1 (
     echo sem_xcall_byref_invalid.xl should fail.
     exit /b 1
 )
-findstr /C:"xcall" build\test\sem_xcall_byref_invalid.err.txt >nul
+findstr /C:"[parse]" build\test\sem_xcall_byref_invalid.err.txt >nul
 if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\sem_xcall_overload_invalid.xl >nul 2> build\test\sem_xcall_overload_invalid.err.txt

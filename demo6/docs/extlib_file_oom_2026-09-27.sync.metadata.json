@@ -1,0 +1,68 @@
+{
+  "date": "2026-09-27T18:16:38.0280354+08:00",
+  "scope": "Exact four-block implementation backport after positive/negative differential tests; no whole-upstream update and no published binary replacement",
+  "sourceProof": "extlib_file_oom_2026-09-27.backport.metadata.json",
+  "upstreamSources": [
+    {
+      "Path": "D:\\GIT\\xrt\\src\\internal\\xrt_file.h",
+      "Hash": "ECEB2EB9225A46BAF455CEC7B24B084B3030EDFF73C4935F370145E8E2D225AD"
+    },
+    {
+      "Path": "D:\\GIT\\xrt\\src\\fs\\file.c",
+      "Hash": "857BA8A89BA9B73111FB69482776F465796C393ED81DC7D429D61541CC1AE239"
+    },
+    {
+      "Path": "D:\\GIT\\xrt\\src\\fs\\file_root_posix.c",
+      "Hash": "6E11C9D4D408A1C6FAEE1DD88F120A84E318972020D5EDCE361A68910C6DD747"
+    },
+    {
+      "Path": "D:\\GIT\\xrt\\src\\fs\\file_root_windows.c",
+      "Hash": "3073AA5AA844F274BD71C0008E34688C4DE3741E5623CD9F21D27F91629CACE6"
+    }
+  ],
+  "headers": [
+    {
+      "path": "lib/xrt/xrt.h",
+      "baseSha256": "7C78B4B3D13FC64AC1009E2EDFAE73E9FB092C896DA1A70CF5BE859D153851E8",
+      "sha256": "4C8CA837C7BAA2B865D6A6C8437449A90186639618888B929F6C3743327A0AC5",
+      "bytes": 7953237,
+      "baseline": "build/test/extlib_file_oom/frozen-xrt/xrt.h"
+    },
+    {
+      "path": "lib/xruntime/xruntime.h",
+      "baseSha256": "FF23FDB9AC90F63DEED1606A78F21707A9FA677AA766044B8AF3B4F5202F4BA9",
+      "sha256": "5E47B36DC21FDFF54C230D1FCA99175F429AD541409F1D44194F00E0FDF10F53",
+      "bytes": 8596737,
+      "baseline": "build/test/extlib_file_oom/frozen-xrt/xruntime.h"
+    }
+  ],
+  "binaries": [
+    {
+      "path": "release/xl.exe",
+      "sha256": "5A3F20B4CF9333D393560CB2361D0EBAB8A13F0D07C64A78A1F5FFF5385D9EEB",
+      "unchanged": true
+    },
+    {
+      "path": "release/xl.dll",
+      "sha256": "2A07C481C04CAD71D31D46722A27E62027318DF24E95A63126E061FD4CA46902",
+      "unchanged": true
+    },
+    {
+      "path": "release/xlc.dll",
+      "sha256": "7C672FD0B2852690D09E2EF1046C56EE1586FD1FCCC0CAEA61E19C0FE7C6E1F0",
+      "unchanged": true
+    }
+  ],
+  "declarations": [
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\release\\include\\xrt_decl.h",
+      "Hash": "A2D9D17C569DC74B974F8FD2FED0AC00E20A819FCDA09473630951031E0BCE8E"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\release\\include\\xruntime_decl.h",
+      "Hash": "97BEE29DBA82A3BB9D6A6A05681B90F456B35EF74741E9AD08B6E6B784060CFD"
+    }
+  ],
+  "snapshotValidation": "python tools/sync_xrt_snapshot.py --check passed; 3085 XRT APIs, 3536 xruntime APIs (451 owned)",
+  "pending": "Rebuild candidate EXE/DLL and VFS; all runtime layers must pass before publication"
+}

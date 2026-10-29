@@ -1,0 +1,921 @@
+{
+  "recordedAt": "2026-09-28T07:26:22.8610918+08:00",
+  "scope": "Color scoped C/XL delivery checks; not a formal product release or whole-ecosystem gate",
+  "windows": {
+    "evidence": "build/test/color-delivery-20260928-windows/results.json",
+    "sha256": "77E1C79263DDBD4ACB0FAAA5E47BC3B47C53E9933E025CDA2EF5FB57DDFE057B",
+    "outcome": "passed-scoped",
+    "inputCount": 847,
+    "changedInputs": [],
+    "checks": [
+      {
+        "name": "gcc-version",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "--version"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "gcc.exe (GCC) 16.1.0\r\nCopyright (C) 2026 Free Software Foundation, Inc.\r\nThis is free software; see the source for copying conditions.  There is NO\r\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\r\n\r\n",
+          "stderr": "",
+          "elapsedMs": 36
+        }
+      },
+      {
+        "name": "runtime",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/color/include",
+          "-c",
+          "test/support/extlib_color_runtime.c",
+          "-o",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\runtime.o"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 2474
+        }
+      },
+      {
+        "name": "source-1",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/color/include",
+          "-c",
+          "release/extlibs/color/color_core.c",
+          "-o",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\source-1.o"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 258
+        }
+      },
+      {
+        "name": "source-2",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/color/include",
+          "-c",
+          "release/extlibs/color/color_native.c",
+          "-o",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\source-2.o"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 122
+        }
+      },
+      {
+        "name": "test_color-build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/color/include",
+          "release/extlibs/color/test/test_color.c",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\runtime.o",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\source-1.o",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\source-2.o",
+          "-lws2_32",
+          "-ladvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\test_color.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 268
+        }
+      },
+      {
+        "name": "test_color",
+        "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\test_color.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "color C: 21 APIs, buffer bounds/aliasing, finite math, zero-allocation core and 8 owned-result failures PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 22
+        }
+      },
+      {
+        "name": "test_threads-build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/color/include",
+          "release/extlibs/color/test/test_threads.c",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\runtime.o",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\source-1.o",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\source-2.o",
+          "-lws2_32",
+          "-ladvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\test_threads.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 187
+        }
+      },
+      {
+        "name": "test_threads",
+        "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\test_threads.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "color threads: four workers, 8000 rounds, result lifetime and TLS PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 28
+        }
+      },
+      {
+        "name": "oracle-build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/color/include",
+          "release/extlibs/color/test/oracle.c",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\runtime.o",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\source-1.o",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\source-2.o",
+          "-lws2_32",
+          "-ladvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\oracle.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 178
+        }
+      },
+      {
+        "name": "independent-oracle",
+        "program": "C:\\Program Files\\Python312\\python.exe",
+        "arguments": [
+          "tools/check_extlib_color_oracle.py",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\oracle.exe",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\oracle.json"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "color independent oracle: 18320 checks PASS\r\n",
+          "stderr": "",
+          "elapsedMs": 235
+        }
+      },
+      {
+        "name": "extlib_color-jit",
+        "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\default-argument-20260928-source-v3\\public_source.exe",
+        "arguments": [
+          "test/cases/extlib_color.xl",
+          "run",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\extlib_color"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "public source run complete\r\n",
+          "stderr": "",
+          "elapsedMs": 380
+        }
+      },
+      {
+        "name": "extlib_color-build",
+        "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\default-argument-20260928-source-v3\\public_source.exe",
+        "arguments": [
+          "test/cases/extlib_color.xl",
+          "exe",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\extlib_color"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "public source exe complete\r\n",
+          "stderr": "",
+          "elapsedMs": 614
+        }
+      },
+      {
+        "name": "extlib_color-aot",
+        "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\extlib_color.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 40
+        }
+      },
+      {
+        "name": "extlib_color-cgen",
+        "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\default-argument-20260928-source-v3\\public_source.exe",
+        "arguments": [
+          "test/cases/extlib_color.xl",
+          "emit",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\extlib_color"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "public source emit complete\r\n",
+          "stderr": "",
+          "elapsedMs": 446
+        }
+      },
+      {
+        "name": "extlib_color-formal-jit",
+        "program": "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "test/cases/extlib_color.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 289
+        }
+      },
+      {
+        "name": "color-jit",
+        "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\default-argument-20260928-source-v3\\public_source.exe",
+        "arguments": [
+          "release/examples/extlibs/color.xl",
+          "run",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\color"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "normalize('#f80') = #FF8800\ncomponents: 51 102 204\nhue: 220.0 sat: 0.75 val: 0.8\nfromHsv round trip: #3366CC\nfromHsl(210, 0.6, 0.5): #337FCC\n#3366CC  #667399  #998066  #CC8C33  #FF9900  \ncontrast #FFFFFF on white: 1.0 => fail\ncontrast #F5F5F5 on white: 1.090230993517392 => fail\ncontrast #999999 on white: 2.849027755287037 => fail\ncontrast #3366CC on white: 5.366401794534013 => AA\ncontrast #000000 on white: 21.0 => AAA\nfromName('rebeccapurple'): #663399\ntoName('#A52A2A'): brown\ncolor example: PASS\npublic source run complete\r\n",
+          "stderr": "",
+          "elapsedMs": 225
+        }
+      },
+      {
+        "name": "color-build",
+        "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\default-argument-20260928-source-v3\\public_source.exe",
+        "arguments": [
+          "release/examples/extlibs/color.xl",
+          "exe",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\color"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "public source exe complete\r\n",
+          "stderr": "",
+          "elapsedMs": 464
+        }
+      },
+      {
+        "name": "color-aot",
+        "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\color.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "normalize('#f80') = #FF8800\ncomponents: 51 102 204\nhue: 220.0 sat: 0.75 val: 0.8\nfromHsv round trip: #3366CC\nfromHsl(210, 0.6, 0.5): #337FCC\n#3366CC  #667399  #998066  #CC8C33  #FF9900  \ncontrast #FFFFFF on white: 1.0 => fail\ncontrast #F5F5F5 on white: 1.090230993517392 => fail\ncontrast #999999 on white: 2.849027755287037 => fail\ncontrast #3366CC on white: 5.366401794534013 => AA\ncontrast #000000 on white: 21.0 => AAA\nfromName('rebeccapurple'): #663399\ntoName('#A52A2A'): brown\ncolor example: PASS\n",
+          "stderr": "",
+          "elapsedMs": 33
+        }
+      },
+      {
+        "name": "color-cgen",
+        "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\default-argument-20260928-source-v3\\public_source.exe",
+        "arguments": [
+          "release/examples/extlibs/color.xl",
+          "emit",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\color"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "public source emit complete\r\n",
+          "stderr": "",
+          "elapsedMs": 254
+        }
+      },
+      {
+        "name": "color-formal-jit",
+        "program": "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/examples/extlibs/color.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "normalize('#f80') = #FF8800\ncomponents: 51 102 204\nhue: 220.0 sat: 0.75 val: 0.8\nfromHsv round trip: #3366CC\nfromHsl(210, 0.6, 0.5): #337FCC\n#3366CC  #667399  #998066  #CC8C33  #FF9900  \ncontrast #FFFFFF on white: 1.0 => fail\ncontrast #F5F5F5 on white: 1.090230993517392 => fail\ncontrast #999999 on white: 2.849027755287037 => fail\ncontrast #3366CC on white: 5.366401794534013 => AA\ncontrast #000000 on white: 21.0 => AAA\nfromName('rebeccapurple'): #663399\ntoName('#A52A2A'): brown\ncolor example: PASS\n",
+          "stderr": "",
+          "elapsedMs": 215
+        }
+      },
+      {
+        "name": "color_basic-jit",
+        "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\default-argument-20260928-source-v3\\public_source.exe",
+        "arguments": [
+          "release/examples/extlibs/color_basic.xl",
+          "run",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\color_basic"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "accent: #3366CC\nrgba: #3366CC80\nhsl: #00FF00\nnamed: #663399 / rebeccapurple\nmiddle: #808080\n#FFFFFF -> #000000 AAA\n#3366CC -> #FFFFFF AA\n#000000 -> #FFFFFF AAA\ninvalid: rejected\npublic source run complete\r\n",
+          "stderr": "",
+          "elapsedMs": 215
+        }
+      },
+      {
+        "name": "color_basic-build",
+        "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\default-argument-20260928-source-v3\\public_source.exe",
+        "arguments": [
+          "release/examples/extlibs/color_basic.xl",
+          "exe",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\color_basic"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "public source exe complete\r\n",
+          "stderr": "",
+          "elapsedMs": 463
+        }
+      },
+      {
+        "name": "color_basic-aot",
+        "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\color_basic.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "accent: #3366CC\nrgba: #3366CC80\nhsl: #00FF00\nnamed: #663399 / rebeccapurple\nmiddle: #808080\n#FFFFFF -> #000000 AAA\n#3366CC -> #FFFFFF AA\n#000000 -> #FFFFFF AAA\ninvalid: rejected\n",
+          "stderr": "",
+          "elapsedMs": 24
+        }
+      },
+      {
+        "name": "color_basic-cgen",
+        "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\default-argument-20260928-source-v3\\public_source.exe",
+        "arguments": [
+          "release/examples/extlibs/color_basic.xl",
+          "emit",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\color_basic"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "public source emit complete\r\n",
+          "stderr": "",
+          "elapsedMs": 225
+        }
+      },
+      {
+        "name": "color_basic-formal-jit",
+        "program": "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/examples/extlibs/color_basic.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "accent: #3366CC\nrgba: #3366CC80\nhsl: #00FF00\nnamed: #663399 / rebeccapurple\nmiddle: #808080\n#FFFFFF -> #000000 AAA\n#3366CC -> #FFFFFF AA\n#000000 -> #FFFFFF AAA\ninvalid: rejected\n",
+          "stderr": "",
+          "elapsedMs": 209
+        }
+      },
+      {
+        "name": "boundaries-jit",
+        "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\default-argument-20260928-source-v3\\public_source.exe",
+        "arguments": [
+          "release/extlibs/color/test/boundaries.xl",
+          "run",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\boundaries"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "color language boundaries: PASS\npublic source run complete\r\n",
+          "stderr": "",
+          "elapsedMs": 164
+        }
+      },
+      {
+        "name": "boundaries-build",
+        "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\default-argument-20260928-source-v3\\public_source.exe",
+        "arguments": [
+          "release/extlibs/color/test/boundaries.xl",
+          "exe",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\boundaries"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "public source exe complete\r\n",
+          "stderr": "",
+          "elapsedMs": 364
+        }
+      },
+      {
+        "name": "boundaries-aot",
+        "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\boundaries.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "color language boundaries: PASS\n",
+          "stderr": "",
+          "elapsedMs": 24
+        }
+      },
+      {
+        "name": "boundaries-cgen",
+        "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\default-argument-20260928-source-v3\\public_source.exe",
+        "arguments": [
+          "release/extlibs/color/test/boundaries.xl",
+          "emit",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\boundaries"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "public source emit complete\r\n",
+          "stderr": "",
+          "elapsedMs": 151
+        }
+      },
+      {
+        "name": "boundaries-formal-jit",
+        "program": "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/color/test/boundaries.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "color language boundaries: PASS\n",
+          "stderr": "",
+          "elapsedMs": 180
+        }
+      },
+      {
+        "name": "allocations-jit",
+        "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\default-argument-20260928-source-v3\\public_source.exe",
+        "arguments": [
+          "release/extlibs/color/test/allocations.xl",
+          "run",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\allocations"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "color language allocation: PASS\npublic source run complete\r\n",
+          "stderr": "",
+          "elapsedMs": 180
+        }
+      },
+      {
+        "name": "allocations-build",
+        "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\default-argument-20260928-source-v3\\public_source.exe",
+        "arguments": [
+          "release/extlibs/color/test/allocations.xl",
+          "exe",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\allocations"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "public source exe complete\r\n",
+          "stderr": "",
+          "elapsedMs": 392
+        }
+      },
+      {
+        "name": "allocations-aot",
+        "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\allocations.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "color language allocation: PASS\n",
+          "stderr": "",
+          "elapsedMs": 26
+        }
+      },
+      {
+        "name": "allocations-cgen",
+        "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\default-argument-20260928-source-v3\\public_source.exe",
+        "arguments": [
+          "release/extlibs/color/test/allocations.xl",
+          "emit",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\allocations"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "public source emit complete\r\n",
+          "stderr": "",
+          "elapsedMs": 174
+        }
+      },
+      {
+        "name": "generated-21-prototypes",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/color/include",
+          "-fsyntax-only",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\abi.c"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 99
+        }
+      },
+      {
+        "name": "example-c-build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Ilib/xrt",
+          "-Irelease/extlibs/color/include",
+          "release/extlibs/color/examples/basic.c",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\runtime.o",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\source-1.o",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\source-2.o",
+          "-lws2_32",
+          "-ladvapi32",
+          "-lm",
+          "-o",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\example-c.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 201
+        }
+      },
+      {
+        "name": "example-c",
+        "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\example-c.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "accent: #3366CC\r\nrgba: #3366CC80\r\nhsl: #00FF00\r\nnamed: #663399 / rebeccapurple\r\nmiddle: #808080\r\n#FFFFFF -> #000000 AAA\r\n#3366CC -> #FFFFFF AA\r\n#000000 -> #FFFFFF AAA\r\ninvalid: rejected\r\n",
+          "stderr": "",
+          "elapsedMs": 24
+        }
+      },
+      {
+        "name": "example-c-jit",
+        "program": "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+        "arguments": [
+          "run",
+          "release/extlibs/color/examples/basic.c",
+          "release/extlibs/color/color_core.c",
+          "release/extlibs/color/color_native.c",
+          "--inc-path",
+          "lib/xrt"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "accent: #3366CC\r\nrgba: #3366CC80\r\nhsl: #00FF00\r\nnamed: #663399 / rebeccapurple\r\nmiddle: #808080\r\n#FFFFFF -> #000000 AAA\r\n#3366CC -> #FFFFFF AA\r\n#000000 -> #FFFFFF AAA\r\ninvalid: rejected\r\n",
+          "stderr": "",
+          "elapsedMs": 102
+        }
+      },
+      {
+        "name": "example-c-aot-build",
+        "program": "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+        "arguments": [
+          "build",
+          "release/extlibs/color/examples/basic.c",
+          "release/extlibs/color/color_core.c",
+          "release/extlibs/color/color_native.c",
+          "--inc-path",
+          "lib/xrt",
+          "-o",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\example-tcc.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 299
+        }
+      },
+      {
+        "name": "example-c-aot",
+        "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\example-tcc.exe",
+        "arguments": [],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "accent: #3366CC\r\nrgba: #3366CC80\r\nhsl: #00FF00\r\nnamed: #663399 / rebeccapurple\r\nmiddle: #808080\r\n#FFFFFF -> #000000 AAA\r\n#3366CC -> #FFFFFF AA\r\n#000000 -> #FFFFFF AAA\r\ninvalid: rejected\r\n",
+          "stderr": "",
+          "elapsedMs": 42
+        }
+      },
+      {
+        "name": "example-package-runner",
+        "program": "C:\\Users\\Administrator\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe",
+        "arguments": [
+          "-NoProfile",
+          "-File",
+          "tools/run_extlib_c.ps1",
+          "-Package",
+          "color",
+          "-Source",
+          "release/extlibs/color/examples/basic.c"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "accent: #3366CC\r\nrgba: #3366CC80\r\nhsl: #00FF00\r\nnamed: #663399 / rebeccapurple\r\nmiddle: #808080\r\n#FFFFFF -> #000000 AAA\r\n#3366CC -> #FFFFFF AA\r\n#000000 -> #FFFFFF AAA\r\ninvalid: rejected\r\n",
+          "stderr": "",
+          "elapsedMs": 741
+        }
+      },
+      {
+        "name": "xl-host-build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Irelease/include",
+          "test/support/extlib_runtime_host.c",
+          "D:\\GIT\\x-lang\\demo6\\release\\xl.dll",
+          "-o",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\xl-host.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 112
+        }
+      },
+      {
+        "name": "xl-host-reuse",
+        "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\xl-host.exe",
+        "arguments": [
+          "D:\\GIT\\x-lang\\demo6",
+          "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\color\\test\\boundaries.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "color language boundaries: PASS\ncolor language boundaries: PASS\ncolor language boundaries: PASS\n",
+          "stderr": "",
+          "elapsedMs": 513
+        }
+      },
+      {
+        "name": "xlc-host-build",
+        "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+        "arguments": [
+          "-std=c11",
+          "-O2",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-Irelease/include",
+          "test/support/extlib_runtime_host.c",
+          "D:\\GIT\\x-lang\\demo6\\release\\xlc.dll",
+          "-o",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\xlc-host.exe"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsedMs": 112
+        }
+      },
+      {
+        "name": "xlc-host-reuse",
+        "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\xlc-host.exe",
+        "arguments": [
+          "D:\\GIT\\x-lang\\demo6",
+          "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\color\\test\\boundaries.xl"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "color language boundaries: PASS\ncolor language boundaries: PASS\ncolor language boundaries: PASS\n",
+          "stderr": "",
+          "elapsedMs": 495
+        }
+      },
+      {
+        "name": "documentation-0",
+        "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\default-argument-20260928-source-v3\\public_source.exe",
+        "arguments": [
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\doc-0.xl",
+          "run",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\doc-0"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "#3366CC\n#808080\npublic source run complete\r\n",
+          "stderr": "",
+          "elapsedMs": 112
+        }
+      },
+      {
+        "name": "documentation-1",
+        "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\default-argument-20260928-source-v3\\public_source.exe",
+        "arguments": [
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\doc-1.xl",
+          "run",
+          "D:\\GIT\\x-lang\\demo6\\build\\test\\color-delivery-20260928-windows\\doc-1"
+        ],
+        "directory": "D:\\GIT\\x-lang\\demo6",
+        "result": {
+          "status": "pass",
+          "exitCode": 0,
+          "stdout": "#3366CC\n#808080\npublic source run complete\r\n",
+          "stderr": "",
+          "elapsedMs": 111
+        }
+      }
+    ],
+    "formalAllocationObservation": {
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "",
+      "stderr": "uncaught xlang error: AssertionError: color allocation mismatch: api=0, failAfter=1, triggered=true, caught=false\nuncaught xlang error: color allocation mismatch: api=0, failAfter=1, triggered=true, caught=false\n",
+      "elapsedMs": 190
+    }
+  },
+  "linux": {
+    "arguments": [
+      "-d",
+      "Ubuntu",
+      "--cd",
+      "/mnt/d/GIT/x-lang/demo6",
+      "-e",
+      "env",
+      "COLOR_WORK_DIR=/mnt/d/GIT/x-lang/demo6/build/test/color-delivery-20260928-linux",
+      "COLOR_DECLARATIONS=/mnt/d/GIT/x-lang/demo6/build/test/color-delivery-20260928-windows/abi.c",
+      "bash",
+      "tools/check_extlib_color.sh"
+    ],
+    "result": {
+      "status": "pass",
+      "exitCode": 0,
+      "stdout": "color C: 21 APIs, buffer bounds/aliasing, finite math, zero-allocation core and 8 owned-result failures PASS\ncolor threads: four workers, 8000 rounds, result lifetime and TLS PASS\ncolor independent oracle: 18320 checks PASS\ncolor Linux C ASan/UBSan/float-cast and LP64 gate: PASS\n",
+      "stderr": "",
+      "elapsedMs": 12240
+    },
+    "compiler": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+    "evidenceDirectory": "build/test/color-delivery-20260928-linux",
+    "oracle": {
+      "passed": 18320,
+      "counts": {
+        "scalar": 4568,
+        "roundtrip": 4568,
+        "conversion": 8592,
+        "name": 592
+      },
+      "seed": 20260928,
+      "reference": "Python colorsys; WCAG sRGB luminance; W3C CSS named-color fixture",
+      "conversionChannelTolerance": 1,
+      "roundtripTolerance": 0
+    },
+    "stableInputs": true
+  },
+  "releaseReady": false
+}

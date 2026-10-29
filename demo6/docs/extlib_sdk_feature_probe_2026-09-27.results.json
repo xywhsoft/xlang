@@ -1,0 +1,58 @@
+{
+  "format": "xlang-extlib-sdk-feature-probe-1",
+  "generatedAt": "2026-09-27T12:59:01.7528857+08:00",
+  "scope": "GCC preprocessor comparison only; confirms visibility difference, not all network root causes or host symbol availability",
+  "results": [
+    {
+      "header": "release/include/xrt_decl.h",
+      "sha256": "3356BCCABBCBC877AD19C5E2D3336C909C2A742DE62E7B92BB79FE2AF3F4CEE6",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-E",
+        "-dM",
+        "-x",
+        "c",
+        "-DXRT_MODULE_CODEC_PERCENT",
+        "-DXRT_MODULE_DEFLATE",
+        "-DXRT_MODULE_INFLATE",
+        "-include",
+        "release/include/xrt_decl.h",
+        "-"
+      ],
+      "stdin": "empty input",
+      "exitCode": 0,
+      "selectedDefinitions": [
+        "#define XRT_MODULE_INFLATE 1",
+        "#define XRT_MODULE_CODEC_PERCENT 1",
+        "#define XRT_MODULE_DEFLATE 1"
+      ]
+    },
+    {
+      "header": "lib/xrt/xrt.h",
+      "sha256": "7C78B4B3D13FC64AC1009E2EDFAE73E9FB092C896DA1A70CF5BE859D153851E8",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-E",
+        "-dM",
+        "-x",
+        "c",
+        "-DXRT_MODULE_CODEC_PERCENT",
+        "-DXRT_MODULE_DEFLATE",
+        "-DXRT_MODULE_INFLATE",
+        "-include",
+        "lib/xrt/xrt.h",
+        "-"
+      ],
+      "stdin": "empty input",
+      "exitCode": 0,
+      "selectedDefinitions": [
+        "#define XRT_FEATURE_INFLATE ",
+        "#define XRT_MODULE_DEFLATE 1",
+        "#define XRT_FEATURE_CODEC_PERCENT ",
+        "#define XRT_MODULE_INFLATE 1",
+        "#define XRT_FEATURE_DEFLATE ",
+        "#define XRT_MODULE_CODEC_PERCENT 1"
+      ]
+    }
+  ]
+}

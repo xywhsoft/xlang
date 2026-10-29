@@ -116,6 +116,14 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_task_by
 if errorlevel 1 exit /b 1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_callable_byval.ps1
 if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_string_xcall_embedded_nul.xl --emit build\test\cgen_string_xcall_embedded_nul.c
+if errorlevel 1 exit /b 1
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror -fsyntax-only build\test\cgen_string_xcall_embedded_nul.c
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\cgen_string_xcall_embedded_nul.xl -o build\test\cgen_string_xcall_embedded_nul.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_string_xcall_embedded_nul.exe
+if errorlevel 1 exit /b 1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_callable_result.ps1
 if errorlevel 1 exit /b 1
 
@@ -314,7 +322,7 @@ if not errorlevel 1 (
     echo sem_c_callback_byref_invalid.xl should fail.
     exit /b 1
 )
-findstr /C:"byref or out" build\test\sem_c_callback_byref_invalid.err.txt >nul
+findstr /C:"[parse]" build\test\sem_c_callback_byref_invalid.err.txt >nul
 if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\sem_c_callback_signature_mismatch_invalid.xl >nul 2> build\test\sem_c_callback_signature_mismatch_invalid.err.txt

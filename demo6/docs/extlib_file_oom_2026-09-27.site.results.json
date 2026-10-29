@@ -1,0 +1,30 @@
+{
+  "date": "2026-09-27T18:16:38.7718673+08:00",
+  "scope": "Local generated pages, byte identity and local href/src existence only; no remote deployment or browser visual verification",
+  "checks": [
+    {
+      "package": "gzip",
+      "source": "release/extlibs/gzip/docs/site.html",
+      "target": "D:\\GIT\\home\\host\\xlang\\wwwroot\\extlibs\\gzip.html",
+      "sha256": "6D6E69C1318C3E7440A69BEA2277396830D725230928C5EDE1C80F741FC0095D",
+      "sourceMatches": true,
+      "missingLocalLinks": []
+    },
+    {
+      "package": "brotli",
+      "source": "release/extlibs/brotli/docs/site.html",
+      "target": "D:\\GIT\\home\\host\\xlang\\wwwroot\\extlibs\\brotli.html",
+      "sha256": "32B6E1AE060B4F259DF8D0ABCECE545264B13F48D5FA545390A4D4FECED6083E",
+      "sourceMatches": true,
+      "missingLocalLinks": []
+    },
+    {
+      "package": "bz2",
+      "source": "release/extlibs/bz2/docs/site.html",
+      "target": "D:\\GIT\\home\\host\\xlang\\wwwroot\\extlibs\\bz2.html",
+      "sha256": "D340B9FAD3E2908DED36EA8BCE367C90A1DF703320967E3DD2B71E24B2098690",
+      "sourceMatches": true,
+      "missingLocalLinks": []
+    }
+  ]
+}

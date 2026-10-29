@@ -1,0 +1,403 @@
+{
+  "date": "2026-09-26T23:27:48.2579493+08:00",
+  "outcome": "passed",
+  "scope": "Windows x64 strict C ABI, boundary/allocation, JIT/AOT, paired examples",
+  "inputs": {
+    "lib/xrt/xrt.h": "7C78B4B3D13FC64AC1009E2EDFAE73E9FB092C896DA1A70CF5BE859D153851E8",
+    "release/examples/extlibs/argon2_basic.expected.txt": "5ECB03EB09FF5DC4EFBDD91CA2174A04B034914D5DAE974C197276243CA8E5F4",
+    "release/examples/extlibs/argon2_basic.xl": "C9EB500F42BD1E6B2DDCD6EE48452F3E5266FEB3B98916D3864C343FB6CDC77F",
+    "release/examples/extlibs/argon2_c.c": "080B699B9581585944A49F134D875F1251C489BAB56D02D3D091831DEE03134C",
+    "release/examples/extlibs/argon2.xl": "0A7EE5A2EC5578F18286B7FBCEE0E20B573EFDDF037C5D443DBC40688F8F0E2F",
+    "release/examples/extlibs/bloom_basic.expected.txt": "9C4F0455CE12F1D99DE2906A3E6B7D5EBCE2B73B10532C112F8A3617F7C1319E",
+    "release/examples/extlibs/bloom_basic.xl": "57D3CC14CB82B082632DEA798FF15A8F8E159234360932E7B9744CFDC9E4973B",
+    "release/examples/extlibs/bloom_c.c": "6D566ADF9C996A3557B930F8068BCA58522F30B109A0779F9D033854A30B2EF3",
+    "release/examples/extlibs/bloom.xl": "6B24562B8C50B630DC7108AFFF3C212F76EA48DF0B1D867E662B75045CEB964A",
+    "release/extlibs/argon2/argon2_native.c": "2A98C0F1069DDFE2854C9D8D29C45635D0E1246989E140560622615B680ED051",
+    "release/extlibs/argon2/include/argon2_native.h": "B213A6C051E2294817ED2F8EE07A411F8D23D95EAEDF55792A6E14F794E67FB6",
+    "release/extlibs/argon2/src/argon2.xl": "EFCF8996659082095A9E884DBF6399EEC454F53C199B19805A29825E185FD567",
+    "release/extlibs/argon2/test/test_argon2.c": "C4BD93B767759D31D85147DE94496527BFED06B802E62DC0B4D3FCC097B6E6F9",
+    "release/extlibs/argon2/vendor/argon2.c": "B1289EC7134E8502E9113396FDAC89402BF2575EE1B35E33FB7410F2FB63BB6D",
+    "release/extlibs/argon2/vendor/argon2.h": "25ED629FECA91CA9D361441160C6FBC10318BB0FB3757555B418ED47B705B35B",
+    "release/extlibs/argon2/vendor/blake2/blake2-impl.h": "EC9884FE834C30EB362F0CEF3432A43A5C496B0D6D1D637A5A590A45BEC4D79C",
+    "release/extlibs/argon2/vendor/blake2/blake2.h": "B1E497675E7F6D9AB7C6CF868DD5D64C074BD03EA97FFC7D3FB823E901537C25",
+    "release/extlibs/argon2/vendor/blake2/blake2b.c": "7EB2F3FAAC14C532FB75F645F518686F3EF0DB4C7B9849A1FFC73D262B596281",
+    "release/extlibs/argon2/vendor/blake2/blamka-round-ref.h": "8D5FC886BBC0B55AF10AC6F1E9A5995A4E8D4ABACE46642FB1832C84D38C3007",
+    "release/extlibs/argon2/vendor/core.c": "04E4E56C58A9A7B3FB831D799B1B1FEE45973876EB46298A4DE8CABB5FB8A02C",
+    "release/extlibs/argon2/vendor/core.h": "32F6AB8C0C313D9336D2731A001426B68D246BBA5B362FABEAF593C333DA7D37",
+    "release/extlibs/argon2/vendor/encoding.c": "7B9A0C019ABC6FCA7E6E0A9ABD2F7B22A885F8831827CFBD4BFD4502DD9F7806",
+    "release/extlibs/argon2/vendor/encoding.h": "A4E0681EF4B0EB229A35760B603B7A32E9019CFE98C31732F747F087E5E39828",
+    "release/extlibs/argon2/vendor/ref.c": "9AC347FD8DC737AF69BBB93D56AC8B4AB5488152F606880C8D7FC4592E207647",
+    "release/extlibs/argon2/vendor/thread.h": "650E713FB584DE2E6AEB307E64228F95CEF733EA667FAA0BB111960AAACE30EF",
+    "release/extlibs/argon2/xlang.package.json": "22626A95C162DC340B45C4FEB3A94FBC95DE58ABFD1AB0C478469A1233205082",
+    "release/extlibs/bloom/bloom_native.c": "7F0D3F06CA59418C5AD63509E37E86C1E9AFD80CE6FC6DCB5677BA365D1B3E6E",
+    "release/extlibs/bloom/include/bloom.h": "90B7AE93F9E378E41BD4AD85B07DF944BAB0384EF83A71F841CF9AC117EE63BE",
+    "release/extlibs/bloom/src/bloom.xl": "DF7BB2E64ADCDCAEC7575402980BE2DEA3DEFA540BAA67887B110FB41C86CEBB",
+    "release/extlibs/bloom/test/test_bloom.c": "2389F1F34F37EF8E840583FEA9C7433BFE13751A905C557CB3991EA7099DFAC8",
+    "release/extlibs/bloom/xlang.package.json": "2B1FC17AE5D19CEC77685D07A682832D5EEB0514C36EB7BADC76F357E78A1001",
+    "release/include/xrt_decl.h": "3356BCCABBCBC877AD19C5E2D3336C909C2A742DE62E7B92BB79FE2AF3F4CEE6",
+    "release/xl.dll": "2A07C481C04CAD71D31D46722A27E62027318DF24E95A63126E061FD4CA46902",
+    "release/xl.exe": "5A3F20B4CF9333D393560CB2361D0EBAB8A13F0D07C64A78A1F5FFF5385D9EEB",
+    "release/xlc.dll": "7C672FD0B2852690D09E2EF1046C56EE1586FD1FCCC0CAEA61E19C0FE7C6E1F0",
+    "test/cases/extlib_argon2_bloom_alloc.c": "936A0C68FE1D30C361A9CF97159E85086DDD466F867C2FFB5F9B82A982B900CA",
+    "test/cases/extlib_argon2.xl": "83F8AFD8B7BEB3BC0D86C76C0B40D7ED7E183320BD0B30C63EBE094A46ECCE39",
+    "test/cases/extlib_bloom.xl": "C5C00A3073F1060078A7A38A2AB80B474CF30688A007E447558D6337A80FCE6D",
+    "test/support/extlib_scalar_runtime.c": "993ADC383C6921A96A2541EEEF8278A865658EA431A8902FB0F3F55CA002C9A8",
+    "tools/check_extlib_argon2_bloom.ps1": "C32A7959DE09D6904CD6BA6B48618456085FE23B39BD25C509CBBCA836239AB3",
+    "tools/extlib_smoke_process.ps1": "87C3D050B1F492E3F0C4307BA39F454E42B65E37DBCDEC4BE3E938BC2F32D2F7",
+    "tools/xlir_native_process.ps1": "2BE2787D2316CE07E0D0AC3BDF1A1CAABA14D72F249CCAC847BB1C05D1DBFC9D"
+  },
+  "checks": [
+    {
+      "name": "runtime",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 2039,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "argon2-native-0",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 189,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "argon2-native-1",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 172,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "argon2-native-2",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 728,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "argon2-native-3",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 149,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "argon2-native-4",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 202,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "argon2-native-5",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 164,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "argon2-c-build",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 149,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "argon2-c",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 39,
+      "stdout": "test_argon2: ok\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "argon2-c-jit",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 101,
+      "stdout": "test_argon2: ok\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "argon2-cgen",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 554,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "argon2-generated-prototypes",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 40,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "argon2-xlang-jit",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 1827,
+      "stdout": "auto-salt:  $argon2id$v=19$m=64,t=2,p=1$aS3Sar4WHVkOFwwPemMWJg$4Rrq8QLPIJ7EFyb5/CGg0HyUhjZHJYCDLLUhfcOA65o\nargon2: all tests passed\n",
+      "stderr": ""
+    },
+    {
+      "name": "argon2-xlang-build",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 1353,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "argon2-xlang-aot",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 1064,
+      "stdout": "auto-salt:  $argon2id$v=19$m=64,t=2,p=1$MY/DwE0hgya7yJZd0FpCOQ$N6UDatLu3Eu+nxgBz8OXx7y3KsEvGGXTEWIhNpC4kq0\nargon2: all tests passed\n",
+      "stderr": ""
+    },
+    {
+      "name": "argon2-example-xl",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 265,
+      "stdout": "verified: true\nwrong password: false\nneeds rehash: true\nsalt hex length: 32\n",
+      "stderr": ""
+    },
+    {
+      "name": "argon2-example-xl-build",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 596,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "argon2-example-xl-aot",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 51,
+      "stdout": "verified: true\nwrong password: false\nneeds rehash: true\nsalt hex length: 32\n",
+      "stderr": ""
+    },
+    {
+      "name": "argon2-example-c",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 72,
+      "stdout": "verified: true\r\nwrong password: false\r\nneeds rehash: true\r\nsalt hex length: 32\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "argon2-example-c-build",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 262,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "argon2-example-c-aot",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 44,
+      "stdout": "verified: true\r\nwrong password: false\r\nneeds rehash: true\r\nsalt hex length: 32\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "argon2-example-gcc-build",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 1415,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "argon2-example-gcc",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 37,
+      "stdout": "verified: true\r\nwrong password: false\r\nneeds rehash: true\r\nsalt hex length: 32\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "bloom-native-0",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 305,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "bloom-c-build",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 169,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "bloom-c",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 22,
+      "stdout": "test_bloom: ok\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "bloom-c-jit",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 51,
+      "stdout": "test_bloom: ok\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "bloom-cgen",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 2087,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "bloom-generated-prototypes",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 42,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "bloom-xlang-jit",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 2856,
+      "stdout": "bloom: all tests passed\n",
+      "stderr": ""
+    },
+    {
+      "name": "bloom-xlang-build",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 3840,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "bloom-xlang-aot",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 55,
+      "stdout": "bloom: all tests passed\n",
+      "stderr": ""
+    },
+    {
+      "name": "bloom-example-xl",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 307,
+      "stdout": "restored: true\nindependent count: 0\noriginal count: 2\nremaining: true\n",
+      "stderr": ""
+    },
+    {
+      "name": "bloom-example-xl-build",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 672,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "bloom-example-xl-aot",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 52,
+      "stdout": "restored: true\nindependent count: 0\noriginal count: 2\nremaining: true\n",
+      "stderr": ""
+    },
+    {
+      "name": "bloom-example-c",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 42,
+      "stdout": "restored: true\r\nindependent count: 0\r\noriginal count: 2\r\nremaining: true\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "bloom-example-c-build",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 266,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "bloom-example-c-aot",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 44,
+      "stdout": "restored: true\r\nindependent count: 0\r\noriginal count: 2\r\nremaining: true\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "bloom-example-gcc-build",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 401,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "bloom-example-gcc",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 22,
+      "stdout": "restored: true\r\nindependent count: 0\r\noriginal count: 2\r\nremaining: true\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "allocation-build",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 203,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "allocation",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 26,
+      "stdout": "argon2/bloom allocation: rejected=26 completed=182\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "argon2-tutorial",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 29240,
+      "stdout": "=== 1. 最简用法 ===\n哈希:  $argon2id$v=19$m=65536,t=3,p=4$R+8q/7gYmnBQtDb/vwy5ig$OUjQGnJbFivz5nvvDP6RiW0uh0MOJmLJawSkeTqkepY\n正确密码:  true\n错误密码:  false\n两次哈希不同:  true\n都能验证:  true\n\n=== 2. 手动盐 ===\n确定性:  true\n随机盐(hex):  15aa6206588487c71ee22bc5fa863395\n\n=== 3. 参数调节 ===\n自定义参数:  $argon2id$v=19$m=131072,t=5,p=2$xlVxaNoHrhSI9xTXKhk2HgQUFm6Aji48gHGA8mc92ls$BKRONskOMNJVkEP6s/VhdS+yiTHhRkADjJwozaI4ChOEJMcfV8d/SJmKRIuQQPbNWoJaeNJoLnXj52snQd2V3g\n验证:  true\n\n=== 4. 三种变体 ===\nArgon2d:   $argon2d$v=19$m=65536,t=3,p=4$bXlfZml4ZWRfc2FsdF8xNg$i81jFXv8vpDT83KXU8NRPafOSV/6Q6FX/qd9YsXcVQ8\nArgon2i:   $argon2i$v=19$m=65536,t=3,p=4$bXlfZml4ZWRfc2FsdF8xNg$k334Qgrb4BcZMrH4BaVSjGyure1LYmV2HVB6exkoQ5A\nArgon2id:  $argon2id$v=19$m=65536,t=3,p=4$bXlfZml4ZWRfc2FsdF8xNg$aRNnWsrCJgCXrmkeoknXYvcrvLoo0ZVn1SatDBsZCmc\n验证 d:  true\n验证 i:  true\n验证 id:  true\n\n=== 5. secret 密钥哈希 ===\n带密钥:  $argon2id$v=19$m=65536,t=3,p=4$U3TcSM+9lsTnLu0hP6Yv+Q$M3gNAzqPPwtwSWcutvItTuuvntBVi5+xP8GTbk+phVU\n\n=== 6. ad 附加数据 ===\n带AD:  $argon2id$v=19$m=65536,t=3,p=4$tYLPF7sFaYnVuFNCNsxing$BCWsMSMPfzlgYGici1+8rGdfHKh3Dhh2KAN29kE3PNs\n\n=== 7. hashRaw ===\nRaw hex:  71b565a3409c9afba50884a3fc0dd0a6c49add95b4209e2227c80a5c1100e32c\n长度:  64\n\n=== 8. 参数升级检测 ===\n需要升级:  true\n升级后:  false\n\n=== 9. 参数提取 ===\n类型:  2\n迭代:  5\n内存:  1024\n并行:  2\n\n=== 10. 推荐参数 ===\n推荐迭代:  3\n推荐内存:  65536\n推荐并行:  4\n推荐哈希长:  32\n推荐盐长:  16\n\n低内存 Profile: t= 3  m= 65536  p= 4\n高内存 Profile: t= 1  m= 2097152  p= 4\nProfile哈希:  $argon2id$v=19$m=65536,t=3,p=4$lhf89MLmHDBHGGV0+fxvgA$ICjVtrueye8nTL4dHUkzOsAke5YoxhgbefmSBdNqWA4\n\n=== 11. 综合实战 ===\n存储用户:  alice  哈希:  $argon2id$v=19$m=65536,t=3,p=4$6OM56FT/5Y6UDuiAhNTb2w$FX7YbEXDqbOq1W5qsppbd/V+V+hwDNY5SpsuPnwAf5k\n登录成功!\n拒绝: 密码不匹配\n\n=== 完成 ===\n",
+      "stderr": ""
+    },
+    {
+      "name": "bloom-tutorial",
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 866,
+      "stdout": "有效:  true\n容量:  10000\n位数:  143872\n哈希数:  10\n元素数:  0\n含 user:1001 =  true\n含 user:9999 =  false\n元素数:  3\n批量后元素数:  6\n全部命中:  true\n含缺失项:  false\n任一命中:  true\n估计基数:  6\n当前误判率:  1.5912913243388351e-34\n序列化长度:  36048\n还原有效:  true\n还原元素数:  6\n还原含 user:1001 =  true\n合并成功:  true\na 含 right =  true\ncombined 含 p =  true\ncombined 含 q =  true\nu1 仍不含 q =  true\n计数版槽数:  47925  哈希数:  7\ncf 含 session:abc =  true\n删除后含 session:abc =  false\ncf 仍含 session:def =  true\ncf 元素数:  1\ncf 估计基数:  3\n计数版还原含 s1 =  true\nbloom example: PASS\n",
+      "stderr": ""
+    }
+  ]
+}

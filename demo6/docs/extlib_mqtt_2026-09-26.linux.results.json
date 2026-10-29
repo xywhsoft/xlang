@@ -1,0 +1,59 @@
+{
+  "Date": "2026-09-26T21:55:36.1356859+08:00",
+  "Package": "mqtt",
+  "Outcome": "passed",
+  "Command": "bash tools/check_extlib_mqtt.sh",
+  "Platform": "WSL Ubuntu x86_64",
+  "Compiler": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+  "Scope": "Independent C tests and two C examples; ASan, UBSan, leak detection; no Linux xlang JIT/AOT",
+  "Inputs": {
+    "release/extlibs/mqtt/mqtt_frame.c": "20ec532e509ffd09d8229e47c30d93ef92026e431ab4cf139351ab12d33b3a3a",
+    "release/extlibs/mqtt/mqtt_build.c": "ec345bad94dd3f798af93e67c1183020580386785c9830788868ab9472afa77c",
+    "release/extlibs/mqtt/mqtt_parse.c": "1be94e88ea4f514757f1488d471107dad28c46d72e95494aa1384ff11119bd14",
+    "release/extlibs/mqtt/mqtt_net.c": "ea2b42c8f87ce0fbc7247b79f9832e48d28f789db8f9c9ad7a080040be125445",
+    "release/extlibs/mqtt/mqtt_native.c": "ac453ec96cc942d5cb11317f2c8c3c8481b0e5bce4019ccc94f32acb1425e3af",
+    "release/extlibs/mqtt/mqtt_internal.h": "498eb1ee023ec55b91eba0e051bfb8628e465ba3204b29ffade490a6f75147eb",
+    "release/extlibs/mqtt/include/mqtt_native.h": "9c5eb4b878e2bd28d28f5ec9107e0e5e1f9b93e1c7ea1536e11678182605f95b",
+    "release/extlibs/mqtt/include/xrt_mqtt.h": "c42e3bd61a8669ae52ec70cf90b0d280b5fb1eeb1d2aa321aa03b943ea16d3b6",
+    "release/extlibs/mqtt/include/xrt_mqtt_net.h": "8afb19d859a36a3bf0e6c04e81a51aca2b4998015a202622c3d6aab65f23c982",
+    "release/extlibs/mqtt/test/mqtt_fixture.c": "b217a3e16861cb0c9b907e52c9bce4818955c754545c1fe4eebe46539d94fd7e",
+    "release/extlibs/mqtt/test/mqtt_runtime.c": "da094511139b864833706d8abf7b08fa5be8a749ca7aca37ba3c32b72a7ac449",
+    "release/extlibs/mqtt/test/test_mqtt.c": "c0b60e52eab5f593ba7d7b53b06103667ea2d4ff219607dc8babdc13d3f00064",
+    "release/extlibs/mqtt/test/test_mqtt_alloc.c": "b2c017a76ef04695169abc7a713f65c573dc09b642362cf05640e5a09f96d641",
+    "release/extlibs/mqtt/test/test_mqtt_exchange.c": "50d0a136ba2da7d678c68173e6a031cc0659dabd0215711cc7ebc5f0fbe53c94",
+    "release/extlibs/mqtt/test/test_mqtt_net.c": "05d9048f6ded9d44e502ad8d743108e9b67b0dc6eda1b4ab22bbe0ff402a59d6",
+    "release/extlibs/mqtt/test/mqtt_fixture.h": "c60ecdfbab8d39f32b36f9749bf449ccb43db4053ccf80a1661df2914ba9a5d0",
+    "lib/xrt/xrt.h": "7c78b4b3d13fc64ac1009e2edfae73e9fb092c896da1a70cf5be859d153851e8",
+    "release/examples/extlibs/mqtt_c.c": "30ed7a013d148edece554f10e0d4ef6f7a2405e24b543ebb4ff30ec808b18e42",
+    "release/examples/extlibs/mqtt_tcp_c.c": "3e285e9ed94d0987dcfdadfee156b85f0ad3b1113fd694d7e9a2a6a7c40995be",
+    "release/examples/extlibs/mqtt.expected.txt": "1f5a6f298dee7e5b753034510201c1652d3ab92f822744260fa2a9afbe256d6e",
+    "release/examples/extlibs/mqtt_tcp.expected.txt": "7937ad592cffa60b9da27410bf442e7f5820b11d646bb61f6077d92037067320",
+    "tools/check_extlib_mqtt.sh": "5bb799f9c63c5e2d1dce85c40cab877d08173f0d4cd16d3eb70272b3c68ad547"
+  },
+  "Logs": [
+    {
+      "Name": "test_mqtt",
+      "Output": "mqtt C codec boundaries: PASS\n"
+    },
+    {
+      "Name": "test_mqtt_alloc",
+      "Output": "mqtt allocation checks: rejected=94 completed=802\n"
+    },
+    {
+      "Name": "test_mqtt_net",
+      "Output": "mqtt C TCP boundaries: PASS\n"
+    },
+    {
+      "Name": "test_mqtt_exchange",
+      "Output": "mqtt receive allocation checks: rejected=18 completed=30\nmqtt C exchange boundaries: PASS\n"
+    },
+    {
+      "Name": "mqtt",
+      "Output": "connect: 101400044d51545404020000000873656e736f722d31\nkeepalive: 0\npublish: 32110009686f6d652f74656d70002a32322e35\ntopic: home/temp\npayload: 22.5\npacketId: 42\nsubscribe: 82100007000b686f6d652f2b2f74656d7001\ngranted: 1\npuback: 4002002a\nping: c000\ndisconnect: e000\nbinary: 00ff61\nframeSize: 131\nconnack: 0\nmqtt example: PASS\n"
+    },
+    {
+      "Name": "mqtt_tcp",
+      "Output": "connect: sensor-1\npublish: home/temp=22.5\npuback: 42\nmqtt TCP example: PASS\n"
+    }
+  ]
+}

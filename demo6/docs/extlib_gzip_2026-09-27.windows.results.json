@@ -1,0 +1,315 @@
+{
+    "date":  "2026-09-27T14:32:44.2054603+08:00",
+    "outcome":  "passed",
+    "scope":  "Windows C/zlib interop, allocation failures, xlang/C JIT/AOT, callbacks and transactional files, generated prototype coverage, tutorials and paired golden output",
+    "inputs":  {
+                   "lib/xrt/xrt.h":  "7C78B4B3D13FC64AC1009E2EDFAE73E9FB092C896DA1A70CF5BE859D153851E8",
+                   "lib/xruntime/xruntime.h":  "FF23FDB9AC90F63DEED1606A78F21707A9FA677AA766044B8AF3B4F5202F4BA9",
+                   "release/examples/extlibs/gzip.xl":  "6025B1DB6785B9CE207DEC787338FD560FE93F230EAC06661BE96F195665D794",
+                   "release/examples/extlibs/gzip_basic.expected.txt":  "0181F80046B4E886C2D52A12D05C90141C2420738CB63D46926F911AEE1D5BCD",
+                   "release/examples/extlibs/gzip_basic.xl":  "596C9A6FAF2DCE5E5B3E5BC8A96E31BE62B45A6192A512846B5C2E8E82AADDB3",
+                   "release/extlibs/gzip/docs/site.html":  "DEEC4DFE06D7BB81B21DCBFB2A12345720C77ADED0CED616DF769A9D47028025",
+                   "release/extlibs/gzip/examples/basic.c":  "44B29F16698AE446864FCB5D8455E526F0A6F6E00088AEB1F2D0A5954EBC47DB",
+                   "release/extlibs/gzip/gzip_native.c":  "0DFE961664F72C4AC02696A43695761A189EDE7FBB99C750B5EBBF3500A62116",
+                   "release/extlibs/gzip/include/gzip_native.h":  "2E967CB4F713FD19641751801A01295AF38981923E33A459B2F876DD6C908C27",
+                   "release/extlibs/gzip/include/xrt_gzip.h":  "B40F8956BC98349F9DA0ACF2DBF3A0B6404438902418D20C33F6FE008D868027",
+                   "release/extlibs/gzip/README.md":  "A4ABF29077BEE78D335330C8A5C128389A9F9210C5A8D65A20239949D8740EDD",
+                   "release/extlibs/gzip/src/gzip.xl":  "881C62DC7F671FEE104249C8AD24BF0DE8D9D5668465A664965A27BF3A3F20B7",
+                   "release/extlibs/gzip/test/gzip_interop.c":  "0727AC7C0E68A0D8C6EC1232478AE16211C522836ED0B249F8A6B3114345836A",
+                   "release/extlibs/gzip/test/test_gzip.c":  "1709FE380F5F5D32E748EA805D1D0B5B38D5AF30E9EDF0FC12D8489919B8C1E3",
+                   "release/extlibs/gzip/test/test_gzip_alloc.c":  "FBA6988D902AD18FC15E3F6F0748FBFF8D9FBE3218C3271CF5191300F85656D3",
+                   "release/extlibs/gzip/test/test_gzip_stream.c":  "0B777AA38F2B854C638A722512DCEC6C1C7D8AA7091860D05817E98B3E6D28F0",
+                   "release/extlibs/gzip/xlang.package.json":  "3954B92509875ACCDB2AC89300874087D800A965CF4FC8A74DBFA01D9CEBCFE8",
+                   "release/extlibs/gzip/xrt_gzip.c":  "FC386D69DDA7E0F37D715B1E5F8F638C131CE2768B3931E87F738B5F22F84CFA",
+                   "release/include/xrt_decl.h":  "A2D9D17C569DC74B974F8FD2FED0AC00E20A819FCDA09473630951031E0BCE8E",
+                   "release/include/xruntime_decl.h":  "97BEE29DBA82A3BB9D6A6A05681B90F456B35EF74741E9AD08B6E6B784060CFD",
+                   "release/xl.dll":  "2A07C481C04CAD71D31D46722A27E62027318DF24E95A63126E061FD4CA46902",
+                   "release/xl.exe":  "5A3F20B4CF9333D393560CB2361D0EBAB8A13F0D07C64A78A1F5FFF5385D9EEB",
+                   "release/xlc.dll":  "7C672FD0B2852690D09E2EF1046C56EE1586FD1FCCC0CAEA61E19C0FE7C6E1F0",
+                   "test/cases/extlib_gzip.xl":  "C96F2780D45C9D1238D14E93FFD391D2E788A6ED170ADF6BA3BC5E5D75BC7828",
+                   "test/cases/extlib_gzip_progress.xl":  "303D71C0951DD513DC2DC58F0C74DE4C07A074723096BD076393DF76CB116765",
+                   "test/phase1_extlibs.json":  "D885B6C6D3823353FFC909B3D88B81FCE3A4923BA8D7F235E83EBF6B4A1CBB22",
+                   "test/suites/12_phase1_extlibs.bat":  "26CA66963222F24A9507D6F5CAB457A928564C778BDB0D27185B6AF1DF53EF58",
+                   "test/support/extlib_codec_runtime.c":  "ACD01CA7C8ACFA2F63C1257DDA52A0B575C0F2679B5432588014023F105C65FA",
+                   "tools/check_extlib_gzip.ps1":  "C9528C05AE321685246186331821187D8E8D76C9ED5F177458A640B72B114E8E",
+                   "tools/check_extlib_gzip.sh":  "72351DE38EAF3347F631127CF40FC73D83607B753BCF3F5409DAB84EC68B8710",
+                   "tools/check_extlib_gzip_interop.py":  "98A8D1396077A2CA66D81A964AF9DA36F0B77C57FC59F94A69B619BC2D7AAEDB",
+                   "tools/extlib_smoke_process.ps1":  "87C3D050B1F492E3F0C4307BA39F454E42B65E37DBCDEC4BE3E938BC2F32D2F7",
+                   "tools/run_extlib_c.ps1":  "0ABBC3A4B3B0AE45587CCBB069F075F3FBF965D6485FC176C51865FA293FEDA5",
+                   "tools/xlir_native_process.ps1":  "2BE2787D2316CE07E0D0AC3BDF1A1CAABA14D72F249CCAC847BB1C05D1DBFC9D"
+               },
+    "checks":  [
+                   {
+                       "name":  "runtime",
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  6555,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "native-0",
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  283,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "native-1",
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  280,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-build",
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  275,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-boundaries",
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  106,
+                       "stdout":  "gzip C: roundtrip, malformed, limits, state and split boundaries passed\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "stream-build",
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  236,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "stream-boundaries",
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  22,
+                       "stdout":  "gzip C streams: progress, cancellation, ownership, IO and reentry passed\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "stream-jit",
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  126,
+                       "stdout":  "gzip C streams: progress, cancellation, ownership, IO and reentry passed\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "interop-build",
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  177,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "python-zlib-interop",
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  595,
+                       "stdout":  "gzip independent interoperability: 139 checks passed\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "allocation-build",
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  236,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "allocation",
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  28,
+                       "stdout":  "gzip allocation: rejected=9, recovery and ownership passed\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-jit",
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  213,
+                       "stdout":  "gzip C: roundtrip, malformed, limits, state and split boundaries passed\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_gzip-jit",
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  744,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_gzip-build",
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  1163,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_gzip-aot",
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  47,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_gzip_progress-jit",
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  1212,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_gzip_progress-build",
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  1589,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_gzip_progress-aot",
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  197,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_gzip-cgen",
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  475,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_gzip_progress-cgen",
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  726,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "generated-prototypes",
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  101,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "gzip-example-jit",
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  839,
+                       "stdout":  "gzip example: PASS\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "gzip-example-build",
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  1278,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "gzip-example-aot",
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  30,
+                       "stdout":  "gzip example: PASS\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "gzip_basic-example-jit",
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  531,
+                       "stdout":  "utf8: ok\nbinary: ok\nstream: ok\ntruncated: rejected\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "gzip_basic-example-build",
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  933,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "gzip_basic-example-aot",
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  23,
+                       "stdout":  "utf8: ok\nbinary: ok\nstream: ok\ntruncated: rejected\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-example-build",
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  193,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-example",
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  22,
+                       "stdout":  "utf8: ok\r\nbinary: ok\r\nstream: ok\r\ntruncated: rejected\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-example-jit",
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  123,
+                       "stdout":  "utf8: ok\r\nbinary: ok\r\nstream: ok\r\ntruncated: rejected\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-example-aot-build",
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  311,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-example-aot",
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  55,
+                       "stdout":  "utf8: ok\r\nbinary: ok\r\nstream: ok\r\ntruncated: rejected\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-example-package-runner",
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  382,
+                       "stdout":  "utf8: ok\r\nbinary: ok\r\nstream: ok\r\ntruncated: rejected\r\n",
+                       "stderr":  ""
+                   }
+               ]
+}

@@ -1,0 +1,93 @@
+{
+  "recordedAt": "2026-09-28T00:07:52.3313056+08:00",
+  "scope": "Four shared boundary diagnostics, separate from ecosystem test totals",
+  "inputs": {
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\probes.ps1": "1981F12C570C932F29F6D4799C07C7CE211EAEDA40707FACEC943B84B49E1360",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\include\\libtcc.h": "FC77217B1E8AB783D512DF2B0A8249C801BDD8B5A4D2C5643169BD2C61ECE3AB",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\include\\README.md": "C950EE90CF5D57078C010BF4CFE65A6C7701E5ACA7B06DD3D8EE5EEE80E8B0B7",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\include\\tcc_builtin_vfs.h": "2ED7047361E240D5837533215310D8044298D160D7DD6E6C6B999EAAB935D05C",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\include\\xl_extlib_abi.h": "33B33F690EF8610749E399D612984B6D02F6140767D4B92BBB65B28A89FCA244",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\include\\xl_runtime.h": "F0503CACFC2165ABD35A25F417A4B147126783DB355C81E1B62643EF709DEACD",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\include\\xl.h": "2A564C90F90EFD80C6257072819D215BA26C8890D8D86B3C134C153BE293EBEC",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\include\\xlc.h": "3187BB8C540CE6F957B165F060EE7C8E2E27AC729B269763A1128004A0EAEEF1",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\include\\xrt_decl.h": "A2D9D17C569DC74B974F8FD2FED0AC00E20A819FCDA09473630951031E0BCE8E",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\include\\xruntime_decl.h": "97BEE29DBA82A3BB9D6A6A05681B90F456B35EF74741E9AD08B6E6B784060CFD",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\xl.dll": "D46C35906A63EB022A1EE2C102D2D9700B1EFB957820FDF6DAEFA845E9B04288",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\xl.exe": "3376E9514B52E9AD5F43A22C5EA3DA3294D261F4EFDB57CB6E147116A4695FBA",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260928-000021\\runtime\\xlc.dll": "6506885FF110C8CCAB14C13152426B0635E4FE0BCAFB2371B43A66CFEBB591D3",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\csv\\csv_native.c": "4CEC7B94691213FB7940659D7595C7D60349B26FF0AD5D00CC3B0C2C46ABB51F",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\csv\\include\\xrt_csv.h": "8A0085565FC6B2E07C4EA7BF7ED901CD7A196E8D59258F38FC0844E76D5514E1",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\csv\\src\\csv.xl": "F970396DC320DC68424F0BADC412A3D7174C26A51C64A4FFE043CFE40B54A1C2",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\csv\\test\\test_csv_alloc.c": "38D5EF8A016A0D64AB61F81E3B984C05136A6DBAD7318F42067915D9EDF2A44D",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\csv\\test\\test_csv_boundary.c": "C0A23F1F5D057416FE83C04E258296292E8A529C4E40E91129AE3E8F24425B7E",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\csv\\test\\test_csv_files.c": "CC93224D7DC29792719B743024F52E97D6EA6F2AF29109487E81205BB9CE47B0",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\csv\\test\\test_csv_stream.c": "F8661249873E86AE82E39409CD639B2CE25EA88D7A5431DD0B051118FCE0AEF4",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\csv\\test\\test_csv.c": "A5023834AEACF28C93065FC14BD8BFD0C45D0BEE440317D077FBE71D49FEEFDB",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\csv\\xlang.package.json": "8CDEF0E2DA59595A43E0961A19B919F8E5BF6B2DA5F1BEACC55501F18BD2E74F",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\csv\\xrt_csv_common.c": "57C0F653062C620C68E28CD3C8BFD659412E2B9BA77A4819695B7064EEB2564E",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\csv\\xrt_csv_internal.h": "4EBA81B9511F2424D175107F09B0952056D1F6AB352EFD087FA47B3E7318110D",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\csv\\xrt_csv_reader.c": "B94B14BF56F853B17BAE7BBF19FA2C93D9A498C3B68D27989A1A521469D314E8",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\csv\\xrt_csv_writer.c": "64609A90DA1A3BD28BBFF3FA785782CE8E605212F2D4982B8A2F1089CBAC9883",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\examples\\basic.c": "5C12F7ADD37C2C0066F0F9D34C67E6178C71F863ECCDCFA05825733A41DBB0CA",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\graph_components.c": "BD5D0813BA6B5C3882684026F449E263863EA0B0C0DBA0A98FC7AA2C413E9113",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\graph_distance.c": "91C541816595964270569591139115FABF8E733C73C11BF2B632B649FB6D0B77",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\graph_internal.h": "F3431C8AC1F383FFE8E662E6942E70E0A245D58026A0C112AE55D71314AB8D1D",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\graph_native.c": "A6F38C603C060BBE6B03820C7912CA6C746B6C20B457EE4C8EFE95EA229CA624",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\graph_traversal.c": "E397A5B4CCB1E7354FDACA0BEA6BF4962BBF3C5970A82B2E02B2D79879726A8A",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\include\\graph.h": "082305A5F090D43443C0E20094EFD538CA005343ABF81C7FD856FFA9EF638B85",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\src\\graph.xl": "BA4BD82545EFC425844825D6BCFCCAEB328E444FEF399613F36AA6A4D6580959",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\test\\boundaries.xl": "599335B7D81FDFEB5579E30616F51111BFFA36B8FFAF895DDDBC3A96E4C60D50",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\test\\graph_test.h": "7734BC3BC162B50A0ACAD2A94ED002528DB7102CDA85F39B286718FF690C6624",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\test\\test_graph_alloc.c": "16CF24E25AF3FC04F22F42E231D26850C8D08E1C5364EE9A541CF44B662FD30D",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\test\\test_graph_threads.c": "42A3D9BF05BD6C1D673CDE08A426F1EF06A5A7F32089516B327748E52ADFB27E",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\test\\test_graph.c": "CBF06ED970C4CD0AAA0F45CDADDBA0E37E989C5BBF4EDBF6A5C8192648039305",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\xlang.package.json": "E33C9B026043633DDDCA570AE5AB3538811ECD831173513FE54641EC7274E98A",
+    "D:\\GIT\\x-lang\\demo6\\test\\fixtures\\extlib_boundary_pending\\csv_class_field_iteration.xl": "C1E3E55F2AEC71581BF3DE57C05F67C7F7AFB45CE88679E78E90D28BE9EF87EC",
+    "D:\\GIT\\x-lang\\demo6\\test\\fixtures\\extlib_boundary_pending\\graph_nul_name.xl": "DEED4C4FB584C83A7B66E866094920B6EEC09F870912FA960A5BC8B231043DB3",
+    "D:\\GIT\\x-lang\\demo6\\test\\fixtures\\extlib_boundary_pending\\string_byte_len_nul.xl": "0507E0D842E43046B4D474AC08E206FB9D4A97CBBF1F9FFEB83F2B5AA69E11F7",
+    "D:\\GIT\\x-lang\\demo6\\test\\fixtures\\extlib_boundary_pending\\string_join_symbol.xl": "027491498B72464A474396E0A84EAF670DA6007178E9DA88910D865698B9ADBB"
+  },
+  "changedInputs": [],
+  "results": [
+    {
+      "name": "string_byte_len_nul",
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "uncaught xlang error: AssertionError: string.byteLen must preserve embedded NUL\nuncaught xlang error: string.byteLen must preserve embedded NUL\n",
+        "elapsedMs": 67
+      }
+    },
+    {
+      "name": "graph_nul_name",
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "uncaught xlang error: AssertionError: different names must not collapse at embedded NUL\nuncaught xlang error: different names must not collapse at embedded NUL\n",
+        "elapsedMs": 251
+      }
+    },
+    {
+      "name": "string_join_symbol",
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "tcc: tcc: error: unresolved reference to 'xl6_xrt_string_join'\n",
+        "elapsedMs": 59
+      }
+    },
+    {
+      "name": "csv_class_field_iteration",
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "test/fixtures/extlib_boundary_pending/csv_class_field_iteration.xl:7:9: [checked] XLIR for loop has no admitted canonical iterator ABI\n",
+        "elapsedMs": 30
+      }
+    }
+  ]
+}

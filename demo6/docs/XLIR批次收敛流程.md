@@ -2772,7 +2772,7 @@ certified Watch 循环。重新计算 DEMO6 全部输入仍为
 最终公开源码与合同驱动，生产 src/lib/Cgen 和发布物未变化。文档更新后再以
 原 InputSnapshot 函数重算完整批次输入，不另跑第三轮相同验证。
 
-独立 XRT checkout 同期出现非本批的 JSONL/XSONL 改动，保持不动、不集成；
+独立 XRT checkout 同期出现非本批的 JSONL/XLONL 改动，保持不动、不集成；
 本批不宣称 XRT 各 68/68 已在新 checkout 重跑或全部同哈希复用。DEMO6 嵌入
 运行时及源宿主是本批实际验证的固定输入，历史 XRT 报告单独保留其时间边界。
 新增/变化输入保存新副本，其余按哈希引用 v183 已冻结版本，避免重复复制整棵
@@ -2843,7 +2843,7 @@ GCC O0/O2/TCC 全通过，原 callback 27 通道、Plan 12 通道、pending 模�
 输入指纹，不第三次运行整批。Cgen 源按统一 LF 口径净减少 1335 字节。
 
 XRT 使用未变的 v185 固定 vendor，复核 2001 输入和四份嵌入头后复用原 89/89
-证明，不引入并发 JSONL/XSONL/xllm-session 工作。独立上游 EOF 空行失败仍记录。
+证明，不引入并发 JSONL/XLONL/xllm-session 工作。独立上游 EOF 空行失败仍记录。
 完整 async/generator 布局、原生 cursor 子节点、封闭 producer 依赖环及完整
 语言/平台/发布验收继续开放；旧动态迭代 CLI C-host 门的同源码 JIT/AOT 接线
 也未被本批独立 TCC 原生通道取代。
@@ -2873,7 +2873,7 @@ GCC/TCC 各四个程序通过。再定向验证实际六节点/七边的语言 w
 独立执行固定 XRT 的完整原生回归：原 34 组/89 程序源文件保留，加两份新程序，
 GCC/TCC 各 91/91，112.705/26.629 秒，2003 输入一致。新 API 通过原生成与
 成熟度入口同步，快照 3016/3467。没有复制并发上游的整个 manifest，没有同步
-无关 JSONL/XSONL/xllm-session 改动；七个相关 XRT 路径的独立检查通过，旧 EOF
+无关 JSONL/XLONL/xllm-session 改动；七个相关 XRT 路径的独立检查通过，旧 EOF
 告警仍保留。文档后只重算工程检查和原始输入指纹，不再重复同批测试。
 
 本批关闭的是托管游标及明确 resident 对象策略的运行时拥有环。其他异步/生成器

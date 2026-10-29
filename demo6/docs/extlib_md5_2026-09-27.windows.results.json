@@ -1,0 +1,601 @@
+{
+    "date":  "2026-09-27T08:42:16.3977734+08:00",
+    "outcome":  "passed",
+    "scope":  "MD5 using XRT: 149 independent vectors across 8 alignments, padding/chunks and million-a, exact ABI, UTF-8/Buffer, state/readers/callbacks, concurrent first use, allocation failures, C/XL JIT/AOT/GCC examples; not Linux XL, big-endian target or performance certification",
+    "generatedPrototypes":  15,
+    "inputs":  {
+                   ".gitattributes":  "4840BB7669C89BAD0580C0078A986D9095AB870F9E44EE282EEF6CF5864D4A46",
+                   "lib/xrt/xrt.h":  "7C78B4B3D13FC64AC1009E2EDFAE73E9FB092C896DA1A70CF5BE859D153851E8",
+                   "lib/xruntime/xruntime.h":  "FF23FDB9AC90F63DEED1606A78F21707A9FA677AA766044B8AF3B4F5202F4BA9",
+                   "release/examples/extlibs/md5.xl":  "30C15E17E43109B7BF522A0038611F330D29EF52EE99B2D03B2A412C03E2B3A1",
+                   "release/examples/extlibs/md5_basic.expected.txt":  "DA63253C5BF4A89AD09C34606A1599B31B684DFDF802D5587D4F0A4B1BFAC94F",
+                   "release/examples/extlibs/md5_basic.xl":  "E2649D91F202C919B87796753D9C40A1A462887619287343E561159E35A70946",
+                   "release/extlibs/md5/docs/site.html":  "5DC03F6701E786A4B99784E0029F46184B177E5506C130224BA030E92440AE62",
+                   "release/extlibs/md5/examples/basic.c":  "55E8431FDDE4AE202AD31AE63C6395E40DF3A028CBC17A5D2C3157D9076D5C7F",
+                   "release/extlibs/md5/include/md5_native.h":  "5E08C184762025D52E661C4936B6C9E38B830D431F97BF973F303D7E79F50B06",
+                   "release/extlibs/md5/include/xrt_md5.h":  "FDED4313268C86A2336858AE0658E4F624300F9CBE2786D44F929449BEB8CA3D",
+                   "release/extlibs/md5/md5_native.c":  "130D21A8E98E6E815DFB2B9037042550BEA355897E6C86D2E9775A7DFE39EFAD",
+                   "release/extlibs/md5/README.md":  "14B46475665DDF5D478E9C3DE0F00F0FF54F87C4FD33F35C7BDD8B6D7DC73980",
+                   "release/extlibs/md5/src/md5.xl":  "C3787E4C05012BA95ED7BA25E28FB89503A95FFD885C7602B7EBB53E70D5D044",
+                   "release/extlibs/md5/test/test_md5.c":  "82BC7495154827D89A68B408A5D7F1CBE880B0D1246981A18D070777F16D7F4E",
+                   "release/extlibs/md5/test/test_md5_native.c":  "ADD45DDD1BAC3978EE11C7581DF6BF26892F2099560535B78443C7B38DEF907D",
+                   "release/extlibs/md5/test/test_md5_standalone.c":  "F0CEC1171BEB59A21E6C34750BA74FDC2C70C9254966EEEA7BFF7DEBBC87185C",
+                   "release/extlibs/md5/test/vectors.h":  "2EEC7D045CD66CEE9685F66A0B0508B4E2B5B053F2A2FA261FC6AFBEE9D59E13",
+                   "release/extlibs/md5/xlang.package.json":  "B382B0BE4603BC43E6759CB8134E86397572FACABC95B5C2B5CD6A7102910FB5",
+                   "release/extlibs/md5/xrt_md5.c":  "10D664FF319804FC34DB60589F8056BDC980F81ECC1806ED0012F21502AAFF8E",
+                   "release/include/xrt_decl.h":  "3356BCCABBCBC877AD19C5E2D3336C909C2A742DE62E7B92BB79FE2AF3F4CEE6",
+                   "release/include/xruntime_decl.h":  "4B7CFAA2015F39E08159F4B10108B9BB1764D2370074333335651FE5C1BA87AC",
+                   "release/xl.dll":  "2A07C481C04CAD71D31D46722A27E62027318DF24E95A63126E061FD4CA46902",
+                   "release/xl.exe":  "5A3F20B4CF9333D393560CB2361D0EBAB8A13F0D07C64A78A1F5FFF5385D9EEB",
+                   "release/xlc.dll":  "7C672FD0B2852690D09E2EF1046C56EE1586FD1FCCC0CAEA61E19C0FE7C6E1F0",
+                   "test/cases/extlib_md5.xl":  "61FBD3304C4511438FD9030839887E8B38F3C24C258054679EB9F49A12F06B2D",
+                   "test/cases/extlib_md5_progress.xl":  "D914D8F3568AD4EA57E1FEEBBE8CFE2371E9175FEFBE8EBF42A138B8B4DFEF14",
+                   "test/featured_extlibs.json":  "61E550C46621C63B53D82E14ABD1EC35B4ADFC01127A3D7DBB5894A0DB849FFA",
+                   "test/suites/11_featured_extlibs_rc.bat":  "D29EB71F4E9277FCD73ECEE55FB61F98EAF2EA2480B09BC4C0643EFC5E18FA79",
+                   "test/support/extlib_codec_runtime.c":  "ACD01CA7C8ACFA2F63C1257DDA52A0B575C0F2679B5432588014023F105C65FA",
+                   "tools/check_extlib_md5.ps1":  "F6E8F2001AE5F7DD0A363BC7C6DD7233515ED28799E28DB60B26278BBE7B9681",
+                   "tools/check_extlib_md5.sh":  "FDB235CB7C25AF1F87B8D31D89F816B7BCBDA1EB5143B6674313B78E48946D15",
+                   "tools/extlib_smoke_process.ps1":  "87C3D050B1F492E3F0C4307BA39F454E42B65E37DBCDEC4BE3E938BC2F32D2F7",
+                   "tools/run_extlib_c.ps1":  "0ABBC3A4B3B0AE45587CCBB069F075F3FBF965D6485FC176C51865FA293FEDA5",
+                   "tools/xlir_native_process.ps1":  "2BE2787D2316CE07E0D0AC3BDF1A1CAABA14D72F249CCAC847BB1C05D1DBFC9D"
+               },
+    "checks":  [
+                   {
+                       "name":  "runtime",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_THREAD",
+                                         "-DXRT_MODULE_ATOMIC",
+                                         "-DXRT_MODULE_CRYPTO_MD5",
+                                         "-DXRT_MODULE_CODEC_HEX",
+                                         "-DXRT_MODULE_BUFFER",
+                                         "-c",
+                                         "test/support/extlib_codec_runtime.c",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\md5_guard\\runtime.o"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  5916,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "native-0",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_CRYPTO_MD5",
+                                         "-DXRT_MODULE_IO_BUFFER",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "-DXRT_MODULE_CODEC_HEX",
+                                         "-DXRT_MODULE_BUFFER",
+                                         "-c",
+                                         "release/extlibs/md5/xrt_md5.c",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\md5_guard\\source-0.o"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  193,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "native-1",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_CRYPTO_MD5",
+                                         "-DXRT_MODULE_IO_BUFFER",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "-DXRT_MODULE_CODEC_HEX",
+                                         "-DXRT_MODULE_BUFFER",
+                                         "-c",
+                                         "release/extlibs/md5/md5_native.c",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\md5_guard\\source-1.o"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  271,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "standalone-build",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "release/extlibs/md5/test/test_md5_standalone.c",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\md5_guard\\source-0.o",
+                                         "-lWs2_32",
+                                         "-lAdvapi32",
+                                         "-lm",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\md5_guard\\standalone.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  1905,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "standalone",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\md5_guard\\standalone.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  39,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "test_md5-build",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_CRYPTO_MD5",
+                                         "-DXRT_MODULE_IO_BUFFER",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "-DXRT_MODULE_CODEC_HEX",
+                                         "-DXRT_MODULE_BUFFER",
+                                         "release/extlibs/md5/test/test_md5.c",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\md5_guard\\runtime.o",
+                                         "-lWs2_32",
+                                         "-lAdvapi32",
+                                         "-lm",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\md5_guard\\test_md5.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  352,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "test_md5",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\md5_guard\\test_md5.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  57,
+                       "stdout":  "md5 core: independent vectors, padding/chunks, states/readers passed\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "test_md5_native-build",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_CRYPTO_MD5",
+                                         "-DXRT_MODULE_IO_BUFFER",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "-DXRT_MODULE_CODEC_HEX",
+                                         "-DXRT_MODULE_BUFFER",
+                                         "release/extlibs/md5/test/test_md5_native.c",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\md5_guard\\source-0.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\md5_guard\\source-1.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\md5_guard\\runtime.o",
+                                         "-lWs2_32",
+                                         "-lAdvapi32",
+                                         "-lm",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\md5_guard\\test_md5_native.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  246,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "test_md5_native",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\md5_guard\\test_md5_native.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  44,
+                       "stdout":  "md5 allocations: rejected=13 completed=59\r\nmd5 native: 4 threads, temporary and Buffer lifetimes passed\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "core-c-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "release/extlibs/md5/test/test_md5.c",
+                                         "--inc-path",
+                                         "lib/xrt"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  79,
+                       "stdout":  "md5 core: independent vectors, padding/chunks, states/readers passed\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "core-c-package-runner",
+                       "program":  "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+                       "arguments":  [
+                                         "-NoProfile",
+                                         "-ExecutionPolicy",
+                                         "Bypass",
+                                         "-File",
+                                         "tools/run_extlib_c.ps1",
+                                         "-Package",
+                                         "md5",
+                                         "-Source",
+                                         "release/extlibs/md5/test/test_md5.c"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  423,
+                       "stdout":  "md5 core: independent vectors, padding/chunks, states/readers passed\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_md5-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "test/cases/extlib_md5.xl"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  543,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_md5-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "test/cases/extlib_md5.xl",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\md5_guard\\extlib_md5.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  936,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_md5-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\md5_guard\\extlib_md5.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  48,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_md5-cgen",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "cgen",
+                                         "test/cases/extlib_md5.xl",
+                                         "--emit",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\md5_guard\\extlib_md5.c"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  335,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_md5_progress-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "test/cases/extlib_md5_progress.xl"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  589,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_md5_progress-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "test/cases/extlib_md5_progress.xl",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\md5_guard\\extlib_md5_progress.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  807,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_md5_progress-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\md5_guard\\extlib_md5_progress.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  208,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_md5_progress-cgen",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "cgen",
+                                         "test/cases/extlib_md5_progress.xl",
+                                         "--emit",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\md5_guard\\extlib_md5_progress.c"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  253,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "generated-prototypes",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_CRYPTO_MD5",
+                                         "-DXRT_MODULE_IO_BUFFER",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "-DXRT_MODULE_CODEC_HEX",
+                                         "-DXRT_MODULE_BUFFER",
+                                         "-Irelease/extlibs/md5/include",
+                                         "-fsyntax-only",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\md5_guard\\abi.c"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  102,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "md5-example-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "release/examples/extlibs/md5.xl"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  348,
+                       "stdout":  "md5 extlib ok\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "md5-example-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "release/examples/extlibs/md5.xl",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\md5_guard\\md5-example.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  714,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "md5-example-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\md5_guard\\md5-example.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  47,
+                       "stdout":  "md5 extlib ok\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "md5_basic-example-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "release/examples/extlibs/md5_basic.xl"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  299,
+                       "stdout":  "empty=d41d8cd98f00b204e9800998ecf8427e\nabc=900150983cd24fb0d6963f7d28e17f72\nstream=900150983cd24fb0d6963f7d28e17f72\nbytes=3\nreset=d41d8cd98f00b204e9800998ecf8427e\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "md5_basic-example-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "release/examples/extlibs/md5_basic.xl",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\md5_guard\\md5_basic-example.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  626,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "md5_basic-example-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\md5_guard\\md5_basic-example.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  46,
+                       "stdout":  "empty=d41d8cd98f00b204e9800998ecf8427e\nabc=900150983cd24fb0d6963f7d28e17f72\nstream=900150983cd24fb0d6963f7d28e17f72\nbytes=3\nreset=d41d8cd98f00b204e9800998ecf8427e\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-example-build",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_CRYPTO_MD5",
+                                         "-DXRT_MODULE_IO_BUFFER",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "-DXRT_MODULE_CODEC_HEX",
+                                         "-DXRT_MODULE_BUFFER",
+                                         "release/extlibs/md5/examples/basic.c",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\md5_guard\\source-0.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\md5_guard\\source-1.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\md5_guard\\runtime.o",
+                                         "-lWs2_32",
+                                         "-lAdvapi32",
+                                         "-lm",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\md5_guard\\c-example.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  190,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-example",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\md5_guard\\c-example.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  23,
+                       "stdout":  "empty=d41d8cd98f00b204e9800998ecf8427e\r\nabc=900150983cd24fb0d6963f7d28e17f72\r\nstream=900150983cd24fb0d6963f7d28e17f72\r\nbytes=3\r\nreset=d41d8cd98f00b204e9800998ecf8427e\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-example-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "release/extlibs/md5/examples/basic.c",
+                                         "release/extlibs/md5/xrt_md5.c",
+                                         "release/extlibs/md5/md5_native.c",
+                                         "--inc-path",
+                                         "lib/xrt",
+                                         "--inc-path",
+                                         "lib/xruntime"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  126,
+                       "stdout":  "empty=d41d8cd98f00b204e9800998ecf8427e\r\nabc=900150983cd24fb0d6963f7d28e17f72\r\nstream=900150983cd24fb0d6963f7d28e17f72\r\nbytes=3\r\nreset=d41d8cd98f00b204e9800998ecf8427e\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-example-aot-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "release/extlibs/md5/examples/basic.c",
+                                         "release/extlibs/md5/xrt_md5.c",
+                                         "release/extlibs/md5/md5_native.c",
+                                         "--inc-path",
+                                         "lib/xrt",
+                                         "--inc-path",
+                                         "lib/xruntime",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\md5_guard\\c-example-tcc.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  318,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-example-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\md5_guard\\c-example-tcc.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  54,
+                       "stdout":  "empty=d41d8cd98f00b204e9800998ecf8427e\r\nabc=900150983cd24fb0d6963f7d28e17f72\r\nstream=900150983cd24fb0d6963f7d28e17f72\r\nbytes=3\r\nreset=d41d8cd98f00b204e9800998ecf8427e\r\n",
+                       "stderr":  ""
+                   }
+               ]
+}

@@ -29,6 +29,9 @@ if errorlevel 1 exit /b 1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_module_product_globals.ps1
 if errorlevel 1 exit /b 1
 
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_crt_math_direct.ps1
+if errorlevel 1 exit /b 1
+
 rem Language semantics belong to verified IR and observable runtimes.
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_range_membership.ps1
 if errorlevel 1 exit /b 1
@@ -56,6 +59,10 @@ release\xl.exe cgen test\cases\cgen_approx.xl --emit build\test\cgen_approx.c
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\stdlib_math.xl --emit build\test\stdlib_math.c
 if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\stdlib_crt_math.xl --emit build\test\stdlib_crt_math.c
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\stdlib_ascii.xl --emit build\test\stdlib_ascii.c
+if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\stdlib_string.xl --emit build\test\stdlib_string.c
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\stdlib_time.xl --emit build\test\stdlib_time.c
@@ -81,6 +88,8 @@ for %%F in (
     cgen_approx
     xlir_membership_operand_lifetime
     stdlib_math
+    stdlib_crt_math
+    stdlib_ascii
 ) do (
     echo Verifying core 9 runtime: %%F
     set "XL6_ENTRY_FLAG="

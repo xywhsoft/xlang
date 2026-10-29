@@ -1,0 +1,36 @@
+{
+  "date": "2026-09-27T18:18:16.9529424+08:00",
+  "scope": "New shared file-open probe, independent Linux C ASan/UBSan/leaks; not published host",
+  "inputs": [
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\test\\cases\\extlib_file_open_oom.c",
+      "Hash": "3FC6DA77E646A336D15CCD01B9E365744F01F1AD048E5E646667BA9A3389445A"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\xrt\\xrt.h",
+      "Hash": "4C8CA837C7BAA2B865D6A6C8437449A90186639618888B929F6C3743327A0AC5"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_file_runtime\\source-linux",
+      "Hash": "221DD7C44D3369A306B2CD99D8341945DCBC9501F7C5C9C230B08D91E803903F"
+    }
+  ],
+  "arguments": [
+    "--distribution",
+    "Ubuntu",
+    "--cd",
+    "/mnt/d/GIT/x-lang/demo6",
+    "--",
+    "env",
+    "ASAN_OPTIONS=detect_leaks=1:halt_on_error=1",
+    "UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1",
+    "build/test/extlib_file_runtime/source-linux"
+  ],
+  "result": {
+    "status": "pass",
+    "exitCode": 0,
+    "stdout": "file runtime: failures=1 successes=2 result=pass\n",
+    "stderr": "",
+    "elapsedMs": 1977
+  }
+}
