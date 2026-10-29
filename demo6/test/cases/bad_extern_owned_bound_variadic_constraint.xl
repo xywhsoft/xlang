@@ -1,0 +1,9 @@
+class Base
+end
+class Reader
+    func Read<T is Base>(T value,...) as T
+        return value
+    end
+end
+Reader reader=Reader()
+auto callback=reader.Read as (func(string,...) as string)?

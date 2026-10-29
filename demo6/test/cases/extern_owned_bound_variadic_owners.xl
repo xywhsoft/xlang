@@ -1,0 +1,176 @@
+// A bound method borrows the existing final argument pack. Exact owner results
+// retain the foreign pointer; an ordinary result copies only its chosen leaves.
+extern "c_owned_text" @no_raise func rawText() as point
+extern "c_owned_binary" @no_raise func rawBytes() as point
+extern "c_owned_release" @no_raise func release(point value)
+extern "c_owned_text_is_original" @no_raise func original(string value) as bool
+extern "c_owned_binary_span_original" @no_raise func originalBytes(cbytes value) as bool
+extern "bound_c_owners_balanced" @no_raise func balanced() as bool
+extern "bound_c_owners_one_record" @no_raise func oneRecord() as bool
+extern "owned_reset" @no_raise func reset()
+extern "owned_debug" @no_raise func debug() as bool
+extern "owned_fail_after" @no_raise func failAfter(int prefix)
+extern "owned_clear_failure" @no_raise func clearFailure()
+extern "owned_outstanding" @no_raise func live() as int
+int receivers=0
+int defaults=0
+int entered=0
+bool failDefault=false
+func tag() as int
+    defaults+=1
+    if failDefault
+        throw "default failed"
+    end
+    return 23
+end
+class Reader
+    func Text(int number=tag(),...) as cstring
+        assert number==23
+        assert arg.length==0 or arg.length==2
+        if arg.length==2
+            assert arg[0]==7 and arg[1]=="a"
+        end
+        // Measure after the caller has constructed its argument pack.
+        reset()
+        cstring value=cstring.take(rawText(),release)
+        assert oneRecord()
+        return value
+    end
+    func Data(int number=tag(),***) as cbytes
+        assert number==23 and arg.length==2
+        assert arg["left"]==7 and arg["right"]=="a"
+        reset()
+        cbytes value=cbytes.take(rawBytes(),4,release)
+        assert oneRecord()
+        return value
+    end
+    func Pair(...) as (cstring,cbytes,int)
+        assert arg.length==1
+        return cstring.take(rawText(),release),cbytes.take(rawBytes(),4,release),7
+    end
+    private func Secret(***) as cstring
+        assert arg["key"]==7
+        return cstring.take(rawText(),release)
+    end
+    func Saved() as func(***) as cstring
+        return self.Secret
+    end
+end
+class Box<K>
+    func Echo<T>(T first,T second=first,...) as cstring
+        assert first==second and arg.length==2
+        return cstring.take(rawText(),release)
+    end
+end
+class Base
+    virtual func Read(...) as cstring
+        return cstring.take(rawText(),release)
+    end
+end
+class Child extends Base
+    override func Read(...) as cstring
+        assert arg.length==2
+        entered+=1
+        return cstring.take(rawText(),release)
+    end
+end
+func receiver() as Reader
+    receivers+=1
+    return Reader()
+end
+func escaped() as func(***) as cstring
+    Reader local=Reader()
+    return local.Saved()
+end
+func check()
+    receivers=0
+    func(...) as cstring text=receiver().Text
+    assert receivers==1
+    string value=text(7,"a")
+    assert original(value) and receivers==1
+    Reader reader=Reader()
+    func(...) as string copied=reader.Text
+    string copy=copied(7,"a")
+    assert copy=="hello" and not original(copy)
+    func(***) as cbytes data=reader.Data
+    bytes binary=data(left=7,right="a")
+    assert originalBytes(binary)
+    func(***) as bytes copiedData=reader.Data
+    bytes binaryCopy=copiedData(left=7,right="a")
+    assert binaryCopy==b"\0\xff\x11*" and not originalBytes(binaryCopy)
+
+    // Full and shortened signatures keep the pack last. Omitted defaults are
+    // evaluated in the existing single invocation body on each call.
+    int before=defaults
+    func(int,...) as cstring full=reader.Text
+    string fullValue=full(23,7,"a")
+    assert original(fullValue) and defaults==before
+    func(int,***) as cbytes fullData=reader.Data
+    bytes fullBinary=fullData(23,left=7,right="a")
+    assert originalBytes(fullBinary) and defaults==before
+    auto optional=reader.Text as (func(...) as cstring)?
+    if optional!=null
+        string optionalValue=optional(7,"a")
+        assert original(optionalValue)
+    else
+        assert false
+    end
+    auto optionalData=reader.Data as (func(***) as cbytes)?
+    if optionalData!=null
+        bytes optionalValue=optionalData(left=7,right="a")
+        assert originalBytes(optionalValue)
+    else
+        assert false
+    end
+    assert defaults==before+2
+    Box<string> box=Box::<string>()
+    func(int,...) as cstring generic=box.Echo
+    string genericValue=generic(11,7,"a")
+    assert original(genericValue)
+    func(...) as (cstring,bytes,int) partial=reader.Pair
+    auto first,second,third=partial(7)
+    assert original(first) and not originalBytes(second) and third==7
+    func(***) as cstring saved=escaped()
+    string savedValue=saved(key=7)
+    assert original(savedValue)
+    entered=0
+    Base base=Child()
+    func(...) as cstring virtualRead=base.Read
+    string virtualValue=virtualRead(7,"a")
+    assert original(virtualValue) and entered==1
+    func(...) as string virtualCopy=base.Read
+    string virtualCopied=virtualCopy(7,"a")
+    assert virtualCopied=="hello" and not original(virtualCopied) and entered==2
+end
+func throwingDefault()
+    Reader reader=Reader()
+    func(...) as cstring callback=reader.Text
+    failDefault=true
+    bool caught=false
+    try
+        string value=callback(7,"a")
+    catch problem
+        caught=true
+    end
+    failDefault=false
+    assert caught
+end
+assert debug()
+check()
+throwingDefault()
+assert balanced()
+int accepted=0
+int rejected=0
+for prefix in range(512)
+    int before=live()
+    failAfter(prefix)
+    try
+        check()
+        accepted+=1
+    catch problem
+        rejected+=1
+    end
+    clearFailure()
+    assert live()==before and balanced()
+end
+assert accepted>0 and rejected>0

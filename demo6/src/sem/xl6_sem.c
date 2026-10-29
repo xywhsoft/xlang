@@ -8300,10 +8300,13 @@ static int xl6SemConstrainedBoundMethod(XL6_SemContext* ctx,const XL6_AstNode* e
     XL6_AstNode* owner=valueType && valueType->text ? xl6SemFindTypeDecl(ctx,valueType->text) : NULL;
     if(!owner || owner->kind!=XL6_AST_CLASS){xl6AstFree(receiver);return -1;}
     const XL6_AstNode* expected=signature->children[0];
-    if(expected && expected->childCount && (xl6SemTypeIsVararg(expected->children[expected->childCount-1]) ||
-        xl6SemTypeIsCVararg(expected->children[expected->childCount-1]))){
+    const XL6_AstNode* tail=expected && expected->childCount ? expected->children[expected->childCount-1] : NULL;
+    if(tail && xl6SemTypeIsCVararg(tail)){
         xl6AstFree(receiver);return -1;
     }
+    bool arrayPack=tail && xl6SemTypeIsArrayVararg(tail);
+    bool dictPack=tail && xl6SemTypeIsDictVararg(tail);
+    size_t expectedFixed=expected ? expected->childCount-(arrayPack || dictPack) : 0;
     bool constrained=false;
     for(XL6_AstNode* cls=owner;cls && !constrained;cls=xl6SemBaseClassDecl(ctx,cls)){
         const XL6_AstNode* body=cls->childCount>1 ? cls->children[1] : NULL;
@@ -8329,12 +8332,17 @@ static int xl6SemConstrainedBoundMethod(XL6_SemContext* ctx,const XL6_AstNode* e
             XL6_AstNode* params=classArgs ? xl6SemSubstituteClassType(cls,classArgs,xl6SemCallableParams(method)) : xl6SemCloneTypeNode(xl6SemCallableParams(method));
             XL6_AstNode* typeParams=classArgs ? xl6SemSubstituteClassType(cls,classArgs,xl6SemFuncTypeParams(method)) : xl6SemCloneTypeNode(xl6SemFuncTypeParams(method));
             XL6_AstNode** inferred=typeParams && typeParams->childCount ? xrtCalloc(typeParams->childCount,sizeof(*inferred)) : NULL;
-            bool ok=params && expected && params->childCount>=expected->childCount && (!typeParams || !typeParams->childCount || inferred);
+            size_t actualFixed=params ? (size_t)xl6SemFixedParamCount(params) : 0;
+            const XL6_AstNode* pack=params && actualFixed<params->childCount ? params->children[actualFixed] : NULL;
+            bool ok=params && expected && actualFixed>=expectedFixed &&
+                (arrayPack ? pack && xl6SemParamIsArrayVararg(pack) :
+                 dictPack ? pack && xl6SemParamIsDictVararg(pack) : pack==NULL) &&
+                (!typeParams || !typeParams->childCount || inferred);
             uint64_t rank=0;
-            if(ok)ok=xl6CallRankAdd(&rank,0,(uint32_t)(params->childCount-expected->childCount));
-            for(size_t p=0;ok && p<params->childCount;++p){
+            if(ok)ok=xl6CallRankAdd(&rank,0,(uint32_t)(actualFixed-expectedFixed));
+            for(size_t p=0;ok && p<actualFixed;++p){
                 const XL6_AstNode* param=params->children[p];
-                if(p>=expected->childCount){ok=param && param->childCount>=2;continue;}
+                if(p>=expectedFixed){ok=param && param->childCount>=2;continue;}
                 const XL6_AstNode* type=param && param->childCount ? param->children[0] : NULL;
                 const XL6_AstNode* actual=xl6SemCallableItemType(expected->children[p]);
                 ok=type && xl6SemParamMode(param)==xl6SemParamMode(expected->children[p]);

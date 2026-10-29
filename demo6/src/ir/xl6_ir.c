@@ -14381,11 +14381,14 @@ int xl6IrBoundMethodTargetMatches(const XL6_IrModule* module,XL6_IrNodeId source
     const XL6_IrType* signature=xl6IrTypeGet(&module->types,signatureId);
     if(!xl6IrBoundMethodSelectionMatches(module,sourceId,symbol) || !source || source->kind!=XL6_IR_NODE_MEMBER || source->sourceKind!=XL6_AST_MEMBER ||
        source->childCount!=1 || !source->text || !target || !signature ||
-       signature->kind!=XL6_IR_TYPE_FUNCTION || signature->callableErasureAbi!=XL6_IR_CALLABLE_ERASURE_FIXED ||
+       signature->kind!=XL6_IR_TYPE_FUNCTION ||
+       (signature->callableErasureAbi!=XL6_IR_CALLABLE_ERASURE_FIXED &&
+        signature->callableErasureAbi!=XL6_IR_CALLABLE_ERASURE_ARRAY_VARIADIC &&
+        signature->callableErasureAbi!=XL6_IR_CALLABLE_ERASURE_DICT_VARIADIC) ||
        !target->parameterCount || !target->parameterTypes || !target->parameterAbis ||
        (target->kind!=XL6_IR_CALL_TARGET_INTERNAL && target->kind!=XL6_IR_CALL_TARGET_INTERNAL_ASYNC &&
         target->kind!=XL6_IR_CALL_TARGET_INTERNAL_GENERATOR && target->kind!=XL6_IR_CALL_TARGET_EXTERN_C) ||
-       target->variadicAbi!=XL6_IR_CALL_VARIADIC_NONE ||
+       target->variadicAbi!=xl6IrBuildCallableVariadicAbi(signature->callableErasureAbi) ||
         target->parameterCount<signature->paramCount+1 ||
         !xl6IrBoundMethodResultMatches(module,target->returnType,signature->callableResultType) ||
        target->parameterAbis[0]!=XL6_IR_PARAMETER_ABI_BORROW) return 0;
@@ -14402,11 +14405,14 @@ int xl6IrBoundMethodTargetMatches(const XL6_IrModule* module,XL6_IrNodeId source
        (declaration->flags & XL6_AST_FLAG_STATIC) || !name || !name->text ||
        strcmp(name->text,source->text) || !params || params->childCount+1!=target->parameterCount ||
        !xl6IrBuildClassDerivesFrom(module,receiverId,target->parameterTypes[0])) return 0;
-    for(size_t i=0;i<signature->paramCount;++i)
+    for(size_t i=0;i<signature->paramCount;++i) {
+        size_t p=xl6IrNamedCallableTargetParameter(signature,params->childCount,signature->callableErasureAbi,i);
         if(!signature->parameterAbis || !signature->params ||
-           signature->params[i]!=target->parameterTypes[i+1] ||
-           signature->parameterAbis[i]!=target->parameterAbis[i+1]) return 0;
-    for(size_t i=signature->paramCount;i<params->childCount;++i) {
+           p>=params->childCount || signature->params[i]!=target->parameterTypes[p+1] ||
+           signature->parameterAbis[i]!=target->parameterAbis[p+1]) return 0;
+    }
+    for(size_t i=0;i<params->childCount;++i) {
+        if(xl6IrNamedCallableSignatureParameter(signature,params->childCount,signature->callableErasureAbi,i)!=SIZE_MAX)continue;
         const XL6_IrNode* parameter=xl6IrNodeGet(module,module->children[params->firstChild+i]);
         if(!parameter || parameter->childCount<2) return 0;
     }
@@ -17032,6 +17038,8 @@ int xl6IrContextualCallableCastRequired(const XL6_IrModule* module,
         type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
         type->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL &&
         (type->callableErasureAbi==XL6_IR_CALLABLE_ERASURE_FIXED ||
+         type->callableErasureAbi==XL6_IR_CALLABLE_ERASURE_ARRAY_VARIADIC ||
+         type->callableErasureAbi==XL6_IR_CALLABLE_ERASURE_DICT_VARIADIC ||
          xl6IrRuntimeCallableFieldSignatureSupported(module, target));
 }
 
@@ -18712,7 +18720,9 @@ static XL6_IrCastAbi xl6IrClassifyCastAbi(
     /* Compiler-only owner signatures have no dynamic TypeId. A selected
      * instance declaration still admits an exact static closure binding. */
     if(dynamicSource && target->kind==XL6_IR_TYPE_FUNCTION &&
-       target->callableErasureAbi==XL6_IR_CALLABLE_ERASURE_FIXED && source->targetSymbol &&
+       (target->callableErasureAbi==XL6_IR_CALLABLE_ERASURE_FIXED ||
+        target->callableErasureAbi==XL6_IR_CALLABLE_ERASURE_ARRAY_VARIADIC ||
+        target->callableErasureAbi==XL6_IR_CALLABLE_ERASURE_DICT_VARIADIC) && source->targetSymbol &&
        source->kind==XL6_IR_NODE_MEMBER && source->sourceKind==XL6_AST_MEMBER){
         const XL6_IrNode* selected=xl6IrSymbolNodeGet(module,source->targetSymbol);
         if(selected && xl6IrBoundMethodCandidateMatches(module,
@@ -40603,12 +40613,13 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
         }
         for ( capture = 0; capture < closure->callParameterCount; ++capture ) {
             size_t targetParameter = capture;
-            if ( closure->kind == XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER &&
+            if ( (closure->kind == XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER ||
+                  closure->kind == XL6_IR_CLOSURE_TARGET_BOUND_METHOD_ADAPTER) &&
                  target != NULL &&
                  target->variadicAbi != XL6_IR_CALL_VARIADIC_NONE &&
                  capture + 1 == signature->paramCount )
-                targetParameter = target->parameterCount != 0
-                    ? target->parameterCount - 1 : SIZE_MAX;
+                targetParameter = callParameters->childCount != 0
+                    ? callParameters->childCount - 1 : SIZE_MAX;
             const XL6_IrNode* parameter = xl6IrNodeGet(
                 module, targetParameter != SIZE_MAX &&
                         targetParameter < callParameters->childCount
@@ -40633,7 +40644,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             if ( parameter->childCount >= 2 &&
                  !(target != NULL &&
                    target->variadicAbi != XL6_IR_CALL_VARIADIC_NONE &&
-                   targetParameter + 1 == target->parameterCount) )
+                   targetParameter + 1 == callParameters->childCount) )
                 expectedDefault = xl6IrDynamicMethodParameterDefaultAbi(
                     module, signature->params[capture],
                     module->children[parameter->firstChild + 1]);
