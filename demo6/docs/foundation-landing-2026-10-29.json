@@ -1,0 +1,151 @@
+{
+  "schema": 1,
+  "date": "2026-10-29",
+  "scope": "Foundation nine: main regression/example wiring and local Windows/Linux product promotion",
+  "complete": true,
+  "compiledSourceEquivalence": {
+    "head": "9cf75f9f9d624a81552a5069f9dd46aa6b5b3154",
+    "files": 2665,
+    "evidence": "F:\\xlang-validation\\foundation9-landing-20261029\\source-equivalence.json",
+    "sha256": "749bb0f1cf4f6e6989f0d7d196ad80eaf557a3af2fb05bba4f005960b14ffc53"
+  },
+  "promotion": {
+    "complete": true,
+    "evidence": "F:\\xlang-validation\\foundation9-landing-20261029\\promotion.json",
+    "sha256": "0fcb03b0d293a7a6ce12206a32070448762213e20f263a8ee74e31fa146c06a3",
+    "backup": "F:\\xlang-validation\\foundation9-landing-20261029\\products.before",
+    "products": [
+      {
+        "Name": "xl.dll",
+        "Platform": "windows",
+        "Source": "F:\\xlang-validation\\foundation9-20261029\\final-win-r13\\export\\frozen\\demo6\\release\\xl.dll",
+        "Sha256": "6892a2edcef77ad1e4c366f61e8ff9eb43c96add5e6b99b6f081ef2a156db273",
+        "Target": "D:\\GIT\\x-lang\\demo6\\release\\xl.dll",
+        "BeforeSha256": "ae5118e382940148952592ecb169c9326d53e3b14024f7eda3d4247031653482"
+      },
+      {
+        "Name": "xlc.dll",
+        "Platform": "windows",
+        "Source": "F:\\xlang-validation\\foundation9-20261029\\final-win-r13\\export\\frozen\\demo6\\release\\xlc.dll",
+        "Sha256": "0045d92531af1a1b271ee978caca25d5678db347b7b0ae55c57438e5ca698d8c",
+        "Target": "D:\\GIT\\x-lang\\demo6\\release\\xlc.dll",
+        "BeforeSha256": "3147d2c6376d8ff8cb3c3e9a416a46110c311155ba83c1354d7a7356b3d20577"
+      },
+      {
+        "Name": "xl.exe",
+        "Platform": "windows",
+        "Source": "F:\\xlang-validation\\foundation9-20261029\\final-win-r13\\export\\frozen\\demo6\\release\\xl.exe",
+        "Sha256": "1877a60cbc54361cdda3e6932855534e45e84a9f9cc037ba8a6844d436473eef",
+        "Target": "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+        "BeforeSha256": "ccf98ff05baaa71c1827eaa0c8b7a011a9a17eab1aecd593cd89848d227c5a2b"
+      },
+      {
+        "Name": "libxl.so",
+        "Platform": "linux",
+        "Source": "/home/ubuntu/xlang-validation/foundation9-20261029/r12/demo6/release/libxl.so",
+        "Sha256": "92e2abba6d813538a95acf6ffd20951ff655c0565473fbc3bc4b095d1022a074",
+        "Target": "D:\\GIT\\x-lang\\demo6\\release\\libxl.so",
+        "BeforeSha256": "0137af737c64dc8c84863f06d2763ef55e234494b6f45e2821a3c47594216d9e"
+      },
+      {
+        "Name": "libxlc.so",
+        "Platform": "linux",
+        "Source": "/home/ubuntu/xlang-validation/foundation9-20261029/r12/demo6/release/libxlc.so",
+        "Sha256": "3fcb75c7a487079a5d2a8446dc5c5f446ec77cbaa2ae2e5b57467071d52d5822",
+        "Target": "D:\\GIT\\x-lang\\demo6\\release\\libxlc.so",
+        "BeforeSha256": "708fc01576a488f372d42c848fdddded85bf87a7c184492606ffa16b86ffd4c0"
+      },
+      {
+        "Name": "xl",
+        "Platform": "linux",
+        "Source": "/home/ubuntu/xlang-validation/foundation9-20261029/r12/demo6/release/xl",
+        "Sha256": "b91850a3ffb33db85b77e6f05cc0d447e15a2f8404cdc2a4e23eb4ae21080361",
+        "Target": "D:\\GIT\\x-lang\\demo6\\release\\xl",
+        "BeforeSha256": "03f83646b343801e7dfe51a2f454a6f19a722485d45833ad020d6bf77c2e85f8"
+      },
+      {
+        "Name": "xl.def",
+        "Platform": "windows",
+        "Source": "F:\\xlang-validation\\foundation9-20261029\\final-win-r13\\export\\frozen\\demo6\\release\\xl.def",
+        "Sha256": "b75923c1cccd0ed4a929a541a7d84bb65082e7282cea0497fa8dcdace9aa4911",
+        "Target": "D:\\GIT\\x-lang\\demo6\\release\\xl.def",
+        "BeforeSha256": "ba7d95ffe438677e45662432f35a75ac730ff98845946de853c7be5017b7829a"
+      },
+      {
+        "Name": "xlc.def",
+        "Platform": "windows",
+        "Source": "F:\\xlang-validation\\foundation9-20261029\\final-win-r13\\export\\frozen\\demo6\\release\\xlc.def",
+        "Sha256": "0234a8aea924c66b47abcf79dcdfa8e768236ec5cb60c9e852455262f5b448c9",
+        "Target": "D:\\GIT\\x-lang\\demo6\\release\\xlc.def",
+        "BeforeSha256": "31246c8437a55dac1003e10c68027a41cdfcf9feca4d1c9383be7ed175591655"
+      }
+    ]
+  },
+  "entrypoints": {
+    "windows": "test.bat -> test/suites/03_cgen_runtime_core.bat -> test/suites/03_core_foundation.bat",
+    "linux": "test_linux.sh -> tools/check_stdlib_foundation.py"
+  },
+  "staticWiring": {
+    "foundationFailures": [],
+    "globalComplete": false,
+    "checks": [
+      {
+        "name": "example-wiring",
+        "exit": 1,
+        "evidence": "F:\\xlang-validation\\foundation9-landing-20261029\\example-wiring.log",
+        "sha256": "b42e9e9dbf2e916c9e3d19311d631ecdace434fd6271fffb752561b70f05a2dd",
+        "output": "example is not wired: release/examples/http/parse.xl\nexample is not wired: release/examples/http/tcp.xl\nexample is not wired: release/examples/websocket/loopback.xl\nexample is not wired: release/examples/websocket/protocol.xl"
+      },
+      {
+        "name": "case-wiring",
+        "exit": 1,
+        "evidence": "F:\\xlang-validation\\foundation9-landing-20261029\\case-wiring.log",
+        "sha256": "86ec48e7e9502a057a31e03632719a083f67591b6192e8bfc86909bfac9e39bb",
+        "output": "test case is not wired: test/cases/stdlib_websocket_close_trim.xl\ntest case is not wired: test/cases/stdlib_websocket_keygen_trim.xl"
+      },
+      {
+        "name": "c-wiring",
+        "exit": 0,
+        "evidence": "F:\\xlang-validation\\foundation9-landing-20261029\\c-wiring.log",
+        "sha256": "b6ed728c140189dbcd9df7560489b3d970e62a70e0bc4530126e7913895072bf",
+        "output": "C fixture wiring ok (core): 1620 entry fixtures, 29 package fixtures."
+      }
+    ]
+  },
+  "platforms": {
+    "windows": {
+      "complete": true,
+      "stages": 200,
+      "positiveCases": 25,
+      "negativeCases": 5,
+      "examples": 3,
+      "strictGeneratedCBuilds": 16,
+      "nativeLibraries": 2,
+      "inputsUnchanged": true,
+      "evidence": "F:\\xlang-validation\\foundation9-landing-20261029\\acceptance-win\\results.json",
+      "sha256": "1b3f465316574ad61e750752a2c344fb85f14cfd3faa29ed1f2061e92ab4098e"
+    },
+    "linux": {
+      "complete": true,
+      "stages": 200,
+      "positiveCases": 25,
+      "negativeCases": 5,
+      "examples": 3,
+      "strictGeneratedCBuilds": 16,
+      "nativeLibraries": 2,
+      "inputsUnchanged": true,
+      "evidence": "F:\\xlang-validation\\foundation9-landing-20261029\\linux-results.json",
+      "sha256": "6bb887dbdf1bb4d89cd1c9778ca87cf440a939a72891462dda831bb2e92f45ca"
+    }
+  },
+  "undecided": {
+    "CRT": 0,
+    "XRT": 0
+  },
+  "externalTraffic": false,
+  "liveProducts": {
+    "evidence": "F:\\xlang-validation\\foundation9-landing-20261029\\live-products.json",
+    "sha256": "ee20cd7fd07aa162fae5c50a794ebde468249a3a7b2a7101af87de85319287ec",
+    "examplesPerPlatform": 3
+  }
+}

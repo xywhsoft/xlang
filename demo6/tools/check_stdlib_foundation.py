@@ -6,13 +6,20 @@ before reporting failure; strict C, heap/OOM and pruning have separate evidence.
 from pathlib import Path
 import argparse,concurrent.futures,hashlib,json,os,re,shutil,subprocess,sys,threading
 
-CASES=['stdlib_foundation_'+n for n in ['system','memory','core','casts','casts_async','restore','pools','language_oom','system_trim','memory_trim']]+[
+CASES=[
+ 'stdlib_foundation_system','stdlib_foundation_memory','stdlib_foundation_core',
+ 'stdlib_foundation_casts','stdlib_foundation_casts_async','stdlib_foundation_restore',
+ 'stdlib_foundation_pools','stdlib_foundation_language_oom',
+ 'stdlib_foundation_system_trim','stdlib_foundation_memory_trim',
  'stdlib_graph_clone','stdlib_graph_clone_dict_leaf','stdlib_graph_clone_continuation','stdlib_graph_clone_restore',
  'stdlib_value_copy','stdlib_runtime_callable_func_defaults','stdlib_runtime_callable_func_parameters',
  'stdlib_runtime_callable_func_errors','stdlib_runtime_method_defaults','stdlib_runtime_method_defaults_errors',
  'xlir_native_dynamic_fields_values','weak_class_lifecycle','stdlib_stack_batch_public',
  'stdlib_tree_bytes_keys','stdlib_concurrent_queue_owned']
-BAD=['bad_stdlib_foundation_'+n for n in ['memory_import','memory_handle','stats_no_raise','pool_scalar','pool_private']]
+BAD=['bad_stdlib_foundation_memory_import','bad_stdlib_foundation_memory_handle',
+ 'bad_stdlib_foundation_stats_no_raise','bad_stdlib_foundation_pool_scalar','bad_stdlib_foundation_pool_private']
+EXAMPLES=['release/examples/foundation/system.xl','release/examples/foundation/memory.xl',
+ 'release/examples/foundation/pools.xl']
 def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 
 def main():
@@ -49,6 +56,7 @@ def main():
   names=['xl.exe','xl.dll','xlc.dll'] if windows else ['xl','libxl.so','libxlc.so']
   inputs={Path(__file__).resolve(),*([a.driver] if a.driver else [root/'release'/n for n in names]),*[root/'test/cases'/(n+'.xl') for n in selected+BAD]}
   inputs.update(root/'src/runtime'/n for n in native)
+  inputs.update(root/n for n in EXAMPLES)
   inputs.update([root/'src/stdlib/object_pools.xl.in',root/'tools/gen_stdlib_foundation.py',root/'src/stdlib/xl6_stdlib_foundation.inc'])
   report['Inputs']={str(q):sha(q) for q in sorted(inputs)}
   isolated=out/'isolated';release=isolated/'release';release.mkdir(parents=True);relocated=out/'relocated';relocated.mkdir()
@@ -86,15 +94,27 @@ def main():
    print(n+' passed',flush=True)
   with concurrent.futures.ThreadPoolExecutor(max_workers=a.jobs) as pool:
    for result in concurrent.futures.as_completed([pool.submit(positive,n) for n in selected]):attempt(result.result)
+  for relative in EXAMPLES:
+   source=root/relative;name='example-'+source.stem
+   attempt(lambda source=source,name=name:run(name,[a.driver,source,'run',out/name] if a.driver else [cli,'run',source],root if a.driver else isolated))
   for n in BAD:attempt(lambda n=n:run(n,[a.driver,root/'test/cases'/(n+'.xl'),'cgen-default',out/(n+'.c')] if a.driver else [cli,'cgen',root/'test/cases'/(n+'.xl'),'--emit',out/(n+'.c')],root if a.driver else isolated,True))
   if not a.quick:
    sys.path.insert(0,str(root/'tools'));from gen_tcc_vfs_resources import load_resources
-   sdk=out/'sdk';sdk.mkdir();bd=root/('build/tmp' if windows else 'build/linux')
-   dist=root/'res/tcc/win64/x86_64' if windows else bd/'tcc-dist'
+   sdk=out/'sdk';sdk.mkdir()
    manifest=root/'tools'/('tcc_vfs_manifest_win64_runtime.txt' if windows else 'tcc_vfs_manifest_linux_runtime.txt')
-   for resource in load_resources(manifest,root,dist,bd/'xrt.o',bd):
+   # Select the shipping private-header rows before resolving resources. A
+   # deployed CLI/DLL set does not require a local TCC source build or xrt.o.
+   headerRows=[]
+   for line in manifest.read_text(encoding='utf-8-sig').splitlines():
+    parts=line.strip().split('|')
+    if len(parts)>=3 and (parts[1]=='include/__xl_runtime' or parts[1].startswith('include/__xl_runtime/')):headerRows.append(line)
+   assert headerRows
+   selectedManifest=out/'runtime-headers.manifest';selectedManifest.write_text('\n'.join(headerRows)+'\n',encoding='utf-8')
+   report['Inputs'][str(manifest)]=sha(manifest)
+   for resource in load_resources(selectedManifest,root,root,root,out):
     if resource.virtual.startswith('include/__xl_runtime/'):
      dest=sdk/Path(resource.virtual).relative_to('include');dest.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(resource.source,dest)
+     report['Inputs'][str(resource.source)]=sha(resource.source)
    strict=[*flags,'-Wno-unused-function','-Wno-unused-parameter','-Wno-unused-variable','-Wno-unused-label','-Wno-unused-const-variable','-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-I'+str(sdk)]
    for n in ['stdlib_foundation_'+name for name in ['system','memory','core','casts','casts_async','restore','pools','language_oom']]:
     if n not in selected:continue

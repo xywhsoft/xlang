@@ -4,6 +4,8 @@
 
 ## 主要入口
 
+- `tools/check_stdlib_foundation.py`：最后九组边界、系统查询、显式 memory、对象拥有组及核心转换/恢复回归。Windows 的 `03_core_foundation.bat`（由 `03_cgen_runtime_core.bat` 调用）和 `test_linux.sh` 均纳入主回归；25 个正例、5 个拒绝例及 3 个 foundation 示例，覆盖实际产品 JIT/模块/独立 AOT、严格 C、故障前缀和裁剪。仅需已构建的 CLI/动态库及声明源码，不要求保留构建缓存。
+
 - `tools/check_compiled_packages.ps1`: compiled-package source/IR fault prefixes,
   both DLL native clients, compiler consumers, source-free EXE deployment and
   executable size comparison. See `docs/compiled-host-packages.md` for supported

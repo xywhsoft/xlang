@@ -44,6 +44,11 @@ printf 'Running Linux ELF build tests...\n'
 "$XL" build "$ROOT/release/examples/hello.xl" -o "$TEST_DIR/hello"
 "$TEST_DIR/hello"
 
+printf 'Running foundation contracts and examples...\n'
+python3 "$ROOT/tools/check_stdlib_foundation.py" --root "$ROOT" \
+    --out "$TEST_DIR/foundation-$(date +%Y%m%d-%H%M%S)-$$" \
+    --jobs "${XL6_FOUNDATION_JOBS:-2}"
+
 printf 'Running Linux C and XRT integration tests...\n'
 # Two-thread component check: restoring a snapshot on the wrong native thread
 # must fail without changing that thread's floating-point environment.

@@ -20,6 +20,7 @@ $wiringFiles = @(
     "tools\check_stdlib_examples.ps1",
     "tools\check_compiled_packages.ps1",
     "tools\check_extern_owned_string.py",
+    "tools\check_stdlib_foundation.py",
     "tools\run_extlib_examples.ps1",
     "tools\run_game_examples.ps1",
     "tools\run_xge_examples.ps1",
