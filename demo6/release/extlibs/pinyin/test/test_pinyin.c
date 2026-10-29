@@ -134,6 +134,19 @@ int main(void) {
     }
     xrtClearError();
     CHECK(xpinyin_convert(NULL) == NULL);
+    CHECK(xpinyin_initials(NULL) == NULL && xrtErrorKind(xrtGetError()) == XERR_VALUE);
+    CHECK(xpinyin_convert_n(NULL, 0) == NULL && xrtErrorKind(xrtGetError()) == XERR_VALUE);
+    CHECK(xpinyin_initials_n(NULL, 1) == NULL && xrtErrorKind(xrtGetError()) == XERR_VALUE);
+    CHECK(xpinyin_convert_n("", SIZE_MAX) == NULL && xrtErrorKind(xrtGetError()) == XERR_VALUE);
+    CHECK(xpinyin_initials_n("", SIZE_MAX) == NULL && xrtErrorKind(xrtGetError()) == XERR_VALUE);
+    /* 显式长度不读取选区以外的坏字节，也不能接受被截断的字符。 */
+    {
+        static const char selected[] = "中\xff";
+        char *part = xpinyin_convert_n(selected, 3);
+        CHECK(part != NULL && strcmp(part, "zhong") == 0 && xrtGetError() == NULL);
+        xrtFree(part);
+        CHECK(xpinyin_initials_n(selected, 2) == NULL && xrtErrorKind(xrtGetError()) == XERR_VALUE);
+    }
     xrtClearError();
     CHECK(malformed_utf8() == 0);
     CHECK(allocation_errors() == 0);

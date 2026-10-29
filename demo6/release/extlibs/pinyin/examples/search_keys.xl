@@ -1,0 +1,19 @@
+import pinyin
+
+func main(...) as int
+    // 小字表只能生成辅助键，不能代替专业姓名、地名读音或全文检索。
+    array<string> labels = ["中国", "上海", "北京", "伉", "女", "佛", "龘😀"]
+    int matches = 0
+    for label in labels
+        string full = pinyin.convert(label)
+        string shortKey = pinyin.initials(label)
+        println(label, "|", full, "|", shortKey)
+        if string.startsWith(full, "b") then
+            println("query b:", label)
+            matches += 1
+        end
+    end
+    assert matches == 1
+    println("pinyin search keys: PASS")
+    return 0
+end

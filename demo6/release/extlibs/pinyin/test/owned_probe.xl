@@ -1,0 +1,19 @@
+import pinyin
+
+// 后续转换不能改写旧结果；完整导出路径直接接管C返回的XRT内存。
+func convertKey(string text) as string
+    return pinyin.convert(text)
+end
+
+func shortKey(string text) as string
+    return pinyin.initials(text)
+end
+
+func main(...) as int
+    string first = convertKey("伉佛女")
+    string second = shortKey("中国")
+    assert first == "kang fo nv" and second == "zg"
+    assert convertKey("") == "" and shortKey("") == ""
+    assert first == "kang fo nv"
+    return 0
+end

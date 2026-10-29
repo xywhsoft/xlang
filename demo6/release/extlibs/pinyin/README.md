@@ -1,5 +1,37 @@
 # pinyin
 
+2026-10-29 全表读音审计：修正 `伉`（U+4F09）误写为 `jiu` 的错误，
+现为 `kang`，首字母为 `k`。只改这一项，不扩大 395 字固定词表，
+不改变 API、ABI、所有权、空格规则或错误类型。`佛 → fo`、`地 → di`
+是合法的既有固定读音，不因字典的首选读音排序而改变。
+
+测试预期来自 [Unicode 17.0.0 Unihan](https://www.unicode.org/Public/17.0.0/ucd/Unihan.zip)
+的 `kMandarin`，去声调、`ü` 写为 `v`；`佛` 选 `kHanyuPinyin` 中的 `fo`，
+`地` 选 `kMandarin` 中的第二个读音 `di`。`test/readings_expected.inc`
+记录 395 项预期、原始 ZIP/文件 SHA256 和许可，不从产品字表复制预期。
+完整下载只在忽略的开发证据目录中，测试离线可用，不增加运行依赖。
+`readings_c.c` 遍历 U+3400..U+9FFF 的全部 27,648 个码点，加 UTF-8
+边界及混排，共 55,328 项，检查完整转写、首字母、未知字符保留、
+返回错误状态和内存平衡。旧表先红，修正后同一预期为绿。
+
+默认 Windows/Linux 门禁新增有界进程、输入前后指纹、原始 stdout/stderr、
+失败留证和成功定域清理；所选 XRT 模块一次编译复用，不再对测试启用
+`XRT_MODULE_ALL`。包含严格 C、Linux ASan/UBSan、TCC 直跑全表、两条
+实际生成声明与公开 C 头文件同 TU 编译，以及九个独立 AOT 程序。
+完整导出/透传函数只接管 `@owned` 返回的 XRT 指针，不再复制正文；
+生成代码仍用一次 `strlen` 确定长度，调用方比较已持有字符串可能创建
+语言语义副本，不能将此误称为整个程序零拷贝或与手写 C 等速。
+
+新增小字表辅助检索键 C/XLang 对照，输出与包内黄金文件一致：
+
+```text
+xl run release/extlibs/pinyin/examples/search_keys.xl
+xl run release/extlibs/pinyin/examples/search_keys_c.c
+```
+
+从 `demo6` 根目录运行。示例同时保留未收录的“海”“龘”与 emoji，
+直观展示覆盖边界；它不是全文检索、地名或姓名准确读音方案。
+
 2026-10-27 所有权收口：`convert`、`initials` 的原生结果改为
 `@owned string` 直接接管 XRT 分配的 `char*`，不再通过 `point` 和
 `takeCstr` 转发。公开签名、输入长度校验及 ValueError/MemoryError
