@@ -1,0 +1,23 @@
+import ansi
+
+// 全部17个文本输入入口：纯校验不应复制原参数，返回结果也不应再复制。
+func main(...) as int
+    assert ansi.bold("x") == "\x1b[1mx\x1b[0m"
+    assert ansi.dim("x") == "\x1b[2mx\x1b[0m"
+    assert ansi.italic("x") == "\x1b[3mx\x1b[0m"
+    assert ansi.underline("x") == "\x1b[4mx\x1b[0m"
+    assert ansi.blink("x") == "\x1b[5mx\x1b[0m"
+    assert ansi.inverse("x") == "\x1b[7mx\x1b[0m"
+    assert ansi.hidden("x") == "\x1b[8mx\x1b[0m"
+    assert ansi.strike("x") == "\x1b[9mx\x1b[0m"
+    assert ansi.fg("x", 31) == "\x1b[31mx\x1b[0m"
+    assert ansi.bg("x", 41) == "\x1b[41mx\x1b[0m"
+    assert ansi.fg256("x", 42) == "\x1b[38;5;42mx\x1b[0m"
+    assert ansi.bg256("x", 42) == "\x1b[48;5;42mx\x1b[0m"
+    assert ansi.fgTrue("x", 1, 2, 3) == "\x1b[38;2;1;2;3mx\x1b[0m"
+    assert ansi.bgTrue("x", 1, 2, 3) == "\x1b[48;2;1;2;3mx\x1b[0m"
+    assert ansi.title("x") == "\x1b]0;x\a"
+    assert ansi.strip("x") == "x"
+    assert ansi.displayWidth("x") == 1
+    return 0
+end

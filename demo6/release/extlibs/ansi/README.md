@@ -1,5 +1,27 @@
 # ansi
 
+2026-10-29：17 个文本入口的私有 NUL 校验改为只校验，不再返回输入
+字符串。此前即使原生结果已经直接接管，返回输入仍会额外分配并复制
+整段正文；现在各入口校验后直接使用原参数。公开签名、30 个 C ABI
+及原生实现均未改变，所有入口仍拒绝内嵌 NUL，不增加辅助接管层。
+
+固定非空输入的调用点故障测试共 67 项：原绑定 17 项失败，新绑定
+归零。该预算**包含**调用处构造 `"x"`：16 个文本生产者首次成功预算
+从 4 降至 3，`displayWidth` 从 3 降至 2；去掉的是旧校验返回的输入
+副本。余下分别是参数构造、NUL 针串构造和（文本生产者才有的）
+原生结果分配。C 借用常量，同输入 33 项预算验证文本结果一次分配、
+标量宽度零分配；两边不是同样的参数构造成本，不能宣称全链零开销。
+生成 C 的专用完整输入/返回夹具中，正文复制赋值从 1 处降到 0，
+另核对 29 条结果直接接管、全部 30 条实际原型与正式 C 头一致。
+NUL/UTF-8 校验、搜索、结果 `strlen`、错误作用域等成本仍存在，
+本轮未测大文本吞吐或端到端延迟，也不外推其他编译器与架构。
+
+最终 Windows 默认门禁与 Linux 原生快照门禁均通过：严格 C、四线程、
+Linux ASan/UBSan、旧新 OOM 与恢复、17 条 NUL 负例、双语八行黄金
+输出、公开范例，以及**各九条**独立 AOT 构建/执行。测试运行库只
+启用产品的三个模块及实际测试使用的线程/内存诊断，不再全开 XRT。
+冻结编译器、XRT 和 xruntime 未改；历史记录不替代本次固定基线证据。
+
 2026-10-27：29 个文本结果的 C 原型明确为 `char*`，XLang 通过
 `@owned string` 直接接管 XRT 分配，不再经过 `point`/`takeCstr`。
 样式与颜色入口现在在 C 侧拒绝无效 UTF-8，避免直接 C 调用返回
@@ -50,11 +72,13 @@ Linux 验收仍以独立平台门禁为准。
 - C/XLang 对照：`release/extlibs/ansi/examples/ansi_c.c`、`ansi.xl`。C 范例可直接 `xl run` 单文件执行；普通 C 构建仍独立链接 `ansi_native.c`。
 - 对照范例按原始转义字节校验所有公开构件（样式、颜色、光标和屏幕控制），同时展示 UTF-8 宽度与去除转义；验证不依赖终端渲染或颜色配置。
 - 完整展示：`release/examples/extlibs/ansi.xl`
-- 边界：`release/extlibs/ansi/test/test_ansi.c`、`test_threads.c`、`boundaries.xl`、`allocations.xl` 与 `test/cases/extlib_ansi.xl`
+- 边界：`release/extlibs/ansi/test/test_ansi.c`、`test_threads.c`、`boundaries.xl`、`allocations.xl`、`input_budgets.xl`、`input_budgets_c.c`、`owned_probe.xl` 与 `test/cases/extlib_ansi.xl`
 
 在 `demo6/release` 运行 `xl run extlibs/ansi/test/boundaries.xl`；在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package ansi -Source release/extlibs/ansi/test/test_ansi.c`。2026-10-12 已通过 Windows 严格 GCC、Linux ASan/UBSan、XL JIT 和双语范例对照；2026-10-13 增加四种文本入口的 NUL 红绿用例，复跑 C/XL 主路径与范例。
 
-Windows 包级门禁在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/ansi/test/check.ps1`；它编译并运行严格 GCC 的 C 边界、线程测试与范例，运行 XLang 边界和双语范例，并比较输出。默认还独立构建并运行 XLang 完整范例、边界及 C 单文件范例的 AOT 产物；`-SkipAot` 仅供日常快测，不用于签收。Linux 对应门禁为 `bash release/extlibs/ansi/test/check.sh`，包含 C ASan/UBSan 与相同的独立 AOT 路径。
+Windows 包级门禁在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/ansi/test/check.ps1`；它编译并运行严格 GCC 的 C 边界、线程测试与范例，运行 XLang 边界和双语范例，并与 `test/ansi.expected.txt` 的八行输出比较。默认独立构建并运行中央核心、包内边界、旧 OOM、新语言预算、接管夹具、新 C 预算、包内 C/XLang 范例及公开范例共九条 AOT 路径；`-SkipAot` 仅供日常快测，不用于签收。Linux 对应门禁为 `bash release/extlibs/ansi/test/check.sh`，包含 C ASan/UBSan 与相同的独立 AOT 路径。
+
+两门禁使用本次独占目录和子进程超时，前后核对包/运行库/编译器/公开头/范例等输入指纹；新增或变化的输入使结果无效。Windows 保存同名目录外 JSON（命令、原始输出、状态、输入），Linux 保存 `.report.txt` 与 `.inputs.sha256`，命令失败时另保留工作目录中的 `failure.txt`。成功才删除本次中间产物，失败保留现场；缺编译器会非零退出，不视为跳过。Linux 建议复制所需文件到原生目录执行并核对原位置与快照哈希，避免把 DrvFS 行为误作产品问题。
 
 2026-10-14 补失败→成功的 C 错误槽回归：样式、控制序列、标题、剥离与宽度计算均不会保留旧错误。Windows 严格 GCC、C/XL 边界、双语范例及包内 `test/check.sh` 的 Linux ASan/UBSan 门禁通过；没有改变 ANSI 输出格式。
 

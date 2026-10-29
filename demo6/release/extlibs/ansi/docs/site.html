@@ -35,6 +35,8 @@ println(ansi.strip(styled))
 println(ansi.displayWidth(styled))</code></pre>
     <p><code>displayWidth</code> 将常见零宽字符计为零列，但只是终端列宽估算，不承诺 ZWJ 复合 emoji 等所有 Unicode 字素簇精确；U+00AD 软连字符的宽度依赖换行，现明确拒绝。文本入口拒绝内嵌 NUL，C 样式与颜色入口拒绝无效 UTF-8；标题和 OSC 载荷拒绝双向控制符，畸形 ANSI、OSC 载荷中的 DEL/C1 控制字符和非法颜色参数报错。旧共享快照缺符号阻断在 2026-10-26 两平台默认门禁不再复现；本次签收不代表终端实际渲染、其他架构或全产品准入。完整合同、C 所有权及验证命令见包内 README。</p>
     <p>2026-10-27：29 个原生文本入口明确返回 XRT 分配的 <code>char*</code>，由 XLang <code>@owned string</code> 直接接管，不再经过 <code>point</code> 转发。Windows 默认门禁和 Linux C ASan/UBSan、XLang JIT/AOT 门禁通过，包含无效 UTF-8 与分配故障恢复；输入校验和结果长度扫描仍有成本。</p>
+    <p>2026-10-29：17 条文本入口不再通过校验函数返回输入，去掉一次整段正文复制，公开 API 与原生 ABI 不变。完整输入/返回夹具无正文复制赋值，29 条结果仍直接接管，30 条实际生成原型与 C 头严格核对。包含调用处参数构造的 67 项语言分配预算由 17 项失败降为零；C 同输入 33 项预算也通过，但其借用常量的成本与语言参数构造不同，不宣称全链零开销。</p>
+    <p>两平台最新默认门禁覆盖严格 C、线程、Linux ASan/UBSan、OOM 恢复、17 条 NUL 负例、C/XLang 八行固定输出及各九条独立 AOT；有子进程超时与输入指纹，失败保留现场。仍仅签收纯文本序列和有限单行宽度合同，不代表终端渲染或完整 Unicode 排版；验证命令、分配成本及范围见 README。</p>
   </section>
 </main>
 </body>

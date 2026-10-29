@@ -1,0 +1,74 @@
+import ansi
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func result(int kind, string text) as string
+    if kind == 0 then return ansi.bold(text) end
+    if kind == 1 then return ansi.dim(text) end
+    if kind == 2 then return ansi.italic(text) end
+    if kind == 3 then return ansi.underline(text) end
+    if kind == 4 then return ansi.blink(text) end
+    if kind == 5 then return ansi.inverse(text) end
+    if kind == 6 then return ansi.hidden(text) end
+    if kind == 7 then return ansi.strike(text) end
+    if kind == 8 then return ansi.fg(text, 31) end
+    if kind == 9 then return ansi.bg(text, 41) end
+    if kind == 10 then return ansi.fg256(text, 42) end
+    if kind == 11 then return ansi.bg256(text, 42) end
+    if kind == 12 then return ansi.fgTrue(text, 1, 2, 3) end
+    if kind == 13 then return ansi.bgTrue(text, 1, 2, 3) end
+    if kind == 14 then return ansi.title(text) end
+    return ansi.strip(text)
+end
+
+func main(...) as int
+    array<string> expected = ["\x1b[1mx\x1b[0m", "\x1b[2mx\x1b[0m", "\x1b[3mx\x1b[0m",
+        "\x1b[4mx\x1b[0m", "\x1b[5mx\x1b[0m", "\x1b[7mx\x1b[0m", "\x1b[8mx\x1b[0m", "\x1b[9mx\x1b[0m",
+        "\x1b[31mx\x1b[0m", "\x1b[41mx\x1b[0m", "\x1b[38;5;42mx\x1b[0m", "\x1b[48;5;42mx\x1b[0m",
+        "\x1b[38;2;1;2;3mx\x1b[0m", "\x1b[48;2;1;2;3mx\x1b[0m", "\x1b]0;x\a", "x"]
+    int failures = 0
+    int checks = 0
+    for kind in range(17)
+        // 调用处构造"x"和校验用NUL针串各分配一次；文本生产者另分配一次结果。
+        int required = 3
+        if kind == 16 then required = 2 end
+        for budget in range(required + 1)
+            bool caught = false
+            bool injected = false
+            string value = ""
+            assert failAfter(uint64(budget))
+            try
+                if kind == 16 then
+                    assert ansi.displayWidth("x") == 1
+                else
+                    value = result(kind, "x")
+                end
+            catch MemoryError error
+                caught = true
+            finally
+                injected = failTriggered()
+                failClear()
+            end
+            checks += 1
+            if caught != (budget < required) or injected != caught then failures += 1 end
+            if not caught and kind < 16 then assert value == expected[kind] end
+        end
+        bool nulCaught = false
+        try
+            if kind == 16 then
+                ansi.displayWidth("x\0tail")
+            else
+                result(kind, "x\0tail")
+            end
+        catch ValueError error
+            nulCaught = true
+        end
+        assert nulCaught
+        if kind < 16 then assert result(kind, "x") == expected[kind] end
+    end
+    println("ansi input budgets:", checks, "checks,", failures, "failures")
+    assert checks == 67 and failures == 0
+    return 0
+end
