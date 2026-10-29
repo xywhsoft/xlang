@@ -1,0 +1,67 @@
+import cbor
+
+func rejectValue(string hex)
+    Buffer wire = cbor.fromHex(hex)
+    for operation in range(2)
+        bool rejected = false
+        bool wrongKind = false
+        try
+            if operation == 0 then cbor.decode(wire) else cbor.decodeBytes(wire) end
+        catch RangeError error
+            wrongKind = true
+        catch NotImplementedError error
+            wrongKind = true
+        catch ValueError error
+            rejected = true
+        end
+        assert rejected and not wrongKind, "invalid CBOR must report ValueError"
+        assert cbor.decode(cbor.fromHex("f6")) == null, "recover after rejection"
+    end
+end
+
+func main(...) as int
+    array<string> badHeads = ["1f", "3f", "df", "f800", "f801", "f814", "f815", "f816", "f817", "f818", "f81f",
+        "1c", "3d", "5e", "7c", "9d", "be", "dc", "fd"]
+    for head in badHeads
+        rejectValue(head)
+        rejectValue("81" + head)
+        rejectValue("9f" + head + "ff")
+        rejectValue("a16178" + head)
+        rejectValue("bf616178" + head + "ff")
+    end
+    // 合法非最短整数与非法f8简单值不同；uint64最大值也不受影响。
+    for hex in ["00", "1800", "190000", "1a00000000", "1b0000000000000000"]
+        assert cbor.decode(cbor.fromHex(hex)) == 0
+    end
+    assert cbor.decode(cbor.fromHex("1bffffffffffffffff")) == uint64(18446744073709551615)
+    bool unsupported = false
+    try
+        cbor.decode(cbor.fromHex("f820"))
+    catch NotImplementedError error
+        unsupported = true
+    end
+    assert unsupported, "well-formed unmodeled simple value is not malformed"
+
+    // 分块数与父容器条目共享100万预算；恰好达限成功，再加一块报范围错误。
+    for prefix in ["", "81", "a16178"]
+        int allowed = 1000000
+        if prefix != "" then allowed -= 1 end
+        for head in ["5f", "7f"]
+            string emptyChunk = "40"
+            if head == "7f" then emptyChunk = "60" end
+            string chunks = string.repeat(emptyChunk, allowed)
+            Buffer atLimit = cbor.fromHex(prefix + head + chunks + "ff")
+            var decoded = cbor.decode(atLimit)
+            if prefix == "" and head == "5f" then assert cbor.decodeBytes(atLimit).len() == 0 end
+            bool rangeCaught = false
+            try
+                cbor.decode(cbor.fromHex(prefix + head + chunks + emptyChunk + "ff"))
+            catch RangeError error
+                rangeCaught = true
+            end
+            assert rangeCaught
+        end
+    end
+    println("cbor well-formedness XLang: PASS")
+    return 0
+end

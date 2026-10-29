@@ -277,8 +277,20 @@ static bool xcbor_head_read(xcborreader* pReader, uint8* pMajor, uint8* pInfo,
     *pMajor = iHead >> 5u;
     iInfo = iHead & 31u;
     *pInfo = iInfo;
+    /* 不定长只属于bytes/text/array/map；整数和tag没有这种编码。 */
+    if (iInfo == 31u && (*pMajor < 2u || *pMajor == 6u)) {
+        xcbor_error(XERR_VALUE, "invalid CBOR indefinite-length head");
+        return false;
+    }
     if (iInfo < 24u) { *pValue = iInfo; return true; }
-    if (iInfo == 24u) { return xcbor_read_uint(pReader, 1u, pValue); }
+    if (iInfo == 24u) {
+        if (!xcbor_read_uint(pReader, 1u, pValue)) return false;
+        if (*pMajor == 7u && *pValue < 32u) {
+            xcbor_error(XERR_VALUE, "reserved CBOR two-byte simple value");
+            return false;
+        }
+        return true;
+    }
     if (iInfo == 25u) { return xcbor_read_uint(pReader, 2u, pValue); }
     if (iInfo == 26u) { return xcbor_read_uint(pReader, 4u, pValue); }
     if (iInfo == 27u) { return xcbor_read_uint(pReader, 8u, pValue); }
@@ -312,11 +324,15 @@ static xbuffer* xcbor_read_chunks(xcborreader* pReader, uint8 iMajor)
             pReader->Offset++;
             return pJoined;
         }
+        /* break不消耗预算；只有仍有下一块时才判定超限，与数组/映射一致。 */
+        if (pReader->Items == XCBOR_MAX_ITEMS) {
+            xcbor_error(XERR_RANGE, "CBOR string has too many chunks");
+            break;
+        }
         if (!xcbor_head_read(pReader, &iChunkMajor, &iInfo, &iSize) ||
             iChunkMajor != iMajor || iSize == UINT64_MAX ||
             iSize > XCBOR_MAX_BYTES - pJoined->Size ||
-            !xcbor_need(pReader, (size_t)iSize) ||
-            pReader->Items == XCBOR_MAX_ITEMS) {
+            !xcbor_need(pReader, (size_t)iSize)) {
             if (!xrtGetError()) xcbor_error(XERR_VALUE, "invalid CBOR string chunk");
             break;
         }

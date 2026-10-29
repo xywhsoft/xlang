@@ -1,5 +1,38 @@
 # cbor
 
+2026-10-29 严格线格式审计：按 [RFC 8949 第3节与附录F](https://www.rfc-editor.org/rfc/rfc8949.html#appendix-F)
+修复三个解析边界。非法头 `1f` 不再被误解为 `UINT64_MAX`；`3f`、`df`
+也按坏格式拒绝。`f8 00..1f` 是保留的二字节简单值编码，不再误报成
+“语法合法但模型不支持”。不定长 bytes/text 分块数超出共享100万项
+预算时改报 `XERR_RANGE` / `RangeError`，不再报值错误；恰好达限后
+紧随的 break 不消耗预算，父数组/映射的一项也不能漏算。
+合法的非最短整数、`1bffffffffffffffff`、已建模简单值均不受影响。
+语法合法但未建模的 `f820` 等仍为 `XERR_UNSUPPORTED`。
+
+新 C 回归为 2,591 项：同一非法头在根、定长/不定长数组及映射值
+五种位置，通过通用/字节专用两入口分别检查拒绝、错误类别、立即恢复
+与释放平衡；包含分块预算的上下邻域。旧实现失败352项，修正后归零。
+`test/check_half.py` 用 Python 标准库 `struct` 独立验证全部65,536种
+binary16位形；有限值、无穷和负零比较精确binary64位，2,046种NaN
+只比较NaN类别，不要求保留payload。无需安装任何第三方Python包。
+
+新双语范例 `examples/validate_wire.xl` / `validate_wire_c.c` 展示六个
+公开入口、网络报文解码、二进制往返、错误拒绝和恢复，固定七行输出。
+从 `demo6` 根目录可直接运行：
+
+```text
+xl run release/extlibs/cbor/examples/validate_wire.xl
+xl run release/extlibs/cbor/examples/validate_wire_c.c
+```
+
+默认门禁先执行新旧C边界/OOM、独立浮点对照、字节/标量及新双语
+范例、实际生成原型和独立程序；随后仍要求全部原有语言容器合同
+通过。新增路径不替代既有字典/数组编码，M1投影阻断仍开放；不能把
+部分路径通过算整包发布验收。Windows需GCC和Python3，Linux需GCC、
+Python3，C测试启用ASan/UBSan。进程有时限，输入有前后指纹，失败
+保留命令/输出/现场，不再无条件删除失败证据。测试XRT只启用真实
+模块与内存诊断（旧C例另需整文件模块），不再编译所有模块。
+
 2026-10-27 重建 Windows 发布版后，独立 `Buffer` AOT 探针已构建并运行，
 旧 `xl6NativeHandleTraceLeaf` 缺符号不再是当前首阻断。默认包门禁的
 严格 C 编译、原生边界/分配故障及 C 范例通过，随后 XLang
