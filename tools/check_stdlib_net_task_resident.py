@@ -38,7 +38,7 @@ def main():
   modules=run('modules',[plan,'--modules']);assert '_MODULE_ALL' not in modules
   report.update(Sources=names,Modules=modules.splitlines());save()
   header=out/'task-modules.h';header.write_text(modules,encoding='utf8');product(header)
-  kernel=out/'native.c';kernel.write_text('#include "task-modules.h"\n#ifndef XL6_TASK_CHECKED_MINIMAL\n#define XRT_MODULE_MEMORY_DEBUG\n#endif\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n',encoding='utf8');product(kernel)
+  kernel=out/'native.c';kernel.write_text('#include "task-modules.h"\n#ifndef XL6_TASK_CHECKED_MINIMAL\n#define XRT_MODULE_MEMORY_DEBUG\n#endif\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"\n',encoding='utf8');product(kernel)
   providers=[root/n for n in names];fixture=root/'test/support/net_task_language_native.c'
   for index,cc in enumerate(compilers):
    for opt in ('O0','O2'):

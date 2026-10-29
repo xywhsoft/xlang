@@ -1,3 +1,4 @@
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
 #include <assert.h>
 #include <stdio.h>

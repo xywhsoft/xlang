@@ -1,6 +1,7 @@
 /* Source-only deterministic notification barrier. --wrap affects the actual
  * Core object's native result read, not a replacement provider or language
  * callback. Ordinary product tests separately validate the public surface. */
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_channel_direct_deadline.h"
 #include "src/runtime/xl6_channel_select_deadline.h"
 #include "src/runtime/xl6_channel_future_core.h"
@@ -41,8 +42,8 @@ static int32_t peer(void* data)
 }
 static void probe(XL6_OwnershipCatalog* catalog,xrtownershipref ref)
 {
-    xrtownershipscope freeze={0};xdeadline until=xrtDeadlineAfter(10000000);
-    while(!xrtOwnershipFreezeTryBegin(&freeze)){assert(!xrtDeadlineExpired(until));xrtThreadYield();}
+    xrtownershipscope freeze={0};XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(10000);
+    while(!xrtOwnershipFreezeTryBegin(&freeze)){assert(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
     size_t count=0;assert(!ref.Ops->Count(ref.Data,&count));
     const xrtownershipadapterv1* adapter=(const void*)1;
     const xrtownershippreparationv1* preparation=(const void*)1;
@@ -73,8 +74,8 @@ int main(void)
         #endif
         /* Stable builder publication admits observation, not raw construction.
          * Private rollback is a separate preparation outside Freeze. */
-        xrtownershipscope stable={0};xdeadline inspectUntil=xrtDeadlineAfter(10000000);
-        while(!xrtOwnershipFreezeTryBegin(&stable)){assert(!xrtDeadlineExpired(inspectUntil));xrtThreadYield();}
+        xrtownershipscope stable={0};XL6_DeadlineV1 inspectUntil=xl6DeadlineAfterMillisecondsV1(10000);
+        while(!xrtOwnershipFreezeTryBegin(&stable)){assert(!xl6DeadlineExpiredV1(inspectUntil));xrtThreadYield();}
         #if XL6_TEST_PUBLISHED_BUILDER
         size_t stableCount=0;assert(ref.Ops->Count(ref.Data,&stableCount)&&stableCount>0);
         #endif
@@ -85,7 +86,7 @@ int main(void)
             xl6ChannelDirectDeadlineRuntimeV1Get()->StartReceive(executor,clock,frame,result,NULL,0,NULL);assert(future);
         /* Accepted work cannot remain claimed while its worker still needs
          * to reactivate a parked Channel. A ready graph is not logical idle. */
-        while(!xrtOwnershipFreezeTryBegin(&stable)){assert(!xrtDeadlineExpired(inspectUntil));xrtThreadYield();}
+        while(!xrtOwnershipFreezeTryBegin(&stable)){assert(!xl6DeadlineExpiredV1(inspectUntil));xrtThreadYield();}
         const xrtownershipadapterv1* adapter=NULL;const xrtownershippreparationv1* preparation=NULL;
         const XL6_OwnershipFinishV1* finish=NULL;static const unsigned token=1;
         assert(xl6OwnershipCatalogProbeV1(ref,catalog,&adapter,&preparation,&finish)==XL6_OWNERSHIP_ADMISSION_ADMITTED);
@@ -97,8 +98,8 @@ int main(void)
 #endif
         xthread* sender=xrtThreadCreate(peer,channel,0);assert(sender);
 #if XL6_TEST_NOTIFY_BARRIER
-        xdeadline until=xrtDeadlineAfter(10000000);
-        while(!atomic_load_explicit(&entered,memory_order_acquire)){assert(!xrtDeadlineExpired(until));xrtThreadYield();}
+        XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(10000);
+        while(!atomic_load_explicit(&entered,memory_order_acquire)){assert(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
         probe(catalog,ref); /* Committed frame, inside Notify after active++. */
         atomic_store_explicit(&released,true,memory_order_release);
 #endif

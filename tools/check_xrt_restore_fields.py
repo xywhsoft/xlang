@@ -78,7 +78,8 @@ def main():
                 executable = out/(name+('.exe' if os.name=='nt' else ''))
                 command = [cc,'-std=c11','-Wall','-Wextra','-Werror',
                            '-DXRT_MODULE_VALUE_CONTAINER','-DXRT_MODULE_MEMORY_DEBUG']
-                command += (['-DXRUNTIME_MODULE_RUNTIME_TYPE','-DXRUNTIME_IMPLEMENTATION']
+                command += (['-DXRUNTIME_MODULE_RUNTIME_TYPE','-DXRUNTIME_IMPLEMENTATION','-DXRT_IMPLEMENTATION',
+                             '-include',str(root/'lib/xruntime/xruntime_features.h'),'-include',str(root/'lib/xrt/xrt.h')]
                             if product=='xruntime' else ['-DXRT_IMPLEMENTATION'])
                 command += (['-O1','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer','-no-pie']
                             if mode=='sanitized' else ['-'+mode])

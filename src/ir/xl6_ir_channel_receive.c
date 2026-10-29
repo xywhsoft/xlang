@@ -41,7 +41,7 @@ static int xl6IrChannelControlDependentSignatureCompatible(const XL6_IrModule* m
         output->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL && output->nullAbi==XL6_IR_NULL_ABI_NONE;
 }
 /* Relative time is a checked signed millisecond span. An absolute deadline
- * uses the unsigned microsecond clock exposed by time.monotonic(). Neither
+ * uses the unsigned millisecond clock exposed by time.monotonic(). Neither
  * semantic acceptance nor a generic clone may silently change the unit. */
 static int xl6IrChannelWaitTimeCompatible(const XL6_IrModule* module,unsigned mode,XL6_IrTypeId id)
 {

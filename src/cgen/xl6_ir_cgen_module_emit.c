@@ -11,6 +11,7 @@ int xl6IrCgenEmitCEx(XL6_Output* out, const XL6_IrModule* module,
     if ( xl6IrCgenNeedsXrtDeclarations(&needs) )
         xl6OutputPuts(
             "#define XLIR_XRT_DECLARATIONS 1\n"
+            "#include <__xl_runtime/xrt_decl.h>\n"
             "#include <__xl_runtime/xruntime_decl.h>\n", out);
     xl6OutputPuts("#include <stdbool.h>\n#include <stddef.h>\n#include <stdint.h>\n#include <limits.h>\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <wchar.h>\n", out);
     if(needs.needsCOwnedRuntime)

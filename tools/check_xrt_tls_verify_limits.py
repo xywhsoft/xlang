@@ -37,7 +37,7 @@ def main():
     modules=''.join('#define XRT_MODULE_'+n+'\n' for n in ['TLS_VERIFY','X509_VERIFY_RSA','X509_VERIFY_ECDSA','X509_VERIFY_ED25519','MEMORY_DEBUG'])
     for runtime in [False,True]:
         product='runtime' if runtime else 'core';implementation=out/(product+'.c')
-        implementation.write_text(modules+('#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n' if runtime else '#define XRT_IMPLEMENTATION\n#include "lib/xrt/xrt.h"\n'))
+        implementation.write_text(modules+('#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"\n' if runtime else '#define XRT_IMPLEMENTATION\n#include "lib/xrt/xrt.h"\n'))
         for mode,cc,options in modes:
             prefix=product+'.'+mode;obj=out/(prefix+'.o');strict=['-Wall','-Wextra','-Werror','-fmax-errors=5'] if cc==gcc else []
             try:run(prefix+'.implementation',[cc,*flags,*options,*strict,'-c',implementation,'-o',obj])

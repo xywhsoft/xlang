@@ -1,3 +1,4 @@
+#include "xl_clock.h"
 #include "../internal/xrt_mail_net.h"
 
 
@@ -178,7 +179,7 @@ XRT_API bool xrtMailNetConfigValid(const xmailnetconfig* pConfig)
 bool __xrtMailTransportOpen(
 	__xmailtransport* pTransport,
 	const xmailnetconfig* pConfig,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -213,8 +214,7 @@ bool __xrtMailTransportOpen(
 			pConfig->Port,
 			&pConfig->Dial,
 			NULL,
-			NULL,
-			iDeadline,
+			NULL,xl6DeadlineRemainingMillisecondsV1(iDeadline),
 			pCancel
 		);
 		return pTransport->Tcp != NULL;
@@ -228,7 +228,7 @@ bool __xrtMailTransportRawSend(
 	__xmailtransport* pTransport,
 	const void* pData,
 	size_t iSize,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -279,8 +279,7 @@ bool __xrtMailTransportRawSend(
 				if ( (Result != XNET_RESULT_AGAIN) ||
 					!xrtNetStreamWait(
 						pTransport->Tcp,
-						XNET_STREAM_WAIT_WRITE,
-						iDeadline,
+						XNET_STREAM_WAIT_WRITE,xl6DeadlineRemainingMillisecondsV1(iDeadline),
 						pCancel
 					) ) {
 					return false;
@@ -302,7 +301,7 @@ bool __xrtMailTransportWrite(
 	const void* pData,
 	size_t iSize,
 	bool bFlush,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -336,7 +335,7 @@ bool __xrtMailTransportSend(
 	__xmailtransport* pTransport,
 	const void* pData,
 	size_t iSize,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -355,7 +354,7 @@ bool __xrtMailTransportSend(
 /* 绕过可选内容解码，取得一块拥有型传输字节。 */
 xnetbytes* __xrtMailTransportRawRecv(
 	__xmailtransport* pTransport,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -370,8 +369,7 @@ xnetbytes* __xrtMailTransportRawRecv(
 	#endif
 	return xrtNetStreamRecv(
 			pTransport->Tcp,
-			pTransport->ReadChunk,
-			iDeadline,
+			pTransport->ReadChunk,xl6DeadlineRemainingMillisecondsV1(iDeadline),
 			pCancel
 		);
 }
@@ -442,7 +440,7 @@ bool __xrtMailTransportReserve(
 bool __xrtMailTransportLine(
 	__xmailtransport* pTransport,
 	xstrview* pLine,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -530,7 +528,7 @@ bool __xrtMailTransportRead(
 	void* pBuffer,
 	size_t iCapacity,
 	size_t* pRead,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -624,7 +622,7 @@ bool __xrtMailTransportRead(
 /* 正常关闭传输；超时后转为异常关闭。 */
 bool __xrtMailTransportClose(
 	__xmailtransport* pTransport,
-	xdeadline iDeadline
+	XL6_DeadlineV1 iDeadline
 )
 {
 	bool bSuccess = true;
@@ -642,8 +640,7 @@ bool __xrtMailTransportClose(
 		bSuccess = xrtNetStreamClose(pTransport->Tcp) &&
 			xrtNetStreamWait(
 				pTransport->Tcp,
-				XNET_STREAM_WAIT_CLOSE,
-				iDeadline,
+				XNET_STREAM_WAIT_CLOSE,xl6DeadlineRemainingMillisecondsV1(iDeadline),
 				NULL
 			);
 		if ( !bSuccess ) {

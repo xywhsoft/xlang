@@ -18,38 +18,38 @@ bool __xrtPlistBinarySecondsToTime(double fSeconds, xtime* pResult)
 {
 	const int64 iScale = XRT_TIME_SECOND;
 	const int64 iMinSecond = INT64_MIN / iScale - 1;
-	const int64 iMinMicrosecond = INT64_MIN -
+	const int64 iMinMillisecond = INT64_MIN -
 		(INT64_MIN / iScale) * iScale + iScale;
 	const int64 iMaxSecond = INT64_MAX / iScale;
-	const int64 iMaxMicrosecond = INT64_MAX - iMaxSecond * iScale;
+	const int64 iMaxMillisecond = INT64_MAX - iMaxSecond * iScale;
 	double fWhole;
 	double fFraction;
 	int64 iSecond;
-	int64 iMicrosecond;
+	int64 iMillisecond;
 	xtime tEpoch;
 
 	if ( pResult == NULL || !isfinite(fSeconds) ||
 		!__xrtPlistAppleEpoch(&tEpoch) ) { return false; }
 	fFraction = modf(fSeconds, &fWhole);
-	if ( fWhole < -1e13 || fWhole > 1e13 ) { return false; }
+	if ( fWhole < -1e16 || fWhole > 1e16 ) { return false; }
 	iSecond = (int64)fWhole + tEpoch / iScale;
-	iMicrosecond = (int64)round(fFraction * (double)iScale);
-	if ( iMicrosecond < 0 ) {
+	iMillisecond = (int64)round(fFraction * (double)iScale);
+	if ( iMillisecond < 0 ) {
 		iSecond--;
-		iMicrosecond += iScale;
-	} else if ( iMicrosecond >= iScale ) {
+		iMillisecond += iScale;
+	} else if ( iMillisecond >= iScale ) {
 		iSecond++;
-		iMicrosecond -= iScale;
+		iMillisecond -= iScale;
 	}
 	if ( iSecond < iMinSecond || iSecond > iMaxSecond ||
-		(iSecond == iMinSecond && iMicrosecond < iMinMicrosecond) ||
-		(iSecond == iMaxSecond && iMicrosecond > iMaxMicrosecond) ) {
+		(iSecond == iMinSecond && iMillisecond < iMinMillisecond) ||
+		(iSecond == iMaxSecond && iMillisecond > iMaxMillisecond) ) {
 		return false;
 	}
 	/* 最小秒值先加一秒，避免中间乘法在 INT64_MIN 附近溢出。 */
 	*pResult = iSecond == iMinSecond ?
-		(iSecond + 1) * iScale + (iMicrosecond - iScale) :
-		iSecond * iScale + iMicrosecond;
+		(iSecond + 1) * iScale + (iMillisecond - iScale) :
+		iSecond * iScale + iMillisecond;
 	return true;
 }
 
@@ -61,7 +61,7 @@ bool __xrtPlistBinaryTimeToSeconds(xtime tValue, double* pResult)
 	double fSeconds;
 
 	if ( pResult == NULL || !__xrtPlistAppleEpoch(&tEpoch) ) { return false; }
-	/* 整数秒与余微秒分开转换，避免先把绝对微秒值舍入为 double。 */
+	/* 整数秒与余毫秒分开转换，避免先把绝对毫秒值舍入为 double。 */
 	fSeconds = (double)(tValue / iScale - tEpoch / iScale) +
 		(double)(tValue % iScale) / (double)iScale;
 	if ( !__xrtPlistBinarySecondsToTime(fSeconds, &tRecovered) ||

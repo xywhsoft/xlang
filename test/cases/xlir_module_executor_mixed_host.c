@@ -1,4 +1,5 @@
 #define MODULE_EXECUTOR_MIXED
+#include "release/include/xl_clock.h"
 #include "xlir_module_executor_host.c"
 int main(void)
 {
@@ -16,11 +17,11 @@ int main(void)
         xfuture* output = start_cycle(0, boot, cleanup, true); assert(output && !xrtGetError());
         xlApiLock(); xlModuleEndCallUnlocked(module); xlApiUnlock();
         xrtownershipscope freeze = {0}; quiet_executor(executor_view(), &freeze); assert(xrtOwnershipScopeEnd(&freeze));
-        int prepared=0; xdeadline preparationDeadline=xrtDeadlineAfter(5000000);
+        int prepared=0; XL6_DeadlineV1 preparationDeadline=xl6DeadlineAfterMillisecondsV1(5000);
         while(!prepared){
             xlApiLock(); prepared=xlModulePrepareRetirementUnlocked(module); xlApiUnlock();
             assert(!module->retirementFailed&&!atomic_load(&deleted)&&!atomic_load(&global_drops));
-            if(!prepared){assert(!xrtDeadlineExpired(preparationDeadline));xrtThreadYield();}
+            if(!prepared){assert(!xl6DeadlineExpiredV1(preparationDeadline));xrtThreadYield();}
         }
         /* V3 preflight leaves both graph-owned services untouched while
          * accepted await work can still reach them. Destroy is a DIFFERENT boundary:

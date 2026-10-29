@@ -3,7 +3,16 @@
 #include "net-tcp-native-modules.h"
 #define XRT_MODULE_MEMORY_DEBUG
 #define XRUNTIME_IMPLEMENTATION
+#ifndef XRT_MODULE_WAIT
+#define XRT_MODULE_WAIT
+#endif
+#include "lib/xruntime/xruntime_features.h"
+#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)
+#define XRT_IMPLEMENTATION
+#endif
+#include "lib/xrt/xrt.h"
 #include "lib/xruntime/xruntime.h"
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_ownership_catalog.h"
 #include "src/runtime/xl6_ownership_domains.h"
 #include "src/api/xl_foreign_error.h"
@@ -50,8 +59,8 @@ static int32 concurrentDrop(ptr raw)
 }
 static void freeze(xrtownershipscope* scope)
 {
-    xdeadline deadline=xrtDeadlineAfter(UINT64_C(5000000));
-    while(!xrtOwnershipFreezeTryBegin(scope)){CHECK(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
+    while(!xrtOwnershipFreezeTryBegin(scope)){CHECK(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
 }
 static const XL6_OwnershipFinishV1* resolvedCompletion;
 static const xrtownershipadapterv1* resolve(Graph* graph,xrtownershipref ref,const xrtownershippreparationv1** preparation)
@@ -66,7 +75,7 @@ static bool admit(xrtownershipref ref,ptr raw)
 {const xrtownershippreparationv1* p=NULL;return resolve(raw,ref,&p)!=NULL;}
 static xrtownershipsnapshot* snapshot(Graph* graph,bool external,xrtownershipscope* scope)
 {
-    xdeadline deadline=xrtDeadlineAfter(UINT64_C(5000000));
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){
         freeze(scope);graph->busy=false;
         xrtownershipref anchors[CAPACITY+7],slots[CAPACITY+9];size_t a=0,s=0;
@@ -79,7 +88,7 @@ static xrtownershipsnapshot* snapshot(Graph* graph,bool external,xrtownershipsco
         xrtownershipsnapshot* result=NULL;
         if(xrtOwnershipSnapshotCreate(anchors,a,slots,s,admit,graph,&result))return result;
         CHECK(graph->busy);xrtClearError();CHECK(xrtOwnershipScopeEnd(scope));
-        CHECK(!xrtDeadlineExpired(deadline));xrtThreadYield();
+        CHECK(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();
     }
 }
 static void discover(Graph* graph,xrtownershipsnapshot* snapshot)
@@ -112,17 +121,17 @@ static void create(Graph* graph,xnetportbackend backend)
     graph->listener=xrtNetListen(graph->engine,&listen,NULL,NULL,NULL);CHECK(graph->listener);
     xnetaddr address;CHECK(xrtNetListenerLocal(graph->listener,&address));
     graph->client=xrtNetStreamConnect(graph->engine,&address,0,&listen.Stream,NULL,NULL);CHECK(graph->client);
-    xdeadline deadline=xrtDeadlineAfter(UINT64_C(5000000));
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
     while(xrtNetStreamState(graph->client)!=XNET_STREAM_OPEN||!xrtAtomic32Load(&graph->listener->QueuedAccepts,XMEMORY_ACQUIRE)){
-        CHECK(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+        CHECK(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
 }
 static void closeOrdinary(Graph* graph)
 {
     CHECK(xrtNetStreamAbort(graph->client)&&xrtNetListenerClose(graph->listener));
     xrtNetStreamDestroy(graph->client);xrtNetListenerDestroy(graph->listener);
-    xdeadline deadline=xrtDeadlineAfter(UINT64_C(5000000));
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){xnetretireresult r=xrtNetEngineTryDestroy(graph->engine);if(r==XNET_RETIRE_READY)break;
-        CHECK(r==XNET_RETIRE_BUSY&&!xrtDeadlineExpired(deadline));xrtThreadYield();}
+        CHECK(r==XNET_RETIRE_BUSY&&!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
 }
 static void lifecycle(xnetportbackend backend,unsigned order,unsigned outcome)
 {
@@ -155,7 +164,7 @@ static void lifecycle(xnetportbackend backend,unsigned order,unsigned outcome)
     xrtownershipref root=xrtFutureOwnership(graph.futures[1]);CHECK(!xrtOwnershipSnapshotCreate(&root,1,&root,1,admit,&graph,&refused)&&!refused);
     graph.wrong=false;xrtClearError();discover(&graph,proof);xrtOwnershipSnapshotDestroy(proof);CHECK(xrtOwnershipScopeEnd(&scope));
     CHECK(!xrtNetListenerAcceptAsync(graph.listener));xrtClearError();
-    xdeadline deadline=xrtDeadlineAfter(UINT64_C(5000000));
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){bool all=true;
         for(size_t step=0;step<graph.count;++step){size_t i=order&1?graph.count-1-step:step;Node* node=&graph.nodes[i];
             if(!node->prepare||node->ready)continue;
@@ -163,7 +172,7 @@ static void lifecycle(xnetportbackend backend,unsigned order,unsigned outcome)
             xrtownershipprepareresult r=node->prepare->Prepare(node->ref.Data,&graph);CHECK(r!=XRT_OWNERSHIP_PREPARE_FAILED);
             node->ready=r==XRT_OWNERSHIP_PREPARE_READY;all=all&&node->ready;}
         if(all)break;
-        CHECK(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+        CHECK(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
     proof=snapshot(&graph,false,&scope);discover(&graph,proof);xrtOwnershipSnapshotDestroy(proof);
     /* Two actual coordinator pins, not inferred counts. Re-prove the graph
      * including those slots before Clear, then race all three final drops. */
@@ -184,8 +193,8 @@ static void lifecycle(xnetportbackend backend,unsigned order,unsigned outcome)
         if(&graph.nodes[i]!=graph.race)graph.nodes[i].adapter->Drop(graph.nodes[i].ref.Data);}
     DropRace race={0};race.node=graph.race;xrtAtomic32Init(&race.ready,0);xrtAtomic32Init(&race.go,0);
     xthread* threads[2]={xrtThreadCreate(concurrentDrop,&race,0),xrtThreadCreate(concurrentDrop,&race,0)};
-    CHECK(threads[0]&&threads[1]);deadline=xrtDeadlineAfter(UINT64_C(5000000));
-    while(xrtAtomic32Load(&race.ready,XMEMORY_ACQUIRE)!=2){CHECK(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+    CHECK(threads[0]&&threads[1]);deadline=xl6DeadlineAfterMillisecondsV1(5000);
+    while(xrtAtomic32Load(&race.ready,XMEMORY_ACQUIRE)!=2){CHECK(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
     xrtAtomic32Store(&race.go,1,XMEMORY_RELEASE);graph.race->adapter->Drop(graph.race->ref.Data);
     for(size_t i=0;i<2;++i){CHECK(xrtThreadWaitFor(threads[i],UINT64_C(5000000))==XWAIT_OK&&xrtThreadExitCode(threads[i])==0);xrtThreadDestroy(threads[i]);}
     ++dropRaces;

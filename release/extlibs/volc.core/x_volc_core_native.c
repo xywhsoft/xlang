@@ -957,7 +957,7 @@ const char* x_volc_core_request(const char* method,
 	xhttpclientconfig client_cfg;
 	xhttpclient* client = NULL;
 	xhttpcalloptions call_options;
-	uint64 timeout = (timeout_ms > 0 ? (uint64)timeout_ms : (uint64)XVOLC_DEFAULT_TIMEOUT_MS) * UINT64_C(1000);
+	uint64 timeout = (timeout_ms > 0 ? (uint64)timeout_ms : (uint64)XVOLC_DEFAULT_TIMEOUT_MS);
 	const char* ret = "";
 	const char* p_method = method && method[0] ? method : "POST";
 	const char* p_path = path && path[0] ? path : "/";

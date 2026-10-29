@@ -142,7 +142,7 @@ def main():
                 # external inputs, never claim those additions were selected.
                 plan=report['Plan']; native=out/(opt+'-pruned-native.c'); selected=[]
                 native.write_text(''.join('#define '+m+'\n' for m in plan['NativeModules'])+
-                    '#define XRT_MODULE_MEMORY_DEBUG\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
+                    '#define XRT_MODULE_MEMORY_DEBUG\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
                 for i,source in enumerate([native,*[root/s for s in plan['Sources']]]):
                     obj=out/(opt+'-pruned-'+str(i)+'.o'); run(opt+'-pruned-compile-'+str(i),[cc,*full,'-'+opt,'-c',source,'-o',obj]); selected.append(obj)
                     objects.append(dict(Path=str(obj),Sha256=sha(obj)))
@@ -162,7 +162,7 @@ def main():
                     objects.append(dict(Path=str(obj),Sha256=sha(obj)))
                 input_native=out/(opt+'-test-input-native.c'); input_object=out/(opt+'-test-input-native.o')
                 input_native.write_text(''.join('#define '+m+'\n' for m in plan['NativeModules']+extra_modules)+
-                    '#define XRT_MODULE_MEMORY_DEBUG\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
+                    '#define XRT_MODULE_MEMORY_DEBUG\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
                 run(opt+'-test-input-native',[cc,*full,'-'+opt,'-c',input_native,'-o',input_object]); selected[0]=input_object
                 objects.append(dict(Path=str(input_object),Sha256=sha(input_object)))
                 binary=out/('language-pruned-'+opt+('.exe' if os.name=='nt' else ''))

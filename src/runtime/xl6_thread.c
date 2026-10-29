@@ -1,6 +1,6 @@
 #define XRT_MODULE_THREAD
 #define XRUNTIME_MODULE_RUNTIME_VALUE_TYPE
-#include "lib/xruntime/xruntime.h"
+#include "src/common/xl6_xrt.h"
 #include "src/runtime/xl6_thread.h"
 #include "src/runtime/xl6_thread_exit.h"
 #include "src/api/xl_foreign_error.h"
@@ -270,7 +270,6 @@ bool xl6ThreadWaitTimeoutV1(const xvalue* value,uint64_t identity,int64_t timeou
 {
     xl6_error_scope work={0}; if (!xl6ErrorScopeBegin(&work)) abort();
     ThreadOwner* owner=begin(value,identity);
-    uint64_t micros=timeout<0 || (uint64_t)timeout>UINT64_MAX/1000 ? UINT64_MAX : (uint64_t)timeout*1000;
-    bool ok=owner && xrtThreadWaitFor(owner->thread,micros)==XWAIT_OK;
+    bool ok=owner && xrtThreadWaitFor(owner->thread,timeout)==XWAIT_OK;
     end(owner); xl6_error_result outcome=xl6ErrorScopeEnd(&work); xrtErrorFree(outcome.error); return ok;
 }

@@ -3054,12 +3054,7 @@ void xop_delay(long long ms) {
             "delay requires non-negative milliseconds");
         return;
     }
-    if ((uint64)ms > UINT64_MAX / 1000u) {
-        xrtSetErrorInfo(XERR_RANGE, "xlang.extlib.op", 0,
-            "delay exceeds the supported duration");
-        return;
-    }
-    xrtSleepUs((uint64)ms * 1000u);
+    xrtSleep(ms);
 }
 
 long long xop_random_int(long long min, long long max) {

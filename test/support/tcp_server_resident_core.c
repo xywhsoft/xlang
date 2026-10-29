@@ -3,7 +3,16 @@
 #include "net-server-native-modules.h"
 #define XRT_MODULE_MEMORY_DEBUG
 #define XRUNTIME_IMPLEMENTATION
+#ifndef XRT_MODULE_WAIT
+#define XRT_MODULE_WAIT
+#endif
+#include "lib/xruntime/xruntime_features.h"
+#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)
+#define XRT_IMPLEMENTATION
+#endif
+#include "lib/xrt/xrt.h"
 #include "lib/xruntime/xruntime.h"
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_ownership_catalog.h"
 #include "src/runtime/xl6_ownership_domains.h"
 #include "src/api/xl_foreign_error.h"
@@ -22,8 +31,8 @@ typedef struct Node {
 typedef struct Scene {XL6_OwnershipCatalog* catalog;bool busy;} Scene;
 static void freeze(xrtownershipscope* scope)
 {
-    xdeadline due=xrtDeadlineAfter(UINT64_C(10000000));
-    while(!xrtOwnershipFreezeTryBegin(scope)){CHECK(!xrtDeadlineExpired(due));xrtThreadYield();}
+    XL6_DeadlineV1 due=xl6DeadlineAfterMillisecondsV1(10000);
+    while(!xrtOwnershipFreezeTryBegin(scope)){CHECK(!xl6DeadlineExpiredV1(due));xrtThreadYield();}
 }
 static bool admit(xrtownershipref ref,ptr data)
 {
@@ -35,10 +44,10 @@ static bool admit(xrtownershipref ref,ptr data)
 }
 static xrtownershipsnapshot* snapshot(Scene* scene,xrtownershipscope* scope,const xrtownershipref* roots,size_t count)
 {
-    xdeadline due=xrtDeadlineAfter(UINT64_C(10000000));
+    XL6_DeadlineV1 due=xl6DeadlineAfterMillisecondsV1(10000);
     for(;;){freeze(scope);scene->busy=false;xrtownershipsnapshot* proof=NULL;
         if(xrtOwnershipSnapshotCreate(roots,count,roots,count,admit,scene,&proof))return proof;
-        CHECK(scene->busy);xrtClearError();CHECK(xrtOwnershipScopeEnd(scope));CHECK(!xrtDeadlineExpired(due));xrtThreadYield();}
+        CHECK(scene->busy);xrtClearError();CHECK(xrtOwnershipScopeEnd(scope));CHECK(!xl6DeadlineExpiredV1(due));xrtThreadYield();}
 }
 static void exercise(XL6_OwnershipCatalog* catalog,xnetportbackend backend)
 {
@@ -60,13 +69,13 @@ static void exercise(XL6_OwnershipCatalog* catalog,xnetportbackend backend)
         CHECK(xl6OwnershipCatalogProbeV1(node->ref,catalog,&node->adapter,&node->prepare,&node->completion)==XL6_OWNERSHIP_ADMISSION_ADMITTED);
         CHECK(node->adapter->Hold(node->ref.Data)&&node->adapter->Claim(node->ref.Data,&scene));roots[count+1]=node->ref;}
     xrtOwnershipSnapshotDestroy(proof);CHECK(xrtOwnershipScopeEnd(&scope));
-    xdeadline due=xrtDeadlineAfter(UINT64_C(10000000));
+    XL6_DeadlineV1 due=xl6DeadlineAfterMillisecondsV1(10000);
     for(;;){bool ready=true;
         for(size_t i=0;i<count;++i){Node* node=&nodes[(i+1)%count];if(!node->prepare||node->ready)continue;
             xrtownershipprepareresult result=node->prepare->Prepare(node->ref.Data,&scene);
             CHECK(result!=XRT_OWNERSHIP_PREPARE_FAILED);node->ready=result==XRT_OWNERSHIP_PREPARE_READY;ready=ready&&node->ready;}
         if(ready)break;
-        CHECK(!xrtDeadlineExpired(due));xrtThreadYield();}
+        CHECK(!xl6DeadlineExpiredV1(due));xrtThreadYield();}
     proof=snapshot(&scene,&scope,roots,count+2);
     for(size_t i=0;i<xrtOwnershipSnapshotNodeCount(proof);++i){xrtownershipnode found;
         CHECK(xrtOwnershipSnapshotNode(proof,i,&found)&&!found.Reachable);}

@@ -1,3 +1,4 @@
+#include "xl_clock.h"
 #include <xrt/imap_append.h>
 
 #include "../internal/xrt_imap_client.h"
@@ -131,7 +132,7 @@ static bool __xrtImapAppendLiteralMode(
 /* 等待同步 literal continuation，允许普通未请求响应穿过。 */
 static bool __xrtImapAppendWait(
 	ximapclient* pClient,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -239,7 +240,7 @@ XRT_API void xrtImapAppendResultInit(ximapappendresult* pResult)
 XRT_API bool xrtImapClientAppendBegin(
 	ximapclient* pClient,
 	const ximapappendconfig* pConfig,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -334,7 +335,7 @@ XRT_API bool xrtImapClientAppendWrite(
 	ximapclient* pClient,
 	const void* pData,
 	size_t iSize,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -360,7 +361,7 @@ XRT_API bool xrtImapClientAppendWrite(
 XRT_API bool xrtImapClientAppendEnd(
 	ximapclient* pClient,
 	ximapappendresult* pResult,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -426,7 +427,7 @@ XRT_API bool xrtImapClientAppend(
 	const ximapappendconfig* pConfig,
 	const void* pData,
 	ximapappendresult* pResult,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {

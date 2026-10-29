@@ -1,6 +1,7 @@
 /* Included after one actual pinned implementation, never a native stub.
  * Observer pointers stored in ThreadKey borrow this caller-owned case through
  * join; they do not claim a language RC edge or a captured module owner. */
+#include "release/include/xl_clock.h"
 #include <assert.h>
 #include <stdio.h>
 typedef struct ExitTest {
@@ -13,13 +14,13 @@ typedef struct ExitTest {
 static uint32 load(const xatomic32* state){return xrtAtomic32Load(state,XMEMORY_ACQUIRE);}
 static void freeze(xrtownershipscope* scope)
 {
-    xdeadline until=xrtDeadlineAfter(5000000);
-    while(!xrtOwnershipFreezeTryBegin(scope)){assert(!xrtDeadlineExpired(until));xrtThreadYield();}
+    XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
+    while(!xrtOwnershipFreezeTryBegin(scope)){assert(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
 }
 static void signal_wait(const xatomic32* state)
 {
-    xdeadline until=xrtDeadlineAfter(5000000);
-    while(!load(state)){assert(!xrtDeadlineExpired(until));xrtThreadYield();}
+    XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
+    while(!load(state)){assert(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
 }
 static bool count(const void* raw,size_t* output){*output=((const ExitTest*)raw)->refs;return *output!=0;}
 static bool trace(const void* raw,xrtownershipvisitor visit,ptr context){(void)raw;(void)context;return visit!=NULL;}
@@ -61,9 +62,9 @@ static xtaskoutcome job(xcancel* cancel,ptr raw,xtaskvalue* result)
 }
 static void join(xtaskpool* pool)
 {
-    xdeadline until=xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){xwaitresult result=xrtTaskPoolTryJoinV1(pool);if(result==XWAIT_OK)return;
-        assert(result==XWAIT_TIMEOUT&&!xrtDeadlineExpired(until));xrtThreadYield();}
+        assert(result==XWAIT_TIMEOUT&&!xl6DeadlineExpiredV1(until));xrtThreadYield();}
 }
 typedef struct Edge {const ExitTest* test;unsigned count;} Edge;
 static bool visit(xrtownershipref ref,ptr raw)
@@ -79,20 +80,20 @@ static void roundtrip(void)
     assert(xrtTaskPoolTryJoinV1(test.pool)==XWAIT_TIMEOUT&&!load(&test.exits));
     xrtownershipref ref=xrtTaskPoolOwnership(test.pool);const xrtownershipadapterv1* admitted=NULL;
     const xrtownershippreparationv1* preparation=NULL;xrtownershipscope frozen={0};
-    xdeadline until=xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){freeze(&frozen);size_t refs;if(ref.Ops->Count(ref.Data,&refs)){assert(refs==2);break;}
-        assert(xrtOwnershipScopeEnd(&frozen)&&!xrtDeadlineExpired(until));xrtThreadYield();}
+        assert(xrtOwnershipScopeEnd(&frozen)&&!xl6DeadlineExpiredV1(until));xrtThreadYield();}
     preparation=(const void*)&test;assert(!xrtTaskPoolOwnershipAdapterV1(ref,&preparation)&&preparation==(const void*)&test);
     const xtaskpoolworkerexitownershipv1* wrong[]={&copy};
     assert(!xrtTaskPoolOwnershipAdapterV2(ref,wrong,1,&preparation)&&preparation==(const void*)&test);
     admitted=adapter(ref,&preparation);assert(admitted&&preparation);Edge edge={&test,0};
     assert(ref.Ops->Trace(ref.Data,visit,&edge)&&edge.count==1&&admitted->Hold(ref.Data));
     assert(xrtOwnershipScopeEnd(&frozen));__xrtTaskPoolReleaseResource(test.pool);
-    until=xrtDeadlineAfter(5000000);
-    while(!load(&test.exits)){assert(xrtTaskPoolTryJoinV1(test.pool)==XWAIT_TIMEOUT&&!xrtDeadlineExpired(until));xrtThreadYield();}
+    until=xl6DeadlineAfterMillisecondsV1(5000);
+    while(!load(&test.exits)){assert(xrtTaskPoolTryJoinV1(test.pool)==XWAIT_TIMEOUT&&!xl6DeadlineExpiredV1(until));xrtThreadYield();}
     busy(&test);assert(!__xrtTaskPoolAcquireResource(test.pool));xrtClearError();xrtAtomic32Store(&test.gate,1,XMEMORY_RELEASE);
-    until=xrtDeadlineAfter(5000000);
-    while(!load(&test.late)){assert(xrtTaskPoolTryJoinV1(test.pool)==XWAIT_TIMEOUT&&!xrtDeadlineExpired(until));xrtThreadYield();}
+    until=xl6DeadlineAfterMillisecondsV1(5000);
+    while(!load(&test.late)){assert(xrtTaskPoolTryJoinV1(test.pool)==XWAIT_TIMEOUT&&!xl6DeadlineExpiredV1(until));xrtThreadYield();}
     assert(xrtTaskPoolTryJoinV1(test.pool)==XWAIT_TIMEOUT);busy(&test);assert(!load(&test.drops)&&!load(&test.lateDone));
     xrtAtomic32Store(&test.lateGate,1,XMEMORY_RELEASE);assert(xrtMemDebugFailAfter(0));join(test.pool);
     assert(!xrtMemDebugFailTriggered());xrtMemDebugFailClear();assert(load(&test.lateDone));

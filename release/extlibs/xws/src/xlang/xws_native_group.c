@@ -396,9 +396,6 @@ XLANG_XWS_EXPORT long long xws_group_op_wait(
 	if ( iTimeoutMs < 0 ) {
 		return xrtWsGroupOpWait((xwsgroupop*)pHandle);
 	}
-	if ( (uint64)iTimeoutMs > (UINT64_MAX / UINT64_C(1000)) ) {
-		return XWAIT_ERROR;
-	}
-	iTimeout = (uint64)iTimeoutMs * UINT64_C(1000);
+	iTimeout = (uint64)iTimeoutMs;
 	return xrtWsGroupOpWaitFor((xwsgroupop*)pHandle, iTimeout);
 }

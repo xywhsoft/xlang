@@ -55,7 +55,8 @@ def main():
             if lane.startswith('pinned'):
                 definition='XRUNTIME_IMPLEMENTATION' if lane.endswith('runtime') else 'XRT_IMPLEMENTATION'
                 include='lib/xruntime/xruntime.h' if lane.endswith('runtime') else 'lib/xrt/xrt.h'
-                impl.write_text('#define XRT_MODULE_MEMORY_DEBUG\n#define XRT_MODULE_TASK_NET\n#define '+definition+'\n#include "'+include+'"\n',encoding='utf8');product(impl)
+                prefix=('#include "lib/xruntime/xruntime_features.h"\n#define XRT_IMPLEMENTATION\n#include "lib/xrt/xrt.h"\n' if lane.endswith('runtime') else '')
+                impl.write_text('#define XRT_MODULE_MEMORY_DEBUG\n#define XRT_MODULE_TASK_NET\n#define '+definition+'\n'+prefix+'#include "'+include+'"\n',encoding='utf8');product(impl)
                 native_flags=[];plan_include=['-I'+str(root)]
             else:
                 native_flags=['-DXL6_TASK_NET_NATIVE_TIME']

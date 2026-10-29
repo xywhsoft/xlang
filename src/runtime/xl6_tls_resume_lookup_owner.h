@@ -1,7 +1,9 @@
 #ifndef XL6_TLS_RESUME_LOOKUP_OWNER_H
 #define XL6_TLS_RESUME_LOOKUP_OWNER_H
 #if !defined(XRT_SINGLE_HEADER) && !defined(XRUNTIME_DECLARATIONS_H)
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
+#include "include/xl_clock.h"
 #endif
 /* Only the typed producer installs these permanent operations. data is an
  * actual counted closure owner and an explicit graph edge, not module userdata.

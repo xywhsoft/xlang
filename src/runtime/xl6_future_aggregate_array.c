@@ -1,5 +1,7 @@
 #include <limits.h>
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
+#include "include/xl_clock.h"
 #include "src/runtime/xl6_future_aggregate.h"
 #include "src/runtime/xl6_array_input.h"
 #include "src/runtime/xl6_future_aggregate_internal.h"

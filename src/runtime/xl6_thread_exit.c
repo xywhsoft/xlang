@@ -1,5 +1,5 @@
 #define XRT_MODULE_ATOMIC
-#include "lib/xrt/xrt.h"
+#include "src/common/xl6_xrt.h"
 #include "xl6_thread_exit.h"
 #include <stddef.h>
 /* Protect a typed function pointer, not an erased object-pointer cast. The

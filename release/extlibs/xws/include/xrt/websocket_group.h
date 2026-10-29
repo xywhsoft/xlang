@@ -1,3 +1,4 @@
+#include "xl_clock.h"
 #ifndef XRT_WEBSOCKET_GROUP_H
 #define XRT_WEBSOCKET_GROUP_H
 
@@ -326,7 +327,7 @@ XRT_API xwaitresult xrtWsGroupOpWait(xwsgroupop* pOperation);
 
 
 
-/* 在相对微秒数内等待全部已接纳操作进入终态。 */
+/* 在相对毫秒数内等待全部已接纳操作进入终态。 */
 XRT_API xwaitresult xrtWsGroupOpWaitFor(
 	xwsgroupop* pOperation,
 	uint64 iTimeout
@@ -337,7 +338,7 @@ XRT_API xwaitresult xrtWsGroupOpWaitFor(
 /* 等待全部已接纳操作到指定单调时钟截止时间。 */
 XRT_API xwaitresult xrtWsGroupOpWaitUntil(
 	xwsgroupop* pOperation,
-	xdeadline iDeadline
+	XL6_DeadlineV1 iDeadline
 );
 
 
@@ -345,7 +346,7 @@ XRT_API xwaitresult xrtWsGroupOpWaitUntil(
 /* 等待批量操作、截止时间或调用方取消令牌中的首个事件。 */
 XRT_API xwaitresult xrtWsGroupOpWaitUntilCancel(
 	xwsgroupop* pOperation,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 

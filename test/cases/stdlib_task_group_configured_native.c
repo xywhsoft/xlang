@@ -2,7 +2,11 @@
 #define XRT_MODULE_TASK_GROUP
 #define XRT_MODULE_MEMORY_DEBUG
 #define XRT_MODULE_THREAD
+#ifndef XRT_MODULE_WAIT
+#define XRT_MODULE_WAIT
+#endif
 #include "lib/xrt/xrt.h"
+#include "release/include/xl_clock.h"
 #include <assert.h>
 #include <stdatomic.h>
 #include <stdio.h>
@@ -99,7 +103,7 @@ static void waiter(void)
     xl6_task_group* group=xl6TaskGroupCreate();assert(group);
     xfuture* source=NULL;xpromise* promise=xrtPromiseCreate(&source,NULL);assert(promise&&xl6TaskGroupAdd(group,source));
     xcancel* cancel=xrtCancelCreate();assert(cancel&&xrtCancelRequest(cancel));
-    assert(xl6TaskGroupWaitV1(group,XRT_DEADLINE_NEVER,cancel)==XWAIT_CANCELLED);
+    assert(xl6TaskGroupWaitV1(group,XL6_DEADLINE_NEVER,cancel)==XWAIT_CANCELLED);
     XL6_TaskGroupStatsV1 stats={0};assert(xl6TaskGroupGetV1(group,&stats)&&stats.active==1&&!stats.cancelling&&!stats.accepting);
     xcancel* token=xrtFutureCancelToken(source);assert(token&&!xrtCancelRequested(token));xrtCancelDestroy(token);
     assert(xrtPromiseResolve(promise,NULL)&&xl6TaskGroupWaitV1(group,0,NULL)==XWAIT_OK);
@@ -109,8 +113,8 @@ typedef struct Race {Starter starter;atomic_bool entered,go;xfuture* output;} Ra
 static xfuture* race_start(void* raw)
 {
     Race* state=raw;atomic_store_explicit(&state->entered,true,memory_order_release);
-    xdeadline due=xrtDeadlineAfter(UINT64_C(10000000));
-    while(!atomic_load_explicit(&state->go,memory_order_acquire)){assert(!xrtDeadlineExpired(due));xrtThreadYield();}
+    XL6_DeadlineV1 due=xl6DeadlineAfterMillisecondsV1(10000);
+    while(!atomic_load_explicit(&state->go,memory_order_acquire)){assert(!xl6DeadlineExpiredV1(due));xrtThreadYield();}
     return start(&state->starter);
 }
 static int32 race_thread(void* raw)
@@ -122,8 +126,8 @@ static void close_race(void)
         xfuture* source=NULL;xpromise* promise=xrtPromiseCreate(&source,NULL);assert(promise);
         Race state={.starter={group,source,0,false}};atomic_init(&state.entered,false);atomic_init(&state.go,false);
         xthread* thread=xrtThreadCreate(race_thread,&state,0);assert(thread);
-        xdeadline due=xrtDeadlineAfter(UINT64_C(10000000));
-        while(!atomic_load_explicit(&state.entered,memory_order_acquire)){assert(!xrtDeadlineExpired(due));xrtThreadYield();}
+        XL6_DeadlineV1 due=xl6DeadlineAfterMillisecondsV1(10000);
+        while(!atomic_load_explicit(&state.entered,memory_order_acquire)){assert(!xl6DeadlineExpiredV1(due));xrtThreadYield();}
         assert(xl6TaskGroupClose(group)&&!xl6TaskGroupJoinFor(group,0));
         atomic_store_explicit(&state.go,true,memory_order_release);
         assert(xrtThreadWait(thread)==XWAIT_OK);xrtThreadDestroy(thread);assert(state.output&&state.starter.calls==1);

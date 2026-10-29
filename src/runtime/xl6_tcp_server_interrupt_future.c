@@ -6,7 +6,7 @@
 static xfuture* acceptFuture(XL6_RuntimeServicesV1 services,XL6_NativeClassFieldContextV1 context,
     void* receiver,const xvalue* object,uint64_t due,void* parent,bool requireParent)
 {
-    if(!services.executor||(due!=XRT_DEADLINE_NEVER&&!services.deadline)||(requireParent&&!parent)){
+    if(!services.executor||(due!=XL6_DEADLINE_NEVER&&!services.deadline)||(requireParent&&!parent)){
         xrtSetErrorKind(XERR_ARGUMENT);xl6TcpServerFailedV1();return NULL;}
     XL6_ExecutionResourceV1* carrier=NULL;
     XL6_TcpClassCaptureV1* capture=xl6TcpClassCapturePrepareInternalV1(context,receiver,object,
@@ -21,7 +21,7 @@ static xfuture* acceptFuture(XL6_RuntimeServicesV1 services,XL6_NativeClassField
     xrtFutureDestroy(source);return result;
 }
 xfuture* xl6TcpServerAcceptStartCancelV1(XL6_RuntimeServicesV1 s,XL6_NativeClassFieldContextV1 c,void* r,const xvalue* v,void* cancel)
-{return acceptFuture(s,c,r,v,XRT_DEADLINE_NEVER,cancel,true);}
+{return acceptFuture(s,c,r,v,XL6_DEADLINE_NEVER,cancel,true);}
 xfuture* xl6TcpServerAcceptStartUntilV1(XL6_RuntimeServicesV1 s,XL6_NativeClassFieldContextV1 c,void* r,const xvalue* v,uint64_t due)
 {return acceptFuture(s,c,r,v,due,NULL,false);}
 xfuture* xl6TcpServerAcceptStartUntilCancelV1(XL6_RuntimeServicesV1 s,XL6_NativeClassFieldContextV1 c,void* r,const xvalue* v,uint64_t due,void* cancel)

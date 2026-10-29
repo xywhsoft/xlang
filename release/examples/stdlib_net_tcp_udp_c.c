@@ -1,3 +1,4 @@
+#include "include/xl_clock.h"
 #define XRT_MODULE_ALL
 #include "xrt.h"
 
@@ -107,7 +108,7 @@ static bool recv_bytes_equal(
 	xnetbytes* bytes = xrtNetStreamRecv(
 		stream,
 		0u,
-		xrtDeadlineAfter(UINT64_C(8000000)),
+		xl6DeadlineAfterMillisecondsV1(8000),
 		NULL
 	);
 	xbytesview view = xrtNetBytesView(bytes);
@@ -156,7 +157,7 @@ static bool close_stream(xnetstream* stream)
 	return xrtNetStreamClose(stream) && xrtNetStreamWait(
 		stream,
 		XNET_STREAM_WAIT_CLOSE,
-		xrtDeadlineAfter(UINT64_C(8000000)),
+		xl6DeadlineAfterMillisecondsV1(8000),
 		NULL
 	);
 }
@@ -166,13 +167,13 @@ static bool close_stream(xnetstream* stream)
 /* Close a listener after all preposted accepts have terminated. */
 static bool close_listener(xnetlistener* listener)
 {
-	xdeadline deadline = xrtDeadlineAfter(UINT64_C(8000000));
+	XL6_DeadlineV1 deadline = xl6DeadlineAfterMillisecondsV1(8000);
 
 	if ( !xrtNetListenerClose(listener) ) {
 		return false;
 	}
 	while ( xrtNetListenerState(listener) != XNET_LISTENER_CLOSED ) {
-		if ( xrtDeadlineExpired(deadline) ) {
+		if ( xl6DeadlineExpiredV1(deadline) ) {
 			return false;
 		}
 		xrtThreadYield();
@@ -202,7 +203,7 @@ static xnetudp* open_udp(xnetengine* engine, xnetaddr* local)
 	if ( (udp == NULL) || !xrtNetUdpWait(
 		udp,
 		XNET_UDP_WAIT_OPEN,
-		xrtDeadlineAfter(UINT64_C(8000000)),
+		xl6DeadlineAfterMillisecondsV1(8000),
 		NULL
 	) || !xrtNetUdpLocal(udp, local) ) {
 		fail("udp");
@@ -218,7 +219,7 @@ static bool close_udp(xnetudp* udp)
 	return xrtNetUdpClose(udp) && xrtNetUdpWait(
 		udp,
 		XNET_UDP_WAIT_CLOSE,
-		xrtDeadlineAfter(UINT64_C(8000000)),
+		xl6DeadlineAfterMillisecondsV1(8000),
 		NULL
 	);
 }
@@ -284,7 +285,7 @@ int main(void)
 		&dialConfig,
 		NULL,
 		NULL,
-		xrtDeadlineAfter(UINT64_C(8000000)),
+		xl6DeadlineAfterMillisecondsV1(8000),
 		NULL
 	);
 	peer = wait_stream("tcp", received);
@@ -294,7 +295,7 @@ int main(void)
 		xrtNetStreamWait(
 			client,
 			XNET_STREAM_WAIT_DRAIN,
-			xrtDeadlineAfter(UINT64_C(8000000)),
+			xl6DeadlineAfterMillisecondsV1(8000),
 			NULL
 		) &&
 		wait_bytes_equal("tcp", received, "ping", 4u) &&
@@ -302,7 +303,7 @@ int main(void)
 		xrtNetStreamWait(
 			peer,
 			XNET_STREAM_WAIT_DRAIN,
-			xrtDeadlineAfter(UINT64_C(8000000)),
+			xl6DeadlineAfterMillisecondsV1(8000),
 			NULL
 		) &&
 		recv_bytes_equal(client, "pong", 4u) &&
@@ -311,7 +312,7 @@ int main(void)
 		xrtNetStreamWait(
 			client,
 			XNET_STREAM_WAIT_DRAIN,
-			xrtDeadlineAfter(UINT64_C(8000000)),
+			xl6DeadlineAfterMillisecondsV1(8000),
 			NULL
 		) &&
 		recv_bytes_equal(peer, tcpBytes, sizeof(tcpBytes)) &&
@@ -368,7 +369,7 @@ int main(void)
 	) == XNET_RESULT_OK);
 	packet = xrtNetUdpReceiveWait(
 		right,
-		xrtDeadlineAfter(UINT64_C(8000000)),
+		xl6DeadlineAfterMillisecondsV1(8000),
 		NULL
 	);
 	udpOk = udpOk && (packet != NULL) &&
@@ -382,7 +383,7 @@ int main(void)
 		) == XNET_RESULT_OK);
 	replyPacket = xrtNetUdpReceiveWait(
 		left,
-		xrtDeadlineAfter(UINT64_C(8000000)),
+		xl6DeadlineAfterMillisecondsV1(8000),
 		NULL
 	);
 	udpOk = udpOk && (replyPacket != NULL) &&
@@ -396,7 +397,7 @@ int main(void)
 		) == XNET_RESULT_OK);
 	bytesPacket = xrtNetUdpReceiveWait(
 		right,
-		xrtDeadlineAfter(UINT64_C(8000000)),
+		xl6DeadlineAfterMillisecondsV1(8000),
 		NULL
 	);
 	udpOk = udpOk && (bytesPacket != NULL) &&

@@ -1,6 +1,6 @@
 #define XRT_MODULE_RWLOCK
 #define XRUNTIME_MODULE_RUNTIME_VALUE_TYPE
-#include "lib/xruntime/xruntime.h"
+#include "src/common/xl6_xrt.h"
 #include "src/runtime/xl6_sync_internal.h"
 typedef struct RWLockOwner { XL6_SyncOwner base; xrwlock storage; } RWLockOwner;
 static bool nativeUnlock(XL6_SyncOwner* base,unsigned int mode)

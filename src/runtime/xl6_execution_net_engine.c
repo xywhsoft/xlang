@@ -94,7 +94,7 @@ bool xl6ExecutionNetEngineTryStopV1(Resource* resource,bool* ready)
 bool xl6ExecutionNetEngineWaitV1(Resource* resource,int64_t ms,bool* ready)
 {
     if(!ready){xrtSetErrorKind(XERR_ARGUMENT);return false;}*ready=false;
-    xdeadline deadline;if(!xl6ConcurrentDeadline(ms,&deadline))return false;
+    XL6_DeadlineV1 deadline;if(!xl6ConcurrentDeadline(ms,&deadline))return false;
     XL6_ExecutionScopeV1 scope={0};if(!enter(resource,false,true,&scope))return false;
     bool ok=false;
     if(!xl6ExecutionRequestedInternalV1(resource)||xrtNetEngineCurrent(scope.engine))xrtSetErrorKind(XERR_STATE);
@@ -102,8 +102,8 @@ bool xl6ExecutionNetEngineWaitV1(Resource* resource,int64_t ms,bool* ready)
         xnetretireresult result=xrtNetEngineTryStop(scope.engine);
         if(result==XNET_RETIRE_ERROR)break;
         if(result==XNET_RETIRE_READY){*ready=true;ok=xl6ExecutionFailuresCheckV1(resource->failures);break;}
-        if(xrtDeadlineExpired(deadline)){ok=true;break;}
-        xrtSleepUs(UINT64_C(1000));
+        if(xl6DeadlineExpiredV1(deadline)){ok=true;break;}
+        xrtSleep(1);
     }
     xl6ExecutionResourceLeaveV1(&scope);return ok;
 }
@@ -121,10 +121,10 @@ bool xl6ExecutionNetEngineAfterV1(Resource* resource,uint64_t affinity,int64_t m
 {
     if(!id){xrtSetErrorKind(XERR_ARGUMENT);return false;}*id=0;
     if(ms<0){xrtSetErrorKind(XERR_RANGE);return false;}
-    xdeadline deadline;if(!xl6ConcurrentDeadline(ms,&deadline))return false;
+    XL6_DeadlineV1 deadline;if(!xl6ConcurrentDeadline(ms,&deadline))return false;
     XL6_ExecutionScopeV1 scope={0};if(!enter(resource,true,false,&scope))return false;
     XL6_DetachedWorkV1* prepared=xl6DetachedWorkCreateV1(resource->failures,callback);
-    if(prepared)*id=xrtNetEngineScheduleOwnedV1(scope.engine,affinity,deadline,prepared,xl6NetEngineTimerPolicyV1Get());
+    if(prepared)*id=xrtNetEngineScheduleOwnedV1(scope.engine,affinity,xl6DeadlineRemainingMillisecondsV1(deadline),prepared,xl6NetEngineTimerPolicyV1Get());
     if(prepared&&!*id)reject(prepared);
     xl6ExecutionResourceLeaveV1(&scope);return *id!=0;
 }

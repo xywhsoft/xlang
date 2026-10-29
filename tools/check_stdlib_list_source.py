@@ -83,7 +83,7 @@ def main():
             for level in (0,2):
                 lane=tag+'.O'+str(level); impl=out/(lane+'.runtime.c'); selected=[]
                 impl.write_text(''.join('#define '+s+'\n' for s in plan['NativeModules'])+
-                    '#define XRT_MODULE_MEMORY_DEBUG\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
+                    '#define XRT_MODULE_MEMORY_DEBUG\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
                 for i,source in enumerate([impl,*[root/s for s in plan['Sources']],memory]):
                     obj=out/(lane+'.'+str(i)+'.o')
                     run(lane+'.provider.'+str(i),[cc,*full,*san,'-O'+str(level),'-c',source,'-o',obj]); selected.append(obj)

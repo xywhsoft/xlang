@@ -1,6 +1,6 @@
 #ifndef XL6_OWNERSHIP_SCOPE_H
 #define XL6_OWNERSHIP_SCOPE_H
-#include "lib/xrt/xrt.h"
+#include "src/common/xl6_xrt.h"
 #include <stdlib.h>
 
 /* Resident ownership transitions, not execution/root admission. Enter before

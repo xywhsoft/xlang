@@ -1,7 +1,7 @@
 """Actual pinned core/runtime + both declaration headers; ordinary native owners.
 
 Reuse the committed XRT ownership fixture unchanged apart from include routing
-and explicit TEST-ONLY ms/us adaptation. No network/security/malformed crypto.
+and explicit declaration routing. No network/security/malformed crypto.
 This does not accept public language callbacks or a complete TLS consumer graph.
 """
 from pathlib import Path
@@ -21,11 +21,12 @@ def main():
     inputs=[Path(__file__).resolve(),*compilers,fixture,vectors,root/'lib/xrt/backports/tls_verifier_ownership.json',
             *[root/p for p in ['lib/xrt/xrt.h','lib/xruntime/xruntime.h','release/include/xrt_decl.h','release/include/xruntime_decl.h']]]
     report=dict(Complete=False,Inputs={str(p):sha(p) for p in inputs},Rows=[],Failures=[],
-                SourceFixtureAdaptations=['declaration/include routing','test-only thread timeout milliseconds to microseconds','assert pinned time units'],
+                SourceFixtureAdaptations=['declaration/include routing','assert native milliseconds'],
                 NetworkTraffic=False,SecurityTests=False,PublicLanguageCallbacksAccepted=False,FullTlsAccepted=False,FullGoalComplete=False)
     def save():(out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf8')
     text=fixture.read_text(encoding='utf8')
     prefix='''#if defined(XL6_TEST_XRUNTIME_DECL)
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
 #else
 #include "include/xrt_decl.h"
@@ -33,15 +34,13 @@ def main():
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-/* Native fixture uses ms. Only this test call is adapted to pinned us. */
-#define xrtThreadWaitFor(Thread, Milliseconds) xrtThreadWaitFor((Thread), (uint64)(Milliseconds) * UINT64_C(1000))
 static void testRequire(bool ok, const char* message)
 { if (!ok) { fprintf(stderr,"[FAIL] %s\\n",message); exit(1); } }
 '''
     assert text.count('#include "../test.h"')==1 and text.count('#include "../fixtures/x509_path_legacy.h"')==1
     text=text.replace('#include "../test.h"',prefix).replace('#include "../fixtures/x509_path_legacy.h"','#include "owned_path_vectors.h"')
     entry='int main(void)\n{';assert text.count(entry)==1
-    text=text.replace(entry,entry+'\n    xtime at; testRequire(xrtDateTime(2030,1,1,0,0,0,0,&at) && at==INT64_C(1893456000000000), "pinned microsecond ABI unchanged");')
+    text=text.replace(entry,entry+'\n    xtime at; testRequire(xrtDateTime(2030,1,1,0,0,0,0,&at) && at==INT64_C(64029052800000), "Gregorian millisecond ABI");')
     case=out/'owned.c';case.write_text(text,encoding='utf8')
     data=vectors.read_text(encoding='utf8');assert data.count('#include <xrt/core.h>')==1
     (out/'owned_path_vectors.h').write_text(data.replace('#include <xrt/core.h>','/* Core declarations supplied by the actual pinned declaration header. */'),encoding='utf8')
@@ -60,7 +59,7 @@ static void testRequire(bool ok, const char* message)
     modules=''.join('#define XRT_MODULE_'+p+'\n' for p in ['TLS_VERIFY','X509_VERIFY_RSA','THREAD','MEMORY_DEBUG'])
     for runtime in [False,True]:
         product='runtime' if runtime else 'core';impl=out/(product+'.c')
-        impl.write_text(modules+('#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n' if runtime else '#define XRT_IMPLEMENTATION\n#include "lib/xrt/xrt.h"\n'),encoding='utf8')
+        impl.write_text(modules+('#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"\n' if runtime else '#define XRT_IMPLEMENTATION\n#include "lib/xrt/xrt.h"\n'),encoding='utf8')
         for cc in compilers:
             tcc=cc.stem.lower()=='tcc'
             modes=[('tcc',[])] if tcc else [('gcc-O0',['-O0']),('gcc-O2',['-O2'])]

@@ -20,14 +20,14 @@ static int worker(void *context) {
     if (xihash_hamming("bad", 3, "0000000000000000", 16) != -1 ||
         strcmp(xihash_last_error(), "invalid hash string") != 0) return 2;
     if (!xrtEventSet(state->ready) ||
-        xrtEventWaitFor(state->resume, 5000000) != XWAIT_OK) return 3;
+        xrtEventWaitFor(state->resume, 5000) != XWAIT_OK) return 3;
     return strcmp(xihash_last_error(), "invalid hash string") == 0 ? 0 : 4;
 }
 
 static int phash_worker(void *context) {
     char *hash;
     int valid;
-    if (xrtEventWaitFor((xevent *)context, 5000000) != XWAIT_OK) return 2;
+    if (xrtEventWaitFor((xevent *)context, 5000) != XWAIT_OK) return 2;
     hash = xihash_phash("release/examples/extlibs/assets/tiny.png");
     valid = hash != NULL && strcmp(hash, "0000000000000000") == 0;
     xrtFree(hash);
@@ -65,7 +65,7 @@ int main(void) {
     if (state.ready == NULL || state.resume == NULL) return fail("event creation");
     thread = xrtThreadCreate(worker, &state, 0);
     if (thread == NULL) return fail("thread creation");
-    if (xrtEventWaitFor(state.ready, 5000000) != XWAIT_OK) result = fail("worker ready");
+    if (xrtEventWaitFor(state.ready, 5000) != XWAIT_OK) result = fail("worker ready");
     if (xihash_hamming("0000000000000000", 16,
             "0000000000000000", 16) != 0 ||
         strcmp(xihash_last_error(), "") != 0) result = fail("main-thread success");

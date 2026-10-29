@@ -25,7 +25,7 @@ static int32 invalid_worker(ptr pData)
 		xnetrc_error_code() == XRT_NETRC_ERROR_SYNTAX &&
 		xnetrc_error_line() == 1;
 	if ( !xrtEventSet(pTest->InvalidDone) ) { return 1; }
-	if ( xrtEventWaitFor(pTest->ValidDone, 5000000u) != XWAIT_OK ) { return 1; }
+	if ( xrtEventWaitFor(pTest->ValidDone, 5000) != XWAIT_OK ) { return 1; }
 	return bOk && xnetrc_error_code() == XRT_NETRC_ERROR_SYNTAX &&
 		xnetrc_error_line() == 1 ? 0 : 1;
 }
@@ -35,7 +35,7 @@ static int32 valid_worker(ptr pData)
 	netrc_thread_test* pTest = (netrc_thread_test*)pData;
 	static const char sValid[] = "machine host login user\n";
 	xvalue* pResult = NULL;
-	bool bOk = xrtEventWaitFor(pTest->InvalidDone, 5000000u) == XWAIT_OK;
+	bool bOk = xrtEventWaitFor(pTest->InvalidDone, 5000) == XWAIT_OK;
 	if ( bOk ) {
 		pResult = xnetrc_parse(sValid, sizeof(sValid) - 1u,
 			true, 0u, 0u, 0u, 0u, 0u);

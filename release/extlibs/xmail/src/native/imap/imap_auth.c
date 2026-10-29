@@ -1,3 +1,4 @@
+#include "xl_clock.h"
 #include <xrt/imap_auth.h>
 
 #include "../internal/xrt_imap_client.h"
@@ -28,7 +29,7 @@ static bool __xrtImapAuthError(xerrkind Kind, cstr sMessage)
 static __ximapauthnext __xrtImapAuthNext(
 	ximapclient* pClient,
 	ximapstatus* pStatus,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -150,7 +151,7 @@ static char* __xrtImapAuthLoginArguments(
 static bool __xrtImapAuthLogin(
 	ximapclient* pClient,
 	const ximapauthconfig* pConfig,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -231,7 +232,7 @@ static char* __xrtImapAuthArguments(
 static bool __xrtImapAuthSasl(
 	ximapclient* pClient,
 	const ximapauthconfig* pConfig,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -425,7 +426,7 @@ XRT_API bool xrtImapAuthConfigValid(const ximapauthconfig* pConfig)
 XRT_API bool xrtImapClientAuth(
 	ximapclient* pClient,
 	const ximapauthconfig* pConfig,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {

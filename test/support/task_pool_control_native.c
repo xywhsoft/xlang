@@ -6,13 +6,23 @@
 #define XRT_MODULE_MEMORY_DEBUG
 #define XRT_MODULE_VALUE_GRAPH
 #define XRT_MODULE_VALUE_CONTAINER
+#define XRT_MODULE_WAIT
 #ifdef XL6_TASK_POOL_TEST_RUNTIME
 #define XRUNTIME_IMPLEMENTATION
+#ifndef XRT_MODULE_WAIT
+#define XRT_MODULE_WAIT
+#endif
+#include "lib/xruntime/xruntime_features.h"
+#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)
+#define XRT_IMPLEMENTATION
+#endif
+#include "lib/xrt/xrt.h"
 #include "lib/xruntime/xruntime.h"
 #else
 #define XRT_IMPLEMENTATION
 #include "lib/xrt/xrt.h"
 #endif
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_task.h"
 #include "src/runtime/xl6_ownership_catalog.h"
 #include "src/runtime/xl6_ownership_domains.h"
@@ -29,21 +39,21 @@ static void hook_wait(void)
     if(xrtAtomic64Load(&hook_thread,XMEMORY_ACQUIRE)!=xrtThreadCurrentId())return;
     uint32 armed=1;
     if(!xrtAtomic32CompareExchange(&hook_armed,&armed,2,XMEMORY_ACQ_REL,XMEMORY_ACQUIRE))return;
-    xrtAtomic32Store(&hook_seen,1,XMEMORY_RELEASE);xdeadline end=xrtDeadlineAfter(UINT64_C(5000000));
-    while(!xrtAtomic32Load(&hook_resume,XMEMORY_ACQUIRE)){assert(!xrtDeadlineExpired(end));xrtThreadYield();}
+    xrtAtomic32Store(&hook_seen,1,XMEMORY_RELEASE);XL6_DeadlineV1 end=xl6DeadlineAfterMillisecondsV1(5000);
+    while(!xrtAtomic32Load(&hook_resume,XMEMORY_ACQUIRE)){assert(!xl6DeadlineExpiredV1(end));xrtThreadYield();}
 }
 static ptr allocate(ptr context,size_t bytes) {(void)context;hook_wait();return malloc(bytes);}
 static ptr resize(ptr context,ptr memory,size_t bytes) {(void)context;hook_wait();return realloc(memory,bytes);}
 static void release(ptr context,ptr memory) {(void)context;free(memory);}
 static void wait_value(xatomic32* value,uint32 expected)
 {
-    xdeadline end=xrtDeadlineAfter(UINT64_C(5000000));
-    while(xrtAtomic32Load(value,XMEMORY_ACQUIRE)<expected){assert(!xrtDeadlineExpired(end));xrtThreadYield();}
+    XL6_DeadlineV1 end=xl6DeadlineAfterMillisecondsV1(5000);
+    while(xrtAtomic32Load(value,XMEMORY_ACQUIRE)<expected){assert(!xl6DeadlineExpiredV1(end));xrtThreadYield();}
 }
 static void freeze(xrtownershipscope* scope)
 {
-    xdeadline end=xrtDeadlineAfter(UINT64_C(5000000));
-    while(!xrtOwnershipFreezeTryBegin(scope)){assert(!xrtDeadlineExpired(end));xrtThreadYield();}
+    XL6_DeadlineV1 end=xl6DeadlineAfterMillisecondsV1(5000);
+    while(!xrtOwnershipFreezeTryBegin(scope)){assert(!xl6DeadlineExpiredV1(end));xrtThreadYield();}
 }
 static void balanced(const xmemdebugsnapshot* before)
 {
@@ -171,16 +181,16 @@ static void reservation_round(void)
     Waiter waiter={.pool=pool,.cancel=cancel};xrtAtomic32Init(&waiter.done,0);
     xthread* waiting=xrtThreadCreate(wait_thread,&waiter,0);assert(waiting);
     /* Observe the actual registration, not an intent flag or a timed sleep. */
-    xrtownershipref token=xrtCancelOwnership(cancel);xdeadline end=xrtDeadlineAfter(UINT64_C(5000000));
+    xrtownershipref token=xrtCancelOwnership(cancel);XL6_DeadlineV1 end=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){xrtownershipscope frozen={0};freeze(&frozen);size_t refs=0;
         assert(token.Ops->Count(token.Data,&refs));assert(xrtOwnershipScopeEnd(&frozen));
         if(refs>1)break;
-        assert(!xrtDeadlineExpired(end));xrtThreadYield();}
+        assert(!xl6DeadlineExpiredV1(end));xrtThreadYield();}
     Waiter retiring={.pool=pool,.quiesce=true};xrtAtomic32Init(&retiring.done,0);
     xthread* retire=xrtThreadCreate(wait_thread,&retiring,0);assert(retire);
     for(;;){XL6_TaskPoolStatsV1 stats={.size=sizeof(stats)};
         if(!api->Snapshot(pool,&stats)){expect_state();break;}
-        assert(!xrtDeadlineExpired(end));xrtThreadYield();}
+        assert(!xl6DeadlineExpiredV1(end));xrtThreadYield();}
     assert(xrtCancelRequest(cancel));join(waiting);assert(waiter.ok&&waiter.status==XL6_TASK_POOL_CANCELLED_V1);
     assert(!xrtAtomic32Load(&retiring.done,XMEMORY_ACQUIRE));
     xl6TaskNativeEndV1(&scope);join(retire);assert(retiring.ok);
@@ -203,8 +213,8 @@ static void creation_cancel_round(void)
     xrtAtomic32Store(&hook_seen,0,XMEMORY_RELEASE);xrtAtomic32Store(&hook_resume,0,XMEMORY_RELEASE);
     xrtAtomic64Store(&hook_thread,0,XMEMORY_RELEASE);xrtAtomic32Store(&hook_armed,1,XMEMORY_RELEASE);
     Creator creator={pool,false,false};xthread* thread=xrtThreadCreate(create_thread,&creator,0);assert(thread);
-    xdeadline end=xrtDeadlineAfter(UINT64_C(5000000));
-    while(!xrtAtomic32Load(&hook_seen,XMEMORY_ACQUIRE)){assert(!xrtDeadlineExpired(end));xrtThreadYield();}
+    XL6_DeadlineV1 end=xl6DeadlineAfterMillisecondsV1(5000);
+    while(!xrtAtomic32Load(&hook_seen,XMEMORY_ACQUIRE)){assert(!xl6DeadlineExpiredV1(end));xrtThreadYield();}
     assert(api->Cancel(pool));XL6_TaskPoolStatsV1 stats=snapshot(pool);assert(!stats.initialized&&stats.closed&&stats.cancelling);
     XL6_TaskPoolWaitStatusV1 status;
     assert(xrtMemDebugFailAfter(0));assert(api->WaitFor(pool,0,NULL,&status)&&status==XL6_TASK_POOL_TIMEOUT_V1);
@@ -250,10 +260,10 @@ static xtaskoutcome native_tail_job(xcancel* cancel,ptr raw,xtaskvalue* result)
 }
 static int32 native_tail_retire(ptr raw)
 {
-    NativeTail* tail=raw;xdeadline end=xrtDeadlineAfter(UINT64_C(5000000));
+    NativeTail* tail=raw;XL6_DeadlineV1 end=xl6DeadlineAfterMillisecondsV1(5000);
     do {
         assert(api->TryQuiesce(tail->pool)==XL6_MODULE_PREPARE_BUSY);
-        assert(!xrtDeadlineExpired(end));xrtThreadYield();
+        assert(!xl6DeadlineExpiredV1(end));xrtThreadYield();
     }while(!xrtAtomic32Load(&tail->entered,XMEMORY_ACQUIRE));
     /* It must RETURN while the actual native wrapper is still in cleanup.
      * A zero-time job drain followed by blocking Destroy cannot do that. */
@@ -271,17 +281,17 @@ static void native_tail_round(void)
     assert(!xrtAtomic32Load(&tail.entered,XMEMORY_ACQUIRE)); /* drain is not join */
     xthread* controller=xrtThreadCreate(native_tail_retire,&tail,0);assert(controller);
     wait_value(&tail.entered,1);
-    xdeadline end=xrtDeadlineAfter(UINT64_C(1000000));
+    XL6_DeadlineV1 end=xl6DeadlineAfterMillisecondsV1(1000);
     while(!xrtAtomic32Load(&tail.returned,XMEMORY_ACQUIRE)){
-        assert(!xrtDeadlineExpired(end)&&"nonblocking retirement must return before native ThreadKey cleanup");xrtThreadYield();
+        assert(!xl6DeadlineExpiredV1(end)&&"nonblocking retirement must return before native ThreadKey cleanup");xrtThreadYield();
     }
     join(controller);assert(!xrtAtomic32Load(&tail.finished,XMEMORY_ACQUIRE));
     XL6_TaskPoolStatsV1 stats=snapshot(tail.pool);assert(stats.initialized&&stats.submitted==1&&stats.completed==1&&stats.succeeded==1);
     assert(api->TryQuiesce(tail.pool)==XL6_MODULE_PREPARE_BUSY);
     assert(xrtMemDebugFailAfter(0));xrtAtomic32Store(&tail.resume,1,XMEMORY_RELEASE);
-    end=xrtDeadlineAfter(UINT64_C(5000000));
+    end=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){XL6_ModulePrepareResult state=api->TryQuiesce(tail.pool);if(state==XL6_MODULE_PREPARE_READY)break;
-        assert(state==XL6_MODULE_PREPARE_BUSY&&!xrtDeadlineExpired(end));xrtThreadYield();}
+        assert(state==XL6_MODULE_PREPARE_BUSY&&!xl6DeadlineExpiredV1(end));xrtThreadYield();}
     assert(!xrtMemDebugFailTriggered());xrtMemDebugFailClear();
     assert(xrtAtomic32Load(&tail.finished,XMEMORY_ACQUIRE));stats=snapshot(tail.pool);
     assert(stats.initialized&&stats.submitted==1&&stats.completed==1&&stats.succeeded==1&&stats.closed);

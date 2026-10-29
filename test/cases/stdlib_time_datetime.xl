@@ -1,16 +1,16 @@
-auto fields = DateTime(2024, 2, 29, 23, 59, 58, 123456, 28800)
+auto fields = DateTime(2024, 2, 29, 23, 59, 58, 123, 28800)
 assert fields.year == 2024 and fields.month == 2 and fields.day == 29
 assert fields.hour == 23 and fields.minute == 59 and fields.second == 58
-assert fields.microsecond == 123456 and fields.offset == 28800
+assert fields.millisecond == 123 and fields.offset == 28800
 assert fields.weekday == 4 and fields.dayOfYear == 60 and fields.isDST == -1
-assert fields.toTime() == time.fromDateTime(2024, 2, 29, 23, 59, 58, 123456, 28800)
+assert fields.toTime() == time.fromDateTime(2024, 2, 29, 23, 59, 58, 123, 28800)
 auto utc = time.split(fields.toTime())
 assert utc.hour == 15 and utc.offset == 0 and utc.toTime() == fields.toTime()
 auto same = DateTime(fields.toTime(), 28800)
-assert same.hour == fields.hour and same.microsecond == 123456
+assert same.hour == fields.hour and same.millisecond == 123
 auto negative = time.split(time(-1), -1)
-assert negative.year == 1969 and negative.month == 12 and negative.day == 31
-assert negative.second == 58 and negative.microsecond == 999999 and negative.toTime() == time(-1)
+assert negative.year == -1 and negative.month == 12 and negative.day == 31
+assert negative.second == 58 and negative.millisecond == 999 and negative.toTime() == time(-1)
 auto low = time.split(time(-9223372036854775807 - 1), 86399)
 auto high = time.split(time(9223372036854775807), -86399)
 assert low.toTime() == time(-9223372036854775807 - 1)

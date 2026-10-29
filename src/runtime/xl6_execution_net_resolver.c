@@ -47,7 +47,7 @@ static bool enter(Resource* resource,bool submit,bool control,XL6_ExecutionScope
 bool xl6ExecutionNetResolverWaitV1(Resource* resource,int64_t millis,bool* ready)
 {
     if(!ready){xrtSetErrorKind(XERR_ARGUMENT);return false;}*ready=false;
-    xdeadline deadline;if(!xl6ConcurrentDeadline(millis,&deadline))return false;
+    XL6_DeadlineV1 deadline;if(!xl6ConcurrentDeadline(millis,&deadline))return false;
     XL6_ExecutionScopeV1 scope={0};if(!enter(resource,false,true,&scope))return false;bool ok=false;
     if(!xl6ExecutionRequestedInternalV1(resource))xrtSetErrorKind(XERR_STATE);
     else if(!scope.resolver){*ready=true;ok=true;}
@@ -55,8 +55,8 @@ bool xl6ExecutionNetResolverWaitV1(Resource* resource,int64_t millis,bool* ready
         xnetretireresult status=xrtNetResolverTryDestroy(scope.resolver);
         if(status==XNET_RETIRE_ERROR)break;
         if(status==XNET_RETIRE_READY){xl6ExecutionResolverConsumedInternalV1(&scope);*ready=true;ok=true;break;}
-        if(xrtDeadlineExpired(deadline)){ok=true;break;}
-        xrtSleepUs(UINT64_C(1000));
+        if(xl6DeadlineExpiredV1(deadline)){ok=true;break;}
+        xrtSleep(1);
     }
     xl6ExecutionResourceLeaveV1(&scope);return ok;
 }

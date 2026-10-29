@@ -1,4 +1,5 @@
 /* Link only a normal product and its extracted declaration-only SDK. */
+#include "release/include/xl_clock.h"
 #include <__xl_runtime/xruntime_decl.h>
 #include <__xl_runtime/xl6_continuation_executor.h>
 #include <__xl_runtime/xl6_continuation_future.h>
@@ -17,7 +18,7 @@ static bool edge(xrtownershipref ref,void* data)
 {assert(ref.Data&&ref.Ops);++*(size_t*)data;return true;}
 static void parked(XL6_ContinuationExecutor* executor,size_t workers)
 {
-    xdeadline deadline=xrtDeadlineAfter(10000000);xrtownershipref ref=xl6ContinuationExecutorOwnership(executor);
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(10000);xrtownershipref ref=xl6ContinuationExecutorOwnership(executor);
     for(;;){
         xrtownershipscope freeze={0};
         if(xrtOwnershipFreezeTryBegin(&freeze)){
@@ -25,7 +26,7 @@ static void parked(XL6_ContinuationExecutor* executor,size_t workers)
             if(ready){size_t edges=0;assert(count==1&&ref.Ops->Trace(ref.Data,edge,&edges)&&edges==workers+1);}
             assert(xrtOwnershipScopeEnd(&freeze));if(ready)return;
         }
-        assert(!xrtDeadlineExpired(deadline));xrtThreadYield();
+        assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();
     }
 }
 int main(void)
@@ -48,10 +49,10 @@ int main(void)
         xl6ContinuationExecutorClose(executor);assert(!xl6ContinuationExecutorDestroyCompleted(executor));
         assert(xl6ContinuationExecutorReserveOwned(executor,&extra,run,release,&state,NULL)==XL6_CONTINUATION_CLOSED);
         int payload=1;assert(xrtPromiseResolve(promise,&payload));
-        xdeadline deadline=xrtDeadlineAfter(10000000);
-        while(atomic_load_explicit(&state.releases,memory_order_acquire)!=COUNT){assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+        XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(10000);
+        while(atomic_load_explicit(&state.releases,memory_order_acquire)!=COUNT){assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
         assert(atomic_load(&state.runs)==COUNT);
-        while(!xl6ContinuationExecutorDestroyCompleted(executor)){assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+        while(!xl6ContinuationExecutorDestroyCompleted(executor)){assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
         xrtFutureDestroy(source);xrtPromiseDestroy(promise);free(watches);free(tickets);
     }
     puts("normal product fixed executor: default/1/2 workers, 3072 dormant roots, exact parked owners, ready delivery and checked join");

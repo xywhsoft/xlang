@@ -1,3 +1,4 @@
+#include "xl_clock.h"
 /* SMTP 客户端桥保留底层命令、DATA/BDAT 流式路径和常用认证/提交路径。 */
 
 
@@ -41,7 +42,7 @@ void* xmail_smtp_open(
 	xmail_native_smtp* pSmtp;
 	xnetresolver* pResolver;
 	xmail_native_tls Tls;
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 	xerror* pError;
 	bool bResolverDestroyed;
 
@@ -215,7 +216,7 @@ bool xmail_smtp_send(
 )
 {
 	xmail_native_smtp* pSmtp = xmail_native_smtp_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 
 	return (pSmtp != NULL) &&
 		xmail_native_deadline(iTimeoutMilliseconds, &iDeadline) &&
@@ -229,7 +230,7 @@ bool xmail_smtp_send(
 bool xmail_smtp_receive(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_smtp* pSmtp = xmail_native_smtp_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 	xsmtpreply Reply;
 
 	return (pSmtp != NULL) &&
@@ -250,7 +251,7 @@ bool xmail_smtp_command(
 )
 {
 	xmail_native_smtp* pSmtp = xmail_native_smtp_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 	xsmtpreply Reply;
 
 	return (pSmtp != NULL) &&
@@ -274,7 +275,7 @@ bool xmail_smtp_mail(
 )
 {
 	xmail_native_smtp* pSmtp = xmail_native_smtp_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 
 	return (pSmtp != NULL) &&
 		xmail_native_deadline(iTimeoutMilliseconds, &iDeadline) &&
@@ -297,7 +298,7 @@ bool xmail_smtp_rcpt(
 )
 {
 	xmail_native_smtp* pSmtp = xmail_native_smtp_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 
 	return (pSmtp != NULL) &&
 		xmail_native_deadline(iTimeoutMilliseconds, &iDeadline) &&
@@ -313,7 +314,7 @@ bool xmail_smtp_rcpt(
 bool xmail_smtp_data_begin(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_smtp* pSmtp = xmail_native_smtp_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 
 	return (pSmtp != NULL) &&
 		xmail_native_deadline(iTimeoutMilliseconds, &iDeadline) &&
@@ -332,7 +333,7 @@ bool xmail_smtp_data_write(
 {
 	xmail_native_smtp* pSmtp = xmail_native_smtp_require(pHandle);
 	xbytesview Data;
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 
 	Data.Data = (cbytes)pData;
 	Data.Size = iSize;
@@ -365,7 +366,7 @@ bool xmail_smtp_data_write_text(
 bool xmail_smtp_data_end(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_smtp* pSmtp = xmail_native_smtp_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 
 	return (pSmtp != NULL) &&
 		xmail_native_deadline(iTimeoutMilliseconds, &iDeadline) &&
@@ -383,7 +384,7 @@ bool xmail_smtp_data(
 )
 {
 	xmail_native_smtp* pSmtp = xmail_native_smtp_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 
 	return (pSmtp != NULL) &&
 		xmail_native_deadline(iTimeoutMilliseconds, &iDeadline) &&
@@ -402,7 +403,7 @@ bool xmail_smtp_bdat_begin(
 )
 {
 	xmail_native_smtp* pSmtp = xmail_native_smtp_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 
 	return (pSmtp != NULL) && (iSize <= SIZE_MAX) &&
 		xmail_native_deadline(iTimeoutMilliseconds, &iDeadline) &&
@@ -422,7 +423,7 @@ bool xmail_smtp_bdat_write(
 {
 	xmail_native_smtp* pSmtp = xmail_native_smtp_require(pHandle);
 	xbytesview Data;
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 
 	Data.Data = (cbytes)pData;
 	Data.Size = iSize;
@@ -437,7 +438,7 @@ bool xmail_smtp_bdat_write(
 bool xmail_smtp_bdat_end(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_smtp* pSmtp = xmail_native_smtp_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 
 	return (pSmtp != NULL) &&
 		xmail_native_deadline(iTimeoutMilliseconds, &iDeadline) &&
@@ -457,7 +458,7 @@ bool xmail_smtp_bdat(
 {
 	xmail_native_smtp* pSmtp = xmail_native_smtp_require(pHandle);
 	xbytesview Data;
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 
 	Data.Data = (cbytes)pData;
 	Data.Size = iSize;
@@ -485,7 +486,7 @@ bool xmail_smtp_auth(
 {
 	xmail_native_smtp* pSmtp = xmail_native_smtp_require(pHandle);
 	xsmtpauthconfig Config;
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 
 	if ( (pSmtp == NULL) || (iMethod > XSMTP_AUTH_OAUTHBEARER) ||
 		!xmail_native_deadline(iTimeoutMilliseconds, &iDeadline) ) {
@@ -515,7 +516,7 @@ bool xmail_smtp_submit(
 {
 	xmail_native_smtp* pSmtp = xmail_native_smtp_require(pHandle);
 	xmail_native_message Native;
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 	bool bResult;
 
 	if ( (pSmtp == NULL) ||
@@ -534,7 +535,7 @@ bool xmail_smtp_submit(
 bool xmail_smtp_reset(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_smtp* pSmtp = xmail_native_smtp_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 
 	return (pSmtp != NULL) &&
 		xmail_native_deadline(iTimeoutMilliseconds, &iDeadline) &&
@@ -547,7 +548,7 @@ bool xmail_smtp_reset(void* pHandle, int64 iTimeoutMilliseconds)
 bool xmail_smtp_noop(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_smtp* pSmtp = xmail_native_smtp_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 
 	return (pSmtp != NULL) &&
 		xmail_native_deadline(iTimeoutMilliseconds, &iDeadline) &&
@@ -560,7 +561,7 @@ bool xmail_smtp_noop(void* pHandle, int64 iTimeoutMilliseconds)
 bool xmail_smtp_quit(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_smtp* pSmtp = xmail_native_smtp_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 	bool bResult;
 
 	if ( (pSmtp == NULL) ||
@@ -580,7 +581,7 @@ bool xmail_smtp_quit(void* pHandle, int64 iTimeoutMilliseconds)
 bool xmail_smtp_close(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_smtp* pSmtp = xmail_native_smtp_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 	bool bResult;
 
 	if ( (pSmtp == NULL) ||

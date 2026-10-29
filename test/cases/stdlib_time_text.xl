@@ -1,6 +1,6 @@
-time value = time.fromDateTime(2024, 2, 29, 23, 58, 57, 123456)
+time value = time.fromDateTime(2024, 2, 29, 23, 58, 57, 123)
 assert time.format(value) == "2024-02-29 23:58:57"
-assert time.formatPattern(value, "%F %T.%f %:z", 28800) == "2024-03-01 07:58:57.123456 +08:00"
+assert time.formatPattern(value, "%F %T.%f %:z", 28800) == "2024-03-01 07:58:57.123 +08:00"
 assert time.dateString(value) == "2024-02-29" and time.timeString(value) == "23:58:57"
 assert time.format(value, "%F\0ignored", 0, 2) == "2024-02-29"
 assert time.format(value, "中文 %F", 0, 1000) == "中文 2024-02-29"

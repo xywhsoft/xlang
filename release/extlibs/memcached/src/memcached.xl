@@ -85,7 +85,7 @@ func __mc_exchange(TcpStream stream, string command, Buffer data,
         throw ValueError "memcached: invalid timeout or reply limit"
     end
     uint64 started = time.monotonic()
-    uint64 deadlineUs = uint64(timeoutMs) * 1000
+    uint64 deadlineMs = uint64(timeoutMs)
     bool synchronized = false
     var reply = null
     try
@@ -98,20 +98,20 @@ func __mc_exchange(TcpStream stream, string command, Buffer data,
             end
         end
         uint64 elapsed = time.monotonic() - started
-        if elapsed >= deadlineUs then
+        if elapsed >= deadlineMs then
             throw ValueError "memcached: command timed out"
         end
-        int remainingMs = int((deadlineUs - elapsed + 999) / 1000)
+        int remainingMs = int(deadlineMs - elapsed)
         if stream.wait(TcpWait.drain, remainingMs) != NetStatus.ok then
             throw ValueError "memcached: send timed out"
         end
         Buffer buffer = Buffer()
         while true
             elapsed = time.monotonic() - started
-            if elapsed >= deadlineUs then
+            if elapsed >= deadlineMs then
                 throw ValueError "memcached: command timed out"
             end
-            remainingMs = int((deadlineUs - elapsed + 999) / 1000)
+            remainingMs = int(deadlineMs - elapsed)
             bytes chunk = stream.recv(65536, remainingMs)
             if chunk.length == 0 then
                 throw ValueError "memcached: connection closed"

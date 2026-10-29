@@ -14,7 +14,7 @@ void xl6TlsTicketClassSyncV1(XL6_NativeClassResultContextV1 context,void* receiv
      * is no user deadline here; use Async to avoid blocking the calling thread.
      * Cooperative cancellation is checked before the native linearization. */
     xfuture* source=xl6TlsTicketSubmitV1(&context,receiver,command,input,lifetime);xfutureresult result={0};
-    bool ok=xl6TlsIoWaitResultV1(source,XRT_DEADLINE_NEVER,NULL,&result);
+    bool ok=xl6TlsIoWaitResultV1(source,XL6_DEADLINE_NEVER,NULL,&result);
     if(ok&&(result.State!=XFUTURE_RESOLVED||!result.Value||!*(xvalue**)result.Value)){
         xrtSetErrorKind(XERR_STATE);ok=false;
     }
@@ -26,7 +26,7 @@ failed:
 }
 uint64_t xl6TlsTicketScalarSyncV1(void* receiver,const XL6_TlsTicketCommandV1* command,int64_t millis)
 {
-    xdeadline due;uint64_t value=0;
+    XL6_DeadlineV1 due;uint64_t value=0;
     if(!xl6ConcurrentDeadline(millis,&due)||!xl6TlsIoPreWaitV1(due,NULL))goto failed;
     XL6_TlsScopeV1 scope={0};if(!begin(receiver,false,&scope))goto failed;
     xfuture* source=xl6TlsTicketSubmitV1(NULL,receiver,command,(xbytesview){0},0);xfutureresult result={0};

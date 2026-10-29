@@ -1,7 +1,9 @@
 #ifndef XL6_C_PRINT_H
 #define XL6_C_PRINT_H
 #if !defined(XRT_SINGLE_HEADER) && !defined(XRUNTIME_DECLARATIONS_H)
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
+#include "include/xl_clock.h"
 #endif
 #include "xl6_value_graph_plan.h"
 /* No xvalue is manufactured for a native text/binary loan. Other dynamic

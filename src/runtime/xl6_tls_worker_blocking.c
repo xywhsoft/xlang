@@ -1,7 +1,7 @@
 #include "xl6_tls_data_internal.h"
 static bool perform(void* receiver,int64_t argument,unsigned operation,int64_t millis,xvalue** bytes,int64_t* count)
 {
-    xdeadline due;if(!xl6ConcurrentDeadline(millis,&due)||!xl6TlsIoPreWaitV1(due,NULL))return false;
+    XL6_DeadlineV1 due;if(!xl6ConcurrentDeadline(millis,&due)||!xl6TlsIoPreWaitV1(due,NULL))return false;
     XL6_TlsScopeV1 scope={0};if(!xl6ExecutionTlsStreamEnterV1(receiver,xl6TlsWorkerMutatesV1(operation),&scope))return false;
     xfuture* source=NULL;xfutureresult result={0};bool ok=xl6TlsIoMayWaitV1(scope.engineOwner);
     if(ok){source=xl6TlsWorkerSourceV1(receiver,argument,operation);ok=xl6TlsIoWaitResultV1(source,due,NULL,&result);}

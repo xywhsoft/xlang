@@ -1,8 +1,11 @@
+#include <limits.h>
 /* Optional resident component. Native graph callbacks never live in a JIT
  * module; custom language callbacks remain ordinary traced xvalue owners. */
 #include "release/extlibs/xacme/native/xacme_impl.c"
 #define XRUNTIME_MODULE_ALL
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
+#include "include/xl_clock.h"
 #include "xl6_text_value.h"
 #include "xl6_native_handle.h"
 #include "xl6_execution_resource.h"

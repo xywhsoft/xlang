@@ -1,4 +1,6 @@
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
+#include "include/xl_clock.h"
 #include "xl6_ownership_domain_impl.h"
 /* Server, real counted child bindings, and their actual Listener ownership
  * contexts. Accept Future activation is an independent selected domain. */

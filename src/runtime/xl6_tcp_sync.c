@@ -4,23 +4,23 @@
  * call the Worker-only xrtNetStreamRead on an arbitrary language thread. */
 xvalue* xl6TcpStreamRecvV1(void* receiver,int64_t maximum,int64_t millis)
 {
-    size_t bytes;xdeadline deadline;
+    size_t bytes;XL6_DeadlineV1 deadline;
     if(!xl6TcpPositiveSizeV1(maximum,&bytes)||!xl6ConcurrentDeadline(millis,&deadline)){xl6TcpFailedV1();return NULL;}
     XL6_TcpScopeV1 scope={0};if(!xl6TcpEnterV1(receiver,XL6_EXECUTION_TCP_STREAM_V1,true,&scope))return NULL;
-    xnetbytes* native=xrtNetStreamRecv(scope.stream,bytes,deadline,NULL);xvalue* result=NULL;
+    xnetbytes* native=xrtNetStreamRecv(scope.stream,bytes,xl6DeadlineRemainingMillisecondsV1(deadline),NULL);xvalue* result=NULL;
     if(native){result=xrtValueBytes(xrtNetBytesView(native));xrtNetBytesDestroy(native);}
     else if(xrtErrorKind(xrtGetError())==XERR_CLOSED){xrtClearError();result=xrtValueBytes((xbytesview){0});}
     xl6ExecutionTcpLeaveInternalV1(&scope);if(!result)xl6TcpFailedV1();return result;
 }
 int64_t xl6TcpStreamWaitV1(void* receiver,int64_t condition,int64_t millis)
 {
-    xdeadline deadline;
+    XL6_DeadlineV1 deadline;
     if(condition<XNET_STREAM_WAIT_OPEN||condition>XNET_STREAM_WAIT_CLOSE||!xl6ConcurrentDeadline(millis,&deadline)){
         if(condition<XNET_STREAM_WAIT_OPEN||condition>XNET_STREAM_WAIT_CLOSE)xrtSetErrorKind(XERR_RANGE);
         xl6TcpFailedV1();return XNET_RESULT_ERROR;
     }
     XL6_TcpScopeV1 scope={0};if(!xl6TcpEnterV1(receiver,XL6_EXECUTION_TCP_STREAM_V1,false,&scope))return XNET_RESULT_ERROR;
-    bool ok=xrtNetStreamWait(scope.stream,(xnetstreamwait)condition,deadline,NULL);
+    bool ok=xrtNetStreamWait(scope.stream,(xnetstreamwait)condition,xl6DeadlineRemainingMillisecondsV1(deadline),NULL);
     xl6ExecutionTcpLeaveInternalV1(&scope);if(ok)return XNET_RESULT_OK;
     xerrkind kind=xrtErrorKind(xrtGetError());
     if(kind==XERR_TIMEOUT||kind==XERR_CLOSED||kind==XERR_CANCELLED){
@@ -30,9 +30,9 @@ int64_t xl6TcpStreamWaitV1(void* receiver,int64_t condition,int64_t millis)
 }
 void* xl6TcpListenerAcceptV1(XL6_ExecutionServicesV1 services,void* receiver,int64_t millis)
 {
-    xdeadline deadline;if(!xl6ConcurrentDeadline(millis,&deadline)){xl6TcpFailedV1();return NULL;}
+    XL6_DeadlineV1 deadline;if(!xl6ConcurrentDeadline(millis,&deadline)){xl6TcpFailedV1();return NULL;}
     XL6_TcpScopeV1 scope={0};if(!xl6TcpEnterV1(receiver,XL6_EXECUTION_TCP_LISTENER_V1,true,&scope))return NULL;
-    xnetstream* accepted=xrtNetListenerAcceptWait(scope.listener,deadline,NULL);void* result=NULL;
+    xnetstream* accepted=xrtNetListenerAcceptWait(scope.listener,xl6DeadlineRemainingMillisecondsV1(deadline),NULL);void* result=NULL;
     if(accepted){
         result=xl6ExecutionTcpAdoptV1(services.source,scope.engineOwner,accepted);
         if(!result){xerror* error=xrtTakeError();(void)xrtNetStreamAbort(accepted);xrtClearError();xrtSetErrorTake(error);}

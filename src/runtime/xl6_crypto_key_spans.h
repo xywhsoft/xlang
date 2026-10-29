@@ -1,6 +1,8 @@
 #ifndef XL6_CRYPTO_KEY_SPANS_H
 #define XL6_CRYPTO_KEY_SPANS_H
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
+#include "include/xl_clock.h"
 /* Private synchronous constructors. They copy the complete material into the
  * ordinary owned key payload; no borrowed view or foreign owner is retained. */
 void* xl6CryptoX25519CreateSpanV1(xbytesview);

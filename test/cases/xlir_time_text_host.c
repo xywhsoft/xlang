@@ -22,19 +22,19 @@ static void exact(xstrview text, xstrview expected)
 static void functional(void)
 {
     xmemdebugsnapshot before; xrtMemDebugSnapshot(&before);
-    xtime value = INT64_C(1709251137123456);
-    exact(xl6TimeFormatV1(value, VIEW("%F %T.%f %:z"), 28800, -1), VIEW("2024-03-01 07:58:57.123456 +08:00"));
+    xtime value = INT64_C(1709251137123);
+    exact(xl6TimeFormatV1(value, VIEW("%F %T.%f %:z"), 28800, -1), VIEW("2024-03-01 07:58:57.123 +08:00"));
     exact(xl6TimeFormatV1(value, VIEW("%F\0junk"), 0, 2), VIEW("2024-02-29"));
     exact(xl6TimeFormatV1(value, VIEW(""), 0, -1), VIEW(""));
-    exact(xl6TimeRFC3339V1(value, -18000), VIEW("2024-02-29T18:58:57.123456-05:00"));
+    exact(xl6TimeRFC3339V1(value, -18000), VIEW("2024-02-29T18:58:57.123-05:00"));
     exact(xl6TimeHTTPDateV1(INT64_C(784111777000000)), VIEW("Sun, 06 Nov 1994 08:49:37 GMT"));
-    assert(xl6TimeParseAnyV1(VIEW("2024-02-29 23:58:57\0junk"), 19) == value-123456);
-    assert(xl6TimeParsePatternV1(VIEW("2024/2/29 23:58:57"), VIEW("%Y/%-m/%-d %T"), 999, 999) == value-123456);
-    assert(xl6TimeParseRFC3339V1(VIEW("2024-02-29T23:58:57.123456789Z"), -1) == value);
+    assert(xl6TimeParseAnyV1(VIEW("2024-02-29 23:58:57\0junk"), 19) == value-123);
+    assert(xl6TimeParsePatternV1(VIEW("2024/2/29 23:58:57"), VIEW("%Y/%-m/%-d %T"), 999, 999) == value-123);
+    assert(xl6TimeParseRFC3339V1(VIEW("2024-02-29T23:58:57.123789Z"), -1) == value);
     assert(xl6TimeParseHTTPDateV1(VIEW("Sunday, 06-Nov-94 08:49:37 GMT"), -1) == INT64_C(784111777000000));
-    void* fields = xl6DateTimeParseV1(VIEW("2024-03-01 07:58:57.123456 +08:00"), VIEW("%F %T.%f %:z"), -1, -1);
+    void* fields = xl6DateTimeParseV1(VIEW("2024-03-01 07:58:57.123 +08:00"), VIEW("%F %T.%f %:z"), -1, -1);
     assert(fields && xl6DateTimeToTimeV1(fields) == value && xl6DateTimeOffsetV1(fields) == 28800);
-    exact(xl6DateTimeFormatV1(fields, VIEW("%F %T.%f %:z"), -1), VIEW("2024-03-01 07:58:57.123456 +08:00"));
+    exact(xl6DateTimeFormatV1(fields, VIEW("%F %T.%f %:z"), -1), VIEW("2024-03-01 07:58:57.123 +08:00"));
     xl6DateTimeDestroyV1(fields);
     assert(!xrtGetError()); balanced(before);
     /* HTTP try is allocation-free; all try functions restore prior errors on
@@ -55,7 +55,7 @@ static void functional(void)
     assert(!out.e0 && !out.e1 && xrtGetError() == pending);
     out = xl6TimeTryParseRFC3339V1(VIEW("bad"), -1);
     assert(!out.e0 && !out.e1 && xrtGetError() == pending);
-    out = xl6TimeTryParseRFC3339V1(VIEW("2024-02-29T23:58:57.123456Z"), -1);
+    out = xl6TimeTryParseRFC3339V1(VIEW("2024-02-29T23:58:57.123Z"), -1);
     assert(out.e0 && out.e1 == value && xrtGetError() == pending);
     balanced(before); xrtClearError();
     (void)xl6TimeParseAnyV1(VIEW("2024-02-29\0junk"), -1);

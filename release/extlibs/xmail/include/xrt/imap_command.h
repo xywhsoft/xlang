@@ -1,3 +1,4 @@
+#include "xl_clock.h"
 #ifndef XRT_IMAP_COMMAND_H
 #define XRT_IMAP_COMMAND_H
 
@@ -70,7 +71,7 @@ XRT_API xmailnext xrtImapMailboxInfoUpdate(
 /* 执行 NOOP 并消费命令期间的未请求响应。 */
 XRT_API bool xrtImapClientNoop(
 	ximapclient* pClient,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
@@ -81,7 +82,7 @@ XRT_API bool xrtImapClientSelect(
 	ximapclient* pClient,
 	xstrview Mailbox,
 	ximapmailboxinfo* pInfo,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
@@ -92,7 +93,7 @@ XRT_API bool xrtImapClientExamine(
 	ximapclient* pClient,
 	xstrview Mailbox,
 	ximapmailboxinfo* pInfo,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
@@ -101,7 +102,7 @@ XRT_API bool xrtImapClientExamine(
 /* 对当前选中邮箱执行 CHECK。 */
 XRT_API bool xrtImapClientCheck(
 	ximapclient* pClient,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
@@ -110,7 +111,7 @@ XRT_API bool xrtImapClientCheck(
 /* 不执行隐式 EXPUNGE 地离开当前邮箱。 */
 XRT_API bool xrtImapClientUnselect(
 	ximapclient* pClient,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
@@ -119,7 +120,7 @@ XRT_API bool xrtImapClientUnselect(
 /* 执行 CLOSE，提交删除标记并离开当前邮箱。 */
 XRT_API bool xrtImapClientCloseMailbox(
 	ximapclient* pClient,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
@@ -129,14 +130,14 @@ XRT_API bool xrtImapClientCloseMailbox(
 XRT_API bool xrtImapClientCreateMailbox(
 	ximapclient* pClient,
 	xstrview Mailbox,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
 XRT_API bool xrtImapClientDeleteMailbox(
 	ximapclient* pClient,
 	xstrview Mailbox,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
@@ -144,21 +145,21 @@ XRT_API bool xrtImapClientRenameMailbox(
 	ximapclient* pClient,
 	xstrview Source,
 	xstrview Target,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
 XRT_API bool xrtImapClientSubscribe(
 	ximapclient* pClient,
 	xstrview Mailbox,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
 XRT_API bool xrtImapClientUnsubscribe(
 	ximapclient* pClient,
 	xstrview Mailbox,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
@@ -169,7 +170,7 @@ XRT_API bool xrtImapClientBeginList(
 	ximapclient* pClient,
 	xstrview Reference,
 	xstrview Pattern,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
@@ -177,7 +178,7 @@ XRT_API bool xrtImapClientBeginStatus(
 	ximapclient* pClient,
 	xstrview Mailbox,
 	xstrview Items,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
@@ -185,7 +186,7 @@ XRT_API bool xrtImapClientBeginSearch(
 	ximapclient* pClient,
 	xstrview Criteria,
 	bool bUid,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
@@ -194,7 +195,7 @@ XRT_API bool xrtImapClientBeginFetch(
 	xstrview Set,
 	xstrview Items,
 	bool bUid,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
@@ -204,7 +205,7 @@ XRT_API bool xrtImapClientBeginStore(
 	ximapstoremode Mode,
 	xstrview Flags,
 	bool bUid,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
@@ -213,7 +214,7 @@ XRT_API bool xrtImapClientBeginCopy(
 	xstrview Set,
 	xstrview Mailbox,
 	bool bUid,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
@@ -222,7 +223,7 @@ XRT_API bool xrtImapClientBeginMove(
 	xstrview Set,
 	xstrview Mailbox,
 	bool bUid,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
@@ -230,20 +231,20 @@ XRT_API bool xrtImapClientBeginMove(
 XRT_API bool xrtImapClientBeginExpunge(
 	ximapclient* pClient,
 	xstrview UidSet,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
 /* 开始 IDLE；收到 continuation 后可读取事件，结束时发送 DONE。 */
 XRT_API bool xrtImapClientBeginIdle(
 	ximapclient* pClient,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
 XRT_API bool xrtImapClientEndIdle(
 	ximapclient* pClient,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 

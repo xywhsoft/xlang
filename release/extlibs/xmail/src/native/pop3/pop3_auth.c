@@ -1,3 +1,4 @@
+#include "xl_clock.h"
 #include <xrt/pop3_auth.h>
 
 #include "../internal/xrt_mail_auth.h"
@@ -39,7 +40,7 @@ static bool __xrtPop3AuthStatus(xstrview Line, xstrview Status)
 /* 读取 SASL continuation 或最终 POP3 状态，并稳定保存最终响应。 */
 static __xpop3authnext __xrtPop3AuthNext(
 	xpop3client* pClient,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -81,7 +82,7 @@ static bool __xrtPop3AuthCommand(
 	xstrview Prefix,
 	xstrview Credential,
 	xpop3reply* pReply,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -124,7 +125,7 @@ static bool __xrtPop3AuthCommand(
 static bool __xrtPop3AuthUserPass(
 	xpop3client* pClient,
 	const xpop3authconfig* pConfig,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -225,7 +226,7 @@ static bool __xrtPop3AuthStart(
 	xstrview Encoded,
 	bool bInitial,
 	bool* pInitialUsed,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -259,7 +260,7 @@ static bool __xrtPop3AuthStart(
 static bool __xrtPop3AuthSasl(
 	xpop3client* pClient,
 	const xpop3authconfig* pConfig,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -422,7 +423,7 @@ XRT_API bool xrtPop3AuthConfigValid(const xpop3authconfig* pConfig)
 XRT_API bool xrtPop3ClientAuth(
 	xpop3client* pClient,
 	const xpop3authconfig* pConfig,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -479,7 +480,7 @@ XRT_API bool xrtPop3ClientLogin(
 	xstrview Username,
 	xstrview Password,
 	bool AllowPlaintext,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {

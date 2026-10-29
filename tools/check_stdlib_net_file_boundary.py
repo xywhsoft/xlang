@@ -51,7 +51,8 @@ def main():
    selected=lane.startswith('pinned');include='lib/xruntime/xruntime.h' if lane.endswith('runtime') else 'lib/xrt/xrt.h'
    macro='XRUNTIME_IMPLEMENTATION' if lane.endswith('runtime') else 'XRT_IMPLEMENTATION'
    if not selected:include='net-file-native.h'
-   impl.write_text('#define XRT_MODULE_MEMORY_DEBUG\n#define XRT_MODULE_NET_FILE\n#define '+macro+'\n#include "'+include+'"\n',encoding='utf8');product(impl)
+   prefix=('#include "lib/xruntime/xruntime_features.h"\n#define XRT_IMPLEMENTATION\n#include "lib/xrt/xrt.h"\n' if lane.endswith('runtime') else '')
+   impl.write_text('#define XRT_MODULE_MEMORY_DEBUG\n#define XRT_MODULE_NET_FILE\n#define '+macro+'\n'+prefix+'#include "'+include+'"\n',encoding='utf8');product(impl)
    production=[native/s for s in sources] if lane=='native-modular' else [impl]
    extra=(['-DXL6_NET_FILE_NATIVE_HEADER','-I'+str(native/'include')] if not selected else [])
    if lane=='native-modular':extra+=['-D'+d for d in defines]

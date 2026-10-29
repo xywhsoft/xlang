@@ -1,6 +1,15 @@
 #define XRT_MODULE_ALL
 #define XRUNTIME_MODULE_ALL
+#ifndef XRT_MODULE_WAIT
+#define XRT_MODULE_WAIT
+#endif
+#include "lib/xruntime/xruntime_features.h"
+#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)
+#define XRT_IMPLEMENTATION
+#endif
+#include "lib/xrt/xrt.h"
 #include "lib/xruntime/xruntime.h"
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_ownership_plan.h"
 #include "src/runtime/xl6_future_callback.h"
 #include "src/runtime/xl6_closure.h"
@@ -74,17 +83,17 @@ static XL6_OwnershipAdmissionV1 resolve(xrtownershipref ref,void* context,const 
 }
 static XL6_OwnershipPlanResult create_plan(xrtownershipref root,XL6_OwnershipPlan** plan)
 {
-    xdeadline limit=xrtDeadlineAfter(5000000);XL6_OwnershipPlanResult result;
+    XL6_DeadlineV1 limit=xl6DeadlineAfterMillisecondsV1(5000);XL6_OwnershipPlanResult result;
     while((result=xl6OwnershipPlanTryCreateV6(root,resolve,NULL,false,NULL,plan))==XL6_OWNERSHIP_PLAN_BUSY){
-        assert(!*plan&&!xrtDeadlineExpired(limit));xrtThreadYield();
+        assert(!*plan&&!xl6DeadlineExpiredV1(limit));xrtThreadYield();
     }
     return result;
 }
 static XL6_OwnershipStepResult prepare_plan(XL6_OwnershipPlan* plan)
 {
-    xdeadline limit=xrtDeadlineAfter(5000000);XL6_OwnershipStepResult result;
+    XL6_DeadlineV1 limit=xl6DeadlineAfterMillisecondsV1(5000);XL6_OwnershipStepResult result;
     while((result=xl6OwnershipPlanPrepare(plan))==XL6_OWNERSHIP_STEP_BUSY){
-        assert(events<=12&&!owner.cleared&&!xrtDeadlineExpired(limit));xrtThreadYield();
+        assert(events<=12&&!owner.cleared&&!xl6DeadlineExpiredV1(limit));xrtThreadYield();
     }
     return result;
 }

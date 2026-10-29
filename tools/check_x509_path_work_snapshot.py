@@ -46,7 +46,7 @@ def main():
         ('X509_STORE','X509_VERIFY_RSA','X509_VERIFY_ECDSA','X509_VERIFY_ED25519','MEMORY_DEBUG'))
     for runtime in (False,True):
         implementation=out/('runtime.c' if runtime else 'core.c')
-        implementation.write_text(modules+('#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n'
+        implementation.write_text(modules+('#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"\n'
             if runtime else '#define XRT_IMPLEMENTATION\n#include "lib/xrt/xrt.h"\n'))
         for declaration in (False,True):
             prefix=('runtime' if runtime else 'core')+('.xrdecl' if declaration else '.xdecl')

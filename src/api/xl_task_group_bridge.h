@@ -46,7 +46,7 @@ XL_API bool xl6TaskGroupGetV1(xl6_task_group*,XL6_TaskGroupStatsV1*);
 XL_API bool xl6TaskGroupErrorCopyV1(xl6_task_group*,xerror**);
 XL_API bool xl6TaskGroupCancellationV1(xl6_task_group*,xcancel**);
 XL_API bool xl6TaskGroupReapV1(xl6_task_group*,uint64_t*);
-/* Monotonic microsecond deadline, unlike legacy signed-millisecond Until.
+/* Monotonic millisecond deadline, unlike legacy signed-millisecond Until.
  * Cancellation interrupts this waiter, not the group or its other waiters. */
 XL_API int32_t xl6TaskGroupWaitV1(xl6_task_group*,uint64_t deadline,xcancel*);
 

@@ -58,7 +58,7 @@ func main(...) as int
     catch ValueError e
         rejected = true
     end
-    assert rejected, "submicrosecond timestamp cannot be represented"
+    assert rejected, "submillisecond timestamp cannot be represented"
     rejected = false
     try
         msgpack.decode(msgpack.fromHex("c70cff2e3de400000008637bd05af6"))

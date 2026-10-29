@@ -2,7 +2,11 @@
 #define XRT_MODULE_VALUE
 #define XRT_MODULE_MEMORY_DEBUG
 #define XRT_MODULE_THREAD
+#ifndef XRT_MODULE_WAIT
+#define XRT_MODULE_WAIT
+#endif
 #include "lib/xrt/xrt.h"
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_future_callback.h"
 #include "src/runtime/xl6_continuation_executor.h"
 #include "src/api/xl_foreign_error.h"
@@ -68,13 +72,13 @@ static void callback(const xfutureresult* input,xpromise* output,xcancel* cancel
 }
 static void finish(XL6_ContinuationExecutor* executor)
 {
-    xdeadline deadline=xrtDeadlineAfter(10000000);xl6ContinuationExecutorClose(executor);
-    while(!xl6ContinuationExecutorDestroy(executor)){assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(10000);xl6ContinuationExecutorClose(executor);
+    while(!xl6ContinuationExecutorDestroy(executor)){assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
 }
 static void await_idle(XL6_ContinuationExecutor* executor)
 {
-    xdeadline deadline=xrtDeadlineAfter(10000000);
-    while(!xl6ContinuationExecutorIsIdle(executor)){assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(10000);
+    while(!xl6ContinuationExecutorIsIdle(executor)){assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
 }
 static void balanced(const xmemdebugsnapshot* before)
 {
@@ -150,8 +154,8 @@ static bool edge(xrtownershipref ref,void* data)
 {if(ref.Data){assert(ref.Ops);++((Edges*)data)->count;}return true;}
 static const xrtownershipadapterv1* inspect(Payload* payload,size_t expected)
 {
-    xrtownershipscope freeze={0};xdeadline deadline=xrtDeadlineAfter(10000000);
-    while(!xrtOwnershipFreezeTryBegin(&freeze)){assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+    xrtownershipscope freeze={0};XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(10000);
+    while(!xrtOwnershipFreezeTryBegin(&freeze)){assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
     xrtownershipref ref=xl6FutureCallbackRuntimeV1Get()->Ownership(payload);size_t count;
     assert(ref.Ops->Count(ref.Data,&count)&&count==expected);
     const xrtownershippreparationv1* preparation=NULL;
@@ -177,9 +181,9 @@ int main(void)
         CompletionRace race={.state=&state,.promise=promise,.failure=failure,.mode=round%4};
         Payload* payload=create(&state,true);assert(payload);
         xthread* producer=xrtThreadCreate(complete_racing,&race,0);assert(producer);
-        xdeadline deadline=xrtDeadlineAfter(10000000);
+        XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(10000);
         while(!atomic_load_explicit(&race.entered,memory_order_acquire)){
-            assert(!xrtDeadlineExpired(deadline));xrtThreadYield();
+            assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();
         }
         atomic_store_explicit(&race.go,true,memory_order_release);
         xfuture* output=api->Start(executor,payload,source);assert(output);
@@ -210,8 +214,8 @@ int main(void)
         if(!ready){assert(!xrtMemDebugFailTriggered());xrtMemDebugFailClear();}
         assert(atomic_load(&state.calls)==1&&atomic_load(&state.cleaned)==1);
         if(pin){
-            xrtownershipscope freeze={0};xdeadline deadline=xrtDeadlineAfter(10000000);size_t count;
-            while(!xrtOwnershipFreezeTryBegin(&freeze)){assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+            xrtownershipscope freeze={0};XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(10000);size_t count;
+            while(!xrtOwnershipFreezeTryBegin(&freeze)){assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
             assert(ref.Ops->Count(ref.Data,&count)&&count==1);assert(xrtOwnershipScopeEnd(&freeze));pin->Drop(ref.Data);
         }
         xrtFutureDestroy(output);xrtFutureDestroy(source);xrtPromiseDestroy(promise);xrtErrorFree(failure);finish(executor);

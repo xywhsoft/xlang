@@ -1,3 +1,4 @@
+#include "xl_clock.h"
 #include "../internal/xrt_mail_net.h"
 
 
@@ -11,7 +12,7 @@
 /* Deflate 输出回调同步写入原始 TCP 或 TLS 传输。 */
 typedef struct __xmaildeflatesend {
 	__xmailtransport* Transport;
-	xdeadline Deadline;
+	XL6_DeadlineV1 Deadline;
 	xcancel* Cancel;
 } __xmaildeflatesend;
 
@@ -117,7 +118,7 @@ bool __xrtMailTransportDeflateSend(
 	const void* pData,
 	size_t iSize,
 	bool bFlush,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -170,7 +171,7 @@ static void __xrtMailTransportDeflateInputConsume(
 /* 取得下一小块压缩输入，避免高压缩比正文一次性膨胀。 */
 static bool __xrtMailTransportDeflateInput(
 	__xmailtransport* pTransport,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel,
 	xbytesview* pInput
 )
@@ -237,7 +238,7 @@ static void __xrtMailTransportDeflateAdvance(
 /* 推进压缩输入，直到至少产生一块可消费明文。 */
 bool __xrtMailTransportDeflateFill(
 	__xmailtransport* pTransport,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {

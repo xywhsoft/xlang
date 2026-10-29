@@ -1,5 +1,6 @@
 /* Offline parity of the exact embedded core/runtime products, not a DLL test. */
 #if DECLARATIONS_FIRST
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
 #else
 #define XRT_MODULE_VALUE_GRAPH

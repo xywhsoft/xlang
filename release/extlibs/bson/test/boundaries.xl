@@ -104,22 +104,10 @@ func main(...) as int
         rejected = true
     end
     assert rejected, "document root is required"
-    rejected = false
-    try
-        bson.encode({"when": time(1)})
-    catch ValueError e
-        rejected = true
-    end
-    assert rejected, "submillisecond date must be rejected"
-    rejected = false
-    try
-        bson.encode({"when": time(-1)})
-    catch ValueError e
-        rejected = true
-    end
-    assert rejected, "negative submillisecond date must be rejected"
-    assert bson.decode(bson.encode({"when": time(1000)}))["when"] == time(1000), "millisecond date"
-    assert bson.decode(bson.encode({"when": time(-1000)}))["when"] == time(-1000), "negative millisecond date"
+    assert bson.decode(bson.encode({"when": time(1)}))["when"] == time(1), "millisecond date value"
+    assert bson.decode(bson.encode({"when": time(-1)}))["when"] == time(-1), "millisecond date value"
+    assert bson.decode(bson.encode({"when": time(1000)}))["when"] == time(1000), "millisecond date value"
+    assert bson.decode(bson.encode({"when": time(-1000)}))["when"] == time(-1000), "millisecond date value"
     var deep = {}
     for level in range(63)
         deep = {"a": deep}

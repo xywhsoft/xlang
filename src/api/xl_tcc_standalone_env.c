@@ -97,6 +97,22 @@ int xlTccRegisterXrtEnvironment(TCCState* state, int outputType)
 	(void)tcc_add_sysinclude_path(state, "include/winapi");
 #endif
 
+    (void)tcc_add_include_path(state,"lib/xrt");
+    (void)tcc_add_include_path(state,"lib/xruntime");
+#ifdef _WIN32
+    if(tcc_add_library(state,"ws2_32")!=0 || tcc_add_library(state,"iphlpapi")!=0 ||
+        tcc_add_library(state,"shell32")!=0)return 0;
+#else
+    if(tcc_add_library(state,"pthread")!=0 || tcc_add_library(state,"dl")!=0 ||
+        tcc_add_library(state,"m")!=0)return 0;
+#endif
+
+    if(outputType!=TCC_OUTPUT_MEMORY) {
+        if(outputType==TCC_OUTPUT_PREPROCESS)return 1;
+        return tcc_add_file(state,outputType==TCC_OUTPUT_DLL
+            ? "__xl_objects/shared-native/xrt.o" : "__xl_objects/static-native/xrt.o")==0;
+    }
+
 	if ( tcc_add_symbol(state, "__mzerosf", &xl6__mzerosf) != 0 ||
 		 tcc_add_symbol(state, "__mzerodf", &xl6__mzerodf) != 0 ||
 		 !xl6TccAddSymbols(

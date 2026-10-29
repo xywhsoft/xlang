@@ -48,7 +48,7 @@ def main():
   domains=out/'task-net-frame-domains.h';domains.write_text(run('domains',[plan,'--domains','net']),encoding='utf8');product(domains)
   report['Sources']=names;report['Modules']=modules.splitlines();save()
   header=out/'task-modules.h';header.write_text(modules,encoding='utf8');product(header)
-  kernel=out/'native.c';kernel.write_text('#include "task-modules.h"\n#ifndef XL6_TASK_CHECKED_MINIMAL\n#define XRT_MODULE_MEMORY_DEBUG\n#endif\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n',encoding='utf8');product(kernel)
+  kernel=out/'native.c';kernel.write_text('#include "task-modules.h"\n#ifndef XL6_TASK_CHECKED_MINIMAL\n#define XRT_MODULE_MEMORY_DEBUG\n#endif\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"\n',encoding='utf8');product(kernel)
   providers=[root/n for n in names];fixture=root/'test/support/task_net_frame_outcome.c'
   # Graph collection is a host test duty, not a dependency of mere submission.
   graphProviders=providers+[root/'src/runtime/xl6_ownership_plan.c']

@@ -1,5 +1,6 @@
 /* Actual generated typed/erased exports, Worker-thread OOM and Close. Only
  * ordinary self-created literal-loopback communication, no external traffic. */
+#include "release/include/xl_clock.h"
 #include "include/xlc.h"
 #include "src/runtime/xl6_tls_ticket_result.h"
 #include "src/runtime/xl6_tls_data_abi.h"
@@ -17,8 +18,8 @@ typedef struct Gate {
 } Gate;
 static void wait_for(xatomic32* flag)
 {
-    xdeadline due=xrtDeadlineAfter(10000000);
-    while(!xrtAtomic32Load(flag,XMEMORY_ACQUIRE)){assert(!xrtDeadlineExpired(due));xrtThreadYield();}
+    XL6_DeadlineV1 due=xl6DeadlineAfterMillisecondsV1(10000);
+    while(!xrtAtomic32Load(flag,XMEMORY_ACQUIRE)){assert(!xl6DeadlineExpiredV1(due));xrtThreadYield();}
 }
 static void block(xnetworker* worker,void* raw)
 {
@@ -38,7 +39,7 @@ static void* native(xvalue* object,const XL6_NativeHandlePolicyV1* policy)
 }
 static xvalue* resolved(xfuture* future)
 {
-    assert(future&&xrtFutureWaitUntil(future,xrtDeadlineAfter(10000000))==XWAIT_OK);
+    assert(future&&xrtFutureWaitFor(future,xl6DeadlineRemainingMillisecondsV1(xl6DeadlineAfterMillisecondsV1(10000)==XWAIT_OK));
     xfutureresult result={0};assert(xrtFutureResult(future,&result)&&result.State==XFUTURE_RESOLVED&&result.Value);
     xvalue* value=xrtValueRetain(*(xvalue**)result.Value);assert(value);xrtFutureDestroy(future);return value;
 }

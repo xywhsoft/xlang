@@ -2,6 +2,7 @@
 #ifndef XL_ENABLE_EXE_COMPILER
 #define XL_ENABLE_EXE_COMPILER 0
 #endif
+#include "release/include/xl_clock.h"
 #include "src/api/xl_api.c"
 #include "src/api/xl_api_path.c"
 #include "src/common/xl6_console.c"
@@ -66,9 +67,9 @@ static void collect(void)
 { xlApiLock(); xlCollectRetiringModulesUnlocked(); xlApiUnlock(); }
 static void finish(void)
 {
-    xdeadline deadline = xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 deadline = xl6DeadlineAfterMillisecondsV1(5000);
     while (!atomic_load(&deleted)) {
-        collect(); assert(!xrtDeadlineExpired(deadline)); xrtThreadYield();
+        collect(); assert(!xl6DeadlineExpiredV1(deadline)); xrtThreadYield();
     }
     assert(xl__retiringModules == NULL);
 }

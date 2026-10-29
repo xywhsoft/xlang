@@ -3,7 +3,7 @@
 bool xl6TlsIoPreWaitV1(uint64_t due,xcancel* parent)
 {
     if(parent&&xrtCancelRequested(parent)){(void)xl6PayloadObserveOutcome(XFUTURE_CANCELLED,NULL);return false;}
-    if(xrtDeadlineExpired(due)){xrtSetErrorKind(XERR_TIMEOUT);return false;}
+    if(xl6DeadlineExpiredV1(due)){xrtSetErrorKind(XERR_TIMEOUT);return false;}
     return true;
 }
 
@@ -18,12 +18,12 @@ bool xl6TlsIoMayWaitV1(XL6_ExecutionResourceV1* engine)
 bool xl6TlsIoWaitResultV1(xfuture* source,uint64_t due,xcancel* parent,xfutureresult* result)
 {
     if(!source)return false;
-    xwaitresult state=xrtFutureWaitUntilCancel(source,due,parent);
+    xwaitresult state=xrtFutureWaitForCancel(source,xl6DeadlineRemainingMillisecondsV1(due),parent);
     if(state==XWAIT_CANCELLED)(void)xl6PayloadObserveOutcome(XFUTURE_CANCELLED,NULL);
     else if(state==XWAIT_TIMEOUT)xrtSetErrorKind(XERR_TIMEOUT);
     else if(state==XWAIT_OK){
         if(parent&&xrtCancelRequested(parent))(void)xl6PayloadObserveOutcome(XFUTURE_CANCELLED,NULL);
-        else if(xrtDeadlineExpired(due))xrtSetErrorKind(XERR_TIMEOUT);
+        else if(xl6DeadlineExpiredV1(due))xrtSetErrorKind(XERR_TIMEOUT);
         else if(xrtFutureResult(source,result)){
             if(result->State==XFUTURE_CLOSED)return true;
             return xl6PayloadObserveOutcome(result->State,result->Error);

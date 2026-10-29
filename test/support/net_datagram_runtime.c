@@ -1,6 +1,7 @@
 /* Actual selected resident implementations, ordinary current-thread OOM,
  * graph/lifetime checks and only own IPv4/IPv6 loopback ephemeral datagrams.
  * No DNS, external peers, multicast traffic, probing or security tests. */
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
 #include "src/runtime/xl6_net_datagram_internal.h"
 #include "src/runtime/xl6_native_handle.h"

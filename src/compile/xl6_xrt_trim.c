@@ -89,8 +89,11 @@ int xl6XrtTrimBuildImplementationSourceFromArtifact(
                  "struct xerror;\n"
                  "__declspec(dllexport) void xrtErrorFree(struct xerror*);\n"
                  "#endif\n"
+                 "#include <__xl_runtime/xruntime_features.h>\n"
+                 "#define XRT_IMPLEMENTATION\n"
+                 "#include <__xl_runtime/xrt.h>\n"
                  "#define XRUNTIME_IMPLEMENTATION\n"
-                 "#include \"xruntime.h\"\n",
+                 "#include <__xl_runtime/xruntime.h>\n",
                  &out) != EOF && !xl6OutputHasFailed(&out);
     }
     if ( ok ) {

@@ -62,7 +62,7 @@ static void timed(xnetworker* worker,uint64 id,xnetresult result,void* data)
     (void)worker;Stream* r=data;XL6_ExecutionScopeV1 scope={0};
     if(!xl6ExecutionResourceEnterV1(&r->base,false,&scope)){xrtClearError();return;}
     if(id==r->waitTimer){
-        r->waitTimer=0;r->waitDue=XRT_DEADLINE_NEVER;
+        r->waitTimer=0;r->waitDue=XL6_DEADLINE_NEVER;
         xwsstream* s=xrtAtomicPtrLoad(&r->native,XMEMORY_ACQUIRE);
         if(result==XNET_RESULT_OK&&s){
             if(!sweep(r,s)||!schedule(r)){xl6WsStreamRecordFailureV2(r,xrtTakeError());(void)xrtWsStreamAbort(s);xrtClearError();}
@@ -75,7 +75,7 @@ const xnettimerownershipv1* xl6WsWaitTimerPolicyV2Get(void)
 
 static void cancelTimer(Stream* r)
 {
-    uint64_t id=r->waitTimer;r->waitTimer=0;r->waitDue=XRT_DEADLINE_NEVER;
+    uint64_t id=r->waitTimer;r->waitTimer=0;r->waitDue=XL6_DEADLINE_NEVER;
     /* The Engine owns the physical registration and Data pin. An id can have
      * completed concurrently or been cancelled by shutdown; both are terminal.
      * Its callback checks the exact id before touching the current generation. */
@@ -83,12 +83,12 @@ static void cancelTimer(Stream* r)
 }
 static bool schedule(Stream* r)
 {
-    uint64_t due=XRT_DEADLINE_NEVER;
+    uint64_t due=XL6_DEADLINE_NEVER;
     for(Waiter* n=r->waits;n;n=n->next)if(n->deadline<due)due=n->deadline;
-    if((!r->waitTimer&&due==XRT_DEADLINE_NEVER)||(r->waitTimer&&r->waitDue==due))return true;
-    cancelTimer(r);if(due==XRT_DEADLINE_NEVER)return true;
+    if((!r->waitTimer&&due==XL6_DEADLINE_NEVER)||(r->waitTimer&&r->waitDue==due))return true;
+    cancelTimer(r);if(due==XL6_DEADLINE_NEVER)return true;
     if(!xl6ExecutionResourceNativePinV1(&r->base))return false;
-    uint64_t id=xrtNetEngineScheduleOwnedV1(r->parent->engine,r->worker,due,r,xl6WsWaitTimerPolicyV2Get());
+    uint64_t id=xrtNetEngineScheduleOwnedV1(r->parent->engine,r->worker,xl6DeadlineRemainingMillisecondsV1(due),r,xl6WsWaitTimerPolicyV2Get());
     if(!id){xl6ExecutionResourceNativeDropV1(&r->base);return false;}
     r->waitTimer=id;r->waitDue=due;return true;
 }
@@ -109,7 +109,7 @@ static bool decision(Waiter* n,xwsstream* s,int64_t* result)
     if((n->kind==WRITABLE&&xrtWsStreamWritable(s)>=n->minimum)||
        (n->kind==DRAINED&&!xrtWsStreamPending(s))){*result=XNET_RESULT_OK;return true;}
     if(n->watch&&xrtCancelTriggered(n->watch)){*result=XNET_RESULT_CANCELLED;return true;}
-    if(n->deadline!=XRT_DEADLINE_NEVER&&xrtDeadlineExpired(n->deadline)){*result=XNET_RESULT_TIMEOUT;return true;}
+    if(n->deadline!=XL6_DEADLINE_NEVER&&xl6DeadlineExpiredV1(n->deadline)){*result=XNET_RESULT_TIMEOUT;return true;}
     return false;
 }
 static bool sweep(Stream* r,xwsstream* s)

@@ -1,3 +1,4 @@
+#include "release/include/xl_clock.h"
 #include "xlir_future_retirement.generated.h"
 #include "xlir_future_retirement.generated.c"
 typedef struct FutureEscapeHooks { void (*capture)(xvalue*); void (*dropped)(int64_t); } FutureEscapeHooks;
@@ -9,9 +10,9 @@ __declspec(dllexport) bool future_escape_join(void)
      * pool, checked executor teardown refuses still-running logical work.
      * Drain accepted work explicitly, including physical release tails, before
      * asking the generated module to consume its executor owner. */
-    xdeadline limit = xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 limit = xl6DeadlineAfterMillisecondsV1(5000);
     while (!xl6ContinuationExecutorIsIdle(xlir_continuation_executor)) {
-        if (xrtDeadlineExpired(limit)) return false;
+        if (xl6DeadlineExpiredV1(limit)) return false;
         xrtThreadYield();
     }
     return xlir_continuation_quiesce(true);

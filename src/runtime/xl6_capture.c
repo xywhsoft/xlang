@@ -1,7 +1,7 @@
 #define XRT_MODULE_MEMORY
 #define XRT_MODULE_VALUE
 #define XRT_MODULE_FUTURE
-#include "lib/xrt/xrt.h"
+#include "src/common/xl6_xrt.h"
 #include "xl6_capture.h"
 #include "xl6_closure.h"
 #include "xl6_cell.h"

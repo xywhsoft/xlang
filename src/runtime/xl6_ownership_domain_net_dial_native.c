@@ -1,4 +1,6 @@
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
+#include "include/xl_clock.h"
 #include "xl6_ownership_domain_impl.h"
 /* Opt-in Dial domain. Engine/Resolver/TCP-only products do not select it.
  * Every edge is a real native slot; no callback inference or opaque leaves. */

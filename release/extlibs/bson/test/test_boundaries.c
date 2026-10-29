@@ -731,7 +731,7 @@ int main(int argc, char** argv) {
     xrtValueRelease(encoded);
     xrtValueRelease(object);
 
-    /* BSON Date 只有毫秒精度；不能悄悄截断 XRT 的微秒。 */
+    /* BSON Date 与 XRT 都使用毫秒，正负非整秒值均须保留。 */
     for (i = 0; i < sizeof(date_cases) / sizeof(date_cases[0]); ++i) {
         object = xrtValueObject();
         item = xrtValueTime(date_cases[i]);
@@ -739,9 +739,7 @@ int main(int argc, char** argv) {
             xrtValueObjectSetTake(object, (xstrview){ "when", 4 }, &item));
         encoded = xbson_encode(object);
         CHECK(encoded != NULL);
-        if (date_cases[i] % XRT_TIME_MILLISECOND != 0) {
-            CHECK(xrtValueType(encoded) == XVALUE_NULL && xrtGetError());
-        } else {
+        {
             CHECK(xrtValueType(encoded) == XVALUE_BYTES && !xrtGetError());
             decoded = xbson_decode(encoded);
             CHECK(decoded && xrtValueType(decoded) == XVALUE_OBJECT);

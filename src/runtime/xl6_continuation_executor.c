@@ -2,10 +2,11 @@
 #define XRT_MODULE_MUTEX
 #define XRT_MODULE_THREAD
 #define XRT_MODULE_ERROR
-#include "lib/xrt/xrt.h"
+#include "src/common/xl6_xrt.h"
 #include "xl6_continuation_executor.h"
 #include "xl6_ownership_scope.h"
 #include "xl6_ownership_catalog.h"
+#include "xl_clock.h"
 #include <stdlib.h>
 
 typedef struct XL6_ContinuationWorker {

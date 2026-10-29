@@ -1,3 +1,4 @@
+#include "xl_clock.h"
 /* IMAP 客户端桥以事件和 literal 流为核心，不聚合整条命令结果。 */
 
 
@@ -76,7 +77,7 @@ void* xmail_imap_open(
 	xmail_native_imap* pImap;
 	xnetresolver* pResolver;
 	xmail_native_tls Tls;
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 	xerror* pError;
 	bool bResolverDestroyed;
 
@@ -288,7 +289,7 @@ bool xmail_imap_send(
 )
 {
 	xmail_native_imap* pImap = xmail_native_imap_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 
 	return (pImap != NULL) &&
 		xmail_native_deadline(iTimeoutMilliseconds, &iDeadline) &&
@@ -310,7 +311,7 @@ bool xmail_imap_write(
 )
 {
 	xmail_native_imap* pImap = xmail_native_imap_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 
 	return (pImap != NULL) &&
 		xmail_native_deadline(iTimeoutMilliseconds, &iDeadline) &&
@@ -329,7 +330,7 @@ bool xmail_imap_continue(
 )
 {
 	xmail_native_imap* pImap = xmail_native_imap_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 
 	return (pImap != NULL) &&
 		xmail_native_deadline(iTimeoutMilliseconds, &iDeadline) &&
@@ -343,7 +344,7 @@ bool xmail_imap_continue(
 bool xmail_imap_receive(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_imap* pImap = xmail_native_imap_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 	ximapevent Event;
 
 	return (pImap != NULL) &&
@@ -365,7 +366,7 @@ bool xmail_imap_begin(
 )
 {
 	xmail_native_imap* pImap = xmail_native_imap_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 
 	return (pImap != NULL) &&
 		xmail_native_deadline(iTimeoutMilliseconds, &iDeadline) &&
@@ -381,7 +382,7 @@ bool xmail_imap_begin(
 int64 xmail_imap_next(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_imap* pImap = xmail_native_imap_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 	ximapevent Event;
 	xmailnext Next;
 
@@ -462,7 +463,7 @@ void* xmail_imap_read_literal(
 )
 {
 	xmail_native_imap* pImap = xmail_native_imap_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 	size_t iRemaining;
 	size_t iCapacity;
 	size_t iRead;
@@ -516,7 +517,7 @@ bool xmail_imap_auth(
 {
 	xmail_native_imap* pImap = xmail_native_imap_require(pHandle);
 	ximapauthconfig Config;
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 
 	if ( (pImap == NULL) || (iMethod > XIMAP_AUTH_OAUTHBEARER) ||
 		!xmail_native_deadline(iTimeoutMilliseconds, &iDeadline) ) {
@@ -545,7 +546,7 @@ bool xmail_imap_simple(
 )
 {
 	xmail_native_imap* pImap = xmail_native_imap_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 
 	if ( (pImap == NULL) ||
 		!xmail_native_deadline(iTimeoutMilliseconds, &iDeadline) ) {
@@ -576,7 +577,7 @@ bool xmail_imap_select(
 )
 {
 	xmail_native_imap* pImap = xmail_native_imap_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 	bool bResult;
 
 	if ( (pImap == NULL) ||
@@ -629,7 +630,7 @@ uint64 xmail_imap_mailbox_value(void* pHandle, int64 iField)
 bool xmail_imap_logout(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_imap* pImap = xmail_native_imap_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 	bool bResult;
 
 	if ( (pImap == NULL) ||
@@ -649,7 +650,7 @@ bool xmail_imap_logout(void* pHandle, int64 iTimeoutMilliseconds)
 bool xmail_imap_close(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_imap* pImap = xmail_native_imap_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 	bool bResult;
 
 	if ( (pImap == NULL) ||

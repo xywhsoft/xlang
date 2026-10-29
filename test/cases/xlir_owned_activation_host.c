@@ -1,3 +1,4 @@
+#include "release/include/xl_clock.h"
 #include <assert.h>
 #include <stdio.h>
 #ifndef XLIR_OWNED_ACTIVATION_SOURCE
@@ -146,9 +147,9 @@ void owned_capture_cycle(int smoke)
     /* Source calls deliberately discard their Future owners. Those drops do
      * not await completion; serialized, finite test producers explicitly
      * observe actual idle before retirement, not a retry after failed fini. */
-    xdeadline idleDeadline=xrtDeadlineAfter(15000000);
+    XL6_DeadlineV1 idleDeadline=xl6DeadlineAfterMillisecondsV1(15000);
     while(!xl6ContinuationExecutorIsIdle(xlir_continuation_executor)){
-        assert(!xrtDeadlineExpired(idleDeadline));xrtThreadYield();
+        assert(!xl6DeadlineExpiredV1(idleDeadline));xrtThreadYield();
     }
     restart_module(); assert(drops == before + 8);
     if (!smoke) {

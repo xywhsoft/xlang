@@ -1,3 +1,4 @@
+#include "xl_clock.h"
 #include "include/xrt_mqtt_net.h"
 #include "mqtt_internal.h"
 
@@ -10,11 +11,11 @@ static void abort_preserving_error(xnetstream* pStream)
     xrtSetErrorTake(error);
 }
 
-static bool budget(xdeadline Deadline, xcancel* pCancel)
+static bool budget(XL6_DeadlineV1 Deadline, xcancel* pCancel)
 {
     if (xrtCancelRequested(pCancel))
         return xmqtt_error(XERR_CANCELLED, "mqtt: operation cancelled");
-    if (xrtDeadlineExpired(Deadline))
+    if (xl6DeadlineExpiredV1(Deadline))
         return xmqtt_error(XERR_TIMEOUT, "mqtt: deadline expired");
     return true;
 }
@@ -22,7 +23,7 @@ static bool budget(xdeadline Deadline, xcancel* pCancel)
 
 
 bool xrtMqttSendFrame(xnetstream* pStream, xbytesview Frame,
-    xdeadline Deadline, xcancel* pCancel)
+    XL6_DeadlineV1 Deadline, xcancel* pCancel)
 {
     xmqttheader header;
     xmqttstatus status;
@@ -48,7 +49,7 @@ bool xrtMqttSendFrame(xnetstream* pStream, xbytesview Frame,
                 xmqtt_error(XERR_IO, "mqtt: stream closed during send");
             goto fail;
         }
-        if (!xrtNetStreamWait(pStream, XNET_STREAM_WAIT_DRAIN, Deadline, pCancel)) goto fail;
+        if (!xrtNetStreamWait(pStream, XNET_STREAM_WAIT_DRAIN,xl6DeadlineRemainingMillisecondsV1(Deadline), pCancel)) goto fail;
     }
     return true;
 fail:
@@ -59,7 +60,7 @@ fail:
 
 
 xbuffer* xrtMqttRecvFrame(xnetstream* pStream, size_t iPacketLimit,
-    xdeadline Deadline, xcancel* pCancel)
+    XL6_DeadlineV1 Deadline, xcancel* pCancel)
 {
     xbuffer* frame;
     xmqttheader header = {0};
@@ -75,7 +76,7 @@ xbuffer* xrtMqttRecvFrame(xnetstream* pStream, size_t iPacketLimit,
     if (!xrtBufferReserve(frame, 5)) goto fail;
 
     /* 等首字节只观察、不消费；空连接等待超时/取消后仍可重试。 */
-    if (!xrtNetStreamWaitAvailable(pStream, 1, Deadline, pCancel)) goto fail;
+    if (!xrtNetStreamWaitAvailable(pStream, 1,xl6DeadlineRemainingMillisecondsV1(Deadline), pCancel)) goto fail;
     for (;;) {
         xnetbytes* bytes;
         xbytesview data;
@@ -83,7 +84,7 @@ xbuffer* xrtMqttRecvFrame(xnetstream* pStream, size_t iPacketLimit,
         size_t needed = header.HeaderSize == 0 ? 1 : header.PacketSize - frame->Size;
         if (!budget(Deadline, pCancel)) goto fail;
         started = true;
-        bytes = xrtNetStreamRecv(pStream, needed, Deadline, pCancel);
+        bytes = xrtNetStreamRecv(pStream, needed,xl6DeadlineRemainingMillisecondsV1(Deadline), pCancel);
         if (bytes == NULL) goto fail;
         data = xrtNetBytesView(bytes);
         if (data.Size == 0 || data.Size > needed) {
@@ -113,7 +114,7 @@ fail:
 
 
 xvalue* xrtMqttHandshake(xnetstream* pStream, xstrview ClientId, xstrview Username,
-    xbytesview Password, uint16 iKeepalive, xdeadline Deadline, xcancel* pCancel)
+    xbytesview Password, uint16 iKeepalive, XL6_DeadlineV1 Deadline, xcancel* pCancel)
 {
     xbuffer* frame = xrtMqttConnect(ClientId, Username, Password, iKeepalive, true);
     xmqttheader header;

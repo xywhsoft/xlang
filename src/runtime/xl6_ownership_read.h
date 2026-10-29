@@ -2,7 +2,7 @@
 #define XL6_OWNERSHIP_READ_H
 #include <stddef.h>
 #include <stdint.h>
-#include "lib/xrt/xrt.h"
+#include "src/common/xl6_xrt.h"
 #include "xl6_code_owner.h"
 #include "xl6_ownership_read_abi.h"
 

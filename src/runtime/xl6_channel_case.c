@@ -189,7 +189,7 @@ XL6_ChannelCaseOwnerV1* xl6ChannelCaseCreateSchemaV1(XL6_SequenceLayoutV1 layout
 bool xl6ChannelOwnedSelectPrepareV1(XL6_ChannelCaseOwnerV1* const* inputs,size_t count,
     XL6_ChannelWaitOptionsV2* options,XL6_ChannelOwnedSelectFrameV1* frame)
 {
-    xdeadline deadline=0;
+    XL6_DeadlineV1 deadline=0;
     if (!frame || frame->count || frame->cases || frame->pins || frame->slots || frame->result ||
         frame->parked || frame->resultBorrowed ||
         !options || !count || count>=UINT32_MAX || count>SIZE_MAX/sizeof(*inputs) ||

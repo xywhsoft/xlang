@@ -13,8 +13,16 @@ file|include/xl_cancellation_retirement.h|%XL6_ROOT%/release/include/xl_cancella
 file|include/__xl_runtime/xl_runtime.h|%XL6_ROOT%/release/include/xl_runtime.h
 file|include/__xl_runtime/xl_extlib_abi.h|%XL6_ROOT%/release/include/xl_extlib_abi.h
 file|include/__xl_runtime/xruntime_decl.h|%XL6_ROOT%/release/include/xruntime_decl.h
+file|include/__xl_runtime/xrt_decl.h|%XL6_ROOT%/release/include/xrt_decl.h
+file|include/__xl_runtime/xl_clock.h|%XL6_ROOT%/release/include/xl_clock.h
 file|lib/libtcc1.a|%XL6_EMBED_TCC_DIST%/lib/libtcc1.a
 # Runtime JIT resolves XRT/xruntime symbols from the host; compatibility paths
 # expose declarations without embedding full implementation products.
 file|lib/xrt/xrt.h|%XL6_ROOT%/release/include/xrt_decl.h
 file|lib/xruntime/xruntime.h|%XL6_ROOT%/release/include/xruntime_decl.h
+
+file|include/xl_clock.h|%XL6_ROOT%/release/include/xl_clock.h
+
+file|include/xrt_decl.h|%XL6_ROOT%/release/include/xrt_decl.h
+
+file|include/xruntime_decl.h|%XL6_ROOT%/release/include/xruntime_decl.h

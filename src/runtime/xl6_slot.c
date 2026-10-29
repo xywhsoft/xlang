@@ -1,5 +1,5 @@
 #define XRT_MODULE_MEMORY
-#include "lib/xrt/xrt.h"
+#include "src/common/xl6_xrt.h"
 #include "xl6_slot.h"
 #include "xl6_ownership_scope.h"
 #include <string.h>

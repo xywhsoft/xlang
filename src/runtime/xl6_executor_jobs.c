@@ -1,7 +1,7 @@
 #define XRT_MODULE_EXECUTOR
 #define XRUNTIME_MODULE_RUNTIME_CALL
 #define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
-#include "lib/xruntime/xruntime.h"
+#include "src/common/xl6_xrt.h"
 #include "xl6_executor_jobs.h"
 #include "xl6_detached_work.h"
 #include "xl6_concurrent_deadline.h"
@@ -76,9 +76,9 @@ bool xl6ExecutorWaitV1(xexecutor* executor,XL6_ExecutionFailuresV1* state,int64_
 {
     if(status)*status=XL6_EXECUTOR_TIMEOUT_V1;
     if(!status||!state||!executor){xrtSetErrorKind(XERR_ARGUMENT);return false;}
-    xdeadline deadline;
+    XL6_DeadlineV1 deadline;
     if(!xl6ConcurrentDeadline(milliseconds,&deadline))return false;
-    xwaitresult result=xrtExecutorWaitUntil(executor,deadline);
+    xwaitresult result=xrtExecutorWaitFor(executor,xl6DeadlineRemainingMillisecondsV1(deadline));
     if(result==XWAIT_TIMEOUT)return true;
     if(result!=XWAIT_OK)return false;
     *status=XL6_EXECUTOR_READY_V1;return xl6ExecutionFailuresCheckV1(state);

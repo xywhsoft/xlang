@@ -6,7 +6,7 @@ xfuture* xl6TlsStreamRecvAsyncCancelV1(XL6_RuntimeServicesV1 services,void* rece
     if(!services.executor){xrtSetErrorKind(XERR_ARGUMENT);return xl6TlsFutureFailV1(NULL,NULL);}
     void* capture=xl6TlsIoFuturePrepareV1(XL6_TLS_IO_RECEIVE_V1,receiver,maximum,(xbytesview){0});
     if(!capture)return NULL;
-    if(!xl6FutureCallbackInterruptArmV1(capture,parent,services.deadline,XRT_DEADLINE_NEVER))return xl6TlsFutureFailV1(capture,NULL);
+    if(!xl6FutureCallbackInterruptArmV1(capture,parent,services.deadline,XL6_DEADLINE_NEVER))return xl6TlsFutureFailV1(capture,NULL);
     bool stopped=xl6FutureCallbackInterruptStoppedV1(capture);
     xfuture* source=stopped?NULL:xl6TlsIoSourceV1(XL6_TLS_IO_RECEIVE_V1,receiver,maximum,(xbytesview){0});
     if(!source&&!stopped)return xl6TlsFutureFailV1(capture,NULL);
@@ -43,7 +43,7 @@ xfuture* xl6TlsStreamRecvAsyncUntilCancelV1(XL6_RuntimeServicesV1 services,void*
 }
 xfuture* xl6TlsStreamRecvAsyncTimeoutV1(XL6_RuntimeServicesV1 services,void* receiver,int64_t maximum,int64_t millis)
 {
-    xdeadline due;if(!xl6ConcurrentDeadline(millis,&due)){return xl6TlsFutureFailV1(NULL,NULL);}
+    XL6_DeadlineV1 due;if(!xl6ConcurrentDeadline(millis,&due)){return xl6TlsFutureFailV1(NULL,NULL);}
     if(!services.executor){xrtSetErrorKind(XERR_ARGUMENT);return xl6TlsFutureFailV1(NULL,NULL);}
     void* capture=xl6TlsIoFuturePrepareV1(XL6_TLS_IO_RECEIVE_V1,receiver,maximum,(xbytesview){0});
     if(!capture)return NULL;
@@ -57,7 +57,7 @@ xfuture* xl6TlsStreamRecvAsyncTimeoutV1(XL6_RuntimeServicesV1 services,void* rec
 }
 xfuture* xl6TlsStreamRecvAsyncTimeoutCancelV1(XL6_RuntimeServicesV1 services,void* receiver,int64_t maximum,void* parent,int64_t millis)
 {
-    xdeadline due;if(!xl6ConcurrentDeadline(millis,&due)){return xl6TlsFutureFailV1(NULL,NULL);}
+    XL6_DeadlineV1 due;if(!xl6ConcurrentDeadline(millis,&due)){return xl6TlsFutureFailV1(NULL,NULL);}
     if(!parent){xrtSetErrorKind(XERR_ARGUMENT);return xl6TlsFutureFailV1(NULL,NULL);}
     if(!services.executor){xrtSetErrorKind(XERR_ARGUMENT);return xl6TlsFutureFailV1(NULL,NULL);}
     void* capture=xl6TlsIoFuturePrepareV1(XL6_TLS_IO_RECEIVE_V1,receiver,maximum,(xbytesview){0});
@@ -76,7 +76,7 @@ xfuture* xl6TlsStreamWaitAsyncCancelV1(XL6_RuntimeServicesV1 services,void* rece
     if(!services.executor){xrtSetErrorKind(XERR_ARGUMENT);return xl6TlsFutureFailV1(NULL,NULL);}
     void* capture=xl6TlsIoFuturePrepareV1(XL6_TLS_IO_WAIT_V1,receiver,condition,(xbytesview){0});
     if(!capture)return NULL;
-    if(!xl6FutureCallbackInterruptArmV1(capture,parent,services.deadline,XRT_DEADLINE_NEVER))return xl6TlsFutureFailV1(capture,NULL);
+    if(!xl6FutureCallbackInterruptArmV1(capture,parent,services.deadline,XL6_DEADLINE_NEVER))return xl6TlsFutureFailV1(capture,NULL);
     bool stopped=xl6FutureCallbackInterruptStoppedV1(capture);
     xfuture* source=stopped?NULL:xl6TlsIoSourceV1(XL6_TLS_IO_WAIT_V1,receiver,condition,(xbytesview){0});
     if(!source&&!stopped)return xl6TlsFutureFailV1(capture,NULL);
@@ -113,7 +113,7 @@ xfuture* xl6TlsStreamWaitAsyncUntilCancelV1(XL6_RuntimeServicesV1 services,void*
 }
 xfuture* xl6TlsStreamWaitAsyncTimeoutV1(XL6_RuntimeServicesV1 services,void* receiver,int64_t condition,int64_t millis)
 {
-    xdeadline due;if(!xl6ConcurrentDeadline(millis,&due)){return xl6TlsFutureFailV1(NULL,NULL);}
+    XL6_DeadlineV1 due;if(!xl6ConcurrentDeadline(millis,&due)){return xl6TlsFutureFailV1(NULL,NULL);}
     if(!services.executor){xrtSetErrorKind(XERR_ARGUMENT);return xl6TlsFutureFailV1(NULL,NULL);}
     void* capture=xl6TlsIoFuturePrepareV1(XL6_TLS_IO_WAIT_V1,receiver,condition,(xbytesview){0});
     if(!capture)return NULL;
@@ -127,7 +127,7 @@ xfuture* xl6TlsStreamWaitAsyncTimeoutV1(XL6_RuntimeServicesV1 services,void* rec
 }
 xfuture* xl6TlsStreamWaitAsyncTimeoutCancelV1(XL6_RuntimeServicesV1 services,void* receiver,int64_t condition,void* parent,int64_t millis)
 {
-    xdeadline due;if(!xl6ConcurrentDeadline(millis,&due)){return xl6TlsFutureFailV1(NULL,NULL);}
+    XL6_DeadlineV1 due;if(!xl6ConcurrentDeadline(millis,&due)){return xl6TlsFutureFailV1(NULL,NULL);}
     if(!parent){xrtSetErrorKind(XERR_ARGUMENT);return xl6TlsFutureFailV1(NULL,NULL);}
     if(!services.executor){xrtSetErrorKind(XERR_ARGUMENT);return xl6TlsFutureFailV1(NULL,NULL);}
     void* capture=xl6TlsIoFuturePrepareV1(XL6_TLS_IO_WAIT_V1,receiver,condition,(xbytesview){0});
@@ -147,7 +147,7 @@ xfuture* xl6TlsStreamSendTextAsyncCancelV1(XL6_RuntimeServicesV1 services,void* 
     xbytesview data;if(!xl6TlsTextInputV1(input,size,&data)){return xl6TlsFutureFailV1(NULL,NULL);}
     void* capture=xl6TlsIoFuturePrepareV1(XL6_TLS_IO_SEND_V1,receiver,0,data);
     if(!capture)return NULL;
-    if(!xl6FutureCallbackInterruptArmV1(capture,parent,services.deadline,XRT_DEADLINE_NEVER))return xl6TlsFutureFailV1(capture,NULL);
+    if(!xl6FutureCallbackInterruptArmV1(capture,parent,services.deadline,XL6_DEADLINE_NEVER))return xl6TlsFutureFailV1(capture,NULL);
     bool stopped=xl6FutureCallbackInterruptStoppedV1(capture);
     xfuture* source=stopped?NULL:xl6TlsIoSourceV1(XL6_TLS_IO_SEND_V1,receiver,0,data);
     if(!source&&!stopped)return xl6TlsFutureFailV1(capture,NULL);
@@ -186,7 +186,7 @@ xfuture* xl6TlsStreamSendTextAsyncUntilCancelV1(XL6_RuntimeServicesV1 services,v
 }
 xfuture* xl6TlsStreamSendTextAsyncTimeoutV1(XL6_RuntimeServicesV1 services,void* receiver,xstrview input,int64_t size,int64_t millis)
 {
-    xdeadline due;if(!xl6ConcurrentDeadline(millis,&due)){return xl6TlsFutureFailV1(NULL,NULL);}
+    XL6_DeadlineV1 due;if(!xl6ConcurrentDeadline(millis,&due)){return xl6TlsFutureFailV1(NULL,NULL);}
     if(!services.executor){xrtSetErrorKind(XERR_ARGUMENT);return xl6TlsFutureFailV1(NULL,NULL);}
     xbytesview data;if(!xl6TlsTextInputV1(input,size,&data)){return xl6TlsFutureFailV1(NULL,NULL);}
     void* capture=xl6TlsIoFuturePrepareV1(XL6_TLS_IO_SEND_V1,receiver,0,data);
@@ -201,7 +201,7 @@ xfuture* xl6TlsStreamSendTextAsyncTimeoutV1(XL6_RuntimeServicesV1 services,void*
 }
 xfuture* xl6TlsStreamSendTextAsyncTimeoutCancelV1(XL6_RuntimeServicesV1 services,void* receiver,xstrview input,int64_t size,void* parent,int64_t millis)
 {
-    xdeadline due;if(!xl6ConcurrentDeadline(millis,&due)){return xl6TlsFutureFailV1(NULL,NULL);}
+    XL6_DeadlineV1 due;if(!xl6ConcurrentDeadline(millis,&due)){return xl6TlsFutureFailV1(NULL,NULL);}
     if(!parent){xrtSetErrorKind(XERR_ARGUMENT);return xl6TlsFutureFailV1(NULL,NULL);}
     if(!services.executor){xrtSetErrorKind(XERR_ARGUMENT);return xl6TlsFutureFailV1(NULL,NULL);}
     xbytesview data;if(!xl6TlsTextInputV1(input,size,&data)){return xl6TlsFutureFailV1(NULL,NULL);}
@@ -222,7 +222,7 @@ xfuture* xl6TlsStreamSendBytesAsyncCancelV1(XL6_RuntimeServicesV1 services,void*
     xbytesview data;if(!xl6TlsBytesInputV1(input,size,&data)){return xl6TlsFutureFailV1(NULL,NULL);}
     void* capture=xl6TlsIoFuturePrepareV1(XL6_TLS_IO_SEND_V1,receiver,0,data);
     if(!capture)return NULL;
-    if(!xl6FutureCallbackInterruptArmV1(capture,parent,services.deadline,XRT_DEADLINE_NEVER))return xl6TlsFutureFailV1(capture,NULL);
+    if(!xl6FutureCallbackInterruptArmV1(capture,parent,services.deadline,XL6_DEADLINE_NEVER))return xl6TlsFutureFailV1(capture,NULL);
     bool stopped=xl6FutureCallbackInterruptStoppedV1(capture);
     xfuture* source=stopped?NULL:xl6TlsIoSourceV1(XL6_TLS_IO_SEND_V1,receiver,0,data);
     if(!source&&!stopped)return xl6TlsFutureFailV1(capture,NULL);
@@ -261,7 +261,7 @@ xfuture* xl6TlsStreamSendBytesAsyncUntilCancelV1(XL6_RuntimeServicesV1 services,
 }
 xfuture* xl6TlsStreamSendBytesAsyncTimeoutV1(XL6_RuntimeServicesV1 services,void* receiver,const xvalue* input,int64_t size,int64_t millis)
 {
-    xdeadline due;if(!xl6ConcurrentDeadline(millis,&due)){return xl6TlsFutureFailV1(NULL,NULL);}
+    XL6_DeadlineV1 due;if(!xl6ConcurrentDeadline(millis,&due)){return xl6TlsFutureFailV1(NULL,NULL);}
     if(!services.executor){xrtSetErrorKind(XERR_ARGUMENT);return xl6TlsFutureFailV1(NULL,NULL);}
     xbytesview data;if(!xl6TlsBytesInputV1(input,size,&data)){return xl6TlsFutureFailV1(NULL,NULL);}
     void* capture=xl6TlsIoFuturePrepareV1(XL6_TLS_IO_SEND_V1,receiver,0,data);
@@ -276,7 +276,7 @@ xfuture* xl6TlsStreamSendBytesAsyncTimeoutV1(XL6_RuntimeServicesV1 services,void
 }
 xfuture* xl6TlsStreamSendBytesAsyncTimeoutCancelV1(XL6_RuntimeServicesV1 services,void* receiver,const xvalue* input,int64_t size,void* parent,int64_t millis)
 {
-    xdeadline due;if(!xl6ConcurrentDeadline(millis,&due)){return xl6TlsFutureFailV1(NULL,NULL);}
+    XL6_DeadlineV1 due;if(!xl6ConcurrentDeadline(millis,&due)){return xl6TlsFutureFailV1(NULL,NULL);}
     if(!parent){xrtSetErrorKind(XERR_ARGUMENT);return xl6TlsFutureFailV1(NULL,NULL);}
     if(!services.executor){xrtSetErrorKind(XERR_ARGUMENT);return xl6TlsFutureFailV1(NULL,NULL);}
     xbytesview data;if(!xl6TlsBytesInputV1(input,size,&data)){return xl6TlsFutureFailV1(NULL,NULL);}
@@ -297,7 +297,7 @@ xfuture* xl6TlsStreamSendBufferAsyncCancelV1(XL6_RuntimeServicesV1 services,void
     xbytesview data;if(!xl6TlsBufferInputV1(input,size,&data)){return xl6TlsFutureFailV1(NULL,NULL);}
     void* capture=xl6TlsIoFuturePrepareV1(XL6_TLS_IO_SEND_V1,receiver,0,data);
     if(!capture)return NULL;
-    if(!xl6FutureCallbackInterruptArmV1(capture,parent,services.deadline,XRT_DEADLINE_NEVER))return xl6TlsFutureFailV1(capture,NULL);
+    if(!xl6FutureCallbackInterruptArmV1(capture,parent,services.deadline,XL6_DEADLINE_NEVER))return xl6TlsFutureFailV1(capture,NULL);
     bool stopped=xl6FutureCallbackInterruptStoppedV1(capture);
     xfuture* source=stopped?NULL:xl6TlsIoSourceV1(XL6_TLS_IO_SEND_V1,receiver,0,data);
     if(!source&&!stopped)return xl6TlsFutureFailV1(capture,NULL);
@@ -336,7 +336,7 @@ xfuture* xl6TlsStreamSendBufferAsyncUntilCancelV1(XL6_RuntimeServicesV1 services
 }
 xfuture* xl6TlsStreamSendBufferAsyncTimeoutV1(XL6_RuntimeServicesV1 services,void* receiver,void* input,int64_t size,int64_t millis)
 {
-    xdeadline due;if(!xl6ConcurrentDeadline(millis,&due)){return xl6TlsFutureFailV1(NULL,NULL);}
+    XL6_DeadlineV1 due;if(!xl6ConcurrentDeadline(millis,&due)){return xl6TlsFutureFailV1(NULL,NULL);}
     if(!services.executor){xrtSetErrorKind(XERR_ARGUMENT);return xl6TlsFutureFailV1(NULL,NULL);}
     xbytesview data;if(!xl6TlsBufferInputV1(input,size,&data)){return xl6TlsFutureFailV1(NULL,NULL);}
     void* capture=xl6TlsIoFuturePrepareV1(XL6_TLS_IO_SEND_V1,receiver,0,data);
@@ -351,7 +351,7 @@ xfuture* xl6TlsStreamSendBufferAsyncTimeoutV1(XL6_RuntimeServicesV1 services,voi
 }
 xfuture* xl6TlsStreamSendBufferAsyncTimeoutCancelV1(XL6_RuntimeServicesV1 services,void* receiver,void* input,int64_t size,void* parent,int64_t millis)
 {
-    xdeadline due;if(!xl6ConcurrentDeadline(millis,&due)){return xl6TlsFutureFailV1(NULL,NULL);}
+    XL6_DeadlineV1 due;if(!xl6ConcurrentDeadline(millis,&due)){return xl6TlsFutureFailV1(NULL,NULL);}
     if(!parent){xrtSetErrorKind(XERR_ARGUMENT);return xl6TlsFutureFailV1(NULL,NULL);}
     if(!services.executor){xrtSetErrorKind(XERR_ARGUMENT);return xl6TlsFutureFailV1(NULL,NULL);}
     xbytesview data;if(!xl6TlsBufferInputV1(input,size,&data)){return xl6TlsFutureFailV1(NULL,NULL);}

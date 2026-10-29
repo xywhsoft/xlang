@@ -6,7 +6,11 @@
 #define XRT_MODULE_ATOMIC
 #define XRT_MODULE_MEMORY_DEBUG
 #define XRT_MODULE_TASK_POOL
+#ifndef XRT_MODULE_WAIT
+#define XRT_MODULE_WAIT
+#endif
 #include "lib/xrt/xrt.h"
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_task_frame.c"
 #include "src/runtime/xl6_task_pool_internal.h"
 #include <assert.h>
@@ -27,8 +31,8 @@ static void release(void* raw)
     /* The host callback runs outside RC mutation, so graph admission remains
      * possible. BUSY must come from the real activity, not a held freeze. */
     xrtownershipscope freeze={0};
-    xdeadline deadline=xrtDeadlineAfter(UINT64_C(5000000));
-    while(!xrtOwnershipFreezeTryBegin(&freeze)){assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
+    while(!xrtOwnershipFreezeTryBegin(&freeze)){assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
     assert(xrtOwnershipScopeEnd(&freeze));xrtAtomic32Store(&tail->freeze,1,XMEMORY_RELEASE);
     if(tail->failAllocation)xrtMemDebugFailAfter(0);
     XL6_ModulePrepareResult result=xl6TaskPoolTryQuiesceV1(tail->pool);

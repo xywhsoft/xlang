@@ -19,7 +19,7 @@
     "include/xhttp/features.h": "6a0b6c43b9e0ccc6b0ef3b8fc9a861d362587cb3338abfef0d3cbd356e6f2448",
     "include/xrt/http_client.h": "c8ce66caf3bea74e268c3c4986592405909d8c667816994bf92de2dc419506f6",
     "include/xrt/http_client_future.h": "fc9da03bb79282a348ac19df9137ac588d43d36f4ec87461416cfafc3f722442",
-    "include/xrt/http_client_runtime.h": "f7fc2fabf731f67c721e3421e54904fed1d10eec7daaf85f13fae92717185c3d",
+    "include/xrt/http_client_runtime.h": "c95774f881389e1fab02e7529e9af62ee7e1969c74f1a211d0096b30c69efc56",
     "include/xrt/http_client_stream.h": "53b54480ba8b2a86cff6e356f8225930cb3694e514ef50d9c111769a54eb046d",
     "include/xrt/http_exchange.h": "71d68a8b59426b40f1e62aff537e7a3fb8f6c0d81e5d5426048ea69b8f50cff1",
     "src/http/http_client_exchange.c": "4abae3af5c1c12320fb78c7f8c927a1ca74e46c22994c869d6f9d20025e04a02",
@@ -35,12 +35,15 @@
     "src/http/http_client_request_te.c": "48a1f49657a43ff37fc47dbd71d23b894ea19147f781e52622c596c0021c7fb6",
     "src/http/http_client_request_trailers.c": "6a8a81a621af852c54711f5929bf9b1318badd6c787c94fbefc2fe4e8ba17924",
     "src/http/http_client_response.c": "996ac246afdc0b3be58496350cb9d41fd6811ef6ca41f235a9697cabe0fff86f",
-    "src/http/http_client_runtime.c": "d0d7100d7fe4485065f72a0977039e282d43dd63d853a23fb0d0b9feb20d1d49",
+    "src/http/http_client_runtime.c": "007b5109a58f8b3ddb32a20432ada87fb96a233e4d210297b153a5291e63ef51",
     "src/http/http_client_stream.c": "51b12fca9f12908412ba57f1d17cee49e00287b1d4389b41dc577423ba5af045",
     "src/http/http_client_tcp.c": "6268d9ae5c5e3885bd4628d12c198292767e1a13a1080d2fd68375f67791508f",
     "src/internal/xrt_http_client.h": "30d8a4e768cef7dccb0290be91c780af7f22c5b97699e71a3e6817ef3ae3e8cd",
-    "src/internal/xrt_http_client_runtime.h": "0f5e8bc8da613cdc1a746bac0ac2e750f1963ea093a5077a0820bed558872f2a",
+    "src/internal/xrt_http_client_runtime.h": "2d4510cf4968d7bdb1dbb689f25c80cd4d48a395e3c2f3c7a9ca221642d0203a",
     "src/internal/xrt_http_client_stream.h": "d2db59f5873c026e12c19fe111a3732ae657b6a19c26be57d421b828082c6cf7",
     "src/internal/xrt_http_exchange.h": "ae83e55484fe53fef455249534e3c43ab39ffe840bc1042913e69e8cada69cd2"
-  }
+  },
+  "adaptations": [
+    "current XRT millisecond clock and relative wait ABI"
+  ]
 }

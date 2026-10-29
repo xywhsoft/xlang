@@ -1,3 +1,4 @@
+#include "include/xl_clock.h"
 #define XRT_MODULE_TIME_LOCAL
 #define XRT_MODULE_TIME_TEXT
 #include "xrt.h"
@@ -236,7 +237,7 @@ int main(void)
         xtime utcMoment = 0;
         xtime now = xrtNow();
         xdatetime localMoment;
-        uint64 clock = xrtClock();
+        uint64 clock = xl6MonotonicMillisecondsV1();
         xdatetime localDateTime;
         bool systemOk =
             xrtTimeFromUnix(unixSeconds, &unixMoment) &&
@@ -249,7 +250,7 @@ int main(void)
             unixMoment == releaseMoment &&
             utcMoment == releaseMoment &&
             xrtYear(xrtDatePart(now)) >= 1970 &&
-            xrtClock() >= clock &&
+            xl6MonotonicMillisecondsV1() >= clock &&
             xrtYear(now) >= 1970 &&
             localDateTime.Offset > -86400 &&
             localDateTime.Offset < 86400);

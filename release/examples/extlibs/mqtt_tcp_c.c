@@ -1,3 +1,4 @@
+#include "include/xl_clock.h"
 #define XRT_MODULE_THREAD
 #include "../../extlibs/mqtt/include/xrt_mqtt_net.h"
 #include <assert.h>
@@ -8,13 +9,13 @@
 static void mqtt_example_send(xnetstream* stream, xbuffer* frame)
 {
     assert(frame != NULL);
-    assert(xrtMqttSendFrame(stream, xrtBufferView(frame), xrtDeadlineAfter(5000000), NULL));
+    assert(xrtMqttSendFrame(stream, xrtBufferView(frame), xl6DeadlineAfterMillisecondsV1(5000), NULL));
     xrtBufferDestroy(frame);
 }
 
 static xvalue* mqtt_example_recv(xnetstream* stream)
 {
-    xbuffer* frame = xrtMqttRecvFrame(stream, 4096, xrtDeadlineAfter(5000000), NULL);
+    xbuffer* frame = xrtMqttRecvFrame(stream, 4096, xl6DeadlineAfterMillisecondsV1(5000), NULL);
     xvalue* object;
     assert(frame != NULL);
     object = xrtMqttParse(xrtBufferView(frame));
@@ -49,7 +50,7 @@ int main(void)
     xnetstream* peer;
     xnetaddr address;
     xnetenginestats stats;
-    xdeadline deadline;
+    XL6_DeadlineV1 deadline;
     xvalue* object;
     xstrview text, payload;
     uint16 id;
@@ -65,8 +66,8 @@ int main(void)
     assert(listener != NULL && xrtNetListenerLocal(listener, &address));
     client = xrtNetStreamConnect(engine, &address, 0, &listen_config.Stream, NULL, NULL);
     assert(client != NULL);
-    assert(xrtNetStreamWait(client, XNET_STREAM_WAIT_OPEN, xrtDeadlineAfter(5000000), NULL));
-    peer = xrtNetListenerAcceptWait(listener, xrtDeadlineAfter(5000000), NULL);
+    assert(xrtNetStreamWait(client, XNET_STREAM_WAIT_OPEN, xl6DeadlineAfterMillisecondsV1(5000), NULL));
+    peer = xrtNetListenerAcceptWait(listener, xl6DeadlineAfterMillisecondsV1(5000), NULL);
     assert(peer != NULL);
 
     mqtt_example_send(client, xrtMqttConnect(xrtStrView("sensor-1"), xrtStrView(""),
@@ -103,11 +104,11 @@ int main(void)
     xrtNetStreamDestroy(client);
     xrtNetStreamDestroy(peer);
     xrtNetListenerDestroy(listener);
-    deadline = xrtDeadlineAfter(5000000);
+    deadline = xl6DeadlineAfterMillisecondsV1(5000);
     do {
         assert(xrtNetEngineStats(engine, &stats));
         if (stats.LiveObjects == 0) break;
-        assert(!xrtDeadlineExpired(deadline));
+        assert(!xl6DeadlineExpiredV1(deadline));
         xrtSleep(1);
     } while (true);
     assert(xrtNetEngineStop(engine) && xrtNetEngineDestroy(engine));

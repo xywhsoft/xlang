@@ -100,7 +100,7 @@ def main():
             assert modules<=set(plan['NativeModules'])
             assert not ({'XRT_MODULE_CHANNEL_CANCEL','XRT_MODULE_CHANNEL_SELECT','XRT_MODULE_CHANNEL_SELECT_CANCEL'}-modules)&set(plan['NativeModules'])
             native=out/(symbol+'.native.c'); native.write_text(''.join('#define '+name+'\n' for name in plan['NativeModules'])+
-                '#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n',encoding='utf8')
+                '#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"\n',encoding='utf8')
             report['Products'].append(dict(Path=str(native),Sha256=digest(native)))
             binary=out/(symbol+'.pruned'+('.exe' if win else ''))
             systems=['-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32'] if win else ['-pthread','-ldl','-lm']

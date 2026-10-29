@@ -29,12 +29,12 @@ failed:
 
 static XL6_ModuleRetireResult engine_wait_objects(xnetengine* engine)
 {
-    xdeadline deadline = xrtDeadlineAfter(5000000u);
+    XL6_DeadlineV1 deadline = xl6DeadlineAfterMillisecondsV1(5000);
     xnetenginestats stats;
     for (;;) {
         if (!xrtNetEngineStats(engine, &stats)) return XL6_MODULE_RETIRE_FAILED;
         if (stats.LiveObjects == 0) return XL6_MODULE_RETIRE_READY;
-        if (xrtDeadlineExpired(deadline)) return XL6_MODULE_RETIRE_BUSY;
+        if (xl6DeadlineExpiredV1(deadline)) return XL6_MODULE_RETIRE_BUSY;
         xrtSleep(1);
     }
 }

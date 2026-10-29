@@ -27,15 +27,15 @@ void mqtt_test_open(mqtt_test_pair* pair)
     assert(pair->Listener != NULL && xrtNetListenerLocal(pair->Listener, &local));
     pair->Client = xrtNetStreamConnect(pair->Engine, &local, 0, &listen_config.Stream, NULL, NULL);
     assert(pair->Client != NULL);
-    assert(xrtNetStreamWait(pair->Client, XNET_STREAM_WAIT_OPEN, xrtDeadlineAfter(5000000), NULL));
-    pair->Peer = xrtNetListenerAcceptWait(pair->Listener, xrtDeadlineAfter(5000000), NULL);
+    assert(xrtNetStreamWait(pair->Client, XNET_STREAM_WAIT_OPEN, 5000, NULL));
+    pair->Peer = xrtNetListenerAcceptWait(pair->Listener, 5000, NULL);
     assert(pair->Peer != NULL);
 }
 
 void mqtt_test_close(mqtt_test_pair* pair)
 {
     xnetenginestats stats;
-    xdeadline deadline = xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 deadline = xl6DeadlineAfterMillisecondsV1(5000);
     assert(xrtNetStreamAbort(pair->Client));
     assert(xrtNetStreamAbort(pair->Peer));
     assert(xrtNetListenerClose(pair->Listener));
@@ -46,7 +46,7 @@ void mqtt_test_close(mqtt_test_pair* pair)
     do {
         assert(xrtNetEngineStats(pair->Engine, &stats));
         if (stats.LiveObjects == 0) break;
-        assert(!xrtDeadlineExpired(deadline));
+        assert(!xl6DeadlineExpiredV1(deadline));
         xrtSleep(1);
     } while (true);
     if (!xrtNetEngineStop(pair->Engine)) {
@@ -61,7 +61,7 @@ void mqtt_test_close(mqtt_test_pair* pair)
 void mqtt_test_send(xnetstream* stream, xbytesview data)
 {
     assert(xrtNetStreamSend(stream, data.Data, data.Size) == XNET_RESULT_OK);
-    assert(xrtNetStreamWait(stream, XNET_STREAM_WAIT_DRAIN, xrtDeadlineAfter(5000000), NULL));
+    assert(xrtNetStreamWait(stream, XNET_STREAM_WAIT_DRAIN, 5000, NULL));
 }
 
 
@@ -76,7 +76,7 @@ static int32 broker(void* context)
 {
     mqtt_fixture* fixture = context;
     xnetstream* peer = fixture->Pair.Peer;
-    xbuffer* frame = xrtMqttRecvFrame(peer, 65536, xrtDeadlineAfter(5000000), NULL);
+    xbuffer* frame = xrtMqttRecvFrame(peer, 65536, xl6DeadlineAfterMillisecondsV1(5000), NULL);
     xvalue* request;
     xmqttmessage publish;
     static const uint8 ack_prefix[] = {0x20, 2, 0};
@@ -92,7 +92,7 @@ static int32 broker(void* context)
         xrtSleep(5);
     }
     mqtt_test_send(peer, (xbytesview){ack_tail, sizeof(ack_tail)});
-    frame = xrtMqttRecvFrame(peer, 65536, xrtDeadlineAfter(10000000), NULL);
+    frame = xrtMqttRecvFrame(peer, 65536, xl6DeadlineAfterMillisecondsV1(10000), NULL);
     if (frame == NULL) return 3;
     if (!xrtMqttPublishView(xrtBufferView(frame), &publish) ||
         publish.PacketId != 7 || publish.Payload.Size != 16384) {
@@ -105,7 +105,7 @@ static int32 broker(void* context)
     xrtBufferDestroy(frame);
     frame = xrtMqttPuback(7);
     if (frame == NULL) return 6;
-    if (!xrtMqttSendFrame(peer, xrtBufferView(frame), xrtDeadlineAfter(5000000), NULL)) {
+    if (!xrtMqttSendFrame(peer, xrtBufferView(frame), xl6DeadlineAfterMillisecondsV1(5000), NULL)) {
         xrtBufferDestroy(frame);
         return 7;
     }
@@ -132,7 +132,7 @@ void* mqtt_fixture_client(void* handle)
 bool mqtt_fixture_close(void* handle)
 {
     mqtt_fixture* fixture = handle;
-    bool ok = xrtThreadWaitFor(fixture->Thread, 10000000) == XWAIT_OK;
+    bool ok = xrtThreadWaitFor(fixture->Thread, 10000) == XWAIT_OK;
     if (ok) ok = xrtThreadExitCode(fixture->Thread) == 0;
     assert(ok);
     xrtThreadDestroy(fixture->Thread);

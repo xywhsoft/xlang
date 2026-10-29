@@ -223,9 +223,9 @@ static void check_stream(void)
     writer = xrtThreadCreate(stream_writer, port, 0);
     reader = xrtThreadCreate(stream_reader, port, 0);
     assert(writer != NULL && reader != NULL);
-    /* XRT 等待单位为微秒，给调度与诊断构建保留完整的 10 秒预算。 */
-    assert(xrtThreadWaitFor(writer, 10000000) == XWAIT_OK);
-    assert(xrtThreadWaitFor(reader, 10000000) == XWAIT_OK);
+    /* XRT 等待单位为毫秒，给调度与诊断构建保留完整的 10 秒预算。 */
+    assert(xrtThreadWaitFor(writer, 10000) == XWAIT_OK);
+    assert(xrtThreadWaitFor(reader, 10000) == XWAIT_OK);
     assert(xrtThreadExitCode(writer) == 0 && xrtThreadExitCode(reader) == 0);
     assert(xserial_available(port) == 0);
     xrtThreadDestroy(writer);

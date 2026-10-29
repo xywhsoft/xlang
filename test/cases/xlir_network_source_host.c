@@ -1,16 +1,17 @@
+#include "release/include/xl_clock.h"
 /* Generated fixture is preincluded; executable and callbacks stay resident. */
-extern uint64_t xrtClock(void);
+extern uint64_t xl6MonotonicMillisecondsV1(void);
 extern void xrtThreadYield(void);
 int main(void)
 {
     int ok = xlir_module_init();
-    uint64_t start = xrtClock();
+    uint64_t start = xl6MonotonicMillisecondsV1();
     if (!ok) {
         const xerror* error = xrtGetError();
         fprintf(stderr, "network source init failed: %s\n", error ? xrtErrorMessage(error) : "without diagnostic");
     }
     while (!xlir_continuation_quiesce(false)) {
-        if (xrtClock() - start > 5000000) { fprintf(stderr, "network source did not retire within 5 seconds\n"); return 2; }
+        if (xl6MonotonicMillisecondsV1() - start > 5000) { fprintf(stderr, "network source did not retire within 5 seconds\n"); return 2; }
         xrtThreadYield();
     }
     xlir_module_fini();

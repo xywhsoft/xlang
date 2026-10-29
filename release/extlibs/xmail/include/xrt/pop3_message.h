@@ -1,3 +1,4 @@
+#include "xl_clock.h"
 #ifndef XRT_POP3_MESSAGE_H
 #define XRT_POP3_MESSAGE_H
 
@@ -34,7 +35,7 @@ XRT_API bool xrtPop3ClientRetrWrite(
 	xmailwriteproc pWrite,
 	ptr pUserData,
 	size_t* pWritten,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
@@ -49,7 +50,7 @@ XRT_API bool xrtPop3ClientTopWrite(
 	xmailwriteproc pWrite,
 	ptr pUserData,
 	size_t* pWritten,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
@@ -61,7 +62,7 @@ XRT_API bytes xrtPop3ClientRetrBytes(
 	uint64 iMessage,
 	size_t iMaxBytes,
 	size_t* pOutputSize,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
@@ -74,7 +75,7 @@ XRT_API bytes xrtPop3ClientTopBytes(
 	uint64 iLines,
 	size_t iMaxBytes,
 	size_t* pOutputSize,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
@@ -86,7 +87,7 @@ XRT_API bool xrtPop3ClientRetrTree(
 	uint64 iMessage,
 	const xmailtreelimits* pLimits,
 	xmailtree* pTree,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 

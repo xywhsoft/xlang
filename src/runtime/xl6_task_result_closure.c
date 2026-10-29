@@ -1,5 +1,5 @@
 #define XRT_MODULE_TASK
-#include "lib/xrt/xrt.h"
+#include "src/common/xl6_xrt.h"
 #include "xl6_task_result_closure.h"
 #include "xl6_task_frame_internal.h"
 #include "src/api/xl_foreign_error.h"

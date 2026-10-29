@@ -503,14 +503,15 @@ static xvalue* xcbor_read_tag(xcborreader* pReader, uint64 iTag, size_t iDepth)
         }
         if (xrtValueType(pValue) == XVALUE_FLOAT &&
             xrtValueGetFloat(pValue, &fSeconds) && isfinite(fSeconds)) {
-            long double rounded = roundl((long double)fSeconds * 1000000.0L);
+            long double rounded = roundl((long double)fSeconds * 1000.0L);
             if (rounded < -0x1p63L || rounded >= 0x1p63L) {
                 xrtValueRelease(pValue);
                 xcbor_error(XERR_RANGE, "CBOR epoch time is out of range");
                 return NULL;
             }
             xrtValueRelease(pValue);
-            return xrtValueTime((xtime)rounded);
+            if (!xrtTimeFromUnixMs((int64)rounded, &Time)) { return NULL; }
+            return xrtValueTime(Time);
         }
         xrtValueRelease(pValue);
         xcbor_error(XERR_VALUE, "CBOR tag 1 must contain epoch seconds");

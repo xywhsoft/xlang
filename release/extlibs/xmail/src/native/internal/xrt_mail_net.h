@@ -1,3 +1,4 @@
+#include "xl_clock.h"
 #ifndef XRT_INTERNAL_MAIL_NET_H
 #define XRT_INTERNAL_MAIL_NET_H
 
@@ -63,7 +64,7 @@ void __xrtMailTextDestroy(__xmailtext* pText);
 bool __xrtMailTransportOpen(
 	__xmailtransport* pTransport,
 	const xmailnetconfig* pConfig,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
@@ -73,7 +74,7 @@ bool __xrtMailTransportSend(
 	__xmailtransport* pTransport,
 	const void* pData,
 	size_t iSize,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
@@ -84,7 +85,7 @@ bool __xrtMailTransportWrite(
 	const void* pData,
 	size_t iSize,
 	bool bFlush,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
@@ -92,7 +93,7 @@ bool __xrtMailTransportWrite(
 
 xnetbytes* __xrtMailTransportRawRecv(
 	__xmailtransport* pTransport,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
@@ -102,7 +103,7 @@ bool __xrtMailTransportRawSend(
 	__xmailtransport* pTransport,
 	const void* pData,
 	size_t iSize,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
@@ -122,7 +123,7 @@ void __xrtMailTransportConsume(__xmailtransport* pTransport);
 bool __xrtMailTransportLine(
 	__xmailtransport* pTransport,
 	xstrview* pLine,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
@@ -133,7 +134,7 @@ bool __xrtMailTransportRead(
 	void* pBuffer,
 	size_t iCapacity,
 	size_t* pRead,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
@@ -141,7 +142,7 @@ bool __xrtMailTransportRead(
 
 bool __xrtMailTransportClose(
 	__xmailtransport* pTransport,
-	xdeadline iDeadline
+	XL6_DeadlineV1 iDeadline
 );
 
 
@@ -168,7 +169,7 @@ bool __xrtMailTransportDeflateSend(
 	const void* pData,
 	size_t iSize,
 	bool bFlush,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
@@ -176,7 +177,7 @@ bool __xrtMailTransportDeflateSend(
 
 bool __xrtMailTransportDeflateFill(
 	__xmailtransport* pTransport,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
@@ -195,7 +196,7 @@ void __xrtMailTransportDeflateDestroy(__xmailtransport* pTransport);
 bool __xrtMailTransportTlsOpen(
 	__xmailtransport* pTransport,
 	const xmailnetconfig* pConfig,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
@@ -204,7 +205,7 @@ bool __xrtMailTransportTlsOpen(
 bool __xrtMailTransportStartTls(
 	__xmailtransport* pTransport,
 	const xmailnetconfig* pConfig,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
@@ -214,7 +215,7 @@ bool __xrtMailTransportTlsSend(
 	__xmailtransport* pTransport,
 	const void* pData,
 	size_t iSize,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
@@ -222,7 +223,7 @@ bool __xrtMailTransportTlsSend(
 
 xnetbytes* __xrtMailTransportTlsRecv(
 	__xmailtransport* pTransport,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
@@ -230,7 +231,7 @@ xnetbytes* __xrtMailTransportTlsRecv(
 
 bool __xrtMailTransportTlsClose(
 	__xmailtransport* pTransport,
-	xdeadline iDeadline
+	XL6_DeadlineV1 iDeadline
 );
 
 

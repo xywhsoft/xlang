@@ -313,7 +313,7 @@ static int text_nul_roundtrip(void) {
     return 0;
 }
 
-/* 固定边界加固定种子，覆盖负秒数的微秒余数和时间戳布局切换。 */
+/* 固定边界加固定种子，覆盖负秒数的毫秒余数和时间戳布局切换。 */
 static int timestamp_matrix(void) {
     static const xtime boundaries[] = {
         INT64_MIN, INT64_MIN + 1, -1000001, -1000000, -999999, -1,

@@ -1,4 +1,6 @@
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
+#include "include/xl_clock.h"
 #include "xl6_native_handle.h"
 #include "xl6_ownership_domain_impl.h"
 extern const XL6_NativeHandlePolicyV1* xl6HttpTeHandlePolicyV2Get(void);

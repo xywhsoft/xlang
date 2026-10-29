@@ -21,11 +21,11 @@ Windows 资源配置及其实际选中的图标/应用清单、项目清单使�
 
 ## 协议
 
-JSON 顶层使用 `schema: 1`、`scope: "xlang-native-build-disk-inputs"`、`complete: true`。`artifact` 和 `files` 的记录包含：
+JSON 顶层使用 `schema: 2`、`scope: "xlang-native-build-disk-inputs"`、`complete: true`。`artifact` 和 `files` 的记录包含：
 
 - 绝对 `path`、原始字节 `size`、64 个十六进制字符的 `sha256`；
 - `metadata.available`、`attributes`；
-- 以字符串表示的 64 位 `device`、`identity`，以及 `modifiedUs`、`changedUs`。
+- 以字符串表示的 64 位 `device`、`identity`，以及 `modifiedMs`、`changedMs`。
 
 `nativeMissing` 是只读打开时缺失的磁盘候选路径；不可读或非普通文件不会被伪装成缺失。`xlangProbes` 保留 xlang 普通文件谓词的路径与布尔值。`packagePathObserved` 和 `XLANG_PACKAGE_PATH` 保留实际观察的环境状态，区分未设置与空字符串。
 

@@ -6,6 +6,7 @@ static int prepare_mixed_module(void);
 #ifndef JOINT_TCC_SOURCE_FILE
 #define JOINT_TCC_SOURCE_FILE "test/cases/xlir_module_mixed_dependency_artifact.c"
 #endif
+#include "release/include/xl_clock.h"
 #include "xlir_module_executor_host.c"
 static atomic_uint callback_finally[3][2];
 static unsigned callback_count;
@@ -19,7 +20,7 @@ static XL6_ModulePrepareResult mixed_preflight(void)
 }
 static int prepare_mixed_module(void)
 {
-    xdeadline deadline = xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 deadline = xl6DeadlineAfterMillisecondsV1(5000);
     while (!xlModulePrepareRetirementUnlocked(module)) {
         /* The host's nonblocking freeze probe can race a native task tail or
          * parked worker transition after quiet_executor released its freeze.
@@ -28,7 +29,7 @@ static int prepare_mixed_module(void)
         assert(!preflight_calls && !module->retirementFailed && !xrtGetError() &&
             !module->ownershipPlan && !module->preparationRefs && !module->retirementRunning && !xl__ownershipDriverRunning);
         ++admission_deferrals; xlApiUnlock();
-        assert(!xrtDeadlineExpired(deadline)); xrtThreadYield(); xlApiLock();
+        assert(!xl6DeadlineExpiredV1(deadline)); xrtThreadYield(); xlApiLock();
     }
     assert(preflight_calls == 1); return 1;
 }

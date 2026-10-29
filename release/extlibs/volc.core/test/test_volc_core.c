@@ -424,7 +424,7 @@ static int32 xvolc_test_worker(ptr data)
     xvolc_state_get()->last_status = 207;
     xvolc_set_error("worker error");
     assert(xrtEventSet(test->ready));
-    assert(xrtEventWaitFor(test->resume, 5000000) == XWAIT_OK);
+    assert(xrtEventWaitFor(test->resume, 5000) == XWAIT_OK);
     test->isolated = strcmp(x_volc_core_last_error(), "worker error") == 0 &&
         x_volc_core_last_status() == 207 &&
         strcmp(digest, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad") == 0;
@@ -441,7 +441,7 @@ static void test_thread_isolation(void)
     assert(test.ready != NULL && test.resume != NULL);
     thread = xrtThreadCreate(xvolc_test_worker, &test, 0);
     assert(thread != NULL);
-    assert(xrtEventWaitFor(test.ready, 5000000) == XWAIT_OK);
+    assert(xrtEventWaitFor(test.ready, 5000) == XWAIT_OK);
     for (int i = 0; i < 16; ++i) {
         assert(x_volc_core_sha256_hex("main") != NULL);
     }

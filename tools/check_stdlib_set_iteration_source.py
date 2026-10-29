@@ -66,7 +66,7 @@ def main():
    for opt in ('O0','O2'):
     lane=tag+'-'+opt; impl=out/(lane+'.runtime.c')
     impl.write_text(''.join('#define '+m+'\n' for m in plan['NativeModules'])+
-     '#define XRT_MODULE_MEMORY_DEBUG\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
+     '#define XRT_MODULE_MEMORY_DEBUG\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
     providers=[]
     for i,s in enumerate([impl,*[root/s for s in plan['Sources']],memory]):
      obj=out/(lane+'-'+str(i)+'.o'); run(lane+'-provider-'+str(i),[cc,*flags,'-'+opt,'-c',s,'-o',obj]); providers.append(obj)
@@ -80,7 +80,7 @@ def main():
      modules=list(dict.fromkeys([*plan['NativeModules'],*factory[0]['NativeModules']]))
      native_impl=out/(lane+'.host-input.runtime.c')
      native_impl.write_text(''.join('#define '+m+'\n' for m in modules)+
-      '#define XRT_MODULE_MEMORY_DEBUG\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
+      '#define XRT_MODULE_MEMORY_DEBUG\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
      native_providers=list(providers[1:])
      for i,s in enumerate([native_impl,*[root/s for s in extra]]):
       obj=out/(lane+'-input-'+str(i)+'.o')

@@ -67,7 +67,7 @@ export func command(TcpStream stream, var args, int timeoutMs = 5000,
         throw ValueError "redis: reply limit must be 1..67108864 bytes"
     end
     uint64 started = time.monotonic()
-    uint64 limitUs = uint64(timeoutMs) * 1000
+    uint64 limitMs = uint64(timeoutMs)
     Buffer payload = encodeBytes(args)
     point frame = __r_frame_create()
     bool synchronized = false
@@ -77,10 +77,10 @@ export func command(TcpStream stream, var args, int timeoutMs = 5000,
             throw ValueError "redis: send failed"
         end
         uint64 elapsed = time.monotonic() - started
-        if elapsed >= limitUs then
+        if elapsed >= limitMs then
             throw ValueError "redis: command timed out"
         end
-        int remainingMs = int((limitUs - elapsed + 999) / 1000)
+        int remainingMs = int(limitMs - elapsed)
         if stream.wait(TcpWait.drain, remainingMs) != NetStatus.ok then
             throw ValueError "redis: send timed out"
         end
@@ -88,23 +88,23 @@ export func command(TcpStream stream, var args, int timeoutMs = 5000,
         bool complete = false
         while not complete
             elapsed = time.monotonic() - started
-            if elapsed >= limitUs then
+            if elapsed >= limitMs then
                 throw ValueError "redis: command timed out"
             end
-            remainingMs = int((limitUs - elapsed + 999) / 1000)
+            remainingMs = int(limitMs - elapsed)
             bytes chunk = b""
             try
                 chunk = stream.recv(65536, remainingMs)
             catch TimeoutError error
                 throw ValueError "redis: command timed out"
             catch ValueError error
-                if time.monotonic() - started >= limitUs then
+                if time.monotonic() - started >= limitMs then
                     throw ValueError "redis: command timed out"
                 end
                 throw ValueError "redis: receive failed: " + error.message
             end
             if chunk.length == 0 then
-                if time.monotonic() - started >= limitUs then
+                if time.monotonic() - started >= limitMs then
                     throw ValueError "redis: command timed out"
                 end
                 throw ValueError "redis: connection closed"

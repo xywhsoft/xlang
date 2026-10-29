@@ -148,9 +148,9 @@ static bool __xrtTomlEncodeTime(xbuffer* pOutput, xtime Time,
 	xdatetime DateTime;
 	char sText[64];
 	if ( !xrtTimeSplit(Time, &DateTime) ) { return false; }
-	snprintf(sText, sizeof(sText), "%04lld-%02d-%02dT%02d:%02d:%02d.%06dZ",
+	snprintf(sText, sizeof(sText), "%04lld-%02d-%02dT%02d:%02d:%02d.%03dZ",
 		(long long)DateTime.Year, DateTime.Month, DateTime.Day, DateTime.Hour,
-		DateTime.Minute, DateTime.Second, DateTime.Microsecond);
+		DateTime.Minute, DateTime.Second, DateTime.Millisecond);
 	return __xrtTomlAppendText(pOutput, sText, pContext);
 }
 

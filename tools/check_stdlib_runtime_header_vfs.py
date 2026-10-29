@@ -37,7 +37,7 @@ def main():
         for reference in re.findall(r'^#\s*include "(include/[^"/]+\.h)"',source.read_text(encoding='utf-8'),re.M)}
     for image in images:
         text=image.read_text(encoding='utf-8')
-        paths=re.findall(r'\{ "([^"\n]+)", tcc_builtin_res_',text)
+        paths=re.findall(r'\{ "([^"\n]+)", tcc_builtin_spans_',text)
         assert paths and len(paths)==len(set(paths)),image
         expected={'include/__xl_runtime/'+header.name.lower() for header in headers}
         assert expected.issubset(paths),(image,sorted(expected-set(paths)))

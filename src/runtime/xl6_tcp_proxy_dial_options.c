@@ -19,8 +19,8 @@ int64_t xl6TcpProxyDialOptionsTimeoutV1(const void* raw)
 {uint64_t value=((const xnetproxydialconfig*)raw)->Timeout;return value?xl6TcpOptionsMillisV1(value):-1;}
 void* xl6TcpProxyDialOptionsWithTimeoutV1(const void* raw,int64_t millis)
 {
-    uint64_t micros;if(!xl6TcpOptionsTimeoutV1(millis,&micros))return NULL;
-    xnetproxydialconfig value=*(const xnetproxydialconfig*)raw;value.Timeout=micros;return publish(&value);
+    uint64_t milliseconds;if(!xl6TcpOptionsTimeoutV1(millis,&milliseconds))return NULL;
+    xnetproxydialconfig value=*(const xnetproxydialconfig*)raw;value.Timeout=milliseconds;return publish(&value);
 }
 uint64_t xl6TcpProxyDialOptionsReceiveLimitV1(const void* raw)
 {return ((const xnetproxydialconfig*)raw)->ReceiveLimit;}

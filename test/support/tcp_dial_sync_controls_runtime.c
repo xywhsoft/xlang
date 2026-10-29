@@ -1,4 +1,5 @@
 #define XL6_TCP_DIAL_INTERRUPT_TEST_ENTRY asyncControlRegressionMain
+#include "release/include/xl_clock.h"
 #include "tcp_dial_interrupt_runtime.c"
 #undef XL6_TCP_DIAL_INTERRUPT_TEST_ENTRY
 #include "src/runtime/xl6_tcp_dial_sync_internal.h"
@@ -8,17 +9,17 @@ typedef struct NativeGate {xatomic32 entered,open,returned;} NativeGate;
 static void native_gate(xnetworker* worker,void* data)
 {
     NativeGate* gate=data;CHECK(worker);xrtAtomic32Store(&gate->entered,1,XMEMORY_RELEASE);
-    xdeadline until=xrtDeadlineAfter(UINT64_C(10000000));
-    while(!xrtAtomic32Load(&gate->open,XMEMORY_ACQUIRE)){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+    XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(10000);
+    while(!xrtAtomic32Load(&gate->open,XMEMORY_ACQUIRE)){CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
     xrtAtomic32Store(&gate->returned,1,XMEMORY_RELEASE);
 }
 static void native_idle(void* engine)
 {
     XL6_ExecutionScopeV1 scope={0};CHECK(xl6ExecutionResourceEnterV1(engine,true,&scope));
-    xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
+    XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){xrtownershipscope frozen={0};if(xrtOwnershipFreezeTryBegin(&frozen)){
         bool busy=xrtNetEngineOwnershipQuiescenceV1Get()->Busy(scope.engine);CHECK(xrtOwnershipScopeEnd(&frozen));if(!busy)break;}
-        CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+        CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
     xl6ExecutionResourceLeaveV1(&scope);
 }
 typedef struct Finish {XL6_ExecutionResourceV1* carrier;xfuture* source;xcancel* parent;uint64_t due;xatomic32 entered,returned;xl6_error_result result;} Finish;
@@ -33,21 +34,21 @@ static void live_stop(XL6_ExecutionServicesV1 services,void* engine,const xnetad
 {
     NativeGate gate={0};XL6_ExecutionScopeV1 scope={0};CHECK(xl6ExecutionResourceEnterV1(engine,true,&scope));
     CHECK(xrtNetEnginePost(scope.engine,0,native_gate,&gate));xl6ExecutionResourceLeaveV1(&scope);
-    xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
-    while(!xrtAtomic32Load(&gate.entered,XMEMORY_ACQUIRE)){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+    XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
+    while(!xrtAtomic32Load(&gate.entered,XMEMORY_ACQUIRE)){CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
     Finish test={.carrier=xl6ExecutionTcpPrepareDialV1(services.source,engine,NULL),.parent=xrtCancelCreate(),
-        .due=timeout?xrtDeadlineAfter(UINT64_C(100000)):XRT_DEADLINE_NEVER};CHECK(test.carrier&&test.parent);
+        .due=timeout?xl6DeadlineAfterMillisecondsV1(100):XL6_DEADLINE_NEVER};CHECK(test.carrier&&test.parent);
     test.source=xl6ExecutionTcpDialAddressesSourceV1(test.carrier,list,NULL);CHECK(test.source&&xrtFutureState(test.source)==XFUTURE_PENDING);
     xfuture* observed=xrtFutureRef(test.source);CHECK(observed);xcancel* requested=xrtFutureCancelToken(observed);CHECK(requested);
     xthread* thread=xrtThreadCreate(finish_thread,&test,0);CHECK(thread);
-    while(!xrtAtomic32Load(&test.entered,XMEMORY_ACQUIRE)){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+    while(!xrtAtomic32Load(&test.entered,XMEMORY_ACQUIRE)){CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
     if(!timeout)CHECK(xrtCancelRequest(test.parent));
-    while(!xrtCancelRequested(requested)){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+    while(!xrtCancelRequested(requested)){CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
     /* Real operation accepted and cancel requested, but its own Worker is
      * still gated. No substitute Future or approximate sleep proves this. */
     CHECK(xrtFutureState(observed)==XFUTURE_PENDING);
-    xdeadline grace=xrtDeadlineAfter(UINT64_C(20000));
-    while(!xrtDeadlineExpired(grace)){CHECK(!xrtAtomic32Load(&test.returned,XMEMORY_ACQUIRE));xrtThreadYield();}
+    XL6_DeadlineV1 grace=xl6DeadlineAfterMillisecondsV1(20);
+    while(!xl6DeadlineExpiredV1(grace)){CHECK(!xrtAtomic32Load(&test.returned,XMEMORY_ACQUIRE));xrtThreadYield();}
     CHECK(xrtFutureState(observed)==XFUTURE_PENDING);
     xrtAtomic32Store(&gate.open,1,XMEMORY_RELEASE);
     CHECK(xrtThreadWaitFor(thread,UINT64_C(5000000))==XWAIT_OK&&xrtThreadExitCode(thread)==0);xrtThreadDestroy(thread);
@@ -76,7 +77,7 @@ static void sync_run(xnetportbackend backend)
     void* listener=xl6TcpListenerCreateV1(services,engine,&listen);CHECK(listener);xnetaddr* address=xl6TcpListenerLocalV1(listener);CHECK(address);
     xnetaddrlist* list=xrtNetAddrListCreate(address,1);CHECK(list);xl6NetAddressDestroyV1(address);
     void* options=xl6TcpDialOptionsCreateV1();xcancel* parent=xrtCancelCreate();CHECK(options&&parent);
-    for(unsigned mode=0;mode<6;++mode){uint64_t due=xrtDeadlineAfter(UINT64_C(5000000));void* stream=NULL;
+    for(unsigned mode=0;mode<6;++mode){uint64_t due=xl6DeadlineAfterMillisecondsV1(5000);void* stream=NULL;
         switch(mode){
         case 0:stream=xl6TcpDialAddressesCancelDefaultV1(services,engine,list,parent);break;
         case 1:stream=xl6TcpDialAddressesCancelV1(services,engine,list,options,parent);break;
@@ -92,25 +93,25 @@ static void sync_run(xnetportbackend backend)
         xfuture* pending=xl6ExecutionTcpDialAddressesSourceV1(carrier,list,NULL);CHECK(pending&&xrtFutureWaitFor(pending,UINT64_C(5000000))==XWAIT_OK);
         xnetstream* observer=xrtNetStreamRef(xrtFutureValue(pending));CHECK(observer);void* peer=xl6TcpListenerAcceptV1(services,listener,5000);CHECK(peer);
         xcancel* stopped=xrtCancelCreate();CHECK(stopped&&xrtCancelRequest(stopped));xl6_error_scope scope={0};CHECK(xl6ErrorScopeBegin(&scope));
-        CHECK(!xl6TcpDialFinishUntilInternalV1(carrier,pending,mode?0:XRT_DEADLINE_NEVER,mode?NULL:stopped));
+        CHECK(!xl6TcpDialFinishUntilInternalV1(carrier,pending,mode?0:XL6_DEADLINE_NEVER,mode?NULL:stopped));
         xl6_error_result error=xl6ErrorScopeEnd(&scope);CHECK(!error.ok&&xrtErrorKind(error.error)==(mode?XERR_TIMEOUT:XERR_CANCELLED));xrtErrorFree(error.error);
-        xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));while(xrtNetStreamState(observer)!=XNET_STREAM_CLOSED){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+        XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);while(xrtNetStreamState(observer)!=XNET_STREAM_CLOSED){CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
         xrtNetStreamDestroy(observer);xrtCancelDestroy(stopped);xl6TcpStreamDestroyV1(peer);++syncUndelivered;
     }
     live_stop(services,engine,list,false);live_stop(services,engine,list,true);
     for(unsigned budget=0;budget<64;++budget){xl6_error_scope scope={0};CHECK(xl6ErrorScopeBegin(&scope));CHECK(xrtMemDebugFailAfter(budget));++syncPrefixes;
-        void* stream=xl6TcpDialAddressesUntilCancelV1(services,engine,list,options,xrtDeadlineAfter(UINT64_C(5000000)),parent);
+        void* stream=xl6TcpDialAddressesUntilCancelV1(services,engine,list,options,xl6DeadlineAfterMillisecondsV1(5000),parent);
         bool hit=xrtMemDebugFailTriggered();xrtMemDebugFailClear();xl6_error_result result=xl6ErrorScopeEnd(&scope);
         if(!stream){CHECK(hit&&!result.ok&&xrtErrorKind(result.error)==XERR_MEMORY);++syncFailures;}else{CHECK(result.ok);xl6TcpStreamDestroyV1(stream);}
         xrtErrorFree(result.error);
     }
     CHECK(xrtCancelRequest(parent));SyncGuard test={.services=services,.engine=engine,.list=list,.parent=parent};
     XL6_ExecutionScopeV1 scope={0};CHECK(xl6ExecutionResourceEnterV1(engine,true,&scope));CHECK(xrtNetEnginePost(scope.engine,0,guard_run,&test));xl6ExecutionResourceLeaveV1(&scope);
-    xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));while(!xrtAtomic32Load(&test.done,XMEMORY_ACQUIRE)){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+    XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);while(!xrtAtomic32Load(&test.done,XMEMORY_ACQUIRE)){CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
     native_idle(engine);syncGuards+=3;xrtCancelDestroy(parent);xl6TcpDialOptionsDestroyV1(options);xrtNetAddrListDestroy(list);
-    xl6TcpListenerDestroyV1(listener);xl6ExecutionResourceReleaseV1(engine);CHECK(xl6ExecutionSourceCloseV1(source));until=xrtDeadlineAfter(UINT64_C(5000000));
+    xl6TcpListenerDestroyV1(listener);xl6ExecutionResourceReleaseV1(engine);CHECK(xl6ExecutionSourceCloseV1(source));until=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){XL6_ExecutionRetireResultV1 result=xl6ExecutionSourceDestroyV1(&source);CHECK(result.ok);if(result.ready)break;
-        CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}balanced(&before);
+        CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}balanced(&before);
 }
 int main(int argc,char** argv)
 {

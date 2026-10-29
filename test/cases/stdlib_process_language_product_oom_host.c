@@ -3,6 +3,7 @@
  * compiled transparent call-site probe retains a private waiter reference
  * before language boxing. This is not unobserved JIT or trimmed AOT execution.
  * One process per current-thread allocation prefix; other threads not injected. */
+#include "release/include/xl_clock.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,9 +46,9 @@ int main(int argc,char** argv)
     assert(point!=0 || hit);
     size_t children=testLanguageProcessRetireObserved();assert(!xrtGetError());
 #if defined(XL6_PROCESS_LANGUAGE_FUTURE)
-    xdeadline deadline=xrtDeadlineAfter(UINT64_C(5000000));
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
     while(!xl6ContinuationExecutorIsIdle(xlir_continuation_executor)){
-        assert(!xrtDeadlineExpired(deadline));xrtThreadYield();
+        assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();
     }
 #endif
     xlir_module_fini();assert(!xrtGetError() && xlir_module_initialized==0);

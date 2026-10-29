@@ -1,3 +1,4 @@
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
 #include "src/runtime/xl6_value_numeric.h"
 #include "src/runtime/xl6_value_admission.h"

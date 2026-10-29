@@ -1,3 +1,4 @@
+#include "xl_clock.h"
 #include "../internal/xrt_mail.h"
 
 
@@ -7,7 +8,7 @@
 /* Compose sink 只借用客户端与本次统一等待上下文。 */
 typedef struct __xsmtpsubmitsink {
 	xsmtpclient* Client;
-	xdeadline Deadline;
+	XL6_DeadlineV1 Deadline;
 	xcancel* Cancel;
 } __xsmtpsubmitsink;
 
@@ -66,7 +67,7 @@ static bool __xrtSmtpSubmitPath(
 /* 失败后恢复 envelope；DATA 已开始时关闭连接以保证半封消息不会提交。 */
 static bool __xrtSmtpSubmitRecover(
 	xsmtpclient* pClient,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -114,7 +115,7 @@ static bool __xrtSmtpSubmitWrite(xbytesview Data, ptr pUserData)
 static bool __xrtSmtpSubmitData(
 	xsmtpclient* pClient,
 	const xmailmessage* pMessage,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -177,7 +178,7 @@ XRT_API bool xrtSmtpSubmitEnvelope(
 	xsmtpclient* pClient,
 	const xsmtpenvelope* pEnvelope,
 	const xmailmessage* pMessage,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -239,7 +240,7 @@ static bool __xrtSmtpSubmitAddresses(
 	xsmtpclient* pClient,
 	const xmailaddress* pAddresses,
 	size_t iCount,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -263,7 +264,7 @@ static bool __xrtSmtpSubmitAddresses(
 XRT_API bool xrtSmtpSubmit(
 	xsmtpclient* pClient,
 	const xmailmessage* pMessage,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {

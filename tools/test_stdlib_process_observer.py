@@ -27,7 +27,7 @@ def main():
         assert rejected and not (out/(label+'-observer')).exists(),label
         rows.append(dict(Name=label,Rejected=True))
     good=stage(root,out/'full-observer')
-    source='#define XRT_MODULE_PROCESS_TERMINAL\n#include "lib/xruntime/xruntime.h"\n#include "process_observer_layout.h"\n'
+    source='#define XRT_MODULE_PROCESS_TERMINAL\n#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"\n#include "process_observer_layout.h"\n'
     command=[cc,'-E','-P','-x','c','-I'+str(root),'-I'+str(out/'full-observer'),'-']
     result=subprocess.run(command,input=source.encode(),capture_output=True,timeout=60)
     log=out/'trimmed.log';log.write_bytes(result.stdout+result.stderr)

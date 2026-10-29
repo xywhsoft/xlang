@@ -1,5 +1,6 @@
 /* Resident unary class callback: real independent code owners, Close,
  * detached arguments, first failures and allocation-prefix rollback. No I/O. */
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
 #include "src/runtime/xl6_native_class_callback.h"
 #include "src/runtime/xl6_native_handle.h"

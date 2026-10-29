@@ -331,7 +331,7 @@ static bool __xrtPlistBinaryWriteObject(xrtplistbinarywriter* pWriter,
 		if ( !__xrtPlistBinaryTimeToSeconds(pNode->Value.tValue,
 			&fSeconds) ) {
 			__xrtPlistSetError(pWriter->Context.Error, XRT_PLIST_ERROR_TYPE,
-				0u, 0u, 0u, "binary plist date cannot preserve microseconds");
+				0u, 0u, 0u, "binary plist date cannot preserve milliseconds");
 			return false;
 		}
 		iMarker = 0x33u;

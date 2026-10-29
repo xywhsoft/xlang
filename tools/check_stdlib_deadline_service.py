@@ -48,7 +48,7 @@ def main():
         modules=sorted(set(plan['NativeModules'])|{'XRT_MODULE_MEMORY_DEBUG'})
         assert all(re.fullmatch(r'(?:XRT|XRUNTIME)_MODULE_[A-Z0-9_]+',name) for name in modules)
         native=out/'native.c';native.write_text(''.join('#define '+name+'\n' for name in modules)+
-            '#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n',encoding='utf8')
+            '#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"\n',encoding='utf8')
         if args.sanitize:flags+=['-g','-fno-omit-frame-pointer','-fsanitize='+args.sanitize]
         if args.sanitize=='thread':flags+=['-Wno-error=tsan']
         links=['-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32'] if os.name=='nt' else ['-pthread','-ldl','-lm']

@@ -119,7 +119,7 @@ static int32_t worker(void* data)
         if(waited==XWAIT_ERROR){failure(service,waitError);waitError=NULL;}
         if(service->closed&&!service->count){service->exited=true;service->workerId=0;end(service,&mutation);return 0;}
         Ticket* ticket=service->count?service->heap[0]:NULL;
-        if(ticket&&(service->failed||ticket->due<=xrtClock())){
+        if(ticket&&(service->failed||ticket->due<=xl6MonotonicMillisecondsV1())){
             remove_heap(service,ticket);ticket->dispatching=true;++service->active;
             const XL6_DeadlineTargetV1* policy=ticket->policy;const void* target=ticket->data;
             XL6_DeadlineResultV1 result=service->failed?XL6_DEADLINE_FAILED_V1:XL6_DEADLINE_EXPIRED_V1;
@@ -134,12 +134,12 @@ static int32_t worker(void* data)
             begin(service,&mutation);--service->active;end(service,&mutation);
             waited=XWAIT_OK;continue;
         }
-        xdeadline due=ticket?ticket->due:XRT_DEADLINE_NEVER;service->parked=true;
+        XL6_DeadlineV1 due=ticket?ticket->due:XL6_DEADLINE_NEVER;service->parked=true;
         /* Native CondWait atomically unlocks/relocks gate. No mutation admission
          * survives sleeping. Release returned gate BEFORE entering the next
          * mutation, then recheck all predicates; notifications are not state. */
         if(!xrtOwnershipScopeEnd(&mutation))abort();
-        waited=xrtCondWaitUntil(service->changed,service->gate,due);
+        waited=xrtCondWaitFor(service->changed,service->gate,xl6DeadlineRemainingMillisecondsV1(due));
         if(waited==XWAIT_ERROR)waitError=xrtTakeError();
         else xrtClearError();
         if(!xrtMutexUnlock(service->gate))abort();
@@ -161,9 +161,9 @@ Service* xl6DeadlineServiceCreateV1(size_t capacity)
     if(service->gate&&!xrtMutexDestroy(service->gate))abort();
     xrtFree(service);xrtClearError();xrtSetErrorTake(error);return NULL;
 }
-bool xl6DeadlineBindTakeV1(Service* service,Ticket* ticket,xdeadline due,const XL6_DeadlineTargetV1* policy,const void** input)
+bool xl6DeadlineBindTakeV1(Service* service,Ticket* ticket,XL6_DeadlineV1 due,const XL6_DeadlineTargetV1* policy,const void** input)
 {
-    if(!service||!ticket||due==XRT_DEADLINE_NEVER||!policy||policy->size!=sizeof(*policy)||
+    if(!service||!ticket||due==XL6_DEADLINE_NEVER||!policy||policy->size!=sizeof(*policy)||
         !policy->Notify||!policy->Drop||!policy->Ownership||!input||!*input||!xl6DeadlineTicketIsIdleV1(ticket)){
         xrtSetErrorKind(XERR_ARGUMENT);return false;
     }
@@ -199,13 +199,13 @@ bool xl6DeadlineServiceCheckV1(Service* service)
     xl6_error_result result={!service->failed,service->failed?xrtErrorRef(service->error):NULL};
     end(service,&mutation);leave(service);if(!result.ok)xl6ErrorScopePropagateFailure(result);return result.ok;
 }
-bool xl6DeadlineFromMillisecondsV1(int64_t milliseconds,xdeadline* output)
+bool xl6DeadlineFromMillisecondsV1(int64_t milliseconds,XL6_DeadlineV1* output)
 {
-    if(!output||(uintptr_t)output%_Alignof(xdeadline)||(uintptr_t)output>UINTPTR_MAX-sizeof(*output)){
+    if(!output||(uintptr_t)output%_Alignof(XL6_DeadlineV1)||(uintptr_t)output>UINTPTR_MAX-sizeof(*output)){
         xrtSetErrorKind(XERR_ARGUMENT);return false;
     }
-    if(milliseconds<0||(uint64_t)milliseconds>(UINT64_MAX-1)/1000){xrtSetErrorKind(XERR_RANGE);return false;}
-    uint64_t now=xrtClock(),delta=(uint64_t)milliseconds*1000;
+    if(milliseconds<0){xrtSetErrorKind(XERR_RANGE);return false;}
+    uint64_t now=xl6MonotonicMillisecondsV1(),delta=(uint64_t)milliseconds;
     if(delta>=UINT64_MAX-now){xrtSetErrorKind(XERR_RANGE);return false;}
     *output=now+delta;return true;
 }

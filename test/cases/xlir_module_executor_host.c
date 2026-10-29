@@ -1,3 +1,4 @@
+#include "release/include/xl_clock.h"
 #include "lib/tcc/libtcc.h"
 #define main unused_executor_lifetime_main
 #define XL_ENABLE_EXE_COMPILER 1
@@ -82,9 +83,9 @@ static const XL6_ModuleRetirementV2* conflicting_get(void)
 }
 static DWORD WINAPI preflight_boundary(void* unused)
 {
-    xrtownershipscope freeze = {0}; xdeadline deadline = xrtDeadlineAfter(5000000); (void)unused;
+    xrtownershipscope freeze = {0}; XL6_DeadlineV1 deadline = xl6DeadlineAfterMillisecondsV1(5000); (void)unused;
     xlApiLock(); assert(module->preparationRefs == 1 && module->retirementRunning && xl__ownershipDriverRunning); xlApiUnlock();
-    while (!xrtOwnershipFreezeTryBegin(&freeze)) { assert(!xrtDeadlineExpired(deadline)); xrtThreadYield(); }
+    while (!xrtOwnershipFreezeTryBegin(&freeze)) { assert(!xl6DeadlineExpiredV1(deadline)); xrtThreadYield(); }
     assert(xrtOwnershipScopeEnd(&freeze)); return 0;
 }
 static XL6_ModulePrepareResult checked_preflight(void)
@@ -162,13 +163,13 @@ static void balance_cycle(const xmemdebugsnapshot* before)
 }
 static void quiet_executor(xrtownershipref executor, xrtownershipscope* freeze)
 {
-    xdeadline deadline = xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 deadline = xl6DeadlineAfterMillisecondsV1(5000);
     for (;;) {
         if (xrtOwnershipFreezeTryBegin(freeze)) {
             size_t count; if (executor.Ops->Count(executor.Data, &count)) return;
             assert(xrtOwnershipScopeEnd(freeze));
         }
-        assert(!xrtDeadlineExpired(deadline)); xrtThreadYield();
+        assert(!xl6DeadlineExpiredV1(deadline)); xrtThreadYield();
     }
 }
 typedef struct TraceCount { xrtownershipref executor; unsigned edges; } TraceCount;
@@ -190,8 +191,8 @@ static void cycle_transaction(unsigned width, bool cleanupWait, bool nativeRoot,
     xlApiLock(); assert(xlModuleBeginCallUnlocked(module)); xlApiUnlock();
     for (unsigned i = 0; i < width; ++i) { cycle_outputs[i] = start_cycle(i, boot, cleanup, cleanupWait); assert(cycle_outputs[i] && !xrtGetError()); }
     xlApiLock(); xlModuleEndCallUnlocked(module); xlApiUnlock();
-    assert(xrtPromiseResolve(bootPromise, &number)); xdeadline deadline = xrtDeadlineAfter(5000000);
-    while (atomic_load(&peer_count) != width) { assert(!xrtDeadlineExpired(deadline)); xrtThreadYield(); }
+    assert(xrtPromiseResolve(bootPromise, &number)); XL6_DeadlineV1 deadline = xl6DeadlineAfterMillisecondsV1(5000);
+    while (atomic_load(&peer_count) != width) { assert(!xl6DeadlineExpiredV1(deadline)); xrtThreadYield(); }
     xrtownershipref executor = executor_view(); xrtownershipscope freeze = {0}; quiet_executor(executor, &freeze);
     TraceCount trace = {executor, 0}; assert(module->ownershipTrace(trace_executor, &trace) && trace.edges == 1);
     assert(xrtOwnershipScopeEnd(&freeze));
@@ -233,11 +234,11 @@ static void cycle_transaction(unsigned width, bool cleanupWait, bool nativeRoot,
         if (!nativeRoot) MODULE_EXECUTOR_UNROOTED(executor, feeder);
 #endif
         if (cleanupWait) {
-            deadline = xrtDeadlineAfter(5000000);
+            deadline = xl6DeadlineAfterMillisecondsV1(5000);
             for (;;) {
                 collect(); unsigned entered = 0; for (unsigned i = 0; i < width; ++i) entered += atomic_load(&catches[i]);
                 if (entered) { assert(entered == 1); break; }
-                assert(!xrtDeadlineExpired(deadline)); xrtThreadYield();
+                assert(!xl6DeadlineExpiredV1(deadline)); xrtThreadYield();
             }
             assert(!atomic_load(&deleted)); quiet_executor(executor, &freeze);
             for (unsigned i = 0; i < width; ++i) {
@@ -274,10 +275,10 @@ static void protocol_transaction(unsigned version)
         /* Worker parking can defer freeze admission before the first actual
          * preflight callback. Wait only for that callback; its first BUSY or
          * FAILED result and the second-call retry assertions stay exact. */
-        xdeadline deadline=xrtDeadlineAfter(5000000);
+        XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
         while(!protocol_calls){
             assert(!atomic_load(&deleted)&&!module->retirementPrepared&&!module->retirementFailed&&
-                !atomic_load(&global_drops)&&!xrtDeadlineExpired(deadline));
+                !atomic_load(&global_drops)&&!xl6DeadlineExpiredV1(deadline));
             collect();xrtThreadYield();
         }
         assert(!atomic_load(&deleted) && protocol_calls == 1 && !module->retirementPrepared);

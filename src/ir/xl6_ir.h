@@ -455,7 +455,7 @@ typedef enum XL6_IrCAbi {
      * must validate it before emitting a typed C pointer boundary. */
     XL6_IR_C_ABI_STORAGE_REF_PTR,
     /* Language `time` keeps a distinct semantic/physical ABI even though
-     * XRT currently represents xtime as a signed 64-bit microsecond count.
+     * XRT currently represents xtime as a signed 64-bit millisecond count.
      * Keeping it separate prevents integer arithmetic/boxing from silently
      * erasing the runtime time kind; explicit scalar conversion families
      * describe the few source-language conversions that are legal. */
@@ -1836,7 +1836,7 @@ typedef enum XL6_IrRuntimeOp {
         * result. payloadType is identical to the result type. */
        XL6_IR_RUNTIME_XVALUE_UNION_UNBOX,
        /* Borrows one verified class object field whose declared physical ABI
-        * is language time and returns its exact signed-microsecond value.
+        * is language time and returns its exact signed-millisecond value.
         * The runtime tag check is distinct from integer field projection. */
        XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_TIME,
        /* Safe `.length` is a closed semantic operation over an erased XRT

@@ -58,7 +58,7 @@ foreach ($resourceItem in $resources) {
     }
 
     $stamp = Get-Content -LiteralPath $stampPath -Raw | ConvertFrom-Json
-    if ($stamp.schema -ne 1 -or $null -eq $stamp.resources) {
+    if ($stamp.schema -ne 2 -or $null -eq $stamp.resources) {
         throw "invalid TCC VFS resource stamp: $stampPath"
     }
 
@@ -79,16 +79,15 @@ foreach ($resourceItem in $resources) {
     }
 
     if ([System.IO.Path]::GetFileName($resourcePath) -eq "tcc_builtin_resources.c" -and
-        -not $virtualPaths.Contains("__xl_compiler/src/api/xl_tcc_standalone_env.c")) {
-        throw "compiler TCC VFS is missing standalone XRT environment registration source"
+        -not $virtualPaths.Contains("__xl_objects/static-compiler/src/api/xl_tcc_standalone_env.c.o")) {
+        throw "compiler TCC VFS is missing standalone XRT environment precompiled object"
     }
 
-    if ([IO.Path]::GetFileName($resourcePath) -eq 'tcc_builtin_resources.c') {
-        $nested = @($stamp.resources | Where-Object { $_.virtual -match '^__xl_compiler/build/(tmp|linux)/tcc_builtin_resources_runtime[.]c$' })
-        $expected = Join-Path ([IO.Path]::GetDirectoryName($resourcePath)) 'tcc_builtin_resources_runtime.c'
-        if ($nested.Count -ne 1 -or ![string]::Equals([IO.Path]::GetFullPath($nested[0].source), $expected, [StringComparison]::OrdinalIgnoreCase)) {
-            throw 'compiler TCC VFS must embed the runtime resource from the same output directory'
-        }
+    if ((Get-XlSha256 $resourcePath) -cne $stamp.generatedSha256) {
+        throw "TCC VFS generated catalog is stale: $resourcePath"
+    }
+    if (@($stamp.resources | Where-Object { $_.virtual -match '/tcc_builtin_resources_runtime[.]c$' }).Count) {
+        throw 'nested catalog source must not be stored a second time'
     }
 
     Write-Host "TCC VFS resource snapshot is current: $resourcePath"

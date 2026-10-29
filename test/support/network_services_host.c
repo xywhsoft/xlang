@@ -1,5 +1,6 @@
 #define XL_STATIC_EMBED 1
 #include "xlc.h"
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
 #include "src/runtime/xl6_execution_resource.h"
 #include "src/runtime/xl6_execution_net_engine.h"

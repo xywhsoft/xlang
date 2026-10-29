@@ -1,3 +1,4 @@
+#include "xl_clock.h"
 #include <xrt/pop3_client.h>
 
 #include "../internal/xrt_pop3_client.h"
@@ -129,7 +130,7 @@ static uint32 __xrtPop3ClientSaslMechanisms(xstrview Parameters)
 /* 读取 CAPA 多行响应并合并已知能力。 */
 static bool __xrtPop3ClientCapa(
 	xpop3client* pClient,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -224,7 +225,7 @@ XRT_API bool xrtPop3ClientConfigValid(const xpop3clientconfig* pConfig)
 /* 建立并协商 POP3 会话。 */
 XRT_API xpop3client* xrtPop3ClientOpen(
 	const xpop3clientconfig* pConfig,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -379,7 +380,7 @@ static bool __xrtPop3ClientSendLine(
 	xpop3client* pClient,
 	xstrview Line,
 	size_t iMaxLine,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -435,7 +436,7 @@ static bool __xrtPop3ClientSendLine(
 XRT_API bool xrtPop3ClientSend(
 	xpop3client* pClient,
 	xstrview Line,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -454,7 +455,7 @@ XRT_API bool xrtPop3ClientSend(
 XRT_API bool xrtPop3ClientAuthLine(
 	xpop3client* pClient,
 	xstrview Line,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -483,7 +484,7 @@ XRT_API bool xrtPop3ClientAuthLine(
 XRT_API bool xrtPop3ClientLine(
 	xpop3client* pClient,
 	xstrview* pLine,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -517,7 +518,7 @@ XRT_API bool xrtPop3ClientLine(
 XRT_API bool xrtPop3ClientReceive(
 	xpop3client* pClient,
 	xpop3reply* pReply,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -546,7 +547,7 @@ XRT_API bool xrtPop3ClientCommand(
 	xstrview Verb,
 	xstrview Arguments,
 	xpop3reply* pReply,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -599,7 +600,7 @@ XRT_API bool xrtPop3ClientBegin(
 	xpop3client* pClient,
 	xstrview Verb,
 	xstrview Arguments,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -629,7 +630,7 @@ XRT_API bool xrtPop3ClientBegin(
 XRT_API xmailnext xrtPop3ClientNext(
 	xpop3client* pClient,
 	xstrview* pLine,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -700,7 +701,7 @@ static bool __xrtPop3ClientTransaction(const xpop3client* pClient)
 static bool __xrtPop3ClientSimple(
 	xpop3client* pClient,
 	xstrview Verb,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -723,7 +724,7 @@ static bool __xrtPop3ClientSimple(
 XRT_API bool xrtPop3ClientStat(
 	xpop3client* pClient,
 	xpop3stat* pStat,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -757,7 +758,7 @@ XRT_API bool xrtPop3ClientList(
 	xpop3client* pClient,
 	uint64 iMessage,
 	xpop3listview* pItem,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -790,7 +791,7 @@ XRT_API bool xrtPop3ClientList(
 /* 开始读取全部 POP3 LIST。 */
 XRT_API bool xrtPop3ClientListAll(
 	xpop3client* pClient,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -810,7 +811,7 @@ XRT_API bool xrtPop3ClientUidl(
 	xpop3client* pClient,
 	uint64 iMessage,
 	xpop3uidlview* pItem,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -843,7 +844,7 @@ XRT_API bool xrtPop3ClientUidl(
 /* 开始读取全部 POP3 UIDL。 */
 XRT_API bool xrtPop3ClientUidlAll(
 	xpop3client* pClient,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -862,7 +863,7 @@ XRT_API bool xrtPop3ClientUidlAll(
 XRT_API bool xrtPop3ClientRetr(
 	xpop3client* pClient,
 	uint64 iMessage,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -891,7 +892,7 @@ XRT_API bool xrtPop3ClientTop(
 	xpop3client* pClient,
 	uint64 iMessage,
 	uint64 iLines,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -919,7 +920,7 @@ XRT_API bool xrtPop3ClientTop(
 XRT_API bool xrtPop3ClientDelete(
 	xpop3client* pClient,
 	uint64 iMessage,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -951,7 +952,7 @@ XRT_API bool xrtPop3ClientDelete(
 /* 清除 POP3 删除标记。 */
 XRT_API bool xrtPop3ClientReset(
 	xpop3client* pClient,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -968,7 +969,7 @@ XRT_API bool xrtPop3ClientReset(
 /* 发送 POP3 NOOP。 */
 XRT_API bool xrtPop3ClientNoop(
 	xpop3client* pClient,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -985,7 +986,7 @@ XRT_API bool xrtPop3ClientNoop(
 /* 发送 POP3 QUIT 并关闭传输。 */
 XRT_API bool xrtPop3ClientQuit(
 	xpop3client* pClient,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -1015,7 +1016,7 @@ XRT_API bool xrtPop3ClientQuit(
 /* 正常关闭 POP3 传输。 */
 XRT_API bool xrtPop3ClientClose(
 	xpop3client* pClient,
-	xdeadline iDeadline
+	XL6_DeadlineV1 iDeadline
 )
 {
 	if ( !__xrtPop3ClientUsable(pClient) ) {

@@ -1,6 +1,7 @@
 /* Real TCP parents, including OPEN native IO, collected by the unchanged XLIR
  * planner. Test code is resident; this is not a dynamic-library unload proof. */
 #define main tcp_parent_network_main
+#include "release/include/xl_clock.h"
 #include "tests/network/test_net_tcp_parent_ownership.c"
 #undef main
 #include "src/runtime/xl6_ownership_plan.h"
@@ -78,8 +79,8 @@ static bool tp_finish(const void* data,const void* token)
 static const xrtownershipadapterv1 tp_adapter={sizeof(tp_adapter),tp_hold,tp_drop,tp_claim,tp_restore,tp_finalize,tp_clear,tp_finish};
 static int32 tp_freeze_probe(ptr data)
 {
-    (void)data;xrtownershipscope scope={0};xdeadline deadline=xrtDeadlineAfter(5000000);
-    while(!xrtOwnershipFreezeTryBegin(&scope)){assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+    (void)data;xrtownershipscope scope={0};XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
+    while(!xrtOwnershipFreezeTryBegin(&scope)){assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
     assert(xrtOwnershipScopeEnd(&scope));return 0;
 }
 static void tp_context_drop(ptr data)
@@ -117,27 +118,27 @@ static bool tp_resolve(xrtownershipref ref,void* data,const XL6_OwnershipAdapter
 }
 static XL6_OwnershipPlanResult tp_create(TcpPlanOwner* p,XL6_OwnershipPlan** plan)
 {
-    xdeadline deadline=xrtDeadlineAfter(10000000);XL6_OwnershipPlanResult result;
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(10000);XL6_OwnershipPlanResult result;
     for(;;){
         result=xl6OwnershipPlanTryCreateV2((xrtownershipref){p,&tp_ops},tp_resolve,NULL,plan);
         if(result>XL6_OWNERSHIP_PLAN_BUSY)return result;
-        assert(!*plan&&!xrtDeadlineExpired(deadline));xrtClearError();xrtThreadYield();++tp_busy;
+        assert(!*plan&&!xl6DeadlineExpiredV1(deadline));xrtClearError();xrtThreadYield();++tp_busy;
     }
 }
 static void tp_prepare(XL6_OwnershipPlan* plan)
 {
-    xdeadline deadline=xrtDeadlineAfter(15000000);
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(15000);
     for(;;){
         XL6_OwnershipStepResult result=xl6OwnershipPlanPrepare(plan);
         if(result==XL6_OWNERSHIP_STEP_READY)return;
-        assert(result!=XL6_OWNERSHIP_STEP_FAILED&&!xrtDeadlineExpired(deadline));
+        assert(result!=XL6_OWNERSHIP_STEP_FAILED&&!xl6DeadlineExpiredV1(deadline));
         xrtClearError();xrtThreadYield();++tp_busy;
     }
 }
 static void tp_destroy(XL6_OwnershipPlan* plan)
 {
-    xdeadline deadline=xrtDeadlineAfter(10000000);XL6_OwnershipPlanResult result;
-    do{result=xl6OwnershipPlanTryDestroy(plan);assert(result!=XL6_OWNERSHIP_PLAN_ERROR&&!xrtDeadlineExpired(deadline));
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(10000);XL6_OwnershipPlanResult result;
+    do{result=xl6OwnershipPlanTryDestroy(plan);assert(result!=XL6_OWNERSHIP_PLAN_ERROR&&!xl6DeadlineExpiredV1(deadline));
         if(result==XL6_OWNERSHIP_PLAN_BUSY)xrtThreadYield();
     }while(result==XL6_OWNERSHIP_PLAN_BUSY);
     assert(result==XL6_OWNERSHIP_PLAN_READY);

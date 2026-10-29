@@ -1,3 +1,4 @@
+#include "xl_clock.h"
 #include "../internal/xrt_mail_net.h"
 
 
@@ -36,13 +37,12 @@ static bool __xrtMailNetTlsHostIsIp(cstr sHost)
 /* 等待 TLS Future 并把失败终态恢复为当前结构化错误。 */
 static bool __xrtMailNetTlsFuture(
 	xfuture* pFuture,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
-	xwaitresult Wait = xrtFutureWaitUntilCancel(
-		pFuture,
-		iDeadline,
+	xwaitresult Wait = xrtFutureWaitForCancel(
+		pFuture,xl6DeadlineRemainingMillisecondsV1(iDeadline),
 		pCancel
 	);
 	xfuturestate State;
@@ -142,7 +142,7 @@ static void __xrtMailNetTlsUpgradeTask(
 bool __xrtMailTransportTlsOpen(
 	__xmailtransport* pTransport,
 	const xmailnetconfig* pConfig,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -186,7 +186,7 @@ bool __xrtMailTransportTlsOpen(
 bool __xrtMailTransportStartTls(
 	__xmailtransport* pTransport,
 	const xmailnetconfig* pConfig,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -213,9 +213,9 @@ bool __xrtMailTransportStartTls(
 		);
 		return false;
 	}
-	if ( xrtDeadlineExpired(iDeadline) || xrtCancelRequested(pCancel) ) {
+	if ( xl6DeadlineExpiredV1(iDeadline) || xrtCancelRequested(pCancel) ) {
 		__xrtMailError(
-			xrtDeadlineExpired(iDeadline) ? XERR_TIMEOUT : XERR_CANCELLED,
+			xl6DeadlineExpiredV1(iDeadline) ? XERR_TIMEOUT : XERR_CANCELLED,
 			XMAIL_ERROR_PROTOCOL,
 			"mail STARTTLS was not started"
 		);
@@ -299,7 +299,7 @@ bool __xrtMailTransportTlsSend(
 	__xmailtransport* pTransport,
 	const void* pData,
 	size_t iSize,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -323,7 +323,7 @@ bool __xrtMailTransportTlsSend(
 /* 取得一块拥有型 TLS 明文。 */
 xnetbytes* __xrtMailTransportTlsRecv(
 	__xmailtransport* pTransport,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -350,7 +350,7 @@ xnetbytes* __xrtMailTransportTlsRecv(
 /* 等待 TLS Stream 进入关闭终态。 */
 bool __xrtMailTransportTlsClose(
 	__xmailtransport* pTransport,
-	xdeadline iDeadline
+	XL6_DeadlineV1 iDeadline
 )
 {
 	xfuture* pFuture;

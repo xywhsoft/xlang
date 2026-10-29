@@ -47,7 +47,7 @@ bool xl6ArrayMethodSwapV1(xvalue* source, int64_t left, int64_t right)
 {
     ArrayView view = {0};
     if (!begin(source, &view)) return false;
-    bool ok = index(&view, left, false) && index(&view, right, false) &&
+    bool ok = arrayIndex(&view, left, false) && arrayIndex(&view, right, false) &&
         allocated(view.owner ? xrtTypedArraySwap(view.storage, (size_t)left, (size_t)right)
             : xrtValueArraySwap(view.wire, (size_t)left, (size_t)right));
     finish(&view); return ok;

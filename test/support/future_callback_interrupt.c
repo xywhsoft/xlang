@@ -1,6 +1,7 @@
 /* Reuse the independently asserted V1-6 baseline, actual native implementation,
  * queue and catalog. Tests here are offline; no network is selected or used. */
 #define main sharedCallbackRegressionMain
+#include "release/include/xl_clock.h"
 #include "future_callback_exclusive_queue.c"
 #undef main
 #include "src/runtime/xl6_future_callback_interrupt.h"
@@ -11,8 +12,8 @@ typedef struct Gate {XL6_ContinuationTicket ticket;xatomic32 entered,open;} Gate
 static void gate_run(void* data)
 {
     Gate* gate=data;xrtAtomic32Store(&gate->entered,1,XMEMORY_RELEASE);
-    xdeadline until=xrtDeadlineAfter(UINT64_C(10000000));
-    while(!xrtAtomic32Load(&gate->open,XMEMORY_ACQUIRE)){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+    XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(10000);
+    while(!xrtAtomic32Load(&gate->open,XMEMORY_ACQUIRE)){CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
 }
 static void gate_drop(void* data){(void)data;}
 static void gate_start(XL6_ContinuationExecutor* executor,Gate* gate)
@@ -20,8 +21,8 @@ static void gate_start(XL6_ContinuationExecutor* executor,Gate* gate)
     *gate=(Gate){0};xrtAtomic32Init(&gate->entered,0);xrtAtomic32Init(&gate->open,0);
     CHECK(xl6ContinuationExecutorReserve(executor,&gate->ticket,gate_run,gate_drop,gate)==XL6_CONTINUATION_ADMITTED);
     xl6ContinuationCommit(&gate->ticket);xl6ContinuationReady(&gate->ticket);xl6ContinuationTransportReleased(&gate->ticket);
-    xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
-    while(!xrtAtomic32Load(&gate->entered,XMEMORY_ACQUIRE)){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+    XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
+    while(!xrtAtomic32Load(&gate->entered,XMEMORY_ACQUIRE)){CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
 }
 static void gate_open(Gate* gate){xrtAtomic32Store(&gate->open,1,XMEMORY_RELEASE);}
 static void service_finish(XL6_DeadlineServiceV1* service)
@@ -42,8 +43,8 @@ static bool certified_edge(xrtownershipref ref,void* data)
 }
 static void inspect_interrupt(Capture* capture)
 {
-    xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
-    for(;;){xrtownershipscope frozen={0};CHECK(!xrtDeadlineExpired(until));
+    XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
+    for(;;){xrtownershipscope frozen={0};CHECK(!xl6DeadlineExpiredV1(until));
         if(!xrtOwnershipFreezeTryBegin(&frozen)){xrtThreadYield();continue;}
         xrtownershipref ref=xl6FutureCallbackRuntimeV1Get()->Ownership(capture);size_t count=0;
         CHECK(ref.Ops->Count(ref.Data,&count)&&count==6);
@@ -69,7 +70,7 @@ static void interrupted_cases(void)
         xcancel* sourceCancel=xrtPromiseCancelToken(state.promise);CHECK(sourceCancel);
         xcancelwatch* observer=xrtCancelWatch(sourceCancel,requested,&state);CHECK(observer);
         if(mode==0)CHECK(xrtCancelRequest(parent));
-        xdeadline due=mode==1?xrtClock():mode==3||mode==5?xrtDeadlineAfter(UINT64_C(100000)):xrtDeadlineAfter(UINT64_C(5000000));
+        XL6_DeadlineV1 due=mode==1?xl6MonotonicMillisecondsV1():mode==3||mode==5?xl6DeadlineAfterMillisecondsV1(100):xl6DeadlineAfterMillisecondsV1(5000);
         Capture* capture=allocate(&state,source);CHECK(capture);
         CHECK(xl6FutureCallbackInterruptArmV1(capture,parent,service,due));
         bool stopped=xl6FutureCallbackInterruptStoppedV1(capture);CHECK(stopped==(mode<2));
@@ -84,8 +85,8 @@ static void interrupted_cases(void)
             observer=xrtCancelWatch(sourceCancel,requested,&state);CHECK(observer&&xrtCancelRequest(parent));
         }
         if(mode==3){
-            xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
-            while(!xrtAtomic32Load(&state.requested,XMEMORY_ACQUIRE)){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+            XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
+            while(!xrtAtomic32Load(&state.requested,XMEMORY_ACQUIRE)){CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
         }
         if(mode==2||mode==3){
             CHECK(xrtCancelRequested(sourceCancel)&&xrtAtomic32Load(&state.requested,XMEMORY_ACQUIRE)==1);
@@ -93,8 +94,8 @@ static void interrupted_cases(void)
         }
         if(!stopped)complete(state.promise,0);
         if(mode==4)CHECK(xrtCancelRequest(parent));
-        if(mode==5){xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
-            while(!xrtDeadlineExpired(due)){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}}
+        if(mode==5){XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
+            while(!xl6DeadlineExpiredV1(due)){CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}}
         if(gated)gate_open(&gate);
         CHECK(xrtFutureWaitFor(output,UINT64_C(5000000))==XWAIT_OK);idle(executor);
         xfuturestate expected=mode==1||mode==3||mode==5?XFUTURE_FAILED:mode==6?XFUTURE_RESOLVED:XFUTURE_CANCELLED;
@@ -116,7 +117,7 @@ static void construction_interrupt(void)
         xfuture* source=NULL;state.promise=xrtPromiseCreate(&source,NULL);CHECK(state.promise);
         if(ready)CHECK(xrtCancelRequest(parent));
         Capture* capture=allocate(&state,source);CHECK(capture);CHECK(xrtMemDebugFailAfter(budget));++constructionPrefixes;
-        bool armed=xl6FutureCallbackInterruptArmV1(capture,parent,service,xrtDeadlineAfter(UINT64_C(5000000)));
+        bool armed=xl6FutureCallbackInterruptArmV1(capture,parent,service,xl6DeadlineAfterMillisecondsV1(5000));
         xfuture* output=armed?xl6FutureCallbackInterruptStartV1(executor,capture,ready?NULL:source):NULL;
         bool hit=xrtMemDebugFailTriggered();xrtMemDebugFailClear();
         if(!output){CHECK(hit);xl6FutureCallbackRuntimeV1Get()->Discard(capture);xrtClearError();++constructionFailures;}
@@ -136,10 +137,10 @@ static void construction_interrupt(void)
         Capture* occupied=NULL;
         if(mode==0)xl6DeadlineServiceCloseV1(service);
         if(mode==1){occupied=allocate(&state,source);CHECK(occupied);
-            CHECK(xl6FutureCallbackInterruptArmV1(occupied,parent,service,xrtDeadlineAfter(UINT64_C(5000000))));}
+            CHECK(xl6FutureCallbackInterruptArmV1(occupied,parent,service,xl6DeadlineAfterMillisecondsV1(5000)));}
         if(mode==2)xl6ContinuationExecutorClose(executor);
         Capture* capture=allocate(&state,source);CHECK(capture);
-        bool armed=xl6FutureCallbackInterruptArmV1(capture,parent,service,xrtDeadlineAfter(UINT64_C(5000000)));
+        bool armed=xl6FutureCallbackInterruptArmV1(capture,parent,service,xl6DeadlineAfterMillisecondsV1(5000));
         if(mode<2)CHECK(!armed&&xrtErrorKind(xrtGetError())==(mode==0?XERR_STATE:XERR_RANGE));
         else CHECK(armed&&!xl6FutureCallbackInterruptStartV1(executor,capture,source));
         xrtClearError();xl6FutureCallbackRuntimeV1Get()->Discard(capture);xl6FutureCallbackRuntimeV1Get()->Discard(occupied);
@@ -161,7 +162,7 @@ static void racing_interrupt(void)
         XL6_ContinuationExecutor* executor=xl6ContinuationExecutorCreateFixedV1(4,1);CHECK(executor);
         xcancel* parent=xrtCancelCreate();CHECK(parent);xfuture* source=NULL;state.promise=xrtPromiseCreate(&source,NULL);CHECK(state.promise);
         Capture* capture=allocate(&state,source);CHECK(capture);
-        CHECK(xl6FutureCallbackInterruptArmV1(capture,parent,NULL,XRT_DEADLINE_NEVER));
+        CHECK(xl6FutureCallbackInterruptArmV1(capture,parent,NULL,XL6_DEADLINE_NEVER));
         xfuture* output=xl6FutureCallbackInterruptStartV1(executor,capture,source);CHECK(output);
         ParentRace a={.parent=parent,.cancel=true},b={.promise=state.promise};xrtAtomic32Init(&a.go,0);xrtAtomic32Init(&b.go,0);
         xthread* threads[]={xrtThreadCreate(parent_race,&a,0),xrtThreadCreate(parent_race,&b,0)};CHECK(threads[0]&&threads[1]);

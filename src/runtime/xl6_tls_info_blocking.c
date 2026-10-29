@@ -2,7 +2,7 @@
 #include "xl6_tls_io_internal.h"
 void* xl6TlsStreamSnapshotV1(void* receiver,int64_t millis)
 {
-    xdeadline due;
+    XL6_DeadlineV1 due;
     if(!xl6ConcurrentDeadline(millis,&due)||!xl6TlsIoPreWaitV1(due,NULL)){
         xl6TlsTransportFailedV1();return NULL;
     }

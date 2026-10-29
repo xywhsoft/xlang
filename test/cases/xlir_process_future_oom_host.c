@@ -3,6 +3,7 @@
  * owns a native reference solely to supply real EOF and join private waiter
  * tails; this is not a public Process.wait/module-fini guarantee. Never clear
  * or free generated globals while a continuation can still access them. */
+#include "release/include/xl_clock.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,9 +48,9 @@ int main(int argc,char** argv)
     assert(valid);
     size_t children=testProcessRetireObserved();
     assert(!xrtGetError());
-    xdeadline deadline=xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
     while(!xl6ContinuationExecutorIsIdle(xlir_continuation_executor)) {
-        assert(!xrtDeadlineExpired(deadline)); xrtThreadYield();
+        assert(!xl6DeadlineExpiredV1(deadline)); xrtThreadYield();
     }
     xlir_module_fini();
     assert(!xrtGetError() && xlir_module_initialized==0 && !xlir_continuation_executor);

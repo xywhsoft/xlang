@@ -26,7 +26,7 @@ def main():
     runtime.write_text('#define XRT_MODULE_MEMORY_DEBUG\n#define XRT_MODULE_VALUE_GRAPH\n'
         '#define XRT_MODULE_ATOMIC\n#define XRT_MODULE_THREAD\n#define XRT_MODULE_ONCE\n'
         '#define XRUNTIME_MODULE_RUNTIME_DYNAMIC_FIELD\n#define XRUNTIME_IMPLEMENTATION\n'
-        '#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
+        '#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
     rows=[]; products=[]; env=dict(os.environ,ASAN_OPTIONS='detect_leaks=1:halt_on_error=1',
         UBSAN_OPTIONS='halt_on_error=1:print_stacktrace=1')
     report=dict(Complete=False,InputsUnchanged=False,Inputs=inputs,Rows=rows,Products=products,

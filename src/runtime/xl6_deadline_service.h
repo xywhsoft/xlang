@@ -1,6 +1,9 @@
 #ifndef XL6_DEADLINE_SERVICE_H
 #define XL6_DEADLINE_SERVICE_H
+#include "xl_clock.h"
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
+#include "include/xl_clock.h"
 #include "xl6_deadline_module_abi.h"
 typedef struct XL6_DeadlineTicketV1 XL6_DeadlineTicketV1;
 typedef enum XL6_DeadlineResultV1 {
@@ -34,7 +37,7 @@ struct XL6_DeadlineTicketV1 {
     xatomic32 once;
     XL6_DeadlineTicketV1 *previous,*next;
     size_t heapIndex;
-    xdeadline due;
+    XL6_DeadlineV1 due;
     const XL6_DeadlineTargetV1* policy;
     const void* data;
     bool bound,dispatching,fired;
@@ -43,7 +46,7 @@ struct XL6_DeadlineTicketV1 {
  * Capacity counts logical accepted bindings, not independent physical tails.
  * All allocation/admission precedes dispatch; NEVER schedules via Net engine. */
 XL6_CODE_LEASE_API bool xl6DeadlineBindTakeV1(XL6_DeadlineServiceV1*,XL6_DeadlineTicketV1*,
-    xdeadline,const XL6_DeadlineTargetV1*,const void**);
+    XL6_DeadlineV1,const XL6_DeadlineTargetV1*,const void**);
 XL6_CODE_LEASE_API void xl6DeadlineDetachV1(XL6_DeadlineTicketV1*);
 XL6_CODE_LEASE_API bool xl6DeadlineTicketIsIdleV1(const XL6_DeadlineTicketV1*);
 /* Borrowed frozen owning edge: one service lease while ticket is not idle. */
@@ -56,7 +59,7 @@ XL6_CODE_LEASE_API xrtownershipref xl6DeadlineTicketServiceOwnershipV1(const XL6
  * callbacks cannot destroy their own worker. Pins preserve retired allocation. */
 /* False is authoritative even if diagnostic allocation failed. */
 XL6_CODE_LEASE_API bool xl6DeadlineServiceCheckV1(XL6_DeadlineServiceV1*);
-XL6_CODE_LEASE_API bool xl6DeadlineFromMillisecondsV1(int64_t,xdeadline*);
+XL6_CODE_LEASE_API bool xl6DeadlineFromMillisecondsV1(int64_t,XL6_DeadlineV1*);
 XL6_CODE_LEASE_API const xrtownershipadapterv1* xl6DeadlineServiceOwnershipAdapterV1(
     xrtownershipref,const xrtownershippreparationv1**);
 XL6_CODE_LEASE_API const xrtownershipquiescencev1* xl6DeadlineServiceQuiescenceV1Get(void);

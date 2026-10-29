@@ -1,3 +1,4 @@
+#include "xl_clock.h"
 #include <xrt/imap_command.h>
 
 #include "../internal/xrt_imap_client.h"
@@ -87,7 +88,7 @@ static bool __xrtImapCommandBegin(
 	xstrview Command,
 	const xstrview* pParts,
 	size_t iCount,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -136,7 +137,7 @@ static bool __xrtImapCommandBeginMailbox(
 	ximapclient* pClient,
 	xstrview Command,
 	xstrview Mailbox,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -267,7 +268,7 @@ static xmailnext __xrtImapCommandMailboxCode(
 static bool __xrtImapCommandFinish(
 	ximapclient* pClient,
 	ximapmailboxinfo* pInfo,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -330,7 +331,7 @@ static bool __xrtImapCommandFinish(
 static bool __xrtImapCommandSimple(
 	ximapclient* pClient,
 	xstrview Command,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -355,7 +356,7 @@ static bool __xrtImapCommandMailboxSimple(
 	ximapclient* pClient,
 	xstrview Command,
 	xstrview Mailbox,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -446,7 +447,7 @@ XRT_API xmailnext xrtImapMailboxInfoUpdate(
 /* 执行 NOOP。 */
 XRT_API bool xrtImapClientNoop(
 	ximapclient* pClient,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -466,7 +467,7 @@ static bool __xrtImapCommandSelect(
 	xstrview Mailbox,
 	ximapmailboxinfo* pInfo,
 	bool bReadOnly,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -523,7 +524,7 @@ XRT_API bool xrtImapClientSelect(
 	ximapclient* pClient,
 	xstrview Mailbox,
 	ximapmailboxinfo* pInfo,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -544,7 +545,7 @@ XRT_API bool xrtImapClientExamine(
 	ximapclient* pClient,
 	xstrview Mailbox,
 	ximapmailboxinfo* pInfo,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -563,7 +564,7 @@ XRT_API bool xrtImapClientExamine(
 /* 对当前选中邮箱执行 CHECK。 */
 XRT_API bool xrtImapClientCheck(
 	ximapclient* pClient,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -580,7 +581,7 @@ XRT_API bool xrtImapClientCheck(
 /* 执行 UNSELECT 并返回认证态。 */
 XRT_API bool xrtImapClientUnselect(
 	ximapclient* pClient,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -613,7 +614,7 @@ XRT_API bool xrtImapClientUnselect(
 /* 执行 CLOSE 并返回认证态。 */
 XRT_API bool xrtImapClientCloseMailbox(
 	ximapclient* pClient,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -634,7 +635,7 @@ XRT_API bool xrtImapClientCloseMailbox(
 XRT_API bool xrtImapClientCreateMailbox(
 	ximapclient* pClient,
 	xstrview Mailbox,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -653,7 +654,7 @@ XRT_API bool xrtImapClientCreateMailbox(
 XRT_API bool xrtImapClientDeleteMailbox(
 	ximapclient* pClient,
 	xstrview Mailbox,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -673,7 +674,7 @@ XRT_API bool xrtImapClientRenameMailbox(
 	ximapclient* pClient,
 	xstrview Source,
 	xstrview Target,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -720,7 +721,7 @@ XRT_API bool xrtImapClientRenameMailbox(
 XRT_API bool xrtImapClientSubscribe(
 	ximapclient* pClient,
 	xstrview Mailbox,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -739,7 +740,7 @@ XRT_API bool xrtImapClientSubscribe(
 XRT_API bool xrtImapClientUnsubscribe(
 	ximapclient* pClient,
 	xstrview Mailbox,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -759,7 +760,7 @@ XRT_API bool xrtImapClientBeginList(
 	ximapclient* pClient,
 	xstrview Reference,
 	xstrview Pattern,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -806,7 +807,7 @@ XRT_API bool xrtImapClientBeginStatus(
 	ximapclient* pClient,
 	xstrview Mailbox,
 	xstrview Items,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -848,7 +849,7 @@ XRT_API bool xrtImapClientBeginSearch(
 	ximapclient* pClient,
 	xstrview Criteria,
 	bool bUid,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -891,7 +892,7 @@ XRT_API bool xrtImapClientBeginFetch(
 	xstrview Set,
 	xstrview Items,
 	bool bUid,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -958,7 +959,7 @@ XRT_API bool xrtImapClientBeginStore(
 	ximapstoremode Mode,
 	xstrview Flags,
 	bool bUid,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -1011,7 +1012,7 @@ static bool __xrtImapCommandBeginCopyMove(
 	xstrview Mailbox,
 	bool bUid,
 	bool bMove,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -1071,7 +1072,7 @@ XRT_API bool xrtImapClientBeginCopy(
 	xstrview Set,
 	xstrview Mailbox,
 	bool bUid,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -1094,7 +1095,7 @@ XRT_API bool xrtImapClientBeginMove(
 	xstrview Set,
 	xstrview Mailbox,
 	bool bUid,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -1115,7 +1116,7 @@ XRT_API bool xrtImapClientBeginMove(
 XRT_API bool xrtImapClientBeginExpunge(
 	ximapclient* pClient,
 	xstrview UidSet,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -1167,7 +1168,7 @@ XRT_API bool xrtImapClientBeginExpunge(
 /* 开始 IDLE，continuation 和未请求事件由调用方读取。 */
 XRT_API bool xrtImapClientBeginIdle(
 	ximapclient* pClient,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -1194,7 +1195,7 @@ XRT_API bool xrtImapClientBeginIdle(
 /* 向活动 IDLE 命令发送 DONE。 */
 XRT_API bool xrtImapClientEndIdle(
 	ximapclient* pClient,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {

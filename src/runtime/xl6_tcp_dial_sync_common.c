@@ -17,14 +17,14 @@ bool xl6TcpDialMayWaitInternalV1(void* engine)
 void* xl6TcpDialFinishUntilInternalV1(XL6_ExecutionResourceV1* carrier,xfuture* source,uint64_t due,xcancel* parent)
 {
     bool ok=false;xfutureresult outcome={0};
-    xwaitresult waited=source?xrtFutureWaitUntilCancel(source,due,parent):XWAIT_ERROR;
+    xwaitresult waited=source?xrtFutureWaitForCancel(source,xl6DeadlineRemainingMillisecondsV1(due),parent):XWAIT_ERROR;
     if(waited==XWAIT_CANCELLED)(void)xl6PayloadObserveOutcome(XFUTURE_CANCELLED,NULL);
     else if(waited==XWAIT_TIMEOUT)xrtSetErrorKind(XERR_TIMEOUT);
     else if(waited==XWAIT_OK){
         /* A native terminal result is not yet delivered. Snapshot parent,
          * then absolute clock, before selecting/promoting that result. */
         if(parent&&xrtCancelRequested(parent))(void)xl6PayloadObserveOutcome(XFUTURE_CANCELLED,NULL);
-        else if(xrtDeadlineExpired(due))xrtSetErrorKind(XERR_TIMEOUT);
+        else if(xl6DeadlineExpiredV1(due))xrtSetErrorKind(XERR_TIMEOUT);
         else if(xrtFutureResult(source,&outcome)&&xl6PayloadObserveOutcome(outcome.State,outcome.Error))
             ok=xl6ExecutionTcpPromoteDialV1(carrier);
     }

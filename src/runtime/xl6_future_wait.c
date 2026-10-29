@@ -1,7 +1,7 @@
 #define XRT_MODULE_FUTURE_COMBINE
 #define XRT_MODULE_TASK_GROUP
 #define XRT_MODULE_MEMORY
-#include "lib/xrt/xrt.h"
+#include "src/common/xl6_xrt.h"
 #include "xl6_future_wait.h"
 #include <string.h>
 

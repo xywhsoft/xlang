@@ -1,3 +1,4 @@
+#include "xl_clock.h"
 #include <xrt/imap_compress.h>
 
 #include "../internal/xrt_imap_client.h"
@@ -82,7 +83,7 @@ XRT_API bool xrtImapClientCompressed(const ximapclient* pClient)
 XRT_API bool xrtImapClientCompress(
 	ximapclient* pClient,
 	const ximapcompressconfig* pConfig,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {

@@ -8,21 +8,20 @@ typedef struct xhttp_client_future_mapper {
 
 
 
-/* 把语言层毫秒转换为 XRT 微秒，并保留零继承与负一无限语义。 */
+/* 把语言层毫秒直接传给 XRT 毫秒接口，并保留零继承与负一无限语义。 */
 static bool xhttpClientDuration(
 	long long iMilliseconds,
-	uint64* pMicroseconds
+	uint64* pMilliseconds
 )
 {
-	if ( pMicroseconds == NULL ) {
+	if ( pMilliseconds == NULL ) {
 		return false;
 	}
 	if ( iMilliseconds == -1 ) {
-		*pMicroseconds = UINT64_MAX;
+		*pMilliseconds = UINT64_MAX;
 		return true;
 	}
-	if ( (iMilliseconds < 0) ||
-		((uint64)iMilliseconds > (UINT64_MAX / UINT64_C(1000))) ) {
+	if ( iMilliseconds < 0 ) {
 		xhttpClientNativeError(
 			XERR_ARGUMENT,
 			"convert-http-duration",
@@ -30,7 +29,7 @@ static bool xhttpClientDuration(
 		);
 		return false;
 	}
-	*pMicroseconds = (uint64)iMilliseconds * UINT64_C(1000);
+	*pMilliseconds = (uint64)iMilliseconds;
 	return true;
 }
 

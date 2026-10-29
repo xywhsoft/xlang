@@ -91,7 +91,7 @@ bool xl6ExecutionExecutorWaitV1(Resource* resource,int64_t ms,XL6_ExecutorWaitSt
 {
     if(status)*status=XL6_EXECUTOR_TIMEOUT_V1;
     if(!status){xrtSetErrorKind(XERR_ARGUMENT);return false;}
-    xdeadline deadline;if(!xl6ConcurrentDeadline(ms,&deadline))return false;
+    XL6_DeadlineV1 deadline;if(!xl6ConcurrentDeadline(ms,&deadline))return false;
     XL6_ExecutionScopeV1 scope={0};if(!xl6ExecutionResourceEnterV1(resource,false,&scope))return false;
     bool closed=xl6ExecutionRequestedInternalV1(resource);
     bool ok=false;
@@ -99,7 +99,7 @@ bool xl6ExecutionExecutorWaitV1(Resource* resource,int64_t ms,XL6_ExecutorWaitSt
     else if(!closed)xrtSetErrorKind(XERR_STATE);
     else if(scope.executor){
         if(xrtExecutorClose(scope.executor)){
-            xwaitresult waited=xrtExecutorWaitUntil(scope.executor,deadline);
+            xwaitresult waited=xrtExecutorWaitFor(scope.executor,xl6DeadlineRemainingMillisecondsV1(deadline));
             if(waited==XWAIT_TIMEOUT)ok=true;
             else if(waited==XWAIT_OK){*status=XL6_EXECUTOR_READY_V1;ok=xl6ExecutionFailuresCheckV1(resource->failures);}
         }

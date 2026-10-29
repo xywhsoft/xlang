@@ -1,13 +1,23 @@
 /* Ordinary offline native prerequisite, not a claim of public language API. */
 #define XRT_MODULE_EXECUTOR
 #define XRT_MODULE_MEMORY_DEBUG
+#define XRT_MODULE_WAIT
 #ifdef XL6_EXECUTOR_TEST_RUNTIME
 #define XRUNTIME_IMPLEMENTATION
+#ifndef XRT_MODULE_WAIT
+#define XRT_MODULE_WAIT
+#endif
+#include "lib/xruntime/xruntime_features.h"
+#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)
+#define XRT_IMPLEMENTATION
+#endif
+#include "lib/xrt/xrt.h"
 #include "lib/xruntime/xruntime.h"
 #else
 #define XRT_IMPLEMENTATION
 #include "lib/xrt/xrt.h"
 #endif
+#include "release/include/xl_clock.h"
 #include <assert.h>
 #include <stdio.h>
 
@@ -32,8 +42,8 @@ static bool remember(xrtownershipref ref,ptr data)
 {Slots* slots=data;assert(slots->count<2);slots->items[slots->count++]=ref;return true;}
 static void freeze_begin(xrtownershipscope* scope)
 {
-    xdeadline end=xrtDeadlineAfter(UINT64_C(5000000));
-    while(!xrtOwnershipFreezeTryBegin(scope)){assert(!xrtDeadlineExpired(end));xrtThreadYield();}
+    XL6_DeadlineV1 end=xl6DeadlineAfterMillisecondsV1(5000);
+    while(!xrtOwnershipFreezeTryBegin(scope)){assert(!xl6DeadlineExpiredV1(end));xrtThreadYield();}
 }
 int main(void)
 {
@@ -62,10 +72,10 @@ int main(void)
     }
     xrtownershipresult graph={0};assert(xrtOwnershipInspect(&ref,1,NULL,0,&graph)&&graph.NodeCount==5&&graph.EdgeCount==6);
     assert(preparation->Prepare(ref.Data,&config)==XRT_OWNERSHIP_PREPARE_BUSY);assert(xrtOwnershipScopeEnd(&freeze));
-    xdeadline end=xrtDeadlineAfter(UINT64_C(5000000));
+    XL6_DeadlineV1 end=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){xrtownershipprepareresult result=preparation->Prepare(ref.Data,&config);
         if(result==XRT_OWNERSHIP_PREPARE_READY)break;
-        assert(result==XRT_OWNERSHIP_PREPARE_BUSY&&!xrtDeadlineExpired(end));xrtThreadYield();}
+        assert(result==XRT_OWNERSHIP_PREPARE_BUSY&&!xl6DeadlineExpiredV1(end));xrtThreadYield();}
     freeze_begin(&freeze);assert(preparation->Ready(ref.Data)&&xrtAtomic32Load(&completed,XMEMORY_ACQUIRE)==4);
     for(size_t i=0;i<2;++i){assert(job_preparations[i]->Ready(slots.items[i].Data));job_adapters[i]->Clear(slots.items[i].Data,&config);}
     adapter->Clear(ref.Data,&config);assert(!adapter->Hold(ref.Data));assert(xrtOwnershipScopeEnd(&freeze));

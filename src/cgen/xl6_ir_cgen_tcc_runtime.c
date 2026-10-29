@@ -21,7 +21,8 @@ static void xl6IrCgenEmitTccRuntime(XL6_Output* out,const XL6_IrModule* module)
     xl6OutputPuts(
         "#ifndef XLIR_TCC_RUNTIME\n#define XLIR_TCC_RUNTIME\n"
         "#include <limits.h>\n#include <stdint.h>\n#include <string.h>\n"
-        "#include <__xl_runtime/xruntime_decl.h>\n"
+        "#include <__xl_runtime/xrt_decl.h>\n"
+            "#include <__xl_runtime/xruntime_decl.h>\n"
         "#include <__xl_runtime/xl6_array_input.h>\n"
         "#include <__xl_runtime/xl6_tcc_context_policy.h>\n"
         "struct TCCState;\n"

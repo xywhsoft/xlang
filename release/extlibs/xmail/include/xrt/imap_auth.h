@@ -1,3 +1,4 @@
+#include "xl_clock.h"
 #ifndef XRT_IMAP_AUTH_H
 #define XRT_IMAP_AUTH_H
 
@@ -56,7 +57,7 @@ XRT_API bool xrtImapAuthConfigValid(const ximapauthconfig* pConfig);
 XRT_API bool xrtImapClientAuth(
 	ximapclient* pClient,
 	const ximapauthconfig* pConfig,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 

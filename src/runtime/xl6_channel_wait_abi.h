@@ -9,7 +9,7 @@ typedef struct XL6_ChannelWaitOptionsV2 {
     size_t size;
     unsigned mode; /* TRY/WAIT/FOR from V1, or UNTIL below. */
     int64_t timeoutMs;
-    uint64_t deadlineUs; /* Same monotonic microsecond clock as xrtClock. */
+    uint64_t deadlineMs; /* Same monotonic millisecond clock as xl6MonotonicMillisecondsV1. */
 } XL6_ChannelWaitOptionsV2;
 enum { XL6_CHANNEL_UNTIL_V2=3 };
 enum { XL6_CHANNEL_CASE_SEND_V1=0, XL6_CHANNEL_CASE_RECEIVE_V1=1 };

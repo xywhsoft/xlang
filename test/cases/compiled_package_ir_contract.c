@@ -1,6 +1,7 @@
 #include "src/compile/xl6_compile_unit.h"
 #include "src/package/xl6_compiled_package.h"
 #include "src/cgen/xl6_ir_cgen.h"
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
 #include <assert.h>
 #include <stdio.h>

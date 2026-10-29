@@ -1,4 +1,5 @@
 #define main udpBaselineRuntimeMain
+#include "release/include/xl_clock.h"
 #include "udp_language_runtime.c"
 #undef main
 #include "udp_transfer_test.h"
@@ -41,12 +42,12 @@ typedef struct Gate {xatomic32 entered,release,done;} Gate;
 static void blockWorker(xnetworker* worker,void* raw)
 {
     (void)worker;Gate* g=raw;xrtAtomic32Store(&g->entered,1,XMEMORY_RELEASE);
-    xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
-    while(!xrtAtomic32Load(&g->release,XMEMORY_ACQUIRE)){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+    XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
+    while(!xrtAtomic32Load(&g->release,XMEMORY_ACQUIRE)){CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
     xrtAtomic32Store(&g->done,1,XMEMORY_RELEASE);
 }
 static void waitFlag(xatomic32* flag)
-{xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));while(!xrtAtomic32Load(flag,XMEMORY_ACQUIRE)){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}}
+{XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);while(!xrtAtomic32Load(flag,XMEMORY_ACQUIRE)){CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}}
 static void blockedControls(Graph* graph,size_t index)
 {
     Gate gate={0};CHECK(xrtNetEnginePost(graph->engine->engine,index,blockWorker,&gate));waitFlag(&gate.entered);

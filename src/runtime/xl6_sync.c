@@ -1,7 +1,7 @@
 #define XRT_MODULE_ONCE
 #define XRT_MODULE_THREAD
 #define XRUNTIME_MODULE_RUNTIME_VALUE_TYPE
-#include "lib/xruntime/xruntime.h"
+#include "src/common/xl6_xrt.h"
 #include "src/runtime/xl6_sync_internal.h"
 #include "xl_sync_retirement.h"
 #include <limits.h>

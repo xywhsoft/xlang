@@ -1,3 +1,4 @@
+#include "xl_clock.h"
 #ifndef XRT_SMTP_SUBMIT_H
 #define XRT_SMTP_SUBMIT_H
 
@@ -43,7 +44,7 @@ XRT_API bool xrtSmtpSubmitEnvelope(
 	xsmtpclient* pClient,
 	const xsmtpenvelope* pEnvelope,
 	const xmailmessage* pMessage,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
@@ -53,7 +54,7 @@ XRT_API bool xrtSmtpSubmitEnvelope(
 XRT_API bool xrtSmtpSubmit(
 	xsmtpclient* pClient,
 	const xmailmessage* pMessage,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 

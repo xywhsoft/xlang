@@ -1,6 +1,7 @@
 /* Offline normal certificates, exact spans, ownership and resource contracts.
  * No transport, malformed crypto, or native security suites. */
 #if defined(XL6_TEST_XRUNTIME_DECL)
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
 #else
 #include "include/xrt_decl.h"
@@ -40,8 +41,8 @@ static void exercise(const PathVector* vector)
     assert(store && xrtX509Parse(vector->leaf.Data,vector->leaf.Size,&chain[0]) &&
         xrtX509Parse(vector->mid.Data,vector->mid.Size,&chain[1]) &&
         xrtX509StoreAdd(store,vector->root.Data,vector->root.Size)==X509_VALUE);
-    /* The embedded product must retain its microsecond contract. */
-    assert(chain[0].NotBefore==1577836800000000LL);
+    /* The embedded product must retain its Gregorian millisecond contract. */
+    assert(chain[0].NotBefore==63713433600000LL);
     xtlspeer peer={XTLS_SERVER,{"localhost",9},pathTime,chain,2};
     xtlsverifylimits defaults;xrtTlsVerifyLimitsInit(&defaults);
     assert(defaults.MaxPeerCertificates==64 && defaults.MaxPeerBytes==16777216 &&

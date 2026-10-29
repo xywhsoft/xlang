@@ -1,3 +1,4 @@
+#include "release/include/xl_clock.h"
 #include <assert.h>
 #include <stdio.h>
 #include "../../build/test/xlir_property_update.c"
@@ -46,10 +47,10 @@ static int order(int kind, int mode, int stage)
 void property_prepare(void) { assert(xlir_module_init() && !xrtGetError()); }
 void property_idle(void)
 {
-    uint64_t started = xrtClock();
+    uint64_t started = xl6MonotonicMillisecondsV1();
     assert(xlir_continuation_executor);
     while (!xl6ContinuationExecutorIsIdle(xlir_continuation_executor)) {
-        assert(xrtClock() - started < 5000000);
+        assert(xl6MonotonicMillisecondsV1() - started < 5000);
         xrtSleep(1);
     }
 }

@@ -685,12 +685,8 @@ static void bson_encode_value(struct bson *b, const char *key, int klen,
           w_length_at(b, slen + 1, off); }
     } else if (xvoIsTime(val)) {
         xtime t = xvoGetTime(val);
-        if (t % XRT_TIME_MILLISECOND != 0) {
-            b->failed = true;
-            bson_error("bson: date has submillisecond precision");
-            return;
-        }
-        int64_t ms = xrtTimeUnixMs(t);
+        int64_t ms;
+        if (!xrtTimeToUnixMs(t, &ms)) { b->failed = true; return; }
         w_key(b, BSON_DATE, key, klen);
         w_int64(b, ms);
     } else if (xvoIsTable(val)) {

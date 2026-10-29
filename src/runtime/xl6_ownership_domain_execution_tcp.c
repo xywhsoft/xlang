@@ -1,4 +1,6 @@
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
+#include "include/xl_clock.h"
 #include "xl6_ownership_domain_impl.h"
 #include "xl6_execution_tcp.h"
 /* Generic execution admission consumes the complete selected typed family

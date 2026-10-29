@@ -1,3 +1,4 @@
+#include "xl_clock.h"
 #include "include/mqtt_native.h"
 #include "mqtt_internal.h"
 
@@ -10,11 +11,11 @@ static bool range(int64_t value, int64_t minimum, int64_t maximum)
         xmqtt_error(XERR_RANGE, "mqtt: argument is outside the protocol field range");
 }
 
-static bool deadline(int64_t timeout, xdeadline* result)
+static bool deadline(int64_t timeout, XL6_DeadlineV1* result)
 {
-    if (timeout < -1 || (uint64_t)(timeout < 0 ? 0 : timeout) > UINT64_MAX / 1000u)
+    if (timeout < -1)
         return xmqtt_error(XERR_RANGE, "mqtt: timeout must be -1 or nonnegative milliseconds");
-    *result = timeout == -1 ? XRT_DEADLINE_NEVER : xrtDeadlineAfter((uint64_t)timeout * 1000u);
+    *result = timeout == -1 ? XL6_DEADLINE_NEVER : xl6DeadlineAfterMillisecondsV1((uint64_t)timeout);
     return true;
 }
 
@@ -102,14 +103,14 @@ int64_t xmq_frame_size(void* data, size_t size)
 
 bool xmq_send_frame(void* stream, void* data, size_t size, int64_t timeout, void* cancel)
 {
-    xdeadline until;
+    XL6_DeadlineV1 until;
     return deadline(timeout, &until) &&
         xrtMqttSendFrame(stream, (xbytesview){data, size}, until, cancel);
 }
 
 void* xmq_recv_frame(void* stream, int64_t limit, int64_t timeout, void* cancel)
 {
-    xdeadline until;
+    XL6_DeadlineV1 until;
     if (!range(limit, 2, (int64_t)XMQTT_MAX_REMAINING + 5) || !deadline(timeout, &until)) return NULL;
     return xrtMqttRecvFrame(stream, (size_t)limit, until, cancel);
 }
@@ -117,7 +118,7 @@ void* xmq_recv_frame(void* stream, int64_t limit, int64_t timeout, void* cancel)
 xvalue* xmq_handshake(void* stream, const char* client, const char* username,
     const char* password, int64_t keepalive, int64_t timeout, void* cancel)
 {
-    xdeadline until;
+    XL6_DeadlineV1 until;
     xvalue* result;
     xstrview secret = xrtStrView(password);
     if (!range(keepalive, 0, UINT16_MAX) || !deadline(timeout, &until)) return xrtValueNull();

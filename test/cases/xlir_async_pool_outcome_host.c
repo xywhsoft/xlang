@@ -1,3 +1,4 @@
+#include "release/include/xl_clock.h"
 #include "xlir_async_pool_outcome.c"
 #include "xlir_async_pool_outcome.h.bind.h"
 #include <assert.h>
@@ -11,9 +12,9 @@ typedef char pool_watch_storage_abi[(sizeof(xfuturewatch) == 64) ? 1 : -1];
 int pool_outcome_init(void) { return xlir_module_init(); }
 void pool_outcome_fini(void)
 {
-    xdeadline deadline=xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
     while(!xlir_continuation_quiesce(false)){
-        assert(!xrtGetError()&&!xrtDeadlineExpired(deadline));xrtThreadYield();
+        assert(!xrtGetError()&&!xl6DeadlineExpiredV1(deadline));xrtThreadYield();
     }
     xlir_module_fini();
 }

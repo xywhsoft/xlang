@@ -3,6 +3,7 @@
 /* Observe the actual ABI argument lists, then delegate to the unchanged native
  * adapter. This is a contract spy, not a replacement graph or policy result. */
 #define xrtNetEngineOwnershipAdapterV3 testRealNetEngineOwnershipAdapterV3
+#include "release/include/xl_clock.h"
 #include "net_engine_runtime.c"
 #undef xrtNetEngineOwnershipAdapterV3
 #undef main
@@ -135,12 +136,12 @@ static XL6_OwnershipCatalog* policyCatalog(const XL6_OwnershipDomainV1* extra,bo
 static XL6_OwnershipAdmissionV1 policyProbe(xnetengine* engine,XL6_OwnershipCatalog* c,size_t expected)
 {
     expectedPolicyCount=expected;
-    xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
+    XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){xrtownershipscope frozen={0};freeze(&frozen);const xrtownershipadapterv1* a=NULL;
         const xrtownershippreparationv1* prep=NULL;const XL6_OwnershipFinishV1* finish=NULL;
         XL6_OwnershipAdmissionV1 result=xl6OwnershipCatalogProbeV1(xrtNetEngineOwnership(engine),c,&a,&prep,&finish);
         assert(xrtOwnershipScopeEnd(&frozen));if(result!=XL6_OWNERSHIP_ADMISSION_BUSY)return result;
-        assert(!a&&!prep&&!finish&&!xrtDeadlineExpired(until));xrtThreadYield();}
+        assert(!a&&!prep&&!finish&&!xl6DeadlineExpiredV1(until));xrtThreadYield();}
 }
 static bool policyAdmit(xrtownershipref ref,void* data)
 {
@@ -157,7 +158,7 @@ static void registration(bool reverse)
     policyCountCalls=policyTraceCalls=0;
     assert(policyProbe(engine,copyOnly,COPIES+1)==XL6_OWNERSHIP_ADMISSION_REFUSED&&!policyCountCalls&&!policyTraceCalls);
     assert(policyProbe(engine,complete,COPIES+2)==XL6_OWNERSHIP_ADMISSION_ADMITTED);
-    assert(policyHold(timer));uint64 id=xrtNetEngineScheduleOwnedV1(engine,0,xrtDeadlineAfter(UINT64_C(300000000)),timer,&addedTimer);assert(id);
+    assert(policyHold(timer));uint64 id=xrtNetEngineScheduleOwnedV1(engine,0,xl6DeadlineAfterMillisecondsV1(300000),timer,&addedTimer);assert(id);
     policyCountCalls=policyTraceCalls=0;
     assert(policyProbe(engine,copyOnly,COPIES+1)==XL6_OWNERSHIP_ADMISSION_REFUSED&&!policyCountCalls&&!policyTraceCalls);
     assert(policyProbe(engine,complete,COPIES+2)==XL6_OWNERSHIP_ADMISSION_ADMITTED);

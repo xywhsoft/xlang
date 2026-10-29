@@ -8,7 +8,7 @@
 
 static void expect_closed(xnetstream* stream)
 {
-    (void)xrtNetStreamWait(stream, XNET_STREAM_WAIT_CLOSE, xrtDeadlineAfter(5000000), NULL);
+    (void)xrtNetStreamWait(stream, XNET_STREAM_WAIT_CLOSE, 5000, NULL);
     assert(xrtNetStreamState(stream) == XNET_STREAM_CLOSED);
     xrtClearError();
 }
@@ -21,12 +21,12 @@ static void check_ack(const uint8* data, size_t size, bool valid)
     mqtt_test_open(&pair);
     mqtt_test_send(pair.Peer, (xbytesview){data, size});
     result = xrtMqttHandshake(pair.Client, xrtStrView("client"), xrtStrView(""),
-        (xbytesview){NULL, 0}, 0, xrtDeadlineAfter(5000000), NULL);
+        (xbytesview){NULL, 0}, 0, xl6DeadlineAfterMillisecondsV1(5000), NULL);
     if (valid) {
         xbuffer* next;
         assert(result != NULL);
         xrtValueRelease(result);
-        next = xrtMqttRecvFrame(pair.Client, 2, xrtDeadlineAfter(5000000), NULL);
+        next = xrtMqttRecvFrame(pair.Client, 2, xl6DeadlineAfterMillisecondsV1(5000), NULL);
         assert(next != NULL && next->Size == 2 && next->Data[0] == 0xd0);
         xrtBufferDestroy(next);
     } else {
@@ -70,7 +70,7 @@ static void check_send_preflight(void)
     assert(!xrtMqttSendFrame(pair.Client, xrtBufferView(ping), XRT_DEADLINE_NEVER, cancel));
     assert(xrtErrorKind(xrtGetError()) == XERR_CANCELLED);
     xrtClearError();
-    assert(!xrtMqttSendFrame(pair.Client, xrtBufferView(ping), xrtDeadlineAfter(0), NULL));
+    assert(!xrtMqttSendFrame(pair.Client, xrtBufferView(ping), xl6DeadlineAfterMillisecondsV1(0), NULL));
     assert(xrtErrorKind(xrtGetError()) == XERR_TIMEOUT);
     xrtClearError();
     assert(!xrtMqttSendFrame(pair.Client, (xbytesview){(cbytes)"\xc0\0\xd0\0", 4},
@@ -78,8 +78,8 @@ static void check_send_preflight(void)
     assert(xrtErrorKind(xrtGetError()) == XERR_PROTOCOL);
     xrtClearError();
     /* 所有预检查失败均未发送字节，原连接仍能收发。 */
-    assert(xrtMqttSendFrame(pair.Client, xrtBufferView(ping), xrtDeadlineAfter(5000000), NULL));
-    received = xrtMqttRecvFrame(pair.Peer, 2, xrtDeadlineAfter(5000000), NULL);
+    assert(xrtMqttSendFrame(pair.Client, xrtBufferView(ping), xl6DeadlineAfterMillisecondsV1(5000), NULL));
+    received = xrtMqttRecvFrame(pair.Peer, 2, xl6DeadlineAfterMillisecondsV1(5000), NULL);
     assert(received != NULL && received->Size == 2 && received->Data[0] == 0xc0);
     xrtBufferDestroy(received);
     xrtBufferDestroy(ping);
@@ -95,7 +95,7 @@ typedef struct cancel_send {
 static int32 cancel_after_send(void* data)
 {
     cancel_send* state = data;
-    assert(xrtNetStreamWaitAvailable(state->Peer, 1, xrtDeadlineAfter(5000000), NULL));
+    assert(xrtNetStreamWaitAvailable(state->Peer, 1, 5000, NULL));
     assert(xrtCancelRequest(state->Cancel));
     return 0;
 }
@@ -122,12 +122,12 @@ static void check_partial_send(bool cancelled)
     }
     /* 对端不读正文，有限接收队列形成背压；超时/取消发生于已经开始的发送。 */
     assert(!xrtMqttSendFrame(pair.Client, xrtBufferView(frame),
-        xrtDeadlineAfter(cancelled ? 5000000 : 250000), cancel));
+        xl6DeadlineAfterMillisecondsV1(cancelled ? 5000 : 250), cancel));
     assert(xrtErrorKind(xrtGetError()) == (cancelled ? XERR_CANCELLED : XERR_TIMEOUT));
     xrtClearError();
     assert(xrtNetStreamStats(pair.Client, &stats) && stats.SentBytes > 0 && stats.SentBytes < frame->Size);
     if (thread != NULL) {
-        assert(xrtThreadWaitFor(thread, 5000000) == XWAIT_OK);
+        assert(xrtThreadWaitFor(thread, 5000) == XWAIT_OK);
         xrtThreadDestroy(thread);
     }
     expect_closed(pair.Client);
@@ -156,11 +156,11 @@ static void check_recv_allocation(void)
         xbuffer* received;
         bool injected;
         mqtt_test_open(&pair);
-        assert(xrtMqttSendFrame(pair.Peer, xrtBufferView(frame), xrtDeadlineAfter(5000000), NULL));
-        assert(xrtNetStreamWaitAvailable(pair.Client, frame->Size, xrtDeadlineAfter(5000000), NULL));
+        assert(xrtMqttSendFrame(pair.Peer, xrtBufferView(frame), xl6DeadlineAfterMillisecondsV1(5000), NULL));
+        assert(xrtNetStreamWaitAvailable(pair.Client, frame->Size, 5000, NULL));
         /* XRT 的故障注入仅影响本线程，不干扰网络驱动的异步内存申请。 */
         assert(xrtMemDebugFailAfter(index));
-        received = xrtMqttRecvFrame(pair.Client, 1024, xrtDeadlineAfter(5000000), NULL);
+        received = xrtMqttRecvFrame(pair.Client, 1024, xl6DeadlineAfterMillisecondsV1(5000), NULL);
         injected = xrtMemDebugFailTriggered();
         xrtMemDebugFailClear();
         if (received != NULL) {
@@ -173,7 +173,7 @@ static void check_recv_allocation(void)
             xrtClearError();
             if (xrtNetStreamAvailable(pair.Client) == frame->Size) {
                 /* 缓冲或首字节等待的分配失败未读数据；已受理的读取也可能被保守终止。 */
-                received = xrtMqttRecvFrame(pair.Client, 1024, xrtDeadlineAfter(5000000), NULL);
+                received = xrtMqttRecvFrame(pair.Client, 1024, xl6DeadlineAfterMillisecondsV1(5000), NULL);
                 if (index < 2) assert(received != NULL);
             }
             if (received != NULL) {

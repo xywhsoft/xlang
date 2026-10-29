@@ -1,3 +1,4 @@
+#include "xl_clock.h"
 #include <string.h>
 
 #include <xrt/time.h>
@@ -76,10 +77,10 @@ static bool xsshSessionStreamCurrent(const xsshsessionstream* pSession)
 
 
 
-/* SSH rekey 时钟使用毫秒，XRT 单调时钟使用微秒。 */
+/* SSH rekey 时钟使用毫秒，XRT 单调时钟使用毫秒。 */
 static uint64 xsshSessionStreamNow(void)
 {
-	return xrtClock() / 1000u;
+	return xl6MonotonicMillisecondsV1();
 }
 
 

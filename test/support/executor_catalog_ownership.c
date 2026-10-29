@@ -4,6 +4,7 @@
 #define XRT_MODULE_VALUE_CONTAINER
 #define XRT_MODULE_ONCE
 #define main executor_prerequisite_main
+#include "release/include/xl_clock.h"
 #include "../cases/xrt_executor_ownership_native.c"
 #undef main
 #include "src/runtime/xl6_ownership_catalog.h"
@@ -77,10 +78,10 @@ static void queued_round(XL6_OwnershipCatalog* known,XL6_OwnershipCatalog* nativ
     /* Refused probes clear their outputs, so retain the admitted preparation separately. */
     if(job_adapter)assert(probe(known,job,XL6_OWNERSHIP_ADMISSION_ADMITTED,&job_preparation)==job_adapter);
     assert(xrtOwnershipScopeEnd(&freeze));
-    xdeadline end=xrtDeadlineAfter(UINT64_C(5000000));
+    XL6_DeadlineV1 end=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){xrtownershipprepareresult result=preparation->Prepare(ref.Data,&config);
         if(result==XRT_OWNERSHIP_PREPARE_READY)break;
-        assert(result==XRT_OWNERSHIP_PREPARE_BUSY&&!xrtDeadlineExpired(end));xrtThreadYield();}
+        assert(result==XRT_OWNERSHIP_PREPARE_BUSY&&!xl6DeadlineExpiredV1(end));xrtThreadYield();}
     freeze_begin(&freeze);assert(preparation->Ready(ref.Data)&&xrtAtomic32Load(&completed,XMEMORY_ACQUIRE)==2);
     if(job_adapter){assert(job_preparation->Ready(job.Data));job_adapter->Clear(job.Data,&config);}
     adapter->Clear(ref.Data,&config);assert(xrtOwnershipScopeEnd(&freeze));
@@ -106,8 +107,8 @@ static bool gated_trace(const void* data,xrtownershipvisitor visit,ptr context)
 static const xrtownershipops gated_ops={gated_count,gated_trace};
 static void wait_value(xatomic32* value,uint32 expected)
 {
-    xdeadline end=xrtDeadlineAfter(UINT64_C(5000000));
-    while((uint32)xrtAtomic32Load(value,XMEMORY_ACQUIRE)<expected){assert(!xrtDeadlineExpired(end));xrtThreadYield();}
+    XL6_DeadlineV1 end=xl6DeadlineAfterMillisecondsV1(5000);
+    while((uint32)xrtAtomic32Load(value,XMEMORY_ACQUIRE)<expected){assert(!xl6DeadlineExpiredV1(end));xrtThreadYield();}
 }
 static void gated_run(ptr data)
 {Gated* gate=data;assert(gate->references==1);xrtAtomic32Store(gate->stage,1,XMEMORY_RELEASE);wait_value(gate->allow,1);}

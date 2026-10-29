@@ -1,7 +1,8 @@
 /* Native fixture: XRT 40704d47 TCP runtime/pool/bytes/buffer ownership.
- * Adapted ONLY for the pinned microsecond/xdeadline ABI and standalone include.
+ * Adapted ONLY for the pinned millisecond/XL6_DeadlineV1 ABI and standalone include.
  * Actual RC, queue, payload, preparation and OOM semantics are unchanged. */
 #define XRT_IMPLEMENTATION
+#include "release/include/xl_clock.h"
 #include "xrt.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,9 +32,9 @@ static unsigned graph_cases, timer_cases, future_cases, error_cases, refusal_cas
 
 static void freeze_begin(xrtownershipscope* scope)
 {
-	xdeadline deadline = xrtDeadlineAfter(UINT64_C(5000000));
+	XL6_DeadlineV1 deadline = xl6DeadlineAfterMillisecondsV1(5000);
 	while (!xrtOwnershipFreezeTryBegin(scope)) {
-		CHECK(!xrtDeadlineExpired(deadline)); xrtThreadYield();
+		CHECK(!xl6DeadlineExpiredV1(deadline)); xrtThreadYield();
 	}
 }
 static bool admit(xrtownershipref ref, ptr data)
@@ -56,7 +57,7 @@ static bool admit(xrtownershipref ref, ptr data)
  * internal exactly once each. Borrowed aliases never subtract a reference. */
 static void snapshot(TcpGraph* graph, bool pinned, xrtownershipscope* freeze)
 {
-	xdeadline deadline = xrtDeadlineAfter(UINT64_C(5000000));
+	XL6_DeadlineV1 deadline = xl6DeadlineAfterMillisecondsV1(5000);
 	for (;;) {
 		freeze_begin(freeze);
 		bool busy = xrtNetEngineOwnershipQuiescenceV1Get()->Busy(graph->engine);
@@ -103,7 +104,7 @@ static void snapshot(TcpGraph* graph, bool pinned, xrtownershipscope* freeze)
 			xrtClearError();
 		}
 		CHECK(xrtOwnershipScopeEnd(freeze));
-		CHECK(!xrtDeadlineExpired(deadline)); xrtThreadYield();
+		CHECK(!xl6DeadlineExpiredV1(deadline)); xrtThreadYield();
 	}
 }
 static void balanced(const xmemdebugsnapshot* before)
@@ -133,11 +134,11 @@ static void create(TcpGraph* graph, xnetportbackend backend, bool future)
 	if (future) {
 		xfuture* pending = xrtNetListenerAcceptAsync(graph->listener);
 		CHECK(pending);
-		xrtownershipscope freeze = {0}; xdeadline deadline = xrtDeadlineAfter(UINT64_C(5000000));
+		xrtownershipscope freeze = {0}; XL6_DeadlineV1 deadline = xl6DeadlineAfterMillisecondsV1(5000);
 		for (;;) {
 			freeze_begin(&freeze);
 			if (!xrtNetEngineOwnershipQuiescenceV1Get()->Busy(graph->engine)) break;
-			CHECK(xrtOwnershipScopeEnd(&freeze)); CHECK(!xrtDeadlineExpired(deadline)); xrtThreadYield();
+			CHECK(xrtOwnershipScopeEnd(&freeze)); CHECK(!xl6DeadlineExpiredV1(deadline)); xrtThreadYield();
 		}
 		xrtownershipref ref = xrtNetListenerOwnership(graph->listener); size_t count = 123;
 		CHECK(ref.Ops->Count(ref.Data, &count) && count == 3);
@@ -148,11 +149,11 @@ static void create(TcpGraph* graph, xnetportbackend backend, bool future)
 	xnetaddr address; CHECK(xrtNetListenerLocal(graph->listener, &address));
 	graph->client = xrtNetStreamConnect(graph->engine, &address, 0, &config.Stream, NULL, NULL);
 	CHECK(graph->client);
-	xdeadline deadline = xrtDeadlineAfter(UINT64_C(5000000));
+	XL6_DeadlineV1 deadline = xl6DeadlineAfterMillisecondsV1(5000);
 	for (;;) {
 		xnetlistenerstats stats; CHECK(xrtNetListenerStats(graph->listener, &stats));
 		if (stats.QueuedAccepts == 1 && xrtNetStreamState(graph->client) == XNET_STREAM_OPEN) break;
-		CHECK(!xrtDeadlineExpired(deadline)); xrtThreadYield();
+		CHECK(!xl6DeadlineExpiredV1(deadline)); xrtThreadYield();
 	}
 	graph->refs[0] = xrtNetEngineOwnership(graph->engine);
 	graph->refs[1] = xrtNetListenerOwnership(graph->listener);
@@ -222,9 +223,9 @@ static void buffered(TcpGraph* graph)
 		xrtFree(payload); CHECK(graph->owned_bytes);
 	}
 	CHECK(xrtNetEnginePost(graph->engine, 0, send_payload, graph));
-	xdeadline deadline = xrtDeadlineAfter(UINT64_C(5000000));
+	XL6_DeadlineV1 deadline = xl6DeadlineAfterMillisecondsV1(5000);
 	while (!xrtAtomic32Load(&graph->payload_ready, XMEMORY_ACQUIRE)) {
-		CHECK(!xrtDeadlineExpired(deadline)); xrtThreadYield();
+		CHECK(!xl6DeadlineExpiredV1(deadline)); xrtThreadYield();
 	}
 	if (graph->payload_mode == 2) {
 		uint8* payload = xrtMalloc(PAYLOAD_SIZE); CHECK(payload); memset(payload, 'X', PAYLOAD_SIZE);
@@ -248,9 +249,9 @@ static void buffered(TcpGraph* graph)
 			CHECK(graph->refs[2].Ops->Count(graph->client, &count) && count == (queued && graph->payload_mode != 1 ? 3u : 2u));
 			CHECK(xrtOwnershipScopeEnd(&freeze)); break;
 		}
-		if (xrtDeadlineExpired(deadline)) fprintf(stderr, "buffered mode=%u read=%zu write=%zu pending=%zu\n",
+		if (xl6DeadlineExpiredV1(deadline)) fprintf(stderr, "buffered mode=%u read=%zu write=%zu pending=%zu\n",
 			graph->payload_mode, peer->ReadBuffer.Size, graph->client->WriteBuffer.Size, xrtNetStreamPending(graph->client));
-		CHECK(xrtOwnershipScopeEnd(&freeze)); CHECK(!xrtDeadlineExpired(deadline)); xrtThreadYield();
+		CHECK(xrtOwnershipScopeEnd(&freeze)); CHECK(!xl6DeadlineExpiredV1(deadline)); xrtThreadYield();
 	}
 	++buffered_cases;
 }
@@ -267,20 +268,20 @@ static void lifecycle(xnetportbackend backend, bool timers, bool future, bool er
 	if (payload_mode) buffered(&graph);
 	if (timers) {
 		CHECK(xrtNetEnginePost(graph.engine, 0, add_timers, &graph));
-		xdeadline deadline = xrtDeadlineAfter(UINT64_C(5000000));
+		XL6_DeadlineV1 deadline = xl6DeadlineAfterMillisecondsV1(5000);
 		while (!xrtAtomic32Load(&graph.timers_ready, XMEMORY_ACQUIRE)) {
-			CHECK(!xrtDeadlineExpired(deadline)); xrtThreadYield();
+			CHECK(!xl6DeadlineExpiredV1(deadline)); xrtThreadYield();
 		}
 		++timer_cases;
 	}
 	if (future) {
 		xfuture* pending = xrtNetStreamWaitAsync(graph.client, XNET_STREAM_WAIT_CLOSE);
 		CHECK(pending);
-		xdeadline deadline = xrtDeadlineAfter(UINT64_C(5000000));
+		XL6_DeadlineV1 deadline = xl6DeadlineAfterMillisecondsV1(5000);
 		for (;;) {
 			freeze_begin(&freeze);
 			if (!xrtNetEngineOwnershipQuiescenceV1Get()->Busy(graph.engine)) break;
-			CHECK(xrtOwnershipScopeEnd(&freeze)); CHECK(!xrtDeadlineExpired(deadline)); xrtThreadYield();
+			CHECK(xrtOwnershipScopeEnd(&freeze)); CHECK(!xl6DeadlineExpiredV1(deadline)); xrtThreadYield();
 		}
 		size_t count = 123;
 		CHECK(graph.refs[2].Ops->Count(graph.refs[2].Data, &count) && count == 3);
@@ -338,7 +339,7 @@ static void lifecycle(xnetportbackend backend, bool timers, bool future, bool er
 	CHECK(!xrtNetListenerAccept(graph.listener)); xrtClearError();
 	CHECK(!xrtNetStreamWaitAsync(graph.client, XNET_STREAM_WAIT_CLOSE)); xrtClearError();
 	CHECK(graph.preparations[0]->Prepare(graph.engine, &graph) == XRT_OWNERSHIP_PREPARE_BUSY);
-	xdeadline deadline = xrtDeadlineAfter(UINT64_C(5000000));
+	XL6_DeadlineV1 deadline = xl6DeadlineAfterMillisecondsV1(5000);
 	bool ready[5] = {false,false,false,false,false};
 	for (;;) {
 		bool all = true;
@@ -351,7 +352,7 @@ static void lifecycle(xnetportbackend backend, bool timers, bool future, bool er
 			all = all && ready[i];
 		}
 		if (all) break;
-		CHECK(!xrtDeadlineExpired(deadline)); xrtThreadYield();
+		CHECK(!xl6DeadlineExpiredV1(deadline)); xrtThreadYield();
 	}
 	snapshot(&graph, true, &freeze);
 	for (size_t i = 0; i < graph.nodes; ++i) {
@@ -377,11 +378,11 @@ static void construction(xnetportbackend backend)
 		xnetlistenconfig listen; xrtNetListenConfigInit(&listen);
 		listen.Stream.ReadMode = XNET_STREAM_READ_PROBE;
 		CHECK(xrtNetAddrLoopback(&listen.Address, XNET_FAMILY_IPV4, 0));
-		xrtownershipscope freeze = {0}; xdeadline deadline = xrtDeadlineAfter(UINT64_C(5000000));
+		xrtownershipscope freeze = {0}; XL6_DeadlineV1 deadline = xl6DeadlineAfterMillisecondsV1(5000);
 		for (;;) {
 			freeze_begin(&freeze);
 			if (!xrtNetEngineOwnershipQuiescenceV1Get()->Busy(engine)) break;
-			CHECK(xrtOwnershipScopeEnd(&freeze)); CHECK(!xrtDeadlineExpired(deadline)); xrtThreadYield();
+			CHECK(xrtOwnershipScopeEnd(&freeze)); CHECK(!xl6DeadlineExpiredV1(deadline)); xrtThreadYield();
 		}
 		xnetlistener* listener = xrtNetListen(engine, &listen, NULL, NULL, NULL); CHECK(listener);
 		/* A real native startup task, not an inferred callback identity, makes
@@ -390,11 +391,11 @@ static void construction(xnetportbackend backend)
 		xrtownershipref ref = xrtNetEngineOwnership(engine); size_t count = 123;
 		CHECK(!ref.Ops->Count(ref.Data, &count) && count == 123);
 		CHECK(xrtOwnershipScopeEnd(&freeze));
-		deadline = xrtDeadlineAfter(UINT64_C(5000000));
+		deadline = xl6DeadlineAfterMillisecondsV1(5000);
 		for (;;) {
 			freeze_begin(&freeze);
 			if (!xrtNetEngineOwnershipQuiescenceV1Get()->Busy(engine)) break;
-			CHECK(xrtOwnershipScopeEnd(&freeze)); CHECK(!xrtDeadlineExpired(deadline)); xrtThreadYield();
+			CHECK(xrtOwnershipScopeEnd(&freeze)); CHECK(!xl6DeadlineExpiredV1(deadline)); xrtThreadYield();
 		}
 		xnetaddr address; CHECK(xrtNetListenerLocal(listener, &address));
 		CHECK(xrtMemDebugFailAfter(budget)); ++allocation_budgets;
@@ -410,11 +411,11 @@ static void construction(xnetportbackend backend)
 		xrtClearError(); CHECK(xrtOwnershipScopeEnd(&freeze));
 		if (client) { CHECK(xrtNetStreamAbort(client)); xrtNetStreamDestroy(client); }
 		CHECK(xrtNetListenerClose(listener)); xrtNetListenerDestroy(listener);
-		deadline = xrtDeadlineAfter(UINT64_C(5000000));
+		deadline = xl6DeadlineAfterMillisecondsV1(5000);
 		for (;;) {
 			xnetretireresult result = xrtNetEngineTryDestroy(engine);
 			if (result == XNET_RETIRE_READY) break;
-			CHECK(result == XNET_RETIRE_BUSY && !xrtDeadlineExpired(deadline)); xrtThreadYield();
+			CHECK(result == XNET_RETIRE_BUSY && !xl6DeadlineExpiredV1(deadline)); xrtThreadYield();
 		}
 		balanced(&before);
 	}

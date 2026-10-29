@@ -1,5 +1,6 @@
 #ifndef XL6_FUTURE_CALLBACK_INTERRUPT_H
 #define XL6_FUTURE_CALLBACK_INTERRUPT_H
+#include "xl_clock.h"
 #include "xl6_future_callback.h"
 #include "xl6_deadline_service.h"
 /* Private resident, exclusive-operation protocol. Use V5 Allocate/Cleanup and
@@ -19,7 +20,7 @@
  * retained until its REAL terminal event; cancellation is only a request.
  * Failure of the deadline service is FAILED with its first diagnostic.
  * V1-6 are unchanged and do not select this optional component. */
-XL6_CODE_LEASE_API bool xl6FutureCallbackInterruptArmV1(void*,xcancel*,XL6_DeadlineServiceV1*,xdeadline);
+XL6_CODE_LEASE_API bool xl6FutureCallbackInterruptArmV1(void*,xcancel*,XL6_DeadlineServiceV1*,XL6_DeadlineV1);
 XL6_CODE_LEASE_API bool xl6FutureCallbackInterruptStoppedV1(const void*);
 XL6_CODE_LEASE_API xfuture* xl6FutureCallbackInterruptStartV1(struct XL6_ContinuationExecutor*,void*,xfuture*);
 XL6_CODE_LEASE_API const xcancelwatchownershipv1* xl6FutureCallbackInterruptCancelPolicyV1Get(void);

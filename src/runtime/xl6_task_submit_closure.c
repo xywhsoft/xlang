@@ -1,5 +1,5 @@
 #define XRT_MODULE_TASK_POOL
-#include "lib/xrt/xrt.h"
+#include "src/common/xl6_xrt.h"
 #include "xl6_task_submit_closure.h"
 #include "xl6_task_result_closure.h"
 #include "xl6_task_frame_internal.h"

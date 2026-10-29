@@ -1,3 +1,4 @@
+#include "release/include/xl_clock.h"
 #include "src/common/xl6_xrt.h"
 #include "src/runtime/xl6_network_service.h"
 #include <assert.h>
@@ -20,11 +21,11 @@ static bool trace_services(const XL6_NetworkServices* services,bool inspect,size
 }
 static bool wait_readable(const XL6_NetworkServices* services,size_t expectedEdges)
 {
-    xdeadline end=xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 end=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){
         size_t edges=0;
         if(trace_services(services,true,&edges)&&edges==expectedEdges)return true;
-        if(xrtDeadlineExpired(end))return false;
+        if(xl6DeadlineExpiredV1(end))return false;
         xrtThreadYield();
     }
 }
@@ -36,17 +37,17 @@ typedef struct State {
 } State;
 static void wait_for(xatomic32* flag)
 {
-    xdeadline end=xrtDeadlineAfter(5000000);
-    while(!xrtAtomic32Load(flag,XMEMORY_ACQUIRE)){assert(!xrtDeadlineExpired(end));xrtThreadYield();}
+    XL6_DeadlineV1 end=xl6DeadlineAfterMillisecondsV1(5000);
+    while(!xrtAtomic32Load(flag,XMEMORY_ACQUIRE)){assert(!xl6DeadlineExpiredV1(end));xrtThreadYield();}
 }
 static void finish(XL6_NetworkServices* s)
 {
-    xdeadline end=xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 end=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){
         XL6_ModuleRetireResult result=api->Retire(s,false);
         assert(result!=XL6_MODULE_RETIRE_FAILED);
         if(result==XL6_MODULE_RETIRE_READY)break;
-        assert(!api->IsEmpty(s) && !xrtDeadlineExpired(end));xrtThreadYield();
+        assert(!api->IsEmpty(s) && !xl6DeadlineExpiredV1(end));xrtThreadYield();
     }
     assert(api->IsEmpty(s) && !s->engine && !s->resolver);
     assert(api->Retire(s,false)==XL6_MODULE_RETIRE_READY);
@@ -62,8 +63,8 @@ static void pinned(void)
     XL6_NetworkServices s={0};assert(api->Initialize(&s));
     assert(wait_readable(&s,2));
     xnetengine* engine=s.engine;assert(xrtNetEnginePin(engine));
-    xdeadline end=xrtDeadlineAfter(5000000);
-    while(s.resolver){assert(api->Retire(&s,false)==XL6_MODULE_RETIRE_BUSY);assert(!xrtDeadlineExpired(end));xrtThreadYield();}
+    XL6_DeadlineV1 end=xl6DeadlineAfterMillisecondsV1(5000);
+    while(s.resolver){assert(api->Retire(&s,false)==XL6_MODULE_RETIRE_BUSY);assert(!xl6DeadlineExpiredV1(end));xrtThreadYield();}
     assert(s.engine==engine);rejected_init(&s);
     assert(wait_readable(&s,1));
     xrtSetErrorKind(XERR_STATE);const xerror* error=xrtGetError();assert(error);
@@ -99,11 +100,11 @@ static void worker(void)
     /* Another worker may briefly own the mutation gate. Retry admission, not
      * the safety verdict: once a real root is visited, active callback state
      * must still refuse an ownership snapshot. */
-    size_t edges=0; xdeadline inspection=xrtDeadlineAfter(5000000);
+    size_t edges=0; XL6_DeadlineV1 inspection=xl6DeadlineAfterMillisecondsV1(5000);
     for (;;) {
         bool readable=trace_services(&s.services,true,&edges);
         if (edges) { assert(!readable); break; }
-        assert(!xrtDeadlineExpired(inspection)); xrtThreadYield();
+        assert(!xl6DeadlineExpiredV1(inspection)); xrtThreadYield();
     }
     for(unsigned i=0;i<64;++i)assert(api->Retire(&s.services,false)==XL6_MODULE_RETIRE_BUSY && s.services.resolver==resolver);
     xrtAtomic32Store(&s.release,1,XMEMORY_RELEASE);wait_for(&s.tailEntered);
@@ -128,12 +129,12 @@ static void failed_retirement(void)
     State s={0};assert(api->Initialize(&s.services));assert(xrtNetPostInit(&s.post));
     xnetengine* engine=s.services.engine;
     assert(xrtNetPost(xrtNetEngineWorker(engine,0),&s.post,nonconvergent,&s));wait_for(&s.entered);
-    xdeadline end=xrtDeadlineAfter(5000000);
-    while(s.services.resolver){assert(api->Retire(&s.services,false)==XL6_MODULE_RETIRE_BUSY);assert(!xrtDeadlineExpired(end));xrtThreadYield();}
+    XL6_DeadlineV1 end=xl6DeadlineAfterMillisecondsV1(5000);
+    while(s.services.resolver){assert(api->Retire(&s.services,false)==XL6_MODULE_RETIRE_BUSY);assert(!xl6DeadlineExpiredV1(end));xrtThreadYield();}
     assert(api->Retire(&s.services,false)==XL6_MODULE_RETIRE_BUSY);
     xrtAtomic32Store(&s.release,1,XMEMORY_RELEASE);
     XL6_ModuleRetireResult result;
-    do{result=api->Retire(&s.services,false);assert(!xrtDeadlineExpired(end));xrtThreadYield();}while(result==XL6_MODULE_RETIRE_BUSY);
+    do{result=api->Retire(&s.services,false);assert(!xl6DeadlineExpiredV1(end));xrtThreadYield();}while(result==XL6_MODULE_RETIRE_BUSY);
     assert(result==XL6_MODULE_RETIRE_FAILED && s.services.engine==engine && !api->IsEmpty(&s.services));
     const xerror* error=xrtGetError();assert(error && xrtErrorCode(error)==XNET_ERROR_ENGINE_STOP);
     assert(api->Retire(&s.services,false)==XL6_MODULE_RETIRE_READY && api->IsEmpty(&s.services) && xrtGetError()==error);

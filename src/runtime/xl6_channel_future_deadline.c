@@ -8,7 +8,7 @@ typedef struct Deadline {
     Frame* frame; /* borrowed uniquely-containing core; source owns real RC */
     xchannelsubscription* subscription;
     const void* role;
-    xdeadline due;
+    XL6_DeadlineV1 due;
     xerror* error;
     bool armed,failed,consumed,cleaned;
 } Deadline;
@@ -101,9 +101,9 @@ static void drop(void* data)
     xrtFree(deadline);
 }
 static const XL6_ChannelFutureWakeV1 wake={sizeof(wake),arm,detach,record_failure,take_failure,cleanup,trace,empty,drop};
-bool xl6ChannelFutureDeadlineAttachV1(Frame* frame,xdeadline due,const void* role)
+bool xl6ChannelFutureDeadlineAttachV1(Frame* frame,XL6_DeadlineV1 due,const void* role)
 {
-    if(!frame||!role||due==XRT_DEADLINE_NEVER){xrtSetErrorKind(XERR_ARGUMENT);return false;}
+    if(!frame||!role||due==XL6_DEADLINE_NEVER){xrtSetErrorKind(XERR_ARGUMENT);return false;}
     Deadline* deadline=xrtCalloc(1,sizeof(*deadline));if(!deadline)return false;
     deadline->frame=frame;deadline->due=due;deadline->role=role;void* owned=deadline;
     bool ok=xl6ChannelFutureCoreWakeTakeV1(frame,&wake,&owned);if(!ok)xrtFree(owned);return ok;

@@ -1,3 +1,4 @@
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_text_value.h"
 #include "src/api/xl_task_group_bridge.h"
 #include "src/api/xl_foreign_error.h"
@@ -27,7 +28,7 @@ static void methods(void)
     assert(!xl6_xrt_task_group_add(group,value) && !xrtGetError());
     assert(xrtPromiseResolve(promise,NULL) && xl6_xrt_task_group_wait(group));
     assert(xl6_xrt_task_group_join(group) && xl6_xrt_task_group_join_timeout(group,0));
-    int64_t until=(int64_t)(xrtClock()/1000)+1000;
+    int64_t until=(int64_t)(xl6MonotonicMillisecondsV1()/1000)+1000;
     assert(xl6_xrt_task_group_join_until(group,until) && xl6_xrt_task_group_wait_until(group,until));
     assert(!xl6_xrt_task_group_count(group) && xl6_xrt_task_group_reap(group)==1 && xl6_xrt_task_group_reap(group)==0);
     xl6SignalTaskGroupDestroyV1(group);xrtValueRelease(value);xrtPromiseDestroy(promise);xrtFutureDestroy(source);balanced(&before);

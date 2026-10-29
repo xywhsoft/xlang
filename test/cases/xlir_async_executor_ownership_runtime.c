@@ -3,7 +3,11 @@
 #define XRT_MODULE_THREAD
 #define XRT_MODULE_FUTURE
 #define XRT_MODULE_VALUE
+#ifndef XRT_MODULE_WAIT
+#define XRT_MODULE_WAIT
+#endif
 #include "lib/xrt/xrt.h"
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_continuation_future.h"
 #include "src/runtime/xl6_continuation_executor.h"
 #include "src/runtime/xl6_ownership_plan.h"
@@ -105,27 +109,27 @@ static void balanced(const xmemdebugsnapshot* before)
 }
 static void quiet_freeze(xrtownershipref ref,xrtownershipscope* freeze)
 {
-    xdeadline deadline=xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){
         if(xrtOwnershipFreezeTryBegin(freeze)){
             size_t count;if(ref.Ops->Count(ref.Data,&count))return;
             assert(xrtOwnershipScopeEnd(freeze));
         }
-        assert(!xrtDeadlineExpired(deadline));xrtThreadYield();
+        assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();
     }
 }
 static XL6_OwnershipPlanResult create_plan(xrtownershipref root,Resolve* context,XL6_OwnershipPlan** output)
 {
-    xdeadline deadline=xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){
         context->busy=false;XL6_OwnershipPlanResult result=xl6OwnershipPlanTryCreateV2(root,resolve,context,output);
         if(result!=XL6_OWNERSHIP_PLAN_BUSY&&!(result==XL6_OWNERSHIP_PLAN_ERROR&&context->busy))return result;
-        assert(!*output);xrtClearError();assert(!xrtDeadlineExpired(deadline));xrtThreadYield();
+        assert(!*output);xrtClearError();assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();
     }
 }
 static void prepare_rooted(XL6_OwnershipPlan* plan,Resolve* context)
 {
-    xdeadline deadline=xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){
         context->busy=false;XL6_OwnershipPlanResult state=xl6OwnershipPlanTryRefresh(plan);
         if(state==XL6_OWNERSHIP_PLAN_ERROR){assert(context->busy);xrtClearError();}
@@ -136,12 +140,12 @@ static void prepare_rooted(XL6_OwnershipPlan* plan,Resolve* context)
             if(step==XL6_OWNERSHIP_STEP_ERROR){assert(context->busy);xrtClearError();}
             else assert(step==XL6_OWNERSHIP_STEP_BUSY);
         }
-        assert(!xrtDeadlineExpired(deadline));xrtThreadYield();
+        assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();
     }
 }
 static void prepare_until(XL6_OwnershipPlan* plan,Resolve* context,bool allDone)
 {
-    xdeadline deadline=xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){
         context->busy=false;XL6_OwnershipStepResult step=xl6OwnershipPlanPrepare(plan);
         if(step==XL6_OWNERSHIP_STEP_ERROR){assert(context->busy);xrtClearError();}
@@ -149,7 +153,7 @@ static void prepare_until(XL6_OwnershipPlan* plan,Resolve* context,bool allDone)
         unsigned done=0,entered=0;
         for(unsigned i=0;i<width;++i){done+=xrtFutureDone(outputs[i])?1u:0u;entered+=(unsigned)xrtAtomic64Load(&caught[i],XMEMORY_ACQUIRE);}
         if(allDone?done==width:entered==1)return;
-        assert(!xrtDeadlineExpired(deadline));xrtThreadYield();
+        assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();
     }
 }
 static void cycle(unsigned size,bool waitCleanup,unsigned rootKind,bool feeder)
@@ -163,8 +167,8 @@ static void cycle(unsigned size,bool waitCleanup,unsigned rootKind,bool feeder)
     xfuture *boot=NULL,*cleanup=NULL;xpromise* bootPromise=xrtPromiseCreate(&boot,NULL);xpromise* cleanupPromise=xrtPromiseCreate(&cleanup,NULL);
     assert(bootPromise&&cleanupPromise);if(!waitCleanup)assert(xrtPromiseResolve(cleanupPromise,&payload));
     for(unsigned i=0;i<size;++i)outputs[i]=dependency_start(i,boot,cleanup,waitCleanup);
-    assert(xrtPromiseResolve(bootPromise,&payload));xdeadline deadline=xrtDeadlineAfter(5000000);
-    while(xrtAtomic64Load(&peers,XMEMORY_ACQUIRE)!=size){assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+    assert(xrtPromiseResolve(bootPromise,&payload));XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
+    while(xrtAtomic64Load(&peers,XMEMORY_ACQUIRE)!=size){assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
     xrtownershipref executor=xl6ContinuationExecutorOwnership(owner->executor);xrtownershipscope freeze={0};quiet_freeze(executor,&freeze);
     assert(xrtOwnershipScopeEnd(&freeze));
     xrtPromiseDestroy(bootPromise);xrtFutureDestroy(boot);
@@ -196,7 +200,7 @@ static void cycle(unsigned size,bool waitCleanup,unsigned rootKind,bool feeder)
     quiet_freeze(executor,&freeze);
     for(unsigned i=0;i<size;++i)assert(xrtFutureState(outputs[i])==XFUTURE_CANCELLED&&
         xrtAtomic64Load(&caught[i],XMEMORY_ACQUIRE)==1&&xrtAtomic64Load(&finalized[i],XMEMORY_ACQUIRE)==1&&!xrtAtomic64Load(&after[i],XMEMORY_ACQUIRE));
-    assert(xrtOwnershipScopeEnd(&freeze));deadline=xrtDeadlineAfter(5000000);
+    assert(xrtOwnershipScopeEnd(&freeze));deadline=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){
         context.busy=false;XL6_OwnershipStepResult step=xl6OwnershipPlanPrepare(plan);
         if(step==XL6_OWNERSHIP_STEP_ERROR){assert(context.busy);xrtClearError();}
@@ -205,7 +209,7 @@ static void cycle(unsigned size,bool waitCleanup,unsigned rootKind,bool feeder)
             if(state==XL6_OWNERSHIP_PLAN_ERROR){assert(context.busy);xrtClearError();}
             else assert(state==XL6_OWNERSHIP_PLAN_BUSY||state==XL6_OWNERSHIP_PLAN_PREPARATIONS);
         }
-        assert(!xrtDeadlineExpired(deadline));xrtThreadYield();
+        assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();
     }
     assert(xl6OwnershipPlanFinish(plan)&&xl6OwnershipPlanTryDestroy(plan)==XL6_OWNERSHIP_PLAN_READY);owner=NULL;
     xrtPromiseDestroy(cleanupPromise);xrtFutureDestroy(cleanup);assert(!xrtGetError());balanced(&before);++completed;

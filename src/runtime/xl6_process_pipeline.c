@@ -18,14 +18,11 @@ void* xl6ProcessPipelineRunV1(void* handle,void* optionsHandle,const xvalue* inp
     XL6_ProcessRunOptions* source=optionsHandle;
     xprocesspipelineoptions options;if(!xrtProcessPipelineOptionsInit(&options))return NULL;
     options.Input=(xbytesview){(const unsigned char*)selected.Data,selected.Size};
-    options.Deadline=source->options.Deadline;options.Cancel=source->options.Cancel;
+    options.Timeout=source->timeoutMs>=0 ? source->timeoutMs :
+        xl6DeadlineRemainingMillisecondsV1(source->deadline);
+    options.Cancel=source->options.Cancel;
     options.StopGrace=source->options.StopGrace;options.StdoutLimit=source->options.StdoutLimit;
     options.StderrLimit=source->options.StderrLimit;options.Overflow=source->options.Overflow;
-    if(source->timeoutMs>=0){
-        uint64 duration,now=xrtClock();if(!xl6ProcessDuration(source->timeoutMs,&duration))return NULL;
-        if(duration>=UINT64_MAX-now){xrtSetErrorKind(XERR_RANGE);return NULL;}
-        options.Deadline=now+duration;
-    }
     xprocesspipelineresult* result=xrtCalloc(1,sizeof(*result));if(!result)return NULL;
     if(!xrtProcessPipeline(pipeline->stages,pipeline->count,&options,result)){
         xl6PipelineResultDestroyV1(result);return NULL;

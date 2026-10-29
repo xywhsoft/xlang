@@ -2,7 +2,7 @@
 #define XRT_MODULE_ATOMIC
 #define XRT_MODULE_THREAD
 #define XRT_MODULE_FUTURE
-#include "lib/xrt/xrt.h"
+#include "src/common/xl6_xrt.h"
 #include "xl6_continuation_future.h"
 #include "xl6_continuation_executor.h"
 #include "xl6_future_wait.h"

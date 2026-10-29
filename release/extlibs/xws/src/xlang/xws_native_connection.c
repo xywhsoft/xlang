@@ -162,7 +162,7 @@ XLANG_XWS_EXPORT bool xws_config_limits(
 
 
 
-/* 设置控制帧保留预算和关闭握手超时，时间单位为微秒。 */
+/* 设置控制帧保留预算和关闭握手超时，时间单位为毫秒。 */
 XLANG_XWS_EXPORT bool xws_config_control(
 	void* pHandle,
 	uint64 iReserve,
@@ -1321,10 +1321,7 @@ XLANG_XWS_EXPORT long long xws_future_wait(void* pHandle, long long iTimeoutMs)
 	if ( iTimeoutMs < 0 ) {
 		return xrtFutureWait((xfuture*)pHandle);
 	}
-	if ( (uint64)iTimeoutMs > (UINT64_MAX / UINT64_C(1000)) ) {
-		return XWAIT_ERROR;
-	}
-	iTimeout = (uint64)iTimeoutMs * UINT64_C(1000);
+	iTimeout = (uint64)iTimeoutMs;
 	return xrtFutureWaitFor((xfuture*)pHandle, iTimeout);
 }
 

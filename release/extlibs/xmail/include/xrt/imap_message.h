@@ -1,3 +1,4 @@
+#include "xl_clock.h"
 #ifndef XRT_IMAP_MESSAGE_H
 #define XRT_IMAP_MESSAGE_H
 
@@ -39,7 +40,7 @@ XRT_API bool xrtImapClientBodyWrite(
 	xmailwriteproc pWrite,
 	ptr pUserData,
 	size_t* pWritten,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
@@ -54,7 +55,7 @@ XRT_API bytes xrtImapClientBodyBytes(
 	bool bPeek,
 	size_t iMaxBytes,
 	size_t* pOutputSize,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
@@ -68,7 +69,7 @@ XRT_API bool xrtImapClientMessageTree(
 	bool bPeek,
 	const xmailtreelimits* pLimits,
 	xmailtree* pTree,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 

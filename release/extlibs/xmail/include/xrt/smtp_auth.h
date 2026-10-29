@@ -1,3 +1,4 @@
+#include "xl_clock.h"
 #ifndef XRT_SMTP_AUTH_H
 #define XRT_SMTP_AUTH_H
 
@@ -56,7 +57,7 @@ XRT_API bool xrtSmtpAuthConfigValid(const xsmtpauthconfig* pConfig);
 XRT_API bool xrtSmtpClientAuth(
 	xsmtpclient* pClient,
 	const xsmtpauthconfig* pConfig,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 

@@ -12982,7 +12982,7 @@ static int xl6SemCheckChannelMethodCall(XL6_SemContext* ctx, XL6_AstNode* node)
             XL6_AstNode intType={0}; intType.kind=XL6_AST_TYPE; intType.text=sendMode==3 ? "uint64" : "int";
             if (!timeout || timeout->kind!=XL6_AST_ARG || !value || !xl6SemExprCanMatchParamType(ctx,value,&intType)) {
                 xl6SemErrorNode(ctx,node,sendMode==3 ?
-                    "channel.sendUntil requires one positional uint64 deadlineUs after value" :
+                    "channel.sendUntil requires one positional uint64 deadlineMs after value" :
                     "channel.sendTimeout requires one positional int timeoutMs after value"); ok=0;
             }
         }
@@ -13005,7 +13005,7 @@ static int xl6SemCheckChannelMethodCall(XL6_SemContext* ctx, XL6_AstNode* node)
             xl6SemErrorNode(ctx,node,"channel receive takes no output variable; recvTimeout/recvUntil require one positional time argument");
             ok=0;
         } else if (timeCount && !xl6SemExprCanMatchParamType(ctx,expr,&intType)) {
-            xl6SemErrorNode(ctx,expr,receiveMode==3 ? "channel.recvUntil deadlineUs must be uint64" :
+            xl6SemErrorNode(ctx,expr,receiveMode==3 ? "channel.recvUntil deadlineMs must be uint64" :
                 "channel.recvTimeout timeoutMs must be int"); ok=0;
         }
         if (cancelled && argCount==expectedCount &&

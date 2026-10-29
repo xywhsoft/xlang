@@ -1,3 +1,4 @@
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
 #include "src/runtime/xl6_array_entry.h"
 #include "src/runtime/xl6_array_erased.h"

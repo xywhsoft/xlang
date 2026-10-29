@@ -2,7 +2,16 @@
 #include "callback-modules.h"
 #define XRT_MODULE_MEMORY_DEBUG
 #define XRUNTIME_IMPLEMENTATION
+#ifndef XRT_MODULE_WAIT
+#define XRT_MODULE_WAIT
+#endif
+#include "lib/xruntime/xruntime_features.h"
+#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)
+#define XRT_IMPLEMENTATION
+#endif
+#include "lib/xrt/xrt.h"
 #include "lib/xruntime/xruntime.h"
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_future_callback.h"
 #include "src/runtime/xl6_continuation_executor.h"
 #include "src/runtime/xl6_ownership_domains.h"
@@ -29,14 +38,14 @@ static void balanced(const xmemdebugsnapshot* before)
 }
 static void idle(XL6_ContinuationExecutor* executor)
 {
-    xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
-    while(!xl6ContinuationExecutorIsIdle(executor)){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+    XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
+    while(!xl6ContinuationExecutorIsIdle(executor)){CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
 }
 static void finish(XL6_ContinuationExecutor* executor)
 {
     if(!executor)return;
-    xl6ContinuationExecutorClose(executor);xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
-    while(!xl6ContinuationExecutorDestroy(executor)){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+    xl6ContinuationExecutorClose(executor);XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
+    while(!xl6ContinuationExecutorDestroy(executor)){CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
 }
 static void complete(xpromise* promise,unsigned outcome)
 {
@@ -83,8 +92,8 @@ static State state_new(bool queued)
 static bool edge(xrtownershipref ref,void* raw){if(ref.Data){CHECK(ref.Ops);++*(unsigned*)raw;}return true;}
 static void inspect(Capture* capture,bool queued)
 {
-    xrtownershipscope freeze={0};xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
-    while(!xrtOwnershipFreezeTryBegin(&freeze)){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+    xrtownershipscope freeze={0};XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
+    while(!xrtOwnershipFreezeTryBegin(&freeze)){CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
     xrtownershipref ref=xl6FutureCallbackRuntimeV1Get()->Ownership(capture);size_t count;unsigned edges=0;
     CHECK(ref.Ops->Count(ref.Data,&count)&&count==(queued?4u:3u));
     CHECK(ref.Ops->Trace(ref.Data,edge,&edges)&&edges==5);

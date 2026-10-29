@@ -15,7 +15,7 @@ bool xl6X509CrlPolicyConfigV1(int64_t time,int64_t skew,uint64_t flags,
         X509_CRL_REQUIRE_AUTHORITY_KEY_ID|X509_CRL_REQUIRE_KEY_IDENTIFIER|
         X509_CRL_REQUIRE_KEY_USAGE|X509_CRL_ALLOW_SHA1;
     if(!output)return xl6X509FailV1(XERR_ARGUMENT,"missing CRL policy output");
-    if(skew<0)return xl6X509FailV1(XERR_RANGE,"CRL clock skew must be nonnegative microseconds");
+    if(skew<0)return xl6X509FailV1(XERR_RANGE,"CRL clock skew must be nonnegative milliseconds");
     if((flags&~known) || ((flags&X509_CRL_REQUIRE_KEY_IDENTIFIER) && !(flags&X509_CRL_REQUIRE_AUTHORITY_KEY_ID)))
         return xl6X509FailV1(XERR_ARGUMENT,"invalid CRL policy flags");
     *output=(xx509crlconfig){.Time=time,.Skew=(uint64)skew,.Flags=(uint32)flags,.Critical=critical,.UserData=data};

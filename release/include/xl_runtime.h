@@ -9,7 +9,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "xrt_decl.h"
 #include "xruntime_decl.h"
+#include "xl_clock.h"
 #include "xl_extlib_abi.h"
 
 /* xlang 的脚本级错误文本入口。XRT 的 xrtGetError 返回结构化 xerror，
@@ -825,7 +827,7 @@ static inline void* xl6_xrt_random_string(
         xrtRandStringFrom(alphabet, length) : xrtRandString(length);
 }
 
-/* xlang 的 time 与当前 XRT 一致使用微秒；此处只保留语言层的易用语义。 */
+/* xlang 的 time 与当前 XRT 一致使用毫秒；此处只保留语言层的易用语义。 */
 #define XL6_XRT_TIME_SECOND XRT_TIME_SECOND
 #define XL6_XRT_TIME_MINUTE XRT_TIME_MINUTE
 #define XL6_XRT_TIME_HOUR XRT_TIME_HOUR
@@ -912,7 +914,7 @@ static inline int64 xl6_xrt_time_diff(int interval, xtime left, xtime right)
     int64 result = 0;
     int unit = xl6_xrt_time_unit(interval);
 
-    if ( unit < 0 || !xrtTimeDiff(left, right, unit, &result) ) {
+    if ( unit < 0 || !xrtDateDiff(left, right, unit, &result) ) {
         return 0;
     }
     return result;

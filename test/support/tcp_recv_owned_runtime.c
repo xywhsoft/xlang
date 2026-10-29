@@ -1,6 +1,7 @@
 /* Real native results and resident class publication, ordinary own loopback.
  * No surrogate NetBytes, generated callback or copied payload certificate. */
 #define main existingServerResourceMain
+#include "release/include/xl_clock.h"
 #include "tcp_server_execution_resource.c"
 #undef main
 #define XL6_TEXT_API
@@ -28,8 +29,8 @@ static void* payload(const xvalue* object)
 }
 static void idle(XL6_ContinuationExecutor* executor)
 {
-    xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
-    while(!xl6ContinuationExecutorIsIdle(executor)){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+    XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
+    while(!xl6ContinuationExecutorIsIdle(executor)){CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
 }
 typedef struct WorkerGate {
     XL6_ContinuationTicket ticket;xatomic32 entered,open;unsigned budget;bool clear,triggered;
@@ -40,8 +41,8 @@ static void gateRun(void* raw)
     if(gate->clear){gate->triggered=xrtMemDebugFailTriggered();xrtMemDebugFailClear();return;}
     xl6_error_scope warm={0};CHECK(xl6ErrorScopeBegin(&warm));
     xl6_error_result warmed=xl6ErrorScopeEnd(&warm);CHECK(warmed.ok);xrtErrorFree(warmed.error);
-    xrtAtomic32Store(&gate->entered,1,XMEMORY_RELEASE);xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
-    while(!xrtAtomic32Load(&gate->open,XMEMORY_ACQUIRE)){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+    xrtAtomic32Store(&gate->entered,1,XMEMORY_RELEASE);XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
+    while(!xrtAtomic32Load(&gate->open,XMEMORY_ACQUIRE)){CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
     CHECK(xrtMemDebugFailAfter(gate->budget));
 }
 static void gateDrop(void* raw){(void)raw;}
@@ -52,7 +53,7 @@ static void queueGate(XL6_ContinuationExecutor* executor,WorkerGate* gate)
 }
 static void proof(Graph* graph,xvalue* object,void* bytes)
 {
-    xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
+    XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){
         xrtownershipscope frozen={0};freeze(&frozen);graph->busy=false;
         xrtownershipref anchors[6]={{0}},slots[5]={{0}};
@@ -69,7 +70,7 @@ static void proof(Graph* graph,xvalue* object,void* bytes)
             }
             CHECK(seen);xrtOwnershipSnapshotDestroy(snapshot);CHECK(xrtOwnershipScopeEnd(&frozen));return;
         }
-        CHECK(graph->busy);xrtClearError();CHECK(xrtOwnershipScopeEnd(&frozen)&&!xrtDeadlineExpired(until));xrtThreadYield();
+        CHECK(graph->busy);xrtClearError();CHECK(xrtOwnershipScopeEnd(&frozen)&&!xl6DeadlineExpiredV1(until));xrtThreadYield();
     }
 }
 static void run(xnetportbackend backend,unsigned budget,bool eof)
@@ -119,8 +120,8 @@ static void resultBudget(xnetportbackend backend,unsigned budget)
     XL6_RuntimeServicesV1 services={xl6ContinuationExecutorCreateFixedV1(8,1),NULL};CHECK(services.executor);
     xvalue* object=emptyObject();WorkerGate gate={0};gate.budget=budget;
     xrtAtomic32Init(&gate.entered,0);xrtAtomic32Init(&gate.open,0);queueGate(services.executor,&gate);
-    xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
-    while(!xrtAtomic32Load(&gate.entered,XMEMORY_ACQUIRE)){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+    XL6_DeadlineV1 until=xl6DeadlineAfterMillisecondsV1(5000);
+    while(!xrtAtomic32Load(&gate.entered,XMEMORY_ACQUIRE)){CHECK(!xl6DeadlineExpiredV1(until));xrtThreadYield();}
     size_t maximum=0;XL6_TcpClassCaptureV1* capture=xl6TcpRecvOwnedPrepareInternalV1(context,graph.peer,object,1,&maximum);CHECK(capture);
     xfuture* source=xl6TcpRecvOwnedSourceInternalV1(graph.peer,maximum);CHECK(source);
     xfuture* observer=xrtFutureRef(source);CHECK(observer);

@@ -1,3 +1,4 @@
+#include "xl_clock.h"
 #include <string.h>
 
 #include <xrt/time.h>
@@ -1087,7 +1088,7 @@ static xsshcode xsshClientAdvance(xsshclient* pClient)
 		&pClient->Core,
 		pSession,
 		pReader,
-		xrtClock() / 1000u,
+		xl6MonotonicMillisecondsV1(),
 		&Next
 	);
 	if ( Code != XSSH_OK ) {
@@ -1106,7 +1107,7 @@ static xsshcode xsshClientAdvance(xsshclient* pClient)
 			NULL,
 			NULL,
 			0u,
-			xrtClock() / 1000u,
+			xl6MonotonicMillisecondsV1(),
 			&Kind
 		);
 	}
@@ -2026,7 +2027,7 @@ xsshcode xrtSshClientSend(
 		pChannel != NULL ? &pChannel->Core : NULL,
 		pReplies,
 		iReplyToken,
-		xrtClock() / 1000u,
+		xl6MonotonicMillisecondsV1(),
 		&Kind
 	);
 	if ( Code != XSSH_OK ) {

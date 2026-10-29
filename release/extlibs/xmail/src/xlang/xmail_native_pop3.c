@@ -1,3 +1,4 @@
+#include "xl_clock.h"
 /* POP3 客户端桥保留低层线路、多行流和常用邮箱命令。 */
 
 
@@ -57,7 +58,7 @@ void* xmail_pop3_open(
 	xmail_native_pop3* pPop3;
 	xnetresolver* pResolver;
 	xmail_native_tls Tls;
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 	xerror* pError;
 	bool bResolverDestroyed;
 
@@ -236,7 +237,7 @@ bool xmail_pop3_send(
 )
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 
 	return (pPop3 != NULL) &&
 		xmail_native_deadline(iTimeoutMilliseconds, &iDeadline) &&
@@ -250,7 +251,7 @@ bool xmail_pop3_send(
 bool xmail_pop3_line(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 	xstrview Line;
 
 	return (pPop3 != NULL) &&
@@ -265,7 +266,7 @@ bool xmail_pop3_line(void* pHandle, int64 iTimeoutMilliseconds)
 bool xmail_pop3_receive(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 	xpop3reply Reply;
 
 	return (pPop3 != NULL) &&
@@ -286,7 +287,7 @@ bool xmail_pop3_command(
 )
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 	xpop3reply Reply;
 
 	return (pPop3 != NULL) &&
@@ -310,7 +311,7 @@ bool xmail_pop3_begin(
 )
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 
 	return (pPop3 != NULL) &&
 		xmail_native_deadline(iTimeoutMilliseconds, &iDeadline) &&
@@ -326,7 +327,7 @@ bool xmail_pop3_begin(
 int64 xmail_pop3_next(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 	xstrview Line;
 	xmailnext Next;
 
@@ -364,7 +365,7 @@ void* xmail_pop3_last_line(void* pHandle)
 bool xmail_pop3_stat(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 	xpop3stat Stat;
 
 	if ( (pPop3 == NULL) ||
@@ -387,7 +388,7 @@ bool xmail_pop3_list(
 )
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 	xpop3listview Item;
 
 	if ( (pPop3 == NULL) ||
@@ -411,7 +412,7 @@ bool xmail_pop3_uidl(
 )
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 	xpop3uidlview Item;
 
 	if ( (pPop3 == NULL) ||
@@ -451,7 +452,7 @@ uint64 xmail_pop3_second(void* pHandle)
 bool xmail_pop3_list_all(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 
 	return (pPop3 != NULL) &&
 		xmail_native_deadline(iTimeoutMilliseconds, &iDeadline) &&
@@ -464,7 +465,7 @@ bool xmail_pop3_list_all(void* pHandle, int64 iTimeoutMilliseconds)
 bool xmail_pop3_uidl_all(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 
 	return (pPop3 != NULL) &&
 		xmail_native_deadline(iTimeoutMilliseconds, &iDeadline) &&
@@ -481,7 +482,7 @@ bool xmail_pop3_retr(
 )
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 
 	return (pPop3 != NULL) &&
 		xmail_native_deadline(iTimeoutMilliseconds, &iDeadline) &&
@@ -499,7 +500,7 @@ bool xmail_pop3_top(
 )
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 
 	return (pPop3 != NULL) &&
 		xmail_native_deadline(iTimeoutMilliseconds, &iDeadline) &&
@@ -526,7 +527,7 @@ bool xmail_pop3_auth(
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
 	xpop3authconfig Config;
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 
 	if ( (pPop3 == NULL) || (iMethod > XPOP3_AUTH_OAUTHBEARER) ||
 		!xmail_native_deadline(iTimeoutMilliseconds, &iDeadline) ) {
@@ -555,7 +556,7 @@ bool xmail_pop3_delete(
 )
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 
 	return (pPop3 != NULL) &&
 		xmail_native_deadline(iTimeoutMilliseconds, &iDeadline) &&
@@ -568,7 +569,7 @@ bool xmail_pop3_delete(
 bool xmail_pop3_reset(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 
 	return (pPop3 != NULL) &&
 		xmail_native_deadline(iTimeoutMilliseconds, &iDeadline) &&
@@ -581,7 +582,7 @@ bool xmail_pop3_reset(void* pHandle, int64 iTimeoutMilliseconds)
 bool xmail_pop3_noop(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 
 	return (pPop3 != NULL) &&
 		xmail_native_deadline(iTimeoutMilliseconds, &iDeadline) &&
@@ -594,7 +595,7 @@ bool xmail_pop3_noop(void* pHandle, int64 iTimeoutMilliseconds)
 bool xmail_pop3_quit(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 	bool bResult;
 
 	if ( (pPop3 == NULL) ||
@@ -614,7 +615,7 @@ bool xmail_pop3_quit(void* pHandle, int64 iTimeoutMilliseconds)
 bool xmail_pop3_close(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
-	xdeadline iDeadline;
+	XL6_DeadlineV1 iDeadline;
 	bool bResult;
 
 	if ( (pPop3 == NULL) ||

@@ -2,6 +2,7 @@
 void* xl6TcpStreamOptionsCopyV1(const xnetstreamconfig* value)
 {
     if(!value||!xrtNetStreamConfigValid(value)){xl6TcpOptionsFailedV1();return NULL;}
+    if(!xl6TcpOptionsRangeV1(value->ConnectTimeout<=INT64_MAX))return NULL;
     xnetstreamconfig* result=xrtMalloc(sizeof(*result));
     if(result)*result=*value;else xl6TcpOptionsFailedV1();return result;
 }
@@ -29,7 +30,7 @@ void* xl6TcpStreamOptionsWithWriteWatermarksV1(const void* raw,uint64_t high,uin
     value.WriteLowWater=(size_t)low;value.WriteLimit=(size_t)limit;return xl6TcpStreamOptionsCopyV1(&value);
 }
 void* xl6TcpStreamOptionsWithConnectTimeoutV1(const void* raw,int64_t millis)
-{uint64_t micros;if(!xl6TcpOptionsTimeoutV1(millis,&micros))return NULL;xnetstreamconfig value=*(const xnetstreamconfig*)raw;value.ConnectTimeout=micros;return xl6TcpStreamOptionsCopyV1(&value);}
+{uint64_t milliseconds;if(!xl6TcpOptionsTimeoutV1(millis,&milliseconds))return NULL;xnetstreamconfig value=*(const xnetstreamconfig*)raw;value.ConnectTimeout=milliseconds;return xl6TcpStreamOptionsCopyV1(&value);}
 void* xl6TcpStreamOptionsWithReadModeV1(const void* raw,int64_t mode)
 {
     if(!xl6TcpOptionsRangeV1(mode>=XNET_STREAM_READ_ADAPTIVE&&mode<=XNET_STREAM_READ_PROBE))return NULL;

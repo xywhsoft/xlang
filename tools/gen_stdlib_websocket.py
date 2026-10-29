@@ -186,7 +186,7 @@ get('WsStream','writeLimit','uint64')
 method('WsStream','requiredSize','uint64',arg('int','payloadBytes'))
 inputs('WsStream','requiredSize','uint64')
 for n in ['writable','drained','closed']:
- args=([arg('uint64','minimum')] if n=='writable' else [])+[arg('uint64','deadlineUs')]
+ args=([arg('uint64','minimum')] if n=='writable' else [])+[arg('uint64','deadlineMs')]
  for cancel in [False,True]:
   method('WsStream','wait'+n.title()+('Cancel' if cancel else '')+'OnWorker','future<NetStatus>',*args,*([arg('CancellationToken','cancel')] if cancel else []),component='WS_WAIT',symbol='xl6WsWait'+n.title()+('Cancel' if cancel else '')+'V2',nonblocking=False)
 
@@ -240,7 +240,7 @@ def outputs():
   extra=(ROOT/'src/stdlib/ws_stream_methods.xl.in').read_text(encoding='utf-8') if n=='WsStream' else ''
   if n=='WsStream':
    for name in ['Writable','Drained','Closed']:
-    extra+='\n    async func wait'+name+'UntilAsync('+('uint64 minimum, ' if name=='Writable' else '')+'uint64 deadlineUs, CancellationToken? cancel = null) as NetStatus\n        auto token = cancel\n        if token != null then\n            return await (await self.engine().submit(func() as future<NetStatus>\n                return self.wait'+name+'CancelOnWorker('+('minimum, ' if name=='Writable' else '')+'deadlineUs, token)\n            end, self.worker))\n        end\n        return await (await self.engine().submit(func() as future<NetStatus>\n            return self.wait'+name+'OnWorker('+('minimum, ' if name=='Writable' else '')+'deadlineUs)\n        end, self.worker))\n    end\n'
+    extra+='\n    async func wait'+name+'UntilAsync('+('uint64 minimum, ' if name=='Writable' else '')+'uint64 deadlineMs, CancellationToken? cancel = null) as NetStatus\n        auto token = cancel\n        if token != null then\n            return await (await self.engine().submit(func() as future<NetStatus>\n                return self.wait'+name+'CancelOnWorker('+('minimum, ' if name=='Writable' else '')+'deadlineMs, token)\n            end, self.worker))\n        end\n        return await (await self.engine().submit(func() as future<NetStatus>\n            return self.wait'+name+'OnWorker('+('minimum, ' if name=='Writable' else '')+'deadlineMs)\n        end, self.worker))\n    end\n'
     extra+='    func wait'+name+'Async('+('uint64 minimum = uint64(1), ' if name=='Writable' else '')+'int timeoutMillis = -1, CancellationToken? cancel = null) as future<NetStatus>\n        return self.wait'+name+'UntilAsync('+('minimum, ' if name=='Writable' else '')+'Http1.deadline(timeoutMillis), cancel)\n    end\n'
   (upgrade if c['component']=='WS_UPGRADE' else stream if n in ('WsStream','WsEvent') else source).append('class '+n+'\n'+('' if n in STATIC_CLASSES else '    private native point handle\n')+''.join(declaration(r) for r in c['methods'])+extra+'end\n')
  files['src/stdlib/xl6_stdlib_ws.inc']='/* Generated declarations. */\n'+''.join('const char* '+name+'=\n'+'\n'.join('    '+json.dumps(line+'\n') for line in ''.join(parts).splitlines())+';\n' for name,parts in [('xl6StdlibWsSource',source),('xl6StdlibWsUpgradeSource',upgrade),('xl6StdlibWsStreamSource',stream)])

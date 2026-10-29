@@ -525,10 +525,11 @@ if ( $failures.Count -eq 0 ) {
     }
 
     if ( $api -notmatch 'XL_TCC_VFS_XRT_C' -or
-         $api -notmatch 'tcc_define_symbol\(state, "XRT_MODULE_ALL", "1"\)' -or
-         $api -notmatch 'tcc_define_symbol\(state, "XRUNTIME_MODULE_ALL", "1"\)' -or
-         $api -notmatch '(?s)#define XRUNTIME_IMPLEMENTATION.*#include \\"xruntime[.]h\\"' ) {
-        Add-Failure "xlc.dll exe compiler path must compile the vendored XRT/xruntime product"
+         $api -notmatch 'visit\(user, "define", "XRT_MODULE_ALL", "1", 0\)' -or
+         $api -notmatch 'visit\(user, "define", "XRUNTIME_MODULE_ALL", "1", 0\)' -or
+         $api -notmatch '__xl_objects/static-native/xrt[.]o' -or
+         $api -notmatch '__xl_objects/shared-native/xrt[.]o' ) {
+        Add-Failure "xlc.dll external C output must link its complete relocatable XRT product"
     }
 
     foreach ( $name in @(

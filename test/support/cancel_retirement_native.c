@@ -10,6 +10,11 @@
 #endif
 #endif
 #ifdef XL6_RETIREMENT_XRUNTIME
+#include "lib/xruntime/xruntime_features.h"
+#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)
+#define XRT_IMPLEMENTATION
+#endif
+#include "lib/xrt/xrt.h"
 #include "lib/xruntime/xruntime.h"
 #else
 #include "lib/xrt/xrt.h"

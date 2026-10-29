@@ -3,7 +3,9 @@
 #include <stdint.h>
 #include "xl6_product_abi.h"
 #if !defined(XRT_SINGLE_HEADER) && !defined(XRUNTIME_DECLARATIONS_H)
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
+#include "include/xl_clock.h"
 #endif
 #include "xl6_runtime_export.h"
 
@@ -447,7 +449,7 @@ XL6_TEXT_API XL6_ProductTimeX2V1 xl6TimeYearRangeV1(int64_t value);
 XL6_TEXT_API XL6_ProductTimeX2V1 xl6TimeWeekRangeV1(int64_t value, int64_t firstWeekday);
 XL6_TEXT_API XL6_ProductI64x3V1 xl6TimeISOWeekV1(int64_t value);
 XL6_TEXT_API void* xl6DateTimeSplitV1(int64_t value, int64_t offset);
-XL6_TEXT_API void* xl6DateTimeFieldsV1(int64_t year, int64_t month, int64_t day, int64_t hour, int64_t minute, int64_t second, int64_t microsecond, int64_t offset);
+XL6_TEXT_API void* xl6DateTimeFieldsV1(int64_t year, int64_t month, int64_t day, int64_t hour, int64_t minute, int64_t second, int64_t millisecond, int64_t offset);
 XL6_TEXT_API void xl6DateTimeDestroyV1(void* handle);
 XL6_TEXT_API int64_t xl6DateTimeYearV1(void* handle);
 XL6_TEXT_API int64_t xl6DateTimeMonthV1(void* handle);
@@ -455,7 +457,7 @@ XL6_TEXT_API int64_t xl6DateTimeDayV1(void* handle);
 XL6_TEXT_API int64_t xl6DateTimeHourV1(void* handle);
 XL6_TEXT_API int64_t xl6DateTimeMinuteV1(void* handle);
 XL6_TEXT_API int64_t xl6DateTimeSecondV1(void* handle);
-XL6_TEXT_API int64_t xl6DateTimeMicrosecondV1(void* handle);
+XL6_TEXT_API int64_t xl6DateTimeMillisecondV1(void* handle);
 XL6_TEXT_API int64_t xl6DateTimeOffsetV1(void* handle);
 XL6_TEXT_API int64_t xl6DateTimeWeekdayV1(void* handle);
 XL6_TEXT_API int64_t xl6DateTimeDayOfYearV1(void* handle);
@@ -464,17 +466,16 @@ XL6_TEXT_API int64_t xl6DateTimeToTimeV1(void* handle);
 XL6_TEXT_API void* xl6DateTimeLocalV1(int64_t value, bool local);
 XL6_TEXT_API int64_t xl6TimeFromLocalV1(void* handle, int64_t fold);
 XL6_TEXT_API int64_t xl6TimeTimezoneOffsetV1(int64_t value);
-XL6_TEXT_API int64_t xl6TimeFromDateTimeV1(int64_t year,int64_t month,int64_t day,int64_t hour,int64_t minute,int64_t second,int64_t microsecond,int64_t offset);
+XL6_TEXT_API int64_t xl6TimeFromDateTimeV1(int64_t year,int64_t month,int64_t day,int64_t hour,int64_t minute,int64_t second,int64_t millisecond,int64_t offset);
 XL6_TEXT_API int64_t xl6TimeFromDateV1(int64_t year,int64_t month,int64_t day);
-XL6_TEXT_API int64_t xl6TimeFromTimeV1(int64_t hour,int64_t minute,int64_t second,int64_t microsecond);
+XL6_TEXT_API int64_t xl6TimeFromTimeV1(int64_t hour,int64_t minute,int64_t second,int64_t millisecond);
 XL6_TEXT_API int64_t xl6TimeFromUnixV1(int64_t seconds);
 XL6_TEXT_API int64_t xl6TimeFromUnixMsV1(int64_t milliseconds);
 XL6_TEXT_API int64_t xl6TimeUnixV1(int64_t value);
 XL6_TEXT_API int64_t xl6TimeUnixMsV1(int64_t value);
-XL6_TEXT_API int64_t xl6TimeMicrosecondV1(int64_t value);
+XL6_TEXT_API int64_t xl6TimeMillisecondV1(int64_t value);
 XL6_TEXT_API int64_t xl6TimeNowV1(void);
 XL6_TEXT_API uint64_t xl6TimeMonotonicV1(void);
-XL6_TEXT_API void xl6TimeSleepUsV1(uint64_t microseconds);
 XL6_TEXT_API void xl6TimeSleepUntilV1(uint64_t deadline);
 XL6_TEXT_API bool xl6TimeNearV1(int64_t left,int64_t right,uint64_t tolerance);
 XL6_TEXT_API int64_t xl6TimeAddV1(int64_t value,int64_t amount,int64_t unit);

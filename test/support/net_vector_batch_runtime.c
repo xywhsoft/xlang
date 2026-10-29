@@ -1,5 +1,6 @@
 /* Real selected providers and literal own IPv4/IPv6 loopback endpoints only.
  * No DNS, external traffic, probes, multicast, or network-security tests. */
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
 #include "src/runtime/xl6_net_datagram_batch_internal.h"
 #include "src/runtime/xl6_array_admission.h"

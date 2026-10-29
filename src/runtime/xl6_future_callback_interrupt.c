@@ -7,7 +7,7 @@ typedef enum Stop {OPEN,PARENT,TIMEOUT,FAILED,SEALED} Stop;
 typedef struct Interrupt {
     XL6_DeadlineTicketV1 ticket;
     xcancelwatch* parent;
-    xdeadline due;
+    XL6_DeadlineV1 due;
     xerror* error;
     Stop stop;
     bool armed,started;
@@ -66,7 +66,7 @@ static void select_input(Frame* frame,xfutureresult* input,xerror** selected)
 {
     xrtownershipscope mutation={0};xl6CallbackFrameBeginV1(frame,&mutation);
     Interrupt* interrupt=state(frame);if(!interrupt||interrupt->stop==SEALED)abort();
-    if(interrupt->stop==OPEN&&xrtDeadlineExpired(interrupt->due))interrupt->stop=TIMEOUT;
+    if(interrupt->stop==OPEN&&xl6DeadlineExpiredV1(interrupt->due))interrupt->stop=TIMEOUT;
     Stop reason=interrupt->stop;interrupt->stop=SEALED;
     *selected=interrupt->error;interrupt->error=NULL;xl6CallbackFrameEndV1(frame,&mutation);
     if(reason==PARENT)*input=(xfutureresult){.State=XFUTURE_CANCELLED};
@@ -94,11 +94,11 @@ static bool idle(const Frame* frame)
     return interrupt&&interrupt->stop==SEALED&&!interrupt->parent&&!interrupt->error&&xl6DeadlineTicketIsIdleV1(&interrupt->ticket);
 }
 static const XL6_CallbackInterruptOpsV1 ops={bound,select_input,detach,trace,idle,destroy};
-static bool arm_body(void* data,xcancel* parent,XL6_DeadlineServiceV1* service,xdeadline due)
+static bool arm_body(void* data,xcancel* parent,XL6_DeadlineServiceV1* service,XL6_DeadlineV1 due)
 {
     Frame* frame=xl6CallbackFrameHeaderV1(data);
     if(!frame||!frame->queued||!frame->layoutV2||frame->references!=1||frame->committed||frame->publishing||
-        frame->interruptOps||(!parent&&due==XRT_DEADLINE_NEVER)||(due!=XRT_DEADLINE_NEVER&&!service)){
+        frame->interruptOps||(!parent&&due==XL6_DEADLINE_NEVER)||(due!=XL6_DEADLINE_NEVER&&!service)){
         xrtSetErrorKind(XERR_ARGUMENT);return false;}
     Interrupt* interrupt=xrtCalloc(1,sizeof(*interrupt));if(!interrupt)return false;
     interrupt->due=due;frame->interrupt=interrupt;frame->interruptOps=&ops;
@@ -107,7 +107,7 @@ static bool arm_body(void* data,xcancel* parent,XL6_DeadlineServiceV1* service,x
         interrupt->parent=xrtCancelWatchOwnedV1(parent,frame,&cancelPolicy);
         if(!interrupt->parent){drop(frame);goto failed;}
     }
-    if(due!=XRT_DEADLINE_NEVER){
+    if(due!=XL6_DEADLINE_NEVER){
         if(!retain(frame))goto failed;
         const void* owner=frame;
         if(!xl6DeadlineBindTakeV1(service,&interrupt->ticket,due,&target,&owner)){drop(frame);goto failed;}
@@ -116,14 +116,14 @@ static bool arm_body(void* data,xcancel* parent,XL6_DeadlineServiceV1* service,x
 failed:;
     xerror* error=xrtTakeError();detach(frame);xrtClearError();xrtSetErrorTake(error);return false;
 }
-bool xl6FutureCallbackInterruptArmV1(void* data,xcancel* parent,XL6_DeadlineServiceV1* service,xdeadline due)
+bool xl6FutureCallbackInterruptArmV1(void* data,xcancel* parent,XL6_DeadlineServiceV1* service,XL6_DeadlineV1 due)
 {XL6_OWNERSHIP_RETURN(bool,arm_body(data,parent,service,due));}
 bool xl6FutureCallbackInterruptStoppedV1(const void* data)
 {
     Frame* frame=xl6CallbackFrameHeaderV1(data);if(!state(frame))abort();
     xrtownershipscope mutation={0};xl6CallbackFrameBeginV1(frame,&mutation);Interrupt* interrupt=state(frame);
     if(!interrupt->armed||interrupt->started||interrupt->stop==SEALED)abort();
-    if(interrupt->stop==OPEN&&xrtDeadlineExpired(interrupt->due))interrupt->stop=TIMEOUT;
+    if(interrupt->stop==OPEN&&xl6DeadlineExpiredV1(interrupt->due))interrupt->stop=TIMEOUT;
     bool stopped=interrupt->stop!=OPEN;xl6CallbackFrameEndV1(frame,&mutation);return stopped;
 }
 xfuture* xl6FutureCallbackInterruptStartV1(struct XL6_ContinuationExecutor* executor,void* data,xfuture* source)

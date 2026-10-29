@@ -2,11 +2,11 @@ time value = #2024-02-29 23:59:59#
 assert time.year(value) == 2024 and time.month(value) == 2 and time.day(value) == 29
 assert time.hour(value) == 23 and time.minute(value) == 59 and time.second(value) == 59
 assert time.weekday(value) == 4 and time.dayOfYear(value) == 60 and time.quarter(value) == 1
-assert time.isLeapYear(0) and time.isLeapYear(-400) and not time.isLeapYear(1900)
+assert time.isLeapYear(-401) and not time.isLeapYear(1900)
 assert time.daysInYear(2000) == 366 and time.daysInYear(1900) == 365
 assert time.daysInMonth(2024, 2) == 29
 assert time.datePart(value) == #2024-02-29#
-assert time.timePart(time(-1)) == 86399999999
+assert time.timePart(time(-1)) == 86399999
 assert time.isSameDay(value, #2024-02-29#) and not time.isSameDay(value, #2024-03-01#)
 assert time.isSameMonth(value, #2024-02-01#) and not time.isSameMonth(value, #2023-02-01#)
 assert time.isSameYear(value, #2024-01-01#) and not time.isSameYear(value, #2023-02-01#)
@@ -74,9 +74,17 @@ try
 catch RangeError e
     caught += 1
 end
+assert caught == 8
+
+int noYearZero = 0
 try
-    time.sleep(9223372036854775807)
+    time.isLeapYear(0)
 catch RangeError e
-    caught += 1
+    noYearZero += 1
 end
-assert caught == 9
+try
+    time.daysInYear(0)
+catch RangeError e
+    noYearZero += 1
+end
+assert noYearZero == 2

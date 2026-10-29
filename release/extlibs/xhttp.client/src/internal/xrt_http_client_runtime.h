@@ -1,3 +1,4 @@
+#include "xl_clock.h"
 #ifndef XRT_INTERNAL_HTTP_CLIENT_RUNTIME_H
 #define XRT_INTERNAL_HTTP_CLIENT_RUNTIME_H
 
@@ -247,7 +248,7 @@ struct xhttpcall {
 		xatomic32 RetryTimerDone;
 		xatomic64 RetryTimer;
 	#endif
-	xdeadline TotalDeadline;
+	XL6_DeadlineV1 TotalDeadline;
 	xatomic64 IdleDeadline;
 	__xrt_http_call_info Info;
 	xspinlock Lock;

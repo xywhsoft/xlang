@@ -22,6 +22,7 @@ if errorlevel 1 exit /b 1
 copy /Y release\include\xrt_decl.h build\test\__xl_runtime\xrt_decl.h >nul
 if errorlevel 1 exit /b 1
 copy /Y release\include\xruntime_decl.h build\test\__xl_runtime\xruntime_decl.h >nul
+copy /Y release\include\xl_clock.h build\test\__xl_runtime\xl_clock.h >nul
 if errorlevel 1 exit /b 1
 rem Keep the full-regression mirror identical to test\suites\common.bat.
 rem Generated C selects private resident declarations from verified XLIR.

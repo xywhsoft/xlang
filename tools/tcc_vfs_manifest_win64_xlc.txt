@@ -4,9 +4,9 @@
 #   dir|virtual-prefix|source-directory|optional-file-patterns
 #   file|virtual-name|source-file
 #
-# xlc.dll compiles executable output with the complete xruntime single-header
-# implementation selected by the trim result. Native C compatibility exposes
-# XRT declarations only; the compiler does not embed the prebuilt runtime object.
+# Ordinary language output selects XRT core/runtime modules from private
+# implementation paths. Full native output and nested compiler hosts use
+# target-specific TCC objects; public C compatibility paths expose declarations.
 
 dir|include|%XL6_EMBED_TCC_DIST_X64%\include
 dir|include/__xl_runtime|%XL6_ROOT%\src\runtime|*.h
@@ -22,6 +22,8 @@ file|include/xlc.h|%XL6_ROOT%\release\include\xlc.h
 file|include/__xl_runtime/xl_runtime.h|%XL6_ROOT%\release\include\xl_runtime.h
 file|include/__xl_runtime/xl_extlib_abi.h|%XL6_ROOT%\release\include\xl_extlib_abi.h
 file|include/__xl_runtime/xruntime_decl.h|%XL6_ROOT%\release\include\xruntime_decl.h
+file|include/__xl_runtime/xrt_decl.h|%XL6_ROOT%\release\include\xrt_decl.h
+file|include/__xl_runtime/xl_clock.h|%XL6_ROOT%\release\include\xl_clock.h
 # 内嵌 xlang 编译器源仍按开发树包含 include/xl_runtime.h。
 # 该私有根只服务于 __xl_compiler/src，不影响用户 C 源的公开头文件布局。
 file|__xl_compiler/include/xl.h|%XL6_ROOT%\release\include\xl.h
@@ -31,6 +33,8 @@ file|__xl_compiler/include/xl_cancellation_retirement.h|%XL6_ROOT%\release\inclu
 file|__xl_compiler/include/xl_runtime.h|%XL6_ROOT%\release\include\xl_runtime.h
 file|__xl_compiler/include/xl_extlib_abi.h|%XL6_ROOT%\release\include\xl_extlib_abi.h
 file|__xl_compiler/include/xruntime_decl.h|%XL6_ROOT%\release\include\xruntime_decl.h
+file|__xl_compiler/include/xrt_decl.h|%XL6_ROOT%\release\include\xrt_decl.h
+file|__xl_compiler/include/xl_clock.h|%XL6_ROOT%\release\include\xl_clock.h
 file|lib/libtcc1.a|%XL6_EMBED_TCC_DIST_X64%\lib\libtcc1.a
 file|lib/kernel32.def|%XL6_EMBED_TCC_DIST_X64%\lib\kernel32.def
 file|lib/msvcrt.def|%XL6_EMBED_TCC_DIST_X64%\lib\msvcrt.def
@@ -69,3 +73,13 @@ dir|__xl_compiler/lib/lzma|%XL6_ROOT%\lib\lzma|*.h
 file|__xl_compiler/lib/lzma/LzmaDec.c|%XL6_ROOT%\lib\lzma\LzmaDec.c
 # 嵌套运行库必须来自同一次资源构建，不能借用默认 build/tmp 中的旧包。
 file|__xl_compiler/build/tmp/tcc_builtin_resources_runtime.c|%XL6_VFS_OUTPUT_DIR%\tcc_builtin_resources_runtime.c
+
+file|include/__xl_runtime/xrt.h|%XL6_ROOT%/lib/xrt/xrt.h
+file|include/__xl_runtime/xruntime.h|%XL6_ROOT%/lib/xruntime/xruntime.h
+file|include/__xl_runtime/xruntime_features.h|%XL6_ROOT%/lib/xruntime/xruntime_features.h
+
+file|include/xl_clock.h|%XL6_ROOT%/release/include/xl_clock.h
+
+file|include/xrt_decl.h|%XL6_ROOT%/release/include/xrt_decl.h
+
+file|include/xruntime_decl.h|%XL6_ROOT%/release/include/xruntime_decl.h

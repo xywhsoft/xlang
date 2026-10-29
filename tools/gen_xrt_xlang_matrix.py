@@ -381,7 +381,10 @@ def _matrix(
     """构建完整逐 API 数据、文档矩阵和延期清单。"""
 
     core_headers = _api_headers(root / "lib" / "xrt" / "xrt.h")
-    runtime_headers = _api_headers(root / "lib" / "xruntime" / "xruntime.h")
+    owned_headers = _api_headers(root / "lib" / "xruntime" / "xruntime.h")
+    if core_headers.keys() & owned_headers.keys():
+        raise ValueError("XRT and xruntime must own disjoint public APIs")
+    runtime_headers = {**core_headers, **owned_headers}
     core_apis = set(core_headers)
     runtime_apis = set(runtime_headers)
     symbols = _runtime_symbols(root)
@@ -395,7 +398,10 @@ def _matrix(
     runtime_owned_headers = {runtime_headers[name] for name in runtime_owned_apis}
     capabilities = _xruntime_capabilities(root, runtime_owned_headers)
 
-    inline_headers = _api_headers(root / "lib" / "xruntime" / "xruntime.h", INLINE_FUNCTION)
+    inline_headers = {
+        **_api_headers(root / "lib" / "xrt" / "xrt.h", INLINE_FUNCTION),
+        **_api_headers(root / "lib" / "xruntime" / "xruntime.h", INLINE_FUNCTION),
+    }
     external_catalog = _external_api_catalog(root, runtime_apis)
     references, missing_references = _source_references(
         root, runtime_apis | set(inline_headers), set(external_catalog))

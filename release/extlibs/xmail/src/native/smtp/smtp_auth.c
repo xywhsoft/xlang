@@ -1,3 +1,4 @@
+#include "xl_clock.h"
 #include "../internal/xrt_mail_auth.h"
 #include "../internal/xrt_smtp_client.h"
 
@@ -21,7 +22,7 @@ static bool __xrtSmtpAuthSend(
 	xstrview Prefix,
 	xstrview Encoded,
 	xsmtpreply* pReply,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -93,7 +94,7 @@ static bool __xrtSmtpAuthExchange(
 	size_t iEncoded,
 	bool bInitial,
 	xsmtpreply* pReply,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -157,7 +158,7 @@ static bool __xrtSmtpAuthExchange(
 static bool __xrtSmtpAuthPlain(
 	xsmtpclient* pClient,
 	const xsmtpauthconfig* pConfig,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -205,7 +206,7 @@ static bool __xrtSmtpAuthPlain(
 static bool __xrtSmtpAuthLogin(
 	xsmtpclient* pClient,
 	const xsmtpauthconfig* pConfig,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -275,7 +276,7 @@ static bool __xrtSmtpAuthLogin(
 static bool __xrtSmtpAuthBearer(
 	xsmtpclient* pClient,
 	const xsmtpauthconfig* pConfig,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -384,7 +385,7 @@ XRT_API bool xrtSmtpAuthConfigValid(const xsmtpauthconfig* pConfig)
 XRT_API bool xrtSmtpClientAuth(
 	xsmtpclient* pClient,
 	const xsmtpauthconfig* pConfig,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {

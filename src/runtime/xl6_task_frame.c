@@ -2,7 +2,7 @@
 #define XRT_MODULE_THREAD
 #define XRT_MODULE_MEMORY
 #define XRT_MODULE_ATOMIC
-#include "lib/xrt/xrt.h"
+#include "src/common/xl6_xrt.h"
 #include "xl6_task.h"
 #include "xl6_ownership_scope.h"
 #include "src/api/xl_foreign_error.h"

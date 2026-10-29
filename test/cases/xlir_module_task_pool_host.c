@@ -1,3 +1,4 @@
+#include "release/include/xl_clock.h"
 #include <assert.h>
 #include <stdio.h>
 #include "xlir_module_task_pool.c"
@@ -21,16 +22,16 @@ static int unloadOk, unloadCode;
 static unsigned faults;
 static int pool_retire_until_settled(void)
 {
-    xdeadline deadline=xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){
         XL6_ModuleRetireResult result=xl_script_module_retire_step();
         if(result==XL6_MODULE_RETIRE_READY)return 1;
         if(result==XL6_MODULE_RETIRE_FAILED)return 0;
-        if(result!=XL6_MODULE_RETIRE_BUSY||xrtGetError()||xrtDeadlineExpired(deadline))
+        if(result!=XL6_MODULE_RETIRE_BUSY||xrtGetError()||xl6DeadlineExpiredV1(deadline))
             fprintf(stderr,"pool retire result=%d initialized=%d error=%d code=%d expired=%d\n",
                 result,xlir_module_initialized,xrtGetError()?(int)xrtErrorKind(xrtGetError()):0,
-                xrtGetError()?xrtErrorCode(xrtGetError()):0,(int)xrtDeadlineExpired(deadline));
-        assert(result==XL6_MODULE_RETIRE_BUSY&&!xrtGetError()&&!xrtDeadlineExpired(deadline));
+                xrtGetError()?xrtErrorCode(xrtGetError()):0,(int)xl6DeadlineExpiredV1(deadline));
+        assert(result==XL6_MODULE_RETIRE_BUSY&&!xrtGetError()&&!xl6DeadlineExpiredV1(deadline));
         xrtThreadYield();
     }
 }

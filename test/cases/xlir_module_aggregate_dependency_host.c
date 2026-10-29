@@ -1,3 +1,4 @@
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_future_wait.h"
 #include "src/runtime/xl6_future_callback.h"
 static void bind_aggregate_callbacks(void);
@@ -112,12 +113,12 @@ static void begin_aggregate_probe(void)
      * snapshot has aborted. Exclude that driver BEFORE dropping the root,
      * so a worker release cannot begin semantic retirement before the
      * independent proof obtains its own claims. No count is discounted. */
-    xdeadline deadline=xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){
         xlApiLock();assert(!xl__ownershipDriverRunning && !xrtGetError());
         xlCollectRetiringModulesUnlocked();
         if(!module->ownershipPlan){xl__ownershipDriverRunning=1;xlApiUnlock();assert_untouched();return;}
-        xlApiUnlock();assert_untouched();assert(!xrtDeadlineExpired(deadline));xrtThreadYield();
+        xlApiUnlock();assert_untouched();assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();
     }
 }
 static void inspect_aggregate_unrooted(xrtownershipref executor, bool feeder)
@@ -129,7 +130,7 @@ static void inspect_aggregate_unrooted(xrtownershipref executor, bool feeder)
      * owns its plan. It is aborted/restored before normal collection resumes. */
     XL6_OwnershipPlan* plan = NULL; xrtownershipscope freeze = {0}; xmemdebugsnapshot before;
     xrtownershipref producer = {0}; const xrtownershipadapterv1* adapter = NULL;
-    const xrtownershippreparationv1* preparation = NULL; xdeadline deadline = xrtDeadlineAfter(5000000);
+    const xrtownershippreparationv1* preparation = NULL; XL6_DeadlineV1 deadline = xl6DeadlineAfterMillisecondsV1(5000);
     xlApiLock();assert(!module->ownershipPlan && xl__ownershipDriverRunning && !xrtGetError());xlApiUnlock();
     xrtMemDebugSnapshot(&before);
     for (;;) {
@@ -143,7 +144,7 @@ static void inspect_aggregate_unrooted(xrtownershipref executor, bool feeder)
         if (result == XL6_OWNERSHIP_PLAN_BUSY && probe_busy) ++proof_snapshot_deferrals;
         if (result != XL6_OWNERSHIP_PLAN_BUSY) fprintf(stderr, "Aggregate plan refusal: mode=%u width=%u feeder=%u transaction=%u status=%d error=%s\n",
             aggregate_mode, cycle_width, feeder, transactions, (int)result, xrtGetError() ? xrtErrorMessage(xrtGetError()) : "none");
-        assert(result == XL6_OWNERSHIP_PLAN_BUSY && !plan && !xrtGetError() && !xrtDeadlineExpired(deadline)); xrtThreadYield();
+        assert(result == XL6_OWNERSHIP_PLAN_BUSY && !plan && !xrtGetError() && !xl6DeadlineExpiredV1(deadline)); xrtThreadYield();
     }
     quiet_executor(executor, &freeze);
     WaitQueueSearch queue = {0};
@@ -166,7 +167,7 @@ static void inspect_aggregate_unrooted(xrtownershipref executor, bool feeder)
         XL6_OwnershipPlanResult result = xl6OwnershipPlanTryRefresh(plan);
         if (result == XL6_OWNERSHIP_PLAN_PREPARATIONS) break;
         if (result == XL6_OWNERSHIP_PLAN_BUSY && probe_busy) ++proof_snapshot_deferrals;
-        assert(result == XL6_OWNERSHIP_PLAN_BUSY && !xrtDeadlineExpired(deadline)); xrtThreadYield();
+        assert(result == XL6_OWNERSHIP_PLAN_BUSY && !xl6DeadlineExpiredV1(deadline)); xrtThreadYield();
     }
     quiet_executor(executor, &freeze);
     for (unsigned i = 0; i < cycle_width; ++i) {
@@ -220,14 +221,14 @@ static void inspect_aggregate_unrooted(xrtownershipref executor, bool feeder)
              * this physical admission refusal may retry; cancellation or any
              * other semantic duty would fail assert_untouched above. */
             ++proof_prepare_admission_deferrals;
-            assert(!xrtDeadlineExpired(deadline)); xrtThreadYield();
+            assert(!xl6DeadlineExpiredV1(deadline)); xrtThreadYield();
         }
         xrtClearError(); assert_untouched(); ++proof_deferrals;
     }
     for (;;) {
         XL6_OwnershipPlanResult result = xl6OwnershipPlanTryDestroy(plan);
         if (result == XL6_OWNERSHIP_PLAN_READY) break;
-        assert(result == XL6_OWNERSHIP_PLAN_BUSY && !xrtDeadlineExpired(deadline)); xrtThreadYield();
+        assert(result == XL6_OWNERSHIP_PLAN_BUSY && !xl6DeadlineExpiredV1(deadline)); xrtThreadYield();
     }
     xlApiLock(); assert(xl__ownershipDriverRunning); xl__ownershipDriverRunning = 0; xlApiUnlock();
     assert_untouched(); proof_balanced(&before); ++proof_plans;
@@ -256,8 +257,8 @@ static void late_aggregate_transaction(unsigned outcome)
     xlApiLock(); assert(xlModuleBeginCallUnlocked(module)); xlApiUnlock();
     for (unsigned i = 0; i < 2; ++i) { cycle_outputs[i] = start_cycle(i, boot, cleanup, false); assert(cycle_outputs[i] && !xrtGetError()); }
     xlApiLock(); xlModuleEndCallUnlocked(module); xlApiUnlock();
-    assert(xrtPromiseResolve(bootPromise, &number)); xdeadline deadline = xrtDeadlineAfter(5000000);
-    while (atomic_load(&peer_count) != 2) { assert(!xrtDeadlineExpired(deadline)); xrtThreadYield(); }
+    assert(xrtPromiseResolve(bootPromise, &number)); XL6_DeadlineV1 deadline = xl6DeadlineAfterMillisecondsV1(5000);
+    while (atomic_load(&peer_count) != 2) { assert(!xl6DeadlineExpiredV1(deadline)); xrtThreadYield(); }
     xrtownershipscope freeze = {0}; quiet_executor(executor_view(), &freeze); assert(xrtOwnershipScopeEnd(&freeze));
     xlApiLock(); assert(prepare_mixed_module() && module->retirementPrepared); xlApiUnlock();
     xlDestroyModule(module); assert(module->destroyRequested && module->retirementPrepared);

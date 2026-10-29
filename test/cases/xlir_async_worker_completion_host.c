@@ -1,3 +1,4 @@
+#include "release/include/xl_clock.h"
 #include <assert.h>
 #include <stddef.h>
 #define XRT_DECLARATIONS 1
@@ -45,9 +46,9 @@ void worker_completion_drain_discarded(void)
      * has completed its tested lexical cleanup. Dropping a Future is not an
      * await or a terminal publication barrier. Wait for actual idle before
      * requesting module retirement; never retry a failed checked teardown. */
-    xdeadline deadline=xrtDeadlineAfter(15000000);
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(15000);
     while(!xl6ContinuationExecutorIsIdle(xlir_continuation_executor)){
-        assert(!xrtDeadlineExpired(deadline));xrtThreadYield();
+        assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();
     }
 }
 void worker_completion_finish(void)

@@ -5,5 +5,6 @@
 typedef struct XL6_ProcessRunOptions {
     xprocessrunoptions options;
     int64_t timeoutMs;
+    XL6_DeadlineV1 deadline;
 } XL6_ProcessRunOptions;
 #endif

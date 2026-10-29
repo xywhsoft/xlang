@@ -3,7 +3,11 @@
 #if defined(__linux__)
 #define XRT_MODULE_NET_PORT_URING
 #endif
+#ifndef XRT_MODULE_WAIT
+#define XRT_MODULE_WAIT
+#endif
 #include "lib/xrt/xrt.h"
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_ownership_plan.h"
 #include <assert.h>
 #include <stdio.h>
@@ -29,8 +33,8 @@ static void begin(xrtownershipscope* s){assert(xrtOwnershipMutationBegin(s));}
 static void end(xrtownershipscope* s){assert(xrtOwnershipScopeEnd(s));}
 static void freeze(xrtownershipscope* s)
 {
-    xdeadline deadline=xrtDeadlineAfter(5000000);
-    while(!xrtOwnershipFreezeTryBegin(s)){assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
+    while(!xrtOwnershipFreezeTryBegin(s)){assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
 }
 static bool hold(const void* data)
 {
@@ -85,7 +89,7 @@ static void receive(Root* r,xnetportevent* event)
         /* Cancel admission is not quiescence: the real terminal packet below
          * must still transfer the actual request's owning reference. */
         assert(xrtNetPortCancel(r->port,r->cancelled+1));++r->cancelled;}
-    assert(xrtNetPortWait(r->port,event,1,xrtDeadlineAfter(5000000),&got)==XNET_RESULT_OK&&got==1);
+    assert(xrtNetPortWait(r->port,event,1,xl6DeadlineAfterMillisecondsV1(5000),&got)==XNET_RESULT_OK&&got==1);
     assert(event->User==r&&event->Ownership);
     if(r->os){assert(event->Type==XNET_PORT_EVENT_ACCEPT&&event->Result==XNET_RESULT_CANCELLED&&!event->Accepted);++os_completions;}
     else if(r->watch){assert(event->Type==XNET_PORT_EVENT_READY&&(event->Flags&XNET_PORT_EVENT_WRITE)&&
@@ -138,28 +142,28 @@ static bool resolve(xrtownershipref ref,void* data,const XL6_OwnershipAdapterV1*
 }
 static XL6_OwnershipPlanResult create_plan(Root* r,XL6_OwnershipPlan** plan)
 {
-    xdeadline deadline=xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){XL6_OwnershipPlanResult state=xl6OwnershipPlanTryCreateV2(reference(r),resolve,r,plan);
         if(state!=XL6_OWNERSHIP_PLAN_BUSY)return state;
-        assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+        assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
 }
 static XL6_OwnershipPlanResult settle(XL6_OwnershipPlan* plan)
 {
-    xdeadline deadline=xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){assert(xl6OwnershipPlanPrepare(plan)>=XL6_OWNERSHIP_STEP_BUSY);
         XL6_OwnershipPlanResult state=xl6OwnershipPlanTryRefresh(plan);
         if(state==XL6_OWNERSHIP_PLAN_FINALIZERS||state==XL6_OWNERSHIP_PLAN_ROOTED)return state;
-        assert(state>=XL6_OWNERSHIP_PLAN_BUSY&&!xrtDeadlineExpired(deadline));xrtThreadYield();}
+        assert(state>=XL6_OWNERSHIP_PLAN_BUSY&&!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
 }
 static void destroy_plan(XL6_OwnershipPlan* plan)
 {assert(xl6OwnershipPlanTryDestroy(plan)==XL6_OWNERSHIP_PLAN_READY);}
 static XL6_OwnershipPlanResult finish_finalizers(XL6_OwnershipPlan* plan)
 {
-    xdeadline deadline=xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){assert(xl6OwnershipPlanFinalizeV2(plan)>=XL6_OWNERSHIP_STEP_BUSY);
         XL6_OwnershipPlanResult state=xl6OwnershipPlanTryCommit(plan);
         if(state==XL6_OWNERSHIP_PLAN_READY||state==XL6_OWNERSHIP_PLAN_ROOTED)return state;
-        assert((state==XL6_OWNERSHIP_PLAN_BUSY||state==XL6_OWNERSHIP_PLAN_FINALIZERS)&&!xrtDeadlineExpired(deadline));
+        assert((state==XL6_OWNERSHIP_PLAN_BUSY||state==XL6_OWNERSHIP_PLAN_FINALIZERS)&&!xl6DeadlineExpiredV1(deadline));
         xrtThreadYield();}
 }
 static void one(unsigned mode,xnetportbackend backend,bool os,bool watch)

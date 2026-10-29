@@ -129,7 +129,7 @@ def main():
             for mode in ('oom','scopes'): sweep(lane+'.restore.'+mode,binary,mode,'restore',4)
             impl=out/(lane+'.pruned.c'); selected=[]
             impl.write_text(''.join('#define '+s+'\n' for s in plan['NativeModules'])+
-                '#define XRT_MODULE_MEMORY_DEBUG\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
+                '#define XRT_MODULE_MEMORY_DEBUG\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
             for i,source in enumerate([impl,*[root/s for s in plan['Sources']]]):
                 obj=out/(lane+'.pruned.'+str(i)+'.o'); run(lane+'.pruned.provider.'+str(i),[cc,*full,'-O'+str(level),'-c',source,'-o',obj]); selected.append(obj)
             binary=out/(lane+'.pruned'+suffix)
@@ -141,7 +141,7 @@ def main():
         for level in (0,2):
             lane='restore-only.O'+str(level); selected=[]; impl=out/(lane+'.c')
             impl.write_text(''.join('#define '+s+'\n' for s in restore_plan['NativeModules'])+
-                '#define XRT_MODULE_MEMORY_DEBUG\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
+                '#define XRT_MODULE_MEMORY_DEBUG\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
             for i,source in enumerate([impl,*[root/s for s in restore_plan['Sources']],root/'test/support/module_product_memory.c']):
                 obj=out/(lane+'.'+str(i)+'.o'); run(lane+'.provider.'+str(i),[cc,*full,'-O'+str(level),'-c',source,'-o',obj]); selected.append(obj)
             binary=out/(lane+suffix); run(lane+'.build',[cc,*full,'-O'+str(level),'-include',generated,

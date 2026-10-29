@@ -1,5 +1,5 @@
 #define XRT_MODULE_ONCE
-#include "lib/xrt/xrt.h"
+#include "src/common/xl6_xrt.h"
 #include "xl_foreign_error.h"
 #include <stdlib.h>
 

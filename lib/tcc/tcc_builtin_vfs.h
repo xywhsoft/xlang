@@ -25,12 +25,24 @@ extern "C" {
 #define TCC_BUILTIN_RESOURCE_STORE 0u
 #define TCC_BUILTIN_RESOURCE_LZMA  1u
 
-typedef struct TCCBuiltinResource {
-    const char *name;
+#define TCC_BUILTIN_CATALOG_VERSION 2
+
+typedef struct TCCBuiltinBlob {
     const unsigned char *data;
     size_t packed_size;
     size_t size;
     unsigned int method;
+} TCCBuiltinBlob;
+typedef struct TCCBuiltinSpan {
+    const TCCBuiltinBlob *blob;
+    size_t offset;
+    size_t size;
+} TCCBuiltinSpan;
+typedef struct TCCBuiltinResource {
+    const char *name;
+    const TCCBuiltinSpan *spans;
+    unsigned int span_count;
+    size_t size;
 } TCCBuiltinResource;
 
 extern const TCCBuiltinResource tcc_builtin_resources[];
@@ -38,6 +50,9 @@ extern const unsigned int tcc_builtin_resources_count;
 
 /* Exact builtin lookup only: ignores disk files and dynamic mounts. A NULL
  * buffer with zero capacity queries size. No allocation crosses API heaps. */
+/* Serialize the immutable catalog for a nested compiler. No duplicate catalog
+ * is stored in the executable. compiler=0 selects SDK files only. */
+TCC_VFS_API int tcc_vfs_write_catalog_source(int compiler, char *buffer, size_t capacity, size_t *size);
 TCC_VFS_API int tcc_vfs_read_builtin(const char *path, void *buffer, size_t capacity, size_t *size);
 TCC_VFS_API int tcc_vfs_open(const char *path, int flags, ...);
 TCC_VFS_API int tcc_vfs_close(int fd);

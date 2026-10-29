@@ -2,7 +2,7 @@
 #define XRT_MODULE_VALUE
 #define XRT_MODULE_FUTURE
 #define XRUNTIME_MODULE_RUNTIME_VALUE_FUTURE
-#include "lib/xruntime/xruntime.h"
+#include "src/common/xl6_xrt.h"
 #include "xl6_future_payload.h"
 #include "xl6_closure.h"
 #include "xl6_generator.h"

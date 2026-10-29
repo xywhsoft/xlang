@@ -1,7 +1,8 @@
 #define XRT_MODULE_TASK_NET
-#include "lib/xrt/xrt.h"
+#include "src/common/xl6_xrt.h"
 #include "xl6_task_net.h"
 #include "xl6_task_frame_internal.h"
+#include "xl_clock.h"
 /* Proc has no second result/cleanup implementation: the shared task frame
  * executes its checked transaction and the native Task validates/publishes. */
 static xtaskoutcome task_net_run(xnetworker* worker,xcancel* cancel,void* frame,xtaskvalue* result)
@@ -20,14 +21,14 @@ typedef struct NetTarget {
     xnetengine* engine;
     uint64 affinity;
     bool delayed;
-    xdeadline deadline;
+    XL6_DeadlineV1 deadline;
 } NetTarget;
 static xfuture* submit(void* raw,void* frame,xcancel* cancel,
     XL6_FuturePayloadTrace trace,const xfuturepayloadownershipv1* result)
 {
     NetTarget* target=raw;(void)trace;
-    return target->delayed?xrtTaskNetUntilDataPolicyV1(target->engine,target->affinity,frame,cancel,
-        &data_policy,result,target->deadline):
+    return target->delayed?xrtTaskNetForDataPolicyV1(target->engine,target->affinity,frame,cancel,
+        &data_policy,result,xl6DeadlineRemainingMillisecondsV1(target->deadline)):
         xrtTaskNetDataPolicyV1(target->engine,target->affinity,frame,cancel,&data_policy,result);
 }
 xfuture* xl6TaskNetSubmitOwnedPolicyV1(xnetengine* engine,uint64_t affinity,void* data,

@@ -1,3 +1,4 @@
+#include "xl_clock.h"
 #ifndef XRT_POP3_AUTH_H
 #define XRT_POP3_AUTH_H
 
@@ -54,7 +55,7 @@ XRT_API bool xrtPop3AuthConfigValid(const xpop3authconfig* pConfig);
 XRT_API bool xrtPop3ClientAuth(
 	xpop3client* pClient,
 	const xpop3authconfig* pConfig,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 
@@ -66,7 +67,7 @@ XRT_API bool xrtPop3ClientLogin(
 	xstrview Username,
 	xstrview Password,
 	bool AllowPlaintext,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 );
 

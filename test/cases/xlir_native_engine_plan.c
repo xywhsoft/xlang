@@ -1,6 +1,10 @@
 #define XRT_MODULE_MEMORY_DEBUG
 #define XRT_MODULE_NET_ENGINE
+#ifndef XRT_MODULE_WAIT
+#define XRT_MODULE_WAIT
+#endif
 #include "lib/xrt/xrt.h"
+#include "release/include/xl_clock.h"
 #include "src/runtime/xl6_ownership_plan.h"
 #include <assert.h>
 #include <stdio.h>
@@ -23,14 +27,14 @@ static void begin(xrtownershipscope* s) { assert(xrtOwnershipMutationBegin(s)); 
 static void end(xrtownershipscope* s) { assert(xrtOwnershipScopeEnd(s)); }
 static void freeze_begin(xrtownershipscope* s)
 {
-    xdeadline deadline=xrtDeadlineAfter(5000000);
-    while(!xrtOwnershipFreezeTryBegin(s)){assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
+    while(!xrtOwnershipFreezeTryBegin(s)){assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
 }
 static void idle_freeze(xnetengine* engine,xrtownershipscope* s)
 {
-    xrtownershipref ref=xrtNetEngineOwnership(engine);size_t count;xdeadline deadline=xrtDeadlineAfter(5000000);
+    xrtownershipref ref=xrtNetEngineOwnership(engine);size_t count;XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){freeze_begin(s);if(ref.Ops->Count(ref.Data,&count))return;
-        end(s);assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+        end(s);assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
 }
 static bool root_hold(const void* data)
 {
@@ -105,23 +109,23 @@ static bool resolve(xrtownershipref ref,void* data,const XL6_OwnershipAdapterV1*
 }
 static XL6_OwnershipPlanResult create_plan(Root* root,bool* rejected,XL6_OwnershipPlan** plan)
 {
-    xdeadline deadline=xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){XL6_OwnershipPlanResult status=xl6OwnershipPlanTryCreateV2(root_ref(root),resolve,rejected,plan);
         if(status>XL6_OWNERSHIP_PLAN_BUSY||(*rejected&&status==XL6_OWNERSHIP_PLAN_ERROR))return status;
-        assert(!xrtDeadlineExpired(deadline));xrtClearError();++retries;xrtThreadYield();}
+        assert(!xl6DeadlineExpiredV1(deadline));xrtClearError();++retries;xrtThreadYield();}
 }
 static void destroy_plan(XL6_OwnershipPlan* plan)
 {
-    xdeadline deadline=xrtDeadlineAfter(5000000);
-    while(xl6OwnershipPlanTryDestroy(plan)!=XL6_OWNERSHIP_PLAN_READY){assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
+    while(xl6OwnershipPlanTryDestroy(plan)!=XL6_OWNERSHIP_PLAN_READY){assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
 }
 static XL6_OwnershipPlanResult settle(Root* root,XL6_OwnershipPlan* plan)
 {
-    xdeadline deadline=xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){XL6_OwnershipStepResult step=xl6OwnershipPlanPrepare(plan);assert(step!=XL6_OWNERSHIP_STEP_FAILED);
         XL6_OwnershipPlanResult state=xl6OwnershipPlanTryRefresh(plan);
         if(state==XL6_OWNERSHIP_PLAN_ROOTED||state==XL6_OWNERSHIP_PLAN_FINALIZERS||state==XL6_OWNERSHIP_PLAN_READY)return state;
-        if(xrtDeadlineExpired(deadline)){fprintf(stderr,"Engine settle timeout: step=%d state=%d tasks=%u timers=%u active=%u\n",
+        if(xl6DeadlineExpiredV1(deadline)){fprintf(stderr,"Engine settle timeout: step=%d state=%d tasks=%u timers=%u active=%u\n",
             (int)step,(int)state,root->tasks,root->timers,root->active);abort();}
         xrtClearError();++retries;xrtThreadYield();}
 }
@@ -135,17 +139,17 @@ static void one(unsigned mode)
     if(root->embedded){assert(xrtNetPostInit(&root->post)&&root_hold(root)&&
         xrtNetPostOwnedV1(xrtNetEngineWorker(root->engine,0),&root->post,root,&task_policy));++embedded_plans;}
     else assert(root_hold(root)&&xrtNetEnginePostOwnedV1(root->engine,0,root,&task_policy));
-    assert(root_hold(root)&&xrtNetEngineScheduleOwnedV1(root->engine,0,xrtDeadlineAfter(3600000000ULL),root,&timer_policy));
+    assert(root_hold(root)&&xrtNetEngineScheduleOwnedV1(root->engine,0,xl6DeadlineAfterMillisecondsV1(3600000000ULL),root,&timer_policy));
     root_drop(root);
     xrtownershipref ref=root_ref(root);xrtownershipresult graph={0};
     assert(xrtOwnershipInspect(&ref,1,NULL,0,&graph)&&graph.NodeCount==3&&graph.EdgeCount==4&&graph.ExternalRootCount==0);
     end(&freeze);
     if(mode&4){
-        xdeadline deadline=xrtDeadlineAfter(5000000);
+        XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
         for(;;){idle_freeze(root->engine,&freeze);
             if(root->tasks==1){assert(xrtOwnershipInspect(&ref,1,NULL,0,&graph)&&
                 graph.NodeCount==3&&graph.EdgeCount==3&&graph.ExternalRootCount==0);end(&freeze);break;}
-            end(&freeze);assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+            end(&freeze);assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
         ++heap_plans;
     }
     bool rejected=(mode&1)!=0;XL6_OwnershipPlan* plan=NULL;
@@ -163,11 +167,11 @@ static void one(unsigned mode)
         state=settle(root,plan);
     }
     assert(state==XL6_OWNERSHIP_PLAN_FINALIZERS&&!root->finalized);
-    xdeadline deadline=xrtDeadlineAfter(5000000);
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){XL6_OwnershipStepResult step=xl6OwnershipPlanFinalizeV2(plan);assert(step!=XL6_OWNERSHIP_STEP_FAILED);
         state=xl6OwnershipPlanTryCommit(plan);if(state==XL6_OWNERSHIP_PLAN_READY)break;
         assert(state==XL6_OWNERSHIP_PLAN_BUSY||state==XL6_OWNERSHIP_PLAN_FINALIZERS);
-        assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+        assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
     assert(root->finalized&&root->tasks==1&&root->timers==1);
     assert(xl6OwnershipPlanFinishV2(plan)==XL6_OWNERSHIP_STEP_READY&&xl6OwnershipPlanFinishV2(plan)==XL6_OWNERSHIP_STEP_READY);
     destroy_plan(plan);xrtClearError();xrtMemDebugSnapshot(&after);

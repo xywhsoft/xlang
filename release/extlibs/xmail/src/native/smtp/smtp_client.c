@@ -1,3 +1,4 @@
+#include "xl_clock.h"
 #include <xrt/smtp_client.h>
 
 #include "../internal/xrt_mail_net.h"
@@ -132,7 +133,7 @@ static bool __xrtSmtpClientReceiveMode(
 	xsmtpreply* pReply,
 	bool bCapabilities,
 	size_t iReplyLines,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -192,7 +193,7 @@ static bool __xrtSmtpClientUnexpected(void)
 static bool __xrtSmtpClientHello(
 	xsmtpclient* pClient,
 	const xsmtpclientconfig* pConfig,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -301,7 +302,7 @@ static bool __xrtSmtpClientPathArguments(
 /* 把 dot writer 输出直接提交到当前 SMTP 传输。 */
 typedef struct __xsmtpclientdatasink {
 	xsmtpclient* Client;
-	xdeadline Deadline;
+	XL6_DeadlineV1 Deadline;
 	xcancel* Cancel;
 } __xsmtpclientdatasink;
 
@@ -381,7 +382,7 @@ XRT_API bool xrtSmtpClientConfigValid(const xsmtpclientconfig* pConfig)
 /* 建立并协商 SMTP 会话。 */
 XRT_API xsmtpclient* xrtSmtpClientOpen(
 	const xsmtpclientconfig* pConfig,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -559,7 +560,7 @@ static bool __xrtSmtpClientSendLine(
 	xsmtpclient* pClient,
 	xstrview Line,
 	size_t iLimit,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -610,7 +611,7 @@ static bool __xrtSmtpClientSendLine(
 XRT_API bool xrtSmtpClientSend(
 	xsmtpclient* pClient,
 	xstrview Line,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -629,7 +630,7 @@ XRT_API bool xrtSmtpClientSend(
 XRT_API bool xrtSmtpClientAuthLine(
 	xsmtpclient* pClient,
 	xstrview Line,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -648,7 +649,7 @@ XRT_API bool xrtSmtpClientAuthLine(
 XRT_API bool xrtSmtpClientReceive(
 	xsmtpclient* pClient,
 	xsmtpreply* pReply,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -673,7 +674,7 @@ XRT_API bool xrtSmtpClientCommand(
 	xstrview Verb,
 	xstrview Arguments,
 	xsmtpreply* pReply,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -723,7 +724,7 @@ XRT_API bool xrtSmtpClientMail(
 	xsmtpclient* pClient,
 	xstrview ReversePath,
 	xstrview Parameters,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -768,7 +769,7 @@ XRT_API bool xrtSmtpClientRcpt(
 	xsmtpclient* pClient,
 	xstrview ForwardPath,
 	xstrview Parameters,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -816,7 +817,7 @@ XRT_API bool xrtSmtpClientRcpt(
 /* 进入 SMTP DATA 模式。 */
 XRT_API bool xrtSmtpClientDataBegin(
 	xsmtpclient* pClient,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -856,7 +857,7 @@ XRT_API bool xrtSmtpClientDataBegin(
 XRT_API bool xrtSmtpClientDataWrite(
 	xsmtpclient* pClient,
 	xbytesview Data,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -886,7 +887,7 @@ XRT_API bool xrtSmtpClientDataWrite(
 /* 完成 SMTP DATA 并读取最终响应。 */
 XRT_API bool xrtSmtpClientDataEnd(
 	xsmtpclient* pClient,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -928,7 +929,7 @@ XRT_API bool xrtSmtpClientDataEnd(
 XRT_API bool xrtSmtpClientData(
 	xsmtpclient* pClient,
 	xstrview Message,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -953,7 +954,7 @@ XRT_API bool xrtSmtpClientBdatBegin(
 	xsmtpclient* pClient,
 	size_t iChunkSize,
 	bool Last,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -1006,7 +1007,7 @@ XRT_API bool xrtSmtpClientBdatBegin(
 XRT_API bool xrtSmtpClientBdatWrite(
 	xsmtpclient* pClient,
 	xbytesview Data,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -1042,7 +1043,7 @@ XRT_API bool xrtSmtpClientBdatWrite(
 /* 完成当前 BDAT 块并读取服务器确认。 */
 XRT_API bool xrtSmtpClientBdatEnd(
 	xsmtpclient* pClient,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -1087,7 +1088,7 @@ XRT_API bool xrtSmtpClientBdat(
 	xsmtpclient* pClient,
 	xbytesview Data,
 	bool Last,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -1114,7 +1115,7 @@ XRT_API bool xrtSmtpClientBdat(
 /* 重置 SMTP envelope。 */
 XRT_API bool xrtSmtpClientReset(
 	xsmtpclient* pClient,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -1146,7 +1147,7 @@ XRT_API bool xrtSmtpClientReset(
 /* 发送 SMTP NOOP。 */
 XRT_API bool xrtSmtpClientNoop(
 	xsmtpclient* pClient,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -1167,7 +1168,7 @@ XRT_API bool xrtSmtpClientNoop(
 /* 发送 QUIT 并关闭传输。 */
 XRT_API bool xrtSmtpClientQuit(
 	xsmtpclient* pClient,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -1194,7 +1195,7 @@ XRT_API bool xrtSmtpClientQuit(
 /* 正常关闭 SMTP 传输。 */
 XRT_API bool xrtSmtpClientClose(
 	xsmtpclient* pClient,
-	xdeadline iDeadline
+	XL6_DeadlineV1 iDeadline
 )
 {
 	if ( !__xrtSmtpClientUsable(pClient) ) {

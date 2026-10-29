@@ -1,3 +1,5 @@
+#include "release/include/xl_clock.h"
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
 #include "src/runtime/xl6_task.h"
 #include "src/runtime/xl6_task_pool_exit.h"
@@ -7,8 +9,8 @@
 static const XL6_TaskPoolControlV1* api;
 static void until(xatomic32* flag)
 {
-    xdeadline deadline=xrtDeadlineAfter(UINT64_C(5000000));
-    while(!xrtAtomic32Load(flag,XMEMORY_ACQUIRE)){assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
+    while(!xrtAtomic32Load(flag,XMEMORY_ACQUIRE)){assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
 }
 static void joined(xthread* thread)
 {assert(xrtThreadWaitFor(thread,UINT64_C(5000000))==XWAIT_OK);xrtThreadDestroy(thread);}
@@ -45,10 +47,10 @@ static void pending_round(void)
     assert(xl6TaskPoolModulePrepareV1(pool,false,false)==XL6_MODULE_PREPARE_READY);
     assert(!xrtAtomic32Load(&tail.entered,XMEMORY_ACQUIRE));
     assert(xl6TaskPoolModulePrepareV1(pool,true,false)==XL6_MODULE_PREPARE_BUSY);
-    xdeadline deadline=xrtDeadlineAfter(UINT64_C(5000000));
+    XL6_DeadlineV1 deadline=xl6DeadlineAfterMillisecondsV1(5000);
     while(!xrtAtomic32Load(&tail.entered,XMEMORY_ACQUIRE)){
         assert(xl6TaskPoolModulePrepareV1(pool,false,false)==XL6_MODULE_PREPARE_BUSY);
-        assert(!xrtDeadlineExpired(deadline));xrtThreadYield();
+        assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();
     }
     for(unsigned i=0;i<16;++i){
         assert(xl6TaskPoolModulePrepareV1(pool,false,false)==XL6_MODULE_PREPARE_BUSY);
@@ -56,17 +58,17 @@ static void pending_round(void)
     }
     /* Physical completion must stay excluded from Count/Trace while the
      * actual native wrapper is in its ThreadKey tail. No relaxed admission. */
-    xrtownershipscope freeze={0};deadline=xrtDeadlineAfter(UINT64_C(5000000));
-    while(!xrtOwnershipFreezeTryBegin(&freeze)){assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+    xrtownershipscope freeze={0};deadline=xl6DeadlineAfterMillisecondsV1(5000);
+    while(!xrtOwnershipFreezeTryBegin(&freeze)){assert(!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
     const xrtownershipquiescencev1* policy=xrtTaskPoolOwnershipQuiescenceV1Get();
     assert(policy->Busy(native));size_t count=SIZE_MAX;
     assert(!xrtTaskPoolOwnership(native).Ops->Count(native,&count)&&count==SIZE_MAX);
     assert(xrtOwnershipScopeEnd(&freeze));
     assert(xrtMemDebugFailAfter(0));xrtAtomic32Store(&tail.resume,1,XMEMORY_RELEASE);
-    deadline=xrtDeadlineAfter(UINT64_C(5000000));
+    deadline=xl6DeadlineAfterMillisecondsV1(5000);
     for(;;){XL6_ModulePrepareResult result=xl6TaskPoolModulePrepareV1(pool,false,false);
         if(result==XL6_MODULE_PREPARE_READY)break;
-        assert(result==XL6_MODULE_PREPARE_BUSY&&!xrtDeadlineExpired(deadline));xrtThreadYield();}
+        assert(result==XL6_MODULE_PREPARE_BUSY&&!xl6DeadlineExpiredV1(deadline));xrtThreadYield();}
     assert(!xrtMemDebugFailTriggered());xrtMemDebugFailClear();
     assert(xrtAtomic32Load(&tail.finished,XMEMORY_ACQUIRE)&&xl6TaskRuntimeV1Get()->PoolIsQuiescent(pool));
     assert(api->Destroy(pool)&&xrtThreadKeyDestroy(tail.key));

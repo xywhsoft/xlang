@@ -1,3 +1,4 @@
+#include "xl_clock.h"
 /* 邮件协议桥共享的网络所有权、deadline 和 TLS 配置适配。 */
 
 
@@ -16,7 +17,7 @@ typedef struct xmail_native_tls {
 
 
 /* 把语言毫秒超时转换为 XRT 绝对 deadline；负值表示无限等待。 */
-static bool xmail_native_deadline(int64 iTimeoutMilliseconds, xdeadline* pDeadline)
+static bool xmail_native_deadline(int64 iTimeoutMilliseconds, XL6_DeadlineV1* pDeadline)
 {
 	uint64 iTimeout;
 
@@ -24,14 +25,11 @@ static bool xmail_native_deadline(int64 iTimeoutMilliseconds, xdeadline* pDeadli
 		return xmail_native_fail(XERR_ARGUMENT, "mail deadline output is null");
 	}
 	if ( iTimeoutMilliseconds < 0 ) {
-		*pDeadline = XRT_DEADLINE_NEVER;
+		*pDeadline = XL6_DEADLINE_NEVER;
 		return true;
 	}
 	iTimeout = (uint64)iTimeoutMilliseconds;
-	if ( iTimeout > (UINT64_MAX / 1000u) ) {
-		return xmail_native_fail(XERR_RANGE, "mail timeout is out of range");
-	}
-	*pDeadline = xrtDeadlineAfter(iTimeout * 1000u);
+	*pDeadline = xl6DeadlineAfterMillisecondsV1(iTimeout);
 	return true;
 }
 

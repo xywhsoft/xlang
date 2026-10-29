@@ -67,7 +67,7 @@ static void sourceFailureLocked(Source* source,xerror** error)
 {if(!source->failed){source->failed=true;source->error=*error;*error=NULL;}}
 static bool waitChanged(Source* source,bool finite)
 {
-    xwaitresult waited=finite?xrtEventWaitFor(source->changed,UINT64_C(10000)):xrtEventWait(source->changed);
+    xwaitresult waited=finite?xrtEventWaitFor(source->changed,10):xrtEventWait(source->changed);
     if(waited!=XWAIT_ERROR){xrtClearError();return true;}
     xerror* error=xrtTakeError();xrtownershipscope mutation={0};begin(&mutation);sourceFailureLocked(source,&error);
     source->exited=true;source->workerId=0;end(&mutation);xrtErrorFree(error);return false;

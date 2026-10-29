@@ -1,0 +1,1028 @@
+{
+  "schema": 1,
+  "completed": "2026-10-30",
+  "scope": "XRT thin headers, millisecond ABI, deduplicated solid VFS and TCC-native precompilation",
+  "measurements": {
+    "baselineRevision": "67fe240f630b501c85c32440f9307a1eb7b45737",
+    "steps": [
+      {
+        "name": "latest-thin-source-individual",
+        "resources": 3051,
+        "rawBytes": 41028059,
+        "blobs": 3051,
+        "packedBytes": 6840850,
+        "decodedBlobBytes": 33895204,
+        "spanCount": 3051,
+        "seconds": 46.05864470000961
+      },
+      {
+        "name": "latest-thin-source-dedup",
+        "resources": 3051,
+        "rawBytes": 41028059,
+        "blobs": 2556,
+        "packedBytes": 5642743,
+        "decodedBlobBytes": 33895204,
+        "spanCount": 3051,
+        "seconds": 46.05864470000961
+      },
+      {
+        "name": "latest-thin-source-solid",
+        "resources": 3051,
+        "rawBytes": 41028059,
+        "blobs": 38,
+        "packedBytes": 4807760,
+        "decodedBlobBytes": 33895204,
+        "spanCount": 3067,
+        "seconds": 13.857778200006578
+      }
+    ],
+    "baseline": {
+      "resources": 3044,
+      "rawBytes": 47181730,
+      "packedBytes": 7816405
+    },
+    "baselineDedup": {
+      "resources": 3044,
+      "uniqueFiles": 2556,
+      "packedBytes": 7176601,
+      "rawBytes": 44123790
+    },
+    "baselineDedupNoNested": {
+      "packedBytes": 5830520,
+      "rawBytes": 35375428
+    },
+    "final": {
+      "schema": 2,
+      "format": 2,
+      "packing": "solid",
+      "blockSize": 1048576,
+      "resourceCount": 2699,
+      "blobCount": 67,
+      "rawBytes": 115999943,
+      "decodedBlobBytes": 54541059,
+      "packedBytes": 6655953,
+      "spanCount": 2777,
+      "generatedSha256": "d914d8a0023776bb328589fe20e8fd9d330230f38db1eb3919d8c38aba7ad927"
+    },
+    "nativeHeaderBytes": {
+      "lib/xrt/xrt.h": {
+        "before": 9049056,
+        "after": 9090338
+      },
+      "lib/xruntime/xruntime.h": {
+        "before": 9729511,
+        "after": 682392
+      },
+      "release/include/xrt_decl.h": {
+        "before": 1476014,
+        "after": 1478320
+      },
+      "release/include/xruntime_decl.h": {
+        "before": 1625551,
+        "after": 302039
+      }
+    },
+    "runtimeFinal": {
+      "schema": 2,
+      "format": 2,
+      "packing": "solid",
+      "blockSize": 1048576,
+      "resourceCount": 595,
+      "blobCount": 15,
+      "rawBytes": 22205508,
+      "decodedBlobBytes": 11753714,
+      "packedBytes": 1685446,
+      "spanCount": 612,
+      "generatedSha256": "1fb8777c6ddbcb89f562561626a618fa8393b2e373977b369cfcad9c4dc43fe9"
+    },
+    "native": {
+      "xl.dll": {
+        "baseline": {
+          "bytes": 13943296,
+          "sha256": "c5f1b0226e397a6f573cdb7fcf6235ab9849b00e04f15dad2d29a439df5d9b4e",
+          "sections": {
+            ".text": {
+              "virtualBytes": 4783392,
+              "fileBytes": 4783616
+            },
+            ".data": {
+              "virtualBytes": 254688,
+              "fileBytes": 254976
+            },
+            ".rdata": {
+              "virtualBytes": 7940248,
+              "fileBytes": 7940608
+            },
+            ".pdata": {
+              "virtualBytes": 261840,
+              "fileBytes": 262144
+            },
+            ".xdata": {
+              "virtualBytes": 242364,
+              "fileBytes": 242688
+            },
+            ".bss": {
+              "virtualBytes": 2816,
+              "fileBytes": 0
+            },
+            ".edata": {
+              "virtualBytes": 333656,
+              "fileBytes": 333824
+            },
+            ".idata": {
+              "virtualBytes": 10196,
+              "fileBytes": 10240
+            },
+            ".tls": {
+              "virtualBytes": 80,
+              "fileBytes": 512
+            },
+            ".reloc": {
+              "virtualBytes": 113240,
+              "fileBytes": 113664
+            }
+          }
+        },
+        "final": {
+          "bytes": 14247424,
+          "sha256": "d5de9c02c173e619354e80dde77f7db400a73d29f91bc3e49a92c574dc0817a7",
+          "sections": {
+            ".text": {
+              "virtualBytes": 4774512,
+              "fileBytes": 4774912
+            },
+            ".data": {
+              "virtualBytes": 255392,
+              "fileBytes": 255488
+            },
+            ".rdata": {
+              "virtualBytes": 8248728,
+              "fileBytes": 8248832
+            },
+            ".pdata": {
+              "virtualBytes": 262980,
+              "fileBytes": 263168
+            },
+            ".xdata": {
+              "virtualBytes": 243456,
+              "fileBytes": 243712
+            },
+            ".bss": {
+              "virtualBytes": 2816,
+              "fileBytes": 0
+            },
+            ".edata": {
+              "virtualBytes": 334810,
+              "fileBytes": 334848
+            },
+            ".idata": {
+              "virtualBytes": 10196,
+              "fileBytes": 10240
+            },
+            ".tls": {
+              "virtualBytes": 88,
+              "fileBytes": 512
+            },
+            ".reloc": {
+              "virtualBytes": 114356,
+              "fileBytes": 114688
+            }
+          }
+        }
+      },
+      "xlc.dll": {
+        "baseline": {
+          "bytes": 20720640,
+          "sha256": "085581de61d6ac76c5cb8c1a3539ab3e1da109f390dc43e97c500c76a2568d67",
+          "sections": {
+            ".text": {
+              "virtualBytes": 4839152,
+              "fileBytes": 4839424
+            },
+            ".data": {
+              "virtualBytes": 254688,
+              "fileBytes": 254976
+            },
+            ".rdata": {
+              "virtualBytes": 14646552,
+              "fileBytes": 14646784
+            },
+            ".pdata": {
+              "virtualBytes": 264024,
+              "fileBytes": 264192
+            },
+            ".xdata": {
+              "virtualBytes": 244636,
+              "fileBytes": 244736
+            },
+            ".bss": {
+              "virtualBytes": 2816,
+              "fileBytes": 0
+            },
+            ".edata": {
+              "virtualBytes": 335205,
+              "fileBytes": 335360
+            },
+            ".idata": {
+              "virtualBytes": 10196,
+              "fileBytes": 10240
+            },
+            ".tls": {
+              "virtualBytes": 80,
+              "fileBytes": 512
+            },
+            ".reloc": {
+              "virtualBytes": 123320,
+              "fileBytes": 123392
+            }
+          }
+        },
+        "final": {
+          "bytes": 19574272,
+          "sha256": "1902775674815899badc7cc77a724eef216a0ec4b4fd764d1af0883d9ca7d22a",
+          "sections": {
+            ".text": {
+              "virtualBytes": 4829232,
+              "fileBytes": 4829696
+            },
+            ".data": {
+              "virtualBytes": 255392,
+              "fileBytes": 255488
+            },
+            ".rdata": {
+              "virtualBytes": 13501528,
+              "fileBytes": 13501952
+            },
+            ".pdata": {
+              "virtualBytes": 265164,
+              "fileBytes": 265216
+            },
+            ".xdata": {
+              "virtualBytes": 245724,
+              "fileBytes": 245760
+            },
+            ".bss": {
+              "virtualBytes": 2816,
+              "fileBytes": 0
+            },
+            ".edata": {
+              "virtualBytes": 336359,
+              "fileBytes": 336384
+            },
+            ".idata": {
+              "virtualBytes": 10196,
+              "fileBytes": 10240
+            },
+            ".tls": {
+              "virtualBytes": 88,
+              "fileBytes": 512
+            },
+            ".reloc": {
+              "virtualBytes": 127608,
+              "fileBytes": 128000
+            }
+          }
+        }
+      }
+    },
+    "upstream": {
+      "revision": "2ca1569d8b6ec39c5880b06fa9221aa0e8a84622",
+      "dirty": true,
+      "sourceSha256": "1a70d9724b1a55211e0251cf0ed28a574a821ea77138c8ebc9af9a9169f616b1",
+      "checks": [
+        {
+          "tool": "check_release_maturity.py",
+          "arguments": [],
+          "exitCode": 1,
+          "diagnostic": "release maturity: product=xrt modules=589 implementation=377 tests=377 single=376 docs=377 benchmarks=25 size_profiles=16 developing=0 review=0\nerror: 实现模块缺少 single_tests 闭包覆盖: net_file_future"
+        },
+        {
+          "tool": "amalgamate.py",
+          "arguments": [
+            "--check"
+          ],
+          "exitCode": 0
+        },
+        {
+          "tool": "check_release_maturity.py",
+          "arguments": [
+            "--release",
+            "--manifest",
+            "extlibs/xruntime/config/modules.json"
+          ],
+          "exitCode": 0
+        },
+        {
+          "tool": "amalgamate.py",
+          "arguments": [
+            "--check",
+            "--manifest",
+            "extlibs/xruntime/config/modules.json"
+          ],
+          "exitCode": 0
+        }
+      ]
+    },
+    "cache": {
+      "slots": 8,
+      "maximumDecodedBytes": 8388608,
+      "replacementTransientMaximumBytes": 1048576,
+      "decoderStateExcluded": true
+    },
+    "precompileByProduct": [
+      {
+        "name": "precompile-XRT",
+        "resources": 3053,
+        "rawBytes": 54806661,
+        "blobs": 46,
+        "packedBytes": 5742237,
+        "decodedBlobBytes": 40784506,
+        "spanCount": 3083,
+        "seconds": 16.815302599978168
+      },
+      {
+        "name": "precompile-XRT-and-xlang",
+        "resources": 2702,
+        "rawBytes": 114332966,
+        "blobs": 65,
+        "packedBytes": 6529893,
+        "decodedBlobBytes": 53578213,
+        "spanCount": 2774,
+        "seconds": 28.339230499987025
+      },
+      {
+        "name": "precompile-XRT-xlang-TCC",
+        "resources": 2699,
+        "rawBytes": 115999943,
+        "blobs": 67,
+        "packedBytes": 6655953,
+        "decodedBlobBytes": 54541059,
+        "spanCount": 2777,
+        "seconds": 26.01150160000543
+      }
+    ]
+  },
+  "performance": [
+    {
+      "case": "xlang",
+      "trial": 0,
+      "variant": "baseline",
+      "build": 0,
+      "seconds": 60.594030699983705,
+      "output": "",
+      "cwd": "F:\\xlang-validation\\delivery-optimization-20261029\\performance-final",
+      "run": 0,
+      "runOutput": "xlang benchmark ok\n",
+      "bytes": 19532288
+    },
+    {
+      "case": "xlang",
+      "trial": 0,
+      "variant": "final",
+      "build": 0,
+      "seconds": 0.8482405000249855,
+      "output": "",
+      "cwd": "F:\\xlang-validation\\delivery-optimization-20261029\\performance-final",
+      "run": 0,
+      "runOutput": "xlang benchmark ok\n",
+      "bytes": 19927040
+    },
+    {
+      "case": "xlang",
+      "trial": 1,
+      "variant": "baseline",
+      "build": 0,
+      "seconds": 60.299578600010136,
+      "output": "",
+      "cwd": "F:\\xlang-validation\\delivery-optimization-20261029\\performance-final",
+      "run": 0,
+      "runOutput": "xlang benchmark ok\n",
+      "bytes": 19532288
+    },
+    {
+      "case": "xlang",
+      "trial": 1,
+      "variant": "final",
+      "build": 0,
+      "seconds": 0.6785909999744035,
+      "output": "",
+      "cwd": "F:\\xlang-validation\\delivery-optimization-20261029\\performance-final",
+      "run": 0,
+      "runOutput": "xlang benchmark ok\n",
+      "bytes": 19927040
+    },
+    {
+      "case": "tcc",
+      "trial": 0,
+      "variant": "baseline",
+      "build": 0,
+      "seconds": 1.7977105999889318,
+      "output": "",
+      "cwd": "F:\\xlang-validation\\delivery-optimization-20261029\\baseline-source",
+      "run": 0,
+      "runOutput": "tcc benchmark ok\n",
+      "bytes": 5940224
+    },
+    {
+      "case": "tcc",
+      "trial": 0,
+      "variant": "final",
+      "build": 0,
+      "seconds": 0.5612912999931723,
+      "output": "",
+      "cwd": "F:\\xlang-validation\\delivery-optimization-20261029\\baseline-source",
+      "run": 0,
+      "runOutput": "tcc benchmark ok\n",
+      "bytes": 6389760
+    }
+  ],
+  "verification": {
+    "windows": [
+      {
+        "name": "stdlib_time_core-jit",
+        "exit": 0,
+        "seconds": 0.15766090000397526,
+        "output": ""
+      },
+      {
+        "name": "stdlib_time_calendar-jit",
+        "exit": 0,
+        "seconds": 0.16774829998030327,
+        "output": ""
+      },
+      {
+        "name": "stdlib_time_text-jit",
+        "exit": 0,
+        "seconds": 0.12338910001562908,
+        "output": ""
+      },
+      {
+        "name": "stdlib_time_core_only-jit",
+        "exit": 0,
+        "seconds": 0.08969310001702979,
+        "output": ""
+      },
+      {
+        "name": "stdlib_time_calendar_only-jit",
+        "exit": 0,
+        "seconds": 0.08983009998337366,
+        "output": ""
+      },
+      {
+        "name": "stdlib_time_text_only-jit",
+        "exit": 0,
+        "seconds": 0.09498610001173802,
+        "output": ""
+      },
+      {
+        "name": "stdlib_channel_deadlines-jit",
+        "exit": 0,
+        "seconds": 1.1485470999905374,
+        "output": ""
+      },
+      {
+        "name": "stdlib_executor-jit",
+        "exit": 0,
+        "seconds": 0.12265549998846836,
+        "output": "managed Executor normal completion ok\n"
+      },
+      {
+        "name": "stdlib_net_engine_options-jit",
+        "exit": 0,
+        "seconds": 0.13758550002239645,
+        "output": "engine immutable options: ok\n"
+      },
+      {
+        "name": "stdlib_net_engine_timers-jit",
+        "exit": 0,
+        "seconds": 0.25348799998755567,
+        "output": "engine timers, cancellation and restart: ok\n"
+      },
+      {
+        "name": "stdlib_tcc_embed-jit",
+        "exit": 0,
+        "seconds": 0.42918330000247806,
+        "output": "c from xlang tcc.run\r\ntcc.run rc 0\ncontext compile rc 0\ncontext run rc 0\ntcc.runFile rc 0\ntcc.compile rc 0\ntcc.compileFile rc 0\nstdlib tcc embed ok\n"
+      },
+      {
+        "name": "stdlib_xlang_embed-jit",
+        "exit": 0,
+        "seconds": 0.5785700000124052,
+        "output": "nested xlang string ok\nnested xlang shortcut ok\nnested xlang file ok\nnested xlang context ok\nnested xlang file ok\nstdlib xlang embed ok\n"
+      },
+      {
+        "name": "stdlib_time_core-build",
+        "exit": 0,
+        "seconds": 0.3846374000131618,
+        "output": ""
+      },
+      {
+        "name": "stdlib_time_core-run",
+        "exit": 0,
+        "seconds": 0.08649400001741014,
+        "output": ""
+      },
+      {
+        "name": "stdlib_channel_deadlines-build",
+        "exit": 0,
+        "seconds": 0.3422118999878876,
+        "output": ""
+      },
+      {
+        "name": "stdlib_channel_deadlines-run",
+        "exit": 0,
+        "seconds": 1.1251660000125412,
+        "output": ""
+      },
+      {
+        "name": "stdlib_executor-build",
+        "exit": 0,
+        "seconds": 0.36614659999031574,
+        "output": ""
+      },
+      {
+        "name": "stdlib_executor-run",
+        "exit": 0,
+        "seconds": 0.18100840001716278,
+        "output": "managed Executor normal completion ok\n"
+      },
+      {
+        "name": "stdlib_tcc_embed-build",
+        "exit": 0,
+        "seconds": 0.6559864000009838,
+        "output": ""
+      },
+      {
+        "name": "stdlib_tcc_embed-run",
+        "exit": 0,
+        "seconds": 1.3843585999857169,
+        "output": "c from xlang tcc.run\r\ntcc.run rc 0\ncontext compile rc 0\ncontext run rc 0\ntcc.runFile rc 0\ntcc.compile rc 0\ntcc.compileFile rc 0\nstdlib tcc embed ok\n"
+      },
+      {
+        "name": "stdlib_xlang_embed-build",
+        "exit": 0,
+        "seconds": 0.7800062000169419,
+        "output": ""
+      },
+      {
+        "name": "stdlib_xlang_embed-run",
+        "exit": 0,
+        "seconds": 0.9685257000091951,
+        "output": "nested xlang string ok\nnested xlang shortcut ok\nnested xlang file ok\nnested xlang context ok\nnested xlang file ok\nstdlib xlang embed ok\n"
+      },
+      {
+        "name": "independent-tcc-native-child",
+        "exit": 0,
+        "seconds": 0.012652700010221452,
+        "output": ""
+      },
+      {
+        "name": "xlc_api_embed",
+        "exit": 0,
+        "seconds": 0.9496754999854602,
+        "output": "xlc.dll compiler API ok\r\n"
+      },
+      {
+        "name": "xl_dll_xrt_exports",
+        "exit": 0,
+        "seconds": 0.023147400002926588,
+        "output": "xl.dll XRT exports ok\r\n"
+      },
+      {
+        "name": "xl_dll_null_context",
+        "exit": 0,
+        "seconds": 0.34591599999112077,
+        "output": "xl.dll NULL context and cwd boundary ok\r\n"
+      },
+      {
+        "name": "xl_dll_threaded_host",
+        "exit": 0,
+        "seconds": 4.7096373999956995,
+        "output": "xl.dll threaded host API boundary ok\r\n"
+      },
+      {
+        "name": "xl_dll_module_dependency_lifetime",
+        "exit": 0,
+        "seconds": 0.054502899991348386,
+        "output": "xl.dll module dependency lifetime ok\r\n"
+      }
+    ],
+    "linux": [
+      {
+        "name": "stdlib_time_core-jit",
+        "exit": 0,
+        "seconds": 0.3244824029999904,
+        "output": ""
+      },
+      {
+        "name": "stdlib_time_calendar-jit",
+        "exit": 0,
+        "seconds": 0.16309960099999898,
+        "output": ""
+      },
+      {
+        "name": "stdlib_time_text-jit",
+        "exit": 0,
+        "seconds": 0.12137320100001148,
+        "output": ""
+      },
+      {
+        "name": "stdlib_channel_deadlines-jit",
+        "exit": 0,
+        "seconds": 1.1435067109999864,
+        "output": ""
+      },
+      {
+        "name": "stdlib_executor-jit",
+        "exit": 0,
+        "seconds": 0.12440980100001298,
+        "output": "managed Executor normal completion ok\n"
+      },
+      {
+        "name": "stdlib_net_engine_options-jit",
+        "exit": 0,
+        "seconds": 0.11789110099999789,
+        "output": "engine immutable options: ok\n"
+      },
+      {
+        "name": "stdlib_net_engine_timers-jit",
+        "exit": 0,
+        "seconds": 0.20385830199998622,
+        "output": "engine timers, cancellation and restart: ok\n"
+      },
+      {
+        "name": "stdlib_tcc_embed-jit",
+        "exit": 0,
+        "seconds": 0.36972000299999763,
+        "output": "c from xlang tcc.run\ntcc.run rc 0\ncontext compile rc 0\ncontext run rc 0\ntcc.runFile rc 0\ntcc.compile rc 0\ntcc.compileFile rc 0\nstdlib tcc embed ok\n"
+      },
+      {
+        "name": "stdlib_xlang_embed-jit",
+        "exit": 0,
+        "seconds": 0.47058530399999654,
+        "output": "nested xlang string ok\nnested xlang shortcut ok\nnested xlang file ok\nnested xlang context ok\nnested xlang file ok\nstdlib xlang embed ok\n"
+      },
+      {
+        "name": "stdlib_time_core-build",
+        "exit": 0,
+        "seconds": 0.3860119040000143,
+        "output": ""
+      },
+      {
+        "name": "stdlib_time_core-aot",
+        "exit": 0,
+        "seconds": 0.0010240999999950873,
+        "output": ""
+      },
+      {
+        "name": "stdlib_channel_deadlines-build",
+        "exit": 0,
+        "seconds": 0.351603702999995,
+        "output": ""
+      },
+      {
+        "name": "stdlib_channel_deadlines-aot",
+        "exit": 0,
+        "seconds": 1.001813109000011,
+        "output": ""
+      },
+      {
+        "name": "stdlib_executor-build",
+        "exit": 0,
+        "seconds": 0.3789254030000109,
+        "output": ""
+      },
+      {
+        "name": "stdlib_executor-aot",
+        "exit": 0,
+        "seconds": 0.002323699999976725,
+        "output": "managed Executor normal completion ok\n"
+      },
+      {
+        "name": "tcc-native-child",
+        "exit": 0,
+        "seconds": 0.0009697000000130629,
+        "output": ""
+      }
+    ],
+    "windowsSourceFree": {
+      "complete": true,
+      "compiler": "F:\\xlang-validation\\delivery-optimization-20261029\\stages\\05-final\\release\\xl.exe",
+      "compilerSha256": "1877a60cbc54361cdda3e6932855534e45e84a9f9cc037ba8a6844d436473eef",
+      "rows": [
+        {
+          "name": "native-build",
+          "exit": 0,
+          "seconds": 0.10565899999346584,
+          "output": ""
+        },
+        {
+          "name": "native-independent-process",
+          "exit": 0,
+          "seconds": 0.054114800004754215,
+          "output": ""
+        },
+        {
+          "name": "native-shared-build",
+          "exit": 0,
+          "seconds": 0.09936330001801252,
+          "output": ""
+        },
+        {
+          "name": "native-shared-call",
+          "exit": 0
+        },
+        {
+          "name": "parent-build",
+          "exit": 0,
+          "seconds": 1.3998095999995712,
+          "output": ""
+        },
+        {
+          "name": "parent-independent-process",
+          "exit": 0,
+          "seconds": 3.3448915999906603,
+          "output": ""
+        },
+        {
+          "name": "child-independent-process",
+          "exit": 0,
+          "seconds": 0.32266199999139644,
+          "output": ""
+        },
+        {
+          "name": "compiler-shared-build",
+          "exit": 0,
+          "seconds": 1.3373104000056628,
+          "output": ""
+        },
+        {
+          "name": "compiler-shared-call",
+          "exit": 0
+        },
+        {
+          "name": "shared-child-independent-process",
+          "exit": 0,
+          "seconds": 0.25582459999714047,
+          "output": ""
+        }
+      ]
+    },
+    "linuxSourceFree": {
+      "complete": true,
+      "compiler": "/root/xlang-delivery-20261029/release/xl",
+      "compilerSha256": "3c29ad43e163bb05055bd42f67760f64619a8e1198ee05de7bda01ca665e7e81",
+      "rows": [
+        {
+          "name": "native-build",
+          "exit": 0,
+          "seconds": 0.22362859999999962,
+          "output": ""
+        },
+        {
+          "name": "native-independent-process",
+          "exit": 0,
+          "seconds": 0.0024401999999996704,
+          "output": ""
+        },
+        {
+          "name": "native-shared-build",
+          "exit": 0,
+          "seconds": 0.12425760000000086,
+          "output": ""
+        },
+        {
+          "name": "native-shared-call",
+          "exit": 0
+        },
+        {
+          "name": "parent-build",
+          "exit": 0,
+          "seconds": 1.5125108999999997,
+          "output": ""
+        },
+        {
+          "name": "parent-independent-process",
+          "exit": 0,
+          "seconds": 1.3442264000000002,
+          "output": ""
+        },
+        {
+          "name": "child-independent-process",
+          "exit": 0,
+          "seconds": 0.10800879999999946,
+          "output": ""
+        },
+        {
+          "name": "compiler-shared-build",
+          "exit": 0,
+          "seconds": 1.4986350999999996,
+          "output": ""
+        },
+        {
+          "name": "compiler-shared-call",
+          "exit": 0
+        },
+        {
+          "name": "shared-child-independent-process",
+          "exit": 0,
+          "seconds": 0.11928860000000086,
+          "output": ""
+        }
+      ]
+    },
+    "windowsAbi": {
+      "Seconds": 55.200226599990856,
+      "Units": 1375,
+      "Failures": 0,
+      "Errors": []
+    },
+    "linuxAbi": {
+      "Units": 1375,
+      "Failures": 0,
+      "Seconds": 137.507952641,
+      "Errors": []
+    },
+    "thinFixtures": {
+      "units": 74,
+      "passed": 50,
+      "requiresConfiguredFixtureInputs": [
+        "test/cases/xlir_process_terminal_host.c",
+        "test/support/execution_resource_minimal.c",
+        "test/support/execution_resource_native.c",
+        "test/support/executor_jobs_minimal.c",
+        "test/support/executor_jobs_native.c",
+        "test/support/future_callback_exclusive_queue.c",
+        "test/support/net_buffer_native_catalog.c",
+        "test/support/net_buffer_ref_graph.c",
+        "test/support/net_bytes_runtime.c",
+        "test/support/net_engine_config.c",
+        "test/support/net_engine_runtime.c",
+        "test/support/net_file_execution_pruned.c",
+        "test/support/net_file_language_pruned.c",
+        "test/support/net_socket_close_failure.c",
+        "test/support/net_socket_runtime.c",
+        "test/support/task_pool_control_minimal.c",
+        "test/support/tcp_execution_resource.c",
+        "test/support/tcp_language_runtime.c",
+        "test/support/tcp_resident_future_ownership.c",
+        "test/support/tcp_server_execution_resource.c",
+        "test/support/tcp_server_resident_core.c",
+        "test/support/tcp_server_resident_ownership.c",
+        "test/support/udp_execution_resource.c",
+        "test/support/udp_language_native.c"
+      ],
+      "errors": []
+    },
+    "calendarNativeLinux": {
+      "Core": true,
+      "Calendar": true,
+      "NewYorkGapFold": true,
+      "LordHoweGapFold": true,
+      "XrtCompiler": "Ubuntu TCC 0.9.27",
+      "CalendarAdapterCompiler": "GCC O0 function sections",
+      "NativeXrtUnmodified": true,
+      "HostTimezoneChanged": false
+    },
+    "wireTimeCodecs": {
+      "passed": true,
+      "formats": [
+        "BSON",
+        "CBOR",
+        "MessagePack"
+      ],
+      "ordinaryUnixMillisecondSamples": [
+        -2208988800001,
+        -1001,
+        -1,
+        0,
+        1,
+        999,
+        1234,
+        1709164800123
+      ]
+    }
+  },
+  "limits": {
+    "networkSecurityTestsRun": false,
+    "fullStandardLibraryAcceptanceClaimed": false,
+    "upstreamMaturityGap": "net_file_future lacks single_tests closure; development snapshot explicitly recorded",
+    "baselineExtensionGaps": [
+      {
+        "case": "extlib_bson",
+        "exit": 1,
+        "output": "uncaught xlang error: ValueError: bson: encode requires a table (var dict)\nuncaught xlang error: bson: encode requires a table (var dict)\n"
+      },
+      {
+        "case": "extlib_cbor",
+        "exit": 1,
+        "output": "uncaught xlang error: NotImplementedError: CBOR cannot encode this dynamic value type\nuncaught xlang error: CBOR cannot encode this dynamic value type\n"
+      },
+      {
+        "case": "extlib_msgpack",
+        "exit": 1,
+        "output": "uncaught xlang error: NotImplementedError: MessagePack cannot encode this dynamic value type\nuncaught xlang error: MessagePack cannot encode this dynamic value type\n"
+      },
+      {
+        "case": "extlib_plist",
+        "exit": 1,
+        "output": "D:\\GIT\\x-lang\\test\\cases\\extlib_plist.xl:1:1: [import] package dependency is not resolved\n"
+      }
+    ],
+    "xmailExistingLeaseDeclarations": [
+      {
+        "symbol": "xl6ExtlibTlsLeaseCreate",
+        "baselineUse": true,
+        "baselineDeclaration": false,
+        "currentDeclaration": false
+      },
+      {
+        "symbol": "xl6ExtlibTlsLeaseShareVerifier",
+        "baselineUse": true,
+        "baselineDeclaration": false,
+        "currentDeclaration": false
+      },
+      {
+        "symbol": "xl6ExtlibTlsLeaseContext",
+        "baselineUse": true,
+        "baselineDeclaration": false,
+        "currentDeclaration": false
+      },
+      {
+        "symbol": "xl6ExtlibTlsLeaseRelease",
+        "baselineUse": true,
+        "baselineDeclaration": false,
+        "currentDeclaration": false
+      }
+    ],
+    "legacyBridgeTextGuard": {
+      "baselineFailures": [
+        "  XLIR native dependency group is missing: XL6_IR_CGEN_NATIVE_GROUP(QUEUES, \"XRUNTIME_MODULE_TYPED_QUEUE_SPSC\", \"XRUNTIME_MODULE_TYPED_QUEUE_MPSC\", \"XRUNTIME_MODULE_TYPED_QUEUE_MPMC\")",
+        "  XLIR native dependency group is missing: XL6_IR_CGEN_NATIVE_GROUP(STACK, \"XRUNTIME_MODULE_TYPED_STACK\")",
+        "  XLIR runtime need is not mapped to an implementation group: XL6_IR_CGEN_NEED(int, needsDynamicFieldsBridgeRuntime, DYNAMIC_FIELDS)",
+        "  XLIR runtime need is not mapped to an implementation group: XL6_IR_CGEN_NEED(int, needsSpecialQueueBatchRuntime, QUEUES)",
+        "  XLIR runtime need is not mapped to an implementation group: XL6_IR_CGEN_NEED(int, needsStackResourceRuntime, STACK)",
+        "  lowered XLIR does not close a runtime dependency: needs->needsChannelResourceRuntime = 1;",
+        "  lowered XLIR does not close a runtime dependency: needs->needsSpecialQueueBatchRuntime = 1;",
+        "  XLIR dynamic-field emitter is missing: xrtDynamicFieldsGet(fields, key)",
+        "  XLIR dynamic-field emitter is missing: xrtDynamicFieldsSetNew(fields, key, item)",
+        "  object persistence bypasses xruntime dynamic fields",
+        "  dynamic collection signed-range contract is missing: xrtValueGetInt(arg0, &first) && first >= 0",
+        "  dynamic collection signed-range contract is missing: first >= 0 && second >= 0",
+        "  dynamic collection signed-range contract is missing: xrtValueReserve(collection, (size_t)first)",
+        "  dynamic collection signed-range contract is missing: xrtValueArraySwap(collection, (size_t)first, (size_t)second)",
+        "  dynamic collection RuntimeOp renderer is missing",
+        "  special queue bridge is missing: XL6_IR_RUNTIME_SPECIAL_QUEUE_PUSH_BATCH",
+        "  special queue bridge is missing: XL6_IR_RUNTIME_SPECIAL_QUEUE_POP_BATCH_INTO",
+        "  special queue bridge is missing: xlir_special_queue_push_batch(",
+        "  special queue bridge is missing: xlir_special_queue_pop_batch_into(",
+        "  typed resource bridge is missing: capacity < 0 || (uint64_t)capacity > (uint64_t)SIZE_MAX",
+        "  typed resource bridge is missing: xrtTypedTreeMerge(",
+        "  typed resource bridge is missing: xrtTypedTreeClone(",
+        "  typed resource bridge is missing: xrtTypedTreeEquals(",
+        "  xruntime language bridge reads a retired frontend semantic model"
+      ],
+      "currentFailures": [
+        "  XLIR native dependency group is missing: XL6_IR_CGEN_NATIVE_GROUP(QUEUES, \"XRUNTIME_MODULE_TYPED_QUEUE_SPSC\", \"XRUNTIME_MODULE_TYPED_QUEUE_MPSC\", \"XRUNTIME_MODULE_TYPED_QUEUE_MPMC\")",
+        "  XLIR native dependency group is missing: XL6_IR_CGEN_NATIVE_GROUP(STACK, \"XRUNTIME_MODULE_TYPED_STACK\")",
+        "  XLIR runtime need is not mapped to an implementation group: XL6_IR_CGEN_NEED(int, needsDynamicFieldsBridgeRuntime, DYNAMIC_FIELDS)",
+        "  XLIR runtime need is not mapped to an implementation group: XL6_IR_CGEN_NEED(int, needsSpecialQueueBatchRuntime, QUEUES)",
+        "  XLIR runtime need is not mapped to an implementation group: XL6_IR_CGEN_NEED(int, needsStackResourceRuntime, STACK)",
+        "  lowered XLIR does not close a runtime dependency: needs->needsChannelResourceRuntime = 1;",
+        "  lowered XLIR does not close a runtime dependency: needs->needsSpecialQueueBatchRuntime = 1;",
+        "  XLIR dynamic-field emitter is missing: xrtDynamicFieldsGet(fields, key)",
+        "  XLIR dynamic-field emitter is missing: xrtDynamicFieldsSetNew(fields, key, item)",
+        "  object persistence bypasses xruntime dynamic fields",
+        "  dynamic collection signed-range contract is missing: xrtValueGetInt(arg0, &first) && first >= 0",
+        "  dynamic collection signed-range contract is missing: first >= 0 && second >= 0",
+        "  dynamic collection signed-range contract is missing: xrtValueReserve(collection, (size_t)first)",
+        "  dynamic collection signed-range contract is missing: xrtValueArraySwap(collection, (size_t)first, (size_t)second)",
+        "  dynamic collection RuntimeOp renderer is missing",
+        "  special queue bridge is missing: XL6_IR_RUNTIME_SPECIAL_QUEUE_PUSH_BATCH",
+        "  special queue bridge is missing: XL6_IR_RUNTIME_SPECIAL_QUEUE_POP_BATCH_INTO",
+        "  special queue bridge is missing: xlir_special_queue_push_batch(",
+        "  special queue bridge is missing: xlir_special_queue_pop_batch_into(",
+        "  typed resource bridge is missing: capacity < 0 || (uint64_t)capacity > (uint64_t)SIZE_MAX",
+        "  typed resource bridge is missing: xrtTypedTreeMerge(",
+        "  typed resource bridge is missing: xrtTypedTreeClone(",
+        "  typed resource bridge is missing: xrtTypedTreeEquals(",
+        "  xruntime language bridge reads a retired frontend semantic model"
+      ],
+      "sameAsBaseline": true
+    }
+  },
+  "linuxProducts": {
+    "libxl.so": {
+      "bytes": 15939120,
+      "sha256": "7f8693fc1ff79e7b3ef91d879df23e804bb66fe1b06ba2e1f0e80317b026ba97"
+    },
+    "libxlc.so": {
+      "bytes": 21206896,
+      "sha256": "c280fadd56b6395e8272029b1e1e08ca20af8bddeafd377e79e1bbf186b9e9a7"
+    },
+    "xl": {
+      "bytes": 43136,
+      "sha256": "3c29ad43e163bb05055bd42f67760f64619a8e1198ee05de7bda01ca665e7e81"
+    }
+  }
+}

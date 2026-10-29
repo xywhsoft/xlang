@@ -20,6 +20,9 @@
 #ifndef XRT_MODULE_VALUE_CONTAINER
 #define XRT_MODULE_VALUE_CONTAINER
 #endif
+#ifndef XRT_MODULE_TIME
+#define XRT_MODULE_TIME
+#endif
 #include "xrt.h"
 #include "msgpack_native.h"
 
@@ -85,12 +88,8 @@ static bool xmsgpack_signed(xbuffer* pOutput, int64 iValue)
 
 static bool xmsgpack_time(xbuffer* pOutput, xtime Time)
 {
-    int64 iSeconds = Time / 1000000;
-    int64 iMicros = Time % 1000000;
-    uint64 iNanos;
-
-    if (iMicros < 0) { --iSeconds; iMicros += 1000000; }
-    iNanos = (uint64)iMicros * 1000u;
+    int64 iSeconds = xrtTimeUnix(Time);
+    uint64 iNanos = (uint64)xrtMillisecond(Time) * UINT64_C(1000000);
     if (iSeconds >= 0 && iSeconds <= UINT32_MAX && iNanos == 0u) {
         return xmsgpack_u8(pOutput, 0xd6u) && xmsgpack_u8(pOutput, 0xffu) &&
             xmsgpack_uint(pOutput, (uint64)iSeconds, 4u);
@@ -226,7 +225,8 @@ static xvalue* xmsgpack_read_time(xmsgpack_reader* pReader, uint8 iHead)
 {
     uint64 iType, iBits, iNanos = 0u;
     int64 iSeconds;
-    int64 iMicros;
+    int64 iMilliseconds;
+    xtime Time;
 
     if (iHead == 0xc7u && (!xmsgpack_read_uint(pReader, 1u, &iBits) || iBits != 12u)) {
         if (!xrtGetError()) xmsgpack_error(XERR_UNSUPPORTED, "unsupported MessagePack extension length");
@@ -250,21 +250,19 @@ static xvalue* xmsgpack_read_time(xmsgpack_reader* pReader, uint8 iHead)
         iSeconds = iBits <= INT64_MAX ? (int64)iBits :
             -1 - (int64)(UINT64_MAX - iBits);
     }
-    if (iNanos >= 1000000000u || iNanos % 1000u != 0u) {
-        xmsgpack_error(XERR_VALUE, "MessagePack timestamp is invalid or finer than microseconds");
+    if (iNanos >= 1000000000u || iNanos % 1000000u != 0u) {
+        xmsgpack_error(XERR_VALUE, "MessagePack timestamp is invalid or finer than milliseconds");
         return NULL;
     }
-    iMicros = (int64)(iNanos / 1000u);
-    if (iSeconds < INT64_MIN / 1000000 - 1 || iSeconds > INT64_MAX / 1000000 ||
-        (iSeconds == INT64_MIN / 1000000 - 1 && iMicros < 1000000 + INT64_MIN % 1000000) ||
-        (iSeconds == INT64_MAX / 1000000 && iMicros > INT64_MAX % 1000000)) {
-        xmsgpack_error(XERR_RANGE, "MessagePack timestamp exceeds XRT time range");
-        return NULL;
-    }
-    if (iSeconds == INT64_MIN / 1000000 - 1) {
-        return xrtValueTime((iSeconds + 1) * 1000000 - (1000000 - iMicros));
-    }
-    return xrtValueTime(iSeconds * 1000000 + iMicros);
+    iMilliseconds = (int64)(iNanos / 1000000u);
+    /* The next integral second is representable at the negative boundary;
+     * adding the negative fraction afterwards preserves the full time range. */
+    if (iSeconds < 0 && iMilliseconds != 0) {
+        if (!xrtTimeFromUnix(iSeconds + 1, &Time) ||
+            !xrtTimeAdd(Time, iMilliseconds - 1000, XTIME_UNIT_MILLISECOND, &Time)) return NULL;
+    } else if (!xrtTimeFromUnix(iSeconds, &Time) ||
+        !xrtTimeAdd(Time, iMilliseconds, XTIME_UNIT_MILLISECOND, &Time)) return NULL;
+    return xrtValueTime(Time);
 }
 
 static xvalue* xmsgpack_read_value(xmsgpack_reader* pReader, size_t iDepth);

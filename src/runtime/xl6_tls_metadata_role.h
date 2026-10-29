@@ -1,6 +1,8 @@
 #ifndef XL6_TLS_METADATA_ROLE_H
 #define XL6_TLS_METADATA_ROLE_H
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
+#include "include/xl_clock.h"
 /* Permanent resident role operations, installed by the actual creator. A generic
  * Stream/metadata consumer must not link both handshake implementations just
  * to inspect a role. No language/module callback or owned edge is stored here. */

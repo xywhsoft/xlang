@@ -1,5 +1,7 @@
 /* Shared checked work nodes, independent of their native producer. */
+#include "include/xrt_decl.h"
 #include "include/xruntime_decl.h"
+#include "include/xl_clock.h"
 #include "xl6_ownership_domain_impl.h"
 #include "xl6_detached_work.h"
 static bool load(XL6_OwnershipCatalog* catalog)

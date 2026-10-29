@@ -319,8 +319,8 @@ static int testBinaryDateUnit(void)
 	static const uint8 sExpectedObject[] = {
 		0x33u, 0x3fu, 0xf0u, 0u, 0u, 0u, 0u, 0u, 0u
 	};
-	static const uint8 sExpectedMicrosecond[] = {
-		0x33u, 0x3eu, 0xb0u, 0xc6u, 0xf7u, 0xa0u, 0xb5u, 0xedu, 0x8du
+	static const uint8 sExpectedMillisecond[] = {
+		0x33u, 0x3fu, 0x50u, 0x62u, 0x4du, 0xd2u, 0xf1u, 0xa9u, 0xfcu
 	};
 	uint8 sExternal[50] = {0};
 	xdatetime tDateTime;
@@ -362,8 +362,8 @@ static int testBinaryDateUnit(void)
 	xrtBufferDestroy(pEncoded);
 	xrtPlistDestroy(pDocument);
 
-	/* Python plistlib 生成的 2001-01-01T00:00:00.000001 二进制对象。 */
-	memcpy(sExternal + 8u, sExpectedMicrosecond, sizeof(sExpectedMicrosecond));
+	/* Python plistlib 生成的 2001-01-01T00:00:00.001 二进制对象。 */
+	memcpy(sExternal + 8u, sExpectedMillisecond, sizeof(sExpectedMillisecond));
 	pParsed = xrtPlistParseMemory(sExternal, sizeof(sExternal), NULL, &tError);
 	bOk = bOk && pParsed != NULL &&
 		xrtPlistDate(xrtPlistRoot(pParsed)) == tEpoch + 1;
@@ -373,14 +373,14 @@ static int testBinaryDateUnit(void)
 		xrtPlistCreateDate(pDocument, tEpoch + 1));
 	pEncoded = bOk ? xrtPlistStringify(pDocument, &tOptions, &tError) : NULL;
 	bOk = bOk && pEncoded != NULL && pEncoded->Size >= 17u &&
-		memcmp(pEncoded->Data + 8u, sExpectedMicrosecond,
-			sizeof(sExpectedMicrosecond)) == 0;
+		memcmp(pEncoded->Data + 8u, sExpectedMillisecond,
+			sizeof(sExpectedMillisecond)) == 0;
 	xrtBufferDestroy(pEncoded);
 	xrtPlistDestroy(pDocument);
 	return bOk;
 }
 
-/* XML plist 只表示整秒，不能悄悄丢弃 XRT time 的微秒部分。 */
+/* XML plist 只表示整秒，不能悄悄丢弃 XRT time 的毫秒部分。 */
 static int testXmlDatePrecision(void)
 {
 	xrtplistdocument* pDocument = xrtPlistCreate();

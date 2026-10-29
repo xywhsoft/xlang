@@ -7,6 +7,11 @@
 #ifdef XLIR_GRAPH_SNAPSHOT
 #define XRUNTIME_IMPLEMENTATION
 #endif
+#include "lib/xruntime/xruntime_features.h"
+#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)
+#define XRT_IMPLEMENTATION
+#endif
+#include "lib/xrt/xrt.h"
 #include "lib/xruntime/xruntime.h"
 #include <assert.h>
 #include <stdio.h>

@@ -1,9 +1,10 @@
 /* Generated C and target binding are preincluded in this TU only. */
+#include "release/include/xl_clock.h"
 #include <assert.h>
 #include <stdio.h>
 extern xwaitresult xrtFutureWaitFor(xfuture*, uint64_t);
-extern uint64_t xrtDeadlineAfter(uint64_t);
-extern bool xrtDeadlineExpired(uint64_t);
+extern uint64_t xl6DeadlineAfterMillisecondsV1(uint64_t);
+extern bool xl6DeadlineExpiredV1(uint64_t);
 extern void xrtThreadYield(void);
 extern bool xrtPromiseResolve(xpromise*, void*);
 extern void dispatch_memory_begin(void);
@@ -23,10 +24,10 @@ static void resolved(xfuture* output, int64_t expected)
 }
 static void shutdown(void)
 {
-    uint64_t deadline = xrtDeadlineAfter(5000000);
+    uint64_t deadline = xl6DeadlineAfterMillisecondsV1(5000);
     xrtClearError();
     while (!xlir_module_fini_body().ok) {
-        assert(xrtGetError() == NULL && !xrtDeadlineExpired(deadline)); xrtThreadYield();
+        assert(xrtGetError() == NULL && !xl6DeadlineExpiredV1(deadline)); xrtThreadYield();
     }
     assert(xlir_continuation_executor == NULL && xlir_module_initialized == 0);
 }

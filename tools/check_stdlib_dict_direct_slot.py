@@ -122,7 +122,7 @@ def main():
                 product_links=native_links if opt=='O0' else [s for s in native_links if not s.startswith(('-fsanitize','-no-pie'))]
                 plan=plans[stem]; native=out/(stem+'-'+opt+'-pruned.c')
                 native.write_text(''.join('#define '+m+'\n' for m in plan['NativeModules'])+
-                    '#define XRT_MODULE_MEMORY_DEBUG\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
+                    '#define XRT_MODULE_MEMORY_DEBUG\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
                 selected=[]
                 for i,source in enumerate([native,*[root/s for s in plan['Sources']],root/'test/support/module_product_memory.c']):
                     obj=out/(stem+'-'+opt+'-'+str(i)+'.o')

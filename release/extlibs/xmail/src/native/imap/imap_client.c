@@ -1,3 +1,4 @@
+#include "xl_clock.h"
 #include <xrt/imap_client.h>
 
 #include "../internal/xrt_imap_client.h"
@@ -133,7 +134,7 @@ static bool __xrtImapClientSendCommandParts(
 	xstrview Command,
 	const xstrview* pArguments,
 	size_t iCount,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -245,7 +246,7 @@ static bool __xrtImapClientSendCommand(
 	xstrview Tag,
 	xstrview Command,
 	xstrview Arguments,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -337,7 +338,7 @@ static bool __xrtImapClientFinishSimple(
 	bool* pCapabilitySeen,
 	bool* pBye,
 	ximapstatus* pStatus,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -435,7 +436,7 @@ XRT_API bool xrtImapClientConfigValid(const ximapclientconfig* pConfig)
 /* 建立 IMAP 会话并完成 greeting、CAPABILITY 与可选 STARTTLS。 */
 XRT_API ximapclient* xrtImapClientOpen(
 	const ximapclientconfig* pConfig,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -671,7 +672,7 @@ XRT_API bool xrtImapClientSend(
 	xstrview Tag,
 	xstrview Command,
 	xstrview Arguments,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -704,7 +705,7 @@ XRT_API bool xrtImapClientSendParts(
 	xstrview Command,
 	const xstrview* pArguments,
 	size_t iCount,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -736,7 +737,7 @@ XRT_API bool xrtImapClientWrite(
 	ximapclient* pClient,
 	const void* pData,
 	size_t iSize,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -781,7 +782,7 @@ XRT_API bool xrtImapClientWrite(
 XRT_API bool xrtImapClientContinue(
 	ximapclient* pClient,
 	xstrview Data,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -823,7 +824,7 @@ XRT_API bool xrtImapClientContinue(
 XRT_API bool xrtImapClientReceive(
 	ximapclient* pClient,
 	ximapevent* pEvent,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -889,7 +890,7 @@ XRT_API bool xrtImapClientReadLiteral(
 	void* pBuffer,
 	size_t iCapacity,
 	size_t* pRead,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -945,7 +946,7 @@ XRT_API bool xrtImapClientBegin(
 	ximapclient* pClient,
 	xstrview Command,
 	xstrview Arguments,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -985,7 +986,7 @@ XRT_API bool xrtImapClientBeginParts(
 	xstrview Command,
 	const xstrview* pArguments,
 	size_t iCount,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -1024,7 +1025,7 @@ XRT_API bool xrtImapClientBeginParts(
 XRT_API xmailnext xrtImapClientNext(
 	ximapclient* pClient,
 	ximapevent* pEvent,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -1186,7 +1187,7 @@ bool __xrtImapClientIdleEnd(ximapclient* pClient)
 /* 重新获取并原子替换能力快照。 */
 XRT_API bool xrtImapClientRefresh(
 	ximapclient* pClient,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -1232,7 +1233,7 @@ XRT_API bool xrtImapClientRefresh(
 /* 完成 LOGOUT 并关闭传输。 */
 XRT_API bool xrtImapClientLogout(
 	ximapclient* pClient,
-	xdeadline iDeadline,
+	XL6_DeadlineV1 iDeadline,
 	xcancel* pCancel
 )
 {
@@ -1276,7 +1277,7 @@ XRT_API bool xrtImapClientLogout(
 /* 不发送协议命令，直接正常关闭传输。 */
 XRT_API bool xrtImapClientClose(
 	ximapclient* pClient,
-	xdeadline iDeadline
+	XL6_DeadlineV1 iDeadline
 )
 {
 	bool bSuccess;

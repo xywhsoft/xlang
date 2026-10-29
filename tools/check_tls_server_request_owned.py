@@ -65,7 +65,8 @@ def main():
             assert 'TLS server request plan: one resident source, Hello/Value only;' in run('plan.'+label+'.run',[binary])
         for product,header,macro in [('core','lib/xrt/xrt.h','XRT_IMPLEMENTATION'),('runtime','lib/xruntime/xruntime.h','XRUNTIME_IMPLEMENTATION')]:
             implementation=out/(product+'.c')
-            implementation.write_text('#define '+macro+'\n#define XRT_MODULE_TLS_HELLO\n#define XRT_MODULE_VALUE\n#define XRT_MODULE_MEMORY_DEBUG\n#include "'+header+'"\n',encoding='utf8')
+            prefix=('#include "lib/xruntime/xruntime_features.h"\n#define XRT_IMPLEMENTATION\n#include "lib/xrt/xrt.h"\n' if product=='runtime' else '')
+            implementation.write_text('#define '+macro+'\n#define XRT_MODULE_TLS_HELLO\n#define XRT_MODULE_VALUE\n#define XRT_MODULE_MEMORY_DEBUG\n'+prefix+'#include "'+header+'"\n',encoding='utf8')
             selected=out/(product+'.selectors.c')
             selected.write_text('#define XRT_MODULE_TLS_HELLO\n#define XRT_MODULE_VALUE\n#include "'+header+'"\n'
                 '#if defined(XRT_FEATURE_TLS_CLIENT) || defined(XRT_FEATURE_TLS_SERVER) || defined(XRT_FEATURE_TLS_RESUME) || defined(XRT_FEATURE_TLS_STREAM) || defined(XRT_FEATURE_NET_TCP)\n'

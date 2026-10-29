@@ -1,3 +1,4 @@
+#include "xl_clock.h"
 /* Intentionally instantiated in independent resident TUs. The macro
  * backend selects a direct typed XRT implementation at compile time, not a
  * runtime kind switch/function table that pulls every queue into an artifact. */
@@ -483,8 +484,7 @@ bool XL6_Q_PUBLIC(ReceiveV1)(const xvalue* value,uint64_t identity,uint64_t elem
         const XL6_SequenceNativeValuePolicyV1* native=xl6SequenceNativeValuePolicyV1(&owner->admission);
         if(!native || !native->Empty(slot.data)){xrtSetErrorKind(XERR_STATE);goto done;}
     }
-    uint64_t micros=(uint64_t)milliseconds>UINT64_MAX/1000?UINT64_MAX:(uint64_t)milliseconds*1000;
-    xdeadline deadline=mode==XL6_CHANNEL_FOR_V1?xrtDeadlineAfter(micros):0;
+    XL6_DeadlineV1 deadline=mode==XL6_CHANNEL_FOR_V1?xl6DeadlineAfterMillisecondsV1((uint64_t)milliseconds):0;
     if(!xl6MutexLockV1(owner->waitMutex,identity))goto done;
     locked=true;
     bool timedOut=false;
@@ -494,11 +494,11 @@ bool XL6_Q_PUBLIC(ReceiveV1)(const xvalue* value,uint64_t identity,uint64_t elem
         if(result==XQUEUE_CLOSED){actual=XL6_CHANNEL_CLOSED_V1;ok=true;break;}
         if(result!=XQUEUE_EMPTY)break;
         if(mode==XL6_CHANNEL_TRY_V1){actual=XL6_CHANNEL_EMPTY_V1;ok=true;break;}
-        if(timedOut || (mode==XL6_CHANNEL_FOR_V1 && xrtDeadlineExpired(deadline))) {
+        if(timedOut || (mode==XL6_CHANNEL_FOR_V1 && xl6DeadlineExpiredV1(deadline))) {
             actual=XL6_CHANNEL_TIMEOUT_V1;ok=true;break;
         }
         xwaitresult waited=xl6CondWaitUntilNative(owner->available,identity,owner->waitMutex,identity,
-            mode==XL6_CHANNEL_WAIT_V1?XRT_DEADLINE_NEVER:deadline);
+            mode==XL6_CHANNEL_WAIT_V1?XL6_DEADLINE_NEVER:deadline);
         if(waited==XWAIT_TIMEOUT)timedOut=true;
         else if(waited!=XWAIT_OK)break;
     }

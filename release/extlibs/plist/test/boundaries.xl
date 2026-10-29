@@ -60,21 +60,21 @@ func main(...) as int
     assert rejectedXmlInteger, "XML integer overflow"
     var preciseTime = {"when": time(1)}
     var restoredTime = plist.loads(plist.dumps(preciseTime, "binary"))
-    assert restoredTime["when"] == time(1), "binary date microseconds"
+    assert restoredTime["when"] == time(1), "binary date milliseconds"
     bool rejectedXmlTime = false
     try
         plist.stringify(preciseTime)
     catch PlistError e
         rejectedXmlTime = true
     end
-    assert rejectedXmlTime, "XML date must not discard microseconds"
+    assert rejectedXmlTime, "XML date must not discard milliseconds"
     bool rejectedBinaryTime = false
     try
         plist.dumps({"when": time(9000000000000000001)}, "binary")
     catch PlistError e
         rejectedBinaryTime = true
     end
-    assert rejectedBinaryTime, "binary date must not lose microseconds"
+    assert rejectedBinaryTime, "binary date must not lose milliseconds"
 
     bool rejected = false
     try
