@@ -15954,24 +15954,15 @@ static int xl6IrLowerInferGenericCallTypeArgs(
         const XL6_IrNode* actual = xl6IrNodeGet(module, binding->expression);
         XL6_IrTypeId actualType;
         if ( formal == NULL || actual == NULL || binding->parameter != i ) goto done;
-        /* Inference binds declaration type variables, not concrete arguments.
-         * Overload selection already validates independent parameters; their
-         * ordinary call lowering materializes the permitted conversion (e.g.
-         * an integer literal/default to uint64). Requiring identical raw ABIs
-         * here would reject valid calls without contributing a T binding. */
-        if ( !xl6IrLowerTypeContainsTypeParam(module, formal->storageType, 0) ) continue;
+        /* Only unresolved variables need a type witness. Owner arguments or
+         * earlier structural witnesses may already close this whole pattern,
+         * including a nullable function. Its concrete call boundary validates
+         * values and materializes permitted lifts/conversions after cloning;
+         * temporary method-group var storage cannot re-infer that signature. */
+        if ( !xl6IrLowerTypeContainsTypeParam(module, formal->storageType, 0) ||
+             xl6IrLowerGenericTypeIsBound(module,formal->storageType,
+                 parameters,parameterCount,resolved,0) ) continue;
         const XL6_IrType* pattern=xl6IrTypeGet(&module->types,formal->storageType);
-        /* A method group has no standalone function ABI to infer from. Once
-         * the receiver/other arguments have fixed this entire signature, its
-         * authenticated selection is checked at the concrete call boundary.
-         * Treating its temporary var storage as a type witness loses that
-         * contextual signature before the call can be specialized. */
-        if(pattern && pattern->kind==XL6_IR_TYPE_FUNCTION && actual->kind==XL6_IR_NODE_MEMBER){
-            const XL6_IrNode* selected=xl6IrSymbolNodeGet(module,actual->targetSymbol);
-            if(selected && xl6IrBoundMethodCandidateMatches(module,binding->expression,
-                (XL6_IrNodeId)(selected-module->nodes+1)) &&
-                xl6IrLowerGenericTypeIsBound(module,formal->storageType,parameters,parameterCount,resolved,0))continue;
-        }
         bool direct=pattern && pattern->kind==XL6_IR_TYPE_TYPE_PARAM;
         if((phase==0 && direct) || (phase==1 && !direct))continue;
         /* Infer from the exact value at the call boundary, not a NAME's wider

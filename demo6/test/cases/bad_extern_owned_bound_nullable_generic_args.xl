@@ -1,0 +1,14 @@
+class Box<K>
+    func Invoke((func(K) as K)? callback,K value) as K
+        if callback!=null
+            return callback(value)
+        end
+        return value
+    end
+end
+func wrong(string value) as string
+    return value
+end
+Box<int> box=Box::<int>()
+// Closing K=int must not waive the exact callback parameter/result signature.
+box.Invoke(wrong,7)

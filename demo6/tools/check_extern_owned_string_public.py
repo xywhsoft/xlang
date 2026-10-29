@@ -98,10 +98,12 @@ def main():
     bound_access_contract = ROOT/'test/cases/xlir_bound_access_contract.c'
     bound_c_owner_contract = ROOT/'test/cases/xlir_bound_c_owner_contract.c'
     bound_generic_owner_contract = ROOT/'test/cases/xlir_bound_generic_owner_contract.c'
+    bound_nullable_generic_contract = ROOT/'test/cases/xlir_bound_nullable_generic_contract.c'
     producer_tail_contract = ROOT/'test/cases/xlir_task_producer_tail.c'
     for path in [source, *native, template, contract, oom_contract, task_scalar_contract, task_composition_contract, task_optional_contract,
             task_reference_contract,error_array_contract,
-            reference_boundary_contract,bound_dispatch_contract,bound_constraint_contract,bound_access_contract,bound_c_owner_contract,bound_generic_owner_contract,producer_tail_contract,
+            reference_boundary_contract,bound_dispatch_contract,bound_constraint_contract,bound_access_contract,bound_c_owner_contract,bound_generic_owner_contract,bound_nullable_generic_contract,producer_tail_contract,
+            ROOT/'test/cases/extern_owned_bound_nullable_generic_args.xl',
             ROOT/'test/cases/extern_owned_bound_constraint_casts.xl',
             ROOT/'test/cases/extern_owned_bound_nonpublic.xl',
             ROOT/'test/cases/extern_owned_bound_c_owners.xl',
@@ -191,6 +193,7 @@ def main():
             ('bound-access-contract',bound_access_contract,'access evidence checked, dynamic registry remains public'),
             ('bound-c-owner-contract',bound_c_owner_contract,'one receiver, one call, exact per-result copy plan'),
             ('bound-generic-owner-contract',bound_generic_owner_contract,'ordered owner/method keys authenticated'),
+            ('bound-nullable-generic-contract',bound_nullable_generic_contract,'concrete argument ABI remains checked'),
             ('task-reference-contract',task_reference_contract,'8 mutations rejected'),
             ('reference-boundary-contract',reference_boundary_contract,'6 mutations rejected'),
             ('error-array-admission',error_array_contract,'64 OOM prefixes balanced')]:
