@@ -151,6 +151,11 @@ int xlsFrontendSemCheckMemo(XL6_AstNode* root,XL6_DiagList* diags,const char* mo
     xls_sem_memo** result,xls_sem_work* work);
 void xlsFrontendSemMemoDestroy(xls_sem_memo* memo);
 xls_sem_memo* xlsFrontendSemMemoRetain(xls_sem_memo* memo);
+/* Negative admission hint for finalized-module preparation only. Reuses the
+ * existing per-function semantic input keys;small straight-line functions
+ * additionally retain bounded original-input keys. Missing/failed/changed
+ * inputs decline. Never a freshness,final-annotation or IR equality proof. */
+int xlsFrontendSemMemoInputCandidate(const xls_sem_memo* memo);
 /* Conservative known retained payload,including memo labels/read context;
  * referenced units are charged in full. Excludes allocator/map internals. */
 size_t xlsFrontendSemMemoOwnedBytes(const xls_sem_memo* memo);

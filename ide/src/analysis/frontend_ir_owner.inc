@@ -3,6 +3,7 @@
  * modules keep their original individually owned strings and layout. */
 #include "analysis/frontend_ir_memo.h"
 typedef struct xls_ir_unit xls_ir_unit;
+typedef struct xls_ir_persistent_storage xls_ir_persistent_storage;
 struct xls_ir_result {
     XL6_IrModule module;
     xls_ir_memo* memo;
@@ -10,6 +11,10 @@ struct xls_ir_result {
     xls_ir_memo_work work;
     uint64_t textNodes,textBytes;
     size_t storageLimit;
+    xls_ir_persistent_storage* persistent;
+    xatomic32 persistentState;
+    struct xls_typed_module* input;
+    xls_ir_persistent_work persistentWork;
 };
 static _Thread_local xls_ir_result* xlsActiveIrOwner;
 static int xlsIrOwnerBorrowing(const XL6_IrModule* module)

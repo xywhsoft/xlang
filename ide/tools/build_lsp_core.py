@@ -82,6 +82,7 @@ CORE_TESTS = ("analysis_completion_unit_test", "analysis_completion_unit_fault_t
 CORE_TESTS = ("analysis_completion_pool_fault_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_topology_clone_fault_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_raw_signature_test", "analysis_raw_native_test", "analysis_raw_body_projection_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_typed_module_test", "analysis_typed_module_fault_test", "analysis_ir_persistent_test", "analysis_ir_persistent_fault_test", *CORE_TESTS)
 HOST_TESTS += ("navigation_cache_test", "semantic_reference_shard_test", "project_references_test", "project_reference_budget_test", "reference_path_index_test")
 HOST_TESTS += ("path_identity_batch_test", "reference_capture_test")
 HOST_TESTS += ("project_reference_parallel_test",)
@@ -705,7 +706,7 @@ def main() -> None:
     sources += [(ide / "src/protocol/input_state.c", True)]
     sources += [(ide / "src/protocol/diagnostic_paths.c", True)]
     sources += [(ide / path, True) for path in (
-    "src/analysis/frontend_cancel.c", "src/analysis/frontend_ir_regions.c", "src/analysis/frontend_symbols.c", "src/analysis/text.c", "src/analysis/context.c", "src/analysis/frontend_context.c", "src/analysis/frontend_raw_body.c", "src/analysis/frontend_entry_cache.c", "src/analysis/module_store.c", "src/analysis/entity_store.c", "src/analysis/module_graph.c", "src/analysis/input_view.c", "src/analysis/input_topology.c", "src/analysis/dependency_graph.c", "src/analysis/ast_storage.c", "src/analysis/ast_materialize.c", "src/analysis/ast_clone.c", "src/analysis/ast_intern.c", "src/analysis/function_unit.c", "src/analysis/syntax.c", "src/analysis/session.c", "src/analysis/worker.c", "src/analysis/projection.c", "src/analysis/folding.c", "src/analysis/semantic.c", "src/analysis/signature.c", "src/analysis/signature_session.c", "src/analysis/check.c", "src/analysis/input_batch.c", "src/analysis/frontend_overlay.c", "src/analysis/check_session.c", "src/analysis/dependency_session.c", "src/analysis/completion_session.c",
+    "src/analysis/frontend_cancel.c", "src/analysis/frontend_ir_regions.c", "src/analysis/frontend_symbols.c", "src/analysis/text.c", "src/analysis/context.c", "src/analysis/frontend_context.c", "src/analysis/frontend_raw_body.c", "src/analysis/frontend_entry_cache.c", "src/analysis/module_store.c", "src/analysis/entity_store.c", "src/analysis/module_graph.c", "src/analysis/input_view.c", "src/analysis/input_topology.c", "src/analysis/dependency_graph.c", "src/analysis/ast_storage.c", "src/analysis/ast_materialize.c", "src/analysis/ast_clone.c", "src/analysis/ast_intern.c", "src/analysis/function_unit.c", "src/analysis/typed_module.c", "src/analysis/syntax.c", "src/analysis/session.c", "src/analysis/worker.c", "src/analysis/projection.c", "src/analysis/folding.c", "src/analysis/semantic.c", "src/analysis/signature.c", "src/analysis/signature_session.c", "src/analysis/check.c", "src/analysis/input_batch.c", "src/analysis/frontend_overlay.c", "src/analysis/check_session.c", "src/analysis/dependency_session.c", "src/analysis/completion_session.c",
     )]
     if not args.skip_tests:
         sources += [(ide / "src/protocol/document_sync.c", True)]
@@ -867,7 +868,7 @@ def main() -> None:
             objects[source.stem] = target
         ar = cc.with_name("ar.exe" if os.name == "nt" else "ar")
         core = output / "xlang-analysis-core.a"
-        core_names = {Path(source).stem for source in FRONTEND_SOURCES} | {"runtime", "frontend_cancel", "frontend_ir_regions","frontend_symbols","frontend_entry_cache","module_store","entity_store","module_graph","input_view", "input_topology", "dependency_graph", "text", "context", "frontend_context", "frontend_raw_body", "ast_storage", "ast_materialize", "ast_clone", "ast_intern", "function_unit", "syntax", "session", "worker", "projection", "folding", "semantic", "signature", "signature_session", "check", "input_batch", "frontend_overlay", "check_session", "dependency_session", "completion_session", "input_state", "diagnostic_paths"}
+        core_names = {Path(source).stem for source in FRONTEND_SOURCES} | {"runtime", "frontend_cancel", "frontend_ir_regions","frontend_symbols","frontend_entry_cache","module_store","entity_store","module_graph","input_view", "input_topology", "dependency_graph", "text", "context", "frontend_context", "frontend_raw_body", "ast_storage", "ast_materialize", "ast_clone", "ast_intern", "function_unit", "typed_module", "syntax", "session", "worker", "projection", "folding", "semantic", "signature", "signature_session", "check", "input_batch", "frontend_overlay", "check_session", "dependency_session", "completion_session", "input_state", "diagnostic_paths"}
         members = [target for name, target in objects.items() if name in core_names]
         run([str(ar), "rcs", str(core), *map(str, members)], "archive")
         limited_index = output / "xl6_sem_index_limit.o"
@@ -890,6 +891,13 @@ def main() -> None:
             if name == "analysis_completion_pool_fault_test":
                 extra += ["-Wl,--wrap=" + function for function in (
                     "xrtStrDup", "xrtStrDupN", "xrtRealloc", "xrtFree", "xrtStrBufAppend", "xrtStrBufFree", "xrtMalloc")]
+            if name == "analysis_typed_module_test":
+                extra += ["-Wl,--wrap=xl6AstFree", "-Wl,--wrap=xlsTypedModuleTake"]
+            if name in ("analysis_ir_persistent_fault_test", "analysis_typed_module_fault_test"):
+                extra += ["-Wl,--wrap=" + function for function in (
+                    "xrtMalloc", "xrtCalloc", "xrtRealloc", "xrtFree", "xrtStrBufReserve", "xrtStrBufFree",
+                    "xrtArrayPush", "xrtArrayResize", "xrtArrayReserve", "xrtArrayUnit", "xrtMapSet")]
+                if name == "analysis_typed_module_fault_test":extra.append("-Wl,--wrap=xl6AstFree")
             if name in HOST_TESTS:
                 extra += [str(objects[Path(source).stem]) for source in SERVER_SOURCES
                           if Path(source).stem != "xlang_ls" and
@@ -915,7 +923,7 @@ def main() -> None:
                     "xrtMalloc", "xrtCalloc", "xrtFree", "xrtArrayInit",
                     "xrtArrayReserve", "xrtArrayPush", "xrtArrayUnit")]
             run([str(cc), str(objects[name]), *extra, str(core), "-Wl,--gc-sections", *libraries, "-o", str(program)], name + "-link")
-            result = run([str(program)], name + "-run", 120 if name == "analysis_ir_scan_test" else 30)
+            result = run([str(program)], name + "-run", 180 if name == "analysis_ir_persistent_fault_test" else 120 if name == "analysis_ir_scan_test" else 30)
             if b"passed:" not in result.stdout:
                 raise RuntimeError(f"missing test completion receipt: {name}")
             runs.append(dict(name=name,stdout=result.stdout.decode("utf-8")))
