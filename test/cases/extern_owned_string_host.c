@@ -1,5 +1,6 @@
 /* The returned address is the XRT allocation itself. No library adapter or
  * C-string owner participates. Counters measure actual runtime allocations. */
+#include <__xl_runtime/xrt_decl.h>
 #include <__xl_runtime/xruntime_decl.h>
 void xl6ForeignCallbackFail(void);
 #include <stdint.h>
