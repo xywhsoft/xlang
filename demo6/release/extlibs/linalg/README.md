@@ -1,9 +1,9 @@
 # linalg
 
-2026-10-26 完整重建 Windows/Linux 发布物后，本包在两平台 x64 的
-包级范围签收。默认门禁通过严格 C、Linux ASan/UBSan、数值边界、
-XLang 边界与分配故障、十三项公开函数的双语固定输出，并在两平台
-构建运行核心、XLang 范例和 C 单文件范例的独立 EXE。旧
+2026-10-29 在冻结的 Windows/Linux x64 发布物上复验，完整包级门禁
+通过：严格 C、Linux ASan/UBSan、十三项实际生成原型与定义核对、
+数值边界、XLang 分配故障、双语固定输出及十条独立程序的构建运行。
+另以 Python 标准库有理数独立对照 2161 个矩阵，全部通过。旧
 `xl6ValueIndexReadCopyV1` 缺符号记录属于历史发布物；本结论不代替
 全产品回归，也不外推 32 位/ARM 或长时性能。
 
@@ -36,17 +36,24 @@ ia, ib, ic, id = linalg.inverse2(1.0, 2.0, 3.0, 4.0)
 不覆盖调用方输出参数。
 异号极大端点的 `lerp` 不先计算 `b-a`；轻微外推的有限结果也不会因
 中间差值溢出而误变成无穷大。
+两个端点均有限时，`t == 0` 精确返回 `a`，`t == 1` 精确返回 `b`，
+保留端点零的符号；NaN/无穷端点仍按原算术路径传播，不替换成有限值。
+不对任意外推承诺有限，也不宣称完整实现 `std::lerp` 的全部性质。
 `angle2` 在缩放后以 `atan2(|cross|, dot)` 计算 0 至 π 的无向夹角，
 保留近乎平行或反向向量约 `1e-8` 弧度的差异。
 求逆边界测试还覆盖元素为 `1e308`、原行列式超出 `double` 范围但
 逆矩阵有限的非对角矩阵；不能仅凭直接计算的行列式是否溢出判断可逆性。
+当归一化后的行列式/余子式进入极端范围时，用 CRT `frexp/ldexp`
+分离指数后求逆，避免中间商先溢出或次正规舍入；普通范围仍走直接除法。
+这不放宽既有近奇异拒绝阈值，不依赖更宽的 `long double`，也不新增堆分配。
 2026-10-25 历史验证：这一边界的 C、XLang JIT 与独立 EXE 在 Windows 通过，
 Linux 包级 C ASan/UBSan、XLang 和双语门禁通过。Windows 根目录的
 整包门禁仍被共享 VFS 头文件查找问题阻断；从 `release` 目录运行的
 成功结果不替代该项发布验收。
 
 C 头文件为 `include/linalg_native.h`。XLang 多返回值所需的 `xvalue`
-桥接由包内实现；C 调用方直接使用 `_into`，避免额外装箱。函数均不保留
+桥接仍有结果数组和浮点值的分配/装箱，不称零开销；C 调用方直接使用
+`_into`，避免这部分装箱。函数均不保留
 输入或结果指针，适合多线程并发调用。`dot`、`det` 等纯算术入口遵循
 IEEE 浮点传播规则；成功的标量调用会清除当前线程的旧 XRT 错误，
 不会让前一次失败污染本次结果。它们不替代数值分析库的条件数评估。
@@ -60,9 +67,10 @@ IEEE 浮点传播规则；成功的标量调用会清除当前线程的旧 XRT �
   `tools/run_extlib_c.ps1 -Package linalg -Source release/examples/extlibs/linalg_c.c`
   输出一致；C 范例也可直接 `xl run release/examples/extlibs/linalg_c.c`，
   仅在 TCC 单文件路径包含包原生实现，正式包仍由清单分离编译。
-- `release/extlibs/linalg/test/check.ps1`：Windows 严格 GCC、C/XLang 边界及
-  包运行器 C、单文件 C、XLang 三条范例路径的固定数值输出；默认还需
-  构建运行核心、XLang 和 C 范例 AOT，后两者须匹配同一固定输出。`-SkipAot`
+- `release/extlibs/linalg/test/check.ps1`：Windows 严格 GCC、C/XLang 边界、
+  实际十三项生成声明与 C 定义，以及 C/GCC、单文件 C、XLang 范例的固定
+  数值输出；默认还需构建运行核心、边界、OOM、数值新例、中央测试及两组
+  双语范例，共十条 AOT。范例须匹配固定输出。`-SkipAot`
   仅运行 C/JIT 聚焦门禁，不是发布验收。
 - `xl run extlibs/linalg/test/boundaries.xl`
 - `tools/smoke_extlib_catalog.ps1 -Package linalg`：包清单登记的边界、
@@ -70,11 +78,23 @@ IEEE 浮点传播规则；成功的标量调用会清除当前线程的旧 XRT �
   标量函数由 `test/cases/stdlib_math.xl` 单独验证。
 - `xl run extlibs/linalg/test/allocations.xl`：`normalize2`、`cross3`、`inverse2`、`multiply2` 各自逐点注入多返回值分配失败，核对 `MemoryError` 与解除故障后的再次调用。
 - `tools/run_extlib_c.ps1 -Package linalg -Source release/extlibs/linalg/test/test_linalg.c`
-- `bash release/extlibs/linalg/test/check.sh`：Linux 严格 GCC 与 ASan/UBSan C 测试、中央和包内 XLang 用例，以及 C/XLang 范例逐字节对照；默认还构建运行核心、XLang 和 C 范例独立 EXE。
+- `bash release/extlibs/linalg/test/check.sh`：Linux 严格 GCC 与 ASan/UBSan C 测试、中央和包内 XLang 用例，以及两组 C/XLang 范例逐字节对照；同样要求十条 AOT。Linux 验证使用原生文件系统快照，不从 DrvFS 编译。
+- `examples/calibration.xl` 与 `examples/calibration_c.c`：插值到达端点、极端量级的有限逆矩阵，以及单位悬殊的双通道测量校准。两者使用相同输入、公式、容差与三行黄金输出；从 `demo6` 目录可分别 `xl run release/extlibs/linalg/examples/calibration.xl` 和 `xl run release/extlibs/linalg/examples/calibration_c.c`。
+- `test/numeric_edges_c.c`：177 个独立检查，包含有限端点/有符号零、非有限传播、160 组精确二次幂矩阵的行列置换、次正规中间值精度与内存诊断；不依赖 C `assert`，`NDEBUG` 下照常执行。
+- 两个门禁在找到 Python 时自动编译供 `ctypes` 使用的测试动态库，由 `test/exact_inverse.py` 的 `Fraction` 独立求真逆，核对 160 组二次幂、一个次正规边界和 2000 组固定种子缩放矩阵。无 Python 时明确记为 SKIP；Python 不是使用本包的运行时依赖。
 - 边界覆盖极小/极大向量、相差 600 个数量级的矩阵行、奇异/近奇异矩阵、
   非有限输入、近乎平行/反向角度、失败时输出参数保持不变、XRT `xvalue` 多返回桥及逐点分配失败。
   异号极值端点的插值与轻微外推也有 C/XLang 回归；C 回归另覆盖失败后八个标量入口的错误状态复位，XLang 回归覆盖捕获异常后的继续调用。
   Windows GCC `-Wall -Wextra -Werror`、Linux ASan/UBSan 已通过。
+
+2026-10-29：同一组 177 检查在原实现有 103 项失败，修改后为零；独立
+有理数对照由 2161 项中的 97 项失败降为零。当前样本最大相对误差为
+`2.220446049250313e-16`，不是对所有输入的一 ULP 保证。Windows 默认
+46 阶段通过，43 项输入指纹变动为零；Linux ASan/UBSan、十条 AOT
+与有理数对照均通过，41 份源件在快照内外校验一致。门禁现在有进程
+超时、完整依赖指纹与独占临时目录：成功清理工作目录，失败保留现场，
+无论成功失败均保留报告；缺失 Linux C 编译器时实测退出 127，不伪报绿灯。
+本次只修数值实现与验证，不更新编译器或 XRT。
 
 2026-10-18：C 边界从 1024 组固定种子的 2×2 矩阵中筛除近奇异输入，
 实际核对 965 组，并设置至少 900 组的测试下限；

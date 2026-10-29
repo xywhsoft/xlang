@@ -1,0 +1,26 @@
+import linalg
+
+func main(...) as int
+    // 插值进度走到末尾时，即便端点量级悬殊也必须精确到达目标。
+    assert linalg.lerp(1e16, 1.0, 1.0) == 1.0
+    println("lerp endpoint:", true)
+    float a = 0.0
+    float b = 0.0
+    float c = 0.0
+    float d = 0.0
+    float large = math.ldexp(1.0, 1023)
+    float small = math.ldexp(1.0, -51)
+    a, b, c, d = linalg.inverse2(large, 0.0, large, small)
+    assert a == math.ldexp(1.0, -1023) and b == 0.0
+    assert c == -math.ldexp(1.0, 51) and d == -c
+    println("large inverse:", true)
+
+    // 两个测量通道使用不同单位；按相应校准矩阵恢复原始坐标。
+    float channelX = (5.0 + 2.0 * 7.0) * 1e100
+    float channelY = (3.0 * 5.0 + 4.0 * 7.0) * 1e-100
+    a, b, c, d = linalg.inverse2(1e100, 2e100, 3e-100, 4e-100)
+    assert math.abs(a * channelX + b * channelY - 5.0) < 1e-12
+    assert math.abs(c * channelX + d * channelY - 7.0) < 1e-12
+    println("restored point:", true)
+    return 0
+end

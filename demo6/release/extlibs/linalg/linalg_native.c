@@ -107,6 +107,18 @@ double xlin_det2(double a, double b, double c, double d)
     return a * d - b * c;
 }
 
+/* 归一化2x2的余子式绝对值<=1、|det|<=2；极端范围拆指数，避免中间溢出或次正规舍入。 */
+static double xlinalg_inverse_component(double value, double determinant, double scale)
+{
+    if (value == 0.0 || (fabs(value) >= 2.0 * DBL_MIN && fabs(determinant) >= DBL_MIN)) {
+        return (value / determinant) / scale;
+    }
+    int value_exp, determinant_exp, scale_exp;
+    double fraction = frexp(value, &value_exp);
+    double divisor = frexp(determinant, &determinant_exp) * frexp(scale, &scale_exp);
+    return ldexp(fraction / divisor, value_exp - determinant_exp - scale_exp);
+}
+
 int xlin_inverse2_into(double a, double b, double c, double d,
     double* pa, double* pb, double* pc, double* pd)
 {
@@ -139,10 +151,10 @@ int xlin_inverse2_into(double a, double b, double c, double d,
         xlinalg_error("matrix is singular or numerically unstable");
         return 0;
     }
-    ra = (d / fDeterminant) / fScale1;
-    rb = (-b / fDeterminant) / fScale2;
-    rc = (-c / fDeterminant) / fScale1;
-    rd = (a / fDeterminant) / fScale2;
+    ra = xlinalg_inverse_component(d, fDeterminant, fScale1);
+    rb = xlinalg_inverse_component(-b, fDeterminant, fScale2);
+    rc = xlinalg_inverse_component(-c, fDeterminant, fScale1);
+    rd = xlinalg_inverse_component(a, fDeterminant, fScale2);
     if (!isfinite(ra) || !isfinite(rb) || !isfinite(rc) || !isfinite(rd)) {
         xlinalg_error("inverse matrix is not representable");
         return 0;
@@ -254,6 +266,8 @@ double xlin_dist3(double x1, double y1, double z1, double x2, double y2, double 
 double xlin_lerp(double a, double b, double t)
 {
     xrtClearError();
+    /* 有限端点必须精确返回，不能因 a+(b-a) 的消去丢掉 b 或零的符号。 */
+    if ((t == 0.0 || t == 1.0) && isfinite(a) && isfinite(b)) return t == 0.0 ? a : b;
     /* 异号端点先相减可能溢出，即使插值或轻微外推的结果仍有限。 */
     if (signbit(a) != signbit(b)) {
         return (1.0 - t) * a + t * b;

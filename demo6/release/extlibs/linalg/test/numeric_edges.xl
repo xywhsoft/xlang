@@ -1,0 +1,24 @@
+import linalg
+
+func main(...) as int
+    assert linalg.lerp(1e308, 1.0, 1.0) == 1.0, "exact final endpoint"
+    assert linalg.lerp(-1e308, -1.0, 1.0) == -1.0, "negative final endpoint"
+    assert linalg.lerp(1e100, 1e-100, 1.0) == 1e-100, "small final endpoint"
+    float a = 0.0
+    float b = 0.0
+    float c = 0.0
+    float d = 0.0
+    for exponent in [512, 768, 990, 1023]
+        float large = math.ldexp(1.0, exponent)
+        float small = math.ldexp(1.0, exponent - 1074)
+        a, b, c, d = linalg.inverse2(large, 0.0, large, small)
+        assert a == math.ldexp(1.0, -exponent) and b == 0.0
+        assert c == -math.ldexp(1.0, 1074 - exponent) and d == -c
+    end
+    float scale = math.ldexp(1.0, -500)
+    a, b, c, d = linalg.inverse2(math.ldexp(1.0, -1074), 1.0, 0.75 * scale, scale)
+    assert math.abs(a / (-4.0 / 3.0) - 1.0) < 1e-15
+    assert math.abs(d / -math.ldexp(4.0 / 3.0, -574) - 1.0) < 1e-15
+    println("linalg numeric edges: PASS")
+    return 0
+end
