@@ -4,10 +4,10 @@ set -euo pipefail
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$root"
 packages=("$@")
-if ((${#packages[@]} == 0)); then packages=(lz4 bz2 lzma miniz snappy xxhash zstd gzip dotenv); fi
+if ((${#packages[@]} == 0)); then packages=(lz4 bz2 lzma miniz snappy xxhash zstd gzip dotenv progress roaring trie); fi
 for package in "${packages[@]}"; do
     case "$package" in
-        lz4|bz2|lzma|miniz|snappy|xxhash|zstd|gzip|dotenv) ;;
+        lz4|bz2|lzma|miniz|snappy|xxhash|zstd|gzip|dotenv|progress|roaring|trie) ;;
         *) printf 'unsupported native global fixture: %s\n' "$package" >&2; exit 2 ;;
     esac
 done
@@ -61,13 +61,19 @@ run() {
 
 failed=0
 for package in "${packages[@]}"; do
-    source="release/extlibs/$package/test/top_level.xl"
     printf '%s top-level: PASS\n' "$package" > "$work/$package.expected"
-    run "$package-jit" 90 ./release/xl run "$source"
-    if ((last_status != 0)) || ! cmp -s "$work/$package.expected" "$work/$package-jit.stdout"; then failed=1; fi
-    run "$package-build" 180 ./release/xl build "$source" -o "$work/$package"
-    if ((last_status != 0)); then failed=1; continue; fi
-    run "$package-aot" 90 "$work/$package"
-    if ((last_status != 0)) || ! cmp -s "$work/$package.expected" "$work/$package-aot.stdout"; then failed=1; fi
+    fixtures=(top_level)
+    case "$package" in progress|roaring|trie) fixtures+=(local_top_level_control) ;; esac
+    for fixture in "${fixtures[@]}"; do
+        source="release/extlibs/$package/test/$fixture.xl"
+        label=$package
+        if [[ $fixture != top_level ]]; then label="$package-local"; fi
+        run "$label-jit" 90 ./release/xl run "$source"
+        if ((last_status != 0)) || ! cmp -s "$work/$package.expected" "$work/$label-jit.stdout"; then failed=1; fi
+        run "$label-build" 180 ./release/xl build "$source" -o "$work/$label"
+        if ((last_status != 0)); then failed=1; continue; fi
+        run "$label-aot" 90 "$work/$label"
+        if ((last_status != 0)) || ! cmp -s "$work/$package.expected" "$work/$label-aot.stdout"; then failed=1; fi
+    done
 done
 exit "$failed"

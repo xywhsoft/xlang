@@ -1,8 +1,8 @@
 ﻿param(
     [string]$Root = '',
     [string]$RuntimeDirectory = '',
-    [ValidateSet('lz4','bz2','lzma','miniz','snappy','xxhash','zstd','gzip','dotenv')]
-    [string[]]$Package = @('lz4','bz2','lzma','miniz','snappy','xxhash','zstd','gzip','dotenv'),
+    [ValidateSet('lz4','bz2','lzma','miniz','snappy','xxhash','zstd','gzip','dotenv','progress','roaring','trie')]
+    [string[]]$Package = @('lz4','bz2','lzma','miniz','snappy','xxhash','zstd','gzip','dotenv','progress','roaring','trie'),
     [switch]$SkipAot
 )
 
@@ -55,19 +55,24 @@ try {
     }
     $failed = $false
     foreach ($name in $Package) {
-        $source = "release/extlibs/$name/test/top_level.xl"
         $expected = "$name top-level: PASS"
-        $jit = Run "$name-jit" $xl @('run',$source) 90
-        if ($jit.status -ne 'pass' -or $jit.stdout.Replace("`r`n","`n").TrimEnd("`n") -cne $expected) {
-            $failed = $true
-        }
-        if ($SkipAot) { continue }
-        $binary = Join-Path $work "$name.exe"
-        $build = Run "$name-build" $xl @('build',$source,'-o',$binary) 180
-        if ($build.status -ne 'pass') { $failed = $true; continue }
-        $aot = Run "$name-aot" $binary @() 90
-        if ($aot.status -ne 'pass' -or $aot.stdout.Replace("`r`n","`n").TrimEnd("`n") -cne $expected) {
-            $failed = $true
+        $fixtures = @('top_level')
+        if ($name -in @('progress','roaring','trie')) { $fixtures += 'local_top_level_control' }
+        foreach ($fixture in $fixtures) {
+            $source = "release/extlibs/$name/test/$fixture.xl"
+            $label = if ($fixture -eq 'top_level') { $name } else { "$name-local" }
+            $jit = Run "$label-jit" $xl @('run',$source) 90
+            if ($jit.status -ne 'pass' -or $jit.stdout.Replace("`r`n","`n").TrimEnd("`n") -cne $expected) {
+                $failed = $true
+            }
+            if ($SkipAot) { continue }
+            $binary = Join-Path $work "$label.exe"
+            $build = Run "$label-build" $xl @('build',$source,'-o',$binary) 180
+            if ($build.status -ne 'pass') { $failed = $true; continue }
+            $aot = Run "$label-aot" $binary @() 90
+            if ($aot.status -ne 'pass' -or $aot.stdout.Replace("`r`n","`n").TrimEnd("`n") -cne $expected) {
+                $failed = $true
+            }
         }
     }
     if ($failed) { throw 'Native global lifetime checks failed; see individual results' }

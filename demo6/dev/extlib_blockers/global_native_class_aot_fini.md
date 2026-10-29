@@ -1,5 +1,61 @@
 # 顶层 native-backed class 在独立 EXE 退出时失败
 
+## 2026-10-29 Progress / Roaring / Trie 第24至26个已实测包
+
+分别在全局创建真实ProgressBar(10)、空RoaringBitmap、空Trie，仅检查
+valid/初始计数并打印本包PASS，自然退出。每包另外提供构造/查询/输出
+完全相同的局部对象对照，不依赖进度渲染、集合运算/数组投影、深键或
+递归删除。固定Windows/Linux各18个阶段真实结果一致：
+
+| 每包的阶段 | 顶层正例 | 局部对照 |
+| --- | --- | --- |
+| JIT | 退出0并打印PASS | 退出0、同输出 |
+| 独立构建 | 退出0 | 退出0 |
+| 独立程序 | 打印PASS后同一状态RuntimeError，退出1 | 退出0、同输出 |
+
+共享专项扩展现有选择表，不复制编译器/运行时实现，新增三包须执行
+局部控制。默认专项支持12包（此前九包加三包，不是全部26包）；旧
+Dotenv选择另核对仍三阶段0/0/1，没有把旧缺陷视为已经修好。
+从demo6可单独运行，或Linux按三个位置参数合并核对：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/check_extlib_native_globals.ps1 -Package progress
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/check_extlib_native_globals.ps1 -Package roaring
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/check_extlib_native_globals.ps1 -Package trie
+```
+
+```sh
+bash tools/check_extlib_native_globals.sh progress roaring trie
+```
+
+三包的默认包门禁均已接入专项。最终Win完整三门禁原始结果在
+`build/test/p3_global_final_dd4bc58896854619962cc9d0d0cb13e2/results.json`，
+82项源/发布物/实际GCC/工具/范例输入变化0；先过各包原有C/边界/OOM/
+私有访问/双语黄金输出及普通AOT，三门禁分别只因全局退役而退出1。
+对应专项子现场：
+
+- Progress：`build/test/native_globals_64712fbf36f746d0acc1b83a0dcee339`
+- Roaring：`build/test/native_globals_5f8f8ea0eed94e30ae942a68e6779964`
+- Trie：`build/test/native_globals_b5f632636b0e423492c431b30277ab72`
+
+子报告分别6阶段、37/36/37项输入变化0。初始合并专项18阶段另保留
+`build/test/native_globals_c37fb53f42d94f0caf379cce2fafbcc0`。
+
+Linux完整门禁原生快照 `/var/tmp/xlang-p3-global-final-src-hkGX8b`，
+78源件执行前后及原位置一致，实际GCC也核对不变。三包原有C
+ASan/UBSan、模型/边界/OOM、语言与双语及普通独立程序先通过，各
+最后专项均6阶段，仅顶层AOT失败；子现场分别为
+`tmp/xlang-native-globals-Yjiu4P` / `feWcsi` / `gdYORm`，父results.tsv
+真实记录三门禁均1。外层验证脚本0只表示三份预期的失败证据均收齐，
+不表示任何包门禁通过。最初合并18阶段快照SWHdIz/7b50dL另保留。
+
+另修Progress/Trie门禁直接比较Windows CRLF黄金文件的假失败，统一
+行尾后仍逐字比较正文；三份测试运行库只启用实际依赖和内存诊断，
+未替换XRT或改变生产代码。以上改动不修复M2。三包由G转M，当前
+G30/R7/M59/X4，M2实测涉及26包；只证明同一可观察边界，不推断
+26包内在全部同根。主线恢复顺序沿用下文全局/模块/代码/类型/错误
+上下文的有序退役要求，先复验局部对照与合法全局，再跑默认门禁。
+
 ## 2026-10-29 Cuckoo 第23个已实测涉及包
 
 新增三条合法用例，固定Windows/Linux发布物逐条实测，不按声明相似
