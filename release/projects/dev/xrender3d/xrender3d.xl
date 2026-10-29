@@ -1,0 +1,2737 @@
+// xrender3d - 软件三维渲染管线（Software 3D Rendering Pipeline）
+//
+// 完整 3D 渲染管线，验证 xlang 的：
+//   * OBJ 模型解析（逐行 token 化、float/int 解析、面索引拆分、扇形三角化）
+//   * float 密集运算（每像素透视校正插值 / Phong 着色 / 多光源累加）
+//   * array<float> 大循环（z-buffer / framebuffer / 顶点数据 / 纹素查找）
+//   * 4x4 矛阵运算（model -> view -> projection 变换链）
+//   * 纹理映射（程序生成棋盘格纹理 + UV 采样 + 重复缠绕）
+//   * 阴影投射（点光源 -> 地面平面投影阴影，alpha 混合暗化）
+//   * 三角形光栅化（重心坐标 + 透视校正属性插值 + 深度测试）
+//
+// 管线：
+//   OBJ 文件 ──解析──> 顶点/UV/法线/面索引
+//   顶点(模型空间)
+//     -> model 矛阵  -> 世界空间
+//     -> view  矛阵  -> 观察空间
+//     -> proj  矛阵  -> 裁剪空间 (含 w)
+//     -> 透视除法     -> NDC ([-1,1]^3)
+//     -> 视口变换     -> 屏幕坐标 (px,py) + ndc.z
+//     -> 重心坐标光栅化 + 透视校正插值
+//     -> Z-buffer 深度测试
+//     -> Phong 着色 (ambient + diffuse + specular, 多光源)
+//     -> 纹理映射 (UV -> 纹素)
+//     -> 平面投影阴影 (点光源视角地面投影)
+//     -> PPM 图像 (P3 ASCII)
+//
+// 命令：
+//   xrender3d                                        打印用法
+//   xrender3d render <model.obj> [w] [h] [out]       渲染 OBJ 模型
+//                                                    w=宽 h=高 out=输出
+//                                                    默认 320 240 out.ppm
+//   xrender3d render-scene [scene] [w] [h] [out]     渲染内置场景(无需 OBJ)
+//                                                    scene: 0=cube 1=sphere 2=both
+//   xrender3d test                                   自检
+//   xrender3d bench [w] [h]                          性能基准
+//
+// 验证：
+//   cd /d D:\GIT\x-lang\release
+//   xl run projects\dev\xrender3d\xrender3d.xl render-scene
+//   xl build projects\dev\xrender3d\xrender3d.xl -o projects\dev\xrender3d\xrender3d.exe
+//
+// PPM 格式：ASCII (P3)，可用 GIMP / ImageMagick / 在线查看器打开。
+//
+// 实现说明：场景数据使用静态容器，矩阵和像素缓冲按连续内存布局。
+
+// ========================================================================
+// 全局常量
+// ========================================================================
+float PI = 3.14159265358979323846
+float DEPTH_INF = 1.0e30
+float EPSILON = 0.0001
+
+// ========================================================================
+// 全局渲染状态（避免向全局函数传递大量参数）
+// ========================================================================
+float g_eyeX = 0.0
+float g_eyeY = 0.0
+float g_eyeZ = 0.0
+
+// 光源数据：扁平存储，每光源 7 个 float (x, y, z, r, g, b, intensity)
+array<float> g_lights = array[]
+int g_lightCount = 0
+
+// 阴影光源索引（用于平面投影阴影）
+int g_shadowLightIdx = 0
+float g_shadowDarkness = 0.35
+
+// ========================================================================
+// 数学辅助函数
+// ========================================================================
+
+func degToRad(float deg) as float
+    return deg * PI / 180.0
+end
+
+func clampF(float v, float lo, float hi) as float
+    return math.clamp(v, lo, hi)
+end
+
+// 浮点绝对值统一走标准库。
+func absF(float v) as float
+    return math.abs(v)
+end
+
+func minF(float a, float b) as float
+    if a < b then
+        return a
+    end
+    return b
+end
+
+func maxF(float a, float b) as float
+    if a > b then
+        return a
+    end
+    return b
+end
+
+func minI(int a, int b) as int
+    if a < b then
+        return a
+    end
+    return b
+end
+
+func maxI(int a, int b) as int
+    if a > b then
+        return a
+    end
+    return b
+end
+
+func approxEq(float a, float b, float eps) as bool
+    float d = a - b
+    if d < 0.0 then
+        d = 0.0 - d
+    end
+    return d < eps
+end
+
+func clampByte(float v) as int
+    if v < 0.0 then
+        return 0
+    end
+    if v > 255.0 then
+        return 255
+    end
+    return int(v)
+end
+
+// 安全整数解析
+func parseArgInt(string s, int defValue) as int
+    s = string.trim(s)
+    if string.len(s) == 0 then
+        return defValue
+    end
+    int start = 0
+    string first = string.slice(s, 0, 1)
+    if first == "-" or first == "+" then
+        start = 1
+        if string.len(s) == 1 then
+            return defValue
+        end
+    end
+    int i = start
+    while i < string.len(s)
+        string ch = string.slice(s, i, 1)
+        if string.indexOf("0123456789", ch) < 0 then
+            return defValue
+        end
+        i = i + 1
+    end
+    return int(s)
+end
+
+// 安全浮点解析
+func parseFloatSafe(string s) as float
+    s = string.trim(s)
+    if string.len(s) == 0 then
+        return 0.0
+    end
+    try
+        return float(s)
+    catch e
+        return 0.0
+    end
+end
+
+// 安全整数解析（OBJ 索引）
+func parseIntSafe(string s) as int
+    s = string.trim(s)
+    if string.len(s) == 0 then
+        return 0
+    end
+    try
+        return int(s)
+    catch e
+        return 0
+    end
+end
+
+// ========================================================================
+// Vec3：三维向量，完整运算符协议
+// ========================================================================
+class Vec3
+    derive value
+    float x = 0.0
+    float y = 0.0
+    float z = 0.0
+
+    create(float x, float y, float z)
+        self.x = x
+        self.y = y
+        self.z = z
+    end
+
+    func __add__(Vec3 o) as Vec3
+        Vec3 r = Vec3(self.x + o.x, self.y + o.y, self.z + o.z)
+        return r
+    end
+
+    func __sub__(Vec3 o) as Vec3
+        Vec3 r = Vec3(self.x - o.x, self.y - o.y, self.z - o.z)
+        return r
+    end
+
+    func __neg__() as Vec3
+        Vec3 r = Vec3(0.0 - self.x, 0.0 - self.y, 0.0 - self.z)
+        return r
+    end
+
+    func __mul__(float s) as Vec3
+        Vec3 r = Vec3(self.x * s, self.y * s, self.z * s)
+        return r
+    end
+
+    func __div__(float s) as Vec3
+        Vec3 r = Vec3(self.x / s, self.y / s, self.z / s)
+        return r
+    end
+
+    func dot(Vec3 o) as float
+        return self.x * o.x + self.y * o.y + self.z * o.z
+    end
+
+    func cross(Vec3 o) as Vec3
+        Vec3 r = Vec3(
+            self.y * o.z - self.z * o.y,
+            self.z * o.x - self.x * o.z,
+            self.x * o.y - self.y * o.x
+        )
+        return r
+    end
+
+    func lengthSquared() as float
+        return self.x * self.x + self.y * self.y + self.z * self.z
+    end
+
+    func length() as float
+        return math.sqrt(self.lengthSquared())
+    end
+
+    func normalize() as Vec3
+        float len = self.length()
+        if len <= 0.0 then
+            Vec3 z = Vec3(0.0, 0.0, 0.0)
+            return z
+        end
+        Vec3 r = self * (1.0 / len)
+        return r
+    end
+
+    func reflect(Vec3 n) as Vec3
+        // R = self - 2*(self·n)*n  (入射向量关于法线的反射)
+        float d = self.dot(n)
+        Vec3 r = Vec3(
+            self.x - 2.0 * d * n.x,
+            self.y - 2.0 * d * n.y,
+            self.z - 2.0 * d * n.z
+        )
+        return r
+    end
+end
+
+// ========================================================================
+// Mat4：4x4 矛阵，内部用 array<float>（16 元素，行主序）。
+//   p' = M * p（p 为列向量）：
+//     x' = m[0]*x + m[1]*y + m[2]*z + m[3]
+//     y' = m[4]*x + m[5]*y + m[6]*z + m[7]
+//     z' = m[8]*x + m[9]*y + m[10]*z + m[11]
+//     w' = m[12]*x + m[13]*y + m[14]*z + m[15]
+// ========================================================================
+class Mat4
+    derive value
+    array<float> m = array[]
+
+    create()
+        int i = 0
+        while i < 16
+            self.m.append(0.0)
+            i = i + 1
+        end
+    end
+
+    func setCell(int row, int col, float val)
+        int p = row * 4 + col
+        self.m[p] = val
+    end
+
+    func at(int row, int col) as float
+        int p = row * 4 + col
+        return self.m[p]
+    end
+
+    // self * other（矛阵乘法）
+    func mul(Mat4 other) as Mat4
+        Mat4 result = Mat4()
+        int r = 0
+        while r < 4
+            int c = 0
+            while c < 4
+                float sum = 0.0
+                int k = 0
+                while k < 4
+                    float a = self.m[r * 4 + k]
+                    float b = other.m[k * 4 + c]
+                    sum = sum + a * b
+                    k = k + 1
+                end
+                result.m[r * 4 + c] = sum
+                c = c + 1
+            end
+            r = r + 1
+        end
+        return result
+    end
+
+    // 变换一个点（w=1），返回 (x, y, z, w)
+    func transformPoint(Vec3 p) as (float, float, float, float)
+        float x = self.m[0] * p.x + self.m[1] * p.y + self.m[2] * p.z + self.m[3]
+        float y = self.m[4] * p.x + self.m[5] * p.y + self.m[6] * p.z + self.m[7]
+        float z = self.m[8] * p.x + self.m[9] * p.y + self.m[10] * p.z + self.m[11]
+        float w = self.m[12] * p.x + self.m[13] * p.y + self.m[14] * p.z + self.m[15]
+        return x, y, z, w
+    end
+
+    // 变换一个方向（w=0，忽略平移），返回 Vec3
+    func transformDir(Vec3 d) as Vec3
+        float x = self.m[0] * d.x + self.m[1] * d.y + self.m[2] * d.z
+        float y = self.m[4] * d.x + self.m[5] * d.y + self.m[6] * d.z
+        float z = self.m[8] * d.x + self.m[9] * d.y + self.m[10] * d.z
+        Vec3 r = Vec3(x, y, z)
+        return r
+    end
+
+    // 变换世界坐标浮点 (wx, wy, wz) -> 返回 (cx, cy, cz, cw) 裁剪空间
+    func transformFloat(float wx, float wy, float wz) as (float, float, float, float)
+        float cx = self.m[0] * wx + self.m[1] * wy + self.m[2] * wz + self.m[3]
+        float cy = self.m[4] * wx + self.m[5] * wy + self.m[6] * wz + self.m[7]
+        float cz = self.m[8] * wx + self.m[9] * wy + self.m[10] * wz + self.m[11]
+        float cw = self.m[12] * wx + self.m[13] * wy + self.m[14] * wz + self.m[15]
+        return cx, cy, cz, cw
+    end
+end
+
+// ========================================================================
+// 矛阵构造器（全局函数，返回 Mat4 实例）
+// ========================================================================
+
+func matIdentity() as Mat4
+    Mat4 r = Mat4()
+    r.m[0] = 1.0
+    r.m[5] = 1.0
+    r.m[10] = 1.0
+    r.m[15] = 1.0
+    return r
+end
+
+func matTranslate(float tx, float ty, float tz) as Mat4
+    Mat4 r = matIdentity()
+    r.m[3] = tx
+    r.m[7] = ty
+    r.m[11] = tz
+    return r
+end
+
+func matScale(float sx, float sy, float sz) as Mat4
+    Mat4 r = matIdentity()
+    r.m[0] = sx
+    r.m[5] = sy
+    r.m[10] = sz
+    return r
+end
+
+func matRotateX(float rad) as Mat4
+    float c = math.cos(rad)
+    float s = math.sin(rad)
+    Mat4 r = matIdentity()
+    r.m[5] = c
+    r.m[6] = 0.0 - s
+    r.m[9] = s
+    r.m[10] = c
+    return r
+end
+
+func matRotateY(float rad) as Mat4
+    float c = math.cos(rad)
+    float s = math.sin(rad)
+    Mat4 r = matIdentity()
+    r.m[0] = c
+    r.m[2] = s
+    r.m[8] = 0.0 - s
+    r.m[10] = c
+    return r
+end
+
+func matRotateZ(float rad) as Mat4
+    float c = math.cos(rad)
+    float s = math.sin(rad)
+    Mat4 r = matIdentity()
+    r.m[0] = c
+    r.m[1] = 0.0 - s
+    r.m[4] = s
+    r.m[5] = c
+    return r
+end
+
+// 透视投影矛阵（OpenGL 风格，fovy 为竖直视野角度，单位度）
+func matPerspective(float fovyDeg, float aspect, float zNear, float zFar) as Mat4
+    float f = 1.0 / math.tan(degToRad(fovyDeg) * 0.5)
+    Mat4 r = Mat4()
+    r.m[0] = f / aspect
+    r.m[5] = f
+    r.m[10] = (zFar + zNear) / (zNear - zFar)
+    r.m[11] = (2.0 * zFar * zNear) / (zNear - zFar)
+    r.m[14] = -1.0
+    return r
+end
+
+// LookAt 视图矛阵（eye 看向 target，up 为向上方向）
+func matLookAt(Vec3 eye, Vec3 target, Vec3 up) as Mat4
+    Vec3 fRaw = eye - target
+    Vec3 f = fRaw.normalize()
+    Vec3 sRaw = up.cross(f)
+    Vec3 s = sRaw.normalize()
+    Vec3 u = f.cross(s)
+    Mat4 r = matIdentity()
+    r.m[0] = s.x
+    r.m[1] = s.y
+    r.m[2] = s.z
+    r.m[3] = 0.0 - s.dot(eye)
+    r.m[4] = u.x
+    r.m[5] = u.y
+    r.m[6] = u.z
+    r.m[7] = 0.0 - u.dot(eye)
+    r.m[8] = f.x
+    r.m[9] = f.y
+    r.m[10] = f.z
+    r.m[11] = 0.0 - f.dot(eye)
+    return r
+end
+
+// ========================================================================
+// Mesh：三角形网格（支持 OBJ 加载的分离索引结构）
+//
+//   verts  : array<float>  顶点位置，每 3 个一组 (x,y,z)
+//   uvs    : array<float>  纹理坐标，每 2 个一组 (u,v)
+//   norms  : array<float>  法线，每 3 个一组 (nx,ny,nz)
+//   faces  : array<int>    面顶点索引，每组 3 个 (vi, ti, ni)
+//                          每三角形 3 组 = 9 个 int
+//   hasUv  : bool          是否有纹理坐标
+//   hasNormal : bool       是否有法线
+// ========================================================================
+class Mesh
+    derive value
+    array<float> verts = array[]
+    array<float> uvs = array[]
+    array<float> norms = array[]
+    array<int> faces = array[]
+    bool hasUv = false
+    bool hasNormal = false
+
+    func addVert(float x, float y, float z)
+        self.verts.append(x)
+        self.verts.append(y)
+        self.verts.append(z)
+    end
+
+    func addUv(float u, float v)
+        self.uvs.append(u)
+        self.uvs.append(v)
+    end
+
+    func addNormal(float nx, float ny, float nz)
+        self.norms.append(nx)
+        self.norms.append(ny)
+        self.norms.append(nz)
+    end
+
+    // 添加一个面顶点 (vi=顶点索引, ti=UV索引, ni=法线索引)
+    func addFaceVertex(int vi, int ti, int ni)
+        self.faces.append(vi)
+        self.faces.append(ti)
+        self.faces.append(ni)
+    end
+
+    // 添加一个完整三角形
+    func addTriangle(int v0, int t0, int n0, int v1, int t1, int n1, int v2, int t2, int n2)
+        self.faces.append(v0)
+        self.faces.append(t0)
+        self.faces.append(n0)
+        self.faces.append(v1)
+        self.faces.append(t1)
+        self.faces.append(n1)
+        self.faces.append(v2)
+        self.faces.append(t2)
+        self.faces.append(n2)
+    end
+
+    func triCount() as int
+        int n = self.faces.length
+        return n / 9
+    end
+
+    func vertCount() as int
+        int n = self.verts.length
+        return n / 3
+    end
+
+    func uvCount() as int
+        int n = self.uvs.length
+        return n / 2
+    end
+
+    func normalCount() as int
+        int n = self.norms.length
+        return n / 3
+    end
+
+    // 读取第 i 个顶点位置
+    func getVert(int i) as Vec3
+        int p = i * 3
+        Vec3 v = Vec3(self.verts[p], self.verts[p + 1], self.verts[p + 2])
+        return v
+    end
+
+    // 读取第 i 个法线
+    func getNormal(int i) as Vec3
+        int p = i * 3
+        Vec3 v = Vec3(self.norms[p], self.norms[p + 1], self.norms[p + 2])
+        return v
+    end
+
+    // 读取第 i 个 UV
+    func getUv(int i) as (float, float)
+        int p = i * 2
+        return self.uvs[p], self.uvs[p + 1]
+    end
+end
+
+// ========================================================================
+// 文本分词器：按空白字符分割，跳过空 token
+// ========================================================================
+func tokenize(string line) as array<string>
+    array<string> tokens = array[]
+    int len = string.len(line)
+    int i = 0
+    while i < len
+        int c = string.byteAt(line, i)
+        // 跳过空白 (space=32, tab=9, \r=13, \n=10)
+        if c == 32 or c == 9 or c == 13 or c == 10 then
+            i = i + 1
+            continue
+        end
+        // 读取 token
+        int start = i
+        while i < len
+            int ch = string.byteAt(line, i)
+            if ch == 32 or ch == 9 or ch == 13 or ch == 10 then
+                break
+            end
+            i = i + 1
+        end
+        tokens.append(string.slice(line, start, i - start))
+    end
+    return tokens
+end
+
+// ========================================================================
+// 面顶点解析：将 "v/t/n" 或 "v//n" 或 "v/t" 或 "v" 拆为 (vi, ti, ni)
+// OBJ 使用 1-based 索引，这里转为 0-based；缺失的索引返回 -1
+// ========================================================================
+func parseFaceVertex(string spec, int curVerts, int curUvs, int curNorms) as (int, int, int)
+    int vi = -1
+    int ti = -1
+    int ni = -1
+    array parts = string.split(spec, "/")
+    int np = parts.length
+
+    if np >= 1 then
+        string s0 = string.trim(string(parts[0]))
+        if string.len(s0) > 0 then
+            int raw = parseIntSafe(s0)
+            if raw > 0 then
+                vi = raw - 1
+            elseif raw < 0 then
+                vi = curVerts + raw
+            end
+        end
+    end
+
+    if np >= 2 then
+        string s1 = string.trim(string(parts[1]))
+        if string.len(s1) > 0 then
+            int raw = parseIntSafe(s1)
+            if raw > 0 then
+                ti = raw - 1
+            elseif raw < 0 then
+                ti = curUvs + raw
+            end
+        end
+    end
+
+    if np >= 3 then
+        string s2 = string.trim(string(parts[2]))
+        if string.len(s2) > 0 then
+            int raw = parseIntSafe(s2)
+            if raw > 0 then
+                ni = raw - 1
+            elseif raw < 0 then
+                ni = curNorms + raw
+            end
+        end
+    end
+
+    return vi, ti, ni
+end
+
+// ========================================================================
+// OBJ 模型加载器
+//
+// 解析 .obj 文件中的 v / vt / vn / f 指令，提取：
+//   - 顶点位置 (v x y z)
+//   - 纹理坐标 (vt u v)
+//   - 法线 (vn nx ny nz)
+//   - 面 (f v/t/n v/t/n v/t/n ...)，扇形三角化 >3 顶点的多边形
+// 忽略 o/g/s/mtllib/usemtl 等非几何指令
+// ========================================================================
+func loadObj(string path) as Mesh
+    if not file.exists(path) then
+        throw "OBJ file not found: " + path
+    end
+
+    string text
+    bool readOk = true
+    try
+        text = file.readText(path)
+    catch e
+        readOk = false
+    end
+    if not readOk then
+        throw "failed to read OBJ file: " + path
+    end
+    if text == "" then
+        throw "OBJ file is empty: " + path
+    end
+
+    Mesh mesh = Mesh()
+    array lines = string.splitLines(text)
+
+    bool foundUv = false
+    bool foundNormal = false
+    int vertCount = 0
+    int uvCount = 0
+    int normCount = 0
+    int triCount = 0
+
+    int li = 0
+    while li < lines.length
+        string rawLine = string(lines[li])
+        string line = string.trim(rawLine)
+
+        // 跳过空行和注释
+        if string.len(line) == 0 then
+            li = li + 1
+            continue
+        end
+        if string.startsWith(line, "#") then
+            li = li + 1
+            continue
+        end
+
+        array<string> toks = tokenize(line)
+        if toks.length == 0 then
+            li = li + 1
+            continue
+        end
+
+        string tag = toks[0]
+
+        if tag == "v" and toks.length >= 4 then
+            float x = parseFloatSafe(toks[1])
+            float y = parseFloatSafe(toks[2])
+            float z = parseFloatSafe(toks[3])
+            mesh.addVert(x, y, z)
+            vertCount = vertCount + 1
+
+        elseif tag == "vt" and toks.length >= 3 then
+            float u = parseFloatSafe(toks[1])
+            float v = parseFloatSafe(toks[2])
+            mesh.addUv(u, v)
+            uvCount = uvCount + 1
+
+        elseif tag == "vn" and toks.length >= 4 then
+            float nx = parseFloatSafe(toks[1])
+            float ny = parseFloatSafe(toks[2])
+            float nz = parseFloatSafe(toks[3])
+            mesh.addNormal(nx, ny, nz)
+            normCount = normCount + 1
+
+        elseif tag == "f" and toks.length >= 4 then
+            // 面：扇形三角化 (f v0 v1 v2 v3 ... -> (v0,v1,v2), (v0,v2,v3), ...)
+            int v0 = -1
+            int t0 = -1
+            int n0 = -1
+            v0, t0, n0 = parseFaceVertex(toks[1], vertCount, uvCount, normCount)
+            if t0 >= 0 then
+                foundUv = true
+            end
+            if n0 >= 0 then
+                foundNormal = true
+            end
+
+            int fi = 2
+            while fi < toks.length - 1
+                int v1 = -1
+                int t1 = -1
+                int n1 = -1
+                v1, t1, n1 = parseFaceVertex(toks[fi], vertCount, uvCount, normCount)
+                int v2 = -1
+                int t2 = -1
+                int n2 = -1
+                v2, t2, n2 = parseFaceVertex(toks[fi + 1], vertCount, uvCount, normCount)
+
+                mesh.addTriangle(v0, t0, n0, v1, t1, n1, v2, t2, n2)
+                triCount = triCount + 1
+
+                if t1 >= 0 or t2 >= 0 then
+                    foundUv = true
+                end
+                if n1 >= 0 or n2 >= 0 then
+                    foundNormal = true
+                end
+
+                fi = fi + 1
+            end
+        end
+
+        // 忽略 o/g/s/mtllib/usemtl/p/l 等指令
+
+        li = li + 1
+    end
+
+    mesh.hasUv = foundUv and mesh.uvCount() > 0
+    mesh.hasNormal = foundNormal and mesh.normalCount() > 0
+
+    return mesh
+end
+
+// ========================================================================
+// 网格包围盒计算
+// ========================================================================
+func meshBounds(Mesh mesh) as (float, float, float, float, float, float)
+    int vc = mesh.vertCount()
+    if vc == 0 then
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+    end
+    Vec3 v0 = mesh.getVert(0)
+    float mnx = v0.x
+    float mny = v0.y
+    float mnz = v0.z
+    float mxx = v0.x
+    float mxy = v0.y
+    float mxz = v0.z
+    int i = 1
+    while i < vc
+        Vec3 v = mesh.getVert(i)
+        if v.x < mnx then
+            mnx = v.x
+        end
+        if v.y < mny then
+            mny = v.y
+        end
+        if v.z < mnz then
+            mnz = v.z
+        end
+        if v.x > mxx then
+            mxx = v.x
+        end
+        if v.y > mxy then
+            mxy = v.y
+        end
+        if v.z > mxz then
+            mxz = v.z
+        end
+        i = i + 1
+    end
+    return mnx, mny, mnz, mxx, mxy, mxz
+end
+
+// ========================================================================
+// 网格合并：将 b 追加到 a 后面，调整索引偏移
+// ========================================================================
+func mergeMesh(Mesh a, Mesh b) as Mesh
+    Mesh outputValue = Mesh()
+    int vOff = a.vertCount()
+    int tOff = a.uvCount()
+    int nOff = a.normalCount()
+
+    // 复制顶点
+    int i = 0
+    while i < a.verts.length
+        outputValue.verts.append(a.verts[i])
+        i = i + 1
+    end
+    i = 0
+    while i < b.verts.length
+        outputValue.verts.append(b.verts[i])
+        i = i + 1
+    end
+
+    // 复制 UV
+    i = 0
+    while i < a.uvs.length
+        outputValue.uvs.append(a.uvs[i])
+        i = i + 1
+    end
+    i = 0
+    while i < b.uvs.length
+        outputValue.uvs.append(b.uvs[i])
+        i = i + 1
+    end
+
+    // 复制法线
+    i = 0
+    while i < a.norms.length
+        outputValue.norms.append(a.norms[i])
+        i = i + 1
+    end
+    i = 0
+    while i < b.norms.length
+        outputValue.norms.append(b.norms[i])
+        i = i + 1
+    end
+
+    // 复制面（a 的索引不变，b 的索引加偏移）
+    i = 0
+    while i < a.faces.length
+        outputValue.faces.append(a.faces[i])
+        i = i + 1
+    end
+    i = 0
+    while i < b.faces.length
+        int mod = i % 3
+        int val = b.faces[i]
+        if mod == 0 and val >= 0 then
+            val = val + vOff
+        elseif mod == 1 and val >= 0 then
+            val = val + tOff
+        elseif mod == 2 and val >= 0 then
+            val = val + nOff
+        end
+        outputValue.faces.append(val)
+        i = i + 1
+    end
+
+    outputValue.hasUv = a.hasUv or b.hasUv
+    outputValue.hasNormal = a.hasNormal or b.hasNormal
+    return outputValue
+end
+
+// ========================================================================
+// 程序生成模型：纹理化立方体（24 顶点，12 三角形）
+// 每面独立顶点/法线/UV，边长 2，中心在原点
+// ========================================================================
+func buildCubeTextured() as Mesh
+    Mesh m = Mesh()
+
+    // 6 面，每面 4 顶点。UV 为 (0,0)(1,0)(1,1)(0,1)
+    // 面定义：[normal, [4 vertex positions]]
+    // 面 0: +Z (front)
+    m.addVert(-1.0, -1.0, 1.0)
+    m.addVert(1.0, -1.0, 1.0)
+    m.addVert(1.0, 1.0, 1.0)
+    m.addVert(-1.0, 1.0, 1.0)
+    m.addNormal(0.0, 0.0, 1.0)
+    m.addNormal(0.0, 0.0, 1.0)
+    m.addNormal(0.0, 0.0, 1.0)
+    m.addNormal(0.0, 0.0, 1.0)
+    m.addUv(0.0, 0.0)
+    m.addUv(1.0, 0.0)
+    m.addUv(1.0, 1.0)
+    m.addUv(0.0, 1.0)
+
+    // 面 1: -Z (back)
+    m.addVert(1.0, -1.0, -1.0)
+    m.addVert(-1.0, -1.0, -1.0)
+    m.addVert(-1.0, 1.0, -1.0)
+    m.addVert(1.0, 1.0, -1.0)
+    m.addNormal(0.0, 0.0, -1.0)
+    m.addNormal(0.0, 0.0, -1.0)
+    m.addNormal(0.0, 0.0, -1.0)
+    m.addNormal(0.0, 0.0, -1.0)
+    m.addUv(0.0, 0.0)
+    m.addUv(1.0, 0.0)
+    m.addUv(1.0, 1.0)
+    m.addUv(0.0, 1.0)
+
+    // 面 2: +X (right)
+    m.addVert(1.0, -1.0, 1.0)
+    m.addVert(1.0, -1.0, -1.0)
+    m.addVert(1.0, 1.0, -1.0)
+    m.addVert(1.0, 1.0, 1.0)
+    m.addNormal(1.0, 0.0, 0.0)
+    m.addNormal(1.0, 0.0, 0.0)
+    m.addNormal(1.0, 0.0, 0.0)
+    m.addNormal(1.0, 0.0, 0.0)
+    m.addUv(0.0, 0.0)
+    m.addUv(1.0, 0.0)
+    m.addUv(1.0, 1.0)
+    m.addUv(0.0, 1.0)
+
+    // 面 3: -X (left)
+    m.addVert(-1.0, -1.0, -1.0)
+    m.addVert(-1.0, -1.0, 1.0)
+    m.addVert(-1.0, 1.0, 1.0)
+    m.addVert(-1.0, 1.0, -1.0)
+    m.addNormal(-1.0, 0.0, 0.0)
+    m.addNormal(-1.0, 0.0, 0.0)
+    m.addNormal(-1.0, 0.0, 0.0)
+    m.addNormal(-1.0, 0.0, 0.0)
+    m.addUv(0.0, 0.0)
+    m.addUv(1.0, 0.0)
+    m.addUv(1.0, 1.0)
+    m.addUv(0.0, 1.0)
+
+    // 面 4: +Y (top)
+    m.addVert(-1.0, 1.0, 1.0)
+    m.addVert(1.0, 1.0, 1.0)
+    m.addVert(1.0, 1.0, -1.0)
+    m.addVert(-1.0, 1.0, -1.0)
+    m.addNormal(0.0, 1.0, 0.0)
+    m.addNormal(0.0, 1.0, 0.0)
+    m.addNormal(0.0, 1.0, 0.0)
+    m.addNormal(0.0, 1.0, 0.0)
+    m.addUv(0.0, 0.0)
+    m.addUv(1.0, 0.0)
+    m.addUv(1.0, 1.0)
+    m.addUv(0.0, 1.0)
+
+    // 面 5: -Y (bottom)
+    m.addVert(-1.0, -1.0, -1.0)
+    m.addVert(1.0, -1.0, -1.0)
+    m.addVert(1.0, -1.0, 1.0)
+    m.addVert(-1.0, -1.0, 1.0)
+    m.addNormal(0.0, -1.0, 0.0)
+    m.addNormal(0.0, -1.0, 0.0)
+    m.addNormal(0.0, -1.0, 0.0)
+    m.addNormal(0.0, -1.0, 0.0)
+    m.addUv(0.0, 0.0)
+    m.addUv(1.0, 0.0)
+    m.addUv(1.0, 1.0)
+    m.addUv(0.0, 1.0)
+
+    // 6 面 x 2 三角形 = 12 三角形
+    int face = 0
+    while face < 6
+        int b = face * 4
+        m.addTriangle(b, b, b, b + 1, b + 1, b + 1, b + 2, b + 2, b + 2)
+        m.addTriangle(b, b, b, b + 2, b + 2, b + 2, b + 3, b + 3, b + 3)
+        face = face + 1
+    end
+
+    m.hasUv = true
+    m.hasNormal = true
+    return m
+end
+
+// ========================================================================
+// 程序生成模型：UV 球体（经纬度参数化）
+//   sectors = 经度分割数, stacks = 纬度分割数
+//   半径 1，中心在原点
+// ========================================================================
+func buildSphere(int sectors, int stacks) as Mesh
+    Mesh m = Mesh()
+
+    if sectors < 4 then
+        sectors = 4
+    end
+    if stacks < 3 then
+        stacks = 3
+    end
+
+    // 生成顶点 + UV + 法线 (法线 = 归一化位置)
+    int st = 0
+    while st <= stacks
+        float phi = PI * float(st) / float(stacks)
+        float sp = math.sin(phi)
+        float cp = math.cos(phi)
+        int sc = 0
+        while sc <= sectors
+            float theta = 2.0 * PI * float(sc) / float(sectors)
+            float st_ = math.sin(theta)
+            float ct = math.cos(theta)
+            float x = sp * ct
+            float y = cp
+            float z = sp * st_
+            m.addVert(x, y, z)
+            m.addNormal(x, y, z)
+            m.addUv(float(sc) / float(sectors), float(st) / float(stacks))
+            sc = sc + 1
+        end
+        st = st + 1
+    end
+
+    // 生成三角形（四边形拆分为两个三角形）
+    st = 0
+    while st < stacks
+        int sc = 0
+        while sc < sectors
+            int v00 = st * (sectors + 1) + sc
+            int v01 = v00 + 1
+            int v10 = (st + 1) * (sectors + 1) + sc
+            int v11 = v10 + 1
+            // 三角形 1: v00, v10, v11
+            m.addTriangle(v00, v00, v00, v10, v10, v10, v11, v11, v11)
+            // 三角形 2: v00, v11, v01
+            m.addTriangle(v00, v00, v00, v11, v11, v11, v01, v01, v01)
+            sc = sc + 1
+        end
+        st = st + 1
+    end
+
+    m.hasUv = true
+    m.hasNormal = true
+    return m
+end
+
+// ========================================================================
+// 程序生成模型：地面平面（大四边形，y=0）
+//   halfSize = 半边长
+// ========================================================================
+func buildGroundPlane(float halfSize) as Mesh
+    Mesh m = Mesh()
+    // 4 顶点，法线朝上
+    m.addVert(0.0 - halfSize, 0.0, 0.0 - halfSize)   // 0
+    m.addVert(halfSize, 0.0, 0.0 - halfSize)          // 1
+    m.addVert(halfSize, 0.0, halfSize)                // 2
+    m.addVert(0.0 - halfSize, 0.0, halfSize)          // 3
+
+    int ni = 0
+    while ni < 4
+        m.addNormal(0.0, 1.0, 0.0)
+        ni = ni + 1
+    end
+
+    // UV 按地面尺寸缩放（每 unit 重复一次纹理）
+    float rep = halfSize * 0.5
+    m.addUv(0.0, 0.0)
+    m.addUv(rep, 0.0)
+    m.addUv(rep, rep)
+    m.addUv(0.0, rep)
+
+    m.addTriangle(0, 0, 0, 1, 1, 1, 2, 2, 2)
+    m.addTriangle(0, 0, 0, 2, 2, 2, 3, 3, 3)
+
+    m.hasUv = true
+    m.hasNormal = true
+    return m
+end
+
+// ========================================================================
+// Texture：纹理图像
+//   pixels : array<int>  RGB 三元组，范围 [0,255]
+//   采样方式：最近邻 + 重复缠绕
+// ========================================================================
+class Texture
+    derive value
+    int width = 0
+    int height = 0
+    array<int> pixels = array[]
+
+    create(int width, int height)
+        self.width = width
+        self.height = height
+        int total = width * height * 3
+        int i = 0
+        while i < total
+            self.pixels.append(0)
+            i = i + 1
+        end
+    end
+
+    func setPixel(int x, int y, int r, int g, int b)
+        int idx = (y * self.width + x) * 3
+        self.pixels[idx] = r
+        self.pixels[idx + 1] = g
+        self.pixels[idx + 2] = b
+    end
+
+    // 最近邻采样，重复缠绕
+    func sample(float u, float v) as (int, int, int)
+        // 缠绕到 [0, 1)
+        u = u - math.floor(u)
+        v = v - math.floor(v)
+        int tx = int(u * float(self.width))
+        int ty = int(v * float(self.height))
+        if tx >= self.width then
+            tx = self.width - 1
+        end
+        if ty >= self.height then
+            ty = self.height - 1
+        end
+        if tx < 0 then
+            tx = 0
+        end
+        if ty < 0 then
+            ty = 0
+        end
+        int idx = (ty * self.width + tx) * 3
+        return self.pixels[idx], self.pixels[idx + 1], self.pixels[idx + 2]
+    end
+end
+
+// ========================================================================
+// 纹理生成器：棋盘格
+// ========================================================================
+func buildCheckerTexture(int w, int h, int cellSize, int r1, int g1, int b1, int r2, int g2, int b2) as Texture
+    Texture tex = Texture(w, h)
+    int y = 0
+    while y < h
+        int x = 0
+        while x < w
+            int cx = x / cellSize
+            int cy = y / cellSize
+            int sum = cx + cy
+            int mod2 = sum - (sum / 2) * 2
+            if mod2 == 0 then
+                tex.setPixel(x, y, r1, g1, b1)
+            else
+                tex.setPixel(x, y, r2, g2, b2)
+            end
+            x = x + 1
+        end
+        y = y + 1
+    end
+    return tex
+end
+
+// ========================================================================
+// Material：材质参数
+// ========================================================================
+class Material
+    derive value
+    float cr = 1.0      // 基础色 R
+    float cg = 1.0      // 基础色 G
+    float cb = 1.0      // 基础色 B
+    float ka = 0.15     // 环境光系数
+    float kd = 0.7      // 漫反射系数
+    float ks = 0.4      // 镜面反射系数
+    float shininess = 32.0  // 高光指数
+
+    create()
+    end
+
+    create(float cr, float cg, float cb, float ka, float kd, float ks, float shininess)
+        self.cr = cr
+        self.cg = cg
+        self.cb = cb
+        self.ka = ka
+        self.kd = kd
+        self.ks = ks
+        self.shininess = shininess
+    end
+end
+
+// ========================================================================
+// RenderTarget：帧缓冲 + 深度缓冲
+//   fb : array<int>   每 3 个一组 (r,g,b)，范围 [0,255]
+//   zb : array<float> 每像素 NDC 深度，初始 DEPTH_INF
+// ========================================================================
+class RenderTarget
+    int width = 0
+    int height = 0
+    array<int> fb = array[]
+    array<float> zb = array[]
+
+    create(int width, int height)
+        self.width = width
+        self.height = height
+        int total = width * height
+        int i = 0
+        while i < total * 3
+            self.fb.append(0)
+            i = i + 1
+        end
+        i = 0
+        while i < total
+            self.zb.append(DEPTH_INF)
+            i = i + 1
+        end
+    end
+
+    func clear(int r, int g, int b)
+        int total = self.width * self.height
+        int i = 0
+        while i < total
+            self.fb[i * 3] = r
+            self.fb[i * 3 + 1] = g
+            self.fb[i * 3 + 2] = b
+            self.zb[i] = DEPTH_INF
+            i = i + 1
+        end
+    end
+
+    func setPixel(int x, int y, int r, int g, int b)
+        int idx = (y * self.width + x) * 3
+        self.fb[idx] = r
+        self.fb[idx + 1] = g
+        self.fb[idx + 2] = b
+    end
+
+    func getPixelR(int x, int y) as int
+        int idx = (y * self.width + x) * 3
+        return self.fb[idx]
+    end
+
+    func getPixelG(int x, int y) as int
+        int idx = (y * self.width + x) * 3
+        return self.fb[idx + 1]
+    end
+
+    func getPixelB(int x, int y) as int
+        int idx = (y * self.width + x) * 3
+        return self.fb[idx + 2]
+    end
+end
+
+// ========================================================================
+// 光源管理
+// ========================================================================
+
+func clearLights()
+    g_lights = array[]
+    g_lightCount = 0
+end
+
+func addLight(float x, float y, float z, float r, float g, float b, float intensity)
+    g_lights.append(x)
+    g_lights.append(y)
+    g_lights.append(z)
+    g_lights.append(r)
+    g_lights.append(g)
+    g_lights.append(b)
+    g_lights.append(intensity)
+    g_lightCount = g_lightCount + 1
+end
+
+// ========================================================================
+// Phong 着色
+//
+// 在世界空间位置 (wx,wy,wz) 处，法线 (nx,ny,nz)，UV (u,v)：
+//   color = ka * surfaceColor
+//         + Σ_lights [ kd * (N·L) * surfaceColor * lightColor * intensity
+//                     + ks * (R·V)^shininess * lightColor * intensity ]
+//
+// 使用全局 g_lights 和 g_eyeX/Y/Z
+// ========================================================================
+func shadePhong(
+    float wx, float wy, float wz,
+    float nx, float ny, float nz,
+    float u, float v,
+    Texture tex,
+    bool useTexture,
+    float matR, float matG, float matB,
+    float ka, float kd, float ks, float shininess
+) as (float, float, float)
+    // 归一化法线
+    float nLen = math.sqrt(nx * nx + ny * ny + nz * nz)
+    if nLen > 0.0001 then
+        nx = nx / nLen
+        ny = ny / nLen
+        nz = nz / nLen
+    end
+
+    // 视线方向（从表面指向相机）
+    float vx = g_eyeX - wx
+    float vy = g_eyeY - wy
+    float vz = g_eyeZ - wz
+    float vLen = math.sqrt(vx * vx + vy * vy + vz * vz)
+    if vLen > 0.0001 then
+        vx = vx / vLen
+        vy = vy / vLen
+        vz = vz / vLen
+    end
+
+    // 双面渲染：法线朝向相机侧
+    float nDotV = nx * vx + ny * vy + nz * vz
+    if nDotV < 0.0 then
+        nx = 0.0 - nx
+        ny = 0.0 - ny
+        nz = 0.0 - nz
+    end
+
+    // 表面颜色
+    float sr = matR
+    float sg = matG
+    float sb = matB
+    if useTexture then
+        int tr
+        int tg
+        int tb
+        tr, tg, tb = tex.sample(u, v)
+        sr = float(tr) / 255.0
+        sg = float(tg) / 255.0
+        sb = float(tb) / 255.0
+    end
+
+    // 环境光
+    float outR = ka * sr
+    float outG = ka * sg
+    float outB = ka * sb
+
+    // 逐光源累加
+    int li = 0
+    while li < g_lightCount
+        int base = li * 7
+        float lx = g_lights[base]
+        float ly = g_lights[base + 1]
+        float lz = g_lights[base + 2]
+        float lr = g_lights[base + 3]
+        float lg = g_lights[base + 4]
+        float lb = g_lights[base + 5]
+        float lint = g_lights[base + 6]
+
+        // 光线方向（从表面指向光源）
+        float dx = lx - wx
+        float dy = ly - wy
+        float dz = lz - wz
+        float dLen = math.sqrt(dx * dx + dy * dy + dz * dz)
+        if dLen > 0.0001 then
+            dx = dx / dLen
+            dy = dy / dLen
+            dz = dz / dLen
+        end
+
+        // 漫反射: max(0, N·L)
+        float nDotL = nx * dx + ny * dy + nz * dz
+        if nDotL < 0.0 then
+            nDotL = 0.0
+        end
+
+        // 镜面反射: R = 2*(N·L)*N - L; spec = max(0, R·V)^shininess
+        float rx = 2.0 * nDotL * nx - dx
+        float ry = 2.0 * nDotL * ny - dy
+        float rz = 2.0 * nDotL * nz - dz
+        float rDotV = rx * vx + ry * vy + rz * vz
+        if rDotV < 0.0 then
+            rDotV = 0.0
+        end
+        float spec = 0.0
+        if rDotV > 0.0 and shininess > 0.0 then
+            spec = math.pow(rDotV, shininess)
+        end
+
+        // 累加
+        float diffI = kd * nDotL * lint
+        float specI = ks * spec * lint
+        outR = outR + lr * (diffI * sr + specI)
+        outG = outG + lg * (diffI * sg + specI)
+        outB = outB + lb * (diffI * sb + specI)
+
+        li = li + 1
+    end
+
+    return outR, outG, outB
+end
+
+// ========================================================================
+// 三角形光栅化（模型）：重心坐标 + 透视校正 + Phong 着色 + 纹理映射
+//
+// 对 mesh 的每个三角形：
+//   1. 三个面顶点索引 -> 位置/UV/法线
+//   2. model 矩阵变换位置/法线到世界空间
+//   3. mvp 变换到裁剪空间
+//   4. 透视除法 -> NDC
+//   5. 视口变换 -> 屏幕坐标
+//   6. 计算包围盒
+//   7. 逐像素重心坐标测试 + 透视校正插值 + Z-buffer + Phong 着色
+// ========================================================================
+func rasterizeModel(
+    Mesh mesh,
+    Mat4 modelMat,
+    Mat4 viewProj,
+    RenderTarget rt,
+    Texture tex,
+    bool useTexture,
+    float matR, float matG, float matB,
+    float ka, float kd, float ks, float shininess
+) as RenderTarget
+    int width = rt.width
+    int height = rt.height
+    int tc = mesh.triCount()
+    float fw = float(width)
+    float fh = float(height)
+
+    int t = 0
+    while t < tc
+        int fbase = t * 9
+        int vi0 = mesh.faces[fbase]
+        int ti0 = mesh.faces[fbase + 1]
+        int ni0 = mesh.faces[fbase + 2]
+        int vi1 = mesh.faces[fbase + 3]
+        int ti1 = mesh.faces[fbase + 4]
+        int ni1 = mesh.faces[fbase + 5]
+        int vi2 = mesh.faces[fbase + 6]
+        int ti2 = mesh.faces[fbase + 7]
+        int ni2 = mesh.faces[fbase + 8]
+
+        // 模型空间位置
+        Vec3 lp0 = mesh.getVert(vi0)
+        Vec3 lp1 = mesh.getVert(vi1)
+        Vec3 lp2 = mesh.getVert(vi2)
+
+        // 世界空间位置（model 矩阵变换，含平移）
+        float w0x
+        float w0y
+        float w0z
+        float w0w
+        w0x, w0y, w0z, w0w = modelMat.transformFloat(lp0.x, lp0.y, lp0.z)
+        float w1x
+        float w1y
+        float w1z
+        float w1w
+        w1x, w1y, w1z, w1w = modelMat.transformFloat(lp1.x, lp1.y, lp1.z)
+        float w2x
+        float w2y
+        float w2z
+        float w2w
+        w2x, w2y, w2z, w2w = modelMat.transformFloat(lp2.x, lp2.y, lp2.z)
+
+        // 世界空间法线
+        float wn0x = 0.0
+        float wn0y = 0.0
+        float wn0z = 0.0
+        float wn1x = 0.0
+        float wn1y = 0.0
+        float wn1z = 0.0
+        float wn2x = 0.0
+        float wn2y = 0.0
+        float wn2z = 0.0
+
+        if mesh.hasNormal and ni0 >= 0 and ni1 >= 0 and ni2 >= 0 then
+            Vec3 ln0 = mesh.getNormal(ni0)
+            Vec3 ln1 = mesh.getNormal(ni1)
+            Vec3 ln2 = mesh.getNormal(ni2)
+            Vec3 wn0v = modelMat.transformDir(ln0)
+            Vec3 wn1v = modelMat.transformDir(ln1)
+            Vec3 wn2v = modelMat.transformDir(ln2)
+            wn0x = wn0v.x
+            wn0y = wn0v.y
+            wn0z = wn0v.z
+            wn1x = wn1v.x
+            wn1y = wn1v.y
+            wn1z = wn1v.z
+            wn2x = wn2v.x
+            wn2y = wn2v.y
+            wn2z = wn2v.z
+        else
+            // 平面着色法线：世界空间三角形法线
+            Vec3 tp0 = Vec3(w0x, w0y, w0z)
+            Vec3 tp1 = Vec3(w1x, w1y, w1z)
+            Vec3 tp2 = Vec3(w2x, w2y, w2z)
+            Vec3 e1 = tp1 - tp0
+            Vec3 e2 = tp2 - tp0
+            Vec3 fn = e1.cross(e2)
+            wn0x = fn.x
+            wn0y = fn.y
+            wn0z = fn.z
+            wn1x = fn.x
+            wn1y = fn.y
+            wn1z = fn.z
+            wn2x = fn.x
+            wn2y = fn.y
+            wn2z = fn.z
+        end
+
+        // UV 坐标
+        float u0 = 0.0
+        float v0 = 0.0
+        float u1 = 0.0
+        float v1 = 0.0
+        float u2 = 0.0
+        float v2 = 0.0
+        if mesh.hasUv and ti0 >= 0 and ti1 >= 0 and ti2 >= 0 then
+            u0, v0 = mesh.getUv(ti0)
+            u1, v1 = mesh.getUv(ti1)
+            u2, v2 = mesh.getUv(ti2)
+        else
+            u0 = 0.0
+            v0 = 0.0
+            u1 = 1.0
+            v1 = 0.0
+            u2 = 0.5
+            v2 = 1.0
+        end
+
+        // 裁剪空间坐标 (通过 viewProj 变换世界坐标)
+        float cx0
+        float cy0
+        float cz0
+        float cw0
+        cx0, cy0, cz0, cw0 = viewProj.transformFloat(w0x, w0y, w0z)
+        float cx1
+        float cy1
+        float cz1
+        float cw1
+        cx1, cy1, cz1, cw1 = viewProj.transformFloat(w1x, w1y, w1z)
+        float cx2
+        float cy2
+        float cz2
+        float cw2
+        cx2, cy2, cz2, cw2 = viewProj.transformFloat(w2x, w2y, w2z)
+
+        // 近裁剪面剔除：w <= 0 的顶点在相机后方
+        if cw0 <= 0.0001 or cw1 <= 0.0001 or cw2 <= 0.0001 then
+            t = t + 1
+            continue
+        end
+
+        // 透视除法 -> NDC
+        float invW0 = 1.0 / cw0
+        float invW1 = 1.0 / cw1
+        float invW2 = 1.0 / cw2
+        float nx0 = cx0 * invW0
+        float ny0 = cy0 * invW0
+        float nz0 = cz0 * invW0
+        float nx1 = cx1 * invW1
+        float ny1 = cy1 * invW1
+        float nz1 = cz1 * invW1
+        float nx2 = cx2 * invW2
+        float ny2 = cy2 * invW2
+        float nz2 = cz2 * invW2
+
+        // 视口变换 -> 屏幕坐标（Y 翻转）
+        float sx0f = (nx0 + 1.0) * 0.5 * fw
+        float sy0f = (1.0 - ny0) * 0.5 * fh
+        float sx1f = (nx1 + 1.0) * 0.5 * fw
+        float sy1f = (1.0 - ny1) * 0.5 * fh
+        float sx2f = (nx2 + 1.0) * 0.5 * fw
+        float sy2f = (1.0 - ny2) * 0.5 * fh
+
+        // 屏幕空间包围盒
+        float minXf = minF(sx0f, minF(sx1f, sx2f))
+        float maxXf = maxF(sx0f, maxF(sx1f, sx2f))
+        float minYf = minF(sy0f, minF(sy1f, sy2f))
+        float maxYf = maxF(sy0f, maxF(sy1f, sy2f))
+        int minX = maxI(0, int(minXf))
+        int maxX = minI(width - 1, int(maxXf))
+        int minY = maxI(0, int(minYf))
+        int maxY = minI(height - 1, int(maxYf))
+
+        if minX > maxX or minY > maxY then
+            t = t + 1
+            continue
+        end
+
+        // 三角形面积（带符号）
+        float area = (sx1f - sx0f) * (sy2f - sy0f) - (sy1f - sy0f) * (sx2f - sx0f)
+        float absArea = absF(area)
+        if absArea < 0.0001 then
+            t = t + 1
+            continue
+        end
+        float invArea = 1.0 / area
+
+        // 逐像素光栅化（重心坐标 + 透视校正）
+        int py = minY
+        while py <= maxY
+            float pyc = float(py) + 0.5
+            int px = minX
+            while px <= maxX
+                float pxc = float(px) + 0.5
+
+                // 重心坐标（边函数）
+                float b0 = ((sx1f - pxc) * (sy2f - pyc) - (sy1f - pyc) * (sx2f - pxc)) * invArea
+                float b1 = ((sx2f - pxc) * (sy0f - pyc) - (sy2f - pyc) * (sx0f - pxc)) * invArea
+                float b2 = 1.0 - b0 - b1
+
+                // 三角形内部测试（含微小容差避免接缝）
+                if b0 >= -0.0001 and b1 >= -0.0001 and b2 >= -0.0001 then
+                    // NDC z 线性插值（屏幕空间深度）
+                    float z = b0 * nz0 + b1 * nz1 + b2 * nz2
+                    int zidx = py * width + px
+                    if z < rt.zb[zidx] then
+                        // 透视校正插值
+                        float sumInvW = b0 * invW0 + b1 * invW1 + b2 * invW2
+                        float invSum = 1.0 / sumInvW
+
+                        // 透视校正后的重心权重
+                        float pw0 = b0 * invW0 * invSum
+                        float pw1 = b1 * invW1 * invSum
+                        float pw2 = b2 * invW2 * invSum
+
+                        // 插值世界坐标
+                        float pwx = pw0 * w0x + pw1 * w1x + pw2 * w2x
+                        float pwy = pw0 * w0y + pw1 * w1y + pw2 * w2y
+                        float pwz = pw0 * w0z + pw1 * w1z + pw2 * w2z
+
+                        // 插值法线
+                        float pnx = pw0 * wn0x + pw1 * wn1x + pw2 * wn2x
+                        float pny = pw0 * wn0y + pw1 * wn1y + pw2 * wn2y
+                        float pnz = pw0 * wn0z + pw1 * wn1z + pw2 * wn2z
+
+                        // 插值 UV
+                        float pu = pw0 * u0 + pw1 * u1 + pw2 * u2
+                        float pv = pw0 * v0 + pw1 * v1 + pw2 * v2
+
+                        // Phong 着色
+                        float cr
+                        float cg
+                        float cb
+                        cr, cg, cb = shadePhong(
+                            pwx, pwy, pwz,
+                            pnx, pny, pnz,
+                            pu, pv,
+                            tex, useTexture,
+                            matR, matG, matB,
+                            ka, kd, ks, shininess
+                        )
+
+                        // 写入 framebuffer + z-buffer
+                        rt.zb[zidx] = z
+                        int fbidx = zidx * 3
+                        rt.fb[fbidx] = clampByte(cr * 255.0)
+                        rt.fb[fbidx + 1] = clampByte(cg * 255.0)
+                        rt.fb[fbidx + 2] = clampByte(cb * 255.0)
+                    end
+                end
+
+                px = px + 1
+            end
+            py = py + 1
+        end
+
+        t = t + 1
+    end
+    return rt
+end
+
+//
+// 将 mesh 的每个三角形从点光源投影到 y=0 地面平面，
+// 然后光栅化投影后的三角形，以 alpha 混合（暗化）方式叠加到 framebuffer。
+//
+// 投影公式：光源 L，顶点 V -> 阴影点 S (y=0)
+//   t = L.y / (L.y - V.y)
+//   S.x = L.x + t*(V.x - L.x)
+//   S.z = L.z + t*(V.z - L.z)
+//
+// z-test: z < zb 且 zb < 10.0 (排除天空)
+// z-write: 开启（防止重叠三角形重复暗化）
+// blend: fb[pixel] *= shadowDarkness
+// ========================================================================
+func rasterizeShadow(
+    Mesh mesh,
+    Mat4 modelMat,
+    Mat4 viewProj,
+    RenderTarget rt,
+    float lightX, float lightY, float lightZ,
+    float shadowDarkness
+) as RenderTarget
+    // 光源必须在地面以上
+    if lightY <= 0.01 then
+        return rt
+    end
+
+    int width = rt.width
+    int height = rt.height
+    int tc = mesh.triCount()
+    float fw = float(width)
+    float fh = float(height)
+
+    int t = 0
+    while t < tc
+        int fbase = t * 9
+        int vi0 = mesh.faces[fbase]
+        int vi1 = mesh.faces[fbase + 3]
+        int vi2 = mesh.faces[fbase + 6]
+
+        // 世界空间位置（通过 model 矩阵完整变换）
+        Vec3 lp0 = mesh.getVert(vi0)
+        Vec3 lp1 = mesh.getVert(vi1)
+        Vec3 lp2 = mesh.getVert(vi2)
+        float w0x
+        float w0y
+        float w0z
+        float w0w
+        w0x, w0y, w0z, w0w = modelMat.transformFloat(lp0.x, lp0.y, lp0.z)
+        float w1x
+        float w1y
+        float w1z
+        float w1w
+        w1x, w1y, w1z, w1w = modelMat.transformFloat(lp1.x, lp1.y, lp1.z)
+        float w2x
+        float w2y
+        float w2z
+        float w2w
+        w2x, w2y, w2z, w2w = modelMat.transformFloat(lp2.x, lp2.y, lp2.z)
+
+        // 投影到 y=0 平面
+        // t = Ly / (Ly - Vy)
+        float dy0 = lightY - w0y
+        float dy1 = lightY - w1y
+        float dy2 = lightY - w2y
+        if dy0 < 0.01 or dy1 < 0.01 or dy2 < 0.01 then
+            t = t + 1
+            continue
+        end
+
+        float t0 = lightY / dy0
+        float t1 = lightY / dy1
+        float t2 = lightY / dy2
+
+        float s0x = lightX + t0 * (w0x - lightX)
+        float s0z = lightZ + t0 * (w0z - lightZ)
+        float s1x = lightX + t1 * (w1x - lightX)
+        float s1z = lightZ + t1 * (w1z - lightZ)
+        float s2x = lightX + t2 * (w2x - lightX)
+        float s2z = lightZ + t2 * (w2z - lightZ)
+
+        // 阴影三角形顶点在 y=0 平面
+        float s0y = 0.0
+        float s1y = 0.0
+        float s2y = 0.0
+
+        // 变换到裁剪空间
+        float cx0
+        float cy0
+        float cz0
+        float cw0
+        cx0, cy0, cz0, cw0 = viewProj.transformFloat(s0x, s0y, s0z)
+        float cx1
+        float cy1
+        float cz1
+        float cw1
+        cx1, cy1, cz1, cw1 = viewProj.transformFloat(s1x, s1y, s1z)
+        float cx2
+        float cy2
+        float cz2
+        float cw2
+        cx2, cy2, cz2, cw2 = viewProj.transformFloat(s2x, s2y, s2z)
+
+        // 近裁剪面剔除
+        if cw0 <= 0.0001 or cw1 <= 0.0001 or cw2 <= 0.0001 then
+            t = t + 1
+            continue
+        end
+
+        // 透视除法
+        float invW0 = 1.0 / cw0
+        float invW1 = 1.0 / cw1
+        float invW2 = 1.0 / cw2
+        float nz0 = cz0 * invW0
+        float nz1 = cz1 * invW1
+        float nz2 = cz2 * invW2
+        float nx0 = cx0 * invW0
+        float ny0 = cy0 * invW0
+        float nx1 = cx1 * invW1
+        float ny1 = cy1 * invW1
+        float nx2 = cx2 * invW2
+        float ny2 = cy2 * invW2
+
+        // 视口变换
+        float sx0f = (nx0 + 1.0) * 0.5 * fw
+        float sy0f = (1.0 - ny0) * 0.5 * fh
+        float sx1f = (nx1 + 1.0) * 0.5 * fw
+        float sy1f = (1.0 - ny1) * 0.5 * fh
+        float sx2f = (nx2 + 1.0) * 0.5 * fw
+        float sy2f = (1.0 - ny2) * 0.5 * fh
+
+        // 包围盒
+        float minXf = minF(sx0f, minF(sx1f, sx2f))
+        float maxXf = maxF(sx0f, maxF(sx1f, sx2f))
+        float minYf = minF(sy0f, minF(sy1f, sy2f))
+        float maxYf = maxF(sy0f, maxF(sy1f, sy2f))
+        int minX = maxI(0, int(minXf))
+        int maxX = minI(width - 1, int(maxXf))
+        int minY = maxI(0, int(minYf))
+        int maxY = minI(height - 1, int(maxYf))
+
+        if minX > maxX or minY > maxY then
+            t = t + 1
+            continue
+        end
+
+        // 三角形面积
+        float area = (sx1f - sx0f) * (sy2f - sy0f) - (sy1f - sy0f) * (sx2f - sx0f)
+        float absArea = absF(area)
+        if absArea < 0.0001 then
+            t = t + 1
+            continue
+        end
+        float invArea = 1.0 / area
+
+        // 逐像素光栅化阴影
+        int py = minY
+        while py <= maxY
+            float pyc = float(py) + 0.5
+            int px = minX
+            while px <= maxX
+                float pxc = float(px) + 0.5
+
+                float b0 = ((sx1f - pxc) * (sy2f - pyc) - (sy1f - pyc) * (sx2f - pxc)) * invArea
+                float b1 = ((sx2f - pxc) * (sy0f - pyc) - (sy2f - pyc) * (sx0f - pxc)) * invArea
+                float b2 = 1.0 - b0 - b1
+
+                if b0 >= -0.0001 and b1 >= -0.0001 and b2 >= -0.0001 then
+                    // 深度插值（加 z-bias 确保在地面前方）
+                    float z = b0 * nz0 + b1 * nz1 + b2 * nz2 - 0.0005
+                    int zidx = py * width + px
+                    float curZ = rt.zb[zidx]
+                    // 只在地面上绘制阴影（排除天空/背景）
+                    if z < curZ and curZ < 10.0 then
+                        // Alpha 混合：暗化现有像素
+                        int fbidx = zidx * 3
+                        int oldR = rt.fb[fbidx]
+                        int oldG = rt.fb[fbidx + 1]
+                        int oldB = rt.fb[fbidx + 2]
+                        rt.fb[fbidx] = int(float(oldR) * shadowDarkness)
+                        rt.fb[fbidx + 1] = int(float(oldG) * shadowDarkness)
+                        rt.fb[fbidx + 2] = int(float(oldB) * shadowDarkness)
+                        // 写入 z 防止重叠三角形重复暗化
+                        rt.zb[zidx] = z
+                    end
+                end
+
+                px = px + 1
+            end
+            py = py + 1
+        end
+
+        t = t + 1
+    end
+    return rt
+end
+
+// ========================================================================
+// PPM 图像输出（P3 ASCII 格式）
+// ========================================================================
+func writePpm(string path, RenderTarget rt)
+    array<string> lines = array[]
+    lines.append("P3")
+    lines.append(string(rt.width) + " " + string(rt.height))
+    lines.append("255")
+    int y = 0
+    while y < rt.height
+        string rowLine = ""
+        int x = 0
+        while x < rt.width
+            int idx = (y * rt.width + x) * 3
+            int r = rt.fb[idx]
+            int g = rt.fb[idx + 1]
+            int b = rt.fb[idx + 2]
+            if x > 0 then
+                rowLine = rowLine + " "
+            end
+            rowLine = rowLine + string(r) + " " + string(g) + " " + string(b)
+            x = x + 1
+        end
+        lines.append(rowLine)
+        y = y + 1
+    end
+    string body = ""
+    int li = 0
+    while li < lines.length
+        if li > 0 then
+            body = body + "\n"
+        end
+        body = body + lines[li]
+        li = li + 1
+    end
+    body = body + "\n"
+    bool ok = file.writeText(path, body)
+    if not ok then
+        throw "failed to write PPM file: " + path
+    end
+end
+
+// 统计非背景像素数
+func countNonBg(RenderTarget rt, int bgR, int bgG, int bgB) as int
+    int total = rt.width * rt.height
+    int count = 0
+    int i = 0
+    while i < total
+        int r = rt.fb[i * 3]
+        int g = rt.fb[i * 3 + 1]
+        int b = rt.fb[i * 3 + 2]
+        if r != bgR or g != bgG or b != bgB then
+            count = count + 1
+        end
+        i = i + 1
+    end
+    return count
+end
+
+// ========================================================================
+// 场景设置：构建模型、灯光、材质
+// ========================================================================
+
+// 构建 model 矛阵：居中 + 缩放 + 旋转 + 定位
+func normalizeModelMat(Mesh mesh, float targetHeight, float posY, float rotY) as Mat4
+    float mnx
+    float mny
+    float mnz
+    float mxx
+    float mxy
+    float mxz
+    mnx, mny, mnz, mxx, mxy, mxz = meshBounds(mesh)
+    float cx = (mnx + mxx) * 0.5
+    float cy = (mny + mxy) * 0.5
+    float cz = (mnz + mxz) * 0.5
+    float dx = mxx - mnx
+    float dy = mxy - mny
+    float dz = mxz - mnz
+    float maxDim = maxF(dx, maxF(dy, dz))
+    if maxDim < 0.001 then
+        maxDim = 1.0
+    end
+    float scl = targetHeight / maxDim
+    Mat4 tCenter = matTranslate(0.0 - cx, 0.0 - cy, 0.0 - cz)
+    Mat4 sScale = matScale(scl, scl, scl)
+    Mat4 rRot = matRotateY(rotY)
+    Mat4 tPos = matTranslate(0.0, posY, 0.0)
+    Mat4 step1 = sScale.mul(tCenter)
+    Mat4 step2 = rRot.mul(step1)
+    Mat4 model = tPos.mul(step2)
+    return model
+end
+
+// 设置默认双光源
+func setupDefaultLights()
+    clearLights()
+    // 主光：暖白色，右上方
+    addLight(4.0, 6.0, 3.0, 1.0, 0.95, 0.85, 0.9)
+    // 辅光：冷蓝色，左后方（填充光）
+    addLight(-3.0, 3.0, -2.0, 0.4, 0.5, 0.7, 0.4)
+end
+
+// ========================================================================
+// 渲染命令
+// ========================================================================
+func cmdRender(string modelPath, int width, int height, string outPath) as int
+    if width < 2 or height < 2 then
+        println("error: width and height must be >= 2")
+        return 1
+    end
+
+    // 加载模型
+    Mesh mesh
+    bool fromObj = false
+    if modelPath != "" and file.exists(modelPath) then
+        println("[render] loading OBJ: " + modelPath)
+        mesh = loadObj(modelPath)
+        fromObj = true
+    else
+        println("[render] model not found, using built-in cube")
+        mesh = buildCubeTextured()
+    end
+
+    println("[render] mesh: " + string(mesh.vertCount()) + " verts, " + string(mesh.uvCount()) + " uvs, " + string(mesh.normalCount()) + " norms, " + string(mesh.triCount()) + " tris")
+    println("[render] hasUv=" + string(mesh.hasUv) + " hasNormal=" + string(mesh.hasNormal))
+
+    // 模型变换：居中 + 缩放 + 旋转
+    Mat4 model = normalizeModelMat(mesh, 2.0, 1.5, degToRad(25.0))
+
+    // 视图矩阵
+    Vec3 eye = Vec3(0.0, 3.0, 6.0)
+    Vec3 target = Vec3(0.0, 0.8, 0.0)
+    Vec3 up = Vec3(0.0, 1.0, 0.0)
+    Mat4 view = matLookAt(eye, target, up)
+    g_eyeX = eye.x
+    g_eyeY = eye.y
+    g_eyeZ = eye.z
+
+    // 投影矩阵
+    float aspect = float(width) / float(height)
+    Mat4 proj = matPerspective(45.0, aspect, 0.1, 100.0)
+    Mat4 viewProj = proj.mul(view)
+
+    // 灯光
+    setupDefaultLights()
+
+    // 纹理（棋盘格）
+    Texture modelTex = buildCheckerTexture(64, 64, 8, 200, 60, 50, 240, 220, 180)
+    Texture groundTex = buildCheckerTexture(64, 64, 16, 80, 90, 100, 50, 55, 65)
+
+    // 地面
+    Mesh ground = buildGroundPlane(6.0)
+
+    // 材质
+    float modelKa = 0.15
+    float modelKd = 0.75
+    float modelKs = 0.5
+    float modelShin = 32.0
+    float groundKa = 0.2
+    float groundKd = 0.6
+    float groundKs = 0.1
+    float groundShin = 8.0
+
+    // 渲染目标
+    RenderTarget rt = RenderTarget(width, height)
+    rt.clear(20, 25, 45)
+
+    println("[render] " + string(width) + "x" + string(height) + " -> " + outPath)
+
+    float t0 = time.timer()
+
+    // Pass 1: 地面（纹理化 + Phong）
+    Mat4 groundModel = matIdentity()
+    rt = rasterizeModel(ground, groundModel, viewProj, rt, groundTex, true,
+        1.0, 1.0, 1.0, groundKa, groundKd, groundKs, groundShin)
+
+    // Pass 2: 阴影（投影到地面）
+    float lightX = g_lights[0]
+    float lightY = g_lights[1]
+    float lightZ = g_lights[2]
+    rt = rasterizeShadow(mesh, model, viewProj, rt, lightX, lightY, lightZ, g_shadowDarkness)
+
+    // Pass 3: 模型（纹理化 + Phong）
+    rt = rasterizeModel(mesh, model, viewProj, rt, modelTex, mesh.hasUv or not fromObj,
+        1.0, 1.0, 1.0, modelKa, modelKd, modelKs, modelShin)
+
+    float t1 = time.timer()
+
+    // 输出
+    writePpm(outPath, rt)
+
+    float elapsed = t1 - t0
+    int pixels = width * height
+    float pps = 0.0
+    if elapsed > 0.001 then
+        pps = float(pixels) / elapsed
+    end
+    int drawn = countNonBg(rt, 20, 25, 45)
+
+    println("[render] done in " + float.format(elapsed, ".3") + "s")
+    println("[render] " + int.format(pixels, ",") + " pixels, " + int.format(int(pps), ",") + " pix/sec")
+    println("[render] " + int.format(drawn, ",") + " shaded pixels (" + float.format(float(drawn) / float(pixels) * 100.0, ".1") + "% coverage)")
+    println("[render] wrote " + outPath)
+    return 0
+end
+
+// 内置场景渲染
+func cmdRenderScene(int sceneChoice, int width, int height, string outPath) as int
+    if width < 2 or height < 2 then
+        println("error: width and height must be >= 2")
+        return 1
+    end
+
+    // 构建网格
+    Mesh mesh
+    if sceneChoice == 1 then
+        mesh = buildSphere(20, 14)
+        println("[scene] sphere (sectors=20, stacks=14)")
+    elseif sceneChoice == 2 then
+        Mesh cube = buildCubeTextured()
+        Mesh sph = buildSphere(16, 12)
+        // 将球体平移到右侧
+        int si = 0
+        while si < sph.verts.length
+            float vx = sph.verts[si]
+            float vy = sph.verts[si + 1]
+            float vz = sph.verts[si + 2]
+            sph.verts[si] = vx + 2.5
+            sph.verts[si + 1] = vy
+            sph.verts[si + 2] = vz
+            si = si + 3
+        end
+        mesh = mergeMesh(cube, sph)
+        println("[scene] cube + sphere")
+    else
+        mesh = buildCubeTextured()
+        println("[scene] cube")
+    end
+
+    println("[scene] " + string(mesh.vertCount()) + " verts, " + string(mesh.triCount()) + " tris")
+
+    // 模型变换
+    Mat4 model = normalizeModelMat(mesh, 2.0, 1.5, degToRad(30.0))
+
+    // 视图
+    Vec3 eye = Vec3(0.0, 3.0, 6.5)
+    Vec3 target = Vec3(0.0, 0.8, 0.0)
+    Vec3 up = Vec3(0.0, 1.0, 0.0)
+    Mat4 view = matLookAt(eye, target, up)
+    g_eyeX = eye.x
+    g_eyeY = eye.y
+    g_eyeZ = eye.z
+
+    float aspect = float(width) / float(height)
+    Mat4 proj = matPerspective(45.0, aspect, 0.1, 100.0)
+    Mat4 viewProj = proj.mul(view)
+
+    // 灯光
+    setupDefaultLights()
+
+    // 纹理
+    Texture modelTex = buildCheckerTexture(64, 64, 8, 200, 60, 50, 240, 220, 180)
+    Texture groundTex = buildCheckerTexture(64, 64, 16, 80, 90, 100, 50, 55, 65)
+
+    Mesh ground = buildGroundPlane(7.0)
+
+    RenderTarget rt = RenderTarget(width, height)
+    rt.clear(20, 25, 45)
+
+    println("[scene] " + string(width) + "x" + string(height) + " -> " + outPath)
+
+    float t0 = time.timer()
+
+    Mat4 groundModel = matIdentity()
+    rt = rasterizeModel(ground, groundModel, viewProj, rt, groundTex, true,
+        1.0, 1.0, 1.0, 0.2, 0.6, 0.1, 8.0)
+
+    float lightX = g_lights[0]
+    float lightY = g_lights[1]
+    float lightZ = g_lights[2]
+    rt = rasterizeShadow(mesh, model, viewProj, rt, lightX, lightY, lightZ, g_shadowDarkness)
+
+    rt = rasterizeModel(mesh, model, viewProj, rt, modelTex, true,
+        1.0, 1.0, 1.0, 0.15, 0.75, 0.5, 32.0)
+
+    float t1 = time.timer()
+
+    writePpm(outPath, rt)
+
+    float elapsed = t1 - t0
+    int pixels = width * height
+    float pps = 0.0
+    if elapsed > 0.001 then
+        pps = float(pixels) / elapsed
+    end
+    int drawn = countNonBg(rt, 20, 25, 45)
+
+    println("[scene] done in " + float.format(elapsed, ".3") + "s")
+    println("[scene] " + int.format(drawn, ",") + " shaded pixels (" + float.format(float(drawn) / float(pixels) * 100.0, ".1") + "% coverage)")
+    println("[scene] wrote " + outPath)
+    return 0
+end
+
+// 性能基准
+func cmdBench(int width, int height) as int
+    if width < 2 or height < 2 then
+        width = 320
+        height = 240
+    end
+    println("xrender3d benchmark")
+    println("================================================================")
+    println("config: " + string(width) + "x" + string(height) + " scene=cube (12 tris) + ground + shadow")
+    println("================================================================")
+
+    int round = 0
+    while round < 2
+        Mesh mesh = buildCubeTextured()
+        Mat4 model = normalizeModelMat(mesh, 2.0, 1.5, degToRad(30.0))
+
+        Vec3 eye = Vec3(0.0, 3.0, 6.5)
+        Vec3 tgt = Vec3(0.0, 0.8, 0.0)
+        Vec3 up = Vec3(0.0, 1.0, 0.0)
+        Mat4 view = matLookAt(eye, tgt, up)
+        g_eyeX = eye.x
+        g_eyeY = eye.y
+        g_eyeZ = eye.z
+        float aspect = float(width) / float(height)
+        Mat4 proj = matPerspective(45.0, aspect, 0.1, 100.0)
+        Mat4 viewProj = proj.mul(view)
+        setupDefaultLights()
+
+        Texture mtex = buildCheckerTexture(64, 64, 8, 200, 60, 50, 240, 220, 180)
+        Texture gtex = buildCheckerTexture(64, 64, 16, 80, 90, 100, 50, 55, 65)
+        Mesh ground = buildGroundPlane(7.0)
+
+        RenderTarget rt = RenderTarget(width, height)
+        rt.clear(20, 25, 45)
+
+        string label = "run #" + string(round + 1)
+        if round == 0 then
+            label = label + " (warmup)"
+        end
+
+        float t0 = time.timer()
+        Mat4 gm = matIdentity()
+        rt = rasterizeModel(ground, gm, viewProj, rt, gtex, true, 1.0, 1.0, 1.0, 0.2, 0.6, 0.1, 8.0)
+        float lx = g_lights[0]
+        float ly = g_lights[1]
+        float lz = g_lights[2]
+        rt = rasterizeShadow(mesh, model, viewProj, rt, lx, ly, lz, g_shadowDarkness)
+        rt = rasterizeModel(mesh, model, viewProj, rt, mtex, true, 1.0, 1.0, 1.0, 0.15, 0.75, 0.5, 32.0)
+        float t1 = time.timer()
+
+        float elapsed = t1 - t0
+        int pixels = width * height
+        float pps = 0.0
+        if elapsed > 0.001 then
+            pps = float(pixels) / elapsed
+        end
+        float usPerPix = 0.0
+        if pixels > 0 then
+            usPerPix = elapsed * 1000000.0 / float(pixels)
+        end
+
+        string line = "  "
+        line = line + string.padRight(label, 18)
+        line = line + "time=" + float.format(elapsed, ".3") + "s"
+        line = line + "  " + int.format(pixels, ",") + " px"
+        line = line + "  " + float.format(usPerPix, ".3") + " us/px"
+        line = line + "  " + int.format(int(pps), ",") + " pix/sec"
+        println(line)
+
+        if round == 0 then
+            string outPath = "bench_" + string(width) + "x" + string(height) + ".ppm"
+            writePpm(outPath, rt)
+            println("  wrote " + outPath)
+        end
+
+        round = round + 1
+    end
+    println("================================================================")
+    return 0
+end
+
+// ========================================================================
+// 自检
+// ========================================================================
+int g_pass = 0
+int g_fail = 0
+
+func check(bool cond, string name)
+    if cond then
+        g_pass = g_pass + 1
+        println("  [PASS] " + name)
+    else
+        g_fail = g_fail + 1
+        println("  [FAIL] " + name)
+    end
+end
+
+func cmdTest() as int
+    println("xrender3d self-test")
+    println("================================================================")
+
+    // ---- 1. 数学辅助 ----
+    println("[1] math helpers")
+    check(approxEq(degToRad(180.0), PI, 1e-5), "degToRad(180) == PI")
+    check(approxEq(clampF(5.0, 0.0, 1.0), 1.0, 1e-6), "clampF(5,0,1) == 1")
+    check(approxEq(clampF(-3.0, 0.0, 1.0), 0.0, 1e-6), "clampF(-3,0,1) == 0")
+    check(approxEq(absF(-7.5), 7.5, 1e-6), "absF(-7.5) == 7.5")
+    check(approxEq(minF(3.0, 7.0), 3.0, 1e-6), "minF(3,7) == 3")
+    check(approxEq(maxF(3.0, 7.0), 7.0, 1e-6), "maxF(3,7) == 7")
+
+    // ---- 2. Vec3 运算符 ----
+    println("[2] Vec3 operators")
+    Vec3 a = Vec3(1.0, 2.0, 3.0)
+    Vec3 b = Vec3(4.0, 5.0, 6.0)
+    Vec3 sum = a + b
+    check(approxEq(sum.x, 5.0, 1e-5) and approxEq(sum.y, 7.0, 1e-5) and approxEq(sum.z, 9.0, 1e-5), "Vec3 __add__")
+    Vec3 diff = b - a
+    check(approxEq(diff.x, 3.0, 1e-5) and approxEq(diff.y, 3.0, 1e-5) and approxEq(diff.z, 3.0, 1e-5), "Vec3 __sub__")
+    Vec3 scaled = a * 2.0
+    check(approxEq(scaled.x, 2.0, 1e-5) and approxEq(scaled.y, 4.0, 1e-5) and approxEq(scaled.z, 6.0, 1e-5), "Vec3 __mul__ scalar")
+    check(approxEq(a.dot(b), 32.0, 1e-5), "Vec3 dot (1*4+2*5+3*6=32)")
+    Vec3 cr = a.cross(b)
+    check(approxEq(cr.x, -3.0, 1e-5) and approxEq(cr.y, 6.0, 1e-5) and approxEq(cr.z, -3.0, 1e-5), "Vec3 cross")
+    Vec3 nrmSrc = Vec3(0.0, 0.0, 5.0)
+    Vec3 nrm = nrmSrc.normalize()
+    check(approxEq(nrm.z, 1.0, 1e-5), "Vec3 normalize")
+    Vec3 negA = -a
+    check(approxEq(negA.x, -1.0, 1e-5) and approxEq(negA.y, -2.0, 1e-5) and approxEq(negA.z, -3.0, 1e-5), "Vec3 __neg__")
+    // reflect: d=(1,-1,0) about n=(0,1,0) -> (1,1,0)
+    Vec3 dvec = Vec3(1.0, -1.0, 0.0)
+    Vec3 nvec = Vec3(0.0, 1.0, 0.0)
+    Vec3 reflected = dvec.reflect(nvec)
+    check(approxEq(reflected.x, 1.0, 1e-5) and approxEq(reflected.y, 1.0, 1e-5) and approxEq(reflected.z, 0.0, 1e-5), "Vec3 reflect")
+
+    // ---- 3. Mat4 运算 ----
+    println("[3] Mat4 matrix ops")
+    Mat4 ident = matIdentity()
+    Mat4 ident2 = ident.mul(ident)
+    bool identOk = true
+    int i = 0
+    while i < 16
+        float expect = 0.0
+        if i == 0 or i == 5 or i == 10 or i == 15 then
+            expect = 1.0
+        end
+        if approxEq(ident2.m[i], expect, 1e-5) == false then
+            identOk = false
+        end
+        i = i + 1
+    end
+    check(identOk, "identity * identity == identity")
+
+    Mat4 t1 = matTranslate(3.0, 4.0, 5.0)
+    Vec3 origin = Vec3(0.0, 0.0, 0.0)
+    float tx
+    float ty
+    float tz
+    float tw
+    tx, ty, tz, tw = t1.transformPoint(origin)
+    check(approxEq(tx, 3.0, 1e-5) and approxEq(ty, 4.0, 1e-5) and approxEq(tz, 5.0, 1e-5) and approxEq(tw, 1.0, 1e-5), "translate moves origin")
+
+    Mat4 s1 = matScale(2.0, 3.0, 4.0)
+    Vec3 s1p = Vec3(1.0, 1.0, 1.0)
+    float sx
+    float sy
+    float sz
+    float sw
+    sx, sy, sz, sw = s1.transformPoint(s1p)
+    check(approxEq(sx, 2.0, 1e-5) and approxEq(sy, 3.0, 1e-5) and approxEq(sz, 4.0, 1e-5), "scale multiplies")
+
+    Mat4 rot = matRotateY(degToRad(90.0))
+    Vec3 rotP = Vec3(1.0, 0.0, 0.0)
+    float rx
+    float ry
+    float rz
+    float rw
+    rx, ry, rz, rw = rot.transformPoint(rotP)
+    check(approxEq(rx, 0.0, 1e-4) and approxEq(rz, -1.0, 1e-4), "rotateY 90deg maps +x to -z")
+
+    Mat4 trTmp = matTranslate(10.0, 0.0, 0.0)
+    Mat4 scTmp = matScale(2.0, 2.0, 2.0)
+    Mat4 combo = trTmp.mul(scTmp)
+    Vec3 comboP = Vec3(1.0, 1.0, 1.0)
+    float cxc
+    float cyc
+    float czc
+    float cwc
+    cxc, cyc, czc, cwc = combo.transformPoint(comboP)
+    check(approxEq(cxc, 12.0, 1e-5) and approxEq(cyc, 2.0, 1e-5) and approxEq(czc, 2.0, 1e-5), "translate*scale composite")
+
+    // ---- 4. 投影和 LookAt ----
+    println("[4] projection and lookAt")
+    Mat4 proj = matPerspective(90.0, 1.0, 0.1, 100.0)
+    Vec3 projP = Vec3(0.0, 0.0, -1.0)
+    float px
+    float py
+    float pzz
+    float pww
+    px, py, pzz, pww = proj.transformPoint(projP)
+    check(pww > 0.0, "perspective w>0 for point in front of camera")
+
+    Vec3 laEye = Vec3(0.0, 0.0, 5.0)
+    Vec3 laTarget = Vec3(0.0, 0.0, 0.0)
+    Vec3 laUp = Vec3(0.0, 1.0, 0.0)
+    Mat4 lookAtM = matLookAt(laEye, laTarget, laUp)
+    float lax
+    float lay
+    float laz
+    float law
+    Vec3 laOrigin = Vec3(0.0, 0.0, 0.0)
+    lax, lay, laz, law = lookAtM.transformPoint(laOrigin)
+    // eye at (0,0,5) looking at origin: origin should transform to (0,0,-5) in view space
+    check(approxEq(laz, -5.0, 1e-4), "lookAt: origin -> z=-5 in view space")
+
+    // ---- 5. 分词器 ----
+    println("[5] tokenizer")
+    array<string> toks1 = tokenize("  v  1.0  2.0  3.0  ")
+    check(toks1.length == 4, "tokenize 'v 1.0 2.0 3.0' -> 4 tokens")
+    check(toks1[0] == "v", "first token is 'v'")
+    check(toks1[1] == "1.0", "second token is '1.0'")
+
+    array<string> toks2 = tokenize("f\t1/1/1 2/2/2\t3/3/3")
+    check(toks2.length == 4, "tokenize 'f 1/1/1 2/2/2 3/3/3' -> 4 tokens")
+    check(toks2[1] == "1/1/1", "face vertex token preserved")
+
+    array<string> toks3 = tokenize("")
+    check(toks3.length == 0, "tokenize empty string -> 0 tokens")
+
+    array<string> toks4 = tokenize("   ")
+    check(toks4.length == 0, "tokenize whitespace only -> 0 tokens")
+
+    // ---- 6. 面顶点解析 ----
+    println("[6] face vertex parser")
+    int vi
+    int ti
+    int ni
+    vi, ti, ni = parseFaceVertex("1/2/3", 10, 10, 10)
+    check(vi == 0 and ti == 1 and ni == 2, "parse '1/2/3' -> (0,1,2)")
+
+    vi, ti, ni = parseFaceVertex("5//7", 10, 10, 10)
+    check(vi == 4 and ti == -1 and ni == 6, "parse '5//7' -> (4,-1,6)")
+
+    vi, ti, ni = parseFaceVertex("3/4", 10, 10, 10)
+    check(vi == 2 and ti == 3 and ni == -1, "parse '3/4' -> (2,3,-1)")
+
+    vi, ti, ni = parseFaceVertex("8", 10, 10, 10)
+    check(vi == 7 and ti == -1 and ni == -1, "parse '8' -> (7,-1,-1)")
+
+    // ---- 7. OBJ 加载 ----
+    println("[7] OBJ loader")
+    // 写入测试 OBJ 文件
+    string testObjPath = "xrender3d_test.obj"
+    string objContent = ""
+    objContent = objContent + "# test cube\n"
+    objContent = objContent + "v -1.0 -1.0 -1.0\n"
+    objContent = objContent + "v 1.0 -1.0 -1.0\n"
+    objContent = objContent + "v 1.0 1.0 -1.0\n"
+    objContent = objContent + "v -1.0 1.0 -1.0\n"
+    objContent = objContent + "v -1.0 -1.0 1.0\n"
+    objContent = objContent + "v 1.0 -1.0 1.0\n"
+    objContent = objContent + "v 1.0 1.0 1.0\n"
+    objContent = objContent + "v -1.0 1.0 1.0\n"
+    objContent = objContent + "vt 0.0 0.0\n"
+    objContent = objContent + "vt 1.0 0.0\n"
+    objContent = objContent + "vt 1.0 1.0\n"
+    objContent = objContent + "vt 0.0 1.0\n"
+    objContent = objContent + "vn 0.0 0.0 1.0\n"
+    objContent = objContent + "vn 0.0 0.0 -1.0\n"
+    objContent = objContent + "vn 1.0 0.0 0.0\n"
+    objContent = objContent + "vn -1.0 0.0 0.0\n"
+    objContent = objContent + "vn 0.0 1.0 0.0\n"
+    objContent = objContent + "vn 0.0 -1.0 0.0\n"
+    objContent = objContent + "f 5/1/1 6/2/1 7/3/1\n"
+    objContent = objContent + "f 5/1/1 7/3/1 8/4/1\n"
+    objContent = objContent + "f 1/1/2 4/4/2 3/3/2\n"
+    objContent = objContent + "f 1/1/2 2/2/2 4/4/2\n"
+    objContent = objContent + "g end\n"
+    bool writeOk = file.writeText(testObjPath, objContent)
+    check(writeOk, "write test OBJ file")
+
+    Mesh objMesh = loadObj(testObjPath)
+    check(objMesh.vertCount() == 8, "OBJ parsed 8 verts")
+    check(objMesh.uvCount() == 4, "OBJ parsed 4 uvs")
+    check(objMesh.normalCount() == 6, "OBJ parsed 6 normals")
+    check(objMesh.triCount() == 4, "OBJ parsed 4 tris")
+    check(objMesh.hasUv, "OBJ hasUv flag set")
+    check(objMesh.hasNormal, "OBJ hasNormal flag set")
+
+    // 验证顶点数据
+    Vec3 v0 = objMesh.getVert(0)
+    check(approxEq(v0.x, -1.0, 1e-5) and approxEq(v0.y, -1.0, 1e-5) and approxEq(v0.z, -1.0, 1e-5), "OBJ vert 0 == (-1,-1,-1)")
+    Vec3 v6 = objMesh.getVert(6)
+    check(approxEq(v6.x, 1.0, 1e-5) and approxEq(v6.y, 1.0, 1e-5) and approxEq(v6.z, 1.0, 1e-5), "OBJ vert 6 == (1,1,1)")
+
+    // 验证面索引
+    check(objMesh.faces[0] == 4, "OBJ face 0 vertex idx == 4 (0-based)")
+    check(objMesh.faces[1] == 0, "OBJ face 0 uv idx == 0 (0-based)")
+    check(objMesh.faces[2] == 0, "OBJ face 0 normal idx == 0 (0-based)")
+
+    // 清理测试文件
+    file.delete(testObjPath)
+
+    // ---- 8. 程序生成模型 ----
+    println("[8] procedural models")
+    Mesh cube = buildCubeTextured()
+    check(cube.vertCount() == 24, "cube has 24 verts")
+    check(cube.triCount() == 12, "cube has 12 tris")
+    check(cube.hasUv, "cube has UVs")
+    check(cube.hasNormal, "cube has normals")
+
+    Mesh sph = buildSphere(16, 12)
+    // stacks+1 rows * sectors+1 cols = 13 * 17 = 221 verts
+    check(sph.vertCount() == 221, "sphere(16,12) has 221 verts")
+    // stacks * sectors * 2 tris = 12 * 16 * 2 = 384 tris
+    check(sph.triCount() == 384, "sphere(16,12) has 384 tris")
+
+    Mesh gnd = buildGroundPlane(5.0)
+    check(gnd.vertCount() == 4, "ground has 4 verts")
+    check(gnd.triCount() == 2, "ground has 2 tris")
+
+    // ---- 9. 网格合并 ----
+    println("[9] mesh merge")
+    Mesh merged = mergeMesh(cube, sph)
+    check(merged.vertCount() == cube.vertCount() + sph.vertCount(), "merged vert count")
+    check(merged.triCount() == cube.triCount() + sph.triCount(), "merged tri count")
+
+    // ---- 10. 包围盒 ----
+    println("[10] mesh bounds")
+    float mnx
+    float mny
+    float mnz
+    float mxx
+    float mxy
+    float mxz
+    mnx, mny, mnz, mxx, mxy, mxz = meshBounds(cube)
+    check(approxEq(mnx, -1.0, 1e-5) and approxEq(mxx, 1.0, 1e-5), "cube bounds X [-1,1]")
+    check(approxEq(mny, -1.0, 1e-5) and approxEq(mxy, 1.0, 1e-5), "cube bounds Y [-1,1]")
+    check(approxEq(mnz, -1.0, 1e-5) and approxEq(mxz, 1.0, 1e-5), "cube bounds Z [-1,1]")
+
+    // ---- 11. 纹理 ----
+    println("[11] texture")
+    Texture checker = buildCheckerTexture(8, 8, 4, 255, 255, 255, 0, 0, 0)
+    int tr
+    int tg
+    int tb
+    tr, tg, tb = checker.sample(0.0, 0.0)
+    check(tr == 255 and tg == 255 and tb == 255, "checker (0,0) is white")
+    tr, tg, tb = checker.sample(0.75, 0.0)
+    check(tr == 0 and tg == 0 and tb == 0, "checker (0.75,0) is black")
+    // 重复缠绕
+    tr, tg, tb = checker.sample(1.0, 0.0)
+    check(tr == 255 and tg == 255 and tb == 255, "checker wrap (1.0,0) == (0,0) white")
+    tr, tg, tb = checker.sample(-0.25, 0.0)
+    check(tr == 0 and tg == 0 and tb == 0, "checker negative wrap (-0.25,0) is black")
+
+    // ---- 12. Phong 着色基本验证 ----
+    println("[12] Phong shading")
+    g_eyeX = 0.0
+    g_eyeY = 0.0
+    g_eyeZ = 5.0
+    clearLights()
+    addLight(0.0, 0.0, 5.0, 1.0, 1.0, 1.0, 1.0)
+
+    float pr
+    float pg
+    float pb
+    // 法线朝向相机和光源 -> 强漫反射
+    pr, pg, pb = shadePhong(0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, checker, false,
+        1.0, 1.0, 1.0, 0.1, 0.7, 0.4, 32.0)
+    check(pr > 0.1 and pg > 0.1 and pb > 0.1, "Phong: front-lit surface is bright")
+    check(pr <= 2.0, "Phong: brightness within reasonable range")
+
+    // 法线背向光源 -> 仅环境光
+    pr, pg, pb = shadePhong(0.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, checker, false,
+        1.0, 1.0, 1.0, 0.1, 0.7, 0.4, 32.0)
+    // 双面渲染会翻转法线，所以这里仍然有光照
+    check(pr > 0.05, "Phong: back-facing normal still lit (two-sided)")
+
+    // 无光源 -> 仅环境光
+    clearLights()
+    pr, pg, pb = shadePhong(0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, checker, false,
+        1.0, 1.0, 1.0, 0.2, 0.7, 0.4, 32.0)
+    check(approxEq(pr, 0.2, 1e-5) and approxEq(pg, 0.2, 1e-5) and approxEq(pb, 0.2, 1e-5), "Phong: no lights -> ambient only")
+
+    // ---- 13. 完整渲染 ----
+    println("[13] full render")
+    setupDefaultLights()
+    Texture mtex = buildCheckerTexture(32, 32, 4, 200, 60, 50, 240, 220, 180)
+    Texture gtex = buildCheckerTexture(32, 32, 8, 80, 90, 100, 50, 55, 65)
+
+    Mesh renderMesh = buildCubeTextured()
+    Mat4 renderModel = normalizeModelMat(renderMesh, 2.0, 1.5, degToRad(25.0))
+    Vec3 eyeR = Vec3(0.0, 3.0, 6.5)
+    g_eyeX = eyeR.x
+    g_eyeY = eyeR.y
+    g_eyeZ = eyeR.z
+    Vec3 tgtR = Vec3(0.0, 0.8, 0.0)
+    Vec3 upR = Vec3(0.0, 1.0, 0.0)
+    Mat4 viewR = matLookAt(eyeR, tgtR, upR)
+    Mat4 projR = matPerspective(45.0, 1.0, 0.1, 100.0)
+    Mat4 vpR = projR.mul(viewR)
+
+    Mesh renderGround = buildGroundPlane(7.0)
+    RenderTarget rt = RenderTarget(80, 60)
+    rt.clear(20, 25, 45)
+
+    Mat4 gm = matIdentity()
+    rt = rasterizeModel(renderGround, gm, vpR, rt, gtex, true, 1.0, 1.0, 1.0, 0.2, 0.6, 0.1, 8.0)
+    int groundDrawn = countNonBg(rt, 20, 25, 45)
+    check(groundDrawn > 500, "ground renders > 500 pixels (got " + string(groundDrawn) + ")")
+
+    // 阴影
+    float lx = g_lights[0]
+    float ly = g_lights[1]
+    float lz = g_lights[2]
+    rt = rasterizeShadow(renderMesh, renderModel, vpR, rt, lx, ly, lz, g_shadowDarkness)
+
+    // 模型
+    rt = rasterizeModel(renderMesh, renderModel, vpR, rt, mtex, true, 1.0, 1.0, 1.0, 0.15, 0.75, 0.5, 32.0)
+    int totalDrawn = countNonBg(rt, 20, 25, 45)
+    check(totalDrawn > groundDrawn, "model adds pixels on top of ground")
+    check(totalDrawn > 1000, "full render > 1000 shaded pixels (got " + string(totalDrawn) + ")")
+    check(totalDrawn < 80 * 60, "render does not fill entire framebuffer")
+
+    // ---- 14. Z-buffer 正确性 ----
+    println("[14] z-buffer correctness")
+    RenderTarget rt2 = RenderTarget(32, 32)
+    rt2.clear(0, 0, 0)
+
+    // 构造近/远两个正对相机的三角形
+    Mesh nearTri = Mesh()
+    nearTri.addVert(-0.3, -0.3, 0.0)
+    nearTri.addVert(0.3, -0.3, 0.0)
+    nearTri.addVert(0.0, 0.3, 0.0)
+    nearTri.addTriangle(0, -1, -1, 1, -1, -1, 2, -1, -1)
+    Mesh farTri = Mesh()
+    farTri.addVert(-0.5, -0.5, 0.0)
+    farTri.addVert(0.5, -0.5, 0.0)
+    farTri.addVert(0.0, 0.5, 0.0)
+    farTri.addTriangle(0, -1, -1, 1, -1, -1, 2, -1, -1)
+
+    Vec3 zEye = Vec3(0.0, 0.0, 0.0)
+    g_eyeX = 0.0
+    g_eyeY = 0.0
+    g_eyeZ = 0.0
+    Vec3 tgtZ = Vec3(0.0, 0.0, -1.0)
+    Vec3 upZ = Vec3(0.0, 1.0, 0.0)
+    Mat4 viewZ = matLookAt(zEye, tgtZ, upZ)
+    Mat4 projZ = matPerspective(90.0, 1.0, 0.1, 100.0)
+    Mat4 vpZ = projZ.mul(viewZ)
+    Mat4 nearM = matTranslate(0.0, 0.0, -2.0)
+    Mat4 farM = matTranslate(0.0, 0.0, -4.0)
+
+    clearLights()
+    addLight(0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0)
+
+    // 先画远的（绿），再画近的（红）-> 中心应为红
+    // 用纹理色来区分：近=红，远=绿
+    Texture redTex = buildCheckerTexture(2, 2, 1, 255, 0, 0, 255, 0, 0)
+    Texture grnTex = buildCheckerTexture(2, 2, 1, 0, 255, 0, 0, 255, 0)
+
+    rt2 = rasterizeModel(farTri, farM, vpZ, rt2, grnTex, true, 1.0, 1.0, 1.0, 0.2, 0.7, 0.0, 1.0)
+    rt2 = rasterizeModel(nearTri, nearM, vpZ, rt2, redTex, true, 1.0, 1.0, 1.0, 0.2, 0.7, 0.0, 1.0)
+
+    int centerR = rt2.fb[(16 * 32 + 16) * 3]
+    int centerG = rt2.fb[(16 * 32 + 16) * 3 + 1]
+    check(centerR > centerG, "z-buffer: near(red) occludes far(green) at center")
+
+    // ---- 15. 透视校正插值 ----
+    println("[15] perspective-correct interpolation")
+    // 用两个深度不同的三角形验证透视校正：倾斜面的 UV 应正确插值
+    // 简化验证：渲染一个小立方体并检查输出非空
+    RenderTarget rt3 = RenderTarget(40, 30)
+    rt3.clear(0, 0, 0)
+    setupDefaultLights()
+    Mesh pcCube = buildCubeTextured()
+    Mat4 pcModel = normalizeModelMat(pcCube, 2.0, 1.0, degToRad(35.0))
+    Vec3 pcEye = Vec3(0.0, 2.0, 5.0)
+    g_eyeX = pcEye.x
+    g_eyeY = pcEye.y
+    g_eyeZ = pcEye.z
+    Vec3 tgtPC = Vec3(0.0, 0.5, 0.0)
+    Vec3 upPC = Vec3(0.0, 1.0, 0.0)
+    Mat4 pcView = matLookAt(pcEye, tgtPC, upPC)
+    Mat4 pcProj = matPerspective(45.0, 40.0 / 30.0, 0.1, 100.0)
+    Mat4 pcVP = pcProj.mul(pcView)
+    Texture pcTex = buildCheckerTexture(16, 16, 4, 255, 255, 255, 30, 30, 30)
+    rt3 = rasterizeModel(pcCube, pcModel, pcVP, rt3, pcTex, true, 1.0, 1.0, 1.0, 0.15, 0.75, 0.3, 16.0)
+    int pcDrawn = countNonBg(rt3, 0, 0, 0)
+    check(pcDrawn > 50, "perspective-correct cube renders > 50 pixels (got " + string(pcDrawn) + ")")
+
+    println("================================================================")
+    println("result: " + string(g_pass) + " passed, " + string(g_fail) + " failed")
+    if g_fail > 0 then
+        return 1
+    end
+    return 0
+end
+
+// ========================================================================
+// 用法
+// ========================================================================
+func printUsage()
+    println("xrender3d - software 3D rendering pipeline")
+    println("OBJ loading / model-view-projection / Phong shading / texture mapping /")
+    println("planar shadow projection / z-buffer / barycentric rasterization / PPM output")
+    println("")
+    println("usage:")
+    println("  xrender3d                                  show this help")
+    println("  xrender3d render <model.obj> [w] [h] [out] render OBJ model to PPM")
+    println("                                             w=width h=height out=output")
+    println("                                             defaults: 320 240 out.ppm")
+    println("  xrender3d render-scene [scene] [w] [h] [out]")
+    println("                                             render built-in scene")
+    println("                                             scene: 0=cube 1=sphere 2=both")
+    println("  xrender3d test                             run self-test")
+    println("  xrender3d bench [w] [h]                    benchmark, default 320 240")
+    println("")
+    println("pipeline:")
+    println("  OBJ parse -> model -> view -> projection -> perspective divide")
+    println("  -> viewport -> barycentric raster (perspective-correct) -> z-buffer")
+    println("  -> Phong (ambient+diffuse+specular, multi-light) -> texture map")
+    println("  -> planar shadow projection -> PPM (P3 ASCII)")
+end
+
+// ========================================================================
+// 主入口
+// ========================================================================
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+    try
+        if cmd == "-h" or cmd == "--help" or cmd == "help" then
+            printUsage()
+            return 0
+        elseif cmd == "render" then
+            // xrender3d render <model.obj> [w] [h] [out]
+            string modelPath = ""
+            int width = 320
+            int height = 240
+            string outPath = "out.ppm"
+            int argOffset = 0
+            if arg.length >= 3 then
+                string arg2 = string(arg[2])
+                // 判断 arg2 是文件名还是数字
+                if file.exists(arg2) or string.indexOf(arg2, ".") >= 0 then
+                    modelPath = arg2
+                    argOffset = 1
+                end
+            end
+            int baseIdx = 2 + argOffset
+            if arg.length >= baseIdx + 1 then
+                width = parseArgInt(string(arg[baseIdx]), 320)
+            end
+            if arg.length >= baseIdx + 2 then
+                height = parseArgInt(string(arg[baseIdx + 1]), 240)
+            end
+            if arg.length >= baseIdx + 3 then
+                outPath = string(arg[baseIdx + 2])
+            end
+            return cmdRender(modelPath, width, height, outPath)
+
+        elseif cmd == "render-scene" then
+            int sceneChoice = 0
+            int width = 320
+            int height = 240
+            string outPath = "out.ppm"
+            if arg.length >= 3 then sceneChoice = parseArgInt(string(arg[2]), 0) end
+            if arg.length >= 4 then width = parseArgInt(string(arg[3]), 320) end
+            if arg.length >= 5 then height = parseArgInt(string(arg[4]), 240) end
+            if arg.length >= 6 then outPath = string(arg[5]) end
+            return cmdRenderScene(sceneChoice, width, height, outPath)
+
+        elseif cmd == "test" then
+            return cmdTest()
+
+        elseif cmd == "bench" then
+            int width = 320
+            int height = 240
+            if arg.length >= 3 then width = parseArgInt(string(arg[2]), 320) end
+            if arg.length >= 4 then height = parseArgInt(string(arg[3]), 240) end
+            return cmdBench(width, height)
+
+        else
+            println("error: unknown command '" + cmd + "'")
+            printUsage()
+            return 1
+        end
+    catch e
+        println("error: " + e.message)
+        return 1
+    end
+    return 0
+end

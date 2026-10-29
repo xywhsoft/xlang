@@ -159,7 +159,7 @@ GUI 中唯一的 XRT 实现由匹配的 XGE IDE 配置 DLL 提供。GUI 首版�
 | `tests` 与 `tools` | 验收、SDK 校验、文档生成、打包 |
 | `build` 与 `release` | 构建产物，不作为源码真相 |
 
-以上目录按阶段逐步创建。语言语义以 `D:\GIT\x-lang\demo6\docs` 为准；本次接口核对包含 `demo6/src/driver/xl6_xlc_shell.c` 和 `demo6/release/include/xlc.h`。参见 [格式设计](workspace-project-format.md)、[实施计划](implementation-plan.md) 和 [复用清单](reference-map.md)。
+以上目录按阶段逐步创建。语言语义以 `D:\GIT\x-lang\docs` 为准；本次接口核对包含 `src/driver/xl6_xlc_shell.c` 和 `release/include/xlc.h`。参见 [格式设计](workspace-project-format.md)、[实施计划](implementation-plan.md) 和 [复用清单](reference-map.md)。
 
 ## 动作注册实现映射
 

@@ -1,6 +1,6 @@
 # 编译器源码范围
 
-此增量实现真实 xlang AST 的位置基础，合同、调用方法、坐标与限制见 [DEMO6 源码范围接口](../../demo6/docs/IDE源码范围接口.md)。实现仍使用 C，生成后处理使用既有 PowerShell 工具链，测试驱动使用 Python。
+此增量实现真实 xlang AST 的位置基础，合同、调用方法、坐标与限制见 [DEMO6 源码范围接口](../../docs/IDE源码范围接口.md)。实现仍使用 C，生成后处理使用既有 PowerShell 工具链，测试驱动使用 Python。
 
 新 xlcEmitAstWithRanges 和 parse --json --source-ranges 返回入口语法树的完整语法范围、构造 token 范围和来源路径，保留旧 AST 输出。覆盖表可提供未保存的入口。双语法编辑器及既定原生布局保持。
 

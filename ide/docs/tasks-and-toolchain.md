@@ -13,12 +13,12 @@
 - 任务页选择历史条目：查看该任务输出、问题和运行回滚。状态包含排队、执行、取消中、成功、失败和已取消，显示阶段、退出结果及耗时。
 - 运行页支持键盘/粘贴输入；Ctrl+C 停止当前会话，Ctrl+D / Ctrl+Z 或“文件 → 关闭会话输入”关闭 stdin。当前是程序管道会话，不是完整系统 shell 或 ConPTY。
 
-工具链选择顺序为 `--compiler PATH.exe`、`XLANG_COMPILER`、便携设置中的编译器路径、开发目录相邻的 `demo6/release/xl.exe`；也可通过“文件 → 选择 xlang 编译器”指定并保存。每个构建任务在后台执行 `--help`，核对构建和请求选项的实际声明。当前 CLI 没有被假定提供 `--version`；编译器路径保存到程序旁的 `option/settings.json`，保留未知字段；原子写入并拦截外部修改、损坏文件和锁定目标。保存失败仍可在当前会话使用刚选中的编译器，并明确提示无法保存。文件菜单的“工具链信息…”已提供后台 PE 文件版本、能力与指纹观察缓存；未提供版本资源时明确显示未知，刷新与失败保留已接入。每个构建仍执行当次能力检查，详细协议见 [工具链信息](toolchain-profile.md)。`--settings PATH.json` 可指定独立设置文件；隐藏验收默认不读写实际用户偏好。
+工具链选择顺序为 `--compiler PATH.exe`、`XLANG_COMPILER`、便携设置中的编译器路径、开发目录相邻的 `release/xl.exe`；也可通过“文件 → 选择 xlang 编译器”指定并保存。每个构建任务在后台执行 `--help`，核对构建和请求选项的实际声明。当前 CLI 没有被假定提供 `--version`；编译器路径保存到程序旁的 `option/settings.json`，保留未知字段；原子写入并拦截外部修改、损坏文件和锁定目标。保存失败仍可在当前会话使用刚选中的编译器，并明确提示无法保存。文件菜单的“工具链信息…”已提供后台 PE 文件版本、能力与指纹观察缓存；未提供版本资源时明确显示未知，刷新与失败保留已接入。每个构建仍执行当次能力检查，详细协议见 [工具链信息](toolchain-profile.md)。`--settings PATH.json` 可指定独立设置文件；隐藏验收默认不读写实际用户偏好。
 
 ```powershell
-.\release\xlang_ide.exe --workspace .\workspace.xlw --compiler D:\GIT\x-lang\demo6\release\xl.exe
+.\release\xlang_ide.exe --workspace .\workspace.xlw --compiler D:\GIT\x-lang\release\xl.exe
 .\release\xlang_ide.exe --project .\app.xlp --configuration development
-.\release\xlang_ide_console.exe --hidden --frames 3 --project .\app.xlp --compiler D:\GIT\x-lang\demo6\release\xl.exe --task run --wait-task --screenshot .\build\run.png
+.\release\xlang_ide_console.exe --hidden --frames 3 --project .\app.xlp --compiler D:\GIT\x-lang\release\xl.exe --task run --wait-task --screenshot .\build\run.png
 ```
 
 `--task build|run|build-file|run-file|test` 明确发起任务；单独打开文件或工程不会执行用户程序。`--wait-task` 仅用于有界验收，要求 `--frames` 和 `--task`，最长等待 30 秒，成功或失败均实际绘制最终面板。普通 GUI 运行没有该测试超时。

@@ -12,7 +12,7 @@
 
 生成目录为新的 `build/cg-编号`；输出包含 `commands.json`、`catalog-sources`、`generation-report.json`、原始来源和生成工具快照，以及真实 GCC、导出程序、编译器解析日志。指定 `-OutputDirectory` 时目标必须尚不存在。
 
-编译器和源码取自 `data/portable-build-inputs.json` 指定的缓存资料，以源码清单、独立构建报告和三个运行时摘要相互验证。不会执行工作区 `demo6/release` 中另一份编译器。六份设计文档默认读取实际 `demo6/docs`，可通过 `-DocumentationRoot` 指定；这些文档是当次捕获的设计资料，并非编译器源码构建证明的一部分。
+编译器和源码取自 `data/portable-build-inputs.json` 指定的缓存资料，以源码清单、独立构建报告和三个运行时摘要相互验证。不会执行工作区 `release` 中另一份编译器。六份设计文档默认读取实际 `docs`，可通过 `-DocumentationRoot` 指定；这些文档是当次捕获的设计资料，并非编译器源码构建证明的一部分。
 
 生成器在读取来源时保存原始字节，再从这些字节提取声明和文档。全部声明解析成功、全部来源内容与目录摘要一致才会得到 passed 报告。源文件、编译器、工具快照改变，或任一声明解析失败时拒绝生成完整资料对；已安装数据保持原状。
 

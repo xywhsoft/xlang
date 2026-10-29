@@ -4,11 +4,11 @@
 
 ## 主源码改动
 
-- `demo6/src/api/xl_api.c` 与 `demo6/lib/tcc/libtcc.{h,c}`：环境查询附带实际 TCC 标量目标和配置状态的位域模式，保持现有运行时、集合和所有权逻辑。
-- `demo6/src/cgen/xl6_ir_cgen_identity_closure.c` 与 `xl6_ir_cgen_header_emit.c`：真实 extern 原型的标识符发射点提供实际 lowered symbol，供来源映射连接 checked 声明；普通 Cgen 沿用相同输出路径。
-- `demo6/res/tcc/win64/x86_64/include/stdio.h`：`vsnprintf` 的外部声明与静态内联定义按原有模式互斥，真实原生扩展可使用函数指针和格式化函数。
-- `demo6/tools/{runtime,compiler}_dll.rsp.in`：补齐 7 个已存在的 SlotMap、原生叶值和数组原生值实现源文件，修复接口已注册而 DLL 缺少实现的链接失败。
-- [声明映射检查](../../demo6/tools/check_c_bridge_map.py)、[TCC 目标检查](../../demo6/tools/check_native_c_target.py)与[编译器接口文档](../../demo6/docs/IDE原生C声明桥接接口.md)：新增实际 extern／未保存覆盖身份、头文件字节对照和 TCC 内存编译执行检查。
+- `src/api/xl_api.c` 与 `lib/tcc/libtcc.{h,c}`：环境查询附带实际 TCC 标量目标和配置状态的位域模式，保持现有运行时、集合和所有权逻辑。
+- `src/cgen/xl6_ir_cgen_identity_closure.c` 与 `xl6_ir_cgen_header_emit.c`：真实 extern 原型的标识符发射点提供实际 lowered symbol，供来源映射连接 checked 声明；普通 Cgen 沿用相同输出路径。
+- `res/tcc/win64/x86_64/include/stdio.h`：`vsnprintf` 的外部声明与静态内联定义按原有模式互斥，真实原生扩展可使用函数指针和格式化函数。
+- `tools/{runtime,compiler}_dll.rsp.in`：补齐 7 个已存在的 SlotMap、原生叶值和数组原生值实现源文件，修复接口已注册而 DLL 缺少实现的链接失败。
+- [声明映射检查](../../tools/check_c_bridge_map.py)、[TCC 目标检查](../../tools/check_native_c_target.py)与[编译器接口文档](../../docs/IDE原生C声明桥接接口.md)：新增实际 extern／未保存覆盖身份、头文件字节对照和 TCC 内存编译执行检查。
 
 ## 已完成的实际检查
 

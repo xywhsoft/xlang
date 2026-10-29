@@ -49,4 +49,4 @@ python .\tools\check_language_completions.py --compiler .\build\toolchains\demo6
 .\tools\test.ps1 -Configuration Release -CompilerPath <xl.exe> -CompletionCompilerPath <completion-xl.exe>
 ```
 
-本轮结果与修复过程见 [进度](progress.md)、[最终核验](../build/completion-lsp-final-verification.json) 和 [可复跑测试](../tools/check_language_completions.py)。编译器支持/未支持语法范围见 [编译器查询合同](../../demo6/docs/IDE语义补全查询接口.md)。
+本轮结果与修复过程见 [进度](progress.md)、[最终核验](../build/completion-lsp-final-verification.json) 和 [可复跑测试](../tools/check_language_completions.py)。编译器支持/未支持语法范围见 [编译器查询合同](../../docs/IDE语义补全查询接口.md)。

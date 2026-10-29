@@ -1,0 +1,291 @@
+// xs_static：基于 demo6 http.server 的静态编译版 xs 原型。
+// 当前版本只使用已经稳定暴露的标准库能力，不依赖动态脚本加载。
+
+class XSConfig
+    derive value
+
+    string name = "xs_static"
+    int port = 8088
+    string root = "projects/xs_static/wwwroot"
+    string staticMount = "/"
+    int durationMs = 0
+    bool verbose = true
+end
+
+func xsDefaultConfig() as XSConfig
+    XSConfig cfg = XSConfig()
+    return cfg
+end
+
+func xsLoadConfig(string configPath) as XSConfig
+    XSConfig cfg = xsDefaultConfig()
+
+    if not file.exists(configPath) then
+        return cfg
+    end
+
+    var raw = json.read(configPath)
+    var nameValue = raw?.name ?? cfg.name
+    var portValue = raw?.port ?? cfg.port
+    var rootValue = raw?.root ?? cfg.root
+    var mountValue = raw?.staticMount ?? cfg.staticMount
+    var durationValue = raw?.durationMs ?? cfg.durationMs
+    var verboseValue = raw?.verbose ?? cfg.verbose
+
+    cfg.name = string(nameValue)
+    cfg.port = int(portValue)
+    cfg.root = string(rootValue)
+    cfg.staticMount = string(mountValue)
+    cfg.durationMs = int(durationValue)
+    cfg.verbose = bool(verboseValue)
+
+    if cfg.port < 0 or cfg.port > 65535 then
+        cfg.port = 8088
+    end
+
+    if cfg.staticMount == "" then
+        cfg.staticMount = "/"
+    end
+
+    if cfg.root == "" then
+        cfg.root = "projects/xs_static/wwwroot"
+    end
+
+    return cfg
+end
+
+func xsWriteDefaultConfig(string configPath) as bool
+    string text = """{
+    "name": "xs_static",
+    "port": 8088,
+    "root": "projects/xs_static/wwwroot",
+    "staticMount": "/",
+    "durationMs": 0,
+    "verbose": true
+}
+"""
+    string dirPath = path.dir(configPath)
+    if dirPath != "" then
+        dir.createAll(dirPath)
+    end
+    return file.writeText(configPath, text)
+end
+
+func xsEnsureSite(string root) as bool
+    if root == "" then
+        return false
+    end
+
+    dir.createAll(root)
+
+    string indexPath = path.join(root, "index.html")
+    if not file.exists(indexPath) then
+        string html = """<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>xs_static</title>
+</head>
+<body>
+    <h1>xs_static</h1>
+    <p>xlang demo6 static xs is running.</p>
+    <ul>
+        <li><a href="/health">/health</a></li>
+        <li><a href="/api/info">/api/info</a></li>
+    </ul>
+</body>
+</html>
+"""
+        file.writeText(indexPath, html)
+    end
+
+    string readmePath = path.join(root, "readme.txt")
+    if not file.exists(readmePath) then
+        file.writeText(readmePath, "xs_static static file root")
+    end
+
+    return true
+end
+
+func xsHandle(string method, string pathValue, string query, string body) as string
+    if method == "GET" and pathValue == "/health" then
+        return "ok"
+    end
+
+    if method == "GET" and pathValue == "/api/info" then
+        return "{\"name\":\"xs_static\",\"mode\":\"static\",\"runtime\":\"xlang-"}"
+    end
+
+    if method == "GET" and pathValue == "/api/time" then
+        return time.now().toString()
+    end
+
+    if method == "POST" and pathValue == "/api/echo" then
+        return body
+    end
+
+    if pathValue == "/api/method" then
+        return method
+    end
+
+    return "xs_static"
+end
+
+func xsPrintUsage()
+    println("xs_static usage:")
+    println("  xl run projects/xs_static/xs_static.xl -- [options]")
+    println("  projects/xs_static/release/xs_static.exe [options]")
+    println("")
+    println("options:")
+    println("  --config <file>      config path, default projects/xs_static/xs_static.json")
+    println("  --port <port>        override listen port")
+    println("  --root <dir>         override static file root")
+    println("  --duration <ms>      auto stop after milliseconds; 0 means run forever")
+    println("  --init               write default config and default site files")
+    println("  --quiet              reduce startup logs")
+    println("  --help               show this help")
+end
+
+func main(...) as int
+    string configPath = "projects/xs_static/xs_static.json"
+    bool initOnly = false
+    bool showHelp = false
+    int portOverride = -1
+    string rootOverride = ""
+    int durationOverride = -1
+
+    int i = 1
+    while i < arg.length
+        string key = string(arg[i])
+
+        if key == "--help" or key == "-h" then
+            showHelp = true
+            i += 1
+            continue
+        end
+
+        if key == "--init" then
+            initOnly = true
+            i += 1
+            continue
+        end
+
+        if key == "--quiet" then
+            // quiet 是配置项，稍后覆盖。
+            i += 1
+            continue
+        end
+
+        if key == "--config" and i + 1 < arg.length then
+            configPath = string(arg[i + 1])
+            i += 2
+            continue
+        end
+
+        if key == "--port" and i + 1 < arg.length then
+            portOverride = int(arg[i + 1])
+            i += 2
+            continue
+        end
+
+        if key == "--root" and i + 1 < arg.length then
+            rootOverride = string(arg[i + 1])
+            i += 2
+            continue
+        end
+
+        if key == "--duration" and i + 1 < arg.length then
+            durationOverride = int(arg[i + 1])
+            i += 2
+            continue
+        end
+
+        println("unknown option: ", key)
+        return 2
+    end
+
+    if showHelp then
+        xsPrintUsage()
+        return 0
+    end
+
+    if initOnly then
+        xsWriteDefaultConfig(configPath)
+        XSConfig initCfg = xsLoadConfig(configPath)
+        xsEnsureSite(initCfg.root)
+        println("xs_static initialized: ", configPath)
+        return 0
+    end
+
+    XSConfig cfg = xsLoadConfig(configPath)
+
+    if portOverride >= 0 then
+        cfg.port = portOverride
+    end
+
+    if rootOverride != "" then
+        cfg.root = rootOverride
+    end
+
+    if durationOverride >= 0 then
+        cfg.durationMs = durationOverride
+    end
+
+    i = 1
+    while i < arg.length
+        if string(arg[i]) == "--quiet" then
+            cfg.verbose = false
+        end
+        i += 1
+    end
+
+    if not xsEnsureSite(cfg.root) then
+        println("static root init failed: ", cfg.root)
+        return 3
+    end
+
+    func(string, string, string, string) as string handler = xsHandle
+    point server = http.server.create(cfg.port)
+
+    if server == null then
+        println("server create failed")
+        return 4
+    end
+
+    http.server.get(server, "/health", handler)
+    http.server.get(server, "/api/info", handler)
+    http.server.get(server, "/api/time", handler)
+    http.server.post(server, "/api/echo", handler)
+    http.server.any(server, "/api/method", handler)
+    http.server.static(server, cfg.staticMount, cfg.root)
+
+    if not http.server.start(server) then
+        println("server start failed")
+        http.server.destroy(server)
+        return 5
+    end
+
+
+    int boundPort = http.server.port(server)
+    if cfg.verbose then
+        println(cfg.name, " listening on http://127.0.0.1:", boundPort.toString())
+        println("static root: ", cfg.root)
+        println("health: /health")
+    end
+
+    if cfg.durationMs > 0 then
+        time.sleep(cfg.durationMs)
+        http.server.stop(server)
+        http.server.destroy(server)
+        if cfg.verbose then
+            println("xs_static stopped")
+        end
+        return 0
+    end
+
+    while true
+        time.sleep(1000)
+    end
+
+    return 0
+end

@@ -19,7 +19,7 @@ sources={}; materials={}; entries=[]; issues=[]; documents={}; package_docs={}
 def digest(data): return hashlib.sha256(data).hexdigest()
 def source(path):
     path=path.resolve()
-    key='ide/tools/generate_catalog.py' if path==pathlib.Path(__file__).resolve() else 'demo6/'+path.relative_to(args.demo6.resolve()).as_posix()
+    key='ide/tools/generate_catalog.py' if path==pathlib.Path(__file__).resolve() else ''+path.relative_to(args.demo6.resolve()).as_posix()
     if key not in sources:
         materials[key]=path.read_bytes()
         sources[key]={'path':key,'sha256':digest(materials[key])}
@@ -102,13 +102,13 @@ def add(label,category,module,kind,path,line=1,signature_text='',parameters=None
     entries.append(entry); return entry
 
 # Exact source hashes include all registration fragments, parser and language docs.
-for path in (args.demo6/'src/stdlib').iterdir():
+for path in (args.'src/stdlib').iterdir():
     if path.suffix in ('.c','.h','.inc'): source(path)
 for name in ('语言基础设计.md','函数设计.md','表达式与控制流设计.md','类型系统设计.md','扩展库系统设计.md','标准库设计.md'):
-    source(args.demo6/'docs'/name)
-standard_doc=read_source(args.demo6/'docs/标准库设计.md')
+    source(args.'docs'/name)
+standard_doc=read_source(args.'docs/标准库设计.md')
 for name in ('语言基础设计','函数设计','表达式与控制流设计','类型系统设计','扩展库系统设计','标准库设计'):
-    document(args.demo6/'docs'/(name+'.md'),'design:'+name)
+    document(args.'docs'/(name+'.md'),'design:'+name)
 descriptions={}
 for line in standard_doc.splitlines():
     if line.startswith('|'):
@@ -121,13 +121,13 @@ def example_for(label):
     return next((block for block in examples if re.search(r'(?<![\w.])'+re.escape(label)+r'\s*\(',block)), '')
 
 # Reviewed language examples; the rest of the reserved words link to the actual lexer.
-lex_path=args.demo6/'src/lexer/xl6_lexer.l'; lexer=read_source(lex_path); lex_source=source(lex_path)
+lex_path=args.'src/lexer/xl6_lexer.l'; lexer=read_source(lex_path); lex_source=source(lex_path)
 reviewed=[
 ('func','func 名称(参数...) as 返回类型 ... end','声明函数；参数采用类型在前、名称在后的写法。','func add(int a, int b) as int\n    return a + b\nend\n','函数设计.md'),
 ('class','class 名称 ... end','声明类，类体可以包含字段、成员函数与访问权限。','class Counter\n    public int value = 0\n    public func add(int n) as int\n        self.value += n\n        return self.value\n    end\nend\n','类型系统设计.md'),
 ('import','import 模块路径 [as 别名]','导入模块并绑定命名空间。选择性导入采用 from 模块 import 名称。','import "./math.xl"\n','扩展库系统设计.md')]
 for word,sig,description,example,doc in reviewed:
-    add(word,'language','语言结构','keyword',source(args.demo6/'docs'/doc),signature_text=sig,description=description,example=example,identity='language:'+word)
+    add(word,'language','语言结构','keyword',source(args.'docs'/doc),signature_text=sig,description=description,example=example,identity='language:'+word)
 words=sorted(set(re.findall(r'\{\s*"([a-z_][a-z_0-9]*)"\s*,\s*XL6_KW_',lexer)))
 for word in words:
     if word not in {x[0] for x in reviewed}:
@@ -135,7 +135,7 @@ for word in words:
         add(word,'language','保留字','keyword',lex_source,line,description='此保留字由当前 DEMO6 词法器识别；使用约束见语言设计文档。',identity='language:'+word)
 
 # The semantic registry is authoritative for builtin type names and generic arity.
-type_path=args.demo6/'src/sem/xl6_type_registry.c'; type_source=source(type_path); type_text=read_source(type_path)
+type_path=args.'src/sem/xl6_type_registry.c'; type_source=source(type_path); type_text=read_source(type_path)
 seed_text=type_text.split('g_xl6BuiltinTypeSeeds[] = {',1)[1].split('\n};',1)[0]
 for match in re.finditer(r'\{\s*"([\w]+)"\s*,\s*(NULL|"[^"\n]+")\s*,\s*(\d+)\s*,\s*(\d+)\s*\}',seed_text):
     name,abi,generic,arity=match.groups()
@@ -149,7 +149,7 @@ body_text=''; body_ranges=[]
 for item in raw['functions']:
     start=body_text.count('\n')+1; body_text+=item['body']+'\n'; body_ranges.append((start,body_text.count('\n')+1))
 ast=parse(body_text,'stdlib-function-bodies'); assert ast is not None,'Registered source bodies must parse'
-registration_path=args.demo6/'src/stdlib/xl6_stdlib_data.c'; registration=read_source(registration_path); registration_source=source(registration_path)
+registration_path=args.'src/stdlib/xl6_stdlib_data.c'; registration=read_source(registration_path); registration_source=source(registration_path)
 for index,item in enumerate(raw['functions']):
     if item['namespace'].startswith('__') or item['name'].startswith('__'):
         internal_functions+=1; continue
@@ -170,7 +170,7 @@ for item in raw['constants']:
 
 # Assemble class fragments in the same order, including the compiler's explicit
 # closing/end fragments; parsing all feature branches only extracts declarations.
-chunks={v['symbol']:v['source'] for v in raw['sourceChunks']}; injector=read_source(args.demo6/'src/stdlib/xl6_stdlib.c'); start=injector.index('if ( needsCoreClass )'); end=injector.index('for (i = 0;',start) if 'for (i = 0;' in injector[start:] else start+24000
+chunks={v['symbol']:v['source'] for v in raw['sourceChunks']}; injector=read_source(args.'src/stdlib/xl6_stdlib.c'); start=injector.index('if ( needsCoreClass )'); end=injector.index('for (i = 0;',start) if 'for (i = 0;' in injector[start:] else start+24000
 pattern=r'xl6StdlibBuilderAppend\s*\(&builder,\s*(xl6Stdlib\w+Source|(?:"(?:\\.|[^"\\])*"\s*)+)\);'
 class_text=''; class_ranges=[]
 for match in re.finditer(pattern,injector[start:end]):
@@ -181,11 +181,11 @@ class_ast=parse(class_text,'stdlib-classes'); assert class_ast is not None,'Asse
 
 def declaration_source(line):
     symbol=next((token for begin,end,token in class_ranges if begin<=line<end),'')
-    for path in (args.demo6/'src/stdlib').iterdir():
+    for path in (args.'src/stdlib').iterdir():
         if path.suffix in ('.c','.inc'):
             content=read_source(path); match=re.search(r'\b'+re.escape(symbol)+r'\s*=',content) if symbol else None
             if match: return source(path),content.count('\n',0,match.start())+1
-    return source(args.demo6/'src/stdlib/xl6_stdlib.c'),1
+    return source(args.'src/stdlib/xl6_stdlib.c'),1
 
 def walk_declarations(nodes,text,category,module,path,version,required='',prefix='',root=True):
     for node in nodes:
@@ -202,7 +202,7 @@ def walk_declarations(nodes,text,category,module,path,version,required='',prefix
             if not name or name in ('destroy',): continue
             sig,params,result=signature(node,text,qname)
             add(qname,category,module,'function' if root else 'method',origin,line,sig,params,result,version=version,required_import=required,insert=qname if root else name)
-walk_declarations(class_ast['children'],class_text,'standard','类型与成员',source(args.demo6/'src/stdlib/xl6_stdlib.c'),'DEMO6')
+walk_declarations(class_ast['children'],class_text,'standard','类型与成员',source(args.'src/stdlib/xl6_stdlib.c'),'DEMO6')
 
 # C completion shares the catalog while xlang library APIs stay language-specific.
 c_keywords="auto break case char const continue default do double else enum extern float for goto if inline int long register restrict return short signed sizeof static struct switch typedef union unsigned void volatile while _Alignas _Alignof _Atomic _Bool _Complex _Generic _Imaginary _Noreturn _Static_assert _Thread_local".split()
@@ -210,7 +210,7 @@ for word in c_keywords:
     entry=add(word,'language','C 保留字','keyword',source(pathlib.Path(__file__)),signature_text=word,description='C 语言保留字；编辑器采用固定 XUI SDK 的 C 词法模式。',version='C11',identity='c:keyword:'+word)
     entry['language']='c'
 packages=0
-for package_path in sorted((args.demo6/'release/extlibs').glob('*/xlang.package.json')):
+for package_path in sorted((args.'release/extlibs').glob('*/xlang.package.json')):
     manifest=json.loads(read_source(package_path)); name=manifest['name']; version=manifest.get('version',''); packages+=1
     files=manifest.get('artifact',{}).get('xlSources',[]); manifest_source=source(package_path)
     readme=package_path.parent/'README.md'

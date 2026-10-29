@@ -99,7 +99,7 @@ stdout 丢失任何协议字节都会使客户端失败；stderr 可以有界保
 
 ## 编译器审计与下一步
 
-本轮核对了 `demo6/release/include/xlc.h`、`demo6/src/api/xl_api.c`、`demo6/src/compile/xl6_imports.c` 和诊断生成代码。`xlcAddSourceFile/xlcAddSourceString` 会替换现有单入口；导入路径调用 `xl6ParseFile` 从磁盘读取。上一轮公开 API 没有完整符号、类型或定义查询，也没有依赖源码覆盖回调；本轮已补充上下文持有的源码覆盖接口，符号/类型/定义查询仍待继续。
+本轮核对了 `release/include/xlc.h`、`src/api/xl_api.c`、`src/compile/xl6_imports.c` 和诊断生成代码。`xlcAddSourceFile/xlcAddSourceString` 会替换现有单入口；导入路径调用 `xl6ParseFile` 从磁盘读取。上一轮公开 API 没有完整符号、类型或定义查询，也没有依赖源码覆盖回调；本轮已补充上下文持有的源码覆盖接口，符号/类型/定义查询仍待继续。
 
 后续在 DEMO6 源码与其权威文档补充覆盖层、完整来源范围和查询接口，再接递归依赖版本、诊断、大纲、悬停、语义补全和定义跳转。C 语义与跨语言映射需要独立实现和验收。当前不引入 Python 服务、AI 面板或 AutoTestIDE 的自动化业务模块。
 
@@ -119,13 +119,13 @@ stdout 丢失任何协议字节都会使客户端失败；stderr 可以有界保
 
 DEMO6 现已新增 `xlcSetSourceOverlay/xlcRemoveSourceOverlay/xlcClearSourceOverlays` 和 CLI `--source-overlay`，支持入口、普通递归源码导入、源码包和包依赖的未保存文本；覆盖也可提供尚未落盘的 `.xl` 路径。注册复制严格 UTF-8 文本，最多 64 份、每份 8 MiB、总计 32 MiB；成功更新与工作目录变化使编译缓存失效，失败更新保留旧状态。检查不改写原源码。
 
-parser/import/semantic 的诊断现保留真实文件标签，AST 导入移动和类型克隆保留共享来源。文件标签不等于完整来源范围或语义查询。合同及原生质量门见 [DEMO6 IDE 源码覆盖接口](../../demo6/docs/IDE源码覆盖接口.md)。
+parser/import/semantic 的诊断现保留真实文件标签，AST 导入移动和类型克隆保留共享来源。文件标签不等于完整来源范围或语义查询。合同及原生质量门见 [DEMO6 IDE 源码覆盖接口](../../docs/IDE源码覆盖接口.md)。
 
 该历史前置增量中 GUI 与 stdio 服务仍使用保存后入口检查。后续须把每个打开文档的版本和全文同步为编译快照，验证递归依赖/工具链身份，分文件发布与定位诊断，处理过期结果、取消和服务重启。该历史前置增量时服务尚未声明覆盖能力；当前服务能力以本页“协议与能力”和后续全文快照增量为准。C 语义及查询能力仍未宣告支持。
 
 ## 加载来源报告前置增量
 
-DEMO6 新增 `xlcCheckWithSources` 和 `check --json --source-report`，可记录实际加载的入口、递归源码和包描述文件，区分磁盘/覆盖/字符串入口，提供实际原字节与解析正文 SHA-256、文件身份、修改时间及完整状态。重复读取使用首次不可变快照，输出前复核磁盘输入，改写、删除和同字节替换都会使报告失效。普通 JSON 检查保持兼容；字段、上限、原生验收见 [编译器接口合同](../../demo6/docs/IDE源码覆盖接口.md)。
+DEMO6 新增 `xlcCheckWithSources` 和 `check --json --source-report`，可记录实际加载的入口、递归源码和包描述文件，区分磁盘/覆盖/字符串入口，提供实际原字节与解析正文 SHA-256、文件身份、修改时间及完整状态。重复读取使用首次不可变快照，输出前复核磁盘输入，改写、删除和同字节替换都会使报告失效。普通 JSON 检查保持兼容；字段、上限、原生验收见 [编译器接口合同](../../docs/IDE源码覆盖接口.md)。
 
 这是读取来源观察，scope 明确为 loaded-sources-and-manifests；缺失候选/目录优先级、环境、C/头文件/库等输入尚未包含。该历史前置增量时 GUI/stdio 仍为保存后入口诊断；当前 GUI/stdio 已接入下述全文快照、分文件坐标及发布前输入复核、修改/关闭失效和崩溃后的全文重同步。
 
@@ -183,7 +183,7 @@ C/xlang 双语法和定版 Dock 保持；完整符号/类型/范围、C 语义�
 
 ## 编译器源码范围基础
 
-DEMO6 新增 xlcEmitAstWithRanges 与 parse --json --source-ranges，为真实入口语法树提供完整语法/构造 token 范围和来源路径，遵循去 BOM 的 UTF-8 半开字节区间及从 1 开始的 Unicode 标量坐标。旧 parse/check 格式保持。详见 [源码范围](compiler-source-ranges.md) 与 [编译器合同](../../demo6/docs/IDE源码范围接口.md)。
+DEMO6 新增 xlcEmitAstWithRanges 与 parse --json --source-ranges，为真实入口语法树提供完整语法/构造 token 范围和来源路径，遵循去 BOM 的 UTF-8 半开字节区间及从 1 开始的 Unicode 标量坐标。旧 parse/check 格式保持。详见 [源码范围](compiler-source-ranges.md) 与 [编译器合同](../../docs/IDE源码范围接口.md)。
 
 该入口语法范围接口本身只覆盖解析结果。语言服务现使用同次成功检查的独立语义索引，将定义、大纲和悬停关联到已验证的批次、正文版本及持续输入守护；原生语义补全现使用独立光标查询；C 语义及完整项目输入仍须继续实现。
 

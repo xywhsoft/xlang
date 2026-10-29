@@ -1,0 +1,598 @@
+// abidemo - ABI 元数据验证工具
+//
+// 测试 `xl abi` 命令和 C ABI 导出能力（DEMO6功能清单.md §15、§16）。
+// 工具自身既是被测对象（含各种 export/extern 声明），又是验证驱动
+// （调用 xl abi / xl cgen --emit-header 解析输出并校验符号完整性）。
+//
+// 覆盖能力：
+//   1. export "c_sym" func name(...) as T        导出函数到 C ABI
+//   2. export "c_sym" int name = value           导出变量到 C ABI
+//   3. export "c_sym" const int name = value     导出常量到 C ABI
+//   4. export "c_sym" string name = value        导出字符串变量
+//   5. class 成员 export "c_sym" func method     类方法 C ABI 导出
+//   6. class 多返回值成员导出（C 侧映射为 out 指针）
+//   7. extern "c_sym" Type name                  extern 变量声明
+//   8. extern "c_sym" func name(...) as T        extern 函数声明
+//   9. xl abi --json --emit file.abi.json        生成 JSON ABI 元数据
+//  10. xl abi --emit file.abi.txt                生成 TXT ABI 元数据
+//  11. xl cgen --emit-header file.h              生成 C 头文件
+//  12. 运行时自检：导出函数/变量在 xlang 侧调用正确
+//
+// 用法（在 release 目录下）：
+//   xl run  projects\dev\abidemo\abidemo.xl
+//   xl build projects\dev\abidemo\abidemo.xl -o projects\dev\abidemo\abidemo.exe
+//
+// 注：extern 声明只出现在 ABI 元数据里，运行时不调用（避免链接错误）。
+// ---------------------------------------------------------------------------
+
+// ===========================================================================
+// 1. 被测 ABI 声明（这些声明会被 xl abi / xl cgen 解析为元数据）
+// ===========================================================================
+
+// (1) export 函数
+export "abidemo_add" func xlAdd(int a, int b) as int
+    return a + b
+end
+
+export "abidemo_mul" func xlMul(int a, int b) as int
+    return a * b
+end
+
+// (2) export 变量（int → C int64_t）
+export "abidemo_counter" int xlCounter = 0
+
+// (3) export const
+export "abidemo_version" const int XL_VERSION = 6
+
+// (4) export 字符串变量（string → C const char*）
+export "abidemo_greeting" string xlGreeting = "hello from abidemo"
+
+// (5)(6) class 成员 C ABI 导出（含多返回值）
+class Gauge
+    int value
+
+    create(int initial)
+        self.value = initial
+    end
+
+    export "abidemo_gauge_add" func add(int delta) as int
+        self.value = self.value + delta
+        return self.value
+    end
+
+    export "abidemo_gauge_pair" func pair() as (int, int)
+        return self.value, self.value * 2
+    end
+
+    func localTick() as int
+        return self.add(1)
+    end
+end
+
+// (7) extern 变量声明（仅元数据，运行时不使用）
+extern "abidemo_extern_var" int xlExternVar
+
+// (8) extern 函数声明（仅元数据，运行时不使用）
+extern "abidemo_extern_fn" func xlExternFn(int a, int b) as int
+
+
+// ===========================================================================
+// 2. 验证驱动框架
+// ===========================================================================
+
+int g_pass = 0
+int g_fail = 0
+string g_xl = ""
+string g_selfSource = ""
+
+func ok(string label)
+    g_pass += 1
+    println("  [PASS] " + label)
+end
+
+func bad(string label, string detail)
+    g_fail += 1
+    println("  [FAIL] " + label + " :: " + detail)
+end
+
+func expectEq(int got, int want, string label)
+    if got == want then
+        ok(label)
+    else
+        bad(label, "got " + string(got) + " want " + string(want))
+    end
+end
+
+func expectStr(string got, string want, string label)
+    if got == want then
+        ok(label)
+    else
+        bad(label, "got '" + got + "' want '" + want + "'")
+    end
+end
+
+// 定位 xl.exe：优先 cwd（xl run 的调用目录），其次 appDir
+func findXl() as string
+    string c1 = path.join(path.cwd(), "xl.exe")
+    if file.exists(c1) then
+        return c1
+    end
+    string c2 = path.join(path.cwd(), "release", "xl.exe")
+    if file.exists(c2) then
+        return c2
+    end
+    string c3 = path.join(path.appDir(), "xl.exe")
+    if file.exists(c3) then
+        return c3
+    end
+    return "xl"
+end
+
+// 定位被测源码 abidemo.xl：
+//   xl run 时 arg[0] 就是 .xl 路径；
+//   xl build 出来的 exe，arg[0] 是 exe 路径，需要按相对路径或 exe 同目录查找。
+//   （arg 只能在 func(...) 变参函数里访问，所以 arg0 由 main 传入。）
+func findSelfSource(string arg0) as string
+    if string.endsWith(arg0, ".xl") and file.exists(arg0) then
+        return arg0
+    end
+    string rel = path.join(path.cwd(), r"projects\dev\abidemo\abidemo.xl")
+    if file.exists(rel) then
+        return rel
+    end
+    string fromDemo = path.join(path.cwd(), r"release\projects\dev\abidemo\abidemo.xl")
+    if file.exists(fromDemo) then
+        return fromDemo
+    end
+    string beside = path.join(path.appDir(), "abidemo.xl")
+    if file.exists(beside) then
+        return beside
+    end
+    return ""
+end
+
+// ===========================================================================
+// 3. ABI JSON 解析与校验
+// ===========================================================================
+
+// 在 symbols 数组里按 cExport / cSymbol 查找符号
+func findSymByCExport(var symbols, string cName) as var
+    for sym in symbols
+        string k = string(sym["kind"])
+        if string.startsWith(k, "extern") then
+            if string(sym["cSymbol"]) == cName then
+                return sym
+            end
+        else
+            if string(sym["cExport"]) == cName then
+                return sym
+            end
+        end
+    end
+    return null
+end
+
+func runAbiJson() as string
+    if string.len(g_selfSource) == 0 then
+        bad("ABI JSON generation", "abidemo.xl source not found")
+        return ""
+    end
+    string outPath = path.join(path.temp(), path.random("abidemo_", ".abi.json"))
+    ProcessResult r = process.runFile(g_xl, ["abi", g_selfSource, "--json", "--emit", outPath], 30000)
+    if r.exitCode != 0 then
+        bad("ABI JSON generation", "exit=" + string(r.exitCode) + " stderr=" + string.trim(r.stderr))
+        return ""
+    end
+    if not file.exists(outPath) then
+        bad("ABI JSON generation", "output file was not created")
+        return ""
+    end
+    string text = file.readText(outPath)
+    file.delete(outPath)
+    return text
+end
+
+func runAbiTxt() as string
+    if string.len(g_selfSource) == 0 then
+        bad("ABI text generation", "abidemo.xl source not found")
+        return ""
+    end
+    string outPath = path.join(path.temp(), path.random("abidemo_", ".abi.txt"))
+    ProcessResult r = process.runFile(g_xl, ["abi", g_selfSource, "--emit", outPath], 30000)
+    if r.exitCode != 0 then
+        bad("ABI text generation", "exit=" + string(r.exitCode) + " stderr=" + string.trim(r.stderr))
+        return ""
+    end
+    if not file.exists(outPath) then
+        bad("ABI text generation", "output file was not created")
+        return ""
+    end
+    string text = file.readText(outPath)
+    file.delete(outPath)
+    return text
+end
+
+func runHeader() as string
+    if string.len(g_selfSource) == 0 then
+        bad("C header generation", "abidemo.xl source not found")
+        return ""
+    end
+    string outPath = path.join(path.temp(), path.random("abidemo_", ".h"))
+    ProcessResult r = process.runFile(g_xl, ["cgen", g_selfSource, "--emit-header", outPath], 30000)
+    if r.exitCode != 0 then
+        bad("C header generation", "exit=" + string(r.exitCode) + " stderr=" + string.trim(r.stderr))
+        return ""
+    end
+    if not file.exists(outPath) then
+        bad("C header generation", "output file was not created")
+        return ""
+    end
+    string text = file.readText(outPath)
+    file.delete(outPath)
+    return text
+end
+
+// 单个符号的 JSON 字段断言
+func checkJsonField(var sym, string field, string want, string label)
+    if sym == null then
+        bad(label, "symbol not found in abi json")
+        return
+    end
+    string got = string(sym[field])
+    if got == want then
+        ok(label)
+    else
+        bad(label, "field " + field + " got '" + got + "' want '" + want + "'")
+    end
+end
+
+func testAbiJson(string abiJson)
+    println("[9] ABI JSON metadata")
+    if string.byteLen(abiJson) == 0 then
+        bad("ABI JSON", "metadata is empty")
+        return
+    end
+
+    var root = json.parse(abiJson)
+    if root == null then
+        bad("abi json parse", "json.parse returned null")
+        return
+    end
+
+    expectStr(string(root["module"]), "app", "abi.module == app")
+    int ver = int(root["abiVersion"])
+    expectEq(ver, 6, "abi.abiVersion == 6")
+
+    var symbols = root["symbols"]
+    if symbols == null then
+        bad("abi.symbols", "no symbols array")
+        return
+    end
+
+    // (1) export_func: xlAdd
+    var sAdd = findSymByCExport(symbols, "abidemo_add")
+    checkJsonField(sAdd, "kind", "export_func", "xlAdd kind=export_func")
+    checkJsonField(sAdd, "name", "xlAdd", "xlAdd name=xlAdd")
+    checkJsonField(sAdd, "cExport", "abidemo_add", "xlAdd cExport=abidemo_add")
+    if sAdd != null then
+        string sig = string(sAdd["signature"])
+        if string.contains(sig, "as int") and string.contains(sig, "xlAdd") then
+            ok("xlAdd signature contains fn-signature")
+        else
+            bad("xlAdd signature", "got '" + sig + "'")
+        end
+    end
+
+    // (1b) export_func: xlMul
+    var sMul = findSymByCExport(symbols, "abidemo_mul")
+    checkJsonField(sMul, "kind", "export_func", "xlMul kind=export_func")
+    checkJsonField(sMul, "cExport", "abidemo_mul", "xlMul cExport=abidemo_mul")
+
+    // (2) export_var: xlCounter (int)
+    var sCtr = findSymByCExport(symbols, "abidemo_counter")
+    checkJsonField(sCtr, "kind", "export_var", "xlCounter kind=export_var")
+    checkJsonField(sCtr, "name", "xlCounter", "xlCounter name=xlCounter")
+    checkJsonField(sCtr, "type", "int", "xlCounter type=int")
+
+    // (3) export_const: XL_VERSION (int)
+    var sVer = findSymByCExport(symbols, "abidemo_version")
+    checkJsonField(sVer, "kind", "export_const", "XL_VERSION kind=export_const")
+    checkJsonField(sVer, "name", "XL_VERSION", "XL_VERSION name=XL_VERSION")
+    checkJsonField(sVer, "type", "int", "XL_VERSION type=int")
+
+    // (4) export_var string: xlGreeting (string)
+    var sGreet = findSymByCExport(symbols, "abidemo_greeting")
+    checkJsonField(sGreet, "kind", "export_var", "xlGreeting kind=export_var")
+    checkJsonField(sGreet, "type", "string", "xlGreeting type=string")
+
+    // (5) class method export: Gauge.add
+    var sGAdd = findSymByCExport(symbols, "abidemo_gauge_add")
+    checkJsonField(sGAdd, "kind", "export_class_method", "Gauge.add kind=export_class_method")
+    checkJsonField(sGAdd, "owner", "Gauge", "Gauge.add owner=Gauge")
+    checkJsonField(sGAdd, "name", "add", "Gauge.add name=add")
+    checkJsonField(sGAdd, "cExport", "abidemo_gauge_add", "Gauge.add cExport=abidemo_gauge_add")
+
+    // (6) class method multi-return: Gauge.pair
+    var sGPair = findSymByCExport(symbols, "abidemo_gauge_pair")
+    checkJsonField(sGPair, "kind", "export_class_method", "Gauge.pair kind=export_class_method")
+    checkJsonField(sGPair, "owner", "Gauge", "Gauge.pair owner=Gauge")
+    if sGPair != null then
+        string sig = string(sGPair["signature"])
+        if string.contains(sig, "(int,int)") then
+            ok("Gauge.pair signature has multi-return (int,int)")
+        else
+            bad("Gauge.pair signature", "got '" + sig + "'")
+        end
+    end
+
+    // (7) extern_var: xlExternVar
+    var sEV = findSymByCExport(symbols, "abidemo_extern_var")
+    checkJsonField(sEV, "kind", "extern_var", "xlExternVar kind=extern_var")
+    checkJsonField(sEV, "name", "xlExternVar", "xlExternVar name=xlExternVar")
+    checkJsonField(sEV, "type", "int", "xlExternVar type=int")
+    checkJsonField(sEV, "cSymbol", "abidemo_extern_var", "xlExternVar cSymbol=abidemo_extern_var")
+
+    // (8) extern_func: xlExternFn
+    var sEF = findSymByCExport(symbols, "abidemo_extern_fn")
+    checkJsonField(sEF, "kind", "extern_func", "xlExternFn kind=extern_func")
+    checkJsonField(sEF, "cSymbol", "abidemo_extern_fn", "xlExternFn cSymbol=abidemo_extern_fn")
+
+    // 统计：本工具声明的 C ABI 符号（排除注入的 std 符号）应全部出现
+    int foundMine = 0
+    for sym in symbols
+        string k = string(sym["kind"])
+        string cn = ""
+        if string.startsWith(k, "extern") then
+            cn = string(sym["cSymbol"])
+        else
+            cn = string(sym["cExport"])
+        end
+        if string.startsWith(cn, "abidemo_") then
+            foundMine += 1
+        end
+    end
+    expectEq(foundMine, 9, "all 9 abidemo_* symbols present in JSON")
+end
+
+// ===========================================================================
+// 4. ABI TXT 解析与校验
+// ===========================================================================
+
+func testAbiTxt(string abiTxt)
+    println("[10] ABI TXT metadata")
+    if string.byteLen(abiTxt) == 0 then
+        bad("ABI TXT", "metadata is empty")
+        return
+    end
+
+    // 期望出现的 cExport / cSymbol 行（形如 "export <cExport>" 或 "extern <cSymbol>"）
+    if string.contains(abiTxt, "xlang abi version") then
+        ok("TXT has version header line")
+    else
+        bad("TXT version header", "missing 'xlang abi version'")
+    end
+
+    // 检查每个声明的 cExport/cSymbol 都有对应入口
+    string expectedHeaders = "abidemo_add|abidemo_mul|abidemo_counter|abidemo_version|abidemo_greeting|abidemo_gauge_add|abidemo_gauge_pair|abidemo_extern_var|abidemo_extern_fn"
+    array names = string.split(expectedHeaders, "|")
+    int hits = 0
+    for nm in names
+        string name = string(nm)
+        if string.contains(abiTxt, name) then
+            hits += 1
+        else
+            bad("ABI TXT contains " + name, "not found in TXT dump")
+        end
+    end
+    expectEq(hits, names.length, "all " + string(names.length) + " c-symbols appear in TXT")
+
+    // export 路径有 "export <cExport>" 行；extern 路径有 "extern <cSymbol>" 行
+    if string.contains(abiTxt, "export abidemo_add") then
+        ok("TXT has 'export abidemo_add' header line")
+    else
+        bad("TXT export abidemo_add", "missing export header line")
+    end
+
+    if string.contains(abiTxt, "export abidemo_gauge_add") then
+        ok("TXT has 'export abidemo_gauge_add' header line (class method)")
+    else
+        bad("TXT export abidemo_gauge_add", "missing class method export header")
+    end
+
+    if string.contains(abiTxt, "extern abidemo_extern_var") then
+        ok("TXT has 'extern abidemo_extern_var' header line")
+    else
+        bad("TXT extern abidemo_extern_var", "missing extern header line")
+    end
+
+    // class method 应记录 owner
+    if string.contains(abiTxt, "owner: Gauge") then
+        ok("TXT records owner: Gauge for class methods")
+    else
+        bad("TXT owner Gauge", "missing 'owner: Gauge' annotation")
+    end
+
+    // const 应有 kind: const；var 应有 kind: var
+    if string.contains(abiTxt, "kind: const") then
+        ok("TXT distinguishes const exports")
+    else
+        bad("TXT const kind", "no 'kind: const' line found")
+    end
+    if string.contains(abiTxt, "kind: var") then
+        ok("TXT distinguishes var exports")
+    else
+        bad("TXT var kind", "no 'kind: var' line found")
+    end
+end
+
+// ===========================================================================
+// 5. C 头文件解析与校验
+// ===========================================================================
+
+func testHeader(string header)
+    println("[11] C header (--emit-header)")
+    if string.byteLen(header) == 0 then
+        bad("C header", "header is empty")
+        return
+    end
+
+    // 头文件基础结构
+    if string.contains(header, "extern \"C\"") then
+        ok("header has extern \"C\" block")
+    else
+        bad("header extern C", "missing extern \"C\"")
+    end
+    if string.contains(header, "#include <stdint.h>") then
+        ok("header includes stdint.h")
+    else
+        bad("header stdint", "missing #include <stdint.h>")
+    end
+
+    // class 结构体定义（XL_Class_Gauge，含 int64_t value 字段）
+    if string.contains(header, "typedef struct XL_Class_Gauge") then
+        ok("header defines XL_Class_Gauge struct")
+    else
+        bad("header XL_Class_Gauge", "missing struct definition")
+    end
+    if string.contains(header, "int64_t value;") then
+        ok("header exposes Gauge.value field as int64_t")
+    else
+        bad("header Gauge.value", "field not exposed in struct")
+    end
+
+    // (1) 导出函数原型：int64_t abidemo_add(int64_t a, int64_t b);
+    if string.contains(header, "int64_t abidemo_add(int64_t a, int64_t b);") then
+        ok("header has abidemo_add prototype (int → int64_t)")
+    else
+        bad("header abidemo_add", "prototype missing or wrong signature")
+    end
+    if string.contains(header, "int64_t abidemo_mul(int64_t a, int64_t b);") then
+        ok("header has abidemo_mul prototype")
+    else
+        bad("header abidemo_mul", "prototype missing")
+    end
+
+    // (2) 导出变量：extern int64_t abidemo_counter;
+    if string.contains(header, "extern int64_t abidemo_counter;") then
+        ok("header declares abidemo_counter as extern int64_t")
+    else
+        bad("header abidemo_counter", "declaration missing")
+    end
+
+    // (3) 导出常量：extern const int64_t abidemo_version;
+    if string.contains(header, "extern const int64_t abidemo_version;") then
+        ok("header declares abidemo_version as extern const int64_t")
+    else
+        bad("header abidemo_version", "declaration missing")
+    end
+
+    // (4) 字符串变量：extern const char* abidemo_greeting;
+    if string.contains(header, "extern const char* abidemo_greeting;") then
+        ok("header declares abidemo_greeting as extern const char*")
+    else
+        bad("header abidemo_greeting", "string declaration missing")
+    end
+
+    // (5) 类成员方法：第一个参数是 XL_Class_Gauge* self
+    if string.contains(header, "int64_t abidemo_gauge_add(XL_Class_Gauge* self, int64_t delta);") then
+        ok("header has abidemo_gauge_add with XL_Class_Gauge* self first param")
+    else
+        bad("header abidemo_gauge_add", "class method prototype wrong (expected self first)")
+    end
+
+    // (6) 多返回值类成员：void 返回 + out 指针
+    if string.contains(header, "void abidemo_gauge_pair(XL_Class_Gauge* self, int64_t* out0, int64_t* out1);") then
+        ok("header has abidemo_gauge_pair multi-return mapped to out pointers")
+    else
+        bad("header abidemo_gauge_pair", "multi-return prototype wrong")
+    end
+end
+
+// ===========================================================================
+// 6. 运行时自检：导出函数/变量在 xlang 侧调用正确
+// ===========================================================================
+
+func testRuntimeExports()
+    println("[12] runtime export sanity")
+    // (1) export func
+    expectEq(xlAdd(20, 22), 42, "xlAdd(20,22) == 42")
+    expectEq(xlMul(6, 7), 42, "xlMul(6,7) == 42")
+
+    // (2) export var 读写
+    xlCounter = 0
+    expectEq(xlCounter, 0, "xlCounter initial == 0")
+    xlCounter = 41
+    expectEq(xlCounter, 41, "xlCounter after =41")
+    xlCounter += 1
+    expectEq(xlCounter, 42, "xlCounter after +=1")
+
+    // (3) export const 只读
+    expectEq(XL_VERSION, 6, "XL_VERSION == 6")
+
+    // (4) export string var
+    expectStr(xlGreeting, "hello from abidemo", "xlGreeting value")
+
+    // (5) class 成员 export 方法（运行时通过普通方法调用）
+    Gauge g = Gauge(40)
+    expectEq(g.add(2), 42, "Gauge(40).add(2) == 42")
+    expectEq(g.add(8), 50, "Gauge.add(8) == 50")
+
+    // (6) 多返回值方法
+    auto cur, dbl = g.pair()
+    expectEq(int(cur), 50, "Gauge.pair() out0")
+    expectEq(int(dbl), 100, "Gauge.pair() out1")
+
+    // 类内普通方法可以调用 export 方法
+    expectEq(g.localTick(), 51, "Gauge.localTick() calls export method")
+end
+
+// ===========================================================================
+// 7. 入口
+// ===========================================================================
+
+func main(...) as int
+    println("=== abidemo: ABI metadata validation ===")
+    println("")
+
+    g_xl = findXl()
+    string arg0 = ""
+    if arg.length > 0 then
+        arg0 = string(arg[0])
+    end
+    g_selfSource = findSelfSource(arg0)
+
+    println("  compiler    = " + g_xl)
+    if string.len(g_selfSource) == 0 then
+        bad("source discovery", "abidemo.xl source not found")
+    else
+        println("  source      = " + g_selfSource)
+    end
+    println("")
+
+    // 先做运行时自检（不依赖 xl.exe 子进程）
+    testRuntimeExports()
+    println("")
+
+    // 拉取 ABI 元数据产物
+    string abiJson = runAbiJson()
+    string abiTxt = runAbiTxt()
+    string header = runHeader()
+
+    // 解析并校验
+    testAbiJson(abiJson)
+    println("")
+    testAbiTxt(abiTxt)
+    println("")
+    testHeader(header)
+
+    println("")
+    println("=== abidemo done: passed=" + string(g_pass) +
+            " failed=" + string(g_fail) + " ===")
+    if g_fail == 0 then
+        println("ALL CHECKS PASSED")
+    end
+    if g_fail > 0 then
+        return 1
+    end
+    return 0
+end

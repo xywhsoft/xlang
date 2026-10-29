@@ -55,7 +55,7 @@ def compile_snapshot(options, root, report):
     if frontend is None:
         portable = json.loads((IDE / 'data/portable-build-inputs.json').read_text(encoding='utf-8-sig'))
         pinned = (IDE / portable['compiler_root']).parent
-        frontend = pinned if (pinned / 'src/parser/xl6_parser.c').is_file() else IDE.parent / 'demo6'
+        frontend = pinned if (pinned / 'src/parser/xl6_parser.c').is_file() else IDE.parent
     frontend = frontend.resolve(strict=True)
     regular(frontend / 'lib/xrt/xrt.h')
     sdk = IDE / 'third_party/xge_sdk'

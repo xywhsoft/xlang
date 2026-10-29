@@ -2,7 +2,7 @@
 
 > 更新日期：2026-08-06
 >
-> 本清单用于快速核对当前 `demo6/release/xl.exe` 已实现能力、标准写法、测试入口和验收边界。DEMO6 不背负 demo3/demo4/demo5 的历史兼容口径；旧版本文档只能作为历史参考。
+> 本清单用于快速核对当前 `release/xl.exe` 已实现能力、标准写法、测试入口和验收边界。DEMO6 不背负 demo3/demo4/demo5 的历史兼容口径；旧版本文档只能作为历史参考。
 
 ## 1. 当前状态
 
@@ -14,7 +14,7 @@
 - 控制台和重定向输出统一使用 UTF-8：Windows 下 `print` / `println` 和编译器诊断直写 Unicode，混编 C/CRT 输出由运行会话临时切换输出代码页并在结束时恢复；重定向文件保持无转码 UTF-8。Linux/macOS 直接写 UTF-8 字节，不修改进程全局 locale。
 - `xl run` 支持内存态 TCC 运行；默认不应生成 `tmp` 或 `release/tmp` 临时产物，除非显式要求保存中间文件。
 - XRT 是 xlang 标准库和运行时基础；能由 XRT 提供的能力优先使用 XRT，不在 xlang 里重复制造平行实现。
-- DEMO6 构建固定使用仓库内 `demo6/lib/xrt/xrt.h` 发布候选快照，不直接读取
+- DEMO6 构建固定使用仓库内 `lib/xrt/xrt.h` 发布候选快照，不直接读取
   `D:/GIT/xrt` 开发主线。构建守门会拒绝外部 XRT 路径、环境变量或上级目录回读，
   避免尚未稳定的 XRT 开发版本隐式进入发布物。
 - 本轮暂缓扩展 `http` 与 `websocket` 两个库；现有能力可继续使用，但不作为本轮新增和压实目标。
@@ -167,7 +167,7 @@ from geometry import Transform as Matrix
 
 ## 11. 标准库总览
 
-当前标准库公开函数为 515 个，标准库常量为 115 个。以下列表由 demo6/src/stdlib/xl6_stdlib_data.c 自动提取。
+当前标准库公开函数为 515 个，标准库常量为 115 个。以下列表由 src/stdlib/xl6_stdlib_data.c 自动提取。
 
 ### codec
 
@@ -437,14 +437,14 @@ assert zip.open(zipBytes).readText("hello.txt") == "hello"
 
 ## 15. 验证入口
 
-- 构建：`demo6/build.bat`。
-- 全量/分组测试：`demo6/test.bat` 与 `demo6/test/suites/*.bat`。
-- 标准库覆盖守门：`powershell -ExecutionPolicy Bypass -File demo6/tools/check_stdlib_coverage.ps1`。
-- 数据格式扩展库：`demo6/test/suites/10_format_extlibs.bat`。
-- RC 工程守门：`demo6/rc0_guard.bat`、`demo6/tools/rc0_guard.ps1`。
-- 示例目录：`demo6/release/examples`。
+- 构建：`build.bat`。
+- 全量/分组测试：`test.bat` 与 `test/suites/*.bat`。
+- 标准库覆盖守门：`powershell -ExecutionPolicy Bypass -File tools/check_stdlib_coverage.ps1`。
+- 数据格式扩展库：`test/suites/10_format_extlibs.bat`。
+- RC 工程守门：`rc0_guard.bat`、`tools/rc0_guard.ps1`。
+- 示例目录：`release/examples`。
 
-2026-08-02 完整 `demo6/test.bat` 验证通过：444 条预期失败命令全部具备内容
+2026-08-02 完整 `test.bat` 验证通过：444 条预期失败命令全部具备内容
 断言，1221 份测试工件通过闭包检查，172 个开发项目零失败；生成 C 的 GCC
 warning 守门、DLL API/XRT 快照边界、协议、枚举/match、nullable/weak、异步/任务、
 标准库与 XAPI/VFS 链路均通过。

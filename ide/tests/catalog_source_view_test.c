@@ -146,7 +146,7 @@ static int verify(void* user)
     CHECK(xideIoWriteAtomic(index,(xbytesview){(unsigned char*)"{}",2}) && sourceClick(&app,0) && !*xuiCodeEditGetText(editor) && strstr(xideCatalogSourceMessage(&app),"不匹配"));
     CHECK(key(&app,XUI_KEY_ESCAPE,0) && xideIoWriteAtomic(index,(xbytesview){indexBytes,indexSize}));
     size_t missing=app.catalog.count;
-    for(size_t i=0;i<app.catalog.count;++i) if(!strcmp(app.catalog.entries[i].source,"demo6/src/stdlib/xl6_stdlib_data.c")) { missing=i; break; }
+    for(size_t i=0;i<app.catalog.count;++i) if(!strcmp(app.catalog.entries[i].source,"src/stdlib/xl6_stdlib_data.c")) { missing=i; break; }
     CHECK(missing<app.catalog.count && xideCatalogSourceRead(&app.catalog,app.catalog.entries[missing].source,&file,&error)); xideTextFileClear(&file);
     CHECK(markUnavailable(index,indexBytes,indexSize,app.catalog.entries[missing].source));
     xideWorkbenchShowHelp(&app,(int)missing); CHECK(settle(&app) && sourceClick(&app,0) && !*xuiCodeEditGetText(editor) && strstr(xideCatalogSourceMessage(&app),"未找到") && capture(&app,images[3]));

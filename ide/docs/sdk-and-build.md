@@ -18,7 +18,7 @@ Windows PowerShell、GCC、windres 和 objdump 需要在 PATH 中。当前机器
 .\build.bat                         # Debug，GUI 与诊断可执行文件
 .\build.bat -Configuration Release  # 优化构建
 .\test.bat -Configuration Release   # 已注册 69 类测试；按编译器/服务参数执行对应门，含双语法/布局图与 SDK 负面测试
-.\test.bat -Configuration Release -CompilerPath D:\GIT\x-lang\demo6\release\xl.exe  # 额外真实任务、混编、五张任务图及一张真实工具链图
+.\test.bat -Configuration Release -CompilerPath D:\GIT\x-lang\release\xl.exe  # 额外真实任务、混编、五张任务图及一张真实工具链图
 .\release\xlang_ide.exe
 ```
 
@@ -43,8 +43,8 @@ Windows PowerShell、GCC、windres 和 objdump 需要在 PATH 中。当前机器
 
 - `src/theme/theme.c` 与 `theme.h` 来源于 AutoTestIDE 的独立主题模块，保留四套色板和控件样式。移除了参考应用的全局偏好路径与读写函数。
 - `src/platform/xide_input.c` 使用固定 SDK 的 `xuiProxyXgePumpInput` 有序桥，参考 AutoTestIDE 的正式主循环；XUI HotKey 注册 IDE 动作，Escape 交给控件。应用层修正补全立即取消与 Dock 捕获失焦，SDK 保持原样。详见 [原生输入与 IME](input-and-ime.md)。
-- `src/lang/xlang_literal_span.h` 是 DEMO6 字面量跨度扫描器的快照，原路径为 `demo6/src/lexer/xl6_literal_span.h`，SHA-256 为 `3d1b3f3a71adaeb8d76910ece765f433e899190b2f153990feb9c7c6529e0db7`。复用它避免对嵌套插值字符串另造一套规则；编译器变更时需核对并显式更新。
-- `src/lang/languages.c` 的关键字依据 `demo6/src/lexer/xl6_lexer.l`，C 使用 SDK 内建语言。此模块提供词法展示与折叠，不提供完整语义分析或编译诊断。
+- `src/lang/xlang_literal_span.h` 是 DEMO6 字面量跨度扫描器的快照，原路径为 `src/lexer/xl6_literal_span.h`，SHA-256 为 `3d1b3f3a71adaeb8d76910ece765f433e899190b2f153990feb9c7c6529e0db7`。复用它避免对嵌套插值字符串另造一套规则；编译器变更时需核对并显式更新。
+- `src/lang/languages.c` 的关键字依据 `src/lexer/xl6_lexer.l`，C 使用 SDK 内建语言。此模块提供词法展示与折叠，不提供完整语义分析或编译诊断。
 
 当前 SDK 的 CodeEdit 绘制路径在没有有效缓存时直接使用 C 词法。仅调用 `xuiCodeEditSetLanguage` 不足以让 xlang 正确显示。因此 `xideRefreshEditorSyntax` 显式执行当前语言，按文档版本写入覆盖全文字节范围的 token 缓存。DocumentService 已在文档修改后刷新该适配层；语言切换也必须经过 `xideConfigureEditorLanguage`。不能只测试独立 lexer，然后把语言注册成功当作实际渲染成功。
 
@@ -140,9 +140,9 @@ Windows 资源属性新增 model/resources.c、ui/resource_view.c 及 resource_v
 最终语言服务基础增量在完整重建下通过 55 应用模块、43 类测试、54 动作和 90 张新鲜原生图验收。独立 xlang-ls.exe 的导入表不包含编译器 DLL 或 XUI 调用，使用固定 xge.dll 的 XRT；核心文件和完整 2098 文件快照保持一致。最终日志及指纹见 [实施进度](progress.md)。
 
 
-编译器覆盖前置使用独立源码构建与新的 2098 文件运行快照，保留旧快照与固定 SDK。原生 C API 宿主和 CLI 20 组门禁验证虚拟入口/递归模块、源码包依赖、来源、边界/隔离、Cgen/build/run 及原字节不变；Python 仅为开发验收驱动。新工具链下既有 IDE 协议/原生视图也通过。已有前端 char* 文本断言和两个 API 范例的失败经旧 DLL 对照复现，未称全编译器回归通过。路径、日志、指纹与具体边界见 [实施进度](progress.md) 和 [源码覆盖接口](../../demo6/docs/IDE源码覆盖接口.md)。
+编译器覆盖前置使用独立源码构建与新的 2098 文件运行快照，保留旧快照与固定 SDK。原生 C API 宿主和 CLI 20 组门禁验证虚拟入口/递归模块、源码包依赖、来源、边界/隔离、Cgen/build/run 及原字节不变；Python 仅为开发验收驱动。新工具链下既有 IDE 协议/原生视图也通过。已有前端 char* 文本断言和两个 API 范例的失败经旧 DLL 对照复现，未称全编译器回归通过。路径、日志、指纹与具体边界见 [实施进度](progress.md) 和 [源码覆盖接口](../../docs/IDE源码覆盖接口.md)。
 
-编译器来源报告继续在全新隔离源码目录构建，不向应用/服务引入 xl/xlc DLL，也不改固定 XGE SDK。报告实现为 C，独立 native/CLI 质量门使用 Python 驱动；实际 loaded-sources-and-manifests 范围和 GUI 尚未接入的边界见 [语言服务](language-service.md) 与 [源码覆盖接口](../../demo6/docs/IDE源码覆盖接口.md)。本轮证据与保留的 CLI 首次失败见 [实施进度](progress.md)。
+编译器来源报告继续在全新隔离源码目录构建，不向应用/服务引入 xl/xlc DLL，也不改固定 XGE SDK。报告实现为 C，独立 native/CLI 质量门使用 Python 驱动；实际 loaded-sources-and-manifests 范围和 GUI 尚未接入的边界见 [语言服务](language-service.md) 与 [源码覆盖接口](../../docs/IDE源码覆盖接口.md)。本轮证据与保留的 CLI 首次失败见 [实施进度](progress.md)。
 
 
 全文快照后端新增 `services/language_snapshot.c`，当前严格 Release 构建为 56 应用模块、44 类注册测试、54 公共动作。独立服务只链接协议/平台/后台模块，继续由固定 xge.dll 拥有 XRT；不载入 xl/xlc DLL。`snapshot_check_test` 及开发 Python 协议门需要声明 check JSON/source-overlay/source-report 且返回 resolutionReport 的现代 CompilerPath；旧编译器仍可执行已有保存后检查。旧的 55/43/54、90 图全量基线为历史验收，本增量执行相关 9 类原生回归及 44 项快照协议门，没有把历史全量结果当作本轮重跑。
@@ -156,4 +156,4 @@ GUI 全文快照接入后仍为 56 应用模块，注册测试增加为 45 类�
 
 Windows 便携发行增加独立载荷装配与原生迁移验收，应用仍为 67 模块，注册测试为 57 类。`tools/package.ps1` 只复制四个 IDE 主程序/运行时、离线目录和显式验证的 xlang/clangd 运行资产，不复制开发测试程序或用户状态。来源、摘要、核心 PE 导入与发布材料范围保留。包内默认工具路径为相对路径；独立 GUI、诊断程序和原生 C/xlang/F12/混编在中文空格目录中验收。开发 Python 仅驱动打包和测试。
 
-本轮为编译器 `xlGetModuleDir` 使用 Windows Unicode 模块接口，再转为 UTF-8；现有 512 字节路径缓冲保持，不据此宣告所有长路径可用。修复在新的独立来源快照中完整构建，已有候选、固定 SDK 和共享 `demo6/release` 保持。便携流程与材料边界见 [便携发行](portable-distribution.md)，完整回归、保留失败和后续首版工作见 [实施进度](progress.md)。
+本轮为编译器 `xlGetModuleDir` 使用 Windows Unicode 模块接口，再转为 UTF-8；现有 512 字节路径缓冲保持，不据此宣告所有长路径可用。修复在新的独立来源快照中完整构建，已有候选、固定 SDK 和共享 `release` 保持。便携流程与材料边界见 [便携发行](portable-distribution.md)，完整回归、保留失败和后续首版工作见 [实施进度](progress.md)。
