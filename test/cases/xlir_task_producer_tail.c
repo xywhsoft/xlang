@@ -9,7 +9,7 @@
 #ifndef XRT_MODULE_WAIT
 #define XRT_MODULE_WAIT
 #endif
-#include "lib/xrt/xrt.h"
+#include "src/common/xl6_xrt.h"
 #include "release/include/xl_clock.h"
 #include "src/runtime/xl6_task_frame.c"
 #include "src/runtime/xl6_task_pool_internal.h"
