@@ -1,6 +1,7 @@
-param([switch]$SkipAot)
+﻿param([switch]$SkipAot)
 
 $ErrorActionPreference = 'Stop'
+[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
 $root = (Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
 $release = Join-Path $root 'release'
 $workRoot = Join-Path $root 'build/test'
@@ -9,10 +10,15 @@ $xl = Join-Path $release 'xl.exe'
 $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $python = (Get-Command python -CommandType Application -ErrorAction Stop |
     Select-Object -First 1).Source
+$shell = (Get-Process -Id $PID).Path
 [void][IO.Directory]::CreateDirectory($work)
 $flags = @('-std=c11', '-O2', '-Wall', '-Wextra', '-Werror',
     '-Ilib/xrt', '-Irelease/extlibs/ini')
 $links = @('-lws2_32', '-lbcrypt', '-lshlwapi', '-liphlpapi')
+# 所有子进程统一限时、记录原始退出状态，不能让启动失败跳过命令日志。
+. (Join-Path $root 'tools/extlib_smoke_process.ps1')
+$checks = [Collections.Generic.List[object]]::new()
+$failure = ''
 $inputs = @('release/xl.exe', 'release/xl.dll', 'release/xlc.dll',
     'lib/xrt/xrt.h', 'lib/xruntime/xruntime.h', 'release/include/xrt_decl.h',
     'release/include/xruntime_decl.h', 'release/include/xl_extlib_abi.h',
@@ -20,30 +26,41 @@ $inputs = @('release/xl.exe', 'release/xl.dll', 'release/xlc.dll',
     'release/examples/extlibs/ini_c.c') | ForEach-Object { Join-Path $root $_ }
 $inputs += @(Get-ChildItem (Join-Path $root 'release/extlibs/ini') -Recurse -File |
     ForEach-Object FullName)
+$inputs += @($gcc, $python, $shell, (Join-Path $root 'tools/extlib_smoke_process.ps1'),
+    (Join-Path $root 'tools/xlir_native_process.ps1'))
 $hashes = @{}
 foreach ($path in $inputs) { $hashes[$path] = (Get-FileHash -LiteralPath $path).Hash }
 $passed = $false
 
-function Run([string]$label, [string]$program, [string[]]$arguments) {
-    $previous = $ErrorActionPreference
-    $ErrorActionPreference = 'Continue'
-    try {
-        $output = @(& $program @arguments 2>&1 | ForEach-Object { $_.ToString() })
-        $code = $LASTEXITCODE
-    } finally {
-        $ErrorActionPreference = $previous
-    }
+function Run([string]$label, [string]$program, [string[]]$arguments,
+    [int]$expectedExit = 0, [ValidateRange(1,3600)][int]$timeoutSeconds = 120) {
+    if ($null -eq $arguments) { $arguments = @() }
+    $directory = (Get-Location).Path
+    $result = Invoke-ExtlibSmokeProcess $program $arguments $directory $timeoutSeconds
+    $checks.Add([ordered]@{label=$label; program=$program; arguments=$arguments;
+        directory=$directory; expectedExit=$expectedExit; result=$result})
+    $checks | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $work 'report.json') -Encoding UTF8
     [IO.File]::AppendAllText((Join-Path $work 'commands.log'),
-        "${label}: $program $($arguments -join ' ')`nexit=$code`n$($output -join "`n")`n")
-    if ($code -ne 0) { throw "${label}: exit $code`n$($output -join "`n")" }
+        "${label}: $program $($arguments -join ' ')`nstatus=$($result.status) exit=$($result.exitCode)`nstdout:`n$($result.stdout)`nstderr:`n$($result.stderr)`n")
+    if ($result.status -notin @('pass','fail') -or $result.exitCode -ne $expectedExit) {
+        throw "${label}: $($result.status) exit=$($result.exitCode), expected=$expectedExit`n$($result.stdout)`n$($result.stderr)"
+    }
     Write-Host "[ini] ${label}: PASS"
-    return ($output -join "`n").Replace("`r", '').TrimEnd("`n")
+    return ($result.stdout + $result.stderr).Replace("`r`n", "`n").TrimEnd("`n")
 }
 
 Push-Location $root
 try {
     $hashes | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $work 'inputs.before.json')
     $null = Run 'GCC version' $gcc @('--version')
+    $cc1 = Run 'GCC cc1 path' $gcc @('-print-prog-name=cc1')
+    if (-not (Test-Path -LiteralPath $cc1 -PathType Leaf)) { throw "GCC cc1 not found: $cc1" }
+    $cc1 = (Resolve-Path -LiteralPath $cc1).Path
+    $hashes[$cc1] = (Get-FileHash -LiteralPath $cc1).Hash
+    $hashes | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $work 'inputs.before.json')
+    $null = Run 'Python version' $python @('--version')
+    $null = Run 'process diagnostics' $shell @('-NoProfile','-NonInteractive',
+        '-ExecutionPolicy','Bypass','-File',(Join-Path $PSScriptRoot 'check_gate_diagnostics.ps1'))
     $null = Run 'strict C syntax' $gcc @('-std=c11', '-Wall', '-Wextra', '-Werror',
         '-fsyntax-only', '-Ilib/xrt', '-Irelease/extlibs/ini',
         'release/extlibs/ini/test/test_ini.c', 'release/extlibs/ini/ini_native.c')
@@ -117,30 +134,15 @@ try {
         if ([regex]::Matches($ownedText, '=\s*xlir_string_copy\s*\(').Count -gt 1) {
             throw 'INI copied an owned result in the complete return chain'
         }
-        $oldErrorActionPreference = $ErrorActionPreference
-        try {
-            $ErrorActionPreference = 'Continue'
-            $privateDiagnostic = ((& $xl check extlibs/ini/test/private_native.xl 2>&1 |
-                ForEach-Object { $_.ToString() }) -join "`n")
-            $privateExitCode = $LASTEXITCODE
-        } finally {
-            $ErrorActionPreference = $oldErrorActionPreference
-        }
-        if ($privateExitCode -eq 0 -or -not $privateDiagnostic.Contains('getNative') -or
+        $privateDiagnostic = Run 'private native access' $xl @('check',
+            'extlibs/ini/test/private_native.xl') 1
+        if (-not $privateDiagnostic.Contains('getNative') -or
             -not $privateDiagnostic.Contains('access')) {
             throw "INI native member access check failed: $privateDiagnostic"
         }
-        $oldErrorActionPreference = $ErrorActionPreference
-        try {
-            $ErrorActionPreference = 'Continue'
-            $constructorDiagnostic = ((& $xl check extlibs/ini/test/private_config_constructor.xl 2>&1 |
-                ForEach-Object { $_.ToString() }) -join "`n")
-            $constructorExitCode = $LASTEXITCODE
-        } finally {
-            $ErrorActionPreference = $oldErrorActionPreference
-        }
-        if ($constructorExitCode -eq 0 -or
-            -not $constructorDiagnostic.Contains('no such exported type')) {
+        $constructorDiagnostic = Run 'private Config constructor' $xl @('check',
+            'extlibs/ini/test/private_config_constructor.xl') 1
+        if (-not $constructorDiagnostic.Contains('no such exported type')) {
             throw "INI Config export check failed: $constructorDiagnostic"
         }
         $null = Run 'shared suite' $xl @('run', '../test/cases/extlib_ini.xl')
@@ -203,6 +205,11 @@ try {
         }
     }
     $passed = $true
+} catch {
+    $failure = $_.Exception.Message
+    [IO.File]::WriteAllText((Join-Path $work 'failure.txt'), $failure,
+        [Text.UTF8Encoding]::new($false))
+    throw
 } finally {
     Pop-Location
     $resolvedRoot = [IO.Path]::GetFullPath($workRoot).TrimEnd('\') + '\'
@@ -212,6 +219,9 @@ try {
         throw "INI test directory escapes build/test: $resolvedWork"
     }
     if (Test-Path -LiteralPath $resolvedWork -PathType Container) {
+        # 报告留在独占目录旁；成功只删除该目录里的可执行文件等临时产物。
+        [ordered]@{passed=$passed; failure=$failure; inputs=$hashes; checks=$checks} |
+            ConvertTo-Json -Depth 10 | Set-Content -LiteralPath ($work + '.report.json') -Encoding UTF8
         if ($passed) {
             Get-ChildItem -LiteralPath $resolvedWork -File |
                 ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force }

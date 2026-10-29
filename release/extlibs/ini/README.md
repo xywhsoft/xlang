@@ -1,5 +1,30 @@
 # ini
 
+## 2026-10-30 Windows 门禁进程收口
+
+Windows 门禁所有子进程统一复用现有 Invoke-ExtlibSmokeProcess，默认
+单项限时 120 秒，保留实际工作目录、程序/参数、状态、原始退出码与两条
+输出流。缺程序和超时均明确失败；两个私有访问负例必须实际退出 1
+且命中原诊断，不能把任意崩溃当成预期拒绝。空参数表不会多传一个空串，
+输出只统一 CRLF，不再删除正文中的独立 CR。原编译参数及测试范围不变。
+
+新增 check_gate_diagnostics.ps1 从实际门禁 AST 取得同一个 Run，使用
+纯 C 夹具检查十个子进程结果：缺程序、无输出退出 37、预期非零、不应
+成功的负例、空参数、两条输出流、独立 CR、相对工作目录和一秒超时。
+Windows PowerShell 5.1 与 PowerShell 7 均验证旧 Run 缺少启动失败记录、
+新 Run 通过；旧 Run 能抛出缺程序异常，不把这一缺口夸大成已证实的假绿。
+默认包门禁会自动运行该自测，也可从仓库根目录独立执行：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/ini/test/check_gate_diagnostics.ps1
+```
+
+成功后保留 build/test/ini_guard_*.report.json，临时 EXE 等仍只在本次
+独占目录中生成并清理；失败保留原目录、commands.log、report.json、
+failure.txt 与输入指纹。实际 gcc、cc1、Python、PowerShell 和复用工具
+加入指纹，不能仅凭同名编译器声称输入相同。本轮不替换工具链或 XRT，
+没有为历史 ICE 关闭优化项、自动重试或使用旧对象；R 风险仍开放。
+
 ## 2026-10-29 拥有型流的首因保留
 
 原先关闭回调失败时，只保住配置对象内的错误码，却会覆盖 XRT 错误
