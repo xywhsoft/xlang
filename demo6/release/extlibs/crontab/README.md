@@ -1,5 +1,26 @@
 # crontab
 
+2026-10-29：本轮不改变四条公开 API、ABI、调度算法或字符串所有权，
+集中补验收缺口。新增有长度输入的 169 项 C 检查：无 NUL 哨兵、
+刚好 1024/1025 字节、逐位置内嵌 NUL、数字/步长与分隔符、正常
+拒绝不残留旧错误，以及三条描述分支的 OOM/恢复和内存平衡。
+语言分配用例补一般字段摘要，专用生成 C 夹具检查完整返回链不
+出现正文复制；门禁还提取四条实际生成原型与正式 C 头严格编译。
+
+Linux 新增独立 Python `zoneinfo` 对照，不复制产品的字段解析器或
+跳步逻辑：用独立条件核对 `matches`，逐秒枚举下一本地整分钟，
+覆盖 UTC 的负/零时间戳和 2038 年后日期、纽约历史秒级偏移/DST、
+Lord Howe 半小时 DST、Kathmandu 的时差调整。它与原生 ASan/UBSan
+分开执行，不能把未插桩的 Python/动态库对照当作内存安全检查；
+更不代表所有 IANA 时区、历史转换或性能均已认证。
+
+默认 Windows/Linux 门禁分别覆盖八/十条独立程序，Linux 多出的两条
+是历史秒级和半小时 DST 的语言 AOT。每条构建与执行有超时，前后
+检查输入指纹，成功只删本次工作目录、失败保留现场，报告留在目录
+之外。Windows JSON 包含命令、状态、原始输出和本地时区快照；
+Linux `.report.txt` 包含逐阶段命令/输出/退出值，另存输入指纹。
+测试运行库只开时间、本地时间及内存诊断，不再全开 XRT。
+
 2026-10-26 新版 Windows/Linux 发布物验收：两平台均从当前源码重建
 `xl` 后运行默认包门禁，全部退出 0。`xcron_describe` 返回的 XRT
 分配由 `@owned string` 直接接管；Windows 验证严格 C、边界、
@@ -76,7 +97,7 @@ C 构建与 XLang 范例逐字输出一致。
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/crontab/test/check.ps1
 ```
 
-该入口覆盖严格 manifest 宏 GCC 编译、C/XL 边界、远期日期、双语范例同输出和无输出 AOT。单项命令：
+该入口覆盖严格 manifest 宏 GCC 编译、C/XL 边界、169 项长度/诊断/分配检查、远期日期、实际 ABI、直接接管、双语范例同输出和八条 AOT。`-SkipAot` 仅用于快测，不用于签收。单项命令：
 
 ```powershell
 .\release\xl.exe run test\cases\extlib_crontab.xl
@@ -89,9 +110,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_extlib_c.ps1 -Pack
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_extlib_c.ps1 -Package crontab -Source release\extlibs\crontab\examples\crontab.c
 ```
 
-测试覆盖严格字段解析、内嵌 NUL、DOM/DOW 的 OR/AND 与步长位图、不可达日期、本地闰日和跨 2100 年的 8 年搜索窗口。远期可达规则仍按原路径搜索；不可达的月/日组合提前返回。当前 Windows 默认门禁含严格 GCC、C/XL 范例逐行同输出及四份 AOT；Linux C ASan/UBSan 和时区测试由独立脚本验证。旧版共享链接阻断不适用于当前 Windows 发布物。
+测试覆盖严格字段解析、内嵌 NUL、DOM/DOW 的 OR/AND 与步长位图、不可达日期、本地闰日和跨 2100 年的 8 年搜索窗口。远期可达规则仍按原路径搜索；不可达的月/日组合提前返回。默认 Windows 门禁构建并执行中央核心、中央边界、分配、接管夹具、无输出核心、新 C 长度边界、C 范例及 XLang 范例八条路径；Linux 另外执行两条历史时区 AOT。旧版共享链接阻断不适用于本文固定基线的通过记录。
 
-Linux 可在 `demo6` 目录运行 `bash release/extlibs/crontab/test/check.sh`。脚本以严格 GCC、ASan/UBSan 复验 C 边界和跨 2100 年的远期闰日搜索；在安装了 IANA `America/New_York` 时区数据的环境下验证 2024 年春季不存在的 `02:30` 被跳过、秋季重复的 `01:30` 各触发一次。它还运行中央及包内 XLang 用例，并逐字节比较 C/XLang 范例输出。DST 测试仅证明该时区和这两次转换，不代表所有历史时区规则已验收。
+Linux 可在 `demo6` 目录运行 `bash release/extlibs/crontab/test/check.sh`，需 GCC、Python 3.9+ 和 `/usr/share/zoneinfo` 下的 UTC、America/New_York、Australia/Lord_Howe、Asia/Kathmandu；缺少依赖会失败，不跳过。可用 `CC` / `PYTHON` 选择工具。脚本以严格 GCC、ASan/UBSan 复验 C 边界和跨 2100 年的远期闰日搜索；纽约 2024 年春季不存在的 `02:30` 被跳过、秋季重复的 `01:30` 各触发一次。它还运行独立 Python 时区对照、中央及包内 XLang 用例，并逐字节比较 C/XLang 范例输出。通用用例在 UTC 下执行，专用用例显式设置 TZ；时区数据、编译器与 Python 程序也加入前后指纹。建议在核对过源件哈希的 Linux 原生快照中执行，避免 DrvFS 干扰。
 
 同一 Linux 门禁还使用 IANA `Australia/Lord_Howe` 验证 2024 年半小时 DST：回拨日的 `01:45` 分别命中两次，前跳日的 `02:15` 不存在、`02:30` 正常命中。C sanitizer 与 XLang 用例使用同一组独立确定的 Unix 时间点；这仍不是对所有时区的完整认证。
 

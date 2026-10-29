@@ -4,7 +4,8 @@ extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
 extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
 extern "xrtMemDebugFailClear" func failClear()
 
-array<string> expressions = ["* * * * *", "bad"]
+// 覆盖通配简写、非法表达式及一般字段摘要三个原生分配分支。
+array<string> expressions = ["* * * * *", "bad", "*/5 * * * *"]
 for expr in expressions
     bool caught = false
     assert failAfter(0)
@@ -18,8 +19,10 @@ for expr in expressions
     assert caught and triggered
     if expr == "bad" then
         assert crontab.describe(expr) == "invalid"
-    else
+    elseif expr == "* * * * *" then
         assert crontab.describe(expr) == "every minute"
+    else
+        assert crontab.describe(expr) == "minute=*/5; hour=*; day=*; month=*; weekday=*"
     end
 end
 

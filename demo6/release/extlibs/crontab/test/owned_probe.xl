@@ -1,0 +1,9 @@
+import crontab
+
+// 校验三条结果分支直接传到断言，专用于检查完整返回链是否复制正文。
+func main(...) as int
+    assert crontab.describe("* * * * *") == "every minute"
+    assert crontab.describe("bad") == "invalid"
+    assert crontab.describe("*/5 * * * *") == "minute=*/5; hour=*; day=*; month=*; weekday=*"
+    return 0
+end

@@ -32,6 +32,8 @@
 int nextRun = crontab.next("*/15 * * * *", 1700000000)
 println(nextRun)</code></pre>
     <p>DOM 与 DOW 都不以 <code>*</code> 开头时采用 OR；任一字段以 <code>*</code> 开头时按实际位图取 AND，<code>*/2</code> 仍保留步长约束。Linux 固定时区测试覆盖纽约的一小时跳时、Lord Howe 的半小时跳时与重复分钟，以及历史秒级时差与标准时切换；这些边界同时运行 C 与 XLang 用例。<code>next</code> 返回本地整分钟，不要求 Unix 秒数为 60 的倍数。<code>describe</code> 返回 XRT 堆分配的 <code>char*</code>；C 使用 <code>xrtFree</code> 释放，XLang 以 <code>@owned</code> 直接接管。分配失败在 C 中保留 <code>XERR_MEMORY</code>，在 XLang 中抛 <code>MemoryError</code>，清除故障后可重试。2026-10-26 从当前源码重建 Windows/Linux 发布物后，两平台默认包门禁均通过严格 C、XLang JIT/AOT 和 C/XLang 范例同输出；Linux 另通过 ASan/UBSan 与固定时区边界。验收限包内五字段语法及已测时区样例，不代表全部时区历史。</p>
+    <p>2026-10-29 补长度/边界/分配检查 169 项、四条实际生成原型与 C 头核对及完整字符串接管检查。独立 Python/IANA 对照通过 1,008 次匹配、54 次最早触发点检查，覆盖 UTC、纽约、Lord Howe 和 Kathmandu；不复制产品解析与跳步算法。描述摘要分支也补齐 OOM 与恢复。调度算法、API 及所有权不变。</p>
+    <p>默认门禁现在有超时、输入/时区指纹和失败现场，Windows 八条、Linux 十条独立 AOT；Linux 增加两条历史时区 AOT。需要 Python 3.9+ 和指定 IANA 数据，缺工具不跳过。测试范围和命令见 README，不据这组短时检查外推所有时区或性能认证。</p>
   </section>
 </main>
 </body>
