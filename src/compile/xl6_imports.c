@@ -199,6 +199,7 @@ void xl6ImportDepsInit(XL6_ImportDeps* deps)
     xl6PackageStringListInit(&deps->cSources);
     xl6PackageStringListInit(&deps->includeDirs);
     xl6PackageStringListInit(&deps->xrtModules);
+    xl6PackageStringListInit(&deps->runtimeSymbols);
     xl6PackageStringListInit(&deps->links);
     xl6PackageStringListInit(&deps->loadlibs);
     xl6PackageStringListInit(&deps->activeSources);
@@ -220,6 +221,7 @@ void xl6ImportDepsFree(XL6_ImportDeps* deps)
     xl6PackageStringListFree(&deps->cSources);
     xl6PackageStringListFree(&deps->includeDirs);
     xl6PackageStringListFree(&deps->xrtModules);
+    xl6PackageStringListFree(&deps->runtimeSymbols);
     xl6PackageStringListFree(&deps->links);
     xl6PackageStringListFree(&deps->loadlibs);
     xl6PackageStringListFree(&deps->activeSources);
@@ -573,6 +575,9 @@ static int xl6ImportsCollectManifestDeps(
         if ( !xl6ImportsStringListAppendUnique(&deps->xrtModules, manifest->xrtModules.items[i]) ) {
             return 0;
         }
+    }
+    for ( i = 0; i < manifest->runtimeSymbols.count; ++i ) {
+        if ( !xl6ImportsStringListAppendUnique(&deps->runtimeSymbols, manifest->runtimeSymbols.items[i]) ) return 0;
     }
     for ( i = 0; i < manifest->links.count; ++i ) {
         if ( !xl6ImportsAppendPackagePath(&deps->links, manifest->dir, manifest->links.items[i], 0) ) {

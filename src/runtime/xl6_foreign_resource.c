@@ -3,6 +3,9 @@
 #include "xl6_ownership_scope.h"
 #include "xl6_closure.h"
 #include <stdlib.h>
+#include "include/xl_foreign_graph.h"
+#include "xl6_native_handle.h"
+#include "xl6_foreign_graph.inc"
 
 typedef struct ForeignResource {
     void* raw;
@@ -133,12 +136,13 @@ static bool resolve(xrtownershipref ref,const XL6_OwnershipPoliciesV1* policies,
     const xrtownershipadapterv1** adapter,const xrtownershippreparationv1** preparation,
     const XL6_OwnershipFinishV1** completion)
 {
-    (void)policies;(void)preparation;(void)completion;
+    (void)policies;(void)completion;
     *adapter=xrtValueObjectOwnershipAdapterV1(ref,&policy);
     if(!*adapter)*adapter=xrtValueHandleOwnershipAdapterV1(ref,&tokenOps,traceToken);
+    if(!*adapter)*adapter=foreignGraphResolve(ref,preparation);
     return *adapter!=NULL;
 }
 const XL6_OwnershipDomainV1* xl6OwnershipDomainForeignResourceV1Get(void)
 {
-    static const XL6_OwnershipDomainV1 domain={sizeof(domain),NULL,resolve,NULL};return &domain;
+    static const XL6_OwnershipDomainV1 domain={sizeof(domain),foreignGraphLoad,resolve,NULL};return &domain;
 }
