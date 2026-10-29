@@ -159,17 +159,22 @@ static bool __xswAppendQuoted(xbuffer* pOutput, const char* sWord, size_t iSize)
 			return false;
 		}
 	} else {
+		size_t iStart = 0u;
 		if ( !xrtBufferAppendByte(pOutput, '\'') ) { return false; }
+		/* 连续正文一次追加，只在单引号处插入转义，避免逐字节扩容与调用。 */
 		for ( i = 0u; i < iSize; ++i ) {
 			if ( sWord[i] == '\'' ) {
+				if ( i > iStart && !xrtBufferAppend(pOutput,
+					(xbytesview){ (cbytes)(sWord + iStart), i - iStart }) ) { return false; }
 				if ( !xrtBufferAppend(pOutput, (xbytesview){
 					(cbytes)"'\\''", 4u }) ) {
 					return false;
 				}
-			} else if ( !xrtBufferAppendByte(pOutput, (uint8)sWord[i]) ) {
-				return false;
+				iStart = i + 1u;
 			}
 		}
+		if ( iStart < iSize && !xrtBufferAppend(pOutput,
+			(xbytesview){ (cbytes)(sWord + iStart), iSize - iStart }) ) { return false; }
 		if ( !xrtBufferAppendByte(pOutput, '\'') ) { return false; }
 	}
 	return true;

@@ -1,0 +1,28 @@
+import shellwords
+
+func main(...) as int
+    // 只构造与检查参数，不执行文本中的命令或读取真实环境变量。
+    string filename = "report 'final'.txt"
+    string label = "你好 世界"
+    string line = ("agent --output " + shellwords.quote(filename) +
+        " --label " + shellwords.quote(label))
+    var arguments = shellwords.split(line)
+    assert arguments.length == 5
+    assert arguments[2] == filename and arguments[4] == label
+    string canonical = shellwords.join(arguments)
+    assert canonical == line
+    var restored = shellwords.split(canonical)
+    for index in range(arguments.length)
+        assert restored[index] == arguments[index]
+    end
+    println("argc:", arguments.length)
+    println("output:", arguments[2])
+    println("label:", arguments[4])
+    println("canonical:", canonical)
+    // Windows 版本仅面向 CRT argv，不是 cmd.exe 或 PowerShell 转义。
+    string windows = shellwords.quoteWindows("C:\\saved files\\")
+    assert windows == "\"C:\\saved files\\\\\""
+    println("windows:", windows)
+    println("roundtrip: true")
+    return 0
+end

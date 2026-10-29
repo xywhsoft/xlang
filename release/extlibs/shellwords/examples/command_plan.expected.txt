@@ -1,0 +1,6 @@
+argc: 5
+output: report 'final'.txt
+label: 你好 世界
+canonical: agent --output 'report '\''final'\''.txt' --label '你好 世界'
+windows: "C:\saved files\\"
+roundtrip: true

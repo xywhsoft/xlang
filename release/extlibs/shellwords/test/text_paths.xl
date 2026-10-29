@@ -1,0 +1,64 @@
+import shellwords
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    string body = string.repeat("a 'b' ", 2048)
+    string quoted = shellwords.quote(body)
+    assert shellwords.split(quoted)[0] == body
+    assert shellwords.split(shellwords.quote(""))[0] == ""
+    assert shellwords.split("a\\\nb \"c\\$d\" 'e\\f'")[0] == "ab"
+    assert shellwords.quoteWindows("a b\\") == "\"a b\\\\\""
+    for text in ["first\0second", "\0", "tail\0"]
+        for operation in range(3)
+            bool caught = false
+            try
+                if operation == 0 then
+                    shellwords.split(text)
+                elseif operation == 1 then
+                    shellwords.quote(text)
+                else
+                    shellwords.quoteWindows(text)
+                end
+            catch ValueError error
+                caught = true
+            end
+            assert caught
+        end
+    end
+    // 此用例只定位文本入口；语言数组的 join 正例仍由完整旧套件把关。
+    for operation in range(3)
+        int failures = 0
+        bool completed = false
+        for budget in range(64)
+            assert failAfter(uint64(budget))
+            bool caught = false
+            try
+                if operation == 0 then
+                    shellwords.split(quoted)
+                elseif operation == 1 then
+                    shellwords.quote(body)
+                else
+                    shellwords.quoteWindows(body)
+                end
+            catch MemoryError error
+                caught = true
+            end
+            bool triggered = failTriggered()
+            failClear()
+            assert caught == triggered
+            if triggered then
+                failures += 1
+            else
+                completed = true
+                break
+            end
+        end
+        assert failures > 0 and completed
+    end
+    assert shellwords.quote(body) == quoted
+    println("shellwords text paths: PASS")
+    return 0
+end
