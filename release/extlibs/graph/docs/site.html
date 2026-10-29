@@ -33,6 +33,7 @@
     <div class="extlib-title-row"><h1>graph</h1><span class="extlib-cat-badge">图算法</span></div>
     <p class="extlib-lead">用边数组表示依赖、流程和连接关系。提供拓扑排序、遍历、强弱连通分量及距离计算，C 与 xlang 使用同一套 XRT 存储和算法。</p>
     <p>当前发布版中，合法的 XLang <code>var</code> 边数组传给原生图函数仍可能被误判为非数组；已登记最小复现并等待共享容器投影修复。C 原生算法测试通过不代表语言入口已签收发布级。</p>
+    <p>2026-10-30：未确认新的算法错误，四个算法单元不改。新增3072条float64加权记录，以独立Bellman-Ford逐边松弛及独立可达性核对，123条RangeError；包含次正规数、负零、极大值、整数转换、堆降距与溢出后的有限替代路径，不是任意精度距离认证。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="input">
     <h2 id="input">图的表示</h2>
@@ -47,6 +48,7 @@ println(int(graph.dijkstra(jobs, "parse")["emit"]))        // 5</code></pre>
     有符号/无符号整数或 float 权重必须有限，内部为 float64，超大整数可能失去精度。</p>
     <p>重复边和自环允许，重复节点声明不增加节点数。上限为 4096 个不同节点、32768 条边；
     不预留上限大小的全局数组。此限额不等于名称总字节数或执行时间预算。</p>
+    <p>新增 <code>examples/from_json.xl</code> 从标准JSON配置读取图，与现有 <code>examples/basic.c</code> 对照全部九项API和同一十行黄金输出。正常JSON输入成功不能关闭语言字面量的M1；没有新增原生工厂或先序列化字面量来绕行。</p>
 
     <h2 id="api">九项操作</h2>
     <table class="ext-kv"><thead><tr><th>函数</th><th>返回与语义</th></tr></thead><tbody>
@@ -85,6 +87,8 @@ end</code></pre>
     容量超限以及可达节点最终没有可表示的有限最短距离时为 RangeError；单条溢出候选不会遮蔽其他有限路径。分配失败为 MemoryError，不返回截断结果。</p>
 
     <h2 id="c-api">C 接口与互操作</h2>
+    <p>当前Windows预验包括三模块独立运行库、九条实际生成原型、原C/Floyd/OOM/四线程及三条独立程序；xl.dll/xlc.dll各以同一上下文顺序运行新例三轮，30行黄金输出一致，不外推跨线程上下文。最终双平台证据见仓库验收矩阵；默认门禁仍在最后原字面量入口M1处失败，整包不签收。</p>
+    <p>从仓库根运行 <code>powershell -NoProfile -ExecutionPolicy Bypass -File tools/check_extlib_graph.ps1</code> 或 <code>bash release/extlibs/graph/test/check.sh</code>。需要GCC/Python3，可用CC/PYTHON指定。逐进程限时、输入前后指纹、失败日志保留；不需要第三方Python包。详情页源已更新，外部官网未部署。</p>
     <p>公共头 <code>extlibs/graph/include/graph.h</code> 提供 xg_is_dag、xg_topo_sort、xg_bfs、xg_shortest_path、
     xg_dijkstra、xg_components、xg_scc、xg_nodes、xg_neighbors。
     输入为借用 xvalue*，查询名为 const char* 与 size_t；结果由调用方 xrtValueRelease。</p>

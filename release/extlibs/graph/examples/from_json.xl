@@ -1,0 +1,40 @@
+import graph
+
+func show(string label, array values, string separator)
+    print(label)
+    for i in range(values.length)
+        if i > 0 then print(separator) end
+        print(values[i])
+    end
+    println()
+end
+
+func main(...) as int
+    // 输入来自 JSON 配置；节点、边及算法结果都经公开 API 处理。
+    var flow=json.parse(r"""[
+        ["parse","check",2], ["check","emit",3],
+        ["parse","emit",9], ["docs"]
+    ]""")
+    println("dag="+string(graph.isDag(flow)))
+    show("topo=",graph.topoSort(flow),">")
+    show("bfs=",graph.bfs(flow,"parse"),">")
+    show("nodes=",graph.nodes(flow),",")
+    show("neighbors=",graph.neighbors(flow,"parse"),",")
+    show("fewest-edges=",graph.shortestPath(flow,"parse","emit"),">")
+    var costs=graph.dijkstra(flow,"parse")
+    println("cost="+string(int(costs["emit"])))
+    var weak=graph.components(flow)
+    println("weak="+string(weak.length)+"; first-size="+string(weak[0].length))
+    var calls=json.parse(r"""[["a","b"],["b","a"],["b","c"]]""")
+    var strong=graph.scc(calls)
+    println("scc="+string(strong.length)+"; first-size="+string(strong[0].length))
+    bool caught=false
+    try
+        graph.topoSort(calls)
+    catch ValueError error
+        caught=true
+    end
+    assert caught
+    println("cycle=rejected")
+    return 0
+end
