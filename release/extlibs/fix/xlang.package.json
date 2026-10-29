@@ -5,7 +5,7 @@
     "kind": "demo6-extlib",
     "abiVersion": "1",
     "dependencies": [],
-    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/limits.xl", "test/allocations.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/limits.xl", "test/allocations.xl", "test/tag_grammar.xl"] },
     "links": [],
     "loadlibs": [],
     "native": { "singleton": false, "loadName": "", "version": "" },

@@ -1,5 +1,22 @@
 # FIX 语言数组进入原生 `xvalue*` 后不再是数组
 
+2026-10-30 根目录布局复验：Windows/Linux 默认包门禁分别前37/38项
+满足预期（原C、新标签语法/双语、八实际原型、五个独立程序及独立记录
+参照），最后仍在原中央构帧正例失败。最小源从仓库根目录运行：
+
+```powershell
+release/xl.exe check dev/extlib_blockers/fix_var_array_projection.xl
+release/xl.exe run dev/extlib_blockers/fix_var_array_projection.xl
+release/xl.exe build dev/extlib_blockers/fix_var_array_projection.xl -o build/test/fix_array_repro.exe
+build/test/fix_array_repro.exe
+```
+
+Linux使用release/xl，输出目标用独占测试目录；两平台仍为check/build
+成功，JIT和独立程序均退出1，同报数组类型错误。本轮只修包内标签语法，
+没有主线变化；接收报文parse/validate通过不能证明语言数组构帧已修复。
+原中央/边界/分配/双语构帧与AOT继续是必过正例，不改预期或在包内重建
+私有语言容器。具体最终报告见验收矩阵FIX行与任务台账。
+
 2026-10-25 使用当前 Windows `release/xl.exe`，从 `demo6/release` 运行：
 
 ```powershell

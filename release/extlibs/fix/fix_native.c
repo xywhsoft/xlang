@@ -202,7 +202,8 @@ static bool xfix_parse_uint(xstrview Text, int64* pValue)
 
 static bool xfix_parse_tag(xstrview Text, int64* pTag)
 {
-    return xfix_parse_uint(Text, pTag) && *pTag > 0;
+    /* TagNum 不允许前导零；BodyLength 与字段值仍按各自规则处理。 */
+    return Text.Size != 0u && Text.Data[0] != '0' && xfix_parse_uint(Text, pTag) && *pTag > 0;
 }
 
 xvalue* xfix_parse(cstr sMessage)

@@ -1,0 +1,26 @@
+import fix
+
+func main(...) as int
+    // 数值文本的零可以保留，标签本身不能带前导零；校验和均已独立重算。
+    string good = "8=FIX.4.4\x01" + "9=0008\x01" + "35=0007\x01" + "10=205\x01"
+    assert fix.validate(good)
+    assert fix.parse(good)["fields"][2]["value"] == "0007"
+    int rejected = 0
+    for message in [
+        "08=FIX.4.4\x01" + "9=8\x01" + "35=0007\x01" + "10=109\x01",
+        "8=FIX.4.4\x01" + "09=8\x01" + "35=0007\x01" + "10=109\x01",
+        "8=FIX.4.4\x01" + "9=9\x01" + "035=0007\x01" + "10=110\x01",
+        "8=FIX.4.4\x01" + "9=8\x01" + "35=0007\x01" + "010=061\x01"
+    ]
+        assert not fix.validate(message)
+        try
+            fix.parse(message)
+        catch ValueError error
+            rejected += 1
+        end
+    end
+    assert rejected == 4
+    assert fix.validate(good)
+    println("fix tag grammar: PASS")
+    return 0
+end
