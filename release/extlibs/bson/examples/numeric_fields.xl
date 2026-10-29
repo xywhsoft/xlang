@@ -1,0 +1,16 @@
+import bson
+
+func main(...) as int
+    // 标准小端线格式：Int32、Int64、Double、负毫秒 Date。
+    bytes wire = Buffer.fromHex("3c00000010736d616c6c007b000000126c6172676500000000800000000001726174696f00000000000000f43f097768656e000cfeffffffffffff00").toBytes()
+    var document = bson.decode(wire)
+    assert document["small"] == 123 and document["large"] == 2147483648
+    assert document["ratio"] == 1.25 and document["when"] == time(-500000)
+    assert bson.docLength(wire) == 60 and string.len(bson.toHex(wire)) == 120
+    println("small=" + string(document["small"]))
+    println("large=" + string(document["large"]))
+    println("ratio=" + string(document["ratio"]))
+    println("negative_date=" + string(document["when"] == time(-500000)))
+    println("bytes=" + string(bson.docLength(wire)))
+    return 0
+end

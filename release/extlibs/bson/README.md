@@ -1,11 +1,55 @@
 # BSON 扩展库
 
-2026-10-26 当前 Windows 发布版默认包门禁在严格 C、边界及 C 范例
-通过后，首个 XLang 字典编码报 `bson: encode requires a table (var dict)`；
+2026-10-29 当前冻结 Windows 发布版默认门禁前36阶段满足预期：严格
+C、边界/OOM、实际生成原型、双语数值范例及五个独立程序；第37阶段
+原中央 XLang 字典编码报 `bson: encode requires a table (var dict)`；
 最小复现在 Windows/Linux 均失败，见
 `dev/extlib_blockers/bson_encode_var_dict_projection.xl`。当前首要阻断是
 共享 foreign `var` 字典投影，不是下面旧发布物的 AOT 缺符号；
 不在包内绕过，整包尚未签收发布级。
+具体双平台报告以[发布验收矩阵](../../../docs/普通扩展库发布验收矩阵_2026-10-28.md)
+和任务台账为准。下方带旧日期的结果是历史证据，不能覆盖当前的 M1。
+
+## 数值读取与错误边界
+
+Double、Int32、Int64、Date 的载荷必须完整读取后才创建值对象。
+旧路径在读取失败后继续用零值调用工厂，产生无效分配；该分配若失败，
+会把已经确定的格式错误覆盖为内存错误。现在读取失败立即停止，
+不改变正常线格式、类型映射、精度、公开 API/ABI 或所有权。
+数值宽度与小端布局依据 [BSON 1.1 规范](https://bsonspec.org/spec.html)。
+
+`test/numeric_reads_c.c` 观察三个公开 XRT 值工厂，不改生产接口：
+四种类型的每个截断位置、根/嵌套文档/数组、四条 C 解码入口以及
+前置合法文档的流，共1008个截断/错误后故障组合；另72个合法对照
+和72条逐分配点 OOM/立即恢复路径。检查数值、错误类别、工厂调用
+次序和活动分配/非法释放计数。此定向矩阵不是完整 BSON fuzz。
+正常预算下的截断仍报 `XERR_VALUE`；真正的容器、值或错误对象分配
+失败仍可报 `XERR_MEMORY`，不把一切坏输入强行归为不分配的错误。
+
+语言侧 `test/numeric_reads.xl` 验证28个截断长度分别经过 decode 与
+decodeAll 的静态 bytes 入口，共56项，并扫描合法 Int64 解码的分配
+故障，要求 `MemoryError` 且解除后立即恢复。原语言字典编码正例不删，
+不能用外部字节成功解码代替 M1 所代表的完整双向能力。
+
+`examples/numeric_fields.xl` 与 `examples/numeric_fields_c.c` 读取同一份
+独立固定线格式，展示 Int32、Int64、Double 与负毫秒 Date，五行输出
+对照 `numeric_fields.expected.txt`。该参照不是由本库编码器自生成。
+
+从仓库根目录运行：
+
+```powershell
+./release/xl.exe run release/extlibs/bson/examples/numeric_fields.xl
+./release/xl.exe run release/extlibs/bson/examples/numeric_fields_c.c
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/bson/test/check.ps1
+bash release/extlibs/bson/test/check.sh
+```
+
+两平台门禁先检查新的数值通路、原 C/文件/故障用例、15个真实生成
+原型和五个独立程序，再验收原语言字典正例及完整双语文件往返。
+失败保留独占目录、命令/真实输出和输入指纹，成功只清理本次目录；
+所有子进程有限时，缺少 `CC` 指定的编译器明确失败，不作跳过。
+Windows 报告在 `build/test/bson_guard`，Linux 在本次 `TMPDIR` 下。
+测试运行库只带生产五模块加路径操作和内存调试，生产依赖未扩大。
 
 `bson` 将 XLang 的 `var` 字典编码为 BSON 文档，也能解码 BSON 文档或连续文档流。C 调用方可直接使用 `bson_native.h` 中的 `xvalue*` 接口。
 
@@ -56,7 +100,7 @@ C 接口直接依赖公开的 XRT `xvalue`，不需要 xlang 私有运行时头�
 超过内联缓冲的文档由结果值直接接管 XRT 堆缓冲，不再整段复制一次。
 成功调用 `toHex`、`objectId`、`docLength` 或 `oidTime` 后，C 端不会保留前次操作的 XRT 错误状态。
 
-`examples/bson_c.c` 可在 `demo6/release` 下直接运行：
+`examples/bson_c.c` 可在 `release` 下直接运行：
 
 ```powershell
 ./xl run extlibs/bson/examples/bson_c.c
@@ -77,7 +121,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/bson/test/ch
 bash release/extlibs/bson/test/check.sh
 ```
 
-Linux 脚本使用 GCC ASan/UBSan 与泄漏检查，运行原生 C 烟测、畸形/随机字节边界及固定输出 C 范例；Windows/Linux 同时运行 XLang 边界、编解码与中文路径集成测试，并逐字节核对 C/XLang 范例输出。`coverage.tests` 登记这两份 XLang 测试。去掉 Windows 脚本的 `-SkipAot` 可检查完整 AOT；当前数组/字典索引涉及主线缺失符号，详见 `dev/extlib_blockers/value_index_link.md`。C/XL 范例位于 `examples/`。
+Linux 脚本使用 GCC ASan/UBSan 与泄漏检查，运行原生 C 烟测、畸形/随机字节、时钟故障与文件边界。Windows/Linux 门禁保留全部原 XLang 正例和完整双语保存/读取比较；当前这些完整语言用例在字典投影处被阻断，不能声称本轮已运行到文件对照。`coverage.tests` 登记原三份测试与新增数值测试。`-SkipAot` 仅用于 Windows 快测，不代表完整验收。早期数组/字典索引缺符号记录见 `dev/extlib_blockers/value_index_link.md`，不是当前首阻断。C/XL 范例位于 `examples/`。
 包 manifest 仅带入原生实现使用的值容器、整文件、时间、Unicode 与安全随机模块；
 同一 `test/aot_core.xl` 产物从 3,646,464 缩至 743,424 字节且运行通过。
 完整边界 AOT 仍受上述主线缺符号阻断，不能据此签收发布级别。
@@ -135,7 +179,7 @@ C/XLang 包级门禁及 Linux ASan/UBSan 下通过；完整 AOT 阻断不变。
 Windows C/XLang、双语范例、核心 AOT 与 Linux ASan/UBSan 通过；完整 AOT
 仍缺上述共享索引符号。
 
-与 [MongoDB 官方 PyMongo BSON 实现](https://www.mongodb.com/docs/languages/python/pymongo-driver/current/data-formats/bson/) 互操作的可选验证：C/xlang 范例保存的文件字节一致，PyMongo 可解码；PyMongo 写出的 64 位整数、嵌套文档、数组及含 NUL/`0xFF` 的二进制值，C/xlang 都可读回。PyMongo 只安装到 `build/test` 下的隔离环境，不进入发布包。从 `demo6` 目录运行：
+与 [MongoDB 官方 PyMongo BSON 实现](https://www.mongodb.com/docs/languages/python/pymongo-driver/current/data-formats/bson/) 互操作的可选验证：旧构建已核对 C/xlang 范例文件一致且 PyMongo 可解码，以及反向读取64位整数、嵌套文档、数组和含 NUL/`0xFF` 的二进制。当前 M1 修复前不声称重新通过。PyMongo 只安装到 `build/test` 下的隔离环境，不进入发布包。从仓库根目录运行：
 
 ```powershell
 python -m venv build\test\bson\venv
