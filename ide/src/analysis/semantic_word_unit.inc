@@ -275,7 +275,16 @@ done:wordUnitRelease(unit);xlsInputBatchDestroy(inputLease);xlsSyntaxRelease(syn
 static const XL6_AstNode* wordDemandAst(xls_semantic_completion* r)
 {
     if(!validateLocked(r))return NULL;
-    if(!r->demanded)r->demanded=xlsSemanticCompletionCreateBatch(NULL,r->inputOwner,r->wordKey,r->query.offset,NULL,NULL,NULL,NULL,NULL,0);
+    if(!r->demanded){
+        if(r->signature){
+            /* Demand a fresh original signature projection, not an identifier
+             * completion parse. It owns its call site, records and complete
+             * AST independently; the partial generation remains immutable. */
+            xls_signature_help* fresh=xlsSignatureCreateBatch(NULL,r->inputOwner,r->wordKey,r->query.offset,
+                NULL,NULL,NULL,NULL,NULL,0);
+            r->demanded=xlsSemanticCompletionRetain(xlsSignatureSemantic(fresh));xlsSignatureRelease(fresh);
+        }else r->demanded=xlsSemanticCompletionCreateBatch(NULL,r->inputOwner,r->wordKey,r->query.offset,NULL,NULL,NULL,NULL,NULL,0);
+    }
     if(!ready(r->demanded)){
         xlsSemanticCompletionDestroy(r->demanded);r->demanded=NULL;++r->wordWork.astFailures;return NULL;
     }

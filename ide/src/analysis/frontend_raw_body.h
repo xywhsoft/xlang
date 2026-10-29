@@ -36,6 +36,7 @@ void xlsRawBodyRecord(xls_raw_unit*,const char*,XL6_AstNode*,int,void*);
 int xlsRawBodyAdmit(xls_raw_unit*,const char*,const XL6_AstRange*,size_t*,void*);
 int xlsRawBodyCopyParse(const xls_syntax*,XL6_ParseResult*);
 int xlsRawBodyCopyCursorParse(const xls_syntax*,struct XL6_CompletionQuery*,XL6_ParseResult*);
+int xlsRawBodyCopySignatureParse(const xls_syntax*,struct XL6_CompletionQuery*,XL6_ParseResult*,size_t callOpen);
 void xlsRawBodyRegisterSyntax(const xls_syntax*,XL6_AstNode*);
 void xlsRawBodyStdlibBegin(xls_raw_stdlib_frame*,XL6_AstNode*);
 void xlsRawBodyStdlibEnd(xls_raw_stdlib_frame*);
@@ -52,5 +53,6 @@ int xlsRawBodyMemoAdmit(const void*,xls_raw_unit*,const char*,const XL6_AstRange
 int xlsRawBodyMemoPreprocessEqual(const void*,const xstrbuf*);
 /* Existing syntax translation unit owns immutable declaration layout. */
 int xlsRawBodySyntaxCopy(const xls_syntax*,struct XL6_CompletionQuery*,XL6_ParseResult*,xls_raw_scope*);
+int xlsRawBodySyntaxCopySignature(const xls_syntax*,struct XL6_CompletionQuery*,XL6_ParseResult*,size_t callOpen,xls_raw_scope*);
 void xlsRawBodySyntaxRegister(const xls_syntax*,XL6_AstNode*,xls_raw_scope*);
 #endif

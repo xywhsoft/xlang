@@ -55,6 +55,11 @@ int xlsRawBodyCopyCursorParse(const xls_syntax* syntax,XL6_CompletionQuery* quer
 {
     xls_raw_scope* s=xlsRawBodyScopeCurrent();return s && s->ready ? xlsRawBodySyntaxCopy(syntax,query,out,s) : xlsSyntaxCopyCursorParse(syntax,query,out);
 }
+int xlsRawBodyCopySignatureParse(const xls_syntax* syntax,XL6_CompletionQuery* query,XL6_ParseResult* out,size_t callOpen)
+{
+    xls_raw_scope* s=xlsRawBodyScopeCurrent();
+    return s && s->ready ? xlsRawBodySyntaxCopySignature(syntax,query,out,callOpen,s) : xlsSyntaxCopySignatureParse(syntax,query,out,callOpen);
+}
 void xlsRawBodyRegisterSyntax(const xls_syntax* syntax,XL6_AstNode* out)
 {xls_raw_scope* s=xlsRawBodyScopeCurrent();if(s && s->ready)xlsRawBodySyntaxRegister(syntax,out,s);}
 void xlsRawBodyStdlibBegin(xls_raw_stdlib_frame* frame,XL6_AstNode* function)

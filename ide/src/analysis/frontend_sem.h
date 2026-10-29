@@ -46,6 +46,8 @@ typedef struct xls_raw_native_work {
     size_t capturedUnitBytes,memoBytes;
 } xls_raw_native_work;
 xls_raw_native_work xlsSemanticCompletionRawBodyWork(const struct xls_semantic_completion*);
+struct xls_signature_help;
+xls_raw_native_work xlsSignatureRawBodyWork(const struct xls_signature_help*);
 size_t xlsFrontendSemRawMemoBytes(const struct xls_sem_memo*);
 
 typedef struct xls_sem_tail_work {

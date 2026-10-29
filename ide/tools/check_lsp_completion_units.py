@@ -12,7 +12,7 @@ from check_language_definitions import position
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--server',type=Path,required=True);parser.add_argument('--output',type=Path,required=True)
-    parser.add_argument('--expected-version',default='0.97')
+    parser.add_argument('--expected-version',default='0.98')
     parser.add_argument('--baseline',type=Path)
     parser.add_argument('--baseline-version',default='0.95')
     args=parser.parse_args();server=args.server.resolve(strict=True);root=args.output.resolve();root.mkdir(parents=True,exist_ok=False)

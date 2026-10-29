@@ -50,6 +50,7 @@ static void mapUnit(xmap* map)
 #define xlsRawBodyProjectionTakeHeaderParse privateExtraxlsRawBodyProjectionTakeHeaderParse
 #define xlsRawBodyProjectionWork privateExtraxlsRawBodyProjectionWork
 #define xlsRawBodySyntaxCopy privateExtraxlsRawBodySyntaxCopy
+#define xlsRawBodySyntaxCopySignature privateExtraxlsRawBodySyntaxCopySignature
 #define xlsRawBodySyntaxRegister privateExtraxlsRawBodySyntaxRegister
 #define xlsRawUnitBytes privateExtraxlsRawUnitBytes
 #define xlsRawUnitNode privateExtraxlsRawUnitNode
@@ -74,6 +75,7 @@ static void mapUnit(xmap* map)
 #undef xlsRawBodyProjectionTakeHeaderParse
 #undef xlsRawBodyProjectionWork
 #undef xlsRawBodySyntaxCopy
+#undef xlsRawBodySyntaxCopySignature
 #undef xlsRawBodySyntaxRegister
 #undef xlsRawUnitBytes
 #undef xlsRawUnitNode

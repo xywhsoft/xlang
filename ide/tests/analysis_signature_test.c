@@ -3,11 +3,20 @@
 #include "analysis/signature_session.h"
 #include "analysis/worker.h"
 #include "analysis/signature_internal.h"
+#include "analysis/frontend_raw_body.h"
 #include <xrt.h>
 #include <stdio.h>
 #include <string.h>
 static unsigned checks;
 #define CHECK(v) do{++checks;if(!(v)){fprintf(stderr,"analysis_signature_test:%d: %s\n",__LINE__,#v);return 0;}}while(0)
+/* session() specifically verifies the original semantic-body view budgets.
+ * Keep those exact assertions on the real raw-admission-decline route. All
+ * other scenarios exercise the default producer; its actual raw omission and
+ * budget transitions have a separate complete AST/signature differential. */
+static int legacyBodyViews;
+int __real_xlsRawBodyMemoAdmit(const void*,xls_raw_unit*,const char*,const XL6_AstRange*,size_t*);
+int __wrap_xlsRawBodyMemoAdmit(const void* memo,xls_raw_unit* unit,const char* path,const XL6_AstRange* range,size_t* bytes)
+{return legacyBodyViews ? 0 : __real_xlsRawBodyMemoAdmit(memo,unit,path,range,bytes);}
 static const char* functions="func plus(int left,string right=\"\") as int\n return left\nend\n";
 static int walkCaretSource(const char* source,size_t size,size_t start);
 static int one(const char* definitions,const char* body,const char* label,size_t parameter,int available)
@@ -78,6 +87,7 @@ static int walkCaretSource(const char* source,size_t size,size_t start)
 }
 static int session(void)
 {
+ legacyBodyViews=1;
  char* path=xrtPathAbs("signature-session.xl");CHECK(path);
  /* The stdio/IDE host uses forward slashes; XRT normalizes its model path. */
  for(char* p=path;*p;++p)if(*p=='\\')*p='/';
@@ -101,7 +111,7 @@ static int session(void)
  size_t offset=(size_t)(strrchr(xlsTextData(doc.text),'"')-xlsTextData(doc.text))-1;
  xls_signature_help* moved=xlsSignatureSessionQueryInContext(s,NULL,&doc,1,"entry","entry",offset,NULL,NULL,NULL,0);CHECK(moved && xlsSignatureInfo(moved).available);xls_signature_stats stats;xlsSignatureSessionStats(s,&stats);CHECK(stats.indexHits==1 && stats.caretHits==1 && stats.builds==16 && stats.indexBuilds==16);xls_signature_storage_work movedStorage=xlsSignatureStorageWork(moved);CHECK(movedStorage.nodes==lastStorage.nodes && movedStorage.pages==lastStorage.pages && movedStorage.chargedBytes==lastStorage.chargedBytes && movedStorage.heapFallbacks==lastStorage.heapFallbacks);xlsSignatureRelease(moved);
  ++doc.identity;doc.revision=1;moved=xlsSignatureSessionQueryInContext(s,NULL,&doc,1,"entry","entry",offset,NULL,NULL,NULL,0);CHECK(moved && !xlsSignatureWork(moved).reused);xlsSignatureRelease(moved);xlsSignatureSessionDestroy(s);xlsTextRelease(doc.text);CHECK(held && xlsSignatureValidate(held) && xlsSignatureInfo(held).available);xls_signature_item item;CHECK(xlsSignatureItem(held,0,&item) && strstr(item.label,"plus("));xlsSignatureRelease(held);
- xls_signature_storage_work retained=xlsSignatureStorageWork(heldWarm);CHECK(heldWarm && xlsSignatureValidate(heldWarm) && xlsSignatureItem(heldWarm,0,&item) && retained.nodes==warmStorage.nodes && retained.pages==warmStorage.pages && retained.chargedBytes==warmStorage.chargedBytes && retained.heapFallbacks==warmStorage.heapFallbacks);xlsSignatureRelease(heldWarm);xrtFree(path);return 1;
+  xls_signature_storage_work retained=xlsSignatureStorageWork(heldWarm);CHECK(heldWarm && xlsSignatureValidate(heldWarm) && xlsSignatureItem(heldWarm,0,&item) && retained.nodes==warmStorage.nodes && retained.pages==warmStorage.pages && retained.chargedBytes==warmStorage.chargedBytes && retained.heapFallbacks==warmStorage.heapFallbacks);xlsSignatureRelease(heldWarm);xrtFree(path);legacyBodyViews=0;return 1;
 }
 static int parseIncrementality(void)
 {

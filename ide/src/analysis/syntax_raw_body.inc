@@ -212,28 +212,42 @@ void xlsRawBodySyntaxRegister(const xls_syntax* s,XL6_AstNode* root,xls_raw_scop
         xlsRawBodyRecord(p->unit,s->path,copy,0,scope);
     }
 }
-int xlsRawBodySyntaxCopy(const xls_syntax* s,XL6_CompletionQuery* query,XL6_ParseResult* result,xls_raw_scope* scope)
+static int rawBodyCopyFull(const xls_syntax* s,XL6_CompletionQuery* query,XL6_ParseResult* result,int mode)
+{
+    return !query ? xlsSyntaxCopyParse(s,result) : mode==2 ?
+        xlsSyntaxCopySignatureParse(s,query,result,s->cursorRange.startOffset) : xlsSyntaxCopyCursorParse(s,query,result);
+}
+static int rawBodySyntaxCopy(const xls_syntax* s,XL6_CompletionQuery* query,XL6_ParseResult* result,xls_raw_scope* scope,int mode)
 {
     if(!s || !result || result->root || result->diags.count)return 0;
     /* Without an earlier raw memo no body can be omitted. Keep the original
      * complete copier and register its exact completed provenance;avoid an
      * unused projection/lock and speculative admission on the cold path. */
     if(!scope->baseline){
-        int okay=query ? xlsSyntaxCopyCursorParse(s,query,result) : xlsSyntaxCopyParse(s,result);
+        int okay=rawBodyCopyFull(s,query,result,mode);
         if(okay)xlsRawBodySyntaxRegister(s,result->root,scope);
         return okay;
     }
     char* prefix=NULL;
     if(query){
-        if(s->cursor!=1 || s->cursorParsed!=1 || !emptyQuery(query) || query->offset!=s->cursorOffset || !xl6CompletionTarget(query,s->path))return 0;
-        if(s->cursorPrefix){size_t size=xlsTextSize(s->text)-bom(s->text),start=s->cursorRange.startOffset;
+        if(s->cursor!=mode || s->cursorParsed!=1 || !emptyQuery(query) || query->offset!=s->cursorOffset || !xl6CompletionTarget(query,s->path))return 0;
+        if(s->cursorPrefix && mode==2){prefix=xrtStrDup("");if(!prefix)return 0;}
+        else if(s->cursorPrefix){size_t size=xlsTextSize(s->text)-bom(s->text),start=s->cursorRange.startOffset;
             if(!s->cursorRange.known || start>query->offset || query->offset>s->cursorRange.endOffset || s->cursorRange.endOffset>size)return 0;
             prefix=xrtStrDupN(xlsTextData(s->text)+bom(s->text)+start,query->offset-start);if(!prefix)return 0;}
     }
     xls_raw_body_projection* p=xlsRawBodyProjectionCreatePolicy(s,scope->limit,xlsRawBodyAdmit,xlsRawBodyRecord,scope);
-    if(!p){xrtFree(prefix);int okay=query ? xlsSyntaxCopyCursorParse(s,query,result) : xlsSyntaxCopyParse(s,result);if(okay)xlsRawBodySyntaxRegister(s,result->root,scope);return okay;}
+    if(!p){xrtFree(prefix);int okay=rawBodyCopyFull(s,query,result,mode);if(okay)xlsRawBodySyntaxRegister(s,result->root,scope);return okay;}
     int okay=xlsRawBodyProjectionTakeHeaderParse(p,result);xlsRawBodyProjectionRelease(p);
     if(!okay){xrtFree(prefix);return 0;}
     if(query){query->prefix=prefix;query->error=s->cursorError;query->parsed=s->cursorParsed;query->replacement=s->cursorRange;}
     return 1;
+}
+int xlsRawBodySyntaxCopy(const xls_syntax* s,XL6_CompletionQuery* query,XL6_ParseResult* result,xls_raw_scope* scope)
+{return rawBodySyntaxCopy(s,query,result,scope,query ? 1 : 0);}
+int xlsRawBodySyntaxCopySignature(const xls_syntax* s,XL6_CompletionQuery* query,XL6_ParseResult* result,size_t callOpen,xls_raw_scope* scope)
+{
+    /* Preserve the original mode/path/offset/LPAREN admission exactly. A
+     * completion snapshot can never masquerade as a signature projection. */
+    return query && xlsSyntaxSignatureMatches(s,query->path,query->offset,callOpen) && rawBodySyntaxCopy(s,query,result,scope,2);
 }
