@@ -1,8 +1,19 @@
 # DEMO6 release extlibs
 
-本目录位于 `xl.exe` 同级目录下，存放当前可导入的扩展库候选。package/import 回归测试用 fixture 已迁移到 `demo6/test/fixtures`，测试通过 `XLANG_PACKAGE_PATH` 访问。
+本目录位于 `xl.exe` 同级目录下，存放当前可导入的扩展库候选。package/import 回归测试用 fixture 已迁移到 `test/fixtures`，测试通过 `XLANG_PACKAGE_PATH` 访问。
 
 目录和清单仅表示提供该包，不代表完整 API 或发布候选验收。首期优先级与暂缓名单见 [扩展库生态重整](../../docs/扩展库生态重整_2026-10-12.md)。
+
+## 当前路径约定
+
+源码仓库根目录直接包含 `tools`、`test`、`dev`、`docs` 和 `release`，
+没有额外的 `demo6` 层。包内文档所说的“仓库根目录”指这一目录；
+若明确要求从 `release` 运行，则使用其下的 `extlibs`、`examples` 相对路径。
+包内 `docs/site.html` 是官网详情页的源码，不代表已部署到外部官网。
+
+带日期的历史记录仍保留部分 `demo6/...` 现场引用，相关旧复现文件或
+临时产物可能已不随当前源码分发，不应作为当前使用命令或验收结果。
+当前逐包状态与可用阻断入口以[发布验收矩阵](../../docs/普通扩展库发布验收矩阵_2026-10-28.md)为准。
 
 旧 `jwt`、`oauth2` 包已移除。后续以 XRT 最新 `xjwt`、`xoauth2` 的公共 API 重新接入，不沿用旧包的实现与能力范围；替代绑定尚未发布。
 
@@ -234,7 +245,7 @@
 
 ## 主要验证入口
 
-在 `demo6` 目录运行：
+在仓库根目录运行：
 
 ```bat
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_package_fixtures.ps1

@@ -61,19 +61,19 @@ int main(void)
     xrtValueRelease(catalog);
     return ok ? 0 : 1;
 }</code></pre>
-    <p>C 查询字符串用 <code>xrtFree</code> 释放，解析目录用 <code>xrtValueRelease</code>。完整双语对照范例位于 <code>release/extlibs/gettext/examples/</code>；从 demo6 根目录可直接运行 <code>release/xl.exe run release/extlibs/gettext/examples/gettext_c.c</code>。正式包仍分别编译目录与复数表达式源码。</p>
+    <p>C 查询字符串用 <code>xrtFree</code> 释放，解析目录用 <code>xrtValueRelease</code>。完整双语对照范例位于 <code>release/extlibs/gettext/examples/</code>；从仓库根目录可直接运行 <code>release/xl.exe run release/extlibs/gettext/examples/gettext_c.c</code>。正式包仍分别编译目录与复数表达式源码。</p>
     <p>解析或查询失败后可直接重试；后续成功调用会清除本线程旧的 XRT 错误。有效上下文的查找键分配失败返回 <code>NULL</code> 和内存错误，不会回退为原文。C 的 <code>xgt_load_mo</code> 使用 XRT 限额读取，保留文件读取的原始错误类别。</p>
     <p>C 的上下文查询在 <code>context</code> 或 <code>msgid</code> 为 NULL 时按原文规则返回，但仍检查目录类型、实际提供的字段和复数规则。NULL 上下文不等于空字符串上下文，后者可命中 <code>msgctxt ""</code>。借用接口不转移结果所有权，拥有接口仍由调用方释放。</p>
   </section>
   <section id="verify">
     <h2>验证状态</h2>
     <p>2026-10-29 修复 PO 字段仅接受固定空格、完整消息后无空行进入 msgctxt 被拒绝的两类边界。字段支持空格/制表符和紧贴引号，完整条目不强制空行；关键字前缀、缺译文和重复上下文仍拒绝。新夹具被 GNU msgfmt 0.23.2 接受，C 的 21 项回归由 12 次失败降为零，16 个分配预算及释放指标通过，语言用例保留全局目录自然退役。</p>
-    <p>新 <code>extlibs/gettext/examples/layout.xl</code> 与 <code>layout_c.c</code> 从路径读取 PO，或追加 <code>mo</code> 参数读取 MO；在 demo6 根目录用 <code>xl run 文件 -- release/extlibs/gettext/test/po_layout.po</code> 执行。范例区分普通/菜单/工具栏/空上下文及单复数，统一核对 <code>layout.expected.txt</code> 的六行结果。C 借用译文在目录存活期间打印，不额外复制；Python GNUTranslations 也独立核对相同目录。</p>
+    <p>新 <code>extlibs/gettext/examples/layout.xl</code> 与 <code>layout_c.c</code> 从路径读取 PO，或追加 <code>mo</code> 参数读取 MO；在仓库根目录用 <code>xl run 文件 -- release/extlibs/gettext/test/po_layout.po</code> 执行。范例区分普通/菜单/工具栏/空上下文及单复数，统一核对 <code>layout.expected.txt</code> 的六行结果。C 借用译文在目录存活期间打印，不额外复制；Python GNUTranslations 也独立核对相同目录。</p>
     <p>本轮 Windows 默认 50 阶段通过，Linux 原生快照通过 ASan/UBSan、旧新边界/分配故障、七个实际生成原型与两平台各十二条普通独立程序路径。Linux 另过 GNU MO 专项和新范例的 PO/MO 双语黄金对照。输入未变，失败现场及原始退出码保留；没有改变公开 API、ABI、结果所有权、复数公式或冻结 XRT。本包仍只承诺已列出的 UTF-8 PO/MO 子集，不支持任意 GNU 词法扩展。</p>
     <p>2026-10-28：补齐缺参路径的统一校验，新增 60 个 C 类型负例及分隔符、空上下文、计数错误和恢复测试。Windows 完整门禁与 Linux 原生文件系统同源码门禁通过；包含 C ASan/UBSan、分配故障、双语 JIT/AOT 和 GNU msgfmt 生成目录的真实互通。两平台失败现场保留及原始退出诊断已由受控失败验证；当前验证仍限定为本文声明的 UTF-8 PO/MO 子集，不等于整个语言的发布签收。</p>
     <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/gettext/test/check.ps1
 bash release/extlibs/gettext/test/check.sh</code></pre>
-    <p>2026-10-26 当前 Windows/Linux 包级门禁均通过：严格 C、Linux ASan/UBSan、中央/重复键/边界/分配故障/输入限额的 XLang JIT 与独立 EXE AOT、双语成对范例、公开范例以及 C 单文件范例 AOT。C/GCC、C/TCC、C/AOT 与 XLang 成对范例输出一致；C AOT 从 demo6 根目录运行以读取同一 MO 夹具。Linux 有 GNU <code>msgfmt</code> 时，默认门禁另从 <code>test/external.po</code> 生成标准 MO，并由 sanitizer C、XLang JIT 和 AOT 共同读取；缺工具明确跳过。旧版 <code>cbytes</code> 与缺符号错误已不再阻断当前发布物。本页只覆盖已声明的 UTF-8 PO/MO 子集，不宣称完整 GNU gettext 等价；新主线发布物重建后仍须复验。</p>
+    <p>2026-10-26 当前 Windows/Linux 包级门禁均通过：严格 C、Linux ASan/UBSan、中央/重复键/边界/分配故障/输入限额的 XLang JIT 与独立 EXE AOT、双语成对范例、公开范例以及 C 单文件范例 AOT。C/GCC、C/TCC、C/AOT 与 XLang 成对范例输出一致；C AOT 从仓库根目录运行以读取同一 MO 夹具。Linux 有 GNU <code>msgfmt</code> 时，默认门禁另从 <code>test/external.po</code> 生成标准 MO，并由 sanitizer C、XLang JIT 和 AOT 共同读取；缺工具明确跳过。旧版 <code>cbytes</code> 与缺符号错误已不再阻断当前发布物。本页只覆盖已声明的 UTF-8 PO/MO 子集，不宣称完整 GNU gettext 等价；新主线发布物重建后仍须复验。</p>
   </section>
 </main>
 <script src="../main.js"></script>

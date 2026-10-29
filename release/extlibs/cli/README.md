@@ -59,7 +59,7 @@ C0/C1 控制字符、常见零宽格式字符、双向文本控制字符或 BOM�
 
 ## 验证状态
 
-在 `demo6` 目录运行 `release/extlibs/cli/test/check_c.ps1`；Linux 运行
+在仓库根目录运行 `release/extlibs/cli/test/check_c.ps1`；Linux 运行
 `bash release/extlibs/cli/test/check_c.sh`。它们验证严格 C 编译、解析边界、
 C 范例与固定输出；Linux 还启用 ASan/UBSan。`examples/basic.xl` 可通过
 `xl check`，但当前发布版执行 `xl run test/cases/extlib_cli.xl` 仍在主线

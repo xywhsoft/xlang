@@ -44,7 +44,7 @@ C 对应入口是 `x_clipboard_snapshot()`、`x_clipboard_restore(handle)`、`x_
 
 ## 验证
 
-在 `demo6` 目录运行：
+在仓库根目录运行：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/clipboard/test/check.ps1

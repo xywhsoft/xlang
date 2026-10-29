@@ -21,7 +21,7 @@ C 编译和模块选择不变检查。本次聚焦验证通过 Windows/Linux 四
 0.7.3 标准 framed stream 双向互通、语言 JIT/AOT 与 C/XLang 范例
 对照通过。Linux `test/check.sh` 退出 0：C ASan/UBSan、中央和包内
 语言 JIT、七条独立 EXE AOT，以及文件/基础/教学范例输出对照。
-Windows 从 `demo6` 根目录直接运行基础范例也通过。旧 Linux
+Windows 从仓库根目录直接运行基础范例也通过。旧 Linux
 `cstring`、根目录 VFS 和 AOT 快照缺符号阻断不再复现；32 位、
 TSan、长时压力与持续模糊测试尚未验收。
 
@@ -50,7 +50,7 @@ Buffer packed = snappy.compress("hello snappy")
 assert snappy.decompressText(packed) == "hello snappy"
 ```
 
-C 侧直接调用 `xrtSnappyCompress` / `xrtSnappyDecompress`，示例见 `examples/basic.c`；XLang 对照见 `demo6/release/examples/extlibs/snappy_basic.xl`。流式接口 `compressor().update/drain/finish` 与 `decompressor().update/drain/finish` 使用同一格式。`members` 统计 stream identifier 的数量，`finished` 仅在 `finish()` 成功后为真。
+C 侧直接调用 `xrtSnappyCompress` / `xrtSnappyDecompress`，示例见 `examples/basic.c`；XLang 对照见 `release/examples/extlibs/snappy_basic.xl`。流式接口 `compressor().update/drain/finish` 与 `decompressor().update/drain/finish` 使用同一格式。`members` 统计 stream identifier 的数量，`finished` 仅在 `finish()` 成功后为真。
 流对象的 `*Native` 方法只供包内安全包装调用；导入方使用公开的 `update`、`drain`、`finish` 和属性。包级门禁用只编译负例检查访问权限，不执行伪造指针与长度的调用。
 压缩器单次 `update` 接收大输入时只缓存当前 64 KiB 原文块；解压器分段解析输入，可跳过 chunk 的主体边读边丢弃。尚未 `drain` 的压缩或解压结果仍由输出缓冲持有，其大小取决于数据和调用方的排空频率。
 所有 C 编解码入口先检查 `xrtsnappyoptions` 与内嵌 `xrtresourcelimits` 的版本、完整长度和保留字段，再读取限额。无效选项返回 `XRT_SNAPPY_ERROR_ARGUMENT`；流对象可通过 `...Error()` 读取错误，文件流不会消费输入或产生输出。
@@ -59,8 +59,8 @@ C 侧直接调用 `xrtSnappyCompress` / `xrtSnappyDecompress`，示例见 `examp
 
 framing 没有结束标记，因此末尾 chunk 不完整会报错，但在完整 chunk 边界提前结束无法检测。校验采用 masked CRC32C。数据块原文上限 64 KiB；未知可跳过 chunk 会跳过，未知不可跳过 chunk 会拒绝。
 
-测试：`test/test_snappy.c` 覆盖固定格式样本、增量输入、资源上限、校验、截断、跳过 chunk 与串联流。`test/file_ops.xl` 覆盖 UTF-8 文件往返、进度回调、覆盖拒绝、取消清理与限额失败时的既有目标保护；中央 XLang 用例在 `demo6/test/cases/extlib_snappy.xl` 和 `extlib_snappy_progress.xl`。Linux 包级门禁同次运行 C ASan/UBSan、上述语言用例的 JIT/七条独立 EXE AOT 与 C/XLang 基础范例逐字节对照。
-Windows 可在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/snappy/test/check.ps1 -SkipAot`，同次检查严格 GCC 独立链接运行的 C 边界、TCC C 边界、私有成员负例、XLang 主用例/进度/文件操作，以及 GCC C、TCC C、XLang 三路固定输出。脚本使用每次独立的临时构建目录并清理本次产物；不加 `-SkipAot` 时还会构建和运行独立 EXE。
+测试：`test/test_snappy.c` 覆盖固定格式样本、增量输入、资源上限、校验、截断、跳过 chunk 与串联流。`test/file_ops.xl` 覆盖 UTF-8 文件往返、进度回调、覆盖拒绝、取消清理与限额失败时的既有目标保护；中央 XLang 用例在 `test/cases/extlib_snappy.xl` 和 `extlib_snappy_progress.xl`。Linux 包级门禁同次运行 C ASan/UBSan、上述语言用例的 JIT/七条独立 EXE AOT 与 C/XLang 基础范例逐字节对照。
+Windows 可在仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/snappy/test/check.ps1 -SkipAot`，同次检查严格 GCC 独立链接运行的 C 边界、TCC C 边界、私有成员负例、XLang 主用例/进度/文件操作，以及 GCC C、TCC C、XLang 三路固定输出。脚本使用每次独立的临时构建目录并清理本次产物；不加 `-SkipAot` 时还会构建和运行独立 EXE。
 
 包清单现公开 `include/` 并声明六个直接 XRT/XRuntime 模块。
 `tools/run_extlib_c.ps1 -Package snappy -Source release/extlibs/snappy/examples/basic.c`
@@ -83,7 +83,7 @@ Windows 严格 GCC 构建及运行通过。裁剪运行时对象为 292,981 字�
 联合门禁还通过中央主用例、教学范例、文件用例及双语基础输出。单字节
 算术的共享 XLIR 最小复现仍失败，完整 AOT 阻断不变。
 
-可选的独立实现互通测试（在 `demo6` 目录执行）：先将 `python-snappy==0.7.3` 安装到测试环境，或运行 `python -m pip install --target build/test/snappy/python_oracle python-snappy==0.7.3`；再执行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/snappy/test/check_interop.ps1`。它用标准 framed stream 双向传递二进制、重复及跨 64 KiB 分块样本；Python 只用于测试，不是扩展库的运行依赖。
+可选的独立实现互通测试（在仓库根目录执行）：先将 `python-snappy==0.7.3` 安装到测试环境，或运行 `python -m pip install --target build/test/snappy/python_oracle python-snappy==0.7.3`；再执行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/snappy/test/check_interop.ps1`。它用标准 framed stream 双向传递二进制、重复及跨 64 KiB 分块样本；Python 只用于测试，不是扩展库的运行依赖。
 
 2026-10-18：六种选项 ABI 负例先红后绿，覆盖流对象、一次性和文件流入口；Windows 严格 GCC/C/XLang 与 Linux C ASan/UBSan、XLang/双语对照通过。随后包外 `updateNative(point,size)` 两条只编译负例确认可达，再将 13 个原生流方法私有化；Linux 包级联合门禁通过。完整 AOT 与共享 XLIR 问题仍未签收。
 

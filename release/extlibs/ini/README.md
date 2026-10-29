@@ -104,7 +104,7 @@ WSL 挂载盘构建耗时风险；未重建主线或替换 XRT，基线仍见
 多行欢迎文本、读取时插值，以及写回后按默认严格模式重新读取。
 两份都检查实际结果，不只比较输出；无需网络、外部服务或数据文件。
 范例的协议名从 `${.scheme}` 读取全局配置，服务内的 host/port 按本节读取。
-在 `demo6` 目录运行：
+在仓库根目录运行：
 
 ```text
 ./release/xl.exe run release/extlibs/ini/examples/profiles.xl
@@ -150,7 +150,7 @@ C 出口均明确返回 XRT 拥有的 `char*`；XLang native-backed class 使用
 与独立 Python `configparser` 双向互通均通过。两平台中央用例、
 边界及公开范例 JIT/AOT 通过；Linux 浮点核心/边界/中央/公开
 范例/C 范例五份独立 EXE 均运行成功，C/GCC/XLang 范例输出一致。
-Windows 从 `demo6` 根目录直接运行公开范例也成功，旧工作目录
+Windows 从仓库根目录直接运行公开范例也成功，旧工作目录
 敏感 VFS 故障不再复现。未据此宣称 32 位、TSan 或长时压力完成。
 
 2026-10-26 文本所有权复核：`Config.get` 和 `Config.stringify` 返回
@@ -168,7 +168,7 @@ C/XLang 范例输出对照均通过。使用的是现有 Linux `release/xl`，
 不是新构建的 Linux 发布物；当时独立 Linux AOT 尚未验收，
 已由上方 2026-10-26 的发布版门禁补齐。
 上述 Windows 门禁在 `release` 工作目录运行 XLang 阶段；旧发布版从
-`demo6` 根目录运行时的共享 TCC VFS 头文件故障见
+仓库根目录运行时的共享 TCC VFS 头文件故障见
 `dev/extlib_blockers/tcc_vfs_runtime_decl_include.md`，当前已不复现。
 `test/interop.c` 与 `test/interop.py` 另外用 Python 标准库
 `configparser` 做双向格式互通：C 写出后由 Python 读取，Python
@@ -248,7 +248,7 @@ OptionsInit 将倍率置零，显式设置这些字段会返回 `XRT_INI_ERROR_A
 直接值复制、插值输出扩容及最终结果复制的分配失败均报告
 `XRT_INI_ERROR_MEMORY`；`NULL` 结果不再保留成功错误码，也不误报输出限额。
 
-在 `demo6` 目录运行定向验证：
+在仓库根目录运行定向验证：
 
 ```text
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/ini/test/check.ps1
@@ -269,7 +269,7 @@ Linux 门禁使用 ASan/UBSan 验证 C 解析及文件路径边界，另以内�
 执行 C 用例，运行中央/包内 XLang 边界并逐字节核对双语范例。
 这些是 ini 包级证据，不等于整个 xlang 发布版签收。
 包内 `test/boundaries.xl`、`test/updates.xl`、`test/output_limits.xl`、`test/interpolation_refs.xl` 已登记到 `coverage.tests`，统一扩展库 smoke 可发现；
-现已从 `demo6` 工作目录与默认包门禁一并复跑。
+现已从仓库根目录与默认包门禁一并复跑。
 
 以下为历史验证记录，其中缺符号描述均指当时的旧发布二进制。
 
@@ -382,5 +382,5 @@ AOT 的共享阻断仍待主线修复。
 以及浮点核心、完整边界和教学范例的 AOT 构建与运行。先前的
 `xl6NativeHandleTraceLeaf` 缺符号在本次范围内不再复现。
 Linux 语言门禁此次未以当前源码重建，旧 Linux 发布物及重建阻塞见
-`demo6/dev/extlib_blockers/linux_release_x509_sources.md`；本条不作为
+`dev/extlib_blockers/linux_release_x509_sources.md`；本条不作为
 Linux AOT 或跨平台发布级签收。

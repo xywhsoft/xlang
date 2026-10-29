@@ -109,7 +109,7 @@ Windows `-SkipAot` 的 C/语言/固定输出门禁与 Linux C ASan/UBSan、XLang
 门禁通过；默认 Windows 核心 AOT 通过，完整范例 AOT 仍缺共享
 `xl6ValueDataSnapshotV1`，不签收整包发布级。
 
-在 `demo6` 目录运行：
+在仓库根目录运行：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File release\extlibs\money\test\check.ps1
@@ -137,7 +137,7 @@ Windows `test/check.ps1 -SkipAot` 用于 C/JIT 日常门禁；默认模式另在
 
 2026-10-17：`scale` 的 C 参考值测试增加正负分母和 `INT64_MIN/MAX` 交叉极值；XLang 边界用例固定负分母及最小整数结果。Windows C/XLang 定向测试与 Linux ASan/UBSan 包级门禁通过；完整 AOT 阻断不变。
 
-在 Linux 的 `demo6` 目录可运行 `bash release/extlibs/money/test/check.sh`。该门禁以严格 GCC、ASan/UBSan 复验 C 算术参考值和故障注入，运行中央及包内 XLang 边界用例，并将 C/XLang 范例输出与固定预期逐字节比较；临时产物不写入发布目录。C 范例显式包含包内实现，可直接使用 `xl run`；`run_extlib_c.ps1` 会识别该包含，不会重复编译实现源码。
+在 Linux 的 仓库根目录可运行 `bash release/extlibs/money/test/check.sh`。该门禁以严格 GCC、ASan/UBSan 复验 C 算术参考值和故障注入，运行中央及包内 XLang 边界用例，并将 C/XLang 范例输出与固定预期逐字节比较；临时产物不写入发布目录。C 范例显式包含包内实现，可直接使用 `xl run`；`run_extlib_c.ps1` 会识别该包含，不会重复编译实现源码。
 
 2026-10-14：`format`/`split` 增加 C 分配故障与失败后恢复测试，XLang 包装层区分非法输入和内存不足；金额算法未变。
 

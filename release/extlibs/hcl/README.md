@@ -129,7 +129,7 @@ C 接口见 `include/hcl_native.h`。文本结果是**独立拥有型**内存，
   两侧各自断言注释保留的原文、浮点值、第二个块标签及嵌套属性总数；
   Windows `test/check.ps1 -SkipAot` 与 Linux `test/check.sh`（含 C ASan/UBSan）
   均通过。只补范例，不改变解析器；完整 AOT 仍受下述共享符号阻断。
-- Windows 从 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass
+- Windows 从仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass
   -File release/extlibs/hcl/test/check.ps1`，同次检查严格 GCC 语法、
   C 边界/线程、中央与包内 XLang、分配故障、双语范例同输出、无输出核心
   AOT、边界与分配故障 AOT，以及带输出范例 AOT。加 `-SkipAot` 只运行 C/XLang 聚焦门禁。
@@ -164,7 +164,7 @@ C 接口见 `include/hcl_native.h`。文本结果是**独立拥有型**内存，
   `${TMPDIR:-/tmp}/xlang-hcl-*`，保留 `failed-stage.txt`、`exit-code.txt`、
   `phases.tsv`、`fingerprint.stdout`、`compiler.txt`，以及每一步的
   `阶段名.command/.stdout/.stderr`。排查结束后可删除报告的该次独占目录。
-- 只验证留档机制：从 `demo6` 运行
+- 只验证留档机制：从仓库根目录运行
   `bash release/extlibs/hcl/test/check_gate_diagnostics.sh`，检查无输出失败、
   编译器启动失败、原始退出码及现场内容；成功时自动清理刻意产生的失败现场。
   该自测不是解析器或语言 JIT/AOT 验收的替代品。
@@ -190,7 +190,7 @@ ASan/UBSan 与双语包门禁通过。该有限矩阵验证公开入口一致性
 `demo6/dev/extlib_blockers/text_snapshot_link.md`；尚未完成发布验收。
 包 manifest 仅带入原生源码实际使用的 XRT 缓冲、字符集和浮点数模块；
 新增无输出 `test/aot_core.xl`，覆盖校验、块计数、整数和浮点查询。
-从 `demo6/release` 执行 `.\xl.exe build extlibs/hcl/test/aot_core.xl -o ../build/test/hcl_core.exe`
+从 `release` 执行 `.\xl.exe build extlibs/hcl/test/aot_core.xl -o ../build/test/hcl_core.exe`
 后运行产物；同一用例从 3,565,568 缩至 590,848 字节并通过。
 完整边界 AOT 的共享快照缺符号问题仍未解除。
 

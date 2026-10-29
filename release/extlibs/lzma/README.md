@@ -97,7 +97,7 @@ C 入口统一要求 `xrtlzmaoptions` 与内嵌 `xrtresourcelimits` 的当前完
 需要完整传入对应的 `c_*` 参数。压缩级别负值不是“使用默认”的别名，
 直接构造与工厂一样抛 `ValueError`；C 桥接报告 `XERR_ARGUMENT`。
 
-在 `demo6` 目录执行聚焦验证：
+在仓库根目录执行聚焦验证：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/lzma/test/check.ps1

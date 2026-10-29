@@ -79,7 +79,7 @@ IEEE 浮点传播规则；成功的标量调用会清除当前线程的旧 XRT �
 - `xl run extlibs/linalg/test/allocations.xl`：`normalize2`、`cross3`、`inverse2`、`multiply2` 各自逐点注入多返回值分配失败，核对 `MemoryError` 与解除故障后的再次调用。
 - `tools/run_extlib_c.ps1 -Package linalg -Source release/extlibs/linalg/test/test_linalg.c`
 - `bash release/extlibs/linalg/test/check.sh`：Linux 严格 GCC 与 ASan/UBSan C 测试、中央和包内 XLang 用例，以及两组 C/XLang 范例逐字节对照；同样要求十条 AOT。Linux 验证使用原生文件系统快照，不从 DrvFS 编译。
-- `examples/calibration.xl` 与 `examples/calibration_c.c`：插值到达端点、极端量级的有限逆矩阵，以及单位悬殊的双通道测量校准。两者使用相同输入、公式、容差与三行黄金输出；从 `demo6` 目录可分别 `xl run release/extlibs/linalg/examples/calibration.xl` 和 `xl run release/extlibs/linalg/examples/calibration_c.c`。
+- `examples/calibration.xl` 与 `examples/calibration_c.c`：插值到达端点、极端量级的有限逆矩阵，以及单位悬殊的双通道测量校准。两者使用相同输入、公式、容差与三行黄金输出；从仓库根目录可分别 `xl run release/extlibs/linalg/examples/calibration.xl` 和 `xl run release/extlibs/linalg/examples/calibration_c.c`。
 - `test/numeric_edges_c.c`：177 个独立检查，包含有限端点/有符号零、非有限传播、160 组精确二次幂矩阵的行列置换、次正规中间值精度与内存诊断；不依赖 C `assert`，`NDEBUG` 下照常执行。
 - 两个门禁在找到 Python 时自动编译供 `ctypes` 使用的测试动态库，由 `test/exact_inverse.py` 的 `Fraction` 独立求真逆，核对 160 组二次幂、一个次正规边界和 2000 组固定种子缩放矩阵。无 Python 时明确记为 SKIP；Python 不是使用本包的运行时依赖。
 - 边界覆盖极小/极大向量、相差 600 个数量级的矩阵行、奇异/近奇异矩阵、

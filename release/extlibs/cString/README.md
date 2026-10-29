@@ -23,7 +23,7 @@ Linux 原生快照中的 C ASan/UBSan 与同样 JIT/AOT 先过，最后同样失
 
 例如 `"a\0b"` 的 `string.byteLen` 为 3，而 `cString.length` 为 1；`"你好"` 的 `cString.length` 为 6。模块无原生封装层、状态和资源所有权。不要用返回值确定可含 NUL 数据的缓冲区长度。
 
-范例分别位于 `release/extlibs/cString/examples/cString.xl` 和 `cString_c.c`。在 `demo6` 目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/cString/test/check.ps1`，验证边界、双语输出和 AOT。
+范例分别位于 `release/extlibs/cString/examples/cString.xl` 和 `cString_c.c`。在仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/cString/test/check.ps1`，验证边界、双语输出和 AOT。
 两种语言共用 `examples/cString.expected.txt`，不是只比较双方输出。
 新 `examples/records_c.c` 展示记录完整字节数与 C 文本前缀长度的差别，
 严格 C、直跑和独立程序均与 `records.expected.txt` 的六行结果一致；

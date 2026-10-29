@@ -127,7 +127,7 @@ XLang 边界及三组双语范例通过，Linux C ASan/UBSan 与 XLang 对照门
 默认 Windows 门禁的完整边界 AOT 仍缺共享 `xl6ValueIndexReadCopyV1`，
 不据聚焦门禁通过签收整包发布级。
 
-在 `demo6` 目录运行：
+在仓库根目录运行：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/statistics/test/check.ps1 -SkipAot
@@ -138,7 +138,7 @@ bash release/extlibs/statistics/test/check.sh
 并对照 `examples/basic.xl` 与 `examples/statistics_c.c`、
 `examples/trend.xl` 与 `examples/trend_c.c`、
 `examples/distribution.xl` 与 `examples/distribution_c.c` 三组成对范例的
-共同黄金输出。三份 C 范例均自包含统计实现，可在 `demo6` 目录直接运行：
+共同黄金输出。三份 C 范例均自包含统计实现，可在仓库根目录直接运行：
 
 ```powershell
 release/xl.exe run release/extlibs/statistics/examples/statistics_c.c

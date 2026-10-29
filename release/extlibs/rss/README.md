@@ -44,7 +44,7 @@ RSS 保留 `title/link/description/updated` 与 item 的 `title/link/description
 
 ## 验证
 
-从 `demo6` 目录运行：
+从仓库根目录运行：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/rss/test/check.ps1
@@ -60,7 +60,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_extlib_c.ps1 -Pack
 .\build\test\rss_aot_core.exe
 ```
 
-Linux 上可从 `demo6` 目录运行 `bash release/extlibs/rss/test/check.sh`；它在临时目录编译 XRT、Expat、XML DOM 与 RSS C 测试并以 ASan/UBSan 执行，还运行中央与包内 XLang 用例，对照两组成对范例，不留下发布目录产物。
+Linux 上可从仓库根目录运行 `bash release/extlibs/rss/test/check.sh`；它在临时目录编译 XRT、Expat、XML DOM 与 RSS C 测试并以 ASan/UBSan 执行，还运行中央与包内 XLang 用例，对照两组成对范例，不留下发布目录产物。
 Windows 的 `test/check.ps1` 是同范围单入口：严格 GCC 语法、C 边界、
 中央与包内 XLang 用例、两组 C/XLang 同输出，以及核心与 Atom 范例 AOT。
 `-SkipAot` 跳过这两项 AOT，只用于聚焦开发；默认门禁会在下述共享缺符号

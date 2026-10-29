@@ -215,7 +215,7 @@ XRT 错误在 native 调用边界自动传播；`CompressionError` 只是没有�
 | `examples/files.c` | `../../examples/extlibs/bz2_files.xl` | 文件、进度、取消、目标保留 |
 | - | `../../examples/extlibs/bz2.xl` | 工作因子、低内存、多成员、累计属性、限额和错误 |
 
-在 demo6 目录执行：
+在仓库根目录执行：
 
 ```powershell
 xl run release/examples/extlibs/bz2_files.xl
@@ -261,7 +261,7 @@ ASan/UBSan、独立互通、文件事务和 XLang 文件用例通过；整包发
 2026-10-20：`bz2_files.xl` 原在固定目录写入三份文件，并将 Buffer 直接
 传给 `file.writeBytes`、以两个 Buffer 对象相等判断解压结果。`xl check`
 先报参数类型不匹配；修正后运行阶段的数据断言仍失败。现用 `toBytes()`
-表达二进制值、独占临时目录和 `finally` 清理；`demo6` 根与 `release`
+表达二进制值、独占临时目录和 `finally` 清理；仓库根目录与 `release`
 直接运行以及 C 范例均逐行输出 `bz2_files.expected.txt` 的三行结果。
 Linux `tools/check_extlib_bz2.sh` 的 ASan/UBSan、269 项 Python 互通、
 文件事务与新增的中央 XLang/C 黄金对照通过。Windows

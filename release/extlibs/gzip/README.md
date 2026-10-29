@@ -39,7 +39,7 @@ Buffer 字节异或的 typed XLIR 错误及旧 AOT 缺符号均未在当前发�
 2026-10-25：包内新增 `test/error_dispatch.xl`，固定截断输入在一次性与
 流式解码均抛 `IOError`，完成后写入抛 `RuntimeError`，失败后新对象仍
 可用。当前 Windows 发布版 JIT/独立 EXE 与现有 Linux 发布版 JIT 均通过。
-Windows 当前 `xl.exe` 从 `release` 目录可运行中央用例；从 `demo6` 根目录
+Windows 当前 `xl.exe` 从 `release` 目录可运行中央用例；从仓库根目录
 运行包级脚本时仍先遇到共享 VFS 头路径故障
 `include/xruntime_decl.h not found`，因此此次未重签默认 Windows 门禁。
 Linux 联合门禁现继续运行进度用例、该异常用例和 C/XLang 基础范例黄金
@@ -166,13 +166,13 @@ CRC 用于损坏检查，不是加密认证。
 
 C 基础范例的压缩、解压、流式与截断检查使用显式条件和统一清理；
 `-DNDEBUG` 构建仍会执行完整流程，并仅在全部检查成功后输出黄金结果。
-从 `demo6/release` 可直接执行 `./xl run extlibs/gzip/examples/basic.c`；
+从 `release` 可直接执行 `./xl run extlibs/gzip/examples/basic.c`；
 范例仅在 TCC 单文件路径包含它实际使用的 `xrt_gzip.c`，无需额外源文件参数。
 正式包仍通过清单独立编译原生单元，GCC 范例也保持分离编译。
 
 ## 验证
 
-在 demo6 根目录运行 `powershell -File tools/check_extlib_gzip.ps1`，需要 GCC 与
+在仓库根目录运行 `powershell -File tools/check_extlib_gzip.ps1`，需要 GCC 与
 Python 3 在 PATH 中。Linux 联合门禁为 `bash tools/check_extlib_gzip.sh`。
 包内 `test/file_ops.xl` 和 `test/error_dispatch.xl` 已登记到 `coverage.tests`；
 前者覆盖 UTF-8 文件往返、进度回调、禁止覆盖、取消清理及解压超限时保护
@@ -191,7 +191,7 @@ Python 3 在 PATH 中。Linux 联合门禁为 `bash tools/check_extlib_gzip.sh`�
 
 以下为历史验证记录；其中 Windows 的 XLIR/链接阻断指当时的旧发布版。
 
-2026-10-16：当前 Linux 发布物从 `demo6` 根目录运行 `gzip_basic.xl` 成功，覆盖 UTF-8、二进制、增量流和截断拒绝。完整 `test/cases/extlib_gzip.xl` 仍在第 49 行的 Buffer 字节索引异或触发已记录的 XLIR 错误；基础范例通过不代表完整 Linux JIT/AOT 验收。
+2026-10-16：当前 Linux 发布物从仓库根目录运行 `gzip_basic.xl` 成功，覆盖 UTF-8、二进制、增量流和截断拒绝。完整 `test/cases/extlib_gzip.xl` 仍在第 49 行的 Buffer 字节索引异或触发已记录的 XLIR 错误；基础范例通过不代表完整 Linux JIT/AOT 验收。
 2026-10-17：当前 Windows/Linux `xl run` 的包内文件事务用例通过；Linux 包级门禁同时执行 C sanitizer、Python 互通和该语言用例。共享 XLIR 阻断未变。
 
 2026-10-19：C 基础范例单文件 `xl run` 原因未带入 `xrt_gzip.c` 而缺符号；

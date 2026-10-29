@@ -35,10 +35,10 @@ robots 文本、代理名和待匹配路径必须是有效 UTF-8；文件开头�
 - XLang 综合范例：`release/examples/extlibs/sitemap.xl`（运行时不写文件）
 - C/XLang 同输出范例：`release/extlibs/sitemap/examples/sitemap_c.c`、`release/examples/extlibs/sitemap_pair.xl`；成对展示 URL 集合与索引的生成/解析往返，以及 robots 决策，覆盖六个公开入口。独立 XML 解析器同时核对两份生成结果。
 - C 边界：`release/extlibs/sitemap/test/test_sitemap.c`
-- XLang 边界：`release/extlibs/sitemap/test/boundaries.xl`、`demo6/test/cases/extlib_sitemap.xl`
+- XLang 边界：`release/extlibs/sitemap/test/boundaries.xl`、`test/cases/extlib_sitemap.xl`
 - 协议规模边界：`release/extlibs/sitemap/test/protocol_limits.xl` 与 C 边界用例
 
-在 `demo6` 执行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/sitemap/test/check.ps1`，以严格 GCC、C/XLang 边界和协议规模用例、双语同输出范例及 Python 标准库 XML 解析器完成 Windows 包级验证。该脚本将两端输出归一为 LF/UTF-8 后比较，避免控制台换行差异影响 XML 语义校验。Linux 上执行 `bash release/extlibs/sitemap/test/check.sh`，额外使用 ASan/UBSan 检查 C 边界及范例，并对原始 C/XLang 输出作字节比较。两个脚本都需要 Python；C 范例也可单独执行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package sitemap -Source release/extlibs/sitemap/examples/sitemap_c.c`。边界测试覆盖超过旧 64 KiB 缓冲的输出、XML 结构/实体/DTD、规则组、通配符、锚点、内嵌 NUL、独立结果和分配失败错误分类。
+在仓库根目录执行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/sitemap/test/check.ps1`，以严格 GCC、C/XLang 边界和协议规模用例、双语同输出范例及 Python 标准库 XML 解析器完成 Windows 包级验证。该脚本将两端输出归一为 LF/UTF-8 后比较，避免控制台换行差异影响 XML 语义校验。Linux 上执行 `bash release/extlibs/sitemap/test/check.sh`，额外使用 ASan/UBSan 检查 C 边界及范例，并对原始 C/XLang 输出作字节比较。两个脚本都需要 Python；C 范例也可单独执行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package sitemap -Source release/extlibs/sitemap/examples/sitemap_c.c`。边界测试覆盖超过旧 64 KiB 缓冲的输出、XML 结构/实体/DTD、规则组、通配符、锚点、内嵌 NUL、独立结果和分配失败错误分类。
 
 2026-10-13：修复 robots 注释/空行误清除当前组导致 `Disallow` 被忽略，补 C/XL 边界与双语范例。2026-10-14：补 XML 构建和 SAX 解析的分配失败注入，修复解析失败误报 `XERR_VALUE`，新增 `test/check.sh` 的 Linux ASan/UBSan 门禁。同日修复重复 `loc` 或可选字段被后值静默覆盖：SAX 解析现在拒绝同一条目内的重复字段，C/XLang 红绿用例、Windows 严格 GCC、Linux ASan/UBSan 与双语范例通过。完整 AOT 仍受共享 `xl6ValueIndexReadCopyV1` / `xl6ValueDataSnapshotV1` 缺失阻断；包级通过不代表发布验收。
 

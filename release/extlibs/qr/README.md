@@ -64,13 +64,13 @@ XLang JIT/AOT 路径。
 
 2026-10-22：半块 UTF-8 渲染改用已知的 1/3 字节长度，不再逐格扫描固定字符。C 边界测试按版本 1 矩阵逐格核对四种半块字符、静区、换行与末行；Windows 严格 C、XLang 边界/双语范例和无输出核心 AOT，以及 Linux C ASan/UBSan、XLang/双语门禁通过。完整带输出 AOT 的共享链接阻断未在本轮复验，不签收整包发布级。
 
-- Windows 包级门禁从 `demo6` 目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/qr/test/check.ps1 -SkipAot`；去掉 `-SkipAot` 可检查全部 AOT 阶段并报告首个阻断。
-- Linux 原生 C sanitizer、XLang 中央/包内边界及 C/XLang 范例逐字对照门禁从 `demo6` 目录运行 `bash release/extlibs/qr/test/check.sh`。
+- Windows 包级门禁从仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/qr/test/check.ps1 -SkipAot`；去掉 `-SkipAot` 可检查全部 AOT 阶段并报告首个阻断。
+- Linux 原生 C sanitizer、XLang 中央/包内边界及 C/XLang 范例逐字对照门禁从仓库根目录运行 `bash release/extlibs/qr/test/check.sh`。
 - `release/examples/extlibs/qr.xl` 与 `qr_c.c` 可直接 `xl run`，输出一致。
 - `release/extlibs/qr/test/test_qr.c` 与 `test/boundaries.xl` 覆盖格式、所有权、超长、无效输入和大矩阵。
 - `test/aot_core.xl` 只覆盖无输出的公开 `version` 路径，用于在完整 AOT 受主线阻断时验证本包的依赖裁剪；不代替矩阵或渲染的 AOT 验收。
 - `test/dump_matrix.c` 与 `test/verify_decode.py` 使用独立 ZXing 解码生成矩阵；此附加验证需要测试环境安装 `numpy`、`zxing-cpp`，不是运行时依赖。覆盖 v1、中文、长文本与 v40 的 7089 位数字。
-- 安装上述测试依赖后，在 `demo6` 目录运行 `python release/extlibs/qr/test/check_decode.py`；脚本以严格 GCC 编译当前 C 源，在独占临时目录执行扫码测试，不写入发布目录。
+- 安装上述测试依赖后，在仓库根目录运行 `python release/extlibs/qr/test/check_decode.py`；脚本以严格 GCC 编译当前 C 源，在独占临时目录执行扫码测试，不写入发布目录。
 
 2026-10-12：Windows 严格 GCC、Linux ASan/UBSan、C/XLang 边界、双语同输出与独立扫码通过。当时的无输出边界 AOT 曾通过；当前发布版必须按下方复核结果重新验收。
 

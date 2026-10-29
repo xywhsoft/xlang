@@ -68,7 +68,7 @@ int main(void)
     xrtBufferDestroy(packed);
     return 0;
 }</code></pre>
-    <p>公共头为 <code>extlibs/zip/include/xrt_zip.h</code>。C 选项用 <code>xrtZipOptionsInit</code> 初始化；ZIP 只执行输入、输出、单项、条目数及压缩倍率限额，节点数、深度、资源标志和保留字段必须为零，尺寸/版本必须匹配。完整双语对照范例位于 <code>examples/extlibs/zip.xl</code> 与 <code>examples/extlibs/zip_c.c</code>；C 返回的 xbuffer 由调用方销毁。C 范例依赖多份 ZIP 封装源和 <code>_libzip</code>，从 <code>demo6</code> 目录使用 <code>tools/run_extlib_c.ps1 -Package zip -Source release/examples/extlibs/zip_c.c</code> 按包清单运行；单独 <code>xl run zip_c.c</code> 不会自动链接这些源。</p>
+    <p>公共头为 <code>extlibs/zip/include/xrt_zip.h</code>。C 选项用 <code>xrtZipOptionsInit</code> 初始化；ZIP 只执行输入、输出、单项、条目数及压缩倍率限额，节点数、深度、资源标志和保留字段必须为零，尺寸/版本必须匹配。完整双语对照范例位于 <code>examples/extlibs/zip.xl</code> 与 <code>examples/extlibs/zip_c.c</code>；C 返回的 xbuffer 由调用方销毁。C 范例依赖多份 ZIP 封装源和 <code>_libzip</code>，从仓库根目录使用 <code>tools/run_extlib_c.ps1 -Package zip -Source release/examples/extlibs/zip_c.c</code> 按包清单运行；单独 <code>xl run zip_c.c</code> 不会自动链接这些源。</p>
   </section>
   <section id="verify">
     <h2>验证状态</h2>

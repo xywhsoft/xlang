@@ -128,10 +128,10 @@ XLang 与双语对照通过。完整 AOT 仍受共享缺符号阻断，不据此
   以及时间戳解析/格式化；WebVTT 写出会规范化为含小时的时间格式。
   两份范例各自断言固定的 SRT/WebVTT 文本与毫秒时间，不只互比输出。
 - C 边界：`release/extlibs/srt/test/test_srt.c`
-- XLang 边界：`release/extlibs/srt/test/boundaries.xl`、`demo6/test/cases/extlib_srt.xl`
+- XLang 边界：`release/extlibs/srt/test/boundaries.xl`、`test/cases/extlib_srt.xl`
 - 分配失败：`release/extlibs/srt/test/allocations.xl`；逐个注入前 32 个分配点，核对四条公开解析/生成路径的 `MemoryError` 分类、成功恢复和语义往返。
 
-在 `demo6/release` 执行 `xl run extlibs/srt/test/boundaries.xl`；在 `demo6` 执行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package srt -Source release/extlibs/srt/test/test_srt.c`。验证覆盖严格时间戳、CRLF、WebVTT ID/设置往返、异常、超过旧固定缓冲长度的文本及独立结果。
+在 `release` 执行 `xl run extlibs/srt/test/boundaries.xl`；在仓库根目录执行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package srt -Source release/extlibs/srt/test/test_srt.c`。验证覆盖严格时间戳、CRLF、WebVTT ID/设置往返、异常、超过旧固定缓冲长度的文本及独立结果。
 Windows `test/check.ps1` 同时运行中央 XLang 用例、包内边界和分配失败用例，并将 C/XLang 范例输出逐字比较；Linux `test/check.sh` 还以 ASan/UBSan 运行 C 边界。
 Windows 默认门禁还构建、运行核心 AOT，再构建、运行带输出的双语范例并核对
 输出；`-SkipAot` 只跳过这两项 AOT。构建产物位于每次独占的 `build/test`

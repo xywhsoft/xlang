@@ -75,15 +75,15 @@ Windows `test/check.ps1 -SkipAot` 与 Linux C ASan/UBSan、线程、XLang
 验证是否成功，不打印随时间变化的验证码。默认窗口允许相邻时间步，避免
 范例恰在步长边界运行时出现假失败。
 
-在 `demo6/release` 可直接运行 `xl run extlibs/totp/examples/totp_c.c`；
+在 `release` 可直接运行 `xl run extlibs/totp/examples/totp_c.c`；
 普通 C 编译仍按包清单单独链接 `totp_native.c`。
-- 边界：包内 `test/test_totp.c`、`test/test_threads.c`、`test/boundaries.xl`，以及 `demo6/test/cases/extlib_totp.xl`
+- 边界：包内 `test/test_totp.c`、`test/test_threads.c`、`test/boundaries.xl`，以及 `test/cases/extlib_totp.xl`
 
-在 `demo6/release` 运行 `xl run extlibs/totp/test/boundaries.xl`；在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package totp -Source release/extlibs/totp/test/test_totp.c`。边界覆盖 RFC 向量、长密钥 HMAC、精确时间步、Base32 非法填充、窗口和多线程独立结果。
+在 `release` 运行 `xl run extlibs/totp/test/boundaries.xl`；在仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package totp -Source release/extlibs/totp/test/test_totp.c`。边界覆盖 RFC 向量、长密钥 HMAC、精确时间步、Base32 非法填充、窗口和多线程独立结果。
 
-在 `demo6` 目录还可运行 `release/xl.exe run release/extlibs/totp/test/allocations.xl`；加上 `test/owned_results.xl` 后三份包内 XLang 用例均登记在 `coverage.tests`，`test/owned_probe.xl` 单独核对完整生成返回链。Linux 运行 `bash release/extlibs/totp/test/check.sh`，以严格 GCC 和 ASan/UBSan 重建 C 边界与线程测试，检查 manifest 模块宏，并运行中央及包内 XLang 用例、逐字节核对 C/XLang 范例输出。2026-10-14 新增 C 输出分配故障、XLang 三个生成入口的内存异常和失败后恢复测试；算法没有更改。
+在仓库根目录还可运行 `release/xl.exe run release/extlibs/totp/test/allocations.xl`；加上 `test/owned_results.xl` 后三份包内 XLang 用例均登记在 `coverage.tests`，`test/owned_probe.xl` 单独核对完整生成返回链。Linux 运行 `bash release/extlibs/totp/test/check.sh`，以严格 GCC 和 ASan/UBSan 重建 C 边界与线程测试，检查 manifest 模块宏，并运行中央及包内 XLang 用例、逐字节核对 C/XLang 范例输出。2026-10-14 新增 C 输出分配故障、XLang 三个生成入口的内存异常和失败后恢复测试；算法没有更改。
 
-Windows 可从 `demo6` 目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/totp/test/check.ps1`：严格 GCC 宏检查、C 边界和线程、中央及包内 XLang 用例，以及包运行器 C、单文件 C、XLang 范例分别与固定 RFC 输出比较。默认还构建运行中央核心与完整范例 AOT，并对照同一固定 RFC 输出；`-SkipAot` 只运行 C/JIT 快测。Linux 专属的系统时钟故障注入仍由 `test/check.sh` 检查。
+Windows 可从仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/totp/test/check.ps1`：严格 GCC 宏检查、C 边界和线程、中央及包内 XLang 用例，以及包运行器 C、单文件 C、XLang 范例分别与固定 RFC 输出比较。默认还构建运行中央核心与完整范例 AOT，并对照同一固定 RFC 输出；`-SkipAot` 只运行 C/JIT 快测。Linux 专属的系统时钟故障注入仍由 `test/check.sh` 检查。
 
 当前默认门禁还构建并运行包内边界、分配故障、拥有型结果预算三份 AOT，与同次 JIT 输出对照；Windows 另用严格 GCC 运行 C 边界及预算。两平台使用独占目录，成功清理，失败保留命令、输入指纹与产物。
 

@@ -18,7 +18,7 @@ binary16位形；有限值、无穷和负零比较精确binary64位，2,046种Na
 
 新双语范例 `examples/validate_wire.xl` / `validate_wire_c.c` 展示六个
 公开入口、网络报文解码、二进制往返、错误拒绝和恢复，固定七行输出。
-从 `demo6` 根目录可直接运行：
+从仓库根目录可直接运行：
 
 ```text
 xl run release/extlibs/cbor/examples/validate_wire.xl
@@ -72,8 +72,8 @@ C 接口见 `cbor_native.h`：编码和 `decodeBytes` 返回调用方拥有的 `
 原生 `xcbor_from_hex` 在读取 C 文本终止符时最多扫描 128 MiB 加一个字节；
 超限返回 `XERR_RANGE`，不会先对不可信长度调用无界 `strlen`。
 
-范例：`release/extlibs/cbor/examples/cbor.xl` 与 `cbor_c.c`，以及 `release/examples/extlibs/cbor.xl`。在 `demo6` 目录执行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/cbor/test/check.ps1 -SkipAot` 跑包级 C/JIT 门禁；去掉 `-SkipAot` 加测 AOT。
-在 `demo6/release` 下可直接运行 C 范例：`./xl run extlibs/cbor/examples/cbor_c.c`。
+范例：`release/extlibs/cbor/examples/cbor.xl` 与 `cbor_c.c`，以及 `release/examples/extlibs/cbor.xl`。在仓库根目录执行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/cbor/test/check.ps1 -SkipAot` 跑包级 C/JIT 门禁；去掉 `-SkipAot` 加测 AOT。
+在 `release` 下可直接运行 C 范例：`./xl run extlibs/cbor/examples/cbor_c.c`。
 该单文件范例包含 `cbor_native.c`；正式扩展库仍通过包清单独立编译
 原生源码，不要在同一范例构建命令中重复加入。
 Linux 可执行 `wsl bash release/extlibs/cbor/test/check.sh`；脚本以严格 GCC、ASan/UBSan
@@ -85,7 +85,7 @@ Linux 可执行 `wsl bash release/extlibs/cbor/test/check.sh`；脚本以严格 
 包 manifest 与原生源码的七项 XRT 模块声明现已一致；同一
 `test/aot_core.xl` 从 3,624,960 缩至 661,504 字节，运行结果不变。
 完整 AOT 的共享缺符号阻断仍需另行解决。
-可选的 [cbor2](https://pypi.org/project/cbor2/) 6.1.5 双向互操作检查：C/xlang 范例输出同字节、外部库可读取；外部库写出普通容器、`bytes`、RFC 3339 tag 0 与带小数秒的 epoch tag 1，C/xlang 均可读取，其中 C 侧核对到微秒。`cbor2` 只安装在 `build/test` 的隔离环境，不进入发布包。从 `demo6` 目录运行：
+可选的 [cbor2](https://pypi.org/project/cbor2/) 6.1.5 双向互操作检查：C/xlang 范例输出同字节、外部库可读取；外部库写出普通容器、`bytes`、RFC 3339 tag 0 与带小数秒的 epoch tag 1，C/xlang 均可读取，其中 C 侧核对到微秒。`cbor2` 只安装在 `build/test` 的隔离环境，不进入发布包。从仓库根目录运行：
 
 ```powershell
 python -m venv build\test\cbor\venv

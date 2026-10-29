@@ -25,7 +25,7 @@ XLang 包装层传入 C 零结尾接口的模型路径、配置文本、张量�
 
 ## 验证
 
-在 `demo6` 目录运行：
+在仓库根目录运行：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/onnxruntime/test/check.ps1 -SkipAot
@@ -70,7 +70,7 @@ XLang 范例的真实模型元数据逐字对照，构建产物仅存于本次�
 并发和可复现构建由插件独立维护，不作为本任务的签收条件。
 
 `test/catalog_call.xl` 与 `test/implicit_handles_cleanup.xl` 已登记为
-`coverage.tests`；前者从 `demo6` 根目录运行真实模型零张量推理，
+`coverage.tests`；前者从仓库根目录运行真实模型零张量推理，
 后者由包级门禁从 `release` 目录验证六类句柄的隐式清理。
 通用目录门禁只覆盖公开调用链，不覆盖桥接内部实现。
 

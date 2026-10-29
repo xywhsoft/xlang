@@ -29,7 +29,7 @@ XLang 读图与写图入口拒绝含 NUL 的路径，避免 C 字符串只处理
 
 ## 验证
 
-从 `demo6` 目录运行：
+从仓库根目录运行：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/opencv/test/check.ps1
@@ -47,7 +47,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/opencv/test/
 
 `release/extlibs/rapidocr/test/check.ps1 -SkipAot -Stress` 另用 C 16 线程和 XLang 双线程冷探针同时覆盖 OpenCV 与 ONNX Runtime 的首次装载。当前机器均通过。桥接源码、完整图像操作矩阵、跨平台二进制和长时并发由插件独立维护，不纳入普通扩展库调用验收。
 
-`test/catalog_call.xl` 已登记为 `coverage.tests`，从 `demo6` 根目录调用包内 PPM 读图、缺图、缩放和句柄释放；它不重复验证插件内部图像算法。
+`test/catalog_call.xl` 已登记为 `coverage.tests`，从仓库根目录调用包内 PPM 读图、缺图、缩放和句柄释放；它不重复验证插件内部图像算法。
 
 2026-10-18：C `opencv_last_error_native()` 原在首次装载前直接读取共享函数表，
 对残缺桥接 DLL 的首次错误查询返回空文本。现错误查询也等待同一 `xrtOnce`
@@ -64,7 +64,7 @@ BOM UTF-8；PowerShell 5.1 按系统代码页误读，使中文路径用例失�
 
 2026-10-20：包内 NUL 路径负例原先会先删除固定 `build/test/opencv/nul_output.png`，
 有误删已有文件的风险；现改为独占临时目录并在 `finally` 清理。综合截图
-范例也不再写固定 `examples_out`。该范例从 `demo6` 与 `release` 工作目录
+范例也不再写固定 `examples_out`。该范例从仓库根目录与 `release` 工作目录
 各运行成功一次；Windows `-SkipAot` 的严格 GCC、C/XLang 双语调用、
 UTF-8 路径和残缺桥接拒绝门禁通过。仍只验公开调用层，不宣称桥接源码
 可复现构建或完整带输出 AOT 已通过。

@@ -73,7 +73,7 @@ bash release/extlibs/watch/test/check.sh
 xl run release/extlibs/watch/examples/directory.xl
 xl run release/extlibs/watch/examples/directory_c.c</code></pre>
     <p>新directory双语范例输出相同三行，展示目录的直接子项同大小改写、目录级MODIFIED和不重复交付。范例调早独占临时文件的初始mtime，不依赖sleep；正常结束清理本次目录。完整门禁当前应因M2返回非零，不能用SkipAot作为发布验收。</p>
-    <p>C 范例可从 demo6 根目录直接以 <code>xl run release/extlibs/watch/examples/watch_c.c</code> 运行；Windows/Linux 包门禁均将其与 GCC、XLang 的输出对照。成对范例在独占临时目录验证文件创建、修改、删除事件，并演示索引删除与复用。Windows 严格 GCC、C/XLang 边界、双语范例及带输出 AOT 通过；两平台的定向目录竞争测试覆盖删除、变更类型与真实 I/O 错误，Linux C 文件/目录事件通过 ASan/UBSan，Linux XLang 包内边界用例也通过。文件/工作目录边界用例使用独占临时目录，不再写删固定的 <code>build/test/watch_guard</code>。C 源仅使用公开 XRT 头文件。旧 Windows AOT 缺符号已解除。</p>
+    <p>C 范例可从仓库根目录直接以 <code>xl run release/extlibs/watch/examples/watch_c.c</code> 运行；Windows/Linux 包门禁均将其与 GCC、XLang 的输出对照。成对范例在独占临时目录验证文件创建、修改、删除事件，并演示索引删除与复用。Windows 严格 GCC、C/XLang 边界、双语范例及带输出 AOT 通过；两平台的定向目录竞争测试覆盖删除、变更类型与真实 I/O 错误，Linux C 文件/目录事件通过 ASan/UBSan，Linux XLang 包内边界用例也通过。文件/工作目录边界用例使用独占临时目录，不再写删固定的 <code>build/test/watch_guard</code>。C 源仅使用公开 XRT 头文件。旧 Windows AOT 缺符号已解除。</p>
     <p>2026-10-26 新发布物复核：Windows/Linux 默认包门禁通过 C 边界、目录竞态、XLang JIT/AOT 和公开双语范例；Windows 新增工作目录快照、分配故障及公开语言范例 AOT，两平台新增 C 单文件范例独立 EXE，固定事件输出与 GCC、TCC、XLang 一致。Linux C 侧保留 ASan/UBSan。事件文本由 XLang 直接接管 C 分配，不复制正文。能力范围仍是非递归元数据轮询，不能还原两次轮询之间的全部变化。</p>
   </section>
 </main>

@@ -41,7 +41,7 @@ XRT 对象，未改变生产依赖或宏裁剪口径。
 2026-10-26 当前 Windows/Linux 包门禁均退出 0：严格 C、Linux
 ASan/UBSan、中央/重复键/边界/分配故障/输入限额用例 JIT 与独立
 EXE AOT、双语成对范例和公开范例 AOT 全通过。C 单文件范例也由
-`xl build` 生成 EXE，必须从 `demo6` 根目录运行以读取同一 MO 夹具；
+`xl build` 生成 EXE，必须从仓库根目录运行以读取同一 MO 夹具；
 其输出与 GCC、TCC 和 XLang 成对范例一致。Linux 有 `msgfmt` 时，
 默认门禁还用 GNU 工具从 `test/external.po` 生成真实 MO，由
 sanitizer C、XLang JIT/AOT 共同读取；无工具时明确输出 SKIP。
@@ -124,13 +124,13 @@ C 的 `xgt_load_mo` 使用 XRT 限额读取，同样最多接受 64 MiB；超限
 `XERR_RANGE`，其他文件错误保留其原始类别；
 格式错误仍为 `XERR_VALUE`，不把文件系统失败伪装成坏目录。
 
-XLang 示例：`release/examples/extlibs/gettext.xl`。对应 C 示例：`release/extlibs/gettext/examples/gettext_c.c`。在 `demo6` 目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/gettext/test/check.ps1` 可执行完整包级 C、XLang、双语输出及 AOT 验证。
+XLang 示例：`release/examples/extlibs/gettext.xl`。对应 C 示例：`release/extlibs/gettext/examples/gettext_c.c`。在仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/gettext/test/check.ps1` 可执行完整包级 C、XLang、双语输出及 AOT 验证。
 
 新 `examples/layout.xl` / `examples/layout_c.c` 从路径加载目录，区分普通、
 菜单、工具栏和空上下文，并按计数选复数。两种语言共用
 `examples/layout.expected.txt`，C 借用结果只在目录存活期间使用；解析用的
 文本读入后即可释放，不为打印结果额外创建拥有型副本。
-在 `demo6` 根目录运行：
+在仓库根目录运行：
 
 ```powershell
 ./release/xl.exe run release/extlibs/gettext/examples/layout.xl -- release/extlibs/gettext/test/po_layout.po
@@ -164,13 +164,13 @@ XRT/声明头及实际 CLI/运行库指纹。PATH 中有多个 GCC 时只选第�
 当前默认门禁的 C/JIT 阶段通过，首个边界 AOT 构建仍缺共享 `xl6NativeHandleTraceLeaf`；脚本按退出码报告此失败并清理本次目录，不能据此签收完整 AOT。
 对应的 C 示例可单文件运行：`release/xl.exe run release/extlibs/gettext/examples/gettext_c.c`。示例包含目录和复数表达式两个实现文件；正式扩展包仍按 manifest 分别编译，并由 C 测试验证。
 Linux C sanitizer 与 XLang 对照门禁可用 `bash release/extlibs/gettext/test/check.sh` 复跑；
-它从 `demo6` 根目录运行依赖固定 MO 夹具的包内边界用例，另跑重复键负例，并逐字比较
+它从仓库根目录运行依赖固定 MO 夹具的包内边界用例，另跑重复键负例，并逐字比较
 C/XLang 范例输出。当前 Windows 严格 GCC、C/XL 边界、双语输出、边界 AOT、
 Linux XLang 边界与 Linux ASan/UBSan C 门禁通过；带输出
 范例 AOT 在 `xl6ValueDataSnapshotV1` 缺符号处阻断，见
 `dev/extlib_blockers/text_snapshot_link.md`。完整 AOT 尚未验收。
 `test/boundaries.xl` 与 `test/duplicates.xl` 均已登记到 `coverage.tests`；
-边界用例的夹具路径以 `demo6` 根目录为基准，可直接由目录级 smoke 运行。
+边界用例的夹具路径以 仓库根目录为基准，可直接由目录级 smoke 运行。
 `test/allocations.xl` 也已登记：PO/MO 解析与四种查询分别扫描至首个
 无故障成功（最多 128 点），每个入口均须触发分配失败并报告
 `MemoryError`，每次清除故障后立即重试。2026-10-21 的 Windows
@@ -186,7 +186,7 @@ MO 终止字节的大小端 C 负例、无效 UTF-8 的 PO/MO C 负例，以及 
 另用六种复数形式的固定目录，在 C 与 XLang 两端核对嵌套条件、取模和
 0、1、2、3–10、11–99、100 等分组；Windows 包级、Linux ASan/UBSan
 及从 `release` 启动的无输出边界 AOT 均通过。
-边界 AOT 需要从 `demo6/release` 启动，以保持夹具相对路径一致。
+边界 AOT 需要从 `release` 启动，以保持夹具相对路径一致。
 包 manifest 只声明原生实现实际用到的 XRT 值容器、整文件读取与 Unicode 模块；
 同一边界 AOT 由 3,928,576 缩至 1,007,616 字节，运行结果不变。
 这项裁剪不解除上述带输出示例的共享链接阻断。
@@ -194,7 +194,7 @@ MO 终止字节的大小端 C 负例、无效 UTF-8 的 PO/MO C 负例，以及 
 可选的外部格式互操作门禁用 `polib==1.2.0` 独立生成 GNU MO，先由 Python
 标准库 `gettext.GNUTranslations` 校验，再让 XLang 与 C 分别读取同一文件，
 核对上下文、三种复数形式和 fuzzy 回退。先在独立环境安装 `polib`，然后在
-`demo6` 目录运行：
+仓库根目录运行：
 
 ```powershell
 python -m venv build/test/gettext_external_venv

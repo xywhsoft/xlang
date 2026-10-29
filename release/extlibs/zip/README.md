@@ -41,7 +41,7 @@ Linux 完整门禁的重型编译/运行设有 180/240 秒单阶段上限。
 Windows 默认门禁把这项 C 侧验证放在 XLang 阶段之前。当前新构建的
 `xl.exe` 导入扩展包仍被共享 TCC VFS 头路径阻断，本次不据独立互通
 结果签收 XLang JIT/AOT；见
-`demo6/dev/extlib_blockers/tcc_vfs_runtime_decl_include.md`。
+`dev/extlib_blockers/tcc_vfs_runtime_decl_include.md`。
 
 2026-10-25：当前 Windows 发布版 `xl.exe` 的默认 `test/check.ps1`
 通过 C/XLang 边界、私有成员拒绝、双语范例及核心、边界、范例 AOT。
@@ -102,12 +102,12 @@ C 配置使用 `xrtZipOptionsInit` 初始化。ZIP 实际使用输入、输出�
   不复用或覆盖旧的 `zip_aot_core.exe`。
 - `xl run examples/extlibs/zip.xl`
 - `powershell -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package zip -Source release/examples/extlibs/zip_c.c`
-- 从 `demo6` 目录运行 `xl run release/extlibs/zip/test/boundaries.xl`；
+- 从仓库根目录运行 `xl run release/extlibs/zip/test/boundaries.xl`；
   该用例使用独立临时目录，已登记到统一扩展库 smoke。
 - Linux：`sh extlibs/zip/test/check_symlink.sh`
 - `powershell -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package zip -Source release/extlibs/zip/test/test_zip.c`
 - `zip_native.c` 在 Windows/Linux GCC 的 `-Wall -Wextra -Werror` 语法检查通过。
-- Linux 从 `demo6` 目录运行 `bash release/extlibs/zip/test/check.sh`；需要
+- Linux 从仓库根目录运行 `bash release/extlibs/zip/test/check.sh`；需要
   GCC、Python 3 和 Linux 版 `release/xl`。脚本按 JSON 清单编译三层 C 源，
   对包自有源码执行严格 GCC 检查，以 ASan/UBSan 跑完整 C 边界和 C 范例，
   再运行 XLang 边界、双语同输出及符号链接专项。产物置于独占系统临时目录。

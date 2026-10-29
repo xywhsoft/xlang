@@ -8,7 +8,7 @@ Linux ASan/UBSan、中央/边界/分配 JIT 与 AOT、公开 C/XLang 范例
 `../../../dev/extlib_blockers/xml_public_class_visibility.md`。
 这项公开类型缺口修复前不签收完整包。
 
-2026-10-25 当前发布物入口复验：中央 DOM 用例从 `demo6` 根目录
+2026-10-25 当前发布物入口复验：中央 DOM 用例从仓库根目录
 运行时，在包代码执行前因共享 TCC VFS 缺少
 `include/xruntime_decl.h` 退出；从 `release` 目录运行通过。
 本轮未重跑三包联合默认门禁及 AOT，下方 2026-10-24 的通过记录
@@ -77,7 +77,7 @@ C API 的节点引用由调用方 `xrtXmlDomNodeRelease`；`Child`、`Parent`、
 
 ## 定点验证
 
-在 `demo6/release` 目录运行：
+在 `release` 目录运行：
 
 ```powershell
 .\xl.exe run extlibs/xml.dom/test/test_xml_dom.c
@@ -91,11 +91,11 @@ C API 的节点引用由调用方 `xrtXmlDomNodeRelease`；`Child`、`Parent`、
 `xl check extlibs/xml.dom/test/private_pointer_negative.xl` 均应失败：前者
 验证文本入口不可绕过校验，后者验证不能把任意 `point` 传给节点操作。
 `Node` 的其余 `*Native` 成员也仅供类内部使用，原生结果由公开方法接管。
-Linux 可从 `demo6` 运行
+Linux 可从仓库根目录运行
 `bash release/extlibs/xml.sax/test/check_trees.sh`，对 DOM/ElementTree
 共用的 XRT/Expat 实现运行严格 GCC 与 ASan/UBSan；脚本还需要
 `release/xl` 运行三包 XLang 边界与 C/XLang 范例逐字对照。
-Windows 对应入口为 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/xml.sax/test/check_trees.ps1`（从 `demo6` 目录运行）；同时检查三包的 C/XL 边界、分配故障、私有入口负例及双语范例。
+Windows 对应入口为 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/xml.sax/test/check_trees.ps1`（从仓库根目录运行）；同时检查三包的 C/XL 边界、分配故障、私有入口负例及双语范例。
 联合门禁还运行 `test/cases/extlib_xml_tree_interop.xl`：DOM 写出的 XML
 交给 ElementTree 解析，再反向写回 DOM，核对 UTF-8、实体、属性和混合内容。
 混合内容中的前导文本在 DOM 是独立子节点，在 ElementTree 是元素的 `text`；

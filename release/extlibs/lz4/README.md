@@ -160,7 +160,7 @@ options 必须先调用 xrtLz4OptionsInit；传 NULL 使用默认值。版本、
 
 发行目录中的 `examples/extlibs/lz4.xl` 为综合范例；lz4_basic.xl、lz4_files.xl
 与 [basic.c](examples/basic.c)、[files.c](examples/files.c) 使用相同输入和黄金输出。
-在 demo6 源码目录可执行：
+在仓库根目录可执行：
 
 ```powershell
 ./release/xl.exe run release/examples/extlibs/lz4_basic.xl
@@ -218,7 +218,7 @@ Linux XLang 包内边界、中央文件进度和两组 C/XL 固定输出对照�
 typed XLIR 字节运算错误，整包发布验收未签收。
 
 2026-10-20：`lz4_files.xl` 原写入固定目录，仅在正常路径逐个删除文件。
-现建立独占系统临时目录并在 `finally` 清理。从 `demo6` 根与 `release`
+现建立独占系统临时目录并在 `finally` 清理。从仓库根目录与 `release`
 直接运行均逐行输出 `lz4_files.expected.txt`，C 文件范例输出一致；Linux
 `tools/check_extlib_lz4.sh` 的 ASan/UBSan、514 项系统库互通、线程、文件
 事务与 C/XLang 双语门禁通过。综合范例 `lz4.xl` 的字节 XOR 损坏检测

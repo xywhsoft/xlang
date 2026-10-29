@@ -45,10 +45,9 @@ XLang 运行尚未验收，不能把离线通过记作发布完成。响应结�
 `xhttp.client` 中报告 `TlsStream` 构造无匹配重载，以及
 `NetEngine.nativeHandle()` 成员不可解析。早先的 `cstring`、
 `xhttp.multipart` / `appendBytes` 诊断均是旧发布物记录。
-因此现有 XLang 范例、在线请求和 AOT 均未通过。复现：
+因此现有 XLang 范例、在线请求和 AOT 均未通过。从仓库根目录复现：
 
 ```powershell
-cd demo6
 .\release\xl.exe check dev\extlib_blockers\volc_phone_import_chain.xl
 ```
 

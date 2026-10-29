@@ -145,7 +145,7 @@ Linux C ASan/UBSan/float-cast、XLang JIT 与双语门禁全部通过。
   在发行目录分别运行 `xl run extlibs/color/examples/theme.xl` 与
   `xl run extlibs/color/examples/theme_c.c`；三个主题输出一致。
 - 在发行目录运行 `xl run examples/extlibs/color_basic.xl`。
-- 在 `demo6` 根目录可直接运行 `release/xl.exe run release/extlibs/color/examples/basic.c`；C 范例只内嵌纯 C 颜色核心，不内嵌 XLang 适配层。
+- 在仓库根目录可直接运行 `release/xl.exe run release/extlibs/color/examples/basic.c`；C 范例只内嵌纯 C 颜色核心，不内嵌 XLang 适配层。
 - 在仓库运行 `tools/run_extlib_c.ps1 -Package color -Source release/extlibs/color/examples/basic.c`。
 
 C 范例以栈缓冲和显式条件检查所有调用；两平台门禁均用 `-DNDEBUG`

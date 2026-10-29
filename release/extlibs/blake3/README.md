@@ -86,7 +86,7 @@ keyed/KDF 文件处理可由调用方分块读取后 `update`。
 不会向导入方暴露独立的裸指针和长度。C 调用方仍可使用公开头中的
 指针/长度接口，并负责保证两者匹配。`create(point)` 仅用于包内接管句柄，
 虽已声明私有，当前编译器仍允许包外调用，见
-`demo6/dev/extlib_blockers/blake3_private_adopt_constructor.md`；主线修复前
+`dev/extlib_blockers/blake3_private_adopt_constructor.md`；主线修复前
 不能签收发布级访问安全。两个哈希器类的 `*Native` 成员均为私有；
 接管构造转移唯一所有权，不能多次接管同一句柄。
 
@@ -172,7 +172,7 @@ XLang 的 `hashFileHex` 自行关闭文件，关闭失败不会返回摘要，�
 
 ## 范例与验收
 
-从 demo6 根目录运行：
+从仓库根目录运行：
 
 ```powershell
 release\xl.exe run release\examples\extlibs\blake3.xl
@@ -215,7 +215,7 @@ GCC/C 与 XLang JIT、Linux C ASan/UBSan/XLang 双语联合门禁通过。
 XLang 双语门禁和 Windows 严格 C/JIT 通过；完整 AOT 仍缺共享
 `xl6NativeHandleTraceLeaf`，未签收。
 
-2026-10-20：C 对照范例现在可从 `demo6` 目录直接执行
+2026-10-20：C 对照范例现在可从仓库根目录直接执行
 `release/xl.exe run release/extlibs/blake3/examples/basic.c`，也可直接
 `xl build` 生成可执行文件。仅 TCC 单文件路径包含便携后端与核心源，
 正式 GCC/manifest 构建保持分离。Windows
@@ -256,11 +256,11 @@ Linux 门禁使用 `mktemp` 独占目录。Windows `-SkipAot` 的严格 C/JIT、
 先前的 `xl6NativeHandleTraceLeaf` AOT 缺符号在本次 BLAKE3 复测中不再出现。
 但包外仍可通过 `xl check` 调用私有接管构造器；顶层原生 hasher 在 AOT
 输出摘要后又报退出状态错误，见
-`demo6/dev/extlib_blockers/blake3_global_native_aot.md`。这两项主线边界
+`dev/extlib_blockers/blake3_global_native_aot.md`。这两项主线边界
 修复并复验前，本包仍不签收完整发布级安全性。
 Linux C ASan/UBSan 四组包测试本次通过；Linux XLang 阶段因旧版
 `release/xl` 不认识 `cbytes` 而停下。尝试重建时先遇到 `build_linux.sh`
 的 CRLF 换行，使用仅去除行尾 CR 的临时副本后，又在 `libxl.so` 链接处
 发现主线 X509/TLS 源文件清单缺失，见
-`demo6/dev/extlib_blockers/linux_release_x509_sources.md`。
+`dev/extlib_blockers/linux_release_x509_sources.md`。
 因此本次不能声称 Linux 双语门禁通过，也不以 Windows 结果替代它。

@@ -89,7 +89,7 @@ Linux 的 `memAvailable` 读取 `/proc/meminfo` 的 `MemAvailable`，计入内�
 Windows `-SkipAot` 严格 C、注册表夹具、XLang 与双语门禁通过。
 未模拟真实 Windows API 返回空主机名；该次旧发布物的带输出 AOT 曾待共享符号修复。
 
-在 `demo6` 目录运行定向验证：
+在仓库根目录运行定向验证：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/sysinfo/test/check.ps1
@@ -98,7 +98,7 @@ bash release/extlibs/sysinfo/test/check.sh
 
 去掉 `-SkipAot` 还会构建并运行独立可执行文件。C/XLang 范例输出在同一台
 机器上比较，不把机器名等动态值写死为黄金文件。
-C 范例自包含原生实现，可从 `demo6` 目录直接运行：
+C 范例自包含原生实现，可从仓库根目录直接运行：
 
 ```powershell
 release/xl.exe run release/extlibs/sysinfo/examples/sysinfo_c.c

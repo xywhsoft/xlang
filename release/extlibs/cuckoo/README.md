@@ -18,7 +18,7 @@ Windows JSON 与 Linux `.report.txt` 保存命令、原始输出和真实状态�
 诊断，产品算法、API、ABI、键的二进制语义及近似查询合同均未改。
 修复责任与最小复现见 `dev/extlib_blockers/global_native_class_aot_fini.md`。
 
-可从 `demo6` 复验：
+可从仓库根目录复验：
 
 ```powershell
 release/xl.exe run release/extlibs/cuckoo/test/global_lifetime.xl
@@ -77,7 +77,7 @@ AOT 共享缺符号属于旧发布物；本次未重跑 Linux sanitizer。
 这项验收只证明本包承诺的近似过滤器边界，不保证无假阳性或
 任何外部二进制格式互通。
 
-从 `demo6` 目录运行：
+从仓库根目录运行：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File release\extlibs\cuckoo\test\check.ps1

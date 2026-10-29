@@ -9,7 +9,7 @@ Linux ASan/UBSan、中央/边界/分配 JIT 与 AOT、公开 C/XLang 范例
 这项公开类型缺口修复前不签收完整包。
 
 2026-10-25 当前发布物入口复验：中央 ElementTree 用例从
-`demo6` 根目录运行时，在包代码执行前因共享 TCC VFS 缺少
+仓库根目录运行时，在包代码执行前因共享 TCC VFS 缺少
 `include/xruntime_decl.h` 退出；从 `release` 目录运行通过。
 本轮未重跑三包联合默认门禁及 AOT，下方 2026-10-24 的通过记录
 只证明当时发布物。见
@@ -71,7 +71,7 @@ C 的 `xrtXmlElementWrite` 空 Writer、`xrtXmlElementSave` 空路径在序列�
 - Linux 可运行 `bash release/extlibs/xml.sax/test/check_trees.sh`，
   同时验证 DOM 与 ElementTree 的 C 写出边界、三包 XLang 边界及
   C/XLang 范例逐字对照；需要 `release/xl`。
-- Windows 可从 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/xml.sax/test/check_trees.ps1`，联合验证三包 C/XL 边界、分配故障、私有入口负例和双语范例。
+- Windows 可从仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/xml.sax/test/check_trees.ps1`，联合验证三包 C/XL 边界、分配故障、私有入口负例和双语范例。
 - 联合门禁另运行 `test/cases/extlib_xml_tree_interop.xl`，双向检查 DOM 与
   ElementTree 的序列化/解析结果。混合内容中的前导文本和子节点尾文本
   在 ElementTree 分别位于 `text`、`tail`，DOM 则保留独立文本子节点。

@@ -43,7 +43,7 @@ Windows/Linux 完整包门禁及收紧后的两平台恢复测试通过。
 
 2026-10-25 历史阻断记录（已由 2026-10-26 重建发布物验证解除）：
 当时执行 Windows 默认 `test/check.py`，
-严格 C 语法检查通过，首个 XLang 中央用例从 `demo6` 根目录运行时
+严格 C 语法检查通过，首个 XLang 中央用例从仓库根目录运行时
 因共享 TCC VFS 缺少 `include/xruntime_decl.h` 停止；后续边界、双语
 范例及 AOT 阶段未执行。同一中央用例从 `release` 目录运行通过，
 包内 C 边界测试通过。下方早先的完整通过记录只对应当时发布物，
@@ -95,7 +95,7 @@ Linux 联合门禁通过 C ASan/UBSan、XLang JIT 和双语固定输出。
 共享缺符号记录属于旧发布物；本次未重跑 Linux sanitizer，也不把
 这项包级结果解释为条码印刷认证。
 
-从 `demo6` 目录运行：
+从仓库根目录运行：
 
 ```powershell
 python release\extlibs\barcode\test\check_decode.py  # 需 numpy 和 zxing-cpp
@@ -116,7 +116,7 @@ C/XL 测试把 UPC-A 短码与全码的全部 95 个模块，逐位对照等价�
 
 C 教学范例 `examples/barcode.c` 也可直接用 `xl run` 单文件运行；仅此路径在 TCC 下编入原生实现，普通 C 构建继续按包清单分离链接。Windows/Linux 门禁分别核对单文件、分离构建和 XLang 范例的输出。
 
-Linux 可在 `demo6` 目录运行 `bash release/extlibs/barcode/test/check.sh`，重建严格 GCC 与 ASan/UBSan C 测试，运行四组 XLang JIT 用例并逐字节比较 C/XLang 范例输出；临时产物不写入发布目录。2026-10-14 新增编码数组、SVG、ASCII 的逐点分配失败和恢复检查，以及 XLang 的四条入口内存异常测试；编码算法未变。
+Linux 可在仓库根目录运行 `bash release/extlibs/barcode/test/check.sh`，重建严格 GCC 与 ASan/UBSan C 测试，运行四组 XLang JIT 用例并逐字节比较 C/XLang 范例输出；临时产物不写入发布目录。2026-10-14 新增编码数组、SVG、ASCII 的逐点分配失败和恢复检查，以及 XLang 的四条入口内存异常测试；编码算法未变。
 
 2026-10-15：C 范例现在与 XLang 范例执行同一组校验、编码及渲染操作，`test/check.py` 在 Windows 上逐行比较两者输出，并运行 C/XLang 边界与无输出 AOT 核心。Python 仅为该门禁所需，不是包的运行依赖。manifest 已按原生源码的实际调用列出 `VALUE_CONTAINER`、`BUFFER`、`STRING`；同一 AOT 核心由 3,585,536 降到 612,864 字节且运行通过。Linux ASan/UBSan C 门禁也已复跑通过。带输出 AOT 的共享主线阻断仍未解除。
 

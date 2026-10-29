@@ -30,7 +30,7 @@ Linux native/narrow 两档 C oracle 与分裂回归通过，默认门禁
 本包仍未达到发布签收条件；保留顶层对象用例，等待主线修复。
 
 2026-10-25：同一新发布版从 `release` 工作目录运行中央 XLang
-用例通过，但从 `demo6` 根目录执行默认 Windows 包门禁时，C 查询
+用例通过，但从仓库根目录执行默认 Windows 包门禁时，C 查询
 oracle 与分裂回归通过，中央 XLang 用例先报共享 VFS 头文件
 `include/xruntime_decl.h` 不存在。因此本轮未进入 AOT，也不覆盖
 2026-10-24 的历史通过结果；见
@@ -45,7 +45,7 @@ oracle 与分裂回归通过，中央 XLang 用例先报共享 VFS 头文件
 - `release/examples/extlibs/rtree.xl` 与 `rtree_c.c` 可直接 `xl run`，输出一致。
 - `release/extlibs/rtree/test/test_rtree.c` 使用暴力矩形扫描校验 2048 项、1000 次随机查询、删除/重插和故障注入；另在固定种子的 600 步交错修改中，反复删除和重新插入同一批 ID，每步检查局部查询，定期检查全量查询。2048 项完整查询另扫描前 64 个分配故障点，确认失败诊断和树状态不变。`test/boundaries.xl` 覆盖 600 项完整查询、公开类型和非法输入；`test/allocations.xl` 覆盖创建、分裂插入及 64 项查询前 64 点的明确 `MemoryError` 类型与恢复。两份 XLang 测试已登记到包清单的 `coverage.tests`。
 
-在 `demo6` 目录可运行 `tools/smoke_extlib_catalog.ps1 -Package rtree`；Linux C/XL sanitizer 门禁为 `bash release/extlibs/rtree/test/check.sh`。它同时编译运行公开 C 范例、运行中央与包内 XLang 用例，并逐字节比较两种语言的范例输出；`xl run release/examples/extlibs/rtree_c.c` 也可直接运行。
+在仓库根目录可运行 `tools/smoke_extlib_catalog.ps1 -Package rtree`；Linux C/XL sanitizer 门禁为 `bash release/extlibs/rtree/test/check.sh`。它同时编译运行公开 C 范例、运行中央与包内 XLang 用例，并逐字节比较两种语言的范例输出；`xl run release/examples/extlibs/rtree_c.c` 也可直接运行。
 
 Windows 聚焦快测为 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/rtree/test/check.ps1 -SkipAot`，同次验证 C 查询参照、包外原生方法访问拒绝、XLang 边界及三条范例路径的固定输出。不带 `-SkipAot` 时，默认还构建运行核心、边界、分配故障、公开 XLang/C 范例的独立 EXE，并核对范例固定输出。构建使用单次独占目录，失败后也清理。当前默认门禁在分配故障 AOT 的顶层对象退出清理处失败，不可据快测签收。
 

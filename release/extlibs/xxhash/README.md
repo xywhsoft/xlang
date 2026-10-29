@@ -200,7 +200,7 @@ XXH32 流式对象、Linux xlang AOT、32 位/ARM、共享可变 hasher 并发�
 2026-10-18：限额和 reset 用例确认现有公开方法已按文档抛错，无需另造错误包装；包外 `updateNative(point,size)` 与 `updateStrNative(string,size)` 两条只编译负例先红后绿，四个仅供包装的 `*Native` 成员私有化。Linux C ASan/UBSan、XLang JIT、双语对照与新用例联合通过；完整 AOT 共享阻断不变。
 2026-10-19：C 配置中的 `xrtresourcelimits.iReserved` 非零原被静默接受；流对象创建及 Reader 文件哈希负例先红后绿，现通过共用校验拒绝，并检查文件输入未被消费。Linux C ASan/UBSan、124 条向量、XLang JIT 与双语对照通过；Windows 严格 C 与 JIT 通过。Windows 完整脚本仍在共享 AOT 符号 `xl6NativeHandleTraceLeaf` 处停止，未签收完整 AOT。
 
-2026-10-20：C 教学范例现在可从 `demo6` 目录直接执行
+2026-10-20：C 教学范例现在可从仓库根目录直接执行
 `release/xl.exe run release/extlibs/xxhash/examples/basic.c`；仅 TCC 单文件路径
 包含所需后端源码，正式 GCC/manifest 构建保持分离编译。Windows
 `tools/check_extlib_xxhash.ps1 -SkipAot` 和 Linux 包门禁将直跑结果与

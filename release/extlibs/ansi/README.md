@@ -74,9 +74,9 @@ Linux 验收仍以独立平台门禁为准。
 - 完整展示：`release/examples/extlibs/ansi.xl`
 - 边界：`release/extlibs/ansi/test/test_ansi.c`、`test_threads.c`、`boundaries.xl`、`allocations.xl`、`input_budgets.xl`、`input_budgets_c.c`、`owned_probe.xl` 与 `test/cases/extlib_ansi.xl`
 
-在 `demo6/release` 运行 `xl run extlibs/ansi/test/boundaries.xl`；在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package ansi -Source release/extlibs/ansi/test/test_ansi.c`。2026-10-12 已通过 Windows 严格 GCC、Linux ASan/UBSan、XL JIT 和双语范例对照；2026-10-13 增加四种文本入口的 NUL 红绿用例，复跑 C/XL 主路径与范例。
+在 `release` 运行 `xl run extlibs/ansi/test/boundaries.xl`；在仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package ansi -Source release/extlibs/ansi/test/test_ansi.c`。2026-10-12 已通过 Windows 严格 GCC、Linux ASan/UBSan、XL JIT 和双语范例对照；2026-10-13 增加四种文本入口的 NUL 红绿用例，复跑 C/XL 主路径与范例。
 
-Windows 包级门禁在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/ansi/test/check.ps1`；它编译并运行严格 GCC 的 C 边界、线程测试与范例，运行 XLang 边界和双语范例，并与 `test/ansi.expected.txt` 的八行输出比较。默认独立构建并运行中央核心、包内边界、旧 OOM、新语言预算、接管夹具、新 C 预算、包内 C/XLang 范例及公开范例共九条 AOT 路径；`-SkipAot` 仅供日常快测，不用于签收。Linux 对应门禁为 `bash release/extlibs/ansi/test/check.sh`，包含 C ASan/UBSan 与相同的独立 AOT 路径。
+Windows 包级门禁在仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/ansi/test/check.ps1`；它编译并运行严格 GCC 的 C 边界、线程测试与范例，运行 XLang 边界和双语范例，并与 `test/ansi.expected.txt` 的八行输出比较。默认独立构建并运行中央核心、包内边界、旧 OOM、新语言预算、接管夹具、新 C 预算、包内 C/XLang 范例及公开范例共九条 AOT 路径；`-SkipAot` 仅供日常快测，不用于签收。Linux 对应门禁为 `bash release/extlibs/ansi/test/check.sh`，包含 C ASan/UBSan 与相同的独立 AOT 路径。
 
 两门禁使用本次独占目录和子进程超时，前后核对包/运行库/编译器/公开头/范例等输入指纹；新增或变化的输入使结果无效。Windows 保存同名目录外 JSON（命令、原始输出、状态、输入），Linux 保存 `.report.txt` 与 `.inputs.sha256`，命令失败时另保留工作目录中的 `failure.txt`。成功才删除本次中间产物，失败保留现场；缺编译器会非零退出，不视为跳过。Linux 建议复制所需文件到原生目录执行并核对原位置与快照哈希，避免把 DrvFS 行为误作产品问题。
 

@@ -55,7 +55,7 @@ Windows UI Automation 扩展库。C 桥接源代码和公开头文件分别为
 - `Element.wait_window_closed(timeout_ms)` 在窗口仍打开且超时时返回 `false`、不设置错误；关闭后返回 `true`。无效元素与查询 HWND 失败仍报错。`timeout_ms <= 0` 使用当前默认 5 秒等待。
 - 测试窗口关闭并确认线程退出后，公开的 HWND getter 返回空指针；随后请求焦点不再假报成功。焦点消息投递失败也返回错误。重复 `close()` 仍可成功，现有句柄仍可 `release()`。
 
-从 `demo6/release` 运行：
+从 `release` 运行：
 
 ```powershell
 ./xl.exe run examples/extlibs/uia_quick.xl
@@ -63,7 +63,7 @@ Windows UI Automation 扩展库。C 桥接源代码和公开头文件分别为
 powershell -NoProfile -ExecutionPolicy Bypass -File extlibs/uia/test/check.ps1 -StrictC
 ```
 
-默认门禁同时构建并运行隐式句柄清理、焦点事件回调、核心、完整公开范例和配对范例 AOT，并与 JIT/C 输出对照；当前 Windows 发布版 `-StrictC` 门禁已通过。开发时可加 `-SkipAot` 只检查 C/JIT，不能据此签收完整门禁。门禁把 AOT 与独立 GCC C 测试产物写入本次独占的 `demo6/build/test` 子目录，结束时仅清理该目录；不会再向 `release/build/test/uia` 写入新产物。
+默认门禁同时构建并运行隐式句柄清理、焦点事件回调、核心、完整公开范例和配对范例 AOT，并与 JIT/C 输出对照；当前 Windows 发布版 `-StrictC` 门禁已通过。开发时可加 `-SkipAot` 只检查 C/JIT，不能据此签收完整门禁。门禁把 AOT 与独立 GCC C 测试产物写入本次独占的 `build/test` 子目录，结束时仅清理该目录；不会再向 `release/build/test/uia` 写入新产物。
 
 ## 验收状态
 

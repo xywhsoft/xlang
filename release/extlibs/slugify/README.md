@@ -91,11 +91,11 @@ C ASan/UBSan、线程、XLang 联合门禁通过。完整带输出 AOT 的共享
 - XLang：`release/examples/extlibs/slugify.xl`
 - 同输出 C：`release/extlibs/slugify/examples/slugify_c.c`
 
-在 `demo6/release` 可直接运行 `xl run extlibs/slugify/examples/slugify_c.c`；
+在 `release` 可直接运行 `xl run extlibs/slugify/examples/slugify_c.c`；
 普通 C 编译仍按包清单单独链接 `slugify_native.c`。
-- 边界：包内 `test/test_slugify.c`、`test/test_threads.c`、`test/boundaries.xl`，以及 `demo6/test/cases/extlib_slugify.xl`
+- 边界：包内 `test/test_slugify.c`、`test/test_threads.c`、`test/boundaries.xl`，以及 `test/cases/extlib_slugify.xl`
 
-在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/slugify/test/check.ps1`；Linux 运行 `bash release/extlibs/slugify/test/check.sh`。两份脚本均覆盖 C 边界、线程、中央与包内 XLang 用例及 C/XLang 范例逐字节同输出，默认构建运行核心、边界、拥有型结果预算和双语范例 AOT；`-SkipAot` 只做 Windows C/JIT 快测。Windows 另以严格 GCC 构建运行 C 边界/预算，Linux 的 C 测试启用 ASan/UBSan。`test/owned_results.xl` 进入 coverage，`test/owned_probe.xl` 独立核对完整生成返回链。测试覆盖长 ASCII/汉字输入、畸形 UTF-8、内嵌 NUL、独立结果和并发；独占目录在成功时清理，失败时保留命令、输入指纹和产物。
+在仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/slugify/test/check.ps1`；Linux 运行 `bash release/extlibs/slugify/test/check.sh`。两份脚本均覆盖 C 边界、线程、中央与包内 XLang 用例及 C/XLang 范例逐字节同输出，默认构建运行核心、边界、拥有型结果预算和双语范例 AOT；`-SkipAot` 只做 Windows C/JIT 快测。Windows 另以严格 GCC 构建运行 C 边界/预算，Linux 的 C 测试启用 ASan/UBSan。`test/owned_results.xl` 进入 coverage，`test/owned_probe.xl` 独立核对完整生成返回链。测试覆盖长 ASCII/汉字输入、畸形 UTF-8、内嵌 NUL、独立结果和并发；独占目录在成功时清理，失败时保留命令、输入指纹和产物。
 
 2026-10-12 已通过 Windows 严格 GCC、Linux ASan/UBSan、C/XL 边界与线程测试、双语同输出范例及 `test/cases/extlib_slugify.xl` 无输出核心 AOT。该次旧发布物的边界 AOT 曾因共享链接缺少 `xl6ValueDataSnapshotV1` 而失败；历史记录见 `dev/extlib_blockers/text_snapshot_link.md`。
 
@@ -124,7 +124,7 @@ C/线程/双语快测和 Linux C ASan/UBSan、线程、XLang 联合门禁通过�
 完整 AOT 仍受共享 `xl6ValueDataSnapshotV1` 缺符号阻断。
 
 2026-10-25：用新发布版重跑默认 Windows 包门禁，严格 C、线程与 C
-范例通过；从 `demo6` 根目录运行中央 XLang 用例时，先遇到共享
+范例通过；从仓库根目录运行中央 XLang 用例时，先遇到共享
 TCC VFS 的 `include/xruntime_decl.h` 查找错误，尚未走到 AOT。
 此前的文本快照缺符号结论不能代表当前首个失败点，详见
 `dev/extlib_blockers/tcc_vfs_runtime_decl_include.md`。本次不签收发布门禁。

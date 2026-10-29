@@ -26,7 +26,7 @@
 
 新增 `examples/directory.xl` / `examples/directory_c.c` 与共同黄金输出，
 演示直接子项同大小改写及事件不重复；范例只在独占临时目录内调早
-初始mtime，避免时钟精度/sleep依赖。可从demo6根目录直接xl run。
+初始mtime，避免时钟精度/sleep依赖。可从仓库根目录直接xl run。
 Windows默认49阶段中47正向成功、一项预期私有访问拒绝符合要求，
 仅最后全局退役失败；Linux C ASan/UBSan、八个实际生成原型、十条
 普通独立程序及双语黄金对照先过，最后同样M2失败。两平台门禁保留
@@ -57,7 +57,7 @@ ASan/UBSan、目录竞态、XLang JIT/AOT、双语输出对照均通过。
 `test/check.sh` 均通过。Windows 补齐工作目录快照、分配故障及公开
 XLang 范例 AOT；两平台新增 C 单文件范例 `xl build` 独立 EXE，
 与 GCC、TCC、XLang JIT/AOT 的固定事件输出一致。Linux 保留
-ASan/UBSan 和目录竞态夹具。C 范例 AOT 从 `demo6` 根目录运行，
+ASan/UBSan 和目录竞态夹具。C 范例 AOT 从仓库根目录运行，
 以符合其显式相对路径合同。签收范围仍是下述非递归元数据轮询，
 不保证还原两次轮询之间的所有中间变化。
 
@@ -101,9 +101,9 @@ XL 的 `add` 拒绝内嵌 NUL 的路径，`exists` 对该路径返回 `false`，
 `Watcher` 的 `*Native` 成员仅供类内部使用，包外应通过公开方法完成路径校验并接管事件文本；`test/private_native.xl` 是预期编译失败的可见性负例。
 `watch.create()` 在底层分配失败时抛出 `MemoryError`，不会返回带空原生句柄的实例。C/XLang 测试注入首次分配失败并验证清除故障后可正常创建。
 
-双语范例位于 `release/extlibs/watch/examples`；更完整的 XLang 范例位于 `release/examples/extlibs/watch.xl`。在 `demo6` 目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/watch/test/check.ps1 -SkipAot` 做 Windows 包级测试，运行 `bash release/extlibs/watch/test/check.sh` 做 Linux C 侧 ASan/UBSan 与 XLang 边界测试；Windows 脚本不带 `-SkipAot` 时加测 AOT。Windows 包门禁的 C/XL 边界测试与 Linux C 测试均在本次运行的独立工作目录内创建临时文件，正常结束后清理。Linux 包门禁也从隔离目录运行四份 XLang 边界用例，并比较 C/XLang 范例输出；C 范例从 `demo6` 根目录运行，XLang 范例从 `release` 目录运行，各自使用对应的相对路径。
+双语范例位于 `release/extlibs/watch/examples`；更完整的 XLang 范例位于 `release/examples/extlibs/watch.xl`。在仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/watch/test/check.ps1 -SkipAot` 做 Windows 包级测试，运行 `bash release/extlibs/watch/test/check.sh` 做 Linux C 侧 ASan/UBSan 与 XLang 边界测试；Windows 脚本不带 `-SkipAot` 时加测 AOT。Windows 包门禁的 C/XL 边界测试与 Linux C 测试均在本次运行的独立工作目录内创建临时文件，正常结束后清理。Linux 包门禁也从隔离目录运行四份 XLang 边界用例，并比较 C/XLang 范例输出；C 范例从仓库根目录运行，XLang 范例从 `release` 目录运行，各自使用对应的相对路径。
 成对入门范例除索引生命周期外，还在独占临时目录内创建、修改、删除文件，逐条验证并展示 `CREATED`、`MODIFIED`、`DELETED` 事件；门禁核对固定八行输出。
-其中 C 范例已自包含包实现，可从 `demo6` 根目录直接运行
+其中 C 范例已自包含包实现，可从仓库根目录直接运行
 `release/xl.exe run release/extlibs/watch/examples/watch_c.c`；包门禁也将这一路径的输出与 GCC、XLang 对照。C 范例添加监视目标失败时会销毁已创建的实例。
 四份 XLang 包内用例已登记到 `coverage.tests`；`tools/smoke_extlib_catalog.ps1 -Package watch` 会自动执行它们。Windows 包级脚本从隔离目录运行边界用例，并从 `release` 目录运行 XLang 范例。
 当前 Windows 严格 GCC、C/XL 边界、双语示例、边界及带输出范例 AOT
@@ -149,7 +149,7 @@ ASan/UBSan、三份 XLang 边界、双语同输出门禁通过；本轮未改包
 
 2026-10-20：`test/boundaries.xl` 与 `test/cwd_snapshot.xl` 不再写删固定的
 `build/test/watch_guard`；各自建立独占系统临时目录，并在 `finally` 清理。
-两份用例从 `demo6` 根目录单独运行通过，Windows `-SkipAot` 包门禁和
+两份用例从仓库根目录单独运行通过，Windows `-SkipAot` 包门禁和
 Linux C ASan/UBSan、XLang、双语对照门禁均通过。带输出 AOT 的共享缺符号
 阻断仍在，不据此签收整包发布级。
 

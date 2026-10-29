@@ -209,7 +209,7 @@ C 对照为 `extlibs/csv/examples/basic.c`、`files.c`。两份教学范例显�
 三个 CSV 核心源，可直接 `xl run`；正式扩展包仍按清单分别编译四个 C 源。
 基础范例还将同一组含中文、逗号和引号的行经 XLang `stringify` 与 C Writer
 编码，分别核对完整 CSV 字节文本，再读取并展示行内容。
-开发仓库 demo6 目录可执行：
+仓库根目录可执行：
 
 ```powershell
 ./release/xl.exe run release/extlibs/csv/examples/basic.c

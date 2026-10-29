@@ -58,7 +58,7 @@ assert langdetect.script("Привет") == "Cyrillic"
 仅能识别脚本和内嵌 NUL。C 最后一条输入使用真实长度而非 `strlen`，
 静态返回值不释放。两程序的十行结果固定在 `examples/review_queue.expected.txt`。
 
-在 `demo6/release` 下可直接运行：
+在 `release` 下可直接运行：
 
 ```text
 xl run extlibs/langdetect/examples/review_queue.xl
@@ -100,7 +100,7 @@ C/XLang 范例的 JIT/AOT 同输出。旧日期的共享 AOT 缺符号仅描述�
 
 2026-10-22：C 红例复现 `the×`、`×the`、`the÷` 被漏判为独立英文词，`×÷` 被误记为 Latin 脚本；排除 U+00D7/U+00F7 后，C/XLang 边界与原有重音字母、emoji 用例均通过。Windows 严格 C/XLang 双语包门禁及 Linux C ASan/UBSan、XLang/双语门禁通过；完整带输出 AOT 未在本轮复验，不签收整包发布级。
 
-从 `demo6` 目录运行：
+从仓库根目录运行：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File release\extlibs\langdetect\test\check.ps1 -SkipAot
@@ -115,7 +115,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_extlib_c.ps1 -Pack
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_extlib_c.ps1 -Package langdetect -Source release\extlibs\langdetect\examples\langdetect.c
 ```
 
-Linux/WSL 从 `demo6` 目录运行 `bash release/extlibs/langdetect/test/check.sh`，
+Linux/WSL 从仓库根目录运行 `bash release/extlibs/langdetect/test/check.sh`，
 用严格 GCC 与 ASan/UBSan 复验 C 边界和范例，并通过 `release/xl` 运行
 XLang 包内边界、双语范例逐字对照及独立 C/XLang EXE。
 

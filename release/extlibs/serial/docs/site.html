@@ -131,7 +131,7 @@ end</code></pre></div></div>
     <div class="code-block"><div class="code-body"><pre><code>xl run examples/extlibs/serial.xl
 xl run examples/extlibs/serial_c.c</code></pre></div></div>
     <p>设备范例 <code>extlibs/serial/examples/device_c.c</code> 可直接用 <code>xl build</code> 或 <code>xl run</code>；运行时需提供串口路径。Linux 门禁使用独立 PTY 核对请求与响应，Windows 无设备门禁只验证构建。</p>
-    <p>源码仓库 demo6 目录下的专用门禁：</p>
+    <p>源码仓库根目录下的专用门禁：</p>
     <div class="code-block"><div class="code-body"><pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File tools/check_extlib_serial.ps1 -SkipAot
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/check_extlib_serial.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_platform_extlibs.ps1 -Package serial</code></pre></div></div>

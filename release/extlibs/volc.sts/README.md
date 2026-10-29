@@ -53,7 +53,7 @@ C 调用方包含依赖包的 `volc_core_native.h`，直接调用
 `examples/assume_role.c` 展示离线预览，`test/test_sts.c` 验证直参/声明
 文本结果一致、URL 查询编码、无效日期拒绝与随后成功调用的错误恢复。
 
-在 `demo6` 目录运行：
+在仓库根目录运行：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/volc.sts/test/check.ps1

@@ -37,7 +37,7 @@ Buffer png = stb_image_write.encodePng(image.pixels(),
     <h2 id="c-api">C</h2>
     <p>包含 <code>include/stb_image_write_native.h</code>。<code>xstbiw_encode</code> 返回调用方用 <code>xrtBufferDestroy</code> 释放的 <code>xbuffer*</code>；像素指针仅借用。详情见包内 README 与 C/XL 对照范例。</p>
      <p>Linux 包级门禁 <code>bash release/extlibs/stb_image_write/test/check.sh</code> 同次验证 C ASan/UBSan、XLang 参数与路径边界、64 MiB 输入下的编码输出限额及 C/XLang 范例一致性，并构建运行中央与双语范例独立 EXE。C/XLang 范例可显式指定素材路径；依赖包 stb_image 的私有构造器访问控制修复仍需单独完成。</p>
-    <p>Windows 可从 demo6 目录运行 <code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/stb_image_write/test/check.ps1</code>，联合验证严格 GCC、C/XLang 边界、输出限额专项与双语范例。</p>
+    <p>Windows 可从仓库根目录运行 <code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/stb_image_write/test/check.ps1</code>，联合验证严格 GCC、C/XLang 边界、输出限额专项与双语范例。</p>
   </section>
 </main>
 </body>

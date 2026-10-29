@@ -71,7 +71,7 @@ C API 的 `xshm_unlink` 可用于 POSIX 显式移除名称；Windows 不支持�
 有效句柄会清除旧错误；Windows C 边界和 Linux ASan/UBSan、XLang、
 双语对照门禁通过。带输出 AOT 的共享缺符号阻断不变。
 
-定向验证（在 `demo6` 目录）：
+定向验证（在仓库根目录）：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/sharedmem/test/check.ps1 -SkipAot
@@ -108,7 +108,7 @@ C 范例在 `examples/sharedmem_c.c`，两个范例均使用独立随机名称�
 随机名称，不再共享固定命名映射。AOT 阻断不变。
 
 2026-10-16：包内与中央 XLang 用例改用独立随机名称，避免并行测试或异常
-退出后的同名资源干扰；包内用例连续两次、中央用例一次从 `demo6`
+退出后的同名资源干扰；包内用例连续两次、中央用例一次从仓库根目录
 工作目录运行通过，包内用例登记到 `coverage.tests`。
 
 同日 C 子进程用例的共享段名称加入 XRT 安全随机后缀，中文名称使用同一

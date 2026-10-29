@@ -62,7 +62,7 @@ HDR 回调实现；JPEG 位缓冲使用无符号移位；最终 PNG 缓冲申请
 
 公开 C 编码与写文件入口会清除本线程旧 XRT 错误；失败保留本次诊断，成功不保留前一次失败。文件写入若由 XRT 返回具体错误，保留该错误供调用方查看。
 
-包级验证（从 `demo6` 目录执行）：
+包级验证（从仓库根目录执行）：
 
 - `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/stb_image_write/test/check.ps1`：
   Windows 严格 GCC、C 边界、中央与包内 XLang、输出限额和双语范例联合门禁；
@@ -108,7 +108,7 @@ HDR 回调实现；JPEG 位缓冲使用无符号移位；最终 PNG 缓冲申请
 Windows TCC C（连同 `stb_image` 测试依赖）及 Linux 严格 GCC、
 ASan/UBSan 门禁通过；未重跑完整 AOT。
 
-同日 XLang 边界用例改用 `demo6` 工作目录的素材路径和独立系统临时
+同日 XLang 边界用例改用 仓库根目录的素材路径和独立系统临时
 目录，`finally` 清理测试文件；旧 `release` 工作目录路径先复现
 `FileError`，修复后通过。已登记为包的 `coverage.tests`；64 MiB
 输出限额测试仍单独运行，不进入默认轻量 smoke。
@@ -119,10 +119,10 @@ ASan/UBSan 门禁通过；未重跑完整 AOT。
 
 同日 C/XLang 发布范例默认使用各自独立的系统临时目录，结束时清理；
 需要保留编码图片时，向范例传入输出目录。两种语言的默认范例均在
-`demo6` 工作目录运行通过，不会覆盖 `release/examples_out` 里的已有图片。
+仓库根目录运行通过，不会覆盖 `release/examples_out` 里的已有图片。
 
 同日补验：C 范例原仅包含原生声明，直接 `xl run` 缺实现符号；现可
-单文件运行。C/XL 双语范例在 `demo6` 根目录和 `release` 目录均通过，
+单文件运行。C/XL 双语范例在仓库根目录和 `release` 目录均通过，
 GCC 严格语法检查通过；完整 AOT 阻断未变。
 
 2026-10-19：新增 Windows 包级 `test/check.ps1`，将严格 GCC、C 边界、

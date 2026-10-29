@@ -76,7 +76,7 @@ h.reset()</code></pre>
       原生 ABI 头为 <code>include/xxhash_native.h</code>：hex 返回独立拥有的 <code>char*</code>，使用后以 <code>xrtFree</code> 释放，失败为 <code>NULL</code> 并设置 XRT 错误。
       结果不依赖 hasher 或创建线程的生命周期；版本号与错误消息仍为只读借用，不能释放。XLang 用 <code>@owned string</code> 直接接管文本，不再经临时区复制；接管仍需一次长度扫描。</p>
     <p>双语范例：<code>examples/extlibs/xxhash_basic.xl</code> 和 <code>extlibs/xxhash/examples/basic.c</code>，
-      对照同一固定输出；从 <code>demo6</code> 目录可直接运行
+      对照同一固定输出；从仓库根目录可直接运行
       <code>release/xl.exe run release/extlibs/xxhash/examples/basic.c</code>，
       无需额外源文件参数。完整教学见 <code>examples/extlibs/xxhash.xl</code>；其文件回调段使用独占系统临时目录并在异常路径清理，不写入固定的构建目录。</p>
     <p>2026-09-27 的限定专项：37 项 Windows 检查、19 个生成原型、124 条独立向量，

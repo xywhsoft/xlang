@@ -9,7 +9,7 @@
 接管的 `strlen`、外部调用错误作用域和必要结果分配仍存在，不是整条
 操作对手写 C 的零开销认证。
 
-本次标准 `demo6/build.bat` 成功重建三件套，跨包拥有型导出的 JIT/AOT
+本次标准 `build.bat` 成功重建三件套，跨包拥有型导出的 JIT/AOT
 用例通过；未合入新主线或更新 XRT。Windows/Linux 默认完整包门禁
 退出 0，包含严格 C/ABI、Linux ASan/UBSan、四线程、中央/包内边界、
 旧分配故障与新结果预算、双语固定输出以及上述语言用例与双语范例
@@ -30,7 +30,7 @@
 C 单文件范例的独立 EXE AOT。旧 VFS 头路径和带文本 AOT 缺符号
 记录均属历史发布物；不外推为全产品发布准入、其他架构或长时负载验收。
 
-2026-10-25 新 Windows 发布版：从 `demo6` 根目录运行默认
+2026-10-25 新 Windows 发布版：从仓库根目录运行默认
 `test/check.ps1`，严格 C/ABI、线程、XLang 边界与分配故障、C/XLang
 同输出及核心/范例 AOT 全通过。下方同日 VFS 缺头失败是旧发布物
 记录，不再是当前 Windows 门禁结果；Linux 独立 AOT 尚未验收。
@@ -89,13 +89,13 @@ C/XLang 同输出及核心/公开范例 AOT 均通过。同轮 WSL
 - XLang：`release/examples/extlibs/units.xl`
 - 同输出 C：`release/extlibs/units/examples/units_c.c`
 
-在 `demo6/release` 可直接运行 `xl run extlibs/units/examples/units_c.c`；
+在 `release` 可直接运行 `xl run extlibs/units/examples/units_c.c`；
 普通 C 编译仍按包清单单独链接 `units_native.c`。
-- 边界：包内 `test/test_units.c`、`test/test_threads.c`、`test/boundaries.xl`、`test/allocations.xl`、`test/owned_results.xl`，以及 `demo6/test/cases/extlib_units.xl`；`test/owned_probe.xl` 单独检查完整 cgen 返回链。
+- 边界：包内 `test/test_units.c`、`test/test_threads.c`、`test/boundaries.xl`、`test/allocations.xl`、`test/owned_results.xl`，以及 `test/cases/extlib_units.xl`；`test/owned_probe.xl` 单独检查完整 cgen 返回链。
 
-在 `demo6/release` 运行 `xl run extlibs/units/test/boundaries.xl`；在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package units -Source release/extlibs/units/test/test_units.c`。
+在 `release` 运行 `xl run extlibs/units/test/boundaries.xl`；在仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package units -Source release/extlibs/units/test/test_units.c`。
 
-Linux 可在 `demo6` 目录运行 `bash release/extlibs/units/test/check.sh`，以严格 GCC 和 ASan/UBSan 复验 C 边界、四线程并发与 C 范例，运行中央及包内 XLang 用例、逐字节比较双语范例输出，并构建运行核心与双语范例独立 EXE。2026-10-14 修复整数显示中的负零；C/XLang 正负舍入边界、双语范例和无输出 AOT 核心均已复跑通过。
+Linux 可在仓库根目录运行 `bash release/extlibs/units/test/check.sh`，以严格 GCC 和 ASan/UBSan 复验 C 边界、四线程并发与 C 范例，运行中央及包内 XLang 用例、逐字节比较双语范例输出，并构建运行核心与双语范例独立 EXE。2026-10-14 修复整数显示中的负零；C/XLang 正负舍入边界、双语范例和无输出 AOT 核心均已复跑通过。
 Windows 可在同目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/units/test/check.ps1`，联合验证严格 GCC、C ABI/边界/四线程、中央与包内 XLang 用例、双语范例同输出以及核心与双语范例独立 EXE；`-SkipAot` 仅供聚焦开发，跳过全部 AOT。每次门禁使用独占构建目录，成功时清理，失败时保留命令、输入指纹及产物，不写入发布目录临时文件。默认模式还执行包内三份语言回归的独立 EXE，而不只验收核心和公开范例。
 同日补齐舍入后升档边界；Windows C/XLang 与 Linux ASan/UBSan 已通过。
 

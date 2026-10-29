@@ -117,7 +117,7 @@ buffer；vendored parser 的通用流输入未在本包承诺 Unicode 键名能�
 Linux 包门禁的 C ASan/UBSan、XLang 用例及双语输出对照也通过。
 旧发布版的共享符号缺失不再是本包当前阻断；这不等于整个 xlang 发布版已签收。
 
-在 `demo6` 目录执行聚焦验证：
+在仓库根目录执行聚焦验证：
 
 ```powershell
 ./release/xl.exe run release/extlibs/json5/examples/json5_c.c
@@ -139,7 +139,7 @@ C/XLang 对照范例位于 `examples/`。以下共享缺符号描述属于旧发
 Linux C/XL 的 ASan/UBSan 专项门禁为 `bash release/extlibs/json5/test/check.sh`；
 它在隔离临时目录编译 C 测试和范例、运行中央与包内 XLang 用例、构建运行
 核心/边界/公开范例的独立 EXE，并逐字节比较 JIT/AOT 与 C 范例输出。
-`test/boundaries.xl`、`test/allocations.xl` 和 `test/numeric_consumer.xl` 已登记到包清单的 `coverage.tests`；在 `demo6` 目录运行
+`test/boundaries.xl`、`test/allocations.xl` 和 `test/numeric_consumer.xl` 已登记到包清单的 `coverage.tests`；在仓库根目录运行
 `tools/smoke_extlib_catalog.ps1 -Package json5` 可与中央用例一同复验。
 另可指定本地官方 JSON5 2.2.3 源码目录，用 `-ReferenceDir` 运行可选的
 714 例固定解析结果对照，其中 526 例还比较解析后的 JSON 值；覆盖键名、数字、转义、注释及嵌套对象/数组组合，含 240 个 BigInt 精确构造的半 ULP 邻域样本。Linux 可用 `JSON5_REFERENCE_DIR=/绝对路径/package bash release/extlibs/json5/test/check.sh` 开启同一对照。参考版本固定 2.2.3，只是可选开发依赖，不参与产品构建或普通门禁。显式 Infinity/NaN 无法表示为标准 JSON，只核对解析结果；JS 可表示而 XRT UTF-8 字符串不能表示的孤立代理项，不纳入同结果矩阵，包内 C/XLang 负例仍要求拒绝。这些固定样本不代表完整规范认证。

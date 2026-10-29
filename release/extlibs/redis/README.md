@@ -139,7 +139,7 @@ C 接口见 `include/redis_native.h`，输入 `xvalue*` 仅借用；
 
 - 在 `release` 目录运行 `xl run examples/extlibs/redis.xl` 或
   `xl run examples/extlibs/redis_c.c`，输出一致，均不依赖外部服务。
-  C 范例直接包含原生实现；从 `demo6` 根目录调用时也可使用
+  C 范例直接包含原生实现；从仓库根目录调用时也可使用
   `tools/run_extlib_c.ps1 -Package redis -Source release/examples/extlibs/redis_c.c`。
 - `xl run extlibs/redis/test/boundaries.xl`
 - `tools/smoke_extlib_catalog.ps1 -Package redis` 会发现包清单登记的无设备
@@ -187,7 +187,7 @@ C 接口见 `include/redis_native.h`，输入 `xvalue*` 仅借用；
   同日再以 `REDIS_STRESS=1` 运行自管理临时 Redis 8.0.5 门禁：四连接各
   10,000 轮与 C ASan/UBSan、真实服务错误/重连及双语范例同次通过；退出后
   未留下 Redis 进程。该高请求量短时验证仍不代替长时运行或完整 AOT。
-- WSL/Linux 已安装 Redis 并监听 `127.0.0.1:6379` 时，可从 `demo6`
+- WSL/Linux 已安装 Redis 并监听 `127.0.0.1:6379` 时，可从仓库根目录
   运行 `REDIS_LIVE=1 bash release/extlibs/redis/test/check.sh`。该可选分支
   以 ASan/UBSan 跑 C 真服务用例，再跑 XLang 单连接与四连接并发用例；
   默认不连接服务。2026-10-15 在 Redis 8.0.5 上三组均通过。

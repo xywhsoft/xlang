@@ -63,7 +63,7 @@ XLang 的字体加载和字形渲染把 XRT 内存错误转换为 `MemoryError`�
 `MemoryError`。vendored stb_truetype 的边缘分配空指针断言已移除，
 原生包装层拒绝返回分配失败后可能残缺的位图。
 
-从 `demo6` 目录进行包级验证；双语范例默认从 `xl.exe` 所在目录定位
+从仓库根目录进行包级验证；双语范例默认从 `xl.exe` 所在目录定位
 随仓库提供的测试字体，也接受第一个命令行参数指定自己的字体路径：
 
 - `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/stb_truetype/test/check.ps1`：Windows 单入口门禁；默认构建运行边界和公开范例 AOT，最后验证两份私有构造器负例。`-SkipAot` 只跳过独立 EXE，不跳过访问安全门禁。
@@ -71,7 +71,7 @@ XLang 的字体加载和字形渲染把 XRT 内存错误转换为 `MemoryError`�
 - `.\release\xl.exe run release/examples/extlibs/stb_truetype.xl`
 - `.\release\xl.exe run release/extlibs/stb_truetype/test/boundaries.xl`
 - `.\release\xl.exe run release/extlibs/stb_truetype/test/allocations.xl`
-- 从 `demo6/release` 目录运行 `xl run examples/extlibs/stb_truetype_c.c`；
+- 从 `release` 目录运行 `xl run examples/extlibs/stb_truetype_c.c`；
   C 范例直接包含本包实现源，单文件运行不需要额外链接参数。
 - `tools/run_extlib_c.ps1 -Package stb_truetype -Source release/examples/extlibs/stb_truetype_c.c`
 - 同命令改用 `release/extlibs/stb_truetype/test/test_stb_truetype.c`
@@ -91,7 +91,7 @@ XLang 的字体加载和字形渲染把 XRT 内存错误转换为 `MemoryError`�
 
 2026-10-16：C/XLang 边界测试的中文字体夹具改用各自独立的系统临时
 目录，成功后清理；包内 XLang 用例不再依赖 `release` 工作目录，
-并登记到 `coverage.tests`。从 `demo6` 目录复跑 C/XLang 边界、
+并登记到 `coverage.tests`。从仓库根目录复跑 C/XLang 边界、
 双语范例和 Linux ASan/UBSan 均通过；完整 AOT 阻断不变。
 
 同日将测试和双语范例所需的系统字体替换为

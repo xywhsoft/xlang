@@ -8,7 +8,7 @@
 写入或主动析构，不能用改成局部变量或忽略退出错误代替修复。
 
 默认包门禁现调用共享顶层生命周期专项；`-SkipAot` 不用于签收。
-从 `demo6` 可单独运行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/check_extlib_native_globals.ps1 -Package progress` 或 Linux
+从仓库根目录可单独运行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/check_extlib_native_globals.ps1 -Package progress` 或 Linux
 `bash tools/check_extlib_native_globals.sh progress`。专项只核对真实对象
 创建、状态和自然退役，有超时/输入指纹/原始状态，失败保留 EXE 与
 报告；不把它当作重新认证百分比/前缀/渲染算法。产品代码、ABI 与
@@ -93,14 +93,14 @@ Windows 聚焦门禁和 Linux C ASan/UBSan、XLang 联合门禁均通过；
 
 - 同输出 XLang/C 范例：`release/examples/extlibs/progress.xl`、`release/examples/extlibs/progress_c.c`，两者均可用发布目录中的 `xl.exe run` 执行。
 - C 边界：`release/extlibs/progress/test/test_progress.c`
-- XLang 边界：`release/extlibs/progress/test/boundaries.xl`、`release/extlibs/progress/test/allocation_oom.xl`、`demo6/test/cases/extlib_progress.xl`
+- XLang 边界：`release/extlibs/progress/test/boundaries.xl`、`release/extlibs/progress/test/allocation_oom.xl`、`test/cases/extlib_progress.xl`
 - `xl check extlibs/progress/test/private_native_negative.xl` 应因类内原生入口不可由导入方访问而失败；该负例只编译、不运行。
 
-在 `demo6/release` 执行 `.\xl.exe run extlibs/progress/test/boundaries.xl`；在 `demo6` 执行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package progress -Source release/extlibs/progress/test/test_progress.c`。测试覆盖极大总量、饱和步进、非法前缀、UTF-8、宽度边界和独立结果。
+在 `release` 执行 `.\xl.exe run extlibs/progress/test/boundaries.xl`；在仓库根目录执行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package progress -Source release/extlibs/progress/test/test_progress.c`。测试覆盖极大总量、饱和步进、非法前缀、UTF-8、宽度边界和独立结果。
 
-Linux/WSL 可在 `demo6` 目录运行 `bash release/extlibs/progress/test/check.sh`。脚本以严格 GCC 和 ASan/UBSan 运行 C 边界及 C 范例，同时执行中央/包内 XLang 用例，并逐字节比较 C/XLang 范例输出。
+Linux/WSL 可在仓库根目录运行 `bash release/extlibs/progress/test/check.sh`。脚本以严格 GCC 和 ASan/UBSan 运行 C 边界及 C 范例，同时执行中央/包内 XLang 用例，并逐字节比较 C/XLang 范例输出。
 
-Windows 可在 `demo6` 目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/progress/test/check.ps1`。脚本执行严格 GCC、C/XLang 边界、分配故障、私有原生入口负例、双语范例同输出、边界 AOT 和完整范例 AOT/C 输出对照；`-SkipAot` 可只运行动态路径。每次门禁使用独占构建目录并在退出时清理，不写入 `release/tmp`。
+Windows 可在仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/progress/test/check.ps1`。脚本执行严格 GCC、C/XLang 边界、分配故障、私有原生入口负例、双语范例同输出、边界 AOT 和完整范例 AOT/C 输出对照；`-SkipAot` 可只运行动态路径。每次门禁使用独占构建目录并在退出时清理，不写入 `release/tmp`。
 
 2026-10-12：Windows 严格 GCC、Linux ASan/UBSan、C/XL 边界与双语范例通过；`test/cases/extlib_progress.xl` 和包内 `test/boundaries.xl` 的无输出 AOT 均构建运行成功。2026-10-14：补齐只读 C API 空句柄错误信号及定向回归。带输出范例 AOT 仍因共享 `xl6ValueDataSnapshotV1` 缺失失败，发布验收未完成。
 

@@ -90,7 +90,7 @@ XLang JIT 与双语对照通过；两种模式都不留下本次独占范例产�
 双语对照及 C 直接 AOT，Linux C ASan/UBSan、线程和 XLang 联合门禁通过。
 完整 XLang AOT 尚待共享文本快照符号修复。
 
-从 `demo6` 目录运行：
+从仓库根目录运行：
 
 ```powershell
 .\release\extlibs\imagehash\test\check.ps1

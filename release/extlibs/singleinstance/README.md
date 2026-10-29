@@ -50,14 +50,14 @@ C API 在 `include/singleinstance_native.h`：`xsi_acquire` 返回 1=成功、
 0=另一包实例持有、-1=错误；`xsi_release` 返回操作是否成功；
 `xsi_is_acquired` 查询当前包实例状态。C 范例在
 `examples/singleinstance_c.c`，XLang 范例在
-`demo6/release/examples/extlibs/singleinstance.xl`。
-在 `demo6` 目录可直接执行 `release/xl run release/extlibs/singleinstance/examples/singleinstance_c.c`，
+`release/examples/extlibs/singleinstance.xl`。
+在仓库根目录可直接执行 `release/xl run release/extlibs/singleinstance/examples/singleinstance_c.c`，
 也可用 `release/xl build` 构建该 C 范例，无须手动追加包源码。示例会在当前用户主目录留下锁文件；
 包门禁使用隔离的主目录，不触碰日常用户配置。
 
 `release` 和 `isAcquired` 进入时清理同一线程的旧 XRT 错误；成功或合法未持锁状态不会携带先前 `acquire` 的错误。
 
-聚焦验证（在 `demo6` 目录）：
+聚焦验证（在仓库根目录）：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/singleinstance/test/check.ps1 -SkipAot
@@ -78,7 +78,7 @@ AOT 构建及运行也通过；旧的 `xl6ValueDataSnapshotV1` 缺符号只属�
 这仍不构成完整发布签收：下述深主目录和双上下文边界尚未解决。
 Windows 深 `USERPROFILE` 配合 128 字节名称还可能在 XRT 文件打开路径
 失败，短隔离目录通过；复现及主线修复建议见
-`demo6/dev/extlib_blockers/singleinstance_windows_long_home.md`。
+`dev/extlib_blockers/singleinstance_windows_long_home.md`。
 
 Linux 聚焦门禁：`sh release/extlibs/singleinstance/test/check.sh`。
 它增加了两个独立静态包实例的同进程互斥及释放隔离检查，
@@ -87,7 +87,7 @@ Linux 聚焦门禁：`sh release/extlibs/singleinstance/test/check.sh`。
 包内 XLang 用例，并逐字比较 C/XLang 范例输出。真实两个
 `XL_Context` 同时执行的 DLL 验收
 受主线运行边界阻断，最小有界复现与建议见
-`demo6/dev/extlib_blockers/singleinstance_context_execution.md`。
+`dev/extlib_blockers/singleinstance_context_execution.md`。
 
 2026-10-17：Linux 门禁加入中央 XLang 用例与 C/XLang 范例输出对照，
 并将普通锁文件限制在临时 HOME；严格 GCC、ASan/UBSan、双包实例和

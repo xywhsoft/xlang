@@ -56,18 +56,18 @@ XLang 范例的固定输出对照。本次使用现有 Linux `release/xl` 运行
 
 - XLang 范例：`release/examples/extlibs/hyperloglog.xl`
 - 同输出 C 范例：`release/extlibs/hyperloglog/examples/hyperloglog_c.c`
-- 边界：包内 `test/test_hyperloglog.c`、`test/test_threads.c`、`test/boundaries.xl`、`test/allocations.xl`，以及 `demo6/test/cases/extlib_hyperloglog.xl`
+- 边界：包内 `test/test_hyperloglog.c`、`test/test_threads.c`、`test/boundaries.xl`、`test/allocations.xl`，以及 `test/cases/extlib_hyperloglog.xl`
 - `xl check extlibs/hyperloglog/test/private_add_negative.xl` 和 `private_merge_negative.xl` 应被访问控制拒绝；两条负例只编译，不执行。
 
 Windows 包级 `test/check.ps1` 同样检查这两条私有入口负例。默认还须构建运行
 中央无输出核心与公开 XLang 范例 AOT，并以固定输出对照 C；`-SkipAot`
 仅执行 C/JIT 聚焦门禁，不能视为发布签收。
 
-在 `demo6/release` 运行 `xl run extlibs/hyperloglog/test/boundaries.xl`；在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package hyperloglog -Source release/extlibs/hyperloglog/test/test_hyperloglog.c`。C 测试对固定的 100000 项、20000 项数据集做统计余量断言，而非要求近似值等于真实值。
+在 `release` 运行 `xl run extlibs/hyperloglog/test/boundaries.xl`；在仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package hyperloglog -Source release/extlibs/hyperloglog/test/test_hyperloglog.c`。C 测试对固定的 100000 项、20000 项数据集做统计余量断言，而非要求近似值等于真实值。
 
 2026-10-12 已通过 Windows 严格 GCC、Linux ASan/UBSan、C/XL 边界和线程测试、同输出范例及 `test/cases/extlib_hyperloglog.xl` 无输出核心 AOT。`xl build extlibs/hyperloglog/test/boundaries.xl -o ../build/test/hyperloglog_xl_test.exe` 当前因共享链接缺少 `xl6ValueDataSnapshotV1` 而失败，完整 AOT 尚未验收；见 `dev/extlib_blockers/text_snapshot_link.md`。
 
-Linux 可在 `demo6` 目录运行 `bash release/extlibs/hyperloglog/test/check.sh`，以严格 GCC、ASan/UBSan 复验 C 边界、独立实例线程测试及 C 范例；门禁也运行中央和包内 XLang 用例，逐字节比较 C/XLang 范例输出。2026-10-14 增加“分片合并与直接写入的估计相等”对照、重复合并的 `added` 口径，以及创建句柄两次分配失败后的恢复测试；估计算法未改。
+Linux 可在仓库根目录运行 `bash release/extlibs/hyperloglog/test/check.sh`，以严格 GCC、ASan/UBSan 复验 C 边界、独立实例线程测试及 C 范例；门禁也运行中央和包内 XLang 用例，逐字节比较 C/XLang 范例输出。2026-10-14 增加“分片合并与直接写入的估计相等”对照、重复合并的 `added` 口径，以及创建句柄两次分配失败后的恢复测试；估计算法未改。
 Linux 门禁同时检查按 manifest 传入 XRT 哈希模块宏时的严格编译，避免原生源码重复定义该宏。
 `count` 与 `added` 的 C 返回类型为 `int64_t`，与 XLang `int` 的 LP64 ABI 一致；`add` 的长度参数仍是明确的 C `long long` / XLang `c_longlong`。
 同日增加七个公开 C 入口的失败→成功错误槽回归；10 万项既有测试、
@@ -75,7 +75,7 @@ C/XLang 范例、Windows 严格 GCC 和 Linux ASan/UBSan 复跑通过。
 
 2026-10-16：XLang 边界用例补精度下限 4、上限 18 的创建与计数，
 并登记到包的 `coverage.tests`，可由统一扩展库 smoke 发现。包级及中央
-XLang 用例从 `demo6` 工作目录运行通过；完整 AOT 阻断仍未解除。
+XLang 用例从仓库根目录运行通过；完整 AOT 阻断仍未解除。
 
 2026-10-16：Linux XLang 导入原在 `count` 的 `long long` 声明处与生成的 `int64_t` 原型冲突；两个结果统一为 `int64_t`，补 ABI 契约测试与 C 范例可移植输出。完整 AOT 阻断不变。
 

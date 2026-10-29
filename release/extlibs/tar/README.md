@@ -63,7 +63,7 @@ JIT 与独立 EXE 的最小复现见
 提供内存/文件 TAR 读写、条目元数据、归档追加、安全提取、选择性提取及进度回调。C 使用 `include/xrt_tar.h`，XLang 使用 `import tar`；最小双语范例在 `examples/basic_c.c` 与 `examples/basic.xl`，两者都输出 `hello`。
 原生 `xrtTarWriterAdd` 只允许普通文件携带正文；目录、链接和特殊条目的 `iSize` 与 `iSizeBytes` 必须同时为零。否则在写入任何归档字节前返回 `XRT_TAR_ERROR_ARGUMENT`，不会把调用方提供的数据静默丢弃。
 `examples/append_c.c` 与 `examples/append.xl` 成对展示文件归档的创建、追加和读回：旧条目、新条目都逐一核对，使用独占临时目录且结束时删除，不覆盖调用方文件。两者都输出 `first`、`second`。
-在 `demo6/release` 目录可直接运行 `./xl run extlibs/tar/examples/basic_c.c`；
+在 `release` 目录可直接运行 `./xl run extlibs/tar/examples/basic_c.c`；
 该单文件 C 范例包含读写所需的三个 TAR 核心源码，正式扩展库仍按清单将核心源码
 分别编译。不要在同一范例构建命令中重复加入这些源文件。
 
@@ -132,7 +132,7 @@ uid/gid 的 PAX 记录支持完整 uint64，GNU 短字段继续遵循其编码�
 读取这些越界归档时，C 为 `XRT_TAR_ERROR_FORMAT`，当前 XLang 映射
 为 `IOError`，domain 为 `xlang.extlib.tar`、code 为3。
 
-在 `demo6/release` 运行两份内存范例，均应输出
+在 `release` 运行两份内存范例，均应输出
 `mtime=-1;uid=18446744073709551615;gid=9223372036854775808`：
 
 ```powershell
@@ -140,7 +140,7 @@ uid/gid 的 PAX 记录支持完整 uint64，GNU 短字段继续遵循其编码�
 ./xl run extlibs/tar/examples/metadata_c.c
 ```
 
-独立数值门禁从 `demo6` 运行，需要 Python 3；Windows 另需 PATH 中
+独立数值门禁从仓库根目录运行，需要 Python 3；Windows 另需 PATH 中
 的 GCC。两套默认都检查 C/JIT/AOT，Windows 的 `-SkipAot` 仅供聚焦
 开发，不代表完整专题通过：
 
@@ -161,7 +161,7 @@ sh release/extlibs/tar/test/check_numeric.sh
 
 ### 包级门禁
 
-在 `demo6` 目录运行 Windows 门禁：
+在仓库根目录运行 Windows 门禁：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/tar/test/check.ps1
@@ -184,7 +184,7 @@ C/XLang 最小范例输出，并校验生成原型与 TAR 原生桥接在 LP64 �
 必须对应 C 的 `unsigned long long` / `long long`，不能按平台改用 XRT
 `uint64` / `int64` 作为桥接导出参数。
 
-独立格式互通测试需要 Python 3，在 `demo6` 目录运行：
+独立格式互通测试需要 Python 3，在仓库根目录运行：
 
 ```powershell
 python release/extlibs/tar/test/interop.py release
@@ -262,7 +262,7 @@ Windows 严格 GCC、TCC 直接运行、独立 `xl build`、包运行器与 XLan
 2026-10-20：中央 `release/examples/extlibs/tar.xl` 原在尚不存在的固定
 `build/tmp/tar_example_selected` 路径上先调用 `dir.delete`，从正常工作
 目录运行即抛文件元数据错误。现使用 `dir.temp` 创建独占系统临时目录，
-在 `finally` 清理；从 `demo6` 根目录和 `release` 均输出
+在 `finally` 清理；从仓库根目录和 `release` 均输出
 `tar example: PASS`。Windows `test/check.ps1 -SkipAot` 与 Linux
 `test/check.sh` 已纳入该范例的固定输出检查，后者含 C ASan/UBSan。
 未修改 TAR 原生实现，回调与完整 AOT 的主线阻断仍未签收。
@@ -270,13 +270,13 @@ Windows 严格 GCC、TCC 直接运行、独立 `xl build`、包运行器与 XLan
 同日：中央 C 范例 `release/examples/extlibs/tar_c.c` 原对固定
 `build/tmp/tar_c_selected` 目录执行递归删除，存在误删用户文件、并发冲突
 和工作目录依赖。现使用 XRT 创建独占系统临时目录，并在所有退出路径清理；
-归档缓冲区和 Reader 创建失败也不再解引用空指针。从 `demo6` 根目录与
+归档缓冲区和 Reader 创建失败也不再解引用空指针。从仓库根目录与
 `release` 直接 `xl run` 均输出 `tar C example: PASS`，Windows 聚焦门禁
 及 Linux ASan/UBSan 门禁通过，本次运行无临时目录残留。
 
 2026-10-21：包内综合测试 `test/test_tar.xl` 原先启动时递归删除固定的
 `build/tmp/tar_xlang_test`；现改用独占临时目录并在 `finally` 清理。
-修改前确认 `demo6` 根目录与 `release` 下的固定目标均不存在。
+修改前确认 仓库根目录与 `release` 下的固定目标均不存在。
 该测试直接运行仍在第 62 行 `extractWhere` 的函数值入 `var` 主线语义处
 停止，尚未执行到文件路径；Windows `-SkipAot` 聚焦门禁与 Linux C
 ASan/UBSan、XLang 双语门禁通过，但不覆盖被阻断的综合回调测试。

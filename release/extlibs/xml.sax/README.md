@@ -8,7 +8,7 @@ Linux ASan/UBSan、中央/边界/分配 JIT 与 AOT、公开 C/XLang 范例
 `../../../dev/extlib_blockers/xml_public_class_visibility.md`；
 这项公开类型缺口修复前不签收完整包。
 
-2026-10-25 当前发布物入口复验：中央 SAX 用例从 `demo6` 根目录
+2026-10-25 当前发布物入口复验：中央 SAX 用例从仓库根目录
 运行时，在包代码执行前因共享 TCC VFS 缺少
 `include/xruntime_decl.h` 退出；从 `release` 目录运行同一用例通过。
 本轮未重新执行三包联合默认门禁及 AOT，下方 2026-10-24 的完整
@@ -74,7 +74,7 @@ C push 入口要求非空事件回调；无效回调在读取输入前报告
 - `bash release/extlibs/xml.sax/test/check_trees.sh` 对 SAX、DOM 和
   ElementTree 执行 Linux ASan/UBSan 回归，并需要 `release/xl` 运行三包
   XLang 边界及 C/XLang 范例逐字对照。
-- Windows 可从 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/xml.sax/test/check_trees.ps1`，联合检查三包严格 GCC/C 边界、中央与包内 XLang 用例、分配故障、私有入口负例及双语范例。
+- Windows 可从仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/xml.sax/test/check_trees.ps1`，联合检查三包严格 GCC/C 边界、中央与包内 XLang 用例、分配故障、私有入口负例及双语范例。
 
 三个 XML 包及私有 `_expat` 依赖均在清单中声明直接 XRT 模块，内部头不再
 强制启用整个 XRT。共用 C 测试宿主另外启用内存调试；同一 Windows GCC

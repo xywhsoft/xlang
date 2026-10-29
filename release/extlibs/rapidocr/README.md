@@ -75,7 +75,7 @@ C 端可用 `rapidocr_charset_open_native(path)` 读取拥有型字典句柄，�
 
 ## 验证
 
-从 `demo6` 目录运行：
+从仓库根目录运行：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/rapidocr/test/check.ps1

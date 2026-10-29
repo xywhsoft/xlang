@@ -91,7 +91,7 @@ C 构建与 XLang 范例逐字输出一致。
 
 ## 验证
 
-从 `demo6` 目录运行：
+从仓库根目录运行：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/crontab/test/check.ps1
@@ -112,7 +112,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_extlib_c.ps1 -Pack
 
 测试覆盖严格字段解析、内嵌 NUL、DOM/DOW 的 OR/AND 与步长位图、不可达日期、本地闰日和跨 2100 年的 8 年搜索窗口。远期可达规则仍按原路径搜索；不可达的月/日组合提前返回。默认 Windows 门禁构建并执行中央核心、中央边界、分配、接管夹具、无输出核心、新 C 长度边界、C 范例及 XLang 范例八条路径；Linux 另外执行两条历史时区 AOT。旧版共享链接阻断不适用于本文固定基线的通过记录。
 
-Linux 可在 `demo6` 目录运行 `bash release/extlibs/crontab/test/check.sh`，需 GCC、Python 3.9+ 和 `/usr/share/zoneinfo` 下的 UTC、America/New_York、Australia/Lord_Howe、Asia/Kathmandu；缺少依赖会失败，不跳过。可用 `CC` / `PYTHON` 选择工具。脚本以严格 GCC、ASan/UBSan 复验 C 边界和跨 2100 年的远期闰日搜索；纽约 2024 年春季不存在的 `02:30` 被跳过、秋季重复的 `01:30` 各触发一次。它还运行独立 Python 时区对照、中央及包内 XLang 用例，并逐字节比较 C/XLang 范例输出。通用用例在 UTC 下执行，专用用例显式设置 TZ；时区数据、编译器与 Python 程序也加入前后指纹。建议在核对过源件哈希的 Linux 原生快照中执行，避免 DrvFS 干扰。
+Linux 可在仓库根目录运行 `bash release/extlibs/crontab/test/check.sh`，需 GCC、Python 3.9+ 和 `/usr/share/zoneinfo` 下的 UTC、America/New_York、Australia/Lord_Howe、Asia/Kathmandu；缺少依赖会失败，不跳过。可用 `CC` / `PYTHON` 选择工具。脚本以严格 GCC、ASan/UBSan 复验 C 边界和跨 2100 年的远期闰日搜索；纽约 2024 年春季不存在的 `02:30` 被跳过、秋季重复的 `01:30` 各触发一次。它还运行独立 Python 时区对照、中央及包内 XLang 用例，并逐字节比较 C/XLang 范例输出。通用用例在 UTC 下执行，专用用例显式设置 TZ；时区数据、编译器与 Python 程序也加入前后指纹。建议在核对过源件哈希的 Linux 原生快照中执行，避免 DrvFS 干扰。
 
 同一 Linux 门禁还使用 IANA `Australia/Lord_Howe` 验证 2024 年半小时 DST：回拨日的 `01:45` 分别命中两次，前跳日的 `02:15` 不存在、`02:30` 正常命中。C sanitizer 与 XLang 用例使用同一组独立确定的 Unix 时间点；这仍不是对所有时区的完整认证。
 

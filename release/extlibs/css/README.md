@@ -120,7 +120,7 @@ C ABI 一致；C 输出计数可使用 `<inttypes.h>` 的 `PRId64`。
   `xl run extlibs/css/test/scanner_edges_c.c` 分别运行本轮扫描回归；独立 C 文件
   名称故意不与语言文件相同，避免触发语言规定的 C companion 自动混编。
 - `xl run extlibs/css/test/allocations.xl` 对六个公开 XLang 入口分别扫描至首个无故障成功（最多 128 点），每入口至少命中一次 `MemoryError`，每次清除故障后立即重试并核对正常结果。2026-10-21 的 Windows `-SkipAot` 与 Linux 包级门禁均通过；不据此签收完整 AOT。
-- 从 `demo6` 目录运行
+- 从仓库根目录运行
   `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/css/test/check.ps1`，
   一次验证清单宏严格编译、C ABI、C 边界与线程、XLang 边界和双语同输出；
   去掉 `-SkipAot` 时继续验证无输出核心及完整 AOT。
@@ -141,7 +141,7 @@ Windows JSON 报告保存在 `build/test/css_guard/run_*.json`，不随成功的
 旧发布版缺少 `xl6ValueDataSnapshotV1` 的阻断已解除；包级门禁通过
 不等于完整 CSS 浏览器语义或整个 xlang 发布版签收。
 包 manifest 仅声明原生源码使用的 XRT 缓冲与 Unicode 模块；新增无输出
-`test/aot_core.xl`，覆盖规则校验、规则数和属性数。从 `demo6/release`
+`test/aot_core.xl`，覆盖规则校验、规则数和属性数。从 `release`
 执行 `.\xl.exe build extlibs/css/test/aot_core.xl -o ../build/test/css_core.exe`
 后运行产物；首次缓冲模块裁剪从 3,554,816 缩至 576,512 字节。
 加入 UTF-8 校验所需的 Unicode 模块后，当前同一核心产物为 577,536 字节，

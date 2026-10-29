@@ -53,7 +53,7 @@ stb 工作区使用 XRT 分配器，内存不足时返回 `XERR_MEMORY`，不误
 
 包级验证：
 
-- 从 `demo6` 目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File
+- 从仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File
   release/extlibs/stb_image_resize2/test/check.ps1`，执行 Windows 严格 GCC、
   C 边界、中央与包内 XLang 用例、三种范例入口的固定输出对照，默认还
   构建并运行中央与 C/XLang 公开范例 AOT；`-SkipAot` 只做 C/JIT 聚焦快测。
@@ -62,7 +62,7 @@ stb 工作区使用 XRT 分配器，内存不足时返回 `XERR_MEMORY`，不误
   缩放实现，两个范例不传路径时从 `xl.exe` 所在目录定位素材，并对照
   RGBA 与灰度+alpha 缩放结果。独立 AOT 可执行文件应显式传入图片路径；
   C 范例接收首个命令行参数，XLang 范例在 `--` 后传入。
-- 从 `demo6` 目录运行 `xl run release/extlibs/stb_image_resize2/test/boundaries.xl`
+- 从仓库根目录运行 `xl run release/extlibs/stb_image_resize2/test/boundaries.xl`
   和 `xl run release/extlibs/stb_image_resize2/test/allocations.xl`；两项已登记
   到包级测试套件，后者对 sRGB/linear 各扫描前 128 个分配点，确认故障在
   XLang 中仍是 `MemoryError`，正常调用和解除故障后的结果均可用。

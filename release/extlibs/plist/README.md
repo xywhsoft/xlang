@@ -97,7 +97,7 @@ XLang 的 `dumps`/`dump` 在构造原生文档时即检查节点总数、每个�
 
 桥接层的 C `uint64_t`（XRT `uint64`）在 XLang extern 中统一声明为 `uint64`，包括输入/输出限额、数据长度及 UID；不使用在 Linux LP64 下不同类型的 `c_ulonglong`。Linux 包级脚本同时运行 XLang 主用例，防止声明再次漂移。
 
-Python 标准库 `plistlib` 可独立读取双语范例产生的 XML/binary plist，不需要额外安装依赖。两份 XML 解码值及字节一致；两份 binary 解码值一致，且比 XML 多一个 `UID(42)`。binary plist 的字节布局不承诺一致。从 `demo6` 目录运行：
+Python 标准库 `plistlib` 可独立读取双语范例产生的 XML/binary plist，不需要额外安装依赖。两份 XML 解码值及字节一致；两份 binary 解码值一致，且比 XML 多一个 `UID(42)`。binary plist 的字节布局不承诺一致。从仓库根目录运行：
 
 ```powershell
 .\release\xl.exe run release\examples\extlibs\plist.xl -- build\test\plist_example_xl.xml build\test\plist_example_xl.bplist

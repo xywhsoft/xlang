@@ -57,7 +57,7 @@ drain、finish 后尾部收集、分块解压以及输入/输出计数。C 的 W
 调用方创建和关闭；XLang 范例用两个临时 Buffer 构造传输碎片，真实网络
 接收块可以直接 update。两份均验证结果，无文件、服务或数据依赖。
 
-在 `demo6` 目录运行（Linux 把 xl.exe 改为 xl）：
+在仓库根目录运行（Linux 把 xl.exe 改为 xl）：
 
 ```text
 ./release/xl.exe run release/extlibs/miniz/examples/streaming.xl
@@ -103,7 +103,7 @@ Buffer packed = miniz.compress("hello miniz")
 assert miniz.decompressText(packed) == "hello miniz"
 ```
 
-公开 C 入口 `xrtMinizCompress` / `xrtMinizDecompress` 见 `examples/basic.c`；相同输出的 XLang 范例见 `demo6/release/examples/extlibs/miniz_basic.xl`。流式接口按 `update`、可选 `drain`、`finish`、最后一次 `drain` 使用。`finished` 在完整尾部解出后立即为真；仍应调用 `finish()` 明确结束输入。单条 zlib 流结束后不接受额外字节或第二条流。文件接口可将输出保存为 `.zz`。
+公开 C 入口 `xrtMinizCompress` / `xrtMinizDecompress` 见 `examples/basic.c`；相同输出的 XLang 范例见 `release/examples/extlibs/miniz_basic.xl`。流式接口按 `update`、可选 `drain`、`finish`、最后一次 `drain` 使用。`finished` 在完整尾部解出后立即为真；仍应调用 `finish()` 明确结束输入。单条 zlib 流结束后不接受额外字节或第二条流。文件接口可将输出保存为 `.zz`。
 流对象的 `*Native` 成员只供包内包装代码使用，导入方使用公开的 `update`、`drain`、`finish` 和属性。门禁以只编译负例验证访问权限，不执行伪造指针与长度的调用。
 所有 C 编解码入口在读取限额前校验 `xrtminizoptions` 和内嵌 `xrtresourcelimits` 的完整长度、版本、保留字段及 0..10 级别。无效选项报告 `XRT_MINIZ_ERROR_ARGUMENT`；文件流不消费输入或写出结果，流对象的错误可通过 `...Error()` 查询。
 此包仅处理单条 zlib 流：输入/输出字节、解压后总量及解压倍率限额有效；`iMaxEntries`、`iMaxNodes`、`iMaxDepth` 和未知 `iFlags` 不适用，默认清零，显式非零报参数错误。
@@ -114,8 +114,8 @@ assert miniz.decompressText(packed) == "hello miniz"
 仅用于 UTF-8 文本，解压成功但内容含非法 UTF-8 时抛 `ValueError`。
 内嵌 NUL 按真实字节长度保留；任意非 UTF-8 二进制载荷仍应使用 `Buffer`。
 
-测试 `test/test_miniz.c` 覆盖 Python zlib 固定样本、分段输入、空流、损坏、截断、串联拒绝、输出限额，以及 XRT Reader/Writer 的二进制流往返和进度回调。`test/file_ops.xl` 覆盖文件往返、覆盖拒绝、取消清理和解压限额下的目标保护。Linux 使用 `bash release/extlibs/miniz/test/check.sh`，运行 ASan/UBSan、Python zlib 反向解码、XLang JIT 和七条独立 EXE AOT；中央 XLang 用例见 `demo6/test/cases/extlib_miniz.xl`。
-Windows 在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/miniz/test/check.ps1`：同次验证严格 GCC 独立构建、Python zlib 互通、TCC C、私有成员负例、中央/文件 XLang 用例、GCC C/TCC C/XLang 范例逐字输出和完整 AOT。脚本使用每次独立的临时构建目录；`-SkipAot` 仅供聚焦快测，不作为发布签收。
+测试 `test/test_miniz.c` 覆盖 Python zlib 固定样本、分段输入、空流、损坏、截断、串联拒绝、输出限额，以及 XRT Reader/Writer 的二进制流往返和进度回调。`test/file_ops.xl` 覆盖文件往返、覆盖拒绝、取消清理和解压限额下的目标保护。Linux 使用 `bash release/extlibs/miniz/test/check.sh`，运行 ASan/UBSan、Python zlib 反向解码、XLang JIT 和七条独立 EXE AOT；中央 XLang 用例见 `test/cases/extlib_miniz.xl`。
+Windows 在仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/miniz/test/check.ps1`：同次验证严格 GCC 独立构建、Python zlib 互通、TCC C、私有成员负例、中央/文件 XLang 用例、GCC C/TCC C/XLang 范例逐字输出和完整 AOT。脚本使用每次独立的临时构建目录；`-SkipAot` 仅供聚焦快测，不作为发布签收。
 
 包清单公开 `include/` 并声明所需的 XRT/XRuntime 模块。Windows 上可直接用
 `tools/run_extlib_c.ps1 -Package miniz -Source release/extlibs/miniz/examples/basic.c`

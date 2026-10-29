@@ -13,7 +13,7 @@
 文件、进度、错误分类及教学范例覆盖 JIT 和独立 EXE。Python
 Zstandard 0.25.0 与 C 核心双向标准帧互通通过。Linux `test/check.sh`
 退出码为 0：C ASan/UBSan、中央和包内 JIT 用例、八条独立 EXE AOT
-及 C/JIT/AOT 范例输出对照通过。Windows 从 `demo6` 根目录直接
+及 C/JIT/AOT 范例输出对照通过。Windows 从仓库根目录直接
 运行基础范例亦通过。此前的 Linux `cstring`、Windows 根目录 VFS
 和原生错误先派发阻断在当前发布物均不再复现。未以这些短时门禁
 代替 32 位、TSan 或长时间压力测试。
@@ -30,7 +30,7 @@ Zstandard 0.25.0 与 C 核心双向标准帧互通通过。Linux `test/check.sh`
 从 `release` 工作目录均运行到 `zstd example: PASS`。文件入口保留
 原生自动派发，以免吞掉进度回调自身抛出的异常；`CancelledError`
 和回调原异常复验通过。当时 Windows 包门禁的严格 C、分配故障、
-C/TCC 范例通过，但从 `demo6` 根目录运行 XLang 阶段仍受共享
+C/TCC 范例通过，但从仓库根目录运行 XLang 阶段仍受共享
 VFS `include/xruntime_decl.h` 查找问题阻断，当时整包尚未签收。
 详见 `dev/extlib_blockers/tcc_vfs_runtime_decl_include.md`。
 
@@ -75,7 +75,7 @@ XLang 内部返回 `cstring` 共享所有权，通过公开 C 导出时按普通
 
 ## 验证与当前限制
 
-从 `demo6` 目录运行：
+从仓库根目录运行：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package zstd -Source release/extlibs/zstd/test/test_zstd.c
@@ -90,9 +90,9 @@ cd ..
 wsl bash release/extlibs/zstd/test/check.sh
 ```
 
-C 测试覆盖二进制往返、标准帧标识、截断、无效帧、输出限额、分段流，以及原生进度回调与取消。包内 `test/wire_fixture.xl` 已登记到 `coverage.tests`，并与 C 边界测试共用 Node.js 24 内置 Zstd（级别 3）独立编码的固定帧，验证含 UTF-8、NUL、0xff 的二进制解码和输出限额；运行门禁不依赖 Node.js。文件 ABI 的二进制往返和禁止覆盖由 `test/test_file.c` 验证；XLang 的文件压缩/解压、进度回调、取消后保留旧目标由 `extlib_zstd_progress.xl` 在独立临时目录验证。另有登记在 `coverage.tests` 的 `test/file_ops.xl`，直接检查文件往返和取消后的目标清理。最小 C/XLang 范例同输入、同输出；C 范例命名为 `basic_c.c`，避免被同名 XL 范例自动混编产生双 `main`。当前 Linux 包级脚本覆盖这些语言边界及八条 AOT 路径。旧发布物的 Buffer 索引异或和 AOT 缺符号诊断见 `demo6/dev/extlib_blockers/argon2_byteat_sub.md`；当前完整教学范例的 JIT/EXE 均通过。
+C 测试覆盖二进制往返、标准帧标识、截断、无效帧、输出限额、分段流，以及原生进度回调与取消。包内 `test/wire_fixture.xl` 已登记到 `coverage.tests`，并与 C 边界测试共用 Node.js 24 内置 Zstd（级别 3）独立编码的固定帧，验证含 UTF-8、NUL、0xff 的二进制解码和输出限额；运行门禁不依赖 Node.js。文件 ABI 的二进制往返和禁止覆盖由 `test/test_file.c` 验证；XLang 的文件压缩/解压、进度回调、取消后保留旧目标由 `extlib_zstd_progress.xl` 在独立临时目录验证。另有登记在 `coverage.tests` 的 `test/file_ops.xl`，直接检查文件往返和取消后的目标清理。最小 C/XLang 范例同输入、同输出；C 范例命名为 `basic_c.c`，避免被同名 XL 范例自动混编产生双 `main`。当前 Linux 包级脚本覆盖这些语言边界及八条 AOT 路径。旧发布物的 Buffer 索引异或和 AOT 缺符号诊断见 `dev/extlib_blockers/argon2_byteat_sub.md`；当前完整教学范例的 JIT/EXE 均通过。
 
-可选的独立实现互通测试：在 `demo6` 目录运行 `python -m pip install --target build/test/zstd/python_oracle zstandard==0.25.0`，再运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/zstd/test/check_interop.ps1`。该测试让 XRT 与 Python Zstandard 双向解压对方的标准帧；测试桥显式放宽解压比限额以覆盖高压缩比样本，不改变产品默认值。Python 不是扩展库运行依赖。
+可选的独立实现互通测试：在仓库根目录运行 `python -m pip install --target build/test/zstd/python_oracle zstandard==0.25.0`，再运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/zstd/test/check_interop.ps1`。该测试让 XRT 与 Python Zstandard 双向解压对方的标准帧；测试桥显式放宽解压比限额以覆盖高压缩比样本，不改变产品默认值。Python 不是扩展库运行依赖。
 
 以下为历史验证记录；其中“当前阻断”只描述记录时使用的旧发布物。
 

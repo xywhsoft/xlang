@@ -115,7 +115,7 @@ UTF-8 字符串，使用 `xrtFree`。结果没有共享全局缓冲。公开 C �
 不能要求它们在进程变化期间严格相等。Windows 快照可能列出 PID 0
 空闲项，但 `exists/name/memKb` 对非正 PID 仍按不可访问规则处理。
 
-定向验证（在 `demo6` 目录）：
+定向验证（在仓库根目录）：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/procps/test/check.ps1
@@ -163,7 +163,7 @@ Linux 包级脚本运行包内及中央 XLang 用例，并逐字比较 C/XL 范�
 `demo6/dev/extlib_blockers/procps_catalog_contract.md`。公开接口为
 `pids()` 的 `array<int>`，不提供字符串兼容别名。
 2026-10-16 将包内 XLang `test/boundaries.xl` 登记到 `coverage.tests`；
-从 `demo6` 工作目录单独运行通过，本轮未重跑 C/Linux/AOT 门禁。
+从仓库根目录单独运行通过，本轮未重跑 C/Linux/AOT 门禁。
 Linux 门禁还按 manifest 传入 XRT 模块宏做严格 GCC 编译，并运行一个以非 UTF-8 文件名命名的真实进程，验证错误分类。
 另以链接器夹具注入跨缓冲的 `/proc/pid/exe` 目标，验证完整名称和重读路径。
 双语范例对照可复查 `examples/procps_c.c`；输出使用布尔事实，不把

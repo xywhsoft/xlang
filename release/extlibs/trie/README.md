@@ -7,7 +7,7 @@
 没有插入、深键递归、编码或内存故障，不能将此错误归到这些路径。
 
 默认包门禁现接共享顶层生命周期专项，保留该合法正例，不搬到 main
-或主动清理来绕过。单项命令：从 `demo6` 执行
+或主动清理来绕过。单项命令：从仓库根目录执行
 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/check_extlib_native_globals.ps1 -Package trie`
 或 `bash tools/check_extlib_native_globals.sh trie`。专项只测创建/状态/
 自然退役，有超时、输入指纹、原始退出状态并保留失败 EXE/报告，
@@ -26,7 +26,7 @@ Linux 黄金输出先统一 CRLF/LF，避免 Windows 源件产生行尾假失败
 符号记录为历史状态；验收限本文的按字节前缀集合语义，不含 Unicode
 归一化、大小写折叠或同实例无锁并发写入。
 
-2026-10-25 新 Windows 发布版：从 `demo6` 根目录运行默认
+2026-10-25 新 Windows 发布版：从仓库根目录运行默认
 `test/check.ps1` 全通过，包含严格 C/ABI、独立键集合模型、XLang
 边界/分配故障、双语固定输出和核心/范例 AOT。下方同日的 VFS 缺头
 记录来自先前发布物，不再作为当前 Windows 阻断；Linux 独立 AOT
@@ -87,7 +87,7 @@ XLang 使用字符串的完整字节长度，内嵌 NUL 不会截断。底层按
 
 Windows 聚焦快测：`powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/trie/test/check.ps1 -SkipAot`。它同次检查 C 独立键集合模型、包外 `insertNative` 访问拒绝、XLang 边界及 C/XLang 固定范例输出。去掉 `-SkipAot` 后，默认还构建运行无输出核心和公开范例 AOT，后者须匹配同一黄金输出；构建使用单次独占目录并在失败后清理。当前快测和核心 AOT 通过，完整范例仍缺共享 `xl6ValueDataSnapshotV1`，整包不签收发布级。
 
-从 `demo6` 目录运行：
+从仓库根目录运行：
 
 ```powershell
 .\release\xl.exe run test\cases\extlib_trie.xl

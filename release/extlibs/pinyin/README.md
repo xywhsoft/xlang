@@ -29,7 +29,7 @@ xl run release/extlibs/pinyin/examples/search_keys.xl
 xl run release/extlibs/pinyin/examples/search_keys_c.c
 ```
 
-从 `demo6` 根目录运行。示例同时保留未收录的“海”“龘”与 emoji，
+从仓库根目录运行。示例同时保留未收录的“海”“龘”与 emoji，
 直观展示覆盖边界；它不是全文检索、地名或姓名准确读音方案。
 
 2026-10-27 所有权收口：`convert`、`initials` 的原生结果改为
@@ -47,7 +47,7 @@ xl run release/extlibs/pinyin/examples/search_keys_c.c
 常用汉字的固定读音，不包含多音字消歧、分词或完整拼音能力。
 旧 VFS 缺头及 AOT 缺符号记录均为历史状态。
 
-2026-10-25 新 Windows 发布版：从 `demo6` 根目录执行默认
+2026-10-25 新 Windows 发布版：从仓库根目录执行默认
 `test/check.ps1`，严格 C、XLang 边界/分配故障、双语固定输出与核心/范例
 AOT 全通过。另在只包含三个发布二进制、此包及测试源的独立临时目录
 验证 JIT、构建和独立 EXE，未依赖 `release/include`。下文同日 VFS
@@ -69,7 +69,7 @@ C API 见 `include/pinyin_native.h`。`xpinyin_convert[_n]` 与 `xpinyin_initial
 
 ## 范例与验证
 
-2026-10-25 先前发布版从 `demo6` 根目录运行中央 XLang 用例时，
+2026-10-25 先前发布版从仓库根目录运行中央 XLang 用例时，
 在包代码执行前报 `include/xruntime_decl.h` 未找到；同一发布版从
 `release` 目录运行和构建范例虽通过，却依赖外部头文件兜底，
 不能据此签收自包含发布版。包门禁保持根目录路径并正确报错；
@@ -90,10 +90,10 @@ C ASan/UBSan 与 XLang 包门禁通过；当时的 Windows 发布版从 `release
 
 - `release/examples/extlibs/pinyin.xl` 与 `pinyin_c.c` 可直接 `xl run`，输出完全一致。
 - `release/extlibs/pinyin/test/test_pinyin.c` 覆盖长输入、结果所有权、非法 UTF-8、嵌入 NUL 和未知字符。
-- `release/extlibs/pinyin/test/boundaries.xl` 覆盖 XLang 桥接及异常；`demo6/test/cases/extlib_pinyin.xl` 是原有核心用例。
+- `release/extlibs/pinyin/test/boundaries.xl` 覆盖 XLang 桥接及异常；`test/cases/extlib_pinyin.xl` 是原有核心用例。
 - `release/extlibs/pinyin/test/allocations.xl` 逐点检查两条 XLang 入口在分配失败时抛 `MemoryError`，解除故障后可正常转换。
 
-Linux 可从 `demo6` 目录运行 `bash release/extlibs/pinyin/test/check.sh`。
+Linux 可从仓库根目录运行 `bash release/extlibs/pinyin/test/check.sh`。
 脚本同次执行 C ASan/UBSan、中央与两组包内 XLang 用例，并核对 C/XLang 中文范例输出。
 Windows 可运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/pinyin/test/check.ps1 -SkipAot`，一次执行严格 GCC 宏检查、C 边界、中央与两组包内 XLang 用例，并将包运行器 C、`xl run` 直跑 C、XLang 范例分别与包内固定中文输出比较；去掉 `-SkipAot` 还会执行完整 AOT 门禁。
 

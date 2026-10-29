@@ -205,7 +205,7 @@ third_party 的 common/dec/enc 源码，不用 `brotli_native.c`。模块选择
 Windows 保留红项。默认门禁检查纯 C 宿主和新例 JIT/AOT，Windows
 构建目录按次隔离；关闭态失败仍继续检查 M2，报告与现场保留。
 
-从 demo6 工作目录执行：
+从仓库根目录执行：
 
 ```powershell
 release/xl.exe run release/examples/extlibs/brotli_basic.xl
@@ -259,7 +259,7 @@ JIT 通过；Linux C ASan/UBSan、文件事务、XLang 和双语黄金输出通�
 
 2026-10-20：中央教学范例的文件段原写入固定目录，且只在成功时逐个
 删除文件，存在覆盖与残留风险。现使用 `dir.temp`、`path.join` 和
-`try/finally`，从 `demo6` 根与 `release` 直接运行均输出
+`try/finally`，从仓库根目录与 `release` 直接运行均输出
 `brotli example: PASS`；Linux C ASan/UBSan、分配故障、文件事务、
 XLang 与双语联合门禁通过。压缩实现未改，完整 AOT 阻断仍保留。
 

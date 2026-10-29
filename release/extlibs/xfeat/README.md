@@ -18,7 +18,7 @@ C 35 组覆盖统计、NULL 定位和真实合成匹配定位的 13/7/12 预算�
 本轮未供 XFeat 权重，不冒充非空定位的语言异常释放端到端测试。
 
 `locate_and_save` 保留一处 try 内局部 JSON 返回复制，通用最小
-复现见 `demo6/dev/extlib_blockers/owned_string_try_return_copy.md`。
+复现见 `dev/extlib_blockers/owned_string_try_return_copy.md`。
 JSON 仍在写盘前生成，不为去掉副本把序列化改到写盘后；函数不
 承诺任意失败的文件事务原子性，现有返回副本也可能在写出后 OOM。
 借用诊断、图片/推理内部成本不在本次移交优化范围。
@@ -61,7 +61,7 @@ Windows 真实模型调用层已按上述范围验收；这不是 Linux 图像�
 
 预处理固定为 BGR 转 RGB、按 `1/255` 归一化、右下补零到 32 的倍数，C 结果解析过滤补零区坐标。定位器有意拒绝宽或高超过目标图一半的结果，因此整图对自身不是正例；`examples/live_model.xl` 将目标图中心四分之一区域另存为查询图，再验证局部定位。`locate_and_save` 在正常未找到时保存原图，在读图、绘图或写盘失败时抛 `IOError`，不返回成功 JSON；输出路径由调用者提供，建议使用构建目录。
 
-在 `demo6` 目录运行 Windows 门禁；默认还构建运行公开 XLang 范例 AOT，
+在仓库根目录运行 Windows 门禁；默认还构建运行公开 XLang 范例 AOT，
 `-SkipAot` 只用于 C/JIT 聚焦复验，不能作为发布签收：
 
 ```powershell

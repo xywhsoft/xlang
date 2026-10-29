@@ -46,8 +46,8 @@ C 原生 `get` 在结果副本分配失败时不更新命中统计或访问顺�
 
 `putNative` 等原生入口仅供类内部使用，包外不能绕过公开方法的参数与生命周期检查；`test/private_native.xl` 是预期编译失败的可见性负例。
 
-在 `demo6/release` 运行 `xl run extlibs/lru/test/boundaries.xl`。在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package lru -Source release/extlibs/lru/test/test_lru.c`。2026-10-12 已通过 Windows 严格 GCC、Linux ASan/UBSan、同实例并发读写、XL JIT 与双语输出对照；2026-10-13 增加六种 NUL 红绿用例并复跑 C/XL 主路径及范例。同日补充分配故障注入，逐点验证满缓存插入失败不淘汰旧值、覆盖失败不改原值，以及读取失败不改变命中统计；C 定向测试与严格 GCC 语法检查通过。
-Windows 可在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/lru/test/check.ps1 -SkipAot`，同次检查严格 GCC、C 边界/线程、中央及包内 XLang、原生入口私有性、C 直跑和双语输出。去掉 `-SkipAot` 会继续构建完整边界 AOT。C 教学范例内含包的原生实现，可直接 `xl run release/extlibs/lru/examples/lru_c.c`；正式包仍按清单分别编译原生源。
+在 `release` 运行 `xl run extlibs/lru/test/boundaries.xl`。在仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package lru -Source release/extlibs/lru/test/test_lru.c`。2026-10-12 已通过 Windows 严格 GCC、Linux ASan/UBSan、同实例并发读写、XL JIT 与双语输出对照；2026-10-13 增加六种 NUL 红绿用例并复跑 C/XL 主路径及范例。同日补充分配故障注入，逐点验证满缓存插入失败不淘汰旧值、覆盖失败不改原值，以及读取失败不改变命中统计；C 定向测试与严格 GCC 语法检查通过。
+Windows 可在仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/lru/test/check.ps1 -SkipAot`，同次检查严格 GCC、C 边界/线程、中央及包内 XLang、原生入口私有性、C 直跑和双语输出。去掉 `-SkipAot` 会继续构建完整边界 AOT。C 教学范例内含包的原生实现，可直接 `xl run release/extlibs/lru/examples/lru_c.c`；正式包仍按清单分别编译原生源。
 
 2026-10-22：C/XLang 教学范例除互比外，还与固定输出逐字核对；
 Windows 默认门禁在边界 AOT 后继续构建、运行公开范例 AOT，并核对同一预期。
@@ -60,7 +60,7 @@ Windows `-SkipAot` 与 Linux C ASan/UBSan、并发及语言联合门禁通过。
 
 2026-10-14 补充淘汰顺序边界：分配失败的覆盖不得刷新 LRU/LFU 顺序；`contains` 不刷新顺序，而成功覆盖应刷新。C 故障注入与 XLang 定向回归通过。
 
-2026-10-14 补公开 C 接口连续调用的错误状态回归：非法参数后有效创建、读写、删除、清空及统计应清除旧错误；空句柄统计应报参数错误。Windows 严格 GCC、C/XL 边界、双语同输出通过。在 `demo6` 运行 `bash release/extlibs/lru/test/check.sh` 可复跑 Linux ASan/UBSan 门禁；本轮已通过。AOT 阻断仍见上文。
+2026-10-14 补公开 C 接口连续调用的错误状态回归：非法参数后有效创建、读写、删除、清空及统计应清除旧错误；空句柄统计应报参数错误。Windows 严格 GCC、C/XL 边界、双语同输出通过。在仓库根目录运行 `bash release/extlibs/lru/test/check.sh` 可复跑 Linux ASan/UBSan 门禁；本轮已通过。AOT 阻断仍见上文。
 
 2026-10-16 增加 LRU/LFU 双模式 XLang 逐点故障测试，覆盖创建、满容量插入、覆盖及读取的 `MemoryError`、旧值保持和恢复；C 故障测试补验 `XERR_MEMORY`。读取测试还固定区分原生失败与原生成功后语言表达式失败的命中统计。Windows 严格 GCC/C、目录 smoke 3/3、无输出故障注入 AOT 与 Linux C/线程 ASan/UBSan 通过；完整边界 AOT 的共享缺符号阻断未变。
 

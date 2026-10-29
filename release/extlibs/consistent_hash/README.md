@@ -51,13 +51,13 @@ the current state`；同文件 JIT 退出 0，局部对象的公开范例 AOT �
 
 `addNative` 等原生入口为类内部实现，不能从包外绕过公开方法的参数与生命周期检查；`test/private_native.xl` 是预期编译失败的可见性负例。
 
-在 `demo6/release` 运行 `xl run extlibs/consistent_hash/test/boundaries.xl`。在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package consistent_hash -Source release/extlibs/consistent_hash/test/test_consistent_hash.c`。2026-10-12 已通过 Windows 严格 GCC、Linux ASan/UBSan、并发读写、XL JIT 和 C/XL 双语对照；2026-10-13 补充内嵌 NUL 的红绿用例。同日加入节点分配故障逐点测试，失败时节点数、虚拟节点数和已有键映射不变；C 定向测试、严格 GCC 语法检查和 XL 边界通过。
-Linux 可在 `demo6` 运行 `bash release/extlibs/consistent_hash/test/check.sh`，
+在 `release` 运行 `xl run extlibs/consistent_hash/test/boundaries.xl`。在仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package consistent_hash -Source release/extlibs/consistent_hash/test/test_consistent_hash.c`。2026-10-12 已通过 Windows 严格 GCC、Linux ASan/UBSan、并发读写、XL JIT 和 C/XL 双语对照；2026-10-13 补充内嵌 NUL 的红绿用例。同日加入节点分配故障逐点测试，失败时节点数、虚拟节点数和已有键映射不变；C 定向测试、严格 GCC 语法检查和 XL 边界通过。
+Linux 可在仓库根目录运行 `bash release/extlibs/consistent_hash/test/check.sh`，
 用严格 GCC + ASan/UBSan 检查 C 边界、并发及 C 范例，同时运行中央与
 包内 XLang 用例，并将双语范例与 `examples/consistent_hash.expected.txt`
 的固定映射逐字节比较。默认门禁还构建运行中央核心、C/XLang 范例和
 顶层边界的独立 EXE；当前在最后一项按上述生命周期阻断退出 1。
-Windows 可在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/consistent_hash/test/check.ps1 -SkipAot`，一并检查严格 GCC、C 故障与线程、中央和包内 XLang、原生入口私有性及双语黄金输出。去掉 `-SkipAot` 会依次构建运行核心、带输出范例及边界 AOT；当前边界 EXE 在顶层对象退役时失败，详见上文。C 教学范例内含包的原生实现，可在两平台直接 `xl run release/extlibs/consistent_hash/examples/consistent_hash_c.c`；正式包仍按清单分别编译该原生源码。
+Windows 可在仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/consistent_hash/test/check.ps1 -SkipAot`，一并检查严格 GCC、C 故障与线程、中央和包内 XLang、原生入口私有性及双语黄金输出。去掉 `-SkipAot` 会依次构建运行核心、带输出范例及边界 AOT；当前边界 EXE 在顶层对象退役时失败，详见上文。C 教学范例内含包的原生实现，可在两平台直接 `xl run release/extlibs/consistent_hash/examples/consistent_hash_c.c`；正式包仍按清单分别编译该原生源码。
 
 以下 2026-10-23 及更早记录中的共享缺符号描述均为旧发布版历史，不代表当前构建状态。
 

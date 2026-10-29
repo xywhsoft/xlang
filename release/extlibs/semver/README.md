@@ -151,7 +151,7 @@ XLang 在进入 C 字符串接口前检查内嵌 NUL，并按各函数原有失�
 Linux 包门禁的 C ASan/UBSan 与 XLang 对照也通过。旧发布版的共享快照
 缺符号阻断已解除；包级通过不等于整个 xlang 发布版签收。
 
-在 `demo6` 目录运行：
+在仓库根目录运行：
 
 ```powershell
 ./release/xl.exe run release/extlibs/semver/examples/semver_c.c

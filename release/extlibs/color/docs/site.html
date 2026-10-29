@@ -91,7 +91,7 @@ println(color.mix("#000", "#fff", 0.5))</code></pre>
     <h2 id="examples">双语范例</h2>
     <p>发行目录运行 xl run examples/extlibs/color_basic.xl；C 对照为 extlibs/color/examples/basic.c。
     范例覆盖 21 个 API，实现同一组转换与黑/白前景选择，按固定黄金输出核对。
-    在 demo6 根目录也可直接运行 xl run release/extlibs/color/examples/basic.c；该 C 范例只内嵌纯 C 核心。
+    在仓库根目录也可直接运行 xl run release/extlibs/color/examples/basic.c；该 C 范例只内嵌纯 C 核心。
     开发仓库仍可用 tools/run_extlib_c.ps1 -Package color -Source release/extlibs/color/examples/basic.c。</p>
     <p>AA/AAA 标签只表示普通文字的对比度阈值，不是整页可访问性认证。</p>
     <p>新增 <code>extlibs/color/examples/theme.xl</code> 与 <code>extlibs/color/examples/theme_c.c</code>：接收十六进制或命名色，选择对比度更高的黑/白文字，再生成背景、文字、悬停色 CSS 变量。发行目录用 <code>xl run</code> 分别执行即可；共用 <code>theme.expected.txt</code>，两平台的严格 C、直跑与独立程序均核对同一输出。范例不处理透明度合成。</p>

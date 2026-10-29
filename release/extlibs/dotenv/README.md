@@ -111,7 +111,7 @@ C调用方显式`xrtStrDup`并以`xrtFree`释放。重载对照范例验证了�
 
 ## 定向验证
 
-在 DEMO6 目录运行：
+在仓库根目录运行：
 
 ```powershell
 ./release/xl.exe run release/extlibs/dotenv/examples/basic.c
@@ -184,11 +184,11 @@ XLang 门禁均通过。Windows 默认门禁的核心 AOT 通过，带输出范�
 与 Linux ASan/UBSan 通过。实现未改；完整 AOT 主线阻断仍在。
 
 2026-10-15：中央 `test/cases/extlib_dotenv.xl` 的文件限额用例改为从
-DEMO6 根目录访问 `test/data/dotenv_test.env`，与正式测试运行器的工作
+仓库根目录访问 `test/data/dotenv_test.env`，与正式测试运行器的工作
 目录一致。中央用例 JIT 和 AOT 均构建运行通过；包实现与完整包级
 AOT 阻断状态未变。
 
-2026-10-15：包级 Windows 门禁同步在 DEMO6 根目录运行该中央用例，
+2026-10-15：包级 Windows 门禁同步在仓库根目录运行该中央用例，
 不再从 `release` 误读固定夹具。C 与 XLang JIT、中央用例 AOT 均通过；
 完整教学范例 AOT 仍缺共享 `xl6ValueDataSnapshotV1`，未作发布签收。
 
@@ -226,5 +226,5 @@ C ASan/UBSan + XLang 门禁通过。此矩阵不是完整 fuzz。当前完整范
 边界，以及中心用例和完整教学范例的 AOT 构建与执行。旧记录中的
 `xl6ValueDataSnapshotV1` 缺符号及 channel 头声明顺序错误在本次路径
 均未复现。Linux XLang 门禁尚未使用当前源码重建的发布物复验，
-构建阻塞见 `demo6/dev/extlib_blockers/linux_release_x509_sources.md`；
+构建阻塞见 `dev/extlib_blockers/linux_release_x509_sources.md`；
 本条不代表 Linux AOT、长期压力或跨平台发布级签收。

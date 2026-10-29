@@ -41,7 +41,7 @@ JSON 字段类型必须正确；显式 `null` 不等同于缺失字段，字符�
 多段包名用于类型声明时请用导入别名：`import ui.auto as uiauto`。
 定位器只保存筛选条件，不持有 UIA 原生句柄；`uia` 的生命周期规则不变。
 
-从 `demo6/release` 运行：
+从 `release` 运行：
 
 ```powershell
 ./xl.exe run examples/extlibs/ui_auto.xl

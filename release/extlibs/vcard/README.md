@@ -46,7 +46,7 @@ assert back["email"].length == 2
 
 ## 验证
 
-Windows 从 `demo6` 目录运行：
+Windows 从仓库根目录运行：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/vcard/test/check.ps1
@@ -60,11 +60,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/vcard/test/c
 不能视为发布签收。AOT 产物只写入本次独占临时目录并在结束时清理。
 C/XLang 范例还各自断言完整的 3.0 文本、CRLF 行尾，以及读回后的姓名与两条邮箱；双语一致不能代替这些固定预期。
 
-在 `demo6/release` 可直接运行 `xl run extlibs/vcard/examples/vcard.c`；
+在 `release` 可直接运行 `xl run extlibs/vcard/examples/vcard.c`；
 普通 C 编译仍按包清单分别链接三个实现单元。可选文件路径通过
 `xl run extlibs/vcard/examples/vcard.c -- contact.vcf` 传入。
 
-从 `demo6` 目录运行：
+从仓库根目录运行：
 
 ```powershell
 .\release\xl.exe run test\cases\extlib_vcard.xl
@@ -79,13 +79,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_extlib_c.ps1 -Pack
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_extlib_c.ps1 -Package vcard -Source release\extlibs\vcard\examples\vcard.c
 ```
 
-在 Linux/WSL 的 `demo6` 目录另运行 `bash release/extlibs/vcard/test/check.sh`；脚本在临时目录编译运行，不写入发布目录。它同时执行 C ASan/UBSan、四组 XLang JIT 用例，并逐字节比较 C/XLang 范例的输出和生成的 `.vcf`。此门禁不覆盖完整 AOT。
+在 Linux/WSL 的 仓库根目录另运行 `bash release/extlibs/vcard/test/check.sh`；脚本在临时目录编译运行，不写入发布目录。它同时执行 C ASan/UBSan、四组 XLang JIT 用例，并逐字节比较 C/XLang 范例的输出和生成的 `.vcf`。此门禁不覆盖完整 AOT。
 
 C/XL 测试覆盖 3.0/4.0 常用字段、重复字段、中文结构化字段、转义/反转义、9 KiB 长字段、75 字节折行、畸形包络、NUL/非法 UTF-8、非法控制字符、4 MiB 限额、独立结果和分配失败。历史门禁的 Windows 严格 GCC、Linux ASan/UBSan、双语同输出及无输出 AOT 核心曾通过；当前默认门禁在语言字典写出处先失败，未走到完整范例 AOT。旧发布物的 `xl6ValueDataSnapshotV1` 缺符号记录见 `demo6/dev/extlib_blockers/text_snapshot_link.md`，不能据此判断当前 vcard AOT 状态。
 
 解析重复字段与生成文本另扫描前 64 个分配故障位置：注入确实覆盖失败和成功分支，失败返回空结果并保留 `XERR_MEMORY`，清除故障后完整往返仍可用。Windows TCC C 测试、严格 GCC 语法检查和 Linux ASan/UBSan 包级门禁通过。
 
-另以独立的 [vobject](https://pypi.org/project/vobject/) 0.9.9 解析 C/xlang 生成的 vCard 3.0 范例、3000 字中文折行样例，以及 C 测试生成的 vCard 4.0 样例；双语 3.0 范例文件逐字节一致。`vobject` 是可选测试依赖，不进入发布包。独立验证只覆盖这些固定样本，不代表完整 4.0 互操作认证。从 `demo6` 目录运行：
+另以独立的 [vobject](https://pypi.org/project/vobject/) 0.9.9 解析 C/xlang 生成的 vCard 3.0 范例、3000 字中文折行样例，以及 C 测试生成的 vCard 4.0 样例；双语 3.0 范例文件逐字节一致。`vobject` 是可选测试依赖，不进入发布包。独立验证只覆盖这些固定样本，不代表完整 4.0 互操作认证。从仓库根目录运行：
 
 ```powershell
 python -m venv build\test\vcard\venv

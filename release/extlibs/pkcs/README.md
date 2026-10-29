@@ -43,7 +43,7 @@ Linux 还由 OpenSSL 独立解析生成的 DER。旧 VFS 缺头与共享快照
 缺符号不再复现；签收仅限常用 ASN.1/DER 构件，不代表完整
 PKCS 协议、证书/密钥管理、其他架构或全产品发布准入。
 
-2026-10-25 历史阻断：当时 `xl.exe` 从 `demo6` 根目录运行默认包门禁，公开头、
+2026-10-25 历史阻断：当时 `xl.exe` 从仓库根目录运行默认包门禁，公开头、
 严格 GCC、C 边界与 C 范例通过；首个 XLang 范例在包代码执行前报
 `include/xruntime_decl.h` 未找到，后续语言与 AOT 门禁未运行。
 这是已记录的共享 VFS 头路径问题，最小复现和修复方向见
@@ -103,7 +103,7 @@ C 范例可直接 `xl run` 单文件运行；仅该路径在 TCC 下编入包内
 
 双语范例覆盖全部 16 个公开 XLang 构件：编码、解析、DER 组合、标签与子项偏移；C 范例逐次检查返回值再使用，失败路径释放已分配结果。范例中的 SET 包含两个按完整 DER 字节排序的 INTEGER；若顺序相反，`wrapSet` 报错，不会静默重排。SEQUENCE 则保留调用者给出的子项顺序。
 
-在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/pkcs/test/check.ps1`，执行严格 GCC、C/XLang 边界、分配故障、双语范例及独立 AOT；`-SkipAot` 只供聚焦快测。Linux 使用 `bash release/extlibs/pkcs/test/check.sh`，同次运行严格 GCC/ASan/UBSan C 测试、中央与包内 XLang 边界、双语范例及边界/C/XLang 范例独立 EXE。Linux 门禁还需 `openssl` 和 `xxd`，以 OpenSSL 独立解析范例生成的 DER，核对标签与值。
+在仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/pkcs/test/check.ps1`，执行严格 GCC、C/XLang 边界、分配故障、双语范例及独立 AOT；`-SkipAot` 只供聚焦快测。Linux 使用 `bash release/extlibs/pkcs/test/check.sh`，同次运行严格 GCC/ASan/UBSan C 测试、中央与包内 XLang 边界、双语范例及边界/C/XLang 范例独立 EXE。Linux 门禁还需 `openssl` 和 `xxd`，以 OpenSSL 独立解析范例生成的 DER，核对标签与值。
 2026-10-29 两平台默认门禁均先通过全部旧路径、16 个实际生成声明与
 公开头、11 条直接文本接管/完整返回无副本、22 项新增语言边界及七条
 独立程序，最后在 C OID 新回归的 48 项诊断失败处退出 1；Linux 包含
@@ -112,7 +112,7 @@ ASan/UBSan 与 OpenSSL。Windows 40 项输入指纹变化为零，Linux 35
 缺 Linux C 编译器实测退出 127。未修改包计算实现、编译器或冻结 XRT，
 按任务约定记录来源问题后暂停本包，不复制一套 OID 校验来绕过。
 2026-10-16 将包内 XLang `test/boundaries.xl` 登记到 `coverage.tests`；从
-`demo6` 工作目录单独运行通过。本轮未重跑 C/Linux/AOT 门禁。
+仓库根目录单独运行通过。本轮未重跑 C/Linux/AOT 门禁。
 
 2026-10-14 追加 XLang 的 DER、OID 与双参数 HEX 文本内嵌 NUL 负例；先复现有效前缀被误接受，再验证统一拒绝。包内 C ABI 不变。
 

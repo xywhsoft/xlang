@@ -45,7 +45,7 @@ assert hasher.digestHex() == blake2.blake2sHashHex("hello", 16)
 仅复制密钥字节后调用该构造器。C 原始指针/长度 ABI 仍可直接使用，
 调用方须自行保证指针有效且长度匹配。
 四类接管原生句柄的 `create(point)` 已声明私有，但当前编译器仍接受
-包外直接构造；见 `demo6/dev/extlib_blockers/blake2_private_adopt_constructor.md`。
+包外直接构造；见 `dev/extlib_blockers/blake2_private_adopt_constructor.md`。
 在主线修复前，本包不能签收完整发布级访问安全。
 四类对象的 `*Native` 方法已限制在类内部，导入方需通过公开的 `update`、
 摘要、重置和克隆成员操作，不直接传入裸指针和自定义字节长度。
@@ -163,7 +163,7 @@ C 自定义 Reader 负例先红后绿，现保留 `MEMORY` 分类和原始消息
 薄绑定对应抛 `MemoryError`。Windows 严格 C 和 Linux ASan/UBSan、
 XLang 双语联合门禁复验通过；AOT 共享阻断未变。
 
-2026-10-20：C 对照范例现在可从 `demo6` 目录直接运行
+2026-10-20：C 对照范例现在可从仓库根目录直接运行
 `release/xl.exe run release/extlibs/blake2/examples/basic.c`，也可直接
 `xl build` 生成可执行文件。仅 TCC 单文件路径包含核心与上游源；正式
 GCC/manifest 构建仍分别编译。Windows
@@ -208,8 +208,8 @@ XLang JIT 和双语门禁，以及 Linux 216 条已知答案、ASan/UBSan、
 在本次 BLAKE2 复测中不再出现。两份可执行范例改为显式 `main`，
 使原生 hasher 按函数生命周期释放；顶层写法的 AOT 退出状态错误
 仍存在，同类最小复现与修复建议见
-`demo6/dev/extlib_blockers/blake3_global_native_aot.md`。
+`dev/extlib_blockers/blake3_global_native_aot.md`。
 包外 `private extern create(point)` 的只编译负例仍被错误接受，
 不能运行该负例或签收完整发布级访问安全。Linux 包门禁待当前 Linux
 发布版重建，构建脚本阻塞见
-`demo6/dev/extlib_blockers/linux_release_x509_sources.md`。
+`dev/extlib_blockers/linux_release_x509_sources.md`。

@@ -96,7 +96,7 @@ println(blake2.blake2bKeyedHex("你好 xlang", "密钥", 16))</code></pre>
     <p>教学：<code>examples/extlibs/blake2.xl</code>。对照：
     <code>examples/extlibs/blake2_basic.xl</code> 与 <code>extlibs/blake2/examples/basic.c</code>，
     共同预期输出位于 <code>examples/extlibs/blake2_basic.expected.txt</code>。
-    从 <code>demo6</code> 目录可直接运行 <code>release/xl.exe run release/extlibs/blake2/examples/basic.c</code>，无需额外源文件参数。</p>
+    从仓库根目录可直接运行 <code>release/xl.exe run release/extlibs/blake2/examples/basic.c</code>，无需额外源文件参数。</p>
     <h2 id="verification">验证范围</h2>
     <p>2026-09-27 Windows 固定输入门禁包含 36 项检查：216 条 hashlib 已知答案、38 个实际生成原型、
     C/xlang JIT/AOT/GCC、回调异常/取消、reader、16 个分配失败点、四线程独立结果与错误状态、双语黄金输出。</p>

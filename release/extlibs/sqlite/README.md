@@ -218,10 +218,10 @@ Linux 失败现场由 `[sqlite] FAIL exit=... artifacts=...` 报告；`failure.t
 
 2026-09-27 专项：37 项 Windows 检查、44 个生成原型与 45 个常量通过；SQLite
 工作流注入 149 个分配失败点，XRT Buffer/临时文本另外验证 2/1 个失败点及恢复。
-Linux 独立 C ASan/UBSan/泄漏检查通过。原始证据保存在 demo6/docs 的
+Linux 独立 C ASan/UBSan/泄漏检查通过。原始证据保存在 docs 的
 `extlib_sqlite_2026-09-27.*.results.json`。
 
-在 demo6 根目录运行成对范例：
+在仓库根目录运行成对范例：
 
 ```powershell
 release/xl.exe run release/examples/extlibs/sqlite_basic.xl
