@@ -454,7 +454,7 @@ int main(void) {
     static const unsigned char oversized_text[] = {0xdb, 0x04, 0x00, 0x00, 0x01};
     static const unsigned char timestamp32[] = {0xd6, 0xff, 0, 0, 0, 0};
     static const unsigned char timestamp64[] = {
-        0xd7, 0xff, 0, 0, 0x0f, 0xa0, 0, 0, 0, 0
+        0xd7, 0xff, 0x00, 0x3d, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     static const unsigned char timestamp96[] = {
         0xc7, 12, 0xff, 0x1d, 0xcd, 0x65, 0,
@@ -464,14 +464,12 @@ int main(void) {
         0xd7, 0xff, 0, 0, 0, 1, 0, 0, 0, 0
     };
     static const unsigned char timestamp96_min[] = {
-        0xc7, 12, 0xff, 0x0d, 0x5c, 0xe6, 0,
-        0xff, 0xff, 0xf7, 0x9c, 0x84, 0x2f, 0xa5, 0x09
+        0xc7, 0x0c, 0xff, 0x0b, 0x71, 0xb0, 0x00, 0xff, 0xdf, 0x3b, 0x55, 0xe2, 0x8a, 0xb5, 0x08
     };
     static const unsigned char timestamp96_max[] = {
-        0xc7, 12, 0xff, 0x2e, 0x3d, 0xe0, 0x18,
-        0, 0, 0x08, 0x63, 0x7b, 0xd0, 0x5a, 0xf6
+        0xc7, 0x0c, 0xff, 0x30, 0x19, 0xd7, 0xc0, 0x00, 0x20, 0xc4, 0x8d, 0x2e, 0x51, 0x5c, 0xf7
     };
-    static const unsigned char submicro[] = {
+    static const unsigned char submillisecond[] = {
         0xd7, 0xff, 0, 0, 0, 4, 0, 0, 0, 0
     };
     static const unsigned char bad_nanos[] = {
@@ -480,12 +478,10 @@ int main(void) {
     };
     static const unsigned char unknown_extension[] = {0xd6, 1, 0, 0, 0, 0};
     static const unsigned char before_min_time[] = {
-        0xc7, 12, 0xff, 0x0d, 0x5c, 0xe2, 0x18,
-        0xff, 0xff, 0xf7, 0x9c, 0x84, 0x2f, 0xa5, 0x09
+        0xc7, 0x0c, 0xff, 0x0b, 0x62, 0x6d, 0xc0, 0xff, 0xdf, 0x3b, 0x55, 0xe2, 0x8a, 0xb5, 0x08
     };
     static const unsigned char after_max_time[] = {
-        0xc7, 12, 0xff, 0x2e, 0x3d, 0xe4, 0,
-        0, 0, 0x08, 0x63, 0x7b, 0xd0, 0x5a, 0xf6
+        0xc7, 0x0c, 0xff, 0x30, 0x29, 0x1a, 0x00, 0x00, 0x20, 0xc4, 0x8d, 0x2e, 0x51, 0x5c, 0xf7
     };
     xvalue* value;
     xbytesview bytes;
@@ -504,11 +500,11 @@ int main(void) {
     value = xmsgpack_decode(float32, sizeof(float32));
     CHECK(value && xrtValueGetFloat(value, &number) && number == 1.5);
     xrtValueRelease(value);
-    CHECK(timestamp_roundtrip(timestamp32, sizeof(timestamp32), 0) == 0);
-    CHECK(timestamp_roundtrip(timestamp64, sizeof(timestamp64), 1) == 0);
+    CHECK(timestamp_roundtrip(timestamp32, sizeof(timestamp32), XRT_TIME_UNIX_EPOCH) == 0);
+    CHECK(timestamp_roundtrip(timestamp64, sizeof(timestamp64), XRT_TIME_UNIX_EPOCH + 1) == 0);
     CHECK(timestamp_roundtrip(timestamp64_long, sizeof(timestamp64_long),
-        INT64_C(4294967296000000)) == 0);
-    CHECK(timestamp_roundtrip(timestamp96, sizeof(timestamp96), -500000) == 0);
+        XRT_TIME_UNIX_EPOCH + INT64_C(4294967296000)) == 0);
+    CHECK(timestamp_roundtrip(timestamp96, sizeof(timestamp96), XRT_TIME_UNIX_EPOCH - 500) == 0);
     CHECK(timestamp_roundtrip(timestamp96_min, sizeof(timestamp96_min), INT64_MIN) == 0);
     CHECK(timestamp_roundtrip(timestamp96_max, sizeof(timestamp96_max), INT64_MAX) == 0);
     CHECK(timestamp_matrix() == 0);
@@ -557,7 +553,7 @@ int main(void) {
     CHECK(invalid(trailing, sizeof(trailing)));
     CHECK(invalid(nontext_key, sizeof(nontext_key)));
     CHECK(invalid(unsupported, sizeof(unsupported)));
-    CHECK(invalid(submicro, sizeof(submicro)));
+    CHECK(invalid(submillisecond, sizeof(submillisecond)));
     CHECK(invalid(bad_nanos, sizeof(bad_nanos)));
     CHECK(invalid(unknown_extension, sizeof(unknown_extension)));
     CHECK(invalid(before_min_time, sizeof(before_min_time)));

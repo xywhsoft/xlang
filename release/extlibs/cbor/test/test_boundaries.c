@@ -332,19 +332,19 @@ int main(void) {
     CHECK(value && xrtValueGetFloat(value, &number) && signbit(number));
     xrtValueRelease(value);
     value = xcbor_decode(half_time, sizeof(half_time));
-    CHECK(value && xrtValueGetTime(value, &time) && time == 500000);
+    CHECK(value && xrtValueGetTime(value, &time) && time == XRT_TIME_UNIX_EPOCH + 500);
     buffer = xcbor_encode(value);
     CHECK(buffer != NULL);
     {
         xvalue *roundtrip = xcbor_decode(buffer->Data, buffer->Size);
         CHECK(roundtrip != NULL && xrtValueGetTime(roundtrip, &time) &&
-            time == 500000);
+            time == XRT_TIME_UNIX_EPOCH + 500);
         xrtValueRelease(roundtrip);
     }
     xrtBufferDestroy(buffer);
     xrtValueRelease(value);
     {
-        const xtime moments[] = {123456, -123456, 1710000000123456};
+        const xtime moments[] = {XRT_TIME_UNIX_EPOCH + 123, XRT_TIME_UNIX_EPOCH - 123, XRT_TIME_UNIX_EPOCH + INT64_C(1710000000123)};
         size_t index;
         for (index = 0; index < sizeof(moments) / sizeof(moments[0]); ++index) {
             xvalue *source = xrtValueTime(moments[index]);

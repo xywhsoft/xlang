@@ -3,7 +3,7 @@ import msgpack
 func main(...) as int
     assert arg.length == 1 or arg.length == 2
     var value = {"name": "xlang", "count": 7,
-        "maximum": uint64(18446744073709551615), "when": time(1)}
+        "maximum": uint64(18446744073709551615), "when": time.fromUnixMs(1)}
     Buffer packed = msgpack.encode(value)
     var restored = msgpack.decode(packed)
     assert restored["name"] == "xlang"
@@ -12,7 +12,7 @@ func main(...) as int
     println("count=" + string(restored["count"]))
     assert restored["maximum"] == uint64(18446744073709551615)
     println("maximum=" + string(restored["maximum"]))
-    assert restored["when"] == time(1)
+    assert restored["when"] == time.fromUnixMs(1)
     println("when=1")
     println("bytes=" + string(packed.len()))
     Buffer binary = msgpack.fromHex("00ff41")

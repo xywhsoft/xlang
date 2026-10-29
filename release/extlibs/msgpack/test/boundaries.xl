@@ -19,9 +19,9 @@ func main(...) as int
     assert math.isInf(float(msgpack.decode(msgpack.fromHex("cb7ff0000000000000")))), "positive infinity"
     assert math.isInf(float(msgpack.decode(msgpack.fromHex("cbfff0000000000000")))), "negative infinity"
     assert math.isNaN(float(msgpack.decode(msgpack.fromHex("cb7ff8000000000001")))), "NaN"
-    assert msgpack.decode(msgpack.fromHex("d6ff00000000")) == time(0), "timestamp32"
-    assert msgpack.toHex(msgpack.encode(time(1))) == "d7ff00000fa000000000", "timestamp64"
-    assert msgpack.decode(msgpack.fromHex("c70cff1dcd6500ffffffffffffffff")) == time(-500000), "timestamp96"
+    assert msgpack.decode(msgpack.fromHex("d6ff00000000")) == time.fromUnixMs(0), "timestamp32"
+    assert msgpack.toHex(msgpack.encode(time.fromUnixMs(1))) == "d7ff003d090000000000", "timestamp64"
+    assert msgpack.decode(msgpack.fromHex("c70cff1dcd6500ffffffffffffffff")) == time.fromUnixMs(-500), "timestamp96"
     assert msgpack.toHex(msgpack.decodeBytes(msgpack.fromHex("c40200ff"))) == "00ff", "bytes"
     uint64 maximum = uint64(18446744073709551615)
     assert msgpack.toHex(msgpack.encode(maximum)) == "cfffffffffffffffff", "uint64 wire"

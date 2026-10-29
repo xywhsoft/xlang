@@ -12,7 +12,7 @@ def main():
     c_path, xl_path, python_path = map(Path, sys.argv[1:])
     expected = {"name": "xlang", "count": 7,
                 "maximum": 18446744073709551615,
-                "when": msgpack.Timestamp(0, 1000)}
+                "when": msgpack.Timestamp(0, 1000000)}
     if c_path.read_bytes() != xl_path.read_bytes():
         raise ValueError("C and XLang MessagePack bytes differ")
     for path in (c_path, xl_path):

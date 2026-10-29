@@ -10,7 +10,7 @@ int main(int argc, char **argv) {
     xvalue* name = xrtValueString(XRT_STR_LITERAL("xlang"));
     xvalue* count = xrtValueInt(7);
     xvalue* maximum = xrtValueUInt(UINT64_MAX);
-    xvalue* when = xrtValueTime(1);
+    xvalue* when = xrtValueTime(XRT_TIME_UNIX_EPOCH + 1);
     xbuffer* packed = NULL;
     xbuffer* binary = NULL;
     xbuffer* binary_packed = NULL;
@@ -45,8 +45,9 @@ int main(int argc, char **argv) {
         unsigned_number != UINT64_MAX) goto done;
     printf("maximum=%" PRIu64 "\n", unsigned_number);
     field = xrtValueObjectGet(restored, XRT_STR_LITERAL("when"));
-    if (!field || !xrtValueGetTime(field, &moment) || moment != 1) goto done;
-    printf("when=%lld\n", (long long)moment);
+    if (!field || !xrtValueGetTime(field, &moment) || moment != XRT_TIME_UNIX_EPOCH + 1) goto done;
+    if (!xrtTimeToUnixMs(moment, &number)) goto done;
+    printf("when=%lld\n", (long long)number);
     printf("bytes=%zu\n", packed->Size);
     /* 二进制值包含 NUL 和非 UTF-8 字节，使用 bin 而非 str。 */
     binary = xmsgpack_from_hex("00ff41");
