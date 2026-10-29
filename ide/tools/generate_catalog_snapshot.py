@@ -85,7 +85,7 @@ def generate(output,documentation_root,profile_path,gcc):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output',type=Path)
-    parser.add_argument('--documentation-root',type=Path,default=IDE.parent/'demo6/docs')
+    parser.add_argument('--documentation-root',type=Path,default=IDE.parent/'docs')
     parser.add_argument('--profile',type=Path,default=IDE/'data/portable-build-inputs.json')
     parser.add_argument('--gcc',default=shutil.which('gcc') or '')
     args=parser.parse_args()

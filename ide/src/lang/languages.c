@@ -6,7 +6,7 @@
 #include <limits.h>
 #include <xrt.h>
 
-/* Keywords follow demo6/src/lexer/xl6_lexer.l. This is lexical highlighting,
+/* Keywords follow src/lexer/xl6_lexer.l. This is lexical highlighting,
  * not a parser or a replacement for compiler diagnostics. All offsets are UTF-8 bytes. */
 static const char* const keywords[] = {
     "null", "true", "false", "func", "const", "var", "auto", "typedef", "as",

@@ -51,10 +51,10 @@ AutoTestIDE 的 build.bat 同时包含 AI archive、Python/cyou、scrcpy、设�
 
 | 来源 | 用途与限制 |
 | --- | --- |
-| `D:\GIT\x-lang\demo6\docs` | 语言、ABI、标准库、import/package 和工具链设计的权威入口 |
-| `demo6/src/driver/xl6_xlc_shell.c` | 当前 CLI、项目根字段及资源输入约束 |
-| `demo6/release/include/xlc.h` | 编译上下文、源码输入、check、AST/IR/C、exe/shared 等接口；不代表完整语言查询接口 |
-| `demo6/docs/调试器与task_async_generator设计.md` | 明确完整调试器仍为后续设计，正式 CLI 不提供完整 dbg/dap/xldbg |
+| `D:\GIT\x-lang\docs` | 语言、ABI、标准库、import/package 和工具链设计的权威入口 |
+| `src/driver/xl6_xlc_shell.c` | 当前 CLI、项目根字段及资源输入约束 |
+| `release/include/xlc.h` | 编译上下文、源码输入、check、AST/IR/C、exe/shared 等接口；不代表完整语言查询接口 |
+| `docs/调试器与task_async_generator设计.md` | 明确完整调试器仍为后续设计，正式 CLI 不提供完整 dbg/dap/xldbg |
 
 实现每个模块前阅读对应来源，再改造为新服务接口。文档中的新目录、协议和清单字段是设计契约，不能反向当作已有源码事实。
 

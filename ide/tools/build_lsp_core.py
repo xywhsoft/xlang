@@ -686,7 +686,7 @@ def prepare_reference_owner_fixture(ide: Path, output: Path) -> tuple[Path, Path
 def main() -> None:
     ide = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--frontend-root", type=Path, default=ide.parent / "demo6")
+    parser.add_argument("--frontend-root", type=Path, default=ide.parent)
     parser.add_argument("--output", type=Path, required=True, help="fresh build directory")
     parser.add_argument("--cc", default=shutil.which("gcc") or "E:/software/w64devkit/bin/gcc.exe")
     parser.add_argument("--server", action="store_true", help="also build the external language-server host")

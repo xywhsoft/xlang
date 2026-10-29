@@ -42,7 +42,7 @@
 
 当前开发构建的 0.27 服务与 IDE 已默认接通命名 `.xl` 的打开／未保存编辑自动诊断，复用原生前端及 XRT，无需工作空间或执行编译器。结果按相关依赖撤回并保留无关文件，旧服务及 `--no-auto-diagnostics` 仍走手动兼容路径；独立补全连接不重复检查。发布目录暂保留旧版，本阶段验证产物使用隔离构建目录。见 [IDE 自动诊断](docs/lsp-ide-automatic-diagnostics.md) 与 [长期进度](docs/lsp-development.md)。
 
-实际加载输入、候选和包环境在发布前复核；成功结果保留期间，由后台按每轮复核耗时加一秒的间隔持续观察磁盘依赖、包描述、导入候选和工具链。变化会撤销整批旧诊断并延迟复查；暂时不可读取的输入按 1–10 秒退避恢复，取消可停止。GUI 的包路径环境或编译器配置改变时重新启动服务并同步全文。跨文件跳转仍复核正文摘要与磁盘身份。编译器合同见 [来源与覆盖接口](../demo6/docs/IDE源码覆盖接口.md)。
+实际加载输入、候选和包环境在发布前复核；成功结果保留期间，由后台按每轮复核耗时加一秒的间隔持续观察磁盘依赖、包描述、导入候选和工具链。变化会撤销整批旧诊断并延迟复查；暂时不可读取的输入按 1–10 秒退避恢复，取消可停止。GUI 的包路径环境或编译器配置改变时重新启动服务并同步全文。跨文件跳转仍复核正文摘要与磁盘身份。编译器合同见 [来源与覆盖接口](../docs/IDE源码覆盖接口.md)。
 
 成功的当前检查还提供原生 F12 定义跳转、文档大纲与符号信息。大纲位于中央底栏，通过视图菜单打开；鼠标停留或 Ctrl+I 显示真实声明及类型，文档变化会撤销旧结果。C 原生语义已接入，完整项目输入继续实施。见 [大纲与悬停](docs/outline-hover.md)。
 
@@ -133,7 +133,7 @@ C 语义后端已接入真实 clangd，可查询未保存 C/头文件的诊断�
 
 使用同一次构建的 XGE IDE 配置 SDK，保持 DLL、导入库、头文件与来源记录一致。不能只复制 `xge.dll`，也不能混用另一工作区的头文件。
 
-语言语义以 `demo6/docs` 为准。`ide_old` 保留为历史参考，新实现进入本目录。后续设计变更先更新文档，再修改代码，并同步验收项。
+语言语义以 `docs` 为准。`ide_old` 保留为历史参考，新实现进入本目录。后续设计变更先更新文档，再修改代码，并同步验收项。
 
 ## 构建与运行
 
@@ -148,7 +148,7 @@ $build = Get-Content .\build\current-build.json -Raw | ConvertFrom-Json
 当前整理好的运行副本可直接执行 `.\release\xlang_ide.exe`。源码构建输出位于新的 `build/cb-xxxxxxxx/release`，不会覆盖这个副本。`-Tests` 只编译测试；运行回归时使用对应快照的 `tools/test.ps1 -SkipBuild`，按验收范围传入编译器与 C 服务器参数。生成新候选使用 `package_current.bat`。直接入口 `build.bat`、`test.bat` 会重新写入工作区 `release`，不适用于保持发布目录整洁的日常流程。
 
 诊断版本为 `release/xlang_ide_console.exe`，支持 `--help`。可用 `--workspace PATH.xlw`、`--project PATH.xlp` 和 `--open-file PATH` 启动时打开工程或文件。工作空间与项目文件路径使用 UTF-8；命令行从 Windows Unicode 参数转换。测试使用隐藏的本程序窗口，截图写入 `build/tests/render/`。构建仅使用本目录固定 SDK；不依赖另外三个参考项目的业务源码或二进制。
-F7 构建当前所选项目；F5 先构建再运行启动项目；Shift+F5 停止活动与排队任务。编译器可从“文件 → 选择 xlang 编译器”指定，也支持 `--compiler` 或 `XLANG_COMPILER`。开发目录会查找同仓库 `demo6/release/xl.exe`。构建与运行分别使用目标项目当前配置，也可用 `--configuration ID` 覆盖。运行会话提供 stdin/stdout 管道交互，完整系统 shell / ConPTY 仍需独立验收。参见 [构建运行说明](docs/tasks-and-toolchain.md)。
+F7 构建当前所选项目；F5 先构建再运行启动项目；Shift+F5 停止活动与排队任务。编译器可从“文件 → 选择 xlang 编译器”指定，也支持 `--compiler` 或 `XLANG_COMPILER`。开发目录会查找同仓库 `release/xl.exe`。构建与运行分别使用目标项目当前配置，也可用 `--configuration ID` 覆盖。运行会话提供 stdin/stdout 管道交互，完整系统 shell / ConPTY 仍需独立验收。参见 [构建运行说明](docs/tasks-and-toolchain.md)。
 构建配置可从项目菜单或右侧项目属性编辑，支持路径、库、运行参数和环境变量列表；每个项目独立保存当前配置。编译器选择保存到 `release/option/settings.json`，下次启动恢复。配置页使用独立草稿，取消不会修改项目。
 帮助窗格顶部提供章节选择；超过 64 章时可切换章节分组，正文在同一个中央滚动区内阅读。目录缺失或损坏会显示真实错误，修复文件后可在左侧重新加载。诊断程序支持 --help-chapter N 和 --size WIDTH HEIGHT，用于长文档与窄窗口验收。
 

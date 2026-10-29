@@ -1,2 +1,54 @@
 *.sh text eol=lf
-demo6/tools/tcc_vfs_manifest_linux_*.txt text eol=lf
+tools/tcc_vfs_manifest_linux_*.txt text eol=lf
+# Snapshot metadata hashes exact distribution bytes; keep generated single
+# headers canonical across Windows and Unix checkouts.
+/lib/xrt/xrt.h text eol=lf
+/lib/xruntime/xruntime.h text eol=lf
+/release/include/xrt_decl.h text eol=lf
+/release/include/xruntime_decl.h text eol=lf
+/res/tcc/win64/x86_64/include/imm.h text eol=lf
+/res/tcc/win64/x86_64/include/strings.h text eol=lf
+/res/tcc/win64/x86_64/include/windowsx.h text eol=lf
+/src/api/xl_xrt_symbols.inc text eol=lf
+/src/stdlib/xl6_stdlib_func_index.inc text eol=lf
+
+# 保持 Linux 门禁及跨平台黄金输出的行尾一致。
+/tools/check_extlib_mqtt.sh text eol=lf
+/release/examples/extlibs/mqtt.expected.txt text eol=lf
+/release/examples/extlibs/mqtt_tcp.expected.txt text eol=lf
+/tools/check_extlib_argon2_bloom.sh text eol=lf
+/release/examples/extlibs/argon2_basic.expected.txt text eol=lf
+/release/examples/extlibs/bloom_basic.expected.txt text eol=lf
+/tools/check_extlib_blake3.sh text eol=lf
+/release/examples/extlibs/blake3_basic.expected.txt text eol=lf
+/release/extlibs/blake3/third_party/* text eol=lf
+/release/extlibs/blake3/test/test_vectors.json text eol=lf
+/release/extlibs/blake3/test/vectors.h text eol=lf
+/tools/check_extlib_xxhash.sh text eol=lf
+/release/examples/extlibs/xxhash_basic.expected.txt text eol=lf
+/release/extlibs/xxhash/third_party/* text eol=lf
+/release/extlibs/xxhash/test/vectors.h text eol=lf
+/release/extlibs/xxhash/test/vectors.json text eol=lf
+/release/extlibs/xxhash/include/xrt_xxhash_tcc_compat.h text eol=lf
+/release/extlibs/xxhash/LICENSE text eol=lf
+/tools/check_extlib_crc32.sh text eol=lf
+/release/examples/extlibs/crc32_basic.expected.txt text eol=lf
+tools/check_extlib_md5.sh text eol=lf
+tools/check_extlib_helper_boundaries.sh text eol=lf
+release/examples/extlibs/md5_basic.expected.txt text eol=lf
+/tools/check_extlib_murmur3.sh text eol=lf
+/release/examples/extlibs/murmur3_basic.expected.txt text eol=lf
+/release/examples/extlibs/murmur3.expected.txt text eol=lf
+/release/extlibs/murmur3/test/vectors.h text eol=lf
+/release/extlibs/murmur3/test/vectors.json text eol=lf
+/release/extlibs/mysql/examples/basic.expected.txt text eol=lf
+/tools/check_extlib_sha3.sh text eol=lf
+/release/examples/extlibs/sha3_basic.expected.txt text eol=lf
+/release/examples/extlibs/sha3.expected.txt text eol=lf
+/release/extlibs/sha3/test/vectors.h text eol=lf
+/release/extlibs/sha3/test/vectors.json text eol=lf
+/release/extlibs/sha3/test/generate_vectors.mjs text eol=lf
+/tools/check_extlib_siphash.sh text eol=lf
+/release/examples/extlibs/siphash_basic.expected.txt text eol=lf
+/release/examples/extlibs/siphash.expected.txt text eol=lf
+/release/extlibs/siphash/test/reference/* text eol=lf

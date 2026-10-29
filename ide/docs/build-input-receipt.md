@@ -2,7 +2,7 @@
 
 此增量继续阶段 5/6 的递归依赖保护。IDE 任务服务现已读取同次 DEMO6 构建的实际输入记录。上一便携候选仍为 resource-rename-v2；新代码的正式构建及便携验收分别记录，不能用编译器专项代替原生 IDE 验收。
 
-编译器接口和当前边界见 [DEMO6 构建输入记录](../../demo6/docs/IDE构建输入记录.md)。`check --source-report` 是语义分析报告，不能证明稍后 `build` 读取了同一批 C 头、库和资源；构建应使用同次 `build --input-report`。
+编译器接口和当前边界见 [DEMO6 构建输入记录](../../docs/IDE构建输入记录.md)。`check --source-report` 是语义分析报告，不能证明稍后 `build` 读取了同一批 C 头、库和资源；构建应使用同次 `build --input-report`。
 
 Windows TCC 自身目录和系统库目录使用 UTF-16 接口读取，再显式转换为 UTF-8；保持非 ASCII 路径的原字节，不用 ANSI 接口或按字节小写处理。这是中文/emoji 目录中的便携编译器生成有效记录所需的修正，迁移验收单独验证。
 

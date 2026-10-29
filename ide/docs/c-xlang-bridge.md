@@ -6,7 +6,7 @@
 
 在拥有 `.xl` 入口的项目中，C 分析和补全会自动查询当前编译器的真实 ABI 声明。先选择支持 `c-bridge --json --c-environment` 的 xlang 编译器和已经验证的 clangd 23.1.0；打开项目内的 C 文件即可。打开的命名 `.xl` 草稿参加查询，无需保存或手动填写生成头。其他 C 分析配置仍可叠加。独立 C 文件沿用独立配置。
 
-本轮应用源码位于 `services/c_bridge.c`，共同输入捕获位于 `ui/c_analysis_inputs.c`。编译器接口见 [同批次查询合同](../../demo6/docs/IDE原生C声明桥接接口.md)，整体服务见 [C 语义服务](c-language-service.md)。完整 IDE 仍在实施，最新验收以 [实施进度](progress.md) 为准。
+本轮应用源码位于 `services/c_bridge.c`，共同输入捕获位于 `ui/c_analysis_inputs.c`。编译器接口见 [同批次查询合同](../../docs/IDE原生C声明桥接接口.md)，整体服务见 [C 语义服务](c-language-service.md)。完整 IDE 仍在实施，最新验收以 [实施进度](progress.md) 为准。
 
 2026-10-10 增量：支持编译器可选的真实 Windows x86-64 标量目标查询，对齐 long double 大小/对齐和有限的 TCC/Clang/GNU 身份宏。独立 C 文件及旧环境接口保留原有配置；完整预处理和 ABI 等价标记仍为 false。验收范围与失败副本见 [C 原生标量目标](c-native-scalars.md)。
 

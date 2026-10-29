@@ -1,56 +1,55 @@
 # repository-local build output
-/release/
 
-# DEMO6 generated output
-/demo6/release/*
-!/demo6/release/README.md
-!/demo6/release/include/
-!/demo6/release/include/**
-!/demo6/release/examples/
-!/demo6/release/examples/**
-!/demo6/release/extlibs/
-!/demo6/release/extlibs/**
-!/demo6/release/projects/
-!/demo6/release/projects/xs/
-!/demo6/release/projects/xs/**
-/demo6/*.exe
-/demo6/*.dll
-/demo6/*.obj
-/demo6/*.o
-/demo6/*.lib
-/demo6/*.exp
-/demo6/*.pdb
-/demo6/*.def
-/demo6/tmp_*.xl
-/demo6/op_*_capture.bmp
+# xlang generated output
+/release/*
+!/release/README.md
+!/release/include/
+!/release/include/**
+!/release/examples/
+!/release/examples/**
+!/release/extlibs/
+!/release/extlibs/**
+!/release/projects/
+!/release/projects/xs/
+!/release/projects/xs/**
+/*.exe
+/*.dll
+/*.obj
+/*.o
+/*.lib
+/*.exp
+/*.pdb
+/*.def
+/tmp_*.xl
+/op_*_capture.bmp
 
-# DEMO6 workspace-only output
-/demo6/out/
-/demo6/tmp/
-/demo6/logs/
-/demo6/blog/
-/demo6/test_min_out/
-/demo6/test_progress_cancel/
-/demo6/test_progress_out/
-/demo6/**/__pycache__/
-/demo6/**/*.py[cod]
-/demo6/dev/**/*.exe
-/demo6/dev/**/*.dll
-/demo6/dev/**/*.obj
-/demo6/dev/**/*.o
-/demo6/dev/**/*.pdb
-/demo6/dev/**/*.ilk
-/demo6/dev/deferred/xhttp/projects/procmgr/logs/*.log
-/demo6/release/projects/function_interop/build/
-/demo6/release/projects/xs/projects/
+# xlang workspace-only output
+/out/
+/tmp/
+/logs/
+/blog/
+/test_min_out/
+/test_progress_cancel/
+/test_progress_out/
+/**/__pycache__/
+/**/*.py[cod]
+/dev/**/*.exe
+/dev/**/*.dll
+/dev/**/*.obj
+/dev/**/*.o
+/dev/**/*.pdb
+/dev/**/*.ilk
+/dev/deferred/xhttp/projects/procmgr/logs/*.log
+/release/projects/function_interop/build/
+/release/projects/xs/projects/
 
-# DEMO6 parser trace output
-/demo6/src/parser/xl6_parser.out
+# xlang parser trace output
+/src/parser/xl6_parser.out
 
 # IDE runtime state
 /ide/release/option/History.json
-/demo6/examples_out
-/demo6/build
+/examples_out
+/build
 /www_build
 # xlang IDE generated output and local session state
 /ide/build/

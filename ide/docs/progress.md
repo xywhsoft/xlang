@@ -319,7 +319,7 @@ IDE 改用固定 SDK 的 xuiProxyXgePumpInput，不再合成或重复消费键�
 
 本轮最终版本的 27 个应用模块、GUI/诊断程序和测试以严格 Release 选项重建通过。执行 `test.bat -Configuration Release -SkipBuild` 的最终完整本地验收退出码为 0：20 类测试、25 张基线图、一张 IME 图、一张字体图、三张窗口图及五张 DPI 图共 35 张，SDK 混用负面检查通过，没有 XUI 错误回调。125% C、200% xlang 原生图已查看；文档的相对引用、PowerShell UTF-8 BOM 与发布/固定 SDK DLL 指纹均已核对。
 
-早先的完整 Release 回归曾通过真实 DEMO6 混编和 40 张图。随后最终复验期间，`demo6/release/xl.exe` 与 `xlc.dll` 在 2026-10-06 09:10:12/09:10:11（本地时间）被重新生成，真实构建出现 `tcc: __xlvfs__/module.c:224: error: include file '__xl_runtime/xl6_array_erased.h' not found`。独立执行该编译器构建同一 `alpha.xlp` 也以 1 退出；源树存在该头文件，当前发布工具链的虚拟运行时未提供它。IDE 将错误写入问题/输出，未运行旧产物。
+早先的完整 Release 回归曾通过真实 DEMO6 混编和 40 张图。随后最终复验期间，`release/xl.exe` 与 `xlc.dll` 在 2026-10-06 09:10:12/09:10:11（本地时间）被重新生成，真实构建出现 `tcc: __xlvfs__/module.c:224: error: include file '__xl_runtime/xl6_array_erased.h' not found`。独立执行该编译器构建同一 `alpha.xlp` 也以 1 退出；源树存在该头文件，当前发布工具链的虚拟运行时未提供它。IDE 将错误写入问题/输出，未运行旧产物。
 
 失败现场保留在 `build/tests/workspace-ui/中文 UI 工作空间/build/development/.xlang-ide-build/888e3df2-0bf3-44f7-ad55-edff3d93047f/build.log`。归档时编译器指纹未再变化：`xl.exe` SHA-256 为 `42B89FBE1F7CB58F410042ED23379271AAFDC2C4D1B7C752D892C40B1DB6498F`，`xlc.dll` 为 `06A1549AC1F53E5EAFAF74B09935B6D8041D6B8E13D2D5055B63F53C83B9B5D7`。早先通过记录不能代替这套工具链的验收，修复后需重做带 `-CompilerPath` 的完整回归。
 
@@ -334,7 +334,7 @@ IDE 改用固定 SDK 的 xuiProxyXgePumpInput，不再合成或重复消费键�
 
 UIFontService 使用无样式副作用的类型查找，避免固定 SDK 的 GetType 在每个控件遍历时反复触发整树样式重算；菜单、私有 Popup/ScrollView 内容及已打开的字体/配置弹窗作为实际根遍历，避免释放旧字体后遗留弹层引用。原生测试还在打开的配置窗格中更新字体，验证草稿保留与取消不改变项目。
 
-严格 Release 重建 GUI、诊断程序与全部测试成功；随后执行 `test.bat -Configuration Release -SkipBuild -CompilerPath D:\GIT\x-lang\demo6\release\xl.exe`，退出码 0。21 类测试、27 张基线图、五张真实任务图、一张 IME 图、一张代码字体图、三张窗口图、五张 DPI 图及两张界面字体图，共 44 张本轮新图。真实混编、任务运行、编译失败不运行旧产物、SDK 混用拒绝全部通过，没有 XUI 错误回调。浅/深色 900×600 发布程序字体页已查看，文档链接、PowerShell UTF-8 BOM 及固定/发布 SDK 指纹检查通过。
+严格 Release 重建 GUI、诊断程序与全部测试成功；随后执行 `test.bat -Configuration Release -SkipBuild -CompilerPath D:\GIT\x-lang\release\xl.exe`，退出码 0。21 类测试、27 张基线图、五张真实任务图、一张 IME 图、一张代码字体图、三张窗口图、五张 DPI 图及两张界面字体图，共 44 张本轮新图。真实混编、任务运行、编译失败不运行旧产物、SDK 混用拒绝全部通过，没有 XUI 错误回调。浅/深色 900×600 发布程序字体页已查看，文档链接、PowerShell UTF-8 BOM 及固定/发布 SDK 指纹检查通过。
 
 真实工具链已恢复。最终独立模型清单和混编清单分别在 2026-10-06 10:10:59/10:11:00 构建并运行成功，晚于 xlc.dll 在 10:10:17 的再次更新；末次核对 xl.exe SHA-256 为 `42B89FBE1F7CB58F410042ED23379271AAFDC2C4D1B7C752D892C40B1DB6498F`，xlc.dll 为 `C7374527D94503410428C0A5A246F0B73CE1804A51130551D57F9B31AF06F288`。此前 09:10 的缺失头失败记录仍保留；本次未修改编译器源码。固定与发布 xge.dll 均为 `A48E028ACFB96DB59277D820A4DBEBC482D8635FD79C63EF3DA6B00C69382784`。
 
@@ -351,7 +351,7 @@ UIFontService 使用无样式副作用的类型查找，避免固定 SDK 的 Get
 
 工作空间切换先检查点当前状态，再清理浏览状态并恢复目标作用域，包括空搜索词。显式启动项目、命令/查询和章节优先于恢复位置。树及帮助变化进入原有 750 ms 防抖，只读位置变化也会保存。分支数组用稳定键保留未知字段，重复键、坏比例、错误类型和不支持的版本拒绝完整恢复并保留原 JSON；旧 session-1 没有 reading 字段仍可恢复文档并在后续保存中升级。
 
-严格 Release 重建 GUI、诊断程序和全部测试后，执行 `test.bat -Configuration Release -CompilerPath D:\GIT\x-lang\demo6\release\xl.exe`，退出码 0：29 个独立应用模块、22 类测试、27 张基线原生图、五张真实任务图及十四张 IME/两套字体/窗口/DPI/阅读图，共 46 张完整回归图。真实 C/xlang 混编、构建运行、失败不运行旧产物和 SDK 负面检查通过，无 XUI 错误回调。两个独立发布程序跨 1280×800 与 900×600 核对长帮助块/章节身份；原生深色恢复图和两张 125% 阅读图已查看。
+严格 Release 重建 GUI、诊断程序和全部测试后，执行 `test.bat -Configuration Release -CompilerPath D:\GIT\x-lang\release\xl.exe`，退出码 0：29 个独立应用模块、22 类测试、27 张基线原生图、五张真实任务图及十四张 IME/两套字体/窗口/DPI/阅读图，共 46 张完整回归图。真实 C/xlang 混编、构建运行、失败不运行旧产物和 SDK 负面检查通过，无 XUI 错误回调。两个独立发布程序跨 1280×800 与 900×600 核对长帮助块/章节身份；原生深色恢复图和两张 125% 阅读图已查看。
 
 补充 reading_test 严格定向链接通过，并实际重启验证旧 session-1 兼容和损坏阅读元数据不部分恢复文档；同一测试还验证真实目录/文件重排、UIFont 实时与重启、窄视口重排、折叠/选择/行锚点、独立作用域、工作空间文件属性所属者、末尾、缺失身份、显式章节覆盖、仅树变化自动保存、未知字段和坏比例/重复键保护。应用业务源码在最终完整回归后未再修改。
 
@@ -368,7 +368,7 @@ UIFontService 使用无样式副作用的类型查找，避免固定 SDK 的 Get
 
 会话轮换前以原生句柄刷新正文最近引用时间，内容保持不可变。七天宽限按创建时间和最后写入/引用时间的较新者计算，因此很早创建但刚失去引用的正文也受到保护。只能在完整枚举、元数据验证及目录句柄保护后删除受支持命名的普通孤立文件；最多 20,000 个条目，不递归删除，硬链接、只读、被锁文件、连接点、陌生文件和未知备份目录均保留。成功检查点最多每小时维护一次；损坏上一份元数据时最新编辑仍可保存，清理停止。
 
-严格 Release 重建 GUI、诊断程序和全部测试通过；最近引用宽限修正后的最终完整 `test.ps1 -Configuration Release -SkipBuild -CompilerPath D:\GIT\x-lang\demo6\release\xl.exe` 回归退出码 0：30 个独立应用模块、23 类测试、46 张原生图及 SDK 负面检查。真实 DEMO6 混编、构建运行、独立 601 条 IDE 元数据清单及失败构建不运行旧产物通过，没有 XUI 错误回调。
+严格 Release 重建 GUI、诊断程序和全部测试通过；最近引用宽限修正后的最终完整 `test.ps1 -Configuration Release -SkipBuild -CompilerPath D:\GIT\x-lang\release\xl.exe` 回归退出码 0：30 个独立应用模块、23 类测试、46 张原生图及 SDK 负面检查。真实 DEMO6 混编、构建运行、独立 601 条 IDE 元数据清单及失败构建不运行旧产物通过，没有 XUI 错误回调。
 
 新增 recovery_test 使用实际 Windows 文件系统和第二个原生测试进程，验证作用域互斥、当前/上一引用、七天精确边界、刚取消引用的老正文宽限、新创建文件保护、锁定/只读/硬链接及外部链接内容、陌生文件/目录、损坏/未来格式/穿越引用、未知备份目录保护和真实 recovery 连接点拒绝。session_test 新增锁竞争时元数据不变、上一份引用轮换、损坏上一份仍保存最新编辑及维护停止/恢复验证；完整原生会话、阅读、字体、窗口和 DPI 回归也通过。
 
@@ -384,7 +384,7 @@ UIFontService 使用无样式副作用的类型查找，避免固定 SDK 的 Get
 
 原生恢复窗口加入独立 UIFont/代码字体绑定、主题、模态隔离与横向/纵向滚动。完成、失败或取消确认后回到顶部显示结果及备份路径。固定 SDK 的按钮在自己的点击处理中禁用后可能保留 disabled 绘制缓存，应用通过公开状态接口同步实际输入和缓存状态；重新启用后实际外观已核对，SDK 不改。
 
-最终通过含重建的 `tools/test.ps1 -Configuration Release -CompilerPath D:\GIT\x-lang\demo6\release\xl.exe`，退出码 0：33 个独立应用模块、25 类测试、29 张基线原生图、五张真实任务图和十七张输入/两套字体/窗口/DPI/阅读/恢复图，共 51 张。真实 C/xlang 混编、include/library/link 及运行、601 条 IDE 元数据清单、失败构建不运行旧产物和 SDK 混用负面检查通过，没有 XUI 错误回调。
+最终通过含重建的 `tools/test.ps1 -Configuration Release -CompilerPath D:\GIT\x-lang\release\xl.exe`，退出码 0：33 个独立应用模块、25 类测试、29 张基线原生图、五张真实任务图和十七张输入/两套字体/窗口/DPI/阅读/恢复图，共 51 张。真实 C/xlang 混编、include/library/link 及运行、601 条 IDE 元数据清单、失败构建不运行旧产物和 SDK 混用负面检查通过，没有 XUI 错误回调。
 
 新增 recovery_backup_test 覆盖超过 8 MiB 的损坏元数据、二进制与未来格式的原字节副本、独立正文、原生撤下/回退、锁定/取消、后台服务退出和未消费结果回退、活动过期文件真实清理后备份仍能取回，以及坏备份阻止维护。新增 recovery_view_test 在独立 Windows 桌面通过真实按钮/列表输入验证双语法未命名恢复、只读/编码保护、模态隔离、40 DIP 滚动确认、锁定失败与完整重建、结果滚动复位、实际按钮缓存状态，以及原编辑版本/未保存状态/源字节保留。最终三张恢复窗口图及浅/深色 900×600 发布程序图已查看。
 
@@ -406,7 +406,7 @@ UIFontService 使用无样式副作用的类型查找，避免固定 SDK 的 Get
 
 “视图 → 磁盘变化…”提供列表、路径/原因、当前内容与实际磁盘正文的只读比较。C/xlang 使用真实双语法；清单比较还显示当前模型和未应用属性草稿。重载先确认，再核对观察序号、文档版本与实际模型/属性草稿；变化取消旧确认。取消、保留和重载不写源文件。弹窗适配浅/深主题、两套字体、40 DIP 及两向滚动；正常 Dock 与单栏命令帮助保留。
 
-最终含严格 Release 重建的 `tools/test.ps1 -Configuration Release -CompilerPath D:\GIT\x-lang\demo6\release\xl.exe` 退出码 0：36 个独立应用模块、28 类测试、29 张基线图、五张真实任务图和二十一张输入/字体/窗口/DPI/阅读/恢复/磁盘比较图，共 55 张。真实 DEMO6 C/xlang 混编、include/library/link、中文路径构建运行、601 条 IDE 元数据清单、失败构建不运行旧产物和 SDK 混用负面检查通过。最终四张磁盘比较图已经查看并随文档保存。
+最终含严格 Release 重建的 `tools/test.ps1 -Configuration Release -CompilerPath D:\GIT\x-lang\release\xl.exe` 退出码 0：36 个独立应用模块、28 类测试、29 张基线图、五张真实任务图和二十一张输入/字体/窗口/DPI/阅读/恢复/磁盘比较图，共 55 张。真实 DEMO6 C/xlang 混编、include/library/link、中文路径构建运行、601 条 IDE 元数据清单、失败构建不运行旧产物和 SDK 混用负面检查通过。最终四张磁盘比较图已经查看并随文档保存。
 
 新增 `file_watch_test` 验证实际内核通知、Unicode 路径的另一个原生进程写入、同长度修改、原子替换、硬链接、删除/恢复、缺失父目录、72 个目录、空订阅、订阅取消、重复令牌拒绝、4,096 条数量边界及 128 MiB 正文队列边界和溢出后的重新核对。新订阅打断旧的 1,024 个大文件读取，退出期间取消 I/O。测试等待实际 READY 正文，避免把外部原子替换短暂共享冲突误当作要确认的磁盘正文。
 
@@ -428,7 +428,7 @@ CodeEdit 焦点目标先于根快捷键处理，应用在公开目标 KEY_DOWN �
 
 原生右键菜单加入界面字体重绑及失败回滚。公共属性按钮同步 enabled 与实际绘制缓存；任务输入可用状态从服务及进程的真实关闭/取消/结束标志获取，线程仍不操作 UI。已派发动作仅表示交给处理器，取消和业务失败不被报告为保存成功。
 
-最终含严格 Release 重建的 tools/test.ps1 -Configuration Release -CompilerPath D:\GIT\x-lang\demo6\release\xl.exe 退出码 0：37 个独立应用模块、29 类测试、29 张基线图、五张真实任务图及二十四张独立原生图，共 58 张。真实 DEMO6 C/xlang 混编、include/library/link、中文路径运行、601 条 IDE 元数据清单、失败构建不运行旧产物和 SDK 混用负面检查通过，没有 XUI 错误回调。
+最终含严格 Release 重建的 tools/test.ps1 -Configuration Release -CompilerPath D:\GIT\x-lang\release\xl.exe 退出码 0：37 个独立应用模块、29 类测试、29 张基线图、五张真实任务图及二十四张独立原生图，共 58 张。真实 DEMO6 C/xlang 混编、include/library/link、中文路径运行、601 条 IDE 元数据清单、失败构建不运行旧产物和 SDK 混用负面检查通过，没有 XUI 错误回调。
 
 新增 actions_test 在未切换到前台的独立 Windows 桌面使用真实 XGE/XUI 与 125% 比例，检查 ID/名称/快捷键唯一性、重排条目仍按 ID 更新、菜单/工具栏/按钮及编辑目标/右键执行、只读保护和 C/xlang 标记。普通属性字段 Ctrl+Z 不改代码文档，DLL 启动项目即使条目被强制启用也无法排队运行；实际 F5 构建运行启动项目时保留另一个所选项目；关闭 stdin 后写入被拒绝，模态草稿打开时 Shift+F5 实际终止子进程。字体成功更换、锁定设置后的回滚与真实按钮缓存均验证。测试中的编译器为进程夹具，真实 DEMO6 在完整回归单独验证。
 
@@ -446,7 +446,7 @@ CodeEdit 焦点目标先于根快捷键处理，应用在公开目标 KEY_DOWN �
 
 字段修改尚未按添加/更新加入列表时，应用保留窗口和原输入并明确提示；该遗漏在最终审查中由实际流程复现后修正并回归。未知现有种类可更新保留，新建选择明确文件种类或 package。过期项目基线、已打开清单的未保存正文及未应用右侧属性继续受到保护。引用提交保存库稳定选择和树阅读；真实外部清单在模态期间暂缓协调，取消后恢复有效磁盘模型。新窗格加入既有动作/模态、UIFont 绑定与回滚、DPI 布局和两向滚动。
 
-最终含严格 Release 重建的 tools/test.ps1 -Configuration Release -CompilerPath D:\GIT\x-lang\demo6\release\xl.exe 退出码 0：38 个独立应用模块、30 类测试、29 张基线、五张真实任务和二十七张独立原生图，共 61 张。C/xlang 混编、include/library/link、中文路径运行、601 条 IDE 元数据清单、失败构建不运行旧产物、SDK 混用负面检查及全部原生绘制通过，没有 XUI 错误回调。
+最终含严格 Release 重建的 tools/test.ps1 -Configuration Release -CompilerPath D:\GIT\x-lang\release\xl.exe 退出码 0：38 个独立应用模块、30 类测试、29 张基线、五张真实任务和二十七张独立原生图，共 61 张。C/xlang 混编、include/library/link、中文路径运行、601 条 IDE 元数据清单、失败构建不运行旧产物、SDK 混用负面检查及全部原生绘制通过，没有 XUI 错误回调。
 
 新增 references_test 验证 324 条引用、事务/无变化/编码/入口/硬链接保护、未知字段、相对路径另存为、真正项目属性按钮、分类/列表/重排及库稳定选择、取消/过期/脏清单/未更新字段、普通输入快捷键、实际外部清单暂停/恢复，以及 125% 比例、40 DIP 窄逻辑视口和两向滚动的原生输入。指定真实编译器时通过真实任务服务构建并运行 C/xlang 项目，随后 Windows 版本 API 从实际生成 EXE 读取 2.3.4.5，验证编译资源生效。普通资源故意使用非 JSON，库包含未导入包，二者未被隐式编译或导入。
 
@@ -462,7 +462,7 @@ CodeEdit 焦点目标先于根快捷键处理，应用在公开目标 KEY_DOWN �
 
 创建准备无磁盘写入，提交先预分配模型内存，在独立暂存目录 CREATE_NEW 写入并刷新，记录物理身份、关闭子文件后以持有的目录句柄重命名，禁止覆盖已有目标。失败仅清理自身已知文件，无法清理时明确显示暂存位置，不递归删除陌生内容。完整模型基线深拷贝阻止过期提交，未应用属性与未保存工作空间清单正文受到保护；文件监视继续接收通知，模态关闭后协调实际有效清单。
 
-完整 tools/test.ps1 -Configuration Release -CompilerPath D:\GIT\x-lang\demo6\release\xl.exe 严格重建及回归退出码 0：40 个独立应用模块、32 类测试、29 张基线、五张真实任务和三十张独立原生图，共 64 张。四种模板均经真实 DEMO6 构建；三个应用实际运行，混合模板调用真实 C extern 函数，DLL 经 LoadLibraryW/GetProcAddress 验证实际导出函数的正负整数调用。已有真实 PE 资源、混编/链接、601 条 IDE 文件元数据、失败构建不运行旧输出及 SDK 混用负面检查继续通过。
+完整 tools/test.ps1 -Configuration Release -CompilerPath D:\GIT\x-lang\release\xl.exe 严格重建及回归退出码 0：40 个独立应用模块、32 类测试、29 张基线、五张真实任务和三十张独立原生图，共 64 张。四种模板均经真实 DEMO6 构建；三个应用实际运行，混合模板调用真实 C extern 函数，DLL 经 LoadLibraryW/GetProcAddress 验证实际导出函数的正负整数调用。已有真实 PE 资源、混编/链接、601 条 IDE 文件元数据、失败构建不运行旧输出及 SDK 混用负面检查继续通过。
 
 template_test 验证 Unicode/emoji、稳定身份、完整内容与清单往返、预览无写盘、名称/设备/编码/路径保护、已有文件/目录、预览后竞争、父目录共享锁失败和工作空间保持。template_view_test 验证真实菜单/选择/按钮、只读 C/xlang/清单预览、当前版本 token、预览清单与实际文件逐字节一致、取消、默认/保留/实际勾选启动项目、文档和普通输入隔离、深拷贝基线、脏 JSON/属性保护、外部清单通知延后/恢复、两套字体失败回滚、125% 与 40 DIP 窄逻辑视口下两向滚动及实际创建；新增三张图均来自这次完整回归。
 
@@ -486,7 +486,7 @@ template_test 验证 Unicode/emoji、稳定身份、完整内容与清单往返�
 
 修正了干净文档另存为不同硬链接路径时误判为无变化的问题；现仅在完全相同规范化路径时快速返回，另一个拼写实际保存并绑定新路径。提交使受影响项目的旧构建失效，新文件路径触发监视重新订阅，会话按当前路径保存。
 
-完整严格重建的 tools/test.ps1 -Configuration Release -CompilerPath D:\GIT\x-lang\demo6\release\xl.exe 退出码 0：41 个独立应用模块、33 类测试、29 张基线、五张真实任务和三十二张独立原生图，共 66 张。file_rebind_test 在后台独立桌面验证共享入口/C/头文件/资源/工作空间文件与硬链接、准备无写盘、稳定身份和未知字段、树/启动项目保留、实际锁定目标的原子失败、种类/重复/打开目标/清单/模态保护、保存结果计划清理、干净物理别名另存为、原文件字节、独立文档语法切换、选区/撤销/会话、新路径的实际外部修改和正在构建的旧请求失效。真实 DEMO6 使用更新清单中的新入口、C 源及资源配置构建并运行成功；既有模板/DLL、资源版本、混编/链接、601 文件元数据清单、失败构建与 SDK 负面检查继续通过。
+完整严格重建的 tools/test.ps1 -Configuration Release -CompilerPath D:\GIT\x-lang\release\xl.exe 退出码 0：41 个独立应用模块、33 类测试、29 张基线、五张真实任务和三十二张独立原生图，共 66 张。file_rebind_test 在后台独立桌面验证共享入口/C/头文件/资源/工作空间文件与硬链接、准备无写盘、稳定身份和未知字段、树/启动项目保留、实际锁定目标的原子失败、种类/重复/打开目标/清单/模态保护、保存结果计划清理、干净物理别名另存为、原文件字节、独立文档语法切换、选区/撤销/会话、新路径的实际外部修改和正在构建的旧请求失效。真实 DEMO6 使用更新清单中的新入口、C 源及资源配置构建并运行成功；既有模板/DLL、资源版本、混编/链接、601 文件元数据清单、失败构建与 SDK 负面检查继续通过。
 
 新夹具首次已完成断言却遗漏主循环退出，达到既有 90 秒守卫退出 1；已补 xgeQuit，再次定向及完整验收均正常退出 0，没有放宽超时。两张实际原生图来自本次完整回归，已经查看并保存；完整日志为 build/file-rebind-full-regression.log。此前模板及窗口内存失败记录保留。
 
@@ -506,7 +506,7 @@ template_test 验证 Unicode/emoji、稳定身份、完整内容与清单往返�
 
 首次完整回归在新增只读源断言处停止：当前 Windows 句柄重命名实际上允许只读文件移动，故改为后端显式拒绝只读源，不改原属性。该失败保留于 build/rename-readonly-guard-failure.log；修正后定向真实工具链验收与最终完整严格重建均通过。未放宽断言，未把此前较窄的定向通过当作完整通过。
 
-最终 tools/test.ps1 -Configuration Release -CompilerPath D:\GIT\x-lang\demo6\release\xl.exe 退出码 0，包含 43 模块、34 类测试、29 张基线图、五张真实任务图及三十五张独立原生图，共 69 张。rename_test 验证脏/干净 C/xlang、文件身份/字节/BOM/CRLF、稳定 ID/版本/选区/折叠/撤销、共享引用/未知字段/树选择、目标竞争与锁定/只读/外部变化、过期模型/文档/草稿/清单/模态、实际菜单/F2/字段/按钮、大小写与独立语法切换、字体回滚及 40 DIP 小窗口双向滚动。真实 DEMO6 用改名后的入口/C/头文件引用/资源清单构建运行通过；既有模板/DLL、PE 版本、601 文件、混编链接与失败构建保护继续通过。完整日志为 build/rename-full-regression.log，三张新图已经查看并保存。
+最终 tools/test.ps1 -Configuration Release -CompilerPath D:\GIT\x-lang\release\xl.exe 退出码 0，包含 43 模块、34 类测试、29 张基线图、五张真实任务图及三十五张独立原生图，共 69 张。rename_test 验证脏/干净 C/xlang、文件身份/字节/BOM/CRLF、稳定 ID/版本/选区/折叠/撤销、共享引用/未知字段/树选择、目标竞争与锁定/只读/外部变化、过期模型/文档/草稿/清单/模态、实际菜单/F2/字段/按钮、大小写与独立语法切换、字体回滚及 40 DIP 小窗口双向滚动。真实 DEMO6 用改名后的入口/C/头文件引用/资源清单构建运行通过；既有模板/DLL、PE 版本、601 文件、混编链接与失败构建保护继续通过。完整日志为 build/rename-full-regression.log，三张新图已经查看并保存。
 
 完整回归前后 xl.exe SHA-256 均为 42B89FBE1F7CB58F410042ED23379271AAFDC2C4D1B7C752D892C40B1DB6498F，xlc.dll 均为 097DC5E847B183575DDA53EE8EFA292DEC67BAB9DB36319E598D5F8B86240C7B；固定和发布 xge.dll 同为 A48E028ACFB96DB59277D820A4DBEBC482D8635FD79C63EF3DA6B00C69382784。本增量未修改编译器和 SDK，历史记录保留。
 
@@ -524,7 +524,7 @@ template_test 验证 Unicode/emoji、稳定身份、完整内容与清单往返�
 
 专项新测试先修正了夹具清单基线、模态期间的服务级文档打开和 UTF-8 选区边界；硬链接磁盘事务实际成功，错误选区断言已修正为完整字符边界。真实编译器验收在既有文件协调完成后启动，旧事件失效保护继续有效；没有放宽原产品断言或修改 SDK/编译器。
 
-最终 tools/test.ps1 -Configuration Release -CompilerPath D:\GIT\x-lang\demo6\release\xl.exe 退出码 0：43 模块、35 类测试、29 张基础图、五张真实任务图、三十七张独立原生图，共 71 张新鲜图，SDK 负面检查通过。tree_rename_test 验证 20 MiB 二进制已知摘要、不打开标签、保留另一脏文档、同长度修改后恢复时间戳、同字节原子替换、目标/源锁/只读/过期状态与脏清单保护、共享二进制与实际所选 C 硬链接、稳定 ID/未知字段/选区/撤销/会话、真实树 F2/项目菜单及未打开入口/头文件/资源改名。真实 DEMO6 使用新引用构建运行通过；既有当前文档重命名及全部旧测试通过。完整日志为 build/tree-rename-full-regression.log，指纹与新鲜图起点保存在 build/tree-rename-full-evidence.json，两张新增原图已查看并随文档保存。
+最终 tools/test.ps1 -Configuration Release -CompilerPath D:\GIT\x-lang\release\xl.exe 退出码 0：43 模块、35 类测试、29 张基础图、五张真实任务图、三十七张独立原生图，共 71 张新鲜图，SDK 负面检查通过。tree_rename_test 验证 20 MiB 二进制已知摘要、不打开标签、保留另一脏文档、同长度修改后恢复时间戳、同字节原子替换、目标/源锁/只读/过期状态与脏清单保护、共享二进制与实际所选 C 硬链接、稳定 ID/未知字段/选区/撤销/会话、真实树 F2/项目菜单及未打开入口/头文件/资源改名。真实 DEMO6 使用新引用构建运行通过；既有当前文档重命名及全部旧测试通过。完整日志为 build/tree-rename-full-regression.log，指纹与新鲜图起点保存在 build/tree-rename-full-evidence.json，两张新增原图已查看并随文档保存。
 
 完整回归前后 xl.exe SHA-256 为 42B89FBE1F7CB58F410042ED23379271AAFDC2C4D1B7C752D892C40B1DB6498F，xlc.dll 为 097DC5E847B183575DDA53EE8EFA292DEC67BAB9DB36319E598D5F8B86240C7B；固定/发布 xge.dll 为 A48E028ACFB96DB59277D820A4DBEBC482D8635FD79C63EF3DA6B00C69382784，均保持一致。本增量仅新增系统 BCrypt 依赖，未改工具链和 SDK。
 
@@ -540,7 +540,7 @@ template_test 验证 Unicode/emoji、稳定身份、完整内容与清单往返�
 
 project_migration_test 使用真实文件系统验证清单重命名、跨父目录移动、嵌套清单移出、模型/结构/磁盘过期保护、源根真实替换、目标竞争、目录读取锁、只读、大小写改名、同名与重复提交。20 MiB 未列入工程的二进制保持字节与身份，外部硬链接及相似路径前缀不误迁移。真实 DEMO6 重新构建并运行原项目、共享项目与嵌套项目通过。目录锁夹具使用真实读取访问；大小写请求保留原拼写，并以实际磁盘名称核对。
 
-严格完整 tools/test.ps1 -Configuration Release -CompilerPath D:\GIT\x-lang\demo6\release\xl.exe 退出码 0：44 模块、36 类测试、47 公共动作、29 张基线图、五张真实任务图及三十七张独立原生图，共 71 张新鲜图，SDK 负面检查通过。完整日志 build/project-migration-backend-full-regression.log，时间与指纹 build/project-migration-backend-full-evidence.json。现有当前文档/工程树改名、双语法、布局、恢复与文件协调回归通过；未把后端测试当作迁移 GUI 验收。
+严格完整 tools/test.ps1 -Configuration Release -CompilerPath D:\GIT\x-lang\release\xl.exe 退出码 0：44 模块、36 类测试、47 公共动作、29 张基线图、五张真实任务图及三十七张独立原生图，共 71 张新鲜图，SDK 负面检查通过。完整日志 build/project-migration-backend-full-regression.log，时间与指纹 build/project-migration-backend-full-evidence.json。现有当前文档/工程树改名、双语法、布局、恢复与文件协调回归通过；未把后端测试当作迁移 GUI 验收。
 
 回归前后 xl.exe SHA-256 为 42B89FBE1F7CB58F410042ED23379271AAFDC2C4D1B7C752D892C40B1DB6498F，xlc.dll 为 097DC5E847B183575DDA53EE8EFA292DEC67BAB9DB36319E598D5F8B86240C7B，固定/发布 xge.dll 为 A48E028ACFB96DB59277D820A4DBEBC482D8635FD79C63EF3DA6B00C69382784，均保持一致；没有修改 SDK 或编译器。
 
@@ -556,7 +556,7 @@ project_migration_test 使用真实文件系统验证清单重命名、跨父目
 
 专项夹具最初直接修改原清单基线却没有写回磁盘/标记元数据待保存，造成已有外部协调重载；已对齐夹具前置条件。新树键检查另误用 free 释放 XRT JSON 字符串，修正为 xrtFree 并为普通所有权列表复制；两项均未放宽产品断言或修改 SDK。修正后定向原生及真实 DEMO6 通过，最终完整回归通过。
 
-严格完整 tools/test.ps1 -Configuration Release -CompilerPath D:\GIT\x-lang\demo6\release\xl.exe 退出码 0：44 模块、37 类测试、49 动作、29 张基线图、五张任务图及三十九张独立原生图，共 73 张新鲜图，SDK 负面检查通过。project_migration_view_test 验证实际菜单/按钮、过期全部文档/模型、同字节源清单原子替换、未保存清单、目标恢复文档、目录锁、共享引用、稳定树、C/xlang/未命名与其他活动编辑状态、旧任务失效、新路径外部修改、125% /40 DIP 滚动和两种会话作用域的实际重启。原项目与共享混编项目用真实 DEMO6 重新构建运行，其他 36 类回归继续通过。
+严格完整 tools/test.ps1 -Configuration Release -CompilerPath D:\GIT\x-lang\release\xl.exe 退出码 0：44 模块、37 类测试、49 动作、29 张基线图、五张任务图及三十九张独立原生图，共 73 张新鲜图，SDK 负面检查通过。project_migration_view_test 验证实际菜单/按钮、过期全部文档/模型、同字节源清单原子替换、未保存清单、目标恢复文档、目录锁、共享引用、稳定树、C/xlang/未命名与其他活动编辑状态、旧任务失效、新路径外部修改、125% /40 DIP 滚动和两种会话作用域的实际重启。原项目与共享混编项目用真实 DEMO6 重新构建运行，其他 36 类回归继续通过。
 
 完整日志 build/project-migration-ui-full-regression.log，时间与指纹 build/project-migration-ui-full-evidence.json。回归前后 xl.exe SHA-256 为 42B89FBE1F7CB58F410042ED23379271AAFDC2C4D1B7C752D892C40B1DB6498F，xlc.dll 为 097DC5E847B183575DDA53EE8EFA292DEC67BAB9DB36319E598D5F8B86240C7B，固定/发布 xge.dll 为 A48E028ACFB96DB59277D820A4DBEBC482D8635FD79C63EF3DA6B00C69382784，均保持一致；未修改工具链或 SDK。
 
@@ -600,7 +600,7 @@ project_migration_test 使用真实文件系统验证清单重命名、跨父目
 
 resource_view_test 验证真实菜单、右侧属性按钮、配置选择、空字段鼠标/键盘输入、只读预览、取消/无变化/未应用字段、一次撤销重做、BOM/CRLF、未保存正文、坏配置提示和原正文保护，以及项目、打开文档、磁盘内容和同字节文件身份替换的冲突。125% DPI、40 DIP 窄视口两向滚动通过，三张资源图已保存。真实 JSON 与有类型 XLON 均经 C/xlang 混编和运行，Windows API 读到 9.8.7.6 版本、图标组/图标和精确清单字节；路径、文本及 Base64 素材已覆盖。
 
-固定 xge.dll 与原有 2098 文件 DEMO6 验收快照的前后指纹一致，继续使用上轮记录的快照与 DLL 指纹；共享 demo6/release 不写入。固定 SDK 只导出基础 Base64 解码接口，资源模型使用该接口而不引入第二份 XRT。空 TextEdit 使用原生背景/提示与按实际正文切换的缓存，正常素材正文和预览已实际检查。
+固定 xge.dll 与原有 2098 文件 DEMO6 验收快照的前后指纹一致，继续使用上轮记录的快照与 DLL 指纹；共享 release 不写入。固定 SDK 只导出基础 Base64 解码接口，资源模型使用该接口而不引入第二份 XRT。空 TextEdit 使用原生背景/提示与按实际正文切换的缓存，正常素材正文和预览已实际检查。
 
 首次完整回归因 D 盘只剩约 13 MiB，在原有 file_watch_test 的 16 MiB 写入处失败，记录保留为 resource-properties-low-disk-regression.log/evidence.json。44 个旧合成大文件先压缩并逐项 SHA 验证，再逐文件清理，约 808 MiB 原数据归档为 2.32 MiB；可恢复归档和清单位于 ide/build/old-large-test-fixtures-20261006.zip 与 old-large-test-fixtures-archive.json，历史图片、记录、源码和工具链均保留。空间恢复后的完整回归通过，补充错误提示后再次最终重建也通过。
 
@@ -612,7 +612,7 @@ resource_view_test 验证真实菜单、右侧属性按钮、配置选择、空�
 
 最终严格完整 Release/CompilerPath 回归退出码 0：40 类测试，29 基线图、5 真实任务图、48 独立原生图，共 82 张新鲜图及 SDK 负面检查。开始 UTC 为 2026-10-06T14:52:04.7038985Z，完成为 2026-10-06T14:58:51.2972191Z；日志 build/library-references-full-regression.log，证据 library-references-full-evidence.json，逐项检查 library-references-final-verification.json。references_test 新增 Unicode/BOM、入口/环境/编译器上级 extlibs 顺序、明确路径、版本差异、缺失源、坏字段/NUL、未知库种类、静态文档发现及 40 DIP 检查结果滚动；真实 C/xlang 混编、运行和 PE 版本资源继续通过。
 
-固定 SDK 与原有 2098 文件 DEMO6 快照逐项保持一致，继续使用 import-ui-compiler-snapshot.json 和已记录指纹；共享 demo6/release 未写入。固定 DLL 未导出头文件中的 xrtEnvGet，包环境读取使用 Windows Unicode 接口，不引入其他 XRT 实现。首次完整重建在 GCC 为现有 configuration_view.c 分配约 8 MiB 时失败，尚未进入回归测试；证据保留为 library-references-gcc-memory-regression.log/evidence.json。随后按相同编译/测试标准重试成功，没有终止其他进程或修改系统配置。
+固定 SDK 与原有 2098 文件 DEMO6 快照逐项保持一致，继续使用 import-ui-compiler-snapshot.json 和已记录指纹；共享 release 未写入。固定 DLL 未导出头文件中的 xrtEnvGet，包环境读取使用 Windows Unicode 接口，不引入其他 XRT 实现。首次完整重建在 GCC 为现有 configuration_view.c 分配约 8 MiB 时失败，尚未进入回归测试；证据保留为 library-references-gcc-memory-regression.log/evidence.json。随后按相同编译/测试标准重试成功，没有终止其他进程或修改系统配置。
 
 当前检查只描述候选清单和声明文件，真实源码 import、递归依赖、版本约束、链接/DLL 可用性仍由构建确认。首个坏清单不会被其他候选替代为成功结果；内置模块不能因无磁盘包清单判为不可用。同步检查及慢存储性能、真正依赖图仍待继续。使用与原生图片见 [工程引用与包文档](project-references.md)。长期目标继续进行，下一步推进工具链版本/能力和真实语言服务，随后继续资源创建/新 XLON、全局修复、编辑动作、实体输入/DPI、性能和发布。
 
@@ -654,7 +654,7 @@ language_view_test 在独立未切换桌面验证原生菜单、可选择节点�
 
 parser/import/semantic 诊断携带真实文件标签，共享引用计数 AST 来源经过导入移动和类型克隆保留，同位置同消息的不同文件不合并。此次没有宣称完整起止范围、符号/类型/定义查询。GUI 与独立 stdio 服务仍使用此前保存后单入口检查；未保存依赖版本、分文件发布、取消/过期结果和重启全文同步须继续接入和验收，现有服务仍声明 unsavedDependencies=false。
 
-所有编译在独立源码副本 build/source-overlay-compiler-68a34a78-e085-4c64-8662-9a061ea10315 内完成，未写共享 demo6/release 的三个核心产物。最终构建开始 UTC 为 2026-10-06T17:28:40.7462742Z，完成为 2026-10-06T17:34:52.0245791Z，退出码 0；日志 source-overlay-final-compiler-build.log，证据 source-overlay-final-build-evidence.json。新的 2098 文件运行快照为 build/toolchains/demo6-overlay-33e4287c-17cf-4870-97b1-6498cb92e089，共 177008293 字节，逐项复制后校验并再次执行覆盖质量门；manifest 为 source-overlay-toolchain-snapshot.json。旧 2098 文件快照、固定 SDK 和六份历史导入夹具继续保持原字节。
+所有编译在独立源码副本 build/source-overlay-compiler-68a34a78-e085-4c64-8662-9a061ea10315 内完成，未写共享 release 的三个核心产物。最终构建开始 UTC 为 2026-10-06T17:28:40.7462742Z，完成为 2026-10-06T17:34:52.0245791Z，退出码 0；日志 source-overlay-final-compiler-build.log，证据 source-overlay-final-build-evidence.json。新的 2098 文件运行快照为 build/toolchains/demo6-overlay-33e4287c-17cf-4870-97b1-6498cb92e089，共 177008293 字节，逐项复制后校验并再次执行覆盖质量门；manifest 为 source-overlay-toolchain-snapshot.json。旧 2098 文件快照、固定 SDK 和六份历史导入夹具继续保持原字节。
 
 原生 public API 与 CLI 的 20 组质量门全部通过。包括入口/二级依赖、虚拟新文件、解析/语义来源、同位置跨文件错误、递归源码包、撤销和工作目录、Unicode 大小写别名、失败更新、文件/总量上限及并发上下文；真实虚拟源码 Cgen、构建可执行文件和 run 通过，全部原文件/工具链 SHA-256 保持。构建副本证据在 build/test/source-overlay-3579ced0-fefc-48e9-85ff-46d87526ba2e/evidence.json，新运行快照复测在 source-overlay-77b5c22c-95dc-4582-a14f-d60f22059ac0/evidence.json。
 
@@ -664,7 +664,7 @@ parser/import/semantic 诊断携带真实文件标签，共享引用计数 AST �
 
 首轮原生覆盖全部断言通过后，宿主提前 FreeLibrary 导致退出崩溃；最小对照证明旧、新 XRT DLL 均有该限制。质量门改为按产品独立服务进程的生命周期保留 DLL，随后真实退出码通过；原失败与 compiler-unload-probe-evidence.json 保留。固定运行快照不用于证明这些既有边界已解决。
 
-接口与可重复运行命令见 [DEMO6 IDE 源码覆盖接口](../../demo6/docs/IDE源码覆盖接口.md)。长期目标继续进行：下一步补齐加载依赖观测与服务版本关联，将未保存全文接到编译快照和 GUI，再实现完整来源/符号/类型查询、大纲、悬停、语义补全、定义及 C 语义，后续继续全局恢复修复、编辑动作、资源创建/新 XLON、实体输入/DPI、性能和发布。
+接口与可重复运行命令见 [DEMO6 IDE 源码覆盖接口](../../docs/IDE源码覆盖接口.md)。长期目标继续进行：下一步补齐加载依赖观测与服务版本关联，将未保存全文接到编译快照和 GUI，再实现完整来源/符号/类型查询、大纲、悬停、语义补全、定义及 C 语义，后续继续全局恢复修复、编辑动作、资源创建/新 XLON、实体输入/DPI、性能和发布。
 
 本轮接线守门通过：C fixture core 为 1051 个入口、23 个包夹具；source wiring 为 327 份源文件、217 份直接编译、109 份 include、1 份 embedded 和 2 份生成直接源。最终逐项复核见 build/source-overlay-final-verification.json。
 
@@ -674,7 +674,7 @@ parser/import/semantic 诊断携带真实文件标签，共享引用计数 AST �
 
 报告在检查内局部拥有最多 512 路径、8 MiB/文件、64 MiB 正文；同句柄取得身份/字节，重复加载共用首次不可变快照，输出前复核全部磁盘输入。改写、删除和同内容原子替换均拒绝旧结果。严拒坏 UTF-8、NUL、冲突 BOM、非普通文件、超量和不稳定读取，明确返回 complete=false/ok=false/source-report；解析或语义失败可以同时拥有完整的读取报告。包候选中实际读取的有效 UTF-8 描述文件也保留；未读取覆盖不列入。
 
-独立源码构建目录为 build/source-report-compiler-8f24d4c5-9a83-4492-8e17-d72b4adb9e47，未写共享 demo6/release 的三个核心产物。最终重新生成 runtime/compiler VFS 后完整构建退出码 0，开始 UTC 2026-10-06T18:15:21.9464281Z，结束 18:21:38.5014708Z；日志 source-report-final-compiler-build.log，证据 source-report-final-build-evidence.json。初始完整构建 source-report-compiler-build.log、source-report-build-evidence.json 保留；没有使用只更新 shell 却仍含旧嵌入源码的状态作为最终结果。
+独立源码构建目录为 build/source-report-compiler-8f24d4c5-9a83-4492-8e17-d72b4adb9e47，未写共享 release 的三个核心产物。最终重新生成 runtime/compiler VFS 后完整构建退出码 0，开始 UTC 2026-10-06T18:15:21.9464281Z，结束 18:21:38.5014708Z；日志 source-report-final-compiler-build.log，证据 source-report-final-build-evidence.json。初始完整构建 source-report-compiler-build.log、source-report-build-evidence.json 保留；没有使用只更新 shell 却仍含旧嵌入源码的状态作为最终结果。
 
 报告原生/CLI 22 项质量门通过，快照宿主还确定性覆盖首次正文、BOM/CRLF、改写后重复读取、同内容替换、删除、编码/目录与 512/8 MiB/64 MiB 边界。公开 API 验证磁盘/字符串入口、撤销、未读覆盖、并发上下文隔离和真实错误文件；CLI 覆盖递归磁盘/覆盖组合、包依赖/重复描述加载、语义/解析报告、选项退出状态与参数值/分隔符。证据为 build/test/source-report-23b5cf81-79a8-4e81-9099-c7d9638bbf0e/evidence.json。旧源码覆盖 20 项质量门在最终编译器下再次通过，包括真实 Cgen/build/run，证据 source-overlay-3d988860-eaf6-439b-b929-a56fbf834b0b/evidence.json。
 
@@ -684,7 +684,7 @@ parser/import/semantic 诊断携带真实文件标签，共享引用计数 AST �
 
 新的运行快照为 build/toolchains/demo6-report-62c1fc92-bdc8-48f6-a884-986f21154622，2098 文件、177026428 字节；逐项复制并核对全部 SHA-256，manifest source-report-toolchain-snapshot.json。复制后的 22 项报告门再次通过，证据 source-report-eb1b40db-3e01-4169-b803-2cc96f5a1b9a/evidence.json。两个历史 2098 文件快照、固定 SDK 和共享核心产物原字节保持；六份历史夹具与旧完整基线仅做复核，另存 source-report-language-baseline-verification.json。C fixture core 为 1053 个入口/23 个包，source wiring 为 328 份源、218 direct、109 included、1 embedded、2 generated direct。
 
-报告和 IDE 文档本地链接检查通过；最终逐项复核见 build/source-report-final-verification.json，协议与可重复命令见 [源码覆盖与来源报告接口](../../demo6/docs/IDE源码覆盖接口.md)。GUI/stdio 仍为保存后的 `.xl` 单入口，unsavedDependencies=false 保持。下一增量需观察缺失候选/目录优先级及相关环境，接入所有打开 `.xl` 文档的全文/版本快照和分文件诊断，处理依赖修改/关闭、发布前复核与服务重启；真实来源范围/符号/类型、大纲/悬停/语义补全/定义、C 语义、全局恢复修复、更多编辑动作、资源创建/完整新 XLON、实体输入/DPI、性能和首版发布继续属于长期目标。
+报告和 IDE 文档本地链接检查通过；最终逐项复核见 build/source-report-final-verification.json，协议与可重复命令见 [源码覆盖与来源报告接口](../../docs/IDE源码覆盖接口.md)。GUI/stdio 仍为保存后的 `.xl` 单入口，unsavedDependencies=false 保持。下一增量需观察缺失候选/目录优先级及相关环境，接入所有打开 `.xl` 文档的全文/版本快照和分文件诊断，处理依赖修改/关闭、发布前复核与服务重启；真实来源范围/符号/类型、大纲/悬停/语义补全/定义、C 语义、全局恢复修复、更多编辑动作、资源创建/完整新 XLON、实体输入/DPI、性能和首版发布继续属于长期目标。
 
 最终源码复核发现并行工作的 class-text 运行库新增，保留 `xl_api_symbols.c` 的头文件引用及 Windows/Linux/public-driver 三份构建清单中的新源项。本轮隔离副本在新增前捕获，21 份报告相关源码中 17 份与当前字节相同，其余四份仅相差该独立新增，报告补丁逐项一致；差异证据 source-report-concurrent-deltas.json。source-report-changes.diff 以已验收源码副本记录本轮 C 改动，避免把后续并行新增算作本轮验证；当前工作区未被快照覆盖。本轮 328 份 source wiring 数量为复制/检查时的范围，不宣称该后续运行库功能已构建或验收。
 
@@ -704,13 +704,13 @@ IDE 仅在所选编译器实际声明 check 范围的覆盖/报告选项时启�
 
 最终 44 项真实/受控 stdio 检查全部通过：脏入口/依赖、递归虚拟文件、同错误跨文件、未使用打开文档清空、Unicode/非 BMP/CRLF 和 URI 保留、全批次修改/关闭失效、版本/路径/正文边界、损坏来源/候选报告、工具链/磁盘/环境变化、取消、重启全文同步与繁忙服务异常退出清理。受控输出先通过有效基线，再分别注入损坏项。日志 snapshot-check-protocol-final44-gate.log，证据 build/targeted/snapshots-9faae16e-2d6d-453f-9a25-7feabd33f660/evidence.json。强制结束测试包含编译器仍持有真实快照读句柄的情况。
 
-导入观测原生宿主与实际 CLI 共 8 项操作通过，证据 demo6/build/test/resolution-report-fc2cb018-4cce-40e3-b9f4-c777103c6841/evidence.json。旧报告 22 项、覆盖 20 项（含实际 Cgen/build/run）及整个源码/包导入分类在新快照下继续通过，证据 snapshot-check-compiler-regression-evidence.json。首次针对性回归的 9 类原生测试通过，记录 snapshot-check-native-regression-evidence.json；最终重新验证 snapshot_check_test、lsp_test 和 language_view_test 三类，记录 snapshot-check-final-native-regression-evidence.json。前一组 11 张和最终四张原生图均逐图查看，双语法、旧保存后诊断、重启、主题/大字号和既定 Dock 保持；没有宣称本轮重新执行此前 43 类/90 图的全量基线。
+导入观测原生宿主与实际 CLI 共 8 项操作通过，证据 build/test/resolution-report-fc2cb018-4cce-40e3-b9f4-c777103c6841/evidence.json。旧报告 22 项、覆盖 20 项（含实际 Cgen/build/run）及整个源码/包导入分类在新快照下继续通过，证据 snapshot-check-compiler-regression-evidence.json。首次针对性回归的 9 类原生测试通过，记录 snapshot-check-native-regression-evidence.json；最终重新验证 snapshot_check_test、lsp_test 和 language_view_test 三类，记录 snapshot-check-final-native-regression-evidence.json。前一组 11 张和最终四张原生图均逐图查看，双语法、旧保存后诊断、重启、主题/大字号和既定 Dock 保持；没有宣称本轮重新执行此前 43 类/90 图的全量基线。
 
 验收发现并修复测试夹具的 Unicode 输出路径链接限制及 Python Windows 换行展开；失败日志与证据保留，修复后有效基线及最终 44 项重新执行。私人临时目录方案在繁忙服务被结束时留下空目录，故改为内核持有的独立文件，再通过真实持有读句柄的异常退出测试；原失败证据 snapshots-5959b484-4772-4677-96a2-256aee996613 保留，已检查并非递归删除唯一空测试目录的记录为 snapshot-check-empty-probe-cleanup.json。最终 TEMP 中本轮前缀文件为空。
 
-四个独立工具链快照共 8392 文件逐项 SHA-256 保持一致，固定 SDK 也保持原字节；五份本轮编译器 C 文件与实际构建副本一致。本轮编译未写共享 demo6/release；观察到共享 xlc.dll/xl.dll 在其他工作中发生变化，记录 snapshot-check-final-input-verification.json，未将共享产物替换回旧文件，验收全部使用本轮独立快照。改动相对本轮 22 份原始文件备份及七份新增文件单独归档为 snapshot-check-changes.diff/json，最终复核见 snapshot-check-final-verification.json。
+四个独立工具链快照共 8392 文件逐项 SHA-256 保持一致，固定 SDK 也保持原字节；五份本轮编译器 C 文件与实际构建副本一致。本轮编译未写共享 release；观察到共享 xlc.dll/xl.dll 在其他工作中发生变化，记录 snapshot-check-final-input-verification.json，未将共享产物替换回旧文件，验收全部使用本轮独立快照。改动相对本轮 22 份原始文件备份及七份新增文件单独归档为 snapshot-check-changes.diff/json，最终复核见 snapshot-check-final-verification.json。
 
-该后端增量时 GUI 仍使用保存后入口动作，菜单/旧视图尚未接入未保存依赖。当时下一增量计划直接实现全文检查动作和所有命名文档同步、逐文件标注/跨文件问题定位、关闭/改名/服务重启的全文恢复；定位未打开磁盘文件前还需传递并核对检查时的正文摘要和身份。随后继续发布后磁盘依赖失效、真实来源范围/符号/类型、大纲/悬停/语义补全/定义及 C 语义，连同全局恢复修复、更多编辑动作、资源创建/新 XLON、实体输入/DPI、性能和首版发布。长期目标继续进行。协议与边界见 [语言服务](language-service.md)，编译器合同见 [来源与解析观察接口](../../demo6/docs/IDE源码覆盖接口.md)。
+该后端增量时 GUI 仍使用保存后入口动作，菜单/旧视图尚未接入未保存依赖。当时下一增量计划直接实现全文检查动作和所有命名文档同步、逐文件标注/跨文件问题定位、关闭/改名/服务重启的全文恢复；定位未打开磁盘文件前还需传递并核对检查时的正文摘要和身份。随后继续发布后磁盘依赖失效、真实来源范围/符号/类型、大纲/悬停/语义补全/定义及 C 语义，连同全局恢复修复、更多编辑动作、资源创建/新 XLON、实体输入/DPI、性能和首版发布。长期目标继续进行。协议与边界见 [语言服务](language-service.md)，编译器合同见 [来源与解析观察接口](../../docs/IDE源码覆盖接口.md)。
 
 
 
@@ -784,7 +784,7 @@ DEMO6 AST 保存完整语法范围及构造 token 范围；真实 token 通过 L
 
 证据：
 
-- [接口合同](../../demo6/docs/IDE源码范围接口.md)、[IDE 接入边界](compiler-source-ranges.md)、[生成器/幂等核对](../build/source-range-regeneration-evidence.json)。
+- [接口合同](../../docs/IDE源码范围接口.md)、[IDE 接入边界](compiler-source-ranges.md)、[生成器/幂等核对](../build/source-range-regeneration-evidence.json)。
 - [最终完整构建](../build/source-range-contract-final-build-evidence.json) 与 [日志](../build/source-range-contract-final-build.log)。
 - [63 命令/1,468 节点范围门禁](../build/source-range-compiler-0365497b-bb9a-48f5-b152-603771977732/build/test/source-ranges-8b85d99f-9ecf-4282-bba5-669352cbc3a7/evidence.json)。
 - [覆盖回归](../build/source-range-compiler-0365497b-bb9a-48f5-b152-603771977732/build/test/source-overlay-45d8138f-782c-45c3-93b3-90e9bd6b94ae/evidence.json)、[来源报告回归](../build/source-range-compiler-0365497b-bb9a-48f5-b152-603771977732/build/test/source-report-a262ef3e-7ad3-486c-92a2-889ece28c8f9/evidence.json)、[观察回归](../build/source-range-compiler-0365497b-bb9a-48f5-b152-603771977732/build/test/resolution-report-8eafaeae-29c9-433c-b857-1e0a0f53ace3/evidence.json)。
@@ -817,7 +817,7 @@ DEMO6 AST 保存完整语法范围及构造 token 范围；真实 token 通过 L
 
 证据：
 
-- [编译器合同](../../demo6/docs/IDE语义索引接口.md)、[IDE 接入边界](compiler-semantic-index.md)。
+- [编译器合同](../../docs/IDE语义索引接口.md)、[IDE 接入边界](compiler-semantic-index.md)。
 - [最终完整构建](../build/semantic-index-contract-build-evidence.json) 与 [日志](../build/semantic-index-contract-build.log)。
 - [26 命令/706 节点/673 范围](../build/semantic-index-compiler-f8599594-65ee-4f14-8b1c-ac816147cca2/build/test/semantic-index-5cc445d0-c160-491e-8887-d5d4ca5aa171/evidence.json)。
 - [范围回归](../build/semantic-index-compiler-f8599594-65ee-4f14-8b1c-ac816147cca2/build/test/source-ranges-636b9aba-e79e-40bd-b3bf-b6fbeff9fb5b/evidence.json)、[覆盖](../build/semantic-index-compiler-f8599594-65ee-4f14-8b1c-ac816147cca2/build/test/source-overlay-d250b4dc-63a8-4728-bb47-272b62d047a9/evidence.json)、[来源](../build/semantic-index-compiler-f8599594-65ee-4f14-8b1c-ac816147cca2/build/test/source-report-fad983aa-c394-47d6-8786-babeb36bcf11/evidence.json)、[解析观察](../build/semantic-index-compiler-f8599594-65ee-4f14-8b1c-ac816147cca2/build/test/resolution-report-c4197a2d-8235-49ce-9667-0be43da2863c/evidence.json)。
@@ -1005,7 +1005,7 @@ C/xlang 问题页新增结果归属与独立导航回调，一方清理不会擦
 
 保留修复过程：测试工具编码名、相对输出根与字节常量修正；xlang C ABI 采用实际 c_double，CLI 去 BOM/保留 CRLF 按真实注册正文验证；项目混编使用驱动实际 cSources 字段，运行版 DLL 按真实导出范围验收。门禁另发现新 CLI 将参数值 --json 当作标志，已改用尊重值和 -- 边界的现有扫描器；完整资源重新生成后冻结重跑成功，没有放宽来源或声明校验。
 
-证据：[查询设计](../../demo6/docs/IDE原生C声明桥接接口.md)、[最终核验](../build/c-bridge-query-final-verification.json)、[完整编译器构建](../build/c-bridge-query-final-compiler-build.log)、[最终门禁](../build/c-bridge-query-final-gates.log)、[桥接记录](../build/c-bridge-query-final-bridge.log)、[新工具链指纹](../build/c-bridge-query-toolchain-snapshot.json)、[冻结输入](../build/c-bridge-query-final-inputs.json)、[原字节备份](../build/c-bridge-query-before.json)、[差异](../build/c-bridge-query-changes.diff)。早期诊断留在 c-bridge-query-initial/second/third/fourth/fifth/sixth/seventh 日志，已通过的阶段记录保留在 eighth 日志；最终验收以 final 文件为准。
+证据：[查询设计](../../docs/IDE原生C声明桥接接口.md)、[最终核验](../build/c-bridge-query-final-verification.json)、[完整编译器构建](../build/c-bridge-query-final-compiler-build.log)、[最终门禁](../build/c-bridge-query-final-gates.log)、[桥接记录](../build/c-bridge-query-final-bridge.log)、[新工具链指纹](../build/c-bridge-query-toolchain-snapshot.json)、[冻结输入](../build/c-bridge-query-final-inputs.json)、[原字节备份](../build/c-bridge-query-before.json)、[差异](../build/c-bridge-query-changes.diff)。早期诊断留在 c-bridge-query-initial/second/third/fourth/fifth/sixth/seventh 日志，已通过的阶段记录保留在 eighth 日志；最终验收以 final 文件为准。
 
 此基础尚未被原生 C 会话自动消费，当前 GUI 的生成声明仍需显式强制头配置。cInputsObserved=false；TCC 有序搜索环境、内嵌系统/运行时头、完整 C 预处理/项目输入图和未保存 xlang 声明的 GUI 自动撤销/重建继续接入。全局状态修复、资源创建/新 XLON、性能、实体输入/DPI 及成套发布/许可证/干净安装仍需完成，不据本轮查询通过宣布整个 IDE 完成。
 
@@ -1021,7 +1021,7 @@ C/xlang 问题页新增结果归属与独立导航回调，一方清理不会擦
 
 修复日志保留：长隔离路径使既有批处理 GCC 命令超过 Windows 长度边界，改用短目录后解决；公开 libtcc.h 包含的 VFS 头缺少新增原型，同步必要声明后完整重建通过。依赖集合初次核验把上轮已存在的非冻结临时输出当成新增，核对原冻结文件摘要及输出创建/修改时间后单独登记，没有放宽源/二进制指纹检查。
 
-证据：[接口合同](../../demo6/docs/IDE原生C声明桥接接口.md)、[最终核验](../build/c-bridge-environment-final-verification.json)、[完整重建](../build/c-bridge-environment-rebuild.log)、[新增真实门禁](../build/c-bridge-environment-initial-gate.log)、[兼容回归](../build/c-bridge-environment-regression-gates.log)、[新工具链指纹](../build/c-bridge-environment-toolchain-snapshot.json)、[冻结输入](../build/c-bridge-environment-final-inputs.json)、[依赖保护](../build/c-bridge-environment-protected-verification.json)、[原字节基线](../build/c-bridge-environment-before.json)、[差异](../build/c-bridge-environment-changes.diff) 和 [服务接入说明](c-language-service.md)。初次构建/短路径原型错误与集合诊断日志继续保留，本轮以 rebuild 和通过门禁为准。
+证据：[接口合同](../../docs/IDE原生C声明桥接接口.md)、[最终核验](../build/c-bridge-environment-final-verification.json)、[完整重建](../build/c-bridge-environment-rebuild.log)、[新增真实门禁](../build/c-bridge-environment-initial-gate.log)、[兼容回归](../build/c-bridge-environment-regression-gates.log)、[新工具链指纹](../build/c-bridge-environment-toolchain-snapshot.json)、[冻结输入](../build/c-bridge-environment-final-inputs.json)、[依赖保护](../build/c-bridge-environment-protected-verification.json)、[原字节基线](../build/c-bridge-environment-before.json)、[差异](../build/c-bridge-environment-changes.diff) 和 [服务接入说明](c-language-service.md)。初次构建/短路径原型错误与集合诊断日志继续保留，本轮以 rebuild 和通过门禁为准。
 
 原生 C 会话尚未自动消费本接口，GUI 仍使用显式强制头。下一步把同批未保存 xlang 声明、配置和准确头输入接入异步会话，绑定文档/模型/工具链版本，输入变化时撤下过期结果并全量重建。环境 complete 只覆盖配置和资源传输，完整 C 预处理图、TCC 内建宏及 ABI 等价性明确未保证。完整项目图、全局状态修复、资源创建/新 XLON、性能、实体输入/DPI、许可证、干净安装与成套发布仍需完成。
 
@@ -1060,7 +1060,7 @@ headerRange 位于 declarations 原文，组合私有头时需要核算实际 ru
 
 修复记录保留：首次真实查询没有启用解析器范围采集，虽有正确 C 声明，目标明确为 null；随后为桥接启用已有来源元数据并重建，真实范围门禁通过。额外复核去掉了早于原 1 MiB 头检查的别名限制，且导航元数据容量不再缩小普通 ABI 成功范围。最后复核又修正头发射回调的记录数量上限，使可选映射预算不足不会中止 ABI 发射，并在新的独立候选完整重建。容量用例首次因 xlang int 声明长度触及原 1 MiB 头上限；改用实际 c_int 后回退成功，再统一普通头文件名对应的保护宏完成严格字节对照，均保留失败原日志且没有放宽上限。一次批处理重建无输出返回非零，明确 call 的后续完整构建与最终冻结运行通过；没有使用该失败阶段作为验收。
 
-证据：[接口合同](../../demo6/docs/IDE原生C声明桥接接口.md)、[真实映射门禁](../../demo6/tools/check_c_bridge_map.py)、[最终核验](../build/c-bridge-map-final-verification.json)、[最终完整构建](../build/c-bridge-map-final-build.log)、[相关冻结回归](../build/c-bridge-map-final-gates.json)、[映射实际输出](../build/c-bridge-map-final-map.log)、[冻结输入](../build/c-bridge-map-final-inputs.json)、[新增输出](../build/c-bridge-map-post-freeze-artifacts.json)、[依赖保护](../build/c-bridge-map-protected-verification.json)、[原字节基线](../build/c-bridge-map-before.json)、[视觉核对](../build/c-bridge-map-visual-inspection.json)、[进程审计](../build/c-bridge-map-process-audit.json)、[改动清单](../build/c-bridge-map-changes.json) 和 [差异](../build/c-bridge-map-changes.diff)。首次 [null 目标诊断](../build/c-bridge-map-initial-gate.log)、[范围修复验证](../build/c-bridge-map-second-gate.log) 与 [空输出构建失败](../build/c-bridge-map-rebuild-evidence.json) 均保留。新增 [头字节上限用例记录](../build/c-bridge-map-capacity-int-final-gates.log)、[保护宏差异记录](../build/c-bridge-map-capacity-guard-final-gates.log) 和 [上一份候选验收](../build/c-bridge-map-pre-capacity-final-verification.json)；最终证据绑定本轮新候选。
+证据：[接口合同](../../docs/IDE原生C声明桥接接口.md)、[真实映射门禁](../../tools/check_c_bridge_map.py)、[最终核验](../build/c-bridge-map-final-verification.json)、[最终完整构建](../build/c-bridge-map-final-build.log)、[相关冻结回归](../build/c-bridge-map-final-gates.json)、[映射实际输出](../build/c-bridge-map-final-map.log)、[冻结输入](../build/c-bridge-map-final-inputs.json)、[新增输出](../build/c-bridge-map-post-freeze-artifacts.json)、[依赖保护](../build/c-bridge-map-protected-verification.json)、[原字节基线](../build/c-bridge-map-before.json)、[视觉核对](../build/c-bridge-map-visual-inspection.json)、[进程审计](../build/c-bridge-map-process-audit.json)、[改动清单](../build/c-bridge-map-changes.json) 和 [差异](../build/c-bridge-map-changes.diff)。首次 [null 目标诊断](../build/c-bridge-map-initial-gate.log)、[范围修复验证](../build/c-bridge-map-second-gate.log) 与 [空输出构建失败](../build/c-bridge-map-rebuild-evidence.json) 均保留。新增 [头字节上限用例记录](../build/c-bridge-map-capacity-int-final-gates.log)、[保护宏差异记录](../build/c-bridge-map-capacity-guard-final-gates.log) 和 [上一份候选验收](../build/c-bridge-map-pre-capacity-final-verification.json)；最终证据绑定本轮新候选。
 
 长期目标继续 active。本轮完成编译器准确来源映射基础，原生 F12 尚未消费该映射；下一步在 C 后台会话中把真实私有头目标转换为同批来源元数据，补齐较大映射的客户端解析预算、打开/关闭或虚拟 xlang 文档版本与磁盘守卫，再通过真实 GUI 验收。完整预处理/项目图、宏与 ABI 兼容、全局状态修复、资源创建/新 XLON、复杂工程性能、实体输入/DPI、依赖许可证、干净安装和完整首版验收继续实施。
 
@@ -1100,7 +1100,7 @@ C 编辑器的 F12 和公共“转到定义”现消费编译器 declarationMap�
 
 15 项真实文件与归档负面检查覆盖越界、驱动器/反斜杠、大小写重复、符号链接、设备名、文件目录冲突、错误根、超限条目、既有解压目标、既有候选、范围外发布、已修改用户数据、篡改目录及缺失运行头；无效归档在创建解压目录前失败。包及原提供者字节在运行后复核。便携专门验收包含 12 张新原生图；校正后的独立门禁中三张帮助、F12 和迁移混编图已实际查看并保存，完整串行回归另生成同样内容的新图。
 
-迁移实际暴露编译器的 ANSI 模块目录定位。demo6/src/api/xl_api_path.c 改为 Windows Unicode 模块接口后转为 UTF-8；保留现有 512 字节缓冲，不宣称所有长路径可用。修复在全新 portable-compiler-60c184ee-409c-4b75-a215-e6744c121225 来源快照完整重建；8,622 个文件和 10 份仓库输入冻结，新产生的 83 份非冻结输出独立登记。11 组工具链相关门禁全部退出 0，包括实际映射/超限降级、准确内嵌头、C 环境、语义 API、181 项协议和原生桥接/混编。共享 demo6/release 和历史工具链/SDK 未覆盖。
+迁移实际暴露编译器的 ANSI 模块目录定位。src/api/xl_api_path.c 改为 Windows Unicode 模块接口后转为 UTF-8；保留现有 512 字节缓冲，不宣称所有长路径可用。修复在全新 portable-compiler-60c184ee-409c-4b75-a215-e6744c121225 来源快照完整重建；8,622 个文件和 10 份仓库输入冻结，新产生的 83 份非冻结输出独立登记。11 组工具链相关门禁全部退出 0，包括实际映射/超限降级、准确内嵌头、C 环境、语义 API、181 项协议和原生桥接/混编。共享 release 和历史工具链/SDK 未覆盖。
 
 完整严格 IDE Release 构建通过；修正命令选择的布尔返回值断言后，用同样严格参数重链便携夹具，再冻结最终 221 份源码/测试/工具/数据、7 份功能合同及 65 个活动产物。测试脚本的提前 exit 已调整，新增门禁在退出之前执行。最后串行完整回归覆盖 67 应用模块、57 注册测试类、181 协议检查、125 张新鲜原生图、真实混编及 SDK 负面门禁，退出 0。343 份原文件（含修改前补录且核对旧候选的模块路径文件）和 71 份原发布程序/DLL 字节备份保留。
 
@@ -1337,7 +1337,7 @@ ZIP SHA-256：`5f8b884a53299e5062ea5e1ccf2f8ba8335957e1488a7ec38de7851655805bb1`
 
 ## 2026-10-08 实际构建输入记录的编译器基础
 
-为下一步 IDE 任务的递归依赖守护增加 DEMO6 `build --input-report`。记录来自同次 xlang 解析、导入与包描述，以及 TCC 实际只读打开的 C 头、对象/库、外部运行库源码、资源配置和素材；首次磁盘读取得到不可变原始字节，再次打开使用同一份字节。失败搜索候选和包搜索环境也保留。完成链接后将新产物摘要、身份绑定到上下文，写成功记录前复核输入及产物；输入、硬链接别名、失败候选和产物的覆盖被拒绝。编译器内部接口、协议、预算及不支持的组合见 [构建输入记录接入](build-input-receipt.md) 与 [DEMO6 协议](../../demo6/docs/IDE构建输入记录.md)。
+为下一步 IDE 任务的递归依赖守护增加 DEMO6 `build --input-report`。记录来自同次 xlang 解析、导入与包描述，以及 TCC 实际只读打开的 C 头、对象/库、外部运行库源码、资源配置和素材；首次磁盘读取得到不可变原始字节，再次打开使用同一份字节。失败搜索候选和包搜索环境也保留。完成链接后将新产物摘要、身份绑定到上下文，写成功记录前复核输入及产物；输入、硬链接别名、失败候选和产物的覆盖被拒绝。编译器内部接口、协议、预算及不支持的组合见 [构建输入记录接入](build-input-receipt.md) 与 [DEMO6 协议](../../docs/IDE构建输入记录.md)。
 
 当前编译器源码的 Windows 全量 DLL/CLI 构建在新的私有目录通过。原有长 GCC 参数超过 cmd.exe 8 KiB 限制，已改为保存实际参数的 response file；修正私有构建混用旧公开 TCC 头的问题，采用同套源树中的声明。记录模块已加入 Windows/Linux 构建清单，但 Linux 尚未实测。
 
@@ -1370,7 +1370,7 @@ IDE 任务现接入同次编译的 `--input-report`，在工作线程中严格�
 
 ![缺失头文件时保留旧输出并阻止运行](assets/native-build-input-missing-header-no-run-20261008.png)
 
-前两轮完整检查分别保留了旧恢复备份夹具的深路径失败，以及便携工具链位于中文目录时输入记录失败。前者用上一已接受程序复现，短测试根目录继续通过，未宣称长路径已修好；后者来自 TCC 的 Windows ANSI 模块路径和字节大小写转换，已改为宽字符 API 明确转换 UTF-8。新私有编译器从已冻结的 v5 基础复制，只调整 `lib/tcc/libtcc.c`，全量 Windows DLL/CLI 构建和中文/emoji 工具链位置有/无记录的实际混编运行通过。根 `demo6/src/api/xl_api.c` 的同期其他变更保留，没有回退或纳入这份私有编译器；以前的完整编译器专项仍属于原基础验收，未计为本次重新执行。
+前两轮完整检查分别保留了旧恢复备份夹具的深路径失败，以及便携工具链位于中文目录时输入记录失败。前者用上一已接受程序复现，短测试根目录继续通过，未宣称长路径已修好；后者来自 TCC 的 Windows ANSI 模块路径和字节大小写转换，已改为宽字符 API 明确转换 UTF-8。新私有编译器从已冻结的 v5 基础复制，只调整 `lib/tcc/libtcc.c`，全量 Windows DLL/CLI 构建和中文/emoji 工具链位置有/无记录的实际混编运行通过。根 `src/api/xl_api.c` 的同期其他变更保留，没有回退或纳入这份私有编译器；以前的完整编译器专项仍属于原基础验收，未计为本次重新执行。
 
 第三轮在 4K 窗口及长帮助截图出现缓存分配失败，原程序/对象/源文本和日志直接保存在 [458 条 v3 原件](../build/build-input-task-v3-attempt/preservation.json)。关闭 dock 缓存的私有试验虽然通过功能检查，却丢失标题/页签，已按视觉检查拒绝。最终仅取消普通帮助正文标签的逐块位图缓存，保留 dock 和代码块；原窗口断言与 15 秒子进程等待门限不变，完整重建与回归重新通过。私有各轮图和判断见 [缓存试验评估](../build/build-input-task-cache-evaluation.json)。早期编译器/定向用例失败、第一轮重建内存分配失败及两次完整回归的原证据均保留，未计为通过。
 
@@ -1400,7 +1400,7 @@ IDE 任务现接入同次编译的 `--input-report`，在工作线程中严格�
 
 ## 2026-10-08 protocol、基类和泛型参数类型导航验收
 
-新增编译器类型声明/引用字段，接通 protocol、`extends` 基类、CLASS/PROTOCOL 泛型约束和作用域泛型参数的 F12 导航。protocol 与泛型参数可没有运行时声明符号；六个同名 T 使用各自真实 TypeId，泛型参数 ABI 保持零。变量仍按符号导航，只有已检查的类型位置使用类型后备查找。大纲包含 protocol/interface 和类型参数子项；单态化副本仅在身份、角色及完整/名称源码范围完全一致时合并，不同范围或无位置的相同 TypeId 保持不可导航。见 [定义导航](definition-navigation.md) 与 [编译器合同](../../demo6/docs/IDE语义索引接口.md)。
+新增编译器类型声明/引用字段，接通 protocol、`extends` 基类、CLASS/PROTOCOL 泛型约束和作用域泛型参数的 F12 导航。protocol 与泛型参数可没有运行时声明符号；六个同名 T 使用各自真实 TypeId，泛型参数 ABI 保持零。变量仍按符号导航，只有已检查的类型位置使用类型后备查找。大纲包含 protocol/interface 和类型参数子项；单态化副本仅在身份、角色及完整/名称源码范围完全一致时合并，不同范围或无位置的相同 TypeId 保持不可导航。见 [定义导航](definition-navigation.md) 与 [编译器合同](../../docs/IDE语义索引接口.md)。
 
 根项目及隔离编译器只修改两份语义检查/索引 C 源文件，未添加 AST 字段或公开 API，也没有分配额外运行时 SymbolId。隔离编译器沿用前次冻结 Unicode 工具链的其余源码，完整 Windows DLL/CLI 构建退出 0。同一实际源码的所有运行时 SymbolId、普通生成头和 C 桥接查询头字节与冻结旧版一致。重新执行九套编译器兼容检查：语义索引 26 次调用、补全 42 项、源码范围 46 次调用/1468 节点、来源报告 22 项、解析观察 8 项、源码覆盖 20 项，以及 C 桥接/源码映射/环境三套检查。冻结 1512 个编译器源树文件、4232 个编译器输出及测试文件；根项目同期其他 API/IR 改动保留，没有引入该隔离版本。
 
@@ -1525,7 +1525,7 @@ C 编辑器的 F12 现支持公开 ABI 实际使用的命名 union，C 的 union
 
 新 [便携主程序](../dist/portable-20261009-task-io-path-final/xlang-ide/xlang_ide.exe) 与 [Windows x64 ZIP](../dist/portable-20261009-task-io-path-final/xlang-ide-windows-x64.zip) 为开发候选。2472 个载荷文件、2468 个来源输入，归档 SHA256 `49255077b584d50fd90cf14f8832820a5c373e3d6d58b63bda4689cdcdd2f567`，清单 SHA256 `d2032b072c78d1e654a1d082b657bd5b45620589559803eee2c32b830cc6bcd6`。前次候选保留；显式 save-temps 产生的四份包内测试文件另行保留，严格载荷核验未放宽。
 
-增量前保存 591 份原件并核对前次 97995 条绑定。完整 IDE 回归退出 0 后，冻结核验发现根仓库 `demo6/src/ir/xl6_ir.c` 在测试期间发生变化，初始驱动因此退出 1 并停止在打包之前。已保留该外部变化快照及九份根引用的冻结原件，未覆盖根源码；确认 IDE 输入、私有编译器和产物均保持冻结摘要后继续打包。该根源码不是本轮 IDE 构建或私有编译器的输入，没有将当前根编译器状态算作验收通过。
+增量前保存 591 份原件并核对前次 97995 条绑定。完整 IDE 回归退出 0 后，冻结核验发现根仓库 `src/ir/xl6_ir.c` 在测试期间发生变化，初始驱动因此退出 1 并停止在打包之前。已保留该外部变化快照及九份根引用的冻结原件，未覆盖根源码；确认 IDE 输入、私有编译器和产物均保持冻结摘要后继续打包。该根源码不是本轮 IDE 构建或私有编译器的输入，没有将当前根编译器状态算作验收通过。
 
 早期 SDK 探针的深工作目录启动、夹具构建的缩进告警、过短基线根和包内夹具路径长度/阶段目录定位失败均保留。最终包内夹具加深输出目录后，两次实际 IDE 运行均退出 0；独立观察器改为读取配置对应的阶段目录，核对原日志、图像、收据及产物，未重写早期失败记录或放宽路径长度断言。终态当前 IDE/本轮原生夹具进程审计为 0。
 

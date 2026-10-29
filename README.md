@@ -179,12 +179,11 @@ source (.xl) ─▶ lex ─▶ parse ─▶ semantic / typed HIR (XLIR) ─▶ C
 
 ## Standard library & package ecosystem
 
-- **Core standard library**: 500+ public functions across dozens of modules — `net` (TCP / UDP / TLS / resolver / proxy), `crypto` (AES-GCM, ChaCha20-Poly1305, SHA family, Ed25519, X25519, RSA...), `json` / `xson`, `regex`, `template`, `fs` / `dir` / `file` (sync + async), `process`, `os`, `time`, `encoding`, `codec`, `log`, `math`, `random`, `signal`, `task`, and more — built on [XRT](demo6/docs/XRT集成原则.md), the shared runtime base.
-- **214 ready extension packages** (`demo6/release/extlibs/`), one `xlang.package.json` manifest each, multi-version coexistence supported: `sqlite`, `zeromq`, `imgui`, `webview`, `glad`, `freetype`, `harfbuzz`, `stb_image`, `zip` / `zstd` / `brotli` / `lz4`, `yaml` / `toml` / `xml` / `csv`, `jwt`, `etcd`, `docker`, `kubernetes`, plus an AI corner (`ggml`, `whisper`, `faiss`, `hnswlib`, `tokenizers`) and the full `xge` game stack and `xui` / `ui.auto` UI stacks.
-- **Real games, shipped as examples** (`demo6/release/examples/games/`): nine complete games — Snake, Tetris, 2048, Flappy, Pong, Breakout, Minesweeper, Asteroids, Shooter — written in xlang on the XGE extension library (window, input, shapes, fonts, textures, sound).
+- **Core standard library**: 500+ public functions across dozens of modules — `net` (TCP / UDP / TLS / resolver / proxy), `crypto` (AES-GCM, ChaCha20-Poly1305, SHA family, Ed25519, X25519, RSA...), `json` / `xson`, `regex`, `template`, `fs` / `dir` / `file` (sync + async), `process`, `os`, `time`, `encoding`, `codec`, `log`, `math`, `random`, `signal`, `task`, and more — built on [XRT](docs/XRT集成原则.md), the shared runtime base.
+- **214 ready extension packages** (`release/extlibs/`), one `xlang.package.json` manifest each, multi-version coexistence supported: `sqlite`, `zeromq`, `imgui`, `webview`, `glad`, `freetype`, `harfbuzz`, `stb_image`, `zip` / `zstd` / `brotli` / `lz4`, `yaml` / `toml` / `xml` / `csv`, `jwt`, `etcd`, `docker`, `kubernetes`, plus an AI corner (`ggml`, `whisper`, `faiss`, `hnswlib`, `tokenizers`) and the full `xge` game stack and `xui` / `ui.auto` UI stacks.
+- **Real games, shipped as examples** (`release/examples/games/`): nine complete games — Snake, Tetris, 2048, Flappy, Pong, Breakout, Minesweeper, Asteroids, Shooter — written in xlang on the XGE extension library (window, input, shapes, fonts, textures, sound).
 
 ```bat
-cd demo6
 release\xl.exe run release\examples\games\snake.xl
 ```
 
@@ -207,13 +206,11 @@ xl impdef module.dll -o m.def   :: import C symbols from existing DLLs
 - **Self-contained toolchain**: the compiler is written in C11 and builds with an embedded TCC; no external SDK is required to bootstrap.
 
 ```bat
-cd demo6
 build.bat          :: Windows
 test.bat           :: main regression (4,700+ case files)
 ```
 
 ```bash
-cd demo6
 bash build.sh && bash test_linux.sh
 ```
 
@@ -221,15 +218,17 @@ bash build.sh && bash test_linux.sh
 
 | Path | Contents |
 |---|---|
-| `demo6/` | Compiler, runtime, standard library, tests, docs, examples |
-| `demo6/docs/` | Design documents (Chinese) — the single source of truth for design decisions |
-| `demo6/release/examples/` | 450+ example programs incl. games and apps |
-| `demo6/test/` | Regression assets: cases, suites, fixtures, interop tests |
+| `src/` | Compiler, runtime, standard library, tests, docs, examples |
+| `docs/` | Design documents (Chinese) — the single source of truth for design decisions |
+| `release/examples/` | 450+ example programs incl. games and apps |
+| `test/` | Regression assets: cases, suites, fixtures, interop tests |
 | `ide/` | xlang IDE sources, builds, and portable releases |
 | `DEMO6说明.md` | Feature checklist of the current compiler (Chinese) |
 
 ## Status
 
-xlang is in release-candidate hardening: the four-stage pipeline, module/package system, DLL embedding API, and a large regression suite (4,700+ cases, guarded by `rc0_guard`) are in place; work continues on network data-path ownership models and the extension-library ecosystem. Design documentation is currently Chinese-first under `demo6/docs/`.
+xlang is in release-candidate hardening: the four-stage pipeline, module/package system, DLL embedding API, and a large regression suite (4,700+ cases, guarded by `rc0_guard`) are in place; work continues on network data-path ownership models and the extension-library ecosystem. Design documentation is currently Chinese-first under `docs/`.
 
 License: to be announced.
+
+Development and build entry points: [DEVELOPMENT.md](DEVELOPMENT.md).
