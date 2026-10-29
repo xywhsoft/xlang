@@ -1,0 +1,7 @@
+class Reader
+    private func Read() as int
+        return 7
+    end
+end
+Reader reader=Reader()
+auto callback=reader.Read as (func() as int)?
