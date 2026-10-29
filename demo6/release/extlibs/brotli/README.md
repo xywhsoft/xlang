@@ -1,6 +1,26 @@
 # Brotli
 
-2026-10-29：修复C桥接头的模块选择污染和包含顺序。桥接头现在只
+2026-10-29 普通 C 文件接口已实现：`xrtBrotliCompressFile` /
+`xrtBrotliDecompressFile` 接收同步 `xrtprogressproc + user`，无需创建
+`xvalue` 或依赖 xruntime。文件事务位于独立的 `xrt_brotli_file.c`，XLang
+现行文件函数复用它，仅保留回调与状态适配，用法和物理 ABI 不变。
+错误映射也共用内部头，不再维护两套文件事务。
+
+两平台新增 C 功能、打开态八组双故障、新双语范例和三条新增独立
+程序均通过。普通 C 宿主只编译 XRT，不链接语言桥接或 xruntime；
+符号复核没有 xrtValue/xrtCallable 实现。新 C 文件用例逐点 OOM 为
+Windows 118、Linux 104 个，均保留首因/旧目标/活动内存；与旧桥接
+夹具输入大小不同，不按故障点数量差推断接口性能。
+
+**M2 与 RFS 两个发布阻断仍开放**：原全局对象 AOT 在两平台退出期
+失败；新实测 Windows 已关闭事务提交失败后，回滚再遇一次 OOM 会
+遗留临时文件，原目标保留。Linux 同组 16 场景通过。打开态按句柄
+回滚通过不等于关闭态已解决，见[报告](../../../dev/extlib_blockers/brotli_closed_transaction_oom_cleanup.md)。
+Windows 默认 99 阶段为 95 正例、两项预期拒绝符合要求，上述两项失败；
+152 项指纹不变。Linux 的 ASan/UBSan、新旧双语 JIT/AOT 与关闭态先过，
+完整门禁最终在 M2 失败。不将本阶段 C 接口完成等同于整包发布签收。
+
+2026-10-29 较早的桥接头审查：修复模块选择污染和包含顺序。桥接头只
 依赖标准bool/size_t及opaque xvalue指针，不主动打开XRT VALUE；
 四种包含组合的严格C红例转绿。“桥接头先于核心头”原先还会使
 xbuffer/xreader/xwriter未声明。共享文件故障测试显式包含自身使用的
@@ -14,7 +34,7 @@ XRT头，不继续依赖桥接头的隐式导入；公开函数原型和ABI未�
 主线复现和修复方向见 `dev/extlib_blockers/global_native_class_aot_fini.md`。
 下列旧通过记录不覆盖本轮新增的顶层退出边界，本包暂不完整签收。
 
-本轮Windows默认完整门禁80项中，仅最后top-level-aot未达到预期，
+当日较早的Windows默认完整门禁80项中，仅最后top-level-aot未达到预期，
 其余77正例及两项预期访问拒绝通过，输入无变化；含26个生成原型、
 116个C内存故障点、94个文件分配故障点、旧双语JIT/AOT。Linux
 原生快照同样先通过四种头组合、C ASan/UBSan、116个内存/76个文件
@@ -125,7 +145,8 @@ brotli.compressFile("input.txt", "output.br", quality = 4,
 不能用 xvalue 的有符号精确读取器直接读取无符号计数。
 
 文件接口在目标所在目录建立独占临时文件，读写和关闭成功后再替换目标。
-取消、回调抛错或格式失败会清理临时文件并保留原目标；支持输入和输出路径相同。
+取消、回调抛错或格式失败在文件仍打开时按句柄回滚并保留原目标；
+已关闭后回滚再遇 OOM 的残留限制见文首。支持输入和输出路径相同。
 这不是断电持久性承诺，也不是异步接口。路径使用 XRT 的 UTF-8 文件 API；
 源或目标路径含 NUL 时抛 `ValueError`，不访问截断后的前缀路径。
 
@@ -156,7 +177,33 @@ brotli.compressFile("input.txt", "output.br", quality = 4,
 - 薄绑定的版本文本和 last-error 文本为借用返回值，不应 xrtFree；需要跨调用保存
   时由调用方复制。xlang 字符串返回桥会形成语言层所需的字符串。
 
+普通 C 文件入口签名为
+`xrtBrotliCompressFile(source, destination, options, overwrite, progress, user)`，
+解压入口参数相同。同步借用路径/回调/状态，返回后不保留。NULL options
+用默认配置，NULL 回调不报告进度；成功 true 并清旧错误，失败 false，
+原因见 `xrtGetError`。回调 false 表示取消；若同时设置 XRT 错误，保留
+其类型/域/代码/消息而非改报取消。FINAL 在提交前，最终取消不发布
+半成品；不覆盖模式在最终提交仍防止覆盖抢先出现的目标。
+
+纯 C 只需宿主的一份 XRT、`xrt_brotli.c`、`xrt_brotli_file.c` 和
+third_party 的 common/dec/enc 源码，不用 `brotli_native.c`。模块选择
+含 IO_BUFFER/IO_FILE/FILE_TEMP 等实际依赖，独立测试宿主见
+`test/xrt_file_runtime.c`，不要额外嵌入第二份 XRT。
+
 ## 构建与验证
+
+新增 `examples/files.xl` / `examples/files_c.c` 以相同四字节二进制、
+压缩质量和旧目标标记，验证进度、往返、取消保留，匹配同一三行
+`examples/files.expected.txt`。XL 可直接 xl run；C 可用包运行器，
+如 `tools/run_extlib_c.ps1 -Package brotli -Source release/extlibs/brotli/examples/files_c.c`，
+或按上述纯 C 源清单分离编译。范例使用独占临时目录，正常路径清理。
+
+`test/files_c.c` 在 NDEBUG 下仍执行全部断言，覆盖多块进度、FINAL、
+普通/最终取消、设置错误的回调、目标竞态、同路径、UTF-8、空文件/
+默认配置、限额/坏输入/缺文件及四组逐点 OOM。打开态八组在
+`file_rollback_open.c`，关闭态 16 组在 `file_rollback_closed.c`，后者
+Windows 保留红项。默认门禁检查纯 C 宿主和新例 JIT/AOT，Windows
+构建目录按次隔离；关闭态失败仍继续检查 M2，报告与现场保留。
 
 从 demo6 工作目录执行：
 
