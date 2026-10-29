@@ -1,5 +1,17 @@
 # 当前源码的 var 容器传入原生扩展失败
 
+2026-10-30 根目录布局复验 `graph`：Windows/Linux 包门禁各完成 38 项
+可运行前置检查（含全部九条实际生成原型、三种独立程序、两种 DLL/SO
+同上下文各三轮正常 JSON 范例），最后原中央语言边数组仍报
+`ValueError: graph edges must be an array`。从仓库根执行
+`release/xl.exe run dev/extlib_blockers/graph_var_array_projection.xl`
+（Linux 用 `release/xl`）仍退出 1；同源 check/build 成功，但独立程序
+运行同样退出 1。标准 json.parse 返回的原生配置可用于九项图 API，不代表
+语言字面量投影已经修复；没有新增工厂、包侧私有句柄识别或序列化绕行。
+修复仍应在主线共享 foreign 参数投影层完成，覆盖嵌套行数组、类型、所有权、
+失败回滚及重复调用，再复跑最小源和完整包级门禁。证据见验收矩阵与台账
+2026-10-30 Graph 条目；普通扩展库任务不修改主线。
+
 2026-10-27 从当前工作树执行 `demo6/build.bat` 成功后复验：
 `release/xl.exe run dev/extlib_blockers/ical_build_var_object_projection.xl`
 先输出 `native roundtrip: PASS`，随后语言字典调用 `ical.build` 仍抛

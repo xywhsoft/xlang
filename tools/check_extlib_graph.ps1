@@ -1,4 +1,4 @@
-param([string]$Root='', [string]$RuntimeDirectory='', [string]$WorkDirectory='', [switch]$SkipAot)
+﻿param([string]$Root='', [string]$RuntimeDirectory='', [string]$WorkDirectory='', [switch]$SkipAot)
 $ErrorActionPreference = 'Stop'
 if (!$Root) { $Root = Split-Path -Parent $PSScriptRoot }
 $Root = (Resolve-Path $Root).Path
@@ -12,7 +12,12 @@ $work = if ($WorkDirectory) {[IO.Path]::GetFullPath((Join-Path $Root $WorkDirect
 [void][IO.Directory]::CreateDirectory($work)
 . (Join-Path $Root 'tools/extlib_smoke_process.ps1')
 $xl = Join-Path $RuntimeDirectory 'xl.exe'
-$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+$gcc=if($env:CC){$env:CC}else{'gcc'}
+$python=if($env:PYTHON){$env:PYTHON}else{'python'}
+foreach($name in @('gcc','python')){
+    $command=Get-Command (Get-Variable $name -ValueOnly) -CommandType Application -ErrorAction SilentlyContinue|Select-Object -First 1
+    if($command){Set-Variable $name $command.Source}
+}
 $pkg = 'release/extlibs/graph'
 $manifest = Get-Content (Join-Path $Root "$pkg/xlang.package.json") -Raw | ConvertFrom-Json
 $sources = @($manifest.artifact.cSources | ForEach-Object {"$pkg/$_"})
@@ -22,7 +27,8 @@ $pending = [Collections.Generic.List[object]]::new()
 $inputs = [ordered]@{}
 $utf8 = [Text.UTF8Encoding]::new($false)
 function InputPaths {
-    @($xl,(Join-Path $RuntimeDirectory 'xl.dll'),(Join-Path $RuntimeDirectory 'xlc.dll'),$gcc,$PSCommandPath)
+    @($xl,(Join-Path $RuntimeDirectory 'xl.dll'),(Join-Path $RuntimeDirectory 'xlc.dll'),$PSCommandPath)
+    foreach($tool in @($gcc,$python)){if(Test-Path -LiteralPath $tool -PathType Leaf){$tool}}
     foreach ($relative in @('lib/xrt/xrt.h','lib/xruntime/xruntime.h','test/support/extlib_graph_runtime.c',
         'test/cases/extlib_graph.xl','test/support/extlib_runtime_host.c','release/examples/extlibs/graph.xl','release/examples/extlibs/graph_basic.xl',
         'release/examples/extlibs/graph_basic.expected.txt','tools/check_extlib_graph.sh','tools/extlib_smoke_process.ps1',
@@ -35,7 +41,8 @@ function InputPaths {
 }
 foreach ($path in @(InputPaths | Sort-Object -Unique)) { $inputs[$path]=(Get-FileHash -LiteralPath $path).Hash }
 function Check([string]$name,[string]$program,[string[]]$arguments) {
-    $r = Invoke-ExtlibSmokeProcess $program $arguments $Root 120 @{XLANG_PACKAGE_PATH=(Join-Path $Root 'release/extlibs')}
+    if($null -eq $arguments){$arguments=@()}
+    $r = Invoke-ExtlibSmokeProcess $program $arguments $Root 120 @{XLANG_PACKAGE_PATH=(Join-Path $Root 'release/extlibs');PYTHONDONTWRITEBYTECODE='1'}
     $checks.Add([ordered]@{name=$name;program=$program;arguments=$arguments;result=$r})
     Write-Host "[graph] ${name}: $($r.status)"
     if ($r.status -ne 'pass') {throw "$name failed: $($r.stderr)`n$($r.stdout)"}
@@ -43,7 +50,14 @@ function Check([string]$name,[string]$program,[string[]]$arguments) {
 }
 $outcome='failed'
 $decls=@()
+$hostExes=@{}
 try {
+    $null=Check 'compiler-version' $gcc @('--version')
+    $null=Check 'python-version' $python @('-c','import sys; print(sys.version)')
+    $modules=@($manifest.artifact.xrtModules|ForEach-Object{"-D$_"})
+    $minimal=Join-Path $work 'minimal.exe'
+    $null=Check 'manifest-only-build' $gcc ($flags+$modules+@('-DXRT_IMPLEMENTATION',"$pkg/test/manifest_probe.c",'-lws2_32','-ladvapi32','-lm','-o',$minimal))
+    $null=Check 'manifest-only-run' $minimal @()
     $runtime=Join-Path $work 'runtime.o'
     $null=Check 'runtime-build' $gcc ($flags+@('-c','test/support/extlib_graph_runtime.c','-o',$runtime))
     $objects=@()
@@ -58,6 +72,58 @@ try {
         $null=Check "$case-build" $gcc ($flags+@('-DNDEBUG',"$pkg/test/$case.c")+$links+@('-o',$exe))
         $null=Check $case $exe @()
     }
+    $weighted=Join-Path $work 'weighted.exe'
+    $null=Check 'weighted-build' $gcc ($flags+@('-DNDEBUG',"$pkg/test/weighted_records_c.c",$runtime,'-lws2_32','-ladvapi32','-lm','-o',$weighted))
+    if((Check 'weighted' $weighted @()) -cne 'graph weighted records: 3072 cases, PASS'){throw 'Weighted corpus incomplete'}
+    $records=Check 'weighted-records' $weighted @('--records')
+    $recordPath=Join-Path $work 'weighted.tsv'
+    [IO.File]::WriteAllText($recordPath,$records+"`n",$utf8)
+    $null=Check 'Bellman-Ford-oracle' $python @("$pkg/test/check_weighted_records.py",$recordPath)
+    if((Check 'weighted-direct-C' $xl @('run',"$pkg/test/weighted_records_c.c",'--','--records')) -cne $records){throw 'GCC/TCC weighted records differ'}
+    $golden=(Get-Content (Join-Path $Root 'release/examples/extlibs/graph_basic.expected.txt') -Raw).Replace("`r`n","`n").TrimEnd("`n")
+    $language="$pkg/examples/from_json.xl"
+    if((Check 'from-json-jit' $xl @('run',$language)) -cne $golden){throw 'JSON input golden differs'}
+    $module=Join-Path $work 'from-json.c'
+    $null=Check 'from-json-cgen' $xl @('cgen',$language,'--emit',$module)
+    $decls=@(Get-Content $module | Where-Object {$_ -match '^extern .*\bxg_\w+\('}|Sort-Object -Unique)
+    $names=@([regex]::Matches((Get-Content (Join-Path $Root "$pkg/src/graph.xl") -Raw),'extern "(xg_\w+)"')|ForEach-Object{$_.Groups[1].Value}|Sort-Object -Unique)
+    $actual=@([regex]::Matches(($decls -join "`n"),'\bxg_\w+(?=\()')|ForEach-Object Value|Sort-Object -Unique)
+    if($decls.Count -ne 9 -or @(Compare-Object $names $actual).Count){throw 'Incomplete initial graph ABI'}
+    $abi=Join-Path $work 'initial-abi.c'
+    [IO.File]::WriteAllText($abi,"#include `"graph.h`"`n"+($decls -join "`n"),$utf8)
+    $null=Check 'initial-nine-prototypes' $gcc ($flags+@('-fsyntax-only',$abi))
+    $example="$pkg/examples/basic.c"
+    $exe=Join-Path $work 'c-example.exe'
+    $null=Check 'c-example-build' $gcc ($flags+@('-DNDEBUG',$example,$runtime,'-lws2_32','-ladvapi32','-lm','-o',$exe))
+    $cOutput=Check 'c-example' $exe @()
+    $cJit=Check 'c-example-jit' $xl @('run',$example)
+    if($cOutput -cne $golden -or $cJit -cne $golden){throw 'C graph golden differs'}
+    if(-not $SkipAot){
+        foreach($input in @($language,"$pkg/test/weighted_records_c.c",$example)){
+            $target=Join-Path $work ([guid]::NewGuid().ToString('N')+'.exe')
+            $null=Check "$input initial-build" $xl @('build',$input,'-o',$target)
+            $output=Check "$input initial-aot" $target @()
+            if($input -like '*/weighted_records_c.c'){
+                $aotRecords=Check 'weighted-aot-records' $target @('--records')
+                if($output -cne 'graph weighted records: 3072 cases, PASS' -or
+                    $aotRecords -cne $records){throw 'AOT weighted corpus differs'}
+                $aotPath=Join-Path $work 'weighted-aot.tsv'
+                [IO.File]::WriteAllText($aotPath,$aotRecords+"`n",$utf8)
+                $null=Check 'AOT-Bellman-Ford-oracle' $python @("$pkg/test/check_weighted_records.py",$aotPath)
+            }elseif($output -cne $golden){throw 'Initial AOT golden differs'}
+        }
+    }
+    foreach($dll in @('xl','xlc')){
+        $library=Join-Path $RuntimeDirectory "$dll.dll"
+        Copy-Item -LiteralPath $library -Destination (Join-Path $work "$dll.dll") -Force
+        $hostExe=Join-Path $work "$dll-host.exe"
+        $null=Check "$dll-host-build" $gcc @('-std=c11','-O2','-Wall','-Wextra','-Werror',
+            '-I',(Join-Path $RuntimeDirectory 'include'),'test/support/extlib_runtime_host.c',$library,'-o',$hostExe)
+        $hostExes[$dll]=$hostExe
+        $output=Check "$dll-json-context-reuse" $hostExe @($Root,(Join-Path $Root $language))
+        if($output -cne (($golden+"`n")*3).TrimEnd("`n")){throw 'Sequential DLL golden differs'}
+    }
+    # 原字面量输入仍为必过，正常 JSON 输入不能替代共享投影验收。
     foreach($case in @('test/cases/extlib_graph.xl',"$pkg/test/boundaries.xl", "$pkg/test/allocations.xl",
         'release/examples/extlibs/graph.xl','release/examples/extlibs/graph_basic.xl')) {
         $name=[IO.Path]::GetFileNameWithoutExtension($case)
@@ -82,28 +148,12 @@ try {
     $abi=Join-Path $work 'abi.c'
     [IO.File]::WriteAllText($abi,"#include `"graph.h`"`n#include `"declarations.inc`"`n",$utf8)
     $null=Check 'generated-prototypes' $gcc ($flags+@('-fsyntax-only',$abi))
-    $example="$pkg/examples/basic.c"
-    $exe=Join-Path $work 'c-example.exe'
-    $null=Check 'c-example-build' $gcc ($flags+@('-DNDEBUG',$example,$runtime,'-lws2_32','-ladvapi32','-lm','-o',$exe))
-    $cOutput=Check 'c-example' $exe @()
-    $cJit=Check 'c-example-jit' $xl @('run',$example)
-    if(-not $SkipAot) {
-        $exe=Join-Path $work 'c-tcc.exe'
-        $null=Check 'c-example-aot-build' $xl @('build',$example,'-o',$exe)
-        $cAot=Check 'c-example-aot' $exe @()
-    }
     $helper=Check 'c-example-runner' (Get-Process -Id $PID).Path @('-NoProfile','-File','tools/run_extlib_c.ps1','-Package','graph','-Source',$example,'-RuntimeDirectory',$RuntimeDirectory)
     foreach($dll in @('xl','xlc')) {
-        $library=Join-Path $RuntimeDirectory "$dll.dll"
-        Copy-Item -LiteralPath $library -Destination (Join-Path $work "$dll.dll") -Force
-        $hostExe=Join-Path $work "$dll-host.exe"
-        $null=Check "$dll-host-build" $gcc @('-std=c11','-O2','-Wall','-Wextra','-Werror',
-            '-I',(Join-Path $RuntimeDirectory 'include'),'test/support/extlib_runtime_host.c',$library,'-o',$hostExe)
-        $null=Check "$dll-host-reuse" $hostExe @($Root,(Join-Path $Root "$pkg/test/boundaries.xl"))
+        $null=Check "$dll-host-reuse" $hostExes[$dll] @($Root,(Join-Path $Root "$pkg/test/boundaries.xl"))
     }
     $golden=(Get-Content (Join-Path $Root 'release/examples/extlibs/graph_basic.expected.txt') -Raw).Replace("`r`n","`n").TrimEnd("`n")
     $outputs=@($xlOutput,$cOutput,$cJit,$helper)
-    if(-not $SkipAot) {$outputs+=@($cAot)}
     foreach($output in $outputs) {if($output -cne $golden) {throw 'Paired example output differs from golden'}}
     # Keep shared language failures separate from graph algorithm checks.
     foreach($name in @('string_byte_len_nul','graph_nul_name','string_join_symbol')) {
@@ -121,9 +171,11 @@ try {
         scope='Graph C boundary/oracle/OOM/threads, Windows C and xlang JIT/AOT, xl/xlc DLL context reuse, 9 generated prototypes and paired examples; shared string gaps recorded separately';
         inputs=$inputs;changedInputs=$changed;generatedPrototypes=$decls.Count;checks=$checks.ToArray();sharedBoundaries=$pending.ToArray()}
     try {
-        [IO.File]::WriteAllText((Join-Path $work 'results.json'),($report | ConvertTo-Json -Depth 8),$utf8)
+        $reportPath=if($ownWork){$work+'.json'}else{Join-Path $work 'results.json'}
+        [IO.File]::WriteAllText($reportPath,($report | ConvertTo-Json -Depth 8),$utf8)
+        Write-Host "[graph] report: $reportPath"
     } finally {
-        if ($ownWork -and (Test-Path -LiteralPath $work -PathType Container)) {
+        if ($ownWork -and $outcome -eq 'passed-scoped' -and (Test-Path -LiteralPath $work -PathType Container)) {
             $resolved = [IO.Path]::GetFullPath((Resolve-Path -LiteralPath $work).Path)
             $base = [IO.Path]::GetFullPath($workRoot).TrimEnd('\','/')
             if (!$resolved.StartsWith($base + [IO.Path]::DirectorySeparatorChar,
