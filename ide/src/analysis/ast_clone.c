@@ -1,4 +1,5 @@
 #include "analysis/ast_clone.h"
+#include "analysis/ast_package_fields.h"
 #include <xrt.h>
 #include <string.h>
 
@@ -22,7 +23,7 @@ typedef struct clone_context {
 static int bareType(const XL6_AstNode* n)
 {
     if(!n || n->kind!=XL6_AST_TYPE || n->doc || n->literalData || n->inferredType || n->semanticDeclaredType || n->childCount ||
-       (n->source && n->source->completionQuery))return 0;
+       (n->source && n->source->completionQuery) || !xlsAstPackageBare(n))return 0;
     uint64_t fields=n->flags | n->literalSize | n->literalScalar | n->literalDecoded |
         n->semanticSymbolId | n->semanticDeclaredSymbolId |
         n->semanticTargetSymbolId | n->semanticCompoundOperatorSymbolId | n->semanticCallKind | n->semanticLvalueKind |
@@ -32,7 +33,7 @@ static int bareType(const XL6_AstNode* n)
     return fields==0;
 }
 static int noOwnedFields(const XL6_AstNode* n)
-{return !n->text && !n->doc && !n->literalData && !n->source && !n->children && !n->inferredType && !n->semanticDeclaredType;}
+{return !n->text && !n->doc && !n->literalData && !n->source && !n->children && !n->inferredType && !n->semanticDeclaredType && xlsAstPackageOwnedEmpty(n);}
 static size_t leafKey(const XL6_AstNode* in,unsigned char* key)
 {
     size_t size=in->text ? strlen(in->text) : 0;if(size>256)return 0;
@@ -88,18 +89,19 @@ static int sameTypeScalars(const XL6_AstNode* a,const XL6_AstNode* b)
     SAME(range.known);SAME(range.startOffset);SAME(range.endOffset);SAME(range.startLine);SAME(range.startColumn);SAME(range.endLine);SAME(range.endColumn);
     SAME(tokenRange.known);SAME(tokenRange.startOffset);SAME(tokenRange.endOffset);SAME(tokenRange.startLine);SAME(tokenRange.startColumn);SAME(tokenRange.endLine);SAME(tokenRange.endColumn);
 #undef SAME
-    return 1;
+    return xlsAstPackageScalarsEqual(a,b);
 }
 static int replayType(clone_context* c,const XL6_AstNode* in,const XL6_AstNode* owned,size_t depth)
 {
     if(!in || !owned || depth>512 || in->childCount!=owned->childCount || (in->source && in->source->completionQuery))return 0;
     XL6_AstNode prepared=*in;
     prepared.text=prepared.doc=NULL;prepared.literalData=NULL;prepared.source=NULL;
+    xlsAstPackageClearOwned(&prepared);
     prepared.children=NULL;prepared.childCount=prepared.childCapacity=0;prepared.inferredType=prepared.semanticDeclaredType=NULL;
     prepared.xlsStorage=c->storage;prepared.xlsLeafReferences=0;
     ++c->treeWork.validatedNodes;
     if((c->options.transform && !c->options.transform(in,&prepared,c->options.user)) || !noOwnedFields(&prepared) ||
-       prepared.childCount || prepared.childCapacity || !sameTypeScalars(&prepared,owned))return 0;
+       prepared.childCount || prepared.childCapacity || !sameTypeScalars(&prepared,owned) || !xlsAstPackageLinkEqual(in,owned))return 0;
     /* A repeated input source uses the very same clone-local memoized target
      * in the original copier. Never call targetSource/policy a second time. */
     XL6_AstSource* expected=NULL;
@@ -139,6 +141,7 @@ static XL6_AstNode* clone(clone_context* c,const XL6_AstNode* in,size_t depth)
     if(shared && *shared && (*shared)->xlsLeafReferences<UINT32_MAX){
         prepared=*in;prepared.xlsStorage=c->storage;prepared.xlsLeafReferences=0;prepared.text=prepared.doc=NULL;
         prepared.literalData=NULL;prepared.source=NULL;prepared.children=NULL;prepared.childCount=prepared.childCapacity=0;
+        xlsAstPackageClearOwned(&prepared);
         prepared.inferredType=prepared.semanticDeclaredType=NULL;transformedBefore=1;
         if(c->options.transform && !c->options.transform(in,&prepared,c->options.user))return NULL;
         if(bareType(&prepared) && noOwnedFields(&prepared) && prepared.semanticTypeId==in->semanticTypeId && prepared.semanticTypeAbiId==in->semanticTypeAbiId) {++(*shared)->xlsLeafReferences;++c->leafWork.hits;return *shared;}
@@ -163,15 +166,21 @@ static XL6_AstNode* clone(clone_context* c,const XL6_AstNode* in,size_t depth)
     if(transformedBefore)*out=prepared;
     else{
         *out=*in;out->text=out->doc=NULL;out->literalData=NULL;out->source=NULL;
+        xlsAstPackageClearOwned(out);
         out->children=NULL;out->childCount=out->childCapacity=0;out->inferredType=out->semanticDeclaredType=NULL;
     }
     out->xlsStorage=c->storage;out->xlsLeafReferences=0;
     int transformed=transformedBefore || !c->options.transform || c->options.transform(in,out,c->options.user);
     out->xlsStorage=c->storage;out->xlsLeafReferences=0; /* callbacks never transfer private ownership */
-    if(!transformed) goto failed;
+    int packageOwnedEmpty=xlsAstPackageOwnedEmpty(out);
+    xlsAstPackageClearOwned(out); /* callbacks cannot transfer package-link ownership */
+    if(!transformed || !packageOwnedEmpty) goto failed;
     if(keySize && !noOwnedFields(out))keySize=0;
     if(in->text && !(out->text=duplicate(c,in->text))) goto failed;
     if(in->doc && !(out->doc=duplicate(c,in->doc))) goto failed;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    if(in->compiledPackageLink && !(out->compiledPackageLink=duplicate(c,in->compiledPackageLink))) goto failed;
+#endif
     if(!source(c,in->source,out)) goto failed;
     if(in->literalData) {
         if(in->literalSize==SIZE_MAX || !charge(c,in->literalSize+1) || !xl6AstSetLiteralData(out,in->literalData,in->literalSize)) goto failed;

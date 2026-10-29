@@ -613,49 +613,8 @@ def prepare_native_lexer(frontend: Path, output: Path) -> tuple[Path, Path, dict
 
 
 def prepare_native_ast(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
-    """Private node-owner ABI; every native AST consumer must be rebuilt."""
-    original = frontend / 'src/ast/xl6_ast.c'
-    header = frontend / 'src/ast/xl6_ast.h'
-    runtime = frontend / 'lib/xrt/xrt.h'
-    if sha(original) != 'adf07bc08b6e6949fe1bb6095e373d130df205535e9e2fa1662d2cc7b4c65035' or sha(header) != '9416c3e3e37bcf244f604738f5065369967e53203b6d9663d2190a1730c3945b':
-        raise ValueError('shared AST changed; audit creation/copy/mutation/destruction and private owner layout')
-    if sha(runtime) != '1fc1fc8aa38437bddcf0d909bcfcccdd32a14b9f2e52fbd9661d97c172bf2a31':
-        raise ValueError('shared XRT changed; audit pool layout/page/index capacity charging and free lifetimes')
-    source = original.read_text(encoding='utf8')
-    old = '    xl6AstReleaseSource(node->source);\n    xrtFree(node);'
-    if source.count(old) != 1:
-        raise ValueError('shared AST free seam changed')
-    source = source.replace('#include "src/ast/xl6_ast.h"', '#include "src/ast/xl6_ast.h"\n#include "analysis/ast_storage.h"')
-    old_free = 'void xl6AstFree(XL6_AstNode* node)\n{\n    size_t i;\n\n    if ( node == NULL ) {\n        return;\n    }'
-    if source.count(old_free) != 1:
-        raise ValueError('shared AST early leaf-release seam changed')
-    source = source.replace(old_free, old_free+'\n    if (xlsAstSharedLeafRelease(node)) return;')
-    source = source.replace(old, '    xl6AstReleaseSource(node->source);\n'
-        '    if (node->xlsStorage) xlsAstStorageFreeNode(node); else xrtFree(node);')
-    text = header.read_text(encoding='utf8')
-    old = '    size_t childCapacity;\n} XL6_AstNode;'
-    if text.count(old) != 1:
-        raise ValueError('shared AST private ownership seam changed')
-    text = text.replace('#define XL6_AST_H', '#define XL6_AST_H\n#define XLS_NATIVE_AST_STORAGE 1\n#define XLS_NATIVE_AST_LEAF_REFS 1')
-    text = text.replace(old, '    size_t childCapacity;\n    struct xls_ast_storage* xlsStorage;\n} XL6_AstNode;')
-    identity = '    uint32 semanticTypeId;\n    uint64 semanticTypeAbiId;'
-    if text.count(identity) != 1:
-        raise ValueError('shared AST private leaf-reference seam changed')
-    # Occupy the existing uint32-to-uint64 alignment hole on 64-bit targets.
-    # Native consumers still rebuild; private refs never come from old objects.
-    text = text.replace(identity, '    uint32 semanticTypeId;\n    uint32_t xlsLeafReferences;\n    uint64 semanticTypeAbiId;')
-    from native_raw_body_overlay import sized_ast
-    source = sized_ast(source)
-    compiled = output / 'frontend/xl6_ast.c'
-    compiled_header = output / 'frontend/src/ast/xl6_ast.h'
-    compiled_header.parent.mkdir(parents=True, exist_ok=True)
-    compiled.write_text(source, encoding='utf8', newline='\n')
-    compiled_header.write_text(text, encoding='utf8', newline='\n')
-    return original, compiled, dict(source=str(original), sourceSha256=sha(original),
-        compiledSource=str(compiled), compiledSha256=sha(compiled), headerSource=str(header),
-        headerSourceSha256=sha(header), compiledHeader=str(compiled_header), compiledHeaderSha256=sha(compiled_header),
-        runtimeSource=str(runtime), runtimeSourceSha256=sha(runtime), auditedSeams=6,
-        change='private storage owner plus within-forest bare fact-type leaf edge references;mechanically derived counted source-binding helper with complete generic fallback;original source functions unchanged;all actual native consumers closure-verified')
+    from native_ast_overlay import derive
+    return derive(frontend, output)
 
 
 def prepare_reference_owner_fixture(ide: Path, output: Path) -> tuple[Path, Path, list[dict]]:
@@ -799,6 +758,7 @@ def main() -> None:
     inputs[str(Path(__file__).with_name('native_ir_memo_overlay.py').resolve())] = sha(Path(__file__).with_name('native_ir_memo_overlay.py'))
     inputs[str(Path(__file__).with_name('native_type_source_overlay.py').resolve())] = sha(Path(__file__).with_name('native_type_source_overlay.py'))
     inputs[str(Path(__file__).with_name('native_raw_body_overlay.py').resolve())] = sha(Path(__file__).with_name('native_raw_body_overlay.py'))
+    inputs[str(Path(__file__).with_name('native_ast_overlay.py').resolve())] = sha(Path(__file__).with_name('native_ast_overlay.py'))
     inputs[str(Path(__file__).with_name('native_initializer_overlay.py').resolve())] = sha(Path(__file__).with_name('native_initializer_overlay.py'))
     inputs[str(Path(__file__).with_name('native_parser_ownership_overlay.py').resolve())] = sha(Path(__file__).with_name('native_parser_ownership_overlay.py'))
     inputs.update({stack_overlay['source']:stack_overlay['sourceSha256'], stack_overlay['grammarSource']:stack_overlay['grammarSha256']})

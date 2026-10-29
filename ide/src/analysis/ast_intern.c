@@ -1,4 +1,5 @@
 #include "analysis/ast_intern.h"
+#include "analysis/ast_package_fields.h"
 #include <xrt.h>
 #include <string.h>
 struct xls_ast_intern {XL6_AstNode* forest;xls_ast_intern_work work;};
@@ -38,7 +39,7 @@ static int keyPath(intern_key* k,const char* path)
 }
 static int bareLeaf(const XL6_AstNode* n)
 {
-    if(n->doc || n->literalData || n->inferredType || n->semanticDeclaredType || n->childCount)return 0;
+    if(n->doc || n->literalData || n->inferredType || n->semanticDeclaredType || n->childCount || !xlsAstPackageBare(n))return 0;
     /* A representation case,not a list of language types. Kind/text/source
      * remain exact below;every other logical scalar must be zero. Ignore
      * allocation pointers/capacity and padding,as the general key does. */
@@ -63,6 +64,9 @@ static int keyNode(intern_key* k,const XL6_AstNode* n,size_t depth)
         return keyData(k,encoded,size) && keyText(k,n->text) && keyPath(k,n->source ? n->source->path : NULL);
     }
     uint64_t fields[]={n->kind,n->flags,n->literalSize,n->literalScalar,n->literalDecoded,
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+        n->semanticReceiverSymbolId,n->compiledPackageError,n->compiledPackageRoot,
+#endif
         n->semanticTypeId,n->semanticTypeAbiId,n->semanticSymbolId,n->semanticDeclaredSymbolId,
         n->semanticTargetSymbolId,n->semanticCompoundOperatorSymbolId,n->semanticCallKind,n->semanticLvalueKind,
         n->semanticOwnership,n->semanticExitKind,n->semanticScopeDepth,n->semanticTargetScopeDepth,n->semanticRegionId,n->semanticTargetRegionId,
@@ -76,6 +80,9 @@ static int keyNode(intern_key* k,const XL6_AstNode* n,size_t depth)
     unsigned char encoded[(1+sizeof(fields)/sizeof(*fields))*10];size_t size=numberBytes(encoded,mask);
     for(size_t i=0;i<sizeof(fields)/sizeof(*fields);++i)if(fields[i])size+=numberBytes(encoded+size,fields[i]);
     present=n->literalData!=NULL;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    if(!keyText(k,n->compiledPackageLink))return 0;
+#endif
     if(!keyData(k,encoded,size) || !keyText(k,n->text) || !keyText(k,n->doc) || !keyPath(k,n->source ? n->source->path : NULL) ||
        !keyData(k,&present,sizeof(present)) || (n->literalData && !keyData(k,n->literalData,n->literalSize)) ||
        !keyNode(k,n->inferredType,depth+1) || !keyNode(k,n->semanticDeclaredType,depth+1))return 0;
