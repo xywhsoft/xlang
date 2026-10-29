@@ -6,6 +6,7 @@
 #include "src/runtime/xl6_persistence_restore_plan.h"
 #include "src/runtime/xl6_serialization_read.h"
 #include "src/runtime/xl6_ownership_read.h"
+#include "src/runtime/xl6_scalar_domain.h"
 #include "src/api/xl_foreign_error.h"
 #include <limits.h>
 #include <stdlib.h>
@@ -229,9 +230,14 @@ static xvalue* restoreLeaf(const XL6_CollectionImportPlanV1* plan,const xvalue* 
         if (!(rejected && *rejected) && !xrtGetError()) xrtSetErrorKind(XERR_TYPE);
         return NULL;
     }
+    /* An erased destination preserves the source's actual logical domain.
+     * `var` is not a new nominal identity to stamp onto each wire value. */
+    if (plan->leafRule==XL6_VALUE_ADMIT_ANY) return value;
+    uint32_t domain=xl6ScalarPrimitiveDomainV1(plan->leafRule);
     /* Clone of an immutable primitive may be the SAME source shell. Never
      * retag it to manufacture the destination's primitive identity. */
-    if (plan->leafIdentity && xrtValueTypeId(value)!=plan->leafIdentity &&
+    if (plan->leafIdentity && (xrtValueTypeId(value)!=plan->leafIdentity ||
+        xrtValueScalarDomainV1(value)!=domain) &&
         xrtValueType(value)!=XVALUE_BOOL && value==source) {
         xvalue* fresh=NULL; xstrview text={0}; xbytesview bytes={0}; xtime time={0};
         if (plan->leafRule==XL6_VALUE_ADMIT_STRING && xrtValueGetString(source,&text)) fresh=xrtValueString(text);
@@ -241,7 +247,7 @@ static xvalue* restoreLeaf(const XL6_CollectionImportPlanV1* plan,const xvalue* 
         if (!value) { if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY); return NULL; }
     }
     if (plan->leafIdentity && xrtValueType(value)!=XVALUE_BOOL &&
-        xrtValueTypeId(value)!=plan->leafIdentity && !xrtValueTypeIdBind(value,plan->leafIdentity)) {
+        !xl6ScalarIdentityBindV1(value,plan->leafIdentity,domain)) {
         releasePreservingError(value); return NULL;
     }
     return value;

@@ -1,0 +1,9 @@
+async func castAsync(var value) as string
+    return value as string
+end
+var input = "a\0你\0b"
+string converted = await castAsync(input)
+assert converted == "a\0你\0b"
+assert string.byteLen(converted) == 7
+input = "replaced"
+assert converted == "a\0你\0b"
