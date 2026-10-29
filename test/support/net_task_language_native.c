@@ -1,8 +1,8 @@
 /* Reuse only the existing NETWORK outcome fixture's environment/check helpers.
  * Its renamed entry has no TaskPool symbols or synthetic frame implementation. */
 #define main old_net_frame_outcome_main
-#include "release/include/xl_clock.h"
 #include "task_net_frame_outcome.c"
+#include "release/include/xl_clock.h"
 #undef main
 #include "src/runtime/xl6_task_net_language.h"
 #include "src/runtime/xl6_execution_net_engine.h"

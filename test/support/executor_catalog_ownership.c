@@ -4,8 +4,8 @@
 #define XRT_MODULE_VALUE_CONTAINER
 #define XRT_MODULE_ONCE
 #define main executor_prerequisite_main
-#include "release/include/xl_clock.h"
 #include "../cases/xrt_executor_ownership_native.c"
+#include "release/include/xl_clock.h"
 #undef main
 #include "src/runtime/xl6_ownership_catalog.h"
 #include "src/runtime/xl6_ownership_domains.h"

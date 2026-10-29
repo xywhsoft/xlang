@@ -3,8 +3,8 @@
 /* Observe the actual ABI argument lists, then delegate to the unchanged native
  * adapter. This is a contract spy, not a replacement graph or policy result. */
 #define xrtNetEngineOwnershipAdapterV3 testRealNetEngineOwnershipAdapterV3
-#include "release/include/xl_clock.h"
 #include "net_engine_runtime.c"
+#include "release/include/xl_clock.h"
 #undef xrtNetEngineOwnershipAdapterV3
 #undef main
 

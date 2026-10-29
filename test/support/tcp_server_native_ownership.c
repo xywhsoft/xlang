@@ -215,7 +215,10 @@ static int32 cancelRace(ptr data)
     CloseCancel* race=data;xrtAtomic32FetchAdd(&race->ready,1,XMEMORY_RELEASE);
     while(!xrtAtomic32Load(&race->go,XMEMORY_ACQUIRE))xrtThreadYield();
     bool cancelled=xrtFutureCancel(race->future);
-    CHECK(cancelled||xrtFutureState(race->future)!=XFUTURE_PENDING);
+    /* Cancellation requests do not manufacture a terminal state. Close may
+     * already own delivery while its Future is still pending; the joining
+     * thread below verifies the eventual closed/cancelled outcome. */
+    if(!cancelled)CHECK(!xrtGetError());
     xrtFutureDestroy(race->future);xrtClearError();return 0;
 }
 static void closeCancelRaces(xnetportbackend backend)
@@ -231,9 +234,9 @@ static void closeCancelRaces(xnetportbackend backend)
         XL6_DeadlineV1 due=xl6DeadlineAfterMillisecondsV1(10000);
         while(xrtAtomic32Load(&race.ready,XMEMORY_ACQUIRE)!=2){CHECK(!xl6DeadlineExpiredV1(due));xrtThreadYield();}
         xrtAtomic32Store(&race.go,1,XMEMORY_RELEASE);
-        CHECK(xrtFutureWaitFor(scene.future,UINT64_C(10000000))==XWAIT_OK);
+        CHECK(xrtFutureWaitFor(scene.future,10000)==XWAIT_OK);
         CHECK(xrtFutureState(scene.future)==XFUTURE_CLOSED||xrtFutureState(scene.future)==XFUTURE_CANCELLED);
-        CHECK(xrtThreadWaitFor(a,UINT64_C(10000000))==XWAIT_OK&&xrtThreadExitCode(a)==0);CHECK(xrtThreadWaitFor(b,UINT64_C(10000000))==XWAIT_OK&&xrtThreadExitCode(b)==0);
+        CHECK(xrtThreadWaitFor(a,10000)==XWAIT_OK&&xrtThreadExitCode(a)==0);CHECK(xrtThreadWaitFor(b,10000)==XWAIT_OK&&xrtThreadExitCode(b)==0);
         xrtThreadDestroy(a);xrtThreadDestroy(b);xrtFutureDestroy(scene.future);CHECK(testTcpServerEngineDestroy(scene.engine));balanced(before);
     }
 }

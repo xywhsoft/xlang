@@ -1,7 +1,7 @@
 /* Actual owned TLS data, fixed certificate and literal loopback only. */
 #define main tlsResourceBaselineMain
-#include "release/include/xl_clock.h"
 #include "tls_execution_resource.c"
+#include "release/include/xl_clock.h"
 #undef main
 #include "src/runtime/xl6_tls_data_abi.h"
 #include "src/runtime/xl6_net_bytes_abi.h"

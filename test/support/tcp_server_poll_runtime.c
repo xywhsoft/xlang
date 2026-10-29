@@ -1,8 +1,8 @@
 /* Reuse the real native implementation/catalog and ordinary graph helpers.
  * No production seam, native replacement, public network or protocol test. */
 #define main existingServerResourceMain
-#include "release/include/xl_clock.h"
 #include "tcp_server_execution_resource.c"
+#include "release/include/xl_clock.h"
 #undef main
 #include "src/runtime/xl6_execution_language.h"
 extern void* xl6TcpServerTryAcceptV1(XL6_ExecutionServicesV1,void*);

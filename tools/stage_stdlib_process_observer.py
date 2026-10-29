@@ -17,12 +17,14 @@ def stage(root,out):
     implementation=provider.read_text(encoding='utf-8-sig')
     for macro in ('XRT_MODULE_ALL','XRUNTIME_MODULE_ALL','XRUNTIME_IMPLEMENTATION'):
         assert re.search(r'^#define '+macro+r'\s*$',implementation,re.M),(provider,macro)
-    assert '#include "lib/xruntime/xruntime_features.h"\n#if defined(XRUNTIME_IMPLEMENTATION) && !defined(XRT_IMPLEMENTATION)\n#define XRT_IMPLEMENTATION\n#endif\n#include "lib/xrt/xrt.h"\n#include "lib/xruntime/xruntime.h"' in implementation
+    assert '#include "lib/xruntime/xruntime_features.h"\n#define XRT_IMPLEMENTATION\n#include "lib/xrt/xrt.h"\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"' in implementation
     pattern=r'^struct xprocess \{\n.*?^\};'
-    matches=re.findall(pattern,single.read_text(encoding='utf-8-sig'),re.M|re.S)
-    other=re.findall(pattern,xrt.read_text(encoding='utf-8-sig'),re.M|re.S)
-    assert len(matches)==len(other)==1 and matches==other,'Different or unknown native process layouts'
-    body=matches[0]
+    runtime_layouts=re.findall(pattern,single.read_text(encoding='utf-8-sig'),re.M|re.S)
+    core_layouts=re.findall(pattern,xrt.read_text(encoding='utf-8-sig'),re.M|re.S)
+    # Process belongs to core. A thin xruntime must not carry another copy of
+    # this private representation; the observer follows the sole producer.
+    assert not runtime_layouts and len(core_layouts)==1,'Duplicate or unknown core process layout'
+    body=core_layouts[0]
     assert 'xthread* Waiter;' in body and '#if defined(XRT_FEATURE_PROCESS_FUTURE)' in body
     out.mkdir(parents=True)
     header=out/'process_observer_layout.h'

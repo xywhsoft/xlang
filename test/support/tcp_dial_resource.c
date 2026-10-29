@@ -1,8 +1,8 @@
 /* Extend the real resource graph fixture, not a duplicated coordinator. Its
  * original TCP/Accept suite also runs, proving the shared carrier regression. */
 #define main tcpResourceRegressionMain
-#include "release/include/xl_clock.h"
 #include "tcp_execution_resource.c"
+#include "release/include/xl_clock.h"
 #undef main
 #include "src/runtime/xl6_execution_tcp_dial.h"
 #include "src/runtime/xl6_execution_net_resolver.h"

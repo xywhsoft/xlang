@@ -89,6 +89,7 @@ static void empty_round(void)
     assert(xrtMemDebugFailAfter(0));
     stats=snapshot(pool);assert(stats.closed&&!stats.initialized);
     assert(api->WaitFor(pool,0,NULL,&status)&&status==XL6_TASK_POOL_READY_V1);
+    assert(api->WaitFor(pool,INT64_MAX,NULL,&status)&&status==XL6_TASK_POOL_READY_V1);
     assert(!xrtMemDebugFailTriggered());xrtMemDebugFailClear();
     assert(!api->Start(pool));expect_state();
     assert(api->TryQuiesce(pool)==XL6_MODULE_PREPARE_READY&&api->Destroy(pool));balanced(&before);
@@ -134,7 +135,7 @@ static void jobs_round(bool cancel_queued)
     assert(api->WaitFor(pool,-1,cancel,&status)&&status==XL6_TASK_POOL_CANCELLED_V1);xrtCancelDestroy(cancel);
     assert(!api->WaitFor(pool,-2,NULL,&status)&&status==XL6_TASK_POOL_TIMEOUT_V1);
     assert(xrtGetError()&&xrtErrorKind(xrtGetError())==XERR_RANGE);xrtClearError();
-    assert(!api->WaitFor(pool,INT64_MAX,NULL,&status));assert(xrtErrorKind(xrtGetError())==XERR_RANGE);xrtClearError();
+    assert(!api->WaitFor(pool,INT64_MIN,NULL,&status));assert(xrtErrorKind(xrtGetError())==XERR_RANGE);xrtClearError();
     assert(!api->WaitUntil(pool,UINT64_MAX,NULL,&status));assert(xrtErrorKind(xrtGetError())==XERR_RANGE);xrtClearError();
     if(cancel_queued){
         assert(api->Cancel(pool));wait_value(&second.stage,3);assert(xrtAtomic32Load(&second.self_checks,XMEMORY_ACQUIRE)==1);
@@ -275,7 +276,7 @@ static void native_tail_round(void)
     NativeTail tail={.pool=create()};tail.key=xrtThreadKeyCreate(native_tail_cleanup);assert(tail.key);
     XL6_TaskNativeScopeV1 scope={0};assert(xl6TaskNativeBeginV1(tail.pool,&scope));
     xfuture* future=xrtTaskSubmit(scope.native,native_tail_job,&tail,NULL);assert(future);xl6TaskNativeEndV1(&scope);
-    assert(xrtFutureWaitFor(future,UINT64_C(5000000))==XWAIT_OK);xrtFutureDestroy(future);
+    assert(xrtFutureWaitFor(future,5000)==XWAIT_OK);xrtFutureDestroy(future);
     XL6_TaskPoolWaitStatusV1 status;assert(api->Close(tail.pool));
     assert(api->WaitFor(tail.pool,5000,NULL,&status)&&status==XL6_TASK_POOL_READY_V1);
     assert(!xrtAtomic32Load(&tail.entered,XMEMORY_ACQUIRE)); /* drain is not join */

@@ -1,8 +1,8 @@
 /* Reuse the actual TCP carrier/callback baseline, including its OOM cases. */
 #define XRT_MODULE_FILE_TEMP
 #define main tcpDataBaselineMain
-#include "release/include/xl_clock.h"
 #include "tcp_language_runtime.c"
+#include "release/include/xl_clock.h"
 #undef main
 #include "src/runtime/xl6_fs_file.h"
 typedef xfuture* (*ReceiveInto)(XL6_RuntimeServicesV1,XL6_NativeClassFieldContextV1,void*,const xvalue*,int64_t);
