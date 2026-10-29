@@ -108,10 +108,12 @@ def main():
     bound_nullable_generic_contract = ROOT/'test/cases/xlir_bound_nullable_generic_contract.c'
     bound_nullable_cast_contract = ROOT/'test/cases/xlir_bound_nullable_cast_contract.c'
     bound_variadic_owner_contract = ROOT/'test/cases/xlir_bound_variadic_owner_contract.c'
+    bound_compound_contract = ROOT/'test/cases/xlir_bound_compound_contract.c'
     producer_tail_contract = ROOT/'test/cases/xlir_task_producer_tail.c'
     for path in [source, *native, template, contract, oom_contract, task_scalar_contract, task_composition_contract, task_optional_contract,
             task_reference_contract,error_array_contract,
-            reference_boundary_contract,bound_dispatch_contract,bound_constraint_contract,bound_access_contract,bound_c_owner_contract,bound_generic_owner_contract,bound_nullable_generic_contract,bound_nullable_cast_contract,bound_variadic_owner_contract,producer_tail_contract,
+            reference_boundary_contract,bound_dispatch_contract,bound_constraint_contract,bound_access_contract,bound_c_owner_contract,bound_generic_owner_contract,bound_nullable_generic_contract,bound_nullable_cast_contract,bound_variadic_owner_contract,bound_compound_contract,producer_tail_contract,
+            ROOT/'test/cases/extern_owned_bound_compound.xl',
             ROOT/'test/cases/extern_owned_bound_nullable_generic_args.xl',
             ROOT/'test/cases/extern_owned_bound_nullable_casts.xl',
             ROOT/'test/cases/extern_owned_bound_variadic_owners.xl',
@@ -207,6 +209,7 @@ def main():
             ('bound-nullable-generic-contract',bound_nullable_generic_contract,'concrete argument ABI remains checked'),
             ('bound-nullable-cast-contract',bound_nullable_cast_contract,'pointer lift and selection authenticated'),
             ('bound-variadic-owner-contract',bound_variadic_owner_contract,'borrowed final pack and exact copy plan'),
+            ('bound-compound-contract',bound_compound_contract,'lazy selection, one receiver, exact result ABI, no checked projection'),
             ('task-reference-contract',task_reference_contract,'8 mutations rejected'),
             ('reference-boundary-contract',reference_boundary_contract,'6 mutations rejected'),
             ('error-array-admission',error_array_contract,'64 OOM prefixes balanced')]:
