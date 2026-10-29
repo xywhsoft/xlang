@@ -3877,7 +3877,7 @@ XUI_API int xuiInventoryGridExportXSON(xui_widget pWidget, char* sBuffer, int iC
 		return iRet;
 	}
 	iSize = 0u;
-	sText = xrtXsonStringify(pValue, true, &iSize);
+	sText = xrtXlonStringify(pValue, true, &iSize);
 	xrtValueRelease(pValue);
 	if ( sText == NULL ) {
 		return XUI_ERROR_RESOURCE_FAILED;
@@ -3910,7 +3910,7 @@ XUI_API int xuiInventoryGridSaveXSONFile(xui_widget pWidget, const char* sPath)
 	if ( iRet != XUI_OK ) {
 		return iRet;
 	}
-	iRet = xrtXsonStringifyFile(sPath, pValue, true) ?
+	iRet = xrtXlonStringifyFile(sPath, pValue, true) ?
 		XUI_OK : XUI_ERROR_RESOURCE_FAILED;
 	xrtValueRelease(pValue);
 	return iRet;

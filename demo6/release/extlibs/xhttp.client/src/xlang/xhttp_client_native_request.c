@@ -41,12 +41,11 @@ XLANG_XHTTP_CLIENT_EXPORT void* xhttp_client_request_clone(
 
 
 /* 释放 Request 及其全部拥有资源。 */
-XLANG_XHTTP_CLIENT_EXPORT long long xhttp_client_request_destroy(
+XLANG_XHTTP_CLIENT_EXPORT void xhttp_client_request_destroy(
 	void* pHandle
 )
 {
 	xrtHttpRequestDestroy((xhttprequest*)pHandle);
-	return 0;
 }
 
 
@@ -280,7 +279,7 @@ XLANG_XHTTP_CLIENT_EXPORT bool xhttp_client_request_clear_body(
 /* 复制二进制正文并按需设置 Content-Type。 */
 XLANG_XHTTP_CLIENT_EXPORT bool xhttp_client_request_set_bytes(
 	void* pHandle,
-	const void* pData,
+	void* pData,
 	size_t iSize,
 	const char* sContentType,
 	size_t iContentType

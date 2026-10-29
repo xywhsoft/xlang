@@ -1,13 +1,13 @@
 class UserRecord
     derive value
     derive json
-    derive xson
+    derive xlon
 
     int id = 0
-    string name @json("user_name") @xson("userName") = ""
+    string name @json("user_name") @xlon("userName") = ""
     private string token @persist(name="token_value", include) = ""
     string password @persist(skip) = ""
-    string memo @json(omit=empty) @xson(omit=null) = ""
+    string memo @json(omit=empty) @xlon(omit=null) = ""
 
     func setToken(string value)
         self.token = value
@@ -54,11 +54,11 @@ func main(...) as int
         return 8
     end
 
-    string xsonText = xson.stringify(user)
-    if string.contains(xsonText, "userName") == 0 then
+    string xlonText = xlon.stringify(user)
+    if string.contains(xlonText, "userName") == 0 then
         return 9
     end
-    if string.contains(xsonText, "user_name") != 0 then
+    if string.contains(xlonText, "user_name") != 0 then
         return 10
     end
 

@@ -1,0 +1,120 @@
+{
+    "date":  "2026-09-27T13:40:05.9302251+08:00",
+    "outcome":  "passed",
+    "scope":  "Frozen Windows CLI with current manifest-selected external SDK assets; C and xlang package JIT/AOT; percent codec, zlib and typed-array calls. Not a rebuilt or VFS-only release certification.",
+    "inputs":  {
+                   "release/xl.exe":  "5A3F20B4CF9333D393560CB2361D0EBAB8A13F0D07C64A78A1F5FFF5385D9EEB",
+                   "release/xl.dll":  "2A07C481C04CAD71D31D46722A27E62027318DF24E95A63126E061FD4CA46902",
+                   "release/xlc.dll":  "7C672FD0B2852690D09E2EF1046C56EE1586FD1FCCC0CAEA61E19C0FE7C6E1F0",
+                   "lib/xrt/xrt.h":  "7C78B4B3D13FC64AC1009E2EDFAE73E9FB092C896DA1A70CF5BE859D153851E8",
+                   "lib/xruntime/xruntime.h":  "FF23FDB9AC90F63DEED1606A78F21707A9FA677AA766044B8AF3B4F5202F4BA9",
+                   "release/include/xrt_decl.h":  "A2D9D17C569DC74B974F8FD2FED0AC00E20A819FCDA09473630951031E0BCE8E",
+                   "release/include/xruntime_decl.h":  "97BEE29DBA82A3BB9D6A6A05681B90F456B35EF74741E9AD08B6E6B784060CFD",
+                   "lib/xrt/xrt.snapshot.json":  "69F810F97090777CAA8EE92D7B3E92C9C3E71316DAA19996863D001DBD974D33",
+                   "lib/xruntime/xruntime.snapshot.json":  "796B1509B4E238290FE421F85762E2D72548B5E165D6BEB2450EAD9EA7A4C7E4",
+                   "test/cases/extlib_sdk_features.xl":  "197B164C499180E3156A46111EEB6653F2C95F70E5A0D8F886F6980AF1DD396C",
+                   "test/cases/extlib_sdk_features_c.c":  "41C005847CE6900E0E74D49D9D8D83D60C273CC62F75657F86AECF78B1FDC46F",
+                   "test/fixtures/sdk_feature_probe/xlang.package.json":  "FDD87C1F1473BB910393C3FCF3FF24F5D67E97948DE1D09BC545B8811ABB0D49",
+                   "test/fixtures/sdk_feature_probe/sdk_features.xl":  "9F89FB0873FF7E396D96DC244B0DD786DAF4301F055F378F92EDBA9DC1C7F81D",
+                   "test/fixtures/sdk_feature_probe/sdk_features_native.c":  "D56C0501A96A5A292FBD28E8A80A01BED2222E3F384E6421EEA9B8D1344CB9F9",
+                   "tools/check_extlib_sdk_features.ps1":  "E906FE2BDFC243919F03109B2151E32ECADB07BEA0F11B2365CB3AA9D81EFEE8",
+                   "tools/extlib_smoke_process.ps1":  "87C3D050B1F492E3F0C4307BA39F454E42B65E37DBCDEC4BE3E938BC2F32D2F7",
+                   "tools/xlir_native_process.ps1":  "2BE2787D2316CE07E0D0AC3BDF1A1CAABA14D72F249CCAC847BB1C05D1DBFC9D",
+                   "tools/tcc_vfs_manifest_win64_xlc.txt":  "9E8C392ACD2DCD4E19A44241B5B684CB46F81AC0033D93D51B8CC55D1125A534"
+               },
+    "inputsStable":  true,
+    "checks":  [
+                   {
+                       "name":  "c-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_sdk_features\\host\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "D:\\GIT\\x-lang\\demo6\\test\\cases\\extlib_sdk_features_c.c"
+                                     ],
+                       "result":  {
+                                      "status":  "pass",
+                                      "exitCode":  0,
+                                      "stdout":  "SDK selected features ok\r\n",
+                                      "stderr":  "",
+                                      "elapsedMs":  98
+                                  }
+                   },
+                   {
+                       "name":  "c-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_sdk_features\\host\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "D:\\GIT\\x-lang\\demo6\\test\\cases\\extlib_sdk_features_c.c",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_sdk_features\\c-aot.exe"
+                                     ],
+                       "result":  {
+                                      "status":  "pass",
+                                      "exitCode":  0,
+                                      "stdout":  "",
+                                      "stderr":  "",
+                                      "elapsedMs":  259
+                                  }
+                   },
+                   {
+                       "name":  "c-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_sdk_features\\c-aot.exe",
+                       "arguments":  [
+
+                                     ],
+                       "result":  {
+                                      "status":  "pass",
+                                      "exitCode":  0,
+                                      "stdout":  "SDK selected features ok\r\n",
+                                      "stderr":  "",
+                                      "elapsedMs":  56
+                                  }
+                   },
+                   {
+                       "name":  "xl-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_sdk_features\\host\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "D:\\GIT\\x-lang\\demo6\\test\\cases\\extlib_sdk_features.xl"
+                                     ],
+                       "result":  {
+                                      "status":  "pass",
+                                      "exitCode":  0,
+                                      "stdout":  "SDK selected features ok\r\n",
+                                      "stderr":  "",
+                                      "elapsedMs":  96
+                                  }
+                   },
+                   {
+                       "name":  "xl-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_sdk_features\\host\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "D:\\GIT\\x-lang\\demo6\\test\\cases\\extlib_sdk_features.xl",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_sdk_features\\xl-aot.exe"
+                                     ],
+                       "result":  {
+                                      "status":  "pass",
+                                      "exitCode":  0,
+                                      "stdout":  "",
+                                      "stderr":  "",
+                                      "elapsedMs":  227
+                                  }
+                   },
+                   {
+                       "name":  "xl-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_sdk_features\\xl-aot.exe",
+                       "arguments":  [
+
+                                     ],
+                       "result":  {
+                                      "status":  "pass",
+                                      "exitCode":  0,
+                                      "stdout":  "SDK selected features ok\r\n",
+                                      "stderr":  "",
+                                      "elapsedMs":  23
+                                  }
+                   }
+               ]
+}

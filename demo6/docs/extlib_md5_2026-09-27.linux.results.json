@@ -1,0 +1,38 @@
+{
+  "format": "xlang-extlib-md5-linux-evidence-1",
+  "archivedAt": "2026-09-27T08:45:19.1912620+08:00",
+  "completedAt": "2026-09-27T08:42:49.0748067+08:00",
+  "command": "bash tools/check_extlib_md5.sh",
+  "platform": "WSL Ubuntu x86_64",
+  "compiler": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+  "scope": "Independent C ASan/UBSan/leak detection for the named bounded tests; not Linux xlang, all APIs, other architectures or performance certification",
+  "outcome": "passed",
+  "exitCode": 0,
+  "inputs": {
+    ".gitattributes": "4840BB7669C89BAD0580C0078A986D9095AB870F9E44EE282EEF6CF5864D4A46",
+    "lib/xrt/xrt.h": "7C78B4B3D13FC64AC1009E2EDFAE73E9FB092C896DA1A70CF5BE859D153851E8",
+    "lib/xruntime/xruntime.h": "FF23FDB9AC90F63DEED1606A78F21707A9FA677AA766044B8AF3B4F5202F4BA9",
+    "release/examples/extlibs/md5_basic.expected.txt": "DA63253C5BF4A89AD09C34606A1599B31B684DFDF802D5587D4F0A4B1BFAC94F",
+    "release/extlibs/md5/README.md": "14B46475665DDF5D478E9C3DE0F00F0FF54F87C4FD33F35C7BDD8B6D7DC73980",
+    "release/extlibs/md5/docs/site.html": "5DC03F6701E786A4B99784E0029F46184B177E5506C130224BA030E92440AE62",
+    "release/extlibs/md5/examples/basic.c": "55E8431FDDE4AE202AD31AE63C6395E40DF3A028CBC17A5D2C3157D9076D5C7F",
+    "release/extlibs/md5/include/md5_native.h": "5E08C184762025D52E661C4936B6C9E38B830D431F97BF973F303D7E79F50B06",
+    "release/extlibs/md5/include/xrt_md5.h": "FDED4313268C86A2336858AE0658E4F624300F9CBE2786D44F929449BEB8CA3D",
+    "release/extlibs/md5/md5_native.c": "130D21A8E98E6E815DFB2B9037042550BEA355897E6C86D2E9775A7DFE39EFAD",
+    "release/extlibs/md5/src/md5.xl": "C3787E4C05012BA95ED7BA25E28FB89503A95FFD885C7602B7EBB53E70D5D044",
+    "release/extlibs/md5/test/test_md5.c": "82BC7495154827D89A68B408A5D7F1CBE880B0D1246981A18D070777F16D7F4E",
+    "release/extlibs/md5/test/test_md5_native.c": "ADD45DDD1BAC3978EE11C7581DF6BF26892F2099560535B78443C7B38DEF907D",
+    "release/extlibs/md5/test/test_md5_standalone.c": "F0CEC1171BEB59A21E6C34750BA74FDC2C70C9254966EEEA7BFF7DEBBC87185C",
+    "release/extlibs/md5/test/vectors.h": "2EEC7D045CD66CEE9685F66A0B0508B4E2B5B053F2A2FA261FC6AFBEE9D59E13",
+    "release/extlibs/md5/xlang.package.json": "B382B0BE4603BC43E6759CB8134E86397572FACABC95B5C2B5CD6A7102910FB5",
+    "release/extlibs/md5/xrt_md5.c": "10D664FF319804FC34DB60589F8056BDC980F81ECC1806ED0012F21502AAFF8E",
+    "test/support/extlib_codec_runtime.c": "ACD01CA7C8ACFA2F63C1257DDA52A0B575C0F2679B5432588014023F105C65FA",
+    "tools/check_extlib_md5.sh": "FDB235CB7C25AF1F87B8D31D89F816B7BCBDA1EB5143B6674313B78E48946D15"
+  },
+  "logs": {
+    "standalone": "",
+    "test_md5": "md5 core: independent vectors, padding/chunks, states/readers passed\n",
+    "test_md5_native": "md5 allocations: rejected=11 completed=61\nmd5 native: 4 threads, temporary and Buffer lifetimes passed\n",
+    "basic": "empty=d41d8cd98f00b204e9800998ecf8427e\nabc=900150983cd24fb0d6963f7d28e17f72\nstream=900150983cd24fb0d6963f7d28e17f72\nbytes=3\nreset=d41d8cd98f00b204e9800998ecf8427e\n"
+  }
+}

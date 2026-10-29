@@ -1,0 +1,668 @@
+{
+    "date":  "2026-09-27T07:03:18.8282726+08:00",
+    "outcome":  "passed",
+    "scope":  "XXH32/XXH64: 124 independent vectors, exact native ABI, UTF-8, state/readers/callbacks, allocation failures, independent threads, C/XL JIT/AOT/GCC examples; not XXH3 language API, Linux XL, 32-bit/ARM or performance certification",
+    "generatedPrototypes":  19,
+    "inputs":  {
+                   ".gitattributes":  "0447B9C31FA9BE35CB5D8E892CB39385512FE622D0EF4EBC4C4734018FCA118D",
+                   "lib/xrt/xrt.h":  "7C78B4B3D13FC64AC1009E2EDFAE73E9FB092C896DA1A70CF5BE859D153851E8",
+                   "lib/xruntime/xruntime.h":  "FF23FDB9AC90F63DEED1606A78F21707A9FA677AA766044B8AF3B4F5202F4BA9",
+                   "release/examples/extlibs/xxhash.xl":  "2A88FF4B758555C9A653FE6131BF3B83424BA113CC48185A904AC30CD3EB2DAB",
+                   "release/examples/extlibs/xxhash_basic.expected.txt":  "D0176A094562B743A8335B60E9EEE37458823B783D684A3BCEEFF4FA949F8E61",
+                   "release/examples/extlibs/xxhash_basic.xl":  "2960C9C336A318B3F5F345254857114AC1B989FEDFA4CFD396277192F6ED7C5F",
+                   "release/extlibs/xxhash/docs/site.html":  "234F954F9209AB81A03EEDBC8CF7920C673F6FA52CF33C5526F331F7AE89FD80",
+                   "release/extlibs/xxhash/examples/basic.c":  "85C286798D3B2C453EECA37D0F53D09FEE358B66091C653B03667E085331F64B",
+                   "release/extlibs/xxhash/include/xrt_xxhash.h":  "3945867E98EA960450F5DEFB90046597513356959077C66CF080C981313510EE",
+                   "release/extlibs/xxhash/include/xrt_xxhash_tcc_compat.h":  "23099213B6716A4E97AB7409DFB8A78ABEA4684AC7F2B4225F0F1873FDCF0030",
+                   "release/extlibs/xxhash/include/xxhash_native.h":  "A9F309976E1D11DA11EF23B6C2D243A84C2214209902DB6ADF34F13FA31E62C6",
+                   "release/extlibs/xxhash/LICENSE":  "0D52A034B04AF2721F553283FDB0BA90F69C3C04006D288ADEA634CD5A0E3A8E",
+                   "release/extlibs/xxhash/README.md":  "DD356CDD4A86D667DEDBF4506C2E5888FCC069FDFE840D27E191277FACE22D61",
+                   "release/extlibs/xxhash/src/xxhash.xl":  "F5EBB4D7B9E765FFDC00DC342B279A6F32E429CB62C13CF6FA4033841A80B88C",
+                   "release/extlibs/xxhash/test/invalid_seed_negative.xl":  "A75846082FF652068F24644332814D3F7FC47D51800CB29745CE681301D992A4",
+                   "release/extlibs/xxhash/test/invalid_seed32_overflow.xl":  "63447A5690A6EB7BF4061E5FBFB1B2436C21EAFE749DB338DA383312EDCF0BC8",
+                   "release/extlibs/xxhash/test/test_xxhash.c":  "B4807DCB7C035C21250969431C4AD52787BC5FF20E1E94D687319887E9DCE5C5",
+                   "release/extlibs/xxhash/test/test_xxhash_native.c":  "66DDF6FBF2461052414F3030F4896BEB81361320694E079C56051F61D407BF7A",
+                   "release/extlibs/xxhash/test/vectors.h":  "02AC9DCDCA95644E32FE09933C54710942A700F9A91F89920A50374F92A86087",
+                   "release/extlibs/xxhash/test/vectors.json":  "D7C78A9A5B31404484133CE279F46CAC16D7049DC6A37433E931F48256D4252F",
+                   "release/extlibs/xxhash/third_party/manifest.json":  "79156E0BD8087EB890D99ACFC04F8F9FD913B77D1C0E2756D4CE4D13DFC686F2",
+                   "release/extlibs/xxhash/third_party/xxhash.c":  "F2FC3A84C1DDD862AA43D5B9271A1FE0C46E43D41827255BAE4FEA5F5350C4C0",
+                   "release/extlibs/xxhash/third_party/xxhash.h":  "17973C0DC49D9854CA26CAA191F0E12F7A424B68858D9A78DE3860D959D85E4B",
+                   "release/extlibs/xxhash/VENDOR.md":  "6211A37D6528C48DFB1346FB26AD5A8729A4FFD519318ABE3231F1DD1B7B0274",
+                   "release/extlibs/xxhash/xlang.package.json":  "1CD69C62C12A312C1B5BB1005B8100F5A260330AC9E0E6EA7AC0C9E4A7DC9DEF",
+                   "release/extlibs/xxhash/xrt_xxhash.c":  "CF92132F6C90D26F8EB1079577604E45FB13BE94613EF1D26432F2025F619D08",
+                   "release/extlibs/xxhash/xxhash_native.c":  "F9522B6CAB4C8E2CB5629D9798B77733A97D243E97B7EED0CB79E1167C0BD1E9",
+                   "release/include/xrt_decl.h":  "3356BCCABBCBC877AD19C5E2D3336C909C2A742DE62E7B92BB79FE2AF3F4CEE6",
+                   "release/include/xruntime_decl.h":  "4B7CFAA2015F39E08159F4B10108B9BB1764D2370074333335651FE5C1BA87AC",
+                   "release/xl.dll":  "2A07C481C04CAD71D31D46722A27E62027318DF24E95A63126E061FD4CA46902",
+                   "release/xl.exe":  "5A3F20B4CF9333D393560CB2361D0EBAB8A13F0D07C64A78A1F5FFF5385D9EEB",
+                   "release/xlc.dll":  "7C672FD0B2852690D09E2EF1046C56EE1586FD1FCCC0CAEA61E19C0FE7C6E1F0",
+                   "test/cases/extlib_xxhash.xl":  "60BB3999E0BD654A12642571BCA962ADDDE84F8ED81F1060CDB1A2E477686080",
+                   "test/cases/extlib_xxhash_boundaries.xl":  "5967A7D778795694BB7BE2FB77F3CCCD805F287E501CDE54B3CE00443419D348",
+                   "test/cases/extlib_xxhash_progress.xl":  "17ED889BCC23EC3BE3F3C64D0394A1F52E9D8C6B0676D1948C013030E1CCC418",
+                   "test/featured_extlibs.json":  "D57DBE02F1348EFAF3538F4D1CEF383E9742553775FE65A205F7135B783D44CA",
+                   "test/suites/11_featured_extlibs_rc.bat":  "40F1CB3E29E0E49C9E1593861DE74B2A00EEF122289FFF596C06981FB21A98FE",
+                   "test/support/extlib_codec_runtime.c":  "ACD01CA7C8ACFA2F63C1257DDA52A0B575C0F2679B5432588014023F105C65FA",
+                   "tools/check_extlib_xxhash.ps1":  "1EB1442D443902E4E6187D5080F4983BA73238FD3DECB3E8620513A5700B5A80",
+                   "tools/check_extlib_xxhash.sh":  "F9D2E1CD989322B560A76BCA43E7A248F59FC4B75EAD84E0864543BAC0E27AAB",
+                   "tools/extlib_smoke_process.ps1":  "87C3D050B1F492E3F0C4307BA39F454E42B65E37DBCDEC4BE3E938BC2F32D2F7",
+                   "tools/run_extlib_c.ps1":  "0ABBC3A4B3B0AE45587CCBB069F075F3FBF965D6485FC176C51865FA293FEDA5",
+                   "tools/xlir_native_process.ps1":  "2BE2787D2316CE07E0D0AC3BDF1A1CAABA14D72F249CCAC847BB1C05D1DBFC9D"
+               },
+    "checks":  [
+                   {
+                       "name":  "vendor-vectors",
+                       "status":  "pass",
+                       "vectors":  124
+                   },
+                   {
+                       "name":  "runtime",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_THREAD",
+                                         "-c",
+                                         "test/support/extlib_codec_runtime.c",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\runtime.o"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  5387,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "native-0",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_IO_BUFFER",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "-c",
+                                         "release/extlibs/xxhash/xrt_xxhash.c",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\source-0.o"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  190,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "native-1",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_IO_BUFFER",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "-c",
+                                         "release/extlibs/xxhash/xxhash_native.c",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\source-1.o"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  274,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "native-2",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_IO_BUFFER",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "-c",
+                                         "release/extlibs/xxhash/third_party/xxhash.c",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\source-2.o"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  869,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "test_xxhash-build",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_IO_BUFFER",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "release/extlibs/xxhash/test/test_xxhash.c",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\source-2.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\runtime.o",
+                                         "-lWs2_32",
+                                         "-lAdvapi32",
+                                         "-lm",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\test_xxhash.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  338,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "test_xxhash",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\test_xxhash.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  35,
+                       "stdout":  "xxhash core: 124 independent vectors, state/reader/multiply boundaries passed\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "test_xxhash_native-build",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_IO_BUFFER",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "release/extlibs/xxhash/test/test_xxhash_native.c",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\source-0.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\source-1.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\source-2.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\runtime.o",
+                                         "-lWs2_32",
+                                         "-lAdvapi32",
+                                         "-lm",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\test_xxhash_native.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  248,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "test_xxhash_native",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\test_xxhash_native.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  26,
+                       "stdout":  "xxhash allocations: rejected=7 completed=53\r\nxxhash native: 4 independent threads and temporary lifetimes passed\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "core-c-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "release/extlibs/xxhash/test/test_xxhash.c",
+                                         "release/extlibs/xxhash/third_party/xxhash.c",
+                                         "--inc-path",
+                                         "lib/xrt"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  61,
+                       "stdout":  "xxhash core: 124 independent vectors, state/reader/multiply boundaries passed\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "core-c-package-runner",
+                       "program":  "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+                       "arguments":  [
+                                         "-NoProfile",
+                                         "-ExecutionPolicy",
+                                         "Bypass",
+                                         "-File",
+                                         "tools/run_extlib_c.ps1",
+                                         "-Package",
+                                         "xxhash",
+                                         "-Source",
+                                         "release/extlibs/xxhash/test/test_xxhash.c"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  391,
+                       "stdout":  "xxhash core: 124 independent vectors, state/reader/multiply boundaries passed\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_xxhash-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "test/cases/extlib_xxhash.xl"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  479,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_xxhash-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "test/cases/extlib_xxhash.xl",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\extlib_xxhash.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  832,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_xxhash-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\extlib_xxhash.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  53,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_xxhash-cgen",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "cgen",
+                                         "test/cases/extlib_xxhash.xl",
+                                         "--emit",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\extlib_xxhash.c"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  278,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_xxhash_boundaries-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "test/cases/extlib_xxhash_boundaries.xl"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  562,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_xxhash_boundaries-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "test/cases/extlib_xxhash_boundaries.xl",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\extlib_xxhash_boundaries.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  971,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_xxhash_boundaries-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\extlib_xxhash_boundaries.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  28,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_xxhash_boundaries-cgen",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "cgen",
+                                         "test/cases/extlib_xxhash_boundaries.xl",
+                                         "--emit",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\extlib_xxhash_boundaries.c"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  323,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_xxhash_progress-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "test/cases/extlib_xxhash_progress.xl"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  596,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_xxhash_progress-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "test/cases/extlib_xxhash_progress.xl",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\extlib_xxhash_progress.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  820,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_xxhash_progress-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\extlib_xxhash_progress.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  202,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_xxhash_progress-cgen",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "cgen",
+                                         "test/cases/extlib_xxhash_progress.xl",
+                                         "--emit",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\extlib_xxhash_progress.c"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  263,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "generated-prototypes",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_IO_BUFFER",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "-Irelease/extlibs/xxhash/include",
+                                         "-fsyntax-only",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\abi.c"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  103,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "invalid_seed_negative",
+                       "status":  "pass",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "check",
+                                         "release/extlibs/xxhash/test/invalid_seed_negative.xl"
+                                     ],
+                       "exitCode":  1,
+                       "elapsedMs":  59,
+                       "stdout":  "",
+                       "stderr":  "release/extlibs/xxhash/test/invalid_seed_negative.xl:4:25: [sem] 没有匹配的函数重载\n"
+                   },
+                   {
+                       "name":  "invalid_seed32_overflow",
+                       "status":  "pass",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "check",
+                                         "release/extlibs/xxhash/test/invalid_seed32_overflow.xl"
+                                     ],
+                       "exitCode":  1,
+                       "elapsedMs":  41,
+                       "stdout":  "",
+                       "stderr":  "release/extlibs/xxhash/test/invalid_seed32_overflow.xl:4:25: [sem] 没有匹配的函数重载\n"
+                   },
+                   {
+                       "name":  "xxhash-example-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "release/examples/extlibs/xxhash.xl"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  594,
+                       "stdout":  "XXH64:  a3227b6fc71dbceb   (引擎版本  0.8.3 )\nXXH64(\"hello\") =  26c7827d889f6da3\nXXH32(\"hello\") =  fb0077f9\n换种子(1)后 XXH64 =  58fb5397363efaaf\n流式进度: 已喂入  15  字节\nreset 重算 XXH64(\"abc\") =  44bc2cf5ad770999\n文件 XXH64 =  a3227b6fc71dbceb\n错误处理: OK\nxxhash example: PASS\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "xxhash-example-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "release/examples/extlibs/xxhash.xl",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\xxhash-example.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  1010,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "xxhash-example-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\xxhash-example.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  25,
+                       "stdout":  "XXH64:  a3227b6fc71dbceb   (引擎版本  0.8.3 )\nXXH64(\"hello\") =  26c7827d889f6da3\nXXH32(\"hello\") =  fb0077f9\n换种子(1)后 XXH64 =  58fb5397363efaaf\n流式进度: 已喂入  15  字节\nreset 重算 XXH64(\"abc\") =  44bc2cf5ad770999\n文件 XXH64 =  a3227b6fc71dbceb\n错误处理: OK\nxxhash example: PASS\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "xxhash_basic-example-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "release/examples/extlibs/xxhash_basic.xl"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  357,
+                       "stdout":  "empty64=ef46db3751d8e999\nabc32=32d153ff\nseeded64=bea9ca8199328908\nstream64=44bc2cf5ad770999\nbytes=3\nreset64=ef46db3751d8e999\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "xxhash_basic-example-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "release/examples/extlibs/xxhash_basic.xl",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\xxhash_basic-example.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  708,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "xxhash_basic-example-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\xxhash_basic-example.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  45,
+                       "stdout":  "empty64=ef46db3751d8e999\nabc32=32d153ff\nseeded64=bea9ca8199328908\nstream64=44bc2cf5ad770999\nbytes=3\nreset64=ef46db3751d8e999\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-example-build",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_IO_BUFFER",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "release/extlibs/xxhash/examples/basic.c",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\source-0.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\source-1.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\source-2.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\runtime.o",
+                                         "-lWs2_32",
+                                         "-lAdvapi32",
+                                         "-lm",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\c-example.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  184,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-example",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\c-example.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  26,
+                       "stdout":  "empty64=ef46db3751d8e999\r\nabc32=32d153ff\r\nseeded64=bea9ca8199328908\r\nstream64=44bc2cf5ad770999\r\nbytes=3\r\nreset64=ef46db3751d8e999\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-example-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "release/extlibs/xxhash/examples/basic.c",
+                                         "release/extlibs/xxhash/xrt_xxhash.c",
+                                         "release/extlibs/xxhash/xxhash_native.c",
+                                         "release/extlibs/xxhash/third_party/xxhash.c",
+                                         "--inc-path",
+                                         "lib/xrt",
+                                         "--inc-path",
+                                         "lib/xruntime"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  141,
+                       "stdout":  "empty64=ef46db3751d8e999\r\nabc32=32d153ff\r\nseeded64=bea9ca8199328908\r\nstream64=44bc2cf5ad770999\r\nbytes=3\r\nreset64=ef46db3751d8e999\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-example-aot-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "release/extlibs/xxhash/examples/basic.c",
+                                         "release/extlibs/xxhash/xrt_xxhash.c",
+                                         "release/extlibs/xxhash/xxhash_native.c",
+                                         "release/extlibs/xxhash/third_party/xxhash.c",
+                                         "--inc-path",
+                                         "lib/xrt",
+                                         "--inc-path",
+                                         "lib/xruntime",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\c-example-tcc.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  349,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-example-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\c-example-tcc.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  51,
+                       "stdout":  "empty64=ef46db3751d8e999\r\nabc32=32d153ff\r\nseeded64=bea9ca8199328908\r\nstream64=44bc2cf5ad770999\r\nbytes=3\r\nreset64=ef46db3751d8e999\r\n",
+                       "stderr":  ""
+                   }
+               ]
+}

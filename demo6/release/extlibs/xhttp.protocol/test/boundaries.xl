@@ -1,0 +1,34 @@
+import xhttp.protocol
+from xhttp.protocol import Headers, Cookies, SetCookie, MediaType
+
+// validate 是内容谓词，连续的 false 不能污染下一次正常调用。
+array<string> invalid = ["", "missing-equals", "sid=x; SameSite=None", "sid=x; Secure; Secure", "sid=x\r\nInjected: yes"]
+for text in invalid
+    assert not SetCookie.validate(text)
+    assert SetCookie.validate("sid=x; SameSite=None; Secure")
+end
+
+// 严格构建仍需抛错，不能因为谓词的 false 合同而吞掉其他入口错误。
+bool rejected = false
+try
+    SetCookie.build("bad name", "x")
+catch ValueError error
+    rejected = true
+end
+assert rejected
+assert SetCookie.build("sid", "ok") == "sid=ok"
+
+// 源对象清空后，快照和此前取出的文本仍有效。
+Headers headers = Headers()
+assert headers.reserve(8, 256)
+assert headers.add("X-Test", "one")
+string held = headers.get("x-test") ?? ""
+Headers snapshot = headers.clone()
+headers.clear()
+assert held == "one" and snapshot.count == 1 and headers.count == 0
+assert (snapshot.get("X-Test") ?? "") == "one"
+Cookies cookies = Cookies.parse("a=1")
+assert (cookies.clone().get("a") ?? "") == "1"
+MediaType media = MediaType.parse("text/plain; charset=utf-8")
+assert media.clone().param("charset") != null
+println("HTTP protocol binding boundaries: PASS")

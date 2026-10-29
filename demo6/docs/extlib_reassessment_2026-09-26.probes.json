@@ -1,0 +1,54 @@
+{
+  "format": "xlang-extlib-reassessment-probes-1",
+  "generatedAt": "2026-09-26T14:21:14.7816728Z",
+  "scope": "Independent C probes, not xlang ABI verification",
+  "sources": [
+    {
+      "path": "release/extlibs/faiss/faiss_native.c",
+      "sha256": "BC1F0DD30847B75331640E585B14BD8773254800B9FE78388ABFA42E15840BEF"
+    },
+    {
+      "path": "release/extlibs/mysql/mysql_native.c",
+      "sha256": "9E3FB5AF797B404DE9A8A9EBAAB4C53FEC1883E83731EF3CAFE0B3C50DBFD5D6"
+    },
+    {
+      "path": "build/test/extlib_reassessment_20260926/faiss_probe.c",
+      "sha256": "CB581648A82B29F86798B8140383CC9D7C12C804E400C67B9AC36593BD0D697A"
+    },
+    {
+      "path": "build/test/extlib_reassessment_20260926/mysql_probe.c",
+      "sha256": "2D0EBD7A0CC84C5CCE08F3CFBC4BEB0B861EB50BCA1C044255688642A18DDE7D"
+    }
+  ],
+  "faissInteger": {
+    "status": "pass",
+    "exitCode": 0,
+    "stdout": "5.000000\r\n",
+    "stderr": "",
+    "elapsedMs": 35
+  },
+  "faissDecimal": {
+    "status": "timeout",
+    "exitCode": 1,
+    "stdout": "",
+    "stderr": "",
+    "elapsedMs": 2070
+  },
+  "mysqlAllStatusFlags": {
+    "status": "fail",
+    "exitCode": 1,
+    "stdout": "",
+    "stderr": "=================================================================\n==324==ERROR: AddressSanitizer: global-buffer-overflow on address 0x5d38b86fb300 at pc 0x7695ccaf243d bp 0x7ffebed0e3b0 sp 0x7ffebed0db50\nWRITE of size 15 at 0x5d38b86fb300 thread T0\n    #0 0x7695ccaf243c in vsprintf ../../../../src/libsanitizer/sanitizer_common/sanitizer_common_interceptors.inc:1758\n    #1 0x7695ccaf3e44 in __sprintf_chk ../../../../src/libsanitizer/sanitizer_common/sanitizer_common_interceptors.inc:1808\n    #2 0x5d38b86ee8b9 in sprintf /usr/include/x86_64-linux-gnu/bits/stdio2.h:30\n    #3 0x5d38b86ee8b9 in xmysql_status_str build/test/extlib_reassessment_20260926/../../../release/extlibs/mysql/mysql_native.c:75\n    #4 0x5d38b86f096f in main build/test/extlib_reassessment_20260926/mysql_probe.c:6\n    #5 0x7695cbe2a600 in __libc_start_call_main ../sysdeps/nptl/libc_start_call_main.h:59\n    #6 0x7695cbe2a717 in __libc_start_main_impl ../csu/libc-start.c:360\n    #7 0x5d38b86ee2a4 in _start (/mnt/d/GIT/x-lang/demo6/build/test/extlib_reassessment_20260926/mysql_probe+0x72a4) (BuildId: 4ddb285aea3d4fc0b52618c278ea0fa184b82b82)\n\n0x5d38b86fb300 is located 32 bytes before global variable 'str_buf' defined in 'build/test/extlib_reassessment_20260926/../../../release/extlibs/mysql/mysql_native.c:7:13' (0x5d38b86fb320) of size 4096\n0x5d38b86fb300 is located 0 bytes after global variable 'sbuf' defined in 'build/test/extlib_reassessment_20260926/../../../release/extlibs/mysql/mysql_native.c:68:17' (0x5d38b86fb2c0) of size 64\nSUMMARY: AddressSanitizer: global-buffer-overflow /usr/include/x86_64-linux-gnu/bits/stdio2.h:30 in sprintf\nShadow bytes around the buggy address:\n  0x5d38b86fb080: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x5d38b86fb100: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x5d38b86fb180: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x5d38b86fb200: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x5d38b86fb280: 00 00 00 00 f9 f9 f9 f9 00 00 00 00 00 00 00 00\n=>0x5d38b86fb300:[f9]f9 f9 f9 00 00 00 00 00 00 00 00 00 00 00 00\n  0x5d38b86fb380: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x5d38b86fb400: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x5d38b86fb480: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x5d38b86fb500: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x5d38b86fb580: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\nShadow byte legend (one shadow byte represents 8 application bytes):\n  Addressable:           00\n  Partially addressable: 01 02 03 04 05 06 07 \n  Heap left redzone:       fa\n  Freed heap region:       fd\n  Stack left redzone:      f1\n  Stack mid redzone:       f2\n  Stack right redzone:     f3\n  Stack after return:      f5\n  Stack use after scope:   f8\n  Global redzone:          f9\n  Global init order:       f6\n  Poisoned by user:        f7\n  Container overflow:      fc\n  Array cookie:            ac\n  Intra object redzone:    bb\n  ASan internal:           fe\n  Left alloca redzone:     ca\n  Right alloca redzone:    cb\n==324==ABORTING\n",
+    "elapsedMs": 2305
+  },
+  "commands": [
+    "gcc -std=c99 -O1 -Wall -Wextra build/test/extlib_reassessment_20260926/faiss_probe.c -lm -o build/test/extlib_reassessment_20260926/faiss_probe.exe",
+    "faiss_probe.exe",
+    "faiss_probe.exe decimal (2-second process budget)",
+    "wsl.exe -d Ubuntu -- bash -lc \"cd /mnt/d/GIT/x-lang/demo6 && gcc -std=c99 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer build/test/extlib_reassessment_20260926/mysql_probe.c -o build/test/extlib_reassessment_20260926/mysql_probe && ASAN_OPTIONS=detect_leaks=1 build/test/extlib_reassessment_20260926/mysql_probe\""
+  ],
+  "probeSources": {
+    "faiss": "#include \"../../../release/extlibs/faiss/faiss_native.c\"\n\n/* 对照合法整数与小数输入，超时由父进程控制。 */\nint main(int argc, char **argv)\n{\n    if (argc > 1 && strcmp(argv[1], \"decimal\") == 0) {\n        printf(\"%.6f\\n\", xfaiss_l2_distance(\"1.5,2.5\", \"4.5,6.5\"));\n    } else {\n        printf(\"%.6f\\n\", xfaiss_l2_distance(\"1,2\", \"4,6\"));\n    }\n    return 0;\n}\n",
+    "mysql": "#include \"../../../release/extlibs/mysql/mysql_native.c\"\n\n/* 在独立 ASan 进程检查全部已处理状态位，不连接数据库。 */\nint main(void)\n{\n    puts(xmysql_status_str(0x017b));\n    return 0;\n}\n"
+  }
+}

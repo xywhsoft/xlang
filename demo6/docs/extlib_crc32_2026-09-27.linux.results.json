@@ -1,0 +1,37 @@
+{
+  "format": "xlang-extlib-crc32-linux-evidence-1",
+  "archivedAt": "2026-09-27T07:48:29.7261295+08:00",
+  "completedAt": "2026-09-27T07:46:22.2916826+08:00",
+  "command": "bash tools/check_extlib_crc32.sh",
+  "platform": "WSL Ubuntu x86_64",
+  "compiler": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+  "scope": "Independent C core/native/standalone integration and paired example with ASan/UBSan/leak detection; not Linux xlang, real big-endian, 32-bit/ARM, shared mutable hasher concurrency or performance certification",
+  "outcome": "passed",
+  "exitCode": 0,
+  "inputs": {
+    ".gitattributes": "4A89111CDDB77B9037B1A9CB570519CBC5EC60FD3BC1DCE5BC2975F491FFC962",
+    "lib/xrt/xrt.h": "7C78B4B3D13FC64AC1009E2EDFAE73E9FB092C896DA1A70CF5BE859D153851E8",
+    "lib/xruntime/xruntime.h": "FF23FDB9AC90F63DEED1606A78F21707A9FA677AA766044B8AF3B4F5202F4BA9",
+    "release/examples/extlibs/crc32_basic.expected.txt": "C69EEC804255338AA5B7454AA33B620AA5BBC38D88A08F6833BDD6420A5D21A7",
+    "release/extlibs/crc32/README.md": "E18A5318235516EAE3649421ABFCEBACD39692AC6E7DE1003D037A735BA9DD8F",
+    "release/extlibs/crc32/crc32_native.c": "0C3305B83F784D0C6F8BB2A7C081EB99E0BCE0D923426F4ED62421797C6EC7E5",
+    "release/extlibs/crc32/docs/site.html": "F871BCA6A4A0DACB697AF52A893EEEFDA5BF20950367873BD69B2F6E3DF0BDA0",
+    "release/extlibs/crc32/examples/basic.c": "2EE4175D957BD1C43B12D7867166CEAA7D334306ACE74641401BEDA9F0E816C3",
+    "release/extlibs/crc32/include/crc32_native.h": "9BB18843CAD6A48810970B1FA0811C48E0D24B93CF7C93DE4D2D39961903E20A",
+    "release/extlibs/crc32/include/xrt_crc32.h": "4B84DE7B86A360C63E3CE9B41E10A81CC9F867928D0129674E64B24577899C4E",
+    "release/extlibs/crc32/src/crc32.xl": "9A65FBC0E3AE56B9AF479D2096418C6AC4546F5434799256780929C984A74A0F",
+    "release/extlibs/crc32/test/test_crc32.c": "E06544F35AF1D558337F2A601E3E1E2AFA557252C017C13EE0A0353A703FA4C5",
+    "release/extlibs/crc32/test/test_crc32_native.c": "ACF9F272BBED1685F50C5E34721A5D145F526CF0AFE2A061392D856E5C3BBA18",
+    "release/extlibs/crc32/test/test_crc32_standalone.c": "506E72C49F35195F998ADF7ADE8C2D6EBB83737195A4CEF34B34E4457901F41F",
+    "release/extlibs/crc32/xlang.package.json": "E35EC33BC675090A3E550DFE55A5D5CDFE8BC2C8E08AC1A592D57C5313560437",
+    "release/extlibs/crc32/xrt_crc32.c": "0662F10029FF918163FC2818B82F6F76335B46DFE3CFE77D53E68A30645EC4E5",
+    "test/support/extlib_codec_runtime.c": "ACD01CA7C8ACFA2F63C1257DDA52A0B575C0F2679B5432588014023F105C65FA",
+    "tools/check_extlib_crc32.sh": "65FAD7FC9C440DB59DCE6350B0BF65210A3761DA729B5C0B8356222003F27A6B"
+  },
+  "logs": {
+    "standalone": "",
+    "test_crc32": "crc32 core: known answers, 1536 independent differential cases, states/readers passed\n",
+    "test_crc32_native": "crc32 allocations: rejected=5 completed=43\ncrc32 native: concurrent first use, 4 threads, temporary lifetimes passed\n",
+    "basic": "empty=00000000\ncheck=3421780262\nhex=cbf43926\nstream=cbf43926\nbytes=9\nreset=00000000\n"
+  }
+}

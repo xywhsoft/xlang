@@ -4,9 +4,9 @@
 
 /* 解析完整正文和显式 boundary 为拥有型 FormData。 */
 XLANG_XHTTP_FORM_DATA_EXPORT void* xhttp_form_data_parse(
-	const void* pData,
+	void* pData,
 	size_t iSize,
-	const void* pBoundary,
+	void* pBoundary,
 	long long iInitialParts,
 	long long iMaxParts,
 	long long iMaxName,
@@ -73,7 +73,7 @@ XLANG_XHTTP_FORM_DATA_EXPORT void* xhttp_form_data_parse(
 XLANG_XHTTP_FORM_DATA_EXPORT void* xhttp_form_data_parse_content_type(
 	const char* sContentType,
 	size_t iContentType,
-	const void* pData,
+	void* pData,
 	size_t iSize,
 	long long iInitialParts,
 	long long iMaxParts,

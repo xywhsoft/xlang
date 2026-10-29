@@ -5937,7 +5937,7 @@ XUI_API int xuiDockPanelSaveXSONFile(xui_widget pWidget, const char* sPath)
 	if ( (sPath == NULL) || (sPath[0] == 0) ) return XUI_ERROR_INVALID_ARGUMENT;
 	ret = xuiDockPanelSaveState(pWidget, &pState);
 	if ( ret != XUI_OK ) return ret;
-	ret = xrtXsonStringifyFile(sPath, pState, true) ?
+	ret = xrtXlonStringifyFile(sPath, pState, true) ?
 		XUI_OK : XUI_ERROR_RESOURCE_FAILED;
 	xrtValueRelease(pState);
 	return ret;
@@ -5948,7 +5948,7 @@ XUI_API int xuiDockPanelLoadXSONFile(xui_widget pWidget, const char* sPath)
 	xvalue* pState;
 	int ret;
 	if ( (sPath == NULL) || (sPath[0] == 0) ) return XUI_ERROR_INVALID_ARGUMENT;
-	pState = xrtXsonParseFile(sPath);
+	pState = xrtXlonParseFile(sPath);
 	if ( (pState == NULL) || (xrtValueType(pState) == XVALUE_NULL) ) {
 		if ( pState != NULL ) xrtValueRelease(pState);
 		return XUI_ERROR_RESOURCE_FAILED;

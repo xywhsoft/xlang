@@ -54,7 +54,7 @@ XLANG_XHTTP_CLIENT_EXPORT void* xhttp_client_plan_wrap(void* pHandle)
 
 
 /* 释放尚未被 Exchange 接管的请求计划。 */
-XLANG_XHTTP_CLIENT_EXPORT long long xhttp_client_plan_destroy(
+XLANG_XHTTP_CLIENT_EXPORT void xhttp_client_plan_destroy(
 	void* pHandle
 )
 {
@@ -65,7 +65,6 @@ XLANG_XHTTP_CLIENT_EXPORT long long xhttp_client_plan_destroy(
 		xrtHttp1RequestPlanDestroy(pPlan->Plan);
 		xrtFree(pPlan);
 	}
-	return 0;
 }
 
 
@@ -224,7 +223,7 @@ XLANG_XHTTP_CLIENT_EXPORT void* xhttp_client_exchange_wrap(void* pHandle)
 
 
 /* 释放 Exchange、未取走的 Response 和其请求计划。 */
-XLANG_XHTTP_CLIENT_EXPORT long long xhttp_client_exchange_destroy(
+XLANG_XHTTP_CLIENT_EXPORT void xhttp_client_exchange_destroy(
 	void* pHandle
 )
 {
@@ -235,7 +234,6 @@ XLANG_XHTTP_CLIENT_EXPORT long long xhttp_client_exchange_destroy(
 		xrtHttp1ExchangeDestroy(pExchange->Exchange);
 		xrtFree(pExchange);
 	}
-	return 0;
 }
 
 
@@ -350,7 +348,7 @@ XLANG_XHTTP_CLIENT_EXPORT bool xhttp_client_exchange_paused(
 /* 同步输入一段响应线路字节并保存状态与已接收前缀。 */
 XLANG_XHTTP_CLIENT_EXPORT unsigned long long xhttp_client_exchange_feed(
 	void* pHandle,
-	const void* pData,
+	void* pData,
 	size_t iSize,
 	bool bEnd
 )

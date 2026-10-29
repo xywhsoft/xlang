@@ -1,0 +1,26 @@
+{
+  "format": "xlang-extlib-partial_helpers-linux-evidence-1",
+  "archivedAt": "2026-09-27T08:45:19.2206251+08:00",
+  "completedAt": "2026-09-27T08:43:29.3172524+08:00",
+  "command": "bash tools/check_extlib_helper_boundaries.sh",
+  "platform": "WSL Ubuntu x86_64",
+  "compiler": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+  "scope": "Independent C ASan/UBSan/leak detection for the named bounded tests; not Linux xlang, all APIs, other architectures or performance certification",
+  "outcome": "passed",
+  "exitCode": 0,
+  "inputs": {
+    "lib/xrt/xrt.h": "7C78B4B3D13FC64AC1009E2EDFAE73E9FB092C896DA1A70CF5BE859D153851E8",
+    "release/extlibs/faiss/faiss_native.c": "5F670B20A1B6CCCCB7F3AC37044488A4C370086F467570F640F97CD278E03E08",
+    "release/extlibs/faiss/src/faiss.xl": "89FA6049710EF673F2EEA6A51562C965FD7A287E8FC0B6D72DF060AD400E2EB8",
+    "release/extlibs/faiss/xlang.package.json": "D1B0A130DFF561FB2F04A3D1BD83E896C835EE7451AC2CC668E3A550421E31A6",
+    "release/extlibs/mysql/mysql_native.c": "E647EB43D32BA75AE1BEE5AAD4DF6F024B5984B76AE865DBB152DFDD5C6A8D30",
+    "release/extlibs/mysql/src/mysql.xl": "E3D0E65D940933153FB5E904F5355ED10B7AD8D24B430F32B116004F3F7369C5",
+    "release/extlibs/mysql/xlang.package.json": "383C1FA65A7EAB1C6ECF904425841DEC5EAEE07F21D980563C0F865AD0EAEB9B",
+    "test/cases/extlib_partial_helper_boundaries_c.c": "338101A74ACAADA64739DC65A5D3B34252E1389CB135D4D6515495E5C2CB4C9F",
+    "test/support/extlib_helper_runtime.c": "1ADC18158DED61B34BF884E462C6AA5A0CB4AD636FB90DDA243CE52CA1BA923D",
+    "tools/check_extlib_helper_boundaries.sh": "04B05A3C2CB6E4120B08C5C2FAA87C1924AE8AD52637A8012FCA9ABEBD7B82B2"
+  },
+  "logs": {
+    "test": "partial helpers: 128 status combinations and numeric boundaries passed\n"
+  }
+}

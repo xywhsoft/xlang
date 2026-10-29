@@ -1,0 +1,29 @@
+{
+  "date": "2026-09-27T08:50:29.6913203+08:00",
+  "scope": "Read-only MySQL protocol mapping probe after the memory-safety fix; passing process exit is not passing semantic correctness",
+  "result": {
+    "status": "pass",
+    "exitCode": 0,
+    "stdout": "status-0100=SESSION_STATE_CHANGED\r\nstatus-4000=\r\ncommand-001f=COM_SET_OPTION\r\n",
+    "stderr": "",
+    "elapsedMs": 71
+  },
+  "expected": [
+    "status-0100=DB_DROPPED",
+    "status-4000=SESSION_STATE_CHANGED",
+    "command-001f=COM_RESET_CONNECTION"
+  ],
+  "confirmedMismatch": true,
+  "fixedInThisBatch": false,
+  "references": [
+    "https://dev.mysql.com/doc/dev/mysql-server/latest/mysql__com_8h.html",
+    "https://dev.mysql.com/doc/dev/mysql-server/latest/page_protocol_com_reset_connection.html"
+  ],
+  "inputs": {
+    "release/xl.exe": "5A3F20B4CF9333D393560CB2361D0EBAB8A13F0D07C64A78A1F5FFF5385D9EEB",
+    "lib/xrt/xrt.h": "7C78B4B3D13FC64AC1009E2EDFAE73E9FB092C896DA1A70CF5BE859D153851E8",
+    "release/extlibs/mysql/mysql_native.c": "E647EB43D32BA75AE1BEE5AAD4DF6F024B5984B76AE865DBB152DFDD5C6A8D30",
+    "build/test/mysql_protocol_probe.c": "6A3253CDE4215779A2952971D19D7F756E7126D0FC1288CEB01C1280BD74E604"
+  },
+  "source": "#include <stdio.h>\n\nconst char* xmysql_status_str(long long value);\nconst char* xmysql_cmd_name(long long value);\n\n/* 仅记录当前协议映射，不能把这些实际输出当成正确答案。 */\nint main(void)\n{\n    printf(\"status-0100=%s\\n\", xmysql_status_str(0x0100));\n    printf(\"status-4000=%s\\n\", xmysql_status_str(0x4000));\n    printf(\"command-001f=%s\\n\", xmysql_cmd_name(0x001f));\n    return 0;\n}\n"
+}

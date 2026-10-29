@@ -92,12 +92,12 @@ powershell -ExecutionPolicy Bypass -File ..\..\..\tools\run_dev_selftests.ps1 -K
 - **容器**：array 全套方法 + `+` 拼接、list 稀疏索引、set/dict（含 remove）、`Type<T>[...]` 构造、**负索引 `arr[-1]`**、**`for _,_ in dict`**
 - **OOP**：class 继承链、base 调用、public/private/protected、static、virtual/override/final、vtable 动态派发、**隐式向上转型**、var 装箱 vtable 保留、属性 get/let（零维/多维/virtual）、方法重载/构造重载、**`+=` 复合赋值派发运算符协议**
 - **运算符协议**：`__add__/__sub__/__mul__/__div__/__mod__/__pow__`、`__neg__/__pos__/__not__/__bitNot__`、`__eq__/__ne__/__lt__/__le__/__gt__/__ge__/__approx__`、`__item__/__setItem__`（多维）、`__contains__/__call__/__len__/__iter__/__next__/__field__/__setField__`
-- **derive**：copy/clone/moveOnly（冲突检查）/value/json/xson/string/hash/equals + 字段注解 @json/@persist/omit
-- **持久化**：json/xson stringify/parse（含容器内 class）、字段级注解
+- **derive**：copy/clone/moveOnly（冲突检查）/value/json/xlon/string/hash/equals + 字段注解 @json/@persist/omit
+- **持久化**：json/xlon stringify/parse（含容器内 class）、字段级注解
 - **并发**：async/await、future、task.all/race/spawn/cancel、generator/yield、channel（send/recvInto/tryRecvInto/close）、thread、mutex/sem/cond/rwlock
 - **共享全局状态**：文件作用域 `var`/typed container/class 拥有字段可在初始化或重绑定后进入 thread、task 和 native callback；共享容器写入嵌套复合值时由 XRT 完成共享图发布
 - **C 混编**：extern 函数/变量、export C ABI、native-backed class、.xl+.c 混合构建、xl abi dump、import/package/扩展库
-- **标准库**：string/math/time/random/path/file/dir/json/xson/codec/hash/crypto/process/log/template/encoding/net/tcp/udp；高级 HTTP 与 Regex 项目已迁到 `dev/deferred/xhttp` 和 `dev/deferred/xregex`。
+- **标准库**：string/math/time/random/path/file/dir/json/xlon/codec/hash/crypto/process/log/template/encoding/net/tcp/udp；高级 HTTP 与 Regex 项目已迁到 `dev/deferred/xhttp` 和 `dev/deferred/xregex`。
 - **try/catch/finally**（含 catch 内 return）、throw、assert、多返回值+解构
 - **计算密集型**：raytrace（光线追踪）渲染 100×75×5 抗锯齿递归图像 < 0.4s（约 10 万根光线/秒，每像素递归 25 层上限）
 - **其他**：UTF-8 全链路（文件名/argv/输出）、xl run 精确返回码、build exe UTF-8 argv、**class 按引用传参**、**命名函数可作函数值传递**、**union `string(type(u))` 返回正确类型名**、**自引用 class 字段**

@@ -2099,7 +2099,7 @@ XUI_API int xuiWorkflowSaveXSONFile(xui_workflow pWorkflow, const char* sPath)
 	if ( iRet != XUI_OK ) {
 		return iRet;
 	}
-	iRet = xrtXsonStringifyFile(sPath, pValue, true) ?
+	iRet = xrtXlonStringifyFile(sPath, pValue, true) ?
 		XUI_OK : XUI_ERROR_RESOURCE_FAILED;
 	xrtValueRelease(pValue);
 	return iRet;
@@ -2113,7 +2113,7 @@ XUI_API int xuiWorkflowLoadXSONFile(xui_workflow pWorkflow, const char* sPath)
 	if ( (pWorkflow == NULL) || (sPath == NULL) || (sPath[0] == 0) ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
-	pValue = xrtXsonParseFile(sPath);
+	pValue = xrtXlonParseFile(sPath);
 	if ( pValue == NULL || xrtValueType(pValue) == XVALUE_NULL ) {
 		if ( pValue != NULL ) xrtValueRelease(pValue);
 		return XUI_ERROR_RESOURCE_FAILED;

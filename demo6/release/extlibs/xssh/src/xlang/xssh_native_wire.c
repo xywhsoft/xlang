@@ -5,6 +5,8 @@
 
 #define XSSH_XLANG_DOMAIN "xlang.extlib.xssh"
 
+/* 语言 point 的 ABI 是 void*；字节输入仅借用读取，进入核心后仍用 const 视图。 */
+
 
 
 typedef struct xssh_native_writer {
@@ -334,7 +336,7 @@ int xssh_writer_u64_native(void* pHandle, uint64 iValue)
 /* 写入带 uint32 长度前缀的 SSH string。 */
 int xssh_writer_string_native(
 	void* pHandle,
-	const void* pData,
+	void* pData,
 	size_t iSize
 )
 {
@@ -361,7 +363,7 @@ int xssh_writer_string_text_native(
 	size_t iSize
 )
 {
-	return xssh_writer_string_native(pHandle, sData, iSize);
+	return xssh_writer_string_native(pHandle, (void*)sData, iSize);
 }
 
 
@@ -369,7 +371,7 @@ int xssh_writer_string_text_native(
 /* 不添加长度前缀，直接写入原始字节。 */
 int xssh_writer_raw_native(
 	void* pHandle,
-	const void* pData,
+	void* pData,
 	size_t iSize
 )
 {
@@ -394,7 +396,7 @@ int xssh_writer_raw_text_native(
 	size_t iSize
 )
 {
-	return xssh_writer_raw_native(pHandle, sData, iSize);
+	return xssh_writer_raw_native(pHandle, (void*)sData, iSize);
 }
 
 
@@ -425,7 +427,7 @@ int xssh_writer_name_list_native(
 /* 规范化并写入非负 mpint。 */
 int xssh_writer_mpint_native(
 	void* pHandle,
-	const void* pData,
+	void* pData,
 	size_t iSize
 )
 {
@@ -448,7 +450,7 @@ int xssh_writer_mpint_native(
 /* 规范化并写入有符号 mpint。 */
 int xssh_writer_signed_mpint_native(
 	void* pHandle,
-	const void* pData,
+	void* pData,
 	size_t iSize,
 	bool bNegative
 )
@@ -494,7 +496,7 @@ int xssh_writer_banner_native(
 
 
 /* 创建持有输入副本的 SSH wire reader。 */
-void* xssh_reader_create_native(const void* pData, size_t iSize)
+void* xssh_reader_create_native(void* pData, size_t iSize)
 {
 	xssh_native_reader* pNative;
 
@@ -522,7 +524,7 @@ void* xssh_reader_create_native(const void* pData, size_t iSize)
 /* 为 XLang string ABI 提供独立 reader 创建符号。 */
 void* xssh_reader_create_text_native(const char* sData, size_t iSize)
 {
-	return xssh_reader_create_native(sData, iSize);
+	return xssh_reader_create_native((void*)sData, iSize);
 }
 
 
@@ -1049,7 +1051,7 @@ void* xssh_key_line_decode_native(void* pHandle)
 /* 比较公钥行与完整原始公钥 blob。 */
 int xssh_key_line_match_native(
 	void* pHandle,
-	const void* pBlob,
+	void* pBlob,
 	size_t iSize
 )
 {
@@ -1078,7 +1080,7 @@ int xssh_key_line_match_native(
 
 
 /* 返回完整 host-key blob 的 OpenSSH SHA-256 指纹。 */
-void* xssh_fingerprint_native(const void* pBlob, size_t iSize)
+void* xssh_fingerprint_native(void* pBlob, size_t iSize)
 {
 	xbytesview Blob = { (const unsigned char*)pBlob, iSize };
 	xbuffer* pResult;
@@ -1322,7 +1324,7 @@ void* xssh_known_host_hash_write_native(
 	const char* sHost,
 	size_t iHostSize,
 	uint32 iPort,
-	const void* pSalt,
+	void* pSalt,
 	size_t iSaltSize
 )
 {

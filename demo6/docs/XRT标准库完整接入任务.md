@@ -256,12 +256,12 @@ typed nullable callable 的基础标量、字符串和 bytes 编解码合同见
 - `TlsStream` 将 `TlsSession` 与 `TcpStream` 组合为易用同步/异步安全流。
 - P-256 调试 API 不进入标准库。
 
-### 2.5 Regex、Crypto、Encoding、JSON/XSON
+### 2.5 Regex、Crypto、Encoding、JSON/XLON
 
 - Regex 的新 ABI 适配器、捕获组、命名捕获、错误位置、builder、clone 与 RegexSet 已作为正式 `xregex` 源码包接回，并进入 Windows/WSL JIT、AOT 与 C smoke 门禁。
 - Crypto 补齐 P-256/P-384 ECDH、ECDSA verify、SHA-1 streaming 和 Buffer 二进制接口。
 - Encoding 补齐 UTF-8/16/32 显式转换和大小端转换。
-- JSON 补齐 SAX/流式输出；XSON 补齐稳定选项对象，不公开裸 flags。
+- JSON 补齐 SAX/流式输出；XLON 补齐稳定选项对象，不公开裸 flags。
 
 ### 2.6 Template、Log、URL、Query、ID
 
@@ -269,7 +269,7 @@ typed nullable callable 的基础标量、字符串和 bytes 编解码合同见
 - Log 支持 custom appender、设置默认 Logger 和 appender 配置。
 - URL 支持 build、authority/target、default port 和 Host Header。
 - Query 支持 count/find/iterate 和 dict 双向转换。
-- XID 支持 encode/decode/compare 和结构化对象。
+- XID 使用 24 字节不可变名义值、32 字符规范文本；支持 `id.make/makeMany/parse/tryParse/fromBytes/xid` 与 `Xid` 值方法。
 
 ### 2.7 Task/Future
 

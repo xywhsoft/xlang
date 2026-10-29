@@ -1,0 +1,17 @@
+// A fixed key makes this example reproducible; real keys must remain secret.
+bytes key = b"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f"
+uint64 empty = siphash.hash64(b"", key)
+assert empty == uint64(0x726fdb47dd0e0e31)
+
+Buffer data = Buffer()
+assert data.appendByte(65)
+assert data.appendByte(0)
+assert data.appendByte(66)
+uint64 once = siphash.hash64Buffer(data, key)
+assert once == siphash.hash64(b"A\x00B", key)
+
+auto stream = siphash.hasher(key)
+stream.update(b"A\x00")
+stream.update("B")
+assert stream.digest() == once
+println(string(once))

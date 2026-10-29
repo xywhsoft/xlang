@@ -1,0 +1,53 @@
+{
+  "format": "xlang-extlib-independent-c-probes-1",
+  "generatedAt": "2026-09-27T08:06:59.9770999+08:00",
+  "scope": "Rebuilt isolated C diagnostics, no database or vector backend connection; these results are defects, not acceptance tests",
+  "commands": [
+    "gcc -O2 build/test/extlib_reassessment_20260926/faiss_probe.c -o build/test/extlib_reassessment_20260926/faiss_probe.exe",
+    "wsl -d Ubuntu --cd /mnt/d/GIT/x-lang/demo6 -- gcc -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer build/test/extlib_reassessment_20260926/mysql_probe.c -o build/test/extlib_reassessment_20260926/mysql_probe"
+  ],
+  "evidenceValid": true,
+  "changedInputs": [],
+  "inputs": {
+    "release/extlibs/mysql/mysql_native.c": "9E3FB5AF797B404DE9A8A9EBAAB4C53FEC1883E83731EF3CAFE0B3C50DBFD5D6",
+    "release/extlibs/faiss/faiss_native.c": "BC1F0DD30847B75331640E585B14BD8773254800B9FE78388ABFA42E15840BEF",
+    "build/test/extlib_reassessment_20260926/mysql_probe.c": "2D0EBD7A0CC84C5CCE08F3CFBC4BEB0B861EB50BCA1C044255688642A18DDE7D",
+    "build/test/extlib_reassessment_20260926/faiss_probe.c": "CB581648A82B29F86798B8140383CC9D7C12C804E400C67B9AC36593BD0D697A",
+    "build/test/extlib_reassessment_20260926/mysql_probe": "9B454CD3245410D18391CAD03C386BE653B70E9EFB3509AD52BE235EFB0995D1",
+    "build/test/extlib_reassessment_20260926/faiss_probe.exe": "1136512243F271085CAD4893235103633DC7A7DE1E31BAAEF36AFE3EF0FBF1E7",
+    "tools/extlib_smoke_process.ps1": "87C3D050B1F492E3F0C4307BA39F454E42B65E37DBCDEC4BE3E938BC2F32D2F7",
+    "tools/xlir_native_process.ps1": "2BE2787D2316CE07E0D0AC3BDF1A1CAABA14D72F249CCAC847BB1C05D1DBFC9D"
+  },
+  "results": [
+    {
+      "name": "faiss-integer-control",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "5.000000\r\n",
+        "stderr": "",
+        "elapsedMs": 41
+      }
+    },
+    {
+      "name": "faiss-decimal",
+      "result": {
+        "status": "timeout",
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 3113
+      }
+    },
+    {
+      "name": "mysql-status-all-flags",
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "=================================================================\n==330==ERROR: AddressSanitizer: global-buffer-overflow on address 0x62a3dc03f300 at pc 0x7c9d0e0f243d bp 0x7ffec7d10560 sp 0x7ffec7d0fd00\nWRITE of size 15 at 0x62a3dc03f300 thread T0\n    #0 0x7c9d0e0f243c in vsprintf ../../../../src/libsanitizer/sanitizer_common/sanitizer_common_interceptors.inc:1758\n    #1 0x7c9d0e0f3e44 in __sprintf_chk ../../../../src/libsanitizer/sanitizer_common/sanitizer_common_interceptors.inc:1808\n    #2 0x62a3dc0328b9 in sprintf /usr/include/x86_64-linux-gnu/bits/stdio2.h:30\n    #3 0x62a3dc0328b9 in xmysql_status_str build/test/extlib_reassessment_20260926/../../../release/extlibs/mysql/mysql_native.c:75\n    #4 0x62a3dc03496f in main build/test/extlib_reassessment_20260926/mysql_probe.c:6\n    #5 0x7c9d0d42a600 in __libc_start_call_main ../sysdeps/nptl/libc_start_call_main.h:59\n    #6 0x7c9d0d42a717 in __libc_start_main_impl ../csu/libc-start.c:360\n    #7 0x62a3dc0322a4 in _start (/mnt/d/GIT/x-lang/demo6/build/test/extlib_reassessment_20260926/mysql_probe+0x72a4) (BuildId: 79b45c382391f87c96a0a8dd01be5e2f34c6b089)\n\n0x62a3dc03f300 is located 32 bytes before global variable 'str_buf' defined in 'build/test/extlib_reassessment_20260926/../../../release/extlibs/mysql/mysql_native.c:7:13' (0x62a3dc03f320) of size 4096\n0x62a3dc03f300 is located 0 bytes after global variable 'sbuf' defined in 'build/test/extlib_reassessment_20260926/../../../release/extlibs/mysql/mysql_native.c:68:17' (0x62a3dc03f2c0) of size 64\nSUMMARY: AddressSanitizer: global-buffer-overflow /usr/include/x86_64-linux-gnu/bits/stdio2.h:30 in sprintf\nShadow bytes around the buggy address:\n  0x62a3dc03f080: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x62a3dc03f100: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x62a3dc03f180: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x62a3dc03f200: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x62a3dc03f280: 00 00 00 00 f9 f9 f9 f9 00 00 00 00 00 00 00 00\n=>0x62a3dc03f300:[f9]f9 f9 f9 00 00 00 00 00 00 00 00 00 00 00 00\n  0x62a3dc03f380: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x62a3dc03f400: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x62a3dc03f480: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x62a3dc03f500: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x62a3dc03f580: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\nShadow byte legend (one shadow byte represents 8 application bytes):\n  Addressable:           00\n  Partially addressable: 01 02 03 04 05 06 07 \n  Heap left redzone:       fa\n  Freed heap region:       fd\n  Stack left redzone:      f1\n  Stack mid redzone:       f2\n  Stack right redzone:     f3\n  Stack after return:      f5\n  Stack use after scope:   f8\n  Global redzone:          f9\n  Global init order:       f6\n  Poisoned by user:        f7\n  Container overflow:      fc\n  Array cookie:            ac\n  Intra object redzone:    bb\n  ASan internal:           fe\n  Left alloca redzone:     ca\n  Right alloca redzone:    cb\n==330==ABORTING\n",
+        "elapsedMs": 4896
+      }
+    }
+  ]
+}

@@ -1,0 +1,586 @@
+{
+    "date":  "2026-09-27T07:45:39.0857034+08:00",
+    "outcome":  "passed",
+    "scope":  "CRC-32/ISO-HDLC: fixed vectors and 1536 bitwise differential cases, exact ABI, UTF-8/Buffer, state/readers/callbacks, concurrent first use, allocation failures, C/XL JIT/AOT/GCC examples; not Linux XL, big-endian target or performance certification",
+    "generatedPrototypes":  15,
+    "inputs":  {
+                   ".gitattributes":  "4A89111CDDB77B9037B1A9CB570519CBC5EC60FD3BC1DCE5BC2975F491FFC962",
+                   "lib/xrt/xrt.h":  "7C78B4B3D13FC64AC1009E2EDFAE73E9FB092C896DA1A70CF5BE859D153851E8",
+                   "lib/xruntime/xruntime.h":  "FF23FDB9AC90F63DEED1606A78F21707A9FA677AA766044B8AF3B4F5202F4BA9",
+                   "release/examples/extlibs/crc32.xl":  "38A0FF21019BED1539E80DDF1F2AFDA6CC073B1AE5376C4D271192E7E189EB25",
+                   "release/examples/extlibs/crc32_basic.expected.txt":  "C69EEC804255338AA5B7454AA33B620AA5BBC38D88A08F6833BDD6420A5D21A7",
+                   "release/examples/extlibs/crc32_basic.xl":  "F96CCB5553AFF3A88B2398626142F332D75DAFCA93626227FF4CC784860055A9",
+                   "release/extlibs/crc32/crc32_native.c":  "0C3305B83F784D0C6F8BB2A7C081EB99E0BCE0D923426F4ED62421797C6EC7E5",
+                   "release/extlibs/crc32/docs/site.html":  "F871BCA6A4A0DACB697AF52A893EEEFDA5BF20950367873BD69B2F6E3DF0BDA0",
+                   "release/extlibs/crc32/examples/basic.c":  "2EE4175D957BD1C43B12D7867166CEAA7D334306ACE74641401BEDA9F0E816C3",
+                   "release/extlibs/crc32/include/crc32_native.h":  "9BB18843CAD6A48810970B1FA0811C48E0D24B93CF7C93DE4D2D39961903E20A",
+                   "release/extlibs/crc32/include/xrt_crc32.h":  "4B84DE7B86A360C63E3CE9B41E10A81CC9F867928D0129674E64B24577899C4E",
+                   "release/extlibs/crc32/README.md":  "E18A5318235516EAE3649421ABFCEBACD39692AC6E7DE1003D037A735BA9DD8F",
+                   "release/extlibs/crc32/src/crc32.xl":  "9A65FBC0E3AE56B9AF479D2096418C6AC4546F5434799256780929C984A74A0F",
+                   "release/extlibs/crc32/test/test_crc32.c":  "E06544F35AF1D558337F2A601E3E1E2AFA557252C017C13EE0A0353A703FA4C5",
+                   "release/extlibs/crc32/test/test_crc32_native.c":  "ACF9F272BBED1685F50C5E34721A5D145F526CF0AFE2A061392D856E5C3BBA18",
+                   "release/extlibs/crc32/test/test_crc32_standalone.c":  "506E72C49F35195F998ADF7ADE8C2D6EBB83737195A4CEF34B34E4457901F41F",
+                   "release/extlibs/crc32/xlang.package.json":  "E35EC33BC675090A3E550DFE55A5D5CDFE8BC2C8E08AC1A592D57C5313560437",
+                   "release/extlibs/crc32/xrt_crc32.c":  "0662F10029FF918163FC2818B82F6F76335B46DFE3CFE77D53E68A30645EC4E5",
+                   "release/include/xrt_decl.h":  "3356BCCABBCBC877AD19C5E2D3336C909C2A742DE62E7B92BB79FE2AF3F4CEE6",
+                   "release/include/xruntime_decl.h":  "4B7CFAA2015F39E08159F4B10108B9BB1764D2370074333335651FE5C1BA87AC",
+                   "release/xl.dll":  "2A07C481C04CAD71D31D46722A27E62027318DF24E95A63126E061FD4CA46902",
+                   "release/xl.exe":  "5A3F20B4CF9333D393560CB2361D0EBAB8A13F0D07C64A78A1F5FFF5385D9EEB",
+                   "release/xlc.dll":  "7C672FD0B2852690D09E2EF1046C56EE1586FD1FCCC0CAEA61E19C0FE7C6E1F0",
+                   "test/cases/extlib_crc32.xl":  "4F4592052610E6DEB228E9F11512389F40249ACB8DFD51440750EE4B9FBCE9D5",
+                   "test/cases/extlib_crc32_progress.xl":  "217D0299C1715A9A3B398289334D2F7F67900AA2FBEFD19D7DB82A1FE5C79EE4",
+                   "test/featured_extlibs.json":  "8A09EBA75F8B7F12C4847132FD203E511921DC31C3D360A72B6D92C0D1F56353",
+                   "test/suites/11_featured_extlibs_rc.bat":  "E509E2973081401FB2884A0D64726954EEF196E71BB6A0079D159F8A4EA634A5",
+                   "test/support/extlib_codec_runtime.c":  "ACD01CA7C8ACFA2F63C1257DDA52A0B575C0F2679B5432588014023F105C65FA",
+                   "tools/check_extlib_crc32.ps1":  "99A505B0001D50F7540B348C246A86F2AF6A29150A60C3B2FA784D5203C9D939",
+                   "tools/check_extlib_crc32.sh":  "65FAD7FC9C440DB59DCE6350B0BF65210A3761DA729B5C0B8356222003F27A6B",
+                   "tools/extlib_smoke_process.ps1":  "87C3D050B1F492E3F0C4307BA39F454E42B65E37DBCDEC4BE3E938BC2F32D2F7",
+                   "tools/run_extlib_c.ps1":  "0ABBC3A4B3B0AE45587CCBB069F075F3FBF965D6485FC176C51865FA293FEDA5",
+                   "tools/xlir_native_process.ps1":  "2BE2787D2316CE07E0D0AC3BDF1A1CAABA14D72F249CCAC847BB1C05D1DBFC9D"
+               },
+    "checks":  [
+                   {
+                       "name":  "runtime",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_THREAD",
+                                         "-DXRT_MODULE_ATOMIC",
+                                         "-DXRT_MODULE_ONCE",
+                                         "-c",
+                                         "test/support/extlib_codec_runtime.c",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\crc32_guard\\runtime.o"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  5800,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "native-0",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_IO_BUFFER",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "-DXRT_MODULE_ONCE",
+                                         "-c",
+                                         "release/extlibs/crc32/xrt_crc32.c",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\crc32_guard\\source-0.o"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  306,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "native-1",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_IO_BUFFER",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "-DXRT_MODULE_ONCE",
+                                         "-c",
+                                         "release/extlibs/crc32/crc32_native.c",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\crc32_guard\\source-1.o"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  281,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "standalone-build",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "release/extlibs/crc32/test/test_crc32_standalone.c",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\crc32_guard\\source-0.o",
+                                         "-lWs2_32",
+                                         "-lAdvapi32",
+                                         "-lm",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\crc32_guard\\standalone.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  1813,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "standalone",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\crc32_guard\\standalone.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  57,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "test_crc32-build",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_IO_BUFFER",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "-DXRT_MODULE_ONCE",
+                                         "release/extlibs/crc32/test/test_crc32.c",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\crc32_guard\\runtime.o",
+                                         "-lWs2_32",
+                                         "-lAdvapi32",
+                                         "-lm",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\crc32_guard\\test_crc32.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  360,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "test_crc32",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\crc32_guard\\test_crc32.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  59,
+                       "stdout":  "crc32 core: known answers, 1536 independent differential cases, states/readers passed\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "test_crc32_native-build",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_IO_BUFFER",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "-DXRT_MODULE_ONCE",
+                                         "release/extlibs/crc32/test/test_crc32_native.c",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\crc32_guard\\source-0.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\crc32_guard\\source-1.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\crc32_guard\\runtime.o",
+                                         "-lWs2_32",
+                                         "-lAdvapi32",
+                                         "-lm",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\crc32_guard\\test_crc32_native.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  267,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "test_crc32_native",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\crc32_guard\\test_crc32_native.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  25,
+                       "stdout":  "crc32 allocations: rejected=6 completed=42\r\ncrc32 native: concurrent first use, 4 threads, temporary lifetimes passed\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "core-c-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "release/extlibs/crc32/test/test_crc32.c",
+                                         "--inc-path",
+                                         "lib/xrt"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  90,
+                       "stdout":  "crc32 core: known answers, 1536 independent differential cases, states/readers passed\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "core-c-package-runner",
+                       "program":  "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+                       "arguments":  [
+                                         "-NoProfile",
+                                         "-ExecutionPolicy",
+                                         "Bypass",
+                                         "-File",
+                                         "tools/run_extlib_c.ps1",
+                                         "-Package",
+                                         "crc32",
+                                         "-Source",
+                                         "release/extlibs/crc32/test/test_crc32.c"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  414,
+                       "stdout":  "crc32 core: known answers, 1536 independent differential cases, states/readers passed\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_crc32-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "test/cases/extlib_crc32.xl"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  420,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_crc32-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "test/cases/extlib_crc32.xl",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\crc32_guard\\extlib_crc32.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  784,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_crc32-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\crc32_guard\\extlib_crc32.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  45,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_crc32-cgen",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "cgen",
+                                         "test/cases/extlib_crc32.xl",
+                                         "--emit",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\crc32_guard\\extlib_crc32.c"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  250,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_crc32_progress-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "test/cases/extlib_crc32_progress.xl"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  522,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_crc32_progress-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "test/cases/extlib_crc32_progress.xl",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\crc32_guard\\extlib_crc32_progress.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  753,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_crc32_progress-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\crc32_guard\\extlib_crc32_progress.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  182,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_crc32_progress-cgen",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "cgen",
+                                         "test/cases/extlib_crc32_progress.xl",
+                                         "--emit",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\crc32_guard\\extlib_crc32_progress.c"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  213,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "generated-prototypes",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_IO_BUFFER",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "-DXRT_MODULE_ONCE",
+                                         "-Irelease/extlibs/crc32/include",
+                                         "-fsyntax-only",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\crc32_guard\\abi.c"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  99,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "crc32-example-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "release/examples/extlibs/crc32.xl"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  296,
+                       "stdout":  "crc32 extlib ok\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "crc32-example-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "release/examples/extlibs/crc32.xl",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\crc32_guard\\crc32-example.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  647,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "crc32-example-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\crc32_guard\\crc32-example.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  46,
+                       "stdout":  "crc32 extlib ok\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "crc32_basic-example-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "release/examples/extlibs/crc32_basic.xl"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  292,
+                       "stdout":  "empty=00000000\ncheck=3421780262\nhex=cbf43926\nstream=cbf43926\nbytes=9\nreset=00000000\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "crc32_basic-example-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "release/examples/extlibs/crc32_basic.xl",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\crc32_guard\\crc32_basic-example.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  636,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "crc32_basic-example-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\crc32_guard\\crc32_basic-example.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  48,
+                       "stdout":  "empty=00000000\ncheck=3421780262\nhex=cbf43926\nstream=cbf43926\nbytes=9\nreset=00000000\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-example-build",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_IO_BUFFER",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "-DXRT_MODULE_ONCE",
+                                         "release/extlibs/crc32/examples/basic.c",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\crc32_guard\\source-0.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\crc32_guard\\source-1.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\crc32_guard\\runtime.o",
+                                         "-lWs2_32",
+                                         "-lAdvapi32",
+                                         "-lm",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\crc32_guard\\c-example.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  180,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-example",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\crc32_guard\\c-example.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  22,
+                       "stdout":  "empty=00000000\r\ncheck=3421780262\r\nhex=cbf43926\r\nstream=cbf43926\r\nbytes=9\r\nreset=00000000\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-example-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "release/extlibs/crc32/examples/basic.c",
+                                         "release/extlibs/crc32/xrt_crc32.c",
+                                         "release/extlibs/crc32/crc32_native.c",
+                                         "--inc-path",
+                                         "lib/xrt",
+                                         "--inc-path",
+                                         "lib/xruntime"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  122,
+                       "stdout":  "empty=00000000\r\ncheck=3421780262\r\nhex=cbf43926\r\nstream=cbf43926\r\nbytes=9\r\nreset=00000000\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-example-aot-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "release/extlibs/crc32/examples/basic.c",
+                                         "release/extlibs/crc32/xrt_crc32.c",
+                                         "release/extlibs/crc32/crc32_native.c",
+                                         "--inc-path",
+                                         "lib/xrt",
+                                         "--inc-path",
+                                         "lib/xruntime",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\crc32_guard\\c-example-tcc.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  317,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-example-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\crc32_guard\\c-example-tcc.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  51,
+                       "stdout":  "empty=00000000\r\ncheck=3421780262\r\nhex=cbf43926\r\nstream=cbf43926\r\nbytes=9\r\nreset=00000000\r\n",
+                       "stderr":  ""
+                   }
+               ]
+}

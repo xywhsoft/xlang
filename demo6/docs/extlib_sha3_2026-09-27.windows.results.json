@@ -1,0 +1,734 @@
+{
+    "date":  "2026-09-27T11:29:44.4258952+08:00",
+    "outcome":  "passed",
+    "scope":  "SHA3/SHAKE: 546 OpenSSL boundary vectors x 8 alignments, 12 known answers, splits, strict algorithms/lengths, UTF-8/Buffer, state/readers/callbacks, exact generated ABI, four independent threads, 176 ordinary/temp allocation failure positions, paired C/XL JIT/AOT/GCC examples; not Linux XL, big-endian, 32-bit/ARM or performance certification",
+    "generatedPrototypes":  23,
+    "inputs":  {
+                   ".gitattributes":  "F90C0F3EC4399A78B9B53E56853D0DD2E1496CC0C060600C134F7E483BB140D9",
+                   "lib/xrt/xrt.h":  "7C78B4B3D13FC64AC1009E2EDFAE73E9FB092C896DA1A70CF5BE859D153851E8",
+                   "lib/xruntime/xruntime.h":  "FF23FDB9AC90F63DEED1606A78F21707A9FA677AA766044B8AF3B4F5202F4BA9",
+                   "release/examples/extlibs/sha3.expected.txt":  "B4D1878394FB8ED21A33472FD6ADB21AE4D537ECCCA3F44CF05451DE113FC4AF",
+                   "release/examples/extlibs/sha3.xl":  "CB07DFEC64BCE5E4A025273958B544D61FAA231A0216AB1A87896BFA60BA9FFA",
+                   "release/examples/extlibs/sha3_basic.expected.txt":  "CDA81962F5485C102BD6D58561F2A2CD38B4D9D46666C51944AACE25D383A411",
+                   "release/examples/extlibs/sha3_basic.xl":  "49150A68B3DFB07A01EB61895E7AA0E4ADA9BA81C9A03C3878A866B3C0F646C7",
+                   "release/extlibs/sha3/docs/site.html":  "D9622E35A6AB95B221782CBAB9A498D7ADC3A829CC7A31402EF7ABA1FC5F21F4",
+                   "release/extlibs/sha3/examples/basic.c":  "10DEC7290F8A9855BEB8438710CE27F39BA9DA30656AAC27A73B0D35726939F9",
+                   "release/extlibs/sha3/examples/files.c":  "958AA25343934292F2C4300B9AC79B2006101DA4B5066C2C2DEFAA9292975E68",
+                   "release/extlibs/sha3/include/sha3_native.h":  "850DD49D16065CCCD5EE9D3FC976377D7C691E88B50D664F0E326447BEC199DC",
+                   "release/extlibs/sha3/include/xrt_sha3.h":  "A93B52FE69972724A95A4151CE76E536BFC476A0FD8A3D624BF10FAB23ABBF93",
+                   "release/extlibs/sha3/README.md":  "121D87C5E5724F31F29923808B3A9D4C04764CF6202DF1F567E95889F666E785",
+                   "release/extlibs/sha3/sha3_native.c":  "B2B65027CA23169EE148E6605F59EED9EC0D1EAC3D24A3B65E81DC4CF047C43C",
+                   "release/extlibs/sha3/src/sha3.xl":  "F708FC0F00E28CE57C68137B6E257B6C256A3FE83A9DEC8100FEFACEF85B6704",
+                   "release/extlibs/sha3/test/generate_vectors.mjs":  "269F364DE4D066C5194C0209F87153B38EF85E749BB23E8BBCD07D52B4BB6656",
+                   "release/extlibs/sha3/test/test_sha3.c":  "B82B86D7E38AA2F07DE67C7787521B54FC10E36374DAF889B818C7E6F87E15C3",
+                   "release/extlibs/sha3/test/test_sha3_native.c":  "40D3DE32DDBB451746A20555935A717D5FA577DD272A713CC600A915CBD305E0",
+                   "release/extlibs/sha3/test/test_sha3_standalone.c":  "7B5CA1733E4F27EAC2FF8AD779C92A3470D0400B56ED76EC6A5B469B20FC94EC",
+                   "release/extlibs/sha3/test/vectors.h":  "CF5CD485CBE0C491709A8C147625C19F2B9B31C58A56F5CCA423F01DC363A738",
+                   "release/extlibs/sha3/test/vectors.json":  "6FD6A21F7FCD46A2FF6150C05535815C71389E74CF4DDEACFAEB1F3B38AB917D",
+                   "release/extlibs/sha3/third_party/PROVENANCE.md":  "B6D040DEE6A6E9ECA3D617334785E1989579BA874A224FFB012D3678AD2A7DC0",
+                   "release/extlibs/sha3/third_party/sha3.c":  "E3957E380265E570D58F192271D488C7D949690BBD09D5A41B92828B5B63C3AD",
+                   "release/extlibs/sha3/third_party/sha3.h":  "E89CAC02110446DA5B1DBE853209D1DB6AA471AE1156E8D49C439BD9AA21FFEC",
+                   "release/extlibs/sha3/xlang.package.json":  "AFD925B68098B7A22F7C4D67F44369B118BDE018B4102FE6E49A900726F4CBAC",
+                   "release/extlibs/sha3/xrt_sha3.c":  "829E53857B919780BC2ECC77C12963EA2CF562F65DA997896D98342956CBEC43",
+                   "release/include/xrt_decl.h":  "3356BCCABBCBC877AD19C5E2D3336C909C2A742DE62E7B92BB79FE2AF3F4CEE6",
+                   "release/include/xruntime_decl.h":  "4B7CFAA2015F39E08159F4B10108B9BB1764D2370074333335651FE5C1BA87AC",
+                   "release/xl.dll":  "2A07C481C04CAD71D31D46722A27E62027318DF24E95A63126E061FD4CA46902",
+                   "release/xl.exe":  "5A3F20B4CF9333D393560CB2361D0EBAB8A13F0D07C64A78A1F5FFF5385D9EEB",
+                   "release/xlc.dll":  "7C672FD0B2852690D09E2EF1046C56EE1586FD1FCCC0CAEA61E19C0FE7C6E1F0",
+                   "test/cases/extlib_sha3.xl":  "FC7C0D722218788D9C4C666DD41E2CC352E793AB5D026EACBD0114D93085AA00",
+                   "test/cases/extlib_sha3_progress.xl":  "D152B02A61179F5E76B728F2A68D3BB2FF512D34DA7085BB6F527A45288F0ED6",
+                   "test/featured_extlibs.json":  "8D03FCB85EF4BDF8AD757933E77CDDD1450E45175833957E6C7442155D1EA749",
+                   "test/suites/11_featured_extlibs_rc.bat":  "9146B4C5ABE894189B223D544ED3B19B61F1AF0146B3C88F6CD19E31F37D588D",
+                   "test/support/extlib_codec_runtime.c":  "ACD01CA7C8ACFA2F63C1257DDA52A0B575C0F2679B5432588014023F105C65FA",
+                   "tools/check_extlib_sha3.ps1":  "20BBE891CBEB887AD191B2674BAB0F3E00F69E9441C35C8FF96A0E012DE5EC55",
+                   "tools/check_extlib_sha3.sh":  "9DE4C82D80869050DF705890FFA9BEDEC6325E7B40C333128FE3BBE0A32DB9FD",
+                   "tools/extlib_smoke_process.ps1":  "87C3D050B1F492E3F0C4307BA39F454E42B65E37DBCDEC4BE3E938BC2F32D2F7",
+                   "tools/run_extlib_c.ps1":  "0ABBC3A4B3B0AE45587CCBB069F075F3FBF965D6485FC176C51865FA293FEDA5",
+                   "tools/xlir_native_process.ps1":  "2BE2787D2316CE07E0D0AC3BDF1A1CAABA14D72F249CCAC847BB1C05D1DBFC9D"
+               },
+    "checks":  [
+                   {
+                       "name":  "runtime",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_THREAD",
+                                         "-DXRT_MODULE_ATOMIC",
+                                         "-DXRT_MODULE_CODEC_HEX",
+                                         "-DXRT_MODULE_BUFFER",
+                                         "-DXRT_MODULE_DIR",
+                                         "-DXRT_MODULE_FILE_WHOLE",
+                                         "-c",
+                                         "test/support/extlib_codec_runtime.c",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\runtime.o"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  5976,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "native-0",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_BUFFER",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_CODEC_HEX",
+                                         "-DXRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE",
+                                         "-c",
+                                         "release/extlibs/sha3/third_party/sha3.c",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\source-0.o"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  125,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "native-1",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_BUFFER",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_CODEC_HEX",
+                                         "-DXRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE",
+                                         "-c",
+                                         "release/extlibs/sha3/xrt_sha3.c",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\source-1.o"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  220,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "native-2",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_BUFFER",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_CODEC_HEX",
+                                         "-DXRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE",
+                                         "-c",
+                                         "release/extlibs/sha3/sha3_native.c",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\source-2.o"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  271,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "standalone-build",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "release/extlibs/sha3/test/test_sha3_standalone.c",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\source-0.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\source-1.o",
+                                         "-lWs2_32",
+                                         "-lAdvapi32",
+                                         "-lm",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\standalone.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  3295,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "standalone",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\standalone.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  28,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "test_sha3-build",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_BUFFER",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_CODEC_HEX",
+                                         "-DXRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE",
+                                         "release/extlibs/sha3/test/test_sha3.c",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\runtime.o",
+                                         "-lWs2_32",
+                                         "-lAdvapi32",
+                                         "-lm",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\test_sha3.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  508,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "test_sha3",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\test_sha3.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  819,
+                       "stdout":  "sha3 core: 546 OpenSSL vectors x 8 alignments, 12 known answers, splits, states and readers passed\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "test_sha3_native-build",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_BUFFER",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_CODEC_HEX",
+                                         "-DXRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE",
+                                         "release/extlibs/sha3/test/test_sha3_native.c",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\source-0.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\source-1.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\source-2.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\runtime.o",
+                                         "-lWs2_32",
+                                         "-lAdvapi32",
+                                         "-lm",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\test_sha3_native.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  404,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "test_sha3_native",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\test_sha3_native.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  51,
+                       "stdout":  "sha3 allocations: rejected=20 completed=156\r\nsha3 native: all 25 bindings, 4 threads and temporary/Buffer lifetimes passed\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "core-c-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "release/extlibs/sha3/test/test_sha3.c",
+                                         "--inc-path",
+                                         "lib/xrt"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  5282,
+                       "stdout":  "sha3 core: 546 OpenSSL vectors x 8 alignments, 12 known answers, splits, states and readers passed\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "core-c-package-runner",
+                       "program":  "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+                       "arguments":  [
+                                         "-NoProfile",
+                                         "-ExecutionPolicy",
+                                         "Bypass",
+                                         "-File",
+                                         "tools/run_extlib_c.ps1",
+                                         "-Package",
+                                         "sha3",
+                                         "-Source",
+                                         "release/extlibs/sha3/test/test_sha3.c"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  5604,
+                       "stdout":  "sha3 core: 546 OpenSSL vectors x 8 alignments, 12 known answers, splits, states and readers passed\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_sha3-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "test/cases/extlib_sha3.xl"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  1878,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_sha3-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "test/cases/extlib_sha3.xl",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\extlib_sha3.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  2630,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_sha3-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\extlib_sha3.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  37,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_sha3-cgen",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "cgen",
+                                         "test/cases/extlib_sha3.xl",
+                                         "--emit",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\extlib_sha3.c"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  1316,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_sha3_progress-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "test/cases/extlib_sha3_progress.xl"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  967,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_sha3_progress-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "test/cases/extlib_sha3_progress.xl",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\extlib_sha3_progress.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  1250,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_sha3_progress-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\extlib_sha3_progress.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  319,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_sha3_progress-cgen",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "cgen",
+                                         "test/cases/extlib_sha3_progress.xl",
+                                         "--emit",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\extlib_sha3_progress.c"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  510,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "generated-prototypes",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_BUFFER",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_CODEC_HEX",
+                                         "-DXRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE",
+                                         "-Irelease/extlibs/sha3/include",
+                                         "-fsyntax-only",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\abi.c"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  107,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "sha3-example-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "release/examples/extlibs/sha3.xl"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  624,
+                       "stdout":  "file=3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532\ncallbacks=2\nbytes=32\ncancelled=true\ncallback-error=true\nbudget=true\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "sha3-example-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "release/examples/extlibs/sha3.xl",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\sha3-example.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  1052,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "sha3-example-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\sha3-example.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  43,
+                       "stdout":  "file=3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532\ncallbacks=2\nbytes=32\ncancelled=true\ncallback-error=true\nbudget=true\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "sha3_basic-example-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "release/examples/extlibs/sha3_basic.xl"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  671,
+                       "stdout":  "sha3-224=e642824c3f8cf24ad09234ee7d3c766fc9a3a5168d0c94ad73b46fdf\nsha3-256=3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532\nsha3-384=ec01498288516fc926459f58e2c6ad8df9b473cb0fc08c2596da7cf0e49be4b298d88cea927ac7f539f1edf228376d25\nsha3-512=b751850b1a57168a5693cd924b6b096e08f621827444f70d884f5d0240d2712e10e116e9192af3c91a7ec57647e3934057340b4cf408d5a56592f8274eec53f0\nshake128=5881092dd818bf5cf8a3ddb793fbcba74097d5c526a6d35f97b83351940f2cc8\nshake256=483366601360a8771c6863080cc4114d8db44530f8f1e1ee4f94ea37e78b5739d5a15bef186a5386c75744c0527e1faa9f8726e462a12a4feb06bd8801e751e4\nbinary=22a5e88a6bd346d9f287dfdead1d65c1f98388646ebe112da129a3e094b69f0c\nstream=3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532\nbranch=c1134cba5e09a5d244a94feb3d57636a7b4a33781a1d185ce2db2e90e3a09d8c\ninput=3\nreset=true\nempty-xof=0\nlong-xof=257\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "sha3_basic-example-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "release/examples/extlibs/sha3_basic.xl",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\sha3_basic-example.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  1088,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "sha3_basic-example-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\sha3_basic-example.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  25,
+                       "stdout":  "sha3-224=e642824c3f8cf24ad09234ee7d3c766fc9a3a5168d0c94ad73b46fdf\nsha3-256=3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532\nsha3-384=ec01498288516fc926459f58e2c6ad8df9b473cb0fc08c2596da7cf0e49be4b298d88cea927ac7f539f1edf228376d25\nsha3-512=b751850b1a57168a5693cd924b6b096e08f621827444f70d884f5d0240d2712e10e116e9192af3c91a7ec57647e3934057340b4cf408d5a56592f8274eec53f0\nshake128=5881092dd818bf5cf8a3ddb793fbcba74097d5c526a6d35f97b83351940f2cc8\nshake256=483366601360a8771c6863080cc4114d8db44530f8f1e1ee4f94ea37e78b5739d5a15bef186a5386c75744c0527e1faa9f8726e462a12a4feb06bd8801e751e4\nbinary=22a5e88a6bd346d9f287dfdead1d65c1f98388646ebe112da129a3e094b69f0c\nstream=3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532\nbranch=c1134cba5e09a5d244a94feb3d57636a7b4a33781a1d185ce2db2e90e3a09d8c\ninput=3\nreset=true\nempty-xof=0\nlong-xof=257\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-basic-build",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_BUFFER",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_CODEC_HEX",
+                                         "-DXRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE",
+                                         "release/extlibs/sha3/examples/basic.c",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\source-0.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\source-1.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\source-2.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\runtime.o",
+                                         "-lWs2_32",
+                                         "-lAdvapi32",
+                                         "-lm",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\c-basic.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  206,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-basic",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\c-basic.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  40,
+                       "stdout":  "sha3-224=e642824c3f8cf24ad09234ee7d3c766fc9a3a5168d0c94ad73b46fdf\r\nsha3-256=3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532\r\nsha3-384=ec01498288516fc926459f58e2c6ad8df9b473cb0fc08c2596da7cf0e49be4b298d88cea927ac7f539f1edf228376d25\r\nsha3-512=b751850b1a57168a5693cd924b6b096e08f621827444f70d884f5d0240d2712e10e116e9192af3c91a7ec57647e3934057340b4cf408d5a56592f8274eec53f0\r\nshake128=5881092dd818bf5cf8a3ddb793fbcba74097d5c526a6d35f97b83351940f2cc8\r\nshake256=483366601360a8771c6863080cc4114d8db44530f8f1e1ee4f94ea37e78b5739d5a15bef186a5386c75744c0527e1faa9f8726e462a12a4feb06bd8801e751e4\r\nbinary=22a5e88a6bd346d9f287dfdead1d65c1f98388646ebe112da129a3e094b69f0c\r\nstream=3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532\r\nbranch=c1134cba5e09a5d244a94feb3d57636a7b4a33781a1d185ce2db2e90e3a09d8c\r\ninput=3\r\nreset=true\r\nempty-xof=0\r\nlong-xof=257\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-basic-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "release/extlibs/sha3/examples/basic.c",
+                                         "release/extlibs/sha3/third_party/sha3.c",
+                                         "release/extlibs/sha3/xrt_sha3.c",
+                                         "release/extlibs/sha3/sha3_native.c",
+                                         "--inc-path",
+                                         "lib/xrt",
+                                         "--inc-path",
+                                         "lib/xruntime"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  111,
+                       "stdout":  "sha3-224=e642824c3f8cf24ad09234ee7d3c766fc9a3a5168d0c94ad73b46fdf\r\nsha3-256=3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532\r\nsha3-384=ec01498288516fc926459f58e2c6ad8df9b473cb0fc08c2596da7cf0e49be4b298d88cea927ac7f539f1edf228376d25\r\nsha3-512=b751850b1a57168a5693cd924b6b096e08f621827444f70d884f5d0240d2712e10e116e9192af3c91a7ec57647e3934057340b4cf408d5a56592f8274eec53f0\r\nshake128=5881092dd818bf5cf8a3ddb793fbcba74097d5c526a6d35f97b83351940f2cc8\r\nshake256=483366601360a8771c6863080cc4114d8db44530f8f1e1ee4f94ea37e78b5739d5a15bef186a5386c75744c0527e1faa9f8726e462a12a4feb06bd8801e751e4\r\nbinary=22a5e88a6bd346d9f287dfdead1d65c1f98388646ebe112da129a3e094b69f0c\r\nstream=3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532\r\nbranch=c1134cba5e09a5d244a94feb3d57636a7b4a33781a1d185ce2db2e90e3a09d8c\r\ninput=3\r\nreset=true\r\nempty-xof=0\r\nlong-xof=257\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-basic-aot-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "release/extlibs/sha3/examples/basic.c",
+                                         "release/extlibs/sha3/third_party/sha3.c",
+                                         "release/extlibs/sha3/xrt_sha3.c",
+                                         "release/extlibs/sha3/sha3_native.c",
+                                         "--inc-path",
+                                         "lib/xrt",
+                                         "--inc-path",
+                                         "lib/xruntime",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\c-basic-tcc.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  311,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-basic-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\c-basic-tcc.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  51,
+                       "stdout":  "sha3-224=e642824c3f8cf24ad09234ee7d3c766fc9a3a5168d0c94ad73b46fdf\r\nsha3-256=3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532\r\nsha3-384=ec01498288516fc926459f58e2c6ad8df9b473cb0fc08c2596da7cf0e49be4b298d88cea927ac7f539f1edf228376d25\r\nsha3-512=b751850b1a57168a5693cd924b6b096e08f621827444f70d884f5d0240d2712e10e116e9192af3c91a7ec57647e3934057340b4cf408d5a56592f8274eec53f0\r\nshake128=5881092dd818bf5cf8a3ddb793fbcba74097d5c526a6d35f97b83351940f2cc8\r\nshake256=483366601360a8771c6863080cc4114d8db44530f8f1e1ee4f94ea37e78b5739d5a15bef186a5386c75744c0527e1faa9f8726e462a12a4feb06bd8801e751e4\r\nbinary=22a5e88a6bd346d9f287dfdead1d65c1f98388646ebe112da129a3e094b69f0c\r\nstream=3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532\r\nbranch=c1134cba5e09a5d244a94feb3d57636a7b4a33781a1d185ce2db2e90e3a09d8c\r\ninput=3\r\nreset=true\r\nempty-xof=0\r\nlong-xof=257\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-files-build",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_BUFFER",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_CODEC_HEX",
+                                         "-DXRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE",
+                                         "release/extlibs/sha3/examples/files.c",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\source-0.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\source-1.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\source-2.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\runtime.o",
+                                         "-lWs2_32",
+                                         "-lAdvapi32",
+                                         "-lm",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\c-files.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  199,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-files",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\c-files.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  41,
+                       "stdout":  "file=3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532\r\ncallbacks=2\r\nbytes=32\r\ncancelled=true\r\ncallback-error=true\r\nbudget=true\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-files-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "release/extlibs/sha3/examples/files.c",
+                                         "release/extlibs/sha3/third_party/sha3.c",
+                                         "release/extlibs/sha3/xrt_sha3.c",
+                                         "release/extlibs/sha3/sha3_native.c",
+                                         "--inc-path",
+                                         "lib/xrt",
+                                         "--inc-path",
+                                         "lib/xruntime"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  112,
+                       "stdout":  "file=3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532\r\ncallbacks=2\r\nbytes=32\r\ncancelled=true\r\ncallback-error=true\r\nbudget=true\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-files-aot-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "release/extlibs/sha3/examples/files.c",
+                                         "release/extlibs/sha3/third_party/sha3.c",
+                                         "release/extlibs/sha3/xrt_sha3.c",
+                                         "release/extlibs/sha3/sha3_native.c",
+                                         "--inc-path",
+                                         "lib/xrt",
+                                         "--inc-path",
+                                         "lib/xruntime",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\c-files-tcc.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  305,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-files-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\sha3_guard\\c-files-tcc.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  28,
+                       "stdout":  "file=3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532\r\ncallbacks=2\r\nbytes=32\r\ncancelled=true\r\ncallback-error=true\r\nbudget=true\r\n",
+                       "stderr":  ""
+                   }
+               ]
+}

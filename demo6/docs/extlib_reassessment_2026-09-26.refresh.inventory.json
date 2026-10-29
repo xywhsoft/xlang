@@ -1,0 +1,4785 @@
+{
+  "format": "xlang-extlib-reassessment-refresh-inventory-1",
+  "generatedAt": "2026-09-26T16:01:38.1532939Z",
+  "resultEvidence": "extlib_reassessment_2026-09-26.refresh.results.json",
+  "supplementalEvidence": "extlib_reassessment_2026-09-26.refresh.extras.json",
+  "scope": "Current manifest inventory, registered JIT observations, separate extra probes, static local website inventory",
+  "packages": [
+    {
+      "name": "_bzip2",
+      "version": "1.0.8",
+      "visibility": "internal",
+      "gates": [],
+      "inventoryStatus": "internal",
+      "declaredC": 7,
+      "declaredXl": 0,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "_expat",
+      "version": "2.8.2",
+      "visibility": "internal",
+      "gates": [],
+      "inventoryStatus": "internal",
+      "declaredC": 4,
+      "declaredXl": 0,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "_libzip",
+      "version": "1.11.4",
+      "visibility": "internal",
+      "gates": [],
+      "inventoryStatus": "internal",
+      "declaredC": 111,
+      "declaredXl": 0,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "_tomlc17",
+      "version": "260618",
+      "visibility": "internal",
+      "gates": [],
+      "inventoryStatus": "internal",
+      "declaredC": 1,
+      "declaredXl": 0,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "_xge_native",
+      "version": "2.0.0",
+      "visibility": "internal",
+      "gates": [],
+      "inventoryStatus": "internal",
+      "declaredC": 96,
+      "declaredXl": 0,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "_zlib",
+      "version": "1.3.2",
+      "visibility": "internal",
+      "gates": [],
+      "inventoryStatus": "internal",
+      "declaredC": 11,
+      "declaredXl": 0,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "acme",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "environment-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "aho_corasick",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 2,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": true,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_aho_corasick.xl",
+          "status": "fail",
+          "exitCode": 3
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "ansi",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_ansi.xl",
+          "status": "pass",
+          "exitCode": 0
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "argon2",
+      "version": "2.0.0",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 6,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": true,
+      "authoredWebsite": true,
+      "observation": "pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_argon2.xl",
+          "status": "pass",
+          "exitCode": 0
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "barcode",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_barcode.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "blake2",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 3,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_blake2.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "blake3",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 3,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_blake3.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "bloom",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": true,
+      "authoredWebsite": true,
+      "observation": "pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_bloom.xl",
+          "status": "pass",
+          "exitCode": 0
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "brotli",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 33,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_brotli.xl",
+          "status": "pass",
+          "exitCode": 0
+        }
+      ],
+      "supplemental": [
+        {
+          "case": "test/cases/extlib_brotli_progress.xl",
+          "status": "fail",
+          "exitCode": 1
+        },
+        {
+          "case": "release/examples/extlibs/brotli.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "bson",
+      "version": "3.0.0",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_bson.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "bz2",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 2,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_bz2.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "canbus",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "environment-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "cbor",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_cbor.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "chardet",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_chardet.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "cli",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_cli.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "clickhouse",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "environment-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "clip",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "environment-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "clipboard",
+      "version": "0.1.0",
+      "visibility": "public",
+      "gates": [
+        "platform"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "coap",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "environment-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "color",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_color.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "com",
+      "version": "0.1.0",
+      "visibility": "public",
+      "gates": [
+        "platform"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "consistent_hash",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_consistent_hash.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "crc32",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 2,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_hash_progress.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "crontab",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_crontab.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "css",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_css.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "csv",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 4,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_csv.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "cuckoo",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_cuckoo.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "daemon",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "platform"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "dataframe",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "diff",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_diff.xl",
+          "status": "pass",
+          "exitCode": 0
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "dinov3",
+      "version": "0.1.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_dinov3.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "dns",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_dns.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "docker",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "environment-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "docx",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "dotenv",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_dotenv.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "duckdb",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "embeddings",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "enet",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "environment-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "epub",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_epub.xl",
+          "status": "pass",
+          "exitCode": 0
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "etcd",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "environment-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "faiss",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "ffmpeg",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "fix",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_fix.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "flatbuffers",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "freetype",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "ftp",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "environment-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "fuzzy",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_fuzzy.xl",
+          "status": "pass",
+          "exitCode": 0
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "geohash",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_geohash.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "gettext",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_gettext.xl",
+          "status": "pass",
+          "exitCode": 0
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "ggml",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "git",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "environment-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "glad",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "gpio",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "environment-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "graph",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_graph.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "grpc",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "gzip",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 2,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_gzip.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "harfbuzz",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "hcl",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_hcl.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "hnswlib",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "html5",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "hyperloglog",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_hyperloglog.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "ical",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_ical.xl",
+          "status": "pass",
+          "exitCode": 0
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "icu",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "imagehash",
+      "version": "0.1.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_imagehash.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "imgui",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "influxdb",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "ini",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 4,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_ini.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "jieba",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "json.patch",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_json_patch.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "json5",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_json5.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "jwt",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_jwt.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "kubernetes",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "langdetect",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_langdetect.xl",
+          "status": "pass",
+          "exitCode": 0
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "ldap",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "environment-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "leveldb",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "libsndfile",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "libsvm",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "libtorch",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "libusb",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "environment-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "linalg",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_linalg.xl",
+          "status": "pass",
+          "exitCode": 0
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "llama",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "lmdb",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "lru",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_lru.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "lz4",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 3,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_lz4.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "lzma",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 7,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_lzma.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "md4c",
+      "version": "0.1.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 4,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_md4c.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "md5",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 2,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_hash_progress.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "mdns",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "environment-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "memcached",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_memcached.xl",
+          "status": "pass",
+          "exitCode": 0
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "minio",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "environment-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "miniz",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 2,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_miniz.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "mnn",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "modbus",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_modbus.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "money",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_money.xl",
+          "status": "pass",
+          "exitCode": 0
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "mongodb",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "mqtt",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 5,
+      "declaredXl": 2,
+      "coverageTests": [
+        "test/mqtt_boundaries.xl"
+      ],
+      "rootReadme": true,
+      "authoredWebsite": true,
+      "observation": "pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "release/extlibs/mqtt/test/mqtt_boundaries.xl",
+          "status": "pass",
+          "exitCode": 0
+        },
+        {
+          "case": "test/cases/extlib_mqtt.xl",
+          "status": "pass",
+          "exitCode": 0
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "msgpack",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_msgpack.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "murmur3",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 3,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_murmur3.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "mysql",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "nanomsg",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "environment-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "nats",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "environment-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "ncnn",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "neo4j",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "environment-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "netrc",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 4,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_netrc.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "nsq",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "environment-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "ntp",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_ntp.xl",
+          "status": "pass",
+          "exitCode": 0
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "oauth2",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_oauth2.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "onnxruntime",
+      "version": "0.1.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_onnxruntime.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "op",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "environment-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "opencv",
+      "version": "0.1.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_opencv.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "opentelemetry",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "environment-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "openvino",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "opus",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "passkey",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "environment-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "pcap",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "environment-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "pdf",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "pdfium",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "pinyin",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_pinyin.xl",
+          "status": "pass",
+          "exitCode": 0
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "pkcs",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_pkcs.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "pkg.math",
+      "version": "1.0.0",
+      "visibility": "internal",
+      "gates": [],
+      "inventoryStatus": "internal",
+      "declaredC": 0,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "plist",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 7,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_plist.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "portaudio",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "environment-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "postgresql",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "pptx",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "procps",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "environment-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "progress",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_progress.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "prometheus",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "environment-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "protobuf",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "qr",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_qr.xl",
+          "status": "pass",
+          "exitCode": 0
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "quic",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "rabbitmq",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "rapidocr",
+      "version": "0.1.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": true,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_rapidocr.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "ratatui",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "redis",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_redis.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "roaring",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_roaring.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "rocksdb",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "rss",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_rss.xl",
+          "status": "pass",
+          "exitCode": 0
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "rtmp",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "environment-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "rtree",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_rtree.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "sciter",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "environment-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "semver",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_semver.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "sentencepiece",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "serial",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "platform"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": true,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [
+        {
+          "case": "release/examples/extlibs/serial.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "sha3",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 3,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_sha3.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "sharedmem",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "platform"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "shellwords",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_shellwords.xl",
+          "status": "pass",
+          "exitCode": 0
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "singleinstance",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "platform"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "siphash",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 3,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_siphash.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "sitemap",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_sitemap.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "skiplist",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_skiplist.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "slugify",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_slugify.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "snappy",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 3,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_snappy.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "snmp",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "environment-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "socks",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_socks.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "sox",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "sqlite",
+      "version": "0.1.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 2,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_sqlite.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "srt",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_srt.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "stablediffusion",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "statistics",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_statistics.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "stb_image",
+      "version": "0.1.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_stb_image.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "stb_image_resize2",
+      "version": "0.1.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_stb_image_resize2.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "stb_image_write",
+      "version": "0.1.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_stb_image_write.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "stb_truetype",
+      "version": "0.1.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_stb_truetype.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "sysinfo",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "platform"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "tabulate",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_tabulate.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "taglib",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "tar",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 5,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_tar_p2.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "tdengine",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "tensorrt",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "terraform_state",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_terraform_state.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "tokenizers",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "toml",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 4,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_toml.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "totp",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_totp.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "treesitter",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "trie",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_trie.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "ui.auto",
+      "version": "0.1.0",
+      "visibility": "public",
+      "gates": [
+        "platform"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 0,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "uia",
+      "version": "0.1.0",
+      "visibility": "public",
+      "gates": [
+        "platform"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "units",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_units.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "upnp",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "environment-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "vault",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "environment-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "vcard",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_vcard.xl",
+          "status": "pass",
+          "exitCode": 0
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "vectordb",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "volc.core",
+      "version": "0.1.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_volc_core.xl",
+          "status": "timeout",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "volc.phone",
+      "version": "0.1.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "environment-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "volc.sts",
+      "version": "0.1.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "environment-review",
+      "declaredC": 0,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "watch",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "platform"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "webrtc",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "webview",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "environment-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "whisper",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "xbot",
+      "version": "0.1.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 0,
+      "declaredXl": 1,
+      "coverageTests": [
+        "test/xbot_test.xl"
+      ],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "release/extlibs/xbot/test/xbot_test.xl",
+          "status": "pass",
+          "exitCode": 0
+        },
+        {
+          "case": "test/cases/extlib_xbot.xl",
+          "status": "pass",
+          "exitCode": 0
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "xbot.agent",
+      "version": "0.1.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 0,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_xbot_agent.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "xfeat",
+      "version": "0.1.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_xfeat.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "xge",
+      "version": "2.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "existing-hardening",
+      "declaredC": 0,
+      "declaredXl": 12,
+      "coverageTests": [
+        "test/import.xl"
+      ],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "release/extlibs/xge/test/import.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "xge_shape_ex",
+      "version": "2.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "existing-hardening",
+      "declaredC": 0,
+      "declaredXl": 3,
+      "coverageTests": [
+        "test/import.xl"
+      ],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "release/extlibs/xge_shape_ex/test/import.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "xhttp",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "source-review",
+      "declaredC": 8,
+      "declaredXl": 1,
+      "coverageTests": [
+        "test/xhttp_url_test.xl",
+        "test/xhttp_query_test.xl"
+      ],
+      "rootReadme": true,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "release/extlibs/xhttp/test/xhttp_query_test.xl",
+          "status": "fail",
+          "exitCode": 1
+        },
+        {
+          "case": "release/extlibs/xhttp/test/xhttp_url_test.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "xhttp.body",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "source-review",
+      "declaredC": 4,
+      "declaredXl": 1,
+      "coverageTests": [
+        "test/xhttp_body_test.xl"
+      ],
+      "rootReadme": true,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "release/extlibs/xhttp.body/test/xhttp_body_test.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "xhttp.body_async",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "source-review",
+      "declaredC": 2,
+      "declaredXl": 1,
+      "coverageTests": [
+        "test/xhttp_body_async_test.xl"
+      ],
+      "rootReadme": true,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "release/extlibs/xhttp.body_async/test/xhttp_body_async_test.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "xhttp.body_codec",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "source-review",
+      "declaredC": 4,
+      "declaredXl": 1,
+      "coverageTests": [
+        "test/xhttp_body_codec_test.xl"
+      ],
+      "rootReadme": true,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "release/extlibs/xhttp.body_codec/test/xhttp_body_codec_test.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "xhttp.body_decode",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "source-review",
+      "declaredC": 2,
+      "declaredXl": 1,
+      "coverageTests": [
+        "test/xhttp_body_decode_test.xl"
+      ],
+      "rootReadme": true,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "release/extlibs/xhttp.body_decode/test/xhttp_body_decode_test.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "xhttp.body_file",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "source-review",
+      "declaredC": 2,
+      "declaredXl": 1,
+      "coverageTests": [
+        "test/xhttp_body_file_test.xl"
+      ],
+      "rootReadme": true,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "release/extlibs/xhttp.body_file/test/xhttp_body_file_test.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "xhttp.body_stream",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "source-review",
+      "declaredC": 2,
+      "declaredXl": 1,
+      "coverageTests": [
+        "test/xhttp_body_stream_test.xl"
+      ],
+      "rootReadme": true,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "release/extlibs/xhttp.body_stream/test/xhttp_body_stream_test.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "xhttp.client",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "source-review",
+      "declaredC": 21,
+      "declaredXl": 1,
+      "coverageTests": [
+        "test/xhttp_client_request_test.xl",
+        "test/xhttp_client_exchange_test.xl",
+        "test/xhttp_client_transport_test.xl"
+      ],
+      "rootReadme": true,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "release/extlibs/xhttp.client/test/xhttp_client_exchange_test.xl",
+          "status": "timeout",
+          "exitCode": 1
+        },
+        {
+          "case": "release/extlibs/xhttp.client/test/xhttp_client_request_test.xl",
+          "status": "timeout",
+          "exitCode": 1
+        },
+        {
+          "case": "release/extlibs/xhttp.client/test/xhttp_client_transport_test.xl",
+          "status": "timeout",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "xhttp.form_data",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "source-review",
+      "declaredC": 6,
+      "declaredXl": 1,
+      "coverageTests": [
+        "test/xhttp_form_data_test.xl"
+      ],
+      "rootReadme": true,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "release/extlibs/xhttp.form_data/test/xhttp_form_data_test.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "xhttp.multipart",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "source-review",
+      "declaredC": 11,
+      "declaredXl": 1,
+      "coverageTests": [
+        "test/xhttp_multipart_test.xl"
+      ],
+      "rootReadme": true,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "release/extlibs/xhttp.multipart/test/xhttp_multipart_test.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "xhttp.protocol",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "source-review",
+      "declaredC": 9,
+      "declaredXl": 1,
+      "coverageTests": [
+        "test/xhttp_protocol_headers_test.xl",
+        "test/xhttp_protocol_cookie_test.xl",
+        "test/xhttp_protocol_mime_test.xl"
+      ],
+      "rootReadme": true,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "release/extlibs/xhttp.protocol/test/xhttp_protocol_cookie_test.xl",
+          "status": "fail",
+          "exitCode": 1
+        },
+        {
+          "case": "release/extlibs/xhttp.protocol/test/xhttp_protocol_headers_test.xl",
+          "status": "fail",
+          "exitCode": 1
+        },
+        {
+          "case": "release/extlibs/xhttp.protocol/test/xhttp_protocol_mime_test.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "xlsx",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "budget-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "xmail",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [
+        "test/xmail_test.xl",
+        "test/xmail_smtp_loopback_test.xl",
+        "test/xmail_pop3_loopback_test.xl",
+        "test/xmail_imap_loopback_test.xl"
+      ],
+      "rootReadme": true,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "release/extlibs/xmail/test/xmail_imap_loopback_test.xl",
+          "status": "fail",
+          "exitCode": 1
+        },
+        {
+          "case": "release/extlibs/xmail/test/xmail_pop3_loopback_test.xl",
+          "status": "fail",
+          "exitCode": 1
+        },
+        {
+          "case": "release/extlibs/xmail/test/xmail_smtp_loopback_test.xl",
+          "status": "fail",
+          "exitCode": 1
+        },
+        {
+          "case": "release/extlibs/xmail/test/xmail_test.xl",
+          "status": "fail",
+          "exitCode": 1
+        },
+        {
+          "case": "test/cases/extlib_xmail.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "xml.dom",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 4,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_xml_dom.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "xml.etree",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 4,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_xml_etree.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "xml.sax",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 3,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_xml_sax.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "xregex",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 8,
+      "declaredXl": 1,
+      "coverageTests": [
+        "test/xregex_test.xl"
+      ],
+      "rootReadme": true,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "release/extlibs/xregex/test/xregex_test.xl",
+          "status": "fail",
+          "exitCode": 1
+        },
+        {
+          "case": "test/cases/extlib_xregex.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "xssh",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [
+        "test/xssh_test.xl"
+      ],
+      "rootReadme": true,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "release/extlibs/xssh/test/xssh_test.xl",
+          "status": "fail",
+          "exitCode": 1
+        },
+        {
+          "case": "test/cases/extlib_xssh.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "xui",
+      "version": "2.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "environment-review",
+      "declaredC": 0,
+      "declaredXl": 14,
+      "coverageTests": [
+        "test/import.xl"
+      ],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "release/extlibs/xui/test/import.xl",
+          "status": "timeout",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "xws",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "source-review",
+      "declaredC": 12,
+      "declaredXl": 1,
+      "coverageTests": [
+        "test/xws_test.xl",
+        "test/xws_loopback_test.xl",
+        "test/xws_tls_loopback_test.xl"
+      ],
+      "rootReadme": true,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "release/extlibs/xws/test/xws_loopback_test.xl",
+          "status": "fail",
+          "exitCode": 1
+        },
+        {
+          "case": "release/extlibs/xws/test/xws_test.xl",
+          "status": "fail",
+          "exitCode": 1
+        },
+        {
+          "case": "release/extlibs/xws/test/xws_tls_loopback_test.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "xxhash",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 3,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_xxhash.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "yaml",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_yaml.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "zeromq",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [],
+      "inventoryStatus": "environment-review",
+      "declaredC": 1,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "not-rerun",
+      "observedCases": [],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "zip",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 4,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_zip.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    },
+    {
+      "name": "zstd",
+      "version": "1.0.0",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "inventoryStatus": "registered",
+      "declaredC": 3,
+      "declaredXl": 1,
+      "coverageTests": [],
+      "rootReadme": false,
+      "authoredWebsite": false,
+      "observation": "non-pass-in-registered-scope",
+      "observedCases": [
+        {
+          "case": "test/cases/extlib_zstd.xl",
+          "status": "fail",
+          "exitCode": 1
+        }
+      ],
+      "supplemental": [],
+      "note": "JIT observations and artifact inventory only; not a production or complete API certification."
+    }
+  ],
+  "website": {
+    "ordinaryPages": 21,
+    "generatedPages": 214,
+    "aug13Snapshots": 210,
+    "missing": [
+      "ansi",
+      "barcode",
+      "cli",
+      "color",
+      "gettext",
+      "graph",
+      "ical",
+      "json.patch",
+      "memcached",
+      "money",
+      "qr",
+      "rss",
+      "semver",
+      "shellwords",
+      "sitemap",
+      "slugify",
+      "srt",
+      "statistics",
+      "units",
+      "vcard",
+      "xhttp",
+      "xhttp.body",
+      "xhttp.body_async",
+      "xhttp.body_codec",
+      "xhttp.body_decode",
+      "xhttp.body_file",
+      "xhttp.body_stream",
+      "xhttp.client",
+      "xhttp.form_data",
+      "xhttp.multipart",
+      "xhttp.protocol",
+      "xmail",
+      "xregex",
+      "xssh",
+      "xws"
+    ],
+    "staleOrInternal": [
+      "_xge_native.html",
+      "ceres.html",
+      "eigen.html",
+      "fftw.html",
+      "gdal.html",
+      "geos.html",
+      "gmp.html",
+      "gsl.html",
+      "kafka.html",
+      "lapack.html",
+      "lightgbm.html",
+      "mail_imap.html",
+      "mail_mime.html",
+      "mail_pop3.html",
+      "mail_smtp.html",
+      "mpfr.html",
+      "ncurses.html",
+      "nlopt.html",
+      "parquet.html",
+      "pkg_math.html",
+      "plot.html",
+      "proj.html",
+      "pulsar.html",
+      "rdkit.html",
+      "s2geometry.html",
+      "ssh.html",
+      "ta_lib.html",
+      "unqlite.html",
+      "xbot_all.html",
+      "xbot_core.html",
+      "xgboost.html"
+    ],
+    "visualVerification": false
+  }
+}

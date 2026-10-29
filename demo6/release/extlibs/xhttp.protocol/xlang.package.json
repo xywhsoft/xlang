@@ -33,7 +33,8 @@
         "tests": [
             "test/xhttp_protocol_headers_test.xl",
             "test/xhttp_protocol_cookie_test.xl",
-            "test/xhttp_protocol_mime_test.xl"
+            "test/xhttp_protocol_mime_test.xl",
+            "test/boundaries.xl"
         ]
     },
     "native": { "singleton": false, "loadName": "", "version": "" }

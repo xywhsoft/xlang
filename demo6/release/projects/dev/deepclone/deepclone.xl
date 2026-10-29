@@ -4,15 +4,15 @@
 //   derive copy        - copy(obj) 浅拷贝
 //   derive clone       - clone(obj) 深拷贝
 //   derive moveOnly    - 与 copy/clone 冲突的语义检查（合法独立使用）
-//   derive value       - __toValue__ / __fromValue__（经 json/xson 路径验证）
+//   derive value       - __toValue__ / __fromValue__（经 json/xlon 路径验证）
 //   derive json        - json.stringify / json.parse::<Class>
-//   derive xson        - xson.stringify / xson.parse::<Class>
+//   derive xlon        - xlon.stringify / xlon.parse::<Class>
 //   derive string - 字符串表示
 //   derive hash - 字段哈希
 //   derive equals - == / != 比较
 //   字段级注解:
 //     @json("name")            - 自定义 JSON 字段名
-//     @persist(name="...")     - 通用字段名（同时影响 json/xson）
+//     @persist(name="...")     - 通用字段名（同时影响 json/xlon）
 //     @persist(skip)           - 跳过持久化
 //     omit=empty / omit=null   - 空值省略
 //
@@ -115,7 +115,7 @@ class Product
     derive clone
     derive value
     derive json
-    derive xson
+    derive xlon
     derive string
     derive hash
     derive equals
@@ -125,7 +125,7 @@ class Product
     float price = 0.0
     string createdAt @json("created_at") @persist(name="createdAt") = ""
     string internalNote @persist(skip) = ""
-    string memo @json(omit=empty) @xson(omit=null) = ""
+    string memo @json(omit=empty) @xlon(omit=null) = ""
 
 end
 
@@ -205,10 +205,10 @@ func testDeriveMoveOnly() as int
 end
 
 func testDeriveValue() as int
-    section("derive value - 经 json/xson 路径验证 __toValue__/__fromValue__")
+    section("derive value - 经 json/xlon 路径验证 __toValue__/__fromValue__")
     // __toValue__ / __fromValue__ 是内部协议，不能直接当方法调用
     // （p.__toValue__() 报 [sem] unknown class/union field）。
-    // 它的能力通过 json / xson 标准库导出，下面用往返测试间接验证。
+    // 它的能力通过 json / xlon 标准库导出，下面用往返测试间接验证。
     Product p = Product()
     p.id = 303
     p.name = "ValueProbe"
@@ -220,10 +220,10 @@ func testDeriveValue() as int
     if expectStr(back.name, "ValueProbe", "value/json 往返 name") then pass("value -> json -> name") end
     if expectFloat(back.price, 1.25, "value/json 往返 price") then pass("value -> json -> price") end
 
-    string x = xson.stringify(p)
-    Product backX = xson.parse::<Product>(x)
-    if expectInt(backX.id, 303, "value/xson 往返 id") then pass("value -> xson -> id") end
-    if expectStr(backX.name, "ValueProbe", "value/xson 往返 name") then pass("value -> xson -> name") end
+    string x = xlon.stringify(p)
+    Product backX = xlon.parse::<Product>(x)
+    if expectInt(backX.id, 303, "value/xlon 往返 id") then pass("value -> xlon -> id") end
+    if expectStr(backX.name, "ValueProbe", "value/xlon 往返 name") then pass("value -> xlon -> name") end
     return 0
 end
 
@@ -263,31 +263,31 @@ func testDeriveJson() as int
     return 0
 end
 
-func testDeriveXson() as int
-    section("derive xson - xson.stringify / xson.parse::<Product>")
+func testDeriveXlon() as int
+    section("derive xlon - xlon.stringify / xlon.parse::<Product>")
     Product p = Product()
     p.id = 505
-    p.name = "XsonItem"
+    p.name = "XlonItem"
     p.price = 7.77
     p.createdAt = "2026-03-04"
     p.memo = ""
 
-    string x = xson.stringify(p)
-    println("  xson: " + x)
+    string x = xlon.stringify(p)
+    println("  xlon: " + x)
 
-    // xson 走 @persist(name="createdAt")，所以字段名应仍是 createdAt
-    if expectContains(x, "createdAt", "xson 使用 @persist(name=)") then pass("xson 使用通用字段名") end
-    // @json 重命名不应影响 xson
-    if expectNotContains(x, "created_at", "xson 不受 @json 影响") then pass("xson 不受 @json 影响") end
+    // xlon 走 @persist(name="createdAt")，所以字段名应仍是 createdAt
+    if expectContains(x, "createdAt", "xlon 使用 @persist(name=)") then pass("xlon 使用通用字段名") end
+    // @json 重命名不应影响 xlon
+    if expectNotContains(x, "created_at", "xlon 不受 @json 影响") then pass("xlon 不受 @json 影响") end
     // @persist(skip)
-    if expectNotContains(x, "internalNote", "xson @persist(skip)") then pass("xson @persist(skip)") end
+    if expectNotContains(x, "internalNote", "xlon @persist(skip)") then pass("xlon @persist(skip)") end
     // omit=null：memo 是 ""（非 null），所以应出现
     if expectContains(x, "memo", "omit=null + 非null -> 出现") then pass("omit=null 非null保留") end
 
-    Product back = xson.parse::<Product>(x)
-    if expectInt(back.id, 505, "xson.parse id") then pass("xson.parse id") end
-    if expectStr(back.name, "XsonItem", "xson.parse name") then pass("xson.parse name") end
-    if expectStr(back.createdAt, "2026-03-04", "xson.parse createdAt") then pass("xson.parse createdAt") end
+    Product back = xlon.parse::<Product>(x)
+    if expectInt(back.id, 505, "xlon.parse id") then pass("xlon.parse id") end
+    if expectStr(back.name, "XlonItem", "xlon.parse name") then pass("xlon.parse name") end
+    if expectStr(back.createdAt, "2026-03-04", "xlon.parse createdAt") then pass("xlon.parse createdAt") end
     return 0
 end
 
@@ -373,27 +373,27 @@ func testFieldAnnotations() as int
     p.memo = "visible"
 
     string j = json.stringify(p)
-    string x = xson.stringify(p)
+    string x = xlon.stringify(p)
     println("  json: " + j)
-    println("  xson: " + x)
+    println("  xlon: " + x)
 
     // @json("created_at") 只影响 json
     if expectContains(j, "created_at", "json 用 @json 名") then pass("json @json(created_at)") end
     if expectNotContains(j, "\"createdAt\"", "json 不用原文名") then pass("json 不输出 createdAt 原名") end
 
-    // @persist(name="createdAt") 在 xson 侧保留原名
-    if expectContains(x, "createdAt", "xson 用 @persist 名") then pass("xson @persist(name=createdAt)") end
-    if expectNotContains(x, "created_at", "xson 不受 @json 名影响") then pass("xson 不受 @json 影响") end
+    // @persist(name="createdAt") 在 xlon 侧保留原名
+    if expectContains(x, "createdAt", "xlon 用 @persist 名") then pass("xlon @persist(name=createdAt)") end
+    if expectNotContains(x, "created_at", "xlon 不受 @json 名影响") then pass("xlon 不受 @json 影响") end
 
     // @persist(skip) 对两侧都生效
     if expectNotContains(j, "internalNote", "json @persist(skip)") then pass("json @persist(skip)") end
-    if expectNotContains(x, "internalNote", "xson @persist(skip)") then pass("xson @persist(skip)") end
+    if expectNotContains(x, "internalNote", "xlon @persist(skip)") then pass("xlon @persist(skip)") end
     if expectNotContains(j, "topsecret", "skip 值不出现(json)") then pass("skip 值不泄露(json)") end
-    if expectNotContains(x, "topsecret", "skip 值不出现(xson)") then pass("skip 值不泄露(xson)") end
+    if expectNotContains(x, "topsecret", "skip 值不出现(xlon)") then pass("skip 值不泄露(xlon)") end
 
     // omit：memo 非空时两侧都出现
     if expectContains(j, "memo", "omit=empty 非空(json)") then pass("omit=empty 非空保留(json)") end
-    if expectContains(x, "memo", "omit=null 非空(xson)") then pass("omit=null 非空保留(xson)") end
+    if expectContains(x, "memo", "omit=null 非空(xlon)") then pass("omit=null 非空保留(xlon)") end
     return 0
 end
 
@@ -417,7 +417,7 @@ func printHelp()
     println("  deepclone --help     显示本帮助")
     println("")
     println("覆盖:")
-    println("  derive copy / clone / moveOnly / value / json / xson")
+    println("  derive copy / clone / moveOnly / value / json / xlon")
     println("  derive string / hash / equals")
     println("  字段级注解 @json / @persist(skip) / @persist(name=) / omit=empty/null")
     println("")
@@ -445,7 +445,7 @@ func main(...) as int
     testDeriveMoveOnly()
     testDeriveValue()
     testDeriveJson()
-    testDeriveXson()
+    testDeriveXlon()
     testDeriveString()
     testDeriveHash()
     testDeriveEquals()

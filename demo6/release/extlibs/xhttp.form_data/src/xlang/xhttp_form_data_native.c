@@ -147,12 +147,11 @@ XLANG_XHTTP_FORM_DATA_EXPORT void* xhttp_form_data_clone(void* pHandle)
 
 
 /* 释放 FormData 容器及其正文引用。 */
-XLANG_XHTTP_FORM_DATA_EXPORT long long xhttp_form_data_destroy(
+XLANG_XHTTP_FORM_DATA_EXPORT void xhttp_form_data_destroy(
 	void* pHandle
 )
 {
 	xrtFormDataDestroy((xformdata*)pHandle);
-	return 0;
 }
 
 
@@ -228,7 +227,7 @@ XLANG_XHTTP_FORM_DATA_EXPORT bool xhttp_form_data_append_bytes(
 	void* pHandle,
 	const char* sName,
 	size_t iName,
-	const void* pData,
+	void* pData,
 	size_t iSize,
 	const char* sFilename,
 	size_t iFilename,
@@ -306,7 +305,7 @@ XLANG_XHTTP_FORM_DATA_EXPORT bool xhttp_form_data_set_bytes(
 	void* pHandle,
 	const char* sName,
 	size_t iName,
-	const void* pData,
+	void* pData,
 	size_t iSize,
 	const char* sFilename,
 	size_t iFilename,
@@ -478,7 +477,7 @@ XLANG_XHTTP_FORM_DATA_EXPORT void* xhttp_form_data_part_wrap(
 
 
 /* 释放 Part 快照及其正文引用。 */
-XLANG_XHTTP_FORM_DATA_EXPORT long long xhttp_form_data_part_destroy(
+XLANG_XHTTP_FORM_DATA_EXPORT void xhttp_form_data_part_destroy(
 	void* pHandle
 )
 {
@@ -491,7 +490,6 @@ XLANG_XHTTP_FORM_DATA_EXPORT long long xhttp_form_data_part_destroy(
 		memset(pPart, 0, sizeof(*pPart));
 		xrtFree(pPart);
 	}
-	return 0;
 }
 
 

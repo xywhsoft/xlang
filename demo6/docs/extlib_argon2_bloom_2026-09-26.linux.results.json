@@ -1,0 +1,66 @@
+{
+  "date": "2026-09-26T23:27:50.7817306+08:00",
+  "packages": [
+    "argon2",
+    "bloom"
+  ],
+  "outcome": "passed",
+  "exitCode": 0,
+  "command": "bash tools/check_extlib_argon2_bloom.sh",
+  "platform": "WSL Ubuntu x86_64",
+  "compiler": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+  "scope": "Independent C boundaries/allocation and paired C examples; ASan/UBSan and leak detection; no Linux xlang JIT/AOT",
+  "inputs": {
+    "release/extlibs/argon2/argon2_native.c": "2a98c0f1069ddfe2854c9d8d29c45635d0e1246989e140560622615b680ed051",
+    "release/extlibs/argon2/vendor/argon2.c": "b1289ec7134e8502e9113396fdac89402bf2575ee1b35e33fb7410f2fb63bb6d",
+    "release/extlibs/argon2/vendor/core.c": "04e4e56c58a9a7b3fb831d799b1b1fee45973876eb46298a4de8cabb5fb8a02c",
+    "release/extlibs/argon2/vendor/encoding.c": "7b9a0c019abc6fca7e6e0a9abd2f7b22a885f8831827cfbd4bfd4502dd9f7806",
+    "release/extlibs/argon2/vendor/ref.c": "9ac347fd8dc737af69bbb93d56ac8b4ab5488152f606880c8d7fc4592e207647",
+    "release/extlibs/argon2/vendor/blake2/blake2b.c": "7eb2f3faac14c532fb75f645f518686f3ef0db4c7b9849a1ffc73d262b596281",
+    "release/extlibs/bloom/bloom_native.c": "7f0d3f06ca59418c5ad63509e37e86c1e9afd80ce6fc6dcb5677ba365d1b3e6e",
+    "release/extlibs/argon2/include/argon2_native.h": "b213a6c051e2294817ed2f8ee07a411f8d23d95eaedf55792a6e14f794e67fb6",
+    "release/extlibs/argon2/vendor/argon2.h": "25ed629feca91ca9d361441160c6fbc10318bb0fb3757555b418ed47b705b35b",
+    "release/extlibs/argon2/vendor/core.h": "32f6ab8c0c313d9336d2731a001426b68d246bba5b362fabeaf593c333da7d37",
+    "release/extlibs/argon2/vendor/encoding.h": "a4e0681ef4b0eb229a35760b603b7a32e9019cfe98c31732f747f087e5e39828",
+    "release/extlibs/argon2/vendor/thread.h": "650e713fb584de2e6aeb307e64228f95cef733ea667faa0bb111960aaace30ef",
+    "release/extlibs/argon2/vendor/blake2/blake2-impl.h": "ec9884fe834c30eb362f0cef3432a43a5c496b0d6d1d637a5a590a45bec4d79c",
+    "release/extlibs/argon2/vendor/blake2/blake2.h": "b1e497675e7f6d9ab7c6cf868dd5d64c074bd03ea97ffc7d3fb823e901537c25",
+    "release/extlibs/argon2/vendor/blake2/blamka-round-ref.h": "8d5fc886bbc0b55af10ac6f1e9a5995a4e8d4abace46642fb1832c84d38c3007",
+    "release/extlibs/bloom/include/bloom.h": "90b7ae93f9e378e41bd4ad85b07df944bab0384ef83a71f841cf9ac117ee63be",
+    "release/extlibs/argon2/test/test_argon2.c": "c4bd93b767759d31d85147de94496527bfed06b802e62dc0b4d3fcc097b6e6f9",
+    "release/extlibs/bloom/test/test_bloom.c": "2389f1f34f37ef8e840583fea9c7433bfe13751a905c557cb3991ea7099dfac8",
+    "release/extlibs/argon2/xlang.package.json": "22626a95c162dc340b45c4feb3a94fbc95de58abfd1ab0c478469a1233205082",
+    "release/extlibs/bloom/xlang.package.json": "2b1fc17ae5d19cec77685d07a682832d5eeb0514c36eb7badc76f357e78a1001",
+    "lib/xrt/xrt.h": "7c78b4b3d13fc64ac1009e2edfae73e9fb092c896da1a70cf5be859d153851e8",
+    "release/include/xrt_decl.h": "3356bccabbcbc877ad19c5e2d3336c909c2a742de62e7b92bb79fe2af3f4cee6",
+    "test/support/extlib_scalar_runtime.c": "993adc383c6921a96a2541eeef8278a865658ea431a8902fb0f3f55ca002c9a8",
+    "test/cases/extlib_argon2_bloom_alloc.c": "936a0c68fe1d30c361a9cf97159e85086ddd466f867c2ffb5f9b82a982b900ca",
+    "tools/check_extlib_argon2_bloom.sh": "14eed9bca1c106a61cdbd24825d2f097d41a5e20452f4564f387dc51b867537e",
+    "release/examples/extlibs/argon2_c.c": "080b699b9581585944a49f134d875f1251c489bab56d02d3d091831dee03134c",
+    "release/examples/extlibs/argon2_basic.expected.txt": "5ecb03eb09ff5dc4efbdd91ca2174a04b034914d5dae974c197276243ca8e5f4",
+    "release/examples/extlibs/bloom_c.c": "6d566adf9c996a3557b930f8068bca58522f30b109a0779f9d033854a30b2ef3",
+    "release/examples/extlibs/bloom_basic.expected.txt": "9c4f0455ce12f1d99de2906a3e6b7d5ebce2b73b10532c112f8a3617f7c1319e"
+  },
+  "logs": [
+    {
+      "name": "argon2",
+      "output": "test_argon2: ok\n"
+    },
+    {
+      "name": "bloom",
+      "output": "test_bloom: ok\n"
+    },
+    {
+      "name": "allocation",
+      "output": "argon2/bloom allocation: rejected=26 completed=182\n"
+    },
+    {
+      "name": "argon2-example",
+      "output": "verified: true\nwrong password: false\nneeds rehash: true\nsalt hex length: 32\n"
+    },
+    {
+      "name": "bloom-example",
+      "output": "restored: true\nindependent count: 0\noriginal count: 2\nremaining: true\n"
+    }
+  ]
+}

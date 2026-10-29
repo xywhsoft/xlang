@@ -64,12 +64,11 @@ XLANG_XHTTP_PROTOCOL_EXPORT void* xhttp_protocol_headers_clone(
 
 
 /* 释放拥有型 Header 容器。 */
-XLANG_XHTTP_PROTOCOL_EXPORT long long xhttp_protocol_headers_destroy(
+XLANG_XHTTP_PROTOCOL_EXPORT void xhttp_protocol_headers_destroy(
 	void* pHandle
 )
 {
 	xrtHttpHeadersDestroy((xhttpheaders*)pHandle);
-	return 0;
 }
 
 
@@ -103,7 +102,7 @@ XLANG_XHTTP_PROTOCOL_EXPORT unsigned long long xhttp_protocol_headers_value(
 
 
 /* 清空 Header 容器并保留已分配容量。 */
-XLANG_XHTTP_PROTOCOL_EXPORT long long xhttp_protocol_headers_clear(
+XLANG_XHTTP_PROTOCOL_EXPORT void xhttp_protocol_headers_clear(
 	void* pHandle
 )
 {
@@ -112,7 +111,6 @@ XLANG_XHTTP_PROTOCOL_EXPORT long long xhttp_protocol_headers_clear(
 	if ( pHeaders != NULL ) {
 		xrtHttpHeadersClear(pHeaders);
 	}
-	return 0;
 }
 
 

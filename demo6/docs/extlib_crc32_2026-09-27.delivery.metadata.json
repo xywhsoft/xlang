@@ -1,0 +1,103 @@
+{
+  "date": "2026-09-27T07:47:27.2521612+08:00",
+  "package": "crc32",
+  "documentationLinks": [
+    "include/xrt_crc32.h",
+    "test/test_crc32_standalone.c",
+    "include/crc32_native.h",
+    "../../examples/extlibs/crc32.xl",
+    "../../examples/extlibs/crc32_basic.xl",
+    "examples/basic.c",
+    "../../examples/extlibs/crc32_basic.expected.txt",
+    "test/test_crc32.c",
+    "test/test_crc32_native.c"
+  ],
+  "websiteLinks": [
+    {
+      "page": "D:/GIT/home/host/xlang/wwwroot/extlibs/crc32.html",
+      "link": "../favicon.png",
+      "exists": true
+    },
+    {
+      "page": "D:/GIT/home/host/xlang/wwwroot/extlibs/crc32.html",
+      "link": "../style.css",
+      "exists": true
+    },
+    {
+      "page": "D:/GIT/home/host/xlang/wwwroot/extlibs/crc32.html",
+      "link": "../extlibs.css",
+      "exists": true
+    },
+    {
+      "page": "D:/GIT/home/host/xlang/wwwroot/extlibs/crc32.html",
+      "link": "../refactor.css",
+      "exists": true
+    },
+    {
+      "page": "D:/GIT/home/host/xlang/wwwroot/extlibs/crc32.html",
+      "link": "#main-content",
+      "exists": true
+    },
+    {
+      "page": "D:/GIT/home/host/xlang/wwwroot/extlibs/crc32.html",
+      "link": "../index.html",
+      "exists": true
+    },
+    {
+      "page": "D:/GIT/home/host/xlang/wwwroot/extlibs/crc32.html",
+      "link": "../tour.html",
+      "exists": true
+    },
+    {
+      "page": "D:/GIT/home/host/xlang/wwwroot/extlibs/crc32.html",
+      "link": "../stdlib.html",
+      "exists": true
+    },
+    {
+      "page": "D:/GIT/home/host/xlang/wwwroot/extlibs/crc32.html",
+      "link": "../extlibs.html",
+      "exists": true
+    },
+    {
+      "page": "D:/GIT/home/host/xlang/wwwroot/extlibs/crc32.html",
+      "link": "../guide.html",
+      "exists": true
+    },
+    {
+      "page": "D:/GIT/home/host/xlang/wwwroot/extlibs/crc32.html",
+      "link": "../download.html",
+      "exists": true
+    },
+    {
+      "page": "D:/GIT/home/host/xlang/wwwroot/extlibs/crc32.html",
+      "link": "../extlibs.html",
+      "exists": true
+    },
+    {
+      "page": "D:/GIT/home/host/xlang/wwwroot/extlibs/crc32.html",
+      "link": "../main.js",
+      "exists": true
+    },
+    {
+      "page": "D:/GIT/home/host/xlang/wwwroot/extlibs/generated/crc32.html",
+      "link": "../../style.css",
+      "exists": true
+    },
+    {
+      "page": "D:/GIT/home/host/xlang/wwwroot/extlibs/generated/crc32.html",
+      "link": "../crc32.html",
+      "exists": true
+    }
+  ],
+  "sourceSha256": "F871BCA6A4A0DACB697AF52A893EEEFDA5BF20950367873BD69B2F6E3DF0BDA0",
+  "sourceMatches": true,
+  "visualVerification": false,
+  "remoteDeployment": false,
+  "inputSetProbe": {
+    "method": "Extract Inputs through PowerShell AST and enumerate isolated fixture",
+    "sourceSha256": "99A505B0001D50F7540B348C246A86F2AF6A29150A60C3B2FA784D5203C9D939",
+    "addedDetected": true,
+    "removedDetected": true,
+    "baselineRestored": true
+  }
+}

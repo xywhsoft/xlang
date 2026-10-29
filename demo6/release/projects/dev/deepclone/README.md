@@ -19,9 +19,9 @@ xl build projects\dev\deepclone\deepclone.xl -o projects\dev\deepclone\deepclone
 | `copy`        | OK | `copy(obj)` 浅拷贝 + 字段隔离 | 已实现 |
 | `clone`       | OK | `clone(obj)` 深拷贝 + 字段隔离 | 已实现 |
 | `moveOnly`    | OK | 独立声明合法；与 copy/clone 冲突被语义阶段拦截 | 已实现 |
-| `value`       | OK | 经 `json` / `xson` 往返验证 `__toValue__/__fromValue__` | 已实现 |
+| `value`       | OK | 经 `json` / `xlon` 往返验证 `__toValue__/__fromValue__` | 已实现 |
 | `json`        | OK | `json.stringify` / `json.parse::<Product>` | 已实现 |
-| `xson`        | OK | `xson.stringify` / `xson.parse::<Product>` | 已实现 |
+| `xlon`        | OK | `xlon.stringify` / `xlon.parse::<Product>` | 已实现 |
 | `string`      | OK | 自动生成字符串表示，支持 `string(obj)` / `obj.toString()` | 已实现 |
 | `hash`        | OK | 自动字段哈希，可直接用于类型化 set | 已实现 |
 | `equals`      | OK | 自动生成 `==` / `!=` 值比较 | 已实现 |
@@ -31,10 +31,10 @@ xl build projects\dev\deepclone\deepclone.xl -o projects\dev\deepclone\deepclone
 | 注解 | 效果 |
 |---|---|
 | `@json("created_at")`     | 仅 JSON 侧重命名字段 |
-| `@persist(name="x")`      | JSON/XSON 通用字段名 |
+| `@persist(name="x")`      | JSON/XLON 通用字段名 |
 | `@persist(skip)`          | 跳过持久化（两侧生效） |
 | `@json(omit=empty)`       | 空串字段不输出 |
-| `@xson(omit=null)`        | null 值字段不输出 |
+| `@xlon(omit=null)`        | null 值字段不输出 |
 
 ## 测试类
 
@@ -44,7 +44,7 @@ class Product
     derive clone
     derive value
     derive json
-    derive xson
+    derive xlon
     derive string
     derive hash
     derive equals
@@ -54,7 +54,7 @@ class Product
     float price = 0.0
     string createdAt @json("created_at") @persist(name="createdAt") = ""
     string internalNote @persist(skip) = ""
-    string memo @json(omit=empty) @xson(omit=null) = ""
+    string memo @json(omit=empty) @xlon(omit=null) = ""
 
 end
 ```

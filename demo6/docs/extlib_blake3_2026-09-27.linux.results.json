@@ -1,0 +1,41 @@
+{
+  "format": "xlang-extlib-blake3-linux-evidence-1",
+  "archivedAt": "2026-09-27T05:39:15.5999824+08:00",
+  "completedAt": "2026-09-27T05:33:54.2596075+08:00",
+  "command": "bash tools/check_extlib_blake3.sh",
+  "platform": "WSL Ubuntu x86_64",
+  "compiler": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+  "scope": "Independent C core/native/allocator tests and paired example with ASan/UBSan/leak detection; not Linux xlang, shared mutable hasher concurrency or performance certification",
+  "outcome": "passed",
+  "inputs": {
+    "release/extlibs/blake3/blake3_native.c": "9C4BD1F278F1F8A4A831BCA72989FC8B74F936900DDBB31654DF23099DA357C7",
+    "release/extlibs/blake3/blake3_portable.c": "79595441957BEB3990730095C97141DEB0FCAA19DCEDAF6BD7862642C71DF359",
+    "release/extlibs/blake3/examples/basic.c": "42212CAE57A8109355E94CA4A4752D65923F9FC2F7F530B6CAE9563823848D11",
+    "release/extlibs/blake3/include/blake3_native.h": "27E7B6B2BC477674099D867713B00B23BBAB4E2E152A0756A49315E2E9AD095D",
+    "release/extlibs/blake3/include/xrt_blake3.h": "8F782F321CB3875F562E0E0E701025604A74B660EADF575F3C2274424AE74848",
+    "release/extlibs/blake3/src/blake3.xl": "5CCCA364D1F4B7CF41DFC40B9B0756668503C2548EE18723B36F18D6B15F04CF",
+    "release/extlibs/blake3/test/test_blake3.c": "6F2A64C56BA3747F4F375334166985558484B1A9B47D4FF951D6388092D879D2",
+    "release/extlibs/blake3/test/test_blake3_alloc.c": "915E90BE37706E1ECDB55D659FDFD0830953B6EBA7E89A933AAD14222317F1AF",
+    "release/extlibs/blake3/test/test_blake3_native.c": "2F3A007EBA5BC4338B4A6904F173BBED041302A6608050EFBAC183DE81CA5A9E",
+    "release/extlibs/blake3/test/test_vectors.json": "DCB91EA8ACCC77E6D6E632AF7CDC1A99A9F3AE78CF648DA595C7D064DB32F624",
+    "release/extlibs/blake3/test/vectors.h": "9C546355CD40CB4BF54B59B63DCC47DCA4DB1BCD87F3DF387A05A8F9B159C439",
+    "release/extlibs/blake3/third_party/blake3.c": "F0AA61E2E25608AF8D89CF35A2EFC0B9329CC3A7ADD9372D6F034C2BC63554D7",
+    "release/extlibs/blake3/third_party/blake3.h": "14DB1DD1A80A9856B241CCD1E96715EFAF4FC0BCFCA4BC1EC660747F9EDAAA23",
+    "release/extlibs/blake3/third_party/blake3_impl.h": "8F2DE31B1498A6A572DB2328D8D7E7A8DD904459C74A1C68B7FAE34405C518EC",
+    "release/extlibs/blake3/third_party/blake3_portable.c": "2BC25B0DAD67B4329D0B49CFA075AB2B0D04E424ADDBDDC4E9C389C52A192524",
+    "release/extlibs/blake3/third_party/manifest.json": "66B5C073DE1A49FBC31245D972C2D3B557910342F1DF376AC1F210FA9CDE8FF4",
+    "release/extlibs/blake3/xlang.package.json": "43D20C889BE66EA649B6264955A49B56B6938A17CE9A3AF433C0AA01F4DC724F",
+    "release/extlibs/blake3/xrt_blake3.c": "27535012F9047CC96F50C62377B81F3497881B2B6D8EE2D91D81C18A0C048F03",
+    "lib/xrt/xrt.h": "7C78B4B3D13FC64AC1009E2EDFAE73E9FB092C896DA1A70CF5BE859D153851E8",
+    "lib/xruntime/xruntime.h": "FF23FDB9AC90F63DEED1606A78F21707A9FA677AA766044B8AF3B4F5202F4BA9",
+    "test/support/extlib_codec_runtime.c": "ACD01CA7C8ACFA2F63C1257DDA52A0B575C0F2679B5432588014023F105C65FA",
+    "tools/check_extlib_blake3.sh": "ECA664F692509855D9A2BE7CF2200CF8D66C7C052194917B7E5466178E7E6AA0",
+    "release/examples/extlibs/blake3_basic.expected.txt": "8F0D1092B602E75A8D226C87D65E26DB49CCAC90CDBE38385D7A98659789CFCB"
+  },
+  "logs": {
+    "test_blake3": "blake3 C: 35 official vectors, three modes, six output sizes, state and reader boundaries passed\n",
+    "test_blake3_alloc": "blake3 allocation: rejected=17 completed=127\n",
+    "test_blake3_native": "blake3 native: invalid inputs, budgets, binary, 4 independent threads and temporary results passed\n",
+    "basic": "hash: 7b7015bb92cf0b318037702a6cdd81de\nclone: 2d3adedff11b61f14c886e35afa03673\nbytes: 2\nreset: af1349b9f5f9a1a6a0404dea36dcc949\nkeyed: 6d7878dfff2f485635d39013278ae14f\nkdf: b3e2e340a117a499c6cf2398a19ee0d2\nxof/65: 2d3adedff11b61f14c886e35afa036736dcd87a74d27b5c1510225d0f592e213c3a6cb8bf623e20cdb535f8d1a5ffb86342d9c0b64aca3bce1d31f60adfa137b35\n"
+  }
+}

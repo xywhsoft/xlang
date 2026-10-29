@@ -33,7 +33,7 @@
     ],
     "coverage": {
         "mode": "suite",
-        "tests": ["test/xhttp_form_data_test.xl"]
+        "tests": ["test/xhttp_form_data_test.xl", "test/boundaries.xl"]
     },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

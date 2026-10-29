@@ -1,0 +1,136 @@
+{
+  "recordedAt": "2026-09-27T23:18:18.2107751+08:00",
+  "scope": "Windows independent C CSV tests only",
+  "inputs": {
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\csv\\csv_native.c": "4CEC7B94691213FB7940659D7595C7D60349B26FF0AD5D00CC3B0C2C46ABB51F",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\csv\\xlang.package.json": "8CDEF0E2DA59595A43E0961A19B919F8E5BF6B2DA5F1BEACC55501F18BD2E74F",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\csv\\xrt_csv_common.c": "57C0F653062C620C68E28CD3C8BFD659412E2B9BA77A4819695B7064EEB2564E",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\csv\\xrt_csv_internal.h": "4EBA81B9511F2424D175107F09B0952056D1F6AB352EFD087FA47B3E7318110D",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\csv\\xrt_csv_reader.c": "B94B14BF56F853B17BAE7BBF19FA2C93D9A498C3B68D27989A1A521469D314E8",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\csv\\xrt_csv_writer.c": "64609A90DA1A3BD28BBFF3FA785782CE8E605212F2D4982B8A2F1089CBAC9883",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\csv\\include\\xrt_csv.h": "8A0085565FC6B2E07C4EA7BF7ED901CD7A196E8D59258F38FC0844E76D5514E1",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\csv\\src\\csv.xl": "F970396DC320DC68424F0BADC412A3D7174C26A51C64A4FFE043CFE40B54A1C2",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\csv\\test\\test_csv_alloc.c": "38D5EF8A016A0D64AB61F81E3B984C05136A6DBAD7318F42067915D9EDF2A44D",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\csv\\test\\test_csv_boundary.c": "C0A23F1F5D057416FE83C04E258296292E8A529C4E40E91129AE3E8F24425B7E",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\csv\\test\\test_csv_files.c": "CC93224D7DC29792719B743024F52E97D6EA6F2AF29109487E81205BB9CE47B0",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\csv\\test\\test_csv_stream.c": "F8661249873E86AE82E39409CD639B2CE25EA88D7A5431DD0B051118FCE0AEF4",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\csv\\test\\test_csv.c": "A5023834AEACF28C93065FC14BD8BFD0C45D0BEE440317D077FBE71D49FEEFDB",
+    "D:/GIT/x-lang/demo6/lib/xrt/xrt.h": "4C8CA837C7BAA2B865D6A6C8437449A90186639618888B929F6C3743327A0AC5",
+    "D:/GIT/x-lang/demo6/test/support/extlib_csv_runtime.c": "509260A04D71F5D7D818327BB4AEA83B60019C2BD0D39B5607C3BEF21A964A0A",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-status-20260927-231125\\check_csv_current.ps1": "6B55038E558F13F8E9425D77147D250114423B4D170AFED31E31DC77CB8A4647"
+  },
+  "evidenceValid": true,
+  "changedInputs": [],
+  "results": [
+    {
+      "name": "compile-runtime",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 4230
+      }
+    },
+    {
+      "name": "compile-test_csv",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 443
+      }
+    },
+    {
+      "name": "test_csv",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "test_csv: PASS\r\n",
+        "stderr": "",
+        "elapsedMs": 35
+      }
+    },
+    {
+      "name": "compile-test_csv_boundary",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 808
+      }
+    },
+    {
+      "name": "test_csv_boundary",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "csv boundaries: PASS\r\n",
+        "stderr": "",
+        "elapsedMs": 66
+      }
+    },
+    {
+      "name": "compile-test_csv_stream",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 762
+      }
+    },
+    {
+      "name": "test_csv_stream",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "csv stream boundaries: PASS\r\n",
+        "stderr": "",
+        "elapsedMs": 33
+      }
+    },
+    {
+      "name": "compile-test_csv_alloc",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 852
+      }
+    },
+    {
+      "name": "test_csv_alloc",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "csv allocation: 143 failure points, recovery and ownership passed\r\n",
+        "stderr": "",
+        "elapsedMs": 47
+      }
+    },
+    {
+      "name": "compile-test_csv_files",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 832
+      }
+    },
+    {
+      "name": "test_csv_files",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "csv file transactions: 47 failure points, UTF-8 and cleanup passed\r\n",
+        "stderr": "",
+        "elapsedMs": 117
+      }
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+[
+  {
+    "product": "xrt",
+    "oldSha256": "3356BCCABBCBC877AD19C5E2D3336C909C2A742DE62E7B92BB79FE2AF3F4CEE6",
+    "newSha256": "A2D9D17C569DC74B974F8FD2FED0AC00E20A819FCDA09473630951031E0BCE8E",
+    "equal": true,
+    "preprocessedCharacters": 381479,
+    "compiler": "E:\\software\\w64devkit\\bin\\gcc.exe",
+    "arguments": [
+      "-E",
+      "-P",
+      "-x",
+      "c"
+    ]
+  },
+  {
+    "product": "xruntime",
+    "oldSha256": "4B7CFAA2015F39E08159F4B10108B9BB1764D2370074333335651FE5C1BA87AC",
+    "newSha256": "97BEE29DBA82A3BB9D6A6A05681B90F456B35EF74741E9AD08B6E6B784060CFD",
+    "equal": true,
+    "preprocessedCharacters": 426476,
+    "compiler": "E:\\software\\w64devkit\\bin\\gcc.exe",
+    "arguments": [
+      "-E",
+      "-P",
+      "-x",
+      "c"
+    ]
+  }
+]

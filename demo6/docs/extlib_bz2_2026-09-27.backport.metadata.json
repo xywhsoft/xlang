@@ -1,0 +1,25 @@
+{
+  "date": "2026-09-27T17:11:27.3371790+08:00",
+  "upstream": "D:/GIT/xrt",
+  "baseCommit": "18747e36866aee4a584f3a2a72d0d942356297b7",
+  "baseFileBlob": "ea37559d955545b6f57824a9f1edbb84f342ccd5",
+  "upstreamFile": "src/fs/file.c",
+  "upstreamFileSha256": "ACBA25628503C79E4C529361E4F771EE989C6AE0DE19C0EBDAAB628C505A9047",
+  "recipe": "Normalize CRLF to LF. In upstream old/new src/fs/file.c strip only the internal xrt_file.h include and Trim. Require old body occurs exactly once in each frozen header. Replace old body with new body, UTF-8 without BOM. No demo6 SDK or release binary modified.",
+  "headers": [
+    {
+      "frozen": "lib/xrt/xrt.h",
+      "frozenSha256": "7C78B4B3D13FC64AC1009E2EDFAE73E9FB092C896DA1A70CF5BE859D153851E8",
+      "isolated": "build/test/bz2_review/fixed-xrt/xrt.h",
+      "isolatedSha256": "AB0D9F4C017EFCF7CF1D8DAC1CABB0DFB62300372AEE510F5F3A7B1F02483860",
+      "verifiedSingleBodyReplacement": true
+    },
+    {
+      "frozen": "lib/xruntime/xruntime.h",
+      "frozenSha256": "FF23FDB9AC90F63DEED1606A78F21707A9FA677AA766044B8AF3B4F5202F4BA9",
+      "isolated": "build/test/bz2_review/fixed-xrt/xruntime.h",
+      "isolatedSha256": "2FD0FC6EA5EFC090CB8FA80CD22B41DAD150A4C0FA66159012B834E26B9F44B9",
+      "verifiedSingleBodyReplacement": true
+    }
+  ]
+}

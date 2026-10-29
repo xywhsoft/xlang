@@ -301,8 +301,9 @@ callable 桥接。运行与破坏反例见
 - `tools/check_xlir_string_iterator_abi.ps1`：验证 managed string 的 `for` 在 Typed XLIR
   固定为单 value 或 `ordinal/value` 两种 UTF-8 LoopAbi，稳定命名 source 复制为 owned
   `string-snapshot-release`，literal/调用等 owned rvalue 则直接转移。lowering 只用
-  `string-copy/string-utf8-count/string-utf8-at`、普通 CFG 和 active LoopResource 表达码点
-  投影与所有退出清理；Cgen 仅机械调用 `xrtUtf8Count/xrtUtf8Substr`，不实现字节扫描器。
+  `string-copy/string-utf8-count/string-scalar-at`、普通 CFG 和 active LoopResource 表达标量
+  投影与所有退出清理；item 是 trivial `char`，投影失败由紧邻的显式 error edge 传播。Cgen
+  仅机械调用 `xrtUtf8Count/xlir_string_scalar_at`，不从源码或 LoopAbi 重建字符语义。
   专用 fixture 覆盖中文、四字节 emoji、空串、snapshot rebind、continue/break/return/finally/
   throw，并与 legacy 严格运行差分；既有 `stdlib_string` 同时进入确定性 XLIR Cgen 与严格编译门。
 - `tools/check_xlir_protocol_iterator_abi.ps1`：验证普通 class 与 pure-native class 的
@@ -651,7 +652,7 @@ callable 桥接。运行与破坏反例见
 | xvalue scalar bridge / exact flow / may-raise create ABI | exact scalar/string 到开放 `var` 的返回边界显式装箱；非 class `is` 是 `xvalue-type-id + stable TypeId const + EQ`，流缩窄名称仍保留 dynamic storage TypeId，但通过统一 exact projector 得到精确 scalar 或 owned string。string 转换按 lowered value TypeId 选 operation，string projector 直接转移 owner。may-raise `create` 使用 void result carrier、`ERROR_TEST`、失败 release/传播与成功 load/move；Cgen 只消费这些 IR。正向和实际失败/catch 路径、确定性严格 C 与 legacy 差分均已接线 |
 | statically shaped erased collection iterator ABI | 裸 `array/list/set/dict` 在 Type 表中保留各自精确 `CollectionAbi`、runtime TypeValueId 与零参数形状；零参数明确表示元素使用 canonical fallback `var` TypeId，不表示来源形状未知，也不与 `collectionAbi=none` 的动态 `var` 混同。默认值通过已验证的 array/int-map/set/object empty-constructor RuntimeOp 初始化。for-loop 复用与 source TypeId 绑定的 cursor、独立 ordinal/integer/string key projection、owned xvalue-retain item projection和 active LoopResource；array/list/set/dict 的 value、key/value、key-only，snapshot mutation、continue/break/return/finally、参数与 owned rvalue 已通过确定性 JSON/C、严格运行及 legacy 差分 |
 | runtime-checked dynamic var iterator ABI | `collectionAbi=none` 的动态 `var` 使用独立 may-raise dispatch，而不伪装成任一静态 collection。checked-create 仅接纳 array/list/set/dict runtime tag 并紧邻唯一 `ERROR_TEST`；失败产生精确 `TypeError`。单 target 由 `dynamic-logical-xvalue` 固定 dict-key/其他-item 语言语义，双 target 由 `dynamic-xvalue key + xvalue-retain item` 固定装箱与所有权；显式 `_` 分别固化为 `key=discard` / `item=discard` 且 lifetime 为 `none`，lowering 只推进 cursor，不生成投影、storage 或 target cleanup。source-bound cursor、临时 source 成败释放和 target/cursor 的 continue/break/return/finally 清理全部存在于 verified XLIR。专用 fixture、既有动态容器循环与非容器负路径进入确定性、严格 C、运行及 legacy 差分/接纳审计；Cgen 只机械调用 helper，不回查 source 类型或目标数量 |
-| canonical UTF-8 string iterator ABI | managed string source 固定为 `string-utf8-value` 或 `string-utf8-index-value`，key 是 canonical i64 Unicode scalar ordinal，item 是每次迭代新拥有的 managed string。稳定命名 source 经 `string-copy` 获得快照，owned rvalue 直接转移；`string-snapshot-release` 与 per-iteration target resource 在 fallthrough/continue/break/return/throw/finally 上逆序清理。lowering 生成 count/position/branch/increment 普通 CFG，字符仅由精确 `string-utf8-at(string,i64)->string` 投影；Cgen 不读取 LoopAbi、不计算字节边界。中文、emoji、空串、重绑快照、参数/返回值与既有 `stdlib_string` 已进入确定性、严格 C、运行和 legacy 差分门 |
+| canonical UTF-8 string iterator ABI | managed string source 固定为 `string-utf8-value` 或 `string-utf8-index-value`，key 是 canonical i64 Unicode scalar ordinal，item 是 trivial `char`，其物理 ABI 为 `uint32_t`。稳定命名 source 经 `string-copy` 获得快照，owned rvalue 直接转移；只有 `string-snapshot-release` 需要所有权清理，char target 使用 `trivial-replace`。lowering 生成 count/position/branch/increment 普通 CFG，字符由精确、可失败的 `string-scalar-at(string,i64)->char` 投影并紧邻 `ERROR_TEST`；Cgen 不读取 LoopAbi、不重建字符语义。中文、emoji、空串、重绑快照、参数/返回值与既有 `stdlib_string` 已进入确定性、严格 C 和运行门 |
 | canonical class/native protocol iterator ABI | stable named class source 由精确 nominal TypeId 解析本声明上的零参 `__iter__`，其返回 class 再解析零参 `__next__ -> (bool,T)`；继承、virtual 和未具体化泛型在尚无显式 receiver upcast/dispatch ABI 时继续 fail-closed。Managed iterator 是 owned class resource，managed item 从 product TAKE 后成为 per-iteration owner；native iterator 以 opaque handle + exact destroy CallTarget 清理，绝不要求或制造 xvalue `ClassLayout`。单/双 target、trivial/string item、正常耗尽、continue/break/return/throw、Buffer native handle、File extern getter、确定性 C、严格运行及 legacy 差分均已接线；标准库 bridge 的独立可链接 runtime 分发仍是后续标准库收口项，不由 iterator Cgen 补定义 |
 | 上下文 null 表示 ABI | 类型表以 `NullAbi` 区分 pointer/xvalue sentinel 与 tagged product；`null` 只在目标 TypeId 已知时产生 `NULL`，比较产生 `NULL_TEST`；class→nullable 的同表示转换使用 verifier 可见的 `VALUE`；`var`/`nullable<class>` 的 `??` 使用带显式 `RETAIN/RELEASE` 的 lazy CFG，class present 分支以同表示 `NULLABLE_UNWRAP` 投影，literal null 由 lowering 按结果 TypeId 折叠；直接 storage 的 `?=` 对 xvalue sentinel 生成 lazy test/branch/release/store CFG，静态非空 TypeId 不生成 RHS，旧 Cgen eager-class-fallback 被列为 XLIR-only 历史差异；`nullable<bool/int/uint64/float>` 使用 compiler-owned tagged struct 与显式 `NULLABLE_WRAP/UNWRAP`，`??` 是 lazy CFG merge；`errorResultCName` 是 verifier 可见的 may-raise carrier，不由 Cgen 重建。覆盖内部参数/返回、默认 null、赋值、公开普通/may-raise export、immutable closure capture/result、mutable capture cell、async result/frame、typed continuation coalesce、class erased-field 默认/显式初始化/赋值/读取/重置和 legacy 差分。class 字段通过 `tagged-null` 与独立 box/projection runtime op 保留精确 TypeId；managed nullable payload 与复杂 product 组合仍须扩展所有权/边界 ABI |
 | canonical CallSite / CallTarget ABI | 普通函数与 class constructor 共用按 parameter 排序的 explicit/default/named binding slice；ARRAY/DICT variadic tail 在 CallSite 中保留 item 来源，并由 lowering 显式物化为唯一 aggregate 物理参数；native C variadic target 保留固定 prototype 前缀和动态 typed operand tail；泛型单态化克隆内部 site/argument slice，并把外部 site retarget 到 concrete symbol。Cgen 只消费经验证的 CallTarget/CallSite 事实并机械发射 `...`。文本/JSON 同时公开 target、site、argument 与 variadic ABI，严格宿主覆盖默认/命名、空/非空 aggregate、单态化以及 `va_list` |
@@ -789,19 +790,19 @@ JIT/AOT、宿主 API 与运行时专项合同，而不是把旧文件删除本�
   不再依赖是否扫描到某个构造调用。无调用点、无宿主实现的重载声明通过
   `check_xlir_native_factory_declaration_abi.ps1` 的 IR、裁剪、严格 C 和运行门；
   managed-native 生命周期及 extern receiver 的运行/差分门也已重新通过。
-- XSON 的 5 个值入口、42 个 Writer 入口和 visitor 已进入同一序列化声明式 ABI 表。
-  适配实现抽取为共享 `xl6_cgen_xson`，Cgen 依据验证后的操作集合裁剪值、Writer、
+- XLON 的 5 个值入口、42 个 Writer 入口和 visitor 已进入同一序列化声明式 ABI 表。
+  适配实现抽取为共享 `xl6_cgen_xlon`，Cgen 依据验证后的操作集合裁剪值、Writer、
   visitor 及配置依赖，仅使用声明 SDK。两项专用门验证 10 个错误 ABI、Writer 全部
   操作、选项分支、custom/bytes/time 事件和独立严格 C 链接、双后端运行。
-  仅使用 `XsonWriter`、`xson.writer()` 或 `xson.visit` 时缺少类依赖的问题已修复。
+  仅使用 `XlonWriter`、`xlon.writer()` 或 `xlon.visit` 时缺少类依赖的问题已修复。
   visitor 构造失败时提前分配 key/index 的泄漏也已移除。
-- XSON 临时回调捕获和 bytes payload 动态字段读取的回收保留为明确的 XLIR-only
+- XLON 临时回调捕获和 bytes payload 动态字段读取的回收保留为明确的 XLIR-only
   生命周期合同；legacy 对 owned 动态字段结果存在多余 retain。正常事件投递、
   事件保存/释放和 native Writer 生命周期仍作双后端对照。抛异常 visitor 尚未验收，
   不能把上述正常事件路径的通过等同于 callback error ABI 完成。
 - 宿主入口依据已验证的初始化成功值和函数 error-result `ok` 处理语言执行结果：
   成功边界清理不代表语言异常的 XRT 诊断，失败保留异常，非零用户返回码不被覆盖。
-  不在语言函数体内清理状态，原 XSON 示例未修改即可恢复。六个专用用例验证
+  不在语言函数体内清理状态，原 XLON 示例未修改即可恢复。六个专用用例验证
   script/main/module-init、真实 throw 和非零返回的双后端 `run/build`。
   DLL module dependency lifetime 检查也通过。
 - 覆盖登记更新为 99 个语义行、316 个代表用例、123 个双后端运行对照和
@@ -811,14 +812,14 @@ JIT/AOT、宿主 API 与运行时专项合同，而不是把旧文件删除本�
 
 - 完成其余核心、类型、OOP/ABI、异常/并发和产物回归；仍需迁移的旧 C 输出形态断言
   必须由具体 IR 合同和运行检查接替，不能简单删除或把默认测试改回 legacy。
-- `08_stdlib_extended.bat` 本轮已通过 JSON/XSON 值/流式门、原用例严格链接运行、
+- `08_stdlib_extended.bat` 本轮已通过 JSON/XLON 值/流式门、原用例严格链接运行、
   xlang/C 示例输出对照和新增宿主错误边界门；当前推进到 `stdlib_print`，
   严格链接缺少 `xl6_xrt_write`、`xl6_xrt_writeln`。该套件仍以失败结束。
   write/writeln、encoding、crypto、process 等组继续逐组收齐显式 ABI 与运行组件。
   仅 `CallTarget.runtimeBridge=none` 的静态清单不能单独证明链接缺失，
   还需检查对应类型/资源组件是否已经提供实现。
 - 回调异常传播探针 `build/tmp/xlir_serialization_callback_error_probe.xl` 已确认
-  `xson.visit` 内 visitor 抛异常不能到达调用者的 try/catch：XLIR 失败、legacy 通过。
+  `xlon.visit` 内 visitor 抛异常不能到达调用者的 try/catch：XLIR 失败、legacy 通过。
   当前 visitor bridge 的 no-raise 合同不足以表达该语义，必须在 IR/物理调用结果中
   区分正常解析失败状态和 callback exception，再由 Cgen 消费；不得恢复把任意
   XRT 诊断猜成未捕获语言异常的宿主行为，也不得在测试中补 clearError 掩盖。
@@ -832,15 +833,15 @@ JIT/AOT、宿主 API 与运行时专项合同，而不是把旧文件删除本�
 
 本节更新上节的 callback error 未完成项，不代表长期任务或完整总回归完成。
 
-- JSON/XSON visitor 的语义 effect 改为 `may-raise`，物理错误 ABI 是明确的
+- JSON/XLON visitor 的语义 effect 改为 `may-raise`，物理错误 ABI 是明确的
   `result-carrier`（`xlir_result_c_int`）。正常解析失败、提前停止、完成继续返回状态码；
   回调 throw 或适配失败返回独立的失败标志，不把残留 XRT 诊断当作语言异常。
   lowering 和 verifier 使用同一合同，拒绝 visitor 的 no-raise、线程诊断观察及错误
   callback 参数/结果 ABI；Cgen 依照物理 ABI 发射调用和错误分支。
-- `xl6_cgen_serialization_callback` 为 JSON/XSON 共用的边界组件，每次调用持有独立
+- `xl6_cgen_serialization_callback` 为 JSON/XLON 共用的边界组件，每次调用持有独立
   context，保存一个 owned callback error，经过原生解析器回退后恢复原始错误。
   调用隔离已有原生诊断；事件、回调返回值各释放一次。组件只依赖公开声明 SDK，
-  同时使用 JSON/XSON 时也只发射一次，不引入 legacy 实现头。
+  同时使用 JSON/XLON 时也只发射一次，不引入 legacy 实现头。
 - 错误的 12 类属性/类型测试，以及 raise/take/set-take/clear 所有权转交已由
   `xl6_ir_cgen_error_runtime` 共用实现；同步、async 和 generator 不再各自复制发射。
   typed catch 不匹配后的原错误转交、挂起前 catch、generator move 清空源所有权
@@ -852,7 +853,7 @@ JIT/AOT、宿主 API 与运行时专项合同，而不是把旧文件删除本�
   六个持久用例通过确定性、严格 C 独立链接运行和 XLIR `run/build`：同步与嵌套
   visitor、checked conversion、async 挂起前/恢复后捕获、typed catch 不匹配转交、
   generator 捕获后继续 yield、12 类错误属性、5 类字符串比较、事件/临时捕获回收，
-  以及 JSON/XSON 未捕获异常的退出码和原始消息。状态失败不靠测试中的 clearError 掩盖。
+  以及 JSON/XLON 未捕获异常的退出码和原始消息。状态失败不靠测试中的 clearError 掩盖。
 - 同步及两个未捕获异常用例也通过 legacy `run/build`。其余三个是明确的 XLIR-only
   合同：legacy 多保留临时捕获；async 用例没有捕获到预期的两次异常；generator 用例
   以 `temporary scopes ended out of order`、退出码 3 失败。不修改断言迁就旧实现，
@@ -860,7 +861,7 @@ JIT/AOT、宿主 API 与运行时专项合同，而不是把旧文件删除本�
 - 最终完整 `build_dll.bat` 通过且无 warning/error；编译器产物时间为本地
   2026-09-05 19:33:16。`xlir_cgen.c` 底层 ABI 单元（含 callback 物理 ABI 变异拒绝）
   通过；390 个用例通过重复生成一致性和严格 C 编译。
-- JSON/XSON 的值与流式四个既有专用门、六用例宿主错误边界门均在最后一次编译器上
+- JSON/XLON 的值与流式四个既有专用门、六用例宿主错误边界门均在最后一次编译器上
   重跑通过。DLL module dependency lifetime 和使用正式 toolchain 环境的 threaded host
   API boundary 检查也通过。静态 IR 合同、覆盖登记、批处理接线、329 个 Markdown
   文件的链接检查通过；确认不存在比最后编译器更新的 src C/H 文件。
@@ -929,7 +930,7 @@ JIT/AOT、宿主 API 与运行时专项合同，而不是把旧文件删除本�
 
 剩余工作继续推进：
 
-- 本轮 `08_stdlib_extended.bat` 已通过文本输出及此前 JSON/XSON 和回调异常专项，
+- 本轮 `08_stdlib_extended.bat` 已通过文本输出及此前 JSON/XLON 和回调异常专项，
   推进至 `stdlib_error_paths`，其严格链接仍缺少 `xl6_xrt_dir_list`、
   `xl6_xrt_process_exec`、`xl6_xrt_process_success`、`xl6_xrt_process_exit_code`。
   现有 `xl6_cgen_dir.c` 和 `xl6_cgen_process*.c` 仍是 legacy 侧组件，需要建立
@@ -998,7 +999,7 @@ JIT/AOT、宿主 API 与运行时专项合同，而不是把旧文件删除本�
 
 剩余工作与已推进边界：
 
-- `08_stdlib_extended.bat` 最后一次从头复测已通过 JSON/XSON、回调异常、文本输出、
+- `08_stdlib_extended.bat` 最后一次从头复测已通过 JSON/XLON、回调异常、文本输出、
   系统桥接、`stdlib_error_paths` 及 `stdlib_codec`，后者的语言/C 示例输出均为
   `codec=ok`。随后在 `stdlib_encoding` 的严格 C 链接失败；整组尚未通过，
   后续分组不能计作本轮已执行。

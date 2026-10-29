@@ -1,0 +1,5 @@
+func main(...) as int
+    int digit = string.byteAt("0", 0) - 48
+    assert digit == 0
+    return 0
+end

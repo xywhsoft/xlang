@@ -1,0 +1,189 @@
+{
+  "format": "xlang-extlib-reassessment-extras-1",
+  "generatedAt": "2026-09-27T05:02:03.6741960+08:00",
+  "scope": "Independent BLAKE3 C strict build and existing known-answer/state/reader tests, plus serial teaching example; not complete BLAKE3 hardening or hardware validation",
+  "inputs": {
+    "lib/xrt/xrt.h": "7C78B4B3D13FC64AC1009E2EDFAE73E9FB092C896DA1A70CF5BE859D153851E8",
+    "lib/xruntime/xruntime.h": "FF23FDB9AC90F63DEED1606A78F21707A9FA677AA766044B8AF3B4F5202F4BA9",
+    "release/examples/extlibs/serial.xl": "345EA51563633DD65A2259F15758F8671ADDE6955371CA3801B236F441F99F40",
+    "release/extlibs/blake3/blake3_native.c": "5BA1C197C0E9D6096536FEC99A0373F7CF4604260CE99FE5CD90DC9DC4400527",
+    "release/extlibs/blake3/blake3_portable.c": "79595441957BEB3990730095C97141DEB0FCAA19DCEDAF6BD7862642C71DF359",
+    "release/extlibs/blake3/include/blake3_native.h": "EDFDC4C10BB7973BAB18424035FAAA14B80D1E94915BC5A8ED85292999363C95",
+    "release/extlibs/blake3/include/xrt_blake3.h": "8F782F321CB3875F562E0E0E701025604A74B660EADF575F3C2274424AE74848",
+    "release/extlibs/blake3/src/blake3.xl": "72668EC360332D2524AB4EEBA67061EA86DA88CD3389FCC6AB0DE1E7CC349A1E",
+    "release/extlibs/blake3/test/test_blake3.c": "E13631F82FC7B23B85F59FF9540A893C20ECF9B970786B1C49A5CE31718766E8",
+    "release/extlibs/blake3/test/test_vectors.json": "DCB91EA8ACCC77E6D6E632AF7CDC1A99A9F3AE78CF648DA595C7D064DB32F624",
+    "release/extlibs/blake3/test/vectors.h": "9C546355CD40CB4BF54B59B63DCC47DCA4DB1BCD87F3DF387A05A8F9B159C439",
+    "release/extlibs/blake3/third_party/blake3_impl.h": "8F2DE31B1498A6A572DB2328D8D7E7A8DD904459C74A1C68B7FAE34405C518EC",
+    "release/extlibs/blake3/third_party/blake3_portable.c": "2BC25B0DAD67B4329D0B49CFA075AB2B0D04E424ADDBDDC4E9C389C52A192524",
+    "release/extlibs/blake3/third_party/blake3.c": "F0AA61E2E25608AF8D89CF35A2EFC0B9329CC3A7ADD9372D6F034C2BC63554D7",
+    "release/extlibs/blake3/third_party/blake3.h": "14DB1DD1A80A9856B241CCD1E96715EFAF4FC0BCFCA4BC1EC660747F9EDAAA23",
+    "release/extlibs/blake3/third_party/LICENSE": "6A94BEDB8B707ED97F6E310D0D015AB14E0683FFA0A612B02958581B9CC9FC0E",
+    "release/extlibs/blake3/xlang.package.json": "43D20C889BE66EA649B6264955A49B56B6938A17CE9A3AF433C0AA01F4DC724F",
+    "release/extlibs/blake3/xrt_blake3.c": "066D38163747348AA7A588AB0280321CBB8BFB8AA9685AFE77980BDE0C983325",
+    "release/xl.dll": "2A07C481C04CAD71D31D46722A27E62027318DF24E95A63126E061FD4CA46902",
+    "release/xl.exe": "5A3F20B4CF9333D393560CB2361D0EBAB8A13F0D07C64A78A1F5FFF5385D9EEB",
+    "release/xlc.dll": "7C672FD0B2852690D09E2EF1046C56EE1586FD1FCCC0CAEA61E19C0FE7C6E1F0",
+    "test/support/extlib_codec_runtime.c": "ACD01CA7C8ACFA2F63C1257DDA52A0B575C0F2679B5432588014023F105C65FA",
+    "tools/extlib_smoke_process.ps1": "87C3D050B1F492E3F0C4307BA39F454E42B65E37DBCDEC4BE3E938BC2F32D2F7",
+    "tools/xlir_native_process.ps1": "2BE2787D2316CE07E0D0AC3BDF1A1CAABA14D72F249CCAC847BB1C05D1DBFC9D"
+  },
+  "evidenceValid": true,
+  "changedInputs": [],
+  "checks": [
+    {
+      "name": "runtime strict GCC",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "-Ilib/xruntime",
+        "-DXRT_MODULE_CODEC_HEX",
+        "-DXRT_MODULE_THREAD",
+        "-c",
+        "test/support/extlib_codec_runtime.c",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_recheck_20260927/runtime.o"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 5565
+      }
+    },
+    {
+      "name": "blake3_portable strict GCC",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "-Ilib/xruntime",
+        "-c",
+        "release/extlibs/blake3/blake3_portable.c",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_recheck_20260927/blake3_portable.o"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 461
+      }
+    },
+    {
+      "name": "xrt_blake3 strict GCC",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "-Ilib/xruntime",
+        "-c",
+        "release/extlibs/blake3/xrt_blake3.c",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_recheck_20260927/xrt_blake3.o"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 197
+      }
+    },
+    {
+      "name": "blake3_native strict GCC",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "-Ilib/xruntime",
+        "-c",
+        "release/extlibs/blake3/blake3_native.c",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_recheck_20260927/blake3_native.o"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 323
+      }
+    },
+    {
+      "name": "core known answers build",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "-Ilib/xruntime",
+        "-DXRT_MODULE_CODEC_HEX",
+        "release/extlibs/blake3/test/test_blake3.c",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_recheck_20260927/blake3_portable.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_recheck_20260927/runtime.o",
+        "-lWs2_32",
+        "-lAdvapi32",
+        "-lm",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_recheck_20260927/blake3_core.exe"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 377
+      }
+    },
+    {
+      "name": "core known answers and boundaries",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_recheck_20260927/blake3_core.exe",
+      "arguments": [],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "blake3 C: 35 official vectors, three modes, six output sizes, state and reader boundaries passed\r\n",
+        "stderr": "",
+        "elapsedMs": 63
+      }
+    },
+    {
+      "name": "serial teaching example JIT",
+      "program": "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+      "arguments": [
+        "run",
+        "release/examples/extlibs/serial.xl"
+      ],
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "release/examples/extlibs/serial.xl:14:13: [parse] invalid f-string interpolation expression\n",
+        "elapsedMs": 23
+      }
+    }
+  ]
+}

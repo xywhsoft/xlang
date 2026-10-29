@@ -1,0 +1,17 @@
+{
+  "date": "2026-09-26T23:29:47.8925264+08:00",
+  "newLimitedVerification": [
+    "argon2",
+    "bloom"
+  ],
+  "rootReadmes": 21,
+  "authoredSiteSources": 3,
+  "ordinarySitePages": 21,
+  "generatedSitePages": 214,
+  "generatedPagesStillAugust13": 210,
+  "fullBaseline": "extlib_reassessment_2026-09-26.results.json",
+  "replacedFullBaseline": false,
+  "windowsEvidence": "extlib_argon2_bloom_2026-09-26.windows.results.json",
+  "linuxEvidence": "extlib_argon2_bloom_2026-09-26.linux.results.json",
+  "visualVerification": false
+}

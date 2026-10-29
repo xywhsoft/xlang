@@ -83,7 +83,7 @@ XLANG_XHTTP_EXPORT void* xhttp_url_wrap(void* pHandle)
 
 
 /* 释放 URL 及其全部组件视图依赖的文本存储。 */
-XLANG_XHTTP_EXPORT long long xhttp_url_destroy(void* pHandle)
+XLANG_XHTTP_EXPORT void xhttp_url_destroy(void* pHandle)
 {
 	xhttp_native_url* pOwner = (xhttp_native_url*)pHandle;
 
@@ -92,7 +92,6 @@ XLANG_XHTTP_EXPORT long long xhttp_url_destroy(void* pHandle)
 		memset(pOwner, 0, sizeof(*pOwner));
 		xrtFree(pOwner);
 	}
-	return 0;
 }
 
 

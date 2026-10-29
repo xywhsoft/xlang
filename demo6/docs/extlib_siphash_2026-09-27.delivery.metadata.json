@@ -1,0 +1,32 @@
+{
+  "format": "xlang-extlib-siphash-delivery-1",
+  "archivedAt": "2026-09-27T12:41:38.4183877+08:00",
+  "windowsEvidence": "docs/extlib_siphash_2026-09-27.windows.results.json",
+  "linuxEvidence": "docs/extlib_siphash_2026-09-27.linux.results.json",
+  "windowsChecks": 40,
+  "generatedPrototypes": 41,
+  "nativeBindings": 43,
+  "officialAnswers": 128,
+  "keys": 4,
+  "addressOffsets": 8,
+  "boundaryLengths": 81,
+  "threads": 4,
+  "allocationPositions": 192,
+  "scope": "SipHash-2-4 64/128 one-shot/stream/clone/file callbacks and documented resource bounds; not ecosystem release admission",
+  "website": {
+    "source": "release/extlibs/siphash/docs/site.html",
+    "target": "D:/GIT/home/host/xlang/wwwroot/extlibs/siphash.html",
+    "sha256": "1A97F60430C35180348A0319A50F2DE24DA2AE4CD970B49E2115501FEF72261F",
+    "entry": "D:/GIT/home/host/xlang/wwwroot/extlibs/generated/siphash.html",
+    "generatedEntryMatches": true,
+    "remoteDeployment": false,
+    "browserVisualTested": false
+  },
+  "host": {
+    "release/xl.exe": "5A3F20B4CF9333D393560CB2361D0EBAB8A13F0D07C64A78A1F5FFF5385D9EEB",
+    "release/xl.dll": "2A07C481C04CAD71D31D46722A27E62027318DF24E95A63126E061FD4CA46902",
+    "release/xlc.dll": "7C672FD0B2852690D09E2EF1046C56EE1586FD1FCCC0CAEA61E19C0FE7C6E1F0",
+    "lib/xrt/xrt.h": "7C78B4B3D13FC64AC1009E2EDFAE73E9FB092C896DA1A70CF5BE859D153851E8",
+    "lib/xruntime/xruntime.h": "FF23FDB9AC90F63DEED1606A78F21707A9FA677AA766044B8AF3B4F5202F4BA9"
+  }
+}

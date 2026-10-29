@@ -71,10 +71,9 @@ XLANG_XHTTP_EXPORT void* xhttp_params_clone(void* pHandle)
 
 
 /* 释放拥有型 QueryParams。 */
-XLANG_XHTTP_EXPORT long long xhttp_params_destroy(void* pHandle)
+XLANG_XHTTP_EXPORT void xhttp_params_destroy(void* pHandle)
 {
 	xrtQueryParamsDestroy((xqueryparams*)pHandle);
-	return 0;
 }
 
 
@@ -106,10 +105,9 @@ XLANG_XHTTP_EXPORT unsigned long long xhttp_params_value(
 
 
 /* 清空容器但保留容量。 */
-XLANG_XHTTP_EXPORT long long xhttp_params_clear(void* pHandle)
+XLANG_XHTTP_EXPORT void xhttp_params_clear(void* pHandle)
 {
 	xrtQueryParamsClear((xqueryparams*)pHandle);
-	return 0;
 }
 
 
@@ -416,7 +414,7 @@ XLANG_XHTTP_EXPORT void* xhttp_form_encode_owned(
 
 /* Compatibility C entry continues to return an owned Buffer. */
 XLANG_XHTTP_EXPORT void* xhttp_form_encode(
-	const void* pData,
+	void* pData,
 	size_t iSize
 )
 {
@@ -433,7 +431,8 @@ XLANG_XHTTP_EXPORT void* xhttp_form_encode_text(
 	size_t iSize
 )
 {
-	return xhttp_form_encode(sText, iSize);
+	/* point 的 C ABI 为 void*；编码器只读这段借用文本。 */
+	return xhttp_form_encode((void*)sText, iSize);
 }
 
 

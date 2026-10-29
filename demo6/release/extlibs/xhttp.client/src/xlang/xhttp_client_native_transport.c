@@ -206,10 +206,9 @@ XLANG_XHTTP_CLIENT_EXPORT void* xhttp_client_wrap(void* pHandle)
 
 
 /* 释放语言对象持有的 Client 所有者引用。 */
-XLANG_XHTTP_CLIENT_EXPORT long long xhttp_client_destroy(void* pHandle)
+XLANG_XHTTP_CLIENT_EXPORT void xhttp_client_destroy(void* pHandle)
 {
 	xrtHttpClientDestroy((xhttpclient*)pHandle);
-	return 0;
 }
 
 
@@ -380,7 +379,7 @@ static int xhttpClientFutureMap(
 	bInvoked = xrtValueInvoke(pMapper->Boxer, &Frame, &Result);
 	xrtValueRelease(pArgumentValue);
 	if ( !bInvoked ) {
-		/* xrtValueInvoke publishes the callback error through XRT itself. */
+		/* xcall 失败已带有 XRT 结构化错误，不存在第二份语言异常槽。 */
 		xrtCallResultUnit(&Result);
 		return xhttpClientFutureMapError(
 			pOutput,
@@ -496,12 +495,11 @@ XLANG_XHTTP_CLIENT_EXPORT void* xhttp_client_result_ref(void* pHandle)
 
 
 /* 释放结果及尚未取走的响应和 Upgrade 传输。 */
-XLANG_XHTTP_CLIENT_EXPORT long long xhttp_client_result_destroy(
+XLANG_XHTTP_CLIENT_EXPORT void xhttp_client_result_destroy(
 	void* pHandle
 )
 {
 	xrtHttpResultDestroy((xhttpresult*)pHandle);
-	return 0;
 }
 
 

@@ -1,0 +1,14 @@
+extern "xrtConsoleFlush" func __xl_std_runtime_console_flush(c_int stream) as c_bool
+
+func checkFlush()
+    bool stdoutOk = __xl_std_runtime_console_flush(c_int(1))
+    bool stderrOk = __xl_std_runtime_console_flush(c_int(2))
+    if not stdoutOk then
+        throw IOError "stdout flush failed"
+    end
+    if not stderrOk then
+        throw IOError "stderr flush failed"
+    end
+end
+
+checkFlush()

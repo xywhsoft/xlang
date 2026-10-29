@@ -1,0 +1,17 @@
+func exercise(string root)
+    if root == "" then throw ValueError "empty root" end
+end
+
+func main(...) as int
+    string root = dir.temp(path.temp(), "miniz-ir-repro-", "")
+    try
+        exercise(root)
+    finally
+        for name in ["source.txt", "packed.zz"]
+            string item = path.join(root, name)
+            if file.exists(item) then assert file.delete(item) end
+        end
+        assert dir.delete(root)
+    end
+    return 0
+end

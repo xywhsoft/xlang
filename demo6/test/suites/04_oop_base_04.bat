@@ -21,9 +21,9 @@ if errorlevel 1 (
     echo cgen_derive_persistence.c missing typed JSON class stringify helper.
     exit /b 1
 )
-findstr /C:"__xl6__xson__stringify__value(const char* (*stringify_fn)(xvalue*)" build\test\cgen_derive_persistence.c >nul
+findstr /C:"__xl6__xlon__stringify__value(const char* (*stringify_fn)(xvalue*)" build\test\cgen_derive_persistence.c >nul
 if errorlevel 1 (
-    echo cgen_derive_persistence.c missing typed XSON class stringify helper.
+    echo cgen_derive_persistence.c missing typed XLON class stringify helper.
     exit /b 1
 )
 "%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_derive_persistence.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_derive_persistence.exe
@@ -57,7 +57,7 @@ if errorlevel 1 (
 )
 findstr /C:"displayNameX" build\test\cgen_field_persistence_attrs.c >nul
 if errorlevel 1 (
-    echo cgen_field_persistence_attrs.c missing xson field alias.
+    echo cgen_field_persistence_attrs.c missing xlon field alias.
     exit /b 1
 )
 findstr /C:"secret_name" build\test\cgen_field_persistence_attrs.c >nul

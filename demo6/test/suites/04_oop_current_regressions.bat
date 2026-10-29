@@ -2,7 +2,7 @@
 setlocal
 call "%~dp0common.bat"
 if errorlevel 1 exit /b 1
-echo Running DEMO6 suite: current OOP and parameter-mode regressions...
+echo Running DEMO6 suite: current OOP and parameter-syntax regressions...
 
 release\xl.exe check test\cases\cgen_var_class_dispatch.xl
 if errorlevel 1 exit /b 1
@@ -178,19 +178,14 @@ for %%F in (
 
 release\xl.exe cgen test\cases\cgen_function_param_modes.xl --emit build\test\cgen_function_param_modes.c
 if errorlevel 1 exit /b 1
-findstr /C:"void xl_fn_increment(long long* value);" build\test\cgen_function_param_modes.c >nul
+findstr /C:"static int64_t xlir_fn_1(int64_t" build\test\cgen_function_param_modes.c >nul
 if errorlevel 1 (
-    echo cgen_function_param_modes.c lost the byref pointer ABI.
+    echo cgen_function_param_modes.c lost the by-value integer parameter ABI.
     exit /b 1
 )
-findstr /C:"__xl6_user_global_incrementer.invoke)(__xl6_user_global_incrementer.invoke_env, &(__xl6_user_global_number))" build\test\cgen_function_param_modes.c >nul
+findstr /C:"static int64_t xlir_fn_2(void)" build\test\cgen_function_param_modes.c >nul
 if errorlevel 1 (
-    echo cgen_function_param_modes.c lost byref function-value address passing.
-    exit /b 1
-)
-findstr /C:"__xl6_user_global_producer.invoke)(__xl6_user_global_producer.invoke_env, &(__xl6_user_global_result))" build\test\cgen_function_param_modes.c >nul
-if errorlevel 1 (
-    echo cgen_function_param_modes.c lost out function-value address passing.
+    echo cgen_function_param_modes.c lost the zero-argument value-return ABI.
     exit /b 1
 )
 
@@ -259,13 +254,13 @@ findstr /C:"xvalue* xl6_class_make(int64_t value);" build\test\export_class_hand
 if errorlevel 1 exit /b 1
 findstr /C:"int64_t xl6_class_read(xvalue* value);" build\test\export_class_handle.h >nul
 if errorlevel 1 exit /b 1
-findstr /C:"void xl6_mode_increment(int64_t* value);" build\test\export_class_handle.h >nul
+findstr /C:"int64_t xl6_mode_increment(int64_t value);" build\test\export_class_handle.h >nul
 if errorlevel 1 exit /b 1
-findstr /C:"void xl6_mode_make(xvalue** value);" build\test\export_class_handle.h >nul
+findstr /C:"xvalue* xl6_mode_make(void);" build\test\export_class_handle.h >nul
 if errorlevel 1 exit /b 1
-findstr /C:"fn:app.increment(byref int) as ()" build\test\export_class_handle.abi.json >nul
+findstr /C:"fn:app.increment(int) as int" build\test\export_class_handle.abi.json >nul
 if errorlevel 1 exit /b 1
-findstr /C:"fn:app.makeOut(out ExportHandleBase) as ()" build\test\export_class_handle.abi.json >nul
+findstr /C:"fn:app.makeOut() as ExportHandleBase" build\test\export_class_handle.abi.json >nul
 if errorlevel 1 exit /b 1
 release\xl.exe build test\cases\export_class_handle.xl test\cases\export_class_handle_header_host.c -o build\test\export_class_handle_header_host.exe
 if errorlevel 1 exit /b 1
@@ -342,11 +337,60 @@ if not errorlevel 1 (
     echo sem_param_modes_invalid.xl should fail.
     exit /b 1
 )
-findstr /C:"byref" /C:"out" build\test\sem_param_modes_invalid.err.txt >nul
+findstr /C:"[parse]" build\test\sem_param_modes_invalid.err.txt >nul
 if errorlevel 1 (
-    echo sem_param_modes_invalid.xl missing parameter-mode diagnostic.
+    echo sem_param_modes_invalid.xl missing removed-syntax diagnostic.
     exit /b 1
 )
+
+release\xl.exe check test\cases\sem_language_param_modes_rejected.xl > build\test\sem_language_param_modes_rejected.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_language_param_modes_rejected.xl should fail.
+    exit /b 1
+)
+findstr /C:"[parse]" build\test\sem_language_param_modes_rejected.err.txt >nul
+if errorlevel 1 exit /b 1
+
+for %%F in (syntax_byval_param_removed syntax_byref_param_removed syntax_out_param_removed syntax_byval_arg_removed syntax_byref_arg_removed syntax_out_arg_removed) do (
+    release\xl.exe check test\cases\%%F.xl > build\test\%%F.err.txt 2>&1
+    if not errorlevel 1 exit /b 1
+    findstr /C:"[parse]" build\test\%%F.err.txt >nul
+    if errorlevel 1 exit /b 1
+)
+release\xl.exe run test\cases\syntax_mode_names_ordinary.xl
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\sem_foreign_pointer_callable_escape.xl > build\test\sem_foreign_pointer_callable_escape.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_foreign_pointer_callable_escape.xl should fail.
+    exit /b 1
+)
+findstr /C:"[parse]" build\test\sem_foreign_pointer_callable_escape.err.txt >nul
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\sem_foreign_pointer_var_escape.xl > build\test\sem_foreign_pointer_var_escape.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_foreign_pointer_var_escape.xl should fail.
+    exit /b 1
+)
+findstr /C:"[parse]" build\test\sem_foreign_pointer_var_escape.err.txt >nul
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\sem_foreign_pointer_func_escape.xl > build\test\sem_foreign_pointer_func_escape.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_foreign_pointer_func_escape.xl should fail.
+    exit /b 1
+)
+findstr /C:"[parse]" build\test\sem_foreign_pointer_func_escape.err.txt >nul
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\sem_foreign_member_pointer_callable_escape.xl > build\test\sem_foreign_member_pointer_callable_escape.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_foreign_member_pointer_callable_escape.xl should fail.
+    exit /b 1
+)
+findstr /C:"[parse]" build\test\sem_foreign_member_pointer_callable_escape.err.txt >nul
+if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\cgen_typed_point.xl
 if errorlevel 1 exit /b 1

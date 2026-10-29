@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <script>try{if(localStorage.getItem('xl-theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>xregex - 扩展库 - xlang</title>
+  <meta name="description" content="BBRE 正则表达式：可复用匹配器、捕获、替换、逐项拆分和多模式集合，提供 C 与 xlang API。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+  <style>
+    .extlib-layout { overflow-wrap: anywhere; }
+    .extlib-layout h1 { font-size: 40px; letter-spacing: 0; }
+    .extlib-layout h2 { letter-spacing: 0; }
+    .extlib-layout pre { max-width: 100%; overflow-x: auto; }
+  </style>
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links" id="site-navigation">
+    <li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li>
+    <li><a href="../extlibs.html" aria-current="page">扩展库</a></li>
+    <li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li>
+  </ul><div class="nav-actions" aria-label="页面工具"></div>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / xregex</p>
+    <div class="extlib-title-row"><h1>xregex</h1><span class="extlib-cat-badge">文本处理</span></div>
+    <p class="extlib-lead">基于 BBRE 的正则表达式。复用编译结果和执行缓存，提供捕获、模板与回调替换、逐项拆分、多模式集合；与 C 共用 XRT 的内存和错误模型。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api">
+    <h2 id="api">编译与便捷入口</h2>
+    <pre><code class="language-xlang">import xregex
+
+auto route = xregex.compile("^/users/(?&lt;id&gt;[0-9]+)$")
+auto matcher = route.matcher()
+if matcher.full("/users/42") then
+    println(matcher.capture(route.captureIndex("id")).text)
+end</code></pre>
+    <table class="ext-kv"><thead><tr><th>接口</th><th>合同</th></tr></thead><tbody>
+      <tr><td><code>compile(pattern, flags=0, maxPatternBytes=1048576, maxCaptures=4096)</code></td><td>返回不可变 Regex。预算须大于零，捕获数量包含完整匹配组 0。</td></tr>
+      <tr><td><code>compileSet(patterns, flags=0, maxPatternBytes=1048576, maxCaptures=4096)</code></td><td>array&lt;string&gt; 输入，返回 RegexSet，允许空集合；预算按每个模式计算。</td></tr>
+      <tr><td><code>test(pattern, text, flags=0)</code> / <code>fullMatch(pattern, text, flags=0)</code></td><td>一次性搜索或完整匹配，返回 bool；每次编译，没有隐式全局缓存。</td></tr>
+      <tr><td><code>valid(pattern)</code> / <code>escape(text)</code></td><td>语法验证返回 bool；escape 返回正则字面量转义字符串，不是替换模板转义。</td></tr>
+    </tbody></table>
+    <p>编译标志按位或组合：<code>IGNORE_CASE=1</code>、<code>MULTILINE=2</code>、<code>DOT_ALL=4</code>、<code>UNGREEDY=8</code>。
+    默认预算常量为 DEFAULT_MAX_PATTERN_BYTES、DEFAULT_MAX_CAPTURES；它们不是整个集合、输入、结果或 CPU 时间的统一预算。</p>
+
+    <h2 id="matching">匹配与捕获</h2>
+    <p><strong>所有位置和长度均按 UTF-8 字节计数</strong>，从零开始，区间为 [begin, endPos)。它们不是字符切片参数。</p>
+    <table class="ext-kv"><thead><tr><th>类型 / 成员</th><th>合同</th></tr></thead><tbody>
+      <tr><td><code>Regex.valid / pattern / flags / captureCount</code></td><td>有效性、模式原文、标志和包含组 0 的捕获数量。</td></tr>
+      <tr><td><code>captureName(index)</code> / <code>captureIndex(name)</code></td><td>有效未命名捕获返回空串；名称不存在返回 -1；下标越界报 IndexError。</td></tr>
+      <tr><td><code>test(text, start=0)</code> / <code>fullTest(text)</code></td><td>返回 bool；前者搜索，后者覆盖完整输入。</td></tr>
+      <tr><td><code>find(text, start=0)</code> / <code>matchAt(text, start=0)</code></td><td>返回 RegexMatch?；后者要求从指定位置匹配，未命中均为 null。</td></tr>
+      <tr><td><code>findAll(text, start=0)</code></td><td>返回 array&lt;RegexMatch&gt;，未命中为空数组。</td></tr>
+      <tr><td><code>matcher()</code></td><td>创建 RegexMatcher，保留表达式引用并复用执行缓存。</td></tr>
+      <tr><td><code>RegexMatcher.find / at / full / next</code></td><td>find/at 参数为 text、start=0；full 接受 text；next 无参数。均返回 bool。空匹配按 UTF-8 标量推进。</td></tr>
+      <tr><td><code>RegexMatcher.valid / matched / capture(index=0)</code></td><td>有效性、是否存在当前匹配、复制当前捕获；capture 要求有当前匹配。</td></tr>
+      <tr><td><code>RegexMatch.group / matched / begin / endPos / length / text</code></td><td>捕获序号、参与状态、字节区间与独立字符串。未参与捕获与合法空捕获用 matched 区分。</td></tr>
+    </tbody></table>
+    <p>XL matcher 在 find/at/full 时持有输入副本，next 不再复制全文。捕获结果可跨后续匹配和对象释放保留。
+    只需判断时使用 bool 接口，避免复制捕获。C 底层 matcher 借用输入，所有者必须保持输入有效。</p>
+
+    <h2 id="replace">替换与回调</h2>
+    <p><code>Regex.replace(text, replacement, limit=-1)</code> 支持 $0、$1、${name}，$$ 表示字面量 $。
+    <code>replaceFirst(text, replacement)</code> 只替换一次。</p>
+    <pre><code class="language-xlang">import xregex
+from xregex import RegexMatcher
+
+auto digits = xregex.compile("[0-9]+")
+println(digits.replaceWith("a1 b22", func(RegexMatcher current) as string
+    return "[" + current.capture().text + "]"
+end))   // a[1] b[22]</code></pre>
+    <p><code>replaceWith(text, func(RegexMatcher) as string fn, limit=-1)</code> 同步调用回调，其返回值原样写入，不再次解释为模板。
+    limit=-1 为全部，0 不调用回调，其他负值非法。回调异常保留原类型；可以嵌套独立匹配，但应只读取传入 matcher，不重新搜索或推进它。</p>
+
+    <h2 id="split">逐项拆分</h2>
+    <p><code>Regex.splitter(text, limit=-1, includeCaptures=false, skipEmpty=false)</code> 返回 RegexSplitter；
+    <code>splitParts</code> 使用相同参数，返回 array&lt;RegexSplitPart&gt;；
+    <code>split(text, limit=-1, skipEmpty=false)</code> 返回普通字段 array&lt;string&gt;。</p>
+    <p>limit 限制分隔匹配次数，不是结果项数；0 不使用匹配，-1 不限次数。skipEmpty 对普通字段和捕获项都过滤空文本。
+    底层标志为 <code>SPLIT_CAPTURES=1</code>、<code>SPLIT_SKIP_EMPTY=2</code>。</p>
+    <p>RegexSplitter 的 valid 表示句柄有效，next() 返回 RegexSplitPart?，结束后为 null。
+    RegexSplitPart 包含 text、capture、matched、isCapture；capture=-1 为普通字段。XL splitter 持有输入副本，C splitter 借用输入。
+    这是逐项输出接口，不是接收分块网络输入的增量解析器。</p>
+
+    <h2 id="set">多模式集合</h2>
+    <table class="ext-kv"><thead><tr><th>成员</th><th>合同</th></tr></thead><tbody>
+      <tr><td><code>RegexSet.valid / count / regex(index)</code></td><td>有效性、模式数量、取得带有独立引用的 Regex。</td></tr>
+      <tr><td><code>test(text, start=0) / matches(text, start=0) / first(text, start=0)</code></td><td>返回 bool、命中索引数组、最小命中索引；未命中为 false、[]、-1。</td></tr>
+      <tr><td><code>matcher() as RegexSetMatcher</code></td><td>复用集合执行缓存，search(text, start=0) 返回是否命中。</td></tr>
+      <tr><td><code>RegexSetMatcher.valid / count / first</code></td><td>有效性、命中数量、最小命中模式索引。</td></tr>
+      <tr><td><code>index(index) / matched(pattern) / indices()</code></td><td>读取第 index 项、查询指定模式、复制索引数组；非法模式索引 matched 返回 false，index 越界抛 IndexError。</td></tr>
+    </tbody></table>
+    <p>结果按模式索引升序，不按文本出现顺序。集合经公开 xvalue API 读取 array&lt;string&gt;，完成编译后不再借用数组。</p>
+
+    <h2 id="errors">错误与资源</h2>
+    <p>普通未命中不是异常。非法语法、标志、非正预算和 limit 为 ValueError；字节位置/下标越界为 IndexError；
+    原生资源超限为 RangeError；分配失败为 MemoryError。valid 只对非法语法返回 false，不吞掉内存或资源故障。</p>
+    <p><code>errorOffset(error value)</code> 读取语法字节位置，<code>errorPatternIndex(error value)</code> 读取集合编译失败的模式索引；
+    没有对应信息或传 null 返回 -1。查询明确的 catch 错误对象，允许跨后续调用保存。</p>
+    <pre><code class="language-xlang">import xregex
+
+try
+    xregex.compileSet(["ok", "("])
+catch ValueError problem
+    println(xregex.errorPatternIndex(problem))   // 1
+    println(xregex.errorOffset(problem))
+end</code></pre>
+    <p>Regex/RegexSet 不可变；不同 matcher 可独立运行。同一可变 matcher、splitter 或 set matcher 必须串行访问。
+    Regex、RegexMatcher、RegexSplitter、RegexSet、RegexSetMatcher 的 nativeHandle() 都返回底层借用指针，不能重复接管或由 C 擅自释放。</p>
+
+    <h2 id="c-api">C API 与双语范例</h2>
+    <p>公共头为 <code>extlibs/xregex/include/xregex.h</code>。xrtRegexConfigInit、xrtRegexSplitConfigInit 初始化配置；
+    xrtRegexCompile、xrtRegexMatcher*、xrtRegexReplaceTo/ReplaceFuncTo、xrtRegexSplitter*、xrtRegexSet* 提供相同核心能力。
+    执行结果为 XREGEX_ERROR / XREGEX_NONE / XREGEX_MATCH 三态。</p>
+    <p>C 输入和捕获 xstrview 为借用；核心拥有型 str 使用 xrtFree，包装返回的 xbuffer* 使用 xrtBufferDestroy。
+    xrtRegexSetRegex 返回集合内借用表达式，独立保留需 xrtRegexRef；XL set.regex 已处理引用。</p>
+    <p>包使用 ERROR_FORMAT、IO_BUFFER、STRING_SPLIT、UNICODE、VALUE_CONTAINER。裁剪产物使用包内正则实现；
+    完整 C 环境已提供 XRT 正则时，不重复编译相同实现。所有原生编译单元必须采用一致的模块选择。</p>
+    <p>XL 教学：<code>examples/extlibs/xregex.xl</code>；对照：<code>examples/extlibs/xregex_basic.xl</code>
+    与 <code>extlibs/xregex/examples/basic.c</code>。共同预期为 <code>examples/extlibs/xregex_basic.expected.txt</code>。
+    发行包内 README 提供完整参数与运行命令。</p>
+
+    <h2 id="verification">验证范围</h2>
+    <p>2026-09-27 限定基线覆盖 Windows C/XL、JIT/AOT、49 个实际生成的绑定原型、输入及捕获寿命、空匹配推进、
+    错误对象保留、回调异常与重入、逐点分配失败和双语黄金输出。门禁为 tools/check_extlib_xregex.ps1。</p>
+    <p>独立 Linux C 使用 ASan/UBSan 和泄漏检查，并核对 LP64 原型，门禁为 tools/check_extlib_xregex.sh。
+    不表示 Linux xlang JIT/AOT、32 位/ARM、同一可变对象并发或完整性能基准已验收。源码和构建变化后须重新验证。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>

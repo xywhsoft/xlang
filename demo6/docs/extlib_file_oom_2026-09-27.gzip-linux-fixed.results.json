@@ -1,0 +1,29 @@
+{
+  "date": "2026-09-27T18:03:54.9623597+08:00",
+  "package": "gzip",
+  "scope": "Linux independent C with isolated four-block XRT fix; ASan/UBSan/leaks, not Linux xlang or published binaries",
+  "program": "wsl.exe",
+  "arguments": [
+    "--distribution",
+    "Ubuntu",
+    "--cd",
+    "/mnt/d/GIT/x-lang/demo6",
+    "--",
+    "env",
+    "XRT_INCLUDE=build/test/extlib_file_oom/fixed-xrt",
+    "GZIP_TEST_WORK=/mnt/d/GIT/x-lang/demo6/build/test/gzip_file_oom_linux_verified",
+    "bash",
+    "tools/check_extlib_gzip.sh"
+  ],
+  "compiler": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+  "inputHashes": "4c8ca837c7baa2b865d6a6c8437449a90186639618888b929f6c3743327a0ac5  build/test/extlib_file_oom/fixed-xrt/xrt.h\n5e47b36dc21fdff54c230d1fca99175f429ad541409f1d44194f00e0fdf10f53  build/test/extlib_file_oom/fixed-xrt/xruntime.h\n7c78b4b3d13fc64ac1009e2edfae73e9fb092c896da1a70cf5be859d153851e8  lib/xrt/xrt.h\nff23fdb9ac90f63deed1606a78f21707a9fa677aa766044b8af3b4f5202f4ba9  lib/xruntime/xruntime.h\n0181f80046b4e886c2d52a12d05c90141c2420738cb63d46926f911aee1d5bcd  release/examples/extlibs/gzip_basic.expected.txt\nd01534d25e8d4459199e6afc2264ee97de296b33b9c019676abd35cc555cca78  release/extlibs/gzip/README.md\n476f7549a037d394de58bc5c7bc77feb4291a82274b751414533380a7edf671c  release/extlibs/gzip/docs/site.html\n44b29f16698ae446864fcb5d8455e526f0a6f6e00088aeb1f2d0a5954ebc47db  release/extlibs/gzip/examples/basic.c\n38035f59fcbe199117b458dfbd50a8d011b1913b144c24d8a2173fad0ade72bd  release/extlibs/gzip/gzip_native.c\n2e967cb4f713fd19641751801a01295af38981923e33a459b2f876dd6c908c27  release/extlibs/gzip/include/gzip_native.h\nb40f8956bc98349f9da0acf2dbf3a0b6404438902418d20c33f6fe008d868027  release/extlibs/gzip/include/xrt_gzip.h\n881c62dc7f671fee104249c8ad24bf0de8d9d5668465a664965a27bf3a3f20b7  release/extlibs/gzip/src/gzip.xl\n0727ac7c0e68a0d8c6ec1232478ae16211c522836ed0b249f8a6b3114345836a  release/extlibs/gzip/test/gzip_interop.c\n1709fe380f5f5d32e748ea805d1d0b5b38d5af30e9edf0fc12d8489919b8c1e3  release/extlibs/gzip/test/test_gzip.c\nfba6988d902ad18fc15e3f6f0748fbff8d9fbe3218c3271cf5191300f85656d3  release/extlibs/gzip/test/test_gzip_alloc.c\n0b777aa38f2b854c638a722512dcec6c1c7d8aa7091860d05817e98b3e6d28f0  release/extlibs/gzip/test/test_gzip_stream.c\n3954b92509875accdb2ac89300874087d800a965cf4fc8a74dbfa01d9cebcfe8  release/extlibs/gzip/xlang.package.json\nfc386d69dda7e0f37d715b1e5f8f638c131ce2768b3931e87f738b5f22f84cfa  release/extlibs/gzip/xrt_gzip.c\n1e4af48d983c6fe4fe48b8f41efec365f2d519fece824f713ffa5f5ee1bbe29f  test/cases/extlib_codec_file_allocation.c\nacd01ca7c8acfa2f63c1257dda52a0b575c0f2679b5432588014023f105c65fa  test/support/extlib_codec_runtime.c\n782b4c3191ce18272a1b7cc88da4ceeffdcc018371f2d92ca2990438bb035d0d  tools/check_extlib_gzip.sh\n98a8d1396077a2ca66d81a964af9da36f0b77c57fc59f94a69b619bc2d7aaedb  tools/check_extlib_gzip_interop.py\n",
+  "inputsUnchanged": true,
+  "gateExit": "0",
+  "result": {
+    "status": "pass",
+    "exitCode": 0,
+    "stdout": "gzip C: roundtrip, malformed, limits, state and split boundaries passed\ngzip C streams: progress, cancellation, ownership, IO and reentry passed\ngzip allocation: rejected=9, recovery and ownership passed\ngzip independent interoperability: 139 checks passed\ngzip file allocation: encode overwrite=1 rejected=12\ngzip file allocation: decode overwrite=1 rejected=11\ngzip file allocation: encode overwrite=0 rejected=13\ngzip file allocation: decode overwrite=0 rejected=12\ngzip file transactions: UTF-8, same path, errors, ownership and OOM passed\nGzip Linux C ASan/UBSan gate: PASS\n",
+    "stderr": "",
+    "elapsedMs": 21441
+  }
+}

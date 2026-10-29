@@ -1,0 +1,13 @@
+{
+  "date": "2026-09-27T17:38:09.8653366+08:00",
+  "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\brotli_file_oom_fixed\\file-diagnostic.exe",
+  "programSha256": "6276C26792778796C0DC7F9D9BF896055A09F23DB2A4CFD23F3C302ECC2FECBA",
+  "scope": "Brotli file wrapper fault=0 returns success with MemoryError, isolated repaired XRT",
+  "result": {
+    "status": "fail",
+    "exitCode": 3,
+    "stdout": "",
+    "stderr": "brotli encode failAfter=0 ok=1 kind=6 message=memory allocation failed\r\nAssertion failed: !ok && xrtGetError() && xrtErrorKind(xrtGetError()) == XERR_MEMORY, file test/cases/extlib_codec_file_allocation.c, line 72\r\n",
+    "elapsedMs": 277
+  }
+}

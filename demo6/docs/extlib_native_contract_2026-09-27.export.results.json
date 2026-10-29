@@ -1,0 +1,3020 @@
+{
+  "date": "2026-09-27T15:32:34.1355268+08:00",
+  "scope": "Current-source export verifier: 13 exports, 26 invalid IR mutations rejected before C/header output",
+  "inputs": [
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\lzma\\7zTypes.h",
+      "Sha256": "7123A497C26B6D3AB5BC1B95909CAB3965EFBA2A09C6AFBB197736543CB011C8"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\lzma\\7zWindows.h",
+      "Sha256": "5EEE04D25F4AC0ECB30FB083104D2B48010AD3842205040F06ECC006B65AF664"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\lzma\\Compiler.h",
+      "Sha256": "F6A87109B7EB1A7D3974B37361F39BB52E4BA06FAC6602C1B79BF7866FE64BDF"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\lzma\\CpuArch.c",
+      "Sha256": "C9E2562819BBE0C2D7B977D8FB46D737FCBEC44FF397995A1FA24A7639232858"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\lzma\\CpuArch.h",
+      "Sha256": "45A4F2E83D58DA909201923DB73F580FE25E8FA2AAA3BF41EDC4A4109CBA4D10"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\lzma\\LzFind.c",
+      "Sha256": "546A2732EF38443FF308F52FB48F9D910886DE2A5331622657894617F17EFD35"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\lzma\\LzFind.h",
+      "Sha256": "8851874557D312F0EAD5D499FE19D72FE93F020028F1FF8AD9690D166329B1E4"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\lzma\\LzHash.h",
+      "Sha256": "0B62B556951FE8448963DC8FACC0F3C9AE9E0D00141E23133017C18A40A622F4"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\lzma\\LzmaDec.c",
+      "Sha256": "0B938EDAE2AEC133D144E2FF3493AC2B82850B3BBF8A79D1E925409124D39933"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\lzma\\LzmaDec.h",
+      "Sha256": "3A3B0ECE1BA58601A8265A421A91B9720B39EE92CE898FADECB22F052BC3011F"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\lzma\\LzmaEnc.c",
+      "Sha256": "4D4E3C4B9AD173515727A171C3D0F2FA9A22B27315CAC1A206A44A1B664AFF59"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\lzma\\LzmaEnc.h",
+      "Sha256": "07735DAE37DD441C4A65DD4747FE3B8EC2606978494C90547703FEB031BC49FC"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\lzma\\Precomp.h",
+      "Sha256": "391517FB8C2A9A112237BA5C5A68E2F241EA2616B5C9EABA058B36D7D3676343"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\lzma\\tcc_stub.h",
+      "Sha256": "BE002D3C65AA7BD112FFBC2160AB03C13E52087BE44E5339A55DC57C781A16D9"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\README.md",
+      "Sha256": "FF7F8E0BBC3E88ACF72A39C9AF1623A11B1D13D508E1C1A61099D61A92515EBF"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\.gitignore",
+      "Sha256": "E7B1A52B0649EE78944F8229FCDCC178A3E19F2A1DB8B650292925BB323B10A9"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\arm64-asm.c",
+      "Sha256": "855845A4A24D648E2AF024AC2D32A995F921610BF7E16F987EBDB0D5A9AEF173"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\arm64-gen.c",
+      "Sha256": "3CEE5EEE5741168AC6CD6AA114F3FF4AE1E9A2512B5E4BB30EA145A770962196"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\arm64-link.c",
+      "Sha256": "907EF96331FE5B6AC4D1AA60ACE132A18754FF081C3057D6E6D03D9D078FAC7E"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\arm64-tok.h",
+      "Sha256": "BC15EFB1AC59C9637F9137E518EEBD7B004E2C4C24B985BAE88D70CC65713A73"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\arm-asm.c",
+      "Sha256": "AAAE7643E66BD013D8FD8B728B0F1184B92A2A88E52423CEF73556E38151B944"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\arm-gen.c",
+      "Sha256": "C8BB7F03287ECAE7C75686A1B6E59B6F34E37552AD53A0AE6B8375D6999E150D"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\arm-link.c",
+      "Sha256": "8CB43B535C24ABD656839F0FC96B367339699C39F1BF47E0F6049D0F76A60799"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\arm-tok.h",
+      "Sha256": "9733358CD52D72CD90148686B6A9DDE99E3E3E5E89EAEF9FAC889E45EDBE08D0"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\c67-gen.c",
+      "Sha256": "B377773CC7829787832B643062FFE1CB790E4278FD0CA30DC113271185ED5B18"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\c67-link.c",
+      "Sha256": "6ECC22FDA635A94A5C314023AFF0E4CC2C87006CBE6CADF2E6E72A306CDE08E5"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\Changelog",
+      "Sha256": "7D5C0249013308B0F9EBCC1C17D71A0001BCF7E25E1F7D2E3952CF0DFC8A89C5"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\CodingStyle",
+      "Sha256": "69E10FF55740C823740A9C88671BC9850D8396C59E3E0B196004BE4795F83493"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\coff.h",
+      "Sha256": "B55DD186A7A639C9B6F734A8AF6912DB6BA02F08217E9EDAAAFFBC35B2E9BC9E"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\config.h",
+      "Sha256": "E2068499C90CD6391C3498523B51F90354059D11CC28A5FFC2B38813C313E68D"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\configure",
+      "Sha256": "373D3A6ED5A122CC17A914EF18FDF172AA1EB01C46EB0B409E385F39EBA7519E"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\COPYING",
+      "Sha256": "9B183E7F0356C398CC0A65C4A2D2CD56F2149A8E244264C4D26AC59E9DADA3E8"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\dwarf.h",
+      "Sha256": "919B0525B12CCBB9BB8EA7538A19DF72F9A4F322DA0491FCF980CCA07D790BF4"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\elf.h",
+      "Sha256": "3467112508803BBB8755461CFC9D4556EA39B8AD1772D441FE6E47F51DCF1FC1"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\i386-asm.c",
+      "Sha256": "A042425EABBC268382E1A0C50FD34F6B69C7C84ED336EF7F6E1D0A07B83A722B"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\i386-asm.h",
+      "Sha256": "6BC6B1CB9F7321B14D5EB2342D916ABFB921AFD1D8CAE04E00A5B1C345A50163"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\i386-gen.c",
+      "Sha256": "215EAD4E6325D0BEA44385B4243E64933A54DFDDC60DF36ECB992DC33E5129BC"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\i386-link.c",
+      "Sha256": "6BF8AEFAE120E92033A0A61F721A67487ED98DD1F943348BB344D42597B84A1C"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\i386-tok.h",
+      "Sha256": "9555EE826FA6B1B039C9198FADC7957244A45D5661078B6F1FF87897F2AD760C"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\il-gen.c",
+      "Sha256": "974B61466BADAD1843BDFDD182888011F78C48160D61051FCFFC069D71841CCF"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\il-opcodes.h",
+      "Sha256": "3B9686E027CC8EC3C90E61851C6B969A15A8A77B33DBF3926BD69A813E4A4972"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\include\\float.h",
+      "Sha256": "507ECD2DD9D26DF6B084D6A1DD4A5867310FDB4EDAE9A3BC005338DFDDBA813C"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\include\\stdalign.h",
+      "Sha256": "1FA970A0F0B45F9469952B1960532A9A4927B27CB00C952F7FD0EB472DF4B40B"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\include\\stdarg.h",
+      "Sha256": "834E661DC7B7811BE628EC0F75D6D7C36B2AA492E98BF37F4FDF1A5F9F712FB2"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\include\\stdatomic.h",
+      "Sha256": "7ABFC5F7BEE1C12D31A081B7C8474C4388A3E107B09343E386E9A708BEC76DF1"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\include\\stdbool.h",
+      "Sha256": "10D9D6FA8E43F8F95475584D41FF7C049E0B3017B234CD828B9814C33BE5AE98"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\include\\stddef.h",
+      "Sha256": "B14D6AA555BD23C136C519738A3CBA5BD0189E72C06AC794BA72509867B91DB7"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\include\\stdnoreturn.h",
+      "Sha256": "A96966389D7B47748CFBA0C2B6BF9522FCC31343E2F3647BA28FB2B9A83F352D"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\include\\tccdefs.h",
+      "Sha256": "03FE4C1DC456A37FCEC4FF59AF5A0CCBE80A8975BB22835EB343E474856B24ED"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\include\\tgmath.h",
+      "Sha256": "0766ABFC1515852FCA929D13EE1AE75F2DA665F9718E78A045427DE2C1391BDE"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\include\\varargs.h",
+      "Sha256": "EABDE10C768AE692F12A1737DCC21B2FAE4FA07C849C9D88A94C5D2CD097E059"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\lib\\alloca.S",
+      "Sha256": "4E314795B8AEEC6A68ECB8382153ADC1E6143134B6ACF6DA84DE96106D809E86"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\lib\\alloca-bt.S",
+      "Sha256": "6E0DB3502E9CFF9570048239E9F816796EC5E92C4D114E8FF1BAC2E4841E2D08"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\lib\\armeabi.c",
+      "Sha256": "D594F575B0062E2497DFAFD1C064D8FFF84F536DE9C5E7B21D172F1EF948E16C"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\lib\\armflush.c",
+      "Sha256": "E1C3F06D5A8DB93BD52087438107E1CECBDF16E3AAD9BA094FBC8B98AACCBBF9"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\lib\\atomic.S",
+      "Sha256": "EA3896C156853891E85374847DAB43DCDCC38BE4B0305D7A9DB31C00BF7DF9CF"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\lib\\bcheck.c",
+      "Sha256": "C6C93F7348575D395B155BE7F07F66F0C444BCD3EFA02EC20AB624BC9E09D188"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\lib\\bt-dll.c",
+      "Sha256": "7A25D12FECC716C19BE9EA2EFD210BF0A9F865402E2C1EE99EF197594024715D"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\lib\\bt-exe.c",
+      "Sha256": "86C4CD573E83737C2F83CE15E42F7EFEED376F6E5B4C733B9CFB782F3A268955"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\lib\\bt-log.c",
+      "Sha256": "D63828591AF577732C265F9F9872E21617B6ABFB82B1C07AC3999CA25F4521E2"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\lib\\builtin.c",
+      "Sha256": "F49D487E1D771A1CB38DEF7ACC659CE5C620BE4BA3D2DC1451E4FD6CC4BD6220"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\lib\\dsohandle.c",
+      "Sha256": "6E069B52779DE10B3ADB297BBA0C27456903D3327E59419825D121FA93483027"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\lib\\lib-arm64.c",
+      "Sha256": "02E599EBA6F30D999901E6326D68A62CF7C6C5FCB660C2F16C50734864E4200C"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\lib\\lib-riscv.c",
+      "Sha256": "4D4A914917CE7C1579BD572410BDB5E2DA05E6DA0FC63B9DC6CB7C274EE568B6"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\lib\\libtcc1.c",
+      "Sha256": "E81E6F73F5E73C76B652FAACBA6474D7FD80A05B7C1D1615EAF7029E249DC2BD"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\lib\\Makefile",
+      "Sha256": "986C82D2C2307262BD4DE1C016979F226EDF026A61B7ADAD1DB166BB9B2214CC"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\lib\\pic86.S",
+      "Sha256": "778E11C87EE2277D71F92822AD365A5B26A05E88BED2DBFA709F026529B19FE9"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\lib\\runmain.c",
+      "Sha256": "81A5493EA6C69F880D654BB1EBFFD7E8443C1E512E4129DA74D3025ED71086E1"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\lib\\stdatomic.c",
+      "Sha256": "5CDECD012CF6C8D841775C6321C46D61C50ACE7B2A0D5F5525F5550679CE53E1"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\lib\\tcov.c",
+      "Sha256": "9ECAB4890111E7C8E75DCFC1E83F06ACE64179DB655674813F01501FEE7B2891"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\lib\\va_list.c",
+      "Sha256": "2E5A50767DF3A79F012B94A0143F56ACA38BEF420F986C6E9379B60380018438"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\libtcc.c",
+      "Sha256": "87230D4A7BB6D8FE6947AA7B0B46698350B2923E81460195C0357386CACBE99F"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\libtcc.h",
+      "Sha256": "E65EC9C409DEBFF8BF69AA74DF03465BCE624D7E037B275F6F3DC1097C703CC8"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\Makefile",
+      "Sha256": "80B8092790A43AE8FBF93FB2FC76F2202599188162A2CFC5C9404B2D2AAC0EAA"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\README",
+      "Sha256": "1975351E66617A944DBA1153F236442ACAC1917F6C265BDBC78964B389B26141"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\RELICENSING",
+      "Sha256": "265AFA17CD9EE2FA5EC5AAB211F4E2698C88A95C20CE9B918D79AB23275A9101"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\riscv64-asm.c",
+      "Sha256": "A67D0BEDDB26C26C8233375126F908B46B80FAD228A3627713390E45CF49F85B"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\riscv64-gen.c",
+      "Sha256": "F5BE42AFEA1F0E4C3BB394BAA5C07941C6BB0969C41BCE017B267D93449073E1"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\riscv64-link.c",
+      "Sha256": "7621B4D39FAB4B05CEE58339F81B4AECA968042D69ADB3D1A25AD606F97B7920"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\riscv64-tok.h",
+      "Sha256": "F538F9EEC2197B4A47B837B9445437377857781CEF171B703EC6383F43BF4C17"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\stab.def",
+      "Sha256": "AF20A2A914FEE3E6A63E0AD7565AA49D1D876F87C7C881A99FA3709A5F8F1567"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\stab.h",
+      "Sha256": "E4A7131DE935AB758FF12EA0237F9628DD20D6F9B7B549AEEFF80FEB1C459EC4"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\tcc.c",
+      "Sha256": "51D83EACB931F9EB013B4CB5CD1804FA7374EAEF3C2D9FCA4810CB167B91D5B5"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\tcc.h",
+      "Sha256": "F565325F95A025EBED67A29AF17EA96F1D2275D1E81C0E78E12A079F616912C2"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\tcc_builtin_vfs.c",
+      "Sha256": "D5E5D8318307DEE2651C3BE1361C300926B5F71B1E15B96E4669140324878232"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\tcc_builtin_vfs.h",
+      "Sha256": "8618B75F81371AB260445C07B63CC37FC388DD647931D868098627502F430A65"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\tcc_utf8_io.c",
+      "Sha256": "E786A130D76FC6A02854C2D6D9F7B392979EF9DB9EB61552211882F8E76C58CC"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\tcc_utf8_io.h",
+      "Sha256": "79D499CBC0E0D50F13405AFBFCD98A4F1555A20960C36773BE80F07DC782A264"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\tccasm.c",
+      "Sha256": "0DE312757A5625BBCE463137AF72023531260F5A7BCA1717C3EE17E67B31204E"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\tcccoff.c",
+      "Sha256": "8088F0E8D640B3A5D136772A9DB640637AF0FF6BE7838855593AD9986A9A60C4"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\tccdbg.c",
+      "Sha256": "99D8299E58F256C446AA96815990DFEE14FCD3439288CB7A071DF2E47C1B2E39"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\tcc-doc.texi",
+      "Sha256": "47A7E0BD9F930AC62166EB2F8D413363974E31DB17BE853999F464F69681FE27"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\tccelf.c",
+      "Sha256": "41FC63353C5B1B9A142AA22501D90C62E0D2198037F3C07F049E6A452404701A"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\tccgen.c",
+      "Sha256": "CAF6162B7F743F87C3332897CA604BB4D0896C1E9D30FAA3543A484D20A105B1"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\tcclib.h",
+      "Sha256": "9C67FD55D79C9AA6186B213249F9ADA448601CB8F46C3502E571B3038CF4B00D"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\tccmacho.c",
+      "Sha256": "CF5D4739FC38B5A69AB11BF04F4CDE5DB2D7F9B5817FF9F11357DC3E0EDB392D"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\tccpe.c",
+      "Sha256": "2DD53944512BB0EE8BADB04EC7481300A0E1E6C1078BF2DA44321E6C44DB3BF0"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\tccpp.c",
+      "Sha256": "4FD9BF6C3E391ED1A2527AA5457A30684751EDCD97FFF4696A2D991D5AF5ADF3"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\tccrun.c",
+      "Sha256": "D6221D02E42D2C15A5BB79D158E600A4F6F7F9BF3E535885F33D604B277835DA"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\tcctok.h",
+      "Sha256": "61211E61C398AB671A81231497DAFA8C8B79A6801D280BA9CACDC4D457391662"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\tcctools.c",
+      "Sha256": "302B34837A84B6F25F475550E6F013C005A667FBC9A6862BBD121953CDD28920"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\texi2pod.pl",
+      "Sha256": "70979A45B3E7228650B3E74D5562BBF56DA493C3C0B99499D2A17365BA1A3C56"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\TODO",
+      "Sha256": "D8E930A72BDBEDB81B308B86A950A28C8D61AC7B707D5680672025E7FCFC698A"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\USES",
+      "Sha256": "B9A961BD28E47783825AF0DE2914B8C0320C0200B1EF4E68E85D5A4087623EAD"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\VERSION",
+      "Sha256": "7E16E90ECD0060DD78590D196203359BA0781F7B046B90776331F7DDD6AB6CA7"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\x86_64-asm.h",
+      "Sha256": "7171514537FE5746D27146E36EB74BB565D631BAA4A8F0B38C407CEC3AADE6A6"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\x86_64-gen.c",
+      "Sha256": "2E5C34FC8862B001B462926E8A4D372C65DA434ED3B562228169EE2C3C4CCC4A"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\x86_64-link.c",
+      "Sha256": "24BA5A2BEA7253B56BAFBD5F87E1CBC65B65193B832D5C246E337B0C82CC2C77"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\xrt\\xrt.h",
+      "Sha256": "7C78B4B3D13FC64AC1009E2EDFAE73E9FB092C896DA1A70CF5BE859D153851E8"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\xrt\\xrt.snapshot.json",
+      "Sha256": "69F810F97090777CAA8EE92D7B3E92C9C3E71316DAA19996863D001DBD974D33"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\xruntime\\xruntime.h",
+      "Sha256": "FF23FDB9AC90F63DEED1606A78F21707A9FA677AA766044B8AF3B4F5202F4BA9"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\lib\\xruntime\\xruntime.snapshot.json",
+      "Sha256": "796B1509B4E238290FE421F85762E2D72548B5E165D6BEB2450EAD9EA7A4C7E4"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\release\\include\\libtcc.h",
+      "Sha256": "FC77217B1E8AB783D512DF2B0A8249C801BDD8B5A4D2C5643169BD2C61ECE3AB"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\release\\include\\README.md",
+      "Sha256": "C950EE90CF5D57078C010BF4CFE65A6C7701E5ACA7B06DD3D8EE5EEE80E8B0B7"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\release\\include\\tcc_builtin_vfs.h",
+      "Sha256": "2ED7047361E240D5837533215310D8044298D160D7DD6E6C6B999EAAB935D05C"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\release\\include\\xl.h",
+      "Sha256": "2A564C90F90EFD80C6257072819D215BA26C8890D8D86B3C134C153BE293EBEC"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\release\\include\\xl_extlib_abi.h",
+      "Sha256": "33B33F690EF8610749E399D612984B6D02F6140767D4B92BBB65B28A89FCA244"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\release\\include\\xl_runtime.h",
+      "Sha256": "F0503CACFC2165ABD35A25F417A4B147126783DB355C81E1B62643EF709DEACD"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\release\\include\\xlc.h",
+      "Sha256": "3187BB8C540CE6F957B165F060EE7C8E2E27AC729B269763A1128004A0EAEEF1"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\release\\include\\xrt_decl.h",
+      "Sha256": "A2D9D17C569DC74B974F8FD2FED0AC00E20A819FCDA09473630951031E0BCE8E"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\release\\include\\xruntime_decl.h",
+      "Sha256": "97BEE29DBA82A3BB9D6A6A05681B90F456B35EF74741E9AD08B6E6B784060CFD"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\release\\xl.dll",
+      "Sha256": "2A07C481C04CAD71D31D46722A27E62027318DF24E95A63126E061FD4CA46902"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\_mingw.h",
+      "Sha256": "B0092AF239F47DE4E92BAAFC4DDF9374DD3FBA990763A3A4BB256BBB420E2624"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\assert.h",
+      "Sha256": "A59E0BAB4881A9003AE15DE1F3C140FE245C8852A07360E499941AF912D57015"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\conio.h",
+      "Sha256": "0923DF5256D5579ED8A729038087E19E1FA7B6287D7C1459A03961BA6CB362BF"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\ctype.h",
+      "Sha256": "D3A8EDF3CDD6EBD9E2C763628364E5AB8A587C4CF5A87FBD847B89655A5A04F8"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\dir.h",
+      "Sha256": "1FF339F49035A0B166B3B204E026593BBE5ADC06866AB87DE00E8087E7A64B79"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\direct.h",
+      "Sha256": "A453AF969C3E8A6B496EA177192A2AE1BD15DE54DB73064A0BE8AD8C1BCCCD8F"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\dirent.h",
+      "Sha256": "4E35D7D3F599B3DE455726055A51397CDF0853DA6F42EE61CE4A866C4B8E9278"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\dos.h",
+      "Sha256": "6E25A8704C529B2B9FF32AF858E795993E1B0C4B10E2CBCEBDCB4151C5079387"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\errno.h",
+      "Sha256": "728C2DAFC6422DA477FD140D99B11A6DBCA20C436FE581CB506D5DFF40025116"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\excpt.h",
+      "Sha256": "DB582D2FA144715591141FB5A4CE1A821D23609F6EE9F50552686DF076D4397E"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\fcntl.h",
+      "Sha256": "1D868D335AFD1100CCCEE7B2583B868A67BBD77928D8344D3E5571A9D392C078"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\fenv.h",
+      "Sha256": "1DDAF9372CD8614B5F29527119AE3024DAD54726C8388D89DE3E94831DEFFEF4"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\float.h",
+      "Sha256": "507ECD2DD9D26DF6B084D6A1DD4A5867310FDB4EDAE9A3BC005338DFDDBA813C"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\imm.h",
+      "Sha256": "8FE0FCF9B94D33E4D0A03A29EB076F98460957EA2C3528E32D62F2FD1A94F37C"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\inttypes.h",
+      "Sha256": "A940BA8C1A0E875253FAAA0F697D1A6D2B88617C541F7041EE21C7AB6DF77DBF"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\io.h",
+      "Sha256": "3628692E1776CD0D6760790FE2CA7C5E9A50DFD5AF2B3087E63E4F6501A92FF1"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\iso646.h",
+      "Sha256": "26959E641653ED31705165E48F99966D9F8E2E73E745A611E583AC7CA5C805EA"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\limits.h",
+      "Sha256": "05CD5399DC74C85270EFDA6B16D1EC7C1CBAA8566C66847391E97AB161A4DACD"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\locale.h",
+      "Sha256": "742F08C92F7BB20D1EA34F895FE3F6A7573ACFA343DF11CF7B039648CC9D5F48"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\malloc.h",
+      "Sha256": "CDCD02FC11AF728F1650F7715D55C52C34DCFCB902E8DFCE6452D23B9B378832"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\math.h",
+      "Sha256": "2F628216584813405AAB65DE00155E746F1E701E589BB6408CEE2A70A95416A0"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\mem.h",
+      "Sha256": "515965F209BBBADBC1D192F343FC8817F398754E49D7FE850E30A60FA7A0361A"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\memory.h",
+      "Sha256": "52258814C05E0ED887A7C4ABA73977D04828C34817403AAE92402B6C2BB1D9F6"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\process.h",
+      "Sha256": "564C9A233456817A375690519551969AE75B65B01774043EA6CA3EE7F65ACE4D"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\sec_api\\conio_s.h",
+      "Sha256": "015D2986BC5BC7FA86F807C53BD4425B60514A798DA7FC4374850DC99A94838A"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\sec_api\\crtdbg_s.h",
+      "Sha256": "2011BFDA8A57B3802F16B3EEE14124F6E16FC49CF66D623466DD4CDCD205BD4F"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\sec_api\\io_s.h",
+      "Sha256": "4B4DF25B8CF35CB2C83F0B569A53859F8184C98485F81AEA869F2DAA0AE4ACE8"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\sec_api\\mbstring_s.h",
+      "Sha256": "CE6642894698C81E83E01B77F22E52178822AF03E89A8894D6306B751A21841F"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\sec_api\\search_s.h",
+      "Sha256": "02BA91AB7C1DC736ADAA3C151EDD544E6B5427C8DFA81363C49AFB9F13006B40"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\sec_api\\stdio_s.h",
+      "Sha256": "A7D8EA42001D3CBC2870207A7C5B3BB4CA6C5B470260A5B82C0795DDC3DB6ADF"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\sec_api\\stdlib_s.h",
+      "Sha256": "9AA3D572B6ACB49313B07BDBBB64CC882FC047A8AB660E328265C802EF31423D"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\sec_api\\stralign_s.h",
+      "Sha256": "057F5DC11C7617F7A6D695EF7461997B10D8AF77416927406D694CEA664D2333"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\sec_api\\string_s.h",
+      "Sha256": "68E2605C4E96C51F100C583FC64366CC9894D0A0920BC31522B06662AED2E219"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\sec_api\\sys\\timeb_s.h",
+      "Sha256": "A09CD647AAC26E2681C4D8BE73ED74645384317354857CCD871A44196FDD1F4B"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\sec_api\\tchar_s.h",
+      "Sha256": "4E8130143E11C8F8C72B74DE78BED1DE42BEB57291A04C7C94625A00E34A1F44"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\sec_api\\time_s.h",
+      "Sha256": "233C4A62037A004E95A8AD877CA29E9E4DC2788EE8D6AB5EECC9FC15E6975D86"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\sec_api\\wchar_s.h",
+      "Sha256": "9D339133A0001C67522192F986B8CF3F028647838CDF98AEF7C91A6CE8879BA5"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\setjmp.h",
+      "Sha256": "E4857F7CA4215F6341377EC196CB1845277BE14A88D59E57FA1C9FFD713AD4F5"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\share.h",
+      "Sha256": "B4162007EEDBCB47633D03870E3C2D4DA270F14BB7F82117983C2CAA64EF1077"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\signal.h",
+      "Sha256": "2708A2B3FA2922B894BC5BD0B719D0F4E3621B661210831BDA271BE2594F7336"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\stdalign.h",
+      "Sha256": "1FA970A0F0B45F9469952B1960532A9A4927B27CB00C952F7FD0EB472DF4B40B"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\stdarg.h",
+      "Sha256": "834E661DC7B7811BE628EC0F75D6D7C36B2AA492E98BF37F4FDF1A5F9F712FB2"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\stdatomic.h",
+      "Sha256": "7ABFC5F7BEE1C12D31A081B7C8474C4388A3E107B09343E386E9A708BEC76DF1"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\stdbool.h",
+      "Sha256": "10D9D6FA8E43F8F95475584D41FF7C049E0B3017B234CD828B9814C33BE5AE98"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\stddef.h",
+      "Sha256": "B14D6AA555BD23C136C519738A3CBA5BD0189E72C06AC794BA72509867B91DB7"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\stdint.h",
+      "Sha256": "E89101B34F5D6D65FC666D4C2DC5565646D9DAC2319E1D439E9E2633C13B17E4"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\stdio.h",
+      "Sha256": "9A38E4C23C93494B37D68782397C626CAC05C4B877EE743FCA2F14E965E80723"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\stdlib.h",
+      "Sha256": "EEAEB469597E70B983B316A4AD2D94BE91482C7F714735548C3CB4F547D4E89D"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\stdnoreturn.h",
+      "Sha256": "A96966389D7B47748CFBA0C2B6BF9522FCC31343E2F3647BA28FB2B9A83F352D"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\string.h",
+      "Sha256": "989BEA635D42AC071E4EDC0BDA35959763DFBCFD148B597879452D9F76E954D3"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\strings.h",
+      "Sha256": "664E6A4F17035D52C3462DCF59F7BC6D20E2EB58C3490B389D2EEDF6C2B165BF"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\sys\\fcntl.h",
+      "Sha256": "F4AE64090B7754D4EA9215FE5E065EDAD840848BC27019965688D22622760458"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\sys\\file.h",
+      "Sha256": "7195530ABE06063434E68B966D0C68A558FEC1D97DEDA69753FF5E8AA2ACC86F"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\sys\\locking.h",
+      "Sha256": "40CDD12FF83F65E5AB723583DC8ACD8B2325D80F350E4E2F1310B8083634F604"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\sys\\stat.h",
+      "Sha256": "69D21EC7381C5A3259A9DE05708FF37B70D45C6B79CE9929F4869BAA696798AD"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\sys\\time.h",
+      "Sha256": "3265CFA6FBA4F6B59B8CB9A437A5E1F74A6A251B1D0A625ADA23813FDD36D5D9"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\sys\\timeb.h",
+      "Sha256": "7A19F966F583A75929A77E6EF53E837484972792A0DE70BFF12E5B2344021AAA"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\sys\\types.h",
+      "Sha256": "F28CEEEAABF5439D4DA8FE3AC92E35B402B0EF9844157CF73AC4C56ABD1269E8"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\sys\\unistd.h",
+      "Sha256": "4B1F8530BFAB7C74608D666E9BBAC056DECCEC8360CD58D7F82A77E324AD7C86"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\sys\\utime.h",
+      "Sha256": "D578F572565B7EF829EFFB0962F225FAB9CD4BE13A13B2DDE39BD9DBD65142BB"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\tcc\\tcc_libm.h",
+      "Sha256": "1D793B787187A75100D7C4950C8C594997E440816099ACA820B96574357F5506"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\tccdefs.h",
+      "Sha256": "03FE4C1DC456A37FCEC4FF59AF5A0CCBE80A8975BB22835EB343E474856B24ED"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\tcclib.h",
+      "Sha256": "9C67FD55D79C9AA6186B213249F9ADA448601CB8F46C3502E571B3038CF4B00D"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\tchar.h",
+      "Sha256": "E6D8CE6871C54630C8DE72294F0B0774E1357ECD8A05EBBBDE59AA5308CBC96E"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\tgmath.h",
+      "Sha256": "0766ABFC1515852FCA929D13EE1AE75F2DA665F9718E78A045427DE2C1391BDE"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\time.h",
+      "Sha256": "02A0A0B29376F3D61CE629B093D5A9F36BA29C5AEE3FFB4E4497C258160B944A"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\uchar.h",
+      "Sha256": "7395CFE8030581418D93304103AAF1114C2E9073671740AD49866109C020A6E3"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\unistd.h",
+      "Sha256": "267611FE544013F568BC85F9119EB1ED06287D45B2D5E3CD2DB38B9C9E5A39EF"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\vadefs.h",
+      "Sha256": "B075B5AB9F08E5A2D62293222F74B3310765C68C8026DF8625E2CEC3AA41CC98"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\values.h",
+      "Sha256": "A61B378C212D62C03E8C80B51B37AE49FDE3493D90D7F23CF684D5E91107F348"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\varargs.h",
+      "Sha256": "EABDE10C768AE692F12A1737DCC21B2FAE4FA07C849C9D88A94C5D2CD097E059"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\wchar.h",
+      "Sha256": "BE5B9CA56A01D7445627D38BD973B2BA258B2F7A91146E154B98243A4146444B"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\wctype.h",
+      "Sha256": "CE1D8D17842C31B0A3F5714D82B0DCF6097D5B09A2CC81198ACF9F23422A7A4B"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\winapi\\basetsd.h",
+      "Sha256": "57A5E7D720ECF2582EDCE21CB4096BD8BD617E549E1CDBFC9942C8F2D5F39CAE"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\winapi\\basetyps.h",
+      "Sha256": "3604850035BD6BF5CDA57BC1C9C1363C03918A1A2750795C88338B15D107A359"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\winapi\\guiddef.h",
+      "Sha256": "09E29431AAACC0D17AF07FDEB8299320B80EFB080AD32D2743B00862765A70EA"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\winapi\\ipexport.h",
+      "Sha256": "95FB884F164E8EB40DD2FD1A2DF6BBF3053CE42AE9DAF9AF0914DD3BC63C6E3A"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\winapi\\iphlpapi.h",
+      "Sha256": "1A1FAD9538EFC382004D81CAE9475E1D4CE428C990A7CA7F33E8B759EC65CF4A"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\winapi\\ipifcons.h",
+      "Sha256": "14B4727277C00BEC82A51FED613E9AD43A9EACBD3C4B0C9542F105B4B1657FD0"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\winapi\\iprtrmib.h",
+      "Sha256": "E70EAA4E321258847430038A6AEF41D58DBF6ED1BFD83180A8FAB730407BC850"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\winapi\\iptypes.h",
+      "Sha256": "AEC8ACA86E29AEE5F27AE1342F8D0858C1288407EE0E5298F20D53A6DC8AB007"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\winapi\\lmcons.h",
+      "Sha256": "0A4AB3D2687C3A1EC3E6EE32ECD423DFA433740EC898DA2F6E158289C53318DF"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\winapi\\mprapi.h",
+      "Sha256": "308BEE987F88ECFDF8277C487C4B6AA5134468AF8CF960244C99FB448F18E615"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\winapi\\mswsock.h",
+      "Sha256": "63A90BC36681482F6115D96F4B9CFE1E6B62E6025AC3B61CF14021657403F0D5"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\winapi\\poppack.h",
+      "Sha256": "6C16C8F8539B29728BF26C3004C17539073D4118A57F729620CC7CC8376FE628"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\winapi\\pshpack1.h",
+      "Sha256": "E3673D5D790D4E0E6E6D362D422B720B73A57D926EDC821E352A88FA861C34A3"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\winapi\\pshpack2.h",
+      "Sha256": "03C6C57014D050DEAEFE1913C9F46677F7D87AF8A44049593F0C07F9406DA22E"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\winapi\\pshpack4.h",
+      "Sha256": "08DFD6B387DFBBF36A877747A1BA49220808717338D493772CC16B87F92997D7"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\winapi\\pshpack8.h",
+      "Sha256": "AE5B1BE720998B44DF31899FAF563949A84649855191B6A9A230E6BA763810FB"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\winapi\\qos.h",
+      "Sha256": "3A6B2DA2845C8C02496B28F2F71F93F917DF731216F331482B3A39194EEDF2B2"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\winapi\\ras.h",
+      "Sha256": "A63AB734BBA3CD25FAD1245CC3EFB577B867B6F9447B4F194B76DCFDC63DE721"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\winapi\\shellapi.h",
+      "Sha256": "7A7B7C1E28C261ADB89F737D230682FF97B44D03E3570AFE62E6B5F3A334DBC1"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\winapi\\winbase.h",
+      "Sha256": "C5F0B14E5A865D91259EF9B6C92DFBE92B004285E9D8E6E0030E9BFE0DAAFD04"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\winapi\\wincon.h",
+      "Sha256": "A773FE5F01B8839EA44B7E82550D8BA350FBDF5ECB30D457106EED8AD68ED596"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\winapi\\wincrypt.h",
+      "Sha256": "3DE7D90A7E62F3C4C3EBF79869A76545904432219AFECD48ACE775BDE36D5A38"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\winapi\\windef.h",
+      "Sha256": "15BE4C0539D31C82E395BA2C01DC69BA58206332DFCF8F19DD56C8186C1650EA"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\winapi\\windows.h",
+      "Sha256": "00DEEAF7486644A7CAEEBCED61EC0863B2479174D0A53F64A4A74834DBBFD0E0"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\winapi\\winerror.h",
+      "Sha256": "6FA2371856ECA200F70F9522E56AFFBE8EFFE90779273504E2CC8F2079C568AE"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\winapi\\wingdi.h",
+      "Sha256": "229E5F2ED72AB303A434B4B78CE7112245A5E9A5E66F9CC0CDDB70A11A1E1F2D"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\winapi\\winnls.h",
+      "Sha256": "C7AF0B527AF2E588F202DBB8F7080D1BBF230840C2ED11C85094326438F320C8"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\winapi\\winnt.h",
+      "Sha256": "7053977DE59E0F2F10DA444DF5D21339F44C307DD6652EF134CCD8450D0E99CE"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\winapi\\winreg.h",
+      "Sha256": "B29D6247DE2859262DB30BE0D8A8FDEC62CD27E76D81D6CADDE18E248A92773A"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\winapi\\winsock2.h",
+      "Sha256": "7771A95C3AD6AB372256175E95198247DBD7D319987CB71F9CE1F3D48CE0F95B"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\winapi\\winuser.h",
+      "Sha256": "6AB2C6BC534DE687ECA031B6FD2D7EA985CAF4CBDE410F7B125BEED9C13942B5"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\winapi\\winver.h",
+      "Sha256": "EA40A25FD1FC8D26B5F606984E1F5682F54941F91549891D1DF91A1C247F5E5C"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\winapi\\ws2ipdef.h",
+      "Sha256": "8754B8D83BBAE5128DD1055FF17007B5AB4B021B14732D2C00E8A85DE722BB17"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\winapi\\ws2tcpip.h",
+      "Sha256": "EDE24B03BB18E3F4E4DF667D367FEABBBDE60A0C2C54DDC6FCB48EBC512D7BEC"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\windowsx.h",
+      "Sha256": "0C913C32D3C6AD95F96CDE605295A3D00A284FFCBEA1ECDE2EE3C7FC7D91704E"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\lib\\gdi32.def",
+      "Sha256": "7E8C4B1DCDC4DD5907A69A940F21C9726D61C73359961BCD91FC7ACC04B194FC"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\lib\\kernel32.def",
+      "Sha256": "E67489A7AB0B2C20055F043213688593569436EEC6A999E7312AC44ADE42724A"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\lib\\libtcc1.a",
+      "Sha256": "1B3C18010D970762E52D96E73A2EB64194C382EFC2FC5A01B4EEDF0D0AA8B447"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\lib\\msvcrt.def",
+      "Sha256": "E1166D0779E122FE24F61923E4E9A18068FD39E6C140D81B3C3CB246BF75148A"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\lib\\shell32.def",
+      "Sha256": "EC1E230F7C01CC911888C6271C3D6B367553D69273835CC35EEA37E90683F38B"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\lib\\user32.def",
+      "Sha256": "9B195E4BDCCF4C64D4A933F022791AA36E5AE069C639B737EF3A62C936A55726"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\lib\\ws2_32.def",
+      "Sha256": "F16B8009693B08789C0EB676E62D1FC42E6DA184AB83F37B79746A084C974804"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\abi\\xl6_abi_dump.c",
+      "Sha256": "59A54C16238512CD66DE2E79C2FEE1D165CDB761842F8C38B20157D321DDA2ED"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\abi\\xl6_abi_dump.h",
+      "Sha256": "F9F4604D6C3AC5C3117B442C6A67E4A9730F39B0B10EC0A7423B2DA19F4E097D"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\abi\\xl6_abi_json.c",
+      "Sha256": "E2AF64297533029AC8EF6A03EF0D7E58740A7A3AFFD99B465EA2FE5ED0ED5FB3"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\abi\\xl6_abi_json.h",
+      "Sha256": "45D467E3D905202EB21B44D5F8BD8DC4AC43807A82DF639AB7DCE0F07C3E54B5"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\abi\\xl6_callable.c",
+      "Sha256": "8B907A6D43F2B2DD7622689C71FDF8AC52F3F0D275AE6FC0DE324CAAD39E2EFD"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\abi\\xl6_callable.h",
+      "Sha256": "F90CFA888F212EB73DBC06BD1A355555F16757C41D705D0758AF1CB669DE15AD"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\api\\xl_api.c",
+      "Sha256": "B706E9DE0BA750F52D31F13FCF34515A0A4DBFDC7E4FE750BA53FB19431B8CCA"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\api\\xl_api_internal.h",
+      "Sha256": "A9C21DF44916A4B92AD675DB804F67E5129D5A3AAE7398A818006FD91DD98E00"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\api\\xl_api_path.c",
+      "Sha256": "2796F039DC215614C91E8190BA14D07FF36B7220644725BC9EA92C1CBB5DB69A"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\api\\xl_api_path.h",
+      "Sha256": "0DAC548D9CF44ED9285A2D82EDC0AEDA975320B564191699A2A73083DC8A014F"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\api\\xl_api_symbols.c",
+      "Sha256": "486C7AA6DF421BB8E6B1D10421A111A3A642DC1FAA4F0907E519753B40EC3A71"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\api\\xl_channel_bridge.c",
+      "Sha256": "0DDA6C45A34479F7C93578B02E1B4B4B3FBF12240A0792B2D2432D26141C59AF"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\api\\xl_channel_bridge.h",
+      "Sha256": "752760767EBCC4D01534A92A3890ACB70084B93C7706BCCC195D5FDB730B29D1"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\api\\xl_foreign_error.c",
+      "Sha256": "4290A27E5C5972CF28CE5B2BE9B1589562930A800ED3F3B24200395D1D69D30D"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\api\\xl_foreign_error.h",
+      "Sha256": "7039E3C4EF7C6AA9CE69AE3FDF2D48C03BA336DD0925E04FFEE676694C645011"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\api\\xl_future_bridge.c",
+      "Sha256": "55AFDB9F9F6CFCFC9FAC7E1E2CDCF97543A6F77683DC4A5C304AB2C42515CFEE"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\api\\xl_future_bridge.h",
+      "Sha256": "FAB551357FB061785D414D9E76219531DA22C8AB6D5FCA5AB13F4E993A38B3D5"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\api\\xl_protocol_registry.c",
+      "Sha256": "CB0FE01D2C459421B4EE10C673C38DCFA884ACC8D67388A0DC118A69FEDBCEE1"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\api\\xl_task_group_bridge.c",
+      "Sha256": "D09066359D6935E3ACAED4C25D3FB4FB3FB051ADFFDE0DC24DC53B00DC92DCD3"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\api\\xl_task_group_bridge.h",
+      "Sha256": "D6548FE61109A7BF80DEC0ACA2A2919C0E044113DDFEACA5491C1A0A8C20BA0C"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\api\\xl_tcc_standalone_env.c",
+      "Sha256": "403F03FC965967ED626B0CD3AA21D81A21767F62A654EA5109BE7DA9CAD512E1"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\api\\xl_xrt_dll.c",
+      "Sha256": "1862CF3F8304922231EE03D992B2B5DE989FD6E0EC4AB7E0D1F468C041FC6DA4"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\api\\xl_xrt_symbols.inc",
+      "Sha256": "F5776163D72A633E818A6C2B45910794792F0FEAB473D05C4AB36B8352E786E9"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\ast\\xl6_ast.c",
+      "Sha256": "D41AC5FD8ED0604AADCCF0EAD59DAE3A59F6ABBA2CF1D3FE97CD331E9CA2C9C4"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\ast\\xl6_ast.h",
+      "Sha256": "5D379151CE9F086C23129A06F81EBBE3F4AC4C40116B1A17B3BBB06F7BB577FE"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\ast\\xl6_ast_dump.c",
+      "Sha256": "8C60C7CF5B8DD552B3ABA9033648CD3CAE74F01544E23BBA69509A600183A643"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\ast\\xl6_ast_dump.h",
+      "Sha256": "E64776899FCE929DB885A88B4A5E2DC86BB45032847DE0653874E185A54C8584"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\backend\\xl6_build_backend.c",
+      "Sha256": "AA0ADC10C632A284EA51F8ADCC8D81D6F709A8E3E07264E47FAA6C2E41171A6E"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\backend\\xl6_build_backend.h",
+      "Sha256": "A9F459538EBEE5DD9B21560F6E3C32A189034ADEB7945AE177DE2BF8A18EB1C3"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\backend\\xl6_toolchain.h",
+      "Sha256": "46484CFB82EFCCB5E6DF3B1143DA246BAFB99492CECDBDBA16CC0B583626E0A5"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_buffer.c",
+      "Sha256": "101E9484A5AE121481854A9B082D8FEA8A0CD1A5A4C4AD56C85B1CB0D25B70BE"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_buffer.h",
+      "Sha256": "54335676866FA695C4526C5F1A110C1506BE9C7138E2B5C6D9297DE8C57ED1C4"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_dir.c",
+      "Sha256": "19D9F393C51510C642F9708DD9F0EA7083F427A7DBA7215DD4BF6426CA85A959"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_dir.h",
+      "Sha256": "F72BEA15F7EB0032E93A2C1DD5CD95D62E27DB107CD5A2EF963C31E9F7897DC7"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_file.c",
+      "Sha256": "1CD14D3D1575ADB240F93BA6A7D137AA05CB023629A6E53A10901E28A12A6DAA"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_file.h",
+      "Sha256": "CFEB1A7B2E0F1E17CC4E35643E676A7E03A86C029078AE2649ED405FE8F4A007"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_http1.c",
+      "Sha256": "EBC07E9FE2270D594E75821F4AE834BF2E670917A06FBF6499D8FC70EF61B64F"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_http1.h",
+      "Sha256": "DDCEA8D69247655443DAB0EB9F15F01C9FF1A63EF708CAC2FD1A68A144C91BA7"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_json_stream.c",
+      "Sha256": "C69B4094FD6FFE844AAC9A5EE6304B0D6A2870D45270864AB94E3BF917D32140"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_json_stream.h",
+      "Sha256": "1126999546982591DBC8302ABE353D4278B93311EDD14C1D5F0BC31A27E4AFC0"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_json_value.c",
+      "Sha256": "B0D4738AE98EBA52E93872B8F93A47BE9D930FFEBD3C07F392F9B6A23C02A2B0"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_json_value.h",
+      "Sha256": "864C4D8F14E9CF24D52C9A7FD7CA0A10F3072AEAA960F709EA5B67C32365103B"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_native_void_abi.h",
+      "Sha256": "B95F9C76FB28384A192735F5B883D3A14424E459499ED54CF3165A9DF3B7EF19"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_net.h",
+      "Sha256": "E29481EFE68F1F3CB7C7E72CDF940F71282B3B457B275493F3711090102021C1"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_net_datagram.c",
+      "Sha256": "44A96A83093EA1C7465C92591D32CEC6EE89AA9F8FD152F294933D8ECD4B0638"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_net_transport.c",
+      "Sha256": "09DC3E579480788A1A0D65C604053663895318FA6F87D455B2D131B7F1A42A1C"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_process_run.c",
+      "Sha256": "3BB3217C47B9F3D24F31935383E10DB8FE5E51254E04A89F1540069918D2FF76"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_process_run.h",
+      "Sha256": "63E8471949EF6737DD0B4E29E1832001F45B77315ECF1E569F29E43628D1D294"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_serialization_callback.c",
+      "Sha256": "43BD536E6F7B49C50EC26F2168F07A1554CA151EEE20EC198FC22818D9B1F1AD"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_serialization_callback.h",
+      "Sha256": "8538379F605BA2B35C630443A7CCDA600BF70BFB3501155AB9DED4FC43E381D4"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_shared_runtime.c",
+      "Sha256": "DAC7060422402A392BEF1944DBA9318BFF887D8DE27B1BF518443CC9BE08BDDE"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_text_codec.c",
+      "Sha256": "8D226414A3598F4C488C09A4662DAAA336D81B07EDAE2D1CE6082984DF8215F6"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_text_codec.h",
+      "Sha256": "FEF917BBE1C1AE0BFCC1D1966391B34506EC02CC08CBEFDC6A5611A3EC3969C3"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_text_output.c",
+      "Sha256": "A76489875F96E7B8FC4D8AC2701C9C85F79636C40B15F2E1668E43378B6D9099"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_text_output.h",
+      "Sha256": "34768BF9BD7C3D3C6B0C1697E6004AD5B2CE15876F3B28682E6EB7B0165CD7B0"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_tls.c",
+      "Sha256": "CE2585610018711964C957E3ADC4AC2B054AD53AE5CDAEDD591CBB5D4DBD881F"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_tls.h",
+      "Sha256": "8908907079765C49DAE4573506DF2103A7D7957CD117E9486848F7BBEE1D75FA"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_tls_stream.c",
+      "Sha256": "7471DB01E80DE7C353200CFD0FEA84C05F9686B631E952DCE6A5E5E16CE90781"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_websocket.c",
+      "Sha256": "4E854BFE8D81CAB1B6A46850D972C14ACB1E5415B730D0DE823E264403A02106"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_websocket.h",
+      "Sha256": "13F6F6553D2BCDA0C5E20D52A165B8F7F24E114188EA65CA9ACEE1E109B29D86"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_websocket_protocol.c",
+      "Sha256": "0BDD7F9CFBF18774F56062B8186E204DFE6E254ABEAA1F1EB2051480300D4625"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_websocket_stream.c",
+      "Sha256": "C313C21B227ED15CA43BC934BE480A169E42A9B9026AA028A8631EACDC08D89E"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_xlang.h",
+      "Sha256": "90EE32E7B6EF2E85583B7B0625EC9AED960D712802D45E6F3959821CE2D0B793"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_xlang_runtime.c",
+      "Sha256": "5C6006C8E1D23F5ACC8927AA7F68BD681B42AB8DCEFAE40EE4167F6621F8DBFF"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_xson.c",
+      "Sha256": "160DF25F8B7ABD32937E5A02CA83DF1236BA551CF9BBEA6539BB7CC7549DD3AD"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_xson.h",
+      "Sha256": "80EDD6F04DEDA31CE8CF2BD55A950D0955C7B1A2007FEA1A8FB7CCEA2F05C7AE"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen.c",
+      "Sha256": "02E0A5707E866A3EFE4CAF4B8D80BDCCF812D33B7A8DDB1E6C0B72D3140A24FC"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen.h",
+      "Sha256": "A2482E4C43F1F1C724512161D68A5031B35D2C132C893FE5C63B60D1EDDBFD15"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_async_contract.c",
+      "Sha256": "5CF967B53BAB3514ECAE29ECE6A7E74BF8C3050BEC1A3E911CE246D057FAF727"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_async_instruction.c",
+      "Sha256": "DD923ABD15FB3A358D07C0C3F257183FB67E19F2BE1535713F919EA0E96EEE67"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_async_machine.c",
+      "Sha256": "3EE0F4D00F451320D8102A0D24D8CE87BE18D492285E9A85385A0E8B50B398D6"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_callable_adapters.c",
+      "Sha256": "AD6F43BD84A6B5F1338680734B15BE1AE39FDC803FA190318846C75E5666ABB0"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_callable_contract.c",
+      "Sha256": "63B1E2E3D5A5C8E58A8706ED0B622C95A9A05D8B7AE47CE3A4E4983FE964E510"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_callable_results.c",
+      "Sha256": "A32BE6E22C7714AAEA5AE32D07824AA8BF8FC0F9DD11D7240732BC6A863AA1D8"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_code_owner.c",
+      "Sha256": "F252028EC6B1D2B7E0D4949125C7B3455F8475331DBB62937CEE7AA4116C9B94"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_collection_emit.c",
+      "Sha256": "8A1150C84E3ACDE13AA1C6E74788F09F0C75E1DC13F5557BA1DBABEC7072DCE3"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_concurrency_contract.c",
+      "Sha256": "258947FD4E46AEC92513537902EB8929705B0D943612EC8CAE38256388167502"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_debug.c",
+      "Sha256": "BDF77E85BF7C8B6E24BBF27A29D0EDAE74C1614C64C5EA635FBFDAF8F205AA2B"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_dispatch_persistence.c",
+      "Sha256": "31650D4033853ACD235CB3BB64EE9896DC113ACC74926782A51D8B5D01298BF2"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_dynamic_methods.c",
+      "Sha256": "94427EB8125F22CE49F992871B462CB2253CBD8C5500003CBBFA0C1F673477F0"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_emit_async_support.c",
+      "Sha256": "B29853512D29277B87D2FED89084CE5BCD3E2E8E1CF2D57837F43F09207E88AC"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_emit_definitions.c",
+      "Sha256": "333E559EB162AD2CBC7E369EA330678E432F97FD10CCE48E25E37625DB860017"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_emit_net.c",
+      "Sha256": "1C70AA6677B9256BB11C2D5D2B198D385290626DA5F28E2D94550AAFCDE0F180"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_emit_net_datagram.c",
+      "Sha256": "5995CAE32063087FDBD5012BE1BEC154C6C4BEFAD6F5E4C7C998DBCB3D621636"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_emit_prelude.c",
+      "Sha256": "997EC950E1174EAF84F74946B3B7474E9BB300A4F6D0C8CBDB88B0E2F0D45568"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_emit_resource_support.c",
+      "Sha256": "CE98FB4AFA90E041F551EC51A846EDF84CF69A7340263A264A7A4916D8898A87"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_emit_stdlib_bridges.c",
+      "Sha256": "CDFF0CDA5820C39D39A61215D18DC2614F354D76B5CE080AA63E59EDE1DE4B22"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_emit_string_bridges.c",
+      "Sha256": "D3ADE38CE3DF95E49E95612C8FF8E3E6CAAA46BBD8B4F6A8EBDCF4C4FAFADAC7"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_emit_support.c",
+      "Sha256": "FDD4044E5C25BEF184EE11720DF95612EC984696B04802F3C6ABF721A9743A92"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_emit_template.c",
+      "Sha256": "AE3822EF2D9DD72AACE326A4255F1310ABB8E8F7D5F87A8DEA8ECD38F4311D2B"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_emit_xvalue_containers.c",
+      "Sha256": "34CDC40DBD804B0CE5B6A7820F33EB81FE617CEB9D224EB5E7BAD493E422BF22"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_emit_xvalue_core.c",
+      "Sha256": "7290F6384BFEC46E5FA3D4A7EA7E9D5BE53ED17514389B152224CED0666409EF"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_emit_xvalue_ops.c",
+      "Sha256": "C4B04B90DE617070F5F38CF42B2889E4639B18B1F07A729B0458EE7D9360F905"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_error_runtime.c",
+      "Sha256": "C8EDDCA72B00231FA5A71F7A10E2745B5876D82B44AACAFD9C05981456B40C8C"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_export_callback.c",
+      "Sha256": "DB76FEB5AE1BB8E29EA1C0225A39AEA393DFBD4A90B3E14567ED849A3DEF4E2D"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_frame_trace.c",
+      "Sha256": "392471FDF13B45EEA0C9298428E9418E22AE8C5291DFBC8AC547CAFA04FC7B86"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_function_emit.c",
+      "Sha256": "363F404460FB58AE5F001F8B6B59619EB3A98341DE025B246EE18FCDC95B608C"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_function_shell.c",
+      "Sha256": "389E07DFD95AA0F27691C03B28105671E5CBCF4BA4AA7B528F38E391A071CAE9"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_future_contract.c",
+      "Sha256": "185A8D183717746C70E993EF40DAB2724ED295EAFDC9065FBE2FBB22CF2E9949"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_generator.c",
+      "Sha256": "8E375CB6963A0390704D85BCAFE5CC073A6F4F17F339E1B55BA1033D73D81E52"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_generator_consumer.c",
+      "Sha256": "6018E2F48676BA0E4165CE699EBA4E2C32434FED2EDAFBFA81451F4B16181BC2"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_header_emit.c",
+      "Sha256": "1684A011537FDC4329916F8C42D8D5CDD8F8B354188A86C39FD5457BAE88F143"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_identity_closure.c",
+      "Sha256": "68790DEBDA5A02884632D532D8C9D34968860BABED1F0A4BDD129839244EBD85"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_instruction_contract.c",
+      "Sha256": "3F531163D65983EA9BC55BFF4AC1C5A2702FE0C9AD85A56E9EA17A994A30C958"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_instruction_emit.c",
+      "Sha256": "97B1CA6D1EBD7343047737D2679A5FF7D8A4D4C11914E45293FAA2DC1DE99220"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_model.c",
+      "Sha256": "F8F555D47F768C8218DB0E6DF5745715CABC02594C0A1FA778AE85C68E6571F3"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_module_emit.c",
+      "Sha256": "299862E5E288E5EBA22357C21BE611AD0BB3F18C0C89F33B3D8E4F5AC56367D8"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_module_trace.c",
+      "Sha256": "D9FBA55AC1E78BBBF35D774F69CB98DD2B3E1E42CD7EB25F515BC46A25BCB79D"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_native_dependencies.c",
+      "Sha256": "1DEF774ED4FD9A93746AFD6E74E4B54EC2F9210D6A13423F1A116038CF477263"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_native_groups.inc",
+      "Sha256": "C06B8DA817E5369CB0E5BCA7109780F0C44157E1EEBBD31AE8EF77B527A459FC"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_needs.inc",
+      "Sha256": "4CBE70632EDA8087408110E7BA329B0E4A8672DB47C65A375692E64FBC858022"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_needs_analysis.c",
+      "Sha256": "906D4AAC95B85240FFA9C110A164CBD139595BC87468E48251CBA09860707900"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_needs_call_targets.c",
+      "Sha256": "14612D078E670C12A9227154D93357D65784B0388EB7BC52E060D65D3AB0266C"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_needs_model.c",
+      "Sha256": "24F13DEE0298482C9563EAA31DE03C539BCD0958EA693B4DDF60FE6ED7BB37A8"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_needs_runtime_analysis.c",
+      "Sha256": "59BF5100EDD0E4FD5F9CFA083FA1EFDAAC60F9FFEA26CB0D7F031F0EBCC1EF28"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_release.c",
+      "Sha256": "EB56305F2F7FE12E89212A769195B6E06EE91289882E7BA3391166951F2EA1EE"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_runtime_async_instruction.c",
+      "Sha256": "4830934F0222E92C07802BF59A4D1087802963938C8BAA0A20ECFBEDFD668186"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_runtime_collection_instruction.c",
+      "Sha256": "7A3BFBC7DFDFFAD7E1B959754A1365C0096932F7162F4C2564A588E44310032D"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_runtime_scalar_instruction.c",
+      "Sha256": "78F5495118680C539F441887A739FF7F7C354ED4DCCC978A84339E0B2D77C416"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_scalar_conversion.c",
+      "Sha256": "328F6B1CF61B4F513950750FBE81F417DD993BF45574E7DB6B3779621C865E39"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_shared_collection.c",
+      "Sha256": "C7ECFC7F5C609096E131409E544BF256FEF6164679B3ED83A9A81446530E7E3C"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_shared_compare.c",
+      "Sha256": "29C5963BE6F72668CC7437408E396DF144FBB9D9A470A0E7F395476C8207E3A9"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_shared_value.c",
+      "Sha256": "A111B98B1C9C21D468F400E614AB7B155379B0D4EBB70E43E9A9F167903FD14E"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_slots.c",
+      "Sha256": "51E10599D3AA81D99CB04E8D9D24BB6BF5205FB0E2F9EDABC0575E45FDFBDBB6"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_sync_emit.c",
+      "Sha256": "72620813F3FC92901F6EC2C22B9D094ED61834A86B1C93CE912A8BFF85DB8873"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_task_helpers.c",
+      "Sha256": "DCEB87FFE6BFF5B55A6643DC05275381579112210EC54FDFF81DB98EE64B2605"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_type_call.c",
+      "Sha256": "81603FF23DDF6E9B5C396F9DCEF4EE4629F445E287D5DF5101AC3CC43447955B"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_value_projection.c",
+      "Sha256": "C9C9836D2CBAEF71367E24F6C8C1049786414C6CD9FAF7F175E3CFBBEE2D2FBB"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_verify.c",
+      "Sha256": "D24824096E114B2D944C8C3440FD46B415B4D23D4B1238A9F3214CE2CC50AA26"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_verify_declarations.c",
+      "Sha256": "EF3442F884C5F2DA4A6FA1CBE0D60DA638A436D5587C3C6735D50A17D3C83096"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_verify_instructions.c",
+      "Sha256": "6774F9FEE685A6DFDDE9C2836A44D34D879A58C01E7D27A86AC6F6DD20A21DD3"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen_verify_primitive_sequences.c",
+      "Sha256": "701F959749123EE689B2EDE6E0E3ED86B9F2A6441337DDC8D1198943869387CA"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\common\\xl6_common.h",
+      "Sha256": "424220DEA9C973F4F0F13569F51503D49099099229B2B11FF097CA7B79E8A53D"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\common\\xl6_console.c",
+      "Sha256": "8AA4855F98B452232C5628D26CAE05A992DF94015625EB50E4121F125AEF22B9"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\common\\xl6_console.h",
+      "Sha256": "3C2E76FECCA2A99112E9544D0F3814C3180217A56D2E606525D50BA09855A172"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\common\\xl6_output.c",
+      "Sha256": "68E8DB06A8A2AB137FB1D870DFA062B3AC293B5FD6CE1A2E9519C7BE7D669503"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\common\\xl6_output.h",
+      "Sha256": "4B352B79718622F9BDBE66D60B2FAF8F2C05F0A7358294623B2B7241FB0EB749"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\common\\xl6_xrt.h",
+      "Sha256": "66C38A100A323CA3C70C2FDEE42F520E5D48AC6A8AFFD8B2CFEBAA983A8D072C"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\compile\\xl6_artifact_native_symbols.inc",
+      "Sha256": "2B1AF670A82CD8B4BA80A8504569425CAB481E5B7A72EF87C0514442208860B3"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\compile\\xl6_artifact_runtime.h",
+      "Sha256": "228B6C4A324A0FE33E98DBD27D701CCC7AC07AA5B868FBD5F39718B29E0712A7"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\compile\\xl6_artifact_runtime_symbols.inc",
+      "Sha256": "747BA0F73F0CA530E0AF61F22AF055A7AD555E0CCBA5D3AD6B1EEA059EA5043D"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\compile\\xl6_compile_unit.c",
+      "Sha256": "76ACF471EB2043892FA3BDB7AEB720505E8558D7CFA7B6B135AEB21419566517"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\compile\\xl6_compile_unit.h",
+      "Sha256": "C2AFC21EBC15BDB390B3FE75CE06FC405DC6F8D7B932DA9D10581FD638F4DF22"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\compile\\xl6_imports.c",
+      "Sha256": "6BACC7809317D3FA530CAFC7E3D05E460C45115A1A8A71CF90E881BEA4F14F4E"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\compile\\xl6_imports.h",
+      "Sha256": "47D9371675675146013B28055F6047A055CE44399A23E05F909FC24B14C22309"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\compile\\xl6_xrt_trim.c",
+      "Sha256": "4696CAEDE6EEA4B5184F8A0F5B6BEEC0E3F5AB935888FBCF7D7EA8BB64F120C3"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\compile\\xl6_xrt_trim.h",
+      "Sha256": "D34759A6F82B53CC8FA4EF31B92AE7B9742455EFBA812E2BDC6E278D58F63EEE"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\diag\\xl6_diag.c",
+      "Sha256": "35B0B6ECC8C3D21EFE5D101C6903B57F03909349E7FFB23E8C5F7DEA483D5849"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\diag\\xl6_diag.h",
+      "Sha256": "34FF00EBD446A94C824C5A712328A4494730748B3F0FCE9A15929B8AF4FB35A8"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\driver\\xl6_xlc_shell.c",
+      "Sha256": "32EA76580AD9332E752F83E657C1A7A1A4D60E2B02A432B415DB9D32FF184B39"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\ir\\xl6_ir.c",
+      "Sha256": "9E4E6F84403AE6B97AED0CEC094E2FA8A2ECE7ABFEF9722A38145DFB1CDED0E4"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\ir\\xl6_ir.h",
+      "Sha256": "3C38ACE0EA733FFB89F63BD9A992D6924749D8FA5EF1322436E7BDDE98F0C8CB"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\ir\\xl6_ir_callable_bridge.c",
+      "Sha256": "18DAD712B17CAC6CB6FAA59F014EA2EFAED459AAC4CAEE362BEC160C3DD423BD"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\ir\\xl6_ir_continuation_liveness.c",
+      "Sha256": "93FA8292D6A241EBD4654A3B7AEF697B27DDD583D4B621088E98F001FF9710B7"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\ir\\xl6_ir_direct_bridge.c",
+      "Sha256": "EF5F981798816DCE53D4D9328453B5715FA07D1304E39836E47316CFE48A21F4"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\ir\\xl6_ir_dump.c",
+      "Sha256": "18175C9EC23BD15CBA0AFF1F12C4FC4D77FE009CC31E40F3CEBC032516A311E6"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\ir\\xl6_ir_dump.h",
+      "Sha256": "06A3FE626C0493F1A6AF054A71790715CA004E2403B1B1F87D20A25015DC0F68"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\ir\\xl6_ir_lifetime.c",
+      "Sha256": "43325C0B5C2F2D1E83772FEFCDB41621761A1E5DAB70E6DA8D0650647E631BEC"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\ir\\xl6_ir_lower.c",
+      "Sha256": "557DE05999394638A931DC702021DFE5A15D5D2D60250344EFCCA563CF2CC619"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\ir\\xl6_ir_native_cstring_results.inc",
+      "Sha256": "AFD0375F11826FF9299D3479CE01CC8D3378397C1A5E44985FE1CF0D50218181"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\ir\\xl6_ir_net_datagram_bridge.c",
+      "Sha256": "9B316E2E18576DAD554A1FC9C9DA8D0B10EA1C32229EF2CAF066929C50200F85"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\ir\\xl6_ir_ownership.c",
+      "Sha256": "1A3D973088666EE4D0BF86E3E099AABA884FC5A2DA57E7D9691789A7C37E09AD"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\ir\\xl6_ir_xlang_bridge.c",
+      "Sha256": "1762E451A98CD698526E45D2DE0A684BB4CAA031C9A99A43D47392C9462CDBEB"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\lexer\\xl6_lexer.l",
+      "Sha256": "C2C292C41464FA4D5E29333D87EF8CBB5C9AB852A6B2BAAD2A85A73D2F2179F9"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\lexer\\xl6_lexer_api.c",
+      "Sha256": "D3D4DA7C3D4C9472AD7FE41C82E739AAE2B9D050DD4298B7A934C3DE288D5F24"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\lexer\\xl6_lexer_api.h",
+      "Sha256": "3C588A3D22BB5C3142D7CA22D1C0F82E29FC1E9416801D10934094BEF0FEE634"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\lexer\\xl6_lexer_gen.c",
+      "Sha256": "0FFA5B40FE950BB9123B7B8DCE85F7A5C403DBE8F16F5EB2E9659FF49CC5998B"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\lexer\\xl6_lexer_gen.h",
+      "Sha256": "73C09E5AC5A7487D2E48DC7E8B14EC779916515DF5623745E786DEF286952A51"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\lexer\\xl6_token.c",
+      "Sha256": "64CAFD8F72F623312690E9752AEE17628AD48E77A854E40116F4D7C9F72C60EE"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\lexer\\xl6_token.h",
+      "Sha256": "32E478136067448696E01A4D2E8C2A058F1D54852C7A473A3035B0652EFFE1CE"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\package\\xl6_package.c",
+      "Sha256": "DC39B8B25211A7332186088EC0A2D5F7C4002C220E62E36E75E126A7E71866E5"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\package\\xl6_package.h",
+      "Sha256": "CEA15B79665EC534A96282E5F77AB7AD541CFEF06F7C7069BED789301E7D9246"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\parser\\xl6_parser.c",
+      "Sha256": "9BF6D6E61AFEC3DC91EF2E1EEA86D04D86E061D9451887236B3E95B11DDE7DB7"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\parser\\xl6_parser.h",
+      "Sha256": "D501D61A0ED3B9F84EF85748B40DB3E0B9EE34659964600027C8F18ABB8D7270"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\parser\\xl6_parser.y",
+      "Sha256": "202546BB3DFA4DC482D9C1E3731DBC81A470C96C8374CE33117284B0C8810DF5"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\parser\\xl6_parser_api.c",
+      "Sha256": "702196DBCF7583DF9C4B94663158131E0126E7BE9A004646CC564F06B5FEDAFF"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\parser\\xl6_parser_api.h",
+      "Sha256": "CF3BB4A51E706922B48FE7BD5F4DC79179F739634E41CC4BBBB323C9A0A7DF20"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\README.md",
+      "Sha256": "B81D550738BCB8090DB2A1932C4F07137494E5570F0A7354A6CF822641123571"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\resource\\xl6_win_resource.c",
+      "Sha256": "1A81B12001513C640BC73A2DA26EDBA477CE6A9B458173D0B49FB67C5467553F"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\resource\\xl6_win_resource.h",
+      "Sha256": "96304CCD9A68AF1BEE5C4BFB1C6F40CFAB1203AAA7684087D4071AE8679E1211"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_capture.c",
+      "Sha256": "57913152A2BC06B72EAE416416EAF8E3239DF80F94812AE63D0CCC4974049D75"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_capture.h",
+      "Sha256": "BD784222F8003BE784DD9C2AECDCDDF15F10BC77AFFE335D3F1A87EEF82E95D7"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_cell.c",
+      "Sha256": "49D1AEBFA99833141BEA048DD192A68BB698DC02B0D666DF22C0AFBE564A0217"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_cell.h",
+      "Sha256": "577A69BA84A7B732E0ADB1FD8FDB9FB8753056259009816DE9D5D31BD7B3F542"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_closure.c",
+      "Sha256": "F890AFD77E38A30732C2F2AC3DA577AC9595ABA9AE9DC9D38607263CDAB0DA4F"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_closure.h",
+      "Sha256": "D0A33EA164591C2718B2FBBEAD12FFBA37B081BC65EAABDB7238FB319FE886DB"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_code_finalizer.c",
+      "Sha256": "24FC64D1A41E31B7F6791D867E55AEE112F2895013E8909E82AB6CDC64A30405"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_code_lease.c",
+      "Sha256": "C1C71B60C171E18618892954372E1C87845BC80CE003911AC9BC039B429EB4AB"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_code_lease.h",
+      "Sha256": "0BD6DC723D05AF879E7E4F748768D013BC52830BE315E92C7D99D75E06AA5474"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_code_owner.h",
+      "Sha256": "FF4C8FB7C2FF5123F7924B63043E7AC35780E8916F0411E91058014323AC64E4"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_continuation_executor.c",
+      "Sha256": "9CA3CFC293562070B9E547D5C6BA82536033230FA93DE5720D8AF08BD45F087E"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_continuation_executor.h",
+      "Sha256": "842CDA00CF47D25E53FA883641FEAF46BE8DA97259B258B35394A1ECECA5FEDE"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_continuation_frame.c",
+      "Sha256": "4A448AEE856262F774BA049F72B625D17E7B3454FE38AD7A5D3008E9D86C08D7"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_continuation_future.c",
+      "Sha256": "FE9BD1A10A27A4E9E6A4772C16CCD045F3E852A7AF4718ECFC90E67BDE6102A5"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_continuation_future.h",
+      "Sha256": "B4BEF2E32E7AD2A59B24CB63846F5EA08C61B9C2DB26215EF2B8A91FE26DB6E1"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_continuation_queue.c",
+      "Sha256": "EA13A72355BA1A3243626CC68ED8AD1FD404976CC0D4840042FE47D36E508BF4"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_continuation_queue.h",
+      "Sha256": "9A7BC6D6925BE1F64CDE5FE74A62321462B0D3100D727505570D339071693855"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_frame_storage.c",
+      "Sha256": "1F283B14A692D18F2E56D17081310D3E3312A7D7DF11F180D0744E88BF3C67B8"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_frame_storage.h",
+      "Sha256": "969BE4701D7125753DF45DC9694D67AD101E4D0FF6093C2E1D69377F21C7E641"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_future_aggregate.h",
+      "Sha256": "523F9144ED62F66889B5472FC8B4415C899345D9305204956D4F543F9C4F8758"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_future_callback.c",
+      "Sha256": "0651F23890815763D956352973F7136C7BFFD6DE26D0B5E5416B19B20A9EA431"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_future_callback.h",
+      "Sha256": "CC2187DCA372136AE0E4AB7C28712AD44A75259EFA484AAC4508DBDAF2BC4627"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_future_payload.c",
+      "Sha256": "35666B40BB9A744065915A9C162C01B77894D242B8D85F49E327FC005CE769DA"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_future_payload.h",
+      "Sha256": "41D62B04758E035324FF63E9158056C8D62D88992817B6B680C386FBB6047740"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_future_wait.c",
+      "Sha256": "8D06EE698E5C19189AFAE9CF55D36910C8A04348CB88258D40D9CEE48B2CAC0F"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_future_wait.h",
+      "Sha256": "CC075704E1451486A7280CC0D0605C23512D55D2EB13D2CAF8A3B941C8F77B78"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_generator.c",
+      "Sha256": "3F8DABE4394E82CB9E02ECB96980A6177814F8A6B9A2B2153A11D9573EEE185A"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_generator.h",
+      "Sha256": "B21DDCC609BE37BE608FD1EB3AAF320268CC6D7506F2D7F5BFC26E4659F9A44B"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_network_service.c",
+      "Sha256": "48CDFD0C3A5172BFC6CB081C55E6BECC88D1BC1F83A8F4543DE9980B2F9179F1"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_network_service.h",
+      "Sha256": "6ACB1B8E22F9064D939E1F21703D8D1071FD3AA65A904336FBD42BB34ACA2AD9"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_ownership_plan.c",
+      "Sha256": "944294EC54BA02509699D15681D41D9200A6AC9CE29B45ACBFD91B6DCC8D8572"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_ownership_plan.h",
+      "Sha256": "8A4D48DA4392F9CD4A56272FD4CEAE69361897FBC791DEA49C374A2C5431EBEF"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_ownership_scope.h",
+      "Sha256": "B39A647E5BFC9CC5C57847AE8B71B16FE2EE9208D619B794E268ED6BE93364AB"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_slot.c",
+      "Sha256": "B36D96936D76DA56B1BC8D3081986EA64EC3B42278941449DD41ECE3BA3CB9EF"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_slot.h",
+      "Sha256": "4D168E8A3142CDB28C08C26422AC9A603898B09BAAEBD2B96EECD860692AF4EE"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_task.c",
+      "Sha256": "04FE78C5342F4AE6F95CF7B86B59D4A9A603EDEEC2116E144183C596E99250F1"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_task.h",
+      "Sha256": "C340D8C000C1AB9EEC1B143BBFA533E13F64B5382F68455EF40354BAF011B369"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_value_iterator.c",
+      "Sha256": "27C5D8C846CFE01670A56ACF7F86896F2BEB00A1E828C76E4F634CCCC6813755"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_value_iterator.h",
+      "Sha256": "AB95AFD8B1F88EE31A7912227F8CE3CB03D46894B9FE349A9E0608403CF7D095"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\sem\\xl6_protocol.c",
+      "Sha256": "2574500F17B00B20468318BBB4E894A1EFD9578610CB10AE0BF04062DCEE1064"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\sem\\xl6_protocol.h",
+      "Sha256": "2CCB3287E0E27A85E88239C919F1F0F9DFD12CD6D55401C444F0318E67B18F53"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\sem\\xl6_sem.c",
+      "Sha256": "E231F1B5E306B9EC6BA5F7D9DCBBE6862F7C6B97BB7FF64B70A813932216C30F"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\sem\\xl6_sem.h",
+      "Sha256": "D6ABD552A1010DA737AF05061C7EA8227003D379BF3A688DAF6CAC96DCB5692C"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\sem\\xl6_sem_docs.c",
+      "Sha256": "9DAEEB4A48FCB8EBB0219641EBED0E3F6866056DC59023A054A5066FF674F93B"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\sem\\xl6_sem_docs.h",
+      "Sha256": "0B8DE422B7F168C20831C0B883BE68D6F773FC3BEC04EA3798D59F97C971A22A"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\sem\\xl6_sem_field_attrs.c",
+      "Sha256": "C8719BD2C7A621075EDD3DD9AF5A56CFAF923490B2382A186F6D6EADAC1D95CC"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\sem\\xl6_sem_field_attrs.h",
+      "Sha256": "8549DCDE01FE8F53EAE2F809DD1E92D73D265923D8E604E44D705B00B21C4646"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\sem\\xl6_sem_special_collection.c",
+      "Sha256": "2C002DB34DB08AADA3306F652B31AB6F35B72880F75755B8319637CAFAC63FEA"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\sem\\xl6_type_registry.c",
+      "Sha256": "A0C37403F28D8A29AC4589E1DD78344A0D5FA2C8051BA2EAD0209B9E0A228583"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\sem\\xl6_type_registry.h",
+      "Sha256": "F5967CCE13C1D6051CF0C5C716E422E2865C69C5FD3451B39CBAD95E642CD8A3"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\stdlib\\xl6_stdlib.c",
+      "Sha256": "6B1FF43AD02EA9730107B3C7600B2A3E19F089617806008557229CEF82534B86"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\stdlib\\xl6_stdlib.h",
+      "Sha256": "6290B8DE91A252047E6F13FAFA14F18C185B68798D9B95F6999CD1822A2DA739"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\stdlib\\xl6_stdlib_data.c",
+      "Sha256": "2A96383A4AF937389CCE1613180F0A8EB75328DCEBB7C0632E3C61D5F1F953AA"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\stdlib\\xl6_stdlib_data.h",
+      "Sha256": "4680D509FA7413B189F2C0EF699C9FB19E8F0947FD1998CD87BF6B01B641E6DD"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\stdlib\\xl6_stdlib_deps.inc",
+      "Sha256": "E66042A077B1382464172BF288EA92672CD5348DFEBF08AF76389749C7DE93CA"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\stdlib\\xl6_stdlib_func_index.inc",
+      "Sha256": "E16F24A73D951D05A129F2B0CE5054BB1358C89E5992A26F1E003D38FC0C1EB6"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\type\\xl6_semantic_plan.h",
+      "Sha256": "1253BFC1E127D2984737A74F53A91C692E12157B7588E6A189A1C22427259869"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\type\\xl6_type_id.h",
+      "Sha256": "AE843F553BA8E4FEDA829A829C05FA5F524ABAFA2FC75946293F3ABEA012ACA0"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\type\\xl6_type_model.c",
+      "Sha256": "90C909BA9EA81B7D9F065CD8CE4DB440B03E81D80E28690A4B4035A6F5930022"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\src\\type\\xl6_type_model.h",
+      "Sha256": "AD3F7B7B3BE2C08FDE240BE4924EFDFB5F7420B8B85939FAA682BB64058FFD63"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\test\\cases\\xlir_public_source_driver.c",
+      "Sha256": "BE69ACB8F4DD94BE33BFAC4E07A3AFA7CB67E3C187676079EAE6C17183757E58"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\tools\\build_xlir_public_source_driver.ps1",
+      "Sha256": "0F0BE423BD4278394C9FACD50577601F730600C32754071B22F58D5B2F5D41D5"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\tools\\tcc_vfs_manifest_win64_xlc.txt",
+      "Sha256": "9E8C392ACD2DCD4E19A44241B5B684CB46F81AC0033D93D51B8CC55D1125A534"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\tools\\xlir_c_object_cache.ps1",
+      "Sha256": "3C4223B545C0D6903EA71628872B4A162ECEFA65DA5C78703C44B47DE9BFFABB"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\tools\\xrt_single_header_impl.c",
+      "Sha256": "1B9C2746AB5E7FAC41FBC133396D307D84A4EA6AE59CA8DE8BDE5E51817C1172"
+    },
+    {
+      "Path": "E:\\software\\w64devkit\\bin\\as.exe",
+      "Sha256": "88C5E6452EB95E6538CF9252D455BC8E5A7174F1FB26B423B535DE19F43669AB"
+    },
+    {
+      "Path": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "Sha256": "F643D0DF5081344D6AAE27A9C1E4567B1A5F621F964671E531563E34306F68BA"
+    },
+    {
+      "Path": "E:\\software\\w64devkit\\libexec\\gcc\\x86_64-w64-mingw32\\16.1.0\\cc1.exe",
+      "Sha256": "7F72D4BD3C82E5E38E71BBDEC88BD5A54A1F5473CE68431CC9EFD7E27C9F4A5F"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\include\\__xl_runtime\\xl_runtime.h",
+      "Sha256": "F0503CACFC2165ABD35A25F417A4B147126783DB355C81E1B62643EF709DEACD",
+      "Source": "D:\\GIT\\x-lang\\demo6\\release\\include\\xl_runtime.h"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\include\\__xl_runtime\\xl_extlib_abi.h",
+      "Sha256": "33B33F690EF8610749E399D612984B6D02F6140767D4B92BBB65B28A89FCA244",
+      "Source": "D:\\GIT\\x-lang\\demo6\\release\\include\\xl_extlib_abi.h"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\include\\__xl_runtime\\xruntime_decl.h",
+      "Sha256": "97BEE29DBA82A3BB9D6A6A05681B90F456B35EF74741E9AD08B6E6B784060CFD",
+      "Source": "D:\\GIT\\x-lang\\demo6\\release\\include\\xruntime_decl.h"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\include\\__xl_runtime\\xl6_code_owner.h",
+      "Sha256": "FF4C8FB7C2FF5123F7924B63043E7AC35780E8916F0411E91058014323AC64E4",
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_code_owner.h"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\include\\__xl_runtime\\xl6_continuation_queue.h",
+      "Sha256": "9A7BC6D6925BE1F64CDE5FE74A62321462B0D3100D727505570D339071693855",
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_continuation_queue.h"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\include\\__xl_runtime\\xl6_continuation_executor.h",
+      "Sha256": "842CDA00CF47D25E53FA883641FEAF46BE8DA97259B258B35394A1ECECA5FEDE",
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_continuation_executor.h"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\include\\__xl_runtime\\xl6_continuation_future.h",
+      "Sha256": "B4BEF2E32E7AD2A59B24CB63846F5EA08C61B9C2DB26215EF2B8A91FE26DB6E1",
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_continuation_future.h"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\include\\__xl_runtime\\xl6_code_lease.h",
+      "Sha256": "0BD6DC723D05AF879E7E4F748768D013BC52830BE315E92C7D99D75E06AA5474",
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_code_lease.h"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\include\\__xl_runtime\\xl6_ownership_scope.h",
+      "Sha256": "B39A647E5BFC9CC5C57847AE8B71B16FE2EE9208D619B794E268ED6BE93364AB",
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_ownership_scope.h"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\include\\__xl_runtime\\xl6_closure.h",
+      "Sha256": "D0A33EA164591C2718B2FBBEAD12FFBA37B081BC65EAABDB7238FB319FE886DB",
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_closure.h"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\include\\__xl_runtime\\xl6_cell.h",
+      "Sha256": "577A69BA84A7B732E0ADB1FD8FDB9FB8753056259009816DE9D5D31BD7B3F542",
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_cell.h"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\include\\__xl_runtime\\xl6_slot.h",
+      "Sha256": "4D168E8A3142CDB28C08C26422AC9A603898B09BAAEBD2B96EECD860692AF4EE",
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_slot.h"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\include\\__xl_runtime\\xl6_frame_storage.h",
+      "Sha256": "969BE4701D7125753DF45DC9694D67AD101E4D0FF6093C2E1D69377F21C7E641",
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_frame_storage.h"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\include\\__xl_runtime\\xl6_task.h",
+      "Sha256": "C340D8C000C1AB9EEC1B143BBFA533E13F64B5382F68455EF40354BAF011B369",
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_task.h"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\include\\__xl_runtime\\xl6_network_service.h",
+      "Sha256": "6ACB1B8E22F9064D939E1F21703D8D1071FD3AA65A904336FBD42BB34ACA2AD9",
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_network_service.h"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\include\\__xl_runtime\\xl6_capture.h",
+      "Sha256": "BD784222F8003BE784DD9C2AECDCDDF15F10BC77AFFE335D3F1A87EEF82E95D7",
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_capture.h"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\include\\__xl_runtime\\xl6_value_iterator.h",
+      "Sha256": "AB95AFD8B1F88EE31A7912227F8CE3CB03D46894B9FE349A9E0608403CF7D095",
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_value_iterator.h"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\include\\__xl_runtime\\xl6_future_callback.h",
+      "Sha256": "CC2187DCA372136AE0E4AB7C28712AD44A75259EFA484AAC4508DBDAF2BC4627",
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_future_callback.h"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\include\\__xl_runtime\\xl6_future_aggregate.h",
+      "Sha256": "523F9144ED62F66889B5472FC8B4415C899345D9305204956D4F543F9C4F8758",
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_future_aggregate.h"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\include\\__xl_runtime\\xl6_ownership_plan.h",
+      "Sha256": "8A4D48DA4392F9CD4A56272FD4CEAE69361897FBC791DEA49C374A2C5431EBEF",
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_ownership_plan.h"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\include\\__xl_runtime\\xl6_generator.h",
+      "Sha256": "B21DDCC609BE37BE608FD1EB3AAF320268CC6D7506F2D7F5BFC26E4659F9A44B",
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_generator.h"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\include\\__xl_runtime\\xl6_future_payload.h",
+      "Sha256": "41D62B04758E035324FF63E9158056C8D62D88992817B6B680C386FBB6047740",
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_future_payload.h"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\api\\xl_api.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl_api.o",
+      "Sha256": "35C0B1011F183874CA75818D12E81F94CBC03EA8B3FF5167CDC4EA8A92B45FA3",
+      "PreprocessedSha256": "87A283A63C921AADF72B318C61DFB89A2167FB5E03AD9FEF5B20F9ADC423063C",
+      "CacheKey": "398EC49F982742B28E8075465F6C2981EA15E029782359BA6918FF8EF9903BCF",
+      "CacheHit": false,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.599,
+      "CompileSeconds": 0.719,
+      "TotalSeconds": 1.472,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl_api.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl_api.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\api\\xl_api_symbols.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl_api_symbols.o",
+      "Sha256": "33417768E335B8078A85FC0192B83D2642388D468C69877D7E3744F279E6D299",
+      "PreprocessedSha256": "D151867EA2B9E429340B2719A8602F71B1F0F9ED28A72D895F9CEFB0AAA91D50",
+      "CacheKey": "3E3FD208DA995F7443905890FC5877A0EB54E2B3B202679F46978A2F62A7A8BE",
+      "CacheHit": false,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.147,
+      "CompileSeconds": 0.161,
+      "TotalSeconds": 0.362,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl_api_symbols.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl_api_symbols.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\api\\xl_api_path.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl_api_path.o",
+      "Sha256": "9AF9BFFD6F5F5221356BDB5342EC64F2AB8A39C8BFF446143E3082041174D668",
+      "PreprocessedSha256": "915DCACEAD6120CE650CBDFF94F949173ECB95DDED7E2B7647D208D0DEAC1ABB",
+      "CacheKey": "5E6B35151649EE7E270DECC84049478EFB4EFAEE5C214CA278C1F4E7C17AB05E",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.51,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.635,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl_api_path.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl_api_path.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\tools\\xrt_single_header_impl.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xrt_single_header_impl.o",
+      "Sha256": "5CD6F700CFF4FCD06B032D30199D1A4CED07C99B252F0D23B247492E69DC7929",
+      "PreprocessedSha256": "1869894FEA2117018503C149C968B24134D1184EF396C6B26A96A732DA032452",
+      "CacheKey": "31DB1FB29737256248228F0F951DCFF66A73F902D64692BEC84FDE0186994977",
+      "CacheHit": false,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.928,
+      "CompileSeconds": 9.978,
+      "TotalSeconds": 11.328,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xrt_single_header_impl.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xrt_single_header_impl.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\api\\xl_protocol_registry.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl_protocol_registry.o",
+      "Sha256": "E4CF9A7916665A5CF1272DCFF2A259771252C31DD51FFB13609970E06AD04EB1",
+      "PreprocessedSha256": "EB96F800BB40938FEC6C0E2FBE635445ABD44119F77F20E0B474E3263C7B9DE2",
+      "CacheKey": "D235F5C855707619B9DA5A6E2147E734B245A7AB05BB7B459BD6E4D7DBA506E4",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.077,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.114,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl_protocol_registry.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl_protocol_registry.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\api\\xl_channel_bridge.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl_channel_bridge.o",
+      "Sha256": "B46C661D6A98E7F1BD7F36E0D2869163E87E99226780006149EAC063CD737167",
+      "PreprocessedSha256": "94E438D0E050263BEED50344E7817C32D7D48AE81E3F57D5D06A2D92DED77210",
+      "CacheKey": "F8D518480F7E9BE23C8AE98F03E0D1764E6B53A6D6D11301CD9ECC15D718DD01",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.093,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.104,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl_channel_bridge.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl_channel_bridge.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\api\\xl_future_bridge.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl_future_bridge.o",
+      "Sha256": "E61C863F0376C9C8674BE01F9CC31D8D3FB659F89AA21B54B3A25AE085408992",
+      "PreprocessedSha256": "138F0418506BCDAD669FF8A7063DB228228F182FE15FBB567C21DE3F85B19CA6",
+      "CacheKey": "CBA04B6F313A2EEF946A4C409A32E0AE0EA3AAA6CCB56A3C2A8396CC56D753B4",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.075,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.114,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl_future_bridge.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl_future_bridge.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\api\\xl_task_group_bridge.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl_task_group_bridge.o",
+      "Sha256": "5D3C9D87171CD5213E15A0D053D99644252108AE52D1D70D15345974A3799FBD",
+      "PreprocessedSha256": "1B267598CE165E6A675244B77AE8A2282DBF6886BE800B55FD7F7BA1EA0649C0",
+      "CacheKey": "3258B593F5BE0A22F32D52AB0F4156B109C87FA699F04A0841D19361773ABDFF",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.093,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.129,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl_task_group_bridge.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl_task_group_bridge.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_continuation_queue.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_continuation_queue.o",
+      "Sha256": "0A473ACF2A6DA06B9F3AF2944655635A92B2CC7F429C7DCB89EDF11795DEA463",
+      "PreprocessedSha256": "63AA6C64D0DAB8532C4EC52A32C6381FB1938DDDA08CB5D79346A54653D9CE34",
+      "CacheKey": "46E2ED1855ED3DC8D365962CB0CFACD2BD9C8433E219E40573134DF9FB1E03DC",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.155,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.168,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_continuation_queue.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_continuation_queue.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_continuation_executor.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_continuation_executor.o",
+      "Sha256": "08E0193E70C0B9479F7CB90963D8AC0EAE0FA783AE219A892310D7C7D1B3318B",
+      "PreprocessedSha256": "841E0BE2CD97470D11DE9E36C793AD560720026DA02422FFF40668CE0EF66A14",
+      "CacheKey": "DB5F765241B8C0E02590E688F40B6CBAB7BE9FF2B9B8E368E865A849EE1761D2",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.162,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.175,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_continuation_executor.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_continuation_executor.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_continuation_future.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_continuation_future.o",
+      "Sha256": "9698BD5D572BF07EF16BB4DB63BC17A6C64E89B38796C831F4A20DBB6D7EA6C2",
+      "PreprocessedSha256": "521472E27ED18F105BCD05607F0C3FC56CF15D0C3A098B17F48A864E355F0456",
+      "CacheKey": "034F050C78D1066C88DF4E52234E441B153225B1C2B73FF02F0735A630A7B992",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.161,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.173,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_continuation_future.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_continuation_future.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_code_lease.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_code_lease.o",
+      "Sha256": "D29C5158F1F46BC403F7205FE67FC31D82D550085E4EC43ABC55348D22A7EEE3",
+      "PreprocessedSha256": "E20B3851D82E5BC93FDEFD7503B286AA0DFE2C7805BEEADB01A53E23373DEF7E",
+      "CacheKey": "F1C893C36D4ADAB4C6E6A516090E5312CE60F4926DC42AF056D118EB2A4F680A",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.155,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.167,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_code_lease.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_code_lease.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_future_payload.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_future_payload.o",
+      "Sha256": "2CC80B70197B1CD0973C96546FA661772D449F0955DEFABD50D5346E3169FF16",
+      "PreprocessedSha256": "18D2EA612EE49E1182DE3A49A5F97104FF9619BDB3AA97D6208884EBF1884654",
+      "CacheKey": "E3EC4D75D54BAF760C178F8F4AF33A8E5097A4FB3D21E5D9C4FFA8185D62098A",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.095,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.106,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_future_payload.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_future_payload.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_ownership_plan.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_ownership_plan.o",
+      "Sha256": "3818D3AD89656299A80F77974FA8B0BA33D0509A5948CBC57C10D2174CF13D1A",
+      "PreprocessedSha256": "9CBBC3BF62C47FBB8554E20977D30286AAD60D8E4A628B6FA1BA333003868C9B",
+      "CacheKey": "4CDAE036A155F882B1FCBBDA3570E0CE80CB24D63B73B857CC59C2D48FCE30BE",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.099,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.112,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_ownership_plan.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_ownership_plan.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_network_service.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_network_service.o",
+      "Sha256": "F3A266DBE5B5F423DFE7894529BB8A045CBFC6E5C2F52058EAC406A7940592B5",
+      "PreprocessedSha256": "8230554BC1F283411E3E1FBCFF185EEF438FD4D1C985AD7D98802A0EF82E33F1",
+      "CacheKey": "FEC952F9D9A00589EE8A14E7AAA1E78C7853223F1042787A4A7AA3D080C6D5D8",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.117,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.152,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_network_service.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_network_service.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_code_finalizer.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_code_finalizer.o",
+      "Sha256": "C95030CC13FEEF4E0A11A09673C2AD892FB924FCFBA5A06F6C68238616F5FEB6",
+      "PreprocessedSha256": "1D77337679916DD9C6F92068C18CA1CF5CF51F6C8E10484C34B9297B51AFCD56",
+      "CacheKey": "6F4FEC69D38FF897BE4ECEF203301AEFDC6C8246B7B7930A2A51E2AD3FD3CA35",
+      "CacheHit": false,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.154,
+      "CompileSeconds": 0.063,
+      "TotalSeconds": 0.231,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_code_finalizer.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_code_finalizer.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_closure.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_closure.o",
+      "Sha256": "A90F7AF47EFA165B30664141B1DF62C37DCD3A6B3BC0762F0302136F77FE22D0",
+      "PreprocessedSha256": "8CE3274C2D2A074345ECD2E85E277602DEAF2E451EF65A73EF09BE55CDF4A083",
+      "CacheKey": "525C2CD1C5E78F9A51633A639236CBCD6E338E78557B8C168B531A2823419B5E",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.17,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.186,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_closure.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_closure.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_cell.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_cell.o",
+      "Sha256": "E2DCFA751F5245320D5622AB4FCFE6DB1323723CE6D3B37EA0AE6733F459CB14",
+      "PreprocessedSha256": "02060E68F59804ED03E6F4A77B45F98640075EDB8224AEB76B69A7F9A435DDB7",
+      "CacheKey": "F229DE25BACA2D610DAD569F2DAAED3E34EC2F4459B4ACEA7EEA93DE37D58E9F",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.175,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.189,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_cell.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_cell.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_slot.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_slot.o",
+      "Sha256": "B0A2DDE63296C63B36C1F97491DE3F214E524F355BD10A370F47CF79651D204A",
+      "PreprocessedSha256": "D47AAC6D3274E2BB78A19BD56F63FCAC17E381E18DA5652F5E5C2A206C03DE8D",
+      "CacheKey": "887AF0A8EA83105EE5B562CE53067C633A3BBCB447A2D71450EEFA5817018C88",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.158,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.17,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_slot.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_slot.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_frame_storage.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_frame_storage.o",
+      "Sha256": "62217B6DFD9CD7CFFEB4BE118A22E0D699A801457060DB4780702C5875E486DF",
+      "PreprocessedSha256": "82BC81E031629A82D824B88C5957289ECDDE397016E398E4C84C47B39A110A1A",
+      "CacheKey": "DDC5646BFA616EF9B6F4F67773385CFCB760DC3142364D0D9E09B3F44007461F",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.158,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.171,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_frame_storage.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_frame_storage.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_continuation_frame.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_continuation_frame.o",
+      "Sha256": "91847F4083886C2BD5BA1DDD1C332EE41F75F7F31E77663EAAAC06E878714EDA",
+      "PreprocessedSha256": "2E24ADA7EB4822E651C8B46BA2A4A4E6763743B3C11CE67808068CFF2344928D",
+      "CacheKey": "8046CB463D3C04A7EA0A6C27EF819948EA31F12362C96028482FE5DE3D3AFE51",
+      "CacheHit": false,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.175,
+      "CompileSeconds": 0.096,
+      "TotalSeconds": 0.292,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_continuation_frame.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_continuation_frame.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_future_wait.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_future_wait.o",
+      "Sha256": "FD19DBF89EB22B363CBAF2AB6940360E74C573F7286CD46EED5A7E185E389F0B",
+      "PreprocessedSha256": "EC2A944F90900EB38445DB21E71CFC20F23E6E8A8424A107E922C117258D89FD",
+      "CacheKey": "0B4D9F4595361B8276B5A78CC38903F0787733F56F30A2A97554F82B95D095E0",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.094,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.106,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_future_wait.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_future_wait.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_task.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_task.o",
+      "Sha256": "19008765921BA4100613BAD68B0827AC4B0BCC4E37A49E38A481776488D4F776",
+      "PreprocessedSha256": "327171455CDD401303FC9B6A60698A6921C70BA45FB0724E8E8F6C5AE2218D28",
+      "CacheKey": "1A87F44611D3D818D770D64E547659E09DD589E8135FF4EFDEEBE16630047E2B",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.16,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.173,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_task.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_task.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_capture.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_capture.o",
+      "Sha256": "A6630E145D5528DB30ABA6B39E246CFAEFBE15DD07F34D196DD3F4DD281326EA",
+      "PreprocessedSha256": "4334CCE1ECEA4A5F6CD82319C006BE214BADA05FEBEBE7CFB4CB2BD8DBCB00D5",
+      "CacheKey": "D335EC82180BA80C6C8DEACF6504777ABA97D4BA39FDFB8BD2B5F70AA6C9C71D",
+      "CacheHit": false,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.101,
+      "CompileSeconds": 0.064,
+      "TotalSeconds": 0.178,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_capture.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_capture.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_value_iterator.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_value_iterator.o",
+      "Sha256": "A2C315BC11566242733489329A821CC85374D1137342C244A5E9A5B7B537676B",
+      "PreprocessedSha256": "693BC3D1BD828948A52C3E4E1BAF4411EF9AB14435989EC283DA3D806B9F663A",
+      "CacheKey": "BE302AEFFADB224590FA602866D4160AA02B19883C4E91D292E115941DDA0D50",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.151,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.164,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_value_iterator.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_value_iterator.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_future_callback.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_future_callback.o",
+      "Sha256": "B42531D2D2E2019895A03495C83BE29C622E53F572CD8BB373A5519B9A2CD3C4",
+      "PreprocessedSha256": "F611E28DC0B45BD7B15B3BEFDA5BF39BE0A7933C263231666E24481E45E87348",
+      "CacheKey": "1CC0DB4CE0E0B6A158F6FB6CBE3D064EE7CCC9F6CCC2C18E28EBECD2E648C9CC",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.153,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.166,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_future_callback.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_future_callback.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\runtime\\xl6_generator.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_generator.o",
+      "Sha256": "3B6DE9FDB3AF3D891BF037F4B7B20E0DC1311D25CB9A2FB31280FA65A97AFDFF",
+      "PreprocessedSha256": "385FEB322283F1212BD49257C7E01372AC0708F58BD6C9E769A41D2171EC3E00",
+      "CacheKey": "30C97BA0036D1E80AFEB08A3FE7940222B8E99CA520DFDBB917FF6AC15174184",
+      "CacheHit": false,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.154,
+      "CompileSeconds": 0.108,
+      "TotalSeconds": 0.275,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_generator.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_generator.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\abi\\xl6_abi_dump.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_abi_dump.o",
+      "Sha256": "08A25CCC2269C4FFFC2BA0ADCF858841C8BB017A1E1DCF0A829B5BB69C16E1A6",
+      "PreprocessedSha256": "EF9A4D9EDDE1486493C17732A47667F3E15BA687A45F66EE0668C30FE03EC965",
+      "CacheKey": "82D1742C7BC490EB3508CA144EDCA0CA95A5FB7A3276E99D2222EE37D71C5710",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.125,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.162,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_abi_dump.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_abi_dump.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\abi\\xl6_abi_json.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_abi_json.o",
+      "Sha256": "1F86D03F0DCBE6B9D97F1D38C42913EEC181439969C96A9BDEFD0BAE88A9F939",
+      "PreprocessedSha256": "9916A30821DB32BA3A4FF6F67353B2B5AAB0097A339495AC41AAFBF09BBF2B20",
+      "CacheKey": "75FF861B2D9A1829E9DD863F18F18FF4007CAF2995591CC3584D33CE9FC36079",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.12,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.153,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_abi_json.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_abi_json.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\abi\\xl6_callable.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_callable.o",
+      "Sha256": "F69D854FF76FEADC04EAC2621251DCA39733B111DDDA02D602874F9292872AD2",
+      "PreprocessedSha256": "19CF24A972AD2A36F2231CFE88A973AFEA110E8FCAF8660F48B9A06725222905",
+      "CacheKey": "CEACF44836EC56E6385E9831BFD07918F9BFE221E8C2F0AA85981341FF66A03B",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.117,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.172,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_callable.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_callable.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\backend\\xl6_build_backend.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_build_backend.o",
+      "Sha256": "0E855E81A480F755AEA4D09461BA1559EFBBFDD84FCE0B879CD94A0FBC432D68",
+      "PreprocessedSha256": "0FB480A750FF97505E86F54B3515A916879B63A25DC6638CCFF211C1D8AA3598",
+      "CacheKey": "244A3D2488B72195D6561D5B5D547116F51302C1F1B3128185A8B447CCF9036C",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.035,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.044,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_build_backend.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_build_backend.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\compile\\xl6_compile_unit.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_compile_unit.o",
+      "Sha256": "E687CF4B7419257BCE4023A55FB132D1604FBD697423F21B7094E131BFDA02FB",
+      "PreprocessedSha256": "C840E28B9165AEF6D370886FD49789E8CF62A1C22C08E9752FCFBBA3012517ED",
+      "CacheKey": "41F0128AEBBC6D8D54962C4C35CBD207F29992809695CE729FFC7AD1C4C51BCD",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.139,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.186,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_compile_unit.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_compile_unit.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\compile\\xl6_imports.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_imports.o",
+      "Sha256": "F54E2C4D7C109C7E352941081721BC3C895557FDD86364D51D5D95F55EB5311D",
+      "PreprocessedSha256": "3B7640CDDA910358AFB70E98B750F00C71D43619CF9735A3DDDFB0D5F17C0E01",
+      "CacheKey": "929777E0A2BFF0913012164A904C5B2C0D5F8472FC3AD0601AB91BB93C41EF72",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.127,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.167,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_imports.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_imports.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\compile\\xl6_xrt_trim.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_xrt_trim.o",
+      "Sha256": "CD032BAA1706D8E2A7799901018E8FDB8F61E8B7A4842E68CC91443A97946F5B",
+      "PreprocessedSha256": "CFF2A568B018E464027623231311425A155389E51F91C9DAF034664BF6125A25",
+      "CacheKey": "DD60369E94091933F0A6C087844F1D2EF027CDADA10A81F125CAD0AA9592290D",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.122,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.177,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_xrt_trim.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_xrt_trim.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\resource\\xl6_win_resource.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_win_resource.o",
+      "Sha256": "B7320330CB95C0296DB24811EDE969D519755431C1E52D2F997E538DB26D376B",
+      "PreprocessedSha256": "BCB22CA479C85616C65A0BE6D3141F2D8DCD75D83022F003560335013739CC47",
+      "CacheKey": "285745258132A072AFE896A5DBA63CDAEB17009F0EA66832232CEDB71952AFC6",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.128,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.165,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_win_resource.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_win_resource.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\package\\xl6_package.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_package.o",
+      "Sha256": "0E85526F0804B93E0EDE9AD87E1B67BA6375A1F859B8D0492F3EE6E1EBF26126",
+      "PreprocessedSha256": "865016D5E80EBADD1A35744A8211495EBCFF69F35D3BDE6FEB2B1E83598AA9EB",
+      "CacheKey": "98019D5222153965E2228C0704FD795795ED0866D40BF631F26FA4B3F94A1F1C",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.126,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.163,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_package.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_package.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\ast\\xl6_ast.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_ast.o",
+      "Sha256": "C7AE4D0ADE7A9F165EF605DEC9C9B29DDAECB332199193C2DF76AF4FD89173D7",
+      "PreprocessedSha256": "49B4ED86A0962649B7D669D218961AEB913CBD9466D8112D341B2985F1E8972D",
+      "CacheKey": "196AD2098CFF4135A1888A3C4C2559FCC96854D2AEAA5890385093F9BEC90830",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.116,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.148,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_ast.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_ast.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\ast\\xl6_ast_dump.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_ast_dump.o",
+      "Sha256": "6AC2D86F3B25D634C2ED8EB829E2515145D29331CF6F33C4A6AD188EB8AF7303",
+      "PreprocessedSha256": "C1D49DB44C3B26E8AD067C1557EE09FCB4AAAD1B6602BE570BBE5BD980ADBF83",
+      "CacheKey": "CF9F55CD804E4B76D9F36F466462E98629BF5EB1A411FDAB533C90E366B0207C",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.119,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.175,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_ast_dump.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_ast_dump.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\type\\xl6_type_model.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_type_model.o",
+      "Sha256": "1BE9D84E8ABB16B294A90EE034EE740AB49A64E2BA56C802F636A01B860BEE56",
+      "PreprocessedSha256": "175F64F0778819198506F7AFB6434D308D06BC0E771117FBCB923FFD48FFF0C4",
+      "CacheKey": "6CCCD53CAC02122F6B9879A07010A42695B2E7F01EA2C1346F95994701FE0F7A",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.116,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.15,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_type_model.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_type_model.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\ir\\xl6_ir.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_ir.o",
+      "Sha256": "C199AE53D0D66219D7D2D0A8FFE4C0E764178467BCF3FB391BD0A9028BA1F2CE",
+      "PreprocessedSha256": "48F77894068DF7DB763FF97021744C34539292051854DFAFE2800C5D4CC9638D",
+      "CacheKey": "8559D9C840133301A74194209204FB121843A183850FCFA774692AB8D97E9093",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.217,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.336,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_ir.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_ir.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\ir\\xl6_ir_lower.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_ir_lower.o",
+      "Sha256": "C16A124705828EFE0E0A5B8C763F3CF40FD35C29B1DCB7301D51359029F9E5DD",
+      "PreprocessedSha256": "B8C3A216BA6B7DBA8B1123023300AAB6B7AF2AF168042DA836C5070E103B3472",
+      "CacheKey": "71CC794FA9E798986EF50DE50A51678DB1FACF17305F14150F87D6E56481D438",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.183,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.273,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_ir_lower.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_ir_lower.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\ir\\xl6_ir_dump.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_ir_dump.o",
+      "Sha256": "4B90A6148BE85BBBFA9AD5A3D9E722B490DE05F1479DC9814E04EFD13FC66EAB",
+      "PreprocessedSha256": "9F8EC3299C25FE96E5059921744CF1E36CE9D5539BAC8D7B7C2BDAA53A501D70",
+      "CacheKey": "D65554EB690FB040C11E3C15606CBBFDE151EAD040C0E55EAD2BC8BA4C02025D",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.122,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.157,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_ir_dump.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_ir_dump.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_ir_cgen.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_ir_cgen.o",
+      "Sha256": "05694F8FC989DB52B30286E06BE9CB17EB3094F608A742060499E3A270265BC6",
+      "PreprocessedSha256": "8A07A709BAA644C7A0975E62B7B4299B2CDA4249F08B2E1C4740133602DE506B",
+      "CacheKey": "F64E8527DD00DA1CB8D5658EC73FF2F5A9DAE7050AA224DABC0239863FE7563F",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.184,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.284,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_ir_cgen.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_ir_cgen.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\cgen\\xl6_cgen_shared_runtime.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_cgen_shared_runtime.o",
+      "Sha256": "4A33E38784D8C9861E08D33375579804ADAF00275DF54AA62B29DE77B2BA7920",
+      "PreprocessedSha256": "A67ADA9DD715DCC5C29D13F2FDBA717B643A7C6B2722158A903C6F2077B2FBA1",
+      "CacheKey": "A02EA7B9942BA78DFC107E6A99140F2E738526999C1B995D8E4B0472D9786557",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.128,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.167,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_cgen_shared_runtime.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_cgen_shared_runtime.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\diag\\xl6_diag.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_diag.o",
+      "Sha256": "E7E03D1B74A55BC2A3530EDE328FF4025F10C3AF1B0228818974F525754B7BEB",
+      "PreprocessedSha256": "A67C7507B072EFD1E3FC74FB7E93C7EACDED54D7B646C0A0A025C2AF15710FEF",
+      "CacheKey": "FB0862A8CBE06E1622A5A9F14972014EF17CA1D334AAEB61560238044FFD33F4",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.121,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.156,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_diag.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_diag.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\common\\xl6_output.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_output.o",
+      "Sha256": "279D35D166FC4EC1A79166A0602006A9694AB26D2131B9C752CCB0897A7FB5AB",
+      "PreprocessedSha256": "7A24E92CFCDE361C4416D69F5D5FD749F00A91E616EB61145350B93B4ECCA89C",
+      "CacheKey": "EA09D5B0AF080C49978ECD9B024BE8551EFAEE301E59FE882DD42F991265ACFB",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.123,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.158,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_output.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_output.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\common\\xl6_console.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_console.o",
+      "Sha256": "2CC818A00E635FF770CDFCD11C14D8F454547ED0AE389C9BF89C5078CCAB261A",
+      "PreprocessedSha256": "27B3693ACC82214845421907B396CA7120BD0C23B6BB87FB3659A1A33074E563",
+      "CacheKey": "F0B76B83D93C42AF4FF1BB0E29F3F2197655AE70D7C57BEE4C72E5B76AEAD2C7",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.12,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.155,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_console.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_console.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\lexer\\xl6_token.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_token.o",
+      "Sha256": "BB949F5CDA5816D8FDE5515D9C9FF5BEE3D8FD92506844B329E487BBA03FFE3F",
+      "PreprocessedSha256": "AE6B04978D41E1B9CAF13A9E310DB550C70314F94DC647F1453735C3D8CFC338",
+      "CacheKey": "595A5DB6CF7DD1A8F6C4BC12D9C7B972870CC61C80F99DA4A559D0C7D27FA365",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.115,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.147,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_token.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_token.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\lexer\\xl6_lexer_api.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_lexer_api.o",
+      "Sha256": "A91676DA846671758FE7D14A5365152C035289A6F6B157BFDCD8F70AC49FC65A",
+      "PreprocessedSha256": "4A0193EE969CED2DA4321318F16844C891A0213976720775239BE9859D38F5BD",
+      "CacheKey": "AABFC2450D69973342E0E501DB235601FE665E0DCB25AE1ECB5BC3B8E6B29334",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.132,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.167,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_lexer_api.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_lexer_api.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\lexer\\xl6_lexer_gen.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_lexer_gen.o",
+      "Sha256": "46CF52528319CE694A061C4663EFCA91958475098A62721679D4F4D4A944951A",
+      "PreprocessedSha256": "042C08E7FD1589600BA76AC4858A3E61EB231662964FF359ABA9074E3158DC86",
+      "CacheKey": "F85A092C321655E02DB32524224D226A49BB5D1162255E8B4C423823F7C9E51D",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.133,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.171,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_lexer_gen.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_lexer_gen.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\parser\\xl6_parser.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_parser.o",
+      "Sha256": "41B2F72FEDEB4BCEE97B57DC08A617F887F454F386502C1E7BA230A1F5C56302",
+      "PreprocessedSha256": "E56828918B2671FA48D134D572FD71982F279EA4628D6C6681BEA47B2A7D0614",
+      "CacheKey": "A36D003A29434FE082A1749FFB07AAC60372A2F8E5B69276CA29E8D43C560D34",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.131,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.173,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_parser.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_parser.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\parser\\xl6_parser_api.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_parser_api.o",
+      "Sha256": "E78D69B789208EB183AE903B7B78203DB0C1ED0E538FDDDFD3553A2BFD2CBE5F",
+      "PreprocessedSha256": "3F74FE0534663DF896A91032F01E6FEDAA0AB179B8F07355704483F0E42C9D45",
+      "CacheKey": "4603214E8ED7BD3399A784A29A38FD39F112DC447488DBDC5143769277BFE622",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.129,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.165,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_parser_api.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_parser_api.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\sem\\xl6_sem.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_sem.o",
+      "Sha256": "F4D328E5C78DE7D5DC4DDEC31199D4BB138EC89F437BF1EF7AA28BED4D82C3F0",
+      "PreprocessedSha256": "A02DC6063139EBA99F8CF4D6B1C23757A4AA5431BB8E1BB838FEB17EC2393522",
+      "CacheKey": "62549C29300C057B44A943C132738933F914E215CCB7FFB96DF794CE6D3557F6",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.162,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.231,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_sem.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_sem.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\sem\\xl6_protocol.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_protocol.o",
+      "Sha256": "F48317B3C7166A9C9611E69052935571D99BAF9A04B27A75BB01F325E78AFA16",
+      "PreprocessedSha256": "1A315CE698847E6D567F40D142547082483FA5F04F1A8917C288A779D9F08434",
+      "CacheKey": "5F842CAE2ED4959169862E20F2DCAD56AED58946FEFA0B70F71B87099FBDD990",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.031,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.038,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_protocol.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_protocol.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\sem\\xl6_type_registry.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_type_registry.o",
+      "Sha256": "921B0E204682C0EF166D63FAC0FDC10EBFCB1B7A58875AB31311BF2D7C737634",
+      "PreprocessedSha256": "B16EBA7BB0DAA66A5C06DDEDBDA0E13356C1B3A79ABFD3334AD5FF4844116BA8",
+      "CacheKey": "6D97EB3637B61F6936E9863EEA0321149F2E70FBB640D98C2023B7B62366C5E9",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.122,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.157,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_type_registry.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_type_registry.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\sem\\xl6_sem_docs.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_sem_docs.o",
+      "Sha256": "C085FE3F7B15E2509611666D708E65D6D1B035A568EE36DEDD04F64B729F7316",
+      "PreprocessedSha256": "8A48EA2011A06D343725DE00AA418BEBC709B8208BD42EB6B59F9F79181C1113",
+      "CacheKey": "63307B2AAF5A806764972669E26F14C8059CF4EDAC4CE76FEDAAFAB178A47BF7",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.121,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.156,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_sem_docs.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_sem_docs.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\sem\\xl6_sem_field_attrs.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_sem_field_attrs.o",
+      "Sha256": "1B4D515C22F14B4B5CE07B19B03D080069521E40EDB0E1ED76B2DC204FC35C92",
+      "PreprocessedSha256": "B41E5A2134185571FE8B518E9314C796747445E849C01C0F546E82AB03EBAB2C",
+      "CacheKey": "780E349AFEBACF1EC1AE011115A70FFE558C060DD6CAFB5C4E2A8736436C244C",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.126,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.164,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_sem_field_attrs.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_sem_field_attrs.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\stdlib\\xl6_stdlib.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_stdlib.o",
+      "Sha256": "A07A1B5022FEA4677F2EFDAE2C864A71139270057F64F43338C23A5C347E4F8D",
+      "PreprocessedSha256": "41E8214115CA1A425D5ECD3A030FC4CA4FFC65ACDBEB4788C19A4A0CB69DD716",
+      "CacheKey": "C391045232B07065A80255DCE01E16A1E22DFBB6FE98434CC50BAAB68061D975",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.125,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.162,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_stdlib.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_stdlib.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\src\\stdlib\\xl6_stdlib_data.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_stdlib_data.o",
+      "Sha256": "E662004C95A9115B25735D44B20DC2A57C7A4E3F96ACF36EA5E88CFFFC777C49",
+      "PreprocessedSha256": "2E79CDFFBD7BB62A4B6E3493789104C96933D527464CE2BEF2600A74977E0D70",
+      "CacheKey": "7FEFAB9255B355221AF19787C91F32C3BD55DD0898D7B6093713468B62A29669",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.126,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.173,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_stdlib_data.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xl6_stdlib_data.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\test\\cases\\xlir_public_source_driver.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xlir_public_source_driver.o",
+      "Sha256": "7ED63575C1C1EA2D5F7C67A148368D156F00D7E2303D884B28DD8AAB61BEBB0F",
+      "PreprocessedSha256": "6287E583E85FE216D673BB1C48AEA91723E68DE4113F987CE587401C2D0A2502",
+      "CacheKey": "761D5E8A59B724743640E9CAF87E3DC63A3B24F96CB8386305003F98E7CE3404",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.402,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.492,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xlir_public_source_driver.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\xlir_public_source_driver.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\tcctools.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\tcctools.o",
+      "Sha256": "BE7D7773D22B54BD21D5632B83BF6091C8C07A499578D59B6B64DAA66074D89E",
+      "PreprocessedSha256": "438930A22F69FBC5B0C9A04C1A24CB63B5BF8A54C08CBBC245FE339C903A0CF4",
+      "CacheKey": "912A02A705541B136755BB53AD200F2D41A69CE546B9C6CBD3023D2A51959F71",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.281,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.349,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\tcctools.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\tcctools.compile.log"
+    },
+    {
+      "Source": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\tcc_utf8_io.c",
+      "Path": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\tcc_utf8_io.o",
+      "Sha256": "8D32F963B811D1641C82BF2A7F24B7C2313824B849027790424F11690315FBE0",
+      "PreprocessedSha256": "FF1148F6EC001EC06B0218C6E29CFD1E22D62670EC27F3DCA8548025065810AA",
+      "CacheKey": "3EF3DD6603CD893BAC1ED15A3C4C21397721E0417E18D90116BA7DEE6A4BAFD9",
+      "CacheHit": true,
+      "CacheRejected": false,
+      "CacheEligible": true,
+      "PreprocessSeconds": 0.396,
+      "CompileSeconds": 0,
+      "TotalSeconds": 0.49,
+      "PreprocessLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\tcc_utf8_io.preprocess.log",
+      "CompileLog": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib_native_contract_20260927\\public_linkage\\tcc_utf8_io.compile.log"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\test\\cases\\xlir_export_transaction_contract.c",
+      "Sha256": "FD2BE1163A296CF26E33FCEB4A433A0BB98DB0907988CEF6FBF80204E0337E90"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\test\\cases\\xlir_export_transaction.xl",
+      "Sha256": "613C9BCA84A4ADFDD1DF25A3A39DC6084706884BD7C5CDBC807BBC97B681D0F5"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\tools\\extlib_smoke_process.ps1",
+      "Sha256": "87C3D050B1F492E3F0C4307BA39F454E42B65E37DBCDEC4BE3E938BC2F32D2F7"
+    },
+    {
+      "Path": "D:\\GIT\\x-lang\\demo6\\release\\xl.dll",
+      "Sha256": "2A07C481C04CAD71D31D46722A27E62027318DF24E95A63126E061FD4CA46902"
+    },
+    {
+      "Path": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "Sha256": "F643D0DF5081344D6AAE27A9C1E4567B1A5F621F964671E531563E34306F68BA"
+    }
+  ],
+  "build": {
+    "status": "pass",
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": "",
+    "elapsedMs": 312
+  },
+  "run": {
+    "status": "pass",
+    "exitCode": 0,
+    "stdout": "export error contract: 26 missing/mismatched transaction mutations rejected before C or header output\r\n",
+    "stderr": "",
+    "elapsedMs": 53
+  }
+}

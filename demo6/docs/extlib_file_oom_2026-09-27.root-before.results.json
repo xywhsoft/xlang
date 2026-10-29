@@ -1,0 +1,48 @@
+{
+  "date": "2026-09-27T17:24:07.1999677+08:00",
+  "scope": "Root-relative open allocation regression before repair",
+  "arguments": [
+    "tools/build.py",
+    "--suite",
+    "file_root_allocation_tests",
+    "--no-single",
+    "--no-examples"
+  ],
+  "inputs": [
+    {
+      "Path": "D:\\GIT\\xrt\\src\\fs\\file.c",
+      "Hash": "ACBA25628503C79E4C529361E4F771EE989C6AE0DE19C0EBDAAB628C505A9047"
+    },
+    {
+      "Path": "D:\\GIT\\xrt\\src\\fs\\file_root.c",
+      "Hash": "E4EA110D0BAF44850D64D84A1546EEBD82BC06A1E81ADD4EE9D0262426FDC40E"
+    },
+    {
+      "Path": "D:\\GIT\\xrt\\src\\fs\\file_root_posix.c",
+      "Hash": "8600E74E8672D8B367221CFDC584018486FDB739FFC6D137E536EDFA21372032"
+    },
+    {
+      "Path": "D:\\GIT\\xrt\\src\\fs\\file_root_windows.c",
+      "Hash": "255AEB2E9CCB7BD10BBD0710E130EAB03DAAEF38FE0DB38B541D185BDF416227"
+    },
+    {
+      "Path": "D:\\GIT\\xrt\\src\\internal\\xrt_file.h",
+      "Hash": "61E4F2F35FE541C703B5D5AA8A0BDD4A9233A882BF97C8D3F14339B495A5BE23"
+    },
+    {
+      "Path": "D:\\GIT\\xrt\\tests\\file\\test_file_root_allocation.c",
+      "Hash": "461A9FAFB0E299ABFEC7DF9C8C51572DD78F651F8F3C34C209BE042AC94CB671"
+    },
+    {
+      "Path": "D:\\GIT\\xrt\\config\\modules.json",
+      "Hash": "1B528D4D568CAADA7D56FE0C252074FE0191C9F8D4E4ACA209EBEC603153DEFF"
+    }
+  ],
+  "result": {
+    "status": "fail",
+    "exitCode": 1,
+    "stdout": "[reuse] objects=23 dir=out\\gcc\\native\\file_root_allocation_tests\\obj\r\n[build] E:\\software\\w64devkit\\bin\\gcc.EXE -std=c11 -Wall -Wextra -Werror -DXRT_FEATURE_MEMORY_DEBUG -DXRT_FEATURE_STRING -DXRT_FEATURE_UNICODE -DXRT_FEATURE_RANDOM_SECURE -DXRT_FEATURE_TIME -DXRT_FEATURE_PATH -DXRT_FEATURE_PATH_SYSTEM -DXRT_FEATURE_FILE -DXRT_FEATURE_FILE_TEMP -DXRT_FEATURE_FILE_WHOLE -DXRT_FEATURE_DIR -DXRT_FEATURE_DIR_TEMP -DXRT_FEATURE_FILE_LINK -DXRT_FEATURE_FILE_ROOT -I D:\\GIT\\xrt\\include D:\\GIT\\xrt\\tests\\file\\test_file_root_allocation.c D:\\GIT\\xrt\\out\\gcc\\native\\file_root_allocation_tests\\obj\\src__core__core.o D:\\GIT\\xrt\\out\\gcc\\native\\file_root_allocation_tests\\obj\\src__core__ownership.o D:\\GIT\\xrt\\out\\gcc\\native\\file_root_allocation_tests\\obj\\src__core__ownership_scope.o D:\\GIT\\xrt\\out\\gcc\\native\\file_root_allocation_tests\\obj\\src__memory__allocator.o D:\\GIT\\xrt\\out\\gcc\\native\\file_root_allocation_tests\\obj\\src__memory__heap.o D:\\GIT\\xrt\\out\\gcc\\native\\file_root_allocation_tests\\obj\\src__core__error.o D:\\GIT\\xrt\\out\\gcc\\native\\file_root_allocation_tests\\obj\\src__memory__debug.o D:\\GIT\\xrt\\out\\gcc\\native\\file_root_allocation_tests\\obj\\src__text__string.o D:\\GIT\\xrt\\out\\gcc\\native\\file_root_allocation_tests\\obj\\src__text__string_buffer.o D:\\GIT\\xrt\\out\\gcc\\native\\file_root_allocation_tests\\obj\\src__text__unicode.o D:\\GIT\\xrt\\out\\gcc\\native\\file_root_allocation_tests\\obj\\src__math__random_secure.o D:\\GIT\\xrt\\out\\gcc\\native\\file_root_allocation_tests\\obj\\src__system__time.o D:\\GIT\\xrt\\out\\gcc\\native\\file_root_allocation_tests\\obj\\src__fs__path.o D:\\GIT\\xrt\\out\\gcc\\native\\file_root_allocation_tests\\obj\\src__fs__path_system.o D:\\GIT\\xrt\\out\\gcc\\native\\file_root_allocation_tests\\obj\\src__fs__file.o D:\\GIT\\xrt\\out\\gcc\\native\\file_root_allocation_tests\\obj\\src__fs__file_temp.o D:\\GIT\\xrt\\out\\gcc\\native\\file_root_allocation_tests\\obj\\src__fs__file_whole.o D:\\GIT\\xrt\\out\\gcc\\native\\file_root_allocation_tests\\obj\\src__fs__dir.o D:\\GIT\\xrt\\out\\gcc\\native\\file_root_allocation_tests\\obj\\src__fs__dir_temp.o D:\\GIT\\xrt\\out\\gcc\\native\\file_root_allocation_tests\\obj\\src__fs__file_link.o D:\\GIT\\xrt\\out\\gcc\\native\\file_root_allocation_tests\\obj\\src__fs__file_root.o D:\\GIT\\xrt\\out\\gcc\\native\\file_root_allocation_tests\\obj\\src__fs__file_root_posix.o D:\\GIT\\xrt\\out\\gcc\\native\\file_root_allocation_tests\\obj\\src__fs__file_root_windows.o -o D:\\GIT\\xrt\\out\\gcc\\native\\file_root_allocation_tests\\test_file_root_allocation.exe\r\n[test] out\\gcc\\native\\file_root_allocation_tests\\test_file_root_allocation.exe\r\n",
+    "stderr": "[FAIL] root truncate allocation failure changed existing content\r\nTraceback (most recent call last):\r\n  File \"D:\\GIT\\xrt\\tools\\build.py\", line 992, in <module>\r\n    raise SystemExit(main())\r\n                     ^^^^^^\r\n  File \"D:\\GIT\\xrt\\tools\\build.py\", line 928, in main\r\n    _run(output, args.runner)\r\n  File \"D:\\GIT\\xrt\\tools\\build.py\", line 613, in _run\r\n    subprocess.run(command, cwd=ROOT, check=True)\r\n  File \"C:\\Program Files\\Python312\\Lib\\subprocess.py\", line 571, in run\r\n    raise CalledProcessError(retcode, process.args,\r\nsubprocess.CalledProcessError: Command '['D:\\\\GIT\\\\xrt\\\\out\\\\gcc\\\\native\\\\file_root_allocation_tests\\\\test_file_root_allocation.exe']' returned non-zero exit status 1.\r\n",
+    "elapsedMs": 833
+  }
+}

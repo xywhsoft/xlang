@@ -1,5 +1,6 @@
 param(
-    [string]$Root = ""
+    [string]$Root = "",
+    [string]$RuntimeDirectory = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -9,11 +10,12 @@ if ( $Root -eq "" ) {
 }
 
 $Root = (Resolve-Path -LiteralPath $Root).Path
-$releaseDir = Join-Path $Root "release"
-$testDir = Join-Path ([System.IO.Path]::GetTempPath()) "xlang_demo6_standalone_compiler_vfs"
+if (!$RuntimeDirectory) { $RuntimeDirectory = Join-Path $Root 'release' }
+$releaseDir = (Resolve-Path -LiteralPath $RuntimeDirectory).Path
+$testDir = Join-Path ([System.IO.Path]::GetTempPath()) ("xlang_demo6_standalone_compiler_vfs_" + [Guid]::NewGuid().ToString('N'))
 $xlExe = Join-Path $releaseDir "xl.exe"
 $xlcDll = Join-Path $releaseDir "xlc.dll"
-$source = Join-Path $releaseDir "examples\hello.xl"
+$source = Join-Path $Root "release\examples\hello.xl"
 $completed = $false
 
 foreach ( $path in @($xlExe, $xlcDll, $source) ) {
@@ -23,18 +25,7 @@ foreach ( $path in @($xlExe, $xlcDll, $source) ) {
 }
 
 if ( Test-Path -LiteralPath $testDir ) {
-    $resolvedTestDir = (Resolve-Path -LiteralPath $testDir).Path
-    $expectedTestDir = [System.IO.Path]::GetFullPath($testDir).TrimEnd(
-        [System.IO.Path]::DirectorySeparatorChar,
-        [System.IO.Path]::AltDirectorySeparatorChar)
-    if ( ![string]::Equals($resolvedTestDir.TrimEnd(
-                              [System.IO.Path]::DirectorySeparatorChar,
-                              [System.IO.Path]::AltDirectorySeparatorChar),
-                          $expectedTestDir,
-                          [System.StringComparison]::OrdinalIgnoreCase) ) {
-        throw "standalone compiler VFS cleanup refused: $resolvedTestDir"
-    }
-    Remove-Item -LiteralPath $resolvedTestDir -Recurse -Force
+    throw "standalone compiler VFS work directory already exists: $testDir"
 }
 New-Item -ItemType Directory -Path $testDir | Out-Null
 
@@ -90,6 +81,14 @@ end
 $savedLocation = Get-Location
 try {
     Set-Location -LiteralPath $testDir
+    $jitOutput = & ".\xl.exe" run "hello.xl" 2>&1
+    if ( $LASTEXITCODE -ne 0 ) {
+        throw "standalone xlang JIT failed: $([string]::Join([Environment]::NewLine, @($jitOutput)))"
+    }
+    $missingOutput = & ".\xl.exe" run "missing.xl" 2>&1
+    if ( $LASTEXITCODE -eq 0 ) {
+        throw "standalone missing input unexpectedly succeeded"
+    }
     $buildOutput = & ".\xl.exe" build "hello.xl" 2>&1
     if ( $LASTEXITCODE -ne 0 ) {
         throw "standalone xl build failed: $([string]::Join([Environment]::NewLine, @($buildOutput)))"
@@ -107,6 +106,9 @@ try {
     }
     if ( [string]::Join("`n", @($headerOutput)).IndexOf("public_vfs_headers=1:1") -lt 0 ) {
         throw "standalone public VFS header output mismatch: $([string]::Join([Environment]::NewLine, @($headerOutput)))"
+    }
+    if ( Test-Path -LiteralPath (Join-Path $testDir 'tmp') ) {
+        throw 'ordinary JIT/build must not create even an empty tmp directory'
     }
     $embedBuildOutput = & ".\xl.exe" build "embedded_xlang.xl" 2>&1
     if ( $LASTEXITCODE -ne 0 ) {
@@ -142,7 +144,16 @@ try {
 }
 
 if ( $completed ) {
-    Remove-Item -LiteralPath $testDir -Recurse -Force
+    # 仅清理本次新建且未被替换为目录链接的临时目录。
+    $directory = Get-Item -LiteralPath $testDir -Force
+    if ($directory.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+        throw "standalone compiler VFS cleanup refused: $testDir"
+    }
+    $resolvedTestDir = (Resolve-Path -LiteralPath $testDir).Path
+    if (![string]::Equals($resolvedTestDir, [IO.Path]::GetFullPath($testDir), [StringComparison]::OrdinalIgnoreCase)) {
+        throw "standalone compiler VFS cleanup refused: $resolvedTestDir"
+    }
+    Remove-Item -LiteralPath $resolvedTestDir -Recurse -Force
 }
 
 Write-Host "Standalone compiler VFS ok: public headers and embedded xlang runtime/compiler work without repository files."

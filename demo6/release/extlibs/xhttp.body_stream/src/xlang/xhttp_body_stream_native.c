@@ -109,7 +109,7 @@ XLANG_XHTTP_BODY_STREAM_EXPORT void* xhttp_body_stream_wrap(
 
 
 /* 释放生产端和正文工厂；最后一个生产端会自动发布 EOF。 */
-XLANG_XHTTP_BODY_STREAM_EXPORT long long xhttp_body_stream_destroy(
+XLANG_XHTTP_BODY_STREAM_EXPORT void xhttp_body_stream_destroy(
 	void* pHandle
 )
 {
@@ -122,7 +122,6 @@ XLANG_XHTTP_BODY_STREAM_EXPORT long long xhttp_body_stream_destroy(
 		memset(pOwner, 0, sizeof(*pOwner));
 		xrtFree(pOwner);
 	}
-	return 0;
 }
 
 
@@ -188,7 +187,7 @@ XLANG_XHTTP_BODY_STREAM_EXPORT void* xhttp_body_stream_native(
 /* 安全复制一段字节到有界队列。 */
 XLANG_XHTTP_BODY_STREAM_EXPORT long long xhttp_body_stream_write(
 	void* pHandle,
-	const void* pData,
+	void* pData,
 	size_t iSize
 )
 {
@@ -217,7 +216,8 @@ XLANG_XHTTP_BODY_STREAM_EXPORT long long xhttp_body_stream_write_text(
 	size_t iSize
 )
 {
-	return xhttp_body_stream_write(pHandle, sText, iSize);
+	/* point 的 C ABI 为 void*；写入时复制文本，不修改借用来源。 */
+	return xhttp_body_stream_write(pHandle, (void*)sText, iSize);
 }
 
 
@@ -399,7 +399,7 @@ XLANG_XHTTP_BODY_STREAM_EXPORT void* xhttp_body_stream_info_wrap(
 
 
 /* 释放 Info 快照。 */
-XLANG_XHTTP_BODY_STREAM_EXPORT long long xhttp_body_stream_info_destroy(
+XLANG_XHTTP_BODY_STREAM_EXPORT void xhttp_body_stream_info_destroy(
 	void* pHandle
 )
 {
@@ -410,7 +410,6 @@ XLANG_XHTTP_BODY_STREAM_EXPORT long long xhttp_body_stream_info_destroy(
 		memset(pInfo, 0, sizeof(*pInfo));
 		xrtFree(pInfo);
 	}
-	return 0;
 }
 
 

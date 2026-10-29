@@ -57,6 +57,9 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_guard_contracts.ps1
 if errorlevel 1 exit /b 1
 
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_foreign_effect_contract.ps1
+if errorlevel 1 exit /b 1
+
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_source_encoding.ps1
 if errorlevel 1 exit /b 1
 

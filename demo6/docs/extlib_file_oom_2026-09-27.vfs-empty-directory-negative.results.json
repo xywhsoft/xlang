@@ -1,0 +1,208 @@
+{
+  "date": "2026-09-27T18:32:09.0751915+08:00",
+  "outcome": "failed",
+  "scope": "Same C file-open fault sweep against source, xl.dll, xlc.dll, C JIT/AOT, and standalone static VFS without external headers; all layers must pass",
+  "runtimeDirectory": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-candidate-20260927\\runtime",
+  "inputs": {
+    "E:\\software\\w64devkit\\bin\\gcc.exe": "F643D0DF5081344D6AAE27A9C1E4567B1A5F621F964671E531563E34306F68BA",
+    "D:\\GIT\\x-lang\\demo6\\test\\cases\\extlib_file_open_oom.c": "3FC6DA77E646A336D15CCD01B9E365744F01F1AD048E5E646667BA9A3389445A",
+    "D:\\GIT\\x-lang\\demo6\\tools\\check_extlib_file_runtime.ps1": "E555C28B0DB7305A020E5445A2BC5836F4D1A096C0D91D2481F955E63FA5A754",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-candidate-20260927\\runtime\\xl.exe": "5A3F20B4CF9333D393560CB2361D0EBAB8A13F0D07C64A78A1F5FFF5385D9EEB",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-candidate-20260927\\runtime\\xl.dll": "21AD393C1BFA2E295F31453AC6D89D7E780DDDB510E26624BD26C171E65A135D",
+    "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-candidate-20260927\\runtime\\xlc.dll": "62136BE00C614824377196CE260CC5F9CC5DA2574CFBA84148EAEB87197F39D1",
+    "D:\\GIT\\x-lang\\demo6\\lib\\xrt\\xrt.h": "4C8CA837C7BAA2B865D6A6C8437449A90186639618888B929F6C3743327A0AC5",
+    "D:\\GIT\\x-lang\\demo6\\lib\\xruntime\\xruntime.h": "5E47B36DC21FDFF54C230D1FCA99175F429AD541409F1D44194F00E0FDF10F53",
+    "D:\\GIT\\x-lang\\demo6\\lib\\xrt\\xrt.snapshot.json": "CB911BDE754F4328F9500F5F0A04EE7C62589B98BC3B739E3C8CD55F86C198CB",
+    "D:\\GIT\\x-lang\\demo6\\lib\\xruntime\\xruntime.snapshot.json": "534E43536E56B853001DC8616CA979F716D0BBD0DC82DDE9F6A4724F8D090A9D",
+    "D:\\GIT\\x-lang\\demo6\\tools\\extlib_smoke_process.ps1": "294FCC133C2E4F3E5786080D6DCFEDD3BFBC51656AF892433CCE08BB3EAF635F",
+    "D:\\GIT\\x-lang\\demo6\\tools\\xlir_native_process.ps1": "2BE2787D2316CE07E0D0AC3BDF1A1CAABA14D72F249CCAC847BB1C05D1DBFC9D"
+  },
+  "changedInputs": [],
+  "checks": [
+    {
+      "name": "source-build",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-ID:\\GIT\\x-lang\\demo6\\lib\\xrt",
+        "-DXRT_IMPLEMENTATION",
+        "D:\\GIT\\x-lang\\demo6\\test\\cases\\extlib_file_open_oom.c",
+        "-lWs2_32",
+        "-lAdvapi32",
+        "-lm",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-candidate-20260927\\file-runtime-vfs\\source.exe"
+      ],
+      "directory": "D:\\GIT\\x-lang\\demo6",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 3863
+      }
+    },
+    {
+      "name": "source-runtime",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-candidate-20260927\\file-runtime-vfs\\source.exe",
+      "arguments": [],
+      "directory": "D:\\GIT\\x-lang\\demo6",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "file runtime: failures=2 successes=2 result=pass\r\n",
+        "stderr": "",
+        "elapsedMs": 52
+      }
+    },
+    {
+      "name": "xl-build",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-ID:\\GIT\\x-lang\\demo6\\lib\\xrt",
+        "D:\\GIT\\x-lang\\demo6\\test\\cases\\extlib_file_open_oom.c",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-candidate-20260927\\runtime\\xl.dll",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-candidate-20260927\\file-runtime-vfs\\dll-xl.exe"
+      ],
+      "directory": "D:\\GIT\\x-lang\\demo6",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 202
+      }
+    },
+    {
+      "name": "xl-runtime",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-candidate-20260927\\file-runtime-vfs\\dll-xl.exe",
+      "arguments": [],
+      "directory": "D:\\GIT\\x-lang\\demo6",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "file runtime: failures=2 successes=2 result=pass\r\n",
+        "stderr": "",
+        "elapsedMs": 32
+      }
+    },
+    {
+      "name": "xlc-build",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-ID:\\GIT\\x-lang\\demo6\\lib\\xrt",
+        "D:\\GIT\\x-lang\\demo6\\test\\cases\\extlib_file_open_oom.c",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-candidate-20260927\\runtime\\xlc.dll",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-candidate-20260927\\file-runtime-vfs\\dll-xlc.exe"
+      ],
+      "directory": "D:\\GIT\\x-lang\\demo6",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 197
+      }
+    },
+    {
+      "name": "xlc-runtime",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-candidate-20260927\\file-runtime-vfs\\dll-xlc.exe",
+      "arguments": [],
+      "directory": "D:\\GIT\\x-lang\\demo6",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "file runtime: failures=2 successes=2 result=pass\r\n",
+        "stderr": "",
+        "elapsedMs": 66
+      }
+    },
+    {
+      "name": "c-jit",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-candidate-20260927\\runtime\\xl.exe",
+      "arguments": [
+        "run",
+        "D:\\GIT\\x-lang\\demo6\\test\\cases\\extlib_file_open_oom.c",
+        "--inc-path",
+        "D:\\GIT\\x-lang\\demo6\\lib\\xrt",
+        "--inc-path",
+        "D:\\GIT\\x-lang\\demo6\\lib\\xruntime"
+      ],
+      "directory": "D:\\GIT\\x-lang\\demo6",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "file runtime: failures=2 successes=2 result=pass\r\n",
+        "stderr": "",
+        "elapsedMs": 53
+      }
+    },
+    {
+      "name": "c-aot-build",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-candidate-20260927\\runtime\\xl.exe",
+      "arguments": [
+        "build",
+        "D:\\GIT\\x-lang\\demo6\\test\\cases\\extlib_file_open_oom.c",
+        "--inc-path",
+        "D:\\GIT\\x-lang\\demo6\\lib\\xrt",
+        "--inc-path",
+        "D:\\GIT\\x-lang\\demo6\\lib\\xruntime",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-candidate-20260927\\file-runtime-vfs\\aot.exe"
+      ],
+      "directory": "D:\\GIT\\x-lang\\demo6",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 284
+      }
+    },
+    {
+      "name": "c-aot-runtime",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-candidate-20260927\\file-runtime-vfs\\aot.exe",
+      "arguments": [],
+      "directory": "D:\\GIT\\x-lang\\demo6",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "file runtime: failures=2 successes=2 result=pass\r\n",
+        "stderr": "",
+        "elapsedMs": 40
+      }
+    },
+    {
+      "name": "vfs-jit",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-candidate-20260927\\file-runtime-vfs\\vfs-9230f8913a524250ae51ea1f9e073c5c\\xl.exe",
+      "arguments": [
+        "run",
+        "probe.c"
+      ],
+      "directory": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-candidate-20260927\\file-runtime-vfs\\vfs-9230f8913a524250ae51ea1f9e073c5c",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "file runtime: failures=2 successes=2 result=pass\r\n",
+        "stderr": "",
+        "elapsedMs": 61
+      }
+    }
+  ]
+}

@@ -109,10 +109,7 @@ static int xhttpBodyFileMap(
 	bInvoked = xrtValueInvoke(pMapper->Boxer, &Frame, &Result);
 	xrtValueRelease(pArgumentValue);
 	if ( !bInvoked ) {
-		if ( xl6ExtlibErrorPending() ) {
-			xl6ExtlibErrorPublishXrt();
-			xl6ExtlibErrorClear();
-		}
+		/* xcall 失败已带有 XRT 结构化错误，不存在第二份语言异常槽。 */
 		xrtCallResultUnit(&Result);
 		return xhttpBodyFileMapError(
 			pOutput,

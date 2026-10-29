@@ -149,7 +149,9 @@ $extraMarkdownDocs = @(
 	"release\examples\README.md",
 	"release\examples\apps\README.md",
 	"release\examples\feature_suite\README.md",
+	"release\examples\games\README.md",
 	"release\examples\tutorial\README.md",
+	"release\projects\function_interop\README.md",
 	"release\projects\xs_static\README.md",
     "release\extlibs\README.md",
     "test\README.md"

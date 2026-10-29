@@ -55,6 +55,7 @@ typedef struct xhttp_multipart_native_event {
 
 
 
+/* 公开 point 参数使用 void* ABI，内部视图与 Writer 回调仍保持只读。 */
 /* Writer 的统一回调支持精确测量后一次写入。 */
 typedef bool (*xhttp_multipart_native_write_proc)(
 	const void* pContext,

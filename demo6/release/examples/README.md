@@ -29,7 +29,7 @@
 - `class_reference_model.xl`：统一堆 class、自引用可空字段，以及默认/`byval` 受管理引用语义；回归：`run`。
 - `typed_point.xl`：`point<T>` 静态 opaque pointer 标签和 `null` 规则；回归：`run`。
 - `class_point.xl`：class 字段和方法基础示例；回归：`check`。
-- `class_field_persistence_attrs.xl`：字段级 `@json` / `@xson` / `@persist` 持久化注解示例；回归：`run`。
+- `class_field_persistence_attrs.xl`：字段级 `@json` / `@xlon` / `@persist` 持久化注解示例；回归：`run`。
 - `object_protocol.xl`：object 标准基类、动态字段、索引、运算符和可调用协议示例；回归：`check`。
 - `oop_protocol_overload.xl`：OOP protocol overload, multi-argument index, callable and contains example；回归：`check`、`run`。
 - `oop_property_get_let.xl`：OOP property get/let, zero-dimensional and multi-dimensional property index example；回归：`check`、`run`。
@@ -37,7 +37,7 @@
 - `oop_protected_access.xl`：OOP protected field and method access from derived class example；回归：`check`、`run`。
 - `oop_virtual_dispatch.xl`：OOP virtual/override/final method and property dispatch example；回归：`check`、`run`。
 - `copy_clone.xl`：`derive copy/clone`、`copy()` 和 `clone()` 示例；回归：`check`。
-- `class_persistence.xl`：`derive value`、class 与 object 的 json/xson 持久化 roundtrip 示例；回归：`run`。
+- `class_persistence.xl`：`derive value`、class 与 object 的 json/xlon 持久化 roundtrip 示例；回归：`run`。
 - `class_native_backed.xl`：class 与 native-backed class 组合示例；回归：`check`。
 - `class_native_bridge.xl`：native-backed class 对接 C opaque handle 的声明示例；回归：`check`。
 - `native_counter.xl`：native-backed class 句柄类示例；回归：`check`。
@@ -88,8 +88,9 @@
 - `stdlib_tls_session.xl`
 - `stdlib_tls_session_pair.xl`
 - `stdlib_tls_session_pair_c.c`: C/XRT counterpart for raw TLS client/server sessions, handshake, encrypted transport and close lifecycle.
-- `stdlib_xson.xl`
-- `stdlib_xson_c.c`: C/XRT counterpart for `stdlib_xson.xl`; covers strict validation, ignore-unsupported validation, stringify and file read/write.
+- `stdlib_xlon.xl`
+- `stdlib_xlon_c.c`: C/XRT counterpart for `stdlib_xlon.xl`; covers strict validation, ignore-unsupported validation, stringify and file read/write.
+- `stdlib_structured_lines.xl`：JSONL/XLONL 多记录解析、验证、写文件与读取范例。
 - `stdlib_print.xl`
 - `stdlib_dict.xl`
 - `stdlib_codec.xl`
@@ -102,6 +103,7 @@
 - `stdlib_crypto_c.c`: C/XRT counterpart for `stdlib_crypto.xl`; covers hash, HMAC, HKDF, AEAD, ChaCha20, Ed25519, X25519, X448 and RSA guard validation.
 - `stdlib_id_net.xl`
 - `stdlib_id_net_c.c`：与 `stdlib_id_net.xl` 对照的 C/XRT XID 和本机网络信息范例。
+- `stdlib_xid.xl`：独立的 XID 名义值、文本/字节往返和批量生成范例。
 - `stdlib_net_tcp_udp.xl`
 - `stdlib_net_tcp_udp_c.c`：与 `stdlib_net_tcp_udp.xl` 对照的 C/XRT TCP/UDP 范例，主回归会比较两者输出。
 - `stdlib_net_fast_path.xl`：网络快速路径范例，展示地址批量解析、异步解析、解析器统计与引擎统计。
@@ -198,6 +200,17 @@ XGE/XUI 范例基于 `_xge_native` 扩展库的 OOP 封装（native-backed class
 - `stdlib_fs_advanced.xl`：高级文件、路径、根与目录操作；回归：`check/run`，链接/FIFO 辅助函数显式选择运行。
 - `stdlib_fs_async_extended.xl`：异步原子写入、目录与句柄接管；回归：`check/run`。
 - `stdlib_console_codes.xl`：IO/console/file 公开常量；回归：`check/run`。
+
+- `stdlib_fs_paths_text.xl`：平台路径与文本编码；回归：`check/run/cgen`。
+- `stdlib_fs_file.xl`：高级文件读写、映射与锁；回归：`check/run/cgen`。
+- `stdlib_fs_tree_temp.xl`：临时目录与文件树；回归：`check/run/cgen`。
+- `stdlib_fs_walk.xl`：目录遍历与回调返回码；回归：`check/run/cgen`。
+- `stdlib_fs_async.xl`：异步文件操作与任务池清理；回归：`check/run/cgen`。
+- `stdlib_vfs.xl`：内存 VFS、绑定根与资源所有权；回归：`check/run/cgen`。
+- `stdlib_siphash.xl`：标准库 SipHash64，完整密钥与分块输入；回归：`check/run/cgen`。
+
+- `stdlib_io.xl`：二进制流、NUL、独立行、copy 三种数量合同与 Buffer 快照。
+- `stdlib_console.xl`：UTF-8 CLI 输出、样式与终端会话原语；重定向时可无人值守运行。
 
 - `stdlib_logging.xl`：日志记录、文件、异步与 ring 公开接口。
 - `stdlib_log_formats.xl`：日志文本/JSON formatter 与输出合同。

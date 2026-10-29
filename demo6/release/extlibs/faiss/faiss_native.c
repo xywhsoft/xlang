@@ -2,11 +2,12 @@
  * faiss_native.c - Vector similarity search
  * Tier 4: machine_learning
  */
+#include "xrt.h"
+#include <stdlib.h>
+#include <errno.h>
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
-
-static char buf[512];
 
 const char* xfaiss_index_type(long long id) {
     switch (id) {
@@ -34,59 +35,65 @@ const char* xfaiss_metric(long long id) {
     }
 }
 
-/* L2 distance between two vectors encoded as "v1,v2,v3" */
-double xfaiss_l2_distance(const char *a, const char *b) {
-    double sum = 0.0;
-    const char *pa = a, *pb = b;
-    while (*pa && *pb) {
-        double va = 0, vb = 0;
-        int neg_a = 0, neg_b = 0;
-        if (*pa == '-') { neg_a = 1; pa++; }
-        if (*pb == '-') { neg_b = 1; pb++; }
-        while (*pa >= '0' && *pa <= '9') { va = va * 10 + (*pa - '0'); pa++; }
-        while (*pb >= '0' && *pb <= '9') { vb = vb * 10 + (*pb - '0'); pb++; }
-        if (neg_a) va = -va;
-        if (neg_b) vb = -vb;
-        double d = va - vb;
-        sum += d * d;
-        if (*pa == ',') pa++;
-        if (*pb == ',') pb++;
+/* 三个距离辅助函数共用严格的 CRT 数值解析，不承担 FAISS 索引后端。 */
+static bool faiss_number(const char** cursor, double* value)
+{
+    const char* p = *cursor;
+    char* end;
+    while (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n') ++p;
+    errno = 0;
+    *value = strtod(p, &end);
+    if (p == end || errno == ERANGE || !isfinite(*value)) {
+        xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.faiss", 1, "expected a finite vector component");
+        return false;
     }
-    return sqrt(sum);
+    p = end;
+    while (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n') ++p;
+    if (*p == ',') {
+        ++p;
+        while (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n') ++p;
+        if (*p != 0) { *cursor = p; return true; }
+    } else if (*p == 0) {
+        *cursor = p;
+        return true;
+    }
+    xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.faiss", 1, "invalid vector separator or missing component");
+    return false;
 }
 
-/* Inner product between two vectors */
-double xfaiss_inner_product(const char *a, const char *b) {
-    double dot = 0.0;
-    const char *pa = a, *pb = b;
-    while (*pa && *pb) {
-        double va = 0, vb = 0;
-        while (*pa >= '0' && *pa <= '9') { va = va * 10 + (*pa - '0'); pa++; }
-        while (*pb >= '0' && *pb <= '9') { vb = vb * 10 + (*pb - '0'); pb++; }
-        dot += va * vb;
-        if (*pa == ',') pa++;
-        if (*pb == ',') pb++;
+static double faiss_distance(const char* a, const char* b, int mode)
+{
+    double result = 0, normA = 0, normB = 0;
+    xrtClearError();
+    if (a == NULL || b == NULL) {
+        xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.faiss", 1, "vector text is required");
+        return 0;
     }
-    return dot;
+    while (*a != 0 && *b != 0) {
+        double va, vb;
+        if (!faiss_number(&a, &va) || !faiss_number(&b, &vb)) return 0;
+        if (mode == 0) result = hypot(result, va - vb);
+        else {
+            result += va * vb;
+            if (mode == 2) { normA = hypot(normA, va); normB = hypot(normB, vb); }
+        }
+        if (!isfinite(result) || !isfinite(normA) || !isfinite(normB)) {
+            xrtSetErrorInfo(XERR_RANGE, "xlang.extlib.faiss", 2, "vector calculation exceeds finite double range");
+            return 0;
+        }
+    }
+    if (*a != 0 || *b != 0) {
+        xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.faiss", 1, "vector dimensions differ");
+        return 0;
+    }
+    if (mode != 2) return result;
+    /* 保留零向量的 0 约定；分步除法避免范数乘积溢出。 */
+    return normA == 0 || normB == 0 ? 0 : (result / normA) / normB;
 }
 
-/* Cosine similarity */
-double xfaiss_cosine(const char *a, const char *b) {
-    double dot = 0.0, norm_a = 0.0, norm_b = 0.0;
-    const char *pa = a, *pb = b;
-    while (*pa && *pb) {
-        double va = 0, vb = 0;
-        while (*pa >= '0' && *pa <= '9') { va = va * 10 + (*pa - '0'); pa++; }
-        while (*pb >= '0' && *pb <= '9') { vb = vb * 10 + (*pb - '0'); pb++; }
-        dot += va * vb;
-        norm_a += va * va;
-        norm_b += vb * vb;
-        if (*pa == ',') pa++;
-        if (*pb == ',') pb++;
-    }
-    if (norm_a == 0 || norm_b == 0) return 0.0;
-    return dot / (sqrt(norm_a) * sqrt(norm_b));
-}
+double xfaiss_l2_distance(const char* a, const char* b) { return faiss_distance(a, b, 0); }
+double xfaiss_inner_product(const char* a, const char* b) { return faiss_distance(a, b, 1); }
+double xfaiss_cosine(const char* a, const char* b) { return faiss_distance(a, b, 2); }
 
 const char* xfaiss_quantizer(long long id) {
     switch (id) {

@@ -48,6 +48,10 @@ release\xl.exe cgen test\cases\cgen_string_compare.xl --emit build\test\cgen_str
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_string_literals.xl --emit build\test\cgen_string_literals.c
 if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_string_embedded_nul.xl --emit build\test\cgen_string_embedded_nul.c
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_string_persistence_default_nul.xl --emit build\test\cgen_string_persistence_default_nul.c
+if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_fstring.xl --emit build\test\cgen_fstring.c
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_time_literals.xl --emit build\test\cgen_time_literals.c
@@ -66,6 +70,8 @@ for %%F in (
     cgen_string_concat
     cgen_string_compare
     cgen_string_literals
+    cgen_string_embedded_nul
+    cgen_string_persistence_default_nul
     cgen_fstring
     cgen_time_literals
     cgen_auto_expressions

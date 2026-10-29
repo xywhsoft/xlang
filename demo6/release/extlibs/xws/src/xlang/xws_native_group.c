@@ -32,10 +32,9 @@ XLANG_XWS_EXPORT void* xws_group_wrap(void* pHandle)
 
 
 /* 释放连接组引用；组本身不会关闭成员连接。 */
-XLANG_XWS_EXPORT long long xws_group_destroy(void* pHandle)
+XLANG_XWS_EXPORT void xws_group_destroy(void* pHandle)
 {
 	xrtWsGroupDestroy((xwsgroup*)pHandle);
-	return 0;
 }
 
 
@@ -143,10 +142,9 @@ XLANG_XWS_EXPORT void* xws_group_snapshot_wrap(void* pHandle)
 
 
 /* 释放快照及其持有的连接引用。 */
-XLANG_XWS_EXPORT long long xws_group_snapshot_destroy(void* pHandle)
+XLANG_XWS_EXPORT void xws_group_snapshot_destroy(void* pHandle)
 {
 	xrtWsGroupSnapshotDestroy((xwsgroupsnapshot*)pHandle);
-	return 0;
 }
 
 
@@ -274,10 +272,9 @@ XLANG_XWS_EXPORT void* xws_group_op_wrap(void* pHandle)
 
 
 /* 释放批量操作，不隐式取消已经提交的成员 Future。 */
-XLANG_XWS_EXPORT long long xws_group_op_destroy(void* pHandle)
+XLANG_XWS_EXPORT void xws_group_op_destroy(void* pHandle)
 {
 	xrtWsGroupOpDestroy((xwsgroupop*)pHandle);
-	return 0;
 }
 
 

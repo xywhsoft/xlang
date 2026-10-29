@@ -1,0 +1,12 @@
+Xid value = id.make()
+string text = value.toString()
+bytes raw = value.toBytes()
+
+assert string.byteLen(text) == 32
+assert raw.length == 24
+assert id.parse(text) == value
+assert id.fromBytes(raw) == value
+assert id.tryParse("invalid") == null
+assert id.makeMany(3).length == 3
+
+println("xid=ok")

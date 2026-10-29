@@ -1,0 +1,23 @@
+{
+  "scope": "Independent CSV native six-boundary regression only; not xlang integration or OOM/transaction completeness",
+  "compiler": "E:/software/w64devkit/bin/gcc.exe",
+  "flags": "-std=c11 -O2 -Wall -Wextra -Werror",
+  "result": {
+    "status": "pass",
+    "exitCode": 0,
+    "stdout": "csv boundaries: PASS\r\n",
+    "stderr": "",
+    "elapsedMs": 34
+  },
+  "inputs": {
+    "test/support/extlib_csv_runtime.c": "476C367CC39B26072014A544D0DB227DB305EDAB1CC799815232E18FFA4C4471",
+    "release/extlibs/csv/csv_native.c": "C47C0A63CEFA4A1EF45573570720CBE38AFA38B009C60FA334E6299AE7A776E9",
+    "release/extlibs/csv/xrt_csv_common.c": "57C0F653062C620C68E28CD3C8BFD659412E2B9BA77A4819695B7064EEB2564E",
+    "release/extlibs/csv/xrt_csv_reader.c": "94C25610C650C2ED9373572500528A49E3AE8EE03A5FAB6868DC860377BBB5C6",
+    "release/extlibs/csv/xrt_csv_writer.c": "8DF722EC7FB49F4A0AE6BE8C3D717729BBCB18C6D2127E06ED011BAE2A462094",
+    "release/extlibs/csv/xrt_csv_internal.h": "4EBA81B9511F2424D175107F09B0952056D1F6AB352EFD087FA47B3E7318110D",
+    "release/extlibs/csv/include/xrt_csv.h": "8A0085565FC6B2E07C4EA7BF7ED901CD7A196E8D59258F38FC0844E76D5514E1",
+    "release/extlibs/csv/test/test_csv_boundary.c": "C0A23F1F5D057416FE83C04E258296292E8A529C4E40E91129AE3E8F24425B7E",
+    "lib/xrt/xrt.h": "4C8CA837C7BAA2B865D6A6C8437449A90186639618888B929F6C3743327A0AC5"
+  }
+}

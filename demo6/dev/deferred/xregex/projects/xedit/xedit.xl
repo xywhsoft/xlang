@@ -89,7 +89,7 @@ string C_GRAY = "\x1b[90m"
 // 语法高亮关键字表
 // ============================================================================
 
-string g_xlangKeywords = " func const var auto typedef as if then else elseif end for in is while do break continue return async await yield try catch finally throw assert import export extern include define class extends union derive get let public private protected static native virtual override final byval byref out and or not self base create destroy "
+string g_xlangKeywords = " func const var auto typedef as if then else elseif end for in is while do break continue return async await yield try catch finally throw assert import export extern include define class extends union derive get let public private protected static native virtual override final and or not self base create destroy "
 
 string g_xlangTypes = " bool int int8 uint8 int16 uint16 int32 uint32 int64 uint64 float float32 float64 string time point func array list set dict type object "
 

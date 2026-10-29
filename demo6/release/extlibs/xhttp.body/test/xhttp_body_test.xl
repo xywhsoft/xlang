@@ -8,6 +8,7 @@ func main(...) as int
     assert body.length == 10
     assert body.lengthKnown
     assert body.replayable
+    assert (body.flags & xhttp.body.BODY_REPLAYABLE) != 0
     assert body.nativeHandle() != null
     Buffer? view = body.view()
     if view == null then

@@ -8,8 +8,8 @@ class Node
     end
 end
 
-// byval 保留同一对象；修改字段可见，重新绑定参数变量不可见。
-func update(byval Node node)
+// 类参数共享对象身份；修改字段可见，重新绑定参数变量不可见。
+func update(Node node)
     node.value = 20
     node = Node(99)
 end

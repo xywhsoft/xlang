@@ -1,0 +1,8 @@
+func count(int base, ...) as int
+    return base + arg.length
+end
+func apply(func(int, ...) as int callback) as int
+    return callback(10, 1, 2, 3)
+end
+var callable = xcall(apply)
+assert int(callable(xcall(count))) == 13

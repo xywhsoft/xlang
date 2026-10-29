@@ -1,0 +1,7 @@
+func main(...) as int
+    Buffer data = Buffer()
+    data.appendByte(1)
+    data[data.len() - 1] = data[data.len() - 1] ^ 1
+    assert data[0] == 0
+    return 0
+end

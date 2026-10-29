@@ -1,0 +1,21 @@
+{
+  "date": "2026-09-27T18:48:11.6331077+08:00",
+  "runtimeSha256": "2A07C481C04CAD71D31D46722A27E62027318DF24E95A63126E061FD4CA46902",
+  "environment": {
+    "XL6_TCC_INCLUDE": "D:\\GIT\\x-lang\\demo6\\lib\\tcc\\include",
+    "XL6_TCC_DLL": "",
+    "XL6_TCC_ROOT": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64",
+    "XL6_XRT_OBJ": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-candidate-20260927\\intermediate\\xrt.o",
+    "XL6_TCC_WIN_INCLUDE": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include",
+    "XL6_TCC_LIBTCC1": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\lib\\libtcc1.a",
+    "XL6_TCC_LIB": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\lib",
+    "XL6_TCC_WINAPI_INCLUDE": "D:\\GIT\\x-lang\\demo6\\res\\tcc\\win64\\x86_64\\include\\winapi"
+  },
+  "result": {
+    "status": "fail",
+    "exitCode": 1,
+    "stdout": "",
+    "stderr": "default toolchain snapshot script failed: tcc: tcc: error: unresolved reference to 'xl6_xrt_string_trim'\r\n",
+    "elapsedMs": 124
+  }
+}

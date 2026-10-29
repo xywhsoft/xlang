@@ -1,0 +1,427 @@
+{
+  "recordedAt": "2026-09-28T01:38:23.1171094+08:00",
+  "scope": "Two package delivery follow-up. No whole-ecosystem or whole-language admission.",
+  "releaseProductsUnchanged": true,
+  "releaseSnapshot": {
+    "D:\\GIT\\x-lang\\demo6\\release\\xl.exe": "3376E9514B52E9AD5F43A22C5EA3DA3294D261F4EFDB57CB6E147116A4695FBA",
+    "D:\\GIT\\x-lang\\demo6\\release\\xl.dll": "D46C35906A63EB022A1EE2C102D2D9700B1EFB957820FDF6DAEFA845E9B04288",
+    "D:\\GIT\\x-lang\\demo6\\release\\xlc.dll": "3FC6C224A381F5143849C5FEB7F0CA44C7B496FE537E27208D94B483D75C7DE8",
+    "D:\\GIT\\x-lang\\demo6\\release\\include\\libtcc.h": "FC77217B1E8AB783D512DF2B0A8249C801BDD8B5A4D2C5643169BD2C61ECE3AB",
+    "D:\\GIT\\x-lang\\demo6\\release\\include\\README.md": "C950EE90CF5D57078C010BF4CFE65A6C7701E5ACA7B06DD3D8EE5EEE80E8B0B7",
+    "D:\\GIT\\x-lang\\demo6\\release\\include\\tcc_builtin_vfs.h": "2ED7047361E240D5837533215310D8044298D160D7DD6E6C6B999EAAB935D05C",
+    "D:\\GIT\\x-lang\\demo6\\release\\include\\xl_extlib_abi.h": "33B33F690EF8610749E399D612984B6D02F6140767D4B92BBB65B28A89FCA244",
+    "D:\\GIT\\x-lang\\demo6\\release\\include\\xl_runtime.h": "F0503CACFC2165ABD35A25F417A4B147126783DB355C81E1B62643EF709DEACD",
+    "D:\\GIT\\x-lang\\demo6\\release\\include\\xl.h": "2A564C90F90EFD80C6257072819D215BA26C8890D8D86B3C134C153BE293EBEC",
+    "D:\\GIT\\x-lang\\demo6\\release\\include\\xlc.h": "3187BB8C540CE6F957B165F060EE7C8E2E27AC729B269763A1128004A0EAEEF1",
+    "D:\\GIT\\x-lang\\demo6\\release\\include\\xrt_decl.h": "A2D9D17C569DC74B974F8FD2FED0AC00E20A819FCDA09473630951031E0BCE8E",
+    "D:\\GIT\\x-lang\\demo6\\release\\include\\xruntime_decl.h": "97BEE29DBA82A3BB9D6A6A05681B90F456B35EF74741E9AD08B6E6B784060CFD"
+  },
+  "packages": [
+    {
+      "name": "chardet",
+      "windowsRecord": "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-final\\results.json",
+      "windowsChecks": 34,
+      "generatedPrototypes": 10,
+      "windowsInputsUnchanged": true,
+      "linux": {
+        "exitCode": 0,
+        "inputs": [
+          {
+            "path": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\chardet\\README.md",
+            "sha256": "b892ed3206a7ceb2148a75a4042840cee52ba81ca0aeb98717ad33eb2dbb1a29"
+          },
+          {
+            "path": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\chardet\\chardet_native.c",
+            "sha256": "897a587a0bf3d47ce2b0b049af6fc0df50f7a7972cc477f83d0cc41d2444edd8"
+          },
+          {
+            "path": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\chardet\\docs\\site.html",
+            "sha256": "f7868bfbd3ccaa1248482504356ceee83dca3302eb73334820193716d326b433"
+          },
+          {
+            "path": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\chardet\\examples\\basic.c",
+            "sha256": "9e7ebe0cbf70421fef7c12e3da70e5f5b661112c1adc97dbc61bce5473f19f76"
+          },
+          {
+            "path": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\chardet\\include\\chardet.h",
+            "sha256": "d6ed80e754d1b7bd9f9fdab8a648139cef7585b51d425b096cb969dca3d92c75"
+          },
+          {
+            "path": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\chardet\\src\\chardet.xl",
+            "sha256": "4dfe1870b3b20211abed50a295910fa75f7d117fc1c143d2ac2ca047cae7d6d0"
+          },
+          {
+            "path": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\chardet\\test\\boundaries.xl",
+            "sha256": "0c87d323da176f82d464225785c4122d683d7014cd0a9825f1718ed432ec4a98"
+          },
+          {
+            "path": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\chardet\\test\\test_chardet.c",
+            "sha256": "15441832f39f04c230986a7e475bd3b1eaa53fbadb63e0e3efaf2c7b619c5ac5"
+          },
+          {
+            "path": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\chardet\\test\\test_threads.c",
+            "sha256": "8839458a31f9e4205943ece8a33f3369c54f029ad0244d77311c767f418a4c9a"
+          },
+          {
+            "path": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\chardet\\xlang.package.json",
+            "sha256": "397101b4f9734129c45fc35ad6cb4713e59ea53982da524fac1a1d337a9af9ce"
+          },
+          {
+            "path": "D:\\GIT\\x-lang\\demo6\\lib\\xrt\\xrt.h",
+            "sha256": "4c8ca837c7baa2b865d6a6c8437449a90186639618888b929f6c3743327a0ac5"
+          },
+          {
+            "path": "D:\\GIT\\x-lang\\demo6\\test\\support\\extlib_chardet_runtime.c",
+            "sha256": "aba7aa220a88df9535738e0aba53c32de6990317d963963ce73e6195fbd534d2"
+          },
+          {
+            "path": "D:\\GIT\\x-lang\\demo6\\tools\\check_extlib_chardet.sh",
+            "sha256": "937d1626403d9448b47685be437cd5c96b51f459c3ecd685bd40c0e4ae16db92"
+          },
+          {
+            "path": "D:\\GIT\\x-lang\\demo6\\release\\examples\\extlibs\\chardet_basic.expected.txt",
+            "sha256": "51b2541c8e84392cca1543c33981d0df27f7e0194b6eb03de589939eaaa5cfee"
+          },
+          {
+            "path": "D:/GIT/x-lang/demo6/build/test/chardet-delivery-20260928-final/declarations.inc",
+            "sha256": "befd92a159e2621ce970c46891c72ed3bbd320371710abc3813c44c0af982534"
+          }
+        ],
+        "logs": {
+          "basic.log": "text=UTF-8; confidence=90; bom=0\nascii=true; utf8=true\nempty=UNKNOWN; ascii=true; utf8=true\nutf16=UTF-16LE; confidence=100; bom=2\nbom-only=UTF-8-BOM; confidence=100\nbom-invalid=UTF-8-BOM; valid=false\nbinary=UNKNOWN; valid=false\n",
+          "compiler.txt": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+          "gate.log": "chardet C: 22 vectors, 10 ABIs, invalid pointers, zero allocation and ownership PASS\nchardet threads: four workers, 8000 rounds, borrowed results and TLS PASS\nchardet Linux C ASan/UBSan gate: PASS\n",
+          "test_chardet.log": "chardet C: 22 vectors, 10 ABIs, invalid pointers, zero allocation and ownership PASS\n",
+          "test_threads.log": "chardet threads: four workers, 8000 rounds, borrowed results and TLS PASS\n"
+        },
+        "scope": "Independent C ASan/UBSan/leaks, generated LP64 prototypes and golden output; not Linux xlang or TSan."
+      },
+      "site": {
+        "package": "chardet",
+        "results": [
+          {
+            "name": "desktop",
+            "width": 1280,
+            "scrollWidth": 1280,
+            "title": "chardet - 扩展库 - xlang",
+            "rows": 8,
+            "local": [
+              "file:///D:/GIT/home/host/xlang/wwwroot/favicon.png",
+              "file:///D:/GIT/home/host/xlang/wwwroot/style.css",
+              "file:///D:/GIT/home/host/xlang/wwwroot/extlibs.css",
+              "file:///D:/GIT/home/host/xlang/wwwroot/refactor.css",
+              "file:///D:/GIT/home/host/xlang/wwwroot/extlibs/chardet.html#main-content",
+              "file:///D:/GIT/home/host/xlang/wwwroot/index.html",
+              "file:///D:/GIT/home/host/xlang/wwwroot/tour.html",
+              "file:///D:/GIT/home/host/xlang/wwwroot/stdlib.html",
+              "file:///D:/GIT/home/host/xlang/wwwroot/extlibs.html",
+              "file:///D:/GIT/home/host/xlang/wwwroot/guide.html",
+              "file:///D:/GIT/home/host/xlang/wwwroot/download.html",
+              "file:///D:/GIT/home/host/xlang/wwwroot/extlibs.html",
+              "file:///D:/GIT/home/host/xlang/wwwroot/main.js"
+            ],
+            "badAnchors": [],
+            "missingFiles": [],
+            "errors": []
+          },
+          {
+            "name": "mobile",
+            "width": 360,
+            "scrollWidth": 360,
+            "title": "chardet - 扩展库 - xlang",
+            "rows": 8,
+            "local": [
+              "file:///D:/GIT/home/host/xlang/wwwroot/favicon.png",
+              "file:///D:/GIT/home/host/xlang/wwwroot/style.css",
+              "file:///D:/GIT/home/host/xlang/wwwroot/extlibs.css",
+              "file:///D:/GIT/home/host/xlang/wwwroot/refactor.css",
+              "file:///D:/GIT/home/host/xlang/wwwroot/extlibs/chardet.html#main-content",
+              "file:///D:/GIT/home/host/xlang/wwwroot/index.html",
+              "file:///D:/GIT/home/host/xlang/wwwroot/tour.html",
+              "file:///D:/GIT/home/host/xlang/wwwroot/stdlib.html",
+              "file:///D:/GIT/home/host/xlang/wwwroot/extlibs.html",
+              "file:///D:/GIT/home/host/xlang/wwwroot/guide.html",
+              "file:///D:/GIT/home/host/xlang/wwwroot/download.html",
+              "file:///D:/GIT/home/host/xlang/wwwroot/extlibs.html",
+              "file:///D:/GIT/home/host/xlang/wwwroot/main.js"
+            ],
+            "badAnchors": [],
+            "missingFiles": [],
+            "errors": []
+          }
+        ],
+        "catalogNavigation": true
+      },
+      "codeBlocks": [
+        {
+          "file": "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-final\\site\\example-0.xl",
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "UTF-8\n90\ntrue\n",
+            "stderr": "",
+            "elapsedMs": 200
+          }
+        },
+        {
+          "file": "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-final\\site\\example-1.xl",
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "UTF-8-BOM\n3\nfalse\n",
+            "stderr": "",
+            "elapsedMs": 193
+          }
+        },
+        {
+          "file": "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-final\\site\\readme-0.xl",
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "UTF-8\n90\ntrue\nfalse\n",
+            "stderr": "",
+            "elapsedMs": 184
+          }
+        },
+        {
+          "file": "D:\\GIT\\x-lang\\demo6\\build\\test\\chardet-delivery-20260928-final\\site\\readme-1.xl",
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "UTF-8-BOM\n3\nfalse\n",
+            "stderr": "",
+            "elapsedMs": 192
+          }
+        }
+      ],
+      "pageSource": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\chardet\\docs\\site.html",
+      "pageTarget": "D:\\GIT\\home\\host\\xlang\\wwwroot\\extlibs\\chardet.html",
+      "pageHash": "F7868BFBD3CCAA1248482504356CEEE83DCA3302EB73334820193716D326B433",
+      "remaining": [
+        "Shared managed-string embedded NUL preservation",
+        "Unverified Linux xlang/32-bit/ARM/TSan/performance scope"
+      ]
+    },
+    {
+      "name": "graph",
+      "windowsRecord": "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-final\\results.json",
+      "windowsChecks": 38,
+      "generatedPrototypes": 9,
+      "windowsInputsUnchanged": true,
+      "linux": {
+        "exitCode": 0,
+        "inputs": [
+          {
+            "path": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\README.md",
+            "sha256": "46424c919a224e914f47dabedb966cd09cac50c9e7d69fd4965c12b82c5d30cb"
+          },
+          {
+            "path": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\docs\\site.html",
+            "sha256": "9d3f9e879a4aed8a414611e9cf68bc3683d209cf22d9c88bd64d2e1371636752"
+          },
+          {
+            "path": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\examples\\basic.c",
+            "sha256": "3df362232db9483b4b84fec3d0e0e9ef2c2352f7d51abdb25c80905ba6f31454"
+          },
+          {
+            "path": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\graph_components.c",
+            "sha256": "bd5d0813ba6b5c3882684026f449e263863ea0b0c0dba0a98fc7aa2c413e9113"
+          },
+          {
+            "path": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\graph_distance.c",
+            "sha256": "91c541816595964270569591139115fabf8e733c73c11bf2b632b649fb6d0b77"
+          },
+          {
+            "path": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\graph_internal.h",
+            "sha256": "f3431c8ac1f383ffe8e662e6942e70e0a245d58026a0c112ae55d71314ab8d1d"
+          },
+          {
+            "path": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\graph_native.c",
+            "sha256": "a6f38c603c060bbe6b03820c7912ca6c746b6c20b457ee4c8efe95ea229ca624"
+          },
+          {
+            "path": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\graph_traversal.c",
+            "sha256": "e397a5b4ccb1e7354fdaca0bea6bf4962bbf3c5970a82b2e02b2d79879726a8a"
+          },
+          {
+            "path": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\include\\graph.h",
+            "sha256": "082305a5f090d43443c0e20094efd538ca005343abf81c7fd856ffa9ef638b85"
+          },
+          {
+            "path": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\src\\graph.xl",
+            "sha256": "ba4bd82545efc425844825d6bcfccaeb328e444fef399613f36aa6a4d6580959"
+          },
+          {
+            "path": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\test\\boundaries.xl",
+            "sha256": "e122e9e14be6916a198ebee2dd4c6dc2b410c807f62441e0dbf57b3f0d32e6a8"
+          },
+          {
+            "path": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\test\\graph_test.h",
+            "sha256": "7734bc3bc162b50a0acad2a94ed002528db7102cda85f39b286718ff690c6624"
+          },
+          {
+            "path": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\test\\test_graph.c",
+            "sha256": "cbf06ed970c4cd0aaa0f45cdaddba0e37e989c5bbf4edbf6a5c8192648039305"
+          },
+          {
+            "path": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\test\\test_graph_alloc.c",
+            "sha256": "16cf24e25af3fc04f22f42e231d26850c8d08e1c5364ee9a541cf44b662fd30d"
+          },
+          {
+            "path": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\test\\test_graph_threads.c",
+            "sha256": "a558c5e47163ac3e06f745145737aacbb37907d7d8aa184433675e4fd1c92919"
+          },
+          {
+            "path": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\xlang.package.json",
+            "sha256": "ef5e8140a8ee8e07cb4767251172b664bd9f2a47beb8bc773986221b1573b0ab"
+          },
+          {
+            "path": "D:\\GIT\\x-lang\\demo6\\lib\\xrt\\xrt.h",
+            "sha256": "4c8ca837c7baa2b865d6a6c8437449a90186639618888b929f6c3743327a0ac5"
+          },
+          {
+            "path": "D:\\GIT\\x-lang\\demo6\\test\\support\\extlib_graph_runtime.c",
+            "sha256": "59aae32e7ffacb976971da26865d6c8c3eb6b74a468fcd976bee86fbc82da48b"
+          },
+          {
+            "path": "D:\\GIT\\x-lang\\demo6\\tools\\check_extlib_graph.sh",
+            "sha256": "cec032addedf10e5ee5d70bc058eed7efb3dd2d06e74dc3693254795d3e293e5"
+          },
+          {
+            "path": "D:\\GIT\\x-lang\\demo6\\release\\examples\\extlibs\\graph_basic.expected.txt",
+            "sha256": "4023d2f9d9376f8d06cd56f244ba68f1cf21c67e25f4d38f0c35ce79014d86b1"
+          },
+          {
+            "path": "D:/GIT/x-lang/demo6/build/test/graph-delivery-20260928-final/declarations.inc",
+            "sha256": "7bae60b078ffa7004164bd697ad8f6ab91aa8fd6ad7084e742f14f49dcb80807"
+          }
+        ],
+        "logs": {
+          "basic.log": "dag=true\ntopo=parse>docs>check>emit\nbfs=parse>check>emit\nnodes=check,docs,emit,parse\nneighbors=check,emit\nfewest-edges=parse>emit\ncost=5\nweak=2; first-size=3\nscc=2; first-size=2\ncycle=rejected\n",
+          "compiler.txt": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+          "gate.log": "graph: boundaries, 128 independent oracle graphs, capacity and ownership PASS\ngraph allocation: 218 failure points, all 9 APIs, success/error cleanup PASS\ngraph threads: 4 workers, 1000 rounds, shared immutable input and TLS PASS\ngraph Linux C ASan/UBSan gate: PASS\n",
+          "test_graph_alloc.log": "graph allocation: 218 failure points, all 9 APIs, success/error cleanup PASS\n",
+          "test_graph_threads.log": "graph threads: 4 workers, 1000 rounds, shared immutable input and TLS PASS\n",
+          "test_graph.log": "graph: boundaries, 128 independent oracle graphs, capacity and ownership PASS\n"
+        },
+        "scope": "Independent C ASan/UBSan/leaks, generated LP64 prototypes and golden output; not Linux xlang or TSan."
+      },
+      "site": {
+        "package": "graph",
+        "results": [
+          {
+            "name": "desktop",
+            "width": 1280,
+            "scrollWidth": 1280,
+            "title": "graph - 扩展库 - xlang",
+            "rows": 9,
+            "local": [
+              "file:///D:/GIT/home/host/xlang/wwwroot/favicon.png",
+              "file:///D:/GIT/home/host/xlang/wwwroot/style.css",
+              "file:///D:/GIT/home/host/xlang/wwwroot/extlibs.css",
+              "file:///D:/GIT/home/host/xlang/wwwroot/refactor.css",
+              "file:///D:/GIT/home/host/xlang/wwwroot/extlibs/graph.html#main-content",
+              "file:///D:/GIT/home/host/xlang/wwwroot/index.html",
+              "file:///D:/GIT/home/host/xlang/wwwroot/tour.html",
+              "file:///D:/GIT/home/host/xlang/wwwroot/stdlib.html",
+              "file:///D:/GIT/home/host/xlang/wwwroot/extlibs.html",
+              "file:///D:/GIT/home/host/xlang/wwwroot/guide.html",
+              "file:///D:/GIT/home/host/xlang/wwwroot/download.html",
+              "file:///D:/GIT/home/host/xlang/wwwroot/extlibs.html",
+              "file:///D:/GIT/home/host/xlang/wwwroot/main.js"
+            ],
+            "badAnchors": [],
+            "missingFiles": [],
+            "errors": []
+          },
+          {
+            "name": "mobile",
+            "width": 360,
+            "scrollWidth": 360,
+            "title": "graph - 扩展库 - xlang",
+            "rows": 9,
+            "local": [
+              "file:///D:/GIT/home/host/xlang/wwwroot/favicon.png",
+              "file:///D:/GIT/home/host/xlang/wwwroot/style.css",
+              "file:///D:/GIT/home/host/xlang/wwwroot/extlibs.css",
+              "file:///D:/GIT/home/host/xlang/wwwroot/refactor.css",
+              "file:///D:/GIT/home/host/xlang/wwwroot/extlibs/graph.html#main-content",
+              "file:///D:/GIT/home/host/xlang/wwwroot/index.html",
+              "file:///D:/GIT/home/host/xlang/wwwroot/tour.html",
+              "file:///D:/GIT/home/host/xlang/wwwroot/stdlib.html",
+              "file:///D:/GIT/home/host/xlang/wwwroot/extlibs.html",
+              "file:///D:/GIT/home/host/xlang/wwwroot/guide.html",
+              "file:///D:/GIT/home/host/xlang/wwwroot/download.html",
+              "file:///D:/GIT/home/host/xlang/wwwroot/extlibs.html",
+              "file:///D:/GIT/home/host/xlang/wwwroot/main.js"
+            ],
+            "badAnchors": [],
+            "missingFiles": [],
+            "errors": []
+          }
+        ],
+        "catalogNavigation": true
+      },
+      "codeBlocks": [
+        {
+          "file": "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-final\\site\\example-0.xl",
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "true\n2\n5\n",
+            "stderr": "",
+            "elapsedMs": 249
+          }
+        },
+        {
+          "file": "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-final\\site\\example-1.xl",
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "2\n3\ncycle\n",
+            "stderr": "",
+            "elapsedMs": 235
+          }
+        },
+        {
+          "file": "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-final\\site\\readme-0.xl",
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "true\n2\n5\n",
+            "stderr": "",
+            "elapsedMs": 233
+          }
+        },
+        {
+          "file": "D:\\GIT\\x-lang\\demo6\\build\\test\\graph-delivery-20260928-final\\site\\readme-1.xl",
+          "result": {
+            "status": "pass",
+            "exitCode": 0,
+            "stdout": "2\n3\ncycle\n",
+            "stderr": "",
+            "elapsedMs": 238
+          }
+        }
+      ],
+      "pageSource": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\graph\\docs\\site.html",
+      "pageTarget": "D:\\GIT\\home\\host\\xlang\\wwwroot\\extlibs\\graph.html",
+      "pageHash": "9D3F9E879A4AED8A414611E9CF68BC3683D209CF22D9C88BD64D2E1371636752",
+      "remaining": [
+        "Shared managed-string embedded NUL preservation",
+        "Unverified Linux xlang/32-bit/ARM/TSan/performance scope"
+      ]
+    }
+  ],
+  "catalog": {
+    "path": "D:\\GIT\\home\\host\\xlang\\wwwroot\\extlibs.html",
+    "sha256": "E5686241102E31CFB7825122D7F4DD2CDBC258648C05802A383AF7C8EA1F4EEE",
+    "entries": 211,
+    "cEntries": 205,
+    "scienceEntries": 20
+  },
+  "sharedStringGeneratedC": {
+    "path": "D:/GIT/x-lang/demo6/build/test/extlib-string-nul.c",
+    "sha256": "E1E616638E767CD64049B27CB79DA44E538CE548F0A4F49F86868A024F5B99C8"
+  }
+}

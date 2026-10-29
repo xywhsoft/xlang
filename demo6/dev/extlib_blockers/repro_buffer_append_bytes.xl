@@ -1,0 +1,2 @@
+Buffer data = Buffer()
+assert data.appendBytes("x", c_size(1))

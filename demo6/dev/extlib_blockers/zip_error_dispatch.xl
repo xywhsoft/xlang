@@ -1,0 +1,11 @@
+import zip
+
+func main(...) as int
+    auto archive = zip.create()
+    try
+        archive.add("../escape.txt", "bad")
+    catch ArchiveError error
+        return 0
+    end
+    return 1
+end

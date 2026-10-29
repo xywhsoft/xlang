@@ -1,0 +1,98 @@
+{
+  "date": "2026-09-27T18:44:13.8945947+08:00",
+  "runtime": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-candidate-20260927\\runtime",
+  "checks": [
+    {
+      "name": "dll-api-boundary",
+      "script": "tools/check_dll_api_boundary.ps1",
+      "arguments": [],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "DLL API boundary ok: 80 public APIs.\r\n",
+        "stderr": "",
+        "elapsedMs": 914
+      }
+    },
+    {
+      "name": "standalone-compiler-vfs",
+      "script": "tools/check_standalone_compiler_vfs.ps1",
+      "arguments": [
+        "-RuntimeDirectory",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-candidate-20260927\\runtime"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "Standalone compiler VFS ok: public headers and embedded xlang runtime/compiler work without repository files.\r\n",
+        "stderr": "",
+        "elapsedMs": 9736
+      }
+    },
+    {
+      "name": "shell-smoke",
+      "script": "tools/xlc_shell_smoke.ps1",
+      "arguments": [
+        "-RuntimeDirectory",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-candidate-20260927\\runtime"
+      ],
+      "result": {
+        "status": "timeout",
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 300300
+      }
+    },
+    {
+      "name": "cli-temp-cleanup",
+      "script": "tools/check_cli_temp_cleanup.ps1",
+      "arguments": [
+        "-RuntimeDirectory",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-candidate-20260927\\runtime",
+        "-WorkDirectory",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-candidate-20260927\\cli-temp-cleanup"
+      ],
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "CLI temp cleanup ok: release tmp build dirs=0, run dirs=0.\r\n",
+        "stderr": "",
+        "elapsedMs": 1317
+      }
+    },
+    {
+      "name": "xl_dll_xrt_exports",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-candidate-20260927\\runtime\\xl_dll_xrt_exports.exe",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "xl.dll XRT exports ok\r\n",
+        "stderr": "",
+        "elapsedMs": 30
+      }
+    },
+    {
+      "name": "xl_dll_null_context",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-candidate-20260927\\runtime\\xl_dll_null_context.exe",
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "missing toolchain environment variable: XL6_TCC_ROOT\r\ncannot create cwd success context\r\n",
+        "elapsedMs": 42
+      }
+    },
+    {
+      "name": "xl_dll_threaded_host",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\extlib-runtime-candidate-20260927\\runtime\\xl_dll_threaded_host.exe",
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "thread 0: cannot build absolute paths\r\n",
+        "elapsedMs": 25
+      }
+    }
+  ]
+}

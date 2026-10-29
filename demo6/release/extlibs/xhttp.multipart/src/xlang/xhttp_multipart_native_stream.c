@@ -4,7 +4,7 @@
 
 /* 创建无固定输入缓冲的增量 Reader。 */
 XLANG_XHTTP_MULTIPART_EXPORT void* xhttp_multipart_reader_create(
-	const void* pBoundaryHandle,
+	void* pBoundaryHandle,
 	long long iMaxParts,
 	long long iMaxHeaders,
 	long long iMaxDelimiterBytes,
@@ -66,7 +66,7 @@ XLANG_XHTTP_MULTIPART_EXPORT void* xhttp_multipart_reader_wrap(
 
 
 /* 释放 Reader 状态，不触碰任何输入 Buffer。 */
-XLANG_XHTTP_MULTIPART_EXPORT long long xhttp_multipart_reader_destroy(
+XLANG_XHTTP_MULTIPART_EXPORT void xhttp_multipart_reader_destroy(
 	void* pHandle
 )
 {
@@ -74,7 +74,6 @@ XLANG_XHTTP_MULTIPART_EXPORT long long xhttp_multipart_reader_destroy(
 		memset(pHandle, 0, sizeof(xhttp_multipart_native_reader));
 		xrtFree(pHandle);
 	}
-	return 0;
 }
 
 
@@ -112,7 +111,7 @@ XLANG_XHTTP_MULTIPART_EXPORT bool xhttp_multipart_reader_reset(
 /* 按调用方显式切片推进 Reader 并发布一个借用事件。 */
 XLANG_XHTTP_MULTIPART_EXPORT void* xhttp_multipart_reader_read(
 	void* pHandle,
-	const void* pData,
+	void* pData,
 	size_t iTotal,
 	size_t iOffset,
 	size_t iSize,
@@ -233,7 +232,7 @@ XLANG_XHTTP_MULTIPART_EXPORT void* xhttp_multipart_event_wrap(
 
 
 /* 释放流事件，不触碰其借用的输入。 */
-XLANG_XHTTP_MULTIPART_EXPORT long long xhttp_multipart_event_destroy(
+XLANG_XHTTP_MULTIPART_EXPORT void xhttp_multipart_event_destroy(
 	void* pHandle
 )
 {
@@ -241,7 +240,6 @@ XLANG_XHTTP_MULTIPART_EXPORT long long xhttp_multipart_event_destroy(
 		memset(pHandle, 0, sizeof(xhttp_multipart_native_event));
 		xrtFree(pHandle);
 	}
-	return 0;
 }
 
 

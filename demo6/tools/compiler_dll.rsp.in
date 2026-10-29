@@ -21,6 +21,24 @@
     src\runtime\xl6_closure.c
     src\runtime\xl6_cell.c
     src\runtime\xl6_slot.c
+    src\runtime\xl6_slot_map.c
+    src\runtime\xl6_slot_map_key.c
+    src\runtime\xl6_slot_map_key_value.c
+    src\runtime\xl6_slot_map_keys.c
+    src\runtime\xl6_slot_map_pairs.c
+    src\runtime\xl6_slot_map_iterator.c
+    src\runtime\xl6_slot_map_iterator_key.c
+    src\runtime\xl6_slot_map_iterator_pair.c
+    src\runtime\xl6_slot_map_iterator_keys.c
+    src\runtime\xl6_slot_map_iterator_values.c
+    src\runtime\xl6_slot_map_iterator_count.c
+    src\runtime\xl6_capture_v2.c
+    src\runtime\xl6_slot_map_key_capture.c
+    src\runtime\xl6_c_owned_capture.c
+    src\runtime\xl6_native_future_payload.c
+    src\runtime\xl6_native_leaf_value.c
+    src\runtime\xl6_array_native_value_admission.c
+    src\runtime\xl6_array_extract_native_value.c
     src\runtime\xl6_frame_storage.c
     src\runtime\xl6_task.c
     src\runtime\xl6_task_frame.c
@@ -109,8 +127,8 @@
     src\runtime\xl6_tls_info_certificate.c
     src\runtime\xl6_tls_server_stats.c
     src\runtime\xl6_tls_listener_stats.c
-    src\runtime\xl6_ownership_domain_tls_info.c
-    src\runtime\xl6_ownership_domain_tls_server_stats.c
+src\runtime\xl6_ownership_domain_tls_info.c
+src\runtime\xl6_ownership_domain_tls_server_stats.c
     src\runtime\xl6_tls_metadata_client.c
     src\runtime\xl6_tls_metadata_server.c
     src\runtime\xl6_tls_server_request.c
@@ -140,32 +158,30 @@
     src\runtime\xl6_tls_selector.c
     src\runtime\xl6_ownership_domain_tls_server_request.c
     src\runtime\xl6_ownership_domain_tls_server_choice.c
-
-    src\runtime\xl6_execution_tls_dial.c
-    src\runtime\xl6_execution_tls_dial_common.c
+    src\runtime\xl6_tls_dial_input.c
+    src\runtime\xl6_tls_dial_source.c
+    src\runtime\xl6_tls_proxy_dial_source.c
+    src\runtime\xl6_tls_dial_future.c
+    src\runtime\xl6_tls_dial_sync.c
+    src\runtime\xl6_tls_dial_default_basic.c
+    src\runtime\xl6_tls_dial_default_interrupt.c
+    src\runtime\xl6_tls_dial_default_blocking.c
+    src\runtime\xl6_tls_dial_configured_basic.c
+    src\runtime\xl6_tls_dial_configured_interrupt.c
+    src\runtime\xl6_tls_dial_configured_blocking.c
+    src\runtime\xl6_tls_proxy_dial_default_basic.c
+    src\runtime\xl6_tls_proxy_dial_default_interrupt.c
+    src\runtime\xl6_tls_proxy_dial_default_blocking.c
+    src\runtime\xl6_tls_proxy_dial_configured_basic.c
+    src\runtime\xl6_tls_proxy_dial_configured_interrupt.c
+    src\runtime\xl6_tls_proxy_dial_configured_blocking.c
     src\runtime\xl6_execution_tls_promote.c
+    src\runtime\xl6_execution_tls_dial_common.c
+    src\runtime\xl6_execution_tls_dial.c
     src\runtime\xl6_execution_tls_proxy_dial.c
     src\runtime\xl6_tls_class_future.c
-    src\runtime\xl6_tls_dial_configured_basic.c
-    src\runtime\xl6_tls_dial_configured_blocking.c
-    src\runtime\xl6_tls_dial_configured_interrupt.c
-    src\runtime\xl6_tls_dial_default_basic.c
-    src\runtime\xl6_tls_dial_default_blocking.c
-    src\runtime\xl6_tls_dial_default_interrupt.c
-    src\runtime\xl6_tls_dial_future.c
-    src\runtime\xl6_tls_dial_input.c
     src\runtime\xl6_tls_dial_options.c
     src\runtime\xl6_tls_dial_options_domain.c
-    src\runtime\xl6_tls_dial_source.c
-    src\runtime\xl6_tls_dial_sync.c
-    src\runtime\xl6_tls_proxy_dial_configured_basic.c
-    src\runtime\xl6_tls_proxy_dial_configured_blocking.c
-    src\runtime\xl6_tls_proxy_dial_configured_interrupt.c
-    src\runtime\xl6_tls_proxy_dial_default_basic.c
-    src\runtime\xl6_tls_proxy_dial_default_blocking.c
-    src\runtime\xl6_tls_proxy_dial_default_interrupt.c
-    src\runtime\xl6_tls_proxy_dial_source.c
-
     src\runtime\xl6_net_frame_ref.c
     src\runtime\xl6_tls_recv_owned_basic.c
     src\runtime\xl6_tls_recv_owned_interrupt.c
@@ -179,11 +195,7 @@
     src\runtime\xl6_tls_vector_buffer_basic.c
     src\runtime\xl6_tls_vector_buffer_interrupt.c
     src\runtime\xl6_tls_vector_buffer_blocking.c
-
     src\runtime\xl6_tls_listener_blocking.c
-
-
-
     src\runtime\xl6_execution_tcp_dial.c
     src\runtime\xl6_execution_tcp_dial_common.c
     src\runtime\xl6_tcp_dial_sync_common.c
@@ -908,26 +920,14 @@
     src\runtime\xl6_array_string_read.c
     src\runtime\xl6_array_value_read.c
     src\runtime\xl6_array_call_frame.c
-    src\runtime\xl6_call_frame_expansion.c
-    src\runtime\xl6_dict_call_frame.c
+    src\runtime\xl6_call_frame_expansion.c src\runtime\xl6_dict_call_frame.c
     src\runtime\xl6_array_entry.c
     src\runtime\xl6_array_producer.c
-    src\runtime\xl6_tree_projection.c
-    src\runtime\xl6_tree.c
-    src\runtime\xl6_tree_bytes_key.c
-    src\runtime\xl6_tree_admission.c
-    src\runtime\xl6_semaphore.c
-    src\runtime\xl6_array_semaphore_admission.c
-    src\runtime\xl6_sync.c
-    src\runtime\xl6_mutex.c
-    src\runtime\xl6_cond.c
-    src\runtime\xl6_rwlock.c
-    src\runtime\xl6_array_sync_admission.c
-    src\runtime\xl6_thread.c
-    src\runtime\xl6_array_thread_admission.c
-    src\runtime\xl6_queue_spsc_admission.c
-    src\runtime\xl6_queue_mpsc_admission.c
-    src\runtime\xl6_queue_mpmc_admission.c
+    src\runtime\xl6_tree_projection.c src\runtime\xl6_tree.c src\runtime\xl6_tree_bytes_key.c src\runtime\xl6_tree_admission.c
+    src\runtime\xl6_semaphore.c src\runtime\xl6_array_semaphore_admission.c
+    src\runtime\xl6_sync.c src\runtime\xl6_mutex.c src\runtime\xl6_cond.c src\runtime\xl6_rwlock.c src\runtime\xl6_array_sync_admission.c
+    src\runtime\xl6_thread.c src\runtime\xl6_array_thread_admission.c
+    src\runtime\xl6_queue_spsc_admission.c src\runtime\xl6_queue_mpsc_admission.c src\runtime\xl6_queue_mpmc_admission.c
     src\runtime\xl6_queue_spsc.c src\runtime\xl6_queue_mpsc.c src\runtime\xl6_queue_mpmc.c
     src\runtime\xl6_array_os_argv.c
     src\runtime\xl6_array_method_remove.c
@@ -939,6 +939,13 @@
     src\runtime\xl6_restore_class_closed.c
     src\runtime\xl6_restore_open.c
     src\runtime\xl6_list.c
+    src\runtime\xl6_dict.c
+    src\runtime\xl6_dict_schema.c
+src\runtime\xl6_dict_value_index.c
+src\runtime\xl6_dict_methods.c
+src\runtime\xl6_dict_import_chain.c
+    src\runtime\xl6_dict_graph.c
+    src\runtime\xl6_dict_value_iterator.c
     src\runtime\xl6_list_methods.c
     src\runtime\xl6_list_value_iterator.c
     src\runtime\xl6_list_value_read.c
@@ -967,10 +974,6 @@
     src\runtime\xl6_persistence_project_set.c
     src\runtime\xl6_restore_class_set.c
     src\runtime\xl6_restore_class_collections.c
-    src\runtime\xl6_dict.c src\runtime\xl6_slot_map.c src\runtime\xl6_slot_map_key.c src\runtime\xl6_slot_map_key_value.c src\runtime\xl6_native_leaf_value.c src\runtime\xl6_array_native_value_admission.c src\runtime\xl6_array_extract_native_value.c src\runtime\xl6_slot_map_keys.c src\runtime\xl6_slot_map_pairs.c src\runtime\xl6_slot_map_iterator.c src\runtime\xl6_slot_map_iterator_key.c src\runtime\xl6_slot_map_iterator_pair.c src\runtime\xl6_slot_map_iterator_keys.c src\runtime\xl6_slot_map_iterator_values.c src\runtime\xl6_slot_map_iterator_count.c src\runtime\xl6_capture_v2.c src\runtime\xl6_slot_map_key_capture.c src\runtime\xl6_c_owned_capture.c src\runtime\xl6_native_future_payload.c
-    src\runtime\xl6_dict_import_chain.c src\runtime\xl6_dict_methods.c src\runtime\xl6_dict_value_index.c src\runtime\xl6_dict_schema.c
-    src\runtime\xl6_dict_graph.c
-    src\runtime\xl6_dict_value_iterator.c
     src\runtime\xl6_value_index_read.c
     src\runtime\xl6_value_index_write.c
     src\runtime\xl6_value_named_read.c
@@ -1161,18 +1164,14 @@
     src\abi\xl6_callable.c
     src\backend\xl6_build_backend.c
     src\compile\xl6_compile_unit.c
-    src\compile\xl6_imports.c
-    src\compile\xl6_build_inputs.c
-    src\compile\xl6_source_overlay.c
-    src\compile\xl6_source_report.c
-    src\sem\xl6_completion.c
-    src\sem\xl6_sem_index.c
+    src\compile\xl6_imports.c src\compile\xl6_source_overlay.c src\compile\xl6_source_report.c src\compile\xl6_build_inputs.c
     src\compile\xl6_xrt_trim.c
     src\common\xl6_console.c
     src\common\xl6_output.c
     src\diag\xl6_diag.c
     src\ast\xl6_ast.c
     src\ast\xl6_ast_dump.c
+    src\sem\xl6_sem_index.c
  src\ir\xl6_ir.c src\ir\xl6_ir_class_identity.c src\ir\xl6_ir_lower.c
     src\cgen\xl6_cgen_shared_runtime.c
     src\cgen\xl6_ir_cgen.c
@@ -1191,6 +1190,7 @@
     src\sem\xl6_type_registry.c
     src\sem\xl6_sem_docs.c
     src\sem\xl6_sem_field_attrs.c
+    src\sem\xl6_completion.c
     src\sem\xl6_sem.c
     %XL6_DLL_LINKS%
 src/runtime/xl6_system_info.c

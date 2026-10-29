@@ -35,7 +35,7 @@
     "dependencies": [],
     "coverage": {
         "mode": "suite",
-        "tests": ["test/xssh_test.xl"]
+        "tests": ["test/xssh_test.xl", "test/boundaries.xl"]
     },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

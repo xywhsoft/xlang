@@ -1,0 +1,86 @@
+import xhttp.body
+import xhttp.form_data
+from xhttp.body import Body
+from xhttp.form_data import FormData, FormDataConfig, FormDataPart
+
+
+// Part 是拥有型快照，不能依赖已经离开作用域的容器和正文。
+func retainedPart() as FormDataPart
+    FormData form = FormData()
+    form.append("snapshot", Body.fromText("retained"), "saved.txt", "text/plain")
+    return form.at(0)
+end
+
+
+func main(...) as int
+    FormDataPart retained = retainedPart()
+    assert retained.text() == "retained"
+    assert retained.flags == xhttp.form_data.FORM_DATA_PART_FILENAME + xhttp.form_data.FORM_DATA_PART_CONTENT_TYPE
+    assert (retained.filename ?? "") == "saved.txt"
+    assert (retained.contentType ?? "") == "text/plain"
+
+    // 显式预算应与默认构造一样拥有完整的替换、清空和复用能力。
+    FormData form = FormData.withConfig(FormDataConfig(
+        initialParts = 0, maxParts = 2, maxPartBytes = 4, maxBodyBytes = 8))
+    form.append("same", "old")
+    form.append("same", "two")
+    FormDataPart old = form.at(0)
+    Buffer binary = Buffer()
+    assert binary.appendByte(0) and binary.appendByte(255)
+    form.set("same", binary, "", "application/octet-stream")
+    assert form.count == 1 and form.count("same") == 1
+    FormDataPart file = form.at(0)
+    assert file.hasFilename and file.filename != null
+    assert (file.filename ?? "absent") == ""
+    assert file.lengthKnown and file.length == 2
+    assert file.bytes().byteAt(0) == 0 and file.bytes().byteAt(1) == 255
+    assert old.text() == "old"
+
+    // setBytes 必须复制输入字节，而 setBody 保留独立的正文引用。
+    binary.clear()
+    assert file.bytes().len() == 2
+    form.set("same", Body.fromText("body"))
+    FormDataPart body = form.at(0)
+    assert not body.hasFilename and body.filename == null
+    assert not body.hasContentType and body.contentType == null
+    assert body.flags == 0 and body.text() == "body"
+
+    form.append("empty", "")
+    assert form.get("missing") == null
+    FormDataPart empty = form.get("empty") as FormDataPart
+    assert empty.valid and empty.length == 0 and empty.text() == ""
+
+    // 失败的追加或替换不能改变已有字段，捕获后容器仍可使用。
+    bool countRejected = false
+    try
+        form.append("third", "x")
+    catch error
+        countRejected = true
+    end
+    assert countRejected and form.count == 2
+    bool sizeRejected = false
+    try
+        form.set("same", Body.fromText("12345"))
+    catch error
+        sizeRejected = true
+    end
+    assert sizeRejected and form.count == 2 and form.at(0).text() == "body"
+
+    form.clear()
+    assert form.count == 0 and form.metadataBytes == 0
+    assert body.text() == "body" and old.text() == "old"
+    assert file.bytes().byteAt(1) == 255 and retained.text() == "retained"
+    form.append("again", "ok")
+    assert form.count == 1 and form.at(0).text() == "ok"
+
+    bool invalidConfig = false
+    try
+        FormData.withConfig(FormDataConfig(initialParts = 3, maxParts = 2))
+    catch error
+        invalidConfig = true
+    end
+    assert invalidConfig
+    assert form.at(0).text() == "ok"
+    println("HTTP form data binding boundaries: PASS")
+    return 0
+end

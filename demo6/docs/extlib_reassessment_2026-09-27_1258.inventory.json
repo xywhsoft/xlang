@@ -1,0 +1,6713 @@
+{
+  "format": "xlang-extlib-reassessment-inventory-2",
+  "generatedAt": "2026-09-27T13:00:09.2916477+08:00",
+  "summary": {
+    "packages": 225,
+    "public": 218,
+    "internal": 7,
+    "declaredC": 627.0,
+    "declaredXL": 246.0,
+    "coveragePackages": 22,
+    "coverageEntries": 33,
+    "rootReadmes": 32,
+    "siteSources": 14,
+    "conventionalFocusedFiles": 200,
+    "conventionalExamples": 204,
+    "registries": [
+      {
+        "suite": "featured",
+        "packages": 19,
+        "cSmoke": 14
+      },
+      {
+        "suite": "phase1",
+        "packages": 87,
+        "cSmoke": 32
+      },
+      {
+        "suite": "platform",
+        "packages": 10,
+        "cSmoke": 3
+      }
+    ],
+    "manifestIssues": [],
+    "byteLengthLines": 12,
+    "byteLengthPackages": 6,
+    "networkPackages": 12,
+    "networkClasses": 57,
+    "networkDeclaredTests": 19,
+    "directPublicPackages": 121,
+    "publicWithoutDirectCase": 97,
+    "unselectedFocusedFiles": 115
+  },
+  "packages": [
+    {
+      "name": "_bzip2",
+      "queue": "internal",
+      "visibility": "internal",
+      "gates": [],
+      "manifestSha256": "439AB4C41E0409DBBFEA5ABDA2B8145CC4A29B32B082977411B643C6D7BB2ADE",
+      "cSources": 7,
+      "xlSources": 0,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": false,
+      "example": false,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "_expat",
+      "queue": "internal",
+      "visibility": "internal",
+      "gates": [],
+      "manifestSha256": "9537D75C8C760FF2762DD2054C6F5DD3255DF3AF88E21736FC5697ED4E83C3A9",
+      "cSources": 4,
+      "xlSources": 0,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": false,
+      "example": false,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "_libzip",
+      "queue": "internal",
+      "visibility": "internal",
+      "gates": [],
+      "manifestSha256": "4D11DBA4CBB02485DB887F66C951A8216CC465F090F9FA612D48B92B4E79F262",
+      "cSources": 111,
+      "xlSources": 0,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": false,
+      "example": false,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "_tomlc17",
+      "queue": "internal",
+      "visibility": "internal",
+      "gates": [],
+      "manifestSha256": "F25EFEF9DE86489B87A77FB7B2FCDDFCF2A47E0C253254BDB34A1AC2B33E6A12",
+      "cSources": 1,
+      "xlSources": 0,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": false,
+      "example": false,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "_xge_native",
+      "queue": "internal",
+      "visibility": "internal",
+      "gates": [],
+      "manifestSha256": "C65D7CBB62FD0C33FA74B26B3026868D627554E3B5D4C5E28B79D1EC38814336",
+      "cSources": 96,
+      "xlSources": 0,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": false,
+      "example": false,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "_zlib",
+      "queue": "internal",
+      "visibility": "internal",
+      "gates": [],
+      "manifestSha256": "FB0C769AE42E86223430C5A78E8D918F15594EF471064C27C9DCFD66F3B63198",
+      "cSources": 11,
+      "xlSources": 0,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": false,
+      "example": false,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "acme",
+      "queue": "environment-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "C7BE6C8747F12384AE348D5205E0E1625FB6F3D4B684A97B6CE0E698F5DAC061",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "aho_corasick",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "manifestSha256": "077E0188B6775F1FB6A24BC90481614B6972E7137BB308AE6E47E9F1D2416B32",
+      "cSources": 2,
+      "xlSources": 1,
+      "exportedClasses": [
+        "Match",
+        "Scanner",
+        "Automaton"
+      ],
+      "coverageTests": [
+        "test/boundaries.xl"
+      ],
+      "rootReadme": true,
+      "siteSource": true,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "release/extlibs/aho_corasick/test/boundaries.xl",
+          "status": "pass"
+        },
+        {
+          "case": "test/cases/extlib_aho_corasick.xl",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "name": "ansi",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "1193AC545D51B2B13E54EE0596FECA2D689DBA2A09D084859CB98BDB526DFDFC",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_ansi.xl",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "name": "argon2",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "manifestSha256": "22626A95C162DC340B45C4FEB3A94FBC95DE58ABFD1AB0C478469A1233205082",
+      "cSources": 6,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": true,
+      "siteSource": true,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_argon2.xl",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "name": "barcode",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "B1D1873AEFAA60704176F8A32BD7C40BF4FAC3D39CB6F8FC8652DD4EE3670965",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_barcode.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "blake2",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "manifestSha256": "8D4AB376297EAE687C3B6D17D222745A004AA1A795167D87EE01651AC02BE852",
+      "cSources": 3,
+      "xlSources": 1,
+      "exportedClasses": [
+        "Blake2bHasher",
+        "Blake2bKeyedHasher",
+        "Blake2sHasher",
+        "Blake2sKeyedHasher"
+      ],
+      "coverageTests": [],
+      "rootReadme": true,
+      "siteSource": true,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_blake2.xl",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "name": "blake3",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "manifestSha256": "43D20C889BE66EA649B6264955A49B56B6938A17CE9A3AF433C0AA01F4DC724F",
+      "cSources": 3,
+      "xlSources": 1,
+      "exportedClasses": [
+        "Blake3Hasher",
+        "Blake3KeyedHasher"
+      ],
+      "coverageTests": [],
+      "rootReadme": true,
+      "siteSource": true,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_blake3.xl",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "name": "bloom",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "manifestSha256": "2B1FC17AE5D19CEC77685D07A682832D5EEB0514C36EB7BADC76F357E78A1001",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": true,
+      "siteSource": true,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_bloom.xl",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "name": "brotli",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "manifestSha256": "EAECD41FF8E86A83EB34321FCE2DE21A3A407CC53D345F0309C70CA74D191A08",
+      "cSources": 33,
+      "xlSources": 1,
+      "exportedClasses": [
+        "BrotliCompressor",
+        "BrotliDecompressor"
+      ],
+      "coverageTests": [],
+      "rootReadme": true,
+      "siteSource": true,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_brotli.xl",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "name": "bson",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "manifestSha256": "AD804379153203DD5A6A5DEDBF31D5BBA328B01ADDABE5D4529961A22120F519",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_bson.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "bz2",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "manifestSha256": "055E8FE92B8048D46BE007E6A930D3ED6DBE265ACDC7735BE959C7E11FADD04F",
+      "cSources": 2,
+      "xlSources": 1,
+      "exportedClasses": [
+        "Bz2Compressor",
+        "Bz2Decompressor"
+      ],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_bz2.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "canbus",
+      "queue": "environment-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "6A999DD594184C3D2F8142E63A2BC3EB049E64DAFAC06F88E78DC56133261D13",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "cbor",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "0A6ACE346187CE0C716F25BAFEBF08853AC11960A811242DDAE463613695CE37",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_cbor.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "chardet",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "AE44D751D25D377DB4C0D9EB816CC906F758DCB729B3E5364C97A296392F2A29",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_chardet.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "cli",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "5B3525EADE3B9288659111CCB162A955B8CA0047AD3889104DCD2128907B0042",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_cli.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "clickhouse",
+      "queue": "environment-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "4F5467C98FF602BFF820EA661826FA71B8103CD946E8519FC3623C820B24C5DB",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "clip",
+      "queue": "environment-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "24AEEEA4E6466741B51C3D761DC2C6D2221D4A93FFB7F054D7EF146A2B260FDD",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "clipboard",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "platform"
+      ],
+      "manifestSha256": "AD6D0EB068082C7B0F8BF8178EE0742659026D66125B5B62E47DC0037DD866D1",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": false,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "coap",
+      "queue": "environment-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "C46BB230C294E55D206C969F1D6A4645843CE92A0D01DE6A894004FD7813B141",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "color",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "9712C19593182F70BC150873923076894EC26E243A39C38133785DD1937A78FF",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_color.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "com",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "platform"
+      ],
+      "manifestSha256": "6C575822252EB768BC5959B809761EA5CD2723133EF7119A939E3DAB35AF2FD5",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "consistent_hash",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "843DEBD4494063B335BB8A55D97699B49625016640A3F025A1F964D9EDC5F464",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_consistent_hash.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "crc32",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "manifestSha256": "E35EC33BC675090A3E550DFE55A5D5CDFE8BC2C8E08AC1A592D57C5313560437",
+      "cSources": 2,
+      "xlSources": 1,
+      "exportedClasses": [
+        "Crc32Hasher"
+      ],
+      "coverageTests": [],
+      "rootReadme": true,
+      "siteSource": true,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_crc32.xl",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "name": "crontab",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "E9E2870CB4D8D4F7B23DC067CA7454E703AD3584CBD4EAAFF9BE273633A29F2A",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_crontab.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "css",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "6A984966E5F72C7BA884287DAC496820928193D28A8AE6B4F5B0B5B09BD042FC",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_css.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "csv",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "170E59E5143AAFEC242EACE95F9F31357574D5ED7F71E5E1265726FC055BA992",
+      "cSources": 4,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_csv.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "cuckoo",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "E39E8A1725A19FB92A4D59F13A77553B8218CFF2FCC5752D8D6E704FEE70A45B",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_cuckoo.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "daemon",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "platform"
+      ],
+      "manifestSha256": "602193C138B812C881F22C058874EB6A208FD8626D914C717F4599FFE45A6AA5",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "dataframe",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "5FD0BB480B688A3512F59C78AAE5639CFE9F4326EAE98578F44B00F7437218AE",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "diff",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "6FF68E8189C78BF500F46ACC0E1FF5F304AD2063453B306AAC0341CF49E8BB78",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_diff.xl",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "name": "dinov3",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "78B58AEF58656D453E1C27C81787341E42E8516D9116A2C945CBC1287424F8AB",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_dinov3.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "dns",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "0B3F86A54FAD520A1FA9C57898A03705CC14D56CCEDDBE15FB8021659BFC7DBC",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_dns.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "docker",
+      "queue": "environment-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "DF2F9D8FFAC39D16D5357CFA30B88C5A70A3839C470F4AE7CA2077E5023DB362",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "docx",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "1798C68479D831806A5A56B69EC2A33AD537AE3264C054E8B43092E0E08FC346",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "dotenv",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "469219C3133989D83D6FF902A72B70F9AB63A45AFF1878D0636596AAE34662D9",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_dotenv.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "duckdb",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "E3871493A9FB16BA40348E3A3EFA4E432644C541BDF8129D84A0B7E34460A8FA",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "embeddings",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "7706693B7B6A2C3480BE3F0B87A0A229EC1CEE95506D5196AFFE57F36A6ED128",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "enet",
+      "queue": "environment-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "ED2A6FB40D7A5D342DA699C0FB93C169F9A7051DB0CB56006258B015B4CA68AA",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "epub",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "A950ADC28B9C47186CFE4A1547F960D348346914116DD6BCD079618FF72691A0",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_epub.xl",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "name": "etcd",
+      "queue": "environment-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "06182687E0B876CDBE88AB50BFB9C350BD31CA98BC6B3D5A9F6079E13820903D",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "faiss",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "D1B0A130DFF561FB2F04A3D1BD83E896C835EE7451AC2CC668E3A550421E31A6",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "ffmpeg",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "AA0471795A44B062478D68590F70489A44E2801D462E6D6D9DBE8307B8455A6F",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "fix",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "3317496D31269745A8DD350FBC92C64315D9430A3AFA8EFDD11BACD71866AA5C",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_fix.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "flatbuffers",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "F582953172CE8BCCDC85229D7DF8010D52E6F691902D3048256A7A3729EFC800",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "freetype",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "07DEEE5179EF51437E96AB8744C087E546D76C0D3FAC00EC7726443C481EE426",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "ftp",
+      "queue": "environment-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "816C89CF5D37C9CA80A3FD6DCCD4AA0BAACD35057ECA30B9E47ED848EE6E135F",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "fuzzy",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "98D465A8728DE5D9E4FA6A520EFDFA6A13DD2E458D00D330A60F70EDF7FAE3A3",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_fuzzy.xl",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "name": "geohash",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "86934578EBD8CB235931D9FE6D1F77CD2199EC4922D42BF15C1E97BA485CD1F7",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_geohash.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "gettext",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "FDB190DFD32C1B0264D11470B5141E393B8FE209573F8AE995EC598B617EFE62",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_gettext.xl",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "name": "ggml",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "28E1FA85EB796C67C3CFC5F24E0B1569C31AF416A20334E39E784B72E554169D",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "git",
+      "queue": "environment-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "7BAEFEE6900E9D3D6282C8ED0E3A5CD7D767EAA086D89C83D6B080712FEC7E0E",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "glad",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "7C54FB51B6464CC99E7A9C1103BD3787215A8850BAED957D228F6DAE9F426679",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "gpio",
+      "queue": "environment-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "BE33138FF0854512CE699C028FB8529AFBC2CFA7B78654773E46D1420EA3450B",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "graph",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "58A08B5EE3ED8A5721073DD009F4FF0E031614D427B99BD2545ABB34D8A7A385",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_graph.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "grpc",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "B70AD30B59711B58F07DDA0A905CE89604E509C5B3D490134C4BF1DD6FB29279",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "gzip",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "71A1C45EB317261AB6992E37B5BA8572BD428AC910A7B207E6B18DB4D0B5762B",
+      "cSources": 2,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_gzip.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "harfbuzz",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "641AA77F26F7F131ECE9DC9776AA149A718EAFC610EA5B2B63AB5E5DE06AE9BD",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "hcl",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "61855898C77C66A15DF1D70EB5757E5C588CF5BC1FF7F699718C0FBF76DC9A82",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_hcl.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "hnswlib",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "446548CE6873536BD873DCC545C4FFF1D22D530AF96815A5410383C7E73820F7",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "html5",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "79A42AEF0FC1E63FFD8EE03EEA968185D40C52AA11B367D9D3D6F7BCB458CE08",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "hyperloglog",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "F8DC7D9CA2BE88D790D79A898BE72B6C08C70787D4B3BC71144338748B2D1AC1",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_hyperloglog.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "ical",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "7294E8CDE9F3202A3978B17342E3F9433FF0535271CACED5D966E356DF8A233A",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_ical.xl",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "name": "icu",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "248CC76467A94F99D171266869AAF763A33B8D9E25BE2BB0936A8194308100FC",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "imagehash",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "4DC7E16332D20BCB4926E75939BFEB6583460E2B6213A5BC71C4F9D8DD96CE6C",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_imagehash.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "imgui",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "90D5A2D460AECDA9E3CC72AE4A47B587B531A0D3D0C05AF0E017EC418B37FBF3",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "influxdb",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "A44AFBEB1924C45EB4E6DDD911A478E703F380EEC29AB6C462EFE2A7E197C161",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "ini",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "F2DE91012E5B62124105F958B28223940EB932C83B38197874BDCBF1FE247654",
+      "cSources": 4,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_ini.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "jieba",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "0C1F174ACBAB4177A6BDB0FA86266F63009435B75AFB326959D65468FB9B210A",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "json.patch",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "7A8A2D2F4C3C1AF1A24305A447ED2A2371A762777BD093AFFC5EE34FCF6D9A78",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_json_patch.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "json5",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "E8AEC0C7F94F7B2B139B77596C97A8E0C7E92E4A9963011AA5BB8AE247B26BF6",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_json5.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "jwt",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "88692CDB82FA3CF9DC76FB811B3343224E300930D6F1C9A90C7C57E643F887AF",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_jwt.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "kubernetes",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "C4753A861814EA3D0DF5086ED21C81DB961F3D769D834D6BD003086B13A4C3BA",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "langdetect",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "4B2C3C0B8AB495C0878DB762DE0D3126F5224AF6CC8939B91D3FD6E61937E73A",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_langdetect.xl",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "name": "ldap",
+      "queue": "environment-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "9884D3C9A0373637804621EABFC37A621BB6D66CA91453E091B56E9BDBB47BCF",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "leveldb",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "4CBB51D084DAEBA2CE8C3377EC21587D354D1CA84B31E58497EB3F7D2B648C32",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "libsndfile",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "68D73BCE4587CEEC47D23CF0FF287C6ABFE3F50600ABC1605ABB363BC84179C5",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "libsvm",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "CE83792348FE669C580C0BCAC81B778122B6093F6C14FCD51CABB294748749F2",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "libtorch",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "B4E7DD66409A8A2095B3B83DD2728E7008ED0FE7AFAB02848E1CF8C76ACEA1F1",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "libusb",
+      "queue": "environment-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "1D41AFF8DA7C7285D09C37317C8BE33FCEBE19374921910DA73FC81B39271BA7",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "linalg",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "3E25D1C0BAEBA7EDC7F6ECE8B16602A25E16AA5D12AA9DFA02848C5796BA344D",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_linalg.xl",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "name": "llama",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "0ACEF4198223C058AA7C7BFE2227E8F95868991B330510576D1C23673639E2AE",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "lmdb",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "194EE18580F99E01BB7D7F7D2CA486F2C879D327BE18F2E19BBED6EA9C614404",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "lru",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "6677AEF0D2576D3EDE209200E01F919218B9205BA9B2C4679EFC1611B1EC8C33",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_lru.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "lz4",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "manifestSha256": "713F78A8F69C055DA2803B68560A04F9DA1B3A078E213C3E1601EA9154B00946",
+      "cSources": 3,
+      "xlSources": 1,
+      "exportedClasses": [
+        "Lz4Compressor",
+        "Lz4Decompressor"
+      ],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_lz4.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "lzma",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "manifestSha256": "9034BA5E00C994449942BD01147A2DFF3591B48DE9630C70CA1FB94EF4BFFEF5",
+      "cSources": 7,
+      "xlSources": 1,
+      "exportedClasses": [
+        "LzmaCompressor",
+        "LzmaDecompressor"
+      ],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_lzma.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "md4c",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "A8DBF84C367C3A63D931D521DBAA8BB528DBB542369CC084FE7FF96F7DE2B75F",
+      "cSources": 4,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_md4c.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "md5",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "manifestSha256": "B382B0BE4603BC43E6759CB8134E86397572FACABC95B5C2B5CD6A7102910FB5",
+      "cSources": 2,
+      "xlSources": 1,
+      "exportedClasses": [
+        "Md5Hasher"
+      ],
+      "coverageTests": [],
+      "rootReadme": true,
+      "siteSource": true,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_md5.xl",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "name": "mdns",
+      "queue": "environment-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "1B6061255A6C48304F737913BFA37AB138563EA76BC3A277031905693874626E",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "memcached",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "3CDF385ABB4D73C65DD431F426B2A4CC79ECE3D9E5E5FDB8092222B14CFDAA48",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_memcached.xl",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "name": "minio",
+      "queue": "environment-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "1226BC8222D4BA7E3B72CB201CCCC5DCDD4C5890F4CF34B3F740539CA6BC904E",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "miniz",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "manifestSha256": "853B21D4CD7E3FA1000B69AD96D1963E3A30D00C24943C463002CA31EF038E17",
+      "cSources": 2,
+      "xlSources": 1,
+      "exportedClasses": [
+        "MinizCompressor",
+        "MinizDecompressor"
+      ],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_miniz.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "mnn",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "798830FC035212191FD3209F0610E036A9C5532FB545359841DB3C28DA21673E",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "modbus",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "AED3A5F44AA83637CA5E0BB8FA6664D14E4295820AE53FB0553082C8618BC17E",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_modbus.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "money",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "CFB57F55138571333AD25D211006DAC867BD3B47701239FF209DA0E6675B801E",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_money.xl",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "name": "mongodb",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "F5EA13F8FCB5F4708CF128DD7634D4EF34CC5C3E246D79C5534BB97BA0363329",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "mqtt",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "D0965A5E412139A183D01E4CD4B5288073185CB02494892BCD2D084F393278EB",
+      "cSources": 5,
+      "xlSources": 2,
+      "exportedClasses": [],
+      "coverageTests": [
+        "test/mqtt_boundaries.xl"
+      ],
+      "rootReadme": true,
+      "siteSource": true,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "release/extlibs/mqtt/test/mqtt_boundaries.xl",
+          "status": "pass"
+        },
+        {
+          "case": "test/cases/extlib_mqtt.xl",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "name": "msgpack",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "1CC90833D72D155793FFC3865FD6A30E7FD9C37ACE145D951DD30E1D614F31B2",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_msgpack.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "murmur3",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "manifestSha256": "A322B149387682A490E59C713FE348D4AEBD36E657FF998EE8023A9F851ECF55",
+      "cSources": 3,
+      "xlSources": 1,
+      "exportedClasses": [
+        "Murmur3Hasher"
+      ],
+      "coverageTests": [],
+      "rootReadme": true,
+      "siteSource": true,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_murmur3.xl",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "name": "mysql",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "383C1FA65A7EAB1C6ECF904425841DEC5EAEE07F21D980563C0F865AD0EAEB9B",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": true,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "nanomsg",
+      "queue": "environment-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "2739317F8D04369D93E6A3D8A9AC59AD040A1ADCF29B846C0334AEC42D6065C9",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "nats",
+      "queue": "environment-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "6D7881F7C5259A059339B7BAF5440172387686C59C3EDAD9DC7EC353F119B4AF",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "ncnn",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "D77A3EB3868C5ED2A57EF72478EE9FB96A0FF4A60C576A5B4A3B1B5192FBC673",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "neo4j",
+      "queue": "environment-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "3DCD2CDA9DD772082254A7BDAAD531ADBAFD265B1A296D1C0F06B13AFB0F322D",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "netrc",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "802B12DAAB32E3232873E0E54F2F44F443F975E85213B97108DA5F2B2AD52F39",
+      "cSources": 4,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_netrc.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "nsq",
+      "queue": "environment-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "8F21C60AF3C955744F5954CCB42F8C502495AC1117A5903F3DEDC5FE1AC565BE",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "ntp",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "2F4E1A63790B1FA8AD93360C0CBB5A1C113A21C459C657E0A4CD4428E5C4E60C",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_ntp.xl",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "name": "oauth2",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "A76E61A82CDB3C9A18EA6CF9197B9290B2E4F7F5B17EB060C5415F6F6C1C0575",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_oauth2.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "onnxruntime",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "82DA1DD31B306F6A3C8B8024DBA97850A55444E7043138FEE9471E5C4B77726B",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_onnxruntime.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "op",
+      "queue": "environment-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "0C0BC15130E4D7C26E3DAEADBEDE2F11375667D3F6BB06E4074831C8A909613A",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [
+        "Op"
+      ],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "opencv",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "50A2CE2A0760AB93629BED5EFB30606F2A6739A5246CC4F2623C69437F55B1D9",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_opencv.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "opentelemetry",
+      "queue": "environment-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "DA40D57AFACC9C6036DDDB89AF544DF5FB7EA717CA6D55A528060FF49C4813F0",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "openvino",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "22179421908E776FC87BE3A5ED95875DB16609D51D9F56E17AC32181981619A1",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "opus",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "CE041823CF9E96F1D8AA1A6BF242262B9B94A2F0F7FA671A58EA15A028A01735",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "passkey",
+      "queue": "environment-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "4BF54D7704C6D1C9D75CC5F19F2A8558E10899ED71CD5D4D20166C5F0552F7DF",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "pcap",
+      "queue": "environment-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "8E066CD0B4B31CFA3D971FB821380457345FB586FBD28C89C02270D54B34600D",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "pdf",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "6FD9C5DAE0FD4F8524F633AFF3A9615F09995755A26CC1CC15F16FDA344905E1",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "pdfium",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "25BC3FA7F898E9EB29A78AD0251DE0A43C91AC659421DEED5269C4886CA91F9F",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "pinyin",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "639FBDA0A73238020EE11B20789B7F7F0106486484B232ADFCDAD8CBD3EA1144",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_pinyin.xl",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "name": "pkcs",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "BF7A461C8EB0E7E19826D9E5A17B3995EEFE0E8E2AA8B4228A940BC87888934A",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_pkcs.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "pkg.math",
+      "queue": "internal",
+      "visibility": "internal",
+      "gates": [],
+      "manifestSha256": "7B2A427F08FB37B1002980A24EBAC3DD0C4AD64B3E69D8B17CB79725622AC81A",
+      "cSources": 0,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "plist",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "A70EE8BAB9B5665FCCEE6FB0FB584779EB1383627C8ED90BD8A60403E799DC76",
+      "cSources": 7,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_plist.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "portaudio",
+      "queue": "environment-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "E77E6DD6489D8C76645266BDC72BD9D473A6640001049BE3D99C58985FF7C20D",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "postgresql",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "B2AED2B3CD92F0B5C0B8170A827FD86E9E300550B4585BF01B570367DB4D4CCF",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "pptx",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "6BF463EBF895EF8963D47CE4982E04FBA20C76844ADCD42911D0E8F21DECA885",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "procps",
+      "queue": "environment-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "ADC520EA131A2D90F98556FFC458F23A68DF5409BF7B0A5AAFF856E1A62D93C9",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "progress",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "5ED33B264BDCB4DFF670C221C5B6AC9F99825BA4FADF5B8E35EC3740718F6C02",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_progress.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "prometheus",
+      "queue": "environment-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "F542ACD57F7EF541110E86D8819BA8C63966E5F4F4FE553127879578E6113884",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "protobuf",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "0FE3F93089FFF95C1A33CD7F874AD0719D758243BF5185903DEACBDBFB315AF3",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "qr",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "0B32C99296D9D7653ABC0076E068A928AED830BE8B6FCE1366A2AA212DE068E5",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_qr.xl",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "name": "quic",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "74CE4AA29E183C51F8FBBEECDAC70733449FD8FED8FF9533D26A7309ABF3FB69",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "rabbitmq",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "12F0D2A288199CC30BC9946CD9B1119EC7B7774ED497F30A68B960CCCD5C3A05",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "rapidocr",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "24B0B467CB1C0C84373EB46817D62EE463891B7F299A1B9CB4AA0E29B6107016",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [
+        "RapidOCROutput",
+        "RapidOCREngine"
+      ],
+      "coverageTests": [],
+      "rootReadme": true,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_rapidocr.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "ratatui",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "4020D3C0035D3EA0C2E179447FF35C0C1FED030A82C7CE97EC3CF1AE97227830",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "redis",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "19F3D2DED67D2D1ADBA357D11C97B7EC4F38A2F75D2A0B70413C03DE5E42BA11",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_redis.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "roaring",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "7739D9BE3D1531A60A571BBC5CAEADEA8B43B6DB5017EAF7A8BCB86AE40D75DD",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_roaring.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "rocksdb",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "DBD209E873B5B403E1377E45C4E131852C64E7FFDF4C51808E6F84D5987BCBCF",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "rss",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "45EF36A7ADAD5A65F699EA96D2D5FB0A825A0DF0EF17123D295F83FCB5E6821D",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_rss.xl",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "name": "rtmp",
+      "queue": "environment-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "5A3CE8F4E2A7B12472CA6BF4C2075298B4837E1BCCFEDC25EA37A722BC460168",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "rtree",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "900A4F0F9EB0EB089B0487D76751C15BD3149AF0C49CE55B7844715461CBC4D3",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_rtree.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "sciter",
+      "queue": "environment-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "08740A40B246377ABBE50BE8FEAB5E4342141566DDB2911328B84E51C47AA364",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "semver",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "CF69BF8139959380D3C0C9C22595F4A436E97DC1E415DFB26D2277E056D9B7B1",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_semver.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "sentencepiece",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "E98FA2C8370893E7727C24CC669A9B45567FAC4D85DFD8DE19519AA5576FE44A",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "serial",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "platform"
+      ],
+      "manifestSha256": "9A4F407771E44D18D14F4CAA016E2429E78E61B70C0AF73729A911183A2AB5B2",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [
+        "Serial"
+      ],
+      "coverageTests": [],
+      "rootReadme": true,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "sha3",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "manifestSha256": "AFD925B68098B7A22F7C4D67F44369B118BDE018B4102FE6E49A900726F4CBAC",
+      "cSources": 3,
+      "xlSources": 1,
+      "exportedClasses": [
+        "Sha3Hasher",
+        "ShakeHasher"
+      ],
+      "coverageTests": [],
+      "rootReadme": true,
+      "siteSource": true,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_sha3.xl",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "name": "sharedmem",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "platform"
+      ],
+      "manifestSha256": "9A0B02DEB446EF7A5D2A92E72832E66FEF178CEA62AE65620E9CE8F967B477BB",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "shellwords",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "51D20480288F99A3BB9639F637037CFB031882CA02AB1D7FE9565945DBBAE2BB",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_shellwords.xl",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "name": "singleinstance",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "platform"
+      ],
+      "manifestSha256": "044CD8741827E79F3E27A99FCA086FC64CBBB35682F68A397738D94D13FCAE35",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "siphash",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "manifestSha256": "22AF968BD9E3AD886BADEF8F77665E00549AD827D123D47B6E3280E60306A825",
+      "cSources": 3,
+      "xlSources": 1,
+      "exportedClasses": [
+        "SipHasher"
+      ],
+      "coverageTests": [],
+      "rootReadme": true,
+      "siteSource": true,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_siphash.xl",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "name": "sitemap",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "2BFE0619878D93C6F6C5D8DFE822E7696F2D49576156A59E85B4F47DBC6EDCAE",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_sitemap.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "skiplist",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "AF2E212AF9E65CC6684FE7E134CBF7505068C9382EEBF0D84528D40B71B6ED49",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_skiplist.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "slugify",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "B0C260EE42EA505E6DD624ABD69F7AF7EDC466D64B3A8160A15C641B06E4427D",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_slugify.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "snappy",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "manifestSha256": "94EAAC09F27B34842B2D38D60F3ED0F66D5C39F70D3686881F8FB90AFBF076B4",
+      "cSources": 3,
+      "xlSources": 1,
+      "exportedClasses": [
+        "SnappyCompressor",
+        "SnappyDecompressor"
+      ],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_snappy.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "snmp",
+      "queue": "environment-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "6B7CFF58BEF6D0261FBF138176AC67FF7E082257957B2C7282FCF8947A2FAB19",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "socks",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "5F00E3B5CD262A23B68C547BC1B839D996B25D792C721674132EBB32641AD3CC",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_socks.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "sox",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "054B60E40169A367F0AD3976EBC2827F1381627842497AC736CFB269B347563F",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "sqlite",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "860BFDD5225165579C33CCAD8BD301D3B15EE0FD6C27834C58A6EDD1EA2DD5B4",
+      "cSources": 2,
+      "xlSources": 1,
+      "exportedClasses": [
+        "Statement",
+        "Database"
+      ],
+      "coverageTests": [
+        "test/boundaries.xl",
+        "test/file.xl"
+      ],
+      "rootReadme": true,
+      "siteSource": true,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "release/extlibs/sqlite/test/boundaries.xl",
+          "status": "pass"
+        },
+        {
+          "case": "release/extlibs/sqlite/test/file.xl",
+          "status": "pass"
+        },
+        {
+          "case": "test/cases/extlib_sqlite.xl",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "name": "srt",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "DBCF6805D1B9E2E791BF3B9695931E81FFE8143B82646818F21EEFF8E4FFABA2",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_srt.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "stablediffusion",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "77D06659A36D80A38D1122FBB6E08C29B451010FD9DA864AC9C49ABFB9650584",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "statistics",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "818D23241D18C585202C3517D2FB69536BD1C57F9762A9BBFAC6ACE3D2D67967",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_statistics.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "stb_image",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "99797C25365D644926799D029EE3696DB1E06DF0959A570DA5E9EBA33B7BA04D",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_stb_image.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "stb_image_resize2",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "FF6CB686725DEB6A8C451E222B8DC68ECCE6954DF20FDAC0E3F7AD5AE9B4693C",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_stb_image_resize2.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "stb_image_write",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "98A37EFEB1160DE4DF30732B81F38989B042C05901F8BDB633B8C306E46FFDC1",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_stb_image_write.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "stb_truetype",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "A63EB74C907967DB7326A99E97089D00355BC9C8B30A8C1F3C0E47321C57CF20",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_stb_truetype.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "sysinfo",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "platform"
+      ],
+      "manifestSha256": "B4DE2A857E6C7E09147B66309596F588F0436980603A8225E0DC71CF28769A3C",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "tabulate",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "DAD8ADA1E145E4D04303596846928ED4D2AA3133069A6A0642D41FA68CD82B14",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_tabulate.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "taglib",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "7355D3D4DFA7ED8B6F69E79B30BA67C906893053BA1B7E1D5B68307BC7232F3E",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "tar",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "BE35FF39BA07B61C2CF9711CDA16D92BFE7C0F652818232A88FB8371EE83C473",
+      "cSources": 5,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_tar_p2.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "tdengine",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "37BCBB1382B45F0D0BE0098368995AB60179950A59AE1F96016EE56D0FAF1F72",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "tensorrt",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "CB906837F99AD07822F0A81D7F33B6582E036204F297FE905209528733A60B85",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "terraform_state",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "5220E109EC682DF2463062A87DB05177EC62B27B6942F2FB894ECE06D9E84AFE",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_terraform_state.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "tokenizers",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "0CEC2904C6B9235A8C1756386833FA936CBD2A4DA891C65F40DE9CECD2C624F5",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "toml",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "99A4C570AADA00169301E08E597ACF69ABF022EEA368DB2A509E9BCD320B76EC",
+      "cSources": 4,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_toml.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "totp",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "C9CC051D12DAA76AD206E47AD1F2697D479D17BD3FBF4BDB86D3B8F822D6C81D",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_totp.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "treesitter",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "C4CE59D9B2616BF9B40429A64F843D5A06988D95DFDA24F7996725CE88573B8B",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "trie",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "1E54685DEC5782338C61EC64F6249BB8C91D9E39F9AC82497A389E896FB72382",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_trie.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "ui.auto",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "platform"
+      ],
+      "manifestSha256": "0EE861A3F2561378D7D90FB45A8D9A1E3023DC4C09CAF31D1BB75C7C6AACAB5B",
+      "cSources": 0,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "uia",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "platform"
+      ],
+      "manifestSha256": "6702C882F2C03DC829645207D73BC4A812056926DE1211F55721ED1E44DAD524",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": false,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "units",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "F22F961723D5C71A66F5A6CD61B46B61B3A876D4DAB672C6FA4B452183231A1F",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_units.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "upnp",
+      "queue": "environment-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "3087CE327CAE8115A5E66DA50B642B9922E5FBEF32E3E3D48454EB0E4D788E76",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "vault",
+      "queue": "environment-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "BF03BC023C61390D2FE0C35C5A56AB5D66BC15142F5429997448BC52EC8CB7E2",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "vcard",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "05F4ED857406B976F237557074A56D3A0EAB534C41AC6F5D4DE0923535F29F2B",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_vcard.xl",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "name": "vectordb",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "307C09ACD59E301B10AB855BCCEAF7A1CC8295F1365D6D9BAAA6AF20D864C56A",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "volc.core",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "963EE0B1F41A2A04F063B07D5956983447575872C854E0C43D9CCB4CEE4413ED",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_volc_core.xl",
+          "status": "timeout"
+        }
+      ]
+    },
+    {
+      "name": "volc.phone",
+      "queue": "environment-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "2DF2CCA0F412B79BC59F1BF7B55836041B31B611424CA771E5E98EDDA9E30077",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": false,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "volc.sts",
+      "queue": "environment-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "C2CAF8DE7790F4D197AD7A6FD09740B7276D57EF41AA81A9EC829B46E20CF78C",
+      "cSources": 0,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": false,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "watch",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "platform"
+      ],
+      "manifestSha256": "F66FBBBA703AA20D3191D877C427B96C2926660A560DAB33D1FDE935EA3223B9",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "webrtc",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "A003E1280436C4F52F60060D78A92794FBECF2C22A6F8982282CF1EB46C2E463",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "webview",
+      "queue": "environment-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "AC1763C5BA8D61116838066F390060FD88AB36FCB3FCC6C245C4ECDE1C19E406",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "whisper",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "31FC1B57188F7514253334D322AC87CC41F20F2F1261150CDAB37B5229B44FEA",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "xbot",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "0CE04ECDBB401496FF2AE91521E74222AE5E9A84DA53763C4A12EAE122A313F8",
+      "cSources": 0,
+      "xlSources": 1,
+      "exportedClasses": [
+        "OpResult",
+        "Size",
+        "Pixel",
+        "Ratio"
+      ],
+      "coverageTests": [
+        "test/xbot_test.xl"
+      ],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "release/extlibs/xbot/test/xbot_test.xl",
+          "status": "pass"
+        },
+        {
+          "case": "test/cases/extlib_xbot.xl",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "name": "xbot.agent",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "63F7CAE0A5A8B7A70F6310ABA3A3FA7EB8935CE06666EFD3487FABF179461E64",
+      "cSources": 0,
+      "xlSources": 1,
+      "exportedClasses": [
+        "ToolCall",
+        "ToolResult",
+        "ToolDefinition",
+        "AgentPolicy",
+        "AgentWorkspace",
+        "AgentToolkit"
+      ],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_xbot_agent.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "xfeat",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "79FD0E04822DCC8D3087A770F04F8F8F4A5425C4818DA697DCA1C919BEED22AA",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_xfeat.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "xge",
+      "queue": "existing-hardening",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "4B96596B2BF7703D40F9508D8F134077E4B36B61667EEADF76F8F515542B5965",
+      "cSources": 0,
+      "xlSources": 12,
+      "exportedClasses": [
+        "Color",
+        "XgeApp",
+        "Camera",
+        "Shape",
+        "Input",
+        "Font",
+        "Texture",
+        "Sound",
+        "Music"
+      ],
+      "coverageTests": [
+        "test/import.xl"
+      ],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": false,
+      "example": false,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "release/extlibs/xge/test/import.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "xge_shape_ex",
+      "queue": "existing-hardening",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "ABF6C06B6D59FB061DFA718174AFF3F643E2F2F250216930D205D1E1E6C0CE41",
+      "cSources": 0,
+      "xlSources": 3,
+      "exportedClasses": [
+        "ShapeEx",
+        "Svg"
+      ],
+      "coverageTests": [
+        "test/import.xl"
+      ],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": false,
+      "example": false,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "release/extlibs/xge_shape_ex/test/import.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "xhttp",
+      "queue": "source-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "AFE1437CD8C931DAD81C4D9098FA0C9335711FDD24D9B15ACDAAA198928BD3C9",
+      "cSources": 8,
+      "xlSources": 1,
+      "exportedClasses": [
+        "Url",
+        "QueryParam",
+        "QueryParams",
+        "QueryParamsIter",
+        "FormCodec",
+        "Query"
+      ],
+      "coverageTests": [
+        "test/xhttp_url_test.xl",
+        "test/xhttp_query_test.xl"
+      ],
+      "rootReadme": true,
+      "siteSource": false,
+      "focusedCase": false,
+      "example": false,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "release/extlibs/xhttp/test/xhttp_query_test.xl",
+          "status": "fail"
+        },
+        {
+          "case": "release/extlibs/xhttp/test/xhttp_url_test.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "xhttp.body",
+      "queue": "source-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "ACE51C033CEC581D0BAEB19BCBAD6382DFC9A8A314C43586D10E1EE2BC1AA1E6",
+      "cSources": 4,
+      "xlSources": 1,
+      "exportedClasses": [
+        "Body",
+        "BodyReader",
+        "BodyChunk"
+      ],
+      "coverageTests": [
+        "test/xhttp_body_test.xl"
+      ],
+      "rootReadme": true,
+      "siteSource": false,
+      "focusedCase": false,
+      "example": false,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "release/extlibs/xhttp.body/test/xhttp_body_test.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "xhttp.body_async",
+      "queue": "source-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "3B914D61561A9B5892765592C4AFB7073D31198FABD8C4C51BFBB7D1B6F1C3FF",
+      "cSources": 2,
+      "xlSources": 1,
+      "exportedClasses": [
+        "AsyncBodyReader"
+      ],
+      "coverageTests": [
+        "test/xhttp_body_async_test.xl"
+      ],
+      "rootReadme": true,
+      "siteSource": false,
+      "focusedCase": false,
+      "example": false,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "release/extlibs/xhttp.body_async/test/xhttp_body_async_test.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "xhttp.body_codec",
+      "queue": "source-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "E92E245E2D7B9CCDD4521744CFD78BD48379F1B729C7D9691A55D7D8129C8C8F",
+      "cSources": 4,
+      "xlSources": 1,
+      "exportedClasses": [
+        "DeflateConfig",
+        "InflateConfig"
+      ],
+      "coverageTests": [
+        "test/xhttp_body_codec_test.xl"
+      ],
+      "rootReadme": true,
+      "siteSource": false,
+      "focusedCase": false,
+      "example": false,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "release/extlibs/xhttp.body_codec/test/xhttp_body_codec_test.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "xhttp.body_decode",
+      "queue": "source-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "F5F2C5ECA39385831A48FC69D875ED1ED2CCFD599D4F9C9765E532A60EFD14FF",
+      "cSources": 2,
+      "xlSources": 1,
+      "exportedClasses": [
+        "BodyDecodeResult"
+      ],
+      "coverageTests": [
+        "test/xhttp_body_decode_test.xl"
+      ],
+      "rootReadme": true,
+      "siteSource": false,
+      "focusedCase": false,
+      "example": false,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "release/extlibs/xhttp.body_decode/test/xhttp_body_decode_test.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "xhttp.body_file",
+      "queue": "source-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "5FCFA711E3BD4E080873793BDAAF5F8AD6954901E9861A97C3FFB685BB983A26",
+      "cSources": 2,
+      "xlSources": 1,
+      "exportedClasses": [
+        "BodyFileConfig"
+      ],
+      "coverageTests": [
+        "test/xhttp_body_file_test.xl"
+      ],
+      "rootReadme": true,
+      "siteSource": false,
+      "focusedCase": false,
+      "example": false,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "release/extlibs/xhttp.body_file/test/xhttp_body_file_test.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "xhttp.body_stream",
+      "queue": "source-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "71C2435729FDDB4CA0C709BA2AB2D1FF011D844CCDCBFF7D28C59BC0F19F79F4",
+      "cSources": 2,
+      "xlSources": 1,
+      "exportedClasses": [
+        "BodyStreamInfo",
+        "BodyStream"
+      ],
+      "coverageTests": [
+        "test/xhttp_body_stream_test.xl"
+      ],
+      "rootReadme": true,
+      "siteSource": false,
+      "focusedCase": false,
+      "example": false,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "release/extlibs/xhttp.body_stream/test/xhttp_body_stream_test.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "xhttp.client",
+      "queue": "source-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "85F945A4D525AC685B8DB3DEB09C2B104BCD3581E14EBCE0C6C708F4CC375E0F",
+      "cSources": 21,
+      "xlSources": 1,
+      "exportedClasses": [
+        "Request",
+        "Http1RequestPlan",
+        "Http1Output",
+        "Http1FeedResult",
+        "Response",
+        "Http1Exchange",
+        "HttpClientConfig",
+        "HttpCallOptions",
+        "HttpResult",
+        "HttpClient"
+      ],
+      "coverageTests": [
+        "test/xhttp_client_request_test.xl",
+        "test/xhttp_client_exchange_test.xl",
+        "test/xhttp_client_transport_test.xl"
+      ],
+      "rootReadme": true,
+      "siteSource": false,
+      "focusedCase": false,
+      "example": false,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "release/extlibs/xhttp.client/test/xhttp_client_exchange_test.xl",
+          "status": "timeout"
+        },
+        {
+          "case": "release/extlibs/xhttp.client/test/xhttp_client_request_test.xl",
+          "status": "timeout"
+        },
+        {
+          "case": "release/extlibs/xhttp.client/test/xhttp_client_transport_test.xl",
+          "status": "timeout"
+        }
+      ]
+    },
+    {
+      "name": "xhttp.form_data",
+      "queue": "source-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "D04F181854FA7EE4D2BE4C9D94A829B95CB8DA3E43D63E9DA5EC3D58906BCB62",
+      "cSources": 6,
+      "xlSources": 1,
+      "exportedClasses": [
+        "FormDataConfig",
+        "FormDataEncoded",
+        "FormDataPart",
+        "FormData",
+        "FormDataIter"
+      ],
+      "coverageTests": [
+        "test/xhttp_form_data_test.xl"
+      ],
+      "rootReadme": true,
+      "siteSource": false,
+      "focusedCase": false,
+      "example": false,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "release/extlibs/xhttp.form_data/test/xhttp_form_data_test.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "xhttp.multipart",
+      "queue": "source-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "E91690DBAD4DE28C4D2D3FE642782AD40BBF6FB5354B22938F370CB922F01B2D",
+      "cSources": 11,
+      "xlSources": 1,
+      "exportedClasses": [
+        "MultipartLimits",
+        "MultipartBoundary",
+        "MultipartPart",
+        "MultipartParser",
+        "MultipartWriter",
+        "MultipartEvent",
+        "MultipartReader"
+      ],
+      "coverageTests": [
+        "test/xhttp_multipart_test.xl"
+      ],
+      "rootReadme": true,
+      "siteSource": false,
+      "focusedCase": false,
+      "example": false,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "release/extlibs/xhttp.multipart/test/xhttp_multipart_test.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "xhttp.protocol",
+      "queue": "source-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "AE1F41E47403D717F1BCB06DE2637352F0F3222C2446709B3D8488FC7917CE79",
+      "cSources": 9,
+      "xlSources": 1,
+      "exportedClasses": [
+        "Header",
+        "Headers",
+        "HeadersIter",
+        "CookiePair",
+        "Cookies",
+        "CookiesIter",
+        "SetCookieAttribute",
+        "SetCookie",
+        "MediaParam",
+        "MediaType",
+        "Mime"
+      ],
+      "coverageTests": [
+        "test/xhttp_protocol_headers_test.xl",
+        "test/xhttp_protocol_cookie_test.xl",
+        "test/xhttp_protocol_mime_test.xl"
+      ],
+      "rootReadme": true,
+      "siteSource": false,
+      "focusedCase": false,
+      "example": false,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "release/extlibs/xhttp.protocol/test/xhttp_protocol_cookie_test.xl",
+          "status": "fail"
+        },
+        {
+          "case": "release/extlibs/xhttp.protocol/test/xhttp_protocol_headers_test.xl",
+          "status": "fail"
+        },
+        {
+          "case": "release/extlibs/xhttp.protocol/test/xhttp_protocol_mime_test.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "xlsx",
+      "queue": "budget-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "62FC2DD536A5C4851A83F3A9C469D8E85A7E241549E34A3BC7B9029192BAA012",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "xmail",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "7B630B604BD1AED1A451942A4FED1702191B71919753F89B6F4A4124784CC204",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [
+        "Message",
+        "SmtpConfig",
+        "SmtpAuth",
+        "SmtpReply",
+        "SmtpClient",
+        "Pop3Config",
+        "Pop3Auth",
+        "Pop3Reply",
+        "Pop3Stat",
+        "Pop3ListItem",
+        "Pop3UidlItem",
+        "Pop3Line",
+        "Pop3Client",
+        "ImapConfig",
+        "ImapAuth",
+        "ImapResponse",
+        "ImapEvent",
+        "ImapMailbox",
+        "ImapClient"
+      ],
+      "coverageTests": [
+        "test/xmail_test.xl",
+        "test/xmail_smtp_loopback_test.xl",
+        "test/xmail_pop3_loopback_test.xl",
+        "test/xmail_imap_loopback_test.xl"
+      ],
+      "rootReadme": true,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "release/extlibs/xmail/test/xmail_imap_loopback_test.xl",
+          "status": "fail"
+        },
+        {
+          "case": "release/extlibs/xmail/test/xmail_pop3_loopback_test.xl",
+          "status": "fail"
+        },
+        {
+          "case": "release/extlibs/xmail/test/xmail_smtp_loopback_test.xl",
+          "status": "fail"
+        },
+        {
+          "case": "release/extlibs/xmail/test/xmail_test.xl",
+          "status": "fail"
+        },
+        {
+          "case": "test/cases/extlib_xmail.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "xml.dom",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "7F82FCAB59F561D50FFE5EB67A344922643492C54ADC6240076C4725B724CF49",
+      "cSources": 4,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_xml_dom.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "xml.etree",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "A8748474975331F7A7587B3627D6EDA5D9B043CCF696E4CF06132DBB82841828",
+      "cSources": 4,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_xml_etree.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "xml.sax",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "7A77454C0AFE2B89D5B2DB83D5FCB98A891AA6DBBC856577D292D3DCFAF0E847",
+      "cSources": 3,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_xml_sax.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "xregex",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "EADCC03683ECCDCCDE867D6D209FBAB92BA52CE3716A0684EEFB341A4F576406",
+      "cSources": 8,
+      "xlSources": 1,
+      "exportedClasses": [
+        "RegexMatch",
+        "RegexSplitPart",
+        "RegexMatcher",
+        "RegexSplitter",
+        "Regex",
+        "RegexSetMatcher",
+        "RegexSet"
+      ],
+      "coverageTests": [
+        "test/xregex_test.xl"
+      ],
+      "rootReadme": true,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "release/extlibs/xregex/test/xregex_test.xl",
+          "status": "fail"
+        },
+        {
+          "case": "test/cases/extlib_xregex.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "xssh",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "48A43F8A0357A56AC3B36AF8B8A44BD3752A78B70B7B758590C1C52C21395E35",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [
+        "WireWriter",
+        "WireReader",
+        "BannerResult",
+        "PublicKeyLine",
+        "KnownHostLine"
+      ],
+      "coverageTests": [
+        "test/xssh_test.xl"
+      ],
+      "rootReadme": true,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "release/extlibs/xssh/test/xssh_test.xl",
+          "status": "fail"
+        },
+        {
+          "case": "test/cases/extlib_xssh.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "xui",
+      "queue": "environment-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "4C7D1942F475778D25C177E29F818453A26756E3FF0443BC1013395D65B4F147",
+      "cSources": 0,
+      "xlSources": 14,
+      "exportedClasses": [
+        "XuiApp",
+        "Widget",
+        "Label",
+        "Button",
+        "Panel",
+        "CheckBox",
+        "Radio",
+        "Toggle",
+        "Slider",
+        "Progress",
+        "Separator",
+        "Hyperlink",
+        "Image",
+        "Tabs",
+        "Accordion",
+        "Page",
+        "Carousel",
+        "VirtualJoystick",
+        "Breadcrumb",
+        "Canvas",
+        "Popup",
+        "Menu",
+        "MenuBar",
+        "Toolbar",
+        "StatusBar",
+        "ScrollFrame",
+        "ScrollView",
+        "ListView",
+        "TreeView",
+        "TableView",
+        "TableGrid",
+        "PropertyGrid",
+        "TimeLineView",
+        "MessageList",
+        "InventoryGrid",
+        "Terminal",
+        "ColorPicker",
+        "IconPicker",
+        "DockPanel",
+        "Chart",
+        "CheckCard",
+        "Input",
+        "TagInput",
+        "TextEdit",
+        "NumericInput",
+        "RichEdit",
+        "ComboBox",
+        "Cascader",
+        "DatePicker",
+        "CodeEdit",
+        "QrCode",
+        "StepBar",
+        "RangeSlider",
+        "ScrollBar",
+        "SplitLayout",
+        "Window",
+        "MsgBox",
+        "FileDialog",
+        "MsgTip",
+        "Toast",
+        "Path",
+        "FlowGraph",
+        "CodeDocument",
+        "RichDocument"
+      ],
+      "coverageTests": [
+        "test/import.xl"
+      ],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": false,
+      "example": false,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "release/extlibs/xui/test/import.xl",
+          "status": "timeout"
+        }
+      ]
+    },
+    {
+      "name": "xws",
+      "queue": "source-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "0C03315A093788C4166FC0D2A88FCE48696B7B075492D89197DD117FB0503FA9",
+      "cSources": 12,
+      "xlSources": 1,
+      "exportedClasses": [
+        "WsConnectionConfig",
+        "WsFuture",
+        "WsConnection",
+        "WsWriter",
+        "WsGroupSnapshot",
+        "WsGroupResult",
+        "WsGroupOperation",
+        "WsGroup"
+      ],
+      "coverageTests": [
+        "test/xws_test.xl",
+        "test/xws_loopback_test.xl",
+        "test/xws_tls_loopback_test.xl"
+      ],
+      "rootReadme": true,
+      "siteSource": false,
+      "focusedCase": false,
+      "example": false,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "release/extlibs/xws/test/xws_loopback_test.xl",
+          "status": "fail"
+        },
+        {
+          "case": "release/extlibs/xws/test/xws_test.xl",
+          "status": "fail"
+        },
+        {
+          "case": "release/extlibs/xws/test/xws_tls_loopback_test.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "xxhash",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "manifestSha256": "1CD69C62C12A312C1B5BB1005B8100F5A260330AC9E0E6EA7AC0C9E4A7DC9DEF",
+      "cSources": 3,
+      "xlSources": 1,
+      "exportedClasses": [
+        "Xxhash64Hasher"
+      ],
+      "coverageTests": [],
+      "rootReadme": true,
+      "siteSource": true,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_xxhash.xl",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "name": "yaml",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "467A0D394085A7E9F2A2210F5C97EF15F7A7F167F0446DBC197988D5D98D3F29",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_yaml.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "zeromq",
+      "queue": "environment-review",
+      "visibility": "public",
+      "gates": [],
+      "manifestSha256": "5704C92774AC12A04445B0E3370D24B52A6C6ABC4E9106057BB1BA06464B7E13",
+      "cSources": 1,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": []
+    },
+    {
+      "name": "zip",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "phase1"
+      ],
+      "manifestSha256": "CA657C7F42627F7C9FBFB6E88ACB4C5BE55D06DF24EE56C4D97375772E536255",
+      "cSources": 4,
+      "xlSources": 1,
+      "exportedClasses": [],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_zip.xl",
+          "status": "fail"
+        }
+      ]
+    },
+    {
+      "name": "zstd",
+      "queue": "registered",
+      "visibility": "public",
+      "gates": [
+        "featured"
+      ],
+      "manifestSha256": "80FB54021DE15168197A2D588B7AB82E4797A2FADA53C41BE7786B4E0A5F070C",
+      "cSources": 3,
+      "xlSources": 1,
+      "exportedClasses": [
+        "ZstdCompressor",
+        "ZstdDecompressor"
+      ],
+      "coverageTests": [],
+      "rootReadme": false,
+      "siteSource": false,
+      "focusedCase": true,
+      "example": true,
+      "issues": [],
+      "directCatalogCases": [
+        {
+          "case": "test/cases/extlib_zstd.xl",
+          "status": "fail"
+        }
+      ]
+    }
+  ],
+  "historicalGates": [
+    {
+      "file": "docs/extlib_aho_2026-09-27.linux.results.json",
+      "recordedDate": null,
+      "recordedOutcome": "passed",
+      "scope": "Independent C core/native/allocator/thread tests and two examples with ASan/UBSan/leak detection; not Linux xlang, simultaneous use of one scanner or performance certification",
+      "inputCount": 17,
+      "changedInputs": [],
+      "rerunInThisBatch": false
+    },
+    {
+      "file": "docs/extlib_aho_2026-09-27.windows.results.json",
+      "recordedDate": "2026-09-27T04:16:14.7856985+08:00",
+      "recordedOutcome": "passed",
+      "scope": "Aho core/native boundaries, differential chunks, OOM, shared immutable automaton threads, generated ABI, xlang/C JIT/AOT and paired examples; not simultaneous use of one scanner or performance certification",
+      "inputCount": 33,
+      "changedInputs": [
+        "test/featured_extlibs.json",
+        "test/suites/11_featured_extlibs_rc.bat"
+      ],
+      "rerunInThisBatch": false
+    },
+    {
+      "file": "docs/extlib_argon2_bloom_2026-09-26.linux.results.json",
+      "recordedDate": "2026-09-26T23:27:50.7817306+08:00",
+      "recordedOutcome": "passed",
+      "scope": "Independent C boundaries/allocation and paired C examples; ASan/UBSan and leak detection; no Linux xlang JIT/AOT",
+      "inputCount": 29,
+      "changedInputs": [],
+      "rerunInThisBatch": false
+    },
+    {
+      "file": "docs/extlib_argon2_bloom_2026-09-26.windows.results.json",
+      "recordedDate": "2026-09-26T23:27:48.2579493+08:00",
+      "recordedOutcome": "passed",
+      "scope": "Windows x64 strict C ABI, boundary/allocation, JIT/AOT, paired examples",
+      "inputCount": 42,
+      "changedInputs": [],
+      "rerunInThisBatch": false
+    },
+    {
+      "file": "docs/extlib_blake2_2026-09-27.linux.results.json",
+      "recordedDate": null,
+      "recordedOutcome": "passed",
+      "scope": "Independent C known answers, reader/state/allocation/thread boundaries and example with ASan/UBSan/leak detection; not Linux xlang JIT/AOT",
+      "inputCount": 18,
+      "changedInputs": [],
+      "rerunInThisBatch": false
+    },
+    {
+      "file": "docs/extlib_blake2_2026-09-27.windows.results.json",
+      "recordedDate": "2026-09-27T02:12:04.475365+08:00",
+      "recordedOutcome": "passed",
+      "scope": "Windows C boundaries, 216 known answers, allocation failures, xlang/C JIT/AOT, callbacks and readers, generated ABI and paired examples",
+      "inputCount": 34,
+      "changedInputs": [
+        "test/featured_extlibs.json",
+        "test/suites/11_featured_extlibs_rc.bat"
+      ],
+      "rerunInThisBatch": false
+    },
+    {
+      "file": "docs/extlib_blake3_2026-09-27.delivery.linux.results.json",
+      "recordedDate": null,
+      "recordedOutcome": "passed",
+      "scope": "Independent C core/native/allocator tests and paired example with ASan/UBSan/leak detection; not Linux xlang, shared mutable hasher concurrency or performance certification",
+      "inputCount": 28,
+      "changedInputs": [
+        ".gitattributes"
+      ],
+      "rerunInThisBatch": false
+    },
+    {
+      "file": "docs/extlib_blake3_2026-09-27.delivery.windows.results.json",
+      "recordedDate": "2026-09-27T05:56:21.0273256+08:00",
+      "recordedOutcome": "passed",
+      "scope": "Windows C boundaries, 35 upstream vectors in three modes and six lengths, allocation failures, independent threads, xlang/C JIT/AOT, callbacks and readers, generated ABI and paired examples; not shared mutable hasher concurrency or benchmark certification",
+      "inputCount": 44,
+      "changedInputs": [
+        ".gitattributes",
+        "test/featured_extlibs.json",
+        "test/suites/11_featured_extlibs_rc.bat"
+      ],
+      "rerunInThisBatch": false
+    },
+    {
+      "file": "docs/extlib_brotli_2026-09-27.linux.results.json",
+      "recordedDate": null,
+      "recordedOutcome": null,
+      "scope": "Independent C core/allocation/examples with ASan/UBSan/leak detection; not Linux xlang JIT/AOT",
+      "inputCount": 105,
+      "changedInputs": [],
+      "rerunInThisBatch": false
+    },
+    {
+      "file": "docs/extlib_brotli_2026-09-27.windows.results.json",
+      "recordedDate": "2026-09-27T00:57:39.7336108+08:00",
+      "recordedOutcome": "passed",
+      "scope": "Windows C interop, allocation failures, xlang/C JIT/AOT, callbacks and transactional files, 23 generated prototypes, tutorials and paired golden output",
+      "inputCount": 120,
+      "changedInputs": [
+        "test/featured_extlibs.json",
+        "test/suites/11_featured_extlibs_rc.bat"
+      ],
+      "rerunInThisBatch": false
+    },
+    {
+      "file": "docs/extlib_crc32_2026-09-27.linux.results.json",
+      "recordedDate": null,
+      "recordedOutcome": "passed",
+      "scope": "Independent C core/native/standalone integration and paired example with ASan/UBSan/leak detection; not Linux xlang, real big-endian, 32-bit/ARM, shared mutable hasher concurrency or performance certification",
+      "inputCount": 18,
+      "changedInputs": [
+        ".gitattributes"
+      ],
+      "rerunInThisBatch": false
+    },
+    {
+      "file": "docs/extlib_crc32_2026-09-27.windows.results.json",
+      "recordedDate": "2026-09-27T07:45:39.0857034+08:00",
+      "recordedOutcome": "passed",
+      "scope": "CRC-32/ISO-HDLC: fixed vectors and 1536 bitwise differential cases, exact ABI, UTF-8/Buffer, state/readers/callbacks, concurrent first use, allocation failures, C/XL JIT/AOT/GCC examples; not Linux XL, big-endian target or performance certification",
+      "inputCount": 33,
+      "changedInputs": [
+        ".gitattributes",
+        "test/featured_extlibs.json",
+        "test/suites/11_featured_extlibs_rc.bat"
+      ],
+      "rerunInThisBatch": false
+    },
+    {
+      "file": "docs/extlib_md5_2026-09-27.linux.results.json",
+      "recordedDate": null,
+      "recordedOutcome": "passed",
+      "scope": "Independent C ASan/UBSan/leak detection for the named bounded tests; not Linux xlang, all APIs, other architectures or performance certification",
+      "inputCount": 19,
+      "changedInputs": [
+        ".gitattributes"
+      ],
+      "rerunInThisBatch": false
+    },
+    {
+      "file": "docs/extlib_md5_2026-09-27.windows.results.json",
+      "recordedDate": "2026-09-27T08:42:16.3977734+08:00",
+      "recordedOutcome": "passed",
+      "scope": "MD5 using XRT: 149 independent vectors across 8 alignments, padding/chunks and million-a, exact ABI, UTF-8/Buffer, state/readers/callbacks, concurrent first use, allocation failures, C/XL JIT/AOT/GCC examples; not Linux XL, big-endian target or performance certification",
+      "inputCount": 34,
+      "changedInputs": [
+        ".gitattributes",
+        "test/featured_extlibs.json",
+        "test/suites/11_featured_extlibs_rc.bat"
+      ],
+      "rerunInThisBatch": false
+    },
+    {
+      "file": "docs/extlib_mqtt_2026-09-26.linux.results.json",
+      "recordedDate": "2026-09-26T21:55:36.1356859+08:00",
+      "recordedOutcome": "passed",
+      "scope": "Independent C tests and two C examples; ASan, UBSan, leak detection; no Linux xlang JIT/AOT",
+      "inputCount": 22,
+      "changedInputs": [],
+      "rerunInThisBatch": false
+    },
+    {
+      "file": "docs/extlib_mqtt_2026-09-26.windows.results.json",
+      "recordedDate": "2026-09-26T21:54:55.4982847+08:00",
+      "recordedOutcome": "passed",
+      "scope": "MQTT 3.1.1 codec, allocation failure, local TCP framing, xlang JIT/AOT; no public broker or session engine",
+      "inputCount": 29,
+      "changedInputs": [],
+      "rerunInThisBatch": false
+    },
+    {
+      "file": "docs/extlib_murmur3_2026-09-27.linux.results.json",
+      "recordedDate": null,
+      "recordedOutcome": "passed",
+      "scope": "Independent C standalone/core/native and two paired examples with ASan/UBSan/leak detection; not Linux xlang, shared mutable objects, big-endian, 32-bit/ARM or performance certification",
+      "inputCount": 26,
+      "changedInputs": [
+        ".gitattributes"
+      ],
+      "rerunInThisBatch": false
+    },
+    {
+      "file": "docs/extlib_murmur3_2026-09-27.windows.results.json",
+      "recordedDate": "2026-09-27T10:37:34.6769567+08:00",
+      "recordedOutcome": "passed",
+      "scope": "MurmurHash3 x86_32/x64_128: 576 upstream known-answer vectors x 8 alignments, splits, unsigned seeds, UTF-8/Buffer, state/readers/callbacks, exact generated ABI, four independent threads, ordinary/temp allocation failures, paired C/XL JIT/AOT/GCC examples; not Linux XL, big-endian, 32-bit/ARM or performance certification",
+      "inputCount": 41,
+      "changedInputs": [
+        ".gitattributes",
+        "test/featured_extlibs.json",
+        "test/suites/11_featured_extlibs_rc.bat"
+      ],
+      "rerunInThisBatch": false
+    },
+    {
+      "file": "docs/extlib_mysql_helpers_2026-09-27.linux.results.json",
+      "recordedDate": null,
+      "recordedOutcome": "passed",
+      "scope": "MySQL protocol/text and FAISS scalar boundaries, matched C example, ASan/UBSan/leaks; not Linux xlang or complete database/vector backends",
+      "inputCount": 14,
+      "changedInputs": [],
+      "rerunInThisBatch": false
+    },
+    {
+      "file": "docs/extlib_mysql_helpers_2026-09-27.windows.results.json",
+      "recordedDate": "2026-09-27T09:15:22.3672202+08:00",
+      "recordedOutcome": "passed",
+      "scope": "MySQL protocol/text helpers and FAISS scalar CSV distance helpers, plus matched C/xlang MySQL examples; not complete database/vector backends",
+      "inputCount": 28,
+      "changedInputs": [
+        "tools/rc0_guard.ps1"
+      ],
+      "rerunInThisBatch": false
+    },
+    {
+      "file": "docs/extlib_partial_helpers_2026-09-27.linux.results.json",
+      "recordedDate": null,
+      "recordedOutcome": "passed",
+      "scope": "Independent C ASan/UBSan/leak detection for the named bounded tests; not Linux xlang, all APIs, other architectures or performance certification",
+      "inputCount": 10,
+      "changedInputs": [
+        "release/extlibs/mysql/mysql_native.c",
+        "release/extlibs/mysql/src/mysql.xl",
+        "test/cases/extlib_partial_helper_boundaries_c.c",
+        "tools/check_extlib_helper_boundaries.sh"
+      ],
+      "rerunInThisBatch": false
+    },
+    {
+      "file": "docs/extlib_partial_helpers_2026-09-27.windows.results.json",
+      "recordedDate": "2026-09-27T08:43:18.0168667+08:00",
+      "recordedOutcome": "passed",
+      "scope": "Existing MySQL status formatting and FAISS scalar CSV distance helpers only, not complete database/vector backends",
+      "inputCount": 22,
+      "changedInputs": [
+        "release/extlibs/mysql/mysql_native.c",
+        "release/extlibs/mysql/src/mysql.xl",
+        "test/cases/extlib_partial_helper_boundaries.xl",
+        "test/cases/extlib_partial_helper_boundaries_c.c",
+        "tools/check_extlib_helper_boundaries.ps1",
+        "tools/check_extlib_helper_boundaries.sh",
+        "tools/rc0_guard.ps1"
+      ],
+      "rerunInThisBatch": false
+    },
+    {
+      "file": "docs/extlib_sha3_2026-09-27.linux.results.json",
+      "recordedDate": null,
+      "recordedOutcome": "passed",
+      "scope": "Independent C standalone/core/native and two paired examples with ASan/UBSan/leak detection; not cryptographic certification, Linux xlang, shared mutable objects, big-endian, 32-bit/ARM or performance certification",
+      "inputCount": 26,
+      "changedInputs": [
+        ".gitattributes"
+      ],
+      "rerunInThisBatch": false
+    },
+    {
+      "file": "docs/extlib_sha3_2026-09-27.windows.results.json",
+      "recordedDate": "2026-09-27T11:29:44.4258952+08:00",
+      "recordedOutcome": "passed",
+      "scope": "SHA3/SHAKE: 546 OpenSSL boundary vectors x 8 alignments, 12 known answers, splits, strict algorithms/lengths, UTF-8/Buffer, state/readers/callbacks, exact generated ABI, four independent threads, 176 ordinary/temp allocation failure positions, paired C/XL JIT/AOT/GCC examples; not Linux XL, big-endian, 32-bit/ARM or performance certification",
+      "inputCount": 41,
+      "changedInputs": [
+        ".gitattributes",
+        "test/featured_extlibs.json",
+        "test/suites/11_featured_extlibs_rc.bat"
+      ],
+      "rerunInThisBatch": false
+    },
+    {
+      "file": "docs/extlib_sqlite_2026-09-27.linux.results.json",
+      "recordedDate": null,
+      "recordedOutcome": "passed",
+      "scope": "Independent C wrapper/allocator/thread tests and example with ASan/UBSan/leak detection; not Linux xlang, file-locking or power-loss certification",
+      "inputCount": 17,
+      "changedInputs": [],
+      "rerunInThisBatch": false
+    },
+    {
+      "file": "docs/extlib_sqlite_2026-09-27.windows.results.json",
+      "recordedDate": "2026-09-27T02:53:41.4487818+08:00",
+      "recordedOutcome": "passed",
+      "scope": "SQLite wrapper ABI/constants, C/state/allocator/thread tests, xlang JIT/AOT/file locks and paired examples",
+      "inputCount": 33,
+      "changedInputs": [
+        "test/suites/12_phase1_extlibs.bat"
+      ],
+      "rerunInThisBatch": false
+    },
+    {
+      "file": "docs/extlib_xxhash_2026-09-27.linux.results.json",
+      "recordedDate": null,
+      "recordedOutcome": "passed",
+      "scope": "Independent C core/native/allocator tests and paired example with ASan/UBSan/leak detection; not Linux xlang, shared mutable hasher concurrency or performance certification",
+      "inputCount": 27,
+      "changedInputs": [
+        ".gitattributes"
+      ],
+      "rerunInThisBatch": false
+    },
+    {
+      "file": "docs/extlib_xxhash_2026-09-27.windows.results.json",
+      "recordedDate": "2026-09-27T07:03:18.8282726+08:00",
+      "recordedOutcome": "passed",
+      "scope": "XXH32/XXH64: 124 independent vectors, exact native ABI, UTF-8, state/readers/callbacks, allocation failures, independent threads, C/XL JIT/AOT/GCC examples; not XXH3 language API, Linux XL, 32-bit/ARM or performance certification",
+      "inputCount": 43,
+      "changedInputs": [
+        ".gitattributes",
+        "test/featured_extlibs.json",
+        "test/suites/11_featured_extlibs_rc.bat"
+      ],
+      "rerunInThisBatch": false
+    },
+    {
+      "file": "docs/extlib_siphash_2026-09-27.windows.results.json",
+      "recordedDate": "2026-09-27T12:39:51.6685723+08:00",
+      "recordedOutcome": "passed",
+      "scope": "SipHash-2-4: 128 official answers, 4 keys x 8 alignments x 81 lengths, split streams, strict 16-byte keys, UTF-8/Buffer, unsigned results, state/readers/callbacks, exact generated ABI, four independent threads, 192 ordinary/temp allocation failure positions, paired C/XL JIT/AOT/GCC examples and pinned reference goldens; not Linux XL, big-endian, 32-bit/ARM or performance certification",
+      "inputCount": 44,
+      "changedInputs": [],
+      "rerunInThisBatch": true
+    },
+    {
+      "file": "docs/extlib_siphash_2026-09-27.linux.results.json",
+      "recordedDate": null,
+      "recordedOutcome": "passed",
+      "scope": "Independent C standalone/core/native/reference and two paired examples with ASan/UBSan/leak detection; not cryptographic certification, Linux xlang, shared mutable objects, big-endian, 32-bit/ARM or performance certification",
+      "inputCount": 29,
+      "changedInputs": [],
+      "rerunInThisBatch": true
+    }
+  ],
+  "byteLengthFindings": [
+    {
+      "package": "bz2",
+      "file": "release/extlibs/bz2/src/bz2.xl",
+      "line": 74,
+      "text": "point result = __bz2_compress_str(text, c_size(string.len(text)), c_int(level),",
+      "scope": "Character count at byte API boundary; source review, not an independent runtime reproduction"
+    },
+    {
+      "package": "bz2",
+      "file": "release/extlibs/bz2/src/bz2.xl",
+      "line": 168,
+      "text": "if not self.updateStrNative(text, c_size(string.len(text))) then",
+      "scope": "Character count at byte API boundary; source review, not an independent runtime reproduction"
+    },
+    {
+      "package": "gzip",
+      "file": "release/extlibs/gzip/src/gzip.xl",
+      "line": 56,
+      "text": "point result = __gzip_compress_str(text, c_size(string.len(text)), c_int(level),",
+      "scope": "Character count at byte API boundary; source review, not an independent runtime reproduction"
+    },
+    {
+      "package": "gzip",
+      "file": "release/extlibs/gzip/src/gzip.xl",
+      "line": 130,
+      "text": "if not self.updateStrNative(text, c_size(string.len(text))) then",
+      "scope": "Character count at byte API boundary; source review, not an independent runtime reproduction"
+    },
+    {
+      "package": "lz4",
+      "file": "release/extlibs/lz4/src/lz4.xl",
+      "line": 71,
+      "text": "point result = __lz4_compress_str(text, c_size(string.len(text)), c_int(acceleration),",
+      "scope": "Character count at byte API boundary; source review, not an independent runtime reproduction"
+    },
+    {
+      "package": "lz4",
+      "file": "release/extlibs/lz4/src/lz4.xl",
+      "line": 164,
+      "text": "if not self.updateStrNative(text, c_size(string.len(text))) then",
+      "scope": "Character count at byte API boundary; source review, not an independent runtime reproduction"
+    },
+    {
+      "package": "lzma",
+      "file": "release/extlibs/lzma/src/lzma.xl",
+      "line": 71,
+      "text": "point result = __lzma_compress_str(text, c_size(string.len(text)), c_int(level),",
+      "scope": "Character count at byte API boundary; source review, not an independent runtime reproduction"
+    },
+    {
+      "package": "lzma",
+      "file": "release/extlibs/lzma/src/lzma.xl",
+      "line": 164,
+      "text": "if not self.updateStrNative(text, c_size(string.len(text))) then",
+      "scope": "Character count at byte API boundary; source review, not an independent runtime reproduction"
+    },
+    {
+      "package": "miniz",
+      "file": "release/extlibs/miniz/src/miniz.xl",
+      "line": 71,
+      "text": "point result = __miniz_compress_str(text, c_size(string.len(text)), c_int(level),",
+      "scope": "Character count at byte API boundary; source review, not an independent runtime reproduction"
+    },
+    {
+      "package": "miniz",
+      "file": "release/extlibs/miniz/src/miniz.xl",
+      "line": 164,
+      "text": "if not self.updateStrNative(text, c_size(string.len(text))) then",
+      "scope": "Character count at byte API boundary; source review, not an independent runtime reproduction"
+    },
+    {
+      "package": "snappy",
+      "file": "release/extlibs/snappy/src/snappy.xl",
+      "line": 57,
+      "text": "point result = __snappy_compress_str(text, c_size(string.len(text)),",
+      "scope": "Character count at byte API boundary; source review, not an independent runtime reproduction"
+    },
+    {
+      "package": "snappy",
+      "file": "release/extlibs/snappy/src/snappy.xl",
+      "line": 148,
+      "text": "if not self.updateStrNative(text, c_size(string.len(text))) then",
+      "scope": "Character count at byte API boundary; source review, not an independent runtime reproduction"
+    }
+  ],
+  "website": {
+    "root": "D:/GIT/home/host/xlang/wwwroot/extlibs",
+    "ordinaryPages": 22,
+    "generatedPages": 214,
+    "mappedPublic": 183,
+    "missingPublic": [
+      "ansi",
+      "barcode",
+      "cli",
+      "color",
+      "gettext",
+      "graph",
+      "ical",
+      "json.patch",
+      "memcached",
+      "money",
+      "qr",
+      "rss",
+      "semver",
+      "shellwords",
+      "sitemap",
+      "slugify",
+      "srt",
+      "statistics",
+      "units",
+      "vcard",
+      "xhttp",
+      "xhttp.body",
+      "xhttp.body_async",
+      "xhttp.body_codec",
+      "xhttp.body_decode",
+      "xhttp.body_file",
+      "xhttp.body_stream",
+      "xhttp.client",
+      "xhttp.form_data",
+      "xhttp.multipart",
+      "xhttp.protocol",
+      "xmail",
+      "xregex",
+      "xssh",
+      "xws"
+    ],
+    "sites": [
+      {
+        "name": "aho_corasick",
+        "source": "release/extlibs/aho_corasick/docs/site.html",
+        "target": "D:/GIT/home/host/xlang/wwwroot/extlibs/aho_corasick.html",
+        "sourceSha256": "E1C40EBCEE4A5F212565DA09C9B06B12A5AD5B63E770BA58A3B0FDCA0724AD24",
+        "matches": true,
+        "entryLinksToSource": true
+      },
+      {
+        "name": "argon2",
+        "source": "release/extlibs/argon2/docs/site.html",
+        "target": "D:/GIT/home/host/xlang/wwwroot/extlibs/argon2.html",
+        "sourceSha256": "7178CCAC616A99F35D6BE6DEDB20CF1A7A0AB12322C756523662CF5E95D941D3",
+        "matches": true,
+        "entryLinksToSource": true
+      },
+      {
+        "name": "blake2",
+        "source": "release/extlibs/blake2/docs/site.html",
+        "target": "D:/GIT/home/host/xlang/wwwroot/extlibs/blake2.html",
+        "sourceSha256": "6A1C5F6B632563743A3FBC0283A449A139EB29344C32CA517E55AEE1B551AD4C",
+        "matches": true,
+        "entryLinksToSource": true
+      },
+      {
+        "name": "blake3",
+        "source": "release/extlibs/blake3/docs/site.html",
+        "target": "D:/GIT/home/host/xlang/wwwroot/extlibs/blake3.html",
+        "sourceSha256": "F3B22789342C3A40AD87549F6DA56CDD4F48467869F8A06D134A0807ED0E934D",
+        "matches": true,
+        "entryLinksToSource": true
+      },
+      {
+        "name": "bloom",
+        "source": "release/extlibs/bloom/docs/site.html",
+        "target": "D:/GIT/home/host/xlang/wwwroot/extlibs/bloom.html",
+        "sourceSha256": "6A7AA24333CE46607CADC5B1592916819DBF5CBE44CD57265F561E0F3C26CAE0",
+        "matches": true,
+        "entryLinksToSource": true
+      },
+      {
+        "name": "brotli",
+        "source": "release/extlibs/brotli/docs/site.html",
+        "target": "D:/GIT/home/host/xlang/wwwroot/extlibs/brotli.html",
+        "sourceSha256": "399344EAC5C4EE788191718CB39778A23A4BE56B517EFDF2B9F4C77133611356",
+        "matches": true,
+        "entryLinksToSource": true
+      },
+      {
+        "name": "crc32",
+        "source": "release/extlibs/crc32/docs/site.html",
+        "target": "D:/GIT/home/host/xlang/wwwroot/extlibs/crc32.html",
+        "sourceSha256": "F871BCA6A4A0DACB697AF52A893EEEFDA5BF20950367873BD69B2F6E3DF0BDA0",
+        "matches": true,
+        "entryLinksToSource": true
+      },
+      {
+        "name": "md5",
+        "source": "release/extlibs/md5/docs/site.html",
+        "target": "D:/GIT/home/host/xlang/wwwroot/extlibs/md5.html",
+        "sourceSha256": "5DC03F6701E786A4B99784E0029F46184B177E5506C130224BA030E92440AE62",
+        "matches": true,
+        "entryLinksToSource": true
+      },
+      {
+        "name": "mqtt",
+        "source": "release/extlibs/mqtt/docs/site.html",
+        "target": "D:/GIT/home/host/xlang/wwwroot/extlibs/mqtt.html",
+        "sourceSha256": "4476FFBFDB6A1DF36D23413F21E7C662C4E7E5D670465B25EFF3AA406E8ADD4D",
+        "matches": true,
+        "entryLinksToSource": true
+      },
+      {
+        "name": "murmur3",
+        "source": "release/extlibs/murmur3/docs/site.html",
+        "target": "D:/GIT/home/host/xlang/wwwroot/extlibs/murmur3.html",
+        "sourceSha256": "D47FD7EF9FE246060335AAF3D37BF68B55C00265035A992B71C511C75EDE9769",
+        "matches": true,
+        "entryLinksToSource": true
+      },
+      {
+        "name": "sha3",
+        "source": "release/extlibs/sha3/docs/site.html",
+        "target": "D:/GIT/home/host/xlang/wwwroot/extlibs/sha3.html",
+        "sourceSha256": "D9622E35A6AB95B221782CBAB9A498D7ADC3A829CC7A31402EF7ABA1FC5F21F4",
+        "matches": true,
+        "entryLinksToSource": true
+      },
+      {
+        "name": "siphash",
+        "source": "release/extlibs/siphash/docs/site.html",
+        "target": "D:/GIT/home/host/xlang/wwwroot/extlibs/siphash.html",
+        "sourceSha256": "1A97F60430C35180348A0319A50F2DE24DA2AE4CD970B49E2115501FEF72261F",
+        "matches": true,
+        "entryLinksToSource": true
+      },
+      {
+        "name": "sqlite",
+        "source": "release/extlibs/sqlite/docs/site.html",
+        "target": "D:/GIT/home/host/xlang/wwwroot/extlibs/sqlite.html",
+        "sourceSha256": "7A68631435E3669689BC28DF504ACB8E46A7775BD67949E01E75BF0BFDB313E7",
+        "matches": true,
+        "entryLinksToSource": true
+      },
+      {
+        "name": "xxhash",
+        "source": "release/extlibs/xxhash/docs/site.html",
+        "target": "D:/GIT/home/host/xlang/wwwroot/extlibs/xxhash.html",
+        "sourceSha256": "234F954F9209AB81A03EEDBC8CF7920C673F6FA52CF33C5526F331F7AE89FD80",
+        "matches": true,
+        "entryLinksToSource": true
+      }
+    ],
+    "remoteDeployment": false,
+    "browserVisualTested": false
+  },
+  "scope": "Current manifest/API/file inventory and dated evidence input review; not production certification",
+  "siphashDelivery": {
+    "format": "xlang-extlib-siphash-delivery-1",
+    "archivedAt": "2026-09-27T12:41:38.4183877+08:00",
+    "windowsEvidence": "docs/extlib_siphash_2026-09-27.windows.results.json",
+    "linuxEvidence": "docs/extlib_siphash_2026-09-27.linux.results.json",
+    "windowsChecks": 40,
+    "generatedPrototypes": 41,
+    "nativeBindings": 43,
+    "officialAnswers": 128,
+    "keys": 4,
+    "addressOffsets": 8,
+    "boundaryLengths": 81,
+    "threads": 4,
+    "allocationPositions": 192,
+    "scope": "SipHash-2-4 64/128 one-shot/stream/clone/file callbacks and documented resource bounds; not ecosystem release admission",
+    "website": {
+      "source": "release/extlibs/siphash/docs/site.html",
+      "target": "D:/GIT/home/host/xlang/wwwroot/extlibs/siphash.html",
+      "sha256": "1A97F60430C35180348A0319A50F2DE24DA2AE4CD970B49E2115501FEF72261F",
+      "entry": "D:/GIT/home/host/xlang/wwwroot/extlibs/generated/siphash.html",
+      "generatedEntryMatches": true,
+      "remoteDeployment": false,
+      "browserVisualTested": false
+    },
+    "host": {
+      "release/xl.exe": "5A3F20B4CF9333D393560CB2361D0EBAB8A13F0D07C64A78A1F5FFF5385D9EEB",
+      "release/xl.dll": "2A07C481C04CAD71D31D46722A27E62027318DF24E95A63126E061FD4CA46902",
+      "release/xlc.dll": "7C672FD0B2852690D09E2EF1046C56EE1586FD1FCCC0CAEA61E19C0FE7C6E1F0",
+      "lib/xrt/xrt.h": "7C78B4B3D13FC64AC1009E2EDFAE73E9FB092C896DA1A70CF5BE859D153851E8",
+      "lib/xruntime/xruntime.h": "FF23FDB9AC90F63DEED1606A78F21707A9FA677AA766044B8AF3B4F5202F4BA9"
+    }
+  },
+  "sourceReviewNotes": [
+    {
+      "package": "rapidocr",
+      "kind": "source-vs-document-drift",
+      "source": "release/extlibs/rapidocr/src/rapidocr.xl",
+      "line": 487,
+      "observation": "The xlang pipeline loops over all detected boxes in batches up to six, then calls assemble_result_list_native; README still describes up to four results.",
+      "scope": "Source review only; not an executed inference or a claim about the optional native DLL backend"
+    },
+    {
+      "package": "rapidocr",
+      "kind": "result-budget-review",
+      "source": "release/extlibs/rapidocr/src/rapidocr_artifact.c",
+      "line": 2365,
+      "observation": "List assembly has loops bounded to 256 entries, 1024-byte text scratch and a 65536-byte global result buffer; capacity, escaping, cancellation and independent instance ownership require tests.",
+      "scope": "Source bounds, not a reproduced OCR correctness failure"
+    },
+    {
+      "package": "onnxruntime/rapidocr",
+      "kind": "integration-not-placeholder",
+      "observation": "Default OCR detector/classifier/recognizer ONNX files are present. Existing C smoke covers discovery/lifecycle and invalid inputs, not successful fixed-model inference.",
+      "scope": "Model existence is not correctness evidence; binaries and model data were not modified"
+    },
+    {
+      "package": "xhttp.client/xui/volc.core",
+      "kind": "timeout-phase-attribution",
+      "observation": "Five 30-second budgets expired without a decisive diagnostic. xui case only imports the package and returns; volc.core case performs local signing tests. Split check/cgen/TCC/runtime timings before calling these network failures or deadlocks.",
+      "scope": "Timeout is a budget observation, not a root-cause diagnosis"
+    }
+  ],
+  "legacyTemporaryFixtureReview": {
+    "scope": "Source review of remaining compression fixtures only; not all cases executed past their first compiler failure",
+    "files": [
+      {
+        "file": "test/cases/extlib_bz2_progress.xl",
+        "createsParent": false,
+        "finallyCleanup": false
+      },
+      {
+        "file": "test/cases/extlib_bz2.xl",
+        "createsParent": false,
+        "finallyCleanup": false
+      },
+      {
+        "file": "test/cases/extlib_gzip.xl",
+        "createsParent": false,
+        "finallyCleanup": false
+      },
+      {
+        "file": "test/cases/extlib_lz4_progress.xl",
+        "createsParent": false,
+        "finallyCleanup": false
+      },
+      {
+        "file": "test/cases/extlib_lz4.xl",
+        "createsParent": false,
+        "finallyCleanup": false
+      },
+      {
+        "file": "test/cases/extlib_lzma_progress.xl",
+        "createsParent": false,
+        "finallyCleanup": false
+      },
+      {
+        "file": "test/cases/extlib_lzma.xl",
+        "createsParent": false,
+        "finallyCleanup": false
+      },
+      {
+        "file": "test/cases/extlib_miniz_progress.xl",
+        "createsParent": false,
+        "finallyCleanup": false
+      },
+      {
+        "file": "test/cases/extlib_miniz.xl",
+        "createsParent": false,
+        "finallyCleanup": false
+      },
+      {
+        "file": "test/cases/extlib_snappy_progress.xl",
+        "createsParent": false,
+        "finallyCleanup": false
+      },
+      {
+        "file": "test/cases/extlib_snappy.xl",
+        "createsParent": false,
+        "finallyCleanup": false
+      },
+      {
+        "file": "test/cases/extlib_zstd_progress.xl",
+        "createsParent": false,
+        "finallyCleanup": false
+      },
+      {
+        "file": "test/cases/extlib_zstd.xl",
+        "createsParent": false,
+        "finallyCleanup": false
+      }
+    ]
+  },
+  "sdkFeatureProbe": "docs/extlib_sdk_feature_probe_2026-09-27.results.json",
+  "catalog": "docs/extlib_reassessment_2026-09-27_1258.results.json",
+  "catalogEvidenceValid": true,
+  "recordedInputs": 2005,
+  "firstDiagnosticGroups": [
+    {
+      "Name": "feature-dependency",
+      "Count": 16
+    },
+    {
+      "Name": "invalid-generated-c",
+      "Count": 1
+    },
+    {
+      "Name": "missing-symbol",
+      "Count": 3
+    },
+    {
+      "Name": "native-prototype",
+      "Count": 67
+    },
+    {
+      "Name": "pass",
+      "Count": 50
+    },
+    {
+      "Name": "runtime-error",
+      "Count": 7
+    },
+    {
+      "Name": "timeout",
+      "Count": 5
+    },
+    {
+      "Name": "xlir-unterminated",
+      "Count": 4
+    }
+  ],
+  "caseClassifications": [
+    {
+      "case": "release/extlibs/aho_corasick/test/boundaries.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "release/extlibs/mqtt/test/mqtt_boundaries.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "release/extlibs/sqlite/test/boundaries.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "release/extlibs/sqlite/test/file.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "release/extlibs/xbot/test/xbot_test.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "release/extlibs/xge/test/import.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "release/extlibs/xge_shape_ex/test/import.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "release/extlibs/xhttp.body/test/xhttp_body_test.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "release/extlibs/xhttp.body_async/test/xhttp_body_async_test.xl",
+      "category": "xlir-unterminated",
+      "status": "fail"
+    },
+    {
+      "case": "release/extlibs/xhttp.body_codec/test/xhttp_body_codec_test.xl",
+      "category": "xlir-unterminated",
+      "status": "fail"
+    },
+    {
+      "case": "release/extlibs/xhttp.body_decode/test/xhttp_body_decode_test.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "release/extlibs/xhttp.body_file/test/xhttp_body_file_test.xl",
+      "category": "xlir-unterminated",
+      "status": "fail"
+    },
+    {
+      "case": "release/extlibs/xhttp.body_stream/test/xhttp_body_stream_test.xl",
+      "category": "xlir-unterminated",
+      "status": "fail"
+    },
+    {
+      "case": "release/extlibs/xhttp.client/test/xhttp_client_exchange_test.xl",
+      "category": "timeout",
+      "status": "timeout"
+    },
+    {
+      "case": "release/extlibs/xhttp.client/test/xhttp_client_request_test.xl",
+      "category": "timeout",
+      "status": "timeout"
+    },
+    {
+      "case": "release/extlibs/xhttp.client/test/xhttp_client_transport_test.xl",
+      "category": "timeout",
+      "status": "timeout"
+    },
+    {
+      "case": "release/extlibs/xhttp.form_data/test/xhttp_form_data_test.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "release/extlibs/xhttp.multipart/test/xhttp_multipart_test.xl",
+      "category": "feature-dependency",
+      "status": "fail"
+    },
+    {
+      "case": "release/extlibs/xhttp.protocol/test/xhttp_protocol_cookie_test.xl",
+      "category": "feature-dependency",
+      "status": "fail"
+    },
+    {
+      "case": "release/extlibs/xhttp.protocol/test/xhttp_protocol_headers_test.xl",
+      "category": "feature-dependency",
+      "status": "fail"
+    },
+    {
+      "case": "release/extlibs/xhttp.protocol/test/xhttp_protocol_mime_test.xl",
+      "category": "feature-dependency",
+      "status": "fail"
+    },
+    {
+      "case": "release/extlibs/xhttp/test/xhttp_query_test.xl",
+      "category": "feature-dependency",
+      "status": "fail"
+    },
+    {
+      "case": "release/extlibs/xhttp/test/xhttp_url_test.xl",
+      "category": "feature-dependency",
+      "status": "fail"
+    },
+    {
+      "case": "release/extlibs/xmail/test/xmail_imap_loopback_test.xl",
+      "category": "feature-dependency",
+      "status": "fail"
+    },
+    {
+      "case": "release/extlibs/xmail/test/xmail_pop3_loopback_test.xl",
+      "category": "feature-dependency",
+      "status": "fail"
+    },
+    {
+      "case": "release/extlibs/xmail/test/xmail_smtp_loopback_test.xl",
+      "category": "feature-dependency",
+      "status": "fail"
+    },
+    {
+      "case": "release/extlibs/xmail/test/xmail_test.xl",
+      "category": "feature-dependency",
+      "status": "fail"
+    },
+    {
+      "case": "release/extlibs/xregex/test/xregex_test.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "release/extlibs/xssh/test/xssh_test.xl",
+      "category": "feature-dependency",
+      "status": "fail"
+    },
+    {
+      "case": "release/extlibs/xui/test/import.xl",
+      "category": "timeout",
+      "status": "timeout"
+    },
+    {
+      "case": "release/extlibs/xws/test/xws_loopback_test.xl",
+      "category": "feature-dependency",
+      "status": "fail"
+    },
+    {
+      "case": "release/extlibs/xws/test/xws_test.xl",
+      "category": "feature-dependency",
+      "status": "fail"
+    },
+    {
+      "case": "release/extlibs/xws/test/xws_tls_loopback_test.xl",
+      "category": "feature-dependency",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_aho_corasick.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_ansi.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_argon2.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_barcode.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_blake2.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_blake2_boundaries.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_blake2_progress.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_blake3.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_blake3_boundaries.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_blake3_progress.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_bloom.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_brotli.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_brotli_progress.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_bson.xl",
+      "category": "missing-symbol",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_bz2.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_cbor.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_chardet.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_cli.xl",
+      "category": "missing-symbol",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_color.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_consistent_hash.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_crc32.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_crc32_progress.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_crontab.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_css.xl",
+      "category": "runtime-error",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_csv.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_cuckoo.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_diff.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_dinov3.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_dns.xl",
+      "category": "runtime-error",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_dotenv.xl",
+      "category": "invalid-generated-c",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_epub.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_fix.xl",
+      "category": "runtime-error",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_fuzzy.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_geohash.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_gettext.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_graph.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_gzip.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_hash_progress.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_hash_progress_cancel.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_hcl.xl",
+      "category": "runtime-error",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_hyperloglog.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_ical.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_imagehash.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_ini.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_json_patch.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_json5.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_jwt.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_langdetect.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_linalg.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_lru.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_lz4.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_lzma.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_md4c.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_md5.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_md5_progress.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_memcached.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_miniz.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_modbus.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_money.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_mqtt.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_msgpack.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_murmur3.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_murmur3_progress.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_netrc.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_ntp.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_oauth2.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_onnxruntime.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_opencv.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_pinyin.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_pkcs.xl",
+      "category": "runtime-error",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_plist.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_progress.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_qr.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_rapidocr.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_redis.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_roaring.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_rss.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_rtree.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_semver.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_sha3.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_sha3_progress.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_shellwords.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_siphash.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_siphash_progress.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_sitemap.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_skiplist.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_slugify.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_snappy.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_socks.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_sqlite.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_srt.xl",
+      "category": "runtime-error",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_statistics.xl",
+      "category": "runtime-error",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_stb_image.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_stb_image_resize2.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_stb_image_write.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_stb_truetype.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_tabulate.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_tar_p2.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_terraform_state.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_toml.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_totp.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_trie.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_units.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_vcard.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_volc_core.xl",
+      "category": "timeout",
+      "status": "timeout"
+    },
+    {
+      "case": "test/cases/extlib_xbot.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_xbot_agent.xl",
+      "category": "missing-symbol",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_xfeat.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_xmail.xl",
+      "category": "feature-dependency",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_xml_dom.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_xml_etree.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_xml_sax.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_xregex.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_xssh.xl",
+      "category": "feature-dependency",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_xxhash.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_xxhash_boundaries.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_xxhash_progress.xl",
+      "category": "pass",
+      "status": "pass"
+    },
+    {
+      "case": "test/cases/extlib_yaml.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_zip.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    },
+    {
+      "case": "test/cases/extlib_zstd.xl",
+      "category": "native-prototype",
+      "status": "fail"
+    }
+  ],
+  "changesSince1139": [
+    {
+      "case": "test/cases/extlib_hash_progress.xl",
+      "before": "fail",
+      "after": "pass"
+    },
+    {
+      "case": "test/cases/extlib_hash_progress_cancel.xl",
+      "before": "fail",
+      "after": "pass"
+    },
+    {
+      "case": "test/cases/extlib_siphash.xl",
+      "before": "fail",
+      "after": "pass"
+    },
+    {
+      "case": "test/cases/extlib_siphash_progress.xl",
+      "before": null,
+      "after": "pass"
+    }
+  ],
+  "inputChangesSince1139": [
+    {
+      "file": "release/extlibs/siphash/examples/basic.c",
+      "change": "added"
+    },
+    {
+      "file": "release/extlibs/siphash/examples/files.c",
+      "change": "added"
+    },
+    {
+      "file": "release/extlibs/siphash/include/siphash_native.h",
+      "change": "added"
+    },
+    {
+      "file": "release/extlibs/siphash/include/xrt_siphash.h",
+      "change": "changed"
+    },
+    {
+      "file": "release/extlibs/siphash/siphash_native.c",
+      "change": "changed"
+    },
+    {
+      "file": "release/extlibs/siphash/src/siphash.xl",
+      "change": "changed"
+    },
+    {
+      "file": "release/extlibs/siphash/test/reference/siphash.c",
+      "change": "added"
+    },
+    {
+      "file": "release/extlibs/siphash/test/reference/siphash.h",
+      "change": "added"
+    },
+    {
+      "file": "release/extlibs/siphash/test/reference/vectors.h",
+      "change": "added"
+    },
+    {
+      "file": "release/extlibs/siphash/test/reference_examples.c",
+      "change": "added"
+    },
+    {
+      "file": "release/extlibs/siphash/test/test_siphash.c",
+      "change": "added"
+    },
+    {
+      "file": "release/extlibs/siphash/test/test_siphash_native.c",
+      "change": "added"
+    },
+    {
+      "file": "release/extlibs/siphash/test/test_siphash_standalone.c",
+      "change": "added"
+    },
+    {
+      "file": "release/extlibs/siphash/third_party/siphash.c",
+      "change": "changed"
+    },
+    {
+      "file": "release/extlibs/siphash/third_party/siphash.h",
+      "change": "changed"
+    },
+    {
+      "file": "release/extlibs/siphash/xlang.package.json",
+      "change": "changed"
+    },
+    {
+      "file": "release/extlibs/siphash/xrt_siphash.c",
+      "change": "changed"
+    },
+    {
+      "file": "test/cases/extlib_hash_progress.xl",
+      "change": "changed"
+    },
+    {
+      "file": "test/cases/extlib_hash_progress_cancel.xl",
+      "change": "changed"
+    },
+    {
+      "file": "test/cases/extlib_siphash.xl",
+      "change": "changed"
+    },
+    {
+      "file": "test/cases/extlib_siphash_progress.xl",
+      "change": "added"
+    },
+    {
+      "file": "test/featured_extlibs.json",
+      "change": "changed"
+    }
+  ],
+  "sharedHashFixtureEvidence": "docs/extlib_shared_hash_fixtures_2026-09-27.results.json"
+}

@@ -1,0 +1,2269 @@
+{
+  "date": "2026-09-27T15:27:20.4151217+08:00",
+  "packages": 225,
+  "public": 218,
+  "internal": 7,
+  "cSources": 627.0,
+  "xlSources": 246.0,
+  "packageTestCount": 33.0,
+  "packagesWithTests": 22,
+  "rootReadme": 33,
+  "siteSource": 15,
+  "missing": [],
+  "priorEvidence": "build/test/extlib_reassessment_20260927_145536/results.json",
+  "inputCount": 1910,
+  "changedInputs": [],
+  "changedFileSet": [],
+  "entries": [
+    {
+      "name": "_bzip2",
+      "internal": true,
+      "c": 7,
+      "xl": 0,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "_expat",
+      "internal": true,
+      "c": 4,
+      "xl": 0,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "_libzip",
+      "internal": true,
+      "c": 111,
+      "xl": 0,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "_tomlc17",
+      "internal": true,
+      "c": 1,
+      "xl": 0,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "_xge_native",
+      "internal": true,
+      "c": 96,
+      "xl": 0,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "_zlib",
+      "internal": true,
+      "c": 11,
+      "xl": 0,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "acme",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "aho_corasick",
+      "internal": false,
+      "c": 2,
+      "xl": 1,
+      "packageTests": 1,
+      "readme": true,
+      "site": true,
+      "missing": []
+    },
+    {
+      "name": "ansi",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "argon2",
+      "internal": false,
+      "c": 6,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": true,
+      "site": true,
+      "missing": []
+    },
+    {
+      "name": "barcode",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "blake2",
+      "internal": false,
+      "c": 3,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": true,
+      "site": true,
+      "missing": []
+    },
+    {
+      "name": "blake3",
+      "internal": false,
+      "c": 3,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": true,
+      "site": true,
+      "missing": []
+    },
+    {
+      "name": "bloom",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": true,
+      "site": true,
+      "missing": []
+    },
+    {
+      "name": "brotli",
+      "internal": false,
+      "c": 33,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": true,
+      "site": true,
+      "missing": []
+    },
+    {
+      "name": "bson",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "bz2",
+      "internal": false,
+      "c": 2,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "canbus",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "cbor",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "chardet",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "cli",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "clickhouse",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "clip",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "clipboard",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "coap",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "color",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "com",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "consistent_hash",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "crc32",
+      "internal": false,
+      "c": 2,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": true,
+      "site": true,
+      "missing": []
+    },
+    {
+      "name": "crontab",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "css",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "csv",
+      "internal": false,
+      "c": 4,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "cuckoo",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "daemon",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "dataframe",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "diff",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "dinov3",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "dns",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "docker",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "docx",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "dotenv",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "duckdb",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "embeddings",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "enet",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "epub",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "etcd",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "faiss",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "ffmpeg",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "fix",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "flatbuffers",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "freetype",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "ftp",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "fuzzy",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "geohash",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "gettext",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "ggml",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "git",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "glad",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "gpio",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "graph",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "grpc",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "gzip",
+      "internal": false,
+      "c": 2,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": true,
+      "site": true,
+      "missing": []
+    },
+    {
+      "name": "harfbuzz",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "hcl",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "hnswlib",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "html5",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "hyperloglog",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "ical",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "icu",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "imagehash",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "imgui",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "influxdb",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "ini",
+      "internal": false,
+      "c": 4,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "jieba",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "json.patch",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "json5",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "jwt",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "kubernetes",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "langdetect",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "ldap",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "leveldb",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "libsndfile",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "libsvm",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "libtorch",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "libusb",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "linalg",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "llama",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "lmdb",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "lru",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "lz4",
+      "internal": false,
+      "c": 3,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "lzma",
+      "internal": false,
+      "c": 7,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "md4c",
+      "internal": false,
+      "c": 4,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "md5",
+      "internal": false,
+      "c": 2,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": true,
+      "site": true,
+      "missing": []
+    },
+    {
+      "name": "mdns",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "memcached",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "minio",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "miniz",
+      "internal": false,
+      "c": 2,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "mnn",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "modbus",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "money",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "mongodb",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "mqtt",
+      "internal": false,
+      "c": 5,
+      "xl": 2,
+      "packageTests": 1,
+      "readme": true,
+      "site": true,
+      "missing": []
+    },
+    {
+      "name": "msgpack",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "murmur3",
+      "internal": false,
+      "c": 3,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": true,
+      "site": true,
+      "missing": []
+    },
+    {
+      "name": "mysql",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": true,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "nanomsg",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "nats",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "ncnn",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "neo4j",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "netrc",
+      "internal": false,
+      "c": 4,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "nsq",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "ntp",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "oauth2",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "onnxruntime",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "op",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "opencv",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "opentelemetry",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "openvino",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "opus",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "passkey",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "pcap",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "pdf",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "pdfium",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "pinyin",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "pkcs",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "pkg.math",
+      "internal": true,
+      "c": 0,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "plist",
+      "internal": false,
+      "c": 7,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "portaudio",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "postgresql",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "pptx",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "procps",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "progress",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "prometheus",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "protobuf",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "qr",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "quic",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "rabbitmq",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "rapidocr",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": true,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "ratatui",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "redis",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "roaring",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "rocksdb",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "rss",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "rtmp",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "rtree",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "sciter",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "semver",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "sentencepiece",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "serial",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": true,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "sha3",
+      "internal": false,
+      "c": 3,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": true,
+      "site": true,
+      "missing": []
+    },
+    {
+      "name": "sharedmem",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "shellwords",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "singleinstance",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "siphash",
+      "internal": false,
+      "c": 3,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": true,
+      "site": true,
+      "missing": []
+    },
+    {
+      "name": "sitemap",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "skiplist",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "slugify",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "snappy",
+      "internal": false,
+      "c": 3,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "snmp",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "socks",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "sox",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "sqlite",
+      "internal": false,
+      "c": 2,
+      "xl": 1,
+      "packageTests": 2,
+      "readme": true,
+      "site": true,
+      "missing": []
+    },
+    {
+      "name": "srt",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "stablediffusion",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "statistics",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "stb_image",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "stb_image_resize2",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "stb_image_write",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "stb_truetype",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "sysinfo",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "tabulate",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "taglib",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "tar",
+      "internal": false,
+      "c": 5,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "tdengine",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "tensorrt",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "terraform_state",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "tokenizers",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "toml",
+      "internal": false,
+      "c": 4,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "totp",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "treesitter",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "trie",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "ui.auto",
+      "internal": false,
+      "c": 0,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "uia",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "units",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "upnp",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "vault",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "vcard",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "vectordb",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "volc.core",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "volc.phone",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "volc.sts",
+      "internal": false,
+      "c": 0,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "watch",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "webrtc",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "webview",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "whisper",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "xbot",
+      "internal": false,
+      "c": 0,
+      "xl": 1,
+      "packageTests": 1,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "xbot.agent",
+      "internal": false,
+      "c": 0,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "xfeat",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "xge",
+      "internal": false,
+      "c": 0,
+      "xl": 12,
+      "packageTests": 1,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "xge_shape_ex",
+      "internal": false,
+      "c": 0,
+      "xl": 3,
+      "packageTests": 1,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "xhttp",
+      "internal": false,
+      "c": 8,
+      "xl": 1,
+      "packageTests": 2,
+      "readme": true,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "xhttp.body",
+      "internal": false,
+      "c": 4,
+      "xl": 1,
+      "packageTests": 1,
+      "readme": true,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "xhttp.body_async",
+      "internal": false,
+      "c": 2,
+      "xl": 1,
+      "packageTests": 1,
+      "readme": true,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "xhttp.body_codec",
+      "internal": false,
+      "c": 4,
+      "xl": 1,
+      "packageTests": 1,
+      "readme": true,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "xhttp.body_decode",
+      "internal": false,
+      "c": 2,
+      "xl": 1,
+      "packageTests": 1,
+      "readme": true,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "xhttp.body_file",
+      "internal": false,
+      "c": 2,
+      "xl": 1,
+      "packageTests": 1,
+      "readme": true,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "xhttp.body_stream",
+      "internal": false,
+      "c": 2,
+      "xl": 1,
+      "packageTests": 1,
+      "readme": true,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "xhttp.client",
+      "internal": false,
+      "c": 21,
+      "xl": 1,
+      "packageTests": 3,
+      "readme": true,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "xhttp.form_data",
+      "internal": false,
+      "c": 6,
+      "xl": 1,
+      "packageTests": 1,
+      "readme": true,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "xhttp.multipart",
+      "internal": false,
+      "c": 11,
+      "xl": 1,
+      "packageTests": 1,
+      "readme": true,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "xhttp.protocol",
+      "internal": false,
+      "c": 9,
+      "xl": 1,
+      "packageTests": 3,
+      "readme": true,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "xlsx",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "xmail",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 4,
+      "readme": true,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "xml.dom",
+      "internal": false,
+      "c": 4,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "xml.etree",
+      "internal": false,
+      "c": 4,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "xml.sax",
+      "internal": false,
+      "c": 3,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "xregex",
+      "internal": false,
+      "c": 8,
+      "xl": 1,
+      "packageTests": 1,
+      "readme": true,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "xssh",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 1,
+      "readme": true,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "xui",
+      "internal": false,
+      "c": 0,
+      "xl": 14,
+      "packageTests": 1,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "xws",
+      "internal": false,
+      "c": 12,
+      "xl": 1,
+      "packageTests": 3,
+      "readme": true,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "xxhash",
+      "internal": false,
+      "c": 3,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": true,
+      "site": true,
+      "missing": []
+    },
+    {
+      "name": "yaml",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "zeromq",
+      "internal": false,
+      "c": 1,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "zip",
+      "internal": false,
+      "c": 4,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    },
+    {
+      "name": "zstd",
+      "internal": false,
+      "c": 3,
+      "xl": 1,
+      "packageTests": 0,
+      "readme": false,
+      "site": false,
+      "missing": []
+    }
+  ]
+}

@@ -226,8 +226,8 @@ export class WsConnection
     extern "xws_conn_role" func roleNative() as c_longlong
     extern "xws_conn_protocol" func protocolNative() as point
     extern "xws_conn_deflate" func deflateNative() as bool
-    extern "xws_conn_pending" func pendingNative() as c_ulonglong
-    extern "xws_conn_writable" func writableNative() as c_ulonglong
+    extern "xws_conn_pending" func pendingNative() as uint64
+    extern "xws_conn_writable" func writableNative() as uint64
     extern "xws_conn_paused" func pausedNative() as bool
     extern "xws_conn_pause" func pause()
     extern "xws_conn_resume" func resume() as bool
@@ -253,10 +253,10 @@ export class WsConnection
     extern "xws_conn_close_async" func closeAsyncRaw(
         c_longlong code, string reason, c_size size) as point
     extern "xws_conn_wait_async" func waitAsyncRaw(c_longlong kind) as point
-    extern "xws_conn_async_bytes" func asyncBytesNative() as c_ulonglong
-    extern "xws_conn_async_count" func asyncCountNative() as c_ulonglong
+    extern "xws_conn_async_bytes" func asyncBytesNative() as uint64
+    extern "xws_conn_async_count" func asyncCountNative() as uint64
     extern "xws_conn_close_reason" func closeReasonNative() as point
-    extern "xws_conn_close_value" func closeValue(c_longlong field) as c_ulonglong
+    extern "xws_conn_close_value" func closeValue(c_longlong field) as uint64
     extern "xws_conn_error_text" func errorText(c_longlong field) as point
     extern "xws_conn_error_value" func errorValue(c_longlong field) as c_longlong
 
@@ -572,7 +572,7 @@ export class WsGroupSnapshot
     native point handle
     extern "xws_group_snapshot_wrap" create(point handle)
     extern "xws_group_snapshot_destroy" destroy()
-    extern "xws_group_snapshot_count" func countNative() as c_ulonglong
+    extern "xws_group_snapshot_count" func countNative() as uint64
     extern "xws_group_snapshot_native" func connectionNative(
         c_longlong index) as point
 
@@ -627,7 +627,7 @@ export class WsGroupOperation
     native point handle
     extern "xws_group_op_wrap" create(point handle)
     extern "xws_group_op_destroy" destroy()
-    extern "xws_group_op_value" func value(c_longlong field) as c_ulonglong
+    extern "xws_group_op_value" func value(c_longlong field) as uint64
     extern "xws_group_op_result_value" func resultValue(
         c_longlong index, c_longlong field) as c_longlong
     extern "xws_group_op_result_error" func resultError(
@@ -635,7 +635,7 @@ export class WsGroupOperation
     extern "xws_group_op_item_future" func itemFutureNative(
         c_longlong index) as point
     extern "xws_group_op_future" func futureNative() as point
-    extern "xws_group_op_cancel" func cancelNative() as c_ulonglong
+    extern "xws_group_op_cancel" func cancelNative() as uint64
     extern "xws_group_op_wait" func waitNative(
         c_longlong timeoutMs) as c_longlong
 
@@ -714,9 +714,9 @@ export class WsGroup
     extern "xws_group_add" func addNative(point connection) as bool
     extern "xws_group_remove" func removeNative(point connection) as bool
     extern "xws_group_has" func hasNative(point connection) as bool
-    extern "xws_group_value" func value(c_longlong field) as c_ulonglong
+    extern "xws_group_value" func value(c_longlong field) as uint64
     extern "xws_group_seal" func seal() as bool
-    extern "xws_group_clear" func clearNative() as c_ulonglong
+    extern "xws_group_clear" func clearNative() as uint64
     extern "xws_group_snapshot" func snapshotNative() as point
     extern "xws_group_text" func textNative(
         string text, c_size size) as point

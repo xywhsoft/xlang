@@ -1,0 +1,8 @@
+extern "xl_sdk_feature_probe" func probe() as c_int
+extern "xl_native_extra_probe" func extra() as c_int
+
+func main(...) as int
+    assert probe() == 0 and extra() == 0
+    println("native source contract ok")
+    return 0
+end

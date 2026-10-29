@@ -1,4 +1,4 @@
-extern "xssh_code_name" func __xssh_code_name(int code) as string
+extern "xssh_code_name" func __xssh_code_name(c_int code) as string
 extern "xssh_last_error" func __xssh_error() as string
 extern "xssh_name_valid_native" func __xssh_name_valid(
     string name, c_size size) as bool
@@ -98,7 +98,11 @@ end
 
 // 返回稳定结果码名称。
 export func codeName(int code) as string
-    return __xssh_code_name(code)
+    // 未知结果码也可能超出 C int；不要先截断再误识别为有效码。
+    if code < ERROR_TIMEOUT or code > NEED_MORE then
+        return "unknown"
+    end
+    return __xssh_code_name(c_int(code))
 end
 
 
@@ -109,13 +113,13 @@ export class WireWriter
     extern "xssh_writer_create_native" create()
     extern "xssh_writer_destroy_native" destroy()
     extern "xssh_writer_clear_native" func clearNative() as bool
-    extern "xssh_writer_size_native" func sizeNative() as c_longlong
+    extern "xssh_writer_size_native" func sizeNative() as int64
     extern "xssh_writer_snapshot_native" func snapshotNative() as point
     extern "xssh_writer_handle_native" func nativeHandle() as point
     extern "xssh_writer_byte_native" func byteNative(c_uint value) as c_int
     extern "xssh_writer_bool_native" func boolNative(bool value) as c_int
     extern "xssh_writer_u32_native" func u32Native(c_uint value) as c_int
-    extern "xssh_writer_u64_native" func u64Native(c_ulonglong value) as c_int
+    extern "xssh_writer_u64_native" func u64Native(uint64 value) as c_int
     extern "xssh_writer_string_text_native" func stringTextNative(
         string data, c_size size) as c_int
     extern "xssh_writer_string_native" func stringNative(
@@ -138,7 +142,7 @@ export class WireWriter
     end
 
     get length() as int
-        c_longlong result = self.sizeNative()
+        int64 result = self.sizeNative()
         if result < 0 then
             throw RuntimeError "xssh writer is destroyed"
         end
@@ -167,13 +171,13 @@ export class WireWriter
     end
 
     func writeU32(int value)
-        if value < 0 or c_ulonglong(value) > c_ulonglong(4294967295) then
+        if value < 0 or value > 4294967295 then
             throw ValueError "xssh uint32 is out of range"
         end
         __xssh_require(int(self.u32Native(c_uint(value))))
     end
 
-    func writeU64(c_ulonglong value)
+    func writeU64(uint64 value)
         __xssh_require(int(self.u64Native(value)))
     end
 
@@ -226,17 +230,17 @@ export class WireReader
     extern "xssh_reader_create_native" create(point data, c_size size)
     extern "xssh_reader_adopt_native" create(point handle)
     extern "xssh_reader_destroy_native" destroy()
-    extern "xssh_reader_remaining_native" func remainingNative() as c_longlong
+    extern "xssh_reader_remaining_native" func remainingNative() as int64
     extern "xssh_reader_handle_native" func nativeHandle() as point
     extern "xssh_reader_byte_native" func byteNative() as c_int
     extern "xssh_reader_bool_native" func boolNative() as c_int
     extern "xssh_reader_u32_native" func u32Native() as c_int
     extern "xssh_reader_u64_native" func u64Native() as c_int
     extern "xssh_reader_string_native" func stringNative() as c_int
-    extern "xssh_reader_raw_native" func rawNative(c_ulonglong size) as c_int
+    extern "xssh_reader_raw_native" func rawNative(uint64 size) as c_int
     extern "xssh_reader_mpint_native" func mpintNative() as c_int
     extern "xssh_reader_signed_mpint_native" func signedMpintNative() as c_int
-    extern "xssh_reader_scalar_native" func scalarNative() as c_ulonglong
+    extern "xssh_reader_scalar_native" func scalarNative() as uint64
     extern "xssh_reader_negative_native" func negativeNative() as bool
     extern "xssh_reader_last_native" func lastNative() as point
 
@@ -245,14 +249,14 @@ export class WireReader
     end
 
     get remaining() as int
-        c_longlong result = self.remainingNative()
+        int64 result = self.remainingNative()
         if result < 0 then
             throw RuntimeError "xssh reader is destroyed"
         end
         return int(result)
     end
 
-    get value() as c_ulonglong
+    get value() as uint64
         return self.scalarNative()
     end
 
@@ -279,7 +283,7 @@ export class WireReader
 
     func readBool() as bool
         __xssh_require(self.tryBool())
-        return self.value != c_ulonglong(0)
+        return self.value != uint64(0)
     end
 
     func tryU32() as int
@@ -295,7 +299,7 @@ export class WireReader
         return int(self.u64Native())
     end
 
-    func readU64() as c_ulonglong
+    func readU64() as uint64
         __xssh_require(self.tryU64())
         return self.value
     end
@@ -322,7 +326,7 @@ export class WireReader
         if count < 0 then
             throw ValueError "xssh byte count is out of range"
         end
-        return int(self.rawNative(c_ulonglong(count)))
+        return int(self.rawNative(uint64(count)))
     end
 
     func readBytes(int count) as Buffer
@@ -370,7 +374,7 @@ export class BannerResult
     extern "xssh_banner_destroy_native" destroy()
     extern "xssh_banner_status_native" func statusNative() as c_int
     extern "xssh_banner_text_native" func textNative() as point
-    extern "xssh_banner_consumed_native" func consumedNative() as c_longlong
+    extern "xssh_banner_consumed_native" func consumedNative() as int64
 
     get valid() as bool
         return self.handle != null

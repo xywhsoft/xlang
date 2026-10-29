@@ -1,0 +1,714 @@
+{
+    "date":  "2026-09-27T05:56:21.0273256+08:00",
+    "outcome":  "passed",
+    "scope":  "Windows C boundaries, 35 upstream vectors in three modes and six lengths, allocation failures, independent threads, xlang/C JIT/AOT, callbacks and readers, generated ABI and paired examples; not shared mutable hasher concurrency or benchmark certification",
+    "generatedPrototypes":  23,
+    "inputs":  {
+                   ".gitattributes":  "3878057BAAB6B26B4265312AE15C05697B98EBC64E0CE4390D4423290C37A7F2",
+                   "lib/xrt/xrt.h":  "7C78B4B3D13FC64AC1009E2EDFAE73E9FB092C896DA1A70CF5BE859D153851E8",
+                   "lib/xruntime/xruntime.h":  "FF23FDB9AC90F63DEED1606A78F21707A9FA677AA766044B8AF3B4F5202F4BA9",
+                   "release/examples/extlibs/blake3.xl":  "01C29366BF674E4210FE5B9CB56B2958C7789E190F4CCF817A1A94DED751745A",
+                   "release/examples/extlibs/blake3_basic.expected.txt":  "8F0D1092B602E75A8D226C87D65E26DB49CCAC90CDBE38385D7A98659789CFCB",
+                   "release/examples/extlibs/blake3_basic.xl":  "18E38400604559089D6EA3443AD02D2D8963BECB58CED3900EE227DAA38F6D6B",
+                   "release/extlibs/blake3/blake3_native.c":  "9C4BD1F278F1F8A4A831BCA72989FC8B74F936900DDBB31654DF23099DA357C7",
+                   "release/extlibs/blake3/blake3_portable.c":  "79595441957BEB3990730095C97141DEB0FCAA19DCEDAF6BD7862642C71DF359",
+                   "release/extlibs/blake3/docs/site.html":  "F3B22789342C3A40AD87549F6DA56CDD4F48467869F8A06D134A0807ED0E934D",
+                   "release/extlibs/blake3/examples/basic.c":  "42212CAE57A8109355E94CA4A4752D65923F9FC2F7F530B6CAE9563823848D11",
+                   "release/extlibs/blake3/include/blake3_native.h":  "27E7B6B2BC477674099D867713B00B23BBAB4E2E152A0756A49315E2E9AD095D",
+                   "release/extlibs/blake3/include/xrt_blake3.h":  "8F782F321CB3875F562E0E0E701025604A74B660EADF575F3C2274424AE74848",
+                   "release/extlibs/blake3/README.md":  "B50E9510135C6F10775DCFEFC14EDA472E83EE9F6091F64DE8E25D0FEFBF96E9",
+                   "release/extlibs/blake3/src/blake3.xl":  "5CCCA364D1F4B7CF41DFC40B9B0756668503C2548EE18723B36F18D6B15F04CF",
+                   "release/extlibs/blake3/test/test_blake3.c":  "6F2A64C56BA3747F4F375334166985558484B1A9B47D4FF951D6388092D879D2",
+                   "release/extlibs/blake3/test/test_blake3_alloc.c":  "915E90BE37706E1ECDB55D659FDFD0830953B6EBA7E89A933AAD14222317F1AF",
+                   "release/extlibs/blake3/test/test_blake3_native.c":  "2F3A007EBA5BC4338B4A6904F173BBED041302A6608050EFBAC183DE81CA5A9E",
+                   "release/extlibs/blake3/test/test_vectors.json":  "DCB91EA8ACCC77E6D6E632AF7CDC1A99A9F3AE78CF648DA595C7D064DB32F624",
+                   "release/extlibs/blake3/test/vectors.h":  "9C546355CD40CB4BF54B59B63DCC47DCA4DB1BCD87F3DF387A05A8F9B159C439",
+                   "release/extlibs/blake3/third_party/blake3.c":  "F0AA61E2E25608AF8D89CF35A2EFC0B9329CC3A7ADD9372D6F034C2BC63554D7",
+                   "release/extlibs/blake3/third_party/blake3.h":  "14DB1DD1A80A9856B241CCD1E96715EFAF4FC0BCFCA4BC1EC660747F9EDAAA23",
+                   "release/extlibs/blake3/third_party/blake3_impl.h":  "8F2DE31B1498A6A572DB2328D8D7E7A8DD904459C74A1C68B7FAE34405C518EC",
+                   "release/extlibs/blake3/third_party/blake3_portable.c":  "2BC25B0DAD67B4329D0B49CFA075AB2B0D04E424ADDBDDC4E9C389C52A192524",
+                   "release/extlibs/blake3/third_party/LICENSE":  "6A94BEDB8B707ED97F6E310D0D015AB14E0683FFA0A612B02958581B9CC9FC0E",
+                   "release/extlibs/blake3/third_party/manifest.json":  "66B5C073DE1A49FBC31245D972C2D3B557910342F1DF376AC1F210FA9CDE8FF4",
+                   "release/extlibs/blake3/VENDOR.md":  "7965F4860FA3027ADA7E37516F1F15B11848EB8D0A8DD203B458A6818DCFD2B7",
+                   "release/extlibs/blake3/xlang.package.json":  "43D20C889BE66EA649B6264955A49B56B6938A17CE9A3AF433C0AA01F4DC724F",
+                   "release/extlibs/blake3/xrt_blake3.c":  "27535012F9047CC96F50C62377B81F3497881B2B6D8EE2D91D81C18A0C048F03",
+                   "release/include/xrt_decl.h":  "3356BCCABBCBC877AD19C5E2D3336C909C2A742DE62E7B92BB79FE2AF3F4CEE6",
+                   "release/include/xruntime_decl.h":  "4B7CFAA2015F39E08159F4B10108B9BB1764D2370074333335651FE5C1BA87AC",
+                   "release/xl.dll":  "2A07C481C04CAD71D31D46722A27E62027318DF24E95A63126E061FD4CA46902",
+                   "release/xl.exe":  "5A3F20B4CF9333D393560CB2361D0EBAB8A13F0D07C64A78A1F5FFF5385D9EEB",
+                   "release/xlc.dll":  "7C672FD0B2852690D09E2EF1046C56EE1586FD1FCCC0CAEA61E19C0FE7C6E1F0",
+                   "test/cases/extlib_blake3.xl":  "D73B4472DC2664B5A7176E45AE63C45C61C8A34B82804D53C1A6C8369FF83C6C",
+                   "test/cases/extlib_blake3_boundaries.xl":  "202DC0279BEE7BD0A6D0D33CA89E77374F7242BB491FB2933BF9FC4F5A8E958E",
+                   "test/cases/extlib_blake3_progress.xl":  "64D5D370ACFFEE8D4EF9C58335DDC59BB7BF439186C229787BD4DA61CA9D349F",
+                   "test/featured_extlibs.json":  "129217C2EB2D01C770250A84ED3CBED154FDC9C95AEFBE95F0E550B09F4078BB",
+                   "test/suites/11_featured_extlibs_rc.bat":  "FC1EE36CC0C93DE5EC34BC7C03C0AFB07F4815B3982D25431FECB8A3153236E3",
+                   "test/support/extlib_codec_runtime.c":  "ACD01CA7C8ACFA2F63C1257DDA52A0B575C0F2679B5432588014023F105C65FA",
+                   "tools/check_extlib_blake3.ps1":  "CED6EDC5CBC2C5A3D30BF085C5377D4FDAEEA71D5E01E39F90F32500C285CE6E",
+                   "tools/check_extlib_blake3.sh":  "C72A1643A5C51EF831ED12F32EAF9173C578C464E3F40A6CCA2F5C8B422180DD",
+                   "tools/extlib_smoke_process.ps1":  "87C3D050B1F492E3F0C4307BA39F454E42B65E37DBCDEC4BE3E938BC2F32D2F7",
+                   "tools/run_extlib_c.ps1":  "0ABBC3A4B3B0AE45587CCBB069F075F3FBF965D6485FC176C51865FA293FEDA5",
+                   "tools/xlir_native_process.ps1":  "2BE2787D2316CE07E0D0AC3BDF1A1CAABA14D72F249CCAC847BB1C05D1DBFC9D"
+               },
+    "checks":  [
+                   {
+                       "name":  "vendor-vector-golden",
+                       "status":  "pass",
+                       "vectors":  35,
+                       "files":  6
+                   },
+                   {
+                       "name":  "runtime",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_CODEC_HEX",
+                                         "-DXRT_MODULE_THREAD",
+                                         "-c",
+                                         "test/support/extlib_codec_runtime.c",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\runtime.o"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  5664,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "native-0",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_IO_BUFFER",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_CODEC_HEX",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "-c",
+                                         "release/extlibs/blake3/blake3_portable.c",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\source-0.o"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  452,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "native-1",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_IO_BUFFER",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_CODEC_HEX",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "-c",
+                                         "release/extlibs/blake3/xrt_blake3.c",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\source-1.o"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  206,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "native-2",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_IO_BUFFER",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_CODEC_HEX",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "-c",
+                                         "release/extlibs/blake3/blake3_native.c",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\source-2.o"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  300,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-build",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_IO_BUFFER",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_CODEC_HEX",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "release/extlibs/blake3/test/test_blake3.c",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\source-0.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\runtime.o",
+                                         "-lWs2_32",
+                                         "-lAdvapi32",
+                                         "-lm",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\blake3-c.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  382,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-boundaries",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\blake3-c.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  49,
+                       "stdout":  "blake3 C: 35 official vectors, three modes, six output sizes, state and reader boundaries passed\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "allocation-build",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_IO_BUFFER",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_CODEC_HEX",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "release/extlibs/blake3/test/test_blake3_alloc.c",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\source-0.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\source-1.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\source-2.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\runtime.o",
+                                         "-lWs2_32",
+                                         "-lAdvapi32",
+                                         "-lm",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\blake3-alloc.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  225,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "allocation",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\blake3-alloc.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  42,
+                       "stdout":  "blake3 allocation: rejected=18 completed=126\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "native-boundaries-build",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_IO_BUFFER",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_CODEC_HEX",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "release/extlibs/blake3/test/test_blake3_native.c",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\source-0.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\source-1.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\source-2.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\runtime.o",
+                                         "-lWs2_32",
+                                         "-lAdvapi32",
+                                         "-lm",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\blake3-native.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  282,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "native-boundaries",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\blake3-native.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  54,
+                       "stdout":  "blake3 native: invalid inputs, budgets, binary, 4 independent threads and temporary results passed\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "release/extlibs/blake3/test/test_blake3.c",
+                                         "release/extlibs/blake3/blake3_portable.c",
+                                         "--inc-path",
+                                         "lib/xrt",
+                                         "--inc-path",
+                                         "lib/xruntime"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  179,
+                       "stdout":  "blake3 C: 35 official vectors, three modes, six output sizes, state and reader boundaries passed\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-package-runner",
+                       "program":  "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+                       "arguments":  [
+                                         "-NoProfile",
+                                         "-File",
+                                         "tools/run_extlib_c.ps1",
+                                         "-Package",
+                                         "blake3",
+                                         "-Source",
+                                         "release/extlibs/blake3/test/test_blake3.c"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  498,
+                       "stdout":  "blake3 C: 35 official vectors, three modes, six output sizes, state and reader boundaries passed\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_blake3-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "test/cases/extlib_blake3.xl"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  883,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_blake3-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "test/cases/extlib_blake3.xl",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\extlib_blake3.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  1514,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_blake3-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\extlib_blake3.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  46,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_blake3_boundaries-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "test/cases/extlib_blake3_boundaries.xl"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  1629,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_blake3_boundaries-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "test/cases/extlib_blake3_boundaries.xl",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\extlib_blake3_boundaries.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  2293,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_blake3_boundaries-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\extlib_blake3_boundaries.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  36,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_blake3_progress-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "test/cases/extlib_blake3_progress.xl"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  891,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_blake3_progress-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "test/cases/extlib_blake3_progress.xl",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\extlib_blake3_progress.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  1182,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_blake3_progress-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\extlib_blake3_progress.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  192,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_blake3-cgen",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "cgen",
+                                         "test/cases/extlib_blake3.xl",
+                                         "--emit",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\extlib_blake3.c"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  572,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_blake3_boundaries-cgen",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "cgen",
+                                         "test/cases/extlib_blake3_boundaries.xl",
+                                         "--emit",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\extlib_blake3_boundaries.c"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  1101,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "extlib_blake3_progress-cgen",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "cgen",
+                                         "test/cases/extlib_blake3_progress.xl",
+                                         "--emit",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\extlib_blake3_progress.c"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  469,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "generated-prototypes",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_IO_BUFFER",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_CODEC_HEX",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "-Irelease/extlibs/blake3/include",
+                                         "-fsyntax-only",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\abi.c"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  100,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "blake3-example-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "release/examples/extlibs/blake3.xl"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  657,
+                       "stdout":  "BLAKE3: 831abf3c6823cdf1f8e3aab566dd23d80e26e867e0bbe0d9c528c42ae2311427\nBLAKE3 (64B): 831abf3c6823cdf1f8e3aab566dd23d80e26e867e0bbe0d9c528c42ae23114276202de2104b7bba5c69d79d491543ed50d2762772db482ea7ccc892c0e9ea6d8\nBLAKE3 MAC: 715ffd6cec319c2a8971ff1e53e8f2f8bc6ff45ea857f7cffc646b72af4d9672\nBLAKE3 KDF: 3bf7211e102c25f5551506875e725c6c930a159c5f88485efb5a156880e3966b\nstreaming inputBytes: 11\nclone h1: 831abf3c6823cdf1f8e3aab566dd23d80e26e867e0bbe0d9c528c42ae2311427\nclone h2: d74981efa70a0c880b8d8c1985d075dbcbf679b99a5f9914e5aaf96b831a9e24\nblake3 extlib ok\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "blake3-example-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "release/examples/extlibs/blake3.xl",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\blake3-example.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  1090,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "blake3-example-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\blake3-example.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  33,
+                       "stdout":  "BLAKE3: 831abf3c6823cdf1f8e3aab566dd23d80e26e867e0bbe0d9c528c42ae2311427\nBLAKE3 (64B): 831abf3c6823cdf1f8e3aab566dd23d80e26e867e0bbe0d9c528c42ae23114276202de2104b7bba5c69d79d491543ed50d2762772db482ea7ccc892c0e9ea6d8\nBLAKE3 MAC: 715ffd6cec319c2a8971ff1e53e8f2f8bc6ff45ea857f7cffc646b72af4d9672\nBLAKE3 KDF: 3bf7211e102c25f5551506875e725c6c930a159c5f88485efb5a156880e3966b\nstreaming inputBytes: 11\nclone h1: 831abf3c6823cdf1f8e3aab566dd23d80e26e867e0bbe0d9c528c42ae2311427\nclone h2: d74981efa70a0c880b8d8c1985d075dbcbf679b99a5f9914e5aaf96b831a9e24\nblake3 extlib ok\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "blake3_basic-example-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "release/examples/extlibs/blake3_basic.xl"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  566,
+                       "stdout":  "hash: 7b7015bb92cf0b318037702a6cdd81de\nclone: 2d3adedff11b61f14c886e35afa03673\nbytes: 2\nreset: af1349b9f5f9a1a6a0404dea36dcc949\nkeyed: 6d7878dfff2f485635d39013278ae14f\nkdf: b3e2e340a117a499c6cf2398a19ee0d2\nxof/65: 2d3adedff11b61f14c886e35afa036736dcd87a74d27b5c1510225d0f592e213c3a6cb8bf623e20cdb535f8d1a5ffb86342d9c0b64aca3bce1d31f60adfa137b35\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "blake3_basic-example-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "release/examples/extlibs/blake3_basic.xl",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\blake3_basic-example.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  962,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "blake3_basic-example-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\blake3_basic-example.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  24,
+                       "stdout":  "hash: 7b7015bb92cf0b318037702a6cdd81de\nclone: 2d3adedff11b61f14c886e35afa03673\nbytes: 2\nreset: af1349b9f5f9a1a6a0404dea36dcc949\nkeyed: 6d7878dfff2f485635d39013278ae14f\nkdf: b3e2e340a117a499c6cf2398a19ee0d2\nxof/65: 2d3adedff11b61f14c886e35afa036736dcd87a74d27b5c1510225d0f592e213c3a6cb8bf623e20cdb535f8d1a5ffb86342d9c0b64aca3bce1d31f60adfa137b35\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-example-build",
+                       "program":  "E:\\software\\w64devkit\\bin\\gcc.exe",
+                       "arguments":  [
+                                         "-std=c11",
+                                         "-O2",
+                                         "-Wall",
+                                         "-Wextra",
+                                         "-Werror",
+                                         "-Ilib/xrt",
+                                         "-Ilib/xruntime",
+                                         "-DXRT_MODULE_IO_BUFFER",
+                                         "-DXRT_MODULE_IO_FILE",
+                                         "-DXRT_MODULE_CODEC_HEX",
+                                         "-DXRT_MODULE_TEMP_MEMORY",
+                                         "release/extlibs/blake3/examples/basic.c",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\source-0.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\source-1.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\source-2.o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\runtime.o",
+                                         "-lWs2_32",
+                                         "-lAdvapi32",
+                                         "-lm",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\blake3-c-example.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  186,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-example",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\blake3-c-example.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  31,
+                       "stdout":  "hash: 7b7015bb92cf0b318037702a6cdd81de\r\nclone: 2d3adedff11b61f14c886e35afa03673\r\nbytes: 2\r\nreset: af1349b9f5f9a1a6a0404dea36dcc949\r\nkeyed: 6d7878dfff2f485635d39013278ae14f\r\nkdf: b3e2e340a117a499c6cf2398a19ee0d2\r\nxof/65: 2d3adedff11b61f14c886e35afa036736dcd87a74d27b5c1510225d0f592e213c3a6cb8bf623e20cdb535f8d1a5ffb86342d9c0b64aca3bce1d31f60adfa137b35\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-example-jit",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "run",
+                                         "release/extlibs/blake3/examples/basic.c",
+                                         "release/extlibs/blake3/blake3_portable.c",
+                                         "release/extlibs/blake3/xrt_blake3.c",
+                                         "release/extlibs/blake3/blake3_native.c",
+                                         "--inc-path",
+                                         "lib/xrt",
+                                         "--inc-path",
+                                         "lib/xruntime"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  128,
+                       "stdout":  "hash: 7b7015bb92cf0b318037702a6cdd81de\r\nclone: 2d3adedff11b61f14c886e35afa03673\r\nbytes: 2\r\nreset: af1349b9f5f9a1a6a0404dea36dcc949\r\nkeyed: 6d7878dfff2f485635d39013278ae14f\r\nkdf: b3e2e340a117a499c6cf2398a19ee0d2\r\nxof/65: 2d3adedff11b61f14c886e35afa036736dcd87a74d27b5c1510225d0f592e213c3a6cb8bf623e20cdb535f8d1a5ffb86342d9c0b64aca3bce1d31f60adfa137b35\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-example-aot-build",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+                       "arguments":  [
+                                         "build",
+                                         "release/extlibs/blake3/examples/basic.c",
+                                         "release/extlibs/blake3/blake3_portable.c",
+                                         "release/extlibs/blake3/xrt_blake3.c",
+                                         "release/extlibs/blake3/blake3_native.c",
+                                         "--inc-path",
+                                         "lib/xrt",
+                                         "--inc-path",
+                                         "lib/xruntime",
+                                         "-o",
+                                         "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\blake3-c-example-tcc.exe"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  324,
+                       "stdout":  "",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-example-aot",
+                       "program":  "D:\\GIT\\x-lang\\demo6\\build\\test\\blake3_guard\\blake3-c-example-tcc.exe",
+                       "arguments":  [
+
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  34,
+                       "stdout":  "hash: 7b7015bb92cf0b318037702a6cdd81de\r\nclone: 2d3adedff11b61f14c886e35afa03673\r\nbytes: 2\r\nreset: af1349b9f5f9a1a6a0404dea36dcc949\r\nkeyed: 6d7878dfff2f485635d39013278ae14f\r\nkdf: b3e2e340a117a499c6cf2398a19ee0d2\r\nxof/65: 2d3adedff11b61f14c886e35afa036736dcd87a74d27b5c1510225d0f592e213c3a6cb8bf623e20cdb535f8d1a5ffb86342d9c0b64aca3bce1d31f60adfa137b35\r\n",
+                       "stderr":  ""
+                   },
+                   {
+                       "name":  "c-example-package-runner",
+                       "program":  "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+                       "arguments":  [
+                                         "-NoProfile",
+                                         "-File",
+                                         "tools/run_extlib_c.ps1",
+                                         "-Package",
+                                         "blake3",
+                                         "-Source",
+                                         "release/extlibs/blake3/examples/basic.c"
+                                     ],
+                       "status":  "pass",
+                       "exitCode":  0,
+                       "elapsedMs":  394,
+                       "stdout":  "hash: 7b7015bb92cf0b318037702a6cdd81de\r\nclone: 2d3adedff11b61f14c886e35afa03673\r\nbytes: 2\r\nreset: af1349b9f5f9a1a6a0404dea36dcc949\r\nkeyed: 6d7878dfff2f485635d39013278ae14f\r\nkdf: b3e2e340a117a499c6cf2398a19ee0d2\r\nxof/65: 2d3adedff11b61f14c886e35afa036736dcd87a74d27b5c1510225d0f592e213c3a6cb8bf623e20cdb535f8d1a5ffb86342d9c0b64aca3bce1d31f60adfa137b35\r\n",
+                       "stderr":  ""
+                   }
+               ]
+}

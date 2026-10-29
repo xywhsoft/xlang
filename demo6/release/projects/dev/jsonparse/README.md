@@ -38,7 +38,7 @@ xl build projects\dev\jsonparse\jsonparse.xl -o projects\dev\jsonparse\jsonparse
 ## 关键设计 / 绕过
 
 - **Lexer / Token 必须 `derive value`**：作为另一个 class 的成员字段时，普通 class 触发
-  `[checked] class persistence requires __toValue__ or derive value/json/xson`。详见根 `BUGS.md` BUG-JP1。
+  `[checked] class persistence requires __toValue__ or derive value/json/xlon`。详见根 `BUGS.md` BUG-JP1。
 - **不依赖 `json` 标准库**：解析、转义、序列化、查询全程手写。
 - **手写 UTF-8 编码**：标准库无 codepoint→char，故用 `Buffer` 拼 UTF-8 字节再 `encoding.fromBytes`。
 - **手写十六进制解析**：`int()` 不接受进制参数，自写 `parseHex4`。

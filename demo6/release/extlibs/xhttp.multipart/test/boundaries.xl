@@ -1,0 +1,103 @@
+import xhttp.protocol
+import xhttp.multipart
+from xhttp.protocol import Headers
+from xhttp.multipart import MultipartBoundary, MultipartEvent, MultipartLimits
+from xhttp.multipart import MultipartParser, MultipartPart, MultipartReader, MultipartWriter
+
+
+// 返回的 Part 必须在局部 Parser 和原始 Buffer 离开作用域后仍有效。
+func retainedPart() as MultipartPart
+    MultipartBoundary boundary = MultipartBoundary.parse("retained-part")
+    MultipartWriter writer = MultipartWriter(boundary)
+    Buffer wire = Buffer()
+    assert wire.append(writer.fieldText("name", "persistent"))
+    assert wire.append(writer.close())
+    MultipartParser parser = MultipartParser.parse(wire, boundary)
+    assert parser.nativeHandle() != null
+    assert parser.offset == 0
+    assert parser.errorCode == 0 and parser.errorOffset == 0
+    return parser.next() as MultipartPart
+end
+
+
+func main(...) as int
+    MultipartPart retained = retainedPart()
+    assert retained.body().text() == "persistent"
+    assert retained.data() != null and retained.flags > 0
+    assert retained.transferEncoding == null
+
+    // 空句柄接管不能释放其他对象，也不能生成虚假的有效句柄。
+    MultipartParser noParser = MultipartParser(null)
+    MultipartReader noReader = MultipartReader(null)
+    assert not noParser.valid and not noReader.valid
+
+    MultipartBoundary boundary = MultipartBoundary.parse("binary-boundary")
+    MultipartWriter writer = MultipartWriter(boundary)
+    Buffer binary = Buffer()
+    assert binary.appendByte(0) and binary.appendByte(255)
+    Headers headers = Headers()
+    assert headers.add("Content-Transfer-Encoding", "binary")
+    Buffer wire = Buffer()
+    assert wire.append(writer.field("raw", binary))
+    assert wire.append(writer.fieldHead("segmented"))
+    assert wire.append(binary) and wire.append(writer.partEnd())
+    assert wire.append(writer.fileHead("upload", "sample.bin", "application/octet-stream"))
+    assert wire.append(binary) and wire.append(writer.partEnd())
+    assert wire.append(writer.part(headers, binary))
+    assert wire.append(writer.close())
+
+    MultipartParser parser = MultipartParser.parse(wire, boundary)
+    int count = 0
+    for item in parser
+        MultipartPart part = item
+        Buffer value = part.body()
+        assert part.data() != null
+        assert value.len() == 2 and value.byteAt(0) == 0 and value.byteAt(1) == 255
+        if count == 3 then
+            assert (part.transferEncoding ?? "") == "binary"
+        end
+        count += 1
+    end
+    assert count == 4 and parser.offset > 0
+
+    // 同一 Reader 重置后应完整重放；事件数据是当前输入中的原始字节。
+    MultipartReader reader = MultipartReader.open(boundary)
+    assert reader.nativeHandle() != null
+    for round in range(2)
+        int offset = 0
+        int bytes = 0
+        while not reader.done
+            MultipartEvent event = reader.read(wire, offset, wire.len() - offset, true)
+            offset += event.consumed
+            assert event.errorCode == 0 and event.errorOffset == 0
+            if event.status == xhttp.multipart.MULTIPART_READ_DATA then
+                assert event.data() != null and event.size > 0
+                Buffer view = Buffer()
+                assert view.appendRaw(event.data(), c_size(event.size))
+                bytes += view.len()
+            end
+        end
+        assert bytes == 8 and reader.partBytes == 2
+        assert reader.reset() and not reader.done
+        assert reader.parts == 0 and reader.bodyBytes == 0
+    end
+
+    // 预算在增量路径也生效；失败状态不会被一次捕获自动重置。
+    MultipartParser limited = MultipartParser.borrow(
+        wire, boundary, MultipartLimits(maxParts = 1), false)
+    assert limited.next() != null
+    bool rejected = false
+    try
+        limited.next()
+    catch error
+        rejected = true
+    end
+    assert rejected and limited.failed
+    assert limited.errorCode == xhttp.multipart.MULTIPART_ERROR_PARTS_LIMIT
+    assert limited.errorOffset > 0
+    assert limited.reset() and not limited.failed
+    assert limited.errorCode == 0 and limited.errorOffset == 0
+    assert retained.body().text() == "persistent"
+    println("HTTP multipart binding boundaries: PASS")
+    return 0
+end

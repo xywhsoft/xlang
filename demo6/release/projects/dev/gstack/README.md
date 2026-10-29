@@ -35,7 +35,7 @@ gstack.exe help
 详见 `../BUGS.md`「gstack 工具发现」一节。摘要：
 
 - **BUG-GS2（低）**：`hashable` 不是合法泛型约束名。合法能力约束仅
-  `comparable` / `json` / `xson` / `cloneable`（外加 class 继承约束）。
+  `comparable` / `json` / `xlon` / `cloneable`（外加 class 继承约束）。
   组合约束示例改用 `<T is cloneable and json>`。
 
 ## 验证结果

@@ -22,7 +22,7 @@ func main(...) as int
     writer.writeByte(127)
     writer.writeBool(true)
     writer.writeU32(16909060)
-    writer.writeU64(c_ulonglong(72623859790382856))
+    writer.writeU64(uint64(72623859790382856))
     writer.writeString("abc")
     writer.writeNameList("a,b")
     assert writer.length == 28
@@ -31,7 +31,7 @@ func main(...) as int
     assert reader.readByte() == 127
     assert reader.readBool()
     assert reader.readU32() == 16909060
-    assert reader.readU64() == c_ulonglong(72623859790382856)
+    assert reader.readU64() == uint64(72623859790382856)
     int stringStatus = reader.tryString()
     assert stringStatus == xssh.OK
     Buffer firstText = reader.last

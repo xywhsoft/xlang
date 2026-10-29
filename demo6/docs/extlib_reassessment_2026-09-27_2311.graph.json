@@ -1,0 +1,29 @@
+{
+  "recordedAt": "2026-09-27T23:20:18.6154983+08:00",
+  "scope": "WSL Ubuntu independent C, current graph implementation, ASan and UBSan; not xlang graph API acceptance",
+  "evidenceValid": true,
+  "inputs": {
+    "script": "32798837BD7824C343502F563B480AD80642802378A03DD1BFE7A8AF12E0708E",
+    "xrt": "4C8CA837C7BAA2B865D6A6C8437449A90186639618888B929F6C3743327A0AC5",
+    "probe": "63E627EA7C53C7578F4BF542BE5EDF3A2C86BCA88A00DC5B78BD7E443991A426",
+    "graph": "5787D485B48096B348BF51D6F1396A1B864BDBBAB3D7F7388B7F578EA9C1D5A8"
+  },
+  "buildLog": null,
+  "cases": [
+    {
+      "name": "520-node-cycle",
+      "log": "SCC 520 nodes: completed\n",
+      "exitCode": 0
+    },
+    {
+      "name": "521-node-cycle",
+      "log": "/mnt/d/GIT/x-lang/demo6/release/extlibs/graph/graph_native.c:555:45: runtime error: index 520 out of bounds for type 'int [520]'\n    #0 0x00000045d251 in xg_scc /mnt/d/GIT/x-lang/demo6/release/extlibs/graph/graph_native.c:555\n    #1 0x00000045eaa9 in main /mnt/d/GIT/x-lang/demo6/build/test/extlib-status-20260927-231125/test_graph_risks.c:46\n    #2 0x7ecb6802a600 in __libc_start_call_main ../sysdeps/nptl/libc_start_call_main.h:59\n    #3 0x7ecb6802a717 in __libc_start_main_impl ../csu/libc-start.c:360\n    #4 0x000000402864 in _start (/tmp/xlang-graph-audit-VRe6AX/probe+0x402864) (BuildId: f259b76fe1d420023b93e00b76040c8ad937a950)\n\n",
+      "exitCode": 1
+    },
+    {
+      "name": "invalid-edge-after-valid-nodes",
+      "log": "invalid input: retained allocations=2, bytes=6\n",
+      "exitCode": 2
+    }
+  ]
+}

@@ -476,7 +476,7 @@ static xbuffer* xmail_native_take_text(str sText, size_t iSize)
 
 
 /* 验证高层消息对象。 */
-bool xmail_message_valid_native(const xvalue* pValue)
+bool xmail_message_valid_native(xvalue* pValue)
 {
 	xmail_native_message Native;
 	bool bValid;
@@ -493,7 +493,7 @@ bool xmail_message_valid_native(const xvalue* pValue)
 
 
 /* 构建完整 RFC 消息并把结果交给语言 Buffer。 */
-void* xmail_compose_native(const xvalue* pValue)
+void* xmail_compose_native(xvalue* pValue)
 {
 	xmail_native_message Native;
 	str sOutput;

@@ -1,0 +1,711 @@
+{
+  "date": "2026-09-27T04:16:14.7856985+08:00",
+  "outcome": "passed",
+  "scope": "Aho core/native boundaries, differential chunks, OOM, shared immutable automaton threads, generated ABI, xlang/C JIT/AOT and paired examples; not simultaneous use of one scanner or performance certification",
+  "generatedPrototypes": 41,
+  "inputs": {
+    "lib/xrt/xrt.h": "7C78B4B3D13FC64AC1009E2EDFAE73E9FB092C896DA1A70CF5BE859D153851E8",
+    "lib/xruntime/xruntime.h": "FF23FDB9AC90F63DEED1606A78F21707A9FA677AA766044B8AF3B4F5202F4BA9",
+    "release/examples/extlibs/aho_corasick_basic.expected.txt": "14FB2322632BDDE83C9C60BCE4F79ECF7B8FA43737EC2D7780A2A2473DF6EDD3",
+    "release/examples/extlibs/aho_corasick_basic.xl": "68E3DE86C33E98ED9940682EE3FAF6493B91EE18E75856A7A25323B8ECD7D460",
+    "release/examples/extlibs/aho_corasick_c.c": "F6040E4A9E49BFE684FB8A08DEEE3A869DD6D2075F26BB097A5D4FDF7D136E02",
+    "release/examples/extlibs/aho_corasick.xl": "A1A6AB1765C282DC94C0686E9E6108F16F064172FD483A23DE8CA66094AB071D",
+    "release/extlibs/aho_corasick/aho_corasick_native.c": "B1D24CF9FC0E121CC46F788F24A209EF6301779FD784F5732361302FC7776EBD",
+    "release/extlibs/aho_corasick/examples/basic.c": "877F6C86FBED8D7F7B5783F78D9B8DC56CF3F31C9BFE4A61F097687E6AC56C0B",
+    "release/extlibs/aho_corasick/include/aho_corasick_native.h": "6BC2329DEF9C6FB7966EBB2CEBE9C42F6C58DB7C91929114A1EAA5B8F15D214E",
+    "release/extlibs/aho_corasick/include/xrt_aho_corasick.h": "7CD7A43457D1964FD534F3CF6CCB7A08E4563CA60162D0CEE98635AAF972D606",
+    "release/extlibs/aho_corasick/src/aho_corasick.xl": "CABCC38A4CE38FA24ADFEA7AE58FD55CBD96AD0CE705E6DFB8513EE53E5383CE",
+    "release/extlibs/aho_corasick/test/boundaries.xl": "299CA540C890D0FB155022B396748F46FA4668299E37EAD7D62A5A31206EEC8D",
+    "release/extlibs/aho_corasick/test/test_aho_alloc.c": "713AE22F6CC0F0DD174554E8949BD3D5F23804DC82FB9DCBBF3106DDF4A521EF",
+    "release/extlibs/aho_corasick/test/test_aho_corasick.c": "10661CB7ACD83318C0DDA5B20F451985B216F70509F12ED01A7CF7609E6CD9DF",
+    "release/extlibs/aho_corasick/test/test_aho_native.c": "D6E8F59BA233A70281D4E02F3EBB9E3861FB9D0158237504A918A5DA2C639B91",
+    "release/extlibs/aho_corasick/test/test_aho_threads.c": "30ADB059E38BBBB54CD1FBEBA126928E6057C7CF45DE6DD0C42579675973A5F5",
+    "release/extlibs/aho_corasick/xlang.package.json": "077E0188B6775F1FB6A24BC90481614B6972E7137BB308AE6E47E9F1D2416B32",
+    "release/extlibs/aho_corasick/xrt_aho_corasick.c": "9E4E1BB4AC279D5F567F504A9D2A4A533F617A569C1EA52D54124C36BE92F61F",
+    "release/include/xl_extlib_abi.h": "33B33F690EF8610749E399D612984B6D02F6140767D4B92BBB65B28A89FCA244",
+    "release/include/xrt_decl.h": "3356BCCABBCBC877AD19C5E2D3336C909C2A742DE62E7B92BB79FE2AF3F4CEE6",
+    "release/include/xruntime_decl.h": "4B7CFAA2015F39E08159F4B10108B9BB1764D2370074333335651FE5C1BA87AC",
+    "release/xl.dll": "2A07C481C04CAD71D31D46722A27E62027318DF24E95A63126E061FD4CA46902",
+    "release/xl.exe": "5A3F20B4CF9333D393560CB2361D0EBAB8A13F0D07C64A78A1F5FFF5385D9EEB",
+    "release/xlc.dll": "7C672FD0B2852690D09E2EF1046C56EE1586FD1FCCC0CAEA61E19C0FE7C6E1F0",
+    "test/cases/extlib_aho_corasick.xl": "74A36C28FF953D7BF4937AE32D67F59115E213334B22CF4D288E2669C92E1B68",
+    "test/featured_extlibs.json": "3F683FFE7A0BF818574D16A190140607940C21575D89A87B4CC4D145DACB8C48",
+    "test/suites/11_featured_extlibs_rc.bat": "C3113EC1F39289C63212D2F9507CAE8D7CE45E401A44ECC4BD502AE8686B384F",
+    "test/support/extlib_aho_runtime.c": "993934F12B57D049E69E4EB53F7E8A86397D724E81E7D473F95EC019D0CFA523",
+    "tools/check_extlib_aho.ps1": "2ACF4C6961C8D1A5BF75261FBBE24DEFC7899E62DA31F1F766544E24E9259EEB",
+    "tools/check_extlib_aho.sh": "9445343583002383076FE1DC42125887BCDF2D1C5D1AEBD78B8225676073CA79",
+    "tools/extlib_smoke_process.ps1": "87C3D050B1F492E3F0C4307BA39F454E42B65E37DBCDEC4BE3E938BC2F32D2F7",
+    "tools/run_extlib_c.ps1": "0ABBC3A4B3B0AE45587CCBB069F075F3FBF965D6485FC176C51865FA293FEDA5",
+    "tools/xlir_native_process.ps1": "2BE2787D2316CE07E0D0AC3BDF1A1CAABA14D72F249CCAC847BB1C05D1DBFC9D"
+  },
+  "checks": [
+    {
+      "name": "runtime",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "-c",
+        "test/support/extlib_aho_runtime.c",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\runtime.o"
+      ],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 3105,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "core",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "-c",
+        "release/extlibs/aho_corasick/xrt_aho_corasick.c",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\core.o"
+      ],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 434,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "bridge",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "-c",
+        "release/extlibs/aho_corasick/aho_corasick_native.c",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\native.o"
+      ],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 249,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "test_aho_corasick-build",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "release/extlibs/aho_corasick/test/test_aho_corasick.c",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\runtime.o",
+        "-lAdvapi32",
+        "-lWs2_32",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\test_aho_corasick.exe"
+      ],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 721,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "test_aho_corasick",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\test_aho_corasick.exe",
+      "arguments": [],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 28,
+      "stdout": "test_aho_corasick: ok\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "test_aho_native-build",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "release/extlibs/aho_corasick/test/test_aho_native.c",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\core.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\native.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\runtime.o",
+        "-lAdvapi32",
+        "-lWs2_32",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\test_aho_native.exe"
+      ],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 230,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "test_aho_native",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\test_aho_native.exe",
+      "arguments": [],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 30,
+      "stdout": "aho native: ownership, result states, limits and stream recovery passed\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "test_aho_alloc-build",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "release/extlibs/aho_corasick/test/test_aho_alloc.c",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\core.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\native.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\runtime.o",
+        "-lAdvapi32",
+        "-lWs2_32",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\test_aho_alloc.exe"
+      ],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 191,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "test_aho_alloc",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\test_aho_alloc.exe",
+      "arguments": [],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 23,
+      "stdout": "aho allocator: 38 injected points, clean recovery passed\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "test_aho_threads-build",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "release/extlibs/aho_corasick/test/test_aho_threads.c",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\core.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\native.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\runtime.o",
+        "-lAdvapi32",
+        "-lWs2_32",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\test_aho_threads.exe"
+      ],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 200,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "test_aho_threads",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\test_aho_threads.exe",
+      "arguments": [],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 46,
+      "stdout": "aho threads: shared immutable automaton, 1000 independent scans and error isolation passed\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "core-c-jit",
+      "program": "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+      "arguments": [
+        "run",
+        "release/extlibs/aho_corasick/test/test_aho_corasick.c",
+        "--inc-path",
+        "lib/xrt"
+      ],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 58,
+      "stdout": "test_aho_corasick: ok\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "test_aho_native-jit",
+      "program": "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+      "arguments": [
+        "run",
+        "release/extlibs/aho_corasick/test/test_aho_native.c",
+        "release/extlibs/aho_corasick/xrt_aho_corasick.c",
+        "release/extlibs/aho_corasick/aho_corasick_native.c",
+        "--inc-path",
+        "lib/xrt"
+      ],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 94,
+      "stdout": "aho native: ownership, result states, limits and stream recovery passed\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "test_aho_threads-jit",
+      "program": "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+      "arguments": [
+        "run",
+        "release/extlibs/aho_corasick/test/test_aho_threads.c",
+        "release/extlibs/aho_corasick/xrt_aho_corasick.c",
+        "release/extlibs/aho_corasick/aho_corasick_native.c",
+        "--inc-path",
+        "lib/xrt"
+      ],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 96,
+      "stdout": "aho threads: shared immutable automaton, 1000 independent scans and error isolation passed\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "extlib_aho_corasick-jit",
+      "program": "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+      "arguments": [
+        "run",
+        "test/cases/extlib_aho_corasick.xl"
+      ],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 3593,
+      "stdout": "aho_corasick: all tests passed\n",
+      "stderr": ""
+    },
+    {
+      "name": "extlib_aho_corasick-build",
+      "program": "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+      "arguments": [
+        "build",
+        "test/cases/extlib_aho_corasick.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\extlib_aho_corasick.exe"
+      ],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 4590,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "extlib_aho_corasick-aot",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\extlib_aho_corasick.exe",
+      "arguments": [],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 32,
+      "stdout": "aho_corasick: all tests passed\n",
+      "stderr": ""
+    },
+    {
+      "name": "extlib_aho_corasick-cgen",
+      "program": "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+      "arguments": [
+        "cgen",
+        "test/cases/extlib_aho_corasick.xl",
+        "--emit",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\extlib_aho_corasick-generated.c"
+      ],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 2540,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "boundaries-jit",
+      "program": "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+      "arguments": [
+        "run",
+        "release/extlibs/aho_corasick/test/boundaries.xl"
+      ],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 1565,
+      "stdout": "aho boundaries: lifetime, callbacks, recovery and limits passed\n",
+      "stderr": ""
+    },
+    {
+      "name": "boundaries-build",
+      "program": "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+      "arguments": [
+        "build",
+        "release/extlibs/aho_corasick/test/boundaries.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\boundaries.exe"
+      ],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 2219,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "boundaries-aot",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\boundaries.exe",
+      "arguments": [],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 43,
+      "stdout": "aho boundaries: lifetime, callbacks, recovery and limits passed\n",
+      "stderr": ""
+    },
+    {
+      "name": "boundaries-cgen",
+      "program": "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+      "arguments": [
+        "cgen",
+        "release/extlibs/aho_corasick/test/boundaries.xl",
+        "--emit",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\boundaries-generated.c"
+      ],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 1147,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "all-generated-prototypes",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "-Irelease/extlibs/aho_corasick/include",
+        "-fsyntax-only",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\abi.c"
+      ],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 102,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "reject-patterns-123",
+      "status": "pass",
+      "exitCode": 1,
+      "stderr": "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\invalid-patterns.xl:2:31: [sem] 函数调用实参类型和参数类型不匹配: target array<string>, value int\n"
+    },
+    {
+      "name": "reject-patterns-\"abc\"",
+      "status": "pass",
+      "exitCode": 1,
+      "stderr": "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\invalid-patterns.xl:2:31: [sem] 函数调用实参类型和参数类型不匹配: target array<string>, value string\n"
+    },
+    {
+      "name": "reject-patterns-[123]",
+      "status": "pass",
+      "exitCode": 1,
+      "stderr": "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\invalid-patterns.xl:2:31: [sem] 函数调用实参类型和参数类型不匹配: target array<string>, value array\n"
+    },
+    {
+      "name": "aho_corasick-example-jit",
+      "program": "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+      "arguments": [
+        "run",
+        "release/examples/extlibs/aho_corasick.xl"
+      ],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 3719,
+      "stdout": "=== 1. 创建自动机 ===\n有效:  true\n已构建:  true\n模式数:  4\n\n=== 2. search 结构化搜索 ===\n匹配数:  3\n   she  @ [ 1 ,  4 ) len= 3\n   he  @ [ 2 ,  4 ) len= 2\n   hers  @ [ 2 ,  6 ) len= 4\n无匹配:  0\n\n=== 3. searchFirst ===\n首个匹配:  she  @ 1\n无匹配返回 null:  true\n\n=== 4. contains / count ===\n包含:  true\n不含:  false\n计数:  3\n零:    0\n\n=== 5. replace 固定替换 ===\n替换:  u*\n多区间:  [x] said [x] [x]\n\n=== 6. mask 遮盖 ===\n遮盖:  u#####\nUnicode 遮盖:  甲***界\n\n=== 7. highlight 高亮 ===\nHTML:  u<b>shers</b>\n\n=== 8. replaceWith 回调替换 ===\n标注:  u[she]rs\n链接:  use <a href='http://'>http</a> or <a href='ftp://'>ftp</a>\n\n=== 9. scan 流式扫描 ===\n完成:  true  命中:  3\n中断:  true  找到:  she\n  严重错误位于偏移  35\n  跨分块命中:  fatal  @ 0\n累计字节:  12 ，累计匹配:  1\n\n=== 10. ignoreCase 大小写忽略 ===\n小写:  true\n大写:  true\n混合:  true\n计数:  3\n\n=== 11. 手动构建 ===\n初始 built:  false\n模式数:  4\n构建后:  true\n搜索:  4\n限制配置搜索:  true\n正确拒绝:  Aho-Corasick patterns cannot be added after build\n异常捕获:  true\n\n=== 12. 综合实战：敏感词过滤 ===\n命中数:  2\n过滤后:  这个网站涉及[已过滤]和[已过滤]内容\n  命中: ' 赌博 ' @ 18\n  命中: ' 色情 ' @ 27\n\naho_corasick 教学范例: 全部完成\n",
+      "stderr": ""
+    },
+    {
+      "name": "aho_corasick-example-build",
+      "program": "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+      "arguments": [
+        "build",
+        "release/examples/extlibs/aho_corasick.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\aho_corasick-example.exe"
+      ],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 4980,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "aho_corasick-example-aot",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\aho_corasick-example.exe",
+      "arguments": [],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 28,
+      "stdout": "=== 1. 创建自动机 ===\n有效:  true\n已构建:  true\n模式数:  4\n\n=== 2. search 结构化搜索 ===\n匹配数:  3\n   she  @ [ 1 ,  4 ) len= 3\n   he  @ [ 2 ,  4 ) len= 2\n   hers  @ [ 2 ,  6 ) len= 4\n无匹配:  0\n\n=== 3. searchFirst ===\n首个匹配:  she  @ 1\n无匹配返回 null:  true\n\n=== 4. contains / count ===\n包含:  true\n不含:  false\n计数:  3\n零:    0\n\n=== 5. replace 固定替换 ===\n替换:  u*\n多区间:  [x] said [x] [x]\n\n=== 6. mask 遮盖 ===\n遮盖:  u#####\nUnicode 遮盖:  甲***界\n\n=== 7. highlight 高亮 ===\nHTML:  u<b>shers</b>\n\n=== 8. replaceWith 回调替换 ===\n标注:  u[she]rs\n链接:  use <a href='http://'>http</a> or <a href='ftp://'>ftp</a>\n\n=== 9. scan 流式扫描 ===\n完成:  true  命中:  3\n中断:  true  找到:  she\n  严重错误位于偏移  35\n  跨分块命中:  fatal  @ 0\n累计字节:  12 ，累计匹配:  1\n\n=== 10. ignoreCase 大小写忽略 ===\n小写:  true\n大写:  true\n混合:  true\n计数:  3\n\n=== 11. 手动构建 ===\n初始 built:  false\n模式数:  4\n构建后:  true\n搜索:  4\n限制配置搜索:  true\n正确拒绝:  Aho-Corasick patterns cannot be added after build\n异常捕获:  true\n\n=== 12. 综合实战：敏感词过滤 ===\n命中数:  2\n过滤后:  这个网站涉及[已过滤]和[已过滤]内容\n  命中: ' 赌博 ' @ 18\n  命中: ' 色情 ' @ 27\n\naho_corasick 教学范例: 全部完成\n",
+      "stderr": ""
+    },
+    {
+      "name": "aho_corasick_basic-example-jit",
+      "program": "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+      "arguments": [
+        "run",
+        "release/examples/extlibs/aho_corasick_basic.xl"
+      ],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 905,
+      "stdout": "sorted:\nshe:1:4\nhe:2:4\nhers:2:6\nfirst=she\ncount=3\nreplace=u*\nhighlight=u<shers>\nmask=u#####\nstream:\nshe:1:4\nhe:2:4\nhers:2:6\nunicode=甲***界\nascii=1\n",
+      "stderr": ""
+    },
+    {
+      "name": "aho_corasick_basic-example-build",
+      "program": "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+      "arguments": [
+        "build",
+        "release/examples/extlibs/aho_corasick_basic.xl",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\aho_corasick_basic-example.exe"
+      ],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 1394,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "aho_corasick_basic-example-aot",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\aho_corasick_basic-example.exe",
+      "arguments": [],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 43,
+      "stdout": "sorted:\nshe:1:4\nhe:2:4\nhers:2:6\nfirst=she\ncount=3\nreplace=u*\nhighlight=u<shers>\nmask=u#####\nstream:\nshe:1:4\nhe:2:4\nhers:2:6\nunicode=甲***界\nascii=1\n",
+      "stderr": ""
+    },
+    {
+      "name": "aho_corasick_c-c-build",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "release/examples/extlibs/aho_corasick_c.c",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\core.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\native.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\runtime.o",
+        "-lAdvapi32",
+        "-lWs2_32",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\aho_corasick_c-gcc.exe"
+      ],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 181,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "aho_corasick_c-c-run",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\aho_corasick_c-gcc.exe",
+      "arguments": [],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 22,
+      "stdout": "nodes=10 transitions=9 allocated=880 bytes\r\nsorted search:\r\nshe @1..4\r\nhe @2..4\r\nhers @2..6\r\nincremental scan:\r\nshe @1..4\r\nhe @2..4\r\nhers @2..6\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "aho_corasick_c-c-jit",
+      "program": "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+      "arguments": [
+        "run",
+        "release/examples/extlibs/aho_corasick_c.c",
+        "release/extlibs/aho_corasick/xrt_aho_corasick.c",
+        "release/extlibs/aho_corasick/aho_corasick_native.c",
+        "--inc-path",
+        "lib/xrt"
+      ],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 92,
+      "stdout": "nodes=10 transitions=9 allocated=880 bytes\r\nsorted search:\r\nshe @1..4\r\nhe @2..4\r\nhers @2..6\r\nincremental scan:\r\nshe @1..4\r\nhe @2..4\r\nhers @2..6\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "aho_corasick_c-c-aot-build",
+      "program": "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+      "arguments": [
+        "build",
+        "release/examples/extlibs/aho_corasick_c.c",
+        "release/extlibs/aho_corasick/xrt_aho_corasick.c",
+        "release/extlibs/aho_corasick/aho_corasick_native.c",
+        "--inc-path",
+        "lib/xrt",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\aho_corasick_c-tcc.exe"
+      ],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 280,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "aho_corasick_c-c-aot",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\aho_corasick_c-tcc.exe",
+      "arguments": [],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 44,
+      "stdout": "nodes=10 transitions=9 allocated=880 bytes\r\nsorted search:\r\nshe @1..4\r\nhe @2..4\r\nhers @2..6\r\nincremental scan:\r\nshe @1..4\r\nhe @2..4\r\nhers @2..6\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "aho_corasick_c-c-runner",
+      "program": "C:\\Users\\Administrator\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe",
+      "arguments": [
+        "-NoProfile",
+        "-File",
+        "tools/run_extlib_c.ps1",
+        "-Package",
+        "aho_corasick",
+        "-Source",
+        "release/examples/extlibs/aho_corasick_c.c"
+      ],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 738,
+      "stdout": "nodes=10 transitions=9 allocated=880 bytes\r\nsorted search:\r\nshe @1..4\r\nhe @2..4\r\nhers @2..6\r\nincremental scan:\r\nshe @1..4\r\nhe @2..4\r\nhers @2..6\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "basic-c-build",
+      "program": "E:\\software\\w64devkit\\bin\\gcc.exe",
+      "arguments": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Ilib/xrt",
+        "release/extlibs/aho_corasick/examples/basic.c",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\core.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\native.o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\runtime.o",
+        "-lAdvapi32",
+        "-lWs2_32",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\basic-gcc.exe"
+      ],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 192,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "basic-c-run",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\basic-gcc.exe",
+      "arguments": [],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 23,
+      "stdout": "sorted:\r\nshe:1:4\r\nhe:2:4\r\nhers:2:6\r\nfirst=she\r\ncount=3\r\nreplace=u*\r\nhighlight=u<shers>\r\nmask=u#####\r\nstream:\r\nshe:1:4\r\nhe:2:4\r\nhers:2:6\r\nunicode=甲***界\r\nascii=1\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "basic-c-jit",
+      "program": "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+      "arguments": [
+        "run",
+        "release/extlibs/aho_corasick/examples/basic.c",
+        "release/extlibs/aho_corasick/xrt_aho_corasick.c",
+        "release/extlibs/aho_corasick/aho_corasick_native.c",
+        "--inc-path",
+        "lib/xrt"
+      ],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 89,
+      "stdout": "sorted:\r\nshe:1:4\r\nhe:2:4\r\nhers:2:6\r\nfirst=she\r\ncount=3\r\nreplace=u*\r\nhighlight=u<shers>\r\nmask=u#####\r\nstream:\r\nshe:1:4\r\nhe:2:4\r\nhers:2:6\r\nunicode=甲***界\r\nascii=1\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "basic-c-aot-build",
+      "program": "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+      "arguments": [
+        "build",
+        "release/extlibs/aho_corasick/examples/basic.c",
+        "release/extlibs/aho_corasick/xrt_aho_corasick.c",
+        "release/extlibs/aho_corasick/aho_corasick_native.c",
+        "--inc-path",
+        "lib/xrt",
+        "-o",
+        "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\basic-tcc.exe"
+      ],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 280,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "basic-c-aot",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\aho_guard\\basic-tcc.exe",
+      "arguments": [],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 42,
+      "stdout": "sorted:\r\nshe:1:4\r\nhe:2:4\r\nhers:2:6\r\nfirst=she\r\ncount=3\r\nreplace=u*\r\nhighlight=u<shers>\r\nmask=u#####\r\nstream:\r\nshe:1:4\r\nhe:2:4\r\nhers:2:6\r\nunicode=甲***界\r\nascii=1\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "basic-c-runner",
+      "program": "C:\\Users\\Administrator\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe",
+      "arguments": [
+        "-NoProfile",
+        "-File",
+        "tools/run_extlib_c.ps1",
+        "-Package",
+        "aho_corasick",
+        "-Source",
+        "release/extlibs/aho_corasick/examples/basic.c"
+      ],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 716,
+      "stdout": "sorted:\r\nshe:1:4\r\nhe:2:4\r\nhers:2:6\r\nfirst=she\r\ncount=3\r\nreplace=u*\r\nhighlight=u<shers>\r\nmask=u#####\r\nstream:\r\nshe:1:4\r\nhe:2:4\r\nhers:2:6\r\nunicode=甲***界\r\nascii=1\r\n",
+      "stderr": ""
+    }
+  ]
+}

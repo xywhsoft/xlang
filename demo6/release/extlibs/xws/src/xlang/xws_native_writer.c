@@ -228,14 +228,14 @@ XLANG_XWS_EXPORT void* xws_writer_wrap(void* pHandle)
 
 
 /* 在所属 Worker 中销毁 Writer，并释放语言包装。 */
-XLANG_XWS_EXPORT long long xws_writer_destroy(void* pHandle)
+XLANG_XWS_EXPORT void xws_writer_destroy(void* pHandle)
 {
 	xws_native_writer* pOwner = (xws_native_writer*)pHandle;
 	xwswriter* pDestroy = NULL;
 	xnetworker* pWorker;
 
 	if ( pOwner == NULL ) {
-		return 0;
+		return;
 	}
 	xrtSpinLock(&pOwner->Lock);
 	pOwner->Closing = true;
@@ -247,7 +247,6 @@ XLANG_XWS_EXPORT long long xws_writer_destroy(void* pHandle)
 	xrtSpinUnlock(&pOwner->Lock);
 	xwsNativeWriterDestroyValue(pWorker, pDestroy);
 	xwsNativeWriterRelease(pOwner);
-	return 0;
 }
 
 

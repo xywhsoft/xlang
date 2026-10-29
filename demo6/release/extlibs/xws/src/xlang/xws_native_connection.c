@@ -67,7 +67,7 @@ enum {
 
 
 /* 释放配置持有的协议副本。 */
-XLANG_XWS_EXPORT long long xws_config_destroy(void* pHandle)
+XLANG_XWS_EXPORT void xws_config_destroy(void* pHandle)
 {
 	xws_native_config* pConfig = (xws_native_config*)pHandle;
 
@@ -76,7 +76,6 @@ XLANG_XWS_EXPORT long long xws_config_destroy(void* pHandle)
 		memset(pConfig, 0, sizeof(*pConfig));
 		xrtFree(pConfig);
 	}
-	return 0;
 }
 
 
@@ -320,8 +319,7 @@ static void xwsNativeCallbackError(xws_native_connection* pOwner)
 	const xerror* pCause;
 	xerror* pLeaf;
 
-	xl6ExtlibErrorClear();
-
+	/* xcall 已把失败发布到 XRT 错误槽，Take 同时取走并清空该槽。 */
 	if ( pError == NULL ) {
 		xrtSetErrorInfo(XERR_STATE, "xlang.extlib.xws", 0,
 			"xws event handler failed");
@@ -721,13 +719,13 @@ XLANG_XWS_EXPORT void* xws_conn_wrap(void* pHandle)
 
 
 /* 语言对象析构请求异常关闭，但终态回调仍由独立引用保护。 */
-XLANG_XWS_EXPORT long long xws_conn_destroy(void* pHandle)
+XLANG_XWS_EXPORT void xws_conn_destroy(void* pHandle)
 {
 	xws_native_connection* pOwner = (xws_native_connection*)pHandle;
 	xwsconn* pConnection;
 
 	if ( pOwner == NULL ) {
-		return 0;
+		return;
 	}
 	xrtSpinLock(&pOwner->Lock);
 	pConnection = pOwner->Connection;
@@ -738,7 +736,6 @@ XLANG_XWS_EXPORT long long xws_conn_destroy(void* pHandle)
 		xrtWsConnDestroy(pConnection);
 	}
 	xwsNativeConnectionRelease(pOwner);
-	return 0;
 }
 
 
@@ -1290,10 +1287,9 @@ XLANG_XWS_EXPORT void* xws_future_wrap(void* pHandle)
 
 
 /* 释放 Future 引用。 */
-XLANG_XWS_EXPORT long long xws_future_destroy(void* pHandle)
+XLANG_XWS_EXPORT void xws_future_destroy(void* pHandle)
 {
 	xrtFutureDestroy((xfuture*)pHandle);
-	return 0;
 }
 
 

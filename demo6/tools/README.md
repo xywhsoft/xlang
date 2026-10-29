@@ -590,6 +590,10 @@ generic var dispatch, shipping and full53 remain separate gates; see
 - `run_xlir_parameterized_guards.ps1`: builds one current-source public compiler, one runtime-only compiler and one shared contract-driver set, then executes every parameterized XLIR worker through dependency-ordered immutable batch reports.
 - `rc0_guard.ps1`: lightweight release-candidate guard for required files, static boundaries, build, command smoke, diagnostics, docs, risk ledger, cgen size, and wiring.
 
+- `check_source_overlay.py`: Windows native compiler-API and CLI overlay gate; strict C host, recursive source/package snapshots, origin diagnostics, bounds, isolation, real Cgen/build/run and source/toolchain SHA-256. Run against an isolated source/runtime directory; Python is only the test driver.
+
+- `check_source_report.py`: Windows native loaded-source/manifest report gate; same-handle bytes/identity, immutable repeated reads, replacement/deletion/limits, public context isolation, recursive CLI hashes and strict option exit status. Requires an isolated runtime and MinGW GCC.
+
 ## Guard scripts and inventory
 
 - `check_stdlib_source_identity_faults.py`: forwarding source-unit fault checks for checked overlay/report/completion/import identity; O0/O2 fixed-source and old/mutant rejection controls, not shipping compiler OOM acceptance.
@@ -673,7 +677,16 @@ Representative and cross-cutting guards include:
 - `check_example_wiring.ps1`
 - `check_extlib_xregex.ps1`
 - `check_extlib_xregex.sh`
+- `check_extlib_audit.ps1`
+- `check_extlib_argon2_bloom.ps1`
+- `check_extlib_blake2.ps1`
+- `check_extlib_sqlite.ps1`
+- `check_extlib_chardet.ps1`
+- `check_extlib_graph.ps1`
+- `check_extlib_brotli.ps1`
 - `check_extlib_mqtt.ps1`
+- `check_extlib_serial.ps1`
+- `check_extlib_smoke_process.ps1`
 - `check_format_extlibs.ps1`
 - `check_frontend_fuzz.ps1`
 - `check_generated_c_warnings.ps1`
@@ -724,7 +737,41 @@ Representative and cross-cutting guards include:
 
 `check_release_tmp_artifacts.ps1` validates generated test text and also rejects tracked workspace-only output, control characters in tracked filenames, and unclassified files at the `demo6` root. Build products may remain ignored locally, but they cannot silently enter the source baseline.
 
-`check_extlib_mqtt.ps1` compiles the MQTT C implementation against the fixed XRT snapshot, exercises allocation-failure and loopback TCP boundaries, and repeats the codec and TCP cases through xlang JIT and AOT paths.
+`check_extlib_mqtt.ps1` compiles the MQTT C implementation against the repository XRT snapshot, verifies all 16 generated native prototypes, exercises codec/allocation/loopback/handshake/cancellation boundaries, and repeats C/xlang examples through JIT, AOT and independent GCC. Source and product hashes bind evidence to one build. `check_extlib_mqtt.sh` runs the independent Linux C suite and both C examples with ASan/UBSan; it does not imply Linux xlang JIT/AOT validation.
+
+`check_extlib_serial.ps1` verifies the serial C ABI and generated prototypes, allocation-failure handling, JIT/AOT behavior, C/xlang example parity, and fixed-build hashes without requiring a physical serial device.
+
+`check_extlib_argon2_bloom.ps1` verifies exact generated prototypes against the public C headers, malformed parameters and serialization, isolated allocation failures, C/xlang JIT/AOT, tutorials and paired golden-output examples. It uses the pinned XRT snapshot; vendor-only constant-range warnings are locally excluded, not the native ABI checks. The saved report records inputs and does not certify untested algorithm performance or deployment limits.
+
+`check_extlib_argon2_bloom.sh` repeats the independent C tests and paired C examples with Linux ASan/UBSan. Allocation tests separately inject ordinary heap and temporary-arena backing failures through public XRT APIs; no compiler or runtime snapshot edits are needed. This is not a Linux xlang JIT/AOT certification.
+
+`check_extlib_brotli.ps1` verifies standard-stream interoperability, split boundaries, resource limits, recoverable backend allocation failures, callback exception/cancellation and atomic file replacement, all 23 generated bridge prototypes, and matching C/xlang example output under JIT/AOT and GCC. `check_extlib_brotli.sh` repeats independent C and allocation tests with Linux ASan/UBSan and a shared golden output. Both use the repository runtime snapshot; neither certifies untested platforms or benchmark performance.
+
+`check_extlib_blake2.ps1` verifies 216 independent known answers, exact digest/key sizes, snapshot/clone/reset behavior, reader cancellation and errors, ordinary and temporary allocation failures, independent native threads, all 38 generated bridge prototypes, and C/xlang JIT/AOT/GCC example parity. `check_extlib_blake2.sh` repeats independent C tests with ASan/UBSan and leak detection; it does not certify Linux xlang, 32-bit/ARM or benchmark performance.
+
+`check_extlib_sqlite.ps1` verifies all generated native prototypes and immutable constants, SQLite and XRT allocation failures, statement/connection lifetimes, binary and NUL text, independent threads, UTF-8 database paths, lock contention, and C/xlang JIT/AOT/GCC examples. `check_extlib_sqlite.sh` runs independent C tests and the paired example with ASan/UBSan/leak detection. Neither gate certifies power-loss recovery, network filesystems, cross-process WAL faults or untested platforms.
+
+`check_extlib_chardet.ps1` 验证 10 个实际生成原型、Unicode/BOM 字节边界、静态名称借用期、无分配路径、线程、C/XL JIT/AOT 同输出与两种 DLL 的上下文复用。`check_extlib_chardet.sh` 验证 Linux 独立 C 的 ASan/UBSan、泄漏及可选 LP64 原型。它不代表共享 string 的 NUL 边界已经修复。
+
+`check_extlib_graph.ps1` 验证九个实际生成原型、128 组独立参照图、容量与非法输入、218 个分配失败点、线程、C/XL JIT/AOT 及两种 DLL 复用；共享字符串失败另行记录，不算通过项。`check_extlib_graph.sh` 验证 Linux 独立 C 的 ASan/UBSan、泄漏及可选 LP64 原型。两个包的门禁均保留输入和构建哈希，不认证 Linux xlang、32 位/ARM、TSan 或完整性能范围。
+
+`check_extlib_aho.ps1` verifies all 41 generated native prototypes, binary matching and random chunk/pause differential tests, ownership/state/error boundaries, allocation failures, concurrent independent scans of one immutable automaton, typed factory rejection, and C/xlang JIT/AOT/GCC examples against fixed output. `check_extlib_aho.sh` runs the independent C tests and examples with ASan/UBSan/leak detection. Neither certifies Linux xlang, concurrent use of one scanner or benchmark performance.
+
+`check_extlib_blake3.ps1` verifies the pinned portable backend and 35 upstream vectors in three modes and six output lengths, all 23 generated native prototypes, failed-state recovery, reader/callback/Unicode boundaries, allocation failures, independent threads and C/xlang JIT/AOT/GCC examples. `check_extlib_blake3.sh` runs the independent C tests and paired example under Linux ASan/UBSan/leak detection. Both compare input inventories before and after execution, including additions and removals. These gates do not certify Linux xlang, concurrent mutation of one hasher, SIMD performance or cryptographic review.
+
+`check_extlib_xxhash.ps1` verifies the locked XXH32/XXH64 backend, 124 independent known answers, generated native prototypes, unsigned seeds/digests, UTF-8, state recovery, borrowed readers, cancellation and callback exceptions, allocation failures, four independent threads, and paired C/xlang JIT/AOT/GCC examples. `check_extlib_xxhash.sh` repeats independent C tests and example parity under Linux ASan/UBSan/leak detection. Both capture and compare the input file set and hashes; neither certifies XXH3 language APIs, Linux xlang, shared mutable objects, 32-bit/ARM or benchmarks.
+
+`check_extlib_crc32.ps1` verifies CRC-32/ISO-HDLC with fixed answers and 1536 independent bitwise differential cases, all generated native prototypes, UTF-8/Buffer inputs, reset recovery, borrowed readers, cancellation and callback exceptions, allocation failures, concurrent first initialization, and C/xlang JIT/AOT/GCC examples. `check_extlib_crc32.sh` runs the independent C tests and paired output under Linux ASan/UBSan/leak detection. Input hashes and added/removed files are checked. Neither gate certifies Linux xlang, a big-endian target, shared mutable hasher concurrency or throughput.
+
+`check_extlib_md5.ps1` verifies the package's reuse of XRT MD5: 149 independent known-answer vectors at 8 address offsets, padding/chunks, million-a, exact generated native prototypes, UTF-8/Buffer inputs, borrowed readers, callback cancellation/errors, reset recovery, allocation faults, four independent concurrent objects, and C/xlang JIT/AOT/GCC examples. `check_extlib_md5.sh` runs standalone/core/native C and paired output under Linux ASan/UBSan/leak detection. Gates check input hashes and added/removed files. This is not Linux xlang, big-endian, 32-bit/ARM, shared mutable object or performance certification.
+
+`check_extlib_murmur3.ps1` verifies x86_32 and x64_128 against 576 independently generated vectors at 8 address offsets, all 23 generated prototypes, UTF-8/Buffer inputs, streaming snapshots and clones, failed-state reset, borrowed readers, callbacks, cancellation, allocation faults, four independent threads and two paired C/xlang JIT/AOT/GCC examples. `check_extlib_murmur3.sh` repeats standalone/core/native C and example parity under Linux ASan/UBSan/leak detection. Both capture the input set and hashes. Neither gate certifies Linux xlang, shared mutable objects, big-endian or 32-bit/ARM execution, performance or resistance to adversarial collisions.
+
+`check_extlib_helper_boundaries.ps1` checks MySQL protocol/text helpers (16384 known status combinations, selected command/capability/error mappings, long retained text, UTF-8 and DSN/port rejection) and FAISS scalar CSV distance helpers through strict GCC and C/xlang JIT/AOT. It also checks matched C/xlang MySQL examples against golden output. `check_extlib_helper_boundaries.sh` checks independent C boundaries and example output under Linux ASan/UBSan/leak detection. These gates do not certify a database connection, vector index, either whole package, concurrent access or allocation failures. They freeze the tested input set and hashes.
+
+`audit_extlib_ecosystem.ps1` inventories manifest-declared sources and suite registration without claiming execution or release readiness. Its `xlang-extlib-ecosystem-2` review labels do not classify a small implementation or a defensive failure return as a placeholder. `check_extlib_audit.ps1` verifies these distinctions with synthetic valid, invalid, transitive-dependency and ABI-review fixtures.
+
+`smoke_extlib_catalog.ps1` runs registered focused cases and manifest `coverage.tests` in bounded child processes, captures stdout/stderr and exit codes, and binds results to source/product hashes. It skips platform-suite packages unless selected explicitly with `-Package`, supports `-FocusedOnly` and `-StartAt`, and records unselected focused files. `check_extlib_smoke_process.ps1` checks UTF-8 capture, argument quoting, timeout, child cleanup and launch failures. Passing this JIT smoke does not imply C/AOT, examples, all APIs, all platforms or production acceptance.
 
 `check_xrt_ownership_contract.ps1` prevents the removed XRT object-mode compatibility layer from returning. xlang uses retain, ownership transfer and explicit clone/copy; synchronization primitives provide cross-thread publication and visibility.
 
@@ -748,9 +795,13 @@ this gate does not imply all-thread OOM or 53-module acceptance.
 
 `check_xrt_header_abi.ps1` compiles the XRT declaration SDK and xlang private runtime header in all supported include orders. It rejects duplicate declarations, type-layout drift and the historical `str` signedness mismatch.
 
+`check_extlib_sdk_features.ps1` stages a frozen CLI and the current SDK assets using the compiler VFS manifest. It checks C and xlang package JIT/AOT against real percent-codec, zlib and typed-array calls, including module selection after injected declarations. The test package declares its AOT module requirements explicitly. Results freeze input hashes; no release executable or runtime implementation is rebuilt. This does not certify embedded-only resources in an older executable. Upstream `tools/test_declaration_features.py` compares exact selected macro closures with implementation headers, including empty selection, exclusions, late selection, repeated inclusion, cross-product include order and compiling implementations after declarations. A partially selected complete header included before the SDK can still hide later declarations via public header guards; that separate pre-existing boundary is not covered as supported.
+
 `check_xrt_product_trim.ps1` builds minimal and typed representative programs, verifies that both use one xruntime implementation product, and rejects duplicate core implementation or unnecessary typed module retention.
 
 `check_xruntime_language_bridge.ps1` fixes the native-container bridge contract: collection algebra and dictionary merge call xruntime directly, storage controls stay available to xlang, and signed bounds are validated before conversion.
+
+`check_extlib_sha3.ps1` checks SHA3-224/256/384/512 and SHAKE128/256 against 546 independent OpenSSL boundary vectors at eight address offsets and 12 known answers, every short-input split, exact generated native prototypes, strict lengths, UTF-8/Buffer inputs, stream snapshots and clones, failed-state reset, borrowed readers, callbacks, cancellation, 176 allocation fault positions, four independent threads and paired C/xlang JIT/AOT/GCC examples. `check_extlib_sha3.sh` runs standalone/core/native C and example parity under Linux ASan/UBSan/leak detection. Both freeze input sets and hashes. This is not cryptographic certification, Linux xlang, big-endian, 32-bit/ARM, shared mutable hasher concurrency or throughput certification. The optional Node/OpenSSL fixture generator is test-only and can independently check stored answers with `--check`.
 
 ## Maintenance
 
@@ -761,6 +812,21 @@ standalone C ownership and OOM tests under Linux ASan/UBSan and leak detection,
 and can validate the actual generated prototypes on LP64. The main Linux suite
 also runs the package through JIT and independent ELF AOT. These checks do not
 certify concurrent mutation of one matcher, untested platforms or performance.
+
+`check_stdlib_io_console.ps1` prepares the native toolchain once per batch and
+validates merged byte IO, independent line values, allocation-failure propagation,
+custom reader/writer protocols, explicit length clamping, strict UTF-8/EOF input,
+deterministic declarations-only generated C and JIT/AOT. It runs terminal events,
+finally and return cleanup in an invisible private Windows console and checks exact
+mode/cursor restoration, plus regressions for the separate advanced file namespace.
+The sibling XRT PTY gate covers POSIX input parsing;
+this is not a claim of Linux xlang integration or a TUI framework.
+
+`check_extlib_siphash128.ps1` checks the separate 128-bit extension: package
+source selection excludes the XRT 64-bit keyed-hash module, xlang JIT/AOT and
+generated-C syntax pass fixed vectors and streaming tests, and the C engine
+passes a strict standalone build. The retired combined-package scripts have been
+removed; the default 64-bit API is tested by `stdlib_siphash.xl`.
 
 `check_xlir_pending_exception_route.ps1` now runs the full pending-error matrix by default (`-FullOutcome` remains a compatible alias). It covers post-try routing, managed/nested finally, nullable diagnostics and real OOM, return/break/continue overrides, internal catches, and actual await/yield suspension. Explicit pending-error owners, cleanup-preservation causes, cancellation and async/generator error-frame lifetimes are mutation-tested before C/header output; both fixtures have strict-C allocation-balance tests, deterministic C/header and C-host JIT/AOT runs. Cancellation/closed-Future terminal cleanup and other untested continuation combinations are not implied by this matrix.
 
@@ -1236,6 +1302,13 @@ profiles with native/wire ownership, reentry, converter refusal, precise keys
 and complete OOM prefixes. Standalone Linux sanitizes the native closure;
 shared tests instrument hosts only. Array/Stack parents include these gates.
 This boundary batch does not complete Array carrier migration or the 53-module goal.
+
+
+`check_resolution_report.py --compiler <独立工具链>/xl.exe --gcc <MinGW GCC>` 严格编译原生宿主并执行真实 CLI，验证 xlang 导入候选和 XLANG_PACKAGE_PATH 首次观察、变化拒绝、Unicode/容量与旧 JSON 合同。配合来源报告和覆盖层质量门使用；Python 仅驱动验收。
+
+- `tools/check_c_bridge.py` / `test/cases/c_bridge_host.c`：真实同次来源核验和 XLIR C ABI 声明、覆盖刷新、失败清空、DLL 上下文隔离及原生混编执行；见 [桥接查询合同](../docs/IDE原生C声明桥接接口.md)。
+
+- `tools/check_c_bridge_environment.py` / `test/cases/c_bridge_environment_host.c`：同次 TCC 配置访问器、准确资源解包/字节/摘要、覆盖优先级、容量拒绝、真实 Clang C 分析及混编运行，见 [桥接接口](../docs/IDE原生C声明桥接接口.md)。
 
 - `check_stdlib_set_keys.py`：严格 C O0/O2 的驻留 Set Eq/Hash 能力，精确文本/bytes/null、可变引用身份与 COW 修改、Future 身份、checked 无诊断失败、无内容回调、完整 OOM 前缀与真实实现变异。不是语言 Set/Dict carrier 或发布总验收。
 - `sync_xruntime_typed_set.py`：仅同步精确供应方基线的 typed_set 公共和实现段，并重建快照元数据、符号与能力矩阵；不迁移 Core 时间 ABI。

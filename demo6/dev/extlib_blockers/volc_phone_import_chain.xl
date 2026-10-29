@@ -1,0 +1,5 @@
+import volc.phone
+
+func main(...) as int
+    return 0
+end

@@ -11,12 +11,11 @@ XLANG_XHTTP_CLIENT_EXPORT void* xhttp_client_response_wrap(void* pHandle)
 
 
 /* 释放响应拥有的全部协议元数据和正文。 */
-XLANG_XHTTP_CLIENT_EXPORT long long xhttp_client_response_destroy(
+XLANG_XHTTP_CLIENT_EXPORT void xhttp_client_response_destroy(
 	void* pHandle
 )
 {
 	xrtHttpResponseDestroy((xhttpresponse*)pHandle);
-	return 0;
 }
 
 

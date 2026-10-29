@@ -101,12 +101,11 @@ XLANG_XHTTP_PROTOCOL_EXPORT void* xhttp_protocol_cookies_clone(
 
 
 /* 释放 Cookies 拥有的文本和 pair 数组。 */
-XLANG_XHTTP_PROTOCOL_EXPORT long long xhttp_protocol_cookies_destroy(
+XLANG_XHTTP_PROTOCOL_EXPORT void xhttp_protocol_cookies_destroy(
 	void* pHandle
 )
 {
 	xhttpProtocolCookiesFree((xhttp_protocol_cookies*)pHandle);
-	return 0;
 }
 
 
@@ -335,7 +334,7 @@ XLANG_XHTTP_PROTOCOL_EXPORT void* xhttp_protocol_set_cookie_clone(
 
 
 /* 释放 SetCookie 拥有的文本。 */
-XLANG_XHTTP_PROTOCOL_EXPORT long long xhttp_protocol_set_cookie_destroy(
+XLANG_XHTTP_PROTOCOL_EXPORT void xhttp_protocol_set_cookie_destroy(
 	void* pHandle
 )
 {
@@ -347,7 +346,6 @@ XLANG_XHTTP_PROTOCOL_EXPORT long long xhttp_protocol_set_cookie_destroy(
 		memset(pCookie, 0, sizeof(*pCookie));
 		xrtFree(pCookie);
 	}
-	return 0;
 }
 
 
@@ -530,13 +528,20 @@ XLANG_XHTTP_PROTOCOL_EXPORT bool xhttp_protocol_set_cookie_attribute_value(
 
 
 
-/* 严格校验 Set-Cookie 服务端生成语法。 */
+/* 语言谓词用 false 表示非法内容；参数错误等运行失败仍保留异常。 */
 XLANG_XHTTP_PROTOCOL_EXPORT bool xhttp_protocol_set_cookie_validate(
 	const char* sText,
 	size_t iSize
 )
 {
-	return xrtSetCookieValidate((xstrview){ sText, iSize });
+	bool bValid;
+
+	xrtClearError();
+	bValid = xrtSetCookieValidate((xstrview){ sText, iSize });
+	if ( !bValid && (xrtErrorKind(xrtGetError()) == XERR_VALUE) ) {
+		xrtClearError();
+	}
+	return bValid;
 }
 
 

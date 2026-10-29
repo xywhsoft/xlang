@@ -1,0 +1,15 @@
+{
+  "date": "2026-09-27T14:34:57.8275766+08:00",
+  "issue": "XLIR return-through-finally with imported gzip and container cleanup loop",
+  "scope": "confirmed compiler boundary, not counted as a passed gzip test",
+  "case": "test/fixtures/extlib_boundary_pending/finally_container_loop.xl",
+  "caseHash": "73A2B4862E5E32836046A50945DF7B2E9864BDD3370BECF2D7F372DAE3897ADD",
+  "hostHash": "5A3F20B4CF9333D393560CB2361D0EBAB8A13F0D07C64A78A1F5FFF5385D9EEB",
+  "result": {
+    "status": "fail",
+    "exitCode": 1,
+    "stdout": "",
+    "stderr": "test/fixtures/extlib_boundary_pending/finally_container_loop.xl:12:9: [checked] XLIR loop owner s4294967226 has an invalid activation or cleanup at instruction 1871 (release)\n",
+    "elapsedMs": 151
+  }
+}

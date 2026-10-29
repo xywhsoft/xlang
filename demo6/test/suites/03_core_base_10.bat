@@ -33,6 +33,82 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\stdlib_buffer.xl
 if errorlevel 1 exit /b 1
+release\xl.exe check test\cases\stdlib_crt_buffer_bulk.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\stdlib_crt_buffer_bulk.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\stdlib_crt_buffer_bulk.xl --emit build\test\stdlib_crt_buffer_bulk.c
+if errorlevel 1 exit /b 1
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror -fsyntax-only build\test\stdlib_crt_buffer_bulk.c
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\stdlib_crt_buffer_bulk.xl -o build\test\stdlib_crt_buffer_bulk.exe
+if errorlevel 1 exit /b 1
+build\test\stdlib_crt_buffer_bulk.exe
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\xlir_generic_binary_callback_contract.xl
+if errorlevel 1 exit /b 1
+release\xl.exe check test\cases\stdlib_crt_algorithms.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\stdlib_crt_algorithms.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\stdlib_crt_algorithms.xl --emit build\test\stdlib_crt_algorithms.c
+if errorlevel 1 exit /b 1
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror -fsyntax-only build\test\stdlib_crt_algorithms.c
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\stdlib_crt_algorithms.xl -o build\test\stdlib_crt_algorithms.exe
+if errorlevel 1 exit /b 1
+build\test\stdlib_crt_algorithms.exe
+if errorlevel 1 exit /b 1
+release\xl.exe check test\cases\stdlib_crt_parse.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\stdlib_crt_parse.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\stdlib_crt_parse.xl --emit build\test\stdlib_crt_parse.c
+if errorlevel 1 exit /b 1
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror -fsyntax-only build\test\stdlib_crt_parse.c
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\stdlib_crt_parse.xl -o build\test\stdlib_crt_parse.exe
+if errorlevel 1 exit /b 1
+build\test\stdlib_crt_parse.exe
+if errorlevel 1 exit /b 1
+release\xl.exe check test\cases\stdlib_crt_env.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\stdlib_crt_env.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\stdlib_crt_env.xl --emit build\test\stdlib_crt_env.c
+if errorlevel 1 exit /b 1
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror -fsyntax-only build\test\stdlib_crt_env.c
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\stdlib_crt_env.xl -o build\test\stdlib_crt_env.exe
+if errorlevel 1 exit /b 1
+build\test\stdlib_crt_env.exe
+if errorlevel 1 exit /b 1
+release\xl.exe check test\cases\stdlib_crt_float_env.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\stdlib_crt_float_env.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\stdlib_crt_float_env.xl --emit build\test\stdlib_crt_float_env.c
+if errorlevel 1 exit /b 1
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror -fsyntax-only build\test\stdlib_crt_float_env.c
+if errorlevel 1 exit /b 1
+"%XL6_CGEN_CC%" -std=c11 -Wall -Wextra -Werror -fsyntax-only release\extlibs\floatEnv\float_env_native.c
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\stdlib_crt_float_env.xl -o build\test\stdlib_crt_float_env.exe
+if errorlevel 1 exit /b 1
+build\test\stdlib_crt_float_env.exe
+if errorlevel 1 exit /b 1
+release\xl.exe check test\cases\stdlib_crt_c_string.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\stdlib_crt_c_string.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\stdlib_crt_c_string.xl --emit build\test\stdlib_crt_c_string.c
+if errorlevel 1 exit /b 1
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror -fsyntax-only build\test\stdlib_crt_c_string.c
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\stdlib_crt_c_string.xl -o build\test\stdlib_crt_c_string.exe
+if errorlevel 1 exit /b 1
+build\test\stdlib_crt_c_string.exe
+if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\stdlib_buffer.xl --emit build\test\stdlib_buffer.c
 if errorlevel 1 exit /b 1
 findstr /C:"typedef struct XL_Class_Buffer" build\test\stdlib_buffer.c >nul
@@ -191,6 +267,12 @@ for %%S in (xl6_xrt_tcp_ xl6_xrt_udp_ xl6_xrt_tls_session_create) do (
 release\xl.exe build test\cases\stdlib_net_tcp_udp.xl -o build\test\stdlib_net_tcp_udp.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_net_tcp_udp.exe
+if errorlevel 1 exit /b 1
+release\xl.exe check test\cases\cgen_tcp_string_embedded_nul.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\cgen_tcp_string_embedded_nul.xl -o build\test\cgen_tcp_string_embedded_nul.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_tcp_string_embedded_nul.exe
 if errorlevel 1 exit /b 1
 release\xl.exe check test\cases\stdlib_tcp_lifecycle.xl
 if errorlevel 1 exit /b 1

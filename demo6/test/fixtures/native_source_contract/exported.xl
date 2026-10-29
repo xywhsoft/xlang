@@ -1,0 +1,9 @@
+extern "xl_sdk_feature_probe" func probe() as c_int
+
+export "xl_native_module_probe" func checkNativeModules() as c_int
+    return probe()
+end
+
+export "xl_native_failure" func failNativeModules() as c_int
+    throw RuntimeError "native source contract failure"
+end

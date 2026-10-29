@@ -13,7 +13,7 @@
 //   gstack help            显示本帮助
 //
 // 已知限制（不在此工具内触发，记录于 README/BUGS）：
-//   * 泛型约束名仅支持 comparable / json / xson / cloneable 与 class 继承约束；
+//   * 泛型约束名仅支持 comparable / json / xlon / cloneable 与 class 继承约束；
 //     `hashable` 不是合法约束名（编译期 'unknown generic constraint'）。
 
 // ====================================================================

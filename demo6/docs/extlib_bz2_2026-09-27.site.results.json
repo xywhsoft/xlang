@@ -1,0 +1,30 @@
+{
+  "date": "2026-09-27T17:10:48.1391570+08:00",
+  "scope": "Local website generation and static link/hash checks only; no public deployment or browser visual validation",
+  "source": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\bz2\\docs\\site.html",
+  "target": "D:/GIT/home/host/xlang/wwwroot/extlibs/bz2.html",
+  "sha256": "76638A8B83ABD78E2C4EB52A7022EEBCF5704D1C049492005F5A25DF75AF8417",
+  "entry": "D:/GIT/home/host/xlang/wwwroot/extlibs/generated/bz2.html",
+  "links": [
+    {
+      "page": "D:/GIT/home/host/xlang/wwwroot/extlibs/bz2.html",
+      "link": "../style.css",
+      "resolved": "D:\\GIT\\home\\host\\xlang\\wwwroot\\style.css"
+    },
+    {
+      "page": "D:/GIT/home/host/xlang/wwwroot/extlibs/bz2.html",
+      "link": "../extlibs.css",
+      "resolved": "D:\\GIT\\home\\host\\xlang\\wwwroot\\extlibs.css"
+    },
+    {
+      "page": "D:/GIT/home/host/xlang/wwwroot/extlibs/generated/bz2.html",
+      "link": "../../style.css",
+      "resolved": "D:\\GIT\\home\\host\\xlang\\wwwroot\\style.css"
+    },
+    {
+      "page": "D:/GIT/home/host/xlang/wwwroot/extlibs/generated/bz2.html",
+      "link": "../bz2.html",
+      "resolved": "D:\\GIT\\home\\host\\xlang\\wwwroot\\extlibs\\bz2.html"
+    }
+  ]
+}

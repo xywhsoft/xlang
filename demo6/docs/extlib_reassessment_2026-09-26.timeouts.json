@@ -1,0 +1,84 @@
+{
+  "format": "xlang-extlib-reassessment-timeouts-1",
+  "generatedAt": "2026-09-26T14:32:41.5691264Z",
+  "base": "extlib_reassessment_2026-09-26.results.json",
+  "timeoutSeconds": 120,
+  "changedInputs": [],
+  "evidenceValid": true,
+  "results": [
+    {
+      "case": "release/extlibs/xhttp.client/test/xhttp_client_exchange_test.xl",
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "tcc: In file included from __xlvfs__/csrc_0.c:134:\nIn file included from D:/GIT/x-lang/demo6/release/extlibs/xhttp/src/url/url.c:1:\nIn file included from D:/GIT/x-lang/demo6/release/extlibs/xhttp/src/url/../internal/xrt_url.h:4:\nIn file included from D:/GIT/x-lang/demo6/release/extlibs/xhttp/src/url/../internal/xrt_internal.h:4:\nIn file included from D:/GIT/x-lang/demo6/release/extlibs/xhttp/src/url/../internal/../../include/xhttp_package.h:22:\nD:/GIT/x-lang/demo6/release/extlibs/xhttp/src/url/../internal/../../include/xrt/form.h:10: error: #error \"XRT form-urlencoded requires codec_percent and query\"\n",
+        "elapsedMs": 73255
+      }
+    },
+    {
+      "case": "release/extlibs/xhttp.client/test/xhttp_client_request_test.xl",
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "tcc: In file included from __xlvfs__/csrc_0.c:133:\nIn file included from D:/GIT/x-lang/demo6/release/extlibs/xhttp/src/url/url.c:1:\nIn file included from D:/GIT/x-lang/demo6/release/extlibs/xhttp/src/url/../internal/xrt_url.h:4:\nIn file included from D:/GIT/x-lang/demo6/release/extlibs/xhttp/src/url/../internal/xrt_internal.h:4:\nIn file included from D:/GIT/x-lang/demo6/release/extlibs/xhttp/src/url/../internal/../../include/xhttp_package.h:22:\nD:/GIT/x-lang/demo6/release/extlibs/xhttp/src/url/../internal/../../include/xrt/form.h:10: error: #error \"XRT form-urlencoded requires codec_percent and query\"\n",
+        "elapsedMs": 75754
+      }
+    },
+    {
+      "case": "release/extlibs/xhttp.client/test/xhttp_client_transport_test.xl",
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xhttp.client\\test\\xhttp_client_transport_test.xl:266:1: [checked] XLIR async suspension result ABI is not admitted\n",
+        "elapsedMs": 79605
+      }
+    },
+    {
+      "case": "release/extlibs/xui/test/import.xl",
+      "result": {
+        "status": "timeout",
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "",
+        "elapsedMs": 120123
+      }
+    },
+    {
+      "case": "test/cases/extlib_volc_core.xl",
+      "result": {
+        "status": "fail",
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "tcc: In file included from __xlvfs__/csrc_0.c:130:\nIn file included from D:/GIT/x-lang/demo6/release/extlibs/volc.core/x_volc_core_native.c:12:\nIn file included from D:/GIT/x-lang/demo6/release/extlibs/volc.core/../xhttp.client/include/xhttp_client_package.h:71:\nIn file included from D:/GIT/x-lang/demo6/release/extlibs/volc.core/../xhttp.client/include/../../xhttp/include/xhttp_package.h:22:\nD:/GIT/x-lang/demo6/release/extlibs/volc.core/../xhttp.client/include/../../xhttp/include/xrt/form.h:10: error: #error \"XRT form-urlencoded requires codec_percent and query\"\n",
+        "elapsedMs": 70665
+      }
+    }
+  ],
+  "checkStages": [
+    {
+      "case": "release/extlibs/xhttp.client/test/xhttp_client_request_test.xl",
+      "mode": "check",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "ok\n",
+        "stderr": "",
+        "elapsedMs": 12775
+      }
+    },
+    {
+      "case": "test/cases/extlib_volc_core.xl",
+      "mode": "check",
+      "result": {
+        "status": "pass",
+        "exitCode": 0,
+        "stdout": "ok\n",
+        "stderr": "",
+        "elapsedMs": 13017
+      }
+    }
+  ]
+}

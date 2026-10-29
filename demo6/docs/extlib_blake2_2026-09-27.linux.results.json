@@ -1,0 +1,37 @@
+{
+  "format": "xlang-extlib-blake2-linux-evidence-1",
+  "executionEvidence": "Local gate completed successfully at the recorded input snapshot; logs and input hashes revalidated at archival, not rerun during archival",
+  "archivedAt": "2026-09-27T02:18:48.2439966+08:00",
+  "completedAt": "2026-09-27T02:09:06.4391705+08:00",
+  "command": "bash tools/check_extlib_blake2.sh",
+  "platform": "WSL Ubuntu x86_64",
+  "compiler": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+  "scope": "Independent C known answers, reader/state/allocation/thread boundaries and example with ASan/UBSan/leak detection; not Linux xlang JIT/AOT",
+  "outcome": "passed",
+  "inputs": {
+    "release/extlibs/blake2/blake2_native.c": "8A88F03421D59343ACB1DBB894247C4EB07FB2FFA5AEAA3E4F84CE674A6B5508",
+    "release/extlibs/blake2/examples/basic.c": "2E692BDFE12D422AC61AC9979CD582ACE0F921BEE6F2B3ECD0431374DFB412B7",
+    "release/extlibs/blake2/include/blake2_native.h": "E52B9F715387EA83ECF282FDA19DBE68ABBC82291E095CBA21E6F38764F29A56",
+    "release/extlibs/blake2/include/xrt_blake2.h": "00FE7AD0A2520142971D9AB8EBD1E2AF30807F2D74555905727CCD762BFB0345",
+    "release/extlibs/blake2/src/blake2.xl": "72E06724A2FC31FE5DEB2F0A621AFF2B87D2992384EC33DEC6A9C7854BBC5AE1",
+    "release/extlibs/blake2/test/test_blake2.c": "338FD174BEFE2F1C169485C536F5BB39B3F1FC11FCA607D132078FDE7893AD6F",
+    "release/extlibs/blake2/test/test_blake2_alloc.c": "BB76589D49A4F5FEBFC025FF81BE4CA5470CA518DB9045D6B96EA50884549F9B",
+    "release/extlibs/blake2/test/test_blake2_native.c": "A6D75FCE165ED3926EF6573A2F8501DEEC36F1ACE48A6A8D3A6492A05CB40E05",
+    "release/extlibs/blake2/test/vectors.h": "038F126B3762B12F4092C5935633D76388C94B70C0422D4E3237A00F548B5156",
+    "release/extlibs/blake2/third_party/blake2.c": "584C507CC77820AFC671FAD05F2872E4D2830C55FF84FAC29E1D47EF9AEE90D2",
+    "release/extlibs/blake2/third_party/blake2.h": "68DAE1D2C83178160283044356D8E38E2AFC3840940D2D7C62FB937FE7E27ADA",
+    "release/extlibs/blake2/xlang.package.json": "8D4AB376297EAE687C3B6D17D222745A004AA1A795167D87EE01651AC02BE852",
+    "release/extlibs/blake2/xrt_blake2.c": "73EFF87E50A6BDDC388FC18BAC616AB64AE40406583D139A28F9BB293192B99D",
+    "lib/xrt/xrt.h": "7C78B4B3D13FC64AC1009E2EDFAE73E9FB092C896DA1A70CF5BE859D153851E8",
+    "lib/xruntime/xruntime.h": "FF23FDB9AC90F63DEED1606A78F21707A9FA677AA766044B8AF3B4F5202F4BA9",
+    "test/support/extlib_codec_runtime.c": "ACD01CA7C8ACFA2F63C1257DDA52A0B575C0F2679B5432588014023F105C65FA",
+    "tools/check_extlib_blake2.sh": "ABE9C90C1F2B7A79CE04D6E4461E254BB2A11365698B2D8BD26DC4D409803A9C",
+    "release/examples/extlibs/blake2_basic.expected.txt": "9B71764C1C347CB6C54816E49A3C8F57F0ECCBBB473159C4D071EE5C888DD16E"
+  },
+  "logs": {
+    "test_blake2": "blake2 C: 216 known answers, streaming/state/reader boundaries passed\n",
+    "test_blake2_alloc": "blake2 allocation: rejected=16 completed=128\n",
+    "test_blake2_native": "blake2 native: invalid handles, 4 independent threads, temporary results and errors passed\n",
+    "basic": "b2b/16: cf4ab791c62b8d2b2109c90275287816\nclone: c60153445dafca3c68639fe63c7c6312\nreset: cf4ab791c62b8d2b2109c90275287816\nb2s/16: aa4938119b1dc7b87cbad0ffd200d0ae\nkeyed: fcb3ea1d2fca1aedd097d8362df66ae1\nbytes: 3\n"
+  }
+}

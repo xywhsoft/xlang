@@ -1885,16 +1885,25 @@ if errorlevel 1 exit /b 1
 build\test\xlir_string_literal_forms_host.exe
 if errorlevel 1 exit /b 1
 
-rem Managed parameters have a frontend-fixed borrowed ABI.  The caller-owned
-rem local stays live across the call and is released only on the return edge.
+rem A proven read-only string parameter borrows the caller's stable owner for
+rem this synchronous call.  No entry clone or callee release may be emitted.
+release\xl.exe ir test\cases\xlir_string_borrow_call.xl --lowered --emit build\test\xlir_string_borrow_call.lowered.xlir
+if errorlevel 1 exit /b 1
+findstr /C:"read-only-borrow" build\test\xlir_string_borrow_call.lowered.xlir >nul
+if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\xlir_string_borrow_call.xl --backend xlir --emit build\test\xlir_string_borrow_call_generated.c
 if errorlevel 1 exit /b 1
 findstr /C:"static int64_t xlir_fn_1(char* s5);" build\test\xlir_string_borrow_call_generated.c >nul
 if errorlevel 1 exit /b 1
 findstr /C:"= xlir_fn_1(" build\test\xlir_string_borrow_call_generated.c >nul
 if errorlevel 1 exit /b 1
-findstr /C:"xrtFree(s6); s6 = NULL;" build\test\xlir_string_borrow_call_generated.c >nul
+findstr /C:"xrtFree(xlir_released);" build\test\xlir_string_borrow_call_generated.c >nul
 if errorlevel 1 exit /b 1
+findstr /C:"v1 = xrtStrDup(" build\test\xlir_string_borrow_call_generated.c >nul
+if not errorlevel 1 (
+    echo XLIR read-only string parameter was copied on entry.
+    exit /b 1
+)
 "%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% test\cases\xlir_string_borrow_call_host.c %XL6_CGEN_LINKS% -o build\test\xlir_string_borrow_call_host.exe
 if errorlevel 1 exit /b 1
 build\test\xlir_string_borrow_call_host.exe
@@ -2398,17 +2407,13 @@ if errorlevel 1 (
 if errorlevel 1 exit /b 1
 build\test\xlir_match_scalar_host.exe
 if errorlevel 1 exit /b 1
-rem String literal match is explicit STRING_EQUAL CFG.  Move-produced pattern
-rem strings are materialized into compiler storage and released after compare.
+rem String literal match is explicit STRING_EQUAL CFG. Pattern values carry
+rem exact lengths (including NUL) and are released after each comparison.
 release\xl.exe cgen test\cases\xlir_match_string.xl --backend xlir --emit build\test\xlir_match_string_generated.c
 if errorlevel 1 exit /b 1
-findstr /C:"= xrtStrEqual(" build\test\xlir_match_string_generated.c | find /C "=" | findstr /X "2" >nul
+findstr /C:"= xrtStrEqual(" build\test\xlir_match_string_generated.c | find /C "=" | findstr /X "3" >nul
 if errorlevel 1 exit /b 1
-findstr /C:"xrtFree(s4294967295); s4294967295 = NULL;" build\test\xlir_match_string_generated.c >nul
-if errorlevel 1 exit /b 1
-findstr /C:"xrtFree(s3); s3 = NULL;" build\test\xlir_match_string_generated.c >nul
-if errorlevel 1 exit /b 1
-findstr /C:"xrtFree(s4294967294); s4294967294 = NULL;" build\test\xlir_match_string_generated.c >nul
+findstr /C:"xlir_string_drop(xlir_released);" build\test\xlir_match_string_generated.c | find /C "xlir_string_drop" | findstr /X "3" >nul
 if errorlevel 1 exit /b 1
 "%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror test\cases\xlir_match_string_host.c %XL6_CGEN_LINKS% -o build\test\xlir_match_string_host.exe
 if errorlevel 1 exit /b 1
@@ -3087,6 +3092,12 @@ if errorlevel 1 (
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_string_iterator_abi.ps1
 if errorlevel 1 (
     echo XLIR canonical UTF-8 string iterator ABI quality gate failed.
+    exit /b 1
+)
+
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_char_bytes_abi.ps1
+if errorlevel 1 (
+    echo XLIR char and bytes ABI quality gate failed.
     exit /b 1
 )
 
@@ -4043,7 +4054,7 @@ if not errorlevel 1 (
     echo sem_derive_value_native_class_field.xl should fail.
     exit /b 1
 )
-findstr /C:"derive value/json/xson" build\test\sem_derive_value_native_class_field.err.txt >nul
+findstr /C:"derive value/json/xlon" build\test\sem_derive_value_native_class_field.err.txt >nul
 if errorlevel 1 (
     echo sem_derive_value_native_class_field.err.txt missing persistence field diagnostic.
     exit /b 1
@@ -4053,7 +4064,7 @@ if not errorlevel 1 (
     echo sem_json_parse_without_derive.xl should fail.
     exit /b 1
 )
-findstr /C:"derive value/json/xson" build\test\sem_json_parse_without_derive.err.txt >nul
+findstr /C:"derive value/json/xlon" build\test\sem_json_parse_without_derive.err.txt >nul
 if errorlevel 1 (
     echo sem_json_parse_without_derive.err.txt missing persistence target diagnostic.
     exit /b 1
@@ -4063,7 +4074,7 @@ if not errorlevel 1 (
     echo sem_json_stringify_without_derive.xl should fail.
     exit /b 1
 )
-findstr /C:"derive value/json/xson" build\test\sem_json_stringify_without_derive.err.txt >nul
+findstr /C:"derive value/json/xlon" build\test\sem_json_stringify_without_derive.err.txt >nul
 if errorlevel 1 (
     echo sem_json_stringify_without_derive.err.txt missing persistence stringify diagnostic.
     exit /b 1

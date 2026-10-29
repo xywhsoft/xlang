@@ -1,0 +1,41 @@
+{
+  "generatedAt": "2026-09-26T15:57:22.9504598Z",
+  "scope": "Supplemental current JIT probes; not full package acceptance",
+  "results": [
+    {
+      "case": "test/cases/extlib_brotli_progress.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "",
+      "stderr": "uncaught xlang error: TypeError: value has an incompatible type\nuncaught xlang error: value has an incompatible type\n",
+      "elapsedMs": 1539
+    },
+    {
+      "case": "release/examples/extlibs/brotli.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "",
+      "stderr": "uncaught xlang error: AssertionError: brotli member end record must be deterministic\nuncaught xlang error: brotli member end record must be deterministic\n",
+      "elapsedMs": 2065
+    },
+    {
+      "case": "release/examples/extlibs/serial.xl",
+      "status": "fail",
+      "exitCode": 1,
+      "stdout": "",
+      "stderr": "release/examples/extlibs/serial.xl:14:13: [parse] invalid f-string interpolation expression\n",
+      "elapsedMs": 25
+    }
+  ],
+  "inputSnapshotAfter": {
+    "test/cases/extlib_brotli_progress.xl": "842056BD26A1CEE65BC901787CE0090CE845D35C63AC0D9AF08C316684FE1B84",
+    "release/examples/extlibs/brotli.xl": "5CF18E8E663BDBD7F52A63D00C1FC0571348D78E97E60C573472B127DC3814F0",
+    "release/examples/extlibs/serial.xl": "345EA51563633DD65A2259F15758F8671ADDE6955371CA3801B236F441F99F40",
+    "release/xl.exe": "5A3F20B4CF9333D393560CB2361D0EBAB8A13F0D07C64A78A1F5FFF5385D9EEB",
+    "release/xl.dll": "2A07C481C04CAD71D31D46722A27E62027318DF24E95A63126E061FD4CA46902",
+    "release/xlc.dll": "7C672FD0B2852690D09E2EF1046C56EE1586FD1FCCC0CAEA61E19C0FE7C6E1F0",
+    "lib/xrt/xrt.h": "7C78B4B3D13FC64AC1009E2EDFAE73E9FB092C896DA1A70CF5BE859D153851E8",
+    "lib/xruntime/xruntime.h": "FF23FDB9AC90F63DEED1606A78F21707A9FA677AA766044B8AF3B4F5202F4BA9"
+  },
+  "relatedPackageInputs": "extlib_reassessment_2026-09-26.refresh.results.json"
+}

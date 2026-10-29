@@ -1,0 +1,18 @@
+dir.createAll("examples_out")
+
+var jsonRecords = jsonl.parse("{\"name\":\"first\"}\n{\"name\":\"second\"}\n")
+assert jsonRecords[0]["name"] == "first"
+assert jsonl.valid(jsonl.stringify(jsonRecords))
+string jsonPath = "examples_out/stdlib_records.jsonl"
+assert jsonl.write(jsonPath, jsonRecords)
+assert jsonl.read(jsonPath)[1]["name"] == "second"
+assert file.delete(jsonPath)
+
+var xlonRecords = xlonl.parse("{\"kind\":char(\"你\")}\n{\"kind\":bytes(\"QQ==\")}\n")
+assert xlonl.valid(xlonl.stringify(xlonRecords))
+string xlonPath = "examples_out/stdlib_records.xlonl"
+assert xlonl.write(xlonPath, xlonRecords)
+assert xlonl.read(xlonPath)[0]["kind"] == '你'
+assert file.delete(xlonPath)
+
+println("structured-lines=ok")

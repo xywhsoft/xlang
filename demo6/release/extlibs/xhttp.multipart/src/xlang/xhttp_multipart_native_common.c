@@ -294,7 +294,7 @@ XLANG_XHTTP_MULTIPART_EXPORT void* xhttp_multipart_boundary_wrap(
 
 
 /* 释放拥有型 boundary。 */
-XLANG_XHTTP_MULTIPART_EXPORT long long xhttp_multipart_boundary_destroy(
+XLANG_XHTTP_MULTIPART_EXPORT void xhttp_multipart_boundary_destroy(
 	void* pHandle
 )
 {
@@ -302,7 +302,6 @@ XLANG_XHTTP_MULTIPART_EXPORT long long xhttp_multipart_boundary_destroy(
 		memset(pHandle, 0, sizeof(xmultipartboundary));
 		xrtFree(pHandle);
 	}
-	return 0;
 }
 
 
@@ -350,7 +349,7 @@ XLANG_XHTTP_MULTIPART_EXPORT void* xhttp_multipart_part_wrap(
 
 
 /* 释放 Part 描述符，不触碰其借用的正文。 */
-XLANG_XHTTP_MULTIPART_EXPORT long long xhttp_multipart_part_destroy(
+XLANG_XHTTP_MULTIPART_EXPORT void xhttp_multipart_part_destroy(
 	void* pHandle
 )
 {
@@ -358,7 +357,6 @@ XLANG_XHTTP_MULTIPART_EXPORT long long xhttp_multipart_part_destroy(
 		memset(pHandle, 0, sizeof(xhttp_multipart_native_part));
 		xrtFree(pHandle);
 	}
-	return 0;
 }
 
 

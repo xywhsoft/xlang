@@ -60,7 +60,7 @@ XLANG_XHTTP_PROTOCOL_EXPORT void* xhttp_protocol_media_clone(
 
 
 /* 释放 MediaType 拥有的文本。 */
-XLANG_XHTTP_PROTOCOL_EXPORT long long xhttp_protocol_media_destroy(
+XLANG_XHTTP_PROTOCOL_EXPORT void xhttp_protocol_media_destroy(
 	void* pHandle
 )
 {
@@ -72,7 +72,6 @@ XLANG_XHTTP_PROTOCOL_EXPORT long long xhttp_protocol_media_destroy(
 		memset(pType, 0, sizeof(*pType));
 		xrtFree(pType);
 	}
-	return 0;
 }
 
 

@@ -216,7 +216,7 @@ XLANG_XHTTP_BODY_DECODE_EXPORT void* xhttp_body_decode_result_wrap(
 
 
 /* 释放结果拥有的正文引用。 */
-XLANG_XHTTP_BODY_DECODE_EXPORT long long xhttp_body_decode_result_destroy(
+XLANG_XHTTP_BODY_DECODE_EXPORT void xhttp_body_decode_result_destroy(
 	void* pHandle
 )
 {
@@ -228,7 +228,6 @@ XLANG_XHTTP_BODY_DECODE_EXPORT long long xhttp_body_decode_result_destroy(
 		memset(pResult, 0, sizeof(*pResult));
 		xrtFree(pResult);
 	}
-	return 0;
 }
 
 

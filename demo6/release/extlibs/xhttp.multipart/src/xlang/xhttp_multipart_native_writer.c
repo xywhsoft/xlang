@@ -248,7 +248,7 @@ static xhttpfield* xhttpMultipartNativeFields(
 
 /* 构建 multipart Content-Type。 */
 XLANG_XHTTP_MULTIPART_EXPORT void* xhttp_multipart_writer_content_type(
-	const void* pBoundaryHandle
+	void* pBoundaryHandle
 )
 {
 	xhttp_multipart_native_boundary_write Write = {
@@ -268,7 +268,7 @@ XLANG_XHTTP_MULTIPART_EXPORT void* xhttp_multipart_writer_content_type(
 
 /* 构建不带 filename 的 form-data Part 头。 */
 XLANG_XHTTP_MULTIPART_EXPORT void* xhttp_multipart_writer_field_head(
-	const void* pBoundaryHandle,
+	void* pBoundaryHandle,
 	const char* sName,
 	size_t iName
 )
@@ -293,7 +293,7 @@ XLANG_XHTTP_MULTIPART_EXPORT void* xhttp_multipart_writer_field_head(
 
 /* 构建带 filename 和可选媒体类型的 form-data Part 头。 */
 XLANG_XHTTP_MULTIPART_EXPORT void* xhttp_multipart_writer_file_head(
-	const void* pBoundaryHandle,
+	void* pBoundaryHandle,
 	const char* sName,
 	size_t iName,
 	const char* sFilename,
@@ -322,8 +322,8 @@ XLANG_XHTTP_MULTIPART_EXPORT void* xhttp_multipart_writer_file_head(
 
 /* 构建原始 Header Part 头。 */
 XLANG_XHTTP_MULTIPART_EXPORT void* xhttp_multipart_writer_part_head(
-	const void* pBoundaryHandle,
-	const void* pHeadersHandle
+	void* pBoundaryHandle,
+	void* pHeadersHandle
 )
 {
 	xhttp_multipart_native_part_write Write;
@@ -366,10 +366,10 @@ XLANG_XHTTP_MULTIPART_EXPORT void* xhttp_multipart_writer_part_end(void)
 
 /* 构建完整普通 form-data 字段。 */
 XLANG_XHTTP_MULTIPART_EXPORT void* xhttp_multipart_writer_field(
-	const void* pBoundaryHandle,
+	void* pBoundaryHandle,
 	const char* sName,
 	size_t iName,
-	const void* pValue,
+	void* pValue,
 	size_t iValue
 )
 {
@@ -391,7 +391,7 @@ XLANG_XHTTP_MULTIPART_EXPORT void* xhttp_multipart_writer_field(
 
 /* 语言字符串字段复用字节优先写出路径。 */
 XLANG_XHTTP_MULTIPART_EXPORT void* xhttp_multipart_writer_field_text(
-	const void* pBoundaryHandle,
+	void* pBoundaryHandle,
 	const char* sName,
 	size_t iName,
 	const char* sValue,
@@ -402,7 +402,7 @@ XLANG_XHTTP_MULTIPART_EXPORT void* xhttp_multipart_writer_field_text(
 		pBoundaryHandle,
 		sName,
 		iName,
-		sValue,
+		(void*)sValue,
 		iValue
 	);
 }
@@ -411,14 +411,14 @@ XLANG_XHTTP_MULTIPART_EXPORT void* xhttp_multipart_writer_field_text(
 
 /* 构建完整 form-data 文件字段。 */
 XLANG_XHTTP_MULTIPART_EXPORT void* xhttp_multipart_writer_file(
-	const void* pBoundaryHandle,
+	void* pBoundaryHandle,
 	const char* sName,
 	size_t iName,
 	const char* sFilename,
 	size_t iFilename,
 	const char* sContentType,
 	size_t iContentType,
-	const void* pBody,
+	void* pBody,
 	size_t iBody
 )
 {
@@ -442,9 +442,9 @@ XLANG_XHTTP_MULTIPART_EXPORT void* xhttp_multipart_writer_file(
 
 /* 构建带原始 Headers 的完整 Part。 */
 XLANG_XHTTP_MULTIPART_EXPORT void* xhttp_multipart_writer_part(
-	const void* pBoundaryHandle,
-	const void* pHeadersHandle,
-	const void* pBody,
+	void* pBoundaryHandle,
+	void* pHeadersHandle,
+	void* pBody,
 	size_t iBody
 )
 {
@@ -478,7 +478,7 @@ XLANG_XHTTP_MULTIPART_EXPORT void* xhttp_multipart_writer_part(
 
 /* 构建关闭 boundary。 */
 XLANG_XHTTP_MULTIPART_EXPORT void* xhttp_multipart_writer_close(
-	const void* pBoundaryHandle
+	void* pBoundaryHandle
 )
 {
 	xhttp_multipart_native_boundary_write Write = {

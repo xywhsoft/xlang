@@ -1,0 +1,313 @@
+{
+  "format": "xlang-extlib-review-supplement-1",
+  "generatedAt": "2026-09-27T06:44:13.7696247+08:00",
+  "gateInputReview": [
+    {
+      "file": "docs/extlib_mqtt_2026-09-26.windows.results.json",
+      "date": "2026-09-26T21:54:55.4982847+08:00",
+      "recordedOutcome": "passed",
+      "recordedChecks": 36,
+      "recordedInputs": 29,
+      "changedInputs": [],
+      "rerunThisReview": false
+    },
+    {
+      "file": "docs/extlib_argon2_bloom_2026-09-26.windows.results.json",
+      "date": "2026-09-26T23:27:48.2579493+08:00",
+      "recordedOutcome": "passed",
+      "recordedChecks": 44,
+      "recordedInputs": 42,
+      "changedInputs": [],
+      "rerunThisReview": false
+    },
+    {
+      "file": "docs/extlib_brotli_2026-09-27.windows.results.json",
+      "date": "2026-09-27T00:57:39.7336108+08:00",
+      "recordedOutcome": "passed",
+      "recordedChecks": 60,
+      "recordedInputs": 120,
+      "changedInputs": [
+        "test/featured_extlibs.json",
+        "test/suites/11_featured_extlibs_rc.bat"
+      ],
+      "rerunThisReview": false
+    },
+    {
+      "file": "docs/extlib_blake2_2026-09-27.windows.results.json",
+      "date": "2026-09-27T02:12:04.475365+08:00",
+      "recordedOutcome": "passed",
+      "recordedChecks": 36,
+      "recordedInputs": 34,
+      "changedInputs": [
+        "test/featured_extlibs.json",
+        "test/suites/11_featured_extlibs_rc.bat"
+      ],
+      "rerunThisReview": false
+    },
+    {
+      "file": "docs/extlib_sqlite_2026-09-27.windows.results.json",
+      "date": "2026-09-27T02:53:41.4487818+08:00",
+      "recordedOutcome": "passed",
+      "recordedChecks": 37,
+      "recordedInputs": 33,
+      "changedInputs": [],
+      "rerunThisReview": false
+    },
+    {
+      "file": "docs/extlib_aho_2026-09-27.windows.results.json",
+      "date": "2026-09-27T04:16:14.7856985+08:00",
+      "recordedOutcome": "passed",
+      "recordedChecks": 44,
+      "recordedInputs": 33,
+      "changedInputs": [
+        "test/featured_extlibs.json",
+        "test/suites/11_featured_extlibs_rc.bat"
+      ],
+      "rerunThisReview": false
+    },
+    {
+      "file": "docs/extlib_blake3_2026-09-27.delivery.windows.results.json",
+      "date": "2026-09-27T05:56:21.0273256+08:00",
+      "recordedOutcome": "passed",
+      "recordedChecks": 38,
+      "recordedInputs": 44,
+      "changedInputs": [
+        ".gitattributes",
+        "test/featured_extlibs.json",
+        "test/suites/11_featured_extlibs_rc.bat"
+      ],
+      "rerunThisReview": false
+    }
+  ],
+  "website": {
+    "root": "D:/GIT/home/host/xlang/wwwroot/extlibs",
+    "ordinary": 22,
+    "generated": 214,
+    "missing": [
+      "ansi",
+      "barcode",
+      "cli",
+      "color",
+      "gettext",
+      "graph",
+      "ical",
+      "json.patch",
+      "memcached",
+      "money",
+      "qr",
+      "rss",
+      "semver",
+      "shellwords",
+      "sitemap",
+      "slugify",
+      "srt",
+      "statistics",
+      "units",
+      "vcard",
+      "xhttp",
+      "xhttp.body",
+      "xhttp.body_async",
+      "xhttp.body_codec",
+      "xhttp.body_decode",
+      "xhttp.body_file",
+      "xhttp.body_stream",
+      "xhttp.client",
+      "xhttp.form_data",
+      "xhttp.multipart",
+      "xhttp.protocol",
+      "xmail",
+      "xregex",
+      "xssh",
+      "xws"
+    ],
+    "staleOrInternal": [
+      "_xge_native",
+      "ceres",
+      "eigen",
+      "fftw",
+      "gdal",
+      "geos",
+      "gmp",
+      "gsl",
+      "kafka",
+      "lapack",
+      "lightgbm",
+      "mail_imap",
+      "mail_mime",
+      "mail_pop3",
+      "mail_smtp",
+      "mpfr",
+      "ncurses",
+      "nlopt",
+      "parquet",
+      "pkg_math",
+      "plot",
+      "proj",
+      "pulsar",
+      "rdkit",
+      "s2geometry",
+      "ssh",
+      "ta_lib",
+      "unqlite",
+      "xbot_all",
+      "xbot_core",
+      "xgboost"
+    ],
+    "detailSources": [
+      {
+        "name": "aho_corasick",
+        "source": "release/extlibs/aho_corasick/docs/site.html",
+        "target": "D:\\GIT\\home\\host\\xlang\\wwwroot\\extlibs\\aho_corasick.html",
+        "sourceHash": "E1C40EBCEE4A5F212565DA09C9B06B12A5AD5B63E770BA58A3B0FDCA0724AD24",
+        "targetHash": "E1C40EBCEE4A5F212565DA09C9B06B12A5AD5B63E770BA58A3B0FDCA0724AD24",
+        "matches": true
+      },
+      {
+        "name": "argon2",
+        "source": "release/extlibs/argon2/docs/site.html",
+        "target": "D:\\GIT\\home\\host\\xlang\\wwwroot\\extlibs\\argon2.html",
+        "sourceHash": "7178CCAC616A99F35D6BE6DEDB20CF1A7A0AB12322C756523662CF5E95D941D3",
+        "targetHash": "7178CCAC616A99F35D6BE6DEDB20CF1A7A0AB12322C756523662CF5E95D941D3",
+        "matches": true
+      },
+      {
+        "name": "blake2",
+        "source": "release/extlibs/blake2/docs/site.html",
+        "target": "D:\\GIT\\home\\host\\xlang\\wwwroot\\extlibs\\blake2.html",
+        "sourceHash": "6A1C5F6B632563743A3FBC0283A449A139EB29344C32CA517E55AEE1B551AD4C",
+        "targetHash": "6A1C5F6B632563743A3FBC0283A449A139EB29344C32CA517E55AEE1B551AD4C",
+        "matches": true
+      },
+      {
+        "name": "blake3",
+        "source": "release/extlibs/blake3/docs/site.html",
+        "target": "D:\\GIT\\home\\host\\xlang\\wwwroot\\extlibs\\blake3.html",
+        "sourceHash": "F3B22789342C3A40AD87549F6DA56CDD4F48467869F8A06D134A0807ED0E934D",
+        "targetHash": "F3B22789342C3A40AD87549F6DA56CDD4F48467869F8A06D134A0807ED0E934D",
+        "matches": true
+      },
+      {
+        "name": "bloom",
+        "source": "release/extlibs/bloom/docs/site.html",
+        "target": "D:\\GIT\\home\\host\\xlang\\wwwroot\\extlibs\\bloom.html",
+        "sourceHash": "6A7AA24333CE46607CADC5B1592916819DBF5CBE44CD57265F561E0F3C26CAE0",
+        "targetHash": "6A7AA24333CE46607CADC5B1592916819DBF5CBE44CD57265F561E0F3C26CAE0",
+        "matches": true
+      },
+      {
+        "name": "brotli",
+        "source": "release/extlibs/brotli/docs/site.html",
+        "target": "D:\\GIT\\home\\host\\xlang\\wwwroot\\extlibs\\brotli.html",
+        "sourceHash": "399344EAC5C4EE788191718CB39778A23A4BE56B517EFDF2B9F4C77133611356",
+        "targetHash": "399344EAC5C4EE788191718CB39778A23A4BE56B517EFDF2B9F4C77133611356",
+        "matches": true
+      },
+      {
+        "name": "mqtt",
+        "source": "release/extlibs/mqtt/docs/site.html",
+        "target": "D:\\GIT\\home\\host\\xlang\\wwwroot\\extlibs\\mqtt.html",
+        "sourceHash": "4476FFBFDB6A1DF36D23413F21E7C662C4E7E5D670465B25EFF3AA406E8ADD4D",
+        "targetHash": "4476FFBFDB6A1DF36D23413F21E7C662C4E7E5D670465B25EFF3AA406E8ADD4D",
+        "matches": true
+      },
+      {
+        "name": "sqlite",
+        "source": "release/extlibs/sqlite/docs/site.html",
+        "target": "D:\\GIT\\home\\host\\xlang\\wwwroot\\extlibs\\sqlite.html",
+        "sourceHash": "7A68631435E3669689BC28DF504ACB8E46A7775BD67949E01E75BF0BFDB313E7",
+        "targetHash": "7A68631435E3669689BC28DF504ACB8E46A7775BD67949E01E75BF0BFDB313E7",
+        "matches": true
+      },
+      {
+        "name": "xxhash",
+        "source": "release/extlibs/xxhash/docs/site.html",
+        "target": "D:\\GIT\\home\\host\\xlang\\wwwroot\\extlibs\\xxhash.html",
+        "sourceHash": "4350FEFDBE2F89B0FBBE0A5636A207DD154D7CAD60CD855F60DE1AC18A9FF0CB",
+        "targetHash": "DE44BF8BE251B56008BBF6037C5A0ECC0B4BAAF9B0CDEE3B41905E0A511959B0",
+        "matches": false
+      }
+    ]
+  },
+  "rootReadmes": [
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\aho_corasick\\readme.md",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\argon2\\readme.md",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\blake2\\README.md",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\blake3\\README.md",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\bloom\\README.md",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\brotli\\README.md",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\mqtt\\README.md",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\rapidocr\\README.md",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\serial\\README.md",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\sqlite\\README.md",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xhttp\\README.md",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xhttp.body\\README.md",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xhttp.body_async\\README.md",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xhttp.body_codec\\README.md",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xhttp.body_decode\\README.md",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xhttp.body_file\\readme.md",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xhttp.body_stream\\README.md",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xhttp.client\\README.md",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xhttp.form_data\\README.md",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xhttp.multipart\\README.md",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xhttp.protocol\\README.md",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xmail\\README.md",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xregex\\README.md",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xssh\\README.md",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xws\\README.md",
+    "D:\\GIT\\x-lang\\demo6\\release\\extlibs\\xxhash\\README.md"
+  ],
+  "scope": "Local filesystem, input hash revalidation and source inventory only. Historical gates are not rerun or promoted to current production certification.",
+  "currentXxhashChecks": [
+    {
+      "name": "xxhash-core-gcc-current",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\test_xxhash.exe",
+      "binarySha256": "E0BC650BE6BA21B1B08634EA9EFCFB797CECFF84EF229E6A859FF9598188297A",
+      "arguments": [],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 35,
+      "stdout": "xxhash core: 124 independent vectors, state/reader/multiply boundaries passed\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "xxhash-native-gcc-current",
+      "program": "D:\\GIT\\x-lang\\demo6\\build\\test\\xxhash_guard\\test_xxhash_native.exe",
+      "binarySha256": "5C7864F6DDF928B10996012642A400087040329FA8CDF12867AE4B55AB90419F",
+      "arguments": [],
+      "status": "pass",
+      "exitCode": 0,
+      "elapsedMs": 26,
+      "stdout": "xxhash allocations: rejected=7 completed=53\r\nxxhash native: 4 independent threads and temporary lifetimes passed\r\n",
+      "stderr": ""
+    },
+    {
+      "name": "xxhash-core-c-jit-current",
+      "program": "D:\\GIT\\x-lang\\demo6\\release\\xl.exe",
+      "binarySha256": "5A3F20B4CF9333D393560CB2361D0EBAB8A13F0D07C64A78A1F5FFF5385D9EEB",
+      "arguments": [
+        "run",
+        "release/extlibs/xxhash/test/test_xxhash.c",
+        "release/extlibs/xxhash/third_party/xxhash.c",
+        "--inc-path",
+        "lib/xrt"
+      ],
+      "status": "fail",
+      "exitCode": 1,
+      "elapsedMs": 64,
+      "stdout": "",
+      "stderr": "tcc: tcc: error: unresolved reference to '_umul128'\n"
+    }
+  ],
+  "currentXxhashChecksAt": "2026-09-27T06:45:09.5524666+08:00",
+  "finalReview": {
+    "at": "2026-09-27T06:53:55.2098282+08:00",
+    "catalogInputCount": 1957,
+    "changedInputs": [],
+    "reportLocalLinksChecked": 57,
+    "reportMissingLocalLinks": [],
+    "productionCodeEditedThisReview": false,
+    "hostRebuiltThisReview": false,
+    "runtimeSnapshotUpdatedThisReview": false,
+    "websitePublishedThisReview": false
+  }
+}

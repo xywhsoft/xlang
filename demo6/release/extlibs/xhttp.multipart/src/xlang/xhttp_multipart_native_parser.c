@@ -72,9 +72,9 @@ static bool xhttpMultipartNativeParserPartLimit(
 
 /* 创建借用正文的整包解析器，可选先执行完整安全验证。 */
 XLANG_XHTTP_MULTIPART_EXPORT void* xhttp_multipart_parser_create(
-	const void* pData,
+	void* pData,
 	size_t iSize,
-	const void* pBoundaryHandle,
+	void* pBoundaryHandle,
 	long long iMaxParts,
 	long long iMaxHeaders,
 	long long iMaxDelimiterBytes,
@@ -151,7 +151,7 @@ XLANG_XHTTP_MULTIPART_EXPORT void* xhttp_multipart_parser_wrap(
 
 
 /* 释放解析状态，不触碰语言层保活的正文。 */
-XLANG_XHTTP_MULTIPART_EXPORT long long xhttp_multipart_parser_destroy(
+XLANG_XHTTP_MULTIPART_EXPORT void xhttp_multipart_parser_destroy(
 	void* pHandle
 )
 {
@@ -159,7 +159,6 @@ XLANG_XHTTP_MULTIPART_EXPORT long long xhttp_multipart_parser_destroy(
 		memset(pHandle, 0, sizeof(xhttp_multipart_native_parser));
 		xrtFree(pHandle);
 	}
-	return 0;
 }
 
 

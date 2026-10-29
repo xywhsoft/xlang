@@ -1,0 +1,6 @@
+import ui.auto
+
+func main(...) as int
+    ui.auto.Locator loc = ui.auto.locator()
+    return 0
+end

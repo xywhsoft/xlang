@@ -25,12 +25,12 @@ p.rank = 9
 auto jsonText = json.stringify(p)
 auto jsonPlayer = json.parse::<Player>(jsonText)
 
-auto xsonText = xson.stringify(p)
-auto xsonPlayer = xson.parse::<Player>(xsonText)
+auto xlonText = xlon.stringify(p)
+auto xlonPlayer = xlon.parse::<Player>(xlonText)
 
 println(jsonPlayer.name)
 println(jsonPlayer.stats.hp)
 println(jsonPlayer.rank)
-println(xsonPlayer.name)
-println(xsonPlayer.stats.hp)
-println(xsonPlayer.rank)
+println(xlonPlayer.name)
+println(xlonPlayer.stats.hp)
+println(xlonPlayer.rank)

@@ -1,0 +1,87 @@
+{
+    "format":  "xlang-extlib-reassessment-spotcheck-1",
+    "generatedAt":  "2026-09-27T06:09:52.8132379+08:00",
+    "scope":  "Six representative JIT entries, including an Aho example. Not a repeated full catalog or release certification.",
+    "catalogEvidence":  "extlib_reassessment_2026-09-27.reanalysis.results.json",
+    "catalogInputCount":  1948,
+    "changedBefore":  [
+
+                      ],
+    "changedAfter":  [
+
+                     ],
+    "results":  [
+                    {
+                        "case":  "release/extlibs/xhttp/test/xhttp_url_test.xl",
+                        "sha256":  "EE8680EA4D6561D601427F6E4477D85733F08DD24705A7F0FA0D67BDAF0FEC37",
+                        "unchanged":  true,
+                        "result":  {
+                                       "status":  "fail",
+                                       "exitCode":  1,
+                                       "stdout":  "",
+                                       "stderr":  "tcc: In file included from __xlvfs__/csrc_0.c:95:\nIn file included from D:/GIT/x-lang/demo6/release/extlibs/xhttp/src/url/url.c:1:\nIn file included from D:/GIT/x-lang/demo6/release/extlibs/xhttp/src/url/../internal/xrt_url.h:4:\nIn file included from D:/GIT/x-lang/demo6/release/extlibs/xhttp/src/url/../internal/xrt_internal.h:4:\nIn file included from D:/GIT/x-lang/demo6/release/extlibs/xhttp/src/url/../internal/../../include/xhttp_package.h:22:\nD:/GIT/x-lang/demo6/release/extlibs/xhttp/src/url/../internal/../../include/xrt/form.h:10: error: #error \"XRT form-urlencoded requires codec_percent and query\"\n",
+                                       "elapsedMs":  1119
+                                   }
+                    },
+                    {
+                        "case":  "test/cases/extlib_xregex.xl",
+                        "sha256":  "FC68ECADBBABC3A35D9D77FFE03FC035DBD484AFAD3544726C9487DB91837A82",
+                        "unchanged":  true,
+                        "result":  {
+                                       "status":  "fail",
+                                       "exitCode":  1,
+                                       "stdout":  "",
+                                       "stderr":  "tcc: In file included from __xlvfs__/csrc_7.c:110:\nD:/GIT/x-lang/demo6/release/extlibs/xregex/xregex_native.c:686: error: incompatible types for redefinition of \u0027xregex_set_compile_native\u0027\n",
+                                       "elapsedMs":  1215
+                                   }
+                    },
+                    {
+                        "case":  "test/cases/extlib_onnxruntime.xl",
+                        "sha256":  "842589DA8BA5AAB7002D66BC4094F78EF2C60ED405B4062DFABFE58A2BB10955",
+                        "unchanged":  true,
+                        "result":  {
+                                       "status":  "fail",
+                                       "exitCode":  1,
+                                       "stdout":  "",
+                                       "stderr":  "tcc: In file included from __xlvfs__/csrc_0.c:121:\nD:/GIT/x-lang/demo6/release/extlibs/onnxruntime/src/onnxruntime_artifact.c:390: error: incompatible types for redefinition of \u0027ort_available_native\u0027\n",
+                                       "elapsedMs":  517
+                                   }
+                    },
+                    {
+                        "case":  "test/cases/extlib_css.xl",
+                        "sha256":  "8AC659AC433F69236CB2F725F5F46E939D14682A17EE6DB2207991D65CE0E576",
+                        "unchanged":  true,
+                        "result":  {
+                                       "status":  "fail",
+                                       "exitCode":  1,
+                                       "stdout":  "",
+                                       "stderr":  "uncaught xlang error: IOError: CSS block is not terminated\nuncaught xlang error: CSS block is not terminated\n",
+                                       "elapsedMs":  121
+                                   }
+                    },
+                    {
+                        "case":  "test/cases/extlib_blake3_boundaries.xl",
+                        "sha256":  "202DC0279BEE7BD0A6D0D33CA89E77374F7242BB491FB2933BF9FC4F5A8E958E",
+                        "unchanged":  true,
+                        "result":  {
+                                       "status":  "pass",
+                                       "exitCode":  0,
+                                       "stdout":  "",
+                                       "stderr":  "",
+                                       "elapsedMs":  1645
+                                   }
+                    },
+                    {
+                        "case":  "release/examples/extlibs/aho_corasick_basic.xl",
+                        "sha256":  "68E3DE86C33E98ED9940682EE3FAF6493B91EE18E75856A7A25323B8ECD7D460",
+                        "unchanged":  true,
+                        "result":  {
+                                       "status":  "pass",
+                                       "exitCode":  0,
+                                       "stdout":  "sorted:\nshe:1:4\nhe:2:4\nhers:2:6\nfirst=she\ncount=3\nreplace=u*\nhighlight=u\u003cshers\u003e\nmask=u#####\nstream:\nshe:1:4\nhe:2:4\nhers:2:6\nunicode=甲***界\nascii=1\n",
+                                       "stderr":  "",
+                                       "elapsedMs":  904
+                                   }
+                    }
+                ]
+}

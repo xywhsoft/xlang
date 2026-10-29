@@ -1,0 +1,36 @@
+{
+  "format": "xlang-extlib-sqlite-linux-evidence-1",
+  "executionEvidence": "Completed local gate; source hashes and logs revalidated at archival, not rerun during archival",
+  "archivedAt": "2026-09-27T03:01:21.9162288+08:00",
+  "completedAt": "2026-09-27T02:56:52.2552282+08:00",
+  "command": "bash tools/check_extlib_sqlite.sh",
+  "platform": "WSL Ubuntu x86_64",
+  "compiler": "gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+  "scope": "Independent C wrapper/allocator/thread tests and example with ASan/UBSan/leak detection; not Linux xlang, file-locking or power-loss certification",
+  "outcome": "passed",
+  "inputs": {
+    "release/extlibs/sqlite/examples/basic.c": "97183FF03778466C1EAF569B70603BB609C2B123C1EBA329B95170404B2C423C",
+    "release/extlibs/sqlite/include/sqlite_native.h": "C1B33DDA0B4FFE125D3A4EDAAA5102FCE2E11BA0CA02B2566D3DA485A998A08B",
+    "release/extlibs/sqlite/sqlite_native.c": "F21B9916D1B65AEF7349CB07D41D2552A6D9760E792513FCFFA4148A6FFDAC0D",
+    "release/extlibs/sqlite/src/sqlite.xl": "786993165FC46E1A0C6DC377B6743B92CCC00022086A6C24B9818FCB8EB6811E",
+    "release/extlibs/sqlite/test/boundaries.xl": "CAC4A1665A5D68DAAEDDF65A3A0468C867177488885F2581AC45D3739DBFCC2D",
+    "release/extlibs/sqlite/test/file.xl": "DB87216B582D29CE56C3644DE444D771EF5A9F1A0E662FC19E1E8F5DF72AD564",
+    "release/extlibs/sqlite/test/test_sqlite.c": "1599B26C34A260B5C8EA586E5AFC8C73EC1C07F6376D03AEB9D97B573F2328F2",
+    "release/extlibs/sqlite/test/test_sqlite_alloc.c": "6BC23AF29152C645C5DE39B5C174A76F0881E98877419EEFC4C9B0EC8776E019",
+    "release/extlibs/sqlite/test/test_sqlite_threads.c": "29949A7B12E0D6A6FFF0A23B292777FC793CE66AAA65B3FBDAD8EC05B42F7E17",
+    "release/extlibs/sqlite/third_party/sqlite3.c": "47C2BE8440A285D26BB9D4A176568CEAE0B7A44059CBBD36BECB6C9334F01D63",
+    "release/extlibs/sqlite/third_party/sqlite3.h": "8FF4EB239E86A498DA5FEA9931A9A72A82CB815CD8B798CB238706E4E903BE61",
+    "release/extlibs/sqlite/third_party/sqlite3ext.h": "A3CA6E430C8E97EDF8CBD66867AC178AB179A41D85C04CAD48889A8B84806DCD",
+    "release/extlibs/sqlite/xlang.package.json": "860BFDD5225165579C33CCAD8BD301D3B15EE0FD6C27834C58A6EDD1EA2DD5B4",
+    "lib/xrt/xrt.h": "7C78B4B3D13FC64AC1009E2EDFAE73E9FB092C896DA1A70CF5BE859D153851E8",
+    "test/support/extlib_sqlite_runtime.c": "1E311A824B0FA2C232A7A77506848CDD4B92AC59CD238C8511AFC37DEAE96FEA",
+    "tools/check_extlib_sqlite.sh": "CA7AB376F9253A36F906B4137E0ABE707243CF4AD928ED8003DB17DAAD5275B5",
+    "release/examples/extlibs/sqlite_basic.expected.txt": "EECA0AA74DF20CC8930827D033246ABE8C4E5AFB795D03B64F9B3D4813C16102"
+  },
+  "logs": {
+    "test_sqlite": "sqlite C: ABI/constants, storage/binary, statement states, errors and lifetimes passed\n",
+    "test_sqlite_alloc": "sqlite allocator: 149 injected allocation points, clean recovery passed\nsqlite XRT buffer allocator: failed=2 passed=6\nsqlite XRT temporary allocator: failed=1 passed=7\n",
+    "test_sqlite_threads": "sqlite threads: 4 independent connections, text lifetime and error isolation passed\n",
+    "basic": "sqlite demo\n1: Ada\n2: O'Reilly\nrollback: 2\nblob: 3 bytes\n"
+  }
+}

@@ -1,0 +1,54 @@
+import xssh
+from xssh import WireReader, WireWriter
+
+// 未知结果码不得先窄化成已知的 32 位码。
+assert xssh.codeName(-9) == "timeout"
+assert xssh.codeName(-1) == "argument"
+assert xssh.codeName(-10) == "unknown"
+assert xssh.codeName(4294967296) == "unknown"
+assert xssh.codeName(-4294967296) == "unknown"
+
+// 无符号 64 位值与字节缓冲不经过有符号值或字符串中转。
+WireWriter writer = WireWriter()
+assert writer.nativeHandle() != null
+writer.writeU64(uint64(0xffffffffffffffff))
+Buffer input = Buffer()
+input.appendByte(0)
+input.appendByte(255)
+writer.writeBuffer(input)
+writer.writeRaw(input)
+writer.writeRaw("END")
+Buffer snapshot = writer.bytes
+writer.clear()
+assert writer.length == 0
+
+WireReader reader = xssh.reader(snapshot)
+assert reader.nativeHandle() != null
+assert reader.readU64() == uint64(0xffffffffffffffff)
+Buffer copied = reader.readString()
+assert copied.len() == 2 and copied[0] == 0 and copied[1] == 255
+assert reader.tryBytes(99) == xssh.NEED_MORE
+assert reader.remaining == 5
+Buffer raw = reader.readBytes(2)
+assert raw.len() == 2 and raw[0] == 0 and raw[1] == 255
+assert reader.readBytes(3).text() == "END"
+assert reader.remaining == 0
+
+// 返回值拥有自己的数据；后续 clear/read 不应使旧值失效。
+assert copied[1] == 255 and raw[1] == 255
+bool rejected = false
+try
+    writer.writeU32(4294967296)
+catch ValueError error
+    rejected = true
+end
+assert rejected and writer.length == 0
+writer.writeByte(7)
+assert xssh.reader(writer.bytes).readByte() == 7
+
+string encoded = "AAAAC3NzaC1lZDI1NTE5AAAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+auto key = xssh.publicKeyLine("ssh-ed25519 " + encoded)
+assert key.base64 == encoded
+auto known = xssh.knownHost("example.test ssh-ed25519 " + encoded)
+assert known.base64 == encoded and known.hosts == "example.test"
+println("xssh binding boundaries: PASS")

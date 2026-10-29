@@ -1,0 +1,7 @@
+import blake2
+
+// 仅供 xl check：1 字节缓冲与 64 字节长度不匹配，绝不可运行。
+Buffer key = Buffer()
+key.appendByte(7)
+auto hasher = blake2.Blake2bKeyedHasher(c_size(16), key.data(),
+    c_size(64), c_ulonglong(1024))

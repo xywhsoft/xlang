@@ -1,5 +1,7 @@
 #include "xhttp_body_native_internal.h"
 
+/* 语言 point 的 ABI 是 void*；本文件的字节输入只读，核心继续接收 const 视图。 */
+
 
 
 /* 创建空正文。 */
@@ -12,7 +14,7 @@ XLANG_XHTTP_BODY_EXPORT void* xhttp_body_create_empty(void)
 
 /* 复制任意二进制数据并创建正文。 */
 XLANG_XHTTP_BODY_EXPORT void* xhttp_body_create_copy(
-	const void* pData,
+	void* pData,
 	size_t iSize
 )
 {
@@ -27,7 +29,7 @@ XLANG_XHTTP_BODY_EXPORT void* xhttp_body_create_text(
 	size_t iSize
 )
 {
-	return xhttp_body_create_copy(sText, iSize);
+	return xhttp_body_create_copy((void*)sText, iSize);
 }
 
 
@@ -49,10 +51,9 @@ XLANG_XHTTP_BODY_EXPORT void* xhttp_body_ref(void* pHandle)
 
 
 /* 释放正文引用。 */
-XLANG_XHTTP_BODY_EXPORT long long xhttp_body_destroy(void* pHandle)
+XLANG_XHTTP_BODY_EXPORT void xhttp_body_destroy(void* pHandle)
 {
 	xrtHttpBodyDestroy((xhttpbody*)pHandle);
-	return 0;
 }
 
 
@@ -146,7 +147,7 @@ XLANG_XHTTP_BODY_EXPORT void* xhttp_body_open(void* pHandle)
 
 
 /* 释放 Reader。 */
-XLANG_XHTTP_BODY_EXPORT long long xhttp_body_reader_destroy(
+XLANG_XHTTP_BODY_EXPORT void xhttp_body_reader_destroy(
 	void* pHandle
 )
 {
@@ -158,7 +159,6 @@ XLANG_XHTTP_BODY_EXPORT long long xhttp_body_reader_destroy(
 		memset(pOwner, 0, sizeof(*pOwner));
 		xrtFree(pOwner);
 	}
-	return 0;
 }
 
 
@@ -250,7 +250,7 @@ XLANG_XHTTP_BODY_EXPORT void* xhttp_body_chunk_wrap(void* pHandle)
 
 
 /* 释放 Chunk 数据租约。 */
-XLANG_XHTTP_BODY_EXPORT long long xhttp_body_chunk_destroy(
+XLANG_XHTTP_BODY_EXPORT void xhttp_body_chunk_destroy(
 	void* pHandle
 )
 {
@@ -262,7 +262,6 @@ XLANG_XHTTP_BODY_EXPORT long long xhttp_body_chunk_destroy(
 		memset(pChunk, 0, sizeof(*pChunk));
 		xrtFree(pChunk);
 	}
-	return 0;
 }
 
 
@@ -432,7 +431,7 @@ XLANG_XHTTP_BODY_EXPORT void* xhttp_body_concat(
 /* 在正文前后追加一次立即复制的字节片段。 */
 XLANG_XHTTP_BODY_EXPORT void* xhttp_body_with_bytes(
 	void* pHandle,
-	const void* pData,
+	void* pData,
 	size_t iSize,
 	bool bPrepend
 )
