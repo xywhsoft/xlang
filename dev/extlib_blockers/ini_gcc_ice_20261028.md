@@ -74,6 +74,43 @@ gcc -std=c11 -O2 -Wall -Wextra -Werror -Ilib/xrt -Irelease/extlibs/ini -c releas
 
 ## 关闭条件
 
+### 2026-10-30 门禁诊断补强，不关闭 ICE
+
+本轮未得到可归因的 ICE 复现。Windows 门禁统一使用既有有界进程工具，
+默认单项 120 秒，分别记录 stdout/stderr、工作目录、真实状态和退出码；
+gcc、cc1、Python、PowerShell 及工具源码加入输入指纹。编译参数仍为原
+配置，未关闭 evrp、换优化级别、自动重试或复用旧对象。
+
+- PowerShell 5.1/7 的 AST 自测均确认：旧 Run 会抛缺程序异常，但跳过
+  进程结果记录；新 Run 通过十个子进程结果检查。此问题不是已证实的
+  假绿，更不是这次 ICE 的根因。自测含静默退出 37、预期拒绝、意外
+  成功、空参数、双输出流、独立 CR、相对目录与一秒超时。
+- 两种宿主的默认完整门禁各通过 73 个子进程阶段，含 14 份独立程序。
+  两个私有访问负例保留真实 fail/exit=1，其他 71 项正常成功；不是将
+  非零状态改成 0。各 51 个实际输入/工具前后不变，GCC/cc1 指纹仍与
+  原始失败记录相同；本次无编译警告或 ICE，但不据此关闭风险。
+- 另用现有 c_run_exit_code.c 构建静默退出 37 的隔离编译器替身，
+  只在子进程 PATH 中置前，从两种宿主的真实 check.ps1 入口验证：
+  外层脚本失败为 1，GCC version 的内部原始状态保留 fail/37/空输出。
+  两次均保留原目录、命令、failure.txt、输入与最终结构化报告。
+  正式门禁不用该替身；父进程 PATH 和真实 GCC 未变。
+- Linux 仅对新增 C 诊断夹具严格编译和运行，覆盖退出 37、双流、独立
+  CR、相对目录及超时 124；不是本轮 Linux INI 完整回归。原生现场
+  /var/tmp/xlang-ini-gate-probe-TUxloA 保留，夹具源复制与前后哈希一致。
+
+Windows 完整报告：build/test/ini_guard_5e93e3ce64f24836a83eccbba0dc570c.report.json
+和 build/test/ini_guard_06de76f4f65d4ef188fbf20fc44fb6a4.report.json。
+前者为 PowerShell 5.1，后者为 PowerShell 7；两次代码相同，后者还包含
+新追加的官网验证说明，其包内 34 个输入前后不变。两次成功均清理了
+原临时产物，报告在目录旁保留。
+
+红绿、真实入口故障及前后指纹证据在
+build/test/ini_gate_before_70d7234e78cc4680af2b1edd069f0548。
+自测最初曾因 PowerShell 5.1 的 JSON 数组管线展开差异误判记录数，
+修正测试读取后两种宿主均通过，不把该测试假设当成 INI 产品 BUG。
+
+以下关闭要求继续有效，状态仍为 R：
+
 2026-10-29：包内另确认并修复拥有型流关闭覆盖 XRT 首因，以及 Reader
 关闭OOM误报IO；14组C复合失败和两平台默认完整门禁通过，Windows
 本次相同GCC参数的运行库编译没有复发ICE。该修复与evrp内部错误
