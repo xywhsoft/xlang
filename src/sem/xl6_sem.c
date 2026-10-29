@@ -8433,6 +8433,18 @@ static int xl6SemBindContextualMethod(XL6_SemContext* ctx,XL6_AstNode* expr,
     return xl6SemCheckRuntimeTypeExpr(ctx,expr,1);
 }
 
+/* Defaults are checked in three declaration scopes (language, extern and
+ * signature-only). Preserve each scope's access/prefix proof, then expose the
+ * same explicit binding to generic discovery and default-program lowering. */
+static int xl6SemBindCallableDefault(XL6_SemContext* ctx,XL6_AstNode* parameter)
+{
+    const XL6_AstNode* type=xl6SemResolveAliasType(ctx,parameter->children[0]);
+    const XL6_AstNode* inner=xl6SemNullableInnerType(type);
+    const XL6_AstNode* signature=xl6SemResolveAliasType(ctx,inner ? inner : type);
+    return !signature || !xl6TextEquals(signature->text,"function") || signature->childCount!=2 ||
+        xl6SemBindContextualMethod(ctx,parameter->children[1],signature,1,NULL)!=0;
+}
+
 /* -2: no compound callable context, -1: mismatch, otherwise match cost. */
 static int xl6SemContextualCallableCost(XL6_SemContext* ctx,XL6_AstNode* expr,
     const XL6_AstNode* type,int report,int* changed)
@@ -20491,7 +20503,7 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx, XL6_AstNode* node)
                         param->children[0],
                         xl6SemExprStaticTypeName(ctx, param->children[1]));
                     ok = 0;
-                }
+                } else if(!xl6SemBindCallableDefault(ctx,param))ok=0;
             } else if ( seenOptional ) {
                 xl6SemErrorNode(ctx, param, "必选参数不能出现在可选参数之后");
                 ok = 0;
@@ -21301,7 +21313,7 @@ static int xl6SemCheckExternFunc(XL6_SemContext* ctx, XL6_AstNode* node)
                         "extern default expression does not match parameter type", param->children[0],
                         xl6SemExprStaticTypeName(ctx, param->children[1]));
                     ok = 0;
-                }
+                } else if(!xl6SemBindCallableDefault(ctx,param))ok=0;
             } else if (seenOptional && !xl6SemParamIsVararg(param)) {
                 xl6SemErrorNode(ctx, param, "required extern parameter follows an optional parameter");
                 ok = 0;
@@ -21507,7 +21519,7 @@ static int xl6SemCheckParamListOnly(
                     param->children[0],
                     xl6SemExprStaticTypeName(ctx, param->children[1]));
                 ok = 0;
-            }
+            } else if(!xl6SemBindCallableDefault(ctx,param))ok=0;
         } else if ( seenOptional ) {
             xl6SemErrorNode(ctx, param, "必选参数不能出现在可选参数之后");
             ok = 0;

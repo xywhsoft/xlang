@@ -1,0 +1,8 @@
+class Hidden
+    private func Text() as int
+        return 7
+    end
+end
+func Read(Hidden source,func() as int callback=source.Text) as int
+    return callback()
+end

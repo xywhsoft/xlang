@@ -1,0 +1,10 @@
+class Base
+end
+class Reader
+    func Identity<T is Base>(T value) as T
+        return value
+    end
+    func Read(func(int) as int callback=self.Identity) as int
+        return callback(7)
+    end
+end

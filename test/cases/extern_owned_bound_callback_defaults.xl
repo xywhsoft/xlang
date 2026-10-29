@@ -1,0 +1,164 @@
+// A default method group uses the same binding as an explicit typed local.
+// The callback may outlive the call/receiver expression that created it.
+extern "c_owned_text" @no_raise func rawText() as point
+extern "c_owned_binary" @no_raise func rawBytes() as point
+extern "c_owned_release" @no_raise func release(point value)
+extern "c_owned_text_is_original" @no_raise func original(string value) as bool
+extern "c_owned_binary_span_original" @no_raise func originalBytes(cbytes value) as bool
+extern "bound_c_owners_balanced" @no_raise func balanced() as bool
+extern "bound_c_owners_one_record" @no_raise func oneRecord() as bool
+extern "owned_reset" @no_raise func reset()
+extern "owned_debug" @no_raise func debug() as bool
+extern "owned_fail_after" @no_raise func failAfter(int prefix)
+extern "owned_clear_failure" @no_raise func clearFailure()
+extern "owned_outstanding" @no_raise func live() as int
+extern "owned_original" @no_raise func nativeOriginal(string value) as bool
+extern "owned_one_allocation" @no_raise func oneAllocation(string value) as bool
+extern "typed_bound_handles" @no_raise func handles() as int
+typedef Text=func() as cstring
+int receivers=0
+int calls=0
+class Reader
+    int base=7
+    private func Text() as cstring
+        calls+=1
+        return cstring.take(rawText(),release)
+    end
+    private func Data() as cbytes
+        return cbytes.take(rawBytes(),4,release)
+    end
+    func Plain() as int
+        return self.base
+    end
+    func TextArgs(...) as cstring
+        assert arg.length==1
+        return self.Text()
+    end
+    func DataOptions(***) as cbytes
+        assert arg["key"]==7
+        return self.Data()
+    end
+    func Read(Text callback=self.Text) as cstring
+        // Measure the invocation separately from the default closure's own
+        // construction/destruction; that receiver binding has its own life.
+        reset()
+        cstring value=callback()
+        assert oneRecord()
+        return value
+    end
+    func Bytes(func() as cbytes callback=self.Data) as cbytes
+        reset()
+        cbytes value=callback()
+        assert oneRecord()
+        return value
+    end
+    func Value(func() as int callback=self.Plain) as int
+        return callback()
+    end
+    func Saved(Text callback=self.Text) as Text
+        return callback
+    end
+    func Optional(Text? callback=self.Text) as cstring?
+        return callback!=null ? callback() : null
+    end
+    func Ordinary(func() as string callback=self.Text) as string
+        return callback()
+    end
+    func Array(func(...) as cstring callback=self.TextArgs) as cstring
+        return callback(7)
+    end
+    func Dict(func(***) as cbytes callback=self.DataOptions) as cbytes
+        return callback(key=7)
+    end
+    // Preceding parameter, inherited method, and default receiver binding
+    // must keep their existing lexical scope and one-evaluation rules.
+    func Prefix(Reader source,Text callback=source.Text) as Text
+        return callback
+    end
+end
+class Child extends Reader
+end
+class Generic<K>
+    func Identity<T>(T value) as T
+        return value
+    end
+    func Read(func(int) as int callback=self.Identity) as int
+        return callback(7)
+    end
+end
+class Native
+    private native point handle
+    extern "typed_bound_open" create()
+    extern "typed_bound_close" destroy()
+    extern "typed_bound_text" @owned func Text(c_int mode=c_int(7)) as string
+    func Read(func() as string callback=self.Text) as string
+        reset()
+        string value=callback()
+        assert oneAllocation(value)
+        return value
+    end
+end
+func receiver() as Reader
+    receivers+=1
+    return Reader()
+end
+func exercise()
+    Reader object=Reader()
+    calls=0
+    string direct=object.Read()
+    assert original(direct) and calls==1
+    bytes binary=object.Bytes()
+    assert originalBytes(binary)
+    assert object.Value()==7
+    func() as cstring shortened=object.Read
+    string throughBound=shortened()
+    assert original(throughBound)
+    receivers=0
+    Text escaped=receiver().Saved()
+    assert receivers==1
+    string escapedValue=escaped()
+    assert original(escapedValue) and receivers==1
+    string? present=object.Optional()
+    assert present!=null
+    if present!=null
+        assert original(present)
+    end
+    assert object.Optional(null)==null
+    string ordinary=object.Ordinary()
+    assert ordinary=="hello" and not original(ordinary)
+    string array=object.Array()
+    assert original(array)
+    bytes dict=object.Dict()
+    assert originalBytes(dict)
+    receivers=0
+    Text prefix=object.Prefix(receiver())
+    assert receivers==1
+    string prefixValue=prefix()
+    assert original(prefixValue) and receivers==1
+    Child child=Child()
+    string inherited=child.Read()
+    assert original(inherited)
+    Generic<string> generic=Generic::<string>()
+    assert generic.Read()==7
+    Native native=Native()
+    string nativeValue=native.Read()
+    assert nativeOriginal(nativeValue)
+end
+assert debug()
+exercise()
+assert balanced() and handles()==0
+int accepted=0
+int rejected=0
+for prefix in range(384)
+    int before=live()
+    failAfter(prefix)
+    try
+        exercise()
+        accepted+=1
+    catch problem
+        rejected+=1
+    end
+    clearFailure()
+    assert live()==before and balanced() and handles()==0
+end
+assert accepted>0 and rejected>0
