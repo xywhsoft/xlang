@@ -1,0 +1,5 @@
+epoch=d6ff00000000
+micro=d7ff00000fa000000000
+negative=c70cff1dcd6500ffffffffffffffff
+binary=c40300ff41
+bytes=00ff41
