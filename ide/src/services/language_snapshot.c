@@ -539,6 +539,18 @@ static char* temporary(xide_model_error* e)
  return path;
 }
 #ifdef XLS_COMPILER_XRT
+static xvalue* nativeRawBodyValue(xls_raw_native_work raw)
+{
+ xvalue* value=xrtValueObject();
+ int okay=value && put(value,"registered",xrtValueInt((int64)raw.registered)) &&
+  put(value,"deferred",xrtValueInt((int64)raw.deferred)) && put(value,"restored",xrtValueInt((int64)raw.restored)) &&
+  put(value,"retries",xrtValueInt((int64)raw.retries)) && put(value,"fullMaterialized",xrtValueInt((int64)raw.fullMaterialized)) &&
+  put(value,"astFailures",xrtValueInt((int64)raw.astFailures)) && put(value,"discardedFunctions",xrtValueInt((int64)raw.discardedFunctions)) &&
+  put(value,"discardedCopyNodes",xrtValueInt((int64)raw.discardedCopyNodes)) &&
+  put(value,"capturedUnitBytes",xrtValueInt((int64)raw.capturedUnitBytes)) && put(value,"memoBytes",xrtValueInt((int64)raw.memoBytes));
+ if(!okay){xrtValueRelease(value);return NULL;}
+ return value;
+}
 static int nativeSignatureRun(xide_language_check* q,xvalue** output,xide_model_error* e)
 {
  xls_signature_help* signature=NULL;source_graph graph={0};char* json=NULL;xvalue *raw=NULL,*result=NULL;int okay=0;
@@ -567,6 +579,7 @@ static int nativeSignatureRun(xide_language_check* q,xvalue** output,xide_model_
   put(stats,"signatureSyntaxFallbacks",xrtValueInt((int64)parse.fallbacks)) &&
   put(stats,"signatureTypeNodes",xrtValueInt((int64)storage.nodes)) && put(stats,"signatureTypePages",xrtValueInt((int64)storage.pages)) &&
   put(stats,"signatureTypeBytes",xrtValueInt((int64)storage.chargedBytes)) && put(stats,"signatureTypeHeapFallbacks",xrtValueInt((int64)storage.heapFallbacks)) && sessionCacheStats(stats,q);
+ retained=retained && put(stats,"lastBuildRawBodies",nativeRawBodyValue(xlsSignatureRawBodyWork(signature)));
  if(retained){retained=put(result,"analysis",stats);stats=NULL;}xrtValueRelease(stats);
  if(!retained || !put(result,"version",xrtValueInt(q->queryVersion)) || !xlsSignatureValidate(signature) || !validateGraph(q,&graph,e) || cancelled(q))goto done;
  q->guardFiles=xrtValueDeepClone(get(get(raw,"sourceReport"),"files"));q->guardResolution=xrtValueDeepClone(get(raw,"resolutionReport"));
@@ -743,16 +756,7 @@ analysed:
    put(semWork,"proofNodes",xrtValueInt((int64)work.proofNodes));
   if(okayStats) {okayStats=put(stats,"lastBuildSemantics",semWork);semWork=NULL;}
   xrtValueRelease(semWork);
-  xls_raw_native_work raw=xlsSemanticCompletionRawBodyWork(nativeCompletion);
-  xvalue* rawWork=xrtValueObject();
-  okayStats=okayStats && rawWork && put(rawWork,"registered",xrtValueInt((int64)raw.registered)) &&
-   put(rawWork,"deferred",xrtValueInt((int64)raw.deferred)) && put(rawWork,"restored",xrtValueInt((int64)raw.restored)) &&
-   put(rawWork,"retries",xrtValueInt((int64)raw.retries)) && put(rawWork,"fullMaterialized",xrtValueInt((int64)raw.fullMaterialized)) &&
-   put(rawWork,"astFailures",xrtValueInt((int64)raw.astFailures)) && put(rawWork,"discardedFunctions",xrtValueInt((int64)raw.discardedFunctions)) &&
-   put(rawWork,"discardedCopyNodes",xrtValueInt((int64)raw.discardedCopyNodes)) &&
-   put(rawWork,"capturedUnitBytes",xrtValueInt((int64)raw.capturedUnitBytes)) && put(rawWork,"memoBytes",xrtValueInt((int64)raw.memoBytes));
-  if(okayStats){okayStats=put(stats,"lastBuildRawBodies",rawWork);rawWork=NULL;}
-  xrtValueRelease(rawWork);
+  okayStats=okayStats && put(stats,"lastBuildRawBodies",nativeRawBodyValue(xlsSemanticCompletionRawBodyWork(nativeCompletion)));
   xls_completion_unit_work word=xlsSemanticCompletionUnitWork(nativeCompletion);
   xvalue* wordWork=xrtValueObject();
   okayStats=okayStats && wordWork && put(wordWork,"projected",xrtValueInt((int64)word.projected)) &&

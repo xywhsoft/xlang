@@ -230,7 +230,7 @@ static xls_semantic_completion* create(xls_context* context,xls_entry_cache* cac
     xls_signature_scope signature;
     if(signatureData)xlsSignatureScopeBegin(&signature,signatureData,cancelled,user);
     xls_frontend_context_scope scope; xlsFrontendContextBegin(&scope,context);
-    xls_raw_scope raw;xlsRawBodyScopeBegin(&raw,NULL,memoEnabled && batch && syntax && !signatureData ? 32u*1024u*1024u : 0);
+    xls_raw_scope raw;xlsRawBodyScopeBegin(&raw,NULL,memoEnabled && batch && (syntax || (signatureData && signatureData->hasSite)) ? 32u*1024u*1024u : 0);
     xls_ast_materialize_scope materialization;
     xlsAstMaterializeBegin(&materialization,memoEnabled ? xlsAstMaterializeBudget() : 0);
     xls_entry_cache_scope entryScope;xlsFrontendEntryBegin(&entryScope,cache,context,entry);
@@ -458,8 +458,10 @@ xls_semantic_completion* xlsSemanticSignatureCreateBatch(xls_entry_cache* cache,
  const xls_analysis_document* query=xlsInputBatchFind(batch,queryKey);
  if(!query){xlsSignatureDataDestroy(data);fail(error,capacity,"missing immutable signature query");return NULL;}
  xls_semantic_input inputs[64];size_t count=xlsInputBatchInputs(batch,inputs,64);
- return create((xls_context*)xlsInputBatchContext(batch),cache,xlsInputBatchEntry(batch),query->path,
+ xls_semantic_completion* result=create((xls_context*)xlsInputBatchContext(batch),cache,xlsInputBatchEntry(batch),query->path,
      offset,inputs,count,NULL,previous && previous->signature ? previous : NULL,1,cancelled,user,error,capacity,data,batch);
+ if(result)result->wordKey=query->key;
+ return result;
 }
 
 xls_raw_native_work xlsSemanticCompletionRawBodyWork(const xls_semantic_completion* r)

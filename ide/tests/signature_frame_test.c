@@ -13,7 +13,7 @@ typedef struct fixture {
  const char *root,*compiler;HDESK desktop;xide_app app;xide_document *document,*otherDocument;
  xide_text_file file;char* entry;int failed,started,phase,mode,modeIndex,reverse,sample,samples,revision,offset,digit,frames,checks,priorRequest,helpers,cacheHits,indexBuilds,indexHits;
  LARGE_INTEGER frequency;uint64_t deadline;double inputAt,inputMs,peakFrame,totalFrame,cpuAt,coldAt;
- char* other;int scope,roots,nativeBuilds,scopeHits;
+ char* other;int scope,roots,nativeBuilds,scopeHits,rawRequired,shared,automatic;
 } fixture;
 static double now(fixture* f){LARGE_INTEGER t;QueryPerformanceCounter(&t);return 1000.0*t.QuadPart/f->frequency.QuadPart;}
 static double cpu(void){FILETIME c,e,k,u;if(!GetProcessTimes(GetCurrentProcess(),&c,&e,&k,&u))return -1;ULARGE_INTEGER a={.LowPart=k.dwLowDateTime,.HighPart=k.dwHighDateTime},b={.LowPart=u.dwLowDateTime,.HighPart=u.dwHighDateTime};return (a.QuadPart+b.QuadPart)*.0001;}
@@ -56,7 +56,14 @@ static int frame(void* user)
   CHECK(cvnumber(cvget(analysis,"cacheHits"),&cacheHits) && cvnumber(cvget(analysis,"indexBuilds"),&indexBuilds) && cvnumber(cvget(analysis,"indexHits"),&indexHits) && cvnumber(cvget(analysis,"reused"),&reused) && indexBuilds>0);
   CHECK(cvnumber(cvget(analysis,"builds"),&builds) && (!scoped || cvnumber(cvget(analysis,"inputScopeHits"),&scopeHits)));
   int rootHits=0,rootSessions=0;const xvalue* rootCache=cvget(analysis,"sessionCache");if(rootCache){CHECK(cvnumber(cvget(rootCache,"hits"),&rootHits) && cvnumber(cvget(rootCache,"sessions"),&rootSessions));}
+  const xvalue* raw=cvget(analysis,"lastBuildRawBodies");
+  int rawSupported=raw!=NULL,rawDeferred=0,rawRestored=0,rawRetries=0,rawFull=0,rawFailures=0,proofHits=0;
+  if(rawSupported)CHECK(cvnumber(cvget(raw,"deferred"),&rawDeferred) && cvnumber(cvget(raw,"restored"),&rawRestored) &&
+   cvnumber(cvget(raw,"retries"),&rawRetries) && cvnumber(cvget(raw,"fullMaterialized"),&rawFull) &&
+   cvnumber(cvget(raw,"astFailures"),&rawFailures) && cvnumber(cvget(analysis,"signatureProofHits"),&proofHits));
+  if(f->rawRequired)CHECK(rawSupported);
   if(f->phase==3){
+   if(f->rawRequired && f->mode<2)CHECK(rawDeferred>=f->helpers && rawRestored==rawDeferred && !rawRetries && !rawFull && !rawFailures && proofHits>=f->helpers);
    if(f->mode<2)CHECK(reused>=f->helpers && indexBuilds>f->indexBuilds);
    if(f->mode==2 && f->sample)CHECK(cacheHits>f->cacheHits && indexBuilds==f->indexBuilds);
    if(f->mode==3)CHECK(indexBuilds==f->indexBuilds && indexHits>f->indexHits);
@@ -65,7 +72,7 @@ static int frame(void* user)
   }
   f->cacheHits=cacheHits;f->indexBuilds=indexBuilds;f->indexHits=indexHits;f->nativeBuilds=builds;f->scopeHits=scopeHits;
   if(f->phase==1){printf("{\"coldMs\":%.6f,\"bytes\":%zu}\n",end-f->coldAt,strlen(f->file.text));f->phase=2;xgeRenderRequest();}
-  else{double consumed=cpu();CHECK(consumed>=f->cpuAt && f->cpuAt>=0);printf("{\"mode\":%d,\"sample\":%d,\"bytes\":%zu,\"documentVersion\":%u,\"inputMs\":%.6f,\"renderSubmittedMs\":%.6f,\"maxFrameMs\":%.6f,\"totalFrameMs\":%.6f,\"guiCpuMs\":%.6f,\"frames\":%d,\"cacheHits\":%d,\"indexBuilds\":%d,\"indexHits\":%d,\"semanticReused\":%d,\"builds\":%d,\"inputScopeHits\":%d,\"inputScopeSupported\":%d}\n",f->mode,f->sample,strlen(f->file.text),s->version,f->inputMs,end-f->inputAt,f->peakFrame,f->totalFrame,consumed-f->cpuAt,f->frames,cacheHits,indexBuilds,indexHits,reused,builds,scopeHits,scoped);fflush(stdout);
+  else{double consumed=cpu();CHECK(consumed>=f->cpuAt && f->cpuAt>=0);printf("{\"mode\":%d,\"sample\":%d,\"bytes\":%zu,\"documentVersion\":%u,\"inputMs\":%.6f,\"renderSubmittedMs\":%.6f,\"maxFrameMs\":%.6f,\"totalFrameMs\":%.6f,\"guiCpuMs\":%.6f,\"frames\":%d,\"cacheHits\":%d,\"indexBuilds\":%d,\"indexHits\":%d,\"semanticReused\":%d,\"builds\":%d,\"inputScopeHits\":%d,\"inputScopeSupported\":%d,\"rawSupported\":%d,\"rawDeferred\":%d,\"rawRestored\":%d,\"rawRetries\":%d,\"rawFullMaterialized\":%d,\"signatureProofHits\":%d}\n",f->mode,f->sample,strlen(f->file.text),s->version,f->inputMs,end-f->inputAt,f->peakFrame,f->totalFrame,consumed-f->cpuAt,f->frames,cacheHits,indexBuilds,indexHits,reused,builds,scopeHits,scoped,rawSupported,rawDeferred,rawRestored,rawRetries,rawFull,proofHits);fflush(stdout);
    if(!f->sample){char name[60];snprintf(name,sizeof(name),"mode-%d.png",f->mode);char* path=xidePathResolve(f->root,name);CHECK(path && xideAppCapture(a,path)==XGE_OK);free(path);}
    if(++f->sample==f->samples){f->sample=0;if(++f->modeIndex==(f->roots ? 1 : f->scope?5:4)){CHECK(key(a->context,XUI_KEY_ESCAPE,0));f->phase=4;}else f->phase=2;}else f->phase=2;xgeRenderRequest();
   }
@@ -77,14 +84,15 @@ static DWORD WINAPI worker(void* user)
 {fixture* f=user;if(!SetThreadDesktop(f->desktop))return 1;xge_desc_t d={0};d.iWidth=1280;d.iHeight=800;d.sTitle="Signature frame verification";d.iFlags=XGE_INIT_WINDOW|XGE_INIT_HIGHDPI|XGE_INIT_VSYNC|XGE_INIT_ON_DEMAND;d.iRunMode=XGE_RUN_GAME_LOOP;d.iTargetFPS=30;int r=xgeInit(&d);if(r==XGE_OK)r=xgeRun(frame,f);xideAppDestroy(&f->app);xgeUnit();return r==XGE_OK && f->started && !f->failed ? 0 : 1;}
 static int runMain(int argc,char** argv)
 {
- if((argc!=6 && (argc!=7 || (strcmp(argv[6],"scope") && strcmp(argv[6],"roots")))) || !xrtDirCreateAll(argv[1]))return 2;
- fixture f={.root=argv[1],.compiler=argv[2],.samples=atoi(argv[4]),.reverse=atoi(argv[5]),.scope=argc==7 && !strcmp(argv[6],"scope"),.roots=argc==7 && !strcmp(argv[6],"roots")};xide_model_error error={0};
+ if((argc!=6 && (argc!=7 || (strcmp(argv[6],"scope") && strcmp(argv[6],"roots") && strcmp(argv[6],"raw") && strcmp(argv[6],"shared") && strcmp(argv[6],"raw-shared") && strcmp(argv[6],"shared-auto") && strcmp(argv[6],"raw-shared-auto")))) || !xrtDirCreateAll(argv[1]))return 2;
+ fixture f={.root=argv[1],.compiler=argv[2],.samples=atoi(argv[4]),.reverse=atoi(argv[5]),.scope=argc==7 && !strcmp(argv[6],"scope"),.roots=argc==7 && !strcmp(argv[6],"roots"),.rawRequired=argc==7 && (!strcmp(argv[6],"raw") || !strcmp(argv[6],"raw-shared") || !strcmp(argv[6],"raw-shared-auto")),.shared=argc==7 && strstr(argv[6],"shared")!=NULL,.automatic=argc==7 && strstr(argv[6],"auto")!=NULL};xide_model_error error={0};
  if(f.samples<2 || f.samples>120 || (f.reverse!=0 && f.reverse!=1) || !QueryPerformanceFrequency(&f.frequency) || !xideTextFileRead(argv[3],&f.file,&error))return 2;
  char* call=strstr(f.file.text,"return choose(7, \"hello\")");if(!call)return 2;f.offset=(int)(call-f.file.text)+16;f.digit=f.offset-2;
  for(const char* p=f.file.text;(p=strstr(p,"func work_"))!=NULL;++p)++f.helpers;
- f.entry=xidePathResolve(f.root,"frame-signature.xl");if(!f.entry || !xrtFileWriteAtomic(f.entry,(xbytesview){f.file.raw,f.file.rawLength}))return 1;
+ if(f.rawRequired && !f.helpers)return 2;
+ f.entry=xidePathResolve(f.root,f.shared ? argv[3] : "frame-signature.xl");if(!f.entry || (!f.shared && !xrtFileWriteAtomic(f.entry,(xbytesview){f.file.raw,f.file.rawLength})))return 1;
  if(f.scope || f.roots){f.other=xidePathResolve(f.root,"unrelated.xl");if(!f.other || !xrtFileWriteAtomic(f.other,f.roots ? (xbytesview){f.file.raw,f.file.rawLength} : (xbytesview){(const unsigned char*)"// unrelated0\n",14}))return 1;}
- f.app.hidden=1;f.app.noSession=1;f.app.highDpi=1;f.app.disableAutomaticDiagnostics=1;f.app.compilerPath=f.compiler;
+ f.app.hidden=1;f.app.noSession=1;f.app.highDpi=1;f.app.disableAutomaticDiagnostics=!f.automatic;f.app.compilerPath=f.compiler;
  wchar_t name[100];swprintf(name,100,L"SignatureFrame-%lu",GetCurrentProcessId());f.desktop=CreateDesktopW(name,NULL,NULL,0,DESKTOP_CREATEWINDOW|DESKTOP_READOBJECTS|DESKTOP_WRITEOBJECTS|DESKTOP_ENUMERATE,NULL);if(!f.desktop)return 1;
  HANDLE t=CreateThread(NULL,0,worker,&f,0,NULL);DWORD code=1;if(t){if(WaitForSingleObject(t,600000)!=WAIT_OBJECT_0){fputs("signature frame timed out\n",stderr);ExitProcess(1);}GetExitCodeThread(t,&code);CloseHandle(t);}CloseDesktop(f.desktop);free(f.entry);free(f.other);xideTextFileClear(&f.file);return (int)code;
 }
