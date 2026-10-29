@@ -1,0 +1,59 @@
+// Expected signatures survive nested lazy expressions and flow narrowing.
+extern "c_owned_text" @no_raise func rawText() as point
+extern "c_owned_release" @no_raise func release(point value)
+extern "c_owned_text_is_original" @no_raise func original(string value) as bool
+extern "bound_c_owners_balanced" @no_raise func balanced() as bool
+class Reader
+    func Text() as cstring
+        return cstring.take(rawText(),release)
+    end
+end
+typedef Text=func() as cstring
+class Generic<K>
+    func Identity<T>(T value) as T
+        return value
+    end
+    // Both the receiver and expected default signature require substitution.
+    func Pass(K value,func(K) as K callback=self.Identity) as K
+        return callback(value)
+    end
+end
+class DefaultsOnly
+    func Text() as cstring
+        return cstring.take(rawText(),release)
+    end
+    // Never called directly: semantic checking of a direct call must not be
+    // required to publish the default binding's canonical type.
+    func Read(Text callback=self.Text) as cstring
+        return callback()
+    end
+end
+func check(bool choose)
+    Reader? optional=choose ? Reader() : null
+    Reader fallback=Reader()
+    Text flow=optional!=null ? optional.Text : fallback.Text
+    string value=flow()
+    assert original(value)
+    Text? maybe=choose ? fallback.Text : null
+    Text nested=choose ? (maybe ?? fallback.Text) : (choose ? fallback.Text : fallback.Text)
+    string nestedValue=nested()
+    assert original(nestedValue)
+    Text selected=null ?? (choose ? fallback.Text : fallback.Text)
+    string selectedValue=selected()
+    assert original(selectedValue)
+    Text assigned=fallback.Text
+    assigned=choose ? fallback.Text : fallback.Text
+    string assignedValue=assigned()
+    assert original(assignedValue)
+    Generic<int> a=Generic::<int>()
+    assert a.Pass(7)==7
+    Generic<string> b=Generic::<string>()
+    assert b.Pass("text")=="text"
+    DefaultsOnly defaults=DefaultsOnly()
+    Text read=defaults.Read
+    string defaultValue=read()
+    assert original(defaultValue)
+end
+check(true)
+check(false)
+assert balanced()

@@ -1,0 +1,13 @@
+extern "c_owned_text" @no_raise func rawText() as point
+extern "c_owned_release" @no_raise func release(point value)
+class Reader
+    func Text() as cstring
+        return cstring.take(rawText(),release)
+    end
+end
+func check(bool choose)
+    Reader reader=Reader()
+    var erased=reader.Text
+    // One authenticated branch cannot authorize an erased owner signature.
+    func() as cstring callback=choose ? erased : reader.Text
+end
