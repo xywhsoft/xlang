@@ -1,0 +1,3 @@
+import memory
+auto arena = ObjectArena()
+arena.__owned.clear()

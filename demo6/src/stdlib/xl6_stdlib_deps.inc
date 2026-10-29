@@ -159,8 +159,6 @@ static const XL6_StdlibDependency xl6StdlibDependencies[] = {
     {"path", "withName", "__xl_runtime", "takeCstr"},
     {"path", "withName", "__xrt_path", "withName"},
     {"os", "env", "env", "get"},
-    {"os", "platform", "__xl_runtime", "takeCstr"},
-    {"os", "platform", "__xl_runtime", "osPlatform"},
     {"os", "args", "__xl_runtime", "osArgs"},
     {"os", "cwd", "path", "cwd"},
     {"os", "setCwd", "path", "setCwd"},

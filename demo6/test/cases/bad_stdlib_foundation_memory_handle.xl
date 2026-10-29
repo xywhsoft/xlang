@@ -1,0 +1,2 @@
+import memory
+auto snapshot = MemoryStats(point(0))

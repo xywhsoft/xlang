@@ -1,0 +1,13 @@
+import memory
+bool previous = memory.statsEnabled()
+memory.enableStats(true)
+try
+    auto values = Buffer("hello\0你")
+    auto stats = memory.stats()
+    print("malloc requests:", stats.mallocCalls, "requested bytes:", stats.mallocBytes)
+    print("pooled blocks:", stats.pooledAllocCalls, "direct blocks:", stats.directAllocCalls)
+    print("debug enabled:", memory.debugEnabled())
+    print(memory.reportJson())
+finally
+    memory.enableStats(previous)
+end

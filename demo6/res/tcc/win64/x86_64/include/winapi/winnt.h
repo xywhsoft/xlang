@@ -3268,6 +3268,9 @@ typedef DWORD LCID;
 
 #define PROCESSOR_ARCHITECTURE_UNKNOWN 0xFFFF
 
+/* All processor groups, rather than only the caller's current group. */
+#define ALL_PROCESSOR_GROUPS 0xffff
+
 #define PF_FLOATING_POINT_PRECISION_ERRATA 0
 #define PF_FLOATING_POINT_EMULATED 1
 #define PF_COMPARE_EXCHANGE_DOUBLE 2

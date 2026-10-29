@@ -441,6 +441,7 @@ const char* xl6StdlibSipHasher64ClassEndSource = "end\n";
 
 /* X22-only legacy dependency. Default HTTP declarations are resident V2. */
 #include "xl6_stdlib_ws.inc"
+#include "xl6_stdlib_foundation.inc"
 
 #include "xl6_stdlib_udp_config.inc"
 
@@ -2346,11 +2347,6 @@ static const char xl6StdEnvSetBody[] =
 static const char xl6StdEnvRemoveBody[] =
     "extern \"xl6EnvRemoveV1\" func __xl_std_runtime_env_remove(string name, int size = -1)\n";
 
-static const char xl6StdOsPlatformBody[] =
-    "func __xl_std_os_platform() as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_os_platform())\n"
-    "end\n";
-
 static const char xl6StdOsArgsBody[] =
     "func __xl_std_os_args() as array\n"
     "    return array(__xl_std_runtime_os_args())\n"
@@ -4069,7 +4065,19 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"env", "has", "__xl_std_runtime_env_has", NULL, NULL, 0, "bool", xl6StdEnvHasBody},
     {"env", "set", "__xl_std_runtime_env_set", NULL, NULL, 0, "", xl6StdEnvSetBody},
     {"env", "remove", "__xl_std_runtime_env_remove", NULL, NULL, 0, "", xl6StdEnvRemoveBody},
-    {"os", "platform", "__xl_std_os_platform", NULL, NULL, 0, "string", xl6StdOsPlatformBody},
+    {"os", "platform", "__xl_std_os_platform", NULL, NULL, 0, "string", xl6StdFoundation_os_platform},
+    {"os", "architecture", "__xl_std_os_architecture", NULL, NULL, 0, "string", xl6StdFoundation_os_architecture},
+    {"os", "pointerBits", "__xl_std_os_pointerBits", NULL, NULL, 0, "int", xl6StdFoundation_os_pointerBits},
+    {"os", "littleEndian", "__xl_std_os_littleEndian", NULL, NULL, 0, "bool", xl6StdFoundation_os_littleEndian},
+    {"os", "logicalProcessorCount", "__xl_std_os_logicalProcessorCount", NULL, NULL, 0, "int", xl6StdFoundation_os_logicalProcessorCount},
+    {"memory", "statsEnabled", "__xl_std_memory_statsEnabled", NULL, NULL, 0, "bool", xl6StdFoundation_memory_statsEnabled},
+    {"memory", "enableStats", "__xl_std_memory_enableStats", NULL, NULL, 0, "", xl6StdFoundation_memory_enableStats},
+    {"memory", "resetStats", "__xl_std_memory_resetStats", NULL, NULL, 0, "", xl6StdFoundation_memory_resetStats},
+    {"memory", "stats", "__xl_std_memory_stats", NULL, NULL, 0, "MemoryStats", xl6StdFoundation_memory_stats},
+    {"memory", "debugEnabled", "__xl_std_memory_debugEnabled", NULL, NULL, 0, "bool", xl6StdFoundation_memory_debugEnabled},
+    {"memory", "debugSnapshot", "__xl_std_memory_debugSnapshot", NULL, NULL, 0, "MemoryDebugSnapshot", xl6StdFoundation_memory_debugSnapshot},
+    {"memory", "reportText", "__xl_std_memory_reportText", NULL, NULL, 0, "string", xl6StdFoundation_memory_reportText},
+    {"memory", "reportJson", "__xl_std_memory_reportJson", NULL, NULL, 0, "string", xl6StdFoundation_memory_reportJson},
     {"os", "args", "__xl_std_os_args", NULL, NULL, 0, "array", xl6StdOsArgsBody},
     {"os", "cwd", "__xl_std_os_cwd", NULL, NULL, 0, "string", xl6StdOsCwdBody},
     {"os", "setCwd", "__xl_std_os_set_cwd", NULL, xl6StdPathUnaryParams, 1, "bool", xl6StdOsSetCwdBody},

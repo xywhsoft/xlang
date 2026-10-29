@@ -1,0 +1,2 @@
+extern "xl6MemoryStatsCaptureV1" @no_raise func capture() as point
+capture()

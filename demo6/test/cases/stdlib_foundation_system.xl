@@ -1,0 +1,11 @@
+assert os.platform() != "", "system line 1"
+assert os.architecture() != "", "system line 2"
+assert os.pointerBits() == 32 or os.pointerBits() == 64, "system line 3"
+assert os.logicalProcessorCount() > 0, "system line 4"
+bool little = os.littleEndian()
+assert little == os.littleEndian(), "system line 6"
+string platform = os.platform()
+string architecture = os.architecture()
+var savedPlatform = platform
+assert savedPlatform as string == platform, "system line 10"
+assert architecture == os.architecture(), "system line 11"

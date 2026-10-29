@@ -1,0 +1,23 @@
+import memory
+class Actor
+    string name = ""
+    create(string name)
+        self.name = name
+    end
+    destroy()
+        print("release:", self.name)
+    end
+end
+func main(...)
+    auto pool = ObjectPool::<Actor>()
+    auto actor = pool.make(func() as Actor
+        return Actor("player")
+    end)
+    print("roots removed:", pool.clear())
+    print("external owner remains valid:", actor.name)
+    pool.close()
+    auto arena = ObjectArena()
+    arena.keep(actor)
+    print("arena roots:", arena.length)
+    arena.close()
+end

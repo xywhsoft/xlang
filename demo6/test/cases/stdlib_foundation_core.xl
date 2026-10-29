@@ -1,0 +1,44 @@
+class FoundationNode
+    derive clone
+    string text = "a\0你"
+    FoundationNode? next = null
+end
+
+string text = "a\0你"
+string isolated = text
+isolated[0] = 'b'
+assert text == "a\0你" and isolated == "b\0你", "core line 10"
+bytes original = b"\0\xff\0A"
+bytes changed = original
+changed[1] = uint8(7)
+assert original[1] == uint8(255) and changed[1] == uint8(7), "core line 14"
+FoundationNode node = FoundationNode()
+FoundationNode alias = node
+alias.text = "shared"
+assert node.text == "shared", "core line 18"
+FoundationNode independent = clone(node)
+independent.text = "copied"
+assert node.text == "shared", "core line 21"
+var boxed = node
+assert (boxed as FoundationNode).text == "shared", "core line 23"
+assert type(boxed) == type(node), "core line 24"
+weak<FoundationNode> observer = node
+assert observer.lock() != null, "core line 26"
+set<FoundationNode> identities = set{}
+identities.add(node)
+node.text = "new hash input"
+assert identities.contains(node) and not identities.contains(independent), "core line 30"
+int observed = 0
+try
+    throw ValueError "a\0你"
+catch e
+    assert e.message == "a\0你", "core line 35"
+    // Current throw ABI stores line/column; source file is explicitly absent.
+    assert e.file == "", "optional error file"
+    assert e.line > 0, "core line 37"
+    assert e.cause == null, "core line 38"
+    assert e.domain == "xlang", "core line 39"
+    assert e.operation == "throw", "core line 40"
+    observed = 1
+end
+assert observed == 1, "core line 43"

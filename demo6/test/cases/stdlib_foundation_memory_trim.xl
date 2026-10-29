@@ -1,0 +1,3 @@
+import memory
+auto value = memory.stats()
+assert value.classCount == uint64(64)

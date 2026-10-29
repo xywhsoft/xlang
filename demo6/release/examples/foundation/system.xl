@@ -1,0 +1,3 @@
+print("system:", os.platform(), "architecture:", os.architecture())
+print("pointer bits:", os.pointerBits(), "little endian:", os.littleEndian())
+print("online logical processors:", os.logicalProcessorCount())

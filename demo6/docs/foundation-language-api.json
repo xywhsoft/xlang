@@ -1,0 +1,916 @@
+{
+  "schema": 1,
+  "calls": [
+    {
+      "symbol": "xl6SystemPlatformV1",
+      "result": "string",
+      "params": [],
+      "owner": null,
+      "component": "SYSTEM_INFO",
+      "pure": true,
+      "noRaise": false,
+      "policy": null
+    },
+    {
+      "symbol": "xl6SystemArchitectureV1",
+      "result": "string",
+      "params": [],
+      "owner": null,
+      "component": "SYSTEM_INFO",
+      "pure": true,
+      "noRaise": false,
+      "policy": null
+    },
+    {
+      "symbol": "xl6SystemPointerBitsV1",
+      "result": "int",
+      "params": [],
+      "owner": null,
+      "component": "SYSTEM_INFO",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6SystemLittleEndianV1",
+      "result": "bool",
+      "params": [],
+      "owner": null,
+      "component": "SYSTEM_INFO",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6SystemLogicalProcessorCountV1",
+      "result": "int",
+      "params": [],
+      "owner": null,
+      "component": "SYSTEM_INFO",
+      "pure": false,
+      "noRaise": false,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryStatisticsEnabledV1",
+      "result": "bool",
+      "params": [],
+      "owner": null,
+      "component": "MEMORY_STATS",
+      "pure": false,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryStatsEnableV1",
+      "result": "void",
+      "params": [
+        "bool"
+      ],
+      "owner": null,
+      "component": "MEMORY_STATS",
+      "pure": false,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryStatsResetV1",
+      "result": "void",
+      "params": [],
+      "owner": null,
+      "component": "MEMORY_STATS",
+      "pure": false,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryStatsCaptureV1",
+      "result": "MemoryStats",
+      "params": [],
+      "owner": null,
+      "component": "MEMORY_STATS",
+      "pure": false,
+      "noRaise": false,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryDebugEnabledV1",
+      "result": "bool",
+      "params": [],
+      "owner": null,
+      "component": "MEMORY_DIAGNOSTICS",
+      "pure": false,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryDebugCaptureV1",
+      "result": "MemoryDebugSnapshot",
+      "params": [],
+      "owner": null,
+      "component": "MEMORY_DIAGNOSTICS",
+      "pure": false,
+      "noRaise": false,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryReportTextV1",
+      "result": "string",
+      "params": [
+        "int"
+      ],
+      "owner": null,
+      "component": "MEMORY_REPORT",
+      "pure": false,
+      "noRaise": false,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryReportJsonV1",
+      "result": "string",
+      "params": [
+        "int"
+      ],
+      "owner": null,
+      "component": "MEMORY_REPORT",
+      "pure": false,
+      "noRaise": false,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryStatsDestroyV1",
+      "result": "void",
+      "params": [
+        "MemoryStats"
+      ],
+      "owner": "MemoryStats",
+      "component": "MEMORY_STATS",
+      "pure": false,
+      "noRaise": true,
+      "policy": "xl6MemoryStatsHandlePolicyV1Get"
+    },
+    {
+      "symbol": "xl6MemoryStatsEnabledV1",
+      "result": "bool",
+      "params": [
+        "MemoryStats"
+      ],
+      "owner": "MemoryStats",
+      "component": "MEMORY_STATS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryStatsClassStepV1",
+      "result": "uint64",
+      "params": [
+        "MemoryStats"
+      ],
+      "owner": "MemoryStats",
+      "component": "MEMORY_STATS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryStatsClassCutoffV1",
+      "result": "uint64",
+      "params": [
+        "MemoryStats"
+      ],
+      "owner": "MemoryStats",
+      "component": "MEMORY_STATS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryStatsClassCountV1",
+      "result": "uint64",
+      "params": [
+        "MemoryStats"
+      ],
+      "owner": "MemoryStats",
+      "component": "MEMORY_STATS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryStatsMallocCallsV1",
+      "result": "uint64",
+      "params": [
+        "MemoryStats"
+      ],
+      "owner": "MemoryStats",
+      "component": "MEMORY_STATS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryStatsMallocBytesV1",
+      "result": "uint64",
+      "params": [
+        "MemoryStats"
+      ],
+      "owner": "MemoryStats",
+      "component": "MEMORY_STATS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryStatsCallocCallsV1",
+      "result": "uint64",
+      "params": [
+        "MemoryStats"
+      ],
+      "owner": "MemoryStats",
+      "component": "MEMORY_STATS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryStatsCallocBytesV1",
+      "result": "uint64",
+      "params": [
+        "MemoryStats"
+      ],
+      "owner": "MemoryStats",
+      "component": "MEMORY_STATS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryStatsReallocCallsV1",
+      "result": "uint64",
+      "params": [
+        "MemoryStats"
+      ],
+      "owner": "MemoryStats",
+      "component": "MEMORY_STATS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryStatsReallocBytesV1",
+      "result": "uint64",
+      "params": [
+        "MemoryStats"
+      ],
+      "owner": "MemoryStats",
+      "component": "MEMORY_STATS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryStatsMemDupCallsV1",
+      "result": "uint64",
+      "params": [
+        "MemoryStats"
+      ],
+      "owner": "MemoryStats",
+      "component": "MEMORY_STATS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryStatsMemDupBytesV1",
+      "result": "uint64",
+      "params": [
+        "MemoryStats"
+      ],
+      "owner": "MemoryStats",
+      "component": "MEMORY_STATS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryStatsFreeCallsV1",
+      "result": "uint64",
+      "params": [
+        "MemoryStats"
+      ],
+      "owner": "MemoryStats",
+      "component": "MEMORY_STATS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryStatsTempCallsV1",
+      "result": "uint64",
+      "params": [
+        "MemoryStats"
+      ],
+      "owner": "MemoryStats",
+      "component": "MEMORY_STATS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryStatsTempBytesV1",
+      "result": "uint64",
+      "params": [
+        "MemoryStats"
+      ],
+      "owner": "MemoryStats",
+      "component": "MEMORY_STATS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryStatsBlockAllocCallsV1",
+      "result": "uint64",
+      "params": [
+        "MemoryStats"
+      ],
+      "owner": "MemoryStats",
+      "component": "MEMORY_STATS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryStatsBlockAllocBytesV1",
+      "result": "uint64",
+      "params": [
+        "MemoryStats"
+      ],
+      "owner": "MemoryStats",
+      "component": "MEMORY_STATS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryStatsBlockFreeCallsV1",
+      "result": "uint64",
+      "params": [
+        "MemoryStats"
+      ],
+      "owner": "MemoryStats",
+      "component": "MEMORY_STATS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryStatsBlockFreeBytesV1",
+      "result": "uint64",
+      "params": [
+        "MemoryStats"
+      ],
+      "owner": "MemoryStats",
+      "component": "MEMORY_STATS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryStatsPooledAllocCallsV1",
+      "result": "uint64",
+      "params": [
+        "MemoryStats"
+      ],
+      "owner": "MemoryStats",
+      "component": "MEMORY_STATS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryStatsPooledAllocBytesV1",
+      "result": "uint64",
+      "params": [
+        "MemoryStats"
+      ],
+      "owner": "MemoryStats",
+      "component": "MEMORY_STATS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryStatsDirectAllocCallsV1",
+      "result": "uint64",
+      "params": [
+        "MemoryStats"
+      ],
+      "owner": "MemoryStats",
+      "component": "MEMORY_STATS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryStatsDirectAllocBytesV1",
+      "result": "uint64",
+      "params": [
+        "MemoryStats"
+      ],
+      "owner": "MemoryStats",
+      "component": "MEMORY_STATS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryStatsBackingAllocCallsV1",
+      "result": "uint64",
+      "params": [
+        "MemoryStats"
+      ],
+      "owner": "MemoryStats",
+      "component": "MEMORY_STATS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryStatsBackingAllocBytesV1",
+      "result": "uint64",
+      "params": [
+        "MemoryStats"
+      ],
+      "owner": "MemoryStats",
+      "component": "MEMORY_STATS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryStatsBackingReallocCallsV1",
+      "result": "uint64",
+      "params": [
+        "MemoryStats"
+      ],
+      "owner": "MemoryStats",
+      "component": "MEMORY_STATS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryStatsBackingReallocBytesV1",
+      "result": "uint64",
+      "params": [
+        "MemoryStats"
+      ],
+      "owner": "MemoryStats",
+      "component": "MEMORY_STATS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryStatsBackingFreeCallsV1",
+      "result": "uint64",
+      "params": [
+        "MemoryStats"
+      ],
+      "owner": "MemoryStats",
+      "component": "MEMORY_STATS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryStatsClassCallsV1",
+      "result": "uint64",
+      "params": [
+        "MemoryStats",
+        "int"
+      ],
+      "owner": "MemoryStats",
+      "component": "MEMORY_STATS",
+      "pure": true,
+      "noRaise": false,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryStatsClassBytesV1",
+      "result": "uint64",
+      "params": [
+        "MemoryStats",
+        "int"
+      ],
+      "owner": "MemoryStats",
+      "component": "MEMORY_STATS",
+      "pure": true,
+      "noRaise": false,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryDebugSnapshotDestroyV1",
+      "result": "void",
+      "params": [
+        "MemoryDebugSnapshot"
+      ],
+      "owner": "MemoryDebugSnapshot",
+      "component": "MEMORY_DIAGNOSTICS",
+      "pure": false,
+      "noRaise": true,
+      "policy": "xl6MemoryDebugSnapshotHandlePolicyV1Get"
+    },
+    {
+      "symbol": "xl6MemoryDebugSnapshotEnabledV1",
+      "result": "bool",
+      "params": [
+        "MemoryDebugSnapshot"
+      ],
+      "owner": "MemoryDebugSnapshot",
+      "component": "MEMORY_DIAGNOSTICS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryDebugSnapshotLiveCountV1",
+      "result": "uint64",
+      "params": [
+        "MemoryDebugSnapshot"
+      ],
+      "owner": "MemoryDebugSnapshot",
+      "component": "MEMORY_DIAGNOSTICS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryDebugSnapshotLiveBytesV1",
+      "result": "uint64",
+      "params": [
+        "MemoryDebugSnapshot"
+      ],
+      "owner": "MemoryDebugSnapshot",
+      "component": "MEMORY_DIAGNOSTICS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryDebugSnapshotPeakCountV1",
+      "result": "uint64",
+      "params": [
+        "MemoryDebugSnapshot"
+      ],
+      "owner": "MemoryDebugSnapshot",
+      "component": "MEMORY_DIAGNOSTICS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryDebugSnapshotPeakBytesV1",
+      "result": "uint64",
+      "params": [
+        "MemoryDebugSnapshot"
+      ],
+      "owner": "MemoryDebugSnapshot",
+      "component": "MEMORY_DIAGNOSTICS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryDebugSnapshotQuarantineCountV1",
+      "result": "uint64",
+      "params": [
+        "MemoryDebugSnapshot"
+      ],
+      "owner": "MemoryDebugSnapshot",
+      "component": "MEMORY_DIAGNOSTICS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryDebugSnapshotQuarantineBytesV1",
+      "result": "uint64",
+      "params": [
+        "MemoryDebugSnapshot"
+      ],
+      "owner": "MemoryDebugSnapshot",
+      "component": "MEMORY_DIAGNOSTICS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryDebugSnapshotAllocCountV1",
+      "result": "uint64",
+      "params": [
+        "MemoryDebugSnapshot"
+      ],
+      "owner": "MemoryDebugSnapshot",
+      "component": "MEMORY_DIAGNOSTICS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryDebugSnapshotFreeCountV1",
+      "result": "uint64",
+      "params": [
+        "MemoryDebugSnapshot"
+      ],
+      "owner": "MemoryDebugSnapshot",
+      "component": "MEMORY_DIAGNOSTICS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryDebugSnapshotReallocCountV1",
+      "result": "uint64",
+      "params": [
+        "MemoryDebugSnapshot"
+      ],
+      "owner": "MemoryDebugSnapshot",
+      "component": "MEMORY_DIAGNOSTICS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryDebugSnapshotDoubleFreeCountV1",
+      "result": "uint64",
+      "params": [
+        "MemoryDebugSnapshot"
+      ],
+      "owner": "MemoryDebugSnapshot",
+      "component": "MEMORY_DIAGNOSTICS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryDebugSnapshotInvalidFreeCountV1",
+      "result": "uint64",
+      "params": [
+        "MemoryDebugSnapshot"
+      ],
+      "owner": "MemoryDebugSnapshot",
+      "component": "MEMORY_DIAGNOSTICS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryDebugSnapshotOverflowCountV1",
+      "result": "uint64",
+      "params": [
+        "MemoryDebugSnapshot"
+      ],
+      "owner": "MemoryDebugSnapshot",
+      "component": "MEMORY_DIAGNOSTICS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryDebugSnapshotUnderflowCountV1",
+      "result": "uint64",
+      "params": [
+        "MemoryDebugSnapshot"
+      ],
+      "owner": "MemoryDebugSnapshot",
+      "component": "MEMORY_DIAGNOSTICS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryDebugSnapshotUseAfterFreeCountV1",
+      "result": "uint64",
+      "params": [
+        "MemoryDebugSnapshot"
+      ],
+      "owner": "MemoryDebugSnapshot",
+      "component": "MEMORY_DIAGNOSTICS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryDebugSnapshotTempCurrentBytesV1",
+      "result": "uint64",
+      "params": [
+        "MemoryDebugSnapshot"
+      ],
+      "owner": "MemoryDebugSnapshot",
+      "component": "MEMORY_DIAGNOSTICS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryDebugSnapshotTempPeakBytesV1",
+      "result": "uint64",
+      "params": [
+        "MemoryDebugSnapshot"
+      ],
+      "owner": "MemoryDebugSnapshot",
+      "component": "MEMORY_DIAGNOSTICS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryDebugSnapshotTempResetCountV1",
+      "result": "uint64",
+      "params": [
+        "MemoryDebugSnapshot"
+      ],
+      "owner": "MemoryDebugSnapshot",
+      "component": "MEMORY_DIAGNOSTICS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6MemoryDebugSnapshotEventCountV1",
+      "result": "uint64",
+      "params": [
+        "MemoryDebugSnapshot"
+      ],
+      "owner": "MemoryDebugSnapshot",
+      "component": "MEMORY_DIAGNOSTICS",
+      "pure": true,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6ObjectPoolControlCreateV1",
+      "result": "__ObjectPoolControl",
+      "params": [],
+      "owner": null,
+      "component": "OBJECT_POOL_CONTROL",
+      "pure": false,
+      "noRaise": false,
+      "policy": null
+    },
+    {
+      "symbol": "xl6ObjectPoolControlDestroyV1",
+      "result": "void",
+      "params": [
+        "__ObjectPoolControl"
+      ],
+      "owner": "__ObjectPoolControl",
+      "component": "OBJECT_POOL_CONTROL",
+      "pure": false,
+      "noRaise": true,
+      "policy": "xl6ObjectPoolControlHandlePolicyV1Get"
+    },
+    {
+      "symbol": "xl6ObjectPoolControlCheckV1",
+      "result": "void",
+      "params": [
+        "__ObjectPoolControl"
+      ],
+      "owner": "__ObjectPoolControl",
+      "component": "OBJECT_POOL_CONTROL",
+      "pure": false,
+      "noRaise": false,
+      "policy": null
+    },
+    {
+      "symbol": "xl6ObjectPoolControlEnterV1",
+      "result": "void",
+      "params": [
+        "__ObjectPoolControl"
+      ],
+      "owner": "__ObjectPoolControl",
+      "component": "OBJECT_POOL_CONTROL",
+      "pure": false,
+      "noRaise": false,
+      "policy": null
+    },
+    {
+      "symbol": "xl6ObjectPoolControlLeaveV1",
+      "result": "void",
+      "params": [
+        "__ObjectPoolControl"
+      ],
+      "owner": "__ObjectPoolControl",
+      "component": "OBJECT_POOL_CONTROL",
+      "pure": false,
+      "noRaise": true,
+      "policy": null
+    },
+    {
+      "symbol": "xl6ObjectPoolControlCloseV1",
+      "result": "void",
+      "params": [
+        "__ObjectPoolControl"
+      ],
+      "owner": "__ObjectPoolControl",
+      "component": "OBJECT_POOL_CONTROL",
+      "pure": false,
+      "noRaise": false,
+      "policy": null
+    },
+    {
+      "symbol": "xl6ObjectPoolControlIdleV1",
+      "result": "void",
+      "params": [
+        "__ObjectPoolControl"
+      ],
+      "owner": "__ObjectPoolControl",
+      "component": "OBJECT_POOL_CONTROL",
+      "pure": false,
+      "noRaise": false,
+      "policy": null
+    },
+    {
+      "symbol": "xl6ObjectPoolControlClosedV1",
+      "result": "bool",
+      "params": [
+        "__ObjectPoolControl"
+      ],
+      "owner": "__ObjectPoolControl",
+      "component": "OBJECT_POOL_CONTROL",
+      "pure": false,
+      "noRaise": false,
+      "policy": null
+    }
+  ],
+  "functions": [
+    {
+      "namespace": "os",
+      "name": "platform",
+      "result": "string"
+    },
+    {
+      "namespace": "os",
+      "name": "architecture",
+      "result": "string"
+    },
+    {
+      "namespace": "os",
+      "name": "pointerBits",
+      "result": "int"
+    },
+    {
+      "namespace": "os",
+      "name": "littleEndian",
+      "result": "bool"
+    },
+    {
+      "namespace": "os",
+      "name": "logicalProcessorCount",
+      "result": "int"
+    },
+    {
+      "namespace": "memory",
+      "name": "statsEnabled",
+      "result": "bool"
+    },
+    {
+      "namespace": "memory",
+      "name": "enableStats",
+      "result": "void"
+    },
+    {
+      "namespace": "memory",
+      "name": "resetStats",
+      "result": "void"
+    },
+    {
+      "namespace": "memory",
+      "name": "stats",
+      "result": "MemoryStats"
+    },
+    {
+      "namespace": "memory",
+      "name": "debugEnabled",
+      "result": "bool"
+    },
+    {
+      "namespace": "memory",
+      "name": "debugSnapshot",
+      "result": "MemoryDebugSnapshot"
+    },
+    {
+      "namespace": "memory",
+      "name": "reportText",
+      "result": "string"
+    },
+    {
+      "namespace": "memory",
+      "name": "reportJson",
+      "result": "string"
+    }
+  ]
+}

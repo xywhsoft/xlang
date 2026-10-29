@@ -1,0 +1,101 @@
+import memory
+
+int released = 0
+class PoolItem
+    int number = 0
+    create(int number = 0)
+        self.number = number
+    end
+    destroy()
+        released += 1
+    end
+end
+class PoolOther
+    string text = "other\0你"
+end
+
+func exercisePools()
+    auto pool = ObjectPool::<PoolItem>()
+    PoolItem? escaped = pool.make(func() as PoolItem
+        return PoolItem(42)
+    end)
+    assert pool.length == 1
+    assert escaped != null and escaped.number == 42
+    assert pool.clear() == 1
+    assert released == 0
+    assert escaped != null and escaped.number == 42
+    if escaped != null then escaped.number = 77 end
+    escaped = null
+    assert released == 1
+    assert pool.length == 0
+    auto held = PoolItem(9)
+    assert pool.keep(held).number == 9
+    assert pool.length == 1
+    pool.close()
+    assert pool.closed and pool.length == 0 and held.number == 9
+    pool.close()
+    int rejected = 0
+    try
+        pool.make(func() as PoolItem
+            return PoolItem(12)
+        end)
+    catch e
+        rejected += 1
+    end
+    assert rejected == 1 and pool.length == 0
+
+    auto arena = ObjectArena()
+    auto one = arena.make(func() as PoolItem
+        return PoolItem(10)
+    end)
+    auto two = arena.make(func() as PoolOther
+        return PoolOther()
+    end)
+    assert arena.length == 2
+    assert one.number == 10 and two.text == "other\0你"
+    rejected = 0
+    try
+        arena.make(func() as PoolItem
+            throw ValueError "factory\0error"
+        end)
+    catch e
+        assert e.message == "factory\0error"
+        rejected += 1
+    end
+    assert rejected == 1 and arena.length == 2
+    auto reentrant = arena.make(func() as PoolItem
+        int blocked = 0
+        try
+            arena.clear()
+        catch e
+            blocked += 1
+        end
+        try
+            arena.close()
+        catch e
+            blocked += 1
+        end
+        assert blocked == 2
+        return PoolItem(11)
+    end)
+    assert arena.length == 3 and reentrant.number == 11
+    assert arena.clear() == 3
+    assert one.number == 10 and two.text == "other\0你"
+    assert arena.keep(one).number == 10
+    arena.close()
+    assert arena.closed and arena.length == 0
+end
+exercisePools()
+assert released == 4
+
+class PoolCycle
+    ObjectArena? owner = null
+end
+func makeCycle()
+    auto arena = ObjectArena()
+    auto item = arena.make(func() as PoolCycle
+        return PoolCycle()
+    end)
+    item.owner = arena
+end
+makeCycle()

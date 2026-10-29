@@ -1188,3 +1188,11 @@
     src\sem\xl6_sem_field_attrs.c
     src\sem\xl6_sem.c
     %XL6_DLL_LINKS%
+src/runtime/xl6_system_info.c
+src/runtime/xl6_memory_stats.c
+src/runtime/xl6_memory_diagnostics.c
+src/runtime/xl6_memory_report.c
+src/runtime/xl6_memory_stats_domain.c
+src/runtime/xl6_memory_diagnostics_domain.c
+src/runtime/xl6_object_pool_control.c
+src/runtime/xl6_object_pool_control_domain.c

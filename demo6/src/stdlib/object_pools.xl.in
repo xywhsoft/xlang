@@ -1,0 +1,113 @@
+// Explicit lifetime pools use the existing XRT shared allocator. These are
+// ownership groups, not allocator replacement or object-recycling caches.
+class __ObjectPoolControl
+    private native point handle
+    extern "xl6ObjectPoolControlCreateV1" @nonblocking create()
+    extern "xl6ObjectPoolControlDestroyV1" @no_raise @nonblocking destroy()
+    extern "xl6ObjectPoolControlCheckV1" @nonblocking func check()
+    extern "xl6ObjectPoolControlEnterV1" @nonblocking func enter()
+    extern "xl6ObjectPoolControlLeaveV1" @no_raise @nonblocking func leave()
+    extern "xl6ObjectPoolControlCloseV1" @nonblocking func close()
+    extern "xl6ObjectPoolControlIdleV1" @nonblocking func idle()
+    extern "xl6ObjectPoolControlClosedV1" @nonblocking get closed() as bool
+end
+
+// Constraints use structural protocols. An empty protocol admits class
+// references without forcing inheritance from the dynamic-fields `object`.
+// It is a compile-time constraint; no protocol value/witness is stored.
+protocol __ObjectPoolMember
+end
+
+class ObjectPool<T is __ObjectPoolMember>
+    private __ObjectPoolControl __control = __ObjectPoolControl()
+    private array<T> __owned = []
+
+    func make(func() as T factory) as T
+        self.__control.enter()
+        try
+            T result = factory()
+            // Deliberate static class constraint; scalars/records/Future are
+            // not pool objects. No dynamic boxing or constructor dispatch.
+            if not self.__owned.push(result) then throw MemoryError "object pool root retention failed" end
+            return result
+        finally
+            self.__control.leave()
+        end
+    end
+
+    func keep(T item) as T
+        self.__control.check()
+        if not self.__owned.push(item) then throw MemoryError "object pool root retention failed" end
+        return item
+    end
+
+    get length() as int
+        self.__control.idle()
+        return self.__owned.length
+    end
+
+    get closed() as bool
+        return self.__control.closed
+    end
+
+    func clear() as int
+        self.__control.idle()
+        int count = self.__owned.length
+        // Detach before invoking arbitrary destructors. Reentrant cleanup
+        // cannot observe the old entries or accidentally drop them twice.
+        array<T> retired = self.__owned
+        self.__owned = []
+        if not retired.clear() then throw RuntimeError "object pool root cleanup failed" end
+        return count
+    end
+
+    func close()
+        self.__control.close()
+        self.clear()
+    end
+end
+
+class ObjectArena
+    private __ObjectPoolControl __control = __ObjectPoolControl()
+    private array<var> __owned = []
+
+    func make<T is __ObjectPoolMember>(func() as T factory) as T
+        self.__control.enter()
+        try
+            T result = factory()
+            if not self.__owned.push(result) then throw MemoryError "object arena root retention failed" end
+            return result
+        finally
+            self.__control.leave()
+        end
+    end
+
+    func keep<T is __ObjectPoolMember>(T item) as T
+        self.__control.check()
+        if not self.__owned.push(item) then throw MemoryError "object arena root retention failed" end
+        return item
+    end
+
+    get length() as int
+        self.__control.idle()
+        return self.__owned.length
+    end
+
+    get closed() as bool
+        return self.__control.closed
+    end
+
+    func clear() as int
+        self.__control.idle()
+        int count = self.__owned.length
+        array<var> retired = self.__owned
+        self.__owned = []
+        if not retired.clear() then throw RuntimeError "object arena root cleanup failed" end
+        return count
+    end
+
+    func close()
+        self.__control.close()
+        self.clear()
+    end
+end
