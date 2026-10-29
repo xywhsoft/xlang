@@ -1,0 +1,31 @@
+// 结果必须能离开原生索引的作用域；保留二进制文本，不转零结尾字符串。
+import skiplist
+
+func saved() as (string, var, var)
+    skiplist.SkipList table = skiplist.create()
+    table.set("a\0b", "v\0x")
+    table.set("你", "值")
+    return table.get("a\0b"), table.keys(), table.range("", "你")
+end
+
+func main(...) as int
+    auto text, keys, rows = saved()
+    assert text == "v\0x" and string.byteLen(text) == 3
+    assert keys.length == 2 and keys[0] == "a\0b" and keys[1] == "你"
+    assert rows.length == 2 and rows[0]["value"] == "v\0x"
+    assert rows[1]["key"] == "你" and rows[1]["value"] == "值"
+    skiplist.SkipList table = skiplist.create()
+    table.set("", "")
+    assert table.contains("") and table.get("", "fallback") == ""
+    assert table.get("absent", "default\0tail") == "default\0tail"
+    string value = string.repeat("你", 4096) + "\0tail"
+    table.set("long", value)
+    string result = table.get("long")
+    value = "rebound"
+    table.set("long", "changed")
+    assert string.byteLen(result) == 12293 and string.slice(result, 4096, 5) == "\0tail"
+    table.clear()
+    assert table.count == 0 and result != "changed"
+    assert rows[0]["value"] == "v\0x" and text == "v\0x"
+    return 0
+end

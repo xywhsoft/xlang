@@ -1,0 +1,36 @@
+// 完整字节键和值：空值、内嵌 NUL、结果快照以及清空后的复用。
+import skiplist
+
+func main(...) as int
+    skiplist.SkipList table = skiplist.create()
+    assert table.valid
+    table.set("", "")
+    table.set("a", "plain")
+    table.set("a\0b", "v\0x")
+    table.set("你", "值")
+    assert table.count == 4 and table.contains("a\0b")
+    string binary = table.get("a\0b")
+    var keys = table.keys()
+    var rows = table.range("a", "a\0b")
+    assert binary == "v\0x" and string.byteLen(binary) == 3
+    assert keys.length == 4 and keys[0] == "" and keys[2] == "a\0b"
+    assert rows.length == 2 and rows[0]["value"] == "plain"
+    assert rows[1]["key"] == "a\0b" and rows[1]["value"] == binary
+    println("binary bytes:", string.byteLen(binary))
+    bool storedEmpty = table.get("", "fallback") == ""
+    assert storedEmpty
+    println("empty stored:", storedEmpty)
+    println("missing default:", table.get("missing", "fallback"))
+    println("range rows:", rows.length)
+    // 覆盖/删除/清空索引不改变已持有的结果；不要用 C strlen 读这些文本。
+    table.set("a", "changed")
+    assert table.remove("a\0b") and not table.contains("a\0b")
+    table.clear()
+    assert table.count == 0 and keys.length == 4 and rows.length == 2
+    assert rows[0]["value"] == "plain" and rows[1]["value"] == "v\0x"
+    println("snapshot rows:", rows.length)
+    table.set("reuse", "ok")
+    assert table.get("reuse") == "ok" and table.count == 1
+    println("reused count:", table.count)
+    return 0
+end

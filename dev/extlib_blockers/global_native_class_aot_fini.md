@@ -502,3 +502,21 @@ tmp/xlang-rtree-vhJCWB。两个非零记录中另一个是私有访问的正常�
 rtree_global_native_aot_fini.xl继续保留为主线修复入口。Windows静默
 编译器内部37/外层1、Linux缺工具原始127的实测均保存现场，不当作门禁
 通过。证据索引build/test/rtree_audit_676f28c4c6a34d36b8b0c4e9fb0f5f29。
+
+## 2026-10-30 SkipList 完整门禁复核
+
+原allocations.xl未改，两平台JIT正常、独立程序构建成功；最后运行仍报
+operation is not valid in the current state并退出1。九条普通独立程序
+先通过，含旧核心/双语、新三结果跨函数快照、二进制双语与C故障夹具。
+本轮不修改算法/绑定/ABI，C范例OOM漏报修复与这项全局退役问题独立。
+
+Windows默认49阶段前48符合预期，报告
+build/test/skiplist_guard/run_dbb2db91d97647d3b5dc60672d937e83.json，
+44输入不变、0警告。Linux原生快照/var/tmp/xlang-skiplist-final-src-f2EIuw，
+48阶段前47符合预期，现场tmp/xlang-skiplist-wXl8aM；42门禁输入、78复制
+源与原件前后不变，C含sanitizer、0警告。私有访问的1为正常拒绝，最后
+original-global-run的1仍是真实失败，默认要求0，不据局部绿灯签收。
+历史最小源skiplist_aot_top_level.xl继续保留，修复责任仍在主线退役顺序。
+
+Windows真实静默编译器内部37/外层1、Linux缺工具原始127均保留现场。
+本轮证据索引build/test/skiplist_audit_99ba8c387776482f907d29a31e07ccc9。
