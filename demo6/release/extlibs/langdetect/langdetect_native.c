@@ -14,18 +14,7 @@
 #define XLANGDETECT_DOMAIN "xlang.extlib.langdetect"
 #define XLANGDETECT_MAX_TEXT (1024u * 1024u)
 
-typedef enum xlangdetect_script_kind {
-    XLANGDETECT_SCRIPT_UNKNOWN = 0,
-    XLANGDETECT_SCRIPT_LATIN,
-    XLANGDETECT_SCRIPT_HAN,
-    XLANGDETECT_SCRIPT_JAPANESE,
-    XLANGDETECT_SCRIPT_KOREAN,
-    XLANGDETECT_SCRIPT_CYRILLIC,
-    XLANGDETECT_SCRIPT_ARABIC
-} xlangdetect_script_kind;
-
 typedef struct xlangdetect_stats {
-    size_t Scalars;
     size_t Letters;
     size_t Latin;
     size_t Han;
@@ -98,7 +87,6 @@ static bool xlangdetect_han_letter(uint32 iScalar)
 
 static void xlangdetect_count_scalar(xlangdetect_stats* pStats, uint32 iScalar)
 {
-    pStats->Scalars++;
     if (((iScalar >= UINT32_C(0x0041)) && (iScalar <= UINT32_C(0x005A))) ||
         ((iScalar >= UINT32_C(0x0061)) && (iScalar <= UINT32_C(0x007A))) ||
         ((iScalar >= UINT32_C(0x00C0)) && (iScalar <= UINT32_C(0x024F)) &&
@@ -198,35 +186,29 @@ static bool xlangdetect_letter_before(cstr sText, size_t iSize, size_t iOffset)
 
 
 
-/* 统计 ASCII 词单串的独立出现次数，忽略 ASCII 大小写。 */
-static int xlangdetect_word_count(cstr sText, size_t iText, cstr sWord)
-{
-    size_t iWord = strlen(sWord);
-    int iCount = 0;
-
-    if (iWord == 0u || iText < iWord) { return 0; }
-    for (size_t i = 0; i + iWord <= iText; i++) {
-        size_t j;
-
-        for (j = 0u; j < iWord; j++) {
-            if (xlangdetect_ascii_lower((uint8)sText[i + j]) != (uint8)sWord[j]) { break; }
-        }
-        if (j != iWord) { continue; }
-        if (xlangdetect_letter_before(sText, iText, i) ||
-            xlangdetect_letter_at(sText, iText, i + iWord)) { continue; }
-        ++iCount;
-    }
-    return iCount;
-}
-
-
-
+/* 每个模型只扫描一次完整ASCII词段，避免为每个常见词重新扫描全文。 */
 static int xlangdetect_score(cstr sText, size_t iSize, const cstr* arrWords, size_t iCount)
 {
     int iScore = 0;
+    size_t iOffset = 0;
 
-    for (size_t i = 0u; i < iCount; i++) {
-        iScore += xlangdetect_word_count(sText, iSize, arrWords[i]);
+    while (iOffset < iSize) {
+        size_t iStart, iLength;
+
+        if (!xlangdetect_ascii_letter((uint8)sText[iOffset])) { ++iOffset; continue; }
+        iStart = iOffset;
+        do { ++iOffset; } while (iOffset < iSize && xlangdetect_ascii_letter((uint8)sText[iOffset]));
+        iLength = iOffset - iStart;
+        /* Unicode字母仍约束词边界，不能把éthe或the中拆成独立的the。 */
+        if (xlangdetect_letter_before(sText, iSize, iStart) ||
+            xlangdetect_letter_at(sText, iSize, iOffset)) { continue; }
+        for (size_t i = 0u; i < iCount; ++i) {
+            cstr sWord = arrWords[i];
+            size_t j = 0;
+            while (j < iLength && sWord[j] != '\0' &&
+                xlangdetect_ascii_lower((uint8)sText[iStart + j]) == (uint8)sWord[j]) ++j;
+            if (j == iLength && sWord[j] == '\0') ++iScore;
+        }
     }
     return iScore;
 }

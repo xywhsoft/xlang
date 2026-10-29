@@ -16,7 +16,7 @@
     "dependencies": [],
     "coverage": {
         "mode": "suite",
-        "tests": ["test/analysis_boundaries.xl"]
+        "tests": ["test/analysis_boundaries.xl", "test/score_boundaries.xl"]
     },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

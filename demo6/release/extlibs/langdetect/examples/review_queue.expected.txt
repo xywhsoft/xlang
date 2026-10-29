@@ -1,0 +1,10 @@
+route: en
+route: fr
+route: ja
+route: zh
+route: ko
+route: manual
+route: manual
+route: manual
+route: en
+langdetect review queue: PASS

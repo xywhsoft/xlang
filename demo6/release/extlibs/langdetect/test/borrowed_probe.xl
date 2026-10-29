@@ -1,0 +1,12 @@
+import langdetect
+
+// C返回静态借用文字，语言需要复制取得独立结果，不能标记为owned。
+func main(...) as int
+    assert langdetect.detect("the and is") == "english"
+    assert langdetect.code("the and is") == "en"
+    assert langdetect.script("the and is") == "Latin"
+    assert langdetect.confidence("the") == 57
+    assert langdetect.isValidUtf8("the\0and")
+    assert langdetect.lastError() == ""
+    return 0
+end

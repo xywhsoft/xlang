@@ -1,3 +1,4 @@
-#define XRT_MODULE_ALL
+#define XRT_MODULE_UNICODE
+#define XRT_MODULE_MEMORY_DEBUG
 #define XRT_IMPLEMENTATION
 #include "xrt.h"
