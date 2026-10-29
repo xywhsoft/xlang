@@ -27,11 +27,16 @@ int main(void)
     uint64_t bytes=xl6NetEngineConfigBufferBlockSizeV1(copy,0),limit=xl6NetEngineConfigBufferCacheLimitV1(copy,0);
     void* buffers=xl6NetEngineConfigWithBufferClassV1(copy,0,bytes,limit+1);assert(buffers&&xl6NetEngineConfigBufferCacheLimitV1(buffers,0)==limit+1);
     xl6NetEngineConfigDestroyV1(copy);assert(xl6NetEngineConfigWorkersV1(buffers)==2&&xl6NetEngineConfigBufferBlockSizeV1(buffers,0)==bytes);
+    /* Millisecond durations are stored directly: no obsolete microsecond
+     * conversion limit may reject the largest signed finite duration. */
+    void* maximum=xl6NetEngineConfigWithIdleWaitV1(buffers,INT64_MAX);
+    assert(maximum&&xl6NetEngineConfigIdleWaitV1(maximum)==INT64_MAX);
+    xl6NetEngineConfigDestroyV1(maximum);
     for(unsigned mode=0;mode<7;++mode){
         xl6_error_scope scope={0};assert(xl6ErrorScopeBegin(&scope));void* invalid=NULL;
         if(mode==0)invalid=xl6NetEngineConfigWithWorkersV1(buffers,257);
         else if(mode==1)invalid=xl6NetEngineConfigWithIdleWaitV1(buffers,0);
-        else if(mode==2)invalid=xl6NetEngineConfigWithIdleWaitV1(buffers,INT64_MAX);
+        else if(mode==2)invalid=xl6NetEngineConfigWithIdleWaitV1(buffers,INT64_MIN);
         else if(mode==3)invalid=xl6NetEngineConfigWithCommandCapacityV1(buffers,1);
         else if(mode==4)invalid=xl6NetEngineConfigWithBufferBudgetV1(buffers,0);
         else if(mode==5)invalid=xl6NetEngineConfigWithBufferClassV1(buffers,4,bytes,1);

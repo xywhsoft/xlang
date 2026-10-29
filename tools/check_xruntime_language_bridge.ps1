@@ -1,4 +1,4 @@
-param([string]$Root = '')
+param([string]$Root = '', [string]$Xl = '', [string]$Out = '', [switch]$StaticOnly)
 
 $ErrorActionPreference = 'Stop'
 if (!$Root) { $Root = Split-Path -Parent $PSScriptRoot }
@@ -14,6 +14,11 @@ $paths = [ordered]@{
     Needs = 'src/cgen/xl6_ir_cgen_needs.inc'
     NeedsAnalysis = 'src/cgen/xl6_ir_cgen_needs_analysis.c'
     XValueEmit = 'src/cgen/xl6_ir_cgen_emit_xvalue_containers.c'
+    DynamicFields = 'src/runtime/xl6_dynamic_fields.c'
+    DynamicCollection = 'src/runtime/xl6_dynamic_collection.c'
+    ArrayMethods = 'src/runtime/xl6_array_methods.c'
+    Tree = 'src/runtime/xl6_tree.c'
+    Project = 'src/runtime/xl6_persistence_project_open.c'
     Persistence = 'src/cgen/xl6_ir_cgen_dispatch_persistence.c'
     ResourceEmit = 'src/cgen/xl6_ir_cgen_emit_resource_support.c'
     CollectionContract = 'src/cgen/xl6_ir_cgen_collection_emit.c'
@@ -125,8 +130,9 @@ if ($failures.Count -eq 0) {
     foreach ($contract in @(
         'XL6_IR_CGEN_NATIVE_GROUP(DYNAMIC_FIELDS, "XRUNTIME_MODULE_RUNTIME_DYNAMIC_FIELD")',
         'XL6_IR_CGEN_NATIVE_GROUP(WEAK, "XRUNTIME_MODULE_RUNTIME_VALUE_WEAK")',
-        'XL6_IR_CGEN_NATIVE_GROUP(QUEUES, "XRUNTIME_MODULE_TYPED_QUEUE_SPSC", "XRUNTIME_MODULE_TYPED_QUEUE_MPSC", "XRUNTIME_MODULE_TYPED_QUEUE_MPMC")',
-        'XL6_IR_CGEN_NATIVE_GROUP(STACK, "XRUNTIME_MODULE_TYPED_STACK")',
+        'XL6_IR_CGEN_NATIVE_GROUP(SPSC_QUEUE, "XRUNTIME_MODULE_TYPED_QUEUE_SPSC")',
+        'XL6_IR_CGEN_NATIVE_GROUP(MPSC_QUEUE, "XRUNTIME_MODULE_TYPED_QUEUE_MPSC")',
+        'XL6_IR_CGEN_NATIVE_GROUP(MPMC_QUEUE, "XRUNTIME_MODULE_TYPED_QUEUE_MPMC")',
         'XL6_IR_CGEN_NATIVE_GROUP(TREE, "XRUNTIME_MODULE_TYPED_TREE")'
     )) {
         Require-Text $text.NativeGroups $contract "XLIR native dependency group is missing: $contract"
@@ -134,59 +140,25 @@ if ($failures.Count -eq 0) {
     foreach ($contract in @(
         'XL6_IR_CGEN_NEED(int, needsXValueDynamicFieldRuntime, DYNAMIC_FIELDS)',
         'XL6_IR_CGEN_NEED(int, needsPersistenceDynamicFields, DYNAMIC_FIELDS)',
-        'XL6_IR_CGEN_NEED(int, needsDynamicFieldsBridgeRuntime, DYNAMIC_FIELDS)',
-        'XL6_IR_CGEN_NEED(int, needsSpecialQueueBatchRuntime, QUEUES)',
-        'XL6_IR_CGEN_NEED(int, needsStackResourceRuntime, STACK)',
+        'XL6_IR_CGEN_NEED(int, needsStackResourceRuntime, NONE)',
         'XL6_IR_CGEN_NEED(int, needsAvlTreeResourceRuntime, TREE)'
     )) {
         Require-Text $text.Needs $contract "XLIR runtime need is not mapped to an implementation group: $contract"
     }
 
-    foreach ($contract in @(
-        'needs->needsXValueDynamicFieldRuntime = 1;',
-        'needs->needsChannelResourceRuntime = 1;',
-        'needs->needsSpecialQueueBatchRuntime = 1;'
-    )) {
-        Require-Text $text.NeedsAnalysis $contract "lowered XLIR does not close a runtime dependency: $contract"
+    Require-Text $text.NeedsAnalysis 'needs->needsXValueDynamicFieldRuntime = 1;' 'lowered XLIR loses dynamic-field dependency'
+    foreach ($call in @('xrtDynamicFieldsHas(', 'xrtDynamicFieldsSetRef(', 'xrtDynamicFieldsCreate(')) {
+        Require-Text $text.DynamicFields $call "resident DynamicFields does not delegate to xruntime: $call"
     }
-    foreach ($contract in @(
-        'xrtDynamicFieldsGet(fields, key)',
-        'xrtDynamicFieldsSetNew(fields, key, item)',
-        'xlir_xvalue_dynamic_field_get_or_null',
-        'xlir_xvalue_dynamic_field_set_new'
-    )) {
-        Require-Text $text.XValueEmit $contract "XLIR dynamic-field emitter is missing: $contract"
+    foreach ($call in @('xl6ArrayMethodReserveV1(', 'xl6ArrayMethodSwapV1(')) {
+        Require-Text $text.DynamicCollection $call "dynamic collection loses checked typed method: $call"
     }
-    Require-Text $text.Persistence 'xrtDynamicFieldsToValue(' 'object persistence bypasses xruntime dynamic fields'
-    Require-Text $text.Persistence 'xrtDynamicFieldsFromValue(' 'object restore bypasses xruntime dynamic fields'
-
-    foreach ($contract in @(
-        'xrtValueGetInt(arg0, &first) && first >= 0',
-        'first >= 0 && second >= 0',
-        'xrtValueReserve(collection, (size_t)first)',
-        'xrtValueArraySwap(collection, (size_t)first, (size_t)second)'
-    )) {
-        Require-Text $text.XValueEmit $contract "dynamic collection signed-range contract is missing: $contract"
+    foreach ($call in @('xrtTypedTreeMerge(', 'xrtTypedTreeClone(', 'compatiblePolicies(')) {
+        Require-Text $text.Tree $call "resident tree does not delegate to xruntime: $call"
     }
-    Require-Text $text.CollectionInstruction 'xlir_xvalue_dynamic_collection_method(' 'dynamic collection RuntimeOp renderer is missing'
-
-    foreach ($contract in @(
-        'XL6_IR_RUNTIME_SPECIAL_QUEUE_PUSH_BATCH',
-        'XL6_IR_RUNTIME_SPECIAL_QUEUE_POP_BATCH_INTO',
-        'xlir_special_queue_push_batch(',
-        'xlir_special_queue_pop_batch_into('
-    )) {
-        $target = if ($contract.StartsWith('XL6_')) { $text.CollectionContract } else { $text.ResourceEmit }
-        Require-Text $target $contract "special queue bridge is missing: $contract"
-    }
-    foreach ($contract in @(
-        'capacity < 0 || (uint64_t)capacity > (uint64_t)SIZE_MAX',
-        'xrtTypedTreeMerge(',
-        'xrtTypedTreeClone(',
-        'xrtTypedTreeEquals('
-    )) {
-        Require-Text $text.ResourceEmit $contract "typed resource bridge is missing: $contract"
-    }
+    # Signed-range, native family pruning, batches and persistence behavior are
+    # exercised below against JIT and standalone AOT, rather than inferred from
+    # retired inline emitter text. Resident calls may legitimately move files.
 
     $setSection = Get-Section $text.Runtime 'static inline bool xl6TypedSetMerge(' 'static inline xtdict xl6TypedDictCreate('
     if (!$setSection) {
@@ -230,7 +202,7 @@ if ($failures.Count -eq 0) {
     $emitterText = $text.NativeGroups + $text.Needs + $text.NeedsAnalysis +
         $text.XValueEmit + $text.Persistence + $text.ResourceEmit +
         $text.CollectionContract + $text.CollectionInstruction
-    if ($emitterText -match 'XL6_Ast|XL6_Hir|->inferredType|xl6Sem') {
+    if ($emitterText -match '\bXL6_(?:Ast|Hir)\w*|->inferredType\b|\bxl6Sem(?!CreateV1\b|CreateDefaultV1\b|WaitV1\b|TryWaitV1\b|WaitTimeoutV1\b|PostV1\b|PostMultipleV1\b)[A-Z]\w*\s*\(') {
         Add-Failure 'xruntime language bridge reads a retired frontend semantic model'
     }
 }
@@ -244,5 +216,12 @@ if ($failures.Count -ne 0) {
     exit 1
 }
 
-Write-Host 'xruntime language bridge ok: direct runtime delegation and verified XLIR dependency closure are preserved.'
+if (!$StaticOnly) {
+    if (!$Xl) { $Xl = Join-Path $Root 'release/xl.exe' }
+    if (!$Out) { throw 'Provide -Out outside the source tree for JIT/AOT bridge acceptance, or explicitly select -StaticOnly.' }
+    & python -B (Join-Path $Root 'tools/check_xruntime_bridge_behavior.py') --root $Root --xl $Xl --out $Out
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+}
+Write-Host ('xruntime language bridge ok: resident delegation; ' + $(if ($StaticOnly) { 'static contracts only' } else { 'JIT/AOT behavior and dependency closure' }))
 exit 0
+
