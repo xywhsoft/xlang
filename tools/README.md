@@ -1,4 +1,4 @@
-# demo6/tools
+# tools
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
@@ -715,7 +715,7 @@ Representative and cross-cutting guards include:
 
 `check_debugger_not_released.ps1` verifies that the incomplete probe/DAP prototype is not advertised or accepted by the first-release CLI. A real debugger must return through a new reviewed design and cannot reuse synthetic stack or variable responses.
 
-`check_release_tmp_artifacts.ps1` validates generated test text and also rejects tracked workspace-only output, control characters in tracked filenames, and unclassified files at the `demo6` root. Build products may remain ignored locally, but they cannot silently enter the source baseline.
+`check_release_tmp_artifacts.ps1` validates generated test text and also rejects tracked workspace-only output, control characters in tracked filenames, and unclassified files at the repository root. Build products may remain ignored locally, but they cannot silently enter the source baseline.
 
 `check_extlib_mqtt.ps1` compiles the MQTT C implementation against the fixed XRT snapshot, exercises allocation-failure and loopback TCP boundaries, and repeats the codec and TCP cases through xlang JIT and AOT paths.
 

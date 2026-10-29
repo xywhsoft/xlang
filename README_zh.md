@@ -178,12 +178,11 @@ end
 
 ## 标准库与包生态
 
-- **核心标准库**:500+ 公开函数、数十个模块——`net`(TCP / UDP / TLS / 解析器 / 代理)、`crypto`(AES-GCM、ChaCha20-Poly1305、SHA 家族、Ed25519、X25519、RSA 等)、`json` / `xson`、`regex`、`template`、`fs` / `dir` / `file`(同步 + 异步)、`process`、`os`、`time`、`encoding`、`codec`、`log`、`math`、`random`、`signal`、`task` 等——构建在共享运行时基座 [XRT](demo6/docs/XRT集成原则.md) 之上。
-- **214 个现成扩展包**(`demo6/release/extlibs/`),每个仅一份 `xlang.package.json` 清单,支持多版本共存:`sqlite`、`zeromq`、`imgui`、`webview`、`glad`、`freetype`、`harfbuzz`、`stb_image`、`zip` / `zstd` / `brotli` / `lz4`、`yaml` / `toml` / `xml` / `csv`、`jwt`、`etcd`、`docker`、`kubernetes`,还有 AI 一角(`ggml`、`whisper`、`faiss`、`hnswlib`、`tokenizers`),以及完整的 `xge` 游戏栈与 `xui` / `ui.auto` UI 栈。
-- **真实游戏作为范例**(`demo6/release/examples/games/`):九个完整游戏——贪吃蛇、俄罗斯方块、2048、Flappy、Pong、打砖块、扫雷、小行星、射击——全部用 xlang 基于 XGE 扩展库(窗口、输入、图形、字体、纹理、音频)编写。
+- **核心标准库**:500+ 公开函数、数十个模块——`net`(TCP / UDP / TLS / 解析器 / 代理)、`crypto`(AES-GCM、ChaCha20-Poly1305、SHA 家族、Ed25519、X25519、RSA 等)、`json` / `xson`、`regex`、`template`、`fs` / `dir` / `file`(同步 + 异步)、`process`、`os`、`time`、`encoding`、`codec`、`log`、`math`、`random`、`signal`、`task` 等——构建在共享运行时基座 [XRT](docs/XRT集成原则.md) 之上。
+- **214 个现成扩展包**(`release/extlibs/`),每个仅一份 `xlang.package.json` 清单,支持多版本共存:`sqlite`、`zeromq`、`imgui`、`webview`、`glad`、`freetype`、`harfbuzz`、`stb_image`、`zip` / `zstd` / `brotli` / `lz4`、`yaml` / `toml` / `xml` / `csv`、`jwt`、`etcd`、`docker`、`kubernetes`,还有 AI 一角(`ggml`、`whisper`、`faiss`、`hnswlib`、`tokenizers`),以及完整的 `xge` 游戏栈与 `xui` / `ui.auto` UI 栈。
+- **真实游戏作为范例**(`release/examples/games/`):九个完整游戏——贪吃蛇、俄罗斯方块、2048、Flappy、Pong、打砖块、扫雷、小行星、射击——全部用 xlang 基于 XGE 扩展库(窗口、输入、图形、字体、纹理、音频)编写。
 
 ```bat
-cd demo6
 release\xl.exe run release\examples\games\snake.xl
 ```
 
@@ -206,13 +205,11 @@ xl impdef module.dll -o m.def   :: 从现有 DLL 导入 C 符号
 - **自带完整工具链**:编译器以 C11 编写,用内嵌 TCC 自举构建,无需外部 SDK。
 
 ```bat
-cd demo6
 build.bat          :: Windows
 test.bat           :: 主回归(4700+ 用例文件)
 ```
 
 ```bash
-cd demo6
 bash build.sh && bash test_linux.sh
 ```
 
@@ -220,15 +217,15 @@ bash build.sh && bash test_linux.sh
 
 | 路径 | 内容 |
 |---|---|
-| `demo6/` | 编译器、运行时、标准库、测试、文档、范例 |
-| `demo6/docs/` | 设计文档(中文)——设计决策的唯一口径 |
-| `demo6/release/examples/` | 450+ 范例程序,含游戏与应用 |
-| `demo6/test/` | 回归资产:用例、套件、fixture、interop 测试 |
+| `src/` | 编译器、运行库对接和标准库实现 |
+| `docs/` | 设计文档(中文)——设计决策的唯一口径 |
+| `release/examples/` | 450+ 范例程序,含游戏与应用 |
+| `test/` | 回归资产:用例、套件、fixture、interop 测试 |
 | `ide/` | xlang IDE 源码、构建与便携发布 |
 | `DEMO6说明.md` | 当前编译器功能清单(中文) |
 
 ## 状态
 
-xlang 处于发布候选压实阶段:四阶段管线、模块/包系统、DLL 嵌入 API 与大型回归套件(4700+ 用例,由 `rc0_guard` 守门)已经就位;网络数据通路拥有权模型与扩展库生态仍在推进。设计文档目前以中文为主,位于 `demo6/docs/`。
+xlang 处于发布候选压实阶段:四阶段管线、模块/包系统、DLL 嵌入 API 与大型回归套件(4700+ 用例,由 `rc0_guard` 守门)已经就位;网络数据通路拥有权模型与扩展库生态仍在推进。设计文档目前以中文为主,位于 `docs/`。
 
 许可协议:待公布。
