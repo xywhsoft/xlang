@@ -1,4 +1,5 @@
 #include "services/build_inputs.h"
+#include "platform/receipt_time.h"
 #include "services/tasks.h"
 #include "platform/path.h"
 #include "platform/file_io.h"
@@ -66,10 +67,11 @@ int main(void) {
  xide_task* task=xideTasksBuild(tasks,&project,NULL,argv[2],1,&error); CHECK(task && waitTask(tasks,task,&info) && info.state==XIDE_TASK_SUCCEEDED && info.built && info.ran && info.inputReport && info.inputsVerified && hasInput(task,header) && hasInput(task,nested) && xidePathExists(xideTaskInputReceipt(task)));
  const char* realReceipt=xideTaskInputReceipt(task),*artifact=xideTaskArtifact(task); receipt=xideBuildInputsLoad(realReceipt,artifact,NULL,NULL,NULL,&error); CHECK(receipt && xideBuildInputsHasFile(receipt,header) && xideBuildInputsValidate(receipt,&error) && xideBuildInputsArtifactValid(receipt,output,&error));
  CHECK(!xideBuildInputsOutputValid(receipt,header,&error) && !xideBuildInputsOutputValid(receipt,realReceipt,&error) && !xideBuildInputsOutputValid(receipt,artifact,&error));
- original=xrtJsonParseFile(realReceipt); CHECK(original);
- for(int mutation=0;mutation<14;++mutation) {
+ original=xrtJsonParseFile(realReceipt); CHECK(original); int64 wireSchema=0; CHECK(xrtValueGetInt(get(original,"schema"),&wireSchema) && (wireSchema==1 || wireSchema==2));
+ CHECK(xideReceiptMilliseconds(0)==INT64_C(62135596800000) && xideReceiptMilliseconds(1123)==INT64_C(62135596800001) && xideReceiptMilliseconds(-1)==INT64_C(62135596799999));
+ for(int mutation=0;mutation<18;++mutation) {
   value=xrtValueClone(original); CHECK(value); xvalue* item=xrtValueArrayGet(get(value,"files"),0);
-  if(mutation==0) CHECK(put(value,"schema",xrtValueInt(2)));
+  if(mutation==0) CHECK(put(value,"schema",xrtValueInt(3)));
   if(mutation==1) CHECK(put(value,"complete",xrtValueBool(false)));
   if(mutation==2) CHECK(string(value,"scope","loaded-sources-and-manifests"));
   if(mutation==3) CHECK(string(item,"path","relative.bin"));
@@ -78,15 +80,19 @@ int main(void) {
   if(mutation==6) { xvalue* probes=get(value,"nativeMissing"); CHECK(xrtValueCount(probes) && xrtValueArrayAppend(probes,xrtValueArrayGet(probes,0))); }
   if(mutation==7) { xvalue* probe=xrtValueObject(); CHECK(probe && string(probe,"path",header) && put(probe,"exists",xrtValueBool(false)) && xrtValueArrayAppendNew(get(value,"xlangProbes"),probe)); }
   if(mutation==8) CHECK(string(item,"sha256","0000000000000000000000000000000000000000000000000000000000000000"));
-  if(mutation==9) CHECK(string(get(item,"metadata"),"modifiedUs","01"));
+  if(mutation==9) CHECK(string(get(item,"metadata"),wireSchema==1 ? "modifiedUs" : "modifiedMs","01"));
   if(mutation==10) CHECK(put(item,"size",xrtValueInt(64u*1024u*1024u+1)));
   if(mutation==11) CHECK(put(value,"packagePathObserved",xrtValueBool(true)) && string(value,"XLANG_PACKAGE_PATH","different"));
   if(mutation==12) CHECK(string(get(value,"artifact"),"path",output));
   if(mutation==13) CHECK(put(value,"unknown",xrtValueBool(true)));
+  if(mutation==14) CHECK(put(value,"schema",xrtValueInt(wireSchema==1 ? 2 : 1)));
+  if(mutation==15) CHECK(string(get(item,"metadata"),wireSchema==1 ? "changedMs" : "changedUs","0"));
+  if(mutation==16) CHECK(string(get(item,"metadata"),wireSchema==1 ? "modifiedUs" : "modifiedMs","-0"));
+  if(mutation==17) { CHECK(put(get(item,"metadata"),wireSchema==1 ? "modifiedUs" : "modifiedMs",xrtValueInt(0))); CHECK(!xideReceiptMetadataSchema(get(item,"metadata"))); }
   CHECK(record(mutated,value) && !xideBuildInputsLoad(mutated,artifact,NULL,NULL,NULL,&error)); xrtValueRelease(value); value=NULL;
  }
  size_t size=0; char* s=xrtJsonStringify(original,false,&size); CHECK(s && s[0]=='{'); char* duplicate=malloc(size+32); CHECK(duplicate); snprintf(duplicate,size+32,"{\"schema\":1,%s",s+1); int rejected=writeText(mutated,duplicate) && !xideBuildInputsLoad(mutated,artifact,NULL,NULL,NULL,&error); CHECK(rejected);
- char* schema=strstr(s,"\"schema\":1"); CHECK(schema); size_t at=(size_t)(schema-s)+strlen("\"schema\":1"); memcpy(duplicate,s,at); memcpy(duplicate+at,".0",2); strcpy(duplicate+at+2,s+at); rejected=writeText(mutated,duplicate) && !xideBuildInputsLoad(mutated,artifact,NULL,NULL,NULL,&error); free(duplicate); xrtFree(s); CHECK(rejected);
+ char needle[32]; snprintf(needle,sizeof(needle),"\"schema\":%lld",(long long)wireSchema); char* schema=strstr(s,needle); CHECK(schema); size_t at=(size_t)(schema-s)+strlen(needle); memcpy(duplicate,s,at); memcpy(duplicate+at,".0",2); strcpy(duplicate+at+2,s+at); rejected=writeText(mutated,duplicate) && !xideBuildInputsLoad(mutated,artifact,NULL,NULL,NULL,&error); free(duplicate); xrtFree(s); CHECK(rejected);
  wchar_t *aw=wide(alias),*hw=wide(header); int linked=aw && hw && CreateHardLinkW(aw,hw,NULL); free(aw); free(hw); CHECK(linked && !xideBuildInputsOutputValid(receipt,alias,&error));
  uint32_t commands=0,options=0; const char* help="xl run <file> --input-report a\nxl build <file> -o out --input-reporting bad\n"; CHECK(xideToolchainParseHelp(help,strlen(help),&commands,&options,&error) && !(options&XIDE_TOOL_BUILD_INPUT_REPORT)); help="xl build <file> -o out [--input-report receipt.json]\n"; CHECK(xideToolchainParseHelp(help,strlen(help),&commands,&options,&error) && (options&XIDE_TOOL_BUILD_INPUT_REPORT));
  old=xrtFileReadAll(output,&oldSize); CHECK(old && oldSize);

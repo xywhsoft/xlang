@@ -1,3 +1,4 @@
+#include "platform/receipt_time.h"
 /* Immutable open-document overlays and verified per-file diagnostics.
    Runtime is owned by XGE in the GUI, compiler XRT in the standalone LS. */
 #include "services/language_check_internal.h"
@@ -258,8 +259,7 @@ static int metadata(const xvalue* item,const xfileinfo* info)
  if(!integer(get(m,"available"),&available,0,UINT_MAX) || !integer(get(m,"attributes"),&attributes,0,UINT_MAX) || available!=info->Available || attributes!=info->Attributes) return 0;
  snprintf(text,sizeof(text),"%016llx",(unsigned long long)info->Device); if(!formatted(get(m,"device"),text)) return 0;
  snprintf(text,sizeof(text),"%016llx",(unsigned long long)info->Identity); if(!formatted(get(m,"identity"),text)) return 0;
- snprintf(text,sizeof(text),"%lld",(long long)info->Modified); if(!formatted(get(m,"modifiedUs"),text)) return 0;
- snprintf(text,sizeof(text),"%lld",(long long)info->Changed); return formatted(get(m,"changedUs"),text);
+ return xideReceiptMetadataTimesMatch(m,info);
 }
 /* Compiler positions count Unicode scalars; CRLF/CR are one line break. */
 static char* normalized(const char* text,size_t size)
@@ -396,7 +396,7 @@ static int capturedResolution(const source_graph* g,const xvalue* value,const xl
 static int loadGraph(xide_language_check* q,const xvalue* raw,source_graph* g,xide_model_error* e)
 {
  const xvalue* report=get(raw,"sourceReport"),*files=get(report,"files"); int64 schema=0; bool complete=false;
- if(!integer(get(report,"schema"),&schema,1,1) || !formatted(get(report,"scope"),"loaded-sources-and-manifests") || !xrtValueGetBool(get(report,"complete"),&complete) || !complete || !formatted(get(report,"error"),"") || !formatted(get(report,"errorFile"),"") || !files || xrtValueType(files)!=XVALUE_ARRAY || !xrtValueCount(files) || xrtValueCount(files)>512) return fail(e,"源码快照报告缺失、不完整或无法验证。");
+ if(!integer(get(report,"schema"),&schema,1,2) || !formatted(get(report,"scope"),"loaded-sources-and-manifests") || !xrtValueGetBool(get(report,"complete"),&complete) || !complete || !formatted(get(report,"error"),"") || !formatted(get(report,"errorFile"),"") || !files || xrtValueType(files)!=XVALUE_ARRAY || !xrtValueCount(files) || xrtValueCount(files)>512) return fail(e,"源码快照报告缺失、不完整或无法验证。");
 #ifdef XLS_COMPILER_XRT
  xls_inputs captured={0};
  if(g->checked || g->completed || g->signature) {
@@ -409,6 +409,7 @@ static int loadGraph(xide_language_check* q,const xvalue* raw,source_graph* g,xi
  for(size_t i=0;i<xrtValueCount(files);++i) {
   const xvalue* item=xrtValueArrayGet(files,i); const char *path=string(get(item,"path")),*origin=string(get(item,"origin")); int64 size=0,rawSize=0,kind=0;
   if(cancelled(q) || !path || !origin || !integer(get(item,"kind"),&kind,1,3) || !integer(get(item,"textSize"),&size,0,FILE_LIMIT) || !integer(get(item,"rawSize"),&rawSize,0,FILE_LIMIT) || (size_t)size>GRAPH_LIMIT-g->bytes) return fail(e,"源码报告字段或总容量无效。");
+  if(!strcmp(origin,"disk") && xideReceiptMetadataSchema(get(item,"metadata"))!=schema) return fail(e,"Disk metadata does not match its source report schema.");
   char* resolved=xidePathResolveLexical(NULL,path); if(!resolved || !xidePathLexicalEqual(resolved,path) || !absolute(path)) { free(resolved); return fail(e,"源码报告必须使用绝对路径。"); }
   for(size_t j=0;j<g->count;++j) if(xidePathLexicalEqual(resolved,g->items[j].path)) { free(resolved); return fail(e,"源码报告含重复路径。"); }
   int overlay=overlayIndex(q,resolved),borrowed=0; char* text=NULL; const char* original=NULL;

@@ -2,6 +2,8 @@
 
 2026-10-29 目录调整：当前运行入口改为 [根目录 release/xlang_ide.exe](../release/xlang_ide.exe)，使用同目录的 xlang 引擎。以下 `ide/release` 的候选说明与 ZIP 摘要属于历史记录；本次迁移见[统一发布目录](docs/unified-release.md)。
 
+2026-10-30 补齐根目录最新引擎的 schema 2 构建收据及源码报告兼容，保留 schema 1 支持，并重新构建传统 IDE 与 CLI 语言服务。当前运行文件及安装摘要见根目录 `release/provenance/ide-receipt-compatibility.json`；以下旧 ZIP 未重新生成。
+
 2026-10-22 已支持四种构建形态，无需先创建工作空间：
 
 | 打开形态 | F7 构建 | F5 运行 |
