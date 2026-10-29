@@ -13,7 +13,7 @@
 | `src`、`res`、`tests`、`tools`、`docs` | 源码、资源、测试与开发资料 |
 | `data`、`third_party` | 固定数据、匹配 SDK 与来源材料 |
 | `release` | 当前验证包的完整运行副本，可直接运行 `xlang_ide.exe` |
-| `dist/portable-20261022-standalone-v2` | 原验证包、ZIP 与原始打包收据 |
+| `dist/portable-20261022-standalone-v2` | 原验证 ZIP 与原始打包收据；重复解包副本已清理 |
 | `build/current-build.json`、`build/cb-bd75b462` | 当前成功构建的指针、源码快照、编译日志及应用／测试产物 |
 | `build/compiler-c-native-extensions-v1` | 固定编译器、对应源码及构建证据 |
 | `build/c-trace-provider-v1` | 固定 C 服务器、运行资产及来源材料 |
@@ -29,6 +29,8 @@
 `release` 顶层应用程序仅为 `xlang_ide.exe`、`xlang_ide_console.exe`、`xlang-ls.exe` 与 `xge.dll`；另含运行数据、相对默认设置、工具链、来源、许可和清单。旧 `*_test.exe`、探针与验证辅助目录已归档。`option` 初始只含包内默认 `settings.json`，没有带入开发会话或恢复文件。使用 IDE 后生成的偏好与恢复文件属于用户状态，后续整理时应先保留。
 
 ## 日常开发
+
+2026-10-29 清理了早期 LSP 验证批次的重复源码快照、二进制与大型原始转录，保留小型阶段回执、日志和当前 M70 开发目录。历史回执记录当时的验收结果，不表示已清理的产物仍可用于复测；需要复测时应重新构建。便携候选的 5,241 份解包文件逐项核对 ZIP 路径、长度和 CRC 后删除重复副本，ZIP 与打包收据保持原字节，日常运行和使用说明继续使用 `release`。
 
 ```powershell
 .\build_current.bat -Configuration Release -Tests
