@@ -7,7 +7,7 @@ from xmail import SmtpClient, SmtpConfig, SmtpReply
 func recvUntil(TcpStream stream, string marker) as string
     string result = ""
     while not string.contains(result, marker)
-        string part = stream.recv(8000, 65536)
+        string part = encoding.decodeUtf8(stream.recv(65536, 8000))
         assert part != "", "SMTP loopback server received an early close"
         result = result + part
     end
@@ -19,29 +19,29 @@ end
 // 模拟一条完整 SMTP 明文事务并核对线路上的 dot transparency。
 async func serveSmtp(TcpServer server) as int
     TcpStream stream = await server.acceptAsync()
-    assert stream.send("220 loopback ready\r\n")
+    assert stream.send("220 loopback ready\r\n") == NetStatus.ok
 
     assert recvUntil(stream, "\r\n") == "EHLO client.test\r\n"
     assert stream.send(
-        "250-loopback\r\n250-SIZE 4096\r\n250 PIPELINING\r\n")
+        "250-loopback\r\n250-SIZE 4096\r\n250 PIPELINING\r\n") == NetStatus.ok
 
     assert recvUntil(stream, "\r\n") == "MAIL FROM:<sender@test>\r\n"
-    assert stream.send("250 sender accepted\r\n")
+    assert stream.send("250 sender accepted\r\n") == NetStatus.ok
 
     assert recvUntil(stream, "\r\n") == "RCPT TO:<target@test>\r\n"
-    assert stream.send("250 recipient accepted\r\n")
+    assert stream.send("250 recipient accepted\r\n") == NetStatus.ok
 
     assert recvUntil(stream, "\r\n") == "DATA\r\n"
-    assert stream.send("354 continue\r\n")
+    assert stream.send("354 continue\r\n") == NetStatus.ok
     string data = recvUntil(stream, "\r\n.\r\n")
     assert data == "Subject: loopback\r\n\r\n..first\r\nsecond\r\n.\r\n"
-    assert stream.send("250 queued\r\n")
+    assert stream.send("250 queued\r\n") == NetStatus.ok
 
     assert recvUntil(stream, "\r\n") == "NOOP\r\n"
-    assert stream.send("250 still here\r\n")
+    assert stream.send("250 still here\r\n") == NetStatus.ok
 
     assert recvUntil(stream, "\r\n") == "QUIT\r\n"
-    assert stream.send("221 bye\r\n")
+    assert stream.send("221 bye\r\n") == NetStatus.ok
     stream.shutdownWrite()
     stream.close()
     return 0
@@ -51,11 +51,9 @@ end
 
 // 等待 Listener 关闭，避免全局网络运行时退出时仍有活动对象。
 func closeServer(TcpServer server) as bool
-    if not server.close() and server.state != 2 then
-        return false
-    end
+    server.close()
     for attempt in range(0, 500)
-        if server.state == 2 then
+        if server.state == TcpServerState.closed then
             return true
         end
         time.sleep(1)
@@ -66,13 +64,15 @@ end
 
 
 async func run() as int
-    TcpServer server = tcp.listen(0)
+    NetEngine listenerEngine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    listenerEngine.start()
+    TcpServer server = TcpServer(listenerEngine, TcpServerOptions(TcpListenOptions(NetAddress.loopback(4, 0))))
     future<int> serving = serveSmtp(server)
-    NetEngine engine = NetEngine(1)
-    assert engine.start(), "SMTP client engine could not start"
+    NetEngine engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
 
     SmtpConfig config = SmtpConfig(
-        "127.0.0.1", server.port(), xmail.SECURITY_PLAIN,
+        "127.0.0.1", server.localAddress().port, xmail.SECURITY_PLAIN,
         "client.test", 8000)
     SmtpClient client = SmtpClient.open(engine, config)
     assert client.valid and client.state == xmail.SMTP_READY
@@ -93,7 +93,10 @@ async func run() as int
 
     assert await serving == 0
     assert closeServer(server)
-    engine.stop()
+    engine.close()
+    assert engine.wait(5000)
+    listenerEngine.close()
+    assert listenerEngine.wait(5000)
     return 0
 end
 

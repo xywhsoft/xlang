@@ -61,7 +61,7 @@ static bool xmail_native_imap_event_set(
 
 
 /* 配置并建立 IMAP 会话。 */
-void* xmail_imap_open(
+void* __raw_xmail_imap_open(
 	xnetengine* pEngine,
 	cstr sHost,
 	size_t iHostSize,
@@ -70,7 +70,8 @@ void* xmail_imap_open(
 	uint64 iLineLimit,
 	uint64 iCommandLineLimit,
 	int64 iTimeoutMilliseconds,
-	void* pTlsConfig
+	void* pTlsConfig,
+    xvalue* pPostRelease
 )
 {
 	ximapclientconfig Config;
@@ -97,7 +98,6 @@ void* xmail_imap_open(
 		xrtFree(pImap);
 		return NULL;
 	}
-	pImap->Protocol.Engine = pEngine;
 	xrtImapClientConfigInit(&Config);
 	Config.Net.Engine = pEngine;
 	Config.Net.Resolver = pResolver;
@@ -109,7 +109,8 @@ void* xmail_imap_open(
 	if ( !xmail_native_tls_open(pTlsConfig, &Config.Net, &Tls) ) {
 		goto failed;
 	}
-	pImap->Client = xrtImapClientOpen(&Config, iDeadline, NULL);
+	pImap->Client = __xrtImapClientOpenWithPost(&Config, iDeadline, NULL,xmail_post_owned,pPostRelease);
+    if(pImap->Client){pImap->Client->Transport.Post=NULL;pImap->Client->Transport.PostContext=NULL;}
 	pError = pImap->Client == NULL ? xrtTakeError() : NULL;
 	xmail_native_tls_close(&Tls);
 	bResolverDestroyed = xrtNetResolverDestroy(pResolver);
@@ -151,7 +152,7 @@ void* xmail_imap_wrap(void* pHandle)
 
 
 /* 释放 IMAP 会话和事件副本。 */
-void xmail_imap_destroy(void* pHandle)
+void xmail_imap_raw_destroy(void* pHandle)
 {
 	xmail_native_imap* pImap = (xmail_native_imap*)pHandle;
 
@@ -171,7 +172,7 @@ void xmail_imap_destroy(void* pHandle)
 
 
 /* 返回 IMAP 会话状态。 */
-int64 xmail_imap_state(void* pHandle)
+int64 __raw_xmail_imap_state(void* pHandle)
 {
 	xmail_native_imap* pImap = xmail_native_imap_require(pHandle);
 
@@ -181,7 +182,7 @@ int64 xmail_imap_state(void* pHandle)
 
 
 /* 返回最近 CAPABILITY 的能力位。 */
-uint64 xmail_imap_capabilities(void* pHandle)
+uint64 __raw_xmail_imap_capabilities(void* pHandle)
 {
 	xmail_native_imap* pImap = xmail_native_imap_require(pHandle);
 
@@ -191,7 +192,7 @@ uint64 xmail_imap_capabilities(void* pHandle)
 
 
 /* 返回实际传输安全模式。 */
-int64 xmail_imap_security(void* pHandle)
+int64 __raw_xmail_imap_security(void* pHandle)
 {
 	xmail_native_imap* pImap = xmail_native_imap_require(pHandle);
 
@@ -201,7 +202,7 @@ int64 xmail_imap_security(void* pHandle)
 
 
 /* 返回当前 literal 剩余字节数。 */
-uint64 xmail_imap_literal_remaining(void* pHandle)
+uint64 __raw_xmail_imap_literal_remaining(void* pHandle)
 {
 	xmail_native_imap* pImap = xmail_native_imap_require(pHandle);
 
@@ -212,7 +213,7 @@ uint64 xmail_imap_literal_remaining(void* pHandle)
 
 
 /* 返回命令行上限。 */
-uint64 xmail_imap_command_limit(void* pHandle)
+uint64 __raw_xmail_imap_command_limit(void* pHandle)
 {
 	xmail_native_imap* pImap = xmail_native_imap_require(pHandle);
 
@@ -223,7 +224,7 @@ uint64 xmail_imap_command_limit(void* pHandle)
 
 
 /* 返回服务器声明的 APPEND 上限。 */
-uint64 xmail_imap_append_limit(void* pHandle)
+uint64 __raw_xmail_imap_append_limit(void* pHandle)
 {
 	xmail_native_imap* pImap = xmail_native_imap_require(pHandle);
 
@@ -233,7 +234,7 @@ uint64 xmail_imap_append_limit(void* pHandle)
 
 
 /* 复制当前自动 tag。 */
-void* xmail_imap_tag(void* pHandle)
+void* __raw_xmail_imap_tag(void* pHandle)
 {
 	xmail_native_imap* pImap = xmail_native_imap_require(pHandle);
 
@@ -244,7 +245,7 @@ void* xmail_imap_tag(void* pHandle)
 
 
 /* 复制最近 greeting 或 tagged completion 的指定字段。 */
-void* xmail_imap_last_response_text(void* pHandle, int64 iField)
+void* __raw_xmail_imap_last_response_text(void* pHandle, int64 iField)
 {
 	xmail_native_imap* pImap = xmail_native_imap_require(pHandle);
 	ximapresponseview Response;
@@ -262,7 +263,7 @@ void* xmail_imap_last_response_text(void* pHandle, int64 iField)
 
 
 /* 返回最近 greeting 或 tagged completion 的枚举字段。 */
-int64 xmail_imap_last_response_value(void* pHandle, int64 iField)
+int64 __raw_xmail_imap_last_response_value(void* pHandle, int64 iField)
 {
 	xmail_native_imap* pImap = xmail_native_imap_require(pHandle);
 	ximapresponseview Response;
@@ -277,7 +278,7 @@ int64 xmail_imap_last_response_value(void* pHandle, int64 iField)
 
 
 /* 直接发送显式 tag 的完整命令行。 */
-bool xmail_imap_send(
+bool __raw_xmail_imap_send(
 	void* pHandle,
 	cstr sTag,
 	size_t iTagSize,
@@ -303,7 +304,7 @@ bool xmail_imap_send(
 
 
 /* 写入原始命令续传字节。 */
-bool xmail_imap_write(
+bool __raw_xmail_imap_write(
 	void* pHandle,
 	const void* pData,
 	size_t iSize,
@@ -322,7 +323,7 @@ bool xmail_imap_write(
 
 
 /* 发送一条 continuation 数据行。 */
-bool xmail_imap_continue(
+bool __raw_xmail_imap_continue(
 	void* pHandle,
 	cstr sData,
 	size_t iDataSize,
@@ -341,7 +342,7 @@ bool xmail_imap_continue(
 
 
 /* 接收一个原始 IMAP 事件并保存稳定摘要。 */
-bool xmail_imap_receive(void* pHandle, int64 iTimeoutMilliseconds)
+bool __raw_xmail_imap_receive(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_imap* pImap = xmail_native_imap_require(pHandle);
 	XL6_DeadlineV1 iDeadline;
@@ -356,7 +357,7 @@ bool xmail_imap_receive(void* pHandle, int64 iTimeoutMilliseconds)
 
 
 /* 开始一条自动 tag 的顺序命令。 */
-bool xmail_imap_begin(
+bool __raw_xmail_imap_begin(
 	void* pHandle,
 	cstr sCommand,
 	size_t iCommandSize,
@@ -379,7 +380,7 @@ bool xmail_imap_begin(
 
 
 /* 读取顺序命令的下一事件。 */
-int64 xmail_imap_next(void* pHandle, int64 iTimeoutMilliseconds)
+int64 __raw_xmail_imap_next(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_imap* pImap = xmail_native_imap_require(pHandle);
 	XL6_DeadlineV1 iDeadline;
@@ -401,7 +402,7 @@ int64 xmail_imap_next(void* pHandle, int64 iTimeoutMilliseconds)
 
 
 /* 返回最近事件的整数或布尔字段。 */
-int64 xmail_imap_event_value(void* pHandle, int64 iField)
+int64 __raw_xmail_imap_event_value(void* pHandle, int64 iField)
 {
 	xmail_native_imap* pImap = xmail_native_imap_require(pHandle);
 
@@ -422,7 +423,7 @@ int64 xmail_imap_event_value(void* pHandle, int64 iField)
 
 
 /* 返回最近事件的 literal 总长度。 */
-uint64 xmail_imap_event_literal_size(void* pHandle)
+uint64 __raw_xmail_imap_event_literal_size(void* pHandle)
 {
 	xmail_native_imap* pImap = xmail_native_imap_require(pHandle);
 
@@ -432,7 +433,7 @@ uint64 xmail_imap_event_literal_size(void* pHandle)
 
 
 /* 复制最近事件的 Source、Tag 或 Text。 */
-void* xmail_imap_event_text(void* pHandle, int64 iField)
+void* __raw_xmail_imap_event_text(void* pHandle, int64 iField)
 {
 	xmail_native_imap* pImap = xmail_native_imap_require(pHandle);
 	xstrview Text;
@@ -456,7 +457,7 @@ void* xmail_imap_event_text(void* pHandle, int64 iField)
 
 
 /* 分块读取当前 literal 并把实际字节数交给 Buffer。 */
-void* xmail_imap_read_literal(
+void* __raw_xmail_imap_read_literal(
 	void* pHandle,
 	uint64 iMaximum,
 	int64 iTimeoutMilliseconds
@@ -501,7 +502,7 @@ void* xmail_imap_read_literal(
 
 
 /* 使用内置 LOGIN 或 SASL 机制认证。 */
-bool xmail_imap_auth(
+bool __raw_xmail_imap_auth(
 	void* pHandle,
 	uint64 iMethod,
 	cstr sUsername,
@@ -539,7 +540,7 @@ bool xmail_imap_auth(
 
 
 /* 执行无参数常用命令。 */
-bool xmail_imap_simple(
+bool __raw_xmail_imap_simple(
 	void* pHandle,
 	int64 iOperation,
 	int64 iTimeoutMilliseconds
@@ -568,7 +569,7 @@ bool xmail_imap_simple(
 
 
 /* SELECT/EXAMINE 邮箱并保存零分配摘要。 */
-bool xmail_imap_select(
+bool __raw_xmail_imap_select(
 	void* pHandle,
 	cstr sMailbox,
 	size_t iMailboxSize,
@@ -604,7 +605,7 @@ bool xmail_imap_select(
 
 
 /* 返回最近 SELECT/EXAMINE 摘要字段。 */
-uint64 xmail_imap_mailbox_value(void* pHandle, int64 iField)
+uint64 __raw_xmail_imap_mailbox_value(void* pHandle, int64 iField)
 {
 	xmail_native_imap* pImap = xmail_native_imap_require(pHandle);
 
@@ -627,7 +628,7 @@ uint64 xmail_imap_mailbox_value(void* pHandle, int64 iField)
 
 
 /* 发送 LOGOUT 并在成功后释放 Engine 占用。 */
-bool xmail_imap_logout(void* pHandle, int64 iTimeoutMilliseconds)
+bool __raw_xmail_imap_logout(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_imap* pImap = xmail_native_imap_require(pHandle);
 	XL6_DeadlineV1 iDeadline;
@@ -647,7 +648,7 @@ bool xmail_imap_logout(void* pHandle, int64 iTimeoutMilliseconds)
 
 
 /* 正常关闭 IMAP 传输。 */
-bool xmail_imap_close(void* pHandle, int64 iTimeoutMilliseconds)
+bool __raw_xmail_imap_close(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_imap* pImap = xmail_native_imap_require(pHandle);
 	XL6_DeadlineV1 iDeadline;
@@ -667,7 +668,7 @@ bool xmail_imap_close(void* pHandle, int64 iTimeoutMilliseconds)
 
 
 /* 立即异常中止 IMAP 会话。 */
-bool xmail_imap_abort(void* pHandle)
+bool __raw_xmail_imap_abort(void* pHandle)
 {
 	xmail_native_imap* pImap = xmail_native_imap_require(pHandle);
 	bool bResult;

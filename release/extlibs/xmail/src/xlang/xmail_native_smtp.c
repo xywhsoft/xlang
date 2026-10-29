@@ -25,7 +25,7 @@ static xmail_native_smtp* xmail_native_smtp_require(void* pHandle)
 
 
 /* 配置并建立 SMTP 会话；resolver 只在本次同步拨号期间存活。 */
-void* xmail_smtp_open(
+void* __raw_xmail_smtp_open(
 	xnetengine* pEngine,
 	cstr sHost,
 	size_t iHostSize,
@@ -35,7 +35,8 @@ void* xmail_smtp_open(
 	size_t iHelloSize,
 	uint64 iLineLimit,
 	int64 iTimeoutMilliseconds,
-	void* pTlsConfig
+	void* pTlsConfig,
+    xvalue* pPostRelease
 )
 {
 	xsmtpclientconfig Config;
@@ -62,7 +63,6 @@ void* xmail_smtp_open(
 		xrtFree(pSmtp);
 		return NULL;
 	}
-	pSmtp->Protocol.Engine = pEngine;
 	xrtSmtpClientConfigInit(&Config);
 	Config.Net.Engine = pEngine;
 	Config.Net.Resolver = pResolver;
@@ -74,7 +74,8 @@ void* xmail_smtp_open(
 	if ( !xmail_native_tls_open(pTlsConfig, &Config.Net, &Tls) ) {
 		goto failed;
 	}
-	pSmtp->Client = xrtSmtpClientOpen(&Config, iDeadline, NULL);
+	pSmtp->Client = __xrtSmtpClientOpenWithPost(&Config, iDeadline, NULL,xmail_post_owned,pPostRelease);
+    if(pSmtp->Client){pSmtp->Client->Transport.Post=NULL;pSmtp->Client->Transport.PostContext=NULL;}
 	pError = pSmtp->Client == NULL ? xrtTakeError() : NULL;
 	xmail_native_tls_close(&Tls);
 	bResolverDestroyed = xrtNetResolverDestroy(pResolver);
@@ -115,7 +116,7 @@ void* xmail_smtp_wrap(void* pHandle)
 
 
 /* 释放 SMTP 会话；未关闭会话由 xmail 执行异常中止。 */
-void xmail_smtp_destroy(void* pHandle)
+void xmail_smtp_raw_destroy(void* pHandle)
 {
 	xmail_native_smtp* pSmtp = (xmail_native_smtp*)pHandle;
 
@@ -132,7 +133,7 @@ void xmail_smtp_destroy(void* pHandle)
 
 
 /* 返回 SMTP 会话状态。 */
-int64 xmail_smtp_state(void* pHandle)
+int64 __raw_xmail_smtp_state(void* pHandle)
 {
 	xmail_native_smtp* pSmtp = xmail_native_smtp_require(pHandle);
 
@@ -142,7 +143,7 @@ int64 xmail_smtp_state(void* pHandle)
 
 
 /* 返回最近 EHLO 的能力位。 */
-uint64 xmail_smtp_capabilities(void* pHandle)
+uint64 __raw_xmail_smtp_capabilities(void* pHandle)
 {
 	xmail_native_smtp* pSmtp = xmail_native_smtp_require(pHandle);
 
@@ -152,7 +153,7 @@ uint64 xmail_smtp_capabilities(void* pHandle)
 
 
 /* 返回服务器声明的 SIZE 上限。 */
-uint64 xmail_smtp_size_limit(void* pHandle)
+uint64 __raw_xmail_smtp_size_limit(void* pHandle)
 {
 	xmail_native_smtp* pSmtp = xmail_native_smtp_require(pHandle);
 
@@ -162,7 +163,7 @@ uint64 xmail_smtp_size_limit(void* pHandle)
 
 
 /* 返回实际传输安全模式。 */
-int64 xmail_smtp_security(void* pHandle)
+int64 __raw_xmail_smtp_security(void* pHandle)
 {
 	xmail_native_smtp* pSmtp = xmail_native_smtp_require(pHandle);
 
@@ -172,7 +173,7 @@ int64 xmail_smtp_security(void* pHandle)
 
 
 /* 返回会话是否已认证。 */
-bool xmail_smtp_authenticated(void* pHandle)
+bool __raw_xmail_smtp_authenticated(void* pHandle)
 {
 	xmail_native_smtp* pSmtp = xmail_native_smtp_require(pHandle);
 
@@ -182,7 +183,7 @@ bool xmail_smtp_authenticated(void* pHandle)
 
 
 /* 返回最近响应码。 */
-int64 xmail_smtp_reply_code(void* pHandle)
+int64 __raw_xmail_smtp_reply_code(void* pHandle)
 {
 	xmail_native_smtp* pSmtp = xmail_native_smtp_require(pHandle);
 	xsmtpreply Reply;
@@ -194,7 +195,7 @@ int64 xmail_smtp_reply_code(void* pHandle)
 
 
 /* 复制最近响应文本。 */
-void* xmail_smtp_reply_text(void* pHandle)
+void* __raw_xmail_smtp_reply_text(void* pHandle)
 {
 	xmail_native_smtp* pSmtp = xmail_native_smtp_require(pHandle);
 	xsmtpreply Reply;
@@ -208,7 +209,7 @@ void* xmail_smtp_reply_text(void* pHandle)
 
 
 /* 发送低层 SMTP 行。 */
-bool xmail_smtp_send(
+bool __raw_xmail_smtp_send(
 	void* pHandle,
 	cstr sLine,
 	size_t iLineSize,
@@ -227,7 +228,7 @@ bool xmail_smtp_send(
 
 
 /* 接收一条完整 SMTP 响应。 */
-bool xmail_smtp_receive(void* pHandle, int64 iTimeoutMilliseconds)
+bool __raw_xmail_smtp_receive(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_smtp* pSmtp = xmail_native_smtp_require(pHandle);
 	XL6_DeadlineV1 iDeadline;
@@ -241,7 +242,7 @@ bool xmail_smtp_receive(void* pHandle, int64 iTimeoutMilliseconds)
 
 
 /* 发送命令并读取完整响应。 */
-bool xmail_smtp_command(
+bool __raw_xmail_smtp_command(
 	void* pHandle,
 	cstr sVerb,
 	size_t iVerbSize,
@@ -265,7 +266,7 @@ bool xmail_smtp_command(
 
 
 /* 开始 SMTP envelope。 */
-bool xmail_smtp_mail(
+bool __raw_xmail_smtp_mail(
 	void* pHandle,
 	cstr sPath,
 	size_t iPathSize,
@@ -288,7 +289,7 @@ bool xmail_smtp_mail(
 
 
 /* 增加一个 SMTP envelope 收件人。 */
-bool xmail_smtp_rcpt(
+bool __raw_xmail_smtp_rcpt(
 	void* pHandle,
 	cstr sPath,
 	size_t iPathSize,
@@ -311,7 +312,7 @@ bool xmail_smtp_rcpt(
 
 
 /* 进入 DATA 模式。 */
-bool xmail_smtp_data_begin(void* pHandle, int64 iTimeoutMilliseconds)
+bool __raw_xmail_smtp_data_begin(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_smtp* pSmtp = xmail_native_smtp_require(pHandle);
 	XL6_DeadlineV1 iDeadline;
@@ -324,7 +325,7 @@ bool xmail_smtp_data_begin(void* pHandle, int64 iTimeoutMilliseconds)
 
 
 /* 写入任意 DATA 片段并跨片段保持 dot transparency 状态。 */
-bool xmail_smtp_data_write(
+bool __raw_xmail_smtp_data_write(
 	void* pHandle,
 	const void* pData,
 	size_t iSize,
@@ -345,14 +346,14 @@ bool xmail_smtp_data_write(
 
 
 /* 文本重载只转发到同一 DATA 分片实现。 */
-bool xmail_smtp_data_write_text(
+bool __raw_xmail_smtp_data_write_text(
 	void* pHandle,
 	cstr sData,
 	size_t iSize,
 	int64 iTimeoutMilliseconds
 )
 {
-	return xmail_smtp_data_write(
+	return __raw_xmail_smtp_data_write(
 		pHandle,
 		sData,
 		iSize,
@@ -363,7 +364,7 @@ bool xmail_smtp_data_write_text(
 
 
 /* 完成 DATA 并读取最终响应。 */
-bool xmail_smtp_data_end(void* pHandle, int64 iTimeoutMilliseconds)
+bool __raw_xmail_smtp_data_end(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_smtp* pSmtp = xmail_native_smtp_require(pHandle);
 	XL6_DeadlineV1 iDeadline;
@@ -376,7 +377,7 @@ bool xmail_smtp_data_end(void* pHandle, int64 iTimeoutMilliseconds)
 
 
 /* 直接发送一份连续 DATA 消息视图。 */
-bool xmail_smtp_data(
+bool __raw_xmail_smtp_data(
 	void* pHandle,
 	cstr sMessage,
 	size_t iMessageSize,
@@ -395,7 +396,7 @@ bool xmail_smtp_data(
 
 
 /* 声明 BDAT 块。 */
-bool xmail_smtp_bdat_begin(
+bool __raw_xmail_smtp_bdat_begin(
 	void* pHandle,
 	uint64 iSize,
 	bool Last,
@@ -414,7 +415,7 @@ bool xmail_smtp_bdat_begin(
 
 
 /* 写入当前 BDAT 块。 */
-bool xmail_smtp_bdat_write(
+bool __raw_xmail_smtp_bdat_write(
 	void* pHandle,
 	const void* pData,
 	size_t iSize,
@@ -435,7 +436,7 @@ bool xmail_smtp_bdat_write(
 
 
 /* 完成当前 BDAT 块。 */
-bool xmail_smtp_bdat_end(void* pHandle, int64 iTimeoutMilliseconds)
+bool __raw_xmail_smtp_bdat_end(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_smtp* pSmtp = xmail_native_smtp_require(pHandle);
 	XL6_DeadlineV1 iDeadline;
@@ -448,7 +449,7 @@ bool xmail_smtp_bdat_end(void* pHandle, int64 iTimeoutMilliseconds)
 
 
 /* 零拼接发送一个连续 BDAT 块。 */
-bool xmail_smtp_bdat(
+bool __raw_xmail_smtp_bdat(
 	void* pHandle,
 	const void* pData,
 	size_t iSize,
@@ -470,7 +471,7 @@ bool xmail_smtp_bdat(
 
 
 /* 使用内置 SASL 机制认证。 */
-bool xmail_smtp_auth(
+bool __raw_xmail_smtp_auth(
 	void* pHandle,
 	uint64 iMethod,
 	cstr sUsername,
@@ -508,7 +509,7 @@ bool xmail_smtp_auth(
 
 
 /* 从 xlang 消息对象直接流式提交，不生成整封临时字符串。 */
-bool xmail_smtp_submit(
+bool __raw_xmail_smtp_submit(
 	void* pHandle,
 	const xvalue* pValue,
 	int64 iTimeoutMilliseconds
@@ -532,7 +533,7 @@ bool xmail_smtp_submit(
 
 
 /* 取消当前 SMTP envelope。 */
-bool xmail_smtp_reset(void* pHandle, int64 iTimeoutMilliseconds)
+bool __raw_xmail_smtp_reset(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_smtp* pSmtp = xmail_native_smtp_require(pHandle);
 	XL6_DeadlineV1 iDeadline;
@@ -545,7 +546,7 @@ bool xmail_smtp_reset(void* pHandle, int64 iTimeoutMilliseconds)
 
 
 /* 验证 SMTP 连接仍可交换命令。 */
-bool xmail_smtp_noop(void* pHandle, int64 iTimeoutMilliseconds)
+bool __raw_xmail_smtp_noop(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_smtp* pSmtp = xmail_native_smtp_require(pHandle);
 	XL6_DeadlineV1 iDeadline;
@@ -558,7 +559,7 @@ bool xmail_smtp_noop(void* pHandle, int64 iTimeoutMilliseconds)
 
 
 /* 发送 QUIT 并认证关闭。 */
-bool xmail_smtp_quit(void* pHandle, int64 iTimeoutMilliseconds)
+bool __raw_xmail_smtp_quit(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_smtp* pSmtp = xmail_native_smtp_require(pHandle);
 	XL6_DeadlineV1 iDeadline;
@@ -578,7 +579,7 @@ bool xmail_smtp_quit(void* pHandle, int64 iTimeoutMilliseconds)
 
 
 /* 不发送 QUIT，正常关闭传输。 */
-bool xmail_smtp_close(void* pHandle, int64 iTimeoutMilliseconds)
+bool __raw_xmail_smtp_close(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_smtp* pSmtp = xmail_native_smtp_require(pHandle);
 	XL6_DeadlineV1 iDeadline;
@@ -598,7 +599,7 @@ bool xmail_smtp_close(void* pHandle, int64 iTimeoutMilliseconds)
 
 
 /* 立即异常中止 SMTP 会话。 */
-bool xmail_smtp_abort(void* pHandle)
+bool __raw_xmail_smtp_abort(void* pHandle)
 {
 	xmail_native_smtp* pSmtp = xmail_native_smtp_require(pHandle);
 	bool bResult;

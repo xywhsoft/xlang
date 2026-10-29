@@ -310,9 +310,11 @@ static bool xmail_native_attachments(
 		if ( (pData == NULL) || (xrtValueType(pData) == XVALUE_NULL) ) {
 			pAttachments[i].Data.Data = NULL;
 			pAttachments[i].Data.Size = 0;
-		} else if ( xrtValueGetBytes(pData, &pAttachments[i].Data) ) {
+		} else if ( xrtValueType(pData) == XVALUE_BYTES ) {
+            if(!xrtValueGetBytes(pData,&pAttachments[i].Data)){xrtFree(pAttachments);return false;}
 			continue;
-		} else if ( xrtValueGetString(pData, &Text) ) {
+		} else if ( xrtValueType(pData) == XVALUE_STRING ) {
+            if(!xrtValueGetString(pData,&Text)){xrtFree(pAttachments);return false;}
 			pAttachments[i].Data.Data = (cbytes)Text.Data;
 			pAttachments[i].Data.Size = Text.Size;
 		} else {
@@ -602,10 +604,10 @@ static bool xmail_native_limit(uint64 iValue, size_t* pResult)
 xvalue* xmail_parse_native(
 	const char* sSource,
 	size_t iSourceSize,
-	uint64 iMaxDepth,
-	uint64 iMaxParts,
-	uint64 iMaxSourceBytes,
-	uint64 iMaxDecodedBytes
+	unsigned long long iMaxDepth,
+	unsigned long long iMaxParts,
+	unsigned long long iMaxSourceBytes,
+	unsigned long long iMaxDecodedBytes
 )
 {
 	xmailtreelimits Limits;
@@ -659,7 +661,10 @@ xvalue* xmail_parse_native(
 
 
 
+#include "src/xlang/xmail_owned_post.c"
 #include "src/xlang/xmail_native_protocol.c"
 #include "src/xlang/xmail_native_smtp.c"
 #include "src/xlang/xmail_native_pop3.c"
 #include "src/xlang/xmail_native_imap.c"
+
+#include "src/xlang/xmail_managed.c"

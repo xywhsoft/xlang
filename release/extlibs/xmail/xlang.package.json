@@ -6,9 +6,15 @@
     "kind": "demo6-extlib",
     "artifact": {
         "kind": "source",
-        "cSources": ["xmail_native.c"],
-        "includeDirs": ["include"],
-        "xlSources": ["src/xlang/xmail.xl"],
+        "cSources": [
+            "xmail_native.c"
+        ],
+        "includeDirs": [
+            "include"
+        ],
+        "xlSources": [
+            "src/xlang/xmail.xl"
+        ],
         "xrtModules": [
             "XRT_MODULE_BUFFER",
             "XRT_MODULE_CODEC_BASE64",
@@ -20,7 +26,9 @@
             "XRT_MODULE_TLS_SCHEDULE_SHA256",
             "XRT_MODULE_TLS_SCHEDULE_SHA384",
             "XRT_MODULE_TLS_KEY_EXCHANGE_X25519",
+            "XRT_MODULE_TLS_KEY_EXCHANGE_X448",
             "XRT_MODULE_TLS_KEY_EXCHANGE_P256",
+            "XRT_MODULE_TLS_KEY_EXCHANGE_P384",
             "XRT_MODULE_TLS_RECORD_AES",
             "XRT_MODULE_TLS_RECORD_CHACHA",
             "XRT_MODULE_NET_TCP_DIAL_SYNC",
@@ -29,6 +37,16 @@
             "XRT_MODULE_STRING",
             "XRT_MODULE_TIME_TEXT",
             "XRT_MODULE_VALUE_CONTAINER"
+        ],
+        "runtimeSymbols": [
+            "xl6ForeignGraphCreateV1",
+            "xl6ForeignGraphDestroyV1",
+            "xl6ForeignGraphEnterV1",
+            "xl6ForeignGraphLeaveV1",
+            "xl6ForeignNetClientVisitV1",
+            "xl6OwnershipDomainTlsStreamNativeV1Get",
+            "xl6OwnershipDomainTlsStreamFutureNativeV1Get",
+            "xl6ForeignGraphTaskPolicyV1Get"
         ]
     },
     "links": [],
@@ -43,5 +61,7 @@
             "test/xmail_imap_loopback_test.xl"
         ]
     },
-    "native": { "singleton": false }
+    "native": {
+        "singleton": false
+    }
 }

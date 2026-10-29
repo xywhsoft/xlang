@@ -7,7 +7,7 @@ from xmail import ImapClient, ImapConfig, ImapEvent, ImapMailbox
 func recvUntil(TcpStream stream, string marker) as string
     string result = ""
     while not string.contains(result, marker)
-        string part = stream.recv(8000, 65536)
+        string part = encoding.decodeUtf8(stream.recv(65536, 8000))
         assert part != "", "IMAP loopback server received an early close"
         result = result + part
     end
@@ -19,12 +19,12 @@ end
 // 模拟 PREAUTH、SELECT、带 literal 的 FETCH 和 LOGOUT。
 async func serveImap(TcpServer server) as int
     TcpStream stream = await server.acceptAsync()
-    assert stream.send("* PREAUTH loopback ready\r\n")
+    assert stream.send("* PREAUTH loopback ready\r\n") == NetStatus.ok
 
     assert recvUntil(stream, "\r\n") == "A00000001 CAPABILITY\r\n"
     assert stream.send(
         "* CAPABILITY IMAP4rev1 UIDPLUS IDLE\r\n" +
-        "A00000001 OK capability complete\r\n")
+        "A00000001 OK capability complete\r\n") == NetStatus.ok
 
     assert recvUntil(stream, "\r\n") == "A00000002 SELECT \"INBOX\"\r\n"
     assert stream.send(
@@ -32,17 +32,17 @@ async func serveImap(TcpServer server) as int
         "* 1 RECENT\r\n" +
         "* OK [UNSEEN 2] unseen\r\n" +
         "* OK [UIDVALIDITY 42] valid\r\n" +
-        "A00000002 OK [READ-WRITE] selected\r\n")
+        "A00000002 OK [READ-WRITE] selected\r\n") == NetStatus.ok
 
     assert recvUntil(stream, "\r\n") == "A00000003 FETCH 1 BODY[]\r\n"
     assert stream.send(
         "* 1 FETCH (BODY[] {5}\r\nhello)\r\n" +
-        "A00000003 OK fetch complete\r\n")
+        "A00000003 OK fetch complete\r\n") == NetStatus.ok
 
     assert recvUntil(stream, "\r\n") == "A00000004 LOGOUT\r\n"
     assert stream.send(
         "* BYE signing off\r\n" +
-        "A00000004 OK logout complete\r\n")
+        "A00000004 OK logout complete\r\n") == NetStatus.ok
     stream.shutdownWrite()
     stream.close()
     return 0
@@ -52,11 +52,9 @@ end
 
 // 等待 Listener 关闭，避免全局网络运行时退出时仍有活动对象。
 func closeServer(TcpServer server) as bool
-    if not server.close() and server.state != 2 then
-        return false
-    end
+    server.close()
     for attempt in range(0, 500)
-        if server.state == 2 then
+        if server.state == TcpServerState.closed then
             return true
         end
         time.sleep(1)
@@ -67,13 +65,15 @@ end
 
 
 async func run() as int
-    TcpServer server = tcp.listen(0)
+    NetEngine listenerEngine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    listenerEngine.start()
+    TcpServer server = TcpServer(listenerEngine, TcpServerOptions(TcpListenOptions(NetAddress.loopback(4, 0))))
     future<int> serving = serveImap(server)
-    NetEngine engine = NetEngine(1)
-    assert engine.start(), "IMAP client engine could not start"
+    NetEngine engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
 
     ImapConfig config = ImapConfig(
-        "127.0.0.1", server.port(), xmail.SECURITY_PLAIN, 8000)
+        "127.0.0.1", server.localAddress().port, xmail.SECURITY_PLAIN, 8000)
     ImapClient client = ImapClient.open(engine, config)
     assert client.valid and client.state == xmail.IMAP_AUTHENTICATED
     assert client.capabilities >= xmail.IMAP_CAP_UIDPLUS
@@ -106,7 +106,10 @@ async func run() as int
     assert client.state == xmail.IMAP_CLOSED
     assert await serving == 0
     assert closeServer(server)
-    engine.stop()
+    engine.close()
+    assert engine.wait(5000)
+    listenerEngine.close()
+    assert listenerEngine.wait(5000)
     return 0
 end
 

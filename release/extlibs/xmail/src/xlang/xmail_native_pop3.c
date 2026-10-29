@@ -42,7 +42,7 @@ static bool xmail_native_pop3_line_set(
 
 
 /* 配置并建立 POP3 会话。 */
-void* xmail_pop3_open(
+void* __raw_xmail_pop3_open(
 	xnetengine* pEngine,
 	cstr sHost,
 	size_t iHostSize,
@@ -51,7 +51,8 @@ void* xmail_pop3_open(
 	bool ReadCapabilities,
 	uint64 iLineLimit,
 	int64 iTimeoutMilliseconds,
-	void* pTlsConfig
+	void* pTlsConfig,
+    xvalue* pPostRelease
 )
 {
 	xpop3clientconfig Config;
@@ -78,7 +79,6 @@ void* xmail_pop3_open(
 		xrtFree(pPop3);
 		return NULL;
 	}
-	pPop3->Protocol.Engine = pEngine;
 	xrtPop3ClientConfigInit(&Config);
 	Config.Net.Engine = pEngine;
 	Config.Net.Resolver = pResolver;
@@ -90,7 +90,8 @@ void* xmail_pop3_open(
 	if ( !xmail_native_tls_open(pTlsConfig, &Config.Net, &Tls) ) {
 		goto failed;
 	}
-	pPop3->Client = xrtPop3ClientOpen(&Config, iDeadline, NULL);
+	pPop3->Client = __xrtPop3ClientOpenWithPost(&Config, iDeadline, NULL,xmail_post_owned,pPostRelease);
+    if(pPop3->Client){pPop3->Client->Transport.Post=NULL;pPop3->Client->Transport.PostContext=NULL;}
 	pError = pPop3->Client == NULL ? xrtTakeError() : NULL;
 	xmail_native_tls_close(&Tls);
 	bResolverDestroyed = xrtNetResolverDestroy(pResolver);
@@ -131,7 +132,7 @@ void* xmail_pop3_wrap(void* pHandle)
 
 
 /* 释放 POP3 会话和最近项目副本。 */
-void xmail_pop3_destroy(void* pHandle)
+void xmail_pop3_raw_destroy(void* pHandle)
 {
 	xmail_native_pop3* pPop3 = (xmail_native_pop3*)pHandle;
 
@@ -149,7 +150,7 @@ void xmail_pop3_destroy(void* pHandle)
 
 
 /* 返回 POP3 会话状态。 */
-int64 xmail_pop3_state(void* pHandle)
+int64 __raw_xmail_pop3_state(void* pHandle)
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
 
@@ -159,7 +160,7 @@ int64 xmail_pop3_state(void* pHandle)
 
 
 /* 返回最近 CAPA 的能力位。 */
-uint64 xmail_pop3_capabilities(void* pHandle)
+uint64 __raw_xmail_pop3_capabilities(void* pHandle)
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
 
@@ -169,7 +170,7 @@ uint64 xmail_pop3_capabilities(void* pHandle)
 
 
 /* 返回最近 CAPA 的 SASL 机制位。 */
-uint64 xmail_pop3_sasl(void* pHandle)
+uint64 __raw_xmail_pop3_sasl(void* pHandle)
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
 
@@ -179,7 +180,7 @@ uint64 xmail_pop3_sasl(void* pHandle)
 
 
 /* 返回实际传输安全模式。 */
-int64 xmail_pop3_security(void* pHandle)
+int64 __raw_xmail_pop3_security(void* pHandle)
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
 
@@ -189,7 +190,7 @@ int64 xmail_pop3_security(void* pHandle)
 
 
 /* 返回最近状态行是否成功。 */
-bool xmail_pop3_reply_ok(void* pHandle)
+bool __raw_xmail_pop3_reply_ok(void* pHandle)
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
 	xpop3reply Reply;
@@ -201,7 +202,7 @@ bool xmail_pop3_reply_ok(void* pHandle)
 
 
 /* 复制最近状态行正文。 */
-void* xmail_pop3_reply_text(void* pHandle)
+void* __raw_xmail_pop3_reply_text(void* pHandle)
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
 	xpop3reply Reply;
@@ -215,7 +216,7 @@ void* xmail_pop3_reply_text(void* pHandle)
 
 
 /* 复制最近完整状态行。 */
-void* xmail_pop3_reply_source(void* pHandle)
+void* __raw_xmail_pop3_reply_source(void* pHandle)
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
 	xpop3reply Reply;
@@ -229,7 +230,7 @@ void* xmail_pop3_reply_source(void* pHandle)
 
 
 /* 发送一条低层 POP3 行。 */
-bool xmail_pop3_send(
+bool __raw_xmail_pop3_send(
 	void* pHandle,
 	cstr sLine,
 	size_t iLineSize,
@@ -248,7 +249,7 @@ bool xmail_pop3_send(
 
 
 /* 读取一条原始线路并保存稳定副本。 */
-bool xmail_pop3_line(void* pHandle, int64 iTimeoutMilliseconds)
+bool __raw_xmail_pop3_line(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
 	XL6_DeadlineV1 iDeadline;
@@ -263,7 +264,7 @@ bool xmail_pop3_line(void* pHandle, int64 iTimeoutMilliseconds)
 
 
 /* 接收一条 POP3 状态行。 */
-bool xmail_pop3_receive(void* pHandle, int64 iTimeoutMilliseconds)
+bool __raw_xmail_pop3_receive(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
 	XL6_DeadlineV1 iDeadline;
@@ -277,7 +278,7 @@ bool xmail_pop3_receive(void* pHandle, int64 iTimeoutMilliseconds)
 
 
 /* 发送 POP3 命令并读取状态行。 */
-bool xmail_pop3_command(
+bool __raw_xmail_pop3_command(
 	void* pHandle,
 	cstr sVerb,
 	size_t iVerbSize,
@@ -301,7 +302,7 @@ bool xmail_pop3_command(
 
 
 /* 开始一条多行 POP3 命令。 */
-bool xmail_pop3_begin(
+bool __raw_xmail_pop3_begin(
 	void* pHandle,
 	cstr sVerb,
 	size_t iVerbSize,
@@ -324,7 +325,7 @@ bool xmail_pop3_begin(
 
 
 /* 读取多行响应的下一项并保存稳定副本。 */
-int64 xmail_pop3_next(void* pHandle, int64 iTimeoutMilliseconds)
+int64 __raw_xmail_pop3_next(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
 	XL6_DeadlineV1 iDeadline;
@@ -346,7 +347,7 @@ int64 xmail_pop3_next(void* pHandle, int64 iTimeoutMilliseconds)
 
 
 /* 复制最近一条原始或多行项目。 */
-void* xmail_pop3_last_line(void* pHandle)
+void* __raw_xmail_pop3_last_line(void* pHandle)
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
 	xstrview Line;
@@ -362,7 +363,7 @@ void* xmail_pop3_last_line(void* pHandle)
 
 
 /* 查询邮箱统计并保存两个 64 位结果。 */
-bool xmail_pop3_stat(void* pHandle, int64 iTimeoutMilliseconds)
+bool __raw_xmail_pop3_stat(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
 	XL6_DeadlineV1 iDeadline;
@@ -381,7 +382,7 @@ bool xmail_pop3_stat(void* pHandle, int64 iTimeoutMilliseconds)
 
 
 /* 查询单条 LIST 项并保存序号和字节数。 */
-bool xmail_pop3_list(
+bool __raw_xmail_pop3_list(
 	void* pHandle,
 	uint64 iMessage,
 	int64 iTimeoutMilliseconds
@@ -405,7 +406,7 @@ bool xmail_pop3_list(
 
 
 /* 查询单条 UIDL 项并保存序号和 ID。 */
-bool xmail_pop3_uidl(
+bool __raw_xmail_pop3_uidl(
 	void* pHandle,
 	uint64 iMessage,
 	int64 iTimeoutMilliseconds
@@ -429,7 +430,7 @@ bool xmail_pop3_uidl(
 
 
 /* 返回最近复合命令的第一个整数结果。 */
-uint64 xmail_pop3_first(void* pHandle)
+uint64 __raw_xmail_pop3_first(void* pHandle)
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
 
@@ -439,7 +440,7 @@ uint64 xmail_pop3_first(void* pHandle)
 
 
 /* 返回最近复合命令的第二个整数结果。 */
-uint64 xmail_pop3_second(void* pHandle)
+uint64 __raw_xmail_pop3_second(void* pHandle)
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
 
@@ -449,7 +450,7 @@ uint64 xmail_pop3_second(void* pHandle)
 
 
 /* 开始读取全部 LIST 项。 */
-bool xmail_pop3_list_all(void* pHandle, int64 iTimeoutMilliseconds)
+bool __raw_xmail_pop3_list_all(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
 	XL6_DeadlineV1 iDeadline;
@@ -462,7 +463,7 @@ bool xmail_pop3_list_all(void* pHandle, int64 iTimeoutMilliseconds)
 
 
 /* 开始读取全部 UIDL 项。 */
-bool xmail_pop3_uidl_all(void* pHandle, int64 iTimeoutMilliseconds)
+bool __raw_xmail_pop3_uidl_all(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
 	XL6_DeadlineV1 iDeadline;
@@ -475,7 +476,7 @@ bool xmail_pop3_uidl_all(void* pHandle, int64 iTimeoutMilliseconds)
 
 
 /* 开始流式读取完整邮件。 */
-bool xmail_pop3_retr(
+bool __raw_xmail_pop3_retr(
 	void* pHandle,
 	uint64 iMessage,
 	int64 iTimeoutMilliseconds
@@ -492,7 +493,7 @@ bool xmail_pop3_retr(
 
 
 /* 开始流式读取邮件字段和部分正文。 */
-bool xmail_pop3_top(
+bool __raw_xmail_pop3_top(
 	void* pHandle,
 	uint64 iMessage,
 	uint64 iLines,
@@ -511,7 +512,7 @@ bool xmail_pop3_top(
 
 
 /* 使用内置 USER/PASS 或 SASL 机制认证。 */
-bool xmail_pop3_auth(
+bool __raw_xmail_pop3_auth(
 	void* pHandle,
 	uint64 iMethod,
 	cstr sUsername,
@@ -549,7 +550,7 @@ bool xmail_pop3_auth(
 
 
 /* 标记一条消息待删除。 */
-bool xmail_pop3_delete(
+bool __raw_xmail_pop3_delete(
 	void* pHandle,
 	uint64 iMessage,
 	int64 iTimeoutMilliseconds
@@ -566,7 +567,7 @@ bool xmail_pop3_delete(
 
 
 /* 清除会话删除标记。 */
-bool xmail_pop3_reset(void* pHandle, int64 iTimeoutMilliseconds)
+bool __raw_xmail_pop3_reset(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
 	XL6_DeadlineV1 iDeadline;
@@ -579,7 +580,7 @@ bool xmail_pop3_reset(void* pHandle, int64 iTimeoutMilliseconds)
 
 
 /* 验证 POP3 连接仍可交换命令。 */
-bool xmail_pop3_noop(void* pHandle, int64 iTimeoutMilliseconds)
+bool __raw_xmail_pop3_noop(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
 	XL6_DeadlineV1 iDeadline;
@@ -592,7 +593,7 @@ bool xmail_pop3_noop(void* pHandle, int64 iTimeoutMilliseconds)
 
 
 /* 发送 QUIT 并在成功后释放 Engine 占用。 */
-bool xmail_pop3_quit(void* pHandle, int64 iTimeoutMilliseconds)
+bool __raw_xmail_pop3_quit(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
 	XL6_DeadlineV1 iDeadline;
@@ -612,7 +613,7 @@ bool xmail_pop3_quit(void* pHandle, int64 iTimeoutMilliseconds)
 
 
 /* 正常关闭 POP3 传输。 */
-bool xmail_pop3_close(void* pHandle, int64 iTimeoutMilliseconds)
+bool __raw_xmail_pop3_close(void* pHandle, int64 iTimeoutMilliseconds)
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
 	XL6_DeadlineV1 iDeadline;
@@ -632,7 +633,7 @@ bool xmail_pop3_close(void* pHandle, int64 iTimeoutMilliseconds)
 
 
 /* 立即异常中止 POP3 会话。 */
-bool xmail_pop3_abort(void* pHandle)
+bool __raw_xmail_pop3_abort(void* pHandle)
 {
 	xmail_native_pop3* pPop3 = xmail_native_pop3_require(pHandle);
 	bool bResult;

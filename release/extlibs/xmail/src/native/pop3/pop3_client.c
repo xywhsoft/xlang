@@ -223,10 +223,11 @@ XRT_API bool xrtPop3ClientConfigValid(const xpop3clientconfig* pConfig)
 
 
 /* 建立并协商 POP3 会话。 */
-XRT_API xpop3client* xrtPop3ClientOpen(
+static xpop3client* __xrtPop3ClientOpenWithPost(
 	const xpop3clientconfig* pConfig,
 	XL6_DeadlineV1 iDeadline,
-	xcancel* pCancel
+	xcancel* pCancel,
+    __xmailpostproc post,void* context
 )
 {
 	xpop3client* pClient;
@@ -240,11 +241,11 @@ XRT_API xpop3client* xrtPop3ClientOpen(
 		return NULL;
 	}
 	pClient->State = XPOP3_CLIENT_AUTHORIZATION;
-	if ( !__xrtMailTransportOpen(
+	if ( !__xrtMailTransportOpenWithPost(
 		&pClient->Transport,
 		&pConfig->Net,
 		iDeadline,
-		pCancel
+		pCancel, post,context
 	) || !xrtPop3ClientReceive(
 		pClient,
 		&Reply,
@@ -1067,5 +1068,9 @@ XRT_API void xrtPop3ClientDestroy(xpop3client* pClient)
 	__xrtMailTextDestroy(&pClient->Reply);
 	xrtFree(pClient);
 }
+
+XRT_API xpop3client* xrtPop3ClientOpen(const xpop3clientconfig* config,
+    XL6_DeadlineV1 deadline,xcancel* cancel)
+{return __xrtPop3ClientOpenWithPost(config,deadline,cancel,NULL,NULL);}
 
 #endif

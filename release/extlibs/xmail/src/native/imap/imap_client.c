@@ -434,10 +434,11 @@ XRT_API bool xrtImapClientConfigValid(const ximapclientconfig* pConfig)
 
 
 /* 建立 IMAP 会话并完成 greeting、CAPABILITY 与可选 STARTTLS。 */
-XRT_API ximapclient* xrtImapClientOpen(
+static ximapclient* __xrtImapClientOpenWithPost(
 	const ximapclientconfig* pConfig,
 	XL6_DeadlineV1 iDeadline,
-	xcancel* pCancel
+	xcancel* pCancel,
+    __xmailpostproc post,void* context
 )
 {
 	ximapclient* pClient;
@@ -455,11 +456,11 @@ XRT_API ximapclient* xrtImapClientOpen(
 	pClient->AppendLimit = XIMAP_APPEND_LIMIT_UNKNOWN;
 	pClient->CommandLineLimit = pConfig->CommandLineLimit != 0 ?
 		pConfig->CommandLineLimit : XIMAP_COMMAND_LINE_DEFAULT;
-	if ( !__xrtMailTransportOpen(
+	if ( !__xrtMailTransportOpenWithPost(
 		&pClient->Transport,
 		&pConfig->Net,
 		iDeadline,
-		pCancel
+		pCancel, post,context
 	) || !xrtImapClientReceive(
 		pClient,
 		&Event,
@@ -1328,5 +1329,9 @@ XRT_API void xrtImapClientDestroy(ximapclient* pClient)
 	memset(pClient, 0, sizeof(*pClient));
 	xrtFree(pClient);
 }
+
+XRT_API ximapclient* xrtImapClientOpen(const ximapclientconfig* config,
+    XL6_DeadlineV1 deadline,xcancel* cancel)
+{return __xrtImapClientOpenWithPost(config,deadline,cancel,NULL,NULL);}
 
 #endif

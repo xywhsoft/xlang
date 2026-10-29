@@ -8,7 +8,7 @@ from xmail import Pop3ListItem, Pop3Stat, Pop3UidlItem
 func recvUntil(TcpStream stream, string marker) as string
     string result = ""
     while not string.contains(result, marker)
-        string part = stream.recv(8000, 65536)
+        string part = encoding.decodeUtf8(stream.recv(65536, 8000))
         assert part != "", "POP3 loopback server received an early close"
         result = result + part
     end
@@ -20,32 +20,32 @@ end
 // 模拟 CAPA、认证、查询和 RETR 多行响应。
 async func servePop3(TcpServer server) as int
     TcpStream stream = await server.acceptAsync()
-    assert stream.send("+OK loopback ready\r\n")
+    assert stream.send("+OK loopback ready\r\n") == NetStatus.ok
 
     assert recvUntil(stream, "\r\n") == "CAPA\r\n"
     assert stream.send(
-        "+OK capabilities\r\nUSER\r\nUIDL\r\nTOP\r\nPIPELINING\r\n.\r\n")
+        "+OK capabilities\r\nUSER\r\nUIDL\r\nTOP\r\nPIPELINING\r\n.\r\n") == NetStatus.ok
 
     assert recvUntil(stream, "\r\n") == "USER user\r\n"
-    assert stream.send("+OK user accepted\r\n")
+    assert stream.send("+OK user accepted\r\n") == NetStatus.ok
     assert recvUntil(stream, "\r\n") == "PASS pass\r\n"
-    assert stream.send("+OK mailbox locked\r\n")
+    assert stream.send("+OK mailbox locked\r\n") == NetStatus.ok
 
     assert recvUntil(stream, "\r\n") == "STAT\r\n"
-    assert stream.send("+OK 2 300\r\n")
+    assert stream.send("+OK 2 300\r\n") == NetStatus.ok
     assert recvUntil(stream, "\r\n") == "LIST 1\r\n"
-    assert stream.send("+OK 1 120\r\n")
+    assert stream.send("+OK 1 120\r\n") == NetStatus.ok
     assert recvUntil(stream, "\r\n") == "UIDL 1\r\n"
-    assert stream.send("+OK 1 uid-1\r\n")
+    assert stream.send("+OK 1 uid-1\r\n") == NetStatus.ok
 
     assert recvUntil(stream, "\r\n") == "RETR 1\r\n"
     assert stream.send(
-        "+OK message follows\r\nSubject: loopback\r\n\r\n..body\r\n.\r\n")
+        "+OK message follows\r\nSubject: loopback\r\n\r\n..body\r\n.\r\n") == NetStatus.ok
 
     assert recvUntil(stream, "\r\n") == "NOOP\r\n"
-    assert stream.send("+OK still here\r\n")
+    assert stream.send("+OK still here\r\n") == NetStatus.ok
     assert recvUntil(stream, "\r\n") == "QUIT\r\n"
-    assert stream.send("+OK bye\r\n")
+    assert stream.send("+OK bye\r\n") == NetStatus.ok
     stream.shutdownWrite()
     stream.close()
     return 0
@@ -55,11 +55,9 @@ end
 
 // 等待 Listener 关闭，避免全局网络运行时退出时仍有活动对象。
 func closeServer(TcpServer server) as bool
-    if not server.close() and server.state != 2 then
-        return false
-    end
+    server.close()
     for attempt in range(0, 500)
-        if server.state == 2 then
+        if server.state == TcpServerState.closed then
             return true
         end
         time.sleep(1)
@@ -70,13 +68,15 @@ end
 
 
 async func run() as int
-    TcpServer server = tcp.listen(0)
+    NetEngine listenerEngine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    listenerEngine.start()
+    TcpServer server = TcpServer(listenerEngine, TcpServerOptions(TcpListenOptions(NetAddress.loopback(4, 0))))
     future<int> serving = servePop3(server)
-    NetEngine engine = NetEngine(1)
-    assert engine.start(), "POP3 client engine could not start"
+    NetEngine engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
 
     Pop3Config config = Pop3Config(
-        "127.0.0.1", server.port(), xmail.SECURITY_PLAIN,
+        "127.0.0.1", server.localAddress().port, xmail.SECURITY_PLAIN,
         true, 8000)
     Pop3Client client = Pop3Client.open(engine, config)
     assert client.valid and client.state == xmail.POP3_AUTHORIZATION
@@ -110,7 +110,10 @@ async func run() as int
     assert client.state == xmail.POP3_CLOSED
     assert await serving == 0
     assert closeServer(server)
-    engine.stop()
+    engine.close()
+    assert engine.wait(5000)
+    listenerEngine.close()
+    assert listenerEngine.wait(5000)
     return 0
 end
 

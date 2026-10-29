@@ -176,11 +176,12 @@ XRT_API bool xrtMailNetConfigValid(const xmailnetconfig* pConfig)
 
 
 /* 打开明文或隐式 TLS 传输；STARTTLS 首先建立明文连接。 */
-bool __xrtMailTransportOpen(
+bool __xrtMailTransportOpenWithPost(
 	__xmailtransport* pTransport,
 	const xmailnetconfig* pConfig,
 	XL6_DeadlineV1 iDeadline,
-	xcancel* pCancel
+	xcancel* pCancel,
+    __xmailpostproc post,void* context
 )
 {
 	if ( !xrtMemRangeValid(pTransport, sizeof(*pTransport)) ||
@@ -190,6 +191,7 @@ bool __xrtMailTransportOpen(
 		return false;
 	}
 	memset(pTransport, 0, sizeof(*pTransport));
+    pTransport->Post=post;pTransport->PostContext=context;
 	pTransport->LineLimit = pConfig->LineLimit != 0 ?
 		pConfig->LineLimit : XMAIL_WIRE_LINE_DEFAULT;
 	pTransport->ReadChunk = pConfig->ReadChunk;
@@ -695,5 +697,9 @@ void __xrtMailTransportDestroy(__xmailtransport* pTransport)
 	xrtFree(pTransport->Pending);
 	memset(pTransport, 0, sizeof(*pTransport));
 }
+
+bool __xrtMailTransportOpen(__xmailtransport* transport,const xmailnetconfig* config,
+    XL6_DeadlineV1 deadline,xcancel* cancel)
+{return __xrtMailTransportOpenWithPost(transport,config,deadline,cancel,NULL,NULL);}
 
 #endif

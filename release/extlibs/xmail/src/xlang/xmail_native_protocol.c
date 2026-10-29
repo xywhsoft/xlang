@@ -4,17 +4,12 @@
 
 
 typedef struct xmail_native_protocol {
-	xnetengine* Engine;
+	xvalue* EngineOwner;
 } xmail_native_protocol;
 
 
 
-typedef struct xmail_native_tls {
-	XL6_TlsLease* Lease;
-	xtlsverifier* Verifier;
-} xmail_native_tls;
-
-
+typedef struct xmail_native_tls { unsigned reserved; } xmail_native_tls;
 
 /* 把语言毫秒超时转换为 XRT 绝对 deadline；负值表示无限等待。 */
 static bool xmail_native_deadline(int64 iTimeoutMilliseconds, XL6_DeadlineV1* pDeadline)
@@ -71,7 +66,7 @@ static bool xmail_native_host(cstr sHost, size_t iHostSize)
 
 
 
-/* 占用显式 Engine，并创建仅供同步 Open 使用的 resolver。 */
+/* Engine is protected by the resident call scope during synchronous Open. */
 static xnetresolver* xmail_native_protocol_begin(xnetengine* pEngine)
 {
 	xnetresolver* pResolver;
@@ -80,25 +75,17 @@ static xnetresolver* xmail_native_protocol_begin(xnetengine* pEngine)
 		xmail_native_fail(XERR_ARGUMENT, "mail client requires a network engine");
 		return NULL;
 	}
-	if ( !xrtNetEnginePin(pEngine) ) {
-		return NULL;
-	}
 	pResolver = xrtNetResolverCreate(NULL);
-	if ( pResolver == NULL ) {
-		(void)xrtNetEngineUnpin(pEngine);
-	}
 	return pResolver;
 }
 
 
 
-/* 释放协议客户端持有的 Engine 生命周期占用。 */
+/* Release the actual managed creator; transports own their native edges. */
 static void xmail_native_protocol_release(xmail_native_protocol* pProtocol)
 {
-	if ( (pProtocol != NULL) && (pProtocol->Engine != NULL) ) {
-		(void)xrtNetEngineUnpin(pProtocol->Engine);
-		pProtocol->Engine = NULL;
-	}
+
+	if(pProtocol){xrtValueRelease(pProtocol->EngineOwner);pProtocol->EngineOwner=NULL;}
 }
 
 
@@ -129,19 +116,10 @@ static bool xmail_native_tls_open(
 		return true;
 	}
 	if ( pTlsConfig == NULL ) {
-		return xmail_native_fail(XERR_ARGUMENT, "secure mail client requires TlsConfig");
+		return xmail_native_fail(XERR_ARGUMENT, "secure mail client requires TlsClientContext");
 	}
-	pTls->Lease = xl6ExtlibTlsLeaseCreate(pTlsConfig);
-	if ( pTls->Lease != NULL ) {
-		pTls->Verifier = xl6ExtlibTlsLeaseShareVerifier(pTls->Lease);
-		pNet->Tls.Context = xl6ExtlibTlsLeaseContext(pTls->Lease);
-		pNet->Tls.Verifier = pTls->Verifier;
-	}
-	if ( (pTls->Lease == NULL) || (pTls->Verifier == NULL) ||
-		(pNet->Tls.Context == NULL) ) {
-		return xmail_native_fail(XERR_ARGUMENT,
-			"TlsConfig could not create a mail client context and verifier");
-	}
+	pNet->Tls = *(const xtlsclientconfig*)pTlsConfig;
+
 	return true;
 }
 
@@ -153,7 +131,17 @@ static void xmail_native_tls_close(xmail_native_tls* pTls)
 	if ( pTls == NULL ) {
 		return;
 	}
-	xrtTlsVerifierRelease(pTls->Verifier);
-	xl6ExtlibTlsLeaseRelease(pTls->Lease);
 	memset(pTls, 0, sizeof(*pTls));
+}
+
+/* Frozen physical slots, never flatten retained native transport children. */
+static bool xmail_native_protocol_trace(const xmail_native_protocol* protocol,xrtownershipvisitor visit,void* context)
+{
+    return !protocol->EngineOwner||visit(xrtValueOwnership(protocol->EngineOwner),context);
+}
+static bool xmail_native_transport_trace(const __xmailtransport* transport,xrtownershipvisitor visit,void* context)
+{
+    return (!transport->Tcp||visit(xrtNetStreamOwnership(transport->Tcp),context))&&
+        (!transport->Tls||visit(xrtTlsStreamOwnership(transport->Tls),context))&&
+        (!transport->DeflateInput||visit(xrtNetBytesOwnership(transport->DeflateInput),context));
 }

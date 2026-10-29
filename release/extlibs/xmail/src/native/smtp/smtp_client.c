@@ -380,10 +380,11 @@ XRT_API bool xrtSmtpClientConfigValid(const xsmtpclientconfig* pConfig)
 
 
 /* 建立并协商 SMTP 会话。 */
-XRT_API xsmtpclient* xrtSmtpClientOpen(
+static xsmtpclient* __xrtSmtpClientOpenWithPost(
 	const xsmtpclientconfig* pConfig,
 	XL6_DeadlineV1 iDeadline,
-	xcancel* pCancel
+	xcancel* pCancel,
+    __xmailpostproc post,void* context
 )
 {
 	xsmtpclient* pClient;
@@ -401,11 +402,11 @@ XRT_API xsmtpclient* xrtSmtpClientOpen(
 	pClient->State = XSMTP_CLIENT_READY;
 	pClient->ReplyLineLimit = pConfig->ReplyLines;
 	memset(&Reply, 0, sizeof(Reply));
-	bOpened = __xrtMailTransportOpen(
+	bOpened = __xrtMailTransportOpenWithPost(
 		&pClient->Transport,
 		&pConfig->Net,
 		iDeadline,
-		pCancel
+		pCancel, post,context
 	);
 	bReceived = bOpened && __xrtSmtpClientReceiveMode(
 		pClient,
@@ -1246,5 +1247,9 @@ XRT_API void xrtSmtpClientDestroy(xsmtpclient* pClient)
 	__xrtMailTextDestroy(&pClient->Reply);
 	xrtFree(pClient);
 }
+
+XRT_API xsmtpclient* xrtSmtpClientOpen(const xsmtpclientconfig* config,
+    XL6_DeadlineV1 deadline,xcancel* cancel)
+{return __xrtSmtpClientOpenWithPost(config,deadline,cancel,NULL,NULL);}
 
 #endif

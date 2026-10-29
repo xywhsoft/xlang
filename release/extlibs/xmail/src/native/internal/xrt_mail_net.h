@@ -17,8 +17,15 @@
 	#error "XMAIL_FEATURE_MAIL_NET_DEFLATE requires Deflate and Inflate"
 #endif
 
+/* Optional constructor-scoped dispatcher. A custom dispatcher consumes the
+ * Promise creator on both success and failure. Context is borrowed only for
+ * Open and must be cleared before publishing the constructed client. */
+typedef bool (*__xmailpostproc)(xnetworker*,xnettaskproc,void*,xpromise*,void (*)(void*),void*);
+
 /* 同步协议客户端共享的传输对象，不向公共 API 隐藏 XRT 网络对象。 */
 typedef struct __xmailtransport {
+    __xmailpostproc Post;
+    void* PostContext;
 	xnetstream* Tcp;
 	#if defined(XMAIL_FEATURE_MAIL_NET_TLS)
 		xtlsstream* Tls;
@@ -60,6 +67,9 @@ bool __xrtMailTextSet(__xmailtext* pText, xstrview Value);
 void __xrtMailTextDestroy(__xmailtext* pText);
 
 
+
+bool __xrtMailTransportOpenWithPost(__xmailtransport*,const xmailnetconfig*,
+    XL6_DeadlineV1,xcancel*,__xmailpostproc,void*);
 
 bool __xrtMailTransportOpen(
 	__xmailtransport* pTransport,

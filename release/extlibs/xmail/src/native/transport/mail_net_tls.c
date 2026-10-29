@@ -7,12 +7,22 @@
 
 /* STARTTLS 接管请求只在原 TCP Stream 的 Worker 上短暂存在。 */
 typedef struct __xmailtlsupgrade {
+    xatomic32 Refs;
+    xatomic32 Gate;
 	xnetstream* Tcp;
 	const xtlsclientconfig* Client;
 	const xtlsstreamconfig* Stream;
 	xtlsstream* Tls;
 	xpromise* Promise;
 } __xmailtlsupgrade;
+
+/* The caller and queued task each own one request reference. Queued
+ * abandonment must never inspect the caller-borrowed TCP/configuration. */
+static void __xrtMailUpgradeDrop(void* data)
+{
+    __xmailtlsupgrade* request=data;
+    if(xrtAtomic32FetchSub(&request->Refs,1,XMEMORY_ACQ_REL)==1)xrtFree(request);
+}
 
 /* 判断拨号主机是否是无需 SNI 的数字 IP。 */
 static bool __xrtMailNetTlsHostIsIp(cstr sHost)
@@ -118,7 +128,12 @@ static void __xrtMailNetTlsUpgradeTask(
 {
 	__xmailtlsupgrade* pUpgrade = (__xmailtlsupgrade*)pData;
 
-	(void)pWorker;
+    (void)pWorker;
+    xpromise* promise=pUpgrade->Promise;
+    uint32 expected=0;
+    if(!xrtAtomic32CompareExchange(&pUpgrade->Gate,&expected,1,XMEMORY_ACQ_REL,XMEMORY_ACQUIRE)){
+        xrtPromiseDestroy(promise);__xrtMailUpgradeDrop(pUpgrade);return;
+    }
 	if ( xrtTlsStreamClient(
 		pUpgrade->Tcp,
 		pUpgrade->Client,
@@ -127,13 +142,16 @@ static void __xrtMailNetTlsUpgradeTask(
 		NULL,
 		&pUpgrade->Tls
 	) ) {
-		(void)xrtPromiseResolve(pUpgrade->Promise, NULL);
+		(void)xrtPromiseResolve(promise, NULL);
 	} else if ( xrtGetError() != NULL ) {
-		(void)xrtPromiseReject(pUpgrade->Promise, xrtGetError());
+		(void)xrtPromiseReject(promise, xrtGetError());
 	} else {
-		(void)xrtPromiseClose(pUpgrade->Promise);
+		(void)xrtPromiseClose(promise);
 	}
-	xrtPromiseDestroy(pUpgrade->Promise);
+	/* No access to caller-owned Upgrade storage after publication. */
+    xrtClearError();
+    xrtPromiseDestroy(promise);
+    __xrtMailUpgradeDrop(pUpgrade);
 }
 
 
@@ -190,7 +208,7 @@ bool __xrtMailTransportStartTls(
 	xcancel* pCancel
 )
 {
-	__xmailtlsupgrade Upgrade;
+	__xmailtlsupgrade* pUpgrade;
 	xtlsclientconfig Client;
 	xnetworker* pWorker;
 	xfuture* pFuture;
@@ -231,28 +249,42 @@ bool __xrtMailTransportStartTls(
 		return false;
 	}
 	__xrtMailNetTlsClient(pConfig, &Client);
-	memset(&Upgrade, 0, sizeof(Upgrade));
-	Upgrade.Tcp = pTransport->Tcp;
-	Upgrade.Client = &Client;
-	Upgrade.Stream = &pConfig->TlsStream;
-	Upgrade.Promise = xrtPromiseCreate(&pFuture, NULL);
-	if ( Upgrade.Promise == NULL ) {
+    pUpgrade=xrtCalloc(1,sizeof(*pUpgrade));if(!pUpgrade)return false;
+    xrtAtomic32Init(&pUpgrade->Refs,2);xrtAtomic32Init(&pUpgrade->Gate,0);
+	pUpgrade->Tcp = pTransport->Tcp;
+	pUpgrade->Client = &Client;
+	pUpgrade->Stream = &pConfig->TlsStream;
+	pUpgrade->Promise = xrtPromiseCreate(&pFuture, NULL);
+	if ( pUpgrade->Promise == NULL ) {
+        xrtFree(pUpgrade);
 		return false;
 	}
-	if ( !xrtNetEnginePost(
-		xrtNetWorkerEngine(pWorker),
-		xrtNetWorkerIndex(pWorker),
-		__xrtMailNetTlsUpgradeTask,
-		&Upgrade
-	) ) {
-		xrtPromiseDestroy(Upgrade.Promise);
-		xrtFutureDestroy(pFuture);
-		return false;
-	}
-	Wait = xrtFutureWait(pFuture);
+    bool posted;
+    if(pTransport->Post){
+        posted=pTransport->Post(pWorker,__xrtMailNetTlsUpgradeTask,pUpgrade,
+            pUpgrade->Promise,__xrtMailUpgradeDrop,pTransport->PostContext);
+    }else{
+        posted=xrtNetEnginePost(xrtNetWorkerEngine(pWorker),xrtNetWorkerIndex(pWorker),
+            __xrtMailNetTlsUpgradeTask,pUpgrade);
+        if(!posted){xrtPromiseDestroy(pUpgrade->Promise);__xrtMailUpgradeDrop(pUpgrade);}
+    }
+    if(!posted){xrtFutureDestroy(pFuture);__xrtMailUpgradeDrop(pUpgrade);return false;}
+
+    Wait=xrtFutureWaitForCancel(pFuture,xl6DeadlineRemainingMillisecondsV1(iDeadline),pCancel);
+    if(Wait!=XWAIT_OK){
+        uint32 expected=0;
+        if(!xrtAtomic32CompareExchange(&pUpgrade->Gate,&expected,2,XMEMORY_ACQ_REL,XMEMORY_ACQUIRE)){
+            /* Running handoff must return ownership before borrowed inputs die. */
+            (void)xrtFutureWait(pFuture);
+            if(pUpgrade->Tls){pTransport->Tcp=NULL;(void)xrtTlsStreamAbort(pUpgrade->Tls);xrtTlsStreamDestroy(pUpgrade->Tls);}
+        }
+        xrtFutureDestroy(pFuture);__xrtMailUpgradeDrop(pUpgrade);
+        __xrtMailError(Wait==XWAIT_TIMEOUT?XERR_TIMEOUT:Wait==XWAIT_CANCELLED?XERR_CANCELLED:XERR_IO,
+            XMAIL_ERROR_PROTOCOL,"mail STARTTLS worker handoff interrupted");return false;
+    }
 	if ( (Wait != XWAIT_OK) ||
 		(xrtFutureState(pFuture) != XFUTURE_RESOLVED) ||
-		(Upgrade.Tls == NULL) ) {
+		(pUpgrade->Tls == NULL) ) {
 		if ( xrtFutureState(pFuture) == XFUTURE_FAILED ) {
 			xrtSetError(xrtFutureError(pFuture));
 		} else if ( Wait != XWAIT_OK ) {
@@ -262,12 +294,15 @@ bool __xrtMailTransportStartTls(
 				"mail STARTTLS worker handoff failed"
 			);
 		}
+		if(!xrtGetError())__xrtMailError(XERR_CLOSED,XMAIL_ERROR_PROTOCOL,"mail STARTTLS handoff closed");
 		xrtFutureDestroy(pFuture);
+        __xrtMailUpgradeDrop(pUpgrade);
 		return false;
 	}
 	xrtFutureDestroy(pFuture);
 	pTransport->Tcp = NULL;
-	pTransport->Tls = Upgrade.Tls;
+	pTransport->Tls = pUpgrade->Tls;
+    __xrtMailUpgradeDrop(pUpgrade);
 	pTransport->PendingSize = 0;
 	pTransport->PendingConsumed = 0;
 	pOpen = xrtTlsStreamWaitAsync(
