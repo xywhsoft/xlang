@@ -19,6 +19,7 @@
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / geohash</p><h1>geohash</h1>
     <p class="extlib-lead">经纬度网格编码与相邻格查询。</p>
     <p>严格校验坐标、精度及编码字符；XLang 输入拒绝内嵌 NUL；经度环绕，极点方向显式报错。</p>
+    <p>2026-10-30：补 2696 条独立有理数网格参照，覆盖分割线相邻浮点数、完整短格、最高精度角落、边界/中心、bbox 往返和四方向；不以编码与解码自洽代替独立结果检查。新增 dateline 双语六行范例；原预算、线程及全部旧测试保留，未改算法/ABI，也不宣称全部地理编码空间穷举。最终平台证据与运行命令见 README 和根目录台账。</p>
     <p>2026-10-28 完整返回链复查，六个文本函数接管后不再复制正文。C 12 组、XLang 17 组预算及八个 NUL 入口回归通过；非编码查询仍多一次 NUL 针串分配，不宣称整条零开销。Windows/Linux 默认门禁、Linux ASan/UBSan 与双语 JIT/AOT 通过；黄金文件只统一行尾，正文仍严格对照。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>

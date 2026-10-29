@@ -1,0 +1,21 @@
+import geohash
+
+func main(...) as int
+    // 用粗网格展示日期变更线环绕；纬度不会越过极点继续环绕。
+    string edge = geohash.encode(0.0, 180.0, 1)
+    string east = geohash.east(edge)
+    println("edge=" + edge)
+    println("east=" + east)
+    println("west=" + geohash.west(east))
+    println("eastBox=" + geohash.bbox(east))
+    bool blocked = false
+    try
+        geohash.north(geohash.encode(90.0, 0.0, 1))
+    catch ValueError error
+        blocked = true
+    end
+    assert blocked
+    println("north=blocked")
+    println("recovered=" + geohash.encode(0.0, 0.0, 1))
+    return 0
+end

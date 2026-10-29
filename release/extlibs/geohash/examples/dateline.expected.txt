@@ -1,0 +1,6 @@
+edge=x
+east=8
+west=x
+eastBox=0,-180,45,-135
+north=blocked
+recovered=s
