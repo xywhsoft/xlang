@@ -36,8 +36,10 @@ def main():
         'xl6_array_sync_admission','xl6_queue_spsc_admission','xl6_queue_mpsc_admission',
         'xl6_queue_mpmc_admission','xl6_thread','xl6_array_thread_admission'}
     assert required.issubset({path.stem for path in sources})
-    runtime=native/'release/libxl.so'; assert runtime.is_file()
     tcc_core=native/'release/libxlc.so'; assert tcc_core.is_file()
+    # ELF interposes exported TCC helpers. Linking libxl while loading libxlc
+    # would mix two private TCC states; the host and selected core must agree.
+    runtime=tcc_core
     configuration=native/'build/linux/tcc-source/config.h'
     assert configuration.is_file(), 'Use a native build with its actual TCC configuration'
     configured=re.search(r'^#define\s+CONFIG_TRIPLET\s+"([A-Za-z0-9_.+\-]+)"\s*$',
@@ -134,7 +136,7 @@ def main():
             objects.append({'Path':str(obj),'Sha256':sha(obj),'Source':str(source)})
             print(f'[{index}/{len(sources)}] compiled {source.name}',flush=True)
         driver=out/'public_source'
-        run('link',[cc,*instrumentation,*(['-no-pie'] if args.sanitize else []),*[row['Path'] for row in objects],'-L'+str(runtime.parent),'-lxl',
+        run('link',[cc,*instrumentation,*(['-no-pie'] if args.sanitize else []),*[row['Path'] for row in objects],'-L'+str(runtime.parent),'-lxlc',
             '-Wl,-rpath,'+str(runtime.parent),'-Wl,--export-dynamic','-pthread','-ldl','-lm','-o',driver])
         report.update(Driver=str(driver),DriverSha256=sha(driver))
         report['InputsUnchanged']=all(sha(row['Path'])==row['Sha256'] for row in inputs)
