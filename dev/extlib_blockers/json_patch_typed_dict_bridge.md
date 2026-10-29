@@ -1,5 +1,19 @@
 # json.patch: XLang 字典传入 C xvalue 后不能按对象访问
 
+## 2026-10-30 根目录布局复验
+
+默认Windows/Linux包门禁分别前37/38阶段满足预期，包含原C、新move
+所有权/原子性/OOM、八条实际原型、新双语与五个独立程序，最后原中央
+字面量仍报AssertionError: has /name。最小源从仓库根目录运行
+`release/xl.exe run release/extlibs/json.patch/test/var_bridge_repro.xl`；
+Linux用release/xl。两平台check/build成功，JIT与独立程序均断言失败
+退出1，说明构建成功不等于容器投影闭环。
+
+新relocate范例从标准json.parse读取已有JSON文本，两平台可用；它没有
+先序列化语言容器，也没有新增原生工厂，不能据此关闭字面量的M1。原
+中央/边界/分配/旧双语及AOT仍为必过项，未改为expected-failure。当前
+最终报告及旧/新C独立参照证据见验收矩阵JSON Patch行与任务台账。
+
 2026-10-25，当前 Windows 发布版（`release/xl.exe` / `xlc.dll` 均为当日构建）
 复现。此记录属于语言容器与 C/XRT 值接口的边界，不在普通扩展包中绕过。
 

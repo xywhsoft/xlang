@@ -16,7 +16,7 @@ try:
 except ImportError as error:
     raise SystemExit(
         "Install test-only dependency: python -m pip install --target "
-        "demo6/build/test/json_patch_oracle_deps jsonpatch==1.35"
+        "build/test/json_patch_oracle_deps jsonpatch==1.35 jsonpointer==3.0.0"
     ) from error
 if jsonpatch.__version__ != "1.35":
     raise SystemExit("json.patch oracle requires python-json-patch 1.35")
@@ -51,8 +51,16 @@ def main(executable):
     for source, patch in explicit:
         cases.append((source, patch, jsonpatch.apply_patch(source, patch)))
 
+    # 对象、数组和标量移动/复制到同级或根，预期值由独立实现计算。
+    for _ in range(64):
+        source = {"src": value(rng, 3), "dst": value(rng, 2)}
+        for op in ("move", "copy"):
+            for target in ("/dst", ""):
+                patch = [{"op": op, "from": "/src", "path": target}]
+                cases.append((source, patch, jsonpatch.apply_patch(source, patch)))
+
     encoded = "".join(json.dumps(case, ensure_ascii=False, separators=(",", ":")) + "\n" for case in cases)
-    result = subprocess.run([executable], input=encoded, text=True, encoding="utf-8", capture_output=True)
+    result = subprocess.run([executable], input=encoded, text=True, encoding="utf-8", capture_output=True, timeout=90)
     if result.returncode:
         print(result.stderr, file=sys.stderr, end="")
         try:
@@ -61,6 +69,8 @@ def main(executable):
         except (IndexError, ValueError):
             pass
         return result.returncode
+    if result.stdout != f"json.patch oracle: {len(cases)} cases passed\n":
+        raise ValueError("oracle runner did not confirm the complete corpus")
     print(result.stdout, end="")
     return 0
 

@@ -1,9 +1,27 @@
 # json.patch
 
+## 当前状态（2026-10-30）
+
+本轮优化内部副本的 `move`：文档仍先完整复制，但待移动值只保留引用、
+移除源再插入目标，不重复调用图复制；`copy` 继续复制子树。公开 API/ABI、
+错误分类、输入不变和失败原子性不变。依据为
+[RFC 6902 的 move/copy 区分](https://www.rfc-editor.org/rfc/rfc6902.html#section-4.4)。
+这不是新结果 BUG 修复：旧实现32项结果/释放顺序和16条逐点 OOM 路径
+均语义正确，只在18个释放顺序组合中超出新的复制预算；优化后预算也归零。
+
+Windows 预验通过原 C、两模块独立运行库、八条实际 cgen 原型、三组 C
+范例、JSON 文本配置双语黄金例及五个独立程序。标准 `json.parse` 产生的
+文档可以正常操作，**不代表语言字面量容器投影已修复**：默认门禁最后
+仍强制原中央语言字典正例并在 M1 失败，完整语言边界与旧双语范例未签收。
+最终双平台证据见根目录 `docs/普通扩展库发布验收矩阵_2026-10-28.md`
+及任务台账；没有修改主线或冻结 XRT，外部官网未部署。
+
+下段是旧日期的阻断记录，不覆盖上述当前范围：
+
 2026-10-26 当前 Windows/Linux 发布版复验：严格 C 边界、正常 `_value`
 指针入口以及两份 C 范例通过；XLang 字典传入原生 `xvalue*` 后，
 `has` 对存在键返回 `false`，`get` 报路径不存在。最小复现及
-容器投影边界分析见 `demo6/dev/extlib_blockers/json_patch_typed_dict_bridge.md`。
+容器投影边界分析见 `dev/extlib_blockers/json_patch_typed_dict_bridge.md`。
 两平台包门禁在 XLang 边界退出 1，尚未执行完整 AOT；本包不能签收
 发布级。以下旧记录描述当时的发布物与实现，不代表当前门禁通过。
 
@@ -12,7 +30,7 @@
 
 包清单仅声明值图和 Unicode 两个直接 XRT 模块。C 测试宿主另启用 JSON
 读取与内存故障注入模块；它们不属于包的运行时依赖。裁剪测试宿主已通过
-全部 C 边界与双语范例，完整 AOT 仍需等待共享缺符号修复。
+全部 C 边界；本轮仅在已可运行路径签收 AOT，完整包仍须等待 M1 投影修复。
 
 ## 当前 API
 
@@ -28,6 +46,9 @@ assert json.patch.get(old, "/values/1") == 2
 
 - `apply(document, operations)`：支持 add/remove/replace/move/copy/test，先复制文档；失败不改输入。补丁数组的每一项必须是对象，`null`、数字、字符串和数组项均报 `ValueError`，不会泄露底层对象读取的类型错误。空指针 `""` 定位根；根 remove 映射为 JSON `null`，作为本包的可表示结果约定。
 - `move` 的源与目标为同一路径时，确认源存在后直接保留当前文档，不重复复制和删除；缺失的源仍报错。
+- 移动到同级、数组位置或根时，在独立副本内部移交已有值；`copy` 仍为
+  独立副本，随后修改目标不改变源。移动之后的操作若失败，整个结果仍
+  被丢弃，调用方的原文档和补丁不受影响；不公开对象地址身份保证。
 - `merge(document, patch)`：对象递归合并，`null` 字段删除键；非对象补丁替换文档。
 - `get/has/set/remove(document, pointer)`：单路径访问及复制后修改。
 - `encodePointer(key)`：按 `~0`/`~1` 编码单个键段，返回带 `/` 的路径。
@@ -52,30 +73,45 @@ assert json.patch.get(old, "/values/1") == 2
 - Merge Patch 对象嵌套最多 64 层；过深输入显式报错。对象键不受 JSON Pointer 的 255 字节段长限制。
 - Merge Patch 的对象字段递归合并，`null` 删除对应键；数组整体替换，不逐项合并。补丁是对象而目标不是对象时创建对象结果；补丁不是对象时替换整个根值。C/XLang 边界均验证这四种组合且原目标不变。
 - 输入应是 JSON 可表示的值；其他带身份/循环引用的 XRT `xvalue` 图不承诺 RFC JSON 语义。
-- 当前 `xl build` 带输出/容器访问的用例还被主线 AOT 缺少
+- 历史 `xl build` 带输出/容器访问的用例曾被主线 AOT 缺少
   `xl6ValueDataSnapshotV1` 阻断；包内不会修改编译器主线。
-  最小 `test/aot_core.xl` 无输出且仅做对象 `has/get`，`xl run` 成功，
-  `xl build` 仍缺同一符号，见 `dev/extlib_blockers/text_snapshot_link.md`。
+  当时最小 `test/aot_core.xl` 无输出且仅做对象 `has/get`，`xl run` 成功，
+  `xl build` 缺同一符号，见 `dev/extlib_blockers/text_snapshot_link.md`。
+  当前原语言字典正例先在 M1 失败，不能把历史缺符号当作本轮结果。
 
 ## 定点验证
 
 包内 `test/test_boundaries.c`、`test/boundaries.xl` 覆盖数组插入、根路径、
 内嵌 NUL、长路径与畸形 UTF-8、同数组双向移动、复合值逻辑相等、
 补丁原子性、合并深度、旧错误污染及复制失败的错误分类。
-独立 `test/check_oracle.ps1` 用固定种子构造 160 组 JSON 文档差分，
-再加入 move/copy/test/数组追加 4 组明确操作；用
+独立 `test/check_oracle.ps1` 用固定种子构造160组JSON文档差分、
+4组明确操作，再加入64种对象/数组/标量源的move/copy同级/根操作，
+合计420组；用
 `python-json-patch 1.35` 计算预期结果，同严格 GCC 构建的 C 包逐值比较。
 它不依赖 XLang 导入，也不替代下述语言与 AOT 门禁。首次运行先安装
 仅用于测试的依赖（安装目录不进入发布包）：
 
 ```powershell
-python -m pip install --target build/test/json_patch_oracle_deps jsonpatch==1.35
+python -m pip install --no-compile --no-deps --target build/test/json_patch_oracle_deps jsonpatch==1.35 jsonpointer==3.0.0
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/json.patch/test/check_oracle.ps1
 ```
 
 分配故障扫描还覆盖同数组 `move`、对象 `copy` 和 `test` 的结构相等比较，
 检查原文档不变、内存错误类别与释放平衡；比较期间的分配失败不得误报
 为补丁条件不匹配。
+新增 `test/move_ownership_c.c` 的32项结果/输入与结果释放顺序组合、
+16条逐点分配故障/立即恢复路径，覆盖同级、根、数组双向及追加、转义键、
+同路径、移动到子路径拒绝、移除后目标失败及后续操作失败；还验证复制后
+修改目标不会影响源。生产代码没有测试钩子，测试仅在编译时观察图复制调用。
+`--costs` 报告0/1/8/64/512/4096项字符串数组的move/copy分配次数：
+本机相同GCC -O2运行库中，非空数组的move由11降至8次、空数组9降至7次，
+copy不变；三种引擎的当前记录一致。图复制会保留不可变标量，不声称所有
+字符串正文重复复制，也不把局部分配数字外推为完整应用提速百分比。
+
+新增双语 `examples/relocate.xl` / `relocate_c.c` 读取相同 JSON 配置，
+复制备份、移动到发布项、独立修改标题，再演示失败不改变原配置；五行
+输出共同匹配 `relocate.expected.txt`。不创建私有原生工厂，不用新 JSON
+文本用法替代仍必过的原语言字面量正例。
 `test/allocations.xl` 在公开语言入口逐点注入故障，验证 `apply` 与 `merge`
 的 `MemoryError` 分类、完整结果及原文档不变；已接入包清单和双平台门禁。
 `examples/basic_c.c` 与 `examples/basic.xl` 运行输出相同；Windows 严格 GCC、
@@ -83,13 +119,13 @@ Linux ASan/UBSan 和 XLang JIT 已通过。
 `examples/workflow_c.c` 与 `examples/workflow.xl` 是第二组成对范例：先用
 `test/copy/move/replace/add/remove` 原子操作更新文档，再用 `merge/set/has/get`
 处理配置，并检查原文档不变；`encodePointer` 保留在入门范例中。
-两组范例均由 Windows 包门禁逐字对照；Linux sanitizer 门禁也运行 C 工作流。
-Linux 包门禁现还需要 `release/xl`，运行中央与包内 XLang 边界，
-并将两组 C/XLang 范例分别逐字比较；未运行完整 AOT。
+两组范例均保留在 Windows/Linux 包门禁中逐字对照；但当前会在前面的
+原语言字典正例M1处停止，不能把旧双语通过记录当本轮通过。默认Linux
+门禁还需Python3标准库核对模块元数据；可用PYTHON指定解释器路径。
 两个 C 范例也可作为单文件直接执行：它们包含包内公开头和原生实现，
 无需手动添加头文件目录或链接参数；正式包仍由清单编译原生源文件。
 
-在 `demo6` 目录运行：
+从仓库根目录运行（不带原 `demo6/` 前缀）：
 
 包内 `test/boundaries.xl` 已登记到 `coverage.tests`；
 `tools/smoke_extlib_catalog.ps1 -Package json.patch` 会连同原主用例复验。
@@ -97,9 +133,22 @@ Linux 包门禁现还需要 `release/xl`，运行中央与包内 XLang 边界，
 ```powershell
 ./release/xl.exe run release/extlibs/json.patch/examples/basic_c.c
 ./release/xl.exe run release/extlibs/json.patch/examples/workflow_c.c
-pwsh -NoProfile -File release/extlibs/json.patch/test/check.ps1 -SkipAot
-wsl bash release/extlibs/json.patch/test/check.sh
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/json.patch/test/check.ps1
+bash release/extlibs/json.patch/test/check.sh
 ```
+
+默认门禁需要 GCC，可用 `CC` 指定路径；缺工具为真实失败，`-SkipAot`
+只用于诊断。先验证仅manifest两模块生成的独立XRT、原C和新所有权/OOM、
+八个实际语言原型、双语新例及五个独立程序，再强制执行原中央/包内语言
+边界与旧双语/AOT。Linux增加ASan/UBSan/泄漏检查；两平台逐进程有超时，
+前后核对输入指纹，失败保留现场，成功只删本次独占目录。默认门禁不强制
+安装Python第三方包；本轮额外执行上述固定依赖的420项独立参照，原、
+新实现结果一致。Python子进程有90秒限时并须确认完整用例数，不把空输出
+当作成功。旧独立参照入口的包装脚本不替代默认语言/AOT验收。
+
+## 历史验证记录
+
+以下只记录对应日期的结果，不代表当前完整包已通过。
 
 2026-10-15：中央 `test/cases/extlib_json_patch.xl` 中的非法指针 `has`
 断言更新为显式捕获 `ValueError`，与包内合同和边界用例统一；完整中央
