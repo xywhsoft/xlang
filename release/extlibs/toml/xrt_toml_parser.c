@@ -284,6 +284,9 @@ XRT_API xvalue* xrtTomlParse(xreader* pReader, bool bTakeOwnership,
 
 cleanup:
 	xrtBufferDestroy(pInput);
+	/* 关闭回调成功也可能清空错误槽；正文失败时保留原始 XRT 首因。 */
+	bool bHadFailure = pError->iCode != XRT_TOML_OK;
+	xerror* pSaved = bHadFailure ? xrtTakeError() : NULL;
 	if ( bTakeOwnership && !xrtReaderDestroy(pReader) &&
 		pError->iCode == XRT_TOML_OK ) {
 		const xerror* pCause = xrtGetError();
@@ -294,6 +297,7 @@ cleanup:
 		xrtValueRelease(pResult);
 		pResult = NULL;
 	}
+	if ( bHadFailure ) { xrtSetErrorTake(pSaved); }
 	return pResult;
 }
 

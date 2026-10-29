@@ -4,7 +4,7 @@
 - Snapshot version: `260618`
 - License: MIT, see `LICENSE`
 - Upstream `src/tomlc17.c` SHA-256: `452DF8B237E5387707647B8711436067E80E18AF01978BB2308958C2CF4924A2`
-- Local `src/tomlc17.c` SHA-256: `746E456A9A623E466AB30EFDF44847A03AC8265754F72D60979AF156A3BA204A`
+- Local `src/tomlc17.c` SHA-256: `1995B8AA808EF92217F89543C60123E0BD9FB7CB6A8E1CBF15D77720896F9FB3`
 - `src/tomlc17.h` SHA-256: `7A5D09625636B245315C0CEB7671B3874D24CF4A136E677D950F6D73F957BC65`
 
 Only the C parser source and public header are retained. Upstream tests, examples,
@@ -14,6 +14,10 @@ TOML 1.0: inline-table trailing commas and newlines, optional seconds in
 times, Unicode bare keys, and `\xNN` / `\e` string escapes. The five forms other
 than Unicode bare keys are in TOML 1.1; bare keys remain ASCII-only there too.
 Quoted Unicode keys remain valid TOML 1.0.
+The local date validator accepts the complete four-digit year range 0000..9999,
+matching the TOML 1.0 ABNF and the package's existing datetime constructors.
+Year zero uses the same Gregorian leap-year rule; this is independent of
+Python datetime's narrower 1..9999 representation and is tested separately.
 `tomlc17_xrt.c` selects XRT as the parser's default allocator at compile time
 without changing process-global options at runtime. The private adapter also
 routes floating-point conversion to XRT's strict, locale-independent number

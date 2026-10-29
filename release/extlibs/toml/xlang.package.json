@@ -21,6 +21,8 @@
             "XRT_MODULE_NUMBER_FLOAT",
             "XRT_MODULE_STRING",
             "XRT_MODULE_THREAD",
+            "XRT_MODULE_ONCE",
+            "XRT_MODULE_THREAD_KEY",
             "XRT_MODULE_TIME",
             "XRT_MODULE_UNICODE",
             "XRT_MODULE_VALUE_CONTAINER"
@@ -28,7 +30,7 @@
     },
     "links": [],
     "loadlibs": [],
-    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl", "test/calendar.xl"] },
     "dependencies": [
         {
             "name": "_tomlc17",

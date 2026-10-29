@@ -1,20 +1,20 @@
 # toml
 
-2026-10-26：新增数组表元素下嵌套普通表和数组表的 C 往返回归，
-验证第二个元素不会继承第一个元素的子表；Windows 原生门禁与
-Linux C ASan/UBSan 均通过，两个平台还把实际写出内容交给 Python
-`tomllib` 独立解析并核对结构。后续 XLang 门禁仍在已记录的
-语言字典传入 `stringify` 的 foreign `var` 投影处失败，本次不签收整包。
+## 当前状态（2026-10-30）
 
-2026-10-26 重建 Windows/Linux 发布版后复验：Windows 默认门禁的严格 C
-语法和 C 边界通过，
-默认 `test/check.ps1` 在 XLang 边界的字典字面量写出路径失败，
-报 `TypeError: TOML document root must be a dict`。包内
-`test/root_argument_repro.xl` 单独复现：原生 `parse` 返回的字典可写出，
-语言创建的 `var` 字典传入同一 `stringify` 则失败。属于共享 foreign
-`var` 容器投影边界；最小源在两平台同样失败。Windows 默认门禁
-未执行后续双语范例和 AOT，不签收发布级。
-下文旧版 AOT 缺符号记录仅描述当时的发布物。
+本轮修复流关闭覆盖正文 XRT 首因、绝对时间越界仍写出非法年份，以及
+私有解析器拒绝现有构造器支持的年份 0000；生产依赖补上实际使用的
+`XRT_MODULE_ONCE` / `XRT_MODULE_THREAD_KEY`。公开 API/ABI、所有权和微秒精度不变。
+独立最小构建仅打开 manifest 的十二模块，测试运行库另加内存调试、路径与
+值图模块；不再用完整 XRT 实现掩盖缺失依赖。
+
+Windows 本轮预验的 C、日历 XLang、六个独立程序和 GCC/TCC 日历参照通过。
+默认门禁仍在原中央正例的语言字典传入 `stringify(var)` 时失败：
+`TypeError: TOML document root must be a dict`。原生 `parse` 返回的字典可写出，
+但不能替代语言创建的字典；这是共享 foreign `var` 投影阻断 M1，
+原正例继续是必过项，不修改为预期失败。完整语言边界、中央双语文件互通
+未签收，整包仍为 M。最终双平台报告见根目录 `docs/普通扩展库发布验收矩阵_2026-10-28.md`
+及任务台账；下文历史记录不代表当前主线状态。
 
 TOML 解析、写出、文件读写及日期/时间值。底层 C API 在 `include/xrt_toml.h`，
 XLang API 由 `import toml` 导入；包内共用一套 XRT `xvalue` 实现。
@@ -45,6 +45,11 @@ XLang 直接接管结果，不再从 `Buffer.text()` 复制整份文本；补齐
 - `dateTimePart(value, part)`：part 0..7 依次为年、月、日、时、分、秒、微秒、时区偏移分钟；`dateTimeText` 返回 TOML 文本表示。
 - 日期时间仍以可访问字段的 XRT 对象表示，但由 XRT `TypeId` 区分；请用本包构造函数创建，不要靠手写 `__toml_type` 字段冒充。普通 TOML 表即使与日期对象的字段完全同形，也保持表语义并可写回；深拷贝日期对象保留类型身份。
 - 日期时间支持到微秒（6 位秒小数）。按 [TOML 规范](https://toml.io/en/v1.0.0)，输入超过实现精度的小数位会截断，不会四舍五入；再次写出仅保留前 6 位。需要纳秒无损往返时不要使用本包的日期时间值。
+- 日期年份统一为 `0000..9999`，年份 0000 按公历闰年规则处理；依据为
+  [TOML 1.0 四位年份语法](https://raw.githubusercontent.com/toml-lang/toml/1.0.0/toml.abnf)
+  和 [RFC 3339 的年份范围](https://www.rfc-editor.org/rfc/rfc3339.html#section-1)。
+  普通 XRT `time` 写为 UTC；超出此范围时 C 报 `XRT_TOML_ERROR_FORMAT`，
+  XLang 抛 `ValueError`，不会产生负年或五位年份的伪 TOML。
 - C 侧原始 `xrttomldatetime`、可变日期对象和文本格式化共用合法性检查；日期不能暗含时间字段，时间不能暗含日期字段，本地日期时间不能暗含时区偏移，保留字段必须为零。无效记录不会被格式化为看似有效的 TOML 日期。
 - `errorCode/errorLine/errorColumn/errorOffset`：查询当前线程最近的 TOML 错误位置。语法/参数错误抛 `ValueError`，资源限额抛 `RangeError`，文件及流失败抛 `IOError`，内存失败抛 `MemoryError`；包装层未得到原生错误时抛 `TomlError`。
 
@@ -91,46 +96,63 @@ Buffer 副本。Reader 同时支持总长度和当前位置查询时，会先按
 C 流接口的 `bTakeOwnership=true` 会在操作结束时关闭传入的 reader/writer；
 即使正文读写成功，关闭失败也会返回失败并报告 I/O 或内存错误。解析成功后
 若所拥有的 reader 关闭失败，已构造的结果会被释放；`false` 则由调用方
-负责关闭流，包不会提前关闭。若正文先失败，关闭阶段不覆盖原始诊断。
+负责关闭流，包不会提前关闭。若正文先失败，关闭阶段不覆盖私有错误码及
+XRT 错误槽中的原始对象，即便关闭成功但清空错误槽，或关闭又报另一错误；
+正文只有格式错误、没有 XRT 原因时，也不凭空引入关闭错误。传入 `pError=NULL`
+遵循相同规则。只有正文成功后的关闭失败才成为本次失败。
 
 ## 定点验证
 
-在 `demo6/release` 目录运行：
+在仓库的 `release` 目录运行（不带原 `demo6/` 前缀）：
 
 ```powershell
 .\xl.exe run extlibs/toml/test/test_toml.c
 .\xl.exe run extlibs/toml/test/boundaries.xl
+.\xl.exe run extlibs/toml/test/calendar.xl
+.\xl.exe run extlibs/toml/examples/calendar_guard.xl
+.\xl.exe run extlibs/toml/examples/calendar_guard_c.c
 .\xl.exe run examples/extlibs/toml.xl
 .\xl.exe run examples/extlibs/toml_c.c
 .\xl.exe build extlibs/toml/test/aot_core.xl -o ..\build\test\toml_aot_core.exe
 ..\build\test\toml_aot_core.exe
 ```
 
-也可从 `demo6` 目录运行包级 Windows 门禁；默认模式依次验证核心和
-带输出范例 AOT，后者还与 C 范例输出对照。`-SkipAot` 跳过这两项
-AOT，不跳过 C、XLang、ABI、双语范例及文件格式检查。Windows 文件
-格式门禁需要 Python 3.11+ 的标准库 `tomllib`：
+也可从仓库根目录运行默认门禁。需要 GCC 和 Python 3.11+ 的 `tomllib`，
+可用 `CC` / `PYTHON` 指定路径；缺工具必须失败，不能静默跳过。
+Windows `-SkipAot` 只供诊断，不是完整发布验收：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/toml/test/check.ps1 -SkipAot
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/toml/test/check.ps1
 ```
 
-Linux 包级门禁同时运行 C ASan/UBSan、中央与包内 XLang 用例、双语逐字
-同输出，并用 Python 3.11+ 标准库 `tomllib` 独立解析两份同字节范例文件：
+Linux 默认门禁增加 C ASan/UBSan/泄漏检查，使用同一组语言和双语正例：
 
 ```sh
 bash release/extlibs/toml/test/check.sh
 ```
 
-仅运行 XLang/C 与格式对照时可用 `--skip-aot`；不加该参数会继续检查
-无输出核心 AOT，已知当前主线缺符号会使其失败：
+两平台均先核对独立十二模块构建、原 C 用例、288 项新边界、冷启动恢复、
+日历双语黄金输出和全部十六条实际 cgen 原型，再执行六个独立程序，
+最后执行原语言字典和完整文件互通正例。当前 M1 会让默认门禁非零退出，
+后续未执行的项不能记为通过；旧 `check_xlang.sh` 仍可单独复现完整语言链路。
 
-```sh
-bash release/extlibs/toml/test/check_xlang.sh --skip-aot
-```
+`test/ownership_bounds_c.c` 的 288 项包含 168 项正文/关闭/拥有与借用流/
+可选错误输出组合、112 项四种嵌套形态的日历边界、8 条有效值逐点 OOM 路径；
+核对活动分配/字节和非法释放，不只核对错误文本。原实现重放这些用例有
+136 项失败，修复后归零；失败数是重叠组合，不是 136 个独立 BUG。
+四个冷启动故障预算各由新进程执行，解除后立即重试，覆盖 Once 和线程局部键；
+GCC、TCC 内存运行和独立程序分别执行。520 条确定性 UTC 微秒记录由 Python
+`datetime` 和 `tomllib` 独立核对值与文本，三种引擎逐字对照。Python 只验证
+`0001..9999`，其 datetime 不支持年份 0000；后者由单独 C/XLang 日历测试覆盖，
+不声称 Python 年零互通。验证器另以缺行、乱序及合法但错误的日期数据测试拒绝。
+
+`examples/calendar_guard.xl` / `calendar_guard_c.c` 展示读取配置、更新时间、
+拒绝四类越界、失败后恢复；五行输出与 `calendar_guard.expected.txt` 相同。
+示例使用已有配置更新的正常 API，不是给 M1 添加旁路工厂。包内测试将这些
+已可运行路径与仍阻断的原语言字典正例分开报告，不把前者当作整包通过。
 
 可选的 [toml-test](https://github.com/toml-lang/toml-test) 1.0 语法及预期值审计不进入日常门禁；
-在 `demo6` 目录获取独立测试集后运行：
+在仓库根目录获取独立测试集后运行（本轮未重跑该可选语料）：
 
 ```sh
 git clone --depth 1 https://github.com/toml-lang/toml-test.git build/test/toml_conformance_src
@@ -144,18 +166,22 @@ JSON 与 Python `tomllib` 解析原文、解析本包写回结果后的类型和
 这验证写回后的可观察值，不直接检查内部 `xvalue` 的每个中间节点；
 包内 C/XLang 用例继续覆盖 API 边界。语料版本变化时需重新运行该可选门禁。
 
-`test/boundaries.xl` 已登记到包清单的 `coverage.tests`；从 `demo6` 目录运行
+`test/boundaries.xl`、`allocations.xl`、`calendar.xl` 已登记 `coverage.tests`；从仓库根目录运行
 `tools/smoke_extlib_catalog.ps1 -Package toml` 可连同中央用例复验。
 
-最后两个范例输出应完全相同。上述 Windows JIT/严格 GCC（`-O0`、`-O2`）与 Linux
+## 历史验证记录
+
+以下为对应日期的结果，不覆盖上面的当前阻断与最终报告。
+
+历史 Windows JIT/严格 GCC（`-O0`、`-O2`）与 Linux
 ASan/UBSan C 门禁已通过；`test/abi_contract.c` 在 Windows/LP64 Linux
 核对生成的 C 原型与包桥接一致。`toml` 和私有 `_tomlc17` 都声明了实际使用的
 XRT 模块；历史构建中无输出核心 AOT 曾从 3,727,872 字节降到 824,320
-字节并运行通过。**当前发布物的 AOT 未通过**：Windows 包级门禁和 Linux
+字节并运行通过。**当时发布物的 AOT 未通过**：Windows 包级门禁和 Linux
 门禁的无输出核心构建均缺 `xl6NativeHandleTraceLeaf`；完整边界另有
 `xl6ValueDataSnapshotV1` 等共享符号阻断，须待首个阻断解除后重验。
 这些问题已交由编译器主线线程处理，本包不修改主线。
-当前 Linux XLang 边界与双语 JIT 已通过；
+当时 Linux XLang 边界与双语 JIT 已通过；
 32 位与长期负载尚未验收。
 
 2026-10-17：Linux C sanitizer 与 XLang 门禁接为同一条可复跑脚本；新增
@@ -163,7 +189,7 @@ XRT 模块；历史构建中无输出核心 AOT 曾从 3,727,872 字节降到 82
 包级脚本通过；默认 AOT 模式再次复现 `xl6NativeHandleTraceLeaf` 缺符号，
 完整发布验收仍未签收。
 
-可选的独立格式验证使用 Python 标准库 `tomllib`，不需要安装第三方包。从 `demo6` 目录运行以下命令，保留 C/xlang 范例生成的 TOML 文件；解析后核对根级日期、带时区日期时间和嵌套表，并检查两份文件字节一致：
+可选的独立格式验证使用 Python 标准库 `tomllib`，不需要安装第三方包。从仓库根目录运行以下命令，保留 C/xlang 范例生成的 TOML 文件；解析后核对根级日期、带时区日期时间和嵌套表，并检查两份文件字节一致。当前 M1 尚未解除，这组完整语言文件正例不能通过：
 
 ```powershell
 .\release\xl.exe run release\examples\extlibs\toml.xl -- build\test\toml_example_xl.toml

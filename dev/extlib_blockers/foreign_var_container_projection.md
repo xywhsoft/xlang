@@ -77,6 +77,14 @@ Windows/Linux `xl run` 均退出 1 并报同错。修复应在共享 foreign
 投影边界保留 `XVALUE_ARRAY` 及嵌套字典/数组，不在 SRT 包内
 识别私有句柄；修复后复验最小源和两平台默认包门禁。
 
+2026-10-30 根目录布局复验 `toml`：Windows/Linux 默认包门禁分别完成
+58/59项可运行前置验证（包括新日历双语、全部十六条实际原型和六个独立
+程序），最后仍在原中央字典写出报上述 TypeError。原最小源从仓库根执行
+`release/xl.exe run release/extlibs/toml/test/root_argument_repro.xl`；
+Linux 使用 `release/xl`。两平台 JIT 均退出1；同源 build 成功，但独立
+程序也在相同字典处退出1。不能把 parse 配置的写回、C 成功或构建成功
+当作语言字典投影闭环。详情与报告见当前验收矩阵 TOML 行及任务台账。
+
 2026-10-26 重建发布版后复验 `toml`：Windows 默认
 `release/extlibs/toml/test/check.ps1` 的严格 C 和原生边界先通过，
 随后 `boundaries.xl` 在 `stringify(var literalDict)` 报

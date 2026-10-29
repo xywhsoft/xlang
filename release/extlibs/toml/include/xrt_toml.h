@@ -52,7 +52,7 @@ typedef struct {
 	char sMessage[256];
 } xrttomlerror;
 
-/* TOML 时间值。offset datetime 仅在 XRT time 无法无损表达微秒时使用本记录。 */
+/* 保留本地日期、时间、微秒和显式偏移，不把四种 TOML 时间值折叠为 UTC。 */
 typedef struct {
 	int16 iYear;
 	int16 iMonth;
