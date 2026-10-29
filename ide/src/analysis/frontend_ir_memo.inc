@@ -460,17 +460,21 @@ int xlsFrontendIrBuildMemo(XL6_IrModule* module,const XL6_AstNode* root,XL6_Diag
     return accepted;
 }
 
+
+#include "analysis/frontend_ir_persistent.inc"
 void xlsFrontendIrResultDestroy(xls_ir_result* result)
 {
     if(!result)return;
-    xls_ir_result* previous=xlsActiveIrOwner;xlsActiveIrOwner=result;
-    xl6IrModuleFree(&result->module);xlsActiveIrOwner=previous;
-    xlsFrontendIrMemoDestroy(result->memo);xrtArrayUnit(&result->fragments);xrtArrayUnit(&result->borrowed);xrtFree(result);
+    if(result->persistent){xrtFree(result->module.nodes);xlsIrPersistentRelease(result->persistent);}
+    else{xls_ir_result* previous=xlsActiveIrOwner;xlsActiveIrOwner=result;
+        xl6IrModuleFree(&result->module);xlsActiveIrOwner=previous;}
+    xlsFrontendIrMemoDestroy(result->memo);xlsTypedModuleRelease(result->input);xrtArrayUnit(&result->fragments);xrtArrayUnit(&result->borrowed);xrtFree(result);
 }
 xls_ir_result* xlsFrontendIrResultBuildWithStorage(const XL6_AstNode* root,XL6_DiagList* diags,
     const xls_ir_result* previous,size_t bytes,size_t storageBytes)
 {
     xls_ir_result* result=xrtCalloc(1,sizeof(*result));if(!result)return NULL;
+    xrtAtomic32Init(&result->persistentState,0);
     result->storageLimit=storageBytes<128u*1024u ? storageBytes : 128u*1024u;
     if(!xrtArrayInit(&result->fragments,sizeof(xls_ir_unit*)) || !xrtArrayInit(&result->borrowed,1)){
         xlsFrontendIrResultDestroy(result);return NULL;
@@ -479,6 +483,7 @@ xls_ir_result* xlsFrontendIrResultBuildWithStorage(const XL6_AstNode* root,XL6_D
     int okay=xlsFrontendIrBuildMemo(&result->module,root,diags,previous ? previous->memo : NULL,&result->memo,&result->work,bytes);
     xlsActiveIrOwner=before;
     if(!okay || xlsFrontendCancelObserved()){xlsFrontendIrResultDestroy(result);return NULL;}
+    result->persistentWork.built=result->persistentWork.verified=1;
     result->work.textNodes=result->textNodes;result->work.textBytes=result->textBytes;
     result->work.ownerBytes=result->fragments.Capacity*sizeof(xls_ir_unit*)+result->borrowed.Capacity;
     return result;

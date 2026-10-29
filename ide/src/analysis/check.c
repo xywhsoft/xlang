@@ -14,6 +14,7 @@
 #include "analysis/frontend_sem.h"
 #include "analysis/frontend_cancel.h"
 #include "analysis/frontend_ir_memo.h"
+#include "analysis/typed_module_internal.h"
 #include "analysis/index_entities.h"
 #include "src/parser/xl6_parser_api.h"
 #include "src/compile/xl6_imports.h"
@@ -35,6 +36,8 @@ struct xls_semantic_check {
     xls_input_batch* inputOwner;
     XL6_IrModule ir;
     xls_ir_result* cachedIr;
+    xls_typed_module* typedModule;
+    uint64_t irPrepared;
     char *path,*index;
     xls_semantic_index* typedIndex;
     xls_sem_memo* memo;
@@ -62,7 +65,9 @@ void xlsSemanticCheckDestroy(xls_semantic_check* r)
     xrtFree(r->index); xlsFrontendIndexDestroy(r->typedIndex); xlsFrontendSemMemoDestroy(r->memo);
     xlsInputTopologyDestroy(r->topology);
     xlsModuleGraphRelease(r->modules);
-    xlsFrontendIrResultDestroy(r->cachedIr);xl6IrModuleFree(&r->ir); xl6ParseResultFree(&r->parse);
+    xlsFrontendIrResultDestroy(r->cachedIr);xl6IrModuleFree(&r->ir);
+    if(r->typedModule){r->parse.root=NULL;xlsTypedModuleRelease(r->typedModule);}
+    xl6ParseResultFree(&r->parse);
     xl6ImportDepsFree(&r->deps); xlsFrontendOverlayClear(&r->overlay,r->inputOwner);xlsInputBatchDestroy(r->inputOwner); xl6SourceReportFree(&r->report);
     xlsContextRelease(r->context); xrtFree(r->path); if(r->lockInitialized) xrtMutexUnit(&r->lock); xrtFree(r);
 }
@@ -170,7 +175,14 @@ static xls_semantic_check* createBody(xls_context* context,const char* entry,
              * Keep attempts private;the original builder remains authoritative
              * for a failed attempt as well as the independent fresh API. */
             XL6_DiagList attempted;xl6DiagInit(&attempted);
-            r->cachedIr=xlsFrontendIrResultBuildEntities(r->parse.root,&attempted,irBaseline,32u*1024u*1024u,xlsSemanticIndexEntities(r->typedIndex));
+            r->typedModule=xlsTypedModuleTake(r->parse.root);
+            int prepared=0;
+            if(r->typedModule && irBaseline && r->semanticWork.contextHits && xlsFrontendSemMemoInputCandidate(r->memo))
+                prepared=xlsFrontendIrResultPreparePersistent((xls_ir_result*)irBaseline,32u*1024u*1024u);
+            r->irPrepared=prepared==2;
+            r->cachedIr=r->typedModule ? xlsFrontendIrResultBuildTyped(r->typedModule,&attempted,irBaseline,32u*1024u*1024u,
+                xlsSemanticIndexEntities(r->typedIndex),prepared ? 32u*1024u*1024u : 0) :
+                xlsFrontendIrResultBuildEntities(r->parse.root,&attempted,irBaseline,32u*1024u*1024u,xlsSemanticIndexEntities(r->typedIndex));
             okay=r->cachedIr && !attempted.count;
             if(!okay){xlsFrontendIrResultDestroy(r->cachedIr);r->cachedIr=NULL;}
             xl6DiagFree(&attempted);
@@ -344,6 +356,11 @@ xls_check_ir_work xlsSemanticCheckIrWork(const xls_semantic_check* r)
 {
     xls_ir_memo_work w=xlsFrontendIrResultWork(r ? r->cachedIr : NULL);
     return (xls_check_ir_work){w.checked,w.reused,w.captured,w.nodesReused,w.bytes,w.declined,w.textNodes,w.textBytes,w.ownerBytes};
+}
+xls_check_ir_persistent_work xlsSemanticCheckIrPersistentWork(const xls_semantic_check* r)
+{
+    xls_ir_persistent_work w=xlsFrontendIrResultPersistentWork(r ? r->cachedIr : NULL);
+    return (xls_check_ir_persistent_work){w.built,w.reused,w.captured,w.verified,w.nodesCopied,w.tablesShared,w.keyBytes,w.metadataBytes,w.declined,r ? r->irPrepared : 0};
 }
 size_t xlsSemanticCheckIrDependencies(const xls_semantic_check* r,uint64_t function)
 {return r && !invalid(r) && r->accepted ? xlsFrontendIrResultDependencies(r->cachedIr,function) : 0;}

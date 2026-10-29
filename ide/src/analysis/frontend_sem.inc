@@ -136,6 +136,7 @@ struct xls_sem_memo {
     xls_sem_read_context* readContext;
     xls_sem_read_work readWork;
     struct xls_raw_memo* raw;
+    int trackInputs,inputSame;
 };
 typedef struct xls_sem_move {
     const xls_text *oldText,*newText;
@@ -458,6 +459,8 @@ static void xlsSemMemoBegin(XL6_SemContext* ctx)
     build->compatible=build->baseline && !strcmp(m->path,build->baseline->path) &&
         xlsSemEqualKey(&m->context,&build->baseline->context) && m->entries.Count==build->baseline->entries.Count;
     if(build->compatible) ++build->work.contextHits;
+    m->trackInputs=!ctx->completionQuery && !build->deferredQuery;
+    m->inputSame=m->trackInputs && build->compatible;
     xlsSemReadContextBegin(build,ctx);
     if(build->deferredQuery)m->raw=xlsRawMemoCreate(m->entries.Count);
 }
@@ -870,6 +873,7 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
     xls_sem_build* build=xlsActiveSemBuild;
     size_t* slot=build && build->enabled ? xrtMapGet(&build->slots,(xbytesview){(const unsigned char*)&node,sizeof(node)}) : NULL;
     if(!slot || ctx->currentClass || ctx->currentFunction || ctx->typeParams || ctx->captureBoundary || ctx->currentReturns) {
+        if(build && build->memo && build->memo->trackInputs)build->memo->inputSame=0;
         if(build && build->begun && !build->enabled && !ctx->currentClass && !ctx->currentFunction &&
            ctx->scope && !ctx->scope->parent) {
             for(size_t i=build->cursor;i<ctx->root->childCount;++i) if(ctx->root->children[i]==node) {
@@ -898,6 +902,17 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
      * range/text exclusion; restoration binds old immutable marker metadata
      * explicitly rather than weakening default AST source equality. */
     if(!xlsSemCandidate(node) || (ctx->completionQuery && !xlsSemQueryNeutral(node,0,&build->queryCursor))) {
+        if(m->trackInputs){
+            /* The real checker remains cheaper for these small functions.
+             * Capture only its original input,not duplicate typed facts. */
+            /* Reuse this otherwise unused entry key. Keep the original hot
+             * entry layout and distinguish this non-fact input encoding. */
+            int keyed=xlsSemKeyNumber(&entry->key,UINT64_MAX) && xlsSemKeyNode(&entry->key,node,0,0) &&
+                entry->key.Capacity<=XLS_SEM_MEMO_BYTES-m->bytes;
+            if(keyed)m->bytes+=entry->key.Capacity;
+            else xrtStrBufFree(&entry->key);
+            if(!keyed || !old || !xlsSemEqualKey(&entry->key,&old->key))m->inputSame=0;
+        }
         if(old && entry->typeStart!=old->typeStart) xlsSemReadDisable(build);
         ++build->work.checked;xlsSemReadInvalidate(build);int okay=xlsSemCheckFuncOriginal(ctx,node); entry->end=ctx->nextSymbolId;
         entry->typeEnd=ctx->types.nextId;
@@ -909,6 +924,8 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
     xls_raw_capture rawCapture={0};
     int usable=(!ctx->diags || !ctx->diags->count) && xlsSemGlobalState(ctx,&state) && xlsRawFunctionKey(entry,node,pristine,&rawCapture) &&
         xlsSemKeyBytes(&entry->key,state.Data,state.Size) && xrtArrayInit(&raw,sizeof(xls_sem_raw)) && xlsSemRawNodes(node,&raw,0);
+    int sameInputKey=m->trackInputs && usable && old && xlsSemEqualKey(&entry->key,&old->key);
+    if(m->trackInputs && !sameInputKey)m->inputSame=0;
     if(usable)xlsRawCapturePrepare(&rawCapture,&raw,node);
     int okay=0,reused=0;xls_sem_reads* capturedReads=NULL;
     XL6_CompletionQuery beforeQuery={0}; if(ctx->completionQuery) beforeQuery=*ctx->completionQuery;
@@ -918,7 +935,7 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
     XL6_SymbolId symbolEnd=0;
     int symbolsChanged=old && old->unit && (build->symbolsShifted || entry->start!=old->unit->symbols.start);
     if(xlsSemReadCompatible(build) && old && old->unit && old->unit->facts.Count && usable && ctx->queryTypeNodes<=65536u && ctx->queryTypeBytes<=4u*1024u*1024u &&
-       xlsSemEqualKey(&entry->key,&old->key) &&
+       (m->trackInputs ? sameInputKey : xlsSemEqualKey(&entry->key,&old->key)) &&
        (build->compatible || xlsSemReadMatch(build,ctx,old->unit->reads,*slot)) &&
        old->unit->symbols.floor==m->symbolFloor && xlsSemSymbolsLimit(&old->unit->symbols,entry->start,&symbolEnd) &&
        old->end>=old->start && old->end-old->start==old->unit->symbols.end-old->unit->symbols.start &&
@@ -994,6 +1011,8 @@ void xlsFrontendSemMemoDestroy(xls_sem_memo* memo)
 }
 xls_sem_memo* xlsFrontendSemMemoRetain(xls_sem_memo* memo)
 {if(memo)xrtAtomic32FetchAdd(&memo->references,1,XMEMORY_RELAXED);return memo;}
+int xlsFrontendSemMemoInputCandidate(const xls_sem_memo* memo)
+{return memo && memo->trackInputs && memo->inputSame;}
 size_t xlsFrontendSemMemoOwnedBytes(const xls_sem_memo* memo)
 {
     if(!memo)return 0;

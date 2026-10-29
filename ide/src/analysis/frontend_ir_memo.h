@@ -4,6 +4,27 @@
 typedef struct xls_ir_memo xls_ir_memo;
 typedef struct xls_ir_result xls_ir_result;
 struct xls_entity_view;
+/* Final typed-module storage. Exact complete native non-coordinate input is
+ * required;all native IDs remain exact. Current spans are rebuilt and the full
+ * original verifier always runs. Explicit opt-in;ordinary APIs stay unchanged.
+ * persistentBytes bounds key/ownership metadata only,max32MiB;it excludes the
+ * existing model,raw fragment payloads,transients andRSS,not globalmemory. */
+typedef struct xls_ir_persistent_work {
+    uint64_t built,reused,captured,verified,nodesCopied,tablesShared,keyBytes,metadataBytes,declined;
+} xls_ir_persistent_work;
+xls_ir_result* xlsFrontendIrResultBuildPersistent(const XL6_AstNode*,XL6_DiagList*,
+    const xls_ir_result*,size_t rawBytes,size_t ownerBytes,size_t persistentBytes);
+xls_ir_persistent_work xlsFrontendIrResultPersistentWork(const xls_ir_result*);
+struct xls_typed_module;
+/* Caller holds result lifetime. Concurrent preparation never waits:one owner
+ * builds metadata;other callers use the original route. 2=new,1=ready,0=decline.
+ * Only an independently owned typed input may prepare a published result. */
+int xlsFrontendIrResultPreparePersistent(xls_ir_result*,size_t persistentBytes);
+xls_ir_result* xlsFrontendIrResultBuildTyped(struct xls_typed_module*,XL6_DiagList*,
+    const xls_ir_result*,size_t rawBytes,const struct xls_entity_view*,size_t persistentBytes);
+xls_ir_result* xlsFrontendIrResultBuildEntitiesPersistent(const XL6_AstNode*,XL6_DiagList*,
+    const xls_ir_result*,size_t rawBytes,const struct xls_entity_view*,size_t persistentBytes);
+
 typedef struct xls_ir_memo_work {
     uint64_t checked,reused,captured,nodesReused,bytes,declined;
     uint64_t textNodes,textBytes,ownerBytes;
