@@ -1,5 +1,16 @@
 # 当前源码的 var 容器传入原生扩展失败
 
+2026-10-30 根目录布局复验 `srt`：三个文本返回改为 @owned 直接接管后，
+Windows/Linux 默认门禁分别完成 39/41 项可运行前置验证（含 C/XL 各
+22 预算、六条生成原型、新旧双语及七条独立程序），最后原语言 cue
+数组仍报 `ValueError: cues must be an array`。原 core_aot 也使用字面量
+数组，定向执行同样报红，不能改为解析原生值来签收。从仓库根执行
+`release/xl.exe run dev/extlib_blockers/srt_build_var_array_projection.xl`
+（Linux 用 `release/xl`），JIT 与独立程序仍先打印 native roundtrip:
+PASS，再在同形语言数组处退出 1；check/build 成功。修复仍应位于共享
+foreign 容器投影，不在 SRT 里识别编译器私有句柄。报告见验收矩阵及
+任务台账 2026-10-30 SRT 条目，完整原语言边界待主线修复后复跑。
+
 2026-10-30 根目录布局复验 `graph`：Windows/Linux 包门禁各完成 38 项
 可运行前置检查（含全部九条实际生成原型、三种独立程序、两种 DLL/SO
 同上下文各三轮正常 JSON 范例），最后原中央语言边数组仍报
