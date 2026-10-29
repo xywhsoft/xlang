@@ -21,3 +21,12 @@
 - `xrt-single-discovery-r3.log`、`strict-xrt-sync.log`：上游单头实测与严格同步。
 
 本轮不执行网络安全、攻击、外部端点或协议模糊测试。
+
+## 特定原生上下文与扩展包验收
+
+- 使用实际模块规划器生成选项及驻留源码闭包，完成 12 组既有专项（socket、file execution/language、TCP execution/language/Future、TaskPool、server、buffer graph、server ownership、UDP execution/language），各报告 Complete/InputsUnchanged 均为 true。保留 O0/O2、OOM、拥有关系和故意破坏实现的负控制。证据 `configured-final/batch.json`。
+- 选取式单头实现必须先于声明头 `xl_clock.h`，否则过早的 include guard 会屏蔽该编译单元需要的实现。相关支持入口调整包含顺序；`text_value.h` 补齐只用于指针签名的三个不透明类型声明，没有扩大算法闭包。
+- 毫秒迁移清除 TaskPool 与 TCP server 夹具中的旧单位假设。`INT64_MAX` 是合法毫秒等待，在已经静止的池上验证；阻塞负例改用非法负值。取消请求未获胜也不等于 Future 已经终结，竞态夹具在 join/有界等待后继续检查真正终态与内存平衡。
+- 独立 Pool/Bytes 目录的 O0/O2、真实 owning references 与五个目录 OOM 前缀检查通过；证据 `buffer-native-final/results.json`。该闭包不引入 Engine。
+- Plist 完整 Windows gate 通过：两份原生 C 测试、JIT/AOT 边界与分配失败、私有类型负例、C/语言示例比对及 Python plistlib 四格式互通。证据 `plist-full.log`。
+- CBOR/MessagePack 时间边界夹具统一毫秒与明确 Unix epoch。固定 timestamp32/64/96 和 int64 全域向量由独立整数计算得到，不保留旧微秒行为。

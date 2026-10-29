@@ -1,7 +1,7 @@
 /* The original real TCP/Accept/Connected suite is part of this regression. */
 #define main tcpLanguageRegressionMain
-#include "release/include/xl_clock.h"
 #include "tcp_language_runtime.c"
+#include "release/include/xl_clock.h"
 #undef main
 #include "src/runtime/xl6_execution_tcp_internal.h"
 typedef struct DialGate {XL6_ContinuationTicket ticket;xatomic32 entered,open,released;} DialGate;

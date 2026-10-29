@@ -1,6 +1,6 @@
 #define XL6_TCP_DIAL_INTERRUPT_TEST_ENTRY asyncControlRegressionMain
-#include "release/include/xl_clock.h"
 #include "tcp_dial_interrupt_runtime.c"
+#include "release/include/xl_clock.h"
 #undef XL6_TCP_DIAL_INTERRUPT_TEST_ENTRY
 #include "src/runtime/xl6_tcp_dial_sync_internal.h"
 #include "src/runtime/xl6_execution_tcp_dial.h"

@@ -8,6 +8,12 @@
 #include "include/xl_clock.h"
 #endif
 #include "xl6_runtime_export.h"
+/* Pointer-only vocabulary remains valid with a narrowly selected XRT
+ * implementation in a native consumer. Do not select unrelated algorithms
+ * merely to make these opaque declarations available. */
+typedef struct xvalueconverter xvalueconverter;
+typedef struct xstrbuf xstrbuf;
+typedef struct xtlsserverresumerequest xtlsserverresumerequest;
 
 struct xlir_closure;
 #include "xl6_future_value.h"

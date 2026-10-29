@@ -24,7 +24,7 @@ def main():
         with log.open('wb') as stream:r=subprocess.run(list(map(str,args)),cwd=cwd,stdout=stream,stderr=subprocess.STDOUT,timeout=180,env=env)
         rows.append(dict(Name=name,Exit=r.returncode,Log=str(log),Sha256=sha(log),Seconds=time.monotonic()-start));save();print(name,r.returncode,flush=True)
         assert not r.returncode,str(log);return log.read_text(encoding='utf-8',errors='replace')
-    def flags(cc):return [cc,'-std=c11','-Wall','-Werror',*(['-Wextra'] if cc.stem.lower()!='tcc' else []),'-I'+str(root),'-I'+str(root/'release'),'-I'+str(out),*(['-D_GNU_SOURCE'] if os.name!='nt' else [])]
+    def flags(cc):return [cc,'-std=c11','-Wall','-Werror',*(['-Wextra'] if cc.stem.lower()!='tcc' else []),'-I'+str(root),'-I'+str(root/'release'),'-I'+str(root/'release/include'),'-I'+str(out),*(['-D_GNU_SOURCE'] if os.name!='nt' else [])]
     save()
     try:
         manifest=out/('manifest.exe' if os.name=='nt' else 'manifest.out')
