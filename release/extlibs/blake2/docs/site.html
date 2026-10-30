@@ -26,6 +26,10 @@
     <p><a href="../extlibs.html">扩展库</a> / blake2</p>
     <div class="extlib-title-row"><h1>blake2</h1><span class="extlib-cat-badge">哈希校验</span></div>
     <p class="extlib-lead">BLAKE2b/BLAKE2s 的字节、UTF-8 文本、文件和增量接口。内嵌便携 C 实现，复用宿主 XRT/xruntime，不需要额外 BLAKE2 DLL。</p>
+    <p>2026-10-30：修复读取错误在关闭后重新构造、丢失完整诊断及被二次OOM覆盖的问题。
+    24组读取/关闭/OOM由旧失败24变为0，另补6组限额对照；ABI、正常复制与临时区所有权不变。
+    Windows63阶段61符合要求、Linux59阶段57符合要求，两个真实失败仍是M2顶层AOT退役与M3私有构造器被接受；
+    其余C/语言/双语/普通独立EXE通过，不将包侧修复等同于整包发布完成。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api">
     <h2 id="api">一次性与文件 API</h2>
@@ -93,11 +97,20 @@ println(blake2.blake2bKeyedHex("你好 xlang", "密钥", 16))</code></pre>
     C 调用方须检查 Reader 的关闭结果；XLang 文件哈希自行关闭文件，关闭失败不返回摘要。Reader 读取内存失败保留 MEMORY 分类和原始消息，不误报 IO。配置长度/版本必须匹配，除输入预算外的限额、标志和保留字段必须为零；通用资源初始化会设置无关的非零限额。错误配置在读取前拒绝。核心输入限额为零时关闭业务限制，但仍检查计数溢出。模块选择应在首次包含 XRT 前完成，依赖见包清单。</p>
     <p>薄绑定 char* 借用当前 XRT 临时区，清理或回退后失效；长期保留需复制。
     返回 Buffer 由调用方 xrtBufferDestroy。接管同一个句柄多次会破坏所有权，不允许重复 adopt。</p>
+    <p>文件薄绑定保留Reader原始XRT错误的身份、类别、域/码、系统码、操作、详情和cause；
+    关闭失败及后续诊断OOM不能覆盖首错。算法自身的限额/普通取消没有Reader首错，仍报告本包的对应错误。</p>
     <p>教学：<code>examples/extlibs/blake2.xl</code>。对照：
     <code>examples/extlibs/blake2_basic.xl</code> 与 <code>extlibs/blake2/examples/basic.c</code>，
     共同预期输出位于 <code>examples/extlibs/blake2_basic.expected.txt</code>。
     从仓库根目录可直接运行 <code>release/xl.exe run release/extlibs/blake2/examples/basic.c</code>，无需额外源文件参数。</p>
+    <p>新增file_progress.xl与file_progress_c.c：相同9字节NUL/中文文件、进度、取消、超限、
+    源文件保持和摘要快照，六行固定输出。两者均可直接xl run/build，独占临时资源并检查清理；
+    C原始File接口由调用方检查关闭，XLang文件函数自动检查。</p>
     <h2 id="verification">验证范围</h2>
+    <p>2026-10-30：216已知答案、16分配失败点、四线程与新旧双语范例通过，Linux C含ASan/UBSan/泄漏检测。
+    38实际生成原型/4常量对正式头验证；错误bool返回声明在LLP64/LP64拒绝。52复制源和原件执行前后不变。
+    同操作局部生命周期对照的JIT/build/AOT均0，合法顶层正例仍失败；不通过移动对象绕过M2。
+    门禁逐阶段有界、保存原始状态/双流/输入身份，失败不删现场；官网结果只做隔离生成验证。</p>
     <p>2026-09-27 Windows 固定输入门禁包含 36 项检查：216 条 hashlib 已知答案、38 个实际生成原型、
     C/xlang JIT/AOT/GCC、回调异常/取消、reader、16 个分配失败点、四线程独立结果与错误状态、双语黄金输出。</p>
     <p>Linux 联合门禁同次运行 C ASan/UBSan 与泄漏检查、三组 XLang JIT 用例及 C/XLang 基础范例逐字节黄金输出对照。门禁为 <code>tools/check_extlib_blake2.ps1</code> 与 <code>tools/check_extlib_blake2.sh</code>；<code>tools/check_extlib_linux_xl.sh blake2</code> 可单独复跑语言用例。不代表 Linux AOT、32 位/ARM、共享对象并发或性能基准已验收。

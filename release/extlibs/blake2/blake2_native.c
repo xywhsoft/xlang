@@ -61,11 +61,13 @@ static void* blake2_buffer(uint8* digest, size_t size)
     return buffer;
 }
 
-/* 文件读取和关闭均成功才发布摘要；回调异常优先于关闭错误。 */
+/* 读取/回调首错先取走，再关闭；无分配恢复完整诊断，不让关闭或OOM覆盖。 */
 static bool blake2_file_complete(xreader* reader, bool ok,
     bool callback_failed, const xrtblake2error* error)
 {
-    xerror* first = !ok && callback_failed ? xrtTakeError() : NULL;
+    xerror* first = !ok && (callback_failed || (error != NULL &&
+        (error->iCode == XRT_BLAKE2_ERROR_IO ||
+         error->iCode == XRT_BLAKE2_ERROR_MEMORY))) ? xrtTakeError() : NULL;
     bool closed = xrtReaderDestroy(reader);
     if (!ok) {
         if (first != NULL) xrtSetErrorTake(first);

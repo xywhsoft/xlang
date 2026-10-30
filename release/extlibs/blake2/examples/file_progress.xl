@@ -1,0 +1,49 @@
+import blake2
+
+// 含NUL及中文的真实文件；回调取消或超限都不能破坏源文件和先前摘要。
+func main(...) as int
+    string root = dir.temp("", "xlang-blake2-file-", "")
+    string saved = ""
+    try
+        string input = path.join(root, "中文.bin")
+        string data = "a\0b你好"
+        assert file.writeText(input, data)
+        int calls = 0
+        saved = blake2.blake2bFileHex(input, digestSize = 16,
+            onProgress = func(int current, int total, int output) as bool
+                assert current == 9 and total == 9 and output == 0
+                calls += 1
+                return true
+            end)
+        assert saved == "7f9f144228b44255e32dafb65bbc72c4" and calls == 2
+        println("b2b/16: " + saved)
+        println("progress: 9/9 calls=2")
+
+        bool cancelled = false
+        try
+            blake2.blake2sFileHex(input,
+                onProgress = func(int current, int total, int output) as bool
+                    return false
+                end)
+        catch CancelledError e
+            cancelled = true
+        end
+        assert cancelled
+        println("cancel: rejected")
+        bool limited = false
+        try
+            blake2.blake2bFileHex(input, maxInput = 1)
+        catch RangeError e
+            limited = true
+        end
+        assert limited
+        println("limit: rejected")
+        assert file.readText(input) == data
+        println("source: unchanged")
+    finally
+        assert dir.delete(root), "BLAKE2 file example temporary directory must be removed"
+    end
+    assert saved == "7f9f144228b44255e32dafb65bbc72c4"
+    println("snapshot: " + saved)
+    return 0
+end
