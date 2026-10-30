@@ -455,7 +455,7 @@ static bool __xrtSnappyDecompressConsume(xrtsnappydecompressor* pDecompressor, s
 				(pDecompressor->ChunkType == 0xffu && pDecompressor->ChunkLength != 6u) ||
 				(pDecompressor->ChunkType >= 0x02u && pDecompressor->ChunkType <= 0x7fu) ||
 				(pDecompressor->ChunkType <= 0x01u &&
-				 (pDecompressor->ChunkLength < 5u ||
+				 (pDecompressor->ChunkLength < (pDecompressor->ChunkType == 0x00u ? 5u : 4u) ||
 				  (pDecompressor->ChunkType == 0x01u &&
 				   pDecompressor->ChunkLength > XRT_SNAPPY_BLOCK_SIZE + 4u))) ) {
 				__xrtSnappySetError(&pDecompressor->Error, XRT_SNAPPY_ERROR_DATA, 0,
@@ -511,7 +511,7 @@ static bool __xrtSnappyDecompressConsume(xrtsnappydecompressor* pDecompressor, s
 			if ( pDecompressor->ChunkType == 0x00u ) {
 				iResult = xsCodecUncompressedLength(pChunk + 4u, iDeclared, &iDeclared);
 			}
-			if ( iResult != XS_CODEC_OK || iDeclared == 0u || iDeclared > XRT_SNAPPY_BLOCK_SIZE ) {
+			if ( iResult != XS_CODEC_OK || iDeclared > XRT_SNAPPY_BLOCK_SIZE ) {
 				__xrtSnappySetError(&pDecompressor->Error, XRT_SNAPPY_ERROR_DATA, iResult,
 					pDecompressor->InputBytes, pDecompressor->OutputBytes,
 					"invalid snappy data chunk size");
@@ -533,8 +533,9 @@ static bool __xrtSnappyDecompressConsume(xrtsnappydecompressor* pDecompressor, s
 				return false;
 			}
 			if ( pDecompressor->ChunkType == 0x00u ) {
-				pAllocated = xrtMalloc(iDeclared);
-				if ( pAllocated == NULL ) {
+				/* 空 raw 流不分配输出，但仍经过完整解码和 CRC 校验。 */
+				pAllocated = iDeclared != 0u ? xrtMalloc(iDeclared) : NULL;
+				if ( iDeclared != 0u && pAllocated == NULL ) {
 					__xrtSnappySetError(&pDecompressor->Error, XRT_SNAPPY_ERROR_MEMORY, 0,
 						pDecompressor->InputBytes, pDecompressor->OutputBytes, "out of memory");
 					pDecompressor->Failed = true;

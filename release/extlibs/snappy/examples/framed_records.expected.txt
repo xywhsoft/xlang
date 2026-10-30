@@ -1,0 +1,3 @@
+text: abcabc
+members: 2
+bytes: 6

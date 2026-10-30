@@ -1,31 +1,61 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
 
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../../.." && pwd)
 cd "$root"
 work=$(mktemp -d "${TMPDIR:-/tmp}/xlang-snappy-XXXXXX")
+cc=${CC:-gcc}
+cc_path=$(command -v "$cc" || true)
+cc1_path=''
+python_path=$(command -v python3 || true)
+input_paths() {
+    find release/extlibs/snappy release/include -type f -print0
+    printf '%s\0' lib/xrt/xrt.h lib/xruntime/xruntime.h release/xl release/libxl.so release/libxlc.so \
+        test/support/extlib_codec_runtime.c test/cases/extlib_snappy.xl test/cases/extlib_snappy_progress.xl \
+        release/examples/extlibs/snappy.xl release/examples/extlibs/snappy_basic.xl \
+        tools/check_extlib_native_globals.ps1 tools/check_extlib_native_globals.sh
+    if [[ -n "$cc_path" ]]; then printf '%s\0' "$cc_path"; fi
+    if [[ -n "$cc1_path" ]]; then printf '%s\0' "$cc1_path"; fi
+    if [[ -n "$python_path" ]]; then printf '%s\0' "$python_path"; fi
+}
+fingerprint() {
+    mapfile -d '' inputs < <(input_paths | sort -zu)
+    sha256sum "${inputs[@]}"
+}
 cleanup() {
     result=$?
-    trap - EXIT
+    trap - EXIT ERR
+    set +e
+    fingerprint > "$work/inputs.after.sha256"
+    if ! diff -u "$work/inputs.before.sha256" "$work/inputs.after.sha256"; then result=125; fi
+    printf '%s\n' "$result" > "$work/exit-code.txt"
     if ((result == 0)); then rm -rf -- "$work"
     else printf '[snappy] FAIL exit=%s artifacts=%s\n' "$result" "$work" >&2; fi
     exit "$result"
 }
 trap cleanup EXIT
-cc=${CC:-gcc}
+trap 'printf "exit=%s line=%s command=%s\n" "$?" "$LINENO" "$BASH_COMMAND" > "$work/failure.txt"' ERR
+fingerprint > "$work/inputs.before.sha256"
+"$cc" --version > "$work/compiler.txt"
+cc1_path=$("$cc" -print-prog-name=cc1)
+fingerprint > "$work/inputs.before.sha256"
 sanitize=(-fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread)
 flags=(-std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror
        -Ilib/xrt -Ilib/xruntime -Irelease/extlibs/snappy/include "${sanitize[@]}")
 export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1
 export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
+compile() { timeout 180s "$cc" "${flags[@]}" "$@"; }
 
 for order in ALONE CORE_FIRST NATIVE_FIRST XRT_FIRST; do
-    "$cc" "${flags[@]}" "-DSNAPPY_$order" -fsyntax-only release/extlibs/snappy/test/native_header.c
+    compile "-DSNAPPY_$order" -fsyntax-only release/extlibs/snappy/test/native_header.c
 done
 
 for kind in compressor decompressor; do
     case="private_${kind}_negative"
-    if timeout 90s ./release/xl check "release/extlibs/snappy/test/$case.xl" > "$work/$case.txt" 2>&1; then
+    status=0
+    timeout 90s ./release/xl check "release/extlibs/snappy/test/$case.xl" > "$work/$case.txt" 2>&1 || status=$?
+    if ((status != 1)); then
+        cat "$work/$case.txt" >&2
         printf 'snappy: %s must be rejected\n' "$case" >&2
         exit 1
     fi
@@ -37,21 +67,33 @@ for kind in compressor decompressor; do
     fi
 done
 
-"$cc" "${flags[@]}" -c test/support/extlib_codec_runtime.c -o "$work/runtime.o"
-"$cc" "${flags[@]}" -c release/extlibs/snappy/xrt_snappy.c -o "$work/core.o"
-"$cc" "${flags[@]}" -c release/extlibs/snappy/snappy_native.c -o "$work/bridge.o"
-"$cc" -std=c11 -D_GNU_SOURCE -O1 -g "${sanitize[@]}" \
+compile -c test/support/extlib_codec_runtime.c -o "$work/runtime.o"
+compile -c release/extlibs/snappy/xrt_snappy.c -o "$work/core.o"
+compile -c release/extlibs/snappy/snappy_native.c -o "$work/bridge.o"
+timeout 180s "$cc" -std=c11 -D_GNU_SOURCE -O1 -g "${sanitize[@]}" \
     -c release/extlibs/snappy/third_party/xrt_snappy.c -o "$work/vendor.o"
 objects=("$work/runtime.o" "$work/core.o" "$work/bridge.o" "$work/vendor.o")
-"$cc" "${flags[@]}" -DNDEBUG -DSNAPPY_MEMORY_GUARD \
+compile -DNDEBUG -DSNAPPY_MEMORY_GUARD \
     release/extlibs/snappy/test/test_snappy.c \
     "${objects[@]}" -lm -ldl -o "$work/test_snappy"
-"$cc" "${flags[@]}" release/extlibs/snappy/test/test_allocations.c \
+compile release/extlibs/snappy/test/test_allocations.c \
     "${objects[@]}" -lm -ldl -o "$work/test_allocations"
-"$cc" "${flags[@]}" release/extlibs/snappy/examples/basic.c \
+compile release/extlibs/snappy/examples/basic.c \
     "${objects[@]}" -lm -ldl -o "$work/basic"
 timeout 90s "$work/test_snappy"
 timeout 30s "$work/test_allocations"
+compile release/extlibs/snappy/test/empty_chunks_c.c "${objects[@]}" -lm -ldl -o "$work/empty_chunks"
+timeout 90s "$work/empty_chunks"
+timeout 90s ./release/xl run release/extlibs/snappy/test/empty_chunks_c.c
+timeout 90s ./release/xl run release/extlibs/snappy/test/empty_chunks.xl
+timeout 90s ./release/xl run release/extlibs/snappy/test/abi_surface.xl
+timeout 90s ./release/xl cgen release/extlibs/snappy/test/abi_surface.xl --emit "$work/generated.c"
+python3 -I release/extlibs/snappy/test/make_abi_probe.py "$work/generated.c" "$work"
+compile -fsyntax-only "$work/abi.c"
+status=0
+compile -fsyntax-only "$work/abi_wrong.c" > "$work/abi_wrong.txt" 2>&1 || status=$?
+test "$status" -eq 1
+grep -q 'conflicting types' "$work/abi_wrong.txt"
 timeout 30s "$work/basic" > "$work/basic_c.txt"
 timeout 90s ./release/xl run release/extlibs/snappy/examples/basic.c > "$work/basic_direct.txt"
 diff -u <(printf 'hello snappy\n') "$work/basic_c.txt"
@@ -64,6 +106,13 @@ timeout 90s ./release/xl run release/extlibs/snappy/test/text_transfer.xl
 timeout 90s ./release/xl run release/examples/extlibs/snappy.xl > "$work/full_xl.txt"
 timeout 90s ./release/xl run release/examples/extlibs/snappy_basic.xl > "$work/basic_xl.txt"
 diff -u "$work/basic_c.txt" "$work/basic_xl.txt"
+compile release/extlibs/snappy/examples/framed_records_c.c "${objects[@]}" -lm -ldl -o "$work/records"
+timeout 30s "$work/records" > "$work/records_c.txt"
+diff -u <(sed 's/\r$//' release/extlibs/snappy/examples/framed_records.expected.txt) "$work/records_c.txt"
+timeout 90s ./release/xl run release/extlibs/snappy/examples/framed_records_c.c > "$work/records_c_jit.txt"
+timeout 90s ./release/xl run release/extlibs/snappy/examples/framed_records.xl > "$work/records_xl_jit.txt"
+diff -u "$work/records_c.txt" "$work/records_c_jit.txt"
+diff -u "$work/records_c.txt" "$work/records_xl_jit.txt"
 printf '[snappy] XLang AOT gate\n'
 for name in central progress file_ops allocations text_transfer basic full; do
     printf '[snappy] AOT %s\n' "$name"
@@ -80,5 +129,15 @@ done
 diff -u "$work/file_ops_jit.txt" "$work/file_ops_aot.txt"
 diff -u "$work/basic_c.txt" "$work/basic_aot.txt"
 diff -u "$work/full_xl.txt" "$work/full_aot.txt"
+for source in test/empty_chunks.xl test/empty_chunks_c.c test/abi_surface.xl examples/basic.c examples/framed_records_c.c examples/framed_records.xl; do
+    target="$work/$(basename "$source").aot"
+    timeout 180s ./release/xl build "release/extlibs/snappy/$source" -o "$target"
+    timeout 90s "$target" > "$target.txt"
+    case "$source" in
+        examples/framed_records*) diff -u "$work/records_c.txt" "$target.txt" ;;
+        examples/basic.c) diff -u "$work/basic_c.txt" "$target.txt" ;;
+    esac
+done
+printf '[snappy] runtime/ABI and thirteen ordinary AOT paths: PASS\n'
 bash "$root/tools/check_extlib_native_globals.sh" snappy
 printf 'snappy Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\n'

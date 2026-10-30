@@ -1,5 +1,22 @@
 # snappy
 
+## 当前验收（2026-10-30）
+
+修复标准 framing 空数据块被误拒绝：未压缩空块只有四字节 CRC，
+压缩空块的 raw Snappy 可声明零长度。两者仍校验 CRC、raw 指令和
+截断，不把“输出为空”当作数据自动有效；空输入（缺 identifier）
+仍拒绝。编码器的现有输出策略不变，没有加入旧格式兼容。
+
+Windows/Linux 同一最终 C 测试各 379 场景、10 个实际 XRT OOM，旧源
+352 条失败断言变为 0；新双语流式范例、26 个实际生成原型、各 13 条
+正常独立程序路径和独立实现互通通过。Linux 含 ASan/UBSan/泄漏检查。
+默认门禁最后仍因 **M2 顶层对象 AOT 退役失败** 返回 1，不能按整包
+发布通过。包自身只改上述解码分支；vendor、冻结 XRT 和语言主线未改。
+
+新双语范例及可运行命令见 [examples/README.md](examples/README.md)，
+边界和现场见[空块审查](docs/empty-chunks-audit-2026-10-30.md)。
+下列旧日期结果是历史记录，不覆盖本次默认门禁红项。
+
 2026-10-29 新增 `test/top_level.xl`：全局持有真实压缩器，main 内
 校验有效，退出时自然退役。固定发布版 Windows/Linux JIT 均退出0，
 独立 EXE 均打印 PASS 后报状态错误并退出1，确认 **M2 主线阻断**。
@@ -60,7 +77,7 @@ C 侧直接调用 `xrtSnappyCompress` / `xrtSnappyDecompress`，示例见 `examp
 framing 没有结束标记，因此末尾 chunk 不完整会报错，但在完整 chunk 边界提前结束无法检测。校验采用 masked CRC32C。数据块原文上限 64 KiB；未知可跳过 chunk 会跳过，未知不可跳过 chunk 会拒绝。
 
 测试：`test/test_snappy.c` 覆盖固定格式样本、增量输入、资源上限、校验、截断、跳过 chunk 与串联流。`test/file_ops.xl` 覆盖 UTF-8 文件往返、进度回调、覆盖拒绝、取消清理与限额失败时的既有目标保护；中央 XLang 用例在 `test/cases/extlib_snappy.xl` 和 `extlib_snappy_progress.xl`。Linux 包级门禁同次运行 C ASan/UBSan、上述语言用例的 JIT/七条独立 EXE AOT 与 C/XLang 基础范例逐字节对照。
-Windows 可在仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/snappy/test/check.ps1 -SkipAot`，同次检查严格 GCC 独立链接运行的 C 边界、TCC C 边界、私有成员负例、XLang 主用例/进度/文件操作，以及 GCC C、TCC C、XLang 三路固定输出。脚本使用每次独立的临时构建目录并清理本次产物；不加 `-SkipAot` 时还会构建和运行独立 EXE。
+Windows 从仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/snappy/test/check.ps1`，同次检查严格 GCC、TCC C、私有成员精确拒绝、XLang 主用例/进度/文件操作、实际生成 ABI、双语同输出和 13 条正常 AOT。当前最后仍因 M2 返回失败；`-SkipAot` 仅用于开发，不用于发布签收。每个进程有上限，并保留命令、真实状态和输出；输入/工具前后指纹不变才有效。失败保留独占现场，全部通过才清理。Linux 默认门禁有相同的新回归及失败留档。
 
 包清单现公开 `include/` 并声明六个直接 XRT/XRuntime 模块。
 `tools/run_extlib_c.ps1 -Package snappy -Source release/extlibs/snappy/examples/basic.c`

@@ -1,0 +1,25 @@
+import snappy
+
+func main(...) as int
+    // 两个串联流，中间有未压缩空块和 compressed empty raw 流。
+    Buffer wire = Buffer.fromHex("ff060000734e61507059" +
+        "010700006e57f121616263" + "01040000d8ea82a2" + "00050000d8ea82a200" +
+        "ff060000734e61507059" + "010700006e57f121616263")
+    auto decoder = snappy.decompressor()
+    Buffer plain = Buffer()
+    // 网络可能逐字节到达；空块既不输出正文，也不代表流已结束。
+    for byte in wire.toBytes()
+        Buffer part = Buffer()
+        part.appendByte(int(byte))
+        decoder.update(part)
+        plain.append(decoder.drain())
+    end
+    decoder.finish()
+    plain.append(decoder.drain())
+    assert plain.text() == "abcabc" and decoder.members == 2
+    assert decoder.finished and decoder.inputBytes == wire.len() and decoder.outputBytes == 6
+    println("text:", plain.text())
+    println("members:", decoder.members)
+    println("bytes:", decoder.outputBytes)
+    return 0
+end
