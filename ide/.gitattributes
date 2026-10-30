@@ -1,5 +1,6 @@
 # Pinned inventories and compatibility patches use hashes of the original bytes.
 /data/** -text
+/data/fonts/* whitespace=cr-at-eol
 # Snapshot bytes and hashed tools must survive checkout without EOL conversion.
 /data/catalog-sources/*.source -whitespace
 /tools/refresh_extensions.py -text whitespace=cr-at-eol

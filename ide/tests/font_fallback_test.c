@@ -126,18 +126,20 @@ static int verify(void* user)
         original=xideIoReadAllLimit(settings,256u*1024u,&originalSize);CHECK(original);
     }
     app.hidden=1;app.noSession=1;app.maxFrames=100000;app.settingsPath=settings;
+    defaultUi=xideUiFontDefaultPath();defaultCode=xideEditorFontDefaultPath();CHECK(defaultUi && defaultCode);
     int result=xideAppCreate(&app);
     if(!strcmp(f->mode,"--no-bundle")) { CHECK(result!=XUI_OK && !app.uiFont);printf("font_fallback_test passed: %d checks; missing assets rejected, startup=%d\n",f->checks,result);goto cleanup; }
-    CHECK(result==XUI_OK && app.uiFont && app.codeFont && xidePathEqual(app.uiFontPath,f->fontPath ? f->fontPath : bundled));
+    int usingFallback=!strcmp(f->mode,"--fallback-only") || !strcmp(f->mode,"--portable-read");
+    const char* expectedUi=f->fontPath ? f->fontPath : usingFallback ? bundled : defaultUi;
+    const char* expectedCode=f->fontPath ? f->fontPath : usingFallback ? bundled : defaultCode;
+    CHECK(result==XUI_OK && app.uiFont && app.codeFont && xidePathEqual(app.uiFontPath,expectedUi));
     CHECK(xgeBegin()==XGE_OK);began=1;CHECK(settle(&app));
     CHECK(startupImage && capture(&app,startupImage));
     CHECK(glyphs(&app,app.uiFont) && glyphs(&app,app.codeFont));
-    if(!strcmp(f->mode,"--latin")) { CHECK(!xidePathEqual(app.codeFontPath,bundled)); }
-    else { CHECK(xidePathEqual(app.codeFontPath,f->fontPath ? f->fontPath : bundled)); }
+    CHECK(xidePathEqual(app.codeFontPath,expectedCode));
     if(!strcmp(f->mode,"--portable-read")) { CHECK(app.uiFontSize==20 && app.codeFontSize==24); }
     else { CHECK(app.uiFontSize==16 && app.codeFontSize==16); }
     if(original) { size_t size=0;unsigned char* disk=xideIoReadAllLimit(settings,256u*1024u,&size);int unchanged=disk && size==originalSize && !memcmp(disk,original,size);xrtFree(disk);CHECK(unchanged); }
-    defaultUi=xideUiFontDefaultPath();defaultCode=xideEditorFontDefaultPath();CHECK(defaultUi && defaultCode);
     CHECK(xideFontViewOpenUi(&app) && click(&app,XIDE_FONT_RESET));
     CHECK(xidePathEqual(xuiEditGetText(xideFontViewControl(&app,XIDE_FONT_PATH)),defaultUi));CHECK(click(&app,XIDE_FONT_CANCEL));
     CHECK(xideFontViewOpen(&app) && click(&app,XIDE_FONT_RESET));
