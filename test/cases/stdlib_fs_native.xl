@@ -69,4 +69,4 @@ end
 assert found
 assert directory.close()
 assert file.delete(path)
-print("fs native ok")
+println("fs native ok")

@@ -1,3 +1,4 @@
+#include "test_numeric_arg.h"
 /* Local fixture transport only; production XACME still owns all ACME/TLS. */
 #include <stdbool.h>
 #include <stddef.h>
@@ -30,7 +31,7 @@ bool test_xacme_dns(const char* fqdn,const char* txt,bool add)
     if(bodySize<0||length<0||(size_t)length>=sizeof(request))return false;
     TestSocket sock=socket(AF_INET,SOCK_STREAM,0);if(sock==INVALID_SOCKET)return false;
     struct sockaddr_in address;memset(&address,0,sizeof(address));
-    address.sin_family=AF_INET;address.sin_port=htons((unsigned short)atoi(port+1));address.sin_addr.s_addr=htonl(0x7f000001u);
+    address.sin_family=AF_INET;address.sin_port=htons((unsigned short)xlTestIntArg(port+1));address.sin_addr.s_addr=htonl(0x7f000001u);
 #ifdef _WIN32
     DWORD timeout=3000;setsockopt(sock,SOL_SOCKET,SO_RCVTIMEO,(const char*)&timeout,sizeof(timeout));
     setsockopt(sock,SOL_SOCKET,SO_SNDTIMEO,(const char*)&timeout,sizeof(timeout));

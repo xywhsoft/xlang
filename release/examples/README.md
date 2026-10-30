@@ -238,3 +238,5 @@ release\examples\games\run_games.bat
 ```bat
 test.bat
 ```
+
+- `stdlib_api_contracts.xl`：完整调用形式补充示例和常量断言；函数体由编译器检查，示例主程序不发起网络连接或密码学运算。

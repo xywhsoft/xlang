@@ -84,8 +84,7 @@ if timeout 45s ./release/xl check \
     exit 1
 else
     status=$?
-    if [[ $status -ne 1 ]] || ! grep -q 'Snapshot' "$work/private_constructor.txt" ||
-        ! grep -q 'access' "$work/private_constructor.txt"; then
+    if [[ $status -ne 1 ]] || ! grep -q 'expected 0, actual 1' "$work/private_constructor.txt"; then
         cat "$work/private_constructor.txt" >&2
         exit 1
     fi

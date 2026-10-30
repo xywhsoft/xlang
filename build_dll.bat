@@ -43,6 +43,12 @@ if errorlevel 1 (
 call tools\bootstrap_tcc.bat
 if errorlevel 1 exit /b 1
 
+rem Version resources use the existing resource-only COFF loader, not a native archive.
+"%XL6_WINDRES%" -F pe-x86-64 -Irelease/include -O coff -DXL_VERSION_DLL=1 -i res\xlang_version.rc -o "%XL6_BUILD_TMP%\xlang_dll.res"
+if errorlevel 1 exit /b 1
+"%XL6_WINDRES%" -F pe-x86-64 -Irelease/include -O coff -i res\xlang_version.rc -o "%XL6_BUILD_TMP%\xlang_cli.res"
+if errorlevel 1 exit /b 1
+
 call tools\build_xrt_obj.bat
 if errorlevel 1 exit /b 1
 

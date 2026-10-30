@@ -154,7 +154,12 @@ $extraMarkdownDocs = @(
 	"release\projects\function_interop\README.md",
 	"release\projects\xs_static\README.md",
     "release\extlibs\README.md",
-    "test\README.md"
+    "test\README.md",
+    "ide\README.md",
+    "release\examples\foundation\README.md",
+    "release\examples\http\README.md",
+    "release\examples\websocket\README.md",
+    "test\fixtures\native_source_contract\README.md"
 )
 
 if ( $docs.Count -lt $minDocsMarkdownFiles ) {
@@ -172,6 +177,7 @@ foreach ( $relative in $extraMarkdownDocs ) {
     $knownReadmeDocs.Add($relative.ToLowerInvariant()) | Out-Null
 }
 $ignoredReadmePrefixes = @(
+    "ide\",
 	"dev\deferred\",
 	"release\extlibs\",
 	"build\",

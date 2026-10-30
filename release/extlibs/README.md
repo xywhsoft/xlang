@@ -230,6 +230,7 @@
 - `zeromq`：发布扩展库。
 - `zip`：基于 libzip 的 ZIP/ZIP64 归档扩展库。
 - `zstd`：Zstandard 压缩扩展库。
+- `xacme`：XRT ACME 客户端，受管 DNS／HTTP 回调与原生拥有图；离线示例见 [xacme](xacme/README.md)。
 <!-- package-index:end -->
 
 ## 主要验证入口

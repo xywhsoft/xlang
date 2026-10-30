@@ -5,4 +5,4 @@ try
 finally
     dir.delete(directory)
 end
-print("fs glob only ok")
+println("fs glob only ok")

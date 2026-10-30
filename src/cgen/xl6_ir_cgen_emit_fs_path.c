@@ -1,66 +1,6 @@
 /* Path syntax lives in XRT; these adapters only own returned text and snapshots. */
 static void xl6IrCgenEmitFsPathRuntime(XL6_Output* out, const XL6_IrCgenNeeds* needs)
 {
-    int parts = 0, iter = 0;
-    for (XL6_IrRuntimeBridgeKind k = XL6_IR_RUNTIME_BRIDGE_FS_FILE_OPEN; k < XL6_IR_RUNTIME_BRIDGE_FS_END; ++k) {
-        if (!xl6IrCgenFsSelected(needs,k)) continue;
-        parts |= xl6IrRuntimeFsBridgeUsesOwner(k,"xl6_xrt_fs_path_parts_destroy");
-        iter |= xl6IrRuntimeFsBridgeUsesOwner(k,"xl6_xrt_fs_path_iter_destroy");
-    }
-    if (parts) xl6OutputPuts(
-        "typedef struct xlir_fs_parts { char* text; xpathparts parts; } xlir_fs_parts;\n", out);
-    if (iter) xl6OutputPuts(
-        "typedef struct xlir_fs_pathiter { char* text; xpathiter iter; xpathcomponent item; bool current; } xlir_fs_pathiter;\n", out);
-    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_PATH_PARTS_CREATE)) xl6OutputPuts(
-        "void* xl6_xrt_fs_path_parts_create(xlir_string path, int64_t style)\n"
-        "{ xlir_fs_parts* owner;\n"
-        "  if (style < 0 || style > 2 || xlir_string_cstr(path) == NULL) { if (style < 0 || style > 2) xrtSetErrorKind(XERR_RANGE); return NULL; }\n"
-        "  owner = (xlir_fs_parts*)xrtCalloc(1, sizeof(*owner)); if (owner == NULL) { return NULL; }\n"
-        "  owner->text = xrtStrDupN(path.Data, path.Size);\n"
-        "  if (owner->text == NULL || !xrtPathParse((xstrview){owner->text,path.Size}, (xpathstyle)style, &owner->parts))\n"
-        "    { xrtFree(owner->text); xrtFree(owner); return NULL; } return owner; }\n", out);
-    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_PATH_PARTS_DESTROY)) xl6OutputPuts(
-        "void xl6_xrt_fs_path_parts_destroy(void* handle)\n"
-        "{ xlir_fs_parts* owner = (xlir_fs_parts*)handle; if (owner != NULL) { xrtFree(owner->text); xrtFree(owner); } }\n", out);
-    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_PATH_PARTS_TEXT)) xl6OutputPuts(
-        "xlir_string xl6_xrt_fs_path_parts_text(void* handle, int64_t field)\n"
-        "{ xlir_fs_parts* owner = (xlir_fs_parts*)handle; xstrview text;\n"
-        "  if (owner == NULL) { xrtSetErrorKind(XERR_ARGUMENT); return (xlir_string){0}; }\n"
-        "  switch (field) { case 0: text = owner->parts.Root; break; case 1: text = owner->parts.Parent; break;\n"
-        "    case 2: text = owner->parts.Name; break; case 3: text = owner->parts.Stem; break; case 4: text = owner->parts.Ext; break;\n"
-        "    default: xrtSetErrorKind(XERR_RANGE); return (xlir_string){0}; }\n"
-        "  return xlir_string_from_utf8(text.Data, text.Size); }\n", out);
-    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_PATH_PARTS_NUMBER)) xl6OutputPuts(
-        "int64_t xl6_xrt_fs_path_parts_number(void* handle, int64_t field)\n"
-        "{ xlir_fs_parts* owner = (xlir_fs_parts*)handle;\n"
-        "  if (owner == NULL) { xrtSetErrorKind(XERR_ARGUMENT); return 0; }\n"
-        "  if (field == 0) { return owner->parts.Flags; } if (field == 1) { return owner->parts.RootKind; }\n"
-        "  xrtSetErrorKind(XERR_RANGE); return 0; }\n", out);
-    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_PATH_ITER_CREATE)) xl6OutputPuts(
-        "void* xl6_xrt_fs_path_iter_create(xlir_string path, int64_t style)\n"
-        "{ xlir_fs_pathiter* owner;\n"
-        "  if (style < 0 || style > 2 || xlir_string_cstr(path) == NULL) { if (style < 0 || style > 2) xrtSetErrorKind(XERR_RANGE); return NULL; }\n"
-        "  owner = (xlir_fs_pathiter*)xrtCalloc(1, sizeof(*owner)); if (owner == NULL) { return NULL; }\n"
-        "  owner->text = xrtStrDupN(path.Data,path.Size);\n"
-        "  if (owner->text == NULL || !xrtPathIterInit(&owner->iter,(xstrview){owner->text,path.Size},(xpathstyle)style))\n"
-        "    { xrtFree(owner->text); xrtFree(owner); return NULL; } return owner; }\n", out);
-    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_PATH_ITER_DESTROY)) xl6OutputPuts(
-        "void xl6_xrt_fs_path_iter_destroy(void* handle)\n"
-        "{ xlir_fs_pathiter* owner = (xlir_fs_pathiter*)handle; if (owner != NULL) { xrtFree(owner->text); xrtFree(owner); } }\n", out);
-    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_PATH_ITER_ADVANCE)) xl6OutputPuts(
-        "bool xl6_xrt_fs_path_iter_advance(void* handle)\n"
-        "{ xlir_fs_pathiter* owner = (xlir_fs_pathiter*)handle;\n"
-        "  if (owner == NULL) { xrtSetErrorKind(XERR_ARGUMENT); return false; }\n"
-        "  owner->current = xrtPathNext(&owner->iter, &owner->item); return owner->current; }\n", out);
-    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_PATH_ITER_TEXT)) xl6OutputPuts(
-        "xlir_string xl6_xrt_fs_path_iter_text(void* handle)\n"
-        "{ xlir_fs_pathiter* owner = (xlir_fs_pathiter*)handle;\n"
-        "  if (owner == NULL || !owner->current) { xrtSetErrorKind(XERR_STATE); return (xlir_string){0}; }\n"
-        "  return xlir_string_from_utf8(owner->item.Text.Data,owner->item.Text.Size); }\n", out);
-    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_PATH_ITER_KIND)) xl6OutputPuts(
-        "int64_t xl6_xrt_fs_path_iter_kind(void* handle)\n"
-        "{ xlir_fs_pathiter* owner = (xlir_fs_pathiter*)handle;\n"
-        "  if (owner == NULL || !owner->current) { xrtSetErrorKind(XERR_STATE); return 0; } return owner->item.Kind; }\n", out);
     if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_PATH_CLEAN)) xl6OutputPuts(
         "xlir_string xl6_xrt_fs_path_clean(xlir_string path, int64_t style)\n"
         "{ if (style < 0 || style > 2 || xlir_string_cstr(path) == NULL)\n"

@@ -70,6 +70,10 @@ function Should-SkipFile($file)
         return $false
     }
 
+    if ($normalized.StartsWith("ide/", [System.StringComparison]::OrdinalIgnoreCase)) {
+        return $true # IDE encoding and diagnostic fixtures belong to its own product gates.
+    }
+
     if ( $normalized -eq "release" -or
          $normalized.StartsWith("release/", [System.StringComparison]::OrdinalIgnoreCase) ) {
         return $true
@@ -88,12 +92,20 @@ if ( ! (Test-Path -LiteralPath $Root -PathType Container) ) {
     exit 1
 }
 
-$files = @(
-    Get-ChildItem -LiteralPath $Root -Recurse -File | Where-Object {
-        ($scanExtensions -contains $_.Extension) -and
-        ! (Should-SkipFile $_)
-    } | Sort-Object FullName
-)
+# Validate source-controlled product inputs, including new non-ignored files.
+# Generated IDE/compiler build trees are not part of a release source inventory.
+$inventory = @(& git -c core.quotepath=false -C $Root ls-files --cached --others --exclude-standard 2>$null)
+if ($LASTEXITCODE -eq 0) {
+    $candidates = @($inventory | Sort-Object -Unique | ForEach-Object {
+        $path = Join-Path $Root $_
+        if (Test-Path -LiteralPath $path -PathType Leaf) { Get-Item -LiteralPath $path }
+    })
+} else {
+    $candidates = @(Get-ChildItem -LiteralPath $Root -File -Recurse | Where-Object {
+        $_.FullName -notmatch '[\\/](?:build|tmp|out|logs|node_modules|[.]git)[\\/]'
+    })
+}
+$files = @($candidates | Where-Object { ($scanExtensions -contains $_.Extension) -and ! (Should-SkipFile $_) } | Sort-Object FullName)
 
 foreach ( $file in $files ) {
     $bytes = [System.IO.File]::ReadAllBytes($file.FullName)

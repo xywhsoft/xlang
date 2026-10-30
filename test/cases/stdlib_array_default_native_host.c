@@ -1,3 +1,4 @@
+#include "test_numeric_arg.h"
 #include "src/runtime/xl6_array_default.h"
 #include <assert.h>
 #include <stdio.h>
@@ -90,6 +91,6 @@ int main(int argc,char** argv)
     assert(xrtMemDebugEnable(true)); xmemdebugsnapshot before; xrtMemDebugSnapshot(&before);
     if (argc==1) { vectors(); puts("boxed Array defaults: 9 tags, aliases/snapshots, forbidden/range/ABI refusal"); }
     else { assert(argc==3); unsigned abi=(unsigned)strtoul(argv[1],NULL,10);
-        fault(abi ? abi : XL6_VALUE_DEFAULT_INT,atoi(argv[2]),!abi); }
+        fault(abi ? abi : XL6_VALUE_DEFAULT_INT,xlTestIntArg(argv[2]),!abi); }
     balanced(&before); return 0;
 }

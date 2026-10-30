@@ -20,7 +20,9 @@ $wiringFiles = @(
     # These runners are invoked by the full regression and validate their
     # declared data inputs before dispatching the owning scenario workers.
     "tools\run_xlir_guards.ps1",
-    "tools\run_xlir_parameterized_guards.ps1"
+    "tools\run_xlir_parameterized_guards.ps1",
+    "tools\check_delivery_case_matrix.py",
+    "tools\check_stdlib_retired_text_bridges.py"
 )
 
 $failures = New-Object System.Collections.Generic.List[string]

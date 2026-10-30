@@ -220,7 +220,9 @@ static int xlVisitDefaultTccApiSymbols(XL_ApiSymbolVisit visit, void* user)
     XL_ADD_TCC_API_SYMBOL(user, tcc_get_symbol, "tcc_get_symbol");
     XL_ADD_TCC_API_SYMBOL(user, tcc_list_symbols, "tcc_list_symbols");
     XL_ADD_TCC_API_SYMBOL(user, tcc_set_backtrace_func, "tcc_set_backtrace_func");
-    if ( !visit(user, "xlDefaultContextOptions", (const void*)xlDefaultContextOptions) ||
+    if ( !visit(user, "xlGetVersionString", (const void*)xlGetVersionString) ||
+         !visit(user, "xlGetVersionCode", (const void*)xlGetVersionCode) ||
+         !visit(user, "xlDefaultContextOptions", (const void*)xlDefaultContextOptions) ||
          !visit(user, "xlRuntimeInit", (const void*)xlRuntimeInit) ||
          !visit(user, "xlRuntimeUnit", (const void*)xlRuntimeUnit) ||
          !visit(user, "xlRuntimeDrainRetiringChecked", (const void*)xlRuntimeDrainRetiringChecked) ||

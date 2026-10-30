@@ -19,7 +19,7 @@ static char lastTarget[128];
 static bool controlledOpen(cstr text)
 {
     assert(strlen(text)<sizeof(lastTarget));
-    strcpy(lastTarget,text);++launches;
+    memcpy(lastTarget,text,strlen(text)+1);++launches;
     if(!accepted)xrtSetErrorKind(XERR_IO);
     return accepted;
 }

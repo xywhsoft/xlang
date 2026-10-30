@@ -56,4 +56,4 @@ end
 
 exercise()
 assert released() == 8
-print("extension span inputs ok")
+println("extension span inputs ok")

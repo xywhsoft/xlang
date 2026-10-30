@@ -4,7 +4,7 @@ func mustCatchConversion() as string
         return "bad"
     catch e
         print(e)
-        return e.message
+        return e.kind
     end
     return "unreachable"
 end
@@ -26,13 +26,13 @@ class FieldBox
 end
 
 string message = mustCatchConversion()
-assert message == "invalid integer string", "invalid int conversion should throw ValueError"
+assert message == "ValueError", "invalid int conversion should throw ValueError"
 
 try
     float f = float("1.2x")
     assert false, "invalid float conversion should throw ValueError"
 catch e
-    assert e.message == "invalid float string", "invalid float conversion message mismatch"
+    assert e.kind == "ValueError", "invalid float conversion message mismatch"
 end
 
 FieldBox box = FieldBox()

@@ -1,3 +1,4 @@
+#include "test_numeric_arg.h"
 #define XRUNTIME_MODULE_RUNTIME_TYPE_FUTURE
 #define XRUNTIME_MODULE_RUNTIME_VALUE_FUTURE
 #include "src/runtime/xl6_array_admission.h"
@@ -165,7 +166,7 @@ static void fault(bool nullable,const char* operation,size_t point)
 int main(int argc,char** argv)
 {
     assert(xrtMemDebugEnable(true));
-    if (argc==4) { fault(atoi(argv[1])!=0,argv[2],(size_t)strtoull(argv[3],NULL,10)); return 0; }
+    if (argc==4) { fault(xlTestIntArg(argv[1])!=0,argv[2],(size_t)strtoull(argv[3],NULL,10)); return 0; }
     assert(argc==1);
     for (unsigned n=0;n<2;++n) {
         xmemdebugsnapshot before; xrtMemDebugSnapshot(&before); vectors(n!=0); balanced(&before);

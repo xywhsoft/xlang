@@ -295,6 +295,29 @@ if ( $failures.Count -eq 0 ) {
     $compilerManifestEntries = Get-ManifestEntries $compilerManifest "compiler"
     $xlRuntimeBuildBlock = Get-BuildBlock $buildDll "Building DEMO6 xl.dll runtime"
     $xlcBuildBlock = Get-BuildBlock $buildDll "Building DEMO6 xlc.dll compiler runtime"
+    $runtimeTemplate = Read-Utf8Text (Join-Path $Root "tools/runtime_dll.rsp.in")
+    $compilerTemplate = Read-Utf8Text (Join-Path $Root "tools/compiler_dll.rsp.in")
+    $responseHelper = Read-Utf8Text (Join-Path $Root "tools/build_release_dll.ps1")
+    if ($xlRuntimeBuildBlock -notmatch 'build_release_dll[.]ps1 -Target runtime' -or
+        $xlcBuildBlock -notmatch 'build_release_dll[.]ps1 -Target compiler' -or
+        $responseHelper -notmatch 'ExpandEnvironmentVariables' -or $responseHelper -notmatch 'dll[.]rsp[.]in') {
+        Add-Failure "DLL build must consume the target-specific checked response templates"
+    }
+    $xlRuntimeBuildBlock += "`n" + $runtimeTemplate
+    $xlcBuildBlock += "`n" + $compilerTemplate
+    $buildDll += "`n" + $runtimeTemplate + "`n" + $compilerTemplate
+    $cliHeader = Read-Utf8Text (Join-Path $Root "src/compile/xl6_build_inputs.h")
+    $cliApis = @([regex]::Matches($cliHeader,'(?m)^XL6_CLI_API [^;\r\n]*?\b(xlc\w+)\(') | ForEach-Object { $_.Groups[1].Value })
+    if ($cliApis.Count -ne 3 -or $cliHeader -notmatch '#define XL6_CLI_API XL_API') {
+        Add-Failure "CLI-private compiler exports must have an explicit private declaration boundary"
+    }
+    foreach ($name in $cliApis) {
+        if (($header + $xlcHeader) -match ('\b'+[regex]::Escape($name)+'\s*\(') -or
+            $api -notmatch ('(?m)^XL6_CLI_API [^\r\n]*\b'+[regex]::Escape($name)+'\(')) {
+            Add-Failure "CLI-private export has drifted across its SDK boundary: $name"
+        }
+    }
+
 
     # XRT/xruntime declarations have one generated product source. The runtime
     # header may only include that SDK header and must not mirror prototypes.
@@ -422,6 +445,8 @@ if ( $failures.Count -eq 0 ) {
     }
 
     foreach ( $line in ($api -split "`r?`n") ) {
+        if ($line -match '^XL6_CLI_API ') { continue }
+
         $trimmedLine = $line.Trim()
         if ( $trimmedLine.EndsWith(";") ) {
             continue
@@ -694,7 +719,7 @@ foreach ( $required in @("include", "include/xl.h", "include/xlc.h", "include/__
         $api, '(?s)static const char\* compilerSources\[\]\s*=\s*\{(?<body>.*?)\};')
     if ( !$embeddedRuntimeSources.Success -or
          !$embeddedRuntimeSources.Groups['body'].Value.Contains('"src/cgen/xl6_cgen_shared_runtime.c"') -or
-         !$embeddedRuntimeSources.Groups['body'].Value.Contains('"src/api/xl_foreign_error.c"') ) {
+         !(Read-Utf8Text (Join-Path $Root "src/compile/xl6_compile_unit.c")).Contains('"src/api/xl_foreign_error.c"') ) {
         Add-Failure "embedded xlang runtime must carry shared XLIR Cgen and foreign-error implementations"
     }
     if ( !$embeddedCompilerSources.Success -or
@@ -713,10 +738,13 @@ foreach ( $required in @("include", "include/xl.h", "include/xlc.h", "include/__
          $compilerVfsDefineIndex -ge $xlangRuntimeEnd ) {
         Add-Failure "compiler-source VFS mode must be scoped exactly to embedded xlang runtime compilation"
     }
-    if ( $runtimeManifest -notmatch 'XRT/xruntime functions are provided by tcc_add_symbol' ) {
+    if (!(Test-ManifestFileSourceSuffix $runtimeManifestEntries "lib/xrt/xrt.h" "release/include/xrt_decl.h") -or
+         $apiSymbols -notmatch 'xl_xrt_symbols[.]inc') {
         Add-Failure "runtime VFS manifest must document that XRT/xruntime is provided by symbols"
     }
-    if ( $compilerManifest -notmatch 'complete xruntime single-header' ) {
+    if (!(Test-ManifestFileSourceSuffix $compilerManifestEntries "include/__xl_runtime/xrt.h" "lib/xrt/xrt.h") -or
+        !(Test-ManifestFileSourceSuffix $compilerManifestEntries "include/__xl_runtime/xruntime.h" "lib/xruntime/xruntime.h") -or
+        $buildDll -notmatch 'precompile_builtin[.]py') {
         Add-Failure "compiler VFS manifest must document the XRT/xruntime product model"
     }
 }

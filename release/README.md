@@ -1,5 +1,7 @@
 # xlang 统一运行与发布目录
 
+xlang 工具链版本为 **0.6.0**，版本代号 **`0x00000600`**，C 嵌入 ABI 为 1。当前仍有发布阻塞，见 [0.6.0 发布前检查](../docs/prerelease-0.6.0.md)；本轮工具链检查不签收并行开发中的 IDE 产品。
+
 IDE、语言服务、工具和 xlang 引擎统一放在仓库根目录的 `release/`，不再使用 `ide/release/`。编译器源码已从 `demo6/` 移到仓库根目录。
 
 直接运行 `xlang_ide.exe`。IDE 默认使用同目录的 `xl.exe`，共享 `xl.dll`、`xlc.dll`、`include/`、`extlibs/` 和范例；C 语言分析工具位于 `toolchains/clangd/`，不再复制一套 `toolchains/xlang/`。`data/` 保存命令帮助和字体，`option/` 保存可迁移的 IDE 设置和会话。

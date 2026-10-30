@@ -4,6 +4,8 @@
 
 **English** · [中文](README_zh.md)
 
+Current product version: **0.6.0**, code **`0x00000600`**. The embedding ABI remains version 1. See the [pre-release audit](docs/prerelease-0.6.0.md) for verified fixes and remaining release blockers.
+
 ---
 
 ## What is xlang?

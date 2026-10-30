@@ -31,4 +31,4 @@ try
 finally
     dir.delete(directory)
 end
-print("fs temp ok")
+println("fs temp ok")

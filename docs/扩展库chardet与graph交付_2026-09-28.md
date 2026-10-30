@@ -72,7 +72,7 @@ chardet 的 Buffer/C 显式字节接口完整，但不据此宣称语言 string 
 - [graph Windows 原始检查](extlib_graph_2026-09-28.delivery.windows.results.json)
 - [chardet README](../release/extlibs/chardet/README.md)
 - [graph README](../release/extlibs/graph/README.md)
-- [chardet Linux 输出](../build/test/chardet-delivery-20260928-final/linux/gate.log)
-- [graph Linux 输出](../build/test/graph-delivery-20260928-final/linux/gate.log)
+- chardet Linux 输出（历史记录：`../build/test/chardet-delivery-20260928-final/linux/gate.log`）
+- graph Linux 输出（历史记录：`../build/test/graph-delivery-20260928-final/linux/gate.log`）
 - [chardet 官网源码](../release/extlibs/chardet/docs/site.html)
 - [graph 官网源码](../release/extlibs/graph/docs/site.html)

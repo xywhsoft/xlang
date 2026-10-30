@@ -1,3 +1,4 @@
+#include "test_numeric_arg.h"
 /* Test executable for the response helper's argv, stderr and exit protocol.
  * Not a compiler or a production provider. Real GCC linkage is tested by the
  * ordinary DLL build separately. Paths in this test include spaces. */
@@ -12,5 +13,5 @@ int main(int argc,char** argv)
     assert(!ferror(source) && !fclose(source));
     printf("response-probe bytes=%zu\n",size);fputs("response-probe stderr\n",stderr);
     const char* code=getenv("XL6_DLL_RESPONSE_PROBE_EXIT");assert(code);
-    return atoi(code);
+    return xlTestIntArg(code);
 }

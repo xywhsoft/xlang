@@ -6,7 +6,7 @@
 从 demo6 执行，指定创建存储时使用的目录 URL：
 
 ```powershell
-$env:XACME_STORE_ROOT = 'D:/cert-store'
+$env:XACME_STORE_ROOT = Join-Path $env:TEMP 'xlang-cert-store'
 $env:XACME_DIRECTORY = 'https://acme-staging-v02.api.letsencrypt.org/directory'
 release/xl.exe run release/extlibs/xacme/examples/read_account.xl
 ```

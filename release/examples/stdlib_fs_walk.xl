@@ -15,4 +15,4 @@ finally
 end
 assert entries[0].isDir == true
 assert entries[0].path == root
-print("owned walk snapshots ok")
+println("owned walk snapshots ok")

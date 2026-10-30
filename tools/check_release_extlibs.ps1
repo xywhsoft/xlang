@@ -488,7 +488,11 @@ foreach ( $name in $manifestsByPackage.Keys ) {
     }
 }
 
+$importsSource = Read-Utf8Text (Join-Path $Root "src/compile/xl6_imports.c")
+$builtinBranch = [regex]::Match($importsSource,'(?s)static int xl6ImportsTryBuiltinFeatureImport\(.*?\n}').Value
+$builtinImports = @([regex]::Matches($builtinBranch,'xl6ImportsTextEquals\(target, "([^"]+)"\)') | ForEach-Object { $_.Groups[1].Value })
 foreach ( $importName in $importsByPackage.Keys ) {
+    if ($builtinImports -contains $importName) { continue }
     if ( ! $manifestsByPackage.ContainsKey($importName) ) {
         Add-Failure "release extlib example or package test imports missing package: $importName"
     }

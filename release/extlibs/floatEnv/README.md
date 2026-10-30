@@ -1,13 +1,7 @@
 # floatEnv
 
-> 2026-10-26 当前 Windows/Linux 发布物的严格 C、XLang JIT 边界/
-> 分配故障和 C/XLang 范例通过；Linux 新增独立 EXE AOT 门禁。
-> 顶层持有 `Snapshot` 的核心和边界用例在 Linux 独立 EXE
-> 退出期均报
-> `RuntimeError: operation is not valid in the current state`。
-> 公开范例的 Linux 独立 EXE 正常完成。Windows 核心 AOT 同样失败。
-> 包外私有句柄构造器仍被编译器接受，Windows/Linux 门禁均将其列为
-> 只编译负例。两处共享阻断未解除，默认门禁保持红色，不签收整包。
+> 2026-10-30：快照使用语言对象和 ForeignResource 管理，移除了裸指针接管构造入口。
+> Windows/Linux 完整包级门禁通过，包含 JIT、核心／边界／范例 AOT 与 C/xlang 输出对照；Linux 包含 C ASan/UBSan。
 
 `floatEnv` 操作**当前 OS 线程**的浮点环境：舍入模式、IEEE 异常标志和状态快照。它不改变其他线程，也不控制编译器对浮点表达式的常量折叠。快照不能跨线程恢复；在 `await`、任务迁移和回调跨线程场景，不要把快照当作进程级状态使用。
 
@@ -19,13 +13,11 @@
 - `hold()`：保存环境并清除标志、屏蔽异常陷阱；必须显式调用 `restore()` 才能恢复原状态。
 
 `Snapshot` 是拥有原生句柄的 class；不要把它伪装为可跨线程迁移的环境令牌。与 C 一样，状态变更会影响随后在**同一线程**运行的浮点代码。推荐保存旧环境、进行局部操作、恢复旧环境；异常路径也应执行恢复。
-接管句柄的 `Snapshot(point)` 已声明私有，但当前编译器仍允许包外构造；
-见 `dev/extlib_blockers/float_env_private_adopt_constructor.md`。
-在主线修复前，本包不能签收完整发布级访问安全。
+本包不再提供 `Snapshot(point)`；包外裸指针构造由只编译负例拒绝。历史问题见 `dev/extlib_blockers/float_env_private_adopt_constructor.md`。
 `hold()` 先创建并持有快照，再清除当前线程的异常标志；快照分配失败时不会改变浮点环境。
 `restoreNative()` 只供 `Snapshot.restore()` 在类内使用；包外不能跳过跨线程和
 CRT 失败诊断直接调用原生状态码入口。模块级 `hold()` 经未导出的 C 声明
-执行就地 hold；`Snapshot` 不公开 `holdNative()`，仍先持有句柄再改变环境。
+执行就地 hold；`Snapshot.hold()` 先建立完整拥有关系再改变环境。
 包外对模块级 `__holdSnapshot` 的访问也由只编译负例固定为
 `no such exported symbol`；负例绝不执行裸句柄调用。
 
@@ -40,7 +32,7 @@ CRT 失败诊断直接调用原生状态码入口。模块级 `hold()` 经未导
 - 同输出 C 范例：`release/extlibs/floatEnv/examples/float_env_c.c`
 - 定向测试：包内 `test/boundaries.xl`、`test/allocations.xl`、`test/test_float_env.c`，以及 `test/cases/stdlib_crt_float_env.xl`
 
-在 `demo6` 目录运行 Windows 包级门禁：
+在仓库根目录运行 Windows 包级门禁：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/floatEnv/test/check.ps1
@@ -56,7 +48,11 @@ Windows `test/check.ps1 -SkipAot` 聚焦验证严格 C、XLang 边界与双语�
 默认门禁还构建、运行无输出 AOT 核心、公开 XLang 范例和完整边界，
 并将范例 AOT 输出与 C 比较。本包仅覆盖平台 CRT/TCC 可提供的浮点环境能力，不承诺改变不遵守动态舍入模式的优化表达式。
 Linux 门禁复用同一份按需 XRT 运行时编译 C 边界与范例，运行包内
-XLang 边界，并逐字节比较 C/XLang 范例输出；它不执行完整 AOT。
+XLang 边界，并逐字节比较 C/XLang 范例输出；同时构建并运行核心、完整边界和公开范例 AOT。
+
+2026-10-30 当前结果：快照改为普通语言对象持有 `ForeignResource`，原生指针接管构造入口已移除；捕获失败回滚，hold 在所有拥有者建立后才修改浮点环境。Windows 完整包级门禁及 Linux C ASan/UBSan、JIT／完整 AOT 与双语对照均通过。下面保留的缺符号和裸指针构造记录是历史结果，不代表本次状态；项目整体的剩余阻塞见 [0.6.0 发布前检查](../../../docs/prerelease-0.6.0.md)。
+
+## 历史验收记录
 
 2026-10-22：旧 Windows 默认脚本只做无输出核心 AOT 并返回 PASS，公开
 范例单独构建却缺 `xl6ValueDataSnapshotV1`。现在默认将完整范例及边界

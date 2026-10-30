@@ -438,6 +438,18 @@ Invoke-GuardStep "standalone compiler VFS" {
     Invoke-CheckScript "check_standalone_compiler_vfs.ps1"
 }
 
+Invoke-GuardStep "product version and SDK" {
+    Invoke-Cmd "python" @("tools/check_release_version.py")
+}
+
+Invoke-GuardStep "isolated delivery and nested compilation" {
+    Invoke-Cmd "python" @("tools/check_release_delivery.py")
+}
+
+Invoke-GuardStep "native owner release contracts" {
+    Invoke-Cmd "python" @("tools/check_release_native_owners.py")
+}
+
 Invoke-GuardStep "dev project syntax boundary" {
     Invoke-Cmd "powershell.exe" @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "tools\check_dev_projects.ps1", "-Mode", "check", "-KeepGoing")
 }
@@ -489,8 +501,8 @@ if ( ! $SkipFullTests ) {
 
 Invoke-GuardStep "diff whitespace" {
     $git = Resolve-GitCommand
-    Set-Location (Split-Path -Parent $Root)
-    & $git diff --check -- .gitignore demo6
+    Set-Location $Root
+    & $git diff --check -- . ':!ide'
     if ( $LASTEXITCODE -ne 0 ) {
         throw "git diff --check failed"
     }

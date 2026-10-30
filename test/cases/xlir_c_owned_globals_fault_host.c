@@ -1,3 +1,4 @@
+#include "test_numeric_arg.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <__xl_runtime/xruntime_decl.h>
@@ -30,7 +31,7 @@ int main(int argc,char** argv)
 {
     assert(argc==2);
     assert(xrtMemDebugEnable(true) && xrtMemDebugEnabled());
-    assert(xrtMemDebugFailAfter((uint64_t)atoi(argv[1])));
+    assert(xrtMemDebugFailAfter((uint64_t)xlTestIntArg(argv[1])));
     bool ok=xlir_module_init();
     bool failed=xrtMemDebugFailTriggered();
     xrtMemDebugFailClear();xrtClearError();

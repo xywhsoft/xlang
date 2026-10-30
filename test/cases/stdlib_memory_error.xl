@@ -16,4 +16,4 @@ catch Error failure
     handled = 91
 end
 assert handled == 73
-print("typed MemoryError ok")
+println("typed MemoryError ok")

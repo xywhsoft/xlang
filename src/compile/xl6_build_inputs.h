@@ -1,6 +1,8 @@
 #ifndef XL6_BUILD_INPUTS_H
 #define XL6_BUILD_INPUTS_H
 #include "src/compile/xl6_source_report.h"
+#include "include/xl.h"
+#define XL6_CLI_API XL_API
 
 #define XL6_BUILD_INPUT_FILES 1024u
 #define XL6_BUILD_INPUT_FILE_BYTES (64u * 1024u * 1024u)
@@ -51,7 +53,7 @@ int xl6BuildInputExists(const char* path);
 /* Internal CLI/compiler contract. No compiler declaration is added to the
  * runtime DLL's public ABI. */
 struct XLC_Context;
-int xlcBeginInputReport(struct XLC_Context* ctx);
-char* xlcReadProjectInput(struct XLC_Context* ctx, const char* path, size_t* size);
-int xlcWriteInputReport(struct XLC_Context* ctx, const char* artifact, const char* receipt);
+XL6_CLI_API int xlcBeginInputReport(struct XLC_Context* ctx);
+XL6_CLI_API char* xlcReadProjectInput(struct XLC_Context* ctx, const char* path, size_t* size);
+XL6_CLI_API int xlcWriteInputReport(struct XLC_Context* ctx, const char* artifact, const char* receipt);
 #endif

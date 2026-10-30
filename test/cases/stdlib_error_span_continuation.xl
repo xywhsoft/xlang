@@ -36,4 +36,4 @@ catch ValueError captured
 end
 future<int> result = task.spawn(failSpan).catch(recoverSpan)
 assert await result == 73
-print("exact error continuation ok")
+println("exact error continuation ok")

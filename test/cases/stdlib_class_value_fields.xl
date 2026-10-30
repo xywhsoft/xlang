@@ -40,4 +40,4 @@ assert present?.unicode == expectedChar and absent?.unicode == null
 assert present?.data == expectedData and absent?.data == null
 array<ExactValueFields> values = array<ExactValueFields>[item]
 assert values[0].zero == '\0' and values[0].data == b"A\0你"
-print("class exact value fields ok")
+println("class exact value fields ok")

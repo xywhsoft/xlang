@@ -22,17 +22,38 @@ extern "xfenv_clear_flags" func __clearFlagsNative(c_int flags) as c_int
 extern "xfenv_raise_flags" func __raiseFlagsNative(c_int flags) as c_int
 extern "xfenv_snapshot_hold" func __holdSnapshot(point handle) as c_int
 
-export class Snapshot
-    native point handle
-    extern "xfenv_capture" create()
-    private extern "xfenv_snapshot_adopt" create(point handle)
-    extern "xfenv_snapshot_destroy" destroy()
-    private extern "xfenv_snapshot_restore" func restoreNative() as c_int
+extern "xfenv_capture" func __captureSnapshot() as point
+extern "xfenv_snapshot_destroy" @no_raise func __destroySnapshot(point raw)
+extern "xfenv_snapshot_restore" func __restoreSnapshot(point raw) as c_int
+extern "xl6ForeignResourceCreateV1" func __ownSnapshot(point raw, var releaser) as var
+extern "xl6ForeignResourcePointerV1" func __snapshotPointer(var owner) as point
 
-    func restore()
-        if self.handle == null then
-            throw RuntimeError "floating-point environment snapshot is unavailable"
+func __releaseSnapshot(point raw)
+    __destroySnapshot(raw)
+end
+
+export class Snapshot
+    // fenv_t plus creating thread ID has no owning language or native edges.
+    // The existing audited leaf-resource protocol retains its real code owner.
+    private var owner
+    create()
+        point raw = __captureSnapshot()
+        if raw == null then throw MemoryError "floating-point environment capture failed" end
+        bool adopted = false
+        try
+            self.owner = __ownSnapshot(raw, xcall(__releaseSnapshot))
+            adopted = true
+        finally
+            if !adopted then __destroySnapshot(raw) end
         end
+    end
+    private func restoreNative() as c_int
+        return __restoreSnapshot(__snapshotPointer(self.owner))
+    end
+    private func holdNative() as c_int
+        return __holdSnapshot(__snapshotPointer(self.owner))
+    end
+    func restore()
         c_int status = self.restoreNative()
         if status == -1 then
             throw RuntimeError "floating-point environment snapshot belongs to another thread"
@@ -40,6 +61,14 @@ export class Snapshot
         if status != 1 then
             throw RuntimeError "floating-point environment restore failed"
         end
+    end
+    static func hold() as Snapshot
+        Snapshot saved = Snapshot()
+        // All language/native allocations precede the thread-state change.
+        if saved.holdNative() != 1 then
+            throw RuntimeError "floating-point environment hold failed"
+        end
+        return saved
     end
 end
 
@@ -85,21 +114,10 @@ export func raiseFlags(int flags)
 end
 
 export func capture() as Snapshot
-    Snapshot saved = Snapshot()
-    if saved.handle == null then
-        throw RuntimeError "floating-point environment capture failed"
-    end
-    return saved
+    return Snapshot()
 end
 
-// feholdexcept saves the environment, clears flags and disables traps until restore().
+// Save and clear the calling thread only after the owner is fully constructed.
 export func hold() as Snapshot
-    Snapshot saved = Snapshot()
-    if saved.handle == null then
-        throw MemoryError "floating-point environment snapshot allocation failed"
-    end
-    if __holdSnapshot(saved.handle) != 1 then
-        throw RuntimeError "floating-point environment hold failed"
-    end
-    return saved
+    return Snapshot.hold()
 end

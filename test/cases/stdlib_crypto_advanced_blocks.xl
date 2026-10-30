@@ -81,4 +81,4 @@ assert cryptoAdvanced.poly1305(nextKey, "你\0好") == cryptoAdvanced.poly1305(n
 auto aead = AesGcm(key128)
 bytes nonce = b"123456789012"
 assert aead.open(aead.seal(b"a\0b", nonce), nonce) == b"a\0b"
-print("advanced-blocks=ok")
+println("advanced-blocks=ok")

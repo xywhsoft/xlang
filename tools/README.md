@@ -1360,3 +1360,15 @@ released TCC core and TCC-generated machine code are not sanitizer-instrumented.
 验证系统查询、显式 memory、对象拥有组及核心类型/复制/调用/容器合同，
 批量收集错误，含 JIT/模块/独立 AOT、严格 C、堆账本/逻辑 OOM 和裁剪。
 `--driver` 为开发快速门，不能计为普通产品验收。
+
+`generate_stdlib_reference.py` 从实际编译的声明登记表生成函数／常量参考，`check_stdlib_coverage.ps1` 调用 `--check` 检查同步。使用构建时的 GCC，不初始化语言运行时。
+
+`check_release_version.py` 校验产品版本、独立 ABI 版本、CLI、双 DLL／SO 导出、Windows VERSIONINFO 和 source-free C SDK 编译链接，由 `00_static_smoke.bat` 接线。
+
+`check_release_runtime.py` 验证 C99 长格式化、`os.args()` 的 Unicode／空参数、JIT/AOT 和双库的 80 个真实分配失败前缀及零净分配；Linux 另拒绝无效 UTF-8 参数。它由静态与 CLI 冒烟套件接线。
+
+`check_release_native_owners.py` 是独立发布门禁：核验 17 种原生类的真实 lowered IR 拥有合同，执行四类全局对象的 AOT 退出和复合异步文件的 JIT/AOT，并通过双 DLL／SO 的公开 SDK 对照异步文件自动／显式关闭和有界 checked drain。它接入 `rc0_guard.ps1`，发现缺失合同或清理未完成时返回失败，不豁免已知问题；不代表全部原生类的逐入口验收。
+
+`check_stdlib_vfs.ps1 -OnlyFixture <用例名数组>` 可选择正例进行定点复验；驻留生命周期、十个 ABI 负例和六个公开示例仍照常运行。各用例失败会收集后统一报告，不把局部复验标为全套通过。
+
+`check_release_delivery.py` 将普通产品和公开 SDK 复制到隔离目录，清除继承的工具链覆盖变量，从空工作目录验证 C、嵌套 xlang 编译的 JIT/AOT，以及双库的公开 C 宿主；保留输入哈希和逐阶段日志。它不复制仓库源码树，不访问网络，接入 `rc0_guard.ps1`。

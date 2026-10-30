@@ -45,7 +45,7 @@ headerRange 的 startOffset/endOffset 是 declarations 原始 UTF-8 字节的半
 
 映射最多 32,768 条、JSON 最多 8 MiB，来源关联最多 262,144 个声明事实、2,097,152 次 AST 访问和 512 层。映射超限或无法建立时可返回 complete=false、reason=source-map-unavailable、records=[]；已成功生成并复核的 ABI 声明继续返回，保持原 1 MiB 头限制。客户端须给可选映射设置相应解析预算，不能用新增元数据的失败冒充普通 ABI 成功或源码导航完成。
 
-真实查询门禁 [check_c_bridge_map.py](../tools/check_c_bridge_map.py) 保留函数/全局、覆盖/导入、失败恢复与 32,769 条实际导出的容量回退。新增 [check_public_type_map.py](../../ide/tools/check_public_type_map.py) 验证实际名义类型、tag/typedef、嵌套/别名/导入、未保存依赖、字节与身份兼容及 C/xlang 混编运行。原生 IDE 已接入 F12 与同项目、版本、源摘要/物理身份守卫；类型范围和最新验收见 [IDE 桥接](../../ide/docs/c-xlang-bridge.md) 与 [进度](../../ide/docs/progress.md)。
+真实查询门禁 [check_c_bridge_map.py](../tools/check_c_bridge_map.py) 保留函数/全局、覆盖/导入、失败恢复与 32,769 条实际导出的容量回退。新增 [check_public_type_map.py](../ide/tools/check_public_type_map.py) 验证实际名义类型、tag/typedef、嵌套/别名/导入、未保存依赖、字节与身份兼容及 C/xlang 混编运行。原生 IDE 已接入 F12 与同项目、版本、源摘要/物理身份守卫；类型范围和最新验收见 [IDE 桥接](../ide/docs/c-xlang-bridge.md) 与 [进度](../ide/docs/progress.md)。
 
 
 ## 内嵌 TCC 标量与位域目标查询
@@ -60,6 +60,6 @@ headerRange 的 startOffset/endOffset 是 declarations 原始 UTF-8 字节的半
 
 实际公开 ABI 头中的外部函数原型也在真实标识符发射点调用相同的来源访问器，使用 lowered call target 的实际 symbol 连接 checked extern 声明。这让 CRC32、MD5 等原生扩展的 C 函数能定位到 xlang 声明；跳过的运行时桥接入口不补造记录。普通 Cgen 使用空访问器，头文件字节格式保持一致。[check_c_bridge_map.py](../tools/check_c_bridge_map.py) 同时验证 extern 的磁盘与未保存覆盖身份、UTF-8 范围及普通头逐字节一致。
 
-内嵌 `stdio.h` 的外部 `vsnprintf` 声明只在 `__NO_ISOCEXT` 下启用，普通模式保留原静态内联定义，避免真实原生扩展构建的外部／内部链接冲突。IDE 的 [check_c_extensions.py](../../ide/tools/check_c_extensions.py) 使用真实 CRC32、MD5、vsnprintf 函数指针、snprintf 与 C/xlang 混编执行验证这条路径。
+内嵌 `stdio.h` 的外部 `vsnprintf` 声明只在 `__NO_ISOCEXT` 下启用，普通模式保留原静态内联定义，避免真实原生扩展构建的外部／内部链接冲突。IDE 的 [check_c_extensions.py](../ide/tools/check_c_extensions.py) 使用真实 CRC32、MD5、vsnprintf 函数指针、snprintf 与 C/xlang 混编执行验证这条路径。
 
 这些增量同步到当前 DEMO6 主源码时，保留当前所有权、集合及运行时实现。DLL 响应清单补齐已存在的 SlotMap／原生叶值／数组原生值源文件，避免接口注册后缺失实现导致链接失败。独立构建与验收记录位于 IDE build 中；本次源集成不替换 DEMO6 正式发布二进制，也不自动提升 IDE 默认私有工具链。

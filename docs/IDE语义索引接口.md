@@ -1,6 +1,6 @@
 # IDE 语义索引接口
 
-本接口为同一已检查编译单元导出语义事实。原生 IDE 已接入受同批次输入守护保护的 stdio 定义、大纲、悬停及补全；首版仍为传统 IDE。编译器接口自身的通过不能代替 GUI 验收，当前结果见 [IDE 实施进度](../../ide/docs/progress.md)。
+本接口为同一已检查编译单元导出语义事实。原生 IDE 已接入受同批次输入守护保护的 stdio 定义、大纲、悬停及补全；首版仍为传统 IDE。编译器接口自身的通过不能代替 GUI 验收，当前结果见 [IDE 实施进度](../ide/docs/progress.md)。
 
 ```text
 xl check main.xl --json --semantic-index
@@ -39,4 +39,4 @@ protocol 使用类型注册表的实际声明身份；泛型参数由真实作�
 
 真实 DLL 宿主销毁所有上下文，但沿用已有 XRT 合同将 DLL 保持加载直到进程退出，防止卸载后的 FLS 回调引用失效；此接口没有修复 DLL 卸载生命周期。
 
-验收工具为 [check_semantic_index.py](../tools/check_semantic_index.py)，涵盖真实作用域遮蔽、重载、导入源名称、覆盖、别名/类身份、auto、BOM/CRLF、Unicode、原生 API 和限额。结果以 IDE 工作区的当次实际证据为准，见 [实施进度](../../ide/docs/progress.md)。
+验收工具为 [check_semantic_index.py](../tools/check_semantic_index.py)，涵盖真实作用域遮蔽、重载、导入源名称、覆盖、别名/类身份、auto、BOM/CRLF、Unicode、原生 API 和限额。结果以 IDE 工作区的当次实际证据为准，见 [实施进度](../ide/docs/progress.md)。

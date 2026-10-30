@@ -80,7 +80,7 @@ resolver、私有 engine、借用引擎拥有者和语言回调均进入真实�
 
 ```powershell
 pwsh tools/build_xlir_public_source_driver.ps1 -Directory build/xacme-driver
-python tools/check_xacme.py --directory build/xacme-check --xrt D:/GIT/xrt --driver build/xacme-driver/public_source.exe
+python tools/check_xacme.py --directory build/xacme-check --xrt "$env:XRT_SOURCE_ROOT" --driver build/xacme-driver/public_source.exe
 ```
 
 Linux 使用源码构建的 CLI：

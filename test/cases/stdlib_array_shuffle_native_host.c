@@ -1,3 +1,4 @@
+#include "test_numeric_arg.h"
 #include "src/runtime/xl6_array_shuffle.h"
 #include "src/runtime/xl6_array_admission.h"
 #include "src/runtime/xl6_array.h"
@@ -169,7 +170,7 @@ static void fault(bool useDefault,bool copy,size_t point)
 int main(int argc,char** argv)
 {
     assert(xrtMemDebugEnable(true)); xrtRandSeed(2026,7); assert(!xrtGetError());
-    if (argc==4) { fault(atoi(argv[1])!=0,atoi(argv[2])!=0,(size_t)strtoull(argv[3],NULL,10)); return 0; }
+    if (argc==4) { fault(xlTestIntArg(argv[1])!=0,xlTestIntArg(argv[2])!=0,(size_t)strtoull(argv[3],NULL,10)); return 0; }
     assert(argc==1);
     for (unsigned mode=0;mode<2;++mode) for (unsigned cycle=0;cycle<50;++cycle) {
         xmemdebugsnapshot before; xrtMemDebugSnapshot(&before); vectors(mode!=0); boundaries(mode!=0); balanced(&before);

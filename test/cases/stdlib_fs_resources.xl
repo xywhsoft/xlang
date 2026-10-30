@@ -92,4 +92,4 @@ end
 assert unsupportedLock
 assert virtual.close()
 assert file.delete(path)
-print("fs resources ok")
+println("fs resources ok")

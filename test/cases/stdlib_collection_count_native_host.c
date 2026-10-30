@@ -1,3 +1,4 @@
+#include "test_numeric_arg.h"
 #include "src/runtime/xl6_collection_count.h"
 #include "src/runtime/xl6_array.h"
 #include "src/runtime/xl6_array_erased.h"
@@ -95,7 +96,7 @@ static void fault(bool useNative,size_t point)
 int main(int argc,char** argv)
 {
     assert(xrtMemDebugEnable(true));
-    if(argc==3) { fault(atoi(argv[1])!=0,(size_t)strtoull(argv[2],NULL,10)); return 0; }
+    if(argc==3) { fault(xlTestIntArg(argv[1])!=0,(size_t)strtoull(argv[2],NULL,10)); return 0; }
     assert(argc==1);
     for(unsigned i=0;i<100;++i) {
         xmemdebugsnapshot before; xrtMemDebugSnapshot(&before); vectors(); balanced(&before);

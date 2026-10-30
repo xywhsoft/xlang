@@ -2,6 +2,7 @@
 rem DEMO6 shared toolchain defaults. Call this file after "cd /d %~dp0".
 rem Existing environment variables are kept so CI or local builds can override paths.
 
+if not defined XL6_WINDRES set "XL6_WINDRES=windres"
 if not defined XL6_BOOTSTRAP_CC set "XL6_BOOTSTRAP_CC=gcc"
 if not defined XL6_ROOT set "XL6_ROOT=%CD%"
 if not defined XL6_RELEASE_DIR set "XL6_RELEASE_DIR=%XL6_ROOT%\release"

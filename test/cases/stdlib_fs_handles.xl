@@ -52,4 +52,4 @@ end
 assert iterated == 2
 assert again.close()
 assert mount.unmount()
-print("fs handles ok")
+println("fs handles ok")

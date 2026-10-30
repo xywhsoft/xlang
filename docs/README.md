@@ -6,6 +6,8 @@
 
 ## 当前权威设计
 
+- [0.6.0 发布前检查](prerelease-0.6.0.md)：版本、双端构建、批量回归、退出合同与剩余发布阻塞。
+
 - [运行库与内嵌编译器交付优化](delivery-size-optimization-20261030.md)：最新薄 XRT、毫秒时间、去重压缩、预编译及实测收益和验收边界。
 - [时间合同](time-milliseconds.md)：日历与单调毫秒、Unix 转换和等待单位。
 
@@ -699,3 +701,39 @@ Maintain links when versioned documents are added or removed.
 - [编译阶段失败的定位与产物保护](<编译阶段失败诊断.md>)
 - [脱离式回调与 Engine 生命周期底座](<脱离式回调与Engine生命周期底座.md>)
 <!-- supplemental-reference-index:end -->
+
+## 发布前补充索引
+
+| 文档 | 状态与用途 |
+| --- | --- |
+| [交付验收限制收口](acceptance-closure-20261030.md) | 实现合同／专项验收记录 |
+| [C 字符串链路：可空与可变参数方法绑定](extern-owned-callable-final-fixes-2026-10-29.md) | 实现合同／专项验收记录 |
+| [Extension Library Reassessment Matrix](extlib_reassessment_2026-09-27_1600.matrix.md) | 历史验收快照；当前状态以本轮发布报告为准 |
+| [Extension Library Inventory: 2026-09-27 22:38 Test Snapshot](extlib_reassessment_2026-09-27_2238.matrix.md) | 历史验收快照；当前状态以本轮发布报告为准 |
+| [Extension Library Inventory: 09/27/2026 23:13:52](extlib_reassessment_2026-09-27_2311.matrix.md) | 历史验收快照；当前状态以本轮发布报告为准 |
+| [Extension Library Current Inventory](extlib_reassessment_2026-09-27_current.matrix.md) | 历史验收快照；当前状态以本轮发布报告为准 |
+| [扩展库逐包复核矩阵（2026-09-27 晚间）](extlib_reassessment_2026-09-27_evening.matrix.md) | 历史验收快照；当前状态以本轮发布报告为准 |
+| [扩展库当前逐包矩阵（2026-09-27）](extlib_reassessment_2026-09-27_final.matrix.md) | 历史验收快照；当前状态以本轮发布报告为准 |
+| [扩展库增量复核矩阵：2026-09-27](extlib_reassessment_2026-09-27_refresh.matrix.md) | 历史验收快照；当前状态以本轮发布报告为准 |
+| [Extension Library Inventory: 09/28/2026 00:10:27](extlib_reassessment_2026-09-28.matrix.md) | 历史验收快照；当前状态以本轮发布报告为准 |
+| [扩展库逐包现状：2026-09-28 当前构建](extlib_reassessment_2026-09-28_current.matrix.md) | 历史验收快照；当前状态以本轮发布报告为准 |
+| [扩展库逐包现状：2026-09-28 本轮再评估](extlib_reassessment_2026-09-28_latest.matrix.md) | 历史验收快照；当前状态以本轮发布报告为准 |
+| [Extension Library Catalog Smoke](extlib_smoke.targeted.generated.md) | 历史验收快照；当前状态以本轮发布报告为准 |
+| [扩展原生组合资源与拥有图](foreign-native-graph.md) | 实现合同／专项验收记录 |
+| [按光标查询的编译器补全接口](IDE语义补全查询接口.md) | 实现合同／专项验收记录 |
+| [BZ2 边界收口：2026-09-27](扩展库BZ2边界收口_2026-09-27.md) | 历史验收快照；当前状态以本轮发布报告为准 |
+| [xregex 交付与错误边界收口](扩展库xregex交付收口_2026-09-27.md) | 历史验收快照；当前状态以本轮发布报告为准 |
+| [扩展库文件事务联动收口](扩展库文件事务联动收口_2026-09-27.md) | 历史验收快照；当前状态以本轮发布报告为准 |
+| [扩展库现状复核：当前交付能力与剩余风险](扩展库现状复核_2026-09-27_2238.md) | 历史验收快照；当前状态以本轮发布报告为准 |
+| [扩展库现状复核：2026-09-27 23:11 固定构建](扩展库现状复核_2026-09-27_2311.md) | 历史验收快照；当前状态以本轮发布报告为准 |
+| [扩展库现状复核：2026-09-27 增量](扩展库现状复核_2026-09-27_增量.md) | 历史验收快照；当前状态以本轮发布报告为准 |
+| [扩展库现状复核：当前源码与固定构建](扩展库现状复核_2026-09-27_当前.md) | 历史验收快照；当前状态以本轮发布报告为准 |
+| [扩展库现状复核：2026-09-27 晚间](扩展库现状复核_2026-09-27_晚间.md) | 历史验收快照；当前状态以本轮发布报告为准 |
+| [扩展库现状复核：2026-09-28](扩展库现状复核_2026-09-28.md) | 历史验收快照；当前状态以本轮发布报告为准 |
+| [ide/README.md](../ide/README.md) | 独立入口及示例说明 |
+| [release/examples/foundation/README.md](../release/examples/foundation/README.md) | 独立入口及示例说明 |
+| [release/examples/http/README.md](../release/examples/http/README.md) | 独立入口及示例说明 |
+| [release/examples/websocket/README.md](../release/examples/websocket/README.md) | 独立入口及示例说明 |
+| [test/fixtures/native_source_contract/README.md](../test/fixtures/native_source_contract/README.md) | 独立入口及示例说明 |
+
+- [标准库函数与常量登记参考](stdlib-function-reference.md)：从登记表生成完整签名；类方法合同仍在各模块文档中。

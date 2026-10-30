@@ -7,20 +7,27 @@
 /* Resident driver selected only for stateful asynchronous file owners. */
 struct XL6_AsyncFile {
     XL6_TaskResourceV1 resource;
-    XL6_TaskPool* pool; /* actual shell reference, survives module owner release */
+    XL6_TaskPool* pool; /* borrowed alias; resource.pool owns the shell reference */
     xmutex* gate;
     xatomic32 references; /* caller plus registry, independently owned */
     xasyncfile* native;
     xfuture* closed;
     uint32 flags;
+    const void* claim;
+    bool cleared;
 };
 static void async_file_lock(const XL6_AsyncFile* file) { if(!xrtMutexLock(file->gate))abort(); }
 static void async_file_unlock(const XL6_AsyncFile* file) { if(!xrtMutexUnlock(file->gate))abort(); }
 static void async_file_drop(XL6_AsyncFile* file)
 {
-    if(xrtAtomic32FetchSub(&file->references,1,XMEMORY_ACQ_REL)!=1)return;
+    xrtownershipscope mutation={0};if(!xrtOwnershipMutationBegin(&mutation))abort();
+    bool last=xrtAtomic32FetchSub(&file->references,1,XMEMORY_ACQ_REL)==1;
+    if(!xrtOwnershipScopeEnd(&mutation))abort();
+    if(!last)return;
     if(file->native || file->resource.registered)abort();
-    xrtFutureDestroy(file->closed);if(!xrtMutexDestroy(file->gate))abort();xl6TaskResourceReleaseV1(&file->resource);xrtFree(file);
+    xrtFutureDestroy(file->closed);if(!xrtMutexDestroy(file->gate))abort();
+    if(file->resource.pool)xl6TaskResourceReleaseV1(&file->resource);
+    xrtFree(file);
 }
 /* Called with the control gate, but never a native-pool join or callback wait. */
 static void async_file_close_locked(XL6_AsyncFile* file)
@@ -63,6 +70,7 @@ xfuture* xl6AsyncFileCloseV1(XL6_AsyncFile* file)
 void xl6AsyncFileDestroyV1(XL6_AsyncFile* file)
 {
     if(!file)return;
+    if(file->cleared){async_file_drop(file);return;}
     /* Preserve the active diagnostic across allocation-free release. */
     xerror* error=xrtTakeError();xfuture* closed=xl6AsyncFileCloseV1(file);xrtFutureDestroy(closed);
     async_file_drop(file);xrtClearError();xrtSetErrorTake(error);
@@ -95,3 +103,83 @@ uint32 xl6AsyncFileFlagsV1(const XL6_AsyncFile* file)
 {if(!file){xrtSetErrorKind(XERR_ARGUMENT);return 0;}return file->flags;}
 bool xl6AsyncFileClosedV1(const XL6_AsyncFile* file)
 {if(!file)return true;async_file_lock(file);bool closed=!file->native;async_file_unlock(file);return closed;}
+
+#include "xl6_native_handle.h"
+#include "src/api/xl_foreign_error.h"
+/* The language handle and the independently retained registry payload are
+ * distinct physical nodes. Live native resources report BUSY before Trace;
+ * only quiescent payloads expose their real pool and terminal Future owners. */
+void xl6_xrt_fs_async_destroy(void* raw){xl6AsyncFileDestroyV1(raw);}
+static bool async_file_count(const void* raw,size_t* count)
+{
+    const XL6_AsyncFile* file=raw;
+    if(!file||!count||file->cleared)return false;
+    int32_t references=xrtAtomic32Load(&file->references,XMEMORY_ACQUIRE);
+    if(references<=0)return false;
+    *count=(size_t)references;return true;
+}
+static bool async_file_busy(const void* raw)
+{
+    const XL6_AsyncFile* file=raw;size_t count;
+    if(!file||file->cleared)return false;
+    xrtownershipref pool=xl6TaskPoolOwnership(file->resource.pool);
+    /* Pool Count refuses any close/registry publication in progress. Freeze
+     * prevents a new mutation after that stable observation; no mutex is taken. */
+    return !pool.Data||!pool.Ops->Count(pool.Data,&count)||
+        file->resource.registered||file->native;
+}
+static bool async_file_edges(const void* raw,xrtownershipvisitor visit,void* context)
+{
+    const XL6_AsyncFile* file=raw;size_t count;
+    if(!visit||!async_file_count(raw,&count)||async_file_busy(raw))return false;
+    return visit(xl6TaskPoolOwnership(file->resource.pool),context)&&
+        (!file->closed||visit(xrtFutureOwnership(file->closed),context));
+}
+static const xrtownershipops async_file_ops={async_file_count,async_file_edges};
+const xrtownershipquiescencev1* xl6AsyncFileQuiescenceV1Get(void)
+{static const xrtownershipquiescencev1 policy={sizeof(policy),&async_file_ops,async_file_busy};return &policy;}
+static bool async_file_hold(const void* raw)
+{
+    XL6_AsyncFile* file=(XL6_AsyncFile*)raw;
+    xrtownershipscope mutation={0};if(!xrtOwnershipMutationBegin(&mutation))abort();
+    int32_t count=xrtAtomic32Load(&file->references,XMEMORY_ACQUIRE);
+    bool held=count>0&&count<INT32_MAX;
+    if(held)xrtAtomic32FetchAdd(&file->references,1,XMEMORY_ACQ_REL);
+    if(!xrtOwnershipScopeEnd(&mutation))abort();
+    return held;
+}
+static void async_file_release(const void* raw){async_file_drop((XL6_AsyncFile*)raw);}
+static bool async_file_claim(const void* raw,const void* token)
+{
+    XL6_AsyncFile* file=(XL6_AsyncFile*)raw;
+    if(!token||file->cleared||(file->claim&&file->claim!=token))return false;
+    file->claim=token;return true;
+}
+static void async_file_restore(const void* raw,const void* token)
+{XL6_AsyncFile* file=(XL6_AsyncFile*)raw;if(!token||file->claim!=token||file->cleared)abort();file->claim=NULL;}
+static void async_file_clear(const void* raw,const void* token)
+{XL6_AsyncFile* file=(XL6_AsyncFile*)raw;if(!token||file->claim!=token||file->cleared)abort();file->cleared=true;}
+static bool async_file_finish(const void* raw,const void* token)
+{
+    XL6_AsyncFile* file=(XL6_AsyncFile*)raw;xrtownershipscope mutation={0};
+    if(!xrtOwnershipMutationBegin(&mutation))abort();
+    if(!token||file->claim!=token||!file->cleared||file->native||file->resource.registered)abort();
+    xfuture* closed=file->closed;file->closed=NULL;
+    XL6_TaskResourceV1 resource=file->resource;file->resource=(XL6_TaskResourceV1){0};file->pool=NULL;
+    if(!xrtOwnershipScopeEnd(&mutation))abort();
+    xrtFutureDestroy(closed);if(resource.pool)xl6TaskResourceReleaseV1(&resource);return true;
+}
+const xrtownershipadapterv1* xl6AsyncFileOwnershipAdapterV1(xrtownershipref ref)
+{
+    static const xrtownershipadapterv1 adapter={sizeof(adapter),async_file_hold,async_file_release,
+        async_file_claim,async_file_restore,NULL,async_file_clear,async_file_finish};
+    size_t count;return ref.Ops==&async_file_ops&&async_file_count(ref.Data,&count)?&adapter:NULL;
+}
+static bool async_file_trace(const xvalue* value,xrtownershipvisitor visit,void* context)
+{
+    void* raw=NULL;void* user=NULL;const xvaluehandleops* ops=NULL;
+    if(!visit||!xrtValueGetHandle(value,&raw,&ops,&user)||!raw||user||
+        ops!=xl6AsyncFileHandlePolicyV1Get()->Ops)return false;
+    return visit((xrtownershipref){raw,&async_file_ops},context);
+}
+XL6_DEFINE_NATIVE_HANDLE_POLICY(xl6AsyncFileHandlePolicyV1Get,xl6_xrt_fs_async_destroy,async_file_trace)

@@ -2019,7 +2019,15 @@ static int xlAddEmbeddedXlangRuntimeSources(
         "src/sem/xl6_sem_docs.c",
         "src/sem/xl6_sem_field_attrs.c",
         "src/sem/xl6_completion.c",
-        "src/sem/xl6_sem.c"
+        "src/sem/xl6_sem.c",
+        "src/runtime/xl6_fs_path_parts.c",
+        "src/runtime/xl6_ownership_domain_resource_fs_path_parts.c",
+        "src/runtime/xl6_fs_path_iter.c",
+        "src/runtime/xl6_ownership_domain_resource_fs_path_iter.c",
+        "src/runtime/xl6_ownership_domain_resource_async_file.c",
+        "src/runtime/xl6_siphash_state.c",
+        "src/runtime/xl6_ownership_domain_resource_siphasher64.c",
+        "src/runtime/xl6_os_process_args.c",
     };
     static const char* compilerSources[] = {
         "src/resource/xl6_win_resource.c",
@@ -2547,6 +2555,9 @@ static int xlCompileUnitToSharedLibrary(XL_Context* ctx, XL6_CompileUnit* unit, 
     return xlCompileUnitToSharedLibraryWithC(ctx, unit, outputDll, NULL);
 }
 #endif
+
+const char* xlGetVersionString(void) { return XL_VERSION_TEXT; }
+unsigned int xlGetVersionCode(void) { return XL_VERSION_CODE; }
 
 XL_ContextOptions xlDefaultContextOptions(void)
 {
@@ -4866,7 +4877,7 @@ XL_API XLC_Context* xlcCreateContext(const XLC_ContextOptions* options)
     return ctx;
 }
 
-XL_API int xlcBeginInputReport(XLC_Context* ctx)
+XL6_CLI_API int xlcBeginInputReport(XLC_Context* ctx)
 {
     int ok=0;
     if(!ctx||!ctx->runtime) return 0;
@@ -4884,14 +4895,14 @@ XL_API int xlcBeginInputReport(XLC_Context* ctx)
     if(!ok) xlSetError(ctx->runtime,"input report requires a fresh static-VFS compiler context without overlays/loadlib");
     xlApiUnlock(); return ok;
 }
-XL_API char* xlcReadProjectInput(XLC_Context* ctx,const char* path,size_t* size)
+XL6_CLI_API char* xlcReadProjectInput(XLC_Context* ctx,const char* path,size_t* size)
 {
     XL6_BuildInputs* previous; char* text;
     if(!ctx||!ctx->runtime) return NULL;
     xlApiLock(); previous=xl6BuildInputsActivate(ctx->buildInputs);
     text=xl6BuildInputReadText(path,size); xl6BuildInputsActivate(previous); xlApiUnlock(); return text;
 }
-XL_API int xlcWriteInputReport(XLC_Context* ctx,const char* artifact,const char* receipt)
+XL6_CLI_API int xlcWriteInputReport(XLC_Context* ctx,const char* artifact,const char* receipt)
 {
     int ok;
     if(!ctx||!ctx->runtime||!ctx->buildInputs) return 0;

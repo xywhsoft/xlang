@@ -50,4 +50,4 @@ end
 assert root.remove("value.bin")
 assert root.close()
 assert dir.remove(nativeDir)
-print("fs platform ok")
+println("fs platform ok")

@@ -2,9 +2,11 @@
 #include "include/xl.h"
 
 #include <stdio.h>
+#include <string.h>
 
 int main(void)
 {
+    if (xlGetVersionCode() != XL_VERSION_CODE || strcmp(xlGetVersionString(), XL_VERSION_TEXT)) return 4;
     XL_ContextOptions options = xlDefaultContextOptions();
     XL_Context* ctx = xlCreateContext(&options);
 
@@ -23,6 +25,8 @@ int main(void)
         return 3;
     }
     xlDestroyContext(ctx);
+    XL_RuntimeDrainResult drained = xlRuntimeDrainRetiringChecked(-1);
+    if (!drained.ready || !drained.ok) return 5;
     return 0;
 }
 #else

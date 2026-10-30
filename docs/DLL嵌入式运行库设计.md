@@ -279,3 +279,13 @@ release\examples\xl_run_demo_win32.c
 - 进程内运行适合脚本执行和宿主 C 函数注册。
 - 编译为独立 exe 时，不能直接固化宿主进程函数指针；需要通过普通 C/库链接方式提供外部符号。
 - DLL API 第一版不暴露调试 dump 能力，相关能力继续由 `xl.exe` CLI 提供。
+
+## 0.6.0 SDK 补充
+
+产品版本由 `xlGetVersionString()` 和 `xlGetVersionCode()` 查询；它们在运行时初始化前即可调用，分别返回静态文本 `0.6.0` 和 `0x00000600`。`XL_API_VERSION` 仍为结构 ABI 版本 1。
+
+`xlRuntimeDrainRetiringChecked(timeoutMilliseconds)` 在宿主停止创建和使用 context 后推进退役。`ready` 与 `ok` 必须分别检查；它不消费宿主仍持有的 context/module，也不强行清除外部引用。示例见 `release/examples/xl_dll_embed_string.c`。
+
+IDE/compiler SDK 提供 `xlcCBridge`／`xlcCBridgeWithEnvironment` 生成原生声明桥接，`xlcCheckWithIndex`／`xlcCheckWithSources` 返回语义索引或源码集合，`xlcComplete` 查询补全，`xlcEmitAstWithRanges` 输出源码范围；源码覆盖由 `xlcSetSourceOverlay`／`xlcRemoveSourceOverlay`／`xlcClearSourceOverlays` 管理。这些接口的输入、输出所有权和结构大小合同以 `release/include/xlc.h` 为准。
+
+构建输入报告的三个 CLI 私有导出仅由 `src/compile/xl6_build_inputs.h` 声明，不属于公开 SDK。

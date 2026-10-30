@@ -53,4 +53,4 @@ if invalid != null then
     end)
     assert visited.files == uint64(1)
 end
-print("fs names ok")
+println("fs names ok")

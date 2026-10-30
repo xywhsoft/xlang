@@ -25,4 +25,4 @@ copy[0] = uint8(90)
 assert copy == b"Z\0你" and item.data == b"A\0你"
 assert await textLater(item) == string(item) + ":你"
 assert await textLater(ContinuationValue()) == string(item) + ":你"
-print("class value continuation ok")
+println("class value continuation ok")

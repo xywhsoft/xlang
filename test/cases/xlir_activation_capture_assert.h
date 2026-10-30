@@ -28,7 +28,7 @@ static void assert_activation_layout(const char* text,const char* prefix,XL6_Sym
         assert(slots[i].destroyAbi>0&&slots[i].destroyAbi<sizeof(kinds)/sizeof(*kinds));
         int written=snprintf(expected,sizeof(expected),"{{%s, offsetof(%s_frame_%u, f%lu), sizeof(((%s_frame_%u*)0)->f%lu)}, ",
             kinds[slots[i].destroyAbi],prefix,symbol,(unsigned long)i,prefix,symbol,(unsigned long)i);assert(written>0&&(size_t)written<sizeof(expected));
-        if(nativeLayout){strcat(expected,"NULL}, ");written=(int)strlen(expected);}
+        if(nativeLayout){int added=snprintf(expected+written,sizeof(expected)-(size_t)written,"NULL}, ");assert(added>0&&(size_t)added<sizeof(expected)-(size_t)written);written+=added;}
         if(slots[i].initBit==SIZE_MAX)snprintf(expected+written,sizeof(expected)-(size_t)written,"SIZE_MAX}");
         else snprintf(expected+written,sizeof(expected)-(size_t)written,"offsetof(%s_frame_%u, i%lu)}",prefix,symbol,(unsigned long)slots[i].initBit);
         assert(strstr(text,expected));

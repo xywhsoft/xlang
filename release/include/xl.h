@@ -1,6 +1,8 @@
 #ifndef XL_PUBLIC_API_H
 #define XL_PUBLIC_API_H
 
+#include "xl_version.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -37,6 +39,10 @@ typedef struct XL_ContextOptions {
     const char* tccLibPath;
     int saveTemps;
 } XL_ContextOptions;
+
+/* Safe before runtime initialization. The text is immutable static storage. */
+XL_API const char* xlGetVersionString(void);
+XL_API unsigned int xlGetVersionCode(void);
 
 XL_API XL_ContextOptions xlDefaultContextOptions(void);
 XL_API int xlRuntimeInit(void);

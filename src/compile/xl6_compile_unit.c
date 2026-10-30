@@ -43,7 +43,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/api/xl_task_group_bridge.c", NULL, 0, {"XRT_MODULE_TASK_GROUP"}},
     {"src/api/xl_foreign_error.c", NULL, 0, {"XRT_MODULE_ONCE", "XRT_MODULE_ERROR"}},
     {"src/runtime/xl6_network_service.c", NULL, 0, {"XRT_MODULE_NET_ENGINE", "XRT_MODULE_NET_RESOLVER"}},
-    {"src/runtime/xl6_task_file.c", D(R(TASK)), {"XRT_MODULE_FILE_ASYNC"}},
+    {"src/runtime/xl6_task_file.c", D(R(TASK),R(NATIVE_HANDLE)), {"XRT_MODULE_FILE_ASYNC"}},
     {"src/runtime/xl6_log.c", NULL, 0, {"XRT_MODULE_LOGGER_CORE", "XRT_MODULE_STRING", "XRT_MODULE_ONCE"}},
     {"src/runtime/xl6_log_console.c", D(R(LOG_CORE)), {"XRT_MODULE_LOGGER_CONSOLE"}},
     {"src/runtime/xl6_log_record.c", D(R(LOG_CORE)), {"XRT_MODULE_VALUE", "XRT_MODULE_THREAD"}},
@@ -984,6 +984,14 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_ownership_domain_tcc_context.c",D(R(OWNERSHIP_CATALOG),R(TCC_CONTEXT_POLICY)),{NULL}},
     {"src/runtime/xl6_ownership_domain_tcc_handler.c",D(R(OWNERSHIP_CATALOG),R(TCC_CONTEXT_POLICY)),{NULL}},
     {"src/runtime/xl6_foreign_net.c",D(R(NET_ENGINE_LANGUAGE),R(TLS_CLIENT_CONTEXT)),{"XRT_MODULE_TLS_CLIENT"}},
+    {"src/runtime/xl6_fs_path_parts.c",D(R(NATIVE_HANDLE)),{"XRT_MODULE_PATH"}},
+    {"src/runtime/xl6_ownership_domain_resource_fs_path_parts.c",D(R(OWNERSHIP_CATALOG),R(FS_PATH_PARTS)),{NULL}},
+    {"src/runtime/xl6_fs_path_iter.c",D(R(NATIVE_HANDLE)),{"XRT_MODULE_PATH"}},
+    {"src/runtime/xl6_ownership_domain_resource_fs_path_iter.c",D(R(OWNERSHIP_CATALOG),R(FS_PATH_ITER)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_resource_async_file.c",D(R(OWNERSHIP_CATALOG),R(FILE_ASYNC),R(OWNERSHIP_DOMAIN_NATIVE_FUTURE)),{NULL}},
+    {"src/runtime/xl6_siphash_state.c",D(R(NATIVE_HANDLE)),{"XRT_MODULE_HASH_KEYED"}},
+    {"src/runtime/xl6_ownership_domain_resource_siphasher64.c",D(R(OWNERSHIP_CATALOG),R(SIPHASH_STATE)),{NULL}},
+    {"src/runtime/xl6_os_process_args.c",D(),{"XRT_MODULE_VALUE_CONTAINER","XRT_MODULE_UNICODE_TEXT"}},
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

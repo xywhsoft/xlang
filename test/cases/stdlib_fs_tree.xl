@@ -55,4 +55,4 @@ try
 finally
     if dir.exists(base) then dir.delete(base) end
 end
-print("fs tree ok")
+println("fs tree ok")

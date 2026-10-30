@@ -1202,3 +1202,15 @@ src/runtime/xl6_memory_stats_domain.c
 src/runtime/xl6_memory_diagnostics_domain.c
 src/runtime/xl6_object_pool_control.c
 src/runtime/xl6_object_pool_control_domain.c
+
+"%XL6_BUILD_TMP%\xlang_dll.res"
+
+src/runtime/xl6_fs_path_parts.c
+src/runtime/xl6_ownership_domain_resource_fs_path_parts.c
+src/runtime/xl6_fs_path_iter.c
+src/runtime/xl6_ownership_domain_resource_fs_path_iter.c
+
+src/runtime/xl6_ownership_domain_resource_async_file.c
+    src/runtime/xl6_siphash_state.c
+    src/runtime/xl6_ownership_domain_resource_siphasher64.c
+    src/runtime/xl6_os_process_args.c

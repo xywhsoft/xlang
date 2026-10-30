@@ -16,6 +16,7 @@ dir|include/__xl_runtime|%XL6_ROOT%\src\runtime|*.h
 
 file|include/xl_foreign_graph.h|%XL6_ROOT%\release\include\xl_foreign_graph.h
 file|include/xl_foreign_net.h|%XL6_ROOT%\release\include\xl_foreign_net.h
+file|include/xl_version.h|%XL6_ROOT%\release\include\xl_version.h
 file|include/xl.h|%XL6_ROOT%\release\include\xl.h
 file|include/xl_package.h|%XL6_ROOT%\release\include\xl_package.h
 file|include/xl_sync_retirement.h|%XL6_ROOT%\release\include\xl_sync_retirement.h
@@ -30,6 +31,7 @@ file|include/__xl_runtime/xl_clock.h|%XL6_ROOT%\release\include\xl_clock.h
 # 该私有根只服务于 __xl_compiler/src，不影响用户 C 源的公开头文件布局。
 file|__xl_compiler/include/xl_foreign_graph.h|%XL6_ROOT%\release\include\xl_foreign_graph.h
 file|__xl_compiler/include/xl_foreign_net.h|%XL6_ROOT%\release\include\xl_foreign_net.h
+file|__xl_compiler/include/xl_version.h|%XL6_ROOT%\release\include\xl_version.h
 file|__xl_compiler/include/xl.h|%XL6_ROOT%\release\include\xl.h
 file|__xl_compiler/include/xl_package.h|%XL6_ROOT%\release\include\xl_package.h
 file|__xl_compiler/include/xl_sync_retirement.h|%XL6_ROOT%\release\include\xl_sync_retirement.h

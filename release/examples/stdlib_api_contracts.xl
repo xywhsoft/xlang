@@ -1,0 +1,716 @@
+// Type-checked API invocation examples. No function below is called by main.
+// Network and advanced cryptography here are compile-only; no connections or handshakes.
+import concurrent
+import memory
+
+func sample_http_statusText(int status)
+    http.statusText(status)
+end
+
+func sample_http_tokenValid(string text, int size = -1)
+    http.tokenValid(text, size)
+end
+
+func sample_http_tokenEqual(string left, string right)
+    http.tokenEqual(left, right)
+end
+
+func sample_http_methodCode(string text, int size = -1)
+    http.methodCode(text, size)
+end
+
+func sample_http_methodEqual(string left, string right)
+    http.methodEqual(left, right)
+end
+
+func sample_http_methodSafe(string text, int size = -1)
+    http.methodSafe(text, size)
+end
+
+func sample_http_methodIdempotent(string text, int size = -1)
+    http.methodIdempotent(text, size)
+end
+
+func sample_http_responseContentAllowed(string method, int status)
+    http.responseContentAllowed(method, status)
+end
+
+func sample_http_trimOws(string text, int size = -1)
+    http.trimOws(text, size)
+end
+
+func sample_http_quality(string text, int size = -1)
+    http.quality(text, size)
+end
+
+func sample_http_contentLength(string text, int size = -1)
+    http.contentLength(text, size)
+end
+
+func sample_http_fieldValueValid(bytes data, int size = -1)
+    http.fieldValueValid(data, size)
+end
+
+func sample_http_fieldNameEqual(string left, string right)
+    http.fieldNameEqual(left, right)
+end
+
+func sample_http_coding(string token)
+    http.coding(token)
+end
+
+func sample_http_codingName(HttpCoding coding)
+    http.codingName(coding)
+end
+
+func sample_http1_targetValid(string target, int size = -1)
+    http1.targetValid(target, size)
+end
+
+func sample_http1_writeRequestHead(string method, string target, HttpHeaders headers, Buffer output, HttpVersion version = HttpVersion.v11)
+    http1.writeRequestHead(method, target, headers, output, version)
+end
+
+func sample_http1_writeResponseHead(int status, string reason, HttpHeaders headers, Buffer output, HttpVersion version = HttpVersion.v11)
+    http1.writeResponseHead(status, reason, headers, output, version)
+end
+
+func sample_http1_chunkLine(uint64 size, string extensions = "")
+    http1.chunkLine(size, extensions)
+end
+
+func sample_http1_writeChunkLine(uint64 size, string extensions, Buffer output)
+    http1.writeChunkLine(size, extensions, output)
+end
+
+func sample_http1_writeChunk(bytes input, Buffer output, int size = -1)
+    http1.writeChunk(input, output, size)
+end
+
+func sample_http1_writeChunkEnd(HttpHeaders trailers, Buffer output)
+    http1.writeChunkEnd(trailers, output)
+end
+
+func sample_http1_deadline(int timeoutMillis = -1)
+    http1.deadline(timeoutMillis)
+end
+
+func sample_net_backendCompiled(NetBackend backend)
+    net.backendCompiled(backend)
+end
+
+func sample_net_backendCapabilities(NetBackend backend)
+    net.backendCapabilities(backend)
+end
+
+func sample_net_backendName(NetBackend backend)
+    net.backendName(backend)
+end
+
+func sample_net_defaultBackend()
+    net.defaultBackend()
+end
+
+func sample_time_millisecond(time value)
+    time.millisecond(value)
+end
+
+func sample_memory_resetStats()
+    memory.resetStats()
+end
+
+func sample_memory_debugSnapshot()
+    memory.debugSnapshot()
+end
+
+func sample_memory_reportText(int limit = 16777216)
+    memory.reportText(limit)
+end
+
+func sample_crc32_checksumBuffer(Buffer data, int size = -1)
+    crc32.checksumBuffer(data, size)
+end
+
+func sample_crc32_update(uint32 previous, string data, int size = -1)
+    crc32.update(previous, data, size)
+end
+
+func sample_crc32_updateBuffer(uint32 previous, Buffer data, int size = -1)
+    crc32.updateBuffer(previous, data, size)
+end
+
+func sample_compress_encode(string data, DeflateOptions? options = null, int size = -1)
+    compress.encode(data, options, size)
+end
+
+func sample_compress_encodeBuffer(Buffer data, DeflateOptions? options = null, int size = -1)
+    compress.encodeBuffer(data, options, size)
+end
+
+func sample_compress_decode(bytes data, InflateOptions? options = null, int size = -1)
+    compress.decode(data, options, size)
+end
+
+func sample_compress_decodeBuffer(Buffer data, InflateOptions? options = null, int size = -1)
+    compress.decodeBuffer(data, options, size)
+end
+
+func sample_compress_deflater(DeflateOptions? options = null)
+    compress.deflater(options)
+end
+
+func sample_compress_inflater(InflateOptions? options = null)
+    compress.inflater(options)
+end
+
+func sample_cryptoAdvanced_aes(bytes key)
+    cryptoAdvanced.aes(key)
+end
+
+func sample_cryptoAdvanced_poly1305Stream(bytes key)
+    cryptoAdvanced.poly1305Stream(key)
+end
+
+func sample_cryptoAdvanced_poly1305(bytes key, string data, int size = -1)
+    cryptoAdvanced.poly1305(key, data, size)
+end
+
+func sample_cryptoAdvanced_poly1305Buffer(bytes key, Buffer data, int size = -1)
+    cryptoAdvanced.poly1305Buffer(key, data, size)
+end
+
+func sample_cryptoLegacy_md5(string data, int size = -1)
+    cryptoLegacy.md5(data, size)
+end
+
+func sample_cryptoLegacy_md5Hex(string data, int size = -1)
+    cryptoLegacy.md5Hex(data, size)
+end
+
+func sample_cryptoLegacy_md5Buffer(Buffer data, int size = -1)
+    cryptoLegacy.md5Buffer(data, size)
+end
+
+func sample_cryptoLegacy_md5BufferHex(Buffer data, int size = -1)
+    cryptoLegacy.md5BufferHex(data, size)
+end
+
+func sample_cryptoLegacy_md5Stream()
+    cryptoLegacy.md5Stream()
+end
+
+func sample_cryptoLegacy_sha1Hex(string data, int size = -1)
+    cryptoLegacy.sha1Hex(data, size)
+end
+
+func sample_cryptoLegacy_sha1BufferHex(Buffer data, int size = -1)
+    cryptoLegacy.sha1BufferHex(data, size)
+end
+
+func sample_crypto_sha224(string data, int size = -1)
+    crypto.sha224(data, size)
+end
+
+func sample_crypto_sha224Hex(string data, int size = -1)
+    crypto.sha224Hex(data, size)
+end
+
+func sample_crypto_sha224Buffer(Buffer data, int size = -1)
+    crypto.sha224Buffer(data, size)
+end
+
+func sample_crypto_sha224BufferHex(Buffer data, int size = -1)
+    crypto.sha224BufferHex(data, size)
+end
+
+func sample_crypto_sha224Stream()
+    crypto.sha224Stream()
+end
+
+func sample_crypto_sha256Hex(string data, int size = -1)
+    crypto.sha256Hex(data, size)
+end
+
+func sample_crypto_sha256Buffer(Buffer data, int size = -1)
+    crypto.sha256Buffer(data, size)
+end
+
+func sample_crypto_sha384Hex(string data, int size = -1)
+    crypto.sha384Hex(data, size)
+end
+
+func sample_crypto_sha384BufferHex(Buffer data, int size = -1)
+    crypto.sha384BufferHex(data, size)
+end
+
+func sample_crypto_sha512Hex(string data, int size = -1)
+    crypto.sha512Hex(data, size)
+end
+
+func sample_crypto_sha512BufferHex(Buffer data, int size = -1)
+    crypto.sha512BufferHex(data, size)
+end
+
+func sample_crypto_sha512_256(string data, int size = -1)
+    crypto.sha512_256(data, size)
+end
+
+func sample_crypto_sha512_256Hex(string data, int size = -1)
+    crypto.sha512_256Hex(data, size)
+end
+
+func sample_crypto_sha512_256Buffer(Buffer data, int size = -1)
+    crypto.sha512_256Buffer(data, size)
+end
+
+func sample_crypto_sha512_256BufferHex(Buffer data, int size = -1)
+    crypto.sha512_256BufferHex(data, size)
+end
+
+func sample_crypto_sha512_256Stream()
+    crypto.sha512_256Stream()
+end
+
+func sample_crypto_hmacSha256(bytes key, string data, int size = -1)
+    crypto.hmacSha256(key, data, size)
+end
+
+func sample_crypto_hmacSha256BufferHex(bytes key, Buffer data, int size = -1)
+    crypto.hmacSha256BufferHex(key, data, size)
+end
+
+func sample_crypto_hmacSha256Stream(bytes key)
+    crypto.hmacSha256Stream(key)
+end
+
+func sample_crypto_hmacSha384Hex(bytes key, string data, int size = -1)
+    crypto.hmacSha384Hex(key, data, size)
+end
+
+func sample_crypto_hmacSha384BufferHex(bytes key, Buffer data, int size = -1)
+    crypto.hmacSha384BufferHex(key, data, size)
+end
+
+func sample_crypto_hmacSha384Stream(bytes key)
+    crypto.hmacSha384Stream(key)
+end
+
+func sample_crypto_hmacSha512Hex(bytes key, string data, int size = -1)
+    crypto.hmacSha512Hex(key, data, size)
+end
+
+func sample_crypto_hmacSha512BufferHex(bytes key, Buffer data, int size = -1)
+    crypto.hmacSha512BufferHex(key, data, size)
+end
+
+func sample_crypto_hmacSha512Stream(bytes key)
+    crypto.hmacSha512Stream(key)
+end
+
+func sample_crypto_pbkdf2Sha256(bytes password, bytes salt, int iterations, int length)
+    crypto.pbkdf2Sha256(password, salt, iterations, length)
+end
+
+func sample_crypto_hkdfSha256Extract(bytes ikm, bytes salt)
+    crypto.hkdfSha256Extract(ikm, salt)
+end
+
+func sample_crypto_hkdfSha256Expand(bytes prk, bytes info, int length)
+    crypto.hkdfSha256Expand(prk, info, length)
+end
+
+func sample_crypto_pbkdf2Sha384(bytes password, bytes salt, int iterations, int length)
+    crypto.pbkdf2Sha384(password, salt, iterations, length)
+end
+
+func sample_crypto_hkdfSha384Extract(bytes ikm, bytes salt)
+    crypto.hkdfSha384Extract(ikm, salt)
+end
+
+func sample_crypto_hkdfSha384Expand(bytes prk, bytes info, int length)
+    crypto.hkdfSha384Expand(prk, info, length)
+end
+
+func sample_crypto_pbkdf2Sha512(bytes password, bytes salt, int iterations, int length)
+    crypto.pbkdf2Sha512(password, salt, iterations, length)
+end
+
+func sample_crypto_hkdfSha512(bytes ikm, bytes salt, bytes info, int length)
+    crypto.hkdfSha512(ikm, salt, info, length)
+end
+
+func sample_crypto_hkdfSha512Extract(bytes ikm, bytes salt)
+    crypto.hkdfSha512Extract(ikm, salt)
+end
+
+func sample_crypto_hkdfSha512Expand(bytes prk, bytes info, int length)
+    crypto.hkdfSha512Expand(prk, info, length)
+end
+
+func sample_crypto_timingSafeEqual(bytes left, bytes right)
+    crypto.timingSafeEqual(left, right)
+end
+
+func sample_x509_parseSubjectKeyId(bytes encoded, int maxBytes = 16777216)
+    x509.parseSubjectKeyId(encoded, maxBytes)
+end
+
+func sample_x509_matchesDns(string pattern, string host, int patternSize = -1, int hostSize = -1)
+    x509.matchesDns(pattern, host, patternSize, hostSize)
+end
+
+func sample_x509_parseCrlNumber(bytes encoded, int maxBytes = 16777216)
+    x509.parseCrlNumber(encoded, maxBytes)
+end
+
+func sample_x509_parseCrlReason(bytes encoded, int maxBytes = 16777216)
+    x509.parseCrlReason(encoded, maxBytes)
+end
+
+func sample_x509_parseInvalidityDate(bytes encoded, int maxBytes = 16777216)
+    x509.parseInvalidityDate(encoded, maxBytes)
+end
+
+func sample_asn1_parse(bytes data, int size = -1, int byteLimit = 16777216)
+    asn1.parse(data, size, byteLimit)
+end
+
+func sample_pem_parse(string text, string label = "", int size = -1, int byteLimit = 16777216)
+    pem.parse(text, label, size, byteLimit)
+end
+
+func sample_pem_encode(string label, bytes data, int size = -1)
+    pem.encode(label, data, size)
+end
+
+func sample_pem_decode(string text, string label = "", int size = -1, int byteLimit = 16777216)
+    pem.decode(text, label, size, byteLimit)
+end
+
+func sample_crypto_p256PublicKey(bytes privateKey)
+    crypto.p256PublicKey(privateKey)
+end
+
+func sample_crypto_ecdsaP256VerifyHash(bytes publicKey, bytes digest, bytes signature)
+    crypto.ecdsaP256VerifyHash(publicKey, digest, signature)
+end
+
+func sample_cryptoAdvanced_p256Valid(bytes point)
+    cryptoAdvanced.p256Valid(point)
+end
+
+func sample_cryptoAdvanced_p256Multiply(bytes scalar, bytes point)
+    cryptoAdvanced.p256Multiply(scalar, point)
+end
+
+func sample_cryptoAdvanced_p256Add(bytes left, bytes right)
+    cryptoAdvanced.p256Add(left, right)
+end
+
+func sample_crypto_p384PublicKey(bytes privateKey)
+    crypto.p384PublicKey(privateKey)
+end
+
+func sample_crypto_ecdsaP384VerifyHash(bytes publicKey, bytes digest, bytes signature)
+    crypto.ecdsaP384VerifyHash(publicKey, digest, signature)
+end
+
+func sample_cryptoAdvanced_p384Valid(bytes point)
+    cryptoAdvanced.p384Valid(point)
+end
+
+func sample_cryptoAdvanced_p384Multiply(bytes scalar, bytes point)
+    cryptoAdvanced.p384Multiply(scalar, point)
+end
+
+func sample_cryptoAdvanced_p384Add(bytes left, bytes right)
+    cryptoAdvanced.p384Add(left, right)
+end
+
+func sample_crypto_ecdsaP256ToDer(bytes signature)
+    crypto.ecdsaP256ToDer(signature)
+end
+
+func sample_crypto_ecdsaP256FromDer(bytes signature)
+    crypto.ecdsaP256FromDer(signature)
+end
+
+func sample_crypto_ecdsaP384ToDer(bytes signature)
+    crypto.ecdsaP384ToDer(signature)
+end
+
+func sample_crypto_ecdsaP384FromDer(bytes signature)
+    crypto.ecdsaP384FromDer(signature)
+end
+
+func sample_cryptoAdvanced_rsaPublic(RsaPublicKey key, bytes input)
+    cryptoAdvanced.rsaPublic(key, input)
+end
+
+func sample_cryptoAdvanced_rsaPrivate(RsaPrivateKey key, bytes input)
+    cryptoAdvanced.rsaPrivate(key, input)
+end
+
+func sample_crypto_ed25519Sign(bytes seed, string message, int size = -1)
+    crypto.ed25519Sign(seed, message, size)
+end
+
+func sample_crypto_ed25519VerifyContext(bytes publicKey, string message, bytes signature, bytes context, int size = -1)
+    crypto.ed25519VerifyContext(publicKey, message, signature, context, size)
+end
+
+func sample_crypto_ed25519SignBuffer(bytes seed, Buffer message, int size = -1)
+    crypto.ed25519SignBuffer(seed, message, size)
+end
+
+func sample_crypto_ed25519VerifyPrehash(bytes publicKey, bytes digest, bytes signature, bytes context = b"")
+    crypto.ed25519VerifyPrehash(publicKey, digest, signature, context)
+end
+
+func sample_crypto_ed25519VerifyBuffer(bytes publicKey, Buffer message, bytes signature, int size = -1)
+    crypto.ed25519VerifyBuffer(publicKey, message, signature, size)
+end
+
+func sample_crypto_ed25519VerifyContextBuffer(bytes publicKey, Buffer message, bytes signature, bytes context, int size = -1)
+    crypto.ed25519VerifyContextBuffer(publicKey, message, signature, context, size)
+end
+
+func sample_cryptoAdvanced_x25519(bytes scalar, bytes point)
+    cryptoAdvanced.x25519(scalar, point)
+end
+
+func sample_cryptoAdvanced_x448(bytes scalar, bytes point)
+    cryptoAdvanced.x448(scalar, point)
+end
+
+func sample_net_hostName()
+    net.hostName()
+end
+
+func sample_net_localAddress(int family = 0)
+    net.localAddress(family)
+end
+
+func sample_net_localHardware()
+    net.localHardware()
+end
+
+func sample_tcp_dialAsync(NetEngine engine, NetResolver resolver, string host, int port)
+    tcp.dialAsync(engine, resolver, host, port)
+end
+
+func sample_tcp_dialAsyncCancel(NetEngine engine, NetResolver resolver, string host, int port, CancellationToken cancel)
+    tcp.dialAsyncCancel(engine, resolver, host, port, cancel)
+end
+
+func sample_tcp_dialAsyncUntil(NetEngine engine, NetResolver resolver, string host, int port, uint64 deadline)
+    tcp.dialAsyncUntil(engine, resolver, host, port, deadline)
+end
+
+func sample_tcp_dialAsyncUntilCancel(NetEngine engine, NetResolver resolver, string host, int port, uint64 deadline, CancellationToken cancel)
+    tcp.dialAsyncUntilCancel(engine, resolver, host, port, deadline, cancel)
+end
+
+func sample_tcp_dial(NetEngine engine, NetResolver resolver, string host, int port)
+    tcp.dial(engine, resolver, host, port)
+end
+
+func sample_tcp_dialCancel(NetEngine engine, NetResolver resolver, string host, int port, CancellationToken cancel)
+    tcp.dialCancel(engine, resolver, host, port, cancel)
+end
+
+func sample_tcp_dialUntil(NetEngine engine, NetResolver resolver, string host, int port, uint64 deadline)
+    tcp.dialUntil(engine, resolver, host, port, deadline)
+end
+
+func sample_tcp_dialUntilCancel(NetEngine engine, NetResolver resolver, string host, int port, uint64 deadline, CancellationToken cancel)
+    tcp.dialUntilCancel(engine, resolver, host, port, deadline, cancel)
+end
+
+func sample_udp_connect(NetEngine engine, NetAddress peer)
+    udp.connect(engine, peer)
+end
+
+func sample_udp_open(NetEngine engine, NetAddress local, NetAddress peer, UdpConfig config, uint64 affinity = 0)
+    udp.open(engine, local, peer, config, affinity)
+end
+
+func sample_udp_config()
+    udp.config()
+end
+
+func sample_tls_connect(NetEngine engine, NetAddress remote, TlsClientContext context, string serverName, int size = -1)
+    tls.connect(engine, remote, context, serverName, size)
+end
+
+func sample_tls_connectAsync(NetEngine engine, NetResolver resolver, string host, int port, TlsClientContext context, int size = -1)
+    tls.connectAsync(engine, resolver, host, port, context, size)
+end
+
+func sample_tls_listen(NetEngine engine, TcpListenOptions listen, TlsServerContext context)
+    tls.listen(engine, listen, context)
+end
+
+func sample_template_compileFileIn(Vfs filesystem, string path, TemplateCompileOptions? options = null, int encoding = 0, int policy = 0, int maxInputBytes = 67108864)
+    template.compileFileIn(filesystem, path, options, encoding, policy, maxInputBytes)
+end
+
+func sample_template_renderFileIn(Vfs filesystem, string path, var data = null, TemplateRenderOptions? options = null, TemplateCompileOptions? compileOptions = null, int encoding = 0, int policy = 0, int maxInputBytes = 67108864)
+    template.renderFileIn(filesystem, path, data, options, compileOptions, encoding, policy, maxInputBytes)
+end
+
+func sample_template_errorLocation(error value)
+    template.errorLocation(value)
+end
+
+func sample_tcp_server(NetEngine engine, TcpServerOptions options)
+    tcp.server(engine, options)
+end
+
+func sample_crypto_x25519PublicFromSpki(bytes encoded)
+    crypto.x25519PublicFromSpki(encoded)
+end
+
+func sample_crypto_x25519PublicFromSpkiPem(string encoded)
+    crypto.x25519PublicFromSpkiPem(encoded)
+end
+
+func sample_crypto_x25519PublicToSpki(bytes publicKey)
+    crypto.x25519PublicToSpki(publicKey)
+end
+
+func sample_crypto_x25519PublicToSpkiPem(bytes publicKey)
+    crypto.x25519PublicToSpkiPem(publicKey)
+end
+
+func sample_crypto_x448PublicFromSpki(bytes encoded)
+    crypto.x448PublicFromSpki(encoded)
+end
+
+func sample_crypto_x448PublicFromSpkiPem(string encoded)
+    crypto.x448PublicFromSpkiPem(encoded)
+end
+
+func sample_crypto_x448PublicToSpki(bytes publicKey)
+    crypto.x448PublicToSpki(publicKey)
+end
+
+func sample_crypto_x448PublicToSpkiPem(bytes publicKey)
+    crypto.x448PublicToSpkiPem(publicKey)
+end
+
+func sample_crypto_ed25519PublicFromSpki(bytes encoded)
+    crypto.ed25519PublicFromSpki(encoded)
+end
+
+func sample_crypto_ed25519PublicFromSpkiPem(string encoded)
+    crypto.ed25519PublicFromSpkiPem(encoded)
+end
+
+func sample_crypto_ed25519PublicToSpki(bytes publicKey)
+    crypto.ed25519PublicToSpki(publicKey)
+end
+
+func sample_crypto_ed25519PublicToSpkiPem(bytes publicKey)
+    crypto.ed25519PublicToSpkiPem(publicKey)
+end
+
+func sample_crypto_p256PublicFromSpki(bytes encoded)
+    crypto.p256PublicFromSpki(encoded)
+end
+
+func sample_crypto_p256PublicFromSpkiPem(string encoded)
+    crypto.p256PublicFromSpkiPem(encoded)
+end
+
+func sample_crypto_p256PublicToSpki(bytes publicKey)
+    crypto.p256PublicToSpki(publicKey)
+end
+
+func sample_crypto_p256PublicToSpkiPem(bytes publicKey)
+    crypto.p256PublicToSpkiPem(publicKey)
+end
+
+func sample_crypto_p384PublicFromSpki(bytes encoded)
+    crypto.p384PublicFromSpki(encoded)
+end
+
+func sample_crypto_p384PublicFromSpkiPem(string encoded)
+    crypto.p384PublicFromSpkiPem(encoded)
+end
+
+func sample_crypto_p384PublicToSpki(bytes publicKey)
+    crypto.p384PublicToSpki(publicKey)
+end
+
+func sample_crypto_p384PublicToSpkiPem(bytes publicKey)
+    crypto.p384PublicToSpkiPem(publicKey)
+end
+
+assert net.capability.none == 0
+assert net.capability.readiness == 1
+assert net.capability.completion == 2
+assert net.capability.oneShot == 4
+assert net.capability.edge == 8
+assert net.capability.batch == 16
+assert net.capability.wake == 32
+assert net.capability.post == 64
+assert net.capability.cancel == 128
+assert net.capability.readProbe == 256
+assert net.capability.datagramError == 512
+assert net.capability.sendFile == 1024
+assert net.capability.fileIO == 2048
+assert concurrent.relaxed == 0
+assert concurrent.acquire == 1
+assert concurrent.release == 2
+assert concurrent.acqRel == 3
+assert concurrent.seqCst == 4
+assert compress.raw == 0
+assert compress.zlib == 1
+assert compress.gzip == 2
+assert compress.httpDeflate == 3
+assert compress.flushNone == 0
+assert compress.flushSync == 1
+assert compress.flushFull == 2
+assert compress.flushFinish == 3
+assert compress.strategyDefault == 0
+assert compress.strategyFiltered == 1
+assert compress.strategyHuffman == 2
+assert compress.strategyRle == 3
+assert compress.strategyFixed == 4
+assert codec.hexIgnoreSpace == 2
+assert codec.base64Url == 1
+assert codec.base64NoPadding == 2
+assert codec.base64IgnoreSpace == 4
+assert codec.base64OptionalPadding == 8
+assert queueStatus.empty == 1
+assert queueStatus.full == 2
+assert queueStatus.closed == 3
+assert queueStatus.timeout == 4
+assert channelStatus.ok == 0
+assert channelStatus.empty == 1
+assert channelStatus.full == 2
+assert channelStatus.closed == 3
+assert channelStatus.timeout == 4
+assert channelStatus.cancelled == 5
+assert taskGroupCancelOn.none == 0
+assert taskGroupCancelOn.failed == 1
+assert taskGroupCancelOn.cancelled == 2
+assert taskGroupCancelOn.closed == 4
+assert taskGroupCancelOn.stopped == 7
+assert taskGroupState.pending == 0
+assert taskGroupState.resolved == 1
+assert taskGroupState.failed == 2
+assert taskGroupState.cancelled == 3
+assert taskGroupState.closed == 4
+assert net.familyAny == 0
+assert net.familyIPv4 == 4
+assert net.familyIPv6 == 6
+assert net.resultError == -1
+assert net.resultOk == 0
+assert net.resultAgain == 1
+assert net.resultClosed == 2
+assert net.resultTruncated == 3
+assert net.resultTimeout == 4
+assert net.resultCancelled == 5
+println("public API declaration contracts ok")

@@ -65,6 +65,7 @@ typedef struct XL6_AsyncFile XL6_AsyncFile;
 XL6_CODE_LEASE_API XL6_AsyncFile* xl6AsyncFileOpenV1(XL6_TaskPool*, const char*, const struct xfileoptions*);
 XL6_CODE_LEASE_API XL6_AsyncFile* xl6AsyncFileAdoptV1(XL6_TaskPool*, struct xfile_impl*);
 XL6_CODE_LEASE_API void xl6AsyncFileDestroyV1(XL6_AsyncFile*);
+XL6_CODE_LEASE_API void xl6_xrt_fs_async_destroy(void*);
 XL6_CODE_LEASE_API struct xfuture* xl6AsyncFileCloseV1(XL6_AsyncFile*);
 XL6_CODE_LEASE_API struct xfuture* xl6AsyncFileReadV1(XL6_AsyncFile*, uint64_t, size_t);
 XL6_CODE_LEASE_API struct xfuture* xl6AsyncFileWriteV1(XL6_AsyncFile*, uint64_t, const unsigned char*, size_t);

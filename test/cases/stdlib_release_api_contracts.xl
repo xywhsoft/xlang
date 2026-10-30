@@ -1,0 +1,113 @@
+// Type-checked API invocation examples. No function below is called by main.
+// Network and advanced cryptography here are compile-only; no connections or handshakes.
+import concurrent
+import memory
+
+func sample_http1_targetValid(string target, int size = -1)
+    http1.targetValid(target, size)
+end
+
+func sample_http1_writeResponseHead(int status, string reason, HttpHeaders headers, Buffer output, HttpVersion version = HttpVersion.v11)
+    http1.writeResponseHead(status, reason, headers, output, version)
+end
+
+func sample_http1_writeChunkLine(uint64 size, string extensions, Buffer output)
+    http1.writeChunkLine(size, extensions, output)
+end
+
+func sample_http1_writeChunk(bytes input, Buffer output, int size = -1)
+    http1.writeChunk(input, output, size)
+end
+
+func sample_http1_writeChunkEnd(HttpHeaders trailers, Buffer output)
+    http1.writeChunkEnd(trailers, output)
+end
+
+func sample_compress_encodeBuffer(Buffer data, DeflateOptions? options = null, int size = -1)
+    compress.encodeBuffer(data, options, size)
+end
+
+func sample_compress_decodeBuffer(Buffer data, InflateOptions? options = null, int size = -1)
+    compress.decodeBuffer(data, options, size)
+end
+
+func sample_cryptoLegacy_md5BufferHex(Buffer data, int size = -1)
+    cryptoLegacy.md5BufferHex(data, size)
+end
+
+func sample_cryptoLegacy_sha1BufferHex(Buffer data, int size = -1)
+    cryptoLegacy.sha1BufferHex(data, size)
+end
+
+func sample_crypto_sha224BufferHex(Buffer data, int size = -1)
+    crypto.sha224BufferHex(data, size)
+end
+
+func sample_crypto_sha384BufferHex(Buffer data, int size = -1)
+    crypto.sha384BufferHex(data, size)
+end
+
+func sample_crypto_sha512BufferHex(Buffer data, int size = -1)
+    crypto.sha512BufferHex(data, size)
+end
+
+func sample_crypto_sha512_256BufferHex(Buffer data, int size = -1)
+    crypto.sha512_256BufferHex(data, size)
+end
+
+func sample_crypto_hmacSha256Buffer(bytes key, Buffer data, int size = -1)
+    crypto.hmacSha256Buffer(key, data, size)
+end
+
+func sample_crypto_hmacSha384BufferHex(bytes key, Buffer data, int size = -1)
+    crypto.hmacSha384BufferHex(key, data, size)
+end
+
+func sample_crypto_hmacSha512BufferHex(bytes key, Buffer data, int size = -1)
+    crypto.hmacSha512BufferHex(key, data, size)
+end
+
+func sample_tls_connect(NetEngine engine, NetAddress remote, TlsClientContext context, string serverName, int size = -1)
+    tls.connect(engine, remote, context, serverName, size)
+end
+
+func sample_tls_connectAsync(NetEngine engine, NetResolver resolver, string host, int port, TlsClientContext context, int size = -1)
+    tls.connectAsync(engine, resolver, host, port, context, size)
+end
+
+assert net.capability.readiness == 1
+assert net.capability.completion == 2
+assert net.capability.oneShot == 4
+assert net.capability.edge == 8
+assert net.capability.batch == 16
+assert net.capability.cancel == 128
+assert net.capability.readProbe == 256
+assert net.capability.datagramError == 512
+assert net.capability.sendFile == 1024
+assert net.capability.fileIO == 2048
+assert concurrent.acqRel == 3
+assert compress.httpDeflate == 3
+assert compress.flushNone == 0
+assert compress.flushFull == 2
+assert compress.flushFinish == 3
+assert compress.strategyDefault == 0
+assert compress.strategyFiltered == 1
+assert compress.strategyHuffman == 2
+assert compress.strategyRle == 3
+assert compress.strategyFixed == 4
+assert codec.base64IgnoreSpace == 4
+assert channelStatus.full == 2
+assert taskGroupCancelOn.cancelled == 2
+assert taskGroupState.pending == 0
+assert taskGroupState.resolved == 1
+assert taskGroupState.cancelled == 3
+assert taskGroupState.closed == 4
+assert net.familyAny == 0
+assert net.resultError == -1
+assert net.resultOk == 0
+assert net.resultAgain == 1
+assert net.resultClosed == 2
+assert net.resultTruncated == 3
+assert net.resultTimeout == 4
+assert net.resultCancelled == 5
+println("public API declaration contracts ok")

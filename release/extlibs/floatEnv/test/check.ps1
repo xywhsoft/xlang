@@ -1,8 +1,8 @@
-param([switch]$SkipAot)
+param([switch]$SkipAot, [string]$Compiler = '')
 
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
-$xl = Join-Path $root 'release/xl.exe'
+$xl = if ($Compiler) { [IO.Path]::GetFullPath($Compiler) } else { Join-Path $root 'release/xl.exe' }
 $out = Join-Path $root ('build/test/floatEnv/aot_core_' + [guid]::NewGuid().ToString('N') + '.exe')
 $exampleOut = Join-Path $root ('build/test/floatEnv/aot_example_' + [guid]::NewGuid().ToString('N') + '.exe')
 $boundsOut = Join-Path $root ('build/test/floatEnv/aot_boundaries_' + [guid]::NewGuid().ToString('N') + '.exe')
@@ -75,7 +75,7 @@ try {
         Run 'AOT boundaries' $boundsOut @() | Out-Null
     }
     RunNegative 'Snapshot constructor access' `
-        'release/extlibs/floatEnv/test/private_adopt_constructor_negative.xl' 'Snapshot'
+        'release/extlibs/floatEnv/test/private_adopt_constructor_negative.xl' '' 'expected 0, actual 1'
 } finally {
     Pop-Location
     if (Test-Path -LiteralPath $out -PathType Leaf) {

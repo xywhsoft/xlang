@@ -2,6 +2,7 @@
 #define XL6_SLOT_MAP_KEY_ABI_H
 #include <stdbool.h>
 #include <stdint.h>
+#include "xl6_runtime_export.h"
 
 /* Immutable owning value. The instance is opaque and independent of the map.
  * Only genuine runtime producers may create a nonempty instance/slot pair.
@@ -23,7 +24,7 @@ bool xl6SlotMapKeyCopyValueV1(XL6_SlotMapKeyV1, XL6_SlotMapKeyV1*);
 void xl6SlotMapKeyDropValueV1(XL6_SlotMapKeyV1);
 bool xl6SlotMapKeyEqualV1(XL6_SlotMapKeyV1, XL6_SlotMapKeyV1);
 /* Owned return over the standard C record ABI; input is only observed. */
-XL6_SlotMapKeyV1 xl6SlotMapKeyCloneV1(XL6_SlotMapKeyV1);
+XL6_TEXT_API XL6_SlotMapKeyV1 xl6SlotMapKeyCloneV1(XL6_SlotMapKeyV1);
 struct xvalue;
 struct xvalue* xl6SlotMapKeyBoxV1(XL6_SlotMapKeyV1);
 bool xl6SlotMapKeyUnboxV1(const struct xvalue*, XL6_SlotMapKeyV1*);

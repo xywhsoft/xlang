@@ -1506,3 +1506,22 @@ XL6_TEXT_EXPORT(xl6SequenceErrorCreateV1, ARRAY_ERROR_ADMISSION)
 
 XL6_TEXT_EXPORT(xl6ForeignNetEngineOwnerV1, FOREIGN_NET)
 XL6_TEXT_EXPORT(xl6ForeignTlsClientOwnerV1, FOREIGN_NET)
+
+XL6_TEXT_EXPORT(xl6_xrt_fs_path_parts_create, FS_PATH_PARTS)
+XL6_TEXT_EXPORT(xl6_xrt_fs_path_parts_destroy, FS_PATH_PARTS)
+XL6_TEXT_EXPORT(xl6_xrt_fs_path_parts_text, FS_PATH_PARTS)
+XL6_TEXT_EXPORT(xl6_xrt_fs_path_parts_number, FS_PATH_PARTS)
+XL6_TEXT_EXPORT(xl6_xrt_fs_path_iter_create, FS_PATH_ITER)
+XL6_TEXT_EXPORT(xl6_xrt_fs_path_iter_destroy, FS_PATH_ITER)
+XL6_TEXT_EXPORT(xl6_xrt_fs_path_iter_advance, FS_PATH_ITER)
+XL6_TEXT_EXPORT(xl6_xrt_fs_path_iter_text, FS_PATH_ITER)
+XL6_TEXT_EXPORT(xl6_xrt_fs_path_iter_kind, FS_PATH_ITER)
+
+XL6_TEXT_EXPORT(xl6_xrt_fs_async_destroy, FILE_ASYNC)
+
+XL6_TEXT_EXPORT(xl6AsyncFileQuiescenceV1Get, FILE_ASYNC)
+XL6_TEXT_EXPORT(xl6AsyncFileOwnershipAdapterV1, FILE_ASYNC)
+
+XL6_TEXT_EXPORT(xl6_xrt_siphasher64_destroy, SIPHASH_STATE)
+
+XL6_TEXT_EXPORT(xl6_xrt_os_args, OS_PROCESS_ARGS)
