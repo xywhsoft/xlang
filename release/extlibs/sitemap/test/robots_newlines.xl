@@ -1,0 +1,47 @@
+import sitemap
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    for newline in ["\r", "\n", "\r\n"]
+        string text = ("\uFEFFUser-agent: Bot" + newline + "# keep group" + newline + newline +
+            "Disallow: /private" + newline + "Allow: /private/public" + newline +
+            "User-agent: Other" + newline + "Disallow: /other")
+        var robots = sitemap.robotsParse(text)
+        text = ""
+        assert robots["groups"].length == 2
+        assert not sitemap.robotsAllows(robots, "Bot", "/private/a")
+        assert sitemap.robotsAllows(robots, "Bot", "/private/public/a")
+        assert not sitemap.robotsAllows(robots, "Other", "/other/a")
+    end
+    string text = "User-agent: Bot\rDisallow: /private\r"
+    bool complete = false
+    int failures = 0
+    for budget in range(256)
+        bool memory = false
+        bool correct = false
+        bool injected = false
+        assert failAfter(uint64(budget))
+        try
+            var robots = sitemap.robotsParse(text)
+            correct = not sitemap.robotsAllows(robots, "Bot", "/private/a")
+        catch MemoryError error
+            memory = true
+        finally
+            injected = failTriggered()
+            failClear()
+        end
+        assert injected and memory or not injected and correct
+        assert not sitemap.robotsAllows(sitemap.robotsParse(text), "Bot", "/private/a")
+        if not injected then
+            complete = true
+            break
+        end
+        failures += 1
+    end
+    assert complete and failures > 0
+    println("sitemap robots newlines XLang: PASS")
+    return 0
+end

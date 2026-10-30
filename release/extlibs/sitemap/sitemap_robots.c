@@ -102,9 +102,13 @@ static xvalue *xsm_parse_robots(const char *text, size_t size) {
     while (cursor < size) {
         size_t start = cursor, end, i, colon = SIZE_MAX;
         XsmSpan line, field, value;
-        while (cursor < size && text[cursor] != '\n') cursor++;
+        /* RFC 9309 的 NL 允许 CR、LF、CRLF；不能把下一条规则吞进值。 */
+        while (cursor < size && text[cursor] != '\r' && text[cursor] != '\n') cursor++;
         end = cursor;
-        if (cursor < size) cursor++;
+        if (cursor < size) {
+            char newline = text[cursor++];
+            if (newline == '\r' && cursor < size && text[cursor] == '\n') cursor++;
+        }
         for (i = start; i < end; ++i) {
             if (text[i] == '#') { end = i; break; }
         }

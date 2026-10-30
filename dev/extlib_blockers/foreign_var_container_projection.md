@@ -1,5 +1,14 @@
 # 当前源码的 var 容器传入原生扩展失败
 
+2026-10-30 根目录布局复验 `sitemap`：robots行尾修复后的Windows默认
+门禁前44项符合预期（含两个必拒绝负例），第45原中央语言数组生成
+仍抛ValueError；Linux sanitizer、JIT/AOT、XML独立检查及双语例完成
+相同前置后同样失败。仓库根的
+`release/xl.exe run dev/extlib_blockers/sitemap_build_var_array_projection.xl`
+（Linux用release/xl）与其独立程序均先打印native roundtrip: PASS，
+再语言数组build失败、退出1。原生parse数组通过不代表语言数组边界
+闭环；修复仍在主线共享foreign投影，包不识别私有句柄或序列化绕行。
+
 2026-10-30 根目录布局复验 `rss`：注册链接关系修复后的默认 Windows
 门禁前55项符合预期（含一个ABI类型冲突负例），第56原中央
 `rss.buildRSS(channel, [])` 仍报 ValueError；Linux sanitizer、JIT/AOT

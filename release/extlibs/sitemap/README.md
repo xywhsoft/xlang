@@ -1,5 +1,11 @@
 # sitemap
 
+2026-10-30：修复合法 CR 行尾导致 robots 规则被吞并的错误；支持 CR、
+LF、CRLF 及混合行尾。双平台40次结构/决策与162真实OOM、C/XL JIT/AOT、
+双语黄金和独立XML检查通过。Windows默认45项前44符合预期，最后原
+中央语言数组生成仍受M1阻断；Linux同形。详见
+[本轮审查](ROBOTS_NEWLINES_AUDIT_2026-10-30.md)，不签收整包。
+
 2026-10-24：更新后的 Windows 发布版，独立 C 边界测试通过；
 公开 XLang 双语范例在第一个 `build` 调用报
 `ValueError: sitemap entries must be an array`。最小对照证明
@@ -24,6 +30,9 @@ robots 长规则按 `*` 分段向前匹配；长字面片段用 KMP，单条规�
 按 [Sitemaps 协议](https://www.sitemaps.org/en_GB/protocol.html)，URL 集合和索引文件均限 50,000 条、未压缩 XML 限 52,428,800 字节（50 MiB）。生成与解析都在包边界检查；转义后才超限的生成结果也拒绝，C 侧报告 `XERR_RANGE`，XLang 抛 `RangeError`，不会返回截断内容。本包不自动拆分超限站点地图。
 C 的零结尾 `xsm_parse` / `xsm_parse_index` 最多探测到 50 MiB 上限外一个字节；超限时先返回 `XERR_RANGE`，不对整个未知长度输入执行无界 `strlen`。非零结尾缓冲区应调用 `_n` 入口并提供真实长度。
 robots 文本、代理名和待匹配路径必须是有效 UTF-8；文件开头的 UTF-8 BOM 会被识别，首条 `User-agent` 不会因此被忽略。公开 C 入口在每次调用开始时清除上一次的 XRT 错误，失败后可直接重试。
+robots 分行按 [RFC 9309 §2.2](https://www.rfc-editor.org/rfc/rfc9309.html#section-2.2)
+识别 CR、LF、CRLF，允许混合；无最后行尾的文件也读取最后一行。
+显式长度 C 入口不要求 NUL，末尾单独 CR 不读取输入范围外的字节。
 `robotsParse` 接受至多 1 MiB 的 UTF-8 文本，超限返回 `RangeError`，不截断规则。C 的显式长度入口在触碰输入前检查上限；零结尾入口最多扫描到上限外的第一个字节。这个上限高于 [RFC 9309 的 500 KiB 最低解析量](https://www.rfc-editor.org/rfc/rfc9309.html#section-2.5)，是本包的资源保护合同，不表示实现了完整 RFC 9309 匹配语义。
 
 ## C API 与所有权
@@ -39,6 +48,18 @@ robots 文本、代理名和待匹配路径必须是有效 UTF-8；文件开头�
 - 协议规模边界：`release/extlibs/sitemap/test/protocol_limits.xl` 与 C 边界用例
 
 在仓库根目录执行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/sitemap/test/check.ps1`，以严格 GCC、C/XLang 边界和协议规模用例、双语同输出范例及 Python 标准库 XML 解析器完成 Windows 包级验证。该脚本将两端输出归一为 LF/UTF-8 后比较，避免控制台换行差异影响 XML 语义校验。Linux 上执行 `bash release/extlibs/sitemap/test/check.sh`，额外使用 ASan/UBSan 检查 C 边界及范例，并对原始 C/XLang 输出作字节比较。两个脚本都需要 Python；C 范例也可单独执行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package sitemap -Source release/extlibs/sitemap/examples/sitemap_c.c`。边界测试覆盖超过旧 64 KiB 缓冲的输出、XML 结构/实体/DTD、规则组、通配符、锚点、内嵌 NUL、独立结果和分配失败错误分类。
+
+当前门禁使用有界子进程，记录命令、真实退出码、stdout/stderr和输入/
+工具指纹；失败保留隔离现场，Windows另保留JSON报告。先运行原生边界、
+只读robots的新双语例、JIT/AOT、实际原型与独立XML正反例，再运行原有
+语言容器生成正例；不会把共享M1改为预期错误或删掉。`-SkipAot`仅用于
+聚焦开发，不代表完整验收。新[双语范例说明](examples/README.md)与
+`robots_policy.expected.txt`提供不访问网络、不写文件的固定输出。
+
+## 历史记录
+
+以下为对应日期的现场，不是当前发布物的通过保证。旧共享缺符号不是
+本版当前阻断，当前状态以文首与本轮审查报告的M1为准。
 
 2026-10-13：修复 robots 注释/空行误清除当前组导致 `Disallow` 被忽略，补 C/XL 边界与双语范例。2026-10-14：补 XML 构建和 SAX 解析的分配失败注入，修复解析失败误报 `XERR_VALUE`，新增 `test/check.sh` 的 Linux ASan/UBSan 门禁。同日修复重复 `loc` 或可选字段被后值静默覆盖：SAX 解析现在拒绝同一条目内的重复字段，C/XLang 红绿用例、Windows 严格 GCC、Linux ASan/UBSan 与双语范例通过。完整 AOT 仍受共享 `xl6ValueIndexReadCopyV1` / `xl6ValueDataSnapshotV1` 缺失阻断；包级通过不代表发布验收。
 
