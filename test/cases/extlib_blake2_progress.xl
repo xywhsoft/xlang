@@ -5,9 +5,7 @@ class Blake2Progress
     int last = 0
 end
 
-func main(...) as int
-    string root = "build/test/blake2-progress"
-    dir.createAll(root)
+func checkProgress(string root) as int
     string source = root + "/中文源.txt"
     string empty = root + "/empty.txt"
     string text = ""
@@ -85,4 +83,13 @@ func main(...) as int
     file.delete(source)
     file.delete(empty)
     return 0
+end
+
+func main(...) as int
+    string root = dir.temp("", "xlang-blake2-progress-", "")
+    try
+        return checkProgress(root)
+    finally
+        assert dir.delete(root), "BLAKE2 progress temporary directory must be removed"
+    end
 end

@@ -1,5 +1,23 @@
 # 顶层 native-backed class 在独立 EXE 退出时失败
 
+## 2026-10-30 BLAKE2 独立最小正例复验
+
+新增release/extlibs/blake2/test/global_lifecycle.xl，仅顶层创建真实哈希器，
+断言valid/初始计数并打印，无update/digest/文件/回调操作。两平台都JIT0、
+build0、独立EXE打印blake2 global handle ok后状态RuntimeError/退出1。
+同操作[局部控制](blake2_local_lifecycle_control.xl)两平台三阶段均0，输出相同；
+此控制不替换原顶层正例。包侧此次Reader首错修复也不改变对象退役链路。
+
+两默认包门禁现分别实测M2与M3，不因私有构造器负例先失败而隐藏顶层边界。
+原始状态与EXE/生成C均保留。BLAKE2原已计入本问题，M2仍涉及27包，
+不把复验当成新增包。主线建议仍是检查全局最终释放、module fini及代码/
+类型/错误作用域的退役次序，不在包内提前释放、移入main或吞掉异常。
+
+Windows现场build/test/blake2_guard/run_0bc51bbdfb8a426680162bcf465fb890，
+Linux原生快照/var/tmp/xlang-blake2-audit-src-jdzgq6cJ，现场
+tmp/xlang-blake2-Aij5thTa；局部控制和额外红绿/负例位于compare/extra。
+冻结主线、XRT及八件发布物未动，同一默认包的普通局部AOT均通过。
+
 ## 2026-10-29 Progress / Roaring / Trie 第24至26个已实测包
 
 分别在全局创建真实ProgressBar(10)、空RoaringBitmap、空Trie，仅检查
