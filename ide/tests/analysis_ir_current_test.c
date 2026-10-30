@@ -65,4 +65,12 @@ static int irProgram(unsigned scenario)
     xlsFrontendIrResultDestroy(previous);xrtFree(path);return 1;
 }
 int main(void)
-{xrtMemStatsEnable(true);if(!xlsTestCurrentIrCodec(&irChecks) || !irOrdinary())return 1;for(unsigned i=0;i<4;++i)if(!irProgram(i))return 1;printf("analysis_ir_current_probe passed: %u checks; actual current memo and unmodified IR oracle\n",irChecks);return 0;}
+{
+    xrtMemStatsEnable(true);if(!xlsTestCurrentIrCodec(&irChecks) || !irOrdinary())return 1;for(unsigned i=0;i<4;++i)if(!irProgram(i))return 1;
+    printf("analysis_ir_current_probe passed: %u checks; actual current memo and unmodified IR oracle\n",irChecks);
+#ifdef XLS_TEST_CURRENT_IR_PHASES
+    int xlsTestCurrentIrPhases(void),xlsCurrentIrScanTestMain(void),xlsCurrentIrVarargBoundsMain(void);
+    if(!xlsTestCurrentIrPhases() || xlsCurrentIrScanTestMain() || xlsCurrentIrVarargBoundsMain())return 1;
+#endif
+    return 0;
+}

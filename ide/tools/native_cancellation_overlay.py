@@ -37,7 +37,7 @@ def semantic_cancellation(source: str) -> str:
     return source[:start] + body + source[end:]
 
 
-def ir_cancellation(source: str) -> str:
+def ir_cancellation(source: str, *, current=False) -> str:
     start = source.index('static XL6_IrNodeId xl6IrBuildAstNode(')
     end = source.index('\nstatic XL6_IrTypeId xl6IrClassTypeByDeclaration(', start)
     body = source[start:end]
@@ -47,7 +47,7 @@ def ir_cancellation(source: str) -> str:
     body = once(body, '    for ( i = 0; children != NULL && i < source->childCount; ++i ) {',
                 '    for ( i = 0; children != NULL && i < source->childCount; ++i ) {\n'
                 '        if(xlsFrontendCancelObserved()){*ok=0;break;}')
-    seam = '    node = &module->nodes[(size_t)id - 1];\n    /* An indexed accessor'
+    seam = '    node = &module->nodes[(size_t)id - 1];\n    /* ' + ('`auto` declarations' if current else 'An indexed accessor')
     body = once(body, seam,
                 '    if(xlsFrontendCancelObserved()){xrtFree(children);*ok=0;return XL6_IR_NODE_INVALID;}\n' + seam)
     source = source[:start] + body + source[end:]
@@ -62,7 +62,7 @@ def ir_cancellation(source: str) -> str:
     a = body.index('    if ( !xl6IrInternAsyncInvocationTypes(')
     b = body.index('    if ( buildFailure != NULL )', a)
     phases = body[a:b]
-    if phases.count('if ( !') != 26:
+    if phases.count('if ( !') != (28 if current else 26):
         raise ValueError('shared IR build phase chain changed; audit cancellation')
     phases = phases.replace('if ( !', 'if ( xlsFrontendCancelPoint(XLS_CANCEL_IR_PHASE,1) || !')
     phases = once(phases, 'else if ( (buildFailure = xl6IrBuildClassDispatchTables(',
