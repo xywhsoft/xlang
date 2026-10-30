@@ -1,11 +1,19 @@
 /* native 文件 ABI 的双故障夹具；与普通 C progress/FINAL 协议分开。 */
+#ifndef XRT_MODULE_DIR
 #define XRT_MODULE_DIR
+#endif
 #ifndef XRT_MODULE_DIR_TEMP
 #define XRT_MODULE_DIR_TEMP
 #endif
+#ifndef XRT_MODULE_IO_FILE
 #define XRT_MODULE_IO_FILE
+#endif
+#ifndef XRT_MODULE_MEMORY_DEBUG
 #define XRT_MODULE_MEMORY_DEBUG
+#endif
+#ifndef XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
 #define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
+#endif
 #include "xruntime.h"
 #include <stdio.h>
 #include <string.h>

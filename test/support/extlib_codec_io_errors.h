@@ -76,18 +76,23 @@ static void check_path(unsigned path, xerrkind kind, int expected) {
             input = CODEC_IO_API(CompressorInputBytes)(encoder); output = CODEC_IO_API(CompressorOutputBytes)(encoder);
             EXPECT(!CODEC_IO_API(CompressorDrain)(encoder, writer));
             error = *CODEC_IO_API(CompressorError)(encoder);
-            EXPECT(!CODEC_IO_API(CompressorFinish)(encoder));
         } else {
             decoder = CODEC_IO_API(DecompressorCreate)(NULL);
             if (!decoder || !CODEC_IO_API(DecompressorUpdate)(decoder, abc, sizeof(abc)) || !CODEC_IO_API(DecompressorFinish)(decoder)) goto cleanup;
             input = CODEC_IO_API(DecompressorInputBytes)(decoder); output = CODEC_IO_API(DecompressorOutputBytes)(decoder);
             EXPECT(!CODEC_IO_API(DecompressorDrain)(decoder, writer));
             error = *CODEC_IO_API(DecompressorError)(decoder);
-            EXPECT(!CODEC_IO_API(DecompressorFinish)(decoder));
         }
     }
     ready = true;
+    /* 先核对这次失败的首因；再次调用会产生另一条公开 API 诊断。 */
     check_error(&error, &state, expected, path, input, output);
+    if (path >= 2) {
+        EXPECT(path == 2 ? !CODEC_IO_API(CompressorFinish)(encoder) : !CODEC_IO_API(DecompressorFinish)(decoder));
+        const CODEC_IO_ERROR *stored = path == 2 ? CODEC_IO_API(CompressorError)(encoder) : CODEC_IO_API(DecompressorError)(decoder);
+        EXPECT(stored->iCode == error.iCode && stored->iBackendCode == error.iBackendCode &&
+            stored->iInputOffset == input && stored->iOutputOffset == output && !strcmp(stored->sMessage, error.sMessage));
+    }
 cleanup:
     EXPECT(ready);
     CODEC_IO_API(CompressorDestroy)(encoder); CODEC_IO_API(DecompressorDestroy)(decoder);
