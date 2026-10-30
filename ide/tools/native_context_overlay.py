@@ -4,6 +4,59 @@ import hashlib
 from native_raw_body_overlay import imports as derive_raw_imports
 
 
+def _completion_namespace(source: str) -> str:
+    old='int xl6CompletionAdd(XL6_CompletionQuery* q,'
+    marker='void xl6CompletionFree(XL6_CompletionQuery* q)\n{'
+    if source.count(old)!=1 or source.count(marker)!=1:
+        raise ValueError('shared completion label seam changed')
+    source=source.replace(old,'static int xlsCompletionAddOriginal(XL6_CompletionQuery* q,',1)
+    wrapper="""int xl6CompletionAdd(XL6_CompletionQuery* q,const char* name,const char* kind,XL6_SymbolId symbolId,const XL6_AstNode* selection,char* canonical)
+{
+    if (!q || q->error || !name || !*name || !xlsFrontendNamespaceActive())
+        return xlsCompletionAddOriginal(q,name,kind,symbolId,selection,canonical);
+    size_t count=xlsFrontendNamespaceCount(name);
+    if (!count) { xrtFree(canonical); return 1; }
+    for (size_t i=0;i<count;++i) {
+        char* owned=i+1==count ? canonical : canonical ? xrtStrDup(canonical) : NULL;
+        if (canonical && !owned) { q->error="cannot retain namespace completion signature"; xrtFree(canonical); return 0; }
+        if (!xlsCompletionAddOriginal(q,xlsFrontendNamespaceName(name,i),kind,symbolId,selection,owned)) {
+            if (i+1<count) xrtFree(canonical);
+            return 0;
+        }
+    }
+    return 1;
+}
+
+"""
+    return source.replace(marker,wrapper+marker,1)
+
+
+def completion_source(frontend: Path) -> tuple[Path,str,dict]:
+    """Verify and compose only the emitter without producing output files."""
+    from native_signature_overlay import profile
+    audited=profile(frontend)
+    original=frontend/'src/sem/xl6_completion.c'
+    if audited[str(original)]=='d56f80b8b3ca93e9ec4009a56ee9235a86b66674f2c2ea174a0f5db36fdef2bf':
+        path=frontend/'src/common/xl6_path_identity.h'
+        digest='48fd7456ad348c974da20aefa87f32862daeab664a341cfa144e2817d03c2683'
+        if hashlib.sha256(path.read_bytes()).hexdigest()!=digest:
+            raise ValueError('shared completion path identity changed; audit failure and equality contracts')
+        audited[str(path)]=digest
+    source='#include "analysis/frontend_context.h"\n'+original.read_text(encoding='utf8')
+    return original,_completion_namespace(source),audited
+
+
+def completion(frontend: Path, output: Path) -> tuple[Path,Path,dict]:
+    """Compose only the emitter; does not admit loader/report/package assets."""
+    original,source,audited=completion_source(frontend)
+    compiled=output/'frontend/xl6_completion.c'
+    compiled.parent.mkdir(parents=True,exist_ok=True)
+    compiled.write_text(source,encoding='utf8',newline='\n')
+    return original,compiled,dict(source=str(original),sourceSha256=audited[str(original)],
+        compiledSource=str(compiled),compiledSha256=hashlib.sha256(compiled.read_bytes()).hexdigest(),
+        auditedDependencies=audited,auditedSeams=3,scope='completion namespace projection only;resolution inputs remain separately guarded')
+
+
 def derive(frontend: Path, output: Path) -> list[dict]:
     sources = {
         "src/compile/xl6_source_report.c": "e5ada493079927e46fade888ab983883bbcc4a72897acae096a441a7924f771b",
@@ -127,30 +180,7 @@ def derive(frontend: Path, output: Path) -> list[dict]:
             source=derive_raw_imports(source)
             seams = 19
         else:
-            old = 'int xl6CompletionAdd(XL6_CompletionQuery* q,'
-            marker = 'void xl6CompletionFree(XL6_CompletionQuery* q)\n{'
-            if source.count(old) != 1 or source.count(marker) != 1:
-                raise ValueError("shared completion label seam changed")
-            source = source.replace(old, 'static int xlsCompletionAddOriginal(XL6_CompletionQuery* q,', 1)
-            wrapper = """int xl6CompletionAdd(XL6_CompletionQuery* q,const char* name,const char* kind,XL6_SymbolId symbolId,const XL6_AstNode* selection,char* canonical)
-{
-    if (!q || q->error || !name || !*name || !xlsFrontendNamespaceActive())
-        return xlsCompletionAddOriginal(q,name,kind,symbolId,selection,canonical);
-    size_t count=xlsFrontendNamespaceCount(name);
-    if (!count) { xrtFree(canonical); return 1; }
-    for (size_t i=0;i<count;++i) {
-        char* owned=i+1==count ? canonical : canonical ? xrtStrDup(canonical) : NULL;
-        if (canonical && !owned) { q->error="cannot retain namespace completion signature"; xrtFree(canonical); return 0; }
-        if (!xlsCompletionAddOriginal(q,xlsFrontendNamespaceName(name,i),kind,symbolId,selection,owned)) {
-            if (i+1<count) xrtFree(canonical);
-            return 0;
-        }
-    }
-    return 1;
-}
-
-"""
-            source = source.replace(marker, wrapper + marker, 1)
+            source = _completion_namespace(source)
             seams = 3
         compiled = output / "frontend" / original.name
         compiled.parent.mkdir(parents=True, exist_ok=True)
