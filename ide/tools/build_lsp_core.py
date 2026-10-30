@@ -392,13 +392,23 @@ def prepare_native_sem(frontend: Path, output: Path, *, _current_unit_probe=Fals
         auditedDependencies={str(registry): registry_sha, str(registry_header):registry_header_sha, str(ast): ast_sha})
 
 
-def prepare_native_completion(frontend: Path, output: Path, namespaced: Path) -> tuple[Path, Path, dict]:
+def prepare_native_completion(frontend: Path, output: Path, namespaced: Path, *, _current_unit_probe=False) -> tuple[Path, Path, dict]:
     """Observe original emitter inputs without changing the filtered response."""
     original = frontend / 'src/sem/xl6_completion.c'
     digest = '384d4cf57a648900ee1b9d93df1895ba22526639f3393702891027c94053c94c'
+    namespace_sha = 'de10164dcde8a4f4a0c3044012005850b64ea1d3c0d6d2570b3eecd9541cc658'
+    if _current_unit_probe:
+        from native_context_overlay import completion_source
+        # Coherent parser/AST/XRT/emitter and current path matcher are checked
+        # by the same standalone composer; its output must be byte-exact.
+        _,verified,_=completion_source(frontend)
+        if sha(original)=='d56f80b8b3ca93e9ec4009a56ee9235a86b66674f2c2ea174a0f5db36fdef2bf':
+            digest='d56f80b8b3ca93e9ec4009a56ee9235a86b66674f2c2ea174a0f5db36fdef2bf'
+            namespace_sha='5c7a7cd4c89938549d2a3da6a19621a7ba89ee875855def5b955c384da594bac'
+        if hashlib.sha256(verified.encode('utf8')).hexdigest()!=namespace_sha:
+            raise ValueError('completion namespace composition changed; audit')
     if sha(original) != digest:
         raise ValueError('shared completion emitter changed; audit prefix-only filtering, ordering, limits and canonical ownership')
-    namespace_sha = 'de10164dcde8a4f4a0c3044012005850b64ea1d3c0d6d2570b3eecd9541cc658'
     if sha(namespaced) != namespace_sha:
         raise ValueError('namespace completion adapter changed; audit complete projected labels before prefix observation')
     source = namespaced.read_text(encoding='utf-8').replace('\r\n', '\n')

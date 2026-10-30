@@ -136,7 +136,10 @@ static int effectReserveFaults(void)
     xlsSemEffectsFree(&old);xl6AstFree(decl);xlsActiveSemBuild=build.previous;PROBE(probeLive()==live);return 1;
 }
 #endif
-int main(void)
+#ifndef XLS_SEM_EFFECTS_MAIN
+#define XLS_SEM_EFFECTS_MAIN main
+#endif
+int XLS_SEM_EFFECTS_MAIN(void)
 {
     if(xlsMetadataProbeMain())return 1;
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
