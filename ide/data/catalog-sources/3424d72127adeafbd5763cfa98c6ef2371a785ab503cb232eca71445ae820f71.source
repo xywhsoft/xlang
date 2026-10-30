@@ -1,0 +1,87 @@
+// 轻量二维/三维线性代数。组合结果以多返回值给出，不使用共享临时状态。
+
+extern "xlin_dot2" func __dot2(float ax, float ay, float bx, float by) as float
+extern "xlin_dot3" func __dot3(float ax, float ay, float az, float bx, float by, float bz) as float
+extern "xlin_mag2" func __mag2(float x, float y) as float
+extern "xlin_mag3" func __mag3(float x, float y, float z) as float
+extern "xlin_normalize2" func __normalize2(float x, float y) as var
+extern "xlin_cross3" func __cross3(float ax, float ay, float az, float bx, float by, float bz) as var
+extern "xlin_det2" func __det2(float a, float b, float c, float d) as float
+extern "xlin_inverse2" func __inverse2(float a, float b, float c, float d) as var
+extern "xlin_multiply2" func __multiply2(float a1, float b1, float c1, float d1, float a2, float b2, float c2, float d2) as var
+extern "xlin_angle2" func __angle2(float ax, float ay, float bx, float by) as float
+extern "xlin_dist2" func __dist2(float x1, float y1, float x2, float y2) as float
+extern "xlin_dist3" func __dist3(float x1, float y1, float z1, float x2, float y2, float z2) as float
+extern "xlin_lerp" func __lerp(float a, float b, float t) as float
+
+export func dot2(float ax, float ay, float bx, float by) as float
+    return __dot2(ax, ay, bx, by)
+end
+
+export func dot3(float ax, float ay, float az, float bx, float by, float bz) as float
+    return __dot3(ax, ay, az, bx, by, bz)
+end
+
+export func mag2(float x, float y) as float
+    return __mag2(x, y)
+end
+
+export func mag3(float x, float y, float z) as float
+    return __mag3(x, y, z)
+end
+
+export func normalize2(float x, float y) as (float, float)
+    var result = __normalize2(x, y)
+    if result == null then
+        throw ValueError "cannot normalize a zero or non-finite vector"
+    end
+    return float(result[0]), float(result[1])
+end
+
+export func cross3(float ax, float ay, float az, float bx, float by, float bz) as (float, float, float)
+    var result = __cross3(ax, ay, az, bx, by, bz)
+    if result == null then
+        throw ValueError "cross3 could not write its result"
+    end
+    return float(result[0]), float(result[1]), float(result[2])
+end
+
+export func det2(float a, float b, float c, float d) as float
+    return __det2(a, b, c, d)
+end
+
+export func inverse2(float a, float b, float c, float d) as (float, float, float, float)
+    var result = __inverse2(a, b, c, d)
+    if result == null then
+        throw ValueError "matrix is singular or non-finite"
+    end
+    return float(result[0]), float(result[1]), float(result[2]), float(result[3])
+end
+
+export func multiply2(float a1, float b1, float c1, float d1, float a2, float b2, float c2, float d2) as (float, float, float, float)
+    var result = __multiply2(a1, b1, c1, d1, a2, b2, c2, d2)
+    if result == null then
+        throw ValueError "multiply2 could not write its result"
+    end
+    return float(result[0]), float(result[1]), float(result[2]), float(result[3])
+end
+
+export func angle2(float ax, float ay, float bx, float by) as float
+    float result = __angle2(ax, ay, bx, by)
+    if result != result then
+        throw ValueError "cannot calculate an angle with a zero or non-finite vector"
+    end
+    return result
+end
+
+export func dist2(float x1, float y1, float x2, float y2) as float
+    return __dist2(x1, y1, x2, y2)
+end
+
+export func dist3(float x1, float y1, float z1, float x2, float y2, float z2) as float
+    return __dist3(x1, y1, z1, x2, y2, z2)
+end
+
+export func lerp(float a, float b, float t) as float
+    return __lerp(a, b, t)
+end

@@ -1,0 +1,45 @@
+extern "xsnmp_version_name" func __version_name(int ver) as string
+extern "xsnmp_pdu_name" func __pdu_name(int pdu_type) as string
+extern "xsnmp_ber_name" func __ber_name(int tag) as string
+extern "xsnmp_oid_encode" func __oid_encode(string oid_str) as string
+extern "xsnmp_oid_decode" func __oid_decode(string oid_hex) as string
+extern "xsnmp_int_encode" func __int_encode(int val) as string
+extern "xsnmp_int_decode" func __int_decode(string hex) as int
+extern "xsnmp_error_name" func __error_name(int err) as string
+extern "xsnmp_oid_name" func __oid_name(string oid) as string
+
+export func versionName(int ver) as string
+    return __version_name(ver)
+end
+
+export func pduName(int pdu_type) as string
+    return __pdu_name(pdu_type)
+end
+
+export func berName(int tag) as string
+    return __ber_name(tag)
+end
+
+export func oidEncode(string oid_str) as string
+    return __oid_encode(oid_str)
+end
+
+export func oidDecode(string oid_hex) as string
+    return __oid_decode(oid_hex)
+end
+
+export func intEncode(int val) as string
+    return __int_encode(val)
+end
+
+export func intDecode(string hex) as int
+    return __int_decode(hex)
+end
+
+export func errorName(int err) as string
+    return __error_name(err)
+end
+
+export func oidName(string oid) as string
+    return __oid_name(oid)
+end

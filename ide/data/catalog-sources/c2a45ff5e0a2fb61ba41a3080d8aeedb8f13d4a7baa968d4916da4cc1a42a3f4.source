@@ -1,0 +1,69 @@
+// FIX message codec. Fields are ordered objects so duplicate tags remain representable.
+extern "xfix_field" func __field(int tag, string value) as var
+extern "xfix_build" func __build(string beginString, var fields) as point
+extern "xfix_parse" func __parse(string message) as var
+extern "xfix_validate" func __validate(string message) as bool
+extern "xfix_has_error" func __has_error() as bool
+extern "xfix_memory_error" func __memory_error() as bool
+extern "xfix_range_error" func __range_error() as bool
+extern "xfix_error_message" func __error() as string
+extern "xrtClearError" func __fix_clear_error()
+
+func __fix_has_nul(string value) as bool
+    return string.indexOf(value, "\0", false, string.byteLen(value), 1) >= 0
+end
+
+func __fix_raise()
+    if __memory_error() then
+        throw MemoryError __error()
+    end
+    if __range_error() then
+        throw RangeError __error()
+    end
+    throw ValueError __error()
+end
+
+export func field(int tag, string value) as var
+    if __fix_has_nul(value) then
+        throw ValueError "FIX field text contains an embedded NUL byte"
+    end
+    var result = __field(tag, value)
+    if result == null then
+        __fix_raise()
+    end
+    return result
+end
+
+export func build(string beginString, var fields) as string
+    if __fix_has_nul(beginString) then
+        throw ValueError "FIX BeginString contains an embedded NUL byte"
+    end
+    string result = __xl_runtime.takeCstr(__build(beginString, fields))
+    if result == "" then
+        __fix_raise()
+    end
+    return result
+end
+
+export func parse(string message) as var
+    if __fix_has_nul(message) then
+        throw ValueError "FIX input contains an embedded NUL byte"
+    end
+    var result = __parse(message)
+    if result == null then
+        __fix_raise()
+    end
+    return result
+end
+
+export func validate(string message) as bool
+    if __fix_has_nul(message) then
+        __fix_clear_error()
+        return false
+    end
+    bool valid = __validate(message)
+    if __has_error() then
+        throw MemoryError __error()
+    end
+    return valid
+end

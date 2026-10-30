@@ -1,0 +1,50 @@
+extern "xnn_header" func __nn_hdr(int proto, int flags) as string
+extern "xnn_message" func __nn_msg(int proto, string body) as string
+extern "xnn_get_proto" func __nn_gproto(string msg_hex) as int
+extern "xnn_get_body" func __nn_gbody(string msg_hex) as string
+extern "xnn_proto_name" func __nn_pname(int proto) as string
+extern "xnn_transport_name" func __nn_tname(int transport) as string
+extern "xnn_address" func __nn_addr(int transport, string addr, int port) as string
+extern "xnn_valid_proto" func __nn_vproto(int proto) as int
+extern "xnn_version" func __nn_ver() as int
+extern "xnn_default_port" func __nn_port() as int
+
+export func header(int proto, int flags) as string
+    return __nn_hdr(proto, flags)
+end
+
+export func message(int proto, string body) as string
+    return __nn_msg(proto, body)
+end
+
+export func getProto(string msg_hex) as int
+    return __nn_gproto(msg_hex)
+end
+
+export func getBody(string msg_hex) as string
+    return __nn_gbody(msg_hex)
+end
+
+export func protoName(int proto) as string
+    return __nn_pname(proto)
+end
+
+export func transportName(int transport) as string
+    return __nn_tname(transport)
+end
+
+export func address(int transport, string addr, int port) as string
+    return __nn_addr(transport, addr, port)
+end
+
+export func validProto(int proto) as int
+    return __nn_vproto(proto)
+end
+
+export func version() as int
+    return __nn_ver()
+end
+
+export func defaultPort() as int
+    return __nn_port()
+end

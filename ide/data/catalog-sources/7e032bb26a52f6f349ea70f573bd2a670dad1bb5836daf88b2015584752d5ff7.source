@@ -1,0 +1,30 @@
+extern "xftp_reply_category" func __reply_category(int code) as string
+extern "xftp_reply_text" func __reply_text(int code) as string
+extern "xftp_cmd_name" func __cmd_name(int cmd) as string
+extern "xftp_transfer_type" func __transfer_type(int type) as string
+extern "xftp_parse_pasv" func __parse_pasv(string response) as string
+extern "xftp_is_positive" func __is_positive(int code) as int
+
+export func replyCategory(int code) as string
+    return __reply_category(code)
+end
+
+export func replyText(int code) as string
+    return __reply_text(code)
+end
+
+export func cmdName(int cmd) as string
+    return __cmd_name(cmd)
+end
+
+export func transferType(int type) as string
+    return __transfer_type(type)
+end
+
+export func parsePasv(string response) as string
+    return __parse_pasv(response)
+end
+
+export func isPositive(int code) as int
+    return __is_positive(code)
+end

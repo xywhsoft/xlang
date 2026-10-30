@@ -1,0 +1,30 @@
+extern "xsvm_type" func __type(int id) as string
+extern "xsvm_kernel" func __kernel(int id) as string
+extern "xsvm_rbf_kernel" func __rbf_kernel(string x, string y, float gamma) as float
+extern "xsvm_linear_kernel" func __linear_kernel(string x, string y) as float
+extern "xsvm_param" func __param(int id) as string
+extern "xsvm_hinge_loss" func __hinge_loss(float y, float fx) as float
+
+export func svmType(int id) as string
+    return __type(id)
+end
+
+export func kernel(int id) as string
+    return __kernel(id)
+end
+
+export func rbfKernel(string x, string y, float gamma) as float
+    return __rbf_kernel(x, y, gamma)
+end
+
+export func linearKernel(string x, string y) as float
+    return __linear_kernel(x, y)
+end
+
+export func param(int id) as string
+    return __param(id)
+end
+
+export func hingeLoss(float y, float fx) as float
+    return __hinge_loss(y, fx)
+end

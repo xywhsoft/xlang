@@ -1,0 +1,55 @@
+extern "xetcd_method_name" func __method_name(int method) as string
+extern "xetcd_sort_order" func __sort_order(int order) as string
+extern "xetcd_sort_target" func __sort_target(int target) as string
+extern "xetcd_event_type" func __event_type(int type) as string
+extern "xetcd_compare_result" func __compare_result(int result) as string
+extern "xetcd_compare_target" func __compare_target(int target) as string
+extern "xetcd_encode_key" func __encode_key(string key) as string
+extern "xetcd_decode_key" func __decode_key(string hex) as string
+extern "xetcd_valid_key" func __valid_key(string key) as int
+extern "xetcd_endpoint" func __endpoint(string host, int port, int tls) as string
+extern "xetcd_alarm_name" func __alarm_name(int alarm) as string
+
+export func methodName(int method) as string
+    return __method_name(method)
+end
+
+export func sortOrder(int order) as string
+    return __sort_order(order)
+end
+
+export func sortTarget(int target) as string
+    return __sort_target(target)
+end
+
+export func eventType(int type) as string
+    return __event_type(type)
+end
+
+export func compareResult(int result) as string
+    return __compare_result(result)
+end
+
+export func compareTarget(int target) as string
+    return __compare_target(target)
+end
+
+export func encodeKey(string key) as string
+    return __encode_key(key)
+end
+
+export func decodeKey(string hex) as string
+    return __decode_key(hex)
+end
+
+export func validKey(string key) as int
+    return __valid_key(key)
+end
+
+export func endpoint(string host, int port, int tls) as string
+    return __endpoint(host, port, tls)
+end
+
+export func alarmName(int alarm) as string
+    return __alarm_name(alarm)
+end

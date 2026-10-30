@@ -1,0 +1,30 @@
+extern "xpa_host_api" func __host_api(int type) as string
+extern "xpa_sample_format" func __sample_format(int fmt) as string
+extern "xpa_stream_flag" func __stream_flag(int flag) as string
+extern "xpa_error_name" func __error_name(int code) as string
+extern "xpa_valid_rate" func __valid_rate(int rate) as int
+extern "xpa_bytes_per_sample" func __bytes_per_sample(int fmt) as int
+
+export func hostApi(int type) as string
+    return __host_api(type)
+end
+
+export func sampleFormat(int fmt) as string
+    return __sample_format(fmt)
+end
+
+export func streamFlag(int flag) as string
+    return __stream_flag(flag)
+end
+
+export func errorName(int code) as string
+    return __error_name(code)
+end
+
+export func validRate(int rate) as int
+    return __valid_rate(rate)
+end
+
+export func bytesPerSample(int fmt) as int
+    return __bytes_per_sample(fmt)
+end

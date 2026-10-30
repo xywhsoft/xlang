@@ -1,0 +1,25 @@
+extern "xflatbuffers_type" func __type(int id) as string
+extern "xflatbuffers_type_size" func __type_size(int id) as int
+extern "xflatbuffers_align" func __align(int value, int alignment) as int
+extern "xflatbuffers_vtable_offset" func __vtable_offset(int field_id) as int
+extern "xflatbuffers_builder_state" func __builder_state(int id) as string
+
+export func type(int id) as string
+    return __type(id)
+end
+
+export func typeSize(int id) as int
+    return __type_size(id)
+end
+
+export func align(int value, int alignment) as int
+    return __align(value, alignment)
+end
+
+export func vtableOffset(int field_id) as int
+    return __vtable_offset(field_id)
+end
+
+export func builderState(int id) as string
+    return __builder_state(id)
+end

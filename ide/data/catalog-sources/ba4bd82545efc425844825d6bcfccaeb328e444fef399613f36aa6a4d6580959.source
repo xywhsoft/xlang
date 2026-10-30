@@ -1,0 +1,39 @@
+// XRT 错误直接进入语言异常，不把内存等错误改写成普通值错误。
+extern "xg_is_dag" func __g_is_dag(var edges) as bool
+extern "xg_topo_sort" func __g_topo_sort(var edges) as array
+extern "xg_bfs" func __g_bfs(var edges, string start, c_size startSize) as array
+extern "xg_shortest_path" func __g_shortest_path(var edges, string start, c_size startSize, string target, c_size targetSize) as array
+extern "xg_dijkstra" func __g_dijkstra(var edges, string start, c_size startSize) as dict
+extern "xg_components" func __g_components(var edges) as array
+extern "xg_scc" func __g_scc(var edges) as array
+extern "xg_nodes" func __g_nodes(var edges) as array
+extern "xg_neighbors" func __g_neighbors(var edges, string node, c_size nodeSize) as array
+
+// [name] 声明孤立点；[from,to] 权重为 1；[from,to,weight] 显式指定权重。
+export func isDag(var edges) as bool
+    return __g_is_dag(edges)
+end
+export func topoSort(var edges) as array
+    return __g_topo_sort(edges)
+end
+export func bfs(var edges, string start) as array
+    return __g_bfs(edges, start, c_size(string.byteLen(start)))
+end
+export func shortestPath(var edges, string start, string target) as array
+    return __g_shortest_path(edges, start, c_size(string.byteLen(start)), target, c_size(string.byteLen(target)))
+end
+export func dijkstra(var edges, string start) as dict
+    return __g_dijkstra(edges, start, c_size(string.byteLen(start)))
+end
+export func components(var edges) as array
+    return __g_components(edges)
+end
+export func scc(var edges) as array
+    return __g_scc(edges)
+end
+export func nodes(var edges) as array
+    return __g_nodes(edges)
+end
+export func neighbors(var edges, string node) as array
+    return __g_neighbors(edges, node, c_size(string.byteLen(node)))
+end

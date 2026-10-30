@@ -1,0 +1,33 @@
+extern "xep_build" func __epub_build(string path, var meta, var chapters) as int
+extern "xep_read_entry" func __epub_read_entry(string path, string name) as point
+
+// C 字符串不能表达内嵌 NUL，跨边界前拒绝截断路径或条目名。
+func __epub_c_string(string value)
+    if string.indexOf(value, "\0", false, string.byteLen(value), 1) >= 0 then
+        throw ValueError "epub: path or entry name contains an embedded NUL byte"
+    end
+end
+
+// build 生成一本 EPUB 3 电子书（存储式 ZIP，无需压缩依赖）
+// meta 必须包含 title、language、identifier；author、modified 可选。
+// chapters 为 [{title, text}] 数组；text 支持简单的 "# "/"## " 标题与空行分段
+// 返回文件字节数；生成失败抛 ValueError
+export func build(string path, var meta, var chapters) as int
+    __epub_c_string(path)
+    int size = __epub_build(path, meta, chapters)
+    if size <= 0 then
+        throw ValueError "epub: build failed (1-100 chapters required, write error possible)"
+    end
+    return size
+end
+
+// readEntry 只读取本库生成的 stored 文本条目；不存在返回空字符串。
+export func readEntry(string path, string name) as string
+    __epub_c_string(path)
+    __epub_c_string(name)
+    point result = __epub_read_entry(path, name)
+    if result == null then
+        throw ValueError "epub: invalid or unsupported ZIP entry"
+    end
+    return __xl_runtime.takeCstr(result)
+end

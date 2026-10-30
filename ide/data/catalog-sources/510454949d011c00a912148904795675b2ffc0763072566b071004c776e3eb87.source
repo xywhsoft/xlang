@@ -1,0 +1,35 @@
+extern "xdocker_container_state" func __container_state(int id) as string
+extern "xdocker_network_mode" func __network_mode(int id) as string
+extern "xdocker_restart_policy" func __restart_policy(int id) as string
+extern "xdocker_volume_driver" func __volume_driver(int id) as string
+extern "xdocker_api_endpoint" func __api_endpoint(int id) as string
+extern "xdocker_parse_port" func __parse_port(string mapping) as int
+extern "xdocker_log_driver" func __log_driver(int id) as string
+
+export func containerState(int id) as string
+    return __container_state(id)
+end
+
+export func networkMode(int id) as string
+    return __network_mode(id)
+end
+
+export func restartPolicy(int id) as string
+    return __restart_policy(id)
+end
+
+export func volumeDriver(int id) as string
+    return __volume_driver(id)
+end
+
+export func apiEndpoint(int id) as string
+    return __api_endpoint(id)
+end
+
+export func parsePort(string mapping) as int
+    return __parse_port(mapping)
+end
+
+export func logDriver(int id) as string
+    return __log_driver(id)
+end

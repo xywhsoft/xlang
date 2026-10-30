@@ -1,0 +1,57 @@
+extern "xyaml_get" func __yaml_get(string yaml, string key) as string
+extern "xyaml_get_int" func __yaml_geti(string yaml, string key) as int
+extern "xyaml_get_float" func __yaml_getf(string yaml, string key) as float
+extern "xyaml_get_bool" func __yaml_getb(string yaml, string key) as bool
+extern "xyaml_has" func __yaml_has(string yaml, string key) as bool
+extern "xyaml_count_keys" func __yaml_count(string yaml) as int
+extern "xyaml_key_at" func __yaml_keyat(string yaml, int idx) as string
+extern "xyaml_emit_pair" func __yaml_emit(string key, string value) as string
+extern "xyaml_validate" func __yaml_valid(string yaml) as bool
+extern "xyaml_list_count" func __yaml_lcount(string yaml, string key) as int
+extern "xyaml_list_at" func __yaml_lat(int idx) as string
+
+
+
+export func get(string yaml, string key) as string
+    return __yaml_get(yaml, key)
+end
+
+export func getInt(string yaml, string key) as int
+    return __yaml_geti(yaml, key)
+end
+
+export func getFloat(string yaml, string key) as float
+    return __yaml_getf(yaml, key)
+end
+
+export func getBool(string yaml, string key) as bool
+    return __yaml_getb(yaml, key)
+end
+
+export func has(string yaml, string key) as bool
+    return __yaml_has(yaml, key)
+end
+
+export func countKeys(string yaml) as int
+    return __yaml_count(yaml)
+end
+
+export func keyAt(string yaml, int idx) as string
+    return __yaml_keyat(yaml, idx)
+end
+
+export func emitPair(string key, string value) as string
+    return __yaml_emit(key, value)
+end
+
+export func validate(string yaml) as bool
+    return __yaml_valid(yaml)
+end
+
+export func listCount(string yaml, string key) as int
+    return __yaml_lcount(yaml, key)
+end
+
+export func listAt(int idx) as string
+    return __yaml_lat(idx)
+end

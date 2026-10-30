@@ -11,7 +11,20 @@ python -X utf8 tools/catalog_publish.py --pair build/cg-实际编号 --data data
 python -X utf8 tools/check_catalog_coverage.py --catalog data/commands.json
 ```
 
-`-ReleaseReportPath` 可以选择新的构建验收报告，`-Root` 指定其仓库。输出目录必须尚不存在。省略 `-PrepareOnly` 会在覆盖校验通过后直接发布到 `ide/data`。资料更新不重编译 GUI 或语言服务；语义服务的编译和验收独立进行。
+`-ReleaseReportPath` 可以选择新的构建验收报告，`-Root` 指定其仓库。输出目录必须尚不存在。省略 `-PrepareOnly` 会在覆盖校验通过后直接发布到 `ide/data`。资料更新本身不重编译 GUI 或语言服务；语义服务的编译和验收独立进行。2026-10-31 扩展目录加入 `field`/`variable` 类型及禁止直接补全的工厂返回类型，需要本轮 IDE 读取器；旧二进制不能只替换数据就视作更新完成。
+
+## 扩展日常刷新
+
+仅更新扩展时使用同一入口的 `-ExtensionsOnly`，保留现有 0.6.0 的 6,156 条语言/标准库记录、API 清单、编译器绑定及来源字节。完整生成则先运行当前发布标准库展开器，再复用同一个扩展提取阶段，不维护两套扩展规则。
+
+```powershell
+.\tools\generate_catalog.ps1 -ExtensionsOnly -PrepareOnly -GccPath E:/software/w64devkit/bin/gcc.exe
+python -B -X utf8 tools/refresh_extensions.py --check
+```
+
+扩展提取器直接编译未修改的共享 lexer/parser/AST，以编译器的 UTF-8 半开范围取得签名和默认参数，不猜测括号或复制大类函数体。支持函数/重载、构造、get/let、字段、常量、变量、枚举载荷、union/别名、`#doc` 以及公开工厂返回的未导出实例类型。私有/protected、native 句柄、析构钩子及六个内部包不进入公共列表；未导出类型明确提示不能直接构造，不作为全局静态补全候选。
+
+本轮合并后为 **17,598** 条记录：语言 168、标准库 5,988、扩展 11,442；207 个公共包，145 份文档，593 份实际引用来源。`extensionCatalog` 保存当前输入、前端和工具指纹；源码/API/README/包增删会使旧目录检查失败。该检查同时进入 IDE 覆盖校验和根扩展发布门。详见[同步规则](../../docs/扩展库IDE命令目录同步规则.md)及[主工作区同步记录](../../docs/IDE扩展库命令同步记录_2026-10-31.md)。
 
 ## 数据来源
 

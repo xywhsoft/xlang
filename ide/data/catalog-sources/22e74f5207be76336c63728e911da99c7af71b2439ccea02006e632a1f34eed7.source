@@ -1,0 +1,40 @@
+extern "xpptx_slide_layout" func __slide_layout(int id) as string
+extern "xpptx_transition" func __transition(int id) as string
+extern "xpptx_anim_type" func __anim_type(int id) as string
+extern "xpptx_chart_type" func __chart_type(int id) as string
+extern "xpptx_shape_type" func __shape_type(int id) as string
+extern "xpptx_emu_to_cm" func __emu_to_cm(int emu) as int
+extern "xpptx_color_scheme" func __color_scheme(int id) as string
+extern "xpptx_bullet_style" func __bullet_style(int id) as string
+
+export func slideLayout(int id) as string
+    return __slide_layout(id)
+end
+
+export func transition(int id) as string
+    return __transition(id)
+end
+
+export func animType(int id) as string
+    return __anim_type(id)
+end
+
+export func chartType(int id) as string
+    return __chart_type(id)
+end
+
+export func shapeType(int id) as string
+    return __shape_type(id)
+end
+
+export func emuToCm(int emu) as int
+    return __emu_to_cm(emu)
+end
+
+export func colorScheme(int id) as string
+    return __color_scheme(id)
+end
+
+export func bulletStyle(int id) as string
+    return __bullet_style(id)
+end

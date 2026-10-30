@@ -1,0 +1,25 @@
+extern "ximgui_widget" func __widget(int id) as string
+extern "ximgui_layout" func __layout(int id) as string
+extern "ximgui_rect_area" func __rect_area(float x1, float y1, float x2, float y2) as float
+extern "ximgui_style_var" func __style_var(int id) as string
+extern "ximgui_clamp" func __clamp(float v, float lo, float hi) as float
+
+export func widget(int id) as string
+    return __widget(id)
+end
+
+export func layout(int id) as string
+    return __layout(id)
+end
+
+export func rectArea(float x1, float y1, float x2, float y2) as float
+    return __rect_area(x1, y1, x2, y2)
+end
+
+export func styleVar(int id) as string
+    return __style_var(id)
+end
+
+export func clamp(float v, float lo, float hi) as float
+    return __clamp(v, lo, hi)
+end

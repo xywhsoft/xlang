@@ -1,0 +1,63 @@
+extern "xihash_available" func __imagehash_available() as bool
+extern "xihash_version" func __imagehash_version() as string
+extern "xihash_last_error" func __imagehash_error() as string
+extern "xihash_ahash" @owned func __imagehash_ahash(string path) as string?
+extern "xihash_dhash" @owned func __imagehash_dhash(string path) as string?
+extern "xihash_phash" @owned func __imagehash_phash(string path) as string?
+extern "xihash_hamming" func __imagehash_hamming(string left, c_size leftLen,
+    string right, c_size rightLen) as c_int
+extern "xihash_valid" func __imagehash_valid(string hash, c_size length) as bool
+
+export func available() as bool
+    return __imagehash_available()
+end
+
+export func version() as string
+    return __imagehash_version()
+end
+
+export func last_error() as string
+    return __imagehash_error()
+end
+
+func __imagehash_path(string path)
+    if string.indexOf(path, "\0", false, string.byteLen(path), 1) >= 0 then
+        throw ValueError "imagehash path contains NUL"
+    end
+end
+
+export func ahash(string path) as string
+    __imagehash_path(path)
+    string? result = __imagehash_ahash(path)
+    if result == null then
+        throw RuntimeError __imagehash_error()
+    end
+    return result
+end
+
+export func dhash(string path) as string
+    __imagehash_path(path)
+    string? result = __imagehash_dhash(path)
+    if result == null then
+        throw RuntimeError __imagehash_error()
+    end
+    return result
+end
+
+export func phash(string path) as string
+    __imagehash_path(path)
+    string? result = __imagehash_phash(path)
+    if result == null then
+        throw RuntimeError __imagehash_error()
+    end
+    return result
+end
+
+export func hamming(string left, string right) as int
+    return __imagehash_hamming(left, c_size(string.byteLen(left)),
+        right, c_size(string.byteLen(right)))
+end
+
+export func valid(string hash) as bool
+    return __imagehash_valid(hash, c_size(string.byteLen(hash)))
+end

@@ -1,0 +1,26 @@
+extern "xn_build_request" func __n_build_request() as string
+extern "xn_parse_response" func __n_parse_response(string hex) as var
+extern "xn_unix_offset" func __n_unix_offset() as int
+
+
+
+// buildRequest 生成 48 字节客户端轮询报文（NTP v4，模式 3）的小写 hex
+export func buildRequest() as string
+    return __n_build_request()
+end
+
+// parseResponse 解析 48 字节服务器应答（hex 输入）
+// 返回 {leapIndicator, version, mode, stratum, ntpSeconds, unixSeconds}
+// unixSeconds 为 Transmit Timestamp 换算的 Unix 秒（浮点含小数）；非法输入抛 ValueError
+export func parseResponse(string hex) as var
+    var r = __n_parse_response(hex)
+    if r == null then
+        throw ValueError "ntp: response must be a 48-byte packet in hex"
+    end
+    return r
+end
+
+// unixOffset 返回 1900 到 1970 的秒差（2208988800）
+export func unixOffset() as int
+    return __n_unix_offset()
+end

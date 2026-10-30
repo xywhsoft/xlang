@@ -1,0 +1,35 @@
+extern "xtok_model" func __model(int id) as string
+extern "xtok_normalizer" func __normalizer(int id) as string
+extern "xtok_truncation" func __truncation(int id) as string
+extern "xtok_padding" func __padding(int id) as string
+extern "xtok_count_tokens" func __count_tokens(string text) as int
+extern "xtok_char_count" func __char_count(string text) as int
+extern "xtok_special_token" func __special_token(int id) as string
+
+export func model(int id) as string
+    return __model(id)
+end
+
+export func normalizer(int id) as string
+    return __normalizer(id)
+end
+
+export func truncation(int id) as string
+    return __truncation(id)
+end
+
+export func padding(int id) as string
+    return __padding(id)
+end
+
+export func countTokens(string text) as int
+    return __count_tokens(text)
+end
+
+export func charCount(string text) as int
+    return __char_count(text)
+end
+
+export func specialToken(int id) as string
+    return __special_token(id)
+end

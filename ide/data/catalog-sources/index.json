@@ -1,6 +1,6 @@
 {
   "format": "xlang-catalog-sources-1",
-  "catalogSha256": "c350b1c890a6273aa6dad4a559f4526aad14d8ac61fd623f02e85b61a9f684eb",
+  "catalogSha256": "7ad90a6dd2234d79d1ddb215b83d228bc86471275a981f1b6c3e96a00def452b",
   "entries": [
     {
       "path": "docs/HTTP标准库实施与验收.md",
@@ -89,41 +89,11 @@
     },
     {
       "path": "ide/tools/generate_catalog.py",
-      "sha256": "ad54b57129c18587d7bdfde52831f2991a434e3345e049bb80605f6f74e8fad7",
+      "sha256": "8558164390ee583fc4744c82e7492ba07b45c3b0178cae11b806dd6ed6141ec5",
       "state": "available"
     },
     {
-      "path": "release/extlibs/_bzip2/xlang.package.json",
-      "sha256": "022a549c4bd0a80ee31822944cdebf587a716b6cb5e8c973211e800bdb74fec9",
-      "state": "available"
-    },
-    {
-      "path": "release/extlibs/_expat/xlang.package.json",
-      "sha256": "1cfa969193ad9f4e91a81f31b2464944c3ae948eaa0ffcd1a9f25447b03a45f1",
-      "state": "available"
-    },
-    {
-      "path": "release/extlibs/_libzip/xlang.package.json",
-      "sha256": "38612de3f4052ed2decf4978db4d1fbda0baece245a3a2626ec93283a157432e",
-      "state": "available"
-    },
-    {
-      "path": "release/extlibs/_tomlc17/xlang.package.json",
-      "sha256": "9dd0626e501c832fd0e7c092b39a919862b96ec8a1a34afe62b7f722c01c0b1e",
-      "state": "available"
-    },
-    {
-      "path": "release/extlibs/_xge_native/xlang.package.json",
-      "sha256": "d84a57b44499e39028af398ed1be7d0296f9700b0e53244c3578e4d5e951765b",
-      "state": "available"
-    },
-    {
-      "path": "release/extlibs/_zlib/xlang.package.json",
-      "sha256": "bb6b28a812b0620225e87b0cd5dca3448d21e352683c1fc199e5a35c4fb3da62",
-      "state": "available"
-    },
-    {
-      "path": "release/extlibs/aho_corasick/README.md",
+      "path": "release/extlibs/aho_corasick/readme.md",
       "sha256": "7d32c10c94d75cae2653678d66eebe36c873494cd6c5c6bf123d40f492d1d699",
       "state": "available"
     },
@@ -143,13 +113,23 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/ansi/src/ansi.xl",
+      "sha256": "dc17b72d50ce5b77cf871acefd92d8d8d8b4bf9f2f15e6f6f3fd6ed50dca8b53",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/ansi/xlang.package.json",
       "sha256": "c81cd729a050e2b4942f4a26a0275645ad998551ca5088bb559da3137bfcef09",
       "state": "available"
     },
     {
-      "path": "release/extlibs/argon2/README.md",
+      "path": "release/extlibs/argon2/readme.md",
       "sha256": "57879cfe86860841c2d13567a48b700c0e0ccf092f9096d7a282e1358eed80be",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/argon2/src/argon2.xl",
+      "sha256": "ab9622d82163eaac01716c7b17dc340dfe938559e3abdf486a98b4d9f3fbdea0",
       "state": "available"
     },
     {
@@ -160,6 +140,11 @@
     {
       "path": "release/extlibs/barcode/README.md",
       "sha256": "5583386971f55cacbde00da21db7943696806a594cd61dc414fcdbb241bc8bba",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/barcode/src/barcode.xl",
+      "sha256": "3659ef3012811c1b267c73079a5e5ff595094ed810bbc027ee29e8dcec6c2a90",
       "state": "available"
     },
     {
@@ -203,6 +188,11 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/bloom/src/bloom.xl",
+      "sha256": "4695726338d8a46f88b133e2f104ebfd97c277426f5e119b82a53e436f9e0de5",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/bloom/xlang.package.json",
       "sha256": "ba2edd2705ba70917399da781da33f55cfa6f266e147b90fca413bc255bb41d3",
       "state": "available"
@@ -225,6 +215,11 @@
     {
       "path": "release/extlibs/bson/README.md",
       "sha256": "5d332390f2c8d0549eaa9593c72c29f9dacfd3c054372dcfd2ba8ba2b3177099",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/bson/src/bson.xl",
+      "sha256": "3377d0b1e9bec4c760d8099e8200bd12b8f04c15894ebd8a2e0599e8ebc5efab",
       "state": "available"
     },
     {
@@ -263,6 +258,11 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/canbus/src/canbus.xl",
+      "sha256": "d765bb2176819bc338a9e1a876fbcf8e84e9ec92de877990ed209d7b76176f1c",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/canbus/xlang.package.json",
       "sha256": "6a999dd594184c3d2f8142e63a2bc3eb049e64dafac06f88e78dc56133261d13",
       "state": "available"
@@ -270,6 +270,11 @@
     {
       "path": "release/extlibs/cbor/README.md",
       "sha256": "af3583f10f158de8a7a0bd517b70c836ca5efd5bf855ff6b12436603ee1cdabd",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/cbor/src/cbor.xl",
+      "sha256": "34a903d26a595f22a198005f02aa330adcc1cf4556c7656ccd7cc1b27be8d7a4",
       "state": "available"
     },
     {
@@ -283,6 +288,11 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/chardet/src/chardet.xl",
+      "sha256": "4dfe1870b3b20211abed50a295910fa75f7d117fc1c143d2ac2ca047cae7d6d0",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/chardet/xlang.package.json",
       "sha256": "616943239a6c3b80154706a99c324ea46e510a49cad6cbb88a7af3adc3983b9e",
       "state": "available"
@@ -293,13 +303,28 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/cli/src/cli.xl",
+      "sha256": "f3bef34971bfadad57acb9c96a74c6f0741ab9affe1955719a2372ec0ac8aee7",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/cli/xlang.package.json",
       "sha256": "d03d40536f4af2f35a79f4f6f1819174c69204ea99d53066d33a3929629b83f9",
       "state": "available"
     },
     {
+      "path": "release/extlibs/clickhouse/src/clickhouse.xl",
+      "sha256": "20c6a06abc90f2e2dde9e542b44346ac18dea6ea00cf57de21b4bd23c66764fb",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/clickhouse/xlang.package.json",
       "sha256": "4f5467c98ff602bff820ea661826fa71b8103cd946e8519fc3623c820b24c5db",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/clip/src/clip.xl",
+      "sha256": "76ac32e37f4105e605e9fe20622f980e79f001345b8f6751f910c91106b851e2",
       "state": "available"
     },
     {
@@ -323,6 +348,11 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/coap/src/coap.xl",
+      "sha256": "36c220eb9d5e51d56050c8ad073885ec8708e103a25f310404eae2fffbf7b680",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/coap/xlang.package.json",
       "sha256": "c46bb230c294e55d206c969f1d6a4645843ce92a0d01de6a894004fd7813b141",
       "state": "available"
@@ -330,6 +360,11 @@
     {
       "path": "release/extlibs/color/README.md",
       "sha256": "8799fbc75d716779f05ad346d3d92f66f694b5897497438bab096bede03eca15",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/color/src/color.xl",
+      "sha256": "251248b5645ee2378a4358d74dee0712434b44fac8bf50b70d9b58c0076e222e",
       "state": "available"
     },
     {
@@ -388,6 +423,11 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/crontab/src/crontab.xl",
+      "sha256": "7177ee090420cfe108f89ea5d5780dea8fcf30acf6365866c3c4d26997300ab6",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/crontab/xlang.package.json",
       "sha256": "95e9295b0f69b395f316b3174070c060468fe0bfd7b59273cdcc6b480bb65b6d",
       "state": "available"
@@ -395,6 +435,11 @@
     {
       "path": "release/extlibs/css/README.md",
       "sha256": "b6ecaabab8387c9316dc9815f4386d3c4b69fd7479488845ee4102ca319242a6",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/css/src/css.xl",
+      "sha256": "2b8662a8a94e8e0dfb2a183436e5156a66ed783e3a492f8e7a4304bff8981a92",
       "state": "available"
     },
     {
@@ -438,8 +483,18 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/daemon/src/daemon.xl",
+      "sha256": "2fea19a4d0441a8dbecae11d0bdc337d1f3dd5ccedbff68f8af05f18dc8d72cd",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/daemon/xlang.package.json",
       "sha256": "7a23c56662d7abf7fedcc8d12956dc4f612d72e6029ac536ad1c935a2440c19a",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/dataframe/src/dataframe.xl",
+      "sha256": "adeaa0fc910b78539cf27b7cb8f7a25f28fad49531228464525e3aba4fde5334",
       "state": "available"
     },
     {
@@ -453,6 +508,11 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/diff/src/diff.xl",
+      "sha256": "a6af11b85e3d36cbe79319f3b08dbe56e9c65046ebc4531a563e7f07cd84c417",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/diff/xlang.package.json",
       "sha256": "8c544bd5c5f8bced770ca68dfebf45e0ab9952057f3c6f31480ece529b3bee38",
       "state": "available"
@@ -460,6 +520,11 @@
     {
       "path": "release/extlibs/dinov3/README.md",
       "sha256": "e656e27fdc17558687e1e057accda5a28d9eb24a09eefcb23d5e3a206eda79c3",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/dinov3/src/dinov3.xl",
+      "sha256": "7ffffe03b9149b1238d7a8affb819e3cc50f028c6d5af9308da2f1d7f583c599",
       "state": "available"
     },
     {
@@ -473,8 +538,18 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/dns/src/dns.xl",
+      "sha256": "794fd4968f11c3e0bb5b69ba6b2796a0fed3885a8165e5a88d64a3f391b37bea",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/dns/xlang.package.json",
       "sha256": "a72a8248a5443a03e952d17e6a3d44e3005eb2c8f5527592014ca6f915e53af4",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/docker/src/docker.xl",
+      "sha256": "510454949d011c00a912148904795675b2ffc0763072566b071004c776e3eb87",
       "state": "available"
     },
     {
@@ -498,8 +573,18 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/embeddings/src/embeddings.xl",
+      "sha256": "73cae9611077a68ae6dd765756c954f84b84cae5aaea240cebc83671629ea4ce",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/embeddings/xlang.package.json",
       "sha256": "7706693b7b6a2c3480be3f0b87a0a229ec1cee95506d5196affe57f36a6ed128",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/enet/src/enet.xl",
+      "sha256": "6d98cd6a224d9d93530731f2fd253fe991b47833c05fc9db668a81e23bc74bd9",
       "state": "available"
     },
     {
@@ -513,13 +598,28 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/epub/src/epub.xl",
+      "sha256": "7ca269345f259642cf41cad22f4d060e12a1a77d897ae6de6d225371109d7203",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/epub/xlang.package.json",
       "sha256": "32a10d32dee657b0ab189a762e1b7194f4796923b2f22c5e7ebfb7c1c238125a",
       "state": "available"
     },
     {
+      "path": "release/extlibs/etcd/src/etcd.xl",
+      "sha256": "e3c0686a2d069f57565fa285a47b2f0c1050c500ef708ff6cbeedfa38ee55b32",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/etcd/xlang.package.json",
       "sha256": "06182687e0b876cdbe88ab50bfb9c350bd31ca98bc6b3d5a9f6079e13820903d",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/faiss/src/faiss.xl",
+      "sha256": "89fa6049710ef673f2eea6a51562c965fd7a287e8fc0b6d72df060ad400e2eb8",
       "state": "available"
     },
     {
@@ -533,8 +633,18 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/fix/src/fix.xl",
+      "sha256": "c2a45ff5e0a2fb61ba41a3080d8aeedb8f13d4a7baa968d4916da4cc1a42a3f4",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/fix/xlang.package.json",
       "sha256": "c23794cc68e98f66524bcb60f23107f6c71a7f68bde169ed6c9e546f268d9b61",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/flatbuffers/src/flatbuffers.xl",
+      "sha256": "ae4a742a367c0bdeeb6ed2f3ed65eb05ebf0a68e7e5fc8edf142ca7057ac6ca5",
       "state": "available"
     },
     {
@@ -558,8 +668,18 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/freetype/src/freetype.xl",
+      "sha256": "d518bf2319640ac2f86b1e1d1acbf036c88444d894086a202bc370f556cd40bd",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/freetype/xlang.package.json",
       "sha256": "07deee5179ef51437e96ab8744c087e546d76c0d3fac00ec7726443c481ee426",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/ftp/src/ftp.xl",
+      "sha256": "7e032bb26a52f6f349ea70f573bd2a670dad1bb5836daf88b2015584752d5ff7",
       "state": "available"
     },
     {
@@ -573,6 +693,11 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/fuzzy/src/fuzzy.xl",
+      "sha256": "70cae57706702a566444347f6120ff93fa787ecc17afa4ee5cd681f5fa8a046f",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/fuzzy/xlang.package.json",
       "sha256": "6f10d00905f8519d987cd5576a03dabb6ca634bce4a0680d1186746551548434",
       "state": "available"
@@ -580,6 +705,11 @@
     {
       "path": "release/extlibs/geohash/README.md",
       "sha256": "94d6ea749450aa7e4be8f22c038ccea795941b9fbd414452f5919747cde44536",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/geohash/src/geohash.xl",
+      "sha256": "f843b12082eeac1083b5a5988528838b392db37d44444005ad3ba4551e9f0822",
       "state": "available"
     },
     {
@@ -593,8 +723,18 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/gettext/src/gettext.xl",
+      "sha256": "4b29cb376b392011b34904e8324e061186115b236ffd697273e2c95e0d1672a8",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/gettext/xlang.package.json",
       "sha256": "1ea174326fdc9aa6224c06acb584b4f87f2bf73c4a7f7bf2ef6914812a0c9720",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/ggml/src/ggml.xl",
+      "sha256": "73bad07471b63bdb6d375209a8a5452f269816238f8329396e587054a900831d",
       "state": "available"
     },
     {
@@ -603,13 +743,28 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/git/src/git.xl",
+      "sha256": "8cd91e24ac8e026298f9947c7e6c73d54dbe593a7b2899e548ad9e6971f396fd",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/git/xlang.package.json",
       "sha256": "7baefee6900e9d3d6282c8ed0e3a5cd7d767eaa086d89c83d6b080712fec7e0e",
       "state": "available"
     },
     {
+      "path": "release/extlibs/glad/src/glad.xl",
+      "sha256": "b3739bbc01988416b7b79b7ae51f5c5fa31b18390a81f729cc3fc4851eb2f1ba",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/glad/xlang.package.json",
       "sha256": "7c54fb51b6464cc99e7a9c1103bd3787215a8850baed957d228f6dae9f426679",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/gpio/src/gpio.xl",
+      "sha256": "a9be58be2255c85f06e993f8f40a571a82be47270c94dd195efa72d5bfd2d8fd",
       "state": "available"
     },
     {
@@ -620,6 +775,11 @@
     {
       "path": "release/extlibs/graph/README.md",
       "sha256": "467c0cf74a00bbeab24483cba0b3b66f4e7871d3ff831983fcc93caee4dfa188",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/graph/src/graph.xl",
+      "sha256": "ba4bd82545efc425844825d6bcfccaeb328e444fef399613f36aa6a4d6580959",
       "state": "available"
     },
     {
@@ -643,6 +803,11 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/harfbuzz/src/harfbuzz.xl",
+      "sha256": "1cfd74730a2b1c72d6ea892680ba1e4d84ce6e7387a5b735e1887e05193ae83d",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/harfbuzz/xlang.package.json",
       "sha256": "641aa77f26f7f131ece9dc9776aa149a718eafc610ea5b2b63ab5e5de06ae9bd",
       "state": "available"
@@ -653,13 +818,28 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/hcl/src/hcl.xl",
+      "sha256": "2980575d50ade0972f38e31d288e2220fc5839293eda64348d05c1944543c399",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/hcl/xlang.package.json",
       "sha256": "2dd4ed82ce791a348a4ce7431bb015d5fe3e208b20f0ed5f6b74afea0b91ed4b",
       "state": "available"
     },
     {
+      "path": "release/extlibs/hnswlib/src/hnswlib.xl",
+      "sha256": "3640b6b7d2fe5893dc626a9f342c78413e9082123079d4ff90b4b51af7062f09",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/hnswlib/xlang.package.json",
       "sha256": "446548ce6873536bd873dcc545c4fff1d22d530af96815a5410383c7e73820f7",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/html5/src/html5.xl",
+      "sha256": "7f9c782c7bc944ec9d8c331ed7b877f7746f6a8f66ccf681bfc060c47d85cf6a",
       "state": "available"
     },
     {
@@ -688,8 +868,18 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/ical/src/ical.xl",
+      "sha256": "e79f4e6f3a851dcf1786b4f6f164d52fd120efb42b6896dcdaeedb9901b9256c",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/ical/xlang.package.json",
       "sha256": "b04e85a5b322a2b2650c25307831e1e40604474ebf2833efb9bb509db70e596d",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/icu/src/icu.xl",
+      "sha256": "f081af6801a1d64c8025e9959785fef95a62c39a571fbc693e07bfc87bd25a6f",
       "state": "available"
     },
     {
@@ -703,13 +893,28 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/imagehash/src/imagehash.xl",
+      "sha256": "69c7f41b7e3afe1c912d59d1c310b88389cdd03b84c5101f98899d99764c1a63",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/imagehash/xlang.package.json",
       "sha256": "142c1fb40e1d0fcd05099030370adbffc96fcdb9411be2c05c8ab249825ec0e7",
       "state": "available"
     },
     {
+      "path": "release/extlibs/imgui/src/imgui.xl",
+      "sha256": "694c7bcc10bebb3aeb91d4b5479b75601d6e5a5580ffdd4050e1fc4c737f7d68",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/imgui/xlang.package.json",
       "sha256": "90d5a2d460aecda9e3cc72ae4a47b587b531a0d3d0c05af0e017ec418b37fbf3",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/influxdb/src/influxdb.xl",
+      "sha256": "ffd8dcfb27db08af35418ee33b8cd73f7d2138fb900fb1e7d9266dd9ab4c247e",
       "state": "available"
     },
     {
@@ -723,8 +928,18 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/ini/src/ini.xl",
+      "sha256": "69c87a5387360f144129ce450509debb54fe1b4e7bca15c9224271a55295cde3",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/ini/xlang.package.json",
       "sha256": "70ef275b711ad740029458433c56848f8df8c6d54b3002eb450ac8f66a49a919",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/jieba/src/jieba.xl",
+      "sha256": "2fd6f271a567fd1c66d35babb4542211e8aa85cf2ccf2398c08c198981e98e36",
       "state": "available"
     },
     {
@@ -738,6 +953,11 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/json.patch/src/json_patch.xl",
+      "sha256": "cde957651135d13c926876b3d3fdda960b64182c62debe1c7bd762dc3f921195",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/json.patch/xlang.package.json",
       "sha256": "d3861b9d1209bfbcf9aa6d960ae05e3d41da6784a928afdc6b236bb5ee3d28be",
       "state": "available"
@@ -748,8 +968,18 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/json5/src/json5.xl",
+      "sha256": "4e01c37711f3734321680ac6cbb2f63443bb8957f8687e76ab30a4e8ab814685",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/json5/xlang.package.json",
       "sha256": "0e569bd3cf179d1368e4eb251890f07340dc2a3368d8353fdf9a1563865ef936",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/kubernetes/src/kubernetes.xl",
+      "sha256": "c0728f39819327170d30feedd684853839c4672559d441563e9b40e813f7146b",
       "state": "available"
     },
     {
@@ -763,8 +993,18 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/langdetect/src/langdetect.xl",
+      "sha256": "6a1cb5f0befac033f97fdccdbc55bec671c3698d0a556a40062774ace40a1b7c",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/langdetect/xlang.package.json",
       "sha256": "d10ea666304702f9f326b9881a0fd9815dc2b9e6e54ed4ddee7fecd33b6c9e8a",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/ldap/src/ldap.xl",
+      "sha256": "bb66cab1d3db7945e3b7f7a2ae231845047d0ce9d7afedfa83dce7ebcdca334d",
       "state": "available"
     },
     {
@@ -773,8 +1013,18 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/leveldb/src/leveldb.xl",
+      "sha256": "4f66ebd1642ecdbefd38fb5b4797ff3f739e8fcae2cbc197213a13bc8c866784",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/leveldb/xlang.package.json",
       "sha256": "4cbb51d084daeba2ce8c3377ec21587d354d1ca84b31e58497eb3f7d2b648c32",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/libsndfile/src/libsndfile.xl",
+      "sha256": "bd2d1c0d453221fe10d6d5459ed392a2fb56258015d70f1a734da088244d2c96",
       "state": "available"
     },
     {
@@ -783,8 +1033,18 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/libsvm/src/libsvm.xl",
+      "sha256": "a5675ce9698c295f56460b9c1b5343561e06dda95be1d96dc81dfe8213d97653",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/libsvm/xlang.package.json",
       "sha256": "ce83792348fe669c580c0bcac81b778122b6093f6c14fcd51cabb294748749f2",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/libusb/src/libusb.xl",
+      "sha256": "c06eb59f5c924991d467f2a003db7d411d422592fd49d65a0a4d4c7f1cdee14f",
       "state": "available"
     },
     {
@@ -798,13 +1058,28 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/linalg/src/linalg.xl",
+      "sha256": "3424d72127adeafbd5763cfa98c6ef2371a785ab503cb232eca71445ae820f71",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/linalg/xlang.package.json",
       "sha256": "d94c23368c98c690cd107fee1e9ffe142f0f72c1577efcf8fd1ac4701bbd8823",
       "state": "available"
     },
     {
+      "path": "release/extlibs/llama/src/llama.xl",
+      "sha256": "1d39c73fd4a6b21ecd23c964f02406e9d7d8978312a80f3fad1eaa8e878d656c",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/llama/xlang.package.json",
       "sha256": "0acef4198223c058aa7c7bfe2227e8f95868991b330510576d1c23673639e2ae",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/lmdb/src/lmdb.xl",
+      "sha256": "1990863c271db8f00de0e96de9ed533544e673149c16614b64ee838cb9bf8136",
       "state": "available"
     },
     {
@@ -863,6 +1138,11 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/md4c/src/md4c.xl",
+      "sha256": "ffac6ae1ae5ed6e8e4f2438b4358faf3a27686b7d840e4d27c2b89e3ef6c3500",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/md4c/xlang.package.json",
       "sha256": "b0bb80332107cceb7cfb965c457507d942b81fc95d9c10669425e01b2cab08e4",
       "state": "available"
@@ -883,6 +1163,11 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/mdns/src/mdns.xl",
+      "sha256": "a2d971529e804a9adf3d17105cd00d493ea043695abd926034ec83655366a727",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/mdns/xlang.package.json",
       "sha256": "303c1e472cbd94e4456f8ca6314c07b76ad221ca38561d81b7a933f2d0d68144",
       "state": "available"
@@ -893,8 +1178,18 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/memcached/src/memcached.xl",
+      "sha256": "6bb35939ef75e96a700fa1ce4fff610aaa482d2a3fae99f6288ccce3690698e3",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/memcached/xlang.package.json",
       "sha256": "31d4cc549af89231f75ca0413a89c5e63c42facadce4907bfc075f0370b1bf37",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/minio/src/minio.xl",
+      "sha256": "91e02be3c952ee19625802830c47d1464214be93078e1f3abd20397cea641e11",
       "state": "available"
     },
     {
@@ -918,8 +1213,18 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/mnn/src/mnn.xl",
+      "sha256": "08a49cab2b8595435c8489ddea14a2053c22c83c23cb71a26eea62d246b1f563",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/mnn/xlang.package.json",
       "sha256": "798830fc035212191fd3209f0610e036a9c5532fb545359841db3c28da21673e",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/modbus/src/modbus.xl",
+      "sha256": "9337f242ff5396ca2e7912626e7cc9efd1e4b6adad21125208d8f679c2a23ed3",
       "state": "available"
     },
     {
@@ -933,8 +1238,18 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/money/src/money.xl",
+      "sha256": "5f7b5a4b41a37efc00de78fd8dea499dc80ea449d4a642e54c1cd25a5978cec3",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/money/xlang.package.json",
       "sha256": "f45a0dda21081c449709b6cdf3cb87fe7bfbab691235b46c43cd7810357e7fc7",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/mongodb/src/mongodb.xl",
+      "sha256": "387c17d26fc89b754e7cb055f8bad696c80a1ac7f41fcdfbbad4d12bcf7000d3",
       "state": "available"
     },
     {
@@ -948,6 +1263,16 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/mqtt/src/mqtt.xl",
+      "sha256": "f391ade830359ee6e5385fa99ccd48d585efa8f26a69ba203d4f6dd8336268b9",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/mqtt/src/mqtt_net.xl",
+      "sha256": "dcdcef2640e4ce00b68238c0a1d3153c497df77aa9d674c1d3aec6d0e8ed8d3e",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/mqtt/xlang.package.json",
       "sha256": "d0965a5e412139a183d01e4cd4b5288073185cb02494892bcd2d084f393278eb",
       "state": "available"
@@ -955,6 +1280,11 @@
     {
       "path": "release/extlibs/msgpack/README.md",
       "sha256": "2311b6dcccc32f7df1bc17faa353e47533c52d7b8c186110983c000e992248f2",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/msgpack/src/msgpack.xl",
+      "sha256": "d7cdd6e5d8b4431ec41a16d7f90efec11aacd01a5dec8279c5753339b0e598fe",
       "state": "available"
     },
     {
@@ -983,8 +1313,18 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/mysql/src/mysql.xl",
+      "sha256": "8dceeb631a4b31711c8a3b513de2b286938b8756de3cf771b677c41b0a7e879f",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/mysql/xlang.package.json",
       "sha256": "6798aa642cee519ad840114595332ee239b83157414bd3194d32e56d50e9cbd0",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/nanomsg/src/nanomsg.xl",
+      "sha256": "04dd4c362702b14efd775bdb517f8459d3fe04b0018af5909b337f9dbe6b1964",
       "state": "available"
     },
     {
@@ -993,8 +1333,18 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/ncnn/src/ncnn.xl",
+      "sha256": "ad025d7062c5aa9f2d34b9fa565d1c4c23b0368df5ac0a2ba55a03840d5e642e",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/ncnn/xlang.package.json",
       "sha256": "d77a3eb3868c5ed2a57ef72478ee9fb96a0ff4a60c576a5b4a3b1b5192fbc673",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/neo4j/src/neo4j.xl",
+      "sha256": "53699e78234f9b0e3c4113003f95028435f2a4e42399205a8a4f7ab298f6ba5e",
       "state": "available"
     },
     {
@@ -1018,8 +1368,18 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/nsq/src/nsq.xl",
+      "sha256": "1da144682548018d0539b80d9aaa857860a3d3b4bf880aea1fd00a7effbbbb14",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/nsq/xlang.package.json",
       "sha256": "8f21c60af3c955744f5954ccb42f8c502495ac1117a5903f3dedc5fe1ac565be",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/ntp/src/ntp.xl",
+      "sha256": "a2226e772b27976cd41d20db20efe2a11e4a936500b523abd77062c658540c9d",
       "state": "available"
     },
     {
@@ -1030,6 +1390,11 @@
     {
       "path": "release/extlibs/onnxruntime/README.md",
       "sha256": "6890bc958916d98c027aff64fa4cb2ad5ee32afaa2ba5babaf8ff6012f14a871",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/onnxruntime/src/onnxruntime.xl",
+      "sha256": "df7efddae67dec1eac24de5886ce4be1965b6cef004dee309ac96be1dc3ed4f0",
       "state": "available"
     },
     {
@@ -1058,8 +1423,18 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/opencv/src/opencv.xl",
+      "sha256": "46a5884f78e32e7959ae4bfce72ecdbdcc6283212a4945b339ac0568b1fa5a24",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/opencv/xlang.package.json",
       "sha256": "3a13c486d43c0375239057218865f5bd7483971ef21c864efe0516eee8310260",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/opentelemetry/src/opentelemetry.xl",
+      "sha256": "fb93d10b3eb13e5ff6745bb293132b2a9bfbb1e6ef567e0ee05a6070eb269a6e",
       "state": "available"
     },
     {
@@ -1068,8 +1443,18 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/openvino/src/openvino.xl",
+      "sha256": "c8e094367f2fb660c5298e7b34c8527daa0adad3a61c7c956bcd846a6dd934c1",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/openvino/xlang.package.json",
       "sha256": "22179421908e776fc87be3a5ed95875db16609d51d9f56e17ac32181981619a1",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/opus/src/opus.xl",
+      "sha256": "bd411cb88756c5d0927855c03777ef4d66cca2613aa21ac5d9dfe0f11d730de9",
       "state": "available"
     },
     {
@@ -1078,8 +1463,18 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/passkey/src/passkey.xl",
+      "sha256": "39ed5b6375a700cb25408496265833548dd3e3f2c89ad303d8ecfaa4094658db",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/passkey/xlang.package.json",
       "sha256": "4bf54d7704c6d1c9d75cc5f19f2a8558e10899ed71cd5d4d20166c5f0552f7df",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/pcap/src/pcap.xl",
+      "sha256": "b05ce0deba06c4e504a2348637bf437bd30383b31f13b34efcb7af44fe8c4d7d",
       "state": "available"
     },
     {
@@ -1088,8 +1483,18 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/pdf/src/pdf.xl",
+      "sha256": "d5395b7700d53c16190be75eef735c3a275cdd01f9e077c4b3eba6467e767e21",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/pdf/xlang.package.json",
       "sha256": "6fd9c5dae0fd4f8524f633aff3a9615f09995755a26cc1cc15f16fda344905e1",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/pdfium/src/pdfium.xl",
+      "sha256": "93ad5f24f716f289e6e40399e450b8905adf66cad01045f6ef004028987160b8",
       "state": "available"
     },
     {
@@ -1103,6 +1508,11 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/pinyin/src/pinyin.xl",
+      "sha256": "308d103d02a1ee85543c267a07633d95d04efa14566bfff2a510c25963dd8bfd",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/pinyin/xlang.package.json",
       "sha256": "7095598fb596bcdcbb32199a2c1a9325477f145c969715143b60c783fec80f92",
       "state": "available"
@@ -1113,8 +1523,18 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/pkcs/src/pkcs.xl",
+      "sha256": "7bd3a66123d8cb0a42b0ec6db5886fbedc1d31d834ac80216cb75260be3fd12b",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/pkcs/xlang.package.json",
       "sha256": "b5659b6321bcb275eeb136ffb052149cf61d51e1ce1d7a639fc29c6f3831f57c",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/pkg.math/src/math_pkg_impl.xl",
+      "sha256": "6ae58716c82e3ddfcd97a8b716d85f15e12934a9da9552c0e2864a025c785730",
       "state": "available"
     },
     {
@@ -1138,13 +1558,28 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/portaudio/src/portaudio.xl",
+      "sha256": "dc6db3750d3ec1279610829b374034e07f0d9902316801a6e61995ecf99831a2",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/portaudio/xlang.package.json",
       "sha256": "e77e6dd6489d8c76645266bdc72bd9d473a6640001049be3d99c58985ff7c20d",
       "state": "available"
     },
     {
+      "path": "release/extlibs/postgresql/src/postgresql.xl",
+      "sha256": "41ec4ffd811575822c6fd26bdea3e110cdf3b96a784f9f5cc7b73c042bd120a9",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/postgresql/xlang.package.json",
       "sha256": "b2aed2b3cd92f0b5c0b8170a827fd86e9e300550b4585bf01b570367db4d4ccf",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/pptx/src/pptx.xl",
+      "sha256": "22e74f5207be76336c63728e911da99c7af71b2439ccea02006e632a1f34eed7",
       "state": "available"
     },
     {
@@ -1155,6 +1590,11 @@
     {
       "path": "release/extlibs/procps/README.md",
       "sha256": "11fec0d4d08df11d1cc410abfe06c521cddf68b5746f49eed68a8f8105acc23e",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/procps/src/procps.xl",
+      "sha256": "7ff8875499c63c06ee0ae01afb5a422972c97b2c195a612c6cb06c3122894b3f",
       "state": "available"
     },
     {
@@ -1178,6 +1618,11 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/prometheus/src/prometheus.xl",
+      "sha256": "d4dbf3be3cd5ab2a8555ff275aaa39c7f61d6a943e1f86994f17e6e2045ae5a7",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/prometheus/xlang.package.json",
       "sha256": "f542acd57f7ef541110e86d8819ba8c63966e5f4f4fe553127879578e6113884",
       "state": "available"
@@ -1188,8 +1633,18 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/qr/src/qr.xl",
+      "sha256": "3acc691ce7e4fff2b9d9beabe9a2b9be5cefe20c9d9e0c246ab2a91e1b4e2765",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/qr/xlang.package.json",
       "sha256": "77f11eff9cf3c1a46f19037267076dfc739c944b7da723a5ce07217ec5c398d3",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/rabbitmq/src/rabbitmq.xl",
+      "sha256": "ac241d2bc5ba2edfc3969171983c9a1cc3d71768f154cc0b87a06411e9c0bea8",
       "state": "available"
     },
     {
@@ -1213,6 +1668,11 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/ratatui/src/ratatui.xl",
+      "sha256": "0e2556c754b280175c9445c3f7056c67bffe027afeb184cde85376a91796c7e5",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/ratatui/xlang.package.json",
       "sha256": "4020d3c0035d3ea0c2e179447ff35c0c1fed030a82c7ce97ec3cf1ae97227830",
       "state": "available"
@@ -1220,6 +1680,11 @@
     {
       "path": "release/extlibs/redis/README.md",
       "sha256": "4144f6901c0e9d85a2268f30037e22d140262a2d493e27ab1e8b16ed7cd3414a",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/redis/src/redis.xl",
+      "sha256": "288fa8a40171843167be5dc4b155e6fad2832fa033b01164ca81fe99162ec795",
       "state": "available"
     },
     {
@@ -1243,6 +1708,11 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/rocksdb/src/rocksdb.xl",
+      "sha256": "9079406ffdaaba512bb338a3f834761cfc559bcd9e388bdfbf203e81ab572a48",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/rocksdb/xlang.package.json",
       "sha256": "dbd209e873b5b403e1377e45c4e131852c64e7ffdf4c51808e6f84d5987bcbcf",
       "state": "available"
@@ -1253,8 +1723,18 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/rss/src/rss.xl",
+      "sha256": "afd2bc27e797384e2e933e513f698aa9dff6d09b38d2688dd11dff1d07b070b7",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/rss/xlang.package.json",
       "sha256": "1c1d076910ab0fd4c2845a78bcf3809fecacb847cf65553b63a785a4fc995aa8",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/rtmp/src/rtmp.xl",
+      "sha256": "9ba60e9448feee58315908d0c73338cc042e4b54626badd409291f61951d49c3",
       "state": "available"
     },
     {
@@ -1278,6 +1758,11 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/sciter/src/sciter.xl",
+      "sha256": "105a6863050bdaa948200b64dda78a5387b6e3d04055c7df7c45612c22113839",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/sciter/xlang.package.json",
       "sha256": "08740a40b246377abbe50be8feab5e4342141566ddb2911328b84e51c47aa364",
       "state": "available"
@@ -1288,8 +1773,18 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/semver/src/semver.xl",
+      "sha256": "62bda34f6bbf7a83189abe45db35a56a6587c9b04b7eeaf8e157f07f88a2e9ac",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/semver/xlang.package.json",
       "sha256": "a60d8250deea3bd4d85e597c927f0fa7b5b241e6f21667e4aaab2cde1b286fe4",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/sentencepiece/src/sentencepiece.xl",
+      "sha256": "2dd0f96f5fa79889ce5151183e198e138f030a24b8f61d03b7e52a80cb384f97",
       "state": "available"
     },
     {
@@ -1348,6 +1843,11 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/shellwords/src/shellwords.xl",
+      "sha256": "ebde9dd0016b4b2a7edbfb46d1a08e50a27305e889fb17f9681c3d9a795638e4",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/shellwords/xlang.package.json",
       "sha256": "faa788750079662381983e62f75d73c163959dcce2de1cb6be7ba0bd3c722df6",
       "state": "available"
@@ -1355,6 +1855,11 @@
     {
       "path": "release/extlibs/singleinstance/README.md",
       "sha256": "cd6244f9d2227b644b363c41d4957009eba003f7fde721009b0b7486a557a782",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/singleinstance/src/singleinstance.xl",
+      "sha256": "d66bfbb024c212b22258e2cb03ba27c885da04872311c8a33b9c5226d414786b",
       "state": "available"
     },
     {
@@ -1383,6 +1888,11 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/sitemap/src/sitemap.xl",
+      "sha256": "7316b102c92f00a9cbb3e64af0c62c79e5d6f08e5b15d904471bba803fe13c91",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/sitemap/xlang.package.json",
       "sha256": "96699235217f33da047e60b0724e0c131bb8aa27aa5197b793632dc12ccdd259",
       "state": "available"
@@ -1408,6 +1918,11 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/slugify/src/slugify.xl",
+      "sha256": "5c95d984e366c3fc7997cf3fb50285db0646c73700c66680f02955da3b9e99ce",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/slugify/xlang.package.json",
       "sha256": "314d8c59be748ab77cda1fe8f8281c8ee1c50e644d05ab97d4f03065df213b72",
       "state": "available"
@@ -1428,13 +1943,28 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/snmp/src/snmp.xl",
+      "sha256": "977e366719d7bf58cdc668bcd09237bc88eefdad869c69f36e547c89120a21c6",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/snmp/xlang.package.json",
       "sha256": "6b7cff58bef6d0261fbf138176ac67ff7e082257957b2c7282fcf8947a2fab19",
       "state": "available"
     },
     {
+      "path": "release/extlibs/socks/src/socks.xl",
+      "sha256": "b9c9075311ae1dce8aaaf52c1a4cde454dd5e8822b521d11f5d42146ed58ed26",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/socks/xlang.package.json",
       "sha256": "eb67c5dacc44702f3e318e6878746aa7e4d7e3ef8706fbf41bc3cbc4da4dcf02",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/sox/src/sox.xl",
+      "sha256": "216926947f95ab0d007527b7d25739658e3b5a506a170582d144f83be3b5ead5",
       "state": "available"
     },
     {
@@ -1463,6 +1993,11 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/srt/src/srt.xl",
+      "sha256": "711bd26a888a818e1e6489e3d4c1cd9c200f7d7ae8726302761f97bcd82bb7ec",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/srt/xlang.package.json",
       "sha256": "bc67f12904b070dd705ce19f0d731ce4410ce39e68b29a6b9978adfedffdf34f",
       "state": "available"
@@ -1470,6 +2005,11 @@
     {
       "path": "release/extlibs/statistics/README.md",
       "sha256": "97cd40b28d913e624fc9bba23940109e9c3be160614538e3c349ff312802973f",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/statistics/src/statistics.xl",
+      "sha256": "a31688404becd97ad7f71422bfbfbc53394ba6fda5910eb01d8901ec4cc69c8b",
       "state": "available"
     },
     {
@@ -1498,6 +2038,11 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/stb_image_resize2/src/stb_image_resize2.xl",
+      "sha256": "d5209fe8bfd6dd431df05aad019217828e3d589800363fea3ba7226fbe71b489",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/stb_image_resize2/xlang.package.json",
       "sha256": "facdecd23787c5ea33b2e345939acbd783ec4c6ffd87bdf491413dfec54e0f3f",
       "state": "available"
@@ -1505,6 +2050,11 @@
     {
       "path": "release/extlibs/stb_image_write/README.md",
       "sha256": "d38e6b958eef106fcb4a71a4f83402127222e1a512d697f03f75b0f856615603",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/stb_image_write/src/stb_image_write.xl",
+      "sha256": "e120010446f81389ef27a69b204499f6d57fef3d580d5db69bbbec20bfa48255",
       "state": "available"
     },
     {
@@ -1533,6 +2083,11 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/sysinfo/src/sysinfo.xl",
+      "sha256": "6a1c278e09fd794cf7719f5debeba59be9b401ee0188586373f4eb2ff215ca57",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/sysinfo/xlang.package.json",
       "sha256": "1ae1c49513a44b1e60d88daac112263279fbf5676a3fe096ca27f67a991a9a03",
       "state": "available"
@@ -1550,6 +2105,11 @@
     {
       "path": "release/extlibs/tabulate/xlang.package.json",
       "sha256": "0dd85a7c20f187b24e60ef5d13c02511f2954e59fef7d49e783f124b0dda69eb",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/taglib/src/taglib.xl",
+      "sha256": "28ebefb8d19e8792b5b9f69e2010766976cd0a5c192d30d81f7fd4702b9b535e",
       "state": "available"
     },
     {
@@ -1573,6 +2133,11 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/tdengine/src/tdengine.xl",
+      "sha256": "edbb1a502c8ba3506d0cc40ce38ceb1a43a29b998ad69e64fd5b0f79759a7112",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/tdengine/xlang.package.json",
       "sha256": "37bcbb1382b45f0d0be0098368995ab60179950a59ae1f96016ee56d0faf1f72",
       "state": "available"
@@ -1583,8 +2148,18 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/terraform_state/src/terraform_state.xl",
+      "sha256": "92ac9f0276619b629354e0cb23286360e6d1dddc56c6b3d8841534c4d7e662b6",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/terraform_state/xlang.package.json",
       "sha256": "f93b4b33dc1ec0db06f81c988104c769a32851318450ab030e5a74da895a3fde",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/tokenizers/src/tokenizers.xl",
+      "sha256": "2587c83c85bd462b153b6c67ab9f9df16645a8e6062ae4bd3b57ef613ea4a0f8",
       "state": "available"
     },
     {
@@ -1598,6 +2173,11 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/toml/src/toml.xl",
+      "sha256": "d845277c47ed827ea0558916af70ac61ed19d43798965d64e460e3ccbe5fef7d",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/toml/xlang.package.json",
       "sha256": "41318d1b256f90e48883a455f769f7184c65159dbee0efd3a50cfce07c7fac93",
       "state": "available"
@@ -1608,8 +2188,18 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/totp/src/totp.xl",
+      "sha256": "ac46aa22574292164b83eab07f899cff4c64e0b077352d7044e64fc03a43e05b",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/totp/xlang.package.json",
       "sha256": "1b199ea610597fee9fda821b3a2c31d2b4d88e60d97b91880d655c2ca643cea6",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/treesitter/src/treesitter.xl",
+      "sha256": "9f2435d173fbe808d528bbc89f0098f1fa99fbacb1bcf8df7b921c42c4ba151e",
       "state": "available"
     },
     {
@@ -1653,6 +2243,11 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/uia/src/uia.xl",
+      "sha256": "504d559ed4ce2d235e98c2e2f0199943b03da884515424f1f5d5b397ffc06efd",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/uia/xlang.package.json",
       "sha256": "5b5a9a3bd1e6dce6c5078e9a4b19f2d52e083eda683dc99342160a5a27c66606",
       "state": "available"
@@ -1663,13 +2258,28 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/units/src/units.xl",
+      "sha256": "f0bd0a2f05e3e596ca6bdadb97c7071cf41139047771260189f2cd4943d8c21e",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/units/xlang.package.json",
       "sha256": "6805c837180da390c42549823f6d8d4f7d91b99a826765b42c74c0a697ad14c1",
       "state": "available"
     },
     {
+      "path": "release/extlibs/upnp/src/upnp.xl",
+      "sha256": "9a14a238d907ed0768f8696b4ef962adaa0ffd43db646533e177d091ee129bc2",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/upnp/xlang.package.json",
       "sha256": "0a8ed6cf81ef5c0b5874218aa6a55693e2c7b8a2ecb3d55abe5a755c7d5d9cfe",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/vault/src/vault.xl",
+      "sha256": "29498e6d4e9dce276adf7041cfde6668a48d7fe205911040f4369b0d884676b5",
       "state": "available"
     },
     {
@@ -1683,8 +2293,18 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/vcard/src/vcard.xl",
+      "sha256": "d9700b33e79704cb3d3c990b363293d53c1c2f346232b5ea87484b7a244595b9",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/vcard/xlang.package.json",
       "sha256": "2784688987727f3f81d3b203136c940575bb54e477f4bbc56d712257f2050bd1",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/vectordb/src/vectordb.xl",
+      "sha256": "09e4c934b339b0c1e170c7213811954aef2d05a4555ec89036876d36622b323b",
       "state": "available"
     },
     {
@@ -1695,6 +2315,11 @@
     {
       "path": "release/extlibs/volc.core/README.md",
       "sha256": "91a69f0e58fd961f56a5bb2f5cb29896a05aa2e102e3d2b89c2acaceded751c1",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/volc.core/src/volc_core.xl",
+      "sha256": "82e87ffd84f8af5a330ae571f97c4db73d429a6fc24fab109b8c67e8b3cc7c72",
       "state": "available"
     },
     {
@@ -1728,6 +2353,16 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/volc.sts/src/response.xl",
+      "sha256": "4f00769173dbbd6aae06dbdc3575f44c8d293e1ca8d4278d5eec5ec9be6a2936",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/volc.sts/src/sts.xl",
+      "sha256": "6ed794a07ccb98308a8579bc093e78ef503676e399e380c66caba343b151c37f",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/volc.sts/xlang.package.json",
       "sha256": "ab1d65d854f261691ec17549ad801200fa1499f7411e0fe63d5dc4cd817d257d",
       "state": "available"
@@ -1748,8 +2383,18 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/webview/src/webview.xl",
+      "sha256": "ac587beac43c1f3b74f0f26e2764c9fabb50a95847704472d96c910699628a3d",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/webview/xlang.package.json",
       "sha256": "ac1763c5ba8d61116838066f390060fd88ab36fcb3fcc6c245c4ecde1c19e406",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/whisper/src/whisper.xl",
+      "sha256": "1332f336b8b94c5f1f4b601b90cbe6eff88dedc429cc026baa997d1329c6e2ae",
       "state": "available"
     },
     {
@@ -1798,8 +2443,43 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/xfeat/src/xfeat.xl",
+      "sha256": "b1a5cc351f7c3bea600e096e697a0aa0079de5f2adf5a3cd4e446d136a25f8a0",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/xfeat/xlang.package.json",
       "sha256": "33014c36e61d24b545f63e0254d31e6ee7f945c666ecdffeaa0fa9bd77169387",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/xge/src/xge_async.xl",
+      "sha256": "c1aecc08cc451e0c3420fdf4a8fa8416edc86702148c6339bc2b41802edaa4f6",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/xge/src/xge_audio.xl",
+      "sha256": "031cadbee25faed9b5ecccaca27037974e6b602efd84c8f0a4fdae0aac91b52c",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/xge/src/xge_bridge.xl",
+      "sha256": "fef30622d2d961e0952b30186c4fdbac1fbe4865f30bf69019cbeb8fd200c866",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/xge/src/xge_core.xl",
+      "sha256": "decf887887980c62a45729549f300f1fe8a01fcdb2d3dd452fc8874b64c8e1ac",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/xge/src/xge_font.xl",
+      "sha256": "5867fde4f98b61eba2725599c11233ef9d86a5bed6db7b60e0bcf59528929ba7",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/xge/src/xge_input.xl",
+      "sha256": "e0d10259224e629a0772e65dbfe2d62fa11cd6ad2d0e0c826b1fb072f1354b16",
       "state": "available"
     },
     {
@@ -1808,13 +2488,48 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/xge/src/xge_platform.xl",
+      "sha256": "dd44b86461417a9f4bee16e364718dcd2a687a7cc73783ca6cca8884ad81e311",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/xge/src/xge_render.xl",
+      "sha256": "0c6ab662fb1e7d393a5201a1edd750b42666afd44b19f419404ae50537a9d39b",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/xge/src/xge_scene.xl",
+      "sha256": "1095d06ce8ffcf77c2474ff6331812a139a466cbaebbee1595c4f12a94714b0e",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/xge/src/xge_shape.xl",
+      "sha256": "1ea78e3c4513d52be92b3f52bf65577d3781a6ad5531f95777f7b741d45d0994",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/xge/src/xge_texture.xl",
+      "sha256": "d0cf200437c3c1ca919e3e3409fc856936f03fffe9ce5a4e0cfa674812197f0d",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/xge/xlang.package.json",
       "sha256": "4b96596b2bf7703d40f9508d8f134077e4b36b61667eeadf76f8f515542b5965",
       "state": "available"
     },
     {
+      "path": "release/extlibs/xge_shape_ex/src/xge_shape_ex.xl",
+      "sha256": "c2c9e6c884254ebc36e59beee9841b04d56c2847f2d4268dd6db7dea57c2d0fc",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/xge_shape_ex/src/xge_shape_ex_oop.xl",
       "sha256": "b0a9e7bc5407d186aaddaaf154b2083d43ae9af1874a6cc470930b399ea805be",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/xge_shape_ex/src/xge_svg.xl",
+      "sha256": "65cf162a29bcbc9be5db9d79c1043e9ec491d45c7be4bda600f81bbec4c757e6",
       "state": "available"
     },
     {
@@ -1883,7 +2598,7 @@
       "state": "available"
     },
     {
-      "path": "release/extlibs/xhttp.body_file/README.md",
+      "path": "release/extlibs/xhttp.body_file/readme.md",
       "sha256": "6ed827e5c5031e6b799bf470df9c0cf047e53d079991ba48dfc47d431bde7c01",
       "state": "available"
     },
@@ -2008,6 +2723,11 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/xml.dom/src/dom.xl",
+      "sha256": "c653e2ecafbce639ffc3115966b3cd4a355ce279db58fb2fc324dc7409c04e54",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/xml.dom/xlang.package.json",
       "sha256": "ab15f145761920eef4f17f1321a9beafc73622e5e9d0ea2f80c0b8a0153cb215",
       "state": "available"
@@ -2018,6 +2738,11 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/xml.etree/src/etree.xl",
+      "sha256": "efe0f6f9ecfb57822f3a2fbcd0df4565669478bd7f877f57ca79ea69e4d8e76e",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/xml.etree/xlang.package.json",
       "sha256": "92564fd5cff1e353c665947fc1089d572c868e0441b78670d9c059e2f7ac1d98",
       "state": "available"
@@ -2025,6 +2750,11 @@
     {
       "path": "release/extlibs/xml.sax/README.md",
       "sha256": "2c80634f273b360b516969b6feaa55bfc6a403872e396d5a9bb9c749cde42a17",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/xml.sax/src/sax.xl",
+      "sha256": "6451311af61e1f11a54e6277d67f7a5e74e1f9e003555b8e61effc11fba2b34f",
       "state": "available"
     },
     {
@@ -2063,8 +2793,73 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/xui/src/xui_advanced.xl",
+      "sha256": "6dca2eeffce3303e5984883c2d6fafa292cfa7ca147a0927912d6dd08faadd2a",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/xui/src/xui_containers.xl",
+      "sha256": "b15ee4fce29aeae3e9e46646aae526fdb0f5fe69daff872414165a2af34bf8ae",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/xui/src/xui_controls.xl",
+      "sha256": "d6d65149622a894db4920e1f567f8c967e4102db7f868f28ca8bf2c87ccb66e9",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/xui/src/xui_core.xl",
+      "sha256": "c2efc1c3204449b78cdfdccd32c52bdc821ae6d93feee1d45df140690a3d1cec",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/xui/src/xui_data.xl",
+      "sha256": "a0f4117d6cc43f86a4fb1801d3cb14d5786bb500c4b09d7ba4e8426bd2e2b235",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/xui/src/xui_i18n.xl",
+      "sha256": "e8b9ffb066d7bb9ecb40ee5509968717ead1e9b7a8b7907909ad2f28b04b987d",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/xui/src/xui_icon.xl",
+      "sha256": "8889bb448e23518f953bf6a69a41055a7b0ef4e7c60ef055824771ce179b8029",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/xui/src/xui_input.xl",
+      "sha256": "e63f6b3b90a9c508837c41aad382c83ecd88fbb892a9e5ae6ed7b2c72ca03755",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/xui/src/xui_oop.xl",
       "sha256": "cef15ebf52fd245a1a22595c5cbe0f2db893fdafce83251143fcd5b32c908ac4",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/xui/src/xui_overlay.xl",
+      "sha256": "2e9383c991c70e06433542f035a3b5189cd4565935bb1981119ea6205efc604b",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/xui/src/xui_picker.xl",
+      "sha256": "451c0febd671c2fd2b720a2bdede271a10e0694955fbdbb70f47abab2600af20",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/xui/src/xui_style.xl",
+      "sha256": "6265ac79457a4c474b2f0d052c4515ad4fd4dca9d96480fd83603ffd2c089326",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/xui/src/xui_surface.xl",
+      "sha256": "001ea43101c0bfbd4923c9f23e6d6336ac808972e5ca9960dd64a8b3123e2fcf",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/xui/src/xui_widget.xl",
+      "sha256": "6e95932f0246f0d009078b33acc177dafd197bdc7efe916361dc688512350a92",
       "state": "available"
     },
     {
@@ -2103,8 +2898,18 @@
       "state": "available"
     },
     {
+      "path": "release/extlibs/yaml/src/yaml.xl",
+      "sha256": "634ef1a6d397bb9ea1ac23046dad544fd1ff0eb1b6fa5d3959a01a2360ebd7b7",
+      "state": "available"
+    },
+    {
       "path": "release/extlibs/yaml/xlang.package.json",
       "sha256": "467a0d394085a7e9f2a2210f5c97ef15f7a7f167f0446dbc197988d5d98d3f29",
+      "state": "available"
+    },
+    {
+      "path": "release/extlibs/zeromq/src/zeromq.xl",
+      "sha256": "8caaae98b908cb82b7edd084c3fb84f3b03a983c76084d38178ac971e132bafc",
       "state": "available"
     },
     {

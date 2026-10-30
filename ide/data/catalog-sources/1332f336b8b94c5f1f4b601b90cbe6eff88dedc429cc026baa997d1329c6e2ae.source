@@ -1,0 +1,30 @@
+extern "xwhisper_model" func __model(int id) as string
+extern "xwhisper_language" func __language(int id) as string
+extern "xwhisper_task" func __task(int id) as string
+extern "xwhisper_timestamp" func __timestamp(int ms) as string
+extern "xwhisper_params" func __params(int model_id) as int
+extern "xwhisper_strategy" func __strategy(int id) as string
+
+export func model(int id) as string
+    return __model(id)
+end
+
+export func language(int id) as string
+    return __language(id)
+end
+
+export func task(int id) as string
+    return __task(id)
+end
+
+export func timestamp(int ms) as string
+    return __timestamp(ms)
+end
+
+export func params(int model_id) as int
+    return __params(model_id)
+end
+
+export func strategy(int id) as string
+    return __strategy(id)
+end

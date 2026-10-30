@@ -1,0 +1,40 @@
+// xge_bridge.xl - 手动维护的桥接函数（回调 trampoline + 教程框架）
+// 此文件不由 codegen 生成
+
+// === 颜色工具 ===
+export func XGE_COLOR_RGBA(c_uint r, c_uint g, c_uint b, c_uint a) as c_uint
+    return (r & 255) << 24 | (g & 255) << 16 | (b & 255) << 8 | (a & 255)
+end
+
+// === 运行循环桥接 ===
+extern "__xl6_xgeRunBridge" func __xl6_xgeRunBridge_native(var pFunc) as c_int
+export func xgeRunBridge(var pFunc) as c_int
+    return __xl6_xgeRunBridge_native(pFunc)
+end
+
+// === 教程框架 ===
+extern "__xl6_xgeTutorialInit" func __xl6_xgeTutorialInit_native(c_int w, c_int h, string title) as c_int
+export func xgeTutorialInit(c_int w, c_int h, string title) as c_int
+    return __xl6_xgeTutorialInit_native(w, h, title)
+end
+
+extern "__xl6_xgeTutorialRun" func __xl6_xgeTutorialRun_native(var pFunc) as c_int
+export func xgeTutorialRun(var pFunc) as c_int
+    return __xl6_xgeTutorialRun_native(pFunc)
+end
+
+extern "__xl6_xgeTutorialBeginFrame" func __xl6_xgeTutorialBeginFrame_native(c_uint clearColor) as c_int
+export func xgeTutorialBeginFrame(c_uint clearColor) as c_int
+    return __xl6_xgeTutorialBeginFrame_native(clearColor)
+end
+
+extern "__xl6_xgeTutorialEndFrame" func __xl6_xgeTutorialEndFrame_native() as c_int
+export func xgeTutorialEndFrame() as c_int
+    return __xl6_xgeTutorialEndFrame_native()
+end
+
+// === 相机简化桥接 ===
+extern "__xl6_xgeCameraSetSimple" func __xl6_xgeCameraSetSimple_native(c_float fPosX, c_float fPosY, c_float fScaleX, c_float fScaleY, c_float fWidth, c_float fHeight)
+export func xgeCameraSetSimple(c_float fPosX, c_float fPosY, c_float fScaleX, c_float fScaleY, c_float fWidth, c_float fHeight)
+    __xl6_xgeCameraSetSimple_native(fPosX, fPosY, fScaleX, fScaleY, fWidth, fHeight)
+end

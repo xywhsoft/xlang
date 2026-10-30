@@ -1,0 +1,40 @@
+extern "xpdf_page_size" func __page_size(int id) as string
+extern "xpdf_font" func __font(int id) as string
+extern "xpdf_line_cap" func __line_cap(int id) as string
+extern "xpdf_line_join" func __line_join(int id) as string
+extern "xpdf_text_align" func __text_align(int id) as string
+extern "xpdf_color_space" func __color_space(int id) as string
+extern "xpdf_compression" func __compression(int id) as string
+extern "xpdf_pt_to_mm_x100" func __pt_to_mm_x100(int pt) as int
+
+export func pageSize(int id) as string
+    return __page_size(id)
+end
+
+export func font(int id) as string
+    return __font(id)
+end
+
+export func lineCap(int id) as string
+    return __line_cap(id)
+end
+
+export func lineJoin(int id) as string
+    return __line_join(id)
+end
+
+export func textAlign(int id) as string
+    return __text_align(id)
+end
+
+export func colorSpace(int id) as string
+    return __color_space(id)
+end
+
+export func compression(int id) as string
+    return __compression(id)
+end
+
+export func ptToMmX100(int pt) as int
+    return __pt_to_mm_x100(pt)
+end

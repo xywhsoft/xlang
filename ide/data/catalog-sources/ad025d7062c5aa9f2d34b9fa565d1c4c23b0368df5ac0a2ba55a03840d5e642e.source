@@ -1,0 +1,25 @@
+extern "xncnn_layer" func __layer(int id) as string
+extern "xncnn_vulkan_device" func __vulkan_device(int id) as string
+extern "xncnn_conv_output" func __conv_output(int w, int k, int p, int s) as int
+extern "xncnn_pool_output" func __pool_output(int w, int k, int s) as int
+extern "xncnn_param" func __param(int id) as string
+
+export func layer(int id) as string
+    return __layer(id)
+end
+
+export func vulkanDevice(int id) as string
+    return __vulkan_device(id)
+end
+
+export func convOutput(int w, int k, int p, int s) as int
+    return __conv_output(w, k, p, s)
+end
+
+export func poolOutput(int w, int k, int s) as int
+    return __pool_output(w, k, s)
+end
+
+export func param(int id) as string
+    return __param(id)
+end

@@ -1,0 +1,70 @@
+extern "xinfluxdb_line" func __idb_line(string measurement, string tags, string fields, int timestamp) as string
+extern "xinfluxdb_line_no_tags" func __idb_line_nt(string measurement, string fields, int timestamp) as string
+extern "xinfluxdb_field_str" func __idb_fstr(string key, string value) as string
+extern "xinfluxdb_field_float" func __idb_ffloat(string key, float value) as string
+extern "xinfluxdb_field_int" func __idb_fint(string key, int value) as string
+extern "xinfluxdb_field_bool" func __idb_fbool(string key, int value) as string
+extern "xinfluxdb_escape_measurement" func __idb_esc_m(string name) as string
+extern "xinfluxdb_escape_tag" func __idb_esc_t(string s) as string
+extern "xinfluxdb_valid_measurement" func __idb_vm(string name) as int
+extern "xinfluxdb_valid_tag_key" func __idb_vtk(string key) as int
+extern "xinfluxdb_http_port" func __idb_port() as int
+extern "xinfluxdb_write_endpoint" func __idb_wep(string db) as string
+extern "xinfluxdb_query_endpoint" func __idb_qep() as string
+extern "xinfluxdb_precision_name" func __idb_prec(int prec) as string
+
+export func line(string measurement, string tags, string fields, int timestamp) as string
+    return __idb_line(measurement, tags, fields, timestamp)
+end
+
+export func lineNoTags(string measurement, string fields, int timestamp) as string
+    return __idb_line_nt(measurement, fields, timestamp)
+end
+
+export func fieldStr(string key, string value) as string
+    return __idb_fstr(key, value)
+end
+
+export func fieldFloat(string key, float value) as string
+    return __idb_ffloat(key, value)
+end
+
+export func fieldInt(string key, int value) as string
+    return __idb_fint(key, value)
+end
+
+export func fieldBool(string key, int value) as string
+    return __idb_fbool(key, value)
+end
+
+export func escapeMeasurement(string name) as string
+    return __idb_esc_m(name)
+end
+
+export func escapeTag(string s) as string
+    return __idb_esc_t(s)
+end
+
+export func validMeasurement(string name) as int
+    return __idb_vm(name)
+end
+
+export func validTagKey(string key) as int
+    return __idb_vtk(key)
+end
+
+export func httpPort() as int
+    return __idb_port()
+end
+
+export func writeEndpoint(string db) as string
+    return __idb_wep(db)
+end
+
+export func queryEndpoint() as string
+    return __idb_qep()
+end
+
+export func precisionName(int prec) as string
+    return __idb_prec(prec)
+end

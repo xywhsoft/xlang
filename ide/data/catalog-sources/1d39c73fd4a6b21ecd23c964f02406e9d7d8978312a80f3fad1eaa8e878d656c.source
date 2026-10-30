@@ -1,0 +1,35 @@
+extern "xllama_model_type" func __model_type(int id) as string
+extern "xllama_quant_type" func __quant_type(int id) as string
+extern "xllama_sampler" func __sampler(int id) as string
+extern "xllama_apply_temperature" func __apply_temperature(float logit, float temp) as float
+extern "xllama_top_p_index" func __top_p_index(string probs, float p) as int
+extern "xllama_pooling" func __pooling(int id) as string
+extern "xllama_perplexity" func __perplexity(float avg_neg_loglik) as float
+
+export func modelType(int id) as string
+    return __model_type(id)
+end
+
+export func quantType(int id) as string
+    return __quant_type(id)
+end
+
+export func sampler(int id) as string
+    return __sampler(id)
+end
+
+export func applyTemperature(float logit, float temp) as float
+    return __apply_temperature(logit, temp)
+end
+
+export func topPIndex(string probs, float p) as int
+    return __top_p_index(probs, p)
+end
+
+export func pooling(int id) as string
+    return __pooling(id)
+end
+
+export func perplexity(float avg_neg_loglik) as float
+    return __perplexity(avg_neg_loglik)
+end

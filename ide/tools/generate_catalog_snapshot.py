@@ -2,6 +2,7 @@
 import argparse,hashlib,json,os,re,shutil,subprocess,sys,tarfile
 from pathlib import Path
 from catalog_sources import plain,sha,verify
+from refresh_extensions import generate as refresh_extensions
 
 IDE=Path(__file__).resolve().parents[1]
 DOCS=['语言基础设计','函数设计','表达式与控制流设计','类型系统设计','扩展库系统设计','标准库设计']
@@ -44,14 +45,6 @@ def generate(root,output,release_report,gcc):
         captured.append({'source':str(src),'path':Path(rel).as_posix(),'sha256':sha(target)})
     for name in compiler_files:capture(root/'release'/name,Path('release')/name)
     for doc in sorted((root/'docs').glob('*.md')):capture(doc,Path('docs')/doc.name)
-    for package in sorted((root/'release/extlibs').glob('*/xlang.package.json')):
-        manifest=json.loads(package.read_text(encoding='utf-8-sig'));capture(package,package.relative_to(root))
-        for rel in manifest.get('artifact',{}).get('xlSources',[]):
-            src=(package.parent/rel).resolve()
-            if not src.is_relative_to(package.parent.resolve()):raise ValueError('Package declaration escapes its package')
-            capture(src,src.relative_to(root))
-        readme=package.parent/'README.md'
-        if readme.is_file():capture(readme,readme.relative_to(root))
     tool_snapshot=output/'snapshot/ide/tools';tool_snapshot.mkdir(parents=True)
     for name in TOOLS:shutil.copyfile(IDE/'tools'/name,tool_snapshot/name)
     tool_files={name:sha(tool_snapshot/name) for name in TOOLS}
@@ -80,8 +73,14 @@ def generate(root,output,release_report,gcc):
         expanded=snapshot/'src/stdlib/catalog.declarations.xl';run([exporter,'--expand',trigger,expanded])
         product_version=snapshot/'release/product-version.json';product_version.write_bytes(subprocess.check_output([str(compiler),'--version','--json'],cwd=snapshot,env=env))
         (snapshot/'release/catalog-binding.json').write_text(json.dumps({'sourceRevision':revision,'compilerFiles':compiler_files,'releaseReportSha256':sha(release_report)},indent=2),encoding='utf-8')
-        catalog=output/'commands.json';bundle=output/'catalog-sources'
+        standard=output/'standard';standard.mkdir()
+        catalog=standard/'commands.json';bundle=standard/'catalog-sources'
         run([sys.executable,'-X','utf8',tool_snapshot/'generate_catalog.py','--root',snapshot,'--raw',raw,'--compiler',compiler,'--output',catalog,'--source-output',bundle,'--scratch',scratch/'asts'])
+        complete=output/'complete'
+        report['extensionGeneration']=refresh_extensions(root,standard,complete,gcc)
+        catalog=output/'commands.json';bundle=output/'catalog-sources'
+        shutil.copy2(complete/'commands.json',catalog)
+        shutil.copytree(complete/'catalog-sources',bundle)
         if any(sha(snapshot/row['path'])!=row['sha256'] for row in captured):raise ValueError('Snapshot changed during generation')
         if any(sha(tool_snapshot/name)!=value for name,value in tool_files.items()):raise ValueError('Generator snapshot changed')
         if any(sha(root/'release'/name)!=value for name,value in compiler_files.items()):raise ValueError('Compiler products changed during generation')

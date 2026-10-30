@@ -1,0 +1,35 @@
+extern "xrtShellwordsSplit" func __sw_split(string line) as var
+extern "xsw_quote" func __sw_quote(string word) as point
+extern "xsw_quote_windows" func __sw_quote_windows(string word) as point
+extern "xsw_join" func __sw_join(var words) as point
+
+
+func __sw_require_c_string(string value)
+    if string.indexOf(value, "\0", false, string.byteLen(value), 1) >= 0 then
+        throw ValueError "shellwords argument contains an embedded NUL byte"
+    end
+end
+
+
+// 只做词法拆分，不展开变量、通配符或命令替换。
+export func split(string line) as var
+    __sw_require_c_string(line)
+    return __sw_split(line)
+end
+
+// quote 生成 POSIX 安全的单词：安全词原样返回，否则用单引号包裹
+export func quote(string word) as string
+    __sw_require_c_string(word)
+    return __xl_runtime.takeCstr(__sw_quote(word))
+end
+
+// quoteWindows 按 MSVCRT 规则生成 Windows 命令行参数
+export func quoteWindows(string word) as string
+    __sw_require_c_string(word)
+    return __xl_runtime.takeCstr(__sw_quote_windows(word))
+end
+
+// join 把字符串数组逐个 quote 后用空格连接成一条命令行
+export func join(var words) as string
+    return __xl_runtime.takeCstr(__sw_join(words))
+end

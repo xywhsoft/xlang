@@ -1,0 +1,25 @@
+extern "xsox_effect_name" func __effect_name(int id) as string
+extern "xsox_encoding" func __encoding(int enc) as string
+extern "xsox_format_handler" func __format_handler(int fmt) as string
+extern "xsox_channel_name" func __channel_name(int ch) as string
+extern "xsox_valid_db" func __valid_db(int db_x10) as int
+
+export func effectName(int id) as string
+    return __effect_name(id)
+end
+
+export func encoding(int enc) as string
+    return __encoding(enc)
+end
+
+export func formatHandler(int fmt) as string
+    return __format_handler(fmt)
+end
+
+export func channelName(int ch) as string
+    return __channel_name(ch)
+end
+
+export func validDb(int db_x10) as int
+    return __valid_db(db_x10)
+end

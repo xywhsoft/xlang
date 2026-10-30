@@ -1,0 +1,60 @@
+extern "xleveldb_internal_key" func __ldb_ikey(string user_key, int sequence, int ktype) as string
+extern "xleveldb_user_key" func __ldb_ukey(string ikey_hex) as string
+extern "xleveldb_sequence" func __ldb_seq(string ikey_hex) as int
+extern "xleveldb_key_type" func __ldb_ktype(string ikey_hex) as int
+extern "xleveldb_type_name" func __ldb_tname(int ktype) as string
+extern "xleveldb_block_entry" func __ldb_bentry(string key, string value, int shared) as string
+extern "xleveldb_sst_size" func __ldb_sstsize(int entries, int klen, int vlen) as int
+extern "xleveldb_compression_name" func __ldb_cname(int ctype) as string
+extern "xleveldb_block_size" func __ldb_bsize() as int
+extern "xleveldb_write_buffer_size" func __ldb_wbsize() as int
+extern "xleveldb_max_open_files" func __ldb_mof() as int
+extern "xleveldb_valid_key" func __ldb_vkey(string key) as int
+
+export func internalKey(string user_key, int sequence, int ktype) as string
+    return __ldb_ikey(user_key, sequence, ktype)
+end
+
+export func userKey(string ikey_hex) as string
+    return __ldb_ukey(ikey_hex)
+end
+
+export func sequence(string ikey_hex) as int
+    return __ldb_seq(ikey_hex)
+end
+
+export func keyType(string ikey_hex) as int
+    return __ldb_ktype(ikey_hex)
+end
+
+export func typeName(int ktype) as string
+    return __ldb_tname(ktype)
+end
+
+export func blockEntry(string key, string value, int shared) as string
+    return __ldb_bentry(key, value, shared)
+end
+
+export func sstSize(int entries, int avg_key, int avg_val) as int
+    return __ldb_sstsize(entries, avg_key, avg_val)
+end
+
+export func compressionName(int ctype) as string
+    return __ldb_cname(ctype)
+end
+
+export func blockSize() as int
+    return __ldb_bsize()
+end
+
+export func writeBufferSize() as int
+    return __ldb_wbsize()
+end
+
+export func maxOpenFiles() as int
+    return __ldb_mof()
+end
+
+export func validKey(string key) as int
+    return __ldb_vkey(key)
+end

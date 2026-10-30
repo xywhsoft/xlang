@@ -1,0 +1,25 @@
+extern "xsf_format_major" func __format_major(int fmt) as string
+extern "xsf_format_subtype" func __format_subtype(int sub) as string
+extern "xsf_seek_mode" func __seek_mode(int mode) as string
+extern "xsf_error_name" func __error_name(int code) as string
+extern "xsf_format_from_ext" func __format_from_ext(string ext) as int
+
+export func formatMajor(int fmt) as string
+    return __format_major(fmt)
+end
+
+export func formatSubtype(int sub) as string
+    return __format_subtype(sub)
+end
+
+export func seekMode(int mode) as string
+    return __seek_mode(mode)
+end
+
+export func errorName(int code) as string
+    return __error_name(code)
+end
+
+export func formatFromExt(string ext) as int
+    return __format_from_ext(ext)
+end

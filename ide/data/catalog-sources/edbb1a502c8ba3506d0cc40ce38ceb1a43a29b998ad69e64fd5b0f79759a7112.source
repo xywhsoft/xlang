@@ -1,0 +1,70 @@
+extern "xtdengine_create_db" func __td_createdb(string name, int precision) as string
+extern "xtdengine_create_stable" func __td_cstable(string name, string columns, string tags) as string
+extern "xtdengine_create_table" func __td_ctable(string table, string stable, string tag_values) as string
+extern "xtdengine_insert" func __td_insert(string table, int ts, string values) as string
+extern "xtdengine_select" func __td_select(string columns, string table, string where) as string
+extern "xtdengine_time_range" func __td_trange(string table, int start_ts, int end_ts) as string
+extern "xtdengine_interval" func __td_interval(string table, string agg_func, string col, int interval_ms) as string
+extern "xtdengine_type_name" func __td_tname(int dtype) as string
+extern "xtdengine_agg_name" func __td_aname(int agg) as string
+extern "xtdengine_valid_db_name" func __td_vdb(string name) as int
+extern "xtdengine_valid_table_name" func __td_vt(string name) as int
+extern "xtdengine_port" func __td_port() as int
+extern "xtdengine_rest_port" func __td_rport() as int
+extern "xtdengine_precision_name" func __td_prec(int prec) as string
+
+export func createDb(string name, int precision) as string
+    return __td_createdb(name, precision)
+end
+
+export func createStable(string name, string columns, string tags) as string
+    return __td_cstable(name, columns, tags)
+end
+
+export func createTable(string table, string stable, string tag_values) as string
+    return __td_ctable(table, stable, tag_values)
+end
+
+export func insert(string table, int ts, string values) as string
+    return __td_insert(table, ts, values)
+end
+
+export func select(string columns, string table, string where) as string
+    return __td_select(columns, table, where)
+end
+
+export func timeRange(string table, int start_ts, int end_ts) as string
+    return __td_trange(table, start_ts, end_ts)
+end
+
+export func interval(string table, string agg_func, string col, int interval_ms) as string
+    return __td_interval(table, agg_func, col, interval_ms)
+end
+
+export func typeName(int dtype) as string
+    return __td_tname(dtype)
+end
+
+export func aggName(int agg) as string
+    return __td_aname(agg)
+end
+
+export func validDbName(string name) as int
+    return __td_vdb(name)
+end
+
+export func validTableName(string name) as int
+    return __td_vt(name)
+end
+
+export func port() as int
+    return __td_port()
+end
+
+export func restPort() as int
+    return __td_rport()
+end
+
+export func precisionName(int prec) as string
+    return __td_prec(prec)
+end

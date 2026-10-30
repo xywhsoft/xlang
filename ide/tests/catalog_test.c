@@ -36,6 +36,14 @@ int main(int argc,char** argv)
     CHECK(findName(&catalog,"log.printf") && !strcmp(findName(&catalog,"log.printf")->parameters[2].type,"c_vararg"));
     const xide_command* module=findName(&catalog,"csv"); CHECK(module && !strcmp(module->requiredImport,"csv") && !strcmp(module->version,"1.0.0") && !xideCatalogCanComplete(module,"xlang"));
     const xide_command* reader=findName(&catalog,"csv.Reader"); CHECK(reader && !strcmp(reader->kind,"type"));
+    CHECK(findName(&catalog,"xacme") && !findName(&catalog,"acme") && !findName(&catalog,"_bzip2"));
+    const xide_command* level=findName(&catalog,"zstd.ZSTD_DEFAULT_LEVEL");
+    CHECK(level && !strcmp(level->kind,"constant") && strstr(level->signature,"= 3"));
+    const xide_command* bloom=findName(&catalog,"bloom.BloomFilter");
+    CHECK(bloom && !xideCatalogCanComplete(bloom,"xlang") && findName(&catalog,"bloom.BloomFilter.contains") && !findName(&catalog,"bloom.BloomFilter.handle"));
+    size_t fields=0;
+    for(size_t i=0;i<catalog.count;++i) if(!strcmp(catalog.entries[i].kind,"field")) { ++fields; CHECK(!xideCatalogCanComplete(&catalog.entries[i],"xlang")); }
+    CHECK(fields>0);
     size_t c=0,methods=0,extensions=0;
     for(size_t i=0;i<catalog.count;++i) { const xide_command* command=&catalog.entries[i]; if(!strcmp(command->language,"c")) { ++c; CHECK(!strcmp(command->category,"language") && !*command->requiredImport); } if(!strcmp(command->kind,"method")) { ++methods; CHECK(!xideCatalogCanComplete(command,"xlang")); } if(!strcmp(command->category,"extension")) { ++extensions; CHECK(*command->requiredImport && *command->source && command->sourceLine>=1); } }
     CHECK(c==44 && methods>2000 && extensions>2000);

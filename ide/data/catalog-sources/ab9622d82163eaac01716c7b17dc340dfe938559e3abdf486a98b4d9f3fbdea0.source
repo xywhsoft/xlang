@@ -1,0 +1,182 @@
+// ═══════════════════════════════════════════════════════════
+// argon2 — 密码哈希（RFC 9106）
+//
+// 公开能力：
+//   - 自动生成 CSPRNG 随机盐
+//   - secret（密钥哈希）/ ad（附加数据）
+//   - 可配置 parallelism
+//   - PHC 标准编码（无填充 base64）
+//   - 参数提取 / needsRehash
+//   - 预定义参数 profiles
+//
+// 典型用法：
+//   string encoded = argon2.hash("my_password")   // 自动盐
+//   bool ok = argon2.verify("my_password", encoded)
+// ═══════════════════════════════════════════════════════════
+
+// ─── C 层接口 ───
+extern "xargon2_hash" func __a2_hash(string password, c_size passwordSize, string salt, c_size saltSize, string secret, c_size secretSize, string ad, c_size adSize, c_longlong timeCost, c_longlong memoryCost, c_longlong parallelism, c_longlong hashLen, c_longlong saltLen, c_longlong type) as string
+extern "xargon2_hash_raw" func __a2_hash_raw(string password, c_size passwordSize, string salt, c_size saltSize, string secret, c_size secretSize, string ad, c_size adSize, c_longlong timeCost, c_longlong memoryCost, c_longlong parallelism, c_longlong hashLen, c_longlong saltLen, c_longlong type) as string
+// 原生返回 long long；公开布尔结果在语言层显式转换，不改变 C ABI。
+extern "xargon2_verify" func __a2_verify(string password, c_size passwordSize, string encoded, c_size encodedSize, string secret, c_size secretSize, string ad, c_size adSize) as c_longlong
+extern "xargon2_needs_rehash" func __a2_needs_rehash(string encoded, c_size encodedSize, c_longlong recTime, c_longlong recMemory, c_longlong recParallelism) as c_longlong
+extern "xargon2_extract" func __a2_extract(string encoded, c_size encodedSize) as string
+extern "xargon2_generate_salt" func __a2_gen_salt(c_longlong len) as string
+extern "xargon2_recommended_time" func __a2_rec_time() as c_longlong
+extern "xargon2_recommended_memory" func __a2_rec_memory() as c_longlong
+extern "xargon2_recommended_parallelism" func __a2_rec_p() as c_longlong
+extern "xargon2_recommended_hashlen" func __a2_rec_hl() as c_longlong
+extern "xargon2_recommended_saltlen" func __a2_rec_sl() as c_longlong
+extern "xl6_xrt_last_error_text" func __a2_error() as string
+
+// ─── 变体常量 ───
+export const int ARGON2D = 0    // 数据依赖（抗 GPU，有侧信道风险）
+export const int ARGON2I = 1    // 数据无关（抗侧信道）
+export const int ARGON2ID = 2   // 混合（推荐，RFC 9106 默认）
+
+// ─── 参数 Profiles（RFC 9106 §4） ───
+// RFC 9106 第二组推荐：t=3, m=65536 KiB (64 MiB), p=4
+export const int PROFILE_LOW_MEMORY_TIME = 3
+export const int PROFILE_LOW_MEMORY_MEMORY = 65536
+export const int PROFILE_LOW_MEMORY_PARALLELISM = 4
+
+// RFC 9106 第一组推荐：t=1, m=2097152 KiB (2 GiB), p=4
+export const int PROFILE_HIGH_MEMORY_TIME = 1
+export const int PROFILE_HIGH_MEMORY_MEMORY = 2097152
+export const int PROFILE_HIGH_MEMORY_PARALLELISM = 4
+
+
+
+func __a2_require(string result) as string
+    if result == "" then
+        throw ValueError __a2_error()
+    end
+    return result
+end
+
+// ─── 核心 API ───
+
+// hash: 计算密码哈希，返回 PHC 编码字符串
+// salt 为空字符串时自动生成 saltLen 字节的 CSPRNG 随机盐
+// secret: 可选密钥（即使数据库泄露也无法暴力破解）
+// ad: 可选附加数据（如用户ID，绑定哈希到特定上下文）
+export func hash(string password, string salt = "", string secret = "", string ad = "", int timeCost = 3, int memoryCost = 65536, int parallelism = 4, int hashLen = 32, int saltLen = 16, int type = ARGON2ID) as string
+    return __a2_require(__a2_hash(password, c_size(string.byteLen(password)), salt, c_size(string.byteLen(salt)), secret, c_size(string.byteLen(secret)), ad, c_size(string.byteLen(ad)), timeCost, memoryCost, parallelism, hashLen, saltLen, type))
+end
+
+// hashRaw: 返回原始 hex 字符串（不含元数据）
+export func hashRaw(string password, string salt = "", string secret = "", string ad = "", int timeCost = 3, int memoryCost = 65536, int parallelism = 4, int hashLen = 32, int saltLen = 16, int type = ARGON2ID) as string
+    return __a2_require(__a2_hash_raw(password, c_size(string.byteLen(password)), salt, c_size(string.byteLen(salt)), secret, c_size(string.byteLen(secret)), ad, c_size(string.byteLen(ad)), timeCost, memoryCost, parallelism, hashLen, saltLen, type))
+end
+
+// verify: 验证密码是否匹配 PHC 编码字符串
+// 自动解析 PHC 参数和盐；secret/ad 不在 PHC 中，必须由验证方提供。
+export func verify(string password, string encoded, string secret = "", string ad = "") as bool
+    return __a2_verify(password, c_size(string.byteLen(password)), encoded, c_size(string.byteLen(encoded)), secret, c_size(string.byteLen(secret)), ad, c_size(string.byteLen(ad))) != 0
+end
+
+// checkNeedsRehash: 判断已有哈希的参数是否与当前推荐值不同
+// 与 Python 的 check_needs_rehash 对标：参数不完全匹配即返回 true
+// 典型用法：用户登录成功后检查，若需升级则重新 hash 并更新存储
+export func checkNeedsRehash(string encoded, int timeCost = 3, int memoryCost = 65536, int parallelism = 4) as bool
+    return __a2_needs_rehash(encoded, c_size(string.byteLen(encoded)), timeCost, memoryCost, parallelism) != 0
+end
+
+// ─── 参数提取（对标 Python Parameters.extract） ───
+
+// extractType: 从 PHC 编码提取变体类型（0=d, 1=i, 2=id）
+export func extractType(string encoded) as int
+    string info = __a2_extract(encoded, c_size(string.byteLen(encoded)))
+    if info == "" then
+        return -1
+    end
+    return string.byteAt(info, 0) - 48  // '0'/'1'/'2' -> 0/1/2
+end
+
+// extractTimeCost: 从 PHC 编码提取迭代次数
+export func extractTimeCost(string encoded) as int
+    string info = __a2_extract(encoded, c_size(string.byteLen(encoded)))
+    if info == "" then
+        return -1
+    end
+    // format: "type,t,m,p,hl,sl"
+    int pos = 2  // skip "N,"
+    int val = 0
+    while pos < info.length and string.byteAt(info, pos) != 44
+        val = val * 10 + (string.byteAt(info, pos) - 48)
+        pos += 1
+    end
+    return val
+end
+
+// extractMemoryCost: 从 PHC 编码提取内存参数（KiB）
+export func extractMemoryCost(string encoded) as int
+    string info = __a2_extract(encoded, c_size(string.byteLen(encoded)))
+    if info == "" then
+        return -1
+    end
+    // skip "N,N," to get m
+    int pos = 2
+    while pos < info.length and string.byteAt(info, pos) != 44
+        pos += 1
+    end
+    pos += 1
+    int val = 0
+    while pos < info.length and string.byteAt(info, pos) != 44
+        val = val * 10 + (string.byteAt(info, pos) - 48)
+        pos += 1
+    end
+    return val
+end
+
+// extractParallelism: 从 PHC 编码提取并行度
+export func extractParallelism(string encoded) as int
+    string info = __a2_extract(encoded, c_size(string.byteLen(encoded)))
+    if info == "" then
+        return -1
+    end
+    // skip "N,N,N," to get p
+    int pos = 2
+    int commas = 0
+    while pos < info.length and commas < 2
+        if string.byteAt(info, pos) == 44 then
+            commas += 1
+        end
+        pos += 1
+    end
+    int val = 0
+    while pos < info.length and string.byteAt(info, pos) != 44
+        val = val * 10 + (string.byteAt(info, pos) - 48)
+        pos += 1
+    end
+    return val
+end
+
+// ─── 盐生成 ───
+
+// generateSalt: 生成 CSPRNG 随机盐（hex 字符串）
+export func generateSalt(int len = 16) as string
+    return __a2_require(__a2_gen_salt(len))
+end
+
+// ─── 推荐参数 ───
+
+export func recommendedTime() as int
+    return __a2_rec_time()
+end
+
+export func recommendedMemory() as int
+    return __a2_rec_memory()
+end
+
+export func recommendedParallelism() as int
+    return __a2_rec_p()
+end
+
+export func recommendedHashLen() as int
+    return __a2_rec_hl()
+end
+
+export func recommendedSaltLen() as int
+    return __a2_rec_sl()
+end

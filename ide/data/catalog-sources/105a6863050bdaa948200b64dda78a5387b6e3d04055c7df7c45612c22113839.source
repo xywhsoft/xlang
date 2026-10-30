@@ -1,0 +1,25 @@
+extern "xsciter_element" func __element(int id) as string
+extern "xsciter_event" func __event(int id) as string
+extern "xsciter_style_prop" func __style_prop(int id) as string
+extern "xsciter_display" func __display(int id) as string
+extern "xsciter_parse_px" func __parse_px(string val) as int
+
+export func element(int id) as string
+    return __element(id)
+end
+
+export func event(int id) as string
+    return __event(id)
+end
+
+export func styleProp(int id) as string
+    return __style_prop(id)
+end
+
+export func display(int id) as string
+    return __display(id)
+end
+
+export func parsePx(string val) as int
+    return __parse_px(val)
+end

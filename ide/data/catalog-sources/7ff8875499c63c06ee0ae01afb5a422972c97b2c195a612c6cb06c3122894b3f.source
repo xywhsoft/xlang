@@ -1,0 +1,50 @@
+// 进程快照只承诺 Windows/Linux；结果会随系统运行实时变化。
+extern "xl6_xrt_last_error_text" func __proc_error() as string
+extern "xprocps_pid" func __proc_pid() as int
+extern "xprocps_ppid" func __proc_ppid() as int
+extern "xprocps_exists" func __proc_exists(int pid) as c_int
+extern "xprocps_name" @owned func __proc_name(int pid) as string?
+extern "xprocps_pids" func __proc_pids() as var
+extern "xprocps_count" func __proc_count() as int
+extern "xprocps_mem_kb" func __proc_mem(int pid) as int
+
+export func pid() as int
+    return __proc_pid()
+end
+
+export func ppid() as int
+    int value = __proc_ppid()
+    if value < 0 then throw RuntimeError __proc_error() end
+    return value
+end
+
+export func exists(int processId) as bool
+    return __proc_exists(processId) != 0
+end
+
+export func name(int processId) as string
+    string? value = __proc_name(processId)
+    if value == null then throw ValueError "process name is unavailable" end
+    return value
+end
+
+export func pids() as array<int>
+    var raw = __proc_pids()
+    if raw == null then throw RuntimeError __proc_error() end
+    array<int> result = array<int>[]
+    for processId in raw
+        result.append(int(processId))
+    end
+    return result
+end
+
+export func count() as int
+    int result = __proc_count()
+    if result < 0 then throw RuntimeError __proc_error() end
+    return result
+end
+
+// 常驻内存，单位 KiB；目标进程退出或拒绝读取时返回 -1。
+export func memKb(int processId) as int
+    return __proc_mem(processId)
+end
