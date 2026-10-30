@@ -58,6 +58,11 @@ static int xlsIrVerifyScopeExitActionsOriginal(const XL6_IrModule*,const XL6_IrE
 static int xlsIrBuildImplicitConversionAbisOriginal(XL6_IrModule*);
 static int xlsIrBuildModuleOriginal(XL6_IrModule*,const XL6_AstNode*,XL6_DiagList*);
 static const XL6_AstNode* xlsIrFindTypeDeclOriginal(const XL6_AstNode*,const XL6_AstNode*);
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+static const XL6_IrCallSite* xlsIrCallSiteGetOriginal(const XL6_IrModule*,XL6_IrNodeId);
+static int xlsIrBuildMemberAbisOriginal(XL6_IrModule*);
+static int xlsIrRefreshLoopAbisOriginal(XL6_IrModule*);
+#endif
 
 #define XLS_IR_TYPE_LOOKUP_BYTES (8u*1024u*1024u)
 typedef struct xls_ir_type_lookup {
@@ -208,6 +213,26 @@ static size_t xlsIrNextCallCandidate(const XL6_IrModule* module,XL6_IrNodeId ori
     if(!item || item->origin!=origin) return module->callSiteCount;
     ++xlsIrCallWork.indexedVisits; return item->index;
 }
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+const XL6_IrCallSite* xl6IrCallSiteGet(const XL6_IrModule* module,XL6_IrNodeId origin)
+{
+    /* The sorted key retains physical ordinals,so duplicate origins still
+     * select the first original record. ABI/argument fields remain live. */
+    if(!module || !origin || !xlsIrCallScan(module))return xlsIrCallSiteGetOriginal(module,origin);
+    size_t first=xlsIrFirstCallCandidate(module,origin);
+    return first<module->callSiteCount ? &module->callSites[first] : NULL;
+}
+static int xl6IrBuildMemberAbis(XL6_IrModule* module)
+{
+    xls_ir_call_scan scan;xlsIrCallScanBegin(&scan,module,XLS_IR_CALL_BYTES);
+    int okay=xlsIrBuildMemberAbisOriginal(module);xlsIrCallScanDone(&scan);return okay;
+}
+int xl6IrRefreshLoopAbis(XL6_IrModule* module)
+{
+    xls_ir_call_scan scan;xlsIrCallScanBegin(&scan,module,XLS_IR_CALL_BYTES);
+    int okay=xlsIrRefreshLoopAbisOriginal(module);xlsIrCallScanDone(&scan);return okay;
+}
+#endif
 int xlsFrontendIrConversionBudget(XL6_IrModule* module,size_t bytes)
 {
     xls_ir_call_scan scan; xlsIrCallScanBegin(&scan,module,bytes);

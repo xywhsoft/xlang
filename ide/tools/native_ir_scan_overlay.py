@@ -64,6 +64,17 @@ def derive(source: str, *, current=False):
     }
     if current:
         del changes['    for ( i = 0; i < module->nodeCount; ++i ) {\n        const XL6_IrNode* scope = &module->nodes[i];\n        XL6_IrNodeId scopeId = (XL6_IrNodeId)(i + 1);']
+        # Construction effects now query call origins for every node. Reuse
+        # the same physical-order index in the two immutable build phases
+        # and in the existing verifier scope; keep all argument predicates.
+        changes.update({
+            'const XL6_IrCallSite* xl6IrCallSiteGet(const XL6_IrModule* module, XL6_IrNodeId origin)\n{':
+                'static const XL6_IrCallSite* xlsIrCallSiteGetOriginal(const XL6_IrModule* module, XL6_IrNodeId origin)\n{',
+            'static int xl6IrBuildMemberAbis(XL6_IrModule* module)\n{':
+                'static int xlsIrBuildMemberAbisOriginal(XL6_IrModule* module)\n{',
+            'int xl6IrRefreshLoopAbis(XL6_IrModule* module)\n{':
+                'static int xlsIrRefreshLoopAbisOriginal(XL6_IrModule* module)\n{',
+        })
     for old,new in changes.items():
         if source.count(old)!=1:
             raise ValueError("shared IR scan seam changed; audit its native overlay: "+old)
