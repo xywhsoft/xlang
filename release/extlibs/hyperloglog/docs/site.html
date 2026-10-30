@@ -39,6 +39,7 @@ hll.merge(nextDay)
 println(hll.count())  // 近似值，不是精确集合大小
 hll.clear()</code></pre>
     <p>单实例没有并发锁；误差性质、C 接口、测试范围与 AOT 状态见包内 README。</p>
+    <p>2026-10-30 新增15种精度的构造哈希位向量、整数有理数参照、大值/饱和与逐寄存器合并测试，五个破坏副本均拒绝；这些合成输入不是实际数据误差保证。C/XLang预热普通操作零额外分配、八个生成原型、新旧双语输出和两平台七条普通独立程序通过，Linux含sanitizer。新shard_union范例明确区分已知并集2000、估计1993和输入调用数；三份原顶层正例仍在AOT退出期失败，M2开放，默认门禁完整留档但不签收整包。算法/ABI未改。</p>
     <p>C API 失败后可直接重试，成功调用会清除本线程旧的 XRT 错误。<code>count/added</code> 使用跨平台 <code>int64_t</code> 结果，<code>add</code> 长度仍为 C <code>long long</code>。C 范例可直接 <code>xl run release/extlibs/hyperloglog/examples/hyperloglog_c.c</code>；双平台 JIT 与固定输出、Windows 核心和公开范例 AOT 已通过。当前 Windows/Linux 独立 EXE 的顶层对象边界在打印 PASS 后于退出清理期报错，整包尚未发布签收；复现与修复边界见包内 README。估计值不是精确基数。</p>
   </section>
 </main>

@@ -1,5 +1,68 @@
 # hyperloglog
 
+## 2026-10-30 位边界、数值和合并基线
+
+本轮未确认新的包算法错误，原生C、绑定、公开头及ABI均未改。
+新增测试主要补真实随机样本难以触发的位边界与估计值饱和分支，
+不是新增HLL++、文件格式或精确集合能力。
+
+- `test/register_vectors.c` 只在测试翻译单元替换哈希输入。15种精度
+  4..18的每个寄存器覆盖秩1、2、有限高值与最大值；索引0、1、中点、
+  末项另覆盖所有可达秩及较小秩的重复写入。零后缀必须得到`65-p`，
+  不能把索引位混入秩。显式长度3和`-1`/空文本长度也单独核对。
+- 均匀秩1/2时，按原系数构造整数有理数并精确舍入，独立于被测的
+  浮点求和；小样本、约6e18的有限结果和超过int64上限的饱和结果
+  分别验证，防止过早截成32位上限或无保护浮点转换。公式对照
+  [原论文第4节/Fig.3](https://algo.inria.fr/flajolet/Publications/FlFuGaMe07.pdf#page=14)。
+  论文图中为32位哈希，本包的64位范围、精度18与int64饱和按自身合同
+  测试，没有套用32位大范围校正或宣称HLL++准确性。
+- 全部精度逐寄存器核对合并最大值、源不变、重复合并、自合并、不同
+  精度拒绝后的原值与`added`；C普通操作通过XRT零分配预算，最后存活
+  内存/字节与非法释放计数平衡。构造哈希投喂3,152,112次、断言
+  6,830,512条，含重复写入/遍历，**不是同量独立字符串或真实基数样本**。
+- 五个隔离破坏副本分别不剥离索引位、误用低位索引、提前饱和、删除
+  饱和保护、把合并最大值改小，均在对应检查失败。正式库无测试钩子。
+  `zero_allocations.xl` 在15种精度下预热后检查add/count/merge/clear/
+  属性和自合并通过XRT零分配预算；创建、输入构造、错误路径不在预算内，
+  也不把零分配当成调用/引用记账没有CPU成本。
+- 新`examples/shard_union.xl`与`shard_union_c.c`对照部分重叠分片：
+  已知并集2000、本固定样本估计1993；合并与直接写入的估计相等，
+  重复合并后`added`由3000到4500但估计不变，自合并不再累计，源保持
+  可用；clear后复用。八行黄金输出是固定数据回归，不是误差硬保证。
+  两个新语言用例已登记coverage。
+
+两平台默认门禁各49阶段，46项符合预期（含两项私有访问拒绝）。旧大
+样本、独立实例线程、故障恢复、新边界、八个真实生成原型/正式C头、
+新旧双语黄金例及七条普通独立程序均通过；错配count返回类型的负例
+确实拒绝。Linux C启用ASan/UBSan/float-cast-overflow及泄漏检查。
+原`boundaries`、`named_type`、`allocations`三顶层正例分别构建成功、
+打印PASS后在AOT退出期报state错误1，**M2未关闭，整包门禁不通过**。
+聚合运行仍要求每项退出0，不把1改成预期结果或挪动顶层变量。
+
+Windows/Linux门禁的45/43项输入前后不变，编译警告均零。所有阶段
+限时并保存命令、原始退出码、stdout/stderr与输入指纹；成功才清理，
+失败保留现场。真实Windows静默编译器内部37/外层1、Linux缺编译器
+原始127也保留记录，不会因为无输出或缺工具算作通过。C独立夹具仅
+启Hash64/Thread/Memory Debug，不再引入ALL；正式包依赖不变。
+
+在仓库根目录运行新范例：
+
+```powershell
+release/xl.exe run release/extlibs/hyperloglog/examples/shard_union.xl
+release/xl.exe run release/extlibs/hyperloglog/examples/shard_union_c.c
+```
+
+Linux把`release/xl.exe`换成`release/xl`；无网络/外部服务前提，预期输出
+见`examples/shard_union.expected.txt`。语言对象作用域结束回收，C显式
+销毁三份草图。完整入口仍为下方`test/check.ps1`/`test/check.sh`，
+`-SkipAot`仅供开发，不作验收。Windows报告
+`build/test/hyperloglog_guard/run_a96a88e2e0df4bc2a0c8de7c2c13c9db.json`；
+Linux原生快照`/var/tmp/xlang-hll-final-src-4YF7Dk`，79个复制源与原件
+前后一致，失败现场`tmp/xlang-hll-zIl55I`。完整证据索引
+`build/test/hll_audit_f7af61fe6e5f457698d26178479b3747`。
+
+## 先前门禁记录
+
 2026-10-26 发布物复验：Windows 默认门禁的 C/线程/JIT、私有入口
 负例、双语固定输出，以及中央/公开范例 AOT 已通过；新增顶层
 `test/boundaries.xl` AOT 在 Windows/Linux 都先打印 PASS，再于退出

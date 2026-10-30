@@ -1,0 +1,35 @@
+// 草图并集不等于相加去重数；added 记录输入调用次数，重复合并会再次累计。
+import hyperloglog
+
+func main(...) as int
+    hyperloglog.HyperLogLog left = hyperloglog.create(12)
+    hyperloglog.HyperLogLog right = hyperloglog.create(12)
+    hyperloglog.HyperLogLog direct = hyperloglog.create(12)
+    for i in range(2000)
+        string visitor = "visitor:" + string(i)
+        direct.add(visitor)
+        if i < 1500 then left.add(visitor) end
+        if i >= 500 then right.add(visitor) end
+    end
+    int sourceEstimate = right.count()
+    left.merge(right)
+    int estimate = left.count()
+    assert estimate == direct.count() and left.added == 3000
+    println("known union: 2000")
+    println("estimated union:", estimate)
+    println("input calls:", left.added)
+    left.merge(right)
+    left.merge(left)
+    assert left.count() == estimate and left.added == 4500
+    assert right.count() == sourceEstimate and right.added == 1500
+    println("repeat added:", left.added)
+    println("same estimate: true")
+    println("source intact: true")
+    left.clear()
+    assert left.count() == 0 and left.added == 0
+    println("reset:", left.count(), left.added)
+    left.add("again")
+    assert left.count() == 1 and left.added == 1
+    println("reused calls:", left.added)
+    return 0
+end

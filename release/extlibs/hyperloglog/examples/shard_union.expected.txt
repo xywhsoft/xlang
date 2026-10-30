@@ -1,0 +1,8 @@
+known union: 2000
+estimated union: 1993
+input calls: 3000
+repeat added: 4500
+same estimate: true
+source intact: true
+reset: 0 0
+reused calls: 1

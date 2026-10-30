@@ -1,0 +1,38 @@
+// 创建和输入先完成；仅要求已预热的普通操作零额外分配。
+import hyperloglog
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    string key = "a\0b"
+    for precision in range(4, 19)
+        hyperloglog.HyperLogLog sketch = hyperloglog.create(precision)
+        hyperloglog.HyperLogLog source = hyperloglog.create(precision)
+        source.add(key)
+        sketch.add(key)
+        sketch.merge(source)
+        assert sketch.precision == precision and sketch.added == 2 and sketch.count() == 1
+        sketch.clear()
+        bool caught = false
+        assert failAfter(0)
+        try
+            sketch.add(key)
+            sketch.add(key)
+            sketch.merge(source)
+            sketch.merge(sketch)
+            assert sketch.precision == precision and sketch.added == 3 and sketch.count() == 1
+            sketch.clear()
+            assert sketch.added == 0 and sketch.count() == 0
+        catch MemoryError error
+            caught = true
+        end
+        bool triggered = failTriggered()
+        failClear()
+        assert not caught and not triggered
+        sketch.add(key)
+        assert sketch.count() == 1 and sketch.added == 1 and source.added == 1
+    end
+    return 0
+end

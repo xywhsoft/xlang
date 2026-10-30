@@ -17,7 +17,7 @@
     "links": [],
     "loadlibs": [],
     "dependencies": [],
-    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/named_type.xl", "test/allocations.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/named_type.xl", "test/allocations.xl", "test/zero_allocations.xl", "examples/shard_union.xl"] },
     "native": {
         "singleton": false,
         "loadName": "",
