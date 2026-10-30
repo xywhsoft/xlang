@@ -38,7 +38,8 @@ static int bounded(xide_app* app) {
 static int colored(xide_app* app,xui_widget code,ide_color_role role) {
     for(int j=0;j<xuiWidgetGetCacheStateCount(code);++j) {xui_surface s=xuiWidgetGetCacheSurface(code,xuiWidgetGetCacheStateId(code,j));xui_surface_desc_t d={0};if(!s || app->proxy.surfaceGetDesc(&app->proxy,s,&d)!=XUI_OK)continue;
         size_t n=(size_t)d.iWidth*d.iHeight,count=0;unsigned char* pixels=malloc(n*4);if(!pixels)return 0;int result=app->proxy.surfaceReadRGBA(&app->proxy,s,pixels,d.iWidth*4);uint32_t color=ideThemeColor(app->theme,role);
-        if(result==XUI_OK)for(size_t i=0;i<n;++i)if(pixels[i*4]==(unsigned char)(color>>24) && pixels[i*4+1]==(unsigned char)(color>>16) && pixels[i*4+2]==(unsigned char)(color>>8) && pixels[i*4+3])++count;
+        /* Thin antialiased glyphs need not contain an opaque palette pixel. */
+        if(result==XUI_OK)for(size_t i=0;i<n;++i)if(abs((int)pixels[i*4]-(unsigned char)(color>>24))<=8 && abs((int)pixels[i*4+1]-(unsigned char)(color>>16))<=8 && abs((int)pixels[i*4+2]-(unsigned char)(color>>8))<=8 && pixels[i*4+3])++count;
         free(pixels);if(count>3)return 1;
     }return 0;
 }
