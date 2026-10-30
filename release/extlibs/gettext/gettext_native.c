@@ -164,9 +164,11 @@ static int xgt_decode_po_string(XgtStr *out, const char *p,
             }
             p += 2;
         } else {
-            if (*p == '\0') return 0;
-            if (!xgt_put(out, p, 1)) return 0;
-            p++;
+            /* 范围来自已定位闭引号的 C 文本，无 NUL；普通正文一次追加。 */
+            const char *slash = memchr(p, '\\', (size_t)(end - p));
+            const char *stop = slash ? slash : end;
+            if (!xgt_put(out, p, (size_t)(stop - p))) return 0;
+            p = stop;
         }
     }
     return 1;

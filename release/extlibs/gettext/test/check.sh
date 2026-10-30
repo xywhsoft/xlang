@@ -28,6 +28,7 @@ record_failure() {
 trap 'record_failure "$?" "$LINENO" "$BASH_COMMAND" "${PIPESTATUS[*]}"' ERR
 cc=${CC:-gcc}
 cc_path=$(command -v "$cc" || true)
+cc1_path=''
 flags=(-std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror
        -Ilib/xrt -Irelease/extlibs/gettext
        -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -pthread)
@@ -41,11 +42,15 @@ input_paths() {
           release/include/xl_extlib_abi.h test/cases/extlib_gettext.xl \
           test/fixtures/gettext_mini.mo release/examples/extlibs/gettext.xl
       if [[ -n "$cc_path" ]]; then printf '%s\0' "$cc_path"; fi
+      if [[ -n "$cc1_path" ]]; then printf '%s\0' "$cc1_path"; fi
     }
 }
 mapfile -d '' inputs < <(input_paths | sort -zu)
 sha256sum "${inputs[@]}" > "$work/inputs.before.sha256"
 "$cc" --version > "$work/compiler.txt"
+cc1_path=$("$cc" -print-prog-name=cc1)
+mapfile -d '' inputs < <(input_paths | sort -zu)
+sha256sum "${inputs[@]}" > "$work/inputs.before.sha256"
 
 # 独立编译共同对象，边界、范例与外部目录测试不再反复编译整份 XRT。
 "$cc" "${flags[@]}" -c release/extlibs/gettext/test/xrt_runtime.c -o "$work/xrt.o"
@@ -63,6 +68,10 @@ timeout 30s "$work/test_context_queries"
 timeout 90s "$work/po-layout-c"
 timeout 90s ./release/xl run release/extlibs/gettext/test/po_layout_c.c
 timeout 90s ./release/xl run release/extlibs/gettext/test/po_layout.xl
+"$cc" "${flags[@]}" release/extlibs/gettext/test/po_spans_c.c "$work/xrt.o" -no-pie -lm -ldl -o "$work/po-spans-c"
+timeout 90s "$work/po-spans-c"
+timeout 90s ./release/xl run release/extlibs/gettext/test/po_spans_c.c
+timeout 90s ./release/xl run release/extlibs/gettext/test/po_spans.xl
 layout_source=release/extlibs/gettext/test/po_layout.po
 "$cc" "${flags[@]}" release/extlibs/gettext/examples/layout_c.c "$work/xrt.o" -no-pie -lm -ldl -o "$work/layout-c"
 timeout 30s "$work/layout-c" "$layout_source" > "$work/layout-c.txt"
@@ -114,7 +123,7 @@ timeout 120s ./release/xl build release/extlibs/gettext/examples/gettext_c.c \
     -o "$work/gettext_c_example"
 timeout 90s "$work/gettext_c_example" > "$work/example_c_aot.txt"
 diff -u "$work/example_c.txt" "$work/example_c_aot.txt"
-for source in test/po_layout.xl test/po_layout_c.c examples/layout.xl examples/layout_c.c; do
+for source in test/po_layout.xl test/po_layout_c.c test/po_spans.xl test/po_spans_c.c examples/layout.xl examples/layout_c.c; do
     target="$work/$(basename "${source%.*}")"
     timeout 120s ./release/xl build "release/extlibs/gettext/$source" -o "$target"
     if [[ "$source" == examples/* ]]; then

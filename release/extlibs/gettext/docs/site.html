@@ -67,6 +67,8 @@ int main(void)
   </section>
   <section id="verify">
     <h2>验证状态</h2>
+    <p>2026-10-30：PO普通正文按连续片段追加，转义仍由同一个分支处理，不改API、ABI或所有权。156组正文/续行/独立寿命用例新旧结果一致，四组实际OOM点102→98且均零失败。教学PO新增续行，原六行C/XLang黄金输出、GNU MO与Python独立对照通过。Windows默认59阶段、Linux完整ASan/UBSan及双平台各14条普通独立程序通过；Windows包级Run的null/空数组/显式空字符串区别另在PS5/PS7验证。</p>
+    <p>固定长ASCII解析负载在本机GCC/TCC、Windows/Linux下，旧/新中位耗时比2.45–3.41；Linux TCC的两个转义样本本轮约慢5%，不承诺所有负载提速。native对象text增加32B/64B，不是最终程序体积；正文与独立目录值仍有复制，不宣称零复制。完整条件和原始证据见包内 <code>PO_SPAN_AUDIT_2026-10-30.md</code>，新 <code>examples/README.md</code> 给出同一PO/MO双语读取及续行说明。</p>
     <p>2026-10-29 修复 PO 字段仅接受固定空格、完整消息后无空行进入 msgctxt 被拒绝的两类边界。字段支持空格/制表符和紧贴引号，完整条目不强制空行；关键字前缀、缺译文和重复上下文仍拒绝。新夹具被 GNU msgfmt 0.23.2 接受，C 的 21 项回归由 12 次失败降为零，16 个分配预算及释放指标通过，语言用例保留全局目录自然退役。</p>
     <p>新 <code>extlibs/gettext/examples/layout.xl</code> 与 <code>layout_c.c</code> 从路径读取 PO，或追加 <code>mo</code> 参数读取 MO；在仓库根目录用 <code>xl run 文件 -- release/extlibs/gettext/test/po_layout.po</code> 执行。范例区分普通/菜单/工具栏/空上下文及单复数，统一核对 <code>layout.expected.txt</code> 的六行结果。C 借用译文在目录存活期间打印，不额外复制；Python GNUTranslations 也独立核对相同目录。</p>
     <p>本轮 Windows 默认 50 阶段通过，Linux 原生快照通过 ASan/UBSan、旧新边界/分配故障、七个实际生成原型与两平台各十二条普通独立程序路径。Linux 另过 GNU MO 专项和新范例的 PO/MO 双语黄金对照。输入未变，失败现场及原始退出码保留；没有改变公开 API、ABI、结果所有权、复数公式或冻结 XRT。本包仍只承诺已列出的 UTF-8 PO/MO 子集，不支持任意 GNU 词法扩展。</p>

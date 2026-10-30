@@ -31,6 +31,8 @@ foreach ($path in @(InputPaths | Sort-Object -Unique)) { $hashes[$path] = (Get-F
 $passed = $false
 
 function Run([string]$name, [string]$program, [string[]]$arguments) {
+    # 空参数表可能来自条件表达式的空输出，不得变成一个空字符串实参。
+    if ($null -eq $arguments) { $arguments = @() }
     $result = Invoke-ExtlibSmokeProcess $program $arguments (Get-Location).Path 120 $environment
     $checks.Add([ordered]@{name=$name;program=$program;arguments=$arguments;result=$result})
     if ($result.status -ne 'pass') { throw "${name}: $($result.status) exit=$($result.exitCode)`n$($result.stderr)`n$($result.stdout)" }
@@ -42,6 +44,8 @@ Push-Location $root
 try {
     [IO.Directory]::CreateDirectory($work) | Out-Null
     $null = Run 'compiler version' $gcc @('--version')
+    $cc1 = Run 'compiler cc1 path' $gcc @('-print-prog-name=cc1')
+    $hashes[$cc1] = (Get-FileHash -LiteralPath $cc1).Hash
     $runtime = Join-Path $work 'xrt_runtime.o'
     $null = Run 'XRT compile' $gcc ($flags + @('-c',
         'release/extlibs/gettext/test/xrt_runtime.c', '-o', $runtime))
@@ -62,6 +66,11 @@ try {
     $null = Run 'C PO layout compile' $gcc ($flags + @('release/extlibs/gettext/test/po_layout_c.c',$runtime) + $links + @('-o',$layoutTest))
     $null = Run 'C PO layout' $layoutTest @()
     $null = Run 'C PO layout direct' $xl @('run','release/extlibs/gettext/test/po_layout_c.c')
+    $spanTest = Join-Path $work 'po-spans-c.exe'
+    $null = Run 'C PO spans compile' $gcc ($flags + @('release/extlibs/gettext/test/po_spans_c.c',$runtime) + $links + @('-o',$spanTest))
+    $null = Run 'C PO spans' $spanTest @()
+    $null = Run 'C PO spans direct' $xl @('run','release/extlibs/gettext/test/po_spans_c.c')
+    $null = Run 'XLang PO spans' $xl @('run','release/extlibs/gettext/test/po_spans.xl')
     $layoutFixture = Join-Path $root 'release/extlibs/gettext/test/po_layout.po'
     $layoutGolden = [IO.File]::ReadAllText((Join-Path $root 'release/extlibs/gettext/examples/layout.expected.txt')).Replace("`r`n","`n").TrimEnd("`n")
     $layoutC = Join-Path $work 'layout-c.exe'
@@ -111,7 +120,7 @@ try {
             $null = Run "XLang $name build" $xl @('build', $case[1], '-o', $target)
             $null = Run "XLang $name AOT" $target @()
         }
-        foreach ($source in @('test/po_layout.xl','test/po_layout_c.c','examples/layout.xl','examples/layout_c.c')) {
+        foreach ($source in @('test/po_layout.xl','test/po_layout_c.c','test/po_spans.xl','test/po_spans_c.c','examples/layout.xl','examples/layout_c.c')) {
             $target = Join-Path $work ([IO.Path]::GetFileNameWithoutExtension($source)+'.exe')
             $null = Run "$source build" $xl @('build',"release/extlibs/gettext/$source",'-o',$target)
             $arguments = if ($source -like 'examples/*') { @($layoutFixture) } else { @() }

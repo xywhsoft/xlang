@@ -1,0 +1,43 @@
+import gettext
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    string body = string.repeat("你好 raw.", 4096)
+    string po = ("msgid \"long\"\nmsgstr \"" + body + "\\n\"\n\"tail\"\n")
+    var catalog = gettext.parsePo(po)
+    string result = gettext.t(catalog, "long")
+    catalog = null
+    po = ""
+    assert result == body + "\ntail"
+
+    string input = "msgid \"key\"\nmsgstr \"plain\\n\"\n\"more\"\n"
+    bool complete = false
+    int failures = 0
+    for budget in range(128)
+        bool memory = false
+        bool correct = false
+        bool injected = false
+        assert failAfter(uint64(budget))
+        try
+            var value = gettext.parsePo(input)
+            correct = gettext.t(value, "key") == "plain\nmore"
+        catch MemoryError error
+            memory = true
+        finally
+            injected = failTriggered()
+            failClear()
+        end
+        assert injected and memory or not injected and correct
+        if not injected then
+            complete = true
+            break
+        end
+        failures += 1
+    end
+    assert complete and failures > 0
+    println("gettext PO spans XLang: PASS")
+    return 0
+end
