@@ -11,6 +11,7 @@ tools/tcc_vfs_manifest_linux_*.txt text eol=lf
 /res/tcc/win64/x86_64/include/windowsx.h text eol=lf
 /src/api/xl_xrt_symbols.inc text eol=lf
 /src/stdlib/xl6_stdlib_func_index.inc text eol=lf
+/src/ir/xl6_ir_direct_bridge_data.inc text eol=lf
 
 # 保持 Linux 门禁及跨平台黄金输出的行尾一致。
 /tools/check_extlib_mqtt.sh text eol=lf
