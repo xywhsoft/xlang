@@ -520,3 +520,22 @@ original-global-run的1仍是真实失败，默认要求0，不据局部绿灯�
 
 Windows真实静默编译器内部37/外层1、Linux缺工具原始127均保留现场。
 本轮证据索引build/test/skiplist_audit_99ba8c387776482f907d29a31e07ccc9。
+
+## 2026-10-30 ConsistentHash 三顶层正例复核
+
+原boundaries/allocations/layout均未改。默认门禁现在独立构建并运行
+三份原顶层正例，每项仍要求退出0，汇总失败只是为不漏掉后续用例。
+两平台三项均构建成功、先打印各自PASS，再于退出期报state错误1；
+JIT与九条普通独立程序都通过。并未把顶层对象挪进main、手动释放或
+把1当作预期。新去返回副本仅改变包内声明/返回写法，C算法/ABI未改，
+该优化不证明模块退役问题已修，也不据症状断言所有26包完全同根。
+
+Windows默认54阶段51符合预期（含私有访问拒绝），报告为
+build/test/consistent_hash_guard/run_65de3842baa242979a3c1e765002a2c8.json，
+45输入不变、0警告。Linux原生快照/var/tmp/xlang-chash-final-src-kkIdb5，
+53阶段50符合预期，43门禁输入、79复制源与原件前后不变，C含sanitizer、
+0警告，现场tmp/xlang-consistent-hash-WNKegJ。三个全局原始1在phases及
+global-failures.tsv逐项保留，外层为失败1；不是只见PASS输出便算成功。
+修复主线后须保持这三份正例，并复跑完整门禁和固定映射，不改变布局。
+
+证据索引build/test/chash_audit_415b441b24b640f6b96c268ec72fa532。
