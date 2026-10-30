@@ -1,10 +1,12 @@
 string path = "build/test/fs-metadata-times.bin"
 assert file.writeBytes(path, b"a\0b")
-assert file.setTimes(path, 1700000000000000, 1700000001000000)
+int accessed = int(time.fromUnixMs(1700000000000))
+int modified = int(time.fromUnixMs(1700000001000))
+assert file.setTimes(path, accessed, modified)
 assert time.year(file.accessTime(path)) == 2023
 assert time.year(file.changeTime(path)) == 2023
 auto snapshot = file.stat(path)
-assert snapshot.accessed == 1700000000000000 and snapshot.modified == 1700000001000000
+assert snapshot.accessed == accessed and snapshot.modified == modified
 assert file.delete(path)
 for operation in range(3)
     bool refused = false

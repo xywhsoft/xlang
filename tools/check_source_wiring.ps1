@@ -21,7 +21,8 @@ $wiringFiles = @(
     "test.bat",
     "tools\runtime_dll.rsp.in",
     "tools\compiler_dll.rsp.in",
-    "tools\rc0_guard.ps1"
+    "tools\rc0_guard.ps1",
+    "tools\precompile_builtin.py"
 )
 $generatedSourceInputs = @{
     "src/lexer/xl6_lexer_gen.c" = "src/lexer/xl6_lexer.l"

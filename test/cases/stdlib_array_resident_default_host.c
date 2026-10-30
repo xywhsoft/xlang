@@ -1,3 +1,4 @@
+#include "test_numeric_arg.h"
 #if XL6_FACTORY_PROFILE == 7
 #define XRUNTIME_MODULE_RUNTIME_CALL
 #define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
@@ -166,7 +167,7 @@ static void fault(bool nullable,bool spare,size_t point)
 int main(int argc,char** argv)
 {
     assert(xrtMemDebugEnable(true)); xmemdebugsnapshot before; xrtMemDebugSnapshot(&before);
-    if (argc==4) fault(atoi(argv[1])!=0,atoi(argv[2])!=0,(size_t)strtoull(argv[3],NULL,10));
+    if (argc==4) fault(xlTestIntArg(argv[1])!=0,xlTestIntArg(argv[2])!=0,(size_t)strtoull(argv[3],NULL,10));
     else {
         assert(argc==1);
         for (unsigned i=0;i<100;++i) { vectors(false); if (forbidden()) vectors(true); }

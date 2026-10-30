@@ -39,7 +39,7 @@ if ( $runtimeText -notmatch 'typedef\s+union\s+xl6_value_record_align\b' -or
 # Slice before parsing so Windows PowerShell and long lines behave consistently.
 $outputPrefix = 'xl6OutputPuts("'
 $outputSuffix = '\n"'
-$prototypePattern = '^(?!(?:return|if|for|while|switch|case)\b)(?<return>[A-Za-z_][A-Za-z0-9_]*(?:[ \t]+[A-Za-z_][A-Za-z0-9_]*)*(?:[ \t]*\*)*)[ \t]*(?<name>xrt[A-Za-z0-9_]+)\s*\((?<params>[^;{}=]*)\);$'
+$prototypePattern = '^(?!(?:return|if|for|while|switch|case)\b)(?<return>[A-Za-z_][A-Za-z0-9_]*(?:[ \t]+[A-Za-z_][A-Za-z0-9_]*)*(?:[ \t]*\*)*)[ \t]*(?<![A-Za-z0-9_])(?<name>xrt[A-Za-z0-9_]+)\s*\((?<params>[^;{}=]*)\);$'
 
 foreach ( $file in (Get-ChildItem -LiteralPath $cgenDir -File -Filter '*.c') ) {
     foreach ( $line in (Get-Content -LiteralPath $file.FullName -Encoding UTF8) ) {

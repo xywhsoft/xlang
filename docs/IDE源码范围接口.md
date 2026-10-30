@@ -59,4 +59,4 @@ python tools/check_source_report.py --compiler <独立工具链>/xl.exe --gcc <M
 python tools/check_resolution_report.py --compiler <独立工具链>/xl.exe --gcc <MinGW GCC>
 ```
 
-范围门禁使用真实 DLL API 与 CLI，逐节点按实际 UTF-8 正文核对字节边界、标量位置和构造 token 包含关系，并比较去掉新增字段后的旧 AST 与固定旧编译器。它覆盖 BOM/CRLF/无尾换行、中文/非 BMP、嵌套与跨行插值、泛型/匿名函数、虚拟覆盖、输出文件、错误输入、输出超限保留及失败后恢复；原生宿主还检查 AST 复制和来源引用生命周期。最终结果与已知失败在 [IDE 进度](../../ide/docs/progress.md) 登记。
+范围门禁使用真实 DLL API 与 CLI，逐节点按实际 UTF-8 正文核对字节边界、标量位置和构造 token 包含关系，并比较去掉新增字段后的旧 AST 与固定旧编译器。它覆盖 BOM/CRLF/无尾换行、中文/非 BMP、嵌套与跨行插值、泛型/匿名函数、虚拟覆盖、输出文件、错误输入、输出超限保留及失败后恢复；原生宿主还检查 AST 复制和来源引用生命周期。最终结果与已知失败在 [IDE 进度](../ide/docs/progress.md) 登记。

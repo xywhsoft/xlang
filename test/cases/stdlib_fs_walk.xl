@@ -128,4 +128,4 @@ finally
 end
 assert saved[0].isDir and saved[0].path == directory
 assert errors[0].pathBytes.length > 0
-print("fs walk ok")
+println("fs walk ok")

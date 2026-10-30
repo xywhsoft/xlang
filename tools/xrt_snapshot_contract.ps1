@@ -45,13 +45,13 @@ function Read-XrtSnapshotRuntimeSymbols
         ConvertFrom-Json
     $runtimeSnapshot = Get-Content -LiteralPath $runtimeSnapshotPath -Raw -Encoding UTF8 |
         ConvertFrom-Json
-    if ( [int]$snapshot.schema -ne 3 -or $snapshot.product -cne "xrt" ) {
+    if ( [int]$snapshot.schema -ne 4 -or $snapshot.product -cne "xrt" ) {
         throw "unsupported XRT snapshot schema: $($snapshot.schema)"
     }
-    if ( [int]$runtimeSnapshot.schema -ne 3 -or $runtimeSnapshot.product -cne "xruntime" ) {
+    if ( [int]$runtimeSnapshot.schema -ne 4 -or $runtimeSnapshot.product -cne "xruntime" ) {
         throw "unsupported xruntime snapshot schema: $($runtimeSnapshot.schema)"
     }
-    if ( [int]$runtimeSnapshot.publicApiCount -ne $symbols.Count ) {
+    if ( [int]$runtimeSnapshot.publicApiCount -ne [int]$runtimeSnapshot.ownedPublicApiCount ) {
         throw "xruntime snapshot count mismatch: metadata=$($runtimeSnapshot.publicApiCount), symbols=$($symbols.Count)"
     }
     if ( [int]$runtimeSnapshot.ownedPublicApiCount -ne
@@ -88,12 +88,14 @@ function Assert-XrtSnapshotRuntimeWiring
         '(?m)^\s*static const XL_XrtRuntimeSymbol xl__xrtRuntimeSymbols\[\]\s*=\s*\{\s*$').Count
     $registrationCount = [regex]::Matches(
         $text,
-        '(?s)xlApiAddTccSymbol\(\s*s\s*,\s*xl__xrtRuntimeSymbols\[i\]\.name\s*,\s*xl__xrtRuntimeSymbols\[i\]\.value\s*\)').Count
+        '(?s)visit\(\s*user\s*,\s*xl__xrtRuntimeSymbols\[i\]\.name\s*,\s*xl__xrtRuntimeSymbols\[i\]\.value\s*\)').Count
 
     if ( $includeCount -ne 1 -or
          $macroCount -ne 1 -or
          $tableCount -ne 1 -or
-         $registrationCount -ne 1 ) {
+         $registrationCount -ne 1 -or
+         $text -notmatch 'xlApiVisitDefaultRuntimeSymbols\(xlAddDefaultRuntimeSymbol,state\)' -or
+         $text -notmatch 'xlApiAddTccSymbol\(\(TCCState\*\)state,name,address\)' ) {
         throw "XRT runtime symbol table is not canonically wired in $apiPath"
     }
 }

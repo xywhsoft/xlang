@@ -8,4 +8,4 @@ end
 auto fs = vfs.create()
 install(fs)
 assert fs.readBytes("/app/entry") == b"owned by mount"
-print("vfs lifetime ok")
+println("vfs lifetime ok")

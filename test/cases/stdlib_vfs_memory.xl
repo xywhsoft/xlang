@@ -18,4 +18,4 @@ auto caseMount = fs.mount("/case", resources, 0, 1)
 assert fs.readBytes("/case/cASE.txT") == b"case"
 assert mount.unmount()
 assert mount.unmount()
-print("vfs memory ok")
+println("vfs memory ok")

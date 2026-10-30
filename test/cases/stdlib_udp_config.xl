@@ -26,4 +26,4 @@ assert(config.errorSize == 512 and config.errorQueueLimit == 16 and config.error
 assert(config.errorOverflow == UdpOverflow.dropOldest)
 auto viaNamespace = udp.config()
 assert(viaNamespace.receiveSize == original.receiveSize)
-print("UDP configuration public values OK")
+println("UDP configuration public values OK")

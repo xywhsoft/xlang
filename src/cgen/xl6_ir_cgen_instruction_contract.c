@@ -826,11 +826,12 @@ static int xl6IrCgenEmitCheckedIntegerArithmetic(
     operation = instruction->runtimeOp == XL6_IR_RUNTIME_INTEGER_DIV_CHECKED ? 0
         : instruction->runtimeOp == XL6_IR_RUNTIME_INTEGER_MOD_CHECKED ? 1
         : instruction->runtimeOp == XL6_IR_RUNTIME_INTEGER_SHL_CHECKED ? 2 : 3;
-    xl6OutputPrintf(out, "    v%u = %s(v%u, v%u, %d, %d);\n",
+    xl6OutputPrintf(out, "    v%u = %s(v%u, v%u, %d, %d, %d, %d);\n",
         (unsigned int)instruction->result, helper,
         (unsigned int)module->operands[instruction->firstOperand],
         (unsigned int)module->operands[instruction->firstOperand + 1],
-        operation, (int)instruction->integerTarget);
+        operation, (int)instruction->integerTarget,
+        instruction->sourceSpan.line, instruction->sourceSpan.column);
     return !xl6OutputHasFailed(out);
 }
 

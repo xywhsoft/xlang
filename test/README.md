@@ -135,6 +135,7 @@ test\suites\02_language_frontend.bat
 - `xl`：`xl run` 参数用例。
 - `xlir`：统一 XLIR 直接 AST 构建与确定性 C 发射用例。
 - `xruntime`：xruntime 类型协议、动态字段和语言桥接用例。
+- `xmail`：邮件客户端原生 ABI 及受管生命周期离线探针。
 <!-- case-prefix-index:end -->
 
 ## 守门脚本
@@ -324,3 +325,7 @@ pop/take、动态分派和全部 Array source carrier 切换仍需后续完成�
   TCC destruction. The genuine TCC core is linked, not replaced with stubs.
 - `test_runtime_header_staging.py`: directory/file manifest parity, exact bytes,
   missing sources, shipping first-target precedence and evidence preservation.
+
+`extlib_xmail_native_abi` 是编译期 ABI 探针，与 XMail 迁移守门共同检查声明和拥有图；不连接邮件服务器。两项 `stdlib_runtime_*_pending` 历史命名正例由 `check_xlir_runtime_callable_value_abi.ps1` 执行 JIT 与 AOT。
+
+`stdlib_os_args.xl` 与 `stdlib_os_args_native_host.c` 由 `check_release_runtime.py` 覆盖进程参数、独立拥有、空参数和真实 OOM 前缀；`tcc_c99_vsnprintf.c` 验证完整的长度／截断合同。

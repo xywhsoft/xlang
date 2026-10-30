@@ -9,6 +9,7 @@ struct xvaluehandleops;
 struct xrtownershipref;
 struct xrtownershipadapterv1;
 struct xrtownershipfinishv1;
+struct xrtownershipquiescencev1;
 
 /* Immutable, resident resource declaration. These identities are not a
  * universal handle certificate: the host admits each audited policy by exact
@@ -304,4 +305,14 @@ XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6TlsTicketResultHandlePolic
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6MemoryStatsHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6MemoryDebugSnapshotHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6ObjectPoolControlHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6FsPathPartsHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6FsPathIterHandlePolicyV1Get(void);
+
+XL6_CODE_LEASE_API const struct xrtownershipquiescencev1* xl6AsyncFileQuiescenceV1Get(void);
+XL6_CODE_LEASE_API const struct xrtownershipadapterv1* xl6AsyncFileOwnershipAdapterV1(struct xrtownershipref);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6AsyncFileHandlePolicyV1Get(void);
+
+
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6SipHasher64HandlePolicyV1Get(void);
+XL6_CODE_LEASE_API void xl6_xrt_siphasher64_destroy(void*);
 #endif

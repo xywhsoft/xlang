@@ -1,10 +1,11 @@
-param([string]$Root = "", [switch]$ContractsOnly)
+param([string]$Root = "", [switch]$ContractsOnly, [string]$Compiler = "", [string]$RuntimeLibrary = "", [string[]]$OnlyFixture = @())
 $ErrorActionPreference = "Stop"
 if ($Root -eq "") { $Root = Split-Path -Parent $PSScriptRoot }
 $Root = (Resolve-Path -LiteralPath $Root).Path
-$xl = Join-Path $Root "release\xl.exe"
+$xl = if ($Compiler) { [IO.Path]::GetFullPath($Compiler) } else { Join-Path $Root "release\xl.exe" }
 $outputDir = Join-Path $Root "build\test"
 [System.IO.Directory]::CreateDirectory($outputDir) | Out-Null
+$batchFailures = New-Object System.Collections.Generic.List[string]
 
 function Invoke-Test([string]$File, [string]$Arguments, [int]$Expected = 0, [string]$Marker = "") {
     $process = New-Object System.Diagnostics.Process
@@ -100,6 +101,11 @@ for legacy in (False,True):
             [Environment]::SetEnvironmentVariable($key, $Matches[2], 'Process')
         } else { Write-Output $line }
     }
+    if ($RuntimeLibrary) {
+        $runtime = [IO.Path]::GetFullPath($RuntimeLibrary)
+        Copy-Item -LiteralPath $runtime -Destination (Join-Path $outputDir 'xl.dll') -Force
+        $env:XL6_CGEN_LINKS = '"' + $runtime + '" -lWs2_32 -lIPHLPAPI -lShell32'
+    }
     foreach ($key in @('XL6_CGEN_CC', 'XL6_CGEN_FLAGS', 'XL6_CGEN_INCLUDES', 'XL6_CGEN_LINKS')) {
         if (![Environment]::GetEnvironmentVariable($key, 'Process')) { throw "Missing compiler variable: $key" }
     }
@@ -121,12 +127,17 @@ for legacy in (False,True):
         'test/cases/stdlib_fs_async_retirement.xl','test/cases/stdlib_fs_async_cancel.xl',
         'test/cases/stdlib_fs_async_allocation.xl','test/cases/stdlib_fs_task_isolation.xl',
         'test/cases/stdlib_path_random.xl','test/cases/stdlib_fs_metadata_times.xl')
+    if ($OnlyFixture.Count) {
+        $known = @($fixtures | ForEach-Object { [IO.Path]::GetFileNameWithoutExtension($_) })
+        foreach ($name in $OnlyFixture) { if ($name -notin $known) { throw "Unknown VFS fixture: $name" } }
+        $fixtures = @($fixtures | Where-Object { [IO.Path]::GetFileNameWithoutExtension($_) -in $OnlyFixture })
+    }
     $nativeProbe = Join-Path $outputDir 'fs-async-resident.exe'
     $nativeCommand = '!XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror test/cases/xlir_fs_async_resident.c !XL6_CGEN_LINKS! -o "{0}"' -f $nativeProbe
     & cmd.exe /d /v:on /c $nativeCommand
     if ($LASTEXITCODE -ne 0) { throw 'Resident asynchronous filesystem strict C failed' }
     Invoke-Test $nativeProbe '' 0 'retirement races ok'
-    if (!$ContractsOnly) { foreach ($relative in $fixtures) {
+    if (!$ContractsOnly) { foreach ($relative in $fixtures) { try {
         $name = [System.IO.Path]::GetFileNameWithoutExtension($relative)
         $source = Join-Path $Root $relative
         $cPath = Join-Path $outputDir "$name.c"
@@ -164,28 +175,32 @@ for legacy in (False,True):
             }
         }
         Write-Output "${name}: strict C, JIT/AOT, deterministic output and dependency isolation passed"
-    } }
+    } catch { $batchFailures.Add("${relative}: $($_.Exception.Message)"); Write-Output "FAILED: $relative" } } }
     foreach ($relative in @('test/cases/bad_xlir_vfs_wrong_input.xl',
         'test/cases/bad_xlir_vfs_wrong_result.xl', 'test/cases/bad_xlir_vfs_wrong_owner.xl',
         'test/cases/bad_xlir_fs_wrong_owner.xl', 'test/cases/bad_xlir_fs_wrong_result.xl',
         'test/cases/bad_xlir_fs_pack_wrong_options.xl', 'test/cases/bad_xlir_fs_wrong_array_element.xl',
         'test/cases/bad_xlir_fs_wrong_visitor.xl',
         'test/cases/bad_xlir_fs_async_wrong_result.xl','test/cases/bad_xlir_fs_async_wrong_owner.xl')) {
+        try {
         $name = [System.IO.Path]::GetFileNameWithoutExtension($relative)
         $cPath = Join-Path $outputDir "$name.c"
         if (Test-Path -LiteralPath $cPath) { Remove-Item -LiteralPath $cPath }
         $marker = if ($name -in @('bad_xlir_fs_wrong_array_element','bad_xlir_fs_wrong_visitor','bad_xlir_fs_async_wrong_result')) { 'XLIR VFS runtime bridge' } elseif ($name -eq 'bad_xlir_vfs_wrong_owner' -or $name -like 'bad_xlir_fs_*') { 'exact compiler-runtime bridge ABI' } else { 'XLIR VFS' }
         Invoke-Test $xl ('cgen "{0}" --emit "{1}"' -f (Join-Path $Root $relative),$cPath) 1 $marker
         if (Test-Path -LiteralPath $cPath) { throw "Invalid VFS resource ABI emitted C: $name" }
+        } catch { $batchFailures.Add("${relative}: $($_.Exception.Message)"); Write-Output "FAILED: $relative" }
     }
     foreach ($relative in @('release/examples/stdlib_vfs.xl', 'release/examples/stdlib_fs_file.xl',
         'release/examples/stdlib_fs_paths_text.xl','release/examples/stdlib_fs_tree_temp.xl',
         'release/examples/stdlib_fs_walk.xl','release/examples/stdlib_fs_async.xl')) {
+        try {
         $example = Join-Path $Root $relative
         $exampleExe = Join-Path $outputDir ([IO.Path]::GetFileNameWithoutExtension($relative) + '.example.exe')
         Invoke-Test $xl ('run "{0}"' -f $example)
         Invoke-Test $xl ('build "{0}" -o "{1}"' -f $example,$exampleExe)
         Invoke-Test $exampleExe ""
+        } catch { $batchFailures.Add("${relative}: $($_.Exception.Message)"); Write-Output "FAILED: $relative" }
     }
 } finally {
     foreach ($key in $compilerEnvironmentBefore.Keys) {
@@ -193,8 +208,11 @@ for legacy in (False,True):
     }
     Pop-Location
 }
+if ($batchFailures.Count) { throw ("VFS/File batch failures ($($batchFailures.Count)):`n" + ($batchFailures -join "`n")) }
 if ($ContractsOnly) {
     Write-Output 'VFS/File contracts batch passed: resident lifecycle probe, ten ABI negatives and six public JIT/AOT examples. Positive fixtures were not rerun.'
+} elseif ($OnlyFixture.Count) {
+    Write-Output "VFS/File focused gate passed: $($fixtures.Count) positive fixtures, ten ABI negatives and six public JIT/AOT examples."
 } else {
     Write-Output 'VFS/File gate passed: thirty-eight positive fixtures, strict C, JIT/AOT, deterministic output, resource/length/close/OOM boundaries and ten ABI negatives.'
 }

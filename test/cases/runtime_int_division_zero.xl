@@ -8,7 +8,7 @@ try
 catch e
     assert e.kind == "ZeroDivisionError", "division by zero kind"
     assert e.message == "integer division by zero", "division by zero message"
-    assert e.line > 0, "division by zero line"
+    assert e.line > 0 and e.column > 0, "division by zero source span"
     caught += 1
 end
 
@@ -33,6 +33,21 @@ catch e
     caught += 1
 end
 
-assert caught == 3, "all three integer division faults catchable"
+try
+    uint64 a = uint64(7)
+    uint64 b = uint64(0)
+    uint64 value = a / b
+catch e
+    assert e.kind == "ZeroDivisionError" and e.line > 0 and e.column > 0
+    caught += 1
+end
+try
+    int count = 64
+    uint64 value = uint64(1) << count
+catch e
+    assert e.kind == "RangeError" and e.line > 0 and e.column > 0
+    caught += 1
+end
+assert caught == 5, "all checked integer faults catchable with source spans"
 println("after")
 println("runtime_int_division_zero ok")

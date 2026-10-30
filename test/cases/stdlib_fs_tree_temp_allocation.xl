@@ -47,4 +47,4 @@ finally
     failClear()
     dir.delete(directory)
 end
-print("fs tree temp allocation ok")
+println("fs tree temp allocation ok")

@@ -41,7 +41,8 @@ function Is-IgnoredMarkdownPath($rootFull, $path)
     $relative = Normalize-RelativePath $rootFull $path
     $lower = $relative.Replace("/", "\").ToLowerInvariant()
 
-    return $lower.StartsWith("build\tmp\") -or
+    return $lower.StartsWith("ide\") -or
+        $lower.StartsWith("build\tmp\") -or
         $lower.StartsWith("build\test\") -or
         $lower.StartsWith("release\tcc\") -or
         $lower.StartsWith("lib\xrt\")
@@ -138,7 +139,7 @@ function Test-MarkdownLinkTarget($rootFull, $doc, $lineNumber, $rawTarget)
     }
 
     if ( ! $resolved.StartsWith($rootPrefix, [System.StringComparison]::OrdinalIgnoreCase) ) {
-        Add-Failure "markdown link leaves demo6 root: ${docRelative}:$lineNumber -> $rawTarget"
+        Add-Failure "markdown link leaves repository root: ${docRelative}:$lineNumber -> $rawTarget"
         return
     }
 
@@ -148,11 +149,20 @@ function Test-MarkdownLinkTarget($rootFull, $doc, $lineNumber, $rawTarget)
 }
 
 $rootFull = [System.IO.Path]::GetFullPath($Root)
-$markdownFiles = @(
-    Get-ChildItem -LiteralPath $rootFull -Filter "*.md" -File -Recurse |
-        Where-Object { ! (Is-IgnoredMarkdownPath $rootFull $_.FullName) } |
-        Sort-Object FullName
-)
+# Validate source-controlled product inputs, including new non-ignored files.
+# Generated IDE/compiler build trees are not part of a release source inventory.
+$inventory = @(& git -c core.quotepath=false -C $Root ls-files --cached --others --exclude-standard 2>$null)
+if ($LASTEXITCODE -eq 0) {
+    $candidates = @($inventory | Sort-Object -Unique | ForEach-Object {
+        $path = Join-Path $Root $_
+        if (Test-Path -LiteralPath $path -PathType Leaf) { Get-Item -LiteralPath $path }
+    })
+} else {
+    $candidates = @(Get-ChildItem -LiteralPath $Root -File -Recurse | Where-Object {
+        $_.FullName -notmatch '[\\/](?:build|tmp|out|logs|node_modules|[.]git)[\\/]'
+    })
+}
+$markdownFiles = @($candidates | Where-Object { $_.Extension -eq ".md" -and ! (Is-IgnoredMarkdownPath $rootFull $_.FullName) } | Sort-Object FullName)
 
 if ( $markdownFiles.Count -lt $MinMarkdownFiles ) {
     Add-Failure "markdown link scan baseline regressed: $($markdownFiles.Count) < $MinMarkdownFiles"
@@ -176,6 +186,8 @@ foreach ( $doc in $markdownFiles ) {
             continue
         }
 
+        # Code spans (for example callbacks[0](42)) contain no Markdown links.
+        $line = [regex]::Replace($line, '(`+)[^\r\n]*?\1', '')
         foreach ( $match in [regex]::Matches($line, '!?\[[^\]\r\n]*\]\((?<target>[^)\r\n]+)\)') ) {
             Test-MarkdownLinkTarget $rootFull $doc $lineNumber $match.Groups["target"].Value
         }

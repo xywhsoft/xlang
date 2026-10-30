@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$Root = "",
     [int]$MinTextArtifacts = 0
 )
@@ -43,11 +43,13 @@ function Test-WorkspaceBoundary
     $rootPrefixOutput = @(& $gitCommand.Source -C $Root rev-parse --show-prefix 2>$null)
     $rootPrefixOk = $?
     $rootPrefix = if ( $rootPrefixOutput.Count -gt 0 ) { $rootPrefixOutput[0] } else { "" }
-    if ( ! $rootPrefixOk -or [string]::IsNullOrWhiteSpace($rootPrefix) ) {
+    if ( ! $rootPrefixOk ) {
         Add-Failure "cannot resolve the demo6 repository prefix"
         return
     }
-    $rootPrefix = $rootPrefix.Trim().TrimEnd('/') + "/"
+    $rootPrefix = $rootPrefix.Trim().TrimEnd('/')
+    if ($rootPrefix.Length -gt 0) { $rootPrefix += "/" }
+    $rootPathspec = if ($rootPrefix.Length -gt 0) { $rootPrefix } else { "." }
 
     $forbiddenTrackedPatterns = @(
         '^(build|examples_out|logs|out|tmp|blog|test_min_out|test_progress_cancel|test_progress_out)/',
@@ -59,7 +61,7 @@ function Test-WorkspaceBoundary
         '^tmp_.*'
     )
 
-    $trackedPaths = @(& $gitCommand.Source -C $repoRoot -c core.quotepath=false ls-files -- $rootPrefix)
+    $trackedPaths = @(& $gitCommand.Source -C $repoRoot -c core.quotepath=false ls-files -- $rootPathspec)
     $trackedPathsOk = $?
     if ( ! $trackedPathsOk ) {
         Add-Failure "cannot enumerate tracked demo6 files"
@@ -96,6 +98,10 @@ function Test-WorkspaceBoundary
     $allowedRootFiles = New-Object System.Collections.Generic.HashSet[string] ([System.StringComparer]::OrdinalIgnoreCase)
     foreach ( $name in @(
         ".gitattributes",
+        ".gitignore",
+        "README_zh.md",
+        "DEVELOPMENT.md",
+        "DEMO6说明.md",
         "build.bat",
         "build.sh",
         "build_dll.bat",

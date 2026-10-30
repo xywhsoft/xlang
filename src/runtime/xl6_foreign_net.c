@@ -1,6 +1,7 @@
 #include "xl6_tls_role_context_internal.h"
 #include "xl6_execution_resource.h"
 #include "xl6_native_class_borrow.h"
+#include "xl6_foreign_resource.h"
 #include "include/xl_foreign_net.h"
 
 static void* exact(const xvalue* value,const XL6_NativeHandlePolicyV1* expected)

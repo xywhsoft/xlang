@@ -52,6 +52,9 @@ foreach ( $stdlibPath in $stdlibPaths ) {
 }
 $stdlib = [string]::Join("`n", $stdlibParts)
 $cgen = Read-CgenText $cgenDir
+# Current resident declarations and inline ABI headers supplement generated helpers.
+$runtimeDeclarations = [string]::Join("`n", @(Get-ChildItem (Join-Path $Root 'src/runtime') -File -Filter '*.h' | ForEach-Object { Read-Utf8Text $_.FullName }))
+$residentExports = [string]::Join("`n", @(Get-ChildItem (Join-Path $Root 'src/runtime') -File -Filter '*_symbols.inc' | ForEach-Object { Read-Utf8Text $_.FullName }))
 
 if ( ! (Test-Path -LiteralPath $runtimeHeaderPath -PathType Leaf) ) {
     throw "xlang runtime header missing: $runtimeHeaderPath"
@@ -106,10 +109,13 @@ foreach ( $symbol in $uniqueSymbols ) {
         }
     } elseif ( $symbol -match '^xl6_(?:xrt|crt|tcc|xlang)_' ) {
         if ( $cgen -notmatch [regex]::Escape($symbol) -and
-             $runtimeHeader -notmatch [regex]::Escape($symbol) ) {
+             $runtimeHeader -notmatch [regex]::Escape($symbol) -and
+             $runtimeDeclarations -notmatch [regex]::Escape($symbol) -and
+             $residentExports -notmatch ('XL6_[A-Z_]*EXPORT\(\s*'+[regex]::Escape($symbol)+'\s*,') ) {
             $missingRuntime.Add($symbol)
         }
-    } elseif ( $crtSymbols -notcontains $symbol ) {
+    } elseif ( $crtSymbols -notcontains $symbol -and
+        $residentExports -notmatch ('XL6_[A-Z_]*EXPORT\(\s*'+[regex]::Escape($symbol)+'\s*,') ) {
         $unknown.Add($symbol)
     }
 }

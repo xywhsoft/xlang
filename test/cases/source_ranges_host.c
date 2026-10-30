@@ -52,10 +52,16 @@ int wmain(int argc, wchar_t** argv)
     REQUIRE(*api.xlcGetLastError(ctx));
     {
         size_t count = 280, capacity = count * 6 + 128; char* deep = malloc(capacity); char* p = deep;
-        REQUIRE(deep); p += sprintf(p, "func main() as int\n    return ");
-        for (size_t i=0; i<count; ++i) p += sprintf(p, "1 + ");
-        p += sprintf(p, "1");
-        p += sprintf(p, "\nend\n"); REQUIRE((size_t)(p-deep) < capacity);
+        REQUIRE(deep);
+        #define APPEND_DEEP(text) do { \
+            size_t remaining=capacity-(size_t)(p-deep); \
+            int written=snprintf(p,remaining,"%s",(text)); \
+            REQUIRE(written>=0 && (size_t)written<remaining); p+=written; \
+        } while(0)
+        APPEND_DEEP("func main() as int\n    return ");
+        for (size_t i=0; i<count; ++i) APPEND_DEEP("1 + ");
+        APPEND_DEEP("1\nend\n");
+        #undef APPEND_DEEP
         { FILE* prior = fopen("native-deep.json", "wb"); REQUIRE(prior);
           REQUIRE(fputs("prior-output", prior) >= 0); REQUIRE(fclose(prior) == 0); }
         REQUIRE(api.xlcAddSourceString(ctx, "deep.xl", deep));

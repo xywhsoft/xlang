@@ -254,12 +254,28 @@ extern FILE (*_imp___iob)[];    /* A pointer to an array of FILE */
 #endif
   _CRTIMP int __cdecl _snprintf(char *_Dest,size_t _Count,const char *_Format,...);
   _CRTIMP int __cdecl _vsnprintf(char *_Dest,size_t _Count,const char *_Format,va_list _Args);
+  _CRTIMP int __cdecl _vscprintf(const char *_Format,va_list _ArgList);
   int __cdecl sprintf(char *_Dest,const char *_Format,...);
   int __cdecl vsprintf(char *_Dest,const char *_Format,va_list _Args);
 #ifndef __NO_ISOCEXT  /* externs in libmingwex.a */
   int __cdecl snprintf(char* s, size_t n, const char*  format, ...);
+  /* xlang: normalize the legacy MSVCRT entry to the C99 length/termination
+     contract. Keep the one-call fast path when the destination is large enough. */
   __CRT_INLINE int __cdecl vsnprintf (char* s, size_t n, const char* format,va_list arg) {
-    return _vsnprintf ( s, n, format, arg);
+    va_list copy;
+    int result;
+    va_copy(copy, arg);
+    result = n ? _vsnprintf(s, n, format, copy) : _vscprintf(format, copy);
+    va_end(copy);
+    if (result < 0 && n) {
+      int required;
+      va_copy(copy, arg);
+      required = _vscprintf(format, copy);
+      va_end(copy);
+      if (required >= 0 && (size_t)required >= n) result = required;
+    }
+    if (n && result >= 0 && (size_t)result >= n) s[n - 1] = '\0';
+    return result;
   }
   int __cdecl vscanf(const char * Format, va_list argp);
   int __cdecl vfscanf (FILE * fp, const char * Format,va_list argp);
@@ -277,7 +293,6 @@ extern FILE (*_imp___iob)[];    /* A pointer to an array of FILE */
 # define snprintf __mingw_snprintf
 # endif
 # endif
-  _CRTIMP int __cdecl _vscprintf(const char *_Format,va_list _ArgList);
   _CRTIMP int __cdecl _set_printf_count_output(int _Value);
   _CRTIMP int __cdecl _get_printf_count_output(void);
 

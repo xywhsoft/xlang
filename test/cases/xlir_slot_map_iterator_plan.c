@@ -1,9 +1,10 @@
+#include "test_numeric_arg.h"
 #include "src/compile/xl6_artifact_runtime.h"
 #include <assert.h>
 #include <stdio.h>
 int main(int argc,char** argv)
 {
-    assert(argc==3); unsigned mode=0; assert(sscanf(argv[1],"%u",&mode)==1 && mode<4);
+    assert(argc==3); int parsed=xlTestIntArg(argv[1]); assert(parsed>=0 && parsed<4); unsigned mode=(unsigned)parsed;
     const XL6_ArtifactRuntimeId ids[]={XL6_ARTIFACT_SLOT_MAP_ITERATOR_COUNT,XL6_ARTIFACT_SLOT_MAP_ITERATOR_KEYS,
         XL6_ARTIFACT_SLOT_MAP_ITERATOR_VALUES,XL6_ARTIFACT_SLOT_MAP_ITERATOR_PAIRS};
     XL6_ArtifactRuntimeSet roots=xl6ArtifactRuntimeSetSingleton(ids[mode]);

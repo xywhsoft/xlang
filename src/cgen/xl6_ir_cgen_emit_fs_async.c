@@ -51,8 +51,6 @@ static void xl6IrCgenEmitFsAsyncRuntime(XL6_Output* out,const XL6_IrCgenNeeds* n
         "  if(!xlir_fs_file_get(handle))return NULL;\n"
         "  if(file->deleteOnClose || xrtAtomic32Load(&file->refs,XMEMORY_ACQUIRE)!=1 || xrtAtomic32Load(&file->lock,XMEMORY_ACQUIRE)!=0){xrtSetErrorKind(XERR_STATE);return NULL;}\n"
         "  result=xl6AsyncFileAdoptV1(xlir_async_pool,file->file);if(result)file->file=NULL;return result; }\n",out);
-    if(xl6IrCgenFsSelected(needs,XL6_IR_RUNTIME_BRIDGE_FS_ASYNC_DESTROY)) xl6OutputPuts(
-        "void xl6_xrt_fs_async_destroy(void* handle){xl6AsyncFileDestroyV1(handle);}\n",out);
     if(xl6IrCgenFsSelected(needs,XL6_IR_RUNTIME_BRIDGE_FS_ASYNC_CLOSE)) xl6OutputPuts(
         "xfuture* xl6_xrt_fs_async_close(void* handle){return xlir_fs_async_map(xl6AsyncFileCloseV1(handle),xlir_fs_async_bool,0);}\n",out);
     if(xl6IrCgenFsSelected(needs,XL6_IR_RUNTIME_BRIDGE_FS_ASYNC_FLUSH)) xl6OutputPuts(

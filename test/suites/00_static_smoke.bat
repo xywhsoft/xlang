@@ -403,5 +403,9 @@ if errorlevel 1 (
 
 
 echo DEMO6 suite ok: static guards and CLI smoke
+python -B tools\check_release_version.py
+if errorlevel 1 exit /b 1
+python -B tools\check_release_runtime.py
+if errorlevel 1 exit /b 1
 exit /b 0
 

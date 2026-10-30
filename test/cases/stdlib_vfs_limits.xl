@@ -35,4 +35,4 @@ end
 assert rejected
 deniedMount.unmount()
 assert fs.readBytes("/app/entry", 6) == b"abcdef"
-print("vfs limits ok")
+println("vfs limits ok")

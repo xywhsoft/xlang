@@ -1,0 +1,429 @@
+{
+  "schema": 1,
+  "version": "0.6.0",
+  "versionCode": "0x00000600",
+  "versionCodeDecimal": 1536,
+  "embeddingAbi": 1,
+  "date": "2026-10-30",
+  "releaseReady": false,
+  "repositoryHeadBeforeCommit": "f1af5feda66dcd48f4307718024a76046907040e",
+  "xrtRevision": "9b5d5269",
+  "timeAbi": "milliseconds",
+  "builds": {
+    "windows": {
+      "complete": true,
+      "inputsUnchanged": true
+    },
+    "linux": {
+      "complete": true,
+      "inputsUnchanged": true
+    }
+  },
+  "toolchains": {
+    "windows": "GCC 16.2.0 / bundled TCC, x64",
+    "linux": "Ubuntu GCC 15.2.0, glibc 2.43, WSL2 x86-64"
+  },
+  "products": [
+    {
+      "path": "D:\\GIT\\x-lang\\release\\xl.exe",
+      "bytes": 49152,
+      "sha256": "0e49e9fd9ce74331b7f646bb9177edde213bd9df6c2f6696f8e8cd7af1923cc6"
+    },
+    {
+      "path": "D:\\GIT\\x-lang\\release\\xl.dll",
+      "bytes": 14268928,
+      "sha256": "73ecb8409f25dbec5780bd9d18ec41430c5a18f1efd37db5a9d0934187406c9a"
+    },
+    {
+      "path": "D:\\GIT\\x-lang\\release\\xlc.dll",
+      "bytes": 19621888,
+      "sha256": "ade8132cea49f9d88756b04f2a456bae7180b35220631532f0bf34bbc64e0e96"
+    },
+    {
+      "path": "D:\\GIT\\x-lang\\release\\xl",
+      "bytes": 43136,
+      "sha256": "6084db19bbe69af56ad4a8e9faa4f82a2d5aed835a34ede29d77e258d8c4e855"
+    },
+    {
+      "path": "D:\\GIT\\x-lang\\release\\libxl.so",
+      "bytes": 15980080,
+      "sha256": "1ad69aecbad2de770ab4a9bdc1b599b9ffbd064e2c1dba446e10a0c1504d4e2b"
+    },
+    {
+      "path": "D:\\GIT\\x-lang\\release\\libxlc.so",
+      "bytes": 21268336,
+      "sha256": "00b28676fca475b1f5f656fcc564babb07b46a4401096995f30e6081c5756c63"
+    }
+  ],
+  "regression": {
+    "windows": {
+      "total": 303,
+      "passed": 301,
+      "failed": [
+        {
+          "name": "stdlib_file_async",
+          "phase": "jit",
+          "exit": 1,
+          "log": "F:\\xlang-validation\\prerelease-060-20261030\\runtime-shipping-windows\\stdlib_file_async.jit.log"
+        },
+        {
+          "name": "stdlib_file_async",
+          "phase": "aot",
+          "exit": 1,
+          "log": "F:\\xlang-validation\\prerelease-060-20261030\\runtime-shipping-windows\\stdlib_file_async.aot.log"
+        }
+      ],
+      "phases": {
+        "jit": 90,
+        "build": 90,
+        "aot": 90,
+        "negative": 33
+      }
+    },
+    "linux": {
+      "total": 303,
+      "passed": 301,
+      "failed": [
+        {
+          "name": "stdlib_file_async",
+          "phase": "jit",
+          "exit": 1,
+          "log": "/mnt/f/xlang-validation/prerelease-060-20261030/runtime-shipping-linux/stdlib_file_async.jit.log"
+        },
+        {
+          "name": "stdlib_file_async",
+          "phase": "aot",
+          "exit": 1,
+          "log": "/mnt/f/xlang-validation/prerelease-060-20261030/runtime-shipping-linux/stdlib_file_async.aot.log"
+        }
+      ],
+      "phases": {
+        "jit": 90,
+        "build": 90,
+        "aot": 90,
+        "negative": 33
+      }
+    },
+    "linuxHarnessRetest": {
+      "reason": "build/test fixture directory was absent",
+      "phases": 15,
+      "passed": 15,
+      "receipt": "F:\\xlang-validation\\prerelease-060-20261030\\runtime-shipping-linux-fs-retest\\results.json"
+    }
+  },
+  "staticGuards": {
+    "count": 33,
+    "initialFailures": [
+      "check_docs_index"
+    ],
+    "resolvedBy": "added audit report to docs status matrix and reran index guard"
+  },
+  "residentExports": {
+    "symbolsPerLibrary": 1469,
+    "libraries": 4,
+    "missing": 0
+  },
+  "isolatedDelivery": {
+    "windowsChecks": 17,
+    "linuxChecks": 17,
+    "allPassed": true
+  },
+  "focusedRuntime": {
+    "windowsChecks": 10,
+    "linuxChecks": 12,
+    "oomPrefixesPerLibrary": 80,
+    "allPassed": true
+  },
+  "supplementalCompileMatrix": {
+    "cases": 254,
+    "allPassed": true,
+    "driver": "same-source TCC fast driver; compile-only, not ordinary-product runtime acceptance"
+  },
+  "vfs": {
+    "strictAndDeterministicFixtures": 38,
+    "fullyPassedFixtures": 37,
+    "failedFixture": "stdlib_file_async",
+    "abiNegativesPassed": 10,
+    "examplesPassed": 6,
+    "notes": "First 30 fixtures used the frozen TCC driver with final xl.dll; final eight fixtures and all negatives/examples used ordinary shipping products."
+  },
+  "floatEnv": {
+    "windows": "full package gate passed",
+    "linux": "C ASan/UBSan, JIT/AOT and C/xlang parity passed"
+  },
+  "blockers": [
+    {
+      "id": "R060-OWNERS",
+      "destructorEntries": 12,
+      "affectedClasses": [
+        "ConsoleSession",
+        "ConsoleEvent",
+        "JsonWriter",
+        "XlonWriter",
+        "XLangHandler",
+        "TreeStats",
+        "WalkStats",
+        "LogRecord",
+        "LogFileStats",
+        "LogQueueStats",
+        "LogStats",
+        "LogSink",
+        "Logger"
+      ],
+      "description": "Missing native ownership contracts; global writer/log objects and the composite asynchronous file fixture fail retirement.",
+      "missingPolicies": [
+        {
+          "type": "ConsoleSession",
+          "destructor": "xl6_xrt_console_session_destroy"
+        },
+        {
+          "type": "ConsoleEvent",
+          "destructor": "xl6_xrt_console_event_destroy"
+        },
+        {
+          "type": "LogRecord",
+          "destructor": "xl6LogRecordDestroyV1"
+        },
+        {
+          "type": "LogFileStats",
+          "destructor": "xl6LogFileStatsDestroyV1"
+        },
+        {
+          "type": "LogQueueStats",
+          "destructor": "xl6LogQueueStatsDestroyV1"
+        },
+        {
+          "type": "LogStats",
+          "destructor": "xl6LogStatsDestroyV1"
+        },
+        {
+          "type": "LogSink",
+          "destructor": "xl6LogSinkDestroyV1"
+        },
+        {
+          "type": "Logger",
+          "destructor": "xl6LogDestroyV1"
+        },
+        {
+          "type": "TreeStats",
+          "destructor": "xl6_xrt_fs_stats_destroy"
+        },
+        {
+          "type": "JsonWriter",
+          "destructor": "xl6_xrt_json_writer_destroy"
+        },
+        {
+          "type": "XlonWriter",
+          "destructor": "xl6_xrt_xlon_writer_destroy"
+        },
+        {
+          "type": "XLangHandler",
+          "destructor": "xl6_xlang_handler_destroy"
+        }
+      ]
+    },
+    {
+      "id": "R060-RETIRE",
+      "description": "Windows SDK asynchronous retirement is timing-dependent; final xlc.dll automatic-close probe returned run=1, ready=0, ok=0. Earlier candidates also failed explicit-close probes.",
+      "windowsProbes": [
+        {
+          "name": "xl-automatic-close",
+          "exit": 0,
+          "command": [
+            "F:\\xlang-validation\\prerelease-060-20261030\\windows-owners-shipping-r2\\xl_drain.exe",
+            "F:\\xlang-validation\\prerelease-060-20261030\\windows-owners-shipping-r2\\xl-automatic-close.xl",
+            "D:\\GIT\\x-lang"
+          ]
+        },
+        {
+          "name": "xl-explicit-close",
+          "exit": 0,
+          "command": [
+            "F:\\xlang-validation\\prerelease-060-20261030\\windows-owners-shipping-r2\\xl_drain.exe",
+            "F:\\xlang-validation\\prerelease-060-20261030\\windows-owners-shipping-r2\\xl-explicit-close.xl",
+            "D:\\GIT\\x-lang"
+          ]
+        },
+        {
+          "name": "xlc-automatic-close",
+          "exit": 1,
+          "command": [
+            "F:\\xlang-validation\\prerelease-060-20261030\\windows-owners-shipping-r2\\xlc_drain.exe",
+            "F:\\xlang-validation\\prerelease-060-20261030\\windows-owners-shipping-r2\\xlc-automatic-close.xl",
+            "D:\\GIT\\x-lang"
+          ]
+        },
+        {
+          "name": "xlc-explicit-close",
+          "exit": 0,
+          "command": [
+            "F:\\xlang-validation\\prerelease-060-20261030\\windows-owners-shipping-r2\\xlc_drain.exe",
+            "F:\\xlang-validation\\prerelease-060-20261030\\windows-owners-shipping-r2\\xlc-explicit-close.xl",
+            "D:\\GIT\\x-lang"
+          ]
+        }
+      ],
+      "linuxProbes": [
+        {
+          "name": "libxl-automatic-close",
+          "exit": 0,
+          "command": [
+            "/mnt/f/xlang-validation/prerelease-060-20261030/linux-owners-shipping-r2/libxl_drain",
+            "/mnt/f/xlang-validation/prerelease-060-20261030/linux-owners-shipping-r2/libxl-automatic-close.xl",
+            "/root/xlang-acceptance-20261030"
+          ]
+        },
+        {
+          "name": "libxl-explicit-close",
+          "exit": 0,
+          "command": [
+            "/mnt/f/xlang-validation/prerelease-060-20261030/linux-owners-shipping-r2/libxl_drain",
+            "/mnt/f/xlang-validation/prerelease-060-20261030/linux-owners-shipping-r2/libxl-explicit-close.xl",
+            "/root/xlang-acceptance-20261030"
+          ]
+        },
+        {
+          "name": "libxlc-automatic-close",
+          "exit": 0,
+          "command": [
+            "/mnt/f/xlang-validation/prerelease-060-20261030/linux-owners-shipping-r2/libxlc_drain",
+            "/mnt/f/xlang-validation/prerelease-060-20261030/linux-owners-shipping-r2/libxlc-automatic-close.xl",
+            "/root/xlang-acceptance-20261030"
+          ]
+        },
+        {
+          "name": "libxlc-explicit-close",
+          "exit": 0,
+          "command": [
+            "/mnt/f/xlang-validation/prerelease-060-20261030/linux-owners-shipping-r2/libxlc_drain",
+            "/mnt/f/xlang-validation/prerelease-060-20261030/linux-owners-shipping-r2/libxlc-explicit-close.xl",
+            "/root/xlang-acceptance-20261030"
+          ]
+        }
+      ]
+    }
+  ],
+  "releaseMaterialDecisions": [
+    "Project license remains unspecified by the owner"
+  ],
+  "excluded": [
+    "full test_all",
+    "attack/fuzz/security campaigns",
+    "external network and TLS handshakes",
+    "system timezone changes",
+    "IDE validation and concurrent IDE changes"
+  ],
+  "evidence": [
+    {
+      "path": "F:\\xlang-validation\\prerelease-060-20261030\\windows-final-build.json",
+      "sha256": "b684dd3ed3a9ac881c9e98d33aff6e7230c6605346e7ab9704178a141e0d4e3a"
+    },
+    {
+      "path": "F:\\xlang-validation\\prerelease-060-20261030\\linux-final-build.json",
+      "sha256": "5cbabb2200f4d4e17722424ce3b32edba033640f83d7eb10cf494db2ee33b178"
+    },
+    {
+      "path": "F:\\xlang-validation\\prerelease-060-20261030\\windows-version-shipping\\results.json",
+      "sha256": "d38a2095c7bc6d2ce894418d69b467086e05e617acd1092b1dca4945a99a9cd1"
+    },
+    {
+      "path": "F:\\xlang-validation\\prerelease-060-20261030\\linux-version-shipping\\results.json",
+      "sha256": "e1fe1d228cc3c7473d27969a0bfe750e1998f3be5b249cf95141719828cc7d13"
+    },
+    {
+      "path": "F:\\xlang-validation\\prerelease-060-20261030\\windows-runtime-shipping\\results.json",
+      "sha256": "33c25650b7b7708ee6299cadfb9fd3958e8ec955a09b7320718cc405f264dfc7"
+    },
+    {
+      "path": "F:\\xlang-validation\\prerelease-060-20261030\\linux-runtime-shipping\\results.json",
+      "sha256": "637d2b6b109e737baf1260cbbc5ce5c09bbc3faf70f438b6d18949385047fa1a"
+    },
+    {
+      "path": "F:\\xlang-validation\\prerelease-060-20261030\\windows-delivery-shipping\\results.json",
+      "sha256": "4708afec72684124c074dc9f48ca2705e971f69818f483d810b7b8f420b18a1a"
+    },
+    {
+      "path": "F:\\xlang-validation\\prerelease-060-20261030\\linux-delivery-shipping\\results.json",
+      "sha256": "43622744b7c9fd1679ea13e72b62e0af3dbece6c5eda7c4aafe9c74e4d7247fe"
+    },
+    {
+      "path": "F:\\xlang-validation\\prerelease-060-20261030\\windows-owners-shipping-r2\\results.json",
+      "sha256": "630094d26a20b747d33cb77b1d8032ecd58112904905f695226414d723e7ce6c"
+    },
+    {
+      "path": "F:\\xlang-validation\\prerelease-060-20261030\\linux-owners-shipping-r2\\results.json",
+      "sha256": "e379e266cec44aa851eee5e54a0d1c51eaa79810b43a15279ec61f8abe24cfac"
+    },
+    {
+      "path": "F:\\xlang-validation\\prerelease-060-20261030\\runtime-shipping-windows\\results.json",
+      "sha256": "805cdbfc0145f969262dd56a2dd14f7534486d4eb6d7db3d1d23595f3f04fc8a"
+    },
+    {
+      "path": "F:\\xlang-validation\\prerelease-060-20261030\\runtime-shipping-linux\\results.json",
+      "sha256": "82366edb56c43396828145a210f0040872c35686b343a1fe9fc99a240a9cab76"
+    },
+    {
+      "path": "F:\\xlang-validation\\prerelease-060-20261030\\runtime-shipping-linux-fs-retest\\results.json",
+      "sha256": "b9d3a968a9ae9b059db6d014b286f5fc0b849265237d6eb016fa861f2ae7438e"
+    },
+    {
+      "path": "F:\\xlang-validation\\prerelease-060-20261030\\delivery-matrix-fast-r6\\results.json",
+      "sha256": "a268886ef4e3567345c953ff59b09f6f3bd8ac34e2fe67c87d8b72fb058968ce"
+    },
+    {
+      "path": "F:\\xlang-validation\\prerelease-060-20261030\\static-final-r2\\results.json",
+      "sha256": "c7de7137fcfcb828075d8ee4343ac97bcc87e8c4fca4f31af10d20a2df2c2a6f"
+    },
+    {
+      "path": "F:\\xlang-validation\\prerelease-060-20261030\\local-products.json",
+      "sha256": "d5763fc2d929cd0ac5b94f9f1e071decdfe16be1de20a8ea0068350904308e23"
+    },
+    {
+      "path": "F:\\xlang-validation\\prerelease-060-20261030\\docs-index-final.log",
+      "sha256": "7d077fb7ebdb24b96ef7b3c93cdc2c6df2d8e1a1dfbf2d73d18f75fb519951f0"
+    },
+    {
+      "path": "F:\\xlang-validation\\prerelease-060-20261030\\markdown-final.log",
+      "sha256": "56228d426e40fa58e833a39c64fbec7bda0d8cba646c7bf130903c6b92297b4a"
+    },
+    {
+      "path": "F:\\xlang-validation\\prerelease-060-20261030\\encoding-final.log",
+      "sha256": "74beb3cef9d885b2a931e109aa1e66afeb44d092cb4a80ce68859203e51f439d"
+    },
+    {
+      "path": "F:\\xlang-validation\\prerelease-060-20261030\\tool-wiring-final.log",
+      "sha256": "51a71a81e823f9e2c92ddf10c4e202d6f045f0a09f87d3958e889972a9ad636c"
+    },
+    {
+      "path": "F:\\xlang-validation\\prerelease-060-20261030\\resources-runtime-final.log",
+      "sha256": "ecd3a219d0fc0717dcf27d38fd9eec4dbd3060f3bf06e7d71a21cc8ceed61b20"
+    },
+    {
+      "path": "F:\\xlang-validation\\prerelease-060-20261030\\resources-compiler-final.log",
+      "sha256": "9c9e3b03083942c985695981894c36a1682d009ddedc5f692d2175253819e947"
+    },
+    {
+      "path": "F:\\xlang-validation\\prerelease-060-20261030\\windows-vfs-r7.log",
+      "sha256": "ae52686d9e47018710e392fa85edebc00c728ba4a70ccc306bb085e92312842b"
+    },
+    {
+      "path": "F:\\xlang-validation\\prerelease-060-20261030\\windows-vfs-shipping-last.log",
+      "sha256": "c71526fded22ed82f810361eeb84e99410c04f0b988b8c2bf6bb6dc43ba8a47d"
+    },
+    {
+      "path": "F:\\xlang-validation\\prerelease-060-20261030\\windows-float-env-final.log",
+      "sha256": "efc8f9dae5931b10d7a0e7dc13d3b0139e0b1ce1bd6fe86f3f3dc76d8638041e"
+    },
+    {
+      "path": "F:\\xlang-validation\\prerelease-060-20261030\\linux-float-env-shipping.log",
+      "sha256": "6f9703e2bd020b72d6c84fc9bc324742a01534dfc99ddf193ba3b624258277e8"
+    }
+  ],
+  "validationTools": {
+    "check_release_version.py": "a8cfeef09bea28594f33815ba5e96899a61e2559ac94aa874737cf14a470c331",
+    "check_release_runtime.py": "5f727591252c32ab0ddce75cf7634f3d94b564ad7289a5abe101d388f025bce5",
+    "check_release_delivery.py": "1fe08e2bc3260e4fbacb5f5183b5665d9c0b1d83e3f40fe5f328c77837cf7275",
+    "check_release_native_owners.py": "4f25648896b79a353ec179bc8f011e6d2dea0514306ea6557e0453972f6e46bc",
+    "check_stdlib_vfs.ps1": "95269ee59b67fd617676ca9f78ee3b218320051d3b786381967663fa2add0260"
+  }
+}

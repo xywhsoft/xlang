@@ -97,4 +97,4 @@ func temporaryPack(PackOptions options) as string
 end
 string tempName = temporaryPack(options)
 assert file.delete(tempName)
-print("vfs pack full ok")
+println("vfs pack full ok")

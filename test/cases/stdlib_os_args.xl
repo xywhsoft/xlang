@@ -1,0 +1,21 @@
+array arguments = os.args()
+assert arguments.length > 0
+string first = string(arguments[0])
+arguments[0] = "changed local copy"
+array again = os.args()
+assert string(again[0]) == first
+string token = env.get("XL6_OS_ARGS_TOKEN") ?? ""
+if token != ""
+    bool unicodeFound = false
+    bool emptyFound = false
+    bool spaceFound = false
+    for value in again
+        string text = string(value)
+        if text == token then unicodeFound = true end
+        if text == "" then emptyFound = true end
+        if text == "embedded space" then spaceFound = true end
+    end
+    assert unicodeFound and emptyFound and spaceFound
+end
+assert os.platform() != "" and path.sep() != "" and path.normalize("a/../b") != ""
+println("OS process arguments ok")

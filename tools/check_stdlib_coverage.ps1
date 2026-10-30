@@ -26,7 +26,7 @@ function Read-Utf8Text($path)
 
 function Read-ManyUtf8Text($dir, $filter)
 {
-    $items = Get-ChildItem -Path $dir -Filter $filter -File | Sort-Object FullName
+    $items = Get-ChildItem -Path $dir -Filter $filter -File -Recurse | Sort-Object FullName
     $parts = New-Object System.Collections.Generic.List[string]
 
     foreach ( $item in $items ) {
@@ -137,7 +137,7 @@ function Remove-XlangCommentsAndStrings($text)
 
 function Read-ManyXlangCoverageText($dir, $filter)
 {
-    $items = Get-ChildItem -Path $dir -Filter $filter -File | Sort-Object FullName
+    $items = Get-ChildItem -Path $dir -Filter $filter -File -Recurse | Sort-Object FullName
     $parts = New-Object System.Collections.Generic.List[string]
 
     foreach ( $item in $items ) {
@@ -163,13 +163,15 @@ function Add-Failure($items, $message)
     $items.Add($message) | Out-Null
 }
 
+& python -B (Join-Path $PSScriptRoot 'generate_stdlib_reference.py') --root $Root --check
+if ($LASTEXITCODE -ne 0) { throw "Standard-library declaration reference is stale" }
 $stdlib = Read-Utf8Text $stdlibPath
 foreach ($include in [regex]::Matches($stdlib, '(?m)^#include\s+"(?:src/stdlib/)?(xl6_stdlib_[A-Za-z0-9_]+\.inc)"')) {
     $stdlib += "`n" + (Read-Utf8Text (Join-Path (Split-Path -Parent $stdlibPath) $include.Groups[1].Value))
 }
 $docs = Read-ManyUtf8Text $docDir "*.md"
-$tests = Read-ManyXlangCoverageText $testDir "stdlib_*.xl"
-$examples = Read-ManyXlangCoverageText $exampleDir "stdlib_*.xl"
+$tests = Read-ManyXlangCoverageText $testDir "*.xl"
+$examples = Read-ManyXlangCoverageText $exampleDir "*.xl"
 
 $funcs = New-Object System.Collections.Generic.List[string]
 $consts = New-Object System.Collections.Generic.List[string]

@@ -38,4 +38,4 @@ try
 finally
     failClear()
 end
-print("vfs pack allocation ok")
+println("vfs pack allocation ok")

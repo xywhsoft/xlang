@@ -77,11 +77,20 @@ static int xl6IrCgenEmitStaticEntry(XL6_Output* out,const XL6_IrModule* module,c
         "    if (!xl6ErrorScopeBeginCleanup(&cleanup, !ok)) return 1;\n"
         "    xrtValueRelease(arg);\n"
         "    if (xrtGetError()) xl6ErrorScopeCaptureFailure(&cleanup);\n"
-        "    if (xlir_entry_module) {\n"
+        "    if (xlir_entry_module) {\n",out);
+    /* Process exit owns the application's service shutdown. Settle accepted
+     * work before inspecting the final graph; a module unload/read preflight
+     * retains its separate, non-destructive ownership contract. */
+    if(module->abi.retirementAbi==XL6_IR_MODULE_RETIREMENT_RETRYABLE_SERVICES_V4)
+        xl6OutputPuts("        if (xlir_module_prepare_resources(true, true) != XL6_MODULE_PREPARE_READY) { xl6ErrorScopeCaptureFailure(&cleanup); goto entry_cleanup_done; }\n",out);
+    xl6OutputPuts(
         "        XL6_StaticModuleResultV1 retired = xl6StaticModuleDrainForV1(xlir_entry_module, -1);\n"
         "        if (!retired.ready || !retired.ok) xl6ErrorScopeCaptureFailure(&cleanup);\n"
         "        if (retired.ready && !xl6StaticModuleDestroyV1(&xlir_entry_module)) xl6ErrorScopeCaptureFailure(&cleanup);\n"
-        "    }\n"
+        "    }\n",out);
+    if(module->abi.retirementAbi==XL6_IR_MODULE_RETIREMENT_RETRYABLE_SERVICES_V4)
+        xl6OutputPuts("entry_cleanup_done:;\n",out);
+    xl6OutputPuts(
         "    if (!xlir_entry_module) { xl6OwnershipCatalogDestroyV1(xlir_entry_catalog); xlir_entry_catalog = NULL; }\n"
         "    outcome = xl6ErrorScopeEnd(&cleanup); xrtSetErrorTake(outcome.error);\n"
         "    if (!outcome.ok) { xl_script_print_uncaught(); xl_script_clear_error(); return 1; }\n"

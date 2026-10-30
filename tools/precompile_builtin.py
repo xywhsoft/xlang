@@ -107,6 +107,7 @@ def main():
             units=list(dict.fromkeys([*arrays["runtimeSources"],*arrays["compilerSources"]] if compiler else arrays["runtimeSources"]))
             if not shared and compiler:units+=components
             if compiler:units+=tcc_sources
+            units=list(dict.fromkeys(units))
             flags=common+(["-DXL_BUILD_DLL","-DLIBTCC_AS_DLL"] if shared else ["-DXL_STATIC_EMBED"])
             if not compiler:flags += ["-DXL_RUNTIME_ONLY_DLL","-DXL_RUNTIME_ONLY_API"]
             cache_base=json.dumps(dict(version=2,headers=header_hash.hexdigest(),sdk=sdk.hexdigest(),tcc=fingerprint["tcc"],flags=flags),sort_keys=True)

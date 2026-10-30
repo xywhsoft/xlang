@@ -21,5 +21,12 @@ if errorlevel 1 exit /b 1
 build\test\cgen_var_runtime_objects.exe
 if errorlevel 1 exit /b 1
 
+release\xl.exe run test\cases\stdlib_release_api_contracts.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\stdlib_release_api_contracts.xl -o build\test\stdlib_release_api_contracts.exe
+if errorlevel 1 exit /b 1
+build\test\stdlib_release_api_contracts.exe
+if errorlevel 1 exit /b 1
+
 echo DEMO6 suite ok: core C generation and runtime baseline 6/10
 exit /b 0

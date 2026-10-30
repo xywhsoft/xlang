@@ -15,7 +15,7 @@ string encoded = raw.base64(0, custom)
 assert Buffer.fromBase64(encoded, 0, custom).toBytes() == raw.toBytes()
 assert raw.base64(0, custom + "unused", -1, 64) == encoded
 assert Buffer.fromBase64("", 0).len() == 0 and Buffer("").base64() == ""
-assert codec.base64DecodeBytes("AA==").toBytes() == b"\0"
+assert codec.base64Decode("AA==") == b"\0"
 int refused = 0
 try
     Buffer.fromBase64("QQ==\0QQ==")

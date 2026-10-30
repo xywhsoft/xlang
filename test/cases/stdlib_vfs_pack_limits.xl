@@ -24,4 +24,4 @@ assert rejected
 auto slice = vfs.pack("build/test/vfs-pack-slice.bin", 7, 164)
 auto sliceMount = fs.mount("/slice", slice)
 assert fs.readBytes("/slice/entry.bin") == b"a\0b"
-print("vfs pack limits ok")
+println("vfs pack limits ok")

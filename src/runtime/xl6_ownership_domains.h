@@ -283,4 +283,11 @@ XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainForeignResourc
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainMemoryStatsV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainMemoryDebugSnapshotV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainObjectPoolControlV1Get(void);
+XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainResourceFsPathPartsV1Get(void);
+XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainResourceFsPathIterV1Get(void);
+
+XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainResourceAsyncFileV1Get(void);
+
+
+XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainResourceSipHasher64V1Get(void);
 #endif

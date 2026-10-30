@@ -27,8 +27,9 @@ static void mysql_metadata(void)
         const char* text;
         for (i = 0; i < 14; ++i) if (bits & (1u << i)) {
             mask |= masks[i];
-            if (expected[0]) strcat(expected, " ");
-            strcat(expected, names[i]);
+            size_t used = strlen(expected);
+            int written = snprintf(expected + used, sizeof(expected) - used, "%s%s", used ? " " : "", names[i]);
+            assert(written >= 0 && (size_t)written < sizeof(expected) - used);
         }
         text = xmysql_status_str(mask);
         assert(text && strcmp(text, expected) == 0);

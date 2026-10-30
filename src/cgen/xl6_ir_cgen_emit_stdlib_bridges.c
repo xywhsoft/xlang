@@ -231,14 +231,13 @@ static int xl6IrCgenEmitStdlibBridgeRuntime(
             out);
     if ( needs->needsSipHasher64BridgeRuntime )
         xl6OutputPuts(
-            "typedef struct xlir_siphasher64 { xsiphash state; xsipkey key; } xlir_siphasher64;\n"
+            "#include <__xl_runtime/xl6_siphash_state.h>\n"
             "void* xl6_xrt_siphasher64_create(xvalue* keyValue)\n"
             "{ xsipkey key; xlir_siphasher64* hasher; if (!xlir_sip_key_read(keyValue, &key)) return NULL;\n"
             "  hasher = (xlir_siphasher64*)xrtMalloc(sizeof(*hasher)); if (hasher == NULL) return NULL;\n"
             "  hasher->key = key; xrtSipHashInit(&hasher->state, key); return hasher; }\n"
             "void* xl6_xrt_siphasher64_adopt(void* handle) { if (handle == NULL) xrtSetErrorKind(XERR_STATE); return handle; }\n"
-            "void xl6_xrt_siphasher64_destroy(void* self)\n"
-            "{ if (self != NULL) { xrtSecureZero(self, sizeof(xlir_siphasher64)); xrtFree(self); } }\n"
+            "extern void xl6_xrt_siphasher64_destroy(void*);\n"
             "bool xl6_xrt_siphasher64_update_string(void* self, const char* data, size_t actual, int64_t limit)\n"
             "{ if (self == NULL) { xrtSetErrorKind(XERR_STATE); return false; }\n"
             "  return xrtSipHashUpdate(&((xlir_siphasher64*)self)->state, data, xlir_hash_limit(actual, limit)); }\n"

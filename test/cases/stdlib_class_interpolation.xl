@@ -46,4 +46,4 @@ end
 assert finalizations == 1 and conversions == 4, "protocol finally"
 rejectText = false
 assert f"{custom}" == "custom\0你" and conversions == 5
-print("class interpolation protocol ok")
+println("class interpolation protocol ok")

@@ -156,5 +156,15 @@ try {
 if ( $LASTEXITCODE -ne 0 ) {
     throw "runtime-callable XLIR package runtime failed"
 }
+foreach ($fixture in @("stdlib_runtime_callable_variadic_func_pending", "stdlib_runtime_nullable_method_func_pending")) {
+    $inputPath = Join-Path $Root "test/cases/$fixture.xl"
+    & $xl run $inputPath
+    if ($LASTEXITCODE -ne 0) { throw "Callable regression JIT failed: $fixture" }
+    $binary = Join-Path $outputDir "$fixture.exe"
+    & $xl build $inputPath -o $binary
+    if ($LASTEXITCODE -ne 0) { throw "Callable regression AOT failed: $fixture" }
+    & $binary
+    if ($LASTEXITCODE -ne 0) { throw "Callable regression AOT exit failed: $fixture" }
+}
 Write-Output "XLIR runtime-callable value ABI gate ok: concrete signature TypeValueId, dict/array variadic adapters, explicit owned-first multi-result projection, immediate error CFG, deterministic Cgen, strict C, and package runtime."
 exit 0

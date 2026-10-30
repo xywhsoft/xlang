@@ -1,3 +1,4 @@
+#include "test_numeric_arg.h"
 /* Private, deterministic subprocess. No shell, desktop app, network or user file. */
 #include <stdio.h>
 #include <stdlib.h>
@@ -65,11 +66,11 @@ static int childMain(int argc,char** argv)
 #if defined(_WIN32)
     _setmode(_fileno(stdin),_O_BINARY);_setmode(_fileno(stdout),_O_BINARY);_setmode(_fileno(stderr),_O_BINARY);
 #endif
-    if(!strcmp(argv[1],"exit"))return argc>2 ? atoi(argv[2]) : 0;
+    if(!strcmp(argv[1],"exit"))return argc>2 ? xlTestIntArg(argv[2]) : 0;
     if(!strcmp(argv[1],"terminal")){
         unsigned wantedColumns=0,wantedRows=0;
         if(argc==4){
-            int columns=atoi(argv[2]),rows=atoi(argv[3]);
+            int columns=xlTestIntArg(argv[2]),rows=xlTestIntArg(argv[3]);
             if(columns<=0 || columns>32767 || rows<=0 || rows>32767)return 90;
             wantedColumns=(unsigned)columns;wantedRows=(unsigned)rows;
         }

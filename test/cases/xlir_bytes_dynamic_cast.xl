@@ -14,4 +14,4 @@ catch TypeError
     rejected = true
 end
 assert rejected
-print("dynamic bytes cast ok")
+println("dynamic bytes cast ok")

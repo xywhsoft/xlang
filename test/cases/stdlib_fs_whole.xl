@@ -65,4 +65,4 @@ end
 assert file.readText(text) == "a\0你", "failed atomic conversion leaves target unchanged"
 assert file.touch(raw)
 assert file.delete(raw) and file.delete(text) and file.delete(moved)
-print("fs whole ok")
+println("fs whole ok")

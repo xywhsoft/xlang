@@ -806,4 +806,9 @@ XL6_TEXT_API int64_t xl6_xrt_io_writer_seek(void* handle, int64_t offset, int64_
 XL6_TEXT_API bool xl6_xrt_io_writer_can_seek(void* handle);
 XL6_TEXT_API bool xl6_xrt_io_writer_can_size(void* handle);
 XL6_TEXT_API bool xl6_xrt_io_writer_closed(void* handle);
+#include "xl6_fs_path_owner.h"
+
+XL6_TEXT_API void xl6_xrt_fs_async_destroy(void*);
+
+XL6_TEXT_API xvalue* xl6_xrt_os_args(void);
 #endif

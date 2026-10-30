@@ -62,4 +62,4 @@ for operation in range(4)
     end
     assert rejected
 end
-print("fs path ok")
+println("fs path ok")

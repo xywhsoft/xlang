@@ -47,4 +47,4 @@ IDE 的 C/xlang 双语法与现有静态命令补全继续可用。此增量不�
 
 开发工具链保存在 `ide/build/toolchains/demo6-completion-a96b23d8-16c9-4eae-9da7-6d082d45f5a7`。该工具链基于本增量启动时的编译器副本，未覆盖共享 `release` 二进制。并行编译单元的非重叠资源变动在源码合并时完整保留，但不冒充已经重新构建了全部并行开发。现有编译脚本的重复 `array_algebra` 输入由私有构建命令去重；原脚本的既有输入保持原样。
 
-[回归脚本](../tools/check_completion_query.py) 可指定 `--root` 和 `--compiler` 复跑，要求 Windows 和 MinGW GCC。IDE 接入与本次证据见 [IDE 补全基础说明](../../ide/docs/compiler-completion.md)。
+[回归脚本](../tools/check_completion_query.py) 可指定 `--root` 和 `--compiler` 复跑，要求 Windows 和 MinGW GCC。IDE 接入与本次证据见 [IDE 补全基础说明](../ide/docs/compiler-completion.md)。

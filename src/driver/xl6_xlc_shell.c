@@ -33,6 +33,7 @@ static void xlcShellReportKeptTemps(void)
 static void xlcShellPrintHelp(void)
 {
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "Usage:\n");
+    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl --version [--json]\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl lex <file.xl> [--format text|json] [--emit output.tokens]\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl parse <file.xl> [--format tree|json] [--source-ranges --json] [--emit output.ast]\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl check <file.xl> [--json [--source-report] [--semantic-index] [--completion-at source.xl byteOffset]] [--source-overlay source.xl snapshot.utf8 ...]\n");
@@ -1801,6 +1802,19 @@ static int xlcShellImpdef(int argc, char** argv)
 int xlcShellMain(int argc, char** argv)
 {
     const char* cmd;
+    if (argc >= 2 && xlcShellTextEquals(argv[1], "--version")) {
+        if (argc == 2) {
+            xl6ConsolePrintf(XL6_CONSOLE_STDOUT, "xlang %s (0x%08X)\n", xlGetVersionString(), xlGetVersionCode());
+            return 0;
+        }
+        if (argc == 3 && xlcShellTextEquals(argv[2], "--json")) {
+            xl6ConsolePrintf(XL6_CONSOLE_STDOUT, "{\"version\":\"%s\",\"versionCode\":%u,\"versionCodeHex\":\"0x%08X\"}\n",
+                xlGetVersionString(), xlGetVersionCode(), xlGetVersionCode());
+            return 0;
+        }
+        xl6ConsolePuts(XL6_CONSOLE_STDERR, "--version accepts only --json\n");
+        return 1;
+    }
     {
         int wantsJson = 0;
         if (xlcShellJsonFlagOptions(argc, argv, "--c-environment", &wantsJson) &&
