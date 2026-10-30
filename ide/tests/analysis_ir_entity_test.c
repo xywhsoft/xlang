@@ -1,3 +1,4 @@
+#include "analysis_test_clock.h"
 #include "analysis/index_entities.h"
 #include "analysis/check_ir.h"
 #include "analysis/frontend_ir_memo.h"
@@ -42,7 +43,7 @@ static int32 readIr(void* user)
 }
 static int run(void)
 {
- char folder[128];snprintf(folder,sizeof(folder),"build/ir-entities-%llu",(unsigned long long)xrtClock());char* directory=xrtPathAbs(folder);CHECK(directory && xrtDirCreateAll(directory));char *entry=xrtPathJoin(directory,"main.xl"),*dep=xrtPathJoin(directory,"dep.xl"),*project=xrtPathJoin(directory,"sample.xlp");CHECK(entry && dep && project);
+ char folder[128];snprintf(folder,sizeof(folder),"build/ir-entities-%llu",(unsigned long long)xlsTestClockMicros());char* directory=xrtPathAbs(folder);CHECK(directory && xrtDirCreateAll(directory));char *entry=xrtPathJoin(directory,"main.xl"),*dep=xrtPathJoin(directory,"dep.xl"),*project=xrtPathJoin(directory,"sample.xlp");CHECK(entry && dep && project);
  const char* members[]={entry,dep};xls_context_spec spec={.kind=XLS_CONTEXT_PROJECT,.project=project,.configuration="debug",.entry=entry,.directory=directory,.analysisProfile="ir-entity-fixture",.targetKind="exe"};spec.lists[XLS_CONTEXT_MEMBERS]=(xls_context_strings){members,2};xls_context* context=xlsContextCreate(&spec,1024*1024,NULL);xls_module_store* store=xlsModuleStoreCreate(NULL);xls_worker* worker=xlsWorkerCreateWithModules(NULL,4,NULL,store);CHECK(context && store && worker);
  xls_analysis_document docs[2]={{"entry",entry,NULL,1,0},{"dep",dep,NULL,2,0}};fixture_result held={0};xls_text *heldEntry=NULL,*heldDep=NULL;uint32_t originalSymbol=0;uint64_t originalIdentity=0;unsigned originalVersion=0;
  for(unsigned v=0;v<7;++v){

@@ -1,3 +1,4 @@
+#include "analysis_test_clock.h"
 #include "services/language_check.h"
 #include "services/diagnostic_store.h"
 #include "platform/path.h"
@@ -47,8 +48,8 @@ static xide_language_check* start(xls_context* context,xide_toolchains* cache,co
 }
 static xvalue* ready(xide_language_check* check)
 {
- char error[512]={0};uint64_t began=xrtClock();enum xide_check_state state;
- while(check && (state=xideLanguageCheckState(check,error,sizeof(error)))==XIDE_CHECK_RUNNING && xrtClock()-began<15000000) xrtSleep(1);
+ char error[512]={0};uint64_t began=xlsTestClockMicros();enum xide_check_state state;
+ while(check && (state=xideLanguageCheckState(check,error,sizeof(error)))==XIDE_CHECK_RUNNING && xlsTestClockMicros()-began<15000000) xrtSleep(1);
  xvalue* out=xideLanguageCheckResult(check);
  if(!out) fprintf(stderr,"host context result: %s\n",error);
  return out;
@@ -77,8 +78,8 @@ static int items(const xvalue* value,const char* wanted,const char* excluded)
 static int stopped(void* user) { return *(int*)user; }
 static int storeResult(xide_diagnostic_query* query,int expected,xide_diagnostic_snapshot* value)
 {
- CHECK(query);uint64_t began=xrtClock();enum xide_diagnostic_state state;
- while((state=xideDiagnosticQueryResult(query,value))==XIDE_DIAGNOSTIC_PENDING && xrtClock()-began<15000000) xrtSleep(1);
+ CHECK(query);uint64_t began=xlsTestClockMicros();enum xide_diagnostic_state state;
+ while((state=xideDiagnosticQueryResult(query,value))==XIDE_DIAGNOSTIC_PENDING && xlsTestClockMicros()-began<15000000) xrtSleep(1);
  CHECK(state==(enum xide_diagnostic_state)expected);return 1;
 }
 static xide_analysis_catalog* selectedCatalog(xls_context* a,xls_context* b,int selected)
@@ -104,7 +105,7 @@ static int selectedPublication(xide_diagnostic_query* query,const char* entry,co
 }
 static int run(void)
 {
- char relative[160];snprintf(relative,sizeof(relative),"build/host-context-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xrtClock());
+ char relative[160];snprintf(relative,sizeof(relative),"build/host-context-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xlsTestClockMicros());
  CHECK(xrtDirCreateAll(relative));char* root=xrtPathAbs(relative);char *a=xrtPathJoin(root,"工程 A"),*b=xrtPathJoin(root,"工程 B"),*entry=xrtPathJoin(root,"same-entry.xl"),*compiler=xrtPathJoin(root,"absent/xl.exe");
  CHECK(root && a && b && entry && compiler && writeText(entry,"// original entry is not an overlay file write\n"));
  char* apiA=package(a,0);char* apiB=package(b,1);CHECK(apiA && apiB);

@@ -1,3 +1,4 @@
+#include "analysis_test_clock.h"
 #include "analysis/index_entities.h"
 #include "analysis/index_modules.h"
 #include "analysis/worker_modules.h"
@@ -25,7 +26,7 @@ static int32 readEntities(void* user)
 {entity_reader* r=user;r->okay=1;for(size_t i=0;i<256;++i)if(xlsEntityViewSymbol(r->view,r->native)!=r->stable || xlsEntityViewNativeSymbol(r->view,r->stable)!=r->native || !xlsEntityViewInfo(r->view).domain)r->okay=0;return 0;}
 static int run(void)
 {
- char relative[128];snprintf(relative,sizeof(relative),"build/entity-binding-%llu",(unsigned long long)xrtClock());char* root=xrtPathAbs(relative);CHECK(root && xrtDirCreateAll(root));char *paths[]={xrtPathJoin(root,"main.xl"),xrtPathJoin(root,"dep.xl"),xrtPathJoin(root,"other.xl")},*project=xrtPathJoin(root,"sample.xlp");CHECK(paths[0] && paths[1] && paths[2] && project);
+ char relative[128];snprintf(relative,sizeof(relative),"build/entity-binding-%llu",(unsigned long long)xlsTestClockMicros());char* root=xrtPathAbs(relative);CHECK(root && xrtDirCreateAll(root));char *paths[]={xrtPathJoin(root,"main.xl"),xrtPathJoin(root,"dep.xl"),xrtPathJoin(root,"other.xl")},*project=xrtPathJoin(root,"sample.xlp");CHECK(paths[0] && paths[1] && paths[2] && project);
  const char* header="class Local<T>\n T field\n func accept(T input) as int\n return 0\n end\nend\nfunc consume(Local<int> value) as int\n return 0\nend\nfunc keep<T>(T value) as T\n return value\nend\nfunc same(int value) as int\n return value\nend\nfunc same(string value) as int\n return 1\nend\nfunc token() as int\n return 3\nend\n";
  const char* tail="func main(...) as int\n int token = 7\n int unique_main=same(dep.compute(7))\n return unique_main\nend\n";
  const char* dependency="export class Box<T>\n T field\nend\nexport func compute(int value) as int\n return value+1\nend\nexport func compute(string value) as int\n return 0\nend\n";

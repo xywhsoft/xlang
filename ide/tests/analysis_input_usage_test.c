@@ -1,3 +1,4 @@
+#include "analysis_test_clock.h"
 #include "analysis/check_session.h"
 #include "analysis/completion_session.h"
 #include "analysis/signature_session.h"
@@ -6,6 +7,7 @@
 #include "analysis/frontend_input_usage.h"
 #include "analysis/input_batch.h"
 #include "src/compile/xl6_source_overlay.h"
+#include "analysis/frontend_overlay_lookup.h"
 #include <xrt.h>
 #include <stdio.h>
 #include <string.h>
@@ -42,11 +44,12 @@ static int observation(void)
  xlsFrontendInputUsageBegin(&outer);xlsFrontendInputUsageBind(&first,1);xlsFrontendInputUsageRead(&first,1);CHECK(!xlsFrontendInputUsageEnd(&outer,&used) && !used);
  xlsFrontendInputUsageBegin(&outer);xlsFrontendInputUsageBind(&first,65);CHECK(!xlsFrontendInputUsageEnd(&outer,&used) && !used);
  char* path=xrtPathAbs("usage-Ä.xl");CHECK(path && xl6SourceOverlaySet(&first,path,"",0));char* query=xrtStrDup(path);CHECK(query);
+ const XL6_SourceOverlayItem* item=NULL;
  for(char* p=query;*p;++p)if(*p=='\\')*p='/';
- xlsFrontendInputUsageBegin(&outer);xlsFrontendInputUsageBind(&first,1);CHECK(xl6SourceOverlayFind(&first,query));CHECK(xlsFrontendInputUsageEnd(&outer,&used) && used==1);
+ xlsFrontendInputUsageBegin(&outer);xlsFrontendInputUsageBind(&first,1);CHECK(xlsFrontendOverlayLookup(&first,query,&item)==1 && item);CHECK(xlsFrontendInputUsageEnd(&outer,&used) && used==1);
 #ifdef _WIN32
  char* unicode=strstr(query,"Ä");CHECK(unicode);memcpy(unicode,"ä",2);
- xlsFrontendInputUsageBegin(&outer);xlsFrontendInputUsageBind(&first,1);CHECK(xl6SourceOverlayFind(&first,query));CHECK(xlsFrontendInputUsageEnd(&outer,&used) && used==1);
+ xlsFrontendInputUsageBegin(&outer);xlsFrontendInputUsageBind(&first,1);CHECK(xlsFrontendOverlayLookup(&first,query,&item)==1 && item);CHECK(xlsFrontendInputUsageEnd(&outer,&used) && used==1);
 #endif
  xl6SourceOverlayClear(&first);xrtFree(query);xrtFree(path);return 1;
 }
@@ -127,7 +130,7 @@ static int concurrentUsage(const xls_analysis_document* docs)
 }
 static int scopedSessions(void)
 {
- char folder[128];snprintf(folder,sizeof(folder),"build/input-usage-%llu",(unsigned long long)xrtClock());char* root=xrtPathAbs(folder);CHECK(root && xrtDirCreateAll(root));
+ char folder[128];snprintf(folder,sizeof(folder),"build/input-usage-%llu",(unsigned long long)xlsTestClockMicros());char* root=xrtPathAbs(folder);CHECK(root && xrtDirCreateAll(root));
  char *entry=xrtPathJoin(root,"main.xl"),*dep=xrtPathJoin(root,"dep.xl"),*extra=xrtPathJoin(root,"unrelated.xl"),*other=xrtPathJoin(root,"other.xl");CHECK(entry && dep && extra && other);
  const char* source="\xef\xbb\xbfimport dep\r\nfunc plus(int left,string right) as int\r\n return left\r\nend\r\nfunc main(...) as int\r\n int computed=dep.value()\r\n int doneLocal=plus(computed,\"hello\")\r\n return doneLocal\r\nend\r\n";
  const char* api="export func value() as int\n return 7\nend\n";
@@ -169,7 +172,7 @@ static int invalidations(trio* s,uint64_t expected)
 }
 static int diskProofs(void)
 {
- char folder[160],name[96];snprintf(folder,sizeof(folder),"build/input-usage-disk-%llu",(unsigned long long)xrtClock());snprintf(name,sizeof(name),"usage_missing_%llu",(unsigned long long)xrtClock());
+ char folder[160],name[96];snprintf(folder,sizeof(folder),"build/input-usage-disk-%llu",(unsigned long long)xlsTestClockMicros());snprintf(name,sizeof(name),"usage_missing_%llu",(unsigned long long)xlsTestClockMicros());
  char* root=xrtPathAbs(folder);CHECK(root && xrtDirCreateAll(root));char* entry=xrtPathJoin(root,"entry.xl");char* extra=xrtPathJoin(root,"extra.xl");xstrbuf file={0},source={0};CHECK(xrtStrBufAppendFormat(&file,"%s.xl",name) && sourceFor(&source,name));char* dep=xrtPathJoin(root,file.Data);CHECK(entry && extra && dep && !xrtFileExists(dep));
  const char* api="export func value() as int\n return 7\nend\n";
  xls_analysis_document docs[3]={{"entry",entry,text(source.Data),31,1},{"extra",extra,text("// unused"),32,1},{"dep",dep,text(api),33,1}};for(size_t i=0;i<3;++i)CHECK(docs[i].text);
@@ -193,7 +196,7 @@ static int diskProofs(void)
 }
 static int packageProofs(void)
 {
- char folder[160];snprintf(folder,sizeof(folder),"build/input-usage-package-%llu",(unsigned long long)xrtClock());char* root=xrtPathAbs(folder);CHECK(root && xrtDirCreateAll(root));
+ char folder[160];snprintf(folder,sizeof(folder),"build/input-usage-package-%llu",(unsigned long long)xlsTestClockMicros());char* root=xrtPathAbs(folder);CHECK(root && xrtDirCreateAll(root));
  char *entry=xrtPathJoin(root,"entry.xl"),*extra=xrtPathJoin(root,"extra.xl"),*package=xrtPathJoin(root,"usage_pkg"),*apiDir=package?xrtPathJoin(package,"src"):NULL;
  char *manifest=package?xrtPathJoin(package,"xlang.package.json"):NULL,*api=apiDir?xrtPathJoin(apiDir,"api.xl"):NULL;CHECK(entry && extra && manifest && api && xrtDirCreateAll(apiDir));
  const char* json="{\"format\":\"xlang-package-1\",\"name\":\"usage_pkg\",\"version\":\"1.0.0\",\"abiVersion\":\"1\",\"kind\":\"source\",\"artifact\":{\"kind\":\"source\",\"xlSources\":[\"src/api.xl\"]},\"dependencies\":[],\"links\":[],\"loadlibs\":[]}";

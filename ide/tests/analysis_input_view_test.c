@@ -1,3 +1,4 @@
+#include "analysis_test_clock.h"
 #include "analysis/check_session.h"
 #include "analysis/completion_session.h"
 #include <xrt.h>
@@ -52,7 +53,7 @@ static int run(void)
     CHECK(!xlsSemanticCheckInputs(NULL,&inputs) && !inputs.sources && !inputs.probes && !inputs.packagePath && !inputs.packagePathObserved);
     CHECK(!xlsSemanticCheckSource(NULL,0,&source) && !source.path && !source.rawSize && !source.rawSha256[0]);
     CHECK(!xlsSemanticCheckProbe(NULL,SIZE_MAX,&probe) && !probe.path && !probe.exists);
-    char root[160]; snprintf(root,sizeof(root),"build/input-view-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xrtClock());
+    char root[160]; snprintf(root,sizeof(root),"build/input-view-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xlsTestClockMicros());
     char *directory=xrtPathAbs(root),*entry=directory ? xrtPathJoin(directory,"entry.xl") : NULL;
     CHECK(directory && entry && xrtDirCreateAll(directory));
     const char* body="\xef\xbb\xbf// 中文😀\r\nfunc main(...) as int\r\n return 0\r\nend\r\n";
@@ -140,7 +141,7 @@ static int cursorViews(void)
     CHECK(!xlsSemanticCompletionInputs(NULL,&inputs) && !inputs.sources && !inputs.probes && !inputs.packagePathObserved && !inputs.packagePath);
     CHECK(!xlsSemanticCompletionSource(NULL,SIZE_MAX,&source) && !source.path && !source.size && !source.rawSha256[0]);
     CHECK(!xlsSemanticCompletionProbe(NULL,0,&probe) && !probe.path && !probe.exists);
-    char root[160],error[256];snprintf(root,sizeof(root),"build/cursor-input-view-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xrtClock());
+    char root[160],error[256];snprintf(root,sizeof(root),"build/cursor-input-view-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xlsTestClockMicros());
     char *directory=xrtPathAbs(root),*entry=directory ? xrtPathJoin(directory,"entry.xl") : NULL,*dep=directory ? xrtPathJoin(directory,"view_cursor_dep.xl") : NULL;
     CHECK(directory && entry && dep && xrtDirCreateAll(directory));
     const char* dependency="\xef\xbb\xbf" "export func value() as int\r\n return 42\r\nend\r\n";
@@ -162,9 +163,9 @@ static int cursorViews(void)
     xatomic32 phase,arrived,done;xrtAtomic32Init(&phase,0);xrtAtomic32Init(&arrived,0);xrtAtomic32Init(&done,0);
     cursor_reader readers[2];xthread* threads[2];
     for(unsigned i=0;i<2;++i) {readers[i]=(cursor_reader){xlsSemanticCompletionRetain(result),source,index,&phase,&arrived,&done,0};threads[i]=xrtThreadCreate(readCursor,&readers[i],0);CHECK(threads[i]);}
-    uint64_t until=xrtClock()+5000000;while(xrtAtomic32Load(&arrived,XMEMORY_ACQUIRE)<2 && xrtClock()<until) xrtSleep(1);CHECK(xrtAtomic32Load(&arrived,XMEMORY_ACQUIRE)==2);
+    uint64_t until=xlsTestClockMicros()+5000000;while(xrtAtomic32Load(&arrived,XMEMORY_ACQUIRE)<2 && xlsTestClockMicros()<until) xrtSleep(1);CHECK(xrtAtomic32Load(&arrived,XMEMORY_ACQUIRE)==2);
     xrtAtomic32Store(&phase,1,XMEMORY_RELEASE);for(unsigned i=0;i<10;++i) CHECK(xlsSemanticCompletionValidate(result));
-    until=xrtClock()+5000000;while(xrtAtomic32Load(&done,XMEMORY_ACQUIRE)<2 && xrtClock()<until) xrtSleep(1);CHECK(xrtAtomic32Load(&done,XMEMORY_ACQUIRE)==2);
+    until=xlsTestClockMicros()+5000000;while(xrtAtomic32Load(&done,XMEMORY_ACQUIRE)<2 && xlsTestClockMicros()<until) xrtSleep(1);CHECK(xrtAtomic32Load(&done,XMEMORY_ACQUIRE)==2);
     CHECK(xrtFileWriteAtomic(dep,(xbytesview){(const unsigned char*)dependency,strlen(dependency)}) && !xlsSemanticCompletionValidate(result));
     memset(&source,0x55,sizeof(source));memset(&probe,0x55,sizeof(probe));
     CHECK(!xlsSemanticCompletionSource(result,index,&source) && !source.path && !source.text && !source.rawSha256[0]);

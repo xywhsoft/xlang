@@ -1,3 +1,4 @@
+#include "analysis_test_clock.h"
 #include "analysis/worker.h"
 #include <xrt.h>
 #include <stdio.h>
@@ -9,22 +10,22 @@ static xls_text* text(const char* s) { return xlsTextCreate(s,strlen(s),2u*1024u
 static void wake(void* user) { xrtAtomic32FetchAdd(user,1,XMEMORY_RELAXED); }
 static enum xls_query_state waitResult(xls_query* q,xls_semantic_check** result,xls_check_stats* stats,uint64_t* thread,char* error)
 {
-    uint64_t until=xrtClock()+15000000;
+    uint64_t until=xlsTestClockMicros()+15000000;
     do {
         enum xls_query_state state=xlsQueryCheckResult(q,result,stats,thread,error,256);
         if(state!=XLS_QUERY_PENDING) return state;
-        xrtSleepUs(500);
-    } while(xrtClock()<until);
+        xlsTestSleepMicros(500);
+    } while(xlsTestClockMicros()<until);
     return XLS_QUERY_PENDING;
 }
 static enum xls_query_state waitCompletion(xls_query* q,xls_semantic_completion** result,xls_completion_stats* stats,uint64_t* thread,char* error)
 {
-    uint64_t until=xrtClock()+15000000;
+    uint64_t until=xlsTestClockMicros()+15000000;
     do {
         enum xls_query_state state=xlsQueryCompletionResult(q,result,stats,thread,error,256);
         if(state!=XLS_QUERY_PENDING) return state;
-        xrtSleepUs(500);
-    } while(xrtClock()<until);
+        xlsTestSleepMicros(500);
+    } while(xlsTestClockMicros()<until);
     return XLS_QUERY_PENDING;
 }
 static int cursorActor(void)
@@ -100,8 +101,8 @@ int main(void)
     CHECK(xrtStrBufAppend(&large,xrtStrView(good)));
     xls_text* heavy=text(large.Data); xrtStrBufFree(&large); CHECK(heavy);
     input.text=heavy; input.revision=103; q=xlsWorkerCheck(worker,&input,1,key); CHECK(q);
-    xls_worker_load load; uint64_t until=xrtClock()+1000000;
-    do { CHECK(xlsWorkerLoad(worker,&load)); if(load.running) break; xrtSleepUs(500); } while(xrtClock()<until);
+    xls_worker_load load; uint64_t until=xlsTestClockMicros()+1000000;
+    do { CHECK(xlsWorkerLoad(worker,&load)); if(load.running) break; xlsTestSleepMicros(500); } while(xlsTestClockMicros()<until);
     CHECK(load.running==1);
     xls_query* queued=xlsWorkerCheck(worker,&input,1,key); CHECK(queued);
     CHECK(!xlsWorkerCheck(worker,&input,1,key)); xlsQueryCancel(queued);

@@ -1,3 +1,4 @@
+#include "analysis_test_clock.h"
 #include "analysis/check.h"
 #include "analysis/frontend_import_names.h"
 #include <xrt.h>
@@ -16,6 +17,8 @@ static bool fixtureMapRemove(xmap* map,xbytesview key) {return operation() && xr
 #define xl6ImportDepsInit privateDepsInit
 #define xl6ImportDepsFree privateDepsFree
 #define xl6ImportsExpandModule privateExpand
+#define xl6CompiledPackageInterfaceValid privateInterfaceValid
+#define xl6CompiledPackageDecode privateInterfaceDecode
 #define xlsFrontendImportNamesBegin privateBegin
 #define xlsFrontendImportNamesEnd privateEnd
 /* The included upstream TU contains its existing unused helpers/local. Keep
@@ -36,6 +39,8 @@ static bool fixtureMapRemove(xmap* map,xbytesview key) {return operation() && xr
 #undef xl6ImportDepsInit
 #undef xl6ImportDepsFree
 #undef xl6ImportsExpandModule
+#undef xl6CompiledPackageInterfaceValid
+#undef xl6CompiledPackageDecode
 #undef xlsFrontendImportNamesBegin
 #undef xlsFrontendImportNamesEnd
 static unsigned checks;
@@ -110,7 +115,7 @@ static int32 threaded(void* user)
 }
 static int integrated(void)
 {
-    char relative[160];snprintf(relative,sizeof(relative),"build/import-names-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xrtClock());
+    char relative[160];snprintf(relative,sizeof(relative),"build/import-names-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xlsTestClockMicros());
     char *directory=xrtPathAbs(relative),*entry=xrtPathJoin(directory,"main.xl"),*dep=xrtPathJoin(directory,"names_dep.xl");CHECK(directory && entry && dep && xrtDirCreateAll(directory));
     xstrbuf source;xrtStrBufInit(&source);int okay=1;
     for(unsigned i=0;i<128;++i) {char text[128];snprintf(text,sizeof(text),"func local%u() as int\n return %u\nend\n",i,i);if(!xrtStrBufAppend(&source,xrtStrView(text))) okay=0;}

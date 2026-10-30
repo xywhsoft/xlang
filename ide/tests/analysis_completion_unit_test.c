@@ -1,3 +1,4 @@
+#include "analysis_test_clock.h"
 #define main cursorOriginalMain
 #include "analysis_cursor_syntax_test.c"
 #undef main
@@ -83,7 +84,7 @@ static int proofBoundaries(void)
 }
 static int guardedDependency(void)
 {
-    char relative[160];snprintf(relative,sizeof(relative),"build/completion-unit-%llu",(unsigned long long)xrtClock());
+    char relative[160];snprintf(relative,sizeof(relative),"build/completion-unit-%llu",(unsigned long long)xlsTestClockMicros());
     char* directory=xrtPathAbs(relative);char* path=xrtPathJoin(directory,"main.xl");char* dep=xrtPathJoin(directory,"dep.xl");CHECK(directory && path && dep && xrtDirCreateAll(directory));
     const char* helper="export func prefixValue() as int\n return 7\nend\n";CHECK(xrtFileWriteAtomic(dep,(xbytesview){(const unsigned char*)helper,strlen(helper)}));
     const char* a="import dep as alias\nfunc main(...) as int\n return alias.p\nend\n";

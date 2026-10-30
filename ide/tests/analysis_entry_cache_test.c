@@ -1,3 +1,4 @@
+#include "analysis_test_clock.h"
 #include "analysis/frontend_entry_cache.h"
 #include "analysis/frontend_internal.h"
 #include "analysis/check_session.h"
@@ -163,7 +164,7 @@ static int nestedQuery(void* user)
 }
 static int integrated(void)
 {
-    char relative[160],error[256];snprintf(relative,sizeof(relative),"build/entry-cache-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xrtClock());
+    char relative[160],error[256];snprintf(relative,sizeof(relative),"build/entry-cache-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xlsTestClockMicros());
     char *directory=xrtPathAbs(relative),*entry=xrtPathJoin(directory,"main.xl"),*helper=xrtPathJoin(directory,"helper.xl"),*package=xrtPathJoin(directory,"packages/entry_package"),*manifest=xrtPathJoin(package,"xlang.package.json"),*api=xrtPathJoin(package,"api.xl");
     const char* root="\xef\xbb\xbfimport helper\r\nfunc main(...) as int\r\n return helper.answer()\r\nend\r\n";
     CHECK(directory && entry && helper && package && manifest && api && xrtDirCreateAll(package) && writeText(entry,root));
@@ -224,7 +225,7 @@ static int checkParity(xls_semantic_check* result,xls_context* context,const cha
 }
 static int checkIntegrated(void)
 {
-    char relative[160],error[256];snprintf(relative,sizeof(relative),"build/check-entry-cache-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xrtClock());
+    char relative[160],error[256];snprintf(relative,sizeof(relative),"build/check-entry-cache-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xlsTestClockMicros());
     char *directory=xrtPathAbs(relative),*entry=xrtPathJoin(directory,"main.xl"),*helper=xrtPathJoin(directory,"helper.xl"),*package=xrtPathJoin(directory,"packages/check_package"),*manifest=xrtPathJoin(package,"xlang.package.json"),*api=xrtPathJoin(package,"api.xl");
     const char* root="\xef\xbb\xbfimport helper\r\nfunc main(...) as int\r\n return helper.answer()\r\nend\r\n";
     const char* body="import check_package as cp\nexport func answer() as int\n return cp.value()\nend\n";
@@ -396,7 +397,7 @@ static int moduleIncremental(void)
 }
 static int moduleCheckIncremental(void)
 {
-    char relative[160],error[256];snprintf(relative,sizeof(relative),"build/module-function-cache-%llu",(unsigned long long)xrtClock());
+    char relative[160],error[256];snprintf(relative,sizeof(relative),"build/module-function-cache-%llu",(unsigned long long)xlsTestClockMicros());
     char *directory=xrtPathAbs(relative),*entry=xrtPathJoin(directory,"main.xl"),*helper=xrtPathJoin(directory,"helper.xl");
     CHECK(directory && entry && helper && xrtDirCreateAll(directory) && writeText(entry,"import helper\nfunc main(...) as int\n return helper.answer()\nend\n"));
     xls_context_spec spec={.kind=XLS_CONTEXT_PROJECT,.project=directory,.entry=entry,.directory=directory,.configuration="debug",.analysisProfile="fixture-linked-native",.targetKind="exe"};

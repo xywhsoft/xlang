@@ -1,3 +1,4 @@
+#include "analysis_test_clock.h"
 /* Real worker and original core. Only optional session allocation and the
  * existing cancellation predicate are controlled to visit every commit gate. */
 #define main dependencySessionFixtureMain
@@ -21,8 +22,8 @@ static xls_dependency_session* dependencyCreate(const xls_session_limits* limits
 typedef struct outcome {enum xls_query_state state;xls_dependency_capture* value;xls_dependency_session_stats stats;xls_worker_cache_stats cache;uint64_t thread;char error[256];} outcome;
 static outcome awaitDependency(xls_query* q)
 {
- outcome r={0};uint64_t until=xrtClock()+15000000;
- do{r.state=xlsQueryDependencyResult(q,&r.value,&r.stats,&r.thread,r.error,sizeof(r.error));if(r.state!=XLS_QUERY_PENDING)break;xrtSleepUs(100);}while(xrtClock()<until);
+ outcome r={0};uint64_t until=xlsTestClockMicros()+15000000;
+ do{r.state=xlsQueryDependencyResult(q,&r.value,&r.stats,&r.thread,r.error,sizeof(r.error));if(r.state!=XLS_QUERY_PENDING)break;xlsTestSleepMicros(100);}while(xlsTestClockMicros()<until);
  xlsQuerySessionCache(q,&r.cache);return r;
 }
 static outcome queryDependency(xls_worker* w,xls_context* ctx,const xls_analysis_document* docs,size_t count,const char* target)

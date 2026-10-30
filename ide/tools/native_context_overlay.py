@@ -65,6 +65,12 @@ def derive(frontend: Path, output: Path) -> list[dict]:
         "src/package/xl6_package.c": "628681072acdd939c85b112ccd19af647b9084b9e460db6850d8140c18c5e881",
         "src/compile/xl6_source_overlay.c": "cfe3ed6985af841504c13b62deeb24e552086ed8a67c1f34e46847f21cf281cf",
     }
+    current=hashlib.sha256((frontend/'src/compile/xl6_source_report.c').read_bytes()).hexdigest()=='5fa20cfe1b687f3fb2834bc4417e064e52e6714bce394c69a2a3a3a868d16b66'
+    audited={}
+    if current:
+        from native_current_context_profile import profile
+        audited=profile(frontend)
+        sources={rel:audited[str(frontend/rel)] for rel in sources}
     rows = []
     for relative, expected in sources.items():
         original = frontend / relative
@@ -85,7 +91,7 @@ def derive(frontend: Path, output: Path) -> list[dict]:
             # Observe the exact original Unicode/path matcher and resolver;
             # no second path/search rule set. Resource failures conservatively
             # disable dependency reuse, without changing ordinary lookup results.
-            for old, new in {
+            changes={
                 '    if (na <= 0 || nb <= 0) return 0;':
                     '    if (na <= 0 || nb <= 0) return xlsFrontendInputUsageFailure(NULL);',
                 '        equal = CompareStringOrdinal(wa, -1, wb, -1, TRUE) == CSTR_EQUAL;\n    xrtFree(wa);':
@@ -94,14 +100,24 @@ def derive(frontend: Path, output: Path) -> list[dict]:
                     '    if (!absolute) { xlsFrontendInputUsageFailure(overlay); return NULL; }',
                 '    return index < overlay->count ? &overlay->items[index] : NULL;':
                     '    if (index < overlay->count) xlsFrontendInputUsageRead(overlay,index);\n    return index < overlay->count ? &overlay->items[index] : NULL;',
-            }.items():
+            }
+            if current:
+                changes={
+                    '    if (!item) return -1;':'    if (!item) { xlsFrontendInputUsageFailure(overlay); return -1; }',
+                    '    if (overlay && overlay->report && !overlay->report->complete) return -1;':
+                        '    if (overlay && overlay->report && !overlay->report->complete) { xlsFrontendInputUsageFailure(overlay); return -1; }',
+                    '    *item = &overlay->items[index];':'    xlsFrontendInputUsageRead(overlay,index);\n    *item = &overlay->items[index];',
+                    'failed:\n    xl6SourceReportInvalidate(':'failed:\n    xlsFrontendInputUsageFailure(overlay);\n    xl6SourceReportInvalidate(',
+                }
+            for old,new in changes.items():
                 if source.count(old) != 1:
                     raise ValueError("shared overlay read/failure observation seam changed: " + old)
                 source = source.replace(old, new, 1)
-            old = '    index = xl6SourceOverlayIndex(overlay, absolute);\n    xrtFree(absolute);\n    if (index < overlay->count) xlsFrontendInputUsageRead(overlay,index);'
+            old = ('    if (!xl6SourceOverlayIndex(overlay, absolute, &index)) { xrtFree(absolute); goto failed; }\n    xrtFree(absolute);' if current else
+                '    index = xl6SourceOverlayIndex(overlay, absolute);\n    xrtFree(absolute);\n    if (index < overlay->count) xlsFrontendInputUsageRead(overlay,index);')
             if source.count(old) != 1:
                 raise ValueError('original overlay lookup topology seam changed')
-            source = source.replace(old, '    xlsInputTopologyLookup(overlay,absolute);\n' + old, 1)
+            source = source.replace(old,old.replace('    xrtFree(absolute);','    xlsInputTopologyLookup(overlay,absolute);\n    xrtFree(absolute);') if current else '    xlsInputTopologyLookup(overlay,absolute);\n' + old,1)
             seams = 9
         elif original.stem == "xl6_source_report":
             old = '(char*)xrtEnvGet((str)"XLANG_PACKAGE_PATH")'
@@ -109,7 +125,12 @@ def derive(frontend: Path, output: Path) -> list[dict]:
                 raise ValueError("shared report resolution/validation seams changed")
             source = source.replace(old, "xlsFrontendContextPackagePath()")
             source = source.replace("xrtPathAbs(path)", "xlsFrontendContextAbsolute(path)")
-            seams = 7
+            if current:
+                source='#include "analysis/frontend_input_usage.h"\n'+source
+                fail='static int xl6ReportFail(XL6_SourceReport* report, const char* path, const char* error)\n{'
+                if source.count(fail)!=1:raise ValueError('current report failure observer seam changed')
+                source=source.replace(fail,fail+'\n    xlsFrontendInputUsageReportFailure(report);')
+            seams = 8 if current else 7
         elif original.stem == "xl6_package":
             old = "static int xl6PackageTryManifest(XL6_PackageResolveResult* result, const char* path, XL6_PackageResolveKind kind)\n{"
             marker = "static int xl6PackageLooksLikePath(const char* target)\n{"
@@ -178,7 +199,16 @@ def derive(frontend: Path, output: Path) -> list[dict]:
                 '        int okay=xlsImportsCaptureNamespace(node,symbols,ns); xrtFree(ns); return okay;\n'
                 '    }\n' + old, 1)
             source=derive_raw_imports(source)
-            seams = 19
+            if current:
+                # Registered interfaces have virtual source identities rather
+                # than disk/report inputs. Keep their original full expansion;
+                # an unproven dependency must not admit a deferred body/graph.
+                source='#include "analysis/frontend_input_usage.h"\n'+source
+                before='    if (boundPackage) {\n        XL6_AstNode* interfaceRoot;'
+                after='    if (boundPackage) {\n        xlsRawBodyEnvironmentMissing();\n        xlsFrontendInputUsageFailure(deps->sourceOverlay);\n        xlsModuleGraphDecline();\n        XL6_AstNode* interfaceRoot;'
+                if source.count(before)!=1:raise ValueError('current compiled interface dependency seam changed')
+                source=source.replace(before,after)
+            seams = 20 if current else 19
         else:
             source = _completion_namespace(source)
             seams = 3
@@ -187,5 +217,6 @@ def derive(frontend: Path, output: Path) -> list[dict]:
         compiled.write_text(source, encoding="utf-8", newline="\n")
         rows.append(dict(source=str(original), sourceSha256=digest,
                          compiledSource=str(compiled), compiledSha256=hashlib.sha256(compiled.read_bytes()).hexdigest(),
+                         contextCohort='current-2084f8ac' if current else 'legacy',auditedDependencies=audited,
                          auditedSeams=seams, change=("bounded pre-import entry AST reuse,allocation-free usedmask andoptional persistent original hit/miss overlay topology;failed matching disablesproof;source reporting,path rules and parser fallback retained" if original.stem == "xl6_source_overlay" else "request-owned directory/package inputs; original resolution/validation rules retained; default calls unchanged")))
     return rows

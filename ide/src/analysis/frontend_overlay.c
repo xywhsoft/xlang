@@ -10,11 +10,12 @@ int xlsFrontendOverlayBorrow(XL6_SourceOverlay* overlay,const xls_input_batch* b
     for(size_t i=0;i<count;++i) {
         if(cancelled && cancelled(user))return -1;
         const xls_semantic_input* in=&inputs[i];size_t bom=0;
+        const XL6_SourceOverlayItem* duplicate=NULL;
         /* Match original absolute-path/duplicate/byte limits. Text is a
          * retained xls_text: strict UTF-8, no embedded NUL, trailing NUL.
          * Public raw-input constructors still use the original copying Set. */
         if(!in->path || !xrtPathIsAbs(in->path) || !in->text ||
-           in->size>XL6_SOURCE_OVERLAY_BYTES || xl6SourceOverlayFind(overlay,in->path))return 0;
+           in->size>XL6_SOURCE_OVERLAY_BYTES || xlsFrontendOverlayLookup(overlay,in->path,&duplicate)!=0)return 0;
         if(in->size>=3 && !memcmp(in->text,"\xef\xbb\xbf",3))bom=3;
         size_t size=in->size-bom;
         if(size>XL6_SOURCE_OVERLAY_TOTAL-overlay->bytes)return 0;

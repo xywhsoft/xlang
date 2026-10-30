@@ -109,6 +109,25 @@ static int diskAndWithdrawal(void)
  const char* names[]={"path","rawSize","textSize","kind","rawSha256"};
  for(size_t i=0;i<5;++i) {xvalue* bad=xrtValueDeepClone(p);CHECK(bad);xvalue* field=get(get(get(bad,"xlang"),"document"),"input");CHECK(put(field,names[i],i==0 ? valueString("D:/other.xl") : i==4 ? valueString("bad") : xrtValueInt(i==1 ? 16 : i==2 ? 11 : 4)) && rejects(d,bad));xrtValueRelease(bad);}
  for(size_t i=0;i<5;++i) {xvalue* bad=xrtValueDeepClone(p);CHECK(bad);xvalue* m=get(get(get(get(bad,"xlang"),"document"),"input"),"metadata");CHECK(put(m,i<2 ? "available" : "changedUs",i<2 ? xrtValueInt(i ? 4294967296LL : 1) : valueString(i==2 ? "-0" : i==3 ? "0922" : "9223372036854775808")) && rejects(d,bad));xrtValueRelease(bad);}
+ /* Current file receipts use Common Era milliseconds; older clients still
+  * publish Unix microseconds. A proof must carry exactly one complete pair. */
+ for(unsigned mode=0;mode<8;++mode) {
+  xvalue* current=xrtValueDeepClone(p);CHECK(current);xvalue* m=get(get(get(get(current,"xlang"),"document"),"input"),"metadata");
+  CHECK(xrtValueObjectRemove(m,xrtStrView("modifiedUs")) && xrtValueObjectRemove(m,xrtStrView("changedUs")) &&
+    put(m,"modifiedMs",valueString("63897408000123")) && put(m,"changedMs",valueString("63897408000124")));
+  if(mode==0) {n=decode(d,current);CHECK(n && !n->overlay && n->input);xideDiagnosticNoticeRelease(n);}
+  else {
+   if(mode==1) CHECK(put(m,"modifiedUs",valueString("1")));
+   if(mode==2) CHECK(xrtValueObjectRemove(m,xrtStrView("changedMs")) && put(m,"changedUs",valueString("1")));
+   if(mode==3) CHECK(xrtValueObjectRemove(m,xrtStrView("changedMs")));
+   if(mode==4) CHECK(put(m,"changedMs",valueString("9223372036854775808")));
+   if(mode==5) CHECK(put(m,"changedMs",valueString("-0")));
+   if(mode==6) CHECK(put(m,"changedMs",valueString("063897408000124")));
+   if(mode==7) CHECK(put(m,"changedMs",xrtValueInt(63897408000124LL)));
+   CHECK(rejects(d,current));
+  }
+  xrtValueRelease(current);
+ }
  /* The shared source report also publishes clean package-manifest groups. */
  xvalue* clean=xrtValueDeepClone(p);CHECK(clean && put(get(get(get(clean,"xlang"),"document"),"input"),"kind",xrtValueInt(2)) && put(clean,"diagnostics",xrtValueArray()));
  n=decode(d,clean);CHECK(n && !n->cleared && n->dependency && !n->count);xideDiagnosticNoticeRelease(n);xrtValueRelease(clean);

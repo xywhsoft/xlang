@@ -173,7 +173,7 @@ static reference_record* finishAnalysis(reference_input* in,reference_job* job,i
  reference_record* r=NULL;xide_language_check* check=job->check;xide_model_error error={0};
  xcancelwatch* wake=check && cancel ? xrtCancelWatch(cancel,childWake,job->event) : NULL;
  if(!check){fail(out,job->error);goto done;}
- while(xideLanguageCheckState(check,NULL,0)==XIDE_CHECK_RUNNING && !stopped(cancel))xrtEventWaitFor(job->event,10000);
+ while(xideLanguageCheckState(check,NULL,0)==XIDE_CHECK_RUNNING && !stopped(cancel))xrtEventWaitFor(job->event,XIDE_XRT_TIMEOUT_MS(10));
  if(stopped(cancel)){xideLanguageCheckCancel(check);goto done;}
  r=xrtCalloc(1,sizeof(*r));if(r)xrtAtomic32Init(&r->references,1);xide_reference_key* captured=NULL;
  if(!r || !xideLanguageCheckCaptureReferences(check,&r->shard,&captured)){job->sourceRejected=r && !keyWanted && xideLanguageCheckReferenceSourceRejected(check);fail(out,"A configured member did not produce complete verified reference facts.");goto failed;}
@@ -284,7 +284,7 @@ static int probeOwner(reference_input* in,const root* candidate,xcancel* cancel,
  ++out->stats.ownerProbes;
  int linked=xlsQuerySetWake(query,childWake,event);xcancelwatch* wake=cancel ? xrtCancelWatch(cancel,childWake,event) : NULL;
  xls_dependency_capture* value=NULL;xls_dependency_session_stats stats={0};char error[256]={0};enum xls_query_state state;
- while((state=xlsQueryDependencyResult(query,&value,&stats,NULL,error,sizeof(error)))==XLS_QUERY_PENDING && !stopped(cancel))xrtEventWaitFor(event,10000);
+ while((state=xlsQueryDependencyResult(query,&value,&stats,NULL,error,sizeof(error)))==XLS_QUERY_PENDING && !stopped(cancel))xrtEventWaitFor(event,XIDE_XRT_TIMEOUT_MS(10));
  if(stopped(cancel))xlsQueryCancel(query);
  if(wake)xrtCancelUnwatch(wake);
  xlsQueryDestroy(query);xrtEventDestroy(event);

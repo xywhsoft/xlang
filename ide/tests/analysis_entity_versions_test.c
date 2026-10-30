@@ -1,3 +1,4 @@
+#include "analysis_test_clock.h"
 #include "analysis/module_store.h"
 #include "analysis/check_session.h"
 #include "analysis/check_ir.h"
@@ -34,7 +35,7 @@ static int32 versionRead(void* user)
 {version_reader* r=user;r->okay=1;for(size_t i=0;i<128;++i)if(xlsEntityViewSymbolVersion(r->view,r->function.native)!=r->function.version || xlsEntityViewTypeVersion(r->view,r->type.native)!=r->type.version)r->okay=0;return 0;}
 static int versionsRun(void)
 {
- char folder[128];snprintf(folder,sizeof(folder),"build/entity-versions-%llu",(unsigned long long)xrtClock());char* directory=xrtPathAbs(folder);CHECK(directory && xrtDirCreateAll(directory));char *entry=xrtPathJoin(directory,"main.xl"),*dep=xrtPathJoin(directory,"dep.xl"),*project=xrtPathJoin(directory,"sample.xlp");CHECK(entry && dep && project);
+ char folder[128];snprintf(folder,sizeof(folder),"build/entity-versions-%llu",(unsigned long long)xlsTestClockMicros());char* directory=xrtPathAbs(folder);CHECK(directory && xrtDirCreateAll(directory));char *entry=xrtPathJoin(directory,"main.xl"),*dep=xrtPathJoin(directory,"dep.xl"),*project=xrtPathJoin(directory,"sample.xlp");CHECK(entry && dep && project);
  xls_context_spec spec={.kind=XLS_CONTEXT_PROJECT,.project=project,.configuration="debug",.entry=entry,.directory=directory,.analysisProfile="typed-interface-versions",.targetKind="exe"};xls_context* context=xlsContextCreate(&spec,1024*1024,NULL);xls_module_store* store=xlsModuleStoreCreate(NULL);xls_check_session* session=xlsCheckSessionCreate(NULL);CHECK(context && store && session);xls_module_scope bank;xlsModuleScopeBegin(&bank,store);
  xls_analysis_document docs[2]={{"entry",entry,NULL,1,0},{"dep",dep,NULL,2,0}};version_value first={0},firstGroup={0},firstType={0};xls_entity_view* held=NULL;xls_semantic_check* heldCheck=NULL;
  for(unsigned v=0;v<8;++v){

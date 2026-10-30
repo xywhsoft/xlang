@@ -1,3 +1,4 @@
+#include "analysis_test_clock.h"
 /* Exercise the actual untrusted source-report boundary in both XRT owners.
    The test owns this implementation; omit language_snapshot.o when linking. */
 #include "app_xrt.h"
@@ -65,7 +66,7 @@ static int fixtureSource(const char* text,const char* normalizedText)
 #ifdef XLS_COMPILER_XRT
 static int fixtureCaptured(int cursor)
 {
- char root[160];snprintf(root,sizeof(root),"build/snapshot-captured-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xrtClock());
+ char root[160];snprintf(root,sizeof(root),"build/snapshot-captured-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xlsTestClockMicros());
  char *directory=xrtPathAbs(root),*path=directory ? xrtPathJoin(directory,"entry.xl") : NULL,*dep=directory ? xrtPathJoin(directory,"snapshot_view_dep.xl") : NULL;
  CHECK(directory && path && dep && xrtDirCreateAll(directory));
  const char* dependency="\xef\xbb\xbf" "export func value() as int\r\n return 42\r\nend\r\n";

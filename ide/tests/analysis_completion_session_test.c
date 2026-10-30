@@ -1,3 +1,4 @@
+#include "analysis_test_clock.h"
 #include "analysis/completion_session.h"
 #include "analysis/frontend_internal.h"
 #include "analysis/completion_unit.h"
@@ -47,7 +48,7 @@ static int parityContext(xls_semantic_completion* result,xls_context* context,co
 }
 static int importedCursor(void)
 {
-    char relative[160];snprintf(relative,sizeof(relative),"build/imported-cursor-%llu",(unsigned long long)xrtClock());
+    char relative[160];snprintf(relative,sizeof(relative),"build/imported-cursor-%llu",(unsigned long long)xlsTestClockMicros());
     char *directory=xrtPathAbs(relative),*entry=xrtPathJoin(directory,"main.xl"),*dep=xrtPathJoin(directory,"dep.xl"),*support=xrtPathJoin(directory,"support.xl");
     const char* main="import dep\nfunc main(...) as int\n return dep.value()\nend\n";
     const char* supportSource="export func number() as int\n return 7\nend\n";
@@ -93,7 +94,7 @@ static int lateStop(void* user) { unsigned* calls=user; return ++*calls>=4; }
 static int externalInputs(void)
 {
     char root[160]; snprintf(root,sizeof(root),"build/cursor-session-%llu-%llu",
-        (unsigned long long)xrtThreadCurrentId(),(unsigned long long)xrtClock()); CHECK(xrtDirCreateAll(root));
+        (unsigned long long)xrtThreadCurrentId(),(unsigned long long)xlsTestClockMicros()); CHECK(xrtDirCreateAll(root));
     char *relative=xrtPathJoin(root,"entry.xl"),*disk=xrtPathJoin(root,"cursor_dep.xl"),
         *extra=xrtPathJoin(root,"extra.xl"),*missing=xrtPathJoin(root,"absent_cursor_dep.xl");
     char *path=relative ? xrtPathAbs(relative) : NULL,*extraPath=extra ? xrtPathAbs(extra) : NULL;

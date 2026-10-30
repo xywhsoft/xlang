@@ -1,3 +1,4 @@
+#include "analysis_test_clock.h"
 #include "services/project_references.h"
 #include "protocol/lsp_wire.h"
 #include <xrt.h>
@@ -37,14 +38,14 @@ static int compare(const xvalue* result,const xarray* wanted,int proof)
 typedef struct observed {enum xide_reference_query_state state;xvalue* locations;xide_project_reference_stats stats;char error[512];} observed;
 static observed query(xide_project_references* store,xls_context* context,const xls_analysis_document* docs,size_t count,const char* path,int line,int col,int include,int proof)
 {
- observed r={0};xide_reference_query* q=xideProjectReferencesSubmitWithProof(store,context,docs,count,docs[0].key,path,line,col,include,proof);const xvalue* locations=NULL;uint64_t until=xrtClock()+15000000;
- do{r.state=xideProjectReferencesResult(q,&locations,&r.stats,r.error,sizeof(r.error));if(r.state!=XIDE_REFERENCES_PENDING)break;xrtSleepUs(100);}while(xrtClock()<until);
+ observed r={0};xide_reference_query* q=xideProjectReferencesSubmitWithProof(store,context,docs,count,docs[0].key,path,line,col,include,proof);const xvalue* locations=NULL;uint64_t until=xlsTestClockMicros()+15000000;
+ do{r.state=xideProjectReferencesResult(q,&locations,&r.stats,r.error,sizeof(r.error));if(r.state!=XIDE_REFERENCES_PENDING)break;xlsTestSleepMicros(100);}while(xlsTestClockMicros()<until);
  if(r.state==XIDE_REFERENCES_READY)r.locations=xideProjectReferencesTake(q);
  xideProjectReferencesQueryDestroy(q);return r;
 }
 static int run(int mode)
 {
- char name[128];snprintf(name,sizeof(name),"归属-cases-%d-%llu",mode,(unsigned long long)xrtClock());char* dir=xrtPathAbs(name);CHECK(dir && xrtDirCreateAll(dir));
+ char name[128];snprintf(name,sizeof(name),"归属-cases-%d-%llu",mode,(unsigned long long)xlsTestClockMicros());char* dir=xrtPathAbs(name);CHECK(dir && xrtDirCreateAll(dir));
  char *entry=xrtPathJoin(dir,"middle.xl"),*lib=xrtPathJoin(dir,"a_library.xl"),*first=xrtPathJoin(dir,"z_importer.xl"),*other=xrtPathJoin(dir,"zz_importer.xl"),*project=xrtPathJoin(dir,"project.xlp"),*compiler=xrtPathJoin(dir,"absent.exe");CHECK(entry && lib && first && other && project && compiler);
  const char *main="func main(...) as int\n return 0\nend\n",*library="export func main(int value) as int\n return value+1\nend\n",*owner="import a_library as api\nfunc main(...) as int\n return api.main(7)\nend\n",*second="import a_library as api\nfunc main(...) as int\n return api.main(8)\nend\n";
  CHECK(writeText(entry,main) && writeText(lib,library) && writeText(first,owner) && writeText(other,second));
@@ -77,7 +78,7 @@ static int mutationCheck(xide_project_references* store,xls_context* context,con
 }
 static int mutations(void)
 {
- char name[128];snprintf(name,sizeof(name),"变更-%llu",(unsigned long long)xrtClock());char* dir=xrtPathAbs(name);CHECK(dir && xrtDirCreateAll(dir));char *entry=xrtPathJoin(dir,"middle.xl"),*lib=xrtPathJoin(dir,"a_library.xl"),*first=xrtPathJoin(dir,"z_importer.xl"),*second=xrtPathJoin(dir,"zz_importer.xl"),*project=xrtPathJoin(dir,"project.xlp"),*compiler=xrtPathJoin(dir,"absent.exe"),*unused=xrtPathJoin(dir,"unused.xl");CHECK(entry && lib && first && second && project && compiler && unused);
+ char name[128];snprintf(name,sizeof(name),"变更-%llu",(unsigned long long)xlsTestClockMicros());char* dir=xrtPathAbs(name);CHECK(dir && xrtDirCreateAll(dir));char *entry=xrtPathJoin(dir,"middle.xl"),*lib=xrtPathJoin(dir,"a_library.xl"),*first=xrtPathJoin(dir,"z_importer.xl"),*second=xrtPathJoin(dir,"zz_importer.xl"),*project=xrtPathJoin(dir,"project.xlp"),*compiler=xrtPathJoin(dir,"absent.exe"),*unused=xrtPathJoin(dir,"unused.xl");CHECK(entry && lib && first && second && project && compiler && unused);
  const char *main="func main(...) as int\n return 0\nend\n",*library="export func main(int value) as int\n return value+1\nend\n",*shifted="\nexport func main(int value) as int\n return value+2\nend\n",*owner="import a_library as api\nfunc main(...) as int\n return api.main(7)\nend\n";CHECK(writeText(entry,main) && writeText(lib,library) && writeText(first,owner) && writeText(second,owner));const char* members[]={entry,lib,first,second};const char* owners[]={entry,first,second};xls_context_spec spec={.kind=XLS_CONTEXT_PROJECT,.project=project,.configuration="debug",.entry=entry,.directory=dir,.targetKind="exe",.analysisProfile="xlang-ls/compiler-xrt-v1"};spec.lists[XLS_CONTEXT_MEMBERS]=(xls_context_strings){members,4};xls_context* context=xlsContextCreate(&spec,1024*1024,NULL);xide_toolchains* cache=xideToolchainsCreate();xide_project_references* store=xideProjectReferencesCreate(cache,compiler,NULL);xls_text *text=xlsTextCreate(library,strlen(library),1024*1024,NULL),*edit=xlsTextCreate(shifted,strlen(shifted),1024*1024,NULL),*entryText=xlsTextCreate(main,strlen(main),1024*1024,NULL),*unread=xlsTextCreate("broken unused",13,1024*1024,NULL);CHECK(context && cache && store && text && edit && entryText && unread);xls_analysis_document docs[2]={{"query",lib,text,1,1},{"unused",unused,unread,2,1}};
  CHECK(mutationCheck(store,context,owners,docs,1,lib,0));CHECK(mutationCheck(store,context,owners,docs,2,lib,0));
  docs[0].text=edit;docs[0].revision=2;CHECK(mutationCheck(store,context,owners,docs,2,lib,1));

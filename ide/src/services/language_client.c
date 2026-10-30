@@ -95,7 +95,7 @@ static DWORD WINAPI worker(void* user)
   if(info.state==XIDE_PROCESS_FINISHED && !k && !warning) { okay=xideLspStreamEnd(&stream,&e) && info.started && info.exit.Kind==XPROCESS_EXIT_CODE && info.exit.Code==0; if(*stderrTail && !MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,stderrTail,-1,NULL,0)) strcpy(stderrTail,"stderr contains binary or split UTF-8"); if(!okay && !*e.message) snprintf(e.message,sizeof(e.message),"语言服务异常退出（%d）；%.180s",info.exit.Code,stderrTail); break; }
   /* The protected flag retains changes arriving before this wait. Drain
      productive work first; the timeout is a recovery check, not a poll cadence. */
-  if(!k && !warning && !writing && waitTransport(c,1000)==XWAIT_ERROR) {fail(&e,"Stdio transport notification failed.");okay=0;break;}
+  if(!k && !warning && !writing && waitTransport(c,XIDE_XRT_TIMEOUT_MS(1))==XWAIT_ERROR) {fail(&e,"Stdio transport notification failed.");okay=0;break;}
  }
  if(p) { xideProcessDestroy(p); } xideLspStreamClear(&stream);
  EnterCriticalSection(&c->lock); c->state=okay || InterlockedCompareExchange(&c->stop,0,0) ? XIDE_LS_STOPPED : XIDE_LS_FAILED; snprintf(c->error,sizeof(c->error),"%s",e.message); LeaveCriticalSection(&c->lock); wakeOwner(c); return 0;

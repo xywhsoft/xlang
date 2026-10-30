@@ -1,6 +1,8 @@
+#include "analysis_test_clock.h"
 #include "analysis/input_topology.h"
 #include "analysis/frontend_input_usage.h"
 #include "src/compile/xl6_source_overlay.h"
+#include "analysis/frontend_overlay_lookup.h"
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
 #define main originalWorkerFixtureMain
@@ -11,7 +13,8 @@ static xls_input_topology* capture(XL6_SourceOverlay* overlay,const char* hit,co
 {
     xls_input_usage_scope usage;xlsFrontendInputUsageBegin(&usage);
     xls_input_topology_scope scope;xlsInputTopologyBegin(&scope,bytes);xlsFrontendInputUsageBind(overlay,overlay->count);
-    (void)xl6SourceOverlayFind(overlay,hit);(void)xl6SourceOverlayFind(overlay,miss);
+    const XL6_SourceOverlayItem* item=NULL;
+    (void)xlsFrontendOverlayLookup(overlay,hit,&item);(void)xlsFrontendOverlayLookup(overlay,miss,&item);
     uint64_t used=0;int known=xlsFrontendInputUsageEnd(&usage,&used);
     xls_input_topology* topology=xlsInputTopologyEnd(&scope);
     if(!known || used!=1){xlsInputTopologyDestroy(topology);return NULL;}return topology;
@@ -50,7 +53,7 @@ static int observations(void)
 }
 static int workerMembership(void)
 {
-    char relative[160];snprintf(relative,sizeof(relative),"build/topology-workers-%llu",(unsigned long long)xrtClock());char* root=xrtPathAbs(relative);CHECK(root && xrtDirCreateAll(root));
+    char relative[160];snprintf(relative,sizeof(relative),"build/topology-workers-%llu",(unsigned long long)xlsTestClockMicros());char* root=xrtPathAbs(relative);CHECK(root && xrtDirCreateAll(root));
     char* paths[64];xls_analysis_document docs[64];memset(docs,0,sizeof(docs));
     const char* source="\xef\xbb\xbfimport dep\r\nfunc choose(int left,string right) as int\r\n return left\r\nend\r\nfunc stable(int value) as int\r\n if value>0 then\r\n return value\r\n end\r\n return 0\r\nend\r\nfunc main(...) as int\r\n int unique_main=choose(dep.compute(),\"hi\")\r\n return unique_main\r\nend\r\n";
     const char* dependency="export func compute() as int\r\n return 7\r\nend\r\n";

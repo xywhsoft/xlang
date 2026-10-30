@@ -1,3 +1,4 @@
+#include "analysis_test_clock.h"
 #include "analysis/frontend_module_graph.h"
 #include "analysis/frontend_cancel.h"
 #include "analysis/index_modules.h"
@@ -67,7 +68,7 @@ static int bindingParity(const xls_semantic_check* check,const xls_module_graph*
 }
 static int nativeWorkers(void)
 {
- char relative[128];snprintf(relative,sizeof(relative),"build/module-graph-%llu",(unsigned long long)xrtClock());char* root=xrtPathAbs(relative);CHECK(root && xrtDirCreateAll(root));
+ char relative[128];snprintf(relative,sizeof(relative),"build/module-graph-%llu",(unsigned long long)xlsTestClockMicros());char* root=xrtPathAbs(relative);CHECK(root && xrtDirCreateAll(root));
  const char* names[]={"main.xl","dep.xl","leaf.xl","other.xl","unread.xl"};char* paths[5];xls_analysis_document docs[5]={0};
  const char* source="\xef\xbb\xbfimport dep\r\nimport other\r\nfunc choose(int left,string right) as int\r\n return left\r\nend\r\nfunc main(...) as int\r\n int unique_main=choose(dep.value(),\"hi\")\r\n return unique_main\r\nend\r\n";
  const char* dep="import leaf\nexport func value() as int\n return leaf.base()\nend\n";const char* leaf="export func base() as int\n return 7\nend\n";

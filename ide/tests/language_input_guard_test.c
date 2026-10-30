@@ -1,3 +1,4 @@
+#include "analysis_test_clock.h"
 #include "services/language_check.h"
 #include "platform/path.h"
 #include <xrt.h>
@@ -72,8 +73,8 @@ static xide_language_input_guard* capture(const char* root,const char* entry,con
  xide_language_analysis_options options={.nativeBackend=1};
  xide_language_check* check=xideLanguageCheckStartSnapshotsEx(cache,compiler,root,entry,inputs,2,&options,&error);
  if(!check) fprintf(stderr,"capture start: %s\n",error.message);
- uint64_t began=xrtClock(); enum xide_check_state state;
- while(check && (state=xideLanguageCheckState(check,error.message,sizeof(error.message)))==XIDE_CHECK_RUNNING && xrtClock()-began<15000000) xrtSleep(1);
+ uint64_t began=xlsTestClockMicros(); enum xide_check_state state;
+ while(check && (state=xideLanguageCheckState(check,error.message,sizeof(error.message)))==XIDE_CHECK_RUNNING && xlsTestClockMicros()-began<15000000) xrtSleep(1);
  xvalue* result=xideLanguageCheckResult(check); bool okay=false;
  xide_language_input_guard* guard=NULL;
  if(result && xrtValueGetBool(xrtValueObjectGet(result,xrtStrView("ok")),&okay) && okay==accepted)
@@ -91,7 +92,7 @@ static int run(void)
  CHECK(!xideLanguageInputGuardProbes(NULL));
 #endif
  CHECK(!xideLanguageInputGuardPaths(NULL,NULL,NULL));
- char relative[160]; snprintf(relative,sizeof(relative),"build/input-guard-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xrtClock());
+ char relative[160]; snprintf(relative,sizeof(relative),"build/input-guard-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xlsTestClockMicros());
  CHECK(xrtDirCreateAll(relative)); char* root=xrtPathAbs(relative); CHECK(root);
  char *entry=xrtPathJoin(root,"entry.xl"),*dep=xrtPathJoin(root,"retained_dep.xl"),*unused=xrtPathJoin(root,"unused.xl"); CHECK(entry && dep && unused);
  CHECK(writeText(dep,dependency));

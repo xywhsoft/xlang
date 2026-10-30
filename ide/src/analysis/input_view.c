@@ -1,6 +1,7 @@
 #include "analysis/frontend_input_view.h"
 #include "analysis/frontend_input_usage.h"
 #include "analysis/input_topology.h"
+#include "src/compile/xl6_source_overlay.h"
 #include <string.h>
 static _Thread_local xls_input_usage_scope* activeUsage;
 void xlsFrontendInputUsageBegin(xls_input_usage_scope* scope)
@@ -23,6 +24,11 @@ int xlsFrontendInputUsageFailure(const struct XL6_SourceOverlay* overlay)
     xlsInputTopologyFailure(overlay);
     if(activeUsage && activeUsage->bound && (!overlay || activeUsage->overlay==overlay))activeUsage->failed=1;
     return 0;
+}
+void xlsFrontendInputUsageReportFailure(const struct XL6_SourceReport* report)
+{
+    xlsInputTopologyReportFailure(report);
+    if(report && activeUsage && activeUsage->bound && activeUsage->overlay && activeUsage->overlay->report==report)activeUsage->failed=1;
 }
 int xlsFrontendInputUsageEnd(xls_input_usage_scope* scope,uint64_t* used)
 {

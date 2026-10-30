@@ -14,6 +14,8 @@ void xlsModuleGraphBegin(xls_module_graph_scope* scope,xls_module_store* store,x
  * No second resolver or extra path normalization. Called at the original root
  * exit BEFORE pop. Failed/unfinished expansion never yields a complete graph. */
 void xlsModuleGraphImport(char* const* stack,size_t count);
+/* Keep full original expansion when a dependency has no owned graph proof. */
+void xlsModuleGraphDecline(void);
 void xlsModuleGraphExpanded(char* const* stack,size_t count,int accepted);
 xls_module_graph* xlsModuleGraphEnd(xls_module_graph_scope* scope,const XL6_SourceReport* report);
 struct xls_semantic_index;

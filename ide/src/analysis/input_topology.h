@@ -20,6 +20,8 @@ void xlsInputTopologyBegin(xls_input_topology_scope* scope,size_t bytes);
 void xlsInputTopologyBind(const struct XL6_SourceOverlay* overlay,size_t count);
 void xlsInputTopologyLookup(const struct XL6_SourceOverlay* overlay,const char* absolute);
 void xlsInputTopologyFailure(const struct XL6_SourceOverlay* overlay);
+struct XL6_SourceReport;
+void xlsInputTopologyReportFailure(const struct XL6_SourceReport* report);
 xls_input_topology* xlsInputTopologyEnd(xls_input_topology_scope* scope);
 void xlsInputTopologyDestroy(xls_input_topology* topology);
 /* Explicit independent copy of immutable prepared lookup keys;no earlier

@@ -1,3 +1,4 @@
+#include "analysis_test_clock.h"
 #include "services/diagnostic_store.h"
 #include "protocol/diagnostic_paths.h"
 #include "platform/path.h"
@@ -17,8 +18,8 @@ static fixture capture(const char* root,const char* entry,const xide_language_sn
  fixture result={0}; xide_model_error error={0}; xide_toolchains* cache=xideToolchainsCreate(); char* compiler=xrtPathJoin(root,"no-executor/xl.exe");
  xide_language_analysis_options options={.nativeBackend=1};
  xide_language_check* check=xideLanguageCheckStartSnapshotsEx(cache,compiler,root,entry,inputs,count,&options,&error);
- uint64_t began=xrtClock();
- while(check && xideLanguageCheckState(check,error.message,sizeof(error.message))==XIDE_CHECK_RUNNING && xrtClock()-began<15000000) xrtSleep(1);
+ uint64_t began=xlsTestClockMicros();
+ while(check && xideLanguageCheckState(check,error.message,sizeof(error.message))==XIDE_CHECK_RUNNING && xlsTestClockMicros()-began<15000000) xrtSleep(1);
  result.result=xideLanguageCheckResult(check); bool okay=false;
  if(result.result && xrtValueGetBool(get(result.result,"ok"),&okay) && okay==accepted) result.guard=xideLanguageCheckCaptureInputGuard(check,&error);
  if(!result.guard) { fprintf(stderr,"capture: %s\n",error.message); xrtValueRelease(result.result); result.result=NULL; }
@@ -31,8 +32,8 @@ static xide_diagnostic_query* insert(xide_diagnostic_store* store,const char* ke
 }
 static enum xide_diagnostic_state waitFor(xide_diagnostic_query* query,xide_diagnostic_snapshot* result)
 {
- uint64_t began=xrtClock(); enum xide_diagnostic_state state;
- while((state=xideDiagnosticQueryResult(query,result))==XIDE_DIAGNOSTIC_PENDING && xrtClock()-began<15000000) xrtSleep(1);
+ uint64_t began=xlsTestClockMicros(); enum xide_diagnostic_state state;
+ while((state=xideDiagnosticQueryResult(query,result))==XIDE_DIAGNOSTIC_PENDING && xlsTestClockMicros()-began<15000000) xrtSleep(1);
  if(state==XIDE_DIAGNOSTIC_FAILED) fprintf(stderr,"diagnostic query: %s\n",result->error);
  return state;
 }
@@ -71,7 +72,7 @@ static int dependencyScopes(void)
 {
  CHECK(!xideDiagnosticStoreCreateWithDependencies(NULL,2));CHECK(!xideDiagnosticPublicationDependencyCount(NULL) && !xideDiagnosticPublicationDependencyId(NULL,0));
  CHECK(!xideDiagnosticPublicationGroupDependency(NULL,0) && !xideDiagnosticPublicationDependencyChunks(NULL,0) && xideDiagnosticPublicationFindDependency(NULL,"x")==SIZE_MAX);
- char relative[100];snprintf(relative,sizeof(relative),"build/dependency-scopes-%llu",(unsigned long long)xrtClock());CHECK(xrtDirCreateAll(relative));char* root=xrtPathAbs(relative);CHECK(root);
+ char relative[100];snprintf(relative,sizeof(relative),"build/dependency-scopes-%llu",(unsigned long long)xlsTestClockMicros());CHECK(xrtDirCreateAll(relative));char* root=xrtPathAbs(relative);CHECK(root);
  char *a=xrtPathJoin(root,"a.xl"),*b=xrtPathJoin(root,"b.xl"),*shared=xrtPathJoin(root,"shared.xl"),*other=xrtPathJoin(root,"other.xl");CHECK(a && b && shared && other);
  const char* entry="import shared\nfunc main(...) as int\n return shared.value()\nend\n";
  xide_language_snapshot inputs[]={{a,entry,1},{b,entry,1},{shared,"export func value() as int\n return \"bad\"\nend\n",1},{other,"func main(...) as int\n return missing\nend\n",1}};
@@ -119,7 +120,7 @@ static int run(void)
  xideDiagnosticQueryDestroy(NULL); xideDiagnosticQueryCancel(NULL); xideDiagnosticStoreDestroy(NULL);
  CHECK(!xideDiagnosticStoreCreate(&(xide_diagnostic_limits){65,10000,10000,1}));
  CHECK(!xideDiagnosticStorePutTake(NULL,"bad",NULL,xrtValueObject()));
- char relative[160]; snprintf(relative,sizeof(relative),"build/diagnostic-store-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xrtClock()); CHECK(xrtDirCreateAll(relative));
+ char relative[160]; snprintf(relative,sizeof(relative),"build/diagnostic-store-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xlsTestClockMicros()); CHECK(xrtDirCreateAll(relative));
  char* root=xrtPathAbs(relative); CHECK(root);
  char *first=xrtPathJoin(root,"Δelta.xl"),*second=xrtPathJoin(root,"second.xl"),*common=xrtPathJoin(root,"common.xl"),*single=xrtPathJoin(root,"single.xl"),*unused=xrtPathJoin(root,"unused.xl"),*future=xrtPathJoin(root,"future.xl");
  CHECK(first && second && common && single && unused && future);
@@ -220,8 +221,8 @@ static int run(void)
  value=capture(root,first,&diskInput,1,1); CHECK(store && value.guard); query=insert(store,"large-disk",value);
  CHECK(query && waitFor(query,&snapshot)==XIDE_DIAGNOSTIC_READY && snapshot.records==1); xideDiagnosticQueryDestroy(query);
  query=xideDiagnosticStoreSweep(store); CHECK(query);
- xide_diagnostic_load load={0}; uint64_t began=xrtClock();
- do { CHECK(xideDiagnosticStoreLoad(store,&load)); if(load.running) break; xrtSleep(1); } while(xrtClock()-began<15000000);
+ xide_diagnostic_load load={0}; uint64_t began=xlsTestClockMicros();
+ do { CHECK(xideDiagnosticStoreLoad(store,&load)); if(load.running) break; xrtSleep(1); } while(xlsTestClockMicros()-began<15000000);
  CHECK(load.running==1 && xideDiagnosticQueryResult(query,&snapshot)==XIDE_DIAGNOSTIC_PENDING);
  xide_diagnostic_query* queued=xideDiagnosticStoreSnapshot(store); CHECK(queued);
  xide_diagnostic_query* overflow=xideDiagnosticStoreSnapshot(store); CHECK(!overflow);
@@ -260,7 +261,7 @@ static int run(void)
 #if defined(XLS_COMPILER_XRT) && defined(XLANG_ANALYSIS_DEPENDENCY_GRAPH_H)
 static int reverseOwners(void)
 {
- char relative[96];snprintf(relative,sizeof(relative),"build/reverse-owners-%llu",(unsigned long long)xrtClock());CHECK(xrtDirCreateAll(relative));
+ char relative[96];snprintf(relative,sizeof(relative),"build/reverse-owners-%llu",(unsigned long long)xlsTestClockMicros());CHECK(xrtDirCreateAll(relative));
  char* root=xrtPathAbs(relative);CHECK(root);
  char *a=xrtPathJoin(root,"Ä-entry.xl"),*b=xrtPathJoin(root,"independent.xl"),*unused=xrtPathJoin(root,"unused.xl"),*candidate=xrtPathJoin(root,"missing.xl");CHECK(a && b && unused && candidate);
  xide_language_snapshot inputs[]={{a,"import missing\nfunc main(...) as int\n return missing.value()\nend\n",1},
@@ -299,21 +300,21 @@ static int reverseBenchmark(const char* root,size_t helpers,size_t samples)
   char* path=xrtPathJoin(root,label);CHECK(path && writeText(path,api) && xrtStrBufAppend(&body,xrtStrView(import)));xrtFree(path);
  }
  CHECK(xrtStrBufAppend(&body,xrtStrView("func main(...) as int\n return helper_0.value()\nend\n")) && writeText(entry,"// entry stays unsaved\n"));
- xide_language_snapshot source={entry,body.Data,1};uint64_t began=xrtClock();fixture f=capture(root,entry,&source,1,1);CHECK(f.guard && !xideLanguageInputGuardTouches(f.guard,unknown));
+ xide_language_snapshot source={entry,body.Data,1};uint64_t began=xlsTestClockMicros();fixture f=capture(root,entry,&source,1,1);CHECK(f.guard && !xideLanguageInputGuardTouches(f.guard,unknown));
  xide_diagnostic_store* store=xideDiagnosticStoreCreate(NULL);CHECK(store);xide_diagnostic_snapshot snapshot={0};
  for(size_t i=0;i<64;++i){char label[32];snprintf(label,sizeof(label),"analysis-root-%zu",i);fixture copy={xideLanguageInputGuardRetain(f.guard),xrtValueDeepClone(f.result)};CHECK(copy.guard && copy.result);
   xide_diagnostic_query* q=insert(store,label,copy);CHECK(q && waitFor(q,&snapshot)==XIDE_DIAGNOSTIC_READY && snapshot.records==i+1);xideDiagnosticQueryDestroy(q);
  }
- printf("{\"setupMs\":%.3f,\"roots\":64,\"sourcesPerRoot\":%zu}\n",(double)(xrtClock()-began)/1000.0,helpers+1);fflush(stdout);
+ printf("{\"setupMs\":%.3f,\"roots\":64,\"sourcesPerRoot\":%zu}\n",(double)(xlsTestClockMicros()-began)/1000.0,helpers+1);fflush(stdout);
 #ifdef XLANG_ANALYSIS_DEPENDENCY_GRAPH_H
  CHECK(snapshot.dependencyIndexed && snapshot.dependencyGraph.roots==64 && !snapshot.dependencyFallbacks);uint64_t generation=snapshot.dependencyGraph.generation,lookups=snapshot.dependencyGraph.lookups;
 #endif
  xevent ready;CHECK(xrtEventInit(&ready,false,false));
  for(size_t i=0;i<samples;++i){
-  began=xrtClock();xide_diagnostic_query* q=xideDiagnosticStoreInvalidate(store,unknown);
+  began=xlsTestClockMicros();xide_diagnostic_query* q=xideDiagnosticStoreInvalidate(store,unknown);
   int notified=q && xideDiagnosticQuerySetWake(q,benchmarkWake,&ready) && xrtEventWaitFor(&ready,15000000)==XWAIT_OK;
   enum xide_diagnostic_state state=notified ? xideDiagnosticQueryResult(q,&snapshot) : XIDE_DIAGNOSTIC_FAILED;
-  double elapsed=(double)(xrtClock()-began)/1000.0;CHECK(q && state==XIDE_DIAGNOSTIC_READY && snapshot.records==64 && !xrtValueCount(snapshot.invalidated) && xrtValueCount(snapshot.documents)==helpers+1);
+  double elapsed=(double)(xlsTestClockMicros()-began)/1000.0;CHECK(q && state==XIDE_DIAGNOSTIC_READY && snapshot.records==64 && !xrtValueCount(snapshot.invalidated) && xrtValueCount(snapshot.documents)==helpers+1);
   int indexed=0;uint64_t comparisons=0,queries=0;
 #ifdef XLANG_ANALYSIS_DEPENDENCY_GRAPH_H
   CHECK(snapshot.dependencyIndexed && snapshot.dependencyGraph.generation==generation && snapshot.dependencyGraph.lookups==lookups+i+1 && !snapshot.dependencyFallbacks);

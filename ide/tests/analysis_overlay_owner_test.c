@@ -34,7 +34,7 @@ static int adapter(void)
     xls_input_batch* batch=xlsInputBatchCreate(NULL,NULL,docs,3,docs[0].key,NULL,NULL,NULL,0);CHECK(batch);
     XL6_SourceOverlay overlay={0};CHECK(xlsFrontendOverlayBorrow(&overlay,batch,NULL,NULL)==1 && overlay.count==3);
     size_t bytes=0;
-    for(size_t i=0;i<3;++i){size_t bom=i ? 0 : 3;const XL6_SourceOverlayItem* row=xl6SourceOverlayFind(&overlay,paths[i]);CHECK(row && row->text==xlsTextData(docs[i].text)+bom && row->size==strlen(values[i])-bom);CHECK(!strcmp(row->path,paths[i]) && !memcmp(row->text,values[i]+bom,row->size+1));bytes+=row->size;}
+    for(size_t i=0;i<3;++i){size_t bom=i ? 0 : 3;const XL6_SourceOverlayItem* row=NULL;CHECK(xlsFrontendOverlayLookup(&overlay,paths[i],&row)==1 && row && row->text==xlsTextData(docs[i].text)+bom && row->size==strlen(values[i])-bom);CHECK(!strcmp(row->path,paths[i]) && !memcmp(row->text,values[i]+bom,row->size+1));bytes+=row->size;}
     CHECK(overlay.bytes==bytes && !xlsFrontendOverlayBorrow(&overlay,batch,NULL,NULL));
     xlsFrontendOverlayClear(&overlay,batch);CHECK(!overlay.count && !overlay.bytes);
     for(size_t i=0;i<3;++i)CHECK(!strcmp(xlsTextData(docs[i].text),values[i]));
