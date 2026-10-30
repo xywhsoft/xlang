@@ -1,0 +1,37 @@
+{
+    "format":  "xlang-package-1",
+    "name":  "stb_truetype",
+    "version":  "0.1.0",
+    "abiVersion":  "1",
+    "kind":  "demo6-extlib",
+    "artifact":  {
+                     "kind":  "source",
+                     "cSources":  [
+                                      "stb_truetype_native.c"
+                                  ],
+                     "xrtModules":  [
+                                        "XRT_MODULE_ENVIRONMENT",
+                                        "XRT_MODULE_FILE_WHOLE",
+                                        "XRT_MODULE_PATH",
+                                        "XRT_MODULE_STRING"
+                                    ],
+                     "xlSources":  [
+                                       "src/stb_truetype.xl"
+                                   ]
+                 },
+    "links":  [
+
+              ],
+    "loadlibs":  [
+
+                 ],
+    "dependencies":  [
+
+                     ],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl"] },
+    "native":  {
+                   "singleton":  false,
+                   "loadName":  "",
+                   "version":  ""
+               }
+}

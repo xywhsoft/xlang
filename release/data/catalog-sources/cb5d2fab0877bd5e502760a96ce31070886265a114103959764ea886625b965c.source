@@ -1,0 +1,1027 @@
+import xhttp
+from xhttp import Url, QueryParams
+import xhttp.protocol
+from xhttp.protocol import Headers
+import xhttp.body
+from xhttp.body import Body
+import xhttp.multipart
+from xhttp.multipart import MultipartBoundary
+import xhttp.form_data
+from xhttp.form_data import FormData
+
+
+
+extern "xhttp_client_last_error" func __xhttp_client_error_native() as point
+extern "xhttp_client_request_create" func __xhttp_client_request_create(
+    string method, c_size methodSize,
+    string url, c_size urlSize) as point
+extern "xhttp_client_plan_prepare" func __xhttp_client_plan_prepare(
+    point request, c_longlong targetForm,
+    string customTarget, c_size customTargetSize) as point
+extern "xl6_xrt_tls_stream_adopt" func __xhttp_client_tls_stream_adopt(
+    point stream) as point
+extern "xhttp_client_tls_stream_discard" func __xhttp_client_tls_stream_discard(
+    point stream)
+extern "xhttp_client_buffer_take_cstr" func __xhttp_client_buffer_take_cstr(point handle) as point
+
+
+
+export const int HTTP1_TARGET_AUTO = 0
+export const int HTTP1_TARGET_ORIGIN = 1
+export const int HTTP1_TARGET_ABSOLUTE = 2
+export const int HTTP1_TARGET_AUTHORITY = 3
+export const int HTTP1_TARGET_ASTERISK = 4
+export const int HTTP1_TARGET_CUSTOM = 5
+
+export const int REQUEST_BODY_NONE = 0
+export const int REQUEST_BODY_FIXED = 1
+export const int REQUEST_BODY_CHUNKED = 2
+
+export const int HTTP1_OUTPUT_ERROR = -1
+export const int HTTP1_OUTPUT_AGAIN = 0
+export const int HTTP1_OUTPUT_DATA = 1
+export const int HTTP1_OUTPUT_DONE = 2
+export const int HTTP1_OUTPUT_CONTINUE = 3
+
+export const int HTTP1_FEED_ERROR = -1
+export const int HTTP1_FEED_MORE = 0
+export const int HTTP1_FEED_PAUSED = 1
+export const int HTTP1_FEED_DONE = 2
+export const int HTTP1_FEED_UPGRADED = 3
+
+export const int RESPONSE_STREAMED = 1
+export const int RESPONSE_DECOMPRESSED = 2
+export const int RESPONSE_UPGRADED = 4
+
+
+
+// 接管当前线程错误文本的独立快照。
+func __xhttp_client_error() as string
+    point handle = __xhttp_client_error_native()
+    if handle == null then
+        return "xhttp.client operation failed"
+    end
+    return __xhttp_client_text(handle)
+end
+
+
+
+// 检查拥有型原生句柄并保留 XRT 的结构化失败原因。
+func __xhttp_client_handle(point handle) as point
+    if handle == null then
+        throw RuntimeError __xhttp_client_error()
+    end
+    return handle
+end
+
+
+
+// 普通文本移交 Buffer 数据；含 NUL 的结果保持长度感知转换。
+func __xhttp_client_text(point handle) as string
+    Buffer result = Buffer(handle)
+    point text = __xhttp_client_buffer_take_cstr(result.handle)
+    if text != null then return __xl_runtime.takeCstr(text) end
+    return result.text()
+end
+
+
+
+// 把可空的原生文本副本转换为语言字符串。
+func __xhttp_client_optional_text(point handle) as string?
+    if handle == null then
+        return null
+    end
+    return __xhttp_client_text(handle)
+end
+
+
+
+// 返回当前线程最近一次 xhttp.client/XRT 错误文本。
+export func lastError() as string
+    return __xhttp_client_error()
+end
+
+
+
+// Request 是拥有型可变客户端请求构建器，正文使用共享引用而非重复复制。
+export class Request
+    native point handle
+    extern "xhttp_client_request_wrap" create(point handle)
+    extern "xhttp_client_request_destroy_abi" destroy()
+    extern "xhttp_client_request_native" func nativeHandle() as point
+    extern "xhttp_client_request_clone" func cloneNative() as point
+    extern "xhttp_client_request_text" func textNative(
+        c_longlong field) as point
+    extern "xhttp_client_request_set_text" func setTextNative(
+        string text, c_size size, c_longlong field) as bool
+    extern "xhttp_client_request_write_field" func writeFieldNative(
+        string name, c_size nameSize,
+        string value, c_size valueSize,
+        bool trailer, bool set) as bool
+    extern "xhttp_client_request_remove_field" func removeFieldNative(
+        string name, c_size nameSize, bool trailer) as c_ulonglong
+    extern "xhttp_client_request_field" func fieldNative(
+        string name, c_size nameSize, bool trailer) as point
+    extern "xhttp_client_request_field_count" func fieldCountNative(
+        bool trailer) as c_ulonglong
+    extern "xhttp_client_request_fields" func fieldsNative(
+        bool trailer) as point
+    extern "xhttp_client_request_clear_fields" func clearFieldsNative(
+        bool trailer) as c_longlong
+    extern "xhttp_client_request_set_body" func setBodyNative(
+        point body) as bool
+    extern "xhttp_client_request_clear_body" func clearBodyNative() as bool
+    extern "xhttp_client_request_set_text_body" func setTextBodyNative(
+        cstring text, cstring contentType) as bool
+    extern "xhttp_client_request_set_bytes" func setBytesNative(
+        point data, c_size size,
+        string contentType, c_size contentTypeSize) as bool
+    extern "xhttp_client_request_body" func bodyNative() as point
+    extern "xhttp_client_request_accept_trailers" func acceptTrailersNative() as bool
+    extern "xhttp_client_request_set_params" func setParamsNative(
+        point params, bool form) as bool
+    extern "xhttp_client_request_set_form_data" func setFormDataNative(
+        point form, point boundary) as bool
+
+    static func make(string method, string url) as Request
+        return Request(__xhttp_client_handle(
+            __xhttp_client_request_create(
+                method, c_size(string.byteLen(method)),
+                url, c_size(string.byteLen(url)))))
+    end
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get method() as string
+        return __xhttp_client_text(__xhttp_client_handle(
+            self.textNative(c_longlong(0))))
+    end
+
+    get url() as string
+        return __xhttp_client_text(__xhttp_client_handle(
+            self.textNative(c_longlong(1))))
+    end
+
+    get parsedUrl() as Url
+        return Url.parse(self.url)
+    end
+
+    get headerCount() as int
+        return int(self.fieldCountNative(false))
+    end
+
+    get trailerCount() as int
+        return int(self.fieldCountNative(true))
+    end
+
+    func clone() as Request
+        return Request(__xhttp_client_handle(self.cloneNative()))
+    end
+
+    func setMethod(string method)
+        if not self.setTextNative(
+            method, c_size(string.byteLen(method)), c_longlong(0)) then
+            throw ValueError __xhttp_client_error()
+        end
+    end
+
+    func setUrl(string url)
+        if not self.setTextNative(
+            url, c_size(string.byteLen(url)), c_longlong(1)) then
+            throw ValueError __xhttp_client_error()
+        end
+    end
+
+    func addHeader(string name, string value)
+        if not self.writeFieldNative(
+            name, c_size(string.byteLen(name)),
+            value, c_size(string.byteLen(value)), false, false) then
+            throw ValueError __xhttp_client_error()
+        end
+    end
+
+    func setHeader(string name, string value)
+        if not self.writeFieldNative(
+            name, c_size(string.byteLen(name)),
+            value, c_size(string.byteLen(value)), false, true) then
+            throw ValueError __xhttp_client_error()
+        end
+    end
+
+    func removeHeader(string name) as int
+        return int(self.removeFieldNative(
+            name, c_size(string.byteLen(name)), false))
+    end
+
+    func header(string name) as string?
+        return __xhttp_client_optional_text(self.fieldNative(
+            name, c_size(string.byteLen(name)), false))
+    end
+
+    func headers() as Headers
+        return Headers(__xhttp_client_handle(self.fieldsNative(false)))
+    end
+
+    func clearHeaders()
+        self.clearFieldsNative(false)
+    end
+
+    func addTrailer(string name, string value)
+        if not self.writeFieldNative(
+            name, c_size(string.byteLen(name)),
+            value, c_size(string.byteLen(value)), true, false) then
+            throw ValueError __xhttp_client_error()
+        end
+    end
+
+    func setTrailer(string name, string value)
+        if not self.writeFieldNative(
+            name, c_size(string.byteLen(name)),
+            value, c_size(string.byteLen(value)), true, true) then
+            throw ValueError __xhttp_client_error()
+        end
+    end
+
+    func removeTrailer(string name) as int
+        return int(self.removeFieldNative(
+            name, c_size(string.byteLen(name)), true))
+    end
+
+    func trailer(string name) as string?
+        return __xhttp_client_optional_text(self.fieldNative(
+            name, c_size(string.byteLen(name)), true))
+    end
+
+    func trailers() as Headers
+        return Headers(__xhttp_client_handle(self.fieldsNative(true)))
+    end
+
+    func clearTrailers()
+        self.clearFieldsNative(true)
+    end
+
+    func setBody(Body body)
+        if not self.setBodyNative(body.nativeHandle()) then
+            throw RuntimeError __xhttp_client_error()
+        end
+    end
+
+    func setBody(Buffer data, string contentType = "")
+        if not self.setBytesNative(
+            data.data(), c_size(data.len()),
+            contentType, c_size(string.byteLen(contentType))) then
+            throw RuntimeError __xhttp_client_error()
+        end
+    end
+
+    func setBody(
+        string text,
+        string contentType = "text/plain; charset=utf-8"
+    )
+        if not self.setTextBodyNative(text, contentType) then
+            throw RuntimeError __xhttp_client_error()
+        end
+    end
+
+    func clearBody()
+        if not self.clearBodyNative() then
+            throw RuntimeError __xhttp_client_error()
+        end
+    end
+
+    func body() as Body?
+        point result = self.bodyNative()
+        if result == null then
+            return null
+        end
+        return Body(result)
+    end
+
+    func acceptResponseTrailers()
+        if not self.acceptTrailersNative() then
+            throw ValueError __xhttp_client_error()
+        end
+    end
+
+    func setQuery(QueryParams params)
+        if not self.setParamsNative(params.nativeHandle(), false) then
+            throw ValueError __xhttp_client_error()
+        end
+    end
+
+    func setForm(QueryParams params)
+        if not self.setParamsNative(params.nativeHandle(), true) then
+            throw ValueError __xhttp_client_error()
+        end
+    end
+
+    func setFormData(FormData form, MultipartBoundary boundary)
+        if not self.setFormDataNative(
+            form.nativeHandle(), boundary.nativeHandle()) then
+            throw ValueError __xhttp_client_error()
+        end
+    end
+
+    func setFormData(FormData form) as MultipartBoundary
+        MultipartBoundary boundary = MultipartBoundary.random()
+        self.setFormData(form, boundary)
+        return boundary
+    end
+
+    func prepare(
+        int targetForm = HTTP1_TARGET_AUTO,
+        string customTarget = ""
+    ) as Http1RequestPlan
+        return Http1RequestPlan(__xhttp_client_handle(
+            __xhttp_client_plan_prepare(
+                self.nativeHandle(), c_longlong(targetForm),
+                customTarget, c_size(string.byteLen(customTarget)))))
+    end
+end
+
+
+
+// Http1RequestPlan 是冻结后的线路计划，open 会把唯一所有权转移给 Exchange。
+export class Http1RequestPlan
+    native point handle
+    extern "xhttp_client_plan_wrap" create(point handle)
+    extern "xhttp_client_plan_destroy_abi" destroy()
+    extern "xhttp_client_plan_native" func nativeHandle() as point
+    extern "xhttp_client_plan_text" func textNative(
+        c_longlong field) as point
+    extern "xhttp_client_plan_value" func valueNative(
+        c_longlong field) as c_longlong
+    extern "xhttp_client_plan_body" func bodyNative() as point
+    extern "xhttp_client_exchange_create" func openNative() as point
+
+    get valid() as bool
+        return self.nativeHandle() != null
+    end
+
+    get head() as Buffer
+        return Buffer(__xhttp_client_handle(
+            self.textNative(c_longlong(0))))
+    end
+
+    get endBytes() as Buffer
+        return Buffer(__xhttp_client_handle(
+            self.textNative(c_longlong(1))))
+    end
+
+    get method() as string
+        return __xhttp_client_text(__xhttp_client_handle(
+            self.textNative(c_longlong(2))))
+    end
+
+    get url() as string
+        return __xhttp_client_text(__xhttp_client_handle(
+            self.textNative(c_longlong(3))))
+    end
+
+    get target() as string
+        return __xhttp_client_text(__xhttp_client_handle(
+            self.textNative(c_longlong(4))))
+    end
+
+    get host() as string
+        return __xhttp_client_text(__xhttp_client_handle(
+            self.textNative(c_longlong(5))))
+    end
+
+    get port() as int
+        return int(self.valueNative(c_longlong(0)))
+    end
+
+    get bodyMode() as int
+        return int(self.valueNative(c_longlong(1)))
+    end
+
+    get bodyLength() as int
+        return int(self.valueNative(c_longlong(2)))
+    end
+
+    get secure() as bool
+        return self.valueNative(c_longlong(3)) != 0
+    end
+
+    get closeAfterResponse() as bool
+        return self.valueNative(c_longlong(4)) != 0
+    end
+
+    get expectContinue() as bool
+        return self.valueNative(c_longlong(5)) != 0
+    end
+
+    func body() as Body?
+        point result = self.bodyNative()
+        if result == null then
+            return null
+        end
+        return Body(result)
+    end
+
+    func open() as Http1Exchange
+        return Http1Exchange(__xhttp_client_handle(self.openNative()))
+    end
+end
+
+
+
+// Http1Output 保留底层状态；DATA 必须由调用方显式 consume。
+export class Http1Output
+    int status
+    Buffer? data
+
+    create(int status, Buffer? data)
+        self.status = status
+        self.data = data
+    end
+
+    get hasData() as bool
+        return self.status == HTTP1_OUTPUT_DATA and self.data != null
+    end
+end
+
+
+
+// Http1FeedResult 同时公开状态和被接受的输入前缀长度。
+export class Http1FeedResult
+    int status
+    int accepted
+
+    create(int status, int accepted)
+        self.status = status
+        self.accepted = accepted
+    end
+end
+
+
+
+// Response 是 Exchange 交付的只读拥有型响应。
+export class Response
+    native point handle
+    extern "xhttp_client_response_wrap" create(point handle)
+    extern "xhttp_client_response_destroy_abi" destroy()
+    extern "xhttp_client_response_native" func nativeHandle() as point
+    extern "xhttp_client_response_value" func valueNative(
+        c_longlong field) as c_ulonglong
+    extern "xhttp_client_response_success" func successNative() as bool
+    extern "xhttp_client_response_text" func textNative(
+        c_longlong field) as point
+    extern "xhttp_client_response_field" func fieldNative(
+        string name, c_size nameSize, bool trailer) as point
+    extern "xhttp_client_response_fields" func fieldsNative(
+        bool trailer) as point
+    extern "xhttp_client_response_body" func bodyNative() as point
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get version() as int
+        return int(self.valueNative(c_longlong(0)))
+    end
+
+    get status() as int
+        return int(self.valueNative(c_longlong(1)))
+    end
+
+    get success() as bool
+        return self.successNative()
+    end
+
+    get flags() as int
+        return int(self.valueNative(c_longlong(2)))
+    end
+
+    get reason() as string
+        return __xhttp_client_text(__xhttp_client_handle(
+            self.textNative(c_longlong(0))))
+    end
+
+    get headerCount() as int
+        return int(self.valueNative(c_longlong(3)))
+    end
+
+    get trailerCount() as int
+        return int(self.valueNative(c_longlong(4)))
+    end
+
+    get bodyBytes() as int
+        return int(self.valueNative(c_longlong(5)))
+    end
+
+    get wireBodyBytes() as int
+        return int(self.valueNative(c_longlong(6)))
+    end
+
+    get url() as string
+        return __xhttp_client_text(__xhttp_client_handle(
+            self.textNative(c_longlong(1))))
+    end
+
+    get parsedUrl() as Url
+        return Url.parse(self.url)
+    end
+
+    get redirects() as int
+        return int(self.valueNative(c_longlong(7)))
+    end
+
+    func header(string name) as string?
+        return __xhttp_client_optional_text(self.fieldNative(
+            name, c_size(string.byteLen(name)), false))
+    end
+
+    func trailer(string name) as string?
+        return __xhttp_client_optional_text(self.fieldNative(
+            name, c_size(string.byteLen(name)), true))
+    end
+
+    func headers() as Headers
+        return Headers(__xhttp_client_handle(self.fieldsNative(false)))
+    end
+
+    func trailers() as Headers
+        return Headers(__xhttp_client_handle(self.fieldsNative(true)))
+    end
+
+    func body() as Buffer
+        return Buffer(__xhttp_client_handle(self.bodyNative()))
+    end
+
+    func text() as string
+        return self.body().text()
+    end
+end
+
+
+
+// Http1Exchange 是无 I/O 的 HTTP/1 双向状态机，可直接接到任意传输层。
+export class Http1Exchange
+    native point handle
+    extern "xhttp_client_exchange_wrap" create(point handle)
+    extern "xhttp_client_exchange_destroy_abi" destroy()
+    extern "xhttp_client_exchange_native" func nativeHandle() as point
+    extern "xhttp_client_exchange_output" func outputNative(
+        c_size maxBytes) as point
+    extern "xhttp_client_exchange_output_status" func outputStatusNative() as c_longlong
+    extern "xhttp_client_exchange_consume" func consumeNative(
+        c_size size) as bool
+    extern "xhttp_client_exchange_continue" func continueNative() as bool
+    extern "xhttp_client_exchange_pause" func pauseNative(
+        bool pause) as bool
+    extern "xhttp_client_exchange_paused" func pausedNative() as bool
+    extern "xhttp_client_exchange_feed" func feedNative(
+        point data, c_size size, bool finish) as c_ulonglong
+    extern "xhttp_client_exchange_feed_status" func feedStatusNative() as c_longlong
+    extern "xhttp_client_exchange_take_response" func takeResponseNative() as point
+    extern "xhttp_client_exchange_remainder" func remainderNative() as point
+    extern "xhttp_client_exchange_value" func valueNative(
+        c_longlong field) as c_ulonglong
+
+    get valid() as bool
+        return self.nativeHandle() != null
+    end
+
+    get paused() as bool
+        return self.pausedNative()
+    end
+
+    get requestComplete() as bool
+        return self.valueNative(c_longlong(0)) != 0
+    end
+
+    get responseComplete() as bool
+        return self.valueNative(c_longlong(1)) != 0
+    end
+
+    get upgraded() as bool
+        return self.valueNative(c_longlong(2)) != 0
+    end
+
+    get reusable() as bool
+        return self.valueNative(c_longlong(3)) != 0
+    end
+
+    get informationalCount() as int
+        return int(self.valueNative(c_longlong(4)))
+    end
+
+    get requestWireBytes() as int
+        return int(self.valueNative(c_longlong(5)))
+    end
+
+    func output(int maxBytes = 65536) as Http1Output
+        if maxBytes <= 0 then
+            throw ValueError "HTTP/1 output size must be positive"
+        end
+        point result = self.outputNative(c_size(maxBytes))
+        int status = int(self.outputStatusNative())
+        if status == HTTP1_OUTPUT_ERROR then
+            throw RuntimeError __xhttp_client_error()
+        end
+        if result == null then
+            return Http1Output(status, null)
+        end
+        return Http1Output(status, Buffer(result))
+    end
+
+    func consume(int size)
+        if size < 0 then
+            throw ValueError "HTTP/1 consumed size must not be negative"
+        end
+        if not self.consumeNative(c_size(size)) then
+            throw RuntimeError __xhttp_client_error()
+        end
+    end
+
+    func takeOutput(int maxBytes = 65536) as Http1Output
+        Http1Output result = self.output(maxBytes)
+        if result.hasData then
+            Buffer data = result.data as Buffer
+            self.consume(data.len())
+        end
+        return result
+    end
+
+    func allowContinue()
+        if not self.continueNative() then
+            throw RuntimeError __xhttp_client_error()
+        end
+    end
+
+    func pause()
+        if not self.pauseNative(true) then
+            throw RuntimeError __xhttp_client_error()
+        end
+    end
+
+    func resume()
+        if not self.pauseNative(false) then
+            throw RuntimeError __xhttp_client_error()
+        end
+    end
+
+    func feed(Buffer input, bool finish = false) as Http1FeedResult
+        int accepted = int(self.feedNative(
+            input.data(), c_size(input.len()), finish))
+        int status = int(self.feedStatusNative())
+        if status == HTTP1_FEED_ERROR then
+            throw RuntimeError __xhttp_client_error()
+        end
+        return Http1FeedResult(status, accepted)
+    end
+
+    func finish() as Http1FeedResult
+        return self.feed(Buffer(), true)
+    end
+
+    func takeResponse() as Response
+        return Response(__xhttp_client_handle(self.takeResponseNative()))
+    end
+
+    func remainder() as Buffer
+        return Buffer(__xhttp_client_handle(self.remainderNative()))
+    end
+end
+
+
+
+extern "xhttp_client_create" func __xhttp_client_create(
+    point engine, c_longlong timeoutMs,
+    c_longlong idleTimeoutMs, bool systemTrust) as point
+extern "xhttp_client_create_tls" func __xhttp_client_create_tls(
+    point engine, point tlsContext, point tlsVerifier,
+    c_longlong timeoutMs, c_longlong idleTimeoutMs) as point
+extern "xl6ExtlibTlsLeaseCreateHandle" func __xhttp_client_tls_lease_create(
+    point tlsConfig) as point
+extern "xl6ExtlibTlsLeaseReleaseHandle" func __xhttp_client_tls_lease_release(
+    point lease)
+extern "xl6ExtlibTlsLeaseContextHandle" func __xhttp_client_tls_lease_context(
+    point lease) as point
+extern "xl6ExtlibTlsLeaseShareVerifierHandle" func __xhttp_client_tls_lease_share_verifier(
+    point lease) as point
+extern "xhttp_client_result_ref" func __xhttp_client_result_ref(
+    point handle) as point
+
+
+
+export const int CLIENT_RUNNING = 0
+export const int CLIENT_DRAINING = 1
+export const int CLIENT_ABORTING = 2
+export const int CLIENT_CLOSED = 3
+
+export const int CALL_QUEUED = 0
+export const int CALL_DIALING = 1
+export const int CALL_HANDSHAKING = 2
+export const int CALL_EXCHANGING = 3
+export const int CALL_SUCCEEDED = 4
+export const int CALL_FAILED = 5
+export const int CALL_CANCELLED = 6
+
+export const int CALL_PHASE_QUEUED = 0
+export const int CALL_PHASE_POOL = 3
+export const int CALL_PHASE_CONNECT = 4
+export const int CALL_PHASE_PROXY = 5
+export const int CALL_PHASE_TLS = 6
+export const int CALL_PHASE_REQUEST = 7
+export const int CALL_PHASE_RESPONSE_HEADERS = 8
+export const int CALL_PHASE_RESPONSE_BODY = 9
+
+
+
+// HttpClientConfig 只保存跨调用共享的传输策略，默认使用安全系统信任与两类 30 秒超时。
+export class HttpClientConfig
+    int timeoutMs
+    int idleTimeoutMs
+    bool systemTrust
+
+    create(
+        int timeoutMs = 30000,
+        int idleTimeoutMs = 30000,
+        bool systemTrust = true
+    )
+        if timeoutMs < -1 or idleTimeoutMs < -1 then
+            throw ValueError "HTTP client timeouts must be positive or -1"
+        end
+        self.timeoutMs = timeoutMs
+        self.idleTimeoutMs = idleTimeoutMs
+        self.systemTrust = systemTrust
+    end
+end
+
+
+
+// HttpCallOptions 为一次调用覆盖超时和正文上限；零表示继承，负一表示无限。
+export class HttpCallOptions
+    int timeoutMs
+    int idleTimeoutMs
+    int responseBodyLimit
+
+    create(
+        int timeoutMs = 0,
+        int idleTimeoutMs = 0,
+        int responseBodyLimit = 0
+    )
+        if timeoutMs < -1 or idleTimeoutMs < -1 then
+            throw ValueError "HTTP call timeouts must be zero, positive or -1"
+        end
+        if responseBodyLimit < -1 then
+            throw ValueError "HTTP response body limit must be non-negative or -1"
+        end
+        self.timeoutMs = timeoutMs
+        self.idleTimeoutMs = idleTimeoutMs
+        self.responseBodyLimit = responseBodyLimit
+    end
+end
+
+
+
+// HttpResult 同时拥有普通响应和可选 Upgrade 传输，所有资源至多取走一次。
+export class HttpResult
+    native point handle
+    extern "xhttp_client_result_wrap" create(point handle)
+    extern "xhttp_client_result_destroy_abi" destroy()
+    extern "xhttp_client_result_native" func nativeHandle() as point
+    extern "xhttp_client_result_has_response" get hasResponse() as bool
+    extern "xhttp_client_result_take_response" func takeResponseNative() as point
+    extern "xhttp_client_result_take_tcp" func takeTcpNative() as point
+    extern "xhttp_client_result_take_tls" func takeTlsNative() as point
+    extern "xhttp_client_result_value" func valueNative(
+        c_longlong field) as c_longlong
+
+    get valid() as bool
+        return self.nativeHandle() != null
+    end
+
+    get state() as int
+        return int(self.valueNative(c_longlong(0)))
+    end
+
+    get phase() as int
+        return int(self.valueNative(c_longlong(1)))
+    end
+
+    get result() as int
+        return int(self.valueNative(c_longlong(2)))
+    end
+
+    get errorCode() as int
+        return int(self.valueNative(c_longlong(3)))
+    end
+
+    get submittedAt() as int
+        return int(self.valueNative(c_longlong(4)))
+    end
+
+    get startedAt() as int
+        return int(self.valueNative(c_longlong(5)))
+    end
+
+    get transportReadyAt() as int
+        return int(self.valueNative(c_longlong(6)))
+    end
+
+    get requestSentAt() as int
+        return int(self.valueNative(c_longlong(7)))
+    end
+
+    get firstByteAt() as int
+        return int(self.valueNative(c_longlong(8)))
+    end
+
+    get headersAt() as int
+        return int(self.valueNative(c_longlong(9)))
+    end
+
+    get lastProgressAt() as int
+        return int(self.valueNative(c_longlong(10)))
+    end
+
+    get completedAt() as int
+        return int(self.valueNative(c_longlong(11)))
+    end
+
+    get requestWireBytes() as int
+        return int(self.valueNative(c_longlong(12)))
+    end
+
+    get responseWireBytes() as int
+        return int(self.valueNative(c_longlong(13)))
+    end
+
+    get responseBodyBytes() as int
+        return int(self.valueNative(c_longlong(14)))
+    end
+
+    get redirects() as int
+        return int(self.valueNative(c_longlong(15)))
+    end
+
+    get reusedConnection() as bool
+        return self.valueNative(c_longlong(16)) != 0
+    end
+
+    get secure() as bool
+        return self.valueNative(c_longlong(17)) != 0
+    end
+
+    get bufferedBytes() as int
+        return int(self.valueNative(c_longlong(18)))
+    end
+
+    get upgraded() as bool
+        return self.valueNative(c_longlong(19)) != 0
+    end
+
+    func takeResponse() as Response
+        return Response(__xhttp_client_handle(self.takeResponseNative()))
+    end
+
+    func takeTcp() as TcpStream?
+        point stream = self.takeTcpNative()
+        if stream == null then
+            return null
+        end
+        return TcpStream(stream)
+    end
+
+    func takeTls() as TlsStream?
+        point nativeStream = self.takeTlsNative()
+        point stream
+        if nativeStream == null then
+            return null
+        end
+        stream = __xhttp_client_tls_stream_adopt(nativeStream)
+        if stream == null then
+            __xhttp_client_tls_stream_discard(nativeStream)
+            return null
+        end
+        return TlsStream(stream)
+    end
+end
+
+
+
+// Future 装箱时增加独立结果引用，源 Future 和语言对象可以分别析构。
+func __xhttp_client_result_box(point handle) as HttpResult
+    return HttpResult(__xhttp_client_handle(
+        __xhttp_client_result_ref(handle)))
+end
+
+
+
+// HttpClient 绑定显式 NetEngine，避免扩展库偷偷依赖进程全局网络状态。
+export class HttpClient
+    native point handle
+    extern "xhttp_client_wrap" create(point handle)
+    extern "xhttp_client_destroy_abi" destroy()
+    extern "xhttp_client_native" func nativeHandle() as point
+    extern "xhttp_client_drain" func drain() as bool
+    extern "xhttp_client_abort" func abort() as bool
+    extern "xhttp_client_state" get state() as c_longlong
+    extern "xhttp_client_wait_async" func waitClosed() as future<null>
+    extern "xhttp_client_execute" func executeNative(
+        point request, c_longlong timeoutMs,
+        c_longlong idleTimeoutMs,
+        c_longlong responseBodyLimit) as point
+    extern "xhttp_client_execute_async" func executeAsyncNative(
+        point request, c_longlong timeoutMs,
+        c_longlong idleTimeoutMs,
+        c_longlong responseBodyLimit,
+        var boxer) as future<HttpResult>
+
+    static func open(NetEngine engine) as HttpClient
+        return HttpClient.open(engine, HttpClientConfig())
+    end
+
+    static func open(
+        NetEngine engine,
+        HttpClientConfig config
+    ) as HttpClient
+        point created = __xhttp_client_create(
+            engine.nativeHandle(),
+            c_longlong(config.timeoutMs),
+			c_longlong(config.idleTimeoutMs),
+			config.systemTrust
+		)
+		return HttpClient(__xhttp_client_handle(created))
+	end
+
+	static func open(
+		NetEngine engine,
+		TlsConfig tlsConfig
+	) as HttpClient
+		return HttpClient.open(engine, tlsConfig, HttpClientConfig())
+	end
+
+	static func open(
+		NetEngine engine,
+		TlsConfig tlsConfig,
+		HttpClientConfig config
+	) as HttpClient
+		point lease = __xhttp_client_tls_lease_create(
+			tlsConfig.nativeHandle())
+		point created = __xhttp_client_create_tls(
+			engine.nativeHandle(),
+			__xhttp_client_tls_lease_context(lease),
+			__xhttp_client_tls_lease_share_verifier(lease),
+			c_longlong(config.timeoutMs),
+			c_longlong(config.idleTimeoutMs)
+		)
+		__xhttp_client_tls_lease_release(lease)
+		return HttpClient(__xhttp_client_handle(created))
+	end
+
+    get valid() as bool
+        return self.nativeHandle() != null
+    end
+
+    func execute(Request request) as HttpResult
+        return self.execute(request, HttpCallOptions())
+    end
+
+    func execute(
+        Request request,
+        HttpCallOptions options
+    ) as HttpResult
+        return HttpResult(__xhttp_client_handle(self.executeNative(
+            request.nativeHandle(),
+            c_longlong(options.timeoutMs),
+            c_longlong(options.idleTimeoutMs),
+            c_longlong(options.responseBodyLimit)
+        )))
+    end
+
+    func send(Request request) as Response
+        return self.execute(request).takeResponse()
+    end
+
+    func send(
+        Request request,
+        HttpCallOptions options
+    ) as Response
+        return self.execute(request, options).takeResponse()
+    end
+
+    func executeAsync(Request request) as future<HttpResult>
+        return self.executeAsync(request, HttpCallOptions())
+    end
+
+    func executeAsync(
+        Request request,
+        HttpCallOptions options
+    ) as future<HttpResult>
+        var boxer = xcall(__xhttp_client_result_box)
+        return self.executeAsyncNative(
+            request.nativeHandle(),
+            c_longlong(options.timeoutMs),
+            c_longlong(options.idleTimeoutMs),
+            c_longlong(options.responseBodyLimit),
+            boxer
+        )
+    end
+end

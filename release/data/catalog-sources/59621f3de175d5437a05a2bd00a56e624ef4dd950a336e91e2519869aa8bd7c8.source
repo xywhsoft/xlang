@@ -1,0 +1,47 @@
+{
+    "format":  "xlang-package-1",
+    "name":  "dinov3",
+    "version":  "0.1.0",
+    "abiVersion":  "1",
+    "kind":  "demo6-extlib",
+    "artifact":  {
+                     "kind":  "source",
+                     "cSources":  [
+                                      "src/dinov3_artifact.c"
+                                  ],
+                     "xlSources":  [
+                                       "src/dinov3.xl"
+                                   ],
+                     "xrtModules":  [
+                                        "XRT_MODULE_VALUE_CONTAINER",
+                                        "XRT_MODULE_JSON",
+                                        "XRT_MODULE_BUFFER",
+                                        "XRT_MODULE_ONCE",
+                                        "XRT_MODULE_THREAD_KEY"
+                                   ]
+                 },
+    "coverage": { "mode": "suite", "tests": ["test/nul_names.xl", "test/invalid_output.xl"] },
+    "links":  [
+
+              ],
+    "loadlibs":  [
+
+                 ],
+    "dependencies":  [
+                         {
+                             "name":  "opencv",
+                             "version":  "0.1.0",
+                             "abiVersion":  "1"
+                         },
+                         {
+                             "name":  "onnxruntime",
+                             "version":  "0.1.0",
+                             "abiVersion":  "1"
+                         }
+                     ],
+    "native":  {
+                   "singleton":  false,
+                   "loadName":  "",
+                   "version":  ""
+               }
+}

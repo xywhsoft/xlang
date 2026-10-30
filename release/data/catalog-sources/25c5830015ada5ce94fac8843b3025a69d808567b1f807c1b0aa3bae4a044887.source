@@ -1,0 +1,36 @@
+{
+    "format":  "xlang-package-1",
+    "name":  "volc.core",
+    "version":  "0.1.0",
+    "abiVersion":  "1",
+    "kind":  "demo6-extlib",
+    "artifact":  {
+                     "kind":  "source",
+                     "includeDirs": ["include"],
+                     "xrtModules": ["XRT_MODULE_ONCE", "XRT_MODULE_THREAD_KEY", "XRT_MODULE_TIME_TEXT", "XRT_MODULE_NUMBER_INTEGER", "XRT_MODULE_CRYPTO_SHA256", "XRT_MODULE_CRYPTO_HMAC_SHA256", "XRT_MODULE_NET_ENGINE"],
+                     "cSources":  [
+                                      "x_volc_core_native.c"
+                                  ],
+                     "xlSources":  [
+                                       "src/volc_core.xl"
+                                   ]
+                 },
+    "links":  [
+
+              ],
+    "loadlibs":  [
+
+                 ],
+    "dependencies":  [
+                         {
+                             "name":  "xhttp.client",
+                             "version":  "1.0.0",
+                             "abiVersion":  "1"
+                         }
+                     ],
+    "native":  {
+                   "singleton":  false,
+                   "loadName":  "",
+                   "version":  ""
+               }
+}

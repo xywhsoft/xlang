@@ -1,0 +1,35 @@
+import volc.core
+
+export func available() as bool
+    return string.len(volc.core.version()) > 0
+end
+
+export func version() as string
+    return "0.1.0"
+end
+
+export func last_error() as string
+    return volc.core.last_error()
+end
+
+export func assume_role_spec(string spec) as string
+    return volc.core.request_sts_spec(spec)
+end
+
+export func preview_assume_role_spec(string spec) as string
+    return volc.core.sign_preview_sts_spec(spec)
+end
+
+export func assume_role_trn(string access_key, string secret_key, string role_trn, string role_session_name, int duration_seconds, int timeout_ms) as string
+    return volc.core.request_sts(access_key, secret_key, role_trn, role_session_name, duration_seconds, timeout_ms)
+end
+
+export func assume_role(string access_key, string secret_key, string account_id, string role_name, string role_session_name, int duration_seconds, int timeout_ms) as string
+    auto role_trn = "trn:iam::" + account_id + ":role/" + role_name
+    return assume_role_trn(access_key, secret_key, role_trn, role_session_name, duration_seconds, timeout_ms)
+end
+
+export func preview_assume_role(string access_key, string secret_key, string account_id, string role_name, string role_session_name, int duration_seconds, string x_date) as string
+    auto role_trn = "trn:iam::" + account_id + ":role/" + role_name
+    return volc.core.sign_preview_sts(access_key, secret_key, role_trn, role_session_name, duration_seconds, x_date)
+end

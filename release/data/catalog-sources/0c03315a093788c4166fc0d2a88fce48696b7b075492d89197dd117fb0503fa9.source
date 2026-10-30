@@ -1,0 +1,53 @@
+{
+    "format": "xlang-package-1",
+    "name": "xws",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": [
+            "src/websocket/connection.c",
+            "src/websocket/connection_ref.c",
+            "src/websocket/writer.c",
+            "src/websocket/writer_deflate.c",
+            "src/websocket/connection_future.c",
+            "src/websocket/group.c",
+            "src/websocket/group_future.c",
+            "src/websocket/group_broadcast.c",
+            "src/xlang/xws_native_common.c",
+            "src/xlang/xws_native_connection.c",
+            "src/xlang/xws_native_writer.c",
+            "src/xlang/xws_native_group.c"
+        ],
+        "xlSources": ["src/xlang/xws.xl"],
+        "xrtModules": [
+            "XRT_MODULE_EVENT",
+            "XRT_MODULE_FUTURE",
+            "XRT_MODULE_IO_BUFFER",
+            "XRT_MODULE_MUTEX",
+            "XRT_MODULE_NET_TCP",
+            "XRT_MODULE_RANDOM_SECURE",
+            "XRT_MODULE_SET",
+            "XRT_MODULE_SPIN",
+            "XRT_MODULE_TLS_STREAM",
+            "XRT_MODULE_VALUE",
+            "XRT_MODULE_WEBSOCKET_DEFLATER",
+            "XRT_MODULE_WEBSOCKET_INFLATER",
+            "XRT_MODULE_WEBSOCKET_MESSAGE",
+            "XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE"
+        ]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "coverage": {
+        "mode": "suite",
+        "tests": [
+            "test/xws_test.xl",
+            "test/xws_loopback_test.xl",
+            "test/xws_tls_loopback_test.xl"
+        ]
+    },
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

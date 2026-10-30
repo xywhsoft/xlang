@@ -1,0 +1,129 @@
+extern "xl6_xrt_last_error_text" func __roaring_error() as string
+
+
+
+export class RoaringBitmap
+    native point handle
+    extern "xroaring_create" create()
+    extern "xroaring_destroy" destroy()
+
+    private extern "xroaring_add" func addNative(int value) as bool
+    private extern "xroaring_remove" func removeNative(int value) as bool
+    private extern "xroaring_contains" func containsNative(int value) as bool
+    private extern "xroaring_count" func countNative() as int
+    private extern "xroaring_clear" func clearNative()
+    private extern "xroaring_min" func minNative() as int
+    private extern "xroaring_max" func maxNative() as int
+    private extern "xroaring_to_array" func toArrayNative() as var
+    private extern "xroaring_combine_into" func combineNative(
+        point left, point right, c_int operation) as bool
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get count() as int
+        if self.handle == null then
+            throw RuntimeError "roaring: instance is destroyed"
+        end
+        return self.countNative()
+    end
+
+    get min() as int
+        if self.handle == null then
+            throw RuntimeError "roaring: instance is destroyed"
+        end
+        return self.minNative()
+    end
+
+    get max() as int
+        if self.handle == null then
+            throw RuntimeError "roaring: instance is destroyed"
+        end
+        return self.maxNative()
+    end
+
+    func add(int value)
+        if self.handle == null then
+            throw RuntimeError "roaring: instance is destroyed"
+        end
+        if value < 0 or value > 4294967295 then
+            throw ValueError "roaring: value must be uint32"
+        end
+        if not self.addNative(value) then
+            throw RuntimeError __roaring_error()
+        end
+    end
+
+    func remove(int value) as bool
+        if self.handle == null then
+            throw RuntimeError "roaring: instance is destroyed"
+        end
+        if value < 0 or value > 4294967295 then
+            throw ValueError "roaring: value must be uint32"
+        end
+        return self.removeNative(value)
+    end
+
+    func contains(int value) as bool
+        if self.handle == null then
+            throw RuntimeError "roaring: instance is destroyed"
+        end
+        if value < 0 or value > 4294967295 then
+            throw ValueError "roaring: value must be uint32"
+        end
+        return self.containsNative(value)
+    end
+
+    func clear()
+        if self.handle == null then
+            throw RuntimeError "roaring: instance is destroyed"
+        end
+        self.clearNative()
+    end
+
+    func toArray() as var
+        if self.handle == null then
+            throw RuntimeError "roaring: instance is destroyed"
+        end
+        var values = self.toArrayNative()
+        if values == null then
+            throw RuntimeError __roaring_error()
+        end
+        return values
+    end
+
+    private func combined(RoaringBitmap other, c_int operation) as RoaringBitmap
+        if self.handle == null or other.handle == null then
+            throw RuntimeError "roaring: instance is destroyed"
+        end
+        RoaringBitmap result = RoaringBitmap()
+        if not result.valid then throw RuntimeError __roaring_error() end
+        if not result.combineNative(self.handle, other.handle, operation) then
+            throw RuntimeError __roaring_error()
+        end
+        return result
+    end
+
+    func unionWith(RoaringBitmap other) as RoaringBitmap
+        return self.combined(other, c_int(0))
+    end
+
+    func intersectWith(RoaringBitmap other) as RoaringBitmap
+        return self.combined(other, c_int(1))
+    end
+
+    func differenceWith(RoaringBitmap other) as RoaringBitmap
+        return self.combined(other, c_int(2))
+    end
+end
+
+
+
+export func create() as RoaringBitmap
+    RoaringBitmap bitmap = RoaringBitmap()
+    if not bitmap.valid then
+        throw RuntimeError __roaring_error()
+    end
+    return bitmap
+end

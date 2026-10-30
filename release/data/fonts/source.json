@@ -1,0 +1,40 @@
+{
+  "format": "xlang-ide-font-source-1",
+  "utc": "2026-10-09T15:26:46.048261+00:00",
+  "repository": "https://github.com/notofonts/noto-cjk",
+  "commit": "f8d157532fbfaeda587e826d4cd5b21a49186f7c",
+  "family": "Noto Sans Mono CJK SC",
+  "license": "SIL Open Font License 1.1",
+  "modified": false,
+  "files": [
+    {
+      "path": "NotoSansMonoCJKsc-Regular.otf",
+      "sourcePath": "Sans/Mono/NotoSansMonoCJKsc-Regular.otf",
+      "url": "https://raw.githubusercontent.com/notofonts/noto-cjk/f8d157532fbfaeda587e826d4cd5b21a49186f7c/Sans/Mono/NotoSansMonoCJKsc-Regular.otf",
+      "sha256": "ec04cc376b34887cedbdf84074e2e226ed2761eeabdcb9173fc1dd7bfd153ef7",
+      "bytes": 16393784
+    },
+    {
+      "path": "LICENSE",
+      "sourcePath": "Sans/LICENSE",
+      "url": "https://raw.githubusercontent.com/notofonts/noto-cjk/f8d157532fbfaeda587e826d4cd5b21a49186f7c/Sans/LICENSE",
+      "sha256": "6a73f9541c2de74158c0e7cf6b0a58ef774f5a780bf191f2d7ec9cc53efe2bf2",
+      "bytes": 4301
+    }
+  ],
+  "fontMetadata": {
+    "0": "© 2014-2021 Adobe (http://www.adobe.com/).",
+    "1": "Noto Sans Mono CJK SC",
+    "2": "Regular",
+    "3": "2.004;GOOG;NotoSansMonoCJKsc-Regular;ADOBE",
+    "4": "Noto Sans Mono CJK SC",
+    "5": "Version 2.004;hotconv 1.0.118;makeotfexe 2.5.65603",
+    "6": "NotoSansMonoCJKsc-Regular",
+    "13": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This Font Software is distributed on an \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the SIL Open Font License for the specific language, permissions and limitations governing your use of this Font Software.",
+    "14": "http://scripts.sil.org/OFL"
+  },
+  "unicodeMappings": 44810,
+  "asciiAdvance": 500,
+  "unitsPerEm": 1000,
+  "coveredRepresentativeChinese": true
+}

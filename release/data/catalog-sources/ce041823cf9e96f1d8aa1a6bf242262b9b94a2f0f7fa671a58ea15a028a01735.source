@@ -1,0 +1,12 @@
+{
+    "name": "opus",
+    "version": "1.0.0",
+    "format": "xlang-package-1",
+    "kind": "demo6-extlib",
+    "abiVersion": "1",
+    "dependencies": [],
+    "links": [],
+    "loadlibs": [],
+    "native": { "singleton": false, "loadName": "", "version": "" },
+    "artifact": { "kind": "source", "cSources": ["opus_native.c"], "xlSources": ["src/opus.xl"] }
+}

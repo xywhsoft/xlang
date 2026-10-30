@@ -1,0 +1,25 @@
+extern "xharfbuzz_direction" func __direction(int id) as string
+extern "xharfbuzz_script" func __script(int id) as string
+extern "xharfbuzz_total_advance" func __total_advance(string advances) as float
+extern "xharfbuzz_feature" func __feature(int id) as string
+extern "xharfbuzz_detect_dir" func __detect_dir(string text) as int
+
+export func direction(int id) as string
+    return __direction(id)
+end
+
+export func script(int id) as string
+    return __script(id)
+end
+
+export func totalAdvance(string advances) as float
+    return __total_advance(advances)
+end
+
+export func feature(int id) as string
+    return __feature(id)
+end
+
+export func detectDir(string text) as int
+    return __detect_dir(text)
+end

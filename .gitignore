@@ -2,6 +2,21 @@
 
 # xlang generated output
 /release/*
+!/release/xl.exe
+!/release/xl.dll
+!/release/xlc.dll
+!/release/xl
+!/release/libxl.so
+!/release/libxlc.so
+!/release/xlang_ide.exe
+!/release/xlang_ide_console.exe
+!/release/xlang-ls.exe
+!/release/xge.dll
+!/release/data/
+!/release/data/**
+!/release/provenance/
+/release/provenance/*
+!/release/provenance/current-delivery.json
 !/release/README.md
 !/release/include/
 !/release/include/**

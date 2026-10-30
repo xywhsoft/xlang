@@ -1,0 +1,45 @@
+// 原生名称是借用字符串，extern string 边界复制为语言所有；不能交给 takeCstr。
+extern "xchardet_detect_name_n" func __name(point data, c_size size) as string
+extern "xchardet_detect_conf_n" func __conf(point data, c_size size) as c_int
+extern "xchardet_detect_bom_size_n" func __bom(point data, c_size size) as c_int
+extern "xchardet_is_utf8_n" func __utf8(point data, c_size size) as bool
+extern "xchardet_is_ascii_n" func __ascii(point data, c_size size) as bool
+extern "xchardet_detect_name_str" func __nameText(string data, c_size size) as string
+extern "xchardet_detect_conf_str" func __confText(string data, c_size size) as c_int
+extern "xchardet_detect_bom_size_str" func __bomText(string data, c_size size) as c_int
+extern "xchardet_is_utf8_str" func __utf8Text(string data, c_size size) as bool
+extern "xchardet_is_ascii_str" func __asciiText(string data, c_size size) as bool
+
+// 文本直接借用，不再为了探测复制一整个 Buffer。
+export func detect(string text) as string
+    return __nameText(text, c_size(string.byteLen(text)))
+end
+export func confidence(string text) as int
+    return int(__confText(text, c_size(string.byteLen(text))))
+end
+export func bomSize(string text) as int
+    return int(__bomText(text, c_size(string.byteLen(text))))
+end
+export func isUtf8(string text) as bool
+    return __utf8Text(text, c_size(string.byteLen(text)))
+end
+export func isAscii(string text) as bool
+    return __asciiText(text, c_size(string.byteLen(text)))
+end
+
+// 原始字节必须携带长度；UTF-16/32 和 NUL 不经过 C 字符串处理。
+export func detect(Buffer data) as string
+    return __name(data.data(), c_size(data.len()))
+end
+export func confidence(Buffer data) as int
+    return int(__conf(data.data(), c_size(data.len())))
+end
+export func bomSize(Buffer data) as int
+    return int(__bom(data.data(), c_size(data.len())))
+end
+export func isUtf8(Buffer data) as bool
+    return __utf8(data.data(), c_size(data.len()))
+end
+export func isAscii(Buffer data) as bool
+    return __ascii(data.data(), c_size(data.len()))
+end

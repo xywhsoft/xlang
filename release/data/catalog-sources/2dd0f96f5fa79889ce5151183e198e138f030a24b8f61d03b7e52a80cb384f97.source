@@ -1,0 +1,25 @@
+extern "xspm_model_type" func __model_type(int id) as string
+extern "xspm_encode" func __encode(string text) as string
+extern "xspm_count_pieces" func __count_pieces(string text) as int
+extern "xspm_control_symbol" func __control_symbol(int id) as string
+extern "xspm_vocab_size" func __vocab_size(int model_type) as int
+
+export func modelType(int id) as string
+    return __model_type(id)
+end
+
+export func encode(string text) as string
+    return __encode(text)
+end
+
+export func countPieces(string text) as int
+    return __count_pieces(text)
+end
+
+export func controlSymbol(int id) as string
+    return __control_symbol(id)
+end
+
+export func vocabSize(int model_type) as int
+    return __vocab_size(model_type)
+end

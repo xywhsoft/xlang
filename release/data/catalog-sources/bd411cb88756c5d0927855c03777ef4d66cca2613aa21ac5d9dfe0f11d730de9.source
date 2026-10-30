@@ -1,0 +1,40 @@
+extern "xopus_application" func __application(int mode) as string
+extern "xopus_bandwidth" func __bandwidth(int bw) as string
+extern "xopus_signal" func __signal(int signal) as string
+extern "xopus_frame_size" func __frame_size(int samples) as string
+extern "xopus_sample_rate" func __sample_rate(int rate) as string
+extern "xopus_channels" func __channels(int ch) as string
+extern "xopus_recommended_bitrate" func __recommended_bitrate(int app, int channels) as int
+extern "xopus_error_name" func __error_name(int code) as string
+
+export func application(int mode) as string
+    return __application(mode)
+end
+
+export func bandwidth(int bw) as string
+    return __bandwidth(bw)
+end
+
+export func signal(int signal) as string
+    return __signal(signal)
+end
+
+export func frameSize(int samples) as string
+    return __frame_size(samples)
+end
+
+export func sampleRate(int rate) as string
+    return __sample_rate(rate)
+end
+
+export func channels(int ch) as string
+    return __channels(ch)
+end
+
+export func recommendedBitrate(int app, int channels) as int
+    return __recommended_bitrate(app, channels)
+end
+
+export func errorName(int code) as string
+    return __error_name(code)
+end

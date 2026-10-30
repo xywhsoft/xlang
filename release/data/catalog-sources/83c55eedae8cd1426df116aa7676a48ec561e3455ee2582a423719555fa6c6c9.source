@@ -1,0 +1,41 @@
+{
+    "format": "xlang-package-1",
+    "name": "xssh",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": ["xssh_native.c"],
+        "includeDirs": ["include"],
+        "xlSources": ["src/xlang/xssh.xl"],
+        "xrtModules": [
+            "XRT_MODULE_BUFFER",
+            "XRT_MODULE_CODEC_BASE64",
+            "XRT_MODULE_CRYPTO_AES_GCM",
+            "XRT_MODULE_CRYPTO_ED25519_SIGN",
+            "XRT_MODULE_CRYPTO_ED25519_VERIFY",
+            "XRT_MODULE_CRYPTO_SHA1",
+            "XRT_MODULE_CRYPTO_SHA256",
+            "XRT_MODULE_CRYPTO_X25519",
+            "XRT_MODULE_CRYPTO_X25519_KEYPAIR",
+            "XRT_MODULE_FUTURE",
+            "XRT_MODULE_INT_MAP",
+            "XRT_MODULE_NET_BUFFER",
+            "XRT_MODULE_NET_TCP",
+            "XRT_MODULE_NET_TCP_DIAL",
+            "XRT_MODULE_PEM",
+            "XRT_MODULE_RANDOM_SECURE",
+            "XRT_MODULE_SPIN",
+            "XRT_MODULE_UNICODE"
+        ]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "coverage": {
+        "mode": "suite",
+        "tests": ["test/xssh_test.xl", "test/boundaries.xl"]
+    },
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

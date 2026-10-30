@@ -1,0 +1,617 @@
+# xlang DEMO6 函数设计
+
+本文档记录 DEMO6 已确认的函数声明、返回值、多返回值和匿名函数口径。
+
+## 1. 总原则
+
+函数设计必须服从 DEMO6 第一绝对原则：xlang 能够和 C 完美混编。
+
+同时保留以下语言风格：
+
+- 函数声明使用 `func` 作为明确语法入口。
+- 参数使用 C 风格类型前置写法。
+- 返回值采用 `as` 后置写法。
+- 无返回值时省略返回类型。
+
+## 2. 普通函数声明
+
+无返回值函数：
+
+```xlang
+func log(string text)
+    print(text)
+end
+```
+
+单返回值函数：
+
+```xlang
+func add(int a, int b) as int
+    return a + b
+end
+```
+
+多返回值函数：
+
+```xlang
+func pair() as (int, string)
+    return 1, "one"
+end
+```
+
+规则：
+
+- `func name(...)` 表示无返回值。
+- `func name(...) as Type` 表示单返回值。
+- `func name(...) as (Type1, Type2)` 表示多返回值。
+- 多返回值必须使用括号，不能写成 `func name() as Type1, Type2`。
+- 函数声明统一使用 `as Type` 返回值写法。
+- 无返回值函数直接省略返回类型。
+
+一致性说明：
+
+- `func` 具名声明、`func` 匿名函数、`func(...)` 类型签名统一使用 `as` 表示返回值。
+- `as` 后面只能接返回类型，不参与普通表达式计算。
+- `=>` 只用于表达式体匿名函数。
+- 这样可以避免同一门语言里同时存在 `func foo() as int`、`func() as int`、`func foo() int` 三种函数签名口径。
+
+## 3. 多返回值
+
+多返回值声明：
+
+```xlang
+func stat(string path) as (bool, int64)
+    ...
+end
+```
+
+多返回值返回：
+
+```xlang
+return true, 1024
+```
+
+多返回值接收：
+
+```xlang
+auto ok, size = stat("a.txt")
+```
+
+丢弃部分返回值：
+
+```xlang
+auto ok, _ = stat("a.txt")
+```
+
+设计说明：
+
+- 多返回值使用括号是为了避免污染外层逗号语法。
+- 例如函数赋值、解构、泛型类型参数、调用参数列表中都大量使用 `,`。
+- `func pair() as int, string` 在函数声明中可以解析，但不适合作为全语言统一规则。
+
+## 4. 参数写法
+
+参数使用类型前置：
+
+```xlang
+func move(point p, int dx, int dy)
+    ...
+end
+```
+
+规则：
+
+- 参数写法为 `Type name`。
+- 这与变量声明 `int a = 0` 保持一致。
+- 不采用 Go/Rust 的 `name Type` 或 `name: Type` 参数写法。
+
+## 5. 可选参数
+
+可选参数在参数表里直接赋默认值。
+
+示例：
+
+```xlang
+func add(int a, int b = 1) as int
+    return a + b
+end
+
+auto x = add(1)
+auto y = add(1, 2)
+```
+
+规则：
+
+- 带默认值的参数是可选参数。
+- 调用时省略该参数，则使用参数表中的默认值。
+- 默认值表达式的类型必须能赋给参数类型。
+- 可选参数必须位于普通必选参数之后。
+- 可选参数必须位于可变参数标记之前。
+
+错误示例：
+
+```xlang
+func bad(int a = 1, int b) as int
+    return a + b
+end
+```
+
+说明：
+
+- 这条规则可以让调用匹配保持简单直接。
+- 默认值表达式的允许范围后续由语义检查细化，但语法口径固定为 `Type name = default`。
+
+## 6. 命名参数调用
+
+DEMO6 第一阶段支持调用侧命名参数。
+
+示例：
+
+```xlang
+func open(string path, string mode = "read", int retry = 0)
+    ...
+end
+
+open("a.txt")
+open("a.txt", mode = "write")
+open(path = "a.txt", retry = 3)
+```
+
+规则：
+
+- 命名参数语法固定为 `name = value`。
+- 命名参数只在函数调用参数列表中成立。
+- xlang 不把赋值表达式作为普通表达式，因此 `f(a = 1)` 不存在“赋值表达式还是命名参数”的冲突。
+- 位置参数必须位于命名参数之前。
+- 命名参数可以按任意顺序传入。
+- 同一个参数不能被位置参数和命名参数重复传入。
+- 同一个命名参数不能重复传入。
+- 未提供的可选参数使用默认值。
+- 未提供的必选参数产生编译期错误。
+- 命名参数匹配在编译期完成，不改变函数 ABI。
+- 直接调用已声明函数或方法时，编译器使用声明中的形参名完成匹配。
+- `func(T1, T2) as R` 函数值签名只保存类型和参数标志，不保存固定形参名；因此函数值的固定参数只能按位置传入。
+- 裸 `func` 同样不接受命名参数。
+- 函数值签名声明 `***` 时可以接收命名参数；这些参数全部进入 `arg` 字典，不参与固定形参名匹配。
+
+错误示例：
+
+```xlang
+open(mode = "read", "a.txt")
+open("a.txt", path = "b.txt")
+open("a.txt", mode = "read", mode = "write")
+```
+
+和字典可变参数的关系：
+
+- 如果函数声明了 `***`，不能匹配到固定参数的额外命名参数会进入 `arg` 字典。
+- 如果函数没有声明 `***`，额外命名参数产生编译期错误。
+
+## 7. 可变参数
+
+DEMO6 支持两种可变参数：
+
+- `...`：数组可变参数。
+- `***`：字典可变参数。
+
+### 7.1 数组可变参数
+
+```xlang
+func count(...) as int
+    return arg.length
+end
+```
+
+规则：
+
+- `...` 表示接收额外的位置参数。
+- 函数体中通过内置局部变量 `arg` 访问这些参数。
+- `arg` 的类型是 `array<var>`。
+- `...` 必须位于参数表最后。
+
+带普通参数：
+
+```xlang
+func sum(int base, ...) as int
+    auto total = base
+    for value in arg
+        total += int(value)
+    end
+    return total
+end
+```
+
+### 7.2 字典可变参数
+
+```xlang
+func options(***) as dict<var>
+    return arg
+end
+```
+
+规则：
+
+- `***` 表示接收额外的命名参数/字典参数。
+- 函数体中通过内置局部变量 `arg` 访问这些参数。
+- `arg` 的类型是 `dict<var>`。
+- `***` 必须位于参数表最后。
+
+带普通参数：
+
+```xlang
+func open(string path, ***)
+    auto mode = arg.get("mode", "read")
+    ...
+end
+```
+
+调用示例：
+
+```xlang
+open("a.txt", mode = "write", retry = 3)
+```
+
+该调用中：
+
+- `path` 匹配固定位置参数。
+- `mode` 和 `retry` 进入 `arg` 字典。
+
+### 7.3 可变参数限制
+
+严格限制：
+
+- `...` 不能与 `***` 同时存在。
+- 一个函数最多只能有一个可变参数标记。
+- 可变参数标记必须位于参数表最后。
+- 可变参数函数体内的 `arg` 由编译器注入，不能被重新声明。
+- 非可变参数函数不会自动注入 `arg`。
+
+错误示例：
+
+```xlang
+func bad(..., ***)
+end
+
+func bad2(***, int a)
+end
+```
+
+### 7.4 词法要求
+
+lexer 必须优先识别 `***`，再识别 `**`，最后识别 `*`。
+
+说明：
+
+- `***` 只作为字典可变参数标记。
+- `**` 仍然是幂运算符。
+- 这样可以避免 `***` 被拆成 `**` + `*`。
+
+## 8. func 类型签名
+
+`func` 是明确的一等公民类型。
+
+DEMO6 同时支持裸 `func` 和带签名 `func`。
+
+### 8.1 裸 func
+
+```xlang
+func a = xxx
+a(1, 2, 3)
+```
+
+规则：
+
+- 裸 `func` 表示签名擦除的动态函数值。
+- 裸 `func` 的调用在编译期不知道参数数量和参数类型。
+- 裸 `func` 调用需要运行时签名检查。
+- 裸 `func` 调用的静态返回类型是 `var`。
+- 如果实参数量或类型不匹配，应产生运行时调用错误。
+
+### 8.2 带签名 function
+
+无返回值函数类型：
+
+```xlang
+func(string)
+func()
+```
+
+单返回值函数类型：
+
+```xlang
+func(int, int) as int
+func() as int
+```
+
+多返回值函数类型：
+
+```xlang
+func(string) as (bool, int)
+```
+
+变量声明：
+
+```xlang
+func(int, int) as int add = xxx
+func(string) as (bool, int) parse = yyy
+func(string) logger = zzz
+```
+
+规则：
+
+- `func(...)` 表示无返回值函数类型。
+- `func(...) as Type` 表示单返回值函数类型。
+- `func(...) as (Type1, Type2)` 表示多返回值函数类型。
+- 参数列表只写类型，不写参数名。
+- `as` 用于函数声明、匿名函数和 func 类型签名中的返回类型。
+- 这套写法避免 `func(int) string a` 这类语法和变量名之间的视觉歧义。
+
+### 8.3 可变参数函数类型
+
+数组可变参数：
+
+```xlang
+func(...) as int
+func(int, ...) as int
+```
+
+字典可变参数：
+
+```xlang
+func(***) as dict<var>
+func(string, ***) as int
+```
+
+规则：
+
+- `...` 表示数组可变参数。
+- `***` 表示字典可变参数。
+- `...` 和 `***` 不能同时存在。
+
+### 8.4 可选参数与 func 类型
+
+可选参数的默认值属于函数实现，不写入 func 类型签名。
+
+示例：
+
+```xlang
+func add(int a, int b = 1) as int
+    return a + b
+end
+```
+
+该函数可以匹配以下调用签名：
+
+```xlang
+func(int) as int
+func(int, int) as int
+```
+
+规则：
+
+- func 类型只描述可调用签名。
+- 默认值表达式不进入 func 类型。
+- 函数重载、赋值兼容和重载函数赋给 function 变量的规则见 `函数重载设计.md`。
+
+### 8.5 typed func、var 与 XCall 的边界
+
+带签名 `func` 是静态函数值，保留参数类型、返回类型、原生调用入口和闭包环境。
+它不能隐式赋给 `var`，也不能因为赋值目标是动态类型而悄悄改变调用约定。
+
+需要动态函数值时必须显式转换：
+
+```xlang
+func add(int left, int right) as int
+    return left + right
+end
+
+func(int, int) as int typed = add
+var dynamic = xcall(typed)
+var result = dynamic(20, 22)
+```
+
+从 `var` 恢复静态函数值时，必须写出完整签名：
+
+```xlang
+func(int, int) as int restored = dynamic as func(int, int) as int
+int value = restored(20, 22)
+```
+
+规则：
+
+- `xcall(value)` 只接收一个具有完整签名的 `func` 值，并返回 `var`。
+- 重载函数名不能直接交给 `xcall`；先用目标 `func(...) as ...` 变量选定重载。
+- `var as func(...) as ...` 按完整 signature id 校验，参数、返回值、参数模式或可变参数不一致均抛出可捕获的 `TypeError`。
+- 静态 `func` 直接调用保留原生快路径；显式经过 `var/xcall` 后统一走 XCall，不猜测第三方 callable 的原生入口和环境布局。
+- class 已是带类型描述的受管理 `xvalue` 句柄，可以作为 XCall 参数和返回值，不复制对象 payload。
+- XCall 支持可无损表示为 `xvalue` 的基础类型、动态容器、`array<var>` / `list<var>` / `set<var>` / `dict<var>`、专用 XRT 数据结构、class、`...`、`***` 和多返回值帧。
+- 不能完整进入 `xvalue` 的无符号全值域类型、静态 typed container、嵌套 `func` 参数/返回值、`byref`、`out` 和 `c_vararg` 不进入 XCall。
+- 动态 `var` 直接调用多返回值函数时，表达式结果仍取第一个返回值；需要完整多返回值时先恢复为精确 typed func。
+- 无返回值 XCall 的结果帧允许 `Count == 0`，运行时不得访问不存在的 `Values[0]`。
+
+这条边界不是兼容回退：typed/native 调用和 XCall 动态调用是两种明确能力，转换只能由源码显式触发。
+
+## 9. 动态返回值
+
+如果函数返回动态值，必须显式写 `var`。
+
+```xlang
+func eval(string code) as var
+    ...
+end
+```
+
+规则：
+
+- 省略返回类型表示无返回值。
+- 省略返回类型不表示返回 `var`。
+- 这避免回到早期 xlang “所有返回值都是 var” 的割裂设计。
+
+## 10. 无返回值
+
+```xlang
+func cleanup()
+    ...
+end
+```
+
+## 11. 匿名函数
+
+无返回值匿名函数：
+
+```xlang
+auto f = func(string text)
+    print(text)
+end
+```
+
+单返回值匿名函数：
+
+```xlang
+auto f = func(int x) as int
+    return x + 1
+end
+```
+
+箭头匿名函数：
+
+```xlang
+auto f = func(int x) as int => x + 1
+```
+
+多返回值匿名函数：
+
+```xlang
+auto f = func() as (int, string)
+    return 1, "one"
+end
+```
+
+规则：
+
+- 匿名函数与具名函数使用同一套返回值语法。
+- 箭头匿名函数只适合表达式体。
+- 多返回匿名函数同样必须使用括号包住返回类型列表。
+
+## 12. 闭包捕获
+
+当前 XLIR 阶段补充（2026-09-09）：下文的“第一阶段只读按值捕获”是历史
+基线。当前已接纳的可变捕获使用共享 cell；一旦任一闭包写入某个词法绑定，
+该绑定的全部捕获（包括只读兄弟和后代）必须共享同一 cell，不能各自选择
+快照语义。未被任何闭包写入的捕获仍遵循按值/独立引用规则。cell 引用的
+retain/release 是原子的，但捕获值的并发 LOAD/STORE 并不因此受到同步保护。
+可变捕获的元素类型仍受现有语义检查限制，不等于已开放任意资源类型。
+
+匿名函数支持捕获外部变量。
+
+示例：
+
+```xlang
+func makeAdder(int base) as func(int) as int
+    return func(int value) as int
+        return base + value
+    end
+end
+
+auto add10 = makeAdder(10)
+auto n = add10(5)
+```
+
+第一阶段采用按值捕获：
+
+- 语义阶段计算匿名函数实际使用的外层变量集合。
+- 每个匿名函数生成一个专属捕获环境结构体。
+- 创建闭包时，把捕获变量的当前值复制到捕获环境。
+- 闭包调用时通过隐藏的环境指针读取捕获值。
+- 捕获变量在闭包体内只读。
+- 如果闭包体尝试给捕获变量赋值，第一阶段直接报编译期错误。
+
+类型限制：
+
+- 可复制基础类型可以捕获。
+- `string`、容器、`func` 等引用型值按 XRT 引用/复制规则捕获。
+- 有析构的 class 默认不可捕获。
+- native-backed class 默认不可捕获。
+- 如果后续需要捕获资源类型，必须先设计显式 move 捕获或借用捕获，不能隐式复制。
+
+期望 C lowering：
+
+```c
+typedef struct XL_Closure_makeAdder_1 {
+    int64_t base;
+    int ref_count;
+} XL_Closure_makeAdder_1;
+
+static int64_t xl_closure_makeAdder_1_invoke(void* env, int64_t value)
+{
+    XL_Closure_makeAdder_1* pEnv = (XL_Closure_makeAdder_1*)env;
+    return pEnv->base + value;
+}
+```
+
+func 值内部至少需要保存：
+
+```text
+signature id
+invoke function pointer
+environment pointer
+retain function pointer
+release function pointer
+```
+
+规则：
+
+- 非捕获匿名函数可以优化为普通函数指针，但语义上仍可看作 func 值。
+- 捕获环境由 func 值拥有。
+- func 值复制时 retain 捕获环境。
+- func 值销毁时 release 捕获环境。
+- 捕获环境释放时，按字段类型释放其中捕获值。
+- 裸 `func` 调用仍需要运行时签名检查。
+- 带签名 `func(...) as ...` 调用在编译期检查参数和返回类型。
+
+暂不设计：
+
+- 可变捕获。
+- 引用捕获。
+- move 捕获。
+- 捕获不可复制资源。
+- 闭包直接导出为 C 函数指针。
+
+## 13. C 混编提醒
+
+函数声明映射到 C 时：
+
+- 单返回基础类型直接映射到对应 C 类型。
+- 多返回值不直接作为第一阶段 C ABI export。
+- 带可选参数的函数不直接作为第一阶段 C ABI export，应显式导出固定签名 wrapper。
+- 带 `...` 或 `***` 的函数不直接作为第一阶段 C ABI export，应显式导出固定签名 wrapper。
+- 如果多返回值需要导出到 C，应显式设计为 out 参数、结构体返回或 C wrapper。
+
+示例：
+
+```xlang
+export "app_add" func add(int a, int b) as int
+    return a + b
+end
+```
+
+对应 C 头文件方向：
+
+```c
+int64_t app_add(int64_t a, int64_t b);
+```
+
+后续设计议题：
+
+普通全局 `extern func` 可以声明默认参数。默认表达式按普通语言参数进行类型
+检查，并在调用点求值/补齐；C 声明仍包含完整的固定形参，不产生“可选 C 形参”
+或标准库转接函数。必选参数不能放在可选参数之后。回调函数指针、native class
+成员与 export 的既有默认参数边界不因这一项而放宽。默认参数含 string 时仍遵守
+该 extern 的显式 CString/managed-view 合同，不能据此忽略内嵌 NUL。
+
+例如 `extern "abs" func native_abs(c_int value = -7) as c_int` 的
+`native_abs()` 调用在 C 中交付完整的 `abs(-7)`，不是原生一参数变零参数 ABI。
+
+- 调用侧数组展开暂不进入当前口径，后续如需支持，应明确 `fn(*array)` 或其他不会混淆 `...` 声明语义的写法。
+- 调用侧字典展开暂不进入当前口径，后续如需支持，应明确 `fn(**dict)` 或其他不会混淆 `***` 声明语义的写法。
+- 在展开语法正式设计前，调用者应显式传入数组、字典或使用命名参数调用。

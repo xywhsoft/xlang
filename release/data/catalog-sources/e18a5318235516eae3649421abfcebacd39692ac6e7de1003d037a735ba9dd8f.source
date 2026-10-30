@@ -1,0 +1,105 @@
+# crc32
+
+CRC-32/ISO-HDLC 校验和，支持 UTF-8 文本、Buffer、文件和增量输入。
+随包 slice-by-8 C 实现复用 XRT Once、分配器、Reader、临时区与错误系统，
+不需要外部 CRC DLL。CRC 用于偶发数据损坏检测，不用于密码、签名或防恶意篡改。
+
+## 快速使用
+
+```xlang
+import crc32
+
+assert crc32.checksumHex("123456789") == "cbf43926"
+auto h = crc32.hasher()
+h.update("1234")
+h.update("56789")
+assert h.digest() == 3421780262
+assert h.inputBytes == uint64(9)
+```
+
+## 公开函数
+
+| 函数 | 参数与结果 |
+| --- | --- |
+| `version()` | 当前包引擎版本 `1.0.0` |
+| `checksum(Buffer|string data) as int` | 非负整数，完整范围 0..4294967295 |
+| `checksumHex(Buffer|string data) as string` | 8 个小写十六进制字符 |
+| `checksumFile(string path, int maxInput=268435456, (func(int,int,int) as bool)? onProgress=null) as int` | 文件校验和 |
+| `checksumFileHex(...) as string` | 同样的参数，返回 hex |
+| `hasher(int maxInput=268435456) as Crc32Hasher` | 增量校验器 |
+
+表中 `Buffer|string` 表示两个重载。空输入合法，CRC 为零；失败不能靠零值判断，
+语言层会抛出异常。文本直接按 UTF-8 字节处理，不另复制 Buffer；语言 string 为
+C 风格文本，含 NUL 的二进制内容应使用 Buffer。一次性函数不另设输入预算。
+
+## 增量对象
+
+- `update(Buffer)`、`update(string)`：追加输入，不返回摘要。
+- `digest() as int`、`digestHex() as string`：可重复读取的快照，之后仍可追加。
+- `reset() as bool`：清除输入、摘要和失败状态，保留预算。
+- `inputBytes as uint64`：已成功接收的字节数。
+- `valid as bool`：句柄非空，不代表 update 没有发生过错误。
+
+超限或非法 C 输入使对象进入失败状态，后续 update/digest 保留该错误，直至 reset。
+失败 update 不增加计数、不部分接收输入；无业务上限时也检查 uint64 溢出。
+推荐通过 `hasher()` 创建；底层构造及 `*Native` 是 C 互操作表面，不接受任意指针。
+对象自动析构，不隐式复制原生资源。独立对象可并发，同一可变对象必须串行操作。
+
+## 文件与回调
+
+```xlang
+int sum = crc32.checksumFile("data.bin",
+    onProgress = func(int current, int total, int output) as bool
+        return true
+    end)
+```
+
+三项参数依次为已读字节、总长度、输出字节；未知总长为零，输出恒为零。
+每块最多读取 64 KiB，EOF 再通知一次，空文件也通知；最后两次计数可能相同。
+XRT 的 uint64 进度经过范围检查后转为语言 int，不能静默截断。
+
+- 回调返回 false 抛 `CancelledError`，包括最终通知取消；不会交付部分结果。
+- 用户回调抛错保留类别和消息，可重入另一个独立文件校验。
+- 语言层 maxInput 必须为正；非法参数为 `ValueError`，超限为 `RangeError`。
+- 分配失败为 `MemoryError`；文件打开/读取失败保留 XRT 的原始错误。
+- 通过 XRT UTF-8 文件接口打开，成功或失败都关闭自己打开的 Reader，不修改文件。
+- 输入预算不是 CPU 时限、峰值内存限制或并发写入下的文件快照保证。
+
+## C API
+
+[include/xrt_crc32.h](include/xrt_crc32.h) 提供 `xrtCrc32` 前缀的 OptionsInit、ErrorInit、
+Hash、HasherCreate/Update/Digest/Reset/InputBytes/Error/Destroy，以及 File。
+核心按 bool/指针报告结果，失败进入 XRT 错误系统，可选详细 error 记录偏移和消息。
+诊断查询和 Destroy 不用于清除当前错误；调用方可用 xrtClearError 明确清除。
+纯 C 程序可在唯一运行库实现单元先定义 `XRT_IMPLEMENTATION`，再包含此公开头，
+另外编译 `xrt_crc32.c`；所需 IO_BUFFER/ONCE 由公开头选择。已有宿主 XRT 的程序
+直接链接其唯一运行库，不再定义一份实现，参见 [纯 C 集成测试](test/test_crc32_standalone.c)。
+
+`xrtCrc32File` 借用 Reader，从当前游标到 EOF，不关闭、不回退。已知总长是剩余
+字节，可寻址且超预算时读取前拒绝；非寻址流可能已消费失败块，不保证回滚游标。
+只有最终回调也成功后才写摘要输出。C 进度帧保留 TOTAL_KNOWN、FINAL 标志。
+
+NULL 配置采用 XRT 默认限制；初始化后的核心配置中 `iMaxInputBytes=0` 表示不设
+业务上限。Options/Limits 的 size/version 必须匹配。薄绑定的 maximum=0 则表示
+默认预算。输入指针只在调用期间借用；C 显式长度可以包含零字节。
+
+[include/crc32_native.h](include/crc32_native.h) 声明与语言生成器一致的薄绑定 ABI。
+其中 point 对应 void*，字符串对应 const char*；hash 的 C long long 承载非负 32 位值。
+hex 借用当前 XRT 临时区，清理/回退后失效；后续哈希调用不会覆盖此前文本。
+实现没有私有全局错误槽、轮换 hex 槽或文件状态码。
+
+## 范例与验证
+
+- [xlang 教学范例](../../examples/extlibs/crc32.xl)。
+- [xlang 对照范例](../../examples/extlibs/crc32_basic.xl) 与 [C 对照范例](examples/basic.c)。
+- [共同固定输出](../../examples/extlibs/crc32_basic.expected.txt)。
+- [核心 C 测试](test/test_crc32.c)：固定答案、1536 组独立逐位差分、16 种地址偏移、
+  分块和计数溢出、版本/参数校验、Reader 游标、取消、异常及输出不变。
+- [原生 C 测试](test/test_crc32_native.c)：四线程同时首次使用、临时结果寿命、
+  错误隔离、普通堆与临时区的分配故障、失败后的恢复及资源计数。
+- `tools/check_extlib_crc32.ps1`：严格 GCC、生成原型、C/xlang JIT/AOT 与范例输出。
+- `tools/check_extlib_crc32.sh`：Linux 独立 C ASan/UBSan/泄漏检查。
+
+门禁比较执行前后的输入集合与哈希，结果属于对应快照，不是跨版本永久认证。
+未声明 Linux xlang、真实大端目标、32 位/ARM、同一 hasher 共享并发或吞吐性能已验收。
+字节装载显式小端，避免宿主端序假设；独立逐位差分不代替实际目标平台测试。

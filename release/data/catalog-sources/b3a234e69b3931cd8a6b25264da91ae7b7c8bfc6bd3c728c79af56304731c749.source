@@ -1,0 +1,104 @@
+extern "xl6_xrt_last_error_text" func __skiplist_error() as string
+
+
+
+export class SkipList
+    native point handle
+    extern "xskiplist_create" create()
+    extern "xskiplist_destroy" destroy()
+
+    private extern "xskiplist_set" func setNative(string key, c_size keyBytes,
+        string value, c_size valueBytes) as bool
+    private extern "xskiplist_get" func getNative(string key, c_size keyBytes) as var
+    private extern "xskiplist_contains" func containsNative(string key, c_size keyBytes) as bool
+    private extern "xskiplist_remove" func removeNative(string key, c_size keyBytes) as bool
+    private extern "xskiplist_clear" func clearNative()
+    private extern "xskiplist_count" func countNative() as int
+    private extern "xskiplist_keys" func keysNative() as var
+    private extern "xskiplist_range" func rangeNative(string start, c_size startBytes,
+        string finish, c_size finishBytes) as var
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get count() as int
+        if self.handle == null then
+            throw RuntimeError "skiplist: instance is destroyed"
+        end
+        return self.countNative()
+    end
+
+    func set(string key, string value)
+        if self.handle == null then
+            throw RuntimeError "skiplist: instance is destroyed"
+        end
+        if not self.setNative(key, c_size(string.byteLen(key)),
+            value, c_size(string.byteLen(value))) then
+            throw RuntimeError __skiplist_error()
+        end
+    end
+
+    func get(string key, string default = "") as string
+        if self.handle == null then
+            throw RuntimeError "skiplist: instance is destroyed"
+        end
+        var result = self.getNative(key, c_size(string.byteLen(key)))
+        if result == null then
+            if self.containsNative(key, c_size(string.byteLen(key))) then
+                throw RuntimeError __skiplist_error()
+            end
+            return default
+        end
+        return string(result)
+    end
+
+    func contains(string key) as bool
+        if self.handle == null then
+            throw RuntimeError "skiplist: instance is destroyed"
+        end
+        return self.containsNative(key, c_size(string.byteLen(key)))
+    end
+
+    func remove(string key) as bool
+        if self.handle == null then
+            throw RuntimeError "skiplist: instance is destroyed"
+        end
+        return self.removeNative(key, c_size(string.byteLen(key)))
+    end
+
+    func clear()
+        if self.handle == null then
+            throw RuntimeError "skiplist: instance is destroyed"
+        end
+        self.clearNative()
+    end
+
+    // 按原始 UTF-8 字节序返回完整有序结果，不静默截断。
+    func keys() as var
+        if self.handle == null then
+            throw RuntimeError "skiplist: instance is destroyed"
+        end
+        var result = self.keysNative()
+        if result == null then throw RuntimeError __skiplist_error() end
+        return result
+    end
+
+    func range(string start, string finish) as var
+        if self.handle == null then
+            throw RuntimeError "skiplist: instance is destroyed"
+        end
+        var result = self.rangeNative(start, c_size(string.byteLen(start)),
+            finish, c_size(string.byteLen(finish)))
+        if result == null then throw RuntimeError __skiplist_error() end
+        return result
+    end
+end
+
+
+
+export func create() as SkipList
+    SkipList list = SkipList()
+    if not list.valid then throw RuntimeError __skiplist_error() end
+    return list
+end

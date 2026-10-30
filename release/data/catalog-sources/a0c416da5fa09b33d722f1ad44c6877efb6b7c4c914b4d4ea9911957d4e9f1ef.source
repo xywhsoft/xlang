@@ -1,0 +1,243 @@
+# xlang DEMO6 class 与 native-backed class 设计
+
+本文固定 DEMO6 的 class、native-backed class、对象布局、生命周期和 C 互操作口径。参数传递细节以 `对象与参数传递设计.md` 为准，协议与 derive 能力以 `class_object协议设计.md` 为准。
+
+## 1. 设计目标
+
+- `class` 是 xlang 唯一的用户对象声明入口。
+- 普通 class、object 派生 class、泛型 class 和 native-backed class 使用同一对象基座。
+- 所有 class 实例都位于堆上，通过 XRT `xvalue` 受管理句柄持有稳定身份。
+- C 能看到生成的真实 payload 布局；对象之外的继承、虚表、动态字段和生命周期通过 ABI 接口访问。
+- 高性能或系统级数据结构可由 C/XRT 管理，再通过 native-backed class 零额外封装映射到 xlang。
+- 不提供公开 `struct`、裸指针解引用或 DEMO5 `custom` 兼容语法。
+
+## 2. 普通 class
+
+```xlang
+class Point
+    int x
+    int y
+
+    create(int x, int y)
+        self.x = x
+        self.y = y
+    end
+
+    func length2() as int
+        return self.x * self.x + self.y * self.y
+    end
+end
+
+Point p = Point(3, 4)
+assert p.length2() == 25
+```
+
+class 可以声明：
+
+- 普通、`private`、`protected`、`public` 字段和方法。
+- `static` 字段和方法。
+- `create(...)` 构造入口与 `destroy()` 析构入口。
+- `get` / `let` 属性。
+- 协议方法、运算符协议和 derive 能力。
+- `virtual`、`override`、`final` 动态派发成员。
+- 普通 xlang 字段和 native 资源字段的混合布局。
+
+## 3. 堆对象与 C payload
+
+构造表达式通过 XRT `xvoCreateObject(typeDesc)` 分配对象记录。记录包含固定大小的 xvalue 外壳、具体 class type descriptor 和按 descriptor 大小分配的 payload。
+
+上例生成的可见布局近似为：
+
+```c
+typedef struct XL_Class_Point {
+    int64_t x;
+    int64_t y;
+} XL_Class_Point;
+```
+
+语言变量保存的是 `xvalue` 对象句柄，不是 `XL_Class_Point` 栈值。成员访问在完成 null、类型和继承校验后取得 payload 指针。由此同时保证：
+
+- C 可以读取明确字段布局。
+- xlang 不会因大型 class 产生栈复制或对象切片。
+- 自引用字段是有限大小的对象句柄。
+- 虚表、动态字段和未来元数据不会改变用户变量的固定句柄大小。
+
+## 4. 初始化、非空与可空对象
+
+```xlang
+class Node
+    Node? next = null
+    int value = 0
+end
+
+Node root = Node()
+assert root.next == null
+
+Node? empty = null
+assert empty == null
+```
+
+- `Node` 默认非空，不能用 `null` 初始化，也不能在确定赋值前读取。
+- 可空对象必须显式写成 `Node?`；nullable class 继续使用空对象句柄，不增加
+  对象句柄尺寸。
+- 非空 class 字段必须有初始化器，或由每一条构造路径完成赋值。
+- class 不进行递归默认构造。
+- 使用 `ClassName(...)` 才分配并初始化对象。
+- nullable 对象应先通过 `!= null`、match 或 `as T` 解包；强制解包空值抛
+  `TypeError`，安全成员访问 `?.` 返回 nullable。
+- 构造失败必须释放已初始化字段和对象记录。
+
+## 5. 生命周期
+
+- 对象创建时即使用 shared 引用计数，保证同一身份可安全跨所有权边界保留与释放。
+- shared 引用计数不等于对象成员线程安全；共享可变状态仍需 mutex/rwlock 或应用层约束。
+- 赋值、参数、返回、闭包捕获和容器存储保留同一对象引用。
+- 最后一个引用释放时，先执行 class 析构和字段逆序清理，再释放 payload 与记录。
+- 父类 payload 位于子类 payload 首部；析构顺序为子类到父类。
+- 普通 class、native-backed class 和 object 派生 class 使用同一 retain/unref 路径。
+
+## 6. 复制能力
+
+class 默认只可共享引用，不自动复制对象主体：
+
+```xlang
+class Data
+derive copy
+derive clone
+    int value
+end
+
+Data a = Data()
+Data b = copy(a)
+Data c = clone(a)
+```
+
+- `derive copy` 或 `__copy__` 显式提供浅复制。
+- `derive clone` 或 `__clone__` 显式提供深复制。
+- `derive moveOnly` 明确禁止复制，并与 copy/clone 能力互斥。
+- `byval`、普通赋值和函数返回不调用复制协议。
+- native-backed class 默认不可复制；只有明确的 C 复制函数或合法协议才能创建第二个资源所有者。
+- 编译器和 XRT 都不得对 native pointer payload 使用 `memcpy` 模拟复制。
+
+## 7. 继承与动态派发
+
+```xlang
+class Entity
+    virtual func name() as string
+        return "entity"
+    end
+end
+
+class Player extends Entity
+    override func name() as string
+        return "player"
+    end
+end
+
+Entity value = Player()
+assert value.name() == "player"
+```
+
+- 子类 payload 的第一个成员是父类 payload，保持 C 可检查布局。
+- xlang 变量仍保存完整对象句柄，向上转换不切片。
+- type descriptor 保存精确动态类型和父类关系。
+- virtual 调用经生成虚表派发；非 virtual 普通成员保持直接 C 调用。
+- `final` 禁止后续 override。
+
+## 8. object
+
+`object` 是标准库普通 class，不是独立运行时类型。继承 object 的 class 通过普通字段和协议获得动态字典能力：
+
+```xlang
+class Actor extends object
+end
+
+Actor actor = Actor()
+actor.name = "hero"
+actor["hp"] = 100
+```
+
+动态字段访问由 `__field__` / `__setField__`，索引访问由 `__item__` / `__setItem__` 解释。没有 object 特判的第二套生命周期。
+
+## 9. native-backed class
+
+native-backed class 把 C opaque handle 和函数组映射为同一 class 模型：
+
+```xlang
+class File
+    native point handle
+
+    extern "file_open" create(string path)
+    extern "file_close" destroy()
+    extern "file_read" func read(c_size size) as string
+end
+```
+
+绑定规则：
+
+- `native point handle` 保存 C/XRT 资源指针。
+- extern create 的 C 返回值成为 handle；失败策略由绑定声明和实现约束确定。
+- extern destroy 的第一个 C 参数是 handle，并由对象最后释放时自动调用一次。
+- extern 普通成员的第一个 C 参数是 handle，xlang 调用方不显式传 self 指针。
+- native-backed class 可以混合 xlang 字段、普通方法、属性、协议、继承和静态成员。
+- 没有 destroy 映射时，xlang 只借用或传递句柄，不推断资源所有权。
+- 有 destroy 的句柄不允许隐式复制；复制必须映射真实的 C clone/copy 能力。
+- 旧 `custom Name ... end` 在词法、语法、AST、语义和 cgen 中不存在。
+
+## 10. point 与 point<T>
+
+`point` 是不透明指针值；`point<T>` 在其上增加编译期类型标签：
+
+```xlang
+class ImageTag
+end
+
+point<ImageTag> handle = null
+```
+
+- `point<T>` 与 `point` 的 C ABI 都是 `void*`，不增加运行时开销。
+- 类型参数只做静态匹配；不同标签不能隐式转换。
+- `point<T>` 接受 `null`。
+- xlang 不允许解引用、指针算术或任意 reinterpret cast。
+- 指针操作必须通过 extern 函数、XRT API 或 native-backed class 完成。
+
+## 11. union 与 C 结构体
+
+- xlang 公开 `union`，用于简单 C 兼容值聚合。
+- xlang 不公开 `struct` 语句，也不把 class 降格为公开值结构。
+- C 库需要完整 struct 值 ABI 时，由 C 头/源定义真实结构，并通过 extern、生成 ABI 声明或 native-backed class 暴露。
+- xlang class 的 payload 本身仍生成 C struct，C 可以在持有合法对象记录时检查和操作该布局。
+
+## 12. var、容器与函数值
+
+- class 装入 `var` 时保留精确 class type descriptor 和对象身份。
+- `array<Class>` 等静态容器保存受管理 class 句柄；`array<Base>` 可保存 Derived。
+- 动态容器、静态容器、闭包和 future/task 在持有 class 时都必须正确 retain/unref。
+- 不可复制 class 仍可按引用进入普通变量、参数、返回值和容器；只有显式 `copy/clone` 要求复制能力。
+
+## 13. C ABI
+
+- 普通 class 参数和返回值导出为 `xvalue`。
+- class 的 `byref/out` 导出为 `xvalue*` 变量槽。
+- C 可用 XRT API 查询 type descriptor、父类关系、payload 指针、引用计数所有权和 null 状态。
+- 导出成员 wrapper 可以使用生成的 `XL_Class_Name* self` payload 指针 ABI；该指针只在调用期间有效，不能绕过对象句柄长期保存。
+- 生成头文件可以公开 payload struct 和成员声明，但对象创建与释放必须走公开 runtime API。
+- native-backed extern 成员保持对应 C 调用约定，不增加二次资源封装。
+
+## 14. 稳定性约束
+
+- 同一个逻辑对象只能有一个 payload 身份；retain 不得迁移或替换对象地址。
+- class 自引用、互引用和父子引用必须保持有限大小，不能递归内嵌 payload。
+- 非复制 class 的 XRT type ops 不注册对象复制回调。
+- 对 class 调用 `xvoCopy` 只能在类型明确提供 copy 能力时创建新对象；共享所有权使用 retain，而不是伪装成 copy。
+- 持久化、任务、channel、闭包和容器 lowering 必须区分“借用、保留、消费、复制”四种所有权动作。
+- 所有生成 helper 的失败分支必须逆序释放已取得的引用。
+
+## 15. 当前明确不提供
+
+- 公开 `struct` 语法。
+- `new` / `delete`。
+- 裸指针解引用和指针算术。
+- 不提供 `ref<T>` 引用包装类型。
+- `custom` 兼容语法。
+- class 隐式 payload 复制、对象切片或 native handle `memcpy` 复制。

@@ -1,0 +1,683 @@
+extern "xssh_code_name" func __xssh_code_name(c_int code) as string
+extern "xssh_last_error" func __xssh_error() as string
+extern "xssh_name_valid_native" func __xssh_name_valid(
+    string name, c_size size) as bool
+extern "xssh_language_valid_native" func __xssh_language_valid(
+    string language, c_size size) as bool
+extern "xssh_name_list_valid_native" func __xssh_name_list_valid(
+    string names, c_size size) as bool
+extern "xssh_name_list_contains_native" func __xssh_name_list_contains(
+    string names, c_size namesSize, string name, c_size nameSize) as bool
+extern "xssh_name_list_duplicate_native" func __xssh_name_list_duplicate(
+    string names, c_size size) as bool
+extern "xssh_name_list_first_native" func __xssh_name_list_first(
+    string preferred, c_size preferredSize,
+    string available, c_size availableSize) as point
+extern "xssh_fingerprint_native" func __xssh_fingerprint(
+    point blob, c_size size) as point
+extern "xssh_reader_create_text_native" func __xssh_reader_text(
+    string data, c_size size) as point
+extern "xssh_known_host_patterns_native" func __xssh_known_host_patterns(
+    string patterns, c_size patternsSize, string host, c_size hostSize,
+    c_uint port) as c_int
+extern "xssh_known_host_hash_write_native" func __xssh_known_host_hash_write(
+    string host, c_size hostSize, c_uint port,
+    point salt, c_size saltSize) as point
+extern "xssh_known_host_hash_token_match_native" func __xssh_hash_token_match(
+    string token, c_size tokenSize, string host, c_size hostSize,
+    c_uint port) as c_int
+
+
+
+// xsshcode 与 XRT 公共契约保持一一对应。
+export const int ERROR_TIMEOUT = -9
+export const int ERROR_STATE = -8
+export const int ERROR_AUTHENTICATION = -7
+export const int ERROR_CALLBACK = -6
+export const int ERROR_PROTOCOL = -5
+export const int ERROR_UNSUPPORTED = -4
+export const int ERROR_OVERFLOW = -3
+export const int ERROR_SPACE = -2
+export const int ERROR_ARGUMENT = -1
+export const int OK = 0
+export const int NEED_MORE = 1
+
+// known_hosts marker 与匹配结果保持底层数值。
+export const int MARKER_NONE = 0
+export const int MARKER_CERT_AUTHORITY = 1
+export const int MARKER_REVOKED = 2
+export const int MARKER_UNKNOWN = 3
+export const int HOST_NO_MATCH = 0
+export const int HOST_MATCH = 1
+export const int HOST_NEGATED = 2
+export const int DEFAULT_PORT = 22
+
+
+
+// 把 native 返回的独立 Buffer 转换为稳定字符串。
+func __xssh_text_result(point result) as string
+    if result == null then
+        throw RuntimeError __xssh_error()
+    end
+    return Buffer(result).text()
+end
+
+
+
+// 把 native 返回的独立 Buffer 交给语言对象。
+func __xssh_buffer_result(point result) as Buffer
+    if result == null then
+        throw RuntimeError __xssh_error()
+    end
+    return Buffer(result)
+end
+
+
+
+// 检查写入或完整解析结果。
+func __xssh_require(int status)
+    if status < 0 then
+        throw RuntimeError __xssh_error()
+    end
+    if status == NEED_MORE then
+        throw RuntimeError "xssh input needs more data"
+    end
+end
+
+
+
+// 检查 uint32 范围。
+func __xssh_port(int port) as c_uint
+    if port < 0 or port > 65535 then
+        throw ValueError "xssh port is out of range"
+    end
+    return c_uint(port)
+end
+
+
+
+// 返回稳定结果码名称。
+export func codeName(int code) as string
+    // 未知结果码也可能超出 C int；不要先截断再误识别为有效码。
+    if code < ERROR_TIMEOUT or code > NEED_MORE then
+        return "unknown"
+    end
+    return __xssh_code_name(c_int(code))
+end
+
+
+
+// WireWriter 在原生层自动扩容，所有写入保持失败不推进。
+export class WireWriter
+    native point handle
+    extern "xssh_writer_create_native" create()
+    extern "xssh_writer_destroy_native" destroy()
+    extern "xssh_writer_clear_native" func clearNative() as bool
+    extern "xssh_writer_size_native" func sizeNative() as int64
+    extern "xssh_writer_snapshot_native" func snapshotNative() as point
+    extern "xssh_writer_handle_native" func nativeHandle() as point
+    extern "xssh_writer_byte_native" func byteNative(c_uint value) as c_int
+    extern "xssh_writer_bool_native" func boolNative(bool value) as c_int
+    extern "xssh_writer_u32_native" func u32Native(c_uint value) as c_int
+    extern "xssh_writer_u64_native" func u64Native(uint64 value) as c_int
+    extern "xssh_writer_string_text_native" func stringTextNative(
+        string data, c_size size) as c_int
+    extern "xssh_writer_string_native" func stringNative(
+        point data, c_size size) as c_int
+    extern "xssh_writer_raw_text_native" func rawTextNative(
+        string data, c_size size) as c_int
+    extern "xssh_writer_raw_native" func rawNative(
+        point data, c_size size) as c_int
+    extern "xssh_writer_name_list_native" func nameListNative(
+        string names, c_size size) as c_int
+    extern "xssh_writer_mpint_native" func mpintNative(
+        point data, c_size size) as c_int
+    extern "xssh_writer_signed_mpint_native" func signedMpintNative(
+        point data, c_size size, bool negative) as c_int
+    extern "xssh_writer_banner_native" func bannerNative(
+        string banner, c_size size) as c_int
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get length() as int
+        int64 result = self.sizeNative()
+        if result < 0 then
+            throw RuntimeError "xssh writer is destroyed"
+        end
+        return int(result)
+    end
+
+    get bytes() as Buffer
+        return __xssh_buffer_result(self.snapshotNative())
+    end
+
+    func clear()
+        if not self.clearNative() then
+            throw RuntimeError "xssh writer is destroyed"
+        end
+    end
+
+    func writeByte(int value)
+        if value < 0 or value > 255 then
+            throw ValueError "xssh byte is out of range"
+        end
+        __xssh_require(int(self.byteNative(c_uint(value))))
+    end
+
+    func writeBool(bool value)
+        __xssh_require(int(self.boolNative(value)))
+    end
+
+    func writeU32(int value)
+        if value < 0 or value > 4294967295 then
+            throw ValueError "xssh uint32 is out of range"
+        end
+        __xssh_require(int(self.u32Native(c_uint(value))))
+    end
+
+    func writeU64(uint64 value)
+        __xssh_require(int(self.u64Native(value)))
+    end
+
+    func writeString(string value)
+        __xssh_require(int(self.stringTextNative(
+            value, c_size(string.byteLen(value)))))
+    end
+
+    func writeBuffer(Buffer value)
+        __xssh_require(int(self.stringNative(
+            value.data(), c_size(value.len()))))
+    end
+
+    func writeRaw(string value)
+        __xssh_require(int(self.rawTextNative(
+            value, c_size(string.byteLen(value)))))
+    end
+
+    func writeRaw(Buffer value)
+        __xssh_require(int(self.rawNative(
+            value.data(), c_size(value.len()))))
+    end
+
+    func writeNameList(string names)
+        __xssh_require(int(self.nameListNative(
+            names, c_size(string.byteLen(names)))))
+    end
+
+    func writeMpint(Buffer magnitude)
+        __xssh_require(int(self.mpintNative(
+            magnitude.data(), c_size(magnitude.len()))))
+    end
+
+    func writeSignedMpint(Buffer magnitude, bool negative)
+        __xssh_require(int(self.signedMpintNative(
+            magnitude.data(), c_size(magnitude.len()), negative)))
+    end
+
+    func writeBanner(string banner)
+        __xssh_require(int(self.bannerNative(
+            banner, c_size(string.byteLen(banner)))))
+    end
+end
+
+
+
+// WireReader 持有输入副本；try 方法保留 NEED_MORE，便利方法要求读取完成。
+export class WireReader
+    native point handle
+    extern "xssh_reader_create_native" create(point data, c_size size)
+    extern "xssh_reader_adopt_native" create(point handle)
+    extern "xssh_reader_destroy_native" destroy()
+    extern "xssh_reader_remaining_native" func remainingNative() as int64
+    extern "xssh_reader_handle_native" func nativeHandle() as point
+    extern "xssh_reader_byte_native" func byteNative() as c_int
+    extern "xssh_reader_bool_native" func boolNative() as c_int
+    extern "xssh_reader_u32_native" func u32Native() as c_int
+    extern "xssh_reader_u64_native" func u64Native() as c_int
+    extern "xssh_reader_string_native" func stringNative() as c_int
+    extern "xssh_reader_raw_native" func rawNative(uint64 size) as c_int
+    extern "xssh_reader_mpint_native" func mpintNative() as c_int
+    extern "xssh_reader_signed_mpint_native" func signedMpintNative() as c_int
+    extern "xssh_reader_scalar_native" func scalarNative() as uint64
+    extern "xssh_reader_negative_native" func negativeNative() as bool
+    extern "xssh_reader_last_native" func lastNative() as point
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get remaining() as int
+        int64 result = self.remainingNative()
+        if result < 0 then
+            throw RuntimeError "xssh reader is destroyed"
+        end
+        return int(result)
+    end
+
+    get value() as uint64
+        return self.scalarNative()
+    end
+
+    get negative() as bool
+        return self.negativeNative()
+    end
+
+    get last() as Buffer
+        return __xssh_buffer_result(self.lastNative())
+    end
+
+    func tryByte() as int
+        return int(self.byteNative())
+    end
+
+    func readByte() as int
+        __xssh_require(self.tryByte())
+        return int(self.value)
+    end
+
+    func tryBool() as int
+        return int(self.boolNative())
+    end
+
+    func readBool() as bool
+        __xssh_require(self.tryBool())
+        return self.value != uint64(0)
+    end
+
+    func tryU32() as int
+        return int(self.u32Native())
+    end
+
+    func readU32() as int
+        __xssh_require(self.tryU32())
+        return int(self.value)
+    end
+
+    func tryU64() as int
+        return int(self.u64Native())
+    end
+
+    func readU64() as uint64
+        __xssh_require(self.tryU64())
+        return self.value
+    end
+
+    func tryString() as int
+        return int(self.stringNative())
+    end
+
+    func readString() as Buffer
+        __xssh_require(self.tryString())
+        point result = self.lastNative()
+        if result == null then
+            throw RuntimeError __xssh_error()
+        end
+        return Buffer(result)
+    end
+
+    func readText() as string
+        __xssh_require(self.tryString())
+        return __xssh_text_result(self.lastNative())
+    end
+
+    func tryBytes(int count) as int
+        if count < 0 then
+            throw ValueError "xssh byte count is out of range"
+        end
+        return int(self.rawNative(uint64(count)))
+    end
+
+    func readBytes(int count) as Buffer
+        __xssh_require(self.tryBytes(count))
+        point result = self.lastNative()
+        if result == null then
+            throw RuntimeError __xssh_error()
+        end
+        return Buffer(result)
+    end
+
+    func tryMpint() as int
+        return int(self.mpintNative())
+    end
+
+    func readMpint() as Buffer
+        __xssh_require(self.tryMpint())
+        point result = self.lastNative()
+        if result == null then
+            throw RuntimeError __xssh_error()
+        end
+        return Buffer(result)
+    end
+
+    func trySignedMpint() as int
+        return int(self.signedMpintNative())
+    end
+
+    func readSignedMpint() as Buffer
+        __xssh_require(self.trySignedMpint())
+        point result = self.lastNative()
+        if result == null then
+            throw RuntimeError __xssh_error()
+        end
+        return Buffer(result)
+    end
+end
+
+
+
+// BannerResult 保留完整、缺数据和协议错误三态以及精确消费量。
+export class BannerResult
+    native point handle
+    extern "xssh_banner_create_native" create(string data, c_size size)
+    extern "xssh_banner_destroy_native" destroy()
+    extern "xssh_banner_status_native" func statusNative() as c_int
+    extern "xssh_banner_text_native" func textNative() as point
+    extern "xssh_banner_consumed_native" func consumedNative() as int64
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get status() as int
+        return int(self.statusNative())
+    end
+
+    get complete() as bool
+        return self.status == OK
+    end
+
+    get needMore() as bool
+        return self.status == NEED_MORE
+    end
+
+    get text() as string
+        if not self.complete then
+            throw RuntimeError "xssh banner is not complete: " + codeName(self.status)
+        end
+        return __xssh_text_result(self.textNative())
+    end
+
+    get consumed() as int
+        if not self.complete then
+            throw RuntimeError "xssh banner is not complete: " + codeName(self.status)
+        end
+        return int(self.consumedNative())
+    end
+end
+
+
+
+// PublicKeyLine 持有原始文本，所有字段和解码结果均可独立使用。
+export class PublicKeyLine
+    native point handle
+    extern "xssh_key_line_create_native" create(string line, c_size size)
+    extern "xssh_key_line_destroy_native" destroy()
+    extern "xssh_key_line_options_native" func optionsNative() as point
+    extern "xssh_key_line_algorithm_native" func algorithmNative() as point
+    extern "xssh_key_line_base64_native" func base64Native() as point
+    extern "xssh_key_line_comment_native" func commentNative() as point
+    extern "xssh_key_line_decode_native" func decodeNative() as point
+    extern "xssh_key_line_match_native" func matchNative(
+        point blob, c_size size) as c_int
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get options() as string
+        return __xssh_text_result(self.optionsNative())
+    end
+
+    get algorithm() as string
+        return __xssh_text_result(self.algorithmNative())
+    end
+
+    get base64() as string
+        return __xssh_text_result(self.base64Native())
+    end
+
+    get comment() as string
+        return __xssh_text_result(self.commentNative())
+    end
+
+    func decode() as Buffer
+        return __xssh_buffer_result(self.decodeNative())
+    end
+
+    func matches(Buffer blob) as bool
+        c_int result = self.matchNative(blob.data(), c_size(blob.len()))
+        if result < 0 then
+            throw RuntimeError __xssh_error()
+        end
+        return result > 0
+    end
+end
+
+
+
+// KnownHostLine 同时覆盖明文 pattern、hashed-host 与 marker 策略信息。
+export class KnownHostLine
+    native point handle
+    extern "xssh_known_host_create_native" create(string line, c_size size)
+    extern "xssh_known_host_destroy_native" destroy()
+    extern "xssh_known_host_marker_native" func markerNative() as point
+    extern "xssh_known_host_marker_kind_native" func markerKindNative() as c_int
+    extern "xssh_known_host_hosts_native" func hostsNative() as point
+    extern "xssh_known_host_algorithm_native" func algorithmNative() as point
+    extern "xssh_known_host_base64_native" func base64Native() as point
+    extern "xssh_known_host_comment_native" func commentNative() as point
+    extern "xssh_known_host_hashed_native" func hashedNative() as bool
+    extern "xssh_known_host_match_native" func matchNative(
+        string host, c_size hostSize, c_uint port) as c_int
+    extern "xssh_known_host_hash_match_native" func hashMatchNative(
+        string host, c_size hostSize, c_uint port) as c_int
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get marker() as string
+        return __xssh_text_result(self.markerNative())
+    end
+
+    get markerKind() as int
+        return int(self.markerKindNative())
+    end
+
+    get hosts() as string
+        return __xssh_text_result(self.hostsNative())
+    end
+
+    get algorithm() as string
+        return __xssh_text_result(self.algorithmNative())
+    end
+
+    get base64() as string
+        return __xssh_text_result(self.base64Native())
+    end
+
+    get comment() as string
+        return __xssh_text_result(self.commentNative())
+    end
+
+    get hashed() as bool
+        return self.hashedNative()
+    end
+
+    func matchHost(string host, int port = DEFAULT_PORT) as int
+        c_int result = self.matchNative(
+            host, c_size(string.byteLen(host)), __xssh_port(port))
+        if result < 0 then
+            throw RuntimeError __xssh_error()
+        end
+        return int(result)
+    end
+
+    func hashMatch(string host, int port = DEFAULT_PORT) as bool
+        c_int result = self.hashMatchNative(
+            host, c_size(string.byteLen(host)), __xssh_port(port))
+        if result < 0 then
+            throw RuntimeError __xssh_error()
+        end
+        return result > 0
+    end
+end
+
+
+
+// 构造持有字节副本的 wire reader。
+export func reader(Buffer data) as WireReader
+    WireReader result = WireReader(data.data(), c_size(data.len()))
+    if not result.valid then
+        throw RuntimeError __xssh_error()
+    end
+    return result
+end
+
+
+
+// 构造持有 UTF-8 原始字节副本的 wire reader。
+export func reader(string data) as WireReader
+    WireReader result = WireReader(__xssh_reader_text(
+        data, c_size(string.byteLen(data))))
+    if not result.valid then
+        throw RuntimeError __xssh_error()
+    end
+    return result
+end
+
+
+
+// 解析增量 SSH identification，不把 NEED_MORE 当作错误。
+export func banner(string data) as BannerResult
+    BannerResult result = BannerResult(data, c_size(string.byteLen(data)))
+    if not result.valid then
+        throw RuntimeError __xssh_error()
+    end
+    return result
+end
+
+
+
+// 解析 OpenSSH public-key/authorized_keys 文本行。
+export func publicKeyLine(string line) as PublicKeyLine
+    PublicKeyLine result = PublicKeyLine(line, c_size(string.byteLen(line)))
+    if not result.valid then
+        throw ValueError __xssh_error()
+    end
+    return result
+end
+
+
+
+// 解析 OpenSSH known_hosts 文本行。
+export func knownHost(string line) as KnownHostLine
+    KnownHostLine result = KnownHostLine(line, c_size(string.byteLen(line)))
+    if not result.valid then
+        throw ValueError __xssh_error()
+    end
+    return result
+end
+
+
+
+// 校验非空、可打印 US-ASCII SSH 名称。
+export func nameValid(string name) as bool
+    return __xssh_name_valid(name, c_size(string.byteLen(name)))
+end
+
+
+
+// 校验允许为空的 ASCII language tag。
+export func languageValid(string language) as bool
+    return __xssh_language_valid(language, c_size(string.byteLen(language)))
+end
+
+
+
+// 校验 SSH name-list。
+export func nameListValid(string names) as bool
+    return __xssh_name_list_valid(names, c_size(string.byteLen(names)))
+end
+
+
+
+// 判断 name-list 是否包含完整名称。
+export func nameListContains(string names, string name) as bool
+    return __xssh_name_list_contains(
+        names, c_size(string.byteLen(names)),
+        name, c_size(string.byteLen(name)))
+end
+
+
+
+// 判断 name-list 是否包含重复项。
+export func nameListHasDuplicate(string names) as bool
+    return __xssh_name_list_duplicate(names, c_size(string.byteLen(names)))
+end
+
+
+
+// 按 preferred 顺序返回首个共同算法；无匹配返回空字符串。
+export func nameListFirstMatch(string preferred, string available) as string
+    return __xssh_text_result(__xssh_name_list_first(
+        preferred, c_size(string.byteLen(preferred)),
+        available, c_size(string.byteLen(available))))
+end
+
+
+
+// 返回完整 host-key blob 的 OpenSSH SHA-256 指纹。
+export func fingerprint(Buffer blob) as string
+    return __xssh_text_result(__xssh_fingerprint(
+        blob.data(), c_size(blob.len())))
+end
+
+
+
+// 对一组明文 known_hosts patterns 执行匹配。
+export func knownHostMatch(
+    string patterns,
+    string host,
+    int port = DEFAULT_PORT
+) as int
+    c_int result = __xssh_known_host_patterns(
+        patterns, c_size(string.byteLen(patterns)),
+        host, c_size(string.byteLen(host)), __xssh_port(port))
+    if result < 0 then
+        throw RuntimeError __xssh_error()
+    end
+    return int(result)
+end
+
+
+
+// 生成 OpenSSH |1|salt|hash token；salt 必须恰好 20 字节。
+export func knownHostHash(
+    string host,
+    Buffer salt,
+    int port = DEFAULT_PORT
+) as string
+    return __xssh_text_result(__xssh_known_host_hash_write(
+        host, c_size(string.byteLen(host)), __xssh_port(port),
+        salt.data(), c_size(salt.len())))
+end
+
+
+
+// 常量时间匹配完整 OpenSSH hashed-host token。
+export func knownHostHashMatch(
+    string token,
+    string host,
+    int port = DEFAULT_PORT
+) as bool
+    c_int result = __xssh_hash_token_match(
+        token, c_size(string.byteLen(token)),
+        host, c_size(string.byteLen(host)), __xssh_port(port))
+    if result < 0 then
+        throw RuntimeError __xssh_error()
+    end
+    return result > 0
+end

@@ -1,0 +1,19 @@
+{
+    "format": "xlang-package-1",
+    "name": "daemon",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": ["daemon_native.c"],
+        "includeDirs": ["include"],
+        "xlSources": ["src/daemon.xl"],
+        "xrtModules": ["XRT_MODULE_ATOMIC", "XRT_MODULE_FILE_LOCK", "XRT_MODULE_PATH", "XRT_MODULE_STRING_FORMAT", "XRT_MODULE_UNICODE"]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/ffi_boundaries.xl", "test/top_level.xl"] },
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

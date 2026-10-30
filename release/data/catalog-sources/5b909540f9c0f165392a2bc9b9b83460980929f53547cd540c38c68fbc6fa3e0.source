@@ -1,0 +1,35 @@
+{
+    "format": "xlang-package-1",
+    "name": "gzip",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": [
+            "xrt_gzip.c",
+            "gzip_native.c"
+        ],
+        "xlSources": [
+            "src/gzip.xl"
+        ],
+        "xrtModules": [
+            "XRT_MODULE_DEFLATE",
+            "XRT_MODULE_INFLATE",
+            "XRT_MODULE_IO_BUFFER",
+            "XRT_MODULE_IO_FILE",
+            "XRT_MODULE_FILE_TEMP",
+            "XRT_MODULE_UNICODE",
+            "XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE"
+        ]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/file_ops.xl", "test/error_dispatch.xl", "test/top_level.xl"] },
+    "native": {
+        "singleton": false,
+        "loadName": "",
+        "version": ""
+    }
+}
