@@ -41,6 +41,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;"><a href="../extlibs.html" style="color:var(--brand);text-decoration:none;">扩展库</a><span style="margin:0 6px;">/</span><span style="color:var(--text-soft);">lzma</span></p>
     <div class="extlib-title-row"><h1>lzma</h1><span class="extlib-cat-badge">压缩归档</span></div>
     <p>2026-10-29 新顶层对象检查确认 M2 主线阻断：Windows/Linux JIT 退出0；独立 EXE 均打印校验 PASS 后在退出期报状态错误、退出1。默认门禁已接入，旧函数内对象、算法互通与双语通过不覆盖该边界，暂不作完整发布签收；不提前销毁或移动全局对象绕开。</p>
+    <p>2026-10-30 修复打开态事务双故障回滚：96 组真实 C 回归在 Windows 同一最终夹具旧 8 失败→0，首因、旧目标和内存平衡保持。Windows 关闭态提交失败再遇 OOM 仍留临时文件（RFS），Linux 同例通过；默认门禁分别保留 RFS/M2 失败，不作整包签收。新增双语事务范例和各 14 条普通独立程序路径通过。</p>
     <div class="extlib-badges"><span class="extlib-badge">v1.0.0</span><span class="extlib-badge hot">C 混编</span><span class="extlib-badge">0 依赖</span><span class="extlib-badge">ABI 1</span></div>
     <p class="extlib-lead">基于 7-Zip SDK 的标准 .xz 编解码，提供一次性内存、分段输入和文件流式 C/XLang API。</p>
     <p>默认输出标准 XZ <code>.xz</code> 流（LZMA2 + CRC64），可与通用工具交换；解码还验证 CRC32、SHA-256、无校验、Delta 与 x86 BCJ 滤镜的外部样本。支持串联流及 4 字节对齐的零填充，拒绝不完整填充和尾随垃圾；不读取旧 <code>.lzma</code> 流。无校验流不检测内容损坏；CRC64 也不是内容认证。</p>
@@ -79,14 +80,14 @@ func main(...) as int
 end</pre></div></div>
     <h2>核心特性</h2>
     <ul>
-      <li><strong>极高压缩率</strong> — LZMA 在级别 9 下压缩率通常优于 gzip/bzip2</li>
+      <li><strong>压缩调优</strong> — 级别 0..9；压缩率与耗时应按实际输入测量</li>
       <li><strong>二进制安全</strong> — 输入输出统一 <code>Buffer</code></li>
       <li><strong>三种粒度</strong> — 一次性内存、文件级、分段输入与增量解压</li>
       <li><strong>大文件流式</strong> — <code>compressFile()</code> / <code>decompressFile()</code>；压缩器对象在 <code>finish()</code> 前暂存输入</li>
       <li><strong>进度回显</strong> — <code>inputBytes</code>/<code>outputBytes</code> 字节计数器</li>
       <li><strong>多成员流</strong> — 解压器 <code>finished</code>/<code>members</code></li>
       <li><strong>级别 0..9</strong> — 0 最快、9 最高压缩率、5 默认平衡；工厂、直接类构造和 C 入口统一拒绝非法级别，负值不代表默认</li>
-      <li><strong>文件原子写</strong> — 临时文件 + 原子重命名</li>
+      <li><strong>目标提交</strong> — 同目录临时文件，处理、flush/close 成功后才重命名；不等于断电持久性保证</li>
     </ul>
     <p>2026-10-28：Windows/Linux x64 默认包级门禁通过，包含 25 组 C 原生参数负例、0..9 往返、文件失败时保护已有目标、分配故障、Linux ASan/UBSan、Python 标准 XZ 互通及双语 JIT/AOT。C 桥接头可与核心头按任意顺序包含，不主动启用宿主的 XRT VALUE 模块。该结果不代表 32 位、长时压力或性能基准认证。</p>
     <h2>包信息</h2>
@@ -116,7 +117,7 @@ end</pre></div></div>
 <span class="kw">export func</span> <span class="fn">compressor</span>(<span class="type">int</span> level = <span class="kw">5</span>, ...) <span class="kw">as</span> <span class="type">LzmaCompressor</span>
 <span class="kw">export func</span> <span class="fn">decompressor</span>(...) <span class="kw">as</span> <span class="type">LzmaDecompressor</span></div>
       <p>API 分为一次性、文件级和分段对象。压缩器对象在 finish() 时生成一条标准 .xz 流，此前 drain() 返回空 Buffer；文件接口直接通过 XRT reader/writer 流动。解压器可边输入边 drain()，但仅在 finish() 成功后才能信任输出。</p>
-      <div class="api-note">文件接口末尾支持可空 <code>onProgress(inputBytes, totalBytes, outputBytes)</code>。含 NUL 的源/目标路径报 <code>ValueError</code>；返回 false 删除临时输出并抛 <code>CancelledError</code>；回调异常原样传播。C 层对应 <code>xrtprogressproc</code> + <code>void* userData</code>。</div>
+      <div class="api-note">文件接口末尾支持可空 <code>onProgress(inputBytes, totalBytes, outputBytes)</code>。含 NUL 的源/目标路径报 <code>ValueError</code>；返回 false 取消，抛 <code>CancelledError</code>；回调异常保留首因。普通 C Reader/Writer 流使用 <code>xrtprogressproc</code> + userData；native 文件 ABI 使用 XRT callable，三个 uint64 参数、bool 返回，不提供 FINAL 标志。关闭态回滚的 Windows OOM 缺口仍开放。</div>
       <div class="api-note"><code>level</code> 越界抛 <code>ValueError</code>；数据损坏或截断经 XRT 映射为 <code>IOError</code>，资源限额为 <code>RangeError</code>。C 的 <code>iMaxItemBytes</code> 是有效的解码单次分配上限，默认 256 MiB，可在分配前拒绝小输入声明的 1 GiB 字典；它不是进程总内存配额。OptionsInit 清零无关的条目、节点与深度字段，显式设置这些字段或 iFlags 会报参数错误。LZMA 不提供内容认证。</div>
     </div>
   </div>
@@ -143,10 +144,13 @@ decoder.update(streamPacked)
 decoder.finish()
 assert decoder.drain().text() == "hello stream"</pre></div></div>
     <h3>2. 最高级别 L9</h3>
-    <div class="code-block"><div class="code-header"><span>调优</span></div><div class="code-body"><pre>auto tuned = lzma.compressor(lzma.LZMA_MAX_LEVEL)
+    <div class="code-block"><div class="code-header"><span>调优</span></div><div class="code-body"><pre>import lzma
+
+auto tuned = lzma.compressor(lzma.LZMA_MAX_LEVEL)
 tuned.update("tune me")
 tuned.finish()
 assert lzma.decompress(tuned.drain()).text() == "tune me"</pre></div></div>
+    <p>以上两段对象位于顶层，当前 JIT 可运行，AOT 仍受 M2 退出边界阻断；不以正文断言通过替代自然退役。取消、回调错误保护旧目标并立即重试的双语完整例见 <code>extlibs/lzma/examples/file_transaction.xl</code> / <code>file_transaction_c.c</code>，各自创建并清理独占临时目录。</p>
     <h3>运行范例</h3>
     <div class="code-block"><div class="code-header"><span>终端</span></div><div class="code-body"><pre>cd release
 xl.exe run examples\extlibs\lzma.xl</pre></div></div>
@@ -154,7 +158,7 @@ xl.exe run examples\extlibs\lzma.xl</pre></div></div>
 
   <div class="ext-panel" id="panel-tests">
     <h2>测试覆盖</h2>
-    <p>聚焦测试：当前 Windows 默认门禁和 Linux C ASan/UBSan、语言 JIT/AOT、Python 标准 .xz 双向互通均通过。C 入口验证选项和资源限制结构的当前完整长度、版本及零保留字段；无效选项不开始读写流。C Reader/Writer 流接口验证成功往返与进度计数；XLang 文件接口验证回调、取消、拒绝覆盖和限额失败时保留原文件。非默认校验与滤镜由独立编码器生成验证，损坏的 CRC32/CRC64/SHA-256 块校验会被拒绝；CRC32 与 SHA-256 混合串联可解码，次流损坏时不返回首流明文。</p>
+    <p>普通功能、C ASan/UBSan（Linux）、语言 JIT/普通 AOT 与 Python 标准 .xz 双向互通通过，不表示默认门禁全绿：Windows 101 阶段中 99 项符合要求，余下关闭态 RFS 与顶层 M2；Linux 此轮只剩 M2。C 入口验证选项和资源限制结构的当前完整长度、版本及零保留字段；无效选项不开始读写流。独立编码器覆盖不同校验/滤镜及混合串联，损坏次流不交付首流明文。Python 检查器在 -O 下也执行全部判据，坏流须精确返回 1、lzma 诊断且无部分输出，不将崩溃或超时视为拒绝成功。</p>
     <ul>
       <li>一次性二进制往返（含 NUL / 0xFF）</li>
       <li>流式往返 + members 计数 + finished</li>
@@ -166,11 +170,14 @@ xl.exe run examples\extlibs\lzma.xl</pre></div></div>
       <li>与 Python <code>lzma.FORMAT_XZ</code> 双向互通</li>
       <li>文件级往返、进度与取消、overwrite 拒绝、限额失败保留原文件</li>
       <li>C 与 XLang 分配故障注入：内存错误分类、空结果和恢复；Linux ASan/UBSan</li>
+      <li>打开态 96 组双故障回滚通过；关闭态 16 组在 Windows 仍有两组残留，保留原始失败</li>
     </ul>
     <h3>运行测试</h3>
     <div class="code-block"><div class="code-header"><span>终端</span></div><div class="code-body"><pre>cd release
 xl.exe run extlibs\lzma\examples\basic.xl
 xl.exe run extlibs\lzma\examples\basic_c.c
+xl.exe run extlibs\lzma\examples\file_transaction.xl
+xl.exe run extlibs\lzma\examples\file_transaction_c.c
 xl.exe run extlibs\lzma\test\boundaries.xl
 xl.exe run extlibs\lzma\test\allocations.xl
 xl.exe run ..\test\cases\extlib_lzma_progress.xl</pre></div></div>
