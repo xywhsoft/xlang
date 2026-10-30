@@ -1,5 +1,20 @@
 # zstd
 
+2026-10-31：修复四处 C Reader/Writer 错误结构丢失首因，以及文件
+打开态失败后的回滚二次分配。30个 IO 场景在两平台同夹具旧32条
+断言失败→0；96组文件回滚 Windows旧8组失败→0，首错/旧目标/
+七项内存平衡保持，正常编解码路径不新增分配或复制。
+新增 `examples/file_transaction.xl` 与 `file_transaction_c.c`，演示
+UTF-8文件名、取消、业务异常和重试，五种引擎同黄金输出。
+
+本轮 Windows 默认82阶段80符合预期、67输入指纹不变；Linux原生
+ASan/UBSan与完整普通 C/XL路径、两平台各17条普通AOT、双向 Python
+Zstandard0.25.0互通通过。默认门禁仍失败：Windows关闭态事务16组
+有2组临时文件残留，两平台全局对象AOT仍打印后退出1。不能据局部
+通过签收整包。完整范围与证据见[本轮审计](docs/io-file-audit-2026-10-31.md)。
+公开ABI、格式、vendor、编译器与冻结XRT未改；四处错误填充只复制到
+既有256字节消息字段，完整cause仍由XRT保存。
+
 2026-10-30：修复后端 OOM 分类。一次性、增量和 Reader/Writer 接口
 原将 Zstd 实际分配失败误报成坏数据；一次性输出容量小于上界时还会
 误报成输出超限。现统一按后端错误码保留 MEMORY，只有实际目标容量
@@ -126,7 +141,18 @@ cd ..
 wsl bash release/extlibs/zstd/test/check.sh
 ```
 
-C 测试覆盖二进制往返、标准帧标识、截断、无效帧、输出限额、分段流，以及原生进度回调与取消。包内 `test/wire_fixture.xl` 已登记到 `coverage.tests`，并与 C 边界测试共用 Node.js 24 内置 Zstd（级别 3）独立编码的固定帧，验证含 UTF-8、NUL、0xff 的二进制解码和输出限额；运行门禁不依赖 Node.js。文件 ABI 的二进制往返和禁止覆盖由 `test/test_file.c` 验证；XLang 的文件压缩/解压、进度回调、取消后保留旧目标由 `extlib_zstd_progress.xl` 在独立临时目录验证。另有登记在 `coverage.tests` 的 `test/file_ops.xl`，直接检查文件往返和取消后的目标清理。最小 C/XLang 范例同输入、同输出；C 范例命名为 `basic_c.c`，避免被同名 XL 范例自动混编产生双 `main`。当前 Linux 包级脚本覆盖这些语言边界及八条 AOT 路径。旧发布物的 Buffer 索引异或和 AOT 缺符号诊断见 `dev/extlib_blockers/argon2_byteat_sub.md`；当前完整教学范例的 JIT/EXE 均通过。
+C 测试覆盖二进制往返、标准帧标识、截断、无效帧、输出限额、分段流、
+普通进度回调与取消。已登记的 `test/wire_fixture.xl` 和 C 边界共用
+Node.js 24 Zstd级别3独立生成的固定帧，核对 UTF-8/NUL/0xff 和限额，
+运行时不依赖 Node.js。`test/test_file.c` 检查文件往返及禁止覆盖，
+中央 `extlib_zstd_progress.xl` 和包内 `test/file_ops.xl` 检查进度、
+取消后旧目标与临时文件清理；新增两类事务与 IO 故障检查见本轮审计。
+
+双语基础例同输入、同输出；C命名为 `basic_c.c`，避免与同名XL自动
+混编出双main。当前双平台包门禁各覆盖17条普通独立程序路径，完整
+教学范例 JIT/AOT均通过，但不替代仍失败的全局对象AOT收尾和关闭态
+回滚。旧 Buffer索引异或及AOT缺符号记录在
+`dev/extlib_blockers/argon2_byteat_sub.md`，不再作为当前首个阻断。
 
 可选的独立实现互通测试：在仓库根目录运行 `python -m pip install --target build/test/zstd/python_oracle zstandard==0.25.0`，再运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/zstd/test/check_interop.ps1`。该测试让 XRT 与 Python Zstandard 双向解压对方的标准帧；测试桥显式放宽解压比限额以覆盖高压缩比样本，不改变产品默认值。Python 不是扩展库运行依赖。
 

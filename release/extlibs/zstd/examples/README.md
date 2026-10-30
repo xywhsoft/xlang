@@ -33,3 +33,30 @@ C 创建的流分别 Destroy，drain 和一次性结果分别 BufferDestroy；
 XLang 自动释放。输入仅借用，返回 Buffer 独立拥有。正常分段例不
 注入内存故障；后端、XRT 分配故障与失败恢复专项放在 `test`。
 本例在函数内演示资源使用，并不替代仍失败的全局对象 AOT 测试。
+
+## 文件事务
+
+```powershell
+./release/xl.exe run release/extlibs/zstd/examples/file_transaction.xl
+./release/xl.exe run release/extlibs/zstd/examples/file_transaction_c.c
+./release/xl.exe build release/extlibs/zstd/examples/file_transaction.xl -o file_transaction.exe
+./file_transaction.exe
+```
+
+两种语言在独占临时目录使用 UTF-8 文件名，取消和业务异常都保留
+旧目标，随后正常重试，并在结束时清理所创建的文件及目录。输出见
+`file_transaction.expected.txt`：
+
+```text
+cancelled: true
+callback error: true
+restored: hello zstd
+```
+
+C 范例沿用正式 `xzstd_*_file` 的 XRT callable ABI，回调返回 bool，
+业务失败通过 XRT错误槽及false返回；它不是普通 `xrtprogressfn`。
+独立 C 的 `xrtZstdCompressStream/DecompressStream` 支持普通进度回调，
+文件范例并未添加另一套平台 IO 或事务实现。资源分别 Release/Unref。
+Windows/Linux 的 GCC C、TCC C JIT/AOT、XLang JIT/AOT 同输出。
+正常取消/重试不替代关闭态回滚 OOM 及顶层对象 AOT 的失败边界，
+详包内 `docs/io-file-audit-2026-10-31.md`。

@@ -1,4 +1,4 @@
-param([switch]$SkipAot)
+﻿param([switch]$SkipAot)
 
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
@@ -6,7 +6,8 @@ $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../..')).Path
 $release = Join-Path $root 'release'
 $xl = Join-Path $root 'release/xl.exe'
 $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
-$work = Join-Path ([IO.Path]::GetTempPath()) ('xlang-zstd-' + [Guid]::NewGuid().ToString('N'))
+$workParent = Join-Path $root 'build/test/zstd_guard'
+$work = Join-Path $workParent ('run_' + [Guid]::NewGuid().ToString('N'))
 [IO.Directory]::CreateDirectory($work) | Out-Null
 $passed = $false
 . (Join-Path $root 'tools/extlib_smoke_process.ps1')
@@ -15,21 +16,23 @@ $checks = [Collections.Generic.List[object]]::new()
 $hashes = @{}
 $inputs = @('release/xl.exe','release/xl.dll','release/xlc.dll',
     'lib/xrt/xrt.h','lib/xruntime/xruntime.h','test/support/extlib_codec_runtime.c',
+    'test/support/extlib_codec_io_errors.h','test/support/extlib_native_codec_file_rollback.h',
     'test/cases/extlib_zstd.xl','test/cases/extlib_zstd_progress.xl','release/examples/extlibs/zstd.xl',
     'tools/extlib_smoke_process.ps1','tools/xlir_native_process.ps1',
-    'tools/check_extlib_native_globals.ps1') | ForEach-Object { Join-Path $root $_ }
+    'tools/check_extlib_native_globals.ps1','tools/check_extlib_native_globals.sh') | ForEach-Object { Join-Path $root $_ }
 $inputs += @(Get-ChildItem (Join-Path $root 'release/extlibs/zstd') -File -Recurse | ForEach-Object FullName)
+$inputs += @(Get-ChildItem (Join-Path $root 'release/include') -File -Recurse | ForEach-Object FullName)
 $inputs += @($gcc,$shell)
 
-function Run([string]$name, [string]$program, [string[]]$arguments) {
+function Run([string]$name, [string]$program, [string[]]$arguments, [int]$expectedExit = 0) {
     if ($null -eq $arguments) { $arguments = @() }
     $result = Invoke-ExtlibSmokeProcess $program $arguments (Get-Location).Path 180
     $checks.Add([ordered]@{name=$name;program=$program;arguments=$arguments;
-        directory=(Get-Location).Path;result=$result})
+        directory=(Get-Location).Path;expectedExit=$expectedExit;result=$result})
     $checks | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $work 'report.json') -Encoding UTF8
     [IO.File]::AppendAllText((Join-Path $work 'commands.log'),
         "[$name] $program $($arguments -join ' ')`nstatus=$($result.status) exit=$($result.exitCode)`nstdout:`n$($result.stdout)`nstderr:`n$($result.stderr)`n")
-    if ($result.status -ne 'pass' -or $result.exitCode -ne 0) {
+    if ($result.status -notin @('pass','fail') -or $result.exitCode -ne $expectedExit) {
         throw "[$name] $($result.status) exit=$($result.exitCode)`n$($result.stdout)`n$($result.stderr)"
     }
     Write-Host "[zstd] ${name}: PASS"
@@ -44,7 +47,7 @@ try {
     if (!(Test-Path -LiteralPath $cc1 -PathType Leaf)) { throw "Missing GCC cc1: $cc1" }
     $hashes[(Resolve-Path $cc1).Path] = (Get-FileHash $cc1).Hash
     $hashes | ConvertTo-Json | Set-Content (Join-Path $work 'inputs.before.json') -Encoding UTF8
-    $flags = @('-std=c11', '-O2', '-Wall', '-Wextra', '-Werror',
+    $flags = @('-std=c11', '-O2', '-Wall', '-Wextra', '-Werror', '-DXRT_MODULE_DIR_TEMP',
         '-Ilib/xrt', '-Ilib/xruntime', '-Irelease/extlibs/zstd/include')
     $links = @('-lws2_32', '-ladvapi32', '-liphlpapi', '-lm')
     $objects = @()
@@ -58,13 +61,23 @@ try {
     $null = Run 'GCC zstd vendor' $gcc @('-std=c11', '-O2', '-c',
         'release/extlibs/zstd/third_party/zstd.c', '-o', $vendor)
     $objects += $vendor
+    $null = Run 'native missing prototypes' $gcc ($flags + @('-Wmissing-prototypes','-fsyntax-only','release/extlibs/zstd/zstd_native.c'))
+    foreach ($kind in @('compressor','decompressor')) {
+        $diagnostic = Run "private $kind must reject" $xl @('check',"release/extlibs/zstd/test/private_${kind}_negative.xl") -expectedExit 1
+        if ($diagnostic -notmatch 'updateNative' -or $diagnostic -notmatch 'access') {throw 'Unrelated private access diagnostic'}
+    }
 
-    foreach ($name in @('test_zstd', 'test_file', 'test_allocations')) {
+    foreach ($name in @('test_zstd', 'test_file', 'test_allocations','io_errors_c','file_rollback_c','text_views_c')) {
         $source = "release/extlibs/zstd/test/$name.c"
         $exe = Join-Path $work "$name.exe"
         $null = Run "GCC build $name" $gcc ($flags + @($source) + $objects + $links + @('-o', $exe))
         $null = Run "GCC $name" $exe @()
     }
+    $null = Run 'TCC IO errors' $xl @('run','release/extlibs/zstd/test/io_errors_c.c')
+    $cArgs = @('release/extlibs/zstd/xrt_zstd.c','release/extlibs/zstd/zstd_native.c',
+        'release/extlibs/zstd/third_party/zstd.c','--inc-path','lib/xrt','--inc-path','lib/xruntime')
+    $null = Run 'TCC open rollback' $xl (@('run','release/extlibs/zstd/test/file_rollback_c.c') + $cArgs)
+    $null = Run 'TCC C text views' $xl (@('run','release/extlibs/zstd/test/text_views_c.c') + $cArgs)
     # 此夹具只替换本编译单元的构造器，不能再链接默认 core/bridge 的重复定义。
     $backend = Join-Path $work 'backend-oom.exe'
     $null = Run 'GCC backend OOM build' $gcc ($flags + @('release/extlibs/zstd/test/test_backend_oom.c',
@@ -80,6 +93,18 @@ try {
     foreach ($source in @('bounded_stream.xl','bounded_stream_c.c')) {
         if ((Run "JIT $source" $xl @('run',"release/extlibs/zstd/examples/$source")) -cne $golden) {
             throw "Bounded example differs: $source"
+        }
+    }
+    $transactionGolden = [IO.File]::ReadAllText((Join-Path $root 'release/extlibs/zstd/examples/file_transaction.expected.txt')).Replace("`r`n","`n").TrimEnd("`n")
+    $transaction = Join-Path $work 'transaction.exe'
+    $null = Run 'GCC transaction example build' $gcc ($flags + @('release/extlibs/zstd/examples/file_transaction_c.c') + $objects + $links + @('-o',$transaction))
+    if ((Run 'GCC transaction example' $transaction @()) -cne $transactionGolden) {throw 'C transaction example differs'}
+    foreach ($source in @('file_transaction.xl','file_transaction_c.c')) {
+        if ((Run "$source JIT" $xl @('run',"release/extlibs/zstd/examples/$source")) -cne $transactionGolden) {throw "$source output differs"}
+        if (!$SkipAot) {
+            $exe = Join-Path $work ($source + '.exe')
+            $null = Run "$source AOT build" $xl @('build',"release/extlibs/zstd/examples/$source",'-o',$exe)
+            if ((Run "$source AOT" $exe @()) -cne $transactionGolden) {throw "$source AOT differs"}
         }
     }
     $source = 'release/extlibs/zstd/examples/basic_c.c'
@@ -109,6 +134,16 @@ try {
         $gccOutput -cne $directOutput -or $gccOutput -cne $builtOutput -or
         $gccOutput -cne $xlOutput) { throw 'C/XLang example output mismatch' }
     if (-not $SkipAot) {
+        foreach ($name in @('io_errors_c','file_rollback_c','text_views_c')) {
+            $exe = Join-Path $work ($name + '.aot.exe')
+            [string[]]$extra = @()
+            if ($name -ne 'io_errors_c') {
+                $extra = @($cArgs | ForEach-Object {if ($_ -match '^release/|^lib/') {Join-Path $root $_} else {$_}})
+            }
+            $null = Run "$name AOT build" $xl (@('build',(Join-Path $root "release/extlibs/zstd/test/$name.c")) +
+                $extra + @('-o',$exe))
+            $null = Run "$name AOT" $exe @()
+        }
         $cases = @(
             @{name='backend_oom';source='test/test_backend_oom.c';golden=$null},
             @{name='bounded_xl';source='examples/bounded_stream.xl';golden=$golden},
@@ -151,7 +186,12 @@ try {
     $lifecycle = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
         (Join-Path $root 'tools/check_extlib_native_globals.ps1'), '-Root', $root, '-Package', 'zstd')
     if ($SkipAot) { $lifecycle += '-SkipAot' }
-    $null = Run 'top-level lifecycle' (Get-Process -Id $PID).Path $lifecycle
+    $boundaries = [Collections.Generic.List[string]]::new()
+    try {$null = Run 'closed transaction rollback' (Join-Path $work 'file_rollback_c.exe') @('--closed')}
+    catch {$boundaries.Add($_.Exception.Message)}
+    try {$null = Run 'top-level lifecycle' $shell $lifecycle}
+    catch {$boundaries.Add($_.Exception.Message)}
+    if ($boundaries.Count) {throw ($boundaries -join "`n")}
     $passed = $true
     Write-Host 'zstd Windows package gate: PASS'
 } catch {
@@ -161,15 +201,17 @@ try {
     Pop-Location
     $changed = @()
     foreach ($path in $hashes.Keys) {
-        if ((Get-FileHash $path).Hash -ne $hashes[$path]) { $changed += $path }
+        if (-not (Test-Path -LiteralPath $path) -or (Get-FileHash -LiteralPath $path).Hash -cne $hashes[$path]) { $changed += $path }
     }
+    if ($changed.Count) {$passed = $false}
     [ordered]@{passed=$passed;changed=$changed;inputs=$hashes;checks=$checks} |
         ConvertTo-Json -Depth 10 | Set-Content ($work + '.report.json') -Encoding UTF8
-    if ($changed.Count) { $passed = $false; throw "zstd inputs changed: $($changed -join ', ')" }
-    $tempRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\') + '\'
+    if ($changed.Count) {throw "zstd inputs changed: $($changed -join ', ')"}
+    $tempRoot = [IO.Path]::GetFullPath($workParent).TrimEnd('\') + '\'
     $workPath = [IO.Path]::GetFullPath($work)
-    if (-not $workPath.StartsWith($tempRoot, [StringComparison]::OrdinalIgnoreCase)) {
-        throw "zstd temporary work path escaped system temp: $workPath"
+    if (-not $workPath.StartsWith($tempRoot, [StringComparison]::OrdinalIgnoreCase) -or
+        -not [IO.Path]::GetFileName($workPath).StartsWith('run_')) {
+        throw "zstd temporary work path escaped build/test/zstd_guard: $workPath"
     }
     if ($passed) { Remove-Item -LiteralPath $workPath -Recurse -Force }
     else { Write-Warning "zstd failure artifacts: $workPath" }

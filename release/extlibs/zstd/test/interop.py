@@ -8,9 +8,12 @@ import zstandard
 
 
 def c_call(executable: str, mode: str, data: bytes) -> bytes:
-    return subprocess.run(
-        [executable, mode], input=data, capture_output=True, check=True
-    ).stdout
+    result = subprocess.run(
+        [executable, mode], input=data, capture_output=True, check=True, timeout=30
+    )
+    if result.stderr:
+        raise AssertionError(f"unexpected C diagnostic: {result.stderr!r}")
+    return result.stdout
 
 
 def main() -> None:
