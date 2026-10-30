@@ -85,6 +85,7 @@ CORE_TESTS = ("analysis_topology_clone_fault_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_raw_signature_test", "analysis_raw_native_test", "analysis_raw_body_projection_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_typed_module_test", "analysis_typed_module_fault_test", "analysis_ir_persistent_test", "analysis_ir_persistent_fault_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_current_loader_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_ir_callsite_test", *CORE_TESTS)
 HOST_TESTS += ("navigation_cache_test", "semantic_reference_shard_test", "project_references_test", "project_reference_budget_test", "reference_path_index_test")
 HOST_TESTS += ("path_identity_batch_test", "reference_capture_test")
 HOST_TESTS += ("project_reference_parallel_test",)
@@ -780,6 +781,7 @@ def main() -> None:
             extra = [str(objects["document_sync"])] if name in ("document_sync_test", "diagnostic_stream_test") else []
             if name=='analysis_current_loader_test' and loader_references:
                 extra += [str(objects[p.stem]) for p in loader_references]+['-Wl,--wrap=xrtMalloc']
+            if name=='analysis_ir_callsite_test':extra+=['-Wl,--wrap=xrtArrayReserve']
             if name == "analysis_index_limit_test":
                 extra.append(str(limited_index))
             if name in ("analysis_completion_body_test", "analysis_completion_body_failure_test", "analysis_semantic_proof_test", "analysis_signature_test"):
