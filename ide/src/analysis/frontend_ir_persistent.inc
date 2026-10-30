@@ -223,3 +223,16 @@ xls_ir_result* xlsFrontendIrResultBuildTyped(xls_typed_module* input,XL6_DiagLis
     if(result && !xlsIrPersistentReady(result))result->input=xlsTypedModuleRetain(input);
     return result;
 }
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+xls_ir_result* xlsFrontendIrResultBuildTypedChecked(xls_typed_module* input,XL6_DiagList* diags,
+    const xls_ir_result* previous,size_t rawBytes,const xls_entity_view* entities,size_t persistentBytes,xls_sem_memo* semantic)
+{
+    int bound=xlsFrontendSemMemoBindIrInput(semantic,input);
+    xls_ir_input_scope scope={xlsActiveIrInput,bound ? semantic : NULL,input,xlsTypedModuleRoot(input)};
+    xlsActiveIrInput=&scope;
+    xls_ir_result* result=xlsFrontendIrResultBuildTyped(input,diags,previous,rawBytes,entities,persistentBytes);
+    xlsActiveIrInput=scope.previous;return result;
+}
+xls_ir_input_work xlsFrontendIrResultInputWork(const xls_ir_result* result)
+{return result && result->memo ? result->memo->inputWork : (xls_ir_input_work){0};}
+#endif

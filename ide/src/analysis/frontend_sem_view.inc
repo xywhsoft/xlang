@@ -36,6 +36,9 @@ static xls_sem_view* xlsSemViewCreate(xls_sem_unit* unit,xarray* positions,size_
 }
 static void xlsSemEntryFactsClear(xls_sem_entry* entry)
 {
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    xlsSemIrReceiptRelease(entry->finalInput);entry->finalInput=NULL;
+#endif
     if(entry->view)xlsSemViewRelease(entry->view);
     else{xlsSemUnitRelease(entry->unit);xrtArrayUnit(&entry->positions);}
     entry->view=NULL;entry->unit=NULL;entry->positions=(xarray){0};

@@ -6,6 +6,10 @@
 #include "analysis/frontend_cancel.h"
 #include "analysis/index_entities.h"
 #include "analysis/frontend_raw_body.h"
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+#include "analysis/typed_module_internal.h"
+typedef struct xls_sem_ir_receipt xls_sem_ir_receipt;
+#endif
 struct xls_raw_memo;
 static struct xls_raw_memo* xlsRawMemoCreate(size_t);
 #define XLS_SEM_MEMO_BYTES (64u*1024u*1024u)
@@ -126,6 +130,7 @@ typedef struct xls_sem_entry {
     xls_sem_view* view;
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
     size_t effectCount;
+    xls_sem_ir_receipt* finalInput;
 #endif
 } xls_sem_entry;
 
@@ -151,6 +156,8 @@ struct xls_sem_memo {
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
     xarray effects; /* owned exact declaration snapshots in emission order */
     int effectsComplete;
+    const XL6_AstNode* finalizedRoot; /* borrowed;owner binding is separate */
+    xls_typed_input_identity* inputOwner;
 #endif
 };
 typedef struct xls_sem_move {
@@ -325,12 +332,30 @@ static int xlsSemKeyNode(xstrbuf* key,const XL6_AstNode* node,size_t depth,int m
  * node envelope once. Missing type trees are in the envelope;no repeated
  * tiny presence/length encodings or extra AST traversal are needed. */
 typedef struct xls_ir_path_slot {const char* path;size_t id;} xls_ir_path_slot;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+typedef struct xls_ir_key_observer_scope {
+    struct xls_ir_key_observer_scope* previous;const XL6_AstNode* root;
+    xls_ir_key_entity_observer observe;void* user;
+} xls_ir_key_observer_scope;
+static _Thread_local xls_ir_key_observer_scope* xlsActiveIrKeyObserver;
+#endif
 typedef struct xls_ir_key_paths {
     xmap paths;size_t next,recent,visited;xls_ir_path_slot slots[4];
     xls_ir_key_mode mode;uint32_t regionBase;
     const xls_lexical_symbols* symbols;
     const xls_entity_view* entities;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    xls_ir_key_entity_observer observe;void* observerUser;
+#endif
 } xls_ir_key_paths;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+static uint64_t xlsIrKeyEntity(xls_ir_key_paths* paths,XL6_SymbolId symbol)
+{
+    uint64_t identity=xlsEntityViewSymbol(paths->entities,symbol);
+    if(paths->observe)paths->observe(paths->observerUser,symbol,identity);
+    return identity;
+}
+#endif
 static int xlsIrKeyPath(xls_ir_key_paths* paths,const char* path,size_t* id,size_t* bytes,int* added)
 {
     *id=*bytes=0;*added=0;if(!path)return 1;
@@ -376,7 +401,11 @@ static int xlsIrKeyNode(xstrbuf* key,const XL6_AstNode* node,size_t depth,int le
     if(paths->mode==XLS_IR_KEY_FUNCTION && paths->entities){
         for(size_t i=7;i<=10;++i){
             if(lexical && (envelope&(UINT64_C(1)<<(40+i-7))))continue;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+            uint64_t identity=xlsIrKeyEntity(paths,(XL6_SymbolId)fields[i]);
+#else
             uint64_t identity=xlsEntityViewSymbol(paths->entities,(XL6_SymbolId)fields[i]);
+#endif
             if(identity){fields[i]=identity;envelope|=UINT64_C(1)<<(44+i-7);}
         }
     }
@@ -386,7 +415,7 @@ static int xlsIrKeyNode(xstrbuf* key,const XL6_AstNode* node,size_t depth,int le
         if(local)envelope|=UINT64_C(1)<<48;
     }
     if(paths->mode==XLS_IR_KEY_FUNCTION && paths->entities && !(envelope&(UINT64_C(1)<<48))){
-        uint64_t identity=xlsEntityViewSymbol(paths->entities,(XL6_SymbolId)fields[XLS_SEM_RECEIVER_KEY_FIELD]);
+        uint64_t identity=xlsIrKeyEntity(paths,(XL6_SymbolId)fields[XLS_SEM_RECEIVER_KEY_FIELD]);
         if(identity){fields[XLS_SEM_RECEIVER_KEY_FIELD]=identity;envelope|=UINT64_C(1)<<49;}
     }
 #endif
@@ -419,6 +448,11 @@ static int xlsIrAstKey(xstrbuf* key,const XL6_AstNode* node,xls_ir_key_mode mode
     if(!key || mode<XLS_IR_KEY_EXACT || mode>XLS_IR_KEY_ENVIRONMENT || xlsFrontendCancelObserved())return 0;
     if(mode==XLS_IR_KEY_FUNCTION && (!xlsSemFunction(node) || !node->semanticRegionId))return 0;
     xls_ir_key_paths paths={.mode=mode,.regionBase=mode==XLS_IR_KEY_FUNCTION ? node->semanticRegionId : 0,.symbols=symbols,.entities=entities};
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    if(xlsActiveIrKeyObserver && xlsActiveIrKeyObserver->root==node){
+        paths.observe=xlsActiveIrKeyObserver->observe;paths.observerUser=xlsActiveIrKeyObserver->user;
+    }
+#endif
     if(!xrtMapInit(&paths.paths,sizeof(size_t)))return 0;
     int okay=xlsSemKeyNumber(key,mode) && xlsIrKeyNode(key,node,0,1,&paths);xrtMapUnit(&paths.paths);return okay;
 }
@@ -428,6 +462,17 @@ int xlsFrontendIrAstKeySymbols(xstrbuf* key,const XL6_AstNode* node,const xls_le
 }
 int xlsFrontendIrAstKeyEntities(xstrbuf* key,const XL6_AstNode* node,const xls_lexical_symbols* symbols,const xls_entity_view* entities)
 {return symbols && symbols->ready && symbols->root==node && xlsIrAstKey(key,node,XLS_IR_KEY_FUNCTION,symbols,entities);}
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+int xlsFrontendIrAstKeyEntitiesObserved(xstrbuf* key,const XL6_AstNode* node,
+    const xls_lexical_symbols* symbols,const xls_entity_view* entities,
+    xls_ir_key_entity_observer observe,void* user)
+{
+    xls_ir_key_observer_scope scope={xlsActiveIrKeyObserver,node,observe,user};
+    xlsActiveIrKeyObserver=&scope;
+    int okay=xlsFrontendIrAstKeyEntities(key,node,symbols,entities);
+    xlsActiveIrKeyObserver=scope.previous;return okay;
+}
+#endif
 int xlsFrontendIrAstKey(xstrbuf* key,const XL6_AstNode* node,xls_ir_key_mode mode)
 {
     if(mode!=XLS_IR_KEY_FUNCTION)return xlsIrAstKey(key,node,mode,NULL,NULL);
@@ -595,6 +640,9 @@ static void xlsSemUnitRelease(xls_sem_unit* unit)
     }
 }
 
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+#include "analysis/frontend_sem_ir.inc"
+#endif
 #include "analysis/frontend_sem_view.inc"
 typedef struct xls_sem_type_copy {
     const XL6_AstNode* root;
@@ -1098,6 +1146,9 @@ void xlsFrontendSemMemoDestroy(xls_sem_memo* memo)
     if(!memo || xrtAtomic32FetchSub(&memo->references,1,XMEMORY_ACQ_REL)!=1) return;
     for(size_t i=0;i<memo->entries.Count;++i) { xls_sem_entry* e=xrtArrayGet(&memo->entries,i); xrtStrBufFree(&e->key); xlsSemEntryFactsClear(e); }
     xlsSemEffectsFree(memo);
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    xlsTypedInputIdentityRelease(memo->inputOwner);
+#endif
     xlsRawMemoDestroy(memo->raw);xrtArrayUnit(&memo->entries); xrtStrBufFree(&memo->context);xlsSemReadContextRelease(memo->readContext);xrtFree(memo->path); xrtFree(memo);
 }
 xls_sem_memo* xlsFrontendSemMemoRetain(xls_sem_memo* memo)
@@ -1108,6 +1159,11 @@ size_t xlsFrontendSemMemoOwnedBytes(const xls_sem_memo* memo)
 {
     if(!memo)return 0;
     size_t bytes=sizeof(*memo),path=memo->path ? strlen(memo->path)+1 : 0,reads=memo->readContext ? memo->readContext->bytes : 0;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    size_t owner=xlsTypedInputIdentityOwnedBytes(memo->inputOwner);
+    if(owner>SIZE_MAX-bytes)return SIZE_MAX;
+    bytes+=owner;
+#endif
     if(memo->bytes>SIZE_MAX-bytes || path>SIZE_MAX-bytes-memo->bytes || reads>SIZE_MAX-bytes-memo->bytes-path)return SIZE_MAX;
     size_t raw=memo->raw ? memo->raw->bytes : 0;
     if(raw>SIZE_MAX-bytes-memo->bytes-path-reads)return SIZE_MAX;
@@ -1206,6 +1262,11 @@ static int xlsSemCheckMemo(XL6_AstNode* root,XL6_DiagList* diags,const char* mod
         xlsFrontendSemMemoDestroy(memo);memo=NULL;build.memo=NULL;build.enabled=0;
         okay=-1;
     }
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    if(memo && build.enabled && okay>0 && !query && xlsSemIrFinalScope &&
+       xlsSemIrFinalScope->root==root && !xlsFrontendCancelObserved())
+        xlsSemIrFinalizeMemo(memo,root,build.baseline,xlsSemIrFinalScope->bytes);
+#endif
     build.work.bytes=memo && build.enabled ? memo->bytes : 0;
     if(memo && build.enabled && !query)for(size_t i=0;i<memo->entries.Count;++i){
         const xls_sem_entry* entry=xrtArrayConstGet(&memo->entries,i);if(!entry->unit)continue;
@@ -1224,6 +1285,18 @@ int xlsFrontendSemCheckMemo(XL6_AstNode* root,XL6_DiagList* diags,const char* mo
     int captureIndex,const char* path,const XL6_SourceReport* sources,
     const XL6_SourceReport* previousSources,const xls_sem_memo* previous,xls_sem_memo** result,xls_sem_work* work)
 { return xlsSemCheckMemo(root,diags,module,NULL,captureIndex,path,sources,previousSources,previous,result,work,NULL); }
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+int xlsFrontendSemCheckMemoFinal(XL6_AstNode* root,XL6_DiagList* diags,const char* module,
+    int captureIndex,const char* path,const XL6_SourceReport* sources,
+    const XL6_SourceReport* previousSources,const xls_sem_memo* previous,
+    xls_sem_memo** result,xls_sem_work* work,size_t bytes)
+{
+    xls_sem_ir_scope scope={xlsSemIrFinalScope,root,bytes};xlsSemIrFinalScope=&scope;
+    int okay=xlsFrontendSemCheckMemo(root,diags,module,captureIndex,path,sources,
+        previousSources,previous,result,work);
+    xlsSemIrFinalScope=scope.previous;return okay;
+}
+#endif
 int xlsFrontendSemCheckCursorMemo(XL6_AstNode* root,XL6_DiagList* diags,const char* module,
     XL6_CompletionQuery* query,const char* path,const XL6_SourceReport* sources,
     const XL6_SourceReport* previousSources,const xls_sem_memo* previous,xls_sem_memo** result,xls_sem_work* work)

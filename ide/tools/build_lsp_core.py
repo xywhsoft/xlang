@@ -90,6 +90,9 @@ CORE_TESTS = ("analysis_current_provider_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_selection_test", "analysis_selection_projection_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_semantic_read_front_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_sparse_decode_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_typed_identity_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_semantic_final_input_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_ir_input_test", *CORE_TESTS)
 HOST_TESTS += ("navigation_cache_test", "semantic_reference_shard_test", "project_references_test", "project_reference_budget_test", "reference_path_index_test")
 HOST_TESTS += ("path_identity_batch_test", "reference_capture_test")
 HOST_TESTS += ("project_reference_parallel_test",)
@@ -599,7 +602,8 @@ def main() -> None:
         # These private fixtures include the exact generated native TUs; use
         # their native warning profile. Their objects never enter core/server.
         sources += [(ide / "tests" / (name + ".c"), name not in
-                     ("analysis_semantic_read_front_test", "analysis_ir_sparse_decode_test")) for name in tests]
+                     ("analysis_semantic_read_front_test", "analysis_ir_sparse_decode_test",
+                      "analysis_semantic_final_input_test", "analysis_ir_input_test")) for name in tests]
     if args.server:
         if os.name != "nt":
             parser.error("the current host still uses Windows transport/process adapters; the standalone core is separate")
@@ -810,6 +814,15 @@ def main() -> None:
                     "xrtStrDup", "xrtStrDupN", "xrtRealloc", "xrtFree", "xrtStrBufAppend", "xrtStrBufFree", "xrtMalloc")]
             if name == "analysis_typed_module_test":
                 extra += ["-Wl,--wrap=xl6AstFree", "-Wl,--wrap=xlsTypedModuleTake"]
+            if name == "analysis_typed_identity_test":
+                extra += ["-Wl,--wrap=xrtCalloc", "-Wl,--wrap=xrtFree", "-Wl,--wrap=xl6AstFree"]
+            if name == "analysis_semantic_final_input_test":
+                extra += ["-Wl,--wrap=xrtCalloc", "-Wl,--wrap=xrtFree",
+                          "-Wl,--wrap=xrtStrBufReserve", "-Wl,--wrap=xrtStrBufFree"]
+            if name == "analysis_ir_input_test":
+                extra += ["-Wl,--wrap=" + function for function in (
+                    "xlsFrontendIrResultBuildTypedChecked", "xrtCalloc", "xrtFree", "xrtArrayResize",
+                    "xrtArrayUnit", "xrtStrBufReserve", "xrtStrBufFree", "xrtMapSet")]
             if name in ("analysis_ir_persistent_fault_test", "analysis_typed_module_fault_test"):
                 extra += ["-Wl,--wrap=" + function for function in (
                     "xrtMalloc", "xrtCalloc", "xrtRealloc", "xrtFree", "xrtStrBufReserve", "xrtStrBufFree",

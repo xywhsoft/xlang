@@ -157,8 +157,13 @@ static xls_semantic_check* createBody(xls_context* context,const char* entry,
              * lookup absence proof. Disk/probe/environment validity still
              * precedes every borrowed per-function semantic/IR fact. */
             if(compatible) {baseline=previous->memo;irBaseline=previous->cachedIr;}
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+            okay=xlsFrontendSemCheckMemoFinal(r->parse.root,&r->parse.diags,module,captureIndex,r->path,
+                &r->report,baseline ? &previous->report : NULL,baseline,&r->memo,&r->semanticWork,32u*1024u*1024u);
+#else
             okay=xlsFrontendSemCheckMemo(r->parse.root,&r->parse.diags,module,captureIndex,r->path,
                 &r->report,baseline ? &previous->report : NULL,baseline,&r->memo,&r->semanticWork);
+#endif
         } else okay=xl6SemCheckModuleWithIndex(r->parse.root,&r->parse.diags,module,captureIndex);
     }
     if(stopped(cancelled,user)) goto cancel;
@@ -182,8 +187,13 @@ static xls_semantic_check* createBody(xls_context* context,const char* entry,
             if(r->typedModule && irBaseline && r->semanticWork.contextHits && xlsFrontendSemMemoInputCandidate(r->memo))
                 prepared=xlsFrontendIrResultPreparePersistent((xls_ir_result*)irBaseline,32u*1024u*1024u);
             r->irPrepared=prepared==2;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+            r->cachedIr=r->typedModule ? xlsFrontendIrResultBuildTypedChecked(r->typedModule,&attempted,irBaseline,32u*1024u*1024u,
+                xlsSemanticIndexEntities(r->typedIndex),prepared ? 32u*1024u*1024u : 0,r->memo) :
+#else
             r->cachedIr=r->typedModule ? xlsFrontendIrResultBuildTyped(r->typedModule,&attempted,irBaseline,32u*1024u*1024u,
                 xlsSemanticIndexEntities(r->typedIndex),prepared ? 32u*1024u*1024u : 0) :
+#endif
                 xlsFrontendIrResultBuildEntities(r->parse.root,&attempted,irBaseline,32u*1024u*1024u,xlsSemanticIndexEntities(r->typedIndex));
             okay=r->cachedIr && !attempted.count;
             if(!okay){xlsFrontendIrResultDestroy(r->cachedIr);r->cachedIr=NULL;}

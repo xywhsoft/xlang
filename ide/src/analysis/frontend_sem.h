@@ -27,6 +27,30 @@ struct xls_entity_view;
  * Caller must separately prove equal entity store/domain before key reuse. */
 int xlsFrontendIrAstKeyEntities(xstrbuf* key,const XL6_AstNode* node,
     const xls_lexical_symbols* symbols,const struct xls_entity_view* entities);
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+struct xls_typed_module;
+struct xls_typed_input_identity;
+struct xls_sem_work;
+/* Records the actual canonical-key entity projections,including misses.
+ * Observer must not mutate the input/view or reenter the encoder. */
+typedef void (*xls_ir_key_entity_observer)(void*,XL6_SymbolId,uint64_t);
+int xlsFrontendIrAstKeyEntitiesObserved(xstrbuf*,const XL6_AstNode*,
+    const xls_lexical_symbols*,const struct xls_entity_view*,
+    xls_ir_key_entity_observer,void*);
+/* Opt-in exact final typed-output receipts AFTER every original native phase.
+ * The local quota only shrinks the existing aggregate semantic memo quota.
+ * Failure/OOM/budget decline never changes source diagnostics or checking. */
+int xlsFrontendSemCheckMemoFinal(XL6_AstNode*,XL6_DiagList*,const char*,int,
+    const char*,const XL6_SourceReport*,const XL6_SourceReport*,
+    const xls_sem_memo*,xls_sem_memo**,struct xls_sem_work*,size_t);
+/* Only the current validated check may bind its finalized tree to an immutable
+ * typed owner. Bind exclusively before publishing the memo;subsequent
+ * access is readonly. Binding is one-time;tokens retain no AST/memo/check. Neither
+ * root addresses nor these identities replace input freshness validation. */
+int xlsFrontendSemMemoBindIrInput(xls_sem_memo*,const struct xls_typed_module*);
+struct xls_typed_input_identity* xlsFrontendSemMemoIrIdentity(
+    const xls_sem_memo*,const struct xls_typed_module*,size_t);
+#endif
 typedef struct xls_sem_storage_work { uint64_t nodes,pages,chargedBytes,heapFallbacks; } xls_sem_storage_work;
 typedef struct xls_sem_storage_control {
     struct xls_sem_storage_control* previous;size_t budget;xls_sem_storage_work work;
