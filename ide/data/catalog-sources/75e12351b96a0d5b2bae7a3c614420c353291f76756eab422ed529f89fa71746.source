@@ -1,0 +1,216 @@
+extern "xstat_count" func __stat_count(var values) as int
+extern "xstat_sum" func __stat_sum(var values) as var
+extern "xstat_mean" func __stat_mean(var values) as var
+extern "xstat_median" func __stat_median(var values) as var
+extern "xstat_mode" func __stat_mode(var values) as var
+extern "xstat_min" func __stat_min(var values) as var
+extern "xstat_max" func __stat_max(var values) as var
+extern "xstat_range" func __stat_range(var values) as var
+extern "xstat_variance" func __stat_variance(var values) as var
+extern "xstat_variance_sample" func __stat_variance_sample(var values) as var
+extern "xstat_stdev" func __stat_stdev(var values) as var
+extern "xstat_stdev_sample" func __stat_stdev_sample(var values) as var
+extern "xstat_percentile" func __stat_percentile(var values, float p) as var
+extern "xstat_quartiles" func __stat_quartiles(var values) as var
+extern "xstat_iqr" func __stat_iqr(var values) as var
+extern "xstat_mad" func __stat_mad(var values) as var
+extern "xstat_geomean" func __stat_geomean(var values) as var
+extern "xstat_harmmean" func __stat_harmmean(var values) as var
+extern "xstat_covariance" func __stat_covariance(var x, var y) as var
+extern "xstat_covariance_sample" func __stat_covariance_sample(var x, var y) as var
+extern "xstat_correlation" func __stat_correlation(var x, var y) as var
+extern "xstat_linear_fit" func __stat_linear_fit(var x, var y) as var
+extern "xstat_histogram" func __stat_histogram(var values, int bins) as var
+
+
+
+// count 只统计有限数值；非数值、非有限值和非数组输入不计入
+export func count(var values) as int
+    return __stat_count(values)
+end
+
+export func sum(var values) as float
+    var r = __stat_sum(values)
+    if r == null then
+        throw ValueError "statistics: sum requires a non-empty numeric array"
+    end
+    return float(r)
+end
+
+export func mean(var values) as float
+    var r = __stat_mean(values)
+    if r == null then
+        throw ValueError "statistics: mean requires a non-empty numeric array"
+    end
+    return float(r)
+end
+
+export func median(var values) as float
+    var r = __stat_median(values)
+    if r == null then
+        throw ValueError "statistics: median requires a non-empty numeric array"
+    end
+    return float(r)
+end
+
+// mode 返回众数；并列时取排序后最小的一个
+export func mode(var values) as float
+    var r = __stat_mode(values)
+    if r == null then
+        throw ValueError "statistics: mode requires a non-empty numeric array"
+    end
+    return float(r)
+end
+
+export func min(var values) as float
+    var r = __stat_min(values)
+    if r == null then
+        throw ValueError "statistics: min requires a non-empty numeric array"
+    end
+    return float(r)
+end
+
+export func max(var values) as float
+    var r = __stat_max(values)
+    if r == null then
+        throw ValueError "statistics: max requires a non-empty numeric array"
+    end
+    return float(r)
+end
+
+export func range(var values) as float
+    var r = __stat_range(values)
+    if r == null then
+        throw ValueError "statistics: range requires a non-empty numeric array"
+    end
+    return float(r)
+end
+
+// variance 为总体方差（除以 n），varianceSample 为样本方差（除以 n-1）
+export func variance(var values) as float
+    var r = __stat_variance(values)
+    if r == null then
+        throw ValueError "statistics: variance requires a non-empty numeric array"
+    end
+    return float(r)
+end
+
+export func varianceSample(var values) as float
+    var r = __stat_variance_sample(values)
+    if r == null then
+        throw ValueError "statistics: sample variance requires at least two values"
+    end
+    return float(r)
+end
+
+export func stdev(var values) as float
+    var r = __stat_stdev(values)
+    if r == null then
+        throw ValueError "statistics: stdev requires a non-empty numeric array"
+    end
+    return float(r)
+end
+
+export func stdevSample(var values) as float
+    var r = __stat_stdev_sample(values)
+    if r == null then
+        throw ValueError "statistics: sample stdev requires at least two values"
+    end
+    return float(r)
+end
+
+// percentile 使用线性插值法，p 取 0-100
+export func percentile(var values, float p) as float
+    var r = __stat_percentile(values, p)
+    if r == null then
+        throw ValueError "statistics: percentile requires a non-empty numeric array"
+    end
+    return float(r)
+end
+
+// quartiles 返回 Q1、中位数、Q3 三个四分位数
+export func quartiles(var values) as (float, float, float)
+    var r = __stat_quartiles(values)
+    if r == null then
+        throw ValueError "statistics: quartiles require a non-empty numeric array"
+    end
+    return float(r[0]), float(r[1]), float(r[2])
+end
+
+export func iqr(var values) as float
+    var r = __stat_iqr(values)
+    if r == null then
+        throw ValueError "statistics: iqr requires a non-empty numeric array"
+    end
+    return float(r)
+end
+
+// mad 返回平均绝对偏差
+export func mad(var values) as float
+    var r = __stat_mad(values)
+    if r == null then
+        throw ValueError "statistics: mad requires a non-empty numeric array"
+    end
+    return float(r)
+end
+
+// geomean 几何平均数要求全部为正数
+export func geomean(var values) as float
+    var r = __stat_geomean(values)
+    if r == null then
+        throw ValueError "statistics: geomean requires positive values"
+    end
+    return float(r)
+end
+
+// harmmean 调和平均数要求全部非零
+export func harmmean(var values) as float
+    var r = __stat_harmmean(values)
+    if r == null then
+        throw ValueError "statistics: harmmean requires non-zero values"
+    end
+    return float(r)
+end
+
+export func covariance(var x, var y) as float
+    var r = __stat_covariance(x, y)
+    if r == null then
+        throw ValueError "statistics: covariance requires same-length numeric arrays"
+    end
+    return float(r)
+end
+
+export func covarianceSample(var x, var y) as float
+    var r = __stat_covariance_sample(x, y)
+    if r == null then
+        throw ValueError "statistics: sample covariance requires at least two pairs"
+    end
+    return float(r)
+end
+
+// correlation 返回 Pearson 相关系数；常量输入抛错
+export func correlation(var x, var y) as float
+    var r = __stat_correlation(x, y)
+    if r == null then
+        throw ValueError "statistics: correlation requires non-constant inputs"
+    end
+    return float(r)
+end
+
+// linearFit 最小二乘拟合，返回 slope 和 intercept
+export func linearFit(var x, var y) as (float, float)
+    var r = __stat_linear_fit(x, y)
+    if r == null then
+        throw ValueError "statistics: linearFit requires non-constant x values"
+    end
+    return float(r[0]), float(r[1])
+end
+
+// histogram 把数值等宽分箱，返回每箱计数数组
+export func histogram(var values, int bins) as var
+    var r = __stat_histogram(values, bins)
+    if r == null then
+        throw ValueError "statistics: histogram requires at least one bin"
+    end
+    return r
+end

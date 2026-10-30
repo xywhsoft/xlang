@@ -1,0 +1,72 @@
+// Source package exports. The compiler imports this source file directly.
+
+extern "xmd4c_available" func __xl6_native_md4c_available() as c_int
+
+export func available() as bool
+    return __xl6_native_md4c_available() != 0
+end
+extern "xmd4c_version" func __xl6_native_md4c_version() as string
+
+export func version() as string
+    return __xl6_native_md4c_version()
+end
+extern "xmd4c_last_error" func __xl6_native_md4c_last_error() as string
+
+export func last_error() as string
+    return __xl6_native_md4c_last_error()
+end
+
+func __md4c_text(string value)
+    if string.indexOf(value, "\0", false, string.byteLen(value), 1) >= 0 then
+        throw ValueError "md4c: text contains an embedded NUL byte"
+    end
+end
+
+extern "xmd4c_html" @owned func __xl6_native_md4c_html(string markdown) as string
+
+export func html(string markdown) as string
+    __md4c_text(markdown)
+    return __xl6_native_md4c_html(markdown)
+end
+extern "xmd4c_html_flags" @owned func __xl6_native_md4c_html_flags(string markdown, c_int parser_flags, c_int renderer_flags) as string
+
+export func html_flags(string markdown, c_int parser_flags, c_int renderer_flags) as string
+    __md4c_text(markdown)
+    return __xl6_native_md4c_html_flags(markdown, parser_flags, renderer_flags)
+end
+extern "xmd4c_file_html" @owned func __xl6_native_md4c_file_html(string path, c_int parser_flags, c_int renderer_flags) as string
+
+export func file_html(string path, c_int parser_flags, c_int renderer_flags) as string
+    __md4c_text(path)
+    return __xl6_native_md4c_file_html(path, parser_flags, renderer_flags)
+end
+extern "xmd4c_commonmark_flags" func __xl6_native_md4c_commonmark_flags() as c_int
+
+export func commonmark_flags() as c_int
+    return __xl6_native_md4c_commonmark_flags()
+end
+extern "xmd4c_github_flags" func __xl6_native_md4c_github_flags() as c_int
+
+export func github_flags() as c_int
+    return __xl6_native_md4c_github_flags()
+end
+extern "xmd4c_xhtml_flag" func __xl6_native_md4c_xhtml_flag() as c_int
+
+export func xhtml_flag() as c_int
+    return __xl6_native_md4c_xhtml_flag()
+end
+extern "xmd4c_skip_utf8_bom_flag" func __xl6_native_md4c_skip_utf8_bom_flag() as c_int
+
+export func skip_utf8_bom_flag() as c_int
+    return __xl6_native_md4c_skip_utf8_bom_flag()
+end
+extern "xmd4c_verbatim_entities_flag" func __xl6_native_md4c_verbatim_entities_flag() as c_int
+
+export func verbatim_entities_flag() as c_int
+    return __xl6_native_md4c_verbatim_entities_flag()
+end
+extern "xmd4c_no_html_flag" func __xl6_native_md4c_no_html_flag() as c_int
+
+export func no_html_flag() as c_int
+    return __xl6_native_md4c_no_html_flag()
+end

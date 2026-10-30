@@ -1,0 +1,356 @@
+extern "xl6_xrt_last_error_text" func __bloom_error() as string
+
+
+
+class BloomFilter
+    native point handle
+    extern "xbloom_create" create(c_longlong capacity, c_double fp_rate)
+    extern "xbloom_deserialize" create(string data)
+    extern "xbloom_adopt" create(point handle)
+    extern "xbloom_destroy" destroy()
+
+    extern "xbloom_add" func addNative(string data, c_longlong len)
+    // 原生整数返回与语言布尔结果分层，保持 C 头的精确类型。
+    extern "xbloom_contains" func containsNative(string data, c_longlong len) as c_int
+    extern "xbloom_clear" func clearNative()
+    extern "xbloom_count" func countNative() as c_longlong
+    extern "xbloom_bits" func bitsNative() as c_longlong
+    extern "xbloom_hashes" func hashesNative() as c_int
+    extern "xbloom_capacity" func capacityNative() as c_longlong
+    extern "xbloom_estimated_fpp" func estimatedFppNative() as c_double
+    extern "xbloom_estimated_count" func estimatedCountNative() as c_longlong
+    extern "xbloom_union" func unionNative(point other) as c_int
+    extern "xbloom_serialize_owned" @owned func serializeNative() as string?
+    extern "xbloom_clone" func cloneNative() as point
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get count() as int
+        return self.countNative()
+    end
+
+    get bits() as int
+        return self.bitsNative()
+    end
+
+    get hashes() as int
+        return self.hashesNative()
+    end
+
+    get capacity() as int
+        return self.capacityNative()
+    end
+
+    func add(string item)
+        if self.handle == null then
+            throw RuntimeError "bloom: filter is destroyed"
+        end
+        self.addNative(item, c_longlong(string.byteLen(item)))
+    end
+
+    func contains(string item) as bool
+        if self.handle == null then
+            throw RuntimeError "bloom: filter is destroyed"
+        end
+        return self.containsNative(item, c_longlong(string.byteLen(item))) != 0
+    end
+
+    func clear()
+        if self.handle == null then
+            throw RuntimeError "bloom: filter is destroyed"
+        end
+        self.clearNative()
+    end
+
+    // Current false-positive probability given the present fill ratio.
+    func estimatedFpp() as float
+        if self.handle == null then
+            throw RuntimeError "bloom: filter is destroyed"
+        end
+        return self.estimatedFppNative()
+    end
+
+    // Estimated number of distinct elements from the fill ratio.
+    func estimatedCount() as int
+        if self.handle == null then
+            throw RuntimeError "bloom: filter is destroyed"
+        end
+        return self.estimatedCountNative()
+    end
+
+    // Serialize the filter (header + bit array) to a portable hex string.
+    func serialize() as string
+        if self.handle == null then
+            throw RuntimeError "bloom: filter is destroyed"
+        end
+        string? result = self.serializeNative()
+        if result == null then throw MemoryError __bloom_error() end
+        return result
+    end
+
+    // In-place union: this filter also contains everything in other.
+    // Returns false if the two filters have incompatible dimensions.
+    func merge(BloomFilter other) as bool
+        if self.handle == null then
+            throw RuntimeError "bloom: filter is destroyed"
+        end
+        if other == null then
+            return false
+        end
+        return self.unionNative(other.handle) != 0
+    end
+
+    // Independent deep copy. Enables non-destructive union: a.clone().merge(b).
+    func clone() as BloomFilter
+        if self.handle == null then
+            throw RuntimeError "bloom: filter is destroyed"
+        end
+        point hp = self.cloneNative()
+        if hp == null then
+            throw RuntimeError __bloom_error()
+        end
+        return BloomFilter(hp)
+    end
+
+    func addAll(array<string> items)
+        if self.handle == null then
+            throw RuntimeError "bloom: filter is destroyed"
+        end
+        int i = 0
+        while i < items.length
+            self.addNative(items[i], c_longlong(string.byteLen(items[i])))
+            i += 1
+        end
+    end
+
+    func containsAll(array<string> items) as bool
+        if self.handle == null then
+            throw RuntimeError "bloom: filter is destroyed"
+        end
+        int i = 0
+        while i < items.length
+            if self.containsNative(items[i], c_longlong(string.byteLen(items[i]))) == 0 then
+                return false
+            end
+            i += 1
+        end
+        return true
+    end
+
+    func containsAny(array<string> items) as bool
+        if self.handle == null then
+            throw RuntimeError "bloom: filter is destroyed"
+        end
+        int i = 0
+        while i < items.length
+            if self.containsNative(items[i], c_longlong(string.byteLen(items[i]))) != 0 then
+                return true
+            end
+            i += 1
+        end
+        return false
+    end
+end
+
+
+
+class CountingBloomFilter
+    native point handle
+    extern "xcounting_bloom_create" create(c_longlong capacity, c_double fp_rate)
+    extern "xcounting_bloom_deserialize" create(string data)
+    extern "xcounting_bloom_adopt" create(point handle)
+    extern "xcounting_bloom_destroy" destroy()
+
+    extern "xcounting_bloom_add" func addNative(string data, c_longlong len)
+    extern "xcounting_bloom_contains" func containsNative(string data, c_longlong len) as c_int
+    extern "xcounting_bloom_remove" func removeNative(string data, c_longlong len)
+    extern "xcounting_bloom_clear" func clearNative()
+    extern "xcounting_bloom_count" func countNative() as c_longlong
+    extern "xcounting_bloom_slots" func slotsNative() as c_longlong
+    extern "xcounting_bloom_hashes" func hashesNative() as c_int
+    extern "xcounting_bloom_capacity" func capacityNative() as c_longlong
+    extern "xcounting_bloom_estimated_fpp" func estimatedFppNative() as c_double
+    extern "xcounting_bloom_estimated_count" func estimatedCountNative() as c_longlong
+    extern "xcounting_bloom_union" func unionNative(point other) as c_int
+    extern "xcounting_bloom_serialize_owned" @owned func serializeNative() as string?
+    extern "xcounting_bloom_clone" func cloneNative() as point
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get count() as int
+        return self.countNative()
+    end
+
+    get slots() as int
+        return self.slotsNative()
+    end
+
+    get hashes() as int
+        return self.hashesNative()
+    end
+
+    get capacity() as int
+        return self.capacityNative()
+    end
+
+    func add(string item)
+        if self.handle == null then
+            throw RuntimeError "counting bloom: filter is destroyed"
+        end
+        self.addNative(item, c_longlong(string.byteLen(item)))
+    end
+
+    func contains(string item) as bool
+        if self.handle == null then
+            throw RuntimeError "counting bloom: filter is destroyed"
+        end
+        return self.containsNative(item, c_longlong(string.byteLen(item))) != 0
+    end
+
+    func remove(string item)
+        if self.handle == null then
+            throw RuntimeError "counting bloom: filter is destroyed"
+        end
+        self.removeNative(item, c_longlong(string.byteLen(item)))
+    end
+
+    func clear()
+        if self.handle == null then
+            throw RuntimeError "counting bloom: filter is destroyed"
+        end
+        self.clearNative()
+    end
+
+    func estimatedFpp() as float
+        if self.handle == null then
+            throw RuntimeError "counting bloom: filter is destroyed"
+        end
+        return self.estimatedFppNative()
+    end
+
+    func estimatedCount() as int
+        if self.handle == null then
+            throw RuntimeError "counting bloom: filter is destroyed"
+        end
+        return self.estimatedCountNative()
+    end
+
+    func serialize() as string
+        if self.handle == null then
+            throw RuntimeError "counting bloom: filter is destroyed"
+        end
+        string? result = self.serializeNative()
+        if result == null then throw MemoryError __bloom_error() end
+        return result
+    end
+
+    // In-place union via per-slot counter max. Returns false on dimension mismatch.
+    func merge(CountingBloomFilter other) as bool
+        if self.handle == null then
+            throw RuntimeError "counting bloom: filter is destroyed"
+        end
+        if other == null then
+            return false
+        end
+        return self.unionNative(other.handle) != 0
+    end
+
+    // Independent deep copy. Enables non-destructive union: a.clone().merge(b).
+    func clone() as CountingBloomFilter
+        if self.handle == null then
+            throw RuntimeError "counting bloom: filter is destroyed"
+        end
+        point hp = self.cloneNative()
+        if hp == null then
+            throw RuntimeError __bloom_error()
+        end
+        return CountingBloomFilter(hp)
+    end
+
+    func addAll(array<string> items)
+        if self.handle == null then
+            throw RuntimeError "counting bloom: filter is destroyed"
+        end
+        int i = 0
+        while i < items.length
+            self.addNative(items[i], c_longlong(string.byteLen(items[i])))
+            i += 1
+        end
+    end
+
+    func containsAll(array<string> items) as bool
+        if self.handle == null then
+            throw RuntimeError "counting bloom: filter is destroyed"
+        end
+        int i = 0
+        while i < items.length
+            if self.containsNative(items[i], c_longlong(string.byteLen(items[i]))) == 0 then
+                return false
+            end
+            i += 1
+        end
+        return true
+    end
+
+    func containsAny(array<string> items) as bool
+        if self.handle == null then
+            throw RuntimeError "counting bloom: filter is destroyed"
+        end
+        int i = 0
+        while i < items.length
+            if self.containsNative(items[i], c_longlong(string.byteLen(items[i]))) != 0 then
+                return true
+            end
+            i += 1
+        end
+        return false
+    end
+end
+
+
+
+export func create(int capacity, float fpRate = 0.01) as BloomFilter
+    if capacity <= 0 then
+        throw ValueError "bloom: capacity must be positive"
+    end
+    return BloomFilter(c_longlong(capacity), c_double(fpRate))
+end
+
+
+
+export func createCounting(int capacity, float fpRate = 0.01) as CountingBloomFilter
+    if capacity <= 0 then
+        throw ValueError "counting bloom: capacity must be positive"
+    end
+    return CountingBloomFilter(c_longlong(capacity), c_double(fpRate))
+end
+
+
+
+export func deserialize(string data) as BloomFilter
+    if string.indexOf(data, "\0", false, string.byteLen(data), 1) >= 0 then
+        throw ValueError "bloom: serialized data contains NUL"
+    end
+    BloomFilter bf = BloomFilter(data)
+    if not bf.valid then
+        throw ValueError __bloom_error()
+    end
+    return bf
+end
+
+
+
+export func deserializeCounting(string data) as CountingBloomFilter
+    if string.indexOf(data, "\0", false, string.byteLen(data), 1) >= 0 then
+        throw ValueError "counting bloom: serialized data contains NUL"
+    end
+    CountingBloomFilter cf = CountingBloomFilter(data)
+    if not cf.valid then
+        throw ValueError __bloom_error()
+    end
+    return cf
+end

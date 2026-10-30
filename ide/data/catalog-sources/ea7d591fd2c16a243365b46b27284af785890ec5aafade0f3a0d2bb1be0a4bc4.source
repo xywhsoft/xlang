@@ -1,0 +1,77 @@
+extern "xl6_xrt_last_error_text" func __cuckoo_error() as string
+
+
+
+export class CuckooFilter
+    native point handle
+    extern "xcuckoo_create" create(int capacity)
+    extern "xcuckoo_destroy" destroy()
+
+    private extern "xcuckoo_add" func addNative(string data, c_size len) as bool
+    private extern "xcuckoo_contains" func containsNative(string data, c_size len) as bool
+    private extern "xcuckoo_remove" func removeNative(string data, c_size len) as bool
+    private extern "xcuckoo_clear" func clearNative()
+    private extern "xcuckoo_count" func countNative() as int
+    private extern "xcuckoo_buckets" func bucketsNative() as int
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get count() as int
+        if self.handle == null then
+            throw RuntimeError "cuckoo: filter is destroyed"
+        end
+        return self.countNative()
+    end
+
+    get buckets() as int
+        if self.handle == null then
+            throw RuntimeError "cuckoo: filter is destroyed"
+        end
+        return self.bucketsNative()
+    end
+
+    func add(string item)
+        if self.handle == null then
+            throw RuntimeError "cuckoo: filter is destroyed"
+        end
+        if not self.addNative(item, c_size(string.byteLen(item))) then
+            throw RuntimeError __cuckoo_error()
+        end
+    end
+
+    func contains(string item) as bool
+        if self.handle == null then
+            throw RuntimeError "cuckoo: filter is destroyed"
+        end
+        return self.containsNative(item, c_size(string.byteLen(item)))
+    end
+
+    func remove(string item) as bool
+        if self.handle == null then
+            throw RuntimeError "cuckoo: filter is destroyed"
+        end
+        return self.removeNative(item, c_size(string.byteLen(item)))
+    end
+
+    func clear()
+        if self.handle == null then
+            throw RuntimeError "cuckoo: filter is destroyed"
+        end
+        self.clearNative()
+    end
+end
+
+
+
+export func create(int capacity) as CuckooFilter
+    if capacity <= 0 then
+        throw ValueError "cuckoo: capacity must be positive"
+    end
+    CuckooFilter filter = CuckooFilter(capacity)
+    if not filter.valid then
+        throw RuntimeError __cuckoo_error()
+    end
+    return filter
+end

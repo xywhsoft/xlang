@@ -1,0 +1,30 @@
+{
+    "format": "xlang-package-1",
+    "name": "xhttp.body_stream",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": [
+            "src/http/http_body_stream.c",
+            "src/xlang/xhttp_body_stream_native.c"
+        ],
+        "xlSources": ["src/xlang/xhttp_body_stream.xl"],
+        "xrtModules": ["XRT_MODULE_MUTEX"]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [
+        {
+            "name": "xhttp.body_async",
+            "version": "1.0.0",
+            "abiVersion": "1"
+        }
+    ],
+    "coverage": {
+        "mode": "suite",
+        "tests": ["test/xhttp_body_stream_test.xl"]
+    },
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

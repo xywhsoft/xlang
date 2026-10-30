@@ -1,0 +1,12 @@
+# xhttp.body_decode
+
+`xhttp.body_decode` 按一个字段值或完整 `Headers` 的
+`Content-Encoding` 计划反向组合流式解压正文。未知编码不会被部分解码，
+结果对象明确区分未变化、已解码和不支持，并始终提供一个调用方拥有的 `Body`。
+
+```xlang
+auto result = xhttp.body_decode.decode(responseBody, responseHeaders)
+if result.supported then
+    consume(result.body)
+end
+```

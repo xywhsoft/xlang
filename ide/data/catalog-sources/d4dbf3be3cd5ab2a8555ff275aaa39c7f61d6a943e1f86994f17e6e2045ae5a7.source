@@ -1,0 +1,35 @@
+extern "xprometheus_metric_type" func __metric_type(int id) as string
+extern "xprometheus_aggregation" func __aggregation(int id) as string
+extern "xprometheus_function" func __function(int id) as string
+extern "xprometheus_label" func __label(int id) as string
+extern "xprometheus_format_metric" func __format_metric(string name, string labels, float value) as string
+extern "xprometheus_alert_state" func __alert_state(int id) as string
+extern "xprometheus_storage" func __storage(int id) as string
+
+export func metricType(int id) as string
+    return __metric_type(id)
+end
+
+export func aggregation(int id) as string
+    return __aggregation(id)
+end
+
+export func function(int id) as string
+    return __function(id)
+end
+
+export func label(int id) as string
+    return __label(id)
+end
+
+export func formatMetric(string name, string labels, float value) as string
+    return __format_metric(name, labels, value)
+end
+
+export func alertState(int id) as string
+    return __alert_state(id)
+end
+
+export func storage(int id) as string
+    return __storage(id)
+end

@@ -1,0 +1,39 @@
+{
+    "format": "xlang-package-1",
+    "name": "xhttp.form_data",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": [
+            "src/http/form_data.c",
+            "src/http/form_data_multipart.c",
+            "src/http/form_data_parse.c",
+            "src/xlang/xhttp_form_data_native_common.c",
+            "src/xlang/xhttp_form_data_native.c",
+            "src/xlang/xhttp_form_data_native_parse.c"
+        ],
+        "xlSources": ["src/xlang/xhttp_form_data.xl"],
+        "xrtModules": ["XRT_MODULE_IO_BUFFER"]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [
+        {
+            "name": "xhttp.body",
+            "version": "1.0.0",
+            "abiVersion": "1"
+        },
+        {
+            "name": "xhttp.multipart",
+            "version": "1.0.0",
+            "abiVersion": "1"
+        }
+    ],
+    "coverage": {
+        "mode": "suite",
+        "tests": ["test/xhttp_form_data_test.xl"]
+    },
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

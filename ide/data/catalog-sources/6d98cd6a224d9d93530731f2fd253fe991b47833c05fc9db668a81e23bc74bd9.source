@@ -1,0 +1,75 @@
+extern "xenet_header" func __enet_hdr(int peer_id, int sent_time) as string
+extern "xenet_connect" func __enet_conn(int channel_count, int data) as string
+extern "xenet_disconnect" func __enet_disc(int data) as string
+extern "xenet_ping" func __enet_ping() as string
+extern "xenet_send_reliable" func __enet_srel(int channel, string data) as string
+extern "xenet_send_unreliable" func __enet_sunrel(int channel, string data) as string
+extern "xenet_get_command" func __enet_gcmd(string pkt_hex) as int
+extern "xenet_command_name" func __enet_cname(int cmd) as string
+extern "xenet_event_name" func __enet_ename(int event) as string
+extern "xenet_flag_reliable" func __enet_frel() as int
+extern "xenet_flag_unsequenced" func __enet_funseq() as int
+extern "xenet_flag_no_allocate" func __enet_fnoalloc() as int
+extern "xenet_default_port" func __enet_port() as int
+extern "xenet_protocol_version" func __enet_ver() as int
+extern "xenet_valid_channels" func __enet_vchan(int count) as int
+
+export func header(int peer_id, int sent_time) as string
+    return __enet_hdr(peer_id, sent_time)
+end
+
+export func connect(int channel_count, int data) as string
+    return __enet_conn(channel_count, data)
+end
+
+export func disconnect(int data) as string
+    return __enet_disc(data)
+end
+
+export func ping() as string
+    return __enet_ping()
+end
+
+export func sendReliable(int channel, string data) as string
+    return __enet_srel(channel, data)
+end
+
+export func sendUnreliable(int channel, string data) as string
+    return __enet_sunrel(channel, data)
+end
+
+export func getCommand(string pkt_hex) as int
+    return __enet_gcmd(pkt_hex)
+end
+
+export func commandName(int cmd) as string
+    return __enet_cname(cmd)
+end
+
+export func eventName(int event) as string
+    return __enet_ename(event)
+end
+
+export func flagReliable() as int
+    return __enet_frel()
+end
+
+export func flagUnsequenced() as int
+    return __enet_funseq()
+end
+
+export func flagNoAllocate() as int
+    return __enet_fnoalloc()
+end
+
+export func defaultPort() as int
+    return __enet_port()
+end
+
+export func protocolVersion() as int
+    return __enet_ver()
+end
+
+export func validChannels(int count) as int
+    return __enet_vchan(count)
+end

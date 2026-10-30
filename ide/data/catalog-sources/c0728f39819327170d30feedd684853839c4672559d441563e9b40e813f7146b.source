@@ -1,0 +1,35 @@
+extern "xk8s_resource_type" func __resource_type(int id) as string
+extern "xk8s_pod_phase" func __pod_phase(int id) as string
+extern "xk8s_service_type" func __service_type(int id) as string
+extern "xk8s_restart_policy" func __restart_policy(int id) as string
+extern "xk8s_api_group" func __api_group(int id) as string
+extern "xk8s_parse_cpu_milli" func __parse_cpu_milli(string qty) as int
+extern "xk8s_condition_type" func __condition_type(int id) as string
+
+export func resourceType(int id) as string
+    return __resource_type(id)
+end
+
+export func podPhase(int id) as string
+    return __pod_phase(id)
+end
+
+export func serviceType(int id) as string
+    return __service_type(id)
+end
+
+export func restartPolicy(int id) as string
+    return __restart_policy(id)
+end
+
+export func apiGroup(int id) as string
+    return __api_group(id)
+end
+
+export func parseCpuMilli(string qty) as int
+    return __parse_cpu_milli(qty)
+end
+
+export func conditionType(int id) as string
+    return __condition_type(id)
+end

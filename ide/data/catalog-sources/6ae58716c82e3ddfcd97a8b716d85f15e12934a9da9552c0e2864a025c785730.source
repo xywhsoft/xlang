@@ -1,0 +1,25 @@
+export func add_one(int value = 41) as int
+    return value + 1
+end
+
+export func available() as bool
+    return true
+end
+
+export func version() as string
+    return "1.0.0"
+end
+
+export func last_error() as string
+    return ""
+end
+
+export "xpkg_math_available" func available_export() as bool
+    return available()
+end
+
+export "xpkg_math_add_one" func add_one_export(int value) as int
+    return add_one(value)
+end
+
+export "xpkg_math_base" int base = 41

@@ -1,0 +1,40 @@
+extern "xgit_object_type" func __object_type(int id) as string
+extern "xgit_reset_type" func __reset_type(int id) as string
+extern "xgit_merge_strategy" func __merge_strategy(int id) as string
+extern "xgit_diff_format" func __diff_format(int id) as string
+extern "xgit_branch_type" func __branch_type(int id) as string
+extern "xgit_hash_object" func __hash_object(string content) as string
+extern "xgit_config_scope" func __config_scope(int id) as string
+extern "xgit_submodule_status" func __submodule_status(int id) as string
+
+export func objectType(int id) as string
+    return __object_type(id)
+end
+
+export func resetType(int id) as string
+    return __reset_type(id)
+end
+
+export func mergeStrategy(int id) as string
+    return __merge_strategy(id)
+end
+
+export func diffFormat(int id) as string
+    return __diff_format(id)
+end
+
+export func branchType(int id) as string
+    return __branch_type(id)
+end
+
+export func hashObject(string content) as string
+    return __hash_object(content)
+end
+
+export func configScope(int id) as string
+    return __config_scope(id)
+end
+
+export func submoduleStatus(int id) as string
+    return __submodule_status(id)
+end

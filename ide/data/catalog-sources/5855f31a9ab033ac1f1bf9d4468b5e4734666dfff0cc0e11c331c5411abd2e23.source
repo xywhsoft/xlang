@@ -1,0 +1,48 @@
+extern "xcli_parse" func __cli_parse(var args, var spec) as var
+
+
+
+// parse 解析命令行参数数组，spec 结构：
+//   flags: ["verbose", "force"]       长旗标；单字母名称如 "v" 可直接用 -v
+//   shorts: {"verbose": "v"}          长旗标的短别名必须显式声明
+//   options: {"output": "o"}          选项名到短字母映射（无短字母用空串）
+//   defaults: {"level": "3"}          选项默认值
+//   positional: ["src", "dst"]        位置参数名
+// 返回 {"ok", "error", "flags", "options", "positional", "rest"}
+// 参数拼写错误返回 ok=false；声明、输入类型或 NUL 非法抛 ValueError，分配失败抛 MemoryError
+export func parse(var args, var spec) as var
+    var r = __cli_parse(args, spec)
+    if r == null then
+        throw ValueError "cli: parse requires an args array and a spec object"
+    end
+    return r
+end
+
+// parseOs 使用当前进程参数解析（等价于 parse(os.args(), spec)）
+export func parseOs(var spec) as var
+    return parse(os.args(), spec)
+end
+
+// usage 由 spec 生成简短用法说明文本
+export func usage(string program, var spec) as string
+    string text = "usage: " + program
+    var flags = spec["flags"]
+    if flags != null then
+        for f in flags
+            text = text + " [--" + string(f) + "]"
+        end
+    end
+    var options = spec["options"]
+    if options != null then
+        for name, shorts in options
+            text = text + " [--" + string(name) + " VALUE]"
+        end
+    end
+    var positional = spec["positional"]
+    if positional != null then
+        for p in positional
+            text = text + " <" + string(p) + ">"
+        end
+    end
+    return text
+end

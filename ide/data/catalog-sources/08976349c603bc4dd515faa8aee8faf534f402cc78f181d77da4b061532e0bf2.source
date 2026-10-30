@@ -1,0 +1,19 @@
+{
+    "format": "xlang-package-1",
+    "name": "skiplist",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": ["skiplist_native.c"],
+        "xrtModules": ["XRT_MODULE_VALUE_CONTAINER", "XRT_MODULE_RANDOM_SECURE", "XRT_MODULE_RANDOM"],
+        "includeDirs": ["include"],
+        "xlSources": ["src/skiplist.xl"]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/allocations.xl", "test/snapshots.xl", "examples/binary_snapshots.xl"] },
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

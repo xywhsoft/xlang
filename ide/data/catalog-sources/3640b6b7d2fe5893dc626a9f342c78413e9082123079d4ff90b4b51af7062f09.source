@@ -1,0 +1,30 @@
+extern "xhnsw_space" func __space(int id) as string
+extern "xhnsw_optimal_m" func __optimal_m(int dim) as int
+extern "xhnsw_memory_per_element" func __memory_per_element(int m, int dim) as int
+extern "xhnsw_search_ops" func __search_ops(int n, int ef, int m) as int
+extern "xhnsw_param" func __param(int id) as string
+extern "xhnsw_l2sq" func __l2sq(string a, string b) as float
+
+export func space(int id) as string
+    return __space(id)
+end
+
+export func optimalM(int dim) as int
+    return __optimal_m(dim)
+end
+
+export func memoryPerElement(int m, int dim) as int
+    return __memory_per_element(m, dim)
+end
+
+export func searchOps(int n, int ef, int m) as int
+    return __search_ops(n, ef, m)
+end
+
+export func param(int id) as string
+    return __param(id)
+end
+
+export func l2sq(string a, string b) as float
+    return __l2sq(a, b)
+end

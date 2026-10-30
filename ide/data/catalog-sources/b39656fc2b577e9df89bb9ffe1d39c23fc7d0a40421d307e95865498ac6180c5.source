@@ -1,0 +1,82 @@
+extern "xl6_xrt_last_error_text" func __watch_error() as string
+
+func __watch_has_nul(string path) as bool
+    return string.indexOf(path, "\0", false, string.byteLen(path), 1) >= 0
+end
+
+
+export class Watcher
+    native point handle
+    extern "xwatch_create" create()
+    extern "xwatch_destroy" destroy()
+
+    private extern "xwatch_add" func addNative(string path) as int
+    private extern "xwatch_remove" func removeNative(int idx) as bool
+    private extern "xwatch_poll" @owned func pollNative() as string
+    private extern "xwatch_count" func countNative() as int
+    private extern "xwatch_path" func pathNative(int idx) as string
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get count() as int
+        if self.handle == null then
+            throw RuntimeError "watch: instance is destroyed"
+        end
+        return self.countNative()
+    end
+
+    func add(string path) as int
+        if self.handle == null then
+            throw RuntimeError "watch: instance is destroyed"
+        end
+        if __watch_has_nul(path) then
+            throw ValueError "watch: path contains an embedded NUL byte"
+        end
+        int index = self.addNative(path)
+        if index < 0 then
+            throw ValueError "watch: cannot add path: " + __watch_error()
+        end
+        return index
+    end
+
+    func remove(int idx) as bool
+        if self.handle == null then
+            throw RuntimeError "watch: instance is destroyed"
+        end
+        return self.removeNative(idx)
+    end
+
+    func poll() as string
+        if self.handle == null then
+            throw RuntimeError "watch: instance is destroyed"
+        end
+        // C 确认快照后直接移交事件，不能再因正文复制失败而丢失该事件。
+        return self.pollNative()
+    end
+
+    func path(int idx) as string
+        if self.handle == null then
+            throw RuntimeError "watch: instance is destroyed"
+        end
+        return self.pathNative(idx)
+    end
+end
+
+extern "xwatch_exists" func __watch_exists(string path) as bool
+
+
+
+export func create() as Watcher
+    Watcher watcher = Watcher()
+    if not watcher.valid then throw RuntimeError __watch_error() end
+    return watcher
+end
+
+export func exists(string path) as bool
+    if __watch_has_nul(path) then
+        return false
+    end
+    return __watch_exists(path)
+end

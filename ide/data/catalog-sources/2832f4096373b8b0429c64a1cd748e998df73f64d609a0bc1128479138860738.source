@@ -1,0 +1,211 @@
+extern "xhttp_body_last_error" func __xhttp_body_error_native() as point
+extern "xhttp_body_create_copy" func __xhttp_body_copy(
+    point data, c_size size) as point
+
+
+
+export const int BODY_ERROR = -1
+export const int BODY_EOF = 0
+export const int BODY_DATA = 1
+export const int BODY_AGAIN = 2
+export const int BODY_REPLAYABLE = 1
+
+
+
+// 复制当前线程错误文本并生成稳定字符串。
+func __xhttp_body_error() as string
+    point handle = __xhttp_body_error_native()
+    if handle == null then
+        return "xhttp.body operation failed"
+    end
+    return Buffer(handle).text()
+end
+
+
+
+// 检查拥有型原生句柄并保留 XRT 的结构化失败原因。
+func __xhttp_body_handle(point handle) as point
+    if handle == null then
+        throw RuntimeError __xhttp_body_error()
+    end
+    return handle
+end
+
+
+
+// 返回当前线程最近一次 xhttp.body/XRT 错误文本。
+export func lastError() as string
+    return __xhttp_body_error()
+end
+
+
+
+// Body 是不可变正文源，可由固定字节、自定义流或组合正文实现。
+export class Body
+    native point handle
+    extern "xhttp_body_create_empty" create()
+    extern "xhttp_body_create_text" create(string text, c_size size)
+    extern "xhttp_body_wrap" create(point handle)
+    extern "xhttp_body_destroy_abi" destroy()
+    extern "xhttp_body_native" func nativeHandle() as point
+    extern "xhttp_body_ref" func refNative() as point
+    extern "xhttp_body_length" func lengthNative() as c_longlong
+    extern "xhttp_body_flags" func flagsNative() as c_ulonglong
+    extern "xhttp_body_replayable" func replayableNative() as bool
+    extern "xhttp_body_view" func viewNative() as point
+    extern "xhttp_body_read_all" func readAllNative(
+        c_ulonglong maxBytes) as point
+    extern "xhttp_body_concat" func concatNative(point other) as point
+    extern "xhttp_body_with_text" func withTextNative(cstring text, bool prepend) as point
+    extern "xhttp_body_with_bytes" func withBytesNative(
+        point data, c_size size, bool prepend) as point
+
+    static func empty() as Body
+        return Body()
+    end
+
+    static func fromText(string text) as Body
+        return Body(text, c_size(string.byteLen(text)))
+    end
+
+    static func fromBuffer(Buffer data) as Body
+        return Body(__xhttp_body_handle(__xhttp_body_copy(
+            data.data(), c_size(data.len()))))
+    end
+
+    get length() as int
+        return int(self.lengthNative())
+    end
+
+    get lengthKnown() as bool
+        return self.length >= 0
+    end
+
+    get flags() as int
+        return int(self.flagsNative())
+    end
+
+    get replayable() as bool
+        return self.replayableNative()
+    end
+
+    func share() as Body
+        return Body(__xhttp_body_handle(self.refNative()))
+    end
+
+    func view() as Buffer?
+        point result = self.viewNative()
+        if result == null then
+            return null
+        end
+        return Buffer(result)
+    end
+
+    func open() as BodyReader
+        return BodyReader(self.nativeHandle())
+    end
+
+    func readAll(int maxBytes = 67108864) as Buffer
+        if maxBytes < 0 then
+            throw ValueError "HTTP body byte limit must not be negative"
+        end
+        return Buffer(__xhttp_body_handle(self.readAllNative(
+            c_ulonglong(maxBytes))))
+    end
+
+    func text(int maxBytes = 67108864) as string
+        return self.readAll(maxBytes).text()
+    end
+
+    func concat(Body other) as Body
+        return Body(__xhttp_body_handle(
+            self.concatNative(other.nativeHandle())))
+    end
+
+    func append(Buffer data) as Body
+        return Body(__xhttp_body_handle(self.withBytesNative(
+            data.data(), c_size(data.len()), false)))
+    end
+
+    func appendText(string text) as Body
+        return Body(__xhttp_body_handle(self.withTextNative(text, false)))
+    end
+
+    func prepend(Buffer data) as Body
+        return Body(__xhttp_body_handle(self.withBytesNative(
+            data.data(), c_size(data.len()), true)))
+    end
+
+    func prependText(string text) as Body
+        return Body(__xhttp_body_handle(self.withTextNative(text, true)))
+    end
+
+    func __add__(Body other) as Body
+        return self.concat(other)
+    end
+end
+
+
+
+// BodyReader 是单消费状态机，lastStatus 区分 EOF、AGAIN 和错误。
+export class BodyReader
+    native point handle
+    extern "xhttp_body_open" create(point body)
+    extern "xhttp_body_reader_destroy_abi" destroy()
+    extern "xhttp_body_reader_native" func nativeHandle() as point
+    extern "xhttp_body_reader_next" func nextNative(
+        c_size maxBytes) as point
+    extern "xhttp_body_reader_status" func statusNative() as c_longlong
+    extern "xhttp_body_reader_bytes" func bytesNative() as c_ulonglong
+
+    get lastStatus() as int
+        return int(self.statusNative())
+    end
+
+    get bytesRead() as int
+        return int(self.bytesNative())
+    end
+
+    func next(int maxBytes = 65536) as BodyChunk?
+        if maxBytes <= 0 then
+            throw ValueError "BodyReader maximum chunk size must be positive"
+        end
+        point result = self.nextNative(c_size(maxBytes))
+        if result == null then
+            if self.lastStatus == BODY_ERROR then
+                throw RuntimeError __xhttp_body_error()
+            end
+            return null
+        end
+        return BodyChunk(result)
+    end
+end
+
+
+
+// BodyChunk 直接持有一次零复制数据租约，销毁时归还来源引用。
+export class BodyChunk
+    native point handle
+    extern "xhttp_body_chunk_wrap" create(point handle)
+    extern "xhttp_body_chunk_destroy_abi" destroy()
+    extern "xhttp_body_chunk_native" func nativeHandle() as point
+    extern "xhttp_body_chunk_data" func data() as point
+    extern "xhttp_body_chunk_size" func sizeNative() as c_ulonglong
+    extern "xhttp_body_chunk_copy" func copyNative() as point
+
+    get size() as int
+        return int(self.sizeNative())
+    end
+
+    func copy() as Buffer
+        return Buffer(__xhttp_body_handle(self.copyNative()))
+    end
+
+    func text() as string
+        return self.copy().text()
+    end
+
+    func __len__() as int
+        return self.size
+    end
+end

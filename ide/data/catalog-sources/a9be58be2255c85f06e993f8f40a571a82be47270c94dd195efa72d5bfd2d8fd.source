@@ -1,0 +1,73 @@
+extern "xl6_xrt_last_error_text" func __gpio_error() as string
+
+
+
+class Gpio
+    native point handle
+    extern "xgpio_init" create()
+    extern "xgpio_cleanup" destroy()
+
+    extern "xgpio_export" func exportNative(int pin) as bool
+    extern "xgpio_unexport" func unexportNative(int pin) as bool
+    extern "xgpio_set_direction" func setDirNative(int pin, int dir) as bool
+    extern "xgpio_get_direction" func getDirNative(int pin) as int
+    extern "xgpio_write" func writeNative(int pin, int value) as bool
+    extern "xgpio_read" func readNative(int pin) as int
+    extern "xgpio_set_pull" func setPullNative(int pin, int pull) as bool
+    extern "xgpio_is_exported" func isExportedNative(int pin) as bool
+    extern "xgpio_toggle" func toggleNative(int pin) as int
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    func exportPin(int pin) as bool
+        return self.exportNative(pin)
+    end
+
+    func unexportPin(int pin) as bool
+        return self.unexportNative(pin)
+    end
+
+    func setOutput(int pin) as bool
+        return self.setDirNative(pin, 1)
+    end
+
+    func setInput(int pin) as bool
+        return self.setDirNative(pin, 0)
+    end
+
+    func direction(int pin) as int
+        return self.getDirNative(pin)
+    end
+
+    func write(int pin, int value) as bool
+        return self.writeNative(pin, value)
+    end
+
+    func read(int pin) as int
+        return self.readNative(pin)
+    end
+
+    func setPullUp(int pin) as bool
+        return self.setPullNative(pin, 1)
+    end
+
+    func setPullDown(int pin) as bool
+        return self.setPullNative(pin, 2)
+    end
+
+    func isExported(int pin) as bool
+        return self.isExportedNative(pin)
+    end
+
+    func toggle(int pin) as int
+        return self.toggleNative(pin)
+    end
+end
+
+
+
+export func init() as Gpio
+    return Gpio()
+end

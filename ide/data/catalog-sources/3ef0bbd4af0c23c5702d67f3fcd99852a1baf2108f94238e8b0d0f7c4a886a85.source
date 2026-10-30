@@ -1,0 +1,43 @@
+{
+    "format":  "xlang-package-1",
+    "name":  "zstd",
+    "version":  "1.0.0",
+    "abiVersion":  "1",
+    "kind":  "demo6-extlib",
+    "artifact":  {
+                     "kind":  "source",
+                     "cSources":  [
+                                      "xrt_zstd.c",
+                                      "zstd_native.c",
+                                      "third_party/zstd.c"
+                                  ],
+                     "xlSources":  [
+                                       "src/zstd.xl"
+                                   ],
+                     "includeDirs":  ["include"],
+                     "xrtModules":  [
+                                        "XRT_MODULE_IO_BUFFER",
+                                        "XRT_MODULE_IO_FILE",
+                                        "XRT_MODULE_FILE_TEMP",
+                                        "XRT_MODULE_ERROR_FORMAT",
+                                        "XRT_MODULE_PATH",
+                                        "XRT_MODULE_UNICODE",
+                                        "XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE"
+                                    ]
+                 },
+    "links":  [
+
+              ],
+    "loadlibs":  [
+
+                 ],
+    "dependencies":  [
+
+                     ],
+    "coverage": { "mode": "suite", "tests": ["test/wire_fixture.xl", "test/file_ops.xl", "test/concat_boundary.xl", "test/error_dispatch.xl"] },
+    "native":  {
+                   "singleton":  false,
+                   "loadName":  "",
+                   "version":  ""
+               }
+}

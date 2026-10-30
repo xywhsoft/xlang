@@ -1,0 +1,57 @@
+extern "xusb_device_count" func __usb_count() as int
+extern "xusb_get_vid" func __usb_vid(int idx) as int
+extern "xusb_get_pid" func __usb_pid(int idx) as int
+extern "xusb_get_name" func __usb_name(int idx) as string
+extern "xusb_get_bus" func __usb_bus(int idx) as int
+extern "xusb_get_addr" func __usb_addr(int idx) as int
+extern "xusb_find" func __usb_find(int vid, int pid) as int
+extern "xusb_format_id" func __usb_fmtid(int vid, int pid) as string
+extern "xusb_control_request" func __usb_ctrl(int rt, int req, int val, int idx, int len) as string
+extern "xusb_class_name" func __usb_class(int code) as string
+extern "xusb_descriptor_name" func __usb_desc(int dtype) as string
+
+
+
+export func deviceCount() as int
+    return __usb_count()
+end
+
+export func getVid(int idx) as int
+    return __usb_vid(idx)
+end
+
+export func getPid(int idx) as int
+    return __usb_pid(idx)
+end
+
+export func getName(int idx) as string
+    return __usb_name(idx)
+end
+
+export func getBus(int idx) as int
+    return __usb_bus(idx)
+end
+
+export func getAddr(int idx) as int
+    return __usb_addr(idx)
+end
+
+export func find(int vid, int pid) as int
+    return __usb_find(vid, pid)
+end
+
+export func formatId(int vid, int pid) as string
+    return __usb_fmtid(vid, pid)
+end
+
+export func controlRequest(int bmRequestType, int bRequest, int wValue, int wIndex, int wLength) as string
+    return __usb_ctrl(bmRequestType, bRequest, wValue, wIndex, wLength)
+end
+
+export func className(int code) as string
+    return __usb_class(code)
+end
+
+export func descriptorName(int dtype) as string
+    return __usb_desc(dtype)
+end

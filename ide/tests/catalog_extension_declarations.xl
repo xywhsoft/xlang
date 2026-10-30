@@ -1,0 +1,90 @@
+#doc
+desc:
+    测试公开声明与 UTF-8 范围。
+param 参数:
+    保留中文参数名。
+return value:
+    返回首个整数。
+example:
+    sample.named(1)
+#end
+export func named(int 参数 = 1) as int
+    return 参数
+end
+
+export const int ANSWER = 42
+export int current = 0
+export typedef Count = int
+export enum State as int
+    idle = 0
+    active
+end
+export enum Packet<T>
+    empty
+    value(T item)
+end
+export union Word
+    int bits
+    float number
+end
+
+export func nested(string text = " a,(b)=c ", array<int> values = [1, 2],
+    func(int) as int callback = func(int n) as int => n) as (int, string)
+    return 1, text
+end
+export func many(string head, ...)
+end
+export func keyed(***)
+end
+export func mutate(int value)
+end
+export func overload(int value) as int
+    return value
+end
+export func overload(string value) as string
+    return value
+end
+
+export protocol Named
+    func name() as string
+end
+
+class Native
+    native point handle
+    extern "native_create" create(int value = 0)
+    extern "native_destroy" destroy()
+    extern "native_read" func read() as int
+end
+export func factory() as Native
+    return Native()
+end
+
+class Hidden
+    func hidden()
+    end
+end
+
+export class Box<T>
+    T value
+    private int hidden
+    protected int secret
+    public static int total = 0
+    public static func zero() as int
+        return 0
+    end
+    create(int n = 1)
+    end
+    get item(int index) as T
+        return self.value
+    end
+    let item(int index, T value)
+        self.value = value
+    end
+    extern "read_size" get size() as int
+    extern "write_size" let size(int value)
+    func __item__(int key) as T
+        return self.value
+    end
+    private func privateMethod()
+    end
+end

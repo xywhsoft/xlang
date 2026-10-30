@@ -1,0 +1,40 @@
+extern "xotel_signal_type" func __signal_type(int id) as string
+extern "xotel_span_kind" func __span_kind(int id) as string
+extern "xotel_span_status" func __span_status(int id) as string
+extern "xotel_exporter" func __exporter(int id) as string
+extern "xotel_sampler" func __sampler(int id) as string
+extern "xotel_propagator" func __propagator(int id) as string
+extern "xotel_gen_trace_id" func __gen_trace_id(int seed) as string
+extern "xotel_semconv" func __semconv(int id) as string
+
+export func signalType(int id) as string
+    return __signal_type(id)
+end
+
+export func spanKind(int id) as string
+    return __span_kind(id)
+end
+
+export func spanStatus(int id) as string
+    return __span_status(id)
+end
+
+export func exporter(int id) as string
+    return __exporter(id)
+end
+
+export func sampler(int id) as string
+    return __sampler(id)
+end
+
+export func propagator(int id) as string
+    return __propagator(id)
+end
+
+export func genTraceId(int seed) as string
+    return __gen_trace_id(seed)
+end
+
+export func semconv(int id) as string
+    return __semconv(id)
+end

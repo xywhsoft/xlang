@@ -1,0 +1,40 @@
+extern "xch_client_packet" func __client_packet(int type) as string
+extern "xch_server_packet" func __server_packet(int type) as string
+extern "xch_type_name" func __type_name(int type_id) as string
+extern "xch_compression" func __compression(int method) as string
+extern "xch_encode_varint" func __encode_varint(int value) as string
+extern "xch_decode_varint" func __decode_varint(string hex) as int
+extern "xch_setting_default" func __setting_default(string name) as string
+extern "xch_engine_name" func __engine_name(int id) as string
+
+export func clientPacket(int type) as string
+    return __client_packet(type)
+end
+
+export func serverPacket(int type) as string
+    return __server_packet(type)
+end
+
+export func typeName(int type_id) as string
+    return __type_name(type_id)
+end
+
+export func compression(int method) as string
+    return __compression(method)
+end
+
+export func encodeVarint(int value) as string
+    return __encode_varint(value)
+end
+
+export func decodeVarint(string hex) as int
+    return __decode_varint(hex)
+end
+
+export func settingDefault(string name) as string
+    return __setting_default(name)
+end
+
+export func engineName(int id) as string
+    return __engine_name(id)
+end

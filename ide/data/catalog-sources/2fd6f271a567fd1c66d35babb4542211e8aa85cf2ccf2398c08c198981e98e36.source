@@ -1,0 +1,35 @@
+extern "xjieba_mode" func __mode(int id) as string
+extern "xjieba_pos_tag" func __pos_tag(int id) as string
+extern "xjieba_dict_type" func __dict_type(int id) as string
+extern "xjieba_word_freq" func __word_freq(string word) as int
+extern "xjieba_tokenizer" func __tokenizer(int id) as string
+extern "xjieba_encoding" func __encoding(int id) as string
+extern "xjieba_char_count" func __char_count(string text) as int
+
+export func mode(int id) as string
+    return __mode(id)
+end
+
+export func posTag(int id) as string
+    return __pos_tag(id)
+end
+
+export func dictType(int id) as string
+    return __dict_type(id)
+end
+
+export func wordFreq(string word) as int
+    return __word_freq(word)
+end
+
+export func tokenizer(int id) as string
+    return __tokenizer(id)
+end
+
+export func encoding(int id) as string
+    return __encoding(id)
+end
+
+export func charCount(string text) as int
+    return __char_count(text)
+end

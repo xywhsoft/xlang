@@ -1,0 +1,72 @@
+extern "xvault_kv2_read_path" func __v_kv2r(string mount, string path) as string
+extern "xvault_kv2_write_path" func __v_kv2w(string mount, string path) as string
+extern "xvault_kv1_read_path" func __v_kv1r(string mount, string path) as string
+extern "xvault_kv2_write_body" func __v_kv2body(string json) as string
+extern "xvault_kv2_delete_path" func __v_kv2d(string mount, string path) as string
+extern "xvault_kv2_metadata_path" func __v_kv2m(string mount, string path) as string
+extern "xvault_token_create_body" func __v_token(string policies, int ttl) as string
+extern "xvault_approle_login" func __v_approle(string role_id, string secret_id) as string
+extern "xvault_userpass_login_path" func __v_upath(string username) as string
+extern "xvault_userpass_login_body" func __v_ubody(string password) as string
+extern "xvault_valid_mount" func __v_vmount(string mount) as bool
+extern "xvault_auth_method_name" func __v_authname(string method) as string
+extern "xvault_health_path" func __v_health() as string
+extern "xvault_seal_status_path" func __v_seal() as string
+
+
+
+export func kv2ReadPath(string mount, string path) as string
+    return __v_kv2r(mount, path)
+end
+
+export func kv2WritePath(string mount, string path) as string
+    return __v_kv2w(mount, path)
+end
+
+export func kv1ReadPath(string mount, string path) as string
+    return __v_kv1r(mount, path)
+end
+
+export func kv2WriteBody(string json_data) as string
+    return __v_kv2body(json_data)
+end
+
+export func kv2DeletePath(string mount, string path) as string
+    return __v_kv2d(mount, path)
+end
+
+export func kv2MetadataPath(string mount, string path) as string
+    return __v_kv2m(mount, path)
+end
+
+export func tokenCreateBody(string policies, int ttl_seconds) as string
+    return __v_token(policies, ttl_seconds)
+end
+
+export func approleLogin(string role_id, string secret_id) as string
+    return __v_approle(role_id, secret_id)
+end
+
+export func userpassLoginPath(string username) as string
+    return __v_upath(username)
+end
+
+export func userpassLoginBody(string password) as string
+    return __v_ubody(password)
+end
+
+export func validMount(string mount) as bool
+    return __v_vmount(mount)
+end
+
+export func authMethodName(string method) as string
+    return __v_authname(method)
+end
+
+export func healthPath() as string
+    return __v_health()
+end
+
+export func sealStatusPath() as string
+    return __v_seal()
+end

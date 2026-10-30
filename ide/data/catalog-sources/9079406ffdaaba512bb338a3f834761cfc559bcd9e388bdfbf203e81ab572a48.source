@@ -1,0 +1,40 @@
+extern "xrocksdb_compression" func __compression(int id) as string
+extern "xrocksdb_compaction_style" func __compaction_style(int id) as string
+extern "xrocksdb_memtable" func __memtable(int id) as string
+extern "xrocksdb_wal_mode" func __wal_mode(int id) as string
+extern "xrocksdb_iterator_direction" func __iterator_direction(int id) as string
+extern "xrocksdb_hash_slot" func __hash_slot(string key, int slots) as int
+extern "xrocksdb_cf_option" func __cf_option(int id) as string
+extern "xrocksdb_stat_name" func __stat_name(int id) as string
+
+export func compression(int id) as string
+    return __compression(id)
+end
+
+export func compactionStyle(int id) as string
+    return __compaction_style(id)
+end
+
+export func memtable(int id) as string
+    return __memtable(id)
+end
+
+export func walMode(int id) as string
+    return __wal_mode(id)
+end
+
+export func iteratorDirection(int id) as string
+    return __iterator_direction(id)
+end
+
+export func hashSlot(string key, int slots) as int
+    return __hash_slot(key, slots)
+end
+
+export func cfOption(int id) as string
+    return __cf_option(id)
+end
+
+export func statName(int id) as string
+    return __stat_name(id)
+end

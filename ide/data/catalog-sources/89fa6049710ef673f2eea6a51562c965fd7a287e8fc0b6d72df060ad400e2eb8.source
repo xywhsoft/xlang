@@ -1,0 +1,30 @@
+extern "xfaiss_index_type" func __index_type(int id) as string
+extern "xfaiss_metric" func __metric(int id) as string
+extern "xfaiss_l2_distance" func __l2_distance(string a, string b) as float
+extern "xfaiss_inner_product" func __inner_product(string a, string b) as float
+extern "xfaiss_cosine" func __cosine(string a, string b) as float
+extern "xfaiss_quantizer" func __quantizer(int id) as string
+
+export func indexType(int id) as string
+    return __index_type(id)
+end
+
+export func metric(int id) as string
+    return __metric(id)
+end
+
+export func l2Distance(string a, string b) as float
+    return __l2_distance(a, b)
+end
+
+export func innerProduct(string a, string b) as float
+    return __inner_product(a, b)
+end
+
+export func cosine(string a, string b) as float
+    return __cosine(a, b)
+end
+
+export func quantizer(int id) as string
+    return __quantizer(id)
+end

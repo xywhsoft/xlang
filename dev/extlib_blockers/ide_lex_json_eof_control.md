@@ -1,0 +1,15 @@
+# 调试 lex JSON 的 EOF 文本含裸 NUL
+
+发现于 2026-10-31 IDE 扩展命令目录审计。按普通扩展任务约束不修改编译器主线。
+
+## 情况
+
+当前冻结的 `release/xl.exe` 词法 JSON 输出最后一条 EOF 的 `text` 包含原始 `0x00`，不符合 JSON 控制字符转义规则。输入本身是合法的普通 UTF-8 源文件；标准 JSON 读取器报 `Invalid control character`，不是扩展库源码错误。
+
+用 `xl lex <合法文件.xl> --format json` 导出后，检查 EOF 附近原始字节即可复现。现场保存在 `build/test/ide_catalog_20261031/lex.json`，裸 NUL 为 1 个，位置为第 185 行第 46 列。冻结编译器 SHA-256 为 `ccf98ff05baa...`（完整值见同轮冻结物校验和运行记录）。
+
+## 建议
+
+主线应将所有 JSON 字符串控制字符统一转义，或按 EOF 的真实空文本输出；补全 EOF、空源文件、NUL/其他控制字符的标准 JSON 读取测试。不要只在 IDE 中删除末尾 NUL，也不要允许非法 JSON 作为“兼容”格式。
+
+本轮目录不依赖词法调试 JSON：声明专用工具复用未修改的共享 lexer/parser/AST 前端，直接输出编译器拥有的声明范围。没有修改产品二进制、放宽 JSON 读取器或手写另一套语言语法。

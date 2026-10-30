@@ -1,0 +1,35 @@
+extern "xneo4j_msg_name" func __msg_name(int sig) as string
+extern "xneo4j_type_name" func __type_name(int code) as string
+extern "xneo4j_escape" func __escape(string input) as string
+extern "xneo4j_uri_part" func __uri_part(string uri, string part) as string
+extern "xneo4j_tx_state" func __tx_state(int state) as string
+extern "xneo4j_access_mode" func __access_mode(int mode) as string
+extern "xneo4j_valid_label" func __valid_label(string label) as int
+
+export func msgName(int sig) as string
+    return __msg_name(sig)
+end
+
+export func typeName(int code) as string
+    return __type_name(code)
+end
+
+export func escape(string input) as string
+    return __escape(input)
+end
+
+export func uriPart(string uri, string part) as string
+    return __uri_part(uri, part)
+end
+
+export func txState(int state) as string
+    return __tx_state(state)
+end
+
+export func accessMode(int mode) as string
+    return __access_mode(mode)
+end
+
+export func validLabel(string label) as int
+    return __valid_label(label)
+end

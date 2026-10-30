@@ -1,0 +1,40 @@
+extern "xnsq_cmd_name" func __cmd_name(int cmd) as string
+extern "xnsq_frame_type" func __frame_type(int type) as string
+extern "xnsq_error_name" func __error_name(int code) as string
+extern "xnsq_valid_topic" func __valid_topic(string name) as int
+extern "xnsq_valid_channel" func __valid_channel(string name) as int
+extern "xnsq_valid_msg_id" func __valid_msg_id(string id) as int
+extern "xnsq_magic" func __magic() as string
+extern "xnsq_feature_supported" func __feature_supported(string feature) as int
+
+export func cmdName(int cmd) as string
+    return __cmd_name(cmd)
+end
+
+export func frameType(int type) as string
+    return __frame_type(type)
+end
+
+export func errorName(int code) as string
+    return __error_name(code)
+end
+
+export func validTopic(string name) as int
+    return __valid_topic(name)
+end
+
+export func validChannel(string name) as int
+    return __valid_channel(name)
+end
+
+export func validMsgId(string id) as int
+    return __valid_msg_id(id)
+end
+
+export func magic() as string
+    return __magic()
+end
+
+export func featureSupported(string feature) as int
+    return __feature_supported(feature)
+end

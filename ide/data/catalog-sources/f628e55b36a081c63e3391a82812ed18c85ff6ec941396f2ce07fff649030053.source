@@ -1,3 +1,0 @@
-// Explicit C-string interop: counts bytes before the first NUL, not Unicode
-// scalar values.  Normal xlang text should use string.len/string.byteLen.
-export extern "strlen" @pure @no_raise @nonblocking func length(string text) as c_size

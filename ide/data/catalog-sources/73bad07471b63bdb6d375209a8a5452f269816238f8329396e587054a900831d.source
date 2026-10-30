@@ -1,0 +1,30 @@
+extern "xggml_type" func __type(int id) as string
+extern "xggml_op" func __op(int id) as string
+extern "xggml_relu" func __relu(float x) as float
+extern "xggml_gelu" func __gelu(float x) as float
+extern "xggml_type_size" func __type_size(int type_id) as int
+extern "xggml_backend" func __backend(int id) as string
+
+export func dtype(int id) as string
+    return __type(id)
+end
+
+export func op(int id) as string
+    return __op(id)
+end
+
+export func relu(float x) as float
+    return __relu(x)
+end
+
+export func gelu(float x) as float
+    return __gelu(x)
+end
+
+export func typeSize(int type_id) as int
+    return __type_size(type_id)
+end
+
+export func backend(int id) as string
+    return __backend(id)
+end

@@ -1,0 +1,60 @@
+// MessagePack uses binary Buffer values. Hex is diagnostics only.
+extern "xmsgpack_encode_abi" func __encode(var value) as point
+extern "xmsgpack_decode_abi" func __decode(point data, c_size size) as var
+extern "xmsgpack_encode_bytes_abi" func __encode_bytes(point data, c_size size) as point
+extern "xmsgpack_decode_bytes_abi" func __decode_bytes(point data, c_size size) as point
+extern "xmsgpack_to_hex_abi" func __to_hex(point data, c_size size) as point
+extern "xmsgpack_from_hex_abi" func __from_hex(string text) as point
+extern "xmsgpack_error_message" func __error() as string
+extern "xmsgpack_has_error" func __has_error() as bool
+
+export func encode(var value) as Buffer
+    point result = __encode(value)
+    if result == null then
+        throw ValueError __error()
+    end
+    return Buffer(result)
+end
+
+export func decode(Buffer data) as var
+    var result = __decode(data.data(), c_size(data.len()))
+    if __has_error() then
+        throw ValueError __error()
+    end
+    return result
+end
+
+export func encodeBytes(Buffer data) as Buffer
+    point result = __encode_bytes(data.data(), c_size(data.len()))
+    if result == null then
+        throw ValueError __error()
+    end
+    return Buffer(result)
+end
+
+export func decodeBytes(Buffer data) as Buffer
+    point result = __decode_bytes(data.data(), c_size(data.len()))
+    if result == null then
+        throw ValueError __error()
+    end
+    return Buffer(result)
+end
+
+export func toHex(Buffer data) as string
+    point result = __to_hex(data.data(), c_size(data.len()))
+    if result == null then
+        throw ValueError __error()
+    end
+    return __xl_runtime.takeCstr(result)
+end
+
+export func fromHex(string text) as Buffer
+    if string.indexOf(text, "\0", false, string.byteLen(text), 1) >= 0 then
+        throw ValueError "MessagePack hex input contains an embedded NUL byte"
+    end
+    point result = __from_hex(text)
+    if result == null then
+        throw ValueError "invalid MessagePack hexadecimal text"
+    end
+    return Buffer(result)
+end

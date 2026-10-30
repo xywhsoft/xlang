@@ -1,0 +1,25 @@
+extern "xfreetype_format" func __format(int id) as string
+extern "xfreetype_style" func __style(int id) as string
+extern "xfreetype_em_to_px" func __em_to_px(float em, float dpi) as float
+extern "xfreetype_kerning" func __kerning(float advance, float adjust) as float
+extern "xfreetype_hinting" func __hinting(int id) as string
+
+export func format(int id) as string
+    return __format(id)
+end
+
+export func style(int id) as string
+    return __style(id)
+end
+
+export func emToPx(float em, float dpi) as float
+    return __em_to_px(em, dpi)
+end
+
+export func kerning(float advance, float adjust) as float
+    return __kerning(advance, adjust)
+end
+
+export func hinting(int id) as string
+    return __hinting(id)
+end

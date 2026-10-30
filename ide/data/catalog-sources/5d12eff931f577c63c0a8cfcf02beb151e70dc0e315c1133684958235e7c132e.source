@@ -1,0 +1,36 @@
+{
+    "format": "xlang-package-1",
+    "name": "netrc",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": [
+            "xrt_netrc_common.c",
+            "xrt_netrc_parser.c",
+            "xrt_netrc_writer.c",
+            "netrc_native.c"
+        ],
+        "xlSources": ["src/netrc.xl"],
+        "xrtModules": [
+            "XRT_MODULE_BUFFER",
+            "XRT_MODULE_FILE_WHOLE",
+            "XRT_MODULE_IO_BUFFER",
+            "XRT_MODULE_IO_FILE",
+            "XRT_MODULE_ONCE",
+            "XRT_MODULE_THREAD_KEY",
+            "XRT_MODULE_UNICODE",
+            "XRT_MODULE_VALUE_CONTAINER"
+        ]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/named_type.xl", "test/allocations.xl", "test/resource_limits.xl", "examples/bounded_credentials.xl"] },
+    "native": {
+        "singleton": false,
+        "loadName": "",
+        "version": ""
+    }
+}

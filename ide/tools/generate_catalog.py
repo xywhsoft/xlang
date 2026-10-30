@@ -15,7 +15,7 @@ ARGS.add_argument('--source-output',required=True,type=pathlib.Path)
 args=ARGS.parse_args(); args.scratch.mkdir(parents=True,exist_ok=True)
 raw=json.loads(args.raw.read_text(encoding='utf-8'))
 internal_functions=0
-sources={}; materials={}; entries=[]; issues=[]; documents={}; package_docs={}
+sources={}; materials={}; entries=[]; issues=[]; documents={}
 def digest(data): return hashlib.sha256(data).hexdigest()
 def source(path):
     path=path.resolve()
@@ -191,7 +191,6 @@ def walk_declarations(nodes,text,category,module,path,version,required='',prefix
     for node in nodes:
         kind=node['kind']; flags=node.get('flags',0); name=name_of(node)
         if name.startswith('__') or flags&6: continue
-        if category=='extension' and root and not flags&1: continue
         origin,line=declaration_source(node.get('line',1)) if category=='standard' else (path,node.get('line',1))
         if kind in ('class','protocol','enum'):
             qname=prefix+name; add(qname,category,module,'type',origin,line,signature_text=kind+' '+qname,version=version,required_import=required)
@@ -209,19 +208,8 @@ c_keywords="auto break case char const continue default do double else enum exte
 for word in c_keywords:
     entry=add(word,'language','C 保留字','keyword',source(pathlib.Path(__file__)),signature_text=word,description='C 语言保留字；编辑器采用固定 XUI SDK 的 C 词法模式。',version='C11',identity='c:keyword:'+word)
     entry['language']='c'
+# 扩展声明由共享前端的独立阶段处理；此处只生成固定语言/标准库资料。
 packages=0
-for package_path in sorted((args.demo6/'release/extlibs').glob('*/xlang.package.json')):
-    manifest=json.loads(read_source(package_path)); name=manifest['name']; version=manifest.get('version',''); packages+=1
-    files=manifest.get('artifact',{}).get('xlSources',[]); manifest_source=source(package_path)
-    readme=package_path.parent/'README.md'
-    if readme.is_file(): package_docs[name]=document(readme,'package:'+name,name+' 使用说明')
-    package_entry=add(name,'extension',name,'module',manifest_source,signature_text='import '+name,description='扩展库包声明；使用前显式导入 '+name+'。',example='import '+name+'\n',version=version,required_import=name,insert=name)
-    for relative in files:
-        path=package_path.parent/relative
-        if not path.is_file(): issues.append({'source':manifest_source,'reason':'Missing declared xlSources: '+relative}); continue
-        original=read_source(path); origin=source(path); parsed=parse(original,origin)
-        if parsed: walk_declarations(parsed['children'],original,'extension',name,origin,version,name,name+'.')
-        else: package_entry['description']+=' 该快照中有声明无法由指定编译器解析，详见目录状态。'
 
 control={'if','then','else','elseif','end','for','in','while','do','break','continue','return','try','catch','finally','throw','assert','match','case','and','or','not'}
 for entry in entries:
@@ -230,7 +218,6 @@ for entry in entries:
         title='函数设计' if entry['name']=='func' else '类型系统设计' if entry['kind']=='type' or entry['name'] in ('class','protocol','enum') else '扩展库系统设计' if entry['name'] in ('import','from','export') else '表达式与控制流设计' if entry['name'] in control else '语言基础设计'
         entry['sections']=['design:'+title]
     elif entry['category']=='standard': entry['sections']=['design:标准库设计']
-    elif entry['module'] in package_docs: entry['sections']=[package_docs[entry['module']]]
 
 # Stable IDs are mandatory. Identical registration aliases are coalesced only
 # when their documented signature is exactly identical.

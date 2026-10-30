@@ -1,0 +1,45 @@
+# xssh
+
+`xssh` 是 XRT SSH 体系在 xlang 中的正式扩展包。包内直接复用 XRT 的模块化
+xssh 实现，不携带生成单头文件中的重复 XRT 代码。
+
+## 能力边界
+
+- 完整 C API：`include/xssh.h` 公开 wire、packet、KEX、key、transport、auth、
+  connection、session 和 client 全部底层接口。
+- 语言对象：`WireReader`、`WireWriter`、`BannerResult`、`PublicKeyLine`、
+  `KnownHostLine`。
+- 便利函数：算法列表协商、OpenSSH SHA-256 指纹、明文/hashed `known_hosts`
+  匹配。
+- `WireReader` 的 `try*` 方法保留 `OK`、`NEED_MORE` 和错误三态；不完整输入
+  不会推进 reader。
+- `nativeHandle()` 暴露借用型底层句柄，便于尚未建立语言对象的高级功能直接
+  对接 C API。
+
+完整客户端会话的 C 实现已经编入包中。语言层将在后续收口中继续增加会话、
+认证、通道和异步客户端对象；当前阶段不以静态名称表伪装 SSH 实现。
+
+## 示例
+
+```xlang
+import xssh
+from xssh import WireReader, WireWriter
+
+WireWriter packet = WireWriter()
+packet.writeByte(5)
+packet.writeString("ssh-userauth")
+
+WireReader reader = xssh.reader(packet.bytes)
+assert reader.readByte() == 5
+assert reader.readText() == "ssh-userauth"
+```
+
+增量 identification：
+
+```xlang
+auto result = xssh.banner("SSH-2.0-xlang")
+assert result.needMore
+```
+
+底层 C 使用者可通过包的 `includeDirs` 直接包含 `<xssh.h>`。模块化头文件的
+所有权、状态和失败不推进契约与 XRT xssh 保持一致。

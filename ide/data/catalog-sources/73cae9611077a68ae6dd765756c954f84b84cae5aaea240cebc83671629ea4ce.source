@@ -1,0 +1,25 @@
+extern "xemb_model" func __model(int id) as string
+extern "xemb_dim" func __dim(int model_id) as int
+extern "xemb_max_tokens" func __max_tokens(int model_id) as int
+extern "xemb_normalize" func __normalize(string vec) as string
+extern "xemb_pooling" func __pooling(int id) as string
+
+export func model(int id) as string
+    return __model(id)
+end
+
+export func dim(int model_id) as int
+    return __dim(model_id)
+end
+
+export func maxTokens(int model_id) as int
+    return __max_tokens(model_id)
+end
+
+export func normalize(string vec) as string
+    return __normalize(vec)
+end
+
+export func pooling(int id) as string
+    return __pooling(id)
+end

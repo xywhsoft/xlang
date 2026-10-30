@@ -1,5 +1,6 @@
-param(
-    [string]$Root = ""
+﻿param(
+    [string]$Root = "",
+    [string]$PythonPath = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -531,6 +532,22 @@ foreach ( $name in $manifestsByPackage.Keys ) {
             Add-Failure "release extlib example coverage missing function: $name.$functionName"
         }
     }
+}
+
+# 发布门同时核对 IDE 命令资料，禁止包 API 已变化而目录仍是旧快照。
+try {
+    if (-not $PythonPath) { $PythonPath = (Get-Command python -ErrorAction Stop).Source }
+    . (Join-Path $PSScriptRoot 'extlib_smoke_process.ps1')
+    $catalogResult = Invoke-ExtlibSmokeProcess $PythonPath @('-B','-X','utf8',
+        (Join-Path $Root 'ide\tools\refresh_extensions.py'),'--root',$Root,
+        '--data',(Join-Path $Root 'ide\data'),'--check') $Root 60
+    if ($catalogResult.status -ne 'pass') {
+        Add-Failure ("IDE extension catalog check failed: " + $catalogResult.stderr + $catalogResult.stdout)
+    } else {
+        Write-Host ("IDE extension catalog: " + $catalogResult.stdout.Trim())
+    }
+} catch {
+    Add-Failure ("IDE extension catalog check could not run: " + $_.Exception.Message)
 }
 
 if ( $failures.Count -gt 0 ) {

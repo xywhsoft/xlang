@@ -1,0 +1,101 @@
+// 像素必须放入 Buffer；HDR 使用连续 float32 像素字节。
+extern "xstbiw_available" func __available() as c_int
+extern "xstbiw_version" func __version() as string
+extern "xstbiw_encode" func __encode(c_int format, point data, c_size size,
+    c_int width, c_int height, c_int channels, c_int option) as point
+extern "xstbiw_write" func __write(string path, c_int format, point data,
+    c_size size, c_int width, c_int height, c_int channels, c_int option) as c_int
+
+// 先检查 XLang int，避免收窄为 C int 后回绕成另一个有效参数。
+func __stbiw_args_fit(int width, int height, int channels, int option) as bool
+    if width < 1 or width > 16384 or height < 1 or height > 16384 then
+        return false
+    end
+    if channels < 1 or channels > 4 then
+        return false
+    end
+    return option >= -2147483648 and option <= 2147483647
+end
+
+func encodeFormat(c_int format, Buffer pixels, int width, int height,
+    int channels, int option) as Buffer
+    if !__stbiw_args_fit(width, height, channels, option) then
+        throw ValueError "stb_image_write: dimensions or option out of range"
+    end
+    point result = __encode(format, pixels.data(), c_size(pixels.len()),
+        c_int(width), c_int(height), c_int(channels), c_int(option))
+    if result == null then
+        throw ValueError "stb_image_write: image encoding failed"
+    end
+    return Buffer(result)
+end
+
+func writeFormat(string path, c_int format, Buffer pixels, int width,
+    int height, int channels, int option) as bool
+    if !__stbiw_args_fit(width, height, channels, option) then
+        return false
+    end
+    if string.indexOf(path, "\0", false, string.byteLen(path), 1) >= 0 then
+        return false
+    end
+    return __write(path, format, pixels.data(), c_size(pixels.len()),
+        c_int(width), c_int(height), c_int(channels), c_int(option)) != 0
+end
+
+export func available() as bool
+    return __available() != 0
+end
+
+export func version() as string
+    return __version()
+end
+
+export func encodePng(Buffer pixels, int width, int height,
+    int channels, int stride = 0) as Buffer
+    return encodeFormat(c_int(1), pixels, width, height, channels, stride)
+end
+
+export func encodeJpeg(Buffer pixels, int width, int height,
+    int channels, int quality = 90) as Buffer
+    return encodeFormat(c_int(2), pixels, width, height, channels, quality)
+end
+
+export func encodeBmp(Buffer pixels, int width, int height,
+    int channels) as Buffer
+    return encodeFormat(c_int(3), pixels, width, height, channels, 0)
+end
+
+export func encodeTga(Buffer pixels, int width, int height,
+    int channels) as Buffer
+    return encodeFormat(c_int(4), pixels, width, height, channels, 0)
+end
+
+export func encodeHdr(Buffer pixels, int width, int height,
+    int channels) as Buffer
+    return encodeFormat(c_int(5), pixels, width, height, channels, 0)
+end
+
+export func writePng(string path, Buffer pixels, int width, int height,
+    int channels, int stride = 0) as bool
+    return writeFormat(path, c_int(1), pixels, width, height, channels, stride)
+end
+
+export func writeJpeg(string path, Buffer pixels, int width, int height,
+    int channels, int quality = 90) as bool
+    return writeFormat(path, c_int(2), pixels, width, height, channels, quality)
+end
+
+export func writeBmp(string path, Buffer pixels, int width, int height,
+    int channels) as bool
+    return writeFormat(path, c_int(3), pixels, width, height, channels, 0)
+end
+
+export func writeTga(string path, Buffer pixels, int width, int height,
+    int channels) as bool
+    return writeFormat(path, c_int(4), pixels, width, height, channels, 0)
+end
+
+export func writeHdr(string path, Buffer pixels, int width, int height,
+    int channels) as bool
+    return writeFormat(path, c_int(5), pixels, width, height, channels, 0)
+end

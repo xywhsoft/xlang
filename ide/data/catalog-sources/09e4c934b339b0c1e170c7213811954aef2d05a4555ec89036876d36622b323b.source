@@ -1,0 +1,30 @@
+extern "xvdb_engine" func __engine(int id) as string
+extern "xvdb_index_type" func __index_type(int id) as string
+extern "xvdb_metric" func __metric(int id) as string
+extern "xvdb_operation" func __operation(int id) as string
+extern "xvdb_recall_estimate" func __recall_estimate(int k, int ef_search) as float
+extern "xvdb_quantization" func __quantization(int id) as string
+
+export func engine(int id) as string
+    return __engine(id)
+end
+
+export func indexType(int id) as string
+    return __index_type(id)
+end
+
+export func metric(int id) as string
+    return __metric(id)
+end
+
+export func operation(int id) as string
+    return __operation(id)
+end
+
+export func recallEstimate(int k, int ef_search) as float
+    return __recall_estimate(k, ef_search)
+end
+
+export func quantization(int id) as string
+    return __quantization(id)
+end

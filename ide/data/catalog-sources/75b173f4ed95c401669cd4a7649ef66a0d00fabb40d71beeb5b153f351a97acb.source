@@ -1,0 +1,295 @@
+// gzip 使用 Buffer 表示压缩后的二进制数据。
+
+extern "xl6_xrt_last_error_text" func __gzip_error() as string
+extern "xgzip_compress" func __gzip_compress(point data, c_size size, c_int level,
+    c_uint mtime, c_ulonglong maxInput, c_ulonglong maxOutput) as point
+extern "xgzip_compress_str" func __gzip_compress_str(string data, c_size size, c_int level,
+    c_uint mtime, c_ulonglong maxInput, c_ulonglong maxOutput) as point
+extern "xgzip_decompress" func __gzip_decompress(point data, c_size size,
+    c_ulonglong maxInput, c_ulonglong maxOutput, c_uint maxRatio) as point
+extern "xgzip_decompress_text" func __gzip_decompress_text(point data, c_size size,
+    c_ulonglong maxInput, c_ulonglong maxOutput, c_uint maxRatio) as point
+extern "xgzip_text_size" @no_raise func __gzip_text_size(point result) as c_size
+extern "xgzip_text_take" @no_raise func __gzip_text_take(point result) as point
+extern "xrtFree" @no_raise func __gzip_free(point data)
+extern "xgzip_compress_file" func __gzip_compress_file(string source, string destination,
+    c_int level, c_uint mtime, c_bool overwrite, c_ulonglong maxInput,
+    c_ulonglong maxOutput, var onProgress) as c_int
+extern "xgzip_decompress_file" func __gzip_decompress_file(string source, string destination,
+    c_bool overwrite, c_ulonglong maxInput, c_ulonglong maxOutput, c_uint maxRatio,
+    var onProgress) as c_int
+
+
+
+func __gzip_check_level(int level)
+    if level < -1 or level > 9 then
+        throw ValueError "gzip level must be -1..9"
+    end
+end
+
+func __gzip_check_limit(int value, string name)
+    if value <= 0 then
+        throw ValueError name + " must be greater than zero"
+    end
+end
+
+func __gzip_file_path(string value)
+    if string.indexOf(value, "\0", false, string.byteLen(value), 1) >= 0 then
+        throw ValueError "gzip file path contains NUL"
+    end
+end
+
+// 在窄化为 C uint32 之前拒绝越界值，避免倍率回绕为零后关闭限制。
+func __gzip_check_uint32(int value, string name)
+    if value < 0 or value > 4294967295 then
+        throw RangeError name + " must fit uint32"
+    end
+end
+
+// 复用 XRT 的通用调用帧；回调不逃逸出本次同步文件操作。
+func __gzip_progress(func(int, int, int) as bool callback) as var
+    return xcall(func(uint64 inputBytes, uint64 totalBytes, uint64 outputBytes) as bool
+        uint64 maximum = uint64(9223372036854775807)
+        if inputBytes > maximum or totalBytes > maximum or outputBytes > maximum then
+            throw RangeError "gzip progress exceeds int range"
+        end
+        return callback(int(inputBytes), int(totalBytes), int(outputBytes))
+    end)
+end
+
+func __gzip_check_file_result(int status)
+    if status == -1 then
+        throw CancelledError "gzip operation cancelled"
+    elseif status != 1 then
+        throw CompressionError __gzip_error()
+    end
+end
+
+
+
+export func compress(Buffer data, int level = -1, int mtime = 0,
+    int maxInput = 268435456, int maxOutput = 536870912) as Buffer
+    __gzip_check_level(level)
+    __gzip_check_limit(maxInput, "maxInput")
+    __gzip_check_limit(maxOutput, "maxOutput")
+    __gzip_check_uint32(mtime, "mtime")
+    point result = __gzip_compress(data.data(), c_size(data.len()), c_int(level),
+        c_uint(mtime), c_ulonglong(maxInput), c_ulonglong(maxOutput))
+    if result == null then
+        throw CompressionError __gzip_error()
+    end
+    return Buffer(result)
+end
+
+export func compress(string text, int level = -1, int mtime = 0,
+    int maxInput = 268435456, int maxOutput = 536870912) as Buffer
+    __gzip_check_level(level)
+    __gzip_check_limit(maxInput, "maxInput")
+    __gzip_check_limit(maxOutput, "maxOutput")
+    __gzip_check_uint32(mtime, "mtime")
+    point result = __gzip_compress_str(text, c_size(string.byteLen(text)), c_int(level),
+        c_uint(mtime), c_ulonglong(maxInput), c_ulonglong(maxOutput))
+    if result == null then
+        throw CompressionError __gzip_error()
+    end
+    return Buffer(result)
+end
+
+export func decompress(Buffer data, int maxInput = 268435456,
+    int maxOutput = 536870912, int maxRatio = 1000) as Buffer
+    __gzip_check_limit(maxInput, "maxInput")
+    __gzip_check_limit(maxOutput, "maxOutput")
+    __gzip_check_limit(maxRatio, "maxRatio")
+    __gzip_check_uint32(maxRatio, "maxRatio")
+    point result = __gzip_decompress(data.data(), c_size(data.len()),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput), c_uint(maxRatio))
+    if result == null then
+        throw CompressionError __gzip_error()
+    end
+    return Buffer(result)
+end
+
+export func decompressText(Buffer data, int maxInput = 268435456,
+    int maxOutput = 536870912, int maxRatio = 1000) as cstring
+    __gzip_check_limit(maxInput, "maxInput")
+    __gzip_check_limit(maxOutput, "maxOutput")
+    __gzip_check_limit(maxRatio, "maxRatio")
+    __gzip_check_uint32(maxRatio, "maxRatio")
+    point result = __gzip_decompress_text(data.data(), c_size(data.len()),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput), c_uint(maxRatio))
+    if result == null then throw CompressionError __gzip_error() end
+    c_size textSize = __gzip_text_size(result)
+    return cstring.take(__gzip_text_take(result), textSize, __gzip_free)
+end
+
+export func compressFile(string source, string destination, int level = -1,
+    int mtime = 0, bool overwrite = true, int maxInput = 268435456,
+    int maxOutput = 536870912, (func(int, int, int) as bool)? onProgress = null)
+    __gzip_file_path(source)
+    __gzip_file_path(destination)
+    __gzip_check_level(level)
+    __gzip_check_limit(maxInput, "maxInput")
+    __gzip_check_limit(maxOutput, "maxOutput")
+    __gzip_check_uint32(mtime, "mtime")
+    var progress = null
+    if onProgress != null then
+        progress = __gzip_progress(onProgress)
+    end
+    int status = __gzip_compress_file(source, destination, c_int(level), c_uint(mtime),
+        c_bool(overwrite), c_ulonglong(maxInput), c_ulonglong(maxOutput), progress)
+    __gzip_check_file_result(status)
+end
+
+export func decompressFile(string source, string destination, bool overwrite = true,
+    int maxInput = 268435456, int maxOutput = 536870912, int maxRatio = 1000,
+    (func(int, int, int) as bool)? onProgress = null)
+    __gzip_file_path(source)
+    __gzip_file_path(destination)
+    __gzip_check_limit(maxInput, "maxInput")
+    __gzip_check_limit(maxOutput, "maxOutput")
+    __gzip_check_limit(maxRatio, "maxRatio")
+    __gzip_check_uint32(maxRatio, "maxRatio")
+    var progress = null
+    if onProgress != null then
+        progress = __gzip_progress(onProgress)
+    end
+    int status = __gzip_decompress_file(source, destination, c_bool(overwrite),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput), c_uint(maxRatio), progress)
+    __gzip_check_file_result(status)
+end
+
+
+
+export class GzipCompressor
+    native point handle
+    extern "xgzip_compressor_create" create(c_int level, c_uint mtime,
+        c_ulonglong maxInput, c_ulonglong maxOutput)
+    extern "xgzip_compressor_destroy" destroy()
+    private extern "xgzip_compressor_update" func updateNative(point data, c_size size) as bool
+    private extern "xgzip_compressor_update_str" func updateStrNative(string data, c_size size) as bool
+    private extern "xgzip_compressor_finish" func finishNative() as point
+    private extern "xgzip_compressor_drain" func drainNative() as point
+    private extern "xgzip_compressor_input_bytes" func inputBytesNative() as c_ulonglong
+    private extern "xgzip_compressor_output_bytes" func outputBytesNative() as c_ulonglong
+    private extern "xgzip_compressor_finished" func finishedNative() as bool
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get inputBytes() as int
+        return int(self.inputBytesNative())
+    end
+
+    get outputBytes() as int
+        return int(self.outputBytesNative())
+    end
+
+    get finished() as bool
+        return self.finishedNative()
+    end
+
+    // 只返回尚未交付的部分，已返回的 Buffer 独立持有。
+    func drain() as Buffer
+        return Buffer(self.drainNative())
+    end
+
+    func update(Buffer data)
+        if not self.updateNative(data.data(), c_size(data.len())) then
+            throw CompressionError __gzip_error()
+        end
+    end
+
+    func update(string text)
+        if not self.updateStrNative(text, c_size(string.byteLen(text))) then
+            throw CompressionError __gzip_error()
+        end
+    end
+
+    func finish() as Buffer
+        point result = self.finishNative()
+        if result == null then
+            throw CompressionError __gzip_error()
+        end
+        return Buffer(result)
+    end
+end
+
+
+
+export class GzipDecompressor
+    native point handle
+    extern "xgzip_decompressor_create" create(c_ulonglong maxInput,
+        c_ulonglong maxOutput, c_uint maxRatio)
+    extern "xgzip_decompressor_destroy" destroy()
+    private extern "xgzip_decompressor_update" func updateNative(point data, c_size size) as bool
+    private extern "xgzip_decompressor_finish" func finishNative() as point
+    private extern "xgzip_decompressor_drain" func drainNative() as point
+    private extern "xgzip_decompressor_input_bytes" func inputBytesNative() as c_ulonglong
+    private extern "xgzip_decompressor_output_bytes" func outputBytesNative() as c_ulonglong
+    private extern "xgzip_decompressor_finished" func finishedNative() as bool
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get inputBytes() as int
+        return int(self.inputBytesNative())
+    end
+
+    get outputBytes() as int
+        return int(self.outputBytesNative())
+    end
+
+    get finished() as bool
+        return self.finishedNative()
+    end
+
+    func drain() as Buffer
+        return Buffer(self.drainNative())
+    end
+
+    func update(Buffer data)
+        if not self.updateNative(data.data(), c_size(data.len())) then
+            throw CompressionError __gzip_error()
+        end
+    end
+
+    func finish() as Buffer
+        point result = self.finishNative()
+        if result == null then
+            throw CompressionError __gzip_error()
+        end
+        return Buffer(result)
+    end
+end
+
+
+
+export func compressor(int level = -1, int mtime = 0,
+    int maxInput = 268435456, int maxOutput = 536870912) as GzipCompressor
+    __gzip_check_level(level)
+    __gzip_check_limit(maxInput, "maxInput")
+    __gzip_check_limit(maxOutput, "maxOutput")
+    __gzip_check_uint32(mtime, "mtime")
+    GzipCompressor result = GzipCompressor(c_int(level), c_uint(mtime),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput))
+    if not result.valid then
+        throw CompressionError __gzip_error()
+    end
+    return result
+end
+
+export func decompressor(int maxInput = 268435456,
+    int maxOutput = 536870912, int maxRatio = 1000) as GzipDecompressor
+    __gzip_check_limit(maxInput, "maxInput")
+    __gzip_check_limit(maxOutput, "maxOutput")
+    __gzip_check_limit(maxRatio, "maxRatio")
+    __gzip_check_uint32(maxRatio, "maxRatio")
+    GzipDecompressor result = GzipDecompressor(c_ulonglong(maxInput),
+        c_ulonglong(maxOutput), c_uint(maxRatio))
+    if not result.valid then
+        throw CompressionError __gzip_error()
+    end
+    return result
+end

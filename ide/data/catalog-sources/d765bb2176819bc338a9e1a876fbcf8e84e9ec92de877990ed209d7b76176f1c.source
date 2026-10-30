@@ -1,0 +1,37 @@
+extern "xcan_build_std" func __can_std(int id, int dlc, string data) as string
+extern "xcan_build_ext" func __can_ext(int id, int dlc, string data) as string
+extern "xcan_get_id" func __can_id(string frame) as int
+extern "xcan_get_dlc" func __can_dlc(string frame) as int
+extern "xcan_get_data" func __can_data(string frame) as string
+extern "xcan_is_extended" func __can_isext(string frame) as bool
+extern "xcan_frame_len" func __can_flen(string frame) as int
+
+
+
+export func buildStd(int id, int dlc, string data_hex) as string
+    return __can_std(id, dlc, data_hex)
+end
+
+export func buildExt(int id, int dlc, string data_hex) as string
+    return __can_ext(id, dlc, data_hex)
+end
+
+export func getId(string frame) as int
+    return __can_id(frame)
+end
+
+export func getDlc(string frame) as int
+    return __can_dlc(frame)
+end
+
+export func getData(string frame) as string
+    return __can_data(frame)
+end
+
+export func isExtended(string frame) as bool
+    return __can_isext(frame)
+end
+
+export func frameLen(string frame) as int
+    return __can_flen(frame)
+end

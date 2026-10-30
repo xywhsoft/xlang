@@ -1,0 +1,18 @@
+{
+    "format": "xlang-package-1",
+    "name": "lru",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": ["lru_native.c"],
+        "xlSources": ["src/lru.xl"],
+        "xrtModules": ["XRT_MODULE_MAP", "XRT_MODULE_MUTEX", "XRT_MODULE_STRING"]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl", "test/input_budgets.xl", "test/input_lifetime.xl", "test/owned_probe.xl"] },
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

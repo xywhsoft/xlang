@@ -1,0 +1,19 @@
+{
+    "format": "xlang-package-1",
+    "name": "graph",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": ["graph_native.c", "graph_traversal.c", "graph_components.c", "graph_distance.c"],
+        "xlSources": ["src/graph.xl"],
+        "includeDirs": ["include"],
+        "xrtModules": ["XRT_MODULE_VALUE_CONTAINER", "XRT_MODULE_ARRAY", "XRT_MODULE_MAP"]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl"] },
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

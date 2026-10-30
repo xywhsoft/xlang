@@ -1,0 +1,91 @@
+{
+    "format": "xlang-package-1",
+    "name": "xhttp.client",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": [
+            "src/http/http_client_request.c",
+            "src/http/http_client_request_trailers.c",
+            "src/http/http_client_request_te.c",
+            "src/http/http_client_request_query.c",
+            "src/http/http_client_request_form.c",
+            "src/http/http_client_request_form_data.c",
+			"src/http/http_client_prepare.c",
+			"src/http/http_client_response.c",
+			"src/http/http_client_exchange.c",
+			"src/http/http_client_exchange_output.c",
+			"src/http/http_client_exchange_input.c",
+			"src/http/http_client_stream.c",
+			"src/http/http_client_runtime.c",
+			"src/http/http_client_tcp.c",
+			"src/http/http_client_future.c",
+			"src/http/http_client_https.c",
+            "src/xlang/xhttp_client_native_common.c",
+			"src/xlang/xhttp_client_native_request.c",
+			"src/xlang/xhttp_client_native_response.c",
+			"src/xlang/xhttp_client_native_exchange.c",
+			"src/xlang/xhttp_client_native_transport.c"
+        ],
+        "xlSources": ["src/xlang/xhttp_client.xl"],
+        "xrtModules": [
+            "XRT_MODULE_HTTP_CONNECTION",
+            "XRT_MODULE_HTTP_TE",
+			"XRT_MODULE_HTTP_EXPECT",
+			"XRT_MODULE_HTTP_HOST",
+			"XRT_MODULE_HTTP_TARGET",
+			"XRT_MODULE_HTTP_TRAILER",
+			"XRT_MODULE_HTTP1_BODY",
+			"XRT_MODULE_CANCEL",
+			"XRT_MODULE_FUTURE_BRIDGE",
+			"XRT_MODULE_NET_TCP_DIAL",
+			"XRT_MODULE_SPIN",
+			"XRT_MODULE_TLS_STREAM_DIAL",
+			"XRT_MODULE_TLS_CLIENT_VERIFY",
+			"XRT_MODULE_X509_STORE_SYSTEM",
+			"XRT_MODULE_IO_BUFFER",
+			"XRT_MODULE_VALUE",
+			"XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE"
+        ]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [
+        {
+            "name": "xhttp",
+            "version": "1.0.0",
+            "abiVersion": "1"
+        },
+        {
+            "name": "xhttp.protocol",
+            "version": "1.0.0",
+            "abiVersion": "1"
+        },
+        {
+            "name": "xhttp.body",
+            "version": "1.0.0",
+            "abiVersion": "1"
+        },
+        {
+            "name": "xhttp.multipart",
+            "version": "1.0.0",
+            "abiVersion": "1"
+        },
+        {
+            "name": "xhttp.form_data",
+            "version": "1.0.0",
+            "abiVersion": "1"
+        }
+    ],
+    "coverage": {
+        "mode": "suite",
+		"tests": [
+			"test/xhttp_client_request_test.xl",
+			"test/xhttp_client_exchange_test.xl",
+			"test/xhttp_client_transport_test.xl"
+		]
+    },
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

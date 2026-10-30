@@ -1,0 +1,27 @@
+# xhttp.body
+
+`xhttp.body` 是可独立裁剪的 HTTP 正文源与 Reader 层，不依赖 URL、Header、客户端、
+服务器、文件系统或网络运行时。
+
+- `Body`：不可变、引用计数的固定字节或自定义正文源。
+- `BodyReader`：明确区分 DATA、EOF、AGAIN、ERROR 的单消费状态机。
+- `BodyChunk`：直接持有零复制数据租约，同时提供按需复制到 `Buffer` 的便利路径。
+- `Body.concat/append/prepend`：基于 XRT 组合正文，不提前展开子正文。
+- `Body.readAll`：有显式总字节上限的同步便利入口。
+
+`nativeHandle()`、`BodyChunk.data()` 和 `BodyChunk.size` 保留底层路径；语言抽象不会强迫
+高性能调用方复制 Chunk。异步正文、文件正文与压缩变换将在独立依赖层接入。
+
+## 同步
+
+```text
+python tools\sync_xhttp_body_package.py --sync --xrt-root <xrt-root>
+python tools\sync_xhttp_body_package.py --xrt-root <xrt-root>
+```
+
+## 测试
+
+```text
+release\xl.exe run release\extlibs\xhttp.body\test\xhttp_body_test.xl
+release\xl.exe build release\extlibs\xhttp.body\test\xhttp_body_test.xl -o out\xhttp_body_test.exe
+```

@@ -1,0 +1,178 @@
+// 原生结果由 XRT 分配，语言直接接管其所有权。
+extern "xl6_xrt_last_error_text" func __ansi_error() as string
+extern "xansi_reset" @owned func __ansi_reset() as string
+extern "xansi_bold" @owned func __ansi_bold(string text) as string
+extern "xansi_dim" @owned func __ansi_dim(string text) as string
+extern "xansi_italic" @owned func __ansi_italic(string text) as string
+extern "xansi_underline" @owned func __ansi_underline(string text) as string
+extern "xansi_blink" @owned func __ansi_blink(string text) as string
+extern "xansi_inverse" @owned func __ansi_inverse(string text) as string
+extern "xansi_hidden" @owned func __ansi_hidden(string text) as string
+extern "xansi_strike" @owned func __ansi_strike(string text) as string
+extern "xansi_fg" @owned func __ansi_fg(string text, int code) as string
+extern "xansi_bg" @owned func __ansi_bg(string text, int code) as string
+extern "xansi_fg256" @owned func __ansi_fg256(string text, int index) as string
+extern "xansi_bg256" @owned func __ansi_bg256(string text, int index) as string
+extern "xansi_fg_true" @owned func __ansi_fg_true(string text, int r, int g, int b) as string
+extern "xansi_bg_true" @owned func __ansi_bg_true(string text, int r, int g, int b) as string
+extern "xansi_up" @owned func __ansi_up(int count) as string
+extern "xansi_down" @owned func __ansi_down(int count) as string
+extern "xansi_right" @owned func __ansi_right(int count) as string
+extern "xansi_left" @owned func __ansi_left(int count) as string
+extern "xansi_next_line" @owned func __ansi_next_line(int count) as string
+extern "xansi_prev_line" @owned func __ansi_prev_line(int count) as string
+extern "xansi_column" @owned func __ansi_column(int column) as string
+extern "xansi_clear_screen" @owned func __ansi_clear_screen() as string
+extern "xansi_clear_line" @owned func __ansi_clear_line() as string
+extern "xansi_clear_to_end" @owned func __ansi_clear_to_end() as string
+extern "xansi_hide_cursor" @owned func __ansi_hide_cursor() as string
+extern "xansi_show_cursor" @owned func __ansi_show_cursor() as string
+extern "xansi_title" @owned func __ansi_title(string text) as string
+extern "xansi_strip" @owned func __ansi_strip(string text) as string
+extern "xansi_display_width" func __ansi_display_width(string text) as int
+
+// C 入口使用零结尾文本；先拒绝内嵌 NUL，避免静默只处理前缀。
+func __ansi_text(string text)
+    if string.indexOf(text, "\0", false, string.byteLen(text), 1) >= 0 then
+        throw ValueError "ansi: text contains NUL"
+    end
+end
+
+export func reset() as string
+    return __ansi_reset()
+end
+
+export func bold(string text) as string
+    __ansi_text(text)
+    return __ansi_bold(text)
+end
+
+export func dim(string text) as string
+    __ansi_text(text)
+    return __ansi_dim(text)
+end
+
+export func italic(string text) as string
+    __ansi_text(text)
+    return __ansi_italic(text)
+end
+
+export func underline(string text) as string
+    __ansi_text(text)
+    return __ansi_underline(text)
+end
+
+export func blink(string text) as string
+    __ansi_text(text)
+    return __ansi_blink(text)
+end
+
+export func inverse(string text) as string
+    __ansi_text(text)
+    return __ansi_inverse(text)
+end
+
+export func hidden(string text) as string
+    __ansi_text(text)
+    return __ansi_hidden(text)
+end
+
+export func strike(string text) as string
+    __ansi_text(text)
+    return __ansi_strike(text)
+end
+
+export func fg(string text, int code) as string
+    __ansi_text(text)
+    return __ansi_fg(text, code)
+end
+
+export func bg(string text, int code) as string
+    __ansi_text(text)
+    return __ansi_bg(text, code)
+end
+
+export func fg256(string text, int index) as string
+    __ansi_text(text)
+    return __ansi_fg256(text, index)
+end
+
+export func bg256(string text, int index) as string
+    __ansi_text(text)
+    return __ansi_bg256(text, index)
+end
+
+export func fgTrue(string text, int r, int g, int b) as string
+    __ansi_text(text)
+    return __ansi_fg_true(text, r, g, b)
+end
+
+export func bgTrue(string text, int r, int g, int b) as string
+    __ansi_text(text)
+    return __ansi_bg_true(text, r, g, b)
+end
+
+export func up(int count) as string
+    return __ansi_up(count)
+end
+
+export func down(int count) as string
+    return __ansi_down(count)
+end
+
+export func right(int count) as string
+    return __ansi_right(count)
+end
+
+export func left(int count) as string
+    return __ansi_left(count)
+end
+
+export func nextLine(int count) as string
+    return __ansi_next_line(count)
+end
+
+export func prevLine(int count) as string
+    return __ansi_prev_line(count)
+end
+
+export func column(int column) as string
+    return __ansi_column(column)
+end
+
+export func clearScreen() as string
+    return __ansi_clear_screen()
+end
+
+export func clearLine() as string
+    return __ansi_clear_line()
+end
+
+export func clearToEnd() as string
+    return __ansi_clear_to_end()
+end
+
+export func hideCursor() as string
+    return __ansi_hide_cursor()
+end
+
+export func showCursor() as string
+    return __ansi_show_cursor()
+end
+
+export func title(string text) as string
+    __ansi_text(text)
+    return __ansi_title(text)
+end
+
+export func strip(string text) as string
+    __ansi_text(text)
+    return __ansi_strip(text)
+end
+
+export func displayWidth(string text) as int
+    __ansi_text(text)
+    int width = __ansi_display_width(text)
+    if width < 0 then throw ValueError __ansi_error() end
+    return width
+end

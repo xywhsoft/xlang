@@ -1,0 +1,48 @@
+# siphash128
+
+This extension implements the domain-separated 128-bit SipHash-2-4 variant.
+The 64-bit SipHash-2-4 API is provided by xlang's default `siphash` standard
+library namespace and is not compiled a second time by this package.
+
+```xlang
+import siphash128
+bytes key = b"0123456789abcdef" // Example only: generate a secret key in production.
+Buffer digest = siphash128.hash(b"A\x00B", key)
+auto stream = siphash128.hasher(key)
+stream.update(b"A\x00")
+stream.update("B")
+assert stream.digest().compare(digest) == 0
+```
+
+`key` is exactly 16 bytes. There is no default key, padding, truncation or
+fallback to a pseudo-random generator. Inputs can be `string` or `bytes` via
+`hash(data, key, size=-1)` and `Buffer` via
+`hashBuffer(data, key, size=-1)`. The optional size is a byte limit: `-1`
+uses all actual bytes, nonnegative values truncate to the available length,
+and values below `-1` raise `RangeError`. Embedded NUL bytes are included.
+The 16-byte result is returned as a `Buffer` in little-endian digest order.
+
+`SipHasher128` supports `update(string|bytes, size=-1)`,
+`updateBuffer(Buffer, size=-1)`, `digest()`, `reset()`, `clone()` and
+`inputBytes()`. `digest()` is a nonterminal snapshot. `clone()` owns an
+independent state. The caller must serialize access to a single mutable
+hasher. Destroying it wipes its owned key and state, but does not wipe the
+caller's key or every temporary CPU copy.
+Do not concurrently mutate a `Buffer` while it is being hashed.
+
+SipHash is useful for keyed short-input and hash-table collision resistance.
+It is not a password hash, encryption scheme, or general-purpose message
+authentication protocol. The 128-bit variant is domain-separated; its result
+cannot be formed by concatenating two 64-bit results.
+
+The package compiles only `third_party/siphash.c` (128-bit engine) and
+`siphash128_native.c` (xlang adapter). The earlier combined-package sources
+and documentation are retained in this folder only as migration references;
+they are not listed in `xlang.package.json` and do not enter user binaries.
+The independent oracle and its licenses are in `test/reference/`; provenance
+is documented in `third_party/PROVENANCE.md`.
+
+Current Windows release check (2026-10-17): `xl check` and JIT pass, but
+`tools/check_extlib_siphash128.ps1` stops at AOT linking because the shared
+compiler runtime does not provide `xl6NativeHandleTraceLeaf`. This package is
+not signed off for full AOT on the current release binary.

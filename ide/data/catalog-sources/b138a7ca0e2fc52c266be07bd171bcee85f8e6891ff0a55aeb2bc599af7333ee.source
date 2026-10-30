@@ -1,0 +1,43 @@
+{
+    "format":  "xlang-package-1",
+    "name":  "rapidocr",
+    "version":  "0.1.0",
+    "abiVersion":  "1",
+    "kind":  "demo6-extlib",
+    "artifact":  {
+                     "kind":  "source",
+                     "cSources":  [
+                                      "src/rapidocr_artifact.c",
+                                      "src/rapidocr_json.c"
+                                  ],
+                     "xlSources":  [
+                                       "src/rapidocr.xl"
+                                   ],
+                   "includeDirs": ["include"],
+                   "xrtModules": ["XRT_MODULE_VALUE_CONTAINER", "XRT_MODULE_JSON", "XRT_MODULE_BUFFER", "XRT_MODULE_FILE_WHOLE", "XRT_MODULE_PATH_SYSTEM", "XRT_MODULE_ENVIRONMENT", "XRT_MODULE_ONCE", "XRT_MODULE_THREAD_KEY"]
+                 },
+    "links":  [
+
+              ],
+    "loadlibs":  [
+
+                 ],
+    "dependencies":  [
+                         {
+                             "name":  "opencv",
+                             "version":  "0.1.0",
+                             "abiVersion":  "1"
+                         },
+                         {
+                             "name":  "onnxruntime",
+                             "version":  "0.1.0",
+                             "abiVersion":  "1"
+                         }
+                     ],
+    "coverage": { "mode": "suite", "tests": ["test/real_inference.xl", "test/implicit_engine_cleanup.xl", "test/implicit_shim_cleanup.xl"] },
+    "native":  {
+                   "singleton":  false,
+                   "loadName":  "",
+                   "version":  ""
+               }
+}

@@ -1,0 +1,37 @@
+{
+    "format": "xlang-package-1",
+    "name": "xhttp",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": [
+            "src/url/url.c",
+            "src/url/query.c",
+            "src/url/query_codec.c",
+            "src/url/form.c",
+            "src/url/query_params.c",
+            "src/xlang/xhttp_native_common.c",
+            "src/xlang/xhttp_native_url.c",
+            "src/xlang/xhttp_native_query.c"
+        ],
+        "xlSources": ["src/xlang/xhttp.xl"],
+        "xrtModules": [
+            "XRT_MODULE_CODEC_PERCENT",
+            "XRT_MODULE_HTTP_HOST",
+            "XRT_MODULE_IO_BUFFER"
+        ]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "coverage": {
+        "mode": "suite",
+        "tests": [
+            "test/xhttp_url_test.xl",
+            "test/xhttp_query_test.xl"
+        ]
+    },
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

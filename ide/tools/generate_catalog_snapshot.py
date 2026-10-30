@@ -2,6 +2,7 @@
 import argparse,hashlib,json,os,re,shutil,subprocess,sys,uuid
 from pathlib import Path
 from catalog_sources import plain,sha,verify
+from refresh_extensions import generate as refresh_extensions
 
 IDE=Path(__file__).resolve().parents[1]
 DOCS=['语言基础设计','函数设计','表达式与控制流设计','类型系统设计','扩展库系统设计','标准库设计']
@@ -28,7 +29,6 @@ def generate(output,documentation_root,profile_path,gcc):
     if source_root.resolve()!=compiler_root.parent.resolve() or Path(runtime['directory']).resolve()!=source_root.resolve():
         raise ValueError('Compiler source and runtime roots differ')
     rows={row['path']:row['sha256'] for row in sources['files'] if row['path'].startswith(('src/','lib/'))}
-    rows.update({name:digest for name,digest in runtime['files'].items() if name.startswith('release/extlibs/')})
     compiler_files={name:runtime['files']['release/'+name] for name in ('xl.exe','xl.dll','xlc.dll')}
     if any(evidence['runtimeArtifacts'].get(name)!=digest for name,digest in compiler_files.items()): raise ValueError('Compiler binaries do not match their source build')
     for name,digest in compiler_files.items():
@@ -53,7 +53,8 @@ def generate(output,documentation_root,profile_path,gcc):
     if not chunks: raise ValueError('No class source exports found')
     (scratch/'stdlib_catalog_chunks.inc').write_text(''.join('    CHUNK('+name+');\n' for name in chunks),encoding='utf-8')
     exporter=scratch/'dump_stdlib_catalog.exe'
-    compiler=compiler_root/'xl.exe'; catalog=output/'commands.json'; bundle=output/'catalog-sources'
+    standard=output/'standard'; standard.mkdir()
+    compiler=compiler_root/'xl.exe'; catalog=standard/'commands.json'; bundle=standard/'catalog-sources'
     calls=[[gcc,'-std=c11','-O0','-I'+str(snapshot),'-I'+str(scratch),str(tool_snapshot/'dump_stdlib_catalog.c'),str(snapshot/'src/stdlib/xl6_stdlib_data.c'),'-o',str(exporter)],
            [str(exporter),str(scratch/'stdlib.raw.json')],
            [sys.executable,'-X','utf8',str(tool_snapshot/'generate_catalog.py'),'--demo6',str(snapshot),'--raw',str(scratch/'stdlib.raw.json'),'--compiler',str(compiler),'--output',str(catalog),'--source-output',str(bundle),'--scratch',str(scratch/'asts')]]
@@ -68,6 +69,11 @@ def generate(output,documentation_root,profile_path,gcc):
                 code=subprocess.run(arguments,stdout=stream,stderr=subprocess.STDOUT,timeout=900,cwd=IDE).returncode
             step.update(exitCode=code,logSha256=sha(log)); receipt()
             if code: raise ValueError('Catalog generation failed; inspect '+str(log))
+        complete=output/'complete'
+        report['extensionGeneration']=refresh_extensions(IDE.parent,standard,complete,gcc)
+        catalog=output/'commands.json'; bundle=output/'catalog-sources'
+        shutil.copy2(complete/'commands.json',catalog)
+        shutil.copytree(complete/'catalog-sources',bundle)
         for row in captured:
             if sha(snapshot/row['path'])!=row['sha256']: raise ValueError('Generation snapshot was modified')
         for name,digest in tool_files.items():
@@ -85,7 +91,7 @@ def generate(output,documentation_root,profile_path,gcc):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output',type=Path)
-    parser.add_argument('--documentation-root',type=Path,default=IDE.parent/'demo6/docs')
+    parser.add_argument('--documentation-root',type=Path,default=IDE.parent/'docs')
     parser.add_argument('--profile',type=Path,default=IDE/'data/portable-build-inputs.json')
     parser.add_argument('--gcc',default=shutil.which('gcc') or '')
     args=parser.parse_args()

@@ -1,0 +1,80 @@
+extern "xlmdb_page_size" func __lmdb_psize() as int
+extern "xlmdb_pages_needed" func __lmdb_pages(int data_size, int page_size) as int
+extern "xlmdb_encode_kv" func __lmdb_enc(string key, string value) as string
+extern "xlmdb_decode_key" func __lmdb_dkey(string kv_hex) as string
+extern "xlmdb_decode_value" func __lmdb_dval(string kv_hex) as string
+extern "xlmdb_key_compare" func __lmdb_cmp(string key1, string key2) as int
+extern "xlmdb_valid_key" func __lmdb_vkey(string key) as int
+extern "xlmdb_db_size" func __lmdb_dbsize(int entries, int klen, int vlen) as int
+extern "xlmdb_flag_rdonly" func __lmdb_fro() as int
+extern "xlmdb_flag_nosync" func __lmdb_fns() as int
+extern "xlmdb_flag_nometasync" func __lmdb_fnms() as int
+extern "xlmdb_env_fixedmap" func __lmdb_efm() as int
+extern "xlmdb_env_nosubdir" func __lmdb_ens() as int
+extern "xlmdb_env_readonly" func __lmdb_ero() as int
+extern "xlmdb_max_key_size" func __lmdb_mks() as int
+extern "xlmdb_max_dbs_default" func __lmdb_mdb() as int
+
+export func pageSize() as int
+    return __lmdb_psize()
+end
+
+export func pagesNeeded(int data_size, int page_size) as int
+    return __lmdb_pages(data_size, page_size)
+end
+
+export func encodeKV(string key, string value) as string
+    return __lmdb_enc(key, value)
+end
+
+export func decodeKey(string kv_hex) as string
+    return __lmdb_dkey(kv_hex)
+end
+
+export func decodeValue(string kv_hex) as string
+    return __lmdb_dval(kv_hex)
+end
+
+export func keyCompare(string key1, string key2) as int
+    return __lmdb_cmp(key1, key2)
+end
+
+export func validKey(string key) as int
+    return __lmdb_vkey(key)
+end
+
+export func dbSize(int entries, int avg_key_len, int avg_val_len) as int
+    return __lmdb_dbsize(entries, avg_key_len, avg_val_len)
+end
+
+export func flagRdonly() as int
+    return __lmdb_fro()
+end
+
+export func flagNosync() as int
+    return __lmdb_fns()
+end
+
+export func flagNometasync() as int
+    return __lmdb_fnms()
+end
+
+export func envFixedmap() as int
+    return __lmdb_efm()
+end
+
+export func envNosubdir() as int
+    return __lmdb_ens()
+end
+
+export func envReadonly() as int
+    return __lmdb_ero()
+end
+
+export func maxKeySize() as int
+    return __lmdb_mks()
+end
+
+export func maxDbsDefault() as int
+    return __lmdb_mdb()
+end
