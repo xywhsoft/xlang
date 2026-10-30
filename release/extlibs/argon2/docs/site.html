@@ -57,6 +57,12 @@
       <span class="extlib-badge">ABI 1</span>
     </div>
     <p class="extlib-lead">Argon2 密码哈希（RFC 9106）— 2015 年密码哈希竞赛（PHC）冠军算法，具备内存硬特性，有效抵抗 GPU/ASIC 暴力破解。C 层实现 Blake2b + Argon2 完整核心，xlang 层提供安全、易用的高层 API，提供当前包公开的密码哈希与 PHC 验证能力。</p>
+    <p>2026-10-30：共用解码入口只接受已实现的16/19版本，省略版本号表示16；未知版本不再按当前轮函数验真。
+    未知/损坏PHC返回普通false/true/-1，资源失败仍传播MemoryError，不改C ABI或vendor算法。</p>
+    <p>最终联合门禁Windows64项、Linux66阶段通过，Argon2 11个/Bloom 33个实际原型对正式头验证。
+    Linux C含ASan/UBSan/泄漏；9正常版本、24未知、85畸形、3元数据边界和26故障点通过。
+    仅在隔离变异中移除uint32检查，新回绕用例能抓住LP64退化；真实vendor/XRT/主线未改。
+    官网仅验证隔离生成，不将短时通过扩大为独立密码学认证或长时压力结论。</p>
     <p>2026-10-26 当前 Windows 联合门禁报告 <code>passed</code>、47 项检查，严格 C、RFC 向量、含 NUL 输入、语言 JIT/AOT 与双语范例通过；Linux C ASan/UBSan、Argon2/Bloom 各四条独立 EXE AOT 及 Bloom NUL 键 AOT 也通过。生产成本需按部署机器与并发量标定，短时测试不替代长时压力或独立密码学审计。</p>
   </div>
 
@@ -78,6 +84,10 @@
       <li>六个 C 操作入口先清除旧的 XRT 错误；成功、密码不匹配和无效 PHC 的普通查询结果不会继承上次失败。调用后立即读取错误槽。</li>
       <li>四条 C 文本返回值为拥有型 <code>char*</code>，调用方以 <code>xrtFree</code> 释放，失败返回 <code>NULL</code> 并设置 XRT 错误。XLang 使用 <code>@owned string</code> 直接接管，不经临时区复制正文；仍需一次长度扫描。</li>
       <li><code>xargon2_extract</code> 对无效 PHC 返回拥有的空文本且不留错误，语言层 <code>extract*</code> 返回 -1。空结果自身的 OOM 仍抛 MemoryError。C/语言故障注入与恢复、生成 C 接管检查、双语 JIT/AOT 均已覆盖；不代表独立密码学审计或长时压力已完成。</li>
+      <li>PHC只支持16/19，未知版本及不规范数字/base64拒绝。版本字段省略时为16；升级须先验证，再用密码和新随机盐重新计算，不能只改版本字段。
+      新phc_policy.xl/phc_policy_c.c提供六行固定输出对照；低成本只用于测试，生产不能照搬。</li>
+      <li>新增9组正常版本、24组未知版本、85组畸形、3组uint32元数据边界与26分配失败点。
+      大成本字段仅做查询，不执行GiB或数十亿轮计算；查询可读不等于验证有资源配额/取消保障。</li>
       <li>输出 4..256 字节、盐 8..64 字节、内存最多 2097152 KiB；verify 同样检查资源上限。
       该上限不是并发配额或时间预算，不承诺取消与中途终止。</li>
       <li>RFC 9106 参数组：64 MiB / t=3 / p=4，或 2 GiB / t=1 / p=4；
@@ -119,8 +129,8 @@ end</pre></div></div>
       <li><strong>PHC 标准编码</strong> — 算法、版本、参数、盐、哈希全部内嵌于一个字符串，直接存入数据库</li>
       <li><strong>三种变体</strong> — Argon2d（抗 GPU）/ Argon2i（抗侧信道）/ Argon2id（混合，RFC 推荐默认）</li>
       <li><strong>secret + ad</strong> — 服务器端密钥哈希（pepper）与附加数据绑定用户上下文</li>
-      <li><strong>恒定时间比较</strong> — verify 内部 XOR 累积比较，防时序攻击</li>
-      <li><strong>安全内存擦除</strong> — 哈希中间状态与盐用后即清，不残留在内存中</li>
+      <li><strong>摘要比较</strong> — verify 内部使用 XOR 累积比较，不因首个不同字节提前退出；不承诺整个解析/计算流程恒定时间</li>
+      <li><strong>资源擦除</strong> — 清零本库负责释放的工作区及输出/自动盐临时数组；不擦除调用方的密码，不承诺清除寄存器副本或操作系统交换页</li>
       <li><strong>参数升级检测</strong> — <code>checkNeedsRehash</code> 判断旧哈希是否需要用新参数重新计算</li>
     </ul>
 

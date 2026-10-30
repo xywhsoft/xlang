@@ -21,6 +21,6 @@
     "links": [],
     "loadlibs": [],
     "dependencies": [],
-    "coverage": { "mode": "suite", "tests": ["test/ownership.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/ownership.xl", "test/phc.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

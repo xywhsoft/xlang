@@ -405,6 +405,11 @@ static int xargon2_decode(const char *encoded, size_t encodedSize,
     context->pwd = (uint8_t *)(password != NULL ? password : "");
     context->pwdlen = (uint32_t)passwordSize;
     result = decode_string(context, text, *type);
+    /* 只接受实际实现的算法版本，不能把未知版本按现有轮函数计算并验真。 */
+    if ( result == ARGON2_OK && context->version != ARGON2_VERSION_10 &&
+         context->version != ARGON2_VERSION_13 ) {
+        result = ARGON2_DECODING_FAIL;
+    }
     xrtFree(text);
     if ( result != ARGON2_OK ) {
         xargon2_free(*salt, encodedSize);

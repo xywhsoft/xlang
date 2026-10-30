@@ -16,6 +16,7 @@ char *xargon2_hash_raw(const char *password, size_t passwordSize,
     const char *salt, size_t saltSize, const char *secret, size_t secretSize,
     const char *ad, size_t adSize, long long timeCost, long long memoryCost,
     long long parallelism, long long hashLength, long long saltLength, long long type);
+/* PHC仅接受版本16/19；省略版本表示16。未知版本与损坏编码同为普通不匹配。 */
 long long xargon2_verify(const char *password, size_t passwordSize,
     const char *encoded, size_t encodedSize, const char *secret, size_t secretSize,
     const char *ad, size_t adSize);
