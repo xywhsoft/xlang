@@ -11,7 +11,7 @@ python_path=$(command -v python3 || true)
 input_paths() {
     find release/extlibs/lzma release/include -type f -print0
     printf '%s\0' lib/xrt/xrt.h lib/xruntime/xruntime.h release/xl release/libxl.so \
-        release/libxlc.so test/support/extlib_codec_runtime.c \
+        release/libxlc.so test/support/extlib_codec_runtime.c test/support/extlib_native_codec_file_rollback.h \
         tools/check_extlib_native_globals.ps1 tools/check_extlib_native_globals.sh \
         test/cases/extlib_lzma.xl test/cases/extlib_lzma_progress.xl release/examples/extlibs/lzma.xl
     if [[ -n "$cc_path" ]]; then printf '%s\0' "$cc_path"; fi

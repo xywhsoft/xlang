@@ -103,3 +103,17 @@ Python 互通检查器所有判据不再依赖可被 `-O` 删除的 assert，逐
 
 32 位、TSan、持续压力/模糊测试、全部 OS 关闭失败和数据落盘持久性
 不由本轮证明。八份冻结发布物/单头库保持不变，100 包状态数量不变。
+
+## 同日夹具复用
+
+miniz 实测后，将 native callable 的矩阵正文抽到
+`test/support/extlib_native_codec_file_rollback.h`；本包测试仅绑定真实
+函数、临时文件前缀和诊断名称。保留 96/16 组、实际末次回调选择、
+七项内存快照和精确首因；不与带 FINAL 的普通 C 回调夹具混用。
+两个包的门禁均将此头加入输入指纹。只减少测试重复，不改产品实现。
+
+LZMA 抽取后 Windows TCC 仍为打开态 96 组全过、关闭态 16 组两处
+残留；Linux 原生同一 GCC ASan/UBSan 夹具两模式均过，复用前轮
+25 份受控对象且核对指纹。该专项不声称又跑了一遍 LZMA 完整门禁。
+证据在 `build/test/miniz_transaction_audit_1793374784/` 及
+`/var/tmp/xlang-miniz-transaction-Z9zEfJrt` 的 `lzma.shared.*`。
