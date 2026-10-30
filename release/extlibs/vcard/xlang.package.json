@@ -14,6 +14,6 @@
     "links": [],
     "loadlibs": [],
     "dependencies": [],
-    "coverage": { "mode": "suite", "tests": ["test/control_characters.xl", "test/allocations.xl", "test/uri_values.xl", "test/structure.xl", "test/limits.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/control_characters.xl", "test/allocations.xl", "test/uri_values.xl", "test/structure.xl", "test/limits.xl", "test/utf8_folding.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

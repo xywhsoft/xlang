@@ -17,6 +17,7 @@
 /release/extlibs/plist/examples/*.expected.txt text eol=lf
 /release/extlibs/imagehash/examples/*.expected.txt text eol=lf
 /release/extlibs/ical/examples/*.expected.txt text eol=lf
+/release/extlibs/vcard/examples/*.expected.txt text eol=lf
 /tools/check_extlib_mqtt.sh text eol=lf
 /release/examples/extlibs/mqtt.expected.txt text eol=lf
 /release/examples/extlibs/mqtt_tcp.expected.txt text eol=lf

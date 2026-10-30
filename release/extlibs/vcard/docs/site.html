@@ -19,6 +19,7 @@
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / vcard</p><h1>vcard</h1>
     <p class="extlib-lead">常用联系人字段的 vCard 3.0/4.0 读写。</p>
     <p>UTF-8、重复字段、转义与按字节折行，结果由调用方独立持有。</p>
+    <p>2026-10-30：修复先校验 UTF-8 后展开折行的顺序错误，3.0/4.0 的 336 合法、352 非法、224 实际 OOM 与活动内存/独立所有权通过；两平台同一回归旧解析器各 208 条断言失败归零。两实际 C 原型/错改负例、新双语黄金输出及各五份正常 AOT 通过，Linux 包含 ASan/UBSan。API、ABI、XRT 和主线未改，未承诺零性能影响。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
@@ -32,6 +33,8 @@ string text = vcard.build(contact)
 println(contact["fn"])</code></pre>
     <p>这是值映射，不保留属性参数、未知字段或原始格式；3.0 允许缺少 N，不能当作完整 RFC 校验器。4.0 要求 VERSION 紧随 <code>BEGIN:VCARD</code>，3.0 仍允许晚置 VERSION。3.0 的 VERSION 不允许参数；4.0 可读 <code>VERSION;VALUE=text:4.0</code>，重新生成时参数不会保留。其他属性的参数也仅校验名称、等号、引号和分隔位置，不映射语义；引号值可包含逗号、分号和冒号。分组 VERSION 不能替代整卡版本；分组 BEGIN/END 也不能作为普通未知字段绕过包络校验。<code>item1.EMAIL</code> 等普通分组字段仍可读取值，但不保留分组名；分组名和属性名只接受 ASCII 字母、数字、连字符，未知合法字段仍可忽略。URL、IMPP、PHOTO、LOGO、GEO 按原始 URI/线值保存；FN、NOTE 等按 TEXT 转义。TEL 按默认 TEXT 处理，VALUE=uri 参数不往返。解析与生成拒绝非法 UTF-8、内嵌 NUL 和非法 ASCII 控制字符；TEXT 内存换行会被转义。生成结果超过 4 MiB 时 C 接口报告 <code>XERR_RANGE</code>，不会截断。C 接口、输入限制与发布验收状态见包内 README。</p>
     <p>解析输入超过 4 MiB 时在读取内容前报告 <code>XERR_RANGE</code>；XLang 的 parse/build 对超限抛 <code>RangeError</code>，空输入和格式错误仍属值错误。</p>
+    <p>包内 <code>folded_contact.xl</code> 与 <code>folded_contact_c.c</code> 展示同功能的折行姓名、分组邮箱、TEXT 备注恢复与规范写回；五条语言/引擎路径检查固定输出和完整字节。默认不写文件，传路径时才保留输出。发送端应保持多字节字符连续；读取端会恢复被折行拆开的有效 UTF-8，展开后仍非法的内容继续拒绝。</p>
+    <p>当前 Windows 默认 44 项前 43 项符合要求，最后原中央用例在语言字典 build 的 M1 失败；Linux 同样保留红项，独立 JIT/AOT 最小源也先原生写回成功再语言字典失败。下方历史结果和原生对象写回均不替代整包发布验收，未执行的后续旧完整范例阶段不作通过承诺。</p>
     <p>2026-10-24 当前发布版：原生解析对象可以写出，但语言字典直接传给 <code>vcard.build</code> 会失败；这是共享 foreign <code>var</code> 容器投影阻断，尚未完成整包发布验收。Windows 默认门禁在首个中央 XLang 用例停下，尚未运行完整范例 AOT；旧发布物的缺符号诊断不能代表当前状态。Linux <code>test/check.sh</code> 的历史 C ASan/UBSan 与 XLang 对照结果也不能代替本次验收。</p>
   </section>
 </main>
