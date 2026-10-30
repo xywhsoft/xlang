@@ -218,8 +218,16 @@ static xls_syntax* incremental(const char* path,xls_text* text,const xls_syntax*
                 syntax_unit* changed=xrtCalloc(1,sizeof(*changed)); if(!changed) goto failed;
                 xrtAtomic32Init(&changed->references,1); changed->node=fresh; changed->size=length; changed->line=changed->column=1;
                 parsed.root->children[0]=NULL;
-                xrtFree(fresh->doc); fresh->doc=unit->node->doc ? xrtStrDup(unit->node->doc) : NULL;
-                if(unit->node->doc && !fresh->doc) { releaseUnit(changed); goto failed; }
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+                /* A complete ordinary range owns its native #doc text.
+                 * Cursor admission proves the old header remains unchanged. */
+                if(query){
+#endif
+                    xrtFree(fresh->doc); fresh->doc=unit->node->doc ? xrtStrDup(unit->node->doc) : NULL;
+                    if(unit->node->doc && !fresh->doc) { releaseUnit(changed); goto failed; }
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+                }
+#endif
                 if(unit->storageKnown) {
                     if(!cacheTreeBytes(changed->node,SIZE_MAX,&changed->storageBytes)) { releaseUnit(changed); goto failed; }
                     changed->storageKnown=1;
@@ -247,11 +255,17 @@ failed: xl6CompletionFree(&local); xl6ParseResultFree(&parsed); xlsSyntaxRelease
     }
     return NULL;
 }
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+#include "analysis/syntax_multifunction.inc"
+#endif
 static xls_syntax* build(const char* path,xls_text* text,const xls_syntax* previous,
     XL6_CompletionQuery* query,xls_parse_work* work)
 {
     if(!path || !*path || !text || !work) return NULL;
     xls_syntax* s=incremental(path,text,previous,query,work,1,NULL,NULL); if(s) return s;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    if(!query && (s=incrementalMultiple(path,text,previous,work)))return s;
+#endif
     s=allocate(path,text); if(!s) return NULL;
     ++work->full; work->bytes+=xlsTextSize(text);
     s->accepted=query ? xl6ParseSourceWithCompletion(xlsTextData(text),s->path,&s->parse,query) :
@@ -286,7 +300,12 @@ failed: xlsSyntaxRelease(s); return NULL;
 xls_syntax* xlsSyntaxTryFunction(const char* path,xls_text* text,const xls_syntax* previous,xls_parse_work* work)
 {
     if(!path || !*path || !text || !work || !previous || previous->cursor) return NULL;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    xls_syntax* parsed=incremental(path,text,previous,NULL,work,0,NULL,NULL);
+    return parsed ? parsed : incrementalMultiple(path,text,previous,work);
+#else
     return incremental(path,text,previous,NULL,work,0,NULL,NULL);
+#endif
 }
 static int emptyQuery(const XL6_CompletionQuery* query)
 {

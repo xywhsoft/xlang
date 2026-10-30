@@ -93,9 +93,15 @@ static int headerAnalysis(void)
         CHECK(result && xlsSemanticCheckInfo(result).accepted && fresh(result,docs,2));
         xls_parse_work w=xlsSemanticCheckModuleParseWork(result);
         if(v && v!=3)CHECK(!w.full && w.fragments==1 && w.reused==34 && w.bytes<256 && xlsSemanticCheckReads(result).reused>=32);
-        /* Two separate functions changed in this generation,so whole parsing
-         * remains required;semantic dependencies still reject used headers. */
-        if(v==3)CHECK(w.full==1 && xlsSemanticCheckWork(result).functionsChecked>=32);
+        /* Two separate functions changed. Current ordinary chunks parse both
+         * while used-header dependencies still force semantic rechecking. */
+        if(v==3){
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+            CHECK(!w.full && w.fragments==2 && w.reused==33 && w.bytes<512 && xlsSemanticCheckWork(result).functionsChecked>=32);
+#else
+            CHECK(w.full==1 && xlsSemanticCheckWork(result).functionsChecked>=32);
+#endif
+        }
         printf("import v%u full=%llu fragments=%llu retained=%llu bytes=%llu\n",v,(unsigned long long)w.full,(unsigned long long)w.fragments,(unsigned long long)w.reused,(unsigned long long)w.bytes);
         xlsSemanticCheckDestroy(result);xrtStrBufFree(&text);
     }
