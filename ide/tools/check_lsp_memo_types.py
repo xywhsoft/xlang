@@ -45,7 +45,7 @@ def main():
                 cases.append(dict(method=method,variant=variant,target=index,version=version,analysis=a));return dict(a,memoTypes=types)
             try:
                 c.send('initialize',dict(capabilities={},initializationOptions=dict(automaticDiagnostics=False,checkOnSave=False)),1)
-                init,_=c.reply(1);assert init['result']['serverInfo']['version']==(args.baseline_version if variant=='before' else '0.99');c.send('initialized',{})
+                init,_=c.reply(1);assert init['result']['serverInfo']['version']==(args.baseline_version if variant=='before' else '0.100');c.send('initialized',{})
                 for p in paths:c.open(p,body,1)
                 a=call(0);assert a['builds']==1
                 again=call(0);assert again['builds']==1 and again['cacheHits']==1 and again['memoTypes']==a['memoTypes']

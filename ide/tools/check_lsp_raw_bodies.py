@@ -12,7 +12,7 @@ from check_lsp_module_semantics import initialize,source
 from check_language_definitions import position
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--server',type=Path,required=True);p.add_argument('--output',type=Path,required=True);p.add_argument('--baseline',type=Path);p.add_argument('--baseline-version',default='0.98');p.add_argument('--expected-version',default='0.99');p.add_argument('--query-kind',choices=['completion','signature','signature-open'],default='completion');args=p.parse_args()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--server',type=Path,required=True);p.add_argument('--output',type=Path,required=True);p.add_argument('--baseline',type=Path);p.add_argument('--baseline-version',default='0.98');p.add_argument('--expected-version',default='0.100');p.add_argument('--query-kind',choices=['completion','signature','signature-open'],default='completion');args=p.parse_args()
     signature=args.query_kind!='completion'
     method='textDocument/signatureHelp' if signature else 'textDocument/completion'
     server=args.server.resolve(strict=True);root=args.output.resolve();root.mkdir(parents=True,exist_ok=False);cases=[];clients=[];processes=[];protected={}

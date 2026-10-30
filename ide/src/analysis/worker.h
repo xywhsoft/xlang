@@ -2,6 +2,7 @@
 #define XLANG_ANALYSIS_WORKER_H
 #include "analysis/session.h"
 #include "analysis/folding.h"
+#include "analysis/selection.h"
 #include "analysis/check_session.h"
 #include "analysis/completion_session.h"
 #include "analysis/signature_session.h"
@@ -98,4 +99,10 @@ enum xls_query_state xlsQueryDependencyResult(xls_query* query,xls_dependency_ca
  * Existing semantic stats continue reporting actual worker-wide work totals.
  * Failure/cancelled/syntax-only/absent query clears output and returns0. */
 int xlsQuerySessionCache(const xls_query* query,xls_worker_cache_stats* stats);
+/* Batched structural selection runs off-owner using the retained parser session.
+ * Offsets are copied before submission; bounds and limits follow selection.h.
+ * READY transfers a syntax snapshot via xlsQueryResult; selection borrows query. */
+xls_query* xlsWorkerSelection(xls_worker* worker,const xls_analysis_document* documents,
+    size_t count,const char* target,const size_t* offsets,size_t positions);
+const xls_selection* xlsQuerySelection(const xls_query* query);
 #endif
