@@ -1,5 +1,29 @@
 # miniz
 
+## 当前验收（2026-10-30）
+
+已修复打开态文件事务的双故障清理：回调失败后遇到删除路径 OOM，
+原实现会留下临时文件。现在在 Writer 关闭前借用已有句柄回滚，
+同一最终 C 夹具在 Windows 96 组旧 8 红→新 0，首错、旧目标和
+七项内存快照保持；Linux 新旧均过，不把平台差异写成新修复。
+
+**整包仍不能签收**：Windows 默认门禁 76 阶段中 74 项符合要求，
+关闭态回滚 OOM 仍有两组临时残留（RFS），顶层 AOT 收尾仍失败
+（M2）；Linux 此轮关闭态通过，默认最后仍 M2。两项都保留真实
+失败，不能因前一项阻断而漏掉后一项。
+
+标准 zlib 独立互通已扩为 77 组本包编码、56 组外部解码、70 组
+坏输入拒绝，验证器在 `-I -O` 下仍完整执行；坏流须格式/截断错误，
+不能把 OOM、崩溃或部分输出当作拒绝成功。两平台各 14 个普通
+独立程序路径、新旧双语范例与 Linux C sanitizer 通过。
+新增文件事务双语例覆盖 UTF-8 路径、取消/回调错误保护旧目标和重试。
+
+命令与所有权见 [examples/README.md](examples/README.md)，完整
+范围、成本、原始结果和复现见[本轮审查](docs/file-transaction-audit-2026-10-30.md)。
+当前 native 文件 API 使用 XRT callable，不是普通 C 函数指针；
+公开 C Reader/Writer 流接口仍用 `xrtprogressproc`。
+下方带日期的旧通过记录只描述当时构建，不覆盖本次新增边界。
+
 2026-10-29 顶层生命周期用例 `test/top_level.xl` 在全局持有一个真实
 压缩器，main 内校验有效性。固定发布版 Windows/Linux JIT 均退出0；
 独立 EXE 均打印 PASS 后在退出期报状态错误并退出1，确认为 **M2
@@ -114,13 +138,13 @@ assert miniz.decompressText(packed) == "hello miniz"
 仅用于 UTF-8 文本，解压成功但内容含非法 UTF-8 时抛 `ValueError`。
 内嵌 NUL 按真实字节长度保留；任意非 UTF-8 二进制载荷仍应使用 `Buffer`。
 
-测试 `test/test_miniz.c` 覆盖 Python zlib 固定样本、分段输入、空流、损坏、截断、串联拒绝、输出限额，以及 XRT Reader/Writer 的二进制流往返和进度回调。`test/file_ops.xl` 覆盖文件往返、覆盖拒绝、取消清理和解压限额下的目标保护。Linux 使用 `bash release/extlibs/miniz/test/check.sh`，运行 ASan/UBSan、Python zlib 反向解码、XLang JIT 和七条独立 EXE AOT；中央 XLang 用例见 `test/cases/extlib_miniz.xl`。
+测试 `test/test_miniz.c` 覆盖固定样本、分段、空流、损坏/截断/串联拒绝、限额与 XRT Reader/Writer；`test/file_ops.xl` 覆盖文件、进度、取消与目标保护。`test/interop.c` / `interop.py` 独立双向验证标准 zlib。本包拒绝 gzip、raw deflate 和 preset dictionary，不将它们静默按 zlib 读取。Linux `test/check.sh` 包含 ASan/UBSan、14 条普通 AOT 和默认 M2 真实失败；中央语言用例见 `test/cases/extlib_miniz.xl`。
 Windows 在仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/miniz/test/check.ps1`：同次验证严格 GCC 独立构建、Python zlib 互通、TCC C、私有成员负例、中央/文件 XLang 用例、GCC C/TCC C/XLang 范例逐字输出和完整 AOT。脚本使用每次独立的临时构建目录；`-SkipAot` 仅供聚焦快测，不作为发布签收。
 
 包清单公开 `include/` 并声明所需的 XRT/XRuntime 模块。Windows 上可直接用
 `tools/run_extlib_c.ps1 -Package miniz -Source release/extlibs/miniz/examples/basic.c`
-运行 C 范例；按清单模块独立编译运行时、包源码和 C 范例也已通过，运行时
-对象为 342,087 字节。该数字不是最终 `xl build` 产物大小。
+运行 C 范例；按清单模块独立编译运行时、包源码和 C 范例也已通过。
+运行时对象大小取决于模块和编译配置，不以对象大小代替最终程序体积。
 `examples/basic.c` 的 TCC 单文件路径还可直接用
 `release/xl.exe run release/extlibs/miniz/examples/basic.c` 运行，或单独
 `xl build`；正式包仍按清单分离编译原生源码。
