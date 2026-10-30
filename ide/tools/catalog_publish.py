@@ -129,6 +129,8 @@ def publish(pair,data,work,checkpoint=None):
     if new is None: raise ValueError('Generated pair is absent')
     data=chain(data); data.mkdir(parents=True,exist_ok=True)
     with locked(work,data) as directory:
+        if os.stat(data).st_dev!=os.stat(directory).st_dev:
+            raise ValueError('Catalog transaction work must be on the same filesystem as its destination')
         recover_locked(directory,data); old=pair_state(data)
         transaction=directory/('transaction-'+uuid.uuid4().hex); transaction.mkdir()
         staged=transaction/'new'; staged.mkdir()

@@ -1,0 +1,18 @@
+{
+    "format": "xlang-package-1",
+    "name": "geohash",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": ["geohash_native.c"],
+        "xlSources": ["src/geohash.xl"],
+        "xrtModules": ["XRT_MODULE_STRING", "XRT_MODULE_STRING_FORMAT", "XRT_MODULE_NUMBER_FLOAT"]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl"] },
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

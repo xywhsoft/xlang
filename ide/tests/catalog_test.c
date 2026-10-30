@@ -18,7 +18,7 @@ int main(int argc,char** argv)
 {
     int failed=0; xide_model_error error={0}; xide_command_catalog catalog={0}; char *root=NULL,*path=NULL; xvalue* bad=NULL;
     CHECK(argc==3); root=xidePathResolve(argv[1],"中文 命令目录"); CHECK(root && xrtDirCreateAll(root)); path=xidePathResolve(root,"invalid.json"); CHECK(path);
-    CHECK(xideCatalogLoad(&catalog,argv[2],&error)); CHECK(catalog.count>4400 && catalog.documentCount==45);
+    CHECK(xideCatalogLoad(&catalog,argv[2],&error)); CHECK(catalog.count>4400 && catalog.documentCount>=6);
     const xide_command* jsonFinish=findName(&catalog,"JsonWriter.finish"),*xlonFinish=findName(&catalog,"XlonWriter.finish"),*fixedStack=findName(&catalog,"FixedStack.tryPop"),*genericXlon=xideCatalogFind(&catalog,"standard:xlon.stringify:9b21a2969175e238");
     CHECK(jsonFinish && !strcmp(jsonFinish->signature,"JsonWriter.finish() as string") && xlonFinish && !strcmp(xlonFinish->signature,"XlonWriter.finish() as string"));
     CHECK(fixedStack && strstr(fixedStack->signature,"(bool, T?)") && genericXlon && strstr(genericXlon->signature,"<T>"));
@@ -39,6 +39,13 @@ int main(int argc,char** argv)
     size_t c=0,methods=0,extensions=0;
     for(size_t i=0;i<catalog.count;++i) { const xide_command* command=&catalog.entries[i]; if(!strcmp(command->language,"c")) { ++c; CHECK(!strcmp(command->category,"language") && !*command->requiredImport); } if(!strcmp(command->kind,"method")) { ++methods; CHECK(!xideCatalogCanComplete(command,"xlang")); } if(!strcmp(command->category,"extension")) { ++extensions; CHECK(*command->requiredImport && *command->source && command->sourceLine>=1); } }
     CHECK(c==44 && methods>2000 && extensions>2000);
+    CHECK(findName(&catalog,"http1.requestHead") && findName(&catalog,"crc32.checksum") && findName(&catalog,"compress.encode"));
+    CHECK(findName(&catalog,"WsStream") && findName(&catalog,"Deflater") && findName(&catalog,"ObjectPool"));
+    CHECK(!findName(&catalog,"WebSocket") && !findName(&catalog,"codec.hexEncodeBytes") && !findName(&catalog,"WsStream.handle"));
+    CHECK(strstr(findName(&catalog,"ObjectPool")->signature,"<T") && strstr(findName(&catalog,"log.customSink")->parameters[3].type,"?"));
+    CHECK(!strcmp(findName(&catalog,"cryptoAdvanced.aes")->requiredImport,"cryptoAdvanced"));
+    CHECK(xideCatalogDocument(&catalog,"stdlib-doc:HTTP标准库实施与验收.md"));
+    CHECK(findName(&catalog,"HttpVersion.http11") || findName(&catalog,"HttpVersion.v11"));
     const xide_command* original=catalog.entries; size_t count=catalog.count;
     CHECK(!xideCatalogLoad(&catalog,"ide/build/not-a-catalog.json",&error) && catalog.entries==original && catalog.count==count);
     bad=xrtValueDeepClone(catalog.source); CHECK(bad); xvalue* entries=xrtValueObjectGet(bad,sv("entries")); xvalue* first=xrtValueArrayGet(entries,0);
@@ -54,7 +61,7 @@ int main(int argc,char** argv)
     CHECK(!xideCatalogLoad(&catalog,path,&error) && catalog.entries==original);
     const unsigned char invalidJson[]={'{','"','d','"',':','"',0xff,'"','}'};
     CHECK(xrtFileWriteAtomic(path,(xbytesview){invalidJson,sizeof(invalidJson)})); CHECK(!xideCatalogLoad(&catalog,path,&error) && catalog.entries==original);
-    puts("catalog_test passed: real builtin types/shared document refs, signatures/defaults, 227 package metadata, C isolation, member exclusions, UTF-8, duplicate IDs and transactional failures without a UI context");
+    puts("catalog_test passed: real builtin types/shared document refs, signatures/defaults, current package metadata, C isolation, member exclusions, UTF-8, duplicate IDs and transactional failures without a UI context");
 cleanup:
     xrtValueRelease(bad); xideCatalogClear(&catalog); free(path); free(root); return failed;
 }

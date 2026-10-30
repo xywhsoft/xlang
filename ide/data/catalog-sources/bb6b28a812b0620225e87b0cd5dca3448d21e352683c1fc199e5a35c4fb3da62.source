@@ -1,0 +1,33 @@
+{
+    "format": "xlang-package-1",
+    "name": "_zlib",
+    "version": "1.3.2",
+    "abiVersion": "1",
+    "kind": "demo6-private-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": [
+            "third_party/zlib/adler32.c",
+            "third_party/zlib/compress.c",
+            "third_party/zlib/crc32.c",
+            "third_party/zlib/deflate.c",
+            "third_party/zlib/infback.c",
+            "third_party/zlib/inffast.c",
+            "third_party/zlib/inflate.c",
+            "third_party/zlib/inftrees.c",
+            "third_party/zlib/trees.c",
+            "third_party/zlib/uncompr.c",
+            "third_party/zlib/zutil.c"
+        ],
+        "xlSources": [],
+        "xrtModules": []
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "native": {
+        "singleton": false,
+        "loadName": "",
+        "version": ""
+    }
+}

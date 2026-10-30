@@ -1,0 +1,336 @@
+// zstd 的压缩结果和输入统一使用 Buffer，避免二进制数据经过字符串转换。
+extern "xl6_xrt_last_error_text" @no_raise func __zstd_error() as string
+extern "xzstd_last_error_is_memory" @no_raise func __zstd_memory_error() as bool
+extern "xzstd_last_error_is_range" @no_raise func __zstd_range_error() as bool
+extern "xzstd_last_error_is_value" @no_raise func __zstd_value_error() as bool
+extern "xzstd_version" func __zstd_version() as string
+extern "xzstd_compress" @no_raise func __zstd_compress(point data, c_size size, c_int level,
+    c_ulonglong maxInput, c_ulonglong maxOutput) as point
+extern "xzstd_decompress" @no_raise func __zstd_decompress(point data, c_size size,
+    c_ulonglong maxInput, c_ulonglong maxOutput, c_uint maxRatio) as point
+extern "xzstd_decompress_text" @no_raise func __zstd_decompress_text(point data, c_size size,
+    c_ulonglong maxInput, c_ulonglong maxOutput, c_uint maxRatio) as point
+extern "xzstd_text_size" @no_raise func __zstd_text_size(point result) as c_size
+extern "xzstd_text_take" @no_raise func __zstd_text_take(point result) as point
+extern "xrtFree" @no_raise func __zstd_free(point data)
+extern "xzstd_compress_file" func __zstd_compress_file(string source, string destination,
+    c_int level, c_bool overwrite, c_ulonglong maxInput, c_ulonglong maxOutput,
+    var onProgress) as c_int
+extern "xzstd_decompress_file" func __zstd_decompress_file(string source, string destination,
+    c_bool overwrite, c_ulonglong maxInput, c_ulonglong maxOutput, c_uint maxRatio,
+    var onProgress) as c_int
+
+
+
+// 压缩级别常量（与 zstd 取值范围一致；负数级别速度更快，正数级别压缩率更高）。
+export const int ZSTD_MIN_LEVEL = -131072
+export const int ZSTD_MAX_LEVEL = 22
+export const int ZSTD_DEFAULT_LEVEL = 3
+
+
+
+// 返回内嵌 zstd 引擎的版本号（例如 "1.5.6"）。
+export func version() as string
+    return __zstd_version()
+end
+
+func __zstd_check_level(int level)
+    if level < ZSTD_MIN_LEVEL or level > ZSTD_MAX_LEVEL then
+        throw ValueError "zstd level must be -131072..22"
+    end
+end
+
+func __zstd_check_limit(int value, string name)
+    if value <= 0 then
+        throw ValueError name + " must be greater than zero"
+    end
+end
+
+// 原生失败由包装层分类；真正的分配失败仍保持 MemoryError。
+func __zstd_failure() as string
+    if __zstd_memory_error() then throw MemoryError __zstd_error() end
+    if __zstd_range_error() then throw RangeError __zstd_error() end
+    return __zstd_error()
+end
+
+func __zstd_file_path(string value)
+    if string.indexOf(value, "\0", false, string.byteLen(value), 1) >= 0 then
+        throw ValueError "zstd file path contains NUL"
+    end
+end
+
+// C 计数器和进度均为无符号 64 位，语言公开 int 前先检查范围。
+func __zstd_count(c_ulonglong value) as int
+    if value > c_ulonglong(9223372036854775807) then
+        throw RangeError "zstd byte count exceeds int range"
+    end
+    return int(value)
+end
+
+func __zstd_progress(func(int, int, int) as bool callback) as var
+    return xcall(func(uint64 inputBytes, uint64 totalBytes, uint64 outputBytes) as bool
+        return callback(__zstd_count(c_ulonglong(inputBytes)),
+            __zstd_count(c_ulonglong(totalBytes)), __zstd_count(c_ulonglong(outputBytes)))
+    end)
+end
+
+func __zstd_check_file_result(int status)
+    if status == -1 then
+        throw CancelledError "zstd operation cancelled"
+    elseif status != 1 then
+        throw CompressionError __zstd_error()
+    end
+end
+
+
+
+export func compress(Buffer data, int level = ZSTD_DEFAULT_LEVEL,
+    int maxInput = 268435456, int maxOutput = 536870912) as Buffer
+    __zstd_check_level(level)
+    __zstd_check_limit(maxInput, "maxInput")
+    __zstd_check_limit(maxOutput, "maxOutput")
+    point result = __zstd_compress(data.data(), c_size(data.len()), c_int(level),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput))
+    if result == null then
+        throw CompressionError __zstd_failure()
+    end
+    return Buffer(result)
+end
+
+export func compress(string text, int level = ZSTD_DEFAULT_LEVEL,
+    int maxInput = 268435456, int maxOutput = 536870912) as Buffer
+    __zstd_check_level(level)
+    __zstd_check_limit(maxInput, "maxInput")
+    __zstd_check_limit(maxOutput, "maxOutput")
+    point result = __zstd_compress_text(text, c_int(level),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput))
+    if result == null then throw CompressionError __zstd_failure() end
+    return Buffer(result)
+end
+
+export func decompress(Buffer data, int maxInput = 268435456,
+    int maxOutput = 536870912, int maxRatio = 1000) as Buffer
+    __zstd_check_limit(maxInput, "maxInput")
+    __zstd_check_limit(maxOutput, "maxOutput")
+    __zstd_check_limit(maxRatio, "maxRatio")
+    if maxRatio > 4294967295 then
+        throw RangeError "zstd maxRatio must fit uint32"
+    end
+    point result = __zstd_decompress(data.data(), c_size(data.len()),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput), c_uint(maxRatio))
+    if result == null then
+        throw CompressionError __zstd_failure()
+    end
+    return Buffer(result)
+end
+
+export func decompressText(Buffer data, int maxInput = 268435456,
+    int maxOutput = 536870912, int maxRatio = 1000) as cstring
+    __zstd_check_limit(maxInput, "maxInput")
+    __zstd_check_limit(maxOutput, "maxOutput")
+    __zstd_check_limit(maxRatio, "maxRatio")
+    if maxRatio > 4294967295 then throw RangeError "zstd maxRatio must fit uint32" end
+    point result = __zstd_decompress_text(data.data(), c_size(data.len()),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput), c_uint(maxRatio))
+    if result == null then
+        if __zstd_value_error() then throw ValueError __zstd_error() end
+        throw CompressionError __zstd_failure()
+    end
+    c_size textSize = __zstd_text_size(result)
+    return cstring.take(__zstd_text_take(result), textSize, __zstd_free)
+end
+
+export func compressFile(string source, string destination, int level = ZSTD_DEFAULT_LEVEL,
+    bool overwrite = true, int maxInput = 268435456, int maxOutput = 536870912,
+    (func(int, int, int) as bool)? onProgress = null)
+    __zstd_file_path(source)
+    __zstd_file_path(destination)
+    __zstd_check_level(level)
+    __zstd_check_limit(maxInput, "maxInput")
+    __zstd_check_limit(maxOutput, "maxOutput")
+    var progress = null
+    if onProgress != null then
+        progress = __zstd_progress(onProgress)
+    end
+    int status = __zstd_compress_file(source, destination, c_int(level), c_bool(overwrite),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput), progress)
+    __zstd_check_file_result(status)
+end
+
+export func decompressFile(string source, string destination, bool overwrite = true,
+    int maxInput = 268435456, int maxOutput = 536870912, int maxRatio = 1000,
+    (func(int, int, int) as bool)? onProgress = null)
+    __zstd_file_path(source)
+    __zstd_file_path(destination)
+    __zstd_check_limit(maxInput, "maxInput")
+    __zstd_check_limit(maxOutput, "maxOutput")
+    __zstd_check_limit(maxRatio, "maxRatio")
+    if maxRatio > 4294967295 then
+        throw RangeError "zstd maxRatio must fit uint32"
+    end
+    var progress = null
+    if onProgress != null then
+        progress = __zstd_progress(onProgress)
+    end
+    int status = __zstd_decompress_file(source, destination, c_bool(overwrite),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput), c_uint(maxRatio),
+        progress)
+    __zstd_check_file_result(status)
+end
+
+
+
+// 增量流式压缩器：update() 喂入数据，drain() 随时取走已产出的压缩字节，
+// finish() 封存流。配合 inputBytes/outputBytes 可自行驱动进度回显。
+export class ZstdCompressor
+    native point handle
+    extern "xzstd_compressor_create" create(c_int level, c_ulonglong maxInput, c_ulonglong maxOutput)
+    extern "xzstd_compressor_destroy" destroy()
+    private extern "xzstd_compressor_update" @no_raise func updateNative(point data, c_size size) as bool
+    private extern "xzstd_compressor_update_text" @no_raise func updateTextNative(cstring text) as bool
+    private extern "xzstd_compressor_finish" @no_raise func finishNative() as bool
+    private extern "xzstd_compressor_drain" @no_raise func drainNative() as point
+    private extern "xzstd_compressor_input_bytes" func inputBytesNative() as c_ulonglong
+    private extern "xzstd_compressor_output_bytes" func outputBytesNative() as c_ulonglong
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    // 已喂入的原始字节数（进度回显用）。
+    get inputBytes() as int
+        return __zstd_count(self.inputBytesNative())
+    end
+
+    // 已产出的压缩字节数（进度回显用）。
+    get outputBytes() as int
+        return __zstd_count(self.outputBytesNative())
+    end
+
+    func update(Buffer data)
+        if not self.updateNative(data.data(), c_size(data.len())) then
+            throw CompressionError __zstd_failure()
+        end
+    end
+
+    func update(string text)
+        if not self.updateTextNative(text) then
+            throw CompressionError __zstd_failure()
+        end
+    end
+
+    // 取走当前已产出的压缩字节并清空内部输出缓冲；无数据时返回空 Buffer。
+    func drain() as Buffer
+        point result = self.drainNative()
+        if result == null then
+            throw CompressionError __zstd_failure()
+        end
+        return Buffer(result)
+    end
+
+    // 封存压缩流（写入帧尾部校验）。返回后 drain() 可取走最后的压缩字节。
+    func finish() as bool
+        if not self.finishNative() then
+            throw CompressionError __zstd_failure()
+        end
+        return true
+    end
+end
+
+
+
+// 增量流式解压器：update() 喂入压缩字节，drain() 随时取走已解压数据，
+// finished 反映当前帧是否结束，members 统计已完整解出的帧数（支持串联多帧流）。
+export class ZstdDecompressor
+    native point handle
+    extern "xzstd_decompressor_create" create(c_ulonglong maxInput, c_ulonglong maxOutput, c_uint maxRatio)
+    extern "xzstd_decompressor_destroy" destroy()
+    private extern "xzstd_decompressor_update" @no_raise func updateNative(point data, c_size size) as bool
+    private extern "xzstd_decompressor_finish" @no_raise func finishNative() as bool
+    private extern "xzstd_decompressor_drain" @no_raise func drainNative() as point
+    private extern "xzstd_decompressor_input_bytes" func inputBytesNative() as c_ulonglong
+    private extern "xzstd_decompressor_output_bytes" func outputBytesNative() as c_ulonglong
+    private extern "xzstd_decompressor_finished" func finishedNative() as bool
+    private extern "xzstd_decompressor_members" func membersNative() as c_ulonglong
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    // 已喂入的压缩字节数（进度回显用）。
+    get inputBytes() as int
+        return __zstd_count(self.inputBytesNative())
+    end
+
+    // 已产出的解压字节数（进度回显用）。
+    get outputBytes() as int
+        return __zstd_count(self.outputBytesNative())
+    end
+
+    // 当前帧是否已完整解出（流结束时为 true）。
+    get finished() as bool
+        return self.finishedNative()
+    end
+
+    // 已完整解出的帧数；大于 1 表示输入是串联的多帧 zstd 流。
+    get members() as int
+        return __zstd_count(self.membersNative())
+    end
+
+    func update(Buffer data)
+        if not self.updateNative(data.data(), c_size(data.len())) then
+            throw CompressionError __zstd_failure()
+        end
+    end
+
+    // 取走当前已解压的数据并清空内部输出缓冲；无数据时返回空 Buffer。
+    func drain() as Buffer
+        point result = self.drainNative()
+        if result == null then
+            throw CompressionError __zstd_failure()
+        end
+        return Buffer(result)
+    end
+
+    // 校验流已完整结束；流被截断或为空时抛出 CompressionError。
+    func finish() as bool
+        if not self.finishNative() then
+            throw CompressionError __zstd_failure()
+        end
+        return true
+    end
+end
+
+
+
+export func compressor(int level = ZSTD_DEFAULT_LEVEL,
+    int maxInput = 268435456, int maxOutput = 536870912) as ZstdCompressor
+    __zstd_check_level(level)
+    __zstd_check_limit(maxInput, "maxInput")
+    __zstd_check_limit(maxOutput, "maxOutput")
+    ZstdCompressor result = ZstdCompressor(c_int(level),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput))
+    if not result.valid then
+        throw CompressionError __zstd_failure()
+    end
+    return result
+end
+
+export func decompressor(int maxInput = 268435456, int maxOutput = 536870912,
+    int maxRatio = 1000) as ZstdDecompressor
+    __zstd_check_limit(maxInput, "maxInput")
+    __zstd_check_limit(maxOutput, "maxOutput")
+    __zstd_check_limit(maxRatio, "maxRatio")
+    if maxRatio > 4294967295 then
+        throw RangeError "zstd maxRatio must fit uint32"
+    end
+    ZstdDecompressor result = ZstdDecompressor(c_ulonglong(maxInput),
+        c_ulonglong(maxOutput), c_uint(maxRatio))
+    if not result.valid then
+        throw CompressionError __zstd_failure()
+    end
+    return result
+end
+
+extern "xzstd_compress_text" @no_raise func __zstd_compress_text(cstring text, c_int level,
+    c_ulonglong maxInput, c_ulonglong maxOutput) as point

@@ -1,4 +1,4 @@
-﻿[CmdletBinding()]
+[CmdletBinding()]
 param([ValidateSet('Debug','Release')][string]$Configuration='Debug', [switch]$Tests, [string]$FrontendRoot='', [string]$ReleaseDirectory='')
 $ErrorActionPreference='Stop'
 function Get-XideSha256([string]$Path) {
@@ -95,9 +95,10 @@ if (-not (Test-Path -LiteralPath $releaseDll) -or (Get-XideSha256 $sdkDll) -ne (
     Copy-Item -LiteralPath $sdkDll -Destination $releaseDll -Force
 }
 [void](New-Item -ItemType Directory -Path (Join-Path $releaseRoot 'data') -Force)
-Copy-Item -LiteralPath (Join-Path $ideRoot 'data\commands.json') -Destination (Join-Path $releaseRoot 'data\commands.json') -Force
-& python -X utf8 (Join-Path $PSScriptRoot 'catalog_sources.py') --source (Join-Path $ideRoot 'data\catalog-sources') --catalog (Join-Path $ideRoot 'data\commands.json') --destination (Join-Path $releaseRoot 'data\catalog-sources')
-if ($LASTEXITCODE -ne 0) { throw 'Catalog source verification failed.' }
+& python -X utf8 (Join-Path $PSScriptRoot 'check_catalog_coverage.py') --root (Split-Path -Parent $ideRoot) --catalog (Join-Path $ideRoot 'data\commands.json')
+if ($LASTEXITCODE -ne 0) { throw 'IDE catalog is stale; regenerate it against the current accepted compiler release.' }
+& python -X utf8 (Join-Path $PSScriptRoot 'catalog_publish.py') --pair (Join-Path $ideRoot 'data') --data (Join-Path $releaseRoot 'data') --work (Join-Path $objectRoot 'catalog-publications')
+if ($LASTEXITCODE -ne 0) { throw 'Verified catalog/source pair publication failed.' }
 & python -X utf8 (Join-Path $PSScriptRoot 'font_resources.py') --source (Join-Path $ideRoot 'data\fonts') --destination (Join-Path $releaseRoot 'data\fonts')
 if ($LASTEXITCODE -ne 0) { throw 'Pinned offline font resource verification failed.' }
 if ($Tests) {

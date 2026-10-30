@@ -1,0 +1,93 @@
+{
+  "format": "xlang-ide-catalog-update-1",
+  "createdUtc": "2026-10-30T12:04:47.868584+00:00",
+  "status": "passed",
+  "version": "0.6.0",
+  "before": {
+    "entries": 5783,
+    "standard": 2580,
+    "extension": 3039,
+    "language": 164
+  },
+  "after": {
+    "entries": 9591,
+    "language": 168,
+    "standard": 5988,
+    "extension": 3435,
+    "documents": 145,
+    "sourceFiles": 432,
+    "standardKinds": {
+      "function": 1015,
+      "constant": 725,
+      "type": 406,
+      "method": 3842
+    }
+  },
+  "binding": {
+    "sourceRevision": "ed78373dded9bde21db313799c1db8d5111631a6",
+    "compilerFiles": {
+      "xl.exe": "2316e877b3f0076d874a4511f1e4c6f6d401724b50ef4bfd191998a594d8ec05",
+      "xl.dll": "2e3559673defc88f6f6e35c03bdf9980b9876405c7086a36a9ddf75de6242feb",
+      "xlc.dll": "c36441758b31e6c500ee31534474eed8e7a408b272fcc189da802c533f895d7a"
+    },
+    "releaseReportSha256": "27c508a9793b8f342fbd4d48a85df44a6196cc9422579292fbff45ed20bdac43"
+  },
+  "catalogSha256": "c350b1c890a6273aa6dad4a559f4526aad14d8ac61fd623f02e85b61a9f684eb",
+  "sourceIndexSha256": "5076c4f8f9d103b39b95e371c259b1364f1c232791e34ea657f18f5f40ca2c71",
+  "publicApiSha256": "91893b9aa65cda2dbcf688fbdfe0a19729120fd3e0cc27523c5b98d0bc9305c1",
+  "publicCoverage": {
+    "functions": 823,
+    "constants": 202,
+    "types": 406,
+    "members": 3830
+  },
+  "negativeControls": 9,
+  "publicationRecoveryChecks": 14,
+  "nativeReader": "passed, compiler XRT standalone profile; no UI context",
+  "deterministicGeneration": true,
+  "missingSources": 0,
+  "canonicalJsonEol": "LF",
+  "sourceSnapshotsTextConversion": false,
+  "applicationBinariesModified": false,
+  "guiOrLanguageServerQualification": false,
+  "scope": "Current static commands/help/fallback completion and corresponding source snapshots; no standard-library runtime test campaign",
+  "generationEvidence": {
+    "path": "F:\\xlang-validation\\catalog-060-20261030\\candidate-final\\generation-report.json",
+    "sha256": "25176d42f505878bc2877b1855237965aa30afe51fe1880718aa064de9627f96"
+  },
+  "acceptanceEvidence": {
+    "path": "F:\\xlang-validation\\catalog-060-20261030\\acceptance-final\\results.json",
+    "sha256": "8ad0e8d4aa20531d9e1ec2c5cee0c4dcb932df9ed23c3c9d65001fd91a887336"
+  },
+  "toolFiles": {
+    "generate_catalog.py": "ad54b57129c18587d7bdfde52831f2991a434e3345e049bb80605f6f74e8fad7",
+    "catalog_sources.py": "2134bf55969e85c1489f95895dc7c29f73bab286a23a85e5edfc9972c46afad1",
+    "dump_stdlib_catalog.c": "2a4e7b390c6193b327fa9f31a8759496d60fd5e34534b3bf350ae36a1de86082",
+    "catalog_inventory.py": "648b900c1314f6243e520c139360a8c01f6ca894c6e39397baf7ffb9e2caaab9"
+  },
+  "staleMemberControl": {
+    "path": "F:\\xlang-validation\\catalog-060-20261030\\stale-member-control.json"
+  },
+  "validationToolFiles": {
+    "check_catalog_coverage.py": "d2053bfc8e77547091d7a67b00db58897ada3691ffe77020fe5094c7df84bd46",
+    "check_catalog_update.py": "85d5e7cf0ac17c2f0b8820a93ec8a5f7d3983233a5d89f510399b2a60858b52c",
+    "catalog_inventory.py": "2893f8896089e928328000a9d038c0d2885d2e1bd58b8625158b4e83ff713a02",
+    "catalog_publish.py": "ab05b3f0c8f46dea1773d899399f94fbba63e63b851a1f77ad1388dbd63c8120"
+  },
+  "gitExportValidation": {
+    "status": "passed",
+    "entries": 9591,
+    "documents": 145,
+    "publicApi": {
+      "functions": 823,
+      "constants": 202,
+      "types": 406,
+      "members": 3830
+    },
+    "availableSources": 432,
+    "catalogSha256": "c350b1c890a6273aa6dad4a559f4526aad14d8ac61fd623f02e85b61a9f684eb",
+    "sourceRevision": "ed78373dded9bde21db313799c1db8d5111631a6",
+    "gitTree": "fa9c6f3ab36281f285159e704d5c9d1a6fe83f24",
+    "nativeReaderExit": 0
+  }
+}

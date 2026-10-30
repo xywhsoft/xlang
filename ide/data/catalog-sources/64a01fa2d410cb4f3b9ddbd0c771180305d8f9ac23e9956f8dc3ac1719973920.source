@@ -1,0 +1,148 @@
+// C ABI 使用 C 类型；公开摘要与种子使用完整的无符号位宽。
+extern "xxxhash_version" func __version() as string
+extern "xxxhash_hash64" func __hash64(point data, c_size size, c_ulonglong seed) as c_ulonglong
+extern "xxxhash_hash64_str" func __hash64str(string data, c_size size, c_ulonglong seed) as c_ulonglong
+extern "xxxhash_hash64_hex" func __hex64(point data, c_size size, c_ulonglong seed) as string
+extern "xxxhash_hash64_str_hex" func __hex64str(string data, c_size size, c_ulonglong seed) as string
+extern "xxxhash_hash32" func __hash32(point data, c_size size, c_uint seed) as c_uint
+extern "xxxhash_hash32_str" func __hash32str(string data, c_size size, c_uint seed) as c_uint
+extern "xxxhash_hash32_hex" func __hex32(point data, c_size size, c_uint seed) as string
+extern "xxxhash_hash32_str_hex" func __hex32str(string data, c_size size, c_uint seed) as string
+extern "xxxhash_hash3_64" func __hash3_64(point data, c_size size, c_ulonglong seed) as c_ulonglong
+extern "xxxhash_hash3_64_str" func __hash3_64str(string data, c_size size, c_ulonglong seed) as c_ulonglong
+extern "xxxhash_hash3_64_hex" func __hex3_64(point data, c_size size, c_ulonglong seed) as string
+extern "xxxhash_hash3_64_str_hex" func __hex3_64str(string data, c_size size, c_ulonglong seed) as string
+extern "xxxhash_hash3_128_hex" func __hex3_128(point data, c_size size, c_ulonglong seed) as string
+extern "xxxhash_hash3_128_str_hex" func __hex3_128str(string data, c_size size, c_ulonglong seed) as string
+extern "xxxhash_file64" func __file64(string path, c_ulonglong seed, c_ulonglong maximum, var callback) as c_ulonglong
+extern "xxxhash_file64_hex" func __fileHex(string path, c_ulonglong seed, c_ulonglong maximum, var callback) as string
+
+export const uint64 XXHASH_DEFAULT_SEED = 0
+
+export func version() as string
+    return __version()
+end
+
+// string 与 Buffer 都按原始字节计算，不做编码转换或内容复制。
+export func hash64(Buffer data, uint64 seed = uint64(0)) as uint64
+    return uint64(__hash64(data.data(), c_size(data.len()), c_ulonglong(seed)))
+end
+export func hash64(string text, uint64 seed = uint64(0)) as uint64
+    return uint64(__hash64str(text, c_size(string.byteLen(text)), c_ulonglong(seed)))
+end
+export func hash64Hex(Buffer data, uint64 seed = uint64(0)) as string
+    return __hex64(data.data(), c_size(data.len()), c_ulonglong(seed))
+end
+export func hash64Hex(string text, uint64 seed = uint64(0)) as string
+    return __hex64str(text, c_size(string.byteLen(text)), c_ulonglong(seed))
+end
+export func hash32(Buffer data, uint32 seed = uint32(0)) as uint32
+    return uint32(__hash32(data.data(), c_size(data.len()), c_uint(seed)))
+end
+export func hash32(string text, uint32 seed = uint32(0)) as uint32
+    return uint32(__hash32str(text, c_size(string.byteLen(text)), c_uint(seed)))
+end
+export func hash32Hex(Buffer data, uint32 seed = uint32(0)) as string
+    return __hex32(data.data(), c_size(data.len()), c_uint(seed))
+end
+export func hash32Hex(string text, uint32 seed = uint32(0)) as string
+    return __hex32str(text, c_size(string.byteLen(text)), c_uint(seed))
+end
+
+// XXH3 的 128 位结果使用固定 32 位小写十六进制文本，不引入 uint128 类型。
+export func hash3_64(Buffer data, uint64 seed = uint64(0)) as uint64
+    return uint64(__hash3_64(data.data(), c_size(data.len()), c_ulonglong(seed)))
+end
+export func hash3_64(string text, uint64 seed = uint64(0)) as uint64
+    return uint64(__hash3_64str(text, c_size(string.byteLen(text)), c_ulonglong(seed)))
+end
+export func hash3_64Hex(Buffer data, uint64 seed = uint64(0)) as string
+    return __hex3_64(data.data(), c_size(data.len()), c_ulonglong(seed))
+end
+export func hash3_64Hex(string text, uint64 seed = uint64(0)) as string
+    return __hex3_64str(text, c_size(string.byteLen(text)), c_ulonglong(seed))
+end
+export func hash3_128Hex(Buffer data, uint64 seed = uint64(0)) as string
+    return __hex3_128(data.data(), c_size(data.len()), c_ulonglong(seed))
+end
+export func hash3_128Hex(string text, uint64 seed = uint64(0)) as string
+    return __hex3_128str(text, c_size(string.byteLen(text)), c_ulonglong(seed))
+end
+
+func __limit(int maximum)
+    if maximum <= 0 then
+        throw ValueError "maxInput must be greater than zero"
+    end
+end
+
+func __file_path(string path)
+    if string.indexOf(path, "\0", false, string.byteLen(path), 1) >= 0 then
+        throw ValueError "xxhash file path contains NUL"
+    end
+end
+
+// XRT 进度参数是 uint64；转换后再调用公开的 int 回调。
+func __progress(func(int, int, int) as bool callback) as var
+    return xcall(func(uint64 current, uint64 total, uint64 output) as bool
+        uint64 maximum = uint64(9223372036854775807)
+        if current > maximum or total > maximum or output > maximum then
+            throw RangeError "xxhash progress exceeds int range"
+        end
+        return callback(int(current), int(total), int(output))
+    end)
+end
+
+// 所有失败由 C/XRT 传播，取消和回调异常不再转写成普通文件错误。
+export func hashFile64(string path, uint64 seed = uint64(0), int maxInput = 268435456,
+    (func(int, int, int) as bool)? onProgress = null) as uint64
+    __file_path(path)
+    __limit(maxInput)
+    var callback = null
+    if onProgress != null then
+        callback = __progress(onProgress)
+    end
+    return uint64(__file64(path, c_ulonglong(seed), c_ulonglong(maxInput), callback))
+end
+export func hashFile64Hex(string path, uint64 seed = uint64(0), int maxInput = 268435456,
+    (func(int, int, int) as bool)? onProgress = null) as string
+    __file_path(path)
+    __limit(maxInput)
+    var callback = null
+    if onProgress != null then
+        callback = __progress(onProgress)
+    end
+    return __fileHex(path, c_ulonglong(seed), c_ulonglong(maxInput), callback)
+end
+
+export class Xxhash64Hasher
+    native point handle
+    extern "xxxhash_hasher_create" create(c_ulonglong seed, c_ulonglong maxInput)
+    extern "xxxhash_hasher_destroy" destroy()
+    private extern "xxxhash_hasher_update" func updateNative(point data, c_size size) as bool
+    private extern "xxxhash_hasher_update_str" func updateStrNative(string data, c_size size) as bool
+    private extern "xxxhash_hasher_digest" func digestNative() as c_ulonglong
+    extern "xxxhash_hasher_digest_hex" func digestHex() as string
+    extern "xxxhash_hasher_reset" func reset() as bool
+    private extern "xxxhash_hasher_input_bytes" func inputBytesNative() as c_ulonglong
+
+    get valid() as bool
+        return self.handle != null
+    end
+    get inputBytes() as uint64
+        return uint64(self.inputBytesNative())
+    end
+    func update(Buffer data)
+        self.updateNative(data.data(), c_size(data.len()))
+    end
+    func update(string text)
+        self.updateStrNative(text, c_size(string.byteLen(text)))
+    end
+    func digest() as uint64
+        return uint64(self.digestNative())
+    end
+end
+
+export func hasher(uint64 seed = uint64(0), int maxInput = 268435456) as Xxhash64Hasher
+    __limit(maxInput)
+    return Xxhash64Hasher(c_ulonglong(seed), c_ulonglong(maxInput))
+end

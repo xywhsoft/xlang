@@ -1,0 +1,92 @@
+// 命名共享内存保存原始字节；不同进程的并发读写须另行同步。
+extern "xl6_xrt_last_error_text" func __shm_error() as string
+extern "xshm_create" func __shm_create(string name, int size) as point
+extern "xshm_open" func __shm_open(string name) as point
+extern "xrtFree" @no_raise func __shm_free(point data)
+
+func __shmCheckName(string name)
+    if string.indexOf(name, "\0", false, string.byteLen(name), 1) >= 0 then
+        throw ValueError "shared memory name contains an embedded NUL byte"
+    end
+end
+
+export class SharedMemory
+    native point handle
+    private extern "xshm_adopt" create(point raw)
+    extern "xshm_close" destroy()
+
+    private extern "xshm_size" func sizeNative() as int
+    private extern "xshm_name_of" func nameNative() as string
+    private extern "xshm_write_abi" func writeNative(int offset, point data, c_size length) as c_int
+    private extern "xshm_write_text" func writeTextNative(int offset, cstring text) as c_int
+    private extern "xshm_read" func readNative(int offset, c_size length) as point
+    private extern "xshm_read_text" func readTextNative(int offset, c_size length) as point
+    private extern "xshm_write_int64" func writeIntNative(int offset, int value) as c_int
+    private extern "xshm_read_int64_value" func readIntNative(int offset) as int
+    private extern "xshm_zero" func zeroNative() as c_int
+
+    get size() as int
+        return self.sizeNative()
+    end
+
+    get name() as string
+        return self.nameNative()
+    end
+
+    func write(int offset, Buffer data)
+        if self.writeNative(offset, data.data(), c_size(data.len())) == 0 then
+            throw RangeError __shm_error()
+        end
+    end
+
+    func read(int offset, int length) as Buffer
+        if length < 0 then throw RangeError "shared memory length is negative" end
+        point result = self.readNative(offset, c_size(length))
+        if result == null then throw RangeError __shm_error() end
+        return Buffer(result)
+    end
+
+    func writeText(int offset, string text)
+        if self.writeTextNative(offset, text) == 0 then
+            throw RangeError __shm_error()
+        end
+    end
+
+    func readText(int offset, int length) as cstring
+        if length < 0 then throw RangeError "shared memory length is negative" end
+        point text = self.readTextNative(offset, c_size(length))
+        if text == null then throw RangeError __shm_error() end
+        return cstring.take(text, c_size(length), __shm_free)
+    end
+
+    func writeInt(int offset, int value)
+        if self.writeIntNative(offset, value) == 0 then
+            throw RangeError __shm_error()
+        end
+    end
+
+    func readInt(int offset) as int
+        if offset < 0 or offset > self.size - 8 then
+            throw RangeError "shared memory integer is out of bounds"
+        end
+        return self.readIntNative(offset)
+    end
+
+    func zero()
+        if self.zeroNative() == 0 then throw RuntimeError __shm_error() end
+    end
+end
+
+export func create(string name, int size) as SharedMemory
+    __shmCheckName(name)
+    point raw = __shm_create(name, size)
+    if raw == null then throw ValueError __shm_error() end
+    return SharedMemory(raw)
+end
+
+export func open(string name) as SharedMemory
+    __shmCheckName(name)
+    point raw = __shm_open(name)
+    if raw == null then throw ValueError __shm_error() end
+    return SharedMemory(raw)
+end

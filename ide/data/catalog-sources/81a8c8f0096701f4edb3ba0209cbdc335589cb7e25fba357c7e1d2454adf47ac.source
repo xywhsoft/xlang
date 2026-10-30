@@ -1,0 +1,165 @@
+extern "x_com_create" func x_com_create(string progid) as point
+extern "x_com_attach" func x_com_attach(point dispatch) as point
+extern "x_com_available" func x_com_available() as int
+extern "x_com_version" func x_com_version() as string
+extern "x_com_release" func x_com_release(point handle) as int
+extern "x_com_is_null" func x_com_is_null(point handle) as int
+extern "x_com_last_error" func x_com_last_error() as string
+extern "x_com_get_text_owned" func x_com_get_text(point handle, string name) as point
+extern "x_com_get_int" func x_com_get_int(point handle, string name) as int
+extern "x_com_put_var" func x_com_put_var(point handle, string name, var value) as int
+extern "x_com_put_ref" func x_com_put_ref(point handle, string name, var value) as int
+extern "x_com_missing" func x_com_missing() as point
+extern "x_com_invoke_array" func x_com_invoke_array(point handle, string name, array args) as var
+extern "x_com_invoke_out" func x_com_invoke_out(point handle, string name, array args, array byrefs) as var
+extern "x_com_invoke_named" func x_com_invoke_named(point handle, string name, array args, array names) as var
+
+// ProgID 和成员名由 COM 的 NUL 结尾接口读取；值参数仍可保留内嵌 NUL。
+func __com_c_string(string value)
+	if string.indexOf(value, "\0", false, string.byteLen(value), 1) >= 0 then
+		throw ValueError "com: ProgID or member name contains an embedded NUL byte"
+	end
+end
+
+export class ComObject extends object
+	point handle
+
+	create(string progid)
+		__com_c_string(progid)
+		self.handle = x_com_create(progid)
+	end
+
+	create(point handle)
+		self.handle = handle
+	end
+
+	func close() as bool
+		if x_com_is_null(self.handle) == 0 then
+			if x_com_release(self.handle) == 0 then
+				return false
+			end
+			self.handle = null
+			return true
+		end
+		return false
+	end
+
+	destroy()
+		if x_com_is_null(self.handle) == 0 then
+			// 析构只释放句柄，不能写回正在退役的对象。
+			x_com_release(self.handle)
+		end
+	end
+
+	func valid() as bool
+		return x_com_is_null(self.handle) == 0
+	end
+
+	func last_error() as string
+		return x_com_last_error()
+	end
+
+	func text(string name) as string
+		__com_c_string(name)
+		return __xl_runtime.takeCstr(x_com_get_text(self.handle, name))
+	end
+
+	func int(string name) as int
+		__com_c_string(name)
+		return x_com_get_int(self.handle, name)
+	end
+
+	func set(string name, var value) as bool
+		__com_c_string(name)
+		return x_com_put_var(self.handle, name, value) != 0
+	end
+
+	func set_ref(string name, var value) as bool
+		__com_c_string(name)
+		return x_com_put_ref(self.handle, name, value) != 0
+	end
+
+	func invoke(string name, array args) as var
+		__com_c_string(name)
+		return x_com_invoke_array(self.handle, name, args)
+	end
+
+	func invoke_out(string name, array args, array byrefs) as var
+		__com_c_string(name)
+		return x_com_invoke_out(self.handle, name, args, byrefs)
+	end
+
+	func invoke_named(string name, array args, array names) as var
+		__com_c_string(name)
+		return x_com_invoke_named(self.handle, name, args, names)
+	end
+
+end
+
+export func create(string progid) as point
+	__com_c_string(progid)
+	return x_com_create(progid)
+end
+
+export func attach(point dispatch) as point
+	return x_com_attach(dispatch)
+end
+
+export func available() as bool
+	return x_com_available() != 0
+end
+
+export func version() as string
+	return x_com_version()
+end
+
+export func missing() as point
+	return x_com_missing()
+end
+
+export func release(point handle) as int
+	return x_com_release(handle)
+end
+
+export func is_null(point handle) as int
+	return x_com_is_null(handle)
+end
+
+export func last_error() as string
+	return x_com_last_error()
+end
+
+export func get_text(point handle, string name) as string
+	__com_c_string(name)
+	return __xl_runtime.takeCstr(x_com_get_text(handle, name))
+end
+
+export func get_int(point handle, string name) as int
+	__com_c_string(name)
+	return x_com_get_int(handle, name)
+end
+
+export func put_var(point handle, string name, var value) as int
+	__com_c_string(name)
+	return x_com_put_var(handle, name, value)
+end
+
+export func put_ref(point handle, string name, var value) as int
+	__com_c_string(name)
+	return x_com_put_ref(handle, name, value)
+end
+
+export func invoke(point handle, string name, array args) as var
+	__com_c_string(name)
+	return x_com_invoke_array(handle, name, args)
+end
+
+export func invoke_out(point handle, string name, array args, array byrefs) as var
+	__com_c_string(name)
+	return x_com_invoke_out(handle, name, args, byrefs)
+end
+
+export func invoke_named(point handle, string name, array args, array names) as var
+	__com_c_string(name)
+	return x_com_invoke_named(handle, name, args, names)
+end

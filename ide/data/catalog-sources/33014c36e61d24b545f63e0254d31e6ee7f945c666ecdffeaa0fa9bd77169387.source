@@ -1,0 +1,51 @@
+{
+    "format":  "xlang-package-1",
+    "name":  "xfeat",
+    "version":  "0.1.0",
+    "abiVersion":  "1",
+    "kind":  "demo6-extlib",
+    "artifact":  {
+                     "kind":  "source",
+                     "cSources":  [
+                                      "src/xfeat_artifact.c"
+                                  ],
+                     "xlSources":  [
+                                       "src/xfeat.xl"
+                                   ],
+                     "xrtModules":  [
+                                        "XRT_MODULE_PATH_SYSTEM",
+                                        "XRT_MODULE_ENVIRONMENT",
+                                        "XRT_MODULE_ONCE",
+                                        "XRT_MODULE_MUTEX",
+                                        "XRT_MODULE_THREAD_KEY",
+                                        "XRT_MODULE_VALUE_CONTAINER",
+                                        "XRT_MODULE_JSON",
+                                        "XRT_MODULE_BUFFER",
+                                        "XRT_MODULE_UNICODE"
+                                   ]
+                 },
+    "coverage": { "mode": "suite", "tests": ["test/nul_arguments.xl"] },
+    "links":  [
+
+              ],
+    "loadlibs":  [
+
+                 ],
+    "dependencies":  [
+                         {
+                             "name":  "opencv",
+                             "version":  "0.1.0",
+                             "abiVersion":  "1"
+                         },
+                         {
+                             "name":  "onnxruntime",
+                             "version":  "0.1.0",
+                             "abiVersion":  "1"
+                         }
+                     ],
+    "native":  {
+                   "singleton":  false,
+                   "loadName":  "",
+                   "version":  ""
+               }
+}

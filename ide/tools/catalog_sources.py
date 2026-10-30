@@ -34,7 +34,7 @@ def create(catalog, materials, destination):
     index={'format':'xlang-catalog-sources-1','catalogSha256':sha(catalog),'entries':rows}
     destination.mkdir(parents=True)
     for name,raw in payload.items(): (destination/name).write_bytes(raw)
-    (destination/'index.json').write_text(json.dumps(index,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+    (destination/'index.json').write_text(json.dumps(index,ensure_ascii=False,indent=2)+'\n',encoding='utf-8',newline='\n')
     return verify(destination,catalog)
 
 def verify(source, catalog):

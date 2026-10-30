@@ -12,6 +12,10 @@ tools/tcc_vfs_manifest_linux_*.txt text eol=lf
 /src/api/xl_xrt_symbols.inc text eol=lf
 /src/stdlib/xl6_stdlib_func_index.inc text eol=lf
 /src/ir/xl6_ir_direct_bridge_data.inc text eol=lf
+/ide/data/commands.json text eol=lf
+/ide/data/catalog-sources/index.json text eol=lf
+# Content-addressed source snapshots must retain their exact captured bytes.
+/ide/data/catalog-sources/*.source -text -whitespace
 
 # 保持 Linux 门禁及跨平台黄金输出的行尾一致。
 /tools/check_extlib_mqtt.sh text eol=lf

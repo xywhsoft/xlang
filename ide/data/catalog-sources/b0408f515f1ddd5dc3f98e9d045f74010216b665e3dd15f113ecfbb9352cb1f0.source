@@ -1,0 +1,19 @@
+{
+    "format": "xlang-package-1",
+    "name": "trie",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": ["trie_native.c"],
+        "xrtModules": [],
+        "includeDirs": ["include"],
+        "xlSources": ["src/trie.xl"]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl"] },
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

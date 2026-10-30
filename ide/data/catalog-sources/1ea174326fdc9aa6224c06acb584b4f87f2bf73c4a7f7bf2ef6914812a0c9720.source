@@ -1,0 +1,18 @@
+{
+    "format": "xlang-package-1",
+    "name": "gettext",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": ["gettext_native.c", "gettext_plural.c"],
+        "xlSources": ["src/gettext.xl"],
+        "xrtModules": ["XRT_MODULE_VALUE_CONTAINER", "XRT_MODULE_FILE_WHOLE", "XRT_MODULE_UNICODE"]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/duplicates.xl", "test/boundaries.xl", "test/allocations.xl"] },
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

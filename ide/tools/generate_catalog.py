@@ -1,12 +1,13 @@
-"""Generate an offline IDE catalog from DEMO6 registrations and real parse ASTs.
+"""Generate an offline IDE catalog from current registrations and real parse ASTs.
 No compiler or extension implementation is copied into the GUI.
 """
 import argparse, hashlib, json, pathlib, re, subprocess
 from collections import Counter
 from catalog_sources import create as create_source_bundle
+from catalog_inventory import inventory,validate,api_digest
 
 ARGS=argparse.ArgumentParser()
-ARGS.add_argument('--demo6',required=True,type=pathlib.Path)
+ARGS.add_argument('--root',required=True,type=pathlib.Path)
 ARGS.add_argument('--raw',required=True,type=pathlib.Path)
 ARGS.add_argument('--compiler',required=True,type=pathlib.Path)
 ARGS.add_argument('--output',required=True,type=pathlib.Path)
@@ -14,12 +15,13 @@ ARGS.add_argument('--scratch',required=True,type=pathlib.Path)
 ARGS.add_argument('--source-output',required=True,type=pathlib.Path)
 args=ARGS.parse_args(); args.scratch.mkdir(parents=True,exist_ok=True)
 raw=json.loads(args.raw.read_text(encoding='utf-8'))
+product_version=json.loads((args.root/'release/product-version.json').read_text(encoding='utf-8'))['version']
 internal_functions=0
 sources={}; materials={}; entries=[]; issues=[]; documents={}; package_docs={}
 def digest(data): return hashlib.sha256(data).hexdigest()
 def source(path):
     path=path.resolve()
-    key='ide/tools/generate_catalog.py' if path==pathlib.Path(__file__).resolve() else ''+path.relative_to(args.demo6.resolve()).as_posix()
+    key='ide/tools/generate_catalog.py' if path==pathlib.Path(__file__).resolve() else ''+path.relative_to(args.root.resolve()).as_posix()
     if key not in sources:
         materials[key]=path.read_bytes()
         sources[key]={'path':key,'sha256':digest(materials[key])}
@@ -97,18 +99,18 @@ def signature(node,text,label):
     sig=label+type_parameters+'('+', '.join(parts)+')'+(' as '+returns if returns else '')
     return sig,parameters,returns
 
-def add(label,category,module,kind,path,line=1,signature_text='',parameters=None,returns='',description='',example='',version='DEMO6',required_import='',insert='',sections=None,identity=''):
-    entry={'id':identity or category+':'+label+':'+digest((kind+'|'+signature_text).encode())[:16], 'name':label,'language':'xlang','category':category,'module':module,'kind':kind,'signature':signature_text or label,'parameters':parameters or [], 'returns':returns,'description':description,'example':example,'insert':insert or label,'version':version,'requiredImport':required_import,'source':path,'sourceLine':line,'sections':sections or []}
+def add(label,category,module,kind,path,line=1,signature_text='',parameters=None,returns='',description='',example='',version=None,required_import='',insert='',sections=None,identity=''):
+    entry={'id':identity or category+':'+label+':'+digest((kind+'|'+signature_text).encode())[:16], 'name':label,'language':'xlang','category':category,'module':module,'kind':kind,'signature':signature_text or label,'parameters':parameters or [], 'returns':returns,'description':description,'example':example,'insert':insert or label,'version':product_version if version is None else version,'requiredImport':required_import,'source':path,'sourceLine':line,'sections':sections or []}
     entries.append(entry); return entry
 
 # Exact source hashes include all registration fragments, parser and language docs.
-for path in (args.'src/stdlib').iterdir():
+for path in (args.root/'src/stdlib').iterdir():
     if path.suffix in ('.c','.h','.inc'): source(path)
 for name in ('语言基础设计.md','函数设计.md','表达式与控制流设计.md','类型系统设计.md','扩展库系统设计.md','标准库设计.md'):
-    source(args.'docs'/name)
-standard_doc=read_source(args.'docs/标准库设计.md')
+    source(args.root/'docs'/name)
+standard_doc=read_source(args.root/'docs/标准库设计.md')
 for name in ('语言基础设计','函数设计','表达式与控制流设计','类型系统设计','扩展库系统设计','标准库设计'):
-    document(args.'docs'/(name+'.md'),'design:'+name)
+    document(args.root/'docs'/(name+'.md'),'design:'+name)
 descriptions={}
 for line in standard_doc.splitlines():
     if line.startswith('|'):
@@ -121,21 +123,21 @@ def example_for(label):
     return next((block for block in examples if re.search(r'(?<![\w.])'+re.escape(label)+r'\s*\(',block)), '')
 
 # Reviewed language examples; the rest of the reserved words link to the actual lexer.
-lex_path=args.'src/lexer/xl6_lexer.l'; lexer=read_source(lex_path); lex_source=source(lex_path)
+lex_path=args.root/'src/lexer/xl6_lexer.l'; lexer=read_source(lex_path); lex_source=source(lex_path)
 reviewed=[
 ('func','func 名称(参数...) as 返回类型 ... end','声明函数；参数采用类型在前、名称在后的写法。','func add(int a, int b) as int\n    return a + b\nend\n','函数设计.md'),
 ('class','class 名称 ... end','声明类，类体可以包含字段、成员函数与访问权限。','class Counter\n    public int value = 0\n    public func add(int n) as int\n        self.value += n\n        return self.value\n    end\nend\n','类型系统设计.md'),
 ('import','import 模块路径 [as 别名]','导入模块并绑定命名空间。选择性导入采用 from 模块 import 名称。','import "./math.xl"\n','扩展库系统设计.md')]
 for word,sig,description,example,doc in reviewed:
-    add(word,'language','语言结构','keyword',source(args.'docs'/doc),signature_text=sig,description=description,example=example,identity='language:'+word)
+    add(word,'language','语言结构','keyword',source(args.root/'docs'/doc),signature_text=sig,description=description,example=example,identity='language:'+word)
 words=sorted(set(re.findall(r'\{\s*"([a-z_][a-z_0-9]*)"\s*,\s*XL6_KW_',lexer)))
 for word in words:
     if word not in {x[0] for x in reviewed}:
         line=next((i for i,s in enumerate(lexer.splitlines(),1) if '"'+word+'"' in s),1)
-        add(word,'language','保留字','keyword',lex_source,line,description='此保留字由当前 DEMO6 词法器识别；使用约束见语言设计文档。',identity='language:'+word)
+        add(word,'language','保留字','keyword',lex_source,line,description='此保留字由当前 xlang 词法器识别；使用约束见语言设计文档。',identity='language:'+word)
 
 # The semantic registry is authoritative for builtin type names and generic arity.
-type_path=args.'src/sem/xl6_type_registry.c'; type_source=source(type_path); type_text=read_source(type_path)
+type_path=args.root/'src/sem/xl6_type_registry.c'; type_source=source(type_path); type_text=read_source(type_path)
 seed_text=type_text.split('g_xl6BuiltinTypeSeeds[] = {',1)[1].split('\n};',1)[0]
 for match in re.finditer(r'\{\s*"([\w]+)"\s*,\s*(NULL|"[^"\n]+")\s*,\s*(\d+)\s*,\s*(\d+)\s*\}',seed_text):
     name,abi,generic,arity=match.groups()
@@ -143,66 +145,74 @@ for match in re.finditer(r'\{\s*"([\w]+)"\s*,\s*(NULL|"[^"\n]+")\s*,\s*(\d+)\s*,
     line=type_text.count('\n',0,type_text.index(seed_text)+match.start())+1
     add(name,'language','内建类型','type',type_source,line,signature_text=name+('<'+', '.join('T'+str(i+1) for i in range(int(arity)))+'>' if int(generic) else ''),description='编译器内建类型。'+(' ABI 映射：'+abi.strip('"')+'。' if abi!='NULL' else '')+(' 泛型参数个数：'+arity+'。' if int(generic) else ''),identity='language:type:'+name,insert=name)
 
-# Functions with sourceBody are parsed by the official compiler; simple externs
-# use the compiler's declared parameter array directly.
-body_text=''; body_ranges=[]
+# Capture contains exactly the real expander's selected declarations, including
+# optional class fragments and every overload. Use official parse ASTs for both
+# global aliases and members; do not infer signatures from C registration text.
+class_path=args.root/'src/stdlib/catalog.declarations.xl'
+class_text=read_source(class_path)
+class_ast=parse(class_text,'stdlib-classes')
+if class_ast is None: raise ValueError('Expanded standard library must parse')
+function_kinds={'func','async_func','extern_func','export_func','native_extern_func','native_extern_special'}
+function_nodes={}
+for node in class_ast['children']:
+    if node['kind'] in function_kinds:function_nodes.setdefault(name_of(node),[]).append(node)
+missing=[(r['namespace']+'.' if r['namespace'] else '')+r['name'] for r in raw['functions'] if not r['namespace'].startswith('__') and not r['name'].startswith('__') and r['internal'] not in function_nodes]
+if missing:raise ValueError('Expander omitted public functions: '+', '.join(sorted(set(missing))))
 for item in raw['functions']:
-    start=body_text.count('\n')+1; body_text+=item['body']+'\n'; body_ranges.append((start,body_text.count('\n')+1))
-ast=parse(body_text,'stdlib-function-bodies'); assert ast is not None,'Registered source bodies must parse'
-registration_path=args.'src/stdlib/xl6_stdlib_data.c'; registration=read_source(registration_path); registration_source=source(registration_path)
-for index,item in enumerate(raw['functions']):
     if item['namespace'].startswith('__') or item['name'].startswith('__'):
-        internal_functions+=1; continue
-    label=(item['namespace']+'.' if item['namespace'] else '')+item['name']; params=item['parameters']; result=item['return'] or ''
-    if item['body']:
-        begin,end=body_ranges[index]
-        node=next((n for n in ast['children'] if begin<=n.get('line',0)<end and name_of(n)==item['internal']),None)
-        if node is None: raise ValueError('No declaration for '+label)
-        sig,params,result=signature(node,body_text,label)
-    else: sig=label+'('+', '.join(p['type']+' '+p['name'] for p in params)+')'+(' as '+result if result else '')
-    for p in params: p.setdefault('optional',False); p.setdefault('default',''); p.setdefault('description','')
-    pattern=r'\{\s*"'+re.escape(item['namespace'])+r'"\s*,\s*"'+re.escape(item['name'])+r'"\s*,\s*"'+re.escape(item['internal'])+r'"'
-    location=re.search(pattern,registration); line=registration.count('\n',0,location.start())+1 if location else 1
-    add(label,'standard',item['namespace'] or '基础命令','function',registration_source,line,sig,params,result,descriptions.get(label,''),example_for(label))
+        internal_functions+=1;continue
+    label=(item['namespace']+'.' if item['namespace'] else '')+item['name']
+    nodes=function_nodes.get(item['internal'],[])
+    if not nodes:raise ValueError('Expander omitted registered public function '+label)
+    for node in nodes:
+        sig,params,result=signature(node,class_text,label)
+        add(label,'standard',item['namespace'] or '基础命令','function',source(class_path),node['line'],sig,params,result,descriptions.get(label,''),example_for(label))
+registration_path=args.root/'src/stdlib/xl6_stdlib_data.c'
 for item in raw['constants']:
     label=(item['namespace']+'.' if item['namespace'] else '')+item['name']
-    add(label,'standard',item['namespace'] or '基础命令','constant',registration_source,signature_text=label+' = '+item['value'],description=descriptions.get(label,''))
-
-# Assemble class fragments in the same order, including the compiler's explicit
-# closing/end fragments; parsing all feature branches only extracts declarations.
-chunks={v['symbol']:v['source'] for v in raw['sourceChunks']}; injector=read_source(args.'src/stdlib/xl6_stdlib.c'); start=injector.index('if ( needsCoreClass )'); end=injector.index('for (i = 0;',start) if 'for (i = 0;' in injector[start:] else start+24000
-pattern=r'xl6StdlibBuilderAppend\s*\(&builder,\s*(xl6Stdlib\w+Source|(?:"(?:\\.|[^"\\])*"\s*)+)\);'
-class_text=''; class_ranges=[]
-for match in re.finditer(pattern,injector[start:end]):
-    token=match.group(1)
-    fragment=chunks.get(token) if token in chunks else ''.join(json.loads(x) for x in re.findall(r'"(?:\\.|[^"\\])*"',token))
-    begin=class_text.count('\n')+1; class_text+=fragment+'\n'; class_ranges.append((begin,class_text.count('\n')+1,token))
-class_ast=parse(class_text,'stdlib-classes'); assert class_ast is not None,'Assembled class declarations must parse'
+    origin,line=source(registration_path),1
+    pattern=r'\{\s*"'+re.escape(item['namespace'])+r'"\s*,\s*"'+re.escape(item['name'])+r'"'
+    for path in sorted((args.root/'src/stdlib').iterdir()):
+        if path.suffix not in ('.c','.inc'):continue
+        text=read_source(path);match=re.search(pattern,text)
+        if match:origin,line=source(path),text.count('\n',0,match.start())+1;break
+    add(label,'standard',item['namespace'] or '基础命令','constant',origin,line,signature_text=label+' = '+item['value'],description=descriptions.get(label,''))
 
 def declaration_source(line):
-    symbol=next((token for begin,end,token in class_ranges if begin<=line<end),'')
-    for path in (args.'src/stdlib').iterdir():
-        if path.suffix in ('.c','.inc'):
-            content=read_source(path); match=re.search(r'\b'+re.escape(symbol)+r'\s*=',content) if symbol else None
-            if match: return source(path),content.count('\n',0,match.start())+1
-    return source(args.'src/stdlib/xl6_stdlib.c'),1
+    return source(class_path),line
 
 def walk_declarations(nodes,text,category,module,path,version,required='',prefix='',root=True):
     for node in nodes:
         kind=node['kind']; flags=node.get('flags',0); name=name_of(node)
-        if name.startswith('__') or flags&6: continue
+        if name.startswith('__') or flags&6 or (kind=='field' and flags&128): continue
         if category=='extension' and root and not flags&1: continue
         origin,line=declaration_source(node.get('line',1)) if category=='standard' else (path,node.get('line',1))
         if kind in ('class','protocol','enum'):
-            qname=prefix+name; add(qname,category,module,'type',origin,line,signature_text=kind+' '+qname,version=version,required_import=required)
+            qname=prefix+name
+            header=text.splitlines()[node['line']-1].strip()
+            match=re.search(r'\b'+kind+r'\s+'+re.escape(name)+r'\b',header)
+            tail=header[match.end():] if match else ''
+            add(qname,category,module,'type',origin,line,signature_text=kind+' '+qname+tail,version=version,required_import=required)
             lists=[n for n in node.get('children',[]) if n['kind']=='list']
-            if len(lists)>1: walk_declarations(lists[1]['children'],text,category,module,origin,version,required,qname+'.',False)
+            if lists: walk_declarations(lists[-1]['children'],text,category,module,origin,version,required,qname+'.',False)
+        elif kind in ('field','enum_variant'):
+            qname=prefix+name;full_line=text.splitlines()[node['line']-1];raw_line=full_line.strip()
+            if kind=='enum_variant':
+                value=raw_line[len(name):].strip()
+                entry=add(qname,category,module,'constant',origin,line,signature_text=qname+(' '+value if value else ''),version=version,required_import=required,insert=qname)
+            else:
+                at=len(full_line.encode('utf-8')[:node['column']-1].decode('utf-8'));assert full_line[at:at+len(name)]==name
+                before=full_line[:at].strip()
+                before=re.sub(r'^(?:(?:public|private|protected|static|const)\s+)+','',before)
+                after=full_line[at+len(name):].strip()
+                entry=add(qname,category,module,'method',origin,line,signature_text=qname+' as '+before+(' '+after if after else ''),returns=before,version=version,required_import=required,insert=name)
+            entry['declarationKind']=kind
         elif kind in ('func','async_func','extern_func','export_func','native_extern_func','native_extern_special','get'):
             qname=prefix+name
             if not name or name in ('destroy',): continue
             sig,params,result=signature(node,text,qname)
             add(qname,category,module,'function' if root else 'method',origin,line,sig,params,result,version=version,required_import=required,insert=qname if root else name)
-walk_declarations(class_ast['children'],class_text,'standard','类型与成员',source(args.'src/stdlib/xl6_stdlib.c'),'DEMO6')
+walk_declarations(class_ast['children'],class_text,'standard','类型与成员',source(class_path),product_version)
 
 # C completion shares the catalog while xlang library APIs stay language-specific.
 c_keywords="auto break case char const continue default do double else enum extern float for goto if inline int long register restrict return short signed sizeof static struct switch typedef union unsigned void volatile while _Alignas _Alignof _Atomic _Bool _Complex _Generic _Imaginary _Noreturn _Static_assert _Thread_local".split()
@@ -210,7 +220,7 @@ for word in c_keywords:
     entry=add(word,'language','C 保留字','keyword',source(pathlib.Path(__file__)),signature_text=word,description='C 语言保留字；编辑器采用固定 XUI SDK 的 C 词法模式。',version='C11',identity='c:keyword:'+word)
     entry['language']='c'
 packages=0
-for package_path in sorted((args.'release/extlibs').glob('*/xlang.package.json')):
+for package_path in sorted((args.root/'release/extlibs').glob('*/xlang.package.json')):
     manifest=json.loads(read_source(package_path)); name=manifest['name']; version=manifest.get('version',''); packages+=1
     files=manifest.get('artifact',{}).get('xlSources',[]); manifest_source=source(package_path)
     readme=package_path.parent/'README.md'
@@ -223,13 +233,45 @@ for package_path in sorted((args.'release/extlibs').glob('*/xlang.package.json')
         if parsed: walk_declarations(parsed['children'],original,'extension',name,origin,version,name,name+'.')
         else: package_entry['description']+=' 该快照中有声明无法由指定编译器解析，详见目录状态。'
 
+# Routing only selects browsing groups and real documentation; declarations
+# and signatures above remain exclusively compiler-derived.
+module_documents={
+ 'http':['HTTP标准库实施与验收.md'],'http1':['HTTP标准库实施与验收.md'],
+ 'websocket':['WebSocket标准库实施与验收.md'],
+ 'codec':['编码压缩与模板标准库.md'],'compress':['编码压缩与模板标准库.md'],'template':['编码压缩与模板标准库.md'],
+ 'crypto':['crypto-public-surface-2026-10-26.md'],'cryptoLegacy':['crypto-public-surface-2026-10-26.md'],
+ 'cryptoAdvanced':['crypto-advanced-blocks.md','crypto-chacha20-advanced.md'],
+ 'tls':['tls-managed.md'],'x509':['x509-managed.md'],
+ 'net':['network-services-owned.md'],'tcp':['network-services-owned.md'],'udp':['network-services-owned.md'],
+ 'memory':['基础九组标准库边界与验收.md'],
+ 'concurrent':['并发基础标准库.md'],'channelStatus':['并发基础标准库.md'],'queueStatus':['并发基础标准库.md']}
+class_modules=[
+ (('Http',),'http'),(('Ws',),'websocket'),(('Tls',),'tls'),(('X509','Certificate','TrustStore'),'x509'),
+ (('Net',),'net'),(('Tcp',),'tcp'),(('Udp',),'udp'),(('Deflat','Inflat'),'compress'),
+ (('Template',),'template'),(('ObjectPool','ObjectArena','Memory'),'memory'),(('Console',),'console'),
+ (('Io',),'io'),(('Log',),'log'),(('Der',),'asn1'),(('Pem',),'pem'),
+ (('Legacy',),'cryptoLegacy'),(('AesBlock','Poly1305'),'cryptoAdvanced'),
+ (('Sha','Hmac','AesGcm','ChaCha','X25519','X448','Ed25519','P256','P384','Rsa','SignatureHash'),'crypto'),
+ (('Atomic','Executor','TaskPool','TaskGroup','Once','Event','ThreadLocal','Cancellation','Promise','Channel'),'concurrent')]
+for entry in entries:
+    if entry['category']!='standard':continue
+    if entry['module'] in ('cryptoAdvanced','cryptoLegacy','floatEnv'):entry['requiredImport']=entry['module']
+    if entry['module']=='类型与成员':
+        head=entry['name'].split('.')[0]
+        entry['module']=next((module for prefixes,module in class_modules if head.startswith(prefixes)),entry['module'])
+        if entry['module'] in ('cryptoAdvanced','cryptoLegacy'):entry['requiredImport']=entry['module']
+
 control={'if','then','else','elseif','end','for','in','while','do','break','continue','return','try','catch','finally','throw','assert','match','case','and','or','not'}
 for entry in entries:
     if entry['language']!='xlang': continue
     if entry['category']=='language':
         title='函数设计' if entry['name']=='func' else '类型系统设计' if entry['kind']=='type' or entry['name'] in ('class','protocol','enum') else '扩展库系统设计' if entry['name'] in ('import','from','export') else '表达式与控制流设计' if entry['name'] in control else '语言基础设计'
         entry['sections']=['design:'+title]
-    elif entry['category']=='standard': entry['sections']=['design:标准库设计']
+    elif entry['category']=='standard':
+        entry['sections']=['design:标准库设计']
+        for name in module_documents.get(entry['module'],[]):
+            path=args.root/'docs'/name
+            entry['sections'].append(document(path,'stdlib-doc:'+name,path.stem))
     elif entry['module'] in package_docs: entry['sections']=[package_docs[entry['module']]]
 
 # Stable IDs are mandatory. Identical registration aliases are coalesced only
@@ -240,7 +282,11 @@ for entry in entries:
     elif unique[entry['id']]['signature']!=entry['signature']: raise ValueError('Conflicting catalog identity '+entry['id'])
 entries=list(unique.values()); category_counts=Counter(e['category'] for e in entries)
 result={'format':'xlang-command-catalog-1','compilerSha256':digest(args.compiler.read_bytes()),'sources':sorted(sources.values(),key=lambda x:x['path']),'coverage':{'registeredFunctions':len(raw['functions']),'registeredConstants':len(raw['constants']),'excludedInternalFunctions':internal_functions,'packages':packages,'categories':dict(category_counts),'issues':issues},'entries':entries,'documents':list(documents.values())}
-args.output.parent.mkdir(parents=True,exist_ok=True); args.output.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+result['binding']=json.loads((args.root/'release/catalog-binding.json').read_text(encoding='utf-8'))
+result['apiInventory']=inventory(raw,class_ast)
+validate(result,result['apiInventory'])
+result['publicApiSha256']=api_digest(result)
+args.output.parent.mkdir(parents=True,exist_ok=True); args.output.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n',encoding='utf-8',newline='\n')
 if issues: raise ValueError('Catalog has unresolved declarations; paired source publication is refused')
 bundle=create_source_bundle(args.output,materials,args.source_output)
 print(json.dumps({'entries':len(entries),'categories':dict(category_counts),'packages':packages,'issues':len(issues),'bytes':args.output.stat().st_size},ensure_ascii=False))

@@ -1,0 +1,18 @@
+{
+    "format": "xlang-package-1",
+    "name": "pkcs",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": ["pkcs_native.c"],
+        "xlSources": ["src/pkcs.xl"],
+        "xrtModules": ["XRT_MODULE_ASN1_DER", "XRT_MODULE_BUFFER_HEX", "XRT_MODULE_VALUE", "XRT_MODULE_STRING"]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl"] },
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

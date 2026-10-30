@@ -1,0 +1,4662 @@
+#include "src/stdlib/xl6_stdlib_data.h"
+#include "src/stdlib/xl6_stdlib_atomic.inc"
+#include "src/stdlib/xl6_stdlib_concurrent.inc"
+#include "src/stdlib/xl6_stdlib_executor.inc"
+#include "src/stdlib/xl6_stdlib_task_pool.inc"
+#include "src/stdlib/xl6_stdlib_asn1.inc"
+#include "src/stdlib/xl6_stdlib_io.inc"
+#include "src/stdlib/xl6_stdlib_text.inc"
+#include "src/stdlib/xl6_stdlib_unicode.inc"
+#include "src/stdlib/xl6_stdlib_encoding.inc"
+#include "src/stdlib/xl6_stdlib_regex.inc"
+#include "src/stdlib/xl6_stdlib_pattern.inc"
+#include "src/stdlib/xl6_stdlib_time.inc"
+#include "src/stdlib/xl6_stdlib_console.inc"
+#include "src/stdlib/xl6_stdlib_vfs.inc"
+#include "src/stdlib/xl6_stdlib_fs.inc"
+#include "src/stdlib/xl6_stdlib_fs_walk.inc"
+#include "src/stdlib/xl6_stdlib_fs_async.inc"
+#include "src/stdlib/xl6_stdlib_fixed_stack.inc"
+#include "src/stdlib/xl6_stdlib_compress.inc"
+#include "src/stdlib/xl6_stdlib_net_backends.inc"
+#include "src/stdlib/xl6_stdlib_http.inc"
+#include "src/stdlib/xl6_stdlib_http_transport.inc"
+
+const char* xl6StdlibFloatClassSource =
+    "enum FloatClass as int32\n"
+    "    nan = 0\n"
+    "    infinite = 1\n"
+    "    normal = 2\n"
+    "    subnormal = 3\n"
+    "    zero = 4\n"
+    "end\n";
+
+const char* xl6StdlibNumberParseFlagsSource =
+    "enum NumberParseFlags as int\n"
+    "    none = 0\n    allowWhitespace = 1\n    allowPrefix = 2\n"
+    "    allowSeparator = 4\n    allowSpecial = 8\nend\n";
+const char* xl6StdlibIntegerTextFlagsSource =
+    "enum IntegerTextFlags as int\n"
+    "    none = 0\n    upper = 1\n    prefix = 2\n    plus = 4\nend\n";
+const char* xl6StdlibFloatTextFlagsSource =
+    "enum FloatTextFlags as int\n    none = 0\n    compact = 1\nend\n";
+
+const char* xl6StdlibCoreClassSource =
+    "class DynamicFields\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_dynamic_fields_create\" create()\n"
+    "    extern \"xl6_xrt_dynamic_fields_wrap\" create(point handle)\n"
+    "    extern \"xl6_xrt_dynamic_fields_from_value\" create(var value)\n"
+    "    extern \"xl6_xrt_dynamic_fields_clone\" create(DynamicFields source)\n"
+    "    extern \"xl6_xrt_dynamic_fields_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_dynamic_fields_native_handle\" func nativeHandle() as point\n"
+    "    extern \"xl6_xrt_dynamic_fields_count\" func countNative() as int\n"
+    "    extern \"xl6_xrt_dynamic_fields_capacity\" func capacityNative() as int\n"
+    "    extern \"xl6_xrt_dynamic_fields_reserve\" func reserve(int capacity) as bool\n"
+    "    extern \"xl6_xrt_dynamic_fields_trim\" func trim() as bool\n"
+    "    extern \"xl6_xrt_dynamic_fields_clear\" func clear() as bool\n"
+    "    extern \"xl6_xrt_dynamic_fields_has\" func has(string name) as bool\n"
+    "    extern \"xl6_xrt_dynamic_fields_get\" func get(string name) as var\n"
+    "    extern \"xl6_xrt_dynamic_fields_copy\" func copy(string name) as var\n"
+    "    extern \"xl6_xrt_dynamic_fields_set\" func set(string name, var value) as bool\n"
+    "    extern \"xl6_xrt_dynamic_fields_remove\" func remove(string name) as bool\n"
+    "    extern \"xl6_xrt_dynamic_fields_take\" func take(string name) as var\n"
+    "    extern \"xl6_xrt_dynamic_fields_keys\" func keys() as var\n"
+    "    extern \"xl6_xrt_dynamic_fields_values\" func values() as var\n"
+    "    extern \"xl6_xrt_dynamic_fields_items\" func items() as var\n"
+    "    extern \"xl6_xrt_dynamic_fields_to_value\" func toValue() as var\n"
+    "    extern \"xl6_xrt_dynamic_fields_merge\" func merge(DynamicFields source, bool replace = true) as bool\n"
+    "\n"
+    "    get length() as int\n"
+    "        return self.countNative()\n"
+    "    end\n"
+    "\n"
+    "    get capacity() as int\n"
+    "        return self.capacityNative()\n"
+    "    end\n"
+    "\n"
+    "    func clone() as DynamicFields\n"
+    "        return DynamicFields(self)\n"
+    "    end\n"
+    "\n"
+    "    func __clone__() as DynamicFields\n"
+    "        return DynamicFields(self)\n"
+    "    end\n"
+    "\n"
+    "    func __item__(string name) as var\n"
+    "        return self.get(name)\n"
+    "    end\n"
+    "\n"
+    "    func __setItem__(string name, var value)\n"
+    "        self.set(name, value)\n"
+    "    end\n"
+    "end\n"
+    "\n"
+    /* Keep the hidden implementation field nominally typed.  Erasing it to
+     * `var` loses the DynamicFields method target before XLIR is built and
+     * forces the backend to rediscover a bound method from runtime spelling.
+     * The public object protocol still returns/accepts `var`; only this
+     * implementation detail remains an owning native-handle value. */
+    "func __xl6DynamicFieldsDefault() as DynamicFields\n"
+    "    return DynamicFields()\n"
+    "end\n"
+    "\n"
+    "class object\n"
+    "    DynamicFields __fields = __xl6DynamicFieldsDefault()\n"
+    "\n"
+    "    func __field__(string name) as var\n"
+    "        return self.__fields.get(name)\n"
+    "    end\n"
+    "\n"
+    "    func __setField__(string name, var value)\n"
+    "        self.__fields.set(name, value)\n"
+    "    end\n"
+    "\n"
+    "    func __item__(string name) as var\n"
+    "        return self.__fields.get(name)\n"
+    "    end\n"
+    "\n"
+    "    func __setItem__(string name, var value)\n"
+    "        self.__fields.set(name, value)\n"
+    "    end\n"
+    "end\n";
+
+const char* xl6StdlibRandomClassSource =
+    "class Random\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_rng_create\" create(uint64 seed, uint64 seq)\n"
+    "    extern \"xl6_xrt_rng_create_default\" create(uint64 seed)\n"
+    "    extern \"xl6_xrt_rng_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_rng_seed\" func seedNative(uint64 seed, uint64 seq)\n"
+    "    extern \"xl6_xrt_rng_u32\" func u32Native() as c_uint\n"
+    "    extern \"xl6_xrt_rng_u64\" func u64() as uint64\n"
+    "    extern \"xl6_xrt_rng_below\" func below(uint64 bound) as uint64\n"
+    "    extern \"xl6_xrt_rng_range\" func range(int min, int max) as int\n"
+    "    extern \"xl6_xrt_rng_range_closed\" func rangeClosed(int min, int max) as int\n"
+    "    extern \"xl6_xrt_rng_real\" func real() as float\n"
+    "    extern \"xl6_xrt_rng_bytes\" func bytes(int count) as bytes\n"
+    "    extern \"xl6_xrt_rng_string\" func stringNative(string alphabet, c_size actualSize, int alphabetSize, int count) as point\n"
+    "    extern \"xl6_xrt_rng_shuffle_array\" func shuffleNative(array values) as bool\n"
+    "\n"
+    "    func seed(uint64 seed, uint64 seq = 1)\n"
+    "        self.seedNative(seed, seq)\n"
+    "    end\n"
+    "\n"
+    "    func u32() as uint32\n"
+    "        return uint32(self.u32Native())\n"
+    "    end\n"
+    "\n"
+    "    func string(int length = 16, string alphabet = \"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_\", int alphabetSize = -1) as string\n"
+    "        if length < 0 or alphabetSize < -1 then throw RangeError \"random string length is invalid\" end\n"
+    "        return __xl_std_runtime_take_cstr(self.stringNative(alphabet, c_size(__xl_std_xrt_string_byte_len(alphabet)), alphabetSize, length))\n"
+    "    end\n"
+    "\n"
+    "    func shuffle(array values)\n"
+    "        if not self.shuffleNative(values) then throw RuntimeError \"random array shuffle failed\" end\n"
+    "    end\n"
+    "\n";
+
+const char* xl6StdlibRandomBufferMethodsSource =
+    "    extern \"xl6_xrt_rng_fill_buffer\" func fillBytesNative(point target) as bool\n"
+    "    extern \"xl6_xrt_rng_shuffle_buffer\" func shuffleBufferNative(point target) as bool\n"
+    "\n"
+    "    func fillBytes(Buffer target)\n"
+    "        if not self.fillBytesNative(target.nativeHandle()) then throw RuntimeError \"random buffer fill failed\" end\n"
+    "    end\n"
+    "\n"
+    "    func shuffleBuffer(Buffer target)\n"
+    "        if not self.shuffleBufferNative(target.nativeHandle()) then throw RuntimeError \"random buffer shuffle failed\" end\n"
+    "    end\n";
+
+const char* xl6StdlibRandomClassEndSource = "end\n";
+
+const char* xl6StdlibBufferClassSource =
+    "enum HexFlags as int\n"
+    "    None = 0\n"
+    "    Upper = 1\n"
+    "    IgnoreSpace = 2\n"
+    "end\n"
+    "enum Base64Flags as int\n"
+    "    None = 0\n"
+    "    Url = 1\n"
+    "    NoPadding = 2\n"
+    "    IgnoreSpace = 4\n"
+    "    OptionalPadding = 8\n"
+    "end\n"
+    "class BufferIter\n"
+    "    private native point handle\n"
+    "    extern \"xl6BufferIteratorCreateV1\" create(Buffer source, int size = -1)\n"
+    "    extern \"xl6BufferIteratorDestroyV1\" destroy()\n"
+    "    private extern \"xl6BufferIteratorHasNextV1\" func hasNextNative() as bool\n"
+    "    private extern \"xl6BufferIteratorNextV1\" func nextNative() as uint8\n"
+    "    extern \"xl6BufferIteratorCloseV1\" func close()\n"
+    "    extern \"xl6BufferIteratorClosedV1\" get closed() as bool\n"
+    "\n"
+    "    func __next__() as (bool, uint8)\n"
+    "        if not self.hasNextNative() then\n"
+    "            return false, uint8(0)\n"
+    "        end\n"
+    "        return true, self.nextNative()\n"
+    "    end\n"
+    "end\n"
+    "\n"
+    "class Buffer\n"
+    "    native point handle\n"
+    "    extern \"xl6BufferCreateV1\" create()\n"
+    "    extern \"xl6BufferCreateReserveV1\" create(int capacity)\n"
+    "    extern \"xl6BufferAdoptV1\" create(point handle)\n"
+    "    extern \"xl6BufferFromTextV1\" create(string text, int size = -1)\n"
+    "    extern \"xl6BufferFromBytesV1\" create(bytes data, int size = -1)\n"
+    "    extern \"xl6BufferFromBytesSpanV1\" create(cbytes data, int size = -1)\n"
+    "    extern \"xl6BufferCopyV1\" create(Buffer source, int size = -1)\n"
+    "    extern \"xl6BufferDestroyV1\" destroy()\n"
+    "    static extern \"xl6BufferFromHexV1\" func fromHex(string text, int flags = 0, int size = -1) as Buffer\n"
+    "    extern \"xl6BufferHexV1\" func hex(int flags = 0, int size = -1) as string\n"
+    "    static extern \"xl6BufferFromBase64V1\" func fromBase64(string text, int flags = 0, string alphabet = \"\", int size = -1, int alphabetSize = -1) as Buffer\n"
+    "    extern \"xl6BufferBase64V1\" func base64(int flags = 0, string alphabet = \"\", int size = -1, int alphabetSize = -1) as string\n"
+    "    extern \"xl6BufferLengthV1\" func len() as int\n"
+    "    extern \"xl6BufferCapacityV1\" func capacity() as int\n"
+    "    extern \"xl6BufferReserveV1\" func reserve(int size) as bool\n"
+    "    extern \"xl6BufferClearV1\" func clear() as bool\n"
+    "    extern \"xl6BufferResizeV1\" func resize(int size, int fill = 0) as bool\n"
+    "    extern \"xl6BufferTrimV1\" func trim() as bool\n"
+    "    extern \"xl6BufferAssignTextV1\" func assign(string text, int size = -1) as bool\n"
+    "    extern \"xl6BufferAssignBytesV1\" func assign(bytes data, int size = -1) as bool\n"
+    "    extern \"xl6BufferAssignBytesSpanV1\" func assign(cbytes data, int size = -1) as bool\n"
+    "    extern \"xl6BufferAssignBufferV1\" func assign(Buffer source, int size = -1) as bool\n"
+    "    extern \"xl6BufferAppendTextV1\" func append(string text, int size = -1) as bool\n"
+    "    extern \"xl6BufferAppendBytesV1\" func append(bytes data, int size = -1) as bool\n"
+    "    extern \"xl6BufferAppendBytesSpanV1\" func append(cbytes data, int size = -1) as bool\n"
+    "    extern \"xl6BufferAppendBufferV1\" func append(Buffer source, int size = -1) as bool\n"
+    "    extern \"xl6BufferInsertTextV1\" func insert(int index, string text, int size = -1) as bool\n"
+    "    extern \"xl6BufferInsertBytesV1\" func insert(int index, bytes data, int size = -1) as bool\n"
+    "    extern \"xl6BufferInsertBytesSpanV1\" func insert(int index, cbytes data, int size = -1) as bool\n"
+    "    extern \"xl6BufferInsertBufferV1\" func insert(int index, Buffer source, int size = -1) as bool\n"
+    "    extern \"xl6BufferRemoveV1\" func remove(int index, int count = -1) as bool\n"
+    "    extern \"xl6BufferBytesV1\" func toBytes(int size = -1) as bytes\n"
+    "    extern \"xl6BufferTextV1\" func text(int size = -1) as string\n"
+    "    extern \"xl6NumberBufferIntFormatV1\" func appendFormat(int value, string format = \"\", int size = -1) as bool\n"
+    "    extern \"xl6NumberBufferUIntFormatV1\" func appendFormat(uint64 value, string format = \"\", int size = -1) as bool\n"
+    "    extern \"xl6NumberBufferFloatFormatV1\" func appendFormat(float value, string format = \"\", int size = -1) as bool\n"
+    "    extern \"xl6NumberBufferIntStringV1\" func appendNumber(int value, int base = 10, int flags = 0) as bool\n"
+    "    extern \"xl6NumberBufferUIntStringV1\" func appendNumber(uint64 value, int base = 10, int flags = 0) as bool\n"
+    "    extern \"xl6NumberBufferFloatStringV1\" func appendNumber(float value, int flags = 0) as bool\n"
+    "    extern \"xl6BufferAppendRawV1\" func appendRaw(point data, int size) as bool\n"
+    "    extern \"xl6BufferInsertRawV1\" func insertBytes(int index, point data, int size) as bool\n"
+    "    extern \"xl6BufferAppendByteV1\" func appendByte(int value) as bool\n"
+    "    extern \"xl6BufferByteAtV1\" func byteAt(int index) as uint8\n"
+    "    extern \"xl6BufferSetByteV1\" func setByte(int index, int value) as bool\n"
+    "    extern \"xl6BufferCopyFromV1\" func copyFrom(int targetOffset, Buffer source, int sourceOffset = 0, int count = -1) as bool\n"
+    "    extern \"xl6BufferCopyWithinV1\" func copyWithin(int targetOffset, int sourceOffset, int count) as bool\n"
+    "    extern \"xl6BufferFillV1\" func fill(int value, int offset = 0, int count = -1) as bool\n"
+    "    extern \"xl6BufferCompareV1\" func compare(Buffer other, int size = -1, int otherSize = -1) as int\n"
+    "    extern \"xl6BufferIndexOfV1\" func indexOf(Buffer needle, int start = 0, int size = -1, int needleSize = -1) as int\n"
+    "    extern \"xl6BufferDataV1\" func data() as point\n"
+    "    extern \"xl6BufferHandleV1\" func nativeHandle() as point\n"
+    "\n"
+    "    func __len__() as int\n"
+    "        return self.len()\n"
+    "    end\n"
+    "\n"
+    "    func __item__(int index) as uint8\n"
+    "        return self.byteAt(index)\n"
+    "    end\n"
+    "\n"
+    "    func __setItem__(int index, int value)\n"
+    "        self.setByte(index, value)\n"
+    "    end\n"
+    "\n"
+    "    func __iter__() as BufferIter\n"
+    "        return BufferIter(self)\n"
+    "    end\n"
+    "\n"
+    "    func __eq__(Buffer other) as bool\n"
+    "        return self.compare(other) == 0\n"
+    "    end\n"
+    "\n"
+    "    func __ne__(Buffer other) as bool\n"
+    "        return not self.__eq__(other)\n"
+    "    end\n"
+    "end\n";
+
+const char* xl6StdlibXidClassSource =
+    "class Xid\n"
+    "    create()\n"
+    "        throw ValueError \"use id.make, id.parse or id.fromBytes\"\n"
+    "    end\n"
+    "\n"
+    "    func toBytes() as bytes\n"
+    "        return __xl_std_xrt_xid_to_bytes(self)\n"
+    "    end\n"
+    "\n"
+    "    func timestampMillis() as int\n"
+    "        return __xl_std_xrt_xid_timestamp(self)\n"
+    "    end\n"
+    "\n"
+    "    func compare(Xid other) as int\n"
+    "        return __xl_std_xrt_xid_compare(self, other)\n"
+    "    end\n"
+    "\n"
+    "    func isZero() as bool\n"
+    "        return __xl_std_xrt_xid_is_zero(self)\n"
+    "    end\n"
+    "\n"
+    "    func __eq__(Xid other) as bool\n"
+    "        return __xl_std_xrt_xid_equal(self, other)\n"
+    "    end\n"
+    "\n"
+    "    func __toString__() as string\n"
+    "        return __xl_std_xrt_xid_to_string(self)\n"
+    "    end\n"
+    "end\n";
+
+#include "src/stdlib/xl6_stdlib_log.inc"
+
+#include "src/stdlib/xl6_stdlib_signal.inc"
+
+#include "src/stdlib/xl6_stdlib_template.inc"
+
+#include "src/stdlib/xl6_stdlib_task_group.inc"
+
+#include "xl6_stdlib_crypto.inc"
+#include "xl6_stdlib_xdh.inc"
+#include "xl6_stdlib_ed25519.inc"
+#include "xl6_stdlib_nist.inc"
+#include "xl6_stdlib_rsa.inc"
+#include "xl6_stdlib_key_formats.inc"
+#include "xl6_stdlib_x509.inc"
+#include "xl6_stdlib_x509_records.inc"
+#include "xl6_stdlib_x509_profiles.inc"
+#include "xl6_stdlib_x509_crl_profiles.inc"
+#include "xl6_stdlib_x509_signature_status.inc"
+#include "xl6_stdlib_x509_crl_policy.inc"
+#include "xl6_stdlib_x509_path.inc"
+#include "xl6_stdlib_x509_store.inc"
+#include "xl6_stdlib_x509_identity.inc"
+#include "xl6_stdlib_tls_identity.inc"
+#include "xl6_stdlib_tls_parameters.inc"
+#include "xl6_stdlib_tls_verifier.inc"
+#include "xl6_stdlib_tls_verified_peer.inc"
+#include "xl6_stdlib_tls_revocation.inc"
+#include "xl6_stdlib_tls_role_context.inc"
+#include "xl6_stdlib_tls_selector.inc"
+#include "xl6_stdlib_tls_resume.inc"
+#include "xl6_stdlib_tls_resume_request.inc"
+#include "xl6_stdlib_tls_ticket_result.inc"
+#include "xl6_stdlib_x509_signature_verify_buffer.inc"
+
+#include "xl6_stdlib_net_address.inc"
+#include "xl6_stdlib_net_resolver.inc"
+#include "xl6_stdlib_net_buffer.inc"
+
+const char* xl6StdlibSipHasher64ClassSource =
+    "class SipHasher64\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_siphasher64_create\" create(bytes key)\n"
+    "    extern \"xl6_xrt_siphasher64_adopt\" create(point handle)\n"
+    "    extern \"xl6_xrt_siphasher64_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_siphasher64_update_string\" func updateStringNative(string data, c_size actual, int size) as bool\n"
+    "    extern \"xl6_xrt_siphasher64_update_bytes\" func updateBytesNative(bytes data, int size) as bool\n"
+    "    extern \"xl6_xrt_siphasher64_digest\" func digestNative() as c_ulonglong\n"
+    "    extern \"xl6_xrt_siphasher64_reset\" func resetNative()\n"
+    "    extern \"xl6_xrt_siphasher64_clone\" func cloneNative() as point\n"
+    "    extern \"xl6_xrt_siphasher64_input_bytes\" func inputBytesNative() as c_ulonglong\n"
+    "    func update(string data, int size = -1)\n"
+    "        if size < -1 then throw RangeError \"siphash size is invalid\" end\n"
+    "        if not self.updateStringNative(data, __xl_std_xrt_string_byte_len(data), size) then throw RangeError \"siphash input is too large\" end\n"
+    "    end\n"
+    "    func update(bytes data, int size = -1)\n"
+    "        if size < -1 then throw RangeError \"siphash size is invalid\" end\n"
+    "        if not self.updateBytesNative(data, size) then throw RangeError \"siphash input is too large\" end\n"
+    "    end\n"
+    "    func digest() as uint64\n"
+    "        return uint64(self.digestNative())\n"
+    "    end\n"
+    "    func reset()\n"
+    "        self.resetNative()\n"
+    "    end\n"
+    "    func clone() as SipHasher64\n"
+    "        return SipHasher64(point(self.cloneNative()))\n"
+    "    end\n"
+    "    func inputBytes() as uint64\n"
+    "        return uint64(self.inputBytesNative())\n"
+    "    end\n";
+
+const char* xl6StdlibSipHasher64BufferMethodSource =
+    "    extern \"xl6_xrt_siphasher64_update_raw\" func updateRawNative(point data, c_size actual, int size) as bool\n"
+    "    func updateBuffer(Buffer data, int size = -1)\n"
+    "        if size < -1 then throw RangeError \"siphash size is invalid\" end\n"
+    "        if not self.updateRawNative(data.data(), c_size(data.len()), size) then throw RangeError \"siphash input is too large\" end\n"
+    "    end\n";
+
+const char* xl6StdlibSipHasher64ClassEndSource = "end\n";
+
+
+
+#include "xl6_stdlib_net_interfaces.inc"
+
+
+
+#include "xl6_stdlib_net_bytes.inc"
+#include "xl6_stdlib_tcp_recv_owned.inc"
+
+
+
+
+
+
+#include "xl6_stdlib_net_engine.inc"
+#include "xl6_stdlib_net_socket.inc"
+
+
+
+
+
+
+#include "src/stdlib/xl6_stdlib_udp.inc"
+
+
+
+#include "src/stdlib/xl6_stdlib_net_proxy.inc"
+#include "src/stdlib/xl6_stdlib_tcp_options.inc"
+#include "src/stdlib/xl6_stdlib_tcp_proxy.inc"
+#include "src/stdlib/xl6_stdlib_tcp_data.inc"
+
+
+
+
+
+
+#include "src/stdlib/xl6_stdlib_tcp.inc"
+#include "src/stdlib/xl6_stdlib_net_file.inc"
+#include "src/stdlib/xl6_stdlib_tcp_server.inc"
+
+
+#include "src/stdlib/xl6_stdlib_tls_session.inc"
+#include "src/stdlib/xl6_stdlib_tls_stream_options.inc"
+#include "src/stdlib/xl6_stdlib_tls_dial_options.inc"
+
+#include "src/stdlib/xl6_stdlib_tls_transport.inc"
+#include "src/stdlib/xl6_stdlib_tls_metadata.inc"
+
+/* X22-only legacy dependency. Default HTTP declarations are resident V2. */
+#include "xl6_stdlib_ws.inc"
+#include "xl6_stdlib_foundation.inc"
+
+#include "xl6_stdlib_udp_config.inc"
+
+
+
+const char* xl6StdlibJsonClassSource =
+    "class JsonWriter\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_json_writer_create_default\" create()\n"
+    "    extern \"xl6_xrt_json_writer_create_pretty\" create(bool pretty)\n"
+    "    extern \"xl6_xrt_json_writer_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_json_writer_begin_object\" func beginObject() as bool\n"
+    "    extern \"xl6_xrt_json_writer_begin_object_key\" func beginObject(string key) as bool\n"
+    "    extern \"xl6_xrt_json_writer_end_object\" func endObject() as bool\n"
+    "    extern \"xl6_xrt_json_writer_begin_array\" func beginArray() as bool\n"
+    "    extern \"xl6_xrt_json_writer_begin_array_key\" func beginArray(string key) as bool\n"
+    "    extern \"xl6_xrt_json_writer_end_array\" func endArray() as bool\n"
+    "    extern \"xl6_xrt_json_writer_null\" func writeNull() as bool\n"
+    "    extern \"xl6_xrt_json_writer_null_key\" func writeNull(string key) as bool\n"
+    "    extern \"xl6_xrt_json_writer_bool\" func writeBool(bool value) as bool\n"
+    "    extern \"xl6_xrt_json_writer_bool_key\" func writeBool(string key, bool value) as bool\n"
+    "    extern \"xl6_xrt_json_writer_int\" func writeInt(int value) as bool\n"
+    "    extern \"xl6_xrt_json_writer_int_key\" func writeInt(string key, int value) as bool\n"
+    "    extern \"xl6_xrt_json_writer_uint\" func writeUInt(uint64 value) as bool\n"
+    "    extern \"xl6_xrt_json_writer_uint_key\" func writeUInt(string key, uint64 value) as bool\n"
+    "    extern \"xl6_xrt_json_writer_float\" func writeFloat(float value) as bool\n"
+    "    extern \"xl6_xrt_json_writer_float_key\" func writeFloat(string key, float value) as bool\n"
+    "    extern \"xl6_xrt_json_writer_string\" func writeString(string value) as bool\n"
+    "    extern \"xl6_xrt_json_writer_string_key\" func writeString(string key, string value) as bool\n"
+    "    extern \"xl6_xrt_json_writer_value\" func writeValue(var value) as bool\n"
+    "    extern \"xl6_xrt_json_writer_value_key\" func writeValue(string key, var value) as bool\n"
+    "    extern \"xl6_xrt_json_writer_finish\" func finish() as string\n"
+    "\n"
+    "end\n"
+    "\n"
+    "class XlonWriter\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_xlon_writer_create_default\" create()\n"
+    "    extern \"xl6_xrt_xlon_writer_create_pretty\" create(bool pretty)\n"
+    "    extern \"xl6_xrt_xlon_writer_create_options\" create(bool pretty, bool ignoreUnsupportedEncode, bool ignoreUnsupportedDecode)\n"
+    "    extern \"xl6_xrt_xlon_writer_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_xlon_writer_begin_array\" func beginArray() as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_begin_array_key\" func beginArray(string key) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_begin_array_index\" func beginArray(int index) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_end_array\" func endArray() as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_begin_list\" func beginList() as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_begin_list_key\" func beginList(string key) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_begin_list_index\" func beginList(int index) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_end_list\" func endList() as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_begin_dict\" func beginDict() as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_begin_dict_key\" func beginDict(string key) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_begin_dict_index\" func beginDict(int index) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_end_dict\" func endDict() as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_begin_set\" func beginSet() as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_begin_set_key\" func beginSet(string key) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_begin_set_index\" func beginSet(int index) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_end_set\" func endSet() as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_null\" func writeNull() as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_null_key\" func writeNull(string key) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_null_index\" func writeNull(int index) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_bool\" func writeBool(bool value) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_bool_key\" func writeBool(string key, bool value) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_bool_index\" func writeBool(int index, bool value) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_int\" func writeInt(int value) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_int_key\" func writeInt(string key, int value) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_int_index\" func writeInt(int index, int value) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_uint\" func writeUInt(uint64 value) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_uint_key\" func writeUInt(string key, uint64 value) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_uint_index\" func writeUInt(int index, uint64 value) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_char\" func writeChar(char value) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_char_key\" func writeChar(string key, char value) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_char_index\" func writeChar(int index, char value) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_float\" func writeFloat(float value) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_float_key\" func writeFloat(string key, float value) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_float_index\" func writeFloat(int index, float value) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_string\" func writeString(string value) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_string_key\" func writeString(string key, string value) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_string_index\" func writeString(int index, string value) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_bytes\" func writeBytes(bytes value) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_bytes_key\" func writeBytes(string key, bytes value) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_bytes_index\" func writeBytes(int index, bytes value) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_tag\" func writeTag(string tag, string payload) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_tag_key\" func writeTag(string key, string tag, string payload) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_tag_index\" func writeTag(int index, string tag, string payload) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_time\" func writeTimeRaw(int value) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_time_key\" func writeTimeRaw(string key, int value) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_time_index\" func writeTimeRaw(int index, int value) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_value\" func writeValue(var value) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_value_key\" func writeValue(string key, var value) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_value_index\" func writeValue(int index, var value) as bool\n"
+    "    extern \"xl6_xrt_xlon_writer_finish\" func finish() as string\n"
+    "\n"
+    "    func writeTime(time value) as bool\n"
+    "        return self.writeTimeRaw(int(value))\n"
+    "    end\n"
+    "\n"
+    "    func writeTime(string key, time value) as bool\n"
+    "        return self.writeTimeRaw(key, int(value))\n"
+    "    end\n"
+    "\n"
+    "    func writeTime(int index, time value) as bool\n"
+    "        return self.writeTimeRaw(index, int(value))\n"
+    "    end\n"
+    "\n"
+    "end\n"
+    "\n"
+    "class XlonOptions\n"
+    "    bool pretty = false\n"
+    "    bool ignoreUnsupportedEncode = false\n"
+    "    bool ignoreUnsupportedDecode = false\n"
+    "\n"
+    "    create(bool pretty = false, bool ignoreUnsupportedEncode = false, bool ignoreUnsupportedDecode = false)\n"
+    "        self.pretty = pretty\n"
+    "        self.ignoreUnsupportedEncode = ignoreUnsupportedEncode\n"
+    "        self.ignoreUnsupportedDecode = ignoreUnsupportedDecode\n"
+    "    end\n"
+    "end\n";
+
+#include "src/stdlib/xl6_stdlib_process.inc"
+
+const char* xl6StdlibTccClassSource =
+    "class TccContext\n"
+    "    native point handle\n"
+    "    extern \"xl6_tcc_context_create\" create()\n"
+    "    extern \"xl6_tcc_context_create_output\" create(c_int outputType)\n"
+    "    extern \"xl6_tcc_context_destroy\" destroy()\n"
+    "    extern \"tcc_set_options\" func setOptions(string options) as c_int\n"
+    "    extern \"tcc_add_include_path\" func addIncludePath(string path) as c_int\n"
+    "    extern \"tcc_add_sysinclude_path\" func addSysIncludePath(string path) as c_int\n"
+    "    extern \"tcc_add_library_path\" func addLibraryPath(string path) as c_int\n"
+    "    extern \"tcc_add_library\" func addLibrary(string name) as c_int\n"
+    "    extern \"tcc_add_file\" func addFile(string path) as c_int\n"
+    "    extern \"tcc_add_symbol\" func addSymbol(string name, point value) as c_int\n"
+    "    extern \"tcc_define_symbol\" func defineSymbolNative(string name, string value)\n"
+    "    extern \"tcc_undefine_symbol\" func undefineSymbol(string name)\n"
+    "    extern \"tcc_set_output_type\" func setOutputType(c_int outputType) as c_int\n"
+    "    extern \"tcc_compile_string\" func compileString(string source) as c_int\n"
+    "    extern \"tcc_relocate\" func relocate() as c_int\n"
+    "    extern \"tcc_get_symbol\" func getSymbol(string name) as point\n"
+    "    extern \"xl6_tcc_context_run_args\" func runNative(array args) as c_int\n"
+    "    extern \"xl6_tcc_context_output_file\" func outputFile(string path) as c_int\n"
+    "\n"
+    "    func defineSymbol(string name, string value = \"\")\n"
+    "        self.defineSymbolNative(name, value)\n"
+    "    end\n"
+    "\n"
+    "    func run() as int\n"
+    "        return int(self.runNative([]))\n"
+    "    end\n"
+    "\n"
+    "    func run(array args) as int\n"
+    "        return int(self.runNative(args))\n"
+    "    end\n"
+    "end\n"
+    "\n"
+    "class TccHandler\n"
+    "    native point handle\n"
+    "    extern \"xl6_tcc_handler_wrap\" create(point handle)\n"
+    "    extern \"xl6_tcc_handler_create\" create(string path)\n"
+    "    extern \"xl6_tcc_handler_destroy\" destroy()\n"
+    "    extern \"xl6_tcc_handler_run_args\" func runNative(array args) as c_int\n"
+    "\n"
+    "    func run(array args) as int\n"
+    "        return int(self.runNative(args))\n"
+    "    end\n"
+    "end\n";
+
+const char* xl6StdlibXlangClassSource =
+    "class XLangContext\n"
+    "    native point handle\n"
+    "    extern \"xl6_xlang_context_create\" create()\n"
+    "    extern \"xl6_xlang_context_destroy\" destroy()\n"
+    "    extern \"xl6_xlang_context_set_work_dir\" func setWorkDir(string path) as bool\n"
+    "    extern \"xl6_xlang_context_set_temp_dir\" func setTempDir(string path) as bool\n"
+    "    extern \"xl6_xlang_context_set_save_temps\" func setSaveTemps(bool enabled) as bool\n"
+    "    extern \"xl6_xlang_context_run_source\" func run(string source) as bool\n"
+    "    extern \"xl6_xlang_context_run_file\" func runFile(string path) as bool\n"
+    "    extern \"xl6_xlang_context_import_package\" func importPackage(point package) as bool\n"
+    "    extern \"xl6_xlang_context_run_source_args\" func runArgNative(string source, array args) as bool\n"
+    "    extern \"xl6_xlang_context_run_file_args\" func runFileArgNative(string path, array args) as bool\n"
+    "    extern \"xl6_xlang_context_clear_last_error\" func clearLastError()\n"
+    "    extern \"xl6_xlang_context_last_error_copy\" func lastErrorNative() as point\n"
+    "\n"
+    "    func run(string source, array args) as bool\n"
+    "        return self.runArgNative(source, args)\n"
+    "    end\n"
+    "\n"
+    "    func runFile(string path, array args) as bool\n"
+    "        return self.runFileArgNative(path, args)\n"
+    "    end\n"
+    "\n"
+    "    get lastError() as string\n"
+    "        return __xl_std_runtime_take_cstr(self.lastErrorNative())\n"
+    "    end\n"
+    "end\n"
+    "\n"
+    "class XLangHandler\n"
+    "    native point handle\n"
+    "    extern \"xl6_xlang_handler_wrap\" create(point handle)\n"
+    "    extern \"xl6_xlang_handler_create\" create(string path, string workDir)\n"
+    "    extern \"xl6_xlang_handler_destroy\" destroy()\n"
+    "    extern \"xl6_xlang_handler_run_args\" func runNative(array args) as bool\n"
+    "    extern \"xl6_xlang_handler_last_error_copy\" func lastErrorNative() as point\n"
+    "\n"
+    "    func run(array args) as bool\n"
+    "        return self.runNative(args)\n"
+    "    end\n"
+    "\n"
+    "    get lastError() as string\n"
+    "        return __xl_std_runtime_take_cstr(self.lastErrorNative())\n"
+    "    end\n"
+    "end\n";
+
+static const XL6_StdlibParam xl6StdMathUnaryFloatParams[] = {
+    {"float", "x"}
+};
+
+static const XL6_StdlibParam xl6StdMathPowParams[] = {
+    {"float", "x"},
+    {"float", "y"}
+};
+
+static const XL6_StdlibParam xl6StdMathTernaryFloatParams[] = {
+    {"float", "x"},
+    {"float", "y"},
+    {"float", "z"}
+};
+
+static const XL6_StdlibParam xl6StdMathScaleNativeParams[] = {
+    {"float", "x"},
+    {"c_int", "exponent"}
+};
+
+static const XL6_StdlibParam xl6StdMathAtan2Params[] = {
+    {"float", "y"},
+    {"float", "x"}
+};
+
+static const XL6_StdlibParam xl6StdMathBinaryFloatParams[] = {
+    {"float", "a"},
+    {"float", "b"}
+};
+
+static const XL6_StdlibParam xl6StdMathIsCloseParams[] = {
+    {"float", "a"},
+    {"float", "b"},
+    {"float", "absTolerance"},
+    {"float", "relTolerance"}
+};
+
+static const XL6_StdlibParam xl6StdMathIntNearParams[] = {
+    {"int", "a"},
+    {"int", "b"},
+    {"uint64", "tolerance"}
+};
+
+static const XL6_StdlibParam xl6StdMathClampParams[] = {
+    {"float", "value"},
+    {"float", "minValue"},
+    {"float", "maxValue"}
+};
+
+static const XL6_StdlibParam xl6StdMathModParams[] = {
+    {"float", "value"},
+    {"float", "divisor"}
+};
+
+
+static const XL6_StdlibParam xl6StdXrtInStrParams[] = {
+    {"string", "text"},
+    {"string", "part"},
+    {"c_bool", "ignoreCase"}
+};
+
+
+
+
+
+static const XL6_StdlibParam xl6StdRuntimeTakeCstrParams[] = {
+    {"point", "value"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimePrintParams[] = {
+    {"var", "values"},
+    {"bool", "newline"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeStringSplitParams[] = {
+    {"string", "text"},
+    {"string", "sep"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeStringTextParams[] = {
+    {"string", "text"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeStringJoinParams[] = {
+    {"var", "values"},
+    {"string", "sep"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeStringEdgeParams[] = {
+    {"string", "text"},
+    {"string", "edge"},
+    {"c_bool", "ignoreCase"}
+};
+
+
+
+
+
+
+static const XL6_StdlibParam xl6StdRuntimeLogLevelParams[] = {
+    {"int", "level"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeDirListParams[] = {
+    {"string", "path"},
+    {"c_bool", "recursive"},
+    {"c_int", "mode"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeDirGlobParams[] = {
+    {"string", "path"},
+    {"string", "pattern"},
+    {"c_bool", "recursive"},
+    {"c_int", "mode"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeDirEntriesParams[] = {
+    {"string", "path"},
+    {"c_bool", "recursive"},
+    {"c_bool", "includeLeave"},
+    {"string", "pattern"},
+    {"c_int", "mode"}
+};
+
+static const XL6_StdlibParam xl6StdXrtDirCountParams[] = {
+    {"string", "path"},
+    {"c_bool", "recursive"},
+    {"c_int", "mode"}
+};
+
+static const XL6_StdlibParam xl6StdXrtDirSizeParams[] = {
+    {"string", "path"},
+    {"c_bool", "recursive"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimePathJoinParams[] = {
+    {"string", "first"},
+    {"string", "second"},
+    {"var", "rest"}
+};
+
+
+
+static const XL6_StdlibParam xl6StdXrtStringReplaceParams[] = {
+    {"string", "text"},
+    {"string", "oldText"},
+    {"string", "newText"}
+};
+
+static const XL6_StdlibParam xl6StdXrtStringSizeParams[] = {
+    {"string", "text"}
+};
+
+static const XL6_StdlibParam xl6StdXrtStringSliceParams[] = {
+    {"string", "text"},
+    {"int", "start"},
+    {"int", "count"}
+};
+
+static const XL6_StdlibParam xl6StdXrtStringCountParams[] = {
+    {"string", "text"},
+    {"int", "count"}
+};
+
+static const XL6_StdlibParam xl6StdXrtStringByteAtParams[] = {
+    {"string", "text"},
+    {"int", "index"}
+};
+
+
+
+
+static const XL6_StdlibParam xl6StdXrtYearParams[] = {
+    {"int", "year"}
+};
+
+static const XL6_StdlibParam xl6StdXrtYearMonthParams[] = {
+    {"int", "year"},
+    {"c_int", "month"}
+};
+
+static const XL6_StdlibParam xl6StdTimeFromTimeParams[] = {
+    {"c_int", "hour"},
+    {"c_int", "minute"},
+    {"c_int", "second"}
+};
+
+static const XL6_StdlibParam xl6StdTimeFromDateParams[] = {
+    {"int", "year"},
+    {"c_int", "month"},
+    {"c_int", "day"}
+};
+
+static const XL6_StdlibParam xl6StdTimeFromDateTimeParams[] = {
+    {"int", "year"},
+    {"c_int", "month"},
+    {"c_int", "day"},
+    {"c_int", "hour"},
+    {"c_int", "minute"},
+    {"c_int", "second"}
+};
+
+static const XL6_StdlibParam xl6StdTimeUnaryParams[] = {
+    {"time", "value"}
+};
+
+static const XL6_StdlibParam xl6StdTimeBinaryParams[] = {
+    {"time", "left"},
+    {"time", "right"}
+};
+
+static const XL6_StdlibParam xl6StdTimeInRangeParams[] = {
+    {"time", "value"},
+    {"time", "start"},
+    {"time", "endValue"}
+};
+
+static const XL6_StdlibParam xl6StdXrtDateAddParams[] = {
+    {"c_int", "interval"},
+    {"int", "amount"},
+    {"int", "value"}
+};
+
+static const XL6_StdlibParam xl6StdXrtDateDiffParams[] = {
+    {"c_int", "interval"},
+    {"int", "left"},
+    {"int", "right"}
+};
+
+static const XL6_StdlibParam xl6StdXrtIntUnaryParams[] = {
+    {"int", "value"}
+};
+
+static const XL6_StdlibParam xl6StdXrtIntBinaryParams[] = {
+    {"int", "left"},
+    {"int", "right"}
+};
+
+static const XL6_StdlibParam xl6StdXrtIntInRangeParams[] = {
+    {"int", "value"},
+    {"int", "start"},
+    {"int", "endValue"}
+};
+
+static const XL6_StdlibParam xl6StdXrtTimeOverlapParams[] = {
+    {"int", "start1"},
+    {"int", "end1"},
+    {"int", "start2"},
+    {"int", "end2"}
+};
+
+static const XL6_StdlibParam xl6StdTimeSleepParams[] = {
+    {"int", "ms"}
+};
+
+static const XL6_StdlibParam xl6StdXrtSleepParams[] = {
+    {"c_uint", "ms"}
+};
+
+static const XL6_StdlibParam xl6StdXrtWeekBoundaryParams[] = {
+    {"int", "value"},
+    {"c_int", "startDay"}
+};
+
+static const XL6_StdlibParam xl6StdXrtRandRangeParams[] = {
+    {"int", "min"},
+    {"int", "max"}
+};
+
+static const XL6_StdlibParam xl6StdXrtRandBelowParams[] = {
+    {"uint64", "bound"}
+};
+
+static const XL6_StdlibParam xl6StdXrtRandCountParams[] = {
+    {"int", "count"}
+};
+
+static const XL6_StdlibParam xl6StdXrtRandBufferParams[] = {
+    {"point", "target"}
+};
+
+static const XL6_StdlibParam xl6StdXrtRandArrayParams[] = {
+    {"array", "values"}
+};
+
+static const XL6_StdlibParam xl6StdXrtRandSeedParams[] = {
+    {"uint64", "seed"},
+    {"uint64", "seq"}
+};
+
+static const XL6_StdlibParam xl6StdXrtRandStrParams[] = {
+    {"string", "alphabet"},
+    {"c_size", "actualSize"},
+    {"int", "alphabetSize"},
+    {"int", "count"}
+};
+
+static const XL6_StdlibParam xl6StdPathUnaryParams[] = {
+    {"string", "path"}
+};
+
+static const XL6_StdlibParam xl6StdConsoleStreamParams[] = {
+    {"c_int", "stream"}
+};
+static const XL6_StdlibParam xl6StdConsoleIntStreamParams[] = {{"int", "stream"}};
+static const XL6_StdlibParam xl6StdConsoleLimitParams[] = {{"int", "maxBytes"}};
+static const XL6_StdlibParam xl6StdConsoleStyledParams[] = {
+    {"string", "text"}, {"int", "stream"}, {"int", "fg"}, {"int", "bg"}, {"int", "attributes"}
+};
+
+static const XL6_StdlibParam xl6StdIoReadFileParams[] = {
+    {"string", "path"}, {"int", "maxBytes"}
+};
+static const XL6_StdlibParam xl6StdIoCopyParams[] = {
+    {"point", "source"}, {"point", "target"}, {"int", "limit"}, {"int", "mode"}
+};
+static const XL6_StdlibParam xl6StdIoWriteBufferFileParams[] = {
+    {"string", "path"}, {"point", "data"}, {"int", "mode"}, {"int", "size"}
+};
+static const XL6_StdlibParam xl6StdIoWriteFileParams[] = {
+    {"string", "path"}, {"bytes", "data"}, {"int", "mode"}, {"int", "size"}
+};
+static const XL6_StdlibParam xl6StdIoWriteTextFileParams[] = {
+    {"string", "path"}, {"string", "data"}, {"int", "mode"}, {"int", "size"}
+};
+
+static const XL6_StdlibParam xl6StdPathRelParams[] = {
+    {"string", "base"},
+    {"string", "target"}
+};
+
+static const XL6_StdlibParam xl6StdPathWithExtParams[] = {
+    {"string", "path"},
+    {"string", "ext"}
+};
+
+static const XL6_StdlibParam xl6StdPathWithNameParams[] = {
+    {"string", "path"},
+    {"string", "nameExt"}
+};
+
+static const XL6_StdlibParam xl6StdFileWriteTextParams[] = {
+    {"string", "path"},
+    {"string", "text"},
+    {"int", "charset"}
+};
+
+static const XL6_StdlibParam xl6StdFileWriteTextUtf8Params[] = {
+    {"string", "path"},
+    {"string", "text"}
+};
+
+static const XL6_StdlibParam xl6StdFileSetSizeParams[] = {
+    {"string", "path"},
+    {"int", "size"}
+};
+
+static const XL6_StdlibParam xl6StdXrtFileSetSizeParams[] = {
+    {"string", "path"},
+    {"c_size", "size"}
+};
+
+static const XL6_StdlibParam xl6StdFileSetAttrParams[] = {
+    {"string", "path"},
+    {"int", "attr"}
+};
+
+static const XL6_StdlibParam xl6StdXrtFileSetAttrParams[] = {
+    {"string", "path"},
+    {"c_int", "attr"}
+};
+
+static const XL6_StdlibParam xl6StdXrtFileWriteTextParams[] = {
+    {"string", "path"},
+    {"string", "text"},
+    {"c_size", "size"},
+    {"c_int", "charset"}
+};
+
+static const XL6_StdlibParam xl6StdFileReadTextParams[] = {
+    {"string", "path"},
+    {"int", "charset"}
+};
+
+static const XL6_StdlibParam xl6StdXrtFileReadTextParams[] = {
+    {"string", "path"},
+    {"c_int", "charset"},
+    {"point", "retSize"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeFileWriteBytesParams[] = {
+    {"string", "path"},
+    {"point", "data"},
+    {"c_size", "size"}
+};
+
+static const XL6_StdlibParam xl6StdFileCopyMoveParams[] = {
+    {"string", "source"},
+    {"string", "target"},
+    {"bool", "overwrite"}
+};
+
+static const XL6_StdlibParam xl6StdXrtFileCopyMoveParams[] = {
+    {"string", "source"},
+    {"string", "target"},
+    {"c_bool", "overwrite"}
+};
+
+static const XL6_StdlibParam xl6StdFileReplaceParams[] = {
+    {"string", "source"},
+    {"string", "target"}
+};
+
+static const XL6_StdlibParam xl6StdNetHandleParams[] = {
+    {"point", "handle"}
+};
+
+static const XL6_StdlibParam xl6StdXrtJsonParseParams[] = {
+    {"string", "text"}
+};
+
+static const XL6_StdlibParam xl6StdXrtJsonStringifyParams[] = {
+    {"var", "value"},
+    {"c_int", "pretty"}
+};
+
+static const XL6_StdlibParam xl6StdXrtJsonWriteParams[] = {
+    {"string", "path"},
+    {"var", "value"},
+    {"c_int", "pretty"}
+};
+
+static const XL6_StdlibParam xl6StdJsonStringifyParams[] = {
+    {"var", "value"},
+    {"bool", "pretty"}
+};
+
+static const XL6_StdlibParam xl6StdDictRemoveParams[] = {
+    {"var", "table"},
+    {"string", "key"}
+};
+
+static const XL6_StdlibParam xl6StdJsonWriteParams[] = {
+    {"string", "path"},
+    {"var", "value"},
+    {"bool", "pretty"}
+};
+
+static const XL6_StdlibParam xl6StdJsonVisitRuntimeParams[] = {
+    {"string", "text"},
+    {"func(var) as bool", "visitor"}
+};
+
+static const XL6_StdlibParam xl6StdLinesValueParams[] = {
+    {"var", "records"}
+};
+
+static const XL6_StdlibParam xl6StdLinesWriteParams[] = {
+    {"string", "path"},
+    {"var", "records"}
+};
+
+static const XL6_StdlibParam xl6StdConfiguredReadParams[] = {
+    {"string", "text"}, {"var", "options"}
+};
+static const XL6_StdlibParam xl6StdConfiguredWriteParams[] = {
+    {"string", "path"}, {"var", "value"}, {"var", "options"}
+};
+
+static const XL6_StdlibParam xl6StdXlonTextOptionsRuntimeParams[] = {
+    {"string", "text"},
+    {"bool", "pretty"},
+    {"bool", "ignoreUnsupportedEncode"},
+    {"bool", "ignoreUnsupportedDecode"}
+};
+
+static const XL6_StdlibParam xl6StdXlonVisitOptionsRuntimeParams[] = {
+    {"string", "text"},
+    {"func(var) as bool", "visitor"},
+    {"bool", "pretty"},
+    {"bool", "ignoreUnsupportedEncode"},
+    {"bool", "ignoreUnsupportedDecode"}
+};
+
+static const XL6_StdlibParam xl6StdXlonValueOptionsRuntimeParams[] = {
+    {"var", "value"},
+    {"bool", "pretty"},
+    {"bool", "ignoreUnsupportedEncode"},
+    {"bool", "ignoreUnsupportedDecode"}
+};
+
+static const XL6_StdlibParam xl6StdXlonWriteOptionsRuntimeParams[] = {
+    {"string", "path"},
+    {"var", "value"},
+    {"bool", "pretty"},
+    {"bool", "ignoreUnsupportedEncode"},
+    {"bool", "ignoreUnsupportedDecode"}
+};
+
+
+static const XL6_StdlibParam xl6StdXidCountParams[] = {
+    {"int", "count"}
+};
+static const XL6_StdlibParam xl6StdXidTextParams[] = {
+    {"string", "text"}
+};
+static const XL6_StdlibParam xl6StdXidBytesParams[] = {
+    {"bytes", "data"}
+};
+static const XL6_StdlibParam xl6StdXidValueParams[] = {
+    {"Xid", "value"}
+};
+static const XL6_StdlibParam xl6StdXidPairParams[] = {
+    {"Xid", "left"}, {"Xid", "right"}
+};
+
+static const XL6_StdlibParam xl6StdHashStringParams[] = {
+    {"string", "data"}, {"int", "size"}
+};
+static const XL6_StdlibParam xl6StdHashStringSeed32Params[] = {
+    {"string", "data"}, {"c_uint", "seed"}, {"int", "size"}
+};
+static const XL6_StdlibParam xl6StdHashStringSeed64Params[] = {
+    {"string", "data"}, {"c_ulonglong", "seed"}, {"int", "size"}
+};
+static const XL6_StdlibParam xl6StdHashBytesParams[] = {
+    {"bytes", "data"}, {"int", "size"}
+};
+static const XL6_StdlibParam xl6StdHashBytesSeed32Params[] = {
+    {"bytes", "data"}, {"c_uint", "seed"}, {"int", "size"}
+};
+static const XL6_StdlibParam xl6StdHashBytesSeed64Params[] = {
+    {"bytes", "data"}, {"c_ulonglong", "seed"}, {"int", "size"}
+};
+static const XL6_StdlibParam xl6StdHashRawParams[] = {
+    {"point", "data"}, {"c_size", "actualSize"}, {"int", "size"}
+};
+static const XL6_StdlibParam xl6StdHashRawSeed32Params[] = {
+    {"point", "data"}, {"c_size", "actualSize"}, {"c_uint", "seed"}, {"int", "size"}
+};
+static const XL6_StdlibParam xl6StdHashRawSeed64Params[] = {
+    {"point", "data"}, {"c_size", "actualSize"}, {"c_ulonglong", "seed"}, {"int", "size"}
+};
+static const XL6_StdlibParam xl6StdSipHashStringParams[] = {
+    {"string", "data"}, {"bytes", "key"}, {"int", "size"}
+};
+static const XL6_StdlibParam xl6StdSipHashBytesParams[] = {
+    {"bytes", "data"}, {"bytes", "key"}, {"int", "size"}
+};
+static const XL6_StdlibParam xl6StdSipHashRawParams[] = {
+    {"point", "data"}, {"c_size", "actualSize"}, {"bytes", "key"}, {"int", "size"}
+};
+
+
+static const char xl6StdMathSignBody[] =
+    "func __xl_std_math_sign(float x) as int\n"
+    "    return int(__xl_std_xrt_math_sign(x))\n"
+    "end\n";
+
+/* llabs(INT64_MIN) is undefined in C. The language result has no positive
+ * representation, so reject that one operand before negating. */
+static const char xl6StdMathAbsIntBody[] =
+    "func __xl_std_math_abs(int x) as int\n"
+    "    if x == -9223372036854775808 then\n"
+    "        throw RangeError \"absolute value overflows int\"\n"
+    "    end\n"
+    "    if x < 0 then\n"
+    "        return -x\n"
+    "    end\n"
+    "    return x\n"
+    "end\n";
+static const char xl6StdMathAbsInt8Body[] =
+    "func __xl_std_math_abs(int8 x) as int8\n"
+    "    if x == int8(-128) then throw RangeError \"absolute value overflows int8\" end\n"
+    "    if x < 0 then return int8(-int(x)) end\n"
+    "    return x\n"
+    "end\n";
+static const char xl6StdMathAbsInt16Body[] =
+    "func __xl_std_math_abs(int16 x) as int16\n"
+    "    if x == int16(-32768) then throw RangeError \"absolute value overflows int16\" end\n"
+    "    if x < 0 then return int16(-int(x)) end\n"
+    "    return x\n"
+    "end\n";
+static const char xl6StdMathAbsInt32Body[] =
+    "func __xl_std_math_abs(int32 x) as int32\n"
+    "    if x == int32(-2147483648) then throw RangeError \"absolute value overflows int32\" end\n"
+    "    if x < 0 then return int32(-int(x)) end\n"
+    "    return x\n"
+    "end\n";
+
+/* C's exponent and ilogb result use int; the public API uses xlang int and
+ * makes narrowing explicit at the declaration boundary. */
+static const char xl6StdMathLdexpBody[] =
+    "func __xl_std_math_ldexp(float x, int exponent) as float\n"
+    "    c_int nativeExponent = c_int(exponent)\n"
+    "    if int(nativeExponent) != exponent then\n"
+    "        throw RangeError \"exponent is outside C int range\"\n"
+    "    end\n"
+    "    return __xl_std_math_ldexp_native(x, nativeExponent)\n"
+    "end\n";
+static const char xl6StdMathScaleByPowerOfTwoBody[] =
+    "func __xl_std_math_scale_by_power_of_two(float x, int exponent) as float\n"
+    "    c_int nativeExponent = c_int(exponent)\n"
+    "    if int(nativeExponent) != exponent then\n"
+    "        throw RangeError \"exponent is outside C int range\"\n"
+    "    end\n"
+    "    return __xl_std_math_scalbn_native(x, nativeExponent)\n"
+    "end\n";
+static const char xl6StdMathIlogbBody[] =
+    "func __xl_std_math_ilogb(float x) as int\n"
+    "    return int(__xl_std_math_ilogb_native(x))\n"
+    "end\n";
+static const char xl6StdMathDivRemBody[] =
+    "func __xl_std_math_div_rem(int numerator, int denominator) as (int, int)\n"
+    "    return numerator / denominator, numerator % denominator\n"
+    "end\n";
+
+/* Parse is a closed scalar ABI. tryParse is only language exception/tuple
+ * glue; it catches input/range errors, not runtime resource failures. */
+static const char xl6StdIntParseBody[] =
+    "extern \"xl6NumberIntParseV1\" func __xl_std_int_parse(string text, int base = 10, int flags = 0, int size = -1) as int\n";
+static const char xl6StdIntTryParseBody[] =
+    "func __xl_std_int_try_parse(string text, int base = 10, int flags = 0, int size = -1) as (bool, int)\n"
+    "    try\n"
+    "        return true, __xl_std_int_parse(text, base, flags, size)\n"
+    "    catch ValueError e\n"
+    "        return false, 0\n"
+    "    catch RangeError e\n"
+    "        return false, 0\n"
+    "    end\n"
+    "end\n";
+static const char xl6StdUInt64ParseBody[] =
+    "extern \"xl6NumberUIntParseV1\" func __xl_std_uint64_parse(string text, int base = 10, int flags = 0, int size = -1) as uint64\n";
+static const char xl6StdUInt64TryParseBody[] =
+    "func __xl_std_uint64_try_parse(string text, int base = 10, int flags = 0, int size = -1) as (bool, uint64)\n"
+    "    try\n"
+    "        return true, __xl_std_uint64_parse(text, base, flags, size)\n"
+    "    catch ValueError e\n"
+    "        return false, uint64(0)\n"
+    "    catch RangeError e\n"
+    "        return false, uint64(0)\n"
+    "    end\n"
+    "end\n";
+static const char xl6StdFloatParseBody[] =
+    "extern \"xl6NumberFloatParseV1\" func __xl_std_float_parse(string text, int flags = 8, int size = -1) as float\n";
+static const char xl6StdFloatTryParseBody[] =
+    "func __xl_std_float_try_parse(string text, int flags = 8, int size = -1) as (bool, float)\n"
+    "    try\n"
+    "        return true, __xl_std_float_parse(text, flags, size)\n"
+    "    catch ValueError e\n"
+    "        return false, 0.0\n"
+    "    catch RangeError e\n"
+    "        return false, 0.0\n"
+    "    end\n"
+    "end\n";
+
+#define XL6_STD_WIDTH_PARSE(TYPE, SYMBOL) \
+    "extern \"" #SYMBOL "\" func __xl_std_" #TYPE \
+    "_parse(string text, int base = 10, int flags = 0, int size = -1) as " #TYPE "\n"
+#define XL6_STD_WIDTH_TRY_PARSE(TYPE) \
+    "func __xl_std_" #TYPE "_try_parse(string text, int base = 10, int flags = 0, int size = -1) as (bool, " #TYPE ")\n" \
+    "    try\n" \
+    "        return true, __xl_std_" #TYPE "_parse(text, base, flags, size)\n" \
+    "    catch ValueError e\n" \
+    "        return false, " #TYPE "(0)\n" \
+    "    catch RangeError e\n" \
+    "        return false, " #TYPE "(0)\n" \
+    "    end\n" \
+    "end\n"
+static const char xl6StdInt8ParseBody[] =
+    XL6_STD_WIDTH_PARSE(int8, xl6NumberInt8ParseV1);
+static const char xl6StdInt16ParseBody[] =
+    XL6_STD_WIDTH_PARSE(int16, xl6NumberInt16ParseV1);
+static const char xl6StdInt32ParseBody[] =
+    XL6_STD_WIDTH_PARSE(int32, xl6NumberInt32ParseV1);
+static const char xl6StdInt64ParseBody[] =
+    XL6_STD_WIDTH_PARSE(int64, xl6NumberInt64ParseV1);
+static const char xl6StdUInt8ParseBody[] =
+    XL6_STD_WIDTH_PARSE(uint8, xl6NumberUInt8ParseV1);
+static const char xl6StdUInt16ParseBody[] =
+    XL6_STD_WIDTH_PARSE(uint16, xl6NumberUInt16ParseV1);
+static const char xl6StdUInt32ParseBody[] =
+    XL6_STD_WIDTH_PARSE(uint32, xl6NumberUInt32ParseV1);
+static const char xl6StdInt8TryParseBody[] = XL6_STD_WIDTH_TRY_PARSE(int8);
+static const char xl6StdInt16TryParseBody[] = XL6_STD_WIDTH_TRY_PARSE(int16);
+static const char xl6StdInt32TryParseBody[] = XL6_STD_WIDTH_TRY_PARSE(int32);
+static const char xl6StdInt64TryParseBody[] = XL6_STD_WIDTH_TRY_PARSE(int64);
+static const char xl6StdUInt8TryParseBody[] = XL6_STD_WIDTH_TRY_PARSE(uint8);
+static const char xl6StdUInt16TryParseBody[] = XL6_STD_WIDTH_TRY_PARSE(uint16);
+static const char xl6StdUInt32TryParseBody[] = XL6_STD_WIDTH_TRY_PARSE(uint32);
+#undef XL6_STD_WIDTH_PARSE
+#undef XL6_STD_WIDTH_TRY_PARSE
+static const char xl6StdIntStringBody[] =
+    "extern \"xl6NumberIntStringV1\" func __xl_std_int_to_string(int value, int base = 10, int flags = 0) as string\n";
+static const char xl6StdUIntStringBody[] =
+    "extern \"xl6NumberUIntStringV1\" func __xl_std_int_to_string(uint64 value, int base = 10, int flags = 0) as string\n";
+static const char xl6StdFloatStringBody[] =
+    "extern \"xl6NumberFloatStringV1\" func __xl_std_float_to_string(float value, int flags = 0) as string\n";
+/* The C output-pointer ABI for these private declarations is supplied by the
+ * standard-library catalog after parsing, not by public parameter syntax. */
+static const char xl6StdMathFrexpBody[] =
+    "extern \"frexp\" @no_raise @nonblocking func __xl_std_math_frexp_native(float x, c_int exponent) as float\n"
+    "func __xl_std_math_frexp(float x) as (float, int)\n"
+    "    if x == 0.0 then\n"
+    "        return x, 0\n"
+    "    end\n"
+    "    c_int exponent = 0\n"
+    "    float fraction = __xl_std_math_frexp_native(x, exponent)\n"
+    "    return fraction, int(exponent)\n"
+    "end\n";
+static const char xl6StdMathModfBody[] =
+    "extern \"modf\" @no_raise @nonblocking func __xl_std_math_modf_native(float x, float integerPart) as float\n"
+    "func __xl_std_math_modf(float x) as (float, float)\n"
+    "    if x == 0.0 then\n"
+    "        return x, x\n"
+    "    end\n"
+    "    float integerPart = 0.0\n"
+    "    float fractionalPart = __xl_std_math_modf_native(x, integerPart)\n"
+    "    return fractionalPart, integerPart\n"
+    "end\n";
+static const char xl6StdMathRemQuoBody[] =
+    "extern \"remquo\" @no_raise @nonblocking func __xl_std_math_rem_quo_native(float x, float y, c_int quotient) as float\n"
+    "func __xl_std_math_rem_quo(float x, float y) as (float, int)\n"
+    "    c_int quotient = 0\n"
+    "    float remainder = __xl_std_math_rem_quo_native(x, y, quotient)\n"
+    "    return remainder, int(quotient)\n"
+    "end\n";
+static const char xl6StdMathSignBitBody[] =
+    "func __xl_std_math_sign_bit(float x) as bool\n"
+    "    return __xl_std_math_copy_sign(1.0, x) < 0.0\n"
+    "end\n";
+/* xlang float is IEEE binary64. These two exactly rounded literals bound
+ * the normal finite range without an extra libm call or platform FP_* ABI. */
+static const char xl6StdMathIsNormalBody[] =
+    "func __xl_std_math_is_normal(float x) as bool\n"
+    "    float magnitude = __xl_std_math_abs(x)\n"
+    "    return magnitude >= 2.2250738585072014e-308 and magnitude <= 1.7976931348623157e308\n"
+    "end\n";
+static const char xl6StdMathIsSubnormalBody[] =
+    "func __xl_std_math_is_subnormal(float x) as bool\n"
+    "    float magnitude = __xl_std_math_abs(x)\n"
+    "    return magnitude > 0.0 and magnitude < 2.2250738585072014e-308\n"
+    "end\n";
+static const char xl6StdMathClassifyBody[] =
+    "func __xl_std_math_classify(float x) as FloatClass\n"
+    "    if x != x then\n"
+    "        return FloatClass.nan\n"
+    "    end\n"
+    "    if x == 0.0 then\n"
+    "        return FloatClass.zero\n"
+    "    end\n"
+    "    float magnitude = __xl_std_math_abs(x)\n"
+    "    if magnitude > 1.7976931348623157e308 then\n"
+    "        return FloatClass.infinite\n"
+    "    end\n"
+    "    if magnitude < 2.2250738585072014e-308 then\n"
+    "        return FloatClass.subnormal\n"
+    "    end\n"
+    "    return FloatClass.normal\n"
+    "end\n";
+static const char xl6StdMathIsUnorderedBody[] =
+    "func __xl_std_math_is_unordered(float x, float y) as bool\n"
+    "    return x != x or y != y\n"
+    "end\n";
+
+/* Comparator-driven heap sort has bounded O(log n) auxiliary state and does
+ * not erase T to var or pass managed elements through C qsort's void* ABI.
+ * The public callback returns negative/zero/positive; it may raise. */
+static const char xl6StdArraySortBody[] =
+    "func __xl_std_array_sift_down<T>(array<T> values, int root, int limit, func(T, T) as int compare)\n"
+    "    while root < limit / 2\n"
+    "        int child = root * 2 + 1\n"
+    "        if child + 1 < limit and compare(values[child], values[child + 1]) < 0 then\n"
+    "            child += 1\n"
+    "        end\n"
+    "        if compare(values[root], values[child]) >= 0 then\n"
+    "            return\n"
+    "        end\n"
+    "        T temp = values[root]\n"
+    "        values[root] = values[child]\n"
+    "        values[child] = temp\n"
+    "        root = child\n"
+    "    end\n"
+    "end\n"
+    "func __xl_std_array_sort<T>(array<T> values, func(T, T) as int compare)\n"
+    "    int count = values.length\n"
+    "    int start = count / 2\n"
+    "    while start > 0\n"
+    "        start -= 1\n"
+    "        __xl_std_array_sift_down::<T>(values, start, count, compare)\n"
+    "    end\n"
+    "    int limit = count\n"
+    "    while limit > 1\n"
+    "        limit -= 1\n"
+    "        T temp = values[0]\n"
+    "        values[0] = values[limit]\n"
+    "        values[limit] = temp\n"
+    "        __xl_std_array_sift_down::<T>(values, 0, limit, compare)\n"
+    "    end\n"
+    "end\n";
+
+static const char xl6StdArraySortByBody[] =
+    "func __xl_std_array_sift_down_by<T, K>(array<T> values, array<K> keys, int root, int limit, func(K, K) as int compare)\n"
+    "    while root < limit / 2\n"
+    "        int child = root * 2 + 1\n"
+    "        if child + 1 < limit and compare(keys[child], keys[child + 1]) < 0 then\n"
+    "            child += 1\n"
+    "        end\n"
+    "        if compare(keys[root], keys[child]) >= 0 then\n"
+    "            return\n"
+    "        end\n"
+    "        K keyTemp = keys[root]\n"
+    "        keys[root] = keys[child]\n"
+    "        keys[child] = keyTemp\n"
+    "        T valueTemp = values[root]\n"
+    "        values[root] = values[child]\n"
+    "        values[child] = valueTemp\n"
+    "        root = child\n"
+    "    end\n"
+    "end\n"
+    "func __xl_std_array_sort_by<T, K>(array<T> values, func(T) as K keyOfValue, func(K, K) as int compare)\n"
+    "    array<K> keys = []\n"
+    "    int i = 0\n"
+    "    while i < values.length\n"
+    "        if not keys.push(keyOfValue(values[i])) then\n"
+    "            throw RuntimeError \"sortBy key allocation failed\"\n"
+    "        end\n"
+    "        i += 1\n"
+    "    end\n"
+    "    int count = values.length\n"
+    "    int start = count / 2\n"
+    "    while start > 0\n"
+    "        start -= 1\n"
+    "        __xl_std_array_sift_down_by::<T, K>(values, keys, start, count, compare)\n"
+    "    end\n"
+    "    int limit = count\n"
+    "    while limit > 1\n"
+    "        limit -= 1\n"
+    "        K keyTemp = keys[0]\n"
+    "        keys[0] = keys[limit]\n"
+    "        keys[limit] = keyTemp\n"
+    "        T valueTemp = values[0]\n"
+    "        values[0] = values[limit]\n"
+    "        values[limit] = valueTemp\n"
+    "        __xl_std_array_sift_down_by::<T, K>(values, keys, 0, limit, compare)\n"
+    "    end\n"
+    "end\n";
+
+static const char xl6StdArrayBinarySearchBody[] =
+    "func __xl_std_array_binary_search<T>(array<T> values, T needle, func(T, T) as int compare) as int\n"
+    "    int low = 0\n"
+    "    int high = values.length\n"
+    "    while low < high\n"
+    "        int middle = low + (high - low) / 2\n"
+    "        int order = compare(values[middle], needle)\n"
+    "        if order < 0 then\n"
+    "            low = middle + 1\n"
+    "        else\n"
+    "            high = middle\n"
+    "        end\n"
+    "    end\n"
+    "    if low < values.length and compare(values[low], needle) == 0 then\n"
+    "        return low\n"
+    "    end\n"
+    "    return -1\n"
+    "end\n";
+
+/* ASCII is defined on Unicode scalar values, never on the process C locale.
+ * Source bodies keep its small predicates visible to ordinary XLIR/Cgen. */
+static const char xl6StdAsciiIsAlphaBody[] =
+    "func __xl_std_ascii_is_alpha(char c) as bool\n"
+    "    return (c >= 'A' and c <= 'Z') or (c >= 'a' and c <= 'z')\n"
+    "end\n";
+static const char xl6StdAsciiIsDigitBody[] =
+    "func __xl_std_ascii_is_digit(char c) as bool\n"
+    "    return c >= '0' and c <= '9'\n"
+    "end\n";
+static const char xl6StdAsciiIsAlphaNumericBody[] =
+    "func __xl_std_ascii_is_alphanumeric(char c) as bool\n"
+    "    return (c >= 'A' and c <= 'Z') or (c >= 'a' and c <= 'z') or (c >= '0' and c <= '9')\n"
+    "end\n";
+static const char xl6StdAsciiIsHexDigitBody[] =
+    "func __xl_std_ascii_is_hex_digit(char c) as bool\n"
+    "    return (c >= '0' and c <= '9') or (c >= 'A' and c <= 'F') or (c >= 'a' and c <= 'f')\n"
+    "end\n";
+static const char xl6StdAsciiIsWhitespaceBody[] =
+    "func __xl_std_ascii_is_whitespace(char c) as bool\n"
+    "    return c == ' ' or (c >= '\\t' and c <= '\\r')\n"
+    "end\n";
+static const char xl6StdAsciiIsBlankBody[] =
+    "func __xl_std_ascii_is_blank(char c) as bool\n"
+    "    return c == ' ' or c == '\\t'\n"
+    "end\n";
+static const char xl6StdAsciiIsControlBody[] =
+    "func __xl_std_ascii_is_control(char c) as bool\n"
+    "    return c < ' ' or c == 127\n"
+    "end\n";
+static const char xl6StdAsciiIsPrintableBody[] =
+    "func __xl_std_ascii_is_printable(char c) as bool\n"
+    "    return c >= ' ' and c <= '~'\n"
+    "end\n";
+static const char xl6StdAsciiIsGraphicalBody[] =
+    "func __xl_std_ascii_is_graphical(char c) as bool\n"
+    "    return c >= '!' and c <= '~'\n"
+    "end\n";
+static const char xl6StdAsciiIsPunctuationBody[] =
+    "func __xl_std_ascii_is_punctuation(char c) as bool\n"
+    "    return (c >= '!' and c <= '/') or (c >= ':' and c <= '@') or (c >= '[' and c <= '`') or (c >= '{' and c <= '~')\n"
+    "end\n";
+static const char xl6StdAsciiIsLowerBody[] =
+    "func __xl_std_ascii_is_lower(char c) as bool\n"
+    "    return c >= 'a' and c <= 'z'\n"
+    "end\n";
+static const char xl6StdAsciiIsUpperBody[] =
+    "func __xl_std_ascii_is_upper(char c) as bool\n"
+    "    return c >= 'A' and c <= 'Z'\n"
+    "end\n";
+static const char xl6StdAsciiToLowerBody[] =
+    "func __xl_std_ascii_to_lower(char c) as char\n"
+    "    if c >= 'A' and c <= 'Z' then\n"
+    "        return char(c + 32)\n"
+    "    end\n"
+    "    return c\n"
+    "end\n";
+static const char xl6StdAsciiToUpperBody[] =
+    "func __xl_std_ascii_to_upper(char c) as char\n"
+    "    if c >= 'a' and c <= 'z' then\n"
+    "        return char(c - 32)\n"
+    "    end\n"
+    "    return c\n"
+    "end\n";
+
+static const char xl6StdStringCompareBody[] =
+    "extern \"xl6TextCompareV1\" func __xl_std_string_compare(string left, string right, bool ignoreCase = false, int leftSize = -1, int rightSize = -1) as int\n";
+
+static const char xl6StdStringLenBody[] =
+    "extern \"xl6TextLengthV1\" func __xl_std_string_len(string text, int size = -1) as int\n";
+
+static const char xl6StdStringByteLenBody[] =
+    "extern \"xl6TextByteLengthV1\" func __xl_std_string_byte_len(string text, int size = -1) as int\n";
+
+static const char xl6StdStringEqualsBody[] =
+    "extern \"xl6TextEqualsV1\" func __xl_std_string_equals(string left, string right, bool ignoreCase = false, int leftSize = -1, int rightSize = -1) as bool\n";
+
+static const char xl6StdStringContainsBody[] =
+    "extern \"xl6TextContainsV1\" func __xl_std_string_contains(string text, string part, bool ignoreCase = false, int size = -1, int partSize = -1) as bool\n";
+
+static const char xl6StdStringIndexOfBody[] =
+    "extern \"xl6TextIndexOfV1\" func __xl_std_string_index_of(string text, string part, bool ignoreCase = false, int size = -1, int partSize = -1) as int\n";
+
+static const char xl6StdStringLastIndexOfBody[] =
+    "extern \"xl6TextLastIndexOfV1\" func __xl_std_string_last_index_of(string text, string part, bool ignoreCase = false, int size = -1, int partSize = -1) as int\n";
+
+static const char xl6StdStringCountBody[] =
+    "extern \"xl6TextCountV1\" func __xl_std_string_count(string text, string part, bool ignoreCase = false, int size = -1, int partSize = -1) as int\n";
+
+static const char xl6StdStringStartsWithBody[] =
+    "extern \"xl6TextStartsWithV1\" func __xl_std_string_starts_with(string text, string prefix, bool ignoreCase = false, int size = -1, int prefixSize = -1) as bool\n";
+
+static const char xl6StdStringEndsWithBody[] =
+    "extern \"xl6TextEndsWithV1\" func __xl_std_string_ends_with(string text, string suffix, bool ignoreCase = false, int size = -1, int suffixSize = -1) as bool\n";
+
+static const char xl6StdStringHasAnyBody[] =
+    "extern \"xl6TextHasAnyV1\" func __xl_std_string_has_any(string text, string chars, int size = -1, int charsSize = -1) as bool\n";
+
+static const char xl6StdStringLikeBody[] =
+    "extern \"xl6TextLikeV1\" func __xl_std_string_like(string text, string pattern, bool ignoreCase = false, int size = -1, int patternSize = -1) as bool\n";
+
+static const char xl6StdStringApproxBody[] =
+    "extern \"xl6TextApproxV1\" func __xl_std_string_approx(string left, string right, float tolerance = 0.95, int leftSize = -1, int rightSize = -1) as bool\n";
+
+static const char xl6StdStringSimBody[] =
+    "extern \"xl6TextSimilarityV1\" func __xl_std_string_sim(string left, string right, int leftSize = -1, int rightSize = -1) as float\n";
+
+static const char xl6StdStringIsUtf8Body[] =
+    "extern \"xl6TextIsUtf8V1\" func __xl_std_string_is_utf8(string text, int size = -1) as bool\n";
+
+static const char xl6StdIntFormatBody[] =
+    "extern \"xl6NumberIntFormatV1\" func __xl_std_int_format(int value, string format = \"\", int size = -1) as string\n";
+
+static const char xl6StdIntFormatUIntBody[] =
+    "extern \"xl6NumberUIntFormatV1\" func __xl_std_int_format(uint64 value, string format = \"\", int size = -1) as string\n";
+
+static const char xl6StdFloatFormatBody[] =
+    "extern \"xl6NumberFloatFormatV1\" func __xl_std_float_format(float value, string format = \"\", int size = -1) as string\n";
+
+static const char xl6StdStringFormatBodyInt[] =
+    "extern \"xl6NumberIntFormatV1\" func __xl_std_string_format(int value, string format = \"\", int size = -1) as string\n";
+
+static const char xl6StdStringFormatBodyUInt[] =
+    "extern \"xl6NumberUIntFormatV1\" func __xl_std_string_format(uint64 value, string format = \"\", int size = -1) as string\n";
+
+static const char xl6StdStringFormatBodyFloat[] =
+    "extern \"xl6NumberFloatFormatV1\" func __xl_std_string_format(float value, string format = \"\", int size = -1) as string\n";
+
+static const char xl6StdStringLowerBody[] =
+    "extern \"xl6TextLowerV1\" func __xl_std_string_lower(string text, int size = -1) as string\n";
+
+static const char xl6StdStringUpperBody[] =
+    "extern \"xl6TextUpperV1\" func __xl_std_string_upper(string text, int size = -1) as string\n";
+
+static const char xl6StdStringTrimBody[] =
+    "extern \"xl6TextTrimV1\" func __xl_std_string_trim(string text, string chars = \"\", int size = -1, int charsSize = -1) as string\n";
+
+static const char xl6StdStringLTrimBody[] =
+    "extern \"xl6TextLTrimV1\" func __xl_std_string_ltrim(string text, string chars = \"\", int size = -1, int charsSize = -1) as string\n";
+
+static const char xl6StdStringRTrimBody[] =
+    "extern \"xl6TextRTrimV1\" func __xl_std_string_rtrim(string text, string chars = \"\", int size = -1, int charsSize = -1) as string\n";
+
+static const char xl6StdStringFilterBody[] =
+    "extern \"xl6TextFilterV1\" func __xl_std_string_filter(string text, string chars, int size = -1, int charsSize = -1) as string\n";
+
+static const char xl6StdStringReplaceBody[] =
+    "extern \"xl6TextReplaceV1\" func __xl_std_string_replace(string text, string oldText, string newText, int size = -1, int oldSize = -1, int newSize = -1) as string\n";
+
+static const char xl6StdStringSplitBody[] =
+    "extern \"xl6TextSplitV2\" func __xl_std_string_split(string text, string sep, int size = -1, int sepSize = -1) as array<string>\n";
+
+static const char xl6StdStringSliceBody[] =
+    "extern \"xl6TextSliceV1\" func __xl_std_string_slice(string text, int start, int count = -1, int size = -1) as string\n";
+
+static const char xl6StdStringLeftBody[] =
+    "extern \"xl6TextLeftV1\" func __xl_std_string_left(string text, int count, int size = -1) as string\n";
+
+static const char xl6StdStringRightBody[] =
+    "extern \"xl6TextRightV1\" func __xl_std_string_right(string text, int count, int size = -1) as string\n";
+
+static const char xl6StdStringMidBody[] =
+    "extern \"xl6TextSliceV1\" func __xl_std_string_mid(string text, int start, int count = -1, int size = -1) as string\n";
+
+static const char xl6StdStringCharAtBody[] =
+    "extern \"xl6TextCharAtV1\" func __xl_std_string_char_at(string text, int index, int size = -1) as char\n";
+
+static const char xl6StdStringByteAtBody[] =
+    "extern \"xl6TextByteAtV1\" func __xl_std_string_byte_at(string text, int index, int size = -1) as uint8\n";
+
+static const char xl6StdStringJoinBody[] =
+    "extern \"xl6TextJoinV1\" func __xl_std_string_join(array<string> values, string sep = \"\", int sepSize = -1, int itemSize = -1) as string\n";
+
+static const char xl6StdStringRepeatBody[] =
+    "extern \"xl6TextRepeatV1\" func __xl_std_string_repeat(string text, int count, int size = -1) as string\n";
+
+static const char xl6StdStringIsEmptyBody[] =
+    "extern \"xl6TextIsEmptyV1\" func __xl_std_string_is_empty(string text, int size = -1) as bool\n";
+
+static const char xl6StdStringIsBlankBody[] =
+    "extern \"xl6TextIsBlankV1\" func __xl_std_string_is_blank(string text, int size = -1) as bool\n";
+
+static const char xl6StdStringRemoveBody[] =
+    "extern \"xl6TextRemoveV1\" func __xl_std_string_remove(string text, string part, bool ignoreCase = false, int size = -1, int partSize = -1) as string\n";
+
+static const char xl6StdStringRemoveAtBody[] =
+    "extern \"xl6TextRemoveAtV1\" func __xl_std_string_remove_at(string text, int start, int count, int size = -1) as string\n";
+
+static const char xl6StdStringInsertBody[] =
+    "extern \"xl6TextInsertV1\" func __xl_std_string_insert(string text, int start, string part, int size = -1, int partSize = -1) as string\n";
+
+static const char xl6StdStringPadLeftBody[] =
+    "extern \"xl6TextPadLeftV1\" func __xl_std_string_pad_left(string text, int width, string pad = \" \", int size = -1, int padSize = -1) as string\n";
+
+static const char xl6StdStringPadRightBody[] =
+    "extern \"xl6TextPadRightV1\" func __xl_std_string_pad_right(string text, int width, string pad = \" \", int size = -1, int padSize = -1) as string\n";
+
+static const char xl6StdStringPadCenterBody[] =
+    "extern \"xl6TextPadCenterV1\" func __xl_std_string_pad_center(string text, int width, string pad = \" \", int size = -1, int padSize = -1) as string\n";
+
+static const char xl6StdStringReverseBody[] =
+    "extern \"xl6TextReverseV1\" func __xl_std_string_reverse(string text, int size = -1) as string\n";
+
+static const char xl6StdStringSplitLinesBody[] =
+    "extern \"xl6TextLinesV2\" func __xl_std_string_split_lines(string text, int size = -1) as array<string>\n";
+
+static const char xl6StdStringFieldsBody[] =
+    "extern \"xl6TextFieldsV2\" func __xl_std_string_fields(string text, int size = -1) as array<string>\n";
+
+static const char xl6StdStringCharsBody[] =
+    "extern \"xl6TextCharsV2\" func __xl_std_string_chars(string text, int size = -1) as array<char>\n";
+
+static const char xl6StdStringBytesBody[] =
+    "extern \"xl6TextBytesV1\" func __xl_std_string_bytes(string text, int size = -1) as bytes\n";
+
+static const char xl6StdStringGlobBody[] =
+    "extern \"xl6TextGlobV1\" func __xl_std_string_glob(string text, string pattern, int flags = 0, int size = -1, int patternSize = -1) as bool\n";
+static const char xl6StdStringDistanceBody[] =
+    "extern \"xl6TextDistanceV1\" func __xl_std_string_distance(string left, string right, int limit = -1, int leftSize = -1, int rightSize = -1) as int\n";
+
+static const char xl6StdProcessExecBody[] =
+    "func __xl_std_process_exec(string command, int timeoutMs = -1, int size = -1) as string\n    return ProcessCommand(command, size).run(b\"\", timeoutMs).stdoutText()\nend\n";
+
+static const char xl6StdProcessSuccessBody[] =
+    "func __xl_std_process_success(string command, int timeoutMs = -1, int size = -1) as bool\n    return ProcessCommand(command, size).run(b\"\", timeoutMs).success\nend\n";
+
+static const char xl6StdProcessExitCodeBody[] =
+    "func __xl_std_process_exit_code(string command, int timeoutMs = -1, int size = -1) as int\n    return ProcessCommand(command, size).run(b\"\", timeoutMs).exitCode\nend\n";
+
+static const char xl6StdProcessRunBody[] =
+    "func __xl_std_process_run(string command, int timeoutMs = -1, int size = -1) as ProcessResult\n    return ProcessCommand(command, size).run(b\"\", timeoutMs)\nend\n";
+
+static const char xl6StdProcessRunCommandBody[] =
+    "func __xl_std_process_run(ProcessCommand command, bytes input = b\"\", int timeoutMs = -1, int size = -1) as ProcessResult\n"
+    "    return command.run(input, timeoutMs, size)\nend\n";
+static const char xl6StdProcessRunOptionsBody[] =
+    "func __xl_std_process_run(ProcessCommand command, ProcessRunOptions options, bytes input = b\"\", int size = -1) as ProcessResult\n"
+    "    return command.run(options, input, size)\nend\n";
+static const char xl6StdProcessRunFileBody[] =
+    "func __xl_std_process_run_file(string program, array<string> args = [], int timeoutMs = -1, int size = -1, int argSize = -1) as ProcessResult\n"
+    "    return ProcessCommand(program, args, size, argSize).run(b\"\", timeoutMs)\nend\n";
+static const char xl6StdProcessCmdBody[] =
+    "func __xl_std_process_cmd(string program, array<string> args = [], int size = -1, int argSize = -1) as ProcessCommand\n"
+    "    return ProcessCommand(program, args, size, argSize)\nend\n";
+static const char xl6StdProcessShellBody[] =
+    "func __xl_std_process_shell(string command, int size = -1) as ProcessCommand\n"
+    "    return ProcessCommand(command, size)\nend\n";
+
+static const char xl6StdProcessPipelineBody[] =
+    "func __xl_std_process_pipeline(array<ProcessCommand> commands, bytes input = b\"\", int timeoutMs = -1, int size = -1) as PipelineResult\n"
+    "    auto pipeline = ProcessPipeline()\n"
+    "    for command in commands\n        pipeline.add(command)\n    end\n"
+    "    return pipeline.run(input, timeoutMs, size)\n"
+    "end\n";
+static const char xl6StdProcessPipelineOptionsBody[] =
+    "func __xl_std_process_pipeline(array<ProcessCommand> commands, ProcessRunOptions options, bytes input = b\"\", int size = -1) as PipelineResult\n"
+    "    auto pipeline = ProcessPipeline()\n"
+    "    for command in commands\n        pipeline.add(command)\n    end\n"
+    "    return pipeline.run(options, input, size)\n"
+    "end\n";
+
+static const char xl6StdProcessStartBody[] =
+    "func __xl_std_process_start(string command, int size = -1) as Process\n"
+    "    return Process(ProcessCommand(command, size))\n"
+    "end\n";
+
+static const char xl6StdProcessStartCommandBody[] =
+    "func __xl_std_process_start(ProcessCommand command) as Process\n"
+    "    return Process(command)\n"
+    "end\n";
+
+static const char xl6StdProcessStartFileBody[] =
+    "func __xl_std_process_start_file(string program, array<string> args = [], int size = -1, int argSize = -1) as Process\n"
+    "    return Process(ProcessCommand(program, args, size, argSize))\n"
+    "end\n";
+
+static const char xl6StdProcessTerminalSupportedBody[] =
+    "extern \"xl6ProcessTerminalSupportedV1\" @no_raise func __xl_std_process_terminal_supported() as bool\n";
+
+static const char xl6StdProcessOpenBody[] =
+    "extern \"xl6ProcessOpenV1\" func __xl_std_process_open(string target, int size = -1) as bool\n";
+
+
+static const char xl6StdSignalOn0Body[] =
+    "func __xl_std_signal_on(int code, func() handler, int capacity = 64) as SignalHandle\n"
+    "    return SignalHandle(SignalSubscription(code, false, capacity), func(SignalEvent event) as bool\n"
+    "        handler()\n        return true\n    end, true)\nend\n";
+
+static const char xl6StdSignalOn1Body[] =
+    "func __xl_std_signal_on(int code, func(SignalEvent) handler, int capacity = 64) as SignalHandle\n"
+    "    return SignalHandle(SignalSubscription(code, false, capacity), func(SignalEvent event) as bool\n"
+    "        handler(event)\n        return true\n    end, true)\nend\n";
+
+static const char xl6StdSignalOnce0Body[] =
+    "func __xl_std_signal_once(int code, func() handler, int capacity = 64) as SignalHandle\n"
+    "    return SignalHandle(SignalSubscription(code, true, capacity), func(SignalEvent event) as bool\n"
+    "        handler()\n        return true\n    end, true, true)\nend\n";
+
+static const char xl6StdSignalOnce1Body[] =
+    "func __xl_std_signal_once(int code, func(SignalEvent) handler, int capacity = 64) as SignalHandle\n"
+    "    return SignalHandle(SignalSubscription(code, true, capacity), func(SignalEvent event) as bool\n"
+    "        handler(event)\n        return true\n    end, true, true)\nend\n";
+
+static const char xl6StdSignalSupportedBody[] =
+    "extern \"xl6SignalSupportedV1\" func __xl_std_signal_supported(int code) as bool\n";
+
+static const char xl6StdSignalNameBody[] =
+    "extern \"xl6SignalNameV1\" func __xl_std_signal_name(int code) as string\n";
+
+static const char xl6StdSignalIgnoreBody[] =
+    "extern \"xl6SignalIgnoreV1\" func __xl_std_signal_ignore(int code) as bool\n";
+
+static const char xl6StdSignalRestoreBody[] =
+    "extern \"xl6SignalRestoreV1\" func __xl_std_signal_restore(int code) as bool\n";
+
+static const char xl6StdSignalRestoreAllBody[] =
+    "extern \"xl6SignalRestoreAllV1\" func __xl_std_signal_restore_all() as bool\n";
+
+static const char xl6StdSignalHealthyBody[] =
+    "extern \"xl6SignalHealthyV1\" func __xl_std_signal_healthy() as bool\n";
+
+static const char xl6StdSignalResetBody[] =
+    "extern \"xl6SignalResetV1\" func __xl_std_signal_reset()\n";
+
+static const char xl6StdSignalRaiseBody[] =
+    "extern \"xl6SignalRaiseV1\" func __xl_std_signal_raise(int code) as bool\n";
+
+static const char xl6StdSignalCountBody[] =
+    "extern \"xl6SignalCountV1\" func __xl_std_signal_count(int code = 0) as uint64\n";
+
+static const char xl6StdSignalReceivedBody[] =
+    "extern \"xl6SignalReceivedV1\" func __xl_std_signal_received(int code) as bool\n";
+
+static const char xl6StdSignalClearBody[] =
+    "extern \"xl6SignalClearV1\" func __xl_std_signal_clear(int code = 0)\n";
+
+static const char xl6StdSignalSendToBody[] =
+    "func __xl_std_signal_send_to(channel<SignalEvent> ch, int code, int capacity = 64) as SignalHandle\n"
+    "    return SignalHandle(SignalSubscription(code, false, capacity), func(SignalEvent event) as bool\n"
+    "        if ch.isClosed() then throw RuntimeError \"signal route channel is closed\" end\n"
+    "        return ch.trySend(event)\n    end, false)\nend\n";
+
+static const char xl6StdSignalCancelOnBody[] =
+    "func __xl_std_signal_cancel_on(TaskGroup group, int code, int capacity = 64) as SignalHandle\n"
+    "    return SignalHandle(SignalSubscription(code, false, capacity), func(SignalEvent event) as bool\n"
+    "        group.cancel()\n        return true\n    end, false)\nend\n";
+
+static const char xl6StdTimeFromDateTimeBody[] =
+    "extern \"xl6TimeFromDateTimeV1\" func __xl_std_time_from_datetime(int year, int month, int day, int hour = 0, int minute = 0, int second = 0, int millisecond = 0, int offset = 0) as time\n";
+
+static const char xl6StdTimeNowBody[] =
+    "extern \"xl6TimeNowV1\" func __xl_std_time_now() as time\n";
+
+static const char xl6StdTimeTodayBody[] =
+    "func __xl_std_time_today() as time\n"
+    "    return __xl_std_time_date_part(__xl_std_time_now())\n"
+    "end\n";
+
+static const char xl6StdTimeClockBody[] =
+    "extern \"xl6TimeMonotonicV1\" func __xl_std_time_clock() as uint64\n";
+
+static const char xl6StdTimeFromTimeBody[] =
+    "extern \"xl6TimeFromTimeV1\" func __xl_std_time_from_time(int hour, int minute, int second, int millisecond = 0) as time\n";
+
+static const char xl6StdTimeFromDateBody[] =
+    "extern \"xl6TimeFromDateV1\" func __xl_std_time_from_date(int year, int month, int day) as time\n";
+
+static const char xl6StdTimeParseBody[] =
+    "extern \"xl6TimeParseAnyV1\" func __xl_std_time_parse(string text, int size = -1) as time\n";
+
+static const char xl6StdTimeParsePatternBody[] =
+    "extern \"xl6TimeParsePatternV1\" func __xl_std_time_parse_pattern(string text, string pattern, int size = -1, int patternSize = -1) as time\n";
+
+static const char xl6StdTimeTryParseBody[] =
+    "extern \"xl6TimeTryParseAnyV1\" func __xl_std_time_try_parse(string text, int size = -1) as (bool, time)\n";
+
+static const char xl6StdTimeTryParsePatternBody[] =
+    "extern \"xl6TimeTryParsePatternV1\" func __xl_std_time_try_parse_pattern(string text, string pattern, int size = -1, int patternSize = -1) as (bool, time)\n";
+
+static const char xl6StdTimeYearBody[] =
+    "extern \"xl6TimeYearV1\" @pure @no_raise @nonblocking func __xl_std_time_year(time value) as int\n";
+
+static const char xl6StdTimeMonthBody[] =
+    "extern \"xl6TimeMonthV1\" @pure @no_raise @nonblocking func __xl_std_time_month(time value) as int\n";
+
+static const char xl6StdTimeDayBody[] =
+    "extern \"xl6TimeDayV1\" @pure @no_raise @nonblocking func __xl_std_time_day(time value) as int\n";
+
+static const char xl6StdTimeHourBody[] =
+    "extern \"xl6TimeHourV1\" @pure @no_raise @nonblocking func __xl_std_time_hour(time value) as int\n";
+
+static const char xl6StdTimeMinuteBody[] =
+    "extern \"xl6TimeMinuteV1\" @pure @no_raise @nonblocking func __xl_std_time_minute(time value) as int\n";
+
+static const char xl6StdTimeSecondBody[] =
+    "extern \"xl6TimeSecondV1\" @pure @no_raise @nonblocking func __xl_std_time_second(time value) as int\n";
+
+static const char xl6StdTimeWeekdayBody[] =
+    "extern \"xl6TimeWeekdayV1\" @pure @no_raise @nonblocking func __xl_std_time_weekday(time value) as int\n";
+
+static const char xl6StdTimeDayOfYearBody[] =
+    "extern \"xl6TimeDayOfYearV1\" @pure @no_raise @nonblocking func __xl_std_time_day_of_year(time value) as int\n";
+
+static const char xl6StdTimeQuarterBody[] =
+    "extern \"xl6TimeQuarterV1\" @pure @no_raise @nonblocking func __xl_std_time_quarter(time value) as int\n";
+
+static const char xl6StdTimeIsLeapYearBody[] =
+    "extern \"xl6TimeLeapV1\" @pure @nonblocking func __xl_std_time_is_leap_year(int year) as bool\n";
+
+static const char xl6StdTimeDaysInMonthBody[] =
+    "extern \"xl6TimeDaysInMonthV1\" func __xl_std_time_days_in_month(int year, int month) as int\n";
+
+static const char xl6StdTimeDaysInYearBody[] =
+    "extern \"xl6TimeDaysInYearV1\" @pure @nonblocking func __xl_std_time_days_in_year(int year) as int\n";
+
+static const char xl6StdTimeDatePartBody[] =
+    "extern \"xl6TimeDatePartV1\" func __xl_std_time_date_part(time value) as time\n";
+
+static const char xl6StdTimeTimePartBody[] =
+    "extern \"xl6TimeTimePartV1\" @pure @no_raise @nonblocking func __xl_std_time_time_part(time value) as int\n";
+
+static const char xl6StdTimeIsSameDayBody[] =
+    "extern \"xl6TimeSameDayV1\" @pure @no_raise @nonblocking func __xl_std_time_is_same_day(time left, time right) as bool\n";
+
+static const char xl6StdTimeIsSameMonthBody[] =
+    "extern \"xl6TimeSameMonthV1\" @pure @no_raise @nonblocking func __xl_std_time_is_same_month(time left, time right) as bool\n";
+
+static const char xl6StdTimeIsSameYearBody[] =
+    "extern \"xl6TimeSameYearV1\" @pure @no_raise @nonblocking func __xl_std_time_is_same_year(time left, time right) as bool\n";
+
+static const char xl6StdTimeInRangeBody[] =
+    "extern \"xl6TimeInV1\" @pure @no_raise @nonblocking func __xl_std_time_in_range(time value, time start, time endValue) as bool\n";
+
+static const char xl6StdTimeAddYearsBody[] =
+    "func __xl_std_time_add_years(time value, int amount) as time\n"
+    "    return __xl_std_xrt_date_add(value, amount, 8)\n"
+    "end\n";
+
+static const char xl6StdTimeAddMonthsBody[] =
+    "func __xl_std_time_add_months(time value, int amount) as time\n"
+    "    return __xl_std_xrt_date_add(value, amount, 6)\n"
+    "end\n";
+
+static const char xl6StdTimeAddDaysBody[] =
+    "func __xl_std_time_add_days(time value, int amount) as time\n"
+    "    return __xl_std_xrt_date_add(value, amount, 4)\n"
+    "end\n";
+
+static const char xl6StdTimeAddHoursBody[] =
+    "func __xl_std_time_add_hours(time value, int amount) as time\n"
+    "    return __xl_std_xrt_date_add(value, amount, 3)\n"
+    "end\n";
+
+static const char xl6StdTimeAddMinutesBody[] =
+    "func __xl_std_time_add_minutes(time value, int amount) as time\n"
+    "    return __xl_std_xrt_date_add(value, amount, 2)\n"
+    "end\n";
+
+static const char xl6StdTimeAddSecondsBody[] =
+    "func __xl_std_time_add_seconds(time value, int amount) as time\n"
+    "    return __xl_std_xrt_date_add(value, amount, 1)\n"
+    "end\n";
+
+static const char xl6StdTimeAddWeeksBody[] =
+    "func __xl_std_time_add_weeks(time value, int amount) as time\n"
+    "    return __xl_std_xrt_date_add(value, amount, 5)\n"
+    "end\n";
+
+static const char xl6StdTimeAddQuartersBody[] =
+    "func __xl_std_time_add_quarters(time value, int amount) as time\n"
+    "    return __xl_std_xrt_date_add(value, amount, 7)\n"
+    "end\n";
+
+static const char xl6StdTimeDiffYearsBody[] =
+    "func __xl_std_time_diff_years(time left, time right) as int\n"
+    "    return __xl_std_xrt_date_diff(left, right, 8)\n"
+    "end\n";
+
+static const char xl6StdTimeDiffMonthsBody[] =
+    "func __xl_std_time_diff_months(time left, time right) as int\n"
+    "    return __xl_std_xrt_date_diff(left, right, 6)\n"
+    "end\n";
+
+static const char xl6StdTimeDiffDaysBody[] =
+    "func __xl_std_time_diff_days(time left, time right) as int\n"
+    "    return __xl_std_xrt_date_diff(left, right, 4)\n"
+    "end\n";
+
+static const char xl6StdTimeDiffHoursBody[] =
+    "func __xl_std_time_diff_hours(time left, time right) as int\n"
+    "    return __xl_std_xrt_date_diff(left, right, 3)\n"
+    "end\n";
+
+static const char xl6StdTimeDiffMinutesBody[] =
+    "func __xl_std_time_diff_minutes(time left, time right) as int\n"
+    "    return __xl_std_xrt_date_diff(left, right, 2)\n"
+    "end\n";
+
+static const char xl6StdTimeDiffSecondsBody[] =
+    "func __xl_std_time_diff_seconds(time left, time right) as int\n"
+    "    return __xl_std_xrt_date_diff(left, right, 1)\n"
+    "end\n";
+
+static const char xl6StdTimeDiffWeeksBody[] =
+    "func __xl_std_time_diff_weeks(time left, time right) as int\n"
+    "    return __xl_std_xrt_date_diff(left, right, 5)\n"
+    "end\n";
+
+static const char xl6StdTimeDiffQuartersBody[] =
+    "func __xl_std_time_diff_quarters(time left, time right) as int\n"
+    "    return __xl_std_xrt_date_diff(left, right, 7)\n"
+    "end\n";
+
+static const char xl6StdTimeTimerBody[] =
+    "extern \"xl6TimeTimerV1\" func __xl_std_time_timer() as float\n";
+
+static const char xl6StdTimeSleepBody[] =
+    "extern \"xl6TimeSleepV1\" func __xl_std_time_sleep(int milliseconds)\n";
+
+static const char xl6StdTimeNowUtcBody[] =
+    "extern \"xl6TimeNowV1\" func __xl_std_time_now_utc() as time\n";
+
+static const char xl6StdTimeTimezoneOffsetBody[] =
+    "extern \"xl6TimeTimezoneOffsetV1\" func __xl_time_offset_native(time value) as int\n"
+    "func __xl_std_time_timezone_offset(time value) as int\n"
+    "    return __xl_time_offset_native(value)\n"
+    "end\n"
+    "func __xl_std_time_timezone_offset() as int\n"
+    "    return __xl_time_offset_native(__xl_std_time_now())\n"
+    "end\n";
+
+static const char xl6StdTimeRangeOverlapBody[] =
+    "extern \"xl6TimeOverlapV1\" @pure @no_raise @nonblocking func __xl_std_time_range_overlap(time start1, time end1, time start2, time end2) as bool\n";
+
+static const char xl6StdTimeApproxBody[] =
+    "extern \"xl6TimeNearV1\" @pure @no_raise @nonblocking func __xl_std_time_approx(time left, time right, uint64 tolerance = 0) as bool\n";
+
+static const char xl6StdTimeToUnixBody[] =
+    "extern \"xl6TimeUnixV1\" @pure @no_raise @nonblocking func __xl_std_time_to_unix(time value) as int\n";
+
+static const char xl6StdTimeFromUnixBody[] =
+    "extern \"xl6TimeFromUnixV1\" func __xl_std_time_from_unix(int seconds) as time\n";
+
+static const char xl6StdTimeFromUnixMsBody[] =
+    "extern \"xl6TimeFromUnixMsV1\" func __xl_std_time_from_unix_ms(int milliseconds) as time\n";
+static const char xl6StdTimeToUnixMsBody[] =
+    "extern \"xl6TimeUnixMsV1\" @pure @nonblocking func __xl_std_time_to_unix_ms(time value) as int\n";
+static const char xl6StdTimeMillisecondBody[] =
+    "extern \"xl6TimeMillisecondV1\" @pure @no_raise @nonblocking func __xl_std_time_millisecond(time value) as int\n";
+static const char xl6StdTimeMonotonicBody[] =
+    "extern \"xl6TimeMonotonicV1\" func __xl_std_time_monotonic() as uint64\n";
+static const char xl6StdTimeSleepUntilBody[] =
+    "extern \"xl6TimeSleepUntilV1\" func __xl_std_time_sleep_until(uint64 deadline)\n";
+static const char xl6StdTimeAddMsBody[] =
+    "func __xl_std_time_add_ms(time value, int amount) as time\n"
+    "    return __xl_std_xrt_date_add(value, amount, 0)\n"
+    "end\n";
+static const char xl6StdTimeDiffMsBody[] =
+    "func __xl_std_time_diff_ms(time left, time right) as int\n"
+    "    return __xl_std_xrt_date_diff(left, right, 0)\n"
+    "end\n";
+
+static const char xl6StdTimeUtcToLocalBody[] =
+    "func __xl_std_time_utc_to_local(time value) as DateTime\n"
+    "    return DateTime(value, true)\n"
+    "end\n";
+
+static const char xl6StdTimeLocalToUtcBody[] =
+    "extern \"xl6TimeFromLocalV1\" func __xl_time_local_to_utc_native(DateTime value, int fold) as time\n"
+    "func __xl_std_time_local_to_utc(DateTime value, TimeFold fold = TimeFold.reject) as time\n"
+    "    return __xl_time_local_to_utc_native(value, int(fold))\n"
+    "end\n";
+
+static const char xl6StdTimeFirstDayOfMonthBody[] =
+    "func __xl_std_time_first_day_of_month(time value) as time\n"
+    "    auto start, finish = __xl_std_time_month_range(value)\n"
+    "    return start\n"
+    "end\n";
+
+static const char xl6StdTimeLastDayOfMonthBody[] =
+    "func __xl_std_time_last_day_of_month(time value) as time\n"
+    "    auto start, finish = __xl_std_time_month_range(value)\n"
+    "    return __xl_std_xrt_date_add(finish, -1, 4)\n"
+    "end\n";
+
+static const char xl6StdTimeFirstDayOfYearBody[] =
+    "func __xl_std_time_first_day_of_year(time value) as time\n"
+    "    auto start, finish = __xl_std_time_year_range(value)\n"
+    "    return start\n"
+    "end\n";
+
+static const char xl6StdTimeLastDayOfYearBody[] =
+    "func __xl_std_time_last_day_of_year(time value) as time\n"
+    "    auto start, finish = __xl_std_time_year_range(value)\n"
+    "    return __xl_std_xrt_date_add(finish, -1, 4)\n"
+    "end\n";
+
+static const char xl6StdTimeFirstDayOfWeekBody[] =
+    "func __xl_std_time_first_day_of_week(time value, int startDay = 1) as time\n"
+    "    auto start, finish = __xl_std_time_week_range(value, startDay)\n"
+    "    return start\n"
+    "end\n";
+
+static const char xl6StdTimeLastDayOfWeekBody[] =
+    "func __xl_std_time_last_day_of_week(time value, int startDay = 1) as time\n"
+    "    auto start, finish = __xl_std_time_week_range(value, startDay)\n"
+    "    return __xl_std_xrt_date_add(finish, -1, 4)\n"
+    "end\n";
+
+static const char xl6StdTimeWeekOfYearBody[] =
+    "func __xl_std_time_week_of_year(time value) as int\n"
+    "    auto year, week, weekday = __xl_std_time_iso_week(value)\n"
+    "    return week\n"
+    "end\n";
+
+static const char xl6StdTimeWeekOfMonthBody[] =
+    "func __xl_std_time_week_of_month(time value, int startDay = 1) as int\n"
+    "    if startDay < 0 or startDay > 6 then throw RangeError \"Invalid first weekday\" end\n"
+    "    auto start, finish = __xl_std_time_month_range(value)\n"
+    "    int padding = (__xl_std_time_weekday(start) - startDay + 7) % 7\n"
+    "    return (padding + __xl_std_time_day(value) - 1) / 7 + 1\n"
+    "end\n";
+
+static const char xl6StdTimeFormatBody[] =
+    "extern \"xl6TimeFormatV1\" func __xl_std_time_format(time value, string pattern = \"%F %T\", int offset = 0, int patternSize = -1) as string\n";
+
+static const char xl6StdTimeFormatPatternBody[] =
+    "extern \"xl6TimeFormatV1\" func __xl_std_time_format_pattern(time value, string pattern, int offset = 0, int patternSize = -1) as string\n";
+
+static const char xl6StdTimeDateStringBody[] =
+    "func __xl_std_time_date_string(time value, int offset = 0) as string\n"
+    "    return __xl_std_time_format(value, \"%F\", offset)\n"
+    "end\n";
+
+static const char xl6StdTimeTimeStringBody[] =
+    "func __xl_std_time_time_string(time value, int offset = 0) as string\n"
+    "    return __xl_std_time_format(value, \"%T\", offset)\n"
+    "end\n";
+
+static const char xl6StdTimeRFC3339Body[] =
+    "extern \"xl6TimeRFC3339V1\" func __xl_std_time_rfc3339(time value, int offset = 0) as string\n";
+static const char xl6StdTimeHTTPDateBody[] =
+    "extern \"xl6TimeHTTPDateV1\" func __xl_std_time_http_date(time value) as string\n";
+static const char xl6StdTimeParseRFC3339Body[] =
+    "extern \"xl6TimeParseRFC3339V1\" func __xl_std_time_parse_rfc3339(string text, int size = -1) as time\n";
+static const char xl6StdTimeTryParseRFC3339Body[] =
+    "extern \"xl6TimeTryParseRFC3339V1\" func __xl_std_time_try_parse_rfc3339(string text, int size = -1) as (bool, time)\n";
+static const char xl6StdTimeParseHTTPDateBody[] =
+    "extern \"xl6TimeParseHTTPDateV1\" func __xl_std_time_parse_http_date(string text, int size = -1) as time\n";
+static const char xl6StdTimeTryParseHTTPDateBody[] =
+    "extern \"xl6TimeTryParseHTTPDateV1\" func __xl_std_time_try_parse_http_date(string text, int size = -1) as (bool, time)\n";
+
+static const char xl6StdRandomU32Body[] =
+    "func __xl_std_random_u32() as uint32\n"
+    "    return uint32(__xl_std_xrt_rand32())\n"
+    "end\n";
+
+static const char xl6StdRandomU64Body[] =
+    "func __xl_std_random_u64() as uint64\n"
+    "    return uint64(__xl_std_xrt_rand64())\n"
+    "end\n";
+
+static const char xl6StdRandomRangeBody[] =
+    "func __xl_std_random_range(int min, int max) as int\n"
+    "    return __xl_std_xrt_rand_range(min, max)\n"
+    "end\n";
+
+static const char xl6StdRandomRangeClosedBody[] =
+    "func __xl_std_random_range_closed(int min, int max) as int\n"
+    "    return __xl_std_xrt_rand_range_closed(min, max)\n"
+    "end\n";
+
+static const char xl6StdRandomBelowBody[] =
+    "func __xl_std_random_below(uint64 bound) as uint64\n"
+    "    return __xl_std_xrt_rand_below(bound)\n"
+    "end\n";
+
+static const char xl6StdRandomRealBody[] =
+    "func __xl_std_random_real() as float\n"
+    "    return __xl_std_xrt_rand_real()\n"
+    "end\n";
+
+static const char xl6StdRandomBytesBody[] =
+    "func __xl_std_random_bytes(int count) as bytes\n"
+    "    if count < 0 then throw RangeError \"random byte count is invalid\" end\n"
+    "    return __xl_std_xrt_rand_bytes(count)\n"
+    "end\n";
+
+static const char xl6StdRandomFillBytesBody[] =
+    "func __xl_std_random_fill_bytes(Buffer target)\n"
+    "    if not __xl_std_xrt_rand_fill_buffer(target.nativeHandle()) then throw RuntimeError \"random buffer fill failed\" end\n"
+    "end\n";
+
+static const char xl6StdRandomShuffleBody[] =
+    "func __xl_std_random_shuffle(array values)\n"
+    "    if not __xl_std_xrt_rand_shuffle_array(values) then throw RuntimeError \"random array shuffle failed\" end\n"
+    "end\n";
+
+static const char xl6StdRandomShuffleBufferBody[] =
+    "func __xl_std_random_shuffle_buffer(Buffer target)\n"
+    "    if not __xl_std_xrt_rand_shuffle_buffer(target.nativeHandle()) then throw RuntimeError \"random buffer shuffle failed\" end\n"
+    "end\n";
+
+static const char xl6StdRandomSeedBody[] =
+    "func __xl_std_random_seed(uint64 seed, uint64 seq = 1)\n"
+    "    __xl_std_xrt_rand_seed_thread(seed, seq)\n"
+    "end\n";
+
+static const char xl6StdRandomStringBody[] =
+    "func __xl_std_random_string(int length = 16, string alphabet = \"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_\", int alphabetSize = -1) as string\n"
+    "    if length < 0 or alphabetSize < -1 then throw RangeError \"random string length is invalid\" end\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_rand_str(alphabet, __xl_std_xrt_string_byte_len(alphabet), alphabetSize, length))\n"
+    "end\n";
+
+static const char xl6StdPathExistsBody[] =
+    "extern \"xl6_xrt_fs_path_exists\" func __xl_fs_path_exists(string p0) as bool\n"
+    "func __xl_std_path_exists(string path) as bool\n"
+    "    return __xl_fs_path_exists(path)\n"
+    "end\n";
+
+static const char xl6StdPathIsAbsBody[] =
+    "extern \"xl6_xrt_fs_path_is_abs\" func __xl_fs_path_is_abs(string path) as bool\n"
+    "func __xl_std_path_is_abs(string path) as bool\n"
+    "    return __xl_fs_path_is_abs(path)\n"
+    "end\n";
+
+static const char xl6StdPathNameExtBody[] =
+    "extern \"xl6_xrt_fs_path_name\" func __xl_fs_path_name_ext(string path) as string\n"
+    "func __xl_std_path_name_ext(string path) as string\n"
+    "    return __xl_fs_path_name_ext(path)\n"
+    "end\n";
+
+static const char xl6StdPathNameBody[] =
+    "extern \"xl6_xrt_fs_path_name\" func __xl_fs_path_name(string path) as string\n"
+    "func __xl_std_path_name(string path) as string\n"
+    "    return __xl_fs_path_name(path)\n"
+    "end\n";
+
+static const char xl6StdPathExtBody[] =
+    "extern \"xl6_xrt_fs_path_ext\" func __xl_fs_path_ext(string path) as string\n"
+    "func __xl_std_path_ext(string path) as string\n"
+    "    return __xl_fs_path_ext(path)\n"
+    "end\n";
+
+static const char xl6StdPathDirBody[] =
+    "extern \"xl6_xrt_fs_path_parent\" func __xl_fs_path_dir(string path) as string\n"
+    "func __xl_std_path_dir(string path) as string\n"
+    "    return __xl_fs_path_dir(path)\n"
+    "end\n";
+
+static const char xl6StdPathJoinBody[] =
+    "extern \"xl6_xrt_fs_path_build\" func __xl_fs_path_join_parts(array parts, int style) as string\n"
+    "func __xl_std_path_join(string first, string second, ...) as string\n"
+    "    array parts = [first, second]\n"
+    "    for item in arg\n"
+    "        parts.append(item)\n"
+    "    end\n"
+    "    return __xl_fs_path_join_parts(parts, 0)\n"
+    "end\n";
+
+static const char xl6StdPathRandomBody[] =
+    "func __xl_std_path_random(string head = \"\", string foot = \"\", int len = 12) as string\n"
+    "    return head + __xl_std_random_string(len) + foot\n"
+    "end\n";
+
+static const char xl6StdPathSepBody[] =
+    "extern \"xl6_xrt_fs_path_sep\" func __xl_fs_path_sep() as string\n"
+    "func __xl_std_path_sep() as string\n"
+    "    return __xl_fs_path_sep()\n"
+    "end\n";
+
+static const char xl6StdPathNormalizeBody[] =
+    "extern \"xl6_xrt_fs_path_clean\" func __xl_fs_path_normalize(string path, int style) as string\n"
+    "func __xl_std_path_normalize(string path, int style = 0) as string\n"
+    "    return __xl_fs_path_normalize(path, style)\n"
+    "end\n";
+
+static const char xl6StdPathAbsBody[] =
+    "extern \"xl6_xrt_fs_path_abs\" func __xl_fs_path_abs(string path) as string\n"
+    "func __xl_std_path_abs(string path) as string\n"
+    "    return __xl_fs_path_abs(path)\n"
+    "end\n";
+
+static const char xl6StdPathRelBody[] =
+    "extern \"xl6_xrt_fs_path_rel\" func __xl_fs_path_rel(string base, string target) as string\n"
+    "func __xl_std_path_rel(string base, string target) as string\n"
+    "    return __xl_fs_path_rel(base, target)\n"
+    "end\n";
+
+static const char xl6StdPathCwdBody[] =
+    "extern \"xl6_xrt_fs_path_cwd\" func __xl_fs_path_cwd() as string\n"
+    "func __xl_std_path_cwd() as string\n"
+    "    return __xl_fs_path_cwd()\n"
+    "end\n";
+
+static const char xl6StdPathSetCwdBody[] =
+    "extern \"xl6_xrt_fs_path_set_cwd\" func __xl_fs_path_set_cwd(string path) as bool\n"
+    "func __xl_std_path_set_cwd(string path) as bool\n"
+    "    return __xl_fs_path_set_cwd(path)\n"
+    "end\n";
+
+static const char xl6StdOsEnvBody[] =
+    "func __xl_std_os_env(string name, string defaultValue = \"\", int size = -1) as string\n"
+    "    return __xl_std_runtime_env_get(name, size) ?? defaultValue\n"
+    "end\n";
+
+static const char xl6StdEnvGetBody[] =
+    "extern \"xl6EnvGetV1\" func __xl_std_runtime_env_get(string name, int size = -1) as string?\n";
+static const char xl6StdEnvHasBody[] =
+    "extern \"xl6EnvHasV1\" func __xl_std_runtime_env_has(string name, int size = -1) as bool\n";
+static const char xl6StdEnvSetBody[] =
+    "extern \"xl6EnvSetV1\" func __xl_std_runtime_env_set(string name, string value, int nameSize = -1, int valueSize = -1)\n";
+static const char xl6StdEnvRemoveBody[] =
+    "extern \"xl6EnvRemoveV1\" func __xl_std_runtime_env_remove(string name, int size = -1)\n";
+
+static const char xl6StdOsArgsBody[] =
+    "func __xl_std_os_args() as array\n"
+    "    return array(__xl_std_runtime_os_args())\n"
+    "end\n";
+
+static const char xl6StdOsCwdBody[] =
+    "func __xl_std_os_cwd() as string\n"
+    "    return __xl_std_path_cwd()\n"
+    "end\n";
+
+static const char xl6StdOsSetCwdBody[] =
+    "func __xl_std_os_set_cwd(string path) as bool\n"
+    "    return __xl_std_path_set_cwd(path)\n"
+    "end\n";
+
+static const char xl6StdOsExecBody[] =
+    "func __xl_std_os_exec(string command, int timeoutMs = -1, int size = -1) as string\n"
+    "    return __xl_std_process_exec(command, timeoutMs, size)\n"
+    "end\n";
+
+static const char xl6StdOsRunBody[] =
+    "func __xl_std_os_run(string command, int timeoutMs = -1, int size = -1) as ProcessResult\n"
+    "    return __xl_std_process_run(command, timeoutMs, size)\n"
+    "end\n";
+
+static const char xl6StdOsStartBody[] =
+    "func __xl_std_os_start(string command, int size = -1) as Process\n"
+    "    return __xl_std_process_start(command, size)\n"
+    "end\n";
+
+static const char xl6StdOsStartFileBody[] =
+    "func __xl_std_os_start_file(string program, array<string> args = [], int size = -1, int argSize = -1) as Process\n"
+    "    return __xl_std_process_start_file(program, args, size, argSize)\n"
+    "end\n";
+
+static const char xl6StdOsChainBody[] =
+    "func __xl_std_os_chain(string command) as int\n"
+    "    return process.exitCode(command)\n"
+    "end\n";
+
+static const char xl6StdPathHomeBody[] =
+    "extern \"xl6_xrt_fs_path_home\" func __xl_fs_path_home() as string\n"
+    "func __xl_std_path_home() as string\n"
+    "    return __xl_fs_path_home()\n"
+    "end\n";
+
+static const char xl6StdPathTempBody[] =
+    "extern \"xl6_xrt_fs_path_temp\" func __xl_fs_path_temp() as string\n"
+    "func __xl_std_path_temp() as string\n"
+    "    return __xl_fs_path_temp()\n"
+    "end\n";
+
+static const char xl6StdPathAppDirBody[] =
+    "extern \"xl6_xrt_fs_path_app_dir\" func __xl_fs_path_app_dir() as string\n"
+    "func __xl_std_path_app_dir() as string\n"
+    "    return __xl_fs_path_app_dir()\n"
+    "end\n";
+
+static const char xl6StdPathWithExtBody[] =
+    "extern \"xl6_xrt_fs_path_with_ext\" func __xl_fs_path_with_ext(string path, string extension) as string\n"
+    "func __xl_std_path_with_ext(string path, string extension) as string\n"
+    "    return __xl_fs_path_with_ext(path, extension)\n"
+    "end\n";
+
+static const char xl6StdPathWithNameBody[] =
+    "extern \"xl6_xrt_fs_path_with_name\" func __xl_fs_path_with_name(string path, string name) as string\n"
+    "func __xl_std_path_with_name(string path, string name) as string\n"
+    "    return __xl_fs_path_with_name(path, name)\n"
+    "end\n";
+
+static const char xl6StdFileExistsBody[] =
+    "extern \"xl6_xrt_fs_file_exists\" func __xl_fs_file_exists(string p0) as bool\n"
+    "func __xl_std_file_exists(string path) as bool\n"
+    "    return __xl_fs_file_exists(path)\n"
+    "end\n";
+
+static const char xl6StdFileSizeBody[] =
+    "extern \"xl6_xrt_fs_path_size\" func __xl_fs_file_size(string p0) as uint64\n"
+    "func __xl_std_file_size(string path) as uint64\n"
+    "    return __xl_fs_file_size(path)\n"
+    "end\n";
+
+static const char xl6StdFileSetSizeBody[] =
+    "extern \"xl6_xrt_fs_path_set_size\" func __xl_fs_file_set_size(string p0, uint64 p1) as bool\n"
+    "func __xl_std_file_set_size(string path, uint64 size) as bool\n"
+    "    return __xl_fs_file_set_size(path, size)\n"
+    "end\n";
+
+static const char xl6StdFileAttrBody[] =
+    "extern \"xl6_xrt_fs_path_attributes\" func __xl_fs_file_attr(string p0) as int\n"
+    "func __xl_std_file_attr(string path) as int\n"
+    "    return __xl_fs_file_attr(path)\n"
+    "end\n";
+
+static const char xl6StdFileSetAttrBody[] =
+    "extern \"xl6_xrt_fs_path_set_attributes\" func __xl_fs_file_set_attr(string p0, int p1) as bool\n"
+    "func __xl_std_file_set_attr(string path, int attributes) as bool\n"
+    "    return __xl_fs_file_set_attr(path, attributes)\n"
+    "end\n";
+
+static const char xl6StdFileAccessTimeBody[] =
+    "func __xl_std_file_access_time(string path) as time\n"
+    "    auto metadata = __xl_std_file_stat(path)\n"
+    "    if (metadata.available & 4) == 0 then throw FileError(\"file access time metadata is unavailable\") end\n"
+    "    return time(metadata.accessed)\n"
+    "end\n";
+
+static const char xl6StdFileChangeTimeBody[] =
+    "func __xl_std_file_change_time(string path) as time\n"
+    "    auto metadata = __xl_std_file_stat(path)\n"
+    "    if (metadata.available & 8) == 0 then throw FileError(\"file modification time metadata is unavailable\") end\n"
+    "    return time(metadata.modified)\n"
+    "end\n";
+
+static const char xl6StdFileWriteTextBody[] =
+    "extern \"xl6_xrt_fs_text_write\" func __xl_fs_file_write_text(string p0, string p1, int p2, int p3, bool p4, int p5, bool p6) as bool\n"
+    "func __xl_std_file_write_text(string path, string text, int encoding = 1, int policy = 0, bool bom = false, int size = -1) as bool\n"
+    "    return __xl_fs_file_write_text(path, text, encoding, policy, bom, size, false)\n"
+    "end\n";
+
+static const char xl6StdFileAppendTextBody[] =
+    "extern \"xl6_xrt_fs_text_append\" func __xl_fs_file_append_text(string p0, string p1, int p2, int p3, int p4) as bool\n"
+    "func __xl_std_file_append_text(string path, string text, int encoding = 1, int policy = 0, int size = -1) as bool\n"
+    "    return __xl_fs_file_append_text(path, text, encoding, policy, size)\n"
+    "end\n";
+
+static const char xl6StdFileReadTextBody[] =
+    "extern \"xl6_xrt_fs_text_read\" func __xl_fs_file_read_text(string p0, int p1, int p2, int p3) as string\n"
+    "func __xl_std_file_read_text(string path, int encoding = 0, int policy = 0, int maxBytes = 67108864) as string\n"
+    "    return __xl_fs_file_read_text(path, encoding, policy, maxBytes)\n"
+    "end\n";
+
+static const char xl6StdTaskGroupBody[] =
+    "func __xl_std_task_group(int limit = 0, int cancelOn = 0) as TaskGroup\n"
+    "    return TaskGroup(limit, cancelOn)\n"
+    "end\n";
+
+static const char xl6StdFileReadBytesBody[] =
+    "extern \"xl6_xrt_fs_whole_read\" func __xl_fs_file_read_bytes(string p0, int p1) as bytes\n"
+    "func __xl_std_file_read_bytes(string path, int maxBytes = 67108864) as bytes\n"
+    "    return __xl_fs_file_read_bytes(path, maxBytes)\n"
+    "end\n";
+
+static const char xl6StdFileWriteBytesBody[] =
+    "extern \"xl6_xrt_fs_whole_write\" func __xl_fs_file_write_bytes(string p0, bytes p1, int p2, int p3) as bool\n"
+    "func __xl_std_file_write_bytes(string path, bytes data, int size = -1) as bool\n"
+    "    return __xl_fs_file_write_bytes(path, data, size, 0)\n"
+    "end\n";
+
+static const char xl6StdFileAppendBytesBody[] =
+    "extern \"xl6_xrt_fs_whole_write\" func __xl_fs_file_append_bytes(string p0, bytes p1, int p2, int p3) as bool\n"
+    "func __xl_std_file_append_bytes(string path, bytes data, int size = -1) as bool\n"
+    "    return __xl_fs_file_append_bytes(path, data, size, 1)\n"
+    "end\n";
+
+static const char xl6StdFileCopyBody[] =
+    "extern \"xl6_xrt_fs_file_copy\" func __xl_fs_file_copy(string p0, string p1, bool p2) as bool\n"
+    "func __xl_std_file_copy(string source, string target, bool replace = true) as bool\n"
+    "    return __xl_fs_file_copy(source, target, replace)\n"
+    "end\n";
+
+static const char xl6StdFileMoveBody[] =
+    "extern \"xl6_xrt_fs_file_move\" func __xl_fs_file_move(string p0, string p1, bool p2) as bool\n"
+    "func __xl_std_file_move(string source, string target, bool replace = true) as bool\n"
+    "    return __xl_fs_file_move(source, target, replace)\n"
+    "end\n";
+
+static const char xl6StdFileDeleteBody[] =
+    "extern \"xl6_xrt_fs_file_delete\" func __xl_fs_file_delete(string p0) as bool\n"
+    "func __xl_std_file_delete(string path) as bool\n"
+    "    return __xl_fs_file_delete(path)\n"
+    "end\n";
+
+static const char xl6StdFileTouchBody[] =
+    "extern \"xl6_xrt_fs_file_touch\" func __xl_fs_file_touch(string p0) as bool\n"
+    "func __xl_std_file_touch(string path) as bool\n"
+    "    return __xl_fs_file_touch(path)\n"
+    "end\n";
+
+static const char xl6StdFileRenameBody[] =
+    "extern \"xl6_xrt_fs_file_rename\" func __xl_fs_file_rename(string p0, string p1, bool p2) as bool\n"
+    "func __xl_std_file_rename(string source, string target, bool replace = false) as bool\n"
+    "    return __xl_fs_file_rename(source, target, replace)\n"
+    "end\n";
+
+static const char xl6StdFileReplaceBody[] =
+    "extern \"xl6_xrt_fs_file_rename\" func __xl_fs_file_replace(string p0, string p1, bool p2) as bool\n"
+    "func __xl_std_file_replace(string source, string target) as bool\n"
+    "    return __xl_fs_file_replace(source, target, true)\n"
+    "end\n";
+
+static const char xl6StdFileWriteTextAtomicBody[] =
+    "extern \"xl6_xrt_fs_text_write\" func __xl_fs_file_write_text_atomic(string p0, string p1, int p2, int p3, bool p4, int p5, bool p6) as bool\n"
+    "func __xl_std_file_write_text_atomic(string path, string text, int encoding = 1, int policy = 0, bool bom = false, int size = -1) as bool\n"
+    "    return __xl_fs_file_write_text_atomic(path, text, encoding, policy, bom, size, true)\n"
+    "end\n";
+
+static const char xl6StdFileInfoBody[] =
+    "func __xl_std_file_info(string path, bool follow = true) as FileStat\n"
+    "    return FileStat(path,follow)\n"
+    "end\n";
+
+static const char xl6StdFileOpenBody[] =
+    "func __xl_std_file_open(string filePath, int flags = 1, int mode = 438, int share = 7) as File\n"
+    "    return File(filePath, flags, mode, share)\n"
+    "end\n";
+
+
+static const char xl6StdDirExistsBody[] =
+    "extern \"xl6_xrt_fs_dir_exists\" func __xl_fs_dir_exists(string p0) as bool\n"
+    "func __xl_std_dir_exists(string path) as bool\n"
+    "    return __xl_fs_dir_exists(path)\n"
+    "end\n";
+
+static const char xl6StdDirCreateBody[] =
+    "extern \"xl6_xrt_fs_dir_create\" func __xl_fs_dir_create(string p0, int p1, bool p2) as bool\n"
+    "func __xl_std_dir_create(string path, int mode = 511) as bool\n"
+    "    return __xl_fs_dir_create(path, mode, false)\n"
+    "end\n";
+
+static const char xl6StdDirCreateAllBody[] =
+    "extern \"xl6_xrt_fs_dir_create\" func __xl_fs_dir_create_all(string p0, int p1, bool p2) as bool\n"
+    "func __xl_std_dir_create_all(string path, int mode = 511) as bool\n"
+    "    return __xl_fs_dir_create_all(path, mode, true)\n"
+    "end\n";
+
+static const char xl6StdDirCopyBody[] =
+    "extern \"xl6_xrt_fs_dir_copy\" func __xl_fs_dir_copy(string p0, string p1, bool p2) as bool\n"
+    "func __xl_std_dir_copy(string source, string target, bool replace = true) as bool\n"
+    "    return __xl_fs_dir_copy(source, target, replace)\n"
+    "end\n";
+
+static const char xl6StdDirMoveBody[] =
+    "extern \"xl6_xrt_fs_dir_move\" func __xl_fs_dir_move(string p0, string p1, bool p2) as bool\n"
+    "func __xl_std_dir_move(string source, string target, bool replace = true) as bool\n"
+    "    return __xl_fs_dir_move(source, target, replace)\n"
+    "end\n";
+
+static const char xl6StdDirDeleteBody[] =
+    "extern \"xl6_xrt_fs_dir_remove_all\" func __xl_fs_dir_delete(string path, bool keepRoot) as bool\n"
+    "func __xl_std_dir_delete(string path) as bool\n"
+    "    return __xl_fs_dir_delete(path,false)\n"
+    "end\n";
+
+static const char xl6StdDirListBody[] =
+    "extern \"xl6_xrt_fs_dir_list\" func __xl_fs_dir_list(string path, bool recursive, int kind, int maxEntries) as array<string>\n"
+    "func __xl_std_dir_list(string path, bool recursive = false, int maxEntries = 1048576) as array<string>\n"
+    "    return __xl_fs_dir_list(path,recursive,0,maxEntries)\n"
+    "end\n";
+
+static const char xl6StdDirFilesBody[] =
+    "extern \"xl6_xrt_fs_dir_list\" func __xl_fs_dir_files(string path, bool recursive, int kind, int maxEntries) as array<string>\n"
+    "func __xl_std_dir_files(string path, bool recursive = false, int maxEntries = 1048576) as array<string>\n"
+    "    return __xl_fs_dir_files(path,recursive,1,maxEntries)\n"
+    "end\n";
+
+static const char xl6StdDirDirsBody[] =
+    "extern \"xl6_xrt_fs_dir_list\" func __xl_fs_dir_dirs(string path, bool recursive, int kind, int maxEntries) as array<string>\n"
+    "func __xl_std_dir_dirs(string path, bool recursive = false, int maxEntries = 1048576) as array<string>\n"
+    "    return __xl_fs_dir_dirs(path,recursive,2,maxEntries)\n"
+    "end\n";
+
+static const char xl6StdDirEmptyBody[] =
+    "extern \"xl6_xrt_fs_dir_empty\" func __xl_fs_dir_empty(string p0) as bool\n"
+    "func __xl_std_dir_empty(string path) as bool\n"
+    "    return __xl_fs_dir_empty(path)\n"
+    "end\n";
+
+static const char xl6StdDirCountBody[] =
+    "func __xl_std_dir_count(string path, bool recursive = false) as uint64\n"
+    "    auto stats = WalkStats(path,recursive)\n"
+    "    return stats.items - uint64(1)\n"
+    "end\n";
+
+static const char xl6StdDirSizeBody[] =
+    "extern \"xl6_xrt_fs_dir_size\" func __xl_fs_dir_size(string path, bool recursive) as uint64\n"
+    "func __xl_std_dir_size(string path, bool recursive = true) as uint64\n"
+    "    return __xl_fs_dir_size(path,recursive)\n"
+    "end\n";
+
+static const char xl6StdDirCleanBody[] =
+    "extern \"xl6_xrt_fs_dir_remove_all\" func __xl_fs_dir_clean(string path, bool keepRoot) as bool\n"
+    "func __xl_std_dir_clean(string path) as bool\n"
+    "    return __xl_fs_dir_clean(path,true)\n"
+    "end\n";
+
+static const char xl6StdDirEnsureEmptyBody[] =
+    "extern \"xl6_xrt_fs_dir_ensure_empty\" func __xl_fs_dir_ensure_empty(string path) as bool\n"
+    "func __xl_std_dir_ensure_empty(string path) as bool\n"
+    "    return __xl_fs_dir_ensure_empty(path)\n"
+    "end\n";
+
+static const char xl6StdJsonParseBody[] =
+    "func __xl_std_json_parse(string text) as var\n"
+    "    return __xl_std_xrt_json_parse(text)\n"
+    "end\n";
+
+static const char xl6StdJsonValidBody[] =
+    "func __xl_std_json_valid(string text) as bool\n"
+    "    return __xl_std_xrt_json_valid(text)\n"
+    "end\n";
+
+static const char xl6StdJsonReadBody[] =
+    "func __xl_std_json_read(string path) as var\n"
+    "    return __xl_std_xrt_json_parse_file(path)\n"
+    "end\n";
+
+static const char xl6StdJsonStringifyBody[] =
+    "func __xl_std_json_stringify(var value, bool pretty = false) as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_json_stringify(value, c_int(pretty)))\n"
+    "end\n";
+
+static const char xl6StdJsonWriteBody[] =
+    "func __xl_std_json_write(string path, var value, bool pretty = false) as bool\n"
+    "    return __xl_std_xrt_json_write_file(path, value, c_int(pretty)) != 0\n"
+    "end\n";
+
+static const char xl6StdJsonWriterBody[] =
+    "func __xl_std_json_writer(bool pretty = false) as JsonWriter\n"
+    "    return JsonWriter(pretty)\n"
+    "end\n";
+
+static const char xl6StdXlonWriterBody[] =
+    "func __xl_std_xlon_writer(bool pretty = false) as XlonWriter\n"
+    "    return XlonWriter(pretty)\n"
+    "end\n";
+
+static const char xl6StdXlonWriterOptionsBody[] =
+    "func __xl_std_xlon_writer(XlonOptions options) as XlonWriter\n"
+    "    return XlonWriter(options.pretty, options.ignoreUnsupportedEncode, options.ignoreUnsupportedDecode)\n"
+    "end\n";
+
+static const char xl6StdJsonVisitBody[] =
+    "func __xl_std_json_visit(string text, func(var) as bool visitor) as int\n"
+    "    return int(__xl_std_runtime_json_visit(text, visitor))\n"
+    "end\n";
+
+static const char xl6StdJsonlStringifyBody[] =
+    "func __xl_std_jsonl_stringify(var records) as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_jsonl_stringify(records))\n"
+    "end\n";
+
+static const char xl6StdXlonlStringifyBody[] =
+    "func __xl_std_xlonl_stringify(var records) as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_xlonl_stringify(records))\n"
+    "end\n";
+
+#define XL6_CONFIG_STRINGIFY_BODY(Format) \
+    "extern \"xl6_xrt_" Format "_stringify_configured\" func __xl_std_xrt_" Format "_stringify_configured(var value, var options) as point\n" \
+    "func __xl_std_" Format "_stringify(var value, var options) as string\n" \
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_" Format "_stringify_configured(value, options))\n" \
+    "end\n"
+static const char xl6StdJsonStringifyConfiguredBody[] = XL6_CONFIG_STRINGIFY_BODY("json");
+static const char xl6StdXlonStringifyConfiguredBody[] = XL6_CONFIG_STRINGIFY_BODY("xlon");
+static const char xl6StdJsonlStringifyConfiguredBody[] = XL6_CONFIG_STRINGIFY_BODY("jsonl");
+static const char xl6StdXlonlStringifyConfiguredBody[] = XL6_CONFIG_STRINGIFY_BODY("xlonl");
+#undef XL6_CONFIG_STRINGIFY_BODY
+
+#define XL6_CONFIG_WRITE_TO_BODY(Format) \
+    "extern \"xl6_xrt_" Format "_write_to_configured\" func __xl_std_xrt_" Format "_write_to_configured(var value, func(var) as bool sink, var options) as c_int\n" \
+    "func __xl_std_" Format "_write_to(var value, func(var) as bool sink, var options = null) as bool\n" \
+    "    return __xl_std_xrt_" Format "_write_to_configured(value, sink, options) != 0\n" \
+    "end\n"
+static const char xl6StdJsonWriteToBody[] = XL6_CONFIG_WRITE_TO_BODY("json");
+static const char xl6StdXlonWriteToBody[] = XL6_CONFIG_WRITE_TO_BODY("xlon");
+static const char xl6StdJsonlWriteToBody[] = XL6_CONFIG_WRITE_TO_BODY("jsonl");
+static const char xl6StdXlonlWriteToBody[] = XL6_CONFIG_WRITE_TO_BODY("xlonl");
+#undef XL6_CONFIG_WRITE_TO_BODY
+
+static const char xl6StdJsonQuoteBody[] =
+    "extern \"xl6_xrt_json_quote_configured\" func __xl_std_xrt_json_quote_configured(string text, var options) as point\n"
+    "func __xl_std_json_quote(string text, var options = null) as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_json_quote_configured(text, options))\n"
+    "end\n";
+static const char xl6StdJsonQuoteToBody[] =
+    "extern \"xl6_xrt_json_quote_to_configured\" func __xl_std_xrt_json_quote_to_configured(string text, func(var) as bool sink, var options) as c_int\n"
+    "func __xl_std_json_quote_to(string text, func(var) as bool sink, var options = null) as bool\n"
+    "    return __xl_std_xrt_json_quote_to_configured(text, sink, options) != 0\n"
+    "end\n";
+static const char xl6StdJsonVisitConfiguredBody[] =
+    "extern \"xl6_xrt_json_visit_configured\" func __xl_std_xrt_json_visit_configured(string text, func(var) as bool visitor, var options) as c_int\n"
+    "func __xl_std_json_visit(string text, func(var) as bool visitor, var options) as int\n"
+    "    return int(__xl_std_xrt_json_visit_configured(text, visitor, options))\n"
+    "end\n";
+static const char xl6StdXlonVisitConfiguredBody[] =
+    "extern \"xl6_xrt_xlon_visit_configured\" func __xl_std_xrt_xlon_visit_configured(string text, func(var) as bool visitor, var options) as c_int\n"
+    "func __xl_std_xlon_visit(string text, func(var) as bool visitor, var options) as int\n"
+    "    return int(__xl_std_xrt_xlon_visit_configured(text, visitor, options))\n"
+    "end\n";
+
+#define XL6_CONFIG_VALID_BODY(Format) \
+    "extern \"xl6_xrt_" Format "_valid_configured\" func __xl_std_xrt_" Format "_valid_configured(string text, var options) as c_bool\n" \
+    "func __xl_std_" Format "_valid(string text, var options) as bool\n" \
+    "    return __xl_std_xrt_" Format "_valid_configured(text, options)\n" \
+    "end\n"
+static const char xl6StdJsonValidConfiguredBody[] = XL6_CONFIG_VALID_BODY("json");
+static const char xl6StdXlonValidConfiguredBody[] = XL6_CONFIG_VALID_BODY("xlon");
+static const char xl6StdJsonlValidConfiguredBody[] = XL6_CONFIG_VALID_BODY("jsonl");
+static const char xl6StdXlonlValidConfiguredBody[] = XL6_CONFIG_VALID_BODY("xlonl");
+#undef XL6_CONFIG_VALID_BODY
+
+static const char xl6StdXlonParseWithBody[] =
+    "extern \"xl6_xrt_xlon_decode_configured\" func __xl_std_xrt_xlon_decode_configured(string text, func(var) as var decoder, var options) as var\n"
+    "func __xl_std_xlon_parse_with(string text, func(var) as var decoder, var options = null) as var\n"
+    "    return __xl_std_xrt_xlon_decode_configured(text, decoder, options)\n"
+    "end\n";
+
+static const char xl6StdDictRemoveBody[] =
+    "func __xl_std_dict_remove(var table, string key) as bool\n"
+    "    return __xl_std_xrt_table_remove(table, key)\n"
+    "end\n";
+
+static const char xl6StdXlonParseBody[] =
+    "func __xl_std_xlon_parse(string text) as var\n"
+    "    return __xl_std_runtime_xlon_parse_options(text, false, false, false)\n"
+    "end\n";
+
+static const char xl6StdXlonParseOptionsBody[] =
+    "func __xl_std_xlon_parse(string text, XlonOptions options) as var\n"
+    "    return __xl_std_runtime_xlon_parse_options(text, options.pretty, options.ignoreUnsupportedEncode, options.ignoreUnsupportedDecode)\n"
+    "end\n";
+
+static const char xl6StdXlonValidBody[] =
+    "func __xl_std_xlon_valid(string text) as bool\n"
+    "    return __xl_std_runtime_xlon_valid_options(text, false, false, false)\n"
+    "end\n";
+
+static const char xl6StdXlonValidOptionsBody[] =
+    "func __xl_std_xlon_valid(string text, XlonOptions options) as bool\n"
+    "    return __xl_std_runtime_xlon_valid_options(text, options.pretty, options.ignoreUnsupportedEncode, options.ignoreUnsupportedDecode)\n"
+    "end\n";
+
+static const char xl6StdXlonReadBody[] =
+    "func __xl_std_xlon_read(string path) as var\n"
+    "    return __xl_std_runtime_xlon_read_options(path, false, false, false)\n"
+    "end\n";
+
+static const char xl6StdXlonReadOptionsBody[] =
+    "func __xl_std_xlon_read(string path, XlonOptions options) as var\n"
+    "    return __xl_std_runtime_xlon_read_options(path, options.pretty, options.ignoreUnsupportedEncode, options.ignoreUnsupportedDecode)\n"
+    "end\n";
+
+static const char xl6StdXlonStringifyBody[] =
+    "func __xl_std_xlon_stringify(var value) as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_xlon_stringify_options(value, false, false, false))\n"
+    "end\n";
+
+static const char xl6StdXlonStringifyOptionsBody[] =
+    /* A language facade must keep T until PROJECT has selected its schema.
+     * Encoding options map to the same configured native contract; decode
+     * policy is deliberately not forwarded to the writer. */
+    "func __xl_std_xlon_stringify<T>(T value, XlonOptions options) as string\n"
+    "    int unsupported = 0\n"
+    "    if options.ignoreUnsupportedEncode\n"
+    "        unsupported = 1\n"
+    "    end\n"
+    "    return __xl_std_xlon_stringify(value, {\"pretty\": options.pretty, \"unsupported\": unsupported})\n"
+    "end\n";
+
+static const char xl6StdXlonWriteBody[] =
+    "func __xl_std_xlon_write(string path, var value) as bool\n"
+    "    return __xl_std_runtime_xlon_write_options(path, value, false, false, false)\n"
+    "end\n";
+
+static const char xl6StdXlonWriteOptionsBody[] =
+    "func __xl_std_xlon_write<T>(string path, T value, XlonOptions options) as bool\n"
+    "    int unsupported = 0\n"
+    "    if options.ignoreUnsupportedEncode\n"
+    "        unsupported = 1\n"
+    "    end\n"
+    "    return __xl_std_xlon_write(path, value, {\"pretty\": options.pretty, \"unsupported\": unsupported})\n"
+    "end\n";
+
+static const char xl6StdXlonVisitBody[] =
+    "func __xl_std_xlon_visit(string text, func(var) as bool visitor) as int\n"
+    "    return __xl_std_runtime_xlon_visit_options(text, visitor, false, false, false)\n"
+    "end\n";
+
+static const char xl6StdXlonVisitOptionsBody[] =
+    "func __xl_std_xlon_visit(string text, func(var) as bool visitor, XlonOptions options) as int\n"
+    "    return __xl_std_runtime_xlon_visit_options(text, visitor, options.pretty, options.ignoreUnsupportedEncode, options.ignoreUnsupportedDecode)\n"
+    "end\n";
+
+static const char xl6StdXlonOptionsBody[] =
+    "func __xl_std_xlon_options(bool pretty = false, bool ignoreUnsupportedEncode = false, bool ignoreUnsupportedDecode = false) as XlonOptions\n"
+    "    return XlonOptions(pretty, ignoreUnsupportedEncode, ignoreUnsupportedDecode)\n"
+    "end\n";
+
+#include "xl6_stdlib_codec.inc"
+
+
+static const XL6_StdlibParam xl6StdCrc32TextParams[] = {{"uint64","previous"},{"string","data"},{"int","size"}};
+static const char xl6StdCrc32NativeBytesBody[] =
+    "extern \"xl6Crc32BytesV1\" @pure @nonblocking func __xl_std_crc32_bytes(uint64 previous, bytes data, int size) as uint32\n"
+    "extern \"xl6Crc32BytesSpanV1\" @pure @nonblocking func __xl_std_crc32_bytes(uint64 previous, cbytes data, int size) as uint32\n";
+static const XL6_StdlibParam xl6StdCrc32BufferParams[] = {{"uint64","previous"},{"Buffer","data"},{"int","size"}};
+static const char xl6StdCrc32TextBody[] =
+    "func __xl_std_crc32_checksum(string data, int size = -1) as uint32\n"
+    "    return __xl_std_crc32_text(uint64(0), data, size)\nend\n";
+static const char xl6StdCrc32BytesBody[] =
+    "func __xl_std_crc32_checksum(bytes data, int size = -1) as uint32\n"
+    "    return __xl_std_crc32_bytes(uint64(0), data, size)\nend\n";
+static const char xl6StdCrc32BufferBody[] =
+    "func __xl_std_crc32_checksum_buffer(Buffer data, int size = -1) as uint32\n"
+    "    return __xl_std_crc32_buffer(uint64(0), data, size)\nend\n";
+static const char xl6StdCrc32UpdateTextBody[] =
+    "func __xl_std_crc32_update(uint32 previous, string data, int size = -1) as uint32\n"
+    "    return __xl_std_crc32_text(uint64(previous), data, size)\nend\n";
+static const char xl6StdCrc32UpdateBytesBody[] =
+    "func __xl_std_crc32_update(uint32 previous, bytes data, int size = -1) as uint32\n"
+    "    return __xl_std_crc32_bytes(uint64(previous), data, size)\nend\n";
+static const char xl6StdCrc32UpdateBufferBody[] =
+    "func __xl_std_crc32_update_buffer(uint32 previous, Buffer data, int size = -1) as uint32\n"
+    "    return __xl_std_crc32_buffer(uint64(previous), data, size)\nend\n";
+
+static const char xl6StdHashU32Body[] =
+    "func __xl_std_hash_u32(string data, int size = -1) as uint32\n"
+    "    if size < -1 then throw RangeError \"hash size is invalid\" end\n"
+    "    return __xl_std_xrt_hash32(data, size)\n"
+    "end\n";
+
+static const char xl6StdHashU32WithSeedBody[] =
+    "func __xl_std_hash_u32_with_seed(string data, uint32 seed, int size = -1) as uint32\n"
+    "    if size < -1 then throw RangeError \"hash size is invalid\" end\n"
+    "    return __xl_std_xrt_hash32_seed(data, c_uint(seed), size)\n"
+    "end\n";
+
+static const char xl6StdHashU64Body[] =
+    "func __xl_std_hash_u64(string data, int size = -1) as uint64\n"
+    "    if size < -1 then throw RangeError \"hash size is invalid\" end\n"
+    "    return __xl_std_xrt_hash64(data, size)\n"
+    "end\n";
+
+static const char xl6StdHashU64WithSeedBody[] =
+    "func __xl_std_hash_u64_with_seed(string data, uint64 seed, int size = -1) as uint64\n"
+    "    if size < -1 then throw RangeError \"hash size is invalid\" end\n"
+    "    return __xl_std_xrt_hash64_seed(data, c_ulonglong(seed), size)\n"
+    "end\n";
+
+static const char xl6StdHashU32BytesBody[] =
+    "func __xl_std_hash_u32(bytes data, int size = -1) as uint32\n"
+    "    if size < -1 then throw RangeError \"hash size is invalid\" end\n"
+    "    return __xl_std_xrt_hash32_bytes(data, size)\n"
+    "end\n";
+static const char xl6StdHashU32BytesWithSeedBody[] =
+    "func __xl_std_hash_u32_with_seed(bytes data, uint32 seed, int size = -1) as uint32\n"
+    "    if size < -1 then throw RangeError \"hash size is invalid\" end\n"
+    "    return __xl_std_xrt_hash32_bytes_seed(data, c_uint(seed), size)\n"
+    "end\n";
+static const char xl6StdHashU64BytesBody[] =
+    "func __xl_std_hash_u64(bytes data, int size = -1) as uint64\n"
+    "    if size < -1 then throw RangeError \"hash size is invalid\" end\n"
+    "    return __xl_std_xrt_hash64_bytes(data, size)\n"
+    "end\n";
+static const char xl6StdHashU64BytesWithSeedBody[] =
+    "func __xl_std_hash_u64_with_seed(bytes data, uint64 seed, int size = -1) as uint64\n"
+    "    if size < -1 then throw RangeError \"hash size is invalid\" end\n"
+    "    return __xl_std_xrt_hash64_bytes_seed(data, c_ulonglong(seed), size)\n"
+    "end\n";
+
+static const char xl6StdHashU32BufferBody[] =
+    "func __xl_std_hash_u32_buffer(Buffer data, int size = -1) as uint32\n"
+    "    if size < -1 then throw RangeError \"hash size is invalid\" end\n"
+    "    return __xl_std_xrt_hash32_raw(data.data(), c_size(data.len()), size)\n"
+    "end\n";
+static const char xl6StdHashU32BufferWithSeedBody[] =
+    "func __xl_std_hash_u32_buffer_with_seed(Buffer data, uint32 seed, int size = -1) as uint32\n"
+    "    if size < -1 then throw RangeError \"hash size is invalid\" end\n"
+    "    return __xl_std_xrt_hash32_raw_seed(data.data(), c_size(data.len()), c_uint(seed), size)\n"
+    "end\n";
+static const char xl6StdHashU64BufferBody[] =
+    "func __xl_std_hash_u64_buffer(Buffer data, int size = -1) as uint64\n"
+    "    if size < -1 then throw RangeError \"hash size is invalid\" end\n"
+    "    return __xl_std_xrt_hash64_raw(data.data(), c_size(data.len()), size)\n"
+    "end\n";
+static const char xl6StdHashU64BufferWithSeedBody[] =
+    "func __xl_std_hash_u64_buffer_with_seed(Buffer data, uint64 seed, int size = -1) as uint64\n"
+    "    if size < -1 then throw RangeError \"hash size is invalid\" end\n"
+    "    return __xl_std_xrt_hash64_raw_seed(data.data(), c_size(data.len()), c_ulonglong(seed), size)\n"
+    "end\n";
+
+static const char xl6StdSipHash64StringBody[] =
+    "func __xl_std_siphash64(string data, bytes key, int size = -1) as uint64\n"
+    "    if key.length != 16 then throw ValueError \"SipHash key must be 16 bytes\" end\n"
+    "    if size < -1 then throw RangeError \"siphash size is invalid\" end\n"
+    "    return uint64(__xl_std_xrt_siphash64_string(data, key, size))\n"
+    "end\n";
+static const char xl6StdSipHash64BytesBody[] =
+    "func __xl_std_siphash64(bytes data, bytes key, int size = -1) as uint64\n"
+    "    if key.length != 16 then throw ValueError \"SipHash key must be 16 bytes\" end\n"
+    "    if size < -1 then throw RangeError \"siphash size is invalid\" end\n"
+    "    return uint64(__xl_std_xrt_siphash64_bytes(data, key, size))\n"
+    "end\n";
+static const char xl6StdSipHash64BufferBody[] =
+    "func __xl_std_siphash64_buffer(Buffer data, bytes key, int size = -1) as uint64\n"
+    "    if key.length != 16 then throw ValueError \"SipHash key must be 16 bytes\" end\n"
+    "    if size < -1 then throw RangeError \"siphash size is invalid\" end\n"
+    "    return uint64(__xl_std_xrt_siphash64_raw(data.data(), c_size(data.len()), key, size))\n"
+    "end\n";
+static const char xl6StdSipHasher64Body[] =
+    "func __xl_std_siphasher64(bytes key) as SipHasher64\n"
+    "    if key.length != 16 then throw ValueError \"SipHash key must be 16 bytes\" end\n"
+    "    return SipHasher64(key)\n"
+    "end\n";
+
+static const char xl6StdCryptoRandomHexBody[] =
+    "func __xl_std_crypto_random_hex(int byteCount) as string\n"
+    "    if byteCount < 0 then throw RangeError \"secure random byte count is invalid\" end\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_secure_hex(byteCount))\n"
+    "end\n";
+
+static const char xl6StdCryptoRandomStringBody[] =
+    "func __xl_std_crypto_random_string(int length = 22, string alphabet = \"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_\", int alphabetSize = -1) as string\n"
+    "    if length < 0 or alphabetSize < -1 then throw RangeError \"secure random string length is invalid\" end\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_secure_string(alphabet, __xl_std_xrt_string_byte_len(alphabet), alphabetSize, length))\n"
+    "end\n";
+
+static const char xl6StdCryptoFillRandomBytesBody[] =
+    "func __xl_std_crypto_fill_random_bytes(Buffer target)\n"
+    "    if not __xl_std_xrt_secure_fill_buffer(target.nativeHandle()) then throw RuntimeError \"secure random buffer fill failed\" end\n"
+    "end\n";
+
+static const char xl6StdCryptoRandomBytesBody[] =
+    "func __xl_std_crypto_random_bytes(int count) as bytes\n"
+    "    if count < 0 then throw RangeError \"secure random byte count is invalid\" end\n"
+    "    return __xl_std_xrt_secure_bytes(count)\n"
+    "end\n";
+
+
+
+
+
+
+
+
+
+
+
+static const char xl6StdIdTryParseBody[] =
+    "func __xl_std_id_try_parse(string text) as Xid?\n"
+    "    try\n"
+    "        return __xl_std_id_parse(text)\n"
+    "    catch e\n"
+    "        if e.kind == \"ValueError\" then return null end\n"
+    "        throw\n"
+    "    end\n"
+    "end\n";
+
+static const char xl6StdNetLocalIPBody[] =
+    "extern \"xl6NetLocalIPV1\" func __xl_std_net_local_ip(int family = 0) as string\n";
+static const char xl6StdNetLocalAddressBody[] =
+    "extern \"xl6NetLocalAddressV1\" func __xl_std_net_local_address(int family = 0) as NetAddress\n";
+
+static const char xl6StdNetLocalMACBody[] =
+    "extern \"xl6NetLocalMACV1\" func __xl_std_net_local_mac() as string\n";
+
+static const char xl6StdNetLocalNameBody[] =
+    "extern \"xl6NetHostNameV1\" func __xl_std_net_local_name() as string\n";
+
+
+static const char xl6StdNetInterfaceIndexBody[] =
+    "extern \"xl6NetInterfaceIndexV1\" func __xl_std_net_interface_index(string name, int family = 0) as int\n";
+
+static const char xl6StdNetInterfaceNameBody[] =
+    "extern \"xl6NetInterfaceNameByIndexV1\" func __xl_std_net_interface_name(int index, int family = 0) as string\n";
+
+static const char xl6StdNetResolveBody[] =
+    "func __xl_std_net_resolve(string host, int port = 0) as NetAddress\n"
+    "    return NetAddress(host, port)\n"
+    "end\n";
+
+static const char xl6StdNetResolveAllBody[] =
+    "func __xl_std_net_resolve_all(string host, int port = 0, int family = 0) as NetAddressList\n"
+    "    return NetAddressList(host, port, family)\n"
+    "end\n";
+
+static const char xl6StdNetResolveAsyncBody[] =
+    "func __xl_std_net_resolve_async(string host, int port = 0, int family = 0) as future<NetAddressList>\n"
+    "    return __xl_std_net_default_resolver.resolveAsync(host, port, family)\n"
+    "end\n";
+
+static const char xl6StdNetStatsBody[] =
+    "extern \"xl6NetEngineSnapshotV1\" @nonblocking func __xl_std_net_stats(NetEngine engine) as NetEngineStats\n";
+
+static const char xl6StdNetResolverStatsBody[] =
+    "func __xl_std_net_resolver_stats() as NetResolverStats\n"
+    "    return __xl_std_net_default_resolver.snapshot()\n"
+    "end\n";
+
+static const char xl6StdNetProxyBody[] =
+    "func __xl_std_net_proxy(NetProxyType type, string host, int port, string user = \"\", string password = \"\", NetProxyAuth auth = NetProxyAuth.automatic) as NetProxy\n"
+    "    return NetProxy(type, host, port, user, password, auth)\n"
+    "end\n"
+    "func __xl_std_net_proxy(NetProxyType type, string host, int port, bytes user, bytes password, NetProxyAuth auth = NetProxyAuth.automatic) as NetProxy\n"
+    "    return NetProxy(type, host, port, user, password, auth)\n"
+    "end\n";
+
+static const char xl6StdNetEngineBody[] =
+    "extern \"xl6NetEngineCreateWorkersV1\" func __xl_std_net_engine(int workerCount = 0) as NetEngine\n";
+
+static const char xl6StdUdpConfigBody[] =
+    "func __xl_std_udp_config() as UdpConfig\n"
+    "    return UdpConfig()\n"
+    "end\n";
+
+static const char xl6StdTlsConnectBody[] =
+    "func __xl_std_tls_connect(NetEngine engine, NetAddress remote, TlsClientContext context, string serverName, int size = -1) as TlsStream\n"
+    "    return TlsStream(engine, remote, context, serverName, size)\nend\n"
+    "func __xl_std_tls_connect(NetEngine engine, NetAddress remote, TlsClientContext context, string serverName, int size, string verifyName, int verifySize, TlsStreamOptions stream, TcpStreamOptions tcp, int worker = 0) as TlsStream\n"
+    "    return TlsStream(engine, remote, context, serverName, size, verifyName, verifySize, stream, tcp, worker)\nend\n";
+
+static const char xl6StdTlsConnectAsyncBody[] =
+    "func __xl_std_tls_connect_async(NetEngine engine, NetResolver resolver, string host, int port, TlsClientContext context, int size = -1) as future<TlsStream>\n"
+    "    return TlsStream.dialAsync(engine, resolver, host, port, context, size)\nend\n"
+    "func __xl_std_tls_connect_async(NetEngine engine, NetResolver resolver, string host, int port, TlsClientContext context, TlsDialOptions options, int size = -1) as future<TlsStream>\n"
+    "    return TlsStream.dialAsync(engine, resolver, host, port, context, options, size)\nend\n";
+
+static const char xl6StdTlsListenBody[] =
+    "func __xl_std_tls_listen(NetEngine engine, TcpListenOptions listen, TlsServerContext context) as TlsServer\n"
+    "    return TlsServer(engine, listen, context)\nend\n"
+    "func __xl_std_tls_listen(NetEngine engine, TcpListenOptions listen, TlsServerContext context, TlsStreamOptions stream, int accepts = 128, int handshakes = 64) as TlsServer\n"
+    "    return TlsServer(engine, listen, context, stream, accepts, handshakes)\nend\n";
+
+static const char xl6StdTcpConnectBody[] =
+    "func __xl_std_tcp_connect(NetEngine engine, NetAddress remote) as TcpStream\n"
+    "    return TcpStream(engine, remote)\n"
+    "end\n"
+    "func __xl_std_tcp_connect(NetEngine engine, NetAddress remote, TcpStreamOptions options, int worker = 0) as TcpStream\n"
+    "    return TcpStream(engine, remote, options, worker)\n"
+    "end\n";
+
+static const char xl6StdTcpConnectAsyncBody[] =
+    "func __xl_std_tcp_connect_async(NetEngine engine, NetAddress remote) as future<TcpStream>\n"
+    "    TcpStream stream = TcpStream(engine, remote)\n"
+    "    return stream.connectedAsync()\n"
+    "end\n"
+    "func __xl_std_tcp_connect_async(NetEngine engine, NetAddress remote, TcpStreamOptions options, int worker = 0) as future<TcpStream>\n"
+    "    TcpStream stream = TcpStream(engine, remote, options, worker)\n"
+    "    return stream.connectedAsync()\n"
+    "end\n";
+
+static const char xl6StdTcpListenBody[] =
+    "func __xl_std_tcp_listen(NetEngine engine, TcpListenOptions options) as TcpListener\n"
+    "    return TcpListener(engine, options)\n"
+    "end\n";
+
+static const char xl6StdUdpBindBody[] =
+    "extern \"xl6UdpBindDefaultV1\" func __xl_std_udp_bind(NetEngine engine, NetAddress local) as UdpSocket\n"
+    "extern \"xl6UdpBindV1\" func __xl_std_udp_bind(NetEngine engine, NetAddress local, UdpConfig config, uint64 affinity = 0) as UdpSocket\n";
+static const char xl6StdUdpConnectBody[] =
+    "extern \"xl6UdpConnectDefaultV1\" func __xl_std_udp_connect(NetEngine engine, NetAddress peer) as UdpSocket\n"
+    "extern \"xl6UdpConnectV1\" func __xl_std_udp_connect(NetEngine engine, NetAddress peer, UdpConfig config, uint64 affinity = 0) as UdpSocket\n";
+static const char xl6StdUdpOpenBody[] =
+    "extern \"xl6UdpOpenV1\" func __xl_std_udp_open(NetEngine engine, NetAddress local, NetAddress peer, UdpConfig config, uint64 affinity = 0) as UdpSocket\n";
+
+static const char xl6StdPrintBody[] =
+    "func __xl_std_print(...)\n"
+    "    if not __xl_std_runtime_print(arg, false) then throw IOError \"stdout print failed\" end\n"
+    "end\n";
+
+static const char xl6StdPrintlnBody[] =
+    "func __xl_std_println(...)\n"
+    "    if not __xl_std_runtime_print(arg, true) then throw IOError \"stdout print failed\" end\n"
+    "end\n";
+
+static const char xl6StdWriteBody[] =
+    "func __xl_std_write(string text)\n"
+    "    if not __xl_std_runtime_write(text) then\n"
+    "        throw IOError \"stdout write failed\"\n"
+    "    end\n"
+    "end\n";
+
+static const char xl6StdWritelnBody[] =
+    "func __xl_std_writeln(string text = \"\")\n"
+    "    if not __xl_std_runtime_writeln(text) then\n"
+    "        throw IOError \"stdout write failed\"\n"
+    "    end\n"
+    "end\n";
+
+static const char xl6StdConsoleWriteBody[] =
+    "func __xl_std_console_write(string text)\n"
+    "    if not __xl_std_runtime_write(text) then\n"
+    "        throw IOError \"stdout write failed\"\n"
+    "    end\n"
+    "end\n";
+
+static const char xl6StdConsoleWriteLineBody[] =
+    "func __xl_std_console_write_line(string text = \"\")\n"
+    "    if not __xl_std_runtime_writeln(text) then\n"
+    "        throw IOError \"stdout write failed\"\n"
+    "    end\n"
+    "end\n";
+
+static const char xl6StdConsoleErrorBody[] =
+    "func __xl_std_console_error(string text)\n"
+    "    if not __xl_std_runtime_console_error(text) then\n"
+    "        throw IOError \"stderr write failed\"\n"
+    "    end\n"
+    "end\n";
+
+static const char xl6StdConsoleErrorLineBody[] =
+    "func __xl_std_console_error_line(string text = \"\")\n"
+    "    if not __xl_std_runtime_console_error_line(text) then\n"
+    "        throw IOError \"stderr write failed\"\n"
+    "    end\n"
+    "end\n";
+
+static const char xl6StdConsoleFlushBody[] =
+    "func __xl_std_console_flush()\n"
+    "    bool stdoutOk = __xl_std_runtime_console_flush(c_int(1))\n"
+    "    bool stderrOk = __xl_std_runtime_console_flush(c_int(2))\n"
+    "    if not stdoutOk then\n"
+    "        throw IOError \"stdout flush failed\"\n"
+    "    end\n"
+    "    if not stderrOk then\n"
+    "        throw IOError \"stderr flush failed\"\n"
+    "    end\n"
+    "end\n";
+
+static const char xl6StdIoReadFileBody[] =
+    "func __xl_std_io_read_file(string path, int maxBytes = 67108864) as bytes\n"
+    "    if maxBytes < 0 then throw RangeError \"file read limit is invalid\" end\n"
+    "    return __xl_std_runtime_io_read_file(path, maxBytes)\n"
+    "end\n";
+
+static const char xl6StdIoWriteFileBody[] =
+    "func __xl_std_io_write_file(string path, bytes data, int mode = 1, int size = -1)\n"
+    "    if not __xl_std_runtime_io_write_file(path, data, mode, size) then\n"
+    "        throw IOError \"file write failed\"\n"
+    "    end\n"
+    "end\n";
+
+static const char xl6StdIoWriteTextFileBody[] =
+    "func __xl_std_io_write_file(string path, string data, int mode = 1, int size = -1)\n"
+    "    if not __xl_std_runtime_io_write_text_file(path, data, mode, size) then\n"
+    "        throw IOError \"file write failed\"\n"
+    "    end\n"
+    "end\n";
+
+static const char xl6StdTccContextBody[] =
+    "func __xl_std_tcc_context() as TccContext\n"
+    "    return TccContext()\n"
+    "end\n";
+
+static const char xl6StdTccRunBody[] =
+    "func __xl_std_tcc_run(string source) as int\n"
+    "    TccContext ctx = TccContext()\n"
+    "    if ctx.compileString(source) != 0 then\n"
+    "        return -1\n"
+    "    end\n"
+    "    return ctx.run()\n"
+    "end\n";
+
+static const char xl6StdTccRunFileBody[] =
+    "func __xl_std_tcc_run_file(string path) as int\n"
+    "    TccContext ctx = TccContext()\n"
+    "    if ctx.addFile(path) != 0 then\n"
+    "        return -1\n"
+    "    end\n"
+    "    return ctx.run()\n"
+    "end\n";
+
+static const char xl6StdTccCompileBody[] =
+    "func __xl_std_tcc_compile(string source, string output, int outputType = 2) as int\n"
+    "    TccContext ctx = TccContext(c_int(outputType))\n"
+    "    if ctx.compileString(source) != 0 then\n"
+    "        return -1\n"
+    "    end\n"
+    "    return int(ctx.outputFile(output))\n"
+    "end\n";
+
+static const char xl6StdTccCompileFileBody[] =
+    "func __xl_std_tcc_compile_file(string path, string output, int outputType = 2) as int\n"
+    "    TccContext ctx = TccContext(c_int(outputType))\n"
+    "    if ctx.addFile(path) != 0 then\n"
+    "        return -1\n"
+    "    end\n"
+    "    return int(ctx.outputFile(output))\n"
+    "end\n";
+
+static const char xl6StdTccVfsMountBody[] =
+    "extern \"xl6_tcc_vfs_mount_text\" func __xl_std_tcc_vfs_mount_text(string path, string text) as c_int\n"
+    "func __xl_std_tcc_vfs_mount(string path, string text) as bool\n"
+    "    return __xl_std_tcc_vfs_mount_text(path, text) != 0\n"
+    "end\n";
+
+static const char xl6StdTccVfsClearBody[] =
+    "extern \"tcc_vfs_clear_dynamic\" func __xl_std_tcc_vfs_clear_dynamic()\n"
+    "func __xl_std_tcc_vfs_clear()\n"
+    "    __xl_std_tcc_vfs_clear_dynamic()\n"
+    "end\n";
+
+static const char xl6StdXlangContextBody[] =
+    "func __xl_std_xlang_context() as XLangContext\n"
+    "    return XLangContext()\n"
+    "end\n";
+
+static const char xl6StdXlangRunBody[] =
+    "extern \"xl6_xlang_run_source\" func __xl_std_xlang_run_source(string source) as c_int\n"
+    "func __xl_std_xlang_run(string source) as bool\n"
+    "    return __xl_std_xlang_run_source(source) != 0\n"
+    "end\n";
+
+static const char xl6StdXlangRunFileBody[] =
+    "extern \"xl6_xlang_run_file\" func __xl_std_xlang_run_file_native(string path) as c_int\n"
+    "func __xl_std_xlang_run_file(string path) as bool\n"
+    "    return __xl_std_xlang_run_file_native(path) != 0\n"
+    "end\n";
+
+const XL6_StdlibConst xl6StdlibConsts[] = {
+    {"net.capability","none",XL6_AST_INT,"0"},
+    {"net.capability","readiness",XL6_AST_INT,"1"},
+    {"net.capability","completion",XL6_AST_INT,"2"},
+    {"net.capability","oneShot",XL6_AST_INT,"4"},
+    {"net.capability","edge",XL6_AST_INT,"8"},
+    {"net.capability","batch",XL6_AST_INT,"16"},
+    {"net.capability","wake",XL6_AST_INT,"32"},
+    {"net.capability","post",XL6_AST_INT,"64"},
+    {"net.capability","cancel",XL6_AST_INT,"128"},
+    {"net.capability","readProbe",XL6_AST_INT,"256"},
+    {"net.capability","datagramError",XL6_AST_INT,"512"},
+    {"net.capability","sendFile",XL6_AST_INT,"1024"},
+    {"net.capability","fileIO",XL6_AST_INT,"2048"},
+    {"concurrent", "relaxed", XL6_AST_INT, "0"},
+    {"concurrent", "acquire", XL6_AST_INT, "1"},
+    {"concurrent", "release", XL6_AST_INT, "2"},
+    {"concurrent", "acqRel", XL6_AST_INT, "3"},
+    {"concurrent", "seqCst", XL6_AST_INT, "4"},
+    {"codec", "hexUpper", XL6_AST_INT, "1"},
+    {"compress", "raw", XL6_AST_INT, "0"},
+    {"compress", "zlib", XL6_AST_INT, "1"},
+    {"compress", "gzip", XL6_AST_INT, "2"},
+    {"compress", "httpDeflate", XL6_AST_INT, "3"},
+    {"compress", "flushNone", XL6_AST_INT, "0"},
+    {"compress", "flushSync", XL6_AST_INT, "1"},
+    {"compress", "flushFull", XL6_AST_INT, "2"},
+    {"compress", "flushFinish", XL6_AST_INT, "3"},
+    {"compress", "strategyDefault", XL6_AST_INT, "0"},
+    {"compress", "strategyFiltered", XL6_AST_INT, "1"},
+    {"compress", "strategyHuffman", XL6_AST_INT, "2"},
+    {"compress", "strategyRle", XL6_AST_INT, "3"},
+    {"compress", "strategyFixed", XL6_AST_INT, "4"},
+    {"codec", "hexIgnoreSpace", XL6_AST_INT, "2"},
+    {"codec", "base64Url", XL6_AST_INT, "1"},
+    {"codec", "base64NoPadding", XL6_AST_INT, "2"},
+    {"codec", "base64IgnoreSpace", XL6_AST_INT, "4"},
+    {"codec", "base64OptionalPadding", XL6_AST_INT, "8"},
+    {"unicode", "complete", XL6_AST_INT, "0"},
+    {"unicode", "more", XL6_AST_INT, "1"},
+    {"unicode", "invalid", XL6_AST_INT, "2"},
+    {"file", "walkContinue", XL6_AST_INT, "0"},
+    {"file", "walkSkip", XL6_AST_INT, "1"},
+    {"file", "walkStop", XL6_AST_INT, "2"},
+    {"file", "walkError", XL6_AST_INT, "3"},
+    {"file", "walkAbort", XL6_AST_INT, "0"},
+    {"file", "walkSkipError", XL6_AST_INT, "1"},
+    {"file", "walkStopError", XL6_AST_INT, "2"},
+    {"console", "stdoutStream", XL6_AST_INT, "1"},
+    {"queueStatus", "ok", XL6_AST_INT, "0"},
+    {"queueStatus", "empty", XL6_AST_INT, "1"},
+    {"queueStatus", "full", XL6_AST_INT, "2"},
+    {"queueStatus", "closed", XL6_AST_INT, "3"},
+    {"queueStatus", "timeout", XL6_AST_INT, "4"},
+    {"channelStatus", "ok", XL6_AST_INT, "0"},
+    {"channelStatus", "empty", XL6_AST_INT, "1"},
+    {"channelStatus", "full", XL6_AST_INT, "2"},
+    {"channelStatus", "closed", XL6_AST_INT, "3"},
+    {"channelStatus", "timeout", XL6_AST_INT, "4"},
+    {"channelStatus", "cancelled", XL6_AST_INT, "5"},
+    {"taskGroupCancelOn", "none", XL6_AST_INT, "0"},
+    {"taskGroupCancelOn", "failed", XL6_AST_INT, "1"},
+    {"taskGroupCancelOn", "cancelled", XL6_AST_INT, "2"},
+    {"taskGroupCancelOn", "closed", XL6_AST_INT, "4"},
+    {"taskGroupCancelOn", "stopped", XL6_AST_INT, "7"},
+    {"taskGroupState", "pending", XL6_AST_INT, "0"},
+    {"taskGroupState", "resolved", XL6_AST_INT, "1"},
+    {"taskGroupState", "failed", XL6_AST_INT, "2"},
+    {"taskGroupState", "cancelled", XL6_AST_INT, "3"},
+    {"taskGroupState", "closed", XL6_AST_INT, "4"},
+    {"console", "stderrStream", XL6_AST_INT, "2"},
+    {"console", "colorNone", XL6_AST_INT, "0"},
+    {"console", "colorBasic", XL6_AST_INT, "1"},
+    {"console", "color256", XL6_AST_INT, "2"},
+    {"console", "colorTrue", XL6_AST_INT, "3"},
+    {"console", "eventText", XL6_AST_INT, "1"},
+    {"console", "eventKey", XL6_AST_INT, "2"},
+    {"console", "eventResize", XL6_AST_INT, "3"},
+    {"console", "eventPaste", XL6_AST_INT, "4"},
+    {"console", "eventMouse", XL6_AST_INT, "5"},
+    {"console", "eventClosed", XL6_AST_INT, "6"},
+    {"console", "modShift", XL6_AST_INT, "1"},
+    {"console", "modCtrl", XL6_AST_INT, "2"},
+    {"console", "modAlt", XL6_AST_INT, "4"},
+    {"console", "modMeta", XL6_AST_INT, "8"},
+    {"console", "styleBold", XL6_AST_INT, "1"},
+    {"console", "styleDim", XL6_AST_INT, "2"},
+    {"console", "styleItalic", XL6_AST_INT, "4"},
+    {"console", "styleUnderline", XL6_AST_INT, "8"},
+    {"console", "styleReverse", XL6_AST_INT, "16"},
+    {"console", "clearScreen", XL6_AST_INT, "0"},
+    {"console", "clearLine", XL6_AST_INT, "1"},
+    {"console", "clearToEnd", XL6_AST_INT, "2"},
+    {"console", "keyEscape", XL6_AST_INT, "1114112"},
+    {"console", "keyEnter", XL6_AST_INT, "1114113"},
+    {"console", "keyTab", XL6_AST_INT, "1114114"},
+    {"console", "keyBackspace", XL6_AST_INT, "1114115"},
+    {"console", "keyUp", XL6_AST_INT, "1114116"},
+    {"console", "keyDown", XL6_AST_INT, "1114117"},
+    {"console", "keyLeft", XL6_AST_INT, "1114118"},
+    {"console", "keyRight", XL6_AST_INT, "1114119"},
+    {"console", "keyHome", XL6_AST_INT, "1114120"},
+    {"console", "keyEnd", XL6_AST_INT, "1114121"},
+    {"console", "keyInsert", XL6_AST_INT, "1114122"},
+    {"console", "keyDelete", XL6_AST_INT, "1114123"},
+    {"console", "keyPageUp", XL6_AST_INT, "1114124"},
+    {"console", "keyPageDown", XL6_AST_INT, "1114125"},
+    {"console", "keyF1", XL6_AST_INT, "1114126"},
+    {"io", "createNew", XL6_AST_INT, "0"},
+    {"io", "truncate", XL6_AST_INT, "1"},
+    {"io", "seekStart", XL6_AST_INT, "0"},
+    {"io", "seekCurrent", XL6_AST_INT, "1"},
+    {"io", "seekEnd", XL6_AST_INT, "2"},
+    {"io", "lineNone", XL6_AST_INT, "0"},
+    {"io", "lineLf", XL6_AST_INT, "1"},
+    {"io", "lineCrLf", XL6_AST_INT, "2"},
+    {"io", "append", XL6_AST_INT, "2"},
+    {"math", "pi", XL6_AST_FLOAT, "3.14159265358979323846264338327950288"},
+    {"math", "tau", XL6_AST_FLOAT, "6.28318530717958647692528676655900576"},
+    {"math", "e", XL6_AST_FLOAT, "2.71828182845904523536028747135266250"},
+    {"math", "nan", XL6_AST_FLOAT, "(0.0/0.0)"},
+    {"math", "inf", XL6_AST_FLOAT, "(1.0/0.0)"},
+    {"log", "textTime", XL6_AST_INT, "1"},
+    {"log", "textLevel", XL6_AST_INT, "2"},
+    {"log", "textLogger", XL6_AST_INT, "4"},
+    {"log", "textSource", XL6_AST_INT, "8"},
+    {"log", "textThread", XL6_AST_INT, "16"},
+    {"log", "textFields", XL6_AST_INT, "32"},
+    {"log", "textNewline", XL6_AST_INT, "64"},
+    {"log", "textRawMessage", XL6_AST_INT, "128"},
+    {"log", "jsonTime", XL6_AST_INT, "1"},
+    {"log", "jsonLevel", XL6_AST_INT, "2"},
+    {"log", "jsonLogger", XL6_AST_INT, "4"},
+    {"log", "jsonMessage", XL6_AST_INT, "8"},
+    {"log", "jsonSource", XL6_AST_INT, "16"},
+    {"log", "jsonThread", XL6_AST_INT, "32"},
+    {"log", "jsonFields", XL6_AST_INT, "64"},
+    {"log", "jsonNewline", XL6_AST_INT, "128"},
+    {"json", "visitComplete", XL6_AST_INT, "0"},
+    {"json", "visitStopped", XL6_AST_INT, "1"},
+    {"json", "visitInvalid", XL6_AST_INT, "-1"},
+    {"xlon", "visitComplete", XL6_AST_INT, "0"},
+    {"xlon", "visitStopped", XL6_AST_INT, "1"},
+    {"xlon", "visitInvalid", XL6_AST_INT, "-1"},
+    {"file", "seekSet", XL6_AST_INT, "0"},
+    {"file", "seekCur", XL6_AST_INT, "1"},
+    {"file", "seekEnd", XL6_AST_INT, "2"},
+    {"file", "asyncRead", XL6_AST_INT, "1"},
+    {"file", "asyncWrite", XL6_AST_INT, "2"},
+    {"file", "asyncCreate", XL6_AST_INT, "4"},
+    {"file", "asyncTruncate", XL6_AST_INT, "8"},
+    {"file", "shareRead", XL6_AST_INT, "1"},
+    {"file", "shareWrite", XL6_AST_INT, "2"},
+    {"file", "shareDelete", XL6_AST_INT, "4"},
+    {"process", "stdin", XL6_AST_INT, "0"},
+    {"process", "stdout", XL6_AST_INT, "1"},
+    {"process", "stderr", XL6_AST_INT, "2"},
+    {"process", "stdioInherit", XL6_AST_INT, "0"},
+    {"process", "stdioPipe", XL6_AST_INT, "1"},
+    {"process", "stdioNull", XL6_AST_INT, "2"},
+    {"process", "stateRunning", XL6_AST_INT, "0"},
+    {"process", "stateExited", XL6_AST_INT, "1"},
+    {"encoding", "unknown", XL6_AST_INT, "0"},
+    {"encoding", "utf8", XL6_AST_INT, "1"},
+    {"encoding", "utf16LE", XL6_AST_INT, "2"},
+    {"encoding", "utf16BE", XL6_AST_INT, "3"},
+    {"encoding", "utf32LE", XL6_AST_INT, "4"},
+    {"encoding", "utf32BE", XL6_AST_INT, "5"},
+    {"encoding", "strict", XL6_AST_INT, "0"},
+    {"encoding", "replaceInvalid", XL6_AST_INT, "1"},
+    {"encoding", "keepBom", XL6_AST_INT, "0"},
+    {"encoding", "stripBom", XL6_AST_INT, "1"},
+    {"encoding", "requireBom", XL6_AST_INT, "2"},
+    {"encoding", "rejectBom", XL6_AST_INT, "3"},
+    {"encoding", "writeBom", XL6_AST_INT, "4"},
+    {"tcc", "MEMORY", XL6_AST_INT, "1"},
+    {"tcc", "EXE", XL6_AST_INT, "2"},
+    {"tcc", "OBJ", XL6_AST_INT, "3"},
+    {"tcc", "DLL", XL6_AST_INT, "4"},
+    {"tcc", "PREPROCESS", XL6_AST_INT, "5"},
+    {"net", "familyAny", XL6_AST_INT, "0"},
+    {"net", "familyIPv4", XL6_AST_INT, "4"},
+    {"net", "familyIPv6", XL6_AST_INT, "6"},
+    {"net", "resultError", XL6_AST_INT, "-1"},
+    {"net", "resultOk", XL6_AST_INT, "0"},
+    {"net", "resultAgain", XL6_AST_INT, "1"},
+    {"net", "resultClosed", XL6_AST_INT, "2"},
+    {"net", "resultTruncated", XL6_AST_INT, "3"},
+    {"net", "resultTimeout", XL6_AST_INT, "4"},
+    {"net", "resultCancelled", XL6_AST_INT, "5"},
+    {"net", "interfaceUp", XL6_AST_INT, "1"},
+    {"net", "interfaceRunning", XL6_AST_INT, "2"},
+    {"net", "interfaceLoopback", XL6_AST_INT, "4"},
+    {"net", "interfaceBroadcast", XL6_AST_INT, "8"},
+    {"net", "interfacePointToPoint", XL6_AST_INT, "16"},
+    {"net", "interfaceMulticast", XL6_AST_INT, "32"},
+    {"signal", "HUP", XL6_AST_INT, "1"},
+    {"signal", "INT", XL6_AST_INT, "2"},
+    {"signal", "TERM", XL6_AST_INT, "15"},
+    {"signal", "BREAK", XL6_AST_INT, "1001"},
+    {"signal", "CLOSE", XL6_AST_INT, "1002"},
+    {"signal", "LOGOFF", XL6_AST_INT, "1003"},
+    {"signal", "SHUTDOWN", XL6_AST_INT, "1004"}
+};
+
+const XL6_StdlibFunc xl6StdlibFuncs[] = {
+/* BEGIN GENERATED HTTP FUNCTIONS */
+    {"http","statusText","__xl_std_http_statusText",NULL,NULL,0,"string",xl6HttpStatusTextV2Body},
+    {"http","tokenValid","__xl_std_http_tokenValid",NULL,NULL,0,"bool",xl6HttpTokenValidV2Body},
+    {"http","tokenEqual","__xl_std_http_tokenEqual",NULL,NULL,0,"bool",xl6HttpTokenEqualV2Body},
+    {"http","methodCode","__xl_std_http_methodCode",NULL,NULL,0,"HttpMethod",xl6HttpMethodCodeV2Body},
+    {"http","methodEqual","__xl_std_http_methodEqual",NULL,NULL,0,"bool",xl6HttpMethodEqualV2Body},
+    {"http","methodSafe","__xl_std_http_methodSafe",NULL,NULL,0,"bool",xl6HttpMethodSafeV2Body},
+    {"http","methodIdempotent","__xl_std_http_methodIdempotent",NULL,NULL,0,"bool",xl6HttpMethodIdempotentV2Body},
+    {"http","responseContentAllowed","__xl_std_http_responseContentAllowed",NULL,NULL,0,"bool",xl6HttpResponseContentAllowedV2Body},
+    {"http","trimOws","__xl_std_http_trimOws",NULL,NULL,0,"string",xl6HttpTrimOwsV2Body},
+    {"http","quality","__xl_std_http_quality",NULL,NULL,0,"int",xl6HttpQualityV2Body},
+    {"http","contentLength","__xl_std_http_contentLength",NULL,NULL,0,"uint64",xl6HttpContentLengthV2Body},
+    {"http","fieldValueValid","__xl_std_http_fieldValueValid",NULL,NULL,0,"bool",xl6HttpFieldValueValidV2Body},
+    {"http","fieldNameEqual","__xl_std_http_fieldNameEqual",NULL,NULL,0,"bool",xl6HttpFieldNameEqualV2Body},
+    {"http","coding","__xl_std_http_coding",NULL,NULL,0,"HttpCoding",xl6HttpCodingV2Body},
+    {"http","codingName","__xl_std_http_codingName",NULL,NULL,0,"string",xl6HttpCodingNameV2Body},
+    {"http1","targetValid","__xl_std_http1_targetValid",NULL,NULL,0,"bool",xl6Http1TargetValidV2Body},
+    {"http1","requestHead","__xl_std_http1_requestHead",NULL,NULL,0,"bytes",xl6Http1RequestHeadV2Body},
+    {"http1","writeRequestHead","__xl_std_http1_writeRequestHead",NULL,NULL,0,"int",xl6Http1WriteRequestHeadV2Body},
+    {"http1","responseHead","__xl_std_http1_responseHead",NULL,NULL,0,"bytes",xl6Http1ResponseHeadV2Body},
+    {"http1","writeResponseHead","__xl_std_http1_writeResponseHead",NULL,NULL,0,"int",xl6Http1WriteResponseHeadV2Body},
+    {"http1","chunkLine","__xl_std_http1_chunkLine",NULL,NULL,0,"bytes",xl6Http1ChunkLineV2Body},
+    {"http1","writeChunkLine","__xl_std_http1_writeChunkLine",NULL,NULL,0,"int",xl6Http1WriteChunkLineV2Body},
+    {"http1","chunk","__xl_std_http1_chunk",NULL,NULL,0,"bytes",xl6Http1ChunkBytesV2Body},
+    {"http1","writeChunk","__xl_std_http1_writeChunk",NULL,NULL,0,"int",xl6Http1WriteChunkBytesV2Body},
+    {"http1","chunk","__xl_std_http1_chunk",NULL,NULL,0,"bytes",xl6Http1ChunkSpanV2Body},
+    {"http1","writeChunk","__xl_std_http1_writeChunk",NULL,NULL,0,"int",xl6Http1WriteChunkSpanV2Body},
+    {"http1","chunk","__xl_std_http1_chunk",NULL,NULL,0,"bytes",xl6Http1ChunkBufferV2Body},
+    {"http1","writeChunk","__xl_std_http1_writeChunk",NULL,NULL,0,"int",xl6Http1WriteChunkBufferV2Body},
+    {"http1","chunkEnd","__xl_std_http1_chunkEnd",NULL,NULL,0,"bytes",xl6Http1ChunkEndV2Body},
+    {"http1","writeChunkEnd","__xl_std_http1_writeChunkEnd",NULL,NULL,0,"int",xl6Http1WriteChunkEndV2Body},
+    {"http1","deadline","__xl_std_http1_deadline",NULL,NULL,0,"uint64",xl6Http1DeadlineV2Body},
+    {"http","fieldValueValid","__xl_std_http_fieldValueValid",NULL,NULL,0,"bool",xl6HttpFieldValueValidTextV2Body},
+    {"http","fieldValueValid","__xl_std_http_fieldValueValid",NULL,NULL,0,"bool",xl6HttpFieldValueValidSpanV2Body},
+/* END GENERATED HTTP FUNCTIONS */
+    {"net","backendCompiled","__xl_std_net_backend_compiled",NULL,NULL,0,"bool",xl6StdNetBackendCompiledSource},
+    {"net","backendCapabilities","__xl_std_net_backend_capabilities",NULL,NULL,0,"int",xl6StdNetBackendCapabilitiesSource},
+    {"net","backendName","__xl_std_net_backend_name",NULL,NULL,0,"string",xl6StdNetBackendNameSource},
+    {"net","defaultBackend","__xl_std_net_default_backend","xl6NetDefaultBackendV1",NULL,0,"NetBackend",NULL},
+    {"unicode", "isScalar", "__xl_std_unicode_scalar", NULL, NULL, 0, "bool", xl6StdUnicodeScalarBody},
+    {"unicode", "toString", "__xl_std_unicode_char_string", NULL, NULL, 0, "string", xl6StdUnicodeCharStringBody},
+    {"unicode", "byteOffset", "__xl_std_unicode_byte_offset", NULL, NULL, 0, "int", xl6StdUnicodeByteOffsetBody},
+    {"unicode", "scalarIndex", "__xl_std_unicode_scalar_index", NULL, NULL, 0, "int", xl6StdUnicodeScalarIndexBody},
+    {"unicode", "validate", "__xl_std_unicode_validate", NULL, NULL, 0, NULL, xl6StdUnicodeValidateTextBody},
+    {"unicode", "validate", "__xl_std_unicode_validate", NULL, NULL, 0, NULL, xl6StdUnicodeValidateBytesBody},
+    {"unicode", "validator", "__xl_std_unicode_validator", NULL, NULL, 0, "Utf8Validator", xl6StdUnicodeValidatorBody},
+    {"regex", "compile", "__xl_std_regex_compile", NULL, NULL, 0, "Regex", xl6StdRegexCompileBody},
+    {"regex", "escape", "__xl_std_regex_escape", NULL, NULL, 0, "string", xl6StdRegexEscapeBody},
+    {"regex", "set", "__xl_std_regex_set", NULL, NULL, 0, "RegexSet", xl6StdRegexSetBody},
+    {"regex", "errorOffset", "__xl_std_regex_error_offset", NULL, NULL, 0, "int", xl6StdRegexErrorOffsetBody},
+    {"regex", "errorPatternIndex", "__xl_std_regex_error_index", NULL, NULL, 0, "int", xl6StdRegexErrorIndexBody},
+    {"pattern", "compile", "__xl_std_pattern_compile", NULL, NULL, 0, "Pattern", xl6StdPatternCompileBody},
+    {"pattern", "errorOffset", "__xl_std_pattern_error_offset", NULL, NULL, 0, "int", xl6StdPatternErrorOffsetBody},
+    {"pattern", "errorPatternIndex", "__xl_std_pattern_error_index", NULL, NULL, 0, "int", xl6StdPatternErrorIndexBody},
+    {"html", "escapeText", "__xl_std_html_escape_text", NULL, NULL, 0, "string", xl6StdHtmlEscapeTextBody},
+    {"html", "escapeAttribute", "__xl_std_html_escape_attribute", NULL, NULL, 0, "string", xl6StdHtmlEscapeAttributeBody},
+    {"file", "takeAsync", "__xl_std_file_take_async", NULL, NULL, 0, "AsyncFile", xl6StdFsAsync_file_takeAsyncBody},
+    {"file", "appendBytesAsync", "__xl_std_file_append_bytes_async", NULL, NULL, 0, "future<bool>", xl6StdFsAsync_file_appendBytesAsyncBody},
+    {"file", "writeBytesAtomicAsync", "__xl_std_file_write_bytes_atomic_async", NULL, NULL, 0, "future<bool>", xl6StdFsAsync_file_writeBytesAtomicAsyncBody},
+    {"file", "writeTextAtomicAsync", "__xl_std_file_write_text_atomic_async", NULL, NULL, 0, "future<bool>", xl6StdFsAsync_file_writeTextAtomicAsyncBody},
+    {"dir", "removeAsync", "__xl_std_dir_remove_async", NULL, NULL, 0, "future<bool>", xl6StdFsAsync_dir_removeAsyncBody},
+    {"dir", "emptyAsync", "__xl_std_dir_empty_async", NULL, NULL, 0, "future<bool>", xl6StdFsAsync_dir_emptyAsyncBody},
+    {"dir", "ensureEmptyAsync", "__xl_std_dir_ensure_empty_async", NULL, NULL, 0, "future<bool>", xl6StdFsAsync_dir_ensureEmptyAsyncBody},
+    {"dir", "sizeAsync", "__xl_std_dir_size_async", NULL, NULL, 0, "future<uint64>", xl6StdFsAsync_dir_sizeAsyncBody},
+    {"file", "copyTreeAsync", "__xl_std_file_copy_tree_async", NULL, NULL, 0, "future<TreeStats>", xl6StdFsAsync_file_copyTreeAsyncBody},
+    {"file", "removeTreeAsync", "__xl_std_file_remove_tree_async", NULL, NULL, 0, "future<TreeStats>", xl6StdFsAsync_file_removeTreeAsyncBody},
+    {"dir", "cleanAsync", "__xl_std_dir_clean_async", NULL, NULL, 0, "future<TreeStats>", xl6StdFsAsync_dir_cleanAsyncBody},
+    {"dir", "statsAsync", "__xl_std_dir_stats_async", NULL, NULL, 0, "future<WalkStats>", xl6StdFsAsync_dir_statsAsyncBody},
+    {"__xl_runtime", "takeCstr", "__xl_std_runtime_take_cstr", "xl6_xrt_take_cstr", xl6StdRuntimeTakeCstrParams, 1, "string", NULL},
+    {"__xl_runtime", "print", "__xl_std_runtime_print", "xl6_xrt_print", xl6StdRuntimePrintParams, 2, "bool", NULL},
+    {"__xl_runtime", "write", "__xl_std_runtime_write", "xl6_xrt_write", xl6StdRuntimeStringTextParams, 1, "c_bool", NULL},
+    {"__xl_runtime", "writeln", "__xl_std_runtime_writeln", "xl6_xrt_writeln", xl6StdRuntimeStringTextParams, 1, "c_bool", NULL},
+    {"__xl_runtime", "consoleError", "__xl_std_runtime_console_error", "xl6_xrt_console_error", xl6StdRuntimeStringTextParams, 1, "c_bool", NULL},
+    {"__xl_runtime", "consoleErrorLine", "__xl_std_runtime_console_error_line", "xl6_xrt_console_error_line", xl6StdRuntimeStringTextParams, 1, "c_bool", NULL},
+    {"__xl_runtime", "stringSplit", "__xl_std_runtime_string_split", "xl6_xrt_string_split", xl6StdRuntimeStringSplitParams, 2, "var", NULL},
+    {"__xl_runtime", "stringChars", "__xl_std_runtime_string_chars", "xl6_xrt_string_chars", xl6StdRuntimeStringTextParams, 1, "var", NULL},
+    {"__xl_runtime", "stringBytes", "__xl_std_runtime_string_bytes", "xl6_xrt_string_bytes", xl6StdRuntimeStringTextParams, 1, "var", NULL},
+    {"__xl_runtime", "stringJoin", "__xl_std_runtime_string_join", "xl6_xrt_string_join", xl6StdRuntimeStringJoinParams, 2, "point", NULL},
+    {"__xl_runtime", "stringSplitLines", "__xl_std_runtime_string_split_lines", "xl6_xrt_string_split_lines", xl6StdRuntimeStringTextParams, 1, "var", NULL},
+    {"__xl_runtime", "stringStartsWith", "__xl_std_runtime_string_starts_with", "xl6_xrt_string_starts_with", xl6StdRuntimeStringEdgeParams, 3, "c_bool", NULL},
+    {"__xl_runtime", "stringEndsWith", "__xl_std_runtime_string_ends_with", "xl6_xrt_string_ends_with", xl6StdRuntimeStringEdgeParams, 3, "c_bool", NULL},
+    {"__xl_runtime", "fileReadBytes", "__xl_std_runtime_file_read_bytes", "xl6_xrt_buffer_file_read_bytes", xl6StdPathUnaryParams, 1, "point", NULL},
+    {"__xl_runtime", "fileWriteBytes", "__xl_std_runtime_file_write_bytes", "xl6_xrt_buffer_file_write_bytes", xl6StdRuntimeFileWriteBytesParams, 3, "c_bool", NULL},
+    {"__xl_runtime", "fileAppendBytes", "__xl_std_runtime_file_append_bytes", "xl6_xrt_buffer_file_append_bytes", xl6StdRuntimeFileWriteBytesParams, 3, "c_bool", NULL},
+    {"__xl_runtime", "logDefault", "__xl_std_runtime_log_default", "xl6LogDefaultV1", NULL, 0, "point", NULL},
+    {"__xl_runtime", "logReleaseDefault", "__xl_std_runtime_log_release_default", "xl6LogReleaseDefaultV1", xl6StdLogSetDefaultParams, 1, "bool", NULL},
+    {"__xl_runtime", "logTextValidate", "__xl_std_runtime_log_text_validate", "xl6LogTextValidateV1", xl6StdLogTextValidateParams, 3, "bool", NULL},
+    {"__xl_runtime", "logJsonValidate", "__xl_std_runtime_log_json_validate", "xl6LogJsonValidateV1", xl6StdLogJsonValidateParams, 5, "bool", NULL},
+    {"__xl_runtime", "logDefaultRecord", "__xl_std_runtime_log_default_record", "xl6LogDefaultRecordV1", xl6StdLogRecordParams, 1, "LogResult", NULL},
+    {"__xl_runtime", "logDefaultWrite", "__xl_std_runtime_log_default_write", "xl6LogDefaultWriteV1", xl6StdLogDefaultWriteParams, 3, "LogResult", NULL},
+    {"__xl_runtime", "logDefaultFlush", "__xl_std_runtime_log_default_flush", "xl6LogDefaultFlushV1", NULL, 0, "bool", NULL},
+    {"__xl_runtime", "logSetDefault", "__xl_std_runtime_log_set_default", "xl6LogSetDefaultV1", xl6StdLogSetDefaultParams, 1, "bool", NULL},
+    {"__xl_runtime", "logStats", "__xl_std_runtime_log_stats", "xl6LogStatsV1", xl6StdLogStatsParams, 2, "point", NULL},
+    {"__xl_runtime", "logLevelName", "__xl_std_runtime_log_level_name", "xl6LogLevelNameV1", xl6StdRuntimeLogLevelParams, 1, "string", NULL},
+
+
+
+
+
+
+
+
+
+    {"__xl_runtime", "dirList", "__xl_std_runtime_dir_list", "xl6_xrt_dir_list", xl6StdRuntimeDirListParams, 3, "var", NULL},
+    {"__xl_runtime", "dirGlob", "__xl_std_runtime_dir_glob", "xl6_xrt_dir_glob", xl6StdRuntimeDirGlobParams, 4, "var", NULL},
+    {"__xl_runtime", "dirEntries", "__xl_std_runtime_dir_entries", "xl6_xrt_dir_entries", xl6StdRuntimeDirEntriesParams, 5, "var", NULL},
+    {"__xl_runtime", "pathJoin", "__xl_std_runtime_path_join", "xl6_xrt_path_join", xl6StdRuntimePathJoinParams, 3, "point", NULL},
+    {"tcc", "Context", "__xl_std_tcc_context", NULL, NULL, 0, "TccContext", xl6StdTccContextBody},
+    {"tcc", "run", "__xl_std_tcc_run", NULL, NULL, 0, "int", xl6StdTccRunBody},
+    {"tcc", "runFile", "__xl_std_tcc_run_file", NULL, NULL, 0, "int", xl6StdTccRunFileBody},
+    {"tcc", "compile", "__xl_std_tcc_compile", NULL, NULL, 0, "int", xl6StdTccCompileBody},
+    {"tcc", "compileFile", "__xl_std_tcc_compile_file", NULL, NULL, 0, "int", xl6StdTccCompileFileBody},
+    {"tcc", "vfsMount", "__xl_std_tcc_vfs_mount", NULL, NULL, 0, "bool", xl6StdTccVfsMountBody},
+    {"tcc", "vfsClear", "__xl_std_tcc_vfs_clear", NULL, NULL, 0, "", xl6StdTccVfsClearBody},
+    {"xlang", "Context", "__xl_std_xlang_context", NULL, NULL, 0, "XLangContext", xl6StdXlangContextBody},
+    {"xlang", "compiledPackage", "__xl_std_xlang_compiled_package", NULL, NULL, 0, "point",
+        "extern \"xl6_xlang_compiled_package\" func __xl_std_xlang_compiled_package(string name) as point\n"},
+    {"xlang", "run", "__xl_std_xlang_run", NULL, NULL, 0, "bool", xl6StdXlangRunBody},
+    {"xlang", "runFile", "__xl_std_xlang_run_file", NULL, NULL, 0, "bool", xl6StdXlangRunFileBody},
+
+    {"__xrt_string", "byteLen", "__xl_std_xrt_string_byte_len", "xl6_xrt_string_byte_len", xl6StdXrtStringSizeParams, 1, "c_size", NULL},
+    {"__xrt_string", "charLen", "__xl_std_xrt_string_char_len", "xl6_xrt_string_char_len", xl6StdXrtStringSizeParams, 1, "c_size", NULL},
+    {"__xrt_string", "contains", "__xl_std_xrt_string_contains", "xl6_xrt_string_contains", xl6StdXrtInStrParams, 3, "c_bool", NULL},
+    {"__xrt_string", "indexOf", "__xl_std_xrt_string_index_of", "xl6_xrt_string_index_of", xl6StdXrtInStrParams, 3, "int", NULL},
+    {"__xrt_string", "replace", "__xl_std_xrt_string_replace", "xl6_xrt_string_replace", xl6StdXrtStringReplaceParams, 3, "point", NULL},
+    {"__xrt_string", "slice", "__xl_std_xrt_string_slice", "xl6_xrt_string_slice", xl6StdXrtStringSliceParams, 3, "point", NULL},
+    {"__xrt_string", "byteAt", "__xl_std_xrt_string_byte_at", "xl6_xrt_string_byte_at", xl6StdXrtStringByteAtParams, 2, "c_int", NULL},
+    {"__xrt_string", "repeat", "__xl_std_xrt_string_repeat", "xl6_xrt_string_repeat", xl6StdXrtStringCountParams, 2, "point", NULL},
+    {"__xrt_math", "sign", "__xl_std_xrt_math_sign", "xrtMathSign", xl6StdMathUnaryFloatParams, 1, "c_int", NULL},
+    {"__xrt_time", "dateAdd", "__xl_std_xrt_date_add", NULL, NULL, 0, "time", "extern \"xl6TimeAddV1\" func __xl_std_xrt_date_add(time value, int amount, int unit) as time\n"},
+    {"__xrt_time", "dateDiff", "__xl_std_xrt_date_diff", NULL, NULL, 0, "int", "extern \"xl6TimeDiffV1\" func __xl_std_xrt_date_diff(time left, time right, int unit) as int\n"},
+    {"__xrt_random", "rand32", "__xl_std_xrt_rand32", "xl6_xrt_random_u32", NULL, 0, "c_uint", NULL},
+    {"__xrt_random", "rand64", "__xl_std_xrt_rand64", "xl6_xrt_random_u64", NULL, 0, "uint64", NULL},
+    {"__xrt_random", "below", "__xl_std_xrt_rand_below", "xl6_xrt_random_below", xl6StdXrtRandBelowParams, 1, "uint64", NULL},
+    {"__xrt_random", "range", "__xl_std_xrt_rand_range", "xl6_xrt_random_range", xl6StdXrtRandRangeParams, 2, "int", NULL},
+    {"__xrt_random", "rangeClosed", "__xl_std_xrt_rand_range_closed", "xl6_xrt_random_range_closed", xl6StdXrtRandRangeParams, 2, "int", NULL},
+    {"__xrt_random", "real", "__xl_std_xrt_rand_real", "xl6_xrt_random_real", NULL, 0, "float", NULL},
+    {"__xrt_random", "bytes", "__xl_std_xrt_rand_bytes", "xl6_xrt_random_bytes", xl6StdXrtRandCountParams, 1, "bytes", NULL},
+    {"__xrt_random", "fillBuffer", "__xl_std_xrt_rand_fill_buffer", "xl6_xrt_random_fill_buffer", xl6StdXrtRandBufferParams, 1, "bool", NULL},
+    {"__xrt_random", "shuffleArray", "__xl_std_xrt_rand_shuffle_array", "xl6_xrt_random_shuffle_array", xl6StdXrtRandArrayParams, 1, "bool", NULL},
+    {"__xrt_random", "shuffleBuffer", "__xl_std_xrt_rand_shuffle_buffer", "xl6_xrt_random_shuffle_buffer", xl6StdXrtRandBufferParams, 1, "bool", NULL},
+    {"__xrt_random", "seedThread", "__xl_std_xrt_rand_seed_thread", "xl6_xrt_random_seed", xl6StdXrtRandSeedParams, 2, "", NULL},
+    {"__xrt_random", "string", "__xl_std_xrt_rand_str", "xl6_xrt_random_string", xl6StdXrtRandStrParams, 4, "point", NULL},
+    {"__xrt_secure_random", "bytes", "__xl_std_xrt_secure_bytes", "xl6_xrt_secure_bytes", xl6StdXrtRandCountParams, 1, "bytes", NULL},
+    {"__xrt_secure_random", "fillBuffer", "__xl_std_xrt_secure_fill_buffer", "xl6_xrt_secure_fill_buffer", xl6StdXrtRandBufferParams, 1, "bool", NULL},
+    {"__xrt_secure_random", "hex", "__xl_std_xrt_secure_hex", "xl6_xrt_secure_hex", xl6StdXrtRandCountParams, 1, "point", NULL},
+    {"__xrt_secure_random", "string", "__xl_std_xrt_secure_string", "xl6_xrt_secure_string", xl6StdXrtRandStrParams, 4, "point", NULL},
+    {"__xrt_path", "exists", "__xl_std_xrt_path_exists", "xrtPathExists", xl6StdPathUnaryParams, 1, "c_bool", NULL},
+    {"__xrt_path", "isAbs", "__xl_std_xrt_path_is_abs", "xrtPathIsAbs", xl6StdPathUnaryParams, 1, "c_bool", NULL},
+    {"__xrt_path", "getNameExt", "__xl_std_xrt_path_get_name_ext", "xrtPathName", xl6StdPathUnaryParams, 1, "point", NULL},
+    {"__xrt_path", "getName", "__xl_std_xrt_path_get_name", "xrtPathStem", xl6StdPathUnaryParams, 1, "point", NULL},
+    {"__xrt_path", "getExt", "__xl_std_xrt_path_get_ext", "xrtPathExt", xl6StdPathUnaryParams, 1, "point", NULL},
+    {"__xrt_path", "getDir", "__xl_std_xrt_path_get_dir", "xrtPathParent", xl6StdPathUnaryParams, 1, "point", NULL},
+    {"__xrt_path", "abs", "__xl_std_xrt_path_abs", "xrtPathAbs", xl6StdPathUnaryParams, 1, "point", NULL},
+    {"__xrt_path", "rel", "__xl_std_xrt_path_rel", "xrtPathRel", xl6StdPathRelParams, 2, "point", NULL},
+    {"__xrt_path", "cwd", "__xl_std_xrt_path_cwd", "xrtPathCwd", NULL, 0, "point", NULL},
+    {"__xrt_path", "setCwd", "__xl_std_xrt_path_set_cwd", "xrtPathSetCwd", xl6StdPathUnaryParams, 1, "c_bool", NULL},
+    {"__xrt_path", "home", "__xl_std_xrt_path_home", "xrtPathHome", NULL, 0, "point", NULL},
+    {"__xrt_path", "temp", "__xl_std_xrt_path_temp", "xrtPathTemp", NULL, 0, "point", NULL},
+    {"__xrt_path", "appDir", "__xl_std_xrt_path_app_dir", "xrtPathAppDir", NULL, 0, "point", NULL},
+    {"__xrt_path", "withExt", "__xl_std_xrt_path_with_ext", "xrtPathWithExt", xl6StdPathWithExtParams, 2, "point", NULL},
+    {"__xrt_path", "withName", "__xl_std_xrt_path_with_name", "xrtPathWithName", xl6StdPathWithNameParams, 2, "point", NULL},
+    {"__xl_runtime", "osArgs", "__xl_std_runtime_os_args", "xl6_xrt_os_args", NULL, 0, "var", NULL},
+    {"__xrt_file", "exists", "__xl_std_xrt_file_exists", "xrtFileExists", xl6StdPathUnaryParams, 1, "c_bool", NULL},
+    {"__xrt_file", "getSize", "__xl_std_xrt_file_get_size", "xl6_xrt_file_get_size_path", xl6StdPathUnaryParams, 1, "c_size", NULL},
+    {"__xrt_file", "setSize", "__xl_std_xrt_file_set_size", "xrtFileSetSize", xl6StdXrtFileSetSizeParams, 2, "c_bool", NULL},
+    {"__xrt_file", "getAttr", "__xl_std_xrt_file_get_attr", "xl6_xrt_file_get_attributes", xl6StdPathUnaryParams, 1, "c_int", NULL},
+    {"__xrt_file", "setAttr", "__xl_std_xrt_file_set_attr", "xl6_xrt_file_set_attributes", xl6StdXrtFileSetAttrParams, 2, "c_bool", NULL},
+    {"__xrt_file", "writeAll", "__xl_std_xrt_file_write_all", "xl6_xrt_file_write_text_all", xl6StdXrtFileWriteTextParams, 4, "c_int", NULL},
+    {"__xrt_file", "append", "__xl_std_xrt_file_append", "xl6_xrt_file_append_text", xl6StdXrtFileWriteTextParams, 4, "c_int", NULL},
+    {"__xrt_file", "readAll", "__xl_std_xrt_file_read_all", "xl6_xrt_file_read_text_strict", xl6StdXrtFileReadTextParams, 3, "point", NULL},
+    {"__xrt_file", "readTextStrict", "__xl_std_xrt_file_read_text_strict", "xl6_xrt_file_read_text_strict", xl6StdXrtFileReadTextParams, 3, "point", NULL},
+    {"__xrt_file", "delete", "__xl_std_xrt_file_delete", "xl6_xrt_file_delete_status", xl6StdPathUnaryParams, 1, "c_bool", NULL},
+    {"__xrt_file", "copy", "__xl_std_xrt_file_copy", "xrtFileCopy", xl6StdXrtFileCopyMoveParams, 3, "c_bool", NULL},
+    {"__xrt_file", "move", "__xl_std_xrt_file_move", "xrtFileMove", xl6StdXrtFileCopyMoveParams, 3, "c_bool", NULL},
+    {"__xrt_file", "rename", "__xl_std_xrt_file_rename", "xl6_xrt_file_rename", xl6StdXrtFileCopyMoveParams, 3, "c_bool", NULL},
+    {"__xrt_file", "replace", "__xl_std_xrt_file_replace", "xl6_xrt_file_replace", xl6StdFileReplaceParams, 2, "c_bool", NULL},
+    {"__xrt_file", "touch", "__xl_std_xrt_file_touch", "xrtFileTouch", xl6StdPathUnaryParams, 1, "c_bool", NULL},
+    {"__xrt_file", "writeAllAtomic", "__xl_std_xrt_file_write_all_atomic", "xl6_xrt_file_write_text_atomic", xl6StdXrtFileWriteTextParams, 4, "c_bool", NULL},
+    {"__xrt_dir", "exists", "__xl_std_xrt_dir_exists", "xrtDirExists", xl6StdPathUnaryParams, 1, "c_bool", NULL},
+    {"__xrt_dir", "create", "__xl_std_xrt_dir_create", "xrtDirCreate", xl6StdPathUnaryParams, 1, "c_bool", NULL},
+    {"__xrt_dir", "createAll", "__xl_std_xrt_dir_create_all", "xrtDirCreateAll", xl6StdPathUnaryParams, 1, "c_bool", NULL},
+    {"__xrt_dir", "copy", "__xl_std_xrt_dir_copy", "xrtDirCopy", xl6StdXrtFileCopyMoveParams, 3, "c_bool", NULL},
+    {"__xrt_dir", "move", "__xl_std_xrt_dir_move", "xrtDirMove", xl6StdXrtFileCopyMoveParams, 3, "c_bool", NULL},
+    {"__xrt_dir", "delete", "__xl_std_xrt_dir_delete", "xrtDirRemoveAll", xl6StdPathUnaryParams, 1, "c_bool", NULL},
+    {"__xrt_dir", "isEmpty", "__xl_std_xrt_dir_is_empty", "xl6_xrt_dir_is_empty", xl6StdPathUnaryParams, 1, "c_bool", NULL},
+    {"__xrt_dir", "count", "__xl_std_xrt_dir_count", "xl6_xrt_dir_count", xl6StdXrtDirCountParams, 3, "int", NULL},
+    {"__xrt_dir", "size", "__xl_std_xrt_dir_size", "xl6_xrt_dir_size", xl6StdXrtDirSizeParams, 2, "int", NULL},
+    {"__xrt_dir", "clean", "__xl_std_xrt_dir_clean", "xrtDirClean", xl6StdPathUnaryParams, 1, "c_bool", NULL},
+    {"__xrt_dir", "ensureEmpty", "__xl_std_xrt_dir_ensure_empty", "xrtDirEnsureEmpty", xl6StdPathUnaryParams, 1, "c_bool", NULL},
+    {"__xrt_json", "parse", "__xl_std_xrt_json_parse", "xl6_xrt_json_parse", xl6StdXrtJsonParseParams, 1, "var", NULL},
+    {"__xrt_json", "valid", "__xl_std_xrt_json_valid", "xl6_xrt_json_valid", xl6StdXrtJsonParseParams, 1, "c_bool", NULL},
+    {"__xrt_json", "parseFile", "__xl_std_xrt_json_parse_file", "xl6_xrt_json_parse_file", xl6StdPathUnaryParams, 1, "var", NULL},
+    {"__xrt_json", "stringify", "__xl_std_xrt_json_stringify", "xl6_xrt_json_stringify", xl6StdXrtJsonStringifyParams, 2, "point", NULL},
+    {"__xrt_json", "writeFile", "__xl_std_xrt_json_write_file", "xl6_xrt_json_write_file", xl6StdXrtJsonWriteParams, 3, "c_bool", NULL},
+    {"__xrt_value", "tableRemove", "__xl_std_xrt_table_remove", "xl6DictValueRemoveV1", xl6StdDictRemoveParams, 2, "bool", NULL},
+    {"__runtime", "jsonVisit", "__xl_std_runtime_json_visit", "xl6_xrt_json_visit", xl6StdJsonVisitRuntimeParams, 2, "c_int", NULL},
+    {"__xrt_jsonl", "stringify", "__xl_std_xrt_jsonl_stringify", "xl6_xrt_jsonl_stringify", xl6StdLinesValueParams, 1, "point", NULL},
+    {"__xrt_xlonl", "stringify", "__xl_std_xrt_xlonl_stringify", "xl6_xrt_xlonl_stringify", xl6StdLinesValueParams, 1, "point", NULL},
+    {"__runtime", "xlonParseOptions", "__xl_std_runtime_xlon_parse_options", "xl6_xrt_xlon_parse_options", xl6StdXlonTextOptionsRuntimeParams, 4, "var", NULL},
+    {"__runtime", "xlonValidOptions", "__xl_std_runtime_xlon_valid_options", "xl6_xrt_xlon_valid_options", xl6StdXlonTextOptionsRuntimeParams, 4, "bool", NULL},
+    {"__runtime", "xlonReadOptions", "__xl_std_runtime_xlon_read_options", "xl6_xrt_xlon_read_options", xl6StdXlonTextOptionsRuntimeParams, 4, "var", NULL},
+    {"__runtime", "xlonStringifyOptions", "__xl_std_runtime_xlon_stringify_options", "xl6_xrt_xlon_stringify_options", xl6StdXlonValueOptionsRuntimeParams, 4, "point", NULL},
+    {"__runtime", "xlonWriteOptions", "__xl_std_runtime_xlon_write_options", "xl6_xrt_xlon_write_options", xl6StdXlonWriteOptionsRuntimeParams, 5, "bool", NULL},
+    {"__runtime", "xlonVisitOptions", "__xl_std_runtime_xlon_visit_options", "xl6_xrt_xlon_visit_options", xl6StdXlonVisitOptionsRuntimeParams, 5, "c_int", NULL},
+    {"__xrt_hash", "u32", "__xl_std_xrt_hash32", "xl6_xrt_hash32_string", xl6StdHashStringParams, 2, "c_uint", NULL},
+    {"__xrt_hash", "u32WithSeed", "__xl_std_xrt_hash32_seed", "xl6_xrt_hash32_string_seed", xl6StdHashStringSeed32Params, 3, "c_uint", NULL},
+    {"__xrt_hash", "u64", "__xl_std_xrt_hash64", "xl6_xrt_hash64_string", xl6StdHashStringParams, 2, "c_ulonglong", NULL},
+    {"__xrt_hash", "u64WithSeed", "__xl_std_xrt_hash64_seed", "xl6_xrt_hash64_string_seed", xl6StdHashStringSeed64Params, 3, "c_ulonglong", NULL},
+    {"__xrt_hash", "u32Bytes", "__xl_std_xrt_hash32_bytes", "xl6_xrt_hash32_bytes", xl6StdHashBytesParams, 2, "c_uint", NULL},
+    {"__xrt_hash", "u32BytesWithSeed", "__xl_std_xrt_hash32_bytes_seed", "xl6_xrt_hash32_bytes_seed", xl6StdHashBytesSeed32Params, 3, "c_uint", NULL},
+    {"__xrt_hash", "u64Bytes", "__xl_std_xrt_hash64_bytes", "xl6_xrt_hash64_bytes", xl6StdHashBytesParams, 2, "c_ulonglong", NULL},
+    {"__xrt_hash", "u64BytesWithSeed", "__xl_std_xrt_hash64_bytes_seed", "xl6_xrt_hash64_bytes_seed", xl6StdHashBytesSeed64Params, 3, "c_ulonglong", NULL},
+    {"__xrt_hash", "u32Raw", "__xl_std_xrt_hash32_raw", "xl6_xrt_hash32_raw", xl6StdHashRawParams, 3, "c_uint", NULL},
+    {"__xrt_hash", "u32RawWithSeed", "__xl_std_xrt_hash32_raw_seed", "xl6_xrt_hash32_raw_seed", xl6StdHashRawSeed32Params, 4, "c_uint", NULL},
+    {"__xrt_hash", "u64Raw", "__xl_std_xrt_hash64_raw", "xl6_xrt_hash64_raw", xl6StdHashRawParams, 3, "c_ulonglong", NULL},
+    {"__xrt_hash", "u64RawWithSeed", "__xl_std_xrt_hash64_raw_seed", "xl6_xrt_hash64_raw_seed", xl6StdHashRawSeed64Params, 4, "c_ulonglong", NULL},
+    {"__xrt_siphash", "hash64String", "__xl_std_xrt_siphash64_string", "xl6_xrt_siphash64_string", xl6StdSipHashStringParams, 3, "c_ulonglong", NULL},
+    {"__xrt_siphash", "hash64Bytes", "__xl_std_xrt_siphash64_bytes", "xl6_xrt_siphash64_bytes", xl6StdSipHashBytesParams, 3, "c_ulonglong", NULL},
+    {"__xrt_siphash", "hash64Raw", "__xl_std_xrt_siphash64_raw", "xl6_xrt_siphash64_raw", xl6StdSipHashRawParams, 4, "c_ulonglong", NULL},
+    {"__xrt_id", "toString", "__xl_std_xrt_xid_to_string", "xl6_xrt_xid_to_string", xl6StdXidValueParams, 1, "string", NULL},
+    {"__xrt_id", "toBytes", "__xl_std_xrt_xid_to_bytes", "xl6_xrt_xid_to_bytes", xl6StdXidValueParams, 1, "bytes", NULL},
+    {"__xrt_id", "timestamp", "__xl_std_xrt_xid_timestamp", "xl6_xrt_xid_timestamp", xl6StdXidValueParams, 1, "int", NULL},
+    {"__xrt_id", "compare", "__xl_std_xrt_xid_compare", "xl6_xrt_xid_compare", xl6StdXidPairParams, 2, "int", NULL},
+    {"__xrt_id", "equal", "__xl_std_xrt_xid_equal", "xl6_xrt_xid_equal", xl6StdXidPairParams, 2, "bool", NULL},
+    {"__xrt_id", "isZero", "__xl_std_xrt_xid_is_zero", "xl6_xrt_xid_is_zero", xl6StdXidValueParams, 1, "bool", NULL},
+
+    {"", "print", "__xl_std_print", NULL, NULL, 0, "", xl6StdPrintBody},
+    {"", "println", "__xl_std_println", NULL, NULL, 0, "", xl6StdPrintlnBody},
+    {"", "write", "__xl_std_write", NULL, NULL, 0, "", xl6StdWriteBody},
+    {"", "writeln", "__xl_std_writeln", NULL, NULL, 0, "", xl6StdWritelnBody},
+
+    {"__xl_runtime", "consoleFlush", "__xl_std_runtime_console_flush", "xl6_xrt_console_flush", xl6StdConsoleStreamParams, 1, "c_bool", NULL},
+    {"console", "write", "__xl_std_console_write", NULL, NULL, 0, "", xl6StdConsoleWriteBody},
+    {"console", "writeLine", "__xl_std_console_write_line", NULL, NULL, 0, "", xl6StdConsoleWriteLineBody},
+    {"console", "error", "__xl_std_console_error", NULL, NULL, 0, "", xl6StdConsoleErrorBody},
+    {"console", "errorLine", "__xl_std_console_error_line", NULL, NULL, 0, "", xl6StdConsoleErrorLineBody},
+    {"console", "flush", "__xl_std_console_flush", NULL, NULL, 0, "", xl6StdConsoleFlushBody},
+    {"__xl_runtime", "consoleReadLine", "__xl_std_runtime_console_read_line", "xl6_xrt_console_read_line", xl6StdConsoleLimitParams, 1, "string?", NULL},
+    {"__xl_runtime", "consoleReadChar", "__xl_std_runtime_console_read_char", "xl6_xrt_console_read_char", NULL, 0, "int", NULL},
+    {"__xl_runtime", "consoleIsTerminal", "__xl_std_runtime_console_is_terminal", "xl6_xrt_console_is_terminal", xl6StdConsoleIntStreamParams, 1, "bool", NULL},
+    {"__xl_runtime", "consoleSize", "__xl_std_runtime_console_size", "xl6_xrt_console_size", xl6StdConsoleIntStreamParams, 1, "int", NULL},
+    {"__xl_runtime", "consoleColor", "__xl_std_runtime_console_color", "xl6_xrt_console_color", xl6StdConsoleIntStreamParams, 1, "int", NULL},
+    {"__xl_runtime", "consoleStyled", "__xl_std_runtime_console_styled", "xl6_xrt_console_styled", xl6StdConsoleStyledParams, 5, "bool", NULL},
+    {"console", "readLine", "__xl_std_console_readLine", NULL, NULL, 0, "string?", readLineBody},
+    {"console", "readChar", "__xl_std_console_readChar", NULL, NULL, 0, "char?", readCharBody},
+    {"console", "isTerminal", "__xl_std_console_isTerminal", NULL, NULL, 0, "bool", isTerminalBody},
+    {"console", "size", "__xl_std_console_size", NULL, NULL, 0, "(int, int)", sizeBody},
+    {"console", "colorMode", "__xl_std_console_colorMode", NULL, NULL, 0, "int", colorModeBody},
+    {"console", "writeStyled", "__xl_std_console_writeStyled", NULL, NULL, 0, "", writeStyledBody},
+    {"console", "errorStyled", "__xl_std_console_errorStyled", NULL, NULL, 0, "", errorStyledBody},
+    {"console", "rgb", "__xl_std_console_rgb", NULL, NULL, 0, "int", rgbBody},
+    {"console", "openSession", "__xl_std_console_openSession", NULL, NULL, 0, "ConsoleSession", openSessionBody},
+
+    {"__xl_runtime", "ioReadFile", "__xl_std_runtime_io_read_file", "xl6_xrt_io_read_file", xl6StdIoReadFileParams, 2, "bytes", NULL},
+    {"__xl_runtime", "ioWriteFile", "__xl_std_runtime_io_write_file", "xl6_xrt_io_write_file", xl6StdIoWriteFileParams, 4, "bool", NULL},
+    {"__xl_runtime", "ioWriteTextFile", "__xl_std_runtime_io_write_text_file", "xl6_xrt_io_write_text_file", xl6StdIoWriteTextFileParams, 4, "bool", NULL},
+    {"io", "readFile", "__xl_std_io_read_file", NULL, NULL, 0, "bytes", xl6StdIoReadFileBody},
+    {"__xl_runtime", "ioCopy", "__xl_std_runtime_io_copy", "xl6_xrt_io_copy", xl6StdIoCopyParams, 4, "int", NULL},
+    {"__xl_runtime", "ioWriteBufferFile", "__xl_std_runtime_io_write_buffer_file", "xl6_xrt_io_write_buffer_file", xl6StdIoWriteBufferFileParams, 4, "bool", NULL},
+    {"vfs", "create", "__xl_std_vfs_create", NULL, NULL, 0, "Vfs", xl6StdVfscreateBody},
+    {"vfs", "memory", "__xl_std_vfs_memory", NULL, NULL, 0, "MemoryFS", xl6StdVfsmemoryBody},
+    {"vfs", "disk", "__xl_std_vfs_disk", NULL, NULL, 0, "DiskFS", xl6StdVfsdiskBody},
+    {"vfs", "pack", "__xl_std_vfs_pack", NULL, NULL, 0, "PackFS", xl6StdVfspackBody},
+    {"vfs", "packOptions", "__xl_std_vfs_pack_options", NULL, NULL, 0, "PackOptions", xl6StdVfsPackOptionsBody},
+    {"vfs", "takePack", "__xl_std_vfs_take_pack", NULL, NULL, 0, "PackFS", xl6StdVfsTakePackBody},
+    {"io", "openReader", "__xl_std_io_openReader", NULL, NULL, 0, "IoReader", openReaderBody},
+    {"io", "openWriter", "__xl_std_io_openWriter", NULL, NULL, 0, "IoWriter", openWriterBody},
+    {"io", "fromBytes", "__xl_std_io_fromBytes", NULL, NULL, 0, "IoReader", fromBytesBody},
+    {"io", "fromBuffer", "__xl_std_io_fromBuffer", NULL, NULL, 0, "IoReader", fromBufferBody},
+    {"io", "bufferWriter", "__xl_std_io_bufferWriter", NULL, NULL, 0, "IoWriter", bufferWriterBody},
+    {"io", "discardWriter", "__xl_std_io_discardWriter", NULL, NULL, 0, "IoWriter", discardWriterBody},
+    {"io", "stdin", "__xl_std_io_stdin", NULL, NULL, 0, "IoReader", stdinBody},
+    {"io", "stdout", "__xl_std_io_stdout", NULL, NULL, 0, "IoWriter", stdoutBody},
+    {"io", "stderr", "__xl_std_io_stderr", NULL, NULL, 0, "IoWriter", stderrBody},
+    {"io", "lines", "__xl_std_io_lines", NULL, NULL, 0, "IoLineReader", linesBody},
+    {"io", "writeFile", "__xl_std_io_write_file", NULL, NULL, 0, "", write_buffer_fileBody},
+    {"io", "copy", "__xl_std_io_copy", NULL, NULL, 0, "int", copyBody},
+    {"io", "copy", "__xl_std_io_copy", NULL, NULL, 0, "int", copyProtocolBody},
+    {"io", "copyExact", "__xl_std_io_copyExact", NULL, NULL, 0, "int", copyExactBody},
+    {"io", "copyExact", "__xl_std_io_copyExact", NULL, NULL, 0, "int", copyExactProtocolBody},
+    {"io", "copyUpTo", "__xl_std_io_copyUpTo", NULL, NULL, 0, "int", copyUpToBody},
+    {"io", "copyUpTo", "__xl_std_io_copyUpTo", NULL, NULL, 0, "int", copyUpToProtocolBody},
+    {"io", "writeFile", "__xl_std_io_write_file", NULL, NULL, 0, "", xl6StdIoWriteFileBody},
+    {"io", "writeFile", "__xl_std_io_write_file", NULL, NULL, 0, "", xl6StdIoWriteTextFileBody},
+
+    {"math", "sin", "__xl_std_math_sin", "sin", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "cos", "__xl_std_math_cos", "cos", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "tan", "__xl_std_math_tan", "tan", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "asin", "__xl_std_math_asin", "asin", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "acos", "__xl_std_math_acos", "acos", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "atan", "__xl_std_math_atan", "atan", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "atan2", "__xl_std_math_atan2", "atan2", xl6StdMathAtan2Params, 2, "float", NULL},
+    {"math", "sqrt", "__xl_std_math_sqrt", "sqrt", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "pow", "__xl_std_math_pow", "pow", xl6StdMathPowParams, 2, "float", NULL},
+    {"math", "exp", "__xl_std_math_exp", "exp", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "log", "__xl_std_math_log", "log", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "log10", "__xl_std_math_log10", "log10", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "floor", "__xl_std_math_floor", "floor", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "ceil", "__xl_std_math_ceil", "ceil", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "round", "__xl_std_math_round", "round", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "roundCurrent", "__xl_std_math_round_current", "nearbyint", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "abs", "__xl_std_math_abs", "fabs", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "abs", "__xl_std_math_abs", NULL, NULL, 0, "int", xl6StdMathAbsIntBody},
+    {"math", "abs", "__xl_std_math_abs", NULL, NULL, 0, "int8", xl6StdMathAbsInt8Body},
+    {"math", "abs", "__xl_std_math_abs", NULL, NULL, 0, "int16", xl6StdMathAbsInt16Body},
+    {"math", "abs", "__xl_std_math_abs", NULL, NULL, 0, "int32", xl6StdMathAbsInt32Body},
+    {"math", "sinh", "__xl_std_math_sinh", "sinh", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "cosh", "__xl_std_math_cosh", "cosh", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "tanh", "__xl_std_math_tanh", "tanh", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "asinh", "__xl_std_math_asinh", "asinh", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "acosh", "__xl_std_math_acosh", "acosh", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "atanh", "__xl_std_math_atanh", "atanh", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "erf", "__xl_std_math_erf", "erf", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "erfc", "__xl_std_math_erfc", "erfc", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "gamma", "__xl_std_math_gamma", "tgamma", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "logGamma", "__xl_std_math_log_gamma", "lgamma", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "fma", "__xl_std_math_fma", "fma", xl6StdMathTernaryFloatParams, 3, "float", NULL},
+    {"math", "copySign", "__xl_std_math_copy_sign", "copysign", xl6StdMathPowParams, 2, "float", NULL},
+    {"math", "nextAfter", "__xl_std_math_next_after", "nextafter", xl6StdMathPowParams, 2, "float", NULL},
+    {"math", "remainder", "__xl_std_math_remainder", "remainder", xl6StdMathPowParams, 2, "float", NULL},
+    {"math", "positiveDiff", "__xl_std_math_positive_diff", "fdim", xl6StdMathPowParams, 2, "float", NULL},
+    {"math", "minNumber", "__xl_std_math_min_number", "fmin", xl6StdMathPowParams, 2, "float", NULL},
+    {"math", "maxNumber", "__xl_std_math_max_number", "fmax", xl6StdMathPowParams, 2, "float", NULL},
+    {"__crt_math", "ldexpNative", "__xl_std_math_ldexp_native", "ldexp", xl6StdMathScaleNativeParams, 2, "float", NULL},
+    {"__crt_math", "scalbnNative", "__xl_std_math_scalbn_native", "scalbn", xl6StdMathScaleNativeParams, 2, "float", NULL},
+    {"__crt_math", "ilogbNative", "__xl_std_math_ilogb_native", "ilogb", xl6StdMathUnaryFloatParams, 1, "c_int", NULL},
+    {"math", "ldexp", "__xl_std_math_ldexp", NULL, NULL, 0, "float", xl6StdMathLdexpBody},
+    {"math", "scaleByPowerOfTwo", "__xl_std_math_scale_by_power_of_two", NULL, NULL, 0, "float", xl6StdMathScaleByPowerOfTwoBody},
+    {"math", "logb", "__xl_std_math_logb", "logb", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "ilogb", "__xl_std_math_ilogb", NULL, NULL, 0, "int", xl6StdMathIlogbBody},
+    {"math", "divRem", "__xl_std_math_div_rem", NULL, NULL, 0, "(int, int)", xl6StdMathDivRemBody},
+    {"math", "frexp", "__xl_std_math_frexp", NULL, NULL, 0, "(float, int)", xl6StdMathFrexpBody},
+    {"math", "modf", "__xl_std_math_modf", NULL, NULL, 0, "(float, float)", xl6StdMathModfBody},
+    {"math", "remQuo", "__xl_std_math_rem_quo", NULL, NULL, 0, "(float, int)", xl6StdMathRemQuoBody},
+    {"math", "signBit", "__xl_std_math_sign_bit", NULL, NULL, 0, "bool", xl6StdMathSignBitBody},
+    {"math", "isNormal", "__xl_std_math_is_normal", NULL, NULL, 0, "bool", xl6StdMathIsNormalBody},
+    {"math", "isSubnormal", "__xl_std_math_is_subnormal", NULL, NULL, 0, "bool", xl6StdMathIsSubnormalBody},
+    {"math", "classify", "__xl_std_math_classify", NULL, NULL, 0, "FloatClass", xl6StdMathClassifyBody},
+    {"math", "isUnordered", "__xl_std_math_is_unordered", NULL, NULL, 0, "bool", xl6StdMathIsUnorderedBody},
+    {"array", "sort", "__xl_std_array_sort", NULL, NULL, 0, "", xl6StdArraySortBody},
+    {"array", "sortBy", "__xl_std_array_sort_by", NULL, NULL, 0, "", xl6StdArraySortByBody},
+    {"array", "binarySearch", "__xl_std_array_binary_search", NULL, NULL, 0, "int", xl6StdArrayBinarySearchBody},
+    {"ascii", "isAlpha", "__xl_std_ascii_is_alpha", NULL, NULL, 0, "bool", xl6StdAsciiIsAlphaBody},
+    {"ascii", "isDigit", "__xl_std_ascii_is_digit", NULL, NULL, 0, "bool", xl6StdAsciiIsDigitBody},
+    {"ascii", "isAlphaNumeric", "__xl_std_ascii_is_alphanumeric", NULL, NULL, 0, "bool", xl6StdAsciiIsAlphaNumericBody},
+    {"ascii", "isHexDigit", "__xl_std_ascii_is_hex_digit", NULL, NULL, 0, "bool", xl6StdAsciiIsHexDigitBody},
+    {"ascii", "isWhitespace", "__xl_std_ascii_is_whitespace", NULL, NULL, 0, "bool", xl6StdAsciiIsWhitespaceBody},
+    {"ascii", "isBlank", "__xl_std_ascii_is_blank", NULL, NULL, 0, "bool", xl6StdAsciiIsBlankBody},
+    {"ascii", "isControl", "__xl_std_ascii_is_control", NULL, NULL, 0, "bool", xl6StdAsciiIsControlBody},
+    {"ascii", "isPrintable", "__xl_std_ascii_is_printable", NULL, NULL, 0, "bool", xl6StdAsciiIsPrintableBody},
+    {"ascii", "isGraphical", "__xl_std_ascii_is_graphical", NULL, NULL, 0, "bool", xl6StdAsciiIsGraphicalBody},
+    {"ascii", "isPunctuation", "__xl_std_ascii_is_punctuation", NULL, NULL, 0, "bool", xl6StdAsciiIsPunctuationBody},
+    {"ascii", "isLower", "__xl_std_ascii_is_lower", NULL, NULL, 0, "bool", xl6StdAsciiIsLowerBody},
+    {"ascii", "isUpper", "__xl_std_ascii_is_upper", NULL, NULL, 0, "bool", xl6StdAsciiIsUpperBody},
+    {"ascii", "toLower", "__xl_std_ascii_to_lower", NULL, NULL, 0, "char", xl6StdAsciiToLowerBody},
+    {"ascii", "toUpper", "__xl_std_ascii_to_upper", NULL, NULL, 0, "char", xl6StdAsciiToUpperBody},
+    {"math", "min", "__xl_std_math_min", "xrtMathMin", xl6StdMathBinaryFloatParams, 2, "float", NULL},
+    {"math", "max", "__xl_std_math_max", "xrtMathMax", xl6StdMathBinaryFloatParams, 2, "float", NULL},
+    {"math", "clamp", "__xl_std_math_clamp", "xrtMathClamp", xl6StdMathClampParams, 3, "float", NULL},
+    {"math", "sign", "__xl_std_math_sign", NULL, xl6StdMathUnaryFloatParams, 1, "int", xl6StdMathSignBody},
+    {"math", "trunc", "__xl_std_math_trunc", "xrtMathTrunc", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "fract", "__xl_std_math_fract", "xrtMathFract", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "mod", "__xl_std_math_mod", "xrtMathMod", xl6StdMathModParams, 2, "float", NULL},
+    {"math", "rad", "__xl_std_math_rad", "xrtMathRad", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "deg", "__xl_std_math_deg", "xrtMathDeg", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "isNaN", "__xl_std_math_is_nan", "xrtMathIsNaN", xl6StdMathUnaryFloatParams, 1, "bool", NULL},
+    {"math", "isInf", "__xl_std_math_is_inf", "xrtMathIsInf", xl6StdMathUnaryFloatParams, 1, "bool", NULL},
+    {"math", "isFinite", "__xl_std_math_is_finite", "xrtMathIsFinite", xl6StdMathUnaryFloatParams, 1, "bool", NULL},
+    {"math", "log2", "__xl_std_math_log2", "xrtMathLog2", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "exp2", "__xl_std_math_exp2", "xrtMathExp2", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "log1p", "__xl_std_math_log1p", "xrtMathLog1p", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "expm1", "__xl_std_math_expm1", "xrtMathExpm1", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "cbrt", "__xl_std_math_cbrt", "xrtMathCbrt", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "hypot", "__xl_std_math_hypot", "xrtMathHypot", xl6StdMathPowParams, 2, "float", NULL},
+    {"math", "isClose", "__xl_std_math_is_close", "xrtMathNear", xl6StdMathIsCloseParams, 4, "bool", NULL},
+    {"math", "intNear", "__xl_std_math_int_near", "xrtMathIntNear", xl6StdMathIntNearParams, 3, "bool", NULL},
+
+    {"string", "len", "__xl_std_string_len", NULL, NULL, 0, "int", xl6StdStringLenBody},
+    {"string", "byteLen", "__xl_std_string_byte_len", NULL, NULL, 0, "int", xl6StdStringByteLenBody},
+    {"string", "compare", "__xl_std_string_compare", NULL, NULL, 0, "int", xl6StdStringCompareBody},
+    {"string", "equals", "__xl_std_string_equals", NULL, NULL, 0, "bool", xl6StdStringEqualsBody},
+    {"string", "contains", "__xl_std_string_contains", NULL, NULL, 0, "bool", xl6StdStringContainsBody},
+    {"string", "indexOf", "__xl_std_string_index_of", NULL, NULL, 0, "int", xl6StdStringIndexOfBody},
+    {"string", "lastIndexOf", "__xl_std_string_last_index_of", NULL, NULL, 0, "int", xl6StdStringLastIndexOfBody},
+    {"string", "count", "__xl_std_string_count", NULL, NULL, 0, "int", xl6StdStringCountBody},
+    {"string", "startsWith", "__xl_std_string_starts_with", NULL, NULL, 0, "bool", xl6StdStringStartsWithBody},
+    {"string", "endsWith", "__xl_std_string_ends_with", NULL, NULL, 0, "bool", xl6StdStringEndsWithBody},
+    {"string", "hasAny", "__xl_std_string_has_any", NULL, NULL, 0, "bool", xl6StdStringHasAnyBody},
+    {"string", "like", "__xl_std_string_like", NULL, NULL, 0, "bool", xl6StdStringLikeBody},
+    {"string", "approx", "__xl_std_string_approx", NULL, NULL, 0, "bool", xl6StdStringApproxBody},
+    {"string", "sim", "__xl_std_string_sim", NULL, NULL, 0, "float", xl6StdStringSimBody},
+    {"string", "isUtf8", "__xl_std_string_is_utf8", NULL, NULL, 0, "bool", xl6StdStringIsUtf8Body},
+    {"string", "glob", "__xl_std_string_glob", NULL, NULL, 0, "bool", xl6StdStringGlobBody},
+    {"string", "distance", "__xl_std_string_distance", NULL, NULL, 0, "int", xl6StdStringDistanceBody},
+    {"int", "format", "__xl_std_int_format", NULL, NULL, 0, "string", xl6StdIntFormatBody},
+    {"int", "format", "__xl_std_int_format", NULL, NULL, 0, "string", xl6StdIntFormatUIntBody},
+    {"float", "format", "__xl_std_float_format", NULL, NULL, 0, "string", xl6StdFloatFormatBody},
+    {"int", "toString", "__xl_std_int_to_string", NULL, NULL, 0, "string", xl6StdIntStringBody},
+    {"int", "toString", "__xl_std_int_to_string", NULL, NULL, 0, "string", xl6StdUIntStringBody},
+    {"float", "toString", "__xl_std_float_to_string", NULL, NULL, 0, "string", xl6StdFloatStringBody},
+    {"int", "parse", "__xl_std_int_parse", NULL, NULL, 0, "int", xl6StdIntParseBody},
+    {"int", "tryParse", "__xl_std_int_try_parse", NULL, NULL, 0, "(bool, int)", xl6StdIntTryParseBody},
+    {"uint64", "parse", "__xl_std_uint64_parse", NULL, NULL, 0, "uint64", xl6StdUInt64ParseBody},
+    {"uint64", "tryParse", "__xl_std_uint64_try_parse", NULL, NULL, 0, "(bool, uint64)", xl6StdUInt64TryParseBody},
+    {"float", "parse", "__xl_std_float_parse", NULL, NULL, 0, "float", xl6StdFloatParseBody},
+    {"float", "tryParse", "__xl_std_float_try_parse", NULL, NULL, 0, "(bool, float)", xl6StdFloatTryParseBody},
+    {"int8", "parse", "__xl_std_int8_parse", NULL, NULL, 0, "int8", xl6StdInt8ParseBody},
+    {"int8", "tryParse", "__xl_std_int8_try_parse", NULL, NULL, 0, "(bool, int8)", xl6StdInt8TryParseBody},
+    {"int16", "parse", "__xl_std_int16_parse", NULL, NULL, 0, "int16", xl6StdInt16ParseBody},
+    {"int16", "tryParse", "__xl_std_int16_try_parse", NULL, NULL, 0, "(bool, int16)", xl6StdInt16TryParseBody},
+    {"int32", "parse", "__xl_std_int32_parse", NULL, NULL, 0, "int32", xl6StdInt32ParseBody},
+    {"int32", "tryParse", "__xl_std_int32_try_parse", NULL, NULL, 0, "(bool, int32)", xl6StdInt32TryParseBody},
+    {"int64", "parse", "__xl_std_int64_parse", NULL, NULL, 0, "int64", xl6StdInt64ParseBody},
+    {"int64", "tryParse", "__xl_std_int64_try_parse", NULL, NULL, 0, "(bool, int64)", xl6StdInt64TryParseBody},
+    {"uint8", "parse", "__xl_std_uint8_parse", NULL, NULL, 0, "uint8", xl6StdUInt8ParseBody},
+    {"uint8", "tryParse", "__xl_std_uint8_try_parse", NULL, NULL, 0, "(bool, uint8)", xl6StdUInt8TryParseBody},
+    {"uint16", "parse", "__xl_std_uint16_parse", NULL, NULL, 0, "uint16", xl6StdUInt16ParseBody},
+    {"uint16", "tryParse", "__xl_std_uint16_try_parse", NULL, NULL, 0, "(bool, uint16)", xl6StdUInt16TryParseBody},
+    {"uint32", "parse", "__xl_std_uint32_parse", NULL, NULL, 0, "uint32", xl6StdUInt32ParseBody},
+    {"uint32", "tryParse", "__xl_std_uint32_try_parse", NULL, NULL, 0, "(bool, uint32)", xl6StdUInt32TryParseBody},
+    {"string", "format", "__xl_std_string_format", NULL, NULL, 0, "string", xl6StdStringFormatBodyInt},
+    {"string", "format", "__xl_std_string_format", NULL, NULL, 0, "string", xl6StdStringFormatBodyUInt},
+    {"string", "format", "__xl_std_string_format", NULL, NULL, 0, "string", xl6StdStringFormatBodyFloat},
+    {"string", "lower", "__xl_std_string_lower", NULL, NULL, 0, "string", xl6StdStringLowerBody},
+    {"string", "upper", "__xl_std_string_upper", NULL, NULL, 0, "string", xl6StdStringUpperBody},
+    {"string", "trim", "__xl_std_string_trim", NULL, NULL, 0, "string", xl6StdStringTrimBody},
+    {"string", "ltrim", "__xl_std_string_ltrim", NULL, NULL, 0, "string", xl6StdStringLTrimBody},
+    {"string", "rtrim", "__xl_std_string_rtrim", NULL, NULL, 0, "string", xl6StdStringRTrimBody},
+    {"string", "filter", "__xl_std_string_filter", NULL, NULL, 0, "string", xl6StdStringFilterBody},
+    {"string", "replace", "__xl_std_string_replace", NULL, NULL, 0, "string", xl6StdStringReplaceBody},
+    {"string", "split", "__xl_std_string_split", NULL, NULL, 0, "array<string>", xl6StdStringSplitBody},
+    {"string", "slice", "__xl_std_string_slice", NULL, NULL, 0, "string", xl6StdStringSliceBody},
+    {"string", "left", "__xl_std_string_left", NULL, NULL, 0, "string", xl6StdStringLeftBody},
+    {"string", "right", "__xl_std_string_right", NULL, NULL, 0, "string", xl6StdStringRightBody},
+    {"string", "mid", "__xl_std_string_mid", NULL, NULL, 0, "string", xl6StdStringMidBody},
+    {"string", "charAt", "__xl_std_string_char_at", NULL, NULL, 0, "char", xl6StdStringCharAtBody},
+    {"string", "byteAt", "__xl_std_string_byte_at", NULL, NULL, 0, "uint8", xl6StdStringByteAtBody},
+    {"string", "join", "__xl_std_string_join", NULL, NULL, 0, "string", xl6StdStringJoinBody},
+    {"string", "repeat", "__xl_std_string_repeat", NULL, NULL, 0, "string", xl6StdStringRepeatBody},
+    {"string", "isEmpty", "__xl_std_string_is_empty", NULL, NULL, 0, "bool", xl6StdStringIsEmptyBody},
+    {"string", "isBlank", "__xl_std_string_is_blank", NULL, NULL, 0, "bool", xl6StdStringIsBlankBody},
+    {"string", "remove", "__xl_std_string_remove", NULL, NULL, 0, "string", xl6StdStringRemoveBody},
+    {"string", "removeAt", "__xl_std_string_remove_at", NULL, NULL, 0, "string", xl6StdStringRemoveAtBody},
+    {"string", "insert", "__xl_std_string_insert", NULL, NULL, 0, "string", xl6StdStringInsertBody},
+    {"string", "padLeft", "__xl_std_string_pad_left", NULL, NULL, 0, "string", xl6StdStringPadLeftBody},
+    {"string", "padRight", "__xl_std_string_pad_right", NULL, NULL, 0, "string", xl6StdStringPadRightBody},
+    {"string", "padCenter", "__xl_std_string_pad_center", NULL, NULL, 0, "string", xl6StdStringPadCenterBody},
+    {"string", "reverse", "__xl_std_string_reverse", NULL, NULL, 0, "string", xl6StdStringReverseBody},
+    {"string", "splitLines", "__xl_std_string_split_lines", NULL, NULL, 0, "array<string>", xl6StdStringSplitLinesBody},
+    {"string", "fields", "__xl_std_string_fields", NULL, NULL, 0, "array<string>", xl6StdStringFieldsBody},
+    {"string", "splitIter", "__xl_std_string_splitIter", NULL, NULL, 0, "StringIterator", xl6StdStringSplitIterBody},
+    {"string", "linesIter", "__xl_std_string_linesIter", NULL, NULL, 0, "StringIterator", xl6StdStringLinesIterBody},
+    {"string", "fieldsIter", "__xl_std_string_fieldsIter", NULL, NULL, 0, "StringIterator", xl6StdStringFieldsIterBody},
+    {"string", "chars", "__xl_std_string_chars", NULL, NULL, 0, "array<char>", xl6StdStringCharsBody},
+    {"string", "bytes", "__xl_std_string_bytes", NULL, NULL, 0, "bytes", xl6StdStringBytesBody},
+
+    {"time", "now", "__xl_std_time_now", NULL, NULL, 0, "time", xl6StdTimeNowBody},
+    {"time", "split", "__xl_std_time_split", NULL, NULL, 0, "DateTime", xl6StdTimeSplitBody},
+    {"time", "local", "__xl_std_time_local", NULL, NULL, 0, "DateTime", xl6StdTimeLocalBody},
+    {"time", "fromLocal", "__xl_std_time_from_local", NULL, NULL, 0, "time", xl6StdTimeFromLocalBody},
+    {"time", "monthRange", "__xl_std_time_month_range", NULL, NULL, 0, "(time, time)", xl6StdTimeMonthRangeBody},
+    {"time", "yearRange", "__xl_std_time_year_range", NULL, NULL, 0, "(time, time)", xl6StdTimeYearRangeBody},
+    {"time", "weekRange", "__xl_std_time_week_range", NULL, NULL, 0, "(time, time)", xl6StdTimeWeekRangeBody},
+    {"time", "isoWeek", "__xl_std_time_iso_week", NULL, NULL, 0, "(int, int, int)", xl6StdTimeISOWeekBody},
+    {"time", "today", "__xl_std_time_today", NULL, NULL, 0, "time", xl6StdTimeTodayBody},
+    {"time", "clock", "__xl_std_time_clock", NULL, NULL, 0, "uint64", xl6StdTimeClockBody},
+    {"time", "fromTime", "__xl_std_time_from_time", NULL, NULL, 0, "time", xl6StdTimeFromTimeBody},
+    {"time", "fromDate", "__xl_std_time_from_date", NULL, NULL, 0, "time", xl6StdTimeFromDateBody},
+    {"time", "fromDateTime", "__xl_std_time_from_datetime", NULL, NULL, 0, "time", xl6StdTimeFromDateTimeBody},
+    {"time", "parse", "__xl_std_time_parse", NULL, NULL, 0, "time", xl6StdTimeParseBody},
+    {"time", "parsePattern", "__xl_std_time_parse_pattern", NULL, NULL, 0, "time", xl6StdTimeParsePatternBody},
+    {"time", "tryParse", "__xl_std_time_try_parse", NULL, NULL, 0, "(bool, time)", xl6StdTimeTryParseBody},
+    {"time", "tryParsePattern", "__xl_std_time_try_parse_pattern", NULL, NULL, 0, "(bool, time)", xl6StdTimeTryParsePatternBody},
+    {"time", "year", "__xl_std_time_year", NULL, NULL, 0, "int", xl6StdTimeYearBody},
+    {"time", "month", "__xl_std_time_month", NULL, NULL, 0, "int", xl6StdTimeMonthBody},
+    {"time", "day", "__xl_std_time_day", NULL, NULL, 0, "int", xl6StdTimeDayBody},
+    {"time", "hour", "__xl_std_time_hour", NULL, NULL, 0, "int", xl6StdTimeHourBody},
+    {"time", "minute", "__xl_std_time_minute", NULL, NULL, 0, "int", xl6StdTimeMinuteBody},
+    {"time", "second", "__xl_std_time_second", NULL, NULL, 0, "int", xl6StdTimeSecondBody},
+    {"time", "weekday", "__xl_std_time_weekday", NULL, NULL, 0, "int", xl6StdTimeWeekdayBody},
+    {"time", "dayOfYear", "__xl_std_time_day_of_year", NULL, NULL, 0, "int", xl6StdTimeDayOfYearBody},
+    {"time", "quarter", "__xl_std_time_quarter", NULL, NULL, 0, "int", xl6StdTimeQuarterBody},
+    {"time", "isLeapYear", "__xl_std_time_is_leap_year", NULL, NULL, 0, "bool", xl6StdTimeIsLeapYearBody},
+    {"time", "daysInMonth", "__xl_std_time_days_in_month", NULL, NULL, 0, "int", xl6StdTimeDaysInMonthBody},
+    {"time", "daysInYear", "__xl_std_time_days_in_year", NULL, NULL, 0, "int", xl6StdTimeDaysInYearBody},
+    {"time", "datePart", "__xl_std_time_date_part", NULL, NULL, 0, "time", xl6StdTimeDatePartBody},
+    {"time", "timePart", "__xl_std_time_time_part", NULL, NULL, 0, "int", xl6StdTimeTimePartBody},
+    {"time", "isSameDay", "__xl_std_time_is_same_day", NULL, NULL, 0, "bool", xl6StdTimeIsSameDayBody},
+    {"time", "isSameMonth", "__xl_std_time_is_same_month", NULL, NULL, 0, "bool", xl6StdTimeIsSameMonthBody},
+    {"time", "isSameYear", "__xl_std_time_is_same_year", NULL, NULL, 0, "bool", xl6StdTimeIsSameYearBody},
+    {"time", "inRange", "__xl_std_time_in_range", NULL, NULL, 0, "bool", xl6StdTimeInRangeBody},
+    {"time", "addYears", "__xl_std_time_add_years", NULL, NULL, 0, "time", xl6StdTimeAddYearsBody},
+    {"time", "addMonths", "__xl_std_time_add_months", NULL, NULL, 0, "time", xl6StdTimeAddMonthsBody},
+    {"time", "addDays", "__xl_std_time_add_days", NULL, NULL, 0, "time", xl6StdTimeAddDaysBody},
+    {"time", "addHours", "__xl_std_time_add_hours", NULL, NULL, 0, "time", xl6StdTimeAddHoursBody},
+    {"time", "addMinutes", "__xl_std_time_add_minutes", NULL, NULL, 0, "time", xl6StdTimeAddMinutesBody},
+    {"time", "addSeconds", "__xl_std_time_add_seconds", NULL, NULL, 0, "time", xl6StdTimeAddSecondsBody},
+    {"time", "addWeeks", "__xl_std_time_add_weeks", NULL, NULL, 0, "time", xl6StdTimeAddWeeksBody},
+    {"time", "addQuarters", "__xl_std_time_add_quarters", NULL, NULL, 0, "time", xl6StdTimeAddQuartersBody},
+    {"time", "diffYears", "__xl_std_time_diff_years", NULL, NULL, 0, "int", xl6StdTimeDiffYearsBody},
+    {"time", "diffMonths", "__xl_std_time_diff_months", NULL, NULL, 0, "int", xl6StdTimeDiffMonthsBody},
+    {"time", "diffDays", "__xl_std_time_diff_days", NULL, NULL, 0, "int", xl6StdTimeDiffDaysBody},
+    {"time", "diffHours", "__xl_std_time_diff_hours", NULL, NULL, 0, "int", xl6StdTimeDiffHoursBody},
+    {"time", "diffMinutes", "__xl_std_time_diff_minutes", NULL, NULL, 0, "int", xl6StdTimeDiffMinutesBody},
+    {"time", "diffSeconds", "__xl_std_time_diff_seconds", NULL, NULL, 0, "int", xl6StdTimeDiffSecondsBody},
+    {"time", "diffWeeks", "__xl_std_time_diff_weeks", NULL, NULL, 0, "int", xl6StdTimeDiffWeeksBody},
+    {"time", "diffQuarters", "__xl_std_time_diff_quarters", NULL, NULL, 0, "int", xl6StdTimeDiffQuartersBody},
+    {"time", "timer", "__xl_std_time_timer", NULL, NULL, 0, "float", xl6StdTimeTimerBody},
+    {"time", "sleep", "__xl_std_time_sleep", NULL, xl6StdTimeSleepParams, 1, "", xl6StdTimeSleepBody},
+    {"time", "nowUTC", "__xl_std_time_now_utc", NULL, NULL, 0, "time", xl6StdTimeNowUtcBody},
+    {"time", "timezoneOffset", "__xl_std_time_timezone_offset", NULL, NULL, 0, "int", xl6StdTimeTimezoneOffsetBody},
+    {"time", "rangeOverlap", "__xl_std_time_range_overlap", NULL, NULL, 0, "bool", xl6StdTimeRangeOverlapBody},
+    {"time", "approx", "__xl_std_time_approx", NULL, NULL, 0, "bool", xl6StdTimeApproxBody},
+    {"time", "toUnix", "__xl_std_time_to_unix", NULL, NULL, 0, "int", xl6StdTimeToUnixBody},
+    {"time", "fromUnix", "__xl_std_time_from_unix", NULL, NULL, 0, "time", xl6StdTimeFromUnixBody},
+    {"time", "fromUnixMs", "__xl_std_time_from_unix_ms", NULL, NULL, 0, "time", xl6StdTimeFromUnixMsBody},
+    {"time", "toUnixMs", "__xl_std_time_to_unix_ms", NULL, NULL, 0, "int", xl6StdTimeToUnixMsBody},
+    {"time", "millisecond", "__xl_std_time_millisecond", NULL, NULL, 0, "int", xl6StdTimeMillisecondBody},
+    {"time", "monotonic", "__xl_std_time_monotonic", NULL, NULL, 0, "uint64", xl6StdTimeMonotonicBody},
+    {"time", "sleepUntil", "__xl_std_time_sleep_until", NULL, NULL, 0, "", xl6StdTimeSleepUntilBody},
+    {"time", "addMilliseconds", "__xl_std_time_add_ms", NULL, NULL, 0, "time", xl6StdTimeAddMsBody},
+    {"time", "diffMilliseconds", "__xl_std_time_diff_ms", NULL, NULL, 0, "int", xl6StdTimeDiffMsBody},
+    {"time", "utcToLocal", "__xl_std_time_utc_to_local", NULL, NULL, 0, "DateTime", xl6StdTimeUtcToLocalBody},
+    {"time", "localToUTC", "__xl_std_time_local_to_utc", NULL, NULL, 0, "time", xl6StdTimeLocalToUtcBody},
+    {"time", "firstDayOfMonth", "__xl_std_time_first_day_of_month", NULL, NULL, 0, "time", xl6StdTimeFirstDayOfMonthBody},
+    {"time", "lastDayOfMonth", "__xl_std_time_last_day_of_month", NULL, NULL, 0, "time", xl6StdTimeLastDayOfMonthBody},
+    {"time", "firstDayOfYear", "__xl_std_time_first_day_of_year", NULL, NULL, 0, "time", xl6StdTimeFirstDayOfYearBody},
+    {"time", "lastDayOfYear", "__xl_std_time_last_day_of_year", NULL, NULL, 0, "time", xl6StdTimeLastDayOfYearBody},
+    {"time", "firstDayOfWeek", "__xl_std_time_first_day_of_week", NULL, NULL, 0, "time", xl6StdTimeFirstDayOfWeekBody},
+    {"time", "lastDayOfWeek", "__xl_std_time_last_day_of_week", NULL, NULL, 0, "time", xl6StdTimeLastDayOfWeekBody},
+    {"time", "weekOfYear", "__xl_std_time_week_of_year", NULL, NULL, 0, "int", xl6StdTimeWeekOfYearBody},
+    {"time", "weekOfMonth", "__xl_std_time_week_of_month", NULL, NULL, 0, "int", xl6StdTimeWeekOfMonthBody},
+    {"time", "format", "__xl_std_time_format", NULL, NULL, 0, "string", xl6StdTimeFormatBody},
+    {"time", "formatPattern", "__xl_std_time_format_pattern", NULL, NULL, 0, "string", xl6StdTimeFormatPatternBody},
+    {"time", "dateString", "__xl_std_time_date_string", NULL, NULL, 0, "string", xl6StdTimeDateStringBody},
+    {"time", "timeString", "__xl_std_time_time_string", NULL, NULL, 0, "string", xl6StdTimeTimeStringBody},
+    {"time", "parseFields", "__xl_std_time_parse_fields", NULL, NULL, 0, "DateTime", xl6StdTimeParseFieldsBody},
+    {"time", "rfc3339", "__xl_std_time_rfc3339", NULL, NULL, 0, "string", xl6StdTimeRFC3339Body},
+    {"time", "httpDate", "__xl_std_time_http_date", NULL, NULL, 0, "string", xl6StdTimeHTTPDateBody},
+    {"time", "parseRFC3339", "__xl_std_time_parse_rfc3339", NULL, NULL, 0, "time", xl6StdTimeParseRFC3339Body},
+    {"time", "tryParseRFC3339", "__xl_std_time_try_parse_rfc3339", NULL, NULL, 0, "(bool,time)", xl6StdTimeTryParseRFC3339Body},
+    {"time", "parseHTTPDate", "__xl_std_time_parse_http_date", NULL, NULL, 0, "time", xl6StdTimeParseHTTPDateBody},
+    {"time", "tryParseHTTPDate", "__xl_std_time_try_parse_http_date", NULL, NULL, 0, "(bool,time)", xl6StdTimeTryParseHTTPDateBody},
+
+    {"random", "u32", "__xl_std_random_u32", NULL, NULL, 0, "uint32", xl6StdRandomU32Body},
+    {"random", "u64", "__xl_std_random_u64", NULL, NULL, 0, "uint64", xl6StdRandomU64Body},
+    {"random", "below", "__xl_std_random_below", NULL, NULL, 0, "uint64", xl6StdRandomBelowBody},
+    {"random", "range", "__xl_std_random_range", NULL, NULL, 0, "int", xl6StdRandomRangeBody},
+    {"random", "rangeClosed", "__xl_std_random_range_closed", NULL, NULL, 0, "int", xl6StdRandomRangeClosedBody},
+    {"random", "real", "__xl_std_random_real", NULL, NULL, 0, "float", xl6StdRandomRealBody},
+    {"random", "bytes", "__xl_std_random_bytes", NULL, NULL, 0, "bytes", xl6StdRandomBytesBody},
+    {"random", "fillBytes", "__xl_std_random_fill_bytes", NULL, NULL, 0, "", xl6StdRandomFillBytesBody},
+    {"random", "shuffle", "__xl_std_random_shuffle", NULL, NULL, 0, "", xl6StdRandomShuffleBody},
+    {"random", "shuffleBuffer", "__xl_std_random_shuffle_buffer", NULL, NULL, 0, "", xl6StdRandomShuffleBufferBody},
+    {"random", "seed", "__xl_std_random_seed", NULL, NULL, 0, "", xl6StdRandomSeedBody},
+    {"random", "string", "__xl_std_random_string", NULL, NULL, 0, "string", xl6StdRandomStringBody},
+
+    {"path", "exists", "__xl_std_path_exists", NULL, NULL, 0, "bool", xl6StdPathExistsBody},
+    {"path", "isRoot", "__xl_std_path_is_root", NULL, NULL, 0, "bool", xl6StdFsPathIsRootBody},
+    {"path", "isRooted", "__xl_std_path_is_rooted", NULL, NULL, 0, "bool", xl6StdFsPathIsRootedBody},
+    {"path", "stem", "__xl_std_path_stem", NULL, NULL, 0, "string", xl6StdFsPathStemBody},
+    {"path", "parent", "__xl_std_path_parent", NULL, NULL, 0, "string", xl6StdFsPathParentBody},
+    {"path", "real", "__xl_std_path_real", NULL, NULL, 0, "string", xl6StdFsPathRealBody},
+    {"path", "isLocal", "__xl_std_path_is_local", NULL, NULL, 0, "bool", xl6StdFsPathIsLocalBody},
+    {"path", "isSafeEntry", "__xl_std_path_is_safe", NULL, NULL, 0, "bool", xl6StdFsPathIsSafeBody},
+    {"path", "clean", "__xl_std_path_clean", NULL, NULL, 0, "string", xl6StdFsPathCleanBody},
+    {"path", "relative", "__xl_std_path_relative", NULL, NULL, 0, "string", xl6StdFsPathRelativeBody},
+    {"path", "build", "__xl_std_path_build", NULL, NULL, 0, "string", xl6StdFsPathBuildBody},
+    {"path", "listSep", "__xl_std_path_list_sep", NULL, NULL, 0, "string", xl6StdFsPathListSepBody},
+    {"path", "executable", "__xl_std_path_executable", NULL, NULL, 0, "string", xl6StdFsPathExecutableBody},
+    {"path", "parse", "__xl_std_path_parse", NULL, NULL, 0, "PathParts", xl6StdFsPathparseBody},
+    {"path", "components", "__xl_std_path_components", NULL, NULL, 0, "PathIterator", xl6StdFsPathcomponentsBody},
+    {"path", "isAbs", "__xl_std_path_is_abs", NULL, NULL, 0, "bool", xl6StdPathIsAbsBody},
+    {"path", "nameExt", "__xl_std_path_name_ext", NULL, NULL, 0, "string", xl6StdPathNameExtBody},
+    {"path", "name", "__xl_std_path_name", NULL, NULL, 0, "string", xl6StdPathNameBody},
+    {"path", "ext", "__xl_std_path_ext", NULL, NULL, 0, "string", xl6StdPathExtBody},
+    {"path", "dir", "__xl_std_path_dir", NULL, NULL, 0, "string", xl6StdPathDirBody},
+    {"path", "join", "__xl_std_path_join", NULL, NULL, 0, "string", xl6StdPathJoinBody},
+    {"path", "random", "__xl_std_path_random", NULL, NULL, 0, "string", xl6StdPathRandomBody},
+    {"path", "sep", "__xl_std_path_sep", NULL, NULL, 0, "string", xl6StdPathSepBody},
+    {"path", "normalize", "__xl_std_path_normalize", NULL, NULL, 0, "string", xl6StdPathNormalizeBody},
+    {"path", "abs", "__xl_std_path_abs", NULL, NULL, 0, "string", xl6StdPathAbsBody},
+    {"path", "rel", "__xl_std_path_rel", NULL, NULL, 0, "string", xl6StdPathRelBody},
+    {"path", "cwd", "__xl_std_path_cwd", NULL, NULL, 0, "string", xl6StdPathCwdBody},
+    {"path", "setCwd", "__xl_std_path_set_cwd", NULL, NULL, 0, "bool", xl6StdPathSetCwdBody},
+    {"path", "home", "__xl_std_path_home", NULL, NULL, 0, "string", xl6StdPathHomeBody},
+    {"path", "temp", "__xl_std_path_temp", NULL, NULL, 0, "string", xl6StdPathTempBody},
+    {"path", "appDir", "__xl_std_path_app_dir", NULL, NULL, 0, "string", xl6StdPathAppDirBody},
+    {"path", "withExt", "__xl_std_path_with_ext", NULL, NULL, 0, "string", xl6StdPathWithExtBody},
+    {"path", "withName", "__xl_std_path_with_name", NULL, NULL, 0, "string", xl6StdPathWithNameBody},
+
+    {"os", "env", "__xl_std_os_env", NULL, NULL, 0, "string", xl6StdOsEnvBody},
+    {"env", "get", "__xl_std_runtime_env_get", NULL, NULL, 0, "string?", xl6StdEnvGetBody},
+    {"env", "has", "__xl_std_runtime_env_has", NULL, NULL, 0, "bool", xl6StdEnvHasBody},
+    {"env", "set", "__xl_std_runtime_env_set", NULL, NULL, 0, "", xl6StdEnvSetBody},
+    {"env", "remove", "__xl_std_runtime_env_remove", NULL, NULL, 0, "", xl6StdEnvRemoveBody},
+    {"os", "platform", "__xl_std_os_platform", NULL, NULL, 0, "string", xl6StdFoundation_os_platform},
+    {"os", "architecture", "__xl_std_os_architecture", NULL, NULL, 0, "string", xl6StdFoundation_os_architecture},
+    {"os", "pointerBits", "__xl_std_os_pointerBits", NULL, NULL, 0, "int", xl6StdFoundation_os_pointerBits},
+    {"os", "littleEndian", "__xl_std_os_littleEndian", NULL, NULL, 0, "bool", xl6StdFoundation_os_littleEndian},
+    {"os", "logicalProcessorCount", "__xl_std_os_logicalProcessorCount", NULL, NULL, 0, "int", xl6StdFoundation_os_logicalProcessorCount},
+    {"memory", "statsEnabled", "__xl_std_memory_statsEnabled", NULL, NULL, 0, "bool", xl6StdFoundation_memory_statsEnabled},
+    {"memory", "enableStats", "__xl_std_memory_enableStats", NULL, NULL, 0, "", xl6StdFoundation_memory_enableStats},
+    {"memory", "resetStats", "__xl_std_memory_resetStats", NULL, NULL, 0, "", xl6StdFoundation_memory_resetStats},
+    {"memory", "stats", "__xl_std_memory_stats", NULL, NULL, 0, "MemoryStats", xl6StdFoundation_memory_stats},
+    {"memory", "debugEnabled", "__xl_std_memory_debugEnabled", NULL, NULL, 0, "bool", xl6StdFoundation_memory_debugEnabled},
+    {"memory", "debugSnapshot", "__xl_std_memory_debugSnapshot", NULL, NULL, 0, "MemoryDebugSnapshot", xl6StdFoundation_memory_debugSnapshot},
+    {"memory", "reportText", "__xl_std_memory_reportText", NULL, NULL, 0, "string", xl6StdFoundation_memory_reportText},
+    {"memory", "reportJson", "__xl_std_memory_reportJson", NULL, NULL, 0, "string", xl6StdFoundation_memory_reportJson},
+    {"os", "args", "__xl_std_os_args", NULL, NULL, 0, "array", xl6StdOsArgsBody},
+    {"os", "cwd", "__xl_std_os_cwd", NULL, NULL, 0, "string", xl6StdOsCwdBody},
+    {"os", "setCwd", "__xl_std_os_set_cwd", NULL, xl6StdPathUnaryParams, 1, "bool", xl6StdOsSetCwdBody},
+    {"os", "exec", "__xl_std_os_exec", NULL, NULL, 0, "string", xl6StdOsExecBody},
+    {"os", "run", "__xl_std_os_run", NULL, NULL, 0, "ProcessResult", xl6StdOsRunBody},
+    {"os", "start", "__xl_std_os_start", NULL, xl6StdPathUnaryParams, 1, "Process", xl6StdOsStartBody},
+    {"os", "startFile", "__xl_std_os_start_file", NULL, NULL, 0, "Process", xl6StdOsStartFileBody},
+    {"os", "chain", "__xl_std_os_chain", NULL, NULL, 0, "int", xl6StdOsChainBody},
+
+    {"file", "exists", "__xl_std_file_exists", NULL, NULL, 0, "bool", xl6StdFileExistsBody},
+    {"file", "size", "__xl_std_file_size", NULL, NULL, 0, "uint64", xl6StdFileSizeBody},
+    {"file", "setSize", "__xl_std_file_set_size", NULL, NULL, 0, "bool", xl6StdFileSetSizeBody},
+    {"file", "attr", "__xl_std_file_attr", NULL, NULL, 0, "int", xl6StdFileAttrBody},
+    {"file", "setAttr", "__xl_std_file_set_attr", NULL, NULL, 0, "bool", xl6StdFileSetAttrBody},
+    {"file", "accessTime", "__xl_std_file_access_time", NULL, NULL, 0, "time", xl6StdFileAccessTimeBody},
+    {"file", "changeTime", "__xl_std_file_change_time", NULL, NULL, 0, "time", xl6StdFileChangeTimeBody},
+    {"file", "readText", "__xl_std_file_read_text", NULL, NULL, 0, "string", xl6StdFileReadTextBody},
+    {"file", "readBytes", "__xl_std_file_read_bytes", NULL, NULL, 0, "bytes", xl6StdFileReadBytesBody},
+    {"file", "writeText", "__xl_std_file_write_text", NULL, NULL, 0, "bool", xl6StdFileWriteTextBody},
+    {"file", "appendText", "__xl_std_file_append_text", NULL, NULL, 0, "bool", xl6StdFileAppendTextBody},
+    {"file", "writeBytes", "__xl_std_file_write_bytes", NULL, NULL, 0, "bool", xl6StdFileWriteBytesBody},
+    {"file", "appendBytes", "__xl_std_file_append_bytes", NULL, NULL, 0, "bool", xl6StdFileAppendBytesBody},
+    {"file", "delete", "__xl_std_file_delete", NULL, NULL, 0, "bool", xl6StdFileDeleteBody},
+    {"file", "copy", "__xl_std_file_copy", NULL, NULL, 0, "bool", xl6StdFileCopyBody},
+    {"file", "move", "__xl_std_file_move", NULL, NULL, 0, "bool", xl6StdFileMoveBody},
+    {"file", "touch", "__xl_std_file_touch", NULL, NULL, 0, "bool", xl6StdFileTouchBody},
+    {"file", "rename", "__xl_std_file_rename", NULL, NULL, 0, "bool", xl6StdFileRenameBody},
+    {"file", "replace", "__xl_std_file_replace", NULL, NULL, 0, "bool", xl6StdFileReplaceBody},
+    {"file", "writeTextAtomic", "__xl_std_file_write_text_atomic", NULL, NULL, 0, "bool", xl6StdFileWriteTextAtomicBody},
+    {"file", "info", "__xl_std_file_info", NULL, NULL, 0, "FileStat", xl6StdFileInfoBody},
+    {"file", "open", "__xl_std_file_open", NULL, NULL, 0, "File", xl6StdFileOpenBody},
+    {"file", "stat", "__xl_std_file_stat", NULL, NULL, 0, "FileStat", xl6StdFsStatBody},
+    {"file", "root", "__xl_std_file_root", NULL, NULL, 0, "FileRoot", xl6StdFsRootBody},
+    {"file", "writeBytesAtomic", "__xl_std_file_write_bytes_atomic", NULL, NULL, 0, "bool", xl6StdFsfilewrite_bytes_atomicBody},
+    {"file", "readLink", "__xl_std_file_read_link", NULL, NULL, 0, "string", xl6StdFsfileread_linkBody},
+    {"file", "deleteLink", "__xl_std_file_delete_link", NULL, NULL, 0, "bool", xl6StdFsfiledelete_linkBody},
+    {"dir", "remove", "__xl_std_dir_remove", NULL, NULL, 0, "bool", xl6StdFsdirremoveBody},
+    {"file", "setMode", "__xl_std_file_set_mode", NULL, NULL, 0, "bool", xl6StdFsfileset_modeBody},
+    {"file", "createLink", "__xl_std_file_create_link", NULL, NULL, 0, "bool", xl6StdFsfilecreate_linkBody},
+    {"file", "createHardLink", "__xl_std_file_create_hard_link", NULL, NULL, 0, "bool", xl6StdFsfilecreate_hard_linkBody},
+    {"file", "createFifo", "__xl_std_file_create_fifo", NULL, NULL, 0, "bool", xl6StdFsfilecreate_fifoBody},
+    {"dir", "temp", "__xl_std_dir_temp", NULL, NULL, 0, "string", xl6StdFsdirtempBody},
+    {"file", "temp", "__xl_std_file_temp", NULL, NULL, 0, "File", xl6StdFs_file_tempBody},
+    {"dir", "roots", "__xl_std_dir_roots", NULL, NULL, 0, "array<string>", xl6StdFs_dir_rootsBody},
+    {"file", "setTimes", "__xl_std_file_set_times", NULL, NULL, 0, "bool", xl6StdFs_file_set_timesBody},
+    {"file", "walkStats", "__xl_std_file_walk_stats", NULL, NULL, 0, "WalkStats", xl6StdFs_file_walk_statsBody},
+    {"file", "walk", "__xl_std_file_walk", NULL, NULL, 0, "WalkStats", xl6StdFsWalkBody},
+    {"dir", "stats", "__xl_std_dir_stats", NULL, NULL, 0, "WalkStats", xl6StdFs_dir_statsBody},
+    {"file", "copyTree", "__xl_std_file_copy_tree", NULL, NULL, 0, "TreeStats", xl6StdFs_file_copy_treeBody},
+    {"file", "removeTree", "__xl_std_file_remove_tree", NULL, NULL, 0, "TreeStats", xl6StdFs_file_remove_treeBody},
+    {"dir", "open", "__xl_std_dir_open", NULL, NULL, 0, "DirectoryIterator", xl6StdFsDirectoryBody},
+    {"file", "readTextAsync", "__xl_std_file_read_text_async", NULL, NULL, 0, "future<string>", xl6StdFsAsync_file_readTextAsyncBody},
+    {"file", "readBytesAsync", "__xl_std_file_read_bytes_async", NULL, NULL, 0, "future<bytes>", xl6StdFsAsync_file_readBytesAsyncBody},
+    {"file", "writeTextAsync", "__xl_std_file_write_text_async", NULL, NULL, 0, "future<bool>", xl6StdFsAsync_file_writeTextAsyncBody},
+    {"file", "writeBytesAsync", "__xl_std_file_write_bytes_async", NULL, NULL, 0, "future<bool>", xl6StdFsAsync_file_writeBytesAsyncBody},
+    {"file", "appendTextAsync", "__xl_std_file_append_text_async", NULL, NULL, 0, "future<bool>", xl6StdFsAsync_file_appendTextAsyncBody},
+    {"file", "copyAsync", "__xl_std_file_copy_async", NULL, NULL, 0, "future<bool>", xl6StdFsAsync_file_copyAsyncBody},
+    {"file", "moveAsync", "__xl_std_file_move_async", NULL, NULL, 0, "future<bool>", xl6StdFsAsync_file_moveAsyncBody},
+    {"file", "deleteAsync", "__xl_std_file_delete_async", NULL, NULL, 0, "future<bool>", xl6StdFsAsync_file_deleteAsyncBody},
+    {"file", "openAsync", "__xl_std_file_open_async", NULL, NULL, 0, "AsyncFile", xl6StdFsAsync_file_openAsyncBody},
+
+    {"dir", "exists", "__xl_std_dir_exists", NULL, NULL, 0, "bool", xl6StdDirExistsBody},
+    {"dir", "create", "__xl_std_dir_create", NULL, NULL, 0, "bool", xl6StdDirCreateBody},
+    {"dir", "createAll", "__xl_std_dir_create_all", NULL, NULL, 0, "bool", xl6StdDirCreateAllBody},
+    {"dir", "copy", "__xl_std_dir_copy", NULL, NULL, 0, "bool", xl6StdDirCopyBody},
+    {"dir", "move", "__xl_std_dir_move", NULL, NULL, 0, "bool", xl6StdDirMoveBody},
+    {"dir", "delete", "__xl_std_dir_delete", NULL, NULL, 0, "bool", xl6StdDirDeleteBody},
+    {"dir", "list", "__xl_std_dir_list", NULL, NULL, 0, "array", xl6StdDirListBody},
+    {"dir", "files", "__xl_std_dir_files", NULL, NULL, 0, "array", xl6StdDirFilesBody},
+    {"dir", "dirs", "__xl_std_dir_dirs", NULL, NULL, 0, "array", xl6StdDirDirsBody},
+    {"dir", "empty", "__xl_std_dir_empty", NULL, NULL, 0, "bool", xl6StdDirEmptyBody},
+    {"dir", "count", "__xl_std_dir_count", NULL, NULL, 0, "uint64", xl6StdDirCountBody},
+    {"dir", "size", "__xl_std_dir_size", NULL, NULL, 0, "uint64", xl6StdDirSizeBody},
+    {"dir", "clean", "__xl_std_dir_clean", NULL, NULL, 0, "bool", xl6StdDirCleanBody},
+    {"dir", "ensureEmpty", "__xl_std_dir_ensure_empty", NULL, NULL, 0, "bool", xl6StdDirEnsureEmptyBody},
+    {"dir", "glob", "__xl_std_dir_glob", NULL, NULL, 0, "array<string>", xl6StdFsDirGlobBody},
+    {"dir", "entries", "__xl_std_dir_entries", NULL, NULL, 0, "array<WalkEntry>", xl6StdFsDirentriesBody},
+    {"dir", "matchEntries", "__xl_std_dir_match", NULL, NULL, 0, "array<WalkEntry>", xl6StdFsDirmatchBody},
+    {"dir", "walk", "__xl_std_dir_walk", NULL, NULL, 0, "array<WalkEntry>", xl6StdFsDirwalkBody},
+    {"dir", "createAsync", "__xl_std_dir_create_async", NULL, NULL, 0, "future<bool>", xl6StdFsAsync_dir_createAsyncBody},
+    {"dir", "createAllAsync", "__xl_std_dir_create_all_async", NULL, NULL, 0, "future<bool>", xl6StdFsAsync_dir_createAllAsyncBody},
+    {"dir", "copyAsync", "__xl_std_dir_copy_async", NULL, NULL, 0, "future<TreeStats>", xl6StdFsAsync_dir_copyAsyncBody},
+    {"dir", "moveAsync", "__xl_std_dir_move_async", NULL, NULL, 0, "future<bool>", xl6StdFsAsync_dir_moveAsyncBody},
+    {"dir", "deleteAsync", "__xl_std_dir_delete_async", NULL, NULL, 0, "future<TreeStats>", xl6StdFsAsync_dir_deleteAsyncBody},
+
+    {"json", "parse", "__xl_std_json_parse", NULL, NULL, 0, "var", xl6StdJsonParseBody},
+    {"json", "valid", "__xl_std_json_valid", NULL, NULL, 0, "bool", xl6StdJsonValidBody},
+    {"json", "read", "__xl_std_json_read", NULL, NULL, 0, "var", xl6StdJsonReadBody},
+    {"json", "stringify", "__xl_std_json_stringify", NULL, xl6StdJsonStringifyParams, 2, "string", xl6StdJsonStringifyBody},
+    {"json", "write", "__xl_std_json_write", NULL, xl6StdJsonWriteParams, 3, "bool", xl6StdJsonWriteBody},
+    {"json", "writer", "__xl_std_json_writer", NULL, NULL, 0, "JsonWriter", xl6StdJsonWriterBody},
+    {"json", "visit", "__xl_std_json_visit", NULL, NULL, 0, "int", xl6StdJsonVisitBody},
+    {"json", "parse", "__xl_std_json_parse", "xl6_xrt_json_read_configured", xl6StdConfiguredReadParams, 2, "var", NULL},
+    {"json", "read", "__xl_std_json_read", "xl6_xrt_json_read_file_configured", xl6StdConfiguredReadParams, 2, "var", NULL},
+    {"json", "stringify", "__xl_std_json_stringify", NULL, NULL, 0, "string", xl6StdJsonStringifyConfiguredBody},
+    {"json", "write", "__xl_std_json_write", "xl6_xrt_json_write_file_configured", xl6StdConfiguredWriteParams, 3, "bool", NULL},
+    {"json", "writeTo", "__xl_std_json_write_to", NULL, NULL, 0, "bool", xl6StdJsonWriteToBody},
+    {"json", "quote", "__xl_std_json_quote", NULL, NULL, 0, "string", xl6StdJsonQuoteBody},
+    {"json", "quoteTo", "__xl_std_json_quote_to", NULL, NULL, 0, "bool", xl6StdJsonQuoteToBody},
+    {"json", "visit", "__xl_std_json_visit", NULL, NULL, 0, "int", xl6StdJsonVisitConfiguredBody},
+    {"json", "valid", "__xl_std_json_valid", NULL, NULL, 0, "bool", xl6StdJsonValidConfiguredBody},
+
+    {"jsonl", "parse", "__xl_std_jsonl_parse", "xl6_xrt_jsonl_parse", xl6StdXrtJsonParseParams, 1, "var", NULL},
+    {"jsonl", "valid", "__xl_std_jsonl_valid", "xl6_xrt_jsonl_valid", xl6StdXrtJsonParseParams, 1, "c_bool", NULL},
+    {"jsonl", "read", "__xl_std_jsonl_read", "xl6_xrt_jsonl_read_file", xl6StdPathUnaryParams, 1, "var", NULL},
+    {"jsonl", "stringify", "__xl_std_jsonl_stringify", NULL, NULL, 0, "string", xl6StdJsonlStringifyBody},
+    {"jsonl", "write", "__xl_std_jsonl_write", "xl6_xrt_jsonl_write_file", xl6StdLinesWriteParams, 2, "bool", NULL},
+    {"jsonl", "parse", "__xl_std_jsonl_parse", "xl6_xrt_jsonl_read_configured", xl6StdConfiguredReadParams, 2, "var", NULL},
+    {"jsonl", "read", "__xl_std_jsonl_read", "xl6_xrt_jsonl_read_file_configured", xl6StdConfiguredReadParams, 2, "var", NULL},
+    {"jsonl", "stringify", "__xl_std_jsonl_stringify", NULL, NULL, 0, "string", xl6StdJsonlStringifyConfiguredBody},
+    {"jsonl", "write", "__xl_std_jsonl_write", "xl6_xrt_jsonl_write_file_configured", xl6StdConfiguredWriteParams, 3, "bool", NULL},
+    {"jsonl", "writeTo", "__xl_std_jsonl_write_to", NULL, NULL, 0, "bool", xl6StdJsonlWriteToBody},
+    {"jsonl", "valid", "__xl_std_jsonl_valid", NULL, NULL, 0, "bool", xl6StdJsonlValidConfiguredBody},
+
+    {"xlonl", "parse", "__xl_std_xlonl_parse", "xl6_xrt_xlonl_parse", xl6StdXrtJsonParseParams, 1, "var", NULL},
+    {"xlonl", "valid", "__xl_std_xlonl_valid", "xl6_xrt_xlonl_valid", xl6StdXrtJsonParseParams, 1, "c_bool", NULL},
+    {"xlonl", "read", "__xl_std_xlonl_read", "xl6_xrt_xlonl_read_file", xl6StdPathUnaryParams, 1, "var", NULL},
+    {"xlonl", "stringify", "__xl_std_xlonl_stringify", NULL, NULL, 0, "string", xl6StdXlonlStringifyBody},
+    {"xlonl", "write", "__xl_std_xlonl_write", "xl6_xrt_xlonl_write_file", xl6StdLinesWriteParams, 2, "bool", NULL},
+    {"xlonl", "parse", "__xl_std_xlonl_parse", "xl6_xrt_xlonl_read_configured", xl6StdConfiguredReadParams, 2, "var", NULL},
+    {"xlonl", "read", "__xl_std_xlonl_read", "xl6_xrt_xlonl_read_file_configured", xl6StdConfiguredReadParams, 2, "var", NULL},
+    {"xlonl", "stringify", "__xl_std_xlonl_stringify", NULL, NULL, 0, "string", xl6StdXlonlStringifyConfiguredBody},
+    {"xlonl", "write", "__xl_std_xlonl_write", "xl6_xrt_xlonl_write_file_configured", xl6StdConfiguredWriteParams, 3, "bool", NULL},
+    {"xlonl", "writeTo", "__xl_std_xlonl_write_to", NULL, NULL, 0, "bool", xl6StdXlonlWriteToBody},
+    {"xlonl", "valid", "__xl_std_xlonl_valid", NULL, NULL, 0, "bool", xl6StdXlonlValidConfiguredBody},
+
+    {"dict", "remove", "__xl_std_dict_remove", NULL, xl6StdDictRemoveParams, 2, "bool", xl6StdDictRemoveBody},
+
+    {"xlon", "parse", "__xl_std_xlon_parse", NULL, NULL, 0, "var", xl6StdXlonParseBody},
+    {"xlon", "parse", "__xl_std_xlon_parse", NULL, NULL, 0, "var", xl6StdXlonParseOptionsBody},
+    {"xlon", "valid", "__xl_std_xlon_valid", NULL, NULL, 0, "bool", xl6StdXlonValidBody},
+    {"xlon", "valid", "__xl_std_xlon_valid", NULL, NULL, 0, "bool", xl6StdXlonValidOptionsBody},
+    {"xlon", "read", "__xl_std_xlon_read", NULL, NULL, 0, "var", xl6StdXlonReadBody},
+    {"xlon", "read", "__xl_std_xlon_read", NULL, NULL, 0, "var", xl6StdXlonReadOptionsBody},
+    {"xlon", "stringify", "__xl_std_xlon_stringify", NULL, NULL, 0, "string", xl6StdXlonStringifyBody},
+    {"xlon", "stringify", "__xl_std_xlon_stringify", NULL, NULL, 0, "string", xl6StdXlonStringifyOptionsBody},
+    {"xlon", "write", "__xl_std_xlon_write", NULL, NULL, 0, "bool", xl6StdXlonWriteBody},
+    {"xlon", "write", "__xl_std_xlon_write", NULL, NULL, 0, "bool", xl6StdXlonWriteOptionsBody},
+    {"xlon", "writer", "__xl_std_xlon_writer", NULL, NULL, 0, "XlonWriter", xl6StdXlonWriterBody},
+    {"xlon", "writer", "__xl_std_xlon_writer", NULL, NULL, 0, "XlonWriter", xl6StdXlonWriterOptionsBody},
+    {"xlon", "visit", "__xl_std_xlon_visit", NULL, NULL, 0, "int", xl6StdXlonVisitBody},
+    {"xlon", "visit", "__xl_std_xlon_visit", NULL, NULL, 0, "int", xl6StdXlonVisitOptionsBody},
+    {"xlon", "options", "__xl_std_xlon_options", NULL, NULL, 0, "XlonOptions", xl6StdXlonOptionsBody},
+    {"xlon", "parseWith", "__xl_std_xlon_parse_with", NULL, NULL, 0, "var", xl6StdXlonParseWithBody},
+    {"xlon", "parse", "__xl_std_xlon_parse", "xl6_xrt_xlon_read_configured", xl6StdConfiguredReadParams, 2, "var", NULL},
+    {"xlon", "read", "__xl_std_xlon_read", "xl6_xrt_xlon_read_file_configured", xl6StdConfiguredReadParams, 2, "var", NULL},
+    {"xlon", "stringify", "__xl_std_xlon_stringify", NULL, NULL, 0, "string", xl6StdXlonStringifyConfiguredBody},
+    {"xlon", "write", "__xl_std_xlon_write", "xl6_xrt_xlon_write_file_configured", xl6StdConfiguredWriteParams, 3, "bool", NULL},
+    {"xlon", "writeTo", "__xl_std_xlon_write_to", NULL, NULL, 0, "bool", xl6StdXlonWriteToBody},
+    {"xlon", "valid", "__xl_std_xlon_valid", NULL, NULL, 0, "bool", xl6StdXlonValidConfiguredBody},
+    {"xlon", "visit", "__xl_std_xlon_visit", NULL, NULL, 0, "int", xl6StdXlonVisitConfiguredBody},
+
+    {"__crc32", "text", "__xl_std_crc32_text", "xl6Crc32StringV1", xl6StdCrc32TextParams, 3, "uint32", NULL},
+    {"__crc32", "bytes", "__xl_std_crc32_bytes", NULL, NULL, 0, "uint32", xl6StdCrc32NativeBytesBody},
+    {"__crc32", "buffer", "__xl_std_crc32_buffer", "xl6Crc32BufferV1", xl6StdCrc32BufferParams, 3, "uint32", NULL},
+    {"crc32", "checksum", "__xl_std_crc32_checksum", NULL, NULL, 0, "uint32", xl6StdCrc32TextBody},
+    {"crc32", "checksum", "__xl_std_crc32_checksum", NULL, NULL, 0, "uint32", xl6StdCrc32BytesBody},
+    {"crc32", "checksumBuffer", "__xl_std_crc32_checksum_buffer", NULL, NULL, 0, "uint32", xl6StdCrc32BufferBody},
+    {"crc32", "update", "__xl_std_crc32_update", NULL, NULL, 0, "uint32", xl6StdCrc32UpdateTextBody},
+    {"crc32", "update", "__xl_std_crc32_update", NULL, NULL, 0, "uint32", xl6StdCrc32UpdateBytesBody},
+    {"crc32", "updateBuffer", "__xl_std_crc32_update_buffer", NULL, NULL, 0, "uint32", xl6StdCrc32UpdateBufferBody},
+    {"codec", "hexEncode", "__xl_std_codec_hex_encode", NULL, NULL, 0, "string", xl6StdCodecHexEncodeBody},
+    {"compress", "encode", "__xl_std_compress_encode", NULL, NULL, 0, "bytes", xl6StdCompressEncodeBody},
+    {"compress", "encode", "__xl_std_compress_encode", NULL, NULL, 0, "bytes", xl6StdCompressEncodeBytesBody},
+    {"compress", "encodeBuffer", "__xl_std_compress_encodeBuffer", NULL, NULL, 0, "bytes", xl6StdCompressEncodeBufferBody},
+    {"compress", "decode", "__xl_std_compress_decode", NULL, NULL, 0, "bytes", xl6StdCompressDecodeBody},
+    {"compress", "decodeBuffer", "__xl_std_compress_decodeBuffer", NULL, NULL, 0, "bytes", xl6StdCompressDecodeBufferBody},
+    {"compress", "deflater", "__xl_std_compress_deflater", NULL, NULL, 0, "Deflater", xl6StdCompressDeflaterBody},
+    {"compress", "inflater", "__xl_std_compress_inflater", NULL, NULL, 0, "Inflater", xl6StdCompressInflaterBody},
+    {"codec", "hexEncode", "__xl_std_codec_hex_encode", NULL, NULL, 0, "string", xl6StdCodecHexEncodeValueBody},
+    {"codec", "hexDecode", "__xl_std_codec_hex_decode", NULL, NULL, 0, "bytes", xl6StdCodecHexDecodeBody},
+    {"codec", "base64Encode", "__xl_std_codec_base64_encode", NULL, NULL, 0, "string", xl6StdCodecBase64EncodeBody},
+    {"codec", "base64Encode", "__xl_std_codec_base64_encode", NULL, NULL, 0, "string", xl6StdCodecBase64EncodeValueBody},
+    {"codec", "base64Decode", "__xl_std_codec_base64_decode", NULL, NULL, 0, "bytes", xl6StdCodecBase64DecodeBody},
+    {"codec", "percentEncode", "__xl_std_codec_percent_encode", NULL, NULL, 0, "string", xl6StdCodecPercentEncodeBody},
+    {"codec", "percentEncode", "__xl_std_codec_percent_encode", NULL, NULL, 0, "string", xl6StdCodecPercentEncodeValueBody},
+    {"codec", "percentDecode", "__xl_std_codec_percent_decode", NULL, NULL, 0, "bytes", xl6StdCodecPercentDecodeBody},
+
+    {"encoding", "encode", "__xl_std_encoding_encode", NULL, NULL, 0, "bytes", xl6StdEncodingEncodeBody},
+    {"encoding", "decode", "__xl_std_encoding_decode", NULL, NULL, 0, "string", xl6StdEncodingDecodeBody},
+    {"encoding", "transcode", "__xl_std_encoding_transcode", NULL, NULL, 0, "bytes", xl6StdEncodingTranscodeBody},
+    {"encoding", "bom", "__xl_std_encoding_bom", NULL, NULL, 0, "int", xl6StdEncodingBomBody},
+    {"encoding", "bomSize", "__xl_std_encoding_bomSize", NULL, NULL, 0, "int", xl6StdEncodingBomSizeBody},
+    {"encoding", "bomBytes", "__xl_std_encoding_bomBytes", NULL, NULL, 0, "bytes", xl6StdEncodingBomBytesBody},
+    {"encoding", "unitSize", "__xl_std_encoding_unitSize", NULL, NULL, 0, "int", xl6StdEncodingUnitSizeBody},
+    {"encoding", "name", "__xl_std_encoding_name", NULL, NULL, 0, "string", xl6StdEncodingNameBody},
+    {"encoding", "encodeUtf8", "__xl_std_encoding_encode_Utf8", NULL, NULL, 0, "bytes", xl6StdEncodingEncodeUtf8Body},
+    {"encoding", "decodeUtf8", "__xl_std_encoding_decode_Utf8", NULL, NULL, 0, "string", xl6StdEncodingDecodeUtf8Body},
+    {"encoding", "encodeUtf16LE", "__xl_std_encoding_encode_Utf16LE", NULL, NULL, 0, "bytes", xl6StdEncodingEncodeUtf16LEBody},
+    {"encoding", "decodeUtf16LE", "__xl_std_encoding_decode_Utf16LE", NULL, NULL, 0, "string", xl6StdEncodingDecodeUtf16LEBody},
+    {"encoding", "encodeUtf16BE", "__xl_std_encoding_encode_Utf16BE", NULL, NULL, 0, "bytes", xl6StdEncodingEncodeUtf16BEBody},
+    {"encoding", "decodeUtf16BE", "__xl_std_encoding_decode_Utf16BE", NULL, NULL, 0, "string", xl6StdEncodingDecodeUtf16BEBody},
+    {"encoding", "encodeUtf32LE", "__xl_std_encoding_encode_Utf32LE", NULL, NULL, 0, "bytes", xl6StdEncodingEncodeUtf32LEBody},
+    {"encoding", "decodeUtf32LE", "__xl_std_encoding_decode_Utf32LE", NULL, NULL, 0, "string", xl6StdEncodingDecodeUtf32LEBody},
+    {"encoding", "encodeUtf32BE", "__xl_std_encoding_encode_Utf32BE", NULL, NULL, 0, "bytes", xl6StdEncodingEncodeUtf32BEBody},
+    {"encoding", "decodeUtf32BE", "__xl_std_encoding_decode_Utf32BE", NULL, NULL, 0, "string", xl6StdEncodingDecodeUtf32BEBody},
+    {"encoding", "isUtf8", "__xl_std_encoding_is_utf8", NULL, NULL, 0, "bool", xl6StdEncodingIsUtf8Body},
+    {"encoding", "isUtf8", "__xl_std_encoding_is_utf8", NULL, NULL, 0, "bool", xl6StdEncodingIsUtf8BytesBody},
+    {"unicode", "decode", "__xl_std_unicode_decode", NULL, NULL, 0, "string", xl6StdUnicodeDecodeBody},
+    {"unicode", "repair", "__xl_std_unicode_repair", NULL, NULL, 0, "string", xl6StdUnicodeRepairBody},
+    {"encoding", "detect", "__xl_std_encoding_detect", NULL, NULL, 0, NULL, xl6StdEncodingDetectTextBody},
+    {"encoding", "detect", "__xl_std_encoding_detect", NULL, NULL, 0, NULL, xl6StdEncodingDetectBytesBody},
+
+    {"hash", "u32", "__xl_std_hash_u32", NULL, NULL, 0, "uint32", xl6StdHashU32Body},
+    {"hash", "u32", "__xl_std_hash_u32", NULL, NULL, 0, "uint32", xl6StdHashU32BytesBody},
+    {"hash", "u32Buffer", "__xl_std_hash_u32_buffer", NULL, NULL, 0, "uint32", xl6StdHashU32BufferBody},
+    {"hash", "u32WithSeed", "__xl_std_hash_u32_with_seed", NULL, NULL, 0, "uint32", xl6StdHashU32WithSeedBody},
+    {"hash", "u32WithSeed", "__xl_std_hash_u32_with_seed", NULL, NULL, 0, "uint32", xl6StdHashU32BytesWithSeedBody},
+    {"hash", "u32BufferWithSeed", "__xl_std_hash_u32_buffer_with_seed", NULL, NULL, 0, "uint32", xl6StdHashU32BufferWithSeedBody},
+    {"hash", "u64", "__xl_std_hash_u64", NULL, NULL, 0, "uint64", xl6StdHashU64Body},
+    {"hash", "u64", "__xl_std_hash_u64", NULL, NULL, 0, "uint64", xl6StdHashU64BytesBody},
+    {"hash", "u64Buffer", "__xl_std_hash_u64_buffer", NULL, NULL, 0, "uint64", xl6StdHashU64BufferBody},
+    {"hash", "u64WithSeed", "__xl_std_hash_u64_with_seed", NULL, NULL, 0, "uint64", xl6StdHashU64WithSeedBody},
+    {"hash", "u64WithSeed", "__xl_std_hash_u64_with_seed", NULL, NULL, 0, "uint64", xl6StdHashU64BytesWithSeedBody},
+    {"hash", "u64BufferWithSeed", "__xl_std_hash_u64_buffer_with_seed", NULL, NULL, 0, "uint64", xl6StdHashU64BufferWithSeedBody},
+    {"siphash", "hash64", "__xl_std_siphash64", NULL, NULL, 0, "uint64", xl6StdSipHash64StringBody},
+    {"siphash", "hash64", "__xl_std_siphash64", NULL, NULL, 0, "uint64", xl6StdSipHash64BytesBody},
+    {"siphash", "hash64Buffer", "__xl_std_siphash64_buffer", NULL, NULL, 0, "uint64", xl6StdSipHash64BufferBody},
+    {"siphash", "hasher", "__xl_std_siphasher64", NULL, NULL, 0, "SipHasher64", xl6StdSipHasher64Body},
+    {"cryptoAdvanced", "aes", "__xl_std_cryptoAdvanced_aes", NULL, NULL, 0, "AesBlockCipher", xl6StdResidentAesBlock},
+    {"cryptoAdvanced", "poly1305Stream", "__xl_std_cryptoAdvanced_poly1305Stream", NULL, NULL, 0, "Poly1305", xl6StdResidentPoly1305Stream},
+    {"cryptoAdvanced", "poly1305", "__xl_std_cryptoAdvanced_poly1305", NULL, NULL, 0, "bytes", xl6StdResidentPoly1305Text},
+    {"cryptoAdvanced", "poly1305", "__xl_std_cryptoAdvanced_poly1305", NULL, NULL, 0, "bytes", xl6StdResidentPoly1305Bytes},
+    {"cryptoAdvanced", "poly1305Buffer", "__xl_std_cryptoAdvanced_poly1305Buffer", NULL, NULL, 0, "bytes", xl6StdResidentPoly1305Buffer},
+    {"cryptoAdvanced", "chacha20", "__xl_std_cryptoAdvanced_chacha20", NULL, NULL, 0, "bytes", xl6StdResidentChaCha20Text},
+    {"cryptoAdvanced", "chacha20", "__xl_std_cryptoAdvanced_chacha20", NULL, NULL, 0, "bytes", xl6StdResidentChaCha20Bytes},
+    {"cryptoAdvanced", "chacha20Buffer", "__xl_std_cryptoAdvanced_chacha20Buffer", NULL, NULL, 0, "bytes", xl6StdResidentChaCha20Buffer},
+    {"cryptoLegacy", "md5", "__xl_std_cryptoLegacy_md5", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoMd5TextV1},
+    {"cryptoLegacy", "md5Hex", "__xl_std_cryptoLegacy_md5Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoMd5TextHexV1},
+    {"cryptoLegacy", "md5", "__xl_std_cryptoLegacy_md5", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoMd5BytesV1},
+    {"cryptoLegacy", "md5Hex", "__xl_std_cryptoLegacy_md5Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoMd5BytesHexV1},
+    {"cryptoLegacy", "md5Buffer", "__xl_std_cryptoLegacy_md5Buffer", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoMd5BufferV1},
+    {"cryptoLegacy", "md5BufferHex", "__xl_std_cryptoLegacy_md5BufferHex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoMd5BufferHexV1},
+    {"cryptoLegacy", "md5Stream", "__xl_std_cryptoLegacy_md5Stream", NULL, NULL, 0, "LegacyMd5", xl6StdResidentMd5Stream},
+    {"cryptoLegacy", "sha1", "__xl_std_cryptoLegacy_sha1", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoSha1TextV1},
+    {"cryptoLegacy", "sha1Hex", "__xl_std_cryptoLegacy_sha1Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoSha1TextHexV1},
+    {"cryptoLegacy", "sha1", "__xl_std_cryptoLegacy_sha1", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoSha1BytesV1},
+    {"cryptoLegacy", "sha1Hex", "__xl_std_cryptoLegacy_sha1Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoSha1BytesHexV1},
+    {"cryptoLegacy", "sha1Buffer", "__xl_std_cryptoLegacy_sha1Buffer", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoSha1BufferV1},
+    {"cryptoLegacy", "sha1BufferHex", "__xl_std_cryptoLegacy_sha1BufferHex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoSha1BufferHexV1},
+    {"cryptoLegacy", "sha1Stream", "__xl_std_cryptoLegacy_sha1Stream", NULL, NULL, 0, "LegacySha1", xl6StdResidentSha1Stream},
+    {"crypto", "sha224", "__xl_std_crypto_sha224", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoSha224TextV1},
+    {"crypto", "sha224Hex", "__xl_std_crypto_sha224Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoSha224TextHexV1},
+    {"crypto", "sha224", "__xl_std_crypto_sha224", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoSha224BytesV1},
+    {"crypto", "sha224Hex", "__xl_std_crypto_sha224Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoSha224BytesHexV1},
+    {"crypto", "sha224Buffer", "__xl_std_crypto_sha224Buffer", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoSha224BufferV1},
+    {"crypto", "sha224BufferHex", "__xl_std_crypto_sha224BufferHex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoSha224BufferHexV1},
+    {"crypto", "sha224Stream", "__xl_std_crypto_sha224Stream", NULL, NULL, 0, "Sha224", xl6StdResidentSha224Stream},
+    {"crypto", "sha256", "__xl_std_crypto_sha256", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoSha256TextV1},
+    {"crypto", "sha256Hex", "__xl_std_crypto_sha256Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoSha256TextHexV1},
+    {"crypto", "sha256", "__xl_std_crypto_sha256", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoSha256BytesV1},
+    {"crypto", "sha256Hex", "__xl_std_crypto_sha256Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoSha256BytesHexV1},
+    {"crypto", "sha256Buffer", "__xl_std_crypto_sha256Buffer", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoSha256BufferV1},
+    {"crypto", "sha256BufferHex", "__xl_std_crypto_sha256BufferHex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoSha256BufferHexV1},
+    {"crypto", "sha256Stream", "__xl_std_crypto_sha256Stream", NULL, NULL, 0, "Sha256", xl6StdResidentSha256Stream},
+    {"crypto", "sha384", "__xl_std_crypto_sha384", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoSha384TextV1},
+    {"crypto", "sha384Hex", "__xl_std_crypto_sha384Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoSha384TextHexV1},
+    {"crypto", "sha384", "__xl_std_crypto_sha384", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoSha384BytesV1},
+    {"crypto", "sha384Hex", "__xl_std_crypto_sha384Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoSha384BytesHexV1},
+    {"crypto", "sha384Buffer", "__xl_std_crypto_sha384Buffer", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoSha384BufferV1},
+    {"crypto", "sha384BufferHex", "__xl_std_crypto_sha384BufferHex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoSha384BufferHexV1},
+    {"crypto", "sha384Stream", "__xl_std_crypto_sha384Stream", NULL, NULL, 0, "Sha384", xl6StdResidentSha384Stream},
+    {"crypto", "sha512", "__xl_std_crypto_sha512", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoSha512TextV1},
+    {"crypto", "sha512Hex", "__xl_std_crypto_sha512Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoSha512TextHexV1},
+    {"crypto", "sha512", "__xl_std_crypto_sha512", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoSha512BytesV1},
+    {"crypto", "sha512Hex", "__xl_std_crypto_sha512Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoSha512BytesHexV1},
+    {"crypto", "sha512Buffer", "__xl_std_crypto_sha512Buffer", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoSha512BufferV1},
+    {"crypto", "sha512BufferHex", "__xl_std_crypto_sha512BufferHex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoSha512BufferHexV1},
+    {"crypto", "sha512Stream", "__xl_std_crypto_sha512Stream", NULL, NULL, 0, "Sha512", xl6StdResidentSha512Stream},
+    {"crypto", "sha512_256", "__xl_std_crypto_sha512_256", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoSha512_256TextV1},
+    {"crypto", "sha512_256Hex", "__xl_std_crypto_sha512_256Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoSha512_256TextHexV1},
+    {"crypto", "sha512_256", "__xl_std_crypto_sha512_256", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoSha512_256BytesV1},
+    {"crypto", "sha512_256Hex", "__xl_std_crypto_sha512_256Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoSha512_256BytesHexV1},
+    {"crypto", "sha512_256Buffer", "__xl_std_crypto_sha512_256Buffer", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoSha512_256BufferV1},
+    {"crypto", "sha512_256BufferHex", "__xl_std_crypto_sha512_256BufferHex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoSha512_256BufferHexV1},
+    {"crypto", "sha512_256Stream", "__xl_std_crypto_sha512_256Stream", NULL, NULL, 0, "Sha512_256", xl6StdResidentSha512_256Stream},
+    {"crypto", "hmacSha256", "__xl_std_crypto_hmacSha256", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHmacSha256TextV1},
+    {"crypto", "hmacSha256Hex", "__xl_std_crypto_hmacSha256Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoHmacSha256TextHexV1},
+    {"crypto", "hmacSha256", "__xl_std_crypto_hmacSha256", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHmacSha256BytesV1},
+    {"crypto", "hmacSha256Hex", "__xl_std_crypto_hmacSha256Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoHmacSha256BytesHexV1},
+    {"crypto", "hmacSha256Buffer", "__xl_std_crypto_hmacSha256Buffer", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHmacSha256BufferV1},
+    {"crypto", "hmacSha256BufferHex", "__xl_std_crypto_hmacSha256BufferHex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoHmacSha256BufferHexV1},
+    {"crypto", "hmacSha256Stream", "__xl_std_crypto_hmacSha256Stream", NULL, NULL, 0, "HmacSha256", xl6StdResidentHmacSha256Stream},
+    {"crypto", "hmacSha384", "__xl_std_crypto_hmacSha384", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHmacSha384TextV1},
+    {"crypto", "hmacSha384Hex", "__xl_std_crypto_hmacSha384Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoHmacSha384TextHexV1},
+    {"crypto", "hmacSha384", "__xl_std_crypto_hmacSha384", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHmacSha384BytesV1},
+    {"crypto", "hmacSha384Hex", "__xl_std_crypto_hmacSha384Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoHmacSha384BytesHexV1},
+    {"crypto", "hmacSha384Buffer", "__xl_std_crypto_hmacSha384Buffer", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHmacSha384BufferV1},
+    {"crypto", "hmacSha384BufferHex", "__xl_std_crypto_hmacSha384BufferHex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoHmacSha384BufferHexV1},
+    {"crypto", "hmacSha384Stream", "__xl_std_crypto_hmacSha384Stream", NULL, NULL, 0, "HmacSha384", xl6StdResidentHmacSha384Stream},
+    {"crypto", "hmacSha512", "__xl_std_crypto_hmacSha512", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHmacSha512TextV1},
+    {"crypto", "hmacSha512Hex", "__xl_std_crypto_hmacSha512Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoHmacSha512TextHexV1},
+    {"crypto", "hmacSha512", "__xl_std_crypto_hmacSha512", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHmacSha512BytesV1},
+    {"crypto", "hmacSha512Hex", "__xl_std_crypto_hmacSha512Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoHmacSha512BytesHexV1},
+    {"crypto", "hmacSha512Buffer", "__xl_std_crypto_hmacSha512Buffer", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHmacSha512BufferV1},
+    {"crypto", "hmacSha512BufferHex", "__xl_std_crypto_hmacSha512BufferHex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoHmacSha512BufferHexV1},
+    {"crypto", "hmacSha512Stream", "__xl_std_crypto_hmacSha512Stream", NULL, NULL, 0, "HmacSha512", xl6StdResidentHmacSha512Stream},
+    {"crypto", "pbkdf2Sha256", "__xl_std_crypto_pbkdf2Sha256", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoPbkdf2Sha256V1},
+    {"crypto", "hkdfSha256", "__xl_std_crypto_hkdfSha256", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHkdfSha256V1},
+    {"crypto", "hkdfSha256Extract", "__xl_std_crypto_hkdfSha256Extract", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHkdfSha256ExtractV1},
+    {"crypto", "hkdfSha256Expand", "__xl_std_crypto_hkdfSha256Expand", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHkdfSha256ExpandV1},
+    {"crypto", "pbkdf2Sha384", "__xl_std_crypto_pbkdf2Sha384", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoPbkdf2Sha384V1},
+    {"crypto", "hkdfSha384", "__xl_std_crypto_hkdfSha384", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHkdfSha384V1},
+    {"crypto", "hkdfSha384Extract", "__xl_std_crypto_hkdfSha384Extract", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHkdfSha384ExtractV1},
+    {"crypto", "hkdfSha384Expand", "__xl_std_crypto_hkdfSha384Expand", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHkdfSha384ExpandV1},
+    {"crypto", "pbkdf2Sha512", "__xl_std_crypto_pbkdf2Sha512", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoPbkdf2Sha512V1},
+    {"crypto", "hkdfSha512", "__xl_std_crypto_hkdfSha512", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHkdfSha512V1},
+    {"crypto", "hkdfSha512Extract", "__xl_std_crypto_hkdfSha512Extract", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHkdfSha512ExtractV1},
+    {"crypto", "hkdfSha512Expand", "__xl_std_crypto_hkdfSha512Expand", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHkdfSha512ExpandV1},
+    {"crypto", "timingSafeEqual", "__xl_std_crypto_timingSafeEqual", NULL, NULL, 0, "bool", xl6StdResidentxl6CryptoTimingSafeEqualV1},
+    {"x509", "parseSubjectKeyId", "__xl_std_x509_parseSubjectKeyId", NULL, NULL, 0, "bytes", xl6StdResidentxl6X509SubjectKeyIdParseV1},
+    {"x509", "matchesDns", "__xl_std_x509_matchesDns", NULL, NULL, 0, "bool", xl6StdResidentxl6X509MatchesDnsV1},
+    {"x509", "parseCrlNumber", "__xl_std_x509_parseCrlNumber", NULL, NULL, 0, "bytes", xl6StdResidentxl6X509CrlNumberParseV1},
+    {"x509", "parseCrlReason", "__xl_std_x509_parseCrlReason", NULL, NULL, 0, "X509CrlReason", xl6StdResidentxl6X509CrlReasonParseV1},
+    {"x509", "parseInvalidityDate", "__xl_std_x509_parseInvalidityDate", NULL, NULL, 0, "time", xl6StdResidentxl6X509CrlInvalidityDateParseV1},
+    {"asn1", "parse", "__xl_std_asn1_parse", NULL, NULL, 0, "DerValue", xl6StdResidentxl6DerParseV1},
+    {"pem", "parse", "__xl_std_pem_parse", NULL, NULL, 0, "PemBlock", xl6StdResidentxl6PemFindV1},
+    {"pem", "encode", "__xl_std_pem_encode", NULL, NULL, 0, "string", xl6StdResidentxl6PemEncodeV1},
+    {"pem", "decode", "__xl_std_pem_decode", NULL, NULL, 0, "bytes", xl6StdResidentPemDecode},
+    {"crypto", "randomHex", "__xl_std_crypto_random_hex", NULL, NULL, 0, "string", xl6StdCryptoRandomHexBody},
+    {"crypto", "randomString", "__xl_std_crypto_random_string", NULL, NULL, 0, "string", xl6StdCryptoRandomStringBody},
+    {"crypto", "fillRandomBytes", "__xl_std_crypto_fill_random_bytes", NULL, NULL, 0, "", xl6StdCryptoFillRandomBytesBody},
+    {"crypto", "randomBytes", "__xl_std_crypto_random_bytes", NULL, NULL, 0, "bytes", xl6StdCryptoRandomBytesBody},
+    {"crypto", "p256KeyPair", "__xl_std_crypto_p256KeyPair", NULL, NULL, 0, "P256Key", xl6StdResidentxl6CryptoP256GenerateV1},
+    {"crypto", "p256PublicKey", "__xl_std_crypto_p256PublicKey", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoP256PublicFromPrivateV1},
+    {"crypto", "ecdsaP256VerifyHash", "__xl_std_crypto_ecdsaP256VerifyHash", NULL, NULL, 0, "bool", xl6StdResidentxl6CryptoP256VerifyHashV1},
+    {"crypto", "ecdsaP256VerifyHashDer", "__xl_std_crypto_ecdsaP256VerifyHashDer", NULL, NULL, 0, "bool", xl6StdResidentxl6CryptoP256VerifyHashDerV1},
+    {"cryptoAdvanced", "p256Valid", "__xl_std_cryptoAdvanced_p256Valid", NULL, NULL, 0, "bool", xl6StdResidentxl6CryptoP256ValidV1},
+    {"cryptoAdvanced", "p256Multiply", "__xl_std_cryptoAdvanced_p256Multiply", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoP256MultiplyV1},
+    {"cryptoAdvanced", "p256Add", "__xl_std_cryptoAdvanced_p256Add", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoP256AddV1},
+    {"crypto", "p384KeyPair", "__xl_std_crypto_p384KeyPair", NULL, NULL, 0, "P384Key", xl6StdResidentxl6CryptoP384GenerateV1},
+    {"crypto", "p384PublicKey", "__xl_std_crypto_p384PublicKey", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoP384PublicFromPrivateV1},
+    {"crypto", "ecdsaP384VerifyHash", "__xl_std_crypto_ecdsaP384VerifyHash", NULL, NULL, 0, "bool", xl6StdResidentxl6CryptoP384VerifyHashV1},
+    {"crypto", "ecdsaP384VerifyHashDer", "__xl_std_crypto_ecdsaP384VerifyHashDer", NULL, NULL, 0, "bool", xl6StdResidentxl6CryptoP384VerifyHashDerV1},
+    {"cryptoAdvanced", "p384Valid", "__xl_std_cryptoAdvanced_p384Valid", NULL, NULL, 0, "bool", xl6StdResidentxl6CryptoP384ValidV1},
+    {"cryptoAdvanced", "p384Multiply", "__xl_std_cryptoAdvanced_p384Multiply", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoP384MultiplyV1},
+    {"cryptoAdvanced", "p384Add", "__xl_std_cryptoAdvanced_p384Add", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoP384AddV1},
+    {"crypto", "ecdsaP256ToDer", "__xl_std_crypto_ecdsaP256ToDer", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoEcdsaP256ToDerV1},
+    {"crypto", "ecdsaP256FromDer", "__xl_std_crypto_ecdsaP256FromDer", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoEcdsaP256FromDerV1},
+    {"crypto", "ecdsaP384ToDer", "__xl_std_crypto_ecdsaP384ToDer", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoEcdsaP384ToDerV1},
+    {"crypto", "ecdsaP384FromDer", "__xl_std_crypto_ecdsaP384FromDer", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoEcdsaP384FromDerV1},
+    {"cryptoAdvanced", "rsaPublic", "__xl_std_cryptoAdvanced_rsaPublic", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoRsaPublicRawV1},
+    {"cryptoAdvanced", "rsaPrivate", "__xl_std_cryptoAdvanced_rsaPrivate", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoRsaPrivateRawV1},
+    {"crypto", "ed25519KeyPair", "__xl_std_crypto_ed25519KeyPair", NULL, NULL, 0, "Ed25519Key", xl6StdResidentxl6CryptoEd25519GenerateV1},
+    {"crypto", "ed25519Sign", "__xl_std_crypto_ed25519Sign", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoEd25519SignTextV1},
+    {"crypto", "ed25519Verify", "__xl_std_crypto_ed25519Verify", NULL, NULL, 0, "bool", xl6StdResidentxl6CryptoEd25519VerifyTextV1},
+    {"crypto", "ed25519VerifyContext", "__xl_std_crypto_ed25519VerifyContext", NULL, NULL, 0, "bool", xl6StdResidentxl6CryptoEd25519VerifyContextTextV1},
+    {"crypto", "ed25519Sign", "__xl_std_crypto_ed25519Sign", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoEd25519SignBytesV1},
+    {"crypto", "ed25519Verify", "__xl_std_crypto_ed25519Verify", NULL, NULL, 0, "bool", xl6StdResidentxl6CryptoEd25519VerifyBytesV1},
+    {"crypto", "ed25519VerifyContext", "__xl_std_crypto_ed25519VerifyContext", NULL, NULL, 0, "bool", xl6StdResidentxl6CryptoEd25519VerifyContextBytesV1},
+    {"crypto", "ed25519SignBuffer", "__xl_std_crypto_ed25519SignBuffer", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoEd25519SignBufferV1},
+    {"crypto", "ed25519PublicKey", "__xl_std_crypto_ed25519PublicKey", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoEd25519PublicFromSeedV1},
+    {"crypto", "ed25519VerifyPrehash", "__xl_std_crypto_ed25519VerifyPrehash", NULL, NULL, 0, "bool", xl6StdResidentxl6CryptoEd25519VerifyPrehashV1},
+    {"crypto", "ed25519VerifyBuffer", "__xl_std_crypto_ed25519VerifyBuffer", NULL, NULL, 0, "bool", xl6StdResidentxl6CryptoEd25519VerifyBufferV1},
+    {"crypto", "ed25519VerifyContextBuffer", "__xl_std_crypto_ed25519VerifyContextBuffer", NULL, NULL, 0, "bool", xl6StdResidentxl6CryptoEd25519VerifyContextBufferV1},
+    {"crypto", "x25519KeyPair", "__xl_std_crypto_x25519KeyPair", NULL, NULL, 0, "X25519Key", xl6StdResidentxl6CryptoX25519GenerateV1},
+    {"cryptoAdvanced", "x25519", "__xl_std_cryptoAdvanced_x25519", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoX25519RawV1},
+    {"crypto", "x448KeyPair", "__xl_std_crypto_x448KeyPair", NULL, NULL, 0, "X448Key", xl6StdResidentxl6CryptoX448GenerateV1},
+    {"cryptoAdvanced", "x448", "__xl_std_cryptoAdvanced_x448", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoX448RawV1},
+
+    {"id", "xid", "__xl_std_id_xid", "xl6_xrt_xid_make_string", NULL, 0, "string", NULL},
+    {"id", "make", "__xl_std_id_make", "xl6_xrt_xid_make", NULL, 0, "Xid", NULL},
+    {"id", "makeMany", "__xl_std_id_make_many", "xl6_xrt_xid_make_many", xl6StdXidCountParams, 1, "array<Xid>", NULL},
+    {"id", "parse", "__xl_std_id_parse", "xl6_xrt_xid_parse", xl6StdXidTextParams, 1, "Xid", NULL},
+    {"id", "tryParse", "__xl_std_id_try_parse", NULL, NULL, 0, "Xid?", xl6StdIdTryParseBody},
+    {"id", "fromBytes", "__xl_std_id_from_bytes", "xl6_xrt_xid_from_bytes", xl6StdXidBytesParams, 1, "Xid", NULL},
+
+    {"net", "localIP", "__xl_std_net_local_ip", NULL, NULL, 0, "string", xl6StdNetLocalIPBody},
+    {"net", "localMAC", "__xl_std_net_local_mac", NULL, NULL, 0, "string", xl6StdNetLocalMACBody},
+    {"net", "localName", "__xl_std_net_local_name", NULL, NULL, 0, "string", xl6StdNetLocalNameBody},
+    {"net", "hostName", "__xl_std_net_host_name", "xl6NetHostNameV1", NULL, 0, "string", NULL},
+    {"net", "localAddress", "__xl_std_net_local_address", NULL, NULL, 0, "NetAddress", xl6StdNetLocalAddressBody},
+    {"net", "localHardware", "__xl_std_net_local_hardware", "xl6NetLocalHardwareV1", NULL, 0, "bytes", NULL},
+    {"net", "interfaces", "__xl_std_net_interfaces", "xl6NetInterfacesCreateV1", NULL, 0, "NetInterfaceList", NULL},
+    {"net", "interfaceIndex", "__xl_std_net_interface_index", NULL, NULL, 0, "int", xl6StdNetInterfaceIndexBody},
+    {"net", "interfaceName", "__xl_std_net_interface_name", NULL, NULL, 0, "string", xl6StdNetInterfaceNameBody},
+    {"net", "resolve", "__xl_std_net_resolve", NULL, NULL, 0, "NetAddress", xl6StdNetResolveBody},
+    {"net", "resolveAll", "__xl_std_net_resolve_all", NULL, NULL, 0, "NetAddressList", xl6StdNetResolveAllBody},
+    {"net", "resolveAsync", "__xl_std_net_resolve_async", NULL, NULL, 0, "future<NetAddressList>", xl6StdNetResolveAsyncBody},
+    {"net", "stats", "__xl_std_net_stats", NULL, NULL, 0, "NetEngineStats", xl6StdNetStatsBody},
+    {"net", "resolverStats", "__xl_std_net_resolver_stats", NULL, NULL, 0, "NetResolverStats", xl6StdNetResolverStatsBody},
+    {"net", "proxy", "__xl_std_net_proxy", NULL, NULL, 0, "NetProxy", xl6StdNetProxyBody},
+    {"net", "engine", "__xl_std_net_engine", NULL, NULL, 0, "NetEngine", xl6StdNetEngineBody},
+
+    {"tcp", "connect", "__xl_std_tcp_connect", NULL, NULL, 0, "TcpStream", xl6StdTcpConnectBody},
+    {"tcp", "connectAsync", "__xl_std_tcp_connect_async", NULL, NULL, 0, "future<TcpStream>", xl6StdTcpConnectAsyncBody},
+    {"tcp", "dialAsync", "__xl_std_tcp_dial_async", NULL, NULL, 0, "future<TcpStream>", xl6StdTcpDialAsyncBody},
+    {"tcp", "dialAsyncCancel", "__xl_std_tcp_dial_async_cancel", NULL, NULL, 0, "future<TcpStream>", xl6StdTcpDialAsyncCancelBody},
+    {"tcp", "dialAsyncUntil", "__xl_std_tcp_dial_async_until", NULL, NULL, 0, "future<TcpStream>", xl6StdTcpDialAsyncUntilBody},
+    {"tcp", "dialAsyncUntilCancel", "__xl_std_tcp_dial_async_until_cancel", NULL, NULL, 0, "future<TcpStream>", xl6StdTcpDialAsyncUntilCancelBody},
+    {"tcp", "dial", "__xl_std_tcp_dial", NULL, NULL, 0, "TcpStream", xl6StdTcpDialBody},
+    {"tcp", "dialCancel", "__xl_std_tcp_dial_cancel", NULL, NULL, 0, "TcpStream", xl6StdTcpDialCancelBody},
+    {"tcp", "dialUntil", "__xl_std_tcp_dial_until", NULL, NULL, 0, "TcpStream", xl6StdTcpDialUntilBody},
+    {"tcp", "dialUntilCancel", "__xl_std_tcp_dial_until_cancel", NULL, NULL, 0, "TcpStream", xl6StdTcpDialUntilCancelBody},
+    {"tcp", "listen", "__xl_std_tcp_listen", NULL, NULL, 0, "TcpListener", xl6StdTcpListenBody},
+
+    {"udp", "bind", "__xl_std_udp_bind", NULL, NULL, 0, "UdpSocket", xl6StdUdpBindBody},
+    {"udp", "connect", "__xl_std_udp_connect", NULL, NULL, 0, "UdpSocket", xl6StdUdpConnectBody},
+    {"udp", "open", "__xl_std_udp_open", NULL, NULL, 0, "UdpSocket", xl6StdUdpOpenBody},
+    {"udp", "config", "__xl_std_udp_config", NULL, NULL, 0, "UdpConfig", xl6StdUdpConfigBody},
+
+    {"tls", "connect", "__xl_std_tls_connect", NULL, NULL, 0, "TlsStream", xl6StdTlsConnectBody},
+    {"tls", "connectAsync", "__xl_std_tls_connect_async", NULL, NULL, 0, "future<TlsStream>", xl6StdTlsConnectAsyncBody},
+    {"tls", "listen", "__xl_std_tls_listen", NULL, NULL, 0, "TlsServer", xl6StdTlsListenBody},
+
+    {"process", "exec", "__xl_std_process_exec", NULL, NULL, 0, "string", xl6StdProcessExecBody},
+    {"process", "success", "__xl_std_process_success", NULL, NULL, 0, "bool", xl6StdProcessSuccessBody},
+    {"process", "exitCode", "__xl_std_process_exit_code", NULL, NULL, 0, "int", xl6StdProcessExitCodeBody},
+    {"process", "run", "__xl_std_process_run", NULL, NULL, 0, "ProcessResult", xl6StdProcessRunBody},
+    {"process", "run", "__xl_std_process_run", NULL, NULL, 0, "ProcessResult", xl6StdProcessRunCommandBody},
+    {"process", "run", "__xl_std_process_run", NULL, NULL, 0, "ProcessResult", xl6StdProcessRunOptionsBody},
+    {"process", "runFile", "__xl_std_process_run_file", NULL, NULL, 0, "ProcessResult", xl6StdProcessRunFileBody},
+    {"process", "cmd", "__xl_std_process_cmd", NULL, NULL, 0, "ProcessCommand", xl6StdProcessCmdBody},
+    {"process", "shell", "__xl_std_process_shell", NULL, NULL, 0, "ProcessCommand", xl6StdProcessShellBody},
+    {"process", "pipeline", "__xl_std_process_pipeline", NULL, NULL, 0, "PipelineResult", xl6StdProcessPipelineBody},
+    {"process", "pipeline", "__xl_std_process_pipeline", NULL, NULL, 0, "PipelineResult", xl6StdProcessPipelineOptionsBody},
+    {"process", "start", "__xl_std_process_start", NULL, NULL, 0, "Process", xl6StdProcessStartBody},
+    {"process", "start", "__xl_std_process_start", NULL, NULL, 0, "Process", xl6StdProcessStartCommandBody},
+    {"process", "startFile", "__xl_std_process_start_file", NULL, NULL, 0, "Process", xl6StdProcessStartFileBody},
+    {"process", "terminalSupported", "__xl_std_process_terminal_supported", NULL, NULL, 0, "bool", xl6StdProcessTerminalSupportedBody},
+    {"process", "open", "__xl_std_process_open", NULL, NULL, 0, "bool", xl6StdProcessOpenBody},
+
+    {"task", "group", "__xl_std_task_group", NULL, NULL, 0, "TaskGroup", xl6StdTaskGroupBody},
+
+    {"log", "create", "__xl_std_log_create", NULL, NULL, 0, "Logger", xl6StdLogCreateBody},
+    {"log", "textFileSink", "__xl_std_log_textFileSink", NULL, NULL, 0, "LogSink", xl6StdLogTextFileSinkBody},
+    {"log", "jsonFileSink", "__xl_std_log_jsonFileSink", NULL, NULL, 0, "LogSink", xl6StdLogJsonFileSinkBody},
+    {"log", "asyncSink", "__xl_std_log_asyncSink", NULL, NULL, 0, "LogSink", xl6StdLogAsyncSinkBody},
+    {"log", "ringSink", "__xl_std_log_ringSink", NULL, NULL, 0, "LogSink", xl6StdLogRingSinkBody},
+    {"log", "customSink", "__xl_std_log_customSink", NULL, NULL, 0, "LogSink", xl6StdLogCustomSinkBody},
+    {"log", "shutdown", "__xl_std_log_shutdown", NULL, NULL, 0, NULL, xl6StdLogShutdownBody},
+    {"log", "record", "__xl_std_log_record", NULL, NULL, 0, "LogRecord", xl6StdLogRecordBody},
+    {"log", "writeRecord", "__xl_std_log_writeRecord", NULL, NULL, 0, "LogResult", xl6StdLogWriteRecordBody},
+    {"log", "text", "__xl_std_log_text", NULL, NULL, 0, "string", xl6StdLogTextBody},
+    {"log", "json", "__xl_std_log_json", NULL, NULL, 0, "string", xl6StdLogJsonBody},
+    {"log", "textToBuffer", "__xl_std_log_textToBuffer", NULL, NULL, 0, "int", xl6StdLogTextBufferBody},
+    {"log", "printf", "__xl_std_log_printf", "xl6LogDefaultPrintfV1", xl6StdLogPrintfParams, 3, "LogResult", NULL},
+    {"log", "textToWriter", "__xl_std_log_textToWriter", NULL, NULL, 0, "int", xl6StdLogTextWriterBody},
+    {"log", "jsonToWriter", "__xl_std_log_jsonToWriter", NULL, NULL, 0, "int", xl6StdLogJsonWriterBody},
+    {"log", "textWriterSink", "__xl_std_log_textWriterSink", NULL, NULL, 0, "LogSink", xl6StdLogTextWriterSinkBody},
+    {"log", "jsonWriterSink", "__xl_std_log_jsonWriterSink", NULL, NULL, 0, "LogSink", xl6StdLogJsonWriterSinkBody},
+    {"log", "jsonToBuffer", "__xl_std_log_jsonToBuffer", NULL, NULL, 0, "int", xl6StdLogJsonBufferBody},
+    {"log", "consoleSink", "__xl_std_log_consoleSink", NULL, NULL, 0, "LogSink", xl6StdLogConsoleSinkBody},
+    {"log", "default", "__xl_std_log_default", NULL, NULL, 0, "Logger?", xl6StdLogDefaultBody},
+    {"log", "setDefault", "__xl_std_log_setDefault", NULL, NULL, 0, "", xl6StdLogSetDefaultBody},
+    {"log", "levelName", "__xl_std_log_level_name", NULL, NULL, 0, "string", xl6StdLogLevelNameBody},
+    {"log", "write", "__xl_std_log_write", NULL, NULL, 0, "LogResult", xl6StdLogWriteBody},
+    {"log", "trace", "__xl_std_log_trace", NULL, NULL, 0, "LogResult", xl6StdLogtraceBody},
+    {"log", "debug", "__xl_std_log_debug", NULL, NULL, 0, "LogResult", xl6StdLogdebugBody},
+    {"log", "info", "__xl_std_log_info", NULL, NULL, 0, "LogResult", xl6StdLoginfoBody},
+    {"log", "warn", "__xl_std_log_warn", NULL, NULL, 0, "LogResult", xl6StdLogwarnBody},
+    {"log", "error", "__xl_std_log_error", NULL, NULL, 0, "LogResult", xl6StdLogerrorBody},
+    {"log", "fatal", "__xl_std_log_fatal", NULL, NULL, 0, "LogResult", xl6StdLogfatalBody},
+    {"log", "flush", "__xl_std_log_flush", NULL, NULL, 0, "", xl6StdLogFlushBody},
+
+    {"signal", "on", "__xl_std_signal_on", NULL, NULL, 0, "SignalHandle", xl6StdSignalOn0Body},
+    {"signal", "on", "__xl_std_signal_on", NULL, NULL, 0, "SignalHandle", xl6StdSignalOn1Body},
+    {"signal", "once", "__xl_std_signal_once", NULL, NULL, 0, "SignalHandle", xl6StdSignalOnce0Body},
+    {"signal", "once", "__xl_std_signal_once", NULL, NULL, 0, "SignalHandle", xl6StdSignalOnce1Body},
+    {"signal", "supported", "__xl_std_signal_supported", NULL, NULL, 0, "bool", xl6StdSignalSupportedBody},
+    {"signal", "name", "__xl_std_signal_name", NULL, NULL, 0, "string", xl6StdSignalNameBody},
+    {"signal", "ignore", "__xl_std_signal_ignore", NULL, NULL, 0, "bool", xl6StdSignalIgnoreBody},
+    {"signal", "restore", "__xl_std_signal_restore", NULL, NULL, 0, "bool", xl6StdSignalRestoreBody},
+    {"signal", "restoreAll", "__xl_std_signal_restore_all", NULL, NULL, 0, "bool", xl6StdSignalRestoreAllBody},
+    {"signal", "healthy", "__xl_std_signal_healthy", NULL, NULL, 0, "bool", xl6StdSignalHealthyBody},
+    {"signal", "reset", "__xl_std_signal_reset", NULL, NULL, 0, "", xl6StdSignalResetBody},
+    {"signal", "raise", "__xl_std_signal_raise", NULL, NULL, 0, "bool", xl6StdSignalRaiseBody},
+    {"signal", "count", "__xl_std_signal_count", NULL, NULL, 0, "uint64", xl6StdSignalCountBody},
+    {"signal", "received", "__xl_std_signal_received", NULL, NULL, 0, "bool", xl6StdSignalReceivedBody},
+    {"signal", "clear", "__xl_std_signal_clear", NULL, NULL, 0, "", xl6StdSignalClearBody},
+    {"signal", "sendTo", "__xl_std_signal_send_to", NULL, NULL, 0, "SignalHandle", xl6StdSignalSendToBody},
+    {"signal", "cancelOn", "__xl_std_signal_cancel_on", NULL, NULL, 0, "SignalHandle", xl6StdSignalCancelOnBody},
+
+    {"template", "compile", "__xl_std_template_compile", NULL, NULL, 0, "Template", xl6StdTemplateCompileBody},
+    {"template", "compileFile", "__xl_std_template_compile_file", NULL, NULL, 0, "Template", xl6StdTemplateCompileFileBody},
+    {"template", "engine", "__xl_std_template_engine", NULL, NULL, 0, "TemplateEngine", xl6StdTemplateEngineBody},
+    {"template", "render", "__xl_std_template_render", NULL, NULL, 0, "string", xl6StdTemplateRenderBody},
+    {"template", "renderFile", "__xl_std_template_render_file", NULL, NULL, 0, "string", xl6StdTemplateRenderFileBody},
+    {"template", "compileFileIn", "__xl_std_template_compile_file_in", NULL, NULL, 0, "Template", xl6StdTemplateCompileVfsBody},
+    {"template", "renderFileIn", "__xl_std_template_render_file_in", NULL, NULL, 0, "string", xl6StdTemplateRenderVfsBody},
+    {"template", "errorLocation", "__xl_std_template_error_location", NULL, NULL, 0, "TemplateLocation?", xl6StdTemplateErrorLocationBody},
+    {"tcp", "server", "__xl_std_tcp_server", NULL, NULL, 0, "TcpServer", xl6StdTcpServerBody},
+    {"crypto", "x25519PublicFromSpki", "__xl_std_crypto_x25519PublicFromSpki", NULL, NULL, 0, "bytes", xl6StdKeyX25519PublicFromSpki},
+    {"crypto", "x25519PublicFromSpkiPem", "__xl_std_crypto_x25519PublicFromSpkiPem", NULL, NULL, 0, "bytes", xl6StdKeyX25519PublicFromSpkiPem},
+    {"crypto", "x25519PublicToSpki", "__xl_std_crypto_x25519PublicToSpki", NULL, NULL, 0, "bytes", xl6StdKeyX25519PublicToSpki},
+    {"crypto", "x25519PublicToSpkiPem", "__xl_std_crypto_x25519PublicToSpkiPem", NULL, NULL, 0, "string", xl6StdKeyX25519PublicToSpkiPem},
+    {"crypto", "x448PublicFromSpki", "__xl_std_crypto_x448PublicFromSpki", NULL, NULL, 0, "bytes", xl6StdKeyX448PublicFromSpki},
+    {"crypto", "x448PublicFromSpkiPem", "__xl_std_crypto_x448PublicFromSpkiPem", NULL, NULL, 0, "bytes", xl6StdKeyX448PublicFromSpkiPem},
+    {"crypto", "x448PublicToSpki", "__xl_std_crypto_x448PublicToSpki", NULL, NULL, 0, "bytes", xl6StdKeyX448PublicToSpki},
+    {"crypto", "x448PublicToSpkiPem", "__xl_std_crypto_x448PublicToSpkiPem", NULL, NULL, 0, "string", xl6StdKeyX448PublicToSpkiPem},
+    {"crypto", "ed25519PublicFromSpki", "__xl_std_crypto_ed25519PublicFromSpki", NULL, NULL, 0, "bytes", xl6StdKeyEd25519PublicFromSpki},
+    {"crypto", "ed25519PublicFromSpkiPem", "__xl_std_crypto_ed25519PublicFromSpkiPem", NULL, NULL, 0, "bytes", xl6StdKeyEd25519PublicFromSpkiPem},
+    {"crypto", "ed25519PublicToSpki", "__xl_std_crypto_ed25519PublicToSpki", NULL, NULL, 0, "bytes", xl6StdKeyEd25519PublicToSpki},
+    {"crypto", "ed25519PublicToSpkiPem", "__xl_std_crypto_ed25519PublicToSpkiPem", NULL, NULL, 0, "string", xl6StdKeyEd25519PublicToSpkiPem},
+    {"crypto", "p256PublicFromSpki", "__xl_std_crypto_p256PublicFromSpki", NULL, NULL, 0, "bytes", xl6StdKeyP256PublicFromSpki},
+    {"crypto", "p256PublicFromSpkiPem", "__xl_std_crypto_p256PublicFromSpkiPem", NULL, NULL, 0, "bytes", xl6StdKeyP256PublicFromSpkiPem},
+    {"crypto", "p256PublicToSpki", "__xl_std_crypto_p256PublicToSpki", NULL, NULL, 0, "bytes", xl6StdKeyP256PublicToSpki},
+    {"crypto", "p256PublicToSpkiPem", "__xl_std_crypto_p256PublicToSpkiPem", NULL, NULL, 0, "string", xl6StdKeyP256PublicToSpkiPem},
+    {"crypto", "p384PublicFromSpki", "__xl_std_crypto_p384PublicFromSpki", NULL, NULL, 0, "bytes", xl6StdKeyP384PublicFromSpki},
+    {"crypto", "p384PublicFromSpkiPem", "__xl_std_crypto_p384PublicFromSpkiPem", NULL, NULL, 0, "bytes", xl6StdKeyP384PublicFromSpkiPem},
+    {"crypto", "p384PublicToSpki", "__xl_std_crypto_p384PublicToSpki", NULL, NULL, 0, "bytes", xl6StdKeyP384PublicToSpki},
+    {"crypto", "p384PublicToSpkiPem", "__xl_std_crypto_p384PublicToSpkiPem", NULL, NULL, 0, "string", xl6StdKeyP384PublicToSpkiPem},
+};
+
+const XL6_StdlibForeignContract xl6StdlibForeignContracts[] = {
+    {"__xl_std_crc32_text", "xl6Crc32StringV1", XL6_STDLIB_FOREIGN_EFFECT_PURE | XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING},
+    {"__xl_std_crc32_bytes", "xl6Crc32BytesV1", XL6_STDLIB_FOREIGN_EFFECT_PURE | XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING},
+    {"__xl_std_crc32_bytes", "xl6Crc32BytesSpanV1", XL6_STDLIB_FOREIGN_EFFECT_PURE | XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING},
+    {"__xl_std_crc32_buffer", "xl6Crc32BufferV1", XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING},
+#define XL6_HASH_VALUE_EFFECTS (XL6_STDLIB_FOREIGN_EFFECT_PURE | \
+    XL6_STDLIB_FOREIGN_EFFECT_NO_RAISE | XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING)
+#define XL6_HASH_BUFFER_EFFECTS (XL6_STDLIB_FOREIGN_EFFECT_NO_RAISE | \
+    XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING)
+    {"__xl_std_xrt_hash32", "xl6_xrt_hash32_string", XL6_HASH_VALUE_EFFECTS},
+    {"__xl_std_xrt_hash32_seed", "xl6_xrt_hash32_string_seed", XL6_HASH_VALUE_EFFECTS},
+    {"__xl_std_xrt_hash64", "xl6_xrt_hash64_string", XL6_HASH_VALUE_EFFECTS},
+    {"__xl_std_xrt_hash64_seed", "xl6_xrt_hash64_string_seed", XL6_HASH_VALUE_EFFECTS},
+    {"__xl_std_xrt_hash32_bytes", "xl6_xrt_hash32_bytes", XL6_HASH_VALUE_EFFECTS},
+    {"__xl_std_xrt_hash32_bytes_seed", "xl6_xrt_hash32_bytes_seed", XL6_HASH_VALUE_EFFECTS},
+    {"__xl_std_xrt_hash64_bytes", "xl6_xrt_hash64_bytes", XL6_HASH_VALUE_EFFECTS},
+    {"__xl_std_xrt_hash64_bytes_seed", "xl6_xrt_hash64_bytes_seed", XL6_HASH_VALUE_EFFECTS},
+    {"__xl_std_xrt_hash32_raw", "xl6_xrt_hash32_raw", XL6_HASH_BUFFER_EFFECTS},
+    {"__xl_std_xrt_hash32_raw_seed", "xl6_xrt_hash32_raw_seed", XL6_HASH_BUFFER_EFFECTS},
+    {"__xl_std_xrt_hash64_raw", "xl6_xrt_hash64_raw", XL6_HASH_BUFFER_EFFECTS},
+    {"__xl_std_xrt_hash64_raw_seed", "xl6_xrt_hash64_raw_seed", XL6_HASH_BUFFER_EFFECTS},
+    {"__xl_std_xrt_siphash64_string", "xl6_xrt_siphash64_string", XL6_HASH_VALUE_EFFECTS},
+    {"__xl_std_xrt_siphash64_bytes", "xl6_xrt_siphash64_bytes", XL6_HASH_VALUE_EFFECTS},
+    {"__xl_std_xrt_siphash64_raw", "xl6_xrt_siphash64_raw", XL6_HASH_BUFFER_EFFECTS},
+#undef XL6_HASH_VALUE_EFFECTS
+#undef XL6_HASH_BUFFER_EFFECTS
+    {"__xl_std_math_is_close", "xrtMathNear",
+     XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING},
+    {"__xl_std_math_int_near", "xrtMathIntNear",
+     XL6_STDLIB_FOREIGN_EFFECT_PURE |
+     XL6_STDLIB_FOREIGN_EFFECT_NO_RAISE |
+     XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING},
+    {"__xl_std_math_sin", "sin",
+     XL6_STDLIB_FOREIGN_EFFECT_NO_RAISE |
+     XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING},
+    {"__xl_std_math_abs", "fabs",
+     XL6_STDLIB_FOREIGN_EFFECT_PURE |
+     XL6_STDLIB_FOREIGN_EFFECT_NO_RAISE |
+     XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING},
+#define XL6_CRT_MATH_CONTRACT(name, symbol) \
+    {"__xl_std_math_" name, symbol, \
+     XL6_STDLIB_FOREIGN_EFFECT_NO_RAISE | \
+     XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING}
+    XL6_CRT_MATH_CONTRACT("cos", "cos"),
+    XL6_CRT_MATH_CONTRACT("tan", "tan"),
+    XL6_CRT_MATH_CONTRACT("asin", "asin"),
+    XL6_CRT_MATH_CONTRACT("acos", "acos"),
+    XL6_CRT_MATH_CONTRACT("atan", "atan"),
+    XL6_CRT_MATH_CONTRACT("atan2", "atan2"),
+    XL6_CRT_MATH_CONTRACT("sqrt", "sqrt"),
+    XL6_CRT_MATH_CONTRACT("pow", "pow"),
+    XL6_CRT_MATH_CONTRACT("exp", "exp"),
+    XL6_CRT_MATH_CONTRACT("log", "log"),
+    XL6_CRT_MATH_CONTRACT("log10", "log10"),
+    XL6_CRT_MATH_CONTRACT("floor", "floor"),
+    XL6_CRT_MATH_CONTRACT("ceil", "ceil"),
+    XL6_CRT_MATH_CONTRACT("round", "round"),
+    XL6_CRT_MATH_CONTRACT("round_current", "nearbyint"),
+    XL6_CRT_MATH_CONTRACT("sinh", "sinh"),
+    XL6_CRT_MATH_CONTRACT("cosh", "cosh"),
+    XL6_CRT_MATH_CONTRACT("tanh", "tanh"),
+    XL6_CRT_MATH_CONTRACT("asinh", "asinh"),
+    XL6_CRT_MATH_CONTRACT("acosh", "acosh"),
+    XL6_CRT_MATH_CONTRACT("atanh", "atanh"),
+    XL6_CRT_MATH_CONTRACT("erf", "erf"),
+    XL6_CRT_MATH_CONTRACT("erfc", "erfc"),
+    XL6_CRT_MATH_CONTRACT("gamma", "tgamma"),
+    XL6_CRT_MATH_CONTRACT("log_gamma", "lgamma"),
+    XL6_CRT_MATH_CONTRACT("fma", "fma"),
+    XL6_CRT_MATH_CONTRACT("copy_sign", "copysign"),
+    XL6_CRT_MATH_CONTRACT("next_after", "nextafter"),
+    XL6_CRT_MATH_CONTRACT("remainder", "remainder"),
+    XL6_CRT_MATH_CONTRACT("positive_diff", "fdim"),
+    XL6_CRT_MATH_CONTRACT("min_number", "fmin"),
+    XL6_CRT_MATH_CONTRACT("max_number", "fmax"),
+    XL6_CRT_MATH_CONTRACT("ldexp_native", "ldexp"),
+    XL6_CRT_MATH_CONTRACT("scalbn_native", "scalbn"),
+    XL6_CRT_MATH_CONTRACT("logb", "logb"),
+    XL6_CRT_MATH_CONTRACT("ilogb_native", "ilogb")
+#undef XL6_CRT_MATH_CONTRACT
+};
+
+
+#define XL6_STDLIB_ARRAY_COUNT(a) (sizeof(a) / sizeof((a)[0]))
+
+typedef char XL6_StdlibConstCountCheck[
+    XL6_STDLIB_ARRAY_COUNT(xl6StdlibConsts) == XL6_STDLIB_CONST_COUNT ? 1 : -1];
+typedef char XL6_StdlibFuncCountCheck[
+    XL6_STDLIB_ARRAY_COUNT(xl6StdlibFuncs) == XL6_STDLIB_FUNC_COUNT ? 1 : -1];
+
+const size_t xl6StdlibConstCount = XL6_STDLIB_CONST_COUNT;
+const size_t xl6StdlibFuncCount = XL6_STDLIB_FUNC_COUNT;
+const size_t xl6StdlibForeignContractCount =
+    XL6_STDLIB_ARRAY_COUNT(xl6StdlibForeignContracts);

@@ -1,0 +1,39 @@
+{
+    "format":  "xlang-package-1",
+    "name":  "md4c",
+    "version":  "0.1.0",
+    "abiVersion":  "1",
+    "kind":  "demo6-extlib",
+    "artifact":  {
+                     "kind":  "source",
+                     "cSources":  [
+                                      "md4c_native.c",
+                                      "third_party/md4c/md4c.c",
+                                      "third_party/md4c/md4c-html.c",
+                                      "third_party/md4c/entity.c"
+                                  ],
+                     "xlSources":  [
+                                       "src/md4c.xl"
+                                   ],
+                     "xrtModules":  [
+                                        "XRT_MODULE_BUFFER",
+                                        "XRT_MODULE_FILE_WHOLE",
+                                        "XRT_MODULE_UNICODE"
+                                    ]
+                 },
+    "links":  [
+
+              ],
+    "loadlibs":  [
+
+                 ],
+    "dependencies":  [
+
+                     ],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl"] },
+    "native":  {
+                   "singleton":  false,
+                   "loadName":  "",
+                   "version":  ""
+               }
+}
