@@ -7070,6 +7070,14 @@ static stbir__info * stbir__alloc_internal_mem_and_build_samplers( stbir__sample
   int channels = stbir__pixel_channels[ input_pixel_layout ];
   int effective_channels = channels;
 
+#ifdef STBIR__SEPARATE_ALLOCATIONS
+  /* 失败可能发生在采样器复制到 info 之前，清理只读取已分配的指针。 */
+  horizontal->contributors = 0;
+  horizontal->coefficients = 0;
+  vertical->contributors = 0;
+  vertical->coefficients = 0;
+#endif
+
   // first figure out what type of alpha weighting to use (if any)
   if ( ( horizontal->filter_enum != STBIR_FILTER_POINT_SAMPLE ) || ( vertical->filter_enum != STBIR_FILTER_POINT_SAMPLE ) ) // no alpha weighting on point sampling
   {
@@ -7150,7 +7158,7 @@ static stbir__info * stbir__alloc_internal_mem_and_build_samplers( stbir__sample
 
 #ifdef STBIR__SEPARATE_ALLOCATIONS
     // The failure path walks these pointers; keep unallocated entries null.
-    #define STBIR__NEXT_PTR( ptr, size, ntype ) if ( alloced ) { void * p = STBIR_MALLOC( size, user_data); if ( p == 0 ) { stbir__free_internal_mem( info ); return 0; } memset( p, 0, size ); (ptr) = (ntype*)p; }
+    #define STBIR__NEXT_PTR( ptr, size, ntype ) if ( alloced ) { void * p = STBIR_MALLOC( size, user_data); if ( p == 0 ) goto allocation_failed; memset( p, 0, size ); (ptr) = (ntype*)p; }
 #else
     #define STBIR__NEXT_PTR( ptr, size, ntype ) advance_mem = (void*) ( ( ((size_t)advance_mem) + 15 ) & ~15 ); if ( alloced ) ptr = (ntype*)advance_mem; advance_mem = (char*)(((size_t)advance_mem) + (size));
 #endif
@@ -7385,6 +7393,22 @@ static stbir__info * stbir__alloc_internal_mem_and_build_samplers( stbir__sample
     else
       return info;  // success
   }
+
+#ifdef STBIR__SEPARATE_ALLOCATIONS
+ allocation_failed:
+  /* 暂存区、分配上下文和局部采样器都交给同一释放出口，保留共享指针判断。 */
+  if ( info )
+  {
+    info->alloced_mem = alloced;
+    info->user_data = user_data;
+    STBIR_MEMCPY( &info->horizontal, horizontal, sizeof( stbir__sampler ) );
+    STBIR_MEMCPY( &info->vertical, vertical, sizeof( stbir__sampler ) );
+  }
+  else
+    STBIR_FREE( alloced, user_data );
+  stbir__free_internal_mem( info );
+  return 0;
+#endif
 }
 
 static int stbir__perform_resize( stbir__info const * info, int split_start, int split_count )
