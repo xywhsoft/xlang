@@ -15,6 +15,9 @@ typedef struct xls_sem_read_capture {
  xstrbuf scratch;uint64_t observations,typedComparisons,scratchReuses,scratchBytes;
  xarray values;size_t valueStrings,valueBytes;int valuesReady;
  xarray headers;size_t headerBytes;int headersReady;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+ size_t typedSlots[32];uint64_t frontComparisons;
+#endif
 } xls_sem_read_capture;
 typedef struct xls_sem_read_cached {xstrbuf key;size_t count;uint64_t epoch;} xls_sem_read_cached;
 static _Thread_local xls_sem_read_capture* xlsActiveSemReads;
@@ -110,10 +113,27 @@ static int xlsSemReadKey(XL6_SemContext* ctx,const char* name,int type,xstrbuf* 
 {return type ? xlsSemReadTypeKey(ctx,name,key,count) : xlsSemReadHeaderKey(ctx,name,key,count);}
 static void xlsSemReadsUnknown(XL6_SemContext* ctx)
 {(void)ctx;if(xlsActiveSemReads && xlsActiveSemReads->reads)xlsActiveSemReads->reads->complete=0;}
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+/* IDs address candidates,never prove freshness. Admit only an owned value
+ * whose captured name equals the original lookup spelling; its owned name
+ * can then stand for that spelling without retrieving the parallel record. */
+static unsigned xlsSemReadFrontBucket(XL6_TypeId id)
+{return (unsigned)(id^(id>>16))&31u;}
+static void xlsSemReadFrontRemember(xls_sem_read_capture* c,size_t slot,const XL6_TypeInfo* info)
+{
+ if(!info || !info->name || info->decl)return;
+ const xls_sem_read* observed=xrtArrayConstGet(&c->reads->items,slot);
+ if(observed && observed->type==1 && observed->name && !strcmp(observed->name,info->name))
+  c->typedSlots[xlsSemReadFrontBucket(info->id)]=slot+1;
+}
+#endif
 static void xlsSemReadValuesDrop(xls_sem_read_capture* c)
 {
  for(size_t i=0;i<c->values.Count;++i)xlsSemReadValueUnit(xrtArrayGet(&c->values,i));
  xrtArrayUnit(&c->values);c->valuesReady=0;c->valueStrings=0;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+ memset(c->typedSlots,0,sizeof(c->typedSlots));
+#endif
 }
 static void xlsSemReadValueRemember(xls_sem_read_capture* c,size_t slot,const XL6_TypeInfo* info)
 {
@@ -126,6 +146,9 @@ static void xlsSemReadValueRemember(xls_sem_read_capture* c,size_t slot,const XL
  if(!xlsSemReadValueInit(value,info)){xlsSemReadValuesDrop(c);return;}
  c->valueStrings+=value->stringsBytes;size_t bytes=c->values.Capacity*sizeof(xls_sem_read_value)+c->valueStrings;
  if(bytes>c->valueBytes)c->valueBytes=bytes;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+ xlsSemReadFrontRemember(c,slot,info);
+#endif
 }
 static void xlsSemReadHeadersDrop(xls_sem_read_capture* c)
 {
@@ -163,7 +186,12 @@ static void xlsSemReadScratchReturn(xls_sem_read_capture* c,xstrbuf* key)
  }
  xrtStrBufFree(key);
 }
-static void xlsSemReadsObserve(XL6_SemContext* ctx,const char* name,int type,const XL6_TypeInfo* actual)
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+#define XLS_SEM_READ_OBSERVER xlsSemReadsObserveSlow
+#else
+#define XLS_SEM_READ_OBSERVER xlsSemReadsObserve
+#endif
+static void XLS_SEM_READ_OBSERVER(XL6_SemContext* ctx,const char* name,int type,const XL6_TypeInfo* actual)
 {
  xls_sem_read_capture* c=xlsActiveSemReads;if(!c || !c->reads || !c->reads->complete)return;
  ++c->observations;
@@ -171,7 +199,11 @@ static void xlsSemReadsObserve(XL6_SemContext* ctx,const char* name,int type,con
  if(ctx!=c->context || !n || n>256 || reads->items.Count>=256){reads->complete=0;return;}
  for(size_t i=0;i<reads->items.Count;++i){const xls_sem_read* r=xrtArrayConstGet(&reads->items,i);if(r->type==type && !strcmp(r->name,name)){
    const xls_sem_read_value* value=type && i<c->values.Count ? xrtArrayConstGet(&c->values,i) : NULL;
-   if(value && value->ready){++c->typedComparisons;if(!xlsSemReadValueEqual(value,actual))reads->complete=0;return;}
+   if(value && value->ready){++c->typedComparisons;if(!xlsSemReadValueEqual(value,actual))reads->complete=0;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    else xlsSemReadFrontRemember(c,i,actual);
+#endif
+    return;}
    const xls_sem_header_value* header=!type && i<c->headers.Count ? xrtArrayConstGet(&c->headers,i) : NULL;
    if(header && header->ready){if(!xlsSemHeaderValueEqual(header,ctx,name))reads->complete=0;return;}
    xstrbuf key=xlsSemReadScratchTake(c);size_t count=0;
@@ -188,6 +220,31 @@ static void xlsSemReadsObserve(XL6_SemContext* ctx,const char* name,int type,con
  else xlsSemReadHeaderRemember(c,reads->items.Count-1,name,&key,count);
  reads->bytes+=added;++c->build->memo->readWork.recorded;if(!count)++c->build->memo->readWork.negative;
 }
+#undef XLS_SEM_READ_OBSERVER
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+/* Stack-only candidate positions survive vector growth. An exact owned-name
+ * match proves the original nonempty/256-byte name bound. Context,record cap,
+ * presence and EVERY original live value field still run,including both name
+ * strings and declaration changes. Missing values/collisions use the old
+ * observer;the first and final serialized snapshots remain authoritative. */
+static int xlsSemReadFront(xls_sem_read_capture* c,XL6_SemContext* ctx,const char* name,int type,const XL6_TypeInfo* actual)
+{
+ if(type!=1 || !name || !*name || ctx!=c->context || c->reads->items.Count>=256 || !actual || !c->valuesReady)return 0;
+ size_t cached=c->typedSlots[xlsSemReadFrontBucket(actual->id)];
+ if(!cached || cached>c->reads->items.Count)return 0;
+ const xls_sem_read_value* value=xrtArrayConstGet(&c->values,cached-1);
+ if(!value || !value->ready || !value->present || !value->type.name || strcmp(value->type.name,name))return 0;
+ ++c->observations;++c->typedComparisons;++c->frontComparisons;
+ if(!xlsSemReadValueEqual(value,actual))c->reads->complete=0;
+ return 1;
+}
+static void xlsSemReadsObserve(XL6_SemContext* ctx,const char* name,int type,const XL6_TypeInfo* actual)
+{
+ xls_sem_read_capture* c=xlsActiveSemReads;
+ if(c && c->reads && c->reads->complete && xlsSemReadFront(c,ctx,name,type,actual))return;
+ xlsSemReadsObserveSlow(ctx,name,type,actual);
+}
+#endif
 static void xlsSemReadsName(XL6_SemContext* ctx,const char* name)
 {xlsSemReadsObserve(ctx,name,0,NULL);}
 /* The generated semantic TU routes every registry Find call here. The

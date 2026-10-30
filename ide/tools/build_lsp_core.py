@@ -88,6 +88,7 @@ CORE_TESTS = ("analysis_current_loader_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_callsite_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_current_provider_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_selection_test", "analysis_selection_projection_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_semantic_read_front_test", *CORE_TESTS)
 HOST_TESTS += ("navigation_cache_test", "semantic_reference_shard_test", "project_references_test", "project_reference_budget_test", "reference_path_index_test")
 HOST_TESTS += ("path_identity_batch_test", "reference_capture_test")
 HOST_TESTS += ("project_reference_parallel_test",)
@@ -594,7 +595,9 @@ def main() -> None:
     )]
     if not args.skip_tests:
         sources += [(ide / "src/protocol/document_sync.c", True)]
-        sources += [(ide / "tests" / (name + ".c"), True) for name in tests]
+        # This private fixture includes the exact generated semantic TU; use
+        # its native warning profile. Its object never enters the core/server.
+        sources += [(ide / "tests" / (name + ".c"), name != "analysis_semantic_read_front_test") for name in tests]
     if args.server:
         if os.name != "nt":
             parser.error("the current host still uses Windows transport/process adapters; the standalone core is separate")
