@@ -182,7 +182,10 @@ static int querySignatureVersions(void)
     }
     xlsSignatureDataDestroy(previous);xl6ParseResultFree(&held);for(size_t v=0;v<3;++v){xlsFrontendSemMemoDestroy(memos[v]);xrtStrBufFree(&sources[v]);}xrtFree(path);return 1;
 }
-int main(void)
+#ifndef XLS_SEM_QUERIES_MAIN
+#define XLS_SEM_QUERIES_MAIN main
+#endif
+int XLS_SEM_QUERIES_MAIN(void)
 {
     if(xlsEffectsProbeMain())return 1;
     if(!queryCompletion("func edited() as int\n int result = 7\n return res@caret@\nend\n","result",8u*1024u*1024u) ||
