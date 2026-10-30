@@ -1,0 +1,35 @@
+{
+    "format": "xlang-package-1",
+    "name": "ini",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": [
+            "xrt_ini_model.c",
+            "xrt_ini_parser.c",
+            "xrt_ini_writer.c",
+            "ini_native.c"
+        ],
+        "xlSources": ["src/ini.xl"],
+        "xrtModules": [
+            "XRT_MODULE_CHARSET",
+            "XRT_MODULE_FILE_WHOLE",
+            "XRT_MODULE_IO_BUFFER",
+            "XRT_MODULE_IO_FILE",
+            "XRT_MODULE_STRING",
+            "XRT_MODULE_NUMBER_FLOAT",
+            "XRT_MODULE_NUMBER_INTEGER"
+        ]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/updates.xl", "test/output_limits.xl", "test/interpolation_refs.xl", "test/owned_results.xl", "test/set_limits.xl"] },
+    "native": {
+        "singleton": false,
+        "loadName": "",
+        "version": ""
+    }
+}

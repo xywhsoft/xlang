@@ -1,0 +1,42 @@
+{
+  "scope": "Extension development worktree integration into the primary workspace",
+  "sourceBranch": "codex/extlibs-release-sync",
+  "sourceCommit": "8806c6b6f642e7e532fb16801246b2e6318a70ca",
+  "primaryBefore": "a3572d0c546390e77a0816aa29d5c29ecf46487e",
+  "commonBase": "d646729034ba9f95c64c4a95cf2e73443b0eeaf0",
+  "previouslyUnintegratedCommits": 124,
+  "ownedPathsApplied": 1198,
+  "packageDirectories": 103,
+  "ordinaryPackages": 100,
+  "privateDependencies": 3,
+  "conflictedPathsReviewed": 31,
+  "compilerSourceOverwritten": false,
+  "newerIdePipelinePreserved": true,
+  "historicalLayoutComparisonOnly": true,
+  "runtimeLegacyPathAliasesAdded": false,
+  "validation": {
+    "manifestOwnedCTranslationUnits": 68,
+    "syntaxFailuresWithCompilerPreamble": 0,
+    "catalogCoverage": "passed",
+    "tomlNewCAndCalendarChecks": "passed after adapting to mainline AD milliseconds",
+    "tomlBilingualCalendarExample": "passed",
+    "tomlFullPackageGate": "blocked at the existing foreign dict projection case M1",
+    "all100PackagesRequalified": false
+  },
+  "mainlineAdaptations": [
+    "Preserve three-digit XRT millisecond formatting and add TOML year bounds",
+    "Use AD millisecond vectors and independent Python calendar reference",
+    "Preserve TOML's own microsecond and astronomical year-zero representation",
+    "Use Gregorian year 400 only for TOML year-zero month-length validation",
+    "Pin private TOML vendor files to canonical LF and record exact local hashes"
+  ],
+  "historicalArtifactsNotRestoredOverNewerPrimary": [
+    "obsolete IDE catalog and source payloads",
+    "superseded compiler-cache generation scripts",
+    "already completed repository-root promotion in CI and top-level documentation"
+  ],
+  "evidenceDirectory": "build/test/worktree-sync-20261031",
+  "evidenceFiles": ["inventory.json", "prepared.json", "applied.json", "syntax.json", "toml-port-current.json"],
+  "sourceHistoryRetainedInMergeParents": true,
+  "releaseDeliveryRecordedSeparately": true
+}

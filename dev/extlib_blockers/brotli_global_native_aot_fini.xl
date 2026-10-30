@@ -1,0 +1,5 @@
+import brotli
+
+// 最小对照：不更新或完成流，只验证一个顶层原生对象的自然退役。
+auto encoder = brotli.compressor(quality = 1)
+println("brotli global ready")

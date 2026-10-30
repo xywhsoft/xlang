@@ -1,0 +1,19 @@
+{
+    "format": "xlang-package-1",
+    "name": "vcard",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "includeDirs": ["include"],
+        "cSources": ["vcard_native.c", "vcard_parse.c", "vcard_build.c"],
+        "xrtModules": ["XRT_MODULE_BUFFER", "XRT_MODULE_UNICODE", "XRT_MODULE_VALUE_CONTAINER"],
+        "xlSources": ["src/vcard.xl"]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/control_characters.xl", "test/allocations.xl", "test/uri_values.xl", "test/structure.xl", "test/limits.xl", "test/utf8_folding.xl"] },
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

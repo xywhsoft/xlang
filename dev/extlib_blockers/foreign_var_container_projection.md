@@ -1,4 +1,49 @@
+> 历史工作树记录：以下结果对应文内冻结版本，不自动代表主目录当前 0.6.0；需在当前发布物上复验。
+
 # 当前源码的 var 容器传入原生扩展失败
+
+2026-10-30 根目录布局复验 `sitemap`：robots行尾修复后的Windows默认
+门禁前44项符合预期（含两个必拒绝负例），第45原中央语言数组生成
+仍抛ValueError；Linux sanitizer、JIT/AOT、XML独立检查及双语例完成
+相同前置后同样失败。仓库根的
+`release/xl.exe run dev/extlib_blockers/sitemap_build_var_array_projection.xl`
+（Linux用release/xl）与其独立程序均先打印native roundtrip: PASS，
+再语言数组build失败、退出1。原生parse数组通过不代表语言数组边界
+闭环；修复仍在主线共享foreign投影，包不识别私有句柄或序列化绕行。
+
+2026-10-30 根目录布局复验 `rss`：注册链接关系修复后的默认 Windows
+门禁前55项符合预期（含一个ABI类型冲突负例），第56原中央
+`rss.buildRSS(channel, [])` 仍报 ValueError；Linux sanitizer、JIT/AOT
+和双语例完成相同前置后同样失败。独立复现从仓库根执行
+`release/xl.exe run dev/extlib_blockers/rss_build_var_object_projection.xl`
+（Linux 用 `release/xl`），两平台JIT和AOT均先打印 native roundtrip:
+PASS，再在同形语言字典/数组处失败、退出1。包不识别编译器私有句柄，
+不以原生 parse 对象替代原生成验收。修复仍应在共享 foreign 参数投影
+中保留 XRT 对象/数组类型、嵌套元素和所有权，覆盖失败回滚及重复调用；
+之后重跑该最小源、原中央用例和默认双平台门禁。
+
+2026-10-30 根目录布局复验 `srt`：三个文本返回改为 @owned 直接接管后，
+Windows/Linux 默认门禁分别完成 39/41 项可运行前置验证（含 C/XL 各
+22 预算、六条生成原型、新旧双语及七条独立程序），最后原语言 cue
+数组仍报 `ValueError: cues must be an array`。原 core_aot 也使用字面量
+数组，定向执行同样报红，不能改为解析原生值来签收。从仓库根执行
+`release/xl.exe run dev/extlib_blockers/srt_build_var_array_projection.xl`
+（Linux 用 `release/xl`），JIT 与独立程序仍先打印 native roundtrip:
+PASS，再在同形语言数组处退出 1；check/build 成功。修复仍应位于共享
+foreign 容器投影，不在 SRT 里识别编译器私有句柄。报告见验收矩阵及
+任务台账 2026-10-30 SRT 条目，完整原语言边界待主线修复后复跑。
+
+2026-10-30 根目录布局复验 `graph`：Windows/Linux 包门禁各完成 38 项
+可运行前置检查（含全部九条实际生成原型、三种独立程序、两种 DLL/SO
+同上下文各三轮正常 JSON 范例），最后原中央语言边数组仍报
+`ValueError: graph edges must be an array`。从仓库根执行
+`release/xl.exe run dev/extlib_blockers/graph_var_array_projection.xl`
+（Linux 用 `release/xl`）仍退出 1；同源 check/build 成功，但独立程序
+运行同样退出 1。标准 json.parse 返回的原生配置可用于九项图 API，不代表
+语言字面量投影已经修复；没有新增工厂、包侧私有句柄识别或序列化绕行。
+修复仍应在主线共享 foreign 参数投影层完成，覆盖嵌套行数组、类型、所有权、
+失败回滚及重复调用，再复跑最小源和完整包级门禁。证据见验收矩阵与台账
+2026-10-30 Graph 条目；普通扩展库任务不修改主线。
 
 2026-10-27 从当前工作树执行 `build.bat` 成功后复验：
 `release/xl.exe run dev/extlib_blockers/ical_build_var_object_projection.xl`
@@ -76,6 +121,14 @@ Windows/Linux `xl run` 均退出 1 并报同错。修复应在共享 foreign
 语言数组字面量触发同一错误。修复应在共享 foreign `var` 容器
 投影边界保留 `XVALUE_ARRAY` 及嵌套字典/数组，不在 SRT 包内
 识别私有句柄；修复后复验最小源和两平台默认包门禁。
+
+2026-10-30 根目录布局复验 `toml`：Windows/Linux 默认包门禁分别完成
+58/59项可运行前置验证（包括新日历双语、全部十六条实际原型和六个独立
+程序），最后仍在原中央字典写出报上述 TypeError。原最小源从仓库根执行
+`release/xl.exe run release/extlibs/toml/test/root_argument_repro.xl`；
+Linux 使用 `release/xl`。两平台 JIT 均退出1；同源 build 成功，但独立
+程序也在相同字典处退出1。不能把 parse 配置的写回、C 成功或构建成功
+当作语言字典投影闭环。详情与报告见当前验收矩阵 TOML 行及任务台账。
 
 2026-10-26 重建发布版后复验 `toml`：Windows 默认
 `release/extlibs/toml/test/check.ps1` 的严格 C 和原生边界先通过，
@@ -342,3 +395,37 @@ JSON object`。原生 `xtf_state` 要求 XRT object；公开签名只声明
 `XVALUE_OBJECT` 和 `XVALUE_ARRAY`。这是与 foreign 容器投影同形的
 可观察失败，尚未逐个证明两个参数的内部表示。当前发布版默认门禁
 尚未进入完整范例和 AOT；共享边界修复后复跑该门禁。
+
+## 2026-10-30 CLI 被 os.args 掩盖的独立投影
+
+CLI 是 M1 第21实测包，同时仍有 M7。默认导入会先在编译/链接时缺
+`xl6_xrt_os_args`，此前并没有运行到原生解析器，不能据此证明parse正常。
+新增[最小源](cli_args_projection.xl)及同名C伴随源，只引入真实的CLI
+解析器，不导入含parseOs的语言模块：
+
+```powershell
+./release/xl.exe check dev/extlib_blockers/cli_args_projection.xl
+./release/xl.exe run dev/extlib_blockers/cli_args_projection.xl
+./release/xl.exe build dev/extlib_blockers/cli_args_projection.xl -o build/test/cli_args_projection.exe
+./build/test/cli_args_projection.exe
+```
+
+最小源先在同一执行环境通过C构造完全相同的原生数组/对象，打印
+`cli native control: PASS`，随后才调用语言字面量路径。Windows/Linux均
+check与build成功，JIT/EXE均返回1并报
+`ValueError: parse requires an args array and a spec object`。xcli_parse第一项
+要求XVALUE_ARRAY/XVALUE_OBJECT，实际生成声明为
+`extern xvalue* xcli_parse(xvalue*, xvalue*)`，与正式C头相符；独立C相同
+声明/参数成功。证明当前合法语言字面量尚未满足此foreign入口的物理要求，
+不据错误文本断言两个参数内部所有表示或全部包的根因已经逐项证明。
+
+默认CLI门禁保留该正例并要求0，不能用识别私有handle、将输入改成json.parse、
+删除parseOs或C工厂当作本包修复。主线统一数组/字典的foreign var投影、
+引用与OOM回滚，连同M7后再复跑中央用例、两份双语范例和默认JIT/AOT。
+新包优化仅将已验证为字符串的默认值从图复制改为标量复制并移除不再需要的
+VALUE_GRAPH依赖，没有改物理ABI、接受错误容器或更改声明范围。
+
+Windows报告 `build/test/cli_guard/run_46637af6c9454ef99d872bd788fe54f9/results.json`；
+Linux原生快照 `/var/tmp/xlang-cli-final-src-UjUpgL`，现场
+`tmp/xlang-cli-yI8zVT`。两端39阶段29符合要求，C/882故障/真实原型先通过，
+四份含os.args源的八条路径与本最小源两条路径分别失败，整体仍返回1。

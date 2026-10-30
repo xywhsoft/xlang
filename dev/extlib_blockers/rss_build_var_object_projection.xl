@@ -1,0 +1,15 @@
+import rss
+
+func main(...) as int
+    // 原生解析返回真实 XRT 对象/数组，验证包自身的生成入口可工作。
+    var native = rss.parseRSS("<rss version='2.0'><channel><title>News</title><link>https://example.test/</link><description>Updates</description></channel></rss>")
+    assert rss.detect(rss.buildRSS(native, native["items"])) == "rss"
+    println("native roundtrip: PASS")
+
+    // 同形语言容器不能被包侧识别私有句柄或序列化绕行。
+    var channel = {"title": "News", "link": "https://example.test/", "description": "Updates"}
+    assert type(channel) == dict
+    string xml = rss.buildRSS(channel, [])
+    assert rss.detect(xml) == "rss"
+    return 0
+end

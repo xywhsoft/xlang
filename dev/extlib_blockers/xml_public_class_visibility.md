@@ -1,8 +1,10 @@
+> 历史工作树记录：以下结果对应文内冻结版本，不自动代表主目录当前 0.6.0；需在当前发布物上复验。
+
 # XML 公共类尚不能安全导出
 
 状态：blocked-upstream。普通扩展库任务不修改 XLang 主线。
 
-当前发布版从 `demo6` 运行以下三个最小文件的 `xl check`，均非零退出，
+当前发布版从仓库根目录运行以下三个最小文件的 `xl check`，均非零退出，
 报告 `[import] import package has no such exported type`：
 
 - `dev/extlib_blockers/xml_sax_reader_type.xl`：`xml.sax.Reader`
@@ -27,3 +29,11 @@ ElementTree 有接管原生 `point` 的构造路径，SAX 的 Reader 也由
 `check_trees.sh` 已通过严格 C、Linux ASan/UBSan、语言 JIT、
 边界/分配/中央/双语范例 AOT 和 DOM/ElementTree 往返；这些
 运行证据不覆盖上述类型声明与构造器安全性，因此三包仍待签收。
+
+2026-10-30：八个冻结发布物/单头库仍未改变。三份最小源在 Windows/
+Linux 原生文件系统均再次返回 1，仍为同一缺少导出类型诊断。联合
+默认门禁最后保留 SAX 这个正确的公开类型正例，因此当前默认门禁
+为红，不再只凭工厂运行通过而退出 0。之前的私有方法负例照常验证，
+它们与原生构造器访问控制不是同一能力，不能混同签收。
+本轮修复仅是包内冷启动错误状态，详见
+[共同审查记录](../../release/extlibs/xml.sax/test/BRIDGE_STATE_AUDIT_2026-10-30.md)。

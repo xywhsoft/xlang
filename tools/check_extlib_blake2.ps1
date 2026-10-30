@@ -1,11 +1,12 @@
-param([string]$Root = '', [switch]$SkipAot)
+﻿param([string]$Root = '', [switch]$SkipAot)
 
 $ErrorActionPreference = 'Stop'
 if (!$Root) { $Root = Split-Path -Parent $PSScriptRoot }
 $Root = (Resolve-Path -LiteralPath $Root).Path
 . (Join-Path $PSScriptRoot 'extlib_smoke_process.ps1')
 $xl = Join-Path $Root 'release/xl.exe'
-$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
+$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+$gccHash = (Get-FileHash -LiteralPath $gcc).Hash
 $workRoot = Join-Path $Root 'build/test/blake2_guard'
 $runId = [guid]::NewGuid().ToString('N')
 $work = Join-Path $workRoot ('run_' + $runId)
@@ -15,24 +16,26 @@ $checks = [Collections.Generic.List[object]]::new()
 $hashes = [ordered]@{}
 $manifest = Get-Content (Join-Path $Root 'release/extlibs/blake2/xlang.package.json') -Raw -Encoding UTF8 | ConvertFrom-Json
 $sources = @($manifest.artifact.cSources | ForEach-Object { "release/extlibs/blake2/$_" })
-$paths = @('release/xl.exe','release/xl.dll','release/xlc.dll','lib/xrt/xrt.h','lib/xruntime/xruntime.h',
+function InputPaths {
+    @('release/xl.exe','release/xl.dll','release/xlc.dll','lib/xrt/xrt.h','lib/xruntime/xruntime.h',
     'release/include/xrt_decl.h','release/include/xruntime_decl.h',
     'test/support/extlib_codec_runtime.c','tools/check_extlib_blake2.ps1',
     'tools/extlib_smoke_process.ps1','tools/xlir_native_process.ps1','tools/run_extlib_c.ps1',
     'test/featured_extlibs.json','test/suites/11_featured_extlibs_rc.bat','tools/check_extlib_blake2.sh',
     'test/cases/extlib_blake2.xl','test/cases/extlib_blake2_boundaries.xl','test/cases/extlib_blake2_progress.xl','release/examples/extlibs/blake2.xl',
     'release/examples/extlibs/blake2_basic.xl','release/examples/extlibs/blake2_basic.expected.txt')
-$paths += Get-ChildItem (Join-Path $Root 'release/extlibs/blake2') -Recurse -File |
-    Where-Object Extension -in @('.c','.h','.xl','.json') |
+    Get-ChildItem (Join-Path $Root 'release/extlibs/blake2') -Recurse -File |
     ForEach-Object { $_.FullName.Substring($Root.Length + 1).Replace('\','/') }
-foreach ($path in @($paths | Sort-Object -Unique)) {
+}
+foreach ($path in @(InputPaths | Sort-Object -Unique)) {
     $hashes[$path] = (Get-FileHash -LiteralPath (Join-Path $Root $path)).Hash
 }
 
 function Check([string]$Name, [string]$Program, [string[]]$Arguments, [int]$Seconds = 120) {
+    if ($null -eq $Arguments) { $Arguments = @() }
     $r = Invoke-ExtlibSmokeProcess $Program $Arguments $Root $Seconds
-    $checks.Add([ordered]@{name=$Name;status=$r.status;exitCode=$r.exitCode;elapsedMs=$r.elapsedMs;stdout=$r.stdout;stderr=$r.stderr})
-    if ($r.status -ne 'pass') { throw "$Name failed: $($r.stderr)`n$($r.stdout)" }
+    $checks.Add([ordered]@{name=$Name;program=$Program;arguments=$Arguments;status=$r.status;exitCode=$r.exitCode;elapsedMs=$r.elapsedMs;stdout=$r.stdout;stderr=$r.stderr})
+    if ($r.status -ne 'pass') { throw "$Name failed: status=$($r.status), exit=$($r.exitCode)`n$($r.stderr)`n$($r.stdout)" }
     Write-Host "[blake2] ${Name}: PASS"
     return $r.stdout.Replace("`r`n","`n").TrimEnd("`n")
 }
@@ -42,12 +45,17 @@ $packageFlags = $flags + @($manifest.artifact.xrtModules | ForEach-Object { "-D$
 $objects = @()
 $runtime = Join-Path $work 'runtime.o'
 $outcome = 'failed'
+$failure = ''
+$decls = @()
+$constants = @()
 try {
+    $null = Check 'compiler-info' $gcc @('--version')
     $null = Check 'runtime' $gcc ($flags + @('-DXRT_MODULE_CODEC_HEX','-DXRT_MODULE_THREAD','-c','test/support/extlib_codec_runtime.c','-o',$runtime))
     $index = 0
     foreach ($source in $sources) {
         $object = Join-Path $work "source-$index.o"
-        $null = Check "native-$index" $gcc ($packageFlags + @('-c',$source,'-o',$object))
+        $strict = if ($source -like '*/third_party/*') { @() } else { @('-Wmissing-prototypes') }
+        $null = Check "native-$index" $gcc ($packageFlags + $strict + @('-c',$source,'-o',$object))
         $objects += $object
         ++$index
     }
@@ -103,6 +111,11 @@ try {
         }
     }
     $null = Check 'known-vectors-xlang' $xl @('run','release/extlibs/blake2/test/vectors.xl')
+    if (!$SkipAot) {
+        $vectors = Join-Path $work 'vectors.exe'
+        $null = Check 'known-vectors-build' $xl @('build','release/extlibs/blake2/test/vectors.xl','-o',$vectors)
+        $null = Check 'known-vectors-aot' $vectors @()
+    }
     $decls = @()
     foreach ($name in @('extlib_blake2','extlib_blake2_boundaries','extlib_blake2_progress')) {
         $module = Join-Path $work "$name.c"
@@ -117,7 +130,12 @@ try {
         throw "BLAKE2 generated ABI coverage incomplete: expected $($expected.Count), got $($decls.Count)"
     }
     $abi = Join-Path $work 'abi.c'
-    [IO.File]::WriteAllText($abi,"#include <stdint.h>`n#include `"blake2_native.h`"`n" + ($decls -join "`n"),$utf8)
+    $constants = @([regex]::Matches($source,'export const int (BLAKE2\w+) = (\d+)') | ForEach-Object {
+        $macro = 'XRT_' + $_.Groups[1].Value.Replace('OUT_LEN','OUT_MAX')
+        '_Static_assert({0} == {1}, "{2}");' -f $_.Groups[2].Value,$macro,$_.Groups[1].Value
+    })
+    if ($constants.Count -ne 4) { throw 'Incomplete BLAKE2 constant coverage' }
+    [IO.File]::WriteAllText($abi,"#include <stdint.h>`n#include `"blake2_native.h`"`n#include `"xrt_blake2.h`"`n" + (($decls + $constants) -join "`n"),$utf8)
     $null = Check 'generated-prototypes' $gcc ($packageFlags + @('-Irelease/extlibs/blake2/include','-fsyntax-only',$abi))
     foreach ($name in @('blake2','blake2_basic')) {
         $case = "release/examples/extlibs/$name.xl"
@@ -146,6 +164,23 @@ try {
         (!$SkipAot -and $cAot -cne $expectedOutput) -or $helperOutput -cne $expectedOutput) {
         throw 'C/xlang examples differ from the common golden output'
     }
+    $golden = [IO.File]::ReadAllText((Join-Path $Root 'release/extlibs/blake2/examples/file_progress.expected.txt')).Replace("`r`n","`n").TrimEnd("`n")
+    $case = 'release/extlibs/blake2/examples/file_progress_c.c'
+    $binary = Join-Path $work 'file-progress-gcc.exe'
+    $null = Check 'file-progress-c-gcc-build' $gcc ($packageFlags + @('-DNDEBUG',$case) + $objects + $links + @('-o',$binary))
+    $text = Check 'file-progress-c' $binary @()
+    if ($text -cne $golden) { throw 'C file progress example differs from golden' }
+    foreach ($language in @('c','xl')) {
+        $case = if ($language -eq 'c') { 'release/extlibs/blake2/examples/file_progress_c.c' } else { 'release/extlibs/blake2/examples/file_progress.xl' }
+        $text = Check "file-progress-$language-jit" $xl @('run',$case)
+        if ($text -cne $golden) { throw "$language file progress JIT differs from golden" }
+        if (!$SkipAot) {
+            $binary = Join-Path $work "file-progress-$language.exe"
+            $null = Check "file-progress-$language-build" $xl @('build',$case,'-o',$binary)
+            $text = Check "file-progress-$language-aot" $binary @()
+            if ($text -cne $golden) { throw "$language file progress AOT differs from golden" }
+        }
+    }
     # 导出类的私有句柄构造器不能被包外代码调用；只编译，不执行。
     $privateCase = 'release/extlibs/blake2/test/private_adopt_constructor_negative.xl'
     $privateResult = Invoke-ExtlibSmokeProcess $xl @('check',$privateCase) $Root 30
@@ -153,18 +188,31 @@ try {
         ($privateResult.stdout + $privateResult.stderr) -match 'access|private'
     $checks.Add([ordered]@{name='private-adopt-constructor';status=$(if ($privateRejected) { 'pass' } else { 'fail' });
         exitCode=$privateResult.exitCode;stdout=$privateResult.stdout;stderr=$privateResult.stderr})
+    # 两个独立主线边界都要实测；负例绝不运行，正例仍要求真实退出0。
+    $global = 'release/extlibs/blake2/test/global_lifecycle.xl'
+    $null = Check 'global-lifecycle-jit' $xl @('run',$global)
+    if (!$SkipAot) {
+        $binary = Join-Path $work 'global-lifecycle.exe'
+        $null = Check 'global-lifecycle-build' $xl @('build',$global,'-o',$binary)
+        $null = Check 'global-lifecycle-aot' $binary @()
+    }
     if (!$privateRejected) {
         throw 'private native-handle constructor is callable outside blake2; see dev/extlib_blockers/blake2_private_adopt_constructor.md'
     }
-    Write-Host '[blake2] private-adopt-constructor: PASS'
     foreach ($path in $hashes.Keys) {
         if ((Get-FileHash -LiteralPath (Join-Path $Root $path)).Hash -ne $hashes[$path]) { throw "Input changed: $path" }
     }
     $outcome = 'passed'
-} finally {
+} catch { $failure = $_.Exception.Message; throw } finally {
+    $changed = @($hashes.Keys | Where-Object {
+        !(Test-Path -LiteralPath (Join-Path $Root $_)) -or (Get-FileHash -LiteralPath (Join-Path $Root $_)).Hash -ne $hashes[$_]
+    })
+    $changed += @(InputPaths | Where-Object { !$hashes.Contains($_) })
+    $compilerChanged = !(Test-Path -LiteralPath $gcc) -or (Get-FileHash -LiteralPath $gcc).Hash -ne $gccHash
+    if ($changed.Count -or $compilerChanged) { $outcome = 'changed-inputs' }
     $scope = 'Windows C boundaries, 216 known answers, allocation failures, xlang/C JIT, callbacks and readers, generated ABI and paired examples'
     if (!$SkipAot) { $scope += ', Windows AOT' } else { $scope += '; AOT skipped' }
-    $report = [ordered]@{date=(Get-Date).ToString('o');outcome=$outcome;scope=$scope;generatedPrototypes=$decls.Count;inputs=$hashes;checks=@($checks.ToArray())}
+    $report = [ordered]@{date=(Get-Date).ToString('o');outcome=$outcome;failure=$failure;scope=$scope;generatedPrototypes=$decls.Count;constants=$constants.Count;inputs=$hashes;changedInputs=$changed;compiler=[ordered]@{path=$gcc;sha256=$gccHash;changed=$compilerChanged};checks=@($checks.ToArray())}
     try {
         [IO.File]::WriteAllText((Join-Path $workRoot ('results_' + $runId + '.json')),
             ($report | ConvertTo-Json -Depth 8),$utf8)
@@ -174,6 +222,9 @@ try {
         if (-not $workPath.StartsWith($parentPath, [StringComparison]::OrdinalIgnoreCase)) {
             throw "BLAKE2 temporary work path escaped build/test: $workPath"
         }
-        Remove-Item -LiteralPath $workPath -Recurse -Force
+        if ($outcome -eq 'passed') { Remove-Item -LiteralPath $workPath -Recurse -Force }
+        else { Write-Warning "BLAKE2 failure artifacts retained: $workPath" }
+        Write-Host ("[blake2] report: " + (Join-Path $workRoot ('results_' + $runId + '.json')))
     }
 }
+if ($outcome -ne 'passed') { throw "BLAKE2 gate outcome: $outcome" }

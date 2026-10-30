@@ -1,0 +1,37 @@
+﻿{
+    "native":  {
+                   "singleton":  false,
+                   "loadName":  "",
+                   "version":  ""
+               },
+    "kind":  "demo6-extlib",
+    "version":  "1.0.0",
+    "format":  "xlang-package-1",
+    "dependencies":  [
+
+                     ],
+    "artifact":  {
+                     "cSources":  [
+                                      "hcl_native.c"
+                                  ],
+                     "xlSources":  [
+                                       "src/hcl.xl"
+                                   ],
+                     "xrtModules":  [
+                                        "XRT_MODULE_BUFFER",
+                                        "XRT_MODULE_CHARSET",
+                                        "XRT_MODULE_NUMBER_FLOAT",
+                                        "XRT_MODULE_NUMBER_INTEGER"
+                                    ],
+                     "kind":  "source"
+                 },
+    "name":  "hcl",
+    "links":  [
+
+              ],
+    "loadlibs":  [
+
+                 ],
+    "abiVersion":  "1",
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl", "test/expression_strings.xl"] }
+}

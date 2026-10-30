@@ -1,0 +1,31 @@
+const string needle = "\0"
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func check(string value)
+    // 尝试借用全局常量，避免每次检查构造一个小型 NUL 针串。
+    if string.indexOf(value, needle, false, string.byteLen(value), 1) >= 0 then
+        throw ValueError "NUL"
+    end
+end
+
+func main(...) as int
+    string value = "ok"
+    bool memoryCaught = false
+    bool triggered = false
+    assert failAfter(0)
+    try
+        check(value)
+    catch MemoryError error
+        memoryCaught = true
+    finally
+        triggered = failTriggered()
+        failClear()
+    end
+    // 记录当前行为，不将未来消除复制后的 false 视作回归。
+    println("constant needle triggered: ", triggered)
+    println("constant needle memory: ", memoryCaught)
+    return 0
+end

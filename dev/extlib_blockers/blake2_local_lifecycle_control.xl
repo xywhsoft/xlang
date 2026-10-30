@@ -1,0 +1,9 @@
+import blake2
+
+// 与global_lifecycle完全相同的操作，仅作为局部生命周期对照，不替换顶层正例。
+func main(...) as int
+    auto hash = blake2.blake2bHasher(16)
+    assert hash.valid and hash.inputBytes == 0
+    println("blake2 global handle ok")
+    return 0
+end

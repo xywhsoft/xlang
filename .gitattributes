@@ -1,4 +1,8 @@
 *.sh text eol=lf
+/release/data/** -text
+/release/data/catalog-sources/*.source -whitespace
+/release/extlibs/_tomlc17/src/*.c text eol=lf
+/release/extlibs/_tomlc17/src/*.h text eol=lf
 tools/tcc_vfs_manifest_linux_*.txt text eol=lf
 # Snapshot metadata hashes exact distribution bytes; keep generated single
 # headers canonical across Windows and Unix checkouts.
@@ -18,6 +22,12 @@ tools/tcc_vfs_manifest_linux_*.txt text eol=lf
 /ide/data/catalog-sources/*.source -text -whitespace
 
 # 保持 Linux 门禁及跨平台黄金输出的行尾一致。
+/release/extlibs/xml.sax/test/xml_*.expected.txt text eol=lf
+/release/extlibs/xml.sax/examples/*.expected.txt text eol=lf
+/release/extlibs/plist/examples/*.expected.txt text eol=lf
+/release/extlibs/imagehash/examples/*.expected.txt text eol=lf
+/release/extlibs/ical/examples/*.expected.txt text eol=lf
+/release/extlibs/vcard/examples/*.expected.txt text eol=lf
 /tools/check_extlib_mqtt.sh text eol=lf
 /release/examples/extlibs/mqtt.expected.txt text eol=lf
 /release/examples/extlibs/mqtt_tcp.expected.txt text eol=lf

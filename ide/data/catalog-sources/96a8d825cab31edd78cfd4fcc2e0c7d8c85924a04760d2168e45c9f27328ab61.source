@@ -1,0 +1,21 @@
+{
+    "format": "xlang-package-1",
+    "name": "rss",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": ["rss_parse.c", "rss_build.c"],
+        "xrtModules": ["XRT_MODULE_BUFFER", "XRT_MODULE_UNICODE", "XRT_MODULE_VALUE_CONTAINER"],
+        "includeDirs": ["include"],
+        "xlSources": ["src/rss.xl"]
+    },
+    "links": [],
+    "loadlibs": [],
+    "coverage": { "mode": "suite", "tests": ["test/author_inheritance.xl", "test/input_limit.xl", "test/implicit_alternate.xl", "test/link_relations.xl"] },
+    "dependencies": [
+        {"name": "xml.dom", "version": "1.0.0", "abiVersion": "1"}
+    ],
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

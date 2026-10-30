@@ -1,0 +1,92 @@
+# onnxruntime 扩展库
+
+2026-10-26 当前 Windows 默认包门禁退出 0：真实模型 C/XLang 调用、
+UTF-8 DLL 路径、残缺桥接拒绝、隐式句柄清理、C 单文件构建，以及
+语言推理与两份公开范例 AOT 均通过。按插件调用层边界签收；
+`onnxruntime_xlang.dll` 内部算法及可复现构建由插件单独维护。
+
+通过 `onnxruntime_xlang.dll` 桥接 ONNX Runtime 的 CPU 推理。XLang 的
+`SessionOptions`、`InferenceSession`、`TensorObject` 和 `RunResult` 包装会话、
+张量及结果；`src/onnxruntime_artifact.c` 负责加载桥接 DLL 并暴露原生入口。
+包装层现在用 XRT `xrtOnce` 分别完成 ONNX 和可选 OpenCV 张量桥接的首次装载；
+等待中的线程不会再把尚未完成的装载误判为“不可用”。
+`ONNXRUNTIME_XLANG_DLL` 显式设置时只尝试该路径，不在失败后回退到其他 DLL。
+装载器要求当前公开调用所需的全部 56 个桥接符号齐全；缺少任一符号时
+`available()` 返回 false，`last_error()` 指出缺失的字段。
+原生 C `int` 使用 XLang `c_int` 声明，公开方法仍使用 XLang `int`。
+公开 C 原型统一在 `include/onnxruntime.h`，原生实现与 C 范例共用该头。
+普通扩展库任务以 C/XLang 的装载、模型元数据调用、失败返回及结果所有权
+为验收边界；本机 `model_info` 双语范例对同一模型输出一致。桥接 DLL
+内部算法与构建由插件独立维护，不以缺失源码阻断本任务的调用层收口。
+XLang 包装层传入 C 零结尾接口的模型路径、配置文本、张量形状和运行 JSON
+均拒绝内嵌 NUL，避免只传入合法前缀而忽略后缀；正常输入的调用合同不变。
+包清单明确只引入装载器直接使用的 XRT once 与线程键模块。同一真实模型的
+无输出 AOT 探针从 3,832,832 缩至 854,016 字节，裁剪前后都运行推理通过。
+
+## 验证
+
+在仓库根目录运行：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/onnxruntime/test/check.ps1 -SkipAot
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/onnxruntime/test/check.ps1
+```
+
+门禁覆盖严格 GCC、59 个 C 入口的公开声明、56 个桥接符号的装载检查、
+UTF-8 中文路径的环境变量与程序目录装载、C 和 XLang 的真实模型加载及
+零张量推理、XLang `int` 收窄拒绝、残缺桥接 DLL 拒绝、显式缺失路径与
+旧错误隔离、C/XLang 模型元数据范例对照，并固定公开 API 范例的 JIT
+输出。默认门禁还验证 C 直接构建、无输出推理 AOT、带输出模型信息范例
+及公开 API 范例的 AOT；`-SkipAot` 只用于 C/JIT
+聚焦检查。测试模型借用
+`release/extlibs/rapidocr/models/ch_ppocr_mobile_v2.0_cls_infer.onnx`；这只是
+测试资产，不是运行时包依赖。范例位于 `examples/model_info.xl` 和
+`examples/model_info_c.c`。两个文件故意使用不同主名，避免 `xl build`
+自动混编同名 `.c` 时产生两个 `main`。
+从 `release` 目录可直接运行 `xl run extlibs/onnxruntime/examples/model_info_c.c`，
+或直接 `xl build` 为 C 可执行文件；单文件 TCC 路径复用包内装载包装层，
+桥接 DLL 仍动态装载。包门禁将 GCC 分离构建、直接 JIT、直接构建执行和
+XLang 范例的真实模型元数据逐字对照，构建产物仅存于本次独占目录。
+`rapidocr/test/cold_load_c.c` 另用 16 个 C 线程同时首次探测 OpenCV/ONNX，
+`rapidocr/test/parallel_probe.xl` 用两个 XLang 线程做同等探测；
+当前机器的两组测试均通过。C 测试还让两个线程同时产生不同的包装层错误，
+核对 XRT 线程局部错误缓冲不会串线。包装层 Linux 严格 GCC 语法检查也通过。
+
+## 独立插件与主线限制
+
+- 当前仓库只包含 `bin/onnxruntime_xlang.dll` 的二进制，没有找到桥接层的
+  构建源码与可复现构建流程；这属于独立插件的发布条件，不据此宣称
+  桥接实现本身已完成发布验收。
+- 旧构建曾缺 `xl6ValueDataSnapshotV1`；当前 Windows 发布物的带输出
+  XLang 范例 AOT 与真实推理 AOT 均已运行通过。
+- 动态加载器已收敛到显式环境变量、程序目录和当前工作目录下的正式
+  `extlibs/.../bin` 位置；Windows UTF-8 路径已验证，首次装载已串行化。
+  包装层错误缓冲已按线程隔离；桥接 DLL 内部错误状态的并发语义仍待源码验收。
+- 公共 `int` 到原生 `c_int` 的超范围输入已拒绝；IoBinding 创建与
+  隐式释放已覆盖，OpenCV 张量桥接和多模型/多线程长时推理不属于
+  本轮公开调用链的签收范围。
+
+当前 Windows 包级门禁已通过公开调用链验收；桥接 DLL 内部算法、
+并发和可复现构建由插件独立维护，不作为本任务的签收条件。
+
+`test/catalog_call.xl` 与 `test/implicit_handles_cleanup.xl` 已登记为
+`coverage.tests`；前者从仓库根目录运行真实模型零张量推理，
+后者由包级门禁从 `release` 目录验证六类句柄的隐式清理。
+通用目录门禁只覆盖公开调用链，不覆盖桥接内部实现。
+
+2026-10-22：包级脚本原默认在无输出推理 AOT 通过后报告全绿，未构建公开模型信息范例。当时新增该范例 AOT 并与 C 输出对照；彼时默认门禁在完整范例构建处报主线缺少 `xl6ValueDataSnapshotV1`。该日期的缺符号结论不适用于当前发布物。
+
+2026-10-23：`release/examples/extlibs/onnxruntime.xl` 的公开 API 范例
+不再只检查退出码；JIT 固定输出 `onnxruntime extlib ok`，默认门禁也加入
+该范例的独立 AOT 构建和同输出核对。Windows 聚焦门禁通过真实模型、
+中文路径、残缺桥接拒绝和公开语言调用；默认门禁的无输出推理 AOT
+通过，先在已有模型信息范例 AOT 因共享缺符号失败，新增步骤尚未执行到。
+独立尝试构建公开 API 范例也复现同一缺符号；本次独占目录已清理。
+
+2026-10-24：六种原生句柄对象的 `destroy()` 原在释放资源后写退役中的
+`self.handle`，有效对象自动清理会抛 `RuntimeError`。以现有真实模型
+串起 options、session、tensor、result、I/O binding 的最小用例先红后绿；
+仅删除六处析构写回，显式 `release()` 仍在对象有效期内清句柄。
+当前默认 Windows 门禁完整通过，含该用例 JIT/AOT、真实推理、UTF-8 DLL
+路径、残缺桥接拒绝及公开范例 AOT 双语对照。旧 AOT 缺符号结论仅适用于
+先前构建。

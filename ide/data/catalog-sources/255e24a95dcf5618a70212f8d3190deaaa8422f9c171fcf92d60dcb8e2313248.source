@@ -1,0 +1,18 @@
+{
+    "format": "xlang-package-1",
+    "name": "watch",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": ["watch_native.c"],
+        "xlSources": ["src/watch.xl"],
+        "xrtModules": ["XRT_MODULE_DIR", "XRT_MODULE_PATH", "XRT_MODULE_HASH64"]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/cwd_snapshot.xl", "test/allocations.xl", "test/owned_events.xl", "test/top_level.xl"] },
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

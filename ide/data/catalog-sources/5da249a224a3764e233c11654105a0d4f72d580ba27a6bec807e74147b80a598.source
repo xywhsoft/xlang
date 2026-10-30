@@ -1,0 +1,460 @@
+
+import opencv
+import onnxruntime
+
+extern "xfeat_version_native" func xfeat_version_native() as string
+extern "xfeat_available_native" func xfeat_available_native() as c_int
+extern "xfeat_last_error_native" func xfeat_last_error_native() as string
+extern "xfeat_now_ms_native" func xfeat_now_ms_native() as float
+extern "xfeat_stats_reset_native" func xfeat_stats_reset_native() as c_int
+extern "xfeat_stats_add_native" func xfeat_stats_add_native(c_int kind, float preprocess_ms, float ort_ms, float parse_ms) as c_int
+extern "xfeat_stats_json_native" @owned func xfeat_stats_json_raw_native() as string?
+extern "xfeat_engine_create_native" func xfeat_engine_create_native(point query_session, point target_session) as point
+extern "xfeat_engine_query_session_native" func xfeat_engine_query_session_native(point handle) as point
+extern "xfeat_engine_target_session_native" func xfeat_engine_target_session_native(point handle) as point
+extern "xfeat_engine_release_native" func xfeat_engine_release_native(point handle) as c_int
+extern "xfeat_query_create_native" func xfeat_query_create_native() as point
+extern "xfeat_query_add_native" func xfeat_query_add_native(point handle, point features, float scale) as c_int
+extern "xfeat_query_count_native" func xfeat_query_count_native(point handle) as c_int
+extern "xfeat_query_features_native" func xfeat_query_features_native(point handle, c_int index) as point
+extern "xfeat_query_scale_native" func xfeat_query_scale_native(point handle, c_int index) as float
+extern "xfeat_query_release_native" func xfeat_query_release_native(point handle) as c_int
+extern "xfeat_features_from_result_native" func xfeat_features_from_result_native(point result_handle, c_int image_w, c_int image_h, c_int resized_w, c_int resized_h) as point
+extern "xfeat_features_release_native" func xfeat_features_release_native(point handle) as c_int
+extern "xfeat_match_native" func xfeat_match_native(point query_handle, point target_handle, float min_cossim, c_int min_inliers, float ransac_reproj, float scale) as point
+extern "xfeat_location_release_native" func xfeat_location_release_native(point handle) as c_int
+extern "xfeat_location_found_native" func xfeat_location_found_native(point handle) as c_int
+extern "xfeat_location_score_native" func xfeat_location_score_native(point handle) as float
+extern "xfeat_location_json_native" @owned func xfeat_location_json_raw_native(point handle, string image_name, string output_name) as string?
+extern "xfeat_location_bbox_x_native" func xfeat_location_bbox_x_native(point handle) as c_int
+extern "xfeat_location_bbox_y_native" func xfeat_location_bbox_y_native(point handle) as c_int
+extern "xfeat_location_bbox_w_native" func xfeat_location_bbox_w_native(point handle) as c_int
+extern "xfeat_location_bbox_h_native" func xfeat_location_bbox_h_native(point handle) as c_int
+extern "ort_session_create_native" func xfeat_session_create_native(string model_path, point options) as point
+extern "ort_session_release_native" func xfeat_session_release_native(point session) as c_int
+extern "ort_session_run_tensor_fast_native" func xfeat_run_tensor_native(point session, string input_name, point tensor, string output_names) as point
+func xfeat_require_c_text(string value)
+	if string.indexOf(value, "\0", false, string.byteLen(value), 1) >= 0 then
+		throw ValueError "xfeat text contains NUL"
+	end
+end
+
+func xfeat_to_c_int(int value) as c_int
+	if value < -2147483648 or value > 2147483647 then
+		throw ValueError "XFeat integer exceeds the C int range"
+	end
+	return c_int(value)
+end
+
+func xfeat_json_failure() as string
+	string message = xfeat_last_error_native()
+	if message == "" then throw RuntimeError "XFeat JSON serialization failed" end
+	throw RuntimeError message
+end
+
+func xfeat_stats_json_native() as string
+	return xfeat_stats_json_raw_native() ?? xfeat_json_failure()
+end
+
+func xfeat_location_json_native(point handle, string image_name, string output_name) as string
+	return xfeat_location_json_raw_native(handle, image_name, output_name) ?? xfeat_json_failure()
+end
+
+// 消费定位句柄；成功直接移交 JSON，序列化抛错时也不能泄漏定位结果。
+func xfeat_finish_location(point location, string image_name, string output_name) as string
+	try
+		return xfeat_location_json_native(location, image_name, output_name)
+	finally
+		if location != null then xfeat_location_release_native(location) end
+	end
+end
+
+func xfeat_ceil32(int value) as int
+	return ((value + 31) / 32) * 32
+end
+
+func xfeat_round_scaled(int value, float scale) as int
+	int result = int(value * scale + 0.5)
+	if result < 16 then
+		return 16
+	end
+	return result
+end
+
+func xfeat_release_session(point session_handle)
+	if session_handle != null then
+		xfeat_session_release_native(session_handle)
+	end
+end
+
+func xfeat_extract_image(point session_handle, Image image, int stats_kind) as point
+	if session_handle == null or image.empty() then
+		return null
+	end
+	int width = image.width()
+	int height = image.height()
+	if width <= 0 or height <= 0 or width > 2147483616 or height > 2147483616 then
+		return null
+	end
+	int padded_w = xfeat_ceil32(width)
+	int padded_h = xfeat_ceil32(height)
+	float t0 = xfeat_now_ms_native()
+	Image rgb = opencv.cvtColor(image, 4)
+	Image prepared = rgb
+	if padded_w != width or padded_h != height then
+		prepared = opencv.copyMakeBorder(rgb, 0, padded_h - height, 0, padded_w - width, 0)
+	end
+	auto tensor = onnxruntime.TensorFromOpenCV(prepared.handle, 0.00392156862745098, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0)
+	float t1 = xfeat_now_ms_native()
+	RunResult result = onnxruntime.RunResultFromHandle(xfeat_run_tensor_native(session_handle, "image", tensor.handle, "[\"features\"]"))
+	float t2 = xfeat_now_ms_native()
+	if result.valid() == false then
+		xfeat_stats_add_native(xfeat_to_c_int(stats_kind), t1 - t0, t2 - t1, 0.0)
+		return null
+	end
+	point features_handle = xfeat_features_from_result_native(result.handle, xfeat_to_c_int(width), xfeat_to_c_int(height), xfeat_to_c_int(padded_w), xfeat_to_c_int(padded_h))
+	float t3 = xfeat_now_ms_native()
+	xfeat_stats_add_native(xfeat_to_c_int(stats_kind), t1 - t0, t2 - t1, t3 - t2)
+	result.release()
+	return features_handle
+end
+
+func xfeat_extract_query(point query_session, string query_path, float scale) as point
+	auto image = opencv.imread_flags(query_path, 1)
+	if image.empty() then
+		return null
+	end
+	if scale == 1.0 then
+		return xfeat_extract_image(query_session, image, 1)
+	end
+	int scaled_w = xfeat_round_scaled(image.width(), scale)
+	int scaled_h = xfeat_round_scaled(image.height(), scale)
+	auto scaled = opencv.resize(image, scaled_w, scaled_h)
+	return xfeat_extract_image(query_session, scaled, 1)
+end
+
+func xfeat_choose_better(point current, point candidate) as point
+	if candidate == null then
+		return current
+	end
+	if current == null then
+		return candidate
+	end
+	if xfeat_location_score_native(candidate) > xfeat_location_score_native(current) then
+		xfeat_location_release_native(current)
+		return candidate
+	end
+	xfeat_location_release_native(candidate)
+	return current
+end
+
+func xfeat_match_scale(point query_session, string query_path, point target_features, float scale, float min_cossim, int min_inliers, float ransac_reproj) as point
+	point query_features = xfeat_extract_query(query_session, query_path, scale)
+	if query_features == null or target_features == null then
+		if query_features != null then
+			xfeat_features_release_native(query_features)
+		end
+		return null
+	end
+	point location = xfeat_match_native(query_features, target_features, min_cossim, xfeat_to_c_int(min_inliers), ransac_reproj, scale)
+	xfeat_features_release_native(query_features)
+	return location
+end
+
+func xfeat_match_prepared_index(point query_set, int index, point target_features, float min_cossim, int min_inliers, float ransac_reproj) as point
+	point query_features = xfeat_query_features_native(query_set, xfeat_to_c_int(index))
+	if query_features == null then
+		return null
+	end
+	float scale = xfeat_query_scale_native(query_set, xfeat_to_c_int(index))
+	return xfeat_match_native(query_features, target_features, min_cossim, xfeat_to_c_int(min_inliers), ransac_reproj, scale)
+end
+
+func xfeat_locate_prepared_with_session(point query_set, point target_session, string target_path, float min_cossim, int min_inliers, float ransac_reproj) as point
+	if query_set == null or target_session == null then
+		return null
+	end
+	auto target_image = opencv.imread_flags(target_path, 1)
+	point target_features = xfeat_extract_image(target_session, target_image, 2)
+	if target_features == null then
+		return null
+	end
+	point best = null
+	int index = 0
+	int count = xfeat_query_count_native(query_set)
+	while index < count
+		best = xfeat_choose_better(best, xfeat_match_prepared_index(query_set, index, target_features, min_cossim, min_inliers, ransac_reproj))
+		index = index + 1
+	end
+	xfeat_features_release_native(target_features)
+	return best
+end
+
+func xfeat_locate_with_sessions(point query_session, point target_session, string query_path, string target_path, float min_cossim, int min_inliers, float ransac_reproj) as point
+	if query_session == null or target_session == null then
+		return null
+	end
+	auto target_image = opencv.imread_flags(target_path, 1)
+	point target_features = xfeat_extract_image(target_session, target_image, 2)
+	if target_features == null then
+		return null
+	end
+	point best = null
+	best = xfeat_choose_better(best, xfeat_match_scale(query_session, query_path, target_features, 0.70, min_cossim, min_inliers, ransac_reproj))
+	best = xfeat_choose_better(best, xfeat_match_scale(query_session, query_path, target_features, 0.85, min_cossim, min_inliers, ransac_reproj))
+	best = xfeat_choose_better(best, xfeat_match_scale(query_session, query_path, target_features, 1.00, min_cossim, min_inliers, ransac_reproj))
+	best = xfeat_choose_better(best, xfeat_match_scale(query_session, query_path, target_features, 1.15, min_cossim, min_inliers, ransac_reproj))
+	best = xfeat_choose_better(best, xfeat_match_scale(query_session, query_path, target_features, 1.30, min_cossim, min_inliers, ransac_reproj))
+	best = xfeat_choose_better(best, xfeat_match_scale(query_session, query_path, target_features, 1.50, min_cossim, min_inliers, ransac_reproj))
+	xfeat_features_release_native(target_features)
+	return best
+end
+
+func xfeat_create_session(string model_path, int intra_threads, int inter_threads) as point
+	if intra_threads <= 0 and inter_threads <= 0 then
+		return xfeat_session_create_native(model_path, null)
+	end
+	auto options = onnxruntime.SessionOptions()
+	if options.valid() == false then
+		return null
+	end
+	options.set_graph_optimization_level(99)
+	if intra_threads > 0 then
+		options.set_intra_op_num_threads(intra_threads)
+	end
+	if inter_threads > 0 then
+		options.set_inter_op_num_threads(inter_threads)
+	end
+	options.set_execution_mode(0)
+	return xfeat_session_create_native(model_path, options.handle)
+end
+
+func xfeat_open(string query_model_path, string target_model_path) as point
+	return xfeat_open(query_model_path, target_model_path, 0, 0)
+end
+
+func xfeat_open(string query_model_path, string target_model_path, int intra_threads, int inter_threads) as point
+	xfeat_require_c_text(query_model_path)
+	xfeat_require_c_text(target_model_path)
+	point query_session = xfeat_create_session(query_model_path, intra_threads, inter_threads)
+	point target_session = xfeat_create_session(target_model_path, intra_threads, inter_threads)
+	if query_session == null or target_session == null then
+		if query_session != null then
+			xfeat_release_session(query_session)
+		end
+		if target_session != null then
+			xfeat_release_session(target_session)
+		end
+		return null
+	end
+	point engine = xfeat_engine_create_native(query_session, target_session)
+	if engine == null then
+		xfeat_release_session(query_session)
+		xfeat_release_session(target_session)
+	end
+	return engine
+end
+
+func xfeat_close(point engine) as bool
+	if engine == null then
+		return true
+	end
+	point query_session = xfeat_engine_query_session_native(engine)
+	point target_session = xfeat_engine_target_session_native(engine)
+	if query_session != null then
+		xfeat_release_session(query_session)
+	end
+	if target_session != null then
+		xfeat_release_session(target_session)
+	end
+	return xfeat_engine_release_native(engine) != 0
+end
+
+func xfeat_prepare_query_add(point query_set, point query_session, string query_path, float scale) as bool
+	point features = xfeat_extract_query(query_session, query_path, scale)
+	if features == null then
+		return false
+	end
+	if xfeat_query_add_native(query_set, features, scale) == 0 then
+		xfeat_features_release_native(features)
+		return false
+	end
+	return true
+end
+
+func xfeat_prepare_query(point engine, string query_path) as point
+	point query_session = xfeat_engine_query_session_native(engine)
+	if query_session == null then
+		return null
+	end
+	point query_set = xfeat_query_create_native()
+	if query_set == null then
+		return null
+	end
+	xfeat_prepare_query_add(query_set, query_session, query_path, 0.70)
+	xfeat_prepare_query_add(query_set, query_session, query_path, 0.85)
+	xfeat_prepare_query_add(query_set, query_session, query_path, 1.00)
+	xfeat_prepare_query_add(query_set, query_session, query_path, 1.15)
+	xfeat_prepare_query_add(query_set, query_session, query_path, 1.30)
+	xfeat_prepare_query_add(query_set, query_session, query_path, 1.50)
+	if xfeat_query_count_native(query_set) <= 0 then
+		xfeat_query_release_native(query_set)
+		return null
+	end
+	return query_set
+end
+
+func xfeat_release_query(point query_set) as bool
+	if query_set == null then
+		return true
+	end
+	return xfeat_query_release_native(query_set) != 0
+end
+
+func xfeat_reset_stats() as bool
+	return xfeat_stats_reset_native() != 0
+end
+
+func xfeat_stats_json() as string
+	return xfeat_stats_json_native()
+end
+
+func xfeat_locate_json(point engine, point query_set, string target_path) as string
+	xfeat_require_c_text(target_path)
+	point target_session = xfeat_engine_target_session_native(engine)
+	point location = xfeat_locate_prepared_with_session(query_set, target_session, target_path, 0.80, 4, 6.0)
+	return xfeat_finish_location(location, target_path, "")
+end
+
+func xfeat_locate_json(point engine, string query_path, string target_path) as string
+	xfeat_require_c_text(query_path)
+	xfeat_require_c_text(target_path)
+	point query_session = xfeat_engine_query_session_native(engine)
+	point target_session = xfeat_engine_target_session_native(engine)
+	point location = xfeat_locate_with_sessions(query_session, target_session, query_path, target_path, 0.80, 4, 6.0)
+	return xfeat_finish_location(location, target_path, "")
+end
+
+func xfeat_locate_json(point engine, string query_path, string target_path, string image_name, string output_name) as string
+	xfeat_require_c_text(query_path)
+	xfeat_require_c_text(target_path)
+	xfeat_require_c_text(image_name)
+	xfeat_require_c_text(output_name)
+	point query_session = xfeat_engine_query_session_native(engine)
+	point target_session = xfeat_engine_target_session_native(engine)
+	point location = xfeat_locate_with_sessions(query_session, target_session, query_path, target_path, 0.80, 4, 6.0)
+	return xfeat_finish_location(location, image_name, output_name)
+end
+
+func xfeat_locate_json(point engine, point query_set, string target_path, string image_name, string output_name) as string
+	xfeat_require_c_text(target_path)
+	xfeat_require_c_text(image_name)
+	xfeat_require_c_text(output_name)
+	point target_session = xfeat_engine_target_session_native(engine)
+	point location = xfeat_locate_prepared_with_session(query_set, target_session, target_path, 0.80, 4, 6.0)
+	return xfeat_finish_location(location, image_name, output_name)
+end
+
+// 无命中时仍保存原图；读图、绘制或写盘失败时不返回成功 JSON。
+func xfeat_save_location(point location, string target_path, string output_path) as string
+	try
+		auto image = opencv.imread_flags(target_path, 1)
+		if image.empty() then throw IOError "XFeat target image cannot be read" end
+		string json = xfeat_location_json_native(location, target_path, output_path)
+		bool saved = false
+		if location != null and xfeat_location_found_native(location) != 0 then
+			int x = xfeat_location_bbox_x_native(location)
+			int y = xfeat_location_bbox_y_native(location)
+			int w = xfeat_location_bbox_w_native(location)
+			int h = xfeat_location_bbox_h_native(location)
+			auto drawn = opencv.rectangle_thickness(image, x, y, x + w, y + h, 0.0, 255.0, 0.0, 3)
+			if drawn.empty() then throw IOError "XFeat result image cannot be drawn" end
+			saved = opencv.imwrite(output_path, drawn)
+		else
+			saved = opencv.imwrite(output_path, image)
+		end
+		if not saved then throw IOError "XFeat output image cannot be saved" end
+		return json
+	finally
+		if location != null then xfeat_location_release_native(location) end
+	end
+end
+
+func xfeat_locate_and_save(point engine, point query_set, string target_path, string output_path) as string
+	xfeat_require_c_text(target_path)
+	xfeat_require_c_text(output_path)
+	point target_session = xfeat_engine_target_session_native(engine)
+	point location = xfeat_locate_prepared_with_session(query_set, target_session, target_path, 0.80, 4, 6.0)
+	return xfeat_save_location(location, target_path, output_path)
+end
+
+func xfeat_locate_and_save(point engine, string query_path, string target_path, string output_path) as string
+	xfeat_require_c_text(query_path)
+	xfeat_require_c_text(target_path)
+	xfeat_require_c_text(output_path)
+	point query_session = xfeat_engine_query_session_native(engine)
+	point target_session = xfeat_engine_target_session_native(engine)
+	point location = xfeat_locate_with_sessions(query_session, target_session, query_path, target_path, 0.80, 4, 6.0)
+	return xfeat_save_location(location, target_path, output_path)
+end
+
+func xfeat_version() as string
+	return xfeat_version_native()
+end
+
+func xfeat_available() as bool
+	return xfeat_available_native() != 0
+end
+
+func xfeat_last_error() as string
+	return xfeat_last_error_native()
+end
+
+export func open(string p0, string p1) as point
+    return xfeat_open(p0, p1)
+end
+export func open(string p0, string p1, int p2, int p3) as point
+    return xfeat_open(p0, p1, p2, p3)
+end
+export func close(point p0) as bool
+    return xfeat_close(p0)
+end
+export func prepare_query(point p0, string p1) as point
+    return xfeat_prepare_query(p0, p1)
+end
+export func release_query(point p0) as bool
+    return xfeat_release_query(p0)
+end
+export func reset_stats() as bool
+    return xfeat_reset_stats()
+end
+export func stats_json() as string
+    return xfeat_stats_json()
+end
+export func locate_json(point p0, point p1, string p2) as string
+    return xfeat_locate_json(p0, p1, p2)
+end
+export func locate_json(point p0, string p1, string p2) as string
+    return xfeat_locate_json(p0, p1, p2)
+end
+export func locate_json(point p0, string p1, string p2, string p3, string p4) as string
+    return xfeat_locate_json(p0, p1, p2, p3, p4)
+end
+export func locate_json(point p0, point p1, string p2, string p3, string p4) as string
+    return xfeat_locate_json(p0, p1, p2, p3, p4)
+end
+export func locate_and_save(point p0, point p1, string p2, string p3) as string
+    return xfeat_locate_and_save(p0, p1, p2, p3)
+end
+export func locate_and_save(point p0, string p1, string p2, string p3) as string
+    return xfeat_locate_and_save(p0, p1, p2, p3)
+end
+export func version() as string
+    return xfeat_version()
+end
+export func available() as bool
+    return xfeat_available()
+end
+export func last_error() as string
+    return xfeat_last_error()
+end

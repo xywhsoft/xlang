@@ -1,0 +1,19 @@
+{
+    "format": "xlang-package-1",
+    "name": "sitemap",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": ["sitemap_xml.c", "sitemap_robots.c"],
+        "xrtModules": ["XRT_MODULE_BUFFER", "XRT_MODULE_STRING", "XRT_MODULE_UNICODE", "XRT_MODULE_VALUE_CONTAINER"],
+        "includeDirs": ["include"],
+        "xlSources": ["src/sitemap.xl"]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [{"name": "xml.sax", "version": "1.0.0", "abiVersion": "1"}],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl", "test/robots_newlines.xl"] },
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}
