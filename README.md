@@ -231,6 +231,6 @@ bash build.sh && bash test_linux.sh
 
 xlang is in release-candidate hardening: the four-stage pipeline, module/package system, DLL embedding API, and a large regression suite (4,700+ cases, guarded by `rc0_guard`) are in place; work continues on network data-path ownership models and the extension-library ecosystem. Design documentation is currently Chinese-first under `docs/`.
 
-License: to be announced.
+Project-authored xlang code is licensed under the [MIT License](LICENSE). Bundled and derived third-party code retains its own licenses; see [third-party notices](THIRD_PARTY_NOTICES.md).
 
 Development and build entry points: [DEVELOPMENT.md](DEVELOPMENT.md).
