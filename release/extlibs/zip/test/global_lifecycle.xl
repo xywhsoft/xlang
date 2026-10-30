@@ -1,0 +1,10 @@
+import zip
+
+// 真正的模块级对象正例；不能挪入 main 规避退役顺序问题。
+zip.ZipArchive writer = zip.create("store", 0)
+writer.add("hello.txt", "hello")
+Buffer packed = writer.finish()
+zip.ZipArchive reader = zip.open(packed)
+assert reader.readText("hello.txt") == "hello"
+reader.close()
+println("zip globals: PASS")

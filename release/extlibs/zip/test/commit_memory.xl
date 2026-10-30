@@ -1,0 +1,42 @@
+import zip
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    string payload = string.repeat("zip data.", 32768)
+    int failures = 0
+    bool complete = false
+    for budget in range(64)
+        auto archive = zip.create("store")
+        archive.add("payload.txt", payload)
+        bool memory = false
+        bool injected = false
+        bool closed = false
+        assert failAfter(uint64(budget))
+        try
+            archive.close()
+            closed = true
+        catch MemoryError error
+            memory = true
+        finally
+            injected = failTriggered()
+            failClear()
+        end
+        assert injected and memory or not injected and closed
+        // 失败仍持有原条目；解除故障后重试并核对完整正文。
+        Buffer wire = archive.finish()
+        auto reader = zip.open(wire)
+        assert reader.readText("payload.txt") == payload
+        reader.close()
+        if not injected then
+            complete = true
+            break
+        end
+        failures += 1
+    end
+    assert complete and failures > 0
+    println("zip commit MemoryError/retry: PASS")
+    return 0
+end

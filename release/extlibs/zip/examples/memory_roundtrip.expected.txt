@@ -1,0 +1,4 @@
+entries: 1
+bytes: 131072
+comment: stable
+snapshot: true

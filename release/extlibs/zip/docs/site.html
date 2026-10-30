@@ -25,6 +25,7 @@
   </header>
   <section id="start">
     <h2>快速开始</h2>
+    <p>以下顶层示例按 JIT 验证。固定发布物的顶层 native-backed 对象 AOT 仍受 M2 退役问题阻断；不以打印正确等同进程正常退出，原代码保留作回归。</p>
     <pre><code>import zip
 
 zip.ZipArchive writer = zip.create()
@@ -47,9 +48,11 @@ reader.close()</code></pre>
       <tr><td><code>close / finish</code></td><td>关闭归档；内存归档使用 <code>finish()</code> 取走独立 Buffer。</td></tr>
     </tbody></table>
     <p>工厂限额要求为正；条目数、大小、压缩比和输出量由 XRT ZIP 后端约束。条目名、文件路径、注释与解压目标拒绝内嵌 NUL；归档条目内容仍允许任意二进制字节。解压会拒绝目标目录已有父级、根目录和下级中已存在的链接，但尚不能抵御其他进程并发替换目录；不要把不可信或可并发修改的目标目录当作安全沙箱。</p>
+    <p>2026-10-30 修复内存归档提交扩容失败被误报 I/O 的问题。真实内存失败保留 <code>MemoryError</code>，解除故障可重试；没有增加成功路径复制或分配。普通错误的完整描述当前另受 M12 阻断，不能只根据异常类别正确签收诊断。</p>
   </section>
   <section id="c-api">
     <h2>C 对照</h2>
+    <p>手动编译下面的片段，须将 ZIP 公共 include 目录加入头文件搜索路径，并按包清单链接 C 实现及依赖。</p>
     <pre><code>#include "xrt_zip.h"
 
 int main(void)
@@ -70,13 +73,22 @@ int main(void)
 }</code></pre>
     <p>公共头为 <code>extlibs/zip/include/xrt_zip.h</code>。C 选项用 <code>xrtZipOptionsInit</code> 初始化；ZIP 只执行输入、输出、单项、条目数及压缩倍率限额，节点数、深度、资源标志和保留字段必须为零，尺寸/版本必须匹配。完整双语对照范例位于 <code>examples/extlibs/zip.xl</code> 与 <code>examples/extlibs/zip_c.c</code>；C 返回的 xbuffer 由调用方销毁。C 范例依赖多份 ZIP 封装源和 <code>_libzip</code>，从仓库根目录使用 <code>tools/run_extlib_c.ps1 -Package zip -Source release/examples/extlibs/zip_c.c</code> 按包清单运行；单独 <code>xl run zip_c.c</code> 不会自动链接这些源。</p>
   </section>
+  <section id="examples">
+    <h2>大正文与所有权</h2>
+    <p>包内 <code>extlibs/zip/examples/memory_roundtrip.xl</code> 与 <code>memory_roundtrip_c.c</code> 用同样的 131072 字节正文、STORE 方法及注释，验证输入提前释放、完整正文/CRC 和关闭归档后的独立结果。正常执行不写文件；显式提供路径才导出 ZIP。XLang 的文件导出有 <code>toBytes()</code> 转换，不承诺该路径零复制。</p>
+    <pre><code>entries: 1
+bytes: 131072
+comment: stable
+snapshot: true</code></pre>
+    <p>仓库根目录可执行 <code>xl run release/extlibs/zip/examples/memory_roundtrip.xl</code>。C 侧使用 <code>tools/run_extlib_c.ps1 -Package zip -Source release/extlibs/zip/examples/memory_roundtrip_c.c</code>；Linux/Windows 还可用显式 import 的构建方式，命令及清理责任见包内 <code>examples/README.md</code>。</p>
+  </section>
   <section id="verify">
     <h2>验证状态</h2>
-    <pre><code>xl run extlibs/zip/test/boundaries.xl
-xl run examples/extlibs/zip.xl
+    <pre><code>xl run release/extlibs/zip/test/boundaries.xl
+xl run release/examples/extlibs/zip.xl
 powershell -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package zip -Source release/extlibs/zip/test/test_zip.c</code></pre>
-    <p>2026-10-27 Windows 全包门禁通过；Linux 的 C ASan/UBSan、格式互通及新增文本接管 JIT/AOT 用例通过，旧边界用例在本机的 180 秒限时内超时，因此本次 Linux 全包门禁未签收。两平台用 Python 标准库 <code>zipfile</code> 与 C 接口双向交换 ZIP，验证 UTF-8 文件名、DEFLATE/STORED、二进制正文及损坏时的 CRC 拒绝。C 独立 EXE 通过显式导入 <code>zip</code> 的 XLang 文件与 C 源同编。危险路径、缺失条目等失败由包装层抛出 <code>ArchiveError</code>；原生内存故障仍保留 <code>MemoryError</code>。</p>
-    <p>自定义 C Writer 的流式条目输出区分内存故障和普通 I/O；文件提取的 Writer 阶段也有写入、刷新、关闭与复合失败的注入回归，保留最先失败阶段的错误类别。Linux C ASan/UBSan 与符号链接专项通过。当前编译器仍允许包外调用私有内存构造器，发布单头也尚未提供包内根锚定 rename；不可信或可并发修改的解压目录不属于已签收安全范围。</p>
+    <p>2026-10-30 固定 Windows/Linux 发布物：提交故障 C100 场景/80 个真实 XRT OOM，旧源 30 条失败断言变为 0；C/XLang JIT/AOT、32 个真实生成声明、双向 ZIP 互通、新范例五种执行路径及九条正常独立程序路径通过。Linux C 含 ASan/UBSan/泄漏检查；Python 独立检查完整正文、CRC、方法和注释。没有修改主线或同步开发中的 XRT。</p>
+    <p>默认门禁仍失败，不是发布验收通过：M2 顶层 AOT 退役、M3 包外私有构造器、M12 诊断 getter 丢失待查询错误；RFS 并发目录提交也未闭环。Linux 链接专项因首项精确消息断言失败，独立 probe 只证实该项已拒绝且链接外无文件，不能声称余下组合已通过。无包最小源、复现建议及完整现场见包内 <code>docs/commit-memory-audit-2026-10-30.md</code>。官网源更新仅生成到隔离目录，不代表已部署。</p>
   </section>
 </main>
 <script src="../main.js"></script>
