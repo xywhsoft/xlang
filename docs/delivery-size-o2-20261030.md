@@ -2,6 +2,8 @@
 
 2026-10-30。机器可读数据见 [统计、哈希与验证摘要](reports/delivery-size-o2-20261030.json)。
 
+本文保留体积优化阶段的验收快照；随后完成的原生拥有图、SDK 退出与发布门禁修复，见 [0.6.0 发布前检查](prerelease-0.6.0.md)。
+
 本轮保持宿主代码 `-O2`，不启用 `-Oz` 或 LTO，保留双库、自包含 AOT、完整 SDK 和嵌套编译。Windows 的预编译对象仍由 TCC 产生；Linux 的普通 ELF 对象使用 GCC `-O2 -fPIC`，由 TCC 链接。没有加入 Windows COFF 链接器改造。
 
 ## 实际产品大小
