@@ -10,7 +10,7 @@ export class Table
     private extern "xtab_append_cell" func appendCellNative(string text, c_longlong length) as c_int
     private extern "xtab_commit" func commitNative() as c_int
     private extern "xtab_abort" func abortNative()
-    private extern "xtab_render" func renderNative() as point
+    private extern "xtab_render" @owned func renderNative() as string?
     private extern "xtab_row_count" func rowCountNative() as int
     private extern "xtab_col_count" func colCountNative() as int
 
@@ -66,9 +66,9 @@ export class Table
 
     func render() as string
         if self.handle == null then throw RuntimeError "tabulate: instance is destroyed" end
-        point result = self.renderNative()
+        string? result = self.renderNative()
         if result == null then throw ValueError __tabulate_error() end
-        return __xl_runtime.takeCstr(result)
+        return result
     end
 end
 

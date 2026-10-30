@@ -7,6 +7,9 @@ if (!executable || !referencePath) {
     throw new Error('usage: node reference_probe.mjs <C probe exe> <json5 reference directory>');
 }
 const require = createRequire(import.meta.url);
+if (require(`${referencePath}/package.json`).version !== '2.2.3') {
+    throw new Error('reference must be the official JSON5 2.2.3 package');
+}
 const reference = require(referencePath);
 const cases = [
     '{}', '{a:1}', '{a:1,}', '{a:"x"}', '{a:\'x\'}',
@@ -75,6 +78,35 @@ for (const value of nestedValues) {
     cases.push(value, `[${value}]`, `{root:${value}}`,
         `/* lead */${value}// end\n`, `\u00A0${value}\u00A0`,
         `[{left:0},${value}]`);
+}
+
+// 用精确 BigInt 构造半 ULP 邻域，避免只比较格式化后看起来相同的近似数字。
+for (const exponent of [63n, 64n, 65n, 95n, 128n, 256n, 511n, 512n, 900n, 1023n]) {
+    const base = 1n << exponent;
+    const half = 1n << (exponent - 53n);
+    for (const offset of [half - 1n, half, half + 1n, 3n * half - 1n, 3n * half, 3n * half + 1n]) {
+        const digits = (base + offset).toString(16);
+        const hex = `0x${digits}`;
+        cases.push(hex, `-${hex}`, `+0X000${digits.toUpperCase()}`, `{n:${hex}}`);
+    }
+}
+
+// identity escape 消费完整码点；LS/PS 的转义续行与原始字符串内容不同。
+const unicodePoints = [0x80, 0xa0, 0xe9, 0x3b1, 0x301, 0x4f60, 0x1f3b6, 0x10ffff, 0x2028, 0x2029];
+for (const point of unicodePoints) {
+    const character = String.fromCodePoint(point);
+    for (const quote of ["'", '"']) {
+        for (const slash of ['', '\\']) {
+            cases.push(`{v:${quote}p${slash}${character}q${quote}}`);
+            cases.push(`{${quote}p${slash}${character}q${quote}:'ok'}`);
+        }
+    }
+}
+for (const line of ['\n', '\r', '\r\n', '\u2028', '\u2029']) {
+    cases.push(`//你好${line}{v:'ok'}`, `{//你好${line}v:'ok'}`,
+        `{v://你好${line}'ok'}`, `{v:'ok'//你好${line}}`,
+        `/*你好${line}*/{v:'ok'}`, `{/*你好${line}*/v:'ok'}`,
+        `{v:/*你好${line}*/'ok'}`, `{v:'ok'/*你好${line}*/}`);
 }
 
 const input = cases.map((value) => Buffer.from(value).toString('hex')).join('\n') + '\n';

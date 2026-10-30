@@ -1,5 +1,47 @@
 # netrc
 
+## 2026-10-29 资源预算与复合 I/O 首因
+
+修复宏行超过 `maxItem` 误报 `MEMORY/TYPE`、宏字符串非法 UTF-8
+误报 `TYPE`、写出时漏计凭据字段节点的问题。单项预算按 UTF-8
+字节计，不含宏行的 CRLF；超限报告 `LIMIT`，解析错误定位到宏行
+起点。一个主机或宏定义各计一个节点，非 null 的 login/account/
+password 各计一个节点，每行宏正文各计一个节点；空字符串也计入。
+条目预算只计主机、宏定义和宏行，不重复计入凭据字段。`0` 仍表示
+不限；读取重复覆盖项按实际处理次数计，写出按实际输出节点计。
+
+拥有型 Reader/Writer 的关闭与文件保存清理不再覆盖 XRT 的正文
+首因；包级错误和 XRT 错误同时保留原始类别。使用 `xrtTakeError`
+移交现有错误对象，不为清理新增副本、分配或错误框架。公开 C/
+XLang 签名、对象/字符串所有权、空结果规则均未改。
+
+新增 `test/resource_limits_c.c` 的 285 项预算/UTF-8/位置/存活分配
+检查，旧实现 25 项失败；`test/stream_errors_c.c` 的 126 项读、写、
+刷新、关闭、重命名与删除复合故障检查，旧实现 92 项失败。当前
+严格 GCC 均为零失败，语言层 `test/resource_limits.xl` 单独通过。
+文件故障矩阵只在测试 TU 中替换文件后端，不改 XRT；真实文件、
+私有权限、符号链接、保存 OOM 与线程错误槽仍由旧套件验证。
+完整双平台门禁的最新结果见仓库 `docs/普通扩展库发布验收矩阵_2026-10-28.md`，
+这两组定向检查不代表整包已经签收。
+
+新增双语 `examples/bounded_credentials.xl` / `bounded_credentials_c.c`：
+同一测试凭据、512 字节输入/输出、16 字节单项、4 条目和7节点预算，
+演示主机选择、default 回退、宏/密码往返与可恢复的宏超限，不输出密码。
+在仓库根运行：
+
+```text
+release/xl.exe run release/extlibs/netrc/examples/bounded_credentials.xl
+release/xl.exe run release/extlibs/netrc/examples/bounded_credentials_c.c
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/netrc/test/check.ps1
+bash release/extlibs/netrc/test/check.sh
+```
+
+Linux 将首条命令中的 `xl.exe` 换为 `xl`。门禁依赖 GCC、Python 3
+和对应平台发布物；缺少工具会明确失败，不把互通检查跳过后签收。
+默认门禁核对输入前后哈希、记录完整命令和输出，并逐阶段设置超时；
+仅成功时清理本次临时目录，失败现场保留。原具名类型的语言字典
+构造仍为必过正例，不改成预期失败，也不以 C 工厂绕过 M1。
+
 2026-10-27：错误消息由 XRT 分配，原生桥接明确返回 `char*`，语言
 声明使用 `@owned string` 直接返回。`stringify()` 仍采用原有的
 `point`/`takeCstr`：其空结果需在语言层映射为 `ConfigError`，而
@@ -101,7 +143,7 @@ C 的 Reader 输入限额只计算**当前游标之后**的字节：若 `Size` �
 自定义 Writer 的写入或刷新回调失败时，若本次 XRT 错误为内存不足，
 `xrtNetrcWrite` 报告 `MEMORY`；其他写入或刷新失败报告 `IO`。
 
-`save` 使用同目录 0600 临时文件写满、刷新、关闭后替换目标，失败删除临时文件；
+`save` 使用同目录 0600 临时文件写满、刷新、关闭后替换目标，失败尝试删除临时文件，清理失败不覆盖首因；
 POSIX 下新文件与替换后的文件均只允许所有者访问。Windows 下沿用
 XRT 文件 API 和目录 ACL；调用方仍需保证目录访问策略适当。此库不会
 自动发现用户主目录的 `.netrc`，也不会自动把凭据送入网络请求。
@@ -117,19 +159,20 @@ XRT 文件 API 和目录 ACL；调用方仍需保证目录访问策略适当。�
 
 ## 定向验证
 
-在 `demo6` 目录运行 `release/extlibs/netrc/test/check.ps1` 和
+在仓库根目录运行 `release/extlibs/netrc/test/check.ps1` 和
 `bash release/extlibs/netrc/test/check.sh`。Windows 门禁覆盖
 GCC 严格编译、C 边界、XLang 边界、具名类型与直接构造结构检查、
 双语范例结果及 AOT；开发时可用
 `-SkipAot` 跳过当前主线仍有缺符号的 AOT 发布链路。
-Windows 门禁每次使用独立构建目录，并在该目录运行会写文件的 C 边界用例；退出时仅清理本次产物，避免并行运行互相覆盖。
-包内 `test/boundaries.xl` 已登记到 `coverage.tests`；在 `demo6` 目录运行
+Windows 门禁每次使用独立构建目录，并在该目录运行会写文件的 C 边界用例；仅通过时清理本次产物，失败留证，避免并行运行互相覆盖。
+包内 `test/boundaries.xl` 已登记到 `coverage.tests`；在仓库根目录运行
 `tools/smoke_extlib_catalog.ps1 -Package netrc` 可连同原主用例一起复验。
 Linux ASan/UBSan 门禁覆盖 C 边界与范例，Ubuntu 用例包含
 覆盖旧宽权限文件后检查新文件权限为 0600；该用例在 Linux 原生临时目录
 运行，不把 WSL `/mnt` 的 DrvFS 权限映射当作 POSIX 验收。
 同一脚本需要 `release/xl`，运行中央与包内 XLang 边界，并将双语范例
-与黄金输出逐字比较；不运行完整 AOT。
+与黄金输出逐字比较；当前默认门禁也构建并运行 C/XLang 独立程序，
+最后必须通过具名类型的完整语言字典构造，不因 M1 跳过后签收。
 Linux 脚本还在独立临时目录运行双语文件范例，核对保存内容相同且两份
 文件模式均为 0600。Windows `check.ps1 -SkipAot` 在本次测试专用路径下
 运行 C 文件范例和 XLang 中文路径文件范例，核对输出与文件哈希，随后

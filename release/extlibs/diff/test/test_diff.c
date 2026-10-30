@@ -50,6 +50,38 @@ static int test_allocation_failure(void)
     return 0;
 }
 
+/* 与语言回归相同的输入，完整计划和结果按当前原生分配预算验收。 */
+static int test_owned_result_budget(void)
+{
+    const char* expected[] = {"", "0,0,0", "-old\n+new\n", "1,1,0"};
+    unsigned operation, attempt;
+    for (operation = 0; operation < 4u; ++operation) {
+        const char* left = operation < 2u ? "" : "old";
+        const char* right = operation < 2u ? "" : "new";
+        unsigned needed = operation < 2u ? 3u : 5u;
+        char* warm = operation % 2u == 0u ? xdiff_lines(left, right) : xdiff_stats(left, right);
+        CHECK(same(warm, expected[operation]));
+        for (attempt = 0; attempt < 2u; ++attempt) {
+            unsigned budget = attempt == 0u ? 0u : needed;
+            char* result;
+            bool triggered;
+            bool memory_error;
+            CHECK(xrtMemDebugFailAfter(budget));
+            result = operation % 2u == 0u ? xdiff_lines(left, right) : xdiff_stats(left, right);
+            triggered = xrtMemDebugFailTriggered();
+            memory_error = xrtErrorKind(xrtGetError()) == XERR_MEMORY;
+            xrtMemDebugFailClear();
+            if (budget == 0u) {
+                CHECK(result == NULL && triggered && memory_error);
+            } else {
+                CHECK(!triggered && !memory_error);
+                CHECK(same(result, expected[operation]) && xrtGetError() == NULL);
+            }
+        }
+    }
+    return 0;
+}
+
 static unsigned next_random(unsigned* state)
 {
     *state = *state * 1664525u + 1013904223u;
@@ -211,6 +243,7 @@ int main(void)
     CHECK(xrtGetError() == NULL);
     CHECK(test_allocation_failure() == 0);
     CHECK(test_lcs_properties() == 0);
+    CHECK(test_owned_result_budget() == 0);
     puts("diff C boundaries: PASS");
     return 0;
 }

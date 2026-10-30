@@ -1,0 +1,16 @@
+import hcl
+
+func main(...) as int
+    // 配置查询保留整个表达式，不把运维注释中的引号当成字符串。
+    string hosts = "[\n  \"api.example\", // note: \"retired\n  \"admin.example\"\n]"
+    string config = "resource \"service\" \"web\" {\nport = 8080\nhosts = " + hosts + " /* tail */\n}\n"
+    assert hcl.validate(config) and hcl.countAttrs(config) == 2
+    assert hcl.blockLabelAt(config, "resource", 0, 1) == "web"
+    assert hcl.get(config, "hosts") == hosts
+    assert hcl.getRaw(config, "hosts") == hosts + " /* tail */"
+    assert hcl.getInt(config, "port") == 8080
+    println("port: 8080")
+    println(hcl.get(config, "hosts"))
+    println("HCL query comments: OK")
+    return 0
+end

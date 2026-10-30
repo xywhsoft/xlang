@@ -8,7 +8,7 @@ $runner = Join-Path $root 'tools/run_extlib_c.ps1'
 $workRoot = Join-Path $root 'build/test'
 $work = Join-Path $workRoot ('trie_guard_' + [guid]::NewGuid().ToString('N'))
 $expected = [string]::Join("`n", (Get-Content -LiteralPath (Join-Path $PSScriptRoot 'trie.expected.txt') -Encoding UTF8))
-$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
+$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $manifest = Get-Content -LiteralPath (Join-Path $root 'release/extlibs/trie/xlang.package.json') -Raw | ConvertFrom-Json
 $moduleFlags = @($manifest.artifact.xrtModules | ForEach-Object { "-D$_" })
 
@@ -94,6 +94,9 @@ try {
         Confirm-Output 'C example AOT' $cAotLines
     }
 
+    if (-not $SkipAot) {
+        & (Join-Path $root 'tools/check_extlib_native_globals.ps1') -Root $root -Package trie
+    }
     if ($SkipAot) {
         Write-Output 'trie Windows C/XLang fast gate: PASS (AOT skipped)'
     } else {

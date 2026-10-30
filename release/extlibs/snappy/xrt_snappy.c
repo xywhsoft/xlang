@@ -65,6 +65,24 @@ static void __xrtSnappyCopyError(xrtsnappyerror* pDst, const xrtsnappyerror* pSr
 	*pDst = *pSrc;
 }
 
+/* 只复制失败诊断，不替换调用方的首错或分配新的错误对象。 */
+static void __xrtSnappySetIoError(xrtsnappyerror* pError, uint64 iInput,
+	uint64 iOutput, const char* sFallback)
+{
+	const xerror* pCause = xrtGetError();
+	int iCode = XRT_SNAPPY_ERROR_IO;
+	switch ( xrtErrorKind(pCause) ) {
+		case XERR_ARGUMENT: iCode = XRT_SNAPPY_ERROR_ARGUMENT; break;
+		case XERR_MEMORY: iCode = XRT_SNAPPY_ERROR_MEMORY; break;
+		case XERR_RANGE: iCode = XRT_SNAPPY_ERROR_LIMIT; break;
+		case XERR_STATE: iCode = XRT_SNAPPY_ERROR_STATE; break;
+		case XERR_CANCELLED: iCode = XRT_SNAPPY_ERROR_CANCELLED; break;
+		default: break;
+	}
+	__xrtSnappySetError(pError, iCode, pCause != NULL ? xrtErrorCode(pCause) : 0,
+		iInput, iOutput, "%s", pCause != NULL ? xrtErrorMessage(pCause) : sFallback);
+}
+
 static bool __xrtSnappyOverRatio(const xrtresourcelimits* pLimits, uint64 iInput, uint64 iOutput)
 {
 	uint64 iRatio = pLimits->iMaxCompressionRatio;
@@ -356,7 +374,7 @@ XRT_API bool xrtSnappyCompressorDrain(xrtsnappycompressor* pCompressor, xwriter*
 	Output = xrtBufferView(pCompressor->Output);
 	if ( Output.Size != 0u &&
 		!xrtWriterWriteFull(pWriter, Output.Data, Output.Size, NULL) ) {
-		__xrtSnappySetError(&pCompressor->Error, XRT_SNAPPY_ERROR_IO, 0,
+		__xrtSnappySetIoError(&pCompressor->Error,
 			pCompressor->InputBytes, pCompressor->OutputBytes, "cannot write snappy output stream");
 		pCompressor->Failed = true;
 		return false;
@@ -455,7 +473,7 @@ static bool __xrtSnappyDecompressConsume(xrtsnappydecompressor* pDecompressor, s
 				(pDecompressor->ChunkType == 0xffu && pDecompressor->ChunkLength != 6u) ||
 				(pDecompressor->ChunkType >= 0x02u && pDecompressor->ChunkType <= 0x7fu) ||
 				(pDecompressor->ChunkType <= 0x01u &&
-				 (pDecompressor->ChunkLength < 5u ||
+				 (pDecompressor->ChunkLength < (pDecompressor->ChunkType == 0x00u ? 5u : 4u) ||
 				  (pDecompressor->ChunkType == 0x01u &&
 				   pDecompressor->ChunkLength > XRT_SNAPPY_BLOCK_SIZE + 4u))) ) {
 				__xrtSnappySetError(&pDecompressor->Error, XRT_SNAPPY_ERROR_DATA, 0,
@@ -511,7 +529,7 @@ static bool __xrtSnappyDecompressConsume(xrtsnappydecompressor* pDecompressor, s
 			if ( pDecompressor->ChunkType == 0x00u ) {
 				iResult = xsCodecUncompressedLength(pChunk + 4u, iDeclared, &iDeclared);
 			}
-			if ( iResult != XS_CODEC_OK || iDeclared == 0u || iDeclared > XRT_SNAPPY_BLOCK_SIZE ) {
+			if ( iResult != XS_CODEC_OK || iDeclared > XRT_SNAPPY_BLOCK_SIZE ) {
 				__xrtSnappySetError(&pDecompressor->Error, XRT_SNAPPY_ERROR_DATA, iResult,
 					pDecompressor->InputBytes, pDecompressor->OutputBytes,
 					"invalid snappy data chunk size");
@@ -533,8 +551,9 @@ static bool __xrtSnappyDecompressConsume(xrtsnappydecompressor* pDecompressor, s
 				return false;
 			}
 			if ( pDecompressor->ChunkType == 0x00u ) {
-				pAllocated = xrtMalloc(iDeclared);
-				if ( pAllocated == NULL ) {
+				/* 空 raw 流不分配输出，但仍经过完整解码和 CRC 校验。 */
+				pAllocated = iDeclared != 0u ? xrtMalloc(iDeclared) : NULL;
+				if ( iDeclared != 0u && pAllocated == NULL ) {
 					__xrtSnappySetError(&pDecompressor->Error, XRT_SNAPPY_ERROR_MEMORY, 0,
 						pDecompressor->InputBytes, pDecompressor->OutputBytes, "out of memory");
 					pDecompressor->Failed = true;
@@ -650,7 +669,7 @@ XRT_API bool xrtSnappyDecompressorDrain(xrtsnappydecompressor* pDecompressor, xw
 	Output = xrtBufferView(pDecompressor->Output);
 	if ( Output.Size != 0u &&
 		!xrtWriterWriteFull(pWriter, Output.Data, Output.Size, NULL) ) {
-		__xrtSnappySetError(&pDecompressor->Error, XRT_SNAPPY_ERROR_IO, 0,
+		__xrtSnappySetIoError(&pDecompressor->Error,
 			pDecompressor->InputBytes, pDecompressor->OutputBytes, "cannot write snappy output stream");
 		pDecompressor->Failed = true;
 		return false;
@@ -820,7 +839,7 @@ XRT_API bool xrtSnappyCompressStream(xreader* pReader, xwriter* pWriter, const x
 	while ( bRet ) {
 		size_t iRead = 0u;
 		if ( !xrtReaderRead(pReader, sInput, sizeof(sInput), &iRead) ) {
-			__xrtSnappySetError(&pCompressor->Error, XRT_SNAPPY_ERROR_IO, 0,
+			__xrtSnappySetIoError(&pCompressor->Error,
 				pCompressor->InputBytes, pCompressor->OutputBytes, "cannot read snappy input stream");
 			bRet = false;
 			break;
@@ -877,7 +896,7 @@ XRT_API bool xrtSnappyDecompressStream(xreader* pReader, xwriter* pWriter, const
 	while ( bRet ) {
 		size_t iRead = 0u;
 		if ( !xrtReaderRead(pReader, sInput, sizeof(sInput), &iRead) ) {
-			__xrtSnappySetError(&pDecompressor->Error, XRT_SNAPPY_ERROR_IO, 0,
+			__xrtSnappySetIoError(&pDecompressor->Error,
 				pDecompressor->InputBytes, pDecompressor->OutputBytes, "cannot read snappy input stream");
 			bRet = false;
 			break;

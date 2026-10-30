@@ -221,34 +221,28 @@ static bool xmsgpack_read_uint(xmsgpack_reader* pReader, uint8 iBytes, uint64* p
     return true;
 }
 
-static xvalue* xmsgpack_read_time(xmsgpack_reader* pReader, uint8 iHead)
+static xvalue* xmsgpack_read_time(xmsgpack_reader* pReader, size_t iSize)
 {
-    uint64 iType, iBits, iNanos = 0u;
+    uint64 iBits, iNanos = 0u;
     int64 iSeconds;
     int64 iMilliseconds;
     xtime Time;
 
-    if (iHead == 0xc7u && (!xmsgpack_read_uint(pReader, 1u, &iBits) || iBits != 12u)) {
-        if (!xrtGetError()) xmsgpack_error(XERR_UNSUPPORTED, "unsupported MessagePack extension length");
-        return NULL;
-    }
-    if (!xmsgpack_read_uint(pReader, 1u, &iType)) { return NULL; }
-    if (iType != 0xffu) {
-        xmsgpack_error(XERR_UNSUPPORTED, "unsupported MessagePack extension type");
-        return NULL;
-    }
-    if (iHead == 0xd6u) {
+    if (iSize == 4u) {
         if (!xmsgpack_read_uint(pReader, 4u, &iBits)) { return NULL; }
         iSeconds = (int64)iBits;
-    } else if (iHead == 0xd7u) {
+    } else if (iSize == 8u) {
         if (!xmsgpack_read_uint(pReader, 8u, &iBits)) { return NULL; }
         iNanos = iBits >> 34u;
         iSeconds = (int64)(iBits & ((UINT64_C(1) << 34u) - 1u));
-    } else {
+    } else if (iSize == 12u) {
         if (!xmsgpack_read_uint(pReader, 4u, &iNanos) ||
             !xmsgpack_read_uint(pReader, 8u, &iBits)) { return NULL; }
         iSeconds = iBits <= INT64_MAX ? (int64)iBits :
             -1 - (int64)(UINT64_MAX - iBits);
+    } else {
+        xmsgpack_error(XERR_VALUE, "MessagePack timestamp must contain 4, 8 or 12 bytes");
+        return NULL;
     }
     if (iNanos >= 1000000000u || iNanos % 1000000u != 0u) {
         xmsgpack_error(XERR_VALUE, "MessagePack timestamp is invalid or finer than milliseconds");
@@ -263,6 +257,28 @@ static xvalue* xmsgpack_read_time(xmsgpack_reader* pReader, uint8 iHead)
     } else if (!xrtTimeFromUnix(iSeconds, &Time) ||
         !xrtTimeAdd(Time, iMilliseconds, XTIME_UNIT_MILLISECOND, &Time)) return NULL;
     return xrtValueTime(Time);
+}
+
+/* 头部宽度不改变扩展语义；完整帧才可判为未知类型，截断始终是格式错误。 */
+static xvalue* xmsgpack_read_ext(xmsgpack_reader* pReader, uint8 iHead)
+{
+    uint64 iSize, iType;
+    if (iHead >= 0xd4u) {
+        iSize = UINT64_C(1) << (iHead - 0xd4u);
+    } else if (!xmsgpack_read_uint(pReader, iHead == 0xc7u ? 1u :
+        (iHead == 0xc8u ? 2u : 4u), &iSize)) {
+        return NULL;
+    }
+    if (iSize > XMSGPACK_MAX_BYTES) {
+        xmsgpack_error(XERR_RANGE, "MessagePack extension exceeds the 64 MiB safety limit");
+        return NULL;
+    }
+    if (!xmsgpack_read_uint(pReader, 1u, &iType) || !xmsgpack_need(pReader, (size_t)iSize)) { return NULL; }
+    if (iType != 0xffu) {
+        xmsgpack_error(XERR_UNSUPPORTED, "unsupported MessagePack extension type");
+        return NULL;
+    }
+    return xmsgpack_read_time(pReader, (size_t)iSize);
 }
 
 static xvalue* xmsgpack_read_value(xmsgpack_reader* pReader, size_t iDepth);
@@ -341,6 +357,7 @@ static xvalue* xmsgpack_read_value(xmsgpack_reader* pReader, size_t iDepth)
     if ((iHead & 0xf0u) == 0x80u) { return xmsgpack_read_object(pReader, iHead & 15u, iDepth); }
     switch (iHead) {
         case 0xc0u: return xrtValueRetain(xrtValueNull()); case 0xc2u: return xrtValueRetain(xrtValueBool(false)); case 0xc3u: return xrtValueRetain(xrtValueBool(true));
+        case 0xc1u: xmsgpack_error(XERR_VALUE, "reserved MessagePack format byte"); return NULL;
         case 0xccu: if (!xmsgpack_read_uint(pReader, 1u, &iValue)) return NULL; return xrtValueInt((int64)iValue);
         case 0xcdu: if (!xmsgpack_read_uint(pReader, 2u, &iValue)) return NULL; return xrtValueInt((int64)iValue);
         case 0xceu: if (!xmsgpack_read_uint(pReader, 4u, &iValue)) return NULL; return xrtValueInt((int64)iValue);
@@ -354,8 +371,9 @@ static xvalue* xmsgpack_read_value(xmsgpack_reader* pReader, size_t iDepth)
         case 0xd3u: if (!xmsgpack_read_uint(pReader, 8u, &iValue)) return NULL; return xrtValueInt((int64)iValue);
         case 0xcau: { uint32 iBits; float fValue; if (!xmsgpack_read_uint(pReader, 4u, &iValue)) return NULL; iBits = (uint32)iValue; memcpy(&fValue, &iBits, sizeof(fValue)); return xrtValueFloat((double)fValue); }
         case 0xcbu: { double fValue; if (!xmsgpack_read_uint(pReader, 8u, &iValue)) return NULL; memcpy(&fValue, &iValue, sizeof(fValue)); return xrtValueFloat(fValue); }
-        case 0xd6u: case 0xd7u: case 0xc7u:
-            return xmsgpack_read_time(pReader, iHead);
+        case 0xd4u: case 0xd5u: case 0xd6u: case 0xd7u: case 0xd8u:
+        case 0xc7u: case 0xc8u: case 0xc9u:
+            return xmsgpack_read_ext(pReader, iHead);
         case 0xd9u: if (!xmsgpack_read_uint(pReader, 1u, &iValue)) return NULL; return xmsgpack_read_blob(pReader, iValue, true);
         case 0xdau: if (!xmsgpack_read_uint(pReader, 2u, &iValue)) return NULL; return xmsgpack_read_blob(pReader, iValue, true);
         case 0xdbu: if (!xmsgpack_read_uint(pReader, 4u, &iValue)) return NULL; return xmsgpack_read_blob(pReader, iValue, true);

@@ -1,5 +1,36 @@
 # semver
 
+## 当前验收：2026-10-29
+
+已修复复合范围的预发布版本边界错误，并补齐范围筛选的 C/XLang 对照范例。
+例如 `^1.0.0 >=2.0.0-alpha` 原先错误接受 `2.0.0-alpha`；
+简写上界现在正确展开为 `<2.0.0-0`，不会被另一个预发布比较器绕过。
+通配范围、合法空集的 `||` 分支和带通配端点的区间也已统一处理。
+这不是新增宽松解析模式；空的 `||` 分支、超限及非法输入仍然拒绝。
+
+- Windows 默认门禁 35 阶段全部通过，包含严格 C、9 个实际生成原型、
+  42 组新增范围边界、分配故障、双语黄金输出与 8 条独立程序构建运行路径。
+- Linux 原生文件系统快照中的完整门禁通过：同一 C 测试以 ASan/UBSan
+  运行，XLang JIT、8 条独立程序路径和 C/XLang 输出一致；内外输入指纹无变化。
+- Windows 独立 node-semver 7.8.5 对照：738,115 组共同语义零差异，
+  404 组本包专有的区间交集写法明确跳过。扩充前的旧矩阵未覆盖这些组合；
+  修复前首次扩充的 692,867 组出现 2,179 条差异，原失败现场仍保留。
+- 公开 9 个 C API、整数宽度、文本返回所有权和实现上限不变，没有兼容别名。
+  范围解析删除了未使用的中间字段与不可达分支，新增 C 范围用例在 XRT
+  分配预算为零时全部通过；这只证明该路径不依赖 XRT 堆分配。
+
+固定 Windows x64 GCC 16.2 `-O2` 的对象级对照中，`.text` 为
+9,920 → 9,504 字节，`xsemver_satisfies` 静态栈帧为 20,864 → 20,528 字节。
+此结果仅对应该编译器与目标，不是整包体积或运行速度承诺。
+本轮使用冻结发布物，未修改编译器主线或 XRT。
+
+本轮独立 oracle 来自官方 npm 的 `semver-7.8.5.tgz`，元数据 `gitHead` 为
+`6e05b7637396ac66522cff8731f07cfe0ef49a29`，已核对 registry 的完整性值：
+`sha512-Y7/KDsb8LjooZpwaqGyulO6DQlksgCncchHGk+sZIY4SBvUocMBEFH5Ur1fI4dV+Jvl0w6cjvucaIi40puRioA==`。
+该来源与下文历史检出记录分别保存，不混用提交号；运行普通门禁不需要 Node.js。
+
+以下按时间保留旧验收记录，不代表每份旧矩阵均覆盖当前新增边界。
+
 2026-10-27 当前 Windows 发布版复验：默认包门禁的严格 C/ABI、
 边界、分配故障、C/XLang 黄金输出及独立 EXE AOT 全部通过。
 另用本机已安装的 node-semver 7.8.5 运行可选独立 oracle：
@@ -95,7 +126,20 @@ XLang 在进入 C 字符串接口前检查内嵌 NUL，并按各函数原有失�
 `clean` 为支持任意长度的首尾空白，仍须读取完整输入后才能裁去空白。
 `clean` 在去掉首尾空白后先检查最大合法长度，再分配结果缓冲区；
 超长非法输入不会产生与原文等大的临时副本。
-完整版本的 `<=` 使用包含式上界；部分版本的 `<=1.2` 表示 `<1.3.0`。
+预发布版本还须满足同一 `||` 分支中、同一主次修订元组的显式预发布比较器。
+只有显式准入仍不足以越过简写上界：`1.2`、`~1.2.3`、`<=1.2` 的
+排他上界都是 `<1.3.0-0`，`^1.0.0` 的排他上界是 `<2.0.0-0`。
+完整比较器保留原意：`<2.0.0 >=2.0.0-alpha` 可以匹配 `2.0.0-alpha`；
+完整版本的 `<=` 仍使用包含式上界。
+这与 [node-semver 7.8.5 的范围展开规则](https://github.com/npm/node-semver/tree/v7.8.5#advanced-range-syntax)一致。
+
+`*`、`x.x.x`、`<=*.*` 等全通配表示无约束，但单独使用仍不接受预发布版本。
+`<*`、`>*` 表示合法空集：自身不匹配版本，却不会使 `<* || 1.2.3`
+的有效另一分支失效。`* - 1.2.3`、`1.2.3 - *` 及 `* - *` 分别是开放
+下界、开放上界和全通配。最低正式版下界 `>=0.0.0` 按 node-semver 规则
+归一为无约束，因此 `>=0.0.0 >=0.0.0-alpha` 也可显式准入该预发布版本；
+其他正式版下界不会这样消除。
+
 最大整数可直接用于比较边界（如 `>=9223372036854775807`）；简写范围若必须
 对该分量加一才能构造排他上界，则按实现限制拒绝，不进行整数回绕。
 
@@ -107,10 +151,12 @@ XLang 在进入 C 字符串接口前检查内嵌 NUL，并按各函数原有失�
 Linux 包门禁的 C ASan/UBSan 与 XLang 对照也通过。旧发布版的共享快照
 缺符号阻断已解除；包级通过不等于整个 xlang 发布版签收。
 
-在 `demo6` 目录运行：
+在仓库根目录运行：
 
 ```powershell
 ./release/xl.exe run release/extlibs/semver/examples/semver_c.c
+./release/xl.exe run release/extlibs/semver/examples/ranges.xl
+./release/xl.exe run release/extlibs/semver/examples/ranges_c.c
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/semver/test/check.ps1
 bash release/extlibs/semver/test/check.sh
 ```
@@ -118,11 +164,17 @@ bash release/extlibs/semver/test/check.sh
 `-SkipAot` 只用于开发时缩短反馈；正式包门禁应运行默认命令。脚本仅验证该包，不运行全仓回归。
 Windows 日常门禁和可选的独立对照门禁各自使用单次独占的
 `build/test/semver_guard_*` / `build/test/semver_oracle_*` 目录；XRT 对象
-每次重新编译，结束或失败时仅清理本次目录，不复用固定缓存。
-包内 `test/boundaries.xl` 和 `test/allocations.xl` 已登记到 `coverage.tests`，可用
+每次重新编译，不复用固定缓存；成功只清理自己的构建目录并保留外部 JSON
+报告，失败保留原始输出、命令和构建现场，执行前后核对输入指纹。Linux
+门禁失败同样保留独占目录，成功清理；本轮额外保留原生快照的日志与指纹。
+包内 `test/boundaries.xl`、`test/allocations.xl` 和 `test/prerelease_ranges.xl`
+已登记到 `coverage.tests`，可用
 `tools/smoke_extlib_catalog.ps1 -Package semver` 连同原主用例复验。
 `examples/semver_c.c` 与 `examples/basic.xl` 覆盖九个公开入口，共用
 `examples/basic.expected.txt` 逐行校验两种语言的输出。
+`examples/ranges.xl` 与 `examples/ranges_c.c` 使用同一候选版本表，展示正式版
+筛选、测试通道、预发布上界、全通配、空集并集及开放区间；两种语言共用
+`examples/ranges.expected.txt`，严格 C、直跑与独立 EXE 均核对同一结果。
 C 范例包含包内原生实现，可由 `xl run` 单文件执行；正式包仍按清单
 编译原生源文件。Windows/Linux 包门禁将直跑与严格 C 编译输出逐字比较。
 Windows C/XLang 范围矩阵、边界与分配故障 AOT、公开范例 AOT、Linux ASan/UBSan 已通过；
@@ -155,7 +207,7 @@ C/XLang 范例与共同黄金输出；C 侧仍使用 ASan/UBSan。
 [`npm/node-semver`](https://github.com/npm/node-semver) 检出到临时目录后运行：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/semver/test/check_oracle.ps1 -OracleDir build/test/semver_oracle
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/semver/test/check_oracle.ps1 -OracleDir build/test/node-semver/package
 ```
 
 2026-10-25 以 node-semver 7.8.5 对照 279,319 组版本与范围

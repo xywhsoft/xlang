@@ -51,13 +51,13 @@ C API 在 `include/singleinstance_native.h`：`xsi_acquire` 返回 1=成功、
 `xsi_is_acquired` 查询当前包实例状态。C 范例在
 `examples/singleinstance_c.c`，XLang 范例在
 `release/examples/extlibs/singleinstance.xl`。
-在 `demo6` 目录可直接执行 `release/xl run release/extlibs/singleinstance/examples/singleinstance_c.c`，
+在仓库根目录可直接执行 `release/xl run release/extlibs/singleinstance/examples/singleinstance_c.c`，
 也可用 `release/xl build` 构建该 C 范例，无须手动追加包源码。示例会在当前用户主目录留下锁文件；
 包门禁使用隔离的主目录，不触碰日常用户配置。
 
 `release` 和 `isAcquired` 进入时清理同一线程的旧 XRT 错误；成功或合法未持锁状态不会携带先前 `acquire` 的错误。
 
-聚焦验证（在 `demo6` 目录）：
+聚焦验证（在仓库根目录）：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/singleinstance/test/check.ps1 -SkipAot

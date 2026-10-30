@@ -1,147 +1,230 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
 
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../../.." && pwd)
 cd "$root"
 work=$(mktemp -d "${TMPDIR:-/tmp}/xlang-zip-XXXXXX")
-trap 'rm -rf -- "$work"' EXIT
+cc=${CC:-gcc}
+cc_path=$(command -v "$cc" || true)
+cc1_path=''
+python_path=$(command -v python3)
+input_paths() {
+    find release/extlibs/zip release/extlibs/_libzip release/extlibs/_zlib release/include -type f -print0
+    printf '%s\0' lib/xrt/xrt.h lib/xruntime/xruntime.h release/xl release/libxl.so release/libxlc.so \
+        release/examples/extlibs/zip.xl release/examples/extlibs/zip_c.c "$python_path"
+    if [[ -n "$cc_path" ]]; then printf '%s\0' "$cc_path"; fi
+    if [[ -n "$cc1_path" ]]; then printf '%s\0' "$cc1_path"; fi
+}
+fingerprint() {
+    mapfile -d '' inputs < <(input_paths | sort -zu)
+    sha256sum "${inputs[@]}"
+}
+cleanup() {
+    result=$?
+    trap - EXIT ERR
+    set +e
+    cd "$root" || exit 125
+    fingerprint > "$work/inputs.after.sha256"
+    if ! diff -u "$work/inputs.before.sha256" "$work/inputs.after.sha256"; then result=125; fi
+    printf '%s\n' "$result" > "$work/exit-code.txt"
+    if ((result == 0)); then rm -rf -- "$work" || result=$?
+    else printf '[zip] FAIL exit=%s artifacts=%s\n' "$result" "$work" >&2; fi
+    exit "$result"
+}
+trap cleanup EXIT
+trap 'printf "exit=%s line=%s command=%s\n" "$?" "$LINENO" "$BASH_COMMAND" > "$work/failure.txt"' ERR
+fingerprint > "$work/inputs.before.sha256"
+"$cc" --version > "$work/compiler.txt"
+cc1_path=$("$cc" -print-prog-name=cc1)
+fingerprint > "$work/inputs.before.sha256"
+export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1
+export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
+flags=(-std=c11 -D_DEFAULT_SOURCE -D_FILE_OFFSET_BITS=64 -O1 -g -Wall -Wextra
+    -fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie
+    -Ilib/xrt -Irelease/extlibs/zip/include -Irelease/extlibs/zip
+    -Irelease/extlibs/_libzip/third_party/libzip/lib -Irelease/extlibs/_zlib/third_party/zlib)
+links=(-no-pie -lm -ldl -pthread)
 
-# 从包清单读取真实编译单元，避免与发布清单维护两份源码列表。
-python3 - "$root/release/extlibs" <<'PY' > "$work/sources"
+# 从发布清单递归读取真实编译单元；不维护第二套生产源列表。
+python3 - <<'PY' > "$work/sources"
 import json
-import pathlib
-import sys
-
-packages = pathlib.Path(sys.argv[1])
+from pathlib import Path
 seen = set()
-
 def visit(name):
     if name in seen:
         return
     seen.add(name)
-    folder = packages / name
-    manifest = json.loads((folder / "xlang.package.json").read_text(encoding="utf-8"))
-    for dependency in manifest.get("dependencies", []):
-        visit(dependency["name"])
-    for source in manifest["artifact"].get("cSources", []):
+    folder = Path('release/extlibs') / name
+    manifest = json.loads((folder / 'xlang.package.json').read_text(encoding='utf-8'))
+    for dependency in manifest.get('dependencies', []):
+        visit(dependency['name'])
+    for source in manifest['artifact'].get('cSources', []):
         path = folder / source
         if not path.is_file():
-            raise SystemExit(f"missing ZIP C source: {path}")
+            raise ValueError(f'missing ZIP C source: {path}')
         print(path)
-
-visit("zip")
+visit('zip')
 PY
-
-flags=(-std=c11 -D_DEFAULT_SOURCE -D_FILE_OFFSET_BITS=64 -O1 -g
-    -fsanitize=address,undefined -fno-omit-frame-pointer
-    -Ilib/xrt -Irelease/extlibs/zip/include
-    -Irelease/extlibs/_libzip/third_party/libzip/lib
-    -Irelease/extlibs/_zlib/third_party/zlib)
-gcc "${flags[@]}" -c release/extlibs/zip/test/xrt_runtime.c -o "$work/runtime.o"
+mapfile -t sources < "$work/sources"
+cargs=("${sources[@]}")
+for dir in lib/xrt release/extlibs/zip/include release/extlibs/zip \
+    release/extlibs/_libzip/third_party/libzip/lib release/extlibs/_zlib/third_party/zlib; do
+    cargs+=(--inc-path "$dir")
+done
+timeout 60s "$cc" "${flags[@]}" -Werror -fsyntax-only -DXRT_MODULE_FILE_TEMP \
+    release/extlibs/_libzip/platform/zip_source_file_xrt.c
+timeout 60s "$cc" "${flags[@]}" -Werror -fsyntax-only \
+    release/extlibs/zip/test/test_commit_memory.c release/extlibs/zip/examples/memory_roundtrip_c.c
+timeout 240s "$cc" "${flags[@]}" -c release/extlibs/zip/test/xrt_runtime.c -o "$work/runtime.o"
 objects=("$work/runtime.o")
 index=0
-while IFS= read -r source; do
+for source in "${sources[@]}"; do
     object="$work/source_$index.o"
-    if [[ "$source" == "$root/release/extlibs/zip/"* ]]; then
-        gcc "${flags[@]}" -Wall -Wextra -Werror -fsyntax-only "$source"
+    if [[ "$source" == release/extlibs/zip/* ]]; then
+        timeout 60s "$cc" "${flags[@]}" -Werror -fsyntax-only "$source"
     fi
-    gcc "${flags[@]}" -c "$source" -o "$object"
+    timeout 90s "$cc" "${flags[@]}" -c "$source" -o "$object"
     objects+=("$object")
     index=$((index + 1))
-done < "$work/sources"
-
-gcc "${flags[@]}" -Wall -Wextra -Werror -c \
-    release/extlibs/zip/test/test_zip.c -o "$work/test.o"
-gcc "${flags[@]}" "${objects[@]}" "$work/test.o" -lm -ldl -pthread -o "$work/test_zip"
-printf '[zip] C boundary\n'
-ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1 \
-    timeout 120s "$work/test_zip"
-
-printf '[zip] C example\n'
-gcc "${flags[@]}" -Wall -Wextra -Werror -c \
-    release/examples/extlibs/zip_c.c -o "$work/example.o"
-gcc "${flags[@]}" "${objects[@]}" "$work/example.o" -lm -ldl -pthread -o "$work/example_zip"
-ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1 \
-    timeout 30s "$work/example_zip" > "$work/c.txt"
-printf '[zip] Python/C ZIP interop\n'
-gcc "${flags[@]}" -Wall -Wextra -Werror -c \
-    release/extlibs/zip/test/interop.c -o "$work/interop.o"
-gcc "${flags[@]}" "${objects[@]}" "$work/interop.o" -lm -ldl -pthread \
-    -o "$work/interop_zip"
-XL_ZIP_INTEROP_RUNNER="$work/interop_zip" \
-    ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1 \
-    python3 release/extlibs/zip/test/interop.py
-
-# 内嵌 TCC 需逐个读取 libzip 源文件；WSL 挂载盘的元数据访问会放大耗时。
-stage="$work/stage"
-mkdir -p "$stage/release/extlibs" "$stage/release/examples/extlibs"
-cp -a release/xl release/libxlc.so "$stage/release/"
-cp -a release/extlibs/zip release/extlibs/_libzip release/extlibs/_zlib \
-    "$stage/release/extlibs/"
-cp -a release/examples/extlibs/zip.xl release/examples/extlibs/zip_c.c \
-    "$stage/release/examples/extlibs/"
-run_xl() {
-    local limit=$1
-    shift
-    ( cd "$stage" && timeout "$limit" ./release/xl "$@" )
-}
-
-printf '[zip] XLang text transfer\n'
-run_xl 180s run release/extlibs/zip/test/text_transfer.xl
-printf '[zip] XLang boundary\n'
-if run_xl 180s run release/extlibs/zip/test/boundaries.xl \
-    > "$work/boundary_jit.txt" 2>&1; then
-    cat "$work/boundary_jit.txt"
-else
-    status=$?
-    cat "$work/boundary_jit.txt" >&2
-    printf 'zip XLang boundary exited %s\n' "$status" >&2
-    exit "$status"
-fi
-printf '[zip] XLang example\n'
-if run_xl 180s run release/examples/extlibs/zip.xl \
-    > "$work/xl.txt" 2> "$work/xl_error.txt"; then
-    :
-else
-    status=$?
-    cat "$work/xl_error.txt" >&2
-    printf 'zip XLang example exited %s\n' "$status" >&2
-    exit "$status"
-fi
-printf '[zip] C/XLang output\n'
-printf 'zip C/XL example: PASS\n' > "$work/expected.txt"
-cmp "$work/expected.txt" "$work/c.txt"
-cmp "$work/expected.txt" "$work/xl.txt"
-printf '[zip] private native access\n'
-if run_xl 90s check \
-    release/extlibs/zip/test/private_native_negative.xl \
-    > "$work/private_native.txt" 2>&1; then
-    printf 'zip native add must be private\n' >&2
-    exit 1
-fi
-grep -Fq 'addNative' "$work/private_native.txt"
-grep -Fq 'access' "$work/private_native.txt"
-printf '[zip] independent EXE\n'
-for source in \
-    release/extlibs/zip/test/aot_core.xl \
-    release/extlibs/zip/test/text_transfer.xl \
-    release/extlibs/zip/test/boundaries.xl \
-    release/examples/extlibs/zip.xl; do
-    name=$(basename "$source" .xl)
-    printf '[zip] build %s\n' "$name"
-    run_xl 240s build "$source" -o "$work/$name"
-    timeout 30s "$work/$name" > "$work/$name.txt"
 done
-test ! -s "$work/aot_core.txt"
-test ! -s "$work/text_transfer.txt"
-printf 'zip boundaries: ok\n' > "$work/boundaries_expected.txt"
-cmp "$work/boundaries_expected.txt" "$work/boundaries.txt"
-cmp "$work/expected.txt" "$work/zip.txt"
-printf '[zip] build C example\n'
-run_xl 240s build release/extlibs/zip/test/c_aot_import.xl \
-    release/examples/extlibs/zip_c.c -o "$work/zip_c"
-timeout 30s "$work/zip_c" > "$work/zip_c.txt"
-cmp "$work/expected.txt" "$work/zip_c.txt"
-printf '[zip] symlink boundary\n'
-XL_ZIP_RELEASE_DIR="$stage/release" bash release/extlibs/zip/test/check_symlink.sh
-printf 'zip Linux C ASan/UBSan, Python interop and bilingual AOT: PASS\n'
+for name in test_zip test_commit_memory; do
+    timeout 90s "$cc" "${flags[@]}" -Werror "release/extlibs/zip/test/$name.c" \
+        "${objects[@]}" "${links[@]}" -o "$work/$name"
+    timeout 120s "$work/$name"
+done
+timeout 90s "$cc" "${flags[@]}" -Werror release/extlibs/zip/test/interop.c \
+    "${objects[@]}" "${links[@]}" -o "$work/interop"
+XL_ZIP_INTEROP_RUNNER="$work/interop" timeout 120s python3 -I release/extlibs/zip/test/interop.py
+timeout 90s "$cc" "${flags[@]}" -Werror release/examples/extlibs/zip_c.c \
+    "${objects[@]}" "${links[@]}" -o "$work/original_c"
+timeout 30s "$work/original_c" > "$work/original.txt"
+diff -u <(printf 'zip C/XL example: PASS\n') "$work/original.txt"
+timeout 90s "$cc" "${flags[@]}" -Werror release/extlibs/zip/examples/memory_roundtrip_c.c \
+    "${objects[@]}" "${links[@]}" -o "$work/memory_gcc"
+timeout 30s "$work/memory_gcc" "$work/gcc.zip" > "$work/memory.txt"
+diff -u <(sed 's/\r$//' release/extlibs/zip/examples/memory_roundtrip.expected.txt) "$work/memory.txt"
+python3 -I release/extlibs/zip/test/check_memory_wire.py "$work/gcc.zip"
+
+# WSL 挂载盘的逐文件访问很慢；JIT/AOT 始终用本次独占的原生临时副本。
+stage="$work/stage"
+mkdir -p "$stage/release/extlibs" "$stage/release/examples/extlibs" "$stage/lib/xrt" "$stage/lib/xruntime"
+cp -a release/xl release/libxl.so release/libxlc.so release/include "$stage/release/"
+cp -a release/extlibs/zip release/extlibs/_libzip release/extlibs/_zlib "$stage/release/extlibs/"
+cp -a lib/xrt/xrt.h "$stage/lib/xrt/"
+cp -a lib/xruntime/xruntime.h "$stage/lib/xruntime/"
+cp -a release/examples/extlibs/zip.xl release/examples/extlibs/zip_c.c "$stage/release/examples/extlibs/"
+run_xl() { ( cd "$stage" && timeout 240s ./release/xl "$@" ); }
+reject() {
+    local name=$1 source=$2 symbol=$3 status=0
+    run_xl check "$source" > "$work/$name.txt" 2>&1 || status=$?
+    if ((status != 1)); then cat "$work/$name.txt" >&2; echo "$name: expected 1, got $status" >&2; return 1; fi
+    grep -Eq 'access|private' "$work/$name.txt"
+    if [[ -n "$symbol" ]]; then grep -Fq "$symbol" "$work/$name.txt"; fi
+}
+run_xl run release/extlibs/zip/test/test_commit_memory.c "${cargs[@]}"
+run_xl run release/extlibs/zip/test/commit_memory.xl > "$work/commit.txt"
+diff -u <(printf 'zip commit MemoryError/retry: PASS\n') "$work/commit.txt"
+run_xl run release/extlibs/zip/test/text_transfer.xl > "$work/text.txt"
+test ! -s "$work/text.txt"
+run_xl run release/extlibs/zip/test/boundaries.xl > "$work/boundaries.txt"
+diff -u <(printf 'zip boundaries: ok\n') "$work/boundaries.txt"
+reject private_native release/extlibs/zip/test/private_native_negative.xl addNative
+
+run_xl cgen release/extlibs/zip/test/boundaries.xl --emit "$work/generated.c"
+python3 - "$work/generated.c" "$work" <<'PY'
+import re
+import sys
+from pathlib import Path
+generated, work = Path(sys.argv[1]), Path(sys.argv[2])
+decls = re.findall(r'^extern [^\r\n;]*\bxzip_[a-z_]+\([^;\r\n]*\);', generated.read_text(), re.M)
+expected = set(re.findall(r'extern "(xzip_[a-z_]+)"', Path('release/extlibs/zip/src/zip.xl').read_text()))
+actual = {re.search(r'\bxzip_[a-z_]+(?=\()', declaration)[0] for declaration in decls}
+if len(decls) != 32 or expected != actual:
+    raise ValueError('ZIP generated ABI coverage incomplete')
+body = '#define XRT_MODULE_ALL\n' + ''.join(f'#include "{source}"\n' for source in
+    ('xrt_zip_source.c', 'xrt_zip_archive.c', 'xrt_zip_extract.c', 'zip_native.c')) + '\n'.join(decls)
+(work / 'abi.c').write_text(body)
+wrong = re.sub(r'^extern [^\r\n;]*\bxzip_text_size\(', 'extern int xzip_text_size(', body, flags=re.M)
+if wrong == body:
+    raise ValueError('ABI negative did not mutate declaration')
+(work / 'abi_wrong.c').write_text(wrong)
+PY
+timeout 60s "$cc" "${flags[@]}" -Werror -fsyntax-only "$work/abi.c"
+status=0
+timeout 60s "$cc" "${flags[@]}" -Werror -fsyntax-only "$work/abi_wrong.c" > "$work/abi_wrong.txt" 2>&1 || status=$?
+test "$status" -eq 1
+grep -q 'conflicting types' "$work/abi_wrong.txt"
+
+for kind in c xl; do
+    if [[ "$kind" == c ]]; then
+        source=release/extlibs/zip/examples/memory_roundtrip_c.c
+        run_xl run "$source" "${cargs[@]}" -- "$work/cjit.zip" > "$work/cjit.txt"
+    else
+        source=release/extlibs/zip/examples/memory_roundtrip.xl
+        run_xl run "$source" -- "$work/xljit.zip" > "$work/xljit.txt"
+    fi
+    diff -u "$work/memory.txt" "$work/${kind}jit.txt"
+    python3 -I release/extlibs/zip/test/check_memory_wire.py "$work/${kind}jit.zip"
+done
+run_xl run release/examples/extlibs/zip.xl > "$work/original_xl.txt"
+diff -u "$work/original.txt" "$work/original_xl.txt"
+
+for name in aot_core text_transfer boundaries commit_memory; do
+    run_xl build "release/extlibs/zip/test/$name.xl" -o "$work/$name"
+    timeout 60s "$work/$name" > "$work/$name.aot.txt"
+    case "$name" in
+        aot_core|text_transfer) test ! -s "$work/$name.aot.txt" ;;
+        boundaries) diff -u "$work/boundaries.txt" "$work/$name.aot.txt" ;;
+        commit_memory) diff -u "$work/commit.txt" "$work/$name.aot.txt" ;;
+    esac
+done
+run_xl build release/examples/extlibs/zip.xl -o "$work/original_xl"
+timeout 60s "$work/original_xl" > "$work/original_xl.aot.txt"
+diff -u "$work/original.txt" "$work/original_xl.aot.txt"
+run_xl build release/extlibs/zip/test/c_aot_import.xl release/examples/extlibs/zip_c.c -o "$work/original_c_aot"
+timeout 60s "$work/original_c_aot" > "$work/original_c.aot.txt"
+diff -u "$work/original.txt" "$work/original_c.aot.txt"
+run_xl build release/extlibs/zip/test/test_commit_memory.c "${cargs[@]}" -o "$work/commit_c"
+timeout 60s "$work/commit_c"
+for kind in c xl; do
+    arguments=()
+    source=release/extlibs/zip/examples/memory_roundtrip.xl
+    if [[ "$kind" == c ]]; then source=release/extlibs/zip/examples/memory_roundtrip_c.c; arguments=("${cargs[@]}"); fi
+    run_xl build "$source" "${arguments[@]}" -o "$work/memory_$kind"
+    timeout 60s "$work/memory_$kind" "$work/$kind.aot.zip" > "$work/$kind.aot.txt"
+    diff -u "$work/memory.txt" "$work/$kind.aot.txt"
+    python3 -I release/extlibs/zip/test/check_memory_wire.py "$work/$kind.aot.zip"
+done
+printf '[zip] runtime/ABI/interop and nine ordinary AOT paths: PASS\n'
+# 后续独立边界收集完整原始退出码，不把主线失败改成预期成功。
+failed=0
+status=0
+XL_ZIP_RELEASE_DIR="$stage/release" timeout 240s bash release/extlibs/zip/test/check_symlink.sh \
+    > "$work/symlink.txt" 2>&1 || status=$?
+printf 'symlink\t%s\n' "$status" > "$work/boundary-status.tsv"
+if ((status != 0)); then cat "$work/symlink.txt" >&2; failed=1; fi
+run_xl run release/extlibs/zip/test/global_lifecycle.xl > "$work/global.jit.txt"
+diff -u <(printf 'zip globals: PASS\n') "$work/global.jit.txt"
+run_xl build release/extlibs/zip/test/global_lifecycle.xl -o "$work/global"
+status=0
+timeout 60s "$work/global" > "$work/global.aot.txt" 2>&1 || status=$?
+printf 'global_aot\t%s\n' "$status" >> "$work/boundary-status.tsv"
+if ((status != 0)); then cat "$work/global.aot.txt" >&2; failed=1
+else diff -u "$work/global.jit.txt" "$work/global.aot.txt"; fi
+status=0
+run_xl run release/extlibs/zip/test/error_messages.xl > "$work/error_messages.jit.txt" 2>&1 || status=$?
+printf 'error_messages_jit\t%s\n' "$status" >> "$work/boundary-status.tsv"
+if ((status != 0)); then cat "$work/error_messages.jit.txt" >&2; failed=1
+else diff -u <(printf 'zip described errors: 2\n') "$work/error_messages.jit.txt"; fi
+run_xl build release/extlibs/zip/test/error_messages.xl -o "$work/error_messages"
+status=0
+timeout 60s "$work/error_messages" > "$work/error_messages.aot.txt" 2>&1 || status=$?
+printf 'error_messages_aot\t%s\n' "$status" >> "$work/boundary-status.tsv"
+if ((status != 0)); then cat "$work/error_messages.aot.txt" >&2; failed=1
+else diff -u <(printf 'zip described errors: 2\n') "$work/error_messages.aot.txt"; fi
+status=0
+reject private_memory release/extlibs/zip/test/private_memory_constructor_negative.xl '' || status=$?
+printf 'private_constructor_check\t%s\n' "$status" >> "$work/boundary-status.tsv"
+if ((status != 0)); then failed=1; fi
+test "$failed" -eq 0
+printf 'zip Linux complete gate: PASS\n'

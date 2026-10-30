@@ -1,0 +1,17 @@
+import pkcs
+
+// 生成 C 的聚焦夹具：包内所有文本返回链都不应再调用 xlir_string_copy。
+func main(...) as int
+    assert pkcs.getContent("020101") == "01"
+    assert pkcs.encodeInt(1) == "020101"
+    assert pkcs.encodeOid("1.2.3") == "06022a03"
+    assert pkcs.decodeOid("06022a03") == "1.2.3"
+    assert pkcs.wrapSequence("0500") == "30020500"
+    assert pkcs.wrapSet("0500") == "31020500"
+    assert pkcs.encodeOctet("00") == "040100"
+    assert pkcs.encodeNull() == "0500"
+    assert pkcs.encodeBitString("00") == "03020000"
+    assert pkcs.concat("020101", "0500") == "0201010500"
+    assert pkcs.tagName("020101") == "INTEGER"
+    return 0
+end

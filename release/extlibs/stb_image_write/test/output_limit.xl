@@ -9,12 +9,16 @@ func main(...) as int
         index += 1
     end
 
-    bool limited = false
-    try
-        stb_image_write.encodeBmp(pixels, 8192, 8192, 1)
-    catch RangeError error
-        limited = true
+    // 复用同一份 64 MiB 源：既覆盖远超限，也覆盖只超出数行的边界。
+    for height in [8192, 5462]
+        bool limited = false
+        try
+            stb_image_write.encodeBmp(pixels, 8192, height, 1)
+        catch RangeError error
+            limited = true
+        end
+        assert limited, "gray BMP output limit"
+        assert stb_image_write.encodeBmp(Buffer.fromHex("ff"), 1, 1, 1).len() == 58
     end
-    assert limited, "gray BMP output limit"
     return 0
 end

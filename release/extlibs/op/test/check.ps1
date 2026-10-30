@@ -4,7 +4,7 @@ $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
 $buildParent = Join-Path $root 'build/test/op'
 $build = Join-Path $buildParent ('run_' + [guid]::NewGuid().ToString('N'))
-$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
+$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $tcc = Join-Path $root 'build/tmp/tcc_bootstrap.exe'
 $xl = Join-Path $root 'release/xl.exe'
 [void][IO.Directory]::CreateDirectory($build)

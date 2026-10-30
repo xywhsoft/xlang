@@ -1,0 +1,58 @@
+import barcode
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func render(int method, string code) as string
+    if method == 0 then return barcode.ean13Svg(code, 60, 3) end
+    if method == 1 then return barcode.upcASvg(code, 60, 3) end
+    if method == 2 then return barcode.ean13Ascii(code) end
+    return barcode.upcAAscii(code)
+end
+
+func main(...) as int
+    array<int> needed = [4, 5, 1, 1]
+    int rejected = 0
+    for method in range(4)
+        string code = "4006381333931"
+        if method % 2 == 1 then code = "12345678901" end
+        string held = render(method, code)
+        if method < 2 then assert held.contains("</svg>") else assert held.length == 95 end
+        array<int> budgets = [0, needed[method]]
+        for budget in budgets
+            string result = ""
+            bool memoryCaught = false
+            bool triggered = false
+            // C 本身的缓冲增长/结果分配之外不能再复制正文。
+            assert failAfter(uint64(budget))
+            try
+                result = render(method, code)
+            catch MemoryError error
+                memoryCaught = true
+            finally
+                triggered = failTriggered()
+                failClear()
+            end
+            if budget == 0 then
+                assert triggered and memoryCaught
+            else
+                assert not triggered and not memoryCaught, "barcode copied the adopted text result"
+                assert result == held
+            end
+            assert render(method, code) == held
+        end
+        for invalid in ["bad", code + "\0hidden"]
+            try
+                render(method, invalid)
+            catch ValueError error
+                assert error.message != ""
+                rejected += 1
+            end
+        end
+        assert render(method, code) == held
+    end
+    assert rejected == 8
+    println("barcode owned text result budgets: PASS")
+    return 0
+end

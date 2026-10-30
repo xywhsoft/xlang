@@ -1,5 +1,67 @@
 # skiplist
 
+## 2026-10-30 完整快照与故障扫描
+
+本轮未修改 `skiplist_native.c`、绑定或 C 头，未确认新的跳表算法错误。
+修复的是公开 C 范例的失败处理：首次读取分配失败时，旧例会漏掉 Alice、
+继续打印 PASS 并返回 0；现逐次检查读取/输出、统一释放资源，真实失败
+返回 1。正常黄金输出不变，`test/example_failure.c` 将该 OOM 红绿对照
+纳入 GCC、直接 `xl run` 与独立程序；夹具要求内层例子失败才算通过。
+
+- `test/snapshot_failures.c` 用 18 条记录覆盖空键/空值、NUL、前缀、
+  原始高位字节、中文和 8 KiB 值。七类查询逐个扫描到首次成功，而非
+  截取前 64 点：命中/缺失读取、全部键、全部区间、前缀区间、逆序与
+  无命中区间，失败点分别为 **1/0/22/130/17/2/2**，共 174 失败加
+  7 成功。结果必须完整且按字节有序，包含结果扩容后的后半段失败。
+- 每次失败核对类别、原表全部键值和存活内存/非法释放计数；已持有的
+  结果保持完整。错误槽本身可拥有分配的诊断，故先核对错误再清槽、
+  比较内存，不把正常错误对象当成泄漏。最初夹具少了这一步的误报已
+  纠正，不计作库 BUG。结果离开清空和销毁后的索引，仍逐条检查正文，
+  再交错释放，而不只是检查长度。
+- 插入的三个分配故障点与覆盖故障保持原表和 RNG；恰好三次分配预算
+  可成功插入，RNG 仅在成功时推进。固定种子只在观察内部状态的 C
+  夹具中设置，正式 `create` 仍用系统随机源。RNG 提前推进、漏掉闭区间
+  终点、遗漏部分结果释放三个破坏副本分别被拒绝，正式实现无测试钩子。
+  新夹具 12,744 条断言含重复状态检查，不夸称同量独立输入。
+- `test/snapshots.xl` 验证字符串/键/范围三个结果跨函数返回后继续使用，
+  以及 12,293 字节长值、NUL 缺省值和输入重绑。新
+  `examples/binary_snapshots.xl` 与 `_c.c` 六行输出一致，演示空值与缺失
+  的区别、二进制范围快照、覆盖/删除/清空与复用；C 例明确长度访问并
+  在销毁索引后检查快照正文。两份新语言用例已登记 coverage。
+- C 独立夹具从 ALL 收窄到本包模块及内存调试；正式包依赖声明、
+  公开 ABI、所有权与错误语义未改。十个真实 cgen 原型均通过正式 C
+  头校验；故意改错 count 返回类型的副本确实被拒绝。`get` 的命中路径
+  仍经过 `xvalue` 与值转文本调用，不宣称整个桥零复制；普通零结尾
+  `@owned string` 不能替代保留 NUL 长度的当前合同。
+
+Windows 默认门禁 49 阶段前 48 符合预期，Linux 48 阶段前 47 符合预期，
+均含一项真实私有访问拒绝；旧模型/熵源故障、新边界、双语黄金输出和
+九条普通独立程序通过。Linux C 含 ASan/UBSan/泄漏检查。最后未改的
+`test/allocations.xl` 顶层正例仍在独立程序退出期报 state 错误并退出 1，
+**M2 未关闭，不能签收整包**。Windows/Linux 门禁的 44/42 个输入前后
+不变，编译警告均零；不是没有错误输出，OOM 夹具会打印预期的例子失败
+诊断。门禁已改为逐阶段限时、保存命令/输出/原始状态和输入指纹，只有
+成功才删除独占目录，失败保留现场。Windows 静默编译器内部37/外层1、
+Linux 缺工具原始127均有留档验证。
+
+从仓库根目录运行新范例：
+
+```powershell
+release/xl.exe run release/extlibs/skiplist/examples/binary_snapshots.xl
+release/xl.exe run release/extlibs/skiplist/examples/binary_snapshots_c.c
+```
+
+Linux 将 `release/xl.exe` 换成 `release/xl`。无需网络或外部服务，输出见
+`examples/binary_snapshots.expected.txt`；语言索引按作用域回收，C 索引与
+结果显式释放。完整入口仍为 `test/check.ps1` / `test/check.sh`，从仓库
+根目录使用下方命令；`-SkipAot` 仅供开发，不作验收。
+Windows 报告：`build/test/skiplist_guard/run_dbb2db91d97647d3b5dc60672d937e83.json`。
+Linux 原生快照：`/var/tmp/xlang-skiplist-final-src-f2EIuw`，78 个复制源与
+原件前后一致，失败现场 `tmp/xlang-skiplist-wXl8aM`。完整证据索引：
+`build/test/skiplist_audit_99ba8c387776482f907d29a31e07ccc9`。
+
+## 先前记录与合同
+
 2026-10-26 当前默认门禁暂不签收发布级。Windows 与 Linux 均已
 通过 C/ABI、语言 JIT、核心及 C/XLang 公开范例独立 EXE，Linux
 另通过 ASan/UBSan；两平台在顶层 `test/allocations.xl` 的独立
@@ -48,9 +110,9 @@ println(rows[0]["value"])
 公开范例 AOT 全部通过。先前带输出 AOT 的共享缺符号记录属于
 旧发布物；本次未重跑 Linux sanitizer，公开并发与复杂度合同不变。
 
-Windows 聚焦快测：`powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/skiplist/test/check.ps1 -SkipAot`。它同次检查 C 独立模型、包外 `setNative` 访问拒绝、XLang 边界与 C/XLang 固定范例输出。去掉 `-SkipAot` 后，默认还构建运行核心和公开范例 AOT，后者必须匹配同一黄金输出；每次使用并清理独占构建目录。当前 Windows 默认门禁已通过；Linux 独立 EXE 仍需新发布物复验。
+Windows 聚焦快测：`powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/skiplist/test/check.ps1 -SkipAot`。它同次检查 C 独立模型、包外 `setNative` 访问拒绝、XLang 边界与 C/XLang 固定范例输出。去掉 `-SkipAot` 后，默认还构建运行核心和公开范例 AOT，后者必须匹配同一黄金输出；每次使用独占目录，失败保留现场。两平台默认门禁均仍在原顶层分配正例的 AOT 退出期失败，以本页最新记录为准。
 
-从 `demo6` 目录运行：
+从仓库根目录运行：
 
 ```powershell
 .\release\xl.exe run test\cases\extlib_skiplist.xl

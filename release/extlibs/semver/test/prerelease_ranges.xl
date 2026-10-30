@@ -1,0 +1,63 @@
+import semver
+
+func verifyRange(string version, string rule, bool expected)
+    bool actual = semver.satisfies(version, rule)
+    if actual != expected then println(f"semver range mismatch: {version} [{rule}]") end
+    assert actual == expected
+end
+
+func main(...) as int
+    // 简写的排他上界必须排除下一个版本的全部预发布。
+    verifyRange("2.0.0-alpha", "^1.0.0 >=2.0.0-alpha", false)
+    verifyRange("2.0.0-0", ">=2.0.0-0 ^1.0.0", false)
+    verifyRange("1.3.0-alpha", "~1.2.3 >=1.3.0-alpha", false)
+    verifyRange("1.3.0-0", ">=1.3.0-0 1.2", false)
+    verifyRange("2.0.0-alpha", "1 >=2.0.0-alpha", false)
+    verifyRange("1.3.0-alpha", "<=1.2 >=1.3.0-alpha", false)
+    verifyRange("2.0.0-alpha", "<=1 >=2.0.0-alpha", false)
+    verifyRange("1.3.0-alpha", "<1.3 >=1.3.0-alpha", false)
+    verifyRange("2.0.0-alpha", "<2 >=2.0.0-alpha", false)
+    verifyRange("0.0.0-alpha", "<0 >=0.0.0-alpha", false)
+    verifyRange("0.0.2-alpha", "^0.0.1 >=0.0.2-alpha", false)
+    verifyRange("0.3.0-alpha", "^0.2.0 >=0.3.0-alpha", false)
+    verifyRange("0.1.0-alpha", "^0.0 >=0.1.0-alpha", false)
+    verifyRange("1.0.0-alpha", "^0 >=1.0.0-alpha", false)
+
+    // 无约束和最低下界仍由显式比较器控制预发布准入。
+    verifyRange("0.0.0-alpha", "* >=0.0.0-alpha", true)
+    verifyRange("0.0.0-0", ">=0.0.0-0 x", true)
+    verifyRange("0.0.0-alpha", "^x >=0.0.0-alpha", true)
+    verifyRange("0.0.0-alpha", "~*.* >=0.0.0-alpha", true)
+    verifyRange("0.0.0-alpha", "0 >=0.0.0-alpha", true)
+    verifyRange("0.0.0-alpha", "~0.0 >=0.0.0-alpha", true)
+    verifyRange("0.0.0-alpha", "^0.0.0 >=0.0.0-alpha", true)
+    verifyRange("0.0.0-alpha", ">=0.0.0 >=0.0.0-alpha", true)
+    verifyRange("0.0.0-alpha", ">=0.0.0+build >=0.0.0-alpha", true)
+    verifyRange("0.0.0-alpha", ">0.0.0 >=0.0.0-alpha", false)
+    verifyRange("1.0.0-alpha", ">=1.0.0 >=1.0.0-alpha", false)
+    verifyRange("0.0.0-alpha", "<0.0.0 >=0.0.0-alpha", true)
+    verifyRange("2.0.0", "<=*.*", true)
+    verifyRange("2.0.0", "<=x.x.x", true)
+    verifyRange("1.2.3", "<* || 1.2.3", true)
+    verifyRange("1.2.3", "1.2.3 || >x.x", true)
+    verifyRange("1.2.3", ">X.X.X || *", true)
+    verifyRange("1.2.3", "* - *", true)
+    verifyRange("1.2.3", "x - 1.2.3", true)
+    verifyRange("1.2.3", "1.2.3 - X", true)
+    verifyRange("0.0.0-0", "0.0.0-0 - *", true)
+    verifyRange("0.0.0-0", "* - 0.0.0-alpha", true)
+
+    // 完整比较器保留自身含义，区间也可以和其他比较器取交集。
+    verifyRange("2.0.0-alpha", "<2.0.0 >=2.0.0-alpha", true)
+    verifyRange("1.2.3-alpha", "<=1.2.3 >=1.2.3-alpha", true)
+    verifyRange("1.2.3-alpha", "1.2.3 >=1.2.3-alpha", false)
+    verifyRange("2.4.0-alpha", "1.2.3 - 2.3 >=2.4.0-alpha", false)
+    verifyRange("3.0.0-alpha", ">=3.0.0-alpha 1.2.3 - 2", false)
+    verifyRange("1.2.3-alpha", "1.0.0 - 1.2.3 >=1.2.3-alpha", true)
+    assert not semver.satisfies("0.0.0-alpha", "*")
+    assert not semver.satisfies("0.0.0-alpha", "* >=0.0.0-alpha || invalid")
+    assert not semver.satisfies("1.2.3", "<* ||")
+    assert not semver.satisfies("1.2.3", "*\0invalid")
+    println("semver prerelease ranges: PASS")
+    return 0
+end

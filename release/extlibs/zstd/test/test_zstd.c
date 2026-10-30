@@ -381,6 +381,28 @@ static int test_text_take(void) {
     return 0;
 }
 
+/* 两条 view 入口也必须能只包含正式头编译，不能靠隐式声明通过。 */
+static int test_text_views(void) {
+    const char source[] = "A\0B\xe4\xbd\xa0";
+    xstrview view = {source, sizeof(source) - 1};
+    xbuffer* packed = xzstd_compress_text(view, 3, 0, 0);
+    CHECK(packed != NULL);
+    xbuffer* plain = xzstd_decompress(packed->Data, packed->Size, 0, 0, 1000);
+    CHECK(plain && plain->Size == view.Size && memcmp(plain->Data, source, view.Size) == 0);
+    xrtBufferDestroy(plain);
+    xrtBufferDestroy(packed);
+    void* encoder = xzstd_compressor_create(3, 0, 0);
+    CHECK(encoder && xzstd_compressor_update_text(encoder, view) && xzstd_compressor_finish(encoder));
+    packed = xzstd_compressor_drain(encoder);
+    CHECK(packed != NULL);
+    plain = xzstd_decompress(packed->Data, packed->Size, 0, 0, 1000);
+    CHECK(plain && plain->Size == view.Size && memcmp(plain->Data, source, view.Size) == 0);
+    xrtBufferDestroy(plain);
+    xrtBufferDestroy(packed);
+    xzstd_compressor_destroy(encoder);
+    return 0;
+}
+
 int main(void) {
     CHECK(test_invalid_options() == 0);
     CHECK(test_one_shot() == 0);
@@ -390,6 +412,7 @@ int main(void) {
     CHECK(test_stream_progress() == 0);
     CHECK(test_seeked_stream_progress() == 0);
     CHECK(test_text_take() == 0);
+    CHECK(test_text_views() == 0);
     puts("zstd C boundaries: PASS");
     return 0;
 }

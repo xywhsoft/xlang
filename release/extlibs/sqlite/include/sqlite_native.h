@@ -23,6 +23,8 @@ int xsqlite3_exec_native(void* db_handle, const char* sql);
 void* xsqlite3_prepare_v2_native(void* db_handle, const char* sql);
 int xsqlite3_bind_text_native(void* stmt_handle, int index, const char* value);
 int xsqlite3_bind_blob_text_native(void* stmt_handle, int index, const char* value);
+/* 借用出口出错返回空串，拥有型出口返回NULL；两者都保留已发布的XRT首错。
+ * 合法空文本、SQL NULL及空列名仍是成功结果，须结合列类型区分内容。 */
 const char* xsqlite3_column_text_native(void* stmt_handle, int column);
 char* xsqlite3_column_text_owned_native(void* stmt_handle, int column);
 const char* xsqlite3_column_name_native(void* stmt_handle, int column);

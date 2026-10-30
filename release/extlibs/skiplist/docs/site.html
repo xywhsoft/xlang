@@ -19,6 +19,7 @@
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / skiplist</p><h1>skiplist</h1>
     <p class="extlib-lead">有序字符串键值表。</p>
     <p>支持完整长度的键和值、原子覆盖、全量有序键和闭区间遍历。</p>
+    <p>2026-10-30 修复 C 范例读取 OOM 后漏数据却返回成功的问题，正常输出不变。新增 18 条二进制/中文/长值记录的完整故障扫描，七类查询覆盖 174 个失败点并各自达到成功，保留 RNG 与结果快照；跨函数三结果和 C/XLang 二进制快照范例均通过。十个实际原型、两平台九条普通独立程序及 Linux sanitizer 已验。默认门禁末项仍为顶层对象 AOT 退出错误，M2 未关闭；失败现场与原始退出码现完整保留，非整包发布签收。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>

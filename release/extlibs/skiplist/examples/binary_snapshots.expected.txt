@@ -1,0 +1,6 @@
+binary bytes: 3
+empty stored: true
+missing default: fallback
+range rows: 2
+snapshot rows: 2
+reused count: 1

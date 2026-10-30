@@ -1,0 +1,68 @@
+import xxhash
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func localDigest() as string
+    auto hasher = xxhash.hasher()
+    hasher.update("abc")
+    return hasher.digestHex()
+end
+
+func main(...) as int
+    Buffer data = Buffer()
+    data.append("abc")
+    string saved = localDigest()
+    assert saved == "44bc2cf5ad770999"
+    assert xxhash.hash64Hex(data) == saved and xxhash.hash64Hex("abc") == saved
+    assert xxhash.hash32Hex(data) == "32d153ff" and xxhash.hash32Hex("abc") == "32d153ff"
+    assert xxhash.hash3_64Hex(data) == "78af5f94892f3950"
+    assert xxhash.hash3_64Hex("abc") == "78af5f94892f3950"
+    assert xxhash.hash3_128Hex(data) == "06b05ab6733a618578af5f94892f3950"
+    assert xxhash.hash3_128Hex("abc") == "06b05ab6733a618578af5f94892f3950"
+
+    string directory = dir.temp(path.temp(), "xxhash-owned-", "")
+    try
+        string source = path.join(directory, "source.bin")
+        assert file.writeText(source, "abc")
+        string fileDigest = xxhash.hashFile64Hex(source)
+        assert fileDigest == saved
+        auto hasher = xxhash.hasher()
+        hasher.update("abc")
+
+        // 普通、128 位、对象和文件四条路径均验证内存异常及失败后恢复。
+        for operation in range(4)
+            int failures = 0
+            int successes = 0
+            for allocation in range(24)
+                bool caught = false
+                assert failAfter(uint64(allocation))
+                try
+                    if operation == 0 then
+                        assert xxhash.hash32Hex(data) == "32d153ff"
+                    elseif operation == 1 then
+                        assert xxhash.hash3_128Hex(data) == "06b05ab6733a618578af5f94892f3950"
+                    elseif operation == 2 then
+                        assert hasher.digestHex() == saved
+                    else
+                        assert xxhash.hashFile64Hex(source) == saved
+                    end
+                catch MemoryError error
+                    caught = true
+                end
+                bool triggered = failTriggered()
+                failClear()
+                assert caught == triggered
+                if caught then failures += 1 else successes += 1 end
+                assert saved == "44bc2cf5ad770999" and fileDigest == saved
+            end
+            assert failures > 0 and successes > 0
+        end
+        assert hasher.digestHex() == saved and xxhash.hashFile64Hex(source) == saved
+    finally
+        assert dir.delete(directory)
+    end
+    println("xxhash owned text: PASS")
+    return 0
+end

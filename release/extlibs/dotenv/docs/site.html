@@ -20,6 +20,7 @@
   <header class="extlib-head">
     <p><a href="../extlibs.html">扩展库</a> / dotenv</p>
     <h1>dotenv</h1>
+    <p>2026-10-29：补齐借用键/值回传、同对象文本重解析、自别名OOM和逐组存活分配/内存边界检查；新增C/XLang安全重载对照范例。两平台严格C、13个生成原型、全部旧边界与双语JIT/AOT通过。新顶层配置对象确认M2主线阻断：JIT退出0，独立EXE打印PASS后退出期报状态错误、退出1；默认门禁保留，当前不作完整发布签收。</p>
     <p class="extlib-lead">解析 UTF-8 .env 文件，独立管理配置，并在需要时显式导入进程环境。</p>
     <p>版本 1.0.0 · C / xlang · 无扩展库依赖</p>
   </header>
@@ -33,6 +34,11 @@ println(config.get("HOST"))
 config.set("PORT", "9090")
 println(config.get("PORT"))</code></pre>
     <p>输出 <code>localhost</code> 与 <code>9090</code>。解析和设置不会自动修改进程环境；需要时调用 <code>config.apply(overwrite = false)</code>。</p>
+  </section>
+  <section id="reload">
+    <h2>安全重载与所有权</h2>
+    <p><code>examples/reload.xl</code> 与 <code>examples/reload_c.c</code> 使用同一黄金输出：坏配置保留旧值，成功解析整体替换，已保存的文本跨修改和clear继续有效。C查询返回借用，需要跨修改保留时显式调用 <code>xrtStrDup</code> 并以 <code>xrtFree</code> 释放；XLang普通string结果独立持有内容，不能把原生借用结果标成owned。</p>
+    <p>C对照范例与XLang范例使用不同基名，不作为自动接入的同名C companion；门禁覆盖GCC、C直跑和两种语言的独立EXE，失败保留现场。</p>
   </section>
   <section id="api">
     <h2>接口</h2>

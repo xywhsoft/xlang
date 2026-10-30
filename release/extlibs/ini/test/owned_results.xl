@@ -1,0 +1,132 @@
+import ini
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    auto config = ini.parse("global=root\n[s]\nkey=value\nempty=\n")
+    string section = "s"
+    string key = "key"
+    string globalKey = "global"
+    string absent = "absent"
+    string emptyKey = "empty"
+    string fallback = "fallback"
+    string encoded = config.stringify()
+    array<string> expected = ["value", "root", "value", "fallback", encoded,
+        "INI operation failed", "", "", "", ""]
+    // 固定小配置：保留 NUL 校验、缺失默认值快照及列表自身的必要分配。
+    array<int> needed = [3, 4, 5, 3, 2, 1, 17, 18, 3, 13]
+    for operation in range(10)
+        assert config.get(section, key) == "value"
+        array<int> budgets = [0, needed[operation]]
+        for budget in budgets
+            string text = ""
+            array<string> names = []
+            bool memoryCaught = false
+            bool triggered = false
+            assert failAfter(uint64(budget))
+            try
+                if operation == 0 then text = config.get(section, key) end
+                if operation == 1 then text = config.get(globalKey) end
+                if operation == 2 then text = config.getOr(section, key, fallback) end
+                if operation == 3 then text = config.getOr(section, absent, fallback) end
+                if operation == 4 then text = config.stringify() end
+                if operation == 5 then text = config.errorText() end
+                if operation == 6 then names = config.sectionNames() end
+                if operation == 7 then names = config.keys(section) end
+                if operation == 8 then text = config.get(section, emptyKey) end
+                if operation == 9 then names = config.keys() end
+            catch MemoryError error
+                memoryCaught = true
+            finally
+                triggered = failTriggered()
+                failClear()
+            end
+            if budget == 0 then
+                assert triggered and memoryCaught
+            else
+                assert not triggered and not memoryCaught, "INI repeated the owned result copy"
+                if operation == 6 then
+                    assert names.length == 2 and names[0] == "" and names[1] == section
+                elseif operation == 7 then
+                    assert names.length == 2 and names[0] == key and names[1] == emptyKey
+                elseif operation == 9 then
+                    assert names.length == 1 and names[0] == globalKey
+                else
+                    assert text == expected[operation]
+                end
+            end
+            assert config.get(section, key) == "value"
+        end
+    end
+
+    // 已返回的值、默认值和名称列表必须独立于后续修改与诊断槽。
+    string held = config.get(section, key)
+    string heldFallback = config.getOr(section, absent, fallback)
+    array<string> heldNames = config.keys(section)
+    config.set(section, key, "中文")
+    assert held == "value" and config.get(section, key) == "中文"
+    fallback = "changed"
+    assert heldFallback == "fallback"
+    config.set(section, "later", "new")
+    assert heldNames.length == 2 and heldNames[0] == key
+
+    bool missingCaught = false
+    string diagnostic = ""
+    try
+        config.get(section, absent)
+    catch ConfigError error
+        missingCaught = true
+        diagnostic = config.errorText()
+        assert error.message == diagnostic and diagnostic.contains("does not exist")
+    end
+    assert missingCaught and config.errorCode != 0
+    assert config.get(section, key) == "中文"
+    assert config.errorCode == 0 and diagnostic.contains("does not exist")
+
+    assert config.get(section, emptyKey) == ""
+    assert config.getOr(section, emptyKey, "not-empty") == ""
+    assert config.keys("missing-section").length == 0
+    assert config.getOr("missing-section", "missing-key", heldFallback) == "fallback"
+
+    // 列表装箱保持现有快照合同，各中途失败必须可恢复，不只检查预算 0。
+    // 此时具名节已增加为三个键，需包含第 24 次成功预算的端点。
+    array<int> listBudgets = [17, 24, 13]
+    for operation in range(3)
+        int failures = 0
+        int successes = 0
+        for budget in range(listBudgets[operation] + 1)
+            array<string> names = []
+            bool memoryCaught = false
+            bool triggered = false
+            assert failAfter(uint64(budget))
+            try
+                if operation == 0 then names = config.sectionNames() end
+                if operation == 1 then names = config.keys(section) end
+                if operation == 2 then names = config.keys() end
+            catch MemoryError error
+                memoryCaught = true
+            finally
+                triggered = failTriggered()
+                failClear()
+            end
+            assert triggered == memoryCaught
+            if memoryCaught then
+                failures += 1
+            else
+                successes += 1
+                if operation == 0 then assert names.length == 2 end
+                if operation == 1 then assert names.length == 3 end
+                if operation == 2 then assert names.length == 1 end
+            end
+            if budget == listBudgets[operation] then
+                assert not triggered and not memoryCaught, "INI list success endpoint was not reached"
+            end
+            assert config.get(section, key) == "中文"
+        end
+        assert failures > 0 and successes > 0, "INI list fault sweep must cover failures and success"
+    end
+    println("ini owned text and default snapshots: PASS")
+    return 0
+end

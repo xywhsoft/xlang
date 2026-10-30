@@ -1,5 +1,56 @@
 # tar 扩展库
 
+2026-10-29 Writer 低内存与回滚收口：内存构造、流式添加/复制、来源
+文件读取、事务创建、追加预检/打开及提交改名的 OOM 不再统一误报
+普通 I/O。未提交且仍打开的文件改用现有 `xrtFileDeleteOpen` 回滚，
+先删除、后关闭；内部只保存 Writer 所持文件的借用指针，不新增系统
+实现或复制 XRT。构造清理和析构保留首次错误，正常放弃事务不再分配
+路径转换内存。这里不承诺所有文件系统失败都能无条件清理。
+
+`test/check_writer.ps1` / `test/check_writer.sh` 覆盖十组 C 逐分配点
+矩阵、活动分配快照、大正文/PAX、旧目标保留、开放事务零分配析构，
+以及八类 XLang JIT/AOT 故障与临时文件清理；原 C/TAR 套件也重跑。
+这些检查在两平台通过，Linux 另使用 ASan/UBSan。注入为每个指定
+分配点的一次性故障，不是持续拒绝所有分配，也不代表已测完所有 OOM。
+
+**Windows Writer 门禁仍为红色。** 最后的 `closed_transaction_oom.c`
+确认：文件已关闭、提交改名失败后，Destroy 按路径回滚再遇到 OOM，
+会留下临时归档；原目标不变。Linux 同一探针通过。默认门禁包含该
+探针，不提供跳过风险来获得发布通过的选项；两平台成功路径测试不
+能代替这条失败边界。复现和 XRT 层改进建议见
+[已关闭事务回滚记录](../../../dev/extlib_blockers/tar_closed_transaction_oom_cleanup.md)。
+下述 M1 与覆盖提取 RFS 仍未关闭；完整包门禁现会先遇到 Writer 风险。
+
+2026-10-29 Reader 低内存与扩展头收口：路径和四项文本元数据的分配
+失败原会误报格式/参数错误，部分情况下仍返回成功；PAX/GNU 扩展头
+解析成功后遇到 EOF 或截断还会错误返回一次条目。现分别检查分配与
+实际条目提交状态；构造中间层失败会释放内部输入并保留原始错误，
+不会改变低层 `xrtTarReaderCreate` 的输入所有权。普通无前缀名称直接
+移交给条目，减少一次分配和复制。
+
+`test/check_reader.ps1` / `test/check_reader.sh` 独立运行本专题：
+C 对内存/文件构造、普通/USTAR 前缀/PAX local/global/GNU L/K 的
+逐分配点故障做活动分配快照检查，并验证正文输出分配失败后可重读。
+格式错误不会被前一次 OOM 污染；扩展头后 EOF/截断不产生虚假条目。
+同一批夹具由 XLang JIT 与独立 EXE 检查构造、next/readText/info 的
+`MemoryError` 传播、失败状态和扩展尾部。Windows 全部通过，Linux
+另通过 C ASan/UBSan；原 C/TAR 套件和数值专题也再次通过。
+本专题不承诺任意语言包装层分配失败后均可原地重试，不覆盖下述
+选择提取 M1 和失败原子性 RFS；整包发布签收仍未完成。
+
+2026-10-28 数值边界收口：GNU 二进制 mtime 下溢原先会变成正数或零，
+超宽 mode 原先截断为低32位；C 红例确认后修复。mode/设备号的原生
+桥接改用 unsigned int / c_uint，避免有效高位被读成负数。按用户确认，
+`TarInfo.uid/gid`、其构造参数和两个 `writer.add` 重载的 `uid/gid`
+统一为 `uint64`，默认仍为0；删除旧有符号检查入口，不提供兼容重载。
+
+Windows/Linux 数值专题完整门禁通过：C18组内存归档边界，Python
+独立编码/解码的40组归档分别逐行核对 C、XLang JIT 和独立 EXE，
+以及完整 uint64 文本/Buffer 写入、持有元数据、双语范例和负 ID
+只编译负例。Linux C 使用 ASan/UBSan。两平台原有 C/TAR 套件通过，
+整包门禁仍因 M1 名称数组投影失败，根内原子提交缺口也未关闭；
+不以数值专题通过代替选择提取、完整回调或整包发布签收。
+
 2026-10-24 当前 Windows 发布版复验：严格 C/TAR 主用例、默认读取限额、
 C/TCC 直接运行与构建、内存/文件追加双语范例均通过；默认门禁在中央
 XLang 范例的 `extractSelected(..., ["docs/hello.txt"])` 处报数组类型错误。
@@ -46,8 +97,9 @@ XLang `tar.open(Buffer)` 的原生桥会复制输入并持有至 Reader 销毁�
 UTF-8 **字节数**写入，内嵌 NUL 的正文仍可保存；进入 C 零终止字符串接口的
 路径、条目名、链接目标和用户/组名则拒绝内嵌 NUL。负资源限额在转成
 无符号 C 类型前报 `ValueError`；限额 0 使用 XRT 默认值。XLang 条目
-`mode` 限定为 0..4095 的权限位，`uid/gid` 不允许负数，避免静默截断或
-无符号回绕；XRT 的独立 C API 约定不变。
+写入的 `mode` 限定为 0..4095 的权限位；`uid/gid` 使用 `uint64`，
+负数实参在类型检查时拒绝，不再依赖运行时捕获有符号参数的检查。
+XRT 的独立 C 结构和读写 API 不变。
 `TarReader.extractSelected(destination, names)` 按完整名称精确选择条目；
 名称数组经当前 `xvalue` ABI 读取，含 NUL 的名称在提取前抛 `ValueError`，
 不会意外匹配 NUL 前缀。空白名单不写出条目。
@@ -70,7 +122,46 @@ Windows/Linux 包门禁都会检查“类型未导出”的诊断，不执行伪
 
 ## 验证
 
-在 `demo6` 目录运行 Windows 门禁：
+### 数值元数据与双语范例
+
+`TarInfo.mtime` 保留 int64 整秒；GNU 二进制时间戳超出这个范围时报
+格式错误，不截取低64位。读取的 mode/deviceMajor/deviceMinor 保留
+uint32 范围并安全拓宽到 XLang int；超宽字段报格式错误，不回绕。
+uid/gid 的 PAX 记录支持完整 uint64，GNU 短字段继续遵循其编码范围。
+元数据的表示范围不意味着操作系统允许应用任意时间戳或权限。
+读取这些越界归档时，C 为 `XRT_TAR_ERROR_FORMAT`，当前 XLang 映射
+为 `IOError`，domain 为 `xlang.extlib.tar`、code 为3。
+
+在 `release` 运行两份内存范例，均应输出
+`mtime=-1;uid=18446744073709551615;gid=9223372036854775808`：
+
+```powershell
+./xl run extlibs/tar/examples/metadata.xl
+./xl run extlibs/tar/examples/metadata_c.c
+```
+
+独立数值门禁从仓库根目录运行，需要 Python 3；Windows 另需 PATH 中
+的 GCC。两套默认都检查 C/JIT/AOT，Windows 的 `-SkipAot` 仅供聚焦
+开发，不代表完整专题通过：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/tar/test/check_numeric.ps1
+```
+
+```sh
+sh release/extlibs/tar/test/check_numeric.sh
+```
+
+40组固定归档通过 Python tarfile 的独立编码器与头字段/PAX解码器
+产生预期：分别批量运行 C、JIT 和 AOT，避免每个数值反复编译程序。
+测试只要求超出本包表示范围的数据被拒绝，不把 Python 的任意精度
+整数能力等同于 int64/uint64。GNU 短 ID 的高位用 PAX 样本覆盖；
+负 size 只进入头字段解码器，不依赖不同 Python 版本的归档偏移策略。
+输入/依赖与发布物指纹、命令和失败现场会保留；成功只清理本次目录。
+
+### 包级门禁
+
+在仓库根目录运行 Windows 门禁：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/tar/test/check.ps1
@@ -93,7 +184,7 @@ C/XLang 最小范例输出，并校验生成原型与 TAR 原生桥接在 LP64 �
 必须对应 C 的 `unsigned long long` / `long long`，不能按平台改用 XRT
 `uint64` / `int64` 作为桥接导出参数。
 
-独立格式互通测试需要 Python 3，在 `demo6` 目录运行：
+独立格式互通测试需要 Python 3，在仓库根目录运行：
 
 ```powershell
 python release/extlibs/tar/test/interop.py release
@@ -106,7 +197,7 @@ python release/extlibs/tar/test/interop.py release
 没有 Python 3 时明确提示跳过，不将跳过视为格式互通验收。
 
 两个脚本只使用测试目录与临时运行目录；Windows 脚本也运行 C/XLang 最小范例。原生 ABI 中 `point` 对应 `void*`，C `int` getter 在 XLang 侧声明为 `c_int`，避免同一编译单元内的声明冲突与返回值宽度不一致。
-Windows 门禁每次使用独占构建目录，成功或失败后只清理本次产物；`-SkipAot` 只用于聚焦 C/JIT 验证，不代表完整 AOT 签收。
+Windows 门禁每次使用独占构建目录，成功后清理本次产物，失败保留输入和日志；`-SkipAot` 只用于聚焦 C/JIT 验证，不代表完整 AOT 签收。
 2026-10-22：默认门禁原只构建无输出核心；现在还构建、运行公开的
 `examples/basic.xl` 并与 C 范例核对，避免核心通过时误签收带输出的语言路径。
 `-SkipAot` 聚焦门禁已通过；默认门禁仍先停在核心 AOT 缺
@@ -171,7 +262,7 @@ Windows 严格 GCC、TCC 直接运行、独立 `xl build`、包运行器与 XLan
 2026-10-20：中央 `release/examples/extlibs/tar.xl` 原在尚不存在的固定
 `build/tmp/tar_example_selected` 路径上先调用 `dir.delete`，从正常工作
 目录运行即抛文件元数据错误。现使用 `dir.temp` 创建独占系统临时目录，
-在 `finally` 清理；从 `demo6` 根目录和 `release` 均输出
+在 `finally` 清理；从仓库根目录和 `release` 均输出
 `tar example: PASS`。Windows `test/check.ps1 -SkipAot` 与 Linux
 `test/check.sh` 已纳入该范例的固定输出检查，后者含 C ASan/UBSan。
 未修改 TAR 原生实现，回调与完整 AOT 的主线阻断仍未签收。
@@ -179,13 +270,13 @@ Windows 严格 GCC、TCC 直接运行、独立 `xl build`、包运行器与 XLan
 同日：中央 C 范例 `release/examples/extlibs/tar_c.c` 原对固定
 `build/tmp/tar_c_selected` 目录执行递归删除，存在误删用户文件、并发冲突
 和工作目录依赖。现使用 XRT 创建独占系统临时目录，并在所有退出路径清理；
-归档缓冲区和 Reader 创建失败也不再解引用空指针。从 `demo6` 根目录与
+归档缓冲区和 Reader 创建失败也不再解引用空指针。从仓库根目录与
 `release` 直接 `xl run` 均输出 `tar C example: PASS`，Windows 聚焦门禁
 及 Linux ASan/UBSan 门禁通过，本次运行无临时目录残留。
 
 2026-10-21：包内综合测试 `test/test_tar.xl` 原先启动时递归删除固定的
 `build/tmp/tar_xlang_test`；现改用独占临时目录并在 `finally` 清理。
-修改前确认 `demo6` 根目录与 `release` 下的固定目标均不存在。
+修改前确认 仓库根目录与 `release` 下的固定目标均不存在。
 该测试直接运行仍在第 62 行 `extractWhere` 的函数值入 `var` 主线语义处
 停止，尚未执行到文件路径；Windows `-SkipAot` 聚焦门禁与 Linux C
 ASan/UBSan、XLang 双语门禁通过，但不覆盖被阻断的综合回调测试。

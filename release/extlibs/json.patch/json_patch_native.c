@@ -387,7 +387,8 @@ static int xjp_apply_op(xvalue **rootRef, xvalue *op) {
                         tokens[i].size) != 0) break;
             if (i == count) return 1;
         }
-        item = xrtValueDeepClone(fromValue);
+        /* root 已是独立副本；move 保留值后移除源，copy 才再复制子树。 */
+        item = isMove ? xrtValueRetain(fromValue) : xrtValueDeepClone(fromValue);
         if (item == NULL) {
             return 0;
         }

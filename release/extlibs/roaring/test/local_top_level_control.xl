@@ -1,0 +1,9 @@
+import roaring
+
+func main(...) as int
+    // 与顶层例相同操作，不将这个对照当成全局正例的替代方案。
+    roaring.RoaringBitmap bitmap = roaring.create()
+    assert bitmap.valid and bitmap.count == 0
+    println("roaring top-level: PASS")
+    return 0
+end

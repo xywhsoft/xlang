@@ -1,0 +1,8 @@
+visible:  中文
+width:  4
+cursor:  true
+styles: PASS
+colors: PASS
+cursor controls: PASS
+screen controls: PASS
+ansi example: PASS

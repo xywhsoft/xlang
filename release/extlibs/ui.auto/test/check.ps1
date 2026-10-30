@@ -5,7 +5,7 @@ if ($env:OS -ne 'Windows_NT') { throw 'ui.auto requires Windows' }
 
 $release = (Resolve-Path (Join-Path $PSScriptRoot '../../..')).Path
 $xl = Join-Path $release 'xl.exe'
-$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
+$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $workRoot = Join-Path $release 'build/test'
 $work = Join-Path $workRoot ('ui_auto_' + [guid]::NewGuid().ToString('N'))
 $imagePath = Join-Path $work 'screenshot.png'

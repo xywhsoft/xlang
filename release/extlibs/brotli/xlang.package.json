@@ -8,6 +8,7 @@
                      "kind":  "source",
                      "cSources":  [
                                       "xrt_brotli.c",
+                                      "xrt_brotli_file.c",
                                       "brotli_native.c",
                                       "third_party/common/constants.c",
                                       "third_party/common/context.c",

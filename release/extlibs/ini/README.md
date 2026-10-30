@@ -1,5 +1,196 @@
 # ini
 
+## 2026-10-30 修改入口的单项限额
+
+原先仅解析器检查 maxItem，set 可写入超限节名、键名或值，甚至覆盖旧值，
+生成的文本随后无法按相同限额重新读取。现于修改任何节/键之前检查三项
+UTF-8 字节长度；不增加副本、分配或公开接口，解析器原位置诊断保持不变。
+这不是增加新的 INI 语法：原有写出时 FORMAT 拒绝规则仍然有效。
+
+新增 test_set_limits.c：108 组大小写、ASCII/UTF-8、上限前/等于/超过、
+空配置/具名节/全局节组合；失败核对借用值、顺序、拼写、计数与规范文本。
+另验空值、多行分隔字节、C 零限额和 UINT64_MAX，三种新增/覆盖操作跨过
+节表或键表扩容点的 12 个分配失败点逐点恢复，核对活动内存和非法释放。
+最终同一 C 回归在两平台旧模型 183 条断言失败，修复后为 0；语言新增
+set_limits.xl 分类捕获与恢复，登记到 coverage.tests。
+
+新 examples/bounded_updates.xl / bounded_updates_c.c 采用同一四行黄金输出，
+展示六字节中文值、超限覆盖不改旧值、继续修改以及同限额规范写回读取。
+Windows 默认完整门禁 89 项、55 个输入/工具指纹通过，18 份 AOT 构建和运行；
+Linux 原生快照默认门禁通过 C ASan/UBSan、Python configparser 互通、
+既有及新 C/XLang JIT/AOT（18 份独立程序），59 个复制源与三个工具指纹不变。
+PowerShell 7 另复验实际门禁 Run 的十结果自测；门禁后仅补本节与官网证据说明。
+
+Windows 报告 build/test/ini_guard_99e42cc3501b43019dedd07251339283.report.json；
+Linux /var/tmp/xlang-ini-audit-HDv75RvS 保留门禁跟踪、新旧红绿与输入清单；
+本地证据 build/test/ini_audit_1793333389932。历史 GCC ICE 未定位，仍保持 R；
+未改编译器、XRT 或八件冻结发布物，不以本轮绿跑签收整个长期任务。
+
+## 2026-10-30 Windows 门禁进程收口
+
+Windows 门禁所有子进程统一复用现有 Invoke-ExtlibSmokeProcess，默认
+单项限时 120 秒，保留实际工作目录、程序/参数、状态、原始退出码与两条
+输出流。缺程序和超时均明确失败；两个私有访问负例必须实际退出 1
+且命中原诊断，不能把任意崩溃当成预期拒绝。空参数表不会多传一个空串，
+输出只统一 CRLF，不再删除正文中的独立 CR。原编译参数及测试范围不变。
+
+新增 check_gate_diagnostics.ps1 从实际门禁 AST 取得同一个 Run，使用
+纯 C 夹具检查十个子进程结果：缺程序、无输出退出 37、预期非零、不应
+成功的负例、空参数、两条输出流、独立 CR、相对工作目录和一秒超时。
+Windows PowerShell 5.1 与 PowerShell 7 均验证旧 Run 缺少启动失败记录、
+新 Run 通过；旧 Run 能抛出缺程序异常，不把这一缺口夸大成已证实的假绿。
+默认包门禁会自动运行该自测，也可从仓库根目录独立执行：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/ini/test/check_gate_diagnostics.ps1
+```
+
+成功后保留 build/test/ini_guard_*.report.json，临时 EXE 等仍只在本次
+独占目录中生成并清理；失败保留原目录、commands.log、report.json、
+failure.txt 与输入指纹。实际 gcc、cc1、Python、PowerShell 和复用工具
+加入指纹，不能仅凭同名编译器声称输入相同。本轮不替换工具链或 XRT，
+没有为历史 ICE 关闭优化项、自动重试或使用旧对象；R 风险仍开放。
+
+## 2026-10-29 拥有型流的首因保留
+
+原先关闭回调失败时，只保住配置对象内的错误码，却会覆盖 XRT 错误
+槽的正文首因；Reader 关闭时的内存错误也被固定记成 IO。新 C 矩阵
+14个组合中13项先红，现统一在销毁拥有型流前取出已有错误，关闭后
+恢复；正文成功时才让关闭失败成为结果，并区分 MEMORY/IO。不改变
+流的接管语义，Close 回调仍执行一次；借用型流仍由调用方关闭。
+
+矩阵覆盖读取、写入、刷新、关闭的内存/I/O复合失败，以及格式、限额、
+无效选项和配置对象分配失败后的关闭；同时核对对象错误、XRT 错误
+槽的类型/域/码/消息、关闭次数及活动分配数量/字节恢复到基线。
+`test/test_stream_errors.c` 可直接 `xl run` 或 `xl build`，已进入两平台
+默认门禁。Windows 严格 GCC、C/TCC 与独立 EXE 通过；Linux 另通过
+ASan/UBSan。原有所有权、分配预算、Python互通及 C/XLang JIT/AOT
+全部通过，输入与冻结发布物指纹一致。未改 XRT 或编译器主线。
+
+本修复针对确定性的包内错误；下述 GCC ICE/WSL 失效快照的历史
+风险并未因此定位或关闭，INI 仍保持 R，不凭本轮全绿升级发布状态。
+
+当前发布状态为 **R：本体验证通过，工具链风险未闭环**。本轮最后的
+Windows 默认门禁与 Linux 新快照默认门禁均完整通过，但中途曾在 GCC
+16.2.0 编译未修改的 XRT 翻译单元时发生一次 `Illegal instruction` 内部
+错误；同参数单独复编与整套复跑均成功，原因仍未知。另一次 WSL
+非正常重启使临时输入零字节化，该失效运行未计为包测试结果。详见
+[原始证据与关闭条件](../../../dev/extlib_blockers/ini_gcc_ice_20261028.md)。
+不修改主线、替换 XRT、换优化级别或借用旧对象来取得绿灯。
+
+## 2026-10-28 拥有型标量返回与名称快照
+
+`errorText`、`get`、`stringify` 接管后仍各复制一次正文，现移除这三处
+返回复制。错误文本的 C 合同只可能是拥有型文本或真实 OOM，私有
+声明因此使用非空拥有型；get/stringify 继续用可空声明与直接临时值
+`??`，失败按配置对象的原始诊断抛 ConfigError。缺失、合法空字符串、
+内存错误与失败后恢复的区别不变，C ABI/模型/解析/写出代码未改。
+
+固定小配置的 C 九条出口各测 0/成功上限，共 18 组预算；get、错误
+文本、名称快照需一次，stringify 需两次原生分配。XL 十条路径共
+20 组预算先红后绿；get(节,键) 为 4→3，短 get 为 5→4，命中 getOr
+为 6→5，stringify 为 3→2，errorText 为 2→1。NUL 针串、短调用的
+空节字面量等仍计入预算。未命中 getOr 的默认值副本保持，不允许
+调用方重绑或修改配置后改变已返回结果；不宣称整个调用零开销。
+
+完整 cgen 夹具的 `xlir_string_copy` 点数由 4 减为 1，保留借用默认
+值的独立快照。但名称列表仍有后续装箱副本，不能据此称列表零复制。
+直接把名称调用临时值放入 append 的试验没有降低 17/18/13 的固定
+预算，已撤回无收益改写；通用边界、最小复现和主线方向见
+`dev/extlib_blockers/owned_string_array_box_copy.md`。本包不另造 C
+装箱适配器，也不接管配置对象内部借用名称的内存。
+
+Windows/Linux 默认完整门禁退出 0，包含严格 GCC/TCC C、Linux
+ASan/UBSan、原有变异/输出限额/覆盖赋值/引用分类、私有访问负例、
+Python configparser 双向互通、新预算及双语范例 JIT/AOT。新增 C
+名称缺失 NULL、内容独立性、XL 默认值/诊断/名称快照、合法空值与
+后续修改回归；名称列表另逐点检查 57 个故障/成功预算。初版扫描
+没有包含三键列表的第 24 次成功预算，增强断言后暴露并修正，失败
+现场保留；现按 17/24/13 的实际成功端点分别完整扫描。
+
+测试 XRT 只编译产品模块和目录清理/内存调试依赖，沿用原有编译
+参数并核对输入指纹；主线/发布物/XRT 均未改。之前的 GCC ICE
+根因仍未关闭，状态保持 R，不把本轮通过解释为整包或全目标完成。
+
+2026-10-28 插值引用分类补测：`${s.}`、`${.}` 和带前后缀的空键引用原
+误报 MemoryError，现与 `${}`、未闭合引用统一报 INTERPOLATION / ConfigError。
+仅拒绝空键，不把空节、空值或带点键一并禁用：`${.key}` 读取全局键；
+按首个点分隔节名，`${s.a.b}` 的键为 `a.b`，`${s..}` 的键为 `.`。
+缺键仍报 NOT_FOUND，循环引用仍报 INTERPOLATION，真实 OOM 仍报 MEMORY。
+关闭插值时原文不解释。C 的 9 个合法、9 个错误对照及逐点 OOM/活动分配
+恢复、语言消费正反例、新旧双语范例 JIT/AOT、严格 GCC 和 Linux ASan/UBSan
+均通过默认门禁；此前工具链 R 风险未因此关闭。
+
+## 2026-10-28 覆盖赋值与无损写回
+
+修复三个 C/XLang 共用的包内错误，公开 ABI 不变：
+
+- `strictDuplicates=false` 时覆盖较早的键，缩进续行曾错误追加到表尾的
+  另一个键。内部插入函数现在直接返回实际插入/更新的条目，不增加二次
+  查找、排序或值复制。覆盖保留原键的顺序和拼写；默认严格模式照常拒绝重复。
+- 首个全局键以 U+FEFF 开头时，写回再读取曾把这个字符误当文件 BOM 删除。
+  现在只在文件起始存在这一歧义时写一个空行，保留键的真实数据；这个字节
+  也纳入输出限额。已有前置键或具名节的普通输出不受影响。
+- 空键名、去除首尾空白后为空的节名统一是 `XRT_INI_ERROR_FORMAT`，
+  不再误报资源超限；真正的名称/值长度超限仍是 `XRT_INI_ERROR_LIMIT`。
+
+`test/test_updates.c` 覆盖 54 种覆盖组合：条目表扩容、首/中/末键、
+大小写敏感/不敏感、全局/具名/重开节，以及 LF/CRLF/CR。每组还验证
+默认严格拒绝、规范文本回读、键数预算、顺序和其他键不被污染。另有
+8 种 BOM 键布局、精确输出预算、格式/真实大小超限及逐点分配失败与
+活动分配恢复检查。`test/updates.xl` 纳入包清单，保持真实语言消费路径。
+
+本轮 Windows 默认门禁和 Linux 原生文件系统同输入快照默认门禁均退出 0，
+包含严格 GCC、Linux ASan/UBSan、内嵌 TCC、Python `configparser` 双向
+互通及覆盖/续行对照、私有访问负例、新旧用例与范例的双语 JIT/AOT。
+测试共用一次编译的 XRT 对象，检查实际输入和发布物指纹；失败保留原始
+命令、状态及输出，成功清理独占产物目录。Linux 验证范围不关闭已登记的
+WSL 挂载盘构建耗时风险；未重建主线或替换 XRT，基线仍见
+[验收矩阵](../../../docs/普通扩展库发布验收矩阵_2026-10-28.md)。
+
+### 部署配置范例
+
+[`examples/profiles.xl`](examples/profiles.xl) 与
+[`examples/profiles_c.c`](examples/profiles_c.c) 展示允许覆盖的配置、
+多行欢迎文本、读取时插值，以及写回后按默认严格模式重新读取。
+两份都检查实际结果，不只比较输出；无需网络、外部服务或数据文件。
+范例的协议名从 `${.scheme}` 读取全局配置，服务内的 host/port 按本节读取。
+在仓库根目录运行：
+
+```text
+./release/xl.exe run release/extlibs/ini/examples/profiles.xl
+./release/xl.exe run release/extlibs/ini/examples/profiles_c.c
+```
+
+Linux 使用 `./release/xl`。两份的预期输出完全一致：
+
+```text
+http://localhost:9090
+hello
+world
+unchanged
+```
+
+## 所有权与使用说明
+
+`maxOutput` / `tLimits.iMaxOutputBytes` 统一限制拥有型 `get` 结果和序列化
+文本的 **UTF-8 字节数**，0 表示不限；等于预算成功，多一个字节报 LIMIT
+（XLang 为 ConfigError）。类型化 getInt/getFloat/getBool 的内部取值同样
+使用这一预算。只读借用视图 `xrtIniGetRaw` 不复制结果，不受输出预算截断。
+超限读取不修改保存的数据，后续成功读取会清除旧错误。
+
+插值展开时，前缀、每个引用的正文和后缀共用累计预算，在追加/扩容前检查；
+不再先构造完整的超限字符串才拒绝。没有 `${` 的普通值即使启用插值，也
+直接检查长度并复制一次，不分配引用栈和插值缓冲。这里限制的是结果长度，
+不是进程总内存上限，固定解析状态、缓冲容量和错误对象仍有自身开销。
+`test/test_output_limits.c` / `test/output_limits.xl` 单独覆盖准确预算、
+累计引用、跨节引用、UTF-8、0 不限、恢复，以及必要分配失败时的 MemoryError；
+超限和 OOM 分开验证，不依赖固定第几次分配来制造限额错误。
+该资源边界的独立红例先复现了普通 get 绕过限额、插值超限仍已扩容，
+修复后严格 GCC/TCC、Linux ASan/UBSan、语言 JIT/AOT 都通过。
+大引用的检查还核对没有额外的缓冲 realloc；这只证明该用例在扩容前拒绝，
+不等于所有程序路径的分配上界或整个库零开销。
+
 2026-10-27 所有权收口：错误文本、节名、键名、值和序列化文本的
 C 出口均明确返回 XRT 拥有的 `char*`；XLang native-backed class 使用
 `@owned string?` 直接接管。生成 C 门禁逐项检查直接保存原生指针，
@@ -10,7 +201,7 @@ C 出口均明确返回 XRT 拥有的 `char*`；XLang native-backed class 使用
 与独立 Python `configparser` 双向互通均通过。两平台中央用例、
 边界及公开范例 JIT/AOT 通过；Linux 浮点核心/边界/中央/公开
 范例/C 范例五份独立 EXE 均运行成功，C/GCC/XLang 范例输出一致。
-Windows 从 `demo6` 根目录直接运行公开范例也成功，旧工作目录
+Windows 从仓库根目录直接运行公开范例也成功，旧工作目录
 敏感 VFS 故障不再复现。未据此宣称 32 位、TSan 或长时压力完成。
 
 2026-10-26 文本所有权复核：`Config.get` 和 `Config.stringify` 返回
@@ -28,7 +219,7 @@ C/XLang 范例输出对照均通过。使用的是现有 Linux `release/xl`，
 不是新构建的 Linux 发布物；当时独立 Linux AOT 尚未验收，
 已由上方 2026-10-26 的发布版门禁补齐。
 上述 Windows 门禁在 `release` 工作目录运行 XLang 阶段；旧发布版从
-`demo6` 根目录运行时的共享 TCC VFS 头文件故障见
+仓库根目录运行时的共享 TCC VFS 头文件故障见
 `dev/extlib_blockers/tcc_vfs_runtime_decl_include.md`，当前已不复现。
 `test/interop.c` 与 `test/interop.py` 另外用 Python 标准库
 `configparser` 做双向格式互通：C 写出后由 Python 读取，Python
@@ -45,7 +236,15 @@ XLang Buffer 副本；原生读取器在复制正文前检查 `maxInput`，并�
 向新节写入失败会撤销本次创建的节，保留原配置与错误信息。
 `Config.save` / `xrtIniSave` 先写目标目录中的临时文件，再由 XRT 替换目标；
 写入中途失败不会截断已有配置文件。
-`set()` 可以在内存中保留任意合法 UTF-8 文本；`stringify()` / `save()`
+`maxItem` / C 的 `iMaxItemBytes` 同时限制解析与 `set()` 的节名、键名和值，
+按 UTF-8 字节计算，等于上限允许，换行分隔字节也计入值的长度。超限修改
+报 `LIMIT` / `ConfigError`，不改变原值、顺序、计数或留下新节；后续有效修改可恢复。
+C 的 0 表示不限，XLang 参数 0 仍表示使用默认限额，不是解除限额。
+包内 `examples/bounded_updates.xl` / `bounded_updates_c.c` 成对演示：
+六字节中文值成功、超限覆盖保留旧值、继续修改与同限额写回读取，四行输出一致。
+在仓库根目录运行 `release/xl.exe run release/extlibs/ini/examples/bounded_updates.xl`
+或把文件名替换为 `bounded_updates_c.c`；Linux 使用 `release/xl`。
+`set()` 可以在限额内保留任意合法 UTF-8 文本；`stringify()` / `save()`
 只写当前 INI 语法能无损表示的内容。节名、键名及值含换行或首尾空白等
 歧义时，明确报 `XRT_INI_ERROR_FORMAT`（XLang 抛 `ConfigError`），
 不会写出一份再次读取后改变数据的文件。多行值可用 `\n` 分隔非空续行，
@@ -94,8 +293,9 @@ XLang 以普通 `string` 直接接管，避免再经 `Buffer.text()` 复制；�
 `xrtIniLoad` 的空路径是 `XRT_INI_ERROR_ARGUMENT`；有效路径打不开时是
 `XRT_INI_ERROR_IO`，打开或读取过程中的内存失败是 `XRT_INI_ERROR_MEMORY`。
 `xrtIniParse` / `xrtIniWrite` 的 `bTakeOwnership=true` 会在退出时关闭流；
-正文成功但关闭失败时报告 `XRT_INI_ERROR_IO`，已有格式、限额或写入错误
-保持首因。`bTakeOwnership=false` 时流由调用方关闭，不被库提前释放。
+正文成功但关闭失败时区分 `XRT_INI_ERROR_MEMORY` 与 `XRT_INI_ERROR_IO`；
+已有格式、限额、读取、写入或刷新错误在配置对象与 XRT 错误槽中同时
+保留首因。`bTakeOwnership=false` 时流由调用方关闭，不被库提前释放。
 传入 C 选项时必须先调用 `xrtIniOptionsInit`；顶层选项及内嵌的
 `xrtresourcelimits` 各自校验版本和结构长度，顶层及限额保留字段必须为零。无效结构报告
 `XRT_INI_ERROR_ARGUMENT`，不会退回默认限额后继续解析。
@@ -107,7 +307,7 @@ OptionsInit 将倍率置零，显式设置这些字段会返回 `XRT_INI_ERROR_A
 直接值复制、插值输出扩容及最终结果复制的分配失败均报告
 `XRT_INI_ERROR_MEMORY`；`NULL` 结果不再保留成功错误码，也不误报输出限额。
 
-在 `demo6` 目录运行定向验证：
+在仓库根目录运行定向验证：
 
 ```text
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/ini/test/check.ps1
@@ -122,13 +322,13 @@ C ASan/UBSan 与 XLang 双语门禁也通过。旧发布版的共享缺符号阻
 `release/examples/extlibs/ini.xl` 和 `ini_c.c` 还在独占临时目录里成对展示
 `create`、`save`、`load` 的文件往返，并验证加载后的值；GCC、TCC 和
 XLang 输出一致，范例结束时删除该目录。
-门禁每次使用独占构建目录，失败和成功退出时只清理本次产物；不会复用
+门禁每次使用独占构建目录，成功清理本次产物，失败保留现场；不会复用
 旧 `build/test/ini_guard` 中的可执行文件。
 Linux 门禁使用 ASan/UBSan 验证 C 解析及文件路径边界，另以内嵌 TCC
 执行 C 用例，运行中央/包内 XLang 边界并逐字节核对双语范例。
 这些是 ini 包级证据，不等于整个 xlang 发布版签收。
-包内 `test/boundaries.xl` 已登记到 `coverage.tests`，统一扩展库 smoke 可发现；
-现已从 `demo6` 工作目录与默认包门禁一并复跑。
+包内 `test/boundaries.xl`、`test/updates.xl`、`test/output_limits.xl`、`test/interpolation_refs.xl` 已登记到 `coverage.tests`，统一扩展库 smoke 可发现；
+现已从仓库根目录与默认包门禁一并复跑。
 
 以下为历史验证记录，其中缺符号描述均指当时的旧发布二进制。
 

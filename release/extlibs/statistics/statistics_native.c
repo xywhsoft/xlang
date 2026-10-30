@@ -345,15 +345,28 @@ xvalue *xstat_range(xvalue *values) {
 }
 
 static int xstat_center(double *a, size_t n) {
-    double mean = xstat_mean_of(a, n);
+    double origin = a[0], mean;
     size_t i;
     int halve = 0;
-    /* 有限值相减仍可能溢出；此时整体缩半后再做聚合。 */
+    /* 先在首元素附近求偏差均值，避免大均值舍入吞掉真实的小波动。 */
     for (i = 0; i < n; ++i) {
-        if (!isfinite(a[i] - mean)) { halve = 1; break; }
+        if (!isfinite(a[i] - origin)) { halve = 1; break; }
     }
     for (i = 0; i < n; ++i)
-        a[i] = halve ? a[i] / 2.0 - mean / 2.0 : a[i] - mean;
+        a[i] = halve ? a[i] / 2.0 - origin / 2.0 : a[i] - origin;
+    mean = xstat_mean_of(a, n);
+    /* 首次平移可能安全，但离偏差均值的距离仍可能超出有限范围。 */
+    if (!halve) {
+        for (i = 0; i < n; ++i) {
+            if (!isfinite(a[i] - mean)) {
+                halve = 1;
+                mean /= 2.0;
+                for (size_t j = 0; j < n; ++j) a[j] /= 2.0;
+                break;
+            }
+        }
+    }
+    for (i = 0; i < n; ++i) a[i] -= mean;
     return halve;
 }
 
@@ -620,14 +633,10 @@ static void xstat_pair_moments_calc(double *ax, double *ay, size_t n,
     memset(m, 0, sizeof(*m));
     m->mx = xstat_mean_of(ax, n);
     m->my = xstat_mean_of(ay, n);
+    /* 两组数据复用同一平移/溢出边界，不另维护一套均值相减规则。 */
+    m->hx = xstat_center(ax, n);
+    m->hy = xstat_center(ay, n);
     for (i = 0; i < n; ++i) {
-        if (!isfinite(ax[i] - m->mx)) m->hx = 1;
-        if (!isfinite(ay[i] - m->my)) m->hy = 1;
-    }
-    for (i = 0; i < n; ++i) {
-        /* 极值差溢出时先缩半，随后按最大偏差归一化。 */
-        ax[i] = m->hx ? ax[i] / 2.0 - m->mx / 2.0 : ax[i] - m->mx;
-        ay[i] = m->hy ? ay[i] / 2.0 - m->my / 2.0 : ay[i] - m->my;
         if (fabs(ax[i]) > m->sx) m->sx = fabs(ax[i]);
         if (fabs(ay[i]) > m->sy) m->sy = fabs(ay[i]);
     }

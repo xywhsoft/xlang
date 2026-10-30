@@ -1,0 +1,53 @@
+import rss
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    // 前缀元素仍属于 Atom；完整 IANA 关系必须与短名称同等优先。
+    string xml = ("<a:feed xmlns:a='http://www.w3.org/2005/Atom' xmlns:x='urn:other'>" +
+        "<x:link href='ignore'/><a:link rel='self' href='feed-self'/>" +
+        "<a:link rel='http://www.iana.org/assignments/relation/alternate' href='feed-page'/>" +
+        "<a:link href='later'/><a:entry><a:link rel='self' href='entry-self'/>" +
+        "<a:link rel='http://www.iana.org/assignments/relation/alternate' href='entry-page'/>" +
+        "</a:entry></a:feed>")
+    var parsed = rss.parse(xml)
+    assert parsed["link"] == "feed-page"
+    assert parsed["items"][0]["link"] == "entry-page"
+    assert rss.parseAtom(xml)["link"] == "feed-page"
+
+    // 源字符串改写不影响解析结果，DOM 属性不能作为悬空视图返回。
+    xml = ""
+    assert parsed["items"][0]["link"] == "entry-page"
+    string minimal = ("<feed xmlns='http://www.w3.org/2005/Atom'>" +
+        "<link rel='self' href='self'/>" +
+        "<link rel='http://www.iana.org/assignments/relation/alternate' href='page'/></feed>")
+    bool complete = false
+    int failures = 0
+    for budget in range(256)
+        bool memory = false
+        bool correct = false
+        bool injected = false
+        assert failAfter(uint64(budget))
+        try
+            var value = rss.parseAtom(minimal)
+            correct = value["link"] == "page"
+        catch MemoryError error
+            memory = true
+        finally
+            injected = failTriggered()
+            failClear()
+        end
+        assert injected and memory or not injected and correct
+        assert rss.parseAtom(minimal)["link"] == "page"
+        if not injected then
+            complete = true
+            break
+        end
+        failures += 1
+    end
+    assert complete and failures > 0
+    println("rss link relations XLang: PASS")
+    return 0
+end

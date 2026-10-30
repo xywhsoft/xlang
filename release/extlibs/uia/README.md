@@ -1,5 +1,26 @@
 # uia
 
+2026-10-28：十条原生拥有型出口在十二条公开路径中直接移交结果，
+删除可空字符串辅助函数产生的正文复制；受控完整 cgen 夹具的两处
+`xlir_string_copy` 归零。`poll_callback` 根据原生 JSON 对象协议识别
+两字节空事件 `{}`，不再为比较标记分配临时字符串。借用型版本、
+诊断和短矩形快照仍复制；BSTR 转码、JSON 构造、`strlen`、COM/OLE
+及错误作用域仍有成本，不宣称整个 UIA 桥零开销。
+
+文本读取的 Text/Value/Name 回退现在保留内存错误，不再将 OOM
+误当作协议缺失后用名称覆盖。两个内存 HRESULT、BSTR 分配以及
+七处句柄包装分配均保留 `MemoryError` 分类；普通不支持协议的回退
+不变。旧内存错误不会污染下一次输入校验，异线程转换/launch 不会
+改写所有者的诊断。
+
+Windows 完整 `-StrictC` 门禁通过：新增 C 13 组、XLang 15 组拥有型
+返回与空轮询预算（含独立 EXE），并覆盖上述故障传播与释放平衡。
+固定 Edit 的 text 需要两次 XRT 分配（协议缺失诊断与 Value 转码），
+其余所测属性/空轮询各一次；预算只计 XRT 逻辑分配，不含 COM/OLE
+或 CRT 内部成本，不能外推冷启动或任意控件。`ui.auto` 受控窗口
+边界用例亦通过。自动范例不再读取桌面子树、任意坐标窗口内容或
+全局焦点定位器；后者仅检查代码生成，另留显式手动选项。
+
 2026-10-27：`Element.wait_window_closed(timeout_ms)` 等待超时时现返回
 `false` 且不设置 XRT 错误；此前 C 返回 0，但 XLang 因错误槽而抛
 `ValueError`。无效元素和 UIA 句柄查询失败仍报错。受控窗口的
@@ -66,7 +87,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File extlibs/uia/test/check.ps1 -
 
 原生层仅使用 XRT 值容器和基础错误接口，已删除源码中的全量 XRT 宏并在包清单声明 `XRT_MODULE_VALUE_CONTAINER`。同一最小 AOT 从 3,843,584 降至 929,280 字节，构建和运行通过；`test/aot_core.xl` 已纳入包级门禁。Windows `-StrictC` 下的 C smoke、自建窗口、XLang 边界和双语范例也通过。该裁剪不解除完整范例 AOT 的共享主线阻断。
 
-`test/test_uia_boundaries.xl`、`test/test_uia_implicit_handles.xl` 和 `test/test_uia_focus_callback.xl` 已登记为 `coverage.tests`。本包属于平台套件，通用目录门禁默认跳过，只有明确选择 Windows UIA 包时才运行自建窗口用例。
+`test/test_uia_boundaries.xl`、`test/test_uia_implicit_handles.xl`、`test/test_uia_focus_callback.xl`、`test/owned_results.xl` 和 `test/owned_probe.xl` 已登记为 `coverage.tests`。本包属于平台套件，通用目录门禁默认跳过，只有明确选择 Windows UIA 包时才运行自建窗口用例。
 
 2026-10-24：长 BSTR 文本和动态 JSON 返回改为所有权转移，移除 `extern as string` 对整段输出的重复复制。C 侧验证 70,002 字节 JSON 指针原样转移、后续缓存复用不改写旧结果、错误路径不转移；XLang 侧验证长文本和快照跨调用仍有效。C/JIT 与核心 AOT 检查通过；完整范例 AOT 尚未签收。
 

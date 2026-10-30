@@ -155,8 +155,10 @@ static bool __xrtIniParseBuffer(xrtiniconfig* pConfig, const unsigned char* pDat
 			if ( iStart == iClose ||
 				(pConfig->Options.tLimits.iMaxItemBytes != 0u &&
 				 (uint64)(iClose - iStart) > pConfig->Options.tLimits.iMaxItemBytes) ) {
-				__xrtIniSetError(pConfig, XRT_INI_ERROR_LIMIT, iLine, 1u, iLineStart,
-					"empty or oversized INI section name");
+				__xrtIniSetError(pConfig, iStart == iClose ? XRT_INI_ERROR_FORMAT :
+					XRT_INI_ERROR_LIMIT, iLine, 1u, iLineStart,
+					iStart == iClose ? "empty INI section name" :
+					"INI section name exceeds the configured item limit");
 				xrtBufferDestroy(pPending);
 				return false;
 			}
@@ -206,8 +208,10 @@ static bool __xrtIniParseBuffer(xrtiniconfig* pConfig, const unsigned char* pDat
 				(pConfig->Options.tLimits.iMaxItemBytes != 0u &&
 				 ((uint64)(iKeyEnd - iKeyStart) > pConfig->Options.tLimits.iMaxItemBytes ||
 				  (uint64)(iValueEnd - iValueStart) > pConfig->Options.tLimits.iMaxItemBytes)) ) {
-				__xrtIniSetError(pConfig, XRT_INI_ERROR_LIMIT, iLine, 1u, iLineStart,
-					"empty or oversized INI key/value");
+				__xrtIniSetError(pConfig, iKeyStart == iKeyEnd ? XRT_INI_ERROR_FORMAT :
+					XRT_INI_ERROR_LIMIT, iLine, 1u, iLineStart,
+					iKeyStart == iKeyEnd ? "empty INI key" :
+					"INI key/value exceeds the configured item limit");
 				xrtBufferDestroy(pPending);
 				return false;
 			}
@@ -227,9 +231,10 @@ static bool __xrtIniParseBuffer(xrtiniconfig* pConfig, const unsigned char* pDat
 			sKey = __xrtIniCopyRange(pData, iKeyStart, iKeyEnd);
 			sValue = __xrtIniCopyRange(pData, iValueStart, iValueEnd);
 			sLeading = __xrtIniTakePending(pPending);
+			/* 覆盖旧键时条目不在表尾，续行必须跟随实际更新的条目。 */
 			if ( sKey == NULL || sValue == NULL || sLeading == NULL ||
-				!__xrtIniAddEntry(pConfig, pSection, (const char*)sKey,
-					(const char*)sValue, (const char*)sLeading, iLine, true) ) {
+				(pLastEntry = __xrtIniAddEntry(pConfig, pSection, (const char*)sKey,
+					(const char*)sValue, (const char*)sLeading, iLine, true)) == NULL ) {
 				xrtFree(sKey);
 				xrtFree(sValue);
 				xrtFree(sLeading);
@@ -243,7 +248,6 @@ static bool __xrtIniParseBuffer(xrtiniconfig* pConfig, const unsigned char* pDat
 			xrtFree(sKey);
 			xrtFree(sValue);
 			xrtFree(sLeading);
-			pLastEntry = &pSection->Entries[pSection->Count - 1u];
 		}
 		iLine += 1u;
 	}
@@ -262,6 +266,15 @@ static bool __xrtIniParseBuffer(xrtiniconfig* pConfig, const unsigned char* pDat
 
 
 
+/* 所有拥有型退出共用同一路径：关闭始终执行，但不能覆盖已有首因。 */
+static bool __xrtIniCloseReader(xreader* pReader)
+{
+	xerror* pCause = xrtTakeError();
+	bool bClosed = xrtReaderDestroy(pReader);
+	if ( pCause != NULL ) { xrtSetErrorTake(pCause); }
+	return bClosed;
+}
+
 XRT_API xrtiniconfig* xrtIniParse(xreader* pReader, bool bTakeOwnership,
 	const xrtinioptions* pOptions)
 {
@@ -273,7 +286,7 @@ XRT_API xrtiniconfig* xrtIniParse(xreader* pReader, bool bTakeOwnership,
 	size_t iReadLimit;
 	bool bSizeKnown;
 	if ( pConfig == NULL ) {
-		if ( bTakeOwnership ) { xrtReaderDestroy(pReader); }
+		if ( bTakeOwnership ) { __xrtIniCloseReader(pReader); }
 		return NULL;
 	}
 	if ( pConfig->Failed || pReader == NULL ) {
@@ -281,7 +294,7 @@ XRT_API xrtiniconfig* xrtIniParse(xreader* pReader, bool bTakeOwnership,
 			__xrtIniSetError(pConfig, XRT_INI_ERROR_ARGUMENT, 0u, 0u, 0u,
 				"invalid INI reader");
 		}
-		if ( bTakeOwnership ) { xrtReaderDestroy(pReader); }
+		if ( bTakeOwnership ) { __xrtIniCloseReader(pReader); }
 		return pConfig;
 	}
 	iLimit = pConfig->Options.tLimits.iMaxInputBytes;
@@ -334,9 +347,11 @@ XRT_API xrtiniconfig* xrtIniParse(xreader* pReader, bool bTakeOwnership,
 		}
 	}
 	xrtBufferDestroy(pData);
-	if ( bTakeOwnership && !xrtReaderDestroy(pReader) && !pConfig->Failed ) {
+	if ( bTakeOwnership && !__xrtIniCloseReader(pReader) && !pConfig->Failed ) {
 		/* 正文解析成功后，拥有型 Reader 的关闭仍可能失败。 */
-		__xrtIniSetError(pConfig, XRT_INI_ERROR_IO, 0u, 0u, 0u,
+		const xerror* pCause = xrtGetError();
+		__xrtIniSetError(pConfig, pCause != NULL && xrtErrorKind(pCause) == XERR_MEMORY ?
+			XRT_INI_ERROR_MEMORY : XRT_INI_ERROR_IO, 0u, 0u, 0u,
 			"cannot close INI stream");
 	}
 	return pConfig;

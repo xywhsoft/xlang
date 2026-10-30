@@ -1,6 +1,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
+#define XRT_MODULE_MEMORY_DEBUG
 #include "xrt.h"
 #include "dinov3.h"
 #include "fake_ort.h"
@@ -27,6 +28,56 @@ static int embedding_matches(const char* json)
     return ok;
 }
 
+static int owned_result_budgets(DinoFakeResult* result)
+{
+    int operation;
+    /* 预热独立错误槽，预算只覆盖当前格式化调用。 */
+    (void)dinov3_embedding_json_native(NULL);
+    for (operation = 0; operation < 2; ++operation) {
+        int budget;
+        int needed = operation == 0 ? 10 : 14;
+        int success = 0;
+        for (budget = 0; budget <= needed; ++budget) {
+            xmemdebugsnapshot before, after;
+            char* text;
+            bool triggered;
+            bool memory;
+            xrtClearError();
+            xrtMemDebugSnapshot(&before);
+            if (!xrtMemDebugFailAfter((uint64)budget)) return 1;
+            text = operation == 0 ? dinov3_embedding_json_native(result) :
+                dinov3_output_json_native(result, "owned source");
+            triggered = xrtMemDebugFailTriggered();
+            memory = xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_MEMORY;
+            xrtMemDebugFailClear();
+            if (require(triggered ? text == NULL && memory : text != NULL,
+                        "JSON failure must preserve memory error")) {
+                fprintf(stderr, "operation=%d budget=%d triggered=%d memory=%d\n",
+                    operation, budget, (int)triggered, (int)memory);
+                xrtFree(text);
+                return 1;
+            }
+            if (!triggered && require(xrtJsonValid(xrtStrView(text)), "budget success JSON")) {
+                xrtFree(text);
+                return 1;
+            }
+            xrtFree(text);
+            xrtClearError();
+            xrtMemDebugSnapshot(&after);
+            if (require(after.LiveCount == before.LiveCount && after.LiveBytes == before.LiveBytes,
+                        "JSON failure/success allocation balance")) return 1;
+            if (!triggered) {
+                if (require(budget == needed, "fixed C allocation budget changed")) return 1;
+                printf("dinov3 C owned operation %d: %d allocations\n", operation, budget);
+                success = 1;
+                break;
+            }
+        }
+        if (require(success, "JSON fault scan must include a success endpoint")) return 1;
+    }
+    return 0;
+}
+
 int main(void)
 {
     float left_values[3] = {1.0f, 2.0f, 3.0f};
@@ -39,6 +90,7 @@ int main(void)
     char* second;
 
     if (require(dinov3_available_native(), "fake ONNX bridge load")) return 1;
+    if (owned_result_budgets(&left)) return 1;
     embedding = dinov3_embedding_json_native(&left);
     if (require(embedding_matches(embedding), "embedding JSON")) return 1;
     memset(source_path, 'x', sizeof(source_path) - 1);
@@ -81,8 +133,10 @@ int main(void)
                 "shape limit")) return 1;
     left.shape = "[3]";
     left.count = -1;
-    if (require(dinov3_embedding_json_native(&left) == NULL,
-                "negative count")) return 1;
+    xrtSetErrorKind(XERR_MEMORY);
+    if (require(dinov3_embedding_json_native(&left) == NULL && xrtGetError() == NULL &&
+                strcmp(dinov3_last_error_native(), "invalid DinoV3 embedding shape or count") == 0,
+                "negative count must not inherit a stale memory error")) return 1;
     left.count = 3;
     right.count = 2;
     right.shape = "[2]";

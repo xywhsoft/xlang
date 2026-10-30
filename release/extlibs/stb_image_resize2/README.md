@@ -1,5 +1,29 @@
 # stb_image_resize2
 
+2026-10-30：补齐最小行缓冲与失败清理边界，并确认逐块分配的OOM泄漏。
+ASan会自动启用该路径：info尚未创建时的暂存分配、未登记的局部采样器
+指针没有被释放，失败清理还丢失原生分配上下文。现于该宏内统一失败出口，
+只登记已经拥有的资源，保留原共享系数/临时区的别名判断。未修改缩放算法、
+公开ABI、正常单块路径或XRT。补丁前后哈希与机制见
+[补丁复核](../../../docs/stb_image_resize2补丁复核_2026-10-30.md)。
+
+新增C的360组行布局对照、16组不透明常量像素（含单行INT_MAX步长），
+检查末行无padding、短一字节拒绝、输入未改、源释放后的独立输出与恢复。
+四种缩放布局×两颜色模式逐点扫描：普通分配24个故障点、逐块154个；
+另有非空原生分配上下文21个。两平台同一最终回归，旧逐块40个预算不平衡，
+原生上下文另5个预算失败/202次错误上下文，修复后均0。语言新增40组
+布局与分类捕获，登记coverage；新双语padded_rows例对照同一六行golden。
+
+Windows默认39项/53输入工具指纹、Linux原生快照默认完整门禁均通过，
+含Linux ASan/UBSan、原有图片/分配边界与新旧双语JIT/AOT，各8份独立程序；
+58复制源和两实际Linux工具指纹不变。三个实际生成原型对正式头通过，
+错改resize返回两平台均拒绝。Windows真实入口静默编译器raw37/outer1，
+Linux原始37/127均保留现场；不再失败即删除本次目录。门禁后仅补README/
+官网结果说明与根目录文档，未重新实现运行时。依赖stb_image的M3仍开放，
+本包继续R，不把Buffer路径通过升级成依赖已闭环。证据在
+build/test/resize_audit_1793336849243、/var/tmp/xlang-resize-audit-tpr6If3F；
+最终Windows报告build/test/stb_resize2_guard_0b20f95d6dde489cbbc4aa77002fc1d1.report.json。
+
 2026-10-26 重建 Windows/Linux x64 发布物后，两平台默认包门禁
 均退出 0：严格 C、Linux ASan/UBSan、尺寸/步长/内存故障边界、
 黑白中点的 sRGB 188 与 linear 128 像素断言、C/XLang 固定输出，
@@ -25,6 +49,18 @@ GCC、C/XLang 边界与分配故障、三路双语范例固定输出，以及中
 图片句柄。`resize` 使用 sRGB 颜色空间缩放，`resizeLinear` 使用线性空间，
 两个函数的参数一致：源像素、源宽高、通道数、目标宽高，以及可选的输入
 行步长（字节数，`0` 表示紧密排列）。
+输入最小长度是 `(height - 1) * 实际步长 + width * channels`，最后一行
+不要求额外 padding；缩放不修改源像素或 padding。包内
+`examples/padded_rows.xl` / `padded_rows_c.c` 用同一个五字节灰度输入展示
+最小长度、sRGB/linear 的 188/128 中点、短一字节拒绝及恢复，六行输出一致，
+不依赖图片文件或解码对象。仓库根目录运行：
+
+```text
+release/xl.exe run release/extlibs/stb_image_resize2/examples/padded_rows.xl
+release/xl.exe run release/extlibs/stb_image_resize2/examples/padded_rows_c.c
+```
+
+Linux 使用 `release/xl`。旧图片范例和解码依赖门禁仍保留，不由内存例替代。
 2 通道像素按灰度+alpha 解释，4 通道按 RGBA 解释；透明像素的颜色不会
 参与可见颜色的加权缩放。若第二或第四通道并非透明度，应先按实际像素
 布局转换，再调用此接口。
@@ -53,7 +89,7 @@ stb 工作区使用 XRT 分配器，内存不足时返回 `XERR_MEMORY`，不误
 
 包级验证：
 
-- 从 `demo6` 目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File
+- 从仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File
   release/extlibs/stb_image_resize2/test/check.ps1`，执行 Windows 严格 GCC、
   C 边界、中央与包内 XLang 用例、三种范例入口的固定输出对照，默认还
   构建并运行中央与 C/XLang 公开范例 AOT；`-SkipAot` 只做 C/JIT 聚焦快测。
@@ -62,7 +98,7 @@ stb 工作区使用 XRT 分配器，内存不足时返回 `XERR_MEMORY`，不误
   缩放实现，两个范例不传路径时从 `xl.exe` 所在目录定位素材，并对照
   RGBA 与灰度+alpha 缩放结果。独立 AOT 可执行文件应显式传入图片路径；
   C 范例接收首个命令行参数，XLang 范例在 `--` 后传入。
-- 从 `demo6` 目录运行 `xl run release/extlibs/stb_image_resize2/test/boundaries.xl`
+- 从仓库根目录运行 `xl run release/extlibs/stb_image_resize2/test/boundaries.xl`
   和 `xl run release/extlibs/stb_image_resize2/test/allocations.xl`；两项已登记
   到包级测试套件，后者对 sRGB/linear 各扫描前 128 个分配点，确认故障在
   XLang 中仍是 `MemoryError`，正常调用和解除故障后的结果均可用。

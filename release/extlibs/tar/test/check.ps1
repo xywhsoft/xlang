@@ -7,7 +7,7 @@ $build = [IO.Path]::GetFullPath((Join-Path $buildRoot ("{0}_{1}" -f $PID, [guid]
 if (-not $build.StartsWith($buildRoot + '\', [StringComparison]::OrdinalIgnoreCase)) {
     throw 'TAR test directory escaped build/test'
 }
-$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
+$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $xl = Join-Path $root 'release/xl.exe'
 $manifest = Get-Content -LiteralPath (Join-Path $root 'release/extlibs/tar/xlang.package.json') -Raw | ConvertFrom-Json
 $moduleFlags = @($manifest.artifact.xrtModules | ForEach-Object { "-D$_" })
@@ -22,9 +22,13 @@ $sources = @(
 
 [void][IO.Directory]::CreateDirectory($build)
 $rootPushed = $false
+$passed = $false
 try {
     Push-Location $root
     $rootPushed = $true
+    & (Join-Path $PSScriptRoot 'check_numeric.ps1') -SkipAot:$SkipAot
+    & (Join-Path $PSScriptRoot 'check_reader.ps1') -SkipAot:$SkipAot
+    & (Join-Path $PSScriptRoot 'check_writer.ps1') -SkipAot:$SkipAot
     & $gcc -std=c11 -Wall -Wextra -Werror -fsyntax-only -Ilib/xrt `
         -Ilib/xruntime -Irelease/extlibs/tar release/extlibs/tar/tar_native.c
     if ($LASTEXITCODE -ne 0) { throw 'strict GCC TAR bridge syntax failed' }
@@ -171,10 +175,16 @@ try {
             throw 'XLang TAR append AOT differs from C'
         }
     }
+    $passed = $true
 } finally {
     if ($rootPushed) { Pop-Location }
     if ([IO.Directory]::Exists($build)) {
-        [IO.Directory]::Delete($build, $true)
+        $resolved = [IO.Path]::GetFullPath($build)
+        if (-not $resolved.StartsWith($buildRoot + '\', [StringComparison]::OrdinalIgnoreCase)) {
+            throw 'TAR test directory escaped build/test'
+        }
+        if ($passed) { Remove-Item -LiteralPath $resolved -Recurse -Force }
+        else { Write-Warning "TAR failure artifacts retained: $resolved" }
     }
 }
 Write-Host '[tar] focused C/XLang gate: PASS'

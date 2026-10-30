@@ -18,6 +18,9 @@
 <main class="extlib-layout" id="main-content">
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / procps</p><h1>procps</h1>
     <p class="extlib-lead">完整进程快照、UTF-8 名称与常驻内存查询。</p>
+    <p>2026-10-29：修复 Linux comm 回退将合法 CR/LF 截掉及漏验后续坏字节；仅移除内核附加的最后一个 LF，按实际长度检查 NUL/UTF-8。Windows 直接复用 XRT 严格 UTF-16 转换，失败给出 Unicode 诊断，不与正常不可用混淆。受控 Linux23项十失败归零，真实内核名称通过；Windows11项三诊断失败归零。接口和所有权不变。</p>
+    <p>最终 Windows35阶段及Linux原生快照完整门禁通过，含七个实际生成原型、旧长路径/statm/OOM、名称完整返回无副本、双语六行黄金输出和Windows六条/Linux五条独立程序。名字可能带换行/回车，写入单行日志前应转义；进程数与PID数组分别查询，不保证跨调用相等，父进程ID可以为0。只覆盖冻结x64包级范围，不外推其他架构或生产长时性能。</p>
+    <p>2026-10-28 保留 C 正常 NULL 合同，以 <code>??</code> 转移成功结果、仅在名称不可用时抛原有 ValueError；不增加 C 适配器。当前短可执行路径的 C/XLang 各两组预算与完整 cgen 检查通过，成功返回不再复制正文。双平台默认门禁及 Linux 长路径/回退/畸形数据/非法 UTF-8、ASan/UBSan 与双语 JIT/AOT 通过；不是任意查询都单次分配或完整零开销保证。</p>
     <p>进程快照接口为返回数组的 <code>pids()</code>，不保留旧字符串接口；C 教学范例也可直接单文件运行。2026-10-26 重建 Windows/Linux x64 发布物后，两平台默认门禁均通过严格 C/ABI、Linux ASan/UBSan、异常 <code>/proc</code> 数据、非法 UTF-8 名称、C/XLang 固定输出、中央与边界用例，以及 C/XLang 范例独立 EXE AOT。旧共享快照缺符号不再复现；短时包级验收不保证进程在跨调用期间保持存在、读取权限或其他架构行为。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
@@ -33,7 +36,7 @@ int selfId = procps.pid()
 array&lt;int&gt; ids = procps.pids()
 println(procps.name(selfId))</code></pre>
     <h2 id="c-api">C 与范围</h2>
-    <p>头文件 <code>include/procps_native.h</code>。C 调用方释放 <code>xprocps_pids</code> 返回的 XRT 值和 <code>xprocps_name</code> 返回的字符串。Linux 进程名含非法 UTF-8 时拒绝返回，XLang 抛 <code>ValueError</code>，C 返回 <code>NULL</code> 并设置 <code>XERR_VALUE</code>。Linux 的 <code>statm</code> 前两列必须是完整的非负整数，畸形数据按不可读取返回 -1，不静默接受有效前缀。公开 C 入口先清理旧 XRT 错误。目标进程可能退出或拒绝访问；接口不保证跨调用快照一致。详情与验证命令见包内 README。</p>
+    <p>头文件 <code>include/procps_native.h</code>。C 调用方释放 <code>xprocps_pids</code> 返回的 XRT 值和 <code>xprocps_name</code> 返回的字符串。名称含非法 UTF-8、不完整 UTF-16 或原始 NUL 时拒绝，C 返回 NULL 和 XERR_VALUE；真实内存失败仍为内存错误，正常不可读的 NULL 则不留文件错误。Linux statm 前两列必须是完整非负整数，畸形数据返回 -1。公开入口先清旧错。名称成功仍一次分配并直接移交，但编码测长/转换、语言strlen、系统查询与错误作用域有成本，不称全链零开销。</p>
   </section>
 </main>
 </body>

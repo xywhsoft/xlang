@@ -20,7 +20,9 @@ function InputPaths {
         Get-ChildItem (Join-Path $Root "release/extlibs/$pkg") -Recurse -File | ForEach-Object FullName
     }
     foreach ($p in @('lib/xrt/xrt.h','lib/xruntime/xruntime.h','test/support/extlib_codec_runtime.c',
+        'test/support/extlib_codec_file_rollback.h',
         'tools/check_extlib_lz4.ps1','tools/check_extlib_lz4.sh','tools/check_extlib_lz4_interop.py',
+        'tools/check_extlib_native_globals.ps1','tools/check_extlib_native_globals.sh',
         'tools/extlib_smoke_process.ps1','tools/xlir_native_process.ps1','tools/run_extlib_c.ps1',
         'test/featured_extlibs.json','test/suites/11_featured_extlibs_rc.bat',
         'test/cases/extlib_lz4.xl','test/cases/extlib_lz4_progress.xl',
@@ -72,11 +74,11 @@ try {
         $objects += $object
         ++$index
     }
-    foreach ($name in @('boundaries','stream','alloc','threads','native','files')) {
+    foreach ($name in @('boundaries','stream','alloc','threads','native','files','cleanup')) {
         $exe = Join-Path $work "$name.exe"
         $null = Check "$name-build" $gcc ($flags + @('-DNDEBUG',"release/extlibs/lz4/test/test_lz4_$name.c") +
             $objects + @('-lWs2_32','-lAdvapi32','-lm','-o',$exe))
-        $arguments = if ($name -in @('native','files')) { @((Join-Path $work ($name+'-'+[Guid]::NewGuid().ToString('N')))) } else { @() }
+        $arguments = if ($name -in @('native','files','cleanup')) { @((Join-Path $work ($name+'-'+[Guid]::NewGuid().ToString('N')))) } else { @() }
         $null = Check $name $exe $arguments
     }
     $interopExe = Join-Path $work 'interop.exe'
@@ -157,6 +159,23 @@ try {
     $exe = Join-Path $work 'files-aot.exe'
     $null = Check 'files-aot-build' $xl (@('build',$probe) + $sources + @('--inc-path','lib/xrt','--inc-path','lib/xruntime','-o',$exe))
     $null = Check 'files-aot' $exe @((Join-Path $work ('aot-files-'+[Guid]::NewGuid().ToString('N'))))
+
+    # C 单文件路径也验证同一文件实现，不只测试正式分离链接的对象。
+    $cleanupProbe = 'release/extlibs/lz4/test/test_lz4_cleanup.c'
+    $null = Check 'cleanup-jit' $xl @('run',$cleanupProbe,'--',
+        (Join-Path $work ('jit-cleanup-'+[Guid]::NewGuid().ToString('N'))))
+    $cleanupExe = Join-Path $work 'cleanup-aot.exe'
+    $null = Check 'cleanup-aot-build' $xl @('build',$cleanupProbe,'-o',$cleanupExe)
+    $null = Check 'cleanup-aot' $cleanupExe @((Join-Path $work ('aot-cleanup-'+[Guid]::NewGuid().ToString('N'))))
+
+    # 已关闭事务的回滚必须验收；不能用仍打开时的修复掩盖此红色边界。
+    $commitExe = Join-Path $work 'commit-cleanup.exe'
+    $null = Check 'commit-cleanup-build' $gcc ($flags + @(
+        'release/extlibs/lz4/test/test_lz4_commit_cleanup.c') + $objects +
+        @('-lWs2_32','-lAdvapi32','-lm','-o',$commitExe))
+    $null = Check 'commit-cleanup' $commitExe @((Join-Path $work ('commit-cleanup-'+[Guid]::NewGuid().ToString('N'))))
+    $null = Check 'top-level-lifecycle' (Get-Process -Id $PID).Path @('-NoProfile','-ExecutionPolicy','Bypass',
+        '-File','tools/check_extlib_native_globals.ps1','-Root',$Root,'-Package','lz4') 360
     $outcome = 'passed'
 } catch {
     $failure = $_.Exception.Message

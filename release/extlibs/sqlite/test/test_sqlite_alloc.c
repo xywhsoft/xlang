@@ -67,6 +67,81 @@ done:
     return rc;
 }
 
+/* SQLite 可能在列访问时才分配：数值转文本、UTF-16 转 UTF-8。
+ * zeroblob 另核对正文；当前 vendor 会在 step 阶段展开，列访问可以不分配。
+ * 此处只注入 SQLite 分配器，区别于下面的 XRT 输出副本故障矩阵。 */
+static int column_conversions(void)
+{
+    static const char* sql[] = {"select 9223372036854775807", "select 0.125",
+        "select value from text_values", "select zeroblob(4096)", "select value from text_values"};
+    static const char* expected[] = {"9223372036854775807", "0.125", "hi", NULL, "hi"};
+    unsigned operations = 0, failures = 0;
+    fail_at = 0;
+    for (unsigned operation = 0; operation < 5; ++operation) {
+        int complete = 0;
+        for (int budget = 1; budget <= 32; ++budget) {
+            sqlite3* db = xsqlite3_open_native(":memory:");
+            CHECK(db != NULL);
+            CHECK(sqlite3_db_config(db, SQLITE_DBCONFIG_LOOKASIDE, NULL, 0, 0) == SQLITE_OK);
+            if (operation == 2 || operation == 4) {
+                CHECK(xsqlite3_exec_native(db, "pragma encoding='UTF-16'; create table text_values(value);"
+                    "insert into text_values values('hi')") == SQLITE_OK);
+            }
+            sqlite3_stmt* stmt = xsqlite3_prepare_v2_native(db, sql[operation]);
+            CHECK(stmt != NULL);
+            CHECK(xsqlite3_step_native(stmt) == SQLITE_ROW);
+            xrtClearError();
+            xmemdebugsnapshot before, after;
+            xrtMemDebugSnapshot(&before);
+            char* text = NULL;
+            xbuffer* bytes = NULL;
+            calls = rejected = 0;
+            fail_at = budget;
+            if (operation < 3) text = xsqlite3_column_text_owned_native(stmt, 0);
+            else if (operation == 3) bytes = xsqlite3_column_blob_native(stmt, 0);
+            else bytes = xsqlite3_column_text_bytes_native(stmt, 0);
+            int hit = rejected;
+            fail_at = 0;
+            int memory = (sqlite3_errcode(db) & 0xff) == SQLITE_NOMEM;
+            if (memory) {
+                CHECK(hit > 0 && text == NULL && bytes == NULL);
+                CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_MEMORY);
+                CHECK(xrtErrorCode(xrtGetError()) == SQLITE_NOMEM);
+                ++failures;
+            } else {
+                CHECK(xrtGetError() == NULL);
+                if (operation < 3) CHECK(text != NULL && strcmp(text, expected[operation]) == 0);
+                else if (operation == 3) {
+                    CHECK(bytes != NULL && bytes->Size == 4096);
+                    for (size_t i = 0; i < bytes->Size; ++i) CHECK(bytes->Data[i] == 0);
+                } else CHECK(bytes != NULL && bytes->Size == 2 && memcmp(bytes->Data, "hi", 2) == 0);
+            }
+            xrtFree(text);
+            xrtBufferDestroy(bytes);
+            xrtClearError();
+            xrtMemDebugSnapshot(&after);
+            CHECK(before.LiveCount == after.LiveCount && before.LiveBytes == after.LiveBytes);
+            CHECK(before.InvalidFreeCount == after.InvalidFreeCount && before.DoubleFreeCount == after.DoubleFreeCount);
+            int finalized = xsqlite3_finalize_native(stmt);
+            CHECK(finalized == SQLITE_OK || (finalized & 0xff) == SQLITE_NOMEM);
+            CHECK(xsqlite3_exec_native(db, "create table recovery(value)") == SQLITE_OK);
+            CHECK(xsqlite3_close_native(db) == SQLITE_OK);
+            CHECK(sqlite3_shutdown() == SQLITE_OK && sqlite3_memory_used() == 0);
+            if (hit == 0) {
+                CHECK(operation == 3 || budget > 1);
+                printf("sqlite column conversion %u: %d allocation points\n", operation, budget - 1);
+                complete = 1;
+                ++operations;
+                break;
+            }
+        }
+        CHECK(complete);
+    }
+    CHECK(operations == 5 && failures >= 4);
+    printf("sqlite deferred column conversions: %u operations, %u OOM paths passed\n", operations, failures);
+    return 0;
+}
+
 int main(void)
 {
     xallocator selected = {NULL, backing_alloc, backing_realloc, backing_free};
@@ -93,6 +168,7 @@ int main(void)
     }
     CHECK(completed && fail_at > 50);
     printf("sqlite allocator: %d injected allocation points, clean recovery passed\n", fail_at - 1);
+    CHECK(column_conversions() == 0);
     CHECK(sqlite3_config(SQLITE_CONFIG_MALLOC, &original) == SQLITE_OK);
 
     /* 返回 Buffer 的 XRT 分配失败不能破坏 SQLite 当前行，也不能转移半成品。 */

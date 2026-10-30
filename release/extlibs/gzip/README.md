@@ -1,11 +1,44 @@
 # gzip
 
+2026-10-31：修复打开态文件失败回滚的二次分配，Windows正式native
+文件ABI的96组同夹具旧8组残留降为0；Linux同例过。成功路径仍沿原
+flush/close/rename，不新增分配或复制。新增[双语文件事务范例](examples/README.md)，
+以UTF-8文件名演示取消、业务异常、保留旧目标和重试，五种引擎同输出。
+
+完整Windows门禁78阶段76符合预期，Linux原生ASan/UBSan和普通路径
+通过；各13条普通AOT、25个实际生成原型及错改返回类型负例、两平台
+普通/优化Python的139项zlib互通过。首次IO失败本来已保留首因，新增
+30场景只补覆盖，没有为重试诊断差异修改核心；详[本轮审计](docs/io-file-audit-2026-10-31.md)。
+
+默认门禁仍红：Windows关闭态回滚16组有2组临时文件残留，两平台
+全局native对象AOT仍打印后退出1。RFS与M2分别保留，不按正文正确
+签收整包；算法、公开ABI、主线与固定XRT未改。
+
+2026-10-29：桥接声明头不再强制开启宿主的 VALUE 模块，仅包含标准
+bool/size_t 与 opaque xvalue 声明；独立包含、核心头优先、桥接头优先、
+已配置XRT优先四种严格C组合在两平台均先红后绿，25个生成原型未变。
+
+新增 `test/top_level.xl` 另确认 **M2 主线阻断**：全局真实压缩器在
+Windows/Linux JIT均正常退出，独立EXE均打印PASS后于退出期报状态
+错误并退出1。默认门禁保留此项，暂不作完整发布签收；不移动全局
+对象、不提前销毁或吞异常。复现与修复方向见
+`dev/extlib_blockers/global_native_class_aot_fini.md`，本任务不改主线。
+
+Windows默认完整54项，51个正向阶段与两项预期访问拒绝符合预期，
+仅最后生命周期子门禁失败；含139项zlib互通、13个内存故障点、70个
+文件故障点、旧C/语言JIT/AOT及双语黄金输出，输入变动0。正式结果
+保留在 `build/test/gzip_header_8baac82b7e504d25aca76f03806074b8/results.json`。
+Linux原生快照PeO005同样先过四头组合、C ASan/UBSan、相同互通、
+13个内存/48个文件故障点、七份旧AOT和双语输出，最后在新顶层AOT
+失败；内外输入一致并保留现场。这里没有重跑或签收其余七包算法。
+文件双故障仍需独立测试，不从其他压缩包的静态相似代码推断结论。
+
 2026-10-26 当前发布版的 Windows 完整门禁及 Linux 联合门禁均退出 0。
 Windows 覆盖 C/zlib 互通、分配故障、文件事务、生成 ABI 与双语 JIT/AOT；
 Linux 覆盖严格 C ASan/UBSan、139 项独立 zlib 互通、语言完整用例、
 文件/错误边界，以及 C/XLang 范例的独立 EXE 与黄金输出。此前 Linux
 Buffer 字节异或的 typed XLIR 错误及旧 AOT 缺符号均未在当前发布物复现。
-按本包公开合同签收；不把它外推为超大文件、并发压力、断电恢复或
+当日仅按已测合同范围签收；不把它外推为超大文件、并发压力、断电恢复或
 性能的认证。旧版失败记录留在下方，仅作历史。
 
 标准 gzip 字节流与事务文件压缩。编解码、CRC32 和 ISIZE 校验复用宿主 XRT，
@@ -20,7 +53,7 @@ Buffer 字节异或的 typed XLIR 错误及旧 AOT 缺符号均未在当前发�
 2026-10-25：包内新增 `test/error_dispatch.xl`，固定截断输入在一次性与
 流式解码均抛 `IOError`，完成后写入抛 `RuntimeError`，失败后新对象仍
 可用。当前 Windows 发布版 JIT/独立 EXE 与现有 Linux 发布版 JIT 均通过。
-Windows 当前 `xl.exe` 从 `release` 目录可运行中央用例；从 `demo6` 根目录
+Windows 当前 `xl.exe` 从 `release` 目录可运行中央用例；从仓库根目录
 运行包级脚本时仍先遇到共享 VFS 头路径故障
 `include/xruntime_decl.h not found`，因此此次未重签默认 Windows 门禁。
 Linux 联合门禁现继续运行进度用例、该异常用例和 C/XLang 基础范例黄金
@@ -46,19 +79,19 @@ assert gzip.decompressText(stream) == "leftright"
 
 | API | 参数与结果 |
 | --- | --- |
-| `compress(Buffer|string data, int level=-1, int mtime=0, int maxInput=268435456, int maxOutput=536870912)` | `Buffer` |
+| `compress(Buffer\|string data, int level=-1, int mtime=0, int maxInput=268435456, int maxOutput=536870912)` | `Buffer` |
 | `decompress(Buffer data, int maxInput=268435456, int maxOutput=536870912, int maxRatio=1000)` | `Buffer` |
 | `decompressText(Buffer data, int maxInput=268435456, int maxOutput=536870912, int maxRatio=1000)` | 解压后校验 UTF-8 并接管文本缓冲；二进制内容使用 `decompress` |
-
-`decompressText` 取走 XRT 解压缓冲的有效载荷交给 `cstring`，
-不再经 `Buffer.text()` 无条件复制。追加末尾 NUL 时容量不足仍可能扩容。
-返回文本保留内嵌 NUL；
-非法 UTF-8 抛 `ValueError`。XLang 内部调用可共享该所有权，
-通过公开 C 导出调用时仍按普通字符串 ABI 转换。
 | `compressFile(string source, string destination, int level=-1, int mtime=0, bool overwrite=true, int maxInput=268435456, int maxOutput=536870912, onProgress=null)` | 同步文件压缩，无返回值 |
 | `decompressFile(string source, string destination, bool overwrite=true, int maxInput=268435456, int maxOutput=536870912, int maxRatio=1000, onProgress=null)` | 同步文件解压，无返回值 |
 | `compressor(int level=-1, int mtime=0, int maxInput=268435456, int maxOutput=536870912)` | `gzip.GzipCompressor` |
 | `decompressor(int maxInput=268435456, int maxOutput=536870912, int maxRatio=1000)` | `gzip.GzipDecompressor` |
+
+`decompressText` 取走 XRT 解压缓冲的有效载荷交给 `cstring`，
+不再经 `Buffer.text()` 无条件复制。追加末尾 NUL 时容量不足仍可能扩容。
+返回文本保留内嵌 NUL；非法 UTF-8 抛 `ValueError`。
+XLang 内部调用可共享该所有权，通过公开 C 导出调用时仍按普通字符串
+ABI 转换。
 
 两个导出类均有只读属性 `valid`、`inputBytes`、`outputBytes`、`finished`，
 以及 `drain() as Buffer`、`finish() as Buffer`。压缩器 `update` 接收字符串或
@@ -153,7 +186,7 @@ C 基础范例的压缩、解压、流式与截断检查使用显式条件和统
 
 ## 验证
 
-在 demo6 根目录运行 `powershell -File tools/check_extlib_gzip.ps1`，需要 GCC 与
+在仓库根目录运行 `powershell -File tools/check_extlib_gzip.ps1`，需要 GCC 与
 Python 3 在 PATH 中。Linux 联合门禁为 `bash tools/check_extlib_gzip.sh`。
 包内 `test/file_ops.xl` 和 `test/error_dispatch.xl` 已登记到 `coverage.tests`；
 前者覆盖 UTF-8 文件往返、进度回调、禁止覆盖、取消清理及解压超限时保护
@@ -172,7 +205,7 @@ Python 3 在 PATH 中。Linux 联合门禁为 `bash tools/check_extlib_gzip.sh`�
 
 以下为历史验证记录；其中 Windows 的 XLIR/链接阻断指当时的旧发布版。
 
-2026-10-16：当前 Linux 发布物从 `demo6` 根目录运行 `gzip_basic.xl` 成功，覆盖 UTF-8、二进制、增量流和截断拒绝。完整 `test/cases/extlib_gzip.xl` 仍在第 49 行的 Buffer 字节索引异或触发已记录的 XLIR 错误；基础范例通过不代表完整 Linux JIT/AOT 验收。
+2026-10-16：当前 Linux 发布物从仓库根目录运行 `gzip_basic.xl` 成功，覆盖 UTF-8、二进制、增量流和截断拒绝。完整 `test/cases/extlib_gzip.xl` 仍在第 49 行的 Buffer 字节索引异或触发已记录的 XLIR 错误；基础范例通过不代表完整 Linux JIT/AOT 验收。
 2026-10-17：当前 Windows/Linux `xl run` 的包内文件事务用例通过；Linux 包级门禁同时执行 C sanitizer、Python 互通和该语言用例。共享 XLIR 阻断未变。
 
 2026-10-19：C 基础范例单文件 `xl run` 原因未带入 `xrt_gzip.c` 而缺符号；

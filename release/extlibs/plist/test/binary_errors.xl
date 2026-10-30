@@ -1,0 +1,43 @@
+import plist
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    int faults = 0
+    for text in ["ascii", "你好🎶"]
+        Buffer encoded = plist.dumps(text, "binary")
+        bool complete = false
+        for budget in range(128)
+            bool memory = false
+            bool wrong = false
+            bool parsed = false
+            bool injected = false
+            assert failAfter(uint64(budget))
+            try
+                var value = plist.loads(encoded)
+                parsed = value == text
+            catch MemoryError error
+                memory = true
+            catch PlistError error
+                wrong = true
+            finally
+                injected = failTriggered()
+                failClear()
+            end
+            assert not wrong and (injected and memory or not injected and parsed)
+            assert plist.loads(encoded) == text
+            if injected then
+                faults += 1
+            else
+                complete = true
+                break
+            end
+        end
+        assert complete
+    end
+    assert faults > 0
+    println("plist binary XLang memory classification: PASS")
+    return 0
+end

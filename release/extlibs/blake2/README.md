@@ -3,6 +3,36 @@
 BLAKE2b/BLAKE2s 一次性、增量及文件哈希。C 核心和 xlang 包使用同一份实现，
 不依赖外部 BLAKE2 DLL，不重新编译第二份宿主 XRT。
 
+2026-10-30 文件首错收口：读取IO/内存失败已有完整XRT诊断时，原薄绑定
+在关闭Reader后重新构造错误，丢失域/码/系统码/操作/详情/cause，二次OOM
+还会覆盖原始类别。现仅在读取错误或回调异常时先取走首错、关闭后无分配
+恢复；没有原始错误的算法限额/普通取消仍按本包诊断发布，不能误取关闭错。
+公开签名、正常摘要、临时区所有权和哈希算法均未改，vendor/XRT也未动。
+
+test/test_blake2_close.c新增24组读取IO/内存×关闭成功/IO/内存失败×
+后续OOM，核对完整对象身份与cause、关闭一次、活动内存/非法释放及随后
+同入口恢复；旧实现24组均丢首错，新实现归零。另有6组算法限额与关闭
+组合对照，防止修复误恢复随后关闭的错误。分配故障只在首错完整发布后
+开启；不是让首次错误构造本身失败。
+
+新examples/file_progress.xl和file_progress_c.c使用相同9字节NUL/中文
+输入，演示进度、取消、超限、源文件保持和结果快照。两端使用XRT创建
+独占临时文件/目录并清理，输出对照file_progress.expected.txt；16字节
+摘要另由Python hashlib独立核对，不宣称密码学认证。完整门禁纳入C/
+XLang的JIT/AOT、38原型/4常量及顶层生命周期正例；失败保存现场和
+输入指纹，私有构造器负例只编译、不执行，仍按M2/M3等待主线修复。
+
+最终Windows默认门禁63阶段61项符合要求，Linux59阶段57项符合要求；
+两个真实失败均为M3私有构造被接受、M2顶层对象AOT退役失败，整包仍退出1。
+相同操作的独立局部生命周期对照在两平台JIT/build/AOT均0，不替换顶层正例。
+216已知答案、16分配故障点、四线程、原四C测试、新旧双语范例和普通独立
+EXE全部通过；Linux C含ASan/UBSan/泄漏检测。38实际生成原型和4常量
+对正式头验证，错改bool返回类型在两平台拒绝。Windows49门禁输入、Linux
+52复制源及原件前后不变。PS5/PS7静默编译器raw37/outer1和Linux缺工具127
+均保留原始诊断及现场；官网仅验证隔离生成，没有覆盖外部站点。
+本轮未改xlang主线/XRT/八件冻结物，未把预期拒绝的原始非零状态视为故障，
+也未把M2/M3当成“预期通过”。临时区文本仍有既有语言副本，不宣称整体零开销。
+
 ## xlang API
 
 ```xlang
@@ -107,7 +137,8 @@ string digest = blake2.blake2bFileHex("data.bin", onProgress =
   C 调用方关闭自有 reader 时须检查 `xrtReaderDestroy` 返回值。XLang 的
   `blake2b/sFileHex` 会自行关闭文件，关闭失败不返回摘要而报告 IO 错误。
   Reader 读取时的内存失败保留为 `XRT_BLAKE2_ERROR_MEMORY` / `MemoryError`，
-  不归类为普通 IO；结构化错误消息保留 Reader 的原始诊断。
+  不归类为普通 IO；薄绑定现保留Reader原始XRT错误对象的全部字段及cause，
+  不再重新构造为仅剩类别/消息的诊断。读取先失败时，关闭失败不能覆盖它。
 - C 核心限额中的零表示关闭业务限额；uint64 累计计数仍做溢出校验。
   xlang 薄绑定的零值采用默认限额，公开 xlang 工厂不接受零。
 - 对象错误通过 `HasherError` 借用获取；一次性和 reader 接口通过可选 error 输出。
@@ -126,6 +157,10 @@ string digest = blake2.blake2bFileHex("data.bin", onProgress =
 - Windows 门禁：`tools/check_extlib_blake2.ps1`；`-SkipAot` 仅供聚焦快测，仍检查私有接管构造器，不能用于发布签收。
 - Linux 联合门禁：`tools/check_extlib_blake2.sh`，同次运行 C ASan/UBSan、三组中央 XLang 用例、包内向量及双语范例的 JIT/AOT，并检查私有接管构造器。`bash tools/check_extlib_linux_xl.sh blake2` 可单独复跑中央语言用例，但不替代包级门禁。
 - 包内 `test/vectors.xl` 已登记到 `coverage.tests`，独立检查 BLAKE2b/BLAKE2s 的默认及 keyed 可变长度已知答案。
+- 新文件对照：从发布目录执行 `./xl run extlibs/blake2/examples/file_progress.xl`
+  或 `file_progress_c.c`，两者均可直接build，不需指定额外C源；从仓库根目录
+  则使用 `release/xl.exe run release/extlibs/blake2/examples/file_progress.xl`。
+  原中央进度测试也改为独占系统临时目录，并在finally清理，不共享固定目录。
 
 2026-10-26 当前发布版的正例复验：Windows 严格 C、216 条已知答案、
 分配故障、生成 ABI、三组中央用例及双语范例 JIT/AOT 均通过；Linux
@@ -163,7 +198,7 @@ C 自定义 Reader 负例先红后绿，现保留 `MEMORY` 分类和原始消息
 薄绑定对应抛 `MemoryError`。Windows 严格 C 和 Linux ASan/UBSan、
 XLang 双语联合门禁复验通过；AOT 共享阻断未变。
 
-2026-10-20：C 对照范例现在可从 `demo6` 目录直接运行
+2026-10-20：C 对照范例现在可从仓库根目录直接运行
 `release/xl.exe run release/extlibs/blake2/examples/basic.c`，也可直接
 `xl build` 生成可执行文件。仅 TCC 单文件路径包含核心与上游源；正式
 GCC/manifest 构建仍分别编译。Windows

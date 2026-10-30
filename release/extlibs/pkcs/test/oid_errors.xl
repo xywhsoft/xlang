@@ -1,0 +1,34 @@
+import pkcs
+
+func main(...) as int
+    // 缺少分量、根分量越界、错误分隔符和词法错误都必须拒绝。
+    for text in ["1", "1/2", "3.1", "0.40", "1.40", "1.2x", "1.2/3", "",
+        "1.", "1..2", "1.02", "1.2.", "1.2.bad"]
+        bool caught = false
+        try
+            pkcs.encodeOid(text)
+        catch ValueError error
+            caught = true
+        end
+        assert caught, text
+    end
+    // 超出 uint64 的分量/合并首分量均须拒绝；不依赖空指针兜底的具体类别。
+    for text in ["2.18446744073709551536", "1.18446744073709551616"]
+        bool caught = false
+        try
+            pkcs.encodeOid(text)
+        catch ValueError error
+            caught = true
+        catch RangeError error
+            caught = true
+        end
+        assert caught, text
+    end
+    // 合法上界与错误相邻；不能通过收窄 C 的无符号分量范围解决诊断。
+    for text in ["0.0", "0.39", "1.0", "1.39", "2.0",
+        "2.18446744073709551535", "1.2.18446744073709551615"]
+        assert pkcs.decodeOid(pkcs.encodeOid(text)) == text
+    end
+    println("pkcs OID XL: 22 cases PASS")
+    return 0
+end

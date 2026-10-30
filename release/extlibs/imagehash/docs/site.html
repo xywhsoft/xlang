@@ -19,6 +19,8 @@
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / imagehash</p><h1>imagehash</h1>
     <p class="extlib-lead">图片相似性指纹。</p>
     <p>依赖 <code>stb_image</code> 与 <code>stb_image_resize2</code>，不重复捆绑 stb；UTF-8 路径由 XRT 处理。</p>
+    <p>2026-10-30：补首次 C 调用/内存平衡、冷 XLang JIT/AOT，以及 20 张图的 60 个哈希和 20 个距离的独立整数定义参照。八个实际生成原型与拥有型返回负例、新图片候选筛选双语范例通过；Windows 默认 246 项符合预期，Linux 原生 ASan/UBSan 与完整默认门禁通过，各 11 份独立 AOT 程序。未确认新的算法 BUG，未修改生产算法、ABI、stb 或 XRT；参照使用被测依赖的缩放像素，不扩大为任意图片或缩放器认证。</p>
+    <p>2026-10-28：三条完整公开返回链不再复制哈希结果，保留独立图片错误诊断与内存错误。固定 PNG 的 C/XLang 各六组预算、空路径/缺失图片/NUL 反例、双平台默认门禁与双语 JIT/AOT 通过；Linux ASan/UBSan 完整图像链路和普通构建预算分别验收，未关闭 stb 的 sanitizer 保护。仍有一次路径 NUL 针串分配和长度扫描，不称整条操作零开销。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
@@ -31,6 +33,7 @@
 string a = imagehash.phash("photo.png")
 string b = imagehash.phash("thumbnail.png")
 println(imagehash.hamming(a, b))</code></pre>
+    <p>包内 <code>examples/similarity.xl</code> 与 <code>similarity_c.c</code> 提供同功能图片候选筛选，默认输出、同图和首图缺失均由门禁验证。阈值仅供业务选择，不是图片身份或安全性证明；C 结果用 <code>xrtFree</code> 释放，XLang 自动接管。</p>
 <p>不是密码学哈希；不同算法的结果不可互比。图片缺失或损坏抛 <code>RuntimeError</code>，内存不足抛 <code>MemoryError</code>；C 接口失败返回 <code>NULL</code>，可查询线程局部诊断与 XRT 内存错误。五个操作入口会清除旧 XRT 错误，普通格式/图片错误不会误报为上次内存故障。当前 Windows/Linux 默认门禁均通过固定图像向量、线程与分配故障、C/XLang 双语输出及核心/分配故障/公开范例独立 EXE；Linux 另通过 C ASan/UBSan。旧共享缺符号仅属历史发布物；<code>-SkipAot</code> 只作 Windows 聚焦快测。C 接口、资源归属及算法范围见包内 README。</p>
   </section>
 </main>

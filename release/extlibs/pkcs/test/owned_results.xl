@@ -1,0 +1,38 @@
+import pkcs
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    array<string> expected = ["02023039", "0500"]
+    for operation in range(2)
+        for budget in range(4)
+            string result = ""
+            bool memoryCaught = false
+            bool triggered = false
+            // 冻结 XRT 的 DER 临时/目标缓冲各一次，最终 HEX 一次；与 C 回归相同。
+            assert failAfter(uint64(budget))
+            try
+                if operation == 0 then
+                    result = pkcs.encodeInt(12345)
+                else
+                    result = pkcs.encodeNull()
+                end
+            catch MemoryError error
+                memoryCaught = true
+            finally
+                triggered = failTriggered()
+                failClear()
+            end
+            if budget < 3 then
+                assert triggered and memoryCaught
+            else
+                assert not triggered and not memoryCaught, "PKCS copied text after the native result was adopted"
+                assert result == expected[operation]
+            end
+        end
+    end
+    println("pkcs owned result budgets: PASS")
+    return 0
+end

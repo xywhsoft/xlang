@@ -1,5 +1,39 @@
 # dotenv
 
+2026-10-29 所有权补测：八组C测试现在逐组核对存活分配及非法释放、
+重复释放、上下溢指标；覆盖构造/解析/更新/环境OOM、解析变异与恢复。
+新增同一条目的借用键/值回传、自有配置文本作为parse输入、失败后
+借用地址保持，以及自别名更新OOM。两平台均通过，无需修改包本体。
+
+新增 `examples/reload.xl` / `examples/reload_c.c`，展示同对象安全重载：
+坏配置保留旧值、成功重载整体替换、已保存字符串跨修改/clear存活。
+两者同一黄金输出，覆盖GCC、C直跑及C/XLang独立EXE；C显式复制
+要跨修改保留的借用文本，XLang普通string结果独立持有内容。
+C对照范例不与XL共用文件基名，以免成为语言设计规定的C companion。
+
+新增顶层配置对象另确认 **M2主线阻断**：Windows/Linux JIT退出0，
+独立EXE均打印PASS后于退出期报状态错误、退出1。默认门禁保留此项，
+当前不作完整发布签收；不移动全局对象、不提前销毁或吞异常。
+复现与恢复方向见 `dev/extlib_blockers/global_native_class_aot_fini.md`。
+
+Windows最终完整42项，40个正向阶段及一项预期私有访问拒绝符合预期，
+仅最后生命周期子门禁失败，输入变动0；13个真实生成原型与C定义
+在同一编译单元严格核对，旧边界和新旧双语九条AOT通过。报告为
+`build/test/dotenv_guard_97a7c3343c524705951cd7678c14dcfd.json`。
+Linux原生快照7mIqXx同样先过C ASan/UBSan、全部新旧JIT/AOT和黄金
+对照，最后在新顶层AOT报红，内外输入一致并保留父/子现场。
+门禁现在记录输入指纹、编译器、命令/退出码与原始输出，失败保留
+产物；C侧只编译一次XRT对象供测试和范例复用，不影响产品运行路径。
+
+2026-10-28 从当前工作树重建 Windows/Linux 发布版后，默认包门禁均退出 0。
+Windows 覆盖严格 C、语言边界与分配故障、双语范例和独立 EXE；Linux
+另覆盖 C ASan/UBSan 与同样的 JIT/AOT 路径。Linux 门禁现将语言
+编译与运行需要的发布二进制、包、源码和一份固定夹具复制到本次
+独占的原生临时目录，结束时统一清理；包实现和公开 API 未改。
+在 WSL Windows 挂载盘上，核心 EXE 构建曾约百秒后无诊断返回 1，
+同一输入在原生临时目录约 10 秒构建且运行通过。此结果只签收
+本包门禁范围，不外推为其他包或整套编译器的 Linux 发布验收。
+
 2026-10-27 从已提交源码 `f715e057e` 在独立工作树重建 Linux 发布版，
 默认 `test/check.sh` 退出 0：严格 C ASan/UBSan、语言 JIT、中央与
 边界/故障注入及公开范例的独立 EXE、C/XLang 输出对照均通过。
@@ -65,6 +99,9 @@ XLang 的 `maxBytes` 必须为正数；C 的 `xrtDotenvParse/Load` 接受 0 作�
 `xrtDotenvLoad`、`xrtDotenvSet` 返回成功状态。`xrtDotenvGet` 返回借用的
 字符串，修改或销毁对象后失效；XLang 的 `string` 返回值独立持有内容。
 `xrtDotenvErrorCode`、`xrtDotenvErrorLine`、`xrtDotenvErrorText` 可检查失败。C 故障注入逐点检查创建失败的 `XERR_MEMORY` 分类及清除故障后的恢复。
+`get` 的原生结果由Config拥有，不能以`@owned`接管；需要跨修改保存时，
+C调用方显式`xrtStrDup`并以`xrtFree`释放。重载对照范例验证了这一点，
+不把保护生命周期所需的复制改成悬空借用。
 公开 C 操作开始时清理本线程旧 XRT 错误，成功调用不残留之前的失败；对象错误查询与析构不会擦除诊断。
 同一对象的并发修改需由调用方同步；不同对象互不共享存储。
 
@@ -74,11 +111,13 @@ XLang 的 `maxBytes` 必须为正数；C 的 `xrtDotenvParse/Load` 接受 0 作�
 
 ## 定向验证
 
-在 DEMO6 目录运行：
+在仓库根目录运行：
 
 ```powershell
 ./release/xl.exe run release/extlibs/dotenv/examples/basic.c
 ./release/xl.exe run release/examples/extlibs/dotenv.xl
+./release/xl.exe run release/extlibs/dotenv/examples/reload_c.c
+./release/xl.exe run release/extlibs/dotenv/examples/reload.xl
 release/extlibs/dotenv/test/check.ps1
 bash release/extlibs/dotenv/test/check.sh
 ```
@@ -145,11 +184,11 @@ XLang 门禁均通过。Windows 默认门禁的核心 AOT 通过，带输出范�
 与 Linux ASan/UBSan 通过。实现未改；完整 AOT 主线阻断仍在。
 
 2026-10-15：中央 `test/cases/extlib_dotenv.xl` 的文件限额用例改为从
-DEMO6 根目录访问 `test/data/dotenv_test.env`，与正式测试运行器的工作
+仓库根目录访问 `test/data/dotenv_test.env`，与正式测试运行器的工作
 目录一致。中央用例 JIT 和 AOT 均构建运行通过；包实现与完整包级
 AOT 阻断状态未变。
 
-2026-10-15：包级 Windows 门禁同步在 DEMO6 根目录运行该中央用例，
+2026-10-15：包级 Windows 门禁同步在仓库根目录运行该中央用例，
 不再从 `release` 误读固定夹具。C 与 XLang JIT、中央用例 AOT 均通过；
 完整教学范例 AOT 仍缺共享 `xl6ValueDataSnapshotV1`，未作发布签收。
 

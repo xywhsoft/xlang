@@ -1,5 +1,20 @@
 # xml.dom
 
+## 当前验收状态（2026-10-30）
+
+**M9 / M3 仍未关闭，不是整包绿灯。** 修复 parse、load、stringify、
+save 的每线程错误状态初始化失败后被清错并继续执行；文本 stringify
+复用同一检查。失败保留 MemoryError，且不改写原保存目标。
+不改公开 ABI、类声明、底层 XML/Expat 或冻结 XRT。
+
+与 SAX、ElementTree 联合完成 15 原生入口冷启动回归：Windows 270、
+Linux 257 场景通过，两个平台换回旧桥接均有 60 场景失败；检查恢复、
+副作用和活动内存平衡。四线程 144 组诊断在三种执行路径通过，原三包
+边界/分配、双语黄金输出和每平台 19 份正常独立 AOT 通过，58 实际
+C 原型一致，Linux 带 ASan/UBSan。门禁最后仍因公开 Reader 正例失败，
+Node/Element 也另验失败；不能用工厂路径替代公开类型与安全构造。
+现场和完整范围见[SAX 共用审查记录](../xml.sax/test/BRIDGE_STATE_AUDIT_2026-10-30.md)。
+
 2026-10-26 当前 Windows/Linux 三包联合默认门禁均退出 0：严格 C、
 Linux ASan/UBSan、中央/边界/分配 JIT 与 AOT、公开 C/XLang 范例
 独立 EXE 同输出、DOM/ElementTree 往返均通过。旧 VFS 头路径与
@@ -8,7 +23,7 @@ Linux ASan/UBSan、中央/边界/分配 JIT 与 AOT、公开 C/XLang 范例
 `../../../dev/extlib_blockers/xml_public_class_visibility.md`。
 这项公开类型缺口修复前不签收完整包。
 
-2026-10-25 当前发布物入口复验：中央 DOM 用例从 `demo6` 根目录
+2026-10-25 当前发布物入口复验：中央 DOM 用例从仓库根目录
 运行时，在包代码执行前因共享 TCC VFS 缺少
 `include/xruntime_decl.h` 退出；从 `release` 目录运行通过。
 本轮未重跑三包联合默认门禁及 AOT，下方 2026-10-24 的通过记录
@@ -91,11 +106,11 @@ C API 的节点引用由调用方 `xrtXmlDomNodeRelease`；`Child`、`Parent`、
 `xl check extlibs/xml.dom/test/private_pointer_negative.xl` 均应失败：前者
 验证文本入口不可绕过校验，后者验证不能把任意 `point` 传给节点操作。
 `Node` 的其余 `*Native` 成员也仅供类内部使用，原生结果由公开方法接管。
-Linux 可从 `demo6` 运行
+Linux 可从仓库根目录运行
 `bash release/extlibs/xml.sax/test/check_trees.sh`，对 DOM/ElementTree
 共用的 XRT/Expat 实现运行严格 GCC 与 ASan/UBSan；脚本还需要
 `release/xl` 运行三包 XLang 边界与 C/XLang 范例逐字对照。
-Windows 对应入口为 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/xml.sax/test/check_trees.ps1`（从 `demo6` 目录运行）；同时检查三包的 C/XL 边界、分配故障、私有入口负例及双语范例。
+Windows 对应入口为 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/xml.sax/test/check_trees.ps1`（从仓库根目录运行）；同时检查三包的 C/XL 边界、分配故障、私有入口负例及双语范例。
 联合门禁还运行 `test/cases/extlib_xml_tree_interop.xl`：DOM 写出的 XML
 交给 ElementTree 解析，再反向写回 DOM，核对 UTF-8、实体、属性和混合内容。
 混合内容中的前导文本在 DOM 是独立子节点，在 ElementTree 是元素的 `text`；

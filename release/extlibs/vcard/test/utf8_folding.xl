@@ -1,0 +1,51 @@
+import vcard
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+extern "xv_folded_fixture" func foldedFixture(c_bool invalid, c_int version) as string
+
+func main(...) as int
+    for version in range(3, 5)
+        string text = foldedFixture(false, c_int(version))
+        var card = vcard.parse(text)
+        assert card["version"] == string(version) + ".0"
+        assert card["fn"] == "你" and card["note"] == "\xC2\xA2" and card["nickname"] == "\xF0\x9F\x98\x80"
+        string canonical = vcard.build(card)
+        assert vcard.parse(canonical)["fn"] == "你"
+        bool complete = false
+        int failures = 0
+        for budget in range(256)
+            bool memory = false
+            bool correct = false
+            bool injected = false
+            assert failAfter(uint64(budget))
+            try
+                var value = vcard.parse(text)
+                correct = value["fn"] == "你" and value["nickname"] == "\xF0\x9F\x98\x80"
+            catch MemoryError error
+                memory = true
+            finally
+                injected = failTriggered()
+                failClear()
+            end
+            assert injected and memory or not injected and correct
+            assert vcard.parse(text)["fn"] == "你"
+            if not injected then
+                complete = true
+                break
+            end
+            failures += 1
+        end
+        assert complete and failures > 0
+    end
+    bool rejected = false
+    try
+        vcard.parse(foldedFixture(true, 4))
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected
+    println("vcard UTF8 folding XLang: PASS")
+    return 0
+end

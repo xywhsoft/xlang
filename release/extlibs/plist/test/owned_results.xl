@@ -1,0 +1,52 @@
+import plist
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    var source = ""
+    string expected = plist.stringify(source, false, false)
+    // 固定基线包含构树、XML 写出及语言对象开销，只限制成功预算上限。
+    array<int> budgets = [0, 18]
+    for budget in budgets
+        string result = ""
+        bool memoryCaught = false
+        bool triggered = false
+        assert failAfter(uint64(budget))
+        try
+            result = plist.stringify(source, false, false)
+        catch MemoryError error
+            memoryCaught = true
+        finally
+            triggered = failTriggered()
+            failClear()
+        end
+        if budget == 0 then
+            assert triggered and memoryCaught
+        else
+            assert not triggered and not memoryCaught, "plist copied XML after the native result was adopted"
+            assert result == expected
+            assert plist.loads(result) == source
+        end
+    end
+
+    int rejected = 0
+    try
+        plist.stringify(null)
+    catch PlistError error
+        assert plist.errorCode() == 4 and error.message != ""
+        rejected += 1
+    end
+    try
+        plist.stringify("text", maxOutput = 16)
+    catch PlistError error
+        assert plist.errorCode() == 5 and error.message != ""
+        rejected += 1
+    end
+    assert rejected == 2
+    assert plist.loads(plist.stringify("你好<&>")) == "你好<&>"
+    assert expected != "" and plist.loads(expected) == ""
+    println("plist owned XML and custom errors: PASS")
+    return 0
+end

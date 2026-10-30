@@ -1,0 +1,96 @@
+import tar
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+// 夹具由 C 门禁生成；每个操作从零预算扫到第一次成功，不把准备工作计入故障点。
+func allocationSweep(Buffer source, int operation, string file)
+    int succeeded = -1
+    for budget in range(64)
+        auto reader = tar.open(source)
+        if operation == 2 or operation == 4 then assert reader.next() end
+        bool rejected = false
+        bool triggered = false
+        assert failAfter(uint64(budget))
+        try
+            if operation == 0 then
+                auto created = tar.open(source)
+                assert created.valid
+            elseif operation == 1 then
+                assert reader.next()
+            elseif operation == 2 then
+                assert reader.readText() == "data"
+            elseif operation == 3 then
+                auto created = tar.open(file)
+                assert created.valid
+            else
+                tar.TarInfo info = reader.info()
+                assert info.size == 4 and info.userName == "reader-user"
+            end
+        catch MemoryError error
+            rejected = true
+        finally
+            triggered = failTriggered()
+            failClear()
+        end
+        if triggered then
+            assert rejected, "TAR allocation failure must not return success"
+            if operation == 1 then
+                assert not reader.eof
+                bool failedAgain = false
+                try
+                    reader.next()
+                catch MemoryError error
+                    failedAgain = true
+                end
+                assert failedAgain, "failed header parsing must remain failed"
+            end
+        else
+            assert not rejected and budget > 0
+            succeeded = budget
+            break
+        end
+        // 清理失败对象后，新 reader 仍能完整读取同一输入；不复用损坏的解析状态。
+        auto recovered = tar.open(source)
+        assert recovered.next() and recovered.info().size == 4
+        assert recovered.readText() == "data" and not recovered.next() and recovered.eof
+    end
+    assert succeeded >= 0, "TAR allocation sweep never reached success"
+    println(f"TAR XL reader operation {operation}: {succeeded} failures and success")
+end
+
+func extensionTail(string file, bool truncated)
+    auto reader = tar.open(file)
+    bool rejected = false
+    try
+        assert not reader.next(), "extension metadata is not a file entry"
+        assert not truncated and reader.eof and not reader.next()
+    catch IOError error
+        assert truncated and error.domain == "xlang.extlib.tar" and error.code == 3
+        rejected = true
+    end
+    assert rejected == truncated
+end
+
+func main(...) as int
+    assert arg.length == 2
+    string root = string(arg[1])
+    array<string> fixtures = ["plain", "prefix", "pax", "global", "gnu_name", "gnu_link"]
+    for name in fixtures
+        string archivePath = path.join(root, name + ".tar")
+        Buffer source = Buffer(file.readBytes(archivePath))
+        allocationSweep(source, 1, archivePath)
+        if name == "plain" then
+            allocationSweep(source, 0, archivePath)
+            allocationSweep(source, 2, archivePath)
+            allocationSweep(source, 3, archivePath)
+            allocationSweep(source, 4, archivePath)
+        elseif name != "prefix" then
+            extensionTail(path.join(root, name + "_tail_0.tar"), false)
+            extensionTail(path.join(root, name + "_tail_1.tar"), true)
+        end
+    end
+    println("TAR reader allocation boundaries: PASS")
+    return 0
+end

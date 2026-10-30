@@ -22,7 +22,7 @@
     <h1>msgpack</h1>
     <p class="extlib-lead">使用 Buffer 传输二进制 MessagePack，以 var 表达动态值。</p>
     <p>版本 1.0.0 · C / xlang · 无扩展库依赖</p>
-    <p>当前发布版的 XLang 字典传入 <code>encode(var)</code> 会在 foreign 容器边界报 <code>NotImplementedError</code>；下面的字典范例因此暂不能运行。C 接口与二进制专用入口已分别通过包级测试，完整语言与 AOT 门禁尚未签收。</p>
+    <p>当前冻结发布版的 XLang 字典传入 <code>encode(var)</code> 会在 foreign 容器边界报 <code>NotImplementedError</code>；下面的字典范例因此暂不能运行。2026-10-29 Windows/Linux 默认门禁均过前 43 阶段（含五个独立程序），第 44 阶段仍在该语言字典正例失败。C/标量与二进制通路的通过不代替完整语言容器和发布签收。</p>
   </header>
   <section id="start">
     <h2>快速开始</h2>
@@ -34,6 +34,16 @@ var document = msgpack.decode(packed)
 println(document["name"])
 assert msgpack.decode(msgpack.fromHex("c0")) == null</code></pre>
     <p>输出 <code>xlang</code>。合法 <code>nil</code> 返回 xlang 的 <code>null</code>；畸形输入抛 <code>ValueError</code>。</p>
+  </section>
+  <section id="timestamp-frames">
+    <h2>标准时间戳帧</h2>
+    <pre><code>import msgpack
+
+var epoch = msgpack.decode(msgpack.fromHex("c80004ff00000000"))
+assert epoch == time(0)
+assert msgpack.toHex(msgpack.encode(epoch)) == "d6ff00000000"</code></pre>
+    <p>时间戳类型 -1 按 4/8/12 字节载荷解释，不受 ext8/ext16/ext32 头部宽度影响；编码仍使用最短 timestamp32/64/96。其他完整但未建模的扩展类型抛 <code>NotImplementedError</code>；保留标记 <code>c1</code>、截断帧、非法时间戳长度和非整微秒抛 <code>ValueError</code>。超过载荷预算先报范围错误，不分配超限载荷。依据 <a href="https://github.com/msgpack/msgpack/blob/master/spec.md">MessagePack 官方规范</a>。</p>
+    <p>成对 <code>examples/timestamp_frames.xl</code> 与 <code>timestamp_frames_c.c</code> 覆盖六入口和五行固定输出，包含非最短时间戳头、负时间、NUL 与非 UTF-8 二进制。新的 50,650 项帧/截断/分类检查和 18 条分配失败恢复路径通过；Python 标准库独立核对 530 个时间点、1,599 帧，GCC、TCC 直跑与独立程序逐字一致。此例不替换原语言字典正例。</p>
   </section>
   <section id="api">
     <h2>接口与边界</h2>
@@ -65,8 +75,9 @@ int main(void)
   <section id="verify">
     <h2>验证状态</h2>
     <p>2026-10-21 XLang 六个公开入口的分配故障用例改为逐入口扫描到首次成功，并在每次失败后立即清除故障、重试。Windows/Linux 正式运行器均通过；包实现及线格式未改，完整 AOT 的共享阻断未变。</p>
-    <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/msgpack/test/check.ps1 -SkipAot
+    <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/msgpack/test/check.ps1
 bash release/extlibs/msgpack/test/check.sh</code></pre>
+    <p>从仓库根目录执行；<code>CC</code>、<code>PYTHON</code> 可指定工具。缺少 Python 或 C 编译器明确失败，不静默跳过。默认门禁保留原语言容器正例为必过项；失败保留独占目录、原生日志与输入指纹。Linux 原生 C 测试开启 ASan/UBSan/泄漏检查，两平台均检查八个实际生成的 C 原型及 C/XLang 固定输出。包内详情源是维护源，未据此宣称外部官网已部署。</p>
     <p>2026-10-19：Windows 严格 GCC、C/XLang 边界、固定种子畸形输入及双语范例通过；Linux 同一包级脚本完成 C ASan/UBSan、XLang 边界与 C/XLang 范例逐字节对照。六个公开入口的逐点分配故障扫描保留 <code>XERR_MEMORY</code> 并可恢复；新增文本键和值内嵌 NUL 的固定线格式和 XLang 往返验证。标准 timestamp 的 32/64/96 位固定向量及与 Python msgpack 1.2.3 的双向互通通过，非整微秒与超界时间明确拒绝。累计项数的编解码预算已统一并有红绿回归。当前发布版的最小 XLang 用例在将语言字典传给 <code>msgpack.encode</code> 时抛 <code>NotImplementedError</code>；原生入口未识别动态值的字典类型。完整 XLang 边界、双语和 AOT 门禁待共享 foreign <code>var</code> 容器投影修复后重跑；旧版共享缺符号不是当前首个阻断，不签收本版发布形态。详情见包内 README 和阻断复现。</p>
   </section>
 </main>

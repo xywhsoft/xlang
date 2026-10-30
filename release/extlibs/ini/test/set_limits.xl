@@ -1,0 +1,51 @@
+import ini
+
+func main(...) as int
+    // ASCII 与 UTF-8 都按字节计数：五字节/六字节通过，七字节拒绝。
+    array<string> samples = ["abcde", "abcdef", "abcdefg", "\u4f60ab", "\u4f60\u597d", "\u4f60\u597dx"]
+    for sample in samples
+        for field in range(3)
+            for global in range(2)
+                auto config = ini.create(caseSensitive=false, maxItem=6)
+                string section = global == 1 ? "" : "S"
+                config.set(section, "K", "old")
+                string before = config.stringify()
+                string targetSection = field == 0 ? sample : section
+                string targetKey = field == 1 ? sample : "k"
+                string targetValue = field == 2 ? sample : "new"
+                bool rejected = false
+                try
+                    config.set(targetSection, targetKey, targetValue)
+                catch ConfigError error
+                    rejected = true
+                    assert config.errorCode == 5
+                end
+                assert rejected == (string.byteLen(sample) > 6)
+                if rejected then
+                    assert config.stringify() == before
+                    assert config.get(section, "k") == "old"
+                else
+                    assert config.get(targetSection, targetKey) == targetValue
+                end
+                auto restored = ini.parse(config.stringify(), caseSensitive=false, maxItem=6)
+                assert restored.valid
+                config.set(section, "k", "")
+                assert config.valid and config.get(section, "k") == ""
+            end
+        end
+    end
+    auto multiline = ini.create(maxItem=6)
+    multiline.set("s", "k", "abc\nde")
+    bool rejected = false
+    try
+        multiline.set("s", "k", "abc\ndef")
+    catch ConfigError error
+        rejected = true
+        assert multiline.errorCode == 5
+    end
+    assert rejected and multiline.get("s", "k") == "abc\nde"
+    auto restored = ini.parse(multiline.stringify(), maxItem=6)
+    assert restored.get("s", "k") == "abc\nde"
+    println("ini language item limits: PASS")
+    return 0
+end

@@ -2,20 +2,20 @@
 extern "xxxhash_version" func __version() as string
 extern "xxxhash_hash64" func __hash64(point data, c_size size, c_ulonglong seed) as c_ulonglong
 extern "xxxhash_hash64_str" func __hash64str(string data, c_size size, c_ulonglong seed) as c_ulonglong
-extern "xxxhash_hash64_hex" func __hex64(point data, c_size size, c_ulonglong seed) as string
-extern "xxxhash_hash64_str_hex" func __hex64str(string data, c_size size, c_ulonglong seed) as string
+extern "xxxhash_hash64_hex" @owned func __hex64(point data, c_size size, c_ulonglong seed) as string
+extern "xxxhash_hash64_str_hex" @owned func __hex64str(string data, c_size size, c_ulonglong seed) as string
 extern "xxxhash_hash32" func __hash32(point data, c_size size, c_uint seed) as c_uint
 extern "xxxhash_hash32_str" func __hash32str(string data, c_size size, c_uint seed) as c_uint
-extern "xxxhash_hash32_hex" func __hex32(point data, c_size size, c_uint seed) as string
-extern "xxxhash_hash32_str_hex" func __hex32str(string data, c_size size, c_uint seed) as string
+extern "xxxhash_hash32_hex" @owned func __hex32(point data, c_size size, c_uint seed) as string
+extern "xxxhash_hash32_str_hex" @owned func __hex32str(string data, c_size size, c_uint seed) as string
 extern "xxxhash_hash3_64" func __hash3_64(point data, c_size size, c_ulonglong seed) as c_ulonglong
 extern "xxxhash_hash3_64_str" func __hash3_64str(string data, c_size size, c_ulonglong seed) as c_ulonglong
-extern "xxxhash_hash3_64_hex" func __hex3_64(point data, c_size size, c_ulonglong seed) as string
-extern "xxxhash_hash3_64_str_hex" func __hex3_64str(string data, c_size size, c_ulonglong seed) as string
-extern "xxxhash_hash3_128_hex" func __hex3_128(point data, c_size size, c_ulonglong seed) as string
-extern "xxxhash_hash3_128_str_hex" func __hex3_128str(string data, c_size size, c_ulonglong seed) as string
+extern "xxxhash_hash3_64_hex" @owned func __hex3_64(point data, c_size size, c_ulonglong seed) as string
+extern "xxxhash_hash3_64_str_hex" @owned func __hex3_64str(string data, c_size size, c_ulonglong seed) as string
+extern "xxxhash_hash3_128_hex" @owned func __hex3_128(point data, c_size size, c_ulonglong seed) as string
+extern "xxxhash_hash3_128_str_hex" @owned func __hex3_128str(string data, c_size size, c_ulonglong seed) as string
 extern "xxxhash_file64" func __file64(string path, c_ulonglong seed, c_ulonglong maximum, var callback) as c_ulonglong
-extern "xxxhash_file64_hex" func __fileHex(string path, c_ulonglong seed, c_ulonglong maximum, var callback) as string
+extern "xxxhash_file64_hex" @owned func __fileHex(string path, c_ulonglong seed, c_ulonglong maximum, var callback) as string
 
 export const uint64 XXHASH_DEFAULT_SEED = 0
 
@@ -121,7 +121,7 @@ export class Xxhash64Hasher
     private extern "xxxhash_hasher_update" func updateNative(point data, c_size size) as bool
     private extern "xxxhash_hasher_update_str" func updateStrNative(string data, c_size size) as bool
     private extern "xxxhash_hasher_digest" func digestNative() as c_ulonglong
-    extern "xxxhash_hasher_digest_hex" func digestHex() as string
+    extern "xxxhash_hasher_digest_hex" @owned func digestHex() as string
     extern "xxxhash_hasher_reset" func reset() as bool
     private extern "xxxhash_hasher_input_bytes" func inputBytesNative() as c_ulonglong
 

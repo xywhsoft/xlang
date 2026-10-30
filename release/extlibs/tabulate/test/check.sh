@@ -58,6 +58,10 @@ fi
 timeout 90s ./release/xl run release/examples/extlibs/tabulate.xl \
     > "$work/xl_example.txt"
 diff -u "$work/c_example.txt" "$work/xl_example.txt"
+if [[ "${TABULATE_SKIP_AOT:-0}" == "1" ]]; then
+    printf 'tabulate Linux C ASan/UBSan and XLang focused gate: PASS (AOT skipped)\n'
+    exit 0
+fi
 for source in \
     test/cases/extlib_tabulate.xl \
     release/extlibs/tabulate/test/boundaries.xl \

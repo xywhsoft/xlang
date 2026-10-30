@@ -1,0 +1,45 @@
+import sqlite
+
+// step/reset保留SQLite状态码；事务失败要显式回滚，语句可以重置后复用。
+func main(...) as int
+    auto db = sqlite.memory()
+    assert db.execute("create table items(id integer primary key, stock integer not null)")
+    auto insert = db.prepare("insert into items values(?, ?)")
+    assert db.begin()
+    assert insert.bind(1, 1) == sqlite.SQLITE_OK and insert.bind(2, 10) == sqlite.SQLITE_OK
+    assert insert.done() and insert.reset() == sqlite.SQLITE_OK
+    assert insert.bind(1, 1) == sqlite.SQLITE_OK and insert.bind(2, 20) == sqlite.SQLITE_OK
+    assert insert.step() == sqlite.SQLITE_CONSTRAINT
+    // reset先报告上一轮执行错误，但本身已经把语句复位。
+    assert insert.reset() == sqlite.SQLITE_CONSTRAINT
+    assert insert.clear_bindings() == sqlite.SQLITE_OK
+    println("constraint: rejected")
+    assert db.rollback()
+    auto count = db.prepare("select count(*) from items")
+    assert count.row_ready() and count.column_int(0) == 0
+    assert count.finalize() == sqlite.SQLITE_OK
+    println("rollback: rows=0")
+
+    assert insert.bind(1, 2) == sqlite.SQLITE_OK and insert.bind(2, 7) == sqlite.SQLITE_OK
+    assert insert.done()
+    // close失败不丢失连接所有权；先结束语句，再重试关闭。
+    assert db.close() == sqlite.SQLITE_BUSY and db.valid()
+    println("busy-close: retained")
+    assert insert.finalize() == sqlite.SQLITE_OK
+    auto totals = db.prepare("select count(*), sum(stock) from items")
+    bool rejected = false
+    try
+        totals.column_text(0)
+    catch RuntimeError e
+        rejected = true
+    end
+    assert rejected
+    println("before-row: rejected")
+    assert totals.row_ready() and totals.column_int(0) == 1 and totals.column_int(1) == 7
+    string saved = totals.column_text(1)
+    assert totals.finalize() == sqlite.SQLITE_OK and db.close() == sqlite.SQLITE_OK
+    assert saved == "7"
+    println("commit: rows=1 total=7")
+    println("snapshot: " + saved)
+    return 0
+end

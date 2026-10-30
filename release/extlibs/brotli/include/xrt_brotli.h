@@ -82,6 +82,14 @@ XRT_API bool xrtBrotliCompressStream(xreader* pReader, xwriter* pWriter, const x
 XRT_API bool xrtBrotliDecompressStream(xreader* pReader, xwriter* pWriter, const xrtbrotlioptions* pOptions,
 	xrtprogressproc pProgress, ptr pUserData, xrtbrotlierror* pError);
 
+/* 同目录临时文件，最终回调、刷新及关闭成功后提交；支持原地变换。
+ * options 为 NULL 使用默认值。同步借用路径/回调/用户状态，失败详情见 xrtGetError。
+ * 文件仍打开时按句柄回滚；已关闭后路径回滚再遇 OOM 的保证受宿主 XRT 限制。 */
+XRT_API bool xrtBrotliCompressFile(const char* source, const char* destination,
+    const xrtbrotlioptions* options, bool overwrite, xrtprogressproc progress, ptr user);
+XRT_API bool xrtBrotliDecompressFile(const char* source, const char* destination,
+    const xrtbrotlioptions* options, bool overwrite, xrtprogressproc progress, ptr user);
+
 #ifdef __cplusplus
 }
 #endif

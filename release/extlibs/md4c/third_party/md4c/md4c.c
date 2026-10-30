@@ -1440,16 +1440,16 @@ md_build_attr_append_substr(MD_CTX* ctx, MD_ATTRIBUTE_BUILD* build,
             MD_LOG("realloc() failed.");
             return -1;
         }
+        /* 扩容成功就交回构造器，后续失败仍由调用方统一释放。 */
+        build->substr_types = new_substr_types;
         /* Note +1 to reserve space for final offset (== raw_size). */
         new_substr_offsets = (OFF*) realloc(build->substr_offsets,
                                     (build->substr_alloc+1) * sizeof(OFF));
         if(new_substr_offsets == NULL) {
             MD_LOG("realloc() failed.");
-            free(new_substr_types);
             return -1;
         }
 
-        build->substr_types = new_substr_types;
         build->substr_offsets = new_substr_offsets;
     }
 
@@ -1552,7 +1552,7 @@ md_build_attribute(MD_CTX* ctx, const CHAR* raw_text, SZ raw_size,
     return 0;
 
 abort:
-    md_free_attribute(ctx, build);
+    /* 所有调用方在成功/失败出口都清理构造器，此处不能再次释放。 */
     return -1;
 }
 
@@ -2235,6 +2235,7 @@ md_is_link_reference_definition(MD_CTX* ctx, const MD_LINE* lines, MD_SIZE n_lin
         new_defs = (MD_REF_DEF*) realloc(ctx->ref_defs, ctx->alloc_ref_defs * sizeof(MD_REF_DEF));
         if(new_defs == NULL) {
             MD_LOG("realloc() failed.");
+            ret = -1;
             goto abort;
         }
 
@@ -4809,8 +4810,8 @@ md_process_leaf_block(MD_CTX* ctx, const MD_BLOCK* block)
         MD_BLOCK_CODE_DETAIL code;
         MD_BLOCK_TABLE_DETAIL table;
     } det;
-    MD_ATTRIBUTE_BUILD info_build;
-    MD_ATTRIBUTE_BUILD lang_build;
+    MD_ATTRIBUTE_BUILD info_build = { 0 };
+    MD_ATTRIBUTE_BUILD lang_build = { 0 };
     int is_in_tight_list;
     int clean_fence_code_detail = FALSE;
     int ret = 0;
@@ -5669,7 +5670,7 @@ md_enter_child_containers(MD_CTX* ctx, int n_children)
             case _T('*'):
                 /* Remember offset in ctx->block_bytes so we can revisit the
                  * block if we detect it is a loose list. */
-                md_end_current_block(ctx);
+                MD_CHECK(md_end_current_block(ctx));
                 c->block_byte_off = ctx->n_block_bytes;
 
                 MD_CHECK(md_push_container_bytes(ctx,
@@ -6402,7 +6403,7 @@ md_process_doc(MD_CTX *ctx)
         MD_CHECK(md_process_line(ctx, &pivot_line, line));
     }
 
-    md_end_current_block(ctx);
+    MD_CHECK(md_end_current_block(ctx));
 
     MD_CHECK(md_build_ref_def_hashtable(ctx));
 

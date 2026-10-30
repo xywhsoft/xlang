@@ -1,0 +1,37 @@
+import cString
+
+// 原生入口的完整签名可以保存在函数值中；不能丢失 c_size 的 ABI。
+func(string) as c_size globalLength = cString.length
+
+func forward(func(string) as c_size measure, string text) as c_size
+    return measure(text)
+end
+
+func getLength() as func(string) as c_size
+    return cString.length
+end
+
+func main(...) as int
+    string empty
+    assert cString.length(empty) == 0 and globalLength(empty) == 0
+    func(string) as c_size localLength = getLength()
+    array<int> sizes = [0, 1, 7, 8, 15, 16, 31, 32, 63, 64, 127, 128, 255, 256, 4095, 4096]
+    for size in sizes
+        string prefix = string.repeat("你", size)
+        string text = prefix + "\0tail"
+        assert cString.length(text) == c_size(size * 3)
+        assert globalLength(text) == c_size(size * 3)
+        assert forward(localLength, text) == c_size(size * 3)
+        assert forward(cString.length, prefix + "x") == c_size(size * 3 + 1)
+        assert string.byteLen(text) == size * 3 + 5
+        assert string.len(prefix) == size
+    end
+    // 切片的语义长度不能泄漏原文后缀，内嵌 NUL 仍按 CRT 规则处理。
+    assert cString.length(string.slice("前abc后", 1, 3)) == 3
+    assert cString.length(string.slice("前a\0b后", 1, 3)) == 1
+    assert cString.length(string.slice("前abc后", 1, 0)) == 0
+    assert cString.length("\0tail") == 0
+    assert cString.length("tail\0") == 4
+    println("cString interop: PASS")
+    return 0
+end

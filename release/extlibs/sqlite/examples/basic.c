@@ -21,6 +21,14 @@ int main(void)
     int count = 0;
     const char* names[] = {"Ada", "O'Reilly"};
     if (!db) goto cleanup;
+
+    /* prepare 只接受一条语句；拒绝的尾部 PRAGMA 不得让后续建表变成只读。 */
+    failed = "reject extra statement";
+    if (xsqlite3_exec_native(db, "pragma query_only = off") != SQLITE_OK) goto cleanup;
+    stmt = xsqlite3_prepare_v2_native(db, "select 1; pragma query_only = on");
+    if (stmt != NULL || xrtErrorKind(xrtGetError()) != XERR_ARGUMENT) goto cleanup;
+    xrtClearError();
+
     failed = "create table";
     if (xsqlite3_exec_native(db, "create table people(id integer primary key, name text)") != SQLITE_OK) goto cleanup;
     failed = "prepare insert";

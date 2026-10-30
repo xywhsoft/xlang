@@ -247,7 +247,8 @@ static int xi_component_name_valid(const char *name, size_t length) {
 static int xi_line(XiParser *parser, xstrview line) {
     size_t length;
     char *name;
-    if (!xi_wire_chars(line, 0)) return 0;
+    /* 物理折行可能切开多字节字符；只校验展开后的完整逻辑行，包括未知字段。 */
+    if (!xrtUtf8Valid(line, NULL) || !xi_wire_chars(line, 0)) return 0;
     if (line.Size == 0) return 1;
     if (line.Size >= 6 && xi_ascii_equal(line.Data, 5, "BEGIN") && line.Data[5] == ':') {
         length = line.Size - 6;
@@ -309,10 +310,8 @@ xvalue *xi_parse(const char *text, size_t size) {
             "iCalendar input exceeds 8 MiB");
         return NULL;
     }
-    if (text == NULL || size == 0 ||
-        memchr(text, 0, size) != NULL ||
-        !xrtUtf8Valid((xstrview){text, size}, NULL)) {
-        xi_error("invalid iCalendar input or UTF-8");
+    if (text == NULL || size == 0 || memchr(text, 0, size) != NULL) {
+        xi_error("invalid iCalendar input");
         return NULL;
     }
     if (!xrtBufferInit(&line)) return NULL;
@@ -357,6 +356,6 @@ invalid:
     xrtBufferUnit(&line);
     xrtValueRelease(parser.current);
     xrtValueRelease(parser.calendar);
-    if (xrtGetError() == NULL) xi_error("invalid iCalendar structure or input too large");
+    if (xrtGetError() == NULL) xi_error("invalid iCalendar structure or UTF-8");
     return NULL;
 }

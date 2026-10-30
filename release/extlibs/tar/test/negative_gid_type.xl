@@ -1,0 +1,7 @@
+import tar
+
+func main(...) as int
+    auto writer = tar.create()
+    writer.add("negative.txt", Buffer("body"), gid = -1)
+    return 0
+end

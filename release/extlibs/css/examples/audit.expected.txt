@@ -1,0 +1,7 @@
+rules: 2
+properties: 4
+selector: .badge
+quote: \"
+slash: \/*literal
+content: "/* kept */"
+color: #3366CC

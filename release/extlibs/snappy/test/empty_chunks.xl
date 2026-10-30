@@ -1,0 +1,22 @@
+import snappy
+
+func main(...) as int
+    string identifier = "ff060000734e61507059"
+    for chunk in ["01040000d8ea82a2", "00050000d8ea82a200"]
+        Buffer frame = Buffer.fromHex(identifier + chunk)
+        assert snappy.decompress(frame).len() == 0
+        assert snappy.decompressText(frame) == ""
+        auto decoder = snappy.decompressor()
+        for byte in frame.toBytes()
+            Buffer part = Buffer()
+            part.appendByte(int(byte))
+            decoder.update(part)
+            assert decoder.drain().len() == 0
+        end
+        assert decoder.finish() and decoder.finished
+        assert decoder.members == 1 and decoder.outputBytes == 0
+        assert decoder.inputBytes == frame.len()
+    end
+    println("snappy empty chunks: PASS")
+    return 0
+end

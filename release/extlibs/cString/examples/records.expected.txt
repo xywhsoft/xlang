@@ -1,0 +1,6 @@
+ascii: bytes=5, c=5
+unicode: bytes=6, c=6
+payload: bytes=12, c=4
+leading: bytes=8, c=0
+trailing: bytes=4, c=3
+empty: bytes=0, c=0

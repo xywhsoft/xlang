@@ -1,0 +1,21 @@
+import snappy
+
+func main(...) as int
+    // 同时使用 Buffer/string 两个 update 重载及四个字节计数 getter。
+    auto encoder = snappy.compressor()
+    encoder.update(Buffer("a"))
+    encoder.update("bc")
+    assert encoder.inputBytes == 3
+    Buffer wire = encoder.drain()
+    encoder.finish()
+    wire.append(encoder.drain())
+    assert encoder.outputBytes == wire.len()
+    auto decoder = snappy.decompressor()
+    decoder.update(wire)
+    decoder.finish()
+    assert decoder.inputBytes == wire.len() and decoder.outputBytes == 3
+    assert decoder.members == 1 and decoder.finished
+    assert decoder.drain().text() == "abc"
+    println("snappy ABI surface: PASS")
+    return 0
+end

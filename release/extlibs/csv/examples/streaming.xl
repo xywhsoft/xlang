@@ -1,0 +1,51 @@
+import csv
+
+// 逐行处理只保留当前行，不需要构造整张二维表。
+func main(...) as int
+    csv.Writer output = csv.create(newline="crlf")
+    output.write(["name", "qty", "note"])
+    output.write(["Alice", "20", "a,b"])
+    output.write(["Bob", "22", "第一行\n第二行"])
+    csv.Reader input = csv.open(output.finish())
+    assert input.next() and input.field(0) == "name"
+    assert input.next()
+    array<string> saved = input.row()  // 独立快照，推进或关闭后仍有效。
+    int total = int(input.field(1))
+    int count = 1
+    while input.next()
+        total += int(input.field(1))
+        count += 1
+        assert input.field(2) == "第一行\n第二行"
+    end
+    assert input.eof and count == 2 and total == 42
+    input.close()
+    println("rows: " + string(count))
+    println("sum: " + string(total))
+    println("snapshot: " + saved[0] + "|" + saved[2])
+    println("multiline: preserved")
+
+    // 文本结果直接接管底层缓冲；不要先 finish 再转换为 string。
+    csv.Writer text = csv.create()
+    text.write(["a,b"])
+    assert text.finishText() == "\"a,b\"\n"
+    println("finished-text: adopted")
+
+    // 超限使当前写入器失败，close 也不能把失败结果提交为成功。
+    csv.Writer limited = csv.create(maxField=2)
+    bool rejected = false
+    try
+        limited.write(["abc"])
+    catch RangeError e
+        rejected = true
+    end
+    assert rejected
+    rejected = false
+    try
+        limited.close()
+    catch RangeError e
+        rejected = true
+    end
+    assert rejected
+    println("limit: rejected")
+    return 0
+end

@@ -1,0 +1,4 @@
+import slugify
+
+// 固定字面量避免夹具本身的变量赋值复制混入返回链。
+assert slugify.slugify("Hello, World!") == "hello-world"

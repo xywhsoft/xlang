@@ -77,7 +77,7 @@ LF/CRLF 同签名对照已纳入 Windows 与 Linux C 门禁。
 
 ## 当前验证
 
-从 `demo6` 目录执行：
+从仓库根目录执行：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/volc.core/test/check.ps1

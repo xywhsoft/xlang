@@ -17,5 +17,8 @@ func main(...) as int
     println("valid=" + string(json5.valid(config)))
     println("typed=" + string(json5.getValue(config, "workers")))
     println("path=" + json5.get(config, "service"))
+    // 需判断精度时直接比较数值，不用显示字符串代替数值比较。
+    float rounded = 9223372036854775808.0 + 2048.0
+    assert float(json5.getValue("{n:0x8000000000000401}", "n")) == rounded
     return 0
 end

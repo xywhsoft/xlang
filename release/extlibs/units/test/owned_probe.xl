@@ -1,0 +1,8 @@
+import units
+
+// 单独检查五条返回链，避免普通输入字符串的必要复制混入结果。
+assert units.bytes(1536.0) == "1.50 KiB"
+assert units.bytesDecimal(1536.0) == "1.54 kB"
+assert units.duration(1536.0) == "25m 36s"
+assert units.durationShort(1536.0) == "25:36"
+assert units.count(1536.0) == "1.5K"

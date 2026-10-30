@@ -1,5 +1,57 @@
 # Brotli
 
+2026-10-29 普通 C 文件接口已实现：`xrtBrotliCompressFile` /
+`xrtBrotliDecompressFile` 接收同步 `xrtprogressproc + user`，无需创建
+`xvalue` 或依赖 xruntime。文件事务位于独立的 `xrt_brotli_file.c`，XLang
+现行文件函数复用它，仅保留回调与状态适配，用法和物理 ABI 不变。
+错误映射也共用内部头，不再维护两套文件事务。
+
+两平台新增 C 功能、打开态八组双故障、新双语范例和三条新增独立
+程序均通过。普通 C 宿主只编译 XRT，不链接语言桥接或 xruntime；
+符号复核没有 xrtValue/xrtCallable 实现。新 C 文件用例逐点 OOM 为
+Windows 118、Linux 104 个，均保留首因/旧目标/活动内存；与旧桥接
+夹具输入大小不同，不按故障点数量差推断接口性能。
+
+**M2 与 RFS 两个发布阻断仍开放**：原全局对象 AOT 在两平台退出期
+失败；新实测 Windows 已关闭事务提交失败后，回滚再遇一次 OOM 会
+遗留临时文件，原目标保留。Linux 同组 16 场景通过。打开态按句柄
+回滚通过不等于关闭态已解决，见[报告](../../../dev/extlib_blockers/brotli_closed_transaction_oom_cleanup.md)。
+Windows 默认 99 阶段为 95 正例、两项预期拒绝符合要求，上述两项失败；
+152 项指纹不变。Linux 的 ASan/UBSan、新旧双语 JIT/AOT 与关闭态先过，
+完整门禁最终在 M2 失败。不将本阶段 C 接口完成等同于整包发布签收。
+
+2026-10-29 较早的桥接头审查：修复模块选择污染和包含顺序。桥接头只
+依赖标准bool/size_t及opaque xvalue指针，不主动打开XRT VALUE；
+四种包含组合的严格C红例转绿。“桥接头先于核心头”原先还会使
+xbuffer/xreader/xwriter未声明。共享文件故障测试显式包含自身使用的
+XRT头，不继续依赖桥接头的隐式导入；公开函数原型和ABI未变。
+
+另确认 **M2 主线发布阻断**：`test/top_level.xl` 在顶层保存压缩和
+解压对象，JIT通过；Windows独立EXE在往返验证并打印PASS后，退出
+期报 `RuntimeError: operation is not valid in the current state`，返回1。
+默认完整门禁保留该红项，不能把对象搬进main来签收。此症状与其他
+包的顶层native-backed class退役相同，但尚未证明内部根因完全相同；
+主线复现和修复方向见 `dev/extlib_blockers/global_native_class_aot_fini.md`。
+下列旧通过记录不覆盖本轮新增的顶层退出边界，本包暂不完整签收。
+
+当日较早的Windows默认完整门禁80项中，仅最后top-level-aot未达到预期，
+其余77正例及两项预期访问拒绝通过，输入无变化；含26个生成原型、
+116个C内存故障点、94个文件分配故障点、旧双语JIT/AOT。Linux
+原生快照同样先通过四种头组合、C ASan/UBSan、116个内存/76个文件
+故障点、六份旧语言EXE及双语对照，最后的顶层EXE退出1。
+两平台“仅创建一个全局对象”的最小对照也复现，未归因为流操作；
+完整现场和恢复顺序见上述M2报告，不在包内绕过模块退出期检查。
+
+2026-10-28 从当前工作树构建的 Windows/Linux 发布版复验：默认
+`tools/check_extlib_brotli.ps1` 与 `tools/check_extlib_brotli.sh` 均退出 0。
+Windows 覆盖严格 C、生成原型、分配故障、进度回调、双语 JIT/AOT；
+Linux 覆盖 C ASan/UBSan、116 个分配故障点、文件事务、六份独立
+XLang EXE、C 文件事务 EXE 和双语对照。Linux 语言阶段在本次独占的
+原生临时目录运行；同一核心用例在 WSL 的 Windows 挂载盘曾无诊断
+退出，在原生目录通过。中央范例黄金文件现固定 LF 检出，门禁也
+规范化已有 CRLF 工作树的该份文本；包实现与公开 API 未改。
+这些是包级短时验证，不外推 32 位、TSan 或长时压力。
+
 2026-10-27 使用当前源码重建 Windows 发布版后，默认
 `tools/check_extlib_brotli.ps1` 退出 0：严格 C、分配故障、原生入口
 访问负例、外部 Brotli 流夹具、生成原型、语言 JIT/AOT、C/XLang
@@ -40,14 +92,14 @@ output.append(encoder.drain())
 | `compress(Buffer|string, quality=11, window=22, mode=0, maxInput=268435456, maxOutput=536870912)` | 压缩 Buffer；文本按 UTF-8 字节长度处理 |
 | `decompress(Buffer, maxInput=268435456, maxOutput=536870912, maxRatio=1000)` | 解压 Buffer |
 | `decompressText(Buffer, maxInput=268435456, maxOutput=536870912, maxRatio=1000)` | 校验 UTF-8 并接管文本缓冲；任意二进制用 Buffer |
-
-`decompressText` 保留内嵌 NUL，以 `cstring` 接管 XRT 解压缓冲，
-不再经 `Buffer.text()` 无条件复制；追加末尾 NUL 时容量不足仍可能扩容。
-非法 UTF-8 抛 `ValueError`。通过公开 C 导出调用时按普通字符串 ABI 转换。
 | `compressFile(source, destination, quality=11, window=22, mode=0, overwrite=true, maxInput=268435456, maxOutput=536870912, onProgress=null)` | 压缩到目标文件 |
 | `decompressFile(source, destination, overwrite=true, maxInput=268435456, maxOutput=536870912, maxRatio=1000, onProgress=null)` | 解压到目标文件 |
 | `compressor(quality=11, window=22, mode=0, maxInput=268435456, maxOutput=536870912)` | `BrotliCompressor` |
 | `decompressor(maxInput=268435456, maxOutput=536870912, maxRatio=1000)` | `BrotliDecompressor` |
+
+`decompressText` 保留内嵌 NUL，以 `cstring` 接管 XRT 解压缓冲，
+不再经 `Buffer.text()` 无条件复制；追加末尾 NUL 时容量不足仍可能扩容。
+非法 UTF-8 抛 `ValueError`。通过公开 C 导出调用时按普通字符串 ABI 转换。
 
 压缩器支持 `update(Buffer|string)`、`drain() as Buffer`、`finish() as bool`，
 只读属性为 `valid`、`inputBytes`、`outputBytes`。解压器支持 `update(Buffer)`、
@@ -93,7 +145,8 @@ brotli.compressFile("input.txt", "output.br", quality = 4,
 不能用 xvalue 的有符号精确读取器直接读取无符号计数。
 
 文件接口在目标所在目录建立独占临时文件，读写和关闭成功后再替换目标。
-取消、回调抛错或格式失败会清理临时文件并保留原目标；支持输入和输出路径相同。
+取消、回调抛错或格式失败在文件仍打开时按句柄回滚并保留原目标；
+已关闭后回滚再遇 OOM 的残留限制见文首。支持输入和输出路径相同。
 这不是断电持久性承诺，也不是异步接口。路径使用 XRT 的 UTF-8 文件 API；
 源或目标路径含 NUL 时抛 `ValueError`，不访问截断后的前缀路径。
 
@@ -101,6 +154,8 @@ brotli.compressFile("input.txt", "output.br", quality = 4,
 
 公共核心声明在 `include/xrt_brotli.h`，函数为 `xrtBrotli*`；薄绑定物理 ABI 在
 `include/brotli_native.h`，函数为 `xbrotli_*`。C 编写算法通常直接用前者。
+薄绑定头仅声明标准C类型和opaque回调指针；调用XRT函数的C代码需显式
+包含并配置相应XRT头，不能依赖薄绑定头替宿主打开VALUE模块。
 模块选择必须在第一次包含 XRT 单头文件之前完成；包清单的 `artifact.xrtModules`
 给出完整依赖，独立 C 门禁也从清单读取。公共核心头自身选择 IO_BUFFER。
 
@@ -122,9 +177,35 @@ brotli.compressFile("input.txt", "output.br", quality = 4,
 - 薄绑定的版本文本和 last-error 文本为借用返回值，不应 xrtFree；需要跨调用保存
   时由调用方复制。xlang 字符串返回桥会形成语言层所需的字符串。
 
+普通 C 文件入口签名为
+`xrtBrotliCompressFile(source, destination, options, overwrite, progress, user)`，
+解压入口参数相同。同步借用路径/回调/状态，返回后不保留。NULL options
+用默认配置，NULL 回调不报告进度；成功 true 并清旧错误，失败 false，
+原因见 `xrtGetError`。回调 false 表示取消；若同时设置 XRT 错误，保留
+其类型/域/代码/消息而非改报取消。FINAL 在提交前，最终取消不发布
+半成品；不覆盖模式在最终提交仍防止覆盖抢先出现的目标。
+
+纯 C 只需宿主的一份 XRT、`xrt_brotli.c`、`xrt_brotli_file.c` 和
+third_party 的 common/dec/enc 源码，不用 `brotli_native.c`。模块选择
+含 IO_BUFFER/IO_FILE/FILE_TEMP 等实际依赖，独立测试宿主见
+`test/xrt_file_runtime.c`，不要额外嵌入第二份 XRT。
+
 ## 构建与验证
 
-从 demo6 工作目录执行：
+新增 `examples/files.xl` / `examples/files_c.c` 以相同四字节二进制、
+压缩质量和旧目标标记，验证进度、往返、取消保留，匹配同一三行
+`examples/files.expected.txt`。XL 可直接 xl run；C 可用包运行器，
+如 `tools/run_extlib_c.ps1 -Package brotli -Source release/extlibs/brotli/examples/files_c.c`，
+或按上述纯 C 源清单分离编译。范例使用独占临时目录，正常路径清理。
+
+`test/files_c.c` 在 NDEBUG 下仍执行全部断言，覆盖多块进度、FINAL、
+普通/最终取消、设置错误的回调、目标竞态、同路径、UTF-8、空文件/
+默认配置、限额/坏输入/缺文件及四组逐点 OOM。打开态八组在
+`file_rollback_open.c`，关闭态 16 组在 `file_rollback_closed.c`，后者
+Windows 保留红项。默认门禁检查纯 C 宿主和新例 JIT/AOT，Windows
+构建目录按次隔离；关闭态失败仍继续检查 M2，报告与现场保留。
+
+从仓库根目录执行：
 
 ```powershell
 release/xl.exe run release/examples/extlibs/brotli_basic.xl
@@ -178,7 +259,7 @@ JIT 通过；Linux C ASan/UBSan、文件事务、XLang 和双语黄金输出通�
 
 2026-10-20：中央教学范例的文件段原写入固定目录，且只在成功时逐个
 删除文件，存在覆盖与残留风险。现使用 `dir.temp`、`path.join` 和
-`try/finally`，从 `demo6` 根与 `release` 直接运行均输出
+`try/finally`，从仓库根目录与 `release` 直接运行均输出
 `brotli example: PASS`；Linux C ASan/UBSan、分配故障、文件事务、
 XLang 与双语联合门禁通过。压缩实现未改，完整 AOT 阻断仍保留。
 

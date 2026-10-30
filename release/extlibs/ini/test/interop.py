@@ -35,6 +35,16 @@ def main():
     output = io.StringIO()
     written.write(output)
     run(program, "read", output.getvalue().encode("utf-8"))
+
+    # 非严格模式覆盖较早的键；续行归属也用独立实现的实际值核对。
+    updates = ("[server]\nname=old\nport=9090\n"
+               "name=\u4f60\u597d\n    next\n[client]\ntimeout=5\n")
+    parsed = configparser.ConfigParser(interpolation=None, strict=False)
+    parsed.read_string(updates)
+    assert parsed["server"]["name"] == "\u4f60\u597d\nnext"
+    assert parsed["server"]["port"] == "9090"
+    assert parsed["client"]["timeout"] == "5"
+    run(program, "read-updates", updates.encode("utf-8"))
     print("ini independent C/Python interoperability: PASS")
 
 

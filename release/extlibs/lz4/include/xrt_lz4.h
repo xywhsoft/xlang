@@ -93,7 +93,8 @@ XRT_API bool xrtLz4DecompressStream(xreader* pReader, xwriter* pWriter, const xr
 	xrtprogressproc pProgress, ptr pUserData, xrtlz4error* pError);
 
 /* 同目录临时文件，完整验证、最终回调和关闭成功后才提交；支持原地变换。
- * 失败保留原目标并删除临时文件，错误从 xrtGetError 读取。 */
+ * 失败保留原目标，错误从 xrtGetError 读取。仍打开时按句柄回滚；
+ * 已关闭事务的路径删除再次 OOM 时仍可能遗留临时文件，发布风险见 README。 */
 XRT_API bool xrtLz4CompressFile(const char* source, const char* destination,
     const xrtlz4options* options, bool overwrite, xrtprogressproc progress, ptr user);
 XRT_API bool xrtLz4DecompressFile(const char* source, const char* destination,

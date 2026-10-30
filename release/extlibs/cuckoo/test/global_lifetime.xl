@@ -1,0 +1,14 @@
+import cuckoo
+
+// 合法的模块级对象：程序退出时应自然释放，不能通过搬进main规避退役。
+cuckoo.CuckooFilter filter = cuckoo.create(16)
+
+func main(...) as int
+    assert filter.valid
+    filter.add("lifetime")
+    assert filter.count == 1 and filter.contains("lifetime")
+    assert filter.remove("lifetime") and filter.count == 0
+    filter.clear()
+    println("cuckoo lifetime: PASS")
+    return 0
+end

@@ -82,7 +82,7 @@ Windows/Linux 均确认该裸指针入口未导出；现有 C/XLang 边界、双
 Windows 无输出 AOT 核心和 Linux ASan/UBSan 门禁通过。
 `Snapshot(point)` 的主线可见性缺陷及完整 AOT 阻断未解除。
 
-2026-10-19：C 教学范例现在可从 `demo6` 直接执行
+2026-10-19：C 教学范例现在可从仓库根目录直接执行
 `release/xl.exe run release/extlibs/floatEnv/examples/float_env_c.c`。
 仅 TCC 单文件运行路径内含本包原生实现；正式包和 GCC 仍独立编译。
 Windows 门禁比较包运行器、单文件 C 与 XLang 的输出，Linux 门禁比较

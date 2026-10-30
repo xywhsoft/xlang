@@ -29,6 +29,7 @@
     <pre><code>import pinyin
 println(pinyin.convert("中国"))   // zhong guo
 println(pinyin.initials("中国"))  // zg</code></pre>
+    <p>全表预期使用 Unicode 17.0.0 Unihan 独立核对，已修正“伉 → kang / k”的错误；“佛 → fo”“地 → di”保留既有合法固定读音。55,328 项回归包含全部 395 项与汉字区内未收录码点。包内 <code>examples/search_keys.xl</code> 与 <code>search_keys_c.c</code> 演示同一辅助检索键和未知字符保留，两者使用同一黄金输出。</p>
     <p>输入须为合法 UTF-8，不能包含 NUL。C 函数返回的独立字符串用 <code>xrtFree</code> 释放。当前 Windows/Linux 默认门禁均通过严格 C、Linux ASan/UBSan、语言边界与分配故障，以及中央/边界/分配/公开范例独立 EXE；C 单文件范例 AOT 与 GCC、TCC、XLang 的固定中文输出一致。旧共享链接缺符号不再复现。本包只提供 395 字固定小字表，不做多音字消歧或分词。</p>
   </section>
 </main>

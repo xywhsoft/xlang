@@ -164,9 +164,11 @@ static int xgt_decode_po_string(XgtStr *out, const char *p,
             }
             p += 2;
         } else {
-            if (*p == '\0') return 0;
-            if (!xgt_put(out, p, 1)) return 0;
-            p++;
+            /* 范围来自已定位闭引号的 C 文本，无 NUL；普通正文一次追加。 */
+            const char *slash = memchr(p, '\\', (size_t)(end - p));
+            const char *stop = slash ? slash : end;
+            if (!xgt_put(out, p, (size_t)(stop - p))) return 0;
+            p = stop;
         }
     }
     return 1;
@@ -191,6 +193,13 @@ static int xgt_po_quoted(XgtStr *out, const char *p, const char *end) {
         }
     }
     return 0;
+}
+
+/* 字段名按 token 边界识别，后接空白或引号，不把名称前缀当关键字。 */
+static int xgt_po_keyword(const char *p, const char *end,
+    const char *keyword, size_t size) {
+    return (size_t)(end - p) > size && memcmp(p, keyword, size) == 0 &&
+        (p[size] == ' ' || p[size] == '\t' || p[size] == '"');
 }
 
 typedef struct {
@@ -335,19 +344,21 @@ xvalue *xgt_parse_po(const char *text) {
             if (entry.have_translation && !xgt_po_flush(catalog, &entry)) goto fail;
             if (p + 1 < lineEnd && p[1] == ',' &&
                 xgt_po_fuzzy_flag(p + 2, lineEnd)) entry.fuzzy = 1;
-        } else if (strncmp(p, "msgctxt ", 8) == 0) {
+        } else if (xgt_po_keyword(p, lineEnd, "msgctxt", 7)) {
+            /* 新上下文开始下一条消息；上一条完整译文无需额外空行提交。 */
+            if (entry.have_translation && !xgt_po_flush(catalog, &entry)) goto fail;
             if (entry.have_context || entry.have_id ||
-                !xgt_po_quoted(&entry.context, p + 8, lineEnd)) goto fail;
+                !xgt_po_quoted(&entry.context, p + 7, lineEnd)) goto fail;
             entry.have_context = 1;
             entry.active = 1;
-        } else if (strncmp(p, "msgid_plural ", 13) == 0) {
+        } else if (xgt_po_keyword(p, lineEnd, "msgid_plural", 12)) {
             if (!entry.have_id || entry.have_plural || entry.have_translation ||
-                !xgt_po_quoted(&entry.plural, p + 13, lineEnd)) goto fail;
+                !xgt_po_quoted(&entry.plural, p + 12, lineEnd)) goto fail;
             entry.have_plural = 1;
             entry.active = 3;
-        } else if (strncmp(p, "msgid ", 6) == 0) {
+        } else if (xgt_po_keyword(p, lineEnd, "msgid", 5)) {
             if (entry.have_id && !xgt_po_flush(catalog, &entry)) goto fail;
-            if (!xgt_po_quoted(&entry.id, p + 6, lineEnd)) goto fail;
+            if (!xgt_po_quoted(&entry.id, p + 5, lineEnd)) goto fail;
             entry.have_id = 1;
             entry.active = 2;
         } else if (strncmp(p, "msgstr", 6) == 0) {
@@ -581,13 +592,14 @@ static char *xgt_context_key(const char *context, const char *msgid) {
     size_t left;
     size_t right;
     char *key;
-    if (!context || !msgid) return NULL;
+    if (!context) return NULL;
     left = strlen(context);
-    right = strlen(msgid);
     if (memchr(context, '\004', left) != NULL) {
         xgt_error("gettext context separator in context");
         return NULL;
     }
+    if (!msgid) return NULL;
+    right = strlen(msgid);
     if (left > SIZE_MAX - right - 2) {
         xgt_error("context key is too long");
         return NULL;
@@ -655,10 +667,8 @@ const char *xgt_tc_borrowed(xvalue *catalog, const char *context, const char *ms
     const char *result;
     xrtClearError();
     key = xgt_context_key(context, msgid);
-    if (!key) {
-        if (context && msgid) return NULL;
-        return msgid ? msgid : "";
-    }
+    /* 缺参也走统一检查；只有构键的实际错误才直接返回。 */
+    if (!key && xrtGetError()) return NULL;
     result = xgt_translate_borrowed(catalog, key, msgid, NULL, 1, 0);
     xrtFree(key);
     return result;
@@ -674,12 +684,7 @@ const char *xgt_tnc_borrowed(xvalue *catalog, const char *context, const char *m
         return NULL;
     }
     key = xgt_context_key(context, msgid);
-    if (!key) {
-        if (context && msgid) return NULL;
-        const char *fallback = n == 1 || !msgidPlural ?
-            (msgid ? msgid : "") : msgidPlural;
-        return fallback;
-    }
+    if (!key && xrtGetError()) return NULL;
     result = xgt_translate_borrowed(catalog, key, msgid, msgidPlural, n, 1);
     xrtFree(key);
     return result;

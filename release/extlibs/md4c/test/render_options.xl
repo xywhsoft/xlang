@@ -1,0 +1,21 @@
+import md4c
+
+func main(...) as int
+    c_int common = md4c.commonmark_flags()
+    c_int github = md4c.github_flags()
+    assert md4c.available() and md4c.version() == "md4c 0.5.2"
+    assert md4c.html_flags("\ufeff# Title", common, md4c.skip_utf8_bom_flag()) == "<h1>Title</h1>\n"
+    string markdown = "---\n\na  \nb\n\n![x](/p)"
+    assert md4c.html_flags(markdown, common, 0) == "<hr>\n<p>a<br>\nb</p>\n<p><img src=\"/p\" alt=\"x\"></p>\n"
+    assert md4c.html_flags(markdown, common, md4c.xhtml_flag()) == "<hr />\n<p>a<br />\nb</p>\n<p><img src=\"/p\" alt=\"x\" /></p>\n"
+    assert md4c.html_flags("&copy; &#x4e2d;", common, 0) == "<p>© 中</p>\n"
+    assert md4c.html_flags("&copy; &#x4e2d;", common, md4c.verbatim_entities_flag()) == "<p>&copy; &#x4e2d;</p>\n"
+    assert md4c.html_flags("~~old~~", common, 0) == "<p>~~old~~</p>\n"
+    assert md4c.html_flags("~~old~~", github, 0) == "<p><del>old</del></p>\n"
+    assert md4c.html_flags("<b>x</b>", common, 0) == "<p><b>x</b></p>\n"
+    assert md4c.html_flags("<b>x</b>", common + md4c.no_html_flag(), 0) == "<p>&lt;b&gt;x&lt;/b&gt;</p>\n"
+    assert md4c.html_flags("", github, md4c.skip_utf8_bom_flag() + md4c.xhtml_flag() + md4c.verbatim_entities_flag()) == ""
+    assert md4c.last_error() == ""
+    println("md4c render options: PASS")
+    return 0
+end

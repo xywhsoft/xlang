@@ -1,0 +1,51 @@
+import totp
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    string secret = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"
+    for operation in range(3)
+        for budget in range(2)
+            string result = ""
+            bool memoryCaught = false
+            bool triggered = false
+            // 解码和 HMAC 在栈上完成，C 与 XL 都只需最终验证码分配。
+            assert failAfter(uint64(budget))
+            try
+                if operation == 0 then
+                    result = totp.hotp(secret, 0)
+                elseif operation == 1 then
+                    result = totp.generateAt(secret, 1111111109, 30, 8)
+                else
+                    result = totp.generate(secret)
+                end
+            catch MemoryError error
+                memoryCaught = true
+            finally
+                triggered = failTriggered()
+                failClear()
+            end
+            if budget == 0 then
+                assert triggered and memoryCaught
+            else
+                assert not triggered and not memoryCaught, "totp copied text after the native result was adopted"
+                if operation == 0 then
+                    assert result == "755224"
+                elseif operation == 1 then
+                    assert result == "07081804"
+                else
+                    // 实时调用不锁定墙钟；固定时间及实时验证另有完整回归。
+                    assert string.byteLen(result) == 6
+                    for index in range(6)
+                        uint8 digit = string.byteAt(result, index)
+                        assert digit >= 48 and digit <= 57
+                    end
+                end
+            end
+        end
+    end
+    println("totp owned result budgets: PASS")
+    return 0
+end

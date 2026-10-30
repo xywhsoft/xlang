@@ -5,6 +5,67 @@
 `TcpStream`，由 `command` 组合 `send`、`wait`、`recv` 完成命令调用。
 不包含连接池、自动重连、订阅模式或事务编排。
 
+## 2026-10-30 Windows 门禁与失败现场
+
+本轮未确认新的 RESP/客户端缺陷，也没有修改原生编解码、语言层、公开头、
+manifest 或范例源。修正的是 Windows 验收入口：旧 Run 缺程序会抛异常，
+不是已证实的假绿，但没有结构化启动状态；旧流程也不保留完整失败现场，
+输出管道还会改变正文中的独立 CR。现复用已有进程帮助函数，记录实际
+程序/参数、工作目录、原始退出码、两条输出流及耗时，不沿用 LASTEXITCODE。
+普通子进程限时120秒，可选十万次复用限时600秒；不改变 Linux 既有门禁限时。
+PowerShell C 运行器也在独立进程运行。输出只统一 CRLF，保留独立 CR。
+
+新增 check_gate_diagnostics.ps1 从实际 Run 的 AST 验证11个子进程结果，
+包含缺程序、静默37、预期非零、意外成功、空参数、双流、独立CR、相对
+目录、超时及PowerShell脚本退出。PS5.1/7的同一自测均先在旧Run因缺少
+记录失败，再于新Run通过。另从真实check.ps1入口注入静默退出37的
+编译器，两种Shell均得到raw37/outer1，保留failure.txt、report.json、
+commands.log、inputs.before.json；不只验证一个脱离入口的相似函数。
+
+默认完整Windows门禁33项、44输入/工具指纹通过，含C边界/分配/线程、
+TCP分片/错误/期限/500次复用和六份独立程序。新增真正的GCC C范例
+构建与运行，再与C运行器、xl run、XLang JIT/AOT对照；原C运行器本来
+使用TCC，不再仅凭其输出来声称GCC验证。首次新增检查因测试运行时
+漏启MEMORY_DEBUG而缺少FreeAt等符号，按现有Linux夹具统一宏后通过，
+没有改XRT或增加stub，失败现场保留。成功保留redis_guard_*.report.json，
+只删除本次临时产物；失败保留原目录与全部记录。
+
+Linux本轮仅验证新增C进程夹具的六种模式与源/工具指纹，未重跑完整
+协议门禁、真Redis或挂载盘AOT，也未重复旧十万次压力。本地证据
+build/test/redis_audit_1793335454335；最终报告
+build/test/redis_guard_86061a8deb514f3ab7e9c97b2a4b2dec.report.json。
+Linux夹具现场/var/tmp/xlang-redis-probe-nf2eH6tL。主线/XRT/八件冻结
+发布物未变，挂载盘构建风险仍开放，Redis保持R，非整包新增发布签收。
+
+从仓库根目录运行门禁自测：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/redis/test/check_gate_diagnostics.ps1
+```
+
+## 2026-10-28 复核
+
+本轮修复增量扫描器将已不可能补齐的数组/大块回复继续视为不完整的问题：
+读取数组头时预留所有子节点，包含尚未收到的兄弟项；字节限额同时计算帧头
+与结束 CRLF。无状态检查、增量扫描与解码共用相同预算，合法完整帧范围不变。
+新增 C/XLang 边界及回环测试要求立即报告畸形帧并中止旧连接，而不是等到超时。
+另修复 C 范例单独释放父对象借用值的问题；新增独立调用合同审计，避免仅靠
+输出对照或分配池偶然发现错误。公开 API、原生结构大小和生产分配路径不变。
+
+固定发布物上 Windows 默认完整门禁和隔离 Redis 8.0.5 真服务门禁通过；
+Linux 原生文件系统的同源码快照通过完整离线门禁，包括 C ASan/UBSan、
+分配故障、线程、双语范例所有权、TCP 边界与六条独立 EXE 路径。
+同一 Linux 原生快照的隔离 Redis 8.0.5 联合门禁也退出 0，包括 C/XLang
+真实调用、错误后复用、显式重连、四连接各 50 轮及真服务范例 AOT；服务已关闭。
+本机 Windows 挂载盘上的 Linux 核心 AOT 则两次触发既有限时 120 秒，
+原生文件系统同命令约 8.7 秒。没有放宽门禁、改用其他编译器或跳过 AOT；
+本包暂列 R，保留[挂载盘构建风险](../../../dev/extlib_blockers/redis_linux_drvfs_aot_20261028.md)，
+不将原生文件系统通过替代挂载盘上的失败。数小时耐久仍不在本次验收范围。
+
+### 既有验证记录
+
+下列记录只对应各自日期和发布物，当前状态以上方复核与验收矩阵为准。
+
 2026-10-26 完整重建 Windows/Linux 发布物后，两平台默认包门禁退出 0：
 严格 C、Linux ASan/UBSan、语言边界和分配故障、离线 TCP 分片/错误/
 超时/复用、核心及回环 AOT，以及公开 C/XLang 范例的独立 EXE AOT
@@ -42,6 +103,8 @@ Windows/Linux x64 短时 RC 范围签收；数小时耐久、集群、自动重�
 范例/测试已改用当前 `NetEngine`、`NetAddress`、`TcpStream` 接口。
 这属于短时实测，不代替数小时运行或当前 Linux 发布版验收。
 
+## 使用与边界
+
 ```xlang
 import redis
 
@@ -66,8 +129,13 @@ assert reply["value"]["value"] == "hello"
 无需连接真实 Redis 服务。
 `isComplete` 对不完整回复返回
 `false`，对畸形回复抛 `ValueError`。编码和解析均按**字节长度**处理，
-字符串中的 `\0` 不会截断数据。单帧上限 64 MiB，数组最多十万项，
-整条回复累计最多十万个值节点，嵌套深度最多 64 层。
+字符串中的 `\0` 不会截断数据。命令最多十万个参数；回复输入最多 64 MiB，
+帧头、内容与结束 CRLF 都计入字节限额。整条回复累计最多十万个值节点，
+包含根值及空数组，因此根数组最多 99999 项，嵌套后代也占用同一额度；
+嵌套深度最多 64 层，根值为第 1 层。这些预算在头部已能确定非法时立即拒绝：
+例如 `*99999\r\n` 是合法未收齐前缀，`*100000\r\n` 已是畸形回复；
+64 层非空数组头不可能再补一个合法子值。根 bulk 的最大正文为 67108851 字节，
+不是完整的 64 MiB。输入已占满字节限额而首帧仍未结束时，也属于畸形回复。
 含非 UTF-8 字节的 RESP error 负载在原始解码结果中仍为 `bytes`，
 不会在解码层丢失字节；`command` 才将完整错误回复转换为包级异常。
 
@@ -102,12 +170,14 @@ C 接口见 `include/redis_native.h`，输入 `xvalue*` 仅借用；
 成功返回的
 `xvalue*` 由调用方以 `xrtValueRelease` 释放。原生错误返回 `null`
 值并保留 XRT 结构化错误。所有编解码结果独立拥有，不使用静态环形缓冲。
+`xrtValueObjectGet`、`xrtValueArrayAt` 取得的子值只是借用；没有另行 retain
+时不能单独 release，由拥有它们的父值统一释放。C 范例将这类值与拥有值分开命名。
 
 包级验证：
 
 - 在 `release` 目录运行 `xl run examples/extlibs/redis.xl` 或
   `xl run examples/extlibs/redis_c.c`，输出一致，均不依赖外部服务。
-  C 范例直接包含原生实现；从 `demo6` 根目录调用时也可使用
+  C 范例直接包含原生实现；从仓库根目录调用时也可使用
   `tools/run_extlib_c.ps1 -Package redis -Source release/examples/extlibs/redis_c.c`。
 - `xl run extlibs/redis/test/boundaries.xl`
 - `tools/smoke_extlib_catalog.ps1 -Package redis` 会发现包清单登记的无设备
@@ -134,7 +204,7 @@ C 接口见 `include/redis_native.h`，输入 `xvalue*` 仅借用；
   `test/test_redis_alloc.c` 和 `test/test_redis_threads.c`；故障测试逐点拦截
   文本/二进制命令编码及嵌套回复解码的分配，要求失败保留内存错误类型，
   清除故障后生成的文本 RESP 与固定字节向量一致。
-  `sh release/extlibs/redis/test/check.sh` 在独立 Linux 进程中运行这三组
+  `bash release/extlibs/redis/test/check.sh` 在独立 Linux 进程中运行这三组
   C 测试并启用 ASan/UBSan 泄漏检查，还运行中央及包内 XLang 边界、500 次本地
   TCP 回环复用及 C/XLang 范例逐字节对照；默认还验证核心、回环及
   C/XLang 公开范例独立 EXE，且无需 Redis 服务。
@@ -155,7 +225,7 @@ C 接口见 `include/redis_native.h`，输入 `xvalue*` 仅借用；
   同日再以 `REDIS_STRESS=1` 运行自管理临时 Redis 8.0.5 门禁：四连接各
   10,000 轮与 C ASan/UBSan、真实服务错误/重连及双语范例同次通过；退出后
   未留下 Redis 进程。该高请求量短时验证仍不代替长时运行或完整 AOT。
-- WSL/Linux 已安装 Redis 并监听 `127.0.0.1:6379` 时，可从 `demo6`
+- WSL/Linux 已安装 Redis 并监听 `127.0.0.1:6379` 时，可从仓库根目录
   运行 `REDIS_LIVE=1 bash release/extlibs/redis/test/check.sh`。该可选分支
   以 ASan/UBSan 跑 C 真服务用例，再跑 XLang 单连接与四连接并发用例；
   默认不连接服务。2026-10-15 在 Redis 8.0.5 上三组均通过。
@@ -195,7 +265,20 @@ C 接口见 `include/redis_native.h`，输入 `xvalue*` 仅借用；
   ASan/UBSan 下连接 Redis 8.0.5 通过；这个运行时文件仅供 C 测试，
   不进入包清单。
 
-XL AOT 当前因主线缺少 `xl6ValueDataSnapshotV1` 而失败，见
+`test/test_redis.c` 还实际构造十万节点边界及完整 64 MiB 回复，不缩小生产
+上限替代测试；所有头部严格前缀均交叉比较两种检查器，并以独立预期区分
+合法未完成和畸形输入。`test/test_example_lifetime.c` 单独审计 C 范例直接
+释放借用值的调用，两平台默认门禁均运行；这是此范例的合同回归，不是通用
+引用计数分析器。Linux 门禁成功才删除工作目录，失败保留原始退出码、
+命令/行号、管道状态、编译器版本、输入指纹和产物；可用 `TMPDIR` 指定
+持久的测试目录，避免 WSL 重建会话时丢失 `/tmp` 现场。运行前后同时核对
+包输入、XRT 头、CLI 与 `libxlc.so` 的指纹。
+
+## 历史阻断记录
+
+以下只记录当时的发布物，不描述当前故障或恢复旧接口。
+
+2026-10-24 及以前，XL AOT 曾因主线缺少 `xl6ValueDataSnapshotV1` 而失败，见
 `dev/extlib_blockers/text_snapshot_link.md`。新增无输出
 `test/aot_core.xl` 只调用 `isComplete`，JIT 通过，但 AOT 同样
 缺该符号。包清单现声明与 `test/live_runtime.c` 一致的四个 XRT
@@ -209,9 +292,9 @@ XL AOT 当前因主线缺少 `xl6ValueDataSnapshotV1` 而失败，见
 编译器与当前包/标准库声明不一致的可独立复现阻断；同步 Linux 发布物后
 重跑完整 C/XLang 真服务门禁，不在包内增加旧签名回退，也不把 C 通过
 记作 XLang 通过。
-真实 Redis 单连接成功/错误/主动断线后显式重连及四连接短轮次并发路径已验证，C 原生宿主也
-经过真服务门禁；尚未覆盖长时运行、
-自动重试策略（当前 API 不承诺自动重连）以及完整 AOT，因此暂不签收发布验收。
+当时真实 Redis 单连接成功/错误/主动断线后显式重连及四连接短轮次并发路径已验证，
+C 原生宿主也经过真服务门禁；当时尚未覆盖长时运行和完整 AOT，未签收发布验收。
+当前 API 仍不承诺自动重连或自动重试。
 
 2026-10-20：Windows 包级默认门禁加入核心与完整带输出范例的 AOT
 构建、运行和 C 输出对照；独占构建目录在退出时清理。`-SkipAot` 保留

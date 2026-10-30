@@ -12,6 +12,6 @@
     "links": [],
     "loadlibs": [],
     "dependencies": [],
-    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/interop.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

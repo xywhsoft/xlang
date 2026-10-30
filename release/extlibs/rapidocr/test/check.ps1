@@ -6,7 +6,7 @@ $workParent = Join-Path $root 'build/test/rapidocr'
 $work = Join-Path $workParent ('run_' + [guid]::NewGuid().ToString('N'))
 $release = Join-Path $root 'release'
 $xl = Join-Path $release 'xl.exe'
-$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
+$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 [void][IO.Directory]::CreateDirectory($work)
 $previousTestDir = $env:RAPIDOCR_TEST_DIR
 $previousTestImage = $env:RAPIDOCR_TEST_IMAGE

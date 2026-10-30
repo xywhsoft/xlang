@@ -1,5 +1,23 @@
 # css
 
+2026-10-29：修复两个已由 C/XLang 复现的扫描边界：
+
+- `stripComments` 原先没有跳过字符串外的反斜杠转义，会把 `\/*` 中的
+  斜杠当注释开头，或把 `\"` 中的引号当字符串开头，造成内容丢失或误报。
+  现在与查询扫描器一样保留转义原文；并未添加 CSS 反转义或完整 token API。
+- 64 层限制原只在递归进入下一层时检查，最内层为空、只有注释或为声明块时
+  可能漏计。现在统一计入当前块状 at-rule：64 层通过、65 层报 `RangeError`。
+  五个语法查询入口即使已在前面命中结果，也必须拒绝后续超限块。
+
+新增独立 C 扫描边界测试从修复前 73 项中的 27 项失败降为零；对应语言
+测试已加入清单。覆盖 0..7 个反斜杠的奇偶、真假注释/引号、中文、四类叶块、
+五个查询入口的 64/65 临界值、剥离独立于递归上限、逐分配点 OOM 和释放检查。
+Windows PowerShell 5.1 默认门禁 43 阶段通过；Linux 原生文件系统快照的
+C ASan/UBSan、线程、边界、分配故障、六个实际生成原型与双语输出全部通过；
+两平台各九条独立程序路径均通过，内外输入指纹无变化。
+实现只调整共享扫描分支，不改六个公开 API、ABI、返回所有权或冻结 XRT。
+门禁现在记录有界命令、原始输出和输入指纹，成功清理构建目录、失败保留现场。
+
 2026-10-27：`get`、`selectorAt`、`stripComments` 的 C 结果明确为 XRT
 自有 `char*`，XLang 以 `@owned string` 直接接管，移除语言侧
 `point/takeCstr` 中转。生成 C 门禁逐项检查直接赋给字符串 `Data`；
@@ -37,12 +55,17 @@ assert css.selectorAt(sheet, 0) == "h1"
 字面量中的注释样式文本。
 `get`、`countRules`、`countProps`、`selectorAt` 在返回查询结果前检查整份
 样式表的受支持语法；即使首个匹配位于前半段，尾部损坏也会报错。
-这些查询与 `validate` 共用嵌套 at-rule 深度上限：64 层有效，第 65 层
+这些查询与 `validate` 共用块状 at-rule 嵌套深度上限：64 层有效，第 65 层
 报告 `RangeError`，避免递归扫描耗尽 C 栈。
+空块、纯注释块及 `@font-face` 这类声明块均计入；普通规则不额外增加
+at-rule 层数，没有块的 `@import ...;` 也不增加块嵌套层数。
 选择器与声明表达式中的 `()`、`[]` 必须按实际嵌套顺序闭合；
 `([)]` 等交叉闭合报告 `ValueError`。两类括号合计最多嵌套 64 层，
 第 65 层报告 `RangeError`。查询不会跳过命中规则之后的坏括号。
-`stripComments` 只校验注释与引号边界，不替代 `validate`。
+`stripComments` 只校验注释与引号边界，并保留基本反斜杠转义，不替代 `validate`。
+例如字符串外的 `\"` 不开始引号字符串，`\/*` 不开始注释；这与
+[CSS Syntax 3 的转义和 token 消费规则](https://www.w3.org/TR/2026/CRD-css-syntax-3-20261001/#consume-token)一致。
+剥离采用迭代扫描，不平白继承语法查询器的 at-rule 递归深度限制。
 引号字符串中的未转义 CR、LF、FF 属于语法错误；反斜杠续行有效，
 其中 CRLF 按一个换行处理。这遵循 [CSS Syntax 3 的字符串记号规则](https://www.w3.org/TR/css-syntax-3/#consume-string-token)，
 但本包仍只承诺文中列出的受限查询能力。
@@ -61,7 +84,7 @@ C ABI 一致；C 输出计数可使用 `<inttypes.h>` 的 `PRId64`。
   ASan/UBSan、线程、XLang JIT，以及核心、边界、分配故障和公开范例的
   四条独立 EXE AOT 路径；公开范例 AOT 与 C 输出逐字节一致。
   这是包级验收，不等于完整 CSS 浏览器语义或整个 xlang 发布签收。
-- 2026-10-25：六个 C 文本入口不再将 `NULL` CSS 正文视作合法空样式表；
+- 2026-10-25：六个 C 公开入口不再将 `NULL` CSS 正文视作合法空样式表；
   它们按各自失败值返回并报告 `XERR_ARGUMENT`，真正的 `""` 仍有效。
   C 负例逐入口覆盖错误类别和失败后恢复。Windows 默认门禁的严格
   C/ABI、线程、XLang 与核心/边界/范例 AOT 全通过；Linux C
@@ -86,9 +109,18 @@ C ABI 一致；C 输出计数可使用 `<inttypes.h>` 的 `PRId64`。
 - 从 `release` 目录运行 `xl run examples/extlibs/css.xl`，以及
   `xl run examples/extlibs/css_c.c`；两者输出完全一致。
   C 范例显式包含包内实现，可作为单个源文件运行。
+- 新增 `examples/audit.xl` / `examples/audit_c.c`：先剥离真实注释，再审计
+  含转义自定义属性、引号文本及 print 块的样式表。六个 API 均有实际调用，
+  两种语言共用 `examples/audit.expected.txt`，严格 C、直跑与独立程序均核对
+  同一七行结果；不把 print 内声明当作浏览器最终计算样式。
+  在发行目录运行 `xl run extlibs/css/examples/audit.xl` 与
+  `xl run extlibs/css/examples/audit_c.c`。
 - `xl run extlibs/css/test/boundaries.xl`
+- `xl run extlibs/css/test/scanner_edges.xl` 与
+  `xl run extlibs/css/test/scanner_edges_c.c` 分别运行本轮扫描回归；独立 C 文件
+  名称故意不与语言文件相同，避免触发语言规定的 C companion 自动混编。
 - `xl run extlibs/css/test/allocations.xl` 对六个公开 XLang 入口分别扫描至首个无故障成功（最多 128 点），每入口至少命中一次 `MemoryError`，每次清除故障后立即重试并核对正常结果。2026-10-21 的 Windows `-SkipAot` 与 Linux 包级门禁均通过；不据此签收完整 AOT。
-- 从 `demo6` 目录运行
+- 从仓库根目录运行
   `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/css/test/check.ps1`，
   一次验证清单宏严格编译、C ABI、C 边界与线程、XLang 边界和双语同输出；
   去掉 `-SkipAot` 时继续验证无输出核心及完整 AOT。
@@ -96,6 +128,10 @@ C ABI 一致；C 输出计数可使用 `<inttypes.h>` 的 `PRId64`。
   12000 字节长值与四线程 2000 次查询均覆盖。
 - Linux C 门禁可复跑：`bash release/extlibs/css/test/check.sh`；复用一份
   XRT 构建运行核心与线程测试。
+
+Windows JSON 报告保存在 `build/test/css_guard/run_*.json`，不随成功的构建
+目录清理；失败时保留对应 `run_*` 目录、命令和原始输出。Linux 成功只清理
+自己的临时目录，失败保留并写退出码；本轮额外保留原生快照、源件指纹和日志。
 
 2026-10-13 增加“有效前缀 + NUL + 损坏尾部”的红绿用例，并复跑 C/XL 边界、线程测试和双语范例。
 

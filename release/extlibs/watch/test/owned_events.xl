@@ -1,0 +1,79 @@
+import watch
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func eventRetry()
+    string root = dir.temp("", "xlang-watch-owned-", "")
+    int failures = 0
+    bool completed = false
+    try
+        for budget in range(32)
+            string target = path.join(root, f"event-{budget}.txt")
+            string expected = "CREATED:" + target
+            auto watcher = watch.create()
+            assert watcher.add(target) == 0
+            assert file.writeText(target, "created")
+            string event = ""
+            bool memoryCaught = false
+            bool triggered = false
+            assert failAfter(uint64(budget))
+            try
+                event = watcher.poll()
+            catch MemoryError error
+                memoryCaught = true
+            finally
+                triggered = failTriggered()
+                failClear()
+            end
+            assert triggered == memoryCaught
+            if memoryCaught then
+                failures += 1
+                // 失败不能在语言层丢掉已由 C 层确认的事件。
+                assert watcher.poll() == expected, "failed poll consumed the pending event"
+            else
+                completed = true
+                assert event == expected
+            end
+            assert watcher.poll() == "", "the same event was delivered twice"
+            assert watcher.remove(0)
+            assert file.delete(target)
+            if completed then break end
+        end
+        assert failures > 0 and completed
+    finally
+        assert dir.delete(root)
+    end
+end
+
+func emptyEventBudget()
+    auto watcher = watch.create()
+    for budget in range(2)
+        string event = "before"
+        bool memoryCaught = false
+        bool triggered = false
+        assert failAfter(uint64(budget))
+        try
+            event = watcher.poll()
+        catch MemoryError error
+            memoryCaught = true
+        finally
+            triggered = failTriggered()
+            failClear()
+        end
+        if budget == 0 then
+            assert triggered and memoryCaught
+        else
+            assert not triggered and not memoryCaught, "poll copied the adopted C result"
+            assert event == ""
+        end
+    end
+end
+
+func main(...) as int
+    eventRetry()
+    emptyEventBudget()
+    println("watch owned event delivery: PASS")
+    return 0
+end

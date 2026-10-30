@@ -13,7 +13,7 @@
     },
     "links": [],
     "loadlibs": [],
-    "coverage": { "mode": "suite", "tests": ["test/author_inheritance.xl", "test/input_limit.xl", "test/implicit_alternate.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/author_inheritance.xl", "test/input_limit.xl", "test/implicit_alternate.xl", "test/link_relations.xl"] },
     "dependencies": [
         {"name": "xml.dom", "version": "1.0.0", "abiVersion": "1"}
     ],

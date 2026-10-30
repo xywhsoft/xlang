@@ -5,6 +5,15 @@
 
 ## 当前验证范围
 
+2026-10-30，冻结工具链的 Windows/Linux 综合门禁分别执行 88/77 个阶段，
+77/71 个符合要求（含私有方法的预期拒绝）。八组基础 C 测试、20 组首错组合、
+454 项 Python 互通、四线程往返、19 个真实原型和新增流式双语 JIT/AOT 通过；
+Linux C 含 ASan/UBSan/泄漏检查。两平台仍有 M5 嵌套数组、M3 私有构造器和
+M2 顶层对象 AOT 退役阻断；Windows 另有关闭态事务回滚 OOM 残留，Linux 同例通过。
+门禁均真实退出 1，不将 PASS 输出或局部 main 对照视为整包发布签收。
+下列带旧日期的缺符号/通过说明仅为历史记录；当前核心 AOT 已通过，不能再套用
+旧的 native-handle 缺符号诊断。逐项现场与修复责任见发布验收矩阵及任务台账。
+
 2026-10-24 当前 Windows 发布版复验：七组独立 GCC C 测试及 454 项
 Python CSV 互通通过；默认综合门禁随后在中央 XLang 用例的
 `array<array<string>>.append(array[...])` 处报运行时 `TypeError`。
@@ -162,6 +171,11 @@ input.close()
 - `RuntimeError`：无当前行、关闭后使用、重复提取结果等状态错误。
 - `IOError`、`MemoryError`：底层读写或分配失败，保留首个错误及原因。
 
+C 流已经报告 IO/内存错误后，CSV 位置诊断的二次分配若失败，直接发布原始错误，
+不把已经发生的 IOError 改写为 MemoryError。此时 XRT 错误的 domain/code 属于
+原始流，CSV 错误码和数据位置仍从 Reader/Writer 的 `Error()` 结构查询。
+正常分配时仍发布带 CSV 位置的包装错误，并通过 cause 保留底层详情。
+
 原始 CSV 中的 NUL 不合法，Buffer 输入会按真实长度校验并拒绝。语言封装层也会在
 `parse(string)`、字段、表头、路径和方言选项进入 C 字符串接口前拒绝内嵌 NUL，
 不会把 NUL 后面的内容静默丢弃。任意二进制输入仍应使用 Buffer，而不是 string。
@@ -209,11 +223,16 @@ C 对照为 `extlibs/csv/examples/basic.c`、`files.c`。两份教学范例显�
 三个 CSV 核心源，可直接 `xl run`；正式扩展包仍按清单分别编译四个 C 源。
 基础范例还将同一组含中文、逗号和引号的行经 XLang `stringify` 与 C Writer
 编码，分别核对完整 CSV 字节文本，再读取并展示行内容。
-开发仓库 demo6 目录可执行：
+`extlibs/csv/examples/streaming.xl` 与 `streaming_c.c` 展示逐行汇总、跨推进与关闭的
+独立快照、带换行的中文字段、文本结果所有权和超限后的失败状态；两语共用六行固定输出。
+C 的行字段只借用，因此显式复制要保留的字段；XL `row()` 已返回独立数组。
+仓库根目录可执行：
 
 ```powershell
 ./release/xl.exe run release/extlibs/csv/examples/basic.c
 ./release/xl.exe run release/extlibs/csv/examples/files.c
+./release/xl.exe run release/extlibs/csv/examples/streaming.xl
+./release/xl.exe run release/extlibs/csv/examples/streaming_c.c
 tools/run_extlib_c.ps1 -Package csv -Source release/extlibs/csv/examples/basic.c
 tools/run_extlib_c.ps1 -Package csv -Source release/extlibs/csv/examples/files.c
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/check_extlib_csv.ps1 -SkipAot
@@ -221,14 +240,17 @@ wsl bash tools/check_extlib_csv.sh
 bash release/extlibs/csv/test/check_xlang.sh
 ```
 
-Windows/Linux 综合门禁默认使用各自独占的临时构建目录，成功或失败后清理；
-并行运行不会覆盖同名测试产物。需要保留 `results.json`、日志或二进制时，
-Windows 显式传 `-WorkDirectory`，Linux 设置 `CSV_WORK_DIR`；显式目录由
-调用方管理，脚本不会自动删除。
+Windows/Linux 综合门禁默认使用各自独占的临时构建目录，仅成功时清理；
+失败保留产物，报告另存为 `<工作目录>.json` / `<工作目录>.report.txt`。
+Windows 报告保留每步原始状态与退出码；Linux 另保留 command/stdout/stderr/exit
+及 phases.tsv。两端均校验实际编译器、CLI/DLL 和源码输入前后哈希，外部命令有超时。
+需要保留成功产物时，Windows 显式传 `-WorkDirectory`，Linux 设置 `CSV_WORK_DIR`；
+Linux 的显式目录必须尚不存在，由脚本创建、调用方管理。
+语言正例失败后继续检查其余独立用例，最后聚合失败；不会把已知主线失败改成预期成功。
 
-当前发布构建的 AOT 共享缺符号期间，可用
-`bash release/extlibs/csv/test/check_xlang.sh --skip-aot` 单独复跑 Linux
-语言侧 JIT；默认不带参数时仍要求 AOT，不会静默跳过发布门禁。
+`test/check_xlang.sh` 是较窄的历史语言辅助入口，`--skip-aot` 显式仅复跑 JIT；
+不传参数仍要求其核心 AOT。当前发布收口应运行 tools 下的完整综合门禁，
+它继续检查 M2/M3/M5，不能用辅助入口或历史缺符号记录代替当前结果。
 
 两种语言的文件范例都通过 XRT 排他创建临时目录，只在目录内写入 `报表.csv`，
 验证未提交不覆盖、成功提交及读取汇总后清理目录；不会触碰工作目录中已有的同名文件。
@@ -238,18 +260,35 @@ XLang 范例原使用固定 `build/test/csv-files-example/报表.csv`，现已�
 六个使用 `assert` 的 C 边界测试在测试单元内保持断言启用；即使使用
 `-DNDEBUG` 编译，文件、分配、线程等测试操作也不会被预处理器删除。
 
-门禁覆盖七组 C 测试、短读短写、状态/重入、限额、分配失败、文件事务、中文路径、
-四线程 1000 次独立往返、17 个实际生成的 C 原型、四组 XL JIT/AOT 及两组双语范例。
-`-SkipAot` 仅用于当前主线链接阻断下的包内验证：仍检查 C、互操作、XL JIT、
-生成声明、双语范例和文档代码块，但不构建或运行 AOT 产物；不能据此签收发布级别。
+门禁覆盖八组 C 测试、短读短写、状态/重入、限额、分配失败、文件事务、中文路径、
+四线程 1000 次独立往返、19 个实际生成的 C 原型、六组 XL JIT/AOT 及三组双语范例。
+新增首错测试在读、读关闭、写、刷新、写关闭五个阶段，分别组合 IO/内存首错与
+位置诊断分配成功/失败，共 20 组；检查错误身份、系统码、详情、重复操作、关闭次数和内存平衡。
+严格 GCC 的 `-Wmissing-prototypes` 同时防止已实现的原生入口遗漏头文件声明。
+`-SkipAot` 只跳过 AOT 构建与执行，仍检查 C、互操作、XL JIT、生成声明、双语范例
+和文档代码块；它不会跳过嵌套数组与私有构造器问题，也不能据此签收发布级别。
 独立 Python 标准库 csv 对照 454 项，包含四种分隔符、两种引号、换行、BOM、Unicode、
 空字段和拒绝非法输入。Linux `tools/check_extlib_csv.sh` 同次启用 C ASan/UBSan/泄漏检查与 XLang JIT/双语对照，
 可通过 `CSV_DECLARATIONS` 再核对 Windows XL 生成声明在 LP64 上的原型。
 
+2026-10-30：修复 CSV 位置诊断 OOM 覆盖已发生的 IO/内存首错；补齐已有
+`xcsv_reader_open_text` 的 C 头文件声明。公开 API、函数签名、分配器与正常解析路径不变。
+新增流式双语范例，Windows GCC、XL JIT 与直接 C 运行已核对六行输出一致；
+完整平台/模式结果和 M5、M3 阻断以[发布验收矩阵](../../../docs/普通扩展库发布验收矩阵_2026-10-28.md)为准。
+当前另有 M2 顶层对象 AOT 退役问题：四份原始文档代码完整输出后退出 1，
+相同代码进入局部 main 后退出 0。门禁保留原文，并增加 `test/global_lifecycle.xl`
+作为要求零退出的顶层正例，不用局部改写换绿灯。
+
+Windows 还复现关闭态事务回滚的 RFS 缺口：目标改名自然失败后句柄已关闭，
+析构删除临时文件时若 UTF-8/UTF-16 路径分配再失败，会留下临时文件；原目录和
+标记文件未损坏，活动内存与首错保持。`test/file_rollback_closed.c` 调用真实文件 API，
+要求无残留，失败返回 1 并保留自己的独占目录，不把 Windows 缺口当成预期成功。
+最小复现与 XRT 修复建议见[关闭态回滚记录](../../../dev/extlib_blockers/csv_closed_transaction_oom_cleanup.md)。
+
 `test/check_xlang.sh` 要求先构建 Linux `release/xl`，并验证中央与包内语言用例、
-双语范例的固定输出；默认还要求无输出内存读写核心 AOT。核心 AOT 曾在旧的
-Windows/Linux 构建中通过，但当前发布构建缺上述 native-handle 符号，不能沿用
-历史结果；完整 AOT 也仍待主线修复。
+双语范例的固定输出；默认还要求无输出内存读写核心 AOT。核心 AOT 在当前冻结
+Windows/Linux 发布物均已通过；完整包仍受上列独立阻断，不能沿用旧符号问题作为
+当前失败解释，也不能从核心通过推断所有语言能力通过。
 尚不代表正式 CLI/DLL 更新、Linux 全路径、32 位/ARM、TSan、长期负载或性能基准已验收。
 
 2026-10-19：两份 C 教学范例改为可单文件运行，Windows/Linux 门禁新增

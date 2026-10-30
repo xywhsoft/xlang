@@ -1,0 +1,67 @@
+import diff
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    array<string> expected = ["", "0,0,0", "-old\n+new\n", "1,1,0"]
+    for operation in range(4)
+        string left = ""
+        string right = ""
+        int needed = 5
+        if operation >= 2 then
+            left = "old"
+            right = "new"
+            needed = 7
+        end
+        if operation % 2 == 0 then
+            assert diff.lines(left, right) == expected[operation]
+        else
+            assert diff.stats(left, right) == expected[operation]
+        end
+        array<int> budgets = [0, needed]
+        for budget in budgets
+            string result = ""
+            bool memoryCaught = false
+            bool triggered = false
+            // C 的计划/输出需 3 或 5 次分配；XL 另有两次 NUL 针串分配。
+            assert failAfter(uint64(budget))
+            try
+                if operation % 2 == 0 then
+                    result = diff.lines(left, right)
+                else
+                    result = diff.stats(left, right)
+                end
+            catch MemoryError error
+                memoryCaught = true
+            finally
+                triggered = failTriggered()
+                failClear()
+            end
+            if budget == 0 then
+                assert triggered and memoryCaught
+            else
+                assert not triggered and not memoryCaught, "diff copied validated input or adopted result text"
+                assert result == expected[operation]
+            end
+        end
+    end
+
+    int rejected = 0
+    for operation in range(2)
+        for side in range(2)
+            string left = "ok"
+            string right = "ok"
+            if side == 0 then left = "ok\0hidden" else right = "ok\0hidden" end
+            try
+                if operation == 0 then diff.lines(left, right) else diff.stats(left, right) end
+            catch ValueError error
+                rejected += 1
+            end
+        end
+    end
+    assert rejected == 4
+    println("diff borrowed inputs and owned results: PASS")
+    return 0
+end

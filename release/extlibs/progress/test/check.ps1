@@ -4,7 +4,7 @@ $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../..')).Path
 $testRoot = [IO.Path]::GetFullPath((Join-Path $root 'build/test'))
 $work = Join-Path $testRoot ('progress_guard_' + [guid]::NewGuid().ToString('N'))
-$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
+$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $xl = Join-Path $root 'release/xl.exe'
 $flags = @('-std=c11', '-O2', '-Wall', '-Wextra', '-Werror',
     '-DXRT_MODULE_MEMORY_DEBUG',
@@ -103,6 +103,9 @@ try {
         if ((Run 'C example AOT' $cExampleAot @()) -cne $expected) {
             throw 'C example AOT differs from the fixed expected output'
         }
+    }
+    if (-not $SkipAot) {
+        & (Join-Path $root 'tools/check_extlib_native_globals.ps1') -Root $root -Package progress
     }
     Write-Host $(if ($SkipAot) { '[progress] Windows C/XLang quick gate: PASS (AOT skipped)' }
         else { '[progress] Windows C/XLang/AOT gate: PASS' })

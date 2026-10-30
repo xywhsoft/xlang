@@ -161,6 +161,19 @@ static long long xsysinfo_memory(int available)
         int64 kib;
         if (!file) return -1;
         while (fgets(line, sizeof(line), file)) {
+            /* 一条记录可跨多个缓冲块，续块不能冒充新字段或隐藏尾部垃圾。 */
+            if (strchr(line, '\n') == NULL) {
+                int tail = fgetc(file);
+                if (tail != EOF && tail != '\n') {
+                    while ((tail = fgetc(file)) != '\n' && tail != EOF) {}
+                    if (strncmp(line, "MemAvailable:", 13) == 0) {
+                        fclose(file);
+                        return -1;
+                    }
+                    continue;
+                }
+                if (ferror(file)) break;
+            }
             if (strncmp(line, "MemAvailable:", 13) == 0) {
                 const char *digits = line + 13;
                 const char *unit;

@@ -1,0 +1,29 @@
+import zip
+
+func main(...) as int
+    // STORE 大正文跨过初始缓冲容量，输入在 add 后即可独立退役。
+    auto writer = zip.create("store", 0)
+    string text = string.repeat("z", 131072)
+    writer.add("payload.txt", text)
+    writer.setEntryComment("payload.txt", "stable")
+    text = ""
+    Buffer packed = writer.finish()
+    if arg.length == 2 then
+        // 仅为检查线格式显式导出；正常执行不读写文件。
+        assert file.writeBytes(string(arg[1]), packed.toBytes())
+    end
+
+    auto reader = zip.open(packed)
+    zip.ZipInfo info = reader.info(0)
+    cstring snapshot = reader.readText("payload.txt")
+    assert reader.count == 1 and info.name == "payload.txt"
+    assert info.size == 131072 and info.comment == "stable"
+    reader.close()
+    bool valid = snapshot == string.repeat("z", 131072)
+    assert valid
+    println("entries:", 1)
+    println("bytes:", info.size)
+    println("comment:", info.comment)
+    println("snapshot:", valid)
+    return 0
+end

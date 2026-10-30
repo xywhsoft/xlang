@@ -1,0 +1,22 @@
+import tar
+
+func inspect(string archive)
+    auto reader = tar.open(archive)
+    try
+        assert reader.next()
+        tar.TarInfo entry = reader.info()
+        println(f"mtime={entry.mtime};mode={entry.mode};uid={entry.uid};gid={entry.gid};major={entry.deviceMajor};minor={entry.deviceMinor}")
+        assert not reader.next() and reader.eof
+    catch IOError error
+        assert error.domain == "xlang.extlib.tar" and error.code == 3
+        println("invalid:3")
+    end
+end
+
+func main(...) as int
+    assert arg.length > 1
+    for index in range(1, arg.length)
+        inspect(string(arg[index]))
+    end
+    return 0
+end

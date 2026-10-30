@@ -3,7 +3,7 @@ param([switch]$SkipAot)
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../..')).Path
 $xl = Join-Path $root 'release/xl.exe'
-$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
+$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $workRoot = [IO.Path]::GetFullPath((Join-Path $root 'build/test'))
 $work = Join-Path $workRoot ('stb_truetype_guard_' + [guid]::NewGuid().ToString('N'))
 $flags = @('-std=c11', '-O2', '-Wall', '-Wextra', '-Werror',

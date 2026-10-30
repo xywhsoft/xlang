@@ -1,5 +1,47 @@
 # lru
 
+## 2026-10-30 输入正文副本移除
+
+原检查函数返回 string，实际 cgen 在返回处复制正文。现在只检查借用输入，
+再把原参数直接交给同一原生成员；put/get 的两处参数及 contains/remove
+的各一处参数共六个位置不再为检查复制正文。C 实现、C 头、公开 API、
+存储副本、线程同步和淘汰规则均未改。get 的 point/takeCstr 返回链原本
+已直接接管，没有把它描述为本轮才去掉的复制。
+
+固定输入在故障窗口之前建立，下面只计一次公开操作的成功分配预算。
+两个模式分别覆盖相同矩阵；这不是所有键长/容量/哈希分布的通用预算：
+
+| 操作 | 原生 C | 旧 XLang | 新 XLang |
+| --- | ---: | ---: | ---: |
+| 覆盖已有值 | 1 | 5 | 3 |
+| 命中读取，显式默认值 | 1 | 5 | 3 |
+| 缺失读取，显式默认值 | 1 | 5 | 3 |
+| contains | 0 | 2 | 1 |
+| 删除已有键 | 0 | 2 | 1 |
+| 删除缺失键 | 0 | 2 | 1 |
+| 满容量插入并淘汰 | 4 | 8 | 6 |
+| 命中读取，省略默认值 | 1 | 6 | 4 |
+
+仍有 NUL 针串的分配和扫描；省略默认值会建立空字符串，原生读取为
+返回独立快照必须分配。因此不是整个桥零开销，也不宣称端到端提速。
+C 的32组预算检查回滚、命中统计、旧值及内存平衡；新XL的60组原有
+16组超预算，修改后归零。完整绑定夹具检查11个真实生成原型，并要求
+校验/返回路径不再出现 xlir_string_copy 调用；普通公开范例同口径生成C
+由338285降至330438字节，只是源文本大小，不是可执行文件或性能数据。
+
+input_lifetime.xl 覆盖两种模式的8KiB正文/默认值、UTF-8长键、变量重绑、
+临时参数、清空后的独立文本及六种NUL输入位置；即使命中，非法默认值
+也在原生读取前拒绝。原有模型、线程、故障和顶层对象测试保持原样。
+新增 snapshots.xl/snapshots_c.c 双语例展示读取快照、覆盖、清空、空值、
+统计与LFU，分别断言行为并对照 snapshots.expected.txt 的八行固定输出。
+
+Windows/Linux默认门禁先验证上述边界、原C模型/线程、双语输出和十条
+可运行独立程序，最后强制执行原 boundaries.xl 顶层正例。它仍在AOT退出
+阶段失败，不将其移入main或改为预期拒绝；本包仍为M2，未签收整包。
+两门禁均记录原始状态/命令和输入指纹，失败保留现场；Windows的
+-SkipAot只用于开发快测。Linux新增了此前缺少的完整AOT要求，不能再用
+旧JIT门禁的通过代替发布验收。实际本轮结果见仓库验收矩阵及任务台账。
+
 2026-10-24：更新后的 Windows 发布版执行默认 `test/check.ps1`，严格 C、
 原生边界与线程、中央/包内 XLang JIT、私有入口拒绝、C/XLang 同输出及
 边界 AOT 构建均通过。边界 EXE 先打印 `lru boundaries: PASS`，随后
@@ -46,8 +88,8 @@ C 原生 `get` 在结果副本分配失败时不更新命中统计或访问顺�
 
 `putNative` 等原生入口仅供类内部使用，包外不能绕过公开方法的参数与生命周期检查；`test/private_native.xl` 是预期编译失败的可见性负例。
 
-在 `release` 运行 `xl run extlibs/lru/test/boundaries.xl`。在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package lru -Source release/extlibs/lru/test/test_lru.c`。2026-10-12 已通过 Windows 严格 GCC、Linux ASan/UBSan、同实例并发读写、XL JIT 与双语输出对照；2026-10-13 增加六种 NUL 红绿用例并复跑 C/XL 主路径及范例。同日补充分配故障注入，逐点验证满缓存插入失败不淘汰旧值、覆盖失败不改原值，以及读取失败不改变命中统计；C 定向测试与严格 GCC 语法检查通过。
-Windows 可在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/lru/test/check.ps1 -SkipAot`，同次检查严格 GCC、C 边界/线程、中央及包内 XLang、原生入口私有性、C 直跑和双语输出。去掉 `-SkipAot` 会继续构建完整边界 AOT。C 教学范例内含包的原生实现，可直接 `xl run release/extlibs/lru/examples/lru_c.c`；正式包仍按清单分别编译原生源。
+在 `release` 运行 `xl run extlibs/lru/test/boundaries.xl`。在仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package lru -Source release/extlibs/lru/test/test_lru.c`。2026-10-12 已通过 Windows 严格 GCC、Linux ASan/UBSan、同实例并发读写、XL JIT 与双语输出对照；2026-10-13 增加六种 NUL 红绿用例并复跑 C/XL 主路径及范例。同日补充分配故障注入，逐点验证满缓存插入失败不淘汰旧值、覆盖失败不改原值，以及读取失败不改变命中统计；C 定向测试与严格 GCC 语法检查通过。
+Windows 可在仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/lru/test/check.ps1 -SkipAot`，同次检查严格 GCC、C 边界/线程、中央及包内 XLang、原生入口私有性、C 直跑和双语输出。去掉 `-SkipAot` 会继续构建完整边界 AOT。C 教学范例内含包的原生实现，可直接 `xl run release/extlibs/lru/examples/lru_c.c`；正式包仍按清单分别编译原生源。
 
 2026-10-22：C/XLang 教学范例除互比外，还与固定输出逐字核对；
 Windows 默认门禁在边界 AOT 后继续构建、运行公开范例 AOT，并核对同一预期。
@@ -60,7 +102,7 @@ Windows `-SkipAot` 与 Linux C ASan/UBSan、并发及语言联合门禁通过。
 
 2026-10-14 补充淘汰顺序边界：分配失败的覆盖不得刷新 LRU/LFU 顺序；`contains` 不刷新顺序，而成功覆盖应刷新。C 故障注入与 XLang 定向回归通过。
 
-2026-10-14 补公开 C 接口连续调用的错误状态回归：非法参数后有效创建、读写、删除、清空及统计应清除旧错误；空句柄统计应报参数错误。Windows 严格 GCC、C/XL 边界、双语同输出通过。在 `demo6` 运行 `bash release/extlibs/lru/test/check.sh` 可复跑 Linux ASan/UBSan 门禁；本轮已通过。AOT 阻断仍见上文。
+2026-10-14 补公开 C 接口连续调用的错误状态回归：非法参数后有效创建、读写、删除、清空及统计应清除旧错误；空句柄统计应报参数错误。Windows 严格 GCC、C/XL 边界、双语同输出通过。在仓库根目录运行 `bash release/extlibs/lru/test/check.sh` 可复跑 Linux ASan/UBSan 门禁；本轮已通过。AOT 阻断仍见上文。
 
 2026-10-16 增加 LRU/LFU 双模式 XLang 逐点故障测试，覆盖创建、满容量插入、覆盖及读取的 `MemoryError`、旧值保持和恢复；C 故障测试补验 `XERR_MEMORY`。读取测试还固定区分原生失败与原生成功后语言表达式失败的命中统计。Windows 严格 GCC/C、目录 smoke 3/3、无输出故障注入 AOT 与 Linux C/线程 ASan/UBSan 通过；完整边界 AOT 的共享缺符号阻断未变。
 

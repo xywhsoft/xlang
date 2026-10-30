@@ -1,5 +1,26 @@
 # langdetect
 
+2026-10-29：拉丁评分由每个常见词重新扫描全文，改成每个模型扫描
+完整 ASCII 词段：69 次词扫描降为七次模型扫描，UTF-8 统计仍单独
+执行。没有新增缓存、分配或共享状态；六条 C ABI、十条语言 API、
+词表、有限脚本边界、分数与错误合同不变。删去未用的内部枚举及
+标量计数，不据源码减少宣称可执行文件必然同比缩小。
+
+新增 44,713 项逐词/重复词表与 Unicode 边界参照，以及 2,071 组
+固定输入的五种公开结果/错误状态语料。默认检查固定语料摘要；
+`test/corpus_c.c --records` 可逐项输出供独立版本比较，摘要不是密码学
+承诺。分配故障检查确认正常评分不分配。C 返回的语言名/代码/脚本
+是静态借用文字，语言仍须复制一次获得独立字符串；错误文字另借用
+本线程错误槽。专用生成 C 测试检查四条借用结果各复制一次、包装
+返回没有第二次正文复制；不误标为 `@owned`，不宣称全链零开销。
+
+默认两平台门禁补严格 manifest 模块编译、六条实际生成原型、参照/
+语料、语言边界、C/XLang 黄金输出与十二条独立 AOT。子进程有超时，
+输入前后有指纹，失败保留现场，成功只清本次目录，报告留目录外；
+Linux 原生 C 另经 ASan/UBSan。测试运行库只启用 Unicode 和内存诊断。
+性能测量在 `test/benchmark_c.c` 单独进行，不把机器计时阈值放进
+功能门禁，也不将一个本地场景的倍数当作通用保证。
+
 轻量 UTF-8 文本语言**启发式**判断，不是训练过的统计语言模型。日文依靠假名、韩文依靠谚文、中文依靠占主导的汉字；英语、法语、德语、西班牙语、葡萄牙语、意大利语、荷兰语使用有限常见词评分。西里尔/阿拉伯文字可识别脚本，但仅凭脚本无法确认具体语言，此时 `detect` 返回 `unknown` / `code` 返回 `und`。无足够证据或评分并列也返回 `unknown`。
 
 ```xlang
@@ -22,6 +43,39 @@ assert langdetect.script("Привет") == "Cyrillic"
 ## C 接口
 
 `include/langdetect_native.h` 的每个文本入口都接收指针与真实字节长度。`confidence` 返回 `int64_t`，与 XLang `int` 的 C ABI 一致，包括 LP64 平台。`detect` / `code` / `script` / `last_error` 返回借用的静态或 XRT 错误文字，不释放；没有共享可写结果环。文本最长 1 MiB，调用方可先用 `xlangdetect_valid_utf8` 检查原始输入。脚本识别仅覆盖本包列出的 Unicode 范围，不宣称完整 Unicode Script 数据库。
+
+`detect` / `code` / `script` 的静态文字在对应代码模块存活期间有效；
+`last_error` 依赖本线程错误对象，后续调用清除/改变错误即可能失效。
+需要跨调用保存错误时由 C 自行复制；不要释放借用指针。语言绑定
+已经取得自己的副本，不承担该借用生命周期。分别调用 `code` 与
+`confidence` 会分别分析输入，本轮不新增缓存或合并分析 API。
+
+## 人工复核队列
+
+`examples/review_queue.xl` 与 `examples/review_queue_c.c` 展示同一项
+应用策略：已识别且分数不低于 60 的消息进入语言队列，其余进入
+`manual`。阈值由应用选择，不代表统计置信概率；同样覆盖证据不足、
+仅能识别脚本和内嵌 NUL。C 最后一条输入使用真实长度而非 `strlen`，
+静态返回值不释放。两程序的十行结果固定在 `examples/review_queue.expected.txt`。
+
+在 `release` 下可直接运行：
+
+```text
+xl run extlibs/langdetect/examples/review_queue.xl
+xl run extlibs/langdetect/examples/review_queue_c.c
+```
+
+已有 `examples/langdetect.c` 与 `release/examples/extlibs/langdetect.xl`
+仍覆盖全部十条语言入口；队列例是组合用法，不替代逐 API 范例。
+
+## 性能复核
+
+`test/benchmark_c.c` 测同一个普通 C `detect` 入口，含短句、长词段、
+密集常见词、分隔符、UTF-8 边界、汉字与接近 1 MiB 的输入；输出
+用 `clock()` 计时及结果校验和。比较版本须使用相同编译器/优化选项/
+XRT/输入/循环次数，交错运行并比较多次中位数，先核对结果相等。
+未插桩的性能程序与 sanitizer 功能测试分开，不比较不同运行库的结果。
+测量不代表 XLang 整程序或不同架构的吞吐；CJK 不走拉丁评分路径。
 
 ## 验证
 
@@ -46,7 +100,7 @@ C/XLang 范例的 JIT/AOT 同输出。旧日期的共享 AOT 缺符号仅描述�
 
 2026-10-22：C 红例复现 `the×`、`×the`、`the÷` 被漏判为独立英文词，`×÷` 被误记为 Latin 脚本；排除 U+00D7/U+00F7 后，C/XLang 边界与原有重音字母、emoji 用例均通过。Windows 严格 C/XLang 双语包门禁及 Linux C ASan/UBSan、XLang/双语门禁通过；完整带输出 AOT 未在本轮复验，不签收整包发布级。
 
-从 `demo6` 目录运行：
+从仓库根目录运行：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File release\extlibs\langdetect\test\check.ps1 -SkipAot
@@ -61,7 +115,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_extlib_c.ps1 -Pack
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_extlib_c.ps1 -Package langdetect -Source release\extlibs\langdetect\examples\langdetect.c
 ```
 
-Linux/WSL 从 `demo6` 目录运行 `bash release/extlibs/langdetect/test/check.sh`，
+Linux/WSL 从仓库根目录运行 `bash release/extlibs/langdetect/test/check.sh`，
 用严格 GCC 与 ASan/UBSan 复验 C 边界和范例，并通过 `release/xl` 运行
 XLang 包内边界、双语范例逐字对照及独立 C/XLang EXE。
 

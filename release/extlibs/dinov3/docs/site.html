@@ -39,6 +39,7 @@ assert output.ok(), output.error()
 println(output.count())
 println(output.embedding_json())</code></pre>
     <p>以上直接缩放配置适用于已验证的 224×224、384 维模型。其他模型需核对输入/输出名称、尺寸与归一化参数。C/XLang 同图范例在包内 <code>examples/</code>；设置 <code>DINOV3_MODEL</code> 与 <code>DINOV3_TEST_IMAGE</code> 后可运行真实模型门禁，另可加 <code>-ParallelLive</code> 做两线程独立调用。2026-10-26 当前 Windows 发布版用外部兼容权重复验真实图片推理：C、XLang JIT 和独立 EXE 的 384 维嵌入逐项误差不超过 1e-5，两线程短轮次推理通过。权重不随包分发；Linux 图像后端和插件内部长期稳定性不在本次公开调用链验收范围。</p>
+    <p>2026-10-28：两个 JSON 出口直接移交成功结果，不再复制整段正文；形状解析分配失败保留内存首因，有效结果自然析构不再写回退役对象字段。Windows 默认完整门禁通过，新增随包 OCR 模型产生真实两浮点结果的 JIT/AOT、显式与自然释放、29 组固定预算；这只验证结果传输，不代表 DinoV3 特征正确性。C 结果桩的 26 组分配故障/成功与活动内存平衡、Linux C ASan/UBSan 和语言负例通过。固定语言路径分别从 13/16 降为 12/15 次 XRT 分配，解析、JSON writer、借用快照与长度扫描等仍有成本，不宣称整桥零开销。本轮没有提供外部 DinoV3 权重，384 维推理与双线程测试未重跑。</p>
   </section>
 </main>
 </body>

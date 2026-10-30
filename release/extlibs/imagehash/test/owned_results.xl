@@ -1,0 +1,75 @@
+import imagehash
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func hash(int method, string path) as string
+    if method == 0 then return imagehash.ahash(path) end
+    if method == 1 then return imagehash.dhash(path) end
+    return imagehash.phash(path)
+end
+
+func main(...) as int
+    string path = "release/examples/extlibs/assets/tiny.png"
+    array<string> expected = ["ffffffffffffffff", "0000000000000000", "0000000000000000"]
+    // 门禁传入已测得的平台预算：Windows 15，Linux 14；默认便于本机单独运行。
+    int needed = arg.length > 1 ? int(arg[1]) : 15
+    assert needed == 14 or needed == 15, "expected the measured Windows/Linux budget"
+
+    for method in range(3)
+        string held = hash(method, path)
+        assert held == expected[method]
+        array<int> budgets = [0, needed]
+        for budget in budgets
+            string result = ""
+            bool memoryCaught = false
+            bool triggered = false
+            // 固定 PNG 已预热；C 的 14/13 次分配之外只留一次 NUL 针串。
+            assert failAfter(uint64(budget))
+            try
+                result = hash(method, path)
+            catch MemoryError error
+                memoryCaught = true
+            finally
+                triggered = failTriggered()
+                failClear()
+            end
+            if budget == 0 then
+                assert triggered and memoryCaught
+            else
+                assert not triggered and not memoryCaught, "imagehash copied the adopted result"
+                assert result == expected[method]
+            end
+            assert held == expected[method]
+            assert hash(method, path) == expected[method]
+        end
+    end
+
+    // 原生普通失败没有通用 XRT 错误，仍须保留 RuntimeError 的精确诊断。
+    int runtimeErrors = 0
+    int nulErrors = 0
+    for method in range(3)
+        for invalid in ["", "release/examples/extlibs/assets/missing.png"]
+            string expectedError = "cannot read or decode image"
+            if invalid == "" then expectedError = "image path is empty" end
+            try
+                hash(method, invalid)
+            catch RuntimeError error
+                assert error.message == expectedError
+                assert imagehash.last_error() == expectedError
+                runtimeErrors += 1
+            end
+        end
+        try
+            hash(method, path + "\0hidden")
+        catch ValueError error
+            nulErrors += 1
+        end
+        assert hash(method, path) == expected[method]
+        assert imagehash.last_error() == ""
+    end
+    assert runtimeErrors == 6 and nulErrors == 3
+    println("imagehash owned results and custom failures: PASS")
+    return 0
+end

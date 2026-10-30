@@ -417,8 +417,10 @@ static xvalue* bson_decode_array(struct bson_reader *br);
 static xvalue* bson_decode_value(struct bson_reader *br, int bt) {
     if (br->failed) return NULL;
     switch (bt) {
-    case BSON_REAL:
-        return xrtValueFloat(r_double(br));
+    case BSON_REAL: {
+        double value = r_double(br);
+        return br->failed ? NULL : xrtValueFloat(value);
+    }
     case BSON_STRING:
     {
         int32_t slen = r_int32(br);
@@ -446,13 +448,19 @@ static xvalue* bson_decode_value(struct bson_reader *br, int bt) {
         }
         return xrtValueRetain(xrtValueBool(v ? true : false));
     }
-    case BSON_INT32:
-        return xrtValueInt((int64)r_int32(br));
-    case BSON_INT64:
-        return xrtValueInt(r_int64(br));
+    case BSON_INT32: {
+        int32_t value = r_int32(br);
+        return br->failed ? NULL : xrtValueInt(value);
+    }
+    case BSON_INT64: {
+        int64_t value = r_int64(br);
+        return br->failed ? NULL : xrtValueInt(value);
+    }
     case BSON_DATE: {
         int64_t ms = r_int64(br);
         xtime t;
+        /* 截断已是格式错误，不能再转换零值或由后续分配覆盖首因。 */
+        if (br->failed) return NULL;
         if (!xrtTimeFromUnixMs(ms, &t)) {
             br->failed = true;
             bson_error("bson: date is outside the XRT time range");

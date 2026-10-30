@@ -14,6 +14,18 @@ func result(int index) as string
     return color.toName("#fff")
 end
 
+// 非法输入也返回拥有型空串；分配失败不能被当成正常的空结果。
+func emptyResult(int index) as string
+    if index == 0 then return color.hex(-1, 2, 3) end
+    if index == 1 then return color.hexA(1, 2, 3, -1) end
+    if index == 2 then return color.normalize("#bad!") end
+    if index == 3 then return color.fromHsv(math.nan, 1, 1) end
+    if index == 4 then return color.fromHsl(120, math.inf, 0.5) end
+    if index == 5 then return color.mix("#000", "#bad!", 0.5) end
+    if index == 6 then return color.fromName("missing") end
+    return color.toName("#010203")
+end
+
 array<string> expected = ["#010203", "#01020304", "#AABBCC", "#FF0000", "#00FF00", "#808080", "#FF0000", "white"]
 int failures = 0
 int successes = 0
@@ -40,4 +52,29 @@ for i in range(8)
     end
 end
 assert failures > 0 and successes > 0
+int emptyFailures = 0
+int emptySuccesses = 0
+for i in range(8)
+    for allocation in range(16)
+        bool caught = false
+        string value = "not empty"
+        assert failAfter(uint64(allocation))
+        try
+            value = emptyResult(i)
+        catch MemoryError error
+            caught = true
+        end
+        bool triggered = failTriggered()
+        failClear()
+        assert triggered == caught, f"color empty allocation mismatch: api={i}, failAfter={allocation}"
+        if caught then
+            emptyFailures += 1
+        else
+            assert value == "", f"color empty result mismatch: api={i}"
+            emptySuccesses += 1
+        end
+        assert emptyResult(i) == "", f"color empty recovery mismatch: api={i}"
+    end
+end
+assert emptyFailures > 0 and emptySuccesses > 0
 println("color language allocation: PASS")

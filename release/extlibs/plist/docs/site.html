@@ -19,7 +19,11 @@
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / plist</p><h1>plist</h1>
     <p class="extlib-lead">读取和写出 Apple XML 与二进制 property list。</p>
     <p>基于 XRT；XLang 值与 C 接口共享解析和写出核心，支持 UID、日期、数组、字典及二进制 Buffer。文本解析直接传递字符串和显式字节长度，不创建整份输入的临时 Buffer。</p>
+    <p>2026-10-30 修复首次线程错误状态分配失败后清错继续操作；binary 节点/字节/UTF-16 与容器构造 OOM 保留 MEMORY，条目超限报告 LIMIT；XML 字典避免 uint64 大上限乘二回绕。已有 PlistError/MemoryError、ABI 与零表示不限的 C 合同不变，不改编译器、XRT 或 Expat。</p>
+    <p>Windows 默认完整 587 项符合预期；C 冷启动 Windows 356 / Linux 348 场景，公开语言 JIT/AOT 各 87 预算通过。两平台同一最终夹具换旧三文件均出现 50 个冷启动失败场景、64 条 binary/限额失败断言，新实现归零。12 类值/142 OOM/48 限额/36 旧错误对照、四线程 64 诊断的 GCC/TCC JIT/AOT、41 实际 C 原型及每平台 13 份正常 AOT 通过，Linux 带 ASan/UBSan；Python plistlib 独立读取新 12 文件与原双语产物。这不是完整 Apple 私有格式或任意调度认证。</p>
+    <p>新增 portable_state 双语玩家状态范例，涵盖 XML、binary UID/null、类型/限额拒绝及恢复，核对同一黄金输出。C 显式释放文档和缓冲；输入转换和构树仍有成本，不声称完整零开销。用法、详细证据和失败留档规则见包内 README；官网源仅隔离生成，未据此宣称部署。</p>
     <p>2026-10-26 当前 Windows/Linux 默认包门禁均通过 C/XLang 边界、分配故障和独立 EXE；两平台用 Python <code>plistlib</code> 分别读回 C、JIT、AOT 生成的 XML 与 binary 产物。Linux 另通过 C ASan/UBSan。</p>
+    <p>2026-10-28 用 <code>??</code> 转移可空拥有型结果，移除 XML 与诊断的返回复制，保留独立 PlistError 分类。预热空字符串完整序列化的 C 预算为 7 次，XL 从 19 降为 18 次；构树和语言对象仍有额外成本，不宣称完整零开销。新预算/错误恢复、双平台默认门禁、Linux ASan/UBSan、双语 JIT/AOT 与 plistlib 互通通过。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>

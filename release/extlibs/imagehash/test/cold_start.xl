@@ -1,0 +1,42 @@
+import imagehash
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func hash(int method, string path) as string
+    if method == 0 then return imagehash.ahash(path) end
+    if method == 1 then return imagehash.dhash(path) end
+    return imagehash.phash(path)
+end
+
+func main(...) as int
+    int method = 0
+    int budget = 0
+    if arg.length == 3 then
+        method = int(string(arg[1]))
+        budget = int(string(arg[2]))
+    end
+    assert method >= 0 and method <= 2 and budget >= 0 and budget <= 63
+    string expected = "0000000000000000"
+    if method == 0 then expected = "ffffffffffffffff" end
+    bool memory = false
+    bool correct = false
+    bool injected = false
+    assert failAfter(uint64(budget))
+    try
+        correct = hash(method, "release/examples/extlibs/assets/tiny.png") == expected
+    catch MemoryError error
+        memory = true
+    finally
+        injected = failTriggered()
+        failClear()
+    end
+    // 解码内部可恢复的失败允许成功；公开失败只能是本次真正的内存故障。
+    assert correct or injected and memory
+    assert hash(method, "release/examples/extlibs/assets/tiny.png") == expected
+    assert imagehash.last_error() == ""
+    println("imagehash cold XLang: method=", method, " budget=", budget,
+        " injected=", injected, " PASS")
+    return 0
+end

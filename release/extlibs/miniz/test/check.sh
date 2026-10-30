@@ -1,21 +1,68 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
 
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../../.." && pwd)
 cd "$root"
 work=$(mktemp -d "${TMPDIR:-/tmp}/xlang-miniz-XXXXXX")
-trap 'rm -rf -- "$work"' EXIT
 cc=${CC:-gcc}
+cc_path=$(command -v "$cc" || true)
+cc1_path=''
+python_path=$(command -v python3 || true)
+input_paths() {
+    find release/extlibs/miniz release/include -type f -print0
+    printf '%s\0' lib/xrt/xrt.h lib/xruntime/xruntime.h release/xl release/libxl.so \
+        release/libxlc.so test/support/extlib_codec_runtime.c test/support/extlib_native_codec_file_rollback.h \
+        tools/check_extlib_native_globals.ps1 tools/check_extlib_native_globals.sh \
+        test/cases/extlib_miniz.xl test/cases/extlib_miniz_progress.xl \
+        release/examples/extlibs/miniz.xl release/examples/extlibs/miniz_basic.xl
+    if [[ -n "$cc_path" ]]; then printf '%s\0' "$cc_path"; fi
+    if [[ -n "$cc1_path" ]]; then printf '%s\0' "$cc1_path"; fi
+    if [[ -n "$python_path" ]]; then printf '%s\0' "$python_path"; fi
+}
+fingerprint() {
+    mapfile -d '' inputs < <(input_paths | sort -zu)
+    sha256sum "${inputs[@]}"
+}
+cleanup() {
+    result=$?
+    trap - EXIT ERR
+    set +e
+    fingerprint > "$work/inputs.after.sha256"
+    if ! diff -u "$work/inputs.before.sha256" "$work/inputs.after.sha256"; then result=125; fi
+    printf '%s\n' "$result" > "$work/exit-code.txt"
+    if ((result == 0)); then
+        rm -rf -- "$work" || result=$?
+    else
+        printf '[miniz] FAIL exit=%s artifacts=%s\n' "$result" "$work" >&2
+    fi
+    exit "$result"
+}
+trap cleanup EXIT
+record_failure() {
+    printf 'exit=%s\nline=%s\ncommand=%s\npipeline=%s\n' "$@" > "$work/failure.txt"
+    cat "$work/failure.txt" >&2
+}
+trap 'record_failure "$?" "$LINENO" "$BASH_COMMAND" "${PIPESTATUS[*]}"' ERR
+exec > >(tee "$work/output.log") 2>&1
 sanitize=(-fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -no-pie -pthread)
-flags=(-std=c11 -D_GNU_SOURCE -DXRT_MODULE_DEFLATE -DXRT_MODULE_INFLATE
+flags=(-std=c11 -D_GNU_SOURCE -DXRT_MODULE_DEFLATE -DXRT_MODULE_INFLATE -DXRT_MODULE_DIR_TEMP
        -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Ilib/xruntime
        -Irelease/extlibs/miniz/include "${sanitize[@]}")
 export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1
 export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
 
+fingerprint > "$work/inputs.before.sha256"
+"$cc" --version > "$work/compiler.txt"
+cc1_path=$("$cc" -print-prog-name=cc1)
+fingerprint > "$work/inputs.before.sha256"
+compile() { timeout 180s "$cc" "${flags[@]}" "$@"; }
+compile -fsyntax-only release/extlibs/miniz/test/native_header.c
+compile -DMINIZ_CORE_FIRST -fsyntax-only release/extlibs/miniz/test/native_header.c
 for kind in compressor decompressor; do
     case="private_${kind}_negative"
-    if timeout 90s ./release/xl check "release/extlibs/miniz/test/$case.xl" > "$work/$case.txt" 2>&1; then
+    status=0
+    timeout 90s ./release/xl check "release/extlibs/miniz/test/$case.xl" > "$work/$case.txt" 2>&1 || status=$?
+    if ((status != 1)); then
         printf 'miniz: %s must be rejected\n' "$case" >&2
         exit 1
     fi
@@ -27,18 +74,38 @@ for kind in compressor decompressor; do
     fi
 done
 
-"$cc" "${flags[@]}" -c test/support/extlib_codec_runtime.c -o "$work/runtime.o"
-"$cc" "${flags[@]}" -c release/extlibs/miniz/xrt_miniz.c -o "$work/core.o"
-"$cc" "${flags[@]}" -c release/extlibs/miniz/miniz_native.c -o "$work/bridge.o"
+compile -c test/support/extlib_codec_runtime.c -o "$work/runtime.o"
+compile -c release/extlibs/miniz/xrt_miniz.c -o "$work/core.o"
+compile -c release/extlibs/miniz/miniz_native.c -o "$work/bridge.o"
 objects=("$work/runtime.o" "$work/core.o" "$work/bridge.o")
-"$cc" "${flags[@]}" -DNDEBUG release/extlibs/miniz/test/test_miniz.c \
+compile -DNDEBUG release/extlibs/miniz/test/test_miniz.c \
     "${objects[@]}" -lm -ldl -o "$work/test_miniz"
-"$cc" "${flags[@]}" release/extlibs/miniz/test/test_allocations.c \
+compile release/extlibs/miniz/test/test_allocations.c \
     "${objects[@]}" -lm -ldl -o "$work/test_allocations"
-"$cc" "${flags[@]}" release/extlibs/miniz/examples/basic.c \
+compile release/extlibs/miniz/test/test_io_errors.c \
+    "${objects[@]}" -lm -ldl -o "$work/test_io_errors"
+compile release/extlibs/miniz/test/test_native_options.c \
+    "${objects[@]}" -lm -ldl -o "$work/test_native_options"
+compile release/extlibs/miniz/examples/basic.c \
     "${objects[@]}" -lm -ldl -o "$work/basic"
+compile release/extlibs/miniz/examples/streaming_c.c \
+    "${objects[@]}" -lm -ldl -o "$work/streaming_c"
 timeout 90s "$work/test_miniz"
 timeout 30s "$work/test_allocations"
+timeout 30s "$work/test_io_errors"
+timeout 30s "$work/test_native_options"
+compile release/extlibs/miniz/test/file_rollback_c.c "${objects[@]}" -lm -ldl -o "$work/rollback"
+timeout 90s "$work/rollback"
+timeout 90s ./release/xl run release/extlibs/miniz/test/file_rollback_c.c \
+    release/extlibs/miniz/xrt_miniz.c release/extlibs/miniz/miniz_native.c --inc-path lib/xrt --inc-path lib/xruntime
+compile release/extlibs/miniz/test/interop.c "${objects[@]}" -lm -ldl -o "$work/interop"
+timeout 240s python3 -I -O release/extlibs/miniz/test/interop.py "$work/interop"
+timeout 90s ./release/xl run release/extlibs/miniz/test/test_io_errors.c
+timeout 30s "$work/streaming_c" > "$work/streaming_gcc.txt"
+timeout 90s ./release/xl run release/extlibs/miniz/examples/streaming_c.c > "$work/streaming_direct_c.txt"
+timeout 90s ./release/xl run release/extlibs/miniz/examples/streaming.xl > "$work/streaming_xl.txt"
+diff -u "$work/streaming_gcc.txt" "$work/streaming_direct_c.txt"
+diff -u "$work/streaming_gcc.txt" "$work/streaming_xl.txt"
 timeout 30s "$work/basic" > "$work/basic_c.txt"
 timeout 90s ./release/xl run release/extlibs/miniz/examples/basic.c > "$work/basic_direct.txt"
 diff -u "$work/basic_c.txt" "$work/basic_direct.txt"
@@ -48,12 +115,21 @@ timeout 90s ./release/xl run release/extlibs/miniz/test/file_ops.xl > "$work/fil
 timeout 90s ./release/xl run release/examples/extlibs/miniz.xl > "$work/full_xl.txt"
 timeout 90s ./release/xl run release/extlibs/miniz/test/allocations.xl
 timeout 90s ./release/xl run release/extlibs/miniz/test/text_transfer.xl
+timeout 90s ./release/xl run release/extlibs/miniz/test/native_options.xl
 timeout 90s ./release/xl run release/examples/extlibs/miniz_basic.xl > "$work/basic_xl.txt"
 diff -u "$work/basic_c.txt" "$work/basic_xl.txt"
-hex=$(/usr/bin/timeout 30s "$work/test_miniz" --emit)
-python3 -c 'import sys,zlib; assert zlib.decompress(bytes.fromhex(sys.argv[1])) == b"abc"' "$hex"
+compile release/extlibs/miniz/examples/file_transaction_c.c "${objects[@]}" -lm -ldl -o "$work/transaction_c"
+timeout 90s "$work/transaction_c" > "$work/transaction.gcc.txt"
+diff -u release/extlibs/miniz/examples/file_transaction.expected.txt "$work/transaction.gcc.txt"
+for source in file_transaction.xl file_transaction_c.c; do
+    timeout 90s ./release/xl run "release/extlibs/miniz/examples/$source" > "$work/$source.jit.txt"
+    diff -u "$work/transaction.gcc.txt" "$work/$source.jit.txt"
+    timeout 180s ./release/xl build "release/extlibs/miniz/examples/$source" -o "$work/$source.aot"
+    timeout 90s "$work/$source.aot" > "$work/$source.aot.txt"
+    diff -u "$work/transaction.gcc.txt" "$work/$source.aot.txt"
+done
 printf '[miniz] XLang AOT gate\n'
-for name in central progress file_ops allocations text_transfer basic full; do
+for name in central progress file_ops allocations text_transfer native_options basic full; do
     printf '[miniz] AOT %s\n' "$name"
     case "$name" in
         central) source=test/cases/extlib_miniz.xl ;;
@@ -68,4 +144,27 @@ done
 diff -u "$work/file_ops_jit.txt" "$work/file_ops_aot.txt"
 diff -u "$work/basic_c.txt" "$work/basic_aot.txt"
 diff -u "$work/full_xl.txt" "$work/full_aot.txt"
+for source in streaming.xl streaming_c.c; do
+    target="$work/${source//./_}"
+    timeout 180s ./release/xl build "release/extlibs/miniz/examples/$source" -o "$target"
+    timeout 90s "$target" > "$work/${source//./_}.txt"
+    diff -u "$work/streaming_gcc.txt" "$work/${source//./_}.txt"
+done
+timeout 180s ./release/xl build release/extlibs/miniz/examples/basic.c -o "$work/miniz_basic_c"
+timeout 90s "$work/miniz_basic_c" > "$work/basic_c_aot.txt"
+diff -u "$work/basic_c.txt" "$work/basic_c_aot.txt"
+timeout 180s ./release/xl build release/extlibs/miniz/test/file_rollback_c.c \
+    release/extlibs/miniz/xrt_miniz.c release/extlibs/miniz/miniz_native.c \
+    --inc-path lib/xrt --inc-path lib/xruntime -o "$work/rollback_aot"
+timeout 90s "$work/rollback_aot"
+failed=0
+status=0
+timeout 90s "$work/rollback" --closed > "$work/closed.txt" 2>&1 || status=$?
+printf 'closed_rollback\t%s\n' "$status" > "$work/boundary-status.tsv"
+if ((status != 0)); then cat "$work/closed.txt" >&2; failed=1; fi
+status=0
+timeout 240s bash "$root/tools/check_extlib_native_globals.sh" miniz > "$work/lifecycle.txt" 2>&1 || status=$?
+printf 'top_level_lifecycle\t%s\n' "$status" >> "$work/boundary-status.tsv"
+if ((status != 0)); then cat "$work/lifecycle.txt" >&2; failed=1; fi
+test "$failed" -eq 0
 printf 'miniz Linux C ASan/UBSan, Python zlib, XLang JIT/AOT and parity gate: PASS\n'

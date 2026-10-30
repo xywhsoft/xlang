@@ -35,6 +35,7 @@
     <p><a href="../extlibs.html">扩展库</a> / color</p>
     <div class="extlib-title-row"><h1>color</h1><span class="extlib-cat-badge">颜色工具</span></div>
     <p class="extlib-lead">RGB/RGBA、HSV/HSL、命名色与对比度。C 输出由调用者持有，xlang 字符串独立拥有。</p>
+    <p>2026-10-29 补齐八个文本出口的缓冲、部分重叠与空结果 OOM 合同，新增 C/XLang 主题 CSS 生成范例。Windows 55 阶段与 Linux sanitizer、线程、26552 项独立 oracle、JIT/AOT 门禁通过；未修改算法、API 或返回所有权。</p>
     <div class="color-palette" aria-label="范例颜色">
       <span><i style="background:#36c" aria-hidden="true"></i>#3366CC</span>
       <span><i style="background:#808080" aria-hidden="true"></i>#808080</span>
@@ -90,11 +91,13 @@ println(color.mix("#000", "#fff", 0.5))</code></pre>
     <h2 id="examples">双语范例</h2>
     <p>发行目录运行 xl run examples/extlibs/color_basic.xl；C 对照为 extlibs/color/examples/basic.c。
     范例覆盖 21 个 API，实现同一组转换与黑/白前景选择，按固定黄金输出核对。
-    在 demo6 根目录也可直接运行 xl run release/extlibs/color/examples/basic.c；该 C 范例只内嵌纯 C 核心。
+    在仓库根目录也可直接运行 xl run release/extlibs/color/examples/basic.c；该 C 范例只内嵌纯 C 核心。
     开发仓库仍可用 tools/run_extlib_c.ps1 -Package color -Source release/extlibs/color/examples/basic.c。</p>
     <p>AA/AAA 标签只表示普通文字的对比度阈值，不是整页可访问性认证。</p>
+    <p>新增 <code>extlibs/color/examples/theme.xl</code> 与 <code>extlibs/color/examples/theme_c.c</code>：接收十六进制或命名色，选择对比度更高的黑/白文字，再生成背景、文字、悬停色 CSS 变量。发行目录用 <code>xl run</code> 分别执行即可；共用 <code>theme.expected.txt</code>，两平台的严格 C、直跑与独立程序均核对同一输出。范例不处理透明度合成。</p>
 
     <h2 id="verification">验收范围</h2>
+    <p>2026-10-29 新合同覆盖 432 组容量/NULL/非法输入/陈旧错误、75 组部分重叠（包括混色同时覆盖两个输入），并验证八个拥有型空结果的分配失败、恢复及独立寿命。Windows 默认门禁 55 阶段全部通过、输入未变；Linux 原生快照通过 ASan/UBSan/float-cast、21 个实际生成原型、八条直接接管路径和双语输出；两平台各八条独立程序路径均通过。Linux 失败现场现在默认保留，并在失败时也检查输入指纹；旧记录中的无条件清理不再适用。</p>
     <p>门禁检查 C 缓冲边界、输入输出重叠、非有限数、零分配核心、拥有结果的故障恢复，
     四线程结果/错误隔离，独立数值和 148 个命名色参照，实际生成 C 原型、JIT/AOT、DLL 上下文及双语输出。独立参照现另核对 4101 组对比度和 4131 组 RGB 插值；先前 Windows 根目录的 VFS 头路径阻断只属旧发布物。</p>
     <p>2026-10-24 使用更新后的 Windows 发布版复验，默认专项门禁完整通过：实际生成原型、语言边界与分配故障 AOT、双语范例 AOT、DLL 上下文复用及文档代码块。旧共享文本快照缺符号已解除。脚本将结果标为包级限定验证，并非正式产品全量重建；此页不宣称全部发布形态已经准入。</p>

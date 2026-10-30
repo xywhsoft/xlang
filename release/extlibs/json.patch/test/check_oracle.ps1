@@ -6,7 +6,7 @@ $work = Join-Path $parent ([guid]::NewGuid().ToString('N'))
 
 Push-Location $root
 try {
-    $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
+    $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
     $python = (Get-Command python -CommandType Application -ErrorAction Stop |
         Select-Object -First 1).Source
     $flags = @('-std=c11', '-O2', '-Wall', '-Wextra', '-Werror',

@@ -1,6 +1,34 @@
 # pkcs
 
-2026-10-27：11 个拥有型 C 文本结果改为明确的 `char*`，XLang
+2026-10-29 当前状态：**R，C/XRT OID 失败诊断尚未闭环**。八类非法
+点分 OID 在冻结 XRT 中返回失败却不设置新错误，或保留旧 I/O 错误；
+直接 XRT 内容编码、TLV 编码和包 C API 均复现。133 项定向检查有
+48 项失败，默认门禁因此正确退出 1，不能继续沿用旧的包级全绿签收。
+语言非空字符串空指针检查会兜底抛 `ValueError`，22 项语言边界及其
+AOT 已通过，**不是**语言静默接受非法 OID。来源与修复建议见
+[OID 错误合同报告](../../../dev/extlib_blockers/xrt_oid_encode_error_contract.md)。
+当前 C 调用方必须首先检查返回值，不能把空错误槽当作成功。
+
+2026-10-28 完整返回链复核：可空结果传入 `__pkcs_take` 后又被编译为
+`xlir_string_copy`，旧门禁只确认接管点，未覆盖这一后续副本。现在 11 个
+文本入口直接返回 `@owned string`，删除辅助函数；失败沿 XRT 错误传播，
+普通 string API、空内容、错误类型、NUL 校验和 C `char*` ABI 不变。
+
+生成 C 夹具显式调用全部 11 个入口，核对每个原生结果直接接管，且完整
+夹具不再调用 `xlir_string_copy`。另以 INTEGER/NULL 两个无文本输入入口
+作 C/XLang 分配对照：冻结 XRT 的 DER 临时缓冲、目标缓冲和最终 HEX
+各分配一次，0/1/2 的预算保持 MemoryError，预算 3 成功，不再多分配
+第四份返回文本。两侧各 8 组预算检查，不把“编码只需两次分配”当成假设。
+
+Windows/Linux 默认完整门禁通过，含严格 C、Windows GCC 与 TCC 对照、
+Linux ASan/UBSan、OpenSSL 独立 DER 解析、新旧语言 JIT/AOT 和双语范例。
+中央、分配故障及拥有型结果补齐独立 EXE。验证运行库按产品模块加内存
+调试能力编译，不再启用全 XRT；输入指纹复核、失败保留命令和产物。
+
+仍有 DER/HEX 构造分配、结果长度扫描、输入 NUL 校验及外部调用错误作用域。
+本项消除额外的结果正文副本，不宣称全部操作零分配或相对裸 C 零开销。
+
+2026-10-27 历史记录：11 个拥有型 C 文本结果改为明确的 `char*`，XLang
 用 `@owned string?` 直接接管，删除 `point/takeCstr` 中转。
 输入 NUL 校验不再返回整份文本，校验后直接传原参数。
 生成 C 门禁逐个核对直接指针交接；结果长度仍需一次 `strlen`，
@@ -15,7 +43,7 @@ Linux 还由 OpenSSL 独立解析生成的 DER。旧 VFS 缺头与共享快照
 缺符号不再复现；签收仅限常用 ASN.1/DER 构件，不代表完整
 PKCS 协议、证书/密钥管理、其他架构或全产品发布准入。
 
-2026-10-25 历史阻断：当时 `xl.exe` 从 `demo6` 根目录运行默认包门禁，公开头、
+2026-10-25 历史阻断：当时 `xl.exe` 从仓库根目录运行默认包门禁，公开头、
 严格 GCC、C 边界与 C 范例通过；首个 XLang 范例在包代码执行前报
 `include/xruntime_decl.h` 未找到，后续语言与 AOT 门禁未运行。
 这是已记录的共享 VFS 头路径问题，最小复现和修复方向见
@@ -56,7 +84,7 @@ HEX 输入不区分大小写；输出为小写。除 `concat` 和 `nextOffset` �
 公开声明位于 `include/pkcs_native.h`。文本结果为独立分配的 NUL 结尾 `char*`，调用方须使用 `xrtFree` 释放；失败返回 `NULL`，可通过 `xrtGetError()` 取错误。`xpkcs_decode_int` 使用返回值表示成功，并仅在成功时写入 `int64_t*`，因此零也是有效结果。`xpkcs_decode_int_value` 仅供 XLang 的 `var` 桥接，C 调用方一般应使用前者。
 若 C 侧使用 `xpkcs_decode_int_value`，返回的 `xvalue*` 由调用方以 `xrtValueRelease` 释放。公开头可独立包含；应用需要操作该值时须自行启用 XRT value 模块。
 
-XLang 封装通过 `@owned string?` 接管 C 字符串，无需用户手工释放。包所需 XRT 模块在 `xlang.package.json` 的 `xrtModules` 中声明。
+XLang 封装通过 `@owned string` 接管并直接返回 C 字符串，无需用户手工释放。包所需 XRT 模块在 `xlang.package.json` 的 `xrtModules` 中声明。
 
 ## 范例和验证
 
@@ -64,6 +92,10 @@ XLang 封装通过 `@owned string?` 接管 C 字符串，无需用户手工释�
 - C 对照范例：`release/extlibs/pkcs/examples/pkcs_c.c`
 - XLang 边界与内存故障：`release/extlibs/pkcs/test/boundaries.xl`、`release/extlibs/pkcs/test/allocations.xl` 与 `test/cases/extlib_pkcs.xl`
 - C 边界：`release/extlibs/pkcs/test/test_pkcs.c`
+- OID 完整诊断回归：`test/oid_errors_c.c` 直接核对 XRT 两层及包 C
+  入口，含旧错误、合法无符号上界、失败缓冲不改写和内存平衡；不依赖
+  `assert`，`NDEBUG` 下仍执行。对应 `test/oid_errors.xl` 进入目录
+  coverage，区分普通无效输入与不可表示分量，不依赖通用异常兜底类别。
 
 C 范例可直接 `xl run` 单文件运行；仅该路径在 TCC 下编入包内原生实现，
 普通 C 构建仍按 manifest 分离链接。双平台门禁核对两条 C 路径与 XLang
@@ -71,9 +103,16 @@ C 范例可直接 `xl run` 单文件运行；仅该路径在 TCC 下编入包内
 
 双语范例覆盖全部 16 个公开 XLang 构件：编码、解析、DER 组合、标签与子项偏移；C 范例逐次检查返回值再使用，失败路径释放已分配结果。范例中的 SET 包含两个按完整 DER 字节排序的 INTEGER；若顺序相反，`wrapSet` 报错，不会静默重排。SEQUENCE 则保留调用者给出的子项顺序。
 
-在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/pkcs/test/check.ps1`，执行严格 GCC、C/XLang 边界、分配故障、双语范例及独立 AOT；`-SkipAot` 只供聚焦快测。Linux 使用 `bash release/extlibs/pkcs/test/check.sh`，同次运行严格 GCC/ASan/UBSan C 测试、中央与包内 XLang 边界、双语范例及边界/C/XLang 范例独立 EXE。Linux 门禁还需 `openssl` 和 `xxd`，以 OpenSSL 独立解析范例生成的 DER，核对标签与值。
+在仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/pkcs/test/check.ps1`，执行严格 GCC、C/XLang 边界、分配故障、双语范例及独立 AOT；`-SkipAot` 只供聚焦快测。Linux 使用 `bash release/extlibs/pkcs/test/check.sh`，同次运行严格 GCC/ASan/UBSan C 测试、中央与包内 XLang 边界、双语范例及边界/C/XLang 范例独立 EXE。Linux 门禁还需 `openssl` 和 `xxd`，以 OpenSSL 独立解析范例生成的 DER，核对标签与值。
+2026-10-29 两平台默认门禁均先通过全部旧路径、16 个实际生成声明与
+公开头、11 条直接文本接管/完整返回无副本、22 项新增语言边界及七条
+独立程序，最后在 C OID 新回归的 48 项诊断失败处退出 1；Linux 包含
+ASan/UBSan 与 OpenSSL。Windows 40 项输入指纹变化为零，Linux 35
+份源件内外一致；门禁现有进程超时、成功/失败指纹、持久报告与失败现场，
+缺 Linux C 编译器实测退出 127。未修改包计算实现、编译器或冻结 XRT，
+按任务约定记录来源问题后暂停本包，不复制一套 OID 校验来绕过。
 2026-10-16 将包内 XLang `test/boundaries.xl` 登记到 `coverage.tests`；从
-`demo6` 工作目录单独运行通过。本轮未重跑 C/Linux/AOT 门禁。
+仓库根目录单独运行通过。本轮未重跑 C/Linux/AOT 门禁。
 
 2026-10-14 追加 XLang 的 DER、OID 与双参数 HEX 文本内嵌 NUL 负例；先复现有效前缀被误接受，再验证统一拒绝。包内 C ABI 不变。
 

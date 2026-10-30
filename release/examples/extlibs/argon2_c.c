@@ -22,16 +22,25 @@
 
 int main(void)
 {
-    const char *encoded = xargon2_hash(LIT("password"), LIT("somesalt12345678"), LIT(""), LIT(""), 2, 64, 1, 32, 16, 2);
-    if (!encoded[0] || xrtGetError()) return 1;
+    char *encoded = NULL, *contextual = NULL, *salt = NULL;
+    int status = 1;
+    encoded = xargon2_hash(LIT("password"), LIT("somesalt12345678"), LIT(""), LIT(""), 2, 64, 1, 32, 16, 2);
+    if (!encoded || xrtGetError()) goto done;
     printf("verified: %s\n", xargon2_verify(LIT("password"), encoded, strlen(encoded), LIT(""), LIT("")) ? "true" : "false");
     printf("wrong password: %s\n", xargon2_verify(LIT("wrong"), encoded, strlen(encoded), LIT(""), LIT("")) ? "true" : "false");
-    const char *contextual = xargon2_hash(LIT("password"), LIT("somesalt12345678"), LIT("server-key"), LIT("tenant-42"), 2, 64, 1, 32, 16, 2);
-    if (!contextual[0] || xrtGetError()) return 1;
+    contextual = xargon2_hash(LIT("password"), LIT("somesalt12345678"), LIT("server-key"), LIT("tenant-42"), 2, 64, 1, 32, 16, 2);
+    if (!contextual || xrtGetError()) goto done;
     printf("context verified: %s\n", xargon2_verify(LIT("password"), contextual, strlen(contextual), LIT("server-key"), LIT("tenant-42")) ? "true" : "false");
     printf("wrong context: %s\n", xargon2_verify(LIT("password"), contextual, strlen(contextual), LIT("server-key"), LIT("other")) ? "true" : "false");
     printf("needs rehash: %s\n", xargon2_needs_rehash(encoded, strlen(encoded), 3, 65536, 4) ? "true" : "false");
-    printf("salt hex length: %zu\n", strlen(xargon2_generate_salt(16)));
-    xrtTempUnit(xrtTempCurrent());
-    return xrtGetError() ? 1 : 0;
+    salt = xargon2_generate_salt(16);
+    if (!salt) goto done;
+    printf("salt hex length: %zu\n", strlen(salt));
+    status = xrtGetError() ? 1 : 0;
+done:
+    /* 每份文本独立拥有，不依赖临时区或后续库调用。 */
+    xrtFree(salt);
+    xrtFree(contextual);
+    xrtFree(encoded);
+    return status;
 }

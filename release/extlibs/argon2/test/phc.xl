@@ -1,0 +1,75 @@
+import argon2
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    // 以下低成本固定夹具仅供测试，不能作为真实密码存储参数。
+    string legacy = "$argon2id$v=16$m=32,t=1,p=1$c29tZXNhbHQ$V5Quaw7ASul1EzygimxtXA"
+    string implicitVersion = "$argon2id$m=32,t=1,p=1$c29tZXNhbHQ$V5Quaw7ASul1EzygimxtXA"
+    assert argon2.verify("pw", legacy) and argon2.verify("pw", implicitVersion)
+    assert argon2.checkNeedsRehash(legacy, 1, 32, 1)
+    assert argon2.checkNeedsRehash(implicitVersion, 1, 32, 1)
+    string current = argon2.hash("pw", "somesalt", timeCost=1, memoryCost=32, parallelism=1, hashLen=16)
+    assert argon2.verify("pw", current) and not argon2.verify("wrong", current)
+    assert not argon2.checkNeedsRehash(current, 1, 32, 1)
+
+    string unknown = "$argon2id$v=17$m=32,t=1,p=1$c29tZXNhbHQ$UF21A2AEUD+Ys5m/yX+2vw"
+    auto invalid = [unknown,
+        "$argon2id$v=0$m=32,t=1,p=1$c29tZXNhbHQ$pD/zQ9xAtijpqWdn9UYU5A",
+        "$argon2id$v=4294967295$m=32,t=1,p=1$c29tZXNhbHQ$GoPzMlWkIrXi/+2q8QkI2A",
+        "$argon2id$v=019$m=32,t=1,p=1$c29tZXNhbHQ$AAAAAA",
+        "$argon2id$v=19$m=32,t=4294967296,p=1$c29tZXNhbHQ$AAAAAA",
+        "$argon2id$v=19$m=4294967296,t=1,p=1$c29tZXNhbHQ$AAAAAA",
+        "$argon2id$v=19$m=32,t=1,p=4294967296$c29tZXNhbHQ$AAAAAA",
+        "$argon2id$v=4294967315$m=32,t=1,p=1$c29tZXNhbHQ$pDIyrBHcYmfLR3Nw+TSB3w",
+        "$argon2id$v=19$m=4294967328,t=1,p=1$c29tZXNhbHQ$pDIyrBHcYmfLR3Nw+TSB3w",
+        "$argon2id$v=19$m=32,t=4294967297,p=1$c29tZXNhbHQ$pDIyrBHcYmfLR3Nw+TSB3w",
+        "$argon2id$v=19$m=32,t=1,p=4294967297$c29tZXNhbHQ$pDIyrBHcYmfLR3Nw+TSB3w",
+        "$argon2id$v=19$m=32,t=1,p=1$c29tZXNhbHQ$AAAAAB",
+        "$argon2id$v=19$m=32,t=1,p=1$c29tZXNhbHQ$AAAAAA=",
+        current + "\0tail"]
+    for value in invalid
+        assert not argon2.verify("pw", value)
+        assert argon2.checkNeedsRehash(value, 1, 32, 1)
+        assert argon2.extractType(value) == -1 and argon2.extractTimeCost(value) == -1
+        assert argon2.extractMemoryCost(value) == -1 and argon2.extractParallelism(value) == -1
+    end
+
+    // 只解析元数据：不能把这两条PHC传给verify，避免真实执行极端成本。
+    string maxTime = "$argon2id$v=19$m=32,t=4294967295,p=1$c29tZXNhbHQ$AAAAAA"
+    string maxMemory = "$argon2id$v=19$m=4294967295,t=1,p=1$c29tZXNhbHQ$AAAAAA"
+    assert argon2.extractTimeCost(maxTime) == 4294967295
+    assert argon2.extractMemoryCost(maxMemory) == 4294967295
+    assert argon2.checkNeedsRehash(maxTime, 1, 32, 1)
+
+    // 无效PHC的普通false/true/-1，不得吞掉解码或空结果分配失败。
+    for operation in range(3)
+        int failures = 0
+        int successes = 0
+        for budget in range(16)
+            bool caught = false
+            assert failAfter(uint64(budget))
+            try
+                if operation == 0 then
+                    assert not argon2.verify("pw", unknown)
+                elseif operation == 1 then
+                    assert argon2.checkNeedsRehash(unknown, 1, 32, 1)
+                else
+                    assert argon2.extractType(unknown) == -1
+                end
+            catch MemoryError e
+                caught = true
+            end
+            bool triggered = failTriggered()
+            failClear()
+            assert caught == triggered
+            if caught then failures += 1 else successes += 1 end
+            assert argon2.verify("pw", current)
+        end
+        assert failures > 0 and successes > 0
+    end
+    println("argon2 PHC language: PASS")
+    return 0
+end

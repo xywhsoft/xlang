@@ -1,0 +1,5 @@
+func main(...) as int
+    c_size count = c_size(6)
+    println(f"bytes={count}")
+    return 0
+end

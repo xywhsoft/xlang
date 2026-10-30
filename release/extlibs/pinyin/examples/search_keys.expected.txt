@@ -1,0 +1,9 @@
+中国 | zhong guo | zg
+上海 | shang 海 | s海
+北京 | bei jing | bj
+query b: 北京
+伉 | kang | k
+女 | nv | n
+佛 | fo | f
+龘😀 | 龘😀 | 龘😀
+pinyin search keys: PASS

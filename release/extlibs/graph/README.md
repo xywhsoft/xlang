@@ -1,5 +1,25 @@
 # graph
 
+## 当前验证（2026-10-30）
+
+本轮未确认新的图算法错误，不改四个算法单元、ABI或资源限额；C头仅补充
+已有uint权重的注释。新增3072条加权记录，由Python标准库的独立
+Bellman-Ford参照核对float64位模式：正常/次正规数、负零、极大值、
+整数转浮点、重复边、堆中降距、不可达节点、溢出以及溢出候选后的有限
+替代路径均包含，123条按合同报告RangeError。它不是任意精度距离证明，
+也不把整数转float64的精度损失当成算法错误。
+
+Windows预验通过原边界/128组Floyd参照、分配故障、四线程、三模块独立
+XRT构建、九条实际生成原型及三条独立程序。新JSON配置范例与现有C范例
+同样覆盖九项API，十行黄金输出相同；xl.dll/xlc.dll各在同一上下文顺序
+运行三轮，30行输出逐字一致。这只覆盖顺序复用，不外推跨线程上下文。
+最终双平台证据见根目录验收矩阵和任务台账。
+
+默认门禁最后仍强制原语言字面量正例并在M1报告
+`ValueError: graph edges must be an array`。标准json.parse读入原生值可用，
+不代表语言字面量投影已经修复；没有新增私有工厂或序列化绕行，旧正例
+不改为预期失败。整包仍M，主线与XRT不改，以下旧日期记录不作当前签收。
+
 2026-10-26 当前发布版复验：
 `xl run dev/extlib_blockers/graph_var_array_projection.xl` 仍在合法
 `var` 边数组进入原生 `isDag` 时报告
@@ -121,16 +141,42 @@ C 名称按完整字节比较，支持内嵌 NUL。当前 `xl.exe` 的独立复�
 
 ## 范例与门禁
 
+新增 `examples/from_json.xl` 从标准JSON配置读取图，复用现有
+`examples/basic.c` 作C对照，共同输出仍为中央
+`release/examples/extlibs/graph_basic.expected.txt`，不复制另一份C范例。
+两边覆盖全部九项API、有环失败、孤立节点、最少边数与最小权重的区别。
+新正常JSON工作流和仍失败的语言字面量必须分开报告。
+
+新增 `test/weighted_records_c.c` 的 `--records` 输出512组图×6起点，
+包含十六种浮点/整数权重；`test/check_weighted_records.py` 用逐边松弛
+而不是被测索引堆，单独计算可达性与数值距离。正常结果按完整位模式比较，
+不存在的键与全局RangeError分开。每次释放结果/输入均核对活动分配与字节、
+非法释放；保留原128组Floyd和全部旧故障/容量用例。GCC、TCC内存运行和
+独立程序记录逐字比较；缺行、乱序、合法但错误的数值和错误Range分类均
+作为验证器负例拒绝。未增加算法功能或更改数值合同。
+
+Windows完整入口为根目录 `tools/check_extlib_graph.ps1`，Linux为
+`release/extlibs/graph/test/check.sh`（直接委托唯一的
+`tools/check_extlib_graph.sh`，不重复维护算法门禁）。需要GCC和Python3，
+可通过CC/PYTHON指定；缺工具必须失败。前置所有已可运行检查，最后强制
+原字面量/双语入口，未执行的项不能标绿。默认有逐进程限时、输入指纹及
+完整命令/输出/退出值；成功只清理本次目录，失败保留现场。默认报告在
+工作目录旁，显式WorkDirectory则保留原results.json位置。独立的
+`test/check_c.ps1`仍仅做C聚焦，不代替完整门禁。第三方Python包不是依赖。
+
+以下是对应日期的历史记录，不覆盖当前M1及最终报告：
+
 2026-10-22：`uint64` 权重原被原生模型误拒绝为 `ValueError`，C/XLang 最小红例均复现；现与有符号整数一样转为 float64 参与 Dijkstra，布尔和非有限浮点仍拒绝。成对范例以无符号权重演示同一条边，输出保持不变。Windows 严格 C、XLang JIT 与生成原型通过；Linux C ASan/UBSan、XLang 与双语范例通过。Windows 综合门禁仍在既有 `xl.dll` 缺 `__xl_runtime/xl6_collection_count.h` 处停止，完整 AOT 未签收。
 
 发布目录内：`xl run examples/extlibs/graph_basic.xl`。
 完整九项 API 的 C 对照为 `extlibs/graph/examples/basic.c`，共同预期为
 `examples/extlibs/graph_basic.expected.txt`。
 
-开发仓库从 demo6 运行：
+开发仓库从根目录运行：
 
 ```powershell
 ./release/xl.exe run release/examples/extlibs/graph_basic.xl
+./release/xl.exe run release/extlibs/graph/examples/from_json.xl
 ./release/xl.exe run release/extlibs/graph/examples/basic.c
 ./tools/run_extlib_c.ps1 -Package graph -Source release/extlibs/graph/examples/basic.c
 ./release/extlibs/graph/test/check_c.ps1
@@ -151,12 +197,12 @@ C 范例黄金输出逐字节比较。包级脚本在本次运行专用的临时
 编译结果和测试日志，退出时清理；同时直接核对 C/XLang 范例输出。
 独立 C 门禁仍可用 `bash tools/check_extlib_graph.sh`；
 设置 GRAPH_DECLARATIONS 可核对生成原型的 LP64 合同。
-独立 C 门禁与 Windows 完整门禁默认使用独占目录并在退出时清理；
+历史独立 C 门禁与 Windows 完整门禁默认使用独占目录并在退出时清理；
 需要保留 `results.json` 或编译产物时，分别显式设置 `GRAPH_WORK_DIR`
 或传入 `-WorkDirectory`。旧的固定门禁目录不会被自动删除。
 
 共享语言失败单独记录，不作为通过用例；以上范围不代表 32 位/ARM、TSan、
-全部性能场景或同一可变输入并发已经验收。具体构建与结果见 docs 下的交付记录。
+全部性能场景或同一可变输入并发已经验收。具体构建与结果见根目录docs下的交付记录。
 
 2026-10-16：补 C/XLang 对照边界：不可达分量中的负权仍拒绝，不可达的
 极大权重链不触发距离溢出。当前 Windows 严格 GCC/C/XL JIT、Linux C

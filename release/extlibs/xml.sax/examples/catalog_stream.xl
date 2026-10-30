@@ -1,0 +1,36 @@
+import xml.sax
+
+func main(...) as int
+    string source = "<catalog><book id='xlang'>语言</book><book id='xrt'>运行库</book></catalog>"
+    int books = 0
+    string names = ""
+    auto reader = xml.sax.reader(source)
+    for event in reader
+        // 只累计需要的结果，不为了统计构造整棵 XML 树。
+        if event["type"] == "start" and event["name"] == "book" then
+            books += 1
+        elseif event["type"] == "text" then
+            names += string(event["text"])
+        end
+    end
+    assert books == 2 and names == "语言运行库"
+    assert reader.next() == null
+    reader.close()
+
+    bool rejected = false
+    try
+        auto small = xml.sax.reader(source, maxInput = 4)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected
+    // 失败的调用不会污染下一份合法配置。
+    auto recovered = xml.sax.reader("<ok/>")
+    assert recovered.next()["name"] == "ok"
+    recovered.close()
+    println("books=2")
+    println("names=语言运行库")
+    println("limit rejected=true; recovery=true")
+    println("XML catalog stream: OK")
+    return 0
+end

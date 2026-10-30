@@ -24,6 +24,7 @@ int main(void)
     xvalue* ArrayValue;
     xvalue* BinaryArgs;
     xvalue* BinaryValue;
+    xvalue* DecodedValue;
     xvalue* BinaryReply = NULL;
     xbuffer* BinaryRequest;
     xstrview Bytes;
@@ -63,6 +64,12 @@ int main(void)
         xrtGetError() == NULL;
     xr_frame_destroy(Frame);
 
+    /* 尚未收齐不等于已经越界：根数组本身也占一个值节点。 */
+    Ok = Ok && !xr_is_complete_raw("*99999\r\n", 8u) && xrtGetError() == NULL;
+    Ok = Ok && !xr_is_complete_raw("*100000\r\n", 9u) &&
+        xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_VALUE;
+    xrtClearError();
+
     BinaryArgs = xrtValueArray();
     BinaryValue = xrtValueBytes((xbytesview){ (const unsigned char*)"\x00\xff" "A", 3u });
     Ok = Ok && BinaryArgs != NULL && BinaryValue != NULL &&
@@ -77,9 +84,10 @@ int main(void)
             xrtGetError() == NULL &&
             xr_is_complete_raw((void*)RawReply, sizeof(RawReply));
         BinaryReply = Ok ? xr_decode_raw((void*)RawReply, sizeof(RawReply)) : NULL;
-        BinaryValue = BinaryReply ? xrtValueObjectGet(BinaryReply, Key) : NULL;
-        BinaryValue = BinaryValue ? xrtValueObjectGet(BinaryValue, Key) : NULL;
-        Ok = Ok && BinaryValue != NULL && xrtValueGetBytes(BinaryValue, &BinaryBytes) &&
+        /* ObjectGet 仅借用；由 BinaryReply 统一释放，不再单独 release。 */
+        DecodedValue = BinaryReply ? xrtValueObjectGet(BinaryReply, Key) : NULL;
+        DecodedValue = DecodedValue ? xrtValueObjectGet(DecodedValue, Key) : NULL;
+        Ok = Ok && DecodedValue != NULL && xrtValueGetBytes(DecodedValue, &BinaryBytes) &&
             BinaryBytes.Size == 3u && memcmp(BinaryBytes.Data, "a\xff" "b", 3u) == 0;
     }
     if (Ok) {

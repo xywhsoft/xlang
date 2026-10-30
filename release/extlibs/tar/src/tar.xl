@@ -29,12 +29,6 @@ func __tar_mode(int mode)
     end
 end
 
-func __tar_ids(int uid, int gid)
-    if uid < 0 or gid < 0 then
-        throw ValueError "TAR uid and gid cannot be negative"
-    end
-end
-
 
 
 func __tar_kind(int value) as string
@@ -65,8 +59,8 @@ export class TarInfo
     string groupName
     int size
     int mtime
-    int uid
-    int gid
+    uint64 uid
+    uint64 gid
     int mode
     int deviceMajor
     int deviceMinor
@@ -74,7 +68,7 @@ export class TarInfo
     string kind
 
     create(string name, string linkName, string userName, string groupName,
-        int size, int mtime, int uid, int gid, int mode, int deviceMajor,
+        int size, int mtime, uint64 uid, uint64 gid, int mode, int deviceMajor,
         int deviceMinor, int typeCode)
         self.name = name
         self.linkName = linkName
@@ -126,11 +120,11 @@ class TarReader
     private extern "xtar_reader_group_name" func groupNameNative() as point
     private extern "xtar_reader_size" func sizeNative() as int
     private extern "xtar_reader_mtime" func mtimeNative() as int
-    private extern "xtar_reader_uid" func uidNative() as int
-    private extern "xtar_reader_gid" func gidNative() as int
-    private extern "xtar_reader_mode" func modeNative() as c_int
-    private extern "xtar_reader_device_major" func deviceMajorNative() as c_int
-    private extern "xtar_reader_device_minor" func deviceMinorNative() as c_int
+    private extern "xtar_reader_uid" func uidNative() as uint64
+    private extern "xtar_reader_gid" func gidNative() as uint64
+    private extern "xtar_reader_mode" func modeNative() as c_uint
+    private extern "xtar_reader_device_major" func deviceMajorNative() as c_uint
+    private extern "xtar_reader_device_minor" func deviceMinorNative() as c_uint
     private extern "xtar_reader_type" func typeNative() as c_int
     private extern "xtar_reader_read" func readNative() as point
     private extern "xtar_reader_skip" func skipNative() as bool
@@ -305,12 +299,11 @@ class TarWriter
     end
 
     func add(string name, Buffer data, int mode = 420, int mtime = 0,
-        int uid = 0, int gid = 0, string userName = "", string groupName = "")
+        uint64 uid = 0, uint64 gid = 0, string userName = "", string groupName = "")
         __tar_c_string(name)
         __tar_c_string(userName)
         __tar_c_string(groupName)
         __tar_mode(mode)
-        __tar_ids(uid, gid)
         if not self.addNative(name, data.data(), c_ulonglong(data.len()), c_int(mode),
             c_longlong(mtime), c_ulonglong(uid), c_ulonglong(gid), userName, groupName) then
             throw ArchiveError __tar_error()
@@ -318,12 +311,11 @@ class TarWriter
     end
 
     func add(string name, string text, int mode = 420, int mtime = 0,
-        int uid = 0, int gid = 0, string userName = "", string groupName = "")
+        uint64 uid = 0, uint64 gid = 0, string userName = "", string groupName = "")
         __tar_c_string(name)
         __tar_c_string(userName)
         __tar_c_string(groupName)
         __tar_mode(mode)
-        __tar_ids(uid, gid)
         if not self.addStrNative(name, text, c_ulonglong(string.byteLen(text)), c_int(mode),
             c_longlong(mtime), c_ulonglong(uid), c_ulonglong(gid), userName, groupName) then
             throw ArchiveError __tar_error()

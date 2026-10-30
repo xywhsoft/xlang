@@ -1,9 +1,10 @@
 #ifndef XLANG_MINIZ_NATIVE_H
 #define XLANG_MINIZ_NATIVE_H
-#ifndef XRT_MODULE_VALUE
-#define XRT_MODULE_VALUE
-#endif
-#include "xrt.h"
+#include <stdbool.h>
+#include <stddef.h>
+
+/* 回调只借用公开的不透明 xvalue；不要求先选 VALUE 模块或固定包含顺序。 */
+typedef struct xvalue xvalue;
 
 #ifdef __cplusplus
 extern "C" {

@@ -1,0 +1,19 @@
+import ical
+
+func main(...) as int
+    // 发送端仍应在完整字符之间折行；读取后得到普通逻辑字段。
+    string source = ("BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:test\r\n" +
+        "BEGIN:VEVENT\r\nUID:one\r\nDTSTAMP:20261030T000000Z\r\n" +
+        "DTSTART:20261030T120000Z\r\nSUMMARY:团\r\n 队例会\r\n" +
+        "DESCRIPTION:第一行\\n第二\r\n\t行\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n")
+    var calendar = ical.parse(source)
+    var event = calendar["events"][0]
+    string canonical = ical.build(calendar)
+    if arg.length == 2 then assert file.writeText(string(arg[1]), canonical) end
+    assert event["summary"] == "团队例会"
+    assert event["description"] == "第一行\n第二行"
+    println("summary:", string(event["summary"]))
+    println("description restored:", event["description"] == "第一行\n第二行")
+    println("canonical summary:", canonical.contains("SUMMARY:团队例会\r\n"))
+    return 0
+end

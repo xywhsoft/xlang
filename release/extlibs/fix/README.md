@@ -1,11 +1,31 @@
 # fix
 
+## 当前状态（2026-10-30）
+
+本轮修复 `parse` / `validate` 把 `08=`、`09=`、`035=`、`010=` 等带前导零
+标签接受为有效帧的问题。生产修改只在共享 TagNum 读取处增加检查，不改
+公开 API/ABI、所有权、BodyLength 数值语法或字段值。新测试374组覆盖四种
+标签位置、0..32个前导零、非法数字/边界及两类值文本，旧实现256项失败，
+修复后0；这是组合失败数，不是256个独立 BUG。另四条逐点 OOM/立即恢复
+路径核对活动分配/字节与非法/重复释放。
+
+Windows 预验中的原 C、独立三模块构建、八条实际 cgen 原型、三引擎
+374条 Python 独立字节参照、新双语黄金例与五个独立程序通过。
+原中央语言数组传入 `build` 的正例仍在共享 M1 边界失败，默认门禁仍
+非零退出，不将该正例改为预期失败，也不以新解析范例代替构帧闭环。
+最终双平台报告见根目录 `docs/普通扩展库发布验收矩阵_2026-10-28.md`
+及任务台账；外部网站未部署，旧日期记录不代表当前源码已获发布认证。
+
+## 历史阻断说明
+
 2026-10-25 当前 Windows 发布物复验：C 原生测试通过，XLang 的单字段
 最小用例在 `check` 通过后，于 JIT 和独立 EXE 的 `build(var fields)`
 调用中报数组类型错误；完整语言边界用例在第一条同形调用停止。
 复现与主线修复方向见
 `../../../dev/extlib_blockers/fix_var_array_projection.md`。以下较早的
 语言/AOT 通过记录不代表当前发布物已通过完整包级门禁。
+
+## 用法与合同
 
 `fix` 是 FIX 4.x 文本报文的**帧编解码器**，不是交易会话引擎。它自动生成
 `8=BeginString`、`9=BodyLength`、`10=CheckSum`，按传入顺序保留应用字段，
@@ -25,6 +45,12 @@ var decoded = fix.parse(message)
 浮点字段使用 XRT 写出区域无关的十进制文本，小数点固定为 `.`，
 不受进程 `LC_NUMERIC` 影响。
 应用字段不可使用保留标签 8、9、10，文本值不可含 SOH (`\x01`) 或 NUL。
+标签须为正整数的十进制写法，不允许前导零、正负号或空白；例如 `35=`
+有效，`035=` 无效，即便帧长度和校验和正确也拒绝。这来自
+[FIX 官方 TagNum 说明](https://forum.fixtrading.org/t/fix-standard-errors-and-omissions-2018-2021/14231/13)，
+不是对所有数字文本的统一限制：`9=0008` 等 BodyLength 和 `35=0007`
+等应用字段值仍保留各自语义，三位 CheckSum 仍按需要补零。标签范围沿用
+本包 C `int64` 正数范围；不以帧校验冒充交易场所数据字典验证。
 XLang 的 `field`、`build`、`parse` 在交给 C 字符串接口前拒绝内嵌 NUL；
 `validate` 对这类输入返回 `false`，不会把后缀静默丢弃。C 公开操作
 会清理前一次操作遗留的 XRT 错误状态。
@@ -47,7 +73,7 @@ XLang 的 `field`、`build`、`parse` 在交给 C 字符串接口前拒绝内嵌
 对应的 C 声明在 `fix_native.h`。`xfix_build` 返回独立的 XRT 缓冲区，
 C 调用方用 `xrtFree` 释放；`xfix_field`/`xfix_parse` 返回的 `xvalue*`
 用 `xrtValueRelease` 释放。XLang 包装会处理这些所有权。
-`examples/fix_c.c` 可在 `release` 下直接运行：
+`examples/fix_c.c` 可在仓库的 `release` 下直接运行：
 
 ```powershell
 ./xl run extlibs/fix/examples/fix_c.c
@@ -56,21 +82,45 @@ C 调用方用 `xrtFree` 释放；`xfix_field`/`xfix_parse` 返回的 `xvalue*`
 范例为单文件运行显式包含 `fix_native.c`；正式扩展库仍通过包清单将
 `fix_native.c` 作为独立 C 源文件编译，不应在同一构建中重复加入它。
 
-在 `demo6` 目录运行定向测试：
+在仓库根目录运行默认门禁（不带原 `` 前缀）：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/fix/test/check.ps1 -SkipAot
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/fix/test/check.ps1
 bash release/extlibs/fix/test/check.sh
 ```
 
-去掉 `-SkipAot` 可增加独立可执行文件验证。C 与 XLang 的下单报文范例
+需要 GCC 与 Python3.10+，可通过 `CC` / `PYTHON` 指定路径；缺少工具
+必须失败，不静默跳过。Windows `-SkipAot` 只供诊断，不是发布验收。
+门禁先运行原 C、三模块独立构建、新标签矩阵、内存故障、实际原型、
+五个独立程序，再强制原中央/包内语言数组构帧、分配故障与双语范例。
+当前会在原中央正例的 M1 处停止，后续未执行项不记通过。
+Linux 增加 ASan/UBSan/泄漏检查，独占构建目录与逐阶段日志失败时保留；
+两平台前后核对输入指纹，成功只清理本次目录。生产依赖仍为三个模块，
+测试运行库只另加 MEMORY_DEBUG，不用 ALL 实现掩盖依赖。
+
+`test/tag_grammar_c.c` 独立组帧（不调用产品 build），Python
+`test/check_tag_records.py` 再独立生成同一语料的原始字节、长度、校验和
+及预期结果；GCC、TCC 内存执行和独立程序均比较完整374条记录，不只
+核对最终 PASS。默认新矩阵另包含 parse/validate × 正常/畸形标签
+四条逐点分配故障和立即恢复路径。原4096/4097字段及16 MiB边界测试保留。
+包内 `test/tag_grammar.xl` 覆盖四个标签位置，并确认 BodyLength 的前导零
+和应用字段原文不受影响，已登记 coverage.tests。
+
+`examples/tag_gate.xl` / `tag_gate_c.c` 展示相同外部报文字节的接收校验、
+读取原文值、畸形标签拒绝、格式错误与恢复，五行输出共同匹配
+`examples/tag_gate.expected.txt`。可从发布目录分别 `xl run`，不写文件。
+这不是给数组构帧 M1 增加旁路工厂，旧构帧正例仍然必须通过。
+
+以下是原双语构帧门禁与对应日期的历史结果，不能覆盖当前 M1：
+
+C 与 XLang 的下单报文范例
 在同一脚本中逐字对照，并由独立 Python 检查器按原始字节重算示例
 报文的 `9=BodyLength`、`10=CheckSum`，核对字段顺序；此检查不调用
 本包的 `validate`，Windows/Linux 包级门禁均需 Python 3。
-当前 Windows 严格 GCC、C/XLang 边界、双语范例及 Linux 严格 GCC +
+当时 Windows 严格 GCC、C/XLang 边界、双语范例及 Linux 严格 GCC +
 ASan/UBSan C 边界通过；4096/4097 应用字段及最大字段数报文回读也已覆盖。
 四个公开入口的首次分配失败、错误分类与恢复由 C 和 XLang 专项测试覆盖。
-当前完整 AOT 在 `xl6ValueDataSnapshotV1` 缺符号处
+当时完整 AOT 在 `xl6ValueDataSnapshotV1` 缺符号处
 阻断，见 `dev/extlib_blockers/text_snapshot_link.md`，尚未签收完整发布门禁。
 新增 `test/aot_core.xl` 独立检查构建帧与校验的 AOT 主路径；包 manifest
 只声明原生源码使用的 XRT 缓冲、值容器与浮点数字模块。同一核心产物从

@@ -1,0 +1,11 @@
+import md4c
+
+// 从 UTF-8 Markdown 读取正文；输出到标准输出，调用方决定是否保存为文件。
+func main(...) as int
+    string source = "release/extlibs/md4c/examples/article.md"
+    if arg.length > 1 then source = string(arg[1]) end
+    c_int parser = md4c.github_flags() + md4c.no_html_flag()
+    c_int renderer = md4c.skip_utf8_bom_flag() + md4c.xhtml_flag()
+    print(md4c.file_html(source, parser, renderer))
+    return 0
+end

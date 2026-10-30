@@ -22,10 +22,13 @@ export func exists(int processId) as bool
     return __proc_exists(processId) != 0
 end
 
+func __proc_name_unavailable() as string
+    throw ValueError "process name is unavailable"
+end
+
 export func name(int processId) as string
-    string? value = __proc_name(processId)
-    if value == null then throw ValueError "process name is unavailable" end
-    return value
+    // 保留 C 的正常 NULL 语义；成功的临时拥有值经 ?? 直接转移。
+    return __proc_name(processId) ?? __proc_name_unavailable()
 end
 
 export func pids() as array<int>

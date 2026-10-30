@@ -1,5 +1,42 @@
 # imagehash
 
+2026-10-30 冷启动与独立定义复核：未确认新的产品 BUG，算法/API/ABI、
+stb 与冻结 XRT 未改。补六类首次 C 调用的独立进程预算与活动内存
+平衡、三种哈希的冷 JIT/AOT，以及 20 张图/60 哈希/20 距离的独立
+整数定义参照与三种破坏对照。Windows 默认 246 项符合预期；Linux
+原生 ASan/UBSan、完整默认门禁通过，两平台各 11 份独立 AOT 程序。
+新 `examples/similarity.xl` / `similarity_c.c` 展示图片候选筛选，默认、
+同图与首图缺失在五条语言/引擎路径下验证。详细范围与现场见
+[冷启动审查](COLD_HASH_AUDIT_2026-10-30.md)及[范例说明](examples/README.md)。
+这不是任意图片/缩放器认证，也没有新增性能结论。
+
+2026-10-28 完整公开返回链：三条 `@owned string?` 声明保持可空，
+成功调用临时值通过 `??` 转移，失败才读取原有线程诊断并抛
+`RuntimeError`。完整 cgen 夹具从三处结果正文复制减至零；真实
+内存失败仍抛 `MemoryError`，没有把普通图片错误改成通用非空错误。
+借用的版本/诊断字符串仍按快照返回，不接管线程缓冲所有权。
+
+固定 tiny.png、预热后的完整解码/缩放/格式化，C/XL 各六组预算
+通过，语言回归先红后绿：Windows C14、XL16→15；Linux C13、
+XL15→14。差额仍是路径 NUL 针串分配，长度扫描/错误作用域也仍在，
+不宣称整条操作零开销。另验证三条入口各自的空路径、缺失图片、
+NUL 拒绝、精确诊断、持有结果及恢复。预算不外推冷启动或其他图片。
+
+Windows/Linux 默认完整门禁通过严格 C、线程、原有 C/XL 全分配点
+扫描、中央/新预算及双语 JIT/AOT。Linux ASan/UBSan 继续覆盖原有
+完整图像链路；固定预算另用普通构建。stb_image_resize2 在 ASan 下
+自动启用 `STBIR__SEPARATE_ALLOCATIONS`，其诊断分配不能套用普通
+构建预算，未关闭该功能来凑预算。首次缺测试 event 模块和预算模式
+混用的现场均保留，修正后用新快照完整通过。
+
+测试运行库按产品依赖加文件/线程/event/内存调试编译并共享，记录
+依赖、图片和发布物指纹，失败日志/产物保留。主线、XRT 和 stb 源码
+均未改。测试准备另发现的 Windows `os.platform()` 缺符号已单列
+`dev/extlib_blockers/os_platform_runtime_symbol.md`；产品 API 不依赖它，
+预算由门禁显式传入。单独运行预算夹具：Windows 为
+`xl run release/extlibs/imagehash/test/owned_results.xl -- 15`，Linux 为
+`xl run release/extlibs/imagehash/test/owned_results.xl -- 14`。
+
 2026-10-27 所有权收口：三种图片哈希的 C 返回类型明确为拥有型
 `char*`，XLang 使用 `@owned string?` 直接接管，去掉
 `point` / `takeCstr` 转发。生成 C 门禁逐项检查直接保存原生
@@ -63,7 +100,7 @@ XLang JIT 与双语对照通过；两种模式都不留下本次独占范例产�
 双语对照及 C 直接 AOT，Linux C ASan/UBSan、线程和 XLang 联合门禁通过。
 完整 XLang AOT 尚待共享文本快照符号修复。
 
-从 `demo6` 目录运行：
+从仓库根目录运行：
 
 ```powershell
 .\release\extlibs\imagehash\test\check.ps1
@@ -85,7 +122,12 @@ Windows `test/check.ps1` 是单入口门禁：按包清单模块执行严格 GCC
 单文件直接运行/构建，以及独立核心 AOT；`-SkipAot` 跳过 XLang 核心
 和完整范例 AOT。默认模式还构建、执行带输出的 XLang 范例并与固定结果比较；
 单文件 C 范例只在 TCC 路径包含三个包内实现，正式包仍按清单分离
-编译。脚本仅在 `build/test` 中建立本次独有的产物，结束时删除。
+编译。脚本仅在 `build/test` 中建立本次独有的产物，成功后删除，失败
+则保留日志、输入指纹和产物；完整结果返回预算及中央 AOT 也进入默认门禁。
+开发门禁需要 GCC 和 Python 3，正常使用包/运行双语范例不依赖 Python。
+全部子进程有时间上限；Windows 外部 `.report.json` 保存独立 stdout、
+stderr、状态、预期码与原始码，成功清理独占目录，失败保留现场。
+Linux `CC` / `PYTHON` 可指定工具，源与实际工具均参与前后指纹检查。
 
 C/XL 测试固定纯色图结果，C 测试额外生成非均匀 PGM，校验跨 TCC/GCC 的 pHash 一致性、中文路径、损坏图片、无效/含 NUL 的指纹和多结果所有权。XLang 还覆盖三个哈希入口对内嵌 NUL 路径的拒绝。线程交错回归先复现了旧静态 TLS 的错误串覆盖，再验证 XRT 线程键修复；Windows JIT 与 Linux ASan/UBSan 均通过。Windows 严格 GCC、双语同输出及无输出 AOT 核心已通过。三个依赖包均声明所需 XRT 模块后，核心 AOT 从 3,879,424 字节降至 959,488 字节，构建产物已运行验证。带输出范例 AOT 在当时的发布物上受主线 `xl6ValueDataSnapshotV1` 缺符号阻断，见 `dev/extlib_blockers/text_snapshot_link.md`；当前 Windows 结果见上方 2026-10-24 记录。
 

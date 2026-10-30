@@ -22,6 +22,7 @@
     <h1>cString</h1>
     <p class="extlib-lead">显式 C 字符串互操作：直接调用 CRT 的 strlen。</p>
     <p>版本 1.0.0 · 纯 xlang 声明 · 无扩展库依赖</p>
+    <p>2026-10-29 当前未完整签收：主线尚不支持 <code>c_size</code> 的 f-string 转换，默认门禁保留真实消费正例并失败。CRT 长度行为、函数值、原型和已有双语 JIT/AOT 已通过；没有在包内强转或改返回类型掩盖问题。</p>
   </header>
   <section id="start">
     <h2>快速开始</h2>
@@ -50,9 +51,12 @@ int main(void)
     return strlen(data) == 1 &amp;&amp; sizeof(data) - 1 == 3 ? 0 : 1;
 }</code></pre>
     <p>完整 C/XLang 对照范例位于 <code>release/extlibs/cString/examples/</code>。</p>
+    <p>基础例共用 <code>cString.expected.txt</code>。新增 <code>records_c.c</code> 区分记录完整字节数与首个 NUL 前缀长度，C/GCC、直跑与独立程序按 <code>records.expected.txt</code> 核对六行输出；对应 <code>records.xl</code> 当前受上述主线插值问题阻断，不能视为已可运行范例。</p>
   </section>
   <section id="verify">
     <h2>验证状态</h2>
+    <p>新 C 回归不再被编译器折叠为空检查：实际 CRT 调用覆盖 528 个运行时缓冲，含对齐和恰好结尾终止符，另检查 UTF-8/NUL 与无写入。语言侧验证默认空串、切片、临时实参、全局/局部/传参/返回完整签名函数值。Windows 默认 25 阶段中前 24 通过，最后 records 语言例失败；Linux 原生快照的 ASan/UBSan、JIT/AOT 与五条独立程序也先过，最后在同处失败。输入未变，失败现场保留，不把历史通过当作当前完整验收。</p>
+    <p>无包类型对照在两平台各执行 48 项：20 种 C 标量类型直接打印正确，但插值失败；普通 int、uint64、float、bool 的直接打印和插值均正常。当前只把实测消费该边界的 cString 记为受影响包，不推断其他库均有问题；主线修复后须复跑完整双语黄金输出。</p>
     <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/cString/test/check.ps1
 bash release/extlibs/cString/test/check.sh</code></pre>
     <p>2026-10-24 使用更新后的 Windows 发布版复验，默认包门禁全部通过：严格 GCC、C 与 XLang 边界、独立 C、<code>xl run</code> 直跑 C 和 XLang 三条范例路径逐字节同输出，以及带输出范例 AOT。Linux C ASan/UBSan 与 XLang 门禁也通过。旧版 <code>xl6ValueDataSnapshotV1</code> 缺符号已解除；这是 cString 包级验证，不代表整个 xlang 发布版签收。</p>

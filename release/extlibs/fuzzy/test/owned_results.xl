@@ -1,0 +1,64 @@
+import fuzzy
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    array<string> queries = ["pc", "missing", "", "any"]
+    array<string> lists = ["lib/parser.c\nsrc/main.c", "abc\ndef", "first\nsecond", ""]
+    array<string> expected = ["lib/parser.c", "", "first", ""]
+    for operation in range(4)
+        string query = queries[operation]
+        string candidates = lists[operation]
+        for budget in range(4)
+            string result = ""
+            bool memoryCaught = false
+            bool triggered = false
+            // 当前两次 NUL 检查各创建一个针串；原生结果另需一次分配。
+            assert failAfter(uint64(budget))
+            try
+                result = fuzzy.best(query, candidates)
+            catch MemoryError error
+                memoryCaught = true
+            finally
+                triggered = failTriggered()
+                failClear()
+            end
+            if budget < 3 then
+                assert triggered and memoryCaught
+            else
+                assert not triggered and not memoryCaught, "fuzzy copied input or adopted result text"
+                assert result == expected[operation]
+            end
+        end
+    end
+
+    // 五个公开入口的两个参数位置都必须拒绝 NUL，不能为省复制丢掉校验。
+    int rejected = 0
+    for operation in range(5)
+        for side in range(2)
+            string left = "abc"
+            string right = "abc"
+            if side == 0 then left = "a\0b" else right = "a\0b" end
+            try
+                if operation == 0 then
+                    fuzzy.levenshtein(left, right)
+                elseif operation == 1 then
+                    fuzzy.ratio(left, right)
+                elseif operation == 2 then
+                    fuzzy.score(left, right)
+                elseif operation == 3 then
+                    fuzzy.isMatch(left, right)
+                else
+                    fuzzy.best(left, right)
+                end
+            catch ValueError error
+                rejected += 1
+            end
+        end
+    end
+    assert rejected == 10
+    println("fuzzy borrowed inputs and owned results: PASS")
+    return 0
+end

@@ -62,7 +62,7 @@ xrt_ini_entry* __xrtIniFindEntry(const xrtiniconfig* pConfig,
 	const xrt_ini_section* pSection, const char* sKey);
 xrt_ini_section* __xrtIniAddSection(xrtiniconfig* pConfig, const char* sName,
 	const char* sLeading, uint64 iLine, bool bFromParser);
-bool __xrtIniAddEntry(xrtiniconfig* pConfig, xrt_ini_section* pSection,
+xrt_ini_entry* __xrtIniAddEntry(xrtiniconfig* pConfig, xrt_ini_section* pSection,
 	const char* sKey, const char* sValue, const char* sLeading,
 	uint64 iLine, bool bFromParser);
 

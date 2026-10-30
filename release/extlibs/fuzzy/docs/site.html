@@ -19,6 +19,7 @@
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / fuzzy</p><h1>fuzzy</h1>
     <p class="extlib-lead">Unicode 文本编辑距离与候选排序。</p>
     <p>编辑距离复用 XRT，长候选不会静默截断；C/XL 调用均有明确的结果所有权。</p>
+    <p>2026-10-28 复查完整调用链，校验后不再复制输入，<code>best</code> 直接返回拥有型文本，正常未匹配仍为空串。C/XL 预算及覆盖五个入口的 cgen 检查通过，十个 NUL 参数位置保持拒绝。当前 XLang 仍为两次 NUL 针串及一次结果分配，不宣称零桥接开销；Windows/Linux 默认门禁、Linux ASan/UBSan 与双语 JIT/AOT 已通过。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>

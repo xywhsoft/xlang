@@ -133,7 +133,7 @@ C 范例中的写入、读取和清空操作不依赖 `assert` 的副作用；Li
 校验剩余 2 字节、容量 4096 字节、满队列零写入及最终零剩余，避免共同
 打印错误值时仅凭输出一致而误判通过。
 
-仓库 `demo6` 下：
+仓库根目录下：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/check_extlib_serial.ps1

@@ -1,5 +1,28 @@
 # sysinfo
 
+2026-10-29：修复Linux MemAvailable记录边界。原先超长非目标行的
+续块能冒充新字段，目标行的尾部垃圾也可能在128字节缓冲处被截掉。
+现先识别完整记录：跳过非目标行的整个余段，目标字段被截断则按不可用
+处理；正常EOF/换行、数值0和合法上界仍正确。旧18场景11项检查失败，
+扩展后的23场景严格C与ASan/UBSan归零；不可用时使用率保持0，而非
+因误采数据伪报接近满载。新增检查同时验证清除上一条XRT错误。
+仅Linux分支新增13行，无额外分配、公开API或所有权变更。
+
+Windows PowerShell5.1默认38阶段与Linux完整门禁通过，包含11个
+实际生成的C原型、五条拥有型文本直接接管、既有UTF-8/长CPU名/
+注册表/溢出/分配故障，以及两平台各8条独立程序。基础信息双语同机
+对照；瞬时指标仅检查格式和范围，不要求不同时刻的数值完全相等。
+既有basic/metrics两组双语范例覆盖全部11个函数，不为错误夹具增加
+应用层API。门禁补输入指纹、有界进程、原始输出报告和失败现场保留，
+测试XRT仅启用manifest依赖及内存诊断，不再编译无关模块。
+
+这些是主机级信息，不表示进程亲和性、容器CPU/内存配额；不可用值0
+与真实数值0不能仅靠返回值区分，这是当前查询合同，不另造推测性回退。
+Linux可用内存的定义以[内核文档](https://docs.kernel.org/filesystems/proc.html#meminfo)
+为准；Windows瞬时查询也不保证连续结果相同，见
+[GlobalMemoryStatusEx](https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-globalmemorystatusex)。
+本轮验证Windows x64和Linux x86_64/WSL，不替代ARM或真实多处理器组硬件验收。
+
 2026-10-27：五个文本入口的 C 原型明确为 `char*`，XLang 以
 `@owned string` 直接接管 XRT 分配，删除 `point`/`takeCstr` 转发。
 包门禁检查生成 C 直接保存原生指针；接管仍需一次 `strlen`，
@@ -66,7 +89,7 @@ Linux 的 `memAvailable` 读取 `/proc/meminfo` 的 `MemAvailable`，计入内�
 Windows `-SkipAot` 严格 C、注册表夹具、XLang 与双语门禁通过。
 未模拟真实 Windows API 返回空主机名；该次旧发布物的带输出 AOT 曾待共享符号修复。
 
-在 `demo6` 目录运行定向验证：
+在仓库根目录运行定向验证：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/sysinfo/test/check.ps1
@@ -75,7 +98,7 @@ bash release/extlibs/sysinfo/test/check.sh
 
 去掉 `-SkipAot` 还会构建并运行独立可执行文件。C/XLang 范例输出在同一台
 机器上比较，不把机器名等动态值写死为黄金文件。
-C 范例自包含原生实现，可从 `demo6` 目录直接运行：
+C 范例自包含原生实现，可从仓库根目录直接运行：
 
 ```powershell
 release/xl.exe run release/extlibs/sysinfo/examples/sysinfo_c.c

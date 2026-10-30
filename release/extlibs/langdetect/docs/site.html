@@ -19,11 +19,13 @@
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / langdetect</p><h1>langdetect</h1>
     <p class="extlib-lead">轻量语言判断。</p>
     <p>严格 UTF-8、主导脚本识别与有限拉丁语种词表评分；已识别脚本须严格过半，平票返回 unknown。未收录的文字不参与统计。</p>
+    <p>2026-10-29：拉丁评分按完整 ASCII 词段遍历，每模型扫描一次，保留原来的 Unicode 边界与词表，不新增缓存、分配或共享状态。删除未用内部项，API、ABI、分数与错误合同不变；不是升级为通用统计语言模型。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
       <tr><td><code>detect / code / script</code></td><td>语言名、代码及脚本</td></tr>
       <tr><td><code>confidence</code></td><td>未校准的启发式分数</td></tr>
+      <tr><td><code>isChinese / isEnglish / isJapanese / isKorean</code></td><td>与 <code>detect</code> 的结果比较，不增加独立识别规则</td></tr>
       <tr><td><code>isValidUtf8 / lastError</code></td><td>编码检查返回布尔值并清除旧错误；lastError 仅报告最近一次原生错误</td></tr>
     </tbody></table>
     <h2>范例</h2>
@@ -32,7 +34,9 @@ println(langdetect.detect("the garden is nice and the sky is blue"))
 println(langdetect.script("Привет"))  // Cyrillic</code></pre>
     <p>不是通用统计语言模型；阿拉伯文标点、数字、组合附标以及覆盖区间的未分配码位不当作字母证据。汉字统计覆盖 Unicode 17 已分配的扩展 A-J 和兼容汉字补充区，包含补充平面，但仍不能仅凭汉字断定真实语种。语种范围、1 MiB 上限和 C 接口见包内 README。C 与 XLang 对照范例的输出一致。</p>
     <p>C 接口的 <code>confidence</code> 返回 <code>int64_t</code>，与 XLang <code>int</code> 保持跨平台 ABI 一致；C 范例用 <code>PRId64</code> 可移植打印。Linux 包门禁覆盖 C ASan/UBSan、XLang 内嵌 NUL、输入上限和报错后恢复，并逐字对照双语范例。当前两平台的核心、边界和双语范例独立 EXE 均通过。</p>
-    <p>从 demo6 目录可直接运行 <code>xl run release/extlibs/langdetect/examples/langdetect.c</code>。Windows 默认 <code>test/check.ps1</code> 与 Linux <code>test/check.sh</code> 验证 C/XLang 边界、双语范例和 AOT；<code>-SkipAot</code> 只是 Windows 聚焦快测。旧共享缺符号仅属历史发布物；本包仍只是有限词表/脚本启发式，不是概率语言识别器。</p>
+    <p>从仓库根目录可直接运行 <code>xl run release/extlibs/langdetect/examples/langdetect.c</code>。Windows 默认 <code>test/check.ps1</code> 与 Linux <code>test/check.sh</code> 验证 C/XLang 边界、双语范例和 AOT；<code>-SkipAot</code> 只是 Windows 聚焦快测。旧共享缺符号仅属历史发布物；本包仍只是有限词表/脚本启发式，不是概率语言识别器。</p>
+    <p>新人工复核队列范例 <code>examples/review_queue.xl</code> / <code>review_queue_c.c</code> 根据应用阈值将低证据消息交给人工，包含内嵌 NUL，十行固定输出逐字对照。C 的静态结果和线程错误文字都只借用，不能释放或标为 owned；XLang 需要一次复制取得独立字符串，不宣称全链零开销。</p>
+    <p>新增 44,713 项词边界参照、2,071 组结果/错误语料、六条实际生成原型及借用结果复制路径检查；默认门禁包含十二条独立 AOT、输入指纹、超时与失败现场。性能程序另行测量，不把局部倍数作为跨平台保证。合同和复核方法见 README。</p>
   </section>
 </main>
 </body>

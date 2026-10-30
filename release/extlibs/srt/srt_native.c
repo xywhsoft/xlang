@@ -344,7 +344,7 @@ static int xsrt_optional(xbuffer *buffer, xvalue *cue, const char *name, const c
     return xsrt_append(buffer, view.Data, view.Size) && xsrt_literal(buffer, suffix);
 }
 
-/* 返回独立 XRT 缓冲；C 侧 xrtFree，XL 包装调用 takeCstr。 */
+/* 返回独立 XRT 缓冲；C 侧 xrtFree，XL 的 @owned 声明直接接管。 */
 static char *xsrt_build_cues(xvalue *cues, int vtt) {
     xbuffer buffer;
     xvalue *seenIds = NULL;
@@ -427,10 +427,10 @@ invalid:
     return NULL;
 }
 
-void *xsrt_build(xvalue *cues) { return xsrt_build_cues(cues, 0); }
-void *xsrt_build_vtt(xvalue *cues) { return xsrt_build_cues(cues, 1); }
+char *xsrt_build(xvalue *cues) { return xsrt_build_cues(cues, 0); }
+char *xsrt_build_vtt(xvalue *cues) { return xsrt_build_cues(cues, 1); }
 
-void *xsrt_format_time(int64_t ms) {
+char *xsrt_format_time(int64_t ms) {
     xbuffer buffer;
     xrtClearError();
     if (ms < 0) { xsrt_error("timestamp must be non-negative"); return NULL; }

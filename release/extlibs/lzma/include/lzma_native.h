@@ -1,9 +1,10 @@
 #ifndef XLANG_LZMA_NATIVE_H
 #define XLANG_LZMA_NATIVE_H
-#ifndef XRT_MODULE_VALUE
-#define XRT_MODULE_VALUE
-#endif
-#include "xrt.h"
+#include <stdbool.h>
+#include <stddef.h>
+
+/* 回调只借用公开 opaque 类型，不由桥接头决定宿主的 XRT 模块集合。 */
+typedef struct xvalue xvalue;
 
 #ifdef __cplusplus
 extern "C" {

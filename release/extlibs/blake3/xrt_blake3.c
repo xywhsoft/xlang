@@ -250,6 +250,7 @@ XRT_API bool xrtBlake3File(xreader* reader, const xrtresourcelimits* limits,
                 blake3_fail(error, XRT_BLAKE3_ERROR_IO, total, "cannot read blake3 input stream");
             } else if (error != NULL) {
                 error->iCode = xrtErrorKind(xrtGetError()) == XERR_MEMORY ? XRT_BLAKE3_ERROR_MEMORY : XRT_BLAKE3_ERROR_IO;
+                error->iBackendCode = xrtErrorCode(xrtGetError());
                 error->iInputOffset = total;
                 snprintf(error->sMessage, sizeof(error->sMessage), "%s", xrtErrorMessage(xrtGetError()));
             }
@@ -265,6 +266,7 @@ XRT_API bool xrtBlake3File(xreader* reader, const xrtresourcelimits* limits,
                 blake3_fail(error, XRT_BLAKE3_ERROR_CANCELLED, total, "blake3 operation cancelled");
             else if (error != NULL) {
                 error->iCode = XRT_BLAKE3_ERROR_CANCELLED;
+                error->iBackendCode = xrtErrorCode(xrtGetError());
                 error->iInputOffset = total;
                 snprintf(error->sMessage, sizeof(error->sMessage), "%s", xrtErrorMessage(xrtGetError()));
             }

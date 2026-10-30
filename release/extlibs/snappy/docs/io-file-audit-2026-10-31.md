@@ -1,0 +1,135 @@
+# Snappy IO 首因与文件事务审查
+
+## 修复范围
+
+只修改本包 core 的四条 Reader/Writer 失败诊断和 native 文件回滚。
+不改语言、API/ABI、标准 framing、编码策略、vendor 或冻结 XRT。
+
+原压缩/解压读取和两个 drain 写出都固定记录 IO、backend=0 和通用
+消息，虽然当前 XRT 错误槽本身仍保留正确首错。现在按已有模块码
+映射参数、内存、限额、状态、取消与 IO，复制实际代码/消息及位置；
+首错对象不替换、不新建错误对象，不改变已有 XLang 异常分派。这是
+公开 C 错误结构的修复，不是新增语言级自定义 Reader/Writer 能力。
+既有消息字段固定为 256 字节，长消息仍有界截断；完整原文保留在
+XRT 首错对象中，不声称固定字段能容纳任意长度描述。
+
+原文件清理先关闭再按路径删除，Windows 转码路径 OOM 会遗留临时
+文件。现仅借用创建时的句柄，失败时先 DeleteOpen，再由原 Writer
+或 TempFile 关闭，删除成功不再重复按路径删除。处理、flush/close
+成功后才提交的顺序保持不变。成功路径不新增堆分配、正文复制或
+运行时包装；失败诊断仍是既有固定缓冲中的有界复制，不称零诊断成本。
+
+核对冻结 XRT 的 TakeFile 合同：仅成功清空调用方槽，失败保留文件
+所有权；本包不因借用句柄改成双重关闭。pSaved 按原错误引用恢复。
+未做性能基准，也不以小样本签收吞吐、全部关闭失败或掉电持久性。
+
+## 先红后绿
+
+### IO：30 场景
+
+`test/io_errors_c.c` 使用真实公共 Reader/Writer 扩展接口发布受控
+错误，不替换产品函数或系统调用。4 条路径 × 7 类错误 = 28 组，
+包含无详细错误时 XRT 自动提供的 IO 首因。检查模块码、backend、
+消息、原始错误对象身份、偏移、只调用一次和借用关闭归属。
+
+两种真实 Buffer Writer 扩容 OOM 另测：失败无部分输出、内存错误
+分类、故障解除后立即新建 codec 往返。每组都清理后检查活动数/字节、
+非法释放、重复释放、上下溢、UAF 七项快照，旧红测也不故意泄漏。
+
+Windows GCC/TCC 和 Linux GCC ASan/UBSan 用同一最终夹具：旧 core
+均 **30 场景、32 条断言失败**，新 core 0。这是四处诊断实现的问题，
+不是声称新发现 32 个独立 BUG。
+
+Snappy 压缩器创建时已生成 10 字节 identifier；读取尚未成功时
+`iOutputOffset` 仍为 10，而 Writer 实际未写出任何字节。回归明确
+区分生成计数与交付计数，没有照搬其他 codec 的零输出断言。
+
+### 文件：打开态 96 组
+
+本包 8 行适配接入共享 native callable 夹具，直接调用现有文件 ABI；
+Snappy 不存在压缩级别，编译期映射不传该参数。没有 opcode、运行时
+适配层或伪造 FINAL 标志。首次/末次回调按成功调用的真实次数选择。
+
+压缩/解压 × 首次/末次 × 新/旧目标 × 12 预算，检查原始 cause、
+返回值、调用次数、旧目标、零临时残留与七项内存快照。
+
+| 对照 | 结果 |
+| --- | --- |
+| Windows 最终夹具 + 旧 core/native 对象 | 96 组、16 次真实 OOM、8 失败；预算 1 留一临时文件。 |
+| Windows 新实现 | 96 组、8 次真实 OOM、0 失败；GCC C、TCC C JIT/AOT 通过。 |
+| Linux 原生新旧对象 | 各 96 组、8 次真实 OOM、0 失败；Linux 旧路径本来就过，不写成新修复。 |
+
+少触发 8 次故障因为不再分配删除路径，不是减少矩阵预算。Windows
+GCC 对照只替换本轮两个对象，其余最终测试与运行库/vendor 一致。
+
+## 开放边界
+
+关闭态 `--closed` 正常完成流，使用独占的目录目标使重命名自然失败，
+末次真实回调安排一次 OOM；两方向各 8 预算共 16 组。
+
+- Windows 新旧均 8 次真实 OOM、2 失败：预算 3 留一个临时文件，
+  原目录、首错和内存保持，回归退出 1。
+- Linux 新旧均 2 次真实 OOM、0 失败，退出 0；不能用 Linux 通过
+  代替 Windows 的关闭态 UTF-16 删除故障。
+- 本包纳入 RFS，矩阵现覆盖 9 个实测包。需要稳定 XRT 的创建时
+  预备事务凭据，关闭后 Abort 不依赖临时分配；本任务不复制系统 IO、
+  重复重试、吞错、提前提交或更换 XRT 来换绿灯。
+- M2 仍独立复现，两平台全局压缩器 JIT0、AOT 打印 PASS 后状态
+  错误/退出1；默认门禁都执行，不把当前失败配置成预期成功。
+
+包级仍 M，不签收整包发布完成；100 包 G30/R7/M59/X4 不变。
+
+## 范例、门禁和互通
+
+新增 `examples/file_transaction.xl` / `file_transaction_c.c`，UTF-8
+文件名、取消/业务错误保护旧目标与立即重试；两平台各 GCC C、TCC
+C JIT/AOT、XLang JIT/AOT 五条路径的三行黄金输出一致并清理独占目录。
+C 使用现有 native 的 XRT callable，普通 C 流仍用 xrtprogressproc，
+不新增公共 C 文件 API。
+
+默认 Windows 88 阶段，86 项符合要求，只有关闭态 RFS 和 M2 失败；
+72 项输入/工具前后不变。Linux 原生 ASan/UBSan/泄漏通过，70 份
+复制来源及原件、GCC/cc1/Python 三工具前后不变，默认只有 M2。
+两平台均通过原 C/XL/进度/文件/分配/文本、379 空块场景、26 个
+实际生成原型/错误返回负例，以及各 17 条普通独立程序路径。
+
+独立 python-snappy 0.7.3/cramjam 2.14.0 再次验证原四载荷双向互通
+与八组标准空块；测试依赖仅使用隔离缓存，指纹不变，不成为运行依赖。
+普通互通子进程新增 30 秒上限，成功却有 stderr 也拒绝。
+
+门禁独立汇总两条最终失败，所有进程继续有界并保留原始状态、退出码、
+输出与产物。Windows 输入变化时先保存结构化报告再失败，不使
+VerifyInputs 抛错遮住报告；实际函数验证匹配、错配、缺失三种输入。
+PS5/PS7 真 Run 验证三种空参数、raw37/缺程序；假 GCC 的 raw37
+使真实默认门禁返回外层1且留下原始37。没有以模拟结果冒充产品故障。
+
+八份冻结发布物/单头库未变。README、双语说明及官网源同步，仅在
+隔离目录生成，不向外部官网部署。32 位、TSan、长时压力/持续模糊、
+全部 IO 故障点不由本轮证明。
+官网三个原文片段在两平台实跑：quick-start 和冗余载荷例 JIT/AOT
+均 0 且同输出，原顶层流例 JIT0/AOT1 命中 M2，不搬入 main；隔离
+生成详情页与包内源 SHA256 相等。编译器基线以根目录发布矩阵为准，
+本轮没有合并或用最新主线为冻结发布物背书。
+
+## 证据
+
+- `build/test/snappy_io_audit_1793376489/`：旧对象、原始结果、独立
+  oracle、进程控制与官网核对。
+- Windows `build/test/snappy_guard/run_549a46da8b2148b58fbbf253453aabdd.report.json`；
+  M2 `build/test/native_globals_209c99bf24814b0d844b9eecefb30e99/`。
+- Linux `/var/tmp/xlang-snappy-io-audit-aOXfbaVM`；门禁
+  `tmp/xlang-snappy-61IaR0`，trace、退出码、前后 SHA256 与旧对象
+  红/绿对照、互通输出均保留。
+
+## 共享 IO 夹具复核
+
+同日将 `test/io_errors_c.c` 的公共检查提取为
+`test/support/extlib_codec_io_errors.h`，包内仅保留编译期 API/类型映射、
+标准帧与创建阶段输出计数；没有新增运行时适配或改变库实现。
+Snappy 两平台的 30 场景仍为零断言失败：Windows 严格 GCC/TCC，
+Linux ASan/UBSan，复用上一轮受控对象且四份对象 SHA256 不变。
+两个包门禁已把共享头纳入输入指纹。
+
+本次仅聚焦验证夹具提取，不声称重新执行 Snappy 整包门禁。
+证据在 `build/test/zstd_io_audit_1793378359/windows-post.json` 及
+`/var/tmp/xlang-zstd-io-audit-kX3awIB1/snappy.shared.io.txt`。

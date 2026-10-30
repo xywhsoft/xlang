@@ -1,0 +1,35 @@
+import consistent_hash
+
+func saved() as string
+    consistent_hash.ConsistentHash ring = consistent_hash.create(8)
+    string name = string.repeat("你", 1365) + "x"
+    ring.addNode(name)
+    string result = ring.getNode("temporary-" + string(123))
+    ring.removeNode(name)
+    name = "rebound"
+    assert ring.getNode("") == ""
+    return result
+end
+
+func main(...) as int
+    string result = saved()
+    assert string.byteLen(result) == 4096 and string.slice(result, 1365, 1) == "x"
+    consistent_hash.ConsistentHash ring = consistent_hash.create(8)
+    ring.addNode("node")
+    for operation in range(3)
+        bool caught = false
+        try
+            if operation == 0 then
+                ring.addNode("node\0suffix")
+            elseif operation == 1 then
+                ring.removeNode("node\0suffix")
+            else
+                ring.getNode("key\0suffix")
+            end
+        catch ValueError error
+            caught = true
+        end
+        assert caught and ring.nodeCount == 1 and ring.getNode("key") == "node"
+    end
+    return 0
+end

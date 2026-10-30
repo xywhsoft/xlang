@@ -26,7 +26,7 @@
                      ],
     "coverage": {
         "mode": "suite",
-        "tests": ["test/boundaries.xl", "test/file.xl"]
+        "tests": ["test/boundaries.xl", "test/file.xl", "test/nul_inputs.xl", "test/owned_results.xl"]
     },
     "native":  {
                    "singleton":  false,

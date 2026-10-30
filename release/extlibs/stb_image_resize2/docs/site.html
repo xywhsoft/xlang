@@ -34,8 +34,10 @@ Buffer small = stb_image_resize2.resize(image.pixels(),
     image.width(), image.height(), 4, 320, 240)</code></pre>
     <h2 id="c-api">C</h2>
     <p>包含 <code>include/stb_image_resize2_native.h</code>。<code>xstbir_resize</code> 返回的 <code>xbuffer*</code> 由调用方以 <code>xrtBufferDestroy</code> 释放；输入像素仅借用。</p>
-     <p>Windows 可从 demo6 目录运行 <code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/stb_image_resize2/test/check.ps1</code>，联合验证 C 边界、XLang 用例与双语范例的固定输出。灰度+alpha 的透明白/不透明黑缩放另核对固定像素值；C/XLang 范例在独立 EXE 模式下均可显式传入图片路径。Linux ASan/UBSan 门禁见包内 README。</p>
+     <p>Windows 可从仓库根目录运行 <code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/stb_image_resize2/test/check.ps1</code>，联合验证 C 边界、XLang 用例与双语范例的固定输出。灰度+alpha 的透明白/不透明黑缩放另核对固定像素值；C/XLang 范例在独立 EXE 模式下均可显式传入图片路径。Linux ASan/UBSan 门禁见包内 README。</p>
   </section>
+    <p>行步长输入仅要求 <code>(height - 1) * stride + width * channels</code> 字节，末行不必有 padding；输入像素与 padding 不被修改，输出 Buffer 独立拥有。包内 <code>examples/padded_rows.xl</code> / <code>padded_rows_c.c</code> 使用同一五字节灰度输入，分别验证 sRGB 188、linear 128、短一字节拒绝和恢复，并对照同一六行输出，无需外部素材。原有图片解码范例不被替换。</p>
+    <p>2026-10-30：修复逐块分配失败遗漏暂存区/局部采样器、丢失分配上下文的问题，ASan自动启用的路径也在范围内；正常单块路径不增加清零或分配。新C回归360布局、16常量、24/154故障点与21原生上下文故障点通过，语言40布局及双语六行golden通过；两平台同一最终回归旧40个内存不平衡预算→0，旧5个上下文失败预算/202次错误上下文→0。Windows默认39项、Linux原生ASan/UBSan及完整门禁（各8份独立程序）通过，三个实际生成原型与错改返回负例均验证。主线/XRT未改，依赖stb_image的私有构造器M3风险仍保留，本包继续R，不扩大为所有滤镜/格式或依赖发布签收。</p>
 </main>
 </body>
 </html>

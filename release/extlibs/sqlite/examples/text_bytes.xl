@@ -1,0 +1,30 @@
+import sqlite
+
+func main(...) as int
+    auto db = sqlite.memory()
+    auto stmt = db.prepare("select ?, ?")
+    Buffer payload = Buffer()
+    payload.appendByte(65)
+    payload.appendByte(0)
+    payload.appendByte(66)
+
+    // 同样的三个字节分别绑定为 TEXT 和 BLOB，不让零结尾字符串接口截断数据。
+    assert stmt.bind_text_bytes(1, payload) == sqlite.SQLITE_OK
+    assert stmt.bind(2, payload) == sqlite.SQLITE_OK
+    payload.clear()  // SQLite 已复制绑定值，不再借用原 Buffer。
+    assert stmt.row_ready()
+    assert stmt.column_type(0) == sqlite.SQLITE_TEXT
+    assert stmt.column_type(1) == sqlite.SQLITE_BLOB
+    Buffer text = stmt.column_text_bytes(0)
+    Buffer blob = stmt.column_blob(1)
+    assert stmt.finalize() == sqlite.SQLITE_OK
+    assert db.close() == sqlite.SQLITE_OK
+
+    // 读出的 Buffer 独立持有数据，语句和连接关闭后仍可使用。
+    assert text.len() == 3 and text[0] == 65 and text[1] == 0 and text[2] == 66
+    assert blob.len() == 3 and blob[0] == 65 and blob[1] == 0 and blob[2] == 66
+    println(f"TEXT: {text.len()} bytes")
+    println(f"BLOB: {blob.len()} bytes")
+    println(f"middle byte: {text[1]}")
+    return 0
+end

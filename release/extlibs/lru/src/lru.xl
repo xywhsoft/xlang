@@ -1,11 +1,10 @@
 extern "xl6_xrt_last_error_text" func __lru_error() as string
 
-// 原生缓存使用零结尾字符串，拒绝只会被 C 端读取为前缀的输入。
-func __lru_text(string value) as string
+// 只验证借用的输入，不为返回校验结果复制整段正文。
+func __lru_text(string value)
     if string.indexOf(value, "\0", false, string.byteLen(value), 1) >= 0 then
         throw ValueError "lru: text contains NUL"
     end
-    return value
 end
 
 export class LruCache
@@ -53,26 +52,32 @@ export class LruCache
 
     func put(string key, string value)
         if self.handle == null then throw RuntimeError "lru: cache is closed" end
-        if self.putNative(__lru_text(key), __lru_text(value)) == 0 then throw RuntimeError __lru_error() end
+        __lru_text(key)
+        __lru_text(value)
+        if self.putNative(key, value) == 0 then throw RuntimeError __lru_error() end
     end
 
     func get(string key, string default = "") as string
         if self.handle == null then throw RuntimeError "lru: cache is closed" end
-        point result = self.getNative(__lru_text(key), __lru_text(default))
+        __lru_text(key)
+        __lru_text(default)
+        point result = self.getNative(key, default)
         if result == null then throw RuntimeError __lru_error() end
         return __xl_runtime.takeCstr(result)
     end
 
     func contains(string key) as bool
         if self.handle == null then throw RuntimeError "lru: cache is closed" end
-        int result = self.containsNative(__lru_text(key))
+        __lru_text(key)
+        int result = self.containsNative(key)
         if result < 0 then throw RuntimeError __lru_error() end
         return result != 0
     end
 
     func remove(string key) as bool
         if self.handle == null then throw RuntimeError "lru: cache is closed" end
-        int result = self.removeNative(__lru_text(key))
+        __lru_text(key)
+        int result = self.removeNative(key)
         if result < 0 then throw RuntimeError __lru_error() end
         return result != 0
     end

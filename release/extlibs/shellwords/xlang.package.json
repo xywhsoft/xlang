@@ -13,6 +13,6 @@
     "links": [],
     "loadlibs": [],
     "dependencies": [],
-    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl", "test/text_paths.xl", "examples/command_plan.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

@@ -66,10 +66,10 @@ C 接口见 `include/stb_image_native.h`。C 调用者对返回的图像句柄�
 - 在 `release` 目录运行 `xl run examples/extlibs/stb_image.xl` 或
   `xl run examples/extlibs/stb_image_c.c`，两者输出一致。C 范例直接包含
   包实现，无需额外列出源文件；两个范例都从 `xl.exe` 所在目录定位素材，
-  从 `demo6` 根目录调用发布版 `xl.exe` 也可运行。XLang 范例可在 `--`
+  从仓库根目录调用发布版 `xl.exe` 也可运行。XLang 范例可在 `--`
   后指定图片绝对路径，供独立 AOT 可执行文件使用；C 范例将路径
   作为第一个命令行参数传入。
-- 从 `demo6` 目录运行 `xl run release/extlibs/stb_image/test/boundaries.xl`，
+- 从仓库根目录运行 `xl run release/extlibs/stb_image/test/boundaries.xl`，
   包括通道数回绕及路径内嵌 NUL 负例；该用例已登记到包级测试套件。
 - 用 `tools/run_extlib_c.ps1 -Package stb_image -Source ...` 运行
   `test/test_stb_image.c` 和 `test/test_stb_image_threads.c`。

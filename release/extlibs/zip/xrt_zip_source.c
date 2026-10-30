@@ -151,7 +151,11 @@ static zip_int64_t __xrtZipSourceCallback(void* pState, void* pData,
 			return -1;
 		}
 		if ( !xrtWriterWriteFull(pMemory->Writer, pData, (size_t)iLength, NULL) ) {
-			zip_error_set(&pMemory->Error, ZIP_ER_WRITE, ENOMEM);
+			/* 内存源扩容的 OOM 必须穿过 libzip，不能降级为普通写入错误。 */
+			const xerror* pCause = xrtGetError();
+			bool bMemory = pCause != NULL && xrtErrorKind(pCause) == XERR_MEMORY;
+			zip_error_set(&pMemory->Error, bMemory ? ZIP_ER_MEMORY : ZIP_ER_WRITE,
+				bMemory ? 0 : EIO);
 			return -1;
 		}
 		return (zip_int64_t)iLength;

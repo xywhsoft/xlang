@@ -18,7 +18,7 @@
 <main class="extlib-layout" id="main-content">
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / redis</p><h1>redis</h1>
     <p class="extlib-lead">RESP2 编解码与简洁的单命令客户端。</p>
-    <p>按字节长度处理回复，网络命令使用返回 bytes 的 TcpStream.recv；有效 UTF-8 bulk 为 string，其他 bulk 为 bytes。单次命令默认限时 5 秒、最多 64 MiB，两项均可按调用收紧或调整；回复节点最多十万个。不包含连接池、自动重连、Pub/Sub 或流水线调度。当前 Windows 离线包级门禁与独立 EXE、Linux 隔离真服务与独立 EXE 均通过；真实服务的长时耐久性仍需单独验收。</p>
+    <p>按字节长度处理回复，网络命令使用返回 bytes 的 TcpStream.recv；有效 UTF-8 bulk 为 string，其他 bulk 为 bytes。单次命令默认限时 5 秒、最多 64 MiB，两项均可按调用调整，但不能超过硬上限；帧头与结束 CRLF 也占字节额度。回复最多十万个值节点，含根值，因此根数组最多 99999 项，嵌套后代也占同一额度。不包含连接池、自动重连、Pub/Sub 或流水线调度。Windows 完整门禁和 Linux 原生文件系统同输入快照门禁通过；WSL 挂载盘的核心 AOT 另有 120 秒限时风险，当前保留 R 状态，长时耐久性也需单独验收。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>
@@ -38,13 +38,15 @@ Buffer raw = Buffer.fromHex("24330d0a61ff620d0a")
 assert redis.isCompleteBytes(raw)
 var binary = redis.decodeBytes(raw)
 assert binary["value"]["value"] == Buffer.fromHex("61ff62").toBytes()</code></pre>
-    <p>C/XLang 成对范例还展示未收齐的原始回复不会被误判为完整帧，完整的非 UTF-8 bulk 值按原始 bytes 回读；两种语言逐行同输出，无需外部 Redis 服务。</p>
+    <p>C/XLang 成对范例还展示未收齐的原始回复不会被误判为完整帧，完整的非 UTF-8 bulk 值按原始 bytes 回读；两种语言逐行同输出，无需外部 Redis 服务。<code>*99999\r\n</code> 是合法未收齐前缀，<code>*100000\r\n</code> 则已超过含根值的节点额度，应立即报错；增量收包与无状态检查采用相同预算，不等待非法声明的内容到齐。</p>
     <p>超时为 1..2147483647 毫秒，回复上限为 1..67108864 字节；无效参数或编码失败时连接未发送数据，空命令失败后可在同一连接继续发送有效命令。完整 Redis error 回复可继续复用连接。发送失败、超时、超限、畸形或多余回复会中止连接，后续命令需显式重连。<code>decodeBytes</code> 遇非 UTF-8 的剩余回复时，<code>rest</code> 保留为原始 bytes。</p>
     <h2 id="c-api">C</h2>
-    <p>包含 <code>include/redis_native.h</code>。输入值仅借用；返回的 <code>xvalue*</code> 由调用方使用 <code>xrtValueRelease</code> 释放，<code>xr_encode_bytes</code> 返回的 Buffer 由调用方使用 <code>xrtBufferDestroy</code> 释放。查看包内 README 获取字节长度、错误与容量边界。</p>
+    <p>包含 <code>include/redis_native.h</code>。输入值仅借用；返回的 <code>xvalue*</code> 由调用方使用 <code>xrtValueRelease</code> 释放，<code>xr_encode_bytes</code> 返回的 Buffer 由调用方使用 <code>xrtBufferDestroy</code> 释放。通过 <code>xrtValueObjectGet</code> 或 <code>xrtValueArrayAt</code> 取得的子值仅借用；未另行 retain 时，不可单独释放，由其父值统一管理。查看包内 README 获取字节长度、错误与容量边界。</p>
     <p>真实服务双语示例为 <code>release/examples/extlibs/redis_live.xl</code> 与 <code>redis_live_c.c</code>，都执行 PING、SET、GET、EXISTS、INCR、DEL，并验证键删除后的不存在；C 示例使用增量帧检查器接收分片回复。单独运行默认连接 6379，也可设置 <code>REDIS_LIVE_PORT</code>。包内 <code>test/check_live.sh</code> 使用本次临时端口和进程 ID 校验启动自管理 Redis，不会接管已有服务；在 WSL 中加 <code>--windows-xl</code> 可用当前 Windows 发布版验证真实服务，<code>REDIS_STRESS=1</code> 另跑四连接各 10,000 轮。</p>
     <h2 id="verification">验证范围</h2>
-    <p>2026-10-26 完整重建 Windows/Linux 发布物后，两平台默认门禁均通过严格 C、Linux ASan/UBSan、语言边界/分配故障、离线 TCP 分片/错误/截止时间/复用与核心及回环 AOT。公开 C/XLang 范例在两平台均经 <code>xl build</code> 生成独立 EXE，并与 GCC 固定输出一致；脚本自管理的临时 Redis 真服务也通过双语调用。Windows 路径另通过四连接各 10,000 轮真实服务短压和同连接 100,000 次离线请求，测试结束后无 Redis 进程残留。本包仅按 Windows/Linux x64 短时 RC 范围签收，不承诺数小时耐久、集群、自动重连或全产品发布准入。</p>
+    <p>2026-10-30：Windows门禁统一使用有界进程调用并记录实际命令、工作目录、原始状态及stdout/stderr，保留正文独立CR；失败保存原目录和结构化报告，成功只清理临时产物。PS5.1/7对实际Run的11结果自测、真实入口的静默编译器raw37/outer1与四份现场记录均验证。旧Run会拒绝缺程序，不能把缺少记录夸大成已证实的假绿。默认完整33项、44输入/工具指纹通过，含六份独立程序；真正的GCC C范例现在与C运行器、XLang输出对照，不再将TCC运行器当作GCC。新增C构建首次遗漏测试运行时的内存调试宏，统一夹具配置后通过，未改XRT或添stub。本轮没有改协议/客户端/API/范例源码；Linux只验新增进程夹具，未重跑完整网络、真服务或挂载盘AOT，原R风险不关闭。</p>
+    <p>2026-10-28：修复增量扫描的深度、预留节点和完整帧字节预算，以及 C 范例误释放父对象借用值的问题。新增完整十万节点/64 MiB 边界、头部逐前缀对照、网络立即拒绝及独立范例所有权审计。Windows 默认完整门禁、隔离真 Redis 门禁和 Linux 原生文件系统的完整离线门禁通过；六条离线 AOT 路径均运行并核对输出。同一 Linux 快照的真 Redis 联合门禁也完整通过，含二进制键值、错误后复用、显式重连、四连接各 50 轮和真服务范例 AOT；服务已关闭。WSL 挂载盘相同核心构建两次触发既有 120 秒限时，原生文件系统约 8.7 秒；没有放宽限时或跳过 AOT，构建风险仍保留，不能用另一条路径通过来关闭。Linux 失败现场现保留命令、原始状态、编译器版本和输入指纹。</p>
+    <p>历史记录，2026-10-26：完整重建 Windows/Linux 发布物后，两平台默认门禁均通过严格 C、Linux ASan/UBSan、语言边界/分配故障、离线 TCP 分片/错误/截止时间/复用与核心及回环 AOT。公开 C/XLang 范例在两平台均经 <code>xl build</code> 生成独立 EXE，并与 GCC 固定输出一致；脚本自管理的临时 Redis 真服务也通过双语调用。Windows 路径另通过四连接各 10,000 轮真实服务短压和同连接 100,000 次离线请求，测试结束后无 Redis 进程残留。该日期按 Windows/Linux x64 短时 RC 范围签收，不承诺数小时耐久、集群、自动重连或全产品发布准入，当前风险以上文为准。</p>
     <p>2026-10-24：当前 Windows 默认门禁通过严格 C、分配故障、线程、XLang 边界和本地 TCP 预检/分包/错误/断线/限额/超时/复用；核心、回环及公开范例的独立 EXE 均已构建运行，C/XLang 范例逐字输出一致。同连接十万次短时 JIT 回环也通过。当前 Windows <code>xl.exe</code> 还在 WSL 自管理 Redis 上通过真实调用、错误恢复、显式重连及四连接各 10,000 轮短时压力。这段是当时的验证记录，数小时稳定性不在签收范围内。</p>
     <p>2026-10-25：使用当前 Linux 发布版，在脚本自管理的隔离 Redis 上通过严格 C ASan/UBSan、XLang JIT、核心/预检/回环/连接复用及离线/真服务范例独立 EXE AOT；两份 AOT 范例分别与 C 输出逐字节一致。复杂 TCP AOT 构建门禁保留有界限时和失败阶段诊断。短时真服务验证不等于数小时耐久签收。</p>
   </section>

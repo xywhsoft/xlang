@@ -27,7 +27,7 @@
     "dependencies":  [
 
                      ],
-    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl", "test/bmp_headers.xl"] },
     "native":  {
                    "singleton":  false,
                    "loadName":  "",

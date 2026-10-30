@@ -1,0 +1,7 @@
+integer: 182a
+message: hi 42
+binary: 00ff41
+reject: 1f
+reject: f816
+reject: 5f00ff
+cbor wire validation: PASS

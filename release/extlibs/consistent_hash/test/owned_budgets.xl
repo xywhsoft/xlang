@@ -1,0 +1,47 @@
+// 输入先构造，预算只覆盖本次调用：NUL 针串一次，C 拥有型结果一次。
+import consistent_hash
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func exercise(int scenario, int required)
+    consistent_hash.ConsistentHash ring = consistent_hash.create(8)
+    string name = ""
+    string key = ""
+    if scenario > 0 and scenario < 3 then name = "node-A" end
+    if scenario == 2 then name = string.repeat("你", 1365) + "x" end
+    if scenario > 1 then key = string.repeat("k", 8192) + "你" end
+    if scenario == 1 then key = "short-key" end
+    int nodes = 0
+    if name != "" then
+        ring.addNode(name)
+        nodes = 1
+    end
+    // 同时覆盖空环、短输入、4096 字节节点名与长 UTF-8 键。
+    for budget in range(required + 1)
+        string result = "unassigned"
+        bool caught = false
+        assert failAfter(uint64(budget))
+        try
+            result = ring.getNode(key)
+        catch MemoryError error
+            caught = true
+        end
+        bool triggered = failTriggered()
+        failClear()
+        assert caught == (budget < required) and triggered == caught
+        if not caught then assert result == name end
+        assert ring.nodeCount == nodes
+        assert ring.getNode(key) == name
+    end
+end
+
+func main(...) as int
+    int required = 2
+    exercise(0, required)
+    exercise(1, required)
+    exercise(2, required)
+    exercise(3, required)
+    return 0
+end

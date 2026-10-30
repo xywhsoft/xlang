@@ -1,0 +1,39 @@
+import lzma
+
+func main(...) as int
+    array<int> invalid = [-1, -7, -2147483648, 10, 2147483647]
+    for level in invalid
+        bool rejected = false
+        try
+            lzma.LzmaCompressor encoder = lzma.LzmaCompressor(c_int(level), c_ulonglong(1024), c_ulonglong(1024))
+            assert encoder.valid
+        catch ValueError error
+            rejected = true
+        end
+        assert rejected, "direct native-backed construction must reject unsupported levels"
+        rejected = false
+        try
+            auto encoder = lzma.compressor(level)
+            assert encoder.valid
+        catch ValueError error
+            rejected = true
+        end
+        assert rejected, "the factory and direct constructor must agree"
+    end
+
+    // 显式命名公开类；内部解码默认值不能再借用非法级别作为哨兵。
+    for level in range(10)
+        lzma.LzmaCompressor encoder = lzma.LzmaCompressor(c_int(level), c_ulonglong(1024), c_ulonglong(1024))
+        encoder.update("abc")
+        encoder.finish()
+        Buffer packed = encoder.drain()
+        lzma.LzmaDecompressor decoder = lzma.LzmaDecompressor(c_ulonglong(1024), c_ulonglong(1024), c_uint(1000))
+        decoder.update(packed)
+        decoder.finish()
+        assert decoder.finished and decoder.members == 1
+        assert decoder.drain().text() == "abc"
+        assert lzma.decompressText(lzma.compress("abc", level)) == "abc"
+    end
+    println("lzma language native options: PASS")
+    return 0
+end

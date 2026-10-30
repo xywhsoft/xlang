@@ -30,6 +30,7 @@ int main(void) {
     xvalue *catalog = xgt_parse_po(po);
     xvalue *mo_bytes = NULL, *mo = NULL, *loaded = NULL;
     char *menu, *plural, *toolbar, *mo_text = NULL, *loaded_text = NULL;
+    const char *first, *toolbar_first;
     bytes file_data;
     size_t file_size = 0;
     int ok;
@@ -40,7 +41,11 @@ int main(void) {
     menu = xgt_tc(catalog, "menu", "Open");
     plural = xgt_tn(catalog, "file", "files", 3);
     toolbar = xgt_tnc(catalog, "toolbar", "file", "files", 2);
-    ok = menu && plural && toolbar &&
+    /* 无计数查询取首形式；这里借用的结果只在 catalog 存活期间使用，不释放。 */
+    first = xgt_t_borrowed(catalog, "file");
+    toolbar_first = xgt_tc_borrowed(catalog, "toolbar", "file");
+    ok = menu && plural && toolbar && first && toolbar_first &&
+        strcmp(first, "一个文件") == 0 && strcmp(toolbar_first, "工具栏文件") == 0 &&
         strcmp(menu, "打开菜单") == 0 && strcmp(plural, "多个文件") == 0 &&
         strcmp(toolbar, "工具栏两个文件") == 0;
     if (ok) {

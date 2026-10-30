@@ -1,5 +1,36 @@
 # md4c
 
+2026-10-29：补齐解析器本身的 CRT 分配失败边界。修复属性构造重复释放、
+连续扩容后旧指针失效、围栏构造器未初始化清理、引用定义 OOM 被当作
+“不是定义”，以及块结束错误未传播；解析 OOM 正确标记为 `XERR_MEMORY`，
+不返回半份 HTML。测试专用分配器覆盖持续/单次失败及强制搬迁：210 个
+预算、184 次实际注入，修复前184失败，修复后零失败、零非法/重复释放。
+公开 API、ABI 与三条 `@owned string` 返回路径不变，没有运行时测试钩子。
+Windows PowerShell5.1默认48阶段、Linux C ASan/UBSan、十二个实际生成
+原型和两平台各十一条独立程序均通过；BOM/XHTML/实体/方言有精确双语
+回归，中文文件路径也覆盖。首轮门禁正则漏掉含数字的符号是测试问题，
+已修正并保留失败现场，不算主线阻断。当前结果只签收本包约定能力。
+
+随包解析器并非原封不动的官方0.5.2：在既有本地修订上增加了本次小型
+错误清理修复，其他五个上游文件与官方标签一致。固定来源、摘要和补丁
+范围见 [UPSTREAM.md](third_party/UPSTREAM.md)，升级时不可直接覆盖。
+
+新增双语实用范例 `examples/article.xl` / `examples/article_c.c`：读取
+UTF-8 Markdown，以 GitHub 表格、禁用原生HTML、跳过BOM及XHTML选项
+生成正文，共同对照 `examples/article.expected.html`。在仓库根目录运行：
+
+```text
+xl run release/extlibs/md4c/examples/article.xl
+xl run release/extlibs/md4c/examples/article_c.c
+xl run release/extlibs/md4c/examples/article.xl -- path/to/article.md
+```
+
+不传路径时使用随包 `article.md`；结果写到标准输出，不由范例创建文件。
+`file_html` 自身只读取文件；`no_html_flag` 仍不净化链接/图片URL。64 MiB
+是输入限制，不是输出或计算预算；对外提供渲染服务时仍需应用级资源限制。
+包级门禁使用有界进程与独占目录，检查输入指纹；失败保留现场，成功只
+清理本次临时产物并留下报告。`-SkipAot` 不代表完整发布验收。
+
 2026-10-27：三个 HTML 结果现以 `char*` + `@owned string` 声明，直接将
 XRT 缓冲所有权交给普通 XLang 字符串；删除手工 `point` / `takeCstr` 接管
 分支，公开 `html`、`html_flags`、`file_html` 写法不变。生成的 C 在接管处
@@ -35,7 +66,7 @@ Markdown 输入必须是合法 UTF-8；内存与文件入口都会在解析前�
 
 渲染原始 HTML 默认允许；处理不可信内容时，必须按应用需求选择 `no_html_flag` 并另行审查链接与图片 URL。该标志不是完整 HTML 安全策略，也不是 HTML sanitizer。
 
-双语范例：`release/extlibs/md4c/examples/md4c.xl` 与 `md4c_c.c`。`release/examples/extlibs/md4c.xl` 使用只读测试夹具演示文件渲染，不产生输出文件。包级门禁：在 `demo6` 目录执行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/md4c/test/check.ps1`；Linux 运行 `bash release/extlibs/md4c/test/check.sh`。
+双语范例：`release/extlibs/md4c/examples/md4c.xl` 与 `md4c_c.c`。`release/examples/extlibs/md4c.xl` 使用只读测试夹具演示文件渲染，不产生输出文件。包级门禁：在仓库根目录执行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/md4c/test/check.ps1`；Linux 运行 `bash release/extlibs/md4c/test/check.sh`。
 2026-10-24 使用更新后的 Windows 发布版复验：默认门禁的严格 GCC、C/XLang 边界、分配故障、双语 HTML 对照和公开范例 AOT 全部通过；Linux C ASan/UBSan、XLang 边界及同输出门禁通过。旧版 `xl6ValueDataSnapshotV1` 缺符号已解除；这是包级验证，不等于整个 xlang 发布版签收。
 `md4c_c.c` 自包含上游渲染器与包内桥接源码，可直接运行
 `xl run release/extlibs/md4c/examples/md4c_c.c`；正式包仍按清单分别编译。
@@ -55,7 +86,7 @@ Windows 门禁，不把先前 Linux 结果冒充为本次复验。
 
 2026-10-15：中央 `test/cases/extlib_md4c.xl` 现使用包内固定夹具，不再为测试写文件；缺失文件按公开 `IOError` 合同验证。中央 JIT 与包内非 AOT 门禁通过。中央带输出 AOT 当时仍缺共享 `xl6ValueDataSnapshotV1`，发布验收未完成。
 
-2026-10-16：包内 `test/boundaries.xl` 与包级门禁统一以 `demo6` 为工作目录，
+2026-10-16：包内 `test/boundaries.xl` 与包级门禁统一以 仓库根目录为工作目录，
 固定夹具路径不再依赖从 `release` 启动；该用例已登记到 `coverage.tests`。
 根目录复现先因找不到夹具失败，调整后中央主用例、包内边界和 Windows
 `check.ps1 -SkipAot` 的 C/XLang 对照均通过。完整 AOT 阻断不变。

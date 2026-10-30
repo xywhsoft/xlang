@@ -38,6 +38,7 @@ if($ownWork -and (Test-Path -LiteralPath $work)){throw "CSV work directory alrea
 [void][IO.Directory]::CreateDirectory($work)
 $utf8=[Text.UTF8Encoding]::new($false)
 $checks=[Collections.Generic.List[object]]::new()
+$problems=[Collections.Generic.List[string]]::new()
 $environment=@{XLANG_PACKAGE_PATH=(Join-Path $Root 'release/extlibs')}
 $manifest=Get-Content (Join-Path $Root 'release/extlibs/csv/xlang.package.json') -Raw|ConvertFrom-Json
 $sources=@($manifest.artifact.cSources|ForEach-Object{"release/extlibs/csv/$_"})
@@ -67,11 +68,18 @@ function InputPaths {
 $inputs=[ordered]@{}
 foreach($p in @(InputPaths|Sort-Object -Unique)){$inputs[$p]=(Get-FileHash -LiteralPath $p).Hash}
 function Check([string]$Name,[string]$Program,[string[]]$Arguments,[int]$Seconds=120,[string]$WorkingDirectory=$Root) {
+    if($null -eq $Arguments){$Arguments=@()}
     $r=Invoke-ExtlibSmokeProcess $Program $Arguments $WorkingDirectory $Seconds $environment
     $checks.Add([ordered]@{name=$Name;program=$Program;arguments=$Arguments;result=$r})
-    if($r.status -ne 'pass'){throw "$Name failed: $($r.stderr)`n$($r.stdout)"}
+    if($r.status -ne 'pass'){throw "$Name failed: status=$($r.status), exit=$($r.exitCode)`n$($r.stderr)`n$($r.stdout)"}
     Write-Host "[csv] ${Name}: PASS $($r.stdout.Trim())"
     $r.stdout.Replace("`r`n","`n").TrimEnd("`n")
+}
+function Observe([scriptblock]$Action){
+    try { & $Action } catch {
+        $problems.Add($_.Exception.Message)
+        Write-Host "[csv] FAIL: $($_.Exception.Message)"
+    }
 }
 function Language([string]$Name,[string]$Case,[string]$Action,[string]$Prefix,[string]$WorkingDirectory=$Root){
     if($compiler){
@@ -91,22 +99,30 @@ try {
     $null=Check 'compiler-version' $gcc @('--version')
     $access=Invoke-ExtlibSmokeProcess $xl @('check','release/extlibs/csv/test/private_native.xl') $Root 120 $environment
     $accessText="$($access.stderr)`n$($access.stdout)"
-    if($access.status -ne 'fail' -or !$accessText.Contains('fieldNative') -or !$accessText.Contains('access')){
+    if($access.status -ne 'fail' -or $access.exitCode -ne 1 -or !$accessText.Contains('fieldNative') -or !$accessText.Contains('access')){
         throw "CSV Native member access check failed: $accessText"
     }
     $checks.Add([ordered]@{name='private-native-access';program=$xl;
         arguments=@('check','release/extlibs/csv/test/private_native.xl');
         result=[ordered]@{status='pass';expected='access-rejected';observed=$access}})
     Write-Host '[csv] private-native-access: PASS (rejected as expected)'
+    # 私有原生构造器只 check，绝不能执行伪造的空地址和长度。
+    $access=Invoke-ExtlibSmokeProcess $xl @('check','release/extlibs/csv/test/private_constructor.xl') $Root 120 $environment
+    $checks.Add([ordered]@{name='private-constructor-access';program=$xl;expectedExitCode=1;
+        arguments=@('check','release/extlibs/csv/test/private_constructor.xl');result=$access})
+    if($access.status -ne 'fail' -or $access.exitCode -ne 1 -or
+       !("$($access.stderr)`n$($access.stdout)".Contains('access'))){
+        $problems.Add("private-constructor-access: expected access rejection/exit 1, observed $($access.status)/$($access.exitCode)")
+    }
     $runtime=Join-Path $work 'runtime.o'
     $null=Check 'runtime' $gcc ($flags+@('-DXRT_MODULE_THREAD','-DXRT_MODULE_ATOMIC','-c','test/support/extlib_csv_runtime.c','-o',$runtime))
     $objects=@($runtime);$index=0
     foreach($source in $sources){
         $object=Join-Path $work "source-$index.o"
-        $null=Check "source-$index" $gcc ($flags+@('-c',$source,'-o',$object))
+        $null=Check "source-$index" $gcc ($flags+@('-Wmissing-prototypes','-c',$source,'-o',$object))
         $objects+=$object;++$index
     }
-    foreach($name in @('test_csv','test_csv_boundary','test_csv_stream','test_csv_alloc','test_csv_files','test_csv_contracts','test_csv_threads')) {
+    foreach($name in @('test_csv','test_csv_boundary','test_csv_stream','test_csv_error_cause','test_csv_alloc','test_csv_files','test_csv_contracts','test_csv_threads')) {
         $exe=Join-Path $work "$name.exe"
         $null=Check "$name-build" $gcc ($flags+@("release/extlibs/csv/test/$name.c")+$objects+@('-lws2_32','-ladvapi32','-lm','-o',$exe))
         $null=Check $name $exe @()
@@ -114,20 +130,30 @@ try {
     $interop=Join-Path $work 'interop.exe'
     $null=Check 'interop-build' $gcc ($flags+@('release/extlibs/csv/test/csv_interop.c')+$objects+@('-lws2_32','-ladvapi32','-lm','-o',$interop))
     $null=Check 'python-csv-interop' $python @('tools/check_extlib_csv_interop.py',$interop,(Join-Path $work 'interop-data')) 180
-    $decls=@()
-    foreach($case in @('test/cases/extlib_csv.xl','release/examples/extlibs/csv.xl')+@($manifest.coverage.tests|Where-Object { $_ }|ForEach-Object{"release/extlibs/csv/$_"})) {
+    $closed=Join-Path $work 'file_rollback_closed.exe'
+    $null=Check 'closed-rollback-build' $gcc ($flags+@('release/extlibs/csv/test/file_rollback_closed.c')+$objects+@('-lws2_32','-ladvapi32','-lm','-o',$closed))
+    $null=Observe { Check 'closed-rollback' $closed @($work) }
+    $generated=[Collections.Generic.List[string]]::new()
+    foreach($case in @('test/cases/extlib_csv.xl','release/examples/extlibs/csv.xl','release/extlibs/csv/test/aot_core.xl','release/extlibs/csv/test/global_lifecycle.xl')+@($manifest.coverage.tests|Where-Object { $_ }|ForEach-Object{"release/extlibs/csv/$_"})) {
         $name=[IO.Path]::GetFileNameWithoutExtension($case)
         $prefix=Join-Path $work $name
-        $jit=Language "$name-jit" $case 'run' $prefix
+        $jit=Observe { Language "$name-jit" $case 'run' $prefix }
         if(!$SkipAot){
-            $null=Language "$name-build" $case 'build' $prefix
-            $aot=Check "$name-aot" "$prefix.exe" @()
-            if($jit -cne $aot){throw "$name JIT/AOT output differs"}
+            $built=Observe { $null=Language "$name-build" $case 'build' $prefix; $true }
+            if($built){
+                $aot=Observe { Check "$name-aot" "$prefix.exe" @() }
+                if($null -ne $jit -and $null -ne $aot -and $jit -cne $aot){$problems.Add("$name JIT/AOT output differs")}
+            }
         }
         $cgen=Join-Path $work "$name.c"
-        $null=Language "$name-cgen" $case 'cgen' $prefix
-        $decls+=@(Get-Content $cgen|Where-Object{$_ -match '^extern .*\bxcsv_[a-z_]+\('})
+        $null=Observe {
+            $null=Language "$name-cgen" $case 'cgen' $prefix
+            $generated.Add($cgen)
+        }
     }
+    $decls=@($generated | ForEach-Object {
+        Get-Content -LiteralPath $_ | Where-Object{$_ -match '^extern .*\bxcsv_[a-z_]+\('}
+    })
     $decls=@($decls|Sort-Object -Unique)
     $binding=Get-Content (Join-Path $Root 'release/extlibs/csv/src/csv.xl') -Raw
     $expected=@([regex]::Matches($binding,'extern "(xcsv_[a-z_]+)"')|ForEach-Object{$_.Groups[1].Value}|Sort-Object -Unique)
@@ -136,17 +162,18 @@ try {
     $abi=Join-Path $work 'abi.c'
     [IO.File]::WriteAllText($abi,"#include <stdint.h>`n#include `"csv_native.h`"`n"+($decls -join "`n"),$utf8)
     $null=Check "generated-$($expected.Count)-prototypes" $gcc ($flags+@('-Irelease/extlibs/csv/include','-fsyntax-only',$abi))
-    foreach($name in @('basic','files')) {
+    foreach($name in @('basic','files','streaming')) {
         $prefix=Join-Path $work "example-$name"
-        $expected=[IO.File]::ReadAllText((Join-Path $Root "release/examples/extlibs/csv_$name.expected.txt")).Replace("`r`n","`n").TrimEnd("`n")
-        $case="release/examples/extlibs/csv_$name.xl"
-        $jit=Language "example-$name-jit" $case 'run' $prefix
+        $golden=if($name -eq 'streaming'){'release/extlibs/csv/examples/streaming.expected.txt'}else{"release/examples/extlibs/csv_$name.expected.txt"}
+        $expected=[IO.File]::ReadAllText((Join-Path $Root $golden)).Replace("`r`n","`n").TrimEnd("`n")
+        $case=if($name -eq 'streaming'){'release/extlibs/csv/examples/streaming.xl'}else{"release/examples/extlibs/csv_$name.xl"}
+        $jit=Observe { Language "example-$name-jit" $case 'run' $prefix }
         $aot=$null
         if(!$SkipAot){
-            $null=Language "example-$name-build" $case 'build' $prefix
-            $aot=Check "example-$name-aot" "$prefix.exe" @()
+            $built=Observe { $null=Language "example-$name-build" $case 'build' $prefix; $true }
+            if($built){$aot=Observe { Check "example-$name-aot" "$prefix.exe" @() }}
         }
-        $c="release/extlibs/csv/examples/$name.c"
+        $c=if($name -eq 'streaming'){'release/extlibs/csv/examples/streaming_c.c'}else{"release/extlibs/csv/examples/$name.c"}
         $null=Check "example-$name-c-build" $gcc ($flags+@($c,$runtime,'-lws2_32','-ladvapi32','-lm','-o',"$prefix-c.exe"))
         $native=Check "example-$name-c" "$prefix-c.exe" @()
         $cjit=Check "example-$name-c-jit" $xl @('run',$c)
@@ -159,7 +186,7 @@ try {
         $outputsToCheck=@($jit,$native,$cjit,$helper)
         if(!$SkipAot){$outputsToCheck+=@($aot,$caot)}
         foreach($output in $outputsToCheck) {
-            if($output -cne $expected){throw "CSV $name bilingual golden output mismatch"}
+            if($null -ne $output -and $output -cne $expected){$problems.Add("CSV $name bilingual golden output mismatch")}
         }
     }
     # 直接执行维护文档中的代码块；文件范例隔离工作目录，不能覆盖用户的 report.csv。
@@ -180,13 +207,15 @@ try {
         # 源码驱动依赖仓库工作目录；生成产物再在独立目录运行，文档原文无需路径改写。
         $prefix=[IO.Path]::Combine($docwork,'main')
         if($SkipAot){
-            $output=Language "documentation-$index-jit" $source 'run' $prefix $docwork
+            $output=Observe { Language "documentation-$index-jit" $source 'run' $prefix $docwork }
         }else{
-            $null=Language "documentation-$index-build" $source 'build' $prefix
-            $output=Check "documentation-$index" "$prefix.exe" @() 120 $docwork
+            $output=$null
+            $built=Observe { $null=Language "documentation-$index-build" $source 'build' $prefix; $true }
+            if($built){$output=Observe { Check "documentation-$index" "$prefix.exe" @() 120 $docwork }}
         }
-        if($output -cne $outputs[$index]){throw "CSV documentation-$index output mismatch"}
+        if($null -ne $output -and $output -cne $outputs[$index]){$problems.Add("CSV documentation-$index output mismatch")}
     }
+    if($problems.Count){throw ($problems -join "`n")}
     $outcome='passed'
 } catch { $failure=$_.Exception.Message; throw } finally {
     try {
@@ -197,9 +226,11 @@ try {
             scope=if($SkipAot){'Independent Windows C, allocation/IO/file contracts, XL JIT, bilingual output and generated native prototypes; AOT skipped'}else{'Independent Windows C, allocation/IO/file contracts, XL JIT/AOT and generated native prototypes; not complete package admission'};
             releaseReady=$false;compiler=if($compiler){$compiler.Driver}else{$xl};
             inputs=$inputs;changedInputs=$changed;checks=$checks.ToArray()}
-        [IO.File]::WriteAllText((Join-Path $work 'results.json'),($record|ConvertTo-Json -Depth 10),$utf8)
+        $json=$record|ConvertTo-Json -Depth 10
+        [IO.File]::WriteAllText((Join-Path $work 'results.json'),$json,$utf8)
+        [IO.File]::WriteAllText("$work.json",$json,$utf8)
     } finally {
-        if($ownWork -and (Test-Path -LiteralPath $work -PathType Container)){
+        if($ownWork -and $outcome -eq 'passed' -and (Test-Path -LiteralPath $work -PathType Container)){
             $resolved=[IO.Path]::GetFullPath((Resolve-Path -LiteralPath $work).Path)
             $base=[IO.Path]::GetFullPath($workRoot).TrimEnd('\','/')
             if(!$resolved.StartsWith($base+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)){

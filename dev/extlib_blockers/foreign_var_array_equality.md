@@ -1,4 +1,17 @@
+> 历史工作树记录：以下结果对应文内冻结版本，不自动代表主目录当前 0.6.0；需在当前发布物上复验。
+
 # 原生 xvalue 数组返回后的内容相等性不一致
+
+2026-10-30 根目录布局复验：两平台默认 money 门禁均完成 51 项可运行
+前置检查（含新算术独立参照、九条生成原型、新旧双语与十条独立程序），
+第 52 项原分配正例仍在数组相等性断言退出 1。最小源从仓库根执行
+`release/xl.exe run dev/extlib_blockers/money_split_array_equality.xl`
+（Linux 使用 `release/xl`），JIT/独立程序仍显示 plain/typed 为 true、
+split 为 false，元素正确；check/build 仍成功。C 范例 AOT 这次已移到
+阻断前并实际通过，但不能代替原分配/相等性边界。没有改相等断言或
+逐项重建数组；修复建议仍为主线共享比较分派、投影与所有权处理。
+当前具体报告见验收矩阵和任务台账 2026-10-30 Money 条目。下文为历史
+执行顺序，不能用旧“没有执行到 C 范例”描述当前门禁。
 
 2026-10-26 重建发布版复验：`money_split_array_equality.xl` 在
 Windows/Linux 均输出 `plain: true`、`typed: true`、`split: false`，

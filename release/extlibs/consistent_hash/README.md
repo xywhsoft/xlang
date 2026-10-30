@@ -1,5 +1,64 @@
 # consistent_hash
 
+## 2026-10-30 拥有型返回链与预算
+
+`getNode` 改为直接返回非空拥有型 C 结果，删除可空局部变量及二次判断。
+C 失败仍由既有外部调用桥传播，合法空环仍返回拥有型空字符串，不把空
+结果当成错误。C 源/头、符号、参数宽度、所有权、映射、锁和容量均未改。
+
+- 旧代码虽然在 C 返回处接管指针，但从 `string?` 局部变量返回时仍调用
+  一次 `xlir_string_copy`。Windows同一公开范例实际生成C此调用由1降0，源文本
+  大小210985→208071字节；只说明生成源，不推算EXE大小或端到端提速。
+  旧门禁仅检查接管赋值，漏掉了后面的返回复制；现同时检查两者。
+- 四组预先构造输入：空环/空键、单节点/短键、4096字节中文节点名/长键、
+  空环/长键。相同旧绑定的完整预算3共16组在两平台通过，新预算2对旧
+  绑定真实失败；旧16组为JIT对照，当前预算2共12组在两平台JIT/AOT通过，含8失败与4成功。
+  每次故障均明确为MemoryError，并立即恢复；空结果不是NULL。
+- 同输入C读取本身预算1，共8组（4失败/4成功），核对原环及删除/销毁后
+  结果完整、输入重写不影响已持有结果、存活内存和非法释放计数平衡。
+  XL比C仍多一次NUL针串分配，仍需输入检查、原生快照复制及长度扫描，
+  不称整个调用或冷启动零开销。所有输入和环初始化都在注入窗口之外。
+- `owned_lifetime.xl` 验证4096字节结果离开函数和原环后的正文、临时键、
+  输入重绑，以及add/remove/get三个NUL拒绝位置。独立`owned_probe.xl`
+  覆盖全部七个原生声明，真实原型与正式C头一致，无额外正文复制；
+  错配返回类型负例拒绝。正式Windows验证函数对旧实码及缺接管/重引入
+  复制的坏文本拒绝，对当前直接返回通过；不是只搜索到@owned就算完成。
+- 新`examples/routing_changes.xl`和`routing_changes_c.c`验证128个键扩容，
+  46个迁到新增节点，删除后128个全部恢复；也涵盖幂等增删、计数、空环
+  与独立快照，五行黄金输出一致。结果数组保存是应用确有需要的复制，
+  不混入纯绑定探针的零返回复制要求。四个新语言用例已登记coverage。
+
+Windows完整54阶段51项符合预期，Linux53阶段50项符合预期，均包括一次
+真实私有访问拒绝；旧C独立完整排序参照/故障/线程、七原型、新旧双语
+固定布局和九条普通独立程序通过，Linux C含ASan/UBSan/泄漏。原有
+`boundaries`、`allocations`、`layout`三份顶层正例现在分别执行到底，均
+构建成功、打印PASS后于AOT退出期报state错误并退出1，**M2仍开放，整包
+门禁不通过**。每项仍要求0，聚合失败仅为保留三份现场，不是预期非零。
+Windows/Linux的45/43项门禁输入前后不变，编译警告均零。
+
+门禁每阶段限时，分别保存命令、原始状态、stdout/stderr和输入指纹；
+成功才删工作目录。Windows静默编译器内部37/外层1、Linux缺工具原始127
+均保留失败现场。独立C运行时只启本包模块及线程/内存调试，不再为夹具
+编译整个XRT或链接无关网络库；正式包的模块清单不变。
+
+从仓库根目录运行新范例：
+
+```powershell
+release/xl.exe run release/extlibs/consistent_hash/examples/routing_changes.xl
+release/xl.exe run release/extlibs/consistent_hash/examples/routing_changes_c.c
+```
+
+Linux把`release/xl.exe`换成`release/xl`。无需网络或外部服务，预期输出见
+`examples/routing_changes.expected.txt`；语言对象按作用域回收，C显式释放
+全部读取结果和环。完整门禁入口仍为下方`test/check.ps1`/`test/check.sh`，
+`-SkipAot`只供开发，不作签收。Windows报告为
+`build/test/consistent_hash_guard/run_65de3842baa242979a3c1e765002a2c8.json`。
+Linux原生快照`/var/tmp/xlang-chash-final-src-kkIdb5`，79复制源与原件前后
+一致，失败现场`tmp/xlang-consistent-hash-WNKegJ`。证据索引
+`build/test/chash_audit_415b441b24b640f6b96c268ec72fa532`。
+
+## 先前门禁记录
+
 2026-10-26 当前 Windows/Linux 默认门禁均通过严格 C、Linux ASan/UBSan、
 语言 JIT、核心 AOT，以及 C/XLang 公开范例的独立 EXE 与固定映射对照。
 两平台的顶层 `Ring` 边界 EXE 都先打印 PASS，再在模块退出清理期报
@@ -28,7 +87,7 @@ Linux 门禁现同样执行这条 AOT 边界，保持红色直至主线生命周
 
 ## C 接口
 
-声明在 `include/consistent_hash_native.h`。`xchash_create` 返回需 `xchash_destroy` 的句柄；`xchash_add_node` / `xchash_remove_node` 成功返回 1，失败返回 0，可通过 `xrtGetError` 查错。`xchash_get_node` 返回需 `xrtFree` 的独立 NUL 结尾字符串，失败返回 `NULL`，空环成功返回 `""`。C 接口不要求 xlang 编译器；XLang 类负责自动释放句柄，并以 `@owned string?` 接管查询文本，不经 `point` 二次转换。生成代码仍会扫描一次字符串长度，但不复制字符。
+声明在 `include/consistent_hash_native.h`。`xchash_create` 返回需 `xchash_destroy` 的句柄；`xchash_add_node` / `xchash_remove_node` 成功返回 1，失败返回 0，可通过 `xrtGetError` 查错。`xchash_get_node` 返回需 `xrtFree` 的独立 NUL 结尾字符串，失败返回 `NULL`，空环成功返回 `""`。C 接口不要求 xlang 编译器；XLang 类负责自动释放句柄，并以非空 `@owned string` 直接接管并返回查询文本，不经 `point` 或可空值中转。生成代码仍扫描结果长度，原生 C 仍复制一次节点名作为独立快照；本轮去掉的是语言返回链的额外复制，不是整条路径没有复制。
 每个有结果的 C 调用开始时清除本线程旧的 XRT 错误，失败后可直接重试；
 `node_count` / `vnode_count` 对空句柄返回 `-1` 并设置参数错误。
 
@@ -51,13 +110,13 @@ the current state`；同文件 JIT 退出 0，局部对象的公开范例 AOT �
 
 `addNative` 等原生入口为类内部实现，不能从包外绕过公开方法的参数与生命周期检查；`test/private_native.xl` 是预期编译失败的可见性负例。
 
-在 `release` 运行 `xl run extlibs/consistent_hash/test/boundaries.xl`。在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package consistent_hash -Source release/extlibs/consistent_hash/test/test_consistent_hash.c`。2026-10-12 已通过 Windows 严格 GCC、Linux ASan/UBSan、并发读写、XL JIT 和 C/XL 双语对照；2026-10-13 补充内嵌 NUL 的红绿用例。同日加入节点分配故障逐点测试，失败时节点数、虚拟节点数和已有键映射不变；C 定向测试、严格 GCC 语法检查和 XL 边界通过。
-Linux 可在 `demo6` 运行 `bash release/extlibs/consistent_hash/test/check.sh`，
+在 `release` 运行 `xl run extlibs/consistent_hash/test/boundaries.xl`。在仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package consistent_hash -Source release/extlibs/consistent_hash/test/test_consistent_hash.c`。2026-10-12 已通过 Windows 严格 GCC、Linux ASan/UBSan、并发读写、XL JIT 和 C/XL 双语对照；2026-10-13 补充内嵌 NUL 的红绿用例。同日加入节点分配故障逐点测试，失败时节点数、虚拟节点数和已有键映射不变；C 定向测试、严格 GCC 语法检查和 XL 边界通过。
+Linux 可在仓库根目录运行 `bash release/extlibs/consistent_hash/test/check.sh`，
 用严格 GCC + ASan/UBSan 检查 C 边界、并发及 C 范例，同时运行中央与
 包内 XLang 用例，并将双语范例与 `examples/consistent_hash.expected.txt`
 的固定映射逐字节比较。默认门禁还构建运行中央核心、C/XLang 范例和
 顶层边界的独立 EXE；当前在最后一项按上述生命周期阻断退出 1。
-Windows 可在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/consistent_hash/test/check.ps1 -SkipAot`，一并检查严格 GCC、C 故障与线程、中央和包内 XLang、原生入口私有性及双语黄金输出。去掉 `-SkipAot` 会依次构建运行核心、带输出范例及边界 AOT；当前边界 EXE 在顶层对象退役时失败，详见上文。C 教学范例内含包的原生实现，可在两平台直接 `xl run release/extlibs/consistent_hash/examples/consistent_hash_c.c`；正式包仍按清单分别编译该原生源码。
+Windows 可在仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/consistent_hash/test/check.ps1 -SkipAot`，一并检查严格 GCC、C 故障与线程、中央和包内 XLang、原生入口私有性及双语黄金输出。去掉 `-SkipAot` 会依次构建运行核心、带输出范例及边界 AOT；当前边界 EXE 在顶层对象退役时失败，详见上文。C 教学范例内含包的原生实现，可在两平台直接 `xl run release/extlibs/consistent_hash/examples/consistent_hash_c.c`；正式包仍按清单分别编译该原生源码。
 
 以下 2026-10-23 及更早记录中的共享缺符号描述均为旧发布版历史，不代表当前构建状态。
 

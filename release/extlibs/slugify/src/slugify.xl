@@ -1,13 +1,11 @@
-extern "xsl_slugify" @owned func __sl_slugify(string text, c_longlong length) as string?
+extern "xsl_slugify" @owned func __sl_slugify(string text, c_longlong length) as string
 extern "xsl_is_ascii" func __sl_is_ascii(string text, c_longlong length) as c_int
 extern "xl6_xrt_last_error_text" func __sl_error() as string
 
 
 
 export func slugify(string text) as string
-    string? result = __sl_slugify(text, c_longlong(string.byteLen(text)))
-    if result == null then throw ValueError __sl_error() end
-    return result
+    return __sl_slugify(text, c_longlong(string.byteLen(text)))
 end
 
 export func isAscii(string text) as bool

@@ -1,0 +1,69 @@
+import css
+
+func stripCase(string input, string expected, bool invalid)
+    bool rejected = false
+    string actual = ""
+    try
+        actual = css.stripComments(input)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected == invalid, f"css escaped quote: {input}"
+    if not invalid then assert actual == expected, f"css escaped comment: {input}" end
+end
+
+func query(int operation, string sheet, int expectedRules)
+    if operation == 0 then assert css.validate(sheet) end
+    if operation == 1 then assert css.countRules(sheet) == expectedRules end
+    if operation == 2 then assert css.countProps(sheet, "a") == 1 end
+    if operation == 3 then assert css.selectorAt(sheet, 0) == "a" end
+    if operation == 4 then assert css.get(sheet, "a", "color") == "red" end
+end
+
+func main(...) as int
+    string slashes = ""
+    for n in range(8)
+        string input = "a{x:" + slashes + "/*gone*/;}"
+        string expected = "a{x:" + slashes + " ;}"
+        if n % 2 == 1 then expected = input end
+        stripCase(input, expected, false)
+        stripCase("a{x:" + slashes + "\"/*gone*/;}", "a{x:" + slashes + "\" ;}", n % 2 == 0)
+        slashes += "\\"
+    end
+    stripCase("a{x:\\'/*gone*/;}", "a{x:\\' ;}", false)
+    stripCase("a{x:\\/*not-a-comment;}", "a{x:\\/*not-a-comment;}", false)
+    stripCase("a{x:\"/*kept*/\";/*gone*/}", "a{x:\"/*kept*/\"; }", false)
+    stripCase("a{x:\"escaped\\\"/*kept*/\";/*gone*/}", "a{x:\"escaped\\\"/*kept*/\"; }", false)
+    stripCase("a{x:\\\\\"/*kept*/\";/*gone*/}", "a{x:\\\\\"/*kept*/\"; }", false)
+    stripCase("段落{内容:\\\"/*删除*/;}", "段落{内容:\\\" ;}", false)
+
+    array<string> leaves = ["", "/*empty*/", "@font-face{font-family:demo;}", ".leaf{color:blue;}"]
+    for mode in range(4)
+        for depth in range(64, 66)
+            int wrappers = depth
+            if mode == 2 then wrappers -= 1 end
+            string sheet = "a{color:red;}"
+            for i in range(wrappers)
+                sheet += "@media all{"
+            end
+            sheet += leaves[mode]
+            for i in range(wrappers)
+                sheet += "}"
+            end
+            int expectedRules = 1
+            if mode == 3 then expectedRules = 2 end
+            for operation in range(5)
+                bool rejected = false
+                try
+                    query(operation, sheet, expectedRules)
+                catch RangeError error
+                    rejected = true
+                end
+                assert rejected == (depth == 65), f"css depth={depth}, leaf={mode}, query={operation}"
+            end
+            assert string.byteLen(css.stripComments(sheet)) > 0
+        end
+    end
+    println("css scanner edges: PASS")
+    return 0
+end

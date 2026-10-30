@@ -1,0 +1,22 @@
+import langdetect
+
+func main(...) as int
+    // 仅使用已声明的有限脚本规则；这不是完整的Unicode分词标准。
+    array<string> separators = [" ", "0", "_", "-", "\0", "×", "÷", "α", "\u0301", "😀"]
+    for edge in separators
+        string message = edge + "ThE" + edge
+        assert langdetect.detect(message) == "english"
+        assert langdetect.code(message) == "en"
+        assert langdetect.script(message) == "Latin"
+        assert langdetect.confidence(message) == 57
+    end
+    array<string> letters = ["x", "é", "中", "П", "م", "あ", "한"]
+    for edge in letters
+        assert not langdetect.isEnglish(edge + "the")
+        assert not langdetect.isEnglish("the" + edge)
+    end
+    assert langdetect.confidence("the\0and") == 69
+    assert langdetect.detect("thethe") == "unknown"
+    println("langdetect score boundaries: PASS")
+    return 0
+end

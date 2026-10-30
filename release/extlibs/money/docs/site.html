@@ -19,6 +19,7 @@
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / money</p><h1>money</h1>
     <p class="extlib-lead">整数金额运算。</p>
     <p>精确比例、溢出检查、守恒均分与常见货币展示。</p>
+    <p>2026-10-30：五条装箱算术入口改为先计算再读取结果，消除 GCC/TCC 参数求值顺序差异；负单位倍率增加整数精确取反，ABI、错误分类和所有权不变。新增 657 项整数参照及五条 OOM/恢复路径，settlement 双语例以七行共同输出展示算术、溢出与恢复。默认门禁保留数组相等性原正例，整包仍受该语言边界阻断；验证范围和当前证据见包内 README 与根目录台账。</p>
     <p>2026-10-26 重建 Windows/Linux 发布物后，C 算术、主要 XLang 用例和错误分类继续通过；两平台最小源仍显示外来 XRT 数组元素正确，却与同内容语言数组比较为不等。默认门禁保留这条红色断言，不在包内绕过，整包发布验收尚未通过。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>

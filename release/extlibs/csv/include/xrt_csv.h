@@ -84,7 +84,9 @@ XRT_API xrtcsvreader* xrtCsvReaderOpenMemory(const void* pData, uint64 iSize,
 	const xrtcsvdialect* pDialect);
 XRT_API xrtcsvreader* xrtCsvReaderOpenFile(cstr sPath, const xrtcsvdialect* pDialect);
 XRT_API const xrtcsverror* xrtCsvReaderError(const xrtcsvreader* pReader);
-/* false 可能是 EOF 或错误：同时检查 EOF、Error 及 xrtGetError。 */
+/* false 可能是 EOF 或错误：同时检查 EOF、Error 及 xrtGetError。
+ * IO/内存首错不会被后续诊断 OOM 覆盖；无法分配包装时直接发布底层错误，
+ * CSV 自身的错误码和位置仍可通过 Error 查询，Writer 同理。 */
 XRT_API bool xrtCsvReaderNext(xrtcsvreader* pReader, xrtcsvrow* pRow);
 XRT_API bool xrtCsvReaderEOF(const xrtcsvreader* pReader);
 XRT_API bool xrtCsvReaderClose(xrtcsvreader* pReader);

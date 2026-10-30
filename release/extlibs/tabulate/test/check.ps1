@@ -19,6 +19,7 @@ function Confirm-Output([string] $name, [string[]] $lines) {
 
 Push-Location $root
 try {
+    [IO.Directory]::CreateDirectory($work) | Out-Null
     & $gcc -std=c11 -Wall -Wextra -Werror -fsyntax-only '-Ilib/xrt' `
         '-Irelease/extlibs/tabulate/include' @moduleFlags `
         release/extlibs/tabulate/tabulate_native.c release/extlibs/tabulate/tabulate_render.c
@@ -38,6 +39,14 @@ try {
     )) {
         & $xl run $source
         if ($LASTEXITCODE -ne 0) { throw "tabulate XLang test failed: $source" }
+    }
+    $generated = Join-Path $work 'tabulate_owned.c'
+    & $xl cgen test/cases/extlib_tabulate.xl --emit $generated
+    if ($LASTEXITCODE -ne 0) { throw 'tabulate ownership cgen failed' }
+    $generatedText = [IO.File]::ReadAllText($generated)
+    if ($generatedText -cnotmatch '\bv\d+\.Data\s*=\s*xtab_render\s*\(' -or
+        $generatedText.Contains('xl6CStringCopyV1')) {
+        throw 'tabulate render must adopt the C string without copying'
     }
 
     $previousPreference = $ErrorActionPreference
@@ -64,7 +73,6 @@ try {
     Confirm-Output 'XLang example' $xlLines
 
     if (-not $SkipAot) {
-        [IO.Directory]::CreateDirectory($work) | Out-Null
         $core = Join-Path $work 'tabulate_core.exe'
         & $xl build test/cases/extlib_tabulate.xl -o $core
         if ($LASTEXITCODE -ne 0) { throw 'tabulate XLang core AOT build failed' }

@@ -1,0 +1,181 @@
+# shellwords
+
+## 2026-10-29 连续片段编码与独立对照
+
+POSIX `quote` 和 `join` 仍共用同一编码核心，但不再为正文的每个
+字节调用缓冲追加：连续片段整段复制，遇单引号才插入原有转义。
+安全词判定、返回字节、失败类别、四条公开 API 与所有权均不变，
+没有新增桥接层、临时字符串或语言数组转换方案。
+
+`test/quote_runs_c.c` 固定126组空/长/边界长度、连续/稀疏/密集引号、
+UTF-8及任意非 NUL 字节的 Quote/Join/Split 对照，并逐分配点验证
+8条 OOM 路径和存活/非法释放计数。`--records` 输出393条固定语料；
+Python 标准库 shlex 独立解析全部编码，Linux 还分组交给真实
+`/bin/sh` 并逐字节核对 argv。不是用本包 Split 自证正确，也不
+把 C 可保留非 UTF-8 字节的合同推广到 XLang 源码。GCC、TCC直跑
+与独立程序分别接受同一语料检查；完整范围以默认门禁实际结果为准。
+
+`test/bench_quote.c` 是单独运行的六负载 C 微基准，不放入功能门禁。
+同一旧/新原生源、GCC `-O2`、所选测试运行库和输入，七轮交替次序
+比较；本机 Windows 首轮观察到长空白约32.63倍、稀疏引号12.74倍、
+原始字节16.19倍、128参数Join约8.18倍；安全词和密集引号约1倍。
+这是测试配置下的局部测量，不是发布程序、其他硬件或整个语言的
+速度保证，更不是零桥接开销证明。原源哈希、完整输出和跨平台
+复验记录见仓库 `docs/扩展库发布级完善任务台账.md`。
+
+新增 `examples/command_plan.xl` 与 `command_plan_c.c`：构造带空格、
+单引号与中文的参数，拆分、规范化、逐参数核对，再展示 Windows
+CRT 引用；六行共同黄金输出，不实际启动命令。例中的 Join 接收
+Split 的正常结果，原语言数组 Join 正例仍是完整门禁的必过项，
+不能用这个例子替代 M1 的验收。另有 `test/text_paths.xl` 专门固定
+文本/NUL/长字符串/逐点内存故障边界，不冒充完整数组调用链。
+
+在仓库根目录运行：
+
+```text
+release/xl.exe run release/extlibs/shellwords/examples/command_plan.xl
+release/xl.exe run release/extlibs/shellwords/examples/command_plan_c.c
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/shellwords/test/check.ps1
+bash release/extlibs/shellwords/test/check.sh
+```
+
+Linux 将 `xl.exe` 换为 `xl`。门禁要求 GCC、Python 3 和相应平台
+发布物；Python 仅用于测试，不是扩展库运行依赖。每个外部进程有
+超时，核对输入前后指纹，保存完整输出；失败留现场，仅成功时清理
+本次独占目录。Windows 仍验证真实 CreateProcessW/宽字符 CRT argv，
+Linux 保留 ASan/UBSan 和真实 shell；后面的历史通过/阻断记录是
+当时快照，最新签收状态见仓库发布验收矩阵。
+
+2026-10-26 当前发布物复验：Windows 默认 `test/check.ps1` 的 C 边界、
+真实 `argv`、C 单文件直跑及公开双语范例通过；中央
+`join(var words)` 仍报 `ValueError: shellwords join requires an array`。
+最小复现在当前 Windows/Linux 发布物均失败；共享修复边界见
+`../../../dev/extlib_blockers/foreign_var_container_projection.md`。
+门禁现按阶段显示该非零退出，整包保持未签收；不在本库中识别
+编译器私有数组句柄。下方 Linux 通过记录属于既有发布物，不能
+替代当前跨平台签收。
+
+2026-10-25：`join` 现在将每个参数的引用结果直接追加到最终 XRT
+缓冲区，不再逐项分配临时 quoted 字符串再复制；独立 `quote` 与
+`join` 共用同一编码核心。Windows 严格 C、逐点分配故障、实际
+`CreateProcessW` 参数往返和 C/XLang 公开范例通过；Linux C
+ASan/UBSan、真实 `/bin/sh` 与语言门禁通过。Windows 默认门禁
+在中央 `join(var words)` 报 `ValueError: shellwords join requires an array`，
+与已记录的 [foreign var 容器投影问题](../../../dev/extlib_blockers/foreign_var_container_projection.md)
+同形；后续语言与 AOT 未运行，不能签收 Windows 整包发布级。
+
+2026-10-24 当前 Windows 发布版复验：严格 C、真实 Windows `argv`
+往返、C/XLang 公开范例均通过；默认门禁在中央 XLang 用例调用
+`join(var words)` 时失败。无关词法解析的最小复现与修复方向见
+`../../../dev/extlib_blockers/foreign_var_container_projection.md`。
+当前语言层完整门禁和 AOT 未验收，以下历史通过结果不能替代本轮签收。
+
+将命令行**词法文本**拆成参数，或把参数安全地编码为单个 shell 词。
+XLang 使用 `import shellwords`；C 使用 `include/xrt_shellwords.h`。
+本库不执行命令，不做变量展开、通配符、命令替换或文件访问。
+
+## 接口
+
+- `split(text)`：按空白、引号与反斜杠拆分，保留 `''`/`""` 空参数；
+  不平衡引号及末尾单独的反斜杠报 `ValueError`。
+- `quote(word)`：产生一个可由 POSIX shell 按原文读取的参数；安全字符
+  原样返回，其余使用单引号及 ` '\'' ` 序列编码。形如 `NAME=value`
+  的 POSIX 赋值词与 Bash 的 `NAME+=value` 即使不含空白也会整体引用，
+  避免位于命令名前时被识别为变量赋值；
+  左侧不构成变量名的普通 `=` 词不额外引用。
+  命令位置可识别的 POSIX 保留词（如 `if`、`case`）及可选保留词
+  （如 `time`）、尾随 `:` 的词也整体引用；`a:b` 这类普通内部冒号不变。
+- `join(words)`：对字符串数组逐项 `quote` 并用空格连接；非字符串项
+  和内嵌 NUL 均报错。`split(join(words))` 保持参数序列不变。
+- `quoteWindows(word)`：按 MSVCRT 的 `argv` 引号/反斜杠规则编码一个参数。
+  **不**处理 `cmd.exe` 的 `&`、`|`、`%` 等元字符，也不等同于 PowerShell
+  转义。启动 Windows 进程时应配合目标程序的参数解析约定使用。
+
+拆分过程保持 UTF-8 字节原样；XLang 的 `split`、`quote`、
+`quoteWindows` 遇内嵌 NUL 会在传给 NUL 结尾的 C 参数前抛 `ValueError`，
+与长度感知的 `join` 拒绝规则一致。
+POSIX C 接口按参数字节处理，不要求有效 UTF-8：除 NUL 外，非 UTF-8 字节也可经 `quote` 和 `split` 原样往返；这不是对 XLang 源码或文本编码的放宽。Windows `quoteWindows` 只负责 CRT 引号规则，不执行 UTF-8 到 UTF-16 转换；使用 `CreateProcessW` 时调用方仍须按自己的编码合同转换并拒绝无效文本。
+没有固定 8192 字节/512 参数的静默截断；实际大小受 XRT 分配是否成功限制。
+
+## C 所有权
+
+`xrtShellwordsSplit` 返回拥有的 `xvalue*`，调用方用 `xrtValueRelease` 释放。
+`xrtShellwordsQuote`、`xrtShellwordsQuoteWindows`、`xrtShellwordsJoin`
+返回拥有的 `str`，调用方用 `xrtFree` 释放。失败时读取 XRT 错误。
+每个公开调用开始时清理上次的线程错误；失败后直接成功调用另一入口，
+不会把旧错误误认为本次操作失败。
+各次调用返回独立存储，不使用共享静态缓冲区；调用方不得并发修改同一个
+`xvalue` 参数数组。XLang 包装层接管原生字符串所有权。
+
+## 范例与验证
+
+`examples/basic.c` 与 `release/examples/extlibs/shellwords.xl` 逐项展示
+`split`、`quote`、`join`、`quoteWindows`，输出一致。
+`examples/basic.c` 包含包内原生实现，可从仓库根目录直接运行
+`release/xl.exe run release/extlibs/shellwords/examples/basic.c`；正式包仍按
+清单编译原生源文件，Windows/Linux 门禁逐字比较直跑与严格 C 编译输出。
+在仓库根目录运行 `release/extlibs/shellwords/test/check.ps1` 与
+`bash release/extlibs/shellwords/test/check.sh`；
+`test/boundaries.xl` 与 `test/allocations.xl` 已登记到 `coverage.tests`，可用
+`tools/smoke_extlib_catalog.ps1 -Package shellwords` 连同原主用例复验。
+开发期间可用 `-SkipAot` 聚焦 C/JIT；它不代表整包验收。门禁包含
+独立 GCC C 用例、已有及新增 XLang 边界、双语范例和 AOT 构建/执行。
+Windows GCC 与 Linux ASan/UBSan 的 C 边界及双语范例均已验证；C 测试
+逐字节检查 ASCII 1–127 的 `split(quote(word))` 往返；C/XLang 还覆盖
+空参数、中文与引号混合、组合字符和多字节文本的 quote/join 往返。
+Windows 门禁还会构建 `test/windows_argv.c`，把 `quoteWindows` 的结果交给
+实际的 Windows 子进程解析，检查空参数、空格、tab、CR/LF、引号、连续及末尾反斜杠
+以及垂直 tab、换页符的 `argv` 往返；该程序使用 UTF-8 到 UTF-16 转换和宽字符 CRT 入口，
+另检查中文、引号混合及非 BMP 字符。这不扩张为 `cmd.exe`、PowerShell 或任意程序的
+参数解析合同。
+Linux C 门禁另将 `quote` 的九种代表性输入交给真实 `/bin/sh` 的 `printf`，
+核对空串、空格、单引号、UTF-8、变量/命令替换文本和换行不会改变参数字节；
+这与本包 `split` 的自测互为独立验证，不执行输入中的命令替换。
+同一门禁还把 ASCII 1–127 的单字节参数用 `join` 一次编码，交给真实
+`/bin/sh` 输出并逐字节核对，覆盖控制字符及相邻参数的引用边界。
+2026-10-15 追加四个原生入口的逐点分配故障测试：`split`、`join`、
+`quote`、`quoteWindows` 均在故障时返回内存错误，故障清除后可恢复；
+Windows 严格 GCC/C/XLang 与 Linux ASan/UBSan 包级门禁通过。
+当前 XLang AOT
+边界构建仍因主线缺少 `xl6ValueIndexReadCopyV1` 未签收。
+
+2026-10-17：Linux `test/check.sh` 加入中央与包内 XLang 边界，并将 C、
+XLang 范例逐字节对照同一 golden 文件；与 C ASan/UBSan 同次通过。
+完整 AOT 的共享链接阻断不变。
+
+2026-10-17：C 测试增加 169 组相邻片段组合，覆盖单引号、双引号、
+反斜杠、空白、shell 元字符和多字节 UTF-8 的 `split(quote(word))`
+往返。Windows 严格 GCC、真实 `argv` 子进程与 Linux ASan/UBSan、
+`/bin/sh` 对照及 C/XLang 范例门禁通过；未发现新的包内缺陷，
+完整 AOT 的共享阻断不变。
+
+2026-10-17：真实 Windows 子进程 `argv` 往返增加引号内 CR 与 LF 参数；严格 GCC、C 测试、XLang 边界及双语范例门禁通过。此用例只验证 ASCII 控制字符，不推断 Unicode 命令行转换或其他 shell 规则。
+
+2026-10-18：子进程门禁改为 `CreateProcessW` 加宽字符 `wmain`，覆盖 UTF-8 中文、空格、引号和非 BMP 字符到真实 Windows `argv` 的往返；Windows `-SkipAot` 全部包级检查通过。只验证 Windows CRT 参数引用规则，不包含 shell 元字符扩展语义；完整 AOT 共享阻断未变。
+
+同日修复命令名前的赋值词：`quote("A=B")` 原样输出时会被 POSIX shell 当作环境赋值，Bash 的 `A+=B` 也同理；两条 C 负例先红后绿，现分别输出 `'A=B'`、`'A+=B'`，而 `a-b=e` 等非变量名左侧保持原输出。C/XLang 成对范例扩至四个公开入口，并共享逐字输出预期。Windows 严格 C、真实 argv、XLang 中央及包内边界、双语范例，Linux C ASan/UBSan 与语言对照门禁均通过。依据 [POSIX shell token 规则](https://pubs.opengroup.org/onlinepubs/9799919799/utilities/V3_chap02.html)及 [Bash 手册](https://www.gnu.org/software/bash/manual/html_node/Major-Differences-From-The-Bourne-Shell.html)。完整 AOT 共享阻断未变。
+
+2026-10-18：命令位置保留词原被 `quote` 当作普通安全词原样输出，
+例如 `quote("case")`；POSIX 还规定尾随冒号的词在相应位置保留。
+C/XLang 用例先复现，再要求这两类词整体引用；普通内部冒号和其他
+安全词仍保持原输出。Windows `-SkipAot` 包级门禁、Linux ASan/UBSan
+和真实 `sh -n` 命令位置检查通过；不跳过 AOT 的 Windows 门禁仍在
+`xl6ValueIndexReadCopyV1` 未解析处停止，未签收发布级。此修正只涉及
+词法引用，不承诺消除调用方 shell 环境中的别名或执行目标选择风险。
+
+同日补 C 字节语义回归：含 `0x80`/`0xFF` 的单个参数先经过 `split`，再由 `quote` 交给真实 `/bin/sh` 的 `printf`，两处均逐字节核对。Windows 严格 C/真实 `argv` 与 XLang 包门禁、Linux C ASan/UBSan 和双语门禁通过；实现未改，完整 AOT 阻断不变。
+
+2026-10-19：C 教学范例补单文件 `xl run`，Windows/Linux 包门禁
+分别与严格 C 编译结果逐字比较；Windows 真实宽字符 CRT `argv`、
+Linux C ASan/UBSan 与 `/bin/sh` 对照、XLang 双语门禁均通过。
+包实现未改，完整 AOT 共享缺符号阻断不变。
+
+2026-10-20：增加 XLang 层分配故障测试，逐一扫描 `split`、`quote`、
+`quoteWindows`、`join` 的前 32 个分配点，检查错误归类为 `MemoryError`
+且清除故障后可继续调用；此用例进入 Windows/Linux 包级门禁。
+
+同日补 Bash 命令位置关键字 `coproc`：此前 `quote("coproc")` 原样返回，
+可在 Bash 中被当作语法而不是普通词。C/XLang 红例先复现、修复后统一输出
+`'coproc'`；Windows 包级、Linux ASan/UBSan、目录 smoke 3/3 和真实 Bash
+语法检查通过。仅修正 POSIX 风格引用，不改变 Windows `argv` 规则；
+完整 AOT 的共享缺符号阻断仍在。

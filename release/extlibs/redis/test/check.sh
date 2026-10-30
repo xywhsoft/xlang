@@ -4,13 +4,43 @@ set -euo pipefail
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../../.." && pwd)
 cd "$root"
 work=$(mktemp -d "${TMPDIR:-/tmp}/xlang-redis-XXXXXX")
-trap 'rm -rf -- "$work"' EXIT
+cleanup() {
+    result=$?
+    trap - EXIT
+    set +e
+    if ((result == 0)); then
+        rm -rf -- "$work" || result=$?
+    else
+        printf '[redis] FAIL exit=%s artifacts=%s\n' "$result" "$work" >&2
+    fi
+    exit "$result"
+}
+trap cleanup EXIT
+record_failure() {
+    printf 'exit=%s\nline=%s\ncommand=%s\npipeline=%s\n' "$@" > "$work/failure.txt"
+    cat "$work/failure.txt" >&2
+}
+trap 'record_failure "$?" "$LINENO" "$BASH_COMMAND" "${PIPESTATUS[*]}"' ERR
+
 cc=${CC:-gcc}
 flags=(-std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror
        -Ilib/xrt -Irelease/extlibs/redis -fsanitize=address,undefined
        -fno-omit-frame-pointer -fno-pie -no-pie -pthread)
 export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1
 export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
+
+# 固定包输入和实际 CLI/运行库，失败时连同编译器版本保留现场。
+mapfile -d '' inputs < <(
+    { find release/extlibs/redis -type f -print0
+      printf '%s\0' lib/xrt/xrt.h lib/xruntime/xruntime.h release/xl release/libxlc.so \
+          release/include/xrt_decl.h release/include/xruntime_decl.h release/include/xl_extlib_abi.h \
+          test/cases/extlib_redis.xl release/examples/extlibs/redis.xl \
+          release/examples/extlibs/redis_c.c release/examples/extlibs/redis_live.xl \
+          release/examples/extlibs/redis_live_c.c
+    } | sort -zu
+)
+sha256sum "${inputs[@]}" > "$work/inputs.before.sha256"
+"$cc" --version > "$work/compiler.txt"
 
 "$cc" "${flags[@]}" -DXRT_MODULE_THREAD -DXRT_MODULE_MEMORY_DEBUG \
     -c release/extlibs/redis/test/live_runtime.c \
@@ -22,6 +52,9 @@ for name in test_redis test_redis_alloc test_redis_threads; do
         "$work/redis_native.o" "$work/xrt_runtime.o" -lm -ldl -o "$work/$name"
     timeout 90s "$work/$name"
 done
+"$cc" "${flags[@]}" release/extlibs/redis/test/test_example_lifetime.c \
+    "$work/xrt_runtime.o" -lm -ldl -o "$work/example_lifetime"
+timeout 90s "$work/example_lifetime"
 "$cc" "${flags[@]}" release/examples/extlibs/redis_c.c \
     "$work/xrt_runtime.o" -lm -ldl -o "$work/example"
 timeout 30s "$work/example" > "$work/c.txt"
@@ -104,4 +137,6 @@ if [[ ${REDIS_LIVE:-0} == 1 ]]; then
     timeout 45s "$work/redis_live_example" > "$work/live_aot.txt"
     diff -u "$work/live_c.txt" "$work/live_aot.txt"
 fi
+sha256sum "${inputs[@]}" > "$work/inputs.after.sha256"
+diff -u "$work/inputs.before.sha256" "$work/inputs.after.sha256"
 printf 'redis Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\n'

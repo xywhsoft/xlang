@@ -1,0 +1,31 @@
+import json.patch
+
+func main(...) as int
+    // 配置来自标准 JSON 文本；补丁只作用于副本，不修改原配置。
+    var config=json.parse(r"""{"draft":{"title":"Ready","tags":["xlang","C"]}}""")
+    var ops=json.parse(r"""[
+        {"op":"copy","from":"/draft","path":"/backup"},
+        {"op":"move","from":"/draft","path":"/published"},
+        {"op":"replace","path":"/published/title","value":"Live"}
+    ]""")
+    var published=json.patch.apply(config,ops)
+    assert json.patch.has(config,"/draft")
+    assert not json.patch.has(published,"/draft")
+    println("title="+string(json.patch.get(published,"/published/title")))
+    println("backup="+string(json.patch.get(published,"/backup/title")))
+    println("original="+string(json.patch.get(config,"/draft/title")))
+    bool caught=false
+    try
+        var failing=json.parse(r"""[
+            {"op":"move","from":"/draft","path":"/published"},
+            {"op":"remove","path":"/missing"}
+        ]""")
+        json.patch.apply(config,failing)
+    catch ValueError error
+        caught=true
+    end
+    assert caught and json.patch.has(config,"/draft") and not json.patch.has(config,"/published")
+    println("atomic=true")
+    println("tags="+string(json.patch.get(published,"/published/tags").length))
+    return 0
+end

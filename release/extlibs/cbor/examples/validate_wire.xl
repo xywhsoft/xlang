@@ -1,0 +1,26 @@
+import cbor
+
+func main(...) as int
+    // 可将网络收到的Buffer交给decode；坏格式不能成为一个正常值。
+    println("integer:", cbor.toHex(cbor.encode(42)))
+    var message = cbor.decode(cbor.fromHex("a2636d736762686965636f756e74182a"))
+    assert message["msg"] == "hi" and message["count"] == 42
+    println("message:", message["msg"], message["count"])
+
+    Buffer bytesWire = cbor.encodeBytes(cbor.fromHex("00ff41"))
+    println("binary:", cbor.toHex(cbor.decodeBytes(bytesWire)))
+    for hex in ["1f", "f816", "5f00ff"]
+        bool rejected = false
+        try
+            cbor.decode(cbor.fromHex(hex))
+        catch ValueError error
+            rejected = true
+        end
+        assert rejected
+        println("reject:", hex)
+    end
+    // 错误槽必须恢复；合法null不是失败哨兵。
+    assert cbor.decode(cbor.fromHex("f6")) == null
+    println("cbor wire validation: PASS")
+    return 0
+end

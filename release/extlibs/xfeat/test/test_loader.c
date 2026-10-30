@@ -51,6 +51,58 @@ static int require(int condition, const char* what)
     return 1;
 }
 
+static int owned_result_budgets(void* location)
+{
+    int operation;
+    /* 线程诊断槽会持有至线程退出，先预热它再比较单次 JSON 的活动分配。 */
+    (void)xfeat_match_native(NULL, NULL, 0.8, 3, 2.0, 1.0);
+    if (require(xfeat_stats_reset_native(), "reset owned statistics fixture")) return 1;
+    for (operation = 0; operation < 3; ++operation) {
+        int budget;
+        const int budgets[3] = {13, 7, 12};
+        int succeeded = -1;
+        for (budget = 0; budget <= budgets[operation]; ++budget) {
+            xmemdebugsnapshot before, after;
+            char* text;
+            bool triggered, memory;
+            xrtClearError();
+            xrtMemDebugSnapshot(&before);
+            if (require(xrtMemDebugFailAfter((uint64)budget), "owned result fault setup")) return 1;
+            text = operation == 0 ? xfeat_stats_json_native() :
+                xfeat_location_json_native(operation == 1 ? NULL : location, "target.png", "out");
+            triggered = xrtMemDebugFailTriggered();
+            memory = xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_MEMORY;
+            xrtMemDebugFailClear();
+            if (require(triggered ? text == NULL && memory : text != NULL,
+                        "owned result must preserve memory failure")) {
+                xrtFree(text);
+                return 1;
+            }
+            if (!triggered && require(xrtJsonValid(xrtStrView(text)) &&
+                        xfeat_last_error_native()[0] == '\0', "owned result success JSON")) {
+                xrtFree(text);
+                return 1;
+            }
+            xrtFree(text);
+            xrtClearError();
+            xrtMemDebugSnapshot(&after);
+            if (require(before.LiveCount == after.LiveCount && before.LiveBytes == after.LiveBytes,
+                        "owned result allocation balance")) {
+                fprintf(stderr, "operation=%d budget=%d live=%zu/%zu bytes=%zu/%zu\n",
+                    operation, budget, before.LiveCount, after.LiveCount, before.LiveBytes, after.LiveBytes);
+                return 1;
+            }
+            if (!triggered) {
+                succeeded = budget;
+                break;
+            }
+        }
+        if (require(succeeded == budgets[operation], "fixed C result budget changed")) return 1;
+        printf("xfeat C owned operation %d: %d allocations\n", operation, succeeded);
+    }
+    return 0;
+}
+
 int main(void)
 {
     enum { THREADS = 8 };
@@ -156,6 +208,7 @@ int main(void)
                 strstr(stats, "\"target\":{\"count\":0") != NULL,
                 "all/query statistics")) return 1;
     xrtFree(stats);
+    if (owned_result_budgets(location)) return 1;
     xfeat_location_release_native(location);
     xfeat_features_release_native(target);
     xfeat_features_release_native(query);

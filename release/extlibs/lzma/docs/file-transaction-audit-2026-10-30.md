@@ -1,0 +1,119 @@
+# LZMA 文件事务双故障审查
+
+## 范围与修复
+
+以当前根目录布局、固定发布物和冻结 XRT 执行。只改本包 native 文件
+事务，不改语言、主线、SDK、API/ABI、压缩格式或生产依赖。
+
+原实现先关闭临时文件，再按 UTF-8 路径删除。Windows 删除需要分配
+UTF-16 路径，回调已经失败时再遇 OOM 会遗留 `.xrt-lzma-*.tmp`。
+现在只借用创建时已有句柄，在错误路径、Writer 关闭前调用
+`xrtFileDeleteOpen`；Writer/TempFile 仍各自负责原来的关闭所有权。
+句柄回滚成功不再重复按路径删除；失败才保留原有回退。正常处理仍须
+经过 flush、关闭和重命名后才能提交，不能提前重命名来规避清理问题。
+
+成功路径只多一个借用句柄和布尔标记，不新增堆分配、正文复制、路径
+副本或运行时依赖；未做性能基准，不声称吞吐提升或整个操作零分配。
+保存的首错按 XRT 引用语义恢复，不再生成另一份描述覆盖原始 cause。
+
+## 真实回归
+
+`test/file_rollback_c.c` 调用现有 `xlzma_compress_file` /
+`xlzma_decompress_file`，回调是实际 XRT callable，不替换产品 IO、
+分配器或函数。使用独占目录、带标记的旧目标和真实 SDK 进度调用。
+三个回调参数没有 FINAL 标志，所以通过成功操作的实际调用次数选择
+末次回调；并非把普通调用伪装为结束通知。
+
+打开态 96 组：压缩/解压、首次/末次回调、新/旧目标，共 8 种模式，
+各扫 12 个分配预算。回调先发布带 domain/code/message 的首错，
+再安排一次真实 XRT 分配失败。逐组要求原始 cause、返回状态、
+回调次数、目标内容、零临时残留均正确；检查活动数/字节、非法释放、
+重复释放、上下溢与 UAF 七项快照。
+
+| 实际执行 | 结果 |
+| --- | --- |
+| Windows 最终同夹具 + 旧 native 对象 | 96 组，16 次真实 OOM，8 组失败，均在预算 1 留一临时文件。 |
+| Windows 最终同夹具 + 新 native 对象 | 96 组，8 次真实 OOM，0 失败；GCC C、TCC C JIT 与独立 EXE 均通过。 |
+| Linux 原生 GCC ASan/UBSan/泄漏检查，新/旧对象 | 各 96 组，8 次真实 OOM，0 失败；POSIX 删除路径没有本轮 Windows 转码分配。 |
+
+新实现不走那一次路径删除分配，实际注入数从 16 变 8 不代表削减测试
+预算。最终 Windows 红绿对照只替换 native 对象，其余源码与对象一致。
+Linux 旧实现本就通过，不能将其写成 Linux 新修复了 8 个失败。
+
+## 未关闭的共享边界
+
+`--closed` 是另一条正例：正常完成流，目标是本测试创建的目录，使
+关闭后的重命名自然失败；在末次真实回调安排一次内存失败。两方向
+各 8 预算，共 16 组，不进行系统调用替换。
+
+- Windows 新/旧实现均为 8 次真实 OOM、2 失败。预算 3 下留下一个
+  临时文件，目标目录、首错、内存平衡仍正确；进程返回 1。
+- Linux 新/旧实现均为 2 次真实 OOM、0 失败，进程返回 0；不能把
+  这个结果当作 Windows 清理边界已解决。
+- 这是 RFS 第 7 个逐包实测包，不是包侧可关闭的普通语言 BUG。
+  稳定 XRT 需要创建时准备的事务/回滚凭据，在关闭后也能无分配
+  Abort；不能复制系统 IO、吞错、重复重试或提前提交来换绿灯。
+- 既有 M2 仍独立复现：Windows/Linux 顶层压缩器 JIT 返回 0，
+  AOT 打印 `lzma top-level: PASS` 后报状态错误、返回 1。
+
+默认门禁继续要求两条边界成功，并独立收集失败，不将现存缺陷的
+退出 1 配置成预期成功。包级状态仍 M，不能签收整包发布完成。
+
+## 双语范例与门禁
+
+新增 `examples/file_transaction.xl` 与 `file_transaction_c.c`，覆盖
+UTF-8 文件名、取消保留旧文件、回调错误保留旧文件，以及立即重试
+压缩/解压恢复原文。三行黄金输出独立保存，Windows/Linux 各验证
+GCC C、TCC C JIT/AOT、XLang JIT/AOT 五条路径。每条独占目录并清理。
+C 文件例使用现有 native ABI 的 XRT callable，不新增公共 C 文件 API；
+公开 C Reader/Writer 流接口仍可使用普通 `xrtprogressproc`。
+
+Windows 默认门禁共 101 阶段，99 项符合约定，仅关闭态 RFS 与 M2
+失败；101 项输入/工具指纹前后不变。普通功能、原双语例、新双语例、
+14 个普通独立程序路径及 Python 标准 XZ 双向互通均通过。
+Linux 在原生 `/var/tmp` 快照完成同范围，C 含 ASan/UBSan/泄漏检查；
+104 个复制来源、原件及 GCC/cc1/Python 三个工具指纹前后不变。
+
+门禁改用共享有界进程，保留实际状态、退出码、stdout/stderr、失败
+产物；所有失败路径也检查输入指纹。私有访问负例须准确返回 1 并
+命中权限诊断，不能把崩溃/超时算通过。PS5/PS7 使用真实 Run 函数
+验证 null、空参数表、单个空字符串、raw37 与缺失程序；真实门禁对
+假 GCC 的 raw37 返回外层 1，留档保留原始 37。
+
+Python 互通检查器所有判据不再依赖可被 `-O` 删除的 assert，逐子进程
+限制 30 秒；坏流必须返回 1、给出 lzma 诊断且不交付部分明文。
+`-I -O` 下原格式集通过，另 7 个检查器反向控制拒绝崩溃、无关错误、
+半输出、错误内容与超时。这些模拟只用于检查器自身，不冒充产品
+故障注入。互通范围仍为现有标准 XZ、校验方式、滤镜和串联流。
+
+## 证据
+
+- 本地现场：`build/test/lzma_transaction_audit_1793372875/`。
+- Windows：`build/test/lzma_guard/run_b180504ade644aba949cc86ba04b1037.report.json`。
+- M2：`build/test/native_globals_3f466695d332405bb19a6f15b9210d87/`。
+- Linux：`/var/tmp/xlang-lzma-transaction-Ct7L5dzD`，包门禁现场
+  `tmp/xlang-lzma-Cq3yUx`；trace、原始退出码、前后 SHA256 和旧对象
+  对照均保留。官网仅隔离生成，不部署到并行维护的外部站点。
+- 官网三份原文代码片段在两平台实跑：quick-start JIT/AOT 均 0，
+  两段顶层对象例 JIT 0、AOT 1 并命中同一 M2；未将它们搬入 main。
+  隔离生成的详情页与包内源 SHA256 相等，不代表外部官网已更新。
+- 最初严格 GCC 发现新增 C 夹具漏声明 IO_FILE、重复定义 DIR_TEMP，
+  修正夹具模块声明后重跑；探针出现 null argv 与多 Python 路径误传，
+  修正调用后重跑。不把这些验证程序错误计作库产品 BUG。
+
+32 位、TSan、持续压力/模糊测试、全部 OS 关闭失败和数据落盘持久性
+不由本轮证明。八份冻结发布物/单头库保持不变，100 包状态数量不变。
+
+## 同日夹具复用
+
+miniz 实测后，将 native callable 的矩阵正文抽到
+`test/support/extlib_native_codec_file_rollback.h`；本包测试仅绑定真实
+函数、临时文件前缀和诊断名称。保留 96/16 组、实际末次回调选择、
+七项内存快照和精确首因；不与带 FINAL 的普通 C 回调夹具混用。
+两个包的门禁均将此头加入输入指纹。只减少测试重复，不改产品实现。
+
+LZMA 抽取后 Windows TCC 仍为打开态 96 组全过、关闭态 16 组两处
+残留；Linux 原生同一 GCC ASan/UBSan 夹具两模式均过，复用前轮
+25 份受控对象且核对指纹。该专项不声称又跑了一遍 LZMA 完整门禁。
+证据在 `build/test/miniz_transaction_audit_1793374784/` 及
+`/var/tmp/xlang-miniz-transaction-Z9zEfJrt` 的 `lzma.shared.*`。

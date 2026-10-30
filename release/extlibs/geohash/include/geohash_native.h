@@ -12,7 +12,7 @@ typedef struct xgeohash_bounds {
     double max_lon;
 } xgeohash_bounds;
 
-/* 文本结果由 XRT 独立分配；调用方用 xrtFree 释放。 */
+/* 文本由 XRT 独立分配，调用方用 xrtFree；NULL 表示失败并伴随 XRT 错误。 */
 char* xgeohash_encode(double lat, double lon, int precision);
 char* xgeohash_bbox(const char* hash);
 /* direction：0 北、1 南、2 东、3 西；极点方向失败，经度方向环绕。 */

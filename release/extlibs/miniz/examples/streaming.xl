@@ -1,0 +1,35 @@
+import miniz
+
+func main(...) as int
+    // 每次 update 后取走已有输出，finish 后还要取走 zlib 尾部。
+    auto encoder = miniz.compressor()
+    Buffer packed = Buffer()
+    encoder.update("hello ")
+    packed.append(encoder.drain())
+    encoder.update("stream")
+    packed.append(encoder.drain())
+    encoder.finish()
+    packed.append(encoder.drain())
+    assert encoder.inputBytes == 12 and encoder.outputBytes == packed.len()
+
+    // 传输可任意分块；解压器只接受一条完整的 zlib 流。
+    auto decoder = miniz.decompressor()
+    Buffer first = Buffer()
+    Buffer second = Buffer()
+    int split = packed.len() / 2
+    for index in range(packed.len())
+        if index < split then first.appendByte(packed[index]) else second.appendByte(packed[index]) end
+    end
+    Buffer plain = Buffer()
+    decoder.update(first)
+    plain.append(decoder.drain())
+    decoder.update(second)
+    plain.append(decoder.drain())
+    decoder.finish()
+    plain.append(decoder.drain())
+    assert decoder.finished and decoder.inputBytes == packed.len() and decoder.outputBytes == 12
+    assert plain.text() == "hello stream"
+    println(plain.text())
+    println(encoder.inputBytes, "/", decoder.outputBytes)
+    return 0
+end

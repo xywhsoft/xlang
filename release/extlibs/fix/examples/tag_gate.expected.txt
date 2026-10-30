@@ -1,0 +1,5 @@
+valid=true
+value=0007
+padded_tag=false
+caught=true
+restored=true

@@ -95,6 +95,9 @@ try {
         }
     }
 
+    if (-not $SkipAot) {
+        & (Join-Path $root 'tools/check_extlib_native_globals.ps1') -Root $root -Package roaring
+    }
     Write-Output $(if ($SkipAot) { 'roaring Windows C/XLang focused gate: PASS' }
         else { 'roaring Windows C/XLang and AOT gate: PASS' })
 } finally {

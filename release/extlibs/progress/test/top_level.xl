@@ -1,0 +1,10 @@
+import progress
+
+// 模块级真实进度对象，自然退役；不主动destroy或绕开全局作用域。
+progress.ProgressBar bar = progress.create(10)
+
+func main(...) as int
+    assert bar.valid and bar.current == 0 and bar.total == 10
+    println("progress top-level: PASS")
+    return 0
+end

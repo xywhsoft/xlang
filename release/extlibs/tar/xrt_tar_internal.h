@@ -71,6 +71,7 @@ struct xrttarreader {
 
 struct xrttarwriter {
 	xwriter* Writer;
+	xfile File; /* 借用 Writer 持有的事务文件，仅在流关闭前用于无分配回滚。 */
 	bool TakeWriter;
 	xbuffer* Memory;
 	str Path;

@@ -3,12 +3,13 @@ import langdetect
 
 
 func main(...) as int
+    auto en = "the cat is on the table and it is not bad"
     println("detect('the cat is on the table and it is not bad') = ",
-        langdetect.detect("the cat is on the table and it is not bad"))
+        langdetect.detect(en))
     println("  code/script/confidence = ",
-        langdetect.code("the cat is on the table and it is not bad"), " / ",
-        langdetect.script("the cat is on the table and it is not bad"), " / ",
-        langdetect.confidence("the cat is on the table and it is not bad"))
+        langdetect.code(en), " / ",
+        langdetect.script(en), " / ",
+        langdetect.confidence(en))
     println("detect(' le chat est dans la maison avec une fille ') = ",
         langdetect.detect(" le chat est dans la maison avec une fille "))
     println("detect(' der Hund und die Katze sind nicht das Haus ') = ",
@@ -21,6 +22,18 @@ func main(...) as int
 
     auto ja = "\xe3\x81\x93\xe3\x82\x93\xe3\x81\xab\xe3\x81\xa1\xe3\x81\xaf"
     println("detect(Japanese text) = ", langdetect.detect(ja))
+
+    auto ko = "\xec\x95\x88\xeb\x85\x95\xed\x95\x98\xec\x84\xb8\xec\x9a\x94"
+    println("detect(Korean text) = ", langdetect.detect(ko))
+    assert langdetect.isEnglish(en) and langdetect.isChinese(zh)
+    assert langdetect.isJapanese(ja) and langdetect.isKorean(ko)
+    println("predicates = ", langdetect.isEnglish(en), " / ",
+        langdetect.isChinese(zh), " / ", langdetect.isJapanese(ja), " / ",
+        langdetect.isKorean(ko))
+
+    assert langdetect.isValidUtf8(zh) and langdetect.lastError() == ""
+    println("utf8/error-clear = ", langdetect.isValidUtf8(zh), " / ",
+        langdetect.lastError() == "")
 
     println("detect('12345 !!!') = ", langdetect.detect("12345 !!!"))
 

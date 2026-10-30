@@ -264,12 +264,13 @@ static bool xhcl_skip_string(xhclinput Input, size_t* pPos)
 
 
 
-/* 解码值忽略尾部注释，原始值仍保留完整源码。 */
-static bool xhcl_trim_value(xhclinput Input, xhclspan* pSpan)
+/* 同一次扫描剥离尾注释并识别单字符串；复合表达式不能按首尾引号解码。 */
+static bool xhcl_trim_value(xhclinput Input, xhclspan* pSpan, bool* pString)
 {
     size_t i = pSpan->Begin;
     size_t iTrivia = pSpan->End;
 
+    *pString = false;
     Input.Size = pSpan->End;
     while (i < Input.Size) {
         char cValue = Input.Data[i];
@@ -277,13 +278,18 @@ static bool xhcl_trim_value(xhclinput Input, xhclspan* pSpan)
         if (xhcl_space(cValue)) {
             if (iTrivia == Input.Size) iTrivia = i;
             ++i;
-        } else if (cValue == '/' && i + 1u < Input.Size && Input.Data[i + 1u] == '*') {
+        } else if (cValue == '#' || (cValue == '/' && i + 1u < Input.Size &&
+                   (Input.Data[i + 1u] == '/' || Input.Data[i + 1u] == '*'))) {
             if (iTrivia == Input.Size) iTrivia = i;
-            if (!xhcl_skip_block_comment(Input, &i)) return false;
+            /* 与表达式边界扫描一致：行注释内的引号、转义不再当作 token。 */
+            if (!xhcl_skip_comment(Input, &i)) return false;
         } else if (cValue == '"' || cValue == '\'') {
+            bool bFirstString = cValue == '"' && i == pSpan->Begin;
             if (!xhcl_skip_string(Input, &i)) return false;
+            *pString = bFirstString;
             iTrivia = Input.Size;
         } else {
+            *pString = false;
             iTrivia = Input.Size;
             ++i;
         }
@@ -535,15 +541,15 @@ static char* xhcl_store(xhclinput Input, xhclspan Span, bool bDecodeString)
     xbuffer Output;
     char* pResult;
     size_t i;
+    bool bString = false;
 
     (void)xrtBufferInit(&Output);
     Span = xhcl_trim(Input, Span);
-    if (bDecodeString && !xhcl_trim_value(Input, &Span)) {
+    if (bDecodeString && !xhcl_trim_value(Input, &Span, &bString)) {
         xrtBufferUnit(&Output);
         return NULL;
     }
-    if (bDecodeString && Span.End > Span.Begin + 1u && Input.Data[Span.Begin] == '"' &&
-        Input.Data[Span.End - 1u] == '"') {
+    if (bString) {
         for (i = Span.Begin + 1u; i + 1u < Span.End;) {
             char cValue = Input.Data[i];
 

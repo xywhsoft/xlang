@@ -1,0 +1,71 @@
+import hcl
+
+func checkValue(string expression, string expected)
+    string source = "value = " + expression + " /* tail */\n"
+    assert hcl.validate(source) and hcl.has(source, "value")
+    assert hcl.getRaw(source, "value") == expression + " /* tail */"
+    assert hcl.get(source, "value") == expected, "get must decode only one complete string literal"
+end
+
+func main(...) as int
+    // 首尾是引号不代表表达式是一个字符串；中间的运算和转义必须保留源码。
+    array<string> expressions = [
+        "\"left\" == \"right\"", "\"left\" != \"right\"", "\"left\" + \"right\"",
+        "\"a\" /* middle */ == \"b\"", "\"\\n\" == \"\\r\"",
+        "\"\\u0061\" == \"a\"", "\"\\u0000\" == \"x\"",
+        "\"a\" == \"b\" ? \"c\" : \"d\"", "format(\"%s\", \"a\")",
+        "(\"a\" == \"b\")", "[\"a\", \"b\"]"
+    ]
+    for expression in expressions
+        checkValue(expression, expression)
+    end
+    checkValue("\"\"", "")
+    checkValue("\"plain\"", "plain")
+    checkValue("\"a\\\"b\"", "a\"b")
+    checkValue("\"\\u4F60\\u597D\"", "你好")
+    checkValue("\"line\\nnext\"", "line\nnext")
+    checkValue("\"/* literal */\"", "/* literal */")
+
+    // 行注释里的引号和无效转义仅为文本，不能被 get 的尾注释扫描再次解释。
+    array<string> starts = ["[1,", "(1 +", "{ a = 1,"]
+    array<string> ends = ["2]", "2)", "b = 2 }"]
+    array<string> markers = ["#", "//"]
+    array<string> payloads = ["\"unterminated", "'unterminated", "\"bad\\q\"", "\"\\uD800\"", "/* [ ) }"]
+    array<string> newlines = ["\n", "\r\n"]
+    for shape in range(3)
+        for marker in markers
+            for payload in payloads
+                for newline in newlines
+                    string expression = starts[shape] + " " + marker + " " + payload + newline + "  " + ends[shape]
+                    checkValue(expression, expression)
+                end
+            end
+        end
+    end
+
+    // 复合表达式不解码 \u0000；真正解码单字符串时仍不能返回内嵌 NUL。
+    bool rejected = false
+    try
+        hcl.get("value = \"\\u0000\"", "value")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected
+    array<string> invalid = [
+        "value = \"1\" == \"1\"\nbroken {",
+        "value = [1, # ignored \"\n  2]\nbroken {",
+        "value = [1, // ignored \"\n  \"bad\\q\"]",
+        "value = [1, # ignored \"\n  2"
+    ]
+    for source in invalid
+        rejected = false
+        try
+            hcl.get(source, "value")
+        catch ValueError error
+            rejected = true
+        end
+        assert rejected, "raw expression handling must still validate the complete source"
+    end
+    println("HCL string/expression boundaries: 77 cases PASS")
+    return 0
+end

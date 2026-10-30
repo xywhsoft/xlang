@@ -1,0 +1,53 @@
+import msgpack
+
+// 头部宽度只影响长度编码，不改变 timestamp 的含义和精度。
+func checkTime(string wire, time expected, string canonical)
+    var value = msgpack.decode(msgpack.fromHex(wire))
+    assert value == expected
+    assert msgpack.toHex(msgpack.encode(value)) == canonical
+end
+
+func invalid(string wire)
+    bool caught = false
+    try
+        msgpack.decode(msgpack.fromHex(wire))
+    catch ValueError error
+        caught = true
+    end
+    assert caught, "invalid MessagePack must report ValueError"
+end
+
+func unsupported(string wire)
+    bool caught = false
+    try
+        msgpack.decode(msgpack.fromHex(wire))
+    catch NotImplementedError error
+        caught = true
+    end
+    assert caught, "complete unknown extension must remain unsupported"
+end
+
+func main(...) as int
+    for prefix in ["c704", "c80004", "c900000004"]
+        checkTime(prefix + "ff00000000", time(0), "d6ff00000000")
+    end
+    for prefix in ["c708", "c80008", "c900000008"]
+        checkTime(prefix + "ff00000fa000000000", time(1), "d7ff00000fa000000000")
+        invalid(prefix + "ff0000000400000000")
+        invalid(prefix + "ffee6b280000000000")
+    end
+    for prefix in ["c70c", "c8000c", "c90000000c"]
+        checkTime(prefix + "ff1dcd6500ffffffffffffffff", time(-500000), "c70cff1dcd6500ffffffffffffffff")
+        invalid(prefix + "ff000000010000000000000000")
+        invalid(prefix + "ff000000007fffffffffffffff")
+    end
+    for wire in ["c1", "91c1", "81c100", "c704ff0000", "c80004", "c90000000800", "d6000000", "d4ff00"]
+        invalid(wire)
+    end
+    for wire in ["d40000", "c70000", "c800018000", "c9000000017f00"]
+        unsupported(wire)
+    end
+    assert msgpack.decode(msgpack.fromHex("c0")) == null
+    println("msgpack extension paths: PASS")
+    return 0
+end

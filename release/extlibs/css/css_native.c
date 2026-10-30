@@ -291,11 +291,6 @@ static bool xcss_walk_rules(xcssinput Input, size_t Begin, size_t End,
 {
     size_t i = Begin;
 
-    if (iNesting > XCSS_MAX_NESTING) {
-        xcss_error(XERR_RANGE, "CSS at-rule nesting exceeds 64 levels");
-        return false;
-    }
-
     while (i < End) {
         xcssspan Selector;
         xcssspan Body;
@@ -337,6 +332,11 @@ static bool xcss_walk_rules(xcssinput Input, size_t Begin, size_t End,
             bool bNestedRules;
             size_t iCount;
 
+            /* 计入当前 at-rule；空块和声明块也不能绕过统一层数上限。 */
+            if (iNesting == XCSS_MAX_NESTING) {
+                xcss_error(XERR_RANGE, "CSS at-rule nesting exceeds 64 levels");
+                return false;
+            }
             /* @media/@supports/@layer contain rules; @font-face contains declarations. */
             if (!xcss_block_has_rule(Input, Body, &bNestedRules)) return false;
             if (bNestedRules) {
@@ -679,6 +679,9 @@ char* xcss_strip_comments(cstr sCss)
             if (!xcss_skip_string(Input, &i)) {
                 goto Failed;
             }
+        } else if (Input.Data[i] == '\\') {
+            /* 与查询扫描器一致：转义后的引号或斜杠不重新解释为边界。 */
+            i += i + 1u < Input.Size ? 2u : 1u;
         } else {
             ++i;
         }

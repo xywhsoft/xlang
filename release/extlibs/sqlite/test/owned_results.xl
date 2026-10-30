@@ -1,0 +1,94 @@
+import sqlite
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    point db = sqlite.sqlite3_open(":memory:")
+    assert sqlite.sqlite3_exec(db, "create table entry(id integer primary key)") == sqlite.SQLITE_OK
+    assert sqlite.sqlite3_exec(db, "insert into entry values(5000000000)") == sqlite.SQLITE_OK
+    point stmt = sqlite.sqlite3_prepare_v2(db, "select 'held 你好' as sample, null")
+    assert sqlite.sqlite3_step(stmt) == sqlite.SQLITE_ROW
+    auto objectDb = sqlite.memory()
+    assert objectDb.execute("create table entry(id integer primary key)")
+    assert objectDb.execute("insert into entry values(5000000000)")
+    auto objectStmt = objectDb.prepare("select 'held 你好' as sample, null")
+    assert objectStmt.row_ready()
+    string diagnostic = objectDb.last_error()
+    array<string> expected = ["held 你好", "held 你好", "sample",
+        "null sqlite3 handle", "null sqlite3_stmt handle", "5000000000", "", "",
+        "held 你好", "held 你好", "sample", diagnostic, diagnostic, "5000000000", "", ""]
+    string held = ""
+    string objectHeld = ""
+    try
+        for operation in range(16)
+            for allowance in range(2)
+                // 此时 SQLite 已准备当前行；唯一必要的 XRT 分配是输出文本副本。
+                string result = ""
+                bool memoryCaught = false
+                bool triggered = false
+                assert failAfter(uint64(allowance))
+                try
+                    if operation == 0 then
+                        result = sqlite.sqlite3_column_text(stmt, 0)
+                    elseif operation == 1 then
+                        result = sqlite.sqlite3_column_blob_text(stmt, 0)
+                    elseif operation == 2 then
+                        result = sqlite.sqlite3_column_name(stmt, 0)
+                    elseif operation == 3 then
+                        result = sqlite.sqlite3_errmsg(null)
+                    elseif operation == 4 then
+                        result = sqlite.sqlite3_stmt_errmsg(null)
+                    elseif operation == 5 then
+                        result = sqlite.sqlite3_last_insert_rowid_text(db)
+                    elseif operation == 6 then
+                        result = sqlite.sqlite3_column_text(stmt, 1)
+                    elseif operation == 7 then
+                        result = sqlite.sqlite3_column_blob_text(stmt, 1)
+                    elseif operation == 8 then
+                        result = objectStmt.column_text(0)
+                    elseif operation == 9 then
+                        result = objectStmt.column_blob_text(0)
+                    elseif operation == 10 then
+                        result = objectStmt.column_name(0)
+                    elseif operation == 11 then
+                        result = objectDb.last_error()
+                    elseif operation == 12 then
+                        result = objectStmt.last_error()
+                    elseif operation == 13 then
+                        result = objectDb.last_insert_rowid_text()
+                    elseif operation == 14 then
+                        result = objectStmt.column_text(1)
+                    else
+                        result = objectStmt.column_blob_text(1)
+                    end
+                catch MemoryError error
+                    memoryCaught = true
+                finally
+                    triggered = failTriggered()
+                    failClear()
+                end
+                if allowance == 0 then
+                    assert triggered and memoryCaught, "native output allocation failure lost MemoryError"
+                else
+                    assert not triggered and not memoryCaught, "owned text was allocated or copied again after adoption"
+                    assert result == expected[operation]
+                end
+            end
+        end
+        held = sqlite.sqlite3_column_text(stmt, 0)
+        objectHeld = objectStmt.column_text(0)
+        // 后续诊断与元数据查询不覆盖已返回的拥有型结果。
+        assert sqlite.sqlite3_column_name(stmt, 0) == "sample"
+        assert sqlite.sqlite3_errmsg(null) == "null sqlite3 handle"
+    finally
+        sqlite.sqlite3_finalize(stmt)
+        sqlite.sqlite3_close(db)
+        objectStmt.finalize()
+        objectDb.close()
+    end
+    assert held == "held 你好" and objectHeld == "held 你好"
+    println("sqlite owned text results: PASS")
+    return 0
+end

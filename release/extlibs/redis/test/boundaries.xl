@@ -46,6 +46,34 @@ func main(...) as int
     assert binaryError["value"]["value"] == Buffer.fromHex("45525220ff").toBytes()
 
     assert not redis.isComplete("$5\r\nabc")
+
+    // 上限包含根节点、帧头与结束换行；仍可能补齐的前缀保持未完成。
+    for header in ["*99999\r\n", "*2\r\n*99997\r\n", "$67108851\r\n", "*1\r\n$67108847\r\n"]
+        assert not redis.isComplete(header)
+    end
+    for header in ["*100000\r\n", "*2\r\n*99998\r\n", "*99999\r\n*1\r\n",
+        "$67108852\r\n", "*1\r\n$67108848\r\n"]
+        rejected = false
+        try
+            redis.isComplete(header)
+        catch ValueError error
+            rejected = true
+        end
+        assert rejected
+    end
+    string deep = ""
+    for i in range(63)
+        deep = deep + "*1\r\n"
+    end
+    assert redis.isComplete(deep + "*0\r\n")
+    rejected = false
+    try
+        redis.isComplete(deep + "*1\r\n")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected
+
     rejected = false
     try
         redis.isComplete("$9223372036854775808\r\n")

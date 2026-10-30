@@ -110,7 +110,8 @@ static int xv_parse_line(xvalue *object, xstrview line,
     int quoted = 0;
     const XvProperty *property;
     if (line.Size == 0) return 1;
-    if (!xv_wire_chars(line, 0)) return 0;
+    /* 先恢复物理折行，再校验完整字符；未知属性/参数同样不能绕过 UTF-8 检查。 */
+    if (!xrtUtf8Valid(line, NULL) || !xv_wire_chars(line, 0)) return 0;
     if (*phase == 0) {
         if (!xv_ascii_equal(line.Data, line.Size, "BEGIN:VCARD")) return 0;
         *phase = 1;
@@ -174,10 +175,8 @@ xvalue *xv_parse(const char *text, size_t size) {
             "vCard input exceeds 4 MiB");
         return NULL;
     }
-    if (text == NULL || size == 0 ||
-        memchr(text, 0, size) != NULL ||
-        !xrtUtf8Valid((xstrview){text, size}, NULL)) {
-        xv_error("invalid vCard input or UTF-8");
+    if (text == NULL || size == 0 || memchr(text, 0, size) != NULL) {
+        xv_error("invalid vCard input");
         return NULL;
     }
     if (!xrtBufferInit(&line)) return NULL;
@@ -215,6 +214,6 @@ xvalue *xv_parse(const char *text, size_t size) {
 invalid:
     xrtBufferUnit(&line);
     xrtValueRelease(result);
-    if (xrtGetError() == NULL) xv_error("invalid vCard field or input too large");
+    if (xrtGetError() == NULL) xv_error("invalid vCard field or UTF-8");
     return NULL;
 }

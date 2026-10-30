@@ -92,11 +92,13 @@ static int xsnappy_transform_file(const char* sSource, const char* sDestination,
 	xrtsnappyerror tError;
 	xrtprogresscall tProgress;
 	xfile TempFile = NULL;
+	xfile Transaction = NULL;
 	xreader* pReader = NULL;
 	xwriter* pWriter = NULL;
 	str sDirectory = NULL;
 	str sTemp = NULL;
 	bool bResult = false;
+	bool bRemoved = false;
 	int iResult = 0;
 	xerror* pSaved;
 
@@ -125,6 +127,7 @@ static int xsnappy_transform_file(const char* sSource, const char* sDestination,
 	TempFile = xrtFileTemp(sDirectory[0] != 0 ? sDirectory : ".",
 		".xrt-snappy-", ".tmp", &sTemp);
 	if ( TempFile == NULL ) { goto cleanup; }
+	Transaction = TempFile; /* 仅借用；原 Writer/TempFile 仍负责关闭。 */
 	pWriter = xrtWriterTakeFile(&TempFile);
 	if ( pWriter == NULL ) { goto cleanup; }
 
@@ -141,6 +144,10 @@ cleanup:
 	/* 析构或删除临时文件不得覆盖回调、内存和首个 IO 错误。 */
 	pSaved = xrtTakeError();
 	if ( pSaved != NULL ) { bResult = false; }
+	/* 打开态先回滚，避免关闭后 UTF-8 删除路径再分配内存。 */
+	if ( !bResult && Transaction != NULL && sTemp != NULL ) {
+		bRemoved = xrtFileDeleteOpen(Transaction, sTemp);
+	}
 	if ( (pWriter != NULL) && !xrtWriterDestroy(pWriter) && bResult ) {
 		bResult = false; pSaved = xrtTakeError();
 	}
@@ -156,7 +163,7 @@ cleanup:
 	if ( bResult && !xrtPathRename(sTemp, sDestination, bOverwrite) ) {
 		bResult = false; pSaved = xrtTakeError();
 	}
-	if ( !bResult && sTemp != NULL ) { (void)xrtFileDelete(sTemp); }
+	if ( !bResult && sTemp != NULL && !bRemoved ) { (void)xrtFileDelete(sTemp); }
 	xrtClearError();
 	if ( pSaved != NULL ) {
 		xrtSetError(pSaved);

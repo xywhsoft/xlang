@@ -1,0 +1,20 @@
+import stb_image_write
+
+func main(...) as int
+    // 灰度转为 RGB；RGB 行补齐到四字节；RGBA 保留 alpha，使用 V4 头。
+    Buffer pixels = Buffer.fromHex("ff")
+    Buffer gray = stb_image_write.encodeBmp(pixels, 1, 1, 1)
+    Buffer rgb = stb_image_write.encodeBmp(Buffer.fromHex("ff000000ff000000ffffffff"), 2, 2, 3)
+    Buffer rgba = stb_image_write.encodeBmp(Buffer.fromHex("ff000080"), 1, 1, 4)
+    assert gray.len() == 58 and gray.byteAt(10) == 54
+    assert rgb.len() == 70 and rgb.byteAt(10) == 54
+    assert rgba.len() == 126 and rgba.byteAt(10) == 122
+    assert gray.byteAt(54) == 255 and rgba.byteAt(125) == 128
+    assert pixels == Buffer.fromHex("ff"), "编码只借用输入，不修改源像素"
+    println("gray BMP: 58 bytes, pixels at 54")
+    println("RGB BMP: 70 bytes, pixels at 54")
+    println("RGBA BMP: 126 bytes, pixels at 122")
+    println("source unchanged: true")
+    println("stb write BMP layout: OK")
+    return 0
+end

@@ -28,6 +28,35 @@ static void* allocated_result(int operation)
     return xgeohash_neighbor("ezs42", 2);
 }
 
+/* 六条公开文本路径的固定结果均只需要一次原生结果分配。 */
+static int test_owned_result_budget(void)
+{
+    const char* expected[] = {"s", "0,0,45,45", "u", "k", "t", "e"};
+    unsigned operation, budget;
+    for (operation = 0; operation < 6u; ++operation) {
+        for (budget = 0; budget < 2u; ++budget) {
+            char* result;
+            bool triggered;
+            bool memory_error;
+            CHECK(xrtMemDebugFailAfter(budget));
+            if (operation == 0u) result = xgeohash_encode(0.0, 0.0, 1);
+            else if (operation == 1u) result = xgeohash_bbox("s");
+            else result = xgeohash_neighbor("s", (int)operation - 2);
+            triggered = xrtMemDebugFailTriggered();
+            memory_error = xrtErrorKind(xrtGetError()) == XERR_MEMORY;
+            xrtMemDebugFailClear();
+            if (budget == 0u) {
+                CHECK(result == NULL && triggered && memory_error);
+            } else {
+                CHECK(result != NULL && !triggered && !memory_error);
+                CHECK(strcmp(result, expected[operation]) == 0 && xrtGetError() == NULL);
+                xrtFree(result);
+            }
+        }
+    }
+    return 0;
+}
+
 static int test_allocation_errors(void)
 {
     int operation, failure;
@@ -275,6 +304,7 @@ int main(void)
     if (test_coordinate_grid()) return 1;
     CHECK(test_bbox_locale());
     if (test_allocation_errors()) return 1;
+    if (test_owned_result_budget()) return 1;
     puts("geohash C boundaries: PASS");
     return 0;
 }

@@ -1,0 +1,52 @@
+import ical
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+extern "xi_folded_fixture" func foldedFixture(c_bool invalid) as string
+
+func main(...) as int
+    // 物理折行可切开 UTF-8 字节；展开后必须还原为一个“你”。
+    string text = foldedFixture(false)
+    var parsed = ical.parse(text)
+    assert parsed["events"][0]["summary"] == "你"
+    string canonical = ical.build(parsed)
+    assert ical.parse(canonical)["events"][0]["summary"] == "你"
+
+    // 真正无效的逻辑 UTF-8 仍应拒绝，不能因为未知属性而忽略。
+    bool rejected = false
+    try
+        ical.parse(foldedFixture(true))
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected
+
+    bool complete = false
+    int failures = 0
+    for budget in range(256)
+        bool memory = false
+        bool correct = false
+        bool injected = false
+        assert failAfter(uint64(budget))
+        try
+            var value = ical.parse(text)
+            correct = value["events"][0]["summary"] == "你"
+        catch MemoryError error
+            memory = true
+        finally
+            injected = failTriggered()
+            failClear()
+        end
+        assert injected and memory or not injected and correct
+        assert ical.parse(text)["events"][0]["summary"] == "你"
+        if not injected then
+            complete = true
+            break
+        end
+        failures += 1
+    end
+    assert complete and failures > 0
+    println("ical UTF8 folding XLang: PASS")
+    return 0
+end

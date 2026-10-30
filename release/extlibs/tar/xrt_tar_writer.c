@@ -427,6 +427,7 @@ XRT_API xrttarwriter* xrtTarWriterOpenFile(cstr sPath, const xrttaroptions* pOpt
 {
 	str sDirectory = NULL;
 	xfile File = NULL;
+	xerror* pCause;
 	xrttarwriter* pWriter = __xrtTarWriterAllocate(pOptions);
 
 	if ( (pWriter == NULL) || pWriter->Failed ) { return pWriter; }
@@ -447,11 +448,12 @@ XRT_API xrttarwriter* xrtTarWriterOpenFile(cstr sPath, const xrttaroptions* pOpt
 	File = xrtFileTemp(sDirectory[0] != 0 ? sDirectory : ".",
 		".xrt-tar-", ".tmp", &pWriter->Temporary);
 	if ( File == NULL ) {
-		__xrtTarSetWriterError(pWriter, XRT_TAR_ERROR_IO,
+		__xrtTarSetWriterError(pWriter, __xrtTarIoFailureCode(),
 			"cannot create TAR transaction file: %s", sPath);
 		pWriter->Failed = true;
 		goto cleanup;
 	}
+	pWriter->File = File;
 	pWriter->Writer = xrtWriterTakeFile(&File);
 	if ( pWriter->Writer == NULL ) {
 		__xrtTarSetWriterError(pWriter, XRT_TAR_ERROR_MEMORY,
@@ -462,8 +464,18 @@ XRT_API xrttarwriter* xrtTarWriterOpenFile(cstr sPath, const xrttaroptions* pOpt
 	pWriter->TakeWriter = true;
 
 cleanup:
-	if ( File != NULL ) { (void)xrtClose(File); }
+	pCause = xrtTakeError();
+	if ( File != NULL ) {
+		/* 流包装分配失败时仍握有文件，不经需要额外内存的路径删除。 */
+		if ( pWriter->Temporary != NULL && xrtFileDeleteOpen(File, pWriter->Temporary) ) {
+			xrtFree(pWriter->Temporary);
+			pWriter->Temporary = NULL;
+		}
+		(void)xrtClose(File);
+		pWriter->File = NULL;
+	}
 	xrtFree(sDirectory);
+	xrtSetErrorTake(pCause);
 	return pWriter;
 }
 
@@ -562,7 +574,7 @@ XRT_API bool xrtTarWriterAddFrom(xrttarwriter* pWriter,
 	if ( !xrtReaderCopyN(pReader, pWriter->Writer, iSize, &iCopied) ||
 		(iCopied != iSize) ) {
 		pWriter->OutputBytes += iCopied;
-		__xrtTarFailWriter(pWriter, XRT_TAR_ERROR_IO,
+		__xrtTarFailWriter(pWriter, __xrtTarIoFailureCode(),
 			"cannot copy TAR entry input stream");
 		return false;
 	}
@@ -599,7 +611,7 @@ XRT_API bool xrtTarWriterCopyCurrent(xrttarwriter* pWriter,
 	if ( pEntry->iType != XRT_TAR_ENTRY_FILE ) {
 		if ( !xrtTarWriterAdd(pWriter, pEntry, NULL, 0u) ) { return false; }
 		if ( !xrtTarReaderSkip(pReader) ) {
-			__xrtTarFailWriter(pWriter, XRT_TAR_ERROR_IO,
+			__xrtTarFailWriter(pWriter, __xrtTarIoFailureCode(),
 				"cannot consume copied TAR metadata entry");
 			return false;
 		}
@@ -629,7 +641,7 @@ XRT_API bool xrtTarWriterCopyCurrent(xrttarwriter* pWriter,
 	}
 	if ( !__xrtTarWriteEntryHeader(pWriter, pEntry, iSize) ) { return false; }
 	if ( !xrtTarReaderReadTo(pReader, pWriter->Writer) ) {
-		__xrtTarFailWriter(pWriter, XRT_TAR_ERROR_IO,
+		__xrtTarFailWriter(pWriter, __xrtTarIoFailureCode(),
 			"cannot stream the current TAR entry into the writer");
 		return false;
 	}
@@ -660,7 +672,7 @@ XRT_API bool xrtTarWriterAddFile(xrttarwriter* pWriter, cstr sName, cstr sSource
 	pInput = xrtReaderOpen(sSourcePath);
 	if ( pInput == NULL || !xrtReaderSize(pInput, &iSize) ) {
 		(void)xrtReaderDestroy(pInput);
-		__xrtTarSetWriterError(pWriter, XRT_TAR_ERROR_IO,
+		__xrtTarSetWriterError(pWriter, __xrtTarIoFailureCode(),
 			"cannot open TAR source file: %s", sSourcePath);
 		return false;
 	}
@@ -916,7 +928,7 @@ XRT_API xrttarwriter* xrtTarWriterOpenAppend(cstr sPath,
 		}
 		pWriter = __xrtTarWriterAllocate(pOptions);
 		if ( pWriter != NULL ) {
-			__xrtTarSetWriterError(pWriter, XRT_TAR_ERROR_IO,
+			__xrtTarSetWriterError(pWriter, __xrtTarIoFailureCode(),
 				"cannot inspect TAR append target: %s", sPath);
 			pWriter->Failed = true;
 		}
@@ -938,7 +950,7 @@ XRT_API xrttarwriter* xrtTarWriterOpenAppend(cstr sPath,
 		pWriter = __xrtTarWriterAllocate(pOptions);
 		if ( pWriter != NULL ) {
 			__xrtTarSetWriterError(pWriter,
-				pReaderError != NULL ? pReaderError->iCode : XRT_TAR_ERROR_IO,
+				pReaderError != NULL ? pReaderError->iCode : __xrtTarIoFailureCode(),
 				"cannot open TAR append source: %s",
 				pReaderError != NULL ? pReaderError->sMessage : sPath);
 			pWriter->Failed = true;
@@ -992,6 +1004,7 @@ XRT_API bool xrtTarWriterClose(xrttarwriter* pWriter)
 		if ( pWriter->Temporary != NULL ) {
 			bClose = xrtWriterDestroy(pWriter->Writer);
 			pWriter->Writer = NULL;
+			pWriter->File = NULL;
 			if ( !bClose ) {
 				__xrtTarFailWriter(pWriter, XRT_TAR_ERROR_IO,
 					"cannot close TAR transaction file");
@@ -1003,7 +1016,7 @@ XRT_API bool xrtTarWriterClose(xrttarwriter* pWriter)
 	}
 	if ( pWriter->Temporary != NULL ) {
 		if ( !xrtPathRename(pWriter->Temporary, pWriter->Path, true) ) {
-			__xrtTarSetWriterError(pWriter, XRT_TAR_ERROR_IO,
+			__xrtTarSetWriterError(pWriter, __xrtTarIoFailureCode(),
 				"cannot atomically save TAR file: %s", pWriter->Path);
 			return false;
 		}
@@ -1050,18 +1063,26 @@ XRT_API xbuffer* xrtTarWriterTakeBuffer(xrttarwriter* pWriter)
 
 
 
-/* 销毁 Writer；未提交事务始终删除临时文件，不触碰原目标。 */
+/* 销毁 Writer 并尝试回滚未提交事务，不触碰原目标。 */
 XRT_API void xrtTarWriterDestroy(xrttarwriter* pWriter)
 {
+	xerror* pCause;
+	bool bDeleted = false;
 	if ( pWriter == NULL ) { return; }
+	pCause = xrtTakeError();
+	/* 异常展开可能仍处于 OOM；先按原生句柄删除，再关闭持有它的 Writer。 */
+	if ( pWriter->File != NULL && pWriter->Temporary != NULL ) {
+		bDeleted = xrtFileDeleteOpen(pWriter->File, pWriter->Temporary);
+	}
 	if ( pWriter->TakeWriter && pWriter->Writer != NULL ) {
 		(void)xrtWriterDestroy(pWriter->Writer);
 	}
-	if ( (pWriter->Temporary != NULL) && xrtPathExists(pWriter->Temporary) ) {
+	if ( pWriter->Temporary != NULL && !bDeleted ) {
 		(void)xrtFileDelete(pWriter->Temporary);
 	}
 	xrtBufferDestroy(pWriter->Memory);
 	xrtFree(pWriter->Path);
 	xrtFree(pWriter->Temporary);
 	xrtFree(pWriter);
+	if ( pCause != NULL ) { xrtSetErrorTake(pCause); }
 }

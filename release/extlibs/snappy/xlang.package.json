@@ -34,7 +34,7 @@
     "dependencies":  [
 
                      ],
-    "coverage": { "mode": "suite", "tests": ["test/file_ops.xl", "test/allocations.xl", "test/text_transfer.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/file_ops.xl", "test/allocations.xl", "test/text_transfer.xl", "test/empty_chunks.xl", "test/abi_surface.xl"] },
     "native":  {
                    "singleton":  false,
                    "loadName":  "",

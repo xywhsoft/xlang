@@ -16,6 +16,9 @@ int main(void) {
     const char chinese[] = "\xE4\xBB\x8A\xE5\xA4\xA9\xE5\xA4\xA9\xE6\xB0\x94\xE5\xBE\x88\xE5\xA5\xBD";
     const char supplementaryHan[] = "\xF0\xA0\x80\x80\xF0\xA0\x80\x80"; /* U+20000 x 2 */
     const char japanese[] = "\xE3\x81\x93\xE3\x82\x93\xE3\x81\xAB\xE3\x81\xA1\xE3\x81\xAF";
+    const char korean[] = "\xEC\x95\x88\xEB\x85\x95\xED\x95\x98\xEC\x84\xB8\xEC\x9A\x94";
+    int utf8Valid;
+    int errorClear;
     if (strcmp(xlangdetect_detect(english, strlen(english)), "english") != 0 ||
         strcmp(xlangdetect_code(english, strlen(english)), "en") != 0 ||
         strcmp(xlangdetect_script(english, strlen(english)), "Latin") != 0 ||
@@ -24,7 +27,12 @@ int main(void) {
         strcmp(xlangdetect_detect(chinese, sizeof(chinese) - 1), "chinese") != 0 ||
         strcmp(xlangdetect_detect(supplementaryHan, sizeof(supplementaryHan) - 1), "chinese") != 0 ||
         strcmp(xlangdetect_detect(japanese, sizeof(japanese) - 1), "japanese") != 0 ||
+        strcmp(xlangdetect_detect(korean, sizeof(korean) - 1), "korean") != 0 ||
         strcmp(xlangdetect_detect("12345 !!!", 9), "unknown") != 0) return 1;
+    if (xlangdetect_valid_utf8(NULL, 0) || xlangdetect_last_error()[0] == '\0') return 1;
+    utf8Valid = xlangdetect_valid_utf8(chinese, sizeof(chinese) - 1);
+    errorClear = xlangdetect_last_error()[0] == '\0';
+    if (!utf8Valid || !errorClear) return 1;
     printf("detect('the cat is on the table and it is not bad') =  %s\n",
         xlangdetect_detect(english, strlen(english)));
     printf("  code/script/confidence =  %s  /  %s  /  %" PRId64 "\n",
@@ -41,6 +49,15 @@ int main(void) {
         xlangdetect_detect(supplementaryHan, sizeof(supplementaryHan) - 1));
     printf("detect(Japanese text) =  %s\n",
         xlangdetect_detect(japanese, sizeof(japanese) - 1));
+    printf("detect(Korean text) =  %s\n",
+        xlangdetect_detect(korean, sizeof(korean) - 1));
+    printf("predicates =  %s  /  %s  /  %s  /  %s\n",
+        strcmp(xlangdetect_detect(english, strlen(english)), "english") == 0 ? "true" : "false",
+        strcmp(xlangdetect_detect(chinese, sizeof(chinese) - 1), "chinese") == 0 ? "true" : "false",
+        strcmp(xlangdetect_detect(japanese, sizeof(japanese) - 1), "japanese") == 0 ? "true" : "false",
+        strcmp(xlangdetect_detect(korean, sizeof(korean) - 1), "korean") == 0 ? "true" : "false");
+    printf("utf8/error-clear =  %s  /  %s\n",
+        utf8Valid ? "true" : "false", errorClear ? "true" : "false");
     printf("detect('12345 !!!') =  %s\n", xlangdetect_detect("12345 !!!", 9));
     puts("langdetect example: PASS");
     return 0;

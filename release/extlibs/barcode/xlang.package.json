@@ -18,6 +18,6 @@
     "links": [],
     "loadlibs": [],
     "dependencies": [],
-    "coverage": { "mode": "suite", "tests": ["test/recovery.xl", "test/allocations.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/recovery.xl", "test/allocations.xl", "test/owned_results.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

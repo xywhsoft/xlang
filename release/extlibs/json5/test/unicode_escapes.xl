@@ -1,0 +1,42 @@
+import json5
+
+func checkDocument(string source, string key, string expected)
+    assert json5.valid(source)
+    var root = json5.parse(source)
+    assert root[key] == expected
+    assert json5.getValue(source, key) == expected
+    assert json5.get(source, key) == expected
+end
+
+func main(...) as int
+    // 用字节明确表示测试码点，不把不可见分隔符直接写进源文件。
+    array<string> points = ["c280", "c2a0", "c3a9", "ceb1", "cc81",
+        "e4bda0", "f09f8eb6", "f48fbfbf", "e280a8", "e280a9"]
+    int cases = 0
+    for index in range(0, points.length)
+        string character = Buffer.fromHex(points[index]).text()
+        for quote in ["'", "\""]
+            for slash in ["", "\\"]
+                string expected = "p" + character + "q"
+                if slash != "" and index >= 8 then expected = "pq" end
+                checkDocument("{v:" + quote + "p" + slash + character + "q" + quote + "}", "v", expected)
+                checkDocument("{" + quote + "p" + slash + character + "q" + quote + ":'ok'}", expected, "ok")
+                cases += 2
+            end
+        end
+    end
+    array<string> lines = ["\n", "\r", "\r\n", Buffer.fromHex("e280a8").text(), Buffer.fromHex("e280a9").text()]
+    for line in lines
+        for source in ["//你好" + line + "{v:'ok'}", "{//你好" + line + "v:'ok'}",
+            "{v://你好" + line + "'ok'}", "{v:'ok'//你好" + line + "}",
+            "/*你好" + line + "*/{v:'ok'}", "{/*你好" + line + "*/v:'ok'}",
+            "{v:/*你好" + line + "*/'ok'}", "{v:'ok'/*你好" + line + "*/}"]
+            checkDocument(source, "v", "ok")
+            cases += 1
+        end
+    end
+    assert cases == 120
+    assert !json5.valid("{'p\\" + lines[3] + "q':1,pq:2}"), "续行解码后仍拒绝重复键"
+    println("JSON5 Unicode XLang: 120 PASS")
+    return 0
+end

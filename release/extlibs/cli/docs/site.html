@@ -22,6 +22,10 @@
     <h1>cli</h1>
     <p class="extlib-lead">将参数数组解析为旗标、选项和位置参数，使用同一份声明提供默认值。</p>
     <p>版本 1.0.0 · C / xlang · 无扩展库依赖</p>
+    <p>当前未签收：公开语言导入受 os.args 缺符号 M7 阻断；独立调用真实 C 解析器的语言字面量
+    另有 M1 容器投影错误。C 解析成功不代表 XLang 已可运行，修复其中一项也不能自动关闭另一项。</p>
+    <p>2026-10-30 冻结工具链：两平台默认各39阶段、29符合要求，10条语言路径仍失败，整体返回1。
+    C原边界、36组合/882故障、两份C范例的GCC/直接TCC/独立EXE及真实ABI通过；Linux C含ASan/UBSan/泄漏检查。</p>
   </header>
   <section id="start">
     <h2>快速开始</h2>
@@ -47,6 +51,17 @@ assert result["ok"] == true</code></pre>
     <pre><code>release/extlibs/cli/test/check_c.ps1
 bash release/extlibs/cli/test/check_c.sh</code></pre>
     <p>C 边界和范例可独立验证；<code>extlibs/cli/examples/basic_c.c</code> 可直接 <code>xl run</code> 或 <code>xl build</code>。C 解析只借用输入字符串视图，不修改输入或逐参数分配临时副本；返回结果仍独立持有字符串。C/XL 范例采用不同文件名，避免 XLang 运行时自动引入同名 C 伴随源。当前发布版的 XLang 运行因主线缺少 <code>xl6_xrt_os_args</code> 而链接失败；双语运行与 AOT 尚未签收，不能将 C 侧通过视为整包发布验收。</p>
+    <p>默认值已限制为无 NUL 字符串，结果通过 XRT 标量复制持有不可变文本，不需要图深拷贝。
+    旧图入口也不复制标量正文；此优化移除图路径与 VALUE_GRAPH 依赖，不宣称减少分配。
+    36 组空串、中文、8KiB 默认值的 882 个分配故障在修改前后均检查立即恢复、输入不变、旧结果寿命和存活内存。</p>
+    <p>同一basic C消费者在同平台GCC -O2/分段/gc-sections下，GNU size text在Windows减少11196字节、
+    Linux减少13472字节；含默认值的解析不再进入旧图入口的3184/3168字节静态栈帧，basic消费者也不再携带该实现。
+    这不是文件大小、总栈上限或XLang端到端性能。
+    分配次数没有减少，不将标量本已共享的正文描述成新消除的副本。</p>
+    <p>新增 options.xl/options_c.c：显式短别名、组合旗标、中文附加值、默认覆盖、终止选项和首错停止，
+    共用 options.expected.txt 六行输出。C 可直接 xl run/build；XL 当前仍受上述共享层阻断，不宣称已双语通过。</p>
+    <p>默认门禁除严格 C 与 sanitizer 外，也保留中央/公开语言正例和两项无包最小边界。
+    命令有界，保存原始退出码和双流、输入哈希；失败不删现场，聚合失败仍逐项要求 0，不绕过 parseOs 或私有容器表示。</p>
   </section>
 </main>
 <script src="../main.js"></script>

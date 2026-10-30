@@ -62,6 +62,8 @@ XRT_API ptr xplist_parse(ptr pData, uint64 iSize, int iFormat,
 	xrtplistoptions tOptions;
 	xrtplisterror* pError = __xplistError();
 	ptr pResult;
+	/* 状态本身失败时保留 XRT 错误，不能清错后交出有效资源。 */
+	if ( pError == NULL ) { return NULL; }
 	__xplistOptions(&tOptions, iFormat, false, false, 2u, iMaxInput,
 		iMaxOutput, iMaxItem, iMaxEntries, iMaxNodes, iMaxDepth);
 	__xplistClearError(pError);
@@ -85,6 +87,7 @@ XRT_API ptr xplist_load(cstr sPath, int iFormat, uint64 iMaxInput,
 	xrtplistoptions tOptions;
 	xrtplisterror* pError = __xplistError();
 	ptr pResult;
+	if ( pError == NULL ) { return NULL; }
 	__xplistOptions(&tOptions, iFormat, false, false, 2u, iMaxInput,
 		iMaxOutput, iMaxItem, iMaxEntries, iMaxNodes, iMaxDepth);
 	__xplistClearError(pError);
@@ -95,7 +98,9 @@ XRT_API ptr xplist_load(cstr sPath, int iFormat, uint64 iMaxInput,
 
 XRT_API ptr xplist_create(void)
 {
-	__xplistClearError(__xplistError());
+	xrtplisterror* pError = __xplistError();
+	if ( pError == NULL ) { return NULL; }
+	__xplistClearError(pError);
 	return xrtPlistCreate();
 }
 XRT_API ptr xplist_adopt(ptr pHandle) { return pHandle; }
@@ -206,6 +211,7 @@ XRT_API ptr xplist_stringify(ptr pHandle, int iFormat, bool bPretty,
 	xrtplistoptions tOptions;
 	xrtplisterror* pError = __xplistError();
 	ptr pResult;
+	if ( pError == NULL ) { return NULL; }
 	__xplistOptions(&tOptions, iFormat, bPretty, bSortKeys, iIndent, 0u,
 		iMaxOutput, iMaxItem, iMaxEntries, iMaxNodes, iMaxDepth);
 	__xplistClearError(pError);
@@ -240,6 +246,7 @@ XRT_API bool xplist_save(ptr pHandle, cstr sPath, int iFormat, bool bPretty,
 	xrtplistoptions tOptions;
 	xrtplisterror* pError = __xplistError();
 	bool bResult;
+	if ( pError == NULL ) { return false; }
 	__xplistOptions(&tOptions, iFormat, bPretty, bSortKeys, iIndent, 0u,
 		iMaxOutput, iMaxItem, iMaxEntries, iMaxNodes, iMaxDepth);
 	__xplistClearError(pError);

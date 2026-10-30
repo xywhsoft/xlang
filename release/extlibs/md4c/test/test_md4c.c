@@ -20,6 +20,15 @@ static int test_file_inputs(void) {
     int ok = 0;
     if (dir == NULL) return 0;
 
+    path = xrtPathJoin(dir, "\xe4\xb8\xad\xe6\x96\x87 input.md");
+    if (path == NULL || !xrtFileWriteAll(path,
+        (xbytesview){(const uint8_t *)"# UTF-8\n", 8u})) goto cleanup;
+    result = xmd4c_file_html(path, xmd4c_commonmark_flags(), 0);
+    if (result == NULL || strcmp(result, "<h1>UTF-8</h1>\n") ||
+        xrtGetError() || !xrtFileDelete(path)) goto cleanup;
+    xrtFree(result);
+    result = NULL;
+    xrtFree(path);
     path = xrtPathJoin(dir, "invalid_utf8.md");
     if (path == NULL || !xrtFileWriteAll(path,
         (xbytesview){bad_utf8, sizeof(bad_utf8)})) goto cleanup;

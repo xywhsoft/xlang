@@ -3,10 +3,20 @@ param([switch]$SkipAot)
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../../..')).Path
 $xl = Join-Path $root 'release/xl.exe'
-$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
+$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $runner = Join-Path $root 'tools/run_extlib_c.ps1'
 $workRoot = Join-Path $root 'build/test'
 $work = Join-Path $workRoot ("fuzzy_guard_$([guid]::NewGuid().ToString('N'))")
+$inputs = @(Get-ChildItem (Join-Path $root 'release/extlibs/fuzzy') -Recurse -File |
+    ForEach-Object FullName)
+$inputs += @('release/xl.exe', 'release/xl.dll', 'release/xlc.dll', 'lib/xrt/xrt.h',
+    'lib/xruntime/xruntime.h', 'release/include/xrt_decl.h', 'release/include/xruntime_decl.h',
+    'release/include/xl_extlib_abi.h', 'tools/run_extlib_c.ps1',
+    'test/cases/extlib_fuzzy.xl', 'release/examples/extlibs/fuzzy.xl') |
+    ForEach-Object { Join-Path $root $_ }
+$hashes = @{}
+foreach ($path in $inputs) { $hashes[$path] = (Get-FileHash -LiteralPath $path).Hash }
+$passed = $false
 
 function Run([string]$label, [string]$program, [string[]]$arguments) {
     $previous = $ErrorActionPreference
@@ -17,6 +27,8 @@ function Run([string]$label, [string]$program, [string[]]$arguments) {
     } finally {
         $ErrorActionPreference = $previous
     }
+    [IO.File]::AppendAllText((Join-Path $work 'commands.log'),
+        "${label}: $program $($arguments -join ' ')`nexit=$code`n$($output -join "`n")`n")
     if ($code -ne 0) {
         throw "${label}: exit $code`n$($output -join "`n")"
     }
@@ -27,6 +39,7 @@ function Run([string]$label, [string]$program, [string[]]$arguments) {
 Push-Location $root
 try {
     [IO.Directory]::CreateDirectory($work) | Out-Null
+    $hashes | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $work 'inputs.before.json')
     $null = Run 'strict C syntax' $gcc @(
         '-std=c11', '-Wall', '-Wextra', '-Werror', '-fsyntax-only',
         '-Ilib/xrt', '-Irelease/extlibs/fuzzy',
@@ -36,6 +49,15 @@ try {
         'release/extlibs/fuzzy/test/test_unterminated.c',
         'release/extlibs/fuzzy/test/test_threads.c',
         'release/extlibs/fuzzy/examples/fuzzy_c.c')
+    $flags = @('-std=c11', '-O2', '-Wall', '-Wextra', '-Werror', '-Ilib/xrt')
+    $runtime = Join-Path $work 'runtime.o'
+    $null = Run 'selected XRT runtime' $gcc ($flags + @('-c',
+        'release/extlibs/fuzzy/test/xrt_runtime.c', '-o', $runtime))
+    $nativeTest = Join-Path $work 'test_fuzzy.exe'
+    $null = Run 'GCC C boundaries build' $gcc ($flags + @(
+        'release/extlibs/fuzzy/fuzzy_native.c', 'release/extlibs/fuzzy/test/test_fuzzy.c',
+        $runtime, '-lWs2_32', '-lAdvapi32', '-lIphlpapi', '-lm', '-o', $nativeTest))
+    $null = Run 'GCC C boundaries and result budgets' $nativeTest @()
     foreach ($test in @('test_fuzzy', 'test_unterminated', 'test_threads')) {
         $null = Run $test $runner @('fuzzy', "release/extlibs/fuzzy/test/$test.c")
     }
@@ -47,14 +69,17 @@ try {
         'release/extlibs/fuzzy/test/boundaries.xl')
     $null = Run 'XLang allocations' $xl @('run',
         'release/extlibs/fuzzy/test/allocations.xl')
+    $null = Run 'XLang input and owned-result budgets' $xl @('run',
+        'release/extlibs/fuzzy/test/owned_results.xl')
     $null = Run 'XLang central' $xl @('run', 'test/cases/extlib_fuzzy.xl')
     $generated = Join-Path $work 'fuzzy_owned.c'
-    $null = Run 'owned string cgen' $xl @('cgen',
-        'test/cases/extlib_fuzzy.xl', '--emit', $generated)
+    $null = Run 'whole-call ownership cgen' $xl @('cgen',
+        'release/extlibs/fuzzy/test/owned_probe.xl', '--emit', $generated)
     $generatedText = [IO.File]::ReadAllText($generated)
-    if ($generatedText -cnotmatch '\bv\d+\.Data\s*=\s*xfuzzy_best\s*\(' -or
-        $generatedText.Contains('xl6CStringCopyV1')) {
-        throw 'fuzzy.best must adopt the native C string directly'
+    if ([regex]::Matches($generatedText, '\b\w+\.Data\s*=\s*xfuzzy_best\s*\(').Count -ne 1 -or
+        $generatedText.Contains('xl6CStringCopyV1') -or
+        $generatedText -match '=\s*xlir_string_copy\s*\(') {
+        throw 'fuzzy must borrow validated inputs and adopt best results without copying'
     }
     $xlOutput = Run 'XLang example' $xl @('run',
         'release/examples/extlibs/fuzzy.xl')
@@ -79,7 +104,7 @@ try {
         if ((Run 'core AOT' $aot @()) -cne '') {
             throw '[fuzzy] core AOT produced unexpected output'
         }
-        foreach ($case in @('boundaries', 'allocations')) {
+        foreach ($case in @('boundaries', 'allocations', 'owned_results')) {
             $caseExe = Join-Path $work "$case.exe"
             $null = Run "$case AOT build" $xl @('build',
                 "release/extlibs/fuzzy/test/$case.xl", '-o', $caseExe)
@@ -99,6 +124,13 @@ try {
         }
         Write-Host '[fuzzy] AOT/C example parity: PASS'
     }
+    foreach ($path in $inputs) {
+        if ((Get-FileHash -LiteralPath $path).Hash -cne $hashes[$path]) {
+            throw "fuzzy validation input changed: $path"
+        }
+    }
+    $passed = $true
+    Write-Host 'fuzzy Windows package gate: PASS'
 } finally {
     Pop-Location
     $resolvedRoot = [IO.Path]::GetFullPath($workRoot).TrimEnd('\') + '\'
@@ -108,6 +140,13 @@ try {
         throw "Fuzzy test directory escapes build/test: $resolvedWork"
     }
     if (Test-Path -LiteralPath $resolvedWork -PathType Container) {
-        Remove-Item -LiteralPath $resolvedWork -Recurse -Force
+        if ($passed) {
+            Get-ChildItem -LiteralPath $resolvedWork -File | ForEach-Object {
+                Remove-Item -LiteralPath $_.FullName -Force
+            }
+            Remove-Item -LiteralPath $resolvedWork -Force
+        } else {
+            Write-Warning "fuzzy failure artifacts retained: $resolvedWork"
+        }
     }
 }

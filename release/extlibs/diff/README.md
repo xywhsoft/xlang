@@ -1,5 +1,22 @@
 # diff
 
+2026-10-28 完整返回链收口：输入校验改为无返回值，避免校验后复制
+两份输入；两个公开结果直接返回 `@owned string`，失败仍由原 C
+错误槽抛错，成功空结果仍是独立的 `""`。完整 cgen 夹具的三处复制
+点归零，不仅检查原生指针的接管位置。C 算法、ABI、资源限额不变。
+
+预热后四组固定输入的 C/XL 各 8 组分配预算通过：空输入 C 上限 3、
+XL 上限 5，短差异 C 上限 5、XL 上限 7；另检验预算 0 的内存错误
+和两个入口、两个实参位置共四组 NUL 拒绝。差额是现有的两次 NUL
+针串分配，不是输入/结果正文副本；`strlen` 和错误作用域仍存在，
+不宣称整条调用零开销。上述预算不外推任意输入或冷启动。
+
+Windows/Linux 默认完整门禁通过严格 GCC/TCC C、Linux ASan/UBSan、
+线程、原有 LCS/限额/OOM、中央/边界/新预算及双语范例 JIT/AOT。
+测试运行库按产品模块加内存调试编译，校验输入指纹，失败现场保留；
+Linux 仅统一黄金文件的 CRLF/LF 行尾，不忽略正文差异。原生源码、
+主线与 XRT 快照均未修改。
+
 2026-10-27 所有权收口：`xdiff_lines` 和 `xdiff_stats` 的 C 结果明确为
 XRT 拥有的 `char*`，XLang `@owned string?` 直接接管。生成 C 门禁检查
 两条路径都直接保存原生指针，不在交接处复制正文；仍需一次 `strlen`
@@ -49,12 +66,12 @@ XLang 双语门禁均通过；完整范例 AOT 仍被共享缺符号阻断。
 - 同输出 C 对照：`release/extlibs/diff/examples/diff_c.c`
 - 边界：`release/extlibs/diff/test/test_diff.c`、`test_threads.c`、`boundaries.xl` 与 `test/cases/extlib_diff.xl`
 
-从 `demo6` 根目录可直接运行 `release/xl.exe run release/extlibs/diff/examples/diff_c.c`。
+从仓库根目录可直接运行 `release/xl.exe run release/extlibs/diff/examples/diff_c.c`。
 TCC 单文件路径由范例包含包内实现；正式包和严格 GCC 门禁仍分别编译原生源文件。
 
-在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/diff/test/check.ps1`，联合检查严格 GCC 宏构建、C 边界/无终止符缓冲/线程、XLang 用例、三条范例路径的固定输出，以及完整范例 AOT。共享 AOT 链接阻断期间可加 `-SkipAot` 只验 C/JIT，不把它当成发布签收。Linux 上运行 `bash release/extlibs/diff/test/check.sh`，额外使用 ASan/UBSan。也可以单独运行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package diff -Source release/extlibs/diff/test/test_diff.c`。2026-10-12 已通过 Windows 严格 GCC、Linux ASan/UBSan、C/XL 双语输出对照及并发调用；2026-10-13 补两条 NUL 红绿用例并复跑 C/XL 边界与范例。
+在仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/diff/test/check.ps1`，联合检查严格 GCC 宏构建、C 边界/无终止符缓冲/线程、XLang 用例、三条范例路径的固定输出，以及完整范例 AOT。共享 AOT 链接阻断期间可加 `-SkipAot` 只验 C/JIT，不把它当成发布签收。Linux 上运行 `bash release/extlibs/diff/test/check.sh`，额外使用 ASan/UBSan。也可以单独运行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package diff -Source release/extlibs/diff/test/test_diff.c`。2026-10-12 已通过 Windows 严格 GCC、Linux ASan/UBSan、C/XL 双语输出对照及并发调用；2026-10-13 补两条 NUL 红绿用例并复跑 C/XL 边界与范例。
 2026-10-16 将包内 `test/boundaries.xl` 登记到 `coverage.tests`，从
-`demo6` 工作目录运行通过；本轮未重跑 C/Linux/AOT 门禁。
+仓库根目录运行通过；本轮未重跑 C/Linux/AOT 门禁。
 
 历史发布物中，`test/cases/extlib_diff.xl` 无输出核心 AOT 通过，
 但包内边界 AOT 曾因共享 `xl6ValueDataSnapshotV1` 缺符号失败。

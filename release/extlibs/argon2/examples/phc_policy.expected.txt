@@ -1,0 +1,6 @@
+legacy: verified
+rehash: required
+upgrade: verified
+unknown: rejected
+malformed: rejected
+metadata: 4294967295

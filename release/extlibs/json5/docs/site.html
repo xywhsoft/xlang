@@ -18,7 +18,8 @@
 <main class="extlib-layout" id="main-content">
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / json5</p><h1>json5</h1>
     <p class="extlib-lead">将 JSON5 配置文本解析为 xlang 动态值。</p>
-    <p>支持注释、尾随逗号、单引号、Unicode 标识符键名等 JSON5 语法；重复键拒绝。整份源文本须为有效 UTF-8，包括注释内容。输入上限 64 MiB，嵌套上限 64 层，容器项数上限 100 万。超限抛 <code>RangeError</code>，语法或编码错误抛 <code>ValueError</code>；<code>valid</code> 对两者均返回 false。</p>
+    <p>支持注释、尾随逗号、单引号、Unicode 标识符键名等 JSON5 语法；重复键拒绝。整份源文本须为有效 UTF-8，包括注释内容。输入上限 64 MiB，嵌套上限 64 层（根容器和空容器各计一层，标量不另占层），容器项数上限 100 万。超限抛 <code>RangeError</code>，语法或编码错误抛 <code>ValueError</code>；<code>valid</code> 对两者均返回 false。</p>
+    <p>当前发布验收待主线修复：解析得到的整数 <code>var</code> 再调用 <code>float(value)</code> 会被误作精确类型取出而报 <code>TypeError</code>；无扩展库的纯语言最小源也可复现。默认门禁保留正确的消费正例，不能以其他测试通过视为整包发布通过。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
@@ -27,7 +28,7 @@
       <tr><td><code>json5.getValue(text, path)</code></td><td>按简单点号路径取原始类型</td></tr>
       <tr><td><code>json5.get(text, path)</code></td><td>按简单点号路径取标量文本</td></tr>
     </tbody></table>
-    <p>十六进制字面量中的 <code>e/E</code> 是数字；如 <code>0xdead</code>、<code>0xBEEF</code> 在 int64 范围内保留整数类型，超出时才转为有限 float64。</p>
+    <p>十六进制字面量中的 <code>e/E</code> 是数字；如 <code>0xdead</code>、<code>0xBEEF</code> 在 int64 范围内保留整数类型，超出时才转为有限 float64，并按最近值、中点取偶数只舍入一次；例如 <code>0x8000000000000401</code> 不再逐位累加丢失末尾精度。</p>
     <h2>范例</h2>
     <pre><code>import json5
 string source = "{host:'localhost', workers:4,}"
@@ -36,7 +37,10 @@ println(config["host"])
 println(json5.valid(source))
 println(json5.getValue(source, "workers"))
 println(json5.get(source, "host"))</code></pre>
-    <p>点号路径不适用于含点或解码后含 NUL 的键；此时先解析再用索引访问。路径查询先校验整份文档，尾部垃圾不会因提前命中而漏检；路径内嵌 NUL 会被拒绝。原始 NUL 源字节无效，字符串中的 <code>\u0000</code> 转义会按完整长度保留；<code>getValue</code> 可读取含 NUL 的值，<code>get</code> 不会返回截断文本。字符串中的 UTF-16 代理对合成为 UTF-8 字符，孤立代理项拒绝。显式 Infinity/NaN 可解析，有限数字字面量溢出 float64 时拒绝，不静默转换成无穷大。<code>get</code> 的原生结果由 <code>@owned string</code> 直接接管；C 内部仍会构造标量文本，不承诺整条查询零复制。官方 JSON5 2.2.3 的可选对照曾覆盖 474 个固定解析样本，其中 286 个还核对解析值；这不是完整规范认证。2026-10-27 当前 Windows/Linux 默认包门禁通过严格 C、Linux ASan/UBSan、语言边界/分配故障及公开范例 AOT，C 单文件范例独立 EXE 与 GCC/XLang 输出一致。C/XLang 范例、资源限额、所有权和验证命令见包内 README。</p>
+    <p>点号路径不适用于含点或解码后含 NUL 的键；此时先解析再用索引访问。路径查询先校验整份文档，尾部垃圾不会因提前命中而漏检；路径内嵌 NUL 会被拒绝。原始 NUL 源字节无效，字符串中的 <code>\u0000</code> 转义会按完整长度保留；<code>getValue</code> 可读取含 NUL 的值，<code>get</code> 不会返回截断文本。字符串中的 UTF-16 代理对合成为 UTF-8 字符，孤立代理项拒绝。显式 Infinity/NaN 可解析，有限数字字面量溢出 float64 时拒绝，不静默转换成无穷大。<code>get</code> 的原生结果由 <code>@owned string</code> 直接接管；C 内部仍会构造标量文本，不承诺整条查询零复制。</p>
+    <p>2026-10-30 修复非 ASCII identity escape 只读首字节、实际 U+2028/U+2029 续行被拒绝、单行注释吞掉分隔符后内容，以及字符串续行和注释的位置诊断。原始 LS/PS 字符串内容保留，反斜线后的实际 LS/PS 作为续行删除。公开 API 与既有限额不变；严格 JSON 仍拒绝 identity escape。</p>
+    <p>新增 C/XLang 各 120 组文档，C 另有 18 个位置诊断和 8 个实际分配故障点。两平台相同最终回归只换旧解析器均有 207 条断言失败，新解析器全部通过；各 10 份普通独立 AOT、新旧双语 JIT 与黄金输出通过，Linux C 带 ASan/UBSan。Windows 默认门禁前 49 项通过，末项 M10 仍失败；独立补验 M10 AOT 也仍抛 TypeError，不记作整包绿灯。</p>
+    <p>官方 JSON5 2.2.3 的可选对照现覆盖 834 个固定解析样本，其中 646 个核对解析值；本轮只在 Windows 运行，Linux 没有可选 Node。这不是完整规范认证。C/XLang 新增 unicode_config 配置范例，涵盖续行、中文 identity escape、Unicode 注释分隔符并核对同一黄金输出；用法、所有权、补丁来源及验证命令见包内 README。官网页是可生成的源码，未据此宣称部署。</p>
     <p><code>examples/json5_c.c</code> 同时包含包内解析器与原生桥，可直接用 <code>xl run release/extlibs/json5/examples/json5_c.c</code> 运行；Windows/Linux 包门禁将输出与严格 C 编译结果逐字比较。</p>
   </section>
 </main>

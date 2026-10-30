@@ -1,5 +1,53 @@
 # plist
 
+## 当前验收（2026-10-30）
+
+本轮修复一组资源/错误分类边界，不增加 API 或改变 ABI：五个基础
+桥接入口在首次线程状态初始化失败时不再清错继续操作；binary 节点、
+字节复制、UTF-16 转换和容器构造 OOM 不再误报 FORMAT，条目超限
+明确为 LIMIT；XML 字典条目上限改为比较实际数量，避免 uint64
+大上限乘二回绕。已有结构化首因、PlistError/MemoryError 分工及
+零表示不限的 C 限额合同保持。
+
+Windows 完整门禁 587 项符合预期，C 冷启动 356 场景、公开语言
+JIT/AOT 各 87 预算通过；Linux 原生 C 冷启动 348 场景，带
+ASan/UBSan，其余同等路径通过。两平台最终同一夹具只换旧三文件，
+均有 50 个冷启动失败场景、64 条 binary/限额断言，修复后归零。
+这不是 114 个互不相关的 BUG，也不是完整格式认证。
+
+新增 C 回归覆盖 12 类完整值、142 个实际 OOM 点、48 组限额及
+36 个不支持标记/旧错误对照；Python plistlib 独立核对 12 份 C
+生成 binary 文件。四线程/64 诊断在 GCC、TCC JIT、独立 AOT 通过；
+41 条实际生成 C 原型和故意错改 owned 返回值负例通过；每平台
+13 份正常 AOT、新旧双语输出和原 XML/binary plistlib 互通均通过。
+新增[内存状态双语范例](examples/README.md)，以及
+[冷启动/错误分类完整记录](test/COLD_BINARY_AUDIT_2026-10-30.md)。
+
+门禁现有界执行并保留失败现场与原始退出码，真实静默编译器 37、
+Linux 缺失编译器 127 的控制已验证。生产仅改包内三文件，不改
+编译器、XRT、XML 依赖或 Expat；不新增分配、正文复制或全扫描，
+未测吞吐，不称完整零开销。下方旧预算是预热固定夹具，不是本轮
+冷启动总分配数；不能混用两者。
+
+2026-10-28 完整返回链复查：原生接管后，XML 结果的可空参数辅助函数
+与诊断消息的可空局部返回仍复制正文。两者改用直接调用临时值 `??`，
+删除重复的结果辅助函数；仅在失败时进入原有 PlistError/MemoryError
+分类。保留 `@owned string?` 与独立诊断结构，没有把 NULL 改成通用
+非空错误，也没有改变 C ABI、XML/binary 算法或原生实现。
+
+预热后的固定空字符串序列化，源值构造在预算外：等价 C 完整构树/
+写出需 7 次 XRT 分配，旧 XL 需 19 次，现为 18 次。新回归限制成功
+预算上限为 18，预算 0 仍是内存错误，并验证不支持的 XML 值、输出
+限额仍为有消息的 PlistError（码 4/5）、随后恢复及持有旧结果。
+控制 cgen 夹具由 7 个复制代码点减到 5 个，去掉结果和诊断的两个
+返回复制点；构树/输入转换、语言对象与错误作用域仍有成本。这不是
+任意输入单次分配、没有任何复制或整条调用零开销的承诺。
+
+Windows/Linux 默认完整门禁通过严格 C、Linux ASan/UBSan、原有故障
+扫描、私有类型负例、中央/边界/新预算与双语 JIT/AOT；Python plistlib
+独立读取 C/JIT/AOT 生成的 XML/binary 产物。补中央 AOT、输入及 XML
+依赖指纹，失败保留命令/现场；主线/XRT 未改，也未替换依赖源码。
+
 2026-10-26：当前 Windows/Linux 发布物的默认包门禁均通过 C 边界、
 Linux ASan/UBSan、语言边界/分配故障 JIT 与 AOT、私有原生类型负例、
 公开 C/XLang 范例独立 EXE。两平台分别生成 XML 与 binary plist，
@@ -34,8 +82,9 @@ Apple property list 的 XML 1.0 与 `bplist00` 读写。XLang 入口使用 `impo
 底层 XRT 分配，避免 `dumps(...).text()` 再复制整份文本；补齐终止字节
 时缓冲容量不足仍可能扩容。C 侧调用文本桥接后用 `xrtFree` 释放。
 二进制输出继续使用 `dumps(..., "binary")` 和 `xbuffer*`，不经过 C 字符串。
-XLang 声明将文本和错误消息均标为 `@owned string?`，直接接管 XRT 分配，
-不再经 `point` 和 `takeCstr` 二次封装；原生失败时的空指针仍单独处理。
+XLang 声明将文本和错误消息均标为 `@owned string?`，通过调用临时值的
+`??` 直接移交成功结果，不再经 `point`、`takeCstr` 或借用参数返回辅助
+函数。原生 NULL 仍走独立错误结构，保留 PlistError 分类及诊断内容。
 
 `UID` 是导出类型，可写 `plist.UID id = plist.uid(42)`；内部原生文档句柄不向导入方导出。
 `NativeDocument` 仅供包内桥接使用，导入方无法声明或构造；
@@ -68,12 +117,18 @@ XLang 的 `dumps`/`dump` 在构造原生文档时即检查节点总数、每个�
 - XML 整数/实数直接使用 XRT 严格数值解析和空白标志，不复制数值文本；Base64 数据直接使用 XRT 忽略空白的严格解码，删除私有清洗与填充检查。整数正负边界、溢出/尾随垃圾、空/非法 Base64，以及整数、字符串、实数、日期和数据各前 128 个分配点的失败分类由 C 回归覆盖。分配失败返回内存错误，不会崩溃或伪装成格式错误。
 - `test/test_native.c`：桥接层 NUL 键值与错误码。
 - `test/boundaries.xl`：XLang 二进制/XML、UID、数据与路径 NUL、非法输入和限额。
+- `test/owned_results.xl`：完整 XML 预算、结果持有、PlistError/限额及恢复；`test/owned_probe.xl` 为有必要输入转换的控制 cgen 夹具，不要求整个文件零复制。
+- `test/test_cold_state.c`、`cold_start.xl`：首次进程/线程错误状态、11 条入口分支、保存保护和立即恢复；每预算独立进程，不预热错误槽。
+- `test/test_binary_boundaries.c`、`binary_errors.xl`：全部值类型的 binary OOM、UTF-16 与容器限额分类；`check_binary_fixtures.py` 另用 Python 验完整值。
 - Windows：`powershell -File release/extlibs/plist/test/check.ps1`，包含 C/XL 边界、双语范例同输出、`plistlib` 独立格式验证、最小导入与公开范例 AOT；`-SkipAot` 仅用于 C/JIT 快测，不代表发布验收。
 - Linux：`sh release/extlibs/plist/test/check.sh`，以 ASan/UBSan 检查 C 本体与桥接层，另用内嵌 TCC 执行同一份 C 日期测试、运行包内 XLang 边界/分配测试，核对双语范例输出，并由 Python 标准库读取四份范例产物。
 
+两平台默认还运行中央及新预算用例的独立 EXE，测试按产品模块构建，
+独占目录在成功时清理，失败时保留命令、输入指纹与产物。
+
 桥接层的 C `uint64_t`（XRT `uint64`）在 XLang extern 中统一声明为 `uint64`，包括输入/输出限额、数据长度及 UID；不使用在 Linux LP64 下不同类型的 `c_ulonglong`。Linux 包级脚本同时运行 XLang 主用例，防止声明再次漂移。
 
-Python 标准库 `plistlib` 可独立读取双语范例产生的 XML/binary plist，不需要额外安装依赖。两份 XML 解码值及字节一致；两份 binary 解码值一致，且比 XML 多一个 `UID(42)`。binary plist 的字节布局不承诺一致。从 `demo6` 目录运行：
+Python 标准库 `plistlib` 可独立读取双语范例产生的 XML/binary plist，不需要额外安装依赖。两份 XML 解码值及字节一致；两份 binary 解码值一致，且比 XML 多一个 `UID(42)`。binary plist 的字节布局不承诺一致。从仓库根目录运行：
 
 ```powershell
 .\release\xl.exe run release\examples\extlibs\plist.xl -- build\test\plist_example_xl.xml build\test\plist_example_xl.bplist

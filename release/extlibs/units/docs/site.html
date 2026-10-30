@@ -20,6 +20,7 @@
     <p class="extlib-lead">字节、时长与计数的人类可读格式。</p>
     <p>1024 进制使用 KiB/MiB，1000 进制使用 kB/MB；解析失败抛错，合法负数不再与错误混淆。</p>
     <p>2026-10-26 重建 Windows/Linux 发布物后，两平台默认包级门禁通过；先前 VFS 缺头和带文本 AOT 缺符号只属于旧发布物。本包签收限当前两平台 x64 范围，不代表全产品或其他架构发布准入。</p>
+    <p>2026-10-28 进一步移除五条格式化返回链中接管后的正文副本。C/XLang 对照分配预算和完整 cgen 检查先红后绿；Windows/Linux 默认门禁、Linux ASan/UBSan、线程和双语 JIT/AOT 通过。必要的结果分配、长度扫描及错误作用域仍存在，不宣称完整调用零开销。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>

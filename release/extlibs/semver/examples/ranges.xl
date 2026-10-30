@@ -1,0 +1,25 @@
+import semver
+
+func bestVersion(array<string> versions, string rule) as string
+    string best = ""
+    for version in versions
+        if semver.satisfies(version, rule) then
+            if best == "" or semver.compare(version, best) > 0 then best = version end
+        end
+    end
+    if best == "" then return "none" end
+    return best
+end
+
+func main(...) as int
+    array<string> versions = ["0.0.0-alpha", "1.2.0", "1.2.9", "1.3.0-0", "1.3.0-beta", "1.3.0", "2.0.0-alpha"]
+    // 默认不选预发布；测试通道必须显式声明，简写上界仍不能被绕过。
+    println("stable 1.2: " + bestVersion(versions, "1.2"))
+    println("beta channel: " + bestVersion(versions, ">=1.3.0-beta <1.4.0"))
+    println("next major: " + bestVersion(versions, "^1.0.0 >=2.0.0-alpha"))
+    println("zero prerelease: " + bestVersion(versions, "* >=0.0.0-alpha <0.0.0"))
+    println("wildcard upper: " + bestVersion(versions, "<=*.*"))
+    println("empty branch union: " + bestVersion(versions, "<* || 1.2"))
+    println("open range: " + bestVersion(versions, "* - *"))
+    return 0
+end

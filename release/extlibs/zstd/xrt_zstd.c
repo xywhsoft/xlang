@@ -58,6 +58,31 @@ static void __xrtZstdCopyError(xrtzstderror* pDst, const xrtzstderror* pSrc)
 	*pDst = *pSrc;
 }
 
+/* 保留 IO 首因，仅填写既有固定错误结构，不替换 XRT 错误对象。 */
+static void __xrtZstdSetIoError(xrtzstderror* pError, uint64 iInput,
+	uint64 iOutput, const char* sFallback)
+{
+	const xerror* pCause = xrtGetError();
+	int iCode = XRT_ZSTD_ERROR_IO;
+	switch ( xrtErrorKind(pCause) ) {
+		case XERR_ARGUMENT: iCode = XRT_ZSTD_ERROR_ARGUMENT; break;
+		case XERR_MEMORY: iCode = XRT_ZSTD_ERROR_MEMORY; break;
+		case XERR_RANGE: iCode = XRT_ZSTD_ERROR_LIMIT; break;
+		case XERR_STATE: iCode = XRT_ZSTD_ERROR_STATE; break;
+		case XERR_CANCELLED: iCode = XRT_ZSTD_ERROR_CANCELLED; break;
+		default: break;
+	}
+	__xrtZstdSetError(pError, iCode, pCause != NULL ? xrtErrorCode(pCause) : 0,
+		iInput, iOutput, "%s", pCause != NULL ? xrtErrorMessage(pCause) : sFallback);
+}
+
+/* 后端的真实 OOM 不能变成坏帧/状态错误，或被配置的输出限额遮盖。 */
+static int __xrtZstdBackendError(size_t iResult, int iDefault)
+{
+	return ZSTD_getErrorCode(iResult) == ZSTD_error_memory_allocation ?
+		XRT_ZSTD_ERROR_MEMORY : iDefault;
+}
+
 static bool __xrtZstdOverRatio(const xrtresourcelimits* pLimits, uint64 iInput, uint64 iOutput)
 {
 	uint64 iRatio = pLimits->iMaxCompressionRatio;
@@ -104,7 +129,8 @@ static bool __xrtZstdConfigureCompressor(ZSTD_CCtx* pContext, int iLevel,
 			ZSTD_c_enableLongDistanceMatching, 2 /* ZSTD_ps_disable */);
 	}
 	if ( ZSTD_isError(tResult) ) {
-		__xrtZstdSetError(pError, XRT_ZSTD_ERROR_STATE, (int)tResult,
+		__xrtZstdSetError(pError,
+			__xrtZstdBackendError(tResult, XRT_ZSTD_ERROR_STATE), (int)tResult,
 			0u, 0u, "%s", ZSTD_getErrorName(tResult));
 		return false;
 	}
@@ -203,7 +229,8 @@ static bool __xrtZstdCompressRun(xrtzstdcompressor* pCompressor, const uint8* pD
 		tOutput.pos = 0u;
 		tRemaining = ZSTD_compressStream2(pCompressor->Stream, &tOutput, &tInput, tMode);
 		if ( ZSTD_isError(tRemaining) ) {
-			__xrtZstdSetError(&pCompressor->Error, XRT_ZSTD_ERROR_DATA, (int)tRemaining,
+			__xrtZstdSetError(&pCompressor->Error,
+				__xrtZstdBackendError(tRemaining, XRT_ZSTD_ERROR_DATA), (int)tRemaining,
 				pCompressor->InputBytes, pCompressor->OutputBytes, "%s", ZSTD_getErrorName(tRemaining));
 			pCompressor->Failed = true;
 			return false;
@@ -275,7 +302,7 @@ XRT_API bool xrtZstdCompressorDrain(xrtzstdcompressor* pCompressor, xwriter* pWr
 	Output = xrtBufferView(pCompressor->Output);
 	if ( Output.Size != 0u &&
 		!xrtWriterWriteFull(pWriter, Output.Data, Output.Size, NULL) ) {
-		__xrtZstdSetError(&pCompressor->Error, XRT_ZSTD_ERROR_IO, 0,
+		__xrtZstdSetIoError(&pCompressor->Error,
 			pCompressor->InputBytes, pCompressor->OutputBytes, "cannot write zstd output stream");
 		pCompressor->Failed = true;
 		return false;
@@ -353,7 +380,8 @@ XRT_API xrtzstddecompressor* xrtZstdDecompressorCreate(const xrtzstdoptions* pOp
 	}
 	tResult = ZSTD_initDStream(pDecompressor->Stream);
 	if ( ZSTD_isError(tResult) ) {
-		__xrtZstdSetError(&pDecompressor->Error, XRT_ZSTD_ERROR_STATE, (int)tResult, 0, 0,
+		__xrtZstdSetError(&pDecompressor->Error,
+			__xrtZstdBackendError(tResult, XRT_ZSTD_ERROR_STATE), (int)tResult, 0, 0,
 			"%s", ZSTD_getErrorName(tResult));
 		pDecompressor->Failed = true;
 		return pDecompressor;
@@ -392,7 +420,8 @@ static bool __xrtZstdDecompressRun(xrtzstddecompressor* pDecompressor, const uin
 		tOutput.pos = 0u;
 		tResult = ZSTD_decompressStream(pDecompressor->Stream, &tOutput, &tInput);
 		if ( ZSTD_isError(tResult) ) {
-			__xrtZstdSetError(&pDecompressor->Error, XRT_ZSTD_ERROR_DATA, (int)tResult,
+			__xrtZstdSetError(&pDecompressor->Error,
+				__xrtZstdBackendError(tResult, XRT_ZSTD_ERROR_DATA), (int)tResult,
 				pDecompressor->InputBytes, pDecompressor->OutputBytes, "%s", ZSTD_getErrorName(tResult));
 			pDecompressor->Failed = true;
 			return false;
@@ -443,7 +472,8 @@ static bool __xrtZstdDecompressRun(xrtzstddecompressor* pDecompressor, const uin
 				if ( !__xrtZstdAllowNextFrame(pDecompressor) ) { return false; }
 				size_t tReset = ZSTD_initDStream(pDecompressor->Stream);
 				if ( ZSTD_isError(tReset) ) {
-					__xrtZstdSetError(&pDecompressor->Error, XRT_ZSTD_ERROR_STATE, (int)tReset,
+					__xrtZstdSetError(&pDecompressor->Error,
+						__xrtZstdBackendError(tReset, XRT_ZSTD_ERROR_STATE), (int)tReset,
 						pDecompressor->InputBytes, pDecompressor->OutputBytes, "%s", ZSTD_getErrorName(tReset));
 					pDecompressor->Failed = true;
 					return false;
@@ -491,7 +521,8 @@ XRT_API bool xrtZstdDecompressorUpdate(xrtzstddecompressor* pDecompressor, const
 		if ( !__xrtZstdAllowNextFrame(pDecompressor) ) { return false; }
 		tReset = ZSTD_initDStream(pDecompressor->Stream);
 		if ( ZSTD_isError(tReset) ) {
-			__xrtZstdSetError(&pDecompressor->Error, XRT_ZSTD_ERROR_STATE, (int)tReset,
+			__xrtZstdSetError(&pDecompressor->Error,
+				__xrtZstdBackendError(tReset, XRT_ZSTD_ERROR_STATE), (int)tReset,
 				pDecompressor->InputBytes, pDecompressor->OutputBytes,
 				"%s", ZSTD_getErrorName(tReset));
 			pDecompressor->Failed = true;
@@ -524,7 +555,7 @@ XRT_API bool xrtZstdDecompressorDrain(xrtzstddecompressor* pDecompressor, xwrite
 	Output = xrtBufferView(pDecompressor->Output);
 	if ( Output.Size != 0u &&
 		!xrtWriterWriteFull(pWriter, Output.Data, Output.Size, NULL) ) {
-		__xrtZstdSetError(&pDecompressor->Error, XRT_ZSTD_ERROR_IO, 0,
+		__xrtZstdSetIoError(&pDecompressor->Error,
 			pDecompressor->InputBytes, pDecompressor->OutputBytes, "cannot write zstd output stream");
 		pDecompressor->Failed = true;
 		return false;
@@ -642,11 +673,12 @@ XRT_API bool xrtZstdCompress(const void* pData, size_t iSize, const xrtzstdoptio
 		pData == NULL ? "" : pData, iSize);
 	ZSTD_freeCCtx(pCtx);
 	if ( ZSTD_isError(tWritten) ) {
-		if ( tCapacity < tBound ) {
+		if ( tCapacity < tBound && ZSTD_getErrorCode(tWritten) == ZSTD_error_dstSize_tooSmall ) {
 			__xrtZstdSetError(pError, XRT_ZSTD_ERROR_LIMIT, (int)tWritten, iSize, 0,
 				"zstd output exceeds maxOutput limit");
 		} else {
-			__xrtZstdSetError(pError, XRT_ZSTD_ERROR_DATA, (int)tWritten, iSize, 0,
+			__xrtZstdSetError(pError,
+				__xrtZstdBackendError(tWritten, XRT_ZSTD_ERROR_DATA), (int)tWritten, iSize, 0,
 				"%s", ZSTD_getErrorName(tWritten));
 		}
 		xrtFree(pBuffer);
@@ -782,7 +814,7 @@ XRT_API bool xrtZstdCompressStream(xreader* pReader, xwriter* pWriter, const xrt
 	while ( bRet ) {
 		size_t iRead = 0u;
 		if ( !xrtReaderRead(pReader, sInput, sizeof(sInput), &iRead) ) {
-			__xrtZstdSetError(&pCompressor->Error, XRT_ZSTD_ERROR_IO, 0,
+			__xrtZstdSetIoError(&pCompressor->Error,
 				pCompressor->InputBytes, pCompressor->OutputBytes, "cannot read zstd input stream");
 			bRet = false;
 			break;
@@ -839,7 +871,7 @@ XRT_API bool xrtZstdDecompressStream(xreader* pReader, xwriter* pWriter, const x
 	while ( bRet ) {
 		size_t iRead = 0u;
 		if ( !xrtReaderRead(pReader, sInput, sizeof(sInput), &iRead) ) {
-			__xrtZstdSetError(&pDecompressor->Error, XRT_ZSTD_ERROR_IO, 0,
+			__xrtZstdSetIoError(&pDecompressor->Error,
 				pDecompressor->InputBytes, pDecompressor->OutputBytes, "cannot read zstd input stream");
 			bRet = false;
 			break;

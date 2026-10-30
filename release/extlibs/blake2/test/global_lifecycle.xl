@@ -1,0 +1,6 @@
+import blake2
+
+// 顶层对象是合法正例：JIT和独立EXE都应在输出后正常退役，不移入main绕过。
+auto hash = blake2.blake2bHasher(16)
+assert hash.valid and hash.inputBytes == 0
+println("blake2 global handle ok")

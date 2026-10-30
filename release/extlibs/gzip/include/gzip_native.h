@@ -1,9 +1,7 @@
 #ifndef XLANG_GZIP_NATIVE_H
 #define XLANG_GZIP_NATIVE_H
-#ifndef XRT_MODULE_VALUE
-#define XRT_MODULE_VALUE
-#endif
-#include "xrt.h"
+#include <stdbool.h>
+#include <stddef.h>
 typedef struct xvalue xvalue;
 
 #ifdef __cplusplus

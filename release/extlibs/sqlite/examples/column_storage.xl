@@ -1,0 +1,28 @@
+import sqlite
+
+func main(...) as int
+    auto db = sqlite.memory()
+    // 数据库存储编码与 XLang 字符串编码独立；公开列接口始终返回 UTF-8。
+    assert db.execute("pragma encoding='UTF-16'; create table entry(name text)")
+    assert db.execute("insert into entry values('你好')")
+    auto stmt = db.prepare("select name, 9223372036854775807, zeroblob(4096) from entry")
+    assert stmt.row_ready()
+    string text = stmt.column_text(0)
+    string integer = stmt.column_text(1)
+    Buffer utf8 = stmt.column_text_bytes(0)
+    Buffer zeros = stmt.column_blob(2)
+    assert stmt.finalize() == sqlite.SQLITE_OK
+    assert db.close() == sqlite.SQLITE_OK
+
+    // 这些结果各自拥有存储，语句和连接释放后仍有效。
+    assert text == "你好" and utf8.text() == text and utf8.len() == 6
+    assert integer == "9223372036854775807" and zeros.len() == 4096
+    for value in zeros.toBytes()
+        assert value == 0
+    end
+    println(f"text: {text}")
+    println(f"integer: {integer}")
+    println(f"utf8 bytes: {utf8.len()}")
+    println(f"zero blob: {zeros.len()}")
+    return 0
+end

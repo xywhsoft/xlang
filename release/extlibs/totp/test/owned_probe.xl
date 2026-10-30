@@ -1,0 +1,6 @@
+import totp
+
+// 三个入口均显式引用，完整返回链不得在接管后产生正文副本。
+assert totp.hotp("GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ", 0) == "755224"
+assert totp.generateAt("GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ", 1111111109, 30, 8) == "07081804"
+assert string.byteLen(totp.generate("GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ")) == 6

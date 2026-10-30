@@ -5,6 +5,10 @@ extern "xb_validate_ean" func __b_validate_ean(string code, c_size length) as bo
 extern "xb_svg" @owned func __b_svg(string digits, c_size length, bool isUpcA, int height, int scale) as string?
 extern "xb_ascii" @owned func __b_ascii(string digits, c_size length, bool isUpcA) as string?
 
+// 只在可空原生结果失败时构造原有异常，成功临时值直接转移。
+func __b_render_error(string message) as string
+    throw ValueError message
+end
 
 
 // ean13 生成 EAN-13 模块位串（0/1 数组，共 95 位）
@@ -38,35 +42,23 @@ end
 
 // ean13Svg 生成矢量条形图
 export func ean13Svg(string digits, int height, int scale) as string
-    string? result = __b_svg(digits, c_size(string.byteLen(digits)), false, height, scale)
-    if result == null then
-        throw ValueError "barcode: invalid EAN-13 or SVG size"
-    end
-    return result
+    return (__b_svg(digits, c_size(string.byteLen(digits)), false, height, scale) ??
+        __b_render_error("barcode: invalid EAN-13 or SVG size"))
 end
 
 // upcASvg 生成 UPC-A 矢量条形图
 export func upcASvg(string digits, int height, int scale) as string
-    string? result = __b_svg(digits, c_size(string.byteLen(digits)), true, height, scale)
-    if result == null then
-        throw ValueError "barcode: invalid UPC-A or SVG size"
-    end
-    return result
+    return (__b_svg(digits, c_size(string.byteLen(digits)), true, height, scale) ??
+        __b_render_error("barcode: invalid UPC-A or SVG size"))
 end
 
 // ean13Ascii 用明暗字符渲染条码
 export func ean13Ascii(string digits) as string
-    string? result = __b_ascii(digits, c_size(string.byteLen(digits)), false)
-    if result == null then
-        throw ValueError "barcode: invalid EAN-13"
-    end
-    return result
+    return (__b_ascii(digits, c_size(string.byteLen(digits)), false) ??
+        __b_render_error("barcode: invalid EAN-13"))
 end
 
 export func upcAAscii(string digits) as string
-    string? result = __b_ascii(digits, c_size(string.byteLen(digits)), true)
-    if result == null then
-        throw ValueError "barcode: invalid UPC-A"
-    end
-    return result
+    return (__b_ascii(digits, c_size(string.byteLen(digits)), true) ??
+        __b_render_error("barcode: invalid UPC-A"))
 end

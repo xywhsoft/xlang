@@ -13,6 +13,6 @@
     "links": [],
     "loadlibs": [],
     "dependencies": [],
-    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/cwd_snapshot.xl", "test/allocations.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/cwd_snapshot.xl", "test/allocations.xl", "test/owned_events.xl", "test/top_level.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

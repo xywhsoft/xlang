@@ -83,6 +83,8 @@ XRT_API bool xrtMinizCompress(const void* pData, size_t iSize, const xrtminizopt
 	xbuffer** ppOutput, xrtminizerror* pError);
 XRT_API bool xrtMinizDecompress(const void* pData, size_t iSize, const xrtminizoptions* pOptions,
 	xbuffer** ppOutput, xrtminizerror* pError);
+/* Reader/Writer 均借用；IO 失败保留可识别的 XRT 首因、代码和消息，
+ * 不把内存或限额等错误统一改成 IO。调用方仍负责关闭流。 */
 XRT_API bool xrtMinizCompressStream(xreader* pReader, xwriter* pWriter, const xrtminizoptions* pOptions,
 	xrtprogressproc pProgress, ptr pUserData, xrtminizerror* pError);
 XRT_API bool xrtMinizDecompressStream(xreader* pReader, xwriter* pWriter, const xrtminizoptions* pOptions,

@@ -1,0 +1,22 @@
+import toml
+
+func main(...) as int
+    // 年份 0000 既能由构造器写出，也必须能由解析器读回；按公历为闰年。
+    var config = toml.parse("date = 0000-02-29\nstamp = 0000-01-01T00:00:00.000001Z\n")
+    assert toml.dateTimePart(config["date"],0) == 0
+    assert toml.dateTimePart(config["date"],2) == 29
+    assert toml.dateTimePart(config["stamp"],6) == 1
+    var readBack = toml.parse(toml.stringify(config))
+    assert toml.dateTimeText(readBack["date"]) == "0000-02-29"
+    for text in ["date = 0000-02-30\n", "date = 1900-02-29\n", "date = 10000-01-01\n", "date = -001-01-01\n"]
+        bool caught = false
+        try
+            toml.parse(text)
+        catch ValueError error
+            caught = true
+        end
+        assert caught
+    end
+    println("toml calendar: PASS")
+    return 0
+end

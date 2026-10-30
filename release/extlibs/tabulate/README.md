@@ -1,5 +1,16 @@
 # tabulate
 
+2026-10-28：`xtab_render` 的 C 返回类型明确为 XRT 分配的 `char*`，
+XLang `@owned string?` 直接接管，删除 `point/takeCstr` 中转。
+公开写法、空表结果和失败判断不变；接管仍需一次 `strlen` 获取长度。
+Windows 严格 C、线程、语言边界/分配故障与生成 C 的无复制检查通过；
+Linux 严格 C、ASan/UBSan、线程与 JIT 也通过。两平台默认门禁均在
+顶层对象的边界 EXE 打印 PASS 后，于退出清理阶段抛 RuntimeError；
+这是已登记的独立 AOT 阻断，不因这项优化而签收整包。Linux 黄金文件
+固定以 LF 检出，避免 Windows 工作树的 CRLF 使 `diff` 提前失败。
+聚焦复验可在 Linux 使用 `TABULATE_SKIP_AOT=1 bash release/extlibs/tabulate/test/check.sh`；
+该模式不代表发布签收，默认命令仍保留 AOT 红灯。
+
 2026-10-26：当前发布版的 Windows 默认包门禁新增顶层对象边界 AOT，
 在严格 C、线程、XLang JIT 和核心 AOT 通过后，独立 EXE 于退出清理
 阶段报 `RuntimeError: operation is not valid in the current state`；
@@ -54,13 +65,13 @@ sanitizer，Unicode 宽度仍遵守上文的有限估算合同。
 - 边界：包内 `test/test_tabulate.c`、`test/test_threads.c`、`test/boundaries.xl`，以及 `test/cases/extlib_tabulate.xl`
 - `xl check extlibs/tabulate/test/private_native_negative.xl` 应拒绝导入方调用原生单元格追加入口；该负例仅编译，不执行。
 
-在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/tabulate/test/check.ps1`，联合验证严格 GCC 清单宏和 ABI、C/XL 边界与分配故障、私有原生入口编译负例，以及包运行器 C、单文件 C 和 XLang 三条范例路径的固定输出。也可单独运行 `.\release\xl.exe run release/extlibs/tabulate/test/boundaries.xl` 或 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package tabulate -Source release/extlibs/tabulate/test/test_tabulate.c`。测试覆盖空值/逗号、中文宽度、表头替换、异常回滚、最大行数/字段/总预算、独立结果与多线程独立实例。
+在仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/tabulate/test/check.ps1`，联合验证严格 GCC 清单宏和 ABI、C/XL 边界与分配故障、私有原生入口编译负例，以及包运行器 C、单文件 C 和 XLang 三条范例路径的固定输出。也可单独运行 `.\release\xl.exe run release/extlibs/tabulate/test/boundaries.xl` 或 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package tabulate -Source release/extlibs/tabulate/test/test_tabulate.c`。测试覆盖空值/逗号、中文宽度、表头替换、异常回滚、最大行数/字段/总预算、独立结果与多线程独立实例。
 
 默认 Windows 包门禁还构建运行无输出核心与公开 XLang 范例 AOT，并将范例输出与固定预期比较；`-SkipAot` 仅运行 C/JIT 聚焦门禁，不代表发布签收。AOT 产物使用每次独占的构建目录，门禁结束时只清理本次目录。
 
 C 测试还注入创建时的首次分配失败，验证返回空句柄且清除故障后可再次创建。
 
-Linux 包级门禁：从 `demo6` 运行 `bash release/extlibs/tabulate/test/check.sh`，以严格 GCC、ASan/UBSan 和泄漏检查执行 C 边界及四线程独立实例测试，同时运行中央、包内 XLang 用例和双语范例逐字输出对照。
+Linux 包级门禁：从仓库根目录运行 `bash release/extlibs/tabulate/test/check.sh`，以严格 GCC、ASan/UBSan 和泄漏检查执行 C 边界及四线程独立实例测试，同时运行中央、包内 XLang 用例和双语范例逐字输出对照。
 
 公开 C 接口的行列计数返回 `int64_t`，与 XLang `int` 的 ABI 一致；`append_cell` 的长度则保持 C `long long`，对应 XLang `c_longlong`。
 

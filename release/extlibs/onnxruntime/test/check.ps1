@@ -5,7 +5,7 @@ $root = (Resolve-Path (Join-Path $PSScriptRoot '../../../..')).Path
 $release = Join-Path $root 'release'
 $workRoot = Join-Path $root 'build/test'
 $work = Join-Path $workRoot ('onnxruntime_guard_' + [guid]::NewGuid().ToString('N'))
-$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
+$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $xl = Join-Path $release 'xl.exe'
 [void][IO.Directory]::CreateDirectory($work)
 

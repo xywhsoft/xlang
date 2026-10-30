@@ -8,6 +8,9 @@ func main(...) as int
     assert pinyin.convert("😀") == "😀"
     assert pinyin.convert("") == ""
     assert pinyin.initials("") == ""
+    // 固定词表只改正错误读音；合法的既有多音字选择保持不变。
+    assert pinyin.convert("伉佛女地") == "kang fo nv di"
+    assert pinyin.initials("伉佛女地") == "kfnd"
 
     string longText = ""
     for i in range(5000)

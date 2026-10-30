@@ -2,3 +2,5 @@ self exists: true
 name known: true
 self listed: true
 rss positive: true
+parent query: true
+count positive: true

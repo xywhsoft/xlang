@@ -1,0 +1,13 @@
+import cuckoo
+
+func main(...) as int
+    // 与模块级用例相同的合法操作，仅对象作用域不同。
+    cuckoo.CuckooFilter filter = cuckoo.create(16)
+    assert filter.valid
+    filter.add("lifetime")
+    assert filter.count == 1 and filter.contains("lifetime")
+    assert filter.remove("lifetime") and filter.count == 0
+    filter.clear()
+    println("cuckoo lifetime: PASS")
+    return 0
+end

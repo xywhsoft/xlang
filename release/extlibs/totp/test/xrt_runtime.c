@@ -1,3 +1,6 @@
-#define XRT_MODULE_ALL
+#define XRT_MODULE_CRYPTO_SHA1
+#define XRT_MODULE_TIME
+#define XRT_MODULE_THREAD
+#define XRT_MODULE_MEMORY_DEBUG
 #define XRT_IMPLEMENTATION
 #include "xrt.h"

@@ -1,0 +1,48 @@
+import brotli
+
+class ProgressState
+    int calls = 0
+end
+
+func main(...) as int
+    string root = dir.temp("", "xlang-brotli-files-example-", "")
+    string source = path.join(root, "输入.bin")
+    string packed = path.join(root, "packed.br")
+    string target = path.join(root, "输出.bin")
+    ProgressState state = ProgressState()
+    try
+        // 和 C 范例使用完全相同的四字节输入，包含 NUL 和非 UTF-8 字节。
+        Buffer input = Buffer()
+        for value in [0, 255, 128, 65]
+            input.appendByte(int(value))
+        end
+        assert file.writeBytes(source, input.toBytes())
+        brotli.compressFile(source, packed, quality = 4,
+            onProgress = func(int inputBytes, int totalBytes, int outputBytes) as bool
+                assert inputBytes == totalBytes and outputBytes >= 0
+                state.calls += 1
+                return true
+            end)
+        brotli.decompressFile(packed, target)
+        assert file.readBytes(target) == input.toBytes()
+        assert state.calls > 0
+
+        file.writeText(target, "keep")
+        bool cancelled = false
+        try
+            brotli.decompressFile(packed, target,
+                onProgress = func(int a, int b, int c) as bool
+                    return false
+                end)
+        catch CancelledError error
+            cancelled = true
+        end
+        assert cancelled and file.readText(target) == "keep"
+    finally
+        assert dir.delete(root)
+    end
+    println("files: ok")
+    println("progress: ok")
+    println("cancel: preserved")
+    return 0
+end

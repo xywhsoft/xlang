@@ -1,11 +1,66 @@
 # snappy
 
+## 当前验收（2026-10-31）
+
+修复四条 Reader/Writer 失败路径丢失模块分类、backend 和消息的
+问题；原 XRT 首错对象保持，不改变语言异常分派。最终 C 夹具
+30 场景在 Windows GCC/TCC 与 Linux sanitizer 均旧 32 条失败断言→0，
+含两种真实 Writer 扩容 OOM、立即恢复、偏移、关闭归属和内存快照。
+
+打开态文件事务改为借用已有句柄、关闭前回滚。96 组 Windows
+旧 8 红→新 0；新旧目标、原始 cause、七项内存快照保持。Linux
+新旧均通过。新文件事务双语例验证 UTF-8 路径、取消/回调错误保护
+旧目标和立即重试，两平台五条执行路径与黄金输出一致。
+
+**整包仍未签收**：Windows 默认 88 阶段中 86 项符合要求，关闭态
+回滚 OOM 仍有两组临时残留（RFS），另有顶层 M2；Linux 默认只剩
+M2。原379空块场景、26实际原型、新旧双语、各17条普通独立程序
+路径和独立 Python 标准流互通通过，不替代最终失败边界。
+未改主线、vendor、冻结 XRT 或 API/ABI，详[本轮审查](docs/io-file-audit-2026-10-31.md)。
+
+普通 C Reader/Writer 流使用 xrtprogressproc，native 文件 ABI 则
+使用 XRT callable，不是普通 C 函数指针；示例见 examples/README.md。
+下方日期结果仅指各次现场，不是当前完整发布签收。
+
+## 2026-10-30 标准空块审查
+
+修复标准 framing 空数据块被误拒绝：未压缩空块只有四字节 CRC，
+压缩空块的 raw Snappy 可声明零长度。两者仍校验 CRC、raw 指令和
+截断，不把“输出为空”当作数据自动有效；空输入（缺 identifier）
+仍拒绝。编码器的现有输出策略不变，没有加入旧格式兼容。
+
+Windows/Linux 同一最终 C 测试各 379 场景、10 个实际 XRT OOM，旧源
+352 条失败断言变为 0；新双语流式范例、26 个实际生成原型、各 13 条
+正常独立程序路径和独立实现互通通过。Linux 含 ASan/UBSan/泄漏检查。
+默认门禁最后仍因 **M2 顶层对象 AOT 退役失败** 返回 1，不能按整包
+发布通过。包自身只改上述解码分支；vendor、冻结 XRT 和语言主线未改。
+
+新双语范例及可运行命令见 [examples/README.md](examples/README.md)，
+边界和现场见[空块审查](docs/empty-chunks-audit-2026-10-30.md)。
+下列旧日期结果是历史记录，不覆盖本次默认门禁红项。
+
+2026-10-29 新增 `test/top_level.xl`：全局持有真实压缩器，main 内
+校验有效，退出时自然退役。固定发布版 Windows/Linux JIT 均退出0，
+独立 EXE 均打印 PASS 后报状态错误并退出1，确认 **M2 主线阻断**。
+默认门禁已接入生命周期专项，失败现场保留；旧函数内使用与格式
+互通通过不覆盖顶层析构，本包暂不作完整发布签收。复现及恢复方向
+见 `dev/extlib_blockers/global_native_class_aot_fini.md`；不移动全局对象、
+不提前销毁或吞异常，不在包内修改主线。
+
+2026-10-28 修复独立 C 桥接头的包含顺序：核心头先包含时，旧桥接头
+无法补上 `xvalue` 声明。现使用标准 bool/size_t 和公开 opaque 前向
+声明，既可独立包含，也不再打开宿主未选择的 XRT VALUE 模块。双平台
+默认门禁新增单独、核心头优先、桥接头优先、已配置 XRT 优先四种严格
+C 编译和模块选择不变检查。本次聚焦验证通过 Windows/Linux 四种组合、
+包自有 C 源与基础 C/XL 范例 JIT/AOT 同输出；不以此冒充重跑完整算法、
+分配故障或压力矩阵。压缩实现、运行库和公开 ABI 均未改。
+
 2026-10-26 当前发布物：Windows 默认 `test/check.ps1` 和独立
 `test/check_interop.ps1` 均退出 0；严格 C、分配故障、Python Snappy
 0.7.3 标准 framed stream 双向互通、语言 JIT/AOT 与 C/XLang 范例
 对照通过。Linux `test/check.sh` 退出 0：C ASan/UBSan、中央和包内
 语言 JIT、七条独立 EXE AOT，以及文件/基础/教学范例输出对照。
-Windows 从 `demo6` 根目录直接运行基础范例也通过。旧 Linux
+Windows 从仓库根目录直接运行基础范例也通过。旧 Linux
 `cstring`、根目录 VFS 和 AOT 快照缺符号阻断不再复现；32 位、
 TSan、长时压力与持续模糊测试尚未验收。
 
@@ -43,14 +98,14 @@ C 侧直接调用 `xrtSnappyCompress` / `xrtSnappyDecompress`，示例见 `examp
 
 framing 没有结束标记，因此末尾 chunk 不完整会报错，但在完整 chunk 边界提前结束无法检测。校验采用 masked CRC32C。数据块原文上限 64 KiB；未知可跳过 chunk 会跳过，未知不可跳过 chunk 会拒绝。
 
-测试：`test/test_snappy.c` 覆盖固定格式样本、增量输入、资源上限、校验、截断、跳过 chunk 与串联流。`test/file_ops.xl` 覆盖 UTF-8 文件往返、进度回调、覆盖拒绝、取消清理与限额失败时的既有目标保护；中央 XLang 用例在 `test/cases/extlib_snappy.xl` 和 `extlib_snappy_progress.xl`。Linux 包级门禁同次运行 C ASan/UBSan、上述语言用例的 JIT/七条独立 EXE AOT 与 C/XLang 基础范例逐字节对照。
-Windows 可在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/snappy/test/check.ps1 -SkipAot`，同次检查严格 GCC 独立链接运行的 C 边界、TCC C 边界、私有成员负例、XLang 主用例/进度/文件操作，以及 GCC C、TCC C、XLang 三路固定输出。脚本使用每次独立的临时构建目录并清理本次产物；不加 `-SkipAot` 时还会构建和运行独立 EXE。
+测试：`test_snappy.c`、`empty_chunks_c.c` 覆盖格式、状态、限额、空块、校验/截断与串联，`io_errors_c.c` 覆盖首因和真实 Writer OOM，`file_rollback_c.c` 覆盖 native 文件双故障。`file_ops.xl` 和中央 `extlib_snappy*.xl` 覆盖语言调用。Linux 包级门禁包含 ASan/UBSan/泄漏与各17条普通独立程序路径。
+Windows 从仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/snappy/test/check.ps1`，同次检查严格 GCC、TCC C、私有成员精确拒绝、XLang、实际生成 ABI、双语黄金输出与普通 AOT，最后独立收集关闭态 RFS 和顶层 M2 真实失败；Linux 此轮关闭态过但仍 M2。`-SkipAot` 仅用于开发，不用于发布签收。每个进程有上限，保留命令、真实状态/输出与前后指纹；失败保留现场，全部通过才清理。
 
 包清单现公开 `include/` 并声明六个直接 XRT/XRuntime 模块。
 `tools/run_extlib_c.ps1 -Package snappy -Source release/extlibs/snappy/examples/basic.c`
 可直接运行 C 范例；按清单模块独立编译运行时、三份包 C 源和范例后，
-Windows 严格 GCC 构建及运行通过。裁剪运行时对象为 292,981 字节，
-不是最终 `xl build` 应用体积。包内未使用的 varint 长度函数已移除。
+Windows 严格 GCC 构建及运行通过。对象大小依赖模块和编译配置，
+不能代替最终应用体积。包内未使用的 varint 长度函数已移除。
 
 旧发布物的 Buffer 单字节异或曾有共享 XLIR 诊断，最小复现见
 `dev/extlib_blockers/argon2_byteat_sub.md`；完整 AOT 曾缺
@@ -67,7 +122,7 @@ Windows 严格 GCC 构建及运行通过。裁剪运行时对象为 292,981 字�
 联合门禁还通过中央主用例、教学范例、文件用例及双语基础输出。单字节
 算术的共享 XLIR 最小复现仍失败，完整 AOT 阻断不变。
 
-可选的独立实现互通测试（在 `demo6` 目录执行）：先将 `python-snappy==0.7.3` 安装到测试环境，或运行 `python -m pip install --target build/test/snappy/python_oracle python-snappy==0.7.3`；再执行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/snappy/test/check_interop.ps1`。它用标准 framed stream 双向传递二进制、重复及跨 64 KiB 分块样本；Python 只用于测试，不是扩展库的运行依赖。
+可选的独立实现互通测试（在仓库根目录执行）：先将 `python-snappy==0.7.3` 安装到测试环境，或运行 `python -m pip install --target build/test/snappy/python_oracle python-snappy==0.7.3`；再执行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/snappy/test/check_interop.ps1`。它用标准 framed stream 双向传递二进制、重复及跨 64 KiB 分块样本；Python 只用于测试，不是扩展库的运行依赖。
 
 2026-10-18：六种选项 ABI 负例先红后绿，覆盖流对象、一次性和文件流入口；Windows 严格 GCC/C/XLang 与 Linux C ASan/UBSan、XLang/双语对照通过。随后包外 `updateNative(point,size)` 两条只编译负例确认可达，再将 13 个原生流方法私有化；Linux 包级联合门禁通过。完整 AOT 与共享 XLIR 问题仍未签收。
 

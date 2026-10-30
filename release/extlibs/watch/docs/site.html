@@ -22,6 +22,7 @@
     <h1>watch</h1>
     <p class="extlib-lead">轮询文件及目录元数据，获取创建、修改、删除事件。</p>
     <p>版本 1.0.0 · C / xlang · 无扩展库依赖</p>
+    <p>当前发布验收保留M2阻断：顶层Watcher在独立程序退出时失败，局部对象与下述普通功能已验证。不能把历史局部门禁通过当作整个包已完成发布签收。</p>
   </header>
   <section id="start">
     <h2>快速开始</h2>
@@ -43,6 +44,7 @@ watcher.remove(index)</code></pre>
       <tr><td><code>Watcher.path(index) / count</code></td><td>读取路径和活跃监视数量。</td></tr>
     </tbody></table>
     <p>这是基于 XRT 元数据的轮询实现，不是操作系统通知接口。可用时比较文件身份和创建时间，同大小、保留修改时间的原子替换也能报告变化；目录直接子项同样纳入可用元数据。目录只扫描直接子项，事件指向被监视目录；两次轮询之间的全部中间变化不能还原。目录在元数据查询后、枚举前消失或变为文件时有界重取样一次；权限和内存错误仍返回失败。单个实例不支持多线程同时操作。XL 的路径入口不接受内嵌 NUL，避免 C 字符串截断。</p>
+    <p>目录子项的元数据按字段顺序哈希，避免相等时间或字段换位互相抵消；包含可用位，不读取未提供字段。访问时间不参与，枚举顺序变化不会造成伪事件。仍是有限64位摘要，不保证无碰撞，也不检查文件内容；每个子项多一次64字节元数据哈希，没有新增堆分配。枚举错误不会被随后的关闭错误覆盖。</p>
   </section>
   <section id="c-api">
     <h2>C 对照</h2>
@@ -64,9 +66,14 @@ int main(void)
   </section>
   <section id="verify">
     <h2>验证状态</h2>
+    <p>2026-10-29：修复目录摘要抵消和关闭覆盖首因；受控12场景8项失败扩为15场景全过，Linux真实同大小、同inode改写也先红后绿。Windows默认49阶段只有最后全局退役失败；Linux sanitizer、八个实际生成原型、两平台各十条普通独立程序与双语输出均先通过。新增顶层正例两平台均JIT0、构建0，独立EXE打印后退出1，明确保留M2红项，不提供包侧绕过。</p>
+    <p>2026-10-28：修复接管事件后的额外复制在 OOM 时导致事件永久丢失的问题。真实文件事件的逐分配点失败重试、成功后不重复交付和空事件一次结果分配均通过；两平台完整门禁还覆盖 C 边界、Linux ASan/UBSan、目录竞态和双语 JIT/AOT。当前直接返回拥有型 string，不增加私有回滚队列。该保证不等于还原两次元数据轮询之间的所有文件变化。</p>
     <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/watch/test/check.ps1
-bash release/extlibs/watch/test/check.sh</code></pre>
-    <p>C 范例可从 demo6 根目录直接以 <code>xl run release/extlibs/watch/examples/watch_c.c</code> 运行；Windows/Linux 包门禁均将其与 GCC、XLang 的输出对照。成对范例在独占临时目录验证文件创建、修改、删除事件，并演示索引删除与复用。Windows 严格 GCC、C/XLang 边界、双语范例及带输出 AOT 通过；两平台的定向目录竞争测试覆盖删除、变更类型与真实 I/O 错误，Linux C 文件/目录事件通过 ASan/UBSan，Linux XLang 包内边界用例也通过。文件/工作目录边界用例使用独占临时目录，不再写删固定的 <code>build/test/watch_guard</code>。C 源仅使用公开 XRT 头文件。旧 Windows AOT 缺符号已解除。</p>
+bash release/extlibs/watch/test/check.sh
+xl run release/extlibs/watch/examples/directory.xl
+xl run release/extlibs/watch/examples/directory_c.c</code></pre>
+    <p>新directory双语范例输出相同三行，展示目录的直接子项同大小改写、目录级MODIFIED和不重复交付。范例调早独占临时文件的初始mtime，不依赖sleep；正常结束清理本次目录。完整门禁当前应因M2返回非零，不能用SkipAot作为发布验收。</p>
+    <p>C 范例可从仓库根目录直接以 <code>xl run release/extlibs/watch/examples/watch_c.c</code> 运行；Windows/Linux 包门禁均将其与 GCC、XLang 的输出对照。成对范例在独占临时目录验证文件创建、修改、删除事件，并演示索引删除与复用。Windows 严格 GCC、C/XLang 边界、双语范例及带输出 AOT 通过；两平台的定向目录竞争测试覆盖删除、变更类型与真实 I/O 错误，Linux C 文件/目录事件通过 ASan/UBSan，Linux XLang 包内边界用例也通过。文件/工作目录边界用例使用独占临时目录，不再写删固定的 <code>build/test/watch_guard</code>。C 源仅使用公开 XRT 头文件。旧 Windows AOT 缺符号已解除。</p>
     <p>2026-10-26 新发布物复核：Windows/Linux 默认包门禁通过 C 边界、目录竞态、XLang JIT/AOT 和公开双语范例；Windows 新增工作目录快照、分配故障及公开语言范例 AOT，两平台新增 C 单文件范例独立 EXE，固定事件输出与 GCC、TCC、XLang 一致。Linux C 侧保留 ASan/UBSan。事件文本由 XLang 直接接管 C 分配，不复制正文。能力范围仍是非递归元数据轮询，不能还原两次轮询之间的全部变化。</p>
   </section>
 </main>

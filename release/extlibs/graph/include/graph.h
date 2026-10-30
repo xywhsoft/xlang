@@ -18,7 +18,7 @@ XRT_EXTERN_C_BEGIN
 
 /* 输入借用且不修改：[name] 声明孤立点，[from,to] 或 [from,to,weight] 声明有向边。
  * 节点按完整字符串字节辨认，支持空串、UTF-8 和 NUL；查询名称显式携带字节长度。
- * 权重为有限 int/float；Dijkstra 另要求非负。
+ * 权重为有限 int/uint/float；Dijkstra 另要求非负。
  * 返回的 xvalue 由调用者 xrtValueRelease；失败返回 NULL 并设置 XRT error。
  * is_dag 的 false 也可能是正常有环结果，C 调用者用 xrtGetError 区分失败。
  * 每次调用清除旧错误，无共享可变状态；调用期间输入不得被其他线程修改。

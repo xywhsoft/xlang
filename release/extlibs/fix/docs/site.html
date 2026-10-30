@@ -44,6 +44,7 @@ println(decoded["fields"][2]["value"])</code></pre>
       <tr><td><code>validate(message)</code></td><td>坏帧返回 false；分配失败不是坏帧，在 XLang 中抛 MemoryError。</td></tr>
     </tbody></table>
     <p>单帧最多 16 MiB、4096 个应用字段；加上自动生成的 8、9、10，最大合法解析结果有 4099 项。8=BeginString 必须非空；文本值不能含 SOH 或 NUL，XL 传入 C 字符串接口的文本也拒绝内嵌 NUL，避免静默截断。C 的 BeginString、字段文本及 parse 输入均按 16 MiB 限界扫描，超限报告 RANGE；XLang 的 field/build/parse 相应抛 RangeError，validate 对超限输入返回 false。独立字段文本可恰好达到 16 MiB，但完整帧仍须留出头尾字段空间。字段对象的值支持字符串、有符号/无符号整数、浮点和布尔值；无符号整数按十进制完整写出。浮点字段使用点号小数，不受进程区域设置影响。它是帧编解码器，不提供交易会话、序号/重发、场所字典验证或网络连接。</p>
+    <p>标签遵循 <a href="https://forum.fixtrading.org/t/fix-standard-errors-and-omissions-2018-2021/14231/13">FIX TagNum</a> 的正整数十进制语法，不允许前导零、正负号或空白。即便 BodyLength/CheckSum 正确，035= 也无效。此限制只针对标签：9=0008 与应用字段值 0007 仍可用，CheckSum 保留三位补零。标签沿用本包 int64 正数范围，不扩成场所字典校验。</p>
   </section>
   <section id="c-api">
     <h2>C 对照</h2>
@@ -66,8 +67,10 @@ int main(void)
   </section>
   <section id="verify">
     <h2>验证状态</h2>
-    <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/fix/test/check.ps1 -SkipAot
+    <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/fix/test/check.ps1
 bash release/extlibs/fix/test/check.sh</code></pre>
+    <p>2026-10-30：共享标签解析处增加检查，374组四种标签位置/前导零/畸形数字/边界/数值文本的旧实现256项红，修复后归零；另四条逐点 OOM/立即恢复核对活动分配和非法释放。Python 独立组帧参照比较374条完整字节与 parse/validate 结果，GCC/TCC内存运行/独立程序逐字对照。新增 tag_gate.xl/tag_gate_c.c 五行黄金例展示收到报文的校验、保留值原文、错误与恢复，不写文件。</p>
+    <p>命令从仓库根目录执行，不带旧 demo6 前缀；需 GCC 与 Python3.10+，可用 CC/PYTHON 指定路径。先验真实三模块独立构建、原 C 边界、新标签边界与双语、八条实际生成原型、五个独立程序，再强制原语言数组构帧正例。Linux 增加 ASan/UBSan/泄漏检查；日志、输入指纹与失败现场保留。当前 Windows 预验最后仍在原中央数组构帧的 M1 处失败，不能把新解析范例或构建成功当作整包验收；最终双平台证据见仓库验收矩阵，本页更新不代表外部官网已部署。</p>
     <p>此前 Windows 严格 GCC、C 范例单文件 <code>xl run</code>、C/XLang 边界与双语同输出已通过；Linux 同次覆盖 C ASan/UBSan、C 范例单文件运行、中央及包内 XLang 边界、分配失败，以及 C/XLang 范例逐字节对照。两平台还用独立检查器按报文字节重算 <code>9=BodyLength</code> 与 <code>10=CheckSum</code> 并核对字段顺序，不只依赖本包的 <code>validate</code>；包门禁需要 Python 3。最大应用字段数、逗号小数点区域设置，以及四个公开入口的首次分配失败与恢复已有回归。C 的 <code>validate</code> 在内存不足时保留 XRT 内存错误，其他格式错误仍按谓词返回；XLang 的四个入口将分配失败报告为 <code>MemoryError</code>。当前发布版的最小 XLang 用例在将语言数组传给 <code>fix.build</code> 时抛 <code>ValueError</code>：原生入口未收到预期数组类型；独立 EXE 与完整包级门禁仍待共享 foreign <code>var</code> 容器投影修复后复验。旧版 <code>xl6ValueDataSnapshotV1</code> 缺符号不是当前阻断，历史双语通过记录不能签收本版。详情见包内 README 和阻断复现。</p>
   </section>
 </main>

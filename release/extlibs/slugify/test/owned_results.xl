@@ -1,0 +1,36 @@
+import slugify
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    array<string> sources = ["Hello, World!", "你好 Café", "", "!!!"]
+    array<string> expected = ["hello-world", "你好-cafe", "", ""]
+    for operation in range(4)
+        string source = sources[operation]
+        for budget in range(2)
+            string result = ""
+            bool memoryCaught = false
+            bool triggered = false
+            // 与 C 一致：短结果只需一个输出缓冲，Take 后不再复制正文。
+            assert failAfter(uint64(budget))
+            try
+                result = slugify.slugify(source)
+            catch MemoryError error
+                memoryCaught = true
+            finally
+                triggered = failTriggered()
+                failClear()
+            end
+            if budget == 0 then
+                assert triggered and memoryCaught
+            else
+                assert not triggered and not memoryCaught, "slugify copied text after the native result was adopted"
+                assert result == expected[operation]
+            end
+        end
+    end
+    println("slugify owned result budgets: PASS")
+    return 0
+end

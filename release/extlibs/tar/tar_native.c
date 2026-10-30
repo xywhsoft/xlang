@@ -221,7 +221,8 @@ static void* xtar_validate_reader(xrttarreader* pReader, xbuffer* pOwnedInput)
 	const xrttarerror* pError = xrtTarReaderError(pReader);
 
 	if ( pReader == NULL || (pError != NULL && pError->iCode != XRT_TAR_OK) ) {
-		xtar_publish_reader_error(pReader);
+		/* 空结果已由构造器报告真实首因，不能覆盖为笼统的 I/O 错误。 */
+		if ( pReader != NULL ) { xtar_publish_reader_error(pReader); }
 		xrtTarReaderDestroy(pReader);
 		xrtBufferDestroy(pOwnedInput);
 		return NULL;
@@ -412,44 +413,44 @@ XTAR_EXPORT int64 xtar_reader_mtime(void* pValue)
 
 
 
-XTAR_EXPORT int64 xtar_reader_uid(void* pValue)
+XTAR_EXPORT uint64 xtar_reader_uid(void* pValue)
 {
 	xtar_reader_handle* pHandle = (xtar_reader_handle*)pValue;
-	return pHandle != NULL && pHandle->HasEntry ? (int64)pHandle->Entry.iUID : 0;
+	return pHandle != NULL && pHandle->HasEntry ? pHandle->Entry.iUID : 0;
 }
 
 
 
-XTAR_EXPORT int64 xtar_reader_gid(void* pValue)
+XTAR_EXPORT uint64 xtar_reader_gid(void* pValue)
 {
 	xtar_reader_handle* pHandle = (xtar_reader_handle*)pValue;
-	return pHandle != NULL && pHandle->HasEntry ? (int64)pHandle->Entry.iGID : 0;
+	return pHandle != NULL && pHandle->HasEntry ? pHandle->Entry.iGID : 0;
 }
 
 
 
-XTAR_EXPORT int xtar_reader_mode(void* pValue)
+XTAR_EXPORT unsigned int xtar_reader_mode(void* pValue)
 {
 	xtar_reader_handle* pHandle = (xtar_reader_handle*)pValue;
-	return pHandle != NULL && pHandle->HasEntry ? (int)pHandle->Entry.iMode : 0;
+	return pHandle != NULL && pHandle->HasEntry ? pHandle->Entry.iMode : 0;
 }
 
 
 
-XTAR_EXPORT int xtar_reader_device_major(void* pValue)
+XTAR_EXPORT unsigned int xtar_reader_device_major(void* pValue)
 {
 	xtar_reader_handle* pHandle = (xtar_reader_handle*)pValue;
 	return pHandle != NULL && pHandle->HasEntry ?
-		(int)pHandle->Entry.iDeviceMajor : 0;
+		pHandle->Entry.iDeviceMajor : 0;
 }
 
 
 
-XTAR_EXPORT int xtar_reader_device_minor(void* pValue)
+XTAR_EXPORT unsigned int xtar_reader_device_minor(void* pValue)
 {
 	xtar_reader_handle* pHandle = (xtar_reader_handle*)pValue;
 	return pHandle != NULL && pHandle->HasEntry ?
-		(int)pHandle->Entry.iDeviceMinor : 0;
+		pHandle->Entry.iDeviceMinor : 0;
 }
 
 
@@ -839,7 +840,8 @@ static void* xtar_validate_writer(xrttarwriter* pWriter)
 	const xrttarerror* pError = xrtTarWriterError(pWriter);
 
 	if ( pWriter == NULL || (pError != NULL && pError->iCode != XRT_TAR_OK) ) {
-		xtar_publish_writer_error(pWriter);
+		/* 空结果保留分配器首因，与 Reader 的便利构造器保持一致。 */
+		if ( pWriter != NULL ) { xtar_publish_writer_error(pWriter); }
 		xrtTarWriterDestroy(pWriter);
 		return NULL;
 	}

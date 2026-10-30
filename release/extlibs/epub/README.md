@@ -50,7 +50,7 @@ C 构建结果使用 `int64_t`，与 XLang `int` 的 ABI 一致；公开头可�
 
 ## 验证
 
-从 `demo6` 目录运行：
+从仓库根目录运行：
 
 ```powershell
 .\release\extlibs\epub\test\check.ps1 -SkipAot
@@ -89,12 +89,12 @@ C 教学范例在 TCC 单文件运行时包含包内两份实现；正式包清�
 完整 AOT 阻断未变。
 
 同日 XLang `test/ffi_boundaries.xl` 也改用独立系统临时目录与 `finally`
-清理，已登记到 `coverage.tests`；从 `demo6` 工作目录运行通过，
+清理，已登记到 `coverage.tests`；从仓库根目录运行通过，
 不再写入固定的 `build/test/epub_ffi_boundary.epub`。
 
 同日中央 XLang 测试和 C/XLang 范例的默认输出也改为独立系统临时目录，
 结束时清理，避免并行运行覆盖固定 EPUB 文件；范例显式指定输出路径时
-仍保留文件。两种语言的范例与中央测试均在 `demo6` 工作目录通过。
+仍保留文件。两种语言的范例与中央测试均在仓库根目录通过。
 
 2026-10-17：Linux `test/check.sh` 增加中央与 FFI XLang 用例、C/XLang
 双语范例及生成 EPUB 的逐字节对照；Python 标准库独立检查 ZIP CRC、
@@ -102,7 +102,7 @@ C 教学范例在 TCC 单文件运行时包含包内两份实现；正式包清�
 C ASan/UBSan 与上述检查同次通过。此固定纯文本范例检查不等于完整
 EPUBCheck 认证；完整 AOT 仍受主线共享缺符号阻断。
 
-独立格式验证可使用 [EPUBCheck 5.4.0](https://github.com/w3c/epubcheck/releases/tag/v5.4.0)。从 `demo6` 目录运行以下命令，将 `<epubcheck.jar>` 换为本机解压后的路径，并保持发行包的 `lib` 目录与 jar 同级：
+独立格式验证可使用 [EPUBCheck 5.4.0](https://github.com/w3c/epubcheck/releases/tag/v5.4.0)。从仓库根目录运行以下命令，将 `<epubcheck.jar>` 换为本机解压后的路径，并保持发行包的 `lib` 目录与 jar 同级：
 
 ```powershell
 .\release\xl.exe build release\extlibs\epub\examples\basic.c release\extlibs\epub\epub_native.c release\extlibs\epub\epub_zip.c --inc-path lib\xrt --inc-path release\extlibs\epub\include -o build\test\epub_basic.exe

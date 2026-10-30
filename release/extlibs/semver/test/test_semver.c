@@ -100,6 +100,70 @@ static int test_version_mutations(void)
     return 0;
 }
 
+/* 复合范围不能让相邻版本的预发布绕过简写上界；无约束与空集也须区分。 */
+static int test_prerelease_ranges(void)
+{
+    static const struct {
+        const char* version;
+        const char* range;
+        bool expected;
+    } cases[] = {
+        { "2.0.0-alpha", "^1.0.0 >=2.0.0-alpha", false },
+        { "2.0.0-0", ">=2.0.0-0 ^1.0.0", false },
+        { "1.3.0-alpha", "~1.2.3 >=1.3.0-alpha", false },
+        { "1.3.0-0", ">=1.3.0-0 1.2", false },
+        { "2.0.0-alpha", "1 >=2.0.0-alpha", false },
+        { "1.3.0-alpha", "<=1.2 >=1.3.0-alpha", false },
+        { "2.0.0-alpha", "<=1 >=2.0.0-alpha", false },
+        { "1.3.0-alpha", "<1.3 >=1.3.0-alpha", false },
+        { "2.0.0-alpha", "<2 >=2.0.0-alpha", false },
+        { "0.0.0-alpha", "<0 >=0.0.0-alpha", false },
+        { "0.0.2-alpha", "^0.0.1 >=0.0.2-alpha", false },
+        { "0.3.0-alpha", "^0.2.0 >=0.3.0-alpha", false },
+        { "0.1.0-alpha", "^0.0 >=0.1.0-alpha", false },
+        { "1.0.0-alpha", "^0 >=1.0.0-alpha", false },
+        { "0.0.0-alpha", "* >=0.0.0-alpha", true },
+        { "0.0.0-0", ">=0.0.0-0 x", true },
+        { "0.0.0-alpha", "^x >=0.0.0-alpha", true },
+        { "0.0.0-alpha", "~*.* >=0.0.0-alpha", true },
+        { "0.0.0-alpha", "0 >=0.0.0-alpha", true },
+        { "0.0.0-alpha", "~0.0 >=0.0.0-alpha", true },
+        { "0.0.0-alpha", "^0.0.0 >=0.0.0-alpha", true },
+        { "0.0.0-alpha", ">=0.0.0 >=0.0.0-alpha", true },
+        { "0.0.0-alpha", ">=0.0.0+build >=0.0.0-alpha", true },
+        { "0.0.0-alpha", ">0.0.0 >=0.0.0-alpha", false },
+        { "1.0.0-alpha", ">=1.0.0 >=1.0.0-alpha", false },
+        { "0.0.0-alpha", "<0.0.0 >=0.0.0-alpha", true },
+        { "2.0.0", "<=*.*", true },
+        { "2.0.0", "<=x.x.x", true },
+        { "1.2.3", "<* || 1.2.3", true },
+        { "1.2.3", "1.2.3 || >x.x", true },
+        { "1.2.3", ">X.X.X || *", true },
+        { "1.2.3", "* - *", true },
+        { "1.2.3", "x - 1.2.3", true },
+        { "1.2.3", "1.2.3 - X", true },
+        { "0.0.0-0", "0.0.0-0 - *", true },
+        { "0.0.0-0", "* - 0.0.0-alpha", true },
+        /* 完整上界保留原始含义，不能全部替换成简写的 -0 边界。 */
+        { "2.0.0-alpha", "<2.0.0 >=2.0.0-alpha", true },
+        { "1.2.3-alpha", "<=1.2.3 >=1.2.3-alpha", true },
+        { "1.2.3-alpha", "1.2.3 >=1.2.3-alpha", false },
+        /* 本包允许区间与比较器取交集，这部分由自身合同而非上游语法校验。 */
+        { "2.4.0-alpha", "1.2.3 - 2.3 >=2.4.0-alpha", false },
+        { "3.0.0-alpha", ">=3.0.0-alpha 1.2.3 - 2", false },
+        { "1.2.3-alpha", "1.0.0 - 1.2.3 >=1.2.3-alpha", true }
+    };
+    unsigned failed = 0;
+    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); ++i) {
+        if (xsemver_satisfies(cases[i].version, cases[i].range) != cases[i].expected) {
+            fprintf(stderr, "semver range: %s [%s] expected=%d\n",
+                cases[i].version, cases[i].range, (int)cases[i].expected);
+            ++failed;
+        }
+    }
+    return failed ? 1 : 0;
+}
+
 int main(void)
 {
     static const struct {
@@ -156,6 +220,11 @@ int main(void)
 
     CHECK(test_error_contract() == 0);
     CHECK(test_version_mutations() == 0);
+    /* 范围匹配只使用栈上比较器；新增边界也不应依赖堆分配。 */
+    CHECK(xrtMemDebugFailAfter(0u));
+    CHECK(test_prerelease_ranges() == 0);
+    CHECK(!xrtMemDebugFailTriggered());
+    xrtMemDebugFailClear();
 
     CHECK(xsemver_valid("1.2.3+build-5"));
     CHECK(xsemver_valid("1.2.3-alpha+build-5"));

@@ -11,7 +11,11 @@ pkg=release/extlibs/lz4
 input_paths() {
     find "$pkg" -type f -print0
     printf '%s\0' lib/xrt/xrt.h lib/xruntime/xruntime.h test/support/extlib_codec_runtime.c \
+        test/support/extlib_codec_file_rollback.h \
         tools/check_extlib_lz4.sh tools/check_extlib_lz4_interop.py release/xl \
+        tools/check_extlib_native_globals.ps1 tools/check_extlib_native_globals.sh \
+        release/libxl.so release/libxlc.so release/include/xrt_decl.h \
+        release/include/xruntime_decl.h release/include/xl_extlib_abi.h \
         test/cases/extlib_lz4.xl test/cases/extlib_lz4_progress.xl \
         release/examples/extlibs/lz4.xl release/examples/extlibs/lz4_basic.xl \
         release/examples/extlibs/lz4_files.xl \
@@ -22,6 +26,11 @@ sanitize=(-fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -no-pie 
 flags=(-std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror -Ilib/xrt -Ilib/xruntime "${sanitize[@]}")
 export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1
 export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
+
+# Windows 检出的黄金文本可能为 CRLF；仅规范化期望行尾，实际输出仍逐字比较。
+golden_output() {
+    diff -u <(sed 's/\r$//' "$1") "$2"
+}
 sha256sum "${inputs[@]}" > "$work/inputs.before.sha256"
 finish_gate() {
     result=$?
@@ -62,19 +71,26 @@ for source in lz4_frame lz4_hash third_party/lz4 third_party/lz4hc; do
     "$cc" -std=c11 -D_GNU_SOURCE -O1 -g "${sanitize[@]}" -c "$pkg/$source.c" -o "$object"
     objects+=("$object")
 done
-for name in boundaries stream alloc threads native files; do
+for name in boundaries stream alloc threads native files cleanup; do
     "$cc" "${flags[@]}" -DNDEBUG "$pkg/test/test_lz4_$name.c" "${objects[@]}" -lm -ldl -o "$work/$name"
     args=()
-    if [[ $name == files || $name == native ]]; then args=("$work/$name-$$"); fi
+    if [[ $name == files || $name == native || $name == cleanup ]]; then args=("$work/$name-$$"); fi
     timeout 90s "$work/$name" "${args[@]}" 2>&1 | tee "$work/$name.log"
 done
+timeout 90s ./release/xl run "$pkg/test/test_lz4_cleanup.c" -- "$work/cleanup-jit"
+timeout 180s ./release/xl build "$pkg/test/test_lz4_cleanup.c" -o "$work/cleanup-aot"
+timeout 90s "$work/cleanup-aot" "$work/cleanup-aot-files"
+
+# 默认保留已关闭事务的双故障验收，不缩小到容易通过的正文失败路径。
+"$cc" "${flags[@]}" "$pkg/test/test_lz4_commit_cleanup.c" "${objects[@]}" -lm -ldl -o "$work/commit-cleanup"
+timeout 90s "$work/commit-cleanup" "$work/commit-cleanup-files" 2>&1 | tee "$work/commit-cleanup.log"
 "$cc" "${flags[@]}" "$pkg/test/lz4_interop.c" "${objects[@]}" -lm -ldl -o "$work/interop"
 python3 tools/check_extlib_lz4_interop.py "$work/interop" "$work/interop-files" \
     --library /usr/lib/x86_64-linux-gnu/liblz4.so.1 | tee "$work/interop.log"
 for name in basic files; do
     "$cc" "${flags[@]}" "$pkg/examples/$name.c" "${objects[@]}" -lm -ldl -o "$work/example-$name"
     timeout 30s "$work/example-$name" > "$work/example-$name.log"
-    diff -u "release/examples/extlibs/lz4_$name.expected.txt" "$work/example-$name.log"
+    golden_output "release/examples/extlibs/lz4_$name.expected.txt" "$work/example-$name.log"
 done
 timeout 90s ./release/xl run "$pkg/examples/basic.c" > "$work/example-basic-single-file.log"
 timeout 90s ./release/xl run "$pkg/examples/files.c" > "$work/example-files-single-file.log"
@@ -84,7 +100,7 @@ timeout 90s ./release/xl run "$pkg/test/boundaries.xl"
 timeout 90s ./release/xl run test/cases/extlib_lz4_progress.xl
 for name in basic files; do
     timeout 90s ./release/xl run "release/examples/extlibs/lz4_$name.xl" > "$work/example-xl-$name.log"
-    diff -u "release/examples/extlibs/lz4_$name.expected.txt" "$work/example-xl-$name.log"
+    golden_output "release/examples/extlibs/lz4_$name.expected.txt" "$work/example-xl-$name.log"
     diff -u "$work/example-$name.log" "$work/example-xl-$name.log"
 done
 printf '[lz4] XLang JIT/AOT gate\n'
@@ -111,3 +127,4 @@ for name in full basic files; do
         diff -u "$work/example-$name.log" "$work/example-xl-$name-aot.log"
     fi
 done
+bash "$root/tools/check_extlib_native_globals.sh" lz4

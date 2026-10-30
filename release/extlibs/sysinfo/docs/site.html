@@ -31,6 +31,7 @@ println(sysinfo.osName(), sysinfo.arch())
 println(sysinfo.cpuCount())
 println(sysinfo.memAvailable())</code></pre>
     <p>内存值是瞬时快照，连续调用可能不同；探测失败或 CPU 型号字段只有空白时，文本返回 <code>unknown</code>、数值返回 0。</p>
+    <p>本模块报告主机信息，不把进程亲和性或容器配额当作整机资源；0可能是真实值，也可能表示探测不可用。Linux解析以完整系统记录为单位，超长行的续块不能冒充新字段，截断目标行也不能隐藏尾部垃圾。</p>
   </section>
   <section id="api">
     <h2>接口</h2>
@@ -56,11 +57,15 @@ int main(void)
     return ok ? 0 : 1;
 }</code></pre>
     <p>C 字符串结果由调用方用 <code>xrtFree</code> 释放；XLang 包装自动接管。每次公开调用清除之前的 XRT 错误；转换时若内存分配失败，则保留内存错误并返回空结果，不伪装为 <code>unknown</code>。<code>release/extlibs/sysinfo/examples/</code> 内的 basic 与 metrics 各有 C/XLang 对照：前者展示可稳定比较的主机信息，后者展示会随采样时刻变化的内存和运行时间。</p>
+    <p>上面的片段需与 <code>sysinfo_native.c</code> 一同构建。包内 <code>examples/sysinfo_c.c</code> 和 <code>examples/metrics_c.c</code> 是自包含完整范例，可直接交给 <code>xl run</code>；不需要另找原生DLL。</p>
   </section>
   <section id="verify">
     <h2>验证状态</h2>
-    <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/sysinfo/test/check.ps1
+    <pre><code>xl run release/extlibs/sysinfo/examples/sysinfo_c.c
+xl run release/extlibs/sysinfo/examples/basic.xl
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/sysinfo/test/check.ps1
 bash release/extlibs/sysinfo/test/check.sh</code></pre>
+    <p>2026-10-29：Windows默认38阶段与Linux完整门禁通过，包括11个实际生成原型、五条拥有型文本直接接管、两平台各8条独立程序及双语同机对照。Linux记录测试由旧18场景11项失败扩为23场景零失败，覆盖分块伪字段、尾部垃圾、EOF/换行、整数溢出/饱和与旧错误清除；ASan/UBSan通过。测试库按清单依赖裁剪，冻结XRT与编译器未动。只签收Windows x64和Linux x86_64/WSL的约定能力，不冒称ARM/真实多处理器组或整个xlang发布完成。</p>
     <p>2026-10-24 发布版：Windows 默认门禁的严格 C、XLang 边界与双语范例，以及带输出的公开范例 AOT 均通过。旧的 <code>xl6ValueDataSnapshotV1</code> 缺符号问题只属于历史发布物；当时 Linux 已通过 C ASan/UBSan 与 XLang JIT 对照，AOT 尚未验收。</p>
     <p>2026-10-26 新发布物复核：Windows/Linux 默认门禁均通过严格 C、XLang 边界、分配故障与四份语言独立 EXE；新增两个 C 单文件范例的 <code>xl build</code> 独立 EXE。基础信息与 GCC/XLang 同机输出一致，瞬时动态指标按格式和合法范围验收。Linux 含 ASan/UBSan 与异常系统文本夹具；普通字符串由 XLang 直接接管 XRT 分配，不复制正文。旧版带输出 AOT 缺符号不再复现。</p>
     <p>2026-10-27：五个文本入口改用 <code>char*</code> 与 <code>@owned string</code>，生成 C 直接保存 XRT 拥有的指针，不再经过 <code>point</code>/<code>takeCstr</code> 转发；无额外正文复制，仍有一次长度扫描。Windows 默认门禁与 Linux C ASan/UBSan、XLang JIT/AOT、双语同机输出门禁均通过。</p>

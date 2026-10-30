@@ -73,6 +73,13 @@ static void xstbiw_append(void* Context, void* Data, int Size)
         Sink->Failed = true;
 }
 
+/* 调用前已限制尺寸：RGB 行按四字节对齐，RGBA 使用 V4 头。 */
+static size_t xstbiw_bmp_size(int Width, int Height, int Channels)
+{
+    size_t Row = ((size_t)Width * (Channels == 4 ? 4u : 3u) + 3u) & ~(size_t)3u;
+    return (Channels == 4 ? 122u : 54u) + Row * (size_t)Height;
+}
+
 static bool xstbiw_validate(int Format, void* Pixels, size_t Length,
     int Width, int Height, int Channels, int Option)
 {
@@ -117,6 +124,11 @@ static bool xstbiw_validate(int Format, void* Pixels, size_t Length,
         xstbiw_error(XERR_RANGE, "pixel buffer is too short or exceeds 64 MiB");
         return false;
     }
+    /* BMP 的通道展开和行填充能精确计数，超限时不分配输出或扫描源像素。 */
+    if (Format == XSTBIW_BMP && xstbiw_bmp_size(Width, Height, Channels) > XSTBIW_OUTPUT_LIMIT) {
+        xstbiw_error(XERR_RANGE, "encoded image exceeds 128 MiB");
+        return false;
+    }
     return true;
 }
 
@@ -141,7 +153,10 @@ void* xstbiw_encode(int Format, void* Pixels, size_t Length,
     if (!xstbiw_validate(Format, Pixels, Length, Width, Height, Channels, Option))
         return NULL;
     Output = xrtBufferCreate();
-    if (Output == NULL) {
+    /* 已知大小的 BMP 只预留一次，不让逐字节回调反复扩容。 */
+    if (Output == NULL || (Format == XSTBIW_BMP &&
+            !xrtBufferReserve(Output, xstbiw_bmp_size(Width, Height, Channels)))) {
+        xrtBufferDestroy(Output);
         xstbiw_error(XERR_MEMORY, "could not allocate encoded image buffer");
         return NULL;
     }

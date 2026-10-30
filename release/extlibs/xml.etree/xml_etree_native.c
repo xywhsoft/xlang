@@ -74,6 +74,8 @@ XRT_API void* xetree_parse(const char* pData, unsigned long long iSize,
 	xrtxmloptions tOptions;
 	xrtxmlerror* pError = __xetreeError();
 	ptr pResult;
+	/* 错误槽创建失败时保留原错误，不能清错后继续解析。 */
+	if ( pError == NULL ) { return NULL; }
 	__xetreeOptions(&tOptions, iMaxInput, iMaxOutput, iMaxItem, iMaxEntries,
 		iMaxNodes, iMaxDepth);
 	__xetreeClearError(pError);
@@ -90,6 +92,7 @@ XRT_API void* xetree_load(const char* sPath, unsigned long long iMaxInput,
 	xrtxmloptions tOptions;
 	xrtxmlerror* pError = __xetreeError();
 	ptr pResult;
+	if ( pError == NULL ) { return NULL; }
 	__xetreeOptions(&tOptions, iMaxInput, iMaxOutput, iMaxItem, iMaxEntries,
 		iMaxNodes, iMaxDepth);
 	__xetreeClearError(pError);
@@ -156,6 +159,7 @@ XRT_API void* xetree_stringify(void* pHandle, bool bPretty, unsigned int iIndent
 	xrtxmletreewriteoptions tOptions;
 	xrtxmlerror* pError = __xetreeError();
 	ptr pResult;
+	if ( pError == NULL ) { return NULL; }
 	__xetreeWriteOptions(&tOptions, bPretty, iIndent, bDeclaration, iMaxOutput);
 	__xetreeClearError(pError);
 	pResult = xrtXmlElementStringify((xrtxmlelement*)pHandle, &tOptions, pError);
@@ -186,6 +190,7 @@ XRT_API bool xetree_save(void* pHandle, const char* sPath, bool bPretty,
 	xrtxmletreewriteoptions tOptions;
 	xrtxmlerror* pError = __xetreeError();
 	bool bResult;
+	if ( pError == NULL ) { return false; }
 	__xetreeWriteOptions(&tOptions, bPretty, iIndent, bDeclaration, iMaxOutput);
 	__xetreeClearError(pError);
 	bResult = xrtXmlElementSave((str)sPath, (xrtxmlelement*)pHandle, &tOptions, pError);

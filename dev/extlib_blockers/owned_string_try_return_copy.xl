@@ -1,0 +1,16 @@
+extern "xrtStrDup" @owned func ownedText(string value) as string
+extern "xrtMalloc" func allocate(c_size size) as point
+extern "xrtFree" func releaseMemory(point value)
+
+func render(string source) as string
+    point resource = allocate(1)
+    try
+        string body = ownedText(source)
+        return body
+    finally
+        releaseMemory(resource)
+    end
+end
+
+assert render("owned text") == "owned text"
+println("owned string try-return: PASS")

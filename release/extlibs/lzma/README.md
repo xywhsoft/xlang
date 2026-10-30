@@ -1,5 +1,54 @@
 # lzma
 
+## 当前验收（2026-10-30）
+
+文件回调先失败、清理再遇 OOM 的打开态回滚已修复。真实 C/native
+96 组回归在 Windows 同一最终夹具下旧源 8 失败→新源 0；原始
+cause、旧目标、零临时残留与七项内存快照全部检查。正常提交顺序
+和 API/ABI 不变，不改 SDK、冻结 XRT 或主线。
+
+新增 `examples/file_transaction.xl` / `file_transaction_c.c` 对照取消、
+回调错误与立即重试，UTF-8 文件名、黄金输出及双平台五条执行路径
+均通过。普通功能、原范例、Python 标准 XZ 双向互通与各 14 条普通
+独立程序路径通过，Linux C 含 ASan/UBSan/泄漏检查。
+
+**整包仍不能签收**：Windows 默认门禁 101 阶段中 99 项符合要求，
+关闭态重命名失败后的 OOM 回滚仍有两组临时文件残留（RFS）；
+Windows/Linux 顶层对象 AOT 退出仍失败（M2）。两项在默认门禁中
+独立收集，均要求真实成功，不配置为预期失败。
+Linux 同一 16 组关闭态回归通过，不代表 Windows 问题已关闭。
+现有共享 RFS 共 7 个实测包。完整边界、复现、成本与现场见
+[文件事务审查](docs/file-transaction-audit-2026-10-30.md)。
+
+C 普通流接口使用 `xrtprogressproc`；当前 native 文件 ABI 的回调
+使用 XRT callable（不是普通函数指针），新 C 范例演示这一实际约定。
+双语命令和资源清理见 [examples/README.md](examples/README.md)。
+下文带日期的通过记录只描述当时构建，不覆盖此处新增的双故障与退役边界。
+
+2026-10-29 新增顶层生命周期用例 `test/top_level.xl`：全局压缩器在
+main 内校验有效，退出时自然析构。固定发布版 Windows/Linux JIT
+均退出0；独立 EXE 均打印 PASS 后报状态错误并退出1，确认为 **M2
+主线阻断**。默认门禁已接入专项；下述既往局部对象/算法通过记录
+不覆盖这个新边界，本包暂不作完整发布签收。报告与复验方式见
+`dev/extlib_blockers/global_native_class_aot_fini.md`，不通过移动全局
+对象或吞异常绕开，不在包侧修主线。
+
+2026-10-28 修复原生压缩入口的负级别默认回退：工厂、直接导出类构造、
+C 内存/字符串/文件入口现在统一只接受 0..9，内部解码传入明确的默认级别。
+五个非法值覆盖 25 组 C 调用（文件分别验证新目标与已有目标），参数失败
+不交付结果、不泄漏、不发布目标或改写旧文件；0..9 全部往返。语言测试
+显式命名两个公开类，验证工厂/原生构造一致、解码默认配置和所有有效级别。
+桥接头改用标准类型与公开 `xvalue` 前向声明，不再强行启用 VALUE，
+严格 C 验证核心头与原生头的两种包含顺序。
+
+本次 Windows/Linux x64 默认完整门禁均退出 0：C 边界、分配故障、
+Linux ASan/UBSan、Python `FORMAT_XZ`、新旧语言 JIT、十份语言 AOT
+及 C 范例 AOT/同输出对照全部通过。Linux 使用与工作树逐文件一致的
+原生文件系统临时快照，未更换编译器/XRT 发布物，未放宽原有超时或断言。
+Windows 运行库/SDK 在单次门禁只编译一次，减少重复编译；两平台记录
+输入指纹，失败保留输出、命令/退出码和构建产物，成功清理独占目录。
+32 位、TSan、长时压力和性能基准不在本次证明范围内。
+
 2026-10-26 当前 Win/Linux x64 发布版的默认包门禁均退出 0。
 严格 C、ASan/UBSan、分配故障、Python 标准库 `lzma.FORMAT_XZ`
 双向互通、完整语言 JIT 及九条独立 XLang EXE AOT 全部通过；
@@ -69,8 +118,11 @@ C 入口统一要求 `xrtlzmaoptions` 与内嵌 `xrtresourcelimits` 的当前完
 原生对象的成功操作会清除本线程之前遗留的 XRT 错误；失败仍保留本次错误。
 原生对象方法和状态查询拒绝空句柄，C 调用方收到 `XERR_ARGUMENT`，
 不会把调用参数错误误报为压缩流 I/O 故障。
+工厂提供默认参数；直接调用 `LzmaCompressor` / `LzmaDecompressor`
+需要完整传入对应的 `c_*` 参数。压缩级别负值不是“使用默认”的别名，
+直接构造与工厂一样抛 `ValueError`；C 桥接报告 `XERR_ARGUMENT`。
 
-在 `demo6` 目录执行聚焦验证：
+在仓库根目录执行聚焦验证：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/lzma/test/check.ps1
@@ -114,12 +166,10 @@ Windows 包级脚本 `test/check.ps1` 将严格 GCC、C 边界、标准 `.xz`
 边界/文件/进度/中央用例、原生方法访问负例、C/XLang 同输出、核心
 与中央 AOT 合为一次验收；`-SkipAot` 仅供聚焦诊断，不作为发布签收。
 脚本使用独立临时构建目录，结束后核对绝对路径并清理。
-Linux 包级脚本运行包内边界、文件和分配用例、C ASan/UBSan 及 Python
-标准 `.xz` 双向互通。Linux 现有 `release/xl` 早于本次 XLIR 修复，完整
-中央用例仍报 typed XLIR 错误；2026-10-24 尝试重建 Linux 发布物时，
-`libxl.so` 链接缺少多项 X509 符号，尚未得到新发布物，因此不签收 Linux
-中央用例。独立 C 范例命名为 `basic_c.c`，不会被 `basic.xl` 的 AOT
-编译自动当作伴随源。
+Linux 包级脚本运行包内边界、文件和分配用例、C ASan/UBSan、Python
+标准 `.xz` 双向互通和普通 JIT/AOT；当前中央用例已经通过，默认门禁
+只保留 M2 顶层退役失败。旧 XLIR/X509 记录见下方历史段落。
+独立 C 范例命名为 `*_c.c`，不会成为同名 `.xl` 的自动伴随源。
 
 以下为历史复核记录，仅描述各日期所用构建的状态，不作为当前阻断清单。
 

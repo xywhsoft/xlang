@@ -1,0 +1,9 @@
+import progress
+
+func main(...) as int
+    // 与顶层例相同构造/查询/输出，仅对象作用域不同。
+    progress.ProgressBar bar = progress.create(10)
+    assert bar.valid and bar.current == 0 and bar.total == 10
+    println("progress top-level: PASS")
+    return 0
+end

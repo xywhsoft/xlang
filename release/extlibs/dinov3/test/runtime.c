@@ -13,5 +13,6 @@
 #ifndef XRT_MODULE_THREAD_KEY
 #define XRT_MODULE_THREAD_KEY
 #endif
+#define XRT_MODULE_MEMORY_DEBUG
 #define XRT_IMPLEMENTATION
 #include "xrt.h"

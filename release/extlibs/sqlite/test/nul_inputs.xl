@@ -1,0 +1,170 @@
+import sqlite
+
+func countRows(sqlite.Database db) as int
+    auto stmt = db.prepare("select count(*) from entry")
+    try
+        assert stmt.row_ready()
+        return stmt.column_int(0)
+    finally
+        stmt.finalize()
+    end
+end
+
+func objectSqlInputs()
+    auto db = sqlite.memory()
+    assert db.execute("create table entry(value text)")
+    for mode in range(4)
+        bool rejected = false
+        try
+            string sql = "insert into entry values('prefix');\0ignored tail"
+            if mode == 0 then
+                db.execute(sql)
+            elseif mode == 1 then
+                db.exec_code(sql)
+            elseif mode == 2 then
+                auto unexpected = db.prepare(sql)
+                unexpected.finalize()
+            else
+                db.query(sql)
+            end
+        catch ValueError error
+            rejected = true
+        end
+        assert rejected, "object SQL entry silently accepted a NUL suffix"
+        assert countRows(db) == 0, "rejected SQL executed its prefix"
+    end
+
+    // prepare 阶段也可能有副作用；必须在编译第一条 PRAGMA 前拒绝。
+    bool rejected = false
+    try
+        auto unexpected = db.prepare("pragma query_only=on;\0ignored")
+        unexpected.finalize()
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected
+    assert db.execute("insert into entry values('safe')") and countRows(db) == 1
+    assert db.execute("")
+    db.close()
+end
+
+func rawSqlInputs()
+    point db = sqlite.sqlite3_open(":memory:")
+    try
+        assert sqlite.sqlite3_exec(db, "create table entry(value text)") == sqlite.SQLITE_OK
+        for mode in range(2)
+            bool rejected = false
+            try
+                string sql = "insert into entry values('prefix');\0ignored tail"
+                if mode == 0 then
+                    sqlite.sqlite3_exec(db, sql)
+                else
+                    point unexpected = sqlite.sqlite3_prepare_v2(db, sql)
+                    sqlite.sqlite3_finalize(unexpected)
+                end
+            catch ValueError error
+                rejected = true
+            end
+            assert rejected, "thin SQL entry silently accepted a NUL suffix"
+        end
+        point probe = sqlite.sqlite3_prepare_v2(db, "select count(*) from entry")
+        try
+            assert sqlite.sqlite3_step(probe) == sqlite.SQLITE_ROW
+            assert sqlite.sqlite3_column_int64(probe, 0) == 0
+        finally
+            sqlite.sqlite3_finalize(probe)
+        end
+        assert sqlite.sqlite3_exec(db, "") == sqlite.SQLITE_OK
+    finally
+        sqlite.sqlite3_close(db)
+    end
+end
+
+func pathInputs()
+    // 即使校验失效也只会打开内存库，不会在测试目录创建前缀文件。
+    string filename = ":memory:\0ignored"
+    int flags = sqlite.SQLITE_OPEN_READWRITE + sqlite.SQLITE_OPEN_CREATE
+    for mode in range(7)
+        bool rejected = false
+        try
+            if mode == 0 then
+                auto unexpected = sqlite.open(filename)
+                unexpected.close()
+            elseif mode == 1 then
+                sqlite.Database unexpected = sqlite.Database(filename)
+                unexpected.close()
+            elseif mode == 2 then
+                auto unexpected = sqlite.open_v2(filename, flags, "")
+                unexpected.close()
+            elseif mode == 3 then
+                point unexpected = sqlite.sqlite3_open(filename)
+                sqlite.sqlite3_close(unexpected)
+            elseif mode == 4 then
+                point unexpected = sqlite.sqlite3_open_v2(filename, flags, "")
+                sqlite.sqlite3_close(unexpected)
+            elseif mode == 5 then
+                auto unexpected = sqlite.open_v2(":memory:", flags, "\0ignored")
+                unexpected.close()
+            else
+                point unexpected = sqlite.sqlite3_open_v2(":memory:", flags, "\0ignored")
+                sqlite.sqlite3_close(unexpected)
+            end
+        catch ValueError error
+            rejected = true
+        end
+        assert rejected, "filename or VFS name was truncated"
+    end
+    auto valid = sqlite.open_v2(":memory:", flags, "")
+    assert valid.valid() and valid.close() == sqlite.SQLITE_OK
+end
+
+func bindingInputs()
+    auto db = sqlite.memory()
+    auto stmt = db.prepare("select ?")
+    point rawDb = sqlite.sqlite3_open(":memory:")
+    point rawStmt = sqlite.sqlite3_prepare_v2(rawDb, "select ?")
+    try
+        for value in ["\0suffix", "A\0B", "你好\0"]
+            for mode in range(4)
+                assert stmt.bind(1, "keep") == sqlite.SQLITE_OK
+                assert sqlite.sqlite3_bind_text(rawStmt, 1, "keep") == sqlite.SQLITE_OK
+                bool rejected = false
+                try
+                    if mode == 0 then
+                        stmt.bind(1, value)
+                    elseif mode == 1 then
+                        stmt.bind_blob_text(1, value)
+                    elseif mode == 2 then
+                        sqlite.sqlite3_bind_text(rawStmt, 1, value)
+                    else
+                        sqlite.sqlite3_bind_blob_text(rawStmt, 1, value)
+                    end
+                catch ValueError error
+                    rejected = true
+                end
+                assert rejected, "ordinary text binding silently lost bytes after NUL"
+                assert stmt.row_ready() and stmt.column_text(0) == "keep"
+                assert stmt.reset() == sqlite.SQLITE_OK
+                assert sqlite.sqlite3_step(rawStmt) == sqlite.SQLITE_ROW
+                assert sqlite.sqlite3_column_text(rawStmt, 0) == "keep"
+                assert sqlite.sqlite3_reset(rawStmt) == sqlite.SQLITE_OK
+            end
+        end
+        assert stmt.bind(1, "") == sqlite.SQLITE_OK
+        assert stmt.row_ready() and stmt.column_text(0) == ""
+    finally
+        sqlite.sqlite3_finalize(rawStmt)
+        sqlite.sqlite3_close(rawDb)
+        stmt.finalize()
+        db.close()
+    end
+end
+
+func main(...) as int
+    objectSqlInputs()
+    rawSqlInputs()
+    pathInputs()
+    bindingInputs()
+    println("sqlite NUL inputs: PASS")
+    return 0
+end

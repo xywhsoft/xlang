@@ -1,5 +1,19 @@
 # vcard
 
+2026-10-30：修复物理输入先校验 UTF-8、后展开折行导致的误拒绝，现对
+完整逻辑行检查，未知字段/参数同样不能绕过。两版本共 336 合法、352
+非法、224 实际 OOM 点及活动内存/独立所有权回归通过；同一最终测试
+在两平台旧解析器各 208 条断言失败→0。GCC、TCC JIT/AOT、Linux
+ASan/UBSan、两个实际原型/错改负例、新双语黄金输出通过。API/ABI、
+冻结 XRT 和主线未改；逐行校验的调用次数改变，未作性能承诺。
+
+**整包仍未签收发布级**：Windows 默认 44 项前 43 项符合要求，原
+中央用例仍在语言字典 build 处失败，Linux 同边界；独立最小源的
+JIT/AOT 也先通过原生对象写回再在语言字典处 ValueError，M1 未关闭。
+当前可运行读取范例见[双语说明](examples/README.md)，范围与现场见
+[UTF-8 折行审查](UTF8_FOLDING_AUDIT_2026-10-30.md)。旧缺符号和旧构建
+通过记录只作为历史，不能当作本次整包验收。
+
 2026-10-24 当前发布版复验：默认 Windows 门禁的严格 C 测试通过，
 首个中央 XLang 用例在 `vcard.build(var card)` 接收语言字典时失败。
 原生解析得到的对象可正常写出，语言构造的字典在 JIT 和独立 EXE
@@ -46,7 +60,7 @@ assert back["email"].length == 2
 
 ## 验证
 
-Windows 从 `demo6` 目录运行：
+Windows 从仓库根目录运行：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/vcard/test/check.ps1
@@ -55,16 +69,18 @@ powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/vcard/test/c
 
 联合验证严格 GCC、C/XLang 边界与范例控制台输出，逐字节比较两份
 生成的 `.vcf` 文件，并检查写入目录路径时失败且不输出成功标记。
-默认门禁另构建运行无输出核心与带输出完整范例 AOT，将后者的控制台
+默认门禁另安排无输出核心与带输出完整范例 AOT，将后者的控制台
 输出和 `.vcf` 字节与 C 范例比较；`-SkipAot` 仅用于包侧聚焦验证，
-不能视为发布签收。AOT 产物只写入本次独占临时目录并在结束时清理。
+不能视为发布签收。当前新增折行、C/XL 双语与五份正常 AOT 前置检查
+通过后，在原中央字典创建处失败；后续旧完整范例阶段没有执行。
+AOT 产物仅位于本次独占目录，成功清理、失败保留，不删除关键现场。
 C/XLang 范例还各自断言完整的 3.0 文本、CRLF 行尾，以及读回后的姓名与两条邮箱；双语一致不能代替这些固定预期。
 
 在 `release` 可直接运行 `xl run extlibs/vcard/examples/vcard.c`；
 普通 C 编译仍按包清单分别链接三个实现单元。可选文件路径通过
 `xl run extlibs/vcard/examples/vcard.c -- contact.vcf` 传入。
 
-从 `demo6` 目录运行：
+从仓库根目录运行：
 
 ```powershell
 .\release\xl.exe run test\cases\extlib_vcard.xl
@@ -79,18 +95,25 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_extlib_c.ps1 -Pack
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_extlib_c.ps1 -Package vcard -Source release\extlibs\vcard\examples\vcard.c
 ```
 
-在 Linux/WSL 的 `demo6` 目录另运行 `bash release/extlibs/vcard/test/check.sh`；脚本在临时目录编译运行，不写入发布目录。它同时执行 C ASan/UBSan、四组 XLang JIT 用例，并逐字节比较 C/XLang 范例的输出和生成的 `.vcf`。此门禁不覆盖完整 AOT。
+在 Linux/WSL 的仓库根目录另运行 `bash release/extlibs/vcard/test/check.sh`。
+脚本不写发布目录，先执行 C ASan/UBSan、新折行与 C/XL JIT/AOT/黄金
+字节，再继续原语言正例；当前同样在中央 M1 失败，未走完旧完整 AOT。
+Windows 开发门禁需要 GCC 和 Python 3；Linux 可用 CC/PYTHON 指定工具。
+普通包使用不依赖 Python。两平台记录源/实际工具指纹、有界命令和
+失败原始码，Windows 外部 `.report.json` 另分开保存 stdout/stderr。
 
 C/XL 测试覆盖 3.0/4.0 常用字段、重复字段、中文结构化字段、转义/反转义、9 KiB 长字段、75 字节折行、畸形包络、NUL/非法 UTF-8、非法控制字符、4 MiB 限额、独立结果和分配失败。历史门禁的 Windows 严格 GCC、Linux ASan/UBSan、双语同输出及无输出 AOT 核心曾通过；当前默认门禁在语言字典写出处先失败，未走到完整范例 AOT。旧发布物的 `xl6ValueDataSnapshotV1` 缺符号记录见 `dev/extlib_blockers/text_snapshot_link.md`，不能据此判断当前 vcard AOT 状态。
 
-解析重复字段与生成文本另扫描前 64 个分配故障位置：注入确实覆盖失败和成功分支，失败返回空结果并保留 `XERR_MEMORY`，清除故障后完整往返仍可用。Windows TCC C 测试、严格 GCC 语法检查和 Linux ASan/UBSan 包级门禁通过。
+原 C 测试对重复字段解析与生成文本扫描前 64 个分配故障位置，覆盖失败
+和成功分支，失败保留 `XERR_MEMORY`，取消故障后可恢复。本轮也运行了
+这些 C 边界；历史包级通过不替代当前仍为 M1 红项的完整语言门禁。
 
-另以独立的 [vobject](https://pypi.org/project/vobject/) 0.9.9 解析 C/xlang 生成的 vCard 3.0 范例、3000 字中文折行样例，以及 C 测试生成的 vCard 4.0 样例；双语 3.0 范例文件逐字节一致。`vobject` 是可选测试依赖，不进入发布包。独立验证只覆盖这些固定样本，不代表完整 4.0 互操作认证。从 `demo6` 目录运行：
+历史上另以独立的 [vobject](https://pypi.org/project/vobject/) 0.9.9 解析 C/xlang 生成的 vCard 3.0 范例、3000 字中文折行样例，以及 C 测试生成的 vCard 4.0 样例；双语 3.0 文件一致。本轮未重新运行该第三方互通，不能作为当前字典创建通过证据。`vobject` 为可选测试依赖，不进入发布包，也不代表完整 4.0 认证。恢复 M1 后可从仓库根目录运行：
 
 ```powershell
 python -m venv build\test\vcard\venv
 .\build\test\vcard\venv\Scripts\python.exe -m pip install vobject==0.9.9
-.\release\xl.exe build release\extlibs\vcard\examples\vcard.c release\extlibs\vcard\vcard_native.c release\extlibs\vcard\vcard_parse.c release\extlibs\vcard\vcard_build.c --inc-path lib\xrt --inc-path release\extlibs\vcard\include -o build\test\vcard_example.exe
+.\release\xl.exe build release\extlibs\vcard\examples\vcard.c -o build\test\vcard_example.exe
 .\build\test\vcard_example.exe build\test\vcard_example_c.vcf
 .\release\xl.exe run release\examples\extlibs\vcard.xl -- build\test\vcard_example_xl.vcf
 .\release\xl.exe build release\extlibs\vcard\test\test_vcard.c release\extlibs\vcard\vcard_native.c release\extlibs\vcard\vcard_parse.c release\extlibs\vcard\vcard_build.c --inc-path lib\xrt --inc-path release\extlibs\vcard\include -o build\test\vcard_test.exe

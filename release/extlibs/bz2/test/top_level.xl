@@ -1,0 +1,10 @@
+import bz2
+
+// 顶层持有真实对象，退出时自然退役，不搬入 main 绕过全局析构边界。
+auto state = bz2.compressor(level = 1)
+
+func main(...) as int
+    assert state.valid
+    println("bz2 top-level: PASS")
+    return 0
+end

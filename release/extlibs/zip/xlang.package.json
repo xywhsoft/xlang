@@ -34,7 +34,7 @@
             "abiVersion": "1"
         }
     ],
-    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/commit_memory.xl", "test/error_messages.xl", "test/global_lifecycle.xl"] },
     "native": {
         "singleton": false,
         "loadName": "",

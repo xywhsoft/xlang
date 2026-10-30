@@ -1,5 +1,100 @@
 # miniz
 
+## 当前验收（2026-10-30）
+
+已修复打开态文件事务的双故障清理：回调失败后遇到删除路径 OOM，
+原实现会留下临时文件。现在在 Writer 关闭前借用已有句柄回滚，
+同一最终 C 夹具在 Windows 96 组旧 8 红→新 0，首错、旧目标和
+七项内存快照保持；Linux 新旧均过，不把平台差异写成新修复。
+
+**整包仍不能签收**：Windows 默认门禁 76 阶段中 74 项符合要求，
+关闭态回滚 OOM 仍有两组临时残留（RFS），顶层 AOT 收尾仍失败
+（M2）；Linux 此轮关闭态通过，默认最后仍 M2。两项都保留真实
+失败，不能因前一项阻断而漏掉后一项。
+
+标准 zlib 独立互通已扩为 77 组本包编码、56 组外部解码、70 组
+坏输入拒绝，验证器在 `-I -O` 下仍完整执行；坏流须格式/截断错误，
+不能把 OOM、崩溃或部分输出当作拒绝成功。两平台各 14 个普通
+独立程序路径、新旧双语范例与 Linux C sanitizer 通过。
+新增文件事务双语例覆盖 UTF-8 路径、取消/回调错误保护旧目标和重试。
+
+命令与所有权见 [examples/README.md](examples/README.md)，完整
+范围、成本、原始结果和复现见[本轮审查](docs/file-transaction-audit-2026-10-30.md)。
+当前 native 文件 API 使用 XRT callable，不是普通 C 函数指针；
+公开 C Reader/Writer 流接口仍用 `xrtprogressproc`。
+下方带日期的旧通过记录只描述当时构建，不覆盖本次新增边界。
+
+2026-10-29 顶层生命周期用例 `test/top_level.xl` 在全局持有一个真实
+压缩器，main 内校验有效性。固定发布版 Windows/Linux JIT 均退出0；
+独立 EXE 均打印 PASS 后在退出期报状态错误并退出1，确认为 **M2
+主线阻断**。默认门禁接入专项，暂不作完整发布签收；下述既往局部
+对象/算法通过不覆盖该边界。复现及恢复方向见
+`dev/extlib_blockers/global_native_class_aot_fini.md`，不移入 main、
+不提前销毁或吞异常，也不在包内修主线。
+
+2026-10-28 原生构造入口收口：工厂原已拒绝负级别，但导出类的直接构造
+和 C 桥接入口仍把负数当成默认级别。现所有压缩入口统一遵守 0..10，
+内部解压需要默认值时显式传 `XDEFLATE_LEVEL_DEFAULT`，不保留负数别名。
+C 的五个非法级别 × 三种内存/构造入口及文件入口共 20 组负例、0..10
+有效级别往返，以及 XLang 显式类型变量和直接构造器的正反例均已验证。
+非法文件调用不发布目标，内存负例释放后回到活动分配基线。
+
+桥接头 `include/miniz_native.h` 使用标准 bool/size_t 与公开不透明 xvalue
+前向声明，不强制启用 VALUE，也不依赖它与核心头的包含顺序。严格 C
+分别检查两种顺序；测试所用目录能力只加到验证运行时，不扩充产品依赖。
+新增 `test/native_options.xl` 登记到 coverage；本轮默认 Windows/Linux
+门禁通过严格 GCC、Linux ASan/UBSan、Python zlib、新旧双语 JIT/AOT。
+中间一次宿主虚拟内存不足及 WSL 服务中断另行留档，保持原参数串行复验
+后通过；详见[资源事件说明](../../../docs/普通扩展库验证资源事件_2026-10-28.md)，
+不据此关闭其他包的未知风险。
+
+结构化底层错误会直接分发：损坏/截断通常为 `IOError`，输出限额为
+`RangeError`，分配失败为 `MemoryError`；不能按旧注释一概捕获
+`CompressionError`。C 调用方对应检查错误结构及当前 XRT 错误槽。
+
+2026-10-28 流式 IO 首因收口：C 的压缩/解压 Reader 读取失败和两个
+drain 的 Writer 失败原统一报 IO，并丢失后端代码和消息。现复用既有
+XRT 错误映射，保留 ARGUMENT、MEMORY、LIMIT、STATE、CANCELLED、IO
+等可识别首因，以及 `iBackendCode` 和原始消息；当前 XRT 错误槽不被改写。
+无详细错误的失败仍按 IO 处理。只修改失败分支，没有增加正常路径的
+包装层或数据复制，也没有替换 XRT 编解码底座。
+
+`test/test_io_errors.c` 的四个入口 × 七类错误共 28 组先红后绿，还覆盖
+两种真实 Buffer Writer 扩容 OOM、错误位置计数、失败后状态保持、借用
+Reader/Writer 的关闭归属和活动分配恢复。C 层的错误结构现在与原始
+XRT 首因一致；这不是新增 XLang 自定义 Reader/Writer API。
+
+本轮 Windows 默认门禁、Linux 同输入原生文件系统默认门禁均退出 0，
+包含严格 GCC、Linux ASan/UBSan、Python zlib 互通、28 组对照/真实 OOM、
+语言文件/进度/分配/文本转移、新旧双语 JIT/AOT。Windows 默认模式补齐
+此前只在 Linux 完整执行的中央、进度、文件、分配及完整范例 AOT；
+测试使用实际发布物和输入指纹，失败保留命令/状态/输出，成功清理独占产物。
+中央文件用例改用独占临时目录和 finally，不再复用固定 miniz-baseline。
+未修改主线或 XRT 快照；这不关闭其他包的旧风险，也不证明所有文件系统
+或长期压力已验收。当前基线见[发布矩阵](../../../docs/普通扩展库发布验收矩阵_2026-10-28.md)。
+
+## 增量流双语范例
+
+[`examples/streaming.xl`](examples/streaming.xl) 与
+[`examples/streaming_c.c`](examples/streaming_c.c) 共同展示 update、及时
+drain、finish 后尾部收集、分块解压以及输入/输出计数。C 的 Writer 由
+调用方创建和关闭；XLang 范例用两个临时 Buffer 构造传输碎片，真实网络
+接收块可以直接 update。两份均验证结果，无文件、服务或数据依赖。
+
+在仓库根目录运行（Linux 把 xl.exe 改为 xl）：
+
+```text
+./release/xl.exe run release/extlibs/miniz/examples/streaming.xl
+./release/xl.exe run release/extlibs/miniz/examples/streaming_c.c
+```
+
+两份固定输出：
+
+```text
+hello stream
+12 / 12
+```
+
 2026-10-26 当前发布物：Windows 默认 `test/check.ps1` 退出 0，
 严格 C、Python 标准库 zlib 双向互通、分配故障、JIT/AOT 与 C/XLang
 范例输出一致。Linux `test/check.sh` 退出 0：C ASan/UBSan、
@@ -43,13 +138,13 @@ assert miniz.decompressText(packed) == "hello miniz"
 仅用于 UTF-8 文本，解压成功但内容含非法 UTF-8 时抛 `ValueError`。
 内嵌 NUL 按真实字节长度保留；任意非 UTF-8 二进制载荷仍应使用 `Buffer`。
 
-测试 `test/test_miniz.c` 覆盖 Python zlib 固定样本、分段输入、空流、损坏、截断、串联拒绝、输出限额，以及 XRT Reader/Writer 的二进制流往返和进度回调。`test/file_ops.xl` 覆盖文件往返、覆盖拒绝、取消清理和解压限额下的目标保护。Linux 使用 `bash release/extlibs/miniz/test/check.sh`，运行 ASan/UBSan、Python zlib 反向解码、XLang JIT 和七条独立 EXE AOT；中央 XLang 用例见 `test/cases/extlib_miniz.xl`。
-Windows 在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/miniz/test/check.ps1`：同次验证严格 GCC 独立构建、Python zlib 互通、TCC C、私有成员负例、中央/文件 XLang 用例、GCC C/TCC C/XLang 范例逐字输出和完整 AOT。脚本使用每次独立的临时构建目录；`-SkipAot` 仅供聚焦快测，不作为发布签收。
+测试 `test/test_miniz.c` 覆盖固定样本、分段、空流、损坏/截断/串联拒绝、限额与 XRT Reader/Writer；`test/file_ops.xl` 覆盖文件、进度、取消与目标保护。`test/interop.c` / `interop.py` 独立双向验证标准 zlib。本包拒绝 gzip、raw deflate 和 preset dictionary，不将它们静默按 zlib 读取。Linux `test/check.sh` 包含 ASan/UBSan、14 条普通 AOT 和默认 M2 真实失败；中央语言用例见 `test/cases/extlib_miniz.xl`。
+Windows 在仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/miniz/test/check.ps1`：同次验证严格 GCC 独立构建、Python zlib 互通、TCC C、私有成员负例、中央/文件 XLang 用例、GCC C/TCC C/XLang 范例逐字输出和完整 AOT。脚本使用每次独立的临时构建目录；`-SkipAot` 仅供聚焦快测，不作为发布签收。
 
 包清单公开 `include/` 并声明所需的 XRT/XRuntime 模块。Windows 上可直接用
 `tools/run_extlib_c.ps1 -Package miniz -Source release/extlibs/miniz/examples/basic.c`
-运行 C 范例；按清单模块独立编译运行时、包源码和 C 范例也已通过，运行时
-对象为 342,087 字节。该数字不是最终 `xl build` 产物大小。
+运行 C 范例；按清单模块独立编译运行时、包源码和 C 范例也已通过。
+运行时对象大小取决于模块和编译配置，不以对象大小代替最终程序体积。
 `examples/basic.c` 的 TCC 单文件路径还可直接用
 `release/xl.exe run release/extlibs/miniz/examples/basic.c` 运行，或单独
 `xl build`；正式包仍按清单分离编译原生源码。

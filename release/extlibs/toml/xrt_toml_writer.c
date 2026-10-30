@@ -147,7 +147,11 @@ static bool __xrtTomlEncodeTime(xbuffer* pOutput, xtime Time,
 {
 	xdatetime DateTime;
 	char sText[64];
-	if ( !xrtTimeSplit(Time, &DateTime) ) { return false; }
+	if ( !xrtTimeSplit(Time, &DateTime) || DateTime.Year < 0 || DateTime.Year > 9999 ) {
+		__xrtTomlSetError(pContext->Error, XRT_TOML_ERROR_FORMAT, 0u, 0u, 0u,
+			"XRT time year cannot be represented by TOML");
+		return false;
+	}
 	snprintf(sText, sizeof(sText), "%04lld-%02d-%02dT%02d:%02d:%02d.%03dZ",
 		(long long)DateTime.Year, DateTime.Month, DateTime.Day, DateTime.Hour,
 		DateTime.Minute, DateTime.Second, DateTime.Millisecond);
@@ -431,6 +435,9 @@ XRT_API bool xrtTomlWrite(xvalue* pValue, xwriter* pWriter,
 			"cannot write TOML stream");
 	}
 	xrtBufferDestroy(pOutput);
+	/* 私有错误码与 XRT 原因要一起保留，不能让关闭阶段清空或替换正文失败。 */
+	bool bHadFailure = !bResult;
+	xerror* pSaved = bHadFailure ? xrtTakeError() : NULL;
 	if ( bTakeOwnership && !xrtWriterDestroy(pWriter) ) {
 		if ( bResult ) {
 			__xrtTomlSetError(pResolvedError,
@@ -440,6 +447,7 @@ XRT_API bool xrtTomlWrite(xvalue* pValue, xwriter* pWriter,
 		}
 		bResult = false;
 	}
+	if ( bHadFailure ) { xrtSetErrorTake(pSaved); }
 	return bResult;
 }
 

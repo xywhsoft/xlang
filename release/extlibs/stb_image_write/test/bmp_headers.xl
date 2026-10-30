@@ -1,0 +1,34 @@
+import stb_image_write
+
+func readLe32(Buffer data, int offset) as int
+    return (int(data.byteAt(offset)) + int(data.byteAt(offset + 1)) * 256 +
+        int(data.byteAt(offset + 2)) * 65536 + int(data.byteAt(offset + 3)) * 16777216)
+end
+
+func main(...) as int
+    Buffer pixels = Buffer()
+    assert pixels.append(string.repeat("\x7f", 108))
+    int cases = 0
+    for width in range(1, 10)
+        for height in range(1, 4)
+            for channels in range(1, 5)
+                int header = 54
+                int rowChannels = 3
+                if channels == 4 then
+                    header = 122
+                    rowChannels = 4
+                end
+                int row = ((width * rowChannels + 3) / 4) * 4
+                int expected = header + row * height
+                Buffer bmp = stb_image_write.encodeBmp(pixels, width, height, channels)
+                assert bmp.len() == expected
+                assert bmp.byteAt(0) == 66 and bmp.byteAt(1) == 77
+                assert readLe32(bmp, 2) == expected and readLe32(bmp, 10) == header
+                cases += 1
+            end
+        end
+    end
+    assert cases == 108 and pixels.len() == 108
+    println("stb write BMP headers: 108 PASS")
+    return 0
+end

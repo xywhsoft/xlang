@@ -18,7 +18,7 @@
 <main class="extlib-layout" id="main-content">
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / sitemap</p><h1>sitemap</h1>
     <p class="extlib-lead">生成 Sitemap XML，判断常见 robots 规则。</p>
-    <p>XML 结构解析复用 XRT XML SAX / Expat；C 与 XLang 共享值模型。完整 AOT 发布验收仍受共享链接问题阻断。</p>
+    <p>XML 结构解析复用 XRT XML SAX / Expat；C 与 XLang 共享值模型。完整语言/AOT 发布验收仍受共享 foreign var 容器投影问题阻断。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>
@@ -28,15 +28,17 @@
     </tbody></table>
     <h2>范例</h2>
     <pre><code>import sitemap
-string xml = sitemap.build([{"loc": "https://example.test/"}])
-var urls = sitemap.parse(xml)
-string indexXml = sitemap.buildIndex([{"loc": "https://example.test/site.xml"}])
-var indexes = sitemap.parseIndex(indexXml)
-var rules = sitemap.robotsParse("User-agent: *\nDisallow: /admin\n")
-println(sitemap.robotsAllows(rules, "Bot", "/admin/x"))  // false</code></pre>
+
+func main(...) as int
+    var rules = sitemap.robotsParse("User-agent: DemoBot\r# policy\rDisallow: /draft\rAllow: /draft/public")
+    assert not sitemap.robotsAllows(rules, "DemoBot", "/draft/new")
+    println(sitemap.robotsAllows(rules, "DemoBot", "/draft/public/intro"))  // true
+    return 0
+end</code></pre>
     <p>C/XLang 成对范例展示以上六个入口，两个生成的 XML 文档均由独立解析器核对结构和 URL，解析回读结果也逐项验证。</p>
     <p>XML 解析拒绝同一条目中的重复字段，避免后值静默覆盖；构建时校验 XML 1.0 字符范围，拒绝 U+FFFE/U+FFFF。生成与解析要求 loc 少于 2,048 个 UTF-8 字符，但不做完整 URI/IRI 校验。URL 集合和索引均限 50,000 条、未压缩 XML 限 52,428,800 字节；生成或解析超限时报告范围错误，不返回截断结果。robots 文本最多 1 MiB，超限报错而不截断；文本、代理名和路径须为有效 UTF-8，文件开头的 UTF-8 BOM 不会使首条 User-agent 失效。robotsAllows 的第二参数是爬虫 product token，而不是完整 HTTP User-Agent；代理组按整个 token 忽略大小写匹配，未命中专属组时回退到 *。注释和空行不会结束当前规则组，已有规则后遇到新的 User-agent 才开始下一组。路径匹配为常用子集，不做 URL 编码规范化；支持范围、C 结果所有权与测试证据见包内 README。</p>
     <p>生成时 URL 条目仅允许 loc、lastmod、changefreq、priority，索引条目仅允许 loc、lastmod；未知对象键会报错，不会被静默丢弃。字段中的 CR 写为 XML 字符引用，回读不会变成 LF；本包仍不校验完整 URI/IRI 或日期格式。</p>
+    <p>robots 按 <a href="https://www.rfc-editor.org/rfc/rfc9309.html#section-2.2">RFC 9309 §2.2</a> 识别 CR、LF、CRLF 与混合行尾，也读取无最后行尾的文件。2026-10-30 修复原先 CR 导致规则丢失的错误，新增40次分组/决策和162个真实OOM，双平台C/XLang JIT/AOT、双语四行黄金与独立XML检查通过。包内 <code>examples/robots_policy.xl</code> 与 <code>examples/robots_policy_c.c</code> 同输入同输出；完整门禁仍在M1失败，不用只读例代替生成验收。</p>
     <p>C 的零结尾 XML 解析入口只探测 50 MiB 上限外一个字节，超限返回范围错误；非零结尾缓冲区使用显式长度的 <code>_n</code> 入口。既有 Windows 包级门禁覆盖严格 GCC、C/XLang 边界和协议规模、robots 解析分配故障及恢复、双语输出对照与独立 XML 解析；Linux 门禁额外覆盖 C ASan/UBSan 和原始输出字节比较。当前发布版的最小对照中，<code>parse</code> 返回的原生数组可重新构建 XML，等价的语言数组传给 <code>build</code> 则抛 <code>ValueError</code>。完整语言与 AOT 门禁待共享 foreign <code>var</code> 容器投影修复后重跑；旧版 <code>xl6ValueDataSnapshotV1</code> 缺符号不是当前阻断。验证命令与所有权约定见包内 README。</p>
   </section>
 </main>

@@ -73,7 +73,7 @@ not currently signed off. This is the shared foreign-container ABI issue
 recorded in `dev/extlib_blockers/foreign_var_container_projection.md`; do not
 work around it by interpreting compiler-private handles inside this package.
 
-From `demo6`, run:
+From the repository root, run:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/com/test/check.ps1 -SkipAot

@@ -1,5 +1,23 @@
 # fuzzy
 
+2026-10-28 完整调用链复查：旧校验辅助函数返回借用输入时复制正文，
+`best` 的可空结果返回又产生正文副本。现校验函数只检查，不返回输入；
+五个公开入口直接借用已验证的参数，`best` 直接返回 `@owned string`。
+完整 cgen 夹具覆盖五个入口，从两处复制代码变为无 `string_copy`；
+正常未匹配仍是独立空字符串，不改为 NULL 或异常，C ABI/算法未变。
+
+新测试中 C 的四种匹配/空结果各用 0/1 预算，共 8 组；XLang 同样四种
+输入各用 0..3 预算，共 16 组，语言侧先红后绿。当前 XLang 成功需要
+三次 XRT 分配：两个 NUL 检查的单字节针串，以及一次原生结果。
+因此只证明没有多余的整段输入/结果副本，不宣称全桥零分配或零扫描。
+五个公开入口的两个参数位置另有 10 个 NUL 拒绝回归；原有 UTF-8、
+规模、评分/距离对照、无终止符、OOM、持有结果及四线程测试均保留。
+
+Windows/Linux 默认完整门禁通过，包含 GCC/TCC C、Linux ASan/UBSan、
+固定双语输出、中央/包内回归的 JIT/AOT 和双语独立 EXE。测试运行库
+按产品模块加线程/内存调试构建；两平台校验输入指纹，失败保留现场。
+没有修改主线、同步 XRT 或增加包内适配层。
+
 2026-10-27 所有权收口：`xfuzzy_best` 的 C 结果明确为 XRT 拥有的
 `char*`，XLang `best()` 使用 `@owned string?` 直接接管；专项门禁
 核对生成 C 的直接赋值，不在交接处复制正文。接管仍需一次
@@ -57,7 +75,7 @@ C/线程/XLang/双语门禁和 Linux C ASan/UBSan、线程、双语门禁通过�
 - 同输出 C：`release/extlibs/fuzzy/examples/fuzzy_c.c`，可直接用 `xl run` 单文件执行；正式 C 构建仍独立链接 `fuzzy_native.c`。
 - 边界：包内 `test/test_fuzzy.c`、`test/test_threads.c`、`test/boundaries.xl`，以及 `test/cases/extlib_fuzzy.xl`
 
-在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/fuzzy/test/check.ps1`，一次复验严格 C、三个现有 C 测试、XLang 边界、固定双语输出，以及核心、边界、分配故障和双语范例的独立 EXE；`-SkipAot` 只运行 C/JIT 聚焦门禁。Linux 对应入口为 `bash release/extlibs/fuzzy/test/check.sh`，另含 C ASan/UBSan、四线程及同样的独立 EXE 检查。需要单独定位时，可在 `release` 运行 `xl run extlibs/fuzzy/test/boundaries.xl`。
+在仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/fuzzy/test/check.ps1`，一次复验严格 C、三个现有 C 测试、XLang 边界、固定双语输出，以及核心、边界、分配故障和双语范例的独立 EXE；`-SkipAot` 只运行 C/JIT 聚焦门禁。Linux 对应入口为 `bash release/extlibs/fuzzy/test/check.sh`，另含 C ASan/UBSan、四线程及同样的独立 EXE 检查。两者都包含 `test/owned_results.xl` 的预算/NUL 回归与 `test/owned_probe.xl` 的完整 cgen 检查，使用独占目录，成功清理，失败保留命令、输入指纹和产物。需要单独定位时，可在 `release` 运行 `xl run extlibs/fuzzy/test/boundaries.xl`。
 
 2026-10-22：Windows 默认门禁加入完整范例 AOT 构建、运行及 C 输出比较；两个 AOT 产物放在本次独占目录，成功或失败均清理。`-SkipAot` 严格 C、C/XLang 范例与语言边界通过，默认门禁核心 AOT 通过；完整范例构建仍因共享 `xl6ValueDataSnapshotV1` 缺符号而失败，新增的运行/输出比较尚未执行，整包不能签收发布级。
 

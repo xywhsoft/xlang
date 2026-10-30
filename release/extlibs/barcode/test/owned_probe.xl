@@ -1,0 +1,6 @@
+import barcode
+
+assert barcode.ean13Svg("4006381333931", 60, 3).contains("</svg>")
+assert barcode.upcASvg("12345678901", 60, 3).contains("</svg>")
+assert barcode.ean13Ascii("4006381333931").length == 95
+assert barcode.upcAAscii("12345678901").length == 95

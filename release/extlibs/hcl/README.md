@@ -1,5 +1,51 @@
 # hcl
 
+2026-10-30：修复复合表达式内部行注释被 get 再次解释的问题。解析器已
+跳过 `#` / `//`，但尾注释扫描只跳过块注释，导致注释里的引号、非法
+转义或 `/*` 使合法配置报错或返回截断文本。现在复用同一个注释扫描，
+不增加扫描轮次或分配，不改变公开 ABI、单字符串解码和原文查询合同。
+
+原 expression_strings 回归由17组扩为77组：新增两种行注释、五种文本、
+三类括号和 LF/CRLF 的60组合，每组执行原文/取值对照和逐分配点故障、
+立即同输入恢复，核对活动内存及非法释放；另保留 NUL 拒绝，并核对
+注释之后的真实坏转义、未闭合括号、坏尾部与注释内非法 UTF-8 仍拒绝。
+两平台同一最终 C 回归在旧解析器有60组取值错误，修复后全部通过。
+新 query_comments.xl / query_comments_c.c 各自验证并对照同一六行golden；
+expression_strings.xl 已加入 coverage.tests，不仅依赖单独门禁发现。
+
+Windows默认完整门禁通过；Linux原生快照默认57阶段含ASan/UBSan、
+四线程及旧新双语JIT/AOT通过，两平台均含9份独立程序。实际生成的
+12个C函数声明对公开头检查通过，故意将bool返回改为int64_t在LLP64/
+LP64均被拒绝。Linux门禁原始37/127失败留档自测保持通过，41个复制
+源及两个实际工具指纹不变；Windows19个包文件、六个不同工具/帮助
+脚本与八件冻结物均复核不变。门禁后仅补本文与官网的结果说明。
+证据在 build/test/hcl_audit_1793334282487 和
+/var/tmp/xlang-hcl-audit-NNOclnra；官网只做隔离生成，不部署。
+历史Linux偶发退出仍未查明，HCL保持R，不以本次绿跑关闭风险。
+
+2026-10-29：修正 `get` 把首尾为引号的复合表达式误当作字符串解码的
+问题。现在复用尾注释扫描的 token 边界，只有完整的单个双引号字符串
+才解码，不增加扫描或分配；`"a" == "b"`、字符串拼接、条件表达式的
+引号和转义保持原文。新增 C/XLang 17 组对照，包括复合表达式内的
+`\u0000`、单字符串 Unicode/转义、原始注释和整份配置校验；C 逐分配点
+验证 `NULL`/内存错误、无泄漏与恢复。两平台默认门禁均纳入新矩阵的
+严格 C、直接运行和独立 EXE；公开双语范例同步展示不求值的表达式查询。
+Windows 门禁结束时复核输入指纹，失败保留本次目录而不删除现场。
+Windows 默认完整门禁与 Linux 原生文件系统隔离快照默认门禁均退出 0，
+包含新旧 C/XLang JIT/AOT、双语输出对照、Linux ASan/UBSan 和四线程。
+实际输入在验收前后复核一致，未更新 XRT 或主线。历史 Linux 偶发退出
+根因仍未知，本次包内数据改写修复不作为该风险的关闭证明。
+
+2026-10-28：Windows 默认完整门禁与 Linux 默认完整门禁均退出 0。
+Linux 新增复用已有四线程用例的 ASan/UBSan 检查，四个线程各做 500 轮
+查询并核对保留的文本不被后续调用覆盖。每个阶段现在记录命令、原始退出码、
+stdout/stderr；失败保留现场，成功自动清理。输入指纹覆盖包源码/测试、
+XRT 头、中央用例、双语范例、`xl` 及其实际依赖的 `libxlc.so`，
+并在验收结束时复核不变。诊断自测验证无输出退出 37 和命令不存在退出 127
+都不会丢失原始状态；不改变既有路径或超时限制。C 范例按公开原型使用
+`char*`，去除无意义的 `void*` 和强制转换。历史偶发退出根因仍未知，
+以上通过和证据留档改进不等于修复该历史风险。
+
 2026-10-27：四个文本查询的 C 原型明确为 XRT 自有 `char*`，XLang
 `extern @owned string` 直接接管结果；公开查询写法、缺失属性返回空串、
 错误分类和 NUL 输入检查不变。生成 C 门禁逐一核对四个原生调用直接
@@ -60,11 +106,19 @@ assert hcl.getInt(config, "port") == 8080
 
 公开 XL 函数：`get`、`getRaw`、`getInt`、`getFloat`、`getBool`、`has`、
 `countBlocks`、`blockLabel`、`blockLabelCount`、`blockLabelAt`、`validate`、
-`countAttrs`。`getRaw` 返回表达式原文；`get` 去掉外层双引号并处理
+`countAttrs`。`getRaw` 返回表达式原文；`get` 仅对完整的单个双引号字符串去掉引号并处理
 `\n`、`\r`、`\t`、引号、反斜杠及 `\u`/`\U` Unicode 转义，不求值。
+例如 `v = "a" == "b"` 的 `get` 结果仍为 `"a" == "b"`，其中的
+转义也不会解码；不能仅凭首尾字符为引号判定字符串。
 属性名、等号、值和块头之间可使用 `/* ... */` 行内注释；注释不会拼接
 标识符。解码型查询忽略表达式尾部块注释，但保留字符串内部及表达式
 中间的内容；`getRaw` 保留尾部注释原文。
+复合表达式内部的 `#`、`//` 行注释同样原样保留，注释中的引号、非法转义、
+未闭合括号或 `/*` 都只是注释文本，不会使合法表达式的 `get` 失败。
+包内 `examples/query_comments.xl` / `query_comments_c.c` 演示同一网络配置的
+标量、块标签和含注释列表表达式查询，两者各自断言并使用相同六行输出。
+在仓库根目录执行 `release/xl.exe run release/extlibs/hcl/examples/query_comments.xl`，
+或将文件名换为 `query_comments_c.c`；Linux 将 `release/xl.exe` 换为 `release/xl`。
 `getFloat` 使用 XRT 严格十进制解析，固定以 `.` 为小数点，不受进程
 `LC_NUMERIC` 影响；十六进制浮点和逗号小数均报 `ValueError`。
 `getInt` 同样使用 XRT 严格十进制解析，必须消耗完整值；引号内的
@@ -88,7 +142,8 @@ C 解析入口也会在顶层遍历前校验整份 HCL 文本的 UTF-8；引号�
 双引号内的真实 LF、CR、FF（包括反斜杠后紧跟的真实换行）同样报
 `ValueError`；需要换行字符时写 HCL 转义 `\n`，不要把字符串跨物理行。
 未知、缺位或越界的 Unicode 转义同样拒绝；`\u0000` 在 `validate()` 和
-`getRaw()` 中保留，但解码型查询因 C 字符串结果不能安全表达 NUL 而报错。
+`getRaw()` 中保留；仅在解码单个字符串时，因 C 字符串结果不能安全表达
+NUL 而报错。复合表达式 `"\u0000" == "x"` 是源码，`get()` 同样保留。
 
 C 接口见 `include/hcl_native.h`。文本结果是**独立拥有型**内存，C 调用者
 必须以 `xrtFree` 释放；`NULL` 表示错误。XLang 的 `get`、`getRaw`、
@@ -103,11 +158,12 @@ C 接口见 `include/hcl_native.h`。文本结果是**独立拥有型**内存，
   两侧各自断言注释保留的原文、浮点值、第二个块标签及嵌套属性总数；
   Windows `test/check.ps1 -SkipAot` 与 Linux `test/check.sh`（含 C ASan/UBSan）
   均通过。只补范例，不改变解析器；完整 AOT 仍受下述共享符号阻断。
-- Windows 从 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass
+- Windows 从仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass
   -File release/extlibs/hcl/test/check.ps1`，同次检查严格 GCC 语法、
   C 边界/线程、中央与包内 XLang、分配故障、双语范例同输出、无输出核心
   AOT、边界与分配故障 AOT，以及带输出范例 AOT。加 `-SkipAot` 只运行 C/XLang 聚焦门禁。
-  AOT 产物位于每次独占的 `build/test` 子目录，结束时校验路径并清理。
+  AOT 产物位于每次独占的 `build/test` 子目录，成功后校验路径并清理，
+  失败保留输入指纹、`failure.txt` 及该次构建产物，并输出现场路径。
 - `xl run examples/extlibs/hcl.xl` 与 C 范例
   `examples/extlibs/hcl_c.c` 逐行内容一致，均展示 Unicode 转义解码；
   两份范例还分别断言固定文本、数字、布尔、块标签及 Unicode 结果，
@@ -115,6 +171,9 @@ C 接口见 `include/hcl_native.h`。文本结果是**独立拥有型**内存，
   Windows 下 C 的行尾为 CRLF、XLang 为 LF。C 范例显式包含包内实现，
   可直接执行 `xl run examples/extlibs/hcl_c.c`；包级运行器会避免重复链接。
 - `xl run extlibs/hcl/test/boundaries.xl`
+- `xl run extlibs/hcl/test/expression_strings.xl` 与
+  `xl run extlibs/hcl/test/test_expression_strings.c`：单字符串解码和复合
+  表达式保留原文的对照，C 还扫描逐分配点失败和活动内存恢复。
 - `xl run extlibs/hcl/test/allocations.xl`：逐点注入分配失败，验证
   `get`、`getRaw`、缺失字段及块标签的 `MemoryError` 分类和恢复。
 - `tools/smoke_extlib_catalog.ps1 -Package hcl`：发现包清单登记的边界用例
@@ -129,6 +188,20 @@ C 接口见 `include/hcl_native.h`。文本结果是**独立拥有型**内存，
   C 的 ASan/UBSan 边界、无效 UTF-8 拒绝、合法中文文本查询、中央与包内
   XLang 用例，以及 C/XLang 范例的逐字节同输出。C 范例使用严格 GCC
   编译，`int64_t` 的格式化在 LP64 与 LLP64 下均受检查。
+- Linux 门禁还运行已有四线程用例及全部语言/公开 C 范例的独立 EXE。
+  失败时 stderr 输出 `[hcl] FAIL stage=... exit=... artifacts=...`；目录位于
+  `${TMPDIR:-/tmp}/xlang-hcl-*`，保留 `failed-stage.txt`、`exit-code.txt`、
+  `phases.tsv`、`fingerprint.stdout`、`compiler.txt`，以及每一步的
+  `阶段名.command/.stdout/.stderr`。排查结束后可删除报告的该次独占目录。
+- 只验证留档机制：从仓库根目录运行
+  `bash release/extlibs/hcl/test/check_gate_diagnostics.sh`，检查无输出失败、
+  编译器启动失败、原始退出码及现场内容；成功时自动清理刻意产生的失败现场。
+  该自测不是解析器或语言 JIT/AOT 验收的替代品。
+
+## 历史验证记录
+
+以下记录中的“当前阻断”只描述记录当日的发布物；旧快照缺符号问题已由
+上述新版完整门禁复验解除。仍开放的是历史 Linux 偶发退出的未知根因。
 
 2026-10-19：C 测试对一份含转义字符串、块与数组表达式的有效文档逐字节
 截断，并用六种字节逐位置替换，比较 `validate` 与 `get`、`getRaw`、

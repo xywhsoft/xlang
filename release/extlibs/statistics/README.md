@@ -1,5 +1,39 @@
 # statistics
 
+2026-10-29 大基数小波动审计：修复共享中心化先将均值舍入、再从大
+输入相减造成的系统性精度损失。例如 `[1e16,1e16+2,1e16+2]` 的总体
+方差应为 `8/9`，旧实现得到 `4/3`；对完全线性的 `[0,1,1]` 响应，
+拟合斜率也可能由正确的 `0.5` 变成约 `0.333333`。现在先平移到首
+元素附近，再计算偏差均值；单变量与双变量共用同一实现。平移前或
+再次中心化时可能溢出的数据仍先缩半，最终按原量纲恢复。
+
+不新增堆分配、公开函数或ABI，不改变样本/总体定义、错误/所有权
+规则及输入数据；所需临时数组和分配故障合同不变。代价是中心化
+多走部分数组扫描，双变量统计还保留原均值用于截距，不能宣称无
+性能代价或和原实现等速。此改动也不承诺任意浮点输入的正确舍入。
+
+新增 `test/translation_c.c`：正负基数、八种二次幂量纲、160项明确
+分数/线性预期；旧实现128红，修复后归零。另输出1,024组实际binary64
+输入、十类结果，由 `test/check_translation.py` 用Python3 `Fraction`
+精确有理数与120位 `Decimal` 开方独立计算，10,240项结果旧6,526红
+转零。测试容差为相对尺度 `2e-12`；截距按大均值消减的条件数用
+`|mean(y)|+|slope*mean(x)|` 作为绝对误差尺度，不将条件病态时的
+微小截距误差隐藏成普遍正确舍入保证。零协方差/斜率也按数据的自然
+量纲约束，而不是对所有量纲套一个固定绝对容差。原始输入/旧源与
+红绿证据保留；首次验证器的6,527红记录早于这项零结果尺度澄清。
+
+新增 `examples/measurement_offsets.xl` / `measurement_offsets_c.c`，
+用同一测量数据和六行黄金输出说明方差、标准差、MAD、趋势与输入
+不被修改。C可直接 `xl run release/extlibs/statistics/examples/measurement_offsets_c.c`。
+**XLang范例和原有数组聚合仍受M1阻断**：正常语言数组传入原生层
+被误认为非数组；不提供C工厂制造替代值，不因C通过而签收双语闭环。
+
+两默认门禁先执行旧数值/OOM、长度守卫、新平移/精确参照、四个C
+范例、全部23个实际生成原型，以及独立C程序，再要求全部真实语言
+数组路径通过。GCC与TCC独立程序分别生成精确参照记录；Linux C
+启用ASan/UBSan。需要GCC及Python3标准库，不需第三方Python包。
+每进程有时限、完整输出及输入前后指纹；失败保留现场而不是删证据。
+
 2026-10-24 当前 Windows 发布版复验：默认 `test/check.ps1` 的严格 C、
 ABI、C 边界和三组 C 范例通过；中央 XLang 用例的首个
 `statistics.count(var array)` 断言失败。共享 foreign `var` 数组投影
@@ -93,7 +127,7 @@ XLang 边界及三组双语范例通过，Linux C ASan/UBSan 与 XLang 对照门
 默认 Windows 门禁的完整边界 AOT 仍缺共享 `xl6ValueIndexReadCopyV1`，
 不据聚焦门禁通过签收整包发布级。
 
-在 `demo6` 目录运行：
+在仓库根目录运行：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/statistics/test/check.ps1 -SkipAot
@@ -104,7 +138,7 @@ bash release/extlibs/statistics/test/check.sh
 并对照 `examples/basic.xl` 与 `examples/statistics_c.c`、
 `examples/trend.xl` 与 `examples/trend_c.c`、
 `examples/distribution.xl` 与 `examples/distribution_c.c` 三组成对范例的
-共同黄金输出。三份 C 范例均自包含统计实现，可在 `demo6` 目录直接运行：
+共同黄金输出。三份 C 范例均自包含统计实现，可在仓库根目录直接运行：
 
 ```powershell
 release/xl.exe run release/extlibs/statistics/examples/statistics_c.c

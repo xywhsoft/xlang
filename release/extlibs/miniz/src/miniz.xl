@@ -280,7 +280,7 @@ export class MinizDecompressor
         return Buffer(result)
     end
 
-    // 校验流已完整结束；流被截断或为空时抛出 CompressionError。
+    // 校验流已完整结束，底层错误保留原有分类。
     func finish() as bool
         if not self.finishNative() then
             throw CompressionError __miniz_error()

@@ -1,0 +1,27 @@
+import argon2
+
+// 仅演示版本迁移流程：低成本与固定旧盐是测试夹具，生产使用默认配置并标定成本。
+func main(...) as int
+    string stored = "$argon2id$v=16$m=32,t=1,p=1$c29tZXNhbHQ$V5Quaw7ASul1EzygimxtXA"
+    assert argon2.verify("pw", stored)
+    println("legacy: verified")
+    assert argon2.checkNeedsRehash(stored, 1, 32, 1)
+    println("rehash: required")
+
+    // 必须先验证成功，再用本次密码重新计算；新盐由系统安全随机源生成。
+    stored = argon2.hash("pw", timeCost=1, memoryCost=32, parallelism=1, hashLen=16)
+    assert argon2.verify("pw", stored) and not argon2.checkNeedsRehash(stored, 1, 32, 1)
+    println("upgrade: verified")
+    string unknown = "$argon2id$v=17$m=32,t=1,p=1$c29tZXNhbHQ$UF21A2AEUD+Ys5m/yX+2vw"
+    assert not argon2.verify("pw", unknown) and argon2.extractType(unknown) == -1
+    println("unknown: rejected")
+    assert not argon2.verify("pw", stored + "\0tail")
+    println("malformed: rejected")
+
+    // 只读元数据，不执行此超高迭代次数；配置解析与真正计算的预算是两回事。
+    string metadata = "$argon2id$v=19$m=32,t=4294967295,p=1$c29tZXNhbHQ$AAAAAA"
+    int cost = argon2.extractTimeCost(metadata)
+    assert cost == 4294967295
+    println("metadata: " + string(cost))
+    return 0
+end

@@ -32,11 +32,10 @@ extern "xansi_strip" @owned func __ansi_strip(string text) as string
 extern "xansi_display_width" func __ansi_display_width(string text) as int
 
 // C 入口使用零结尾文本；先拒绝内嵌 NUL，避免静默只处理前缀。
-func __ansi_text(string text) as string
+func __ansi_text(string text)
     if string.indexOf(text, "\0", false, string.byteLen(text), 1) >= 0 then
         throw ValueError "ansi: text contains NUL"
     end
-    return text
 end
 
 export func reset() as string
@@ -44,59 +43,73 @@ export func reset() as string
 end
 
 export func bold(string text) as string
-    return __ansi_bold(__ansi_text(text))
+    __ansi_text(text)
+    return __ansi_bold(text)
 end
 
 export func dim(string text) as string
-    return __ansi_dim(__ansi_text(text))
+    __ansi_text(text)
+    return __ansi_dim(text)
 end
 
 export func italic(string text) as string
-    return __ansi_italic(__ansi_text(text))
+    __ansi_text(text)
+    return __ansi_italic(text)
 end
 
 export func underline(string text) as string
-    return __ansi_underline(__ansi_text(text))
+    __ansi_text(text)
+    return __ansi_underline(text)
 end
 
 export func blink(string text) as string
-    return __ansi_blink(__ansi_text(text))
+    __ansi_text(text)
+    return __ansi_blink(text)
 end
 
 export func inverse(string text) as string
-    return __ansi_inverse(__ansi_text(text))
+    __ansi_text(text)
+    return __ansi_inverse(text)
 end
 
 export func hidden(string text) as string
-    return __ansi_hidden(__ansi_text(text))
+    __ansi_text(text)
+    return __ansi_hidden(text)
 end
 
 export func strike(string text) as string
-    return __ansi_strike(__ansi_text(text))
+    __ansi_text(text)
+    return __ansi_strike(text)
 end
 
 export func fg(string text, int code) as string
-    return __ansi_fg(__ansi_text(text), code)
+    __ansi_text(text)
+    return __ansi_fg(text, code)
 end
 
 export func bg(string text, int code) as string
-    return __ansi_bg(__ansi_text(text), code)
+    __ansi_text(text)
+    return __ansi_bg(text, code)
 end
 
 export func fg256(string text, int index) as string
-    return __ansi_fg256(__ansi_text(text), index)
+    __ansi_text(text)
+    return __ansi_fg256(text, index)
 end
 
 export func bg256(string text, int index) as string
-    return __ansi_bg256(__ansi_text(text), index)
+    __ansi_text(text)
+    return __ansi_bg256(text, index)
 end
 
 export func fgTrue(string text, int r, int g, int b) as string
-    return __ansi_fg_true(__ansi_text(text), r, g, b)
+    __ansi_text(text)
+    return __ansi_fg_true(text, r, g, b)
 end
 
 export func bgTrue(string text, int r, int g, int b) as string
-    return __ansi_bg_true(__ansi_text(text), r, g, b)
+    __ansi_text(text)
+    return __ansi_bg_true(text, r, g, b)
 end
 
 export func up(int count) as string
@@ -148,15 +161,18 @@ export func showCursor() as string
 end
 
 export func title(string text) as string
-    return __ansi_title(__ansi_text(text))
+    __ansi_text(text)
+    return __ansi_title(text)
 end
 
 export func strip(string text) as string
-    return __ansi_strip(__ansi_text(text))
+    __ansi_text(text)
+    return __ansi_strip(text)
 end
 
 export func displayWidth(string text) as int
-    int width = __ansi_display_width(__ansi_text(text))
+    __ansi_text(text)
+    int width = __ansi_display_width(text)
     if width < 0 then throw ValueError __ansi_error() end
     return width
 end

@@ -1,0 +1,18 @@
+import ini
+
+func main(...) as int
+    // 同一节可按部署环境覆盖旧配置；插值在读取时使用当前值。
+    string source = "scheme=http\n[service]\nhost=localhost\nport=8080\nwelcome=old\nnote=unchanged\nwelcome=hello\n    world\nendpoint=${.scheme}://${host}:${port}\n"
+    auto config = ini.parse(source, strictDuplicates=false, interpolation=true)
+    config.set("service", "port", "9090")
+
+    // 写出的规范配置已消除重复键，可按默认严格模式重新读取。
+    auto restored = ini.parse(config.stringify(), interpolation=true)
+    assert restored.get("service", "endpoint") == "http://localhost:9090"
+    assert restored.get("service", "welcome") == "hello\nworld"
+    assert restored.get("service", "note") == "unchanged"
+    println(restored.get("service", "endpoint"))
+    println(restored.get("service", "welcome"))
+    println(restored.get("service", "note"))
+    return 0
+end

@@ -1,0 +1,64 @@
+import srt
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    // 正常解析产生原生 cue；不是将语言字面量重建来绕过投影边界。
+    string source = "1\n00:00:00,000 --> 00:00:01,000\nHi\n\n"
+    string webSource = "WEBVTT\n\nintro\n00:00:00.500 --> 00:00:01.000 align:start\nHello\n\n"
+    var plain = srt.parse(source)
+    var web = srt.parseVtt(webSource)
+    var empty = srt.parse("")
+    string held = srt.build(plain)
+    array<int> nativeBudgets = [1, 1, 1, 3, 2, 8]
+    int faults = 0
+    int successes = 0
+    for operation in range(6)
+        int needed = nativeBudgets[operation]
+        for budget in range(needed + 1)
+            bool memoryCaught = false
+            bool wrongCaught = false
+            assert failAfter(uint64(budget))
+            try
+                if operation == 0 then
+                    srt.formatTime(0)
+                elseif operation == 1 then
+                    srt.formatTime(9223372036854775807)
+                elseif operation == 2 then
+                    srt.build(empty)
+                elseif operation == 3 then
+                    srt.build(plain)
+                elseif operation == 4 then
+                    srt.buildVtt(empty)
+                else
+                    srt.buildVtt(web)
+                end
+            catch MemoryError error
+                memoryCaught = true
+            catch e
+                wrongCaught = true
+            end
+            bool triggered = failTriggered()
+            failClear()
+            assert not wrongCaught and memoryCaught == triggered
+            if triggered != (budget < needed) then println("operation=", operation, " budget=", budget, " triggered=", triggered) end
+            assert triggered == (budget < needed), "binding must not add a result allocation"
+            if triggered then faults += 1 else successes += 1 end
+            assert held == source and srt.build(plain) == source
+            assert srt.buildVtt(web) == webSource
+        end
+    end
+    assert faults == 16 and successes == 6
+    assert srt.formatTime(9223372036854775807) == "2562047788015:12:55,807"
+    bool rejected = false
+    try
+        srt.formatTime(-1)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected and srt.formatTime(0) == "00:00:00,000"
+    println("srt owned results: 22 budgets, PASS")
+    return 0
+end

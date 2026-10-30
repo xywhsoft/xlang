@@ -1,3 +1,11 @@
-#define XRT_MODULE_ALL
+/* 测试复用包的模块依赖；文件范例和分配故障另需以下两个模块。 */
+#define XRT_MODULE_BUFFER
+#define XRT_MODULE_BUFFER_HEX
+#define XRT_MODULE_CODEC_HEX
+#define XRT_MODULE_STRING
+#define XRT_MODULE_UNICODE
+#define XRT_MODULE_VALUE_CONTAINER
+#define XRT_MODULE_FILE_WHOLE
+#define XRT_MODULE_MEMORY_DEBUG
 #define XRT_IMPLEMENTATION
 #include "xrt.h"

@@ -1,5 +1,25 @@
 # xxhash
 
+2026-10-29 新增全局哈希器用例 `test/top_level.xl`，main 内检查对象
+有效，退出时自然析构。固定发布版 Windows/Linux JIT 均退出0；独立
+EXE 均打印 PASS 后在退出期报状态错误并退出1，确认 **M2 主线阻断**。
+默认门禁接入专项并保留失败现场；下述向量、线程与函数内对象通过
+不覆盖这一边界，暂不作完整发布签收。复现及恢复方向见
+`dev/extlib_blockers/global_native_class_aot_fini.md`，不移动顶层对象、
+不提前销毁或吞异常，不在包内修主线。
+
+2026-10-28 所有权收口：十条 hex C 结果统一为独立 XRT 分配的 `char*`，
+XLang 以 `@owned string` 直接接管，不再先写临时区再复制正文；版本号
+与错误文本仍是借用。生成 C 逐条检查原生指针直接写入字符串存储，
+仍需一次 `strlen`，也保留外调错误处理，不宣称整条调用零开销。
+Windows/Linux 默认门禁均退出 0：已知向量、十条结果的分配故障、
+四线程与线程退出后结果存活、语言 JIT/AOT、双语固定输出全部通过；
+Linux 另启用 ASan/UBSan，并运行九份独立 XLang EXE。语言门禁在
+独占原生临时目录运行；WSL 挂载盘的 180 秒 AOT 超时及对照证据见
+[专项记录](../../../dev/extlib_blockers/xxhash_linux_mounted_aot_io.md)。
+原生核心 API、XLang 调用写法和哈希结果不变，不外推 32 位/ARM、
+长时压力或挂载盘编译性能已验收。
+
 XXH32/XXH64/XXH3 非密码哈希，支持 UTF-8 文本、Buffer；XXH64 另有增量对象和带进度/取消的文件读取。
 使用随包 C 后端，复用 XRT 的资源、文件和错误设施，无额外 xxHash DLL。
 不用于口令、签名或防恶意篡改；来源和许可证见 [VENDOR.md](VENDOR.md)。
@@ -107,8 +127,18 @@ Options/Limits 的 size/version 必须匹配；除 `iMaxInputBytes` 外的资源
 
 薄绑定头：[include/xxhash_native.h](include/xxhash_native.h)。point 对应 `void*`，
 string 对应 `const char*`，C 整数使用精确的 C 类型；进入核心时才作为 const 借用。
-hex 返回值借用当前 XRT 临时区，临时区清理/回退后失效；长期保留请复制。
-成功的下一次调用不会覆盖此前文本；不同线程使用各自的临时区。
+十个 hex 返回入口均返回独立拥有的 `char*`，C 调用方必须 `xrtFree`，
+XLang 通过 `@owned string` 自动接管。失败返回 `NULL` 并保留 XRT
+错误；不使用空串掩盖失败。结果不依赖临时区、hasher 生命周期或
+创建线程，可在其他调用、hasher 销毁或创建线程退出后继续使用。
+版本号与错误消息仍为只读借用，不能释放；同一可变 hasher 不支持并发写入。
+
+```c
+char* hex = xxxhash_hash64_str_hex("abc", 3, 0);
+if (hex == NULL) return 1;
+printf("%s\n", hex);
+xrtFree(hex);
+```
 
 ## 范例与验证
 
@@ -129,12 +159,13 @@ C 对照范例的一次性哈希、增量更新及 reset 均显式执行；Windo
 - [核心 C 边界](test/test_xxhash.c)、[原生层/分配故障/线程](test/test_xxhash_native.c)。
 - [高位种子与空输入](test/seeded_boundaries.xl)：公开 32 位已知向量、空 Buffer、64 位高位种子及增量对象；登记在包清单的 `coverage.tests`。
 - [XXH3 边界](test/xxh3.xl)：空输入、嵌入 NUL、高位种子及 64/128 位文本结果；登记在包清单的 `coverage.tests`。
+- [文本所有权](test/ownership.xl)：十条文本入口、局部 hasher 退役后的结果、四类 OOM 与恢复；生成 C 门禁检查十条原生指针直接接管路径。
 - [增量限额与恢复](test/stream_limit.xl)：超限报错、失败状态、保留计数及 reset 后重用；登记在包清单的 `coverage.tests`。
 - [原生入口访问负例](test/private_update_negative.xl)、[字符串长度访问负例](test/private_string_length_negative.xl)：只做编译检查，不执行伪造指针或长度。
 - [负数种子拒绝](test/invalid_seed_negative.xl)、[32 位种子溢出拒绝](test/invalid_seed32_overflow.xl)：
   预期语义错误的负例，不能当作成功运行的范例。
 - `tools/check_extlib_xxhash.ps1`：严格 GCC、124 条独立向量、实际生成声明、JIT/AOT、双语输出；`-SkipAot` 仅供开发时缩短反馈。
-- `tools/check_extlib_xxhash.sh`：Linux 独立 C ASan/UBSan、私有入口/种子负例、语言 JIT、八条独立 EXE AOT 与双语范例输出对照。
+- `tools/check_extlib_xxhash.sh`：Linux 独立 C ASan/UBSan、私有入口/种子负例、语言 JIT、九条独立 EXE AOT 与双语范例输出对照。
 - `bash tools/check_extlib_linux_xl.sh xxhash`：Linux XLang JIT 的普通、边界、文件进度用例及双语范例固定输出；不替代 C sanitizer 或 AOT 门禁。
 - `bash release/extlibs/xxhash/test/check.sh`：组合上述 Linux C/XLang 门禁，验证包内正例与原生入口访问负例。
 
@@ -169,7 +200,7 @@ XXH32 流式对象、Linux xlang AOT、32 位/ARM、共享可变 hasher 并发�
 2026-10-18：限额和 reset 用例确认现有公开方法已按文档抛错，无需另造错误包装；包外 `updateNative(point,size)` 与 `updateStrNative(string,size)` 两条只编译负例先红后绿，四个仅供包装的 `*Native` 成员私有化。Linux C ASan/UBSan、XLang JIT、双语对照与新用例联合通过；完整 AOT 共享阻断不变。
 2026-10-19：C 配置中的 `xrtresourcelimits.iReserved` 非零原被静默接受；流对象创建及 Reader 文件哈希负例先红后绿，现通过共用校验拒绝，并检查文件输入未被消费。Linux C ASan/UBSan、124 条向量、XLang JIT 与双语对照通过；Windows 严格 C 与 JIT 通过。Windows 完整脚本仍在共享 AOT 符号 `xl6NativeHandleTraceLeaf` 处停止，未签收完整 AOT。
 
-2026-10-20：C 教学范例现在可从 `demo6` 目录直接执行
+2026-10-20：C 教学范例现在可从仓库根目录直接执行
 `release/xl.exe run release/extlibs/xxhash/examples/basic.c`；仅 TCC 单文件路径
 包含所需后端源码，正式 GCC/manifest 构建保持分离编译。Windows
 `tools/check_extlib_xxhash.ps1 -SkipAot` 和 Linux 包门禁将直跑结果与

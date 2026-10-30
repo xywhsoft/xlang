@@ -19,6 +19,8 @@
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / xml.etree</p><h1>xml.etree</h1>
     <p class="extlib-lead">按元素组织的轻量 XML 读写。</p>
     <p>适合读取配置与构建简单 XML；路径查询只支持直接子元素和 <code>//name</code> 后代匹配，并非完整 XPath。解析文本按显式字节长度直接传入，不创建整份输入的 Buffer 副本。</p>
+    <p>2026-10-30：修复 parse/load/stringify/save 错误状态首次初始化失败后被清错并继续操作，文本输出沿用同一检查，初始化失败不覆盖原目标。三包 15 入口 Windows 270 / Linux 257 场景通过，两平台旧桥接各 60 场景失败；四线程 144 诊断的 GCC/TCC JIT/AOT、各 19 份普通 AOT、58 实际 C 原型及 Linux ASan/UBSan 通过。ABI、类声明、Expat 与冻结 XRT 不变。</p>
+    <p>当前仍待 M9/M3：默认门禁运行部分通过，末项公开 Reader 类型正例失败，Element/Node 另验也未导出。不以工厂返回路径通过或不安全公开原生构造来签收；旧通过记录不覆盖新正例。门禁保留现场，完整范围见 SAX 共用审查记录与包 README。</p>
     <p>2026-10-26 当前 Windows/Linux 三包联合默认门禁均通过：严格 C、Linux ASan/UBSan、语言 JIT、中央/边界/分配与公开双语范例独立 EXE，以及 DOM/ElementTree 往返。旧 VFS 和共享快照缺失不再复现。<code>Element</code> 尚不能在包外命名；原生句柄构造器的安全边界修复前，本包仍待签收。</p>
     <p>2026-10-24：Windows 三包联合门禁的 C/XLang 边界、DOM/ElementTree 往返及三包各自的边界、分配、范例独立 EXE 全部通过；Linux C ASan/UBSan 与 XLang JIT 双语门禁通过。Linux 独立 EXE 本轮未验收。下方旧缺符号记录只描述当时的发布物。</p>
   </header>

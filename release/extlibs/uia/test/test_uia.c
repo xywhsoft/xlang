@@ -1,8 +1,27 @@
 /* Windows UI Automation 的动态值边界：元素集合必须返回当前 XRT xvalue 数组。 */
+#define XRT_MODULE_MEMORY_DEBUG
 #include "../include/uia.h"
+#include "../x_uia_min.h"
 #include <stdio.h>
+#include <stdlib.h>
 
+/* 只在测试中模拟 OLE 分配失败，不改变产品的系统分配器。 */
+static int g_x_uia_test_fail_bstr;
+static int g_x_uia_test_fail_calloc;
+static BSTR WINAPI x_uia_test_alloc_bstr(const OLECHAR* text, UINT length)
+{
+	return g_x_uia_test_fail_bstr ? NULL : SysAllocStringLen(text, length);
+}
+static void* x_uia_test_calloc(size_t count, size_t size)
+{
+	if ( g_x_uia_test_fail_calloc ) { g_x_uia_test_fail_calloc = 0; return NULL; }
+	return calloc(count, size);
+}
+#define SysAllocStringLen x_uia_test_alloc_bstr
+#define calloc x_uia_test_calloc
 #include "../x_uia_artifact.c"
+#undef SysAllocStringLen
+#undef calloc
 
 typedef struct XUiaThreadCheck {
 	void* root;
@@ -11,6 +30,7 @@ typedef struct XUiaThreadCheck {
 	int shutdown;
 	int release_events;
 	void* desktop;
+	void* process;
 } XUiaThreadCheck;
 
 static DWORD WINAPI x_uia_check_other_thread(void* context)
@@ -20,6 +40,7 @@ static DWORD WINAPI x_uia_check_other_thread(void* context)
 	check->shutdown = x_uia_shutdown();
 	check->release_events = x_uia_events_release(check->events);
 	check->desktop = x_uia_desktop();
+	check->process = x_uia_launch("");
 	return 0;
 }
 
@@ -52,6 +73,177 @@ static VOID CALLBACK x_uia_test_release_during_poll(HWND hwnd, UINT message, UIN
 	if ( g_x_uia_poll_release_result ) { g_x_uia_poll_release_queue = NULL; }
 }
 
+typedef struct XUiaMemoryProvider {
+	IUIAutomationElement element;
+	unsigned stage;
+	unsigned pattern_calls;
+	unsigned name_calls;
+	unsigned releases;
+} XUiaMemoryProvider;
+
+static ULONG STDMETHODCALLTYPE x_uia_memory_provider_release(IUIAutomationElement* self)
+{
+	((XUiaMemoryProvider*)self)->releases++;
+	return 0;
+}
+
+static HRESULT STDMETHODCALLTYPE x_uia_memory_provider_pattern(IUIAutomationElement* self,
+	PATTERNID pattern, REFIID iid, void** result)
+{
+	XUiaMemoryProvider* provider = (XUiaMemoryProvider*)self;
+	(void)iid;
+	provider->pattern_calls++;
+	*result = NULL;
+	if ( provider->stage == 0u && pattern == UIA_TextPatternId ) { return E_OUTOFMEMORY; }
+	if ( provider->stage == 1u && pattern == UIA_ValuePatternId ) {
+		return HRESULT_FROM_WIN32(ERROR_NOT_ENOUGH_MEMORY);
+	}
+	return E_NOINTERFACE;
+}
+
+static HRESULT STDMETHODCALLTYPE x_uia_memory_provider_name(IUIAutomationElement* self, BSTR* result)
+{
+	((XUiaMemoryProvider*)self)->name_calls++;
+	*result = SysAllocStringLen(L"fallback", 8u);
+	return *result != NULL ? S_OK : E_OUTOFMEMORY;
+}
+
+/* HRESULT OOM 不得触发后续回退；普通协议缺失仍可使用 Name。 */
+static int x_uia_test_memory_fallback(void)
+{
+	static const IUIAutomationElementVtbl table = {
+		.Release = x_uia_memory_provider_release,
+		.GetCurrentPatternAs = x_uia_memory_provider_pattern,
+		.get_CurrentName = x_uia_memory_provider_name
+	};
+	XUiaMemoryProvider provider = {0};
+	void* handle;
+	int ok = 1;
+	provider.element.lpVtbl = &table;
+	handle = x_uia_wrap_element(&provider.element);
+	if ( handle == NULL ) { return 0; }
+	for ( unsigned stage = 0u; stage < 3u; ++stage ) {
+		char* result;
+		provider.stage = stage;
+		provider.pattern_calls = provider.name_calls = 0u;
+		xrtClearError();
+		result = x_uia_element_text_owned(handle);
+		if ( stage < 2u ) {
+			ok = result == NULL && xrtErrorKind(xrtGetError()) == XERR_MEMORY &&
+				provider.name_calls == 0u && provider.pattern_calls == stage + 1u;
+		} else {
+			ok = result != NULL && strcmp(result, "fallback") == 0 && xrtGetError() == NULL &&
+				provider.name_calls == 1u && provider.pattern_calls == 2u;
+		}
+		xrtFree(result);
+		if ( !ok ) { fprintf(stderr, "UIA text memory fallback failed: stage=%u\n", stage); break; }
+	}
+	if ( !x_uia_element_release(handle) || provider.releases != 1u ) { ok = 0; }
+	return ok;
+}
+
+static int x_uia_test_bstr_allocation(void* element)
+{
+	if ( !x_uia_element_set_value(element, "owned text") ) { return 0; }
+	for ( unsigned operation = 0u; operation < 3u; ++operation ) {
+		void* handle = NULL;
+		int result = 0;
+		xrtClearError();
+		g_x_uia_test_fail_bstr = 1;
+		if ( operation == 0u ) { handle = x_uia_by_name("unused condition"); }
+		if ( operation == 1u ) { handle = x_uia_launch("__uia_never_started_oom__"); }
+		if ( operation == 2u ) { result = x_uia_element_set_value(element, "unapplied"); }
+		g_x_uia_test_fail_bstr = 0;
+		if ( handle != NULL || result != 0 || xrtErrorKind(xrtGetError()) != XERR_MEMORY ) {
+			if ( handle != NULL && operation == 0u ) { x_uia_condition_release(handle); }
+			if ( handle != NULL && operation == 1u ) { x_uia_process_release(handle); }
+			fprintf(stderr, "UIA BSTR allocation failed: operation=%u\n", operation);
+			return 0;
+		}
+	}
+	xrtSetErrorInfo(XERR_MEMORY, "test", 0, "old failure");
+	if ( x_uia_by_name("\xc3\x28") != NULL || xrtErrorKind(xrtGetError()) != XERR_VALUE ) { return 0; }
+	return strcmp(x_uia_element_value(element), "owned text") == 0 && xrtGetError() == NULL;
+}
+
+/* 七处不透明资源包装的 CRT 分配失败也必须报告 Memory，而非 Value。 */
+static int x_uia_test_handle_allocation(void* window, void* element)
+{
+	for ( unsigned operation = 0u; operation < 7u; ++operation ) {
+		void* handle = NULL;
+		void* events = operation >= 5u ? x_uia_events_create() : NULL;
+		int result = 0;
+		bool ok;
+		if ( operation >= 5u && events == NULL ) { return 0; }
+		xrtClearError();
+		g_x_uia_test_fail_calloc = 1;
+		switch ( operation ) {
+		case 0u: handle = x_uia_from_hwnd(x_uia_test_window_hwnd(window)); break;
+		case 1u: handle = x_uia_by_name("unused condition"); break;
+		case 2u: handle = x_uia_test_window_create(); break;
+		case 3u: handle = x_uia_events_create(); break;
+		case 4u: handle = x_uia_launch("cmd.exe /c exit 0"); break;
+		case 5u: result = x_uia_events_subscribe_focus_changed(events); break;
+		default: result = x_uia_events_subscribe_property_changed(events, element, UIA_NamePropertyId); break;
+		}
+		ok = !g_x_uia_test_fail_calloc && handle == NULL && result == 0 &&
+			xrtErrorKind(xrtGetError()) == XERR_MEMORY;
+		g_x_uia_test_fail_calloc = 0;
+		if ( handle != NULL ) {
+			if ( operation == 0u ) x_uia_element_release(handle);
+			if ( operation == 1u ) x_uia_condition_release(handle);
+			if ( operation == 2u ) x_uia_test_window_release(handle);
+			if ( operation == 3u ) x_uia_events_release(handle);
+			if ( operation == 4u ) x_uia_process_release(handle);
+		}
+		if ( events != NULL && !x_uia_events_release(events) ) { ok = false; }
+		if ( !ok ) { fprintf(stderr, "UIA handle allocation failed: operation=%u\n", operation); return 0; }
+	}
+	return x_uia_element_valid(element);
+}
+
+/* 自建 Edit 的五个属性和空轮询：text 的协议诊断另占一次分配。 */
+static int x_uia_test_owned_budgets(void* element)
+{
+	char* (*getters[])(void*) = {x_uia_element_name_owned,
+		x_uia_element_automation_id_owned, x_uia_element_class_name_owned,
+		x_uia_element_value_owned, x_uia_element_text_owned};
+	void* events = x_uia_events_create();
+	char* held = NULL;
+	char* result = NULL;
+	int ok = 0;
+	if ( events == NULL || !x_uia_element_set_value(element, "owned text") ) { goto done; }
+	for ( unsigned operation = 0u; operation < 6u; ++operation ) {
+		held = operation < 5u ? getters[operation](element) : x_uia_events_poll_json_owned(events, 0);
+		if ( held == NULL ) { goto done; }
+		/* text 先尝试 TextPattern，缺失协议诊断与 Value 文本各占一个分配点。 */
+		unsigned needed = operation == 4u ? 2u : 1u;
+		for ( unsigned budget = 0u; budget <= needed; ++budget ) {
+			bool triggered, memory_error;
+			xrtClearError();
+			if ( !xrtMemDebugFailAfter(budget) ) { goto done; }
+			result = operation < 5u ? getters[operation](element) : x_uia_events_poll_json_owned(events, 0);
+			triggered = xrtMemDebugFailTriggered();
+			memory_error = xrtErrorKind(xrtGetError()) == XERR_MEMORY;
+			xrtMemDebugFailClear();
+			if ( budget < needed ? (!triggered || !memory_error || result != NULL) :
+				(triggered || memory_error || result == NULL || result == held || strcmp(result, held) != 0) ) {
+				fprintf(stderr, "UIA owned budget failed: operation=%u budget=%u\n", operation, budget);
+				goto done;
+			}
+			xrtFree(result); result = NULL;
+		}
+		xrtFree(held); held = NULL;
+	}
+	ok = 1;
+done:
+	xrtMemDebugFailClear();
+	xrtFree(result);
+	xrtFree(held);
+	if ( events != NULL && !x_uia_events_release(events) ) { ok = 0; }
+	return ok;
+}
+
 int main(void)
 {
 	void* pWindow = x_uia_test_window_create();
@@ -66,6 +258,7 @@ int main(void)
 	xvalue* pChildren = NULL;
 	ptr pChild = NULL;
 	XUiaThreadCheck threadCheck;
+	char owner_diagnostic[sizeof(g_x_uia_error)];
 	HANDLE worker = NULL;
 	MSG quit_message;
 	DWORD poll_started;
@@ -281,10 +474,13 @@ int main(void)
 	pEvents = x_uia_events_create();
 	if ( pEvents == NULL ) { goto cleanup; }
 	threadCheck.events = pEvents;
+	memcpy(owner_diagnostic, g_x_uia_error, sizeof(owner_diagnostic));
 	worker = CreateThread(NULL, 0, x_uia_check_other_thread, &threadCheck, 0, NULL);
 	if ( worker == NULL || WaitForSingleObject(worker, 2000u) != WAIT_OBJECT_0 ||
 		threadCheck.valid != 0 || threadCheck.shutdown != 0 || threadCheck.release_events != 0 ||
-		threadCheck.desktop != NULL || !x_uia_element_valid(pRoot) ||
+		threadCheck.desktop != NULL || threadCheck.process != NULL ||
+		memcmp(owner_diagnostic, g_x_uia_error, sizeof(owner_diagnostic)) != 0 ||
+		!x_uia_element_valid(pRoot) ||
 		!x_uia_events_valid(pEvents) || !x_uia_events_release(pEvents) ) { goto cleanup; }
 	pEvents = NULL;
 	for ( int i = 0; i < 8; ++i ) {
@@ -351,6 +547,9 @@ int main(void)
 		}
 	}
 	xrtValueRelease(pChildren);
+	if ( !x_uia_test_memory_fallback() || !x_uia_test_bstr_allocation(pFound) ||
+		!x_uia_test_handle_allocation(pWindow, pFound) ||
+		!x_uia_test_owned_budgets(pFound) ) { goto cleanup; }
 	/* 关闭后的测试窗口不得把失败的焦点消息报告为成功。 */
 	if ( !x_uia_test_window_close(pWindow) || x_uia_test_window_valid(pWindow) ||
 		x_uia_test_window_focus_edit(pWindow) ||

@@ -3,6 +3,10 @@
 
 /* 整数与索引必须使用 XLang int 的 int64_t ABI。 */
 extern int64_t xhcl_get_int(const char* hcl, const char* key);
+extern double xhcl_get_float(const char* hcl, const char* key);
+extern bool xhcl_get_bool(const char* hcl, const char* key);
+extern bool xhcl_has(const char* hcl, const char* key);
+extern bool xhcl_validate(const char* hcl);
 extern int64_t xhcl_count_blocks(const char* hcl, const char* block_type);
 extern char* xhcl_get(const char* hcl, const char* key);
 extern char* xhcl_get_raw(const char* hcl, const char* key);

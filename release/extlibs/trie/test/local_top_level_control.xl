@@ -1,0 +1,9 @@
+import trie
+
+func main(...) as int
+    // 只改变作用域，保留相同构造、断言、输出与正常退出。
+    trie.Trie tree = trie.create()
+    assert tree.valid and tree.count == 0
+    println("trie top-level: PASS")
+    return 0
+end

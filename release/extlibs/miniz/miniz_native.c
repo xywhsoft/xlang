@@ -79,7 +79,7 @@ static void xminiz_options(xrtminizoptions* pOptions, int iLevel, uint64 iMaxInp
 	uint64 iMaxOutput, uint32 iMaxRatio)
 {
 	xrtMinizOptionsInit(pOptions);
-	if ( iLevel >= 0 ) { pOptions->iLevel = iLevel; }
+	pOptions->iLevel = iLevel;
 	if ( iMaxInput != 0u ) { pOptions->tLimits.iMaxInputBytes = iMaxInput; }
 	if ( iMaxOutput != 0u ) { pOptions->tLimits.iMaxOutputBytes = iMaxOutput; }
 	if ( iMaxRatio != 0u ) { pOptions->tLimits.iMaxCompressionRatio = iMaxRatio; }
@@ -93,11 +93,13 @@ static int xminiz_transform_file(const char* sSource, const char* sDestination, 
 	xrtminizerror tError;
 	xrtprogresscall tProgress;
 	xfile TempFile = NULL;
+	xfile Transaction = NULL;
 	xreader* pReader = NULL;
 	xwriter* pWriter = NULL;
 	str sDirectory = NULL;
 	str sTemp = NULL;
 	bool bResult = false;
+	bool bRemoved = false;
 	int iResult = 0;
 	xerror* pSaved;
 
@@ -126,6 +128,7 @@ static int xminiz_transform_file(const char* sSource, const char* sDestination, 
 	TempFile = xrtFileTemp(sDirectory[0] != 0 ? sDirectory : ".",
 		".xrt-miniz-", ".tmp", &sTemp);
 	if ( TempFile == NULL ) { goto cleanup; }
+	Transaction = TempFile; /* 仅借用，文件所有权仍由 Writer 或 TempFile 持有。 */
 	pWriter = xrtWriterTakeFile(&TempFile);
 	if ( pWriter == NULL ) { goto cleanup; }
 
@@ -142,6 +145,10 @@ cleanup:
 	/* 析构或删除临时文件不得覆盖回调、内存和首个 IO 错误。 */
 	pSaved = xrtTakeError();
 	if ( pSaved != NULL ) { bResult = false; }
+	/* 打开态先回滚，避免关闭后为 UTF-8 删除路径再分配内存。 */
+	if ( !bResult && Transaction != NULL && sTemp != NULL ) {
+		bRemoved = xrtFileDeleteOpen(Transaction, sTemp);
+	}
 	if ( (pWriter != NULL) && !xrtWriterDestroy(pWriter) && bResult ) {
 		bResult = false; pSaved = xrtTakeError();
 	}
@@ -157,7 +164,7 @@ cleanup:
 	if ( bResult && !xrtPathRename(sTemp, sDestination, bOverwrite) ) {
 		bResult = false; pSaved = xrtTakeError();
 	}
-	if ( !bResult && sTemp != NULL ) { (void)xrtFileDelete(sTemp); }
+	if ( !bResult && sTemp != NULL && !bRemoved ) { (void)xrtFileDelete(sTemp); }
 	xrtClearError();
 	if ( pSaved != NULL ) {
 		xrtSetError(pSaved);
@@ -221,7 +228,7 @@ XMINIZ_EXPORT void* xminiz_decompress(void* pData, size_t iSize, unsigned long l
 	xrtminizerror tError;
 	xbuffer* pOutput = NULL;
 	xrtClearError();
-	xminiz_options(&tOptions, -1, iMaxInput, iMaxOutput, iMaxRatio);
+	xminiz_options(&tOptions, XDEFLATE_LEVEL_DEFAULT, iMaxInput, iMaxOutput, iMaxRatio);
 	if ( !xrtMinizDecompress(pData, iSize, &tOptions, &pOutput, &tError) ) {
 		xminiz_publish_error(&tError);
 		return NULL;
@@ -278,7 +285,7 @@ XMINIZ_EXPORT int xminiz_decompress_file(const char* sSource, const char* sDesti
 {
 	xrtminizoptions tOptions;
 	xrtClearError();
-	xminiz_options(&tOptions, -1, iMaxInput, iMaxOutput, iMaxRatio);
+	xminiz_options(&tOptions, XDEFLATE_LEVEL_DEFAULT, iMaxInput, iMaxOutput, iMaxRatio);
 	return xminiz_transform_file(sSource, sDestination, false, bOverwrite, &tOptions, pCallback);
 }
 
@@ -365,7 +372,7 @@ XMINIZ_EXPORT void* xminiz_decompressor_create(unsigned long long iMaxInput, uns
 	xrtminizoptions tOptions;
 	xrtminizdecompressor* pDecompressor;
 	xrtClearError();
-	xminiz_options(&tOptions, -1, iMaxInput, iMaxOutput, iMaxRatio);
+	xminiz_options(&tOptions, XDEFLATE_LEVEL_DEFAULT, iMaxInput, iMaxOutput, iMaxRatio);
 	pDecompressor = xrtMinizDecompressorCreate(&tOptions);
 	if ( pDecompressor == NULL ) {
 		if ( xrtGetError() == NULL ) {

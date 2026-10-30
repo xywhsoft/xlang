@@ -25,7 +25,7 @@ static int emitConfig(void)
 	return bOk ? 0 : 1;
 }
 
-static int readConfig(void)
+static int readConfig(bool bStrict, const char* sExpectedName)
 {
 	char sInput[8192];
 	size_t iSize = fread(sInput, 1u, sizeof(sInput), stdin);
@@ -35,13 +35,16 @@ static int readConfig(void)
 	if ( ferror(stdin) || (iSize == sizeof(sInput) && fgetc(stdin) != EOF) ) {
 		return 1;
 	}
-	pConfig = xrtIniParseMemory(sInput, (uint64)iSize, NULL);
+	xrtinioptions Options;
+	xrtIniOptionsInit(&Options);
+	Options.bStrictDuplicates = bStrict;
+	pConfig = xrtIniParseMemory(sInput, (uint64)iSize, &Options);
 	if ( pConfig == NULL ) { return 1; }
 	sPort = xrtIniGet(pConfig, (str)"server", (str)"port");
 	sName = xrtIniGet(pConfig, (str)"server", (str)"name");
 	sTimeout = xrtIniGet(pConfig, (str)"client", (str)"timeout");
 	bOk = sPort != NULL && strcmp(sPort, "9090") == 0 &&
-		sName != NULL && strcmp(sName, "\xe4\xbd\xa0\xe5\xa5\xbd") == 0 &&
+		sName != NULL && strcmp(sName, sExpectedName) == 0 &&
 		sTimeout != NULL && strcmp(sTimeout, "5") == 0;
 	xrtFree(sPort);
 	xrtFree(sName);
@@ -54,7 +57,12 @@ int main(int argc, char** argv)
 {
 	if ( argc != 2 ) { return 2; }
 	if ( strcmp(argv[1], "emit") == 0 ) { return emitConfig(); }
-	if ( strcmp(argv[1], "read") == 0 ) { return readConfig(); }
+	if ( strcmp(argv[1], "read") == 0 ) {
+		return readConfig(true, "\xe4\xbd\xa0\xe5\xa5\xbd");
+	}
+	if ( strcmp(argv[1], "read-updates") == 0 ) {
+		return readConfig(false, "\xe4\xbd\xa0\xe5\xa5\xbd\nnext");
+	}
 	return 2;
 }
 

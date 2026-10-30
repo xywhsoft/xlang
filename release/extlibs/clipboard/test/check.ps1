@@ -7,7 +7,7 @@ $relativeWork = 'build/test/clipboard_guard_' + [guid]::NewGuid().ToString('N')
 $work = Join-Path $root $relativeWork
 $release = Join-Path $root 'release'
 $xl = Join-Path $release 'xl.exe'
-$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
+$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 
 function Run([string]$label, [string]$program, [string[]]$arguments) {
     $prior = $ErrorActionPreference

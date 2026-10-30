@@ -1,0 +1,22 @@
+import zip
+
+func main(...) as int
+    auto archive = zip.create()
+    int described = 0
+    for mode in range(2)
+        string expected = "unsafe ZIP entry path"
+        if mode == 1 then expected = "ZIP entry does not exist" end
+        bool rejected = false
+        try
+            if mode == 0 then archive.add("../escape.txt", "bad") end
+            if mode == 1 then archive.remove("absent.txt") end
+        catch ArchiveError error
+            rejected = true
+            if string.contains(error.message, expected) then described += 1 end
+        end
+        assert rejected and archive.count == 0
+    end
+    println("zip described errors:", described)
+    assert described == 2, "ZIP public errors lost their description"
+    return 0
+end

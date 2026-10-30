@@ -37,6 +37,42 @@ int __wrap_clock_gettime(clockid_t clock_id, struct timespec* value)
 }
 #endif
 
+/* 与语言回归使用相同预算，实时入口只验证数字形态，不锁定墙钟结果。 */
+static int test_owned_result_budget(void)
+{
+    const char* secret = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ";
+    unsigned operation, budget;
+    for (operation = 0; operation < 3u; ++operation) {
+        for (budget = 0; budget < 2u; ++budget) {
+            char* result;
+            bool triggered;
+            bool memory_error;
+            CHECK(xrtMemDebugFailAfter(budget));
+            if (operation == 0u) result = xtotp_hotp(secret, 32, 0, 6);
+            else if (operation == 1u)
+                result = xtotp_generate_at(secret, 32, 1111111109, 30, 8);
+            else result = xtotp_generate(secret, 32, 30, 6);
+            triggered = xrtMemDebugFailTriggered();
+            memory_error = xrtErrorKind(xrtGetError()) == XERR_MEMORY;
+            xrtMemDebugFailClear();
+            if (budget == 0u) {
+                CHECK(result == NULL && triggered && memory_error);
+            } else {
+                CHECK(result != NULL && !triggered && !memory_error && xrtGetError() == NULL);
+                if (operation == 0u) CHECK(strcmp(result, "755224") == 0);
+                else if (operation == 1u) CHECK(strcmp(result, "07081804") == 0);
+                else {
+                    size_t i;
+                    CHECK(strlen(result) == 6u);
+                    for (i = 0; i < 6u; ++i) CHECK(result[i] >= '0' && result[i] <= '9');
+                }
+                xrtFree(result);
+            }
+        }
+    }
+    return 0;
+}
+
 int main(void)
 {
     static const char* secret = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ";
@@ -172,6 +208,7 @@ int main(void)
     CHECK(xrtGetError() == NULL);
 #endif
 
+    CHECK(test_owned_result_budget() == 0);
     puts("totp C boundaries: PASS");
     return 0;
 }

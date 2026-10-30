@@ -1,0 +1,9 @@
+import geohash
+
+// 显式覆盖六个公开文本返回，禁止只检查接管点而忽略后续复制。
+assert geohash.encode(0.0, 0.0, 1) == "s"
+assert geohash.bbox("s") == "0,0,45,45"
+assert geohash.north("s") == "u"
+assert geohash.south("s") == "k"
+assert geohash.east("s") == "t"
+assert geohash.west("s") == "e"

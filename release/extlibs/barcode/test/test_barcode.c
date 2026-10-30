@@ -213,6 +213,40 @@ static int test_allocation_errors(void) {
     return 0;
 }
 
+/* 固定短条码的完整格式化预算；不把多次缓冲增长算作桥接复制。 */
+static int test_owned_result_budgets(void) {
+    static const unsigned needed[] = {4u, 5u, 1u, 1u};
+    unsigned method;
+    for (method = 0u; method < 4u; ++method) {
+        const char *code = method % 2u ? "12345678901" : "4006381333931";
+        size_t length = method % 2u ? 11u : 13u;
+        char *held = method < 2u ? xb_svg(code, length, method % 2u != 0u, 60, 3) :
+            xb_ascii(code, length, method % 2u != 0u);
+        unsigned attempt;
+        CHECK(held != NULL);
+        for (attempt = 0u; attempt < 2u; ++attempt) {
+            unsigned budget = attempt == 0u ? 0u : needed[method];
+            char *result;
+            bool triggered, memory_error;
+            CHECK(xrtMemDebugFailAfter(budget));
+            result = method < 2u ? xb_svg(code, length, method % 2u != 0u, 60, 3) :
+                xb_ascii(code, length, method % 2u != 0u);
+            triggered = xrtMemDebugFailTriggered();
+            memory_error = xrtErrorKind(xrtGetError()) == XERR_MEMORY;
+            xrtMemDebugFailClear();
+            if (budget == 0u) {
+                CHECK(triggered && memory_error && result == NULL);
+            } else {
+                CHECK(!triggered && !memory_error && result != NULL && result != held);
+                CHECK(strcmp(result, held) == 0 && xrtGetError() == NULL);
+            }
+            xrtFree(result);
+        }
+        xrtFree(held);
+    }
+    return 0;
+}
+
 static int test_error_recovery(void) {
     xvalue *modules;
     void *text;
@@ -242,7 +276,7 @@ static int test_error_recovery(void) {
 int main(void) {
     if (test_codes() || test_ean_parity() || test_checksum_matrix() ||
         test_rendering() || test_allocation_errors() ||
-        test_error_recovery()) return 1;
+        test_error_recovery() || test_owned_result_budgets()) return 1;
     puts("barcode C: PASS");
     return 0;
 }

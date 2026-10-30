@@ -2165,7 +2165,8 @@ static int scan_litstring(scanner_t *sp, token_t *tok) {
 }
 
 static bool is_valid_date(int year, int month, int day) {
-  if (!(1 <= year)) {
+  /* 四位年份允许 0000，与 TOML 构造器及公历闰年规则一致。 */
+  if (!(0 <= year && year <= 9999)) {
     return false;
   }
   if (!(1 <= month && month <= 12)) {

@@ -1,0 +1,24 @@
+import ini
+
+func main(...) as int
+    // 限额按 UTF-8 字节计算；超限修改不影响已存在的键。
+    auto config = ini.create(maxItem=6)
+    config.set("web", "title", "\u4f60\u597d")
+    try
+        config.set("web", "title", "\u4f60\u597d!")
+        assert false, "oversized value must be rejected"
+    catch ConfigError error
+        assert config.errorCode == 5
+        println("oversized update rejected")
+    end
+    assert config.get("web", "title") == "\u4f60\u597d"
+    println(config.get("web", "title"))
+
+    // 使用相同限额重新解析，确认写回文本仍然可读。
+    config.set("web", "port", "8080")
+    auto restored = ini.parse(config.stringify(), maxItem=6)
+    assert restored.getInt("web", "port") == 8080
+    println(restored.getInt("web", "port"))
+    println("bounded configuration round-trip: OK")
+    return 0
+end

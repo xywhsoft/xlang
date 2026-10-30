@@ -88,7 +88,7 @@ state 文件可能含明文敏感数据。此包不记录完整输入、属性�
 
 ## 验证
 
-在 `demo6` 根目录运行：
+在仓库根目录运行：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/terraform_state/test/check.ps1 -SkipAot
@@ -103,9 +103,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/terraform_st
 因此当前只能记为**包级 C/JIT 可用、完整发布验收未签收**。
 
 `test/boundaries.xl` 和 `test/allocations.xl` 已登记到包级 smoke，可从
-`demo6` 根目录直接运行；故障注入用例在每次探针后清除注入状态。
+仓库根目录直接运行；故障注入用例在每次探针后清除注入状态。
 
-Linux/WSL 从 `demo6` 目录运行 `bash release/extlibs/terraform_state/test/check.sh`：
+Linux/WSL 从仓库根目录运行 `bash release/extlibs/terraform_state/test/check.sh`：
 它以严格 GCC 和 ASan/UBSan 运行 C 边界，使用正式 `release/xl` 运行
 中央、包内边界和分配故障用例，并逐字节对照 C/XLang 合成 state 范例输出。
 该脚本不读取真实凭据，也不覆盖完整 AOT。

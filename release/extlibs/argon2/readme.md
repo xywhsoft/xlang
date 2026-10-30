@@ -1,5 +1,44 @@
 # argon2
 
+2026-10-30 PHC版本边界：原共用解码入口接受任意uint32版本，调用当前轮
+函数也能对这些未知版本生成的Tag验真。现只接受实际实现的16/19；省略
+v字段按该外部编码格式表示16，不能把未知版本改写为19。无效PHC保持普通
+查询语义：verify=false、checkNeedsRehash=true、extract*=-1，不留错误；
+分配失败仍是MemoryError。修复仅在薄绑定的共用解码入口，不改vendor或ABI。
+
+新增test/test_argon2_phc.c：三种算法的9组显式/省略正常版本、24组未知
+版本、85组数值/字段顺序/base64/长度/NUL畸形、3组仅解析的uint32边界，
+以及9个查询组合的26分配故障点与同输入恢复。未知版本在旧实现24组均被
+接受，修复后归零。大成本字段只读元数据，不执行GiB或数十亿轮的工作。
+数值包含回绕后为1/19/32的溢出值，不能只靠下游拒绝零值来掩盖位宽检查退化。
+语言test/phc.xl另检查所有extract入口、精确大整数及无效PHC查询的OOM。
+
+新examples/phc_policy.xl与phc_policy_c.c演示先验证16版本，再用新随机
+盐重新计算19版本；同时展示未知/损坏拒绝和纯元数据查询，六行固定输出。
+这里的低成本和固定旧盐仅为测试，生产使用默认配置并按机器/并发量标定；
+不能只替换PHC的版本字段完成升级。两份源码可直接xl run/build。
+
+本轮最终联合门禁Windows64项、Linux66阶段全部通过；Argon2的11个和
+原有Bloom的33个实际生成原型分别对正式C头验证，Argon2的错误返回类型
+负例在LLP64/LP64均拒绝。Linux C含ASan/UBSan/泄漏检查，原RFC三向量、
+原联合34个分配失败点及新旧双语/语言边界JIT/AOT继续通过。
+Windows58输入、Linux65复制源/副本与含实际GCC的66输入前后不变；另有
+44源文件的Linux独立红绿快照，旧未知版本失败24→0。
+隔离去掉DECIMAL_U32检查时，新回绕用例在LP64确实断言失败；实际vendor
+未动，不将Windows unsigned long只有32位的行为当成跨平台证明。
+PS5/PS7真静默编译器raw37/outer1、Linux缺工具127均保留现场，官网仅做
+隔离生成验证。主线/XRT/八件冻结物未改，本轮不是密码学认证或长时压力测试。
+
+2026-10-28 文本所有权收口：四个 C 文本出口统一返回可用 `xrtFree`
+释放的 `char*`，XLang 以 `@owned string` 直接接管，不再先写临时区
+再复制；删除了只负责字符串转发的 `__a2_require`。生成 C 检查四条
+直接接管路径，仍有一次长度扫描和既有外调错误处理，不宣称整条
+调用零开销。Windows/Linux 默认联合门禁均退出 0，覆盖 RFC 向量、
+C ASan/UBSan（Linux）、分配故障、正常空结果、语言 JIT/AOT 与
+双语固定输出；C 范例显式释放全部文本。新增
+[所有权用例](test/ownership.xl) 已登记包清单。Linux 语言阶段使用
+独占原生临时目录，不将此通过外推为 WSL 挂载盘性能已修复。
+
 2026-10-26 当前发布物：Windows `tools/check_extlib_argon2_bloom.ps1`
 报告 `passed`，47 项检查，严格 C/生成原型、RFC 向量、分配故障、
 语言 JIT/AOT 与双语固定输出通过。Linux 同一联合门禁退出 0：
@@ -18,7 +57,7 @@ Linux `tools/check_extlib_argon2_bloom.sh` 的 C ASan/UBSan、固定向量、
 范例与分配故障通过；当时未用重建的 Linux xlang 执行语言/AOT 门禁。
 下面保留旧构建的失败记录作追溯，不代表当前发布版仍被阻断。
 
-官方 Argon2 参考实现的 xlang/C 包，内存、临时字符串、安全随机数和错误槽复用 XRT。
+官方 Argon2 参考实现的 xlang/C 包，内存、文本结果、安全随机数和错误槽复用 XRT。
 支持 Argon2d、Argon2i、Argon2id，默认 Argon2id。当前后端按顺序处理各 lane；
 `parallelism` 是算法参数，不承诺创建相同数量的系统线程。
 
@@ -58,6 +97,10 @@ assert not argon2.verify("wrong", stored)
   本层没有取消、中途预算或自动限制并发。
 - PHC 不存储 `secret` 与 `ad`；验证时必须传入与创建时相同的值。
   不推荐普通字符串比较代替认证比较。
+- PHC仅接受已实现版本16/19，省略版本号表示16。未知版本、整数超出
+  uint32、非最小十进制编码和非规范base64均作为损坏输入拒绝。
+  extract/checkNeedsRehash只检查编码和元数据，不执行昂贵的密码计算；
+  它们能读取uint32上界，不表示verify获准突破内存预算或具备任务取消能力。
 - 失败使用 XRT 结构化错误。无效参数为 ValueError，分配失败为 MemoryError，
   随机源失败为 IOError。上述六个操作入口会清除调用前的旧错误；成功、密码
   不匹配、无效 PHC 的普通查询结果不留下旧错误。调用方应在本次调用后立即读取错误槽。
@@ -69,8 +112,12 @@ t=1/m=2097152/p=4。两组对应 [RFC 9106 第 4 节](https://www.rfc-editor.org
 ## C 与验证
 
 公开声明位于 `include/argon2_native.h`，每个输入指针均紧邻其 `size_t` 字节长度；
-零长度盐触发随机盐生成。C 返回字符串借用当前 XRT 临时区，
-需要跨越该临时区生命周期时先复制；失败详情读取 `xrtGetError()`。
+零长度盐触发随机盐生成。四条 C 文本返回值均由调用方拥有，以
+`xrtFree` 释放，其他调用或临时区清理不会使先前结果失效。
+资源或参数失败返回 `NULL`，详情读取 `xrtGetError()`；
+`xargon2_extract` 对无效 PHC 返回拥有的空文本且不留错误，仍须
+释放，XLang 的 `extract*` 将它映射为 `-1`。空结果的分配失败
+仍是 `NULL`/`MemoryError`，不能当作普通未命中。
 源文件以 package manifest 为准，链接一份 XRT。输入密码由调用方拥有，库不会擦除它。
 
 范例：`examples/extlibs/argon2.xl` 为教学覆盖；`argon2_basic.xl` 与 `argon2_c.c`
@@ -79,9 +126,19 @@ t=1/m=2097152/p=4。两组对应 [RFC 9106 第 4 节](https://www.rfc-editor.org
 专项门禁：`tools/check_extlib_argon2_bloom.ps1`，包含生成的全部 C 原型、严格 GCC、
 C/xlang JIT/AOT、负例和分配故障。具体运行结果应查看该次 `results.json`，不能只凭
 测试脚本存在认定通过。二进制重载、验证任务预算和性能标定仍是后续项。
+Linux 对应入口为 `bash tools/check_extlib_argon2_bloom.sh`。新增
+`test/ownership.xl` 覆盖 PHC、raw hex、参数文本、随机盐及普通未命中
+的 OOM 与恢复；C 分配故障扫描检查活动分配、重复释放及越界计数。
 `test/test_argon2.c` 另核对 RFC 9106 第 5 节 Argon2d/i/id 的三个固定 Tag，
 覆盖密码、盐、secret 和 ad 的完整字节传递，避免仅用本库生成再由本库验证。
 该用例已通过 Windows 严格 GCC、TCC C JIT 与 Linux ASan/UBSan；不替代 XLang 验收。
+
+PHC专项也已进入默认联合门禁，分配钩子只在独立原生进程执行。Linux将
+所有编译/运行输入一次复制到独占临时目录，逐文件核对源件/副本/前后
+身份；Windows直接使用当前根目录。命令有超时、原始状态与双流，失败
+保留现场。对应新范例从发布目录执行
+`./xl run extlibs/argon2/examples/phc_policy.xl`或`phc_policy_c.c`；从仓库
+根目录执行`release/xl.exe run release/extlibs/argon2/examples/phc_policy.xl`。
 旧版 `xl.exe` 曾在包内 `string.byteAt(info, 0) - 48` 处报告 typed XLIR
 物理转换错误；最小复现及当时的修复建议见
 `dev/extlib_blockers/argon2_byteat_sub.md`。当前 Windows 发布版已运行

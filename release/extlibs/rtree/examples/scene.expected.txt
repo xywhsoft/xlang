@@ -1,0 +1,6 @@
+visible: 3
+edge touch: 2
+after move: 4
+missing remove: false
+saved results: 3
+duplicate remaining: 1

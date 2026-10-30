@@ -1,0 +1,64 @@
+import bson
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+// 外层长度和终止符合法，数值字段却少了字节；长度查询不等于完整解析。
+func truncated(string typeCode, int width)
+    array<string> lengths = ["08", "09", "0a", "0b", "0c", "0d", "0e", "0f"]
+    for count in range(width)
+        bytes wire = Buffer.fromHex(lengths[count] + "000000" + typeCode + "7800" + string.repeat("00", count) + "00").toBytes()
+        assert bson.docLength(wire) == count + 8
+        for api in range(2)
+            bool caught = false
+            try
+                if api == 0 then
+                    bson.decode(wire)
+                else
+                    bson.decodeAll(wire)
+                end
+            catch ValueError error
+                caught = true
+            end
+            assert caught, "truncated numeric field must report ValueError"
+        end
+    end
+end
+
+func main(...) as int
+    truncated("01", 8)
+    truncated("10", 4)
+    truncated("12", 8)
+    truncated("09", 8)
+
+    // 解码时的逐点故障应是 MemoryError，解除后同一个输入立即恢复。
+    bytes valid = Buffer.fromHex("10000000127800000000000000008000").toBytes()
+    int failures = 0
+    bool completed = false
+    for point in range(128)
+        bool memory = false
+        bool wrong = false
+        assert failAfter(uint64(point))
+        try
+            var decoded = bson.decode(valid)
+        catch MemoryError error
+            memory = true
+        catch ValueError error
+            wrong = true
+        end
+        bool triggered = failTriggered()
+        failClear()
+        assert not wrong and memory == triggered
+        if triggered then
+            failures += 1
+            assert bson.decode(valid)["x"] == -9223372036854775807 - 1
+        else
+            completed = true
+            break
+        end
+    end
+    assert completed and failures > 0
+    println("bson numeric paths: 56 truncations, OOM recovery, PASS")
+    return 0
+end

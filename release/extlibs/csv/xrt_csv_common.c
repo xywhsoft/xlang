@@ -112,6 +112,11 @@ static void __xrtCsvSetError(xrtcsverror* pError, int iCode, uint64 iRow,
 	}
 	pPublished = xrtErrorBuild(&tDesc);
 	if ( pPublished != NULL ) { xrtSetErrorTake(pPublished); }
+	else if ( tDesc.Cause != NULL ) {
+		/* 位置诊断分配失败不能覆盖已有的 IO/内存首错；直接交还原因，不再分配。 */
+		xrtSetErrorTake(pCause);
+		pCause = NULL;
+	}
 	xrtErrorFree(pCause);
 }
 

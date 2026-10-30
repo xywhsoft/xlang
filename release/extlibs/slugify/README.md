@@ -1,5 +1,21 @@
 # slugify
 
+2026-10-28 全返回链复查：此前只核对了原生指针在调用点被接管，未
+阻止可空局部返回再生成一次 `xlir_string_copy`。现直接返回
+`@owned string`，C 的缓冲区由 `xrtBufferTake` 移交给最终结果，不再
+复制正文。公开 API、C ABI、正常空串、UTF-8/长度错误及转写规则未变。
+
+ASCII、中文/拉丁混合、空输入与纯符号四组短输入，在 C 和 XLang
+分别用 0/1 预算，共各 8 组；C 先通过，语言侧先红后绿。预算 0 保持
+内存错误，预算 1 即可完成，完整 cgen 夹具从一处返回复制变为零。
+该预算只约束这些短输入；长文本仍可能多次增长缓冲，不宣称任意
+输入都只分配一次，也不排除长度扫描、错误作用域等成本。
+
+Windows/Linux 默认完整门禁通过严格 C、Linux ASan/UBSan、四线程、
+原有 Unicode/长度/幂等性/OOM、中央/包内回归和新增预算的 JIT/AOT、
+双语范例独立 EXE 与同输出。测试运行库按产品模块加线程/内存调试
+构建，输入指纹收尾核对，失败保留命令与现场；主线/XRT 未改。
+
 2026-10-27 所有权收口：`xsl_slugify` 的 C 原型现在明确为拥有型
 `char*`；XLang `@owned string?` 在调用点直接接管 XRT 分配，删除
 `point` / `takeCstr` 转发。空结果与原有异常边界保持不变。生成 C
@@ -79,7 +95,7 @@ C ASan/UBSan、线程、XLang 联合门禁通过。完整带输出 AOT 的共享
 普通 C 编译仍按包清单单独链接 `slugify_native.c`。
 - 边界：包内 `test/test_slugify.c`、`test/test_threads.c`、`test/boundaries.xl`，以及 `test/cases/extlib_slugify.xl`
 
-在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/slugify/test/check.ps1`；Linux 运行 `bash release/extlibs/slugify/test/check.sh`。两份脚本均覆盖 C 边界、线程、中央与包内 XLang 用例及 C/XLang 范例逐字节同输出；Windows 默认还构建运行核心与完整范例 AOT，`-SkipAot` 只做 C/JIT 快测。Windows 另做严格 GCC 语法检查，Linux 的 C 测试启用 ASan/UBSan。测试覆盖长 ASCII/汉字输入、畸形 UTF-8、内嵌 NUL、独立结果和并发。
+在仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/slugify/test/check.ps1`；Linux 运行 `bash release/extlibs/slugify/test/check.sh`。两份脚本均覆盖 C 边界、线程、中央与包内 XLang 用例及 C/XLang 范例逐字节同输出，默认构建运行核心、边界、拥有型结果预算和双语范例 AOT；`-SkipAot` 只做 Windows C/JIT 快测。Windows 另以严格 GCC 构建运行 C 边界/预算，Linux 的 C 测试启用 ASan/UBSan。`test/owned_results.xl` 进入 coverage，`test/owned_probe.xl` 独立核对完整生成返回链。测试覆盖长 ASCII/汉字输入、畸形 UTF-8、内嵌 NUL、独立结果和并发；独占目录在成功时清理，失败时保留命令、输入指纹和产物。
 
 2026-10-12 已通过 Windows 严格 GCC、Linux ASan/UBSan、C/XL 边界与线程测试、双语同输出范例及 `test/cases/extlib_slugify.xl` 无输出核心 AOT。该次旧发布物的边界 AOT 曾因共享链接缺少 `xl6ValueDataSnapshotV1` 而失败；历史记录见 `dev/extlib_blockers/text_snapshot_link.md`。
 
@@ -108,7 +124,7 @@ C/线程/双语快测和 Linux C ASan/UBSan、线程、XLang 联合门禁通过�
 完整 AOT 仍受共享 `xl6ValueDataSnapshotV1` 缺符号阻断。
 
 2026-10-25：用新发布版重跑默认 Windows 包门禁，严格 C、线程与 C
-范例通过；从 `demo6` 根目录运行中央 XLang 用例时，先遇到共享
+范例通过；从仓库根目录运行中央 XLang 用例时，先遇到共享
 TCC VFS 的 `include/xruntime_decl.h` 查找错误，尚未走到 AOT。
 此前的文本快照缺符号结论不能代表当前首个失败点，详见
 `dev/extlib_blockers/tcc_vfs_runtime_decl_include.md`。本次不签收发布门禁。

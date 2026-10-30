@@ -1,0 +1,3 @@
+cancelled: true
+callback error: true
+restored: hello gzip

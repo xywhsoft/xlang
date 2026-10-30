@@ -1,4 +1,7 @@
-#define XRT_MODULE_ALL
+#define XRT_MODULE_STRING
+#define XRT_MODULE_STRING_FORMAT
+#define XRT_MODULE_UNICODE
+#define XRT_MODULE_MEMORY_DEBUG
 #include "xrt.h"
 #include "../include/ansi_native.h"
 #include <stdint.h>

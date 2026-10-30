@@ -78,19 +78,30 @@ static bool xwatch_children(const char *path, uint64_t *digest, size_t *count) {
     xdirnext next;
     uint64_t hash = 0;
     size_t total = 0;
-    bool ok = true;
     if (!dir) return false;
     while ((next = xrtDirNext(dir, &item)) == XDIR_NEXT_ITEM) {
         const xfileinfo *info = &item.Info;
-        uint64_t seed = (uint64_t)info->Type ^ info->Size ^
-            (uint64_t)info->Modified ^ (uint64_t)info->Changed ^
-            (uint64_t)info->Created ^ info->Device ^ info->Identity;
+        /* 字段有序哈希，不能先 XOR，让常常相同的 mtime/ctime 互相抵消。 */
+        const uint64_t fields[] = {
+            (uint64_t)info->Type, info->Available,
+            (info->Available & XFILE_INFO_SIZE) ? info->Size : 0,
+            (info->Available & XFILE_INFO_MODIFY_TIME) ? (uint64_t)info->Modified : 0,
+            (info->Available & XFILE_INFO_CHANGE_TIME) ? (uint64_t)info->Changed : 0,
+            (info->Available & XFILE_INFO_CREATE_TIME) ? (uint64_t)info->Created : 0,
+            (info->Available & XFILE_INFO_IDENTITY) ? info->Device : 0,
+            (info->Available & XFILE_INFO_IDENTITY) ? info->Identity : 0
+        };
+        uint64_t seed = xrtHash64(fields, sizeof(fields));
         hash ^= xrtHash64Seed(item.Name.Data, item.Name.Size, seed);
         total++;
     }
-    if (next == XDIR_NEXT_ERROR) ok = false;
-    if (!xrtDirClose(dir)) ok = false;
-    if (!ok) return false;
+    if (next == XDIR_NEXT_ERROR) {
+        xerror *failure = xrtTakeError();
+        (void)xrtDirClose(dir);
+        xrtSetErrorTake(failure);
+        return false;
+    }
+    if (!xrtDirClose(dir)) return false;
     *digest = hash;
     *count = total;
     return true;
@@ -125,7 +136,10 @@ static char *xwatch_event(const char *kind, const char *path) {
     size_t kind_len = strlen(kind);
     size_t path_len = strlen(path);
     char *result;
-    if (path_len > SIZE_MAX - kind_len - 2) return NULL;
+    if (path_len > SIZE_MAX - kind_len - 2) {
+        xwatch_error(XERR_RANGE, "watch event length exceeds size range");
+        return NULL;
+    }
     result = xrtMalloc(kind_len + path_len + 2);
     if (!result) return NULL;
     memcpy(result, kind, kind_len);

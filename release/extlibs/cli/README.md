@@ -1,5 +1,27 @@
 # cli
 
+2026-10-30：默认值只能是字符串，现用 XRT 标量复制入口替代图深拷贝，
+并从公开头/manifest 移除 VALUE_GRAPH 依赖。旧接口对字符串本来也只是
+增加引用，不宣称减少字符串副本或分配；36 组空/中文/8KiB 默认值组合的
+882 个逐点失败在修改前后均通过，包含立即恢复、共享默认值和旧结果寿命。
+两平台默认各 39 阶段、29 满足要求，10 条语言路径仍真实失败；不导入本包语言
+模块的真实解析器最小源，在避开 M7 后仍遇 M1 容器投影。不能把修复 os.args
+等同于 CLI 已可运行，不能按 C 通过签收整包；复现见下方验证状态。
+
+同一 basic C 消费者、同一冻结 XRT、同平台 GCC -O2/函数数据分段/gc-sections：
+Windows GNU size 的 text 为 234804→223608（减少 11196）字节，Linux 为
+89087→75615（减少 13472）字节；Linux data 2088→1960，Windows data 不变。
+旧图复制入口的 GCC 静态栈帧分别为 3184/3168 字节；含默认值的解析不再进入
+该图路径，basic 消费者也不再携带该实现。这里只量这个 C 消费者，不把 size
+text 等同于文件大小或精确机器码，
+也不外推 XLang 产物、总栈上限、分配减少或端到端性能。
+
+2026-10-28 最小复验：不导入 CLI、只调用 `os.args()` 的源文件也在
+Windows run/build 与 Linux run 报 `xl6_xrt_os_args` 未解析，Windows
+`check` 则通过。最小源、运行时符号注册位置和修复验收边界见
+[专项记录](../../../dev/extlib_blockers/cli_os_args_symbol.md)。本包不
+为标准库入口增加替代实现；以下 C 通过记录不等于完整语言签收。
+
 `cli` 将参数数组按声明解析为旗标、选项和位置参数。XLang 使用 `import cli`；
 C 使用 `include/cli_native.h`，调用方以 `xrtValueRelease` 释放 `xcli_parse`
 返回的结果。解析不读取进程参数；只有显式调用 `cli.parseOs(spec)` 才读取。
@@ -41,6 +63,9 @@ C0/C1 控制字符、常见零宽格式字符、双向文本控制字符或 BOM�
 额外复制整条消息。短固定错误说明仍从静态文本建立独立结果。
 其余借用文本直接由 `xrtValueString` 建立拥有型结果，不再先分配
 临时 C 字符串再交给 `xrtValueStringTake`；结果释放方式不变。
+默认值是不可变 XRT 字符串，结果保留其拥有型引用，不做正文深拷贝；
+替换 spec 的默认项或释放全部输入不会改变已返回结果。通过 C 的
+`xrtValueClone` 直接完成同样的标量操作，不需要声明 VALUE_GRAPH。
 
 支持 `--name`、`--name=value`、`-a`、组合短旗标、短选项附加值和 `--`
 之后的位置参数。旗标不能使用 `--name=value`；不会丢弃等号后的内容。
@@ -53,7 +78,35 @@ C0/C1 控制字符、常见零宽格式字符、双向文本控制字符或 BOM�
 
 ## 验证状态
 
-在 `demo6` 目录运行 `release/extlibs/cli/test/check_c.ps1`；Linux 运行
+两平台 `test/check_c.ps1` / `check_c.sh` 保留入口文件名，但现在不只检查 C：
+默认还执行原始中央用例、两份 XLang 范例、无包 os.args、独立容器投影
+的 check/JIT/AOT，以及真实生成的 xcli_parse 原型。各正例仍要求退出 0，
+多个语言失败独立留档后聚合退出，不能按已知错误改成预期通过。
+全部外部进程有超时，记录实际 CLI/DLL/源码/编译器的前后哈希；成功才
+清理独占目录，失败保存现场。Windows 报告在工作目录及旁路 `.json`，
+Linux 保留每步 command/stdout/stderr/exit、phases.tsv 和旁路 `.report.txt`。
+Linux C 同次启用 ASan/UBSan/泄漏检查；测试消费者明确不启用图模块。
+
+新 `examples/options.xl` / `options_c.c` 共用六行 expected：显式短别名、
+组合旗标、附加中文值、覆盖默认值、`--` 与首错后停止。C 可直接 xl run/build；
+XL 范例为共享层修复后的验收资产，当前不能声称已运行或双语一致。
+当前公开语言导入仍有 M7；单独调用真实 C 解析器的
+`dev/extlib_blockers/cli_args_projection.xl` 在 Windows/Linux JIT/AOT 均报
+`parse requires an args array and a spec object`，是独立 M1 复现，
+不是供用户绕开 import 的替代 API。本任务不识别私有 handle、不把字面量
+改写成 json.parse 来换绿灯。修复建议与平台结果见
+[os.args 阻断](../../../dev/extlib_blockers/cli_os_args_symbol.md)及
+[容器投影记录](../../../dev/extlib_blockers/foreign_var_container_projection.md)。
+当前完整门禁中，五份语言 check/cgen 都通过；中央、两份公开例及无包
+os.args 的 JIT/build 共八项仍缺 `xl6_xrt_os_args`；独立投影的 JIT/AOT
+共两项仍在真实解析器的数组/对象类型检查失败，不归咎于原生选项算法。
+Windows 39 项输入、Linux 38 项输入在执行前后变化为零；Linux 还核对
+51 份复制源（含旧对照包）与原件，C 含 sanitizer，编译警告为零。
+旧/新两份消费者均通过同样的 36 组合/882 故障，结果与存活内存一致；
+原型错改返回类型的隔离负例在 LLP64/LP64 均拒绝。PS5/PS7 的真实静默
+编译器故障保存 raw37、外层1；Linux 缺编译器保存原始127，不丢失败现场。
+
+在仓库根目录运行 `release/extlibs/cli/test/check_c.ps1`；Linux 运行
 `bash release/extlibs/cli/test/check_c.sh`。它们验证严格 C 编译、解析边界、
 C 范例与固定输出；Linux 还启用 ASan/UBSan。`examples/basic.xl` 可通过
 `xl check`，但当前发布版执行 `xl run test/cases/extlib_cli.xl` 仍在主线

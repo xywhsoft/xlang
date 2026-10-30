@@ -19,6 +19,7 @@
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / consistent_hash</p><h1>consistent_hash</h1>
     <p class="extlib-lead">确定性虚拟节点环，适合键到节点的稳定分派。</p>
     <p>复用 XRT 64 位哈希和互斥锁；C/XL 边界、并发及 Linux sanitizer 已通过。当前 Windows 公开范例 AOT 可运行，顶层对象边界 EXE 仍在退出期失败。</p>
+    <p>2026-10-30 去掉 getNode 可空中转造成的一次额外正文复制，四组固定输入调用预算3→2；C快照本身仍需一次分配/复制，语言侧仍有NUL检查与长度扫描，非整桥零开销。七个真实原型、新旧C/XLang固定输出及两平台九条普通独立程序通过，Linux含sanitizer。新routing_changes范例演示128键扩容迁移与完整恢复；三份原顶层正例均在AOT退出期失败，M2仍开放，默认门禁保留完整失败现场，不签收整包。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>

@@ -1,0 +1,30 @@
+import uia
+
+func unexpectedEvent(string payload) as int
+    throw ValueError "empty queue must not invoke the callback"
+end
+
+func main(...) as int
+    auto window = uia.test_window()
+    assert window.valid()
+    auto root = uia.from_hwnd(window.hwnd())
+    auto edit = uia.from_hwnd(window.edit_hwnd())
+    auto events = uia.events()
+    assert root.valid() and edit.valid() and events.valid()
+    assert root.name() == "xlang uia test"
+    assert root.automation_id() == ""
+    assert root.class_name().length > 0
+    assert edit.set_value("owned text")
+    assert edit.value() == "owned text" and edit.text() == "owned text"
+    assert root.snapshot_json(1, 16).contains("\"children\":")
+    assert root.cached_children_json(1, 16).contains("\"children\":")
+    assert root.locator_json().contains("\"classPath\":")
+    assert uia.locator_for(root).contains("\"classPath\":")
+    assert events.poll_json(0) == "{}"
+    assert events.poll_callback(unexpectedEvent, 0) == 0
+    // 仅供手动显式选择的焦点检查；自动门禁不读取当前桌面焦点的内容。
+    if arg.length > 1 then assert uia.focused_locator().length > 0 end
+    assert events.release() and edit.release() and root.release()
+    assert window.release() and uia.shutdown()
+    return 0
+end

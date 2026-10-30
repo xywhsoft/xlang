@@ -25,6 +25,9 @@
   <header class="extlib-head">
     <p><a href="../extlibs.html">扩展库</a> / brotli</p>
     <div class="extlib-title-row"><h1>brotli</h1><span class="extlib-cat-badge">压缩</span></div>
+    <p>2026-10-29：新增普通 C 文件接口 xrtBrotliCompressFile/DecompressFile，回调为同步 xrtprogressproc + user，不需 xvalue 或 xruntime；XLang 复用同一文件事务，用法/ABI不变。新 C 功能、八组打开态双故障、新双语范例与 JIT/AOT 两平台通过。Windows 已关闭事务回滚再遇 OOM 留临时文件、原目标保持，Linux 同组16场景通过。本项 RFS 与 M2 全局退役独立，完整发布门禁仍红。</p>
+    <p>2026-10-29：修复桥接头启用宿主未选择的XRT VALUE模块，以及桥接头先于核心头时缺少buffer/reader/writer类型的问题；四种包含组合加入严格C门禁，物理ABI不变。新增顶层真实流对象用例的JIT通过，但Windows独立EXE在往返验证完成后，于退出期报运行时状态错误。默认完整门禁保留红项，须由主线处理native-backed class的模块退役边界，本包暂不完整签收；不把顶层对象挪进main换绿灯。</p>
+    <p>当日较早的桥接头审查中，Windows完整80项仅新增顶层AOT退出项未达到预期，其余正常及拒绝负例符合预期。Linux原生文件系统C sanitizer、四种头组合、旧C/XLang JIT/AOT与双语输出均过，同一顶层EXE在退出时报错；仅创建一个全局对象的最小源也在两平台复现。后续普通C文件审查另补RFS，当前状态以前述99阶段记录为准。</p>
     <p>2026-10-27 使用当前源码重建 Windows 发布版后，完整包级门禁通过严格 C、分配故障、外部 Brotli 流夹具、生成原型、语言 JIT/AOT、C/XLang 范例同输出，以及事务文件分配故障的 C/JIT/AOT。<code>xl.dll</code>/<code>xlc.dll</code> 的公开 C 源码执行宿主另有既往专项验证；本次未重跑 Linux、32 位、TSan 或长时压力。</p>
     <p class="extlib-lead">标准 Brotli 字节流、UTF-8 文本、增量处理与事务文件。内嵌 Brotli 1.1.0 后端，复用宿主 XRT/xruntime，无需安装 Brotli 动态库。</p>
   </header>
@@ -89,6 +92,8 @@ output.append(encoder.drain())</code></pre>
     C 示例 <code>extlibs/brotli/examples/basic.c</code> 与 <code>examples/extlibs/brotli_basic.xl</code>
     使用相同数据与黄金输出；教学范例为 <code>examples/extlibs/brotli.xl</code>。其文件段使用独占系统临时目录并在异常路径清理，不写入固定的构建目录。</p>
     <h2 id="verification">验证记录</h2>
+    <p>新增 examples/files.xl 与 files_c.c 用同一四字节二进制验证往返、进度与取消目标保留，匹配三行黄金输出；普通 C 单独链接 XRT/核心/文件层/后端，不含语言桥接。NULL options 使用默认配置，NULL 进度不报告；失败从 xrtGetError 读取，回调设置的原始错误优先保留。XLang 仍有 xcall 整数装箱/调用帧与检查成本，不称整条链零开销。</p>
+    <p>本轮 Windows 默认99阶段，95正例和两项预期私有访问拒绝符合要求，关闭态回滚及全局AOT退役两项失败，152项指纹不变。新 C 文件逐点故障118个，Linux104个，旧内存116个故障点仍通过。Linux 包含纯XRT宿主、ASan/UBSan、八组打开态、16组关闭态及新旧双语JIT/AOT，最终在既有M2处失败。冻结XRT与编译器未更换，详见包内当前README和阻断报告。</p>
     <p>2026-09-27 的固定输入专项包含 60 项 Windows 检查：独立 GCC、C/xlang JIT/AOT、
     23 个实际生成原型、回调取消与异常、文件原子性、双语范例、109 次分配故障。
     Linux 联合门禁同次通过 C ASan/UBSan 与泄漏检查、两组 XLang JIT 用例及 C/XLang 基础范例逐字节黄金输出对照；不代表 Linux AOT 已验收。</p>

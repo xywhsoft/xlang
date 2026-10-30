@@ -1,0 +1,89 @@
+import tar
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+// 文件构造不提交，作用域退出后必须保持原文件；各阶段独立注入，避免测到准备工作。
+func createFile(string target, bool append)
+    if append then
+        auto writer = tar.openForAppend(target)
+        assert writer.valid
+    else
+        auto writer = tar.create(target)
+        assert writer.valid
+    end
+end
+
+func allocationSweep(Buffer data, string text, string longName, string source,
+    string target, int operation)
+    int succeeded = -1
+    for budget in range(128)
+        auto writer = tar.create()
+        if operation == 4 then writer.add("data.bin", data) end
+        if operation == 7 then
+            writer = tar.create(target)
+            writer.add("data.bin", data)
+        end
+        bool rejected = false
+        bool triggered = false
+        assert failAfter(uint64(budget))
+        try
+            if operation == 0 then
+                auto created = tar.create()
+                assert created.valid
+            elseif operation == 1 then
+                writer.add("data.bin", data)
+            elseif operation == 2 then
+                writer.add(longName, text)
+            elseif operation == 3 then
+                writer.addFile("data.bin", source)
+            elseif operation == 4 then
+                Buffer result = writer.finish()
+                assert result.len() > data.len()
+            elseif operation == 5 or operation == 6 then
+                createFile(target, operation == 6)
+            else
+                writer.close()
+            end
+        catch MemoryError error
+            rejected = true
+        finally
+            triggered = failTriggered()
+            failClear()
+        end
+        if triggered then
+            assert rejected, "TAR writer allocation failure must not succeed"
+        else
+            // POSIX 的关闭/改名主路径可以完全不分配，零预算成功也是有效结果。
+            assert not rejected and (budget > 0 or operation == 7)
+            succeeded = budget
+            break
+        end
+    end
+    assert succeeded >= 0
+    println(f"TAR XL writer operation {operation}: {succeeded} failures and success")
+end
+
+func main(...) as int
+    assert arg.length == 2
+    string root = string(arg[1])
+    string source = path.join(root, "source.bin")
+    string target = path.join(root, "writer_xl.tar")
+    Buffer data = Buffer(file.readBytes(source))
+    string text = string.repeat("x", 131073)
+    string longName = string.repeat("n", 600)
+    auto initial = tar.create(target)
+    initial.add("data.bin", data)
+    initial.close()
+    bytes original = file.readBytes(target)
+    for operation in range(8)
+        allocationSweep(data, text, longName, source, target, operation)
+        assert file.readBytes(target) == original, "failed/abandoned transaction changed old archive"
+    end
+    auto recovered = tar.open(target)
+    assert recovered.next() and recovered.info().name == "data.bin"
+    assert recovered.read() == data and not recovered.next() and recovered.eof
+    println("TAR writer allocation boundaries: PASS")
+    return 0
+end

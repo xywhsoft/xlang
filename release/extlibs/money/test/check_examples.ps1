@@ -5,7 +5,7 @@ $xl = Join-Path $root 'release/xl.exe'
 $xlExample = Join-Path $root 'release/examples/extlibs/money.xl'
 $cExample = Join-Path $root 'release/extlibs/money/examples/money.c'
 $expected = Get-Content -LiteralPath (Join-Path $root 'release/extlibs/money/examples/money.expected.txt') -Encoding UTF8
-$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
+$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $manifest = Get-Content -LiteralPath (Join-Path $root 'release/extlibs/money/xlang.package.json') -Raw | ConvertFrom-Json
 $moduleFlags = @($manifest.artifact.xrtModules | ForEach-Object { "-D$_" })
 

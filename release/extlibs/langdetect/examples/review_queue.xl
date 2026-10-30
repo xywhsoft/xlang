@@ -1,0 +1,15 @@
+import langdetect
+
+func main(...) as int
+    // 这是应用的人工复核策略，confidence只是启发式分数，不是概率。
+    array<string> messages = ["the and is", "le est et une", "こんにちは", "你好世界",
+        "한글", "Привет", "12345", "the", "the\0and"]
+    for message in messages
+        string code = langdetect.code(message)
+        int score = langdetect.confidence(message)
+        if code == "und" or score < 60 then code = "manual" end
+        println("route:", code)
+    end
+    println("langdetect review queue: PASS")
+    return 0
+end

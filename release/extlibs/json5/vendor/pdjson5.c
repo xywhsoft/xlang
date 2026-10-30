@@ -894,6 +894,9 @@ read_latin (pdjson_stream *json)
   return encode_utf8 (json, cp);
 }
 
+static bool read_utf8 (pdjson_stream *json, int c, bool escaped);
+static void newline (pdjson_stream *json);
+
 static bool
 read_escaped (pdjson_stream *json)
 {
@@ -927,6 +930,10 @@ read_escaped (pdjson_stream *json)
   //
   if (u == -1 && (json->flags & FLAG_JSON5))
   {
+    // 反斜线后消费完整 UTF-8 字符，不能把首字节当成整个字符。
+    if ((unsigned int)c >= 0x80)
+      return read_utf8 (json, c, true);
+
     if (c == 'x') // \xHH
       return read_latin (json);
 
@@ -985,8 +992,7 @@ read_escaped (pdjson_stream *json)
 
       // Fall through.
     case '\n':
-    case 0x2028:
-    case 0x2029:
+      newline (json);
       return true; // No pushchar().
 
     default:
@@ -1004,8 +1010,9 @@ read_escaped (pdjson_stream *json)
   return false;
 }
 
-static bool
-read_utf8 (pdjson_stream* json, int c)
+/* 读取一个完整 UTF-8 字符；字符串与注释共用校验，不建立临时字符串。 */
+static size_t
+read_utf8_character (pdjson_stream* json, int c, char buf[4])
 {
   size_t n = utf8_seq_length (c);
   if (!n)
@@ -1014,7 +1021,6 @@ read_utf8 (pdjson_stream* json, int c)
     return false;
   }
 
-  char buf[4];
   buf[0] = c;
   size_t i;
   for (i = 1; i < n; ++i)
@@ -1032,7 +1038,28 @@ read_utf8 (pdjson_stream* json, int c)
     return false;
   }
 
-  for (i = 0; i < n; ++i)
+  return n;
+}
+
+static bool
+read_utf8 (pdjson_stream* json, int c, bool escaped)
+{
+  char buf[4];
+  size_t n = read_utf8_character (json, c, buf);
+  if (n == 0) return false;
+
+  // LS/PS 都推进源码行号；续行删除字符，普通字符串则保留原字节。
+  if ((json->flags & FLAG_JSON5) && n == 3)
+  {
+    uint32_t cp = decode_utf8 ((unsigned char*)buf, n);
+    if (cp == 0x2028 || cp == 0x2029)
+    {
+      newline (json);
+      if (escaped) return true;
+    }
+  }
+
+  for (size_t i = 0; i < n; ++i)
   {
     if (!pushchar (json, buf[i]))
       return false;
@@ -1068,7 +1095,7 @@ read_string (pdjson_stream *json, int quote)
     }
     else if ((unsigned int) c >= 0x80)
     {
-      if (!read_utf8 (json, c))
+      if (!read_utf8 (json, c, false))
         return PDJSON_ERROR;
     }
     else
@@ -1343,8 +1370,6 @@ is_space (const pdjson_stream *json, int c)
   }
 }
 
-static void newline (pdjson_stream *json);
-
 // Given the first byte (consumed), read and decode a multi-byte UTF-8
 // sequence. Return true if it is a space, setting codepoint to the decoded
 // value if not NULL. Trigger an error and return false if it's not.
@@ -1425,6 +1450,22 @@ newline (pdjson_stream *json)
   json->linecon = 0;
 }
 
+/* 注释仍是 Unicode 源文本；LS/PS 与 ASCII 换行采用同一终止规则。 */
+static int
+read_comment_character (pdjson_stream *json)
+{
+  int c = source_get (json);
+  if (c != EOF && (unsigned int)c >= 0x80)
+  {
+    char buf[4];
+    size_t n = read_utf8_character (json, c, buf);
+    if (n == 0) return EOF;
+    uint32_t cp = decode_utf8 ((unsigned char*)buf, n);
+    if (cp == 0x2028 || cp == 0x2029) return '\n';
+  }
+  return c;
+}
+
 // Given the comment determinant character (`/`, `*`, `#`), skip everything
 // until the end of the comment (newline or `*/`) and return the last
 // character read (newline, '/', or EOF). If newline was seen, set
@@ -1441,17 +1482,15 @@ skip_comment (pdjson_stream *json, int c)
     {
       // Skip everything until the next newline or EOF.
       //
-      while ((c = source_get (json)) != EOF) // IOERROR: return EOF/error flag.
+      while ((c = read_comment_character (json)) != EOF) // IOERROR: return EOF/error flag.
       {
-        if (c == '\n')
+        if (c == '\n' || c == '\r')
         {
+          if (c == '\r' && source_peek (json) == '\n') source_get (json);
           json->flags |= FLAG_NEWLINE;
           newline (json);
           break;
         }
-
-        if (c == '\r')
-          break;
       }
 
       break;
@@ -1460,7 +1499,7 @@ skip_comment (pdjson_stream *json, int c)
     {
       // Skip everything until closing `*/` or EOF.
       //
-      while ((c = source_get (json)) != EOF) // IOERROR: return EOF/error flag.
+      while ((c = read_comment_character (json)) != EOF) // IOERROR: return EOF/error flag.
       {
         if (c == '*')
         {
@@ -1470,8 +1509,9 @@ skip_comment (pdjson_stream *json, int c)
             break;
           }
         }
-        else if (c == '\n')
+        else if (c == '\n' || c == '\r')
         {
+          if (c == '\r' && source_peek (json) == '\n') source_get (json);
           json->flags |= FLAG_NEWLINE;
           newline (json);
         }
@@ -1778,7 +1818,7 @@ read_identifier (pdjson_stream *json, int c)
     else if ((unsigned int)c >= 0x80)
     {
       size_t start = json->data.string_fill;
-      if (!read_utf8 (json, c)) return PDJSON_ERROR;
+      if (!read_utf8 (json, c, false)) return PDJSON_ERROR;
       const unsigned char *s = (const unsigned char*)json->data.string + start;
       uint32_t cp = decode_utf8 (s, json->data.string_fill - start);
       if (!is_id_codepoint (cp, first))

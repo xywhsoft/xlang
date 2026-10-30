@@ -1,5 +1,25 @@
 # zip
 
+## 当前验收状态（2026-10-30）
+
+内存归档提交扩容失败现正确保留 `MemoryError`，而不是误报 I/O/
+`ArchiveError`；解除故障后可以重试并读取完整数据。新增 C/XLang
+大正文、所有权和提交故障范例，见 [examples](examples/README.md)。
+
+固定 Windows/Linux 发布物的 C 边界、实际生成的 32 个桥接声明、
+Python 双向 ZIP 互通与新范例的五种执行路径通过；两平台各九条正常
+AOT 路径通过，不代表整个包已发布验收。默认门禁现在保留以下红项：
+
+- M2：真实顶层 native-backed 对象 AOT 打印正确后，退出时报状态错误。
+- M3：包外私有内存构造器仍被接受，只编译负例，不执行伪造地址。
+- M12：普通错误类别正确，但借用字符串 getter 接收前清空了待查询
+  XRT 错误，公开异常描述为空；无包最小源也在两平台 JIT/AOT 复现。
+  Linux 链接专项因此在第一条精确消息断言失败，不能声称余下场景已过。
+- RFS：解压提交仍是路径式 rename，不是不可信并发目录的安全沙箱。
+
+详见[本轮审查与复现证据](docs/commit-memory-audit-2026-10-30.md)。
+以下带日期段落是旧现场记录，**不替代上述当前默认门禁结果**。
+
 2026-10-27 Linux 门禁环境收口：无并行构建时，同一 `text_transfer.xl`
 在 WSL 的 Windows 挂载盘约 131 秒，在 WSL 原生 `/tmp` 副本约 9 秒。
 `test/check.sh` 仍从包清单编译 C 并执行原有边界/互通测试，仅将 XLang
@@ -67,7 +87,7 @@ Windows 默认门禁把这项 C 侧验证放在 XLang 阶段之前。当前新�
 `point` 与长度调用 `addNative`，也无法直接拿走尚未接管的原生结果。
 `test/private_native_negative.xl` 只编译以固定访问控制，不执行伪造指针。
 内存构造器 `ZipArchive(point,size,...)` 已声明私有，但当前编译器仍
-接受包外直接调用；见 `dev/extlib_blockers/zip_private_memory_constructor.md`。
+接受包外直接调用；见[私有构造器阻断](../../../dev/extlib_blockers/zip_private_memory_constructor.md)。
 导入方应使用 `zip.open(Buffer)`，在主线修复前不能签收发布级访问安全。
 路径安全检查、条目数、大小、压缩比和解压输出限制由 XRT ZIP 后端执行。
 解压时还会拒绝目标目录已有父级、目标根目录本身及其下级中已存在的
@@ -91,26 +111,28 @@ C 配置使用 `xrtZipOptionsInit` 初始化。ZIP 实际使用输入、输出�
 参数及原有 C `xzip_archive_open_file` ABI 不变。构造器内部参数使用
 `var` 是为了保留字符串长度，实际接受类型仍仅为 `string`。
 
-验证：
+当前验证命令（除注明外从仓库根目录执行）：
 
 - `python release/extlibs/zip/test/interop.py` 独立验证 C/Python 双向 ZIP
   线格式。只需 Python 标准库和现有 `xl.exe` 的 C 运行能力；测试不写文件。
-- `powershell -ExecutionPolicy Bypass -File release/extlibs/zip/test/check.ps1 -SkipAot`
-  验证包侧 C/XLang 和双语范例固定输出；去掉 `-SkipAot` 后依次
-  构建/运行核心、边界及带输出的 ZIP 范例 AOT，并核对输出。
-  门禁 AOT 产物使用本次独占的 `build/test` 子目录，退出时清理，
-  不复用或覆盖旧的 `zip_aot_core.exe`。
-- `xl run examples/extlibs/zip.xl`
+- `powershell -ExecutionPolicy Bypass -File release/extlibs/zip/test/check.ps1`
+  默认包含正常 C/XLang、互通、双语输出、AOT 及 M2/M3/M12 正反边界；
+  当前应因上述主线阻断退出 1，不能使用 `-SkipAot` 签收。
+  每阶段保留命令、原始状态和输出；前后核对源、依赖、发布物、工具指纹。
+  AOT 使用独占 `build/test/zip_guard_*`；失败保留现场，全部通过才清理。
+- `xl run release/examples/extlibs/zip.xl`
 - `powershell -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package zip -Source release/examples/extlibs/zip_c.c`
-- 从 `demo6` 目录运行 `xl run release/extlibs/zip/test/boundaries.xl`；
+- 从仓库根目录运行 `xl run release/extlibs/zip/test/boundaries.xl`；
   该用例使用独立临时目录，已登记到统一扩展库 smoke。
-- Linux：`sh extlibs/zip/test/check_symlink.sh`
+- Linux：`sh release/extlibs/zip/test/check_symlink.sh`，当前精确消息检查受 M12 阻断。
 - `powershell -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package zip -Source release/extlibs/zip/test/test_zip.c`
 - `zip_native.c` 在 Windows/Linux GCC 的 `-Wall -Wextra -Werror` 语法检查通过。
-- Linux 从 `demo6` 目录运行 `bash release/extlibs/zip/test/check.sh`；需要
+- Linux 从仓库根目录运行 `bash release/extlibs/zip/test/check.sh`；需要
   GCC、Python 3 和 Linux 版 `release/xl`。脚本按 JSON 清单编译三层 C 源，
   对包自有源码执行严格 GCC 检查，以 ASan/UBSan 跑完整 C 边界和 C 范例，
-  再运行 XLang 边界、双语同输出及符号链接专项。产物置于独占系统临时目录。
+  再运行 XLang 边界、双语同输出、九条正常 AOT 与符号链接专项，并汇总
+  M2/M3/M12 红项。脚本要求每条原正例退出 0、私有构造器检查退出 1；
+  不改为接受当前错误结果。失败保留独占临时目录和输入指纹，成功才删除。
 
 2026-10-21：C 边界测试原从调用方当前目录递归删除固定的
 `build/tmp/zip_*` 夹具目录；现在测试自身创建独占系统临时目录，进入后

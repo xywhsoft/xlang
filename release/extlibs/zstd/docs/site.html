@@ -19,6 +19,11 @@
 </div></nav>
 <main class="extlib-layout" id="main-content">
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / zstd</p><h1>zstd</h1>
+    <p>2026-10-31：修复四处C Reader/Writer首因丢失，30场景两平台旧32条断言失败降为0；文件打开态96组Windows旧8组失败降为0。新双语file_transaction示例以UTF-8文件名验证取消、业务异常、保留旧目标和重试，五种引擎同黄金输出。Win完整门禁82阶段80符合预期、Linux原生ASan/UBSan、各17条普通AOT和Python Zstandard0.25.0双向互通过；不改格式、vendor、公开ABI、主线或冻结XRT。</p>
+    <p>默认门禁仍红：Windows关闭态事务16组有2组残留临时文件，Linux同例0；两平台M2全局对象AOT仍打印后退出1。打开态修复不涵盖关闭后提交失败，也不签收整包发布。完整证据及未测边界见包内docs/io-file-audit-2026-10-31.md；正常路径不新增分配/复制，固定C错误消息最多256字节，完整cause由XRT保留。</p>
+    <p>2026-10-30：统一后端内存失败分类，一次性、增量与Reader/Writer不再把实际OOM当坏数据或猜成输出超限。测试用Zstd正式customMem制造真实申请失败，9条路径/18个故障点及恢复、诊断和内存平衡过；两平台同一回归旧9红→0。补全两个长度视图C声明并以NUL/中文验证，20条实际生成原型、故意错改返回值与旧头缺声明负例过。生产分配策略、算法、vendor、XRT与公开ABI不变。</p>
+    <p>新增 <code>examples/bounded_stream.xl</code> 和 <code>bounded_stream_c.c</code> 展示分段二进制、drain、finish、限额和恢复，同五行预期输出。Windows完整门禁前54项过，Linux原生ASan/UBSan及普通用例过；普通独立程序Windows12/Linux11份通过。两平台最终全局对象AOT仍在M2退出1，不签收整包；末尾C头与文本新增测试另做聚焦复验。Windows Python Zstandard0.25.0双向四帧互通过。失败子进程限时、保留诊断与现场，官网仅隔离生成、不部署。</p>
+    <p>2026-10-29 新顶层对象检查确认 M2 主线阻断：Windows/Linux JIT 退出0；独立 EXE 均打印校验 PASS 后在退出期报状态错误、退出1。默认门禁已接入，旧函数内对象、帧互通与双语通过不覆盖该边界，暂不作完整发布签收；不提前销毁或移动全局对象绕开。</p>
     <p class="extlib-lead">Zstandard 二进制压缩、增量流和文件处理；同时提供 XLang 与 C 接口。</p>
     <p>2026-10-26：Windows 默认包门禁及 Python Zstandard 双向标准帧互通通过；Linux C ASan/UBSan、语言 JIT、八条独立 EXE AOT 和 C/JIT/AOT 范例输出对照通过。Windows 从项目根目录直接运行基础范例也通过，旧 VFS 路径及 Linux <code>cstring</code> 阻断不再复现。输出限额抛 <code>RangeError</code>；损坏帧和非法状态抛 <code>CompressionError</code>，分配失败抛 <code>MemoryError</code>。文件回调保留原异常与取消语义。</p>
   </header>
@@ -34,8 +39,64 @@
     <pre><code>import zstd
 Buffer packed = zstd.compress("hello zstd")
 assert zstd.decompressText(packed) == "hello zstd"</code></pre>
+    <h3>分段二进制与限额</h3>
+    <pre><code>import zstd
+
+func main(...) as int
+    auto encoder = zstd.compressor()
+    encoder.update("one\0")
+    Buffer packed = encoder.drain()
+    encoder.update("two")
+    assert encoder.finish()
+    assert packed.append(encoder.drain())
+    auto decoder = zstd.decompressor()
+    decoder.update(packed)
+    assert decoder.finish() and decoder.finished and decoder.members == 1
+    assert decoder.drain() == Buffer.fromHex("6f6e650074776f")
+    bool rejected = false
+    try
+        zstd.compress("one\0two", 3, 1024, 1)
+    catch RangeError error
+        rejected = true
+    end
+    assert rejected
+    return 0
+end</code></pre>
+    <h3>取消后保留旧目标，再次重试</h3>
+    <pre><code>import zstd
+
+func main(...) as int
+    string work = dir.temp(prefix = "xlang-zstd-example-")
+    string source = path.join(work, "输入.txt")
+    string target = path.join(work, "output.zst")
+    string restored = path.join(work, "restored.txt")
+    try
+        assert file.writeText(source, "hello zstd")
+        assert file.writeText(target, "keep")
+        bool cancelled = false
+        try
+            zstd.compressFile(source, target, onProgress = func(int inputBytes,
+                int totalBytes, int outputBytes) as bool
+                return false
+            end)
+        catch CancelledError error
+            cancelled = true
+        end
+        assert cancelled and file.readText(target) == "keep"
+        zstd.compressFile(source, target)
+        zstd.decompressFile(target, restored)
+        assert file.readText(restored) == "hello zstd"
+    finally
+        if file.exists(source) then assert file.delete(source) end
+        if file.exists(target) then assert file.delete(target) end
+        if file.exists(restored) then assert file.delete(restored) end
+        assert dir.delete(work)
+    end
+    return 0
+end</code></pre>
     <p>包内 <code>examples/basic.xl</code> 与 <code>examples/basic_c.c</code> 同输入、同输出；C 范例可直接用 <code>xl run extlibs/zstd/examples/basic_c.c</code> 运行。C 调用方可直接包含 <code>include/xrt_zstd.h</code>，并负责释放返回的 xbuffer。C 流式接口的进度从 Reader 当前读取位置起算；无法同时取得总长和当前位置时不设置 <code>TOTAL_KNOWN</code>。C 编解码入口拒绝选项和资源限制结构的无效版本、长度及保留字段；无效选项不消费输入流。<code>iMaxEntries</code> 限制串联帧数，<code>iMaxItemBytes</code> 限制单帧原文大小；节点数、深度和未知标志不适用。资源限额、所有权及当前验收范围见包内 README。</p>
-    <p>包级 C 门禁逐点注入 XRT 分配失败，检查一次性编解码的错误与释放平衡；此测试不覆盖上游库的内部 allocator。错误类型负例、中央用例和完整教学范例已进入 Windows/Linux JIT/AOT 门禁。短时门禁不替代 32 位、TSan 或长时间压力验证。</p>
+    <p>包级C门禁既有XRT逐分配点检查，也有独立customMem后端分配失败夹具，不把前者当成后者的覆盖。原错误类型、中央用例和完整教学范例保留；短时门禁不替代32位、TSan或长时间压力验证。</p>
+    <p>独立C流式接口使用普通进度回调；正式native文件接口沿用XRT callable，见examples/file_transaction_c.c，不将两种ABI混称。C/XL完整事务范例还验证业务异常首因及恢复。普通取消例不代替双故障回滚；以上函数内例也不覆盖全局对象退出问题。官网只在隔离目录生成，不代表已部署。</p>
   </section>
 </main>
 <script src="../main.js"></script>

@@ -1,0 +1,45 @@
+import ini
+
+func main(...) as int
+    // 允许重复键时，后一次赋值替换旧值，其续行不能污染其他键。
+    string source = "[s]\nfirst=old\nother=stable\nfirst=new\n    first tail\n\tsecond tail\n"
+    auto config = ini.parse(source, strictDuplicates=false)
+    assert config.get("s", "first") == "new\nfirst tail\nsecond tail"
+    assert config.get("s", "other") == "stable"
+    auto again = ini.parse(config.stringify())
+    assert again.get("s", "first") == config.get("s", "first")
+    assert again.get("s", "other") == "stable"
+
+    auto folded = ini.parse("[s]\na=old\nb=stable\n[S]\nA=new\r\n\ttail\r\n",
+        caseSensitive=false, strictDuplicates=false)
+    assert folded.get("S", "A") == "new\ntail"
+    assert folded.get("s", "b") == "stable"
+    bool rejected = false
+    try
+        ini.parse(source)
+    catch ConfigError error
+        rejected = true
+    end
+    assert rejected, "strict duplicate rejection must remain enabled by default"
+
+    // U+FEFF 属于键本身；写回时不能被误作文件 BOM 后静默丢弃。
+    string key = "\uFEFFname"
+    auto created = ini.create()
+    created.set("", key, "value")
+    auto restored = ini.parse(created.stringify())
+    assert restored.get("", key) == "value"
+    assert not restored.has("", "name")
+
+    array<string> malformed = ["=x", ":x", " \t =x", "[]", "[ ]", "[\t]"]
+    for text in malformed
+        rejected = false
+        try
+            ini.parse(text)
+        catch ConfigError error
+            rejected = true
+        end
+        assert rejected
+    end
+    println("ini language overwrite and write-back: PASS")
+    return 0
+end

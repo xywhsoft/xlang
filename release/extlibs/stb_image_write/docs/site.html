@@ -21,6 +21,8 @@
      <p>像素上限 64 MiB，输出上限 128 MiB；编码结果超限报告范围错误，实际分配失败报告内存错误，不返回部分图片。XLang 入口拒绝 C 整数回绕及写盘路径内嵌 NUL；文件写出使用 XRT 原子替换，失败保留已有目标。2026-10-26 重建发布物后，Windows/Linux x64 默认包门禁通过严格 C、Linux ASan/UBSan、故障与限额边界，以及 PNG/JPEG/BMP/TGA/HDR 五格式 C/XLang JIT 与独立 EXE 文件逐字节对照。旧共享 AOT 缺符号不再复现；仅签收本包有界 Buffer 编码/写出范围。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <p>2026-10-30：BMP 在分配输出前按 RGB 展开与四字节行对齐计算总长度，超 128 MiB 立即报范围错误；不会先分配、扫描源像素或修改已有文件。合法 BMP 一次预留输出容量，1×1 灰度编码的可注入分配点从 5 减至 2，这不是吞吐或峰值内存测量。1/2/3 通道生成 54 字节头的 24 位 BMP（双通道 alpha 不保留），4 通道生成 122 字节 V4 头并保留 alpha。</p>
+    <p>新增 C/XLang 内存布局范例 <code>release/extlibs/stb_image_write/examples/bmp_layout.xl</code> 与 <code>bmp_layout_c.c</code>，无素材、不写文件，断言三种布局并输出同一五行结果。原五格式文件对照保留；108 组头信息、8 个限额/文件保留场景、实际 OOM 与恢复通过。Windows 35 项完整门禁、Linux 原生 ASan/UBSan 和双平台各 8 份独立程序通过；实际生成的 4 个 C 原型及错误返回值负例通过。失败会限时结束并保留原始状态和现场。依赖解码包的 M3 风险仍在，不据本轮结果宣称整包无风险。</p>
     <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>
       <tr><td><code>encodePng / writePng</code></td><td>PNG 编码；可指定每行字节步长</td></tr>
       <tr><td><code>encodeJpeg / writeJpeg</code></td><td>JPEG 编码；质量 1 至 100</td></tr>
@@ -37,7 +39,7 @@ Buffer png = stb_image_write.encodePng(image.pixels(),
     <h2 id="c-api">C</h2>
     <p>包含 <code>include/stb_image_write_native.h</code>。<code>xstbiw_encode</code> 返回调用方用 <code>xrtBufferDestroy</code> 释放的 <code>xbuffer*</code>；像素指针仅借用。详情见包内 README 与 C/XL 对照范例。</p>
      <p>Linux 包级门禁 <code>bash release/extlibs/stb_image_write/test/check.sh</code> 同次验证 C ASan/UBSan、XLang 参数与路径边界、64 MiB 输入下的编码输出限额及 C/XLang 范例一致性，并构建运行中央与双语范例独立 EXE。C/XLang 范例可显式指定素材路径；依赖包 stb_image 的私有构造器访问控制修复仍需单独完成。</p>
-    <p>Windows 可从 demo6 目录运行 <code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/stb_image_write/test/check.ps1</code>，联合验证严格 GCC、C/XLang 边界、输出限额专项与双语范例。</p>
+    <p>Windows 可从仓库根目录运行 <code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/stb_image_write/test/check.ps1</code>，联合验证严格 GCC、C/XLang 边界、输出限额专项与双语范例。</p>
   </section>
 </main>
 </body>

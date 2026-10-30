@@ -6,7 +6,7 @@ $work = Join-Path $root 'build/test/gettext_external_guard'
 [IO.Directory]::CreateDirectory($work) | Out-Null
 $mo = Join-Path $work 'external.mo'
 $exe = Join-Path $work 'external_c.exe'
-$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
+$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $xl = Join-Path $root 'release/xl.exe'
 
 Push-Location $root

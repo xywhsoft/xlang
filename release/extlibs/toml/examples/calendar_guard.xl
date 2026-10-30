@@ -1,0 +1,28 @@
+import toml
+
+func stamp(var config, time value) as string
+    config["stamp"] = value
+    var readBack = toml.parse(toml.stringify(config))
+    assert toml.dateTimeKind(readBack["stamp"]) == 4
+    return toml.dateTimeText(readBack["stamp"])
+end
+
+func main(...) as int
+    // XRT time 使用公元 UTC 毫秒；TOML 自有日期类型独立保留微秒字段。
+    var config = toml.parse("stamp = 1970-01-01T00:00:00Z\n")
+    println("stamp=" + stamp(config, time(62135596800001)))
+    println("year_first=" + stamp(config, time(0)))
+    println("year_last=" + stamp(config, time(315537897599999)))
+    int rejected = 0
+    for ticks in [-9223372036854775807 - 1, -1, 315537897600000, 9223372036854775807]
+        try
+            stamp(config, time(ticks))
+        catch ValueError error
+            rejected += 1
+        end
+    end
+    assert rejected == 4
+    println("rejected=" + string(rejected))
+    println("restored=" + string(stamp(config, time(62135596800000)) == "1970-01-01T00:00:00Z"))
+    return 0
+end

@@ -8,6 +8,20 @@ import subprocess
 import zlib
 
 
+def require(condition, message):
+    if not condition:
+        raise AssertionError(message)
+
+
+def check_process(process, succeeds):
+    expected = 0 if succeeds else 1
+    require(process.returncode == expected,
+            ("unexpected codec exit", expected, process.returncode, process.stderr))
+    require(not process.stdout, "file codec driver unexpectedly wrote stdout")
+    require(not process.stderr if succeeds else bool(process.stderr),
+            ("unexpected codec diagnostic", process.stderr))
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("driver", type=Path)
@@ -22,19 +36,18 @@ def main():
 
     def run(mode, src, dst, succeeds=True):
         process = subprocess.run([driver, mode, str(src), str(dst)], capture_output=True, timeout=30)
-        if (process.returncode == 0) != succeeds:
-            raise AssertionError((mode, process.returncode, process.stderr.decode(errors="replace")))
+        check_process(process, succeeds)
 
     payloads = [b"", b"a\0\xff", "你好，gzip".encode(), bytes(range(256)) * 517, b"a" * 150001]
     for index, data in enumerate(payloads):
         source.write_bytes(data)
         run("compress", source, packed)
-        assert gzip.decompress(packed.read_bytes()) == data
+        require(gzip.decompress(packed.read_bytes()) == data, "XRT/Python decompression mismatch")
         checks.append(f"xrt-to-python-{index}")
         for level in range(10):
             packed.write_bytes(gzip.compress(data, compresslevel=level, mtime=0))
             run("decompress", packed, result)
-            assert result.read_bytes() == data
+            require(result.read_bytes() == data, "Python/XRT decompression mismatch")
             checks.append(f"python-to-xrt-{index}-level-{level}")
 
     # RFC 1952 optional header fields + FHCRC, produced independently of XRT.
@@ -46,7 +59,7 @@ def main():
     optional = header + normal[10:]
     packed.write_bytes(optional)
     run("decompress", packed, result)
-    assert result.read_bytes() == data
+    require(result.read_bytes() == data, "optional-header decompression mismatch")
     checks.append("optional-fields-and-fhcrc")
     packed.write_bytes(optional[:-8] + bytes([optional[-8] ^ 1]) + optional[-7:])
     run("decompress", packed, result, False)
@@ -64,7 +77,7 @@ def main():
     joined = b"".join(gzip.compress(data, mtime=0) for data in payloads)
     packed.write_bytes(joined)
     run("decompress", packed, result)
-    assert result.read_bytes() == b"".join(payloads)
+    require(result.read_bytes() == b"".join(payloads), "concatenated-member decompression mismatch")
     checks.append("mixed-concatenated-members")
     for suffix in (b"junk", b"\x1f", gzip.compress(b"unfinished", mtime=0)[:-1]):
         packed.write_bytes(joined + suffix)

@@ -1,0 +1,27 @@
+import cli
+
+// flags 定义长名称；组合短旗标必须通过 shorts 显式绑定。
+func main(...) as int
+    var spec = {
+        "flags": ["verbose", "force"],
+        "shorts": {"verbose": "v", "force": "f"},
+        "options": {"output": "o", "level": "l"},
+        "defaults": {"output": "report.csv", "level": "3"},
+        "positional": ["src"]
+    }
+    var result = cli.parse(["-vfo报告.csv", "--level", "5", "--", "-input", "--literal"], spec)
+    assert result["ok"] and result["flags"]["verbose"] and result["flags"]["force"]
+    assert result["rest"].length == 1
+    println("flags: verbose=" + string(result["flags"]["verbose"]) + " force=" + string(result["flags"]["force"]))
+    println("output: " + string(result["options"]["output"]))
+    println("level: " + string(result["options"]["level"]))
+    println("source: " + string(result["positional"]["src"]))
+    println("rest: " + string(result["rest"][0]))
+
+    // 首个错误立即停止，后面的旗标不会生效；参数错误是结果，不是异常。
+    result = cli.parse(["-z", "-v", "--unknown"], spec)
+    assert not result["ok"] and not result["flags"]["verbose"]
+    assert result["error"] == "unknown short option -z"
+    println("first-error: " + string(result["error"]))
+    return 0
+end

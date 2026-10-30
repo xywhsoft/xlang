@@ -1,0 +1,22 @@
+import fix
+
+func main(...) as int
+    // 收到报文先做帧校验；数字值保留原始文本，不擅自删除前导零。
+    string received = "8=FIX.4.4\x01" + "9=0008\x01" + "35=0007\x01" + "10=205\x01"
+    assert fix.validate(received)
+    var message = fix.parse(received)
+    println("valid=true")
+    println("value=" + string(message["fields"][2]["value"]))
+    string malformed = "8=FIX.4.4\x01" + "9=9\x01" + "035=0007\x01" + "10=110\x01"
+    println("padded_tag=" + string(fix.validate(malformed)))
+    bool caught = false
+    try
+        fix.parse(malformed)
+    catch ValueError error
+        caught = true
+    end
+    assert caught
+    println("caught=true")
+    println("restored=" + string(fix.validate(received)))
+    return 0
+end

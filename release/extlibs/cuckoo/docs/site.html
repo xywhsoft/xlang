@@ -19,6 +19,7 @@
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / cuckoo</p><h1>cuckoo</h1>
     <p class="extlib-lead">近似成员查询。</p>
     <p>16 位指纹、固定容量、可删除且失败插入不会损坏原有数据。查询可能假阳性；仅删除已知插入的键，避免指纹碰撞误删其他项。</p>
+    <p>2026-10-29 发布阻断：合法模块级过滤器在当前 Windows 独立 EXE 自然退出时发生主线 M2 状态错误；JIT 正常，相同局部对象对照正常，无读写/无输出的全局最小例也失败。默认门禁已加入此正例，不再沿用旧局部范围的全绿记录。算法和公开 API 未改，不通过移动对象、提前销毁或忽略退出码规避。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
@@ -36,6 +37,7 @@ println(seen.count)</code></pre>
     <p>过滤器可能误报存在，不应作为精确集合或权限检查；边界与 C 接口见包内 README。</p>
     <p>C 构造容量使用 <code>int64_t</code>，对应 XLang <code>int</code>。C 侧有效键未命中返回 <code>false</code> 且无 XRT 错误；空句柄的计数和清空则显式报告参数错误。备用桶偏移为零时改用相邻桶，避免两个候选桶重合而提前拒绝插入；不同指纹的 C 回归测试覆盖该边界。2026-10-26 重建发布物后，Windows/Linux x64 默认包门禁通过严格 C、Linux ASan/UBSan、高装载与失败回滚、XLang 边界、双语固定输出，以及核心、XLang 范例和 C 单文件范例的独立 EXE AOT。旧共享快照缺符号不再复现；仅签收短时包级范围，不保证零假阳性、并发共享实例或其他架构。</p>
     <p>C 范例可直接运行 <code>xl run release/extlibs/cuckoo/examples/cuckoo.c</code>，也可独立用 GCC 构建；两种入口与 XLang 范例的输出已在 Windows/Linux 包级测试中对照。</p>
+    <p>当前门禁仍保留严格 C、Linux sanitizer、高装载/失败回滚、OOM、私有原生方法拒绝、八条实际生成原型和双语黄金输出；另测八条普通 AOT 及两条顶层正例。命令有超时和输入指纹，失败留现场；完整状态和主线恢复路径见 README。局部通过不是整个生命周期验收。</p>
   </section>
 </main>
 </body>

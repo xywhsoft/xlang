@@ -1,0 +1,38 @@
+// 场景视野筛选：矩形闭区间相交，接触视野边缘的物体也命中。
+import rtree
+
+func main(...) as int
+    rtree.RTree scene = rtree.create()
+    assert scene.valid
+    scene.insert(10, 0.0, 0.0, 2.0, 2.0)
+    scene.insert(20, 2.0, 0.0, 4.0, 2.0)
+    scene.insert(30, 20.0, 20.0, 21.0, 21.0)
+    // 大 ID 不应被截断为 32 位整数；点矩形也是合法物体。
+    scene.insert(4294967297, 1.0, 1.0, 1.0, 1.0)
+    var visible = scene.search(0.0, 0.0, 2.0, 2.0)
+    assert visible.length == 3
+    assert scene.searchCount(0.0, 0.0, 2.0, 2.0) == 3
+    bool largeId = false
+    for id in visible
+        if id == 4294967297 then largeId = true end
+    end
+    assert largeId
+    println("visible:", visible.length)
+    println("edge touch:", scene.searchCount(2.0, 0.0, 2.0, 2.0))
+    // 移动物体：先删除旧矩形，再插入新矩形；这两步不是原子事务。
+    assert scene.remove(30)
+    scene.insert(30, 0.5, 0.5, 1.5, 1.5)
+    assert scene.searchCount(0.0, 0.0, 2.0, 2.0) == 4
+    println("after move:", scene.searchCount(0.0, 0.0, 2.0, 2.0))
+    assert not scene.remove(999)
+    println("missing remove: false")
+    // 查询返回独立结果，不会因索引清空失效；顺序不属于 API 合同。
+    scene.clear()
+    assert scene.count == 0 and visible.length == 3
+    println("saved results:", visible.length)
+    scene.insert(-7, 0.0, 0.0, 1.0, 1.0)
+    scene.insert(-7, 3.0, 3.0, 4.0, 4.0)
+    assert scene.remove(-7) and scene.count == 1
+    println("duplicate remaining:", scene.count)
+    return 0
+end

@@ -1,0 +1,57 @@
+import argon2
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    // 固定盐与低成本仅用于可复跑测试，生产密码存储不能照搬这些参数。
+    string password = "password"
+    string salt = "somesalt12345678"
+    string encoded = argon2.hash(password, salt, timeCost=1, memoryCost=64, parallelism=1)
+    string raw = argon2.hashRaw(password, salt, timeCost=1, memoryCost=64, parallelism=1)
+    string randomSalt = argon2.generateSalt(8)
+    assert string.byteLen(raw) == 64 and string.byteLen(randomSalt) == 16
+    assert argon2.extractType(encoded) == argon2.ARGON2ID
+    assert argon2.extractTimeCost(encoded) == 1
+    assert argon2.extractMemoryCost(encoded) == 64
+    assert argon2.extractParallelism(encoded) == 1
+    assert argon2.extractType("invalid") == -1
+    assert argon2.extractTimeCost("") == -1
+    assert argon2.extractMemoryCost("invalid") == -1
+    assert argon2.extractParallelism("invalid") == -1
+
+    // 四个原生文本出口及正常空结果都必须保留 MemoryError，而不是变成 ValueError。
+    for operation in range(5)
+        int failures = 0
+        int successes = 0
+        for allocation in range(24)
+            bool caught = false
+            assert failAfter(uint64(allocation))
+            try
+                if operation == 0 then
+                    assert argon2.hash(password, salt, timeCost=1, memoryCost=64, parallelism=1) == encoded
+                elseif operation == 1 then
+                    assert argon2.hashRaw(password, salt, timeCost=1, memoryCost=64, parallelism=1) == raw
+                elseif operation == 2 then
+                    assert argon2.extractType(encoded) == argon2.ARGON2ID
+                elseif operation == 3 then
+                    assert string.byteLen(argon2.generateSalt(8)) == 16
+                else
+                    assert argon2.extractType("invalid") == -1
+                end
+            catch MemoryError error
+                caught = true
+            end
+            bool triggered = failTriggered()
+            failClear()
+            assert caught == triggered
+            if caught then failures += 1 else successes += 1 end
+        end
+        assert failures > 0 and successes > 0
+        assert argon2.verify(password, encoded)
+        assert string.byteLen(randomSalt) == 16
+    end
+    println("argon2 owned text: PASS")
+    return 0
+end

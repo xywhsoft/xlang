@@ -18,7 +18,7 @@
     "links": [],
     "loadlibs": [],
     "dependencies": [],
-    "coverage": { "mode": "suite", "tests": ["test/high_load.xl", "test/allocations.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/high_load.xl", "test/allocations.xl", "test/global_lifetime.xl"] },
     "native": {
         "singleton": false,
         "loadName": "",

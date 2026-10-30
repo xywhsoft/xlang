@@ -36,9 +36,10 @@ println(gettext.t(catalog, "missing"))</code></pre>
     <h2>接口与边界</h2>
     <table class="ext-kv"><thead><tr><th>入口</th><th>用途</th></tr></thead><tbody>
       <tr><td><code>parsePo(text) / parseMo(bytes) / loadMo(path)</code></td><td>解析 PO 文本或大小端 MO 二进制目录。</td></tr>
-      <tr><td><code>t(catalog, msgid) / tc(catalog, context, msgid)</code></td><td>查询单数译文；未命中回退原文。</td></tr>
+      <tr><td><code>t(catalog, msgid) / tc(catalog, context, msgid)</code></td><td>无计数查询；复数条目取首形式，未命中返回原文。</td></tr>
       <tr><td><code>tn(catalog, id, plural, n) / tnc(catalog, context, id, plural, n)</code></td><td>按 Plural-Forms 和上下文查询复数译文。</td></tr>
     </tbody></table>
+    <p>无计数查询采用 GNU libintl 的首形式语义，第 0 个形式不一定对应计数 1；有实际计数时必须使用 <code>tn</code> / <code>tnc</code>，不要用 <code>t</code> / <code>tc</code> 代替。C 和 XLang 的六复数形式用例及双语范例固定这一规则。</p>
     <p>复数公式在导入时做语法检查和常见计数抽样，不保证任意计数都不会触发除零。实际查询遇到公式错误时抛 <code>ValueError</code>；未选中的条件分支不会执行，其他计数仍可继续查询。</p>
     <p>支持 PO 多行文本、转义、上下文及顺序编号的复数项；无 Plural-Forms 时采用英语 n != 1 规则，n 必须非负。PO 的 fuzzy 普通译文不进入目录，空译文回退原文；空 msgid 的目录头仍保留。MO 空译文也回退原文。实际进入目录的重复译文键报格式错误，不再静默覆盖；被跳过的 fuzzy 或空单数译文不占键，不同上下文的同名消息仍可共存。PO 源文本与 MO 原文、译文仅接受 UTF-8；不会按目录头的 charset 自动转码，其他编码须先转为 UTF-8。MO 描述符长度之外的原文、译文结束 NUL 都会校验，缺失时拒绝目录；单数译文内部 NUL 也会拒绝，复数译文仍允许格式规定的 NUL 分隔符。原文只承载单数和复数两段，出现额外 NUL 段时报错，不会静默丢弃。PO 文本、路径及查询键不允许内嵌 NUL；MO 字节数据本身允许 NUL，因为它是二进制格式的一部分。上下文键分隔符 0x04 不能进入 PO 消息键或查询参数；MO 原文最多允许一个上下文分隔符。<code>parsePo</code>、<code>parseMo</code> 和 <code>loadMo</code> 均最多接受 64 MiB 输入；C 超限返回 <code>XERR_RANGE</code>，XLang 抛 <code>RangeError</code>。缺文件或读取失败保留 XRT 文件错误，坏 MO 为 <code>XERR_VALUE</code>。</p>
     <p>C 的 <code>parsePo</code> 入口在 64 MiB 上限外一字节停止扫描，超限输入不再先执行无界 <code>strlen</code>；Linux ASan 已覆盖该边界。调用方仍须提供在终止字节或限额边界之前可读取的内存。</p>
@@ -60,14 +61,21 @@ int main(void)
     xrtValueRelease(catalog);
     return ok ? 0 : 1;
 }</code></pre>
-    <p>C 查询字符串用 <code>xrtFree</code> 释放，解析目录用 <code>xrtValueRelease</code>。完整双语对照范例位于 <code>release/extlibs/gettext/examples/</code>；从 demo6 根目录可直接运行 <code>release/xl.exe run release/extlibs/gettext/examples/gettext_c.c</code>。正式包仍分别编译目录与复数表达式源码。</p>
+    <p>C 查询字符串用 <code>xrtFree</code> 释放，解析目录用 <code>xrtValueRelease</code>。完整双语对照范例位于 <code>release/extlibs/gettext/examples/</code>；从仓库根目录可直接运行 <code>release/xl.exe run release/extlibs/gettext/examples/gettext_c.c</code>。正式包仍分别编译目录与复数表达式源码。</p>
     <p>解析或查询失败后可直接重试；后续成功调用会清除本线程旧的 XRT 错误。有效上下文的查找键分配失败返回 <code>NULL</code> 和内存错误，不会回退为原文。C 的 <code>xgt_load_mo</code> 使用 XRT 限额读取，保留文件读取的原始错误类别。</p>
+    <p>C 的上下文查询在 <code>context</code> 或 <code>msgid</code> 为 NULL 时按原文规则返回，但仍检查目录类型、实际提供的字段和复数规则。NULL 上下文不等于空字符串上下文，后者可命中 <code>msgctxt ""</code>。借用接口不转移结果所有权，拥有接口仍由调用方释放。</p>
   </section>
   <section id="verify">
     <h2>验证状态</h2>
+    <p>2026-10-30：PO普通正文按连续片段追加，转义仍由同一个分支处理，不改API、ABI或所有权。156组正文/续行/独立寿命用例新旧结果一致，四组实际OOM点102→98且均零失败。教学PO新增续行，原六行C/XLang黄金输出、GNU MO与Python独立对照通过。Windows默认59阶段、Linux完整ASan/UBSan及双平台各14条普通独立程序通过；Windows包级Run的null/空数组/显式空字符串区别另在PS5/PS7验证。</p>
+    <p>固定长ASCII解析负载在本机GCC/TCC、Windows/Linux下，旧/新中位耗时比2.45–3.41；Linux TCC的两个转义样本本轮约慢5%，不承诺所有负载提速。native对象text增加32B/64B，不是最终程序体积；正文与独立目录值仍有复制，不宣称零复制。完整条件和原始证据见包内 <code>PO_SPAN_AUDIT_2026-10-30.md</code>，新 <code>examples/README.md</code> 给出同一PO/MO双语读取及续行说明。</p>
+    <p>2026-10-29 修复 PO 字段仅接受固定空格、完整消息后无空行进入 msgctxt 被拒绝的两类边界。字段支持空格/制表符和紧贴引号，完整条目不强制空行；关键字前缀、缺译文和重复上下文仍拒绝。新夹具被 GNU msgfmt 0.23.2 接受，C 的 21 项回归由 12 次失败降为零，16 个分配预算及释放指标通过，语言用例保留全局目录自然退役。</p>
+    <p>新 <code>extlibs/gettext/examples/layout.xl</code> 与 <code>layout_c.c</code> 从路径读取 PO，或追加 <code>mo</code> 参数读取 MO；在仓库根目录用 <code>xl run 文件 -- release/extlibs/gettext/test/po_layout.po</code> 执行。范例区分普通/菜单/工具栏/空上下文及单复数，统一核对 <code>layout.expected.txt</code> 的六行结果。C 借用译文在目录存活期间打印，不额外复制；Python GNUTranslations 也独立核对相同目录。</p>
+    <p>本轮 Windows 默认 50 阶段通过，Linux 原生快照通过 ASan/UBSan、旧新边界/分配故障、七个实际生成原型与两平台各十二条普通独立程序路径。Linux 另过 GNU MO 专项和新范例的 PO/MO 双语黄金对照。输入未变，失败现场及原始退出码保留；没有改变公开 API、ABI、结果所有权、复数公式或冻结 XRT。本包仍只承诺已列出的 UTF-8 PO/MO 子集，不支持任意 GNU 词法扩展。</p>
+    <p>2026-10-28：补齐缺参路径的统一校验，新增 60 个 C 类型负例及分隔符、空上下文、计数错误和恢复测试。Windows 完整门禁与 Linux 原生文件系统同源码门禁通过；包含 C ASan/UBSan、分配故障、双语 JIT/AOT 和 GNU msgfmt 生成目录的真实互通。两平台失败现场保留及原始退出诊断已由受控失败验证；当前验证仍限定为本文声明的 UTF-8 PO/MO 子集，不等于整个语言的发布签收。</p>
     <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/gettext/test/check.ps1
 bash release/extlibs/gettext/test/check.sh</code></pre>
-    <p>2026-10-26 当前 Windows/Linux 包级门禁均通过：严格 C、Linux ASan/UBSan、中央/重复键/边界/分配故障/输入限额的 XLang JIT 与独立 EXE AOT、双语成对范例、公开范例以及 C 单文件范例 AOT。C/GCC、C/TCC、C/AOT 与 XLang 成对范例输出一致；C AOT 从 demo6 根目录运行以读取同一 MO 夹具。Linux 有 GNU <code>msgfmt</code> 时，默认门禁另从 <code>test/external.po</code> 生成标准 MO，并由 sanitizer C、XLang JIT 和 AOT 共同读取；缺工具明确跳过。旧版 <code>cbytes</code> 与缺符号错误已不再阻断当前发布物。本页只覆盖已声明的 UTF-8 PO/MO 子集，不宣称完整 GNU gettext 等价；新主线发布物重建后仍须复验。</p>
+    <p>2026-10-26 当前 Windows/Linux 包级门禁均通过：严格 C、Linux ASan/UBSan、中央/重复键/边界/分配故障/输入限额的 XLang JIT 与独立 EXE AOT、双语成对范例、公开范例以及 C 单文件范例 AOT。C/GCC、C/TCC、C/AOT 与 XLang 成对范例输出一致；C AOT 从仓库根目录运行以读取同一 MO 夹具。Linux 有 GNU <code>msgfmt</code> 时，默认门禁另从 <code>test/external.po</code> 生成标准 MO，并由 sanitizer C、XLang JIT 和 AOT 共同读取；缺工具明确跳过。旧版 <code>cbytes</code> 与缺符号错误已不再阻断当前发布物。本页只覆盖已声明的 UTF-8 PO/MO 子集，不宣称完整 GNU gettext 等价；新主线发布物重建后仍须复验。</p>
   </section>
 </main>
 <script src="../main.js"></script>

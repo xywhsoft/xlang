@@ -12,9 +12,13 @@ vendor=release/extlibs/_bzip2/third_party/bzip2
 includes=(-Ilib/xrt -Ilib/xruntime)
 if [[ -n ${XRT_INCLUDE:-} ]]; then includes=("-I$XRT_INCLUDE"); fi
 input_paths() {
+    printf '%s\0' tools/check_extlib_native_globals.ps1 tools/check_extlib_native_globals.sh
     find "$pkg" release/extlibs/_bzip2 -type f -print0
     printf '%s\0' lib/xrt/xrt.h lib/xruntime/xruntime.h test/support/extlib_codec_runtime.c \
+        test/support/extlib_codec_file_rollback.h \
         tools/check_extlib_bz2.sh tools/check_extlib_bz2_interop.py release/xl \
+        release/libxl.so release/libxlc.so release/include/xrt_decl.h \
+        release/include/xruntime_decl.h release/include/xl_extlib_abi.h \
         test/cases/extlib_bz2.xl test/cases/extlib_bz2_progress.xl \
         release/examples/extlibs/bz2.xl release/examples/extlibs/bz2_basic.xl \
         release/examples/extlibs/bz2_files.xl \
@@ -26,6 +30,11 @@ sanitize=(-fsanitize=address,undefined -fno-omit-frame-pointer -fno-pie -no-pie 
 flags=(-std=c11 -D_GNU_SOURCE -O1 -g -Wall -Wextra -Werror "${includes[@]}" "${sanitize[@]}")
 export ASAN_OPTIONS=detect_leaks=1:halt_on_error=1
 export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
+
+# 只规范化黄金文件的 CRLF 行尾，实际输出仍逐字比较，不能吞正文差异。
+golden_output() {
+    diff -u <(sed 's/\r$//' "$1") "$2"
+}
 sha256sum "${inputs[@]}" > "$work/inputs.before.sha256"
 # 失败也记录退出码和输入漂移，不能复用上一次通过留下的验收结论。
 finish_gate() {
@@ -54,6 +63,9 @@ for kind in compressor decompressor; do
     fi
 done
 "$cc" --version > "$work/compiler.txt"
+for order in ALONE CORE_FIRST NATIVE_FIRST XRT_FIRST; do
+    "$cc" "${flags[@]}" "-DBZ2_$order" -fsyntax-only "$pkg/test/native_header.c"
+done
 "$cc" "${flags[@]}" -DXRT_MODULE_DIR -DXRT_MODULE_DIR_TEMP -DXRT_MODULE_FILE_WHOLE -DXRT_MODULE_PATH \
     -c test/support/extlib_codec_runtime.c -o "$work/runtime.o"
 objects=("$work/runtime.o")
@@ -74,7 +86,7 @@ python3 tools/check_extlib_bz2_interop.py "$work/interop" "$work/interop-files" 
 for name in basic files; do
     "$cc" "${flags[@]}" "$pkg/examples/$name.c" "${objects[@]}" -lm -ldl -o "$work/$name"
     timeout 30s "$work/$name" > "$work/$name.log"
-    diff -u "release/examples/extlibs/bz2_$name.expected.txt" "$work/$name.log"
+    golden_output "release/examples/extlibs/bz2_$name.expected.txt" "$work/$name.log"
     timeout 30s ./release/xl run "$pkg/examples/$name.c" > "$work/$name-direct.log"
     diff -u "$work/$name.log" "$work/$name-direct.log"
 done
@@ -83,14 +95,19 @@ printf 'bz2 C example: PASS\n' > "$work/central-expected.log"
 diff -u "$work/central-expected.log" "$work/central-direct.log"
 "$cc" "${flags[@]}" -DNDEBUG "$pkg/test/test_bz2_files.c" "${objects[@]}" -lm -ldl -o "$work/test_bz2_files"
 timeout 90s "$work/test_bz2_files" "$work/files-$$" 2>&1 | tee "$work/test_bz2_files.log"
+"$cc" "${flags[@]}" "$pkg/test/test_bz2_cleanup.c" "${objects[@]}" -lm -ldl -o "$work/cleanup"
+timeout 90s "$work/cleanup" "$work/cleanup-files" 2>&1 | tee "$work/cleanup.log"
+timeout 90s ./release/xl run "$pkg/test/test_bz2_cleanup.c" -- "$work/cleanup-jit"
+timeout 180s ./release/xl build "$pkg/test/test_bz2_cleanup.c" -o "$work/cleanup-aot"
+timeout 90s "$work/cleanup-aot" "$work/cleanup-aot-files"
 printf '[bz2] XLang file JIT gate\n'
 timeout 180s ./release/xl run "$pkg/test/file_ops.xl"
 timeout 90s ./release/xl run "$pkg/test/text_transfer.xl"
 timeout 90s ./release/xl run release/examples/extlibs/bz2_basic.xl > "$work/basic_xl.log"
-diff -u release/examples/extlibs/bz2_basic.expected.txt "$work/basic_xl.log"
+golden_output release/examples/extlibs/bz2_basic.expected.txt "$work/basic_xl.log"
 diff -u "$work/basic.log" "$work/basic_xl.log"
 timeout 90s ./release/xl run release/examples/extlibs/bz2_files.xl > "$work/files_xl.log"
-diff -u release/examples/extlibs/bz2_files.expected.txt "$work/files_xl.log"
+golden_output release/examples/extlibs/bz2_files.expected.txt "$work/files_xl.log"
 diff -u "$work/files.log" "$work/files_xl.log"
 printf '[bz2] XLang JIT/AOT gate\n'
 timeout 90s ./release/xl run test/cases/extlib_bz2.xl
@@ -107,6 +124,10 @@ for name in central progress file_ops text_transfer; do
     timeout 180s ./release/xl build "$source" -o "$work/bz2-$name-aot"
     timeout 90s "$work/bz2-$name-aot"
 done
+
+# 默认保留关闭态回滚的16组双故障验收。
+"$cc" "${flags[@]}" "$pkg/test/test_bz2_commit_cleanup.c" "${objects[@]}" -lm -ldl -o "$work/commit-cleanup"
+timeout 90s "$work/commit-cleanup" "$work/commit-cleanup-files" 2>&1 | tee "$work/commit-cleanup.log"
 for name in full basic files; do
     printf '[bz2] AOT example %s\n' "$name"
     source=release/examples/extlibs/bz2.xl
@@ -120,3 +141,4 @@ for name in full basic files; do
         diff -u "$work/$name.log" "$work/example-xl-$name-aot.log"
     fi
 done
+bash "$root/tools/check_extlib_native_globals.sh" bz2

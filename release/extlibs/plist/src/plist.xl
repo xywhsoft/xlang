@@ -81,24 +81,15 @@ end
 
 
 func __plist_error() as string
-    string? message = __plist_error_message()
-    if message == null then return "plist operation failed" end
-    return message
+    return __plist_error_message() ?? "plist operation failed"
 end
 
-func __plist_raise_error()
+// 为 ?? 的失败分支提供结果类型；此函数只抛出异常，不会返回。
+func __plist_raise_error() as string
     if __plist_error_code() == 6 then
         throw MemoryError __plist_error()
     end
     throw PlistError __plist_error()
-end
-
-func __plist_take_text(string? result) as string
-    if result == null then
-        if __plist_error_code() == 6 then throw MemoryError __plist_error() end
-        throw PlistError __plist_error()
-    end
-    return result
 end
 
 func __plist_raise_build_error(string message)
@@ -375,10 +366,11 @@ export func stringify(var value, bool pretty = true,
     if root == null or not document.setRoot(root) then
         __plist_raise_build_error("could not build plist document")
     end
-    return __plist_take_text(document.stringifyTextNative(c_bool(pretty),
+    // C 保留独立 PlistError 结构；成功的临时拥有值经 ?? 直接转移。
+    return document.stringifyTextNative(c_bool(pretty),
         c_bool(sortKeys), c_uint(indent), uint64(maxOutput),
         uint64(maxItem), uint64(maxEntries), uint64(maxNodes),
-        c_uint(maxDepth)))
+        c_uint(maxDepth)) ?? __plist_raise_error()
 end
 
 export func dump(string path, var value, string format = "xml",

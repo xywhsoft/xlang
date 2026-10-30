@@ -1,5 +1,11 @@
 # rss
 
+2026-10-30：补齐 Atom `alternate` 短名称与完整 IANA 关系 IRI 的等价
+选择，feed/entry 共用；双平台 C 的 80 场景/668 个真实 OOM、XLang
+JIT/AOT、双语黄金输出及六条生成原型验证通过。Windows 默认 56 项
+前 55 符合预期，最后原中央生成例仍受 M1 阻断；Linux 同一阻断。
+本次不是整包签收，详见 [链接关系审查](ATOM_RELATIONS_AUDIT_2026-10-30.md)。
+
 2026-10-24：更新后的 Windows 发布版 `xl.exe` 下，默认
 `test/check.ps1` 的严格 C 语法、C 边界与两组 C 范例通过，首个
 XLang 边界在合法 `rss.buildRSS(channel, [])` 调用时报
@@ -33,7 +39,7 @@ println(feed["items"][0]["title"])
 
 生成 RSS 2.0 时，channel 必须有非空的 `title`、`link`、`description`；每个 item 至少有非空 `title` 或 `description`。生成 Atom 时，feed 必须有非空 `id`、`title`、`updated`；每个 entry 必须有非空 `id`、`title`、`updated`，并提供 `content` 或 `link`。作者写为字符串 `author`，entry 可继承 feed 的作者；未提供 feed 作者时，每个 entry 都必须有自己的作者。这里校验的是生成内容的最低结构，未实现日期格式、IRI、媒体类型或全部扩展元素的规范验证。解析器仍宽容读取字段不完整但 XML 正确、根类型正确的 feed。
 
-RSS 保留 `title/link/description/updated` 与 item 的 `title/link/description/pubDate/guid/author/categories`。Atom 保留 `title/subtitle/link/updated/id/author` 与 entry 的 `title/link/id/updated/summary/content/author`；按 [RFC 4287 第 4.2.7.2 节](https://www.rfc-editor.org/rfc/rfc4287#section-4.2.7.2)，未设置 `rel` 的 link 视为 `alternate`，优先选择第一个 alternate，否则取第一个 `href`。解析后的 Atom `entry.author` 是有效作者，依次取 entry 自身、entry 的 source、feed；扁平结果不保留作者来源或完整 source 元信息。没有实现的字段不保证往返。
+RSS 保留 `title/link/description/updated` 与 item 的 `title/link/description/pubDate/guid/author/categories`。Atom 保留 `title/subtitle/link/updated/id/author` 与 entry 的 `title/link/id/updated/summary/content/author`；按 [RFC 4287 第 4.2.7.2 节](https://www.rfc-editor.org/rfc/rfc4287#section-4.2.7.2)，未设置 `rel` 的 link 视为 `alternate`，短名称与完整 `http://www.iana.org/assignments/relation/alternate` 等价，优先选择第一个 alternate，否则取第一个 `href`。只看 Atom 命名空间的直接子元素与未限定的 href/rel 属性，不对任意 IRI 做归一化或校验。解析后的 Atom `entry.author` 是有效作者，依次取 entry 自身、entry 的 source、feed；扁平结果不保留作者来源或完整 source 元信息。没有实现的字段不保证往返。
 
 解析最大输入 8 MiB、10 万 XML 节点、深度 64；输入恰好 8 MiB 可解析，超一字节时 C 接口报告 `XERR_RANGE`，负长度仍报告 `XERR_VALUE`。生成的 XML 正文最大 16 MiB（不计返回缓冲末尾的 NUL），恰好达到上限仍有效，超一字节时 C 接口报告 `XERR_RANGE`，不返回截断结果。XML 字段完整保留，不静默截断；生成拒绝无效 UTF-8 和不符合 XML 1.0 字符范围的内容，包括 NUL、非法控制字符及 U+FFFE/U+FFFF。
 生成器对元素文本中的 CR 和 Atom `link` 属性中的 Tab/LF/CR 使用字符引用，避免 XML 解析器规范化字面空白时改变原始字段值；本包仍不校验链接是否为有效 IRI。
@@ -44,7 +50,7 @@ RSS 保留 `title/link/description/updated` 与 item 的 `title/link/description
 
 ## 验证
 
-从 `demo6` 目录运行：
+从仓库根目录运行：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/rss/test/check.ps1
@@ -60,15 +66,27 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_extlib_c.ps1 -Pack
 .\build\test\rss_aot_core.exe
 ```
 
-Linux 上可从 `demo6` 目录运行 `bash release/extlibs/rss/test/check.sh`；它在临时目录编译 XRT、Expat、XML DOM 与 RSS C 测试并以 ASan/UBSan 执行，还运行中央与包内 XLang 用例，对照两组成对范例，不留下发布目录产物。
-Windows 的 `test/check.ps1` 是同范围单入口：严格 GCC 语法、C 边界、
-中央与包内 XLang 用例、两组 C/XLang 同输出，以及核心与 Atom 范例 AOT。
-`-SkipAot` 跳过这两项 AOT，只用于聚焦开发；默认门禁会在下述共享缺符号
-处准确失败，不能把核心 AOT 单独通过视为发布签收。
+Linux 上可从仓库根目录运行 `bash release/extlibs/rss/test/check.sh`；它在临时目录编译 XRT、Expat、XML DOM 与 RSS C 测试并以 ASan/UBSan 执行，还运行中央与包内 XLang 用例，对照两组成对范例，不留下发布目录产物。
+Windows 的 `test/check.ps1` 是同范围单入口，使用有界子进程，保存真实
+退出码、stdout/stderr、命令和输入/工具指纹；失败保留隔离现场及 JSON
+报告，成功仅清理本次目录。Linux 同样保留失败现场，并启用 ASan/UBSan。
+当前先验证原生边界、新链接关系、三组 C 范例、两组只读 XLang 范例、
+六条实际生成原型和七份独立程序，再运行原有语言生成正例。
+`-SkipAot` 仅跳过 AOT，用于聚焦开发；默认仍在 M1 foreign 容器投影处
+准确失败，下面带日期的共享缺符号记录是历史现场，不是本版当前诊断。
+
+新增 [Atom 链接双语范例](examples/README.md) 无需网络，展示订阅自身
+链接与网页地址的区别，固定黄金输出在 `examples/atom_links.expected.txt`。
+只读解析通过不代表语言字典生成已经通过。
 
 `rss_c.c` 与 `rss_pair.xl` 使用同一份频道和单条目数据，输出可逐行对照；`rss.xl` 是包含多条目及 Atom 往返的扩展范例。包内 `atom_author_c.c` 与 `atom_author.xl` 使用相同的 Atom 输入，均输出 `Editor`、`Source` 两行。不同文件名保证 XL 范例不会将 C 范例作为同名伴随源编译。
 成对 RSS 范例还断言解析后的单条目标题，并由包级门禁固定 `type: rss`、
 `items: 1` 两行预期，避免两种语言共同输出错误结果时误判通过。
+
+## 历史记录
+
+以下保留对应日期的现场，不是对当前发布物的通过承诺；旧共享缺符号
+诊断不再作为本版阻断。当前证据与 M1 以文首和本轮审查报告为准。
 
 2026-10-14：生成、解析、识别三条路径分别补齐 RSS/Atom 逐点分配失败注入；修复内存失败误报格式错误，并让 XLang `detect` 在内存失败时抛错。Windows C/XLang、Linux ASan/UBSan 与无输出 AOT 核心探针通过。
 

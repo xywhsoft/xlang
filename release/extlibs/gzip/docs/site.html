@@ -25,6 +25,9 @@
   <header class="extlib-head">
     <p><a href="../extlibs.html">扩展库</a> / gzip</p>
     <div class="extlib-title-row"><h1>gzip</h1><span class="extlib-cat-badge">压缩</span></div>
+    <p>2026-10-31：修复打开态文件回滚的二次分配，正式native文件ABI的96组Windows旧8组残留降为0，首因、旧目标及内存平衡保持。新增C/XL文件事务范例验证UTF-8文件名、取消、业务异常和重试。Win78阶段76符合预期、Linux原生ASan/UBSan、各13条普通AOT、25条实际生成原型及错改返回负例、Python/zlib普通与优化模式139项互通过。首次IO首因原本正确，新增30场景只补覆盖；算法、公开ABI、主线和固定XRT未改。</p>
+    <p>默认门禁仍失败：Windows关闭态16组有2组临时文件残留，Linux同例0；两平台M2全局流对象AOT仍打印后退出1，不以函数内范例通过签收整包。详细范围、成本及现场见包内docs/io-file-audit-2026-10-31.md；官网只在隔离目录生成，不代表部署。</p>
+    <p>2026-10-29：桥接头的宿主模块污染与包含顺序已修，四种严格C组合两平台先红后绿，25个生成原型不变。新全局压缩器用例确认M2主线阻断：Windows/Linux JIT退出0，独立EXE均打印校验PASS后于退出期报状态错误、退出1。两平台完整门禁的旧C/算法/互通与双语JIT/AOT先通过，最后在该新边界报红；默认保留检查，当前不作完整发布签收，不移动全局对象绕开。下列旧通过记录不覆盖这一新增边界。</p>
     <p>2026-10-26 当前 Windows/Linux 发布版的完整包门禁均通过：严格 C、Linux ASan/UBSan、139 项 zlib 互通、文件事务、语言核心与错误边界，以及双语范例独立 EXE 同输出。旧 Linux typed XLIR 与 AOT 缺符号问题在本次发布物中未复现；下方早期失败记录只反映当时的构建。不把本次检查外推为超大文件、并发压力、断电恢复或性能认证。</p>
     <p class="extlib-lead">UTF-8 文本、二进制、增量流与事务文件压缩。直接复用宿主 XRT 的 gzip 编解码器和校验，无额外压缩 DLL。</p>
   </header>
@@ -57,14 +60,41 @@ Buffer output = encoder.drain()
 encoder.update("right")
 output.append(encoder.finish())
 assert gzip.decompressText(output) == "leftright"</code></pre>
+    <p>以上保留语言应支持的顶层流对象写法；当前JIT可运行，AOT正文断言后仍命中M2退役错误，不用改成局部对象掩盖此问题。</p>
     <p>drain 移交当前输出，不强制后端刷新；finish 只交付剩余字节，重复调用返回空 Buffer。
     已交付的 Buffer 独立持有。完成后不能继续 update，同一对象需要串行访问。</p>
     <h2 id="files">文件与回调</h2>
-    <pre><code>gzip.compressFile("input.txt", "output.gz",
-    onProgress = func(int inputBytes, int totalBytes, int outputBytes) as bool
-        println(inputBytes, "/", totalBytes)
-        return true
-    end)</code></pre>
+    <pre><code>import gzip
+
+func main(...) as int
+    string work = dir.temp(prefix = "xlang-gzip-example-")
+    string source = path.join(work, "输入.txt")
+    string packed = path.join(work, "output.gz")
+    string restored = path.join(work, "restored.txt")
+    try
+        assert file.writeText(source, "hello gzip")
+        assert file.writeText(packed, "keep")
+        bool cancelled = false
+        try
+            gzip.compressFile(source, packed, onProgress = func(int inputBytes,
+                int totalBytes, int outputBytes) as bool
+                return false
+            end)
+        catch CancelledError error
+            cancelled = true
+        end
+        assert cancelled and file.readText(packed) == "keep"
+        gzip.compressFile(source, packed)
+        gzip.decompressFile(packed, restored)
+        assert file.readText(restored) == "hello gzip"
+    finally
+        if file.exists(source) then assert file.delete(source) end
+        if file.exists(packed) then assert file.delete(packed) end
+        if file.exists(restored) then assert file.delete(restored) end
+        assert dir.delete(work)
+    end
+    return 0
+end</code></pre>
     <p>回调同步执行，参数均为字节数；总量未知时 totalBytes=0。返回 false 抛 CancelledError，
     回调抛出的异常保留原类型与消息。最终通知也可以取消；不能用 inputBytes==totalBytes
     判定唯一的最终事件，输入读完之后仍可能有结束输出。</p>
@@ -94,7 +124,8 @@ assert gzip.decompressText(output) == "leftright"</code></pre>
     C 进度结构另有 TOTAL_KNOWN、FINAL 标志，支持任意 user 指针。</p>
     <p>C 配置 level=-1..9、strategy 为 XRT DEFAULT..FIXED。输入、输出与倍率限制为零时关闭对应限制；
     OptionsInit 将 tLimits 中不适用的归档/文档字段清零；显式设置这些字段或 iFlags 会报参数错误，不会静默忽略。薄绑定头 <code>include/gzip_native.h</code>
-    的 22 个原型与实际 xlang 生成声明接受 GCC 比对。</p>
+    的 25 个实际生成原型接受GCC比对，并以故意错改返回类型验证拒绝。
+    native文件接口沿用XRT callable；普通C进度由核心流接口提供，两者不是同一ABI。</p>
     <p><code>extlibs/gzip/examples/basic.c</code> 与 <code>examples/extlibs/gzip_basic.xl</code>
     使用相同输入与黄金输出；C 范例可从发布目录直接运行 <code>./xl run extlibs/gzip/examples/basic.c</code>。
     单文件路径仅包含所用的包实现，正式构建仍分离编译。<code>examples/extlibs/gzip.xl</code>
@@ -109,7 +140,7 @@ assert gzip.decompressText(output) == "leftright"</code></pre>
     不把有日期、有范围的通过记录当作所有平台生产认证。</p>
     <p>2026-10-19：C 范例单文件直跑、独立构建和包运行器输出一致；Linux
     ASan/UBSan、139 项 zlib 互通、文件事务及 C/XLang 范例对照通过。
-    当时共享 XLIR 阻断仍在，整包尚未签收；当前状态以上方 2026-10-26 复验为准。</p>
+    当时共享 XLIR 阻断仍在，整包尚未签收；当前状态以上方最新复核为准。</p>
   </section>
 </main>
 <script src="../main.js"></script>

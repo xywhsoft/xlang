@@ -1,5 +1,51 @@
 # shellwords
 
+## 2026-10-29 连续片段编码与独立对照
+
+POSIX `quote` 和 `join` 仍共用同一编码核心，但不再为正文的每个
+字节调用缓冲追加：连续片段整段复制，遇单引号才插入原有转义。
+安全词判定、返回字节、失败类别、四条公开 API 与所有权均不变，
+没有新增桥接层、临时字符串或语言数组转换方案。
+
+`test/quote_runs_c.c` 固定126组空/长/边界长度、连续/稀疏/密集引号、
+UTF-8及任意非 NUL 字节的 Quote/Join/Split 对照，并逐分配点验证
+8条 OOM 路径和存活/非法释放计数。`--records` 输出393条固定语料；
+Python 标准库 shlex 独立解析全部编码，Linux 还分组交给真实
+`/bin/sh` 并逐字节核对 argv。不是用本包 Split 自证正确，也不
+把 C 可保留非 UTF-8 字节的合同推广到 XLang 源码。GCC、TCC直跑
+与独立程序分别接受同一语料检查；完整范围以默认门禁实际结果为准。
+
+`test/bench_quote.c` 是单独运行的六负载 C 微基准，不放入功能门禁。
+同一旧/新原生源、GCC `-O2`、所选测试运行库和输入，七轮交替次序
+比较；本机 Windows 首轮观察到长空白约32.63倍、稀疏引号12.74倍、
+原始字节16.19倍、128参数Join约8.18倍；安全词和密集引号约1倍。
+这是测试配置下的局部测量，不是发布程序、其他硬件或整个语言的
+速度保证，更不是零桥接开销证明。原源哈希、完整输出和跨平台
+复验记录见仓库 `docs/扩展库发布级完善任务台账.md`。
+
+新增 `examples/command_plan.xl` 与 `command_plan_c.c`：构造带空格、
+单引号与中文的参数，拆分、规范化、逐参数核对，再展示 Windows
+CRT 引用；六行共同黄金输出，不实际启动命令。例中的 Join 接收
+Split 的正常结果，原语言数组 Join 正例仍是完整门禁的必过项，
+不能用这个例子替代 M1 的验收。另有 `test/text_paths.xl` 专门固定
+文本/NUL/长字符串/逐点内存故障边界，不冒充完整数组调用链。
+
+在仓库根目录运行：
+
+```text
+release/xl.exe run release/extlibs/shellwords/examples/command_plan.xl
+release/xl.exe run release/extlibs/shellwords/examples/command_plan_c.c
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/shellwords/test/check.ps1
+bash release/extlibs/shellwords/test/check.sh
+```
+
+Linux 将 `xl.exe` 换为 `xl`。门禁要求 GCC、Python 3 和相应平台
+发布物；Python 仅用于测试，不是扩展库运行依赖。每个外部进程有
+超时，核对输入前后指纹，保存完整输出；失败留现场，仅成功时清理
+本次独占目录。Windows 仍验证真实 CreateProcessW/宽字符 CRT argv，
+Linux 保留 ASan/UBSan 和真实 shell；后面的历史通过/阻断记录是
+当时快照，最新签收状态见仓库发布验收矩阵。
+
 2026-10-26 当前发布物复验：Windows 默认 `test/check.ps1` 的 C 边界、
 真实 `argv`、C 单文件直跑及公开双语范例通过；中央
 `join(var words)` 仍报 `ValueError: shellwords join requires an array`。
@@ -65,10 +111,10 @@ POSIX C 接口按参数字节处理，不要求有效 UTF-8：除 NUL 外，非 
 
 `examples/basic.c` 与 `release/examples/extlibs/shellwords.xl` 逐项展示
 `split`、`quote`、`join`、`quoteWindows`，输出一致。
-`examples/basic.c` 包含包内原生实现，可从 `demo6` 目录直接运行
+`examples/basic.c` 包含包内原生实现，可从仓库根目录直接运行
 `release/xl.exe run release/extlibs/shellwords/examples/basic.c`；正式包仍按
 清单编译原生源文件，Windows/Linux 门禁逐字比较直跑与严格 C 编译输出。
-在 `demo6` 目录运行 `release/extlibs/shellwords/test/check.ps1` 与
+在仓库根目录运行 `release/extlibs/shellwords/test/check.ps1` 与
 `bash release/extlibs/shellwords/test/check.sh`；
 `test/boundaries.xl` 与 `test/allocations.xl` 已登记到 `coverage.tests`，可用
 `tools/smoke_extlib_catalog.ps1 -Package shellwords` 连同原主用例复验。

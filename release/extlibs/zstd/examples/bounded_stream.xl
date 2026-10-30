@@ -1,0 +1,31 @@
+import zstd
+
+func main(...) as int
+    // drain 可在 update 之间取数据，finish 后必须再取一次帧尾。
+    auto encoder = zstd.compressor()
+    encoder.update("one\0")
+    Buffer packed = encoder.drain()
+    encoder.update("two")
+    assert encoder.finish()
+    assert packed.append(encoder.drain())
+
+    auto decoder = zstd.decompressor()
+    decoder.update(packed)
+    assert decoder.finish() and decoder.finished and decoder.members == 1
+    Buffer plain = decoder.drain()
+    assert plain == Buffer.fromHex("6f6e650074776f")
+    bool rejected = false
+    try
+        zstd.compress(plain, 3, 1024, 1)
+    catch RangeError error
+        rejected = true
+    end
+    assert rejected
+    assert zstd.decompressText(zstd.compress(plain)) == "one\0two"
+    println("source bytes: 7")
+    println("completed frames: 1")
+    println("binary round trip: true")
+    println("output limit rejected: true")
+    println("zstd bounded stream: OK")
+    return 0
+end

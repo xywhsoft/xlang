@@ -44,11 +44,13 @@ static int gzip_file(const char* source, const char* destination, bool compress,
     xreader* reader = NULL;
     xwriter* writer = NULL;
     xfile file = NULL;
+    xfile transaction = NULL;
     str directory = NULL, temporary = NULL;
     xerror* saved;
     xrtgziperror error;
     xrtprogresscall progress;
     bool ok = false;
+    bool removed = false;
     int result = 0;
     xrtClearError();
     xrtGzipErrorInit(&error);
@@ -74,6 +76,7 @@ static int gzip_file(const char* source, const char* destination, bool compress,
     if (directory == NULL) goto cleanup;
     file = xrtFileTemp(directory[0] != 0 ? directory : ".", ".xrt-gzip-", ".tmp", &temporary);
     if (file == NULL) goto cleanup;
+    transaction = file; /* 只借用；关闭仍属于原来的 file/writer。 */
     writer = xrtWriterTakeFile(&file);
     if (writer == NULL) goto cleanup;
     ok = compress ? xrtGzipCompressStream(reader, writer, options,
@@ -86,6 +89,9 @@ cleanup:
     /* 保存第一处失败；析构、删除临时文件的错误不能覆盖用户回调或 IO 原因。 */
     saved = xrtTakeError();
     if (saved != NULL) ok = false;
+    /* 打开态先回滚，避免 Windows 关闭后删除路径还需要 UTF-16 分配。 */
+    if (!ok && transaction != NULL && temporary != NULL)
+        removed = xrtFileDeleteOpen(transaction, temporary);
     if (writer != NULL && !xrtWriterDestroy(writer) && ok) { ok = false; saved = xrtTakeError(); }
     xrtClearError();
     if (file != NULL && !xrtClose(file) && ok) { ok = false; saved = xrtTakeError(); }
@@ -93,7 +99,7 @@ cleanup:
     if (reader != NULL && !xrtReaderDestroy(reader) && ok) { ok = false; saved = xrtTakeError(); }
     xrtClearError();
     if (ok && !xrtPathRename(temporary, destination, overwrite)) { ok = false; saved = xrtTakeError(); }
-    if (!ok && temporary != NULL) (void)xrtFileDelete(temporary);
+    if (!ok && temporary != NULL && !removed) (void)xrtFileDelete(temporary);
     xrtClearError();
     if (saved != NULL) {
         xrtSetError(saved);
