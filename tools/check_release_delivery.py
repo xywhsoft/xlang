@@ -1,95 +1,69 @@
-"""Offline delivery checks from an isolated copy of the ordinary products/SDK."""
-from pathlib import Path
+"""Verify that delivered runtime files match their receipt and committed bytes."""
 import argparse
 import hashlib
 import json
-import os
-import shutil
+from pathlib import Path
 import subprocess
+
+
+def check(root):
+    receipt = root / 'release/provenance/current-delivery.json'
+    data = json.loads(receipt.read_text(encoding='utf-8'))
+    rows = data['products'] + data['dataFiles']
+    paths = [row['path'] for row in rows]
+    if len(set(paths)) != len(paths):
+        raise ValueError('Duplicate delivery path')
+    for row in rows:
+        path = root / row['path']
+        if not path.resolve().is_relative_to(root / 'release'):
+            raise ValueError('Delivery path is outside release: ' + row['path'])
+        digest = hashlib.sha256()
+        with path.open('rb') as stream:
+            for block in iter(lambda: stream.read(1024 * 1024), b''):
+                digest.update(block)
+        if path.stat().st_size != row['bytes'] or digest.hexdigest() != row['sha256']:
+            raise ValueError('Delivery bytes changed: ' + row['path'])
+
+    # 同时验证 Git 中的原始字节，防止忽略规则或换行转换遗漏运行成果。
+    tracked = subprocess.check_output(
+        ['git', 'ls-tree', '-r', '-z', 'HEAD', '--', 'release/data',
+         *[row['path'] for row in data['products']]], cwd=root)
+    blobs = {}
+    modes = {}
+    for record in tracked.split(b'\0'):
+        if not record:
+            continue
+        metadata, path = record.split(b'\t', 1)
+        mode, kind, oid = metadata.decode('ascii').split()
+        if kind != 'blob':
+            raise ValueError('Non-file delivery entry: ' + path.decode('utf-8'))
+        name = path.decode('utf-8')
+        blobs[name], modes[name] = oid, mode
+    actual = subprocess.check_output(
+        ['git', 'hash-object', '--no-filters', '--stdin-paths'],
+        input=''.join(path + '\n' for path in paths).encode('utf-8'), cwd=root)
+    hashes = actual.decode('ascii').splitlines()
+    if len(hashes) != len(paths):
+        raise ValueError('Incomplete Git byte audit')
+    for path, oid in zip(paths, hashes):
+        if blobs.get(path) != oid:
+            raise ValueError('Uncommitted or transformed runtime file: ' + path)
+    if modes.get('release/xl') != '100755':
+        raise ValueError('Linux release/xl lacks its committed executable bit')
+    return dict(status='passed',products=len(data['products']),
+                dataFiles=len(data['dataFiles']),committedExactFiles=len(paths))
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parent.parent)
-    parser.add_argument("--products", type=Path)
-    parser.add_argument("--directory", type=Path)
-    parser.add_argument("--cc", default=os.environ.get("CC", "gcc"))
+    parser.add_argument('--root', type=Path, default=Path(__file__).resolve().parents[1])
     args = parser.parse_args()
-    root = args.root.resolve()
-    products = (args.products or root / "release").resolve()
-    directory = (args.directory or root / "build/test/release-delivery").resolve()
-    directory.mkdir(parents=True, exist_ok=True)
-    payload = directory / "payload"
-    payload.mkdir(exist_ok=True)
-    work = directory / "empty-cwd"
-    work.mkdir(exist_ok=True)
-    shutil.copytree(root / "release/include", payload / "include", dirs_exist_ok=True)
-    names = ["xl.exe", "xl.dll", "xlc.dll"] if os.name == "nt" else ["xl", "libxl.so", "libxlc.so"]
-    inputs = {}
-    for source in (root / "release/include").rglob("*"):
-        if source.is_file():
-            inputs[str(source)] = hashlib.sha256(source.read_bytes()).hexdigest()
-    for name in names:
-        source = products / name
-        inputs[str(source)] = hashlib.sha256(source.read_bytes()).hexdigest()
-        shutil.copy2(source, payload / name)
-    cli = payload / names[0]
-    env = dict(os.environ)
-    for key in list(env):
-        if key.startswith("XL6_") or key.startswith("XLANG_"):
-            del env[key]
-    env["PATH"] = str(payload) + os.pathsep + env.get("PATH", "")
-    env["XL6_NESTED_SDK_WORK"] = str(work)
-    report = {"complete": False, "inputsUnchanged": False, "inputs": inputs, "checks": []}
-
-    def save():
-        (directory / "results.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
-
-    def run(name, command):
-        result = subprocess.run(list(map(str, command)), cwd=work, env=env,
-                                capture_output=True, timeout=120)
-        data = result.stdout + result.stderr
-        (directory / (name + ".log")).write_bytes(data)
-        report["checks"].append({"name": name, "command": list(map(str, command)), "exit": result.returncode})
-        save()
-        if result.returncode:
-            raise RuntimeError(name + " failed: " + data.decode("utf-8", "replace"))
-        print(name, flush=True)
-
-    suffix = ".exe" if os.name == "nt" else ""
-    for relative in ["test/cases/tcc_c99_vsnprintf.c", "test/cases/stdlib_nested_sdk.xl",
-                     "test/cases/stdlib_nested_aot.xl"]:
-        source = root / relative
-        inputs[str(source)] = hashlib.sha256(source.read_bytes()).hexdigest()
-        copied = payload / source.name
-        shutil.copy2(source, copied)
-        binary = payload / (source.stem + suffix)
-        run(source.stem + "-jit", [cli, "run", copied])
-        run(source.stem + "-build", [cli, "build", copied, "-o", binary])
-        run(source.stem + "-aot", [binary])
-
-    for library_name in names[1:]:
-        library = payload / library_name
-        for relative in ["release/examples/xl_dll_embed_string.c", "test/cases/stdlib_nested_sdk_host.c"]:
-            source = root / relative
-            inputs[str(source)] = hashlib.sha256(source.read_bytes()).hexdigest()
-            copied = payload / source.name
-            shutil.copy2(source, copied)
-            name = library.stem + "-" + source.stem
-            binary = payload / (name + suffix)
-            command = [args.cc, "-std=c11", "-Wall", "-Wextra", "-Werror", "-I" + str(payload),
-                       copied, library, "-o", binary]
-            if os.name != "nt":
-                command += ["-Wl,-rpath," + str(payload)]
-            run(name + "-build", command)
-            run(name + "-run", [binary, work] if source.stem == "stdlib_nested_sdk_host" else [binary])
-    report["inputsUnchanged"] = all(hashlib.sha256(Path(path).read_bytes()).hexdigest() == sha
-                                    for path, sha in inputs.items())
-    report["complete"] = report["inputsUnchanged"]
-    save()
-    if not report["complete"]:
-        raise RuntimeError("delivery inputs changed during validation")
+    try:
+        result = check(args.root.resolve())
+    except (OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
+        parser.exit(1, str(error) + '\n')
+    print(json.dumps(result))
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

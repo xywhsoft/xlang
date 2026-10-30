@@ -1,6 +1,8 @@
 *.sh text eol=lf
 /release/data/** -text
 /release/data/catalog-sources/*.source -whitespace
+# Pinned upstream font metadata keeps its original distribution bytes.
+/release/data/fonts/* whitespace=cr-at-eol
 /release/extlibs/_tomlc17/src/*.c text eol=lf
 /release/extlibs/_tomlc17/src/*.h text eol=lf
 tools/tcc_vfs_manifest_linux_*.txt text eol=lf
