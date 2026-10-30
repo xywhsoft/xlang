@@ -1,0 +1,142 @@
+extern "xcolor_valid" func __color_valid(string color) as bool
+extern "xcolor_red" func __color_red(string color) as int
+extern "xcolor_green" func __color_green(string color) as int
+extern "xcolor_blue" func __color_blue(string color) as int
+extern "xcolor_alpha" func __color_alpha(string color) as int
+extern "xcolor_hex_text" @owned func __color_hex(int r, int g, int b) as string
+extern "xcolor_hex_a_text" @owned func __color_hex_a(int r, int g, int b, int a) as string
+extern "xcolor_normalize_text" @owned func __color_normalize(string color) as string
+extern "xcolor_hue" func __color_hue(string color) as float
+extern "xcolor_saturation" func __color_saturation(string color) as float
+extern "xcolor_value" func __color_value(string color) as float
+extern "xcolor_lightness" func __color_lightness(string color) as float
+extern "xcolor_from_hsv_text" @owned func __color_from_hsv(float h, float s, float v) as string
+extern "xcolor_from_hsl_text" @owned func __color_from_hsl(float h, float s, float l) as string
+extern "xcolor_luminance" func __color_luminance(string color) as float
+extern "xcolor_contrast" func __color_contrast(string a, string b) as float
+extern "xcolor_is_dark" func __color_is_dark(string color) as bool
+extern "xcolor_is_light" func __color_is_light(string color) as bool
+extern "xcolor_mix_text" @owned func __color_mix(string a, string b, float t) as string
+extern "xcolor_from_name_text" @owned func __color_from_name(string name) as string
+extern "xcolor_to_name_text" @owned func __color_to_name(string color) as string
+
+func __color_has_nul(string text) as bool
+    return string.indexOf(text, "\0", false, string.byteLen(text), 1) >= 0
+end
+
+
+
+// 十六进制 RGB/RGBA，支持 3/4/6/8 位，# 可省略；名称请先用 fromName。
+export func valid(string color) as bool
+    if __color_has_nul(color) then return false end
+    return __color_valid(color)
+end
+
+// red/green/blue 返回 0-255 分量；alpha 返回 0-255 透明度；非法输入返回 -1
+export func red(string color) as int
+    if __color_has_nul(color) then return -1 end
+    return __color_red(color)
+end
+
+export func green(string color) as int
+    if __color_has_nul(color) then return -1 end
+    return __color_green(color)
+end
+
+export func blue(string color) as int
+    if __color_has_nul(color) then return -1 end
+    return __color_blue(color)
+end
+
+export func alpha(string color) as int
+    if __color_has_nul(color) then return -1 end
+    return __color_alpha(color)
+end
+
+// hex 由分量构造 #RRGGBB；分量越界返回空字符串
+export func hex(int r, int g, int b) as string
+    return __color_hex(r, g, b)
+end
+
+// hexA 由分量构造 #RRGGBBAA
+export func hexA(int r, int g, int b, int a) as string
+    return __color_hex_a(r, g, b, a)
+end
+
+// normalize 输出 #RRGGBB，不保留 alpha；非法输入返回空字符串。
+export func normalize(string color) as string
+    if __color_has_nul(color) then return "" end
+    return __color_normalize(color)
+end
+
+// hue/saturation/value 返回 HSV 分量：色相 [0,360)，其余 [0,1]；非法返回 -1。
+export func hue(string color) as float
+    if __color_has_nul(color) then return -1 end
+    return __color_hue(color)
+end
+
+export func saturation(string color) as float
+    if __color_has_nul(color) then return -1 end
+    return __color_saturation(color)
+end
+
+export func value(string color) as float
+    if __color_has_nul(color) then return -1 end
+    return __color_value(color)
+end
+
+// lightness 返回 HSL 亮度 0-1
+export func lightness(string color) as float
+    if __color_has_nul(color) then return -1 end
+    return __color_lightness(color)
+end
+
+// 有限 h 按 360 度环绕，s/v 截至 [0,1]；NaN/无穷返回空字符串。
+export func fromHsv(float h, float s, float v) as string
+    return __color_from_hsv(h, s, v)
+end
+
+// HSL 的 s/l 截至 [0,1]；与 HSV 的 saturation 不是同一项转换结果。
+export func fromHsl(float h, float s, float l) as string
+    return __color_from_hsl(h, s, l)
+end
+
+// luminance 返回 WCAG 相对亮度 0-1
+export func luminance(string color) as float
+    if __color_has_nul(color) then return -1 end
+    return __color_luminance(color)
+end
+
+// contrast 返回 WCAG 对比度 1-21；任一非法返回 -1
+export func contrast(string a, string b) as float
+    if __color_has_nul(a) or __color_has_nul(b) then return -1 end
+    return __color_contrast(a, b)
+end
+
+export func isDark(string color) as bool
+    if __color_has_nul(color) then return false end
+    return __color_is_dark(color)
+end
+
+export func isLight(string color) as bool
+    if __color_has_nul(color) then return false end
+    return __color_is_light(color)
+end
+
+// 编码后的 RGB 分量插值并舍弃 alpha；有限 t 截至 [0,1]，非有限返回空字符串。
+export func mix(string a, string b, float t) as string
+    if __color_has_nul(a) or __color_has_nul(b) then return "" end
+    return __color_mix(a, b, t)
+end
+
+// fromName 把 CSS 命名色转换为 #RRGGBB；未知名称返回空字符串
+export func fromName(string name) as string
+    if __color_has_nul(name) then return "" end
+    return __color_from_name(name)
+end
+
+// 只匹配不透明 RGB；别名选表内首个名称，无精确匹配返回空字符串。
+export func toName(string color) as string
+    if __color_has_nul(color) then return "" end
+    return __color_to_name(color)
+end

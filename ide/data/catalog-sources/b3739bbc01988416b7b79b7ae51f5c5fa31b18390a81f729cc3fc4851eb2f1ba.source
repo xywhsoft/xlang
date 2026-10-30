@@ -1,0 +1,25 @@
+extern "xglad_gl_type" func __gl_type(int id) as string
+extern "xglad_primitive" func __primitive(int id) as string
+extern "xglad_type_size" func __type_size(int id) as int
+extern "xglad_version" func __version(int major, int minor) as string
+extern "xglad_valid_ext" func __valid_ext(string name) as int
+
+export func glType(int id) as string
+    return __gl_type(id)
+end
+
+export func primitive(int id) as string
+    return __primitive(id)
+end
+
+export func typeSize(int id) as int
+    return __type_size(id)
+end
+
+export func version(int major, int minor) as string
+    return __version(major, minor)
+end
+
+export func validExt(string name) as int
+    return __valid_ext(name)
+end

@@ -1,0 +1,40 @@
+extern "xicu_script" func __script(int id) as string
+extern "xicu_break_type" func __break_type(int id) as string
+extern "xicu_collation_strength" func __collation_strength(int id) as string
+extern "xicu_normalization_form" func __normalization_form(int id) as string
+extern "xicu_date_format" func __date_format(int id) as string
+extern "xicu_number_format" func __number_format(int id) as string
+extern "xicu_utf8_len" func __utf8_len(int cp) as int
+extern "xicu_locale_component" func __locale_component(int id) as string
+
+export func script(int id) as string
+    return __script(id)
+end
+
+export func breakType(int id) as string
+    return __break_type(id)
+end
+
+export func collationStrength(int id) as string
+    return __collation_strength(id)
+end
+
+export func normalizationForm(int id) as string
+    return __normalization_form(id)
+end
+
+export func dateFormat(int id) as string
+    return __date_format(id)
+end
+
+export func numberFormat(int id) as string
+    return __number_format(id)
+end
+
+export func utf8Len(int cp) as int
+    return __utf8_len(cp)
+end
+
+export func localeComponent(int id) as string
+    return __locale_component(id)
+end

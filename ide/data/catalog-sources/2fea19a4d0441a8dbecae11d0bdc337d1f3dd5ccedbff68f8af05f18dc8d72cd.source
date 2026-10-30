@@ -1,0 +1,66 @@
+// 前台服务辅助。进程守护化和 OS 服务注册不属于此包。
+func __daemon_c_string(string value)
+    if string.indexOf(value, "\0", false, string.byteLen(value), 1) >= 0 then
+        throw ValueError "daemon: name or path contains an embedded NUL byte"
+    end
+end
+
+class Daemon
+    native point handle
+    extern "xdaemon_create" create(string name)
+    extern "xdaemon_destroy" destroy()
+
+    private extern "xdaemon_write_pidfile" func writePidNative(string path) as int
+    private extern "xdaemon_release_pidfile" func releasePidNative() as int
+    private extern "xdaemon_get_pid" func pidNative() as int
+    private extern "xdaemon_name" func nameNative() as string
+    private extern "xdaemon_stop_requested" func stopRequestedNative() as int
+    extern "xdaemon_request_stop" func requestStop()
+    private extern "xdaemon_holds_pidfile" func holdsPidNative() as int
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get pid() as int
+        return self.pidNative()
+    end
+
+    get name() as string
+        return self.nameNative()
+    end
+
+    get stopRequested() as bool
+        return self.stopRequestedNative() != 0
+    end
+
+    get holdsPidFile() as bool
+        return self.holdsPidNative() != 0
+    end
+
+    func writePidFile(string path) as bool
+        __daemon_c_string(path)
+        return self.writePidNative(path) != 0
+    end
+
+    func releasePidFile() as bool
+        return self.releasePidNative() != 0
+    end
+end
+
+extern "xdaemon_read_pidfile" func __daemon_read_pid(string path) as int
+extern "xdaemon_is_alive" func __daemon_alive(int pid) as int
+
+export func create(string name) as Daemon
+    __daemon_c_string(name)
+    return Daemon(name)
+end
+
+export func readPidFile(string path) as int
+    __daemon_c_string(path)
+    return __daemon_read_pid(path)
+end
+
+export func isAlive(int pid) as bool
+    return __daemon_alive(pid) != 0
+end

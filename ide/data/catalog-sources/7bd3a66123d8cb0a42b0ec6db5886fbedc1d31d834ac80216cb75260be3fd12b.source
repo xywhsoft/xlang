@@ -1,0 +1,116 @@
+// 常用 ASN.1/DER 构件的严格十六进制接口；非法编码直接抛异常。
+extern "xl6_xrt_last_error_text" func __pkcs_error() as string
+extern "xpkcs_get_tag" func __pkcs_tag(string derHex) as int
+extern "xpkcs_get_length" func __pkcs_length(string derHex) as int
+extern "xpkcs_get_content" @owned func __pkcs_content(string derHex) as string?
+extern "xpkcs_encode_int" @owned func __pkcs_encode_int(int value) as string?
+extern "xpkcs_decode_int_value" func __pkcs_decode_int(string derHex) as var
+extern "xpkcs_encode_oid" @owned func __pkcs_encode_oid(string dotted) as string?
+extern "xpkcs_decode_oid" @owned func __pkcs_decode_oid(string derHex) as string?
+extern "xpkcs_wrap_sequence" @owned func __pkcs_sequence(string contentHex) as string?
+extern "xpkcs_wrap_set" @owned func __pkcs_set(string contentHex) as string?
+extern "xpkcs_encode_octet" @owned func __pkcs_octet(string contentHex) as string?
+extern "xpkcs_encode_null" @owned func __pkcs_null() as string?
+extern "xpkcs_encode_bitstring" @owned func __pkcs_bitstring(string contentHex) as string?
+extern "xpkcs_concat" @owned func __pkcs_concat(string left, string right) as string?
+extern "xpkcs_der_len" func __pkcs_der_len(string derHex) as int
+extern "xpkcs_next_offset" func __pkcs_next(string derHex, int offset) as int
+extern "xpkcs_tag_name" @owned func __pkcs_tag_name(string derHex) as string?
+
+// C 接口使用零结尾文本，不能把含 NUL 的 XLang 字符串当成有效前缀。
+func __pkcs_text(string value)
+    if string.indexOf(value, "\0", false, string.byteLen(value), 1) >= 0 then
+        throw ValueError "pkcs text contains NUL"
+    end
+end
+
+func __pkcs_take(string? value) as string
+    if value == null then throw ValueError __pkcs_error() end
+    return value
+end
+
+func __pkcs_checked(int value) as int
+    if value < 0 then throw ValueError __pkcs_error() end
+    return value
+end
+
+export func getTag(string derHex) as int
+    __pkcs_text(derHex)
+    return __pkcs_checked(__pkcs_tag(derHex))
+end
+
+export func getLength(string derHex) as int
+    __pkcs_text(derHex)
+    return __pkcs_checked(__pkcs_length(derHex))
+end
+
+export func getContent(string derHex) as string
+    __pkcs_text(derHex)
+    return __pkcs_take(__pkcs_content(derHex))
+end
+
+export func encodeInt(int value) as string
+    return __pkcs_take(__pkcs_encode_int(value))
+end
+
+export func decodeInt(string derHex) as int
+    __pkcs_text(derHex)
+    var value = __pkcs_decode_int(derHex)
+    if value == null then throw ValueError __pkcs_error() end
+    return int(value)
+end
+
+export func encodeOid(string dotted) as string
+    __pkcs_text(dotted)
+    return __pkcs_take(__pkcs_encode_oid(dotted))
+end
+
+export func decodeOid(string derHex) as string
+    __pkcs_text(derHex)
+    return __pkcs_take(__pkcs_decode_oid(derHex))
+end
+
+export func wrapSequence(string contentHex) as string
+    __pkcs_text(contentHex)
+    return __pkcs_take(__pkcs_sequence(contentHex))
+end
+
+export func wrapSet(string contentHex) as string
+    __pkcs_text(contentHex)
+    return __pkcs_take(__pkcs_set(contentHex))
+end
+
+export func encodeOctet(string contentHex) as string
+    __pkcs_text(contentHex)
+    return __pkcs_take(__pkcs_octet(contentHex))
+end
+
+export func encodeNull() as string
+    return __pkcs_take(__pkcs_null())
+end
+
+export func encodeBitString(string contentHex) as string
+    __pkcs_text(contentHex)
+    return __pkcs_take(__pkcs_bitstring(contentHex))
+end
+
+export func concat(string left, string right) as string
+    __pkcs_text(left)
+    __pkcs_text(right)
+    return __pkcs_take(__pkcs_concat(left, right))
+end
+
+export func derLen(string derHex) as int
+    __pkcs_text(derHex)
+    return __pkcs_checked(__pkcs_der_len(derHex))
+end
+
+export func nextOffset(string derHex, int offset) as int
+    __pkcs_text(derHex)
+    return __pkcs_checked(__pkcs_next(derHex, offset))
+end
+
+export func tagName(string derHex) as string
+    __pkcs_text(derHex)
+    return __pkcs_take(__pkcs_tag_name(derHex))
+end

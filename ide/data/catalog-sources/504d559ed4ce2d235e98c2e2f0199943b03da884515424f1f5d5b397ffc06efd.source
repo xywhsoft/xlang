@@ -1,0 +1,568 @@
+extern "x_uia_version" func x_uia_version() as string
+extern "x_uia_last_error" func x_uia_last_error() as string
+extern "x_uia_shutdown" func x_uia_shutdown() as c_int
+extern "x_uia_launch" func x_uia_launch(string command) as point
+extern "x_uia_test_window_create" func x_uia_test_window_create() as point
+extern "x_uia_test_window_valid" func x_uia_test_window_valid(point window) as c_int
+extern "x_uia_test_window_hwnd" func x_uia_test_window_hwnd(point window) as point
+extern "x_uia_test_window_edit_hwnd" func x_uia_test_window_edit_hwnd(point window) as point
+extern "x_uia_test_window_button_hwnd" func x_uia_test_window_button_hwnd(point window) as point
+extern "x_uia_test_window_checkbox_hwnd" func x_uia_test_window_checkbox_hwnd(point window) as point
+extern "x_uia_test_window_focus_edit" func x_uia_test_window_focus_edit(point window) as c_int
+extern "x_uia_test_window_focus_button" func x_uia_test_window_focus_button(point window) as c_int
+extern "x_uia_test_window_close" func x_uia_test_window_close(point window) as c_int
+extern "x_uia_test_window_release" func x_uia_test_window_release(point window) as c_int
+extern "x_uia_process_valid" func x_uia_process_valid(point process) as c_int
+extern "x_uia_process_id" func x_uia_process_id(point process) as c_int
+extern "x_uia_process_close" func x_uia_process_close(point process) as c_int
+extern "x_uia_process_release" func x_uia_process_release(point process) as c_int
+extern "x_uia_desktop" func x_uia_desktop() as point
+extern "x_uia_focused" func x_uia_focused() as point
+extern "x_uia_from_hwnd" func x_uia_from_hwnd(point hwnd) as point
+extern "x_uia_from_point" func x_uia_from_point(c_int x, c_int y) as point
+extern "x_uia_element_release" func x_uia_element_release(point element) as c_int
+extern "x_uia_element_valid" func x_uia_element_valid(point element) as c_int
+extern "x_uia_element_name_owned" @owned func x_uia_element_name(point element) as string?
+extern "x_uia_element_automation_id_owned" @owned func x_uia_element_automation_id(point element) as string?
+extern "x_uia_element_class_name_owned" @owned func x_uia_element_class_name(point element) as string?
+extern "x_uia_element_control_type" func x_uia_element_control_type(point element) as c_int
+extern "x_uia_element_hwnd" func x_uia_element_hwnd(point element) as point
+extern "x_uia_element_rect_json" func x_uia_element_rect_json(point element) as string
+extern "x_uia_element_snapshot_json_owned" @owned func x_uia_element_snapshot_json(point element, c_int depth, c_int max_nodes) as string?
+extern "x_uia_element_cached_children_json_owned" @owned func x_uia_element_cached_children_json(point element, c_int depth, c_int max_nodes) as string?
+extern "x_uia_locator_for_owned" @owned func x_uia_locator_for(point element) as string?
+extern "x_uia_focused_locator_owned" @owned func x_uia_focused_locator() as string?
+extern "x_uia_element_find_class_path" func x_uia_element_find_class_path(point root, string class_path, c_int process_id, c_int timeout_ms) as point
+extern "x_uia_element_find_first" func x_uia_element_find_first(point element, point condition, c_int scope, c_int timeout_ms) as point
+extern "x_uia_element_find_all" func x_uia_element_find_all(point element, point condition, c_int scope, c_int timeout_ms) as var
+extern "x_uia_element_parent" func x_uia_element_parent(point element) as point
+extern "x_uia_element_children" func x_uia_element_children(point element) as var
+extern "x_uia_element_set_focus" func x_uia_element_set_focus(point element) as c_int
+extern "x_uia_element_click" func x_uia_element_click(point element, c_int timeout_ms) as c_int
+extern "x_uia_element_invoke" func x_uia_element_invoke(point element) as c_int
+extern "x_uia_element_value_owned" @owned func x_uia_element_value(point element) as string?
+extern "x_uia_element_set_value" func x_uia_element_set_value(point element, string value) as c_int
+extern "x_uia_element_text_owned" @owned func x_uia_element_text(point element) as string?
+extern "x_uia_element_toggle" func x_uia_element_toggle(point element) as c_int
+extern "x_uia_element_toggle_state" func x_uia_element_toggle_state(point element) as c_int
+extern "x_uia_element_range_value" func x_uia_element_range_value(point element) as float
+extern "x_uia_element_range_min" func x_uia_element_range_min(point element) as float
+extern "x_uia_element_range_max" func x_uia_element_range_max(point element) as float
+extern "x_uia_element_set_range_value" func x_uia_element_set_range_value(point element, float value) as c_int
+extern "x_uia_element_scroll" func x_uia_element_scroll(point element, c_int horizontal, c_int vertical) as c_int
+extern "x_uia_element_close_window" func x_uia_element_close_window(point element) as c_int
+extern "x_uia_element_wait_window_closed" func x_uia_element_wait_window_closed(point element, c_int timeout_ms) as c_int
+extern "x_uia_events_create" func x_uia_events_create() as point
+extern "x_uia_events_valid" func x_uia_events_valid(point events) as c_int
+extern "x_uia_events_subscribe_focus_changed" func x_uia_events_subscribe_focus_changed(point events) as c_int
+extern "x_uia_events_subscribe_property_changed" func x_uia_events_subscribe_property_changed(point events, point element, c_int property_id) as c_int
+extern "x_uia_events_poll_json_owned" @owned func x_uia_events_poll_json(point events, c_int timeout_ms) as string?
+extern "x_uia_events_release" func x_uia_events_release(point events) as c_int
+extern "x_uia_condition_release" func x_uia_condition_release(point condition) as c_int
+extern "x_uia_condition_valid" func x_uia_condition_valid(point condition) as c_int
+extern "x_uia_by_name" func x_uia_by_name(string name) as point
+extern "x_uia_by_process_id" func x_uia_by_process_id(c_int process_id) as point
+extern "x_uia_by_automation_id" func x_uia_by_automation_id(string automation_id) as point
+extern "x_uia_by_class_name" func x_uia_by_class_name(string class_name) as point
+extern "x_uia_by_control_type" func x_uia_by_control_type(c_int control_type) as point
+extern "x_uia_condition_and" func x_uia_condition_and(point left, point right) as point
+extern "x_uia_condition_or" func x_uia_condition_or(point left, point right) as point
+extern "x_uia_condition_not" func x_uia_condition_not(point condition) as point
+
+func __to_c_int(int value) as c_int
+	assert value >= -2147483648 and value <= 2147483647, "uia: integer argument is outside C int range"
+	return c_int(value)
+end
+
+func __uia_owned_text(string? value) as string
+	if value == null then return "" end
+	return value
+end
+
+func __uia_require_c_string(string text)
+	// UIA 的原生入口读取 NUL 结尾字符串，不能把后缀静默丢掉。
+	if string.indexOf(text, "\0", false, string.byteLen(text), 1) >= 0 then
+		throw ValueError "uia input contains an embedded NUL"
+	end
+end
+
+const int TREE_SCOPE_ELEMENT = 1
+const int TREE_SCOPE_CHILDREN = 2
+const int TREE_SCOPE_DESCENDANTS = 4
+const int TREE_SCOPE_SUBTREE = 7
+
+const int CONTROL_BUTTON = 50000
+const int CONTROL_EDIT = 50004
+const int CONTROL_TEXT = 50020
+const int CONTROL_DOCUMENT = 50030
+const int CONTROL_WINDOW = 50032
+const int CONTROL_PANE = 50033
+
+const int PROPERTY_NAME = 30005
+const int PROPERTY_AUTOMATION_ID = 30011
+const int PROPERTY_CLASS_NAME = 30012
+const int PROPERTY_VALUE = 30045
+
+const int TOGGLE_OFF = 0
+const int TOGGLE_ON = 1
+const int TOGGLE_INDETERMINATE = 2
+
+const int SCROLL_LARGE_DECREMENT = 0
+const int SCROLL_SMALL_DECREMENT = 1
+const int SCROLL_NO_AMOUNT = 2
+const int SCROLL_LARGE_INCREMENT = 3
+const int SCROLL_SMALL_INCREMENT = 4
+
+class Process
+	point handle
+
+	create(point h)
+		self.handle = h
+	end
+
+
+	func valid() as bool
+		return x_uia_process_valid(self.handle) != 0
+	end
+
+	func id() as int
+		return x_uia_process_id(self.handle)
+	end
+
+	func close() as bool
+		return x_uia_process_close(self.handle) != 0
+	end
+
+	func release() as bool
+		if self.handle == null then
+			return false
+		end
+		point released = self.handle
+		self.handle = null
+		return x_uia_process_release(released) != 0
+	end
+
+	destroy()
+		if self.handle != null then
+			point released = self.handle
+			x_uia_process_release(released)
+		end
+	end
+end
+
+class TestWindow
+	point handle
+
+	create(point h)
+		self.handle = h
+	end
+
+
+	func valid() as bool
+		return x_uia_test_window_valid(self.handle) != 0
+	end
+
+	func hwnd() as point
+		return x_uia_test_window_hwnd(self.handle)
+	end
+
+	func edit_hwnd() as point
+		return x_uia_test_window_edit_hwnd(self.handle)
+	end
+
+	func button_hwnd() as point
+		return x_uia_test_window_button_hwnd(self.handle)
+	end
+
+	func checkbox_hwnd() as point
+		return x_uia_test_window_checkbox_hwnd(self.handle)
+	end
+
+	func focus_edit() as bool
+		return x_uia_test_window_focus_edit(self.handle) != 0
+	end
+
+	func focus_button() as bool
+		return x_uia_test_window_focus_button(self.handle) != 0
+	end
+
+	func close() as bool
+		return x_uia_test_window_close(self.handle) != 0
+	end
+
+	func release() as bool
+		if self.handle == null then
+			return false
+		end
+		if x_uia_test_window_release(self.handle) == 0 then
+			return false
+		end
+		self.handle = null
+		return true
+	end
+
+	destroy()
+		if self.handle != null then
+			x_uia_test_window_release(self.handle)
+		end
+	end
+end
+
+class Condition
+	point handle
+
+	create(point h)
+		self.handle = h
+	end
+
+
+	func release() as bool
+		if self.handle == null then
+			return false
+		end
+		point released = self.handle
+		self.handle = null
+		return x_uia_condition_release(released) != 0
+	end
+
+	destroy()
+		if self.handle != null then
+			point released = self.handle
+			x_uia_condition_release(released)
+		end
+	end
+
+	func valid() as bool
+		return x_uia_condition_valid(self.handle) != 0
+	end
+end
+
+class Element
+	point handle
+
+	create(point h)
+		self.handle = h
+	end
+
+
+	func release() as bool
+		if self.handle == null then
+			return false
+		end
+		point released = self.handle
+		self.handle = null
+		return x_uia_element_release(released) != 0
+	end
+
+	destroy()
+		if self.handle != null then
+			point released = self.handle
+			x_uia_element_release(released)
+		end
+	end
+
+	func valid() as bool
+		return x_uia_element_valid(self.handle) != 0
+	end
+
+	func name() as string
+		return __uia_owned_text(x_uia_element_name(self.handle))
+	end
+
+	func automation_id() as string
+		return __uia_owned_text(x_uia_element_automation_id(self.handle))
+	end
+
+	func class_name() as string
+		return __uia_owned_text(x_uia_element_class_name(self.handle))
+	end
+
+	func control_type() as int
+		return x_uia_element_control_type(self.handle)
+	end
+
+	func hwnd() as point
+		return x_uia_element_hwnd(self.handle)
+	end
+
+	func rect_json() as string
+		return x_uia_element_rect_json(self.handle)
+	end
+
+	func snapshot_json(int depth, int max_nodes) as string
+		return __uia_owned_text(x_uia_element_snapshot_json(self.handle, __to_c_int(depth), __to_c_int(max_nodes)))
+	end
+
+	func cached_children_json(int depth, int max_nodes) as string
+		return __uia_owned_text(x_uia_element_cached_children_json(self.handle, __to_c_int(depth), __to_c_int(max_nodes)))
+	end
+
+	func locator_json() as string
+		return __uia_owned_text(x_uia_locator_for(self.handle))
+	end
+
+	func find_first(Condition condition, int timeout_ms) as Element
+		return Element(x_uia_element_find_first(self.handle, condition.handle, 4, __to_c_int(timeout_ms)))
+	end
+
+	func find_first_scope(Condition condition, int scope, int timeout_ms) as Element
+		return Element(x_uia_element_find_first(self.handle, condition.handle, __to_c_int(scope), __to_c_int(timeout_ms)))
+	end
+
+	func find_class_path(string class_path, int process_id, int timeout_ms) as Element
+		__uia_require_c_string(class_path)
+		return Element(x_uia_element_find_class_path(self.handle, class_path,
+			__to_c_int(process_id), __to_c_int(timeout_ms)))
+	end
+
+	func find_all(Condition condition, int scope, int timeout_ms) as array<Element>
+		var handles = x_uia_element_find_all(self.handle, condition.handle, __to_c_int(scope), __to_c_int(timeout_ms))
+		array<Element> result = array<Element>[]
+		for handle in handles
+			result.append(Element(point(handle)))
+		end
+		return result
+	end
+
+	func parent() as Element
+		return Element(x_uia_element_parent(self.handle))
+	end
+
+	func children() as array<Element>
+		var handles = x_uia_element_children(self.handle)
+		array<Element> result = array<Element>[]
+		for handle in handles
+			result.append(Element(point(handle)))
+		end
+		return result
+	end
+
+	func set_focus() as bool
+		return x_uia_element_set_focus(self.handle) != 0
+	end
+
+	func click() as bool
+		return x_uia_element_click(self.handle, 5000) != 0
+	end
+
+	func click_timeout(int timeout_ms) as bool
+		return x_uia_element_click(self.handle, __to_c_int(timeout_ms)) != 0
+	end
+
+	func invoke() as bool
+		return x_uia_element_invoke(self.handle) != 0
+	end
+
+	func value() as string
+		return __uia_owned_text(x_uia_element_value(self.handle))
+	end
+
+	func set_value(string value) as bool
+		__uia_require_c_string(value)
+		return x_uia_element_set_value(self.handle, value) != 0
+	end
+
+	func text() as string
+		return __uia_owned_text(x_uia_element_text(self.handle))
+	end
+
+	func toggle() as bool
+		return x_uia_element_toggle(self.handle) != 0
+	end
+
+	func toggle_state() as int
+		return x_uia_element_toggle_state(self.handle)
+	end
+
+	func range_value() as float
+		return x_uia_element_range_value(self.handle)
+	end
+
+	func range_min() as float
+		return x_uia_element_range_min(self.handle)
+	end
+
+	func range_max() as float
+		return x_uia_element_range_max(self.handle)
+	end
+
+	func set_range_value(float value) as bool
+		return x_uia_element_set_range_value(self.handle, value) != 0
+	end
+
+	func scroll(int horizontal, int vertical) as bool
+		return x_uia_element_scroll(self.handle, __to_c_int(horizontal), __to_c_int(vertical)) != 0
+	end
+
+	func close_window() as bool
+		return x_uia_element_close_window(self.handle) != 0
+	end
+
+	func wait_window_closed(int timeout_ms) as bool
+		return x_uia_element_wait_window_closed(self.handle, __to_c_int(timeout_ms)) != 0
+	end
+end
+
+class Events
+	point handle
+
+	create(point h)
+		self.handle = h
+	end
+
+
+	func valid() as bool
+		return x_uia_events_valid(self.handle) != 0
+	end
+
+	func subscribe_focus_changed() as bool
+		return x_uia_events_subscribe_focus_changed(self.handle) != 0
+	end
+
+	func subscribe_property_changed(Element element, int property_id) as bool
+		return x_uia_events_subscribe_property_changed(self.handle, element.handle, __to_c_int(property_id)) != 0
+	end
+
+	func poll_json(int timeout_ms) as string
+		return __uia_owned_text(x_uia_events_poll_json(self.handle, __to_c_int(timeout_ms)))
+	end
+
+	func poll_callback(func(string) as int callback, int timeout_ms) as int
+		auto json = __uia_owned_text(x_uia_events_poll_json(self.handle, __to_c_int(timeout_ms)))
+		if json == "{}" then
+			return 0
+		end
+		return callback(json)
+	end
+
+	func release() as bool
+		if self.handle == null then
+			return false
+		end
+		if x_uia_events_release(self.handle) == 0 then
+			return false
+		end
+		self.handle = null
+		return true
+	end
+
+	destroy()
+		if self.handle != null then
+			point released = self.handle
+			x_uia_events_release(released)
+		end
+	end
+end
+
+export func version() as string
+	return x_uia_version()
+end
+
+export func available() as bool
+	return string.len(version()) > 0
+end
+
+export func last_error() as string
+	return x_uia_last_error()
+end
+
+export func shutdown() as bool
+	return x_uia_shutdown() != 0
+end
+
+export func launch(string command) as Process
+	__uia_require_c_string(command)
+	return Process(x_uia_launch(command))
+end
+
+export func test_window() as TestWindow
+	return TestWindow(x_uia_test_window_create())
+end
+
+export func desktop() as Element
+	return Element(x_uia_desktop())
+end
+
+export func focused() as Element
+	return Element(x_uia_focused())
+end
+
+export func focused_locator() as string
+	return __uia_owned_text(x_uia_focused_locator())
+end
+
+export func from_hwnd(point hwnd) as Element
+	return Element(x_uia_from_hwnd(hwnd))
+end
+
+export func from_point(int x, int y) as Element
+	return Element(x_uia_from_point(__to_c_int(x), __to_c_int(y)))
+end
+
+export func events() as Events
+	return Events(x_uia_events_create())
+end
+
+export func element(point handle) as Element
+	return Element(handle)
+end
+
+export func locator_for(Element element) as string
+	return __uia_owned_text(x_uia_locator_for(element.handle))
+end
+
+export func by_name(string name) as Condition
+	__uia_require_c_string(name)
+	return Condition(x_uia_by_name(name))
+end
+
+export func by_process_id(int process_id) as Condition
+	return Condition(x_uia_by_process_id(__to_c_int(process_id)))
+end
+
+export func by_automation_id(string automation_id) as Condition
+	__uia_require_c_string(automation_id)
+	return Condition(x_uia_by_automation_id(automation_id))
+end
+
+export func by_class_name(string class_name) as Condition
+	__uia_require_c_string(class_name)
+	return Condition(x_uia_by_class_name(class_name))
+end
+
+export func by_control_type(int control_type) as Condition
+	return Condition(x_uia_by_control_type(__to_c_int(control_type)))
+end
+
+export func all_of(Condition left, Condition right) as Condition
+	return Condition(x_uia_condition_and(left.handle, right.handle))
+end
+
+export func any_of(Condition left, Condition right) as Condition
+	return Condition(x_uia_condition_or(left.handle, right.handle))
+end
+
+export func not_condition(Condition condition) as Condition
+	return Condition(x_uia_condition_not(condition.handle))
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

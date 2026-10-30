@@ -1,0 +1,60 @@
+extern "xpasskey_fmt_name" func __fmt_name(string fmt) as string
+extern "xpasskey_cose_algo" func __cose_algo(int algo_id) as string
+extern "xpasskey_cose_kty" func __cose_kty(int kty) as string
+extern "xpasskey_cose_curve" func __cose_curve(int crv) as string
+extern "xpasskey_transport_name" func __transport_name(int transport) as string
+extern "xpasskey_uv_name" func __uv_name(int uv) as string
+extern "xpasskey_rk_name" func __rk_name(int rk) as string
+extern "xpasskey_attestation_name" func __attestation_name(int att) as string
+extern "xpasskey_gen_challenge" func __gen_challenge(int seed, int len) as string
+extern "xpasskey_valid_rpid" func __valid_rpid(string rpid) as int
+extern "xpasskey_origin_matches" func __origin_matches(string origin, string rpid) as int
+extern "xpasskey_flags_str" func __flags_str(int flags) as string
+
+export func fmtName(string fmt) as string
+    return __fmt_name(fmt)
+end
+
+export func coseAlgo(int algo_id) as string
+    return __cose_algo(algo_id)
+end
+
+export func coseKty(int kty) as string
+    return __cose_kty(kty)
+end
+
+export func coseCurve(int crv) as string
+    return __cose_curve(crv)
+end
+
+export func transportName(int transport) as string
+    return __transport_name(transport)
+end
+
+export func uvName(int uv) as string
+    return __uv_name(uv)
+end
+
+export func rkName(int rk) as string
+    return __rk_name(rk)
+end
+
+export func attestationName(int att) as string
+    return __attestation_name(att)
+end
+
+export func genChallenge(int seed, int len) as string
+    return __gen_challenge(seed, len)
+end
+
+export func validRpId(string rpid) as int
+    return __valid_rpid(rpid)
+end
+
+export func originMatches(string origin, string rpid) as int
+    return __origin_matches(origin, rpid)
+end
+
+export func flagsStr(int flags) as string
+    return __flags_str(flags)
+end

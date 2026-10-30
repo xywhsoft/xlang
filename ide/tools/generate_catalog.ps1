@@ -1,5 +1,5 @@
-[CmdletBinding()]
-param([string]$PythonPath='python',[string]$Root,[string]$ReleaseReportPath,[string]$OutputDirectory,[string]$GccPath,[switch]$PrepareOnly,[switch]$Recover)
+﻿[CmdletBinding()]
+param([string]$PythonPath='python',[string]$Root,[string]$ReleaseReportPath,[string]$OutputDirectory,[string]$GccPath,[switch]$ExtensionsOnly,[switch]$PrepareOnly,[switch]$Recover)
 $ErrorActionPreference='Stop'
 $ideRoot=Split-Path -Parent $PSScriptRoot
 if (-not $Root) { $Root=Split-Path -Parent $ideRoot }
@@ -9,8 +9,13 @@ if ($Recover) {
     exit $LASTEXITCODE
 }
 if (-not $OutputDirectory) { $OutputDirectory=Join-Path $ideRoot ('build\cg-'+[Guid]::NewGuid().ToString('N').Substring(0,8)) }
-$arguments=@('-X','utf8',(Join-Path $PSScriptRoot 'generate_catalog_snapshot.py'),'--root',$Root,'--output',$OutputDirectory)
-if ($ReleaseReportPath) { $arguments+=@('--release-report',$ReleaseReportPath) }
+if ($ExtensionsOnly) {
+    if ($ReleaseReportPath) {throw 'ExtensionsOnly preserves the installed standard-library binding; ReleaseReportPath does not apply.'}
+    $arguments=@('-B','-X','utf8',(Join-Path $PSScriptRoot 'refresh_extensions.py'),'--root',$Root,'--output',$OutputDirectory)
+} else {
+    $arguments=@('-B','-X','utf8',(Join-Path $PSScriptRoot 'generate_catalog_snapshot.py'),'--root',$Root,'--output',$OutputDirectory)
+    if ($ReleaseReportPath) { $arguments+=@('--release-report',$ReleaseReportPath) }
+}
 if ($GccPath) { $arguments+=@('--gcc',$GccPath) }
 & $PythonPath @arguments
 if ($LASTEXITCODE -ne 0) { throw 'Catalog/source pair generation failed; installed data is preserved.' }

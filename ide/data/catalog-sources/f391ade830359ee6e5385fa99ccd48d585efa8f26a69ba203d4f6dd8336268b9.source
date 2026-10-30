@@ -1,0 +1,125 @@
+extern "xl6_xrt_last_error_text" func __mq_error() as string
+extern "xmq_connect_text" func __mq_connectText(string clientId, string username, string password, int keepalive, bool cleanSession) as point
+extern "xmq_connect_frame" func __mq_connectFrame(string clientId, string username, point password, c_size size, int keepalive, bool cleanSession) as point
+extern "xmq_publish_text" func __mq_publishText(int qos, string topic, string payload, int packetId, bool retain, bool duplicate) as point
+extern "xmq_publish_frame" func __mq_publishFrame(int qos, string topic, point payload, c_size size, int packetId, bool retain, bool duplicate) as point
+extern "xmq_puback_frame" func __mq_puback(int packetId) as point
+extern "xmq_subscribe_frame" func __mq_subscribe(int packetId, string topic, int qos) as point
+extern "xmq_pingreq_frame" func __mq_pingreq() as point
+extern "xmq_disconnect_frame" func __mq_disconnect() as point
+extern "xmq_hex_to_frame" func __mq_hexToFrame(string hex) as point
+extern "xmq_frame_to_hex" func __mq_frameToHex(point data, c_size size) as point
+extern "xmq_parse_frame" func __mq_parseFrame(point data, c_size size) as var
+extern "xmq_payload_bytes" func __mq_payloadBytes(point data, c_size size) as point
+extern "xmq_frame_size" func __mq_frameSize(point data, c_size size) as int
+
+
+
+func __mq_buffer(point value) as Buffer
+    if value == null then
+        throw ValueError __mq_error()
+    end
+    return Buffer(value)
+end
+
+
+
+// 二进制构帧：返回独立拥有的 Buffer，keepalive=0 表示不启用心跳。
+export func connectFrame(string clientId, string username = "", string password = "", int keepalive = 60, bool cleanSession = true) as Buffer
+    return __mq_buffer(__mq_connectText(clientId, username, password, keepalive, cleanSession))
+end
+
+export func connectFrame(string clientId, string username, Buffer password, int keepalive = 60, bool cleanSession = true) as Buffer
+    return __mq_buffer(__mq_connectFrame(clientId, username, password.data(), c_size(password.len()), keepalive, cleanSession))
+end
+
+export func publishFrame(int qos, string topic, string payload, int packetId = 0, bool retain = false, bool duplicate = false) as Buffer
+    return __mq_buffer(__mq_publishText(qos, topic, payload, packetId, retain, duplicate))
+end
+
+export func publishFrame(int qos, string topic, Buffer payload, int packetId = 0, bool retain = false, bool duplicate = false) as Buffer
+    return __mq_buffer(__mq_publishFrame(qos, topic, payload.data(), c_size(payload.len()), packetId, retain, duplicate))
+end
+
+export func pubackFrame(int packetId) as Buffer
+    return __mq_buffer(__mq_puback(packetId))
+end
+
+export func subscribeFrame(int packetId, string topic, int qos = 0) as Buffer
+    return __mq_buffer(__mq_subscribe(packetId, topic, qos))
+end
+
+export func pingreqFrame() as Buffer
+    return __mq_buffer(__mq_pingreq())
+end
+
+export func disconnectFrame() as Buffer
+    return __mq_buffer(__mq_disconnect())
+end
+
+
+
+// 完整解析拒绝截断及尾随帧；payloadBytes 用于包含零字节的负载。
+export func parseFrame(Buffer frame) as var
+    var result = __mq_parseFrame(frame.data(), c_size(frame.len()))
+    if result == null then
+        throw ValueError __mq_error()
+    end
+    return result
+end
+
+export func payloadBytes(Buffer frame) as Buffer
+    return __mq_buffer(__mq_payloadBytes(frame.data(), c_size(frame.len())))
+end
+
+// 固定头未收齐时返回 0；收齐后返回首帧总字节数，不要求正文已齐。
+export func frameSize(Buffer prefix) as int
+    int size = __mq_frameSize(prefix.data(), c_size(prefix.len()))
+    if size < 0 then
+        throw ValueError __mq_error()
+    end
+    return size
+end
+
+
+
+// Hex 是展示格式，转换使用 XRT；返回字符串明确接管原生分配。
+export func hexToFrame(string hex) as Buffer
+    return __mq_buffer(__mq_hexToFrame(hex))
+end
+
+export func frameToHex(Buffer frame) as string
+    point result = __mq_frameToHex(frame.data(), c_size(frame.len()))
+    if result == null then
+        throw ValueError __mq_error()
+    end
+    return __xl_runtime.takeCstr(result)
+end
+
+export func parse(string hex) as var
+    return parseFrame(hexToFrame(hex))
+end
+
+export func connect(string clientId, string username = "", string password = "", int keepalive = 60, bool cleanSession = true) as string
+    return frameToHex(connectFrame(clientId, username, password, keepalive, cleanSession))
+end
+
+export func publish(int qos, string topic, string payload, int packetId = 0, bool retain = false, bool duplicate = false) as string
+    return frameToHex(publishFrame(qos, topic, payload, packetId, retain, duplicate))
+end
+
+export func puback(int packetId) as string
+    return frameToHex(pubackFrame(packetId))
+end
+
+export func subscribe(int packetId, string topic, int qos = 0) as string
+    return frameToHex(subscribeFrame(packetId, topic, qos))
+end
+
+export func pingreq() as string
+    return frameToHex(pingreqFrame())
+end
+
+export func disconnect() as string
+    return frameToHex(disconnectFrame())
+end

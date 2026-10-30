@@ -41,7 +41,7 @@ static int readCommand(xide_command* item,const xvalue* root)
 #undef FIELD
     if(!*item->id || !*item->name || !*item->module || !*item->source || (strcmp(item->language,"xlang") && strcmp(item->language,"c"))) return 0;
     if(strcmp(item->category,"language") && strcmp(item->category,"standard") && strcmp(item->category,"extension")) return 0;
-    if(strcmp(item->kind,"keyword") && strcmp(item->kind,"function") && strcmp(item->kind,"method") && strcmp(item->kind,"type") && strcmp(item->kind,"constant") && strcmp(item->kind,"module")) return 0;
+    if(strcmp(item->kind,"keyword") && strcmp(item->kind,"function") && strcmp(item->kind,"method") && strcmp(item->kind,"type") && strcmp(item->kind,"constant") && strcmp(item->kind,"module") && strcmp(item->kind,"field") && strcmp(item->kind,"variable")) return 0;
     int64 line=0; uint64 unsignedLine=0;
     if(!xrtValueGetInt(get(root,"sourceLine"),&line)) { if(!xrtValueGetUInt(get(root,"sourceLine"),&unsignedLine) || unsignedLine>INT_MAX) return 0; line=(int64)unsignedLine; }
     if(line<1 || line>INT_MAX) return 0;
@@ -148,5 +148,5 @@ int xideCatalogMatches(const xide_command* command,const char* query)
 }
 int xideCatalogCanComplete(const xide_command* command,const char* language)
 {
-    return command && language && !strcmp(command->language,language) && strcmp(command->kind,"method") && strcmp(command->kind,"module");
+    return command && language && *command->insert && !strcmp(command->language,language) && strcmp(command->kind,"method") && strcmp(command->kind,"module") && strcmp(command->kind,"field");
 }

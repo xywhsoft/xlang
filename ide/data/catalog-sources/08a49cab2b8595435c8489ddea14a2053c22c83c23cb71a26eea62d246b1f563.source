@@ -1,0 +1,30 @@
+extern "xmnn_backend" func __backend(int id) as string
+extern "xmnn_precision" func __precision(int id) as string
+extern "xmnn_power" func __power(int id) as string
+extern "xmnn_memory" func __memory(int id) as string
+extern "xmnn_forward_type" func __forward_type(int id) as string
+extern "xmnn_conv_flops" func __conv_flops(int k, int cin, int cout, int h, int w) as int
+
+export func backend(int id) as string
+    return __backend(id)
+end
+
+export func precision(int id) as string
+    return __precision(id)
+end
+
+export func power(int id) as string
+    return __power(id)
+end
+
+export func memory(int id) as string
+    return __memory(id)
+end
+
+export func forwardType(int id) as string
+    return __forward_type(id)
+end
+
+export func convFlops(int k, int cin, int cout, int h, int w) as int
+    return __conv_flops(k, cin, cout, h, w)
+end

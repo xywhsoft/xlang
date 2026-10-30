@@ -1,7 +1,7 @@
 """Actual filesystem commit, rollback, interrupted-process and writer-lock checks."""
 import argparse,json,os,shutil,subprocess,sys,time,uuid
 from pathlib import Path
-from catalog_publish import publish,recover,pair_state,locked
+from catalog_publish import publish,recover,pair_state,locked,chain
 from catalog_sources import verify,sha
 IDE=Path(__file__).resolve().parents[1]
 
@@ -13,8 +13,8 @@ def worker(pair,data,work,point,ready):
     publish(Path(pair),Path(data),Path(work),checkpoint)
 
 def check(old,new,output):
-    output=Path(output)/('publication-'+uuid.uuid4().hex[:10]); output.mkdir(parents=True)
-    old,new=Path(old),Path(new); old_state=pair_state(old); new_state=pair_state(new); rows=[]
+    output=chain(output)/('publication-'+uuid.uuid4().hex[:10]); output.mkdir(parents=True)
+    old,new=chain(old),chain(new); old_state=pair_state(old); new_state=pair_state(new); rows=[]
     assert old_state and new_state and old_state!=new_state
     def fresh(label):
         root=output/label; root.mkdir(); data=root/'data'; data.mkdir()

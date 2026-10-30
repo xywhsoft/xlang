@@ -1,0 +1,25 @@
+extern "xwebview_engine" func __engine(int id) as string
+extern "xwebview_event" func __event(int id) as string
+extern "xwebview_eval_script" func __eval_script(string code) as string
+extern "xwebview_nav_action" func __nav_action(int id) as string
+extern "xwebview_valid_url" func __valid_url(string url) as int
+
+export func engine(int id) as string
+    return __engine(id)
+end
+
+export func event(int id) as string
+    return __event(id)
+end
+
+export func evalScript(string code) as string
+    return __eval_script(code)
+end
+
+export func navAction(int id) as string
+    return __nav_action(id)
+end
+
+export func validUrl(string url) as int
+    return __valid_url(url)
+end

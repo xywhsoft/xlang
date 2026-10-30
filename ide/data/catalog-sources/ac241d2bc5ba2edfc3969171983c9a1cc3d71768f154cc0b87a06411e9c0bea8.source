@@ -1,0 +1,35 @@
+extern "xamqp_class_name" func __class_name(int class_id) as string
+extern "xamqp_method_name" func __method_name(int class_id, int method_id) as string
+extern "xamqp_exchange_type" func __exchange_type(int type) as string
+extern "xamqp_reply_text" func __reply_text(int code) as string
+extern "xamqp_frame_type" func __frame_type(int type) as string
+extern "xamqp_delivery_mode" func __delivery_mode(int mode) as string
+extern "xamqp_topic_match" func __topic_match(string pattern, string routing_key) as int
+
+export func className(int class_id) as string
+    return __class_name(class_id)
+end
+
+export func methodName(int class_id, int method_id) as string
+    return __method_name(class_id, method_id)
+end
+
+export func exchangeType(int type) as string
+    return __exchange_type(type)
+end
+
+export func replyText(int code) as string
+    return __reply_text(code)
+end
+
+export func frameType(int type) as string
+    return __frame_type(type)
+end
+
+export func deliveryMode(int mode) as string
+    return __delivery_mode(mode)
+end
+
+export func topicMatch(string pattern, string routing_key) as int
+    return __topic_match(pattern, routing_key)
+end

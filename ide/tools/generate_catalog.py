@@ -17,7 +17,7 @@ args=ARGS.parse_args(); args.scratch.mkdir(parents=True,exist_ok=True)
 raw=json.loads(args.raw.read_text(encoding='utf-8'))
 product_version=json.loads((args.root/'release/product-version.json').read_text(encoding='utf-8'))['version']
 internal_functions=0
-sources={}; materials={}; entries=[]; issues=[]; documents={}; package_docs={}
+sources={}; materials={}; entries=[]; issues=[]; documents={}
 def digest(data): return hashlib.sha256(data).hexdigest()
 def source(path):
     path=path.resolve()
@@ -185,7 +185,6 @@ def walk_declarations(nodes,text,category,module,path,version,required='',prefix
     for node in nodes:
         kind=node['kind']; flags=node.get('flags',0); name=name_of(node)
         if name.startswith('__') or flags&6 or (kind=='field' and flags&128): continue
-        if category=='extension' and root and not flags&1: continue
         origin,line=declaration_source(node.get('line',1)) if category=='standard' else (path,node.get('line',1))
         if kind in ('class','protocol','enum'):
             qname=prefix+name
@@ -219,19 +218,8 @@ c_keywords="auto break case char const continue default do double else enum exte
 for word in c_keywords:
     entry=add(word,'language','C 保留字','keyword',source(pathlib.Path(__file__)),signature_text=word,description='C 语言保留字；编辑器采用固定 XUI SDK 的 C 词法模式。',version='C11',identity='c:keyword:'+word)
     entry['language']='c'
+# 扩展仅走共享前端的独立提取阶段；这里保留当前发布绑定的语言/标准库。
 packages=0
-for package_path in sorted((args.root/'release/extlibs').glob('*/xlang.package.json')):
-    manifest=json.loads(read_source(package_path)); name=manifest['name']; version=manifest.get('version',''); packages+=1
-    files=manifest.get('artifact',{}).get('xlSources',[]); manifest_source=source(package_path)
-    readme=package_path.parent/'README.md'
-    if readme.is_file(): package_docs[name]=document(readme,'package:'+name,name+' 使用说明')
-    package_entry=add(name,'extension',name,'module',manifest_source,signature_text='import '+name,description='扩展库包声明；使用前显式导入 '+name+'。',example='import '+name+'\n',version=version,required_import=name,insert=name)
-    for relative in files:
-        path=package_path.parent/relative
-        if not path.is_file(): issues.append({'source':manifest_source,'reason':'Missing declared xlSources: '+relative}); continue
-        original=read_source(path); origin=source(path); parsed=parse(original,origin)
-        if parsed: walk_declarations(parsed['children'],original,'extension',name,origin,version,name,name+'.')
-        else: package_entry['description']+=' 该快照中有声明无法由指定编译器解析，详见目录状态。'
 
 # Routing only selects browsing groups and real documentation; declarations
 # and signatures above remain exclusively compiler-derived.
@@ -272,7 +260,6 @@ for entry in entries:
         for name in module_documents.get(entry['module'],[]):
             path=args.root/'docs'/name
             entry['sections'].append(document(path,'stdlib-doc:'+name,path.stem))
-    elif entry['module'] in package_docs: entry['sections']=[package_docs[entry['module']]]
 
 # Stable IDs are mandatory. Identical registration aliases are coalesced only
 # when their documented signature is exactly identical.

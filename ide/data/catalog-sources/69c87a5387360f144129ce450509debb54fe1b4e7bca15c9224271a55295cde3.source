@@ -1,0 +1,281 @@
+func __ini_require_c_string(string value)
+    if string.indexOf(value, "\0", false, string.byteLen(value), 1) >= 0 then
+        throw ConfigError "INI C-string argument contains an embedded NUL byte"
+    end
+end
+
+
+func __ini_check_limits(int maxInput, int maxOutput, int maxItem,
+    int maxNodes, int maxDepth)
+    if (maxInput < 0 or maxOutput < 0 or maxItem < 0 or maxNodes < 0 or
+        maxDepth < 0 or maxDepth > 4294967295) then
+        throw ConfigError "INI resource limits must be nonnegative and maxDepth must fit uint32"
+    end
+end
+
+class Config
+    native point handle
+    extern "xini_create" create(c_bool caseSensitive, c_bool strictDuplicates,
+        c_bool interpolation, uint64 maxInput, uint64 maxOutput,
+        uint64 maxItem, uint64 maxNodes, c_uint maxDepth)
+    extern "xini_parse" create(string data, uint64 size, c_bool caseSensitive,
+        c_bool strictDuplicates, c_bool interpolation, uint64 maxInput,
+        uint64 maxOutput, uint64 maxItem, uint64 maxNodes,
+        c_uint maxDepth)
+    extern "xini_load" create(string path, c_bool caseSensitive,
+        c_bool strictDuplicates, c_bool interpolation, uint64 maxInput,
+        uint64 maxOutput, uint64 maxItem, uint64 maxNodes,
+        c_uint maxDepth)
+    extern "xini_destroy" destroy()
+
+    private extern "xini_error_code" func errorCodeNative() as int
+    private extern "xini_error_text" @owned func errorTextNative() as string?
+    private extern "xini_error_line" func errorLineNative() as int
+    private extern "xini_error_column" func errorColumnNative() as int
+    private extern "xini_error_offset" func errorOffsetNative() as int
+    private extern "xini_section_count" func sectionCountNative() as int
+    private extern "xini_section_name" @owned func sectionNameNative(c_int index) as string?
+    private extern "xini_has_section" func hasSectionNative(string section) as bool
+    private extern "xini_key_count" func keyCountNative(string section) as int
+    private extern "xini_key_name" @owned func keyNameNative(string section, c_int index) as string?
+    private extern "xini_has" func hasNative(string section, string key) as bool
+    private extern "xini_get" @owned func getNative(string section, string key) as string?
+    private extern "xini_get_int" func getIntNative(string section, string key) as int
+    private extern "xini_get_float" func getFloatNative(string section, string key) as float
+    private extern "xini_get_bool" func getBoolNative(string section, string key) as bool
+    private extern "xini_set" func setNative(string section, string key, string value) as bool
+    private extern "xini_remove" func removeNative(string section, string key) as bool
+    private extern "xini_remove_section" func removeSectionNative(string section) as bool
+    private extern "xini_stringify_text" @owned func stringifyTextNative() as string?
+    private extern "xini_save" func saveNative(string path) as bool
+
+    get valid() as bool
+        if self.handle == null then return false end
+        return self.errorCodeNative() == 0
+    end
+
+    func errorText() as string
+        if self.handle == null then return "INI operation failed" end
+        string? value = self.errorTextNative()
+        if value == null then throw MemoryError "INI error text allocation failed" end
+        return value
+    end
+
+    get errorCode() as int
+        return self.errorCodeNative()
+    end
+
+    get errorLine() as int
+        return self.errorLineNative()
+    end
+
+    get errorColumn() as int
+        return self.errorColumnNative()
+    end
+
+    get errorOffset() as int
+        return self.errorOffsetNative()
+    end
+
+    func sectionNames() as array<string>
+        array<string> result = array<string>[]
+        int i = 0
+        while i < self.sectionCountNative()
+            string? value = self.sectionNameNative(c_int(i))
+            if value == null then
+                throw ConfigError "INI section index is out of range"
+            end
+            result.append(value)
+            i += 1
+        end
+        return result
+    end
+
+    func hasSection(string section) as bool
+        __ini_require_c_string(section)
+        return self.hasSectionNative(section)
+    end
+
+    func keys(string section = "") as array<string>
+        __ini_require_c_string(section)
+        array<string> result = array<string>[]
+        int i = 0
+        while i < self.keyCountNative(section)
+            string? value = self.keyNameNative(section, c_int(i))
+            if value == null then
+                throw ConfigError "INI key index is out of range"
+            end
+            result.append(value)
+            i += 1
+        end
+        return result
+    end
+
+    func has(string section, string key) as bool
+        __ini_require_c_string(section)
+        __ini_require_c_string(key)
+        return self.hasNative(section, key)
+    end
+
+    func has(string key) as bool
+        return self.has("", key)
+    end
+
+    func get(string section, string key) as string
+        __ini_require_c_string(section)
+        __ini_require_c_string(key)
+        string? result = self.getNative(section, key)
+        if result == null then
+            throw ConfigError self.errorText()
+        end
+        return result
+    end
+
+    func get(string key) as string
+        return self.get("", key)
+    end
+
+    func getOr(string section, string key, string defaultValue) as string
+        if self.has(section, key) then
+            return self.get(section, key)
+        end
+        return defaultValue
+    end
+
+    func getOr(string key, string defaultValue) as string
+        return self.getOr("", key, defaultValue)
+    end
+
+    func getInt(string section, string key) as int
+        __ini_require_c_string(section)
+        __ini_require_c_string(key)
+        int result = self.getIntNative(section, key)
+        if self.errorCodeNative() != 0 then
+            throw ConfigError self.errorText()
+        end
+        return result
+    end
+
+    func getInt(string key) as int
+        return self.getInt("", key)
+    end
+
+    func getFloat(string section, string key) as float
+        __ini_require_c_string(section)
+        __ini_require_c_string(key)
+        float result = self.getFloatNative(section, key)
+        if self.errorCodeNative() != 0 then
+            throw ConfigError self.errorText()
+        end
+        return result
+    end
+
+    func getFloat(string key) as float
+        return self.getFloat("", key)
+    end
+
+    func getBool(string section, string key) as bool
+        __ini_require_c_string(section)
+        __ini_require_c_string(key)
+        bool result = self.getBoolNative(section, key)
+        if self.errorCodeNative() != 0 then
+            throw ConfigError self.errorText()
+        end
+        return result
+    end
+
+    func getBool(string key) as bool
+        return self.getBool("", key)
+    end
+
+    func set(string section, string key, string value)
+        __ini_require_c_string(section)
+        __ini_require_c_string(key)
+        __ini_require_c_string(value)
+        if not self.setNative(section, key, value) then
+            throw ConfigError self.errorText()
+        end
+    end
+
+    func set(string key, string value)
+        self.set("", key, value)
+    end
+
+    func remove(string section, string key) as bool
+        __ini_require_c_string(section)
+        __ini_require_c_string(key)
+        return self.removeNative(section, key)
+    end
+
+    func remove(string key) as bool
+        return self.remove("", key)
+    end
+
+    func removeSection(string section) as bool
+        __ini_require_c_string(section)
+        return self.removeSectionNative(section)
+    end
+
+    func stringify() as string
+        string? result = self.stringifyTextNative()
+        if result == null then
+            throw ConfigError self.errorText()
+        end
+        return result
+    end
+
+    func save(string path)
+        __ini_require_c_string(path)
+        if not self.saveNative(path) then
+            throw ConfigError self.errorText()
+        end
+    end
+end
+
+
+
+export func create(bool caseSensitive = true, bool strictDuplicates = true,
+    bool interpolation = false, int maxInput = 268435456,
+    int maxOutput = 536870912, int maxItem = 268435456,
+    int maxNodes = 1000000, int maxDepth = 128) as Config
+    __ini_check_limits(maxInput, maxOutput, maxItem, maxNodes, maxDepth)
+    Config result = Config(c_bool(caseSensitive), c_bool(strictDuplicates),
+        c_bool(interpolation), uint64(maxInput), uint64(maxOutput),
+        uint64(maxItem), uint64(maxNodes), c_uint(maxDepth))
+    if not result.valid then
+        throw ConfigError result.errorText()
+    end
+    return result
+end
+
+export func parse(string text, bool caseSensitive = true,
+    bool strictDuplicates = true, bool interpolation = false,
+    int maxInput = 268435456, int maxOutput = 536870912,
+    int maxItem = 268435456, int maxNodes = 1000000,
+    int maxDepth = 128) as Config
+    __ini_check_limits(maxInput, maxOutput, maxItem, maxNodes, maxDepth)
+    Config result = Config(text, uint64(string.byteLen(text)),
+        c_bool(caseSensitive), c_bool(strictDuplicates), c_bool(interpolation),
+        uint64(maxInput), uint64(maxOutput), uint64(maxItem),
+        uint64(maxNodes), c_uint(maxDepth))
+    if not result.valid then
+        throw ConfigError result.errorText()
+    end
+    return result
+end
+
+export func load(string path, bool caseSensitive = true,
+    bool strictDuplicates = true, bool interpolation = false,
+    int maxInput = 268435456, int maxOutput = 536870912,
+    int maxItem = 268435456, int maxNodes = 1000000,
+    int maxDepth = 128) as Config
+    __ini_require_c_string(path)
+    __ini_check_limits(maxInput, maxOutput, maxItem, maxNodes, maxDepth)
+    Config result = Config(path, c_bool(caseSensitive), c_bool(strictDuplicates),
+        c_bool(interpolation), uint64(maxInput), uint64(maxOutput),
+        uint64(maxItem), uint64(maxNodes), c_uint(maxDepth))
+    if not result.valid then
+        throw ConfigError result.errorText()
+    end
+    return result
+end

@@ -22,6 +22,9 @@ def check(root,catalog):
     if material['unavailable']:raise ValueError('Catalog has missing source snapshots')
     ids=[r['id'] for r in data['entries']]
     if len(set(ids))!=len(ids):raise ValueError('Duplicate command identity')
+    if 'extensionCatalog' in data:
+        from refresh_extensions import check as check_extensions
+        check_extensions(root,catalog.parent)
     return dict(status='passed',entries=len(ids),documents=len(data['documents']),publicApi=counts,availableSources=material['available'],catalogSha256=sha(catalog),sourceRevision=revision)
 
 def main():

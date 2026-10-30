@@ -1,0 +1,25 @@
+extern "xratatui_widget" func __widget(int id) as string
+extern "xratatui_style" func __style(int id) as string
+extern "xratatui_color" func __color(int id) as string
+extern "xratatui_gauge_pct" func __gauge_pct(float value, float max_val) as float
+extern "xratatui_border" func __border(int id) as string
+
+export func widget(int id) as string
+    return __widget(id)
+end
+
+export func style(int id) as string
+    return __style(id)
+end
+
+export func color(int id) as string
+    return __color(id)
+end
+
+export func gaugePct(float value, float max_val) as float
+    return __gauge_pct(value, max_val)
+end
+
+export func border(int id) as string
+    return __border(id)
+end
