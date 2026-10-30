@@ -198,3 +198,18 @@ PROFILES = {
         'src/runtime/xl6_native_resource_policies.inc': 'f09e5bb181829f4cf6aeaab2b1ff5750aa5f457fa7a79df72d0004bb9dbbcaea',
     },
 }
+
+# 003dd48e stores the same closed declarations in immutable shared pools.
+# Keep its consumer, field schema, authoring form and generated data together;
+# the older bridge cohorts retain their original include sets and hashes.
+COMPACT_BRIDGE_PINS = {
+    'src/ir/xl6_ir_direct_bridge.c': '8b419398b48606f46fe5eccd99cf09810faf01c24c090a63c74b7d4e081cab91',
+    'src/ir/xl6_ir_direct_bridge_data.inc': '81420d1e602fdb81508e481c43ac84856d493a5c6f65fbfe2a31982faa0754e4',
+    'src/ir/xl6_ir_direct_bridge_declarations.inc': '86779ea65cb232685897b7e1c11d58a80dadcd1842b17b11a87a02f964af32ec',
+    'src/ir/xl6_ir_direct_bridge_enums.inc': '9edfe6bef3b5f23fc8f36e44743cb67a10da3db354356b4a9a27de7f250fe61c',
+    'src/ir/xl6_ir_direct_bridge_fields.inc': '665d821d1755109ad8f8b345a7f2b9fed706600d22c263919e5c5d6e7caa0868',
+    'src/ir/xl6_ir_direct_bridge_lookup.inc': 'fad7394544c9d53d03eb7fd8d64e1c2e0c1b85f6e667f228dfc79d2f7d8af2be',
+    'src/ir/xl6_ir_direct_bridge_schema.h': '5ac9d1c285fa2e2ff2aa8e77e2a7aa611e6cfa9f6d601e79b868c9c8b51b5ba2',
+    'src/ir/xl6_ir_direct_bridge_types.h': '98874e8f6a0712edb5953f679e8dafa2069ed622f208f71254000d55bba8f1fa',
+}
+PROFILES['current-003dd48e'] = {**PROFILES['current-2084f8ac'], **COMPACT_BRIDGE_PINS}
