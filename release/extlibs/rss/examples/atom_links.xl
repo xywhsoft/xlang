@@ -1,0 +1,22 @@
+import rss
+
+func main(...) as int
+    // 订阅自身地址与网页地址不同；alternate 可以写为 IANA 的完整 IRI。
+    string xml = """<a:feed xmlns:a="http://www.w3.org/2005/Atom">
+      <a:title>News &amp; Notes</a:title>
+      <a:link rel="self" href="https://example.test/feed"/>
+      <a:link rel="http://www.iana.org/assignments/relation/alternate" href="https://example.test/"/>
+      <a:entry>
+        <a:link rel="self" href="https://example.test/feed/1"/>
+        <a:link rel="http://www.iana.org/assignments/relation/alternate" href="https://example.test/posts/1"/>
+      </a:entry>
+    </a:feed>"""
+    var feed = rss.parseAtom(xml)
+    assert feed["title"] == "News & Notes"
+    assert feed["link"] == "https://example.test/"
+    assert feed["items"][0]["link"] == "https://example.test/posts/1"
+    println(feed["title"])
+    println(feed["link"])
+    println(feed["items"][0]["link"])
+    return 0
+end

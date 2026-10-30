@@ -83,8 +83,9 @@ static const char *rss_atom_link(const xrtxmldomnode *parent) {
         rel = (const char *)xrtXmlDomGetAttribute(node, (str)"rel");
         if (href == NULL) { xrtXmlDomNodeRelease(node); continue; }
         if (first == NULL) first = href;
-        /* Atom 未指定 rel 时等同 alternate。 */
-        if (rel == NULL || strcmp(rel, "alternate") == 0) {
+        /* RFC 4287 §4.2.7.2：缺省、短名称和注册 IRI 表示同一关系。 */
+        if (rel == NULL || strcmp(rel, "alternate") == 0 ||
+            strcmp(rel, "http://www.iana.org/assignments/relation/alternate") == 0) {
             xrtXmlDomNodeRelease(node);
             return href;
         }
