@@ -51,6 +51,9 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_source_wiring.ps1
 if errorlevel 1 exit /b 1
 
+python tools\check_ir_contract_catalog.py --root . --directory build\test\ir-contract-catalog
+if errorlevel 1 exit /b 1
+
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_contract.ps1
 if errorlevel 1 exit /b 1
 

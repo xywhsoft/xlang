@@ -8,6 +8,7 @@
 #define TCC_BUILTIN_VFS_H
 
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 
 #ifdef __cplusplus
@@ -25,28 +26,46 @@ extern "C" {
 #define TCC_BUILTIN_RESOURCE_STORE 0u
 #define TCC_BUILTIN_RESOURCE_LZMA  1u
 
-#define TCC_BUILTIN_CATALOG_VERSION 2
+#define TCC_BUILTIN_CATALOG_VERSION 3
 
+/* xlang 2026-10-30: catalog v3 uses checked integer indexes instead of
+ * relocatable pointers in immutable directory records. Logical file sizes
+ * remain 64 bit; every compressed block is bounded by the existing 1 MiB cap. */
 typedef struct TCCBuiltinBlob {
     const unsigned char *data;
-    size_t packed_size;
-    size_t size;
-    unsigned int method;
+    uint32_t packed_size;
+    uint32_t size;
+    uint32_t method;
 } TCCBuiltinBlob;
 typedef struct TCCBuiltinSpan {
-    const TCCBuiltinBlob *blob;
-    size_t offset;
-    size_t size;
+    uint32_t blob_index;
+    uint32_t offset;
+    uint32_t size;
 } TCCBuiltinSpan;
 typedef struct TCCBuiltinResource {
-    const char *name;
-    const TCCBuiltinSpan *spans;
-    unsigned int span_count;
-    size_t size;
+    uint64_t size;
+    uint32_t name_offset;
+    uint32_t first_span;
+    uint32_t span_count;
 } TCCBuiltinResource;
-
+extern const char tcc_builtin_names[];
+extern const unsigned int tcc_builtin_names_size;
+extern const TCCBuiltinBlob tcc_builtin_blobs[];
+extern const unsigned int tcc_builtin_blobs_count;
+extern const TCCBuiltinSpan tcc_builtin_spans[];
+extern const unsigned int tcc_builtin_spans_count;
 extern const TCCBuiltinResource tcc_builtin_resources[];
 extern const unsigned int tcc_builtin_resources_count;
+static inline const char* tcc_builtin_resource_name(const TCCBuiltinResource* resource)
+{
+    return resource && resource->name_offset<tcc_builtin_names_size
+        ?tcc_builtin_names+resource->name_offset:NULL;
+}
+static inline const TCCBuiltinBlob* tcc_builtin_span_blob(const TCCBuiltinSpan* span)
+{
+    return span && span->blob_index<tcc_builtin_blobs_count
+        ?tcc_builtin_blobs+span->blob_index:NULL;
+}
 
 /* Exact builtin lookup only: ignores disk files and dynamic mounts. A NULL
  * buffer with zero capacity queries size. No allocation crosses API heaps. */

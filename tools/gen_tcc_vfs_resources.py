@@ -237,12 +237,26 @@ def build_catalog(resources, pack_tool, level, no_compress, mode="solid", block_
     return files, blobs, extents
 
 
-def write_catalog(output, resources, pack_tool, level, no_compress, mode, block_size):
+def write_catalog(output, resources, pack_tool, level, no_compress, mode, block_size, packing_order="manifest"):
     if len({r.virtual for r in resources}) != len(resources):
         raise RuntimeError("duplicate virtual resource name")
+    if packing_order == "name":
+        resources = sorted(resources, key=lambda r: r.virtual.encode("utf-8"))
+    elif packing_order == "family":
+        def family_key(resource):
+            name = resource.virtual
+            if name.startswith("__xl_objects/"):
+                _, profile, family = name.split("/", 2)
+                return (1, family, profile)
+            return (0, Path(name).suffix, name)
+        resources = sorted(resources, key=family_key)
+    elif packing_order != "manifest":
+        raise ValueError("unknown physical packing order")
     files, blobs, extents = build_catalog(resources, pack_tool, level, no_compress, mode, block_size)
+    # Logical lookup order is independent of physical compression order.
+    files.sort(key=lambda item: item[0].virtual.encode("utf-8"))
     lines = ['/* Generated VFS catalog: immutable, shared, bounded solid blocks. */',
-             '#include "tcc_builtin_vfs.h"', '#if TCC_BUILTIN_CATALOG_VERSION != 2',
+             '#include "tcc_builtin_vfs.h"', '#if TCC_BUILTIN_CATALOG_VERSION != 3',
              '#error wrong_builtin_catalog_header', '#endif', '']
     for i, blob in enumerate(blobs):
         lines.append(f"static const unsigned char tcc_builtin_res_{i:04d}[] = {{")
@@ -250,31 +264,58 @@ def write_catalog(output, resources, pack_tool, level, no_compress, mode, block_
             lines.append("    " + ", ".join(f"0x{x:02x}" for x in blob.packed[offset:offset+16]) + ",")
         if not blob.packed: lines.append("    0")
         lines.append("};")
-    lines.append("static const TCCBuiltinBlob tcc_builtin_blobs[] = {")
+    lines.append("const TCCBuiltinBlob tcc_builtin_blobs[] = {")
     for i, blob in enumerate(blobs):
+        if len(blob.packed)>0xffffffff or len(blob.data)>1048576:
+            raise ValueError("builtin blob exceeds the bounded catalog representation")
         lines.append(f"    {{tcc_builtin_res_{i:04d}, {len(blob.packed)}u, {len(blob.data)}u, {blob.method}}},")
     if not blobs: lines.append("    {0}")
-    lines.append("};")
-    for i, (r, data) in enumerate(files):
-        lines.append(f"static const TCCBuiltinSpan tcc_builtin_spans_{i}[] = {{")
-        for j, offset, size in extents[r.virtual]:
-            lines.append(f"    {{&tcc_builtin_blobs[{j}], {offset}u, {size}u}},")
-        if not extents[r.virtual]: lines.append("    {0}")
-        lines.append("};")
+    lines.extend(["};",f"const unsigned int tcc_builtin_blobs_count={len(blobs)}u;"])
+    # Alias resources share a single physical span sequence as well as data.
+    span_pool, span_offsets = [], {}
+    for r, _ in files:
+        key=tuple(extents[r.virtual])
+        if key not in span_offsets:
+            span_offsets[key]=len(span_pool)
+            span_pool.extend(key)
+    if len(span_pool)>0xffffffff:raise ValueError("too many builtin spans")
+    lines.append("const TCCBuiltinSpan tcc_builtin_spans[]={")
+    for index, offset, size in span_pool:
+        lines.append(f"    {{{index}u,{offset}u,{size}u}},")
+    if not span_pool:lines.append("    {0}")
+    lines.extend(["};",f"const unsigned int tcc_builtin_spans_count={len(span_pool)}u;"])
+    # Preserve exact UTF-8 paths, sharing complete suffixes where possible.
+    wanted={r.virtual.encode("utf-8") for r,_ in files};name_offsets={};names=bytearray()
+    for name in sorted(wanted,key=lambda name:(-len(name),name)):
+        if b"\0" in name:raise ValueError("NUL in builtin resource name")
+        if name in name_offsets:continue
+        start=len(names);names.extend(name+b"\0")
+        for offset in range(len(name)):
+            suffix=name[offset:]
+            if suffix in wanted:name_offsets.setdefault(suffix,start+offset)
+    if len(names)>0xffffffff:raise ValueError("builtin name pool exceeds catalog representation")
+    lines.append("const char tcc_builtin_names[]={")
+    for offset in range(0,len(names),24):
+        lines.append("    "+",".join(str(byte) for byte in names[offset:offset+24])+",")
+    if not names:lines.append("    0")
+    lines.extend(["};",f"const unsigned int tcc_builtin_names_size={max(1,len(names))}u;"])
     lines.append("const TCCBuiltinResource tcc_builtin_resources[] = {")
-    for i, (r, data) in enumerate(files):
-        lines.append(f'    {{ "{c_string(r.virtual)}", tcc_builtin_spans_{i}, {len(extents[r.virtual])}u, {len(data)}u }},')
-    if not files: lines.append("    {0}")
+    for r, data in files:
+        if len(data)>0xffffffffffffffff:raise ValueError("builtin file exceeds uint64 length")
+        spans=extents[r.virtual]
+        lines.append(f'    {{{len(data)}ull,{name_offsets[r.virtual.encode("utf-8")]}u,{span_offsets[tuple(spans)]}u,{len(spans)}u}},')
+    if not files:lines.append("    {0}")
     lines.extend(["};", f"const unsigned int tcc_builtin_resources_count = {len(files)}u;", ""])
     output.parent.mkdir(parents=True, exist_ok=True)
     content = "\n".join(lines)
     output.write_text(content, encoding="utf-8", newline="\n")
-    stamp = dict(schema=2, format=2, packing=mode, blockSize=block_size,
+    stamp = dict(schema=2, format=3, packing=mode, packingOrder=packing_order, blockSize=block_size,
                  resourceCount=len(files), blobCount=len(blobs),
                  rawBytes=sum(len(data) for _, data in files),
                  decodedBlobBytes=sum(len(b.data) for b in blobs),
                  packedBytes=sum(len(b.packed) for b in blobs),
                  spanCount=sum(len(extents[r.virtual]) for r, _ in files),
+                 storedSpanCount=len(span_pool), namePoolBytes=max(1,len(names)),
                  generatedSha256=hashlib.sha256(output.read_bytes()).hexdigest(),
                  resources=[dict(virtual=r.virtual, source=str(r.source),
                      sha256=hashlib.sha256(data).hexdigest()) for r, data in files])
@@ -293,6 +334,7 @@ def main() -> int:
     parser.add_argument("--pack-level", type=int, default=9)
     parser.add_argument("--no-compress", action="store_true")
     parser.add_argument("--precompiled", type=Path)
+    parser.add_argument("--packing-order", choices=("manifest", "name", "family"), default=os.environ.get("XL6_VFS_PACKING_ORDER", "manifest"))
     parser.add_argument("--packing", choices=("individual", "dedup", "solid"), default=os.environ.get("XL6_VFS_PACKING", "solid"))
     parser.add_argument("--block-size", type=int, default=1048576)
     args = parser.parse_args()
@@ -343,7 +385,7 @@ def main() -> int:
             resources.append(Resource(normalize_virtual_name(row["virtual"]), source))
 
     write_catalog(output.resolve(), resources, pack_tool.resolve(),
-                  max(0, min(9, args.pack_level)), args.no_compress, args.packing, args.block_size)
+                  max(0, min(9, args.pack_level)), args.no_compress, args.packing, args.block_size, args.packing_order)
     return 0
 
 

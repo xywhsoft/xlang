@@ -2,7 +2,7 @@
 """Roundtrip shared solid VFS reads, cache eviction, seeking and nested catalogs."""
 import argparse,hashlib,json,subprocess,sys
 from pathlib import Path
-from gen_tcc_vfs_resources import Resource,write_catalog
+from gen_tcc_vfs_resources import Resource,write_catalog,c_string
 
 
 def run(command,cwd):
@@ -22,6 +22,8 @@ def main():
         expected.append((name,len(data),h))
     add("include/empty.h",b"");add("include/nul.h",b"a\0b\xff")
     add("include/alias.h",b"a\0b\xff")
+    add("include/数据.h",b"utf8 path")
+    add("sdk.h",b"suffix path");add("include/sdk.h",b"suffix path")
     # More than 32 decoded blocks ensures real eviction, then revisit the first.
     for i in range(40):add("include/block%02d.h"%i,bytes([i])*262144)
     add("include/large.h",bytes(range(256))*3000)
@@ -32,7 +34,7 @@ def main():
     add("__xl_objects/shared-compiler/src/example.c.o",bytes(object_variant))
     add("__xl_objects/shared-runtime/src/example.c.o",bytes(object_variant))
     catalog=out/"catalog.c";write_catalog(catalog,resources,args.pack_tool.resolve(),9,False,"solid",262144)
-    rows="\n".join('{"%s",%du,UINT64_C(%d)},'%row for row in expected)
+    rows="\n".join('{"%s",%du,UINT64_C(%d)},'%(c_string(name),size,hash_value) for name,size,hash_value in expected)
     probe=out/"probe.c"
     probe.write_text(r'''#include "tcc_builtin_vfs.h"
 #include <assert.h>

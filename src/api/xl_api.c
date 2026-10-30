@@ -5222,24 +5222,25 @@ static char* xlBuildNativeCEnvironment(XL_Context* ctx, const XL6_CompileUnit* u
     unsigned int i;
     for (i = 0; ok && i < tcc_builtin_resources_count; ++i) {
         const TCCBuiltinResource* res = &tcc_builtin_resources[i];
-        size_t length = res->name != NULL ? strlen(res->name) : 0, size = 0;
+        const char* name=tcc_builtin_resource_name(res);
+        size_t length = name != NULL ? strlen(name) : 0, size = 0;
         unsigned char *data = NULL, digest[32];
         char *encoded = NULL, hex[65];
         xvalue* row = NULL;
         unsigned int h;
-        if (length < 3 || strcmp(res->name + length - 2, ".h") ||
-            (strncmp(res->name, "include/", 8) && strncmp(res->name, "lib/xrt/", 8) &&
-             strncmp(res->name, "lib/xruntime/", 13))) continue;
+        if (length < 3 || strcmp(name + length - 2, ".h") ||
+            (strncmp(name, "include/", 8) && strncmp(name, "lib/xrt/", 8) &&
+             strncmp(name, "lib/xruntime/", 13))) continue;
         ok = count < 512 && res->size <= 16u * 1024u * 1024u &&
             res->size <= 32u * 1024u * 1024u - total &&
-            tcc_vfs_read_builtin(res->name, NULL, 0, &size) && size == res->size;
+            tcc_vfs_read_builtin(name, NULL, 0, &size) && size == res->size;
         if (ok) { data = xrtMalloc(size ? size : 1); ok = data != NULL; }
-        if (ok) ok = tcc_vfs_read_builtin(res->name, data, size, &size) &&
+        if (ok) ok = tcc_vfs_read_builtin(name, data, size, &size) &&
             size == res->size && xrtSha256(data, size, digest);
         if (ok) { encoded = xrtBase64EncodeNew(data, size, NULL); row = xrtValueObject(); ok = encoded != NULL && row != NULL; }
         if (ok) {
             for (h = 0; h < 32; ++h) snprintf(hex + h * 2, 3, "%02x", (unsigned)digest[h]);
-            ok = xlCEnvPut(row, "name", xlCEnvString(res->name)) &&
+            ok = xlCEnvPut(row, "name", xlCEnvString(name)) &&
                 xlCEnvPut(row, "size", xrtValueInt((int64)size)) &&
                 xlCEnvPut(row, "sha256", xlCEnvString(hex)) &&
                 xlCEnvPut(row, "base64", xlCEnvString(encoded)) && xrtValueArrayAppend(headers, row);

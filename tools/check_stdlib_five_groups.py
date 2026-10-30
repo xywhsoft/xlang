@@ -358,7 +358,7 @@ def main():
             declared=set(re.findall(r'XL6_TEXT_API [^;\n]*?\b(xl6TaskGroup\w+)\(',
                 (root/'src/runtime/xl6_text_value.h').read_text()))
             contracts=set(re.findall(r'\{"(xl6TaskGroup\w+)"',
-                (root/'src/ir/xl6_ir_direct_bridge.c').read_text()))
+                (root/'src/ir/xl6_ir_direct_bridge_declarations.inc').read_text()))
             contracts.update(re.findall(r'XL6_NATIVE_GENERIC_BRIDGE\("(xl6TaskGroup\w+)"',
                 (root/'src/abi/xl6_native_generic_contracts.inc').read_text()))
             exports=set(re.findall(r'XL6_TEXT_EXPORT\((xl6TaskGroup\w+),',

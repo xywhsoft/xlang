@@ -7,7 +7,7 @@ call tools\xl6_toolchain_env.bat
 if errorlevel 1 exit /b 1
 set "XL6_DLL_LINKS="%XL6_TCC_LIBTCC1%" -lWs2_32 -lIPHLPAPI -lShell32"
 set "XL6_RELEASE_CC=gcc"
-set "XL6_RELEASE_CFLAGS=-std=c11 -Wall -Irelease/include -Wno-pointer-sign -Wno-unused-function -Wno-unused-variable -Wno-unused-but-set-variable -Wno-format-truncation -Wno-dangling-pointer -Os -ffunction-sections -fdata-sections"
+set "XL6_RELEASE_CFLAGS=-std=c11 -Wall -Irelease/include -Wno-pointer-sign -Wno-unused-function -Wno-unused-variable -Wno-unused-but-set-variable -Wno-format-truncation -Wno-dangling-pointer -O2 -ffunction-sections -fdata-sections"
 set "XL6_RELEASE_LDFLAGS=-shared -Wl,--gc-sections -s"
 if "%XL6_DEBUG_BUILD%"=="1" (
     rem Preserve source locations and disable optimization for debugger-only builds.
@@ -24,6 +24,9 @@ if errorlevel 1 (
 if not exist "%XL6_RELEASE_DIR%" mkdir "%XL6_RELEASE_DIR%"
 if not exist build mkdir build
 if not exist "%XL6_BUILD_TMP%" mkdir "%XL6_BUILD_TMP%"
+
+python tools\generate_ir_contract_catalog.py --root "%XL6_ROOT%" --cc "%XL6_RELEASE_CC%" --directory "%XL6_BUILD_TMP%\ir-contract-catalog"
+if errorlevel 1 exit /b 1
 
 python tools\check_stdlib_shipping_sources.py --root "%XL6_ROOT%"
 if errorlevel 1 exit /b 1

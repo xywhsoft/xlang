@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build TCC-native objects for fixed language/TCC units; no embedded catalogs.
+"""Build ordinary target ELF objects for fixed language/TCC units; no embedded catalogs.
 
 Objects are target/compiler/profile bound. Ordinary generated C and selected
 XRT modules remain source compiled, preserving fine-grained deployment.
@@ -42,7 +42,7 @@ def source_dependencies(root, source):
 def defined_symbols(path):
     data=path.read_bytes()
     if data[:6] != b"\x7fELF\x02\x01" or struct.unpack_from("<H", data, 18)[0] != 62:
-        raise RuntimeError("expected target TCC ELF64 object: "+str(path))
+        raise RuntimeError("expected target ELF64 object: "+str(path))
     offset=struct.unpack_from("<Q",data,40)[0]
     stride,count=struct.unpack_from("<HH",data,58)
     sections=[struct.unpack_from("<IIQQQQIIQQ",data,offset+i*stride) for i in range(count)]
@@ -65,8 +65,12 @@ def main():
     ap.add_argument("--tcc-dist", type=Path, required=True)
     ap.add_argument("--output", type=Path, required=True)
     ap.add_argument("--triplet", default="")
+    ap.add_argument("--native-cc", type=Path, help="Linux ELF producer with -O2; Windows keeps TCC ELF")
     args=ap.parse_args();root=args.root.resolve();out=args.output.resolve();out.mkdir(parents=True,exist_ok=True)
     cc=args.tcc.resolve();dist=args.tcc_dist.resolve()
+    if args.native_cc and os.name == "nt":
+        ap.error("Windows TCC does not consume GCC COFF objects; use the TCC producer")
+    native_cc=args.native_cc.resolve() if args.native_cc else cc
     target="win64" if os.name=="nt" else "linux-x86_64"
     common=["-B"+str(dist),"-std=c11","-D_CRT_SECURE_NO_WARNINGS","-DXL_STATIC_TCC","-DXL6_COMPILER_SOURCE_VFS",
         "-I.","-Isrc","-Irelease","-Irelease/include","-Ilib/tcc","-Ilib/lzma"]
@@ -84,6 +88,22 @@ def main():
     assert len(components)>1000,"expanded artifact catalog is incomplete"
     tcc_sources=["lib/tcc/libtcc.c","lib/tcc/tcctools.c","lib/tcc/tcc_builtin_vfs.c","lib/lzma/LzmaDec.c","src/api/xl_tcc_standalone_env.c"]
     if os.name=="nt":tcc_sources.append("lib/tcc/tcc_utf8_io.c")
+    # GCC -B also changes its system include search. TCC's SDK headers are
+    # compiler-specific, so the native producer uses its own host headers.
+    native_common=([flag for flag in common if not flag.startswith("-B")]+["-O2"]
+                   if args.native_cc else common)
+    system_hash=hashlib.sha256()
+    if args.native_cc:
+        native_env=dict(os.environ, LC_ALL="C")
+        system_hash.update(subprocess.check_output([str(native_cc), "--version"], env=native_env))
+        system_hash.update(subprocess.check_output([str(native_cc), "-dumpmachine"], env=native_env))
+        search=subprocess.run([str(native_cc), "-E", "-v", "-x", "c", "-"], input=b"",
+                              capture_output=True, check=True, env=native_env).stderr.decode("utf-8")
+        search=search.split("#include <...> search starts here:")[1].split("End of search list.")[0]
+        headers={path.resolve() for line in search.splitlines() if line.strip()
+                 for path in Path(line.strip()).rglob("*.h") if path.is_file()}
+        for path in sorted(headers):
+            system_hash.update(str(path).encode()+b"\0"+hashlib.sha256(path.read_bytes()).digest())
     source_hash=source_fingerprint(root)
     header_hash=hashlib.sha256()
     for folder in ("src","lib/tcc","lib/lzma","lib/xrt","lib/xruntime","release/include","release/extlibs/xacme"):
@@ -94,7 +114,9 @@ def main():
     for path in sorted((dist/"include").rglob("*")):
         if path.is_file():sdk.update(path.relative_to(dist).as_posix().encode()+b"\0"+hashlib.sha256(path.read_bytes()).digest())
     fingerprint=dict(schema=1,sdk=sdk.hexdigest(),target=target,tcc=hashlib.sha256(cc.read_bytes()).hexdigest(),sources=source_hash,
-        producer=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),flags=common)
+        producer=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+        nativeCompiler=hashlib.sha256(native_cc.read_bytes()).hexdigest(),
+        nativeSystemHeaders=system_hash.hexdigest(),flags=native_common)
     signature=hashlib.sha256(json.dumps(fingerprint,sort_keys=True).encode()).hexdigest()
     prior=out/"manifest.json"
     old=json.loads(prior.read_text(encoding="utf-8")) if prior.exists() else {}
@@ -108,16 +130,16 @@ def main():
             if not shared and compiler:units+=components
             if compiler:units+=tcc_sources
             units=list(dict.fromkeys(units))
-            flags=common+(["-DXL_BUILD_DLL","-DLIBTCC_AS_DLL"] if shared else ["-DXL_STATIC_EMBED"])
+            flags=native_common+(["-DXL_BUILD_DLL","-DLIBTCC_AS_DLL"] if shared else ["-DXL_STATIC_EMBED"])
             if not compiler:flags += ["-DXL_RUNTIME_ONLY_DLL","-DXL_RUNTIME_ONLY_API"]
-            cache_base=json.dumps(dict(version=2,headers=header_hash.hexdigest(),sdk=sdk.hexdigest(),tcc=fingerprint["tcc"],flags=flags),sort_keys=True)
+            cache_base=json.dumps(dict(version=3,nativeCompiler=fingerprint["nativeCompiler"],nativeSystemHeaders=fingerprint["nativeSystemHeaders"],headers=header_hash.hexdigest(),sdk=sdk.hexdigest(),tcc=fingerprint["tcc"],flags=flags),sort_keys=True)
             for source in units:
                 profile_signature=hashlib.sha256((cache_base+source_dependencies(root,source)).encode()).hexdigest()
                 dest=out/profile/(source+".o");dest.parent.mkdir(parents=True,exist_ok=True)
                 key=Path(str(dest)+".key")
                 if dest.exists() and key.exists() and key.read_text()==profile_signature+":"+hashlib.sha256(dest.read_bytes()).hexdigest():reused+=1
                 else:
-                    run([cc,*flags,"-c",source,"-o",dest],root)
+                    run([native_cc,*flags,"-c",source,"-o",dest],root)
                     key.write_text(profile_signature+":"+hashlib.sha256(dest.read_bytes()).hexdigest())
                 rows.append(dict(virtual="__xl_objects/"+profile+"/"+source+".o",source=str(dest),sha256=hashlib.sha256(dest.read_bytes()).hexdigest(),bytes=dest.stat().st_size))
             print(profile+": "+str(len(units))+" objects",flush=True)
@@ -129,8 +151,8 @@ def main():
     for shared in (False,True):
         profile="shared-native" if shared else "static-native"
         native_object=out/(profile+".o")
-        native_flags=common+["-DXL_STATIC_EMBED"]+(["-DXL6_BUILD_SHARED"] if shared else [])
-        run([cc,*native_flags,"-c",native_source,"-o",native_object],root)
+        native_flags=native_common+["-DXL_STATIC_EMBED"]+(["-DXL6_BUILD_SHARED"] if shared else [])
+        run([native_cc,*native_flags,"-c",native_source,"-o",native_object],root)
         native_objects.append(native_object)
         rows.append(dict(product="xrt",virtual="__xl_objects/"+profile+"/xrt.o",source=str(native_object),sha256=hashlib.sha256(native_object.read_bytes()).hexdigest(),bytes=native_object.stat().st_size))
     from gen_xrt_symbol_table import _api_names
