@@ -293,16 +293,51 @@ static int xlsIrMemoReadText(xls_ir_reader* r,char** text,int borrow)
     }else if(size)return 0;
     return 1;
 }
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+/* Only called with a nonzero mask. Keep a C implementation for targets that
+ * do not expose a compiler bit-scan intrinsic; neither path inspects payload
+ * words or changes the decoder's bounds/publication rules. */
+static inline unsigned xlsIrMemoWordBitPortable(uint64_t mask)
+{
+    unsigned bit=0;
+    if(!(mask&UINT64_C(0xffffffff))){bit+=32;mask>>=32;}
+    if(!(mask&UINT64_C(0xffff))){bit+=16;mask>>=16;}
+    if(!(mask&UINT64_C(0xff))){bit+=8;mask>>=8;}
+    if(!(mask&UINT64_C(0xf))){bit+=4;mask>>=4;}
+    if(!(mask&UINT64_C(3))){bit+=2;mask>>=2;}
+    return bit+(unsigned)!(mask&1);
+}
+static inline unsigned xlsIrMemoWordBit(uint64_t mask)
+{
+#if defined(__GNUC__) || defined(__clang__)
+    return (unsigned)__builtin_ctzll((unsigned long long)mask);
+#else
+    return xlsIrMemoWordBitPortable(mask);
+#endif
+}
+#endif
 static int xlsIrMemoDecodeNode(xls_ir_reader* r,XL6_IrNode* out,int borrow,const xls_lexical_symbols* symbols,const xls_ir_unit* unit,const xls_entity_view* entities)
 {
     uint64_t words[XLS_IR_NODE_WORDS]={0},mask,present;
     if(r->size-r->at<sizeof(mask))return 0;
     memcpy(&mask,r->data+r->at,sizeof(mask));r->at+=sizeof(mask);
     if(mask & ~(UINT64_MAX>>(64-XLS_IR_NODE_WORDS)))return 0;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    /* Packed payload order is increasing word index. Zero slots are already
+     * initialized; visit each stored slot once instead of scanning every
+     * possible slot. Clear the bit only after its original checked read. */
+    while(mask){
+        unsigned bit=xlsIrMemoWordBit(mask);
+        if(r->size-r->at<sizeof(*words))return 0;
+        memcpy(&words[bit],r->data+r->at,sizeof(*words));r->at+=sizeof(*words);
+        mask&=mask-1;
+    }
+#else
     for(size_t i=0;i<XLS_IR_NODE_WORDS;++i)if(mask&(UINT64_C(1)<<i)){
         if(r->size-r->at<sizeof(*words))return 0;
         memcpy(&words[i],r->data+r->at,sizeof(*words));r->at+=sizeof(*words);
     }
+#endif
     memcpy(out,words,sizeof(*out));out->text=NULL;out->literalData=NULL;out->unionField^=SIZE_MAX;
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
     out->compiledPackageLink=NULL;
