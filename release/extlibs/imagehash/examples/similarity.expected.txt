@@ -1,0 +1,2 @@
+pHash distance: 31
+within threshold 4: false

@@ -1,0 +1,18 @@
+import imagehash
+
+// 感知哈希筛选的是视觉近似候选，不是身份、安全性或文件内容相同的证明。
+func main(...) as int
+    string leftPath = "release/examples/extlibs/assets/tiny.png"
+    string rightPath = "release/examples/games/assets/player.png"
+    if arg.length == 3 then
+        leftPath = string(arg[1])
+        rightPath = string(arg[2])
+    end
+    string left = imagehash.phash(leftPath)
+    string right = imagehash.phash(rightPath)
+    int distance = imagehash.hamming(left, right)
+    assert imagehash.valid(left) and imagehash.valid(right) and distance >= 0
+    println("pHash distance:", distance)
+    println("within threshold 4:", distance <= 4)
+    return 0
+end
