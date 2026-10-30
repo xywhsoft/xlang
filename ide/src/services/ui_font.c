@@ -23,9 +23,7 @@ static int fail(xide_model_error* error,int code,const char* message)
 { if(error) { error->code=code; snprintf(error->message,sizeof(error->message),"%s",message); } return 0; }
 char* xideUiFontDefaultPath(void)
 {
-    const char* names[]={"msyh.ttc","msyh.ttf"};
-    for(size_t i=0;i<2;++i) { char* path=xideWindowsFontPath(names[i]); if(path && xidePathExists(path)) return path; free(path); }
-    return xideBundledFontPath();
+    return xideEditorFontDefaultPath();
 }
 float xideUiFontScale(xide_app* app)
 {

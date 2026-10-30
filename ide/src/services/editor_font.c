@@ -24,7 +24,7 @@ char* xideWindowsFontPath(const char* filename)
     WideCharToMultiByte(CP_UTF8,0,directory,-1,text,bytes,NULL,NULL);
     char *fonts=xidePathResolve(text,"Fonts"),*path=fonts ? xidePathResolve(fonts,filename) : NULL; free(text); free(fonts); return path;
 }
-char* xideBundledFontPath(void)
+static char* bundledFontPath(const char* relative)
 {
     wchar_t binary[32768]; DWORD length=GetModuleFileNameW(NULL,binary,32768);
     if(!length || length>=32768) return NULL;
@@ -34,14 +34,17 @@ char* xideBundledFontPath(void)
     if(!text) return NULL;
     if(!WideCharToMultiByte(CP_UTF8,WC_ERR_INVALID_CHARS,resource,-1,text,count,NULL,NULL)) { free(text); return NULL; }
     char* directory=xidePathDirectory(text); free(text);
-    char* path=directory ? xidePathResolve(directory,"data/fonts/NotoSansMonoCJKsc-Regular.otf") : NULL;
+    char* path=directory ? xidePathResolve(directory,relative) : NULL;
     free(directory); return path;
+}
+char* xideBundledFontPath(void)
+{
+    return bundledFontPath("data/fonts/NotoSansMonoCJKsc-Regular.otf");
 }
 char* xideEditorFontDefaultPath(void)
 {
-    char* path=xideWindowsFontPath("consola.ttf");
-    if(path && xidePathExists(path)) return path;
-    free(path); return xideBundledFontPath();
+    // 默认字形固定随包提供，不受机器安装的系统字体影响。
+    return bundledFontPath("data/fonts/Consolas-with-Yahei_Nerd_Font.ttf");
 }
 static uint32_t big32(const unsigned char* bytes)
 {

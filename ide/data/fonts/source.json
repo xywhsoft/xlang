@@ -20,6 +20,13 @@
       "url": "https://raw.githubusercontent.com/notofonts/noto-cjk/f8d157532fbfaeda587e826d4cd5b21a49186f7c/Sans/LICENSE",
       "sha256": "6a73f9541c2de74158c0e7cf6b0a58ef774f5a780bf191f2d7ec9cc53efe2bf2",
       "bytes": 4301
+    },
+    {
+      "path": "Consolas-with-Yahei_Nerd_Font.ttf",
+      "sourcePath": "Consolas-with-Yahei_Nerd_Font.ttf",
+      "origin": "user-supplied",
+      "sha256": "35a7074585fe4af3763db2aaa7635aabffb8995b6f52e61cd46c0a53e560b16b",
+      "bytes": 9210776
     }
   ],
   "fontMetadata": {
@@ -36,5 +43,16 @@
   "unicodeMappings": 44810,
   "asciiAdvance": 500,
   "unitsPerEm": 1000,
-  "coveredRepresentativeChinese": true
+  "coveredRepresentativeChinese": true,
+  "defaultFont": {
+    "path": "Consolas-with-Yahei_Nerd_Font.ttf",
+    "sha256": "35a7074585fe4af3763db2aaa7635aabffb8995b6f52e61cd46c0a53e560b16b",
+    "family": "Consolas-with-Yahei",
+    "version": "Version 6.97 March 10, 2018",
+    "origin": "user-supplied",
+    "redistributionReviewed": false,
+    "copyright": "?2016 Microsoft Corporation. All rights reserved.",
+    "embeddedLicense": "Microsoft supplied font. You may use this font to create, display, and print content as permitted by the license terms or terms of use, of the Microsoft product, service, or content in which this font was included. You may only (i) embed this font in content as permitted by the embedding restrictions included in this font; and (ii) temporarily download this font to a printer or other output device to help print content. Any other use is prohibited.",
+    "licenseUrl": "http://www.microsoft.com/typography/fonts/default.aspx"
+  }
 }

@@ -9,7 +9,7 @@ import shutil
 import subprocess
 import uuid
 from PIL import Image
-from font_resources import verify as verify_fonts
+from font_resources import DEFAULT_FONT, verify as verify_fonts
 
 
 def sha(path):
@@ -81,6 +81,14 @@ def check(fixture, output):
     normal = copy_binary(proof / "bin-中文")
     for name in ("missing", "corrupt", "saved-bad", "latin"):
         invoke(name, normal, "--" + name)
+    for name in ("missing-default", "corrupt-default"):
+        fallback = copy_binary(proof / ("bin-" + name))
+        primary = native(fallback.parent / "data/fonts" / DEFAULT_FONT)
+        if name == "missing-default":
+            primary.unlink()
+        else:
+            primary.write_bytes(b"invalid font")
+        invoke(name, fallback, "--fallback-only")
     missing = copy_binary(proof / "bin-no-font", False)
     invoke("no-bundle", missing, "--no-bundle")
     deep = proof / "deep-font"
@@ -107,7 +115,7 @@ def check(fixture, output):
         with Image.open(p) as im:
             assert im.size == (1280, 800) and max(im.convert("L").getextrema()) - min(im.convert("L").getextrema()) > 50
         images.append({"path": ordinary(p), "sha256": sha(p), "width": 1280, "height": 800})
-    assert len(images) == 14, len(images)
+    assert len(images) == 18, len(images)
     result = {"status": "passed", "utc": datetime.now(timezone.utc).isoformat(), "inputs": inputs,
               "checks": checks, "actualProcesses": len(calls), "images": images, "calls": calls,
               "fontMaterials": fonts, "nativeGlyphsComparedWithMissingGlyph": True,

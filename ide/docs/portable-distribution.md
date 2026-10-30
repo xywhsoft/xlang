@@ -23,7 +23,7 @@ xlang-ide/
   xlang-ls.exe
   xge.dll
   data/commands.json
-  data/fonts/{NotoSansMonoCJKsc-Regular.otf,LICENSE,COPYRIGHT.txt,source.json}
+  data/fonts/{Consolas-with-Yahei_Nerd_Font.ttf,NotoSansMonoCJKsc-Regular.otf,LICENSE,COPYRIGHT.txt,source.json}
   option/settings.json
   xl.exe、xl.dll、xlc.dll
   include/、extlibs/
@@ -36,7 +36,7 @@ xlang-ide/
   QUICKSTART.md
 ```
 
-默认设置使用相对于 option/settings.json 的编译器和 C 服务器路径。程序自己的默认设置重新选择同目录引擎或 toolchains 下的工具时也保存相对路径；外部工具或 --settings 指定的外部配置保持绝对绑定。命令文档原文已嵌入 commands.json，不依赖仓库 Markdown 路径。默认优先使用 Windows 字体，缺失时使用随包的开放许可中文等宽字体；随包字体偏好可相对保存。用户选择的外部字体和工作空间不会被打包。
+默认设置使用相对于 option/settings.json 的编译器和 C 服务器路径。程序自己的默认设置重新选择同目录引擎或 toolchains 下的工具时也保存相对路径；外部工具或 --settings 指定的外部配置保持绝对绑定。命令文档原文已嵌入 commands.json，不依赖仓库 Markdown 路径。界面和代码默认使用随包 Consolas-with-Yahei，缺失/损坏时退回 Noto；随包字体偏好可相对保存。用户选择的其他外部字体和工作空间不会被打包。默认 TTF 的内嵌许可单独记录且公开分发授权尚未核实，不适用 Noto 的 OFL 说明。
 
 解压到可写目录。option 是用户可变状态区；打包器不读取开发目录的 option，也不覆盖已经存在的候选目录或用户数据。Windows 字体和系统 DLL 属于运行环境；不复制 Windows 字体或系统 DLL。随包 Noto 字体、上游许可证与来源记录属于发行载荷。独立 xlang 服务和编译器各自使用匹配运行时，GUI 的唯一 XRT 仍由固定 xge.dll 提供。
 
