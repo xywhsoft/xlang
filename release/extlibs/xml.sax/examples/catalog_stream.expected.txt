@@ -1,0 +1,4 @@
+books=2
+names=语言运行库
+limit rejected=true; recovery=true
+XML catalog stream: OK

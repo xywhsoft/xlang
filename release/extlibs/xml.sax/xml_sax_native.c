@@ -35,16 +35,15 @@ static xsaxerrorstate* __xsaxErrorState(void)
 	return pState;
 }
 
-static void __xlangSaxStoreError(const xrtxmlerror* pError, int iStatus)
+/* 调用方先取得状态，再创建或消费资源；失败时不交出半成功结果。 */
+static void __xlangSaxStoreError(xsaxerrorstate* pState,
+	const xrtxmlerror* pError, int iStatus)
 {
-	xsaxerrorstate* pState = __xsaxErrorState();
-	if ( pState != NULL ) {
-		pState->iStatus = iStatus;
-		if ( pError != NULL ) { pState->tError = *pError; }
-		else { xrtXmlErrorInit(&pState->tError); }
-	}
+	pState->iStatus = iStatus;
+	if ( pError != NULL ) { pState->tError = *pError; }
+	else { xrtXmlErrorInit(&pState->tError); }
 	if ( iStatus != XRT_XML_NEXT_ERROR ) { return; }
-	xrtSetErrorInfo(pState == NULL || pError == NULL ||
+	xrtSetErrorInfo(pError == NULL ||
 		pError->iCode == XRT_XML_ERROR_MEMORY ? XERR_MEMORY : XERR_VALUE,
 		"xlang.extlib.xml.sax",
 		pError != NULL ? pError->iCode : XRT_XML_ERROR_MEMORY,
@@ -173,12 +172,14 @@ XRT_API void* xsax_open_memory(void* pData, unsigned long long iSize, bool bName
 	xrtxmloptions tOptions;
 	xrtxmlerror tError;
 	xrtxmlsax* pParser;
+	xsaxerrorstate* pState = __xsaxErrorState();
+	if ( pState == NULL ) { return NULL; }
 	__xlangSaxOptions(&tOptions, bNamespaceAware, bPreserveComments, bAllowDtd,
 		bAllowExternalEntities, iMaxInput, iMaxOutput, iMaxItem, iMaxEntries,
 		iMaxNodes, iMaxDepth);
 	xrtClearError();
 	pParser = xrtXmlSaxOpenMemory(pData, iSize, &tOptions, &tError);
-	__xlangSaxStoreError(pParser != NULL ? NULL : &tError,
+	__xlangSaxStoreError(pState, pParser != NULL ? NULL : &tError,
 		pParser != NULL ? XRT_XML_NEXT_EVENT : XRT_XML_NEXT_ERROR);
 	return pParser;
 }
@@ -192,12 +193,14 @@ XRT_API void* xsax_open_file(const char* sPath, bool bNamespaceAware,
 	xrtxmloptions tOptions;
 	xrtxmlerror tError;
 	xrtxmlsax* pParser;
+	xsaxerrorstate* pState = __xsaxErrorState();
+	if ( pState == NULL ) { return NULL; }
 	__xlangSaxOptions(&tOptions, bNamespaceAware, bPreserveComments, bAllowDtd,
 		bAllowExternalEntities, iMaxInput, iMaxOutput, iMaxItem, iMaxEntries,
 		iMaxNodes, iMaxDepth);
 	xrtClearError();
 	pParser = xrtXmlSaxOpenFile((str)sPath, &tOptions, &tError);
-	__xlangSaxStoreError(pParser != NULL ? NULL : &tError,
+	__xlangSaxStoreError(pState, pParser != NULL ? NULL : &tError,
 		pParser != NULL ? XRT_XML_NEXT_EVENT : XRT_XML_NEXT_ERROR);
 	return pParser;
 }
@@ -208,6 +211,8 @@ XRT_API xvalue* xsax_next(ptr pHandle)
 	xrtxmlerror tError;
 	int iStatus;
 	xvalue* pResult = NULL;
+	xsaxerrorstate* pState = __xsaxErrorState();
+	if ( pState == NULL ) { return xrtValueNull(); }
 	xrtClearError();
 	iStatus = xrtXmlSaxNext((xrtxmlsax*)pHandle, &pEvent, &tError);
 	if ( iStatus == XRT_XML_NEXT_EVENT ) {
@@ -220,7 +225,7 @@ XRT_API xvalue* xsax_next(ptr pHandle)
 			iStatus = XRT_XML_NEXT_ERROR;
 		}
 	}
-	__xlangSaxStoreError(iStatus == XRT_XML_NEXT_ERROR ? &tError : NULL, iStatus);
+	__xlangSaxStoreError(pState, iStatus == XRT_XML_NEXT_ERROR ? &tError : NULL, iStatus);
 	/*
 	    xlang 的 var 空值由 xrtValueNull() 表示，不是 C 的 NULL 指针。
 	    EOF 必须返回这个规范空值；否则 xlang 的 result == null 不成立，
@@ -233,9 +238,11 @@ XRT_API bool xsax_close(ptr pHandle)
 {
 	xrtxmlerror tError;
 	bool bClosed;
+	xsaxerrorstate* pState = __xsaxErrorState();
+	if ( pState == NULL ) { return false; }
 	xrtClearError();
 	bClosed = xrtXmlSaxClose((xrtxmlsax*)pHandle, &tError);
-	__xlangSaxStoreError(bClosed ? NULL : &tError,
+	__xlangSaxStoreError(pState, bClosed ? NULL : &tError,
 		bClosed ? XRT_XML_NEXT_END : XRT_XML_NEXT_ERROR);
 	return bClosed;
 }

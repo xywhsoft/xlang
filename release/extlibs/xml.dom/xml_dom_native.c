@@ -78,6 +78,8 @@ XRT_API ptr xdom_parse(const char* pData, unsigned long long iSize,
 	xrtxmloptions tOptions;
 	xrtxmlerror* pError = __xdomError();
 	ptr pResult;
+	/* 错误槽创建失败时保留原错误，不能清错后继续解析。 */
+	if ( pError == NULL ) { return NULL; }
 	__xdomOptions(&tOptions, iMaxInput, iMaxOutput, iMaxItem, iMaxEntries,
 		iMaxNodes, iMaxDepth);
 	__xdomClearError(pError);
@@ -94,6 +96,7 @@ XRT_API ptr xdom_load(const char* sPath, unsigned long long iMaxInput,
 	xrtxmloptions tOptions;
 	xrtxmlerror* pError = __xdomError();
 	ptr pResult;
+	if ( pError == NULL ) { return NULL; }
 	__xdomOptions(&tOptions, iMaxInput, iMaxOutput, iMaxItem, iMaxEntries,
 		iMaxNodes, iMaxDepth);
 	__xdomClearError(pError);
@@ -171,6 +174,7 @@ XRT_API ptr xdom_stringify(ptr pHandle, bool bPretty, uint32 iIndent,
 	xrtxmldomwriteoptions tOptions;
 	xrtxmlerror* pError = __xdomError();
 	ptr pResult;
+	if ( pError == NULL ) { return NULL; }
 	__xdomWriteOptions(&tOptions, bPretty, iIndent, bDeclaration, iMaxOutput);
 	__xdomClearError(pError);
 	pResult = xrtXmlDomStringify((xrtxmldomnode*)pHandle, &tOptions, pError);
@@ -201,6 +205,7 @@ XRT_API bool xdom_save(ptr pHandle, const char* sPath, bool bPretty,
 	xrtxmldomwriteoptions tOptions;
 	xrtxmlerror* pError = __xdomError();
 	bool bResult;
+	if ( pError == NULL ) { return false; }
 	__xdomWriteOptions(&tOptions, bPretty, iIndent, bDeclaration, iMaxOutput);
 	__xdomClearError(pError);
 	bResult = xrtXmlDomSave((str)sPath, (xrtxmldomnode*)pHandle, &tOptions, pError);

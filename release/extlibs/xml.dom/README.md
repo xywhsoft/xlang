@@ -1,5 +1,20 @@
 # xml.dom
 
+## 当前验收状态（2026-10-30）
+
+**M9 / M3 仍未关闭，不是整包绿灯。** 修复 parse、load、stringify、
+save 的每线程错误状态初始化失败后被清错并继续执行；文本 stringify
+复用同一检查。失败保留 MemoryError，且不改写原保存目标。
+不改公开 ABI、类声明、底层 XML/Expat 或冻结 XRT。
+
+与 SAX、ElementTree 联合完成 15 原生入口冷启动回归：Windows 270、
+Linux 257 场景通过，两个平台换回旧桥接均有 60 场景失败；检查恢复、
+副作用和活动内存平衡。四线程 144 组诊断在三种执行路径通过，原三包
+边界/分配、双语黄金输出和每平台 19 份正常独立 AOT 通过，58 实际
+C 原型一致，Linux 带 ASan/UBSan。门禁最后仍因公开 Reader 正例失败，
+Node/Element 也另验失败；不能用工厂路径替代公开类型与安全构造。
+现场和完整范围见[SAX 共用审查记录](../xml.sax/test/BRIDGE_STATE_AUDIT_2026-10-30.md)。
+
 2026-10-26 当前 Windows/Linux 三包联合默认门禁均退出 0：严格 C、
 Linux ASan/UBSan、中央/边界/分配 JIT 与 AOT、公开 C/XLang 范例
 独立 EXE 同输出、DOM/ElementTree 往返均通过。旧 VFS 头路径与
