@@ -230,6 +230,6 @@ bash build.sh && bash test_linux.sh
 
 xlang 处于发布候选压实阶段:四阶段管线、模块/包系统、DLL 嵌入 API 与大型回归套件(4700+ 用例,由 `rc0_guard` 守门)已经就位;网络数据通路拥有权模型与扩展库生态仍在推进。设计文档目前以中文为主,位于 `docs/`。
 
-许可协议:待公布。
+xlang 原创部分采用 [MIT 许可证](LICENSE)。第三方及其衍生代码保留各自许可，详见[第三方许可说明](THIRD_PARTY_NOTICES.md)。
 
 开发与构建入口见 [DEVELOPMENT.md](DEVELOPMENT.md)。

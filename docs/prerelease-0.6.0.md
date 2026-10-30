@@ -42,7 +42,7 @@
 
 1. **12 个析构入口缺少拥有图合同，涉及 13 种类。** ConsoleSession、ConsoleEvent、JsonWriter、XlonWriter、XLangHandler、TreeStats、WalkStats、LogRecord、LogFileStats、LogQueueStats、LogStats、LogSink、Logger。JsonWriter、XlonWriter、Logger、LogRecord 的全局对象已复现“主体完成，AOT 退出报 STATE”。需要逐类确认真实持有边、活动调用、静止与 checked 退役；日志回调和嵌套模块不可直接登记为叶对象。
 2. **SDK 异步资源清理存在时序缺口。** 全局 AsyncFile／Future 在脚本完成后，checked drain 曾在 5 秒内未完成；自动与显式关闭对照均出现过失败，不能把 close 当作完整解决方案。需要完成模块预清理、任务池、文件与 Future 节点之间的退出顺序，不能用无限等待掩盖。
-3. **发布授权尚待确认。** 根 README 仍保留未确定的项目授权说明，本轮不替项目选择授权条款。
+授权政策已确定： 项目权利人已指定 xlang 原创部分采用 MIT，已增加根 LICENSE 和第三方许可说明。TCC 主体及其衍生修改继续沿用原 LGPL，不主动转换为普通 GPL。现有逐文件许可与链接例外保留，第三方交付材料仍按实际载荷整理。
 
 `stdlib_file_async.xl` 已同时复现主体成功、JIT 收尾失败与 AOT STATE；它会使用未封闭的统计快照等对象，属于真实发布阻塞。最终 Windows SDK 复测中 `xlc.dll` 自动关闭返回 `{run:1, ready:0, ok:0}`，显式关闭通过；Linux 本轮双库对照均通过。此前 Windows 候选的显式关闭也出现过失败，因此没有把这条路径宣告修复。
 

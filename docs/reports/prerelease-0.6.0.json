@@ -304,7 +304,9 @@
     }
   ],
   "releaseMaterialDecisions": [
-    "Project license remains unspecified by the owner"
+    "Project-authored xlang code: MIT, approved by project owner",
+    "TCC-derived modifications retain upstream LGPL; confirmed by project owner",
+    "Preserve per-file third-party terms and runtime linking exceptions; distribution materials still require payload review"
   ],
   "excluded": [
     "full test_all",
@@ -425,5 +427,7 @@
     "check_release_delivery.py": "1fe08e2bc3260e4fbacb5f5183b5665d9c0b1d83e3f40fe5f328c77837cf7275",
     "check_release_native_owners.py": "4f25648896b79a353ec179bc8f011e6d2dea0514306ea6557e0453972f6e46bc",
     "check_stdlib_vfs.ps1": "95269ee59b67fd617676ca9f78ee3b218320051d3b786381967663fa2add0260"
-  }
+  },
+  "projectSourceLicense": "MIT",
+  "tccLicensePolicy": "Preserve upstream LGPL and per-file exceptions; no conversion to ordinary GPL"
 }

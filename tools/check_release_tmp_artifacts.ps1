@@ -100,6 +100,8 @@ function Test-WorkspaceBoundary
         ".gitattributes",
         ".gitignore",
         "README_zh.md",
+        "LICENSE",
+        "THIRD_PARTY_NOTICES.md",
         "DEVELOPMENT.md",
         "DEMO6说明.md",
         "build.bat",
