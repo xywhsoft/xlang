@@ -91,6 +91,24 @@ for (const exponent of [63n, 64n, 65n, 95n, 128n, 256n, 511n, 512n, 900n, 1023n]
     }
 }
 
+// identity escape 消费完整码点；LS/PS 的转义续行与原始字符串内容不同。
+const unicodePoints = [0x80, 0xa0, 0xe9, 0x3b1, 0x301, 0x4f60, 0x1f3b6, 0x10ffff, 0x2028, 0x2029];
+for (const point of unicodePoints) {
+    const character = String.fromCodePoint(point);
+    for (const quote of ["'", '"']) {
+        for (const slash of ['', '\\']) {
+            cases.push(`{v:${quote}p${slash}${character}q${quote}}`);
+            cases.push(`{${quote}p${slash}${character}q${quote}:'ok'}`);
+        }
+    }
+}
+for (const line of ['\n', '\r', '\r\n', '\u2028', '\u2029']) {
+    cases.push(`//你好${line}{v:'ok'}`, `{//你好${line}v:'ok'}`,
+        `{v://你好${line}'ok'}`, `{v:'ok'//你好${line}}`,
+        `/*你好${line}*/{v:'ok'}`, `{/*你好${line}*/v:'ok'}`,
+        `{v:/*你好${line}*/'ok'}`, `{v:'ok'/*你好${line}*/}`);
+}
+
 const input = cases.map((value) => Buffer.from(value).toString('hex')).join('\n') + '\n';
 const result = spawnSync(executable, [], { input, encoding: 'utf8' });
 if (result.status !== 0) {

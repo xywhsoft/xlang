@@ -1,0 +1,4 @@
+title=hello世界
+label=你
+port=8080
+JSON5 unicode config: OK

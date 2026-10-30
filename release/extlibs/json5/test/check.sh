@@ -39,17 +39,34 @@ mapfile -d '' inputs < <(
     } | sort -zu
 )
 sha256sum "${inputs[@]}" > "$work/inputs.before.sha256"
-"$cc" --version > "$work/compiler.txt"
+timeout 30s "$cc" --version > "$work/compiler.txt"
 
 # 数值/深度是独立的边界，三个 C 测试共用同一组严格编译的对象。
-"$cc" "${flags[@]}" -c "$pkg/test/xrt_runtime.c" -o "$work/xrt_runtime.o"
-"$cc" "${flags[@]}" -c "$pkg/json5_native.c" -o "$work/native.o"
-"$cc" "${flags[@]}" -c "$pkg/vendor/pdjson5.c" -o "$work/parser.o"
+timeout 120s "$cc" "${flags[@]}" -c "$pkg/test/xrt_runtime.c" -o "$work/xrt_runtime.o"
+timeout 120s "$cc" "${flags[@]}" -c "$pkg/json5_native.c" -o "$work/native.o"
+timeout 120s "$cc" "${flags[@]}" -c "$pkg/vendor/pdjson5.c" -o "$work/parser.o"
 objects=("$work/native.o" "$work/parser.o" "$work/xrt_runtime.o")
 for name in boundaries numbers depth; do
     "$cc" "${flags[@]}" "$pkg/test/test_$name.c" "${objects[@]}" \
         -lm -ldl -o "$work/$name"
     timeout 90s "$work/$name"
+done
+timeout 120s "$cc" "${flags[@]}" "$pkg/test/test_unicode_escapes.c" "$work/xrt_runtime.o" \
+    -lm -ldl -o "$work/unicode"
+timeout 90s "$work/unicode"
+timeout 90s release/xl run "$pkg/test/test_unicode_escapes.c"
+timeout 90s release/xl run "$pkg/test/unicode_escapes.xl"
+timeout 120s "$cc" "${flags[@]}" "$pkg/examples/unicode_config_c.c" "$work/xrt_runtime.o" \
+    -lm -ldl -o "$work/unicode_example"
+timeout 90s "$work/unicode_example" > "$work/unicode_example.txt"
+diff -u "$pkg/examples/unicode_config.expected.txt" "$work/unicode_example.txt"
+for source in test/test_unicode_escapes.c test/unicode_escapes.xl examples/unicode_config.xl examples/unicode_config_c.c; do
+    name=$(basename "$source")
+    timeout 90s release/xl run "$pkg/$source" > "$work/$name.jit.txt"
+    timeout 120s release/xl build "$pkg/$source" -o "$work/$name.aot"
+    timeout 90s "$work/$name.aot" > "$work/$name.aot.txt"
+    diff -u "$work/$name.jit.txt" "$work/$name.aot.txt"
+    if [[ $source == examples/* ]]; then diff -u "$pkg/examples/unicode_config.expected.txt" "$work/$name.jit.txt"; fi
 done
 if [[ -n "${JSON5_REFERENCE_DIR:-}" ]]; then
     "$cc" "${flags[@]}" "$pkg/test/reference_probe.c" "${objects[@]}" \

@@ -1,0 +1,19 @@
+import json5
+
+func main(...) as int
+    // 分别构造 LS 和 PS；不是把六字符 \u2028 文本交给解析器。
+    string line = Buffer.fromHex("e280a8").text()
+    string paragraph = Buffer.fromHex("e280a9").text()
+    string source = ("{title:'hello\\" + line + "世界', label:'\\你', // 配置" +
+        paragraph + "port:8080}")
+    assert json5.valid(source)
+    assert json5.get(source, "title") == "hello世界"
+    assert json5.getValue(source, "label") == "你"
+    var config = json5.parse(source)
+    assert config["port"] == 8080
+    println("title=hello世界")
+    println("label=你")
+    println("port=8080")
+    println("JSON5 unicode config: OK")
+    return 0
+end
