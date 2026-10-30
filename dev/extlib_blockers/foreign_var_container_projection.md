@@ -373,3 +373,37 @@ JSON object`。原生 `xtf_state` 要求 XRT object；公开签名只声明
 `XVALUE_OBJECT` 和 `XVALUE_ARRAY`。这是与 foreign 容器投影同形的
 可观察失败，尚未逐个证明两个参数的内部表示。当前发布版默认门禁
 尚未进入完整范例和 AOT；共享边界修复后复跑该门禁。
+
+## 2026-10-30 CLI 被 os.args 掩盖的独立投影
+
+CLI 是 M1 第21实测包，同时仍有 M7。默认导入会先在编译/链接时缺
+`xl6_xrt_os_args`，此前并没有运行到原生解析器，不能据此证明parse正常。
+新增[最小源](cli_args_projection.xl)及同名C伴随源，只引入真实的CLI
+解析器，不导入含parseOs的语言模块：
+
+```powershell
+./release/xl.exe check dev/extlib_blockers/cli_args_projection.xl
+./release/xl.exe run dev/extlib_blockers/cli_args_projection.xl
+./release/xl.exe build dev/extlib_blockers/cli_args_projection.xl -o build/test/cli_args_projection.exe
+./build/test/cli_args_projection.exe
+```
+
+最小源先在同一执行环境通过C构造完全相同的原生数组/对象，打印
+`cli native control: PASS`，随后才调用语言字面量路径。Windows/Linux均
+check与build成功，JIT/EXE均返回1并报
+`ValueError: parse requires an args array and a spec object`。xcli_parse第一项
+要求XVALUE_ARRAY/XVALUE_OBJECT，实际生成声明为
+`extern xvalue* xcli_parse(xvalue*, xvalue*)`，与正式C头相符；独立C相同
+声明/参数成功。证明当前合法语言字面量尚未满足此foreign入口的物理要求，
+不据错误文本断言两个参数内部所有表示或全部包的根因已经逐项证明。
+
+默认CLI门禁保留该正例并要求0，不能用识别私有handle、将输入改成json.parse、
+删除parseOs或C工厂当作本包修复。主线统一数组/字典的foreign var投影、
+引用与OOM回滚，连同M7后再复跑中央用例、两份双语范例和默认JIT/AOT。
+新包优化仅将已验证为字符串的默认值从图复制改为标量复制并移除不再需要的
+VALUE_GRAPH依赖，没有改物理ABI、接受错误容器或更改声明范围。
+
+Windows报告 `build/test/cli_guard/run_46637af6c9454ef99d872bd788fe54f9/results.json`；
+Linux原生快照 `/var/tmp/xlang-cli-final-src-UjUpgL`，现场
+`tmp/xlang-cli-yI8zVT`。两端39阶段29符合要求，C/882故障/真实原型先通过，
+四份含os.args源的八条路径与本最小源两条路径分别失败，整体仍返回1。

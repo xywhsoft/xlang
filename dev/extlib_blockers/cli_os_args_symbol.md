@@ -8,7 +8,7 @@
 ## 最小复现
 
 [cli_os_args_symbol.xl](cli_os_args_symbol.xl) 不导入任何扩展库，
-只在 main 中调用标准库 `os.args()`。从 `demo6` 目录执行：
+只在 main 中调用标准库 `os.args()`。从仓库根目录执行：
 
 ```powershell
 .\release\xl.exe check dev/extlib_blockers/cli_os_args_symbol.xl
@@ -35,3 +35,16 @@ CLI 原生参数解析器出错。
 无包最小源的 JIT/EXE，再跑 CLI 双平台默认门禁、C/XLang 输出，
 并用两份不同参数的 DLL 上下文检查隔离与生命周期。本任务不改
 编译器或运行时实现，也不增加兼容回退。
+
+## 2026-10-30 复核
+
+默认包门禁两平台各39阶段；中央、basic/options公开例和此无包源的
+JIT/build八项均仍缺 `xl6_xrt_os_args`，check/cgen正常。现在实际验证了
+Linux build 同样失败，不能再沿用“本轮未测 Linux build”的旧范围。
+无包源从当前仓库根目录运行，无需旧 demo6 前缀。
+
+另一个独立边界不能被本符号修复掩盖：`cli_args_projection.xl` 的同名
+C伴随源只提供真实xcli_parse，不导入含parseOs的模块。两平台均构建成功，
+JIT/EXE均在数组/对象类型检查报错；见共享foreign容器投影记录。该源只用于
+隔离诊断，不作为用户绕过import、重建私有容器或替代parseOs的方案。
+先修本符号/上下文参数，再修M1投影，最后完整复跑包级门禁和双语输出。
