@@ -18,6 +18,7 @@ from xrt_process_tree_overlay import derive as derive_process_runtime
 from native_context_overlay import derive as derive_context_runtime
 from native_cancellation_overlay import ir_cancellation, semantic_cancellation
 from native_ir_memo_overlay import derive as derive_ir_memo
+from native_ir_scan_overlay import derive as derive_ir_scans
 from native_type_source_overlay import derive as derive_type_sources
 from native_initializer_overlay import derive as derive_initializer_index
 from native_parser_ownership_overlay import derive as derive_parser_ownership
@@ -106,6 +107,11 @@ def prepare_native_ir(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     """Index iteration candidates without changing shared cleanup/verify rules."""
     original = frontend / 'src/ir/xl6_ir.c'
     body = original.read_bytes()
+    from native_current_ir_overlay import derive as current_ir,PHASE_IR_SHA256
+    if hashlib.sha256(body).hexdigest()==PHASE_IR_SHA256:
+        # Admit the corrected current IR only with its complete audited
+        # AST/parser/index/type/XRT cohort. Other service guards are separate.
+        return current_ir(frontend,output,phases=True)
     if hashlib.sha256(body).hexdigest() != '6022b348ecb5ec0dc79eac881a4e51cb6dc227daa210f730bcdf27a191aad2d0':
         raise ValueError('shared IR changed; audit cleanup/plan/call candidates, scope-proof purity and phase mutation boundaries')
     if sha(frontend / 'src/ir/xl6_ir.h') != 'ec58343edcf43d97aba95b94bc3fb3d3a163ec4fc593ae0b064a09c3eac4ff3a':
@@ -119,66 +125,7 @@ def prepare_native_ir(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     if sha(type_ids) != type_ids_sha:
         raise ValueError('shared symbol/type identity domains changed; audit tagged lexical symbol slots and exact fact types')
     source = body.decode('utf-8').replace('\r\n', '\n')
-    changes = {
-        '#include <wchar.h>': '#include <wchar.h>\n#include "analysis/frontend_ir.inc"',
-        'static const XL6_AstNode* xl6IrFindTypeDecl(const XL6_AstNode* root, const XL6_AstNode* type)\n{':
-            'static const XL6_AstNode* xlsIrFindTypeDeclOriginal(const XL6_AstNode* root, const XL6_AstNode* type)\n{',
-        'int xl6IrBuildModuleFromAst(XL6_IrModule* module, const XL6_AstNode* root, XL6_DiagList* diags)\n{':
-            'static int xlsIrBuildModuleOriginal(XL6_IrModule* module, const XL6_AstNode* root, XL6_DiagList* diags)\n{',
-        'int xl6IrRefreshExitPlans(XL6_IrModule* module)\n{': 'static int xlsIrRefreshExitPlansOriginal(XL6_IrModule* module)\n{',
-        'int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)\n{': 'static int xlsIrVerifyModuleOriginal(const XL6_IrModule* module, XL6_DiagList* diags)\n{',
-        'static int xl6IrBuildImplicitConversionAbis(XL6_IrModule* module)\n{':
-            'static int xlsIrBuildImplicitConversionAbisOriginal(XL6_IrModule* module)\n{',
-        'XL6_IrNodeId origin = (XL6_IrNodeId)(node - module->nodes + 1);\n'
-        '    for (i = 0; i < module->callSiteCount; ++i) {\n'
-        '        const XL6_IrCallSite* site = &module->callSites[i];\n'
-        '        const XL6_IrNode *declaration, *parameters = NULL, *receiver;':
-            'XL6_IrNodeId origin = (XL6_IrNodeId)(node - module->nodes + 1);\n'
-            '    for (i = xlsIrFirstCallCandidate(module, origin); i < module->callSiteCount;\n'
-            '         i = xlsIrNextCallCandidate(module, origin, i)) {\n'
-            '        const XL6_IrCallSite* site = &module->callSites[i];\n'
-            '        const XL6_IrNode *declaration, *parameters = NULL, *receiver;',
-        'for ( prior = 0; prior < i; ++prior )\n'
-        '                if ( module->callSites[prior].origin == site->origin )':
-            'for ( prior = xlsIrFirstCallCandidate(module, site->origin); prior < i;\n'
-            '                  prior = xlsIrNextCallCandidate(module, site->origin, prior) )\n'
-            '                if ( module->callSites[prior].origin == site->origin )',
-        'for ( prior = 0; prior < module->callSiteCount; ++prior )\n'
-        '                if ( module->callSites[prior].origin == site->origin )':
-            'for ( prior = xlsIrFirstCallCandidate(module, site->origin); prior < module->callSiteCount;\n'
-            '                  prior = xlsIrNextCallCandidate(module, site->origin, prior) )\n'
-            '                if ( module->callSites[prior].origin == site->origin )',
-        'static int xl6IrVerifyScopeExitActions(\n    const XL6_IrModule* module, const XL6_IrExitPlan* plan)\n{':
-            'static int xlsIrVerifyScopeExitActionsOriginal(\n    const XL6_IrModule* module, const XL6_IrExitPlan* plan)\n{',
-        'for ( i = afterScope ? scope->childCount + 1 : (size_t)plan->origin - 1; i > 0; --i ) {':
-            'for ( i = afterScope ? scope->childCount + 1 : xlsIrPreviousCandidate(module, owner, plan->origin, routed); i > 0;\n'
-            '          i = afterScope ? i - 1 : xlsIrPreviousCandidate(module, owner, (XL6_IrNodeId)i, routed) ) {',
-        'for (child = afterScope ? block->childCount + 1 : (size_t)plan->origin - 1; child > 0; --child) {':
-            'for (child = afterScope ? block->childCount + 1 : xlsIrPreviousCandidate(module, owner, plan->origin, routed); child > 0;\n'
-            '         child = afterScope ? child - 1 : xlsIrPreviousCandidate(module, owner, (XL6_IrNodeId)child, routed)) {',
-        '    for ( i = 0; i < module->nodeCount; ++i ) {\n'
-        '        const XL6_IrNode* scope = &module->nodes[i];\n'
-        '        XL6_IrNodeId scopeId = (XL6_IrNodeId)(i + 1);':
-            '    for ( i = xlsIrFirstRegionBlock(module,candidate->region); i < module->nodeCount;\n'
-            '          i = xlsIrNextRegionBlock(module,candidate->region,i) ) {\n'
-            '        const XL6_IrNode* scope = &module->nodes[i];\n'
-            '        XL6_IrNodeId scopeId = (XL6_IrNodeId)(i + 1);',
-        'for ( j = 0; j < module->exitPlanCount; ++j ) {\n'
-        '            if ( module->exitPlans[j].origin == (XL6_IrNodeId)(i + 1) ) {':
-            'for ( j = xlsIrFirstPlanCandidate(module, (XL6_IrNodeId)(i + 1), module->exitPlanCount);\n'
-            '              j < module->exitPlanCount;\n'
-            '              j = xlsIrNextPlanCandidate(module, (XL6_IrNodeId)(i + 1), j, module->exitPlanCount) ) {\n'
-            '            if ( module->exitPlans[j].origin == (XL6_IrNodeId)(i + 1) ) {',
-        'for (previous = 0; previous < j; ++previous)\n'
-        '                        if (module->exitPlans[previous].origin == module->exitPlans[j].origin &&':
-            'for (previous = xlsIrFirstPlanCandidate(module, (XL6_IrNodeId)(i + 1), j); previous < j;\n'
-            '                         previous = xlsIrNextPlanCandidate(module, (XL6_IrNodeId)(i + 1), previous, j))\n'
-            '                        if (module->exitPlans[previous].origin == module->exitPlans[j].origin &&',
-    }
-    for old, new in changes.items():
-        if source.count(old) != 1:
-            raise ValueError('shared IR scan seam changed; audit its native overlay: ' + old)
-        source = source.replace(old, new)
+    source,scan_seams = derive_ir_scans(source)
     compiled = output / 'frontend/xl6_ir.c'
     source = ir_cancellation(source)
     source = derive_initializer_index(source)
@@ -193,7 +140,7 @@ def prepare_native_ir(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
         auditedDependencies={str(type_model):type_sha,str(type_ids):type_ids_sha},
         lexicalSymbols='source/range-proven per-function declaration slots;separate entity/global NAME identities;tagged raw nodes/dependencies/writes bind current original IDs;fact types and type-pool prefix exact',
         cancellation='cooperative node/phase/verify points; partial child lists and owned incoming counts unwind through audited cleanup',
-        auditedSeams=len(changes), indexBytes=16 * 1024 * 1024, planIndexBytes=8 * 1024 * 1024,
+        auditedSeams=scan_seams, indexBytes=16 * 1024 * 1024, planIndexBytes=8 * 1024 * 1024,
         scopeProofBytes=1024 * 1024, callIndexBytes=8 * 1024 * 1024, typeLookupBytes=8 * 1024 * 1024,
         regionIndexBytes=8 * 1024 * 1024)
 
@@ -693,6 +640,9 @@ def main() -> None:
     inputs.update({row['source']: row['sourceSha256'] for row in owner_overlays})
     inputs[str(Path(__file__).with_name('native_cancellation_overlay.py').resolve())] = sha(Path(__file__).with_name('native_cancellation_overlay.py'))
     inputs[str(Path(__file__).with_name('native_ir_memo_overlay.py').resolve())] = sha(Path(__file__).with_name('native_ir_memo_overlay.py'))
+    inputs[str(Path(__file__).with_name('native_ir_scan_overlay.py').resolve())] = sha(Path(__file__).with_name('native_ir_scan_overlay.py'))
+    inputs[str(Path(__file__).with_name('native_current_ir_overlay.py').resolve())] = sha(Path(__file__).with_name('native_current_ir_overlay.py'))
+    inputs[str(Path(__file__).with_name('native_current_ir_profile.py').resolve())] = sha(Path(__file__).with_name('native_current_ir_profile.py'))
     inputs[str(Path(__file__).with_name('native_type_source_overlay.py').resolve())] = sha(Path(__file__).with_name('native_type_source_overlay.py'))
     inputs[str(Path(__file__).with_name('native_raw_body_overlay.py').resolve())] = sha(Path(__file__).with_name('native_raw_body_overlay.py'))
     inputs[str(Path(__file__).with_name('native_ast_overlay.py').resolve())] = sha(Path(__file__).with_name('native_ast_overlay.py'))

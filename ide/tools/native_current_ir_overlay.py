@@ -1,8 +1,9 @@
-"""Private current raw-function IR qualification; normal IR admission stays closed."""
+"""Audited current IR components; normal builds require the corrected phase cohort."""
 from pathlib import Path
 import hashlib
 from native_index_overlay import profile as index_profile
 from native_ir_memo_overlay import derive as raw_memo
+from native_current_ir_profile import PINS as IR_DEPENDENCIES
 
 PINS={
     'src/ir/xl6_ir.c':'fb1c73cb62d95540fac8f524b74b518f928e1668f531c87f7cd37f31e3f0353e',
@@ -11,22 +12,53 @@ PINS={
     'src/type/xl6_type_model.c':'3f70de039edcef2d6d6345457e388d015610cb5dd0acde360e4e45df94db5f8a',
     'src/type/xl6_type_id.h':'662ae3b34d48ef626c5973db765d7d6007475692aa2448d82245ee74a9ffbde7',
 }
+# Shared bounds correction ee9a87a73; frozen ABI cohort remains independently
+# pinned above. The phase target compiles this exact original source as oracle.
+PHASE_IR_SHA256='e1ea31c336278b6729369e9f6a1bb4d86a4e945018a88f8c672c0a643e089628'
 
 
-def derive(frontend:Path,output:Path):
+def derive(frontend:Path,output:Path,*,phases=False,ir_source=None):
     audited=index_profile(frontend)
     ast=frontend/'src/ast/xl6_ast.h'
     if audited[str(ast)]!='5ebb5cc003e51d954d02ad229307406a4990142d7813f755e0df3bbc9838fbb1':
         raise ValueError('current IR unit requires its current AST/parser/type/XRT cohort')
     for rel,digest in PINS.items():
         p=frontend/rel
+        if rel=='src/ir/xl6_ir.c' and p.is_file() and hashlib.sha256(p.read_bytes()).hexdigest()==PHASE_IR_SHA256:digest=PHASE_IR_SHA256
         if not p.is_file() or hashlib.sha256(p.read_bytes()).hexdigest()!=digest:
             raise ValueError('current IR asset changed; audit representation and phase contracts: '+rel)
         audited[str(p)]=digest
+    for rel,digest in IR_DEPENDENCIES.items():
+        p=frontend/rel
+        if not p.is_file() or hashlib.sha256(p.read_bytes()).hexdigest()!=digest:
+            raise ValueError('current IR included dependency changed; audit phase contracts: '+rel)
+        audited[str(p)]=digest
+    profile_source=Path(__file__).with_name('native_current_ir_profile.py')
+    audited[str(profile_source)]=hashlib.sha256(profile_source.read_bytes()).hexdigest()
     original=frontend/'src/ir/xl6_ir.c'
-    source=raw_memo(original.read_text(encoding='utf8'),current=True)
+    selected=original
+    if phases:
+        if ir_source is None and audited[str(original)]!=PHASE_IR_SHA256:raise ValueError('current phase qualification requires the audited shared C-vararg bounds correction')
+        selected=Path(ir_source).resolve(strict=True) if ir_source is not None else original
+        if hashlib.sha256(selected.read_bytes()).hexdigest()!=PHASE_IR_SHA256:raise ValueError('corrected current IR source changed; audit phase and ownership contracts')
+        audited[str(selected)]=PHASE_IR_SHA256
+    elif ir_source is not None:raise ValueError('IR source override is private to phase qualification')
+    source=selected.read_text(encoding='utf8')
+    if phases:
+        from native_ir_scan_overlay import derive as scans
+        from native_cancellation_overlay import ir_cancellation
+        from native_initializer_overlay import derive as initializers
+        source,seams=scans(source,current=True)
+        source=ir_cancellation(source,current=True)
+        source=initializers(source)
+    source=raw_memo(source,current=True)
     compiled=output/'frontend/xl6_ir.c';compiled.parent.mkdir(parents=True,exist_ok=True)
     compiled.write_text(source,encoding='utf8',newline='\n')
-    return original,compiled,dict(source=str(original),sourceSha256=PINS['src/ir/xl6_ir.c'],
+    return selected,compiled,dict(source=str(selected),sourceSha256=hashlib.sha256(selected.read_bytes()).hexdigest(),
+        baseFrontendSource=str(original),baseFrontendSourceSha256=audited[str(original)],
         compiledSource=str(compiled),compiledSha256=hashlib.sha256(compiled.read_bytes()).hexdigest(),
-        auditedDependencies=audited,scope='private current raw memo/owner units; original module passes/verifier; old scan/initializer/cancellation overlays are not admitted')
+        auditedDependencies=audited,phaseQualification=phases,
+        auditedScanSeams=seams if phases else 0,
+        originalAncestorContainmentPreserved=phases,
+        scope=('private current complete module phases/scans/initializer/cancellation qualification; original bounded ancestor containment retained'
+               if phases else 'private current raw memo/owner units; original module passes/verifier; old scan/initializer/cancellation overlays are not admitted'))

@@ -1,4 +1,4 @@
-"""Qualify semantic facts and native query units against a verified semantic base.
+"""Qualify semantic facts,native queries and IR against a verified semantic base.
 
 Current frontend derivation is an explicit private unit probe. This target does
 not open normal semantic/IR server guards,build a service,or publish binaries.
@@ -23,8 +23,13 @@ def main():
     ap.add_argument('--base',type=Path,required=True)
     ap.add_argument('--output',type=Path,required=True)
     ap.add_argument('--base-source-revision')
+    ap.add_argument('--ir-phases',action='store_true',help='Qualify current IR phase optimizations and cooperative cancellation in the private IR fixture')
+    ap.add_argument('--ir-source',type=Path,help='Audited shared IR source with the C-vararg arena-bounds correction; private phase qualification only')
     ap.add_argument('--fixture',default='analysis_sem_metadata_probe.inc',choices=['analysis_sem_metadata_probe.inc','analysis_sem_effects_probe.inc','analysis_sem_queries_probe.inc','analysis_ir_current_probe.inc'])
-    args=ap.parse_args();base=args.base.resolve(strict=True);out=args.output.resolve();out.mkdir(parents=True,exist_ok=False)
+    args=ap.parse_args()
+    if args.ir_phases and args.fixture!='analysis_ir_current_probe.inc':ap.error('--ir-phases requires analysis_ir_current_probe.inc')
+    if bool(args.ir_source)!=args.ir_phases:ap.error('--ir-phases and --ir-source must be provided together')
+    base=args.base.resolve(strict=True);out=args.output.resolve();out.mkdir(parents=True,exist_ok=False)
     real_query=args.fixture in ('analysis_sem_queries_probe.inc','analysis_ir_current_probe.inc')
     original=json.loads((base/'build-result.json').read_text('utf8'))
     if original['status']!='passed':raise ValueError('base must have passed its complete build')
@@ -108,30 +113,39 @@ def main():
                 if sha(frontend/rel)!=digest:raise ValueError('frozen frontend changed: '+rel)
             report['inputs'][str(manifest_path)]=sha(manifest_path)
             report['frozenFrontendFiles']=len(manifest['files'])
-            _,ir,ir_overlay=derive(frontend,out);report['irOverlay']=ir_overlay
+            selected_ir,ir,ir_overlay=derive(frontend,out,phases=args.ir_phases,ir_source=args.ir_source);report['irOverlay']=ir_overlay
             report['inputs'].update(ir_overlay['auditedDependencies'])
             wrapper.write_text('#include "'+sem.as_posix()+'"\n',encoding='utf8',newline='\n')
             probe=out/'native_ir_probe.c';probe.write_text('#include "'+ir.as_posix()+'"\n#include "'+fixture.as_posix()+'"\n',encoding='utf8',newline='\n')
             names=sorted(set(re.findall(r'\b(xl6Ir[A-Za-z_0-9]+)\s*\(',(frontend/'src/ir/xl6_ir.h').read_text(encoding='utf8'))))
             header=out/'reference_ir_names.h';header.write_text(''.join('#define '+n+' xlsReference'+n.removeprefix('xl6')+'\n' for n in names),encoding='utf8',newline='\n')
-            ir_references=[]
+            ir_references=[];ir_originals={};ir_copies={}
             for relative in ['src/ir/xl6_ir.c','src/ir/xl6_ir_class_identity.c']:
                 original_ir=frontend/relative;reference=out/('reference_'+original_ir.name)
-                reference.write_text('#include "reference_ir_names.h"\n#include "'+original_ir.as_posix()+'"\n',encoding='utf8',newline='\n');ir_references.append(reference)
+                compiled_ir=original_ir
+                if args.ir_phases and relative=='src/ir/xl6_ir.c':
+                    original_ir=selected_ir;compiled_ir=out/'reference_original_ir.c';compiled_ir.write_bytes(original_ir.read_bytes());ir_copies[str(compiled_ir)]=dict(source=str(original_ir),sha256=sha(original_ir))
+                ir_originals[str(original_ir)]=sha(original_ir)
+                reference.write_text('#include "reference_ir_names.h"\n#include "'+compiled_ir.as_posix()+'"\n',encoding='utf8',newline='\n');ir_references.append(reference)
             sources += [probe,frontend/'src/ir/xl6_ir_class_identity.c',ide/'src/analysis/typed_module.c',*ir_references,ide/'tests/analysis_ir_current_test.c']
-            report['irReferenceNamespace']=dict(names=names,header=str(header),originalSources={str(frontend/p):sha(frontend/p) for p in ['src/ir/xl6_ir.c','src/ir/xl6_ir_class_identity.c']})
+            if args.ir_phases:
+                sources += [ide/'src/analysis/frontend_ir_regions.c',ide/'tests/analysis_ir_phases_test.c',ide/'tests/analysis_ir_scan_test.c',ide/'tests/analysis_ir_vararg_bounds_test.c']
+            report['irReferenceNamespace']=dict(names=names,header=str(header),originalSources=ir_originals,unmodifiedCopies=ir_copies)
         flags=command[:command.index('-c')]
         flags[1:1]=['-I'+str(ide/'tests')]
         if args.fixture=='analysis_ir_current_probe.inc':flags+=['-I'+str(frontend/'src/ir')]
+        if args.ir_phases:flags+=['-DXLS_TEST_CURRENT_IR_PHASES=1']
         for p in [Path(__file__),ide/'tools/build_lsp_core.py',ide/'tools/native_index_overlay.py',
                   ide/'tools/native_type_source_overlay.py',ide/'tools/native_cancellation_overlay.py',
                   ide/'tools/native_semantic_effects_overlay.py',ide/'tools/native_context_overlay.py',
                   ide/'tools/native_signature_overlay.py',Path(cc),archive]:
             report['inputs'][str(p)]=sha(p)
         if args.fixture=='analysis_ir_current_probe.inc':
-            for p in [ide/'tools/native_current_ir_overlay.py',ide/'tools/native_ir_memo_overlay.py']:report['inputs'][str(p)]=sha(p)
+            for p in [ide/'tools/native_current_ir_overlay.py',ide/'tools/native_ir_memo_overlay.py',ide/'tools/native_ir_scan_overlay.py',ide/'tools/native_initializer_overlay.py']:report['inputs'][str(p)]=sha(p)
         def source_flags(source):
             renames=[]
+            if source.name=='analysis_ir_scan_test.c':renames=['-Dmain=xlsCurrentIrScanTestMain']
+            if source.name=='analysis_ir_vararg_bounds_test.c':renames=['-Dmain=xlsCurrentIrVarargBoundsMain']
             if source.name in ('reference_xl6_sem.c','reference_xl6_completion.c'):
                 names=['xl6SemCheckModule','xl6SemCheckModuleWithIndex','xl6SemCheckModuleWithQuery',
                        'xl6CompletionPathEqual','xl6CompletionTarget','xl6CompletionAdd','xl6CompletionFree','xl6CompletionJson']
@@ -155,6 +169,7 @@ def main():
         program=out/('semantic-facts-test.exe' if os.name=='nt' else 'semantic-facts-test')
         libs=['-lm']+(['-lws2_32','-lwinhttp','-liphlpapi','-lgdi32','-luser32','-lshell32','-lole32','-lwinmm','-lavrt','-lversion','-lbcrypt','-ladvapi32'] if os.name=='nt' else ['-pthread','-ldl'])
         wraps=['-Wl,--wrap=xrtStrDupN']
+        if args.ir_phases:wraps+=['-Wl,--wrap=xrtArrayReserve']
         if args.fixture in ('analysis_sem_effects_probe.inc','analysis_sem_queries_probe.inc'):wraps+=['-Wl,--wrap=xrtStrBufReserve','-Wl,--wrap=xrtArrayReserve']
         run([cc,*[str(p) for p in objects],str(archive),'-Wl,--gc-sections',*wraps,*libs,'-o',str(program)],'link')
         p=run([str(program)],'run');print(p.stdout.decode('utf8'),flush=True)
