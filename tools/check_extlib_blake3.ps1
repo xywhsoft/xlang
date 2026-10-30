@@ -1,11 +1,12 @@
 ﻿param([string]$Root = '', [switch]$SkipAot)
 
 $ErrorActionPreference = 'Stop'
+[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
 if (!$Root) { $Root = Split-Path -Parent $PSScriptRoot }
 $Root = (Resolve-Path -LiteralPath $Root).Path
 . (Join-Path $PSScriptRoot 'extlib_smoke_process.ps1')
 $xl = Join-Path $Root 'release/xl.exe'
-$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop).Source
+$gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $workRoot = Join-Path $Root 'build/test/blake3_guard'
 $runId = [guid]::NewGuid().ToString('N')
 $work = Join-Path $workRoot ('run_' + $runId)
@@ -13,6 +14,7 @@ $work = Join-Path $workRoot ('run_' + $runId)
 $utf8 = [Text.UTF8Encoding]::new($false)
 $checks = [Collections.Generic.List[object]]::new()
 $hashes = [ordered]@{}
+$toolHashes = [ordered]@{}
 $manifest = Get-Content (Join-Path $Root 'release/extlibs/blake3/xlang.package.json') -Raw -Encoding UTF8 | ConvertFrom-Json
 $sources = @($manifest.artifact.cSources | ForEach-Object { "release/extlibs/blake3/$_" })
 $paths = @('.gitattributes','release/xl.exe','release/xl.dll','release/xlc.dll','lib/xrt/xrt.h','lib/xruntime/xruntime.h',
@@ -46,6 +48,13 @@ $objects = @()
 $runtime = Join-Path $work 'runtime.o'
 $outcome = 'failed'
 try {
+    $toolHashes[$gcc] = (Get-FileHash $gcc).Hash
+    $shell = (Get-Process -Id $PID).Path
+    $toolHashes[$shell] = (Get-FileHash $shell).Hash
+    $null = Check 'gcc-version' $gcc @('--version')
+    $cc1 = Check 'gcc-cc1' $gcc @('-print-prog-name=cc1')
+    if (!(Test-Path -LiteralPath $cc1 -PathType Leaf)) { throw "Missing GCC cc1: $cc1" }
+    $toolHashes[(Resolve-Path $cc1).Path] = (Get-FileHash $cc1).Hash
     # 固定上游来源和独立向量；构建不联网，也不自动更新 vendor。
     $pkg = Join-Path $Root 'release/extlibs/blake3'
     $vendor = Get-Content (Join-Path $pkg 'third_party/manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -91,6 +100,17 @@ try {
     # 核心测试直接包含 core，以白盒覆盖 uint64 计数溢出，不重复链接该对象。
     $null = Check 'c-build' $gcc ($packageFlags + @('-DNDEBUG',$test,$objects[0]) + $links + @('-o',$exe))
     $null = Check 'c-boundaries' $exe @()
+    # 新用例自己包含 core/portable，只链接同一份验证运行时。
+    $readerCause = 'release/extlibs/blake3/test/test_reader_cause.c'
+    $readerExe = Join-Path $work 'blake3-reader-cause.exe'
+    $null = Check 'reader-cause-build' $gcc ($packageFlags + @('-DNDEBUG',$readerCause) + $links + @('-o',$readerExe))
+    $null = Check 'reader-cause' $readerExe @()
+    $null = Check 'reader-cause-jit' $xl @('run',$readerCause)
+    if (!$SkipAot) {
+        $readerAot = Join-Path $work 'blake3-reader-cause-aot.exe'
+        $null = Check 'reader-cause-aot-build' $xl @('build',$readerCause,'-o',$readerAot)
+        $null = Check 'reader-cause-aot' $readerAot @()
+    }
     $allocation = Join-Path $work 'blake3-alloc.exe'
     $null = Check 'allocation-build' $gcc ($packageFlags + @('-DNDEBUG','release/extlibs/blake3/test/test_blake3_alloc.c') + $objects + $links + @('-o',$allocation))
     $null = Check 'allocation' $allocation @()
@@ -137,6 +157,11 @@ try {
         }
     }
     $null = Check 'official-vectors-xlang' $xl @('run','release/extlibs/blake3/test/vectors.xl')
+    if (!$SkipAot) {
+        $vectorsExe = Join-Path $work 'official-vectors.exe'
+        $null = Check 'official-vectors-aot-build' $xl @('build','release/extlibs/blake3/test/vectors.xl','-o',$vectorsExe)
+        $null = Check 'official-vectors-aot' $vectorsExe @()
+    }
     $decls = @()
     foreach ($name in @('extlib_blake3','extlib_blake3_boundaries','extlib_blake3_progress')) {
         $module = Join-Path $work "$name.c"
@@ -200,6 +225,9 @@ try {
     foreach ($path in $hashes.Keys) {
         if ((Get-FileHash -LiteralPath (Join-Path $Root $path)).Hash -ne $hashes[$path]) { throw "Input changed: $path" }
     }
+    foreach ($path in $toolHashes.Keys) {
+        if ((Get-FileHash -LiteralPath $path).Hash -ne $toolHashes[$path]) { throw "Tool changed: $path" }
+    }
     $blockers = @()
     $privateCase = 'release/extlibs/blake3/test/private_adopt_constructor_negative.xl'
     $private = Invoke-ExtlibSmokeProcess $xl @('check',$privateCase) $Root 30
@@ -221,11 +249,14 @@ try {
     }
     if ($blockers.Count) { throw ('BLAKE3 release blockers: ' + ($blockers -join '; ')) }
     $outcome = 'passed'
+} catch {
+    [IO.File]::WriteAllText((Join-Path $work 'failure.txt'),$_.Exception.Message,$utf8)
+    throw
 } finally {
     $scope = 'Windows C boundaries, 35 upstream vectors in three modes and six lengths, allocation failures, independent threads, xlang/C JIT, callbacks and readers, generated ABI and paired examples'
     if (!$SkipAot) { $scope += ', Windows AOT' } else { $scope += '; AOT skipped' }
     $scope += '; not shared mutable hasher concurrency or benchmark certification'
-    $report = [ordered]@{date=(Get-Date).ToString('o');outcome=$outcome;scope=$scope;generatedPrototypes=$decls.Count;inputs=$hashes;checks=@($checks.ToArray())}
+    $report = [ordered]@{date=(Get-Date).ToString('o');outcome=$outcome;scope=$scope;generatedPrototypes=$decls.Count;inputs=$hashes;tools=$toolHashes;checks=@($checks.ToArray())}
     try {
         [IO.File]::WriteAllText((Join-Path $workRoot ('results_' + $runId + '.json')),
             ($report | ConvertTo-Json -Depth 8),$utf8)
@@ -235,6 +266,7 @@ try {
         if (-not $workPath.StartsWith($parentPath, [StringComparison]::OrdinalIgnoreCase)) {
             throw "BLAKE3 temporary work path escaped build/test: $workPath"
         }
-        Remove-Item -LiteralPath $workPath -Recurse -Force
+        if ($outcome -eq 'passed') { Remove-Item -LiteralPath $workPath -Recurse -Force }
+        else { Write-Warning "BLAKE3 failure artifacts: $workPath" }
     }
 }
