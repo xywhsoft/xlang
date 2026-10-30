@@ -40,4 +40,6 @@ python -B -X utf8 ide/tools/catalog_publish.py --pair build/test/本次目录 --
 3. 运行新鲜度检查。输入、工具或前端变动均拒绝旧快照；`check_release_extlibs.ps1` 也执行此检查，不会静默自动修复旧数据。
 4. 同阶段提交库代码、测试、范例、必要文档及 IDE 资料。只提交本次路径，不纳入并行工作，不自动推送。
 
+正式运行目录交付还需更新 `release/provenance/current-delivery.json`；提交后执行 `python -B tools/check_release_delivery.py`，逐个检查运行文件和资料的大小、SHA-256、Git 原始字节及 Linux 启动文件可执行位。此检查不代替包级功能验收。
+
 IDE 的目录类型读取器有变化时需重新构建 IDE；只替换数据不能让旧二进制识别新类型。构建/便携交付使用生成后的资料对。仓库历史便携包和截图不因源数据刷新而被宣称已经重发。
