@@ -23385,8 +23385,18 @@ int xl6IrCVariadicNativeTargetSupported(const XL6_IrModule* module,
 
 int xl6IrCVarargCallSiteHasText(const XL6_IrModule* module, XL6_IrNodeId origin)
 {
+    /* Construction-effect queries also run before the verifier reaches its
+     * call-arena diagnostics. An unreadable descriptor supplies no effect;
+     * the complete verifier still reports the malformed arena normally. */
+    if (!module || module->callSiteCount > module->callSiteCapacity ||
+        (module->callSiteCount && !module->callSites)) return 0;
     const XL6_IrCallSite* site = xl6IrCallSiteGet(module, origin);
     if (!site || site->variadicAbi != XL6_IR_CALL_VARIADIC_C) return 0;
+    if (module->callArgumentCount > module->callArgumentCapacity ||
+        (module->callArgumentCount && !module->callArguments) ||
+        site->firstArgument > module->callArgumentCount ||
+        site->argumentCount > module->callArgumentCount - site->firstArgument ||
+        site->fixedParameterCount > site->argumentCount) return 0;
     for (size_t i = site->fixedParameterCount; i < site->argumentCount; ++i) {
         const XL6_IrNode* value = xl6IrNodeGet(module,
             module->callArguments[site->firstArgument + i].expression);
