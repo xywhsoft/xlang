@@ -9,6 +9,8 @@ extern "C" {
 /* 语言绑定的物理 ABI；拥有的字符串和 Buffer 通过 point 移交给宿主。 */
 void* xcsv_reader_open_memory(void* data, uint64 size, cstr delimiter, cstr quote,
     bool strict, uint64 maxInput, uint64 maxOutput, uint64 maxField, uint64 maxRows, uint64 maxFields);
+void* xcsv_reader_open_text(cstr text, uint64 size, cstr delimiter, cstr quote,
+    bool strict, uint64 maxInput, uint64 maxOutput, uint64 maxField, uint64 maxRows, uint64 maxFields);
 void* xcsv_reader_open_file(cstr path, cstr delimiter, cstr quote, bool strict,
     uint64 maxInput, uint64 maxOutput, uint64 maxField, uint64 maxRows, uint64 maxFields);
 void xcsv_reader_destroy(void* reader);

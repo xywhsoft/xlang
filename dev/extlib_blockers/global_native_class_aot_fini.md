@@ -557,3 +557,20 @@ phases/global-failures.tsv中。本轮仅补测试/双语范例/门禁，没有�
 绑定、ABI或主线。既有最小复现继续保留，修复主线后复跑全部原正例。
 
 证据索引build/test/hll_audit_f7af61fe6e5f457698d26178479b3747。
+
+## 2026-10-30 CSV 顶层对象与原文文档
+
+新增 `release/extlibs/csv/test/global_lifecycle.xl` 保持真实顶层 Writer/Reader，
+正常逐行读写并关闭 Reader。Windows/Linux 均 JIT 返回 0、独立 EXE 先打印
+`csv globals: PASS`，退出时报 state 错误并返回 1；相同操作进入局部 main
+后返回 0。没有手动清空全局、替换为 C 对象或把 1 当成预期。
+
+Windows 综合门禁还保留 README 两段和官网源两段原文：四份 AOT 均完整输出
+后返回 1，四份相同正文的局部 main 对照均返回 0。原文没有为通过测试改写。
+本轮 CSV 是 M2 第 27 实测包，不据相同症状断言所有包内部完全同根。
+
+Windows 默认 88 阶段、Linux 77 阶段仍分别有 M5、M3 等独立失败；CSV
+关闭态回滚 RFS 也另列，不与本问题合并。报告与现场为
+`build/test/csv_audit_1793320836319/windows-final/results.json`、
+`/var/tmp/xlang-csv-final-src-uLgSv6/tmp/xlang-csv-qIwZjg`。
+修复主线退役顺序后须重跑原顶层文件及四份原文，不能仅用局部 main 签收。

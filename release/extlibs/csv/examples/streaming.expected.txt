@@ -1,0 +1,6 @@
+rows: 2
+sum: 42
+snapshot: Alice|a,b
+multiline: preserved
+finished-text: adopted
+limit: rejected

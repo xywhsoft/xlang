@@ -1,0 +1,12 @@
+import csv
+
+// 原始顶层正例：正常输出后退出也必须成功，不能移动到 main 掩盖全局退役错误。
+csv.Writer output = csv.create()
+output.write(["name", "value"])
+output.write(["Alice", "a,b"])
+csv.Reader input = csv.open(output.finish())
+assert input.next() and input.field(0) == "name"
+assert input.next() and input.field(1) == "a,b"
+assert not input.next()
+input.close()
+println("csv globals: PASS")

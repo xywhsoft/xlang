@@ -32,7 +32,10 @@
     <p><a href="../extlibs.html">扩展库</a> / csv</p>
     <div class="extlib-title-row"><h1>csv</h1><span class="extlib-cat-badge">数据格式</span></div>
     <p class="extlib-lead">基于 XRT 的 UTF-8 CSV/TSV 读写。按行处理大文件，按表头读写字典，显式提交文件输出。</p>
-    <p>2026-10-24 当前 Windows 发布版的 C 测试及 Python CSV 互通通过，但完整 XLang 门禁在 <code>array&lt;array&lt;string&gt;&gt;.append(array[...])</code> 处遇到共享运行时 <code>TypeError</code>，尚未进入本包 AOT 验收。最小复现和修复方向见包内 README；下方较早的通过记录不能替代当前发布签收。</p>
+    <p>2026-10-30 冻结工具链：Windows/Linux 综合门禁分别执行 88/77 阶段，77/71 符合要求，仍真实退出 1。
+    八组基础 C、20 组首错组合、454 项 Python 互通、线程、19 个原型及新增流式双语 JIT/AOT 通过；
+    仍有 M5 嵌套数组、M3 私有构造器、M2 顶层 AOT 退役阻断，Windows 另有关闭态事务回滚 OOM 残留。
+    核心 AOT 当前已通过；下方旧日期的缺符号记录只属历史，不能替代本版发布签收。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="quickstart">
     <h2 id="quickstart">内存表格</h2>
@@ -107,6 +110,8 @@ rows.close()</code></pre>
     <p>参数非法为 ValueError，限额超出为 RangeError，字段索引越界为 IndexError，
     格式/UTF-8/表头错误为 CsvError，关闭后使用等状态错误为 RuntimeError，
     分配与读写故障分别为 MemoryError/IOError。错误保留底层原因和 CSV 数据位置。</p>
+    <p>底层 IO/内存首错已经存在时，补充 CSV 位置的诊断分配失败不会覆盖它：直接发布原始流错误，
+    CSV 自身的错误码和位置仍由 C Reader/Writer Error() 查询。正常情况下包装错误包含完整 cause。</p>
     <p>原始字节中 NUL 不合法，Buffer 输入按真实长度拒绝。语言层的文本、字段、表头、
     路径及方言选项在进入 C 字符串接口前拒绝内嵌 NUL；任意二进制输入请使用 Buffer。
     同一对象串行使用，不同对象可并发；自定义 IO 回调不得重入操作或销毁当前 CSV 对象。</p>
@@ -124,6 +129,8 @@ rows.close()</code></pre>
     Next=false 需区分 EOF 与错误。内存 Writer 要先 Close 再 TakeBuffer，结果由调用者 xrtBufferDestroy。</p>
     <p>C 外部输出流失败后不能回滚已写前缀。C 输入字符串以 NUL 结尾，不保留调用者字段；
     Destroy(NULL) 安全，文件 Destroy 不自动提交。</p>
+    <p>语言物理 ABI 头 csv_native.h 包含全部 19 个已实现入口，包括读取文本的 xcsv_reader_open_text；
+    门禁用真实生成的声明核对返回值、参数类型，并通过严格 GCC 的 missing-prototypes 检查防止漏声明。</p>
 
     <h2 id="examples">双语范例</h2>
     <p>发行目录：xl run examples/extlibs/csv_basic.xl；xl run examples/extlibs/csv_files.xl。
@@ -133,6 +140,9 @@ rows.close()</code></pre>
     <p>两组固定输出覆盖表头、Unicode、TSV、严格错误、未提交保留旧文件和提交后读取汇总。基础范例还分别以 XLang stringify 和 C Writer 核对含逗号、引号与中文的完整 CSV 线格式。
     C 与 XLang 文件范例都通过 XRT 排他创建临时目录，只操作其中的报表.csv，并在结束时清理；XLang 范例不再写入固定的 build/test 路径，不会覆盖工作目录中的同名文件。</p>
     <p>2026-10-20：包内 XLang 文件事务测试也改用独占临时目录，单独运行及 Windows/Linux 包级门禁通过；完整 AOT 仍受主线缺符号阻断。</p>
+    <p>新增 extlibs/csv/examples/streaming.xl 与 streaming_c.c：逐行汇总、独立行快照、中文多行字段、
+    直接接管文本结果及超限失败状态。共享 streaming.expected.txt 六行输出；C 字段是借用，保留时显式复制，
+    XLang row() 已返回独立结果。两份源码均可用 xl run 直接运行，不写文件。</p>
 
     <h2 id="verification">验证与发布边界</h2>
     <p>Windows 专项包含七组 C 测试、143 个普通分配失败点与 47 个文件分配失败点、
@@ -144,6 +154,14 @@ rows.close()</code></pre>
     <p>2026-10-17 Linux 包级门禁同次通过 C ASan/UBSan、Python 独立互操作 454 项、中央及包内 XLang JIT 用例、三份语言范例和两组 C/XLang 黄金输出逐字节对照。完整 AOT 的共享缺符号阻断不变。</p>
     <p>当前发布版复验：七组独立 C 用例和 454 项 Python CSV 互通通过后，中央 XLang 用例在 <code>array&lt;array&lt;string&gt;&gt;.append(array[...])</code> 报 <code>TypeError</code>；不导入 CSV 的最小文件也能复现。上述缺符号记录仅描述旧发布物，当前完整语言与 AOT 门禁仍需等主线嵌套数组写入修复后复跑，不能据历史通过记录签收本版。</p>
     <p>门禁：tools/check_extlib_csv.ps1、tools/check_extlib_csv.sh、release/extlibs/csv/test/check_xlang.sh；每次源码或构建变更均应重新验证。</p>
+    <p>2026-10-30 专项增加 20 组底层首错与诊断 OOM 组合，分别覆盖读、读关闭、写、刷新、写关闭，
+    以及重复操作、析构和内存平衡。综合门禁现有八组 C 测试与三组双语范例；失败保留日志和原始退出码，
+    校验实际运行库及输入哈希，不把 M5 嵌套数组或 M3 私有构造器问题转成预期成功。当前结果以仓库发布验收矩阵为准，
+    不据新增 C 测试签收完整语言发布质量。</p>
+    <p>当前还确认 M2：顶层文档代码输出后 AOT 退出失败，局部 main 对照通过；保留原文和顶层生命周期正例。
+    Windows 的关闭态事务在改名失败后再遇路径分配 OOM，会留下临时文件，原目标不变。
+    file_rollback_closed.c 要求零残留，失败保留独占现场；此 RFS 问题需 XRT 的无分配关闭态回滚能力，
+    不在 CSV 另建一套系统路径实现，也不据 Linux 通过签收 Windows。</p>
   </section>
 </main>
 <script src="../main.js"></script>
