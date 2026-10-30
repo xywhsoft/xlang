@@ -1,5 +1,13 @@
 /* Included after the original member-completion enumerator. Its visibility,
  * inheritance and concrete class substitution remain the shared compiler's. */
+#include "analysis/frontend_completion_path.h"
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+#define xlsSignatureCallRankAdd xl6CallRankAdd
+#define xlsSignatureGenericType(ctx,decl,args,at) xl6SemFunctionTypeFromGenericCallable(ctx,decl,args,at)
+#else
+#define xlsSignatureCallRankAdd xl6SemCallRankAdd
+#define xlsSignatureGenericType(ctx,decl,args,at) xl6SemFunctionTypeFromGenericCallable(decl,args,at)
+#endif
 static int xlsSignatureText(xstrbuf* buffer,const char* text)
 {return text && buffer->Size<=32768 && strlen(text)<=32768-buffer->Size && xrtStrBufAppend(buffer,(xstrview){text,strlen(text)});}
 static int xlsSignatureType(XL6_SemContext* ctx,xstrbuf* buffer,const XL6_AstNode* type)
@@ -29,7 +37,7 @@ static void xlsSignatureRank(XL6_SemContext* ctx,xls_signature_scope* scope,cons
         provided[index]=1;
         int cost=record->parameters[index].variadic ? 200 : expression ? xl6SemExprParamMatchCost(ctx,expression,types->children[index]) : -1;
         uint64 rank=(uint64)record->rank;
-        if(cost<0 || !xl6SemCallRankAdd(&rank,(uint32)cost,0))record->ranked=0;
+        if(cost<0 || !xlsSignatureCallRankAdd(&rank,(uint32)cost,0))record->ranked=0;
         else record->rank=(uint64_t)rank;
     }
     if(scratch.count)record->ranked=0;
@@ -86,7 +94,7 @@ static int xlsSignatureFunctions(XL6_SemContext* ctx,xls_signature_scope* scope,
         XL6_AstNode* func=ctx->root->children[i];if(!xl6SemIsFuncDecl(func) || !xl6TextEquals(xl6SemFuncName(func),name->text))continue;
         const XL6_AstNode* parameters=xl6SemFuncTypeParams(func);
         if(scope->typeArgs && (!parameters || parameters->childCount!=scope->typeArgs->childCount || !xl6SemCheckGenericConstraints(ctx,parameters,scope->typeArgs,scope->call,0)))continue;
-        XL6_AstNode* type=scope->typeArgs ? xl6SemFunctionTypeFromGenericCallable(func,scope->typeArgs,func) : xl6SemFunctionTypeFromCallableParts(xl6SemCallableParams(func),xl6SemCallableReturns(func),func);
+        XL6_AstNode* type=scope->typeArgs ? xlsSignatureGenericType(ctx,func,scope->typeArgs,func) : xl6SemFunctionTypeFromCallableParts(xl6SemCallableParams(func),xl6SemCallableReturns(func),func);
         if(!type){ctx->completionQuery->error="cannot resolve function signature";break;}xlsSemSignatureOffer(ctx,func,type,name->text);xl6AstFree(type);
     }
     return 1;
@@ -117,7 +125,7 @@ static int xlsSemSignatureCaptureCall(XL6_SemContext* ctx,XL6_AstNode* node)
 {
     xls_signature_scope* scope=xlsSignatureScopeCurrent(ctx->completionQuery);XL6_CompletionQuery* query=ctx->completionQuery;
     if(!scope || !node || node->kind!=XL6_AST_CALL || !node->tokenRange.known || node->tokenRange.startOffset!=scope->data->site.argumentsStart-1 || !node->source || !node->source->completionQuery ||
-       node->source->completionStart!=query->replacement.startOffset || node->source->completionEnd!=query->replacement.endOffset || !xl6CompletionPathEqual(xl6AstSourcePath(node),scope->data->path))return 0;
+       node->source->completionStart!=query->replacement.startOffset || node->source->completionEnd!=query->replacement.endOffset || !xlsCompletionPathEqual(xl6AstSourcePath(node),scope->data->path))return 0;
     if(++query->reached!=1){query->error="signature call checked more than once";return 1;}
     if(query->error || (ctx->diags && ctx->diags->count)){if(!query->error)query->error="signature prerequisites contain errors";return 1;}
     scope->call=node;XL6_AstNode* callee=node->childCount ? node->children[0] : NULL;

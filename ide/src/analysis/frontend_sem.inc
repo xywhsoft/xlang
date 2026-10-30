@@ -2,6 +2,7 @@
  * retains the original checker body and every language rule. */
 #include "analysis/frontend_sem.h"
 #include "analysis/ast_clone.h"
+#include "analysis/ast_package_fields.h"
 #include "analysis/frontend_cancel.h"
 #include "analysis/index_entities.h"
 #include "analysis/frontend_raw_body.h"
@@ -60,6 +61,11 @@ typedef struct xls_sem_fact {
     XL6_SemExitKind exit;
     uint32 scope,targetScope,region,targetRegion;
     XL6_AstNode *inferred,*declaredType;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    uint32 receiver,packageError;
+    int packageRoot;
+    char* packageLink;
+#endif
 } xls_sem_fact;
 typedef struct xls_sem_raw {
     XL6_AstNode* node;
@@ -68,6 +74,8 @@ typedef struct xls_sem_raw {
     XL6_AstNode** children;
     size_t count;
 } xls_sem_raw;
+
+#include "analysis/frontend_sem_package.inc"
 typedef struct xls_sem_cursor {
     const char* path;
     size_t start,end;
@@ -241,14 +249,23 @@ static int xlsSemQueryNeutral(const XL6_AstNode* node,size_t depth,const xls_sem
     for(size_t i=0;i<node->childCount;++i) if(!xlsSemQueryNeutral(node->children[i],depth+1,cursor)) return 0;
     return 1;
 }
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+#define XLS_SEM_KEY_FIELDS 23
+#define XLS_SEM_RECEIVER_KEY_FIELD 20
+#else
 #define XLS_SEM_KEY_FIELDS 20
+#endif
 static inline void xlsSemKeyScalars(const XL6_AstNode* node,uint64_t* fields)
 {
     uint64_t values[]={node->kind,node->flags,node->literalSize,node->literalScalar,node->literalDecoded,
         node->semanticTypeId,node->semanticTypeAbiId,node->semanticSymbolId,node->semanticDeclaredSymbolId,
         node->semanticTargetSymbolId,node->semanticCompoundOperatorSymbolId,node->semanticCallKind,node->semanticLvalueKind,
         node->semanticOwnership,node->semanticExitKind,node->semanticScopeDepth,node->semanticTargetScopeDepth,
-        node->semanticRegionId,node->semanticTargetRegionId,node->childCount};
+        node->semanticRegionId,node->semanticTargetRegionId,node->childCount
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+        ,node->semanticReceiverSymbolId,node->compiledPackageError,(uint64_t)node->compiledPackageRoot
+#endif
+    };
     _Static_assert(sizeof(values)/sizeof(*values)==XLS_SEM_KEY_FIELDS,"audit complete AST scalar identity");
     memcpy(fields,values,sizeof(values));
 }
@@ -272,6 +289,9 @@ static int xlsSemKeyNodePaths(xstrbuf* key,const XL6_AstNode* node,size_t depth,
     for(size_t i=0;i<sizeof(fields)/sizeof(*fields);++i) if(fields[i]) present|=(uint64_t)1<<i;
     if(!xlsSemKeyNumber(key,present)) return 0;
     for(size_t i=0;i<sizeof(fields)/sizeof(*fields);++i) if(fields[i] && !xlsSemKeyNumber(key,fields[i])) return 0;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    if(!xlsSemKeyText(key,node->compiledPackageLink))return 0;
+#endif
     if(!xlsSemKeyText(key,node->text) || !xlsSemKeyText(key,node->doc) ||
        !xlsSemKeySource(key,xl6AstSourcePath(node),paths) || !xlsSemKeyNumber(key,node->literalData!=NULL) ||
        (node->literalData && !xlsSemKeyBytes(key,node->literalData,node->literalSize)) ||
@@ -348,6 +368,16 @@ static int xlsIrKeyNode(xstrbuf* key,const XL6_AstNode* node,size_t depth,int le
             if(identity){fields[i]=identity;envelope|=UINT64_C(1)<<(44+i-7);}
         }
     }
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    if(lexical && paths->mode==XLS_IR_KEY_FUNCTION){
+        int local=0;fields[XLS_SEM_RECEIVER_KEY_FIELD]=xlsLexicalSymbolKey(paths->symbols,(XL6_SymbolId)fields[XLS_SEM_RECEIVER_KEY_FIELD],&local);
+        if(local)envelope|=UINT64_C(1)<<48;
+    }
+    if(paths->mode==XLS_IR_KEY_FUNCTION && paths->entities && !(envelope&(UINT64_C(1)<<48))){
+        uint64_t identity=xlsEntityViewSymbol(paths->entities,(XL6_SymbolId)fields[XLS_SEM_RECEIVER_KEY_FIELD]);
+        if(identity){fields[XLS_SEM_RECEIVER_KEY_FIELD]=identity;envelope|=UINT64_C(1)<<49;}
+    }
+#endif
     if(node->text)envelope|=UINT64_C(1)<<32;
     if(node->doc)envelope|=UINT64_C(1)<<33;
     if(node->literalData)envelope|=UINT64_C(1)<<34;
@@ -361,6 +391,9 @@ static int xlsIrKeyNode(xstrbuf* key,const XL6_AstNode* node,size_t depth,int le
        (textBytes && !xlsSemKeyBytes(key,node->text,textBytes)) || (docBytes && !xlsSemKeyBytes(key,node->doc,docBytes)) ||
        (pathBytes && !xlsSemKeyBytes(key,path,pathBytes)) ||
        (node->literalData && !xlsSemKeyBytes(key,node->literalData,node->literalSize)))return 0;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    if(!xlsSemKeyText(key,node->compiledPackageLink))return 0;
+#endif
     if((node->inferredType && !xlsIrKeyNode(key,node->inferredType,depth+1,0,paths)) ||
        (node->semanticDeclaredType && !xlsIrKeyNode(key,node->semanticDeclaredType,depth+1,0,paths)))return 0;
     for(size_t i=0;i<node->childCount;++i){
@@ -528,6 +561,7 @@ static int xlsSemSameShape(const XL6_AstNode* node,const xarray* nodes)
 { size_t at=0; return xlsSemShapeNode(node,nodes,&at,0) && at==nodes->Count; }
 static void xlsSemFactsFree(xarray* facts)
 {
+    xlsSemPackageFactsFree(facts);
     for(size_t i=0;i<facts->Count;++i) { xls_sem_fact* fact=xrtArrayGet(facts,i); xl6AstFree(fact->inferred); xl6AstFree(fact->declaredType); }
     xrtArrayUnit(facts);
 }
@@ -538,7 +572,7 @@ static void xlsSemUnitRelease(xls_sem_unit* unit)
 {
     if(unit && xrtAtomic32FetchSub(&unit->references,1,XMEMORY_ACQ_REL)==1){
         xlsSemProofDestroy(unit->proof);
-        if(!unit->cursor.path && unit->types){xrtArrayUnit(&unit->facts);xlsAstInternDestroy(unit->types);}
+        if(!unit->cursor.path && unit->types){xlsSemPackageFactsFree(&unit->facts);xrtArrayUnit(&unit->facts);xlsAstInternDestroy(unit->types);}
         else{xlsSemFactsFree(&unit->facts);if(unit->cursor.path)xrtFree(unit->cursorPath);}
         xlsSemReadsDestroy(unit->reads);
         xrtFree(unit);
@@ -577,14 +611,21 @@ static int xlsSemCopyFactTypesWithCursor(xarray* facts,const xls_ast_clone_optio
     }
     for(size_t i=0;i<facts->Count;++i) { xls_sem_fact* f=xrtArrayGet(facts,i); f->inferred=f->declaredType=NULL; }
     *bytes=0;
-    if(!okay) { xrtArrayUnit(&types); xrtArrayUnit(&slots); return 0; }
-    if(!types.Count) { xrtArrayUnit(&types); xrtArrayUnit(&slots); return 1; }
+    if(!okay) { xlsSemPackageFactsForget(facts);xrtArrayUnit(&types); xrtArrayUnit(&slots); return 0; }
+    size_t packageBytes=0;
+    if(!xlsSemPackageFactsCopy(facts,options->bytes,&packageBytes)){xrtArrayUnit(&types);xrtArrayUnit(&slots);return 0;}
+    if(!types.Count) {
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+        *bytes=packageBytes;
+#endif
+        xrtArrayUnit(&types); xrtArrayUnit(&slots); return 1;
+    }
     XL6_AstNode root={.kind=XL6_AST_MODULE,.children=(XL6_AstNode**)types.Data,.childCount=types.Count};
     xls_sem_type_copy copy={&root,*options};
-    xls_ast_clone_options cloneOptions={xlsSemTypeTransform,&copy,options->bytes,0,options->targetSource ? xlsSemTypeSource : NULL};
+    xls_ast_clone_options cloneOptions={xlsSemTypeTransform,&copy,options->bytes-packageBytes,0,options->targetSource ? xlsSemTypeSource : NULL};
     XL6_AstNode* owned=NULL;int triedPool=0;xls_ast_tree_work trees={0};
     if(shareLeaves>1 && attempted)*attempted=1;
-    if(options->bytes && pooled && xlsActiveStorage){
+    if(cloneOptions.bytes && pooled && xlsActiveStorage){
         size_t budget=xlsFrontendSemStorageBudget();xls_ast_pool_work work={0};
         if(budget){
             triedPool=1;if(attempted)*attempted=1;
@@ -594,7 +635,7 @@ static int xlsSemCopyFactTypesWithCursor(xarray* facts,const xls_ast_clone_optio
         if(owned){xlsActiveStorage->work.nodes+=work.nodes;xlsActiveStorage->work.pages+=work.pages;xlsActiveStorage->work.chargedBytes+=work.bytes;}
         else ++xlsActiveStorage->work.heapFallbacks;
     }
-    if(options->bytes && !owned && !triedPool)owned=shareLeaves>1 ? xlsAstCloneFactTrees(&root,&cloneOptions,&xlsSemTypeProjection,0,NULL,&trees,bytes) : shareLeaves ?
+    if(cloneOptions.bytes && !owned && !triedPool)owned=shareLeaves>1 ? xlsAstCloneFactTrees(&root,&cloneOptions,&xlsSemTypeProjection,0,NULL,&trees,bytes) : shareLeaves ?
         xlsAstCloneFactTypes(&root,&cloneOptions,policy,policyUser,0,NULL,NULL,bytes) :
         xlsAstCloneWithCursorSource(&root,&cloneOptions,policy,policyUser,bytes);
     int copied=owned!=NULL;
@@ -605,6 +646,7 @@ static int xlsSemCopyFactTypesWithCursor(xarray* facts,const xls_ast_clone_optio
         }
         owned->childCount=0; xl6AstFree(owned);
     }
+    if(copied)*bytes+=packageBytes;else xlsSemPackageFactsFree(facts);
     xrtArrayUnit(&types); xrtArrayUnit(&slots); return copied;
 }
 static int xlsSemCopyFactTypes(xarray* facts,const xls_ast_clone_options* options,size_t* bytes)
@@ -643,14 +685,22 @@ static int xlsSemCaptureFacts(const xarray* nodes,xls_sem_unit* unit,size_t limi
         xls_sem_fact* f=xrtArrayGet(facts,i);
         *f=(xls_sem_fact){n->flags,n->semanticTypeId,n->semanticSymbolId,n->semanticDeclaredSymbolId,n->semanticTargetSymbolId,
             n->semanticCompoundOperatorSymbolId,n->semanticTypeAbiId,n->semanticCallKind,n->semanticLvalueKind,n->semanticOwnership,
-            n->semanticExitKind,n->semanticScopeDepth,n->semanticTargetScopeDepth,n->semanticRegionId,n->semanticTargetRegionId,n->inferredType,n->semanticDeclaredType};
+            n->semanticExitKind,n->semanticScopeDepth,n->semanticTargetScopeDepth,n->semanticRegionId,n->semanticTargetRegionId,n->inferredType,n->semanticDeclaredType
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+            ,n->semanticReceiverSymbolId,n->compiledPackageError,n->compiledPackageRoot,NULL
+#endif
+        };
     }
     /* Foreground cursor/signature memos keep the original independent fact
      * representation. Static checks can retain the resource-saving forest.
      * No language,source,coordinate or private restoration rules differ. */
     size_t owned=0; int okay=shareTypes ? xlsSemCaptureTypes(unit,limit-*bytes,&owned) :
         xlsSemCopyFactTypes(facts,&(xls_ast_clone_options){.bytes=limit-*bytes},&owned);
-    *bytes+=owned; return okay;
+    *bytes+=owned;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    if(okay){size_t packages=0;okay=xlsSemPackageFactsCapture(nodes,facts,limit-*bytes,&packages);*bytes+=packages;}
+#endif
+    return okay;
 }
 
 #include "analysis/frontend_sem_proof.inc"
@@ -700,6 +750,9 @@ static int xlsSemApplyPosition(const XL6_AstNode* in,XL6_AstNode* out,void* user
     if(apply->symbolsChanged){
         XL6_SymbolId* symbols[]={&out->semanticSymbolId,&out->semanticDeclaredSymbolId,&out->semanticTargetSymbolId,&out->semanticCompoundOperatorSymbolId};
         for(size_t i=0;i<4;++i)if(!xlsSemSymbolsBind(apply->symbols,apply->symbolStart,1,symbols[i]))return 0;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+        if(!xlsSemSymbolsBind(apply->symbols,apply->symbolStart,1,&out->semanticReceiverSymbolId))return 0;
+#endif
     }
     /* Most inferred primitive types have no coordinates. They cannot move,
      * so keep them out of the per-version coordinate table entirely. */
@@ -844,6 +897,9 @@ static int xlsSemApplyFacts(const xls_sem_entry* entry,const xarray* nodes,const
     if(symbolsChanged)for(size_t i=0;i<staged.Count;++i){
         xls_sem_fact* f=xrtArrayGet(&staged,i);XL6_SymbolId* symbols[]={&f->symbol,&f->declared,&f->target,&f->compound};
         for(size_t j=0;j<4;++j)if(!xlsSemSymbolsBind(apply.symbols,symbolStart,1,symbols[j]))goto failed;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+        if(!xlsSemSymbolsBind(apply.symbols,symbolStart,1,&f->receiver))goto failed;
+#endif
     }
     for(size_t i=0;i<nodes->Count;++i) {
         XL6_AstNode* n=((const xls_sem_raw*)xrtArrayConstGet(nodes,i))->node; xls_sem_fact* f=xrtArrayGet(&staged,i);
@@ -851,6 +907,7 @@ static int xlsSemApplyFacts(const xls_sem_entry* entry,const xarray* nodes,const
         n->semanticDeclaredSymbolId=f->declared; n->semanticTargetSymbolId=f->target; n->semanticCompoundOperatorSymbolId=f->compound;
         n->semanticCallKind=f->call; n->semanticLvalueKind=f->lvalue; n->semanticOwnership=f->ownership; n->semanticExitKind=f->exit;
         n->semanticScopeDepth=f->scope; n->semanticTargetScopeDepth=f->targetScope; n->semanticRegionId=f->region; n->semanticTargetRegionId=f->targetRegion;
+        xlsSemPackageFactApply(n,f);
         xl6AstFree(n->inferredType); xl6AstFree(n->semanticDeclaredType);
         n->inferredType=f->inferred; n->semanticDeclaredType=f->declaredType; f->inferred=f->declaredType=NULL;
     }

@@ -19,6 +19,9 @@ static int xlsSemBodyProofType(const XL6_AstNode* in,xls_sem_apply* apply,size_t
     if((in->text && !xlsSemBodyCharge(bytes,strlen(in->text)+1)) ||
        (in->doc && !xlsSemBodyCharge(bytes,strlen(in->doc)+1)) ||
        (in->literalData && (in->literalSize==SIZE_MAX || !xlsSemBodyCharge(bytes,in->literalSize+1))))return 0;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    if(in->compiledPackageLink && !xlsSemBodyCharge(bytes,strlen(in->compiledPackageLink)+1))return 0;
+#endif
     XL6_AstNode out=*in;
     if(!xlsSemApplyPosition(in,&out,apply))return 0;
     if(in->source){
@@ -83,6 +86,10 @@ static int xlsSemBodyPrepareCount(const xls_sem_entry* old,size_t nodeCount,cons
     const XL6_AstSource* lastSource=NULL;size_t sourceBytes=0;
     for(size_t i=0;i<old->unit->facts.Count;++i){
         const xls_sem_fact* fact=xrtArrayConstGet(&old->unit->facts,i);
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+        if(fact->packageLink && !xlsSemBodyCharge(&bytes,strlen(fact->packageLink)+1))return 0;
+        if(shifted){XL6_SymbolId receiver=fact->receiver;if(!xlsSemSymbolsBind(&old->unit->symbols,start,1,&receiver))return 0;}
+#endif
         if(!xlsSemBodyProofType(fact->inferred,&apply,1,&bytes,&lastSource,&sourceBytes) ||
            !xlsSemBodyProofType(fact->declaredType,&apply,1,&bytes,&lastSource,&sourceBytes))return 0;
         if(shifted){
