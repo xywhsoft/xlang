@@ -24,7 +24,7 @@ def main():
         'release/include', 'release/examples', 'release/extlibs', 'release/projects')]
     files = {path for folder in directories for path in (source / folder).rglob('*') if path.is_file()}
     print('Pinning source inputs:', len(files), flush=True)
-    files.update(path for parent in (source, source / 'demo6') for path in parent.iterdir() if path.is_file())
+    files.update(path for path in source.iterdir() if path.is_file())
     files.update(path for path in (source/'release').iterdir() if path.is_file() and
                  path.suffix.lower() not in ('.exe','.dll','.so','.def') and path.name!='xl')
     records = [{'Relative': path.relative_to(source).as_posix(), 'Sha256': digest(path)} for path in sorted(files)]
@@ -40,7 +40,7 @@ def main():
         assert digest(target) == row['Sha256'], ('Copy input changed', str(original))
     changed = [row['Relative'] for row in records if digest(source / row['Relative']) != row['Sha256']]
     latest = subprocess.check_output(['git', '-C', str(source), 'rev-parse', 'HEAD'], text=True).strip()
-    report = dict(Complete=not changed and head == latest, Source=str(source), Root=str(tree / 'demo6'),
+    report = dict(Complete=not changed and head == latest, Source=str(source), Root=str(tree),
                   Head=head, FinalHead=latest, Changed=changed, Inputs=records,
                   ExcludedUnrelatedTrees=['ide'])
     (out / 'snapshot.json').write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
@@ -61,7 +61,7 @@ def main():
                      'xl6_ownership_domain_tcc_handler.c', 'tcc_runtime_generated_host.c',
                      'stage_runtime_headers.py', 'test_runtime_header_staging.py'))]
     subprocess.run(['git', '-C', str(tree), 'add', '--', *additions], check=True)
-    print('Coherent delivery snapshot:', tree / 'demo6', 'files=', len(records), flush=True)
+    print('Coherent delivery snapshot:', tree, 'files=', len(records), flush=True)
 
 
 if __name__ == '__main__':

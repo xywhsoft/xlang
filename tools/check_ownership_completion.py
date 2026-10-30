@@ -17,7 +17,7 @@ PROGRAMS=(
     ('preparation','xlir_ownership_preparation_runtime','xl6_ownership_plan',
         'Ownership preparation: 150 actual cycles, 600 pre-trace descriptor refusals, 150 busy paths, 50 explicit preparation failures, 25 resurrections, 50 new preparation duties, 200 notifications before 300 finalizers, 200 cross-thread freezes and zero live delta'),
     ('plan','xlir_ownership_plan_runtime','xl6_ownership_plan',
-        'Ownership plans: 400 physical cycles across commit/resurrection/new-node/finalizer-error paths, 100 busy and 100 admission refusals, 140 real preparation faults; 1548 allocations retired, zero live delta; adapter engine, not module acceptance'),
+        'Ownership plans: 400 physical cycles across commit/resurrection/new-node/finalizer-error paths, 100 busy and 100 admission refusals, 140 real preparation faults; 1632 allocations retired, zero live delta; adapter engine, not module acceptance'),
     ('value','xlir_ownership_value_plan_runtime','xl6_ownership_plan',
         'Value ownership plans: 1600 physical Array/IntMap/Object/Set COW transactions, 40000 concurrent quarantined promotions, 84 preparation/refresh/commit faults, 1696 real native owners retired; zero live delta; custom policies remain refused'),
     ('tail','xlir_code_lease_retirement_tail','xl6_code_lease',

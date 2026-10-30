@@ -1,3 +1,4 @@
+#include "src/runtime/xl6_xlang_handler.h"
 #include "xl_api_internal.h"
 
 #include "include/xl.h"
@@ -545,6 +546,10 @@ static int xlVisitDefaultTccApiSymbols(XL_ApiSymbolVisit visit, void* user)
     if (!visit(user, "xl6OwnershipCatalogResolveV1", (const void*)xl6OwnershipCatalogResolveV1)) return 0;
     if (!visit(user, "xl6OwnershipCatalogProbeV1", (const void*)xl6OwnershipCatalogProbeV1)) return 0;
     if (!visit(user, "xl6OwnershipPlanTryCreateV6", (const void*)xl6OwnershipPlanTryCreateV6)) return 0;
+    if (!visit(user, "xl6OwnershipPlanTryCreateV7", (const void*)xl6OwnershipPlanTryCreateV7)) return 0;
+    if (!visit(user, "xl6OwnershipCatalogSetBoundaryV1", (const void*)xl6OwnershipCatalogSetBoundaryV1)) return 0;
+    if (!visit(user, "xl6OwnershipCatalogBoundaryV1Get", (const void*)xl6OwnershipCatalogBoundaryV1Get)) return 0;
+    if (!visit(user, "xl6StaticModuleCreateV3", (const void*)xl6StaticModuleCreateV3)) return 0;
     if (!visit(user, "xl6XlangContextHandlePolicyV1Get", (const void*)xl6XlangContextHandlePolicyV1Get)) return 0;
     if (!visit(user, "xl6BufferHandlePolicyV1Get", (const void*)xl6BufferHandlePolicyV1Get)) return 0;
 #define XL6_NATIVE_RESOURCE_POLICY(Owner, Component, Getter) \

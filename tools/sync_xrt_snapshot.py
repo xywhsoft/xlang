@@ -272,11 +272,16 @@ def _sync(root: Path, xrt_root: Path, allow_development_source: bool = False) ->
     runtime_features = root / "lib" / "xruntime" / "xruntime_features.h"
     upstream_path = root / "lib" / "xrt" / "upstream.json"
     symbols_path = root / "src" / "api" / "xl_xrt_symbols.inc"
-    core_implementation_data = core_source.read_bytes()
-    core_declaration_data = core_declaration_source.read_bytes()
-    runtime_implementation_data = runtime_source.read_bytes()
-    runtime_declaration_data = runtime_declaration_source.read_bytes()
-    features_data = (xrt_root / "extlibs" / "xruntime" / "include" / "xruntime" / "features.h").read_bytes()
+    # These tracked C headers have eol=lf. Hash the same canonical bytes that
+    # survive Git checkout, rather than a Windows generator's local CRLF form.
+    # Otherwise committing an apparently valid snapshot invalidates its receipt.
+    def header_bytes(path: Path) -> bytes:
+        return path.read_bytes().replace(b"\r\n", b"\n")
+    core_implementation_data = header_bytes(core_source)
+    core_declaration_data = header_bytes(core_declaration_source)
+    runtime_implementation_data = header_bytes(runtime_source)
+    runtime_declaration_data = header_bytes(runtime_declaration_source)
+    features_data = header_bytes(xrt_root / "extlibs" / "xruntime" / "include" / "xruntime" / "features.h")
     provenance_path = xrt_root / "source.snapshot.json"
     if provenance_path.is_file():
         provenance = json.loads(provenance_path.read_text(encoding="utf-8"))

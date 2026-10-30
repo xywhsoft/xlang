@@ -1,6 +1,7 @@
 #include "src/runtime/xl6_log_record.h"
 #include "src/api/xl_foreign_error.h"
 #include <string.h>
+#include <stdlib.h>
 
 typedef struct log_custom {
     xvalue* write;
@@ -77,6 +78,13 @@ static void custom_drop(void* context)
     xrtValueRelease(state->write); xrtValueRelease(state->flush); xrtFree(state);
     xrtSetErrorTake(prior);
 }
+static bool custom_trace(const void* payload,xrtownershipvisitor visit,void* context)
+{
+    const log_custom* state=payload;
+    return state&&visit&&(!state->write||visit(xrtValueOwnership(state->write),context))&&
+        (!state->flush||visit(xrtValueOwnership(state->flush),context));
+}
+static const xlogsinkownershipv1 custom_policy={sizeof(custom_policy),custom_trace,NULL};
 void* xl6LogCustomV1(xstrview name,int64_t level,xvalue* write,xvalue* flush)
 {
     log_custom* state;
@@ -94,7 +102,8 @@ void* xl6LogCustomV1(xstrview name,int64_t level,xvalue* write,xvalue* flush)
     config.Write=custom_write; config.Flush=custom_flush; config.Drop=custom_drop; config.UserData=state;
     state->sink=xrtLogSinkCreate(&config);
     if (!state->sink) { custom_drop(state); return NULL; }
-    if (!xl6LogSinkAffinityV1(state->sink,true,state)) {
+    if (!xl6LogSinkAffinityV1(state->sink,true,state) ||
+        !xrtLogSinkBindOwnershipV1(state->sink,&custom_policy)) {
         xrtLogSinkFree(state->sink); return NULL;
     }
     return state->sink;
@@ -106,11 +115,19 @@ bool xl6LogCustomCloseV1(void* sink)
     if (state->closed) return true;
     if (state->active) { xrtSetErrorKind(XERR_STATE); return false; }
     bool ok=custom_flush(state);
+    xrtownershipscope mutation={0};
+    if(!xrtOwnershipMutationBegin(&mutation))return false;
     state->closed=true;
     xerror* prior=xrtTakeError();
     xvalue* write=state->write; xvalue* flush=state->flush;
     state->write=NULL; state->flush=NULL;
+    if(!xrtOwnershipScopeEnd(&mutation))abort();
     xrtValueRelease(write); xrtValueRelease(flush);
     xrtSetErrorTake(prior);
     return ok;
 }
+
+#include "xl6_ownership_domain_impl.h"
+static bool load_custom(XL6_OwnershipCatalog* catalog)
+{ return xl6OwnershipCatalogAddLogSinkV1(catalog,&custom_policy); }
+XL6_OWNERSHIP_DOMAIN(LogCustom,load_custom,NULL)

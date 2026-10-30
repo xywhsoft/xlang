@@ -24,3 +24,10 @@ void* xl6LogRingStatsV1(void* sink)
         source.Queued,source.QueueBytes,source.PeakQueued,source.PeakBytes,source.Dropped,source.Oversized};
     memcpy(snapshot->values,values,sizeof(values)); return snapshot;
 }
+
+#include "xl6_ownership_domain_impl.h"
+static bool load_log_ring(XL6_OwnershipCatalog* catalog)
+{ return xl6OwnershipCatalogAddLogSinkV1(catalog,xrtLogRingSinkOwnershipV1Get()); }
+XL6_OWNERSHIP_QUERY(LogRing)
+{ (void)policies;(void)preparation;(void)completion;*adapter=xrtLogRingOwnershipAdapterV1(ref);return *adapter!=NULL; }
+XL6_OWNERSHIP_DOMAIN(LogRing,load_log_ring,ownershipDomainLogRing)

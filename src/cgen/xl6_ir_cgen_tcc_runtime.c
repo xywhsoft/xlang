@@ -1,16 +1,11 @@
+/* Component selection consumes verified provider metadata. Ordinary C
+ * strings, errors and native fields retain their independent physical ABIs. */
 static int xl6IrCgenNeedsTccRuntime(const XL6_IrModule* module)
 {
-    static const char* const names[] = {
-        "xl6_tcc_context_create", "xl6_tcc_context_create_output",
-        "xl6_tcc_context_destroy", "xl6_tcc_context_run_args", "xl6_tcc_context_output_file",
-        "xl6_tcc_handler_wrap", "xl6_tcc_handler_create", "xl6_tcc_handler_destroy",
-        "xl6_tcc_handler_run_args", "xl6_tcc_vfs_mount_text"
-    };
-    for (size_t i=0;i<module->callTargetCount;++i) {
+    for(size_t i=0;i<module->callTargetCount;++i){
         const XL6_IrCallTarget* target=&module->callTargets[i];
-        if (target->reachability==XL6_IR_REACHABILITY_UNREACHABLE || !target->cName) continue;
-        for (size_t n=0;n<sizeof(names)/sizeof(names[0]);++n)
-            if (!strcmp(target->cName,names[n])) return 1;
+        if(target->reachability!=XL6_IR_REACHABILITY_UNREACHABLE&&
+           target->implementationAbi==XL6_IR_CALL_IMPLEMENTATION_GENERATED_TCC_V1)return 1;
     }
     return 0;
 }

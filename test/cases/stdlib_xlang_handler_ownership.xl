@@ -1,0 +1,8 @@
+import xlang
+auto unused = XLangHandler("test/cases/stdlib_xlang_handler_child.xl", "")
+auto handler = XLangHandler("test/cases/stdlib_xlang_handler_child.xl", "")
+assert handler.run([])
+assert handler.run([])
+assert handler.lastError == ""
+// Both a never-activated and a repeatedly-activated nested module are global
+// native owners; their real module records must retire before code unloading.

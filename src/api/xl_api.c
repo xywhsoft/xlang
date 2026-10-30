@@ -35,6 +35,7 @@
 #include "src/api/xl_module_state.h"
 #include "src/api/xl_api_lock.h"
 #include "src/runtime/xl6_native_handle.h"
+#include "src/runtime/xl6_xlang_handler.h"
 #include "src/runtime/xl6_dynamic_fields.h"
 #include "src/runtime/xl6_error_value.h"
 #include "src/runtime/xl6_future_payload.h"
@@ -2816,14 +2817,14 @@ static void xlModuleSnapshotDrop(const void* data)
 {
     XL_Module* module = (XL_Module*)data;
     xlApiLock();
-    if (!module->snapshotRefs || !xl__ownershipDriverRunning) abort();
+    if (!module->snapshotRefs) abort();
     --module->snapshotRefs;
     xlApiUnlock();
 }
 static bool xlModuleClaim(const void* data, const void* token)
 {
     XL_Module* module = (XL_Module*)data;
-    if (!module->destroyRequested || module->ownershipCleared ||
+    if (module->ownershipCleared ||
         (module->ownershipClaim && module->ownershipClaim != token)) return false;
     module->ownershipClaim = token; return true;
 }
@@ -2845,12 +2846,19 @@ static xrtownershipfinishresult xlModuleFinishOwnershipV2(const void* data, cons
 {
     XL_Module* module = (XL_Module*)data;
     xl6_error_scope cleanup = {0}; xl6_error_result outcome;
+    xlApiLock();
     if (module->ownershipClaim != token || !module->ownershipCleared) abort();
+    if (module->retirementRunning) {
+        xlApiUnlock(); return XRT_OWNERSHIP_FINISH_BUSY;
+    }
+    module->retirementRunning = 1;
+    xlApiUnlock();
     if (!xl6ErrorScopeBegin(&cleanup)) abort();
     XL6_ModuleRetireResult result = xlModuleRetirementStep(module, true);
     if (result == XL6_MODULE_RETIRE_FAILED) xl6ErrorScopeCaptureFailure(&cleanup);
     outcome = xl6ErrorScopeEnd(&cleanup);
     xlApiLock();
+    module->retirementRunning = 0;
     module->activation = outcome.ok && result == XL6_MODULE_RETIRE_READY
         ? XL_MODULE_INACTIVE : XL_MODULE_DEACTIVATION_PENDING;
     xlApiUnlock();
@@ -2899,6 +2907,15 @@ static XL6_OwnershipAdmissionV1 xlModuleProbeOwnershipV1(xrtownershipref ref,voi
     return module ? xl6OwnershipCatalogProbeV1(ref,module->ownershipCatalog,adapter,preparation,completion)
         : XL6_OWNERSHIP_ADMISSION_REFUSED;
 }
+/* Every host-module snapshot needs API state exclusion, including modules
+ * which never import xlang. The probe remains nonblocking; callbacks run
+ * after releasing both this boundary and the XRT ownership freeze. */
+static bool xlModuleBoundaryEnter(void* unused){(void)unused;return xlApiTryLock()!=0;}
+static void xlModuleBoundaryLeave(void* unused){(void)unused;xlApiUnlock();}
+static const XL6_OwnershipBoundaryV1 xlModuleApiBoundary={sizeof(xlModuleApiBoundary),
+    xlModuleBoundaryEnter,xlModuleBoundaryLeave,NULL,NULL};
+#include "src/api/xl_xlang_handler.inc"
+
 static XL6_OwnershipStepResult xlModuleOwnershipStepV2(XL6_OwnershipPlan* plan,
     XL6_OwnershipStepResult (*step)(XL6_OwnershipPlan*),xl6_error_result* outcome)
 {
@@ -2934,8 +2951,10 @@ static void xlModuleAdvanceOwnershipUnlocked(XL_Module* module)
     xl__ownershipDriverRunning = 1; xl__ownershipDriverThread = xrtThreadCurrentId(); prior = xrtTakeError();
     module->ownershipAdmissionRefused=0;
     if (!module->ownershipPlan) {
-        result = xl6OwnershipPlanTryCreateV6((xrtownershipref){module, &xlModuleOwnershipOps},
-            xlModuleProbeOwnershipV1, xlModuleDiscoverOwnership, false, module, &module->ownershipPlan);
+        const XL6_OwnershipBoundaryV1* boundary=xl6OwnershipCatalogBoundaryV1Get(module->ownershipCatalog);
+        result = xl6OwnershipPlanTryCreateV7((xrtownershipref){module, &xlModuleOwnershipOps},
+            xlModuleProbeOwnershipV1, xlModuleDiscoverOwnership, false, module,
+            boundary ? boundary : &xlModuleApiBoundary, &module->ownershipPlan);
         if (result <= XL6_OWNERSHIP_PLAN_BUSY) {
             module->ownershipAdmissionRefused=result==XL6_OWNERSHIP_PLAN_ERROR;goto done;
         }
@@ -3056,7 +3075,8 @@ static int xlModuleTryRetireUnlocked(XL_Module* module)
     int ownsRuntimeRef;
 
     if (module == NULL) return 1;
-    if (module->activeCalls != 0 || module->retirementRunning || xl__ownershipDriverRunning) return 0;
+    if (module->activeCalls != 0 || module->retirementRunning || xl__ownershipDriverRunning ||
+        (module->snapshotRefs && !module->ownershipPlan)) return 0;
     if (module->destroyRequested && !xlModulePrepareRetirementUnlocked(module)) return 0;
     if (module->ownershipPlan || (module->codeLeases != 0 && module->retirementContract && module->destroyRequested))
         xlModuleAdvanceOwnershipUnlocked(module);
@@ -3214,7 +3234,7 @@ static int xlModuleAcquireCode(void* data)
 {
     XL_Module* module = (XL_Module*)data; int ok = 0;
     xlApiLock();
-    if (module != NULL && module->codeOwnerReady && !module->destroyRequested && !module->retirementRunning &&
+    if (module != NULL && module->codeOwnerReady && !module->destroyRequested && !module->retirementRunning && !module->ownershipClaim &&
         module->activation != XL_MODULE_DEACTIVATING && module->activation != XL_MODULE_DEACTIVATION_PENDING &&
         module->codeLeases != SIZE_MAX) {
         ++module->codeLeases; ok = 1;

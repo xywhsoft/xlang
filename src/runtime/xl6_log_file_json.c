@@ -7,5 +7,5 @@ void* xl6LogJsonFileV1(xstrview path,int64_t level,int64_t mode,int64_t sync,
     if (!xl6LogJsonConfig(&json,flags,escape,fields,nonfinite,depth) ||
         !log_file_options(&options,path,&owned,level,mode,sync,maxBytes,backups,recordLimit,bufferLimit,interval)) return NULL;
     void* sink=xrtLogJsonFile(&options,&json);
-    xrtFree(owned); return sink;
+    xrtFree(owned); return xl6LogSinkBindNativeV1(sink);
 }

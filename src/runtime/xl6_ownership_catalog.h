@@ -13,6 +13,7 @@
     X(ProjectedWatch, xfuturewatchownershipv2) \
     X(CancelWatch, xcancelwatchownershipv1) \
     X(Combine, xfuturecombineownershipv1) \
+    X(LogSink, xlogsinkownershipv1) \
     X(Task, xtaskdataownershipv1) \
     X(TaskNet, xtasknetdataownershipv1) \
     X(NetFileInput, xnetfiledataownershipv1) \
@@ -93,4 +94,9 @@ XL6_CODE_LEASE_API XL6_OwnershipAdmissionV1 xl6OwnershipCatalogProbeV1(struct xr
     XL6_CODE_LEASE_API bool xl6OwnershipCatalogAdd##Name##V1(XL6_OwnershipCatalog*,const struct Type*);
 XL6_OWNERSHIP_POLICY_GROUPS(XL6_POLICY_ADD)
 #undef XL6_POLICY_ADD
+/* A domain may bind one exact resident native boundary during Load. Multiple
+ * domains can request the same descriptor; incompatible lock domains refuse
+ * catalog construction rather than inventing a lock order. */
+XL6_CODE_LEASE_API bool xl6OwnershipCatalogSetBoundaryV1(XL6_OwnershipCatalog*,const XL6_OwnershipBoundaryV1*);
+XL6_CODE_LEASE_API const XL6_OwnershipBoundaryV1* xl6OwnershipCatalogBoundaryV1Get(const XL6_OwnershipCatalog*);
 #endif

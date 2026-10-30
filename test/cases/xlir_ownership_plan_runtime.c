@@ -19,6 +19,7 @@ typedef struct Node {
 static Node* escaped;
 static unsigned allocations,frees,finalizers,clears,finishes,mode,admissions;
 static bool deny;
+static unsigned boundaryDepth;
 static void mutation_begin(xrtownershipscope* scope){assert(xrtOwnershipMutationBegin(scope));}
 static void mutation_end(xrtownershipscope* scope){assert(xrtOwnershipScopeEnd(scope));}
 static Node* make(unsigned kind)
@@ -49,6 +50,7 @@ static void restore(const void* data,const void* plan)
 static bool finalize(const void* data,const void* plan)
 {
     Node* n=(Node*)data; xrtownershipscope proof={0};
+    assert(!boundaryDepth);
     assert(n->claim==plan && !n->cleared && xrtOwnershipFreezeTryBegin(&proof));mutation_end(&proof);
     if(n->finalized)return true;
     n->finalized=true;++finalizers;
@@ -200,6 +202,62 @@ static void transition_round(unsigned change)
     assert(xl6OwnershipPlanFinalize(plan)&&xl6OwnershipPlanTryCommit(plan)==XL6_OWNERSHIP_PLAN_READY&&xl6OwnershipPlanFinish(plan));
     end_plan(plan);check_balance(&before);
 }
+typedef struct NativeBoundary {
+    bool busy;unsigned enters,leaves,discoveries;Node* extra;
+} NativeBoundary;
+static bool boundary_enter(void* raw)
+{
+    NativeBoundary* b=raw;assert(!boundaryDepth);
+    if(b->busy)return false;
+    ++boundaryDepth;++b->enters;return true;
+}
+static void boundary_leave(void* raw)
+{NativeBoundary* b=raw;assert(boundaryDepth==1);--boundaryDepth;++b->leaves;}
+static bool boundary_discover(xrtownershipvisitor visit,void* context,void* raw)
+{
+    NativeBoundary* b=raw;assert(boundaryDepth==1);++b->discoveries;
+    return !b->extra||visit(view(b->extra),context);
+}
+static XL6_OwnershipAdmissionV1 boundary_probe(xrtownershipref ref,void* context,
+    const XL6_OwnershipAdapterV1** selected,const xrtownershippreparationv1** preparation,
+    const XL6_OwnershipFinishV1** completion)
+{
+    (void)context;assert(boundaryDepth==1);*selected=NULL;*preparation=NULL;*completion=NULL;
+    if(ref.Ops!=&node_ops)return XL6_OWNERSHIP_ADMISSION_REFUSED;
+    *selected=&adapter;return XL6_OWNERSHIP_ADMISSION_ADMITTED;
+}
+static void native_boundary_round(void)
+{
+    xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);mode=0;
+    Node* root=cycle();NativeBoundary b={0};b.extra=cycle();
+    XL6_OwnershipBoundaryV1 boundary={sizeof(boundary),boundary_enter,boundary_leave,boundary_discover,&b};
+    XL6_OwnershipBoundaryV1 invalid=boundary;--invalid.size;
+    XL6_OwnershipPlan* plan=(XL6_OwnershipPlan*)(uintptr_t)1;
+    assert(xl6OwnershipPlanTryCreateV7(view(root),boundary_probe,NULL,false,NULL,&invalid,&plan)==XL6_OWNERSHIP_PLAN_ERROR);
+    assert(plan==(XL6_OwnershipPlan*)(uintptr_t)1&&!b.enters);xrtClearError();
+    b.busy=true;xrtSetErrorKind(XERR_STATE);const xerror* prior=xrtGetError();
+    assert(xl6OwnershipPlanTryCreateV7(view(root),boundary_probe,NULL,false,NULL,&boundary,&plan)==XL6_OWNERSHIP_PLAN_BUSY);
+    assert(plan==(XL6_OwnershipPlan*)(uintptr_t)1&&prior==xrtGetError()&&!b.enters);xrtClearError();
+    b.busy=false;plan=NULL;
+    assert(xl6OwnershipPlanTryCreateV7(view(root),boundary_probe,NULL,false,NULL,&boundary,&plan)==XL6_OWNERSHIP_PLAN_FINALIZERS);
+    assert(b.discoveries&&b.enters==b.leaves&&!boundaryDepth);
+    b.busy=true;assert(xl6OwnershipPlanFinalizeV2(plan)==XL6_OWNERSHIP_STEP_BUSY);
+    assert(xl6OwnershipPlanTryDestroy(plan)==XL6_OWNERSHIP_PLAN_BUSY);
+    b.busy=false;assert(xl6OwnershipPlanFinalize(plan));
+    b.busy=true;assert(xl6OwnershipPlanTryCommit(plan)==XL6_OWNERSHIP_PLAN_BUSY);b.busy=false;
+    assert(xl6OwnershipPlanTryCommit(plan)==XL6_OWNERSHIP_PLAN_READY&&xl6OwnershipPlanFinish(plan));end_plan(plan);
+    assert(b.enters==b.leaves&&!boundaryDepth);check_balance(&before);
+    for(unsigned point=0;point<40;++point){
+        xrtMemDebugSnapshot(&before);root=cycle();b=(NativeBoundary){0};plan=NULL;
+        assert(xrtMemDebugFailAfter(point));
+        XL6_OwnershipPlanResult status=xl6OwnershipPlanTryCreateV7(view(root),boundary_probe,NULL,false,NULL,&boundary,&plan);
+        xrtMemDebugFailClear();xrtClearError();
+        assert(!boundaryDepth&&b.enters==b.leaves);
+        if(status==XL6_OWNERSHIP_PLAN_ERROR){assert(!plan);collect(root);}
+        else {assert(status==XL6_OWNERSHIP_PLAN_FINALIZERS&&plan);end_plan(plan);collect(root);}
+        assert(b.enters==b.leaves&&!boundaryDepth);check_balance(&before);
+    }
+}
 int main(void)
 {
     xmemdebugsnapshot before;unsigned faults;assert(xrtMemDebugEnable(true));xrtSetErrorKind(XERR_STATE);xrtClearError();xrtMemDebugSnapshot(&before);
@@ -210,6 +268,7 @@ int main(void)
         deny=true;assert(xl6OwnershipPlanTryCreate(view(root),resolve,NULL,&plan)==XL6_OWNERSHIP_PLAN_ERROR && !plan);deny=false;xrtClearError();mode=0;collect(root);
     }
     for(unsigned n=0;n<32;++n)for(unsigned change=0;change<3;++change)transition_round(change);
+    native_boundary_round();
     faults=fault_sweep();check_balance(&before);assert(allocations==frees && clears==finishes);
     puts("Ownership preparation continuation: 96 real self-cycles across BUSY-to-ready, late external root and unknown child; fresh graph proof still rejects Clear");
     printf("Ownership plans: 400 physical cycles across commit/resurrection/new-node/finalizer-error paths, 100 busy and 100 admission refusals, %u real preparation faults; %u allocations retired, zero live delta; adapter engine, not module acceptance\n",faults,frees);

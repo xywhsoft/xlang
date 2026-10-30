@@ -1,0 +1,25 @@
+class LogOwner
+    Logger logger = log.create("cycle", LogLevel.trace)
+    LogSink? sink = null
+    int calls = 0
+    func install()
+        auto created = log.customSink(func(LogRecord record) as LogResult
+            self.calls += 1
+            return LogResult.written
+        end, "cycle-sink", LogLevel.trace)
+        self.sink = created
+        self.logger.addSink(created)
+    end
+    func check()
+        assert self.logger.info("retained callback") == LogResult.written
+        assert self.calls == 1
+    end
+    destroy()
+        file.appendText("build/test/log-owner-retired.txt", "retired\n")
+    end
+end
+auto owner = LogOwner()
+owner.install()
+owner.check()
+// The actual Logger -> snapshot -> Sink -> closure -> self cycle is left
+// intact. Checked module cleanup must retire it without closeCustom().

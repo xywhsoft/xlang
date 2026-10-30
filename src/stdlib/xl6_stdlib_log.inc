@@ -389,7 +389,7 @@ static const char xl6StdLogRingSinkBody[] =
     "    return LogSink(target, options.name, int(options.level), options.capacity, options.recordLimit, options.batch, options.stackSize, options.idleWaitUs)\n"
     "end\n";
 static const char xl6StdLogCustomSinkBody[] =
-    "func __xl_std_log_customSink(func(LogRecord) as LogResult write, string name = \"custom\", LogLevel level = LogLevel.trace, func() as bool flush = null) as LogSink\n"
+    "func __xl_std_log_customSink(func(LogRecord) as LogResult write, string name = \"custom\", LogLevel level = LogLevel.trace, (func() as bool)? flush = null) as LogSink\n"
     "    func(point) as int dispatch = func(point source) as int => int(write(LogRecord(source)))\n"
     "    var writeValue = xcall(dispatch)\n"
     "    var flushValue = null\n"

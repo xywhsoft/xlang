@@ -1,6 +1,7 @@
 ﻿param(
     [string]$Root = "",
-    [string]$PublicDirectory = ""
+    [string]$PublicDirectory = "",
+    [switch]$StaticOnly
 )
 
 $ErrorActionPreference = "Stop"
@@ -22,6 +23,8 @@ $header = Read-Utf8 "src\ir\xl6_ir.h"
 $source = Read-Utf8 "src\ir\xl6_ir.c"
 $lower = Read-Utf8 "src\ir\xl6_ir_lower.c"
 $directBridge = (Read-Utf8 "src\ir\xl6_ir_direct_bridge.c") + (Read-Utf8 "src\ir\xl6_ir_direct_bridge_declarations.inc") + (Read-Utf8 "src\ir\xl6_ir_direct_bridge_types.h")
+$directBridge += (Read-Utf8 'src/ir/xl6_ir_direct_bridge_fields.inc') +
+    (Read-Utf8 'src/ir/xl6_ir_direct_bridge_data.inc') + (Read-Utf8 'src/ir/xl6_ir_direct_bridge_lookup.inc')
 $xlangBridge = Read-Utf8 "src\ir\xl6_ir_xlang_bridge.c"
 $directBridgeUnit = Read-Utf8 "test\cases\xlir_direct_bridge_unit.c"
 $cgenUnit = Read-Utf8 "test\cases\xlir_cgen.c"
@@ -277,7 +280,7 @@ foreach ($required in @('taskPoolAbi', 'XL6_IR_MODULE_TASK_POOL_XRT_GUARDED_QUIE
 }
 if (!$source.Contains('xl6IrModuleTaskPoolRequirement') -or
     !(Read-Utf8 'src/runtime/xl6_task_pool.c').Contains('XL6_ModulePrepareResult xl6TaskPoolModulePrepareV1(') -or
-    !(Read-Utf8 'src/cgen/xl6_ir_cgen_function_emit.c').Contains('xl6TaskPoolModulePrepareV1(xlir_async_pool, teardown, wait)')) {
+    !(Read-Utf8 'src/cgen/xl6_ir_cgen_function_emit.c').Contains('xl6TaskPoolModulePrepareV1(xlir_async_pool, teardown, stage != 0)')) {
     throw 'Module global cleanup must follow canonical task resource quiescence'
 }
 foreach ($renderer in @('task_helpers')) {
@@ -468,7 +471,7 @@ if (!$header.Contains('XL6_IR_ASYNC_FRAME_TRANSFER_BORROW_STORAGE') -or
 }
 $cellHeader = Read-Utf8 'src/runtime/xl6_cell.h'
 $cellRuntime = Read-Utf8 'src/runtime/xl6_cell.c'
-$cellTypeCallEmitter = Read-Utf8 'src/cgen/xl6_ir_cgen_type_call.c'
+$cellTypeCallEmitter = (Read-Utf8 'src/cgen/xl6_ir_cgen_type_call.c') + (Read-Utf8 'src/cgen/xl6_ir_cgen_type_definitions.c')
 $cellInstruction = Read-Utf8 'src/cgen/xl6_ir_cgen_identity_closure.c'
 foreach ($operation in @('initialize','exchange')) {
     $transferBody=[regex]::Match($cellRuntime,"(?ms)^static void cell_${operation}_body\(.*?^\}").Value
@@ -758,7 +761,11 @@ if (!(Read-Utf8 'test/suites/03_core_function_abi.bat').Contains('check_xlir_cel
 # The compiled enum expands all X-macro families and excludes COUNT. Compare
 # production effects with independent consume-position expectations; reject
 # NONE, COUNT and unknown operations instead of matching source case labels.
-& "$PSScriptRoot/check_xlir_runtime_operand_catalog.ps1" -Root $Root -PublicDirectory $PublicDirectory -CatalogOnly
+if (!$StaticOnly) {
+    & "$PSScriptRoot/check_xlir_runtime_operand_catalog.ps1" -Root $Root -PublicDirectory $PublicDirectory -CatalogOnly
+} else {
+    Write-Output 'Source assertions only; compiled RuntimeOp acceptance is a separate check.'
+}
 if (!$?) { throw 'Compiled RuntimeOp input ownership catalog failed' }
 if (!$header.Contains('XL6_IR_OPERAND_OWNERSHIP_CONSUME_FIELD') -or
     !$ownership.Contains('instruction->elementIndex != field') -or
@@ -1045,6 +1052,18 @@ foreach ($component in @("dir")) {
     }
 }
 $xlangRuntime = Read-Utf8 "src\cgen\xl6_cgen_xlang_runtime.c"
+if (!$xlangRuntime.Contains('#include <__xl_runtime/xl6_xlang_handler.h>') -or
+    $xlangRuntime.Contains('xl6OutputPuts("void* xl6_xlang_handler_create')) {
+    throw 'XLangHandler must consume its resident declaration instead of emitting a private implementation'
+}
+$handlerRuntime = Read-Utf8 'src/api/xl_xlang_handler.inc'
+if (!$handlerRuntime.Contains('xl6XlangHandlerTraceV1') -or
+    !$handlerRuntime.Contains('xlModuleBoundaryEnter') -or
+    !(Read-Utf8 'src/runtime/xl6_xlang_handler_policy.c').Contains('xl6OwnershipCatalogSetBoundaryV1') -or
+    !(Read-Utf8 'src/api/xl_api.c').Contains('boundary ? boundary : &xlModuleApiBoundary')) {
+    throw 'Nested and ordinary native modules require real ownership tracing and API state exclusion'
+}
+$xlangRuntime += $handlerRuntime
 if ($sharedRuntime.Contains("xl6_cgen_process_run") -or
     (Read-Utf8 "src/cgen/xl6_ir_cgen_needs_call_targets.c").Contains("PROCESS_EXEC")) {
     throw "Process implementations must stay out of Cgen"
@@ -3706,9 +3725,9 @@ foreach ( $required in @(
     "xl6IrLowerShortCircuit",
     "XLIR short-circuit expression has no boolean ABI",
     "xl6IrLowerConditional",
-    "XLIR conditional expression has no canonical shape or result ABI",
-    "xl6IrLowerConditionalAsRuntimeXValue",
-    "XLIR dynamic conditional has no resolved result ABI",
+    "XLIR conditional has no resolved result ABI",
+    "xl6IrLowerConditionalAsType",
+    "XLIR conditional condition has no explicit truth conversion ABI",
     "opcode = node->opcode",
     "XLIR binary operator has no canonical opcode",
     "xl6IrLowerEmitRuntimeCall",
@@ -4659,7 +4678,7 @@ if (!$header.Contains('XL6_IR_MODULE_RETIREMENT_PREPARED_GRAPH_V2') -or
     !$source.Contains('xl_script_module_retirement_v2') -or
     !$cEmitter.Contains('xl_script_module_retirement_v2(void)') -or
     !$cEmitter.Contains('xlir_module_prepare_resources') -or
-    !$cEmitter.Contains('xl6TaskPoolModulePrepareV1(xlir_async_pool, teardown, wait)') -or
+    !$cEmitter.Contains('xl6TaskPoolModulePrepareV1(xlir_async_pool, teardown, stage != 0)') -or
     !$cEmitter.Contains('xlir_module_prepare_resources(false, false)') -or
     !$cEmitter.Contains('xlir_module_prepare_resources(true, wait)') -or
     !$cEmitter.Contains('xlir_module_prepare_resources(true, true)')) {
@@ -4672,7 +4691,7 @@ if (!$header.Contains('XL6_IR_MODULE_EXECUTOR_OWNERSHIP_RESIDENT_WAIT_SLOTS_JOIN
     !$source.Contains('xl_script_module_retirement_v3') -or
     !$cEmitter.Contains('xl_script_module_retirement_v3(void)') -or
     !$cEmitter.Contains('visit(xl6ContinuationExecutorOwnership(xlir_continuation_executor), context)') -or
-    !$cEmitter.Contains('if (teardown && !xlir_continuation_quiesce(wait))') -or
+    !$cEmitter.Contains('teardown && !xlir_continuation_quiesce(stage != 0) ? XL6_MODULE_PREPARE_BUSY : XL6_MODULE_PREPARE_READY') -or
     !$cEmitter.Contains('xl6ContinuationExecutorDestroyCompleted(xlir_continuation_executor)') -or
     $cEmitter.Contains('if (!teardown && !xl6ContinuationExecutorIsIdle(xlir_continuation_executor))') -or
     $cEmitter.Contains('if (xlir_continuation_executor != NULL) return false;') -or
@@ -4695,7 +4714,7 @@ if ($header.Contains('XL6_IR_MODULE_NETWORK_SERVICE_RESIDENT_RETRYABLE_V1') -or
     !$moduleTrace.Contains('xl6ExecutionSourceOwnershipV1(xlir_execution_source)') -or
     $moduleTrace.Contains('xlir_network_services') -or
     !$api.Contains('invalid module retirement V4 contract') -or
-    !$api.Contains('xl6OwnershipPlanTryCreateV6') -or !$api.Contains('xl6OwnershipPlanFinishV2') -or
+    !$api.Contains('xl6OwnershipPlanTryCreateV7') -or !$api.Contains('xl6OwnershipPlanFinishV2') -or
     !$api.Contains('retired == XL6_MODULE_RETIRE_BUSY') -or
     !$ownershipPlanHeader.Contains('XL6_OwnershipFinishV1') -or
     !$ownershipPlanSource.Contains('old->completion!=completion') -or
@@ -4709,7 +4728,7 @@ if (!$header.Contains('XL6_IR_MODULE_TASK_POOL_OWNERSHIP_RESIDENT_NATIVE_JOBS_JO
     !$source.Contains('XLIR module task pool ownership ABI is unresolved') -or
     !$cEmitter.Contains('visit(xl6TaskPoolOwnership(xlir_async_pool), context)') -or
     $cEmitter.Contains('xl6TaskPoolTryQuiesceV1(xlir_async_pool)') -or
-    !$cEmitter.Contains('xl6TaskPoolModulePrepareV1(xlir_async_pool, teardown, wait)') -or
+    !$cEmitter.Contains('xl6TaskPoolModulePrepareV1(xlir_async_pool, teardown, stage != 0)') -or
     $cEmitter.Contains('if (!xl6TaskRuntimeV1Get()->PoolIsClosing(xlir_async_pool) ||') -or
     !(Read-Utf8 'src/runtime/xl6_ownership_domain_task_pool.c').Contains('xl6TaskPoolOwnershipAdapterV2(ref,policies->TaskPoolExit,policies->TaskPoolExitCount,preparation)') -or
     !(Read-Utf8 'src/runtime/xl6_ownership_domain_task_pool.c').Contains('xrtTaskPoolOwnershipAdapterV2(ref,policies->TaskPoolExit,policies->TaskPoolExitCount,preparation)')) {
@@ -6426,7 +6445,7 @@ foreach ($forbidden in @('xlir_class_commit_t', 'xrtValueObjectFinalizerBindTake
     if ($cEmitter.Contains($forbidden)) { throw "Cgen must not implement class publication: $forbidden" }
 }
 if (!(Read-Utf8 'tools/run_xlir_ownership_batch.ps1').Contains('check_xlir_class_storage.ps1') -or
-    !(Read-Utf8 'tools/check_xlir_class_storage.ps1').Contains('24 rejected Typed/Lowered/C/header mutations')) {
+    !(Read-Utf8 'tools/check_xlir_class_storage.ps1').Contains('27 rejected Typed/Lowered/C/header mutations')) {
     throw 'Prepared class storage must retain its additive IR/native/actual-TCC ownership gate'
 }
 foreach ( $required in @(
@@ -6542,7 +6561,7 @@ $finalizerRuntime = Read-Utf8 'src/runtime/xl6_code_finalizer.c'
 $nativeWrapper = [regex]::Match((Read-Utf8 'src/api/xl_api.c'),
     '(?s)static int xlBuildCSourceWrapperText\(.*?\n\}').Value
 if (!$nativeWrapper.Contains('xl6OutputPuts(xlNativeCPreamble, &out)') -or
-    !(Read-Utf8 'src/api/xl_api.c').Contains('static const char xlNativeCPreamble[] = "#include <__xl_runtime/xruntime_decl.h>\n";') -or
+    !(Read-Utf8 'src/api/xl_api.c').Contains('static const char xlNativeCPreamble[] = "#include <__xl_runtime/xrt_decl.h>\n#include <__xl_runtime/xruntime_decl.h>\n";') -or
     $nativeWrapper.Contains('#include \"xrt.h\"')) {
     throw 'Native sidecars must start from the canonical declaration ABI, not preselected implementation guards'
 }
@@ -6598,4 +6617,18 @@ $beginPublish=$runOne.IndexOf('xrtOwnershipMutationBegin(&retirement)',[Math]::M
 if ($detach -le $run -or $endDetach -le $detach -or $endDetach -ge $release -or
     $beginPublish -le $leave -or $beginPublish -ge $publish) {
     throw 'Async release callbacks must run between frame detach and credit publication admissions, retaining real code and queue roots'
+}
+
+if (!$cEmitter.Contains('for (int stage = 0; stage < (wait ? 2 : 1); ++stage)') -or
+    !$cEmitter.Contains('xl6TaskPoolModulePrepareV1(xlir_async_pool, teardown, stage != 0)')) {
+    throw 'All module services must receive a nonblocking stop pass before the optional joining pass'
+}
+
+$tccImplementation = Read-Utf8 'src/cgen/xl6_ir_cgen_tcc_runtime.c'
+if ($tccImplementation.Contains('target->cName') -or
+    !$tccImplementation.Contains('target->implementationAbi==XL6_IR_CALL_IMPLEMENTATION_GENERATED_TCC_V1') -or
+    !$source.Contains('xl6IrRuntimeCallImplementationMatches(module,target)') -or
+    !$lower.Contains('xl6IrRuntimeCallImplementationMatches(ctx->module,target)') -or
+    !(Read-Utf8 'tools/check_delivery_native_fixtures.py').Contains('xlir_tcc_implementation_contract.c')) {
+    throw 'Compiler provider selection requires exact verified IR metadata and independent malformed-IR rejection'
 }

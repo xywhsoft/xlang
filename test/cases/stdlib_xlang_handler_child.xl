@@ -1,0 +1,2 @@
+assert math.sin(0) == 0
+assert "a\0b".length == 3

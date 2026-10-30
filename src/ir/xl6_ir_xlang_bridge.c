@@ -224,3 +224,85 @@ int xl6IrRuntimeXlangBridgeTargetMatches(
     }
     return 0;
 }
+
+/* A closed implementation registry, distinct from runtimeBridge. Its C ABI
+ * deliberately stays on the normal foreign-call path (not managed xstrview).
+ * Lowering records the provider and verification checks the complete signature
+ * before Cgen can select this component. */
+typedef enum XL6_IrTccArgument {
+    XL6_IR_TCC_ARG_NONE, XL6_IR_TCC_ARG_HANDLE, XL6_IR_TCC_ARG_STRING,
+    XL6_IR_TCC_ARG_INT, XL6_IR_TCC_ARG_POINT, XL6_IR_TCC_ARG_ARRAY
+} XL6_IrTccArgument;
+typedef struct XL6_IrTccImplementation {
+    const char* name;
+    int factory;
+    XL6_IrCAbi result;
+    size_t count;
+    XL6_IrTccArgument parameters[2];
+} XL6_IrTccImplementation;
+static const XL6_IrTccImplementation xl6IrTccImplementations[]={
+    {"xl6_tcc_context_create",1,XL6_IR_C_ABI_RUNTIME_XVALUE_PTR,0,{XL6_IR_TCC_ARG_NONE}},
+    {"xl6_tcc_context_create_output",1,XL6_IR_C_ABI_RUNTIME_XVALUE_PTR,1,{XL6_IR_TCC_ARG_INT}},
+    {"xl6_tcc_context_destroy",0,XL6_IR_C_ABI_VOID,1,{XL6_IR_TCC_ARG_HANDLE}},
+    {"xl6_tcc_context_run_args",0,XL6_IR_C_ABI_C_INT,2,{XL6_IR_TCC_ARG_HANDLE,XL6_IR_TCC_ARG_ARRAY}},
+    {"xl6_tcc_context_output_file",0,XL6_IR_C_ABI_C_INT,2,{XL6_IR_TCC_ARG_HANDLE,XL6_IR_TCC_ARG_STRING}},
+    {"xl6_tcc_handler_wrap",1,XL6_IR_C_ABI_RUNTIME_XVALUE_PTR,1,{XL6_IR_TCC_ARG_POINT}},
+    {"xl6_tcc_handler_create",1,XL6_IR_C_ABI_RUNTIME_XVALUE_PTR,1,{XL6_IR_TCC_ARG_STRING}},
+    {"xl6_tcc_handler_destroy",0,XL6_IR_C_ABI_VOID,1,{XL6_IR_TCC_ARG_HANDLE}},
+    {"xl6_tcc_handler_run_args",0,XL6_IR_C_ABI_C_INT,2,{XL6_IR_TCC_ARG_HANDLE,XL6_IR_TCC_ARG_ARRAY}},
+    {"xl6_tcc_vfs_mount_text",0,XL6_IR_C_ABI_C_INT,2,{XL6_IR_TCC_ARG_STRING,XL6_IR_TCC_ARG_STRING}}
+};
+static const XL6_IrTccImplementation* xl6IrTccImplementationForName(const char* name)
+{
+    if(!name)return NULL;
+    for(size_t i=0;i<sizeof(xl6IrTccImplementations)/sizeof(*xl6IrTccImplementations);++i)
+        if(!strcmp(name,xl6IrTccImplementations[i].name))return &xl6IrTccImplementations[i];
+    return NULL;
+}
+XL6_IrCallImplementationAbi xl6IrRuntimeCallImplementation(const char* name)
+{
+    return xl6IrTccImplementationForName(name) ? XL6_IR_CALL_IMPLEMENTATION_GENERATED_TCC_V1
+        : XL6_IR_CALL_IMPLEMENTATION_DEFAULT;
+}
+int xl6IrRuntimeCallImplementationMatches(const XL6_IrModule* module,const XL6_IrCallTarget* target)
+{
+    if(!module||!target)return 0;
+    const XL6_IrTccImplementation* row=xl6IrTccImplementationForName(target->cName);
+    if(!row)return target->implementationAbi==XL6_IR_CALL_IMPLEMENTATION_DEFAULT;
+    if(target->implementationAbi!=XL6_IR_CALL_IMPLEMENTATION_GENERATED_TCC_V1||
+       target->runtimeBridge!=XL6_IR_RUNTIME_BRIDGE_NONE||
+       target->runtimeBridgeOperation!=XL6_IR_RUNTIME_BRIDGE_OPERATION_NONE||
+       target->parameterCount!=row->count||target->variadicAbi!=XL6_IR_CALL_VARIADIC_NONE||
+       target->errorAbi!=XL6_IR_ERROR_ABI_MAY_RAISE||
+       (target->errorPhysicalAbi!=XL6_IR_CALL_ERROR_PHYSICAL_INVALID&&
+        target->errorPhysicalAbi!=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE)||
+       (row->count&&(!target->parameterTypes||!target->parameterAbis||!target->parameterPhysicalAbis||
+        !target->parameterConstraintAbis||!target->parameterPhysicalFieldDeclarations)))return 0;
+    if(row->factory){
+        if(!xl6IrRuntimeXlangFactoryMatches(module,target))return 0;
+    }else{
+        if(target->kind!=XL6_IR_CALL_TARGET_EXTERN_C||target->resultPhysicalAbi!=XL6_IR_CALL_RESULT_PHYSICAL_DIRECT||
+           target->resultPhysicalFieldDeclaration||target->resultPhysicalDestroySymbol)return 0;
+        const XL6_IrType* result=xl6IrTypeGet(&module->types,target->returnType);
+        if(row->result==XL6_IR_C_ABI_VOID){if(target->returnType!=XL6_IR_TYPE_INVALID)return 0;}
+        else if(!xl6IrBufferRuntimeBridgeResultMatches(result,row->result))return 0;
+    }
+    for(size_t i=0;i<row->count;++i){
+        if(target->parameterConstraintAbis[i]!=XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE)return 0;
+        if(row->parameters[i]==XL6_IR_TCC_ARG_HANDLE){
+            if(!xl6IrRuntimeXlangReceiverMatches(module,target,i))return 0;
+            continue;
+        }
+        XL6_IrCAbi abi=row->parameters[i]==XL6_IR_TCC_ARG_STRING?XL6_IR_C_ABI_MANAGED_STRING:
+            row->parameters[i]==XL6_IR_TCC_ARG_INT?XL6_IR_C_ABI_C_INT:
+            row->parameters[i]==XL6_IR_TCC_ARG_POINT?XL6_IR_C_ABI_RAW_POINTER:XL6_IR_C_ABI_RUNTIME_XVALUE_PTR;
+        XL6_IrParameterAbi transfer=(row->parameters[i]==XL6_IR_TCC_ARG_INT||row->parameters[i]==XL6_IR_TCC_ARG_POINT)
+            ?XL6_IR_PARAMETER_ABI_VALUE:XL6_IR_PARAMETER_ABI_BORROW;
+        if(!xl6IrRuntimeXlangDirectParameterMatches(module,target,i,abi,transfer))return 0;
+        if(row->parameters[i]==XL6_IR_TCC_ARG_ARRAY){
+            const XL6_IrType* array=xl6IrTypeGet(&module->types,target->parameterTypes[i]);
+            if(!array||array->kind!=XL6_IR_TYPE_BUILTIN||array->collectionAbi!=XL6_IR_COLLECTION_ARRAY||array->paramCount)return 0;
+        }
+    }
+    return 1;
+}
