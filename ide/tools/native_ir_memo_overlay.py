@@ -7,7 +7,7 @@ all original type/name/layout/call/ownership rules still execute on misses.
 from __future__ import annotations
 
 
-def derive(source: str) -> str:
+def derive(source: str, *, current=False) -> str:
     old = 'void xl6IrModuleFree(XL6_IrModule* module)'
     if source.count(old) != 1:
         raise ValueError('IR module lifetime seam changed; audit')
@@ -19,6 +19,10 @@ def derive(source: str) -> str:
         if source.count(old) != 1:
             raise ValueError('IR node text ownership seam changed; audit')
         source = source.replace(old, new)
+    if current:
+        old='        xrtFree(module->nodes[i].compiledPackageLink);'
+        if source.count(old)!=1:raise ValueError('IR package text ownership seam changed; audit')
+        source=source.replace(old,'        xlsIrOwnerFreeText(module,i,module->nodes[i].compiledPackageLink);')
     start = source.index('void xl6IrModuleFree(')
     end = source.index('\n}\n', start)
     source = source[:end] + '\n    xlsIrOwnerReset(module);' + source[end:]

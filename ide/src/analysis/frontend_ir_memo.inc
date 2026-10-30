@@ -3,6 +3,7 @@
  * transformations and verification still run on independent mutable arenas. */
 #include "analysis/frontend_ir_memo.h"
 #include "analysis/frontend_sem.h"
+#include "analysis/frontend_cancel.h"
 #include "analysis/index_entities.h"
 #define XLS_IR_MEMO_BYTES (32u*1024u*1024u)
 typedef struct xls_ir_dependency {XL6_SymbolId symbol;XL6_IrNodeId binding;XL6_IrTypeId type,storage;int local;} xls_ir_dependency;
@@ -84,7 +85,12 @@ static int xlsIrMemoTypes(const XL6_IrTypePool* pool,xstrbuf* key,size_t limit)
             q->transferAbi,q->admissionAbi,q->nullable,q->defaultAbi,q->childRole,q->childElementType,q->childSlotAbi,q->childTransferAbi,
             t->xvalueAdmissionAbi,t->xvalueAdmissionNullable,t->xvalueAdmissionTypeValueId,t->sourceTypeId,t->abiId,t->typeValueId,t->nominalSymbol,
             t->paramCount,t->returnCount,t->callableResultType,t->callableErasureAbi,t->hash,
-            t->params!=NULL,t->parameterModes!=NULL,t->parameterAbis!=NULL,t->returns!=NULL};
+            t->params!=NULL,t->parameterModes!=NULL,t->parameterAbis!=NULL,t->returns!=NULL
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+            ,t->nativeValueAbi,t->messageSchemaType,t->treeKeySchemaType,t->treeValueSchemaType,
+            t->collectionValueSchemaType,t->setKeyAbi,t->dictKeyAbi
+#endif
+        };
         if(!xlsIrMemoData(key,fields,sizeof(fields),limit) || !xlsIrMemoData(key,t->cName,sizeof(t->cName),limit) ||
            !xlsIrMemoData(key,t->errorResultCName,sizeof(t->errorResultCName),limit) ||
            !xlsIrMemoString(key,t->name,limit) || !xlsIrMemoString(key,t->displayName,limit))return 0;
@@ -229,11 +235,29 @@ static const XL6_IrNode* xlsIrMemoRead(XL6_IrModule* module,XL6_SymbolId symbol)
  * unionField=SIZE_MAX is the default;encode only differing machine words. */
 #define XLS_IR_NODE_WORDS ((sizeof(XL6_IrNode)+7)/8)
 _Static_assert(XLS_IR_NODE_WORDS<=64,"audit raw IR fragment word mask");
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+#define XLS_IR_SYMBOL_FIELDS 4u
+#define XLS_IR_PACKAGE_MASK (1u<<8)
+#else
+#define XLS_IR_SYMBOL_FIELDS 3u
+#define XLS_IR_PACKAGE_MASK 0u
+#endif
 static int xlsIrMemoEncodeNode(xstrbuf* data,const XL6_IrNode* in,size_t limit,xls_ir_capture* capture)
 {
     XL6_IrNode value=*in;value.text=NULL;value.literalData=NULL;value.span=(XL6_IrSpan){0};value.unionField^=SIZE_MAX;
-    XL6_SymbolId* fields[]={&value.symbol,&value.targetSymbol,&value.compoundOperatorSymbol};unsigned mask=0;
-    for(unsigned i=0;i<3;++i){int kind;if(!xlsIrMemoSymbol(capture,*fields[i],fields[i],&kind))return 0;if(kind)mask|=1u<<(i+(kind==2 ? 3 : 0));}
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    value.compiledPackageLink=NULL;
+#endif
+    XL6_SymbolId* fields[]={&value.symbol,&value.targetSymbol,&value.compoundOperatorSymbol
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+        ,&value.constructorReceiverSymbol
+#endif
+    };unsigned mask=0;
+    for(unsigned i=0;i<XLS_IR_SYMBOL_FIELDS;++i){int kind;if(!xlsIrMemoSymbol(capture,*fields[i],fields[i],&kind))return 0;if(kind)mask|=1u<<(i+(kind==2 ? XLS_IR_SYMBOL_FIELDS : 0));}
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    size_t packageSize=in->compiledPackageLink ? strlen(in->compiledPackageLink) : 0;
+    if(in->compiledPackageLink)mask|=XLS_IR_PACKAGE_MASK;
+#endif
     uint64_t words[XLS_IR_NODE_WORDS]={0},packed[1+XLS_IR_NODE_WORDS]={0};size_t count=1;
     memcpy(words,&value,sizeof(value));
     for(size_t i=0;i<XLS_IR_NODE_WORDS;++i)if(words[i]){packed[0]|=UINT64_C(1)<<i;packed[count++]=words[i];}
@@ -242,7 +266,13 @@ static int xlsIrMemoEncodeNode(xstrbuf* data,const XL6_IrNode* in,size_t limit,x
     return xlsIrMemoNumber(data,in->text!=NULL,limit) && xlsIrMemoNumber(data,textSize,limit) &&
         (!in->text || xlsIrMemoData(data,in->text,textSize+1,limit)) &&
         xlsIrMemoNumber(data,in->literalData!=NULL,limit) &&
-        (!in->literalData || (in->literalSize<SIZE_MAX && xlsIrMemoData(data,in->literalData,in->literalSize+1,limit)));
+        (!in->literalData || (in->literalSize<SIZE_MAX && xlsIrMemoData(data,in->literalData,in->literalSize+1,limit)))
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+        && (!in->compiledPackageLink || (xlsIrMemoNumber(data,1,limit) &&
+            xlsIrMemoNumber(data,packageSize,limit) &&
+            xlsIrMemoData(data,in->compiledPackageLink,packageSize+1,limit)))
+#endif
+        ;
 }
 typedef struct xls_ir_reader {const unsigned char* data;size_t at,size;} xls_ir_reader;
 static int xlsIrMemoReadNumber(xls_ir_reader* r,uint64_t* value)
@@ -274,9 +304,17 @@ static int xlsIrMemoDecodeNode(xls_ir_reader* r,XL6_IrNode* out,int borrow,const
         memcpy(&words[i],r->data+r->at,sizeof(*words));r->at+=sizeof(*words);
     }
     memcpy(out,words,sizeof(*out));out->text=NULL;out->literalData=NULL;out->unionField^=SIZE_MAX;
-    uint64_t symbolMask;if(!xlsIrMemoReadNumber(r,&symbolMask) || symbolMask>63 || (symbolMask&(symbolMask>>3)&7u))return 0;
-    XL6_SymbolId* fields[]={&out->symbol,&out->targetSymbol,&out->compoundOperatorSymbol};
-    for(unsigned i=0;i<3;++i)if(!xlsIrMemoResolve(unit,entities,symbols,*fields[i],(symbolMask&(1u<<(i+3))) ? 2 : (int)((symbolMask>>i)&1u),fields[i]))return 0;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    out->compiledPackageLink=NULL;
+#endif
+    uint64_t symbolMask;if(!xlsIrMemoReadNumber(r,&symbolMask) || symbolMask>(((1u<<(XLS_IR_SYMBOL_FIELDS*2))-1u)|XLS_IR_PACKAGE_MASK) ||
+        (symbolMask&(symbolMask>>XLS_IR_SYMBOL_FIELDS)&((1u<<XLS_IR_SYMBOL_FIELDS)-1u)))return 0;
+    XL6_SymbolId* fields[]={&out->symbol,&out->targetSymbol,&out->compoundOperatorSymbol
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+        ,&out->constructorReceiverSymbol
+#endif
+    };
+    for(unsigned i=0;i<XLS_IR_SYMBOL_FIELDS;++i)if(!xlsIrMemoResolve(unit,entities,symbols,*fields[i],(symbolMask&(1u<<(i+XLS_IR_SYMBOL_FIELDS))) ? 2 : (int)((symbolMask>>i)&1u),fields[i]))return 0;
     if(!xlsIrMemoReadText(r,&out->text,borrow) || !xlsIrMemoReadNumber(r,&present) || present>1)return 0;
     if(present){
         if(out->literalSize>=SIZE_MAX || out->literalSize>=r->size-r->at || r->data[r->at+out->literalSize])return 0;
@@ -285,6 +323,9 @@ static int xlsIrMemoDecodeNode(xls_ir_reader* r,XL6_IrNode* out,int borrow,const
         if(!borrow)memcpy(out->literalData,r->data+r->at,out->literalSize+1);
         r->at+=out->literalSize+1;
     }
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    if((symbolMask&XLS_IR_PACKAGE_MASK) && (!xlsIrMemoReadText(r,&out->compiledPackageLink,borrow) || !out->compiledPackageLink))return 0;
+#endif
     return 1;
 }
 /* Decode into reserved but unpublished arena slots. No module count or
@@ -295,6 +336,9 @@ static int xlsIrMemoDecodePlace(const xls_ir_unit* unit,xls_ir_reader* reader,XL
     if(!source || depth>512 || *at>=unit->nodes || xlsFrontendCancelPoint(XLS_CANCEL_IR_NODE,0))return 0;
     XL6_IrNode* node=&module->nodes[module->nodeCount+(*at)++];
     node->text=NULL;node->literalData=NULL;++*touched;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    node->compiledPackageLink=NULL;
+#endif
     if(!xlsIrMemoDecodeNode(reader,node,borrow,symbols,unit,entities) || node->sourceKind!=source->kind)return 0;
     if(node->parent){
         if(node->parent<=unit->startNode || node->parent>unit->startNode+unit->nodes)return 0;
@@ -363,6 +407,10 @@ failed:
     for(size_t i=0;i<touched;++i){
         XL6_IrNode* node=&module->nodes[start+i];
         if(!borrow){xrtFree(node->text);xrtFree(node->literalData);}
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+        if(!borrow)xrtFree(node->compiledPackageLink);
+        node->compiledPackageLink=NULL;
+#endif
         node->text=NULL;node->literalData=NULL;
     }
     return 0;
@@ -376,6 +424,9 @@ static int xlsIrMemoCapture(xls_ir_capture* capture,const XL6_IrModule* module,s
         if(node->text || node->literalData)++unit->textNodes;
         if(node->text)unit->textBytes+=strlen(node->text)+1;
         if(node->literalData)unit->textBytes+=node->literalSize+1;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+        if(node->compiledPackageLink){unit->textBytes+=strlen(node->compiledPackageLink)+1;if(!node->text && !node->literalData)++unit->textNodes;}
+#endif
     }
     if(unit->children && !xlsIrMemoData(&unit->data,module->children+unit->startChild,unit->children*sizeof(*module->children),limit))return 0;
     unit->bytes=sizeof(*unit)+unit->key.Capacity+unit->types.Capacity+unit->data.Capacity+
