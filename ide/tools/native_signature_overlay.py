@@ -35,6 +35,11 @@ PROFILES = {
     }
 }
 
+# Same parser/AST/allocator contracts with the audited retirement runtime.
+PROFILES['current-ed78373d'] = {**PROFILES['current-9192a99f'],
+    'lib/xrt/xrt.h': '05e8c00fb0eef0215f4d0c9291d240438cb37782df5de1c0e9ba8699b0dcd5eb'}
+
+
 def profile(frontend: Path) -> dict[str, str]:
     actual = {rel: sha(frontend/rel) for rel in next(iter(PROFILES.values()))}
     if actual not in PROFILES.values():

@@ -6,6 +6,7 @@ binds its real include closure and whole declarations to the committed engine.
 from pathlib import Path
 import hashlib
 from native_index_overlay import profile as index_profile
+from native_current_retirement_profile import role_pins
 from native_current_ir_profile import COMPACT_BRIDGE_PINS
 
 PINS = {'lib/xrt/xrt.h': 'd8c4d3cb7da7d91c35b38cdb22be516425d3cbd2ed69ddb90b59ec5dfb5714cc',
@@ -70,7 +71,7 @@ def profile(frontend:Path):
     bridge=frontend/'src/ir/xl6_ir_direct_bridge.c'
     compact=bridge.is_file() and hashlib.sha256(bridge.read_bytes()).hexdigest()==COMPACT_BRIDGE_PINS['src/ir/xl6_ir_direct_bridge.c']
     expected={**PINS,**COMPACT_BRIDGE_PINS} if compact else PINS
-    for rel,digest in expected.items():
+    for rel,digest in role_pins(frontend,expected).items():
         path=frontend/rel
         if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest()!=digest:
             raise ValueError("current semantic include/declaration cohort changed; audit read/write/registry contracts: "+rel)

@@ -213,3 +213,7 @@ COMPACT_BRIDGE_PINS = {
     'src/ir/xl6_ir_direct_bridge_types.h': '98874e8f6a0712edb5953f679e8dafa2069ed622f208f71254000d55bba8f1fa',
 }
 PROFILES['current-003dd48e'] = {**PROFILES['current-2084f8ac'], **COMPACT_BRIDGE_PINS}
+
+# Exact provider field,lowerer,verifier,resource and runtime contracts.
+from native_current_retirement_profile import PINS as RETIREMENT_PINS
+PROFILES['current-ed78373d'] = {**PROFILES['current-003dd48e'],**RETIREMENT_PINS}

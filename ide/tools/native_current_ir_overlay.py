@@ -3,6 +3,7 @@ from pathlib import Path
 import hashlib
 from native_index_overlay import profile as index_profile
 from native_ir_memo_overlay import derive as raw_memo
+from native_current_retirement_profile import PINS as RETIREMENT_PINS,IR_DIGESTS as RETIREMENT_IR_DIGESTS
 from native_current_ir_profile import PINS as IR_DEPENDENCIES,PROFILES as IR_PROFILES
 
 PINS={
@@ -18,7 +19,7 @@ PHASE_IR_SHA256='e1ea31c336278b6729369e9f6a1bb4d86a4e945018a88f8c672c0a643e08962
 # Git archive's configured checkout conversion produces this exact CRLF copy.
 # Both constants name the same committed correction; arbitrary normalization
 # must not admit otherwise unknown source contents.
-PHASE_IR_DIGESTS=(PHASE_IR_SHA256,'5c7a46e13b8f774c0fd27c3d66fc9c064aafc73b20386d2e9a448e9df7d78e6a')
+PHASE_IR_DIGESTS=(PHASE_IR_SHA256,'5c7a46e13b8f774c0fd27c3d66fc9c064aafc73b20386d2e9a448e9df7d78e6a')+RETIREMENT_IR_DIGESTS
 
 
 def derive(frontend:Path,output:Path,*,phases=False,ir_source=None):
@@ -26,7 +27,8 @@ def derive(frontend:Path,output:Path,*,phases=False,ir_source=None):
     ast=frontend/'src/ast/xl6_ast.h'
     if audited[str(ast)]!='5ebb5cc003e51d954d02ad229307406a4990142d7813f755e0df3bbc9838fbb1':
         raise ValueError('current IR unit requires its current AST/parser/type/XRT cohort')
-    for rel,digest in PINS.items():
+    selected_pins={**PINS,**RETIREMENT_PINS} if hashlib.sha256((frontend/'src/ir/xl6_ir.c').read_bytes()).hexdigest() in RETIREMENT_IR_DIGESTS else PINS
+    for rel,digest in selected_pins.items():
         p=frontend/rel
         if rel=='src/ir/xl6_ir.c' and p.is_file() and hashlib.sha256(p.read_bytes()).hexdigest() in PHASE_IR_DIGESTS:digest=hashlib.sha256(p.read_bytes()).hexdigest()
         if not p.is_file() or hashlib.sha256(p.read_bytes()).hexdigest()!=digest:
