@@ -1,0 +1,41 @@
+{
+    "format":  "xlang-package-1",
+    "name":  "blake2",
+    "version":  "1.0.0",
+    "abiVersion":  "1",
+    "kind":  "demo6-extlib",
+    "artifact":  {
+                     "kind":  "source",
+                     "cSources":  [
+                                      "third_party/blake2.c",
+                                      "xrt_blake2.c",
+                                      "blake2_native.c"
+                                  ],
+                     "xrtModules": [
+                         "XRT_MODULE_IO_BUFFER",
+                         "XRT_MODULE_IO_FILE",
+                         "XRT_MODULE_CODEC_HEX",
+                         "XRT_MODULE_TEMP_MEMORY",
+                         "XRT_MODULE_VALUE",
+                         "XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE"
+                     ],
+                     "xlSources":  [
+                                       "src/blake2.xl"
+                                   ]
+                 },
+    "links":  [
+
+              ],
+    "loadlibs":  [
+
+                 ],
+    "dependencies":  [
+
+                     ],
+    "coverage": { "mode": "suite", "tests": ["test/vectors.xl"] },
+    "native":  {
+                   "singleton":  false,
+                   "loadName":  "",
+                   "version":  ""
+               }
+}

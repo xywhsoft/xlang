@@ -1,0 +1,569 @@
+import xhttp.body
+from xhttp.body import Body
+import xhttp.multipart
+from xhttp.multipart import MultipartBoundary, MultipartLimits, MultipartWriter
+
+
+
+extern "xhttp_form_data_last_error" func __xhttp_form_data_error_native() as point
+extern "xhttp_form_data_create_config" func __xhttp_form_data_create_config(
+    c_longlong initialParts,
+    c_longlong maxParts,
+    c_longlong maxName,
+    c_longlong maxFilename,
+    c_longlong maxContentType,
+    c_longlong maxMetadata,
+    c_longlong maxPartBytes,
+    c_longlong maxBodyBytes) as point
+extern "xhttp_form_data_parse" func __xhttp_form_data_parse_native(
+    point data, c_size size, point boundary,
+    c_longlong initialParts,
+    c_longlong maxParts,
+    c_longlong maxName,
+    c_longlong maxFilename,
+    c_longlong maxContentType,
+    c_longlong maxMetadata,
+    c_longlong maxPartBytes,
+    c_longlong maxBodyBytes,
+    c_longlong multipartMaxParts,
+    c_longlong maxHeaders,
+    c_longlong maxDelimiterBytes,
+    c_longlong maxHeaderBytes,
+    c_longlong multipartMaxPartBytes,
+    c_longlong multipartMaxBodyBytes) as point
+extern "xhttp_form_data_parse_content_type" func __xhttp_form_data_parse_type_native(
+    string contentType, c_size contentTypeSize,
+    point data, c_size size,
+    c_longlong initialParts,
+    c_longlong maxParts,
+    c_longlong maxName,
+    c_longlong maxFilename,
+    c_longlong maxContentType,
+    c_longlong maxMetadata,
+    c_longlong maxPartBytes,
+    c_longlong maxBodyBytes,
+    c_longlong multipartMaxParts,
+    c_longlong maxHeaders,
+    c_longlong maxDelimiterBytes,
+    c_longlong maxHeaderBytes,
+    c_longlong multipartMaxPartBytes,
+    c_longlong multipartMaxBodyBytes) as point
+
+
+
+export const int FORM_DATA_PART_FILENAME = 1
+export const int FORM_DATA_PART_CONTENT_TYPE = 2
+
+
+
+// 复制当前线程错误文本并生成稳定字符串。
+func __xhttp_form_data_error() as string
+    point handle = __xhttp_form_data_error_native()
+    if handle == null then
+        return "xhttp.form_data operation failed"
+    end
+    return Buffer(handle).text()
+end
+
+
+
+// 检查拥有型原生句柄并保留 XRT 的结构化失败原因。
+func __xhttp_form_data_handle(point handle) as point
+    if handle == null then
+        throw RuntimeError __xhttp_form_data_error()
+    end
+    return handle
+end
+
+
+
+// 返回当前线程最近一次 xhttp.form_data/XRT 错误文本。
+export func lastError() as string
+    return __xhttp_form_data_error()
+end
+
+
+
+// FormDataConfig 同时限制字段数量、元数据和正文预算；-1 表示正文不设上限。
+export class FormDataConfig
+    int initialParts
+    int maxParts
+    int maxName
+    int maxFilename
+    int maxContentType
+    int maxMetadata
+    int maxPartBytes
+    int maxBodyBytes
+
+    create(
+        int initialParts = 8,
+        int maxParts = 1024,
+        int maxName = 4096,
+        int maxFilename = 16384,
+        int maxContentType = 4096,
+        int maxMetadata = 1048576,
+        int maxPartBytes = -1,
+        int maxBodyBytes = -1
+    )
+        self.initialParts = initialParts
+        self.maxParts = maxParts
+        self.maxName = maxName
+        self.maxFilename = maxFilename
+        self.maxContentType = maxContentType
+        self.maxMetadata = maxMetadata
+        self.maxPartBytes = maxPartBytes
+        self.maxBodyBytes = maxBodyBytes
+    end
+end
+
+
+
+// FormDataEncoded 把组合式正文、boundary 和 Content-Type 作为一次编码结果返回。
+export class FormDataEncoded
+    private Body? storedBody = null
+    private MultipartBoundary? storedMultipartBoundary = null
+    string contentType
+
+    create(Body body, MultipartBoundary boundary, string contentType)
+        self.storedBody = body
+        self.storedMultipartBoundary = boundary
+        self.contentType = contentType
+    end
+
+    get body() as Body
+        Body? value = self.storedBody
+        if value == null then throw RuntimeError "FormDataEncoded is not initialized" end
+        return value
+    end
+
+    get boundary() as MultipartBoundary
+        MultipartBoundary? value = self.storedMultipartBoundary
+        if value == null then throw RuntimeError "FormDataEncoded is not initialized" end
+        return value
+    end
+end
+
+
+
+// FormDataPart 是稳定拥有型快照，正文引用和元数据不受原容器修改影响。
+export class FormDataPart
+    native point handle
+    extern "xhttp_form_data_part_wrap" create(point handle)
+    extern "xhttp_form_data_part_destroy_abi" destroy()
+    extern "xhttp_form_data_part_text" func textNative(
+        c_longlong field) as point
+    extern "xhttp_form_data_part_has" func hasNative(
+        c_longlong field) as bool
+    extern "xhttp_form_data_part_body" func bodyNative() as point
+    extern "xhttp_form_data_part_length" func lengthNative() as c_longlong
+    extern "xhttp_form_data_part_flags" func flagsNative() as c_ulonglong
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get name() as string
+        return Buffer(__xhttp_form_data_handle(
+            self.textNative(c_longlong(0)))).text()
+    end
+
+    get hasFilename() as bool
+        return self.hasNative(c_longlong(1))
+    end
+
+    get filename() as string?
+        if not self.hasFilename then
+            return null
+        end
+        return Buffer(__xhttp_form_data_handle(
+            self.textNative(c_longlong(1)))).text()
+    end
+
+    get hasContentType() as bool
+        return self.hasNative(c_longlong(2))
+    end
+
+    get contentType() as string?
+        if not self.hasContentType then
+            return null
+        end
+        return Buffer(__xhttp_form_data_handle(
+            self.textNative(c_longlong(2)))).text()
+    end
+
+    get length() as int
+        return int(self.lengthNative())
+    end
+
+    get lengthKnown() as bool
+        return self.length >= 0
+    end
+
+    get flags() as int
+        return int(self.flagsNative())
+    end
+
+    func body() as Body
+        return Body(__xhttp_form_data_handle(self.bodyNative()))
+    end
+
+    func bytes(int maxBytes = 67108864) as Buffer
+        return self.body().readAll(maxBytes)
+    end
+
+    func text(int maxBytes = 67108864) as string
+        return self.body().text(maxBytes)
+    end
+end
+
+
+
+// FormData 是有序、区分大小写并允许重复名称的拥有型 multipart/form-data 容器。
+export class FormData
+    native point handle
+    extern "xhttp_form_data_create" create()
+    extern "xhttp_form_data_wrap" create(point handle)
+    extern "xhttp_form_data_destroy_abi" destroy()
+    extern "xhttp_form_data_native" func nativeHandle() as point
+    extern "xhttp_form_data_clone" func cloneNative() as point
+    extern "xhttp_form_data_clear" func clear()
+    extern "xhttp_form_data_reserve" func reserveNative(
+        c_size parts) as bool
+    extern "xhttp_form_data_value" func valueNative(
+        c_longlong field) as c_ulonglong
+    extern "xhttp_form_data_append_text" func appendTextNative(
+        string name, c_size nameSize,
+        string value, c_size valueSize) as bool
+    extern "xhttp_form_data_append_bytes" func appendBytesNative(
+        string name, c_size nameSize,
+        point data, c_size size,
+        string filename, c_size filenameSize,
+        bool hasFilename,
+        string contentType, c_size contentTypeSize) as bool
+    extern "xhttp_form_data_append_body" func appendBodyNative(
+        string name, c_size nameSize,
+        point body,
+        string filename, c_size filenameSize,
+        bool hasFilename,
+        string contentType, c_size contentTypeSize) as bool
+    extern "xhttp_form_data_set_text" func setTextNative(
+        string name, c_size nameSize,
+        string value, c_size valueSize) as bool
+    extern "xhttp_form_data_set_bytes" func setBytesNative(
+        string name, c_size nameSize,
+        point data, c_size size,
+        string filename, c_size filenameSize,
+        bool hasFilename,
+        string contentType, c_size contentTypeSize) as bool
+    extern "xhttp_form_data_set_body" func setBodyNative(
+        string name, c_size nameSize,
+        point body,
+        string filename, c_size filenameSize,
+        bool hasFilename,
+        string contentType, c_size contentTypeSize) as bool
+    extern "xhttp_form_data_remove" func removeNative(
+        string name, c_size nameSize) as c_ulonglong
+    extern "xhttp_form_data_count_name" func countNative(
+        string name, c_size nameSize) as c_ulonglong
+    extern "xhttp_form_data_has" func hasNative(
+        string name, c_size nameSize) as bool
+    extern "xhttp_form_data_at" func atNative(
+        c_ulonglong index) as point
+    extern "xhttp_form_data_find" func findNative(
+        string name, c_size nameSize,
+        c_ulonglong occurrence) as point
+    extern "xhttp_form_data_body" func bodyNative(point boundary) as point
+
+    static func withConfig(FormDataConfig config) as FormData
+        return FormData(__xhttp_form_data_handle(
+            __xhttp_form_data_create_config(
+                c_longlong(config.initialParts),
+                c_longlong(config.maxParts),
+                c_longlong(config.maxName),
+                c_longlong(config.maxFilename),
+                c_longlong(config.maxContentType),
+                c_longlong(config.maxMetadata),
+                c_longlong(config.maxPartBytes),
+                c_longlong(config.maxBodyBytes))))
+    end
+
+    static func parse(
+        Buffer source,
+        MultipartBoundary boundary,
+        FormDataConfig? config = null,
+        MultipartLimits? limits = null
+    ) as FormData
+        FormDataConfig actualConfig = FormDataConfig()
+        if config != null then
+            actualConfig = config as FormDataConfig
+        end
+        MultipartLimits actualLimits = MultipartLimits()
+        if limits != null then
+            actualLimits = limits as MultipartLimits
+        end
+        return FormData(__xhttp_form_data_handle(
+            __xhttp_form_data_parse_native(
+                source.data(), c_size(source.len()),
+                boundary.nativeHandle(),
+                c_longlong(actualConfig.initialParts),
+                c_longlong(actualConfig.maxParts),
+                c_longlong(actualConfig.maxName),
+                c_longlong(actualConfig.maxFilename),
+                c_longlong(actualConfig.maxContentType),
+                c_longlong(actualConfig.maxMetadata),
+                c_longlong(actualConfig.maxPartBytes),
+                c_longlong(actualConfig.maxBodyBytes),
+                c_longlong(actualLimits.maxParts),
+                c_longlong(actualLimits.maxHeaders),
+                c_longlong(actualLimits.maxDelimiterBytes),
+                c_longlong(actualLimits.maxHeaderBytes),
+                c_longlong(actualLimits.maxPartBytes),
+                c_longlong(actualLimits.maxBodyBytes))))
+    end
+
+    static func parse(
+        Buffer source,
+        string contentType,
+        FormDataConfig? config = null,
+        MultipartLimits? limits = null
+    ) as FormData
+        FormDataConfig actualConfig = FormDataConfig()
+        if config != null then
+            actualConfig = config as FormDataConfig
+        end
+        MultipartLimits actualLimits = MultipartLimits()
+        if limits != null then
+            actualLimits = limits as MultipartLimits
+        end
+        return FormData(__xhttp_form_data_handle(
+            __xhttp_form_data_parse_type_native(
+                contentType, c_size(string.byteLen(contentType)),
+                source.data(), c_size(source.len()),
+                c_longlong(actualConfig.initialParts),
+                c_longlong(actualConfig.maxParts),
+                c_longlong(actualConfig.maxName),
+                c_longlong(actualConfig.maxFilename),
+                c_longlong(actualConfig.maxContentType),
+                c_longlong(actualConfig.maxMetadata),
+                c_longlong(actualConfig.maxPartBytes),
+                c_longlong(actualConfig.maxBodyBytes),
+                c_longlong(actualLimits.maxParts),
+                c_longlong(actualLimits.maxHeaders),
+                c_longlong(actualLimits.maxDelimiterBytes),
+                c_longlong(actualLimits.maxHeaderBytes),
+                c_longlong(actualLimits.maxPartBytes),
+                c_longlong(actualLimits.maxBodyBytes))))
+    end
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get count() as int
+        return int(self.valueNative(c_longlong(0)))
+    end
+
+    get metadataBytes() as int
+        return int(self.valueNative(c_longlong(1)))
+    end
+
+    func clone() as FormData
+        return FormData(__xhttp_form_data_handle(self.cloneNative()))
+    end
+
+    func reserve(int parts)
+        if parts < 0 then
+            throw ValueError "FormData reserve count must not be negative"
+        end
+        if not self.reserveNative(c_size(parts)) then
+            throw RuntimeError __xhttp_form_data_error()
+        end
+    end
+
+    func append(string name, string value)
+        if not self.appendTextNative(
+            name, c_size(string.byteLen(name)),
+            value, c_size(string.byteLen(value))) then
+            throw RuntimeError __xhttp_form_data_error()
+        end
+    end
+
+    func append(
+        string name,
+        Buffer value,
+        string? filename = null,
+        string contentType = ""
+    )
+        string actualFilename = ""
+        bool hasFilename = filename != null
+        if hasFilename then
+            actualFilename = filename as string
+        end
+        if not self.appendBytesNative(
+            name, c_size(string.byteLen(name)),
+            value.data(), c_size(value.len()),
+            actualFilename, c_size(string.byteLen(actualFilename)),
+            hasFilename,
+            contentType, c_size(string.byteLen(contentType))) then
+            throw RuntimeError __xhttp_form_data_error()
+        end
+    end
+
+    func append(
+        string name,
+        Body value,
+        string? filename = null,
+        string contentType = ""
+    )
+        string actualFilename = ""
+        bool hasFilename = filename != null
+        if hasFilename then
+            actualFilename = filename as string
+        end
+        if not self.appendBodyNative(
+            name, c_size(string.byteLen(name)),
+            value.nativeHandle(),
+            actualFilename, c_size(string.byteLen(actualFilename)),
+            hasFilename,
+            contentType, c_size(string.byteLen(contentType))) then
+            throw RuntimeError __xhttp_form_data_error()
+        end
+    end
+
+    func set(string name, string value)
+        if not self.setTextNative(
+            name, c_size(string.byteLen(name)),
+            value, c_size(string.byteLen(value))) then
+            throw RuntimeError __xhttp_form_data_error()
+        end
+    end
+
+    func set(
+        string name,
+        Buffer value,
+        string? filename = null,
+        string contentType = ""
+    )
+        string actualFilename = ""
+        bool hasFilename = filename != null
+        if hasFilename then
+            actualFilename = filename as string
+        end
+        if not self.setBytesNative(
+            name, c_size(string.byteLen(name)),
+            value.data(), c_size(value.len()),
+            actualFilename, c_size(string.byteLen(actualFilename)),
+            hasFilename,
+            contentType, c_size(string.byteLen(contentType))) then
+            throw RuntimeError __xhttp_form_data_error()
+        end
+    end
+
+    func set(
+        string name,
+        Body value,
+        string? filename = null,
+        string contentType = ""
+    )
+        string actualFilename = ""
+        bool hasFilename = filename != null
+        if hasFilename then
+            actualFilename = filename as string
+        end
+        if not self.setBodyNative(
+            name, c_size(string.byteLen(name)),
+            value.nativeHandle(),
+            actualFilename, c_size(string.byteLen(actualFilename)),
+            hasFilename,
+            contentType, c_size(string.byteLen(contentType))) then
+            throw RuntimeError __xhttp_form_data_error()
+        end
+    end
+
+    func remove(string name) as int
+        return int(self.removeNative(
+            name, c_size(string.byteLen(name))))
+    end
+
+    func count(string name) as int
+        return int(self.countNative(
+            name, c_size(string.byteLen(name))))
+    end
+
+    func has(string name) as bool
+        return self.hasNative(name, c_size(string.byteLen(name)))
+    end
+
+    func at(int index) as FormDataPart
+        if index < 0 or index >= self.count then
+            throw IndexError "FormData index is out of range"
+        end
+        return FormDataPart(__xhttp_form_data_handle(
+            self.atNative(c_ulonglong(index))))
+    end
+
+    func get(string name, int occurrence = 0) as FormDataPart?
+        if occurrence < 0 then
+            throw IndexError "FormData occurrence must not be negative"
+        end
+        point result = self.findNative(
+            name, c_size(string.byteLen(name)),
+            c_ulonglong(occurrence))
+        if result == null then
+            return null
+        end
+        return FormDataPart(result)
+    end
+
+    func body(MultipartBoundary boundary) as Body
+        return Body(__xhttp_form_data_handle(
+            self.bodyNative(boundary.nativeHandle())))
+    end
+
+    func encode(MultipartBoundary boundary) as FormDataEncoded
+        return FormDataEncoded(
+            self.body(boundary),
+            boundary,
+            MultipartWriter(boundary).contentType)
+    end
+
+    func encode() as FormDataEncoded
+        return self.encode(MultipartBoundary.random())
+    end
+
+    func __len__() as int
+        return self.count
+    end
+
+    func __iter__() as FormDataIter
+        return FormDataIter(self.nativeHandle())
+    end
+end
+
+
+
+// FormDataIter 持有容器深复制快照，原容器修改和销毁不会破坏迭代。
+export class FormDataIter
+    native point handle
+    int index
+    extern "xhttp_form_data_clone" create(point source)
+    extern "xhttp_form_data_destroy_abi" destroy()
+    extern "xhttp_form_data_value" func valueNative(
+        c_longlong field) as c_ulonglong
+    extern "xhttp_form_data_at" func atNative(
+        c_ulonglong index) as point
+
+    get count() as int
+        return int(self.valueNative(c_longlong(0)))
+    end
+
+    func __next__() as (bool, FormDataPart)
+        if self.index >= self.count then
+            return false, FormDataPart(null)
+        end
+        FormDataPart result = FormDataPart(__xhttp_form_data_handle(
+            self.atNative(c_ulonglong(self.index))))
+        self.index += 1
+        return true, result
+    end
+end

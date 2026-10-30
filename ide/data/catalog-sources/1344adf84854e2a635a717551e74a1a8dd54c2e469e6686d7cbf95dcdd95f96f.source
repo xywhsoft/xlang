@@ -1,0 +1,350 @@
+// Brotli 的二进制输入与输出使用 Buffer；字符串入口按 UTF-8 字节处理。
+extern "xl6_xrt_last_error_text" func __brotli_error() as string
+extern "xbrotli_version" func __brotli_version() as string
+extern "xbrotli_compress" func __brotli_compress(point data, c_size size, c_int quality,
+    c_int window, c_int mode, c_ulonglong maxInput, c_ulonglong maxOutput) as point
+extern "xbrotli_compress_str" func __brotli_compress_str(string data, c_size size, c_int quality,
+    c_int window, c_int mode, c_ulonglong maxInput, c_ulonglong maxOutput) as point
+extern "xbrotli_decompress" func __brotli_decompress(point data, c_size size,
+    c_ulonglong maxInput, c_ulonglong maxOutput, c_uint maxRatio) as point
+extern "xbrotli_decompress_text" func __brotli_decompress_text(point data, c_size size,
+    c_ulonglong maxInput, c_ulonglong maxOutput, c_uint maxRatio) as point
+extern "xbrotli_text_size" @no_raise func __brotli_text_size(point result) as c_size
+extern "xbrotli_text_take" @no_raise func __brotli_text_take(point result) as point
+extern "xrtFree" @no_raise func __brotli_free(point data)
+extern "xbrotli_compress_file" func __brotli_compress_file(string source, string destination,
+    c_int quality, c_int window, c_int mode, c_bool overwrite,
+    c_ulonglong maxInput, c_ulonglong maxOutput, var onProgress) as c_int
+extern "xbrotli_decompress_file" func __brotli_decompress_file(string source, string destination,
+    c_bool overwrite, c_ulonglong maxInput, c_ulonglong maxOutput, c_uint maxRatio,
+    var onProgress) as c_int
+
+
+
+// 压缩质量常量（brotli 调优维度：0 最快、11 最佳压缩，11 为默认）。
+export const int BROTLI_MIN_QUALITY = 0
+export const int BROTLI_MAX_QUALITY = 11
+export const int BROTLI_DEFAULT_QUALITY = 11
+// 滑动窗口（lgwin）常量：取值 10..24，22 为默认。
+export const int BROTLI_MIN_WINDOW = 10
+export const int BROTLI_MAX_WINDOW = 24
+export const int BROTLI_DEFAULT_WINDOW = 22
+// 压缩模式常量：通用/文本/字体。
+export const int BROTLI_MODE_GENERIC = 0
+export const int BROTLI_MODE_TEXT = 1
+export const int BROTLI_MODE_FONT = 2
+
+
+
+// 返回内嵌 brotli 引擎的版本号。
+export func version() as string
+    return __brotli_version()
+end
+
+func __brotli_check_quality(int quality)
+    if quality < BROTLI_MIN_QUALITY or quality > BROTLI_MAX_QUALITY then
+        throw ValueError "brotli quality must be 0..11"
+    end
+end
+
+func __brotli_check_window(int window)
+    if window < BROTLI_MIN_WINDOW or window > BROTLI_MAX_WINDOW then
+        throw ValueError "brotli window must be 10..24"
+    end
+end
+
+func __brotli_check_mode(int mode)
+    if mode < BROTLI_MODE_GENERIC or mode > BROTLI_MODE_FONT then
+        throw ValueError "brotli mode must be 0..2"
+    end
+end
+
+func __brotli_check_limit(int value, string name)
+    if value <= 0 then
+        throw ValueError name + " must be greater than zero"
+    end
+end
+
+func __brotli_file_path(string value)
+    if string.indexOf(value, "\0", false, string.byteLen(value), 1) >= 0 then
+        throw ValueError "brotli file path contains NUL"
+    end
+end
+
+func __brotli_check_ratio(int value)
+    __brotli_check_limit(value, "maxRatio")
+    if value > 4294967295 then
+        throw RangeError "brotli maxRatio exceeds uint32"
+    end
+end
+
+// XRT 进度帧使用 uint64；公开回调使用 int，边界转换必须精确且不能回绕。
+func __brotli_progress(func(int, int, int) as bool callback) as var
+    return xcall(func(uint64 inputBytes, uint64 totalBytes, uint64 outputBytes) as bool
+        uint64 maximum = uint64(9223372036854775807)
+        if inputBytes > maximum or totalBytes > maximum or outputBytes > maximum then
+            throw RangeError "brotli progress exceeds int range"
+        end
+        return callback(int(inputBytes), int(totalBytes), int(outputBytes))
+    end)
+end
+
+func __brotli_check_file_result(int status)
+    if status == -1 then
+        throw CancelledError "brotli operation cancelled"
+    elseif status != 1 then
+        throw CompressionError __brotli_error()
+    end
+end
+
+
+
+export func compress(Buffer data, int quality = BROTLI_DEFAULT_QUALITY,
+    int window = BROTLI_DEFAULT_WINDOW, int mode = BROTLI_MODE_GENERIC,
+    int maxInput = 268435456, int maxOutput = 536870912) as Buffer
+    __brotli_check_quality(quality)
+    __brotli_check_window(window)
+    __brotli_check_mode(mode)
+    __brotli_check_limit(maxInput, "maxInput")
+    __brotli_check_limit(maxOutput, "maxOutput")
+    point result = __brotli_compress(data.data(), c_size(data.len()), c_int(quality),
+        c_int(window), c_int(mode), c_ulonglong(maxInput), c_ulonglong(maxOutput))
+    if result == null then
+        throw CompressionError __brotli_error()
+    end
+    return Buffer(result)
+end
+
+export func compress(string text, int quality = BROTLI_DEFAULT_QUALITY,
+    int window = BROTLI_DEFAULT_WINDOW, int mode = BROTLI_MODE_GENERIC,
+    int maxInput = 268435456, int maxOutput = 536870912) as Buffer
+    __brotli_check_quality(quality)
+    __brotli_check_window(window)
+    __brotli_check_mode(mode)
+    __brotli_check_limit(maxInput, "maxInput")
+    __brotli_check_limit(maxOutput, "maxOutput")
+    point result = __brotli_compress_str(text, c_size(string.byteLen(text)), c_int(quality),
+        c_int(window), c_int(mode), c_ulonglong(maxInput), c_ulonglong(maxOutput))
+    if result == null then
+        throw CompressionError __brotli_error()
+    end
+    return Buffer(result)
+end
+
+export func decompress(Buffer data, int maxInput = 268435456,
+    int maxOutput = 536870912, int maxRatio = 1000) as Buffer
+    __brotli_check_limit(maxInput, "maxInput")
+    __brotli_check_limit(maxOutput, "maxOutput")
+    __brotli_check_ratio(maxRatio)
+    point result = __brotli_decompress(data.data(), c_size(data.len()),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput), c_uint(maxRatio))
+    if result == null then
+        throw CompressionError __brotli_error()
+    end
+    return Buffer(result)
+end
+
+export func decompressText(Buffer data, int maxInput = 268435456,
+    int maxOutput = 536870912, int maxRatio = 1000) as cstring
+    __brotli_check_limit(maxInput, "maxInput")
+    __brotli_check_limit(maxOutput, "maxOutput")
+    __brotli_check_ratio(maxRatio)
+    point result = __brotli_decompress_text(data.data(), c_size(data.len()),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput), c_uint(maxRatio))
+    if result == null then throw CompressionError __brotli_error() end
+    c_size textSize = __brotli_text_size(result)
+    return cstring.take(__brotli_text_take(result), textSize, __brotli_free)
+end
+
+export func compressFile(string source, string destination,
+    int quality = BROTLI_DEFAULT_QUALITY, int window = BROTLI_DEFAULT_WINDOW,
+    int mode = BROTLI_MODE_GENERIC, bool overwrite = true,
+    int maxInput = 268435456, int maxOutput = 536870912,
+    (func(int, int, int) as bool)? onProgress = null)
+    __brotli_file_path(source)
+    __brotli_file_path(destination)
+    __brotli_check_quality(quality)
+    __brotli_check_window(window)
+    __brotli_check_mode(mode)
+    __brotli_check_limit(maxInput, "maxInput")
+    __brotli_check_limit(maxOutput, "maxOutput")
+    var progress = null
+    if onProgress != null then
+        progress = __brotli_progress(onProgress)
+    end
+    int status = __brotli_compress_file(source, destination, c_int(quality), c_int(window),
+        c_int(mode), c_bool(overwrite), c_ulonglong(maxInput), c_ulonglong(maxOutput), progress)
+    __brotli_check_file_result(status)
+end
+
+export func decompressFile(string source, string destination, bool overwrite = true,
+    int maxInput = 268435456, int maxOutput = 536870912, int maxRatio = 1000,
+    (func(int, int, int) as bool)? onProgress = null)
+    __brotli_file_path(source)
+    __brotli_file_path(destination)
+    __brotli_check_limit(maxInput, "maxInput")
+    __brotli_check_limit(maxOutput, "maxOutput")
+    __brotli_check_ratio(maxRatio)
+    var progress = null
+    if onProgress != null then
+        progress = __brotli_progress(onProgress)
+    end
+    int status = __brotli_decompress_file(source, destination, c_bool(overwrite),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput), c_uint(maxRatio), progress)
+    __brotli_check_file_result(status)
+end
+
+
+
+// 增量流式压缩器：update() 喂入数据，drain() 随时取走已产出的压缩字节，
+// finish() 封存流。配合 inputBytes/outputBytes 可自行驱动进度回显。
+export class BrotliCompressor
+    native point handle
+    extern "xbrotli_compressor_create" create(c_int quality, c_int window, c_int mode,
+        c_ulonglong maxInput, c_ulonglong maxOutput)
+    extern "xbrotli_compressor_destroy" destroy()
+    private extern "xbrotli_compressor_update" func updateNative(point data, c_size size) as bool
+    private extern "xbrotli_compressor_update_str" func updateStrNative(string data, c_size size) as bool
+    private extern "xbrotli_compressor_finish" func finishNative() as bool
+    private extern "xbrotli_compressor_drain" func drainNative() as point
+    private extern "xbrotli_compressor_input_bytes" func inputBytesNative() as c_ulonglong
+    private extern "xbrotli_compressor_output_bytes" func outputBytesNative() as c_ulonglong
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    // 已喂入的原始字节数（进度回显用）。
+    get inputBytes() as int
+        return int(self.inputBytesNative())
+    end
+
+    // 已产出的压缩字节数（进度回显用）。
+    get outputBytes() as int
+        return int(self.outputBytesNative())
+    end
+
+    func update(Buffer data)
+        if not self.updateNative(data.data(), c_size(data.len())) then
+            throw CompressionError __brotli_error()
+        end
+    end
+
+    func update(string text)
+        if not self.updateStrNative(text, c_size(string.byteLen(text))) then
+            throw CompressionError __brotli_error()
+        end
+    end
+
+    // 取走当前已产出的压缩字节并清空内部输出缓冲；无数据时返回空 Buffer。
+    func drain() as Buffer
+        point result = self.drainNative()
+        if result == null then
+            throw CompressionError __brotli_error()
+        end
+        return Buffer(result)
+    end
+
+    // 封存标准 Brotli 流。返回后 drain() 可取走最后的压缩字节。
+    func finish() as bool
+        if not self.finishNative() then
+            throw CompressionError __brotli_error()
+        end
+        return true
+    end
+end
+
+
+
+// 增量流式解压器：update() 喂入压缩字节，drain() 随时取走已解压数据，
+// finished 反映当前成员是否结束，members 统计已完整解出的成员数（支持串联多成员流）。
+export class BrotliDecompressor
+    native point handle
+    extern "xbrotli_decompressor_create" create(c_ulonglong maxInput, c_ulonglong maxOutput, c_uint maxRatio)
+    extern "xbrotli_decompressor_destroy" destroy()
+    private extern "xbrotli_decompressor_update" func updateNative(point data, c_size size) as bool
+    private extern "xbrotli_decompressor_finish" func finishNative() as bool
+    private extern "xbrotli_decompressor_drain" func drainNative() as point
+    private extern "xbrotli_decompressor_input_bytes" func inputBytesNative() as c_ulonglong
+    private extern "xbrotli_decompressor_output_bytes" func outputBytesNative() as c_ulonglong
+    private extern "xbrotli_decompressor_finished" func finishedNative() as bool
+    private extern "xbrotli_decompressor_members" func membersNative() as c_ulonglong
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    // 已喂入的压缩字节数（进度回显用）。
+    get inputBytes() as int
+        return int(self.inputBytesNative())
+    end
+
+    // 已产出的解压字节数（进度回显用）。
+    get outputBytes() as int
+        return int(self.outputBytesNative())
+    end
+
+    // 当前成员是否已完整解出（流结束时为 true）。
+    get finished() as bool
+        return self.finishedNative()
+    end
+
+    // 已完整解出的成员数；大于 1 表示输入是串联的多成员 brotli 流。
+    get members() as int
+        return int(self.membersNative())
+    end
+
+    func update(Buffer data)
+        if not self.updateNative(data.data(), c_size(data.len())) then
+            throw CompressionError __brotli_error()
+        end
+    end
+
+    // 取走当前已解压的数据并清空内部输出缓冲；无数据时返回空 Buffer。
+    func drain() as Buffer
+        point result = self.drainNative()
+        if result == null then
+            throw CompressionError __brotli_error()
+        end
+        return Buffer(result)
+    end
+
+    // 校验流已完整结束；流被截断或为空时抛出 IOError。
+    func finish() as bool
+        if not self.finishNative() then
+            throw CompressionError __brotli_error()
+        end
+        return true
+    end
+end
+
+
+
+export func compressor(int quality = BROTLI_DEFAULT_QUALITY,
+    int window = BROTLI_DEFAULT_WINDOW, int mode = BROTLI_MODE_GENERIC,
+    int maxInput = 268435456, int maxOutput = 536870912) as BrotliCompressor
+    __brotli_check_quality(quality)
+    __brotli_check_window(window)
+    __brotli_check_mode(mode)
+    __brotli_check_limit(maxInput, "maxInput")
+    __brotli_check_limit(maxOutput, "maxOutput")
+    BrotliCompressor result = BrotliCompressor(c_int(quality), c_int(window), c_int(mode),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput))
+    if not result.valid then
+        throw CompressionError __brotli_error()
+    end
+    return result
+end
+
+export func decompressor(int maxInput = 268435456, int maxOutput = 536870912,
+    int maxRatio = 1000) as BrotliDecompressor
+    __brotli_check_limit(maxInput, "maxInput")
+    __brotli_check_limit(maxOutput, "maxOutput")
+    __brotli_check_ratio(maxRatio)
+    BrotliDecompressor result = BrotliDecompressor(c_ulonglong(maxInput),
+        c_ulonglong(maxOutput), c_uint(maxRatio))
+    if not result.valid then
+        throw CompressionError __brotli_error()
+    end
+    return result
+end

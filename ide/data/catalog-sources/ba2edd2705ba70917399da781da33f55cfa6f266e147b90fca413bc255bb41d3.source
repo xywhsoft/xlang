@@ -1,0 +1,29 @@
+{
+    "format": "xlang-package-1",
+    "name": "bloom",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": [
+            "bloom_native.c"
+        ],
+        "xlSources": [
+            "src/bloom.xl"
+        ],
+        "xrtModules": [
+            "XRT_MODULE_HASH64",
+            "XRT_MODULE_TEMP_MEMORY"
+        ]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/nul_keys.xl"] },
+    "native": {
+        "singleton": false,
+        "loadName": "",
+        "version": ""
+    }
+}

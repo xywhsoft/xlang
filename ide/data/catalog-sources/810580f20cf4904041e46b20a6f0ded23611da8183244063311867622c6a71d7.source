@@ -1,0 +1,750 @@
+# 并发基础标准库
+
+本文件记录五组长期任务 P1 的实际公开合同。Atomic 首批已通过真实双平台
+产品验收；Once/Event、ThreadLocal、取消机制、Promise 增量也已通过正式验收。
+Channel、TaskPool/Executor 和 TaskGroup 增量已有后续独立实现与验收记录。
+2026-10-26 的 [常规产品批量回归](concurrency-public-closure-2026-10-26.md)
+在两端各通过 153 阶段；这仍不等于整组所有语义及五组总任务完成。
+
+## Atomic
+
+显式 `import concurrent` 后按需提供：`AtomicInt32`、`AtomicUInt32`、
+`AtomicInt64`、`AtomicUInt64`、`AtomicBool`。不导入时不自动注入这些类型；
+仅导入模块不创建对象或线程，也不把所有原子族带入独立程序。
+
+```xlang
+import concurrent
+auto counter = AtomicInt64()
+int previous = counter.fetchAdd(1)
+auto exchanged, observed = counter.compareExchange(1, 2)
+assert exchanged and observed == 1 and counter.load() == 2
+```
+
+所有对象按类的引用语义共享同一原子状态，允许跨线程使用。默认初值为零，
+Bool 为 false。普通赋值不建立指向变量槽的别名，原子对象也不存储语言
+对象指针或用户回调。不承诺所有平台的底层实现都 lock-free。
+
+四种整数对象提供 `load/store/exchange/compareExchange` 和
+`fetchAdd/fetchSub/fetchAnd/fetchOr/fetchXor`；Bool 不提供整数算术。
+fetch 方法返回操作前的值；整数加减按该对象的 32/64 位宽回绕，
+有符号结果从二进制补码位模式取得，不依赖 C 有符号溢出。
+
+32 位对象的写入/期望/增量用语言 `int` 传递并检查范围；读取、交换和
+fetch 的返回值保留精确的 `int32`/`uint32` 类型。Int64 用 `int`，UInt64
+用 `uint64`，Bool 用 `bool`。Int32 输入必须处于 INT32 范围，UInt32 必须
+处于 0..UINT32_MAX；越界报 RangeError，不先截断输入或修改状态。
+这不改变语言本身 `int32(...)` 等显式构造的既定数值规则。
+
+`compareExchange(expected, desired, successOrder=4, failureOrder=4)` 执行一次
+强比较交换，观察值分别为 `int32`/`uint32`/`int`/`uint64`/`bool`，
+与对应 load 的类型相同。
+成功时 observed 等于原期望值，失败时等于同一次原子操作观察到的实际值。
+不会通过后续 load 拼装结果，也不使用公开 byref/out 参数。
+
+## 内存顺序
+
+默认 SeqCst。常量为 `concurrent.relaxed/acquire/release/acqRel/seqCst`。
+
+- load：Relaxed、Acquire、SeqCst。
+- store：Relaxed、Release、SeqCst。
+- exchange/fetch：全部五种。
+- CAS 失败顺序：Relaxed、Acquire、SeqCst，且不能强于成功顺序。
+  成功为 Release 时，失败只能是 Relaxed；成功为 AcqRel 时失败最多 Acquire。
+
+非法顺序在接触原子状态前报告参数错误，不默默改成其他顺序。
+若只指定 CAS successOrder，failureOrder 仍是默认 SeqCst；例如选择 Release
+时也应显式传入 Relaxed 的 failureOrder。
+
+## 实现边界
+
+只复用 XRT 的 Atomic32/Atomic64。每个原子族独立驻留源和所有权域；
+资源仅含标量状态，没有被省略的语言拥有边。状态随最后语言拥有引用释放。
+50 个函数的声明、导出和闭合 XLIR 合同对应；检查内存顺序的入口可报错，
+原子操作有副作用，不标 pure。比较交换结果通过显式的原生双字段标量 ABI
+返回；Cgen 不生成原子操作或追加按符号名判断的代码。
+
+本批验收只采用离线值/类型/错误、常规有限线程共享、分配失败、JIT/AOT、
+生成 C 和裁剪检查；不调用网络，也不运行网络安全专项。
+
+## 首批验收
+
+2026-10-18，全新普通构建的 Windows CLI/双 DLL 与 Linux CLI/双 SO
+分别通过 53、58 个离线阶段，输入及日志哈希未变。覆盖五种对象的读写、
+交换、强 CAS、整数 fetch、定宽回绕、越界和非法顺序不修改状态；25 个
+CAS 顺序组合中 9 个有效、16 个 checked 拒绝。两个线程共享计数完成 2000
+次 Relaxed 增量。每个平台的两个真实产品各通过 40 个分配故障前缀账本检查。
+
+五种对象的 50 个驻留入口在声明、导出、IR 合同和实际导出之间一致；
+Linux 对全部 50 个真实降低后的调用目标及 5 种结果对执行 105 次合同
+变异拒绝，验证失败不输出 C 或头文件。返回宽度由精确类型变量接收和
+独立 IR 核对证明，不从动态值装箱后的类型身份反推静态类型。
+
+JIT、模块、重定位独立 AOT、确定性生成 C 和严格 GCC O0/O2 通过。
+Bool 单独使用只选择 Bool 适配和所有权域；仅 import 不选择原子族源。
+最终报告位于验证目录 `p1-atomic/accept-win-r5/results.json` 和
+`p1-atomic/accept-linux-r5/results.json`。候选未覆盖仓库 release 产品，
+这不代表整个并发组或五组长期任务已经完成。
+
+## Once
+
+显式导入 `concurrent` 后提供 `Once()`，对象可以跨线程共享。
+
+- `run(func() initializer)`：成功执行一次；正常返回后永久完成。
+- `tryRun(func() as bool initializer) -> bool`：返回 false 时不完成，允许重试；
+  返回 true 时永久完成。已经完成的对象直接返回 true，不再调用 initializer。
+
+两种入口共享同一原生状态。初始化函数抛出的异常保留原类型和内容，并使
+Once 保持可重试；回调内部捕获的异常不向外传播。没有诊断分配空间时，
+checked 失败位仍能传播，不能误记为初始化成功。同线程递归初始化报 StateError。
+同步初始化可能等待其他线程，所以不声明 nonblocking。
+
+Once 不持久保留回调或其捕获；只在实际调用期间进入回调的真实代码租约。
+不提供 reset，也不使用后台线程或第二套一次性初始化引擎。
+
+## Event
+
+`Event(manualReset=false, signaled=false)` 是跨线程共享的同步事件对象。
+
+- `set()`：置为有信号状态；`reset()`：清除信号。
+- `wait(timeoutMillis=-1) -> bool`：收到信号为 true，普通超时为 false。
+- `tryWait() -> bool`：等价于 `wait(0)`，不等待信号。
+
+自动复位事件每次成功等待会消费信号；手动复位事件保持信号直到 reset。
+它不是计数信号量：重复 set 不累计票据，也不承诺等待者的公平顺序。
+毫秒超时 -1 表示无限，0 表示轮询，正数为有限等待；其他负数和超出
+原生单调截止时间范围的数值报 RangeError，不把有限溢出悄悄变成无限等待。
+平台调用失败抛 checked 错误，不与正常超时混淆。
+
+Event 的原生槽拥有经认证的 Sync 值，再由该值拥有原生同步资源；它不是
+leaf。所有拥有边均被追踪，活动调用持有独立生命周期 pin，阻塞期间不持有
+世界变更范围或元数据门锁。构造时多一层拥有槽用于复用现有 Sync 生命周期，
+不会为每次等待构造新的语言包装对象。
+
+最后引用清理若失败，沿用 Mutex/Cond/RWLock 的真实退休记录，宿主可用
+`xlSyncRetirement*CheckedV1` 查询、取得恢复句柄并重试；记录 kind 为
+`XL_SYNC_EVENT_V1`。不会丢弃仍存活的原生资源、直接 abort 或假报清理成功。
+
+### Once/Event 验收
+
+2026-10-18，全新普通构建的 Windows CLI/双 DLL、Linux CLI/双 SO 分别
+通过 58、64 阶段；最终输入和日志哈希未变，未执行任何网络测试。
+10 个接口的声明、导出登记、闭合合同及两端双产品实际导出一致。
+Linux 对实际降低后的全部 10 个目标和两种 checked 回调执行 24 次错误合同
+拒绝，失败不输出 C/头文件；既有 Regex 的 string 回调合同仍通过回归。
+
+Once/Event 各自及跨线程组合覆盖 JIT、模块、重定位独立 AOT、确定性 C、
+严格 GCC O0/O2 和内存账本。验证了单次初始化、false/异常后重试、同线程
+重入拒绝、自动/手动复位、轮询/有限/无限超时，以及有限溢出拒绝。
+Once、Event 和 import-only 的适配源裁剪检查均通过。
+
+每个平台的两个真实产品各验证 32 个构造/装箱分配故障前缀，包含超过最后
+分配点的成功路径；另验证无诊断分配空间时的回调失败位、Event 清理拒绝后
+真实退休记录、宿主恢复及成功重试。Windows 还检查故障前缀前后的进程
+原生句柄数不变。共享 Sync 底座的既有 Mutex/Cond/RWLock 完整原生专项
+分别在四个产品上回归，覆盖持锁失败、显式恢复、实际拥有图、活动等待与并发。
+
+正式报告：`p1-once-event/accept-win-r1/results.json`、
+`p1-once-event/accept-linux-r1/results.json`。开发期低成本诊断不替代这些
+正式证据；构建初轮能力矩阵未同步的失败记录保留，更新后重新冻结构建。
+仓库 release 产品未被覆盖；这仍不是并发组或五组长期任务完成。
+
+## ThreadLocal
+
+显式 `import concurrent` 提供 `ThreadLocal<T>()`。同一对象可以跨原生线程
+共享，但每个线程读取、写入自己的值槽；它不是异步任务局部变量，协程换到
+另一个工作线程后看到的是那个线程的值。容器/类值按既有引用语义存取，
+string/bytes 仍服从语言值语义，不额外提供可变字符串引用。
+
+- `hasValue() -> bool`：当前线程是否存在槽，和槽内是否为 null 分开判断。
+- `get() -> T?`：拥有的读取结果；未设置返回 null，不执行隐式初始化回调。
+- `set(T value)`：替换当前线程的值，释放旧值。
+- `take() -> T?`：移出当前线程的拥有值，随后无槽；缺失返回 null。
+- `remove() -> bool`：删除并释放当前线程槽，缺失为 false。
+- `close()`：关闭整个对象，移除所有线程槽并释放其值；重复关闭允许。
+- `isClosed() -> bool`：查询共享的关闭状态。
+
+关闭后除 close/isClosed 外的操作报 StateError。T 必须是具有既有动态值
+装箱和精确 `as T?` 投影合同的具体类型；不把 auto/var/null 当作可转换的
+具体类型，也不放宽泛型 native extern 的 ABI 禁令。通过私有的非泛型原生
+拥有体组合实现，公开泛型层保持正常语言方法，不向用户暴露 TLS 指针。
+
+替换值在释放旧值前完成；旧值析构失败时 checked 抛错，但已经安装的新值
+保留。close 先公布关闭、移除全部槽，再释放其值；清理错误不会使对象重新
+开放，也不会使尚待释放的槽被跳过。线程回调及其最后捕获对象都清理后，
+再完成 checked TLS 退出边界，覆盖捕获对象析构中新建的线程局部值。
+
+每个原生槽的值由 ThreadLocal 状态拥有，并纳入完整对象图；原生线程局部
+注册表只拥有索引元数据，不暗中持有语言值或模块租约。关闭对象即移除远端
+索引并释放值，不必等待远端线程退出；远端空注册表元数据在其后续操作或
+线程退出时释放。最后状态/注册表离开后，原生 key 也释放，没有永存堆缓存。
+
+活动调用持有真实 pin，世界冻结下可精确计数和追踪；退休事务 claim 期间，
+线程退出只移除索引，不改动冻结的拥有槽。事务完成或恢复后安全排空，用户
+析构在元数据门锁和世界变更范围以外执行。所有权循环不能因为 TLS 而变成
+无法观察的永久外部根。
+
+语言 `thread` 在 checked 回调和源代码租约仍有效时执行 TLS 清理；析构失败
+使线程退出码为 1，不吞掉失败位。外部创建的原生线程仍遵循 XRT 的线程退出
+清理，但没有语言调用者可接收异常；需要检查析构结果时应显式 remove/close。
+清理重入有有限轮次保护，不承诺任意无限重建 TLS 的析构可以终止。
+
+接入同时补齐通用的泛型 cast 合同刷新、bytes?/char? 投影，以及窄整数
+nullable 投影。整数读取复用 typed 容器的类型/范围准入；枚举保留名义身份。
+bytes 投影不复制、不分配，成功持有一个引用，失败返回 null；Cgen 只输出
+这些已验证的驻留调用，不生成 ThreadLocal 或整数范围算法。
+
+### ThreadLocal 验收
+
+2026-10-18，冻结 r4 源码并通过普通构建重建 Windows CLI/双 DLL、Linux
+CLI/双 SO；最终固定用例的离线验收分别通过 83、89 阶段，输入及日志哈希
+均未变。并发族 19 个接口的声明/导出/闭合合同一致，两个新增值投影入口
+在两端双产品上也有实际导出。Linux 对实际降低的 9 个 ThreadLocal 目标、
+bytes/char 投影执行 26 次合同拒绝，失败不生成 C 或头文件。
+
+基本值矩阵、线程隔离/远端关闭、拥有对象/循环对象、普通与最后捕获析构
+期间的 TLS 清理，以及泛型/动态转换回归覆盖 JIT、模块、重定位独立 AOT、
+确定性 C、严格 GCC O0/O2 和实际内存账本。枚举名义身份、既有 nullable
+float32/Once/Event/AtomicBool，以及四个实际产品的旧 Sync 原生专项均通过。
+
+四个实际产品分别验证构造 3 个、首次 set 7 个完整分配故障前缀及其后成功
+路径；覆盖投影零分配/不修改既有错误、正常循环退休、远端关闭、claim 期间
+线程退出和恢复、活动析构期间拒绝退休并在结束后成功退休。没有诊断分配
+时也不丢失 checked 失败位。仅 ThreadLocal 选择其状态/所有权域和小型退出
+钩子；普通 thread 仅选择该钩子而不拉入 ThreadLocal；仅 import 不选择此族。
+
+正式报告：`p1-thread-local/accept-win-r5/results.json`、
+`p1-thread-local/accept-linux-r5/results.json`，构建证据为同目录的
+`build-win-r4/build.shipping.json`、`build-linux-r4/build.shipping.json`。
+中间候选及失败证据保留：窄整数/枚举投影、Windows 域导出、冻结忙状态及
+用例交接时序分别收敛后，最终固定输入统一复测；不计早期结果为交付证据。
+本批没有网络/网络安全测试，未替换仓库 release，也不代表并发组全部完成。
+
+## CancellationSource / CancellationToken / CancellationRegistration
+
+显式 `import concurrent` 按需提供三个受管理对象。Source 拥有发出取消请求的
+权限，Token 只观察请求和注册通知；Token 持有独立的原生引用，Source 包装
+对象释放后仍有效。`CancellationSource(parentToken)` 创建单向传播的子源，
+父取消会传播到子，子取消不影响父。Source 析构不隐式发出取消请求。
+
+- `CancellationSource()` / `CancellationSource(CancellationToken parent)`。
+- `source.token -> CancellationToken`；`source.cancel() -> bool` 返回是否首次请求。
+- Source/Token 的 `isCancellationRequested -> bool`；Token 的
+  `throwIfCancelled()` 在已请求时抛出 CancelledError。
+- `token.onCancel(func() callback) -> CancellationRegistration`。
+- Registration 的 `close()`、`isClosed`、`wasTriggered`、`hasFailed` 及
+  `throwIfFailed()`；close 可重复，查询和失败检查在关闭后仍可使用。
+
+必须保留 Registration 才能维持通知注册；最后语言引用释放会注销，不提供
+隐式 fire-and-forget。Source/Token 内的链表只是索引，不暗中拥有语言回调。
+回调最多执行一次，在发出请求的线程执行；已取消 Token 的注册可能在
+onCancel 返回前同步执行，不能假设调用者已经保存好 Registration。
+
+cancel 会执行通知，因此可能阻塞、可能抛错，不标为 no-raise/nonblocking。
+某个回调失败不跳过其他通知；保留原错误及独立失败位，即使诊断分配失败也
+不会变为成功。Registration 可重复 throwIfFailed；已取消 Token 注册时若
+同步回调失败，构造失败并清理实际注册权，不返回半成品。
+
+close 不发出取消请求。其他线程正在执行回调时，close 等待其退出；回调
+可以关闭自己。若另一线程已在 close 中等待当前回调，回调自关闭不反向
+等待；其余并发 close 得到 checked StateError，避免循环等待。用户仍须避免
+在回调内等待发起 cancel/onCancel 的线程完成其后续逻辑。
+
+Registration 的闭包、原生 Watch 注册权和错误都是真实拥有边；通知执行
+期间有活动 pin。清理统一使用 XRT Cancel V3 / Watch V2 的 owner-driven
+协议：Prepare 不提前等待拥有者注销，Clear 禁止后续通知但保留实际边，
+Finish 才执行 checked Unwatch，原生尾部完成后才允许消费创建者引用。
+撤销事务恢复仍然有效的注册，不靠强制取消或丢弃回调解开拥有环。
+NativeFuture、TaskGroup 和 ProcessOptions 使用相同物理协议，避免域顺序
+改变同一个对象的适配器或完成合同。
+
+若最后引用清理被拒绝，实际注册权、闭包和代码租约转交到无分配退休记录，
+不会消失。宿主通过 `xl_cancellation_retirement.h` 中的
+`xlCancellationRetirementSnapshotCheckedV1` 查询 token/errorKind，再通过
+`xlCancellationRetirementRetryCheckedV1` 重试；重试不请求取消、不主动执行
+回调，但可能等待已开始的回调。失败保留记录，成功才移除，不暴露裸地址。
+
+取消只是请求，不等于异步操作的唯一终态或物理资源已经释放；正在执行且
+没有取消检查点的同步工作不会凭空变成 CANCELLED。Promise、Channel 与
+网络等待的取消绑定会在后续批次复用此底座，不在本批冒称完成。
+
+### 取消机制验收
+
+2026-10-18，冻结 r2 源码并经普通构建重建 Windows CLI/双 DLL、Linux
+CLI/双 SO；最终离线验收分别通过 100、106 阶段，输入及日志哈希未变。
+新增 16 个取消入口与并发族 35 个声明/登记/闭合合同一致，两端四个实际
+产品有实际导出；两个宿主 checked 恢复入口及内部跨组件辅助函数具有
+精确驻留归属，名称前缀近似值不能冒充目录项。
+
+Source/Token/父子传播、回调异常与剩余通知、同步构造回滚、自注销、跨线程
+关闭、正常对象环清理，以及 TaskGroup 方法回归覆盖真实 JIT、模块、重定位
+独立 AOT、确定性 C、严格 GCC O0/O2 和实际内存账本。Linux 对全部 16 个
+目标和 checked 闭包执行 34 次错误合同拒绝，失败不生成 C/头文件；两种
+最小类用例的 8 个标签生产者均为规范 int64，不再依赖源码碰巧声明 int。
+
+四个实际产品分别验证原生 Source/Child/Token 构造和句柄装箱的 5 个、
+正常/已取消/子链注册与装箱的 9 个完整分配故障前缀及其后 6 条成功路径。
+还覆盖无诊断分配时的独立失败位、真实循环退休、事务撤销恢复通知、
+清理拒绝后的无分配记录和 checked 成功重试；既有原生 Future payload
+策略专项分别通过。内存计数、字节数及无效释放等账本均保持平衡。
+
+Source-only 只选择 Source 状态/所有权域，不拉入 Registration；完整取消
+选择四个源，仅 import 不选择本族。新增 SDK 头同时进入两端的
+普通及内嵌编译器 VFS。Cgen 未新增标准库实现函数体。
+
+正式报告：`p1-cancellation/accept-win-r2/results.json`、
+`p1-cancellation/accept-linux-r2/results.json`，构建证据为同目录
+`build-win-r2/build.shipping.json`、`build-linux-r2/build.shipping.json`。
+首轮实际功能用例通过，但新目录断言指出宿主恢复入口登记缺失；补齐并
+统一冻结后整轮重验，首轮报告不替代最终证据。没有网络/网络安全测试，
+未覆盖仓库 release；Promise/Channel/执行器等剩余任务仍待完成。
+
+## Promise<T>（2026-10-18，普通双平台产品已验收）
+
+显式 `import concurrent`，按需使用 `Promise::<T>()` 或
+`Promise::<T>(CancellationToken parent)`。它是语言管理的生产者对象；
+`producer.future` 每次取得独立拥有的 `future<T>` 消费端，不构造中转 Future。
+
+- `tryResolve(T value)`、`tryReject(error value)`、`tryCancel()`、`close()`
+  返回是否由本次调用完成；重复或并发竞争失去完成权返回 false。
+  复制/资源失败仍抛错，不伪装成重复完成，且准备失败不消费完成权。
+- `isCompleted` 表示已发布终态，`isCancellationRequested` 只表示协作请求。
+  父取消/Future.cancel 不自动代替生产者选择终态；生产者应检查请求并完成。
+- 值副本遵循语言规则：string 精确字节复制，bytes 保持值语义，容器/对象
+  保留真实拥有引用；闭包、错误、嵌套 Future、Generator、SlotMapKey 采用
+  已有各自拥有合同。float32 与 time 使用独立的精确 Future 载荷合同。
+- 最后生产者引用释放关闭尚未完成的消费端；已经完成的载荷持续到最后
+  消费者释放。ROOTED 检查计划 pin 不是生产者，不可延迟这一关闭义务。
+  Claim/活动 pin 暂缓实际释放，由 Abort/Finish/最后 Drop 接续清理。
+- 完成可能分配、运行后续通知或清理，因此不声明 pure/no-raise/nonblocking。
+  close 显式关闭，不是 await、不请求强制中断，也不吞掉清理错误。
+
+泛型原生接入仅由闭合的驻留 ABI 表授权，携带按值复制的不可变载荷描述；
+运行时不保存生成模块中的描述符地址。同步传入载荷槽地址仅借用至函数
+返回，不新增用户 byref 语法；Cgen 只输出描述常量/调用/清理，不输出复制
+或 Promise 实现。泛型析构经过普通单态化和字段绑定，不追溯模板猜符号。
+动态方法同样验证精确 T，不允许按共享 C 指针表示混用 future<T>。
+
+以托管类封装原生句柄的不可空资源类型必须显式构造/绑定，例如
+`Promise<int> p = Promise::<int>()`；延迟初始化使用 `Promise<int>?`，读取前
+必须经过非空收窄。此规则来自解析后的原生字段形状，覆盖全局、局部、
+类字段及泛型实例字段，不按 Promise 名称添加特例。不允许只分配语言
+对象外壳并把空 native 字段当作有效资源。
+
+当前源码开发预检已覆盖 O0/O2 执行、精确 NUL 文本、多个基础/受管理值、
+协作取消、重复完成、最后生产者释放、跨线程竞争、动态调用、真实拥有环，
+并有原生分配故障前缀和 IR 变异拒绝；尚不能代替新产品双平台验收。
+证据目录 `p1-concurrent-rest`，最终产品结果会在下方另行记录。
+
+### Promise 增量最终验收
+
+全新普通构建生成 Windows CLI/双 DLL、Linux CLI/双 SO；冻结源码的构建
+收据均为 Complete/InputsUnchanged。最终离线验收 Windows 97、Linux 103
+阶段通过，Failures 为空，输入和日志哈希保持一致；两端没有任何网络或
+网络安全性质测试，也没有覆盖仓库 release 产品。
+
+10 个 Promise 驻留入口及并发族共 45 个声明/登记/闭合合同一致，四个实际
+产品逐一核对导出。语言用例覆盖真实 JIT、模块、重定位独立 AOT、确定性 C、
+严格 GCC O0/O2 与内存账本：string/bytes 在生产者输入后修改仍与 Future
+载荷隔离；也覆盖基础/可空值、容器、闭包、错误、嵌套 Future、Generator、
+SlotMapKey、float32/time 的异步传参/返回/挂起及聚合、动态调用、双生产者
+竞争、取消请求与终态区分、最后生产者释放及真实类拥有环。
+
+四个产品各覆盖构造/父 Token 构造/装箱的 4+4 个、字符串完成的 2 个完整
+分配失败前缀及其后的成功路径；失败不消费完成权，可以重试。原生专项还
+覆盖 ROOTED 计划 pin、Claim 后最后拥有者 Drop、Abort 恢复、Clear/Finish、
+循环退休/撤销及通知回调释放最后生产者的重入场景，内存账本平衡。
+既有 NativeFuture payload 策略专项分别通过。
+
+Linux 源产品合同核对 190 个精确实例目标、64 个不可变上下文、21 个同步
+载荷地址，并拒绝 909 项错误 IR；拒绝发生在 C/头文件输出之前。Promise-only
+仅选择本批三个原生源，不引入 Cancellation/Atomic/ThreadLocal；带父 Token
+和线程的用例增加相应真实依赖；仅 import 不选择本族。共享的现有 Future
+载荷/闭包/原生叶清理支撑仍是正常依赖，不冒称整体零额外依赖。
+
+验收入口 `tools/check_stdlib_five_groups.py --stage promise`。证据为
+`p1-concurrent-rest/accept-win-r2/results.json`、`accept-linux-r2/results.json`，
+构建为同目录 `build-win-r2/build.shipping.json`、`build-linux-r2/build.shipping.json`。
+这不代表 Channel、完整 Future bridge、Executor/TaskPool、TaskGroup 或五组整体完成。
+
+封板补查发现此前原生资源默认构造会创建无效空句柄；已在规范默认值配方、
+类布局构建/验证及降低入口统一拒绝，补入全局/局部/字段/泛型字段负例，
+显式字段构造与 nullable 延迟创建正例，以及四类拒绝用例均在 r2 实际产品
+通过。r1 的 93/99 阶段报告保留为此前覆盖面证据，不替代修复后的 r2
+最终复验。没有把 extern factory 混入语言 create 函数体的析构计划，也
+没有靠资源类名称或 Cgen 特例识别这一规则。
+
+## Channel 同步等待增量
+
+`channel<T>.sendTimeout(value, timeoutMs) -> bool` 与现有 `send/trySend`
+使用同一份发送操作描述。`timeoutMs` 为非负 int；0 允许立即尝试，不能
+发送、到期或关闭时返回 false，真正的复制/资源错误仍走 checked 异常。
+输入不被消费；字符串独立复制，bytes 保持既定值语义。接收仍返回拥有式
+`(status,T?)`，成功的 null 与空/超时/关闭由 status 区分。
+
+同步发送和接收现在先检查毫秒到原生绝对微秒期限的加法/乘法边界。
+有限超时不能饱和成 `XRT_DEADLINE_NEVER`，越界 checked 拒绝且不提交消息、
+不改输出。发送复制所用时间计入本次原生调用的等待预算。
+
+发送的逻辑参数、泛型依赖、物理借用槽、效果、拥有权及资源依赖由 XLIR
+合同核对。泛型函数只能保留声明授权的逻辑依赖；实例化后必须闭合为具体
+schema 才能生成调用。Cgen 不实现复制、计时或等待算法。
+
+本增量不包含取消/原子选择/真正异步等待。固定 XRT 当前只有同步等待与
+有栈协程 Await，没有公开的非阻塞 Channel 订阅入口；不能用阻塞包装或
+每次创建线程的方式冒充异步。相关底层方案需单独确认并继续实现。
+
+实际产品验收：`five-groups-20261018/p1-channel` 中的 `build-win-r2` 与
+`build-linux-r2` 为正常构建的 CLI/两种运行库和 TCC/XRT/VFS 证据；最终
+`accept-win-r4` 90 阶段、`accept-linux-r4` 96 阶段全部通过，输入/日志哈希
+保持不变。覆盖 JIT/模块、可搬移且不依赖 xlang DLL/SO 的独立 AOT、
+确定性 C、严格外部 GCC O0/O2、普通线程/rendezvous、重复生命周期、完整
+创建/普通发送/超时发送分配失败前缀；四个实际 DLL/SO 均通过原生检查。
+Linux 实际编译器另验证 9 个 typed、1 个 dependent、13 个物理发送和
+277 个错误 IR 拒绝，错误 IR 不输出 C/头文件。裁剪保留 Channel 传输与
+拥有域，不引入未使用的 Channel 动态投影工厂；import-only 仍为空。
+
+初次验收的命名参数负例用了错误的 `:`，以及裁剪预期多列一个未使用的
+投影工厂，均只修正外部验收输入，复用未修改的封存产品重新验证；原构建
+与失败报告保留，未改写其输入哈希。没有网络/安全测试或发布目录替换。
+
+## Channel 期限、取消和选择的原生底座
+
+新增原生 WaitV2/CancelV2、异构 send/receive cases 与 Select/SelectCancel。
+本增量是驻留底座，尚不是这些新能力的 xlang 公开 API；公开泛型 case/
+结果与独立 XLIR 合同仍需继续完成，不能用原生测试代替语言接入。
+
+相对毫秒与绝对单调微秒期限分开描述；无限等待只能显式选择 WAIT，不能
+把有限值溢出为无限。正常取消有独立状态；已就绪的成功/关闭 case 优先
+于取消或期限，沿用固定 XRT 的合同。选择复用 XRT 公平原子提交，不逐个
+轮询实现替代品，也没有同质化/仅接收的范围收缩。
+
+所有候选消息的验证和复制均在选择前完成，失败不提交部分 case；成功
+只转交一个，未选中复制和所有活动信用在实际 native 注销/清理尾后释放。
+接收后清理失败仍由调用方持有私有取得槽，错误位不依赖诊断分配。
+常见 8 case 内使用栈内描述区；立即接收选择没有额外分配。旧同步收发
+也改为复用同一组活动信用/提交/关闭原语，不保留平行的拥有权实现。
+
+期限、取消、选择、可取消选择各自独立裁剪，普通 Channel 不引用这些
+新增 provider；普通期限不引入选择或 Channel-cancel provider。所有候选
+操作的 owner 均被真实活动信用保护，活动期间图读取拒绝，不能当作叶。
+旧 V1 admission 的活动拒绝是 checked ERROR，world-freeze 竞争可为 BUSY；
+未把两者或已完成的 schema 误标为可回收。
+
+正常构建证据为 `five-groups-20261018/p1-channel-select/build-win-r1` 与
+`build-linux-r1`；最终 `accept-win-r4` 148 阶段、`accept-linux-r4` 159 阶段，
+0 失败，完整/输入不变/日志不变均为 true。四个实际 DLL/SO 均验证异构
+消息、就绪优先、成功 null 与无消息、关闭、真实监听取消、rendezvous、
+公平重复 case、活动 owner 读取拒绝和 1000 次生命周期；小/大/可取消选择
+完整分配失败前缀分别为 6/22/6 个命中点。预检还验证无诊断的复制/选择
+失败和提交后清理失败。原语言 API 的 JIT/模块/独立 AOT/严格 C 回归通过。
+
+四种 native-only 符号根组合均在两端独立编译/运行并检查导入，不依赖
+xlang DLL/SO。规划来自 Linux 实际编译器；Windows 的私有规划函数不是
+DLL API，因此使用该规划前逐个核对两端全部 `src` 文件的规范化哈希，
+再编译运行 Windows 自身的实现。没有为测试扩大产品私有导出面，不能
+把此项原生符号根证明误称为尚未实现的新语言接口验证。未运行网络测试，
+没有覆盖发布产品；原失败证据与未改写的封存构建收据均保留。
+
+## Channel 公开绝对期限
+
+`channel<T>.sendUntil(value, deadlineUs) -> bool` 和
+`channel<T>.recvUntil(deadlineUs) -> (status, T?)` 使用与
+`time.monotonic()` 相同的 `uint64` 单调微秒时钟；不是 Unix 时间，也不是
+Future 旧 `waitUntil` 的毫秒单位。相对毫秒等待仍为 `sendTimeout/recvTimeout`。
+整数常量按期限参数的精确 `uint64` 类型解释，不隐式转换有符号变量。
+符合通常无损扩宽规则的 `uint8/uint16/uint32` 可以传入；相对超时的小整数
+同样在 Typed XLIR 中归一为 signed-64 毫秒参数，不在 Cgen 临时强转。
+
+已过期但就绪的操作仍成功，关闭仍返回关闭结果；非就绪过期时，发送为
+false，接收为 `channelStatus.timeout` 与空值。`UINT64_MAX` 是原生无限
+哨兵，不是合法期限，checked 拒绝，即使队列已就绪也不能借此隐藏非法
+输入。无限等待使用原有 `send/recv`。成功 null 仍以 status 与无消息区分。
+
+语言入口和泛型实例化共用精确 XLIR 时间合同；旧 opcode 编号不变。
+绝对期限直接调用驻留 WaitV2，无 Cgen 计时/等待算法；不使用期限的程序
+不会仅因这些声明拉入 Wait/Cancel/Select 实现。取消与公开异构选择仍需
+独立完成，不把本次期限接入视为整个 Channel 或并发组完成。
+
+正常实际产品为 `five-groups-20261018/p1-channel-public` 的
+`build-win-r2` / `build-linux-r2`，最终 `accept-win-r2` 116 阶段、
+`accept-linux-r2` 127 阶段，0 失败；构建/验收输入和验收日志哈希不变。
+覆盖 JIT、模块、确定性 C、严格外部 GCC O0/O2，以及不依赖 xlang DLL/SO
+的可搬移独立 AOT；含泛型、内嵌 NUL、bytes 副本、成功 null、过期/关闭/
+非法哨兵、普通线程 rendezvous、无损扩宽和小整数相对期限。
+
+Linux 实际编译器验证期限的 18 个 typed、2 个 dependent、22 个物理操作，
+232 个错误 IR 在 C/头文件输出前被拒绝；原发送合同另有 277 个错误 IR
+拒绝。最小期限程序的语言 provider 闭包只有 Channel 核心/拥有域和 Wait，
+没有语言线程退出钩子或 Cancel/Select provider；XRT 核心同步依赖不因此
+被误称为完全没有底层 thread/atomic 模块。原有四个 DLL/SO 原生生命周期
+及完整分配失败前缀回归也通过。
+
+首版冻结产物保留：检查发现应直接包含 WaitV2 声明头，不能依赖其他头
+间接提供声明；最小用例又发现 `uint8/16/32 -> uint64` 的共用 IR 无损
+扩宽缺口，已在统一标量合同修复，而非对期限函数特判。测试清单在首轮
+发现阶段发生编辑，该轮不作为最终不变性验收；最终使用全新冻结产品
+统一复验，未改写原构建证据，未替换 release，未执行网络或安全专项。
+
+## Channel 可取消收发
+
+新增三个发送入口，均返回显式 `channelStatus` 整数而非 bool：
+`sendCancel(value, token)`、`sendTimeoutCancel(value, timeoutMs, token)`、
+`sendUntilCancel(value, deadlineUs, token)`。
+接收为 `recvCancel(token)`、`recvTimeoutCancel(timeoutMs, token)`、
+`recvUntilCancel(deadlineUs, token)`，均返回拥有的 `(status,T?)`。
+Token 类型来自 `import concurrent`；参数按现有 Channel 规则使用位置参数。
+旧发送入口的 bool 合同保持不变。
+
+`channelStatus.cancelled` 为 5。取消/超时/关闭是正常状态，复制、资源或
+清理错误仍走 checked 异常；成功 null 与无消息由 status 区分。已就绪的
+成功或关闭优先于取消/过期，非法时间参数仍先拒绝。相对期限为 signed-64
+毫秒、绝对期限为 `time.monotonic()` 的 unsigned-64 微秒，沿用共享合同。
+发送复制输入，不消费调用者的值；取消不提交未发送消息。
+
+Typed XLIR 按规范化前端类型身份检查 Token，再按驻留析构/字段 policy
+检查原生能力，单有 `CancellationToken` 名称不构成授权。降低阶段才投影
+已解析的私有 native 字段，并保护真实语言 owner。该原生借用只能供同次
+同步收发的最后一个参数使用，不可存储、返回或当作普通 point 复用；
+独立验证器会核对生产者、唯一消费者、字段、policy 与逻辑原生能力。
+Cgen 只输出描述数据、调用与拥有清理，不查类名/字段、不实现等待算法。
+
+语言要求非空 Token；底层原生 Cancel ABI 的 NULL 则表示不使用取消。
+生成调用对必需的物理借用作非空检查，失败走 checked 路径，不能静默变成
+无取消的无限等待。私有槽/借用不构成公开 byref/out 或可逃逸引用。
+公开异构选择和真正异步接入仍待后续完成，本批未修改 XRT 快照。
+
+资源的值实参统一使用现有物化合同：例如 `Token?`、`string?` 或 `int?`
+在语言已证明非空的分支内，应传递其已物化的非空值，而不是重解释原可空
+声明槽。Typed 绑定、输入转换、独立验证与降低共用此事实；地址输出的
+存储合同仍单独检查，不因值物化而恢复公开引用参数。
+反向传给 `var` 的边界也走精确目标类型：已有 `var` 的窄化视图无需先拆箱
+再重新分配装箱，复用原声明槽的已拥有表示。此规则位于共享值降低入口，
+不是某个标准库或某种 Token 的例外。
+
+本批最终普通产品为 `five-groups-20261018/p1-channel-cancel` 的
+`build-win-r4` / `build-linux-r4`；最终 `accept-win-r4` 223 阶段、
+`accept-linux-r4` 239 阶段，零失败，完整/输入不变/日志不变均为 true。
+JIT、模块、严格外部 GCC O0/O2、可搬移独立 AOT 及内存账本通过；覆盖
+六个取消入口、临时/别名/可空 Token、普通线程取消、泛型、NUL/UTF-8、
+bytes 副本和成功 null。额外矩阵核对已收窄 string/int/bytes/类/float 的
+`var` 表示复用；既有线程、拥有式并发队列、Stack 和树查询回归通过。
+
+Linux 实际编译器检查 17 个 typed、2 个 dependent 和 23 个物理取消操作，
+441 项错误 IR 拒绝与 5 项流程输入检查通过；每个私有借用还独立拒绝第二
+消费者。旧发送 277 项和期限 232 项错误 IR 拒绝回归通过。四个实际 DLL/SO
+的原生生命周期/完整分配失败前缀回归，以及最小取消 provider 闭包检查通过。
+
+R1/R2 和磁盘耗尽的 R3 证据均保留，没有覆盖或改写为最终通过。最终源码
+在 R3 后未再修改；验证目录经逐文件长度/SHA-256 校验迁移到 F 盘，原
+`E:/xlang-validation/five-groups-20261018` 保留目录链接，两端可访问。R4
+重新正常构建并统一验收，不复用失败产物。未运行网络/网络安全专项，未
+替换 release；公开异构选择、真正异步和其余并发能力仍在长期任务范围。
+
+## Channel 不可变 case／拥有结果底座
+
+这是公开异构发送/接收选择的原生前置，不代表新的语言 case/select API
+已经接通。Case 独立拥有 Channel 引用、完整不可变 admission 元数据和发送
+值快照；创建、长期保存及 GC 观察不保持 Channel 活动 pin。一个接收 case
+可以复用或参与并发选择，接收存储属于每次选择，不写回 case 或语言变量。
+
+选择前准备结果对象与私有接收槽，仍调用既有 XRT 异构原子选择。提交后
+只移动槽和预取得的真实引用，不进行可失败的分配/retain；选择结果独立
+拥有所选 case 与接收值。类型身份、原生 descriptor、case 身份与状态均须
+精确匹配，成功 null 不与未收到混淆。读取复制在全部清理成功后才发布，
+失败保持调用者的空拥有槽不变；底层接收提交后清理失败则逐个释放私有槽。
+
+独立 catalog 域登记真实 case/结果节点、原生 handle policy 与 BUSY 能力；
+case -> Channel/发送值、结果 -> case/接收值均为真实拥有边，不用隐藏根或
+长期活动 pin 绕开环。源码预检含两个真实环的完整退休、混合发送/接收、
+float32、NUL、并发复用、rendezvous 和无诊断清理失败，以及完整分配失败
+前缀。原生 case 核心、选择和可取消选择分成独立组件；实际产品/裁剪证据
+见下文。没有新增 Cgen 等待算法或修改 XRT 快照。
+
+最终普通产品为 `p1-channel-cases/build-win-r2` / `build-linux-r2`，输入不变。
+既有语言回归 `accept-win-r2` 223 阶段、`accept-linux-r2` 239 阶段通过；
+新增 `native-win-r2` 297 阶段、`native-linux-r2` 301 阶段零失败，输入、日志
+与生成产物哈希不变。四个实际 DLL/SO 在 O0/O2 宿主中验证拥有环、并发复用、
+混合发送/接收、值隔离与清理；每条 lane 的完整分配失败前缀为创建 2、读取 1、
+小/大接收选择 1/6、小/大发送选择 7/45、取消选择 1，随后成功且账本平衡。
+
+两个方向的 native case 核心、普通选择、可取消选择三种原生根组合均在两端
+独立编译/运行，无 xlang DLL/SO 导入。真实 Linux 编译器生成规划，Windows
+使用前匹配全部 `src` 规范化哈希。每个实际产品核对 15 个 case 入口及元数据
+捕获/catalog 域入口的导出；私有规划函数未为测试扩大 DLL 导出。
+
+R1 完整产品的功能检查通过，但裁剪发现 `xrtThreadYield` 所属线程模块漏记；
+批量诊断三个组合后，仅补齐原生依赖声明，再全新冻结 R2 正常构建验收。
+原失败报告和诊断结果保留，不当作最终规划证据。没有新增等待实现或改成
+忙轮询掩盖缺失依赖。此批仍是公开语言 case/select 的前置，不代表其 XLIR
+接入完成；不影响继续真正异步、执行器、网络、密钥、X.509 和 TLS。
+
+## 原生类资源继承的共用合同
+
+原生工厂现在可以使用基类的唯一原生字段，仍由完整 ClassLayout、字段声明
+身份和已登记的析构/policy 决定，不以类名、字段顺序或 Cgen 追溯源声明推断。
+语义检查遍历声明继承链；Typed/Lowered XLIR 与 Cgen 验证共用规范化字段查询。
+单独的“含原生资源必须显式初始化”查询也覆盖多个字段的歧义，不能因工厂
+不可用而意外允许非空资源以零句柄默认构造。普通字段遮蔽原生存储键也拒绝。
+
+工厂先接管原生结果，再沿正常基类/字段路径初始化其余状态，每个字段一次；
+只跳过已接管的准确字段索引，不拼造切片或重复初始化继承字段。失败使用
+普通待提交对象回滚，未成功的对象不执行用户析构。基类别名和派生类自己的
+原生方法仍投影同一字段，析构链依原有布局执行。Cgen 不新增初始化/拥有算法。
+
+本批源码预检覆盖多层继承、静态/自由工厂、字段副作用和失败、nullable、普通
+语言构造，以及 3 个继承工厂/1 个继承借用的 17 项错误 IR 拒绝；错误 IR 不
+输出 C/头文件。完整 136 个分配前缀的 O0/O2 账本平衡。退役分配失败保留的
+checked 模块由测试宿主恢复内存后重试并检查释放，不误报为构造值泄漏，
+也不通过强制销毁掩盖待退役状态。正常冻结产品验收结果另行记录。
+
+现有泛型类继承限制保持不变，并有明确负例；本批不引入此语言特性，也没有
+将 Channel 的公共泛型 case/select 标为完成。下一步以组合式描述对象承载
+异构选择，消息本身保持精确类型槽；继续封闭私有泛型输出与声明/IR 合同。
+
+最终正常产物证据为 `p1-channel-source/build-win-r1` / `build-linux-r1`；
+`accept-win-r1` 813 阶段和 `accept-linux-r1` 831 阶段全部通过，构建/验收
+输入及日志哈希不变。四个实际 DLL/SO 各自 O0/O2，均覆盖 136 个分配失败
+命中点及随后成功，含 37 个退役保留/恢复点，最终完整账本平衡。Linux
+实际编译器通过上述 17 项错误 IR 拒绝；JIT/模块、确定性 C、严格 C、
+可搬移且不依赖 xlang 动态库的独立 AOT，以及原 Channel 取消/期限/拥有权
+回归均通过。测试专用 gate/fixture 独立封存，不改写冻结产品输入；保留
+既有泛型继承限制，没有网络/安全专项、XRT 快照修改或 release 替换。
+
+## Channel 公开 case/select 合同
+
+显式 `import concurrent` 后提供不可变 `ChannelCase.receive(channel)` 和
+`ChannelCase.send(channel, value)`。发送 case 保存独立的值副本；对象消息
+仍遵守既有引用语义。不公开变量地址、裸句柄、公开 byref 或临时输出槽。
+
+`ChannelSelection.select(cases)`、`trySelect(cases)`、`selectTimeout(cases, ms)`、
+`selectUntil(cases, deadlineUs)` 接收 `array<ChannelCase>`，支持异构发送和接收。
+`selectCancel`、`selectTimeoutCancel`、`selectUntilCancel` 在末尾接收非空
+`CancellationToken`。复用 XRT 原子选择，不以逐个轮询或阻塞 worker 模拟。
+
+结果的 `index` 为零基索引；无选中 case 时为 -1。`status` 使用
+`channelStatus.ok/closed/timeout/cancelled`。ready/closed 优先于已取消或过期。
+读取 `result.value(expectedCase, typedChannel)` 返回准确的 T；只有成功接收、
+准确 case 和同一个 Channel 资源允许读取。成功接收 null 与未接收明确区分。
+每次读取独立拥有自己的值；发送、超时、关闭等无接收结果的读取 checked 拒绝。
+同一 case 可多次或并发选择，旧结果不会被后续选择覆盖。
+
+选择开始时在短暂 Array 操作 pin 下捕获并强引用所有 case，释放源 Array pin
+后才等待。原生 wait 不保留语言数组槽、变量、生成代码回调或元数据地址。
+有限超时从准备前计时，转换为一次绝对期限；清理错误不交付半成品结果。
+空选择、负毫秒、UINT64_MAX 绝对期限和类型/身份不匹配均 checked 拒绝。
+
+Typed/Lowered XLIR 封闭原生 schema、类数组字段/policy 和“void C 返回＋私有
+准确结果槽”三个合同。Cgen 只输出已验证描述、调用、结果地址及正常拥有清理；
+不装箱消息、不重复构造类型桥、不执行选择算法。泛型静态调用统一代入 owner
+和 method 参数；未实例化 Channel 构造是逻辑 dependent 合同，具体实例仍须
+通过原有 resident 消息布局校验。此批没有放开 Future/闭包/原生记录消息，也
+不代表真正异步、执行器或后续网络/密钥/X.509/TLS 全部完成。
+
+当前源码发现阶段已通过 NUL/Unicode、bytes、nullable、float32、混合选择、
+并发复用、rendezvous、错误读取、泛型静态调用及 256 项错误 IR 的 C/头文件
+输出前拒绝。正常冻结 DLL/SO、JIT/AOT/裁剪及完整分配前缀验收另行记录。
+
+本批最终普通构建为 `p1-channel-api/build-win-r1` / `build-linux-r1`，两端
+构建输入不变。最终独立测试输入的 `accept-win-r2` 1347 阶段与
+`accept-linux-r2` 1370 阶段零失败，Complete/InputsUnchanged/LogsUnchanged
+均为 true。实际 JIT、模块、确定性 C、严格 O0/O2、可搬移独立 AOT 与旧
+Channel/Promise/取消/继承工厂回归通过。Linux 实际编译器复核上述 256 项
+错误 IR；实际规划确认仅创建 receive case 不拉入选择模块，纯 import 不
+拉入 case 实现，完整选择的原生依赖闭合。
+
+四个实际 DLL/SO 各自 O0/O2 的新语言拥有权夹具均覆盖 116 个分配失败
+命中点及随后成功，84—115 的 32 个 checked 退役保留点恢复后账本平衡。
+旧继承工厂 136 点前缀仍通过。额外 `bytes-snapshot-products.json` 固定同批
+产品和源输入，验证 Windows/Linux 实际 JIT 中发送 case 与重复读取副本的
+bytes 修改隔离。首轮 Windows gate 缺少历史测试宿主、额外 JIT 预检目录误带
+同名生成 C 的记录保留；二者只整理独立测试输入，没有修改/重建冻结产品。
+
+2026-10-18 用户已批准补充 XRT 原生订阅／Future 接口并同步必要快照，后续
+真正异步不再待此决策；仍不以每次等待创建线程/协程栈代替非阻塞操作。
+
+## Channel 有限期 Future 与默认执行服务
+
+显式 `import concurrent` 后，Channel 提供以下有限期方法；发送结果为
+`future<int>` 状态，接收结果为 `future<ChannelReceiveResult<T>>`：
+
+```text
+pipe.sendAsyncTimeout(value, milliseconds)
+pipe.sendAsyncUntil(value, deadlineUs)
+pipe.sendAsyncTimeoutCancel(value, milliseconds, token)
+pipe.sendAsyncUntilCancel(value, deadlineUs, token)
+pipe.recvAsyncTimeout(milliseconds)
+pipe.recvAsyncUntil(deadlineUs)
+pipe.recvAsyncTimeoutCancel(milliseconds, token)
+pipe.recvAsyncUntilCancel(deadlineUs, token)
+```
+
+异构选择对应 `ChannelSelection.selectAsyncTimeout(cases, milliseconds)`、
+`selectAsyncUntil(cases, deadlineUs)` 及末尾接收非空 token 的 `*Cancel`。
+沿用同步选择的同一次原子仲裁、结果身份和准确 T 读取；不建立第二个映射
+Future。关闭、超时、取消是正常状态；真实源失败和清理失败仍走 checked 错误。
+已提交的成功接收不能被后来取消或来源失败覆盖，成功 null 仍是一个值。
+
+有限 Timeout 接收非负毫秒，0 是立即判定，负值和溢出拒绝；无限期使用原有
+不带期限的方法。Until 接收单调微秒绝对期限，拒绝 UINT64_MAX/NEVER，
+不是系统时间戳。预算在消息复制、结果和 case 快照之前固定；ready/closed
+优先于已过期或预取消。取消输出 Future 也停止对应原生等待。
+
+默认模型为固定工作线程＋就绪队列；挂起等待不占 worker，不新建系统线程
+或协程栈。实际需要有限期入口的模块额外拥有一个非网络期限源；它只有一个
+计时线程，不执行语言代码，只停止原生等待并投递既有就绪 ticket。无限期
+等待、仅导入和用户同名方法不创建该源，直接收发不引入 case/选择器实现。
+这是有限资源服务：容量不足 checked 拒绝，不隐式创建更多线程兜底。
+
+模块先关闭期限源和执行器的准入，再完成/回收已接受工作，最后 join 原生
+通知尾部。BUSY/错误保留各自真实拥有槽以供重试；不因清理而无条件等到
+某个遥远期限，也不强制取消已接受工作。服务创建失败保持首个失败，使用
+同一 checked 清理入口回滚，不能 abort 或遗失残留执行器。
+
+普通同步阻塞回调仍会占用所在 worker；固定线程不承诺任意阻塞代码都免于
+线程池饥饿。语言异步/原生非阻塞等待与显式线程/阻塞任务应分别使用，不以
+增加等待线程掩盖这个边界。执行器/任务池/任务组其余公开能力仍在 P1。
+
+服务由规范入口和 XLIR 精确申请，不靠方法名推断。动态原生方法的可达
+目标同样参与服务闭合，即使没有直接原生 CALL 或 async 状态机，仍必须
+拥有需要的执行器和期限源。泛型原生方法转为静态类型函数值的已有降低
+限制另列待处理，不因支持动态 Value 方法调用而宣称该语言特性已完成。
+
+最终普通候选为 `p1-channel-finite-language` 的 R2：Windows 1914、Linux
+1906 阶段通过，构建/验收输入及日志封条一致，含实际 JIT/module、单 worker、
+严格 O0/O2 和可迁移独立 AOT。三个拥有权用例在每个实际产品上运行完整
+分配故障前缀；未启动 builder 为 267 点，旧无限期回归仍为 193 点。
+四个实际 DLL/SO 的 O0/O2 ready 生命周期另重复共 512 次，账本平衡。
+
+R1 暴露并修复了未启动 builder 的永久 BUSY 与已接受 frame 过早 Claim；
+只允许显式发布的稳定私有 builder 进入回滚准备，同计划清理发生在 Freeze
+之外并保留 creator 信用。已接受工作必须逻辑退休后才能被认领，不能先认领
+它仍要操作的 Channel 再等待 worker。旧 R1 失败证据保留，不计入最终验收。
+不修改固定 XRT 快照、不替换现有 release，也不扩大到网络/安全专项。
+
+## Channel 拥有式消息：Future 与原生记录
+
+本节为 2026-10-19 的新增实现，取代历史批次“Future/原生记录尚未放开”的
+范围说明；最终两平台普通产物验收已通过，不以源码绿色结果代替产物验收。
+
+Channel 的 DIRECT 消息槽增加 `future<T>`、`future<T>?`、`SlotMapKey` 和
+`SlotMapKey?`。适用于同步收发、Case/Selection、无限期与有限期 Future。
+Future 消息取得真实控制块的独立拥有引用，不克隆其计算，也不装进临时
+Value；不可变 Key 副本拥有自己的 instance 信用，不保持原 SlotMap 存活。
+不因此允许任意指针、外部 C record、闭包或 union 充当 DIRECT 消息。
+
+结果可以离开原 Channel、Case 或局部作用域后继续读取。每次读取取得一个
+独立拥有值；直接结果另持有完整、独立的驻留准入策略。成功的 nullable
+null 由正常 OK/hasValue 与空、超时、关闭区分，不通过零载体猜测是否收到了
+消息。非空 Key 的可空接收结果复用共享 IR presence 合同；SPSC/WaitQueue
+的同类结果也使用该事实，不能把空队列误判为有值。
+
+原生接收目的地必须是私有、对齐、已初始化的空槽；已有拥有值的 Key 输出
+在消费队列前拒绝。Copy 的 false 独立于诊断对象是否存在，失败不发布半成品。
+消息 Trace 使用真实 Future 边和驻留原生叶策略；结果不引用短生命周期的
+调用者描述符，不保留生成回调，不引入另一个 Future/等待线程/协程栈。
+
+最终候选见 `p1-channel-owned-profiles`：Windows 3007、Linux 2954 阶段
+零失败，输入／日志封条一致。包含实际 JIT/module、单 worker、严格
+O0/O2、独立 AOT/裁剪、完整语言分配前缀及恢复；现有 193 点接入回归与
+有限期用例仍通过。普通候选没有覆盖既有 release；其余 codec 和受管理
+Executor/TaskPool/TaskGroup 仍属于后续 P1 工作。

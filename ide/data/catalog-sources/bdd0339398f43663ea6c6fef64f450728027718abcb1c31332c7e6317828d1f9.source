@@ -1,0 +1,40 @@
+{
+    "format":  "xlang-package-1",
+    "name":  "ui.auto",
+    "version":  "0.1.0",
+    "abiVersion":  "1",
+    "kind":  "demo6-extlib",
+    "artifact":  {
+                     "kind":  "source",
+                     "cSources":  [
+
+                                  ],
+                     "xlSources":  [
+                                       "src/auto.xl"
+                                   ]
+                 },
+    "links":  [
+
+              ],
+    "loadlibs":  [
+
+                 ],
+    "dependencies":  [
+                         {
+                             "name":  "uia",
+                             "version":  "0.1.0",
+                             "abiVersion":  "1"
+                         },
+                         {
+                             "name":  "opencv",
+                             "version":  "0.1.0",
+                             "abiVersion":  "1"
+                         }
+                     ],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/named_type.xl"] },
+    "native":  {
+                   "singleton":  false,
+                   "loadName":  "",
+                   "version":  ""
+               }
+}

@@ -1,0 +1,33 @@
+{
+    "format":  "xlang-package-1",
+    "name":  "md5",
+    "version":  "1.0.0",
+    "abiVersion":  "1",
+    "kind":  "demo6-extlib",
+    "artifact":  {
+                     "kind":  "source",
+                     "cSources":  [
+                                      "xrt_md5.c",
+                                      "md5_native.c"
+                                  ],
+                     "xlSources":  [
+                                       "src/md5.xl"
+                                   ],
+                     "includeDirs": ["include"],
+                     "xrtModules": ["XRT_MODULE_CRYPTO_MD5", "XRT_MODULE_IO_BUFFER", "XRT_MODULE_IO_FILE", "XRT_MODULE_TEMP_MEMORY", "XRT_MODULE_CODEC_HEX", "XRT_MODULE_BUFFER"]
+                 },
+    "links":  [
+
+              ],
+    "loadlibs":  [
+
+                 ],
+    "dependencies":  [
+
+                     ],
+    "native":  {
+                   "singleton":  false,
+                   "loadName":  "",
+                   "version":  ""
+               }
+}

@@ -1,0 +1,73 @@
+{
+    "format":  "xlang-package-1",
+    "name":  "lzma",
+    "version":  "1.0.0",
+    "abiVersion":  "1",
+    "kind":  "demo6-extlib",
+    "artifact":  {
+                     "kind":  "source",
+                     "cSources":  [
+                                      "xrt_lzma.c",
+                                      "xrt_lzma_common.c",
+                                      "xrt_lzma_encode.c",
+                                      "xrt_lzma_decode.c",
+                                      "lzma_native.c",
+                                      "third_party/xz/7zCrc.c",
+                                      "third_party/xz/7zCrcOpt.c",
+                                      "third_party/xz/Alloc.c",
+                                      "third_party/xz/Bra.c",
+                                      "third_party/xz/Bra86.c",
+                                      "third_party/xz/CpuArch.c",
+                                      "third_party/xz/Delta.c",
+                                      "third_party/xz/LzFind.c",
+                                      "third_party/xz/LzmaDec.c",
+                                      "third_party/xz/LzmaEnc.c",
+                                      "third_party/xz/Lzma2Dec.c",
+                                      "third_party/xz/Lzma2Enc.c",
+                                      "third_party/xz/Sha256.c",
+                                      "third_party/xz/Sha256Opt.c",
+                                      "third_party/xz/Xz.c",
+                                      "third_party/xz/XzCrc64.c",
+                                      "third_party/xz/XzCrc64Opt.c",
+                                      "third_party/xz/XzDec.c",
+                                      "third_party/xz/XzEnc.c"
+                                  ],
+                     "xrtModules": [
+                         "XRT_MODULE_ERROR_FORMAT",
+                         "XRT_MODULE_FILE_TEMP",
+                         "XRT_MODULE_IO_BUFFER",
+                         "XRT_MODULE_IO_FILE",
+                         "XRT_MODULE_ONCE",
+                         "XRT_MODULE_PATH",
+                         "XRT_MODULE_UNICODE",
+                         "XRT_MODULE_VALUE",
+                         "XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE"
+                     ],
+                     "xlSources":  [
+                                       "src/lzma.xl"
+                                   ]
+                 },
+    "links":  [
+
+              ],
+    "loadlibs":  [
+
+                 ],
+    "dependencies":  [
+
+                     ],
+    "coverage":  {
+                     "mode":  "suite",
+                     "tests":  [
+                                   "test/boundaries.xl",
+                                   "test/file_ops.xl",
+                                   "test/allocations.xl",
+                                   "test/text_transfer.xl"
+                               ]
+                 },
+    "native":  {
+                   "singleton":  false,
+                   "loadName":  "",
+                   "version":  ""
+               }
+}

@@ -1,0 +1,63 @@
+extern "xl6_xrt_last_error_text" func __ch_error() as string
+
+// 原生接口接收零结尾文本，不能静默把含 NUL 的 XLang 字符串截成前缀。
+func __ch_has_nul(string value) as bool
+    return string.indexOf(value, "\0", false, string.byteLen(value), 1) >= 0
+end
+
+export class ConsistentHash
+    native point handle
+    extern "xchash_create" create(int replicas)
+    extern "xchash_destroy" destroy()
+
+    private extern "xchash_add_node" func addNative(string node) as int
+    private extern "xchash_remove_node" func removeNative(string node) as int
+    private extern "xchash_get_node" @owned func getNative(string key) as string?
+    private extern "xchash_node_count" func nodeCountNative() as int
+    private extern "xchash_vnode_count" func vnodeCountNative() as int
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get nodeCount() as int
+        int count = self.nodeCountNative()
+        if count < 0 then throw RuntimeError __ch_error() end
+        return count
+    end
+
+    get vnodeCount() as int
+        int count = self.vnodeCountNative()
+        if count < 0 then throw RuntimeError __ch_error() end
+        return count
+    end
+
+    func addNode(string node)
+        if self.handle == null then throw RuntimeError "consistent_hash: ring is closed" end
+        if __ch_has_nul(node) then throw ValueError "consistent_hash: node contains NUL" end
+        if self.addNative(node) == 0 then throw ValueError __ch_error() end
+    end
+
+    func removeNode(string node)
+        if self.handle == null then throw RuntimeError "consistent_hash: ring is closed" end
+        if __ch_has_nul(node) then throw ValueError "consistent_hash: node contains NUL" end
+        if self.removeNative(node) == 0 then throw ValueError __ch_error() end
+    end
+
+    func getNode(string key) as string
+        if self.handle == null then throw RuntimeError "consistent_hash: ring is closed" end
+        if __ch_has_nul(key) then throw ValueError "consistent_hash: key contains NUL" end
+        string? result = self.getNative(key)
+        if result == null then throw RuntimeError __ch_error() end
+        return result
+    end
+end
+
+export func create(int replicas = 150) as ConsistentHash
+    if replicas < 1 or replicas > 10000 then
+        throw ValueError "consistent_hash: replicas must be 1..10000"
+    end
+    ConsistentHash ring = ConsistentHash(replicas)
+    if not ring.valid then throw RuntimeError __ch_error() end
+    return ring
+end

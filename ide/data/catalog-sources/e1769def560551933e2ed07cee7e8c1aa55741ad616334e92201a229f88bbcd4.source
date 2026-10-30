@@ -1,0 +1,17 @@
+{
+  "format": "xlang-package-1",
+  "name": "xacme",
+  "version": "1.0.0",
+  "abiVersion": "1",
+  "kind": "demo6-extlib",
+  "artifact": {
+    "kind": "source",
+    "xlSources": [
+      "src/xacme.xl"
+    ],
+    "xrtModules": []
+  },
+  "links": [],
+  "loadlibs": [],
+  "dependencies": []
+}

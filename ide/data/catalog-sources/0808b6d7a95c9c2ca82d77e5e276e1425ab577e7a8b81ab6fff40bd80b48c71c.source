@@ -1,0 +1,19 @@
+{
+    "format": "xlang-package-1",
+    "name": "progress",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": ["progress_native.c"],
+        "includeDirs": ["include"],
+        "xlSources": ["src/progress.xl"],
+        "xrtModules": ["XRT_MODULE_UNICODE"]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocation_oom.xl"] },
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

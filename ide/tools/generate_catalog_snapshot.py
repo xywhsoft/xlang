@@ -1,99 +1,103 @@
-"""Generate a complete catalog/source pair from frozen compiler materials."""
-import argparse,hashlib,json,os,re,shutil,subprocess,sys,uuid
+"""Generate an IDE catalog from the matching current release and frozen sources."""
+import argparse,hashlib,json,os,re,shutil,subprocess,sys,tarfile
 from pathlib import Path
 from catalog_sources import plain,sha,verify
 
 IDE=Path(__file__).resolve().parents[1]
 DOCS=['语言基础设计','函数设计','表达式与控制流设计','类型系统设计','扩展库系统设计','标准库设计']
+PARSER_SOURCES=['src/lexer/xl6_token.c','src/lexer/xl6_lexer_api.c','src/lexer/xl6_lexer_gen.c',
+ 'src/parser/xl6_parser.c','src/parser/xl6_parser_api.c','src/ast/xl6_ast.c','src/diag/xl6_diag.c',
+ 'src/common/xl6_output.c','src/common/xl6_console.c','src/sem/xl6_completion.c','src/type/xl6_type_model.c']
+TOOLS=['generate_catalog.py','catalog_sources.py','dump_stdlib_catalog.c','catalog_inventory.py']
 
-def relative(name):
-    parts=name.split('/')
-    if any(not p or p in ('.','..') or '\\' in p or ':' in p for p in parts): raise ValueError('Invalid material path: '+name)
-    return Path(*parts)
+def probe(raw):
+    # References are only parsed/expanded, never checked or executed. Let the
+    # actual expander choose conditional declarations and optional members.
+    chunks='\n'.join(row['source'] for row in raw['sourceChunks'])
+    types=sorted(set(re.findall(r'(?m)^\s*(?:public\s+)?(?:class|protocol|enum)\s+(\w+)',chunks)))
+    members=sorted(set(re.findall(r'\b(?:func|get)\s+(\w+)',chunks)))
+    lines=['import '+ns for ns in sorted({row['namespace'] for row in raw['functions'] if row['namespace'] and not row['namespace'].startswith('__')})]
+    lines += ['auto __catalog_type_'+str(i)+' = '+name+'()' for i,name in enumerate(types)]
+    lines += ['auto __catalog_member_'+str(i)+' = __catalog_receiver.'+name for i,name in enumerate(members)]
+    lines += ['auto __catalog_function_'+str(i)+' = '+(row['namespace']+'.' if row['namespace'] else '')+row['name']+'()' for i,row in enumerate(raw['functions'])]
+    return '\n'.join(lines)+'\n'
 
-def generate(output,documentation_root,profile_path,gcc):
-    output=Path(output).absolute()
-    if output.exists(): raise ValueError('Catalog output directory already exists')
-    profile_path=Path(profile_path).absolute(); plain(profile_path)
-    profile=json.loads(profile_path.read_text(encoding='utf-8-sig'))
-    source_manifest=IDE/relative(profile['compiler_source_manifest']); runtime_manifest=IDE/relative(profile['compiler_manifest'])
-    if sha(source_manifest)!=profile['compiler_source_manifest_sha256'] or sha(runtime_manifest)!=profile['compiler_manifest_sha256']:
-        raise ValueError('Pinned compiler material manifest changed')
-    sources=json.loads(source_manifest.read_text(encoding='utf-8-sig')); runtime=json.loads(runtime_manifest.read_text(encoding='utf-8-sig'))
-    evidence_path=IDE/relative(profile['compiler_source_build_report'])
-    if sha(evidence_path)!=profile['compiler_source_build_report_sha256']: raise ValueError('Compiler source build evidence changed')
-    evidence=json.loads(evidence_path.read_text(encoding='utf-8-sig'))
-    if evidence.get('status')!='independent-build-passed' or evidence.get('sourceManifestSha256')!=sha(source_manifest): raise ValueError('Compiler source build evidence is not matched')
-    compiler_root=IDE/relative(profile['compiler_root']); source_root=Path(sources['directory'])
-    if source_root.resolve()!=compiler_root.parent.resolve() or Path(runtime['directory']).resolve()!=source_root.resolve():
-        raise ValueError('Compiler source and runtime roots differ')
-    rows={row['path']:row['sha256'] for row in sources['files'] if row['path'].startswith(('src/','lib/'))}
-    rows.update({name:digest for name,digest in runtime['files'].items() if name.startswith('release/extlibs/')})
-    compiler_files={name:runtime['files']['release/'+name] for name in ('xl.exe','xl.dll','xlc.dll')}
-    if any(evidence['runtimeArtifacts'].get(name)!=digest for name,digest in compiler_files.items()): raise ValueError('Compiler binaries do not match their source build')
-    for name,digest in compiler_files.items():
-        plain(compiler_root/name)
-        if sha(compiler_root/name)!=digest: raise ValueError('Pinned compiler runtime changed: '+name)
-    output.mkdir(parents=True); snapshot=output/'snapshot/demo6'; snapshot.mkdir(parents=True)
+def generate(root,output,release_report,gcc):
+    root=Path(root).resolve();output=Path(output).absolute();release_report=Path(release_report).resolve()
+    if output.exists():raise ValueError('Use a fresh output directory')
+    evidence=json.loads(release_report.read_text(encoding='utf-8-sig'))
+    if not evidence.get('releaseReady'):raise ValueError('Current release acceptance must pass first')
+    revision=evidence['sourceRevisions']['windowsArchive']
+    # Concurrent IDE work is outside the compiler input boundary. A compiler
+    # source edit requires a new matched build, not merely a stale snapshot.
+    subprocess.run(['git','diff','--quiet',revision,'--','src','lib','include','release/include'],cwd=root,check=True)
+    expected={Path(row['path']).name:row['sha256'] for row in evidence['products']}
+    compiler_files={name:sha(root/'release'/name) for name in ('xl.exe','xl.dll','xlc.dll')}
+    if any(expected.get(name)!=value for name,value in compiler_files.items()):raise ValueError('Release products differ from their build acceptance')
+    output.mkdir(parents=True);snapshot=output/'snapshot/compiler';snapshot.mkdir(parents=True)
+    archive=output/'compiler-source.tar'
+    subprocess.run(['git','archive','--format=tar','--output='+str(archive),revision,'src','release/include'],cwd=root,check=True)
+    with tarfile.open(archive) as source:source.extractall(snapshot,filter='data')
     captured=[]
-    def capture(source,relative_path,digest=None):
-        plain(source); raw=source.read_bytes(); actual=hashlib.sha256(raw).hexdigest()
-        if digest and actual!=digest: raise ValueError('Pinned source material changed: '+str(source))
-        target=snapshot/relative_path; target.parent.mkdir(parents=True,exist_ok=True); target.write_bytes(raw)
-        captured.append({'source':str(source),'path':relative_path.as_posix(),'sha256':actual})
-    for name,digest in sorted(rows.items()): capture(source_root/relative(name),relative(name),digest)
-    for name in DOCS: capture(Path(documentation_root)/(name+'.md'),Path('docs')/(name+'.md'))
-    tool_snapshot=output/'snapshot/ide/tools'; tool_snapshot.mkdir(parents=True)
-    tool_files={}
-    for name in ('generate_catalog.py','catalog_sources.py','dump_stdlib_catalog.c'):
-        source=IDE/'tools'/name; plain(source); raw=source.read_bytes(); target=tool_snapshot/name; target.write_bytes(raw); tool_files[name]=hashlib.sha256(raw).hexdigest()
-    scratch=output/'scratch'; scratch.mkdir()
+    def capture(src,rel):
+        plain(src);target=snapshot/rel;target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(src,target)
+        captured.append({'source':str(src),'path':Path(rel).as_posix(),'sha256':sha(target)})
+    for name in compiler_files:capture(root/'release'/name,Path('release')/name)
+    for doc in sorted((root/'docs').glob('*.md')):capture(doc,Path('docs')/doc.name)
+    for package in sorted((root/'release/extlibs').glob('*/xlang.package.json')):
+        manifest=json.loads(package.read_text(encoding='utf-8-sig'));capture(package,package.relative_to(root))
+        for rel in manifest.get('artifact',{}).get('xlSources',[]):
+            src=(package.parent/rel).resolve()
+            if not src.is_relative_to(package.parent.resolve()):raise ValueError('Package declaration escapes its package')
+            capture(src,src.relative_to(root))
+        readme=package.parent/'README.md'
+        if readme.is_file():capture(readme,readme.relative_to(root))
+    tool_snapshot=output/'snapshot/ide/tools';tool_snapshot.mkdir(parents=True)
+    for name in TOOLS:shutil.copyfile(IDE/'tools'/name,tool_snapshot/name)
+    tool_files={name:sha(tool_snapshot/name) for name in TOOLS}
+    scratch=output/'scratch';scratch.mkdir()
     header=(snapshot/'src/stdlib/xl6_stdlib_data.h').read_text(encoding='utf-8-sig')
     chunks=re.findall(r'extern\s+const\s+char\*\s+(xl6Stdlib\w+Source)\s*;',header)
-    if not chunks: raise ValueError('No class source exports found')
+    if not chunks:raise ValueError('No class declaration exports')
     (scratch/'stdlib_catalog_chunks.inc').write_text(''.join('    CHUNK('+name+');\n' for name in chunks),encoding='utf-8')
-    exporter=scratch/'dump_stdlib_catalog.exe'
-    compiler=compiler_root/'xl.exe'; catalog=output/'commands.json'; bundle=output/'catalog-sources'
-    calls=[[gcc,'-std=c11','-O0','-I'+str(snapshot),'-I'+str(scratch),str(tool_snapshot/'dump_stdlib_catalog.c'),str(snapshot/'src/stdlib/xl6_stdlib_data.c'),'-o',str(exporter)],
-           [str(exporter),str(scratch/'stdlib.raw.json')],
-           [sys.executable,'-X','utf8',str(tool_snapshot/'generate_catalog.py'),'--demo6',str(snapshot),'--raw',str(scratch/'stdlib.raw.json'),'--compiler',str(compiler),'--output',str(catalog),'--source-output',str(bundle),'--scratch',str(scratch/'asts')]]
-    report={'format':'xlang-catalog-generation-1','status':'running','output':str(output),'snapshot':str(snapshot),'sourceManifestSha256':sha(source_manifest),'runtimeManifestSha256':sha(runtime_manifest),'compilerFiles':compiler_files,'toolFiles':tool_files,'inputs':captured,'calls':[]}
-    report_path=output/'generation-report.json'
-    def receipt(): report_path.write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
-    receipt()
+    compiler=snapshot/'release/xl.exe';exporter=scratch/'dump_stdlib_catalog.exe'
+    env=dict(os.environ,PATH=str(snapshot/'release')+os.pathsep+os.environ.get('PATH',''),PYTHONUTF8='1')
+    report={'format':'xlang-catalog-generation-2','status':'running','sourceRevision':revision,
+      'sourceArchiveSha256':sha(archive),'releaseReportSha256':sha(release_report),'compilerFiles':compiler_files,
+      'toolFiles':tool_files,'inputs':captured,'calls':[],'snapshot':str(snapshot)}
+    def save():(output/'generation-report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+    def run(arguments):
+        log=output/('generation-'+str(len(report['calls']))+'.log');step={'arguments':list(map(str,arguments)),'log':str(log),'exitCode':None};report['calls'].append(step);save()
+        with log.open('wb') as stream:code=subprocess.run(list(map(str,arguments)),cwd=snapshot,env=env,stdout=stream,stderr=subprocess.STDOUT,timeout=300).returncode
+        step.update(exitCode=code,logSha256=sha(log));save()
+        if code:raise ValueError('Generation failed: '+str(log))
+    save()
     try:
-        for n,arguments in enumerate(calls):
-            log=output/(f'generation-{n}.log'); step={'arguments':arguments,'log':str(log),'exitCode':None}; report['calls'].append(step); receipt()
-            with log.open('xb') as stream:
-                code=subprocess.run(arguments,stdout=stream,stderr=subprocess.STDOUT,timeout=900,cwd=IDE).returncode
-            step.update(exitCode=code,logSha256=sha(log)); receipt()
-            if code: raise ValueError('Catalog generation failed; inspect '+str(log))
-        for row in captured:
-            if sha(snapshot/row['path'])!=row['sha256']: raise ValueError('Generation snapshot was modified')
-        for name,digest in tool_files.items():
-            if sha(tool_snapshot/name)!=digest: raise ValueError('Generation tool snapshot changed')
-        for name,digest in compiler_files.items():
-            if sha(compiler_root/name)!=digest: raise ValueError('Compiler changed during generation')
-        material=verify(bundle,catalog)
-        if material['unavailable']: raise ValueError('Generated catalog is missing source snapshots')
-        data=json.loads(catalog.read_text(encoding='utf-8')); report.update(status='passed',catalogSha256=sha(catalog),sourceIndexSha256=sha(bundle/'index.json'),commands=len(data['entries']),documents=len(data['documents']),availableSources=material['available'],unavailableSources=0)
+        run([gcc,'-std=c11','-O0','-ffunction-sections','-fdata-sections','-I'+str(snapshot),'-I'+str(snapshot/'release/include'),'-I'+str(scratch),
+          tool_snapshot/'dump_stdlib_catalog.c',snapshot/'src/stdlib/xl6_stdlib_data.c',*[snapshot/name for name in PARSER_SOURCES],snapshot/'release/xl.dll','-Wl,--gc-sections','-o',exporter])
+        raw=scratch/'stdlib.raw.json';run([exporter,raw]);raw_data=json.loads(raw.read_text(encoding='utf-8'))
+        trigger=scratch/'all-stdlib-references.xl';trigger.write_text(probe(raw_data),encoding='utf-8')
+        expanded=snapshot/'src/stdlib/catalog.declarations.xl';run([exporter,'--expand',trigger,expanded])
+        product_version=snapshot/'release/product-version.json';product_version.write_bytes(subprocess.check_output([str(compiler),'--version','--json'],cwd=snapshot,env=env))
+        (snapshot/'release/catalog-binding.json').write_text(json.dumps({'sourceRevision':revision,'compilerFiles':compiler_files,'releaseReportSha256':sha(release_report)},indent=2),encoding='utf-8')
+        catalog=output/'commands.json';bundle=output/'catalog-sources'
+        run([sys.executable,'-X','utf8',tool_snapshot/'generate_catalog.py','--root',snapshot,'--raw',raw,'--compiler',compiler,'--output',catalog,'--source-output',bundle,'--scratch',scratch/'asts'])
+        if any(sha(snapshot/row['path'])!=row['sha256'] for row in captured):raise ValueError('Snapshot changed during generation')
+        if any(sha(tool_snapshot/name)!=value for name,value in tool_files.items()):raise ValueError('Generator snapshot changed')
+        if any(sha(root/'release'/name)!=value for name,value in compiler_files.items()):raise ValueError('Compiler products changed during generation')
+        data=json.loads(catalog.read_text(encoding='utf-8'));material=verify(bundle,catalog)
+        if material['unavailable']:raise ValueError('Missing declaration sources')
+        report.update(status='passed',catalogSha256=sha(catalog),sourceIndexSha256=sha(bundle/'index.json'),commands=len(data['entries']),documents=len(data['documents']),availableSources=material['available'],unavailableSources=0)
     finally:
-        if report['status']=='running': report['status']='not-passed'
-        receipt()
+        if report['status']=='running':report['status']='not-passed'
+        save()
     return output
 
 def main():
-    parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--output',type=Path)
-    parser.add_argument('--documentation-root',type=Path,default=IDE.parent/'docs')
-    parser.add_argument('--profile',type=Path,default=IDE/'data/portable-build-inputs.json')
-    parser.add_argument('--gcc',default=shutil.which('gcc') or '')
-    args=parser.parse_args()
-    if not args.gcc: parser.error('gcc is required')
-    output=args.output or IDE/'build'/('cg-'+uuid.uuid4().hex[:8])
-    print('Generating immutable catalog pair:',output,flush=True)
-    try: result=generate(output,args.documentation_root,args.profile,args.gcc)
-    except (OSError,ValueError,KeyError,subprocess.SubprocessError) as error: parser.exit(1,str(error)+'\n')
+    ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--root',type=Path,default=IDE.parent);ap.add_argument('--output',type=Path,required=True);ap.add_argument('--release-report',type=Path);ap.add_argument('--gcc',default=shutil.which('gcc') or '')
+    args=ap.parse_args()
+    if not args.gcc:ap.error('gcc is required')
+    try:result=generate(args.root,args.output,args.release_report or args.root/'docs/reports/prerelease-0.6.0.json',args.gcc)
+    except (OSError,ValueError,KeyError,subprocess.SubprocessError) as error:ap.exit(1,str(error)+'\n')
     print(json.dumps({'status':'catalog-pair-generated','directory':str(result)},ensure_ascii=False))
-
-if __name__=='__main__': main()
+if __name__=='__main__':main()

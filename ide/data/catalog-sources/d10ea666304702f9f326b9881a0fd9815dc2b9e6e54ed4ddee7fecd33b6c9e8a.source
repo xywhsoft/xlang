@@ -1,0 +1,22 @@
+{
+    "format": "xlang-package-1",
+    "name": "langdetect",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": ["langdetect_native.c"],
+        "xlSources": ["src/langdetect.xl"],
+        "includeDirs": ["include"],
+        "xrtModules": ["XRT_MODULE_UNICODE"]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "coverage": {
+        "mode": "suite",
+        "tests": ["test/analysis_boundaries.xl"]
+    },
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

@@ -1,0 +1,44 @@
+{
+    "format": "xlang-package-1",
+    "name": "toml",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": [
+            "xrt_toml_types.c",
+            "xrt_toml_parser.c",
+            "xrt_toml_writer.c",
+            "toml_native.c"
+        ],
+        "xlSources": ["src/toml.xl"],
+        "xrtModules": [
+            "XRT_MODULE_BUFFER",
+            "XRT_MODULE_FILE_WHOLE",
+            "XRT_MODULE_IO_BUFFER",
+            "XRT_MODULE_IO_FILE",
+            "XRT_MODULE_NUMBER_FLOAT",
+            "XRT_MODULE_STRING",
+            "XRT_MODULE_THREAD",
+            "XRT_MODULE_TIME",
+            "XRT_MODULE_UNICODE",
+            "XRT_MODULE_VALUE_CONTAINER"
+        ]
+    },
+    "links": [],
+    "loadlibs": [],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl"] },
+    "dependencies": [
+        {
+            "name": "_tomlc17",
+            "version": "260618",
+            "abiVersion": "1"
+        }
+    ],
+    "native": {
+        "singleton": false,
+        "loadName": "",
+        "version": ""
+    }
+}

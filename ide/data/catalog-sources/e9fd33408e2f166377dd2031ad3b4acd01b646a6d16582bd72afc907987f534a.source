@@ -1,0 +1,113 @@
+# RapidOCR 扩展库
+
+2026-10-27 路径结果所有权：`rapidocr_extlib_path_native` 的 C 返回
+明确为需 `xrtFree` 的独立 `char*`；XLang 内部路径函数以
+`@owned string?` 直接接管，删除 `point/takeCstr` 中转。
+生成 C 门禁固定直接保存原生指针；仍需一次 `strlen` 取得长度，
+不声称文件系统查找本身零开销。失败时继续抛原有 `RuntimeError`，
+不改变公开 API 或推理插件内部行为。Windows 默认门禁的严格 C、
+完整/残缺桥接、真实模型与失败路径、独立 EXE 均通过；Linux
+`test/check.sh` 的 C 桥接与语言失败路径也退出 0。
+
+2026-10-26 当前 Windows 默认门禁退出 0：真实模型的 XLang 推理、
+失败路径、自动句柄清理及其独立 EXE 均通过，完整/残缺测试桥接的
+C/XLang 调用穿透也通过。C 公开后处理入口可用，但 C 端完整推理
+尚无对应桥接，因此仅确认现有公开调用链，不签收双语完整能力。
+
+此包通过 OpenCV 和 ONNX Runtime 提供图片文字识别。Windows 发布目录包含默认检测、方向分类、识别模型与字典。当前 **XLang 默认模型路径已有真实识别能力，但包尚未完成发布签收**。
+
+```xlang
+import rapidocr
+
+auto engine = rapidocr.RapidOCR()
+assert engine.valid()
+auto output = engine.op_call("picture.png")
+if output.ok() then
+    println(output.text())
+else
+    println(output.error())
+end
+engine.release()
+```
+
+`RapidOCREngine`、`RapidOCROutput`、OpenCV `Image` 以及 ONNX Runtime 的会话、Tensor、Result 等包装类现有显式 `release()`，并在对象析构时释放仍持有的原生句柄。重复释放返回 `false`；`valid()` 对默认 XLang 路径检查三个模型会话，不再把占位 C 句柄当成模型可用。推理成功但没有文字时 `ok()` 仍为 `true`，`text()` 返回空字符串；打不开图片或模型运行失败时 `ok()` 为 `false`，原因从结果对象的 `error()` 读取。
+
+XLang 的配置、模型、字典、输入图片和可视化输出路径均拒绝内嵌 NUL，
+不会把前缀误作另一个有效文件。检查位于导出类构造器及实际使用入口，
+直接构造 `RapidOCREngine` 与调用 `rapidocr.RapidOCR(...)` 遵守相同规则。
+传给原生 C 接口的检测框、识别输出及结果 JSON 同样拒绝内嵌 NUL，
+避免合法前缀后的无效内容被静默忽略；包装层抛出 `ValueError`。
+
+## 模型与后端
+
+默认模型位于 `models/`：
+
+- `ch_PP-OCRv4_det_infer.onnx`
+- `ch_ppocr_mobile_v2.0_cls_infer.onnx`
+- `ch_PP-OCRv4_rec_infer.onnx`
+- `ppocr_keys_v1.txt`
+
+`models/download_models.ps1` 是刷新工具，不是正常运行前置步骤。XLang 在可选 `rapidocr_xlang` 原生桥接层缺失时，使用包内 OpenCV/ONNX 推理链路。此链路支持检测、方向分类、识别与批处理；不能仅凭包名宣称与 Python RapidOCR 的所有后处理、精度和配置完全等价。当前仅原生桥接层处理配置文件；在只有 XLang 链路时传入非空配置路径会得到无效引擎，不会静默忽略配置。
+
+## C 边界
+
+`include/rapidocr.h` 是本包的 C 入口，`include/rapidocr_xlang_c_api.h` 则是可选原生桥接 DLL 的协议。C 用户可直接使用后处理函数，示例见 `examples/postprocess_c.c`；XLang 对照见 `examples/postprocess.xl`。**这不等于 C 端完整 OCR 推理已可用**：当前机器没有 `rapidocr_xlang` 桥接层，`rapidocr_available_native()` 返回 0；`rapidocr_create_native` / `rapidocr_call_native` 明确返回 `NULL`，错误可从 `rapidocr_last_error_native()` 读取，不再制造伪引擎或空 JSON。桥接 DLL 必须提供全部公开操作；显式 `RAPIDOCR_XLANG_DLL` 指向残缺 DLL 时直接拒绝，不回退搜索。C 端完整推理依赖独立桥接插件；本机没有该插件源码，因此当前只验收公开装载、调用、错误和所有权链路，不把测试桥接 DLL 当作真实 C 推理能力，也不要求本包重写插件内部。XLang 无桥接时仍走已有的 OpenCV/ONNX 模型链路。
+
+`rapidocr_assemble_result*_native` 已改为 XRT 严格 JSON 解析和序列化。四种组装入口均返回独立缓冲，C 调用方以 `xrtFree(result)` 释放，XLang 包装层自动接管；非法 JSON、非数组 boxes、超过 256 条识别结果或单段超过 4 MiB 时明确失败，不再静默截断。C 测试覆盖引号/反斜杠、超过旧 1 KiB 文本和 64 KiB 总缓冲的结果、连续调用与错误输入。
+
+本包的拥有型文本入口统一返回 `char*`，由 XRT 分配，C 调用方使用 `xrtFree`；XLang 通过 `@owned ... as string?` 接管，不再先包装为 `point` 再转换。生成代码仍需扫描一次字符串长度，但不额外复制字符。真实模型 JIT/AOT 与 C/XLang 后处理对照纳入包级门禁，覆盖检测框文本传入后续批量识别时的生命周期。
+
+公开的检测框、字典信息、识别/分类解码及 OCR 条目转换接口中，C 返回 `NULL` 表示操作失败，XLang 现在抛带原生诊断的 `RuntimeError`，不再把坏张量、缺字典或无效句柄伪装为 `[]`/`{}`。合法的无检测框仍返回 `[]`；完整推理的无文字结果仍由 `RapidOCROutput.ok()` 和空 `text()` 表达。推理内部的分批分类/识别失败继续汇入结果对象的 `error()`，不伪装为成功数据。无模型负例见 `test/native_failures.xl`，由 Windows/Linux 包级门禁运行。
+
+默认资源目录解析失败同样抛 `RuntimeError`，不会让空路径进入模型配置。`test/native_failures.xl` 扫描分配故障点，检查路径结果非空或明确失败，并验证故障清除后的恢复。
+
+C 端可用 `rapidocr_charset_open_native(path)` 读取拥有型字典句柄，以 `rapidocr_rec_decode_result_at_charset_native(result, charset, index)` 复用，最后调用 `rapidocr_charset_release_native(charset)`。句柄是只读快照，公开 ABI 用 `void*` 与 XLang `point` 保持一致；不得在释放后继续使用。按路径的独立解码入口仍保留，每次调用读取指定文件。
+
+多框几何的 C 快路径用 `rapidocr_boxes_open_native(boxes_json)` 一次解析并复制最多 256 个框，以 `rapidocr_boxes_count_handle_native`、`rapidocr_boxes_coord_native`、`rapidocr_boxes_rec_target_width_native` 按索引读取，最后调用 `rapidocr_boxes_release_native`。源 JSON 在打开后即可释放；示例见 `examples/postprocess_c.c`。XLang 的 OCR 管线使用同一快照，并由内部类析构释放；公开的 `rapidocr.box_x(boxes_json, index)` 等单次查询接口仍按调用解析输入。
+
+检测框的原始 JSON、typed 简单和 typed DB 三个入口，与识别/分类解码器、字符表信息及 OCR 条目转换入口一样，返回独立的 XRT 字符串；C 调用方使用 `xrtFree` 释放，XLang 包装层自动接管。三个检测路径共用一套框结果序列化，输出不再受旧 32 KiB 共享缓冲限制。typed 检测图上限为 4M 点，先检查乘法溢出与非有限值；超限会明确失败。`rapidocr.to_ocr_items_json(result_json[, text_score])` 与 `RapidOCROutput.to_ocr_json()` 使用同一转换逻辑。OCR 条目按 `boxes`、`txts`、`scores` 的根数组结构化读取，输出 `Ratio/Text/cx/cy/h/w/x/y`；文字中的引号、反斜杠和超过旧 1 KiB 上限的内容不会截断或破坏 JSON。C 侧输入无效时返回 `NULL` 并设置 `last_error`；XLang 包装返回 `[]`，可用 `rapidocr.last_error()` 查看原因。真实推理中的检测后处理失败则产生失败结果对象，不会伪装为空检测。
+
+识别文本通过 XRT JSON 序列化，引号、反斜杠和超过旧 4 KiB 上限的文本不会截断；输入数据不足、非有限浮点数、超过 4 MiB 的文本及含 NUL 字节的字符表会明确失败。原始检测/识别张量从 JSON 根对象严格读取 `shape` 和 `data`，检查数值类型、维度积与数组长度，拒绝嵌套同名字段和超大尺寸；ONNX 输出的 shape 也按严格数组解析。字符表读取使用 XRT 文件 API，支持 Windows UTF-8 路径。分类结果的方向判断从 JSON 根对象读取字段；嵌套的同名字段不再影响判断。
+
+资源文件定位已改用 XRT 的 UTF-8 路径接口，调用方拥有返回的路径字符串并以 `xrtFree` 释放；可选 DLL 的环境变量也按 UTF-8 读取，Windows 使用宽字符 API 加载。缺少必需符号时会关闭已打开的模块。检测框几何读取使用 XRT JSON 解析，仅接受根数组中的四个二维点；无效坐标、非有限值及整数宽度溢出不再按文本扫描出错误结果。C 公开头文件包含这些几何入口。
+
+包级错误信息已由 XRT 线程局部键保存，三个可选后端的首次探测由 XRT once 串行化。C 门禁让 8 个线程同时首次加载、交替产生不同错误并检查主线程错误隔离；Windows/Linux 和 Linux ASan/UBSan 通过。XLang 引擎创建时将字符表读取为一块只读数据及行指针，批次结果不再重复读文件；测试在引擎创建后删除字典副本，真实识别仍返回 `HELLO123`。独立按路径解码仍逐次读取。预热后两个独立引擎的并发真实识别通过。冷启动失败已定位到其依赖的 OpenCV/ONNX 包装层：旧装载器在首次 DLL 装载结束前置位 `attempted`，并发线程因此误报不可用。两个包装层已改用 XRT `xrtOnce`；ONNX 包装层错误槽也改为线程局部。修复前 5 轮冷推理失败 3 轮，修复后 5/5 冷推理、5/5 最小路径探针、16 线程 C 冷装载及整套 `-SkipAot -Stress` 均通过。这些短轮次数据不代表后端内部的长期稳定性；可选桥接 DLL 的源码、内部算法和长时压测交其独立维护。C 独立构建还需链接 XRT；`test/check.ps1` 展示了仅编译所需模块的做法。
+
+## 验证
+
+从 `demo6` 目录运行：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/rapidocr/test/check.ps1
+```
+
+默认门禁生成固定 `HELLO 123` PNG，验证真实识别为 `HELLO123`、`text()`/JSON、缺图/缺模型、C `int` 越界、严格 GCC C 测试、独立检测框/识别解码边界与 C/XLang 后处理同输出。检测框测试验证连续结果互不覆写，256 框且超过旧 32 KiB 容量时不截断。OpenCV/ONNX 包的独立范例由各自门禁负责；`-Stress` 才运行后端 16 线程冷装载、3 次引擎创建、9 次真实识别、预热后的双引擎识别、XLang 双线程冷路径探针和双引擎冷启动真实识别。Windows 每次在 `build/test/rapidocr/run_<id>` 独占子目录生成图片和二进制并在退出时仅清理该目录；Linux C 门禁使用独占系统临时目录。既有 `build/test/rapidocr` 文件不被覆盖或清理。
+
+路径负例曾先复现后修复；当前默认门禁包含真实模型 JIT/AOT、完整测试
+桥接层 JIT/AOT 及双语后处理对照。
+测试专用完整桥接层还验证 C/XLang 成功调用、失败诊断、再次成功与结果释放；
+残缺桥接层在 Windows C/XLang 和 Linux C 中均被拒绝。这里验证的是包的
+ABI 转发和所有权，不替代真实桥接插件的算法与构建验收；后者由插件维护方负责。
+旧构建曾在完整 AOT 链接处缺少 `xl6ValueDataSnapshotV1`；当前
+Windows 发布版默认门禁已构建并运行真实推理与隐式清理 AOT。
+当前 C 公共入口仅承诺后处理，不宣称没有可选桥接 DLL 时能直接完成
+推理；模型精度与桥接内部问题交后端独立维护。
+
+Linux 独立 C 后处理门禁可运行 `sh release/extlibs/rapidocr/test/check.sh`；它不包含 ONNX 模型推理与 XLang 验收。
+
+2026-10-21：修正包级门禁对固定 `build/test/rapidocr` 的复用；真实模型
+XLang 用例通过 `RAPIDOCR_TEST_DIR`/`RAPIDOCR_TEST_IMAGE` 获取本次夹具，
+C 测试使用测试程序所在目录保存字符表与 UTF-8 路径夹具。Windows
+`test/check.ps1 -SkipAot` 的严格 C、完整/残缺测试桥接层调用、XLang
+后处理与真实 `HELLO123` 推理通过；Linux `test/check.sh` 的 C 公开调用
+通过，两边本次目录均已清理。未重跑 `-Stress`，也未将测试桥接层视为
+真实 C 端推理或插件内部验收；完整 AOT 的主线阻断仍未关闭。
+
+2026-10-24：`RapidOCREngine`、`RapidBoxGeometry` 和 `RapidOCROutput`
+的析构曾在原生资源释放后写退役对象字段。有效引擎直接退出、XLang
+流水线的检测框几何清理以及完整测试桥接的原生输出清理分别红绿验证；
+仅移除析构写回，显式 `release()` 仍在对象有效期内清句柄。
+默认 Windows 门禁现完整通过，包含真实图片 `HELLO123`、回退流水线、
+测试桥接、两条隐式清理 JIT/AOT 及 C/XLang 后处理对照。Linux C 门禁
+通过后处理与完整测试桥接调用；它不验证 Linux XLang 模型推理。
+过去记录的 AOT 缺符号只对应旧构建。桥接插件内部算法仍由其维护者负责。

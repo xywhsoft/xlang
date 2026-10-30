@@ -1,0 +1,23 @@
+{
+    "format": "xlang-package-1",
+    "name": "redis",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": ["redis_native.c"],
+        "xlSources": ["src/redis.xl"],
+        "xrtModules": [
+            "XRT_MODULE_NET_SOCKET",
+            "XRT_MODULE_BUFFER",
+            "XRT_MODULE_UNICODE",
+            "XRT_MODULE_VALUE_CONTAINER"
+        ]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl"] },
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

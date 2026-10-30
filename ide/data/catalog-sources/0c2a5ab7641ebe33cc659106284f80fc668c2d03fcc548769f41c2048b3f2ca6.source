@@ -1,0 +1,562 @@
+// blake2 — BLAKE2b/BLAKE2s 高性能哈希（支持 keyed MAC），Buffer/string/文件/流式。
+extern "xblake2_last_error" func __blake2_error() as string
+extern "xblake2_version" func __blake2_version() as string
+extern "xblake2b_hash_hex" func __blake2b_hash_hex(point data, c_size size, c_size outLen, point key, c_size keyLen) as string
+extern "xblake2b_hash_str_hex" func __blake2b_hash_str(string data, c_size size, c_size outLen, string key, c_size keyLen) as string
+extern "xblake2s_hash_hex" func __blake2s_hash_hex(point data, c_size size, c_size outLen, point key, c_size keyLen) as string
+extern "xblake2s_hash_str_hex" func __blake2s_hash_str(string data, c_size size, c_size outLen, string key, c_size keyLen) as string
+extern "xblake2b_hash_bytes" func __blake2b_hash_bytes(point data, c_size size, c_size outLen) as point
+extern "xblake2b_hash_str_bytes" func __blake2b_hash_str_bytes(string data, c_size size, c_size outLen) as point
+extern "xblake2b_hash_mac_bytes" func __blake2b_hash_mac_bytes(point data, c_size size, point key, c_size keyLen, c_size outLen) as point
+extern "xblake2b_hash_mac_str_bytes" func __blake2b_hash_mac_str_bytes(string data, c_size size, string key, c_size keyLen, c_size outLen) as point
+extern "xblake2s_hash_bytes" func __blake2s_hash_bytes(point data, c_size size, c_size outLen) as point
+extern "xblake2s_hash_str_bytes" func __blake2s_hash_str_bytes(string data, c_size size, c_size outLen) as point
+extern "xblake2s_hash_mac_bytes" func __blake2s_hash_mac_bytes(point data, c_size size, point key, c_size keyLen, c_size outLen) as point
+extern "xblake2s_hash_mac_str_bytes" func __blake2s_hash_mac_str_bytes(string data, c_size size, string key, c_size keyLen, c_size outLen) as point
+extern "xblake2b_file_hex" func __blake2b_file_hex(string path, c_ulonglong maxInput, c_size outLen, var onProgress) as string
+extern "xblake2s_file_hex" func __blake2s_file_hex(string path, c_ulonglong maxInput, c_size outLen, var onProgress) as string
+
+
+
+// BLAKE2b 默认输出 64 字节，BLAKE2s 默认输出 32 字节。
+export const int BLAKE2B_OUT_LEN = 64
+export const int BLAKE2S_OUT_LEN = 32
+export const int BLAKE2B_KEY_MAX = 64
+export const int BLAKE2S_KEY_MAX = 32
+
+
+
+// 返回内嵌 BLAKE2 引擎的版本号。
+export func version() as string
+    return __blake2_version()
+end
+
+func __blake2_check_limit(int value, string name)
+    if value <= 0 then
+        throw ValueError name + " must be greater than zero"
+    end
+end
+
+
+
+
+
+
+// XRT 进度帧保存无符号字节计数，公开回调接收经过范围检查的 int。
+func __blake2_progress(func(int, int, int) as bool callback) as var
+    return xcall(func(uint64 inputBytes, uint64 totalBytes, uint64 outputBytes) as bool
+        uint64 maximum = uint64(9223372036854775807)
+        if inputBytes > maximum or totalBytes > maximum or outputBytes > maximum then
+            throw RangeError "blake2 progress exceeds int range"
+        end
+        return callback(int(inputBytes), int(totalBytes), int(outputBytes))
+    end)
+end
+
+// ═══════════════ BLAKE2b 一次性哈希 ═══════════════
+
+// BLAKE2b 哈希（默认 64 字节 = 128 hex 字符）。
+export func blake2bHashHex(Buffer data, int digestSize = BLAKE2B_OUT_LEN) as string
+    string result = __blake2b_hash_hex(data.data(), c_size(data.len()),
+        c_size(digestSize), null, c_size(0))
+    if result == "" then
+        throw ValueError __blake2_error()
+    end
+    return result
+end
+
+export func blake2bHashHex(string text, int digestSize = BLAKE2B_OUT_LEN) as string
+    string result = __blake2b_hash_str(text, c_size(string.byteLen(text)),
+        c_size(digestSize), "", c_size(0))
+    if result == "" then
+        throw ValueError __blake2_error()
+    end
+    return result
+end
+
+// BLAKE2b 哈希（返回原始字节 Buffer）。
+export func blake2bHashBytes(Buffer data, int digestSize = BLAKE2B_OUT_LEN) as Buffer
+    point result = __blake2b_hash_bytes(data.data(), c_size(data.len()), c_size(digestSize))
+    if result == null then
+        throw ValueError __blake2_error()
+    end
+    return Buffer(result)
+end
+
+export func blake2bHashBytes(string text, int digestSize = BLAKE2B_OUT_LEN) as Buffer
+    point result = __blake2b_hash_str_bytes(text, c_size(string.byteLen(text)), c_size(digestSize))
+    if result == null then
+        throw ValueError __blake2_error()
+    end
+    return Buffer(result)
+end
+
+// BLAKE2b keyed hash（原生 MAC，不是 HMAC）。
+export func blake2bKeyedHex(Buffer data, Buffer key, int digestSize = BLAKE2B_OUT_LEN) as string
+    string result = __blake2b_hash_hex(data.data(), c_size(data.len()),
+        c_size(digestSize), key.data(), c_size(key.len()))
+    if result == "" then
+        throw ValueError __blake2_error()
+    end
+    return result
+end
+
+export func blake2bKeyedHex(string text, string key, int digestSize = BLAKE2B_OUT_LEN) as string
+    string result = __blake2b_hash_str(text, c_size(string.byteLen(text)),
+        c_size(digestSize), key, c_size(string.byteLen(key)))
+    if result == "" then
+        throw ValueError __blake2_error()
+    end
+    return result
+end
+
+// BLAKE2b keyed hash（返回原始字节 Buffer）。
+export func blake2bKeyedBytes(Buffer data, Buffer key, int digestSize = BLAKE2B_OUT_LEN) as Buffer
+    point result = __blake2b_hash_mac_bytes(data.data(), c_size(data.len()),
+        key.data(), c_size(key.len()), c_size(digestSize))
+    if result == null then
+        throw ValueError __blake2_error()
+    end
+    return Buffer(result)
+end
+
+export func blake2bKeyedBytes(string text, string key, int digestSize = BLAKE2B_OUT_LEN) as Buffer
+    point result = __blake2b_hash_mac_str_bytes(text, c_size(string.byteLen(text)),
+        key, c_size(string.byteLen(key)), c_size(digestSize))
+    if result == null then
+        throw ValueError __blake2_error()
+    end
+    return Buffer(result)
+end
+
+
+
+// ═══════════════ BLAKE2s 一次性哈希 ═══════════════
+
+// BLAKE2s 哈希（默认 32 字节 = 64 hex 字符）。
+export func blake2sHashHex(Buffer data, int digestSize = BLAKE2S_OUT_LEN) as string
+    string result = __blake2s_hash_hex(data.data(), c_size(data.len()),
+        c_size(digestSize), null, c_size(0))
+    if result == "" then
+        throw ValueError __blake2_error()
+    end
+    return result
+end
+
+export func blake2sHashHex(string text, int digestSize = BLAKE2S_OUT_LEN) as string
+    string result = __blake2s_hash_str(text, c_size(string.byteLen(text)),
+        c_size(digestSize), "", c_size(0))
+    if result == "" then
+        throw ValueError __blake2_error()
+    end
+    return result
+end
+
+// BLAKE2s 哈希（返回原始字节 Buffer）。
+export func blake2sHashBytes(Buffer data, int digestSize = BLAKE2S_OUT_LEN) as Buffer
+    point result = __blake2s_hash_bytes(data.data(), c_size(data.len()), c_size(digestSize))
+    if result == null then
+        throw ValueError __blake2_error()
+    end
+    return Buffer(result)
+end
+
+export func blake2sHashBytes(string text, int digestSize = BLAKE2S_OUT_LEN) as Buffer
+    point result = __blake2s_hash_str_bytes(text, c_size(string.byteLen(text)), c_size(digestSize))
+    if result == null then
+        throw ValueError __blake2_error()
+    end
+    return Buffer(result)
+end
+
+// BLAKE2s keyed hash（原生 MAC）。
+export func blake2sKeyedHex(Buffer data, Buffer key, int digestSize = BLAKE2S_OUT_LEN) as string
+    string result = __blake2s_hash_hex(data.data(), c_size(data.len()),
+        c_size(digestSize), key.data(), c_size(key.len()))
+    if result == "" then
+        throw ValueError __blake2_error()
+    end
+    return result
+end
+
+export func blake2sKeyedHex(string text, string key, int digestSize = BLAKE2S_OUT_LEN) as string
+    string result = __blake2s_hash_str(text, c_size(string.byteLen(text)),
+        c_size(digestSize), key, c_size(string.byteLen(key)))
+    if result == "" then
+        throw ValueError __blake2_error()
+    end
+    return result
+end
+
+// BLAKE2s keyed hash（返回原始字节 Buffer）。
+export func blake2sKeyedBytes(Buffer data, Buffer key, int digestSize = BLAKE2S_OUT_LEN) as Buffer
+    point result = __blake2s_hash_mac_bytes(data.data(), c_size(data.len()),
+        key.data(), c_size(key.len()), c_size(digestSize))
+    if result == null then
+        throw ValueError __blake2_error()
+    end
+    return Buffer(result)
+end
+
+export func blake2sKeyedBytes(string text, string key, int digestSize = BLAKE2S_OUT_LEN) as Buffer
+    point result = __blake2s_hash_mac_str_bytes(text, c_size(string.byteLen(text)),
+        key, c_size(string.byteLen(key)), c_size(digestSize))
+    if result == null then
+        throw ValueError __blake2_error()
+    end
+    return Buffer(result)
+end
+
+
+
+// ═══════════════ 文件哈希 ═══════════════
+
+func __blake2_file_path(string path)
+    if string.indexOf(path, "\0", false, string.byteLen(path), 1) >= 0 then
+        throw ValueError "blake2 file path contains NUL"
+    end
+end
+
+export func blake2bFileHex(string path, int maxInput = 268435456,
+    int digestSize = BLAKE2B_OUT_LEN,
+    (func(int, int, int) as bool)? onProgress = null) as string
+    __blake2_file_path(path)
+    __blake2_check_limit(maxInput, "maxInput")
+    var progress = null
+    if onProgress != null then
+        progress = __blake2_progress(onProgress)
+    end
+    string result = __blake2b_file_hex(path, c_ulonglong(maxInput), c_size(digestSize), progress)
+    if result == "" then
+        throw IOError __blake2_error()
+    end
+    return result
+end
+
+export func blake2sFileHex(string path, int maxInput = 268435456,
+    int digestSize = BLAKE2S_OUT_LEN,
+    (func(int, int, int) as bool)? onProgress = null) as string
+    __blake2_file_path(path)
+    __blake2_check_limit(maxInput, "maxInput")
+    var progress = null
+    if onProgress != null then
+        progress = __blake2_progress(onProgress)
+    end
+    string result = __blake2s_file_hex(path, c_ulonglong(maxInput), c_size(digestSize), progress)
+    if result == "" then
+        throw IOError __blake2_error()
+    end
+    return result
+end
+
+
+
+// ═══════════════ BLAKE2b 流式哈希器 ═══════════════
+
+export class Blake2bHasher
+    native point handle
+    extern "xblake2b_hasher_create" create(c_size outLen, c_ulonglong maxInput)
+    private extern "xblake2b_hasher_adopt" create(point handle)
+    extern "xblake2b_hasher_destroy" destroy()
+    private extern "xblake2b_hasher_update" func updateNative(point data, c_size size) as bool
+    private extern "xblake2b_hasher_update_str" func updateStrNative(string data, c_size size) as bool
+    private extern "xblake2b_hasher_digest_hex" func digestHexNative() as string
+    private extern "xblake2b_hasher_digest_bytes" func digestBytesNative() as point
+    private extern "xblake2b_hasher_reset" func resetNative() as bool
+    private extern "xblake2b_hasher_input_bytes" func inputBytesNative() as c_ulonglong
+    private extern "xblake2b_hasher_clone" func cloneNative() as point
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get inputBytes() as int
+        return int(self.inputBytesNative())
+    end
+
+    func update(Buffer data)
+        if not self.updateNative(data.data(), c_size(data.len())) then
+            throw ValueError __blake2_error()
+        end
+    end
+
+    func update(string text)
+        if not self.updateStrNative(text, c_size(string.byteLen(text))) then
+            throw ValueError __blake2_error()
+        end
+    end
+
+    func digestHex() as string
+        string result = self.digestHexNative()
+        if result == "" then
+            throw ValueError __blake2_error()
+        end
+        return result
+    end
+
+    func digestBytes() as Buffer
+        point result = self.digestBytesNative()
+        if result == null then
+            throw ValueError __blake2_error()
+        end
+        return Buffer(result)
+    end
+
+    func reset() as bool
+        if not self.resetNative() then
+            throw ValueError __blake2_error()
+        end
+        return true
+    end
+
+    func clone() as Blake2bHasher
+        point hp = self.cloneNative()
+        if hp == null then
+            throw ValueError __blake2_error()
+        end
+        return Blake2bHasher(hp)
+    end
+end
+
+export class Blake2bKeyedHasher
+    native point handle
+    extern "xblake2b_hasher_create_keyed_span" create(c_size outLen, cbytes key, c_ulonglong maxInput)
+    private extern "xblake2b_hasher_adopt" create(point handle)
+    extern "xblake2b_hasher_destroy" destroy()
+    private extern "xblake2b_hasher_update" func updateNative(point data, c_size size) as bool
+    private extern "xblake2b_hasher_update_str" func updateStrNative(string data, c_size size) as bool
+    private extern "xblake2b_hasher_digest_hex" func digestHexNative() as string
+    private extern "xblake2b_hasher_digest_bytes" func digestBytesNative() as point
+    private extern "xblake2b_hasher_reset" func resetNative() as bool
+    private extern "xblake2b_hasher_input_bytes" func inputBytesNative() as c_ulonglong
+    private extern "xblake2b_hasher_clone" func cloneNative() as point
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get inputBytes() as int
+        return int(self.inputBytesNative())
+    end
+
+    func update(Buffer data)
+        if not self.updateNative(data.data(), c_size(data.len())) then
+            throw ValueError __blake2_error()
+        end
+    end
+
+    func update(string text)
+        if not self.updateStrNative(text, c_size(string.byteLen(text))) then
+            throw ValueError __blake2_error()
+        end
+    end
+
+    func digestHex() as string
+        string result = self.digestHexNative()
+        if result == "" then
+            throw ValueError __blake2_error()
+        end
+        return result
+    end
+
+    func digestBytes() as Buffer
+        point result = self.digestBytesNative()
+        if result == null then
+            throw ValueError __blake2_error()
+        end
+        return Buffer(result)
+    end
+
+    func reset() as bool
+        if not self.resetNative() then
+            throw ValueError __blake2_error()
+        end
+        return true
+    end
+
+    func clone() as Blake2bKeyedHasher
+        point hp = self.cloneNative()
+        if hp == null then
+            throw ValueError __blake2_error()
+        end
+        return Blake2bKeyedHasher(hp)
+    end
+end
+
+
+
+// ═══════════════ BLAKE2s 流式哈希器 ═══════════════
+
+export class Blake2sHasher
+    native point handle
+    extern "xblake2s_hasher_create" create(c_size outLen, c_ulonglong maxInput)
+    private extern "xblake2s_hasher_adopt" create(point handle)
+    extern "xblake2s_hasher_destroy" destroy()
+    private extern "xblake2s_hasher_update" func updateNative(point data, c_size size) as bool
+    private extern "xblake2s_hasher_update_str" func updateStrNative(string data, c_size size) as bool
+    private extern "xblake2s_hasher_digest_hex" func digestHexNative() as string
+    private extern "xblake2s_hasher_digest_bytes" func digestBytesNative() as point
+    private extern "xblake2s_hasher_reset" func resetNative() as bool
+    private extern "xblake2s_hasher_input_bytes" func inputBytesNative() as c_ulonglong
+    private extern "xblake2s_hasher_clone" func cloneNative() as point
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get inputBytes() as int
+        return int(self.inputBytesNative())
+    end
+
+    func update(Buffer data)
+        if not self.updateNative(data.data(), c_size(data.len())) then
+            throw ValueError __blake2_error()
+        end
+    end
+
+    func update(string text)
+        if not self.updateStrNative(text, c_size(string.byteLen(text))) then
+            throw ValueError __blake2_error()
+        end
+    end
+
+    func digestHex() as string
+        string result = self.digestHexNative()
+        if result == "" then
+            throw ValueError __blake2_error()
+        end
+        return result
+    end
+
+    func digestBytes() as Buffer
+        point result = self.digestBytesNative()
+        if result == null then
+            throw ValueError __blake2_error()
+        end
+        return Buffer(result)
+    end
+
+    func reset() as bool
+        if not self.resetNative() then
+            throw ValueError __blake2_error()
+        end
+        return true
+    end
+
+    func clone() as Blake2sHasher
+        point hp = self.cloneNative()
+        if hp == null then
+            throw ValueError __blake2_error()
+        end
+        return Blake2sHasher(hp)
+    end
+end
+
+export class Blake2sKeyedHasher
+    native point handle
+    extern "xblake2s_hasher_create_keyed_span" create(c_size outLen, cbytes key, c_ulonglong maxInput)
+    private extern "xblake2s_hasher_adopt" create(point handle)
+    extern "xblake2s_hasher_destroy" destroy()
+    private extern "xblake2s_hasher_update" func updateNative(point data, c_size size) as bool
+    private extern "xblake2s_hasher_update_str" func updateStrNative(string data, c_size size) as bool
+    private extern "xblake2s_hasher_digest_hex" func digestHexNative() as string
+    private extern "xblake2s_hasher_digest_bytes" func digestBytesNative() as point
+    private extern "xblake2s_hasher_reset" func resetNative() as bool
+    private extern "xblake2s_hasher_input_bytes" func inputBytesNative() as c_ulonglong
+    private extern "xblake2s_hasher_clone" func cloneNative() as point
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get inputBytes() as int
+        return int(self.inputBytesNative())
+    end
+
+    func update(Buffer data)
+        if not self.updateNative(data.data(), c_size(data.len())) then
+            throw ValueError __blake2_error()
+        end
+    end
+
+    func update(string text)
+        if not self.updateStrNative(text, c_size(string.byteLen(text))) then
+            throw ValueError __blake2_error()
+        end
+    end
+
+    func digestHex() as string
+        string result = self.digestHexNative()
+        if result == "" then
+            throw ValueError __blake2_error()
+        end
+        return result
+    end
+
+    func digestBytes() as Buffer
+        point result = self.digestBytesNative()
+        if result == null then
+            throw ValueError __blake2_error()
+        end
+        return Buffer(result)
+    end
+
+    func reset() as bool
+        if not self.resetNative() then
+            throw ValueError __blake2_error()
+        end
+        return true
+    end
+
+    func clone() as Blake2sKeyedHasher
+        point hp = self.cloneNative()
+        if hp == null then
+            throw ValueError __blake2_error()
+        end
+        return Blake2sKeyedHasher(hp)
+    end
+end
+
+
+
+// ═══════════════ 工厂函数 ═══════════════
+
+export func blake2bHasher(int digestSize = BLAKE2B_OUT_LEN,
+    int maxInput = 268435456) as Blake2bHasher
+    __blake2_check_limit(maxInput, "maxInput")
+    Blake2bHasher result = Blake2bHasher(c_size(digestSize), c_ulonglong(maxInput))
+    if not result.valid then
+        throw ValueError __blake2_error()
+    end
+    return result
+end
+
+export func blake2bKeyedHasher(Buffer key, int digestSize = BLAKE2B_OUT_LEN,
+    int maxInput = 268435456) as Blake2bKeyedHasher
+    __blake2_check_limit(maxInput, "maxInput")
+    Blake2bKeyedHasher result = Blake2bKeyedHasher(c_size(digestSize), key.toBytes(), c_ulonglong(maxInput))
+    if not result.valid then
+        throw ValueError __blake2_error()
+    end
+    return result
+end
+
+export func blake2sHasher(int digestSize = BLAKE2S_OUT_LEN,
+    int maxInput = 268435456) as Blake2sHasher
+    __blake2_check_limit(maxInput, "maxInput")
+    Blake2sHasher result = Blake2sHasher(c_size(digestSize), c_ulonglong(maxInput))
+    if not result.valid then
+        throw ValueError __blake2_error()
+    end
+    return result
+end
+
+export func blake2sKeyedHasher(Buffer key, int digestSize = BLAKE2S_OUT_LEN,
+    int maxInput = 268435456) as Blake2sKeyedHasher
+    __blake2_check_limit(maxInput, "maxInput")
+    Blake2sKeyedHasher result = Blake2sKeyedHasher(c_size(digestSize), key.toBytes(), c_ulonglong(maxInput))
+    if not result.valid then
+        throw ValueError __blake2_error()
+    end
+    return result
+end

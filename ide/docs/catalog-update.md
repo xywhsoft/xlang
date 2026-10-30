@@ -1,49 +1,38 @@
-# 命令目录与来源资料更新
+# 命令目录更新与验收
 
-命令目录与来源快照作为一组资料生成、验证和发布。当前静态目录含 5,783 个条目、45 份共享文档、227 个扩展包，335 个实际引用来源全部可校验。编辑器继续分别使用 C 与 xlang 语法，帮助位于编辑器下方的中央底栏；来源窗口保持原生只读。
+命令目录来自当前共享 `release/` 的编译器及其对应源码，不再使用旧的便携编译器快照。编译器源码固定到 `docs/reports/prerelease-0.6.0.json` 记录的 Windows 构建版本；三份产品的 SHA-256 必须与报告一致。编译器目录有未纳入该构建的源码修改时，先构建并完成相应验收，再更新目录。IDE 的并行源码修改不进入编译器输入范围。
 
-## 生成
-
-维护者在 IDE 工作区执行：
+在 `ide/` 下运行：
 
 ```powershell
 .\tools\generate_catalog.ps1 -PrepareOnly -GccPath E:\software\w64devkit\bin\gcc.exe
+python -X utf8 tools/check_catalog_update.py --pair build/cg-实际编号 --output build/catalog-check-新的编号 --cc E:/software/w64devkit/bin/gcc.exe
+python -X utf8 tools/catalog_publish.py --pair build/cg-实际编号 --data data
+python -X utf8 tools/check_catalog_coverage.py --catalog data/commands.json
 ```
 
-生成目录为新的 `build/cg-编号`；输出包含 `commands.json`、`catalog-sources`、`generation-report.json`、原始来源和生成工具快照，以及真实 GCC、导出程序、编译器解析日志。指定 `-OutputDirectory` 时目标必须尚不存在。
+`-ReleaseReportPath` 可以选择新的构建验收报告，`-Root` 指定其仓库。输出目录必须尚不存在。省略 `-PrepareOnly` 会在覆盖校验通过后直接发布到 `ide/data`。资料更新不重编译 GUI 或语言服务；语义服务的编译和验收独立进行。
 
-编译器和源码取自 `data/portable-build-inputs.json` 指定的缓存资料，以源码清单、独立构建报告和三个运行时摘要相互验证。不会执行工作区 `release` 中另一份编译器。六份设计文档默认读取实际 `docs`，可通过 `-DocumentationRoot` 指定；这些文档是当次捕获的设计资料，并非编译器源码构建证明的一部分。
+## 数据来源
 
-生成器在读取来源时保存原始字节，再从这些字节提取声明和文档。全部声明解析成功、全部来源内容与目录摘要一致才会得到 passed 报告。源文件、编译器、工具快照改变，或任一声明解析失败时拒绝生成完整资料对；已安装数据保持原状。
+生成工具导出并核对实际函数／常量登记表。原生辅助程序以相同 Git 版本的源码编译，运行真实的标准库展开器，观察其生成声明；不会执行测试引用里的构造函数、网络操作或标准库业务函数。引用集合覆盖所有导出的类片段、成员名、函数名和高级模块，由真实展开器选择完整的条件声明，不再用文本拼接模拟条件分支。
 
-已修正公开 `native_extern_func` 声明遗漏。相对上一目录新增 1,320 个条目；两条旧 XLON 非泛型签名由固定源码中实际泛型签名替换，`JsonWriter.finish` 和 `XlonWriter.finish` 保留。原生目录测试覆盖这些签名和 C 候选隔离。来源行在捕获文件范围内，标准库位置仍指向承载声明的 C 源片段。
+捕获的 `src/stdlib/catalog.declarations.xl` 由当前发布的 `xl.exe parse` 重新解析，生成函数、重载、泛型、构造函数、getter、公开字段和枚举值的签名。内部名称、private／protected 声明和 native 存储字段不作为命令。公开字段使用目录格式 1 已有的成员类别 `method`，另存 `declarationKind=field`，签名不含调用括号；它们可供查阅，静态后备补全不会将它们插入全局。此做法保持现有 GUI 的目录格式兼容。枚举值使用 `constant` 类别。目录 JSON／索引固定 LF，内容寻址的 `.source` 文件禁止 Git 文本转换，保证新检出的字节仍与文件名摘要一致。
 
-## 发布与中断恢复
+标准库类的“查看声明来源”显示实际展开的 xlang 声明字节与正确行号。常量定位其 C 登记片段。模块帮助引用真实项目文档；HTTP、WebSocket、网络、TLS、密码学、压缩和模板等分类单独提供资料。高级模块保留显式导入提示。扩展包仅从当前 `xlang.package.json` 所列 `artifact.xlSources` 提取公开声明，已删除包不保留旧命令。
 
-核对生成报告后，发布对应目录：
+## 校验与发布
+
+- `check_catalog_coverage.py` 检查当前编译器绑定、源码版本、公开函数／常量／类型／成员覆盖、内部字段排除、签名摘要及全部来源字节。
+- `check_catalog_update.py` 检查缺项／错误默认参数／存储字段泄漏负例、原生目录读取和检索、确定性再生成，以及原有发布工具的异常回退、并发锁和真实进程中断恢复。
+- IDE 正常构建在复制资料前执行覆盖校验，并使用 `catalog_publish.py` 成对更新目录与来源；旧资料过期时停止交付并提示重新生成。
+
+`commands.json` 与 `catalog-sources` 必须成对发布，禁止只复制一个 JSON。事务目录必须与目标数据目录位于同一文件系统，以保证目录 rename 的原子性；默认的 `ide/build/catalog-publications` 与本仓库共享发布目录同盘。发布工具保留事务记录和旧资料，异常时回退；中断后使用：
 
 ```powershell
-python tools\catalog_publish.py --pair build\cg-实际编号 --data data
+python -X utf8 tools/catalog_publish.py --data data --recover
 ```
 
-也可直接运行不带 `-PrepareOnly` 的生成命令，生成成功后自动发布。普通构建与便携打包仅验证、复制已安装资料，不需要在使用者设备上重新生成。
+共享 `release/data` 同样使用上述发布工具；其安装回执和 `provenance/ide-catalog-0.6.0.json` 记录实际更新范围、产品哈希与验收结果。构建来源和当前编译器绑定验证不等于完整 GUI、语言服务或标准库逐接口运行验收。
 
-发布先持有目标目录写入锁，并保存新旧完整资料。随后更换来源目录与命令文件，校验成功才记录 committed；同一资料对重复发布保持安装内容不变。发生普通异常时回退；进程中断后，下一次发布会先恢复未完成日志，也可显式执行：
-
-```powershell
-.\tools\generate_catalog.ps1 -Recover
-# 仅依据发布日志恢复，也可直接调用发布工具：
-python tools\catalog_publish.py --data data --recover
-```
-
-上一版本与恢复日志保存在 `build/catalog-publications`，原来的便携候选另行保留。来源目录已安装且摘要正确时恢复完成新目录，否则在已记录的旧状态下恢复旧资料。发现目标或恢复快照被其他操作改动时拒绝猜测，保留实际内容和日志供核查。
-
-两项磁盘资源不能在一次 Windows 文件替换中一起提交。短暂更新期间，正在运行的 IDE 对不匹配来源明确报错，不会展示另一版本正文；发布结束后使用“重新加载命令目录”载入新目录。当前验收证明进程中断恢复，不宣称设备断电或存储故障的恢复能力。
-
-## 验收
-
-`check_catalog_publication.py` 在独立测试目录通过 14 项检查，包括完整发布、相同资料重复发布、首次发布和失败、四阶段异常回退、实际子进程中断、并发锁、外部改动拒绝与不匹配资料拒绝。使用 Windows 长路径访问，保留所有测试资料与日志。
-
-原生来源测试读取全部 335 份资料，并验证 C／xlang／文档来源、定位、只读输入、损坏和缺失提示、字体与 DPI、草稿、选区和撤销。缺失状态通过只改动测试副本制造，产品目录保持完整。
-
-当前候选和实际构建、回归、打包证据以 [当前入口](../CURRENT-CANDIDATE.md) 为准。
+当前生成与验收的机器可读记录见 [目录构建回执](../data/catalog-build-receipt.json)。

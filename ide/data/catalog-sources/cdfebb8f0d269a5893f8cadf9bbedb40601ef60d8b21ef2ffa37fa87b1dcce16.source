@@ -1,0 +1,394 @@
+func __csv_has_nul(string value) as bool
+    return string.indexOf(value, "\0", false, string.byteLen(value), 1) >= 0
+end
+
+func __csv_dialect(string delimiter, string quote)
+    if __csv_has_nul(delimiter) or __csv_has_nul(quote) then
+        throw ValueError "CSV dialect contains an embedded NUL byte"
+    end
+end
+
+// 限额为 0 时显式取消该上限；负数不能经无符号转换绕过限制。
+func __csv_limits(int maxInput, int maxOutput, int maxField, int maxRows, int maxFields)
+    if maxInput < 0 or maxOutput < 0 or maxField < 0 or maxRows < 0 or maxFields < 0 then
+        throw ValueError "CSV limits must be nonnegative"
+    end
+end
+
+func __csv_newline(string value) as c_int
+    if value == "lf" then
+        return c_int(0)
+    elseif value == "crlf" then
+        return c_int(1)
+    end
+    throw ValueError "CSV newline must be lf or crlf"
+end
+
+
+// 原生调用统一传播 XRT 错误；false 只表示正常 EOF，不读取易失的 lastError。
+export class Reader
+    native point handle
+    private extern "xcsv_reader_open_memory" create(point data, uint64 size,
+        string delimiter, string quote, c_bool strict, uint64 maxInput,
+        uint64 maxOutput, uint64 maxField, uint64 maxRows, uint64 maxFields)
+    private extern "xcsv_reader_open_text" create(string text, uint64 size,
+        string delimiter, string quote, c_bool strict, uint64 maxInput,
+        uint64 maxOutput, uint64 maxField, uint64 maxRows, uint64 maxFields)
+    private extern "xcsv_reader_open_file" create(string path, string delimiter,
+        string quote, c_bool strict, uint64 maxInput, uint64 maxOutput,
+        uint64 maxField, uint64 maxRows, uint64 maxFields)
+    extern "xcsv_reader_destroy" destroy()
+
+    private extern "xcsv_reader_next" func nextNative() as bool
+    private extern "xcsv_reader_eof" func eofNative() as bool
+    private extern "xcsv_reader_row" func rowNative() as int64
+    private extern "xcsv_reader_count" func countNative() as int64
+    private extern "xcsv_reader_field" func fieldNative(int64 index) as point
+    private extern "xcsv_reader_close" func closeNative() as bool
+
+    get eof() as bool
+        return self.eofNative()
+    end
+
+    get rowNumber() as int
+        return self.rowNative()
+    end
+
+    get count() as int
+        return self.countNative()
+    end
+
+    func next() as bool
+        return self.nextNative()
+    end
+
+    func field(int index) as string
+        return __xl_runtime.takeCstr(self.fieldNative(index))
+    end
+
+    func row() as array<string>
+        int count = self.count
+        if count < 0 then
+            throw RuntimeError "CSV reader has no current row"
+        end
+        array<string> result = array<string>[]
+        for i in range(count)
+            result.append(self.field(i))
+        end
+        return result
+    end
+
+    func close()
+        self.closeNative()
+    end
+end
+
+
+export class Writer
+    native point handle
+    private extern "xcsv_writer_create_memory" create(string delimiter, string quote,
+        c_int newline, c_bool quoteAll, c_bool writeBOM, uint64 maxInput,
+        uint64 maxOutput, uint64 maxField, uint64 maxRows, uint64 maxFields)
+    private extern "xcsv_writer_open_file" create(string path, string delimiter,
+        string quote, c_int newline, c_bool quoteAll, c_bool writeBOM,
+        uint64 maxInput, uint64 maxOutput, uint64 maxField, uint64 maxRows,
+        uint64 maxFields)
+    extern "xcsv_writer_destroy" destroy()
+
+    private extern "xcsv_writer_begin" func beginNative() as bool
+    private extern "xcsv_writer_field" func fieldNative(string value) as bool
+    private extern "xcsv_writer_end" func endNative() as bool
+    private extern "xcsv_writer_close" func closeNative() as bool
+    private extern "xcsv_writer_take_buffer" func takeBufferNative() as point
+    private extern "xcsv_writer_take_text" func takeTextNative() as point
+
+    func write(array<string> fields)
+        for value in fields
+            if __csv_has_nul(value) then
+                throw CsvError "CSV field contains an embedded NUL byte"
+            end
+        end
+        self.beginNative()
+        for value in fields
+            self.fieldNative(value)
+        end
+        self.endNative()
+    end
+
+    // 文件写入必须显式 close 成功才提交；析构只清理尚未提交的文件。
+    func close()
+        self.closeNative()
+    end
+
+    func finish() as Buffer
+        return Buffer(self.takeBufferNative())
+    end
+
+    func finishText() as string
+        point result = self.takeTextNative()
+        if result == null then
+            throw CsvError "CSV writer has no available text result"
+        end
+        return __xl_runtime.takeCstr(result)
+    end
+end
+
+
+// 字典层只处理表头和行形状，底层输入、错误和关闭规则复用普通读取器。
+export class DictReader
+    private Reader? source = null
+    private array<string> fieldNames = array<string>[]
+    private bool hasRow = false
+
+    private get activeReader() as Reader
+        Reader? value = self.source
+        if value == null then throw RuntimeError "CSV source is not initialized" end
+        return value
+    end
+
+    create(Reader source)
+        self.source = source
+        if not source.next() then
+            throw CsvError "CSV dictionary input has no header row"
+        end
+        set<string> seen = set<string>{}
+        for name in source.row()
+            if name in seen then
+                throw CsvError "CSV dictionary header contains a duplicate field: " + name
+            end
+            seen.add(name)
+            self.fieldNames.append(name)
+        end
+    end
+
+    get headers() as array<string>
+        return copy(self.fieldNames)
+    end
+
+    get eof() as bool
+        return self.activeReader.eof
+    end
+
+    get rowNumber() as int
+        return self.activeReader.rowNumber
+    end
+
+    func next() as bool
+        Reader source = self.activeReader
+        self.hasRow = false
+        if not source.next() then
+            return false
+        end
+        if source.count != self.fieldNames.length then
+            throw CsvError "CSV dictionary row field count does not match its header"
+        end
+        self.hasRow = true
+        return true
+    end
+
+    func row() as dict<string>
+        if not self.hasRow then
+            throw RuntimeError "CSV dictionary reader has no current row"
+        end
+        Reader source = self.activeReader
+        dict<string> result = dict<string>{}
+        for i in range(self.fieldNames.length)
+            result[self.fieldNames[i]] = source.field(i)
+        end
+        return result
+    end
+
+    func close()
+        self.hasRow = false
+        self.activeReader.close()
+    end
+end
+
+
+export class DictWriter
+    private Writer? output = null
+    private array<string> fieldNames = array<string>[]
+
+    private get activeWriter() as Writer
+        Writer? value = self.output
+        if value == null then throw RuntimeError "CSV output is not initialized" end
+        return value
+    end
+
+    create(Writer output, array<string> headers, bool writeHeader = true)
+        self.output = output
+        set<string> seen = set<string>{}
+        for name in headers
+            if __csv_has_nul(name) then
+                throw CsvError "CSV dictionary header contains an embedded NUL byte"
+            end
+            if name in seen then
+                throw CsvError "CSV dictionary header contains a duplicate field: " + name
+            end
+            seen.add(name)
+            self.fieldNames.append(name)
+        end
+        if writeHeader then
+            output.write(self.fieldNames)
+        end
+    end
+
+    get headers() as array<string>
+        return copy(self.fieldNames)
+    end
+
+    func write(dict<string> values)
+        array<string> fields = array<string>[]
+        int matched = 0
+        for i in range(self.fieldNames.length)
+            string name = self.fieldNames[i]
+            if name in values then
+                fields.append(values[name])
+                matched += 1
+            else
+                fields.append("")
+            end
+        end
+        if matched != values.length then
+            throw CsvError "CSV dictionary row contains a field outside its header"
+        end
+        self.activeWriter.write(fields)
+    end
+
+    func close()
+        self.activeWriter.close()
+    end
+
+    func finish() as Buffer
+        return self.activeWriter.finish()
+    end
+
+    func finishText() as string
+        return self.activeWriter.finishText()
+    end
+end
+
+
+// Buffer 入口拥有输入快照；字符串入口为路径。解析文本请使用 parse。
+export func open(Buffer data, string delimiter = ",", string quote = "\"",
+    bool strict = true, int maxInput = 268435456, int maxOutput = 536870912,
+    int maxField = 16777216, int maxRows = 1000000,
+    int maxFields = 10000000) as Reader
+    __csv_limits(maxInput, maxOutput, maxField, maxRows, maxFields)
+    __csv_dialect(delimiter, quote)
+    return Reader(data.data(), uint64(data.len()), delimiter, quote,
+        c_bool(strict), uint64(maxInput), uint64(maxOutput),
+        uint64(maxField), uint64(maxRows), uint64(maxFields))
+end
+
+export func open(string path, string delimiter = ",", string quote = "\"",
+    bool strict = true, int maxInput = 268435456, int maxOutput = 536870912,
+    int maxField = 16777216, int maxRows = 1000000,
+    int maxFields = 10000000) as Reader
+    __csv_limits(maxInput, maxOutput, maxField, maxRows, maxFields)
+    __csv_dialect(delimiter, quote)
+    if __csv_has_nul(path) then
+        throw ValueError "CSV path contains an embedded NUL byte"
+    end
+    return Reader(path, delimiter, quote, c_bool(strict),
+        uint64(maxInput), uint64(maxOutput), uint64(maxField),
+        uint64(maxRows), uint64(maxFields))
+end
+
+export func parse(string text, string delimiter = ",", string quote = "\"",
+    bool strict = true, int maxInput = 268435456, int maxOutput = 536870912,
+    int maxField = 16777216, int maxRows = 1000000,
+    int maxFields = 10000000) as array<var>
+    if __csv_has_nul(text) then
+        throw CsvError "CSV input contains an embedded NUL byte"
+    end
+    __csv_limits(maxInput, maxOutput, maxField, maxRows, maxFields)
+    __csv_dialect(delimiter, quote)
+    if maxInput != 0 and string.byteLen(text) > maxInput then
+        throw RangeError "CSV input exceeds maxInput"
+    end
+    Reader source = Reader(text, uint64(string.byteLen(text)), delimiter, quote,
+        c_bool(strict), uint64(maxInput), uint64(maxOutput), uint64(maxField),
+        uint64(maxRows), uint64(maxFields))
+    array<var> result = array<var>[]
+    while source.next()
+        var row = source.row()
+        result.append(row)
+    end
+    return result
+end
+
+
+export func create(string delimiter = ",", string quote = "\"",
+    string newline = "lf", bool quoteAll = false, bool writeBOM = false,
+    int maxInput = 268435456, int maxOutput = 536870912,
+    int maxField = 16777216, int maxRows = 1000000,
+    int maxFields = 10000000) as Writer
+    __csv_limits(maxInput, maxOutput, maxField, maxRows, maxFields)
+    __csv_dialect(delimiter, quote)
+    return Writer(delimiter, quote, __csv_newline(newline),
+        c_bool(quoteAll), c_bool(writeBOM), uint64(maxInput),
+        uint64(maxOutput), uint64(maxField), uint64(maxRows), uint64(maxFields))
+end
+
+export func createFile(string path, string delimiter = ",", string quote = "\"",
+    string newline = "lf", bool quoteAll = false, bool writeBOM = false,
+    int maxInput = 268435456, int maxOutput = 536870912,
+    int maxField = 16777216, int maxRows = 1000000,
+    int maxFields = 10000000) as Writer
+    __csv_limits(maxInput, maxOutput, maxField, maxRows, maxFields)
+    __csv_dialect(delimiter, quote)
+    if __csv_has_nul(path) then
+        throw ValueError "CSV path contains an embedded NUL byte"
+    end
+    return Writer(path, delimiter, quote, __csv_newline(newline),
+        c_bool(quoteAll), c_bool(writeBOM), uint64(maxInput),
+        uint64(maxOutput), uint64(maxField), uint64(maxRows), uint64(maxFields))
+end
+
+export func stringify(array<array<string>> rows, string delimiter = ",",
+    string quote = "\"", string newline = "lf", bool quoteAll = false,
+    bool writeBOM = false) as string
+    Writer output = create(delimiter, quote, newline, quoteAll, writeBOM)
+    for row in rows
+        output.write(row)
+    end
+    return output.finishText()
+end
+
+
+export func openDict(Buffer data, string delimiter = ",", string quote = "\"",
+    bool strict = true, int maxInput = 268435456, int maxOutput = 536870912,
+    int maxField = 16777216, int maxRows = 1000000,
+    int maxFields = 10000000) as DictReader
+    return DictReader(open(data, delimiter, quote, strict, maxInput, maxOutput,
+        maxField, maxRows, maxFields))
+end
+
+export func openDict(string path, string delimiter = ",", string quote = "\"",
+    bool strict = true, int maxInput = 268435456, int maxOutput = 536870912,
+    int maxField = 16777216, int maxRows = 1000000,
+    int maxFields = 10000000) as DictReader
+    return DictReader(open(path, delimiter, quote, strict, maxInput, maxOutput,
+        maxField, maxRows, maxFields))
+end
+
+export func createDict(array<string> headers, bool writeHeader = true,
+    string delimiter = ",", string quote = "\"", string newline = "lf",
+    bool quoteAll = false, bool writeBOM = false,
+    int maxInput = 268435456, int maxOutput = 536870912,
+    int maxField = 16777216, int maxRows = 1000000,
+    int maxFields = 10000000) as DictWriter
+    return DictWriter(create(delimiter, quote, newline, quoteAll, writeBOM,
+        maxInput, maxOutput, maxField, maxRows, maxFields), headers, writeHeader)
+end
+
+export func createDictFile(string path, array<string> headers, bool writeHeader = true,
+    string delimiter = ",", string quote = "\"", string newline = "lf",
+    bool quoteAll = false, bool writeBOM = false,
+    int maxInput = 268435456, int maxOutput = 536870912,
+    int maxField = 16777216, int maxRows = 1000000,
+    int maxFields = 10000000) as DictWriter
+    return DictWriter(createFile(path, delimiter, quote, newline, quoteAll, writeBOM,
+        maxInput, maxOutput, maxField, maxRows, maxFields), headers, writeHeader)
+end
