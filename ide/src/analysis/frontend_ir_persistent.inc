@@ -88,8 +88,15 @@ static int xlsIrPersistentCapture(xls_ir_result* result,const XL6_AstNode* root,
         if(node->text || node->literalData)++value->textNodes;
         if(node->text)value->textBytes+=strlen(node->text)+1;
         if(node->literalData)value->textBytes+=node->literalSize+1;
-        void* payloads[]={node->text,node->literalData};
-        if(!borrowed)for(size_t j=0;j<2;++j)if(payloads[j]){
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+        if(node->compiledPackageLink){value->textBytes+=strlen(node->compiledPackageLink)+1;if(!node->text && !node->literalData)++value->textNodes;}
+#endif
+        void* payloads[]={node->text,node->literalData
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+            ,node->compiledPackageLink
+#endif
+        };
+        if(!borrowed)for(size_t j=0;j<sizeof(payloads)/sizeof(*payloads);++j)if(payloads[j]){
             if(value->texts.Count>=(limit-bytes)/sizeof(void*) || !xrtArrayPush(&value->texts,&payloads[j]) ||
                value->texts.Capacity>(limit-bytes)/sizeof(void*))goto failed;
         }
