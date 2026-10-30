@@ -19,7 +19,8 @@ static const char* __xrtTomlKindName(int iKind)
 static bool __xrtTomlValidDateParts(int iYear, int iMonth, int iDay)
 {
 	return iYear >= 0 && iYear <= 9999 && iMonth >= 1 && iMonth <= 12 &&
-		iDay >= 1 && iDay <= xrtDaysInMonth(iYear, iMonth);
+		/* TOML 有天文年 0000；复用同一公历 400 年周期，不向无零年的 XRT 传 0。 */
+		iDay >= 1 && iDay <= xrtDaysInMonth(iYear == 0 ? 400 : iYear, iMonth);
 }
 
 static bool __xrtTomlValidTimeParts(int iHour, int iMinute, int iSecond,
