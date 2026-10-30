@@ -1,15 +1,17 @@
-param([string]$Root = '', [string]$XrtInclude = '', [string]$WorkDirectory = '', [string]$RuntimeDirectory = '')
+﻿param([string]$Root = '', [string]$XrtInclude = '', [string]$WorkDirectory = '', [string]$RuntimeDirectory = '')
 
 $ErrorActionPreference = 'Stop'
+[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
 if (!$Root) { $Root = Split-Path -Parent $PSScriptRoot }
 $Root = (Resolve-Path -LiteralPath $Root).Path
 . (Join-Path $PSScriptRoot 'extlib_smoke_process.ps1')
 if (!$RuntimeDirectory) { $RuntimeDirectory = Join-Path $Root 'release' }
 $RuntimeDirectory = (Resolve-Path -LiteralPath $RuntimeDirectory).Path
 $xl = Join-Path $RuntimeDirectory 'xl.exe'
-$environment = @{XLANG_PACKAGE_PATH = Join-Path $Root 'release/extlibs'}
+$environment = @{XLANG_PACKAGE_PATH = Join-Path $Root 'release/extlibs';PYTHONDONTWRITEBYTECODE='1'}
 $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
-$work = if (!$WorkDirectory) { Join-Path $Root 'build/test/gzip_guard' } elseif ([IO.Path]::IsPathRooted($WorkDirectory)) { [IO.Path]::GetFullPath($WorkDirectory) } else { [IO.Path]::GetFullPath((Join-Path $Root $WorkDirectory)) }
+$python = (Get-Command python -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+$work = if (!$WorkDirectory) { Join-Path $Root ('build/test/gzip_guard/run_'+[Guid]::NewGuid().ToString('N')) } elseif ([IO.Path]::IsPathRooted($WorkDirectory)) { [IO.Path]::GetFullPath($WorkDirectory) } else { [IO.Path]::GetFullPath((Join-Path $Root $WorkDirectory)) }
 [IO.Directory]::CreateDirectory($work) | Out-Null
 $utf8 = [Text.UTF8Encoding]::new($false)
 $checks = [Collections.Generic.List[object]]::new()
@@ -18,7 +20,8 @@ $manifest = Get-Content (Join-Path $Root 'release/extlibs/gzip/xlang.package.jso
 $sources = @($manifest.artifact.cSources | ForEach-Object { "release/extlibs/gzip/$_" })
 $paths = @('lib/xrt/xrt.h','lib/xruntime/xruntime.h',
     'release/include/xrt_decl.h','release/include/xruntime_decl.h',
-    'test/support/extlib_codec_runtime.c','test/cases/extlib_codec_file_allocation.c','tools/check_extlib_gzip.ps1','tools/check_extlib_gzip_interop.py',
+    'test/support/extlib_codec_runtime.c','test/support/extlib_codec_io_errors.h',
+    'test/support/extlib_native_codec_file_rollback.h','test/cases/extlib_codec_file_allocation.c','tools/check_extlib_gzip.ps1','tools/check_extlib_gzip_interop.py',
     'tools/extlib_smoke_process.ps1','tools/xlir_native_process.ps1','tools/run_extlib_c.ps1',
     'tools/check_extlib_native_globals.ps1','tools/check_extlib_native_globals.sh',
     'test/phase1_extlibs.json','test/suites/12_phase1_extlibs.bat','tools/check_extlib_gzip.sh',
@@ -27,11 +30,11 @@ $paths = @('lib/xrt/xrt.h','lib/xruntime/xruntime.h',
     'release/examples/extlibs/gzip_c.c',
     'release/extlibs/gzip/README.md','release/extlibs/gzip/docs/site.html')
 $paths += Get-ChildItem (Join-Path $Root 'release/extlibs/gzip') -Recurse -File |
-    Where-Object Extension -in @('.c','.h','.xl','.json') |
     ForEach-Object { $_.FullName.Substring($Root.Length + 1).Replace('\','/') }
 $paths = @($paths | ForEach-Object { Join-Path $Root $_ })
 $paths += @('xl.exe','xl.dll','xlc.dll') | ForEach-Object { Join-Path $RuntimeDirectory $_ }
 $paths += Get-ChildItem (Join-Path $RuntimeDirectory 'include') -Recurse -File | ForEach-Object FullName
+$paths += @($gcc,$python,(Get-Process -Id $PID).Path)
 $includes = @('-Ilib/xrt','-Ilib/xruntime')
 if ($XrtInclude) {
     $XrtInclude = (Resolve-Path -LiteralPath $XrtInclude).Path
@@ -43,15 +46,17 @@ foreach ($path in @($paths | Sort-Object -Unique)) {
     $hashes[$path] = (Get-FileHash -LiteralPath $path).Hash
 }
 
-function Check([string]$Name, [string]$Program, [string[]]$Arguments, [int]$Seconds = 120) {
+function Check([string]$Name, [string]$Program, [string[]]$Arguments, [int]$Seconds = 120, [int]$ExpectedExit = 0) {
+    if ($null -eq $Arguments) {$Arguments=@()}
     $r = Invoke-ExtlibSmokeProcess $Program $Arguments $Root $Seconds $environment
-    $checks.Add([ordered]@{name=$Name;program=$Program;arguments=$Arguments;status=$r.status;exitCode=$r.exitCode;elapsedMs=$r.elapsedMs;stdout=$r.stdout;stderr=$r.stderr})
-    if ($r.status -ne 'pass') { throw "$Name failed: $($r.stderr)`n$($r.stdout)" }
+    $checks.Add([ordered]@{name=$Name;program=$Program;arguments=$Arguments;expectedExit=$ExpectedExit;status=$r.status;exitCode=$r.exitCode;elapsedMs=$r.elapsedMs;stdout=$r.stdout;stderr=$r.stderr})
+    $checks | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $work 'checks.json') -Encoding UTF8
+    if ($r.status -notin @('pass','fail') -or $r.exitCode -ne $ExpectedExit) { throw "$Name failed: $($r.status) exit=$($r.exitCode)`n$($r.stderr)`n$($r.stdout)" }
     Write-Host "[gzip] ${Name}: PASS"
     return $r.stdout.Replace("`r`n","`n").TrimEnd("`n")
 }
 
-$flags = @('-std=c11','-O2','-Wall','-Wextra','-Werror') + $includes
+$flags = @('-std=c11','-O2','-Wall','-Wextra','-Werror','-DXRT_MODULE_DIR_TEMP') + $includes
 $packageFlags = $flags + @($manifest.artifact.xrtModules | ForEach-Object { "-D$_" })
 $objects = @()
 $runtime = Join-Path $work 'runtime.o'
@@ -59,16 +64,19 @@ $outcome = 'failed'
 $failure = ''
 try {
     $null = Check 'compiler-version' $gcc @('--version')
+    $cc1 = Check 'compiler-cc1' $gcc @('-print-prog-name=cc1')
+    $hashes[$cc1]=(Get-FileHash -LiteralPath $cc1).Hash
+    $null = Check 'python-version' $python @('--version')
     foreach ($order in @('ALONE','CORE_FIRST','NATIVE_FIRST','XRT_FIRST')) {
         $null = Check "native-header-$order" $gcc ($flags + @("-DGZIP_$order",'-fsyntax-only',
             'release/extlibs/gzip/test/native_header.c'))
     }
     foreach ($kind in @('compressor','decompressor')) {
         $name = "private_${kind}_negative"
-        $args = @('check',"release/extlibs/gzip/test/$name.xl")
-        $result = Invoke-ExtlibSmokeProcess $xl $args $Root 90 $environment
-        $checks.Add([ordered]@{name=$name;program=$xl;arguments=$args;status=$result.status;exitCode=$result.exitCode;elapsedMs=$result.elapsedMs;stdout=$result.stdout;stderr=$result.stderr})
-        if ($result.status -ne 'fail' -or
+        $commandArgs = @('check',"release/extlibs/gzip/test/$name.xl")
+        $result = Invoke-ExtlibSmokeProcess $xl $commandArgs $Root 90 $environment
+        $checks.Add([ordered]@{name=$name;program=$xl;arguments=$commandArgs;status=$result.status;exitCode=$result.exitCode;elapsedMs=$result.elapsedMs;stdout=$result.stdout;stderr=$result.stderr})
+        if ($result.status -ne 'fail' -or $result.exitCode -ne 1 -or
             !$result.stderr.Contains('updateNative') -or
             !$result.stderr.Contains('access')) {
             throw "$name did not report private access"
@@ -93,9 +101,21 @@ try {
     $null = Check 'stream-build' $gcc ($packageFlags + @('-DNDEBUG',$streamTest) + $objects + $links + @('-o',$stream))
     $null = Check 'stream-boundaries' $stream @()
     $null = Check 'stream-jit' $xl (@('run',$streamTest) + $sources + @('--inc-path','lib/xrt','--inc-path','lib/xruntime'))
+    $cargs = $sources + @('--inc-path','lib/xrt','--inc-path','lib/xruntime')
+    foreach ($name in @('io_errors_c','file_rollback_c')) {
+        $source = "release/extlibs/gzip/test/$name.c"
+        $binary = Join-Path $work "$name.exe"
+        $null = Check "$name-build" $gcc ($packageFlags + @($source) + $objects + $links + @('-o',$binary))
+        $null = Check $name $binary @()
+        [string[]]$extra=@()
+        if ($name -ne 'io_errors_c') {$extra=$cargs}
+        $null = Check "$name-jit" $xl (@('run',$source) + $extra)
+        $aot = Join-Path $work "$name.aot.exe"
+        $null = Check "$name-aot-build" $xl (@('build',$source) + $extra + @('-o',$aot))
+        $null = Check "$name-aot" $aot @()
+    }
     $interop = Join-Path $work 'gzip-interop.exe'
     $null = Check 'interop-build' $gcc ($packageFlags + @('release/extlibs/gzip/test/gzip_interop.c') + $objects + $links + @('-o',$interop))
-    $python = (Get-Command python -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
     $null = Check 'python-zlib-interop' $python @('tools/check_extlib_gzip_interop.py',$interop,(Join-Path $work 'interop'))
     $allocation = Join-Path $work 'gzip-alloc.exe'
     $null = Check 'allocation-build' $gcc ($packageFlags + @('-DNDEBUG','release/extlibs/gzip/test/test_gzip_alloc.c') + $objects + $links + @('-o',$allocation))
@@ -109,6 +129,9 @@ try {
     [IO.File]::WriteAllText($probe,"#define TEST_CODEC_GZIP`n#include `"$fixture`"`n",$utf8)
     $null = Check 'file-allocation-jit' $xl (@('run',$probe) + $sources + @('--inc-path','lib/xrt','--inc-path','lib/xruntime','--',(Join-Path $work ('jit-files-'+[Guid]::NewGuid().ToString('N')))))
     $null = Check 'file-ops-jit' $xl @('run','release/extlibs/gzip/test/file_ops.xl')
+    $fileOps = Join-Path $work 'file-ops.exe'
+    $null = Check 'file-ops-build' $xl @('build','release/extlibs/gzip/test/file_ops.xl','-o',$fileOps)
+    $null = Check 'file-ops-aot' $fileOps @()
     $fileAot = Join-Path $work 'file-allocation-aot.exe'
     $null = Check 'file-allocation-aot-build' $xl (@('build',$probe) + $sources + @('--inc-path','lib/xrt','--inc-path','lib/xruntime','-o',$fileAot))
     $null = Check 'file-allocation-aot' $fileAot @((Join-Path $work ('aot-files-'+[Guid]::NewGuid().ToString('N'))))
@@ -148,6 +171,13 @@ try {
     $abi = Join-Path $work 'abi.c'
     [IO.File]::WriteAllText($abi,"#include <stdint.h>`n#include `"gzip_native.h`"`n" + ($decls -join "`n"),$utf8)
     $null = Check 'generated-prototypes' $gcc ($packageFlags + @('-Irelease/extlibs/gzip/include','-fsyntax-only',$abi))
+    $wrong = Join-Path $work 'wrong-abi.c'
+    $abiText = [IO.File]::ReadAllText($abi)
+    $wrongText = $abiText.Replace('void* xgzip_compress(', 'int xgzip_compress(')
+    if ($wrongText -ceq $abiText) {throw 'Missing ABI negative anchor'}
+    [IO.File]::WriteAllText($wrong,$wrongText,$utf8)
+    $null = Check 'wrong-return-must-reject' $gcc ($packageFlags + @('-Irelease/extlibs/gzip/include','-fsyntax-only',$wrong)) -ExpectedExit 1
+    if ($checks[-1].stderr -notmatch 'conflicting types' -or $checks[-1].stderr -notmatch 'xgzip_compress') {throw 'Unrelated ABI rejection'}
     foreach ($name in @('gzip','gzip_basic')) {
         $case = "release/examples/extlibs/$name.xl"
         $text = Check "$name-example-jit" $xl @('run',$case)
@@ -171,9 +201,26 @@ try {
         $cAot -cne $expectedOutput -or $helperOutput -cne $expectedOutput) {
         throw 'C/xlang examples differ from the common golden output'
     }
-    $null = Check 'top-level-lifecycle' (Get-Process -Id $PID).Path @('-NoProfile','-ExecutionPolicy','Bypass',
+    $golden = [IO.File]::ReadAllText((Join-Path $Root 'release/extlibs/gzip/examples/file_transaction.expected.txt')).Replace("`r`n","`n").TrimEnd("`n")
+    $binary = Join-Path $work 'transaction-gcc.exe'
+    $null = Check 'transaction-c-build' $gcc ($packageFlags + @('release/extlibs/gzip/examples/file_transaction_c.c') + $objects + $links + @('-o',$binary))
+    if ((Check 'transaction-c' $binary @()) -cne $golden) {throw 'C transaction example differs'}
+    foreach ($name in @('file_transaction.xl','file_transaction_c.c')) {
+        $source = "release/extlibs/gzip/examples/$name"
+        if ((Check "$name-jit" $xl @('run',$source)) -cne $golden) {throw "$name differs"}
+        $binary = Join-Path $work "$name.exe"
+        $null = Check "$name-build" $xl @('build',$source,'-o',$binary)
+        if ((Check "$name-aot" $binary @()) -cne $golden) {throw "$name AOT differs"}
+    }
+    Write-Host '[gzip] runtime/ABI and thirteen ordinary AOT paths: PASS'
+    $boundaries = [Collections.Generic.List[string]]::new()
+    try {$null = Check 'closed-rollback' (Join-Path $work 'file_rollback_c.exe') @('--closed')}
+    catch {$boundaries.Add($_.Exception.Message)}
+    try {$null = Check 'top-level-lifecycle' (Get-Process -Id $PID).Path @('-NoProfile','-ExecutionPolicy','Bypass',
         '-File','tools/check_extlib_native_globals.ps1','-Root',$Root,'-RuntimeDirectory',$RuntimeDirectory,
-        '-Package','gzip') 360
+        '-Package','gzip') 360}
+    catch {$boundaries.Add($_.Exception.Message)}
+    if ($boundaries.Count) {throw ($boundaries -join "`n")}
     $outcome = 'passed'
 } catch {
     $failure = $_.Exception.Message

@@ -13,6 +13,7 @@ int main(int argc, char** argv)
     xrtgziperror error;
     xrtgzipoptions options;
     bool ok;
+    int status;
     if (argc != 4 || (strcmp(argv[1], "compress") != 0 && strcmp(argv[1], "decompress") != 0)) return 2;
     reader = xrtReaderOpen(argv[2]);
     if (!reader) return 3;
@@ -24,8 +25,10 @@ int main(int argc, char** argv)
         xrtGzipCompressStream(reader, writer, &options, NULL, NULL, &error) :
         xrtGzipDecompressStream(reader, writer, &options, NULL, NULL, &error);
     if (!ok) fprintf(stderr, "%s\n", error.sMessage);
-    if (!xrtWriterDestroy(writer)) ok = false;
-    if (!xrtReaderDestroy(reader)) ok = false;
+    /* 坏帧负例只接受格式/截断失败，不把 OOM、IO 或进程崩溃算作通过。 */
+    status = ok ? 0 : (error.iCode == XRT_GZIP_ERROR_DATA || error.iCode == XRT_GZIP_ERROR_TRUNCATED ? 1 : 5);
+    if (!xrtWriterDestroy(writer)) status = 6;
+    if (!xrtReaderDestroy(reader)) status = 7;
     xrtClearError();
-    return ok ? 0 : 1;
+    return status;
 }
