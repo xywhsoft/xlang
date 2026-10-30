@@ -1,5 +1,5 @@
-[CmdletBinding()]
-param([ValidateSet('Debug','Release')][string]$Configuration='Debug', [switch]$Tests, [string]$FrontendRoot='', [string]$ReleaseDirectory='')
+﻿[CmdletBinding()]
+param([ValidateSet('Debug','Release')][string]$Configuration='Debug', [switch]$Tests, [string]$FrontendRoot='', [string]$ReleaseDirectory='', [switch]$GuiOnly, [string]$LanguageServerPath='')
 $ErrorActionPreference='Stop'
 function Get-XideSha256([string]$Path) {
     $stream=[IO.File]::OpenRead($Path)
@@ -15,6 +15,11 @@ $compiler = (Get-Command gcc -ErrorAction Stop).Source
 $objectRoot = Join-Path $ideRoot ('build\' + $Configuration)
 # Development tests stay private; the shared runtime never receives fixtures.
 $releaseRoot = if ($ReleaseDirectory) { [IO.Path]::GetFullPath($ReleaseDirectory) } elseif ($Tests) { Join-Path $objectRoot 'release' } else { Join-Path (Split-Path -Parent $ideRoot) 'release' }
+if ($GuiOnly) {
+    if (-not $LanguageServerPath) { throw 'GuiOnly requires an explicit qualified LanguageServerPath.' }
+    $LanguageServerPath=(Resolve-Path -LiteralPath $LanguageServerPath).Path
+    $languageServerHash=Get-XideSha256 $LanguageServerPath
+} elseif ($LanguageServerPath) { throw 'LanguageServerPath is only valid with GuiOnly.' }
 [void](New-Item -ItemType Directory -Path $objectRoot -Force)
 [void](New-Item -ItemType Directory -Path $releaseRoot -Force)
 $flags = @('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-parameter','-DXGE_DLL','-DXUI_DLL','-DXGE_XRT_PROFILE_IDE=','-DXGE_DEBUGMODE=0','-finput-charset=UTF-8','-fexec-charset=UTF-8','-I'+(Join-Path $ideRoot 'src'),'-I'+$sdkRoot,'-I'+(Join-Path $sdkRoot 'lib\xrt'))
@@ -73,6 +78,14 @@ if (-not $FrontendRoot) {
         $FrontendRoot=if (Test-Path -LiteralPath (Join-Path $shippedFrontend 'src\parser\xl6_parser.c')) { $shippedFrontend } else { Split-Path -Parent $ideRoot }
     }
 }
+if ($GuiOnly) {
+    # 界面与分析服务分开构建；正式 CLI 服务必须显式指定，不暗中替换成开发后端。
+    $serverTarget=Join-Path $releaseRoot 'xlang-ls.exe'
+    if ([IO.Path]::GetFullPath($serverTarget) -ne $LanguageServerPath) {
+        Copy-Item -LiteralPath $LanguageServerPath -Destination $serverTarget -Force
+    }
+    if ((Get-XideSha256 $serverTarget) -ne $languageServerHash) { throw 'Qualified language server changed during GUI build.' }
+} else {
 $nativeRoot=Join-Path $objectRoot ('lsp-'+[Guid]::NewGuid().ToString('N'))
 $nativeArguments=@('-X','utf8','-B',(Join-Path $PSScriptRoot 'build_lsp_core.py'),'--server','--frontend-root',$FrontendRoot,'--output',$nativeRoot,'--cc',$compiler,'--configuration',$Configuration)
 if (-not $Tests) { $nativeArguments+='--skip-tests' }
@@ -81,6 +94,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Standalone language server/core build failed.'
 Copy-Item -LiteralPath (Join-Path $nativeRoot 'xlang-ls.exe') -Destination (Join-Path $releaseRoot 'xlang-ls.exe') -Force
 $nativeReport=Join-Path $nativeRoot 'build-result.json'
 [pscustomobject]@{report=$nativeReport;reportSha256=(Get-XideSha256 $nativeReport);frontendRoot=[IO.Path]::GetFullPath($FrontendRoot)} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $objectRoot 'language-server-build.json') -Encoding utf8
+}
 $consoleExe = Join-Path $releaseRoot 'xlang_ide_console.exe'
 & $compiler @flags (Join-Path $ideRoot 'src\main.c') @objects @libraries -o $consoleExe
 if ($LASTEXITCODE -ne 0) { throw 'Console link failed.' }
