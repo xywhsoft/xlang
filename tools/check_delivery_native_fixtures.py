@@ -22,6 +22,7 @@ from xlir_public_build_inputs import verify_public_build
 
 
 CONTRACTS = {
+    'xlir_tcc_implementation_contract.c': ['test/cases/stdlib_tcc_runtime_contract.xl'],
     'xlir_bytes_collection_iteration_contract.c': ['test/cases/xlir_bytes_collection_iteration.xl'],
     'xlir_class_scalar_defaults_contract.c': [],
     'xlir_modular_symbol_contract.c': [],

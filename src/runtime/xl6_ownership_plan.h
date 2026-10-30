@@ -6,6 +6,20 @@ struct xrtownershipadapterv1;
 struct xrtownershippreparationv1;
 
 typedef struct XL6_OwnershipPlan XL6_OwnershipPlan;
+/* Optional native lifecycle boundary, acquired before Freeze and released
+ * immediately after it. Enter is a nonblocking, diagnostic-preserving probe;
+ * a false result means BUSY. No native lock spans semantic callbacks. The
+ * immutable resident descriptor and its context outlive every plan. */
+typedef struct XL6_OwnershipBoundaryV1 {
+    size_t size;
+    bool (*Enter)(void*);
+    void (*Leave)(void*);
+    /* Optional discovery anchors under the same boundary and Freeze. They
+     * identify physical objects, never extra owning slots or synthetic roots. */
+    bool (*Discover)(bool (*)(struct xrtownershipref,void*),void*,void*);
+    void* context;
+} XL6_OwnershipBoundaryV1;
+
 /* One physical lifecycle protocol shared with XRT, not a second incompatible
  * definition of Value/node retirement. The plan itself is the claim token. */
 typedef struct xrtownershipadapterv1 XL6_OwnershipAdapterV1;
@@ -102,6 +116,9 @@ XL6_CODE_LEASE_API XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV5(
 XL6_CODE_LEASE_API XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV6(
     struct xrtownershipref,XL6_OwnershipProbeV1,XL6_OwnershipDiscoverV1,
     bool pinRoot,void*,XL6_OwnershipPlan**);
+XL6_CODE_LEASE_API XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV7(
+    struct xrtownershipref,XL6_OwnershipProbeV1,XL6_OwnershipDiscoverV1,
+    bool pinRoot,void*,const XL6_OwnershipBoundaryV1*,XL6_OwnershipPlan**);
 /* Continue only actual held+claimed immutable preparation capabilities even
  * while their asynchronous transition temporarily refuses Count/Trace.
  * Every ready/commit decision still rebuilds the whole graph; this grants no

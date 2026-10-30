@@ -18,6 +18,7 @@ int main(int argc, char** argv) {
     if (argc!=3 || !xlRuntimeInit()) return 2;
     XL_ContextOptions options=xlDefaultContextOptions();
     options.workDir=argv[2];
+    for (unsigned iteration=0;iteration<20;++iteration) {
     XL_Context* context=xlCreateContext(&options);
     if (!context) return 2;
     int ok=xlRunScriptFile(context,argv[1]) && xlGetLastExitCode(context)==0;
@@ -25,8 +26,9 @@ int main(int argc, char** argv) {
     xlDestroyContext(context);
     XL_RuntimeDrainResult drained=xlRuntimeDrainRetiringChecked(5000);
     printf("{\"run\":%d,\"ready\":%d,\"ok\":%d}\n",ok,drained.ready,drained.ok);
-    if (drained.ready) xlRuntimeUnit();
-    return ok && drained.ready && drained.ok ? 0 : 1;
+    if (!ok || !drained.ready || !drained.ok) return 1;
+    }
+    xlRuntimeUnit(); return 0;
 }
 '''
 
@@ -92,12 +94,14 @@ def main():
         "xlon-writer": 'XlonWriter writer = XlonWriter()\nassert writer.beginArray()\nassert writer.endArray()\nassert writer.finish() == "[]"\n',
         "logger": 'auto logger = log.create("preflight")\nassert logger.name == "preflight"\n',
         "log-record": 'auto record = log.record(LogLevel.info, "preflight")\nassert record.message == "preflight"\n',
+        "log-cycle": (root / "test/cases/stdlib_log_ownership_cycle.xl").read_text(encoding="utf-8-sig"),
+        "xlang-handler": (root / "test/cases/stdlib_xlang_handler_ownership.xl").read_text(encoding="utf-8-sig"),
         "file-async": (root / "test/cases/stdlib_file_async.xl").read_text(encoding="utf-8-sig"),
     }.items():
         source = directory / (name + ".xl")
         source.write_text(program + 'println("body completed")\n', encoding="utf-8")
         binary = directory / (name + (".exe" if os.name == "nt" else ""))
-        if name == "file-async":
+        if name in ("file-async", "log-cycle", "xlang-handler"):
             run(name + "-jit", [xl, "run", source])
         if run(name + "-build", [xl, "build", source, "-o", binary]):
             run(name + "-exit", [binary])
@@ -114,6 +118,18 @@ def main():
                 command += ["-Wl,-rpath," + str(products)]
             if not run(library.stem + "-drain-build", command):
                 continue
+            catalog_binary=directory/(library.stem+"_boundary_catalog"+(".exe" if os.name=="nt" else ""))
+            catalog_command=[args.cc,"-std=c11","-Wall","-Wextra","-Werror","-I"+str(root),"-I"+str(root/"release"),
+                             root/"test/cases/xlir_ownership_boundary_catalog.c",link,"-o",catalog_binary]
+            if os.name!="nt":catalog_command += ["-Wl,-rpath,"+str(products)]
+            if run(library.stem+"-boundary-catalog-build",catalog_command):run(library.stem+"-boundary-catalog",[catalog_binary])
+            self_binary=directory/(library.stem+"_self_retirement"+(".exe" if os.name=="nt" else ""))
+            self_command=[args.cc,"-std=c11","-Wall","-Wextra","-Werror","-I"+str(root),"-I"+str(root/"release"),
+                          root/"test/cases/xlir_task_pool_self_retirement.c",link,"-o",self_binary]
+            if os.name!="nt":self_command += ["-Wl,-rpath,"+str(products)]
+            if run(library.stem+"-self-retirement-build",self_command):run(library.stem+"-self-retirement",[self_binary])
+            for label,fixture in [("log-cycle","stdlib_log_ownership_cycle.xl"),("xlang-handler","stdlib_xlang_handler_ownership.xl")]:
+                run(library.stem+"-"+label+"-drain-20",[binary,root/"test/cases"/fixture,root])
             for explicit in [False, True]:
                 name = library.stem + ("-explicit-close" if explicit else "-automatic-close")
                 script = directory / (name + ".xl")

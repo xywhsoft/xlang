@@ -1525,3 +1525,9 @@ XL6_TEXT_EXPORT(xl6AsyncFileOwnershipAdapterV1, FILE_ASYNC)
 XL6_TEXT_EXPORT(xl6_xrt_siphasher64_destroy, SIPHASH_STATE)
 
 XL6_TEXT_EXPORT(xl6_xrt_os_args, OS_PROCESS_ARGS)
+
+XL6_TEXT_EXPORT(xl6_xlang_handler_wrap, XLANG_HANDLER_POLICY)
+XL6_TEXT_EXPORT(xl6_xlang_handler_create, XLANG_HANDLER_POLICY)
+XL6_TEXT_EXPORT(xl6_xlang_handler_destroy, XLANG_HANDLER_POLICY)
+XL6_TEXT_EXPORT(xl6_xlang_handler_run_args, XLANG_HANDLER_POLICY)
+XL6_TEXT_EXPORT(xl6_xlang_handler_last_error_copy, XLANG_HANDLER_POLICY)

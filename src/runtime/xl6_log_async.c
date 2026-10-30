@@ -24,3 +24,10 @@ void* xl6LogAsyncStatsV1(void* sink)
         source.Discarded,source.Failed,source.Flushes,source.Queued,source.QueueBytes,source.PeakQueued,source.PeakBytes,0,0};
     memcpy(snapshot->values,values,sizeof(values)); return snapshot;
 }
+
+#include "xl6_ownership_domain_impl.h"
+static bool load_log_async(XL6_OwnershipCatalog* catalog)
+{ return xl6OwnershipCatalogAddLogSinkV1(catalog,xrtLogAsyncSinkOwnershipV1Get()); }
+XL6_OWNERSHIP_QUERY(LogAsync)
+{ (void)policies;(void)preparation;(void)completion;*adapter=xrtLogAsyncOwnershipAdapterV1(ref);return *adapter!=NULL; }
+XL6_OWNERSHIP_DOMAIN(LogAsync,load_log_async,ownershipDomainLogAsync)

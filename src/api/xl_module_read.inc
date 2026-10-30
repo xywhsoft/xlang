@@ -121,7 +121,7 @@ const XL6_OwnershipReadBoundaryV1* xlModuleOwnershipReadBoundaryV1(void)
 
 static int xlModuleBeginCallUnlocked(XL_Module* module)
 {
-    if (module == NULL || module->destroyRequested || module->activation == XL_MODULE_DEACTIVATING ||
+    if (module == NULL || module->destroyRequested || module->ownershipClaim || module->activation == XL_MODULE_DEACTIVATING ||
         module->activeCalls == UINT_MAX) {
         return 0;
     }

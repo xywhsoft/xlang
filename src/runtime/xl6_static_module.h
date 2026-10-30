@@ -46,6 +46,7 @@ typedef struct XL6_StaticModuleResultV1 {
  * stop/join all attempts to use the borrowed owner, just as for a JIT owner. */
 XL6_CODE_LEASE_API XL6_StaticModule* xl6StaticModuleCreateV1(const XL6_StaticModuleContractV1*);
 XL6_CODE_LEASE_API XL6_StaticModule* xl6StaticModuleCreateV2(const XL6_StaticModuleContractV2*);
+XL6_CODE_LEASE_API XL6_StaticModule* xl6StaticModuleCreateV3(const XL6_StaticModuleContractV2*,const XL6_OwnershipBoundaryV1*);
 XL6_CODE_LEASE_API const XL6_CodeOwner* xl6StaticModuleOwnerV1(const XL6_StaticModule*);
 XL6_CODE_LEASE_API struct xrtownershipref xl6StaticModuleOwnershipV1(const XL6_StaticModule*);
 XL6_CODE_LEASE_API XL6_StaticModuleResultV1 xl6StaticModuleRetireV1(XL6_StaticModule*);

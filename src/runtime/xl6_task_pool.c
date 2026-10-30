@@ -141,6 +141,10 @@ bool xl6TaskPoolQuiesceInternalV1(XL6_TaskPool* pool)
     if(pool->retiring||(pool->claim&&!pool->cleared)){
         unlock_pool(pool);mutation_end(&mutation);xl6TaskPoolLeaveInternalV1(pool);return false;
     }
+    /* A native worker remains this pool's worker during ThreadKey/exit
+     * callbacks, after its language activity credit has already ended. */
+    if(!self && pool->native && !pool->quiescing)
+        self=xrtTaskPoolIsCurrentWorkerV1(pool->native);
     /* Preserve V1: a self-quiesce closes new admission but never joins itself. */
     pool->closing=true;
     if(pool->quiescing || self) {
@@ -179,6 +183,8 @@ XL6_ModulePrepareResult xl6TaskPoolTryQuiesceV1(XL6_TaskPool* pool)
     if(pool->retiring||(pool->claim&&!pool->cleared)){
         unlock_pool(pool);mutation_end(&mutation);xl6TaskPoolLeaveInternalV1(pool);return XL6_MODULE_PREPARE_BUSY;
     }
+    if(!self && pool->native && !pool->quiescing)
+        self=xrtTaskPoolIsCurrentWorkerV1(pool->native);
     pool->closing=true;
     if(pool->quiescing || pool->submitting || pool->controls || self) {
         unlock_pool(pool); mutation_end(&mutation);xl6TaskPoolLeaveInternalV1(pool);return XL6_MODULE_PREPARE_BUSY;

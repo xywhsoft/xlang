@@ -33416,6 +33416,7 @@ static int xl6IrRuntimeBridgeTargetMatches(
         } else if (target->nativeHandlePolicyAbi != XL6_IR_NATIVE_HANDLE_POLICY_NONE ||
                    target->nativeHandlePolicyCName != NULL) return 0;
     }
+    if (!xl6IrRuntimeCallImplementationMatches(module,target)) return 0;
     if ( !xl6IrRuntimeBridgeOperationTargetMatches(module, target) ) return 0;
     reserved = target->kind == XL6_IR_CALL_TARGET_EXTERN_C && target->cName != NULL &&
         (strcmp(target->cName, "xl6_xrt_print") == 0 ||
@@ -52645,9 +52646,9 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
         const XL6_IrCallTarget* target = &module->callTargets[i];
         size_t parameter;
         xl6OutputPrintf(out,
-            "    {\"id\":%lu,\"kind\":%d,\"runtimeBridge\":%d,\"runtimeBridgeName\":\"%s\",\"runtimeBridgeOperation\":%d,\"runtimeBridgeOperationName\":\"%s\",\"lifecycleAbi\":%d,\"lifecycleAbiName\":\"%s\",\"reachability\":\"%s\",\"symbol\":%u,\"declaration\":%u,\"cName\":\"%s\",\"returnType\":%u,\"nativeArrayResultAbi\":%d,\"resultPhysicalAbi\":%d,\"resultPhysicalAbiName\":\"%s\",\"resultPhysicalFieldDeclaration\":%u,\"resultPhysicalDestroySymbol\":%u,\"workerReturnType\":%u,\"errorAbi\":%d,\"errorAbiName\":\"%s\",\"errorPhysicalAbi\":%d,\"errorPhysicalAbiName\":\"%s\",\"workerErrorAbi\":%d,\"workerErrorAbiName\":\"%s\",\"asyncResultAbi\":%d,\"asyncResultAbiName\":\"%s\",\"asyncDispatch\":%d,\"futureOutcomeAbi\":%d,\"asyncMachine\":%lu,\"asyncCompletionAbi\":%d,\"asyncCompletionAbiName\":\"%s\",\"generatorItemType\":%u,\"generatorYieldAbi\":%d,\"generatorYieldAbiName\":\"%s\",\"generatorMachine\":%lu,\"parameterCount\":%lu,\"variadicAbi\":%d,\"variadicAbiName\":\"%s\",\"parameterTypes\":[",
+            "    {\"id\":%lu,\"kind\":%d,\"implementationAbi\":%d,\"runtimeBridge\":%d,\"runtimeBridgeName\":\"%s\",\"runtimeBridgeOperation\":%d,\"runtimeBridgeOperationName\":\"%s\",\"lifecycleAbi\":%d,\"lifecycleAbiName\":\"%s\",\"reachability\":\"%s\",\"symbol\":%u,\"declaration\":%u,\"cName\":\"%s\",\"returnType\":%u,\"nativeArrayResultAbi\":%d,\"resultPhysicalAbi\":%d,\"resultPhysicalAbiName\":\"%s\",\"resultPhysicalFieldDeclaration\":%u,\"resultPhysicalDestroySymbol\":%u,\"workerReturnType\":%u,\"errorAbi\":%d,\"errorAbiName\":\"%s\",\"errorPhysicalAbi\":%d,\"errorPhysicalAbiName\":\"%s\",\"workerErrorAbi\":%d,\"workerErrorAbiName\":\"%s\",\"asyncResultAbi\":%d,\"asyncResultAbiName\":\"%s\",\"asyncDispatch\":%d,\"futureOutcomeAbi\":%d,\"asyncMachine\":%lu,\"asyncCompletionAbi\":%d,\"asyncCompletionAbiName\":\"%s\",\"generatorItemType\":%u,\"generatorYieldAbi\":%d,\"generatorYieldAbiName\":\"%s\",\"generatorMachine\":%lu,\"parameterCount\":%lu,\"variadicAbi\":%d,\"variadicAbiName\":\"%s\",\"parameterTypes\":[",
             (unsigned long)i, (int)target->kind,
-            (int)target->runtimeBridge, xl6IrRuntimeBridgeName(target->runtimeBridge),
+            (int)target->implementationAbi, (int)target->runtimeBridge, xl6IrRuntimeBridgeName(target->runtimeBridge),
             (int)target->runtimeBridgeOperation,
             xl6IrRuntimeBridgeOperationName(target->runtimeBridgeOperation),
             (int)target->lifecycleAbi,

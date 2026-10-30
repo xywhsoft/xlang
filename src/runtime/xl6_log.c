@@ -43,13 +43,9 @@ void* xl6LogSinkAffinityContextV1(void* sink)
 }
 bool xl6LogSinkWorkerSafeV1(void* sink)
 {
-    bool safe=true;
     if (!sink) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
-    if (!xrtOnce(&affine_once,affine_init,NULL) || !xrtMutexLock(&affine_lock)) return false;
-    for (log_affine_sink* item=affine_sinks;item;item=item->next) if (item->sink==sink) { safe=false; break; }
-    if (!xrtMutexUnlock(&affine_lock)) return false;
-    if (!safe) xrtSetErrorKind(XERR_STATE);
-    return safe;
+    if (xrtLogSinkWorkerSafe(sink)) return true;
+    xrtSetErrorKind(XERR_STATE); return false;
 }
 
 static bool log_level(int64_t value, bool threshold)
@@ -181,3 +177,45 @@ uint64_t xl6LogStatsCounterV1(void* snapshot, int64_t counter)
     default: xrtSetErrorKind(XERR_RANGE); return 0;
     }
 }
+
+#include "xl6_native_handle.h"
+#include "xl6_ownership_domain_impl.h"
+#include "src/api/xl_foreign_error.h"
+static bool native_sink_trace(const void* payload,xrtownershipvisitor visit,void* context)
+{ (void)payload;(void)visit;(void)context;return true; }
+static bool native_sink_worker(const void* payload){(void)payload;return true;}
+static const xlogsinkownershipv1 native_sink_policy={sizeof(native_sink_policy),native_sink_trace,native_sink_worker};
+void* xl6LogSinkBindNativeV1(void* raw)
+{
+    xlogsink* sink=raw;if(!sink)return NULL;
+    if(xrtLogSinkBindOwnershipV1(sink,&native_sink_policy))return sink;
+    xerror* error=xrtTakeError();xrtLogSinkFree(sink);xrtSetErrorTake(error);return NULL;
+}
+static bool logger_trace(const xvalue* value,xrtownershipvisitor visit,void* context)
+{
+    void* payload=NULL;void* user=NULL;const xvaluehandleops* ops=NULL;
+    return visit&&xrtValueGetHandle(value,&payload,&ops,&user)&&!user&&
+        ops==xl6LogHandlePolicyV1Get()->Ops&&visit(xrtLogOwnership(payload),context);
+}
+static bool sink_trace(const xvalue* value,xrtownershipvisitor visit,void* context)
+{
+    void* payload=NULL;void* user=NULL;const xvaluehandleops* ops=NULL;
+    if(!visit||!xrtValueGetHandle(value,&payload,&ops,&user)||user||ops!=xl6LogSinkHandlePolicyV1Get()->Ops)return false;
+    xrtownershipref ref=xrtLogSinkOwnership(payload);return ref.Ops&&visit(ref,context);
+}
+XL6_DEFINE_NATIVE_HANDLE_POLICY(xl6LogHandlePolicyV1Get,xl6LogDestroyV1,logger_trace)
+XL6_DEFINE_NATIVE_HANDLE_POLICY(xl6LogSinkHandlePolicyV1Get,xl6LogSinkDestroyV1,sink_trace)
+static bool load_log(XL6_OwnershipCatalog* catalog)
+{
+    return xl6OwnershipCatalogAddHandleV1(catalog,xl6LogHandlePolicyV1Get())&&
+        xl6OwnershipCatalogAddHandleV1(catalog,xl6LogSinkHandlePolicyV1Get())&&
+        xl6OwnershipCatalogAddLogSinkV1(catalog,&native_sink_policy);
+}
+XL6_OWNERSHIP_QUERY(Log)
+{
+    (void)preparation;(void)completion;
+    *adapter=xrtLogOwnershipAdapterV1(ref);
+    if(!*adapter)*adapter=xrtLogSinkOwnershipAdapterV1(ref,policies->LogSink,policies->LogSinkCount);
+    return *adapter!=NULL;
+}
+XL6_OWNERSHIP_DOMAIN(Log,load_log,ownershipDomainLog)

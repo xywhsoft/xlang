@@ -11,11 +11,24 @@ struct XL6_OwnershipCatalog {
     const XL6_OwnershipDomainV1** domains;
     size_t count;
     bool building,failed;
+    const XL6_OwnershipBoundaryV1* boundary;
     XL6_OwnershipPoliciesV1 policies;
 #define XL6_POLICY_STORAGE(Name, Type) const struct Type** Name; size_t Name##Capacity;
     XL6_OWNERSHIP_POLICY_GROUPS(XL6_POLICY_STORAGE)
 #undef XL6_POLICY_STORAGE
 };
+bool xl6OwnershipCatalogSetBoundaryV1(XL6_OwnershipCatalog* catalog,const XL6_OwnershipBoundaryV1* boundary)
+{
+    if(!catalog||!catalog->building||!boundary||boundary->size!=sizeof(*boundary)||
+       !boundary->Enter||!boundary->Leave||(catalog->boundary&&catalog->boundary!=boundary)){
+        if(catalog&&catalog->building)catalog->failed=true;
+        xrtSetErrorKind(XERR_ARGUMENT);return false;
+    }
+    catalog->boundary=boundary;return true;
+}
+const XL6_OwnershipBoundaryV1* xl6OwnershipCatalogBoundaryV1Get(const XL6_OwnershipCatalog* catalog)
+{ return catalog&&!catalog->building ? catalog->boundary:NULL; }
+
 static void catalogPropagateFailure(xl6_error_result result)
 {
     /* End restored the caller's diagnostic. Keep that earlier failure while

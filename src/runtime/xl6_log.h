@@ -17,6 +17,8 @@
 /* Resident adapter ABI. Strings are owned XRT allocations on return and
  * borrowed, exact-length views on input; no generated implementation lives
  * in this header. Handle results transfer exactly one native reference. */
+/* Only audited console/file factories may use this native-only binder. */
+XL6_LOG_API void* xl6LogSinkBindNativeV1(void*);
 XL6_LOG_API void* xl6LogCreateV1(xstrview name, int64_t level);
 XL6_LOG_API void* xl6LogTakeV1(void* logger);
 XL6_LOG_API void xl6LogDestroyV1(void* logger);

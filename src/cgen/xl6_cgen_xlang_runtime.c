@@ -56,69 +56,7 @@ void xl6EmitXlangRuntimeComponent(XL6_Output* out)
     xl6OutputPuts("void xl6_xlang_context_clear_last_error(void* ctx)\n", out);
     xl6OutputPuts("{ if ( ctx != 0 ) xlClearLastError((XL_Context*)ctx); }\n\n", out);
 
-    xl6OutputPuts("typedef struct xl6_xlang_handler { XL_Context* ctx; XL_Module* module; xmutex* lock; } XL6_XlangHandler;\n\n", out);
-
-    xl6OutputPuts("void* xl6_xlang_handler_wrap(void* value)\n", out);
-    xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    return value;\n", out);
-    xl6OutputPuts("}\n\n", out);
-
-    xl6OutputPuts("void* xl6_xlang_handler_create(xlir_string pathValue, xlir_string workDirValue)\n", out);
-    xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    XL6_XlangHandler* handler;\n", out);
-    xl6OutputPuts("    const char* path = xlir_string_cstr(pathValue);\n", out);
-    xl6OutputPuts("    const char* workDir = path != 0 ? xlir_string_cstr(workDirValue) : 0;\n", out);
-    xl6OutputPuts("    if (path == 0 || workDir == 0) { return 0; }\n", out);
-    xl6OutputPuts("    if ( path == 0 || path[0] == '\\0' ) { return 0; }\n", out);
-    xl6OutputPuts("    handler = (XL6_XlangHandler*)xrtMalloc(sizeof(XL6_XlangHandler));\n", out);
-    xl6OutputPuts("    if ( handler == 0 ) { return 0; }\n", out);
-    xl6OutputPuts("    memset(handler, 0, sizeof(XL6_XlangHandler));\n", out);
-    xl6OutputPuts("    handler->ctx = xl6_xlang_context_create();\n", out);
-    xl6OutputPuts("    handler->lock = xrtMutexCreate();\n", out);
-    xl6OutputPuts("    if ( handler->ctx == 0 || handler->lock == 0 ) {\n", out);
-    xl6OutputPuts("        if ( handler->ctx != 0 ) { xl6_xlang_context_destroy(handler->ctx); }\n", out);
-    xl6OutputPuts("        if ( handler->lock != 0 ) { xrtMutexDestroy(handler->lock); }\n", out);
-    xl6OutputPuts("        xrtFree(handler);\n", out);
-    xl6OutputPuts("        return 0;\n", out);
-    xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    if ( workDir != 0 && workDir[0] != '\\0' ) { (void)xlSetWorkDir(handler->ctx, workDir); }\n", out);
-    xl6OutputPuts("    handler->module = xlCompileScriptFileToModule(handler->ctx, path);\n", out);
-    xl6OutputPuts("    if ( handler->module == 0 ) {\n", out);
-    xl6OutputPuts("        xrtMutexDestroy(handler->lock);\n", out);
-    xl6OutputPuts("        xl6_xlang_context_destroy(handler->ctx);\n", out);
-    xl6OutputPuts("        xrtFree(handler);\n", out);
-    xl6OutputPuts("        return 0;\n", out);
-    xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    return handler;\n", out);
-    xl6OutputPuts("}\n\n", out);
-
-    xl6OutputPuts("void xl6_xlang_handler_destroy(void* value)\n", out);
-    xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    XL6_XlangHandler* handler = (XL6_XlangHandler*)value;\n", out);
-    xl6OutputPuts("    if ( handler != 0 ) {\n", out);
-    xl6OutputPuts("        if ( handler->module != 0 ) { xlDestroyModule(handler->module); }\n", out);
-    xl6OutputPuts("        if ( handler->ctx != 0 ) { xl6_xlang_context_destroy(handler->ctx); }\n", out);
-    xl6OutputPuts("        if ( handler->lock != 0 ) { xrtMutexDestroy(handler->lock); }\n", out);
-    xl6OutputPuts("        xrtFree(handler);\n", out);
-    xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("}\n\n", out);
-
-    xl6OutputPuts("bool xl6_xlang_handler_run_args(void* value, xvalue* args)\n", out);
-    xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    XL6_XlangHandler* handler = (XL6_XlangHandler*)value;\n", out);
-    xl6OutputPuts("    int result;\n", out);
-    xl6OutputPuts("    if ( handler == 0 || handler->ctx == 0 || handler->module == 0 || handler->lock == 0 ) { return 0; }\n", out);
-    xl6OutputPuts("    xrtMutexLock(handler->lock);\n", out);
-    xl6OutputPuts("    result = xlRunModuleMain(handler->ctx, handler->module, args);\n", out);
-    xl6OutputPuts("    xrtMutexUnlock(handler->lock);\n", out);
-    xl6OutputPuts("    return result != 0;\n", out);
-    xl6OutputPuts("}\n\n", out);
-
-    xl6OutputPuts("void* xl6_xlang_handler_last_error_copy(void* value)\n", out);
-    xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    XL6_XlangHandler* handler = (XL6_XlangHandler*)value;\n", out);
-    xl6OutputPuts("    return xl6_xlang_context_last_error_copy(handler != 0 ? handler->ctx : 0);\n", out);
-    xl6OutputPuts("}\n\n", out);
+    xl6OutputPuts("#include <__xl_runtime/xl6_xlang_handler.h>\n",out);
 
     xl6OutputPuts("int xl6_xlang_run_source(xlir_string source)\n", out);
     xl6OutputPuts("{\n", out);

@@ -23,5 +23,5 @@ void* xl6LogConsoleV1(int64_t level, int64_t target, int64_t color,
     config.Flush = flush;
     if (flags >= 0) config.Text.Flags = (uint32_t)flags;
     config.Text.UtcOffset = (int)utcOffset;
-    return xrtLogConsole(&config);
+    return xl6LogSinkBindNativeV1(xrtLogConsole(&config));
 }

@@ -26,6 +26,8 @@ typedef struct XL6_NativeHandlePolicyV1 {
 } XL6_NativeHandlePolicyV1;
 #define XL6_NATIVE_HANDLE_POLICY_V1_TAG UINT64_C(0x584C364E484E4431)
 
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6LogHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6LogSinkHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6TccContextHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6TccHandlerHandlePolicyV1Get(void);
 
@@ -315,4 +317,15 @@ XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6AsyncFileHandlePolicyV1Get
 
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6SipHasher64HandlePolicyV1Get(void);
 XL6_CODE_LEASE_API void xl6_xrt_siphasher64_destroy(void*);
+
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6ConsoleSessionHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6ConsoleEventHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6JsonWriterHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6XlonWriterHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6FsStatsHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6LogRecordHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6LogStatsHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6LogFileStatsHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6LogQueueStatsHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6XlangHandlerHandlePolicyV1Get(void);
 #endif

@@ -12583,6 +12583,7 @@ static int xl6IrLowerResolveRuntimeBridge(
     const XL6_IrType* third;
     if ( ctx == NULL || target == NULL ) return 0;
     target->runtimeBridge = XL6_IR_RUNTIME_BRIDGE_NONE;
+    target->implementationAbi = xl6IrRuntimeCallImplementation(target->cName);
     target->runtimeBridgeOperation = XL6_IR_RUNTIME_BRIDGE_OPERATION_NONE;
     target->nativeArrayResultAbi = xl6IrRuntimeDirectBridgeNativeArrayResultAbi(target->cName);
     target->nativeResultAbi=xl6IrRuntimeDirectBridgeNativeResultAbi(target->cName);
@@ -12594,6 +12595,13 @@ static int xl6IrLowerResolveRuntimeBridge(
     target->nativeHandlePolicyAbi = target->nativeHandlePolicyCName != NULL
         ? XL6_IR_NATIVE_HANDLE_POLICY_RESIDENT_V1 : XL6_IR_NATIVE_HANDLE_POLICY_NONE;
     if ( target->cName == NULL ) return 1;
+    if(target->implementationAbi==XL6_IR_CALL_IMPLEMENTATION_GENERATED_TCC_V1)
+        target->errorAbi=XL6_IR_ERROR_ABI_MAY_RAISE;
+    if (!xl6IrRuntimeCallImplementationMatches(ctx->module,target)) {
+        char message[192];
+        snprintf(message,sizeof(message),"XLIR compiler implementation '%s' has no exact declared ABI",target->cName);
+        return xl6IrLowerDiag(ctx,target->declaration,message);
+    }
     if ( xl6IrRuntimeXlangBridgeName(target->cName) ) {
         target->runtimeBridge = XL6_IR_RUNTIME_BRIDGE_XLANG;
         target->errorAbi = xl6IrRuntimeXlangBridgeErrorAbi(target->cName);

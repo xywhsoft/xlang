@@ -5426,11 +5426,20 @@ typedef struct XL6_IrParameterLifetime {
     XL6_IrReleaseEffect cleanupEffect;
 } XL6_IrParameterLifetime;
 
+/* The implementation provider is independent of physical call ABI. Generated
+ * TinyCC helpers keep ordinary C string/foreign-error contracts; this marker
+ * only selects their verified backend component. */
+typedef enum XL6_IrCallImplementationAbi {
+    XL6_IR_CALL_IMPLEMENTATION_DEFAULT = 0,
+    XL6_IR_CALL_IMPLEMENTATION_GENERATED_TCC_V1
+} XL6_IrCallImplementationAbi;
+
 typedef struct XL6_IrCallTarget {
     XL6_IrCallTargetKind kind;
     XL6_IrCallExecutionBoundaryAbi executionBoundaryAbi;
     XL6_IrCallEffectAbi effectAbi;
     XL6_IrRuntimeBridgeKind runtimeBridge;
+    XL6_IrCallImplementationAbi implementationAbi;
     XL6_IrRuntimeBridgeOperation runtimeBridgeOperation;
     /* Closed resident resource declaration, resolved once from the private
      * ABI registry and independently verified. NONE preserves strict refusal
@@ -7025,6 +7034,8 @@ int xl6IrRuntimeIoBridgeTargetMatches(
 int xl6IrRuntimeDirectBridgeTargetMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target);
 int xl6IrRuntimeDirectBridgeOwnsString(const char* name);
+XL6_IrCallImplementationAbi xl6IrRuntimeCallImplementation(const char* name);
+int xl6IrRuntimeCallImplementationMatches(const XL6_IrModule*,const XL6_IrCallTarget*);
 int xl6IrRuntimeXlangBridgeName(const char* name);
 XL6_IrErrorAbi xl6IrRuntimeXlangBridgeErrorAbi(const char* name);
 int xl6IrRuntimeXlangBridgeTargetMatches(

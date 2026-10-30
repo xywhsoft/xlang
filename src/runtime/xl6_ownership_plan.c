@@ -13,6 +13,7 @@ typedef struct PlanNode {
 } PlanNode;
 struct XL6_OwnershipPlan {
     xrtownershipref root;
+    const XL6_OwnershipBoundaryV1* boundary;
     XL6_OwnershipResolve resolve;
     XL6_OwnershipResolveV2 resolveV2;
     XL6_OwnershipResolveV3 resolveV3;
@@ -35,8 +36,18 @@ typedef struct PlanBuild {
 } PlanBuild;
 static bool same_ref(xrtownershipref a,xrtownershipref b)
 { return a.Data==b.Data && a.Ops==b.Ops; }
-static void freeze_end(xrtownershipscope* scope)
-{ if(!xrtOwnershipScopeEnd(scope))abort(); }
+static bool freeze_begin(const XL6_OwnershipBoundaryV1* boundary,xrtownershipscope* scope)
+{
+    if(boundary&&!boundary->Enter(boundary->context))return false;
+    if(xrtOwnershipFreezeTryBegin(scope))return true;
+    if(boundary)boundary->Leave(boundary->context);
+    return false;
+}
+static void freeze_end(const XL6_OwnershipBoundaryV1* boundary,xrtownershipscope* scope)
+{
+    if(!xrtOwnershipScopeEnd(scope))abort();
+    if(boundary)boundary->Leave(boundary->context);
+}
 static bool admit(xrtownershipref ref,void* context)
 {
     PlanBuild* build=context; XL6_OwnershipPlan* plan=build->plan;
@@ -136,10 +147,11 @@ static XL6_OwnershipPlanResult rebuild(XL6_OwnershipPlan* plan)
         anchors.count=anchors.capacity=plan->count;
         for(size_t i=0;i<plan->count;++i)anchors.refs[i]=plan->nodes[i].ref;
     }
-    if(plan->discover){
-        if(!plan->count && !append_anchor(plan->root,&anchors))goto failed;
-        if(!plan->discover(append_anchor,&anchors,plan->context))goto failed;
-    }
+    if((plan->discover||(plan->boundary&&plan->boundary->Discover))&&!plan->count&&
+       !append_anchor(plan->root,&anchors))goto failed;
+    if(plan->discover&&!plan->discover(append_anchor,&anchors,plan->context))goto failed;
+    if(plan->boundary&&plan->boundary->Discover&&
+       !plan->boundary->Discover(append_anchor,&anchors,plan->boundary->context))goto failed;
     if(!xrtOwnershipSnapshotCreate(anchors.count?anchors.refs:&plan->root,anchors.count?anchors.count:1,
         anchors.refs,plan->count,admit,&build,&snapshot))goto failed;
     if(build.count!=xrtOwnershipSnapshotNodeCount(snapshot) || build.count<plan->count)abort();
@@ -188,14 +200,17 @@ failed:
 }
 static XL6_OwnershipPlanResult create(xrtownershipref root,XL6_OwnershipResolve resolve,
     XL6_OwnershipResolveV2 resolveV2,XL6_OwnershipResolveV3 resolveV3,
-    XL6_OwnershipDiscoverV1 discover,bool pinRoot,void* context,XL6_OwnershipPlan** output,XL6_OwnershipProbeV1 probe)
+    XL6_OwnershipDiscoverV1 discover,bool pinRoot,void* context,XL6_OwnershipPlan** output,XL6_OwnershipProbeV1 probe,const XL6_OwnershipBoundaryV1* boundary)
 {
     xrtownershipscope freeze={0};XL6_OwnershipPlan* plan;XL6_OwnershipPlanResult result;
     if(!root.Data || !root.Ops || (!resolve && !resolveV2 && !resolveV3 && !probe) || !output){xrtSetErrorKind(XERR_ARGUMENT);return XL6_OWNERSHIP_PLAN_ERROR;}
-    if(!xrtOwnershipFreezeTryBegin(&freeze))return XL6_OWNERSHIP_PLAN_BUSY;
+    if(boundary&&(boundary->size!=sizeof(*boundary)||!boundary->Enter||!boundary->Leave)){
+        xrtSetErrorKind(XERR_ARGUMENT);return XL6_OWNERSHIP_PLAN_ERROR;
+    }
+    if(!freeze_begin(boundary,&freeze))return XL6_OWNERSHIP_PLAN_BUSY;
     plan=xrtCalloc(1,sizeof(*plan));
-    if(!plan){freeze_end(&freeze);return XL6_OWNERSHIP_PLAN_ERROR;}
-    plan->root=root;plan->resolve=resolve;plan->resolveV2=resolveV2;plan->resolveV3=resolveV3;
+    if(!plan){freeze_end(boundary,&freeze);return XL6_OWNERSHIP_PLAN_ERROR;}
+    plan->boundary=boundary;plan->root=root;plan->resolve=resolve;plan->resolveV2=resolveV2;plan->resolveV3=resolveV3;
     plan->discover=discover;plan->context=context;plan->probe=probe;
     if(pinRoot){
         /* Acquire a real plan-owned pin before snapshotting a native control
@@ -206,7 +221,7 @@ static XL6_OwnershipPlanResult create(xrtownershipref root,XL6_OwnershipResolve 
             bool busy=seed.busy;
             xerror* error=seed.admissionError ? seed.admissionError : xrtTakeError();
             if(seed.admissionError)xrtClearError();
-            xrtFree(seed.nodes);xrtFree(plan);freeze_end(&freeze);
+            xrtFree(seed.nodes);xrtFree(plan);freeze_end(boundary,&freeze);
             if(busy){xrtErrorFree(error);return XL6_OWNERSHIP_PLAN_BUSY;}
             xrtSetErrorTake(error);return XL6_OWNERSHIP_PLAN_ERROR;
         }
@@ -215,38 +230,45 @@ static XL6_OwnershipPlanResult create(xrtownershipref root,XL6_OwnershipResolve 
     result=rebuild(plan);
     if(result<=XL6_OWNERSHIP_PLAN_BUSY){
         const XL6_OwnershipAdapterV1* adapter=pinRoot ? plan->nodes[0].adapter : NULL;
-        xerror* error=xrtTakeError();xrtFree(plan->nodes);xrtFree(plan);freeze_end(&freeze);
+        xerror* error=xrtTakeError();xrtFree(plan->nodes);xrtFree(plan);freeze_end(boundary,&freeze);
         if(adapter)adapter->Drop(root.Data);
         xrtClearError();xrtSetErrorTake(error);return result;
     }
-    *output=plan;freeze_end(&freeze);return result;
+    *output=plan;freeze_end(boundary,&freeze);return result;
 }
 XL6_OwnershipPlanResult xl6OwnershipPlanTryCreate(xrtownershipref root,XL6_OwnershipResolve resolve,
     void* context,XL6_OwnershipPlan** output)
-{ return create(root,resolve,NULL,NULL,NULL,false,context,output,NULL); }
+{ return create(root,resolve,NULL,NULL,NULL,false,context,output,NULL,NULL); }
 XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV2(xrtownershipref root,XL6_OwnershipResolveV2 resolve,
     void* context,XL6_OwnershipPlan** output)
-{ return create(root,NULL,resolve,NULL,NULL,false,context,output,NULL); }
+{ return create(root,NULL,resolve,NULL,NULL,false,context,output,NULL,NULL); }
 XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV3(xrtownershipref root,XL6_OwnershipResolveV3 resolve,
     void* context,XL6_OwnershipPlan** output)
-{ return create(root,NULL,NULL,resolve,NULL,false,context,output,NULL); }
+{ return create(root,NULL,NULL,resolve,NULL,false,context,output,NULL,NULL); }
 XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV4(xrtownershipref root,XL6_OwnershipResolveV3 resolve,
     XL6_OwnershipDiscoverV1 discover,void* context,XL6_OwnershipPlan** output)
 {
     if(!resolve || !discover){xrtSetErrorKind(XERR_ARGUMENT);return XL6_OWNERSHIP_PLAN_ERROR;}
-    return create(root,NULL,NULL,resolve,discover,false,context,output,NULL);
+    return create(root,NULL,NULL,resolve,discover,false,context,output,NULL,NULL);
 }
 XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV5(xrtownershipref root,XL6_OwnershipResolveV3 resolve,
     XL6_OwnershipDiscoverV1 discover,void* context,XL6_OwnershipPlan** output)
 {
     if(!resolve || !discover){xrtSetErrorKind(XERR_ARGUMENT);return XL6_OWNERSHIP_PLAN_ERROR;}
-    return create(root,NULL,NULL,resolve,discover,true,context,output,NULL);
+    return create(root,NULL,NULL,resolve,discover,true,context,output,NULL,NULL);
 }
 XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV6(xrtownershipref root,XL6_OwnershipProbeV1 probe,
     XL6_OwnershipDiscoverV1 discover,bool pinRoot,void* context,XL6_OwnershipPlan** output)
 {
     if(!probe){xrtSetErrorKind(XERR_ARGUMENT);return XL6_OWNERSHIP_PLAN_ERROR;}
-    return create(root,NULL,NULL,NULL,discover,pinRoot,context,output,probe);
+    return create(root,NULL,NULL,NULL,discover,pinRoot,context,output,probe,NULL);
+}
+XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV7(xrtownershipref root,XL6_OwnershipProbeV1 probe,
+    XL6_OwnershipDiscoverV1 discover,bool pinRoot,void* context,
+    const XL6_OwnershipBoundaryV1* boundary,XL6_OwnershipPlan** output)
+{
+    if(!probe){xrtSetErrorKind(XERR_ARGUMENT);return XL6_OWNERSHIP_PLAN_ERROR;}
+    return create(root,NULL,NULL,NULL,discover,pinRoot,context,output,probe,boundary);
 }
 XL6_OwnershipStepResult xl6OwnershipPlanPrepare(XL6_OwnershipPlan* plan)
 {
@@ -256,7 +278,7 @@ XL6_OwnershipStepResult xl6OwnershipPlanPrepare(XL6_OwnershipPlan* plan)
     size_t budget=plan->count;
     for(size_t step=0;step<=budget;++step){
         xrtownershipscope freeze={0};XL6_OwnershipPlanResult result;bool progressed=false;
-        if(!xrtOwnershipFreezeTryBegin(&freeze))return XL6_OWNERSHIP_STEP_BUSY;
+        if(!freeze_begin(plan->boundary,&freeze))return XL6_OWNERSHIP_STEP_BUSY;
         result=rebuild(plan);
         /* An already authorized asynchronous preparation can itself make
          * Count/Trace BUSY until its continuation completes. Its REAL pin,
@@ -270,7 +292,7 @@ XL6_OwnershipStepResult xl6OwnershipPlanPrepare(XL6_OwnershipPlan* plan)
                 node->prepared=true;node->preparationStarted=false;progressed=true;
             }
         }
-        freeze_end(&freeze);
+        freeze_end(plan->boundary,&freeze);
         if(result==XL6_OWNERSHIP_PLAN_ERROR)return XL6_OWNERSHIP_STEP_ERROR;
         if(!continuing&&result!=XL6_OWNERSHIP_PLAN_PREPARATIONS)return XL6_OWNERSHIP_STEP_READY;
         if(step==budget)return XL6_OWNERSHIP_STEP_BUSY;
@@ -302,8 +324,8 @@ XL6_OwnershipPlanResult xl6OwnershipPlanTryRefresh(XL6_OwnershipPlan* plan)
 {
     xrtownershipscope freeze={0};XL6_OwnershipPlanResult result;
     if(!plan || plan->running || plan->committed){xrtSetErrorKind(XERR_STATE);return XL6_OWNERSHIP_PLAN_ERROR;}
-    if(!xrtOwnershipFreezeTryBegin(&freeze))return XL6_OWNERSHIP_PLAN_BUSY;
-    result=rebuild(plan);freeze_end(&freeze);return result;
+    if(!freeze_begin(plan->boundary,&freeze))return XL6_OWNERSHIP_PLAN_BUSY;
+    result=rebuild(plan);freeze_end(plan->boundary,&freeze);return result;
 }
 XL6_OwnershipStepResult xl6OwnershipPlanFinalizeV2(XL6_OwnershipPlan* plan)
 {
@@ -313,8 +335,8 @@ XL6_OwnershipStepResult xl6OwnershipPlanFinalizeV2(XL6_OwnershipPlan* plan)
     size_t budget=plan->count;
     for(size_t step=0;step<budget;++step){
         xrtownershipscope freeze={0};XL6_OwnershipPlanResult result;PlanNode* next=NULL;
-        if(!xrtOwnershipFreezeTryBegin(&freeze))return XL6_OWNERSHIP_STEP_BUSY;
-        result=rebuild(plan);freeze_end(&freeze);
+        if(!freeze_begin(plan->boundary,&freeze))return XL6_OWNERSHIP_STEP_BUSY;
+        result=rebuild(plan);freeze_end(plan->boundary,&freeze);
         if(result==XL6_OWNERSHIP_PLAN_ERROR)return XL6_OWNERSHIP_STEP_ERROR;
         if(result==XL6_OWNERSHIP_PLAN_BUSY)return XL6_OWNERSHIP_STEP_BUSY;
         if(result!=XL6_OWNERSHIP_PLAN_FINALIZERS)return XL6_OWNERSHIP_STEP_READY;
@@ -345,13 +367,13 @@ XL6_OwnershipPlanResult xl6OwnershipPlanTryCommit(XL6_OwnershipPlan* plan)
 {
     xrtownershipscope freeze={0};XL6_OwnershipPlanResult result;
     if(!plan || plan->running || plan->committed || plan->finalizerFailed){xrtSetErrorKind(XERR_STATE);return XL6_OWNERSHIP_PLAN_ERROR;}
-    if(!xrtOwnershipFreezeTryBegin(&freeze))return XL6_OWNERSHIP_PLAN_BUSY;
+    if(!freeze_begin(plan->boundary,&freeze))return XL6_OWNERSHIP_PLAN_BUSY;
     result=rebuild(plan);
     if(result==XL6_OWNERSHIP_PLAN_READY){
         for(size_t i=0;i<plan->count;++i){PlanNode* node=&plan->nodes[i];if(node->claimed)node->adapter->Clear(node->ref.Data,plan);}
         plan->committed=true;
     }
-    freeze_end(&freeze);return result;
+    freeze_end(plan->boundary,&freeze);return result;
 }
 XL6_OwnershipStepResult xl6OwnershipPlanFinishV2(XL6_OwnershipPlan* plan)
 {
@@ -382,9 +404,9 @@ XL6_OwnershipPlanResult xl6OwnershipPlanTryDestroy(XL6_OwnershipPlan* plan)
     if(plan->committed){
         for(size_t i=0;i<plan->count;++i)if(plan->nodes[i].claimed && !plan->nodes[i].finished){xrtSetErrorKind(XERR_STATE);return XL6_OWNERSHIP_PLAN_ERROR;}
     }else{
-        if(!xrtOwnershipFreezeTryBegin(&freeze))return XL6_OWNERSHIP_PLAN_BUSY;
+        if(!freeze_begin(plan->boundary,&freeze))return XL6_OWNERSHIP_PLAN_BUSY;
         for(size_t i=0;i<plan->count;++i){PlanNode* node=&plan->nodes[i];if(node->claimed)node->adapter->Restore(node->ref.Data,plan);}
-        freeze_end(&freeze);
+        freeze_end(plan->boundary,&freeze);
     }
     plan->running=true;
     for(size_t i=plan->count;i--!=0;)plan->nodes[i].adapter->Drop(plan->nodes[i].ref.Data);
