@@ -25,7 +25,7 @@
 #define INVALIDATION_LIMIT 128u
 typedef struct message { struct message* next; xvalue* value; size_t size; int input; } message;
 typedef struct document { char *uri,*path; const char* text; xls_text* content; int version; unsigned long long generation,identity; unsigned char uriHash[32];xls_context* context;int binding; } document;
-typedef struct native_request { xvalue* id; xls_query* query; int document,version; unsigned long long identity,generation; } native_request;
+typedef struct native_request { xvalue* id; xls_query* query; int document,version; unsigned long long identity,generation;int selection; } native_request;
 typedef struct semantic_request {
  xvalue* id; int document,version,line,character,kind,started,bound;
  unsigned long long identity,generation,order;
@@ -162,11 +162,20 @@ static void cancelNative(server* s,int documentIndex,int code,const char* reason
  }
 }
 static void nativeWake(void* user) { server* s=user; SetEvent(s->event); }
-static void requestFolding(server* s,const xvalue* id,const xvalue* params)
+static void requestSyntax(server* s,const xvalue* id,const xvalue* params,int selection)
 {
  int index=find(s,string(get(get(params,"textDocument"),"uri"))),version=index>=0 ? s->docs[index].version : 0;
  const xvalue* supplied=get(params,"version"); const char* namedId=string(id);
  if(index<0 || (supplied && !integer(supplied,&version)) || version!=s->docs[index].version || (namedId && strlen(namedId)>65535)) { response(s,id,NULL,-32602,"Folding requires an open xlang document and a current supplied version."); return; }
+ size_t offsets[XLS_SELECTION_POSITIONS],positions=0;
+ if(selection){
+  const xvalue* values=get(params,"positions");positions=xrtValueCount(values);
+  if(!values || xrtValueType(values)!=XVALUE_ARRAY || positions>XLS_SELECTION_POSITIONS){response(s,id,NULL,-32602,"Selection requires at most 256 positions.");return;}
+  for(size_t i=0;i<positions;++i){const xvalue* row=xrtValueArrayGet(values,i);int line=0,column=0;
+   if(!integer(get(row,"line"),&line) || !integer(get(row,"character"),&column) || line<0 || column<0 ||
+      !xlsTextOffset(s->docs[index].content,(xls_position){(size_t)line,(size_t)column},&offsets[i])){response(s,id,NULL,-32602,"Invalid UTF-16 selection position.");return;}
+  }
+ }
  size_t slot=DOC_LIMIT;
  for(size_t i=0;i<DOC_LIMIT;++i) {
   if(s->native[i].query && sameId(s->native[i].id,id)) { xlsQueryCancel(s->native[i].query); releaseNative(&s->native[i]); response(s,id,NULL,-32600,"Request ID is already active."); return; }
@@ -176,9 +185,31 @@ static void requestFolding(server* s,const xvalue* id,const xvalue* params)
  xvalue* captured=xrtValueDeepClone(id); if(!captured) { response(s,id,NULL,-32603,"Unable to retain analysis request."); return; }
  xls_analysis_document inputs[DOC_LIMIT]; size_t count=0;
  for(size_t i=0;i<DOC_LIMIT;++i) if(s->docs[i].uri) { document* d=&s->docs[i]; inputs[count++]=(xls_analysis_document){d->uri,d->path,d->content,d->identity,(uint64_t)((int64_t)d->version-INT_MIN)}; }
- document* d=&s->docs[index]; xls_query* query=xlsWorkerFolding(s->analysis,inputs,count,d->uri,s->foldingLimit);
+ document* d=&s->docs[index]; xls_query* query=selection ? xlsWorkerSelection(s->analysis,inputs,count,d->uri,offsets,positions) : xlsWorkerFolding(s->analysis,inputs,count,d->uri,s->foldingLimit);
  if(!query || !xlsQuerySetWake(query,nativeWake,s)) { xlsQueryCancel(query); xlsQueryDestroy(query); xrtValueRelease(captured); response(s,id,NULL,-32001,"Unable to submit native analysis; its queue may be full."); return; }
- s->native[slot]=(native_request){captured,query,index,version,d->identity,d->generation};
+ s->native[slot]=(native_request){captured,query,index,version,d->identity,d->generation,selection};
+}
+static xvalue* selectionResult(const xls_selection* selection)
+{
+ if(!selection)return NULL;
+ xvalue* result=xrtValueArray();if(!result)return NULL;
+ for(size_t i=0;i<xlsSelectionCount(selection);++i){
+  xvalue* parent=NULL;size_t depth=xlsSelectionDepth(selection,i);if(!depth)goto failed;
+  for(size_t j=depth;j>0;--j){
+   xls_selection_range r;if(!xlsSelectionGet(selection,i,j-1,&r)){xrtValueRelease(parent);goto failed;}
+   xvalue *node=xrtValueObject(),*range=xrtValueObject(),*start=xrtValueObject(),*end=xrtValueObject();
+   int okay=node && range && start && end && put(start,"line",xrtValueInt((int64)r.startPosition.line)) &&
+    put(start,"character",xrtValueInt((int64)r.startPosition.character)) && put(end,"line",xrtValueInt((int64)r.endPosition.line)) &&
+    put(end,"character",xrtValueInt((int64)r.endPosition.character));
+   if(okay){okay=put(range,"start",start);start=NULL;}if(okay){okay=put(range,"end",end);end=NULL;}
+   if(okay){okay=put(node,"range",range);range=NULL;}if(okay && parent){okay=put(node,"parent",parent);parent=NULL;}
+   xrtValueRelease(start);xrtValueRelease(end);xrtValueRelease(range);
+   if(!okay){xrtValueRelease(node);xrtValueRelease(parent);goto failed;}parent=node;
+  }
+  int okay=xrtValueArrayAppend(result,parent);xrtValueRelease(parent);if(!okay)goto failed;
+ }
+ return result;
+failed:xrtValueRelease(result);return NULL;
 }
 static void pollNative(server* s)
 {
@@ -191,6 +222,9 @@ static void pollNative(server* s)
   if(state==XLS_QUERY_READY) { s->analysisStats=stats; s->analysisThread=thread; }
   if(!document->uri || document->identity!=request->identity || document->version!=request->version || document->generation!=request->generation) response(s,request->id,NULL,-32801,"Native analysis input is no longer current.");
   else if(state!=XLS_QUERY_READY) response(s,request->id,NULL,state==XLS_QUERY_CANCELLED ? -32800 : -32603,"Native analysis did not complete.");
+  else if(request->selection){
+   xvalue* result=selectionResult(xlsQuerySelection(request->query));response(s,request->id,result,result ? 0 : -32603,result ? NULL : "Unable to encode selection ranges.");
+  }
   else {
    const xls_folding* folding=xlsQueryFolding(request->query); xvalue* result=xrtValueArray(); int okay=folding && result;
    const xls_fold_range* ranges=xlsFoldingRanges(folding);
@@ -765,7 +799,7 @@ static void dispatch(server* s,const xvalue* message)
   s->automaticDiagnostics=automatic; s->diagnosticVersions=versions; s->diagnosticInputProof=inputProof; s->diagnosticDependencyProof=dependencyProof;s->diagnosticOverlayProof=overlayProof; s->definitionInputProof=definitionProof;s->referenceInputProof=referenceProof; s->diagnosticDelay=delay; s->diagnosticSweepAt=GetTickCount64()+1000;
   xvalue *result=xrtValueObject(),*cap=xrtValueObject(),*sync=xrtValueObject(),*save=xrtValueObject(),*info=xrtValueObject(),*scope=xrtValueObject();
   put(cap,"positionEncoding",xrtValueString(sv("utf-16"))); put(sync,"openClose",xrtValueBool(true)); put(sync,"change",xrtValueInt(2)); put(save,"includeText",xrtValueBool(true)); put(sync,"save",save); put(cap,"textDocumentSync",sync);
-  put(cap,"foldingRangeProvider",xrtValueBool(true)); put(scope,"residentSyntax",xrtValueBool(true)); put(scope,"analysisRuntime",xrtValueString(sv("compiler-xrt")));
+  put(cap,"foldingRangeProvider",xrtValueBool(true));put(cap,"selectionRangeProvider",xrtValueBool(true)); put(scope,"residentSyntax",xrtValueBool(true)); put(scope,"analysisRuntime",xrtValueString(sv("compiler-xrt")));
   put(scope,"nativeCursorCompletion",xrtValueBool(!s->cliCompletion)); put(scope,"completionBackend",xrtValueString(sv(s->cliCompletion ? "cli" : "native")));
   put(scope,"analysisConfiguration",xrtValueInt(!s->cliCompletion && !s->cliDiagnostics ? 1 : 0));put(scope,"analysisProfile",xrtValueString(sv(XIDE_ANALYSIS_PROFILE)));
   put(scope,"retainedDiskEntry",xrtValueInt(!s->cliCompletion && !s->cliDiagnostics ? 1 : 0));
@@ -796,7 +830,7 @@ static void dispatch(server* s,const xvalue* message)
   if(!s->cliCompletion && !s->cliDiagnostics)put(cap,"referencesProvider",xrtValueBool(true));
   put(scope,"referenceCompilationOwners",xrtValueBool(!s->cliCompletion && !s->cliDiagnostics));
 #endif
-  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.99"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
+  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.100"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
  }
  if(!s->initialized) { if(id) response(s,id,NULL,-32002,"Server not initialized."); return; }
  if(s->shutdown) { if(id) response(s,id,NULL,-32600,"Server has shut down."); return; }
@@ -824,7 +858,8 @@ static void dispatch(server* s,const xvalue* message)
   }
   return;
  }
- if(!strcmp(method,"textDocument/foldingRange")) { if(id) requestFolding(s,id,params); return; }
+ if(!strcmp(method,"textDocument/foldingRange")) { if(id) requestSyntax(s,id,params,0); return; }
+ if(!strcmp(method,"textDocument/selectionRange")) { if(id)requestSyntax(s,id,params,1);return; }
  if(!strcmp(method,"xlang/analysisStats")) { if(id) analysisStats(s,id); return; }
  if(!strcmp(method,"xlang/diagnosticStats")) { if(id) diagnosticStats(s,id); return; }
  if(!strcmp(method,"xlang/inputState")) { if(id) inputState(s,id,params); return; }

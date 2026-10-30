@@ -20,7 +20,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--server', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--expected-version', default='0.99')
+    parser.add_argument('--expected-version', default='0.100')
     args = parser.parse_args()
     server = args.server.resolve(strict=True)
     out = args.output.resolve()
