@@ -59,15 +59,23 @@ def main():
     report = {"complete": False, "ready": False, "compilerSha256": hashlib.sha256(xl.read_bytes()).hexdigest(),
               "missingPolicies": [], "probes": []}
 
-    def run(name, command):
+    def run(name, command, expected_finalizers=0):
+        marker = root / "build/test/log-owner-retired.txt"
+        before = marker.read_bytes() if expected_finalizers and marker.exists() else b""
         try:
             result = subprocess.run(list(map(str, command)), cwd=root, env=env,
                                     capture_output=True, timeout=120)
             code, data = result.returncode, result.stdout + result.stderr
         except subprocess.TimeoutExpired as error:
             code, data = "timeout", (error.stdout or b"") + (error.stderr or b"")
+        if code == 0 and expected_finalizers:
+            after = marker.read_bytes() if marker.exists() else b""
+            if after != before + b"retired\n" * expected_finalizers:
+                code = "missing-finalizer"
+                data += f"\nExpected exactly {expected_finalizers} LogOwner finalizer records.\n".encode("utf-8")
         (directory / (name + ".log")).write_bytes(data)
-        report["probes"].append({"name": name, "exit": code, "command": list(map(str, command))})
+        report["probes"].append({"name": name, "exit": code, "command": list(map(str, command)),
+                                "expectedFinalizers": expected_finalizers})
         print(name, code, flush=True)
         return code == 0
 
@@ -107,9 +115,9 @@ def main():
         source.write_text(program + 'println("body completed")\n', encoding="utf-8")
         binary = directory / (name + (".exe" if os.name == "nt" else ""))
         if name in ("file-async", "log-cycle", "xlang-handler"):
-            run(name + "-jit", [xl, "run", source])
+            run(name + "-jit", [xl, "run", source], 1 if name == "log-cycle" else 0)
         if run(name + "-build", [xl, "build", source, "-o", binary]):
-            run(name + "-exit", [binary])
+            run(name + "-exit", [binary], 1 if name == "log-cycle" else 0)
     if not args.skip_sdk:
         host_source = directory / "owner_drain.c"
         host_source.write_text(HOST, encoding="utf-8")
@@ -134,7 +142,7 @@ def main():
             if os.name!="nt":self_command += ["-Wl,-rpath,"+str(products)]
             if run(library.stem+"-self-retirement-build",self_command):run(library.stem+"-self-retirement",[self_binary])
             for label,fixture in [("log-cycle","stdlib_log_ownership_cycle.xl"),("xlang-handler","stdlib_xlang_handler_ownership.xl")]:
-                run(library.stem+"-"+label+"-drain-20",[binary,root/"test/cases"/fixture,root])
+                run(library.stem+"-"+label+"-drain-20",[binary,root/"test/cases"/fixture,root],20 if label=="log-cycle" else 0)
             for explicit in [False, True]:
                 name = library.stem + ("-explicit-close" if explicit else "-automatic-close")
                 script = directory / (name + ".xl")
