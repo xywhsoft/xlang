@@ -124,6 +124,9 @@ typedef struct xls_sem_entry {
     XL6_TypeId typeStart,typeEnd;
     size_t typeNodes,typeBytes;
     xls_sem_view* view;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    size_t effectCount;
+#endif
 } xls_sem_entry;
 
 typedef struct xls_sem_body_job {
@@ -145,6 +148,10 @@ struct xls_sem_memo {
     xls_sem_read_work readWork;
     struct xls_raw_memo* raw;
     int trackInputs,inputSame;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    xarray effects; /* owned exact declaration snapshots in emission order */
+    int effectsComplete;
+#endif
 };
 typedef struct xls_sem_move {
     const xls_text *oldText,*newText;
@@ -180,6 +187,11 @@ typedef struct xls_sem_build {
     size_t readCursor,readCacheBytes;
     uint64_t readEpoch;
     xmap readCache;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    XL6_SemContext* effectContext;
+    size_t effectPending;
+    int effectsCompatible;
+#endif
 } xls_sem_build;
 static _Thread_local xls_sem_build* xlsActiveSemBuild;
 static int xlsSemCheckFuncOriginal(XL6_SemContext*,XL6_AstNode*);
@@ -442,6 +454,7 @@ static int xlsSemGlobalState(XL6_SemContext* ctx,xstrbuf* key)
     return 1;
 }
 #include "analysis/frontend_sem_reads.inc"
+#include "analysis/frontend_sem_effects.inc"
 static int xlsSemSourcePool(const XL6_AstNode* node,xmap* sources,size_t depth)
 {
     if(!node || depth>512) return 0;
@@ -489,6 +502,9 @@ static void xlsSemMemoBegin(XL6_SemContext* ctx)
         if(!xrtMapSet(&build->slots,(xbytesview){(const unsigned char*)&node,sizeof(node)},&i)) return;
     }
     build->enabled=1;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    build->effectContext=ctx;build->effectsCompatible=!build->baseline || build->baseline->effectsComplete;
+#endif
     build->compatible=build->baseline && !strcmp(m->path,build->baseline->path) &&
         xlsSemEqualKey(&m->context,&build->baseline->context) && m->entries.Count==build->baseline->entries.Count;
     if(build->compatible) ++build->work.contextHits;
@@ -943,6 +959,9 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
     xls_sem_entry* entry=xrtArrayGet(&m->entries,*slot);
     const xls_sem_entry* old=xlsSemReadCompatible(build) ? xrtArrayConstGet(&build->baseline->entries,*slot) : NULL;
     entry->start=ctx->nextSymbolId; entry->typeStart=ctx->types.nextId;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    entry->effectCount=m->effects.Count;
+#endif
     entry->lexicalRange=node->range;
     if(old && entry->start!=old->start)build->symbolsShifted=1;
     if(xlsSemReadCompatible(build) && build->symbolsShifted){
@@ -994,7 +1013,7 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
     if(xlsSemReadCompatible(build) && old && old->unit && old->unit->facts.Count && usable && ctx->queryTypeNodes<=65536u && ctx->queryTypeBytes<=4u*1024u*1024u &&
        (m->trackInputs ? sameInputKey : xlsSemEqualKey(&entry->key,&old->key)) &&
        (build->compatible || xlsSemReadMatch(build,ctx,old->unit->reads,*slot)) &&
-       old->unit->symbols.floor==m->symbolFloor && xlsSemSymbolsLimit(&old->unit->symbols,entry->start,&symbolEnd) &&
+       xlsSemEffectsAdmit(build,old) && old->unit->symbols.floor==m->symbolFloor && xlsSemSymbolsLimit(&old->unit->symbols,entry->start,&symbolEnd) &&
        old->end>=old->start && old->end-old->start==old->unit->symbols.end-old->unit->symbols.start &&
        (!symbolsChanged || old->unit->symbols.local) &&
        old->typeNodes<=65536u-ctx->queryTypeNodes && old->typeBytes<=4u*1024u*1024u-ctx->queryTypeBytes) {
@@ -1005,9 +1024,19 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
         }
     }
     xls_sem_symbol_span symbols={0};
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    int pure=1;
+#endif
     if(!reused) { xls_sem_symbol_scope scope;xlsSemSymbolsBegin(&scope,ctx,node,m->symbolFloor);
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+        xls_sem_effect_scope effects;xlsSemEffectScopeBegin(&effects,ctx);
+#endif
         xls_sem_read_capture reading;xlsSemReadsStart(&reading,build,ctx);
-        ++build->work.checked;okay=xlsSemCheckFuncOriginal(ctx,node);capturedReads=xlsSemReadsFinish(&reading);symbols=xlsSemSymbolsEnd(&scope,ctx); }
+        ++build->work.checked;okay=xlsSemCheckFuncOriginal(ctx,node);capturedReads=xlsSemReadsFinish(&reading);symbols=xlsSemSymbolsEnd(&scope,ctx);
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+        pure=xlsSemEffectScopeEnd(&effects);
+#endif
+    }
     entry->end=ctx->nextSymbolId; entry->typeNodes=ctx->queryTypeNodes-nodes; entry->typeBytes=ctx->queryTypeBytes-bytes;
     entry->typeEnd=ctx->types.nextId;
     if(old && entry->end!=old->end)build->symbolsShifted=1;
@@ -1015,7 +1044,11 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx,XL6_AstNode* node)
     int neutral=!ctx->completionQuery || (xlsSemQueryNeutral(node,0,&build->queryCursor) &&
         beforeQuery.reached==ctx->completionQuery->reached && beforeQuery.available==ctx->completionQuery->available &&
         beforeQuery.count==ctx->completionQuery->count && beforeQuery.error==ctx->completionQuery->error);
-    if(okay && usable && neutral && (!ctx->diags || !ctx->diags->count) && xlsSemSameShape(node,&raw) && xlsSemGlobalState(ctx,&after) && xlsSemEqualKey(&state,&after) &&
+    if(okay && usable && neutral && xlsSemEffectsCapture(build)
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+       && pure
+#endif
+       && (!ctx->diags || !ctx->diags->count) && xlsSemSameShape(node,&raw) && xlsSemGlobalState(ctx,&after) && xlsSemEqualKey(&state,&after) &&
        entry->key.Capacity<=XLS_SEM_MEMO_BYTES-m->bytes) {
         m->bytes+=entry->key.Capacity; size_t owned=0;
         size_t positions=entry->positions.Capacity*sizeof(xls_sem_position);
@@ -1064,6 +1097,7 @@ void xlsFrontendSemMemoDestroy(xls_sem_memo* memo)
 {
     if(!memo || xrtAtomic32FetchSub(&memo->references,1,XMEMORY_ACQ_REL)!=1) return;
     for(size_t i=0;i<memo->entries.Count;++i) { xls_sem_entry* e=xrtArrayGet(&memo->entries,i); xrtStrBufFree(&e->key); xlsSemEntryFactsClear(e); }
+    xlsSemEffectsFree(memo);
     xlsRawMemoDestroy(memo->raw);xrtArrayUnit(&memo->entries); xrtStrBufFree(&memo->context);xlsSemReadContextRelease(memo->readContext);xrtFree(memo->path); xrtFree(memo);
 }
 xls_sem_memo* xlsFrontendSemMemoRetain(xls_sem_memo* memo)
@@ -1147,6 +1181,9 @@ static int xlsSemCheckMemo(XL6_AstNode* root,XL6_DiagList* diags,const char* mod
     xls_sem_memo* memo=path && sources ? xrtCalloc(1,sizeof(*memo)) : NULL;
     if(memo) {
         xrtAtomic32Init(&memo->references,1);
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+        memo->effectsComplete=1;
+#endif
         memo->path=xrtStrDup(path);
         if(!memo->path || !xrtArrayInit(&memo->entries,sizeof(xls_sem_entry)) || !xrtMapInit(&build.slots,sizeof(size_t)) ||
            !xrtMapInit(&build.sources,sizeof(XL6_AstNode*)) || !xrtMapSetDrop(&build.sources,xlsSemSourceUnpin,NULL)) {
@@ -1156,6 +1193,9 @@ static int xlsSemCheckMemo(XL6_AstNode* root,XL6_DiagList* diags,const char* mod
     build.memo=memo; xlsActiveSemBuild=&build;
     if(memo && previous && !xlsSemMovesBuild(&build.moves,previousSources,sources)) build.baseline=NULL;
     int okay=xl6SemCheckModuleWithQuery(root,diags,module,captureIndex,query);
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    if(memo && build.effectPending)memo->effectsComplete=0;
+#endif
     xls_raw_scope* rawScope=xlsRawBodyScopeCurrent();
     if(rawScope && rawScope->deferred && (rawScope->failed || rawScope->consumed!=rawScope->deferred || !deferred || !*deferred || !query || !query->available || query->error || (diags && diags->count)))build.bodyFailure=1;
     xlsSemBodyJobsFree(&build.bodyJobs);

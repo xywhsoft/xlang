@@ -371,6 +371,10 @@ def prepare_native_sem(frontend: Path, output: Path, *, _current_unit_probe=Fals
               tail.replace('&ctx', 'ctx') + '}\n#include "analysis/frontend_sem_tail.inc"\n\n')
     source = source.replace(seam, helper + seam)
     compiled = output / 'frontend/xl6_sem.c'
+    effect_overlay = None
+    if current:
+        from native_semantic_effects_overlay import derive
+        source,effect_overlay=derive(frontend,output,source)
     source = semantic_cancellation(source)
     source = derive_type_sources(source)
     compiled.write_text(source, encoding='utf-8', newline='\n')
@@ -384,7 +388,7 @@ def prepare_native_sem(frontend: Path, output: Path, *, _current_unit_probe=Fals
         deferredBodyViewBytes=64 * 1024 * 1024,
         overloadCandidateBytes=8 * 1024 * 1024,
         syntheticTypeOrigins='eight explicit at-node constructors retain original AST source/ranges;original type rules unchanged',
-        observedTypeQueries=type_queries, currentUnitProbe=current,
+        observedTypeQueries=type_queries, currentUnitProbe=current, declarationEffects=effect_overlay,
         auditedDependencies={str(registry): registry_sha, str(registry_header):registry_header_sha, str(ast): ast_sha})
 
 

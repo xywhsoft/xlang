@@ -33,6 +33,9 @@ static int xlsSemHeaderNodeEqual(const XL6_AstNode* a,const XL6_AstNode* b,size_
  if(!a || !b)return a==b;
  if(xlsActiveHeaderControl)++xlsActiveHeaderControl->work.nodes;
  uint64_t x[XLS_SEM_KEY_FIELDS],y[XLS_SEM_KEY_FIELDS];xlsSemKeyScalars(a,x);xlsSemKeyScalars(b,y);
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+ if(!xlsSemReadValueText(a->compiledPackageLink,b->compiledPackageLink))return 0;
+#endif
  if(memcmp(x,y,sizeof(x)) || !xlsSemReadValueText(a->text,b->text) || !xlsSemReadValueText(a->doc,b->doc) ||
     !xlsSemReadValueText(xl6AstSourcePath(a),xl6AstSourcePath(b)) ||
     (a->literalData!=NULL)!=(b->literalData!=NULL) ||
