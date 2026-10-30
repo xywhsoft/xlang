@@ -12,4 +12,11 @@
 #include <xrt_config.h>
 #include <xrt.h>
 #endif
+/* XRT's current signed-wait API uses milliseconds. The matched historical
+ * runtime uses unsigned microseconds. All call sites pass bounded constants. */
+#ifdef XRT_WAIT_FOREVER
+#define XIDE_XRT_TIMEOUT_MS(value) ((int64)(value))
+#else
+#define XIDE_XRT_TIMEOUT_MS(value) ((uint64)(value)*1000u)
+#endif
 #endif

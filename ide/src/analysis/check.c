@@ -97,9 +97,10 @@ static xls_semantic_check* createBody(xls_context* context,const char* entry,
         if(!captured)goto invalid;
     } else for(size_t i=0;i<count;++i) {
         const xls_semantic_input* in=&inputs[i]; size_t bom=0;
+        const XL6_SourceOverlayItem* duplicate=NULL;
         if(stopped(cancelled,user)) goto cancel;
         if(!in->path || !xrtPathIsAbs(in->path) || !in->text || in->size>XL6_SOURCE_OVERLAY_BYTES ||
-           xl6SourceOverlayFind(&r->overlay,in->path)) goto invalid;
+           xlsFrontendOverlayLookup(&r->overlay,in->path,&duplicate)!=0) goto invalid;
         if(in->size>=3 && !memcmp(in->text,"\xef\xbb\xbf",3)) bom=3;
         if(!xl6SourceOverlaySet(&r->overlay,in->path,in->text+bom,in->size-bom)) goto invalid;
     }
@@ -109,7 +110,8 @@ static xls_semantic_check* createBody(xls_context* context,const char* entry,
     if(syntax) {
         /* Keep exactly the overlay/report contract used by the shared parser.
          * Reject an unrelated parse rather than silently accepting stale facts. */
-        const XL6_SourceOverlayItem* item=xl6SourceOverlayFind(&r->overlay,r->path);
+        const XL6_SourceOverlayItem* item=NULL;
+        if(xlsFrontendOverlayLookup(&r->overlay,r->path,&item)!=1)goto invalid;
         const xls_text* text=xlsSyntaxText(syntax); size_t skip=0;
         if(text && xlsTextSize(text)>=3 && !memcmp(xlsTextData(text),"\xef\xbb\xbf",3)) skip=3;
         if(!item || !text || strcmp(item->path,xlsSyntaxPath(syntax)) ||

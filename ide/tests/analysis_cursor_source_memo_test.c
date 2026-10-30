@@ -1,3 +1,4 @@
+#include "analysis_test_clock.h"
 #include "analysis/completion_session.h"
 #include "analysis/frontend_internal.h"
 #include <xrt.h>
@@ -50,7 +51,7 @@ static int prefix(xstrbuf* text,unsigned count)
 }
 static int scenario(unsigned mode)
 {
- const unsigned helpers=32;char folder[180];snprintf(folder,sizeof(folder),"build/source-memo-%u-%llu-%llu",mode,(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xrtClock());CHECK(xrtDirCreateAll(folder));
+ const unsigned helpers=32;char folder[180];snprintf(folder,sizeof(folder),"build/source-memo-%u-%llu-%llu",mode,(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xlsTestClockMicros());CHECK(xrtDirCreateAll(folder));
  char* directory=xrtPathAbs(folder);char *entry=xrtPathJoin(directory,"main.xl"),*left=xrtPathJoin(directory,"left.xl"),*right=xrtPathJoin(directory,"right.xl");CHECK(directory && entry && left && right);
  const char* main="import left\nimport right\nfunc main(...) as int\n return left.compute(3)+right.compute(4)\nend\n";CHECK(xrtFileWriteAtomic(entry,(xbytesview){(const unsigned char*)main,strlen(main)}));
  xls_context_spec spec={.kind=XLS_CONTEXT_PROJECT,.project=directory,.configuration="debug",.entry=entry,.directory=directory,.analysisProfile="fixture-linked-native",.targetKind="exe"};xls_context* context=mode==2?NULL:xlsContextCreate(&spec,1024*1024,NULL);CHECK(mode==2 || context);

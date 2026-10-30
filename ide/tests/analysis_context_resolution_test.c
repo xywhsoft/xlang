@@ -1,3 +1,4 @@
+#include "analysis_test_clock.h"
 #include "analysis/worker.h"
 #include "analysis/frontend_context.h"
 #include <xrt.h>
@@ -94,7 +95,7 @@ static xls_semantic_completion* waitCompletion(xls_query* query)
 }
 static int run(void)
 {
-    char root[160];snprintf(root,sizeof(root),"build/context-resolution-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xrtClock());
+    char root[160];snprintf(root,sizeof(root),"build/context-resolution-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xlsTestClockMicros());
     char *directory=xrtPathAbs(root),*a=directory ? xrtPathJoin(directory,"工程 A") : NULL,*b=directory ? xrtPathJoin(directory,"工程 B") : NULL;
     char *shared=directory ? xrtPathJoin(directory,"shared") : NULL,*entry=shared ? xrtPathJoin(shared,"entry.xl") : NULL;
     char *pa=a ? xrtPathJoin(a,"app.xlp") : NULL,*pb=b ? xrtPathJoin(b,"app.xlp") : NULL;
@@ -178,7 +179,7 @@ static int run(void)
 }
 static int diskEntry(void)
 {
-    char root[160],error[256];snprintf(root,sizeof(root),"build/context-disk-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xrtClock());
+    char root[160],error[256];snprintf(root,sizeof(root),"build/context-disk-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xlsTestClockMicros());
     char* directory=xrtPathAbs(root);char* entry=directory ? xrtPathJoin(directory,"main.xl") : NULL;
     char* helper=directory ? xrtPathJoin(directory,"helper.xl") : NULL;char* project=directory ? xrtPathJoin(directory,"project.xlp") : NULL;
     const char* mainText="\xef\xbb\xbfimport helper\r\nfunc main(...) as int\r\n return helper.value()\r\nend\r\n";

@@ -2,6 +2,7 @@
 #define XLANG_ANALYSIS_FRONTEND_OVERLAY_H
 #include "analysis/input_batch.h"
 #include "src/compile/xl6_source_overlay.h"
+#include "analysis/frontend_overlay_lookup.h"
 /* Private session path. batch must stay retained until Clear. Only opaque,
  * already validated immutable text is borrowed; normalized paths stay owned.
  * The original loader/report/parser still observes every actual source and

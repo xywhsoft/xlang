@@ -10,6 +10,8 @@ typedef struct module_edge {uint32_t from,to;} module_edge;
 struct xls_module_graph {xatomic32 references;xls_module_store* store;xls_context* context;xarray nodes,edges,sources;size_t bytes,root;};
 typedef struct graph_pending {xls_module_graph* graph;xmap nodes,edges;size_t labels,limit;int failed,entered,expanded;} graph_pending;
 static _Thread_local xls_module_graph_scope* active;
+void xlsModuleGraphDecline(void)
+{graph_pending* p=active ? active->state : NULL;if(p)p->failed=1;}
 static xbytesview label(const char* s){return (xbytesview){(const unsigned char*)s,strlen(s)+1};}
 static size_t storage(const graph_pending* p)
 {

@@ -1,3 +1,4 @@
+#include "analysis_test_clock.h"
 #include "analysis/worker.h"
 #include "analysis/frontend_internal.h"
 #include "analysis/signature_internal.h"
@@ -85,7 +86,7 @@ static int parity(const fixture_result* r,enum fixture_kind kind,xls_context* co
 typedef struct fixture {char *root,*paths[3];xls_text* text[3];xls_analysis_document docs[3];} fixture;
 static int setup(fixture* f)
 {
- char relative[128];snprintf(relative,sizeof(relative),"build/worker-cache-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xrtClock());CHECK(xrtDirCreateAll(relative));f->root=xrtPathAbs(relative);CHECK(f->root);
+ char relative[128];snprintf(relative,sizeof(relative),"build/worker-cache-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xlsTestClockMicros());CHECK(xrtDirCreateAll(relative));f->root=xrtPathAbs(relative);CHECK(f->root);
  const char* names[]={"源A.xl","源B.xl","third.xl"};const char* bodies[]={sourceA,sourceB,sourceA};const char* keys[]={"a","b","c"};
  for(size_t i=0;i<3;++i){f->paths[i]=xrtPathJoin(f->root,names[i]);f->text[i]=xlsTextCreate(bodies[i],strlen(bodies[i]),1024*1024,NULL);CHECK(f->paths[i] && f->text[i]);f->docs[i]=(xls_analysis_document){keys[i],f->paths[i],f->text[i],i+10,1};}
  return 1;

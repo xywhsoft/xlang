@@ -1,3 +1,4 @@
+#include "analysis_test_clock.h"
 #include "analysis/module_store.h"
 #include "analysis/worker_modules.h"
 #include "analysis/frontend_entry_cache.h"
@@ -101,7 +102,7 @@ static int concurrency(void)
 }
 static int sharedWorkers(void)
 {
-    char folder[160];snprintf(folder,sizeof(folder),"build/module-workers-%llu",(unsigned long long)xrtClock());CHECK(xrtDirCreateAll(folder));char* root=xrtPathAbs(folder);char *entry=xrtPathJoin(root,"main.xl"),*dependency=xrtPathJoin(root,"dep.xl"),*project=xrtPathJoin(root,"sample.xlp");CHECK(root && entry && dependency && project);
+    char folder[160];snprintf(folder,sizeof(folder),"build/module-workers-%llu",(unsigned long long)xlsTestClockMicros());CHECK(xrtDirCreateAll(folder));char* root=xrtPathAbs(folder);char *entry=xrtPathJoin(root,"main.xl"),*dependency=xrtPathJoin(root,"dep.xl"),*project=xrtPathJoin(root,"sample.xlp");CHECK(root && entry && dependency && project);
     const char* main="\xef\xbb\xbfimport dep\r\nfunc main(...) as int\r\n int unique_main=dep.pick_A(7,\"hi\")\r\n return unique_main\r\nend\r\n";
     const char* dep="export func pick_A(int left,string right) as int\r\n int local=left\r\n if local>0 then\r\n return local\r\n end\r\n return 0\r\nend\r\n";
     xls_analysis_document docs[2]={{"main",entry,NULL,1,1},{"dep",dependency,NULL,2,1}};docs[0].text=xlsTextCreate(main,strlen(main),1024*1024,NULL);docs[1].text=xlsTextCreate(dep,strlen(dep),1024*1024,NULL);CHECK(docs[0].text && docs[1].text);

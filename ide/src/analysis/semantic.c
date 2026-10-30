@@ -129,15 +129,17 @@ static xls_semantic_completion* createBody(xls_context* context,const char* entr
         if(!captured)goto invalid;
     } else for(size_t i=0;i<count;++i) {
         const xls_semantic_input* in=&inputs[i]; size_t bom=0;
+        const XL6_SourceOverlayItem* duplicate=NULL;
         if(stopped(cancelled,user)) goto cancel;
         if(!absolute(in->path) || !in->text || in->size>XL6_SOURCE_OVERLAY_BYTES ||
-           xl6SourceOverlayFind(&r->overlay,in->path)) goto invalid;
+           xlsFrontendOverlayLookup(&r->overlay,in->path,&duplicate)!=0) goto invalid;
         if(in->size>=3 && !memcmp(in->text,"\xef\xbb\xbf",3)) bom=3;
         if(!xl6SourceOverlaySet(&r->overlay,in->path,in->text+bom,in->size-bom)) goto invalid;
     }
     xlsFrontendInputUsageBind(&r->overlay,r->overlay.count);
-    const XL6_SourceOverlayItem* target=xl6SourceOverlayFind(&r->overlay,r->path);
-    const XL6_SourceOverlayItem* entryInput=xl6SourceOverlayFind(&r->overlay,entry);
+    const XL6_SourceOverlayItem *target=NULL,*entryInput=NULL;
+    if(xlsFrontendOverlayLookup(&r->overlay,r->path,&target)!=1 ||
+       xlsFrontendOverlayLookup(&r->overlay,entry,&entryInput)<0)goto invalid;
     if(!target || offset>target->size ||
        (offset<target->size && ((unsigned char)target->text[offset]&0xc0)==0x80)) goto invalid;
     if(signature){signature->query=&r->query;if(!signature->data->hasSite)return r;}

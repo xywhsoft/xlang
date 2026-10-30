@@ -1,3 +1,4 @@
+#include "analysis_test_clock.h"
 #include "analysis/dependency_session.h"
 #include "analysis/dependency_graph.h"
 #include "analysis/frontend_internal.h"
@@ -21,7 +22,7 @@ static int writeDependency(const char* path,const char* body)
 typedef struct fixture {char *directory,*entry,*library,*other,*project; xls_text *mainText,*libText,*editText,*otherText; xls_context *context,*libraryContext; xls_analysis_document docs[3];} fixture;
 static int setup(fixture* f)
 {
- char name[128];snprintf(name,sizeof(name),"dependency-inputs-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xrtClock());
+ char name[128];snprintf(name,sizeof(name),"dependency-inputs-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xlsTestClockMicros());
  f->directory=xrtPathAbs(name);CHECK(f->directory && xrtDirCreateAll(f->directory));
  f->entry=xrtPathJoin(f->directory,"main.xl");f->library=xrtPathJoin(f->directory,"library.xl");f->other=xrtPathJoin(f->directory,"other.xl");f->project=xrtPathJoin(f->directory,"owner.xlp");CHECK(f->entry && f->library && f->other && f->project);
  CHECK(writeDependency(f->entry,entryBody) && writeDependency(f->library,libraryBody) && writeDependency(f->other,"func other() as int\n return 0\nend\n"));

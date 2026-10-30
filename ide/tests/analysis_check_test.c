@@ -1,3 +1,4 @@
+#include "analysis_test_clock.h"
 #include "analysis/check.h"
 #include <xrt.h>
 #include <stdio.h>
@@ -88,7 +89,7 @@ int main(void)
     xlsSemanticStringFree(json); xlsSemanticCheckDestroy(second);
 
     char root[160]; snprintf(root,sizeof(root),"build/native-check-core-%llu-%llu",
-        (unsigned long long)xrtThreadCurrentId(),(unsigned long long)xrtClock());
+        (unsigned long long)xrtThreadCurrentId(),(unsigned long long)xlsTestClockMicros());
     CHECK(xrtDirCreateAll(root));
     char* disk=xrtPathJoin(root,"disk.xl"); char* absolute=disk ? xrtPathAbs(disk) : NULL;
     CHECK(absolute && xrtFileWriteAtomic(absolute,(xbytesview){(const unsigned char*)good,strlen(good)}));

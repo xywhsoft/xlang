@@ -1,3 +1,4 @@
+#include "analysis_test_clock.h"
 #include "analysis/function_unit_internal.h"
 #include "analysis/check.h"
 #include "analysis/frontend_internal.h"
@@ -130,7 +131,7 @@ static int runUnits(void)
 }
 static int originLifetime(void)
 {
-    char relative[160];snprintf(relative,sizeof(relative),"build/function-unit-origin-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xrtClock());
+    char relative[160];snprintf(relative,sizeof(relative),"build/function-unit-origin-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xlsTestClockMicros());
     char* directory=xrtPathAbs(relative);char* entry=directory?xrtPathJoin(directory,"main.xl"):NULL;char* dep=directory?xrtPathJoin(directory,"dep.xl"):NULL;
     CHECK(directory && entry && dep && xrtDirCreateAll(directory));
     const char* mainText="import dep\nfunc main(...) as int\n return dep.value(7)\nend\n";

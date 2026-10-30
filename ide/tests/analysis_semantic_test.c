@@ -1,3 +1,4 @@
+#include "analysis_test_clock.h"
 #include "analysis/semantic.h"
 #include <xrt.h>
 #include <stdio.h>
@@ -74,7 +75,7 @@ static int retention(void)
     CHECK(!readers(result,expected,1)); xlsSemanticStringFree(expected);
 
     char root[160]; snprintf(root,sizeof(root),"build/completion-retain-%llu-%llu",
-        (unsigned long long)xrtThreadCurrentId(),(unsigned long long)xrtClock()); CHECK(xrtDirCreateAll(root));
+        (unsigned long long)xrtThreadCurrentId(),(unsigned long long)xlsTestClockMicros()); CHECK(xrtDirCreateAll(root));
     char *relative=xrtPathJoin(root,"entry.xl"),*disk=xrtPathJoin(root,"retained_dep.xl");
     path=relative ? xrtPathAbs(relative) : NULL; CHECK(path && disk);
     const char* dependency="export class Box\n int retainedValue\nend\n";

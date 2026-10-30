@@ -1,3 +1,4 @@
+#include "analysis_test_clock.h"
 #include "analysis/check_session.h"
 #include "analysis/frontend_internal.h"
 #include "analysis/frontend_entry_cache.h"
@@ -153,7 +154,7 @@ static int cancelAfter(void* user)
 static int multiSource(int diskEntry)
 {
     char folder[160]; snprintf(folder,sizeof(folder),"build/memo-multiple-%d-%llu-%llu",diskEntry,
-        (unsigned long long)xrtThreadCurrentId(),(unsigned long long)xrtClock());
+        (unsigned long long)xrtThreadCurrentId(),(unsigned long long)xlsTestClockMicros());
     CHECK(xrtDirCreateAll(folder)); char* directory=xrtPathAbs(folder);
     char *entry=xrtPathJoin(directory,"main.xl"),*left=xrtPathJoin(directory,"memo_left.xl"),*right=xrtPathJoin(directory,"memo_right.xl");
     CHECK(directory && entry && left && right);

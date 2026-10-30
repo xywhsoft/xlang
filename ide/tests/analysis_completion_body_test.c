@@ -1,3 +1,4 @@
+#include "analysis_test_clock.h"
 #include "analysis/completion_session.h"
 #include "analysis/frontend_internal.h"
 #include <xrt.h>
@@ -43,7 +44,7 @@ static int32 readBody(void* user)
 }
 static int scenario(int imported)
 {
- char directory[160];snprintf(directory,sizeof(directory),"build/body-views-%d-%llu",imported,(unsigned long long)xrtClock());CHECK(xrtDirCreateAll(directory));
+ char directory[160];snprintf(directory,sizeof(directory),"build/body-views-%d-%llu",imported,(unsigned long long)xlsTestClockMicros());CHECK(xrtDirCreateAll(directory));
  char *root=xrtPathAbs(directory),*entry=xrtPathJoin(root,"main.xl"),*query=xrtPathJoin(root,imported ? "query.xl" : "main.xl"),*stable=xrtPathJoin(root,"stable.xl");CHECK(root && entry && query && stable);
  xls_completion_session *session=xlsCompletionSessionCreate(NULL),*eager=xlsCompletionSessionCreate(NULL);CHECK(session && eager);
  xls_analysis_document docs[3]={{.key="entry",.path=entry,.identity=1},{.key="query",.path=query,.identity=2},{.key="stable",.path=stable,.identity=3}};

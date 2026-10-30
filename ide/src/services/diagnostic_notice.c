@@ -1,6 +1,7 @@
 #include "services/diagnostic_notice.h"
 #include "protocol/lsp_wire.h"
 #include "platform/path.h"
+#include "platform/receipt_time.h"
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,12 +41,14 @@ static int samePath(const char* path,const wchar_t* key)
 static int diskProof(const xvalue* input,const wchar_t* key)
 {
  const char* origin=string(get(input,"origin"),16,1);const xvalue* m=get(input,"metadata");int64 raw=0,text=0,kind=0,available=0,attributes=0;
+ int schema=xideReceiptMetadataSchema(m);
  if(!origin || strcmp(origin,"disk") || !samePath(string(get(input,"path"),65535,1),key) ||
     !integer(get(input,"rawSize"),&raw,0,TEXT_LIMIT) || !integer(get(input,"textSize"),&text,0,raw) || (raw-text!=0 && raw-text!=3) ||
     !integer(get(input,"kind"),&kind,1,3) || !hex(string(get(input,"rawSha256"),64,1),64) || !hex(string(get(input,"textSha256"),64,1),64) ||
     !integer(get(m,"available"),&available,0,UINT32_MAX) || (available&(XFILE_INFO_SIZE|XFILE_INFO_MODIFY_TIME|XFILE_INFO_IDENTITY))!=(XFILE_INFO_SIZE|XFILE_INFO_MODIFY_TIME|XFILE_INFO_IDENTITY) ||
     !integer(get(m,"attributes"),&attributes,0,UINT32_MAX) || !hex(string(get(m,"device"),16,1),16) || !hex(string(get(m,"identity"),16,1),16) ||
-    !decimal(string(get(m,"modifiedUs"),21,1),1,NULL) || !decimal(string(get(m,"changedUs"),21,1),1,NULL)) return 0;
+    !schema || !decimal(string(get(m,schema==1 ? "modifiedUs" : "modifiedMs"),21,1),1,NULL) ||
+    !decimal(string(get(m,schema==1 ? "changedUs" : "changedMs"),21,1),1,NULL)) return 0;
  return 1;
 }
 void xideDiagnosticNoticeRelease(xide_diagnostic_notice* n)

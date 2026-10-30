@@ -1,3 +1,4 @@
+#include "analysis_test_clock.h"
 #ifndef XLS_COMPILER_XRT
 #error Native dependency graph fault fixture requires compiler XRT
 #endif
@@ -51,16 +52,16 @@ static fault_fixture faultCapture(const char* root,const char* path,const char* 
 {
  fault_fixture fixture={0};xide_toolchains* cache=xideToolchainsCreate();char* compiler=xrtPathJoin(root,"absent/xl.exe");xide_model_error error={0};
  xide_language_snapshot source={path,body,version};xide_language_analysis_options options={.nativeBackend=1};
- xide_language_check* check=xideLanguageCheckStartSnapshotsEx(cache,compiler,root,path,&source,1,&options,&error);uint64_t began=xrtClock();
- while(check && xideLanguageCheckState(check,error.message,sizeof(error.message))==XIDE_CHECK_RUNNING && xrtClock()-began<15000000)xrtSleep(1);
+ xide_language_check* check=xideLanguageCheckStartSnapshotsEx(cache,compiler,root,path,&source,1,&options,&error);uint64_t began=xlsTestClockMicros();
+ while(check && xideLanguageCheckState(check,error.message,sizeof(error.message))==XIDE_CHECK_RUNNING && xlsTestClockMicros()-began<15000000)xrtSleep(1);
  fixture.result=xideLanguageCheckResult(check);if(fixture.result)fixture.guard=xideLanguageCheckCaptureInputGuard(check,&error);
  if(!fixture.guard){fprintf(stderr,"fault capture:%s\n",error.message);xrtValueRelease(fixture.result);fixture.result=NULL;}
  xideLanguageCheckDestroy(check);xideToolchainsDestroy(cache);xrtFree(compiler);return fixture;
 }
 static enum xide_diagnostic_state faultWait(xide_diagnostic_query* q,xide_diagnostic_snapshot* snapshot)
 {
- uint64_t began=xrtClock();enum xide_diagnostic_state state;
- while((state=faultQueryResult(q,snapshot))==XIDE_DIAGNOSTIC_PENDING && xrtClock()-began<15000000)xrtSleep(1);
+ uint64_t began=xlsTestClockMicros();enum xide_diagnostic_state state;
+ while((state=faultQueryResult(q,snapshot))==XIDE_DIAGNOSTIC_PENDING && xlsTestClockMicros()-began<15000000)xrtSleep(1);
  if(state==XIDE_DIAGNOSTIC_FAILED)fprintf(stderr,"fault actor:%s\n",snapshot->error);
  return state;
 }
@@ -69,7 +70,7 @@ static xide_diagnostic_query* faultInsert(xide_diagnostic_store* store,const cha
 static int faultRun(void)
 {
  xrtAtomic32Init(&rejectCreate,1);xrtAtomic32Init(&rejectUpdate,0);
- char relative[96];snprintf(relative,sizeof(relative),"build/reverse-fault-%llu",(unsigned long long)xrtClock());CHECK(xrtDirCreateAll(relative));
+ char relative[96];snprintf(relative,sizeof(relative),"build/reverse-fault-%llu",(unsigned long long)xlsTestClockMicros());CHECK(xrtDirCreateAll(relative));
  char *root=xrtPathAbs(relative),*a=root ? xrtPathJoin(root,"a.xl") : NULL,*b=root ? xrtPathJoin(root,"b.xl") : NULL,
   *candidate=root ? xrtPathJoin(root,"missing.xl") : NULL,*other=root ? xrtPathJoin(root,"other.xl") : NULL;CHECK(root && a && b && candidate && other);
  const char *body="import missing\nfunc main(...) as int\n return missing.value()\nend\n",*independent="func main(...) as int\n return otherMissing\nend\n";

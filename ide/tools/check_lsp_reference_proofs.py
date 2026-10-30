@@ -67,7 +67,9 @@ def main():
             else:
                 raw=disk[p].encode();post=raw[3:] if raw.startswith(b'\xef\xbb\xbf') else raw;i=d['input'];assert d['origin']=='disk' and 'version' not in d and Path(i['path'])==p and i['origin']=='disk' and i['rawSize']==len(raw) and i['textSize']==len(post),d
                 assert i['rawSha256']==hashlib.sha256(raw).hexdigest() and i['textSha256']==hashlib.sha256(post).hexdigest(),i
-                meta=i['metadata'];assert int(meta['device'],16)>=0 and int(meta['identity'],16)>0 and int(meta['modifiedUs'])>0,meta
+                meta=i['metadata'];times=('modifiedUs','changedUs') if 'modifiedUs' in meta else ('modifiedMs','changedMs')
+                assert set(meta)=={'available','attributes','device','identity',*times},meta
+                assert int(meta['device'],16)>=0 and int(meta['identity'],16)>0 and int(meta[times[0]])>0,meta
         return result
     try:
         for flag in [None,False,True]:

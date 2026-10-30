@@ -1,3 +1,4 @@
+#include "analysis_test_clock.h"
 #include "services/language_check.h"
 #include "protocol/lsp_wire.h"
 #include "platform/path.h"
@@ -27,8 +28,8 @@ static xide_language_check* start(xide_toolchains* cache,const char* compiler,co
 {
  xide_model_error error={0}; xide_language_analysis_options options={.nativeBackend=1};
  xide_language_check* check=xideLanguageCheckStartSnapshotsEx(cache,compiler,root,entry,inputs,count,&options,&error);
- uint64_t began=xrtClock();
- while(check && xideLanguageCheckState(check,error.message,sizeof(error.message))==XIDE_CHECK_RUNNING && xrtClock()-began<15000000) xrtSleep(1);
+ uint64_t began=xlsTestClockMicros();
+ while(check && xideLanguageCheckState(check,error.message,sizeof(error.message))==XIDE_CHECK_RUNNING && xlsTestClockMicros()-began<15000000) xrtSleep(1);
  if(!check || xideLanguageCheckState(check,error.message,sizeof(error.message))!=XIDE_CHECK_READY) fprintf(stderr,"definition proof check: %s\n",error.message);
  return check;
 }
@@ -62,7 +63,7 @@ static int consume(void* user)
 static int run(void)
 {
  CHECK(!xideLanguageCheckDefinitionWithProof(NULL,"x",1,0,0));
- char relative[160]; snprintf(relative,sizeof(relative),"build/definition-proof-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xrtClock());
+ char relative[160]; snprintf(relative,sizeof(relative),"build/definition-proof-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xlsTestClockMicros());
  CHECK(xrtDirCreateAll(relative)); char* root=xrtPathAbs(relative); CHECK(root);
  char *entry=xrtPathJoin(root,"入口😀.xl"),*dep=xrtPathJoin(root,"target_dep.xl"),*unused=xrtPathJoin(root,"unused.xl"),*compiler=xrtPathJoin(root,"absent/xl.exe"),*alias=xrtPathJoin(root,"TARGET_DEP.XL");
  CHECK(entry && dep && unused && compiler && alias);
@@ -91,8 +92,8 @@ static int run(void)
  CHECK(xrtValueObjectSetNew((xvalue*)get(get(changed,"xlang"),"document"),xrtStrView("origin"),xrtValueString(xrtStrView("mutated-caller-copy"))));
  xrtValueRelease(changed); changed=xideLanguageCheckDefinitionWithProof(check,entry,9,line,character); CHECK(changed && xrtValueEqual(changed,proof)); xrtValueRelease(changed);
  CHECK(writeBytes(dep,raw)); /* Same bytes, replacement identity. */
- uint64_t until=xrtClock()+6000000;
- while(xideLanguageCheckGuardState(check,NULL,0)!=XIDE_GUARD_INVALID && xrtClock()<until) xrtSleep(1);
+ uint64_t until=xlsTestClockMicros()+6000000;
+ while(xideLanguageCheckGuardState(check,NULL,0)!=XIDE_GUARD_INVALID && xlsTestClockMicros()<until) xrtSleep(1);
  CHECK(xideLanguageCheckGuardState(check,NULL,0)==XIDE_GUARD_INVALID && !xideLanguageCheckDefinitionWithProof(check,entry,9,line,character));
  xideLanguageCheckDestroy(check); xrtValueRelease(plain); xrtValueRelease(result);
  CHECK(textIs(get(get(get(proof,"xlang"),"document"),"origin"),"disk"));

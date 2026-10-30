@@ -1,3 +1,4 @@
+#include "analysis_test_clock.h"
 #include "analysis/check_session.h"
 #include <xrt.h>
 #include <stdio.h>
@@ -74,7 +75,7 @@ static int run(void)
 
     /* Real dependency replacement and negative resolution candidates. The
      * old lease must be permanently invalidated, not silently reused. */
-    char root[160]; snprintf(root,sizeof(root),"build/check-session-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xrtClock()); CHECK(xrtDirCreateAll(root));
+    char root[160]; snprintf(root,sizeof(root),"build/check-session-%llu-%llu",(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xlsTestClockMicros()); CHECK(xrtDirCreateAll(root));
     char *entryPath=xrtPathJoin(root,"entry.xl"),*disk=xrtPathJoin(root,"session_dep.xl");
     char *absolute=entryPath ? xrtPathAbs(entryPath) : NULL; CHECK(absolute && disk);
     CHECK(xrtFileWriteAtomic(disk,(xbytesview){(const unsigned char*)dependency,strlen(dependency)}));

@@ -1,3 +1,4 @@
+#include "analysis_test_clock.h"
 /* Compile the actual completion owner privately. Only new operation boundaries
  * are refused while TryWordView runs; all language/checker code remains shared.
  * Track owned labels/report arrays and successful AST clone roots. This does
@@ -133,7 +134,7 @@ static int runFaults(void)
 {
     const char* oldSource="import support\nfunc edited() as int\n p\n return 0\nend\nfunc prefixOne(int value) as int\n return value\nend\n";
     const char* newSource="import support\nfunc edited() as int\n pr\n return 0\nend\nfunc prefixOne(int value) as int\n return value\nend\n";
-    char relative[160];snprintf(relative,sizeof(relative),"build/word-unit-fault-%llu",(unsigned long long)xrtClock());
+    char relative[160];snprintf(relative,sizeof(relative),"build/word-unit-fault-%llu",(unsigned long long)xlsTestClockMicros());
     char* directory=xrtPathAbs(relative);char* library=xrtPathJoin(directory,"library");char* path=xrtPathJoin(directory,"main.xl");char* package=xrtPathJoin(library,"support");char* dependency=xrtPathJoin(package,"api.xl");char* manifest=xrtPathJoin(package,"xlang.package.json");CHECK(directory && library && path && package && dependency && manifest && xrtDirCreateAll(package));
     const char* helper="export func prefixValue() as int\n return 7\nend\n";CHECK(xrtFileWriteAtomic(dependency,(xbytesview){(const unsigned char*)helper,strlen(helper)}));
     const char* json="{\"format\":\"xlang-package-1\",\"name\":\"support\",\"version\":\"1.0.0\",\"abiVersion\":\"1\",\"kind\":\"source\",\"artifact\":{\"kind\":\"source\",\"xlSources\":[\"api.xl\"]},\"dependencies\":[],\"links\":[],\"loadlibs\":[]}";CHECK(xrtFileWriteAtomic(manifest,(xbytesview){(const unsigned char*)json,strlen(json)}));

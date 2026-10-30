@@ -1,3 +1,4 @@
+#include "analysis_test_clock.h"
 #include "services/project_references.h"
 #include "analysis/worker_modules.h"
 #include <xrt.h>
@@ -44,15 +45,15 @@ xide_reference_shard* ownerFaultShardCreate(xls_projection_store* cache,xls_sema
 static int faultWrite(const char* path,const char* body){return xrtFileWriteAtomic(path,(xbytesview){(const unsigned char*)body,strlen(body)});}
 static int waitIdle(xide_project_references* store)
 {
- uint64_t until=xrtClock()+15000000;
- do{xtaskpoolstats stats;if(!xrtTaskPoolGet(store->pool,&stats))return 0;if(!stats.Running && !stats.Queued)return 1;xrtSleepUs(100);}while(xrtClock()<until);return 0;
+ uint64_t until=xlsTestClockMicros()+15000000;
+ do{xtaskpoolstats stats;if(!xrtTaskPoolGet(store->pool,&stats))return 0;if(!stats.Running && !stats.Queued)return 1;xlsTestSleepMicros(100);}while(xlsTestClockMicros()<until);return 0;
 }
 static enum xide_reference_query_state collectFault(xide_reference_query* q,const xvalue** value,xide_project_reference_stats* stats,char* error)
-{uint64_t until=xrtClock()+15000000;enum xide_reference_query_state state;do{state=xideProjectReferencesResult(q,value,stats,error,512);if(state!=XIDE_REFERENCES_PENDING)return state;xrtSleepUs(100);}while(xrtClock()<until);return XIDE_REFERENCES_PENDING;}
+{uint64_t until=xlsTestClockMicros()+15000000;enum xide_reference_query_state state;do{state=xideProjectReferencesResult(q,value,stats,error,512);if(state!=XIDE_REFERENCES_PENDING)return state;xlsTestSleepMicros(100);}while(xlsTestClockMicros()<until);return XIDE_REFERENCES_PENDING;}
 typedef struct fault_fixture {char *dir,*entry,*lib,*other,*project,*compiler;xls_context* context;xide_toolchains* cache;xide_project_references* store;xls_text* text;xls_analysis_document doc;const char *main,*library;} fault_fixture;
 static int faultSetup(fault_fixture* f,int allocator)
 {
- char name[128];snprintf(name,sizeof(name),"fault-%llu",(unsigned long long)xrtClock());f->dir=xrtPathAbs(name);CHECK(f->dir && xrtDirCreateAll(f->dir));f->entry=xrtPathJoin(f->dir,"middle.xl");f->lib=xrtPathJoin(f->dir,"a_library.xl");f->other=xrtPathJoin(f->dir,"z_importer.xl");f->project=xrtPathJoin(f->dir,"project.xlp");f->compiler=xrtPathJoin(f->dir,"absent.exe");CHECK(f->entry && f->lib && f->other && f->project && f->compiler);
+ char name[128];snprintf(name,sizeof(name),"fault-%llu",(unsigned long long)xlsTestClockMicros());f->dir=xrtPathAbs(name);CHECK(f->dir && xrtDirCreateAll(f->dir));f->entry=xrtPathJoin(f->dir,"middle.xl");f->lib=xrtPathJoin(f->dir,"a_library.xl");f->other=xrtPathJoin(f->dir,"z_importer.xl");f->project=xrtPathJoin(f->dir,"project.xlp");f->compiler=xrtPathJoin(f->dir,"absent.exe");CHECK(f->entry && f->lib && f->other && f->project && f->compiler);
  f->main=allocator?"func main(...) as int\n return 0\nend\n":"import a_library as api\nfunc main(...) as int\n return api.main(7)\nend\n";
  f->library=allocator?"export func compute(int value) as int\n return value+1\nend\n":"export func main(int value) as int\n return value+1\nend\n";
  const char* other=allocator?"import a_library as api\nfunc main(...) as int\n return api.compute(8)\nend\n":"import a_library as api\nfunc main(...) as int\n return api.main(8)\nend\n";

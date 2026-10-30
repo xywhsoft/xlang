@@ -45,6 +45,8 @@ int xlsRawBodyFeatureSpelling(const char*);
 void xlsRawBodyRecordEnvironment(const char*,const XL6_AstNode*);
 int xlsRawBodyEnvironmentCopy(xstrbuf*);
 int xlsRawBodyEnvironmentHasPath(const char*);
+/* An original dependency has no retained source/report evidence. */
+void xlsRawBodyEnvironmentMissing(void);
 int xlsRawBodySealPreprocess(const XL6_SourceReport*);
 /* Native checker functions implement exact original key/environment rules. */
 int xlsRawBodyEnvironmentKey(const XL6_AstNode*,xstrbuf*);

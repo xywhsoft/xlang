@@ -56,6 +56,8 @@ void xlsInputTopologyBind(const struct XL6_SourceOverlay* overlay,size_t count)
 }
 void xlsInputTopologyFailure(const struct XL6_SourceOverlay* overlay)
 {if(active && active->bound && (!overlay || active->overlay==overlay))active->failed=1;}
+void xlsInputTopologyReportFailure(const struct XL6_SourceReport* report)
+{if(report && active && active->bound && active->overlay && active->overlay->report==report)active->failed=1;}
 void xlsInputTopologyLookup(const struct XL6_SourceOverlay* overlay,const char* absolute)
 {
     if(!active || !active->state || active->failed || !active->bound || active->overlay!=overlay)return;

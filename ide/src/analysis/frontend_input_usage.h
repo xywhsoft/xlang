@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <stdint.h>
 struct XL6_SourceOverlay;
+struct XL6_SourceReport;
 /* Same-thread observation of the original frontend's overlay lookups. Bind
  * only after construction; no source text, path policy, allocation or I/O.
  * A result may use the mask only while the entire overlay membership,
@@ -20,5 +21,7 @@ void xlsFrontendInputUsageBind(const struct XL6_SourceOverlay* overlay,size_t co
 void xlsFrontendInputUsageRead(const struct XL6_SourceOverlay* overlay,size_t index);
 /* Returns zero, preserving the original matcher's failure behavior. */
 int xlsFrontendInputUsageFailure(const struct XL6_SourceOverlay* overlay);
+/* Validation of an older/other result must not poison this query's proof. */
+void xlsFrontendInputUsageReportFailure(const struct XL6_SourceReport* report);
 int xlsFrontendInputUsageEnd(xls_input_usage_scope* scope,uint64_t* used);
 #endif

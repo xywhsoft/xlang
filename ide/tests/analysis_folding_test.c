@@ -1,3 +1,4 @@
+#include "analysis_test_clock.h"
 #include "analysis/worker.h"
 #include <xrt.h>
 #include <stdio.h>
@@ -9,8 +10,8 @@ static int cancel(void* user) { unsigned* visits=user; return ++*visits>=2; }
 static void wake(void* user) { xrtAtomic32FetchAdd(user,1,XMEMORY_RELAXED); }
 static enum xls_query_state wait(xls_query* query,xls_analysis_snapshot* result,xls_session_stats* stats)
 {
-    uint64_t until=xrtClock()+10000000; enum xls_query_state state;
-    do { state=xlsQueryResult(query,result,stats,NULL); if(state!=XLS_QUERY_PENDING) return state; xrtSleepUs(1000); } while(xrtClock()<until);
+    uint64_t until=xlsTestClockMicros()+10000000; enum xls_query_state state;
+    do { state=xlsQueryResult(query,result,stats,NULL); if(state!=XLS_QUERY_PENDING) return state; xlsTestSleepMicros(1000); } while(xlsTestClockMicros()<until);
     return state;
 }
 int main(void)

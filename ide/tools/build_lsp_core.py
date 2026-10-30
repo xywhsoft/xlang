@@ -84,6 +84,7 @@ CORE_TESTS = ("analysis_completion_pool_fault_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_topology_clone_fault_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_raw_signature_test", "analysis_raw_native_test", "analysis_raw_body_projection_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_typed_module_test", "analysis_typed_module_fault_test", "analysis_ir_persistent_test", "analysis_ir_persistent_fault_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_current_loader_test", *CORE_TESTS)
 HOST_TESTS += ("navigation_cache_test", "semantic_reference_shard_test", "project_references_test", "project_reference_budget_test", "reference_path_index_test")
 HOST_TESTS += ("path_identity_batch_test", "reference_capture_test")
 HOST_TESTS += ("project_reference_parallel_test",)
@@ -349,7 +350,12 @@ def prepare_native_completion(frontend: Path, output: Path, namespaced: Path, *,
     original = frontend / 'src/sem/xl6_completion.c'
     digest = '384d4cf57a648900ee1b9d93df1895ba22526639f3393702891027c94053c94c'
     namespace_sha = 'de10164dcde8a4f4a0c3044012005850b64ea1d3c0d6d2570b3eecd9541cc658'
-    if _current_unit_probe:
+    current_emitter=sha(original)=='d56f80b8b3ca93e9ec4009a56ee9235a86b66674f2c2ea174a0f5db36fdef2bf'
+    cohort_dependencies={}
+    if current_emitter and not _current_unit_probe:
+        from native_current_context_profile import profile
+        cohort_dependencies=profile(frontend)
+    if _current_unit_probe or current_emitter:
         from native_context_overlay import completion_source
         # Coherent parser/AST/XRT/emitter and current path matcher are checked
         # by the same standalone composer; its output must be byte-exact.
@@ -419,6 +425,7 @@ def prepare_native_completion(frontend: Path, output: Path, namespaced: Path, *,
     return original, compiled, dict(source=str(original), sourceSha256=digest,
         compiledSource=str(compiled), compiledSha256=sha(compiled),
         composedFrom=str(namespaced), composedFromSha256=namespace_sha,
+        auditedDependencies=cohort_dependencies,
         originalAppenderSha256=hashlib.sha256(original_append.encode('utf-8')).hexdigest(),
         poolAppenderSha256=hashlib.sha256(pool_body.encode('utf-8')).hexdigest(),
         change='original namespace/private filters and exact native appender;optional builder preserves original limits/growth/fields with XRT buffer offsets/final pointer publication and immediate original canonical recycling;existing context scope slot')
@@ -516,6 +523,22 @@ def prepare_native_ast(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     return derive(frontend, output)
 
 
+def prepare_current_loader_oracles(frontend: Path, output: Path):
+    """Namespace independent unmodified loader/report/package reference units."""
+    if sha(frontend/'src/compile/xl6_source_overlay.c')!='7e2e3c2335dd8e785d4f6205ee677272777c20472f9c36458c5b618cccde52c9':return [],None
+    import re
+    from native_current_context_profile import profile
+    profile(frontend)
+    headers=['src/compile/xl6_source_report.h','src/compile/xl6_source_overlay.h','src/compile/xl6_imports.h','src/package/xl6_package.h','src/package/xl6_compiled_package.h']
+    names=sorted(set(re.findall(r'\b(xl6(?:SourceReport|SourceOverlay|ImportDeps|Imports|Package|CompiledPackage)\w*)\s*\(', '\n'.join((frontend/p).read_text(encoding='utf8') for p in headers))))
+    folder=output/'loader_oracles';folder.mkdir()
+    aliases=folder/'loader_oracle_names.h';aliases.write_text(''.join('#define '+n+' xlsReference'+n.removeprefix('xl6')+'\n' for n in names),encoding='utf8',newline='\n')
+    sources=[]
+    for rel in ['src/compile/xl6_source_report.c','src/compile/xl6_source_overlay.c','src/compile/xl6_imports.c','src/package/xl6_package.c']:
+        source=folder/('reference_'+Path(rel).name);source.write_bytes((frontend/rel).read_bytes());sources.append(source)
+    return sources,aliases
+
+
 def prepare_reference_owner_fixture(ide: Path, output: Path) -> tuple[Path, Path, list[dict]]:
     """Private phase fences and one constructor substitution; normal host unchanged."""
     source = ide / 'src/services/project_references.c'
@@ -577,6 +600,8 @@ def main() -> None:
     if any(not path.is_file() for path, _ in sources):
         parser.error("frontend root must contain the shared xlang lexer, parser, AST and XRT assets")
     output.mkdir(parents=True, exist_ok=False)
+    loader_references,loader_aliases=(prepare_current_loader_oracles(frontend,output) if not args.skip_tests else ([],None))
+    sources += [(p,False) for p in loader_references]
     # Keep the pinned compiler assets immutable. This checked build overlay
     # makes the existing private serializer budget configurable; no grammar,
     # fact collection or index algorithm is duplicated in the IDE.
@@ -658,10 +683,10 @@ def main() -> None:
     inputs[str(Path(__file__).with_name('native_ir_scan_overlay.py').resolve())] = sha(Path(__file__).with_name('native_ir_scan_overlay.py'))
     inputs[str(Path(__file__).with_name('native_current_ir_overlay.py').resolve())] = sha(Path(__file__).with_name('native_current_ir_overlay.py'))
     inputs[str(Path(__file__).with_name('native_current_ir_profile.py').resolve())] = sha(Path(__file__).with_name('native_current_ir_profile.py'))
-    for name in ('native_current_semantic_profile.py','native_semantic_effects_overlay.py','native_current_stdlib_profile.py'):
+    for name in ('native_current_semantic_profile.py','native_semantic_effects_overlay.py','native_current_stdlib_profile.py','native_current_context_profile.py'):
         controller=Path(__file__).with_name(name).resolve()
         inputs[str(controller)]=sha(controller)
-    for overlay in (ir_overlay,sem_overlay,stdlib_overlay):
+    for overlay in (ir_overlay,sem_overlay,stdlib_overlay,completion_overlay,*context_overlays):
         inputs.update(overlay.get('auditedDependencies',{}))
     if sem_overlay.get('declarationEffects'):
         inputs.update(sem_overlay['declarationEffects']['auditedDependencies'])
@@ -696,6 +721,8 @@ def main() -> None:
 
     def unit_flags(source: Path, owned: bool) -> list[str]:
         flags = common + (strict if owned else shared)
+        if source in loader_references:flags+=['-include',str(loader_aliases)]
+        if source==ide/'tests/analysis_current_loader_test.c':flags+=['-DXLS_CURRENT_LOADER_DIRECTORY="'+(output/'loader-fixtures').as_posix()+'"']
         if source == ide / 'tests/project_reference_owner_fault_test.c':
             if not owner_coordinator:
                 raise ValueError('missing owner publication fixture target')
@@ -751,6 +778,8 @@ def main() -> None:
         for name in (() if args.skip_tests else tests):
             program = output / (name + suffix)
             extra = [str(objects["document_sync"])] if name in ("document_sync_test", "diagnostic_stream_test") else []
+            if name=='analysis_current_loader_test' and loader_references:
+                extra += [str(objects[p.stem]) for p in loader_references]+['-Wl,--wrap=xrtMalloc']
             if name == "analysis_index_limit_test":
                 extra.append(str(limited_index))
             if name in ("analysis_completion_body_test", "analysis_completion_body_failure_test", "analysis_semantic_proof_test", "analysis_signature_test"):

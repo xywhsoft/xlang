@@ -1,3 +1,4 @@
+#include "analysis_test_clock.h"
 #include "analysis/completion_session.h"
 #include "analysis/frontend_internal.h"
 #include <xrt.h>
@@ -40,7 +41,7 @@ static int parity(xls_semantic_completion* result,xls_context* ctx,const char* e
 static int cancel(void* user){unsigned* calls=user;return ++*calls>=12;}
 static int scenario(unsigned opened)
 {
- char folder[180];snprintf(folder,sizeof(folder),"build/cursor-memo-%u-%llu-%llu",opened,(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xrtClock());CHECK(xrtDirCreateAll(folder));
+ char folder[180];snprintf(folder,sizeof(folder),"build/cursor-memo-%u-%llu-%llu",opened,(unsigned long long)xrtThreadCurrentId(),(unsigned long long)xlsTestClockMicros());CHECK(xrtDirCreateAll(folder));
  char* directory=xrtPathAbs(folder);char *entry=xrtPathJoin(directory,"main.xl"),*left=xrtPathJoin(directory,"left.xl"),*right=xrtPathJoin(directory,"right.xl");CHECK(entry && left && right);
  const char* main="import left\nimport right\nfunc main(...) as int\n return left.compute(3)+right.compute(4)\nend\n";
  CHECK(xrtFileWriteAtomic(entry,(xbytesview){(const unsigned char*)main,strlen(main)}));

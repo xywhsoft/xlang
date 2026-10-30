@@ -1,3 +1,4 @@
+#include "analysis_test_clock.h"
 #include "analysis/worker.h"
 #include <xrt.h>
 #include <stdio.h>
@@ -8,8 +9,8 @@ static unsigned checks;
 static xls_text* text(const char* source) { return xlsTextCreate(source,strlen(source),2u*1024u*1024u,NULL); }
 static enum xls_query_state waitResult(xls_query* query,xls_analysis_snapshot* snapshot,xls_session_stats* stats,uint64_t* thread)
 {
-    uint64_t until=xrtClock()+15000000; enum xls_query_state state;
-    do { state=xlsQueryResult(query,snapshot,stats,thread); if(state!=XLS_QUERY_PENDING) return state; xrtSleepUs(1000); } while(xrtClock()<until);
+    uint64_t until=xlsTestClockMicros()+15000000; enum xls_query_state state;
+    do { state=xlsQueryResult(query,snapshot,stats,thread); if(state!=XLS_QUERY_PENDING) return state; xlsTestSleepMicros(1000); } while(xlsTestClockMicros()<until);
     return XLS_QUERY_PENDING;
 }
 int main(void)
@@ -51,16 +52,16 @@ int main(void)
     for(unsigned i=0;i<20000;++i) { char line[128]; int size=snprintf(line,sizeof(line),"func filler%u() as int\n return %u\nend\n",i,i); CHECK(size>0 && xrtStrBufAppend(&large,(xstrview){line,(size_t)size})); }
     a=text(large.Data); CHECK(a); xrtStrBufFree(&large);
     xls_analysis_document heavy={"large","/memory/large.xl",a,1,1}; query=xlsWorkerSyntax(worker,&heavy,1,"large"); CHECK(query);
-    xls_worker_load load={0}; uint64_t until=xrtClock()+1000000;
-    do { CHECK(xlsWorkerLoad(worker,&load)); if(load.running) break; xrtSleepUs(1000); } while(xrtClock()<until);
+    xls_worker_load load={0}; uint64_t until=xlsTestClockMicros()+1000000;
+    do { CHECK(xlsWorkerLoad(worker,&load)); if(load.running) break; xlsTestSleepMicros(1000); } while(xlsTestClockMicros()<until);
     CHECK(load.running==1);
     xls_query* queued=xlsWorkerSyntax(worker,&heavy,1,"large"); CHECK(queued);
     xls_query* rejected=xlsWorkerSyntax(worker,&heavy,1,"large"); CHECK(!rejected);
     xlsQueryCancel(queued);
     CHECK(waitResult(query,&result,&stats,&thread)==XLS_QUERY_READY && xlsSyntaxAccepted(result.syntax)); xlsQueryDestroy(query);
     CHECK(waitResult(queued,&first,&stats,&thread)==XLS_QUERY_CANCELLED && !first.syntax); xlsQueryDestroy(queued);
-    until=xrtClock()+1000000;
-    do { CHECK(xlsWorkerLoad(worker,&load)); if(load.completed==2) break; xrtSleepUs(1000); } while(xrtClock()<until);
+    until=xlsTestClockMicros()+1000000;
+    do { CHECK(xlsWorkerLoad(worker,&load)); if(load.completed==2) break; xlsTestSleepMicros(1000); } while(xlsTestClockMicros()<until);
     CHECK(load.completed==2 && load.rejected==1 && load.cancelled==1);
     xlsWorkerDestroy(worker); CHECK(xlsSyntaxAccepted(result.syntax)); xlsSyntaxRelease(result.syntax); xlsTextRelease(a);
     printf("analysis_worker_test passed: %u checks; XRT task-pool isolation, retained input/result ownership, actual parse reuse, live-set pruning, independent revisions, bounded queue and cooperative cancellation.\n",checks);

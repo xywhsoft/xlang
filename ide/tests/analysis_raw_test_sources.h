@@ -1,3 +1,4 @@
+#include "analysis_test_clock.h"
 #ifndef XLS_RAW_TEST_SOURCES_H
 #define XLS_RAW_TEST_SOURCES_H
 /* Independent language input shared by the raw ownership and native semantic
@@ -5,7 +6,7 @@
 static int rawTestSources(const char* label,int cursor,char** beforePath,char** afterPath)
 {
     xstrbuf a={0},b={0},directory={0};int okay=0;char* folder=NULL;
-    if(!xrtStrBufAppendFormat(&directory,"build/%s-%llu-%u",label,(unsigned long long)xrtClock(),(unsigned)cursor) ||
+    if(!xrtStrBufAppendFormat(&directory,"build/%s-%llu-%u",label,(unsigned long long)xlsTestClockMicros(),(unsigned)cursor) ||
        !(folder=xrtPathAbs(directory.Data)) || !xrtDirCreateAll(folder))goto done;
     *beforePath=xrtPathJoin(folder,"before.xl");*afterPath=xrtPathJoin(folder,"after.xl");
     if(!*beforePath || !*afterPath || !xrtStrBufAppend(&a,xrtStrView("\xef\xbb\xbf// 中文😀\r\n\r\nfunc identity(int value) as int\r\n return value\r\nend\r\n")))goto done;
