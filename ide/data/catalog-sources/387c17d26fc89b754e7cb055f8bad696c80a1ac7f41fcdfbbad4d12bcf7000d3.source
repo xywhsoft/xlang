@@ -1,0 +1,40 @@
+extern "xmongo_opcode" func __opcode(int op) as string
+extern "xmongo_bson_type" func __bson_type(int type) as string
+extern "xmongo_uri_part" func __uri_part(string uri, string part) as string
+extern "xmongo_w_name" func __w_name(int w) as string
+extern "xmongo_read_pref" func __read_pref(int pref) as string
+extern "xmongo_objectid" func __objectid(int timestamp, int counter) as string
+extern "xmongo_valid_collection" func __valid_collection(string name) as int
+extern "xmongo_cursor_flag" func __cursor_flag(int flag) as string
+
+export func opcode(int op) as string
+    return __opcode(op)
+end
+
+export func bsonType(int type) as string
+    return __bson_type(type)
+end
+
+export func uriPart(string uri, string part) as string
+    return __uri_part(uri, part)
+end
+
+export func wName(int w) as string
+    return __w_name(w)
+end
+
+export func readPref(int pref) as string
+    return __read_pref(pref)
+end
+
+export func objectId(int timestamp, int counter) as string
+    return __objectid(timestamp, counter)
+end
+
+export func validCollection(string name) as int
+    return __valid_collection(name)
+end
+
+export func cursorFlag(int flag) as string
+    return __cursor_flag(flag)
+end

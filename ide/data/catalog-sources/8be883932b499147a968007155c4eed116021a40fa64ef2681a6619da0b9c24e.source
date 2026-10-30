@@ -1,0 +1,54 @@
+extern "xs_greeting" func __s_greeting(var methods) as string
+extern "xs_parse_choice" func __s_parse_choice(string hex) as var
+extern "xs_connect_domain" func __s_connect_domain(string host, int port) as string
+extern "xs_connect_ipv4" func __s_connect_ipv4(string ip, int port) as string
+extern "xs_parse_reply" func __s_parse_reply(string hex) as var
+
+
+
+// greeting 生成方法协商帧：05 <n> <methods...>
+// 常用方法：0 = 无认证，2 = 用户名密码
+export func greeting(var methods) as string
+    string payload = __s_greeting(methods)
+    if payload == "" then
+        throw ValueError "socks: greeting requires 1-30 method bytes"
+    end
+    return payload
+end
+
+// parseChoice 解析服务器两字节方法选择 {method}
+export func parseChoice(string hex) as var
+    var r = __s_parse_choice(hex)
+    if r == null then
+        throw ValueError "socks: method choice must be two bytes starting with 05"
+    end
+    return r
+end
+
+// connectDomain 生成域名 CONNECT 请求帧
+export func connectDomain(string host, int port) as string
+    string payload = __s_connect_domain(host, port)
+    if payload == "" then
+        throw ValueError "socks: domain must be 1-255 bytes and port 0-65535"
+    end
+    return payload
+end
+
+// connectIpv4 生成 IPv4 CONNECT 请求帧
+export func connectIpv4(string ip, int port) as string
+    string payload = __s_connect_ipv4(ip, port)
+    if payload == "" then
+        throw ValueError "socks: invalid ipv4 target or port"
+    end
+    return payload
+end
+
+// parseReply 解析绑定地址应答 {status, bindAddress, bindPort}
+// status 0 表示成功；1-9 为 RFC 1928 失败码
+export func parseReply(string hex) as var
+    var r = __s_parse_reply(hex)
+    if r == null then
+        throw ValueError "socks: malformed reply frame"
+    end
+    return r
+end

@@ -1,0 +1,30 @@
+extern "xov_device" func __device(int id) as string
+extern "xov_precision" func __precision(int id) as string
+extern "xov_layout" func __layout(int id) as string
+extern "xov_perf_mode" func __perf_mode(int id) as string
+extern "xov_tensor_bytes" func __tensor_bytes(int n, int c, int h, int w, int elem_size) as int
+extern "xov_model_format" func __model_format(int id) as string
+
+export func device(int id) as string
+    return __device(id)
+end
+
+export func precision(int id) as string
+    return __precision(id)
+end
+
+export func layout(int id) as string
+    return __layout(id)
+end
+
+export func perfMode(int id) as string
+    return __perf_mode(id)
+end
+
+export func tensorBytes(int n, int c, int h, int w, int elem_size) as int
+    return __tensor_bytes(n, c, h, w, elem_size)
+end
+
+export func modelFormat(int id) as string
+    return __model_format(id)
+end

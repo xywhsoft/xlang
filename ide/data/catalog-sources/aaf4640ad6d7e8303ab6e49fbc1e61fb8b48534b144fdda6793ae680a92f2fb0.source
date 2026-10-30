@@ -1,0 +1,58 @@
+extern "xlangdetect_detect" func __langdetect(string text, c_size length) as string
+extern "xlangdetect_code" func __langdetect_code(string text, c_size length) as string
+extern "xlangdetect_script" func __langdetect_script(string text, c_size length) as string
+extern "xlangdetect_confidence" func __langdetect_confidence(string text, c_size length) as int
+extern "xlangdetect_valid_utf8" func __langdetect_valid_utf8(string text, c_size length) as bool
+extern "xlangdetect_last_error" func __langdetect_last_error() as string
+
+
+
+export func detect(string text) as string
+    return __langdetect(text, c_size(string.byteLen(text)))
+end
+
+
+
+export func code(string text) as string
+    return __langdetect_code(text, c_size(string.byteLen(text)))
+end
+
+
+
+export func script(string text) as string
+    return __langdetect_script(text, c_size(string.byteLen(text)))
+end
+
+
+
+export func confidence(string text) as int
+    return __langdetect_confidence(text, c_size(string.byteLen(text)))
+end
+
+
+
+export func isValidUtf8(string text) as bool
+    return __langdetect_valid_utf8(text, c_size(string.byteLen(text)))
+end
+
+
+
+export func lastError() as string
+    return __langdetect_last_error()
+end
+
+export func isChinese(string text) as bool
+    return detect(text) == "chinese"
+end
+
+export func isEnglish(string text) as bool
+    return detect(text) == "english"
+end
+
+export func isJapanese(string text) as bool
+    return detect(text) == "japanese"
+end
+
+export func isKorean(string text) as bool
+    return detect(text) == "korean"
+end

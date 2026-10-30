@@ -1,0 +1,35 @@
+{
+    "format":  "xlang-package-1",
+    "name":  "volc.sts",
+    "version":  "0.1.0",
+    "abiVersion":  "1",
+    "kind":  "demo6-extlib",
+    "artifact":  {
+                     "kind":  "source",
+                     "cSources":  [
+
+                                  ],
+                     "xlSources":  [
+                                       "src/sts.xl",
+                                       "src/response.xl"
+                                   ]
+                 },
+    "links":  [
+
+              ],
+    "loadlibs":  [
+
+                 ],
+    "dependencies":  [
+                         {
+                             "name":  "volc.core",
+                             "version":  "0.1.0",
+                             "abiVersion":  "1"
+                         }
+                     ],
+    "native":  {
+                   "singleton":  false,
+                   "loadName":  "",
+                   "version":  ""
+               }
+}

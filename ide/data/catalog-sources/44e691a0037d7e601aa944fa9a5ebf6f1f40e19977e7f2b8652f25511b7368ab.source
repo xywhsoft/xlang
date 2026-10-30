@@ -1,0 +1,273 @@
+// Public layout follows XRT XACME. No protocol or provider logic lives here.
+extern "xl6ForeignDataSnapshotV1" func __Data(var value) as var
+extern "xrtFree" @no_raise func __Free(point value)
+extern "xl6AcmeConfigEngineV1" func __Engine(__Config config, NetEngine engine)
+extern "xl6AcmeStoreLoadV1" func __Load(string root, string domain, int what) as point
+extern "xl6AcmeStoreSaveV1" func __Save(string root, string domain, string chain, string key, string directory, int what) as bool
+extern "xl6AcmeStoreNeedRenewV1" func __NeedRenew(string root, string domain, int days) as bool
+extern "xl6AcmeStoreListDomainsV1" func __ListDomains(string root, int capacity) as var
+extern "xl6AcmeProviderCountV1" func __ProviderCount() as int
+extern "xl6AcmeProviderRegistryIdV1" func __ProviderId(int index) as string
+extern "xl6AcmeCleanupPendingV1" func __Pending(int timeout) as int
+
+export class Eab
+    string Kid = ""
+    string Hmac = ""
+end
+export class AccountConfig
+    string DirectoryUrl = ""
+    string AccountKeyPem = ""
+    Eab Eab = Eab()
+    string ContactEmail = ""
+end
+export class ClientConfig
+    AccountConfig Account = AccountConfig()
+    string CaPem = ""
+    int TimeoutMs = 0
+    array<string> PropagateResolvers = []
+    int PropagateTimeoutMs = 0
+    int IssueTimeoutMs = 0
+    string CertKeyPem = ""
+end
+export class ObtainConfig extends ClientConfig
+    string StoreRoot = ""
+    int RenewalDays = 0
+end
+
+class __Config
+    private native point handle
+    extern "xl6AcmeConfigCreateV1" create(var texts, var resolvers, int timeout, int propagate, int issue)
+    extern "xl6AcmeDropV1" @no_raise destroy()
+end
+func __Build(ClientConfig c) as __Config
+    var texts = __Data([c.Account.DirectoryUrl, c.Account.AccountKeyPem, c.Account.Eab.Kid,
+        c.Account.Eab.Hmac, c.Account.ContactEmail, c.CaPem, c.CertKeyPem])
+    var resolvers = __Data(c.PropagateResolvers)
+    return __Config(texts, resolvers, c.TimeoutMs, c.PropagateTimeoutMs, c.IssueTimeoutMs)
+end
+class __Grant
+    native point handle
+    extern "xl6AcmeDropV1" @no_raise destroy()
+    extern "xl6AcmeGrantTakeV1" func Take(bool key) as point
+    extern "xl6AcmeGrantRenewedV1" func Renewed() as bool
+end
+func __Pair(__Grant grant) as (cstring,cstring)
+    cstring chain = cstring.take(grant.Take(false), __Free)
+    cstring key = cstring.take(grant.Take(true), __Free)
+    return chain, key
+end
+func __Triple(__Grant grant) as (cstring,cstring,bool)
+    cstring chain = cstring.take(grant.Take(false), __Free)
+    cstring key = cstring.take(grant.Take(true), __Free)
+    return chain, key, grant.Renewed()
+end
+
+export class DnsProvider
+    private native point handle
+    extern "xl6AcmeDropV1" @no_raise destroy()
+    private extern "xl6AcmeProviderCreateV1" create(int kind, var fields, __Config config)
+    private extern "xl6AcmeProviderCustomV1" create(string id, int caps, var add, var remove, var propagate)
+    extern "xl6AcmeCleanupV1" func Unit() as bool
+    extern "xl6AcmeProviderValidateV1" func Validate() as bool
+    private extern "xl6AcmeProviderCallV1" func Call(int operation, string fqdn, string txt) as bool
+    extern "xl6AcmeProviderIdV1" get Id() as string
+    extern "xl6AcmeProviderCapsV1" get Caps() as int
+    func Add(string fqdn, string txt) as bool
+        return self.Call(0, fqdn, txt)
+    end
+    func Remove(string fqdn, string txt) as bool
+        return self.Call(1, fqdn, txt)
+    end
+    func Propagate(string fqdn, string txt) as bool
+        return self.Call(2, fqdn, txt)
+    end
+    static func Custom(string id, func(string,string) as bool add, func(string,string) as bool remove) as DnsProvider
+        return DnsProvider(id, 0, xcall(add), xcall(remove), null)
+    end
+    static func Custom(string id, func(string,string) as bool add, func(string,string) as bool remove, func(string,string) as bool propagate) as DnsProvider
+        return DnsProvider(id, 1, xcall(add), xcall(remove), xcall(propagate))
+    end
+    static func Count() as int
+        return __ProviderCount()
+    end
+    static func ProviderId(int index) as string
+        return __ProviderId(index)
+    end
+    static func Ali(AliConfig c) as DnsProvider
+        return DnsProvider(1, __Data([c.AccessKeyId, c.AccessKeySecret, c.Endpoint]), __Build(ClientConfig()))
+    end
+    static func Ali(AliConfig c, NetEngine engine) as DnsProvider
+        auto config = __Build(ClientConfig())
+        __Engine(config, engine)
+        return DnsProvider(1, __Data([c.AccessKeyId, c.AccessKeySecret, c.Endpoint]), config)
+    end
+    static func Cf(CfConfig c) as DnsProvider
+        return DnsProvider(2, __Data([c.ApiToken, c.Endpoint]), __Build(ClientConfig()))
+    end
+    static func Cf(CfConfig c, NetEngine engine) as DnsProvider
+        auto config = __Build(ClientConfig())
+        __Engine(config, engine)
+        return DnsProvider(2, __Data([c.ApiToken, c.Endpoint]), config)
+    end
+    static func Tencent(TencentConfig c) as DnsProvider
+        return DnsProvider(3, __Data([c.SecretId, c.SecretKey, c.Endpoint]), __Build(ClientConfig()))
+    end
+    static func Tencent(TencentConfig c, NetEngine engine) as DnsProvider
+        auto config = __Build(ClientConfig())
+        __Engine(config, engine)
+        return DnsProvider(3, __Data([c.SecretId, c.SecretKey, c.Endpoint]), config)
+    end
+    static func Aws(AwsConfig c) as DnsProvider
+        return DnsProvider(4, __Data([c.AccessKeyId, c.SecretAccessKey, c.Region, c.Endpoint]), __Build(ClientConfig()))
+    end
+    static func Aws(AwsConfig c, NetEngine engine) as DnsProvider
+        auto config = __Build(ClientConfig())
+        __Engine(config, engine)
+        return DnsProvider(4, __Data([c.AccessKeyId, c.SecretAccessKey, c.Region, c.Endpoint]), config)
+    end
+    static func Huawei(HuaweiConfig c) as DnsProvider
+        return DnsProvider(5, __Data([c.AccessKey, c.SecretKey, c.Endpoint]), __Build(ClientConfig()))
+    end
+    static func Huawei(HuaweiConfig c, NetEngine engine) as DnsProvider
+        auto config = __Build(ClientConfig())
+        __Engine(config, engine)
+        return DnsProvider(5, __Data([c.AccessKey, c.SecretKey, c.Endpoint]), config)
+    end
+end
+export class AliConfig
+    string AccessKeyId = ""
+    string AccessKeySecret = ""
+    string Endpoint = ""
+end
+export class CfConfig
+    string ApiToken = ""
+    string Endpoint = ""
+end
+export class TencentConfig
+    string SecretId = ""
+    string SecretKey = ""
+    string Endpoint = ""
+end
+export class AwsConfig
+    string AccessKeyId = ""
+    string SecretAccessKey = ""
+    string Region = ""
+    string Endpoint = ""
+end
+export class HuaweiConfig
+    string AccessKey = ""
+    string SecretKey = ""
+    string Endpoint = ""
+end
+
+export class Client
+    private native point handle
+    private extern "xl6AcmeClientCreateV1" create(__Config config)
+    extern "xl6AcmeDropV1" @no_raise destroy()
+    extern "xl6AcmeCleanupV1" func Cleanup() as bool
+    extern "xl6AcmeAccountPemV1" @owned func AccountPem() as string
+    private extern "xl6AcmeIssueV1" func IssueNative(var domains, DnsProvider dns, bool alternate, string root, int days, bool stored) as __Grant
+    private extern "xl6AcmeClientControlV1" func Control(int operation, string text, string root, int reason) as bool
+    static func Create(ClientConfig config) as Client
+        return Client(__Build(config))
+    end
+    static func Create(ClientConfig config, NetEngine engine) as Client
+        auto c = __Build(config)
+        __Engine(c, engine)
+        return Client(c)
+    end
+    func Issue(array<string> domains, DnsProvider dns) as (cstring,cstring)
+        return __Pair(self.IssueNative(__Data(domains), dns, false, "", 0, false))
+    end
+    func IssueEx(array<string> domains, DnsProvider dns, bool preferAlternate) as (cstring,cstring)
+        return __Pair(self.IssueNative(__Data(domains), dns, preferAlternate, "", 0, false))
+    end
+    func IssueStored(array<string> domains, DnsProvider dns, string root, int renewalDays) as (cstring,cstring,bool)
+        return __Triple(self.IssueNative(__Data(domains), dns, false, root, renewalDays, true))
+    end
+    func Revoke(string certPem, int reason = -1) as bool
+        return self.Control(0, certPem, "", reason)
+    end
+    func Rollover(string newKeyPem, string storeRoot = "") as bool
+        return self.Control(1, newKeyPem, storeRoot, 0)
+    end
+    func Deactivate() as bool
+        return self.Control(2, "", "", 0)
+    end
+end
+export class Store
+    static func SaveAccount(string root, string directory, string pem) as bool
+        return __Save(root, directory, pem, "", "", 0)
+    end
+    static extern "xrtAcmeStoreLoadAccount" @owned func LoadAccount(string root, string directory) as string
+    static func SaveCert(string root, string domain, string chain, string directory) as bool
+        return __Save(root, domain, chain, "", directory, 1)
+    end
+    static extern "xrtAcmeStoreLoadCert" @owned func LoadCert(string root, string domain) as string
+    static extern "xrtAcmeStoreLoadCertCa" @owned func LoadCertCa(string root, string domain) as string?
+    static func SaveGrant(string root, string domain, string chain, string key, string directory = "") as bool
+        return __Save(root, domain, chain, key, directory, 2)
+    end
+    static func LoadGrant(string root, string domain) as (cstring,cstring)
+        return __Pair(__Grant(__Load(root, domain, 3)))
+    end
+    static func ListDomains(string root, int capacity) as var
+        return __ListDomains(root, capacity)
+    end
+    static func NeedRenew(string root, string domain, int renewalDays) as bool
+        return __NeedRenew(root, domain, renewalDays)
+    end
+end
+extern "xl6AcmeObtainV1" func __Obtain(__Config config, var domains, DnsProvider dns, string root, int days) as __Grant
+export func Obtain(ObtainConfig config, array<string> domains, DnsProvider dns) as (cstring,cstring,bool)
+    return __Triple(__Obtain(__Build(config), __Data(domains), dns, config.StoreRoot, config.RenewalDays))
+end
+export func Obtain(ObtainConfig config, array<string> domains, DnsProvider dns, NetEngine engine) as (cstring,cstring,bool)
+    auto c = __Build(config)
+    __Engine(c, engine)
+    return __Triple(__Obtain(c, __Data(domains), dns, config.StoreRoot, config.RenewalDays))
+end
+// Returns the exact remaining count. Zero means all delivered and undelivered
+// native retirement owners have completed. No background retry thread exists.
+export func CleanupPending(int timeoutMs = 0) as int
+    return __Pending(timeoutMs)
+end
+// Upstream public constants. Values audited by tools/check_xacme_api.py.
+export const string XACME_DIRECTORY_BUYPASS = "https://api.buypass.com/acme/directory"
+export const string XACME_DIRECTORY_BUYPASS_TEST = "https://api.test.buypass.com/acme/directory"
+export const string XACME_DIRECTORY_GOOGLE = "https://dv.acme-v02.api.pki.goog/directory"
+export const string XACME_DIRECTORY_LE = "https://acme-v02.api.letsencrypt.org/directory"
+export const string XACME_DIRECTORY_LE_STAGING = "https://acme-staging-v02.api.letsencrypt.org/directory"
+export const string XACME_DIRECTORY_ZEROSSL = "https://acme.zerossl.com/v2/DV90"
+export const int XACME_DNS_CAP_PROPAGATE = 1
+export const int XACME_DNS_ERROR_ARGUMENT = 1
+export const int XACME_DNS_ERROR_CREDENTIAL = 2
+export const int XACME_DNS_ERROR_NETWORK = 5
+export const int XACME_DNS_ERROR_PROTOCOL = 4
+export const int XACME_DNS_ERROR_STATE = 7
+export const int XACME_DNS_ERROR_UNCERTAIN = 6
+export const int XACME_DNS_ERROR_ZONE = 3
+export const int XACME_ERROR_ACCOUNT = 4
+export const int XACME_ERROR_ARGUMENT = 1
+export const int XACME_ERROR_CHALLENGE = 6
+export const int XACME_ERROR_CONFIG = 2
+export const int XACME_ERROR_DIRECTORY = 3
+export const int XACME_ERROR_DNS = 11
+export const int XACME_ERROR_FINALIZE = 7
+export const int XACME_ERROR_NETWORK = 10
+export const int XACME_ERROR_ORDER = 5
+export const int XACME_ERROR_PROTOCOL = 9
+export const int XACME_ERROR_RATE_LIMIT = 8
+export const int XACME_ERROR_STORE = 12
+export const int XACME_HTTP_ERROR_ARGUMENT = 1
+export const int XACME_HTTP_ERROR_CONNECT = 3
+export const int XACME_HTTP_ERROR_PROTOCOL = 5
+export const int XACME_HTTP_ERROR_SEND = 4
+export const int XACME_HTTP_ERROR_TIMEOUT = 6
+export const int XACME_HTTP_ERROR_TLS = 7
+export const int XACME_HTTP_ERROR_UNCERTAIN = 8
+export const int XACME_HTTP_ERROR_URL = 2
+export const int XACME_STORE_ERROR_ARGUMENT = 1
+export const int XACME_STORE_ERROR_IO = 2
+export const int XACME_STORE_ERROR_NOT_FOUND = 3
+export const int XACME_STORE_ERROR_PARSE = 4

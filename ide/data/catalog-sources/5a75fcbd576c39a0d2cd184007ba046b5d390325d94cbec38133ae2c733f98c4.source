@@ -1,0 +1,21 @@
+extern "xdiff_lines" @owned func __diff_lines(string oldText, string newText) as string
+extern "xdiff_stats" @owned func __diff_stats(string oldText, string newText) as string
+
+// 原生接口读取零结尾文本，不允许 XLang 字符串被截成前缀。
+func __diff_text(string value)
+    if string.indexOf(value, "\0", false, string.byteLen(value), 1) >= 0 then
+        throw ValueError "diff: text contains NUL"
+    end
+end
+
+export func lines(string oldText, string newText) as string
+    __diff_text(oldText)
+    __diff_text(newText)
+    return __diff_lines(oldText, newText)
+end
+
+export func stats(string oldText, string newText) as string
+    __diff_text(oldText)
+    __diff_text(newText)
+    return __diff_stats(oldText, newText)
+end

@@ -1,0 +1,388 @@
+import uia
+import opencv
+
+const int DEFAULT_TIMEOUT_MS = 5000
+
+export class Locator
+	string automation_id
+	string class_name
+	string name
+	string class_path
+	int control_type
+	int process_id
+	point root_hwnd
+	int timeout_ms
+
+	create()
+		self.automation_id = ""
+		self.class_name = ""
+		self.name = ""
+		self.class_path = ""
+		self.control_type = 0
+		self.process_id = 0
+		self.root_hwnd = null
+		self.timeout_ms = 5000
+	end
+end
+
+func x_ui_auto_locator() as Locator
+	return Locator()
+end
+
+func x_ui_auto_shutdown() as bool
+	return uia.shutdown()
+end
+
+func x_ui_auto_available() as bool
+	return string.len(uia.version()) > 0 and opencv.available()
+end
+
+func x_ui_auto_version() as string
+	return "0.1.0"
+end
+
+func x_ui_auto_last_error() as string
+	return uia.last_error()
+end
+
+func x_ui_auto_by_automation_id(string automation_id, int control_type) as Locator
+	auto loc = Locator()
+	loc.automation_id = automation_id
+	loc.control_type = control_type
+	return loc
+end
+
+func x_ui_auto_by_class_name(string class_name, string name, int control_type) as Locator
+	auto loc = Locator()
+	loc.class_name = class_name
+	loc.name = name
+	loc.control_type = control_type
+	return loc
+end
+
+func x_ui_auto_by_name(string name, int control_type) as Locator
+	auto loc = Locator()
+	loc.name = name
+	loc.control_type = control_type
+	return loc
+end
+
+func x_ui_auto_by_control_type(int control_type) as Locator
+	auto loc = Locator()
+	loc.control_type = control_type
+	return loc
+end
+
+func x_ui_auto_by_process_id(int process_id) as Locator
+	auto loc = Locator()
+	loc.process_id = process_id
+	return loc
+end
+
+func x_ui_auto_within(Locator loc, point hwnd) as Locator
+	loc.root_hwnd = hwnd
+	return loc
+end
+
+func x_ui_auto_with_timeout(Locator loc, int timeout_ms) as Locator
+	if timeout_ms < 0 then throw ValueError "timeout must not be negative" end
+	loc.timeout_ms = timeout_ms
+	return loc
+end
+
+func x_ui_auto_locator_from_json(string text) as Locator
+	var obj = json.parse(text)
+	if type(obj) != dict then throw TypeError "locator JSON must be an object" end
+	auto loc = Locator()
+	loc.automation_id = json_string(obj, "automationId")
+	loc.class_name = json_string(obj, "className")
+	loc.name = json_string(obj, "name")
+	loc.class_path = json_string(obj, "classPath")
+	loc.control_type = json_int(obj, "controlType")
+	loc.process_id = json_int(obj, "processId")
+	string strategy = json_string(obj, "strategy")
+	if (strategy != "" and strategy != "automationId" and
+		strategy != "classNameName" and strategy != "processClassPath") then
+		throw ValueError "unknown locator strategy"
+	end
+	if strategy == "automationId" and loc.automation_id == "" then
+		throw ValueError "automationId locator requires automationId"
+	end
+	if strategy == "classNameName" and loc.class_name == "" then
+		throw ValueError "classNameName locator requires className"
+	end
+	if loc.control_type < 0 or loc.process_id < 0 then
+		throw ValueError "locator IDs must not be negative"
+	end
+	if strategy == "processClassPath" and loc.class_path == "" then
+		throw ValueError "processClassPath locator requires classPath"
+	end
+	if "index" in obj then
+		var index_value = obj["index"]
+		if type(index_value) != int then throw TypeError "locator index must be an integer" end
+		if int(index_value) < 0 then throw ValueError "locator index must not be negative" end
+		if loc.class_path == "" then throw ValueError "locator index requires classPath" end
+		if not string.endsWith(loc.class_path,
+			"[" + string(index_value) + "]") then
+			throw ValueError "locator index disagrees with classPath"
+		end
+	end
+	if (loc.automation_id == "" and loc.class_name == "" and
+		loc.name == "" and loc.class_path == "" and
+		loc.control_type == 0 and loc.process_id == 0) then
+		throw ValueError "locator JSON has no search condition"
+	end
+	return loc
+end
+
+func locator_root(Locator loc) as Element
+	if loc.timeout_ms < 0 or loc.control_type < 0 or loc.process_id < 0 then
+		throw ValueError "locator timeout and numeric filters must not be negative"
+	end
+	if loc.root_hwnd != null then return uia.from_hwnd(loc.root_hwnd) end
+	return uia.desktop()
+end
+
+func x_ui_auto_wait_exists(Locator loc) as bool
+	auto root = locator_root(loc)
+	if not root.valid() then return false end
+	return wait_exists_in_root(root, loc)
+end
+
+func x_ui_auto_click(Locator loc) as bool
+	auto root = locator_root(loc)
+	if not root.valid() then return false end
+	return click_in_root(root, loc)
+end
+
+func x_ui_auto_type_text(Locator loc, string text) as bool
+	auto root = locator_root(loc)
+	if not root.valid() then return false end
+	return type_text_in_root(root, loc, text)
+end
+
+func x_ui_auto_read(Locator loc) as string
+	auto root = locator_root(loc)
+	if not root.valid() then return "" end
+	return read_in_root(root, loc)
+end
+
+func x_ui_auto_screenshot(Locator loc, string path) as bool
+	auto root = locator_root(loc)
+	if not root.valid() then return false end
+	return screenshot_in_root(root, loc, path)
+end
+
+func x_ui_auto_focused_locator_json() as string
+	return uia.focused_locator()
+end
+
+func json_string(var obj, string key) as string
+	if not (key in obj) then
+		return ""
+	end
+	var value = obj[key]
+	if type(value) != string then throw TypeError "locator field must be a string" end
+	return string(value)
+end
+
+func json_int(var obj, string key) as int
+	if not (key in obj) then
+		return 0
+	end
+	var value = obj[key]
+	if type(value) != int then throw TypeError "locator field must be an integer" end
+	return int(value)
+end
+
+func add_condition(Condition current, Condition next) as Condition
+	if not next.valid() then return next end
+	if not current.valid() then return next end
+	return uia.all_of(current, next)
+end
+
+func find_in_root(Element root, Locator loc) as Element
+	if loc.class_path != "" then
+		auto found = root.find_class_path(loc.class_path, loc.process_id, loc.timeout_ms)
+		if not found.valid() then return found end
+		if loc.automation_id != "" and found.automation_id() != loc.automation_id then
+			return uia.element(null)
+		end
+		if loc.class_name != "" and found.class_name() != loc.class_name then
+			return uia.element(null)
+		end
+		if loc.name != "" and found.name() != loc.name then
+			return uia.element(null)
+		end
+		if loc.control_type > 0 and found.control_type() != loc.control_type then
+			return uia.element(null)
+		end
+		return found
+	end
+	Condition condition = Condition(null)
+	// 定位器中的所有非空字段共同约束同一个元素。
+	if loc.automation_id != "" then
+		condition = add_condition(condition, uia.by_automation_id(loc.automation_id))
+		if not condition.valid() then return uia.element(null) end
+	end
+	if loc.class_name != "" then
+		condition = add_condition(condition, uia.by_class_name(loc.class_name))
+		if not condition.valid() then return uia.element(null) end
+	end
+	if loc.name != "" then
+		condition = add_condition(condition, uia.by_name(loc.name))
+		if not condition.valid() then return uia.element(null) end
+	end
+	if loc.control_type > 0 then
+		condition = add_condition(condition, uia.by_control_type(loc.control_type))
+		if not condition.valid() then return uia.element(null) end
+	end
+	if loc.process_id > 0 then
+		condition = add_condition(condition, uia.by_process_id(loc.process_id))
+		if not condition.valid() then return uia.element(null) end
+	end
+	if not condition.valid() then return uia.element(null) end
+	return root.find_first_scope(condition, 4, loc.timeout_ms)
+end
+
+func wait_exists_in_root(Element root, Locator loc) as bool
+	auto element = find_in_root(root, loc)
+	return element.valid()
+end
+
+func click_in_root(Element root, Locator loc) as bool
+	auto element = find_in_root(root, loc)
+	if element.valid() == false then
+		return false
+	end
+	return element.click()
+end
+
+func type_text_in_root(Element root, Locator loc, string text) as bool
+	auto element = find_in_root(root, loc)
+	if element.valid() == false then
+		return false
+	end
+	if element.set_value(text) == false then
+		return false
+	end
+	for i in range(0, 20)
+		if element.text() == text then
+			return true
+		end
+		time.sleep(25)
+	end
+	return element.text() == text
+end
+
+func read_in_root(Element root, Locator loc) as string
+	auto element = find_in_root(root, loc)
+	if element.valid() == false then
+		return ""
+	end
+	return element.text()
+end
+
+func screenshot_in_root(Element root, Locator loc, string path) as bool
+	auto element = find_in_root(root, loc)
+	if element.valid() == false then
+		return false
+	end
+	var rect = json.parse(element.rect_json())
+	auto left = json_int(rect, "left")
+	auto top = json_int(rect, "top")
+	auto width = json_int(rect, "width")
+	auto height = json_int(rect, "height")
+	auto hwnd = element.hwnd()
+	if hwnd != null then
+		auto window_image = opencv.capture_window(hwnd)
+		if window_image.empty() == false then
+			return window_image.save(path)
+		end
+	end
+	auto image = opencv.capture_rect(left, top, width, height)
+	if image.empty() then
+		return false
+	end
+	return image.save(path)
+end
+
+export func available() as bool
+	return x_ui_auto_available()
+end
+
+export func version() as string
+	return x_ui_auto_version()
+end
+
+export func last_error() as string
+	return x_ui_auto_last_error()
+end
+
+export func locator() as Locator
+	return x_ui_auto_locator()
+end
+
+export func test_window() as TestWindow
+	return uia.test_window()
+end
+
+export func shutdown() as bool
+	return x_ui_auto_shutdown()
+end
+
+export func by_automation_id(string automation_id, int control_type) as Locator
+	return x_ui_auto_by_automation_id(automation_id, control_type)
+end
+
+export func by_class_name(string class_name, string name, int control_type) as Locator
+	return x_ui_auto_by_class_name(class_name, name, control_type)
+end
+
+export func by_name(string name, int control_type) as Locator
+	return x_ui_auto_by_name(name, control_type)
+end
+
+export func by_control_type(int control_type) as Locator
+	return x_ui_auto_by_control_type(control_type)
+end
+
+export func by_process_id(int process_id) as Locator
+	return x_ui_auto_by_process_id(process_id)
+end
+
+export func within(Locator loc, point hwnd) as Locator
+	return x_ui_auto_within(loc, hwnd)
+end
+
+export func with_timeout(Locator loc, int timeout_ms) as Locator
+	return x_ui_auto_with_timeout(loc, timeout_ms)
+end
+
+export func locator_from_json(string json) as Locator
+	return x_ui_auto_locator_from_json(json)
+end
+
+export func wait_exists(Locator loc) as bool
+	return x_ui_auto_wait_exists(loc)
+end
+
+export func click(Locator loc) as bool
+	return x_ui_auto_click(loc)
+end
+
+export func type_text(Locator loc, string text) as bool
+	return x_ui_auto_type_text(loc, text)
+end
+
+export func read(Locator loc) as string
+	return x_ui_auto_read(loc)
+end
+
+export func screenshot(Locator loc, string path) as bool
+	return x_ui_auto_screenshot(loc, path)
+end
+
+export func focused_locator_json() as string
+	return x_ui_auto_focused_locator_json()
+end

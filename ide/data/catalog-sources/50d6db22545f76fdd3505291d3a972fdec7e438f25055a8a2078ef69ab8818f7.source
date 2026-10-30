@@ -1,0 +1,169 @@
+// bson/src/bson.xl - BSON 编解码库 (var 直转架构)
+// 基于 cloudwu/lua-bson (MIT) 内核，BSON ↔ xlang var 双向自动转换
+// 类型映射: Document→table, Array→array, Date→time,
+//           String→string, Binary subtype 0→bytes, Int32/Int64→int
+
+// ─── Native 绑定 ───
+extern "xbson_decode" func _bson_decode(var data) as var
+extern "xbson_decode_all" func _bson_decode_all(var data) as var
+extern "xbson_concat" func _bson_concat(var a, var b) as var
+extern "xbson_encode" func _bson_encode(var doc) as var
+extern "xbson_load" func _bson_load(string path) as var
+extern "xbson_save" func _bson_save(string path, var doc) as int
+extern "xbson_to_hex_abi" func _bson_to_hex(var data) as point
+extern "xbson_gen_oid_abi" func _bson_gen_oid() as point
+extern "xbson_doc_length" func _bson_doc_len(var data) as int
+extern "xbson_oid_time" func _bson_oid_time(string hex24) as int
+extern "xl6_xrt_last_error_text" func __bson_error() as string
+
+func __bson_cstr(string value)
+    if string.indexOf(value, "\0", false, string.byteLen(value), 1) >= 0 then
+        throw ValueError "BSON path or ObjectId contains an embedded NUL byte"
+    end
+end
+
+// ═══════════════════════════════════════════
+// 核心 API
+// ═══════════════════════════════════════════
+
+// BSON bytes → var (table)
+// 自动映射: Document→table, Array→array, Date→xtime
+export func decode(var data) as var
+    var result = _bson_decode(data)
+    if result == null then
+        throw ValueError __bson_error()
+    end
+    return result
+end
+
+// 拼接 BSON 流 → array of table (多文档解码)
+export func decodeAll(var data) as var
+    var result = _bson_decode_all(data)
+    if result == null then
+        throw ValueError __bson_error()
+    end
+    return result
+end
+
+// 拼接两个 BSON bytes (用于构造多文档流)
+export func concat(var a, var b) as var
+    var result = _bson_concat(a, b)
+    if result == null then
+        throw ValueError __bson_error()
+    end
+    return result
+end
+
+// var (table) → BSON bytes
+// 自动推断: int→Int32/Int64, float→Double, xtime→Date, table→Document, array→Array
+export func encode(var doc) as var
+    var result = _bson_encode(doc)
+    if result == null then
+        throw ValueError __bson_error()
+    end
+    return result
+end
+
+// 从文件加载 BSON → var
+export func load(string path) as var
+    __bson_cstr(path)
+    var result = _bson_load(path)
+    if result == null then
+        throw FileError __bson_error()
+    end
+    return result
+end
+
+// var → BSON 并保存到文件，返回写入字节数
+export func save(string path, var doc) as int
+    __bson_cstr(path)
+    int written = _bson_save(path, doc)
+    if written <= 0 then
+        throw FileError __bson_error()
+    end
+    return written
+end
+
+// ═══════════════════════════════════════════
+// 工具函数
+// ═══════════════════════════════════════════
+
+// BSON bytes → hex 字符串 (调试用)
+export func toHex(var data) as string
+    point result = _bson_to_hex(data)
+    if result == null then
+        throw ValueError __bson_error()
+    end
+    return __xl_runtime.takeCstr(result)
+end
+
+// 生成新的 ObjectId (24 字符 hex)
+export func objectId() as string
+    point result = _bson_gen_oid()
+    if result == null then
+        throw ValueError __bson_error()
+    end
+    return __xl_runtime.takeCstr(result)
+end
+
+// 获取 BSON 文档字节长度
+export func docLength(var data) as int
+    return _bson_doc_len(data)
+end
+
+// 从 ObjectId 提取创建时间，直接返回 xlang time。
+export func oidTime(string hex24) as time
+    __bson_cstr(hex24)
+    int seconds = _bson_oid_time(hex24)
+    if seconds < 0 then
+        throw ValueError __bson_error()
+    end
+    return time.fromUnix(seconds)
+end
+
+// Static bytes inputs borrow their payload; dynamic var overloads remain available.
+extern "xbson_decode_span" func _bson_decode_span(cbytes data) as var
+
+export func decode(bytes data) as var
+    var result = _bson_decode_span(data)
+    if result == null then
+        throw ValueError __bson_error()
+    end
+    return result
+end
+
+extern "xbson_decode_all_span" func _bson_decode_all_span(cbytes data) as var
+
+export func decodeAll(bytes data) as var
+    var result = _bson_decode_all_span(data)
+    if result == null then
+        throw ValueError __bson_error()
+    end
+    return result
+end
+
+extern "xbson_to_hex_span_abi" func _bson_to_hex_span(cbytes data) as point
+
+export func toHex(bytes data) as string
+    point result = _bson_to_hex_span(data)
+    if result == null then
+        throw ValueError __bson_error()
+    end
+    return __xl_runtime.takeCstr(result)
+end
+
+extern "xbson_doc_length_span" func _bson_doc_len_span(cbytes data) as int
+
+export func docLength(bytes data) as int
+    return _bson_doc_len_span(data)
+end
+
+extern "xbson_concat_span" func _bson_concat_span(cbytes a, cbytes b) as var
+
+export func concat(bytes a, bytes b) as var
+    var result = _bson_concat_span(a, b)
+    if result == null then
+        throw ValueError __bson_error()
+    end
+    return result
+end

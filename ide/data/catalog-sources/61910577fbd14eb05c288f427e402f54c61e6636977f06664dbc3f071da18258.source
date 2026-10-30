@@ -1,0 +1,82 @@
+extern "xl6_xrt_last_error_text" func __hll_error() as string
+
+
+
+export class HyperLogLog
+    native point handle
+    extern "xhll_create" create(c_int precision)
+    extern "xhll_destroy" destroy()
+
+    private extern "xhll_add" func addNative(string data, c_longlong len) as c_int
+    private extern "xhll_count" func countNative() as int
+    private extern "xhll_clear" func clearNative() as c_int
+    private extern "xhll_merge" func mergeNative(point other) as c_int
+    private extern "xhll_precision" func precisionNative() as c_int
+    private extern "xhll_added" func addedNative() as int
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get precision() as int
+        if self.handle == null then
+            throw RuntimeError "hyperloglog: instance is destroyed"
+        end
+        return int(self.precisionNative())
+    end
+
+    get added() as int
+        if self.handle == null then
+            throw RuntimeError "hyperloglog: instance is destroyed"
+        end
+        return self.addedNative()
+    end
+
+    func add(string item)
+        if self.handle == null then
+            throw RuntimeError "hyperloglog: instance is destroyed"
+        end
+        if self.addNative(item, c_longlong(string.byteLen(item))) == 0 then
+            throw ValueError __hll_error()
+        end
+    end
+
+    func count() as int
+        if self.handle == null then
+            throw RuntimeError "hyperloglog: instance is destroyed"
+        end
+        return self.countNative()
+    end
+
+    func clear()
+        if self.handle == null then
+            throw RuntimeError "hyperloglog: instance is destroyed"
+        end
+        if self.clearNative() == 0 then
+            throw ValueError __hll_error()
+        end
+    end
+
+    func merge(HyperLogLog other)
+        if self.handle == null then
+            throw RuntimeError "hyperloglog: instance is destroyed"
+        end
+        if other.handle == null then
+            throw ValueError "hyperloglog: cannot merge from destroyed instance"
+        end
+        if self.mergeNative(other.handle) == 0 then
+            throw ValueError __hll_error()
+        end
+    end
+end
+
+
+
+export func create(int precision = 14) as HyperLogLog
+    if precision < 4 or precision > 18 then
+        throw ValueError "hyperloglog: precision must be 4..18"
+    end
+    HyperLogLog result = HyperLogLog(c_int(precision))
+    if result.handle == null then throw RuntimeError __hll_error() end
+    return result
+end

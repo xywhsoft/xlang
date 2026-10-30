@@ -1,0 +1,65 @@
+extern "xrss_detect" func __rss_detect(string xml, int bytes) as string
+extern "xrss_parse" func __rss_parse(string xml, int bytes) as var
+extern "xrss_parse_rss" func __rss_parse_rss(string xml, int bytes) as var
+extern "xrss_parse_atom" func __rss_parse_atom(string xml, int bytes) as var
+extern "xrss_build_rss" func __rss_build_rss(var channel, var items) as point
+extern "xrss_build_atom" func __rss_build_atom(var feed, var entries) as point
+extern "xl6_xrt_last_error_text" func __rss_error() as string
+
+
+
+// detect 判断文本是 "rss"、"atom" 还是空字符串
+export func detect(string xml) as string
+    string kind = __rss_detect(xml, string.byteLen(xml))
+    if kind == "" and __rss_error() != "" then
+        throw MemoryError "rss: could not inspect XML feed"
+    end
+    return kind
+end
+
+// parse 自动识别并解析 RSS 2.0 或 Atom，返回统一结构：
+// {"type", "title", "link", "description"/"subtitle", "updated", "items"}
+// 每条 item 含 "title"、"link"、"description"/"summary"、"pubDate"/"updated" 等字段
+export func parse(string xml) as var
+    var r = __rss_parse(xml, string.byteLen(xml))
+    if r == null then
+        throw ValueError "rss: input is neither rss nor atom"
+    end
+    return r
+end
+
+// parseRSS 只接受 RSS 2.0 文档
+export func parseRSS(string xml) as var
+    var r = __rss_parse_rss(xml, string.byteLen(xml))
+    if r == null then
+        throw ValueError "rss: not a valid rss 2.0 document"
+    end
+    return r
+end
+
+// parseAtom 只接受 Atom 文档
+export func parseAtom(string xml) as var
+    var r = __rss_parse_atom(xml, string.byteLen(xml))
+    if r == null then
+        throw ValueError "rss: not a valid atom document"
+    end
+    return r
+end
+
+// buildRSS 由 channel 对象和 items 数组生成 RSS 2.0 文本
+export func buildRSS(var channel, var items) as string
+    point result = __rss_build_rss(channel, items)
+    if result == null then
+        throw ValueError "rss: could not build RSS feed"
+    end
+    return __xl_runtime.takeCstr(result)
+end
+
+// buildAtom 由 feed 对象和 entries 数组生成 Atom 文本
+export func buildAtom(var feed, var entries) as string
+    point result = __rss_build_atom(feed, entries)
+    if result == null then
+        throw ValueError "rss: could not build Atom feed"
+    end
+    return __xl_runtime.takeCstr(result)
+end

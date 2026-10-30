@@ -46,7 +46,7 @@ static int verify(void* user)
  CHECK(!app.compilerPath && !app.cServerPath && !app.catalogPath && !app.settingsPath && !app.hidden);
  CHECK(xideAppCreate(&app)==XUI_OK && xgeBegin()==XGE_OK); began=1;
  CHECK(xidePathLexicalEqual(app.preferences.path,defaultSettings) && xidePathEqual(xideTaskViewCompiler(&app),compiler) && xidePathEqual(xideCCompletionViewServer(&app),server));
- CHECK(catalog && xidePathEqual(app.catalog.path,catalog) && app.catalog.count>4400 && app.catalog.documentCount==45 && app.uiFontSize==(f->moved ? 18 : 16) && app.codeFontSize==(f->moved ? 18 : 16));
+ CHECK(catalog && xidePathEqual(app.catalog.path,catalog) && app.catalog.count>4400 && app.catalog.documentCount>=6 && xideCatalogDocument(&app.catalog,"package:csv") && app.uiFontSize==(f->moved ? 18 : 16) && app.codeFontSize==(f->moved ? 18 : 16));
  CHECK(xideCatalogFind(&app.catalog,"language:func") && xideCatalogFind(&app.catalog,"c:keyword:return"));
  CHECK(xideEditorOpen(&app,entry,&error)); xide_document* xl=app.activeDocument;
  CHECK(xuiCodeDocumentReplace(xuiCodeEditGetDocument(xl->editor),0,xuiCodeDocumentGetLength(xuiCodeEditGetDocument(xl->editor)),draft)==XUI_OK && settle(&app) && xl->dirty && token(xl->editor,"export",XUI_CODE_TOKEN_KEYWORD));

@@ -1,0 +1,30 @@
+extern "xmq_send_frame" func __mq_sendFrame(point stream, point data, c_size size, int timeoutMs, point cancel) as bool
+extern "xmq_recv_frame" func __mq_recvFrame(point stream, int packetLimit, int timeoutMs, point cancel) as point
+extern "xmq_handshake" func __mq_handshake(point stream, string clientId, string username, string password, int keepalive, int timeoutMs, point cancel) as var
+
+
+
+// 同一连接的读、写与握手分别由调用方串行化；cancel 借用 XRT xcancel*。
+// timeoutMs=-1 不限时，0 立即超时，正数是整个操作的总预算。
+export func sendFrame(TcpStream stream, Buffer frame, int timeoutMs = 5000, point cancel = null)
+    if not __mq_sendFrame(stream.nativeHandle(), frame.data(), c_size(frame.len()), timeoutMs, cancel) then
+        throw IOError __mq_error()
+    end
+end
+
+export func recvFrame(TcpStream stream, int timeoutMs = 5000, int packetLimit = 1048576, point cancel = null) as Buffer
+    point result = __mq_recvFrame(stream.nativeHandle(), packetLimit, timeoutMs, cancel)
+    if result == null then
+        throw IOError __mq_error()
+    end
+    return Buffer(result)
+end
+
+// 一次 Clean Session 握手；发送 CONNECT 与收齐 CONNACK 共用一个截止时间。
+export func handshake(TcpStream stream, string clientId, string username = "", string password = "", int keepalive = 60, int timeoutMs = 5000, point cancel = null) as var
+    var result = __mq_handshake(stream.nativeHandle(), clientId, username, password, keepalive, timeoutMs, cancel)
+    if result == null then
+        throw IOError __mq_error()
+    end
+    return result
+end

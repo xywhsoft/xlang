@@ -1,0 +1,245 @@
+extern "xmc_key_valid_abi" func __mc_key_valid(cstring key) as bool
+extern "xmc_build_set_abi" func __mc_set(cstring key, int flags, int exptime, int bytes) as point
+extern "xmc_build_add_abi" func __mc_add(cstring key, int flags, int exptime, int bytes) as point
+extern "xmc_build_delete_abi" func __mc_delete(cstring key) as point
+extern "xmc_build_touch_abi" func __mc_touch(cstring key, int exptime) as point
+extern "xmc_build_stats" func __mc_stats() as string
+extern "xmc_build_flush_all" func __mc_flush() as string
+extern "xmc_build_version" func __mc_version() as string
+extern "xmc_frame_size_abi" func __mc_frame(point data, c_size size) as int
+extern "xmc_parse_response_abi" func __mc_parse(point data, c_size size) as var
+
+func __mc_line(point result) as string
+    if result == null then
+        throw ValueError "memcached: invalid command parameters"
+    end
+    return __xl_runtime.takeCstr(result)
+end
+
+// 命令字符串由 XRT 分配并直接移交给 XLang；key 不得含空白或控制字符。
+export func buildGet(array<string> keys) as string
+    if keys.length == 0 then
+        throw ValueError "memcached: get requires at least one key"
+    end
+    Buffer line = Buffer("get")
+    for key in keys
+        if not __mc_key_valid(key) or line.len() + string.byteLen(key) + 3 > 1_048_576 then
+            throw ValueError "memcached: invalid get key or command too long"
+        end
+        if not line.append(" ") or not line.append(key) then
+            throw MemoryError "memcached: could not build get command"
+        end
+    end
+    if not line.append("\r\n") then
+        throw MemoryError "memcached: could not build get command"
+    end
+    return line.text()
+end
+
+export func buildSet(string key, int flags, int exptime, int bytes) as string
+    return __mc_line(__mc_set(key, flags, exptime, bytes))
+end
+
+export func buildAdd(string key, int flags, int exptime, int bytes) as string
+    return __mc_line(__mc_add(key, flags, exptime, bytes))
+end
+
+export func buildDelete(string key) as string
+    return __mc_line(__mc_delete(key))
+end
+
+export func buildTouch(string key, int exptime) as string
+    return __mc_line(__mc_touch(key, exptime))
+end
+
+export func buildStats() as string
+    return __mc_stats()
+end
+
+export func buildFlushAll() as string
+    return __mc_flush()
+end
+
+export func buildVersion() as string
+    return __mc_version()
+end
+
+// 0 表示需要更多字节，-1 表示畸形；正数为一条完整响应的长度。
+export func frameSize(Buffer data) as int
+    return __mc_frame(data.data(), c_size(data.len()))
+end
+
+// VALUE.data 为有效 UTF-8 string 或原始 bytes；多键读取返回 items 数组。
+export func parseResponse(Buffer data) as var
+    var result = __mc_parse(data.data(), c_size(data.len()))
+    if result == null then
+        throw ValueError "memcached: incomplete or malformed response"
+    end
+    return result
+end
+
+// TcpStream 由调用者持有。任何未完成或额外响应都会使流失同步，必须中止。
+func __mc_exchange(TcpStream stream, string command, Buffer data,
+    bool hasData, int timeoutMs, int maxReplyBytes) as var
+    if timeoutMs <= 0 or timeoutMs > 2_147_483_647 or maxReplyBytes <= 0 or maxReplyBytes > 67_108_864 then
+        throw ValueError "memcached: invalid timeout or reply limit"
+    end
+    uint64 started = time.monotonic()
+    uint64 deadlineUs = uint64(timeoutMs) * 1000
+    bool synchronized = false
+    var reply = null
+    try
+        if stream.send(command) != NetStatus.ok then
+            throw ValueError "memcached: send failed"
+        end
+        if hasData then
+            if stream.send(data) != NetStatus.ok or stream.send("\r\n") != NetStatus.ok then
+                throw ValueError "memcached: send failed"
+            end
+        end
+        uint64 elapsed = time.monotonic() - started
+        if elapsed >= deadlineUs then
+            throw ValueError "memcached: command timed out"
+        end
+        int remainingMs = int((deadlineUs - elapsed + 999) / 1000)
+        if stream.wait(TcpWait.drain, remainingMs) != NetStatus.ok then
+            throw ValueError "memcached: send timed out"
+        end
+        Buffer buffer = Buffer()
+        while true
+            elapsed = time.monotonic() - started
+            if elapsed >= deadlineUs then
+                throw ValueError "memcached: command timed out"
+            end
+            remainingMs = int((deadlineUs - elapsed + 999) / 1000)
+            bytes chunk = stream.recv(65536, remainingMs)
+            if chunk.length == 0 then
+                throw ValueError "memcached: connection closed"
+            end
+            if buffer.len() + chunk.length > maxReplyBytes or not buffer.append(chunk) then
+                throw ValueError "memcached: reply exceeds limit or memory unavailable"
+            end
+            int size = frameSize(buffer)
+            if size < 0 then
+                throw ValueError "memcached: malformed response"
+            end
+            if size > 0 then
+                if size != buffer.len() then
+                    throw ValueError "memcached: unexpected extra response"
+                end
+                reply = parseResponse(buffer)
+                synchronized = true
+                break
+            end
+        end
+    finally
+        if not synchronized then
+            stream.abort()
+        end
+    end
+    string status = string(reply["status"])
+    if status == "error" or status == "client_error" or status == "server_error" then
+        throw ValueError "memcached: " + status
+    end
+    return reply
+end
+
+func __mc_set_data(TcpStream stream, string key, Buffer data,
+    int exptime, int timeoutMs) as string
+    var reply = __mc_exchange(stream,
+        buildSet(key, 0, exptime, data.len()), data, true,
+        timeoutMs, 67_108_864)
+    return string(reply["status"])
+end
+
+export func set(TcpStream stream, string key, string data,
+    int exptime = 0, int timeoutMs = 5000) as string
+    return __mc_set_data(stream, key, Buffer(data), exptime, timeoutMs)
+end
+
+export func set(TcpStream stream, string key, bytes data,
+    int exptime = 0, int timeoutMs = 5000) as string
+    return __mc_set_data(stream, key, Buffer(data), exptime, timeoutMs)
+end
+
+func __mc_add_data(TcpStream stream, string key, Buffer data,
+    int exptime, int timeoutMs) as bool
+    var reply = __mc_exchange(stream,
+        buildAdd(key, 0, exptime, data.len()), data, true,
+        timeoutMs, 67_108_864)
+    if reply["status"] == "stored" then return true end
+    if reply["status"] == "not_stored" then return false end
+    throw ValueError "memcached: unexpected add response"
+end
+
+export func add(TcpStream stream, string key, string data,
+    int exptime = 0, int timeoutMs = 5000) as bool
+    return __mc_add_data(stream, key, Buffer(data), exptime, timeoutMs)
+end
+
+export func add(TcpStream stream, string key, bytes data,
+    int exptime = 0, int timeoutMs = 5000) as bool
+    return __mc_add_data(stream, key, Buffer(data), exptime, timeoutMs)
+end
+
+// 未命中是 null；命中空值是 ""，非 UTF-8 数据为 bytes。
+export func get(TcpStream stream, string key, int timeoutMs = 5000,
+    int maxReplyBytes = 67_108_864) as var
+    var reply = __mc_exchange(stream, buildGet([key]), Buffer(), false,
+        timeoutMs, maxReplyBytes)
+    if reply["status"] == "end" then
+        return null
+    end
+    if reply["status"] == "value" and reply["items"].length == 1 then
+        return reply["items"][0]["data"]
+    end
+    throw ValueError "memcached: unexpected get response"
+end
+
+export func getMany(TcpStream stream, array<string> keys,
+    int timeoutMs = 5000, int maxReplyBytes = 67_108_864) as var
+    var reply = __mc_exchange(stream, buildGet(keys), Buffer(), false,
+        timeoutMs, maxReplyBytes)
+    if reply["status"] == "end" then return [] end
+    if reply["status"] == "value" then return reply["items"] end
+    throw ValueError "memcached: unexpected get response"
+end
+
+export func del(TcpStream stream, string key, int timeoutMs = 5000) as bool
+    var reply = __mc_exchange(stream, buildDelete(key), Buffer(), false,
+        timeoutMs, 67_108_864)
+    if reply["status"] == "deleted" then return true end
+    if reply["status"] == "not_found" then return false end
+    throw ValueError "memcached: unexpected delete response"
+end
+
+export func touch(TcpStream stream, string key, int exptime,
+    int timeoutMs = 5000) as bool
+    var reply = __mc_exchange(stream, buildTouch(key, exptime), Buffer(), false,
+        timeoutMs, 67_108_864)
+    if reply["status"] == "touched" then return true end
+    if reply["status"] == "not_found" then return false end
+    throw ValueError "memcached: unexpected touch response"
+end
+
+export func stats(TcpStream stream, int timeoutMs = 5000) as var
+    var reply = __mc_exchange(stream, buildStats(), Buffer(), false,
+        timeoutMs, 67_108_864)
+    if reply["status"] == "stats" then return reply["stats"] end
+    if reply["status"] == "end" then return {} end
+    throw ValueError "memcached: unexpected stats response"
+end
+
+export func version(TcpStream stream, int timeoutMs = 5000) as string
+    var reply = __mc_exchange(stream, buildVersion(), Buffer(), false,
+        timeoutMs, 67_108_864)
+    if reply["status"] == "version" then return string(reply["version"]) end
+    throw ValueError "memcached: unexpected version response"
+end
+
+export func flushAll(TcpStream stream, int timeoutMs = 5000) as bool
+    var reply = __mc_exchange(stream, buildFlushAll(), Buffer(), false,
+        timeoutMs, 67_108_864)
+    if reply["status"] == "ok" then return true end
+    throw ValueError "memcached: unexpected flush response"
+end

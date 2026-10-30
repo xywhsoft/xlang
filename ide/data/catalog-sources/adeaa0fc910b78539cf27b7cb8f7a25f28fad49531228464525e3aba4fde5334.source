@@ -1,0 +1,35 @@
+extern "xdataframe_agg" func __agg(int id) as string
+extern "xdataframe_join_type" func __join_type(int id) as string
+extern "xdataframe_sort_order" func __sort_order(int id) as string
+extern "xdataframe_fill_method" func __fill_method(int id) as string
+extern "xdataframe_mean" func __mean(string data) as float
+extern "xdataframe_median" func __median(string data) as float
+extern "xdataframe_window_func" func __window_func(int id) as string
+
+export func agg(int id) as string
+    return __agg(id)
+end
+
+export func joinType(int id) as string
+    return __join_type(id)
+end
+
+export func sortOrder(int id) as string
+    return __sort_order(id)
+end
+
+export func fillMethod(int id) as string
+    return __fill_method(id)
+end
+
+export func mean(string data) as float
+    return __mean(data)
+end
+
+export func median(string data) as float
+    return __median(data)
+end
+
+export func windowFunc(int id) as string
+    return __window_func(id)
+end

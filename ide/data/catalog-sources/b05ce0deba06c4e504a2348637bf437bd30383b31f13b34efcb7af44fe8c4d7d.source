@@ -1,0 +1,115 @@
+extern "xpcap_magic_type" func __magic_type(int magic) as int
+extern "xpcap_linktype_name" func __linktype_name(int linktype) as string
+extern "xpcap_eth_type" func __eth_type(string frame_hex) as int
+extern "xpcap_eth_dst_hi" func __eth_dst_hi() as int
+extern "xpcap_eth_dst_lo" func __eth_dst_lo() as int
+extern "xpcap_eth_src_hi" func __eth_src_hi() as int
+extern "xpcap_eth_src_lo" func __eth_src_lo() as int
+extern "xpcap_mac_str" func __mac_str(int hi, int lo) as string
+extern "xpcap_ethertype_name" func __ethertype_name(int ethertype) as string
+extern "xpcap_ipv4_proto" func __ipv4_proto(string ip_hex) as int
+extern "xpcap_ip_src" func __ip_src() as int
+extern "xpcap_ip_dst" func __ip_dst() as int
+extern "xpcap_ip_ttl" func __ip_ttl() as int
+extern "xpcap_ip_len" func __ip_len() as int
+extern "xpcap_ip_str" func __ip_str(int addr) as string
+extern "xpcap_proto_name" func __proto_name(int proto) as string
+extern "xpcap_tcp_dst_port" func __tcp_dst_port(string tcp_hex) as int
+extern "xpcap_tcp_src_port" func __tcp_src_port() as int
+extern "xpcap_tcp_seq" func __tcp_seq() as int
+extern "xpcap_tcp_ack" func __tcp_ack() as int
+extern "xpcap_tcp_flags" func __tcp_flags() as int
+extern "xpcap_tcp_flags_str" func __tcp_flags_str(int flags) as string
+extern "xpcap_port_name" func __port_name(int port) as string
+
+export func magicType(int magic) as int
+    return __magic_type(magic)
+end
+
+export func linktypeName(int linktype) as string
+    return __linktype_name(linktype)
+end
+
+export func ethType(string frame_hex) as int
+    return __eth_type(frame_hex)
+end
+
+export func ethDstHi() as int
+    return __eth_dst_hi()
+end
+
+export func ethDstLo() as int
+    return __eth_dst_lo()
+end
+
+export func ethSrcHi() as int
+    return __eth_src_hi()
+end
+
+export func ethSrcLo() as int
+    return __eth_src_lo()
+end
+
+export func macStr(int hi, int lo) as string
+    return __mac_str(hi, lo)
+end
+
+export func ethertypeName(int ethertype) as string
+    return __ethertype_name(ethertype)
+end
+
+export func ipv4Proto(string ip_hex) as int
+    return __ipv4_proto(ip_hex)
+end
+
+export func ipSrc() as int
+    return __ip_src()
+end
+
+export func ipDst() as int
+    return __ip_dst()
+end
+
+export func ipTtl() as int
+    return __ip_ttl()
+end
+
+export func ipLen() as int
+    return __ip_len()
+end
+
+export func ipStr(int addr) as string
+    return __ip_str(addr)
+end
+
+export func protoName(int proto) as string
+    return __proto_name(proto)
+end
+
+export func tcpDstPort(string tcp_hex) as int
+    return __tcp_dst_port(tcp_hex)
+end
+
+export func tcpSrcPort() as int
+    return __tcp_src_port()
+end
+
+export func tcpSeq() as int
+    return __tcp_seq()
+end
+
+export func tcpAck() as int
+    return __tcp_ack()
+end
+
+export func tcpFlags() as int
+    return __tcp_flags()
+end
+
+export func tcpFlagsStr(int flags) as string
+    return __tcp_flags_str(flags)
+end
+
+export func portName(int port) as string
+    return __port_name(port)
+end

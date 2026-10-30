@@ -1,0 +1,159 @@
+# sysinfo
+
+2026-10-29：修复Linux MemAvailable记录边界。原先超长非目标行的
+续块能冒充新字段，目标行的尾部垃圾也可能在128字节缓冲处被截掉。
+现先识别完整记录：跳过非目标行的整个余段，目标字段被截断则按不可用
+处理；正常EOF/换行、数值0和合法上界仍正确。旧18场景11项检查失败，
+扩展后的23场景严格C与ASan/UBSan归零；不可用时使用率保持0，而非
+因误采数据伪报接近满载。新增检查同时验证清除上一条XRT错误。
+仅Linux分支新增13行，无额外分配、公开API或所有权变更。
+
+Windows PowerShell5.1默认38阶段与Linux完整门禁通过，包含11个
+实际生成的C原型、五条拥有型文本直接接管、既有UTF-8/长CPU名/
+注册表/溢出/分配故障，以及两平台各8条独立程序。基础信息双语同机
+对照；瞬时指标仅检查格式和范围，不要求不同时刻的数值完全相等。
+既有basic/metrics两组双语范例覆盖全部11个函数，不为错误夹具增加
+应用层API。门禁补输入指纹、有界进程、原始输出报告和失败现场保留，
+测试XRT仅启用manifest依赖及内存诊断，不再编译无关模块。
+
+这些是主机级信息，不表示进程亲和性、容器CPU/内存配额；不可用值0
+与真实数值0不能仅靠返回值区分，这是当前查询合同，不另造推测性回退。
+Linux可用内存的定义以[内核文档](https://docs.kernel.org/filesystems/proc.html#meminfo)
+为准；Windows瞬时查询也不保证连续结果相同，见
+[GlobalMemoryStatusEx](https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-globalmemorystatusex)。
+本轮验证Windows x64和Linux x86_64/WSL，不替代ARM或真实多处理器组硬件验收。
+
+2026-10-27：五个文本入口的 C 原型明确为 `char*`，XLang 以
+`@owned string` 直接接管 XRT 分配，删除 `point`/`takeCstr` 转发。
+包门禁检查生成 C 直接保存原生指针；接管仍需一次 `strlen`，
+不将整个查询路径宣称为零开销。Windows 默认包门禁与 Linux
+C ASan/UBSan、XLang JIT/AOT、双语同机输出门禁均通过。
+
+2026-10-26 新发布物复验：Windows 默认 `test/check.ps1` 与 Linux
+`test/check.sh` 均通过。两平台补齐 C 基础信息和动态指标范例的
+`xl build` 独立 EXE；基础信息与 GCC/XLang 同机输出一致，瞬时指标
+只按格式和范围验收。Linux 保留 ASan/UBSan 与异常系统文本夹具，
+Windows 生成 C 检查确认 `takeCstr` 直接接管文本。旧版带输出 AOT
+缺符号不再复现；验收范围为 Windows/Linux 主机信息 API。
+
+2026-10-25 发布版复核：五个文本查询返回普通 `string`，
+`takeCstr` 直接移交 XRT 分配。先前 `cstring` 返回转为 `string`
+会额外复制，现已修正。Windows 默认包门禁核对生成 C 的直接移交、
+双语范例及四份独立 EXE；Linux 包门禁也通过 C ASan/UBSan、
+XLang JIT、四份独立 EXE 和双语范例对照。
+
+`sysinfo` 提供 Windows/Linux 主机运行时信息：`osName`、`osVersion`、`arch`、
+`hostname`、`cpuName`、`cpuCount`、`memTotal`、`memAvailable`、
+`memUsagePct`、`pageSize` 和 `uptime`。
+
+```xlang
+import sysinfo
+
+println(sysinfo.osName(), sysinfo.arch())
+println(sysinfo.memAvailable())
+```
+
+字符串始终为 UTF-8 的独立结果，不共用全局缓冲区。C API 见
+`sysinfo_native.h`，字符串结果必须用 `xrtFree` 释放；XLang 的拥有型
+`string` 结果会在生命周期结束时自动释放。
+每个公开查询开始时清除上一条 XRT 错误；探测不可用仍按下述规则返回默认值，
+但分配失败会返回空结果并保留内存错误，不会伪装为 `unknown`。
+原生实现使用 XRT 基础分配/释放、UTF-8 校验和严格整数解析，包清单声明
+`XRT_MODULE_UNICODE` 与 `XRT_MODULE_NUMBER_INTEGER`；无输出边界 AOT 保持裁剪构建。
+2026-10-24 发布版复验：默认 Windows 门禁的严格 C、系统调用夹具、
+C/XLang 双语对照、语言边界以及带输出范例 AOT 全部通过；
+旧 `xl6ValueDataSnapshotV1` 缺符号属于历史发布物，不再阻断本包。
+Windows 版本号读取实际系统的 major/minor/build，不返回硬编码版本号；
+主机名和 CPU 名通过 Unicode 系统接口读取后转 UTF-8。注册表 CPU 名即使没有
+终止符也保留完整文本，异常的奇数字节宽度被拒绝。Linux 的 OS/架构
+来自 `uname`，CPU 名和 uptime 从 `/proc` 读取；系统返回非 UTF-8 字节时，
+文本返回 `unknown`，不会把非法编码交给 XLang string。不可用时文本返回 `unknown`、
+数值返回 0。内存值是瞬时快照，相邻调用间可能变化。
+系统 API 返回空主机名或空 `uname` 字段时也按不可用文本返回 `unknown`，
+不把空字符串作为成功结果。Linux CPU 名称读取完整字段，不会截断长型号，也不会把长行的后续片段误认成新字段。
+若型号字段只有空白，返回 `unknown`；Linux 内核的 CPU 信息字段随架构而异，
+例如原生 ARM64 不一定提供 `model name`，这种情况下同样返回 `unknown`，
+不把架构名冒充具体 CPU 型号。
+Linux 的 `memAvailable` 读取 `/proc/meminfo` 的 `MemAvailable`，计入内核估算可回收的缓存，
+不是只统计当前空闲页；`memUsagePct` 使用同一可用内存口径。读取失败时，
+公开的 `memAvailable` 和 `memUsagePct` 都返回 0，不会把探测失败误报为 100% 使用率。
+`MemAvailable` 必须是非负十进制整数并带 `kB` 单位；负数、数字尾部垃圾或
+整数溢出按探测失败处理，不把异常文本解释为巨大内存值。
+`cpuCount` 返回全系统在线逻辑处理器数；Windows 使用跨所有处理器组的
+`GetActiveProcessorCount`，不使用仅统计当前组的 `SYSTEM_INFO.dwNumberOfProcessors`
+（参见 [Microsoft 的字段说明](https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/ns-sysinfoapi-system_info)）。
+
+2026-10-22：Linux 系统调用夹具先复现空主机名、空 `uname` 字段被交付为
+空字符串；共用文本出口现在和非法 UTF-8 一样降级为 `unknown`，Windows
+主机名入口也明确拒绝空返回。Linux C ASan/UBSan、XLang 边界和双语门禁，
+Windows `-SkipAot` 严格 C、注册表夹具、XLang 与双语门禁通过。
+未模拟真实 Windows API 返回空主机名；该次旧发布物的带输出 AOT 曾待共享符号修复。
+
+在仓库根目录运行定向验证：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/sysinfo/test/check.ps1
+bash release/extlibs/sysinfo/test/check.sh
+```
+
+去掉 `-SkipAot` 还会构建并运行独立可执行文件。C/XLang 范例输出在同一台
+机器上比较，不把机器名等动态值写死为黄金文件。
+C 范例自包含原生实现，可从仓库根目录直接运行：
+
+```powershell
+release/xl.exe run release/extlibs/sysinfo/examples/sysinfo_c.c
+```
+
+Windows/Linux 包门禁将这一路径与 GCC 编译运行、XLang 范例的输出对照。
+`examples/basic.xl` 与 `sysinfo_c.c` 展示系统标识、CPU 型号/数量、
+总内存和页大小，并在同一机器上逐字对照。`examples/metrics.xl` 与
+`metrics_c.c` 展示可用内存、使用率和 uptime 的实际采样；这三个值可能
+在相邻调用间变化，门禁分别检查两种语言的输出格式和合法范围，不要求
+瞬时数值相同。两组范例合计覆盖全部 11 个公开查询。
+当前 Windows 严格 GCC、C/XLang 双语对照、边界与公开范例 AOT 通过；Linux 包级门禁
+同次运行严格 GCC、C ASan/UBSan、XLang JIT、边界/分配故障/基础范例/动态指标
+四份独立 EXE。Linux 基础范例的 JIT/AOT 均与 C 输出逐字节一致；
+动态指标随时间变化，只检查格式和合法范围。
+带文本输出的范例 AOT 已在 2026-10-24 发布版通过；此前共享运行时
+`xl6ValueDataSnapshotV1` 缺符号的历史记录见 `dev/extlib_blockers/text_snapshot_link.md`。
+六个整数 C 结果统一使用 `int64_t`，与 XLang `int` 在 Linux LP64 上保持一致。
+本机未具备多处理器组，相关计数路径只按 Windows API 合同与本机调用对照验收。
+Linux C 测试以前后两次 `/proc/meminfo` 快照对照 `memAvailable`，容许短时内存波动；
+另以链接器夹具模拟该文件不可读，核对使用率错误边界。Windows 正常内存查询路径未改。
+Linux `uptime` 在 `/proc/uptime` 返回负数、非有限数或超出有符号 64 位秒数
+范围时返回 0；包级 C 夹具覆盖正常小数秒和 `2^63` 边界，避免浮点到整数越界转换。
+Linux 另用链接器夹具注入非 UTF-8 的 `gethostname`/`uname`/`cpuinfo` 返回值，核对文本降级；
+还注入超长 CPU 型号、跨缓冲的伪字段和相似字段名，核对完整读取及字段边界。
+这些用例进入包内 ASan/UBSan 门禁。
+Windows 另用包内伪注册表夹具验证有/无终止符及异常字节宽度，不访问或修改真实注册表。
+该夹具还注入 UTF-8 转换的首次分配失败，验证错误传播和恢复后再次调用。
+Windows 包级脚本为每次运行创建独占构建目录，退出时仅清理该目录；并行执行不再共用缓存对象或测试程序。
+
+2026-10-17：Linux 链接器夹具先复现负数 `MemAvailable` 被 `%llu` 读成巨大
+无符号值；现用 XRT 严格整数解析并检查单位，补负数、尾部垃圾和溢出负例。
+Linux C ASan/UBSan、XLang 边界与双语对照，Windows 严格 C/XLang 门禁及
+无输出边界 AOT 通过；该 AOT 仍为 609,280 字节。带输出范例 AOT 的共享
+缺符号阻断不变。
+
+2026-10-16：Linux 包级脚本加入 C 范例与 XLang 范例同输出门禁，配合包内
+XLang 边界、非 UTF-8 系统文本及不可读 `/proc/meminfo` 的 C sanitizer
+用例同次通过。Windows 完整脚本复跑至边界 AOT 通过，带输出范例构建仍缺
+`xl6ValueDataSnapshotV1`；本包未改主线，尚未签收完整 AOT。
+
+2026-10-19：Windows 包级构建从固定 `build/test/sysinfo_guard` 改为独占目录，避免并行门禁覆盖 XRT 对象与可执行文件；退出后核对路径并清理本次产物。`-SkipAot` 下 ABI、严格 C、注册表夹具、XLang 边界和三条范例路径全部通过，未留下独占目录。完整 AOT 的共享缺符号阻断未变。
+
+2026-10-21：Windows 注册表与 Linux `/proc/cpuinfo` 的型号字段只有空白时，
+原返回空字符串；双平台 C 夹具先红后绿，现按文本不可用合同返回
+`unknown`。Windows 严格 C/XLang 聚焦门禁、Linux C ASan/UBSan 与
+XLang 双语门禁通过。有效型号与分配失败路径不变；完整 AOT 仍待主线修复。
+
+2026-10-22：新增 CPU、总内存、页大小的成对基础范例，以及可用内存、
+使用率、uptime 的成对动态采样范例。Windows `-SkipAot` 的严格 C、
+边界和双语门禁，Linux C ASan/UBSan、XLang 与动态指标格式门禁通过。
+默认 Windows 门禁复核无输出边界 AOT 通过，带输出范例构建仍缺共享
+`xl6ValueDataSnapshotV1`。实现/API 未改，未签收完整 AOT。
+
+2026-10-23：五个文本查询的 C/XLang 逐点分配故障测试已进入包级门禁，
+确认分配失败不返回 `unknown`，而保留内存错误；解除故障后可再次查询。
+Windows 严格 C、语言边界与双语范例，以及 Linux C ASan/UBSan、
+XLang 和双语对照均通过。完整带输出 AOT 的共享阻断不变。

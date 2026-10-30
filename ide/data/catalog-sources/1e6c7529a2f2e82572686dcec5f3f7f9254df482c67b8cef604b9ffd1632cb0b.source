@@ -1,0 +1,40 @@
+﻿{
+    "native":  {
+                   "singleton":  false,
+                   "loadName":  "",
+                   "version":  ""
+               },
+    "kind":  "demo6-extlib",
+    "version":  "1.0.0",
+    "format":  "xlang-package-1",
+    "dependencies":  [
+
+                     ],
+    "artifact":  {
+                     "cSources":  [
+                                      "cbor_native.c"
+                                  ],
+                     "xlSources":  [
+                                       "src/cbor.xl"
+                                   ],
+                     "xrtModules":  [
+                                        "XRT_MODULE_BUFFER",
+                                        "XRT_MODULE_BUFFER_HEX",
+                                        "XRT_MODULE_CODEC_HEX",
+                                        "XRT_MODULE_STRING",
+                                        "XRT_MODULE_TIME_TEXT",
+                                        "XRT_MODULE_UNICODE",
+                                        "XRT_MODULE_VALUE_CONTAINER"
+                                    ],
+                     "kind":  "source"
+                 },
+    "name":  "cbor",
+    "links":  [
+
+              ],
+    "loadlibs":  [
+
+                 ],
+    "abiVersion":  "1",
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl", "test/wellformed.xl"] }
+}

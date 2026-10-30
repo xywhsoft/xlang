@@ -1,0 +1,17 @@
+{
+    "format": "xlang-package-1",
+    "name": "cli",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": ["cli_native.c"],
+        "xlSources": ["src/cli.xl"],
+        "xrtModules": ["XRT_MODULE_VALUE_CONTAINER", "XRT_MODULE_UNICODE"]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

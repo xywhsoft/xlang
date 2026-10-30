@@ -1,0 +1,24 @@
+{
+    "format": "xlang-package-1",
+    "name": "dotenv",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": ["xrt_dotenv.c", "dotenv_native.c"],
+        "xlSources": ["src/dotenv.xl"],
+        "xrtModules": [
+            "XRT_MODULE_ENVIRONMENT",
+            "XRT_MODULE_FILE_WHOLE",
+            "XRT_MODULE_MAP",
+            "XRT_MODULE_STRING",
+            "XRT_MODULE_UNICODE"
+        ]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/limits.xl", "test/apply_oom.xl", "test/create_oom.xl", "test/replace.xl", "test/top_level.xl"] },
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

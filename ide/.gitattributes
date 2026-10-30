@@ -1,5 +1,14 @@
 # Pinned inventories and compatibility patches use hashes of the original bytes.
 /data/** -text
+# Captured upstream text may contain original trailing spaces; never rewrite it.
+/data/catalog-sources/*.source -whitespace
+/data/**/*.json whitespace=cr-at-eol
+# Extraction receipts fingerprint exact tool bytes, including their line endings.
+/tools/refresh_extensions.py -text whitespace=cr-at-eol
+/tools/catalog_extensions.py -text whitespace=cr-at-eol
+/tools/catalog_sources.py -text whitespace=cr-at-eol
+/tools/build_catalog_exporter.py -text whitespace=cr-at-eol
+/tools/dump_extension_catalog.c -text whitespace=cr-at-eol
 /third_party/** -text
 # Unified diff context markers are part of the pinned patch representation.
 /third_party/**/*.patch -whitespace

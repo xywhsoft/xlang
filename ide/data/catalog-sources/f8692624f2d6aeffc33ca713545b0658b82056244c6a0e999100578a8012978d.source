@@ -1,0 +1,132 @@
+// MurmurHash3 x86_32 / x64_128：用于非对抗性哈希，不提供安全认证。
+extern "xmurmur3_version" func __version() as string
+extern "xmurmur3_hash32" func __hash32(point data, c_size size, c_uint seed) as int
+extern "xmurmur3_hash32_str" func __hash32Str(string data, c_size size, c_uint seed) as int
+extern "xmurmur3_hash32_hex" func __hex32(point data, c_size size, c_uint seed) as string
+extern "xmurmur3_hash32_str_hex" func __hex32Str(string data, c_size size, c_uint seed) as string
+extern "xmurmur3_hash32_bytes" func __bytes32(point data, c_size size, c_uint seed) as point
+extern "xmurmur3_hash32_str_bytes" func __bytes32Str(string data, c_size size, c_uint seed) as point
+extern "xmurmur3_hash128_hex" func __hex128(point data, c_size size, c_uint seed) as string
+extern "xmurmur3_hash128_str_hex" func __hex128Str(string data, c_size size, c_uint seed) as string
+extern "xmurmur3_hash128_bytes" func __bytes128(point data, c_size size, c_uint seed) as point
+extern "xmurmur3_hash128_str_bytes" func __bytes128Str(string data, c_size size, c_uint seed) as point
+extern "xmurmur3_file32" func __file32(string path, c_ulonglong maximum, c_uint seed, var callback) as int
+extern "xmurmur3_file128_hex" func __file128(string path, c_ulonglong maximum, c_uint seed, var callback) as string
+
+export func version() as string
+    return __version()
+end
+
+func __seed(int seed) as c_uint
+    if seed < 0 or seed > 4294967295 then
+        throw ValueError "murmur3 seed must be in 0..4294967295"
+    end
+    return c_uint(seed)
+end
+func __limit(int maximum)
+    if maximum <= 0 then
+        throw ValueError "maxInput must be greater than zero"
+    end
+end
+
+// 文本按 UTF-8 字节计算；包含 NUL 的二进制数据使用 Buffer。
+export func hash32(Buffer data, int seed = 0) as int
+    return __hash32(data.data(), c_size(data.len()), __seed(seed))
+end
+export func hash32(string text, int seed = 0) as int
+    return __hash32Str(text, c_size(string.byteLen(text)), __seed(seed))
+end
+export func hash32Hex(Buffer data, int seed = 0) as string
+    return __hex32(data.data(), c_size(data.len()), __seed(seed))
+end
+export func hash32Hex(string text, int seed = 0) as string
+    return __hex32Str(text, c_size(string.byteLen(text)), __seed(seed))
+end
+export func hash32Bytes(Buffer data, int seed = 0) as Buffer
+    return Buffer(__bytes32(data.data(), c_size(data.len()), __seed(seed)))
+end
+export func hash32Bytes(string text, int seed = 0) as Buffer
+    return Buffer(__bytes32Str(text, c_size(string.byteLen(text)), __seed(seed)))
+end
+export func hash128Hex(Buffer data, int seed = 0) as string
+    return __hex128(data.data(), c_size(data.len()), __seed(seed))
+end
+export func hash128Hex(string text, int seed = 0) as string
+    return __hex128Str(text, c_size(string.byteLen(text)), __seed(seed))
+end
+export func hash128Bytes(Buffer data, int seed = 0) as Buffer
+    return Buffer(__bytes128(data.data(), c_size(data.len()), __seed(seed)))
+end
+export func hash128Bytes(string text, int seed = 0) as Buffer
+    return Buffer(__bytes128Str(text, c_size(string.byteLen(text)), __seed(seed)))
+end
+
+// XRT 帧使用 uint64，回调入口显式检查公开 int 的表示范围。
+func __progress(func(int, int, int) as bool callback) as var
+    return xcall(func(uint64 current, uint64 total, uint64 output) as bool
+        uint64 maximum = uint64(9223372036854775807)
+        if current > maximum or total > maximum or output > maximum then
+            throw RangeError "murmur3 progress exceeds int range"
+        end
+        return callback(int(current), int(total), int(output))
+    end)
+end
+export func hashFile32(string path, int seed = 0, int maxInput = 268435456,
+    (func(int, int, int) as bool)? onProgress = null) as int
+    __limit(maxInput)
+    var callback = null
+    if onProgress != null then
+        callback = __progress(onProgress)
+    end
+    return __file32(path, c_ulonglong(maxInput), __seed(seed), callback)
+end
+export func hashFile128Hex(string path, int seed = 0, int maxInput = 268435456,
+    (func(int, int, int) as bool)? onProgress = null) as string
+    __limit(maxInput)
+    var callback = null
+    if onProgress != null then
+        callback = __progress(onProgress)
+    end
+    return __file128(path, c_ulonglong(maxInput), __seed(seed), callback)
+end
+
+// ----------------------------- x64_128 流式对象 -----------------------------
+
+export class Murmur3Hasher
+    native point handle
+    extern "xmurmur3_hasher_create" create(c_uint seed, c_ulonglong maxInput)
+    extern "xmurmur3_hasher_adopt" create(point handle)
+    extern "xmurmur3_hasher_destroy" destroy()
+    extern "xmurmur3_hasher_update" func updateNative(point data, c_size size) as bool
+    extern "xmurmur3_hasher_update_str" func updateStrNative(string data, c_size size) as bool
+    extern "xmurmur3_hasher_digest_hex" func digestHex() as string
+    extern "xmurmur3_hasher_digest_bytes" func digestBytesNative() as point
+    extern "xmurmur3_hasher_reset" func reset() as bool
+    extern "xmurmur3_hasher_input_bytes" func inputBytesNative() as c_ulonglong
+    extern "xmurmur3_hasher_clone" func cloneNative() as point
+
+    get valid() as bool
+        return self.handle != null
+    end
+    get inputBytes() as uint64
+        return uint64(self.inputBytesNative())
+    end
+    func update(Buffer data)
+        self.updateNative(data.data(), c_size(data.len()))
+    end
+    func update(string text)
+        self.updateStrNative(text, c_size(string.byteLen(text)))
+    end
+    // 摘要是非终结快照，clone 显式创建独立流状态。
+    func digestBytes() as Buffer
+        return Buffer(self.digestBytesNative())
+    end
+    func clone() as Murmur3Hasher
+        return Murmur3Hasher(self.cloneNative())
+    end
+end
+
+export func hasher(int seed = 0, int maxInput = 268435456) as Murmur3Hasher
+    __limit(maxInput)
+    return Murmur3Hasher(__seed(seed), c_ulonglong(maxInput))
+end

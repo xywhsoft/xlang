@@ -1,0 +1,97 @@
+// CRC-32/ISO-HDLC：公开 int 可完整表示 0..4294967295，原生 ABI 显式使用 C 类型。
+extern "xcrc32_version" func __version() as string
+extern "xcrc32_hash" func __hash(point data, c_size size) as c_longlong
+extern "xcrc32_hash_hex" func __hex(point data, c_size size) as string
+extern "xcrc32_hash_str" func __hashStr(string data, c_size size) as c_longlong
+extern "xcrc32_hash_str_hex" func __hexStr(string data, c_size size) as string
+extern "xcrc32_file" func __file(string path, c_ulonglong maximum, var callback) as c_longlong
+extern "xcrc32_file_hex" func __fileHex(string path, c_ulonglong maximum, var callback) as string
+
+export func version() as string
+    return __version()
+end
+
+// 文本按 UTF-8 字节计算；含 NUL 的二进制数据使用 Buffer。
+export func checksum(Buffer data) as int
+    return int(__hash(data.data(), c_size(data.len())))
+end
+export func checksum(string text) as int
+    return int(__hashStr(text, c_size(string.byteLen(text))))
+end
+export func checksumHex(Buffer data) as string
+    return __hex(data.data(), c_size(data.len()))
+end
+export func checksumHex(string text) as string
+    return __hexStr(text, c_size(string.byteLen(text)))
+end
+
+func __limit(int maximum)
+    if maximum <= 0 then
+        throw ValueError "maxInput must be greater than zero"
+    end
+end
+
+// XRT 进度帧为 uint64，检查范围后才转换为公开回调的 int。
+func __progress(func(int, int, int) as bool callback) as var
+    return xcall(func(uint64 current, uint64 total, uint64 output) as bool
+        uint64 maximum = uint64(9223372036854775807)
+        if current > maximum or total > maximum or output > maximum then
+            throw RangeError "crc32 progress exceeds int range"
+        end
+        return callback(int(current), int(total), int(output))
+    end)
+end
+
+// 取消、读取失败和回调抛错直接使用 XRT 异常，不以全局状态二次分类。
+export func checksumFile(string path, int maxInput = 268435456,
+    (func(int, int, int) as bool)? onProgress = null) as int
+    __limit(maxInput)
+    var callback = null
+    if onProgress != null then
+        callback = __progress(onProgress)
+    end
+    return int(__file(path, c_ulonglong(maxInput), callback))
+end
+export func checksumFileHex(string path, int maxInput = 268435456,
+    (func(int, int, int) as bool)? onProgress = null) as string
+    __limit(maxInput)
+    var callback = null
+    if onProgress != null then
+        callback = __progress(onProgress)
+    end
+    return __fileHex(path, c_ulonglong(maxInput), callback)
+end
+
+export class Crc32Hasher
+    native point handle
+    extern "xcrc32_hasher_create" create(c_ulonglong maxInput)
+    extern "xcrc32_hasher_destroy" destroy()
+    extern "xcrc32_hasher_update" func updateNative(point data, c_size size) as bool
+    extern "xcrc32_hasher_update_str" func updateStrNative(string data, c_size size) as bool
+    extern "xcrc32_hasher_digest" func digestNative() as c_longlong
+    extern "xcrc32_hasher_digest_hex" func digestHex() as string
+    extern "xcrc32_hasher_reset" func reset() as bool
+    extern "xcrc32_hasher_input_bytes" func inputBytesNative() as c_ulonglong
+
+    get valid() as bool
+        return self.handle != null
+    end
+    get inputBytes() as uint64
+        return uint64(self.inputBytesNative())
+    end
+    func update(Buffer data)
+        self.updateNative(data.data(), c_size(data.len()))
+    end
+    func update(string text)
+        self.updateStrNative(text, c_size(string.byteLen(text)))
+    end
+    // 摘要是当前快照，不终结；reset 也允许恢复已失败的流式对象。
+    func digest() as int
+        return int(self.digestNative())
+    end
+end
+
+export func hasher(int maxInput = 268435456) as Crc32Hasher
+    __limit(maxInput)
+    return Crc32Hasher(c_ulonglong(maxInput))
+end

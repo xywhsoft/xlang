@@ -1,0 +1,114 @@
+// Font 与 Bitmap 分别拥有 C 资源；data() 只在 Bitmap 存活期间有效。
+extern "xstbtt_available" func __available() as c_int
+extern "xstbtt_version" func __version() as string
+extern "xstbtt_error_is_memory" func __errorIsMemory() as c_int
+extern "xstbtt_default_font_path" func __defaultPath() as point
+extern "xstbtt_load" func __load(string path, c_int index) as point
+extern "xstbtt_load_memory" func __loadMemory(point data, c_size size,
+    c_int index) as point
+
+// 原生入口只接收 C int/C 字符串；转换前拒绝回绕和路径截断。
+func __stbtt_index(int index)
+    if index < 0 or index > 2147483647 then
+        throw ValueError "stb_truetype: font index out of range"
+    end
+end
+
+func __stbtt_path(string path)
+    if string.indexOf(path, "\0", false, string.byteLen(path), 1) >= 0 then
+        throw ValueError "stb_truetype: path contains an embedded NUL byte"
+    end
+end
+
+export class Bitmap
+    native point handle
+    private extern "xstbtt_bitmap_adopt" create(point image)
+    extern "xstbtt_bitmap_release" destroy()
+
+    extern "xstbtt_bitmap_width" func width() as c_int
+    extern "xstbtt_bitmap_height" func height() as c_int
+    extern "xstbtt_bitmap_xoff" func xoff() as c_int
+    extern "xstbtt_bitmap_yoff" func yoff() as c_int
+    extern "xstbtt_bitmap_size" func byteSize() as c_size
+    extern "xstbtt_bitmap_data" func data() as point
+
+    func pixels() as Buffer
+        Buffer result = Buffer()
+        if self.byteSize() == 0 then
+            return result
+        end
+        if not result.appendRaw(self.data(), int(self.byteSize())) then
+            throw MemoryError "stb_truetype: could not copy glyph pixels"
+        end
+        return result
+    end
+end
+
+export class Font
+    native point handle
+    private extern "xstbtt_font_adopt" create(point font)
+    extern "xstbtt_font_release" destroy()
+
+    extern "xstbtt_font_scale" func scale(c_double pixelHeight) as c_double
+    extern "xstbtt_font_ascent" func ascent() as c_int
+    extern "xstbtt_font_descent" func descent() as c_int
+    extern "xstbtt_font_line_gap" func lineGap() as c_int
+    extern "xstbtt_font_glyph" func glyphIndex(c_int codepoint) as c_int
+    extern "xstbtt_font_advance" func advance(c_int codepoint) as c_int
+    extern "xstbtt_font_bearing" func leftBearing(c_int codepoint) as c_int
+    extern "xstbtt_font_kern" func kernAdvance(c_int left, c_int right) as c_int
+    private extern "xstbtt_font_bitmap" func bitmapNative(c_int codepoint,
+        c_double pixelHeight) as point
+
+    func bitmap(int codepoint, float64 pixelHeight) as Bitmap
+        if codepoint < 0 or codepoint > 1114111 then
+            throw ValueError "stb_truetype: invalid Unicode codepoint"
+        end
+        point image = self.bitmapNative(c_int(codepoint), c_double(pixelHeight))
+        if image == null then
+            if __errorIsMemory() != 0 then
+                throw MemoryError "stb_truetype: could not rasterize glyph"
+            end
+            throw ValueError "stb_truetype: glyph rasterization failed"
+        end
+        return Bitmap(image)
+    end
+end
+
+export func available() as bool
+    return __available() != 0
+end
+
+export func version() as string
+    return __version()
+end
+
+// 仅供范例寻找系统字体；可移植程序应显式传入自己的字体路径。
+export func defaultFontPath() as string
+    return __xl_runtime.takeCstr(__defaultPath())
+end
+
+export func load(string path, int fontIndex = 0) as Font
+    __stbtt_path(path)
+    __stbtt_index(fontIndex)
+    point font = __load(path, c_int(fontIndex))
+    if font == null then
+        if __errorIsMemory() != 0 then
+            throw MemoryError "stb_truetype: could not load font"
+        end
+        throw ValueError "stb_truetype: could not load font"
+    end
+    return Font(font)
+end
+
+export func loadBytes(Buffer data, int fontIndex = 0) as Font
+    __stbtt_index(fontIndex)
+    point font = __loadMemory(data.data(), c_size(data.len()), c_int(fontIndex))
+    if font == null then
+        if __errorIsMemory() != 0 then
+            throw MemoryError "stb_truetype: could not load font data"
+        end
+        throw ValueError "stb_truetype: could not load font data"
+    end
+    return Font(font)
+end

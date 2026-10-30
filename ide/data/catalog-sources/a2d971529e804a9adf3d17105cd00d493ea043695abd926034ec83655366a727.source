@@ -1,0 +1,62 @@
+extern "xmdns_encode_name" func __mdns_enc(string name) as string
+extern "xmdns_decode_name" func __mdns_dec(string wire) as string
+extern "xmdns_build_query" func __mdns_query(string name, int qtype) as int
+extern "xmdns_multicast_addr" func __mdns_addr() as string
+extern "xmdns_port" func __mdns_port() as int
+extern "xmdns_service_http" func __mdns_http() as string
+extern "xmdns_service_ssh" func __mdns_ssh() as string
+extern "xmdns_valid_name" func __mdns_valid(string name) as bool
+extern "xmdns_type_a" func __mdns_tA() as int
+extern "xmdns_type_ptr" func __mdns_tPtr() as int
+extern "xmdns_type_srv" func __mdns_tSrv() as int
+extern "xmdns_type_txt" func __mdns_tTxt() as int
+
+
+
+export func encodeName(string name) as string
+    return __mdns_enc(name)
+end
+
+export func decodeName(string wire) as string
+    return __mdns_dec(wire)
+end
+
+export func buildQuery(string name, int qtype = 12) as int
+    return __mdns_query(name, qtype)
+end
+
+export func multicastAddr() as string
+    return __mdns_addr()
+end
+
+export func port() as int
+    return __mdns_port()
+end
+
+export func serviceHttp() as string
+    return __mdns_http()
+end
+
+export func serviceSsh() as string
+    return __mdns_ssh()
+end
+
+export func validName(string name) as bool
+    return __mdns_valid(name)
+end
+
+export func typeA() as int
+    return __mdns_tA()
+end
+
+export func typePtr() as int
+    return __mdns_tPtr()
+end
+
+export func typeSrv() as int
+    return __mdns_tSrv()
+end
+
+export func typeTxt() as int
+    return __mdns_tTxt()
+end

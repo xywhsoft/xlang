@@ -1,0 +1,45 @@
+extern "xpg_conn_param" func __conn_param(string conninfo, string key) as string
+extern "xpg_startup_msg" func __startup_msg(string user, string database) as string
+extern "xpg_msg_type" func __msg_type(int type_byte) as string
+extern "xpg_tx_status" func __tx_status(int status) as string
+extern "xpg_type_name" func __type_name(int oid) as string
+extern "xpg_escape" func __escape(string input) as string
+extern "xpg_query_msg" func __query_msg(string sql) as string
+extern "xpg_error_field_name" func __error_field_name(int code) as string
+extern "xpg_format_dsn" func __format_dsn(string host, int port, string dbname, string user) as string
+
+export func connParam(string conninfo, string key) as string
+    return __conn_param(conninfo, key)
+end
+
+export func startupMsg(string user, string database) as string
+    return __startup_msg(user, database)
+end
+
+export func msgType(int type_byte) as string
+    return __msg_type(type_byte)
+end
+
+export func txStatus(int status) as string
+    return __tx_status(status)
+end
+
+export func typeName(int oid) as string
+    return __type_name(oid)
+end
+
+export func escape(string input) as string
+    return __escape(input)
+end
+
+export func queryMsg(string sql) as string
+    return __query_msg(sql)
+end
+
+export func errorFieldName(int code) as string
+    return __error_field_name(code)
+end
+
+export func formatDsn(string host, int port, string dbname, string user) as string
+    return __format_dsn(host, port, dbname, user)
+end

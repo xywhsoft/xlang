@@ -1,0 +1,35 @@
+{
+    "format":  "xlang-package-1",
+    "name":  "imagehash",
+    "version":  "0.1.0",
+    "abiVersion":  "1",
+    "kind":  "demo6-extlib",
+    "artifact":  {
+                     "kind":  "source",
+                     "includeDirs": ["include"],
+                     "cSources":  [
+                                      "imagehash_native.c"
+                                  ],
+                     "xrtModules": ["XRT_MODULE_BUFFER", "XRT_MODULE_ONCE",
+                                    "XRT_MODULE_THREAD_KEY"],
+                     "xlSources":  [
+                                       "src/imagehash.xl"
+                                   ]
+                 },
+    "links":  [
+
+              ],
+    "loadlibs":  [
+
+                 ],
+    "dependencies":  [
+                         {"name": "stb_image", "version": "0.1.0", "abiVersion": "1"},
+                         {"name": "stb_image_resize2", "version": "0.1.0", "abiVersion": "1"}
+                     ],
+    "coverage": { "mode": "suite", "tests": ["test/allocations.xl", "test/owned_results.xl", "test/cold_start.xl"] },
+    "native":  {
+                   "singleton":  false,
+                   "loadName":  "",
+                   "version":  ""
+               }
+}

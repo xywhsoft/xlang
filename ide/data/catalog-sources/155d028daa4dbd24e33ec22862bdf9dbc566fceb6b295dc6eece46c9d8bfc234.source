@@ -1,0 +1,47 @@
+// 输出 Buffer 独立拥有缩放后的像素；输入 Buffer 在调用期间只被借用。
+extern "xstbir_available" func __available() as c_int
+extern "xstbir_version" func __version() as string
+extern "xstbir_resize" func __resize(point pixels, c_size length,
+    c_int width, c_int height, c_int channels, c_int outWidth,
+    c_int outHeight, c_int stride, c_int linear) as point
+
+func resizeMode(Buffer pixels, int width, int height, int channels,
+    int outWidth, int outHeight, int stride, int linear) as Buffer
+    // 先校验 int64，再收窄到 C int，避免尺寸和步长回绕成有效值。
+    if width < 1 or width > 16384 or height < 1 or height > 16384 then
+        throw ValueError "stb_image_resize2: input dimensions out of range"
+    end
+    if outWidth < 1 or outWidth > 16384 or outHeight < 1 or outHeight > 16384 then
+        throw ValueError "stb_image_resize2: output dimensions out of range"
+    end
+    if channels < 1 or channels > 4 or stride < 0 or stride > 2147483647 then
+        throw ValueError "stb_image_resize2: channels or stride out of range"
+    end
+    point result = __resize(pixels.data(), c_size(pixels.len()),
+        c_int(width), c_int(height), c_int(channels),
+        c_int(outWidth), c_int(outHeight), c_int(stride), c_int(linear))
+    if result == null then
+        throw ValueError "stb_image_resize2: image resize failed"
+    end
+    return Buffer(result)
+end
+
+export func available() as bool
+    return __available() != 0
+end
+
+export func version() as string
+    return __version()
+end
+
+export func resize(Buffer pixels, int width, int height, int channels,
+    int outWidth, int outHeight, int stride = 0) as Buffer
+    return resizeMode(pixels, width, height, channels,
+        outWidth, outHeight, stride, 0)
+end
+
+export func resizeLinear(Buffer pixels, int width, int height, int channels,
+    int outWidth, int outHeight, int stride = 0) as Buffer
+    return resizeMode(pixels, width, height, channels,
+        outWidth, outHeight, stride, 1)
+end

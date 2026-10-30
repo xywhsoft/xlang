@@ -1,0 +1,205 @@
+export class Response
+    bool ok_value
+    string action_value
+    int status_value
+    string request_id_value
+    string code_value
+    int code_n_value
+    string message_value
+    string result_value
+    string raw_value
+
+    create()
+        self.ok_value = false
+        self.action_value = ""
+        self.status_value = 0
+        self.request_id_value = ""
+        self.code_value = ""
+        self.code_n_value = 0
+        self.message_value = ""
+        self.result_value = ""
+        self.raw_value = ""
+    end
+
+    create(bool ok_value, string action_value, int status_value, string request_id_value, string code_value, int code_n_value, string message_value, string result_value, string raw_value)
+        self.ok_value = ok_value
+        self.action_value = action_value
+        self.status_value = status_value
+        self.request_id_value = request_id_value
+        self.code_value = code_value
+        self.code_n_value = code_n_value
+        self.message_value = message_value
+        self.result_value = result_value
+        self.raw_value = raw_value
+    end
+
+    func ok() as bool
+        return self.ok_value
+    end
+
+    func action() as string
+        return self.action_value
+    end
+
+    func status() as int
+        return self.status_value
+    end
+
+    func request_id() as string
+        return self.request_id_value
+    end
+
+    func code() as string
+        return self.code_value
+    end
+
+    func code_n() as int
+        return self.code_n_value
+    end
+
+    func message() as string
+        return self.message_value
+    end
+
+    func result_json() as string
+        return self.result_value
+    end
+
+    func raw_json() as string
+        return self.raw_value
+    end
+
+    func to_json() as string
+        return json.stringify({
+            "ok": self.ok_value,
+            "status": self.status_value,
+            "action": self.action_value,
+            "request_id": self.request_id_value,
+            "code": self.code_value,
+            "code_n": self.code_n_value,
+            "message": self.message_value,
+            "result": self.result_value,
+            "raw": self.raw_value
+        })
+    end
+end
+
+func __phone_document(string raw) as var
+    var document = json.parse(raw)
+    if type(document) != dict then
+        throw ValueError "volc.phone: response must be a JSON object"
+    end
+    return document
+end
+
+func __phone_normalize_response(string action, string raw, int status, string transport_error) as Response
+    if raw == "" then
+        return Response(false, action, status, "", "transport_error", 0, transport_error, "", raw)
+    end
+    var fields = __phone_response_fields(raw)
+    return Response(not bool(fields["error"]) and status >= 200 and status < 300, action, status,
+        string(fields["request_id"]), string(fields["code"]), int(fields["code_n"]),
+        string(fields["message"]), string(fields["result_json"]), raw)
+end
+
+func __phone_string(var value, string field) as string
+    if value == null then
+        return ""
+    end
+    if type(value) != string then
+        throw ValueError "volc.phone: expected string for " + field
+    end
+    return string(value)
+end
+
+func __phone_int(var value, string field) as int
+    if value == null then
+        return 0
+    end
+    if type(value) != int then
+        throw ValueError "volc.phone: expected integer for " + field
+    end
+    return int(value)
+end
+
+func __phone_result_object(var document) as var
+    var result = document["Result"]
+    if result == null then
+        return document
+    end
+    if type(result) != dict then
+        throw ValueError "volc.phone: Result must be an object for field access"
+    end
+    return result
+end
+
+func __phone_response_fields(string raw) as var
+    var document = __phone_document(raw)
+    var metadata = document["ResponseMetadata"]
+    if type(metadata) != dict then
+        throw ValueError "volc.phone: ResponseMetadata must be an object"
+    end
+    var error = metadata["Error"]
+    if error != null and type(error) != dict then
+        throw ValueError "volc.phone: ResponseMetadata.Error must be an object"
+    end
+    string code = ""
+    string message = ""
+    int code_n = 0
+    if error != null then
+        code = __phone_string(error["Code"], "Error.Code")
+        message = __phone_string(error["Message"], "Error.Message")
+        code_n = __phone_int(error["CodeN"], "Error.CodeN")
+    end
+    string request_id = __phone_string(metadata["RequestId"], "ResponseMetadata.RequestId")
+    if request_id == "" then
+        throw ValueError "volc.phone: missing ResponseMetadata.RequestId"
+    end
+    string result_json = ""
+    if document["Result"] != null then
+        result_json = json.stringify(document["Result"])
+    end
+    return {
+        "error": error != null,
+        "request_id": request_id,
+        "code": code,
+        "code_n": code_n,
+        "message": message,
+        "result_json": result_json
+    }
+end
+
+export func json_string_field(string raw, string key) as string
+    var result = __phone_result_object(__phone_document(raw))
+    return __phone_string(result[key], key)
+end
+
+export func json_int_field(string raw, string key) as int
+    var result = __phone_result_object(__phone_document(raw))
+    return __phone_int(result[key], key)
+end
+
+export func json_section(string raw, string key) as string
+    var value = __phone_document(raw)[key]
+    if value == null then
+        return ""
+    end
+    return json.stringify(value)
+end
+
+export func task_state(string task_info_json) as string
+    var document = __phone_document(task_info_json)
+    var metadata = document["ResponseMetadata"]
+    if type(metadata) == dict and metadata["Error"] != null then
+        return "failed"
+    end
+    var result = __phone_result_object(document)
+    int task_result = __phone_int(result["TaskResult"], "TaskResult")
+    if task_result == 100 then
+        return "success"
+    end
+    if task_result == 10 then
+        return "running"
+    end
+    return "unknown"
+end

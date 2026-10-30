@@ -1,0 +1,19 @@
+{
+    "format": "xlang-package-1",
+    "name": "qr",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": ["qr_native.c"],
+        "xrtModules": ["XRT_MODULE_BUFFER", "XRT_MODULE_VALUE_CONTAINER", "XRT_MODULE_UNICODE"],
+        "includeDirs": ["include"],
+        "xlSources": ["src/qr.xl"]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl"] },
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

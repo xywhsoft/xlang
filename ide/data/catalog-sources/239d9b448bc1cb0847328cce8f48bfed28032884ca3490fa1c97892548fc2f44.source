@@ -1,0 +1,97 @@
+// MD5 用于既有摘要格式兼容，不提供认证或安全完整性保证。
+extern "xmd5_version" func __version() as string
+extern "xmd5_hash_hex" func __hex(point data, c_size size) as string
+extern "xmd5_hash_str_hex" func __hexStr(string data, c_size size) as string
+extern "xmd5_hash_bytes" func __bytes(point data, c_size size) as point
+extern "xmd5_hash_str_bytes" func __bytesStr(string data, c_size size) as point
+extern "xmd5_file_hex" func __fileHex(string path, c_ulonglong maximum, var callback) as string
+extern "xmd5_file_bytes" func __fileBytes(string path, c_ulonglong maximum, var callback) as point
+
+export const int MD5_DIGEST_SIZE = 16
+export func version() as string
+    return __version()
+end
+
+// 文本按 UTF-8 字节计算，含 NUL 的二进制输入使用 Buffer。
+export func hashHex(Buffer data) as string
+    return __hex(data.data(), c_size(data.len()))
+end
+export func hashHex(string text) as string
+    return __hexStr(text, c_size(string.byteLen(text)))
+end
+export func hash(Buffer data) as Buffer
+    return Buffer(__bytes(data.data(), c_size(data.len())))
+end
+export func hash(string text) as Buffer
+    return Buffer(__bytesStr(text, c_size(string.byteLen(text))))
+end
+
+func __limit(int maximum)
+    if maximum <= 0 then
+        throw ValueError "maxInput must be greater than zero"
+    end
+end
+
+// XRT 进度帧使用 uint64，显式检查公开回调 int 的表示范围。
+func __progress(func(int, int, int) as bool callback) as var
+    return xcall(func(uint64 current, uint64 total, uint64 output) as bool
+        uint64 maximum = uint64(9223372036854775807)
+        if current > maximum or total > maximum or output > maximum then
+            throw RangeError "md5 progress exceeds int range"
+        end
+        return callback(int(current), int(total), int(output))
+    end)
+end
+
+export func hashFileHex(string path, int maxInput = 268435456,
+    (func(int, int, int) as bool)? onProgress = null) as string
+    __limit(maxInput)
+    var callback = null
+    if onProgress != null then
+        callback = __progress(onProgress)
+    end
+    return __fileHex(path, c_ulonglong(maxInput), callback)
+end
+export func hashFile(string path, int maxInput = 268435456,
+    (func(int, int, int) as bool)? onProgress = null) as Buffer
+    __limit(maxInput)
+    var callback = null
+    if onProgress != null then
+        callback = __progress(onProgress)
+    end
+    return Buffer(__fileBytes(path, c_ulonglong(maxInput), callback))
+end
+
+export class Md5Hasher
+    native point handle
+    extern "xmd5_hasher_create" create(c_ulonglong maxInput)
+    extern "xmd5_hasher_destroy" destroy()
+    extern "xmd5_hasher_update" func updateNative(point data, c_size size) as bool
+    extern "xmd5_hasher_update_str" func updateStrNative(string data, c_size size) as bool
+    extern "xmd5_hasher_digest_hex" func digestHex() as string
+    extern "xmd5_hasher_digest_bytes" func digestBytesNative() as point
+    extern "xmd5_hasher_reset" func reset() as bool
+    extern "xmd5_hasher_input_bytes" func inputBytesNative() as c_ulonglong
+
+    get valid() as bool
+        return self.handle != null
+    end
+    get inputBytes() as uint64
+        return uint64(self.inputBytesNative())
+    end
+    func update(Buffer data)
+        self.updateNative(data.data(), c_size(data.len()))
+    end
+    func update(string text)
+        self.updateStrNative(text, c_size(string.byteLen(text)))
+    end
+    // 摘要是非终结快照；reset 也用于恢复失败后的对象。
+    func digest() as Buffer
+        return Buffer(self.digestBytesNative())
+    end
+end
+
+export func hasher(int maxInput = 268435456) as Md5Hasher
+    __limit(maxInput)
+    return Md5Hasher(c_ulonglong(maxInput))
+end
