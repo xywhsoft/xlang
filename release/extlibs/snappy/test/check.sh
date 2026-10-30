@@ -11,7 +11,7 @@ python_path=$(command -v python3 || true)
 input_paths() {
     find release/extlibs/snappy release/include -type f -print0
     printf '%s\0' lib/xrt/xrt.h lib/xruntime/xruntime.h release/xl release/libxl.so release/libxlc.so \
-        test/support/extlib_codec_runtime.c test/support/extlib_native_codec_file_rollback.h \
+        test/support/extlib_codec_runtime.c test/support/extlib_native_codec_file_rollback.h test/support/extlib_codec_io_errors.h \
         test/cases/extlib_snappy.xl test/cases/extlib_snappy_progress.xl \
         release/examples/extlibs/snappy.xl release/examples/extlibs/snappy_basic.xl \
         tools/check_extlib_native_globals.ps1 tools/check_extlib_native_globals.sh

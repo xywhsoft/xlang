@@ -120,3 +120,16 @@ PS5/PS7 真 Run 验证三种空参数、raw37/缺程序；假 GCC 的 raw37
 - Linux `/var/tmp/xlang-snappy-io-audit-aOXfbaVM`；门禁
   `tmp/xlang-snappy-61IaR0`，trace、退出码、前后 SHA256 与旧对象
   红/绿对照、互通输出均保留。
+
+## 共享 IO 夹具复核
+
+同日将 `test/io_errors_c.c` 的公共检查提取为
+`test/support/extlib_codec_io_errors.h`，包内仅保留编译期 API/类型映射、
+标准帧与创建阶段输出计数；没有新增运行时适配或改变库实现。
+Snappy 两平台的 30 场景仍为零断言失败：Windows 严格 GCC/TCC，
+Linux ASan/UBSan，复用上一轮受控对象且四份对象 SHA256 不变。
+两个包门禁已把共享头纳入输入指纹。
+
+本次仅聚焦验证夹具提取，不声称重新执行 Snappy 整包门禁。
+证据在 `build/test/zstd_io_audit_1793378359/windows-post.json` 及
+`/var/tmp/xlang-zstd-io-audit-kX3awIB1/snappy.shared.io.txt`。

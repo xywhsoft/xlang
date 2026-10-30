@@ -18,7 +18,7 @@ $links = @('-lws2_32','-ladvapi32','-liphlpapi','-lm')
 $inputs = @(Get-ChildItem (Join-Path $root 'release/extlibs/snappy') -Recurse -File | ForEach-Object FullName)
 $inputs += @(Get-ChildItem (Join-Path $root 'release/include') -Recurse -File | ForEach-Object FullName)
 $inputs += @('lib/xrt/xrt.h','lib/xruntime/xruntime.h','release/xl.exe','release/xl.dll','release/xlc.dll',
-    'test/support/extlib_codec_runtime.c','test/support/extlib_native_codec_file_rollback.h',
+    'test/support/extlib_codec_runtime.c','test/support/extlib_native_codec_file_rollback.h','test/support/extlib_codec_io_errors.h',
     'test/cases/extlib_snappy.xl','test/cases/extlib_snappy_progress.xl',
     'release/examples/extlibs/snappy.xl','release/examples/extlibs/snappy_basic.xl',
     'tools/run_extlib_c.ps1','tools/check_extlib_native_globals.ps1','tools/check_extlib_native_globals.sh',
