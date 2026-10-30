@@ -14,7 +14,7 @@
 #define MAX_BLOCKS 4096
 typedef struct help_block {
     xui_widget widget,editor; char* text; int code,heading,height;
-    xui_cache_policy_t codeCache; xide_help_view* view;
+    xui_cache_policy_t renderCache; xide_help_view* view;
     xui_widget_event_proc keyHandler,moveHandler; void *keyUser,*moveUser;
     int viewport;
     const xide_help_document* source;
@@ -115,7 +115,6 @@ static int addBlock(xide_help_view* view,const char* text,int heading,const char
         TRY(xideDpiCodeEditCreate(view->app->context,&block->editor,&code)); block->code=1;
         TRY(xuiWidgetAddChild(block->widget,block->editor));
         TRY(xideRegisterLanguages(xuiCodeEditGetLanguageRegistry(block->editor))); TRY(xideConfigureEditorLanguage(block->editor,language));
-        block->codeCache=xuiWidgetGetCachePolicy(block->editor);
         TRY(xuiWidgetSetEventHandler(block->widget,XUI_EVENT_POINTER_WHEEL,codeWheel,block));
         TRY(xuiWidgetGetEventHandler(block->editor,XUI_EVENT_KEY_DOWN,&block->keyHandler,&block->keyUser));
         TRY(xuiWidgetSetEventHandler(block->editor,XUI_EVENT_KEY_DOWN,codeInput,block));
@@ -126,7 +125,10 @@ static int addBlock(xide_help_view* view,const char* text,int heading,const char
         label.iTextFlags=XUI_TEXT_ALIGN_LEFT|XUI_TEXT_ALIGN_TOP|XUI_TEXT_CLIP; label.fLineGap=4;
         TRY(xuiLabelCreate(view->app->context,&block->widget,&label)); TRY(ideThemeSetTextRole(block->widget,heading ? IDE_ACCENT : IDE_TEXT));
     }
-    /* Paragraphs already share font glyphs; avoid a bitmap for each long-document block. */
+    /* Both Label and CodeEdit paint text through the SDK cache callback.
+       Retain their native policy for visible blocks; PrepareRender releases
+       offscreen surfaces. Only code containers have no drawing of their own. */
+    block->renderCache=xuiWidgetGetCachePolicy(block->code ? block->editor : block->widget);
     {
         xui_cache_policy_t direct={0}; direct.iSize=sizeof(direct); direct.iPolicy=XUI_CACHE_POLICY_NONE;
         TRY(xuiWidgetSetCachePolicy(block->widget,&direct));
@@ -272,6 +274,17 @@ static int intersects(xui_rect_t a,xui_rect_t b)
 {
     return a.fW>0 && a.fH>0 && b.fW>0 && b.fH>0 && (int64_t)a.fX<(int64_t)b.fX+b.fW && (int64_t)a.fX+a.fW>b.fX && (int64_t)a.fY<(int64_t)b.fY+b.fH && (int64_t)a.fY+a.fH>b.fY;
 }
+static int prepareCache(help_block* block,int visible)
+{
+    xui_widget target=block->code ? block->editor : block->widget;
+    xui_cache_policy_t policy=block->renderCache;
+    if(!visible) policy.iPolicy=XUI_CACHE_POLICY_NONE;
+    TRY(xuiWidgetSetCachePolicy(target,&policy));
+    /* Hidden parents are skipped during cache preparation. Release their
+       surfaces explicitly while retaining the text and reading anchors. */
+    if(!visible) TRY(xuiWidgetSetCacheStateCount(target,0));
+    return XUI_OK;
+}
 int xideHelpPrepareRender(xide_help_view* view)
 {
     if(!view) return XUI_OK;
@@ -279,9 +292,10 @@ int xideHelpPrepareRender(xide_help_view* view)
     xui_rect_t clip=xuiWidgetGetWorldRect(xuiScrollViewGetViewportWidget(app->help));
     xui_rect_t screen={0,0,app->viewportWidth,app->viewportHeight};
     int shown=xuiWidgetGetEffectiveVisible(view->content) && intersects(clip,screen);
-    for(size_t i=0;i<view->blockCount;++i) if(view->blocks[i]->code) {
+    for(size_t i=0;i<view->blockCount;++i) {
         help_block* block=view->blocks[i]; xui_rect_t rect=xuiWidgetGetWorldRect(block->widget);
         int visible=shown && intersects(rect,clip) && intersects(rect,screen);
+        if(!block->code) { TRY(prepareCache(block,visible)); continue; }
         /* Keep full-height blocks for document layout and reading anchors, but
            give CodeEdit only a viewport-sized bitmap and the original text.
            Overscan preserves line placement at both edges while scrolling. */
@@ -304,12 +318,7 @@ int xideHelpPrepareRender(xide_help_view* view)
         }
         float x=0,y=0; TRY(xuiCodeEditGetScroll(block->editor,&x,&y));
         if(y!=top) TRY(xuiCodeEditSetScroll(block->editor,x,top));
-        xui_cache_policy_t policy=block->codeCache;
-        if(!visible) policy.iPolicy=XUI_CACHE_POLICY_NONE;
-        TRY(xuiWidgetSetCachePolicy(block->editor,&policy));
-        /* Hidden parents are skipped during cache preparation. Release their
-           surfaces explicitly while retaining the readonly editor and text. */
-        if(!visible) TRY(xuiWidgetSetCacheStateCount(block->editor,0));
+        TRY(prepareCache(block,visible));
     }
     return XUI_OK;
 }
