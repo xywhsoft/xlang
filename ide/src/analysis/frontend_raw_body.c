@@ -87,4 +87,8 @@ int xlsRawBodySealPreprocess(const XL6_SourceReport* report)
     return !s->failed;
 }
 #include "analysis/frontend_raw_environment.inc"
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+#include "analysis/frontend_raw_domains_current.inc"
+#else
 #include "analysis/frontend_raw_domains.inc"
+#endif
