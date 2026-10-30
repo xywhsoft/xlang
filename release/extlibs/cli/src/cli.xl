@@ -3,12 +3,13 @@ extern "xcli_parse" func __cli_parse(var args, var spec) as var
 
 
 // parse 解析命令行参数数组，spec 结构：
-//   flags: ["verbose", "force"]       布尔旗标（单字母自动可用 -v/-f）
+//   flags: ["verbose", "force"]       长旗标；单字母名称如 "v" 可直接用 -v
+//   shorts: {"verbose": "v"}          长旗标的短别名必须显式声明
 //   options: {"output": "o"}          选项名到短字母映射（无短字母用空串）
 //   defaults: {"level": "3"}          选项默认值
 //   positional: ["src", "dst"]        位置参数名
 // 返回 {"ok", "error", "flags", "options", "positional", "rest"}
-// 用户输入错误时 ok=false 且 error 带说明；只有 spec 本身非法才抛 ValueError
+// 参数拼写错误返回 ok=false；声明、输入类型或 NUL 非法抛 ValueError，分配失败抛 MemoryError
 export func parse(var args, var spec) as var
     var r = __cli_parse(args, spec)
     if r == null then

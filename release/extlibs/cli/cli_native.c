@@ -364,7 +364,8 @@ xvalue *xcli_parse(xvalue *args, xvalue *spec) {
             xstrview key;
             xvalue *value = xrtValueObjectAt(defaultsSpec, di, &key);
             if (value != NULL) {
-                xvalue *copy = xrtValueDeepClone(value);
+                /* 默认值已校验为不可变字符串，只需标量复制，不进入图遍历。 */
+                xvalue *copy = xrtValueClone(value);
                 if (!xcli_set_view(optionsOut, key, copy)) goto fail;
             }
         }

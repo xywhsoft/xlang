@@ -1,0 +1,12 @@
+extern "xcli_parse" func parse(var args, var spec) as var
+extern "xcli_projection_native_control" func nativeControl() as c_bool
+
+// 同名 C 伴随源提供真实解析器，避开 os.args 缺符号以单独检验原生容器投影。
+func main(...) as int
+    assert nativeControl()
+    println("cli native control: PASS")
+    var result = parse(["--output=report.csv"], {"options": {"output": "o"}})
+    assert result["ok"] and result["options"]["output"] == "report.csv"
+    println("cli literal projection: PASS")
+    return 0
+end
