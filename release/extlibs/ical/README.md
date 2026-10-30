@@ -1,5 +1,20 @@
 # ical
 
+2026-10-30：修复先检查原始 UTF-8、后展开折行造成的误拒绝，现对完整
+逻辑行校验，包括未知字段/参数与嵌套组件。最终同一 C 回归在两平台
+旧解析器各 91 条断言失败→0；147 合法/140 非法场景与 236 实际 OOM
+点通过，失败/恢复内存平衡、GCC/TCC JIT/AOT 和 Linux sanitizer 通过。
+新[双语读取范例](examples/README.md)及完整黄金输出通过，两实际原型/
+错误返回负例通过。未改 API/ABI、冻结 XRT 或主线，没有新增复制/缓冲。
+逐行校验的调用次数改变，未测吞吐，不宣称零性能影响。
+
+**当前仍未签收整包发布级**：Windows 默认 43 项前 42 项符合要求，原
+`allocations.xl` 的语言字典 build 仍 ValueError，Linux 同边界失败。
+M1 最小源在两平台 JIT/AOT 均先通过原生往返再失败于语言字典；没有
+用解析器返回对象的成功替代字典创建。详细范围与现场见
+[UTF-8 折行审查](UTF8_FOLDING_AUDIT_2026-10-30.md)。下文旧缺符号与
+旧构建通过记录保留为历史，不代表本次所有语言路径已经通过。
+
 2026-10-24：更新后的 Windows 发布版运行公开 XLang 范例时，合法
 日历字典在 `build` 首次调用处报 `ValueError`。最小对照证明同一
 `build` 能接受 `parse` 返回的 XRT 对象，却不能接受等价的语言字典；
@@ -24,6 +39,9 @@ string text = ical.build({"events": [event]})
 var back = ical.parse(text)
 assert back["events"][0]["summary"] == "团队例会"
 ```
+
+上面的字典创建是目标 API，目前受 M1 阻断；可运行的原生解析与规范写回
+范例见 `examples/folded_calendar.xl` 和 `folded_calendar_c.c`。
 
 ## 映射边界
 
@@ -72,10 +90,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_extlib_c.ps1 -Pack
 
 在 Linux/WSL 的 仓库根目录另运行 `bash release/extlibs/ical/test/check.sh`。脚本从自身位置定位包和 XRT，在临时目录复用编译对象，运行 C ASan/UBSan、三条 XLang 用例及 C/XLang 同输出范例；生成的日历文件逐字节比较，并用 Python 标准库独立检查 UTF-8、CRLF、75 字节折行、字段与长中文描述。
 
-当前发布物执行上述 Windows 默认门禁时，完整范例 AOT 构建会因共享符号缺失而失败；
-局部复验 C/JIT 和线格式时可在 `check.ps1` 后加 `-SkipAot`，不能以快测替代发布验收。
+当前 Windows 默认门禁在新折行/双语/五份正常 AOT 前置检查之后，仍在原
+`allocations.xl` 的语言字典 build 处失败，后续旧完整范例及其 AOT/线格式
+阶段未执行。旧共享符号缺失属于历史构建结果；`-SkipAot` 仅跳过 AOT，
+既不能解决 M1，也不能替代发布验收。
 
-C/XL 测试覆盖事件/待办、RRULE、TZID/VALUE、嵌套提醒隔离、重复分类、长中文字段、折行、异常输入、控制字符拒绝、内存故障与独立所有权；Windows 严格 GCC、Linux ASan/UBSan、双语同输出和无索引核心 AOT 通过。完整 AOT 仍受主线 `xl6ValueIndexReadCopyV1`、`xl6ValueDataSnapshotV1` 缺符号阻断，见 `dev/extlib_blockers/`，因此暂不签收正式发布级验收。
+历史 C/XL 测试覆盖事件/待办、RRULE、TZID/VALUE、嵌套提醒隔离、重复分类、长中文字段、折行、异常输入、控制字符拒绝、内存故障与独立所有权；过去的严格 C、双语与核心 AOT 记录不代替当前验收。旧主线 `xl6ValueIndexReadCopyV1`、`xl6ValueDataSnapshotV1` 缺符号只描述当时构建，当前实测边界为顶部的 M1。此次原 C 边界/新折行矩阵与两中央原生往返用例通过，不扩大为尚未执行的全部语言用例。
 原生 C 边界还对有效事件的 `SUMMARY` 值逐字节替换为分隔符、反斜杠、换行、NUL 与非法 UTF-8：拒绝时必须有诊断；接受后生成、重新解析并再次生成须得到同一文本。该有限矩阵不代替持续模糊测试。
 
 Windows 包级脚本在本次专属构建目录运行严格 GCC 的三个独立实现单元、
@@ -84,15 +104,20 @@ C 边界、中央及包内 XLang 用例、双语范例、Python 标准库线格�
 字节及线格式；`-SkipAot` 仅供局部开发。C 教学范例显式包含三个
 实现单元，可不带额外参数直接 `xl run`；正式包与 C 边界测试仍分别
 编译实现文件，避免让范例的单文件写法改变发布构建结构。
+当前门禁在原用例之前先验证新的 C/XL 折行、双语黄金字节、实际 C 原型
+和五份正常 AOT；原用例仍按成功要求执行，不能用 `-SkipAot` 绕过 M1。
+开发门禁需要 GCC 和 Python 3，普通使用不依赖 Python。Windows 外部
+`.report.json` 分别记录 stdout/stderr、状态、预期与原始码；两平台
+失败均保留独占目录、指纹与日志，不再删除关键失败现场。
 
 `test/allocations.xl` 对 `parse/build` 各扫描前 48 个分配点，验证语言侧内存异常类别、成功路径和失败后中文字段往返；已登记包清单并加入 Linux 包级门禁。
 
-另以独立的 [Python icalendar](https://pypi.org/project/icalendar/) 7.3.0 解析 C/xlang 范例和 3000 个中文字符的折行样例；两种语言生成的范例文件逐字节一致，长字段完整读回。`icalendar` 仅是可选测试依赖，不进入扩展库或发布物。从仓库根目录运行：
+历史上另以独立的 [Python icalendar](https://pypi.org/project/icalendar/) 7.3.0 解析 C/xlang 范例和 3000 个中文字符的折行样例，两种语言文件一致、长字段完整读回。本轮未重跑这项第三方互通，不作为当前字典创建通过证据。`icalendar` 仅是可选测试依赖，不进入扩展库或发布物。恢复 M1 后可从仓库根目录运行：
 
 ```powershell
 python -m venv build\test\ical\venv
 .\build\test\ical\venv\Scripts\python.exe -m pip install icalendar==7.3.0
-.\release\xl.exe build release\extlibs\ical\examples\ical.c release\extlibs\ical\ical_native.c release\extlibs\ical\ical_parse.c release\extlibs\ical\ical_build.c --inc-path lib\xrt --inc-path release\extlibs\ical\include -o build\test\ical_example.exe
+.\release\xl.exe build release\extlibs\ical\examples\ical.c -o build\test\ical_example.exe
 .\build\test\ical_example.exe build\test\ical_example_c.ics
 .\release\xl.exe run release\examples\extlibs\ical.xl -- build\test\ical_example_xl.ics
 .\release\xl.exe build release\extlibs\ical\test\test_ical.c release\extlibs\ical\ical_native.c release\extlibs\ical\ical_parse.c release\extlibs\ical\ical_build.c --inc-path lib\xrt --inc-path release\extlibs\ical\include -o build\test\ical_test.exe

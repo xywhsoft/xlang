@@ -19,7 +19,8 @@
   <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / ical</p><h1>ical</h1>
     <p class="extlib-lead">iCalendar 2.0 常用事件与待办字段读写。</p>
     <p>UTF-8、日期参数、规则原值与按字节折行；C 和 xlang 均可使用。</p>
-    <p>当前发布版的 XLang 字典不能正确投影到原生 <code>build</code> 参数；下方字典构造示例是目标 API，完整语言与 AOT 门禁未签收。原生解析得到的对象可正常写出。</p>
+    <p>当前发布版的 XLang 字典不能正确投影到原生 <code>build</code> 参数；完整语言门禁未签收。下方仅展示原生解析对象，不能替代字典构造验收。</p>
+    <p>2026-10-30：修复在展开折行之前检查 UTF-8 导致的误拒绝，未知属性/参数和嵌套组件也检查展开后的逻辑字符。147 合法/140 非法/236 OOM、失败内存平衡和双平台 C/XLang JIT/AOT 通过，同一回归旧解析器各 91 条断言失败归零；API、ABI、XRT 和主线未改。Windows 默认 43 项前 42 项符合要求，原 allocations 的字典创建仍失败；Linux 同样保留 M1，不能据五份正常 AOT 通过签收整包。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
@@ -28,10 +29,10 @@
     </tbody></table>
     <h2>范例</h2>
     <pre><code>import ical
-var event = {"uid": "demo@example", "dtstamp": "20260801T000000Z",
-             "dtstart": "20260817T013000Z", "summary": "团队例会"}
-string text = ical.build({"events": [event]})
-println(ical.parse(text)["events"][0]["summary"])</code></pre>
+string text = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:demo\nEND:VCALENDAR\n"
+var calendar = ical.parse(text)
+println(calendar["prodid"])</code></pre>
+    <p>包内 <code>folded_calendar.xl</code> 与 <code>folded_calendar_c.c</code> 提供同功能读取、TEXT 恢复、规范写回范例；五条语言/引擎路径检查固定输出与完整日历字节。默认不写文件，传入路径时才保留输出。发送端应在完整字符之间折行，读取端会尝试恢复被物理折行拆开的 UTF-8 序列；真正非法的逻辑 UTF-8 仍拒绝。不是完整 RFC 验证器，未承诺零性能影响。</p>
     <p>这是常用字段值映射，不保留未知属性、提醒、时区定义或原始组件顺序；RRULE 不求值，且与 UID、DTSTAMP、DTSTART、DTEND、DUE 一样只接受单值。PRODID、UID、SUMMARY 等按 TEXT 转义，URL 与 RRULE 保留原值。组件界定行只接受无参数的 <code>BEGIN:</code>/<code>END:</code>，带参数的同名行会被拒绝；组件名只接受 ASCII 字母、数字和连字符，合法的未知组件仍可忽略。生成时顶层只接受 version、prodid、events、todos，拼错字段会报错，不会静默生成空日历。解析和生成拒绝非法 UTF-8、内嵌 NUL 与非法 ASCII 控制字符，TEXT 内存换行会被转义；生成结果超过 8 MiB 时 C 接口报告 <code>XERR_RANGE</code>，不会截断。使用 TZID 时需自行负责时区定义，独立导出建议使用 UTC。C 接口、输入上限与发布验收状态见包内 README。</p>
     <p>读取器可以提取缺少生成必需字段的事件或待办，供查看使用；这类结果直接传给 <code>build</code> 会失败，需补齐字段后再生成。解析输入超过 8 MiB 时也在读取内容前报告 <code>XERR_RANGE</code>；XLang 的 parse/build 对超限抛 <code>RangeError</code>，空输入和格式错误仍属值错误。</p>
     <p>C 教学范例可单文件 <code>xl run</code>；正式包仍分别编译实现单元。Windows 默认门禁覆盖严格 C、双语范例、线格式、无索引核心 AOT，并要求完整范例 AOT 生成的日历与 C 字节一致且通过独立线格式检查；当前发布版在语言字典投影处失败，后续完整范例 AOT 阶段未执行。<code>-SkipAot</code> 仅供 C/JIT 聚焦验证。Linux 门禁包含 C ASan/UBSan、XLang 边界和线格式对照；外部 <code>icalendar</code> 解析仍是可选互通验收。</p>
