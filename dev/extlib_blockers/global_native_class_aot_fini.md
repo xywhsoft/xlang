@@ -539,3 +539,21 @@ global-failures.tsv逐项保留，外层为失败1；不是只见PASS输出便�
 修复主线后须保持这三份正例，并复跑完整门禁和固定映射，不改变布局。
 
 证据索引build/test/chash_audit_415b441b24b640f6b96c268ec72fa532。
+
+## 2026-10-30 HyperLogLog 三顶层正例复核
+
+原boundaries/named_type/allocations均未改；默认门禁分别构建运行三份
+顶层正例，并聚合真实失败，每项仍要求0。两平台均先打印各自PASS，
+再在退出期报operation is not valid in the current state、退出1；
+同文件JIT和七条普通独立程序均过。不能根据输出PASS或局部对象正常，
+签收顶层对象退役；聚合不是把三个1改成预期通过。
+
+两平台各49阶段46符合预期（含两私有访问拒绝）。Windows报告
+build/test/hyperloglog_guard/run_a96a88e2e0df4bc2a0c8de7c2c13c9db.json，
+45输入不变、0警告。Linux原生快照/var/tmp/xlang-hll-final-src-4YF7Dk，
+现场tmp/xlang-hll-zIl55I，43门禁输入、79复制源与原件前后不变，C含
+ASan/UBSan/float-cast-overflow/泄漏、0警告，三份原始1各自保留在
+phases/global-failures.tsv中。本轮仅补测试/双语范例/门禁，没有改算法、
+绑定、ABI或主线。既有最小复现继续保留，修复主线后复跑全部原正例。
+
+证据索引build/test/hll_audit_f7af61fe6e5f457698d26178479b3747。
