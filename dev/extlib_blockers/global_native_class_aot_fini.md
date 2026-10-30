@@ -592,3 +592,23 @@ Windows 默认 88 阶段、Linux 77 阶段仍分别有 M5、M3 等独立失败�
 `build/test/csv_audit_1793320836319/windows-final/results.json`、
 `/var/tmp/xlang-csv-final-src-uLgSv6/tmp/xlang-csv-qIwZjg`。
 修复主线退役顺序后须重跑原顶层文件及四份原文，不能仅用局部 main 签收。
+
+## 2026-10-30 ZIP 顶层对象
+
+ZIP 是第 28 个逐包实测的 M2 包，不因声明相似自动归类。原官网快速开始
+代码未修改：Windows JIT 输出“你好”并返回 0；AOT 构建返回 0，程序
+打印同样内容后报 `operation is not valid in the current state`、退出 1。
+原文保存在 `build/test/zip_commit_audit_1793364258/website.xl`，原始进程
+记录在同目录 `website.windows.json`。
+
+新增包内 `test/global_lifecycle.xl` 保留顶层 writer、Buffer、reader 的
+真实创建、提交、读取和关闭，不提前清空全局或搬入 main。Windows 同样
+JIT 0，独立程序先打印 `zip globals: PASS` 后退出 1。九条局部对象的
+正常 AOT 路径另行通过，不能替代这个顶层正例。默认门禁汇总 M2 和
+M3/M12，仍将顶层程序的正确退出要求设为 0。
+
+Linux 最终原生快照 `/var/tmp/xlang-zip-commit-audit-vTSMUrPs` 同样复现
+包内正例与官网原文：JIT 0，AOT 完整打印后 state 错误、退出 1。
+Windows 最终默认门禁报告为
+`build/test/zip_guard_77b92a54f8194de68a03e070756de133.report.json`；
+Linux 对应 `tmp/xlang-zip-LWdcv7`，两平台没有修改原文以避开顶层退役。

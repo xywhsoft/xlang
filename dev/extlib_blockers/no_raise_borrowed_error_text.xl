@@ -1,0 +1,12 @@
+extern "xl_test_error_pending" @no_raise func pending() as bool
+extern "xl_test_error_text" @no_raise func text() as string
+extern "xl_test_error_direct" @no_raise func direct() as c_int
+
+func main(...) as int
+    assert direct() == 0, "direct C must see the pending diagnostic"
+    assert pending()
+    string observed = text()
+    println("observed:", observed)
+    assert observed == "pending native diagnostic", "no_raise borrowed getter lost pending error"
+    return 0
+end
