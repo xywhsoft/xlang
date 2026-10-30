@@ -198,25 +198,37 @@ def prepare_native_ir(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
         regionIndexBytes=8 * 1024 * 1024)
 
 
-def prepare_native_sem(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
+def prepare_native_sem(frontend: Path, output: Path, *, _current_unit_probe=False) -> tuple[Path, Path, dict]:
     """Keep function rules in their original TU, add opt-in immutable memos."""
     original = frontend / 'src/sem/xl6_sem.c'
     body = original.read_bytes()
+    if _current_unit_probe:
+        from native_index_overlay import profile
+        profile(frontend)
     # Reuse depends on the checker's side effects and cross-declaration reads,
     # not just stable patch locations. Require an explicit audit on upgrades.
     audited = 'd4f19af32f1732126913b99717a6b1b2d38d92f343b60828786b62d2a7d8183a'
+    current = _current_unit_probe and sha(original)=='407ca4e51cbc7889b535cbe591f7f823f59131cd179aa285073c034c6796e0b0'
+    if current:
+        # Qualification of representation/key/fact units only. The normal
+        # server path never passes this flag; current semantic admission also
+        # requires a separate audit of every new checker read/side effect.
+        audited = '407ca4e51cbc7889b535cbe591f7f823f59131cd179aa285073c034c6796e0b0'
     if hashlib.sha256(body).hexdigest() != audited:
         raise ValueError('shared semantic checker changed; audit memo context/identity/side-effect assumptions')
     registry = frontend / 'src/sem/xl6_type_registry.c'
     registry_sha = 'a0c37403f28d8a29ac4589e1dd78344a0d5fa2c8051ba2ead0209b9e0a228583'
+    if current: registry_sha = 'f8be2409dc6188091d831a68df657b64b6911d07b197736796d74ce2379260ba'
     if sha(registry) != registry_sha:
         raise ValueError('shared type registry changed; audit generic identity reservation replay')
     registry_header = frontend / 'src/sem/xl6_type_registry.h'
     registry_header_sha = 'f5967cce13c1d6051cf0c5c716e422e2865c69c5fd3451b39cbad95e642cd8a3'
+    if current: registry_header_sha = '27f0415459b060075b8e18a677e9c05d7460412ef5d908a86dc10d519f30ccd1'
     if sha(registry_header) != registry_header_sha:
         raise ValueError('shared type registry fields changed; audit complete observed type records')
     ast = frontend / 'src/ast/xl6_ast.c'
     ast_sha = 'adf07bc08b6e6949fe1bb6095e373d130df205535e9e2fa1662d2cc7b4c65035'
+    if current: ast_sha = 'b8bbafaed7b469232b73f6256282607f4644eb605fb1aa7a636bf123143cf026'
     if sha(ast) != ast_sha:
         raise ValueError('shared AST source/range ownership changed; audit synthetic type origins')
     source = body.decode('utf-8').replace('\r\n', '\n')
@@ -251,7 +263,8 @@ def prepare_native_sem(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     old='static int xl6SemCheckExportSymbolUnique(XL6_SemContext* ctx, XL6_AstNode* node)\n{'
     if source.count(old)!=1:raise ValueError('semantic export visibility observation seam changed')
     source=source.replace(old,old+'\n    xlsSemReadsUnknown(ctx);')
-    if source.count('xl6TypeRegistryFind(')!=62:
+    type_queries = 71 if current else 62
+    if source.count('xl6TypeRegistryFind(')!=type_queries:
         raise ValueError('semantic type lookup calls changed; audit declaration read coverage')
     source=source.replace('xl6TypeRegistryFind(', 'xlsSemReadTypeFind(')
     start = source.index('static int xl6SemCheckOverloadConflicts(XL6_SemContext* ctx)\n{')
@@ -347,7 +360,8 @@ def prepare_native_sem(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     start = source.index('    xl6SemAnnotateTypeIdentities(&ctx, root);')
     end = source.index('    xl6SemPopScope(&ctx, &globalScope);', start)
     tail = source[start:end]
-    if tail.count('xl6SemAnnotateExecutionPlans(root, &planState);') != 1:
+    annotation = 'xl6SemAnnotateExecutionPlans(&ctx, root, &planState);' if current else 'xl6SemAnnotateExecutionPlans(root, &planState);'
+    if tail.count(annotation) != 1:
         raise ValueError('shared final semantic annotation block changed; audit')
     source = source[:start] + '    xlsSemFinishAnnotations(&ctx, root);\n' + source[end:]
     seam = 'int xl6SemCheckModuleWithQuery('
@@ -370,7 +384,7 @@ def prepare_native_sem(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
         deferredBodyViewBytes=64 * 1024 * 1024,
         overloadCandidateBytes=8 * 1024 * 1024,
         syntheticTypeOrigins='eight explicit at-node constructors retain original AST source/ranges;original type rules unchanged',
-        observedTypeQueries=62,
+        observedTypeQueries=type_queries, currentUnitProbe=current,
         auditedDependencies={str(registry): registry_sha, str(registry_header):registry_header_sha, str(ast): ast_sha})
 
 

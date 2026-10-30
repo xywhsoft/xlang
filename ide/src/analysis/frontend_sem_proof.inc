@@ -49,6 +49,10 @@ static int xlsSemProofType(xls_sem_proof* proof,const xls_sem_symbol_span* span,
     if((node->text && !xlsSemProofCharge(proof,strlen(node->text)+1)) ||
        (node->doc && !xlsSemProofCharge(proof,strlen(node->doc)+1)) ||
        (node->literalData && (node->literalSize==SIZE_MAX || !xlsSemProofCharge(proof,node->literalSize+1))))return 0;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    if(node->compiledPackageLink && !xlsSemProofCharge(proof,strlen(node->compiledPackageLink)+1))return 0;
+    xlsSemProofSymbol(proof,span,node->semanticReceiverSymbolId);
+#endif
     ++proof->nodes;
     if((node->line || node->column || node->range.known || node->tokenRange.known) &&
        (!xrtArrayPush(&proof->located,&node) || !xlsSemProofFits(proof,limit)))return 0;
@@ -84,6 +88,10 @@ static xls_sem_proof* xlsSemProofCreate(const xls_sem_unit* unit,size_t limit)
         const xls_sem_fact* fact=xrtArrayConstGet(&unit->facts,i);
         XL6_SymbolId ids[]={fact->symbol,fact->declared,fact->target,fact->compound};
         for(size_t j=0;j<4;++j)xlsSemProofSymbol(proof,&unit->symbols,ids[j]);
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+        xlsSemProofSymbol(proof,&unit->symbols,fact->receiver);
+        if(fact->packageLink && !xlsSemProofCharge(proof,strlen(fact->packageLink)+1))goto failed;
+#endif
         if(!xlsSemProofType(proof,&unit->symbols,fact->inferred,1,limit) ||
            !xlsSemProofType(proof,&unit->symbols,fact->declaredType,1,limit))goto failed;
     }
