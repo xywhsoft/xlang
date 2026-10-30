@@ -19,6 +19,7 @@ int xstbiw_available(void);
 const char* xstbiw_version(void);
 
 /* 返回 xbuffer*，由调用方 xrtBufferDestroy；void* 保持 XL point ABI 一致。 */
+/* 像素只借用；BMP 的 RGB 展开/行填充在分配输出前检查 128 MiB 限额。 */
 void* xstbiw_encode(int Format, void* Pixels, size_t Length,
     int Width, int Height, int Channels, int Option);
 

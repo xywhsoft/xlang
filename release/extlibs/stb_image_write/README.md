@@ -1,5 +1,23 @@
 # stb_image_write
 
+2026-10-30 BMP 确定输出大小改为编码前检查：单通道像素会展开为 RGB，
+64 MiB 合法源可能超过 128 MiB 输出预算。旧实现只在回调中发现超限，
+低内存时会先申请输出并误报 MEMORY；现超限直接 RANGE，不分配输出、
+不扫描源像素、不修改已有目标。通过预检的 BMP 预留一次所需容量，
+1×1 灰度 BMP 的可注入分配点由 5 减至 2；不是吞吐或峰值内存基准。
+其他格式仍使用回调限额，公开 ABI、像素借用和返回 Buffer 所有权不变。
+
+同一最终 C 回归在两平台均旧 8 处失败、修复后全过：108 组宽高/通道/
+行对齐头信息，8 个限额与保留文件场景，2 个实际 OOM 点与立即恢复、
+活动内存和非法释放计数。语言 108 组头信息纳入轻量 coverage，64 MiB
+限额专项仍单列；新增 `examples/bmp_layout.xl` 与 `_c.c` 对照展示灰度/
+RGB/RGBA 布局，不替代原有五格式解码与文件写出范例。
+Windows 完整门禁 35 项、53 输入/工具指纹，Linux 原生 ASan/UBSan
+完整门禁通过；各 8 份独立程序通过。4 个实际生成 C 原型与公开头
+一致，故意改错返回值两平台均拒绝。子进程限时，失败保留现场；真实
+静默编译器 Windows raw37/outer1、Linux 37/127 负例通过。主线、XRT
+和冻结发布物未改；依赖 `stb_image` 的 M3 风险仍未关闭，本包仍为 R。
+
 2026-10-26 重建 Windows/Linux x64 发布物后，两平台默认包门禁
 均退出 0：严格 C、Linux ASan/UBSan、尺寸/路径/分配故障与
 64 MiB 输出限额、C/XLang 五格式文件逐字节对照，以及核心和
@@ -50,6 +68,9 @@ assert stb_image_write.writePng("copy.png", pixels,
 `write*` 还拒绝路径中的内嵌 NUL，避免意外覆盖截断后的前缀路径。
 合法输入若编码后超过 128 MiB，C 侧报告 `XERR_RANGE`、XLang `encode*`
 抛 `RangeError`，不返回部分图片；实际分配失败保留 `XERR_MEMORY`。
+BMP 的 1/2/3 通道输入生成 24 位 RGB（双通道 alpha 不保留），头长 54
+字节，每行 RGB 字节数向上补齐至四字节；4 通道输入使用 122 字节 V4
+头和 RGBA 数据。输出长度可精确预检，不受分配失败时机影响。
 
 C 使用 `include/stb_image_write_native.h`。`xstbiw_encode` 的返回值是
 `xbuffer*`，调用方用 `xrtBufferDestroy` 释放；传入的像素指针仅借用。
@@ -73,6 +94,9 @@ HDR 回调实现；JPEG 位缓冲使用无符号移位；最终 PNG 缓冲申请
 - `.\release\xl.exe run release/extlibs/stb_image_write/test/boundaries.xl`
 - `.\release\xl.exe run release/extlibs/stb_image_write/test/allocations.xl`
 - `.\release\xl.exe run release/extlibs/stb_image_write/test/output_limit.xl`
+- `.\release\xl.exe run release/extlibs/stb_image_write/test/bmp_headers.xl`
+- `.\release\xl.exe run release/extlibs/stb_image_write/test/test_bmp_budget.c`
+- 新内存 BMP 双语例与同一五行预期输出见 [examples/README.md](examples/README.md)。
 - `tools/run_extlib_c.ps1 -Package 'stb_image_write,stb_image' -Source release/examples/extlibs/stb_image_write_c.c`
 - `release` 目录下可直接 `xl run examples/extlibs/stb_image_write_c.c`；
   C 范例直接包含解码和编码实现。C/XL 范例默认从 `xl.exe` 所在目录
@@ -89,7 +113,7 @@ HDR 回调实现；JPEG 位缓冲使用无符号移位；最终 PNG 缓冲申请
 
 先前发布物曾在普通 `Buffer` 的最小 AOT 缺少
 `xl6NativeHandleTraceLeaf`，见
-`demo6/dev/extlib_blockers/native_handle_trace_aot.md`；带输出程序也曾
+`dev/extlib_blockers/native_handle_trace_aot.md`；带输出程序也曾
 缺少共享 `xl6ValueDataSnapshotV1`，见 `text_snapshot_link.md`。
 2026-10-26 两平台默认包门禁已验证上述缺符号不再复现。
 
