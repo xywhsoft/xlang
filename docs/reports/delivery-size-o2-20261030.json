@@ -1,0 +1,797 @@
+{
+  "schema": 1,
+  "scope": "O2 host code, compact native contract records and VFS catalog; Linux GCC O2 precompiled ELF",
+  "products": [
+    {
+      "platform": "windows",
+      "name": "xl.exe",
+      "beforeO2Bytes": 130175,
+      "afterO2Bytes": 71168,
+      "savedBytes": 59007,
+      "beforeSha256": "3c2f0e3b4d6db527b167ee800d55623058d10142321c847b62eb3d36e463275f",
+      "afterSha256": "9c62ecbce75be56e3b86a64c057f22517571fe16dbd93619f7d9f0ba13889186"
+    },
+    {
+      "platform": "windows",
+      "name": "xl.dll",
+      "beforeO2Bytes": 16921600,
+      "afterO2Bytes": 14153728,
+      "savedBytes": 2767872,
+      "beforeSha256": "87d75a44c34349dda05f30a756f642b0e1df991d129d19770065caba0d1d4d80",
+      "afterSha256": "924f07528233b0f1c2628999631725e2c18b193490f248bbfa699c6732322674"
+    },
+    {
+      "platform": "windows",
+      "name": "xlc.dll",
+      "beforeO2Bytes": 22305280,
+      "afterO2Bytes": 19443712,
+      "savedBytes": 2861568,
+      "beforeSha256": "585369430dbf6b1004d70f1b4855b23d35bfc6823d69462b1dc3a926814f8701",
+      "afterSha256": "03273f4d764c79b689c58cc17b5d3f3cf23ea9a78964c58ef9273e613f6f8183"
+    },
+    {
+      "platform": "linux",
+      "name": "xl",
+      "beforeO2Bytes": 47232,
+      "afterO2Bytes": 47224,
+      "savedBytes": 8,
+      "beforeSha256": "7f70c69d54c3536b2cba99c2212d305de2ea6e564704585222c4a0c16ba85cde",
+      "afterSha256": "4bd02523290f6ab0d7afecd5039ccee126ea528f342f449daf9fe541f06a1163"
+    },
+    {
+      "platform": "linux",
+      "name": "libxl.so",
+      "beforeO2Bytes": 18085424,
+      "afterO2Bytes": 15550000,
+      "savedBytes": 2535424,
+      "beforeSha256": "4e4162778fec2ecd025df7da426851955cc890d69dd9ce03b12ec0210672e4ba",
+      "afterSha256": "84a4644adf6b9d37ec654b0552eb5f55cf8db12be6eafcb8c0dfae184f428bbe"
+    },
+    {
+      "platform": "linux",
+      "name": "libxlc.so",
+      "beforeO2Bytes": 23402320,
+      "afterO2Bytes": 20965200,
+      "savedBytes": 2437120,
+      "beforeSha256": "7ec644cb54f749602427dc0bcd62497fa14606cc86e6e1ec47169b3103179c1d",
+      "afterSha256": "f854960914524264c8ae01116093beb46e2cb0330563e8c4d8836d56695d6a2d"
+    }
+  ],
+  "contract": {
+    "complete": true,
+    "stats": {
+      "contracts": 3700,
+      "parameters": 7638,
+      "storedParameters": 3796,
+      "detailRecords": 781
+    },
+    "runs": [
+      {
+        "name": "equivalence",
+        "exit": 0,
+        "seconds": 1.0929999999934807
+      },
+      {
+        "name": "wrong-parameter",
+        "exit": 1,
+        "seconds": 0.09399999998277053
+      },
+      {
+        "name": "wrong-result",
+        "exit": 1,
+        "seconds": 0.10899999999674037
+      }
+    ],
+    "storage": {
+      "contracts": 3700,
+      "declarationBytes": 3226400,
+      "compactBytes": 480160,
+      "headerSize": 40,
+      "parameterSize": 48,
+      "detailSize": 192
+    },
+    "lookupBenchmark": {
+      "lookupQueriesPerVariant": 150000,
+      "legacySeconds": 0.972,
+      "compactSeconds": 0.022
+    }
+  },
+  "contractLinux": {
+    "complete": true,
+    "stats": {
+      "contracts": 3700,
+      "parameters": 7638,
+      "storedParameters": 3796,
+      "detailRecords": 781
+    },
+    "runs": [
+      {
+        "name": "equivalence",
+        "exit": 0,
+        "seconds": 1.1751759090000178
+      },
+      {
+        "name": "wrong-parameter",
+        "exit": 1,
+        "seconds": 0.026486401000056503
+      },
+      {
+        "name": "wrong-result",
+        "exit": 1,
+        "seconds": 0.02765769999996337
+      }
+    ],
+    "storage": {
+      "contracts": 3700,
+      "declarationBytes": 3226400,
+      "compactBytes": 480160,
+      "headerSize": 40,
+      "parameterSize": 48,
+      "detailSize": 192
+    },
+    "lookupBenchmark": {
+      "lookupQueriesPerVariant": 150000,
+      "legacySeconds": 1.12908,
+      "compactSeconds": 0.020189
+    }
+  },
+  "benchmarks": {
+    "windows": {
+      "complete": true,
+      "process": "fresh process; OS cache not purged; alternating lanes; 3 rounds",
+      "rows": [
+        {
+          "name": "check-math",
+          "lane": "baseline",
+          "round": 0,
+          "seconds": 0.099495799979195,
+          "exit": 0
+        },
+        {
+          "name": "check-math",
+          "lane": "final",
+          "round": 0,
+          "seconds": 0.08193029998801649,
+          "exit": 0
+        },
+        {
+          "name": "cgen-random",
+          "lane": "baseline",
+          "round": 0,
+          "seconds": 0.5029289999511093,
+          "exit": 0
+        },
+        {
+          "name": "cgen-random",
+          "lane": "final",
+          "round": 0,
+          "seconds": 0.24834539997391403,
+          "exit": 0
+        },
+        {
+          "name": "build-hash",
+          "lane": "baseline",
+          "round": 0,
+          "seconds": 0.8656514000031166,
+          "exit": 0
+        },
+        {
+          "name": "build-hash",
+          "lane": "final",
+          "round": 0,
+          "seconds": 0.5473600000259466,
+          "exit": 0
+        },
+        {
+          "name": "build-nested",
+          "lane": "baseline",
+          "round": 0,
+          "seconds": 0.7016439000144601,
+          "exit": 0
+        },
+        {
+          "name": "build-nested",
+          "lane": "final",
+          "round": 0,
+          "seconds": 0.6236384999938309,
+          "exit": 0
+        },
+        {
+          "name": "check-math",
+          "lane": "baseline",
+          "round": 1,
+          "seconds": 0.07998720003524795,
+          "exit": 0
+        },
+        {
+          "name": "check-math",
+          "lane": "final",
+          "round": 1,
+          "seconds": 0.07356539997272193,
+          "exit": 0
+        },
+        {
+          "name": "cgen-random",
+          "lane": "baseline",
+          "round": 1,
+          "seconds": 0.4323153999866918,
+          "exit": 0
+        },
+        {
+          "name": "cgen-random",
+          "lane": "final",
+          "round": 1,
+          "seconds": 0.2646853000042029,
+          "exit": 0
+        },
+        {
+          "name": "build-hash",
+          "lane": "baseline",
+          "round": 1,
+          "seconds": 1.0053555000340566,
+          "exit": 0
+        },
+        {
+          "name": "build-hash",
+          "lane": "final",
+          "round": 1,
+          "seconds": 0.521679800003767,
+          "exit": 0
+        },
+        {
+          "name": "build-nested",
+          "lane": "baseline",
+          "round": 1,
+          "seconds": 0.7687924000201747,
+          "exit": 0
+        },
+        {
+          "name": "build-nested",
+          "lane": "final",
+          "round": 1,
+          "seconds": 0.5793595999712124,
+          "exit": 0
+        },
+        {
+          "name": "check-math",
+          "lane": "baseline",
+          "round": 2,
+          "seconds": 0.08529869996709749,
+          "exit": 0
+        },
+        {
+          "name": "check-math",
+          "lane": "final",
+          "round": 2,
+          "seconds": 0.08104209997691214,
+          "exit": 0
+        },
+        {
+          "name": "cgen-random",
+          "lane": "baseline",
+          "round": 2,
+          "seconds": 0.5290546999895014,
+          "exit": 0
+        },
+        {
+          "name": "cgen-random",
+          "lane": "final",
+          "round": 2,
+          "seconds": 0.2736167999682948,
+          "exit": 0
+        },
+        {
+          "name": "build-hash",
+          "lane": "baseline",
+          "round": 2,
+          "seconds": 0.7852037000120617,
+          "exit": 0
+        },
+        {
+          "name": "build-hash",
+          "lane": "final",
+          "round": 2,
+          "seconds": 0.48688029998447746,
+          "exit": 0
+        },
+        {
+          "name": "build-nested",
+          "lane": "baseline",
+          "round": 2,
+          "seconds": 0.6817642999812961,
+          "exit": 0
+        },
+        {
+          "name": "build-nested",
+          "lane": "final",
+          "round": 2,
+          "seconds": 0.5240721000009216,
+          "exit": 0
+        }
+      ],
+      "medians": {
+        "check-math": {
+          "baseline": 0.08529869996709749,
+          "final": 0.08104209997691214
+        },
+        "cgen-random": {
+          "baseline": 0.5029289999511093,
+          "final": 0.2646853000042029
+        },
+        "build-hash": {
+          "baseline": 0.8656514000031166,
+          "final": 0.521679800003767
+        },
+        "build-nested": {
+          "baseline": 0.7016439000144601,
+          "final": 0.5793595999712124
+        }
+      },
+      "artifactBytes": {
+        "baseline-build-hash\\output.exe": 790016,
+        "baseline-build-nested\\nested.exe": 19961856,
+        "final-build-hash\\output.exe": 790016,
+        "final-build-nested\\nested.exe": 17139200
+      }
+    },
+    "linux": {
+      "complete": true,
+      "process": "fresh process; OS cache not purged; alternating lanes; 3 rounds",
+      "rows": [
+        {
+          "name": "check-math",
+          "lane": "baseline",
+          "round": 0,
+          "seconds": 0.06683179999981803,
+          "exit": 0
+        },
+        {
+          "name": "check-math",
+          "lane": "final",
+          "round": 0,
+          "seconds": 0.037861899999825255,
+          "exit": 0
+        },
+        {
+          "name": "cgen-random",
+          "lane": "baseline",
+          "round": 0,
+          "seconds": 0.555690100999982,
+          "exit": 0
+        },
+        {
+          "name": "cgen-random",
+          "lane": "final",
+          "round": 0,
+          "seconds": 0.3372914999999921,
+          "exit": 0
+        },
+        {
+          "name": "build-hash",
+          "lane": "baseline",
+          "round": 0,
+          "seconds": 0.965163400000165,
+          "exit": 0
+        },
+        {
+          "name": "build-hash",
+          "lane": "final",
+          "round": 0,
+          "seconds": 0.6537209999996776,
+          "exit": 0
+        },
+        {
+          "name": "build-nested",
+          "lane": "baseline",
+          "round": 0,
+          "seconds": 0.7790922999997747,
+          "exit": 0
+        },
+        {
+          "name": "build-nested",
+          "lane": "final",
+          "round": 0,
+          "seconds": 0.6934308999998393,
+          "exit": 0
+        },
+        {
+          "name": "check-math",
+          "lane": "baseline",
+          "round": 1,
+          "seconds": 0.05586540000012974,
+          "exit": 0
+        },
+        {
+          "name": "check-math",
+          "lane": "final",
+          "round": 1,
+          "seconds": 0.04723980000017036,
+          "exit": 0
+        },
+        {
+          "name": "cgen-random",
+          "lane": "baseline",
+          "round": 1,
+          "seconds": 0.5423165000001973,
+          "exit": 0
+        },
+        {
+          "name": "cgen-random",
+          "lane": "final",
+          "round": 1,
+          "seconds": 0.3604478000002018,
+          "exit": 0
+        },
+        {
+          "name": "build-hash",
+          "lane": "baseline",
+          "round": 1,
+          "seconds": 0.8783867210004246,
+          "exit": 0
+        },
+        {
+          "name": "build-hash",
+          "lane": "final",
+          "round": 1,
+          "seconds": 0.6045136299999285,
+          "exit": 0
+        },
+        {
+          "name": "build-nested",
+          "lane": "baseline",
+          "round": 1,
+          "seconds": 0.7373149370000647,
+          "exit": 0
+        },
+        {
+          "name": "build-nested",
+          "lane": "final",
+          "round": 1,
+          "seconds": 0.5735472279998248,
+          "exit": 0
+        },
+        {
+          "name": "check-math",
+          "lane": "baseline",
+          "round": 2,
+          "seconds": 0.05023640299987164,
+          "exit": 0
+        },
+        {
+          "name": "check-math",
+          "lane": "final",
+          "round": 2,
+          "seconds": 0.04851380299987795,
+          "exit": 0
+        },
+        {
+          "name": "cgen-random",
+          "lane": "baseline",
+          "round": 2,
+          "seconds": 0.46837852299995575,
+          "exit": 0
+        },
+        {
+          "name": "cgen-random",
+          "lane": "final",
+          "round": 2,
+          "seconds": 0.3263043169999946,
+          "exit": 0
+        },
+        {
+          "name": "build-hash",
+          "lane": "baseline",
+          "round": 2,
+          "seconds": 0.9743114490001972,
+          "exit": 0
+        },
+        {
+          "name": "build-hash",
+          "lane": "final",
+          "round": 2,
+          "seconds": 0.6050967299997865,
+          "exit": 0
+        },
+        {
+          "name": "build-nested",
+          "lane": "baseline",
+          "round": 2,
+          "seconds": 0.7032658360003552,
+          "exit": 0
+        },
+        {
+          "name": "build-nested",
+          "lane": "final",
+          "round": 2,
+          "seconds": 0.5928187290001006,
+          "exit": 0
+        }
+      ],
+      "medians": {
+        "check-math": {
+          "baseline": 0.05586540000012974,
+          "final": 0.04723980000017036
+        },
+        "cgen-random": {
+          "baseline": 0.5423165000001973,
+          "final": 0.3372914999999921
+        },
+        "build-hash": {
+          "baseline": 0.965163400000165,
+          "final": 0.6050967299997865
+        },
+        "build-nested": {
+          "baseline": 0.7373149370000647,
+          "final": 0.5928187290001006
+        }
+      },
+      "artifactBytes": {
+        "baseline-build-hash/output": 826825,
+        "baseline-build-nested/nested": 20710073,
+        "final-build-hash/output": 796214,
+        "final-build-nested/nested": 14122406
+      }
+    }
+  },
+  "nativeBenchmark": [
+    {
+      "producer": "tcc",
+      "runs": [
+        {
+          "checksum": 8543292666549580208,
+          "hashSeconds": 0.334941,
+          "crcSeconds": 1.324912
+        },
+        {
+          "checksum": 8543292666549580208,
+          "hashSeconds": 0.335544,
+          "crcSeconds": 1.335415
+        },
+        {
+          "checksum": 8543292666549580208,
+          "hashSeconds": 0.304039,
+          "crcSeconds": 1.430258
+        }
+      ]
+    },
+    {
+      "producer": "gcc-o2",
+      "runs": [
+        {
+          "checksum": 8543292666549580208,
+          "hashSeconds": 0.009758,
+          "crcSeconds": 1.158971
+        },
+        {
+          "checksum": 8543292666549580208,
+          "hashSeconds": 0.009939,
+          "crcSeconds": 1.154634
+        },
+        {
+          "checksum": 8543292666549580208,
+          "hashSeconds": 0.010164,
+          "crcSeconds": 1.151563
+        }
+      ]
+    }
+  ],
+  "evidenceRoot": "F:\\xlang-validation\\size-o2-20261030",
+  "formatOnlyProof": {
+    "changed": [
+      "src\\ir\\xl6_ir_direct_bridge_types.h"
+    ],
+    "records": [
+      {
+        "compiler": "E:/software/w64devkit/bin/gcc.exe",
+        "unchanged": true,
+        "preprocessedSha256": "66f5f6ef6fa1730a64d87f7bc1552252441fcfbe6e7244a8ed19383b3d77e376"
+      },
+      {
+        "compiler": "F:\\xlang-validation\\size-o2-20261030\\final-win\\tmp\\tcc_bootstrap.exe",
+        "unchanged": true,
+        "preprocessedSha256": "8c4c9930979b12fe97299b25b77878db6dd437380fb06eff3872cff88f196135"
+      }
+    ]
+  },
+  "baseline-win": {
+    "tcc_builtin_resources.c": {
+      "schema": 2,
+      "format": 2,
+      "packing": "solid",
+      "blockSize": 1048576,
+      "resourceCount": 2742,
+      "blobCount": 67,
+      "rawBytes": 116246664,
+      "decodedBlobBytes": 54641499,
+      "packedBytes": 6674939,
+      "spanCount": 2852,
+      "generatedSha256": "b45cf1d597594ec23f15b82442c9fbb9e353b69cb97b912c40c606935e856a22"
+    },
+    "tcc_builtin_resources_runtime.c": {
+      "schema": 2,
+      "format": 2,
+      "packing": "solid",
+      "blockSize": 1048576,
+      "resourceCount": 600,
+      "blobCount": 15,
+      "rawBytes": 22214996,
+      "decodedBlobBytes": 11762946,
+      "packedBytes": 1686752,
+      "spanCount": 617,
+      "generatedSha256": "53183b8bbdd44a3f5df08f0aa76e662fc92bed547c60e73c6a489125e744c680"
+    }
+  },
+  "final-win": {
+    "tcc_builtin_resources.c": {
+      "schema": 2,
+      "format": 3,
+      "packing": "solid",
+      "packingOrder": "manifest",
+      "blockSize": 1048576,
+      "resourceCount": 2744,
+      "blobCount": 64,
+      "rawBytes": 105117266,
+      "decodedBlobBytes": 51864165,
+      "packedBytes": 6671498,
+      "spanCount": 2842,
+      "storedSpanCount": 2177,
+      "namePoolBytes": 156661,
+      "generatedSha256": "dc93ae078abd8a77dc5f1675f05a22121f5c14c1d15467e4259e83f778f1e528"
+    },
+    "tcc_builtin_resources_runtime.c": {
+      "schema": 2,
+      "format": 3,
+      "packing": "solid",
+      "packingOrder": "manifest",
+      "blockSize": 1048576,
+      "resourceCount": 600,
+      "blobCount": 15,
+      "rawBytes": 22214996,
+      "decodedBlobBytes": 11762946,
+      "packedBytes": 1686576,
+      "spanCount": 617,
+      "storedSpanCount": 610,
+      "namePoolBytes": 23797,
+      "generatedSha256": "1dd7220fbb6d7630b7e08a8591b693ea75b4cb21b36d3b46e63e49b3c900bd3a"
+    }
+  },
+  "languageRegression": {
+    "windows": {
+      "stages": 303,
+      "passed": 301,
+      "failures": [
+        {
+          "name": "stdlib_file_async",
+          "phase": "jit",
+          "exit": 1
+        },
+        {
+          "name": "stdlib_file_async",
+          "phase": "aot",
+          "exit": 1
+        }
+      ]
+    },
+    "linux": {
+      "stages": 303,
+      "passed": 301,
+      "failures": [
+        {
+          "name": "stdlib_file_async",
+          "phase": "jit",
+          "exit": 1
+        },
+        {
+          "name": "stdlib_file_async",
+          "phase": "aot",
+          "exit": 1
+        }
+      ]
+    }
+  },
+  "isolatedCatalogV3": {
+    "schema": 2,
+    "format": 3,
+    "packing": "solid",
+    "packingOrder": "manifest",
+    "blockSize": 1048576,
+    "resourceCount": 2742,
+    "blobCount": 67,
+    "rawBytes": 116246664,
+    "decodedBlobBytes": 54641499,
+    "packedBytes": 6674939,
+    "spanCount": 2852,
+    "storedSpanCount": 2178,
+    "namePoolBytes": 156560,
+    "generatedSha256": "09d553641f7901bb1cb7b04e0eb88ddccd4baf73f47c034e07c0832ce6ef4fd2",
+    "directoryRecordsBeforeBytes": 158336,
+    "directoryRecordsAfterBytes": 93552
+  },
+  "rejectedExperiments": {
+    "elfMetadataRewrite": {
+      "uniqueObjects": 1410,
+      "rawBeforeBytes": 48156844,
+      "rawAfterBytes": 48085384,
+      "packedBeforeBytes": 6674939,
+      "packedAfterBytes": 6694477,
+      "adopted": false
+    },
+    "familyPacking": {
+      "packedBeforeBytes": 6674939,
+      "packedAfterBytes": 6613367,
+      "cacheTrace": {
+        "manifest": {
+          "runtime": {
+            "blockLoads": 32,
+            "decodedBytes": 24263736
+          },
+          "compiler": {
+            "blockLoads": 43,
+            "decodedBytes": 33930939
+          }
+        },
+        "family": {
+          "runtime": {
+            "blockLoads": 40,
+            "decodedBytes": 31247944
+          },
+          "compiler": {
+            "blockLoads": 61,
+            "decodedBytes": 49322084
+          }
+        }
+      },
+      "adoptedAsDefault": false
+    }
+  },
+  "nativeOwnerGate": {
+    "complete": true,
+    "ready": false,
+    "missingPolicies": 12,
+    "evidence": "native-owner-final-win/results.json",
+    "failedProbes": [
+      {
+        "name": "json-writer-exit",
+        "exit": 1
+      },
+      {
+        "name": "xlon-writer-exit",
+        "exit": 1
+      },
+      {
+        "name": "logger-exit",
+        "exit": 1
+      },
+      {
+        "name": "log-record-exit",
+        "exit": 1
+      },
+      {
+        "name": "file-async-jit",
+        "exit": 1
+      },
+      {
+        "name": "file-async-exit",
+        "exit": 1
+      }
+    ]
+  },
+  "linuxProducerComparison": [
+    {
+      "catalog": "runtime",
+      "tccPackedBytes": 1492471,
+      "gccO2PackedBytes": 1645419,
+      "gccO2ExtraBytes": 152948,
+      "resources": 502,
+      "sameSourceCohort": true
+    },
+    {
+      "catalog": "compiler",
+      "tccPackedBytes": 6276347,
+      "gccO2PackedBytes": 6759633,
+      "gccO2ExtraBytes": 483286,
+      "resources": 2638,
+      "sameSourceCohort": true
+    }
+  ]
+}

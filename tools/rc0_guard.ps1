@@ -1,4 +1,4 @@
-param(
+﻿param(
     [switch]$SkipFullTests
 )
 
@@ -424,6 +424,10 @@ Invoke-GuardStep "static wiring guards" {
     Invoke-GuardStep "XLIR supplemental guards" {
         Invoke-Cmd "powershell.exe" @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "tools\run_xlir_guards.ps1", "-Mode", "Rc0Supplement")
     }
+}
+
+Invoke-GuardStep "compact native contract catalog" {
+    Invoke-Cmd "python" @("tools/check_ir_contract_catalog.py", "--root", $Root, "--directory", "build/test/ir-contract-catalog")
 }
 
 Invoke-GuardStep "handwritten C safety" {

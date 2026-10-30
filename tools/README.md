@@ -1372,3 +1372,11 @@ released TCC core and TCC-generated machine code are not sanitizer-instrumented.
 `check_stdlib_vfs.ps1 -OnlyFixture <用例名数组>` 可选择正例进行定点复验；驻留生命周期、十个 ABI 负例和六个公开示例仍照常运行。各用例失败会收集后统一报告，不把局部复验标为全套通过。
 
 `check_release_delivery.py` 将普通产品和公开 SDK 复制到隔离目录，清除继承的工具链覆盖变量，从空工作目录验证 C、嵌套 xlang 编译的 JIT/AOT，以及双库的公开 C 宿主；保留输入哈希和逐阶段日志。它不复制仓库源码树，不访问网络，接入 `rc0_guard.ps1`。
+
+### Native contract catalog storage
+
+- `generate_ir_contract_catalog.py` evaluates the authoritative C declarations in `src/ir/xl6_ir_direct_bridge_declarations.inc`, using `xl6_ir_direct_bridge_fields.inc` as the single field schema. It interns exact parameter sequences and detail records into `xl6_ir_direct_bridge_data.inc`; both platform builds regenerate it. `--check` rejects stale generated data.
+- `check_ir_contract_catalog.py --root . --directory build/test/ir-contract-catalog` compiles an exhaustive comparison against every original declaration, including all parameter slots, strings and enum identities. It also verifies that real parameter/result mutations are rejected. This gate is wired into `00_static_smoke.bat` and `rc0_guard.ps1`.
+- `check_builtin_catalog.py --root . --out <fresh-directory> --cc <compiler> --pack-tool <packer>` verifies indexed VFS catalog reads, aliases, NUL bytes, cache eviction, seeking and two generations of nested serialization. Catalog v3 changes internal storage only; public read APIs retain their signatures.
+
+`precompile_builtin.py --native-cc <gcc>` uses ordinary Linux ELF with `-O2 -fPIC`, records the native compiler/system headers in cache identities, and keeps TCC preprocessing and linking. Windows rejects this option and retains its TCC ELF producer. Release size/performance results and their limits are documented in [O2 delivery optimization](../docs/delivery-size-o2-20261030.md).

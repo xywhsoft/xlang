@@ -153,15 +153,16 @@ static void tcc_vfs_normalize_key(const char *path, char *out, size_t out_size)
 
 static const TCCBuiltinResource *tcc_vfs_lookup_exact(const char *key)
 {
-    unsigned int i;
-
-    if (!key || key[0] == '\0')
-        return NULL;
-
-    for (i = 0; i < tcc_builtin_resources_count; ++i) {
-        const TCCBuiltinResource *res = &tcc_builtin_resources[i];
-        if (res->name && strcmp(res->name, key) == 0)
-            return res;
+    unsigned int low=0,high=tcc_builtin_resources_count;
+    if(!key||!key[0])return NULL;
+    while(low<high){
+        unsigned int middle=low+(high-low)/2;
+        const TCCBuiltinResource* resource=&tcc_builtin_resources[middle];
+        const char* name=tcc_builtin_resource_name(resource);
+        if(!name){errno=EINVAL;return NULL;}
+        int compared=strcmp(key,name);
+        if(!compared)return resource;
+        if(compared<0)high=middle;else low=middle+1;
     }
     return NULL;
 }
@@ -371,7 +372,9 @@ static int tcc_vfs_alloc_dynamic_fd(const TCCVfsDynamicResource *res)
 
 static int tcc_vfs_alloc_fd(const TCCBuiltinResource *res)
 {
-    int fd = tcc_vfs_alloc_materialized_fd(NULL, NULL, res->size);
+    int fd;
+    if (res->size>SIZE_MAX) { errno=EOVERFLOW; return -1; }
+    fd = tcc_vfs_alloc_materialized_fd(NULL, NULL, (size_t)res->size);
     TCCVfsOpenFile *vf = tcc_vfs_get_file(fd);
     if (vf) vf->resource = res;
     return fd;
@@ -492,11 +495,13 @@ static int tcc_vfs_resource_read(const TCCBuiltinResource *res, size_t pos, void
     size_t total=0, copied=0;
     unsigned int i;
     if (!res || pos>res->size || size>res->size-pos || (size&&!buffer) ||
-        (res->span_count&&!res->spans)) { errno=EINVAL; return 0; }
+        (res->first_span>tcc_builtin_spans_count ||
+         res->span_count>tcc_builtin_spans_count-res->first_span)) { errno=EINVAL; return 0; }
     for (i=0;i<res->span_count;++i) {
-        const TCCBuiltinSpan *span=&res->spans[i];
-        if (!span->blob || span->offset>span->blob->size ||
-            span->size>span->blob->size-span->offset || span->size>SIZE_MAX-total) {
+        const TCCBuiltinSpan *span=&tcc_builtin_spans[res->first_span+i];
+        const TCCBuiltinBlob* blob=tcc_builtin_span_blob(span);
+        if (!blob || span->offset>blob->size ||
+            span->size>blob->size-span->offset || span->size>SIZE_MAX-total) {
             errno=EINVAL; return 0;
         }
         total+=span->size;
@@ -504,7 +509,7 @@ static int tcc_vfs_resource_read(const TCCBuiltinResource *res, size_t pos, void
     if (total!=res->size) { errno=EINVAL; return 0; }
     total=0;
     for (i=0;i<res->span_count && copied<size;++i) {
-        const TCCBuiltinSpan *span=&res->spans[i];
+        const TCCBuiltinSpan *span=&tcc_builtin_spans[res->first_span+i];
         size_t end=total+span->size;
         if (pos<end) {
             size_t offset=pos>total?pos-total:0;
@@ -512,7 +517,7 @@ static int tcc_vfs_resource_read(const TCCBuiltinResource *res, size_t pos, void
             unsigned char *temporary=NULL;
             const unsigned char *data;
             if (n>size-copied) n=size-copied;
-            data=tcc_vfs_blob_data(span->blob,&temporary);
+            data=tcc_vfs_blob_data(tcc_builtin_span_blob(span),&temporary);
             if (!data) return 0;
             memcpy((unsigned char*)buffer+copied,data+span->offset+offset,n);
             free(temporary);
@@ -528,6 +533,7 @@ static int tcc_vfs_materialize_resource(const TCCBuiltinResource *res,
     unsigned char *data;
     *out_data=NULL; *out_owned_data=NULL; *out_size=0;
     if (!res) { errno=ENOENT; return 0; }
+    if (res->size>SIZE_MAX) { errno=EOVERFLOW; return 0; }
     data=(unsigned char*)malloc(res->size?res->size:1u);
     if (!data) { errno=ENOMEM; return 0; }
     if (!tcc_vfs_resource_read(res,0,data,res->size)) { free(data); return 0; }
@@ -540,7 +546,8 @@ int tcc_vfs_read_builtin(const char *path,void *buffer,size_t capacity,size_t *s
     if (!path || !size || strlen(path)>=TCC_VFS_KEY_MAX || (!buffer&&capacity)) { errno=EINVAL; return 0; }
     res=tcc_vfs_lookup_resource(path);
     if (!res) { errno=ENOENT; return 0; }
-    *size=res->size;
+    if (res->size>SIZE_MAX) { errno=EOVERFLOW; return 0; }
+    *size=(size_t)res->size;
     if (!buffer) return 1;
     if (capacity<res->size) { errno=ENOSPC; return 0; }
     return tcc_vfs_resource_read(res,0,buffer,res->size);
@@ -810,93 +817,110 @@ static void tcc_vfs_source_format(TCCVfsSourceWriter *w,const char *format,...)
 }
 static int tcc_vfs_catalog_selected(const TCCBuiltinResource *r,int compiler)
 {
-    if (compiler || strcmp(r->name,"__xl_objects/static-native/xrt.o")==0 ||
-        strcmp(r->name,"__xl_objects/shared-native/xrt.o")==0) return 1;
-    return strncmp(r->name,"__xl_compiler/",14)!=0 &&
-        strncmp(r->name,"__xl_objects/",13)!=0 &&
-        strcmp(r->name,"include/__xl_runtime/xrt.h")!=0 &&
-        strcmp(r->name,"include/__xl_runtime/xruntime.h")!=0 &&
-        strcmp(r->name,"include/__xl_runtime/xruntime_features.h")!=0;
+    if (compiler || strcmp(tcc_builtin_resource_name(r),"__xl_objects/static-native/xrt.o")==0 ||
+        strcmp(tcc_builtin_resource_name(r),"__xl_objects/shared-native/xrt.o")==0) return 1;
+    return strncmp(tcc_builtin_resource_name(r),"__xl_compiler/",14)!=0 &&
+        strncmp(tcc_builtin_resource_name(r),"__xl_objects/",13)!=0 &&
+        strcmp(tcc_builtin_resource_name(r),"include/__xl_runtime/xrt.h")!=0 &&
+        strcmp(tcc_builtin_resource_name(r),"include/__xl_runtime/xruntime.h")!=0 &&
+        strcmp(tcc_builtin_resource_name(r),"include/__xl_runtime/xruntime_features.h")!=0;
 }
-static size_t tcc_vfs_blob_index(const TCCBuiltinBlob **blobs,size_t count,const TCCBuiltinBlob *blob)
+/* xlang 2026-10-30: serialize the indexed v3 catalog without changing
+ * decoded payloads, logical aliases or the bounded decompression cache. */
+static void tcc_vfs_source_name(TCCVfsSourceWriter* w,const char* text)
 {
-    size_t i; for(i=0;i<count;++i) if(blobs[i]==blob) return i;
-    return count;
+    const unsigned char* name=(const unsigned char*)text;
+    for(;*name;++name){
+        if(*name=='"'||*name=='\\')tcc_vfs_source_format(w,"\\%c",*name);
+        else if(*name>=32&&*name<127)tcc_vfs_source_append(w,(const char*)name,1);
+        else tcc_vfs_source_format(w,"\\%03o",*name);
+    }
 }
 int tcc_vfs_write_catalog_source(int compiler,char *buffer,size_t capacity,size_t *size)
 {
-    const TCCBuiltinBlob **blobs=NULL;
-    size_t count=0,maximum=0,b,i,j;
+    uint32_t* map=NULL;
+    size_t count=0,b,i,j,span_count=0,name_bytes=0,resource_count=0;
     TCCVfsSourceWriter w={buffer,capacity,0,1};
     if(size)*size=0;
-    if(!size || (!buffer&&capacity)) { errno=EINVAL; return 0; }
-    for(i=0;i<tcc_builtin_resources_count;++i) {
-        const TCCBuiltinResource *r=&tcc_builtin_resources[i];
-        if(!tcc_vfs_catalog_selected(r,compiler))continue;
-        if(r->span_count>SIZE_MAX-maximum) { errno=EINVAL; return 0; }
-        maximum+=r->span_count;
-    }
-    if(maximum>SIZE_MAX/sizeof(*blobs)) { errno=EINVAL; return 0; }
-    blobs=(const TCCBuiltinBlob**)malloc((maximum?maximum:1)*sizeof(*blobs));
-    if(!blobs) { errno=ENOMEM; return 0; }
-    for(i=0;i<tcc_builtin_resources_count;++i) {
-        const TCCBuiltinResource *r=&tcc_builtin_resources[i];
-        if(!tcc_vfs_catalog_selected(r,compiler))continue;
-        for(j=0;j<r->span_count;++j) {
-            const TCCBuiltinBlob *blob=r->spans[j].blob;
-            if(tcc_vfs_blob_index(blobs,count,blob)==count)blobs[count++]=blob;
+    if(!size||(!buffer&&capacity)){errno=EINVAL;return 0;}
+    if((size_t)tcc_builtin_blobs_count>SIZE_MAX/sizeof(*map)){errno=EOVERFLOW;return 0;}
+    map=malloc((tcc_builtin_blobs_count?tcc_builtin_blobs_count:1)*sizeof(*map));
+    if(!map){errno=ENOMEM;return 0;}
+    for(i=0;i<tcc_builtin_blobs_count;++i)map[i]=UINT32_MAX;
+    for(i=0;i<tcc_builtin_resources_count;++i){
+        const TCCBuiltinResource* resource=&tcc_builtin_resources[i];
+        const char* name=tcc_builtin_resource_name(resource);size_t length,total=0;
+        if(!name){errno=EINVAL;goto failed;}
+        if(!tcc_vfs_catalog_selected(resource,compiler))continue;
+        length=strlen(name);
+        if(resource->first_span>tcc_builtin_spans_count ||
+           resource->span_count>tcc_builtin_spans_count-resource->first_span ||
+           resource->span_count>UINT32_MAX-span_count || length>=UINT32_MAX-name_bytes){errno=EOVERFLOW;goto failed;}
+        span_count+=resource->span_count;name_bytes+=length+1;++resource_count;
+        for(j=0;j<resource->span_count;++j){
+            const TCCBuiltinSpan* span=&tcc_builtin_spans[resource->first_span+j];
+            const TCCBuiltinBlob* blob=tcc_builtin_span_blob(span);
+            if(!blob||span->offset>blob->size||span->size>blob->size-span->offset||span->size>SIZE_MAX-total){errno=EINVAL;goto failed;}
+            total+=span->size;
+            if(map[span->blob_index]==UINT32_MAX)map[span->blob_index]=(uint32_t)count++;
         }
+        if(total!=resource->size){errno=EINVAL;goto failed;}
     }
-    tcc_vfs_source_format(&w,"#include \"tcc_builtin_vfs.h\"\n#if TCC_BUILTIN_CATALOG_VERSION != 2\n#error catalog_version\n#endif\n");
-    for(b=0;b<count;++b) {
-        const TCCBuiltinBlob *blob=blobs[b];
-        const char hex[]="0123456789abcdef";
-        tcc_vfs_source_format(&w,"static const unsigned char vd%llu[]={\n",(unsigned long long)b);
-        for(i=0;i<blob->packed_size;) {
-            char line[81]; size_t n=0;
-            for(j=0;j<16&&i<blob->packed_size;++j,++i) {
-                unsigned int byte=blob->data[i];
-                line[n++]='0';line[n++]='x';line[n++]=hex[byte>>4];line[n++]=hex[byte&15];line[n++]=',';
+    tcc_vfs_source_format(&w,"#include \"tcc_builtin_vfs.h\"\n#if TCC_BUILTIN_CATALOG_VERSION != 3\n#error catalog_version\n#endif\n");
+    /* Emit original bytes; map order is first use in the sorted directory. */
+    for(i=0;i<tcc_builtin_blobs_count;++i){
+        const TCCBuiltinBlob* blob=&tcc_builtin_blobs[i];const char hex[]="0123456789abcdef";
+        if(map[i]==UINT32_MAX)continue;
+        b=map[i];tcc_vfs_source_format(&w,"static const unsigned char vd%llu[]={\n",(unsigned long long)b);
+        for(size_t at=0;at<blob->packed_size;){
+            char line[81];size_t n=0;
+            for(j=0;j<16&&at<blob->packed_size;++j,++at){
+                unsigned int byte=blob->data[at];line[n++]='0';line[n++]='x';
+                line[n++]=hex[byte>>4];line[n++]=hex[byte&15];line[n++]=',';
             }
             line[n++]='\n';tcc_vfs_source_append(&w,line,n);
         }
         if(!blob->packed_size)tcc_vfs_source_format(&w,"0\n");
-        tcc_vfs_source_format(&w,"};\nstatic const TCCBuiltinBlob vb%llu={vd%llu,%llu,%llu,%u};\n",
-            (unsigned long long)b,(unsigned long long)b,(unsigned long long)blob->packed_size,
-            (unsigned long long)blob->size,blob->method);
-    }
-    for(i=0;i<tcc_builtin_resources_count;++i) {
-        const TCCBuiltinResource *r=&tcc_builtin_resources[i];
-        if(!tcc_vfs_catalog_selected(r,compiler))continue;
-        tcc_vfs_source_format(&w,"static const TCCBuiltinSpan vs%llu[]={\n",(unsigned long long)i);
-        for(j=0;j<r->span_count;++j) {
-            const TCCBuiltinSpan *span=&r->spans[j];b=tcc_vfs_blob_index(blobs,count,span->blob);
-            tcc_vfs_source_format(&w,"{&vb%llu,%llu,%llu},\n",(unsigned long long)b,
-                (unsigned long long)span->offset,(unsigned long long)span->size);
-        }
-        if(!r->span_count)tcc_vfs_source_format(&w,"{0}\n");
         tcc_vfs_source_format(&w,"};\n");
     }
-    tcc_vfs_source_format(&w,"const TCCBuiltinResource tcc_builtin_resources[]={\n");
-    b=0;
-    for(i=0;i<tcc_builtin_resources_count;++i) {
-        const TCCBuiltinResource *r=&tcc_builtin_resources[i];const unsigned char *name;
-        if(!tcc_vfs_catalog_selected(r,compiler))continue;
-        ++b;tcc_vfs_source_format(&w,"{\"");
-        for(name=(const unsigned char*)r->name;*name;++name) {
-            if(*name=='"'||*name=='\\')tcc_vfs_source_format(&w,"\\%c",*name);
-            else if(*name>=32&&*name<127)tcc_vfs_source_append(&w,(const char*)name,1);
-            else tcc_vfs_source_format(&w,"\\%03o",*name);
+    tcc_vfs_source_format(&w,"const TCCBuiltinBlob tcc_builtin_blobs[]={\n");
+    for(b=0;b<count;++b)for(i=0;i<tcc_builtin_blobs_count;++i)if(map[i]==b){
+        const TCCBuiltinBlob* blob=&tcc_builtin_blobs[i];
+        tcc_vfs_source_format(&w,"{vd%llu,%u,%u,%u},\n",(unsigned long long)b,blob->packed_size,blob->size,blob->method);break;
+    }
+    if(!count)tcc_vfs_source_format(&w,"{0}\n");
+    tcc_vfs_source_format(&w,"};\nconst unsigned int tcc_builtin_blobs_count=%llu;\nconst TCCBuiltinSpan tcc_builtin_spans[]={\n",(unsigned long long)count);
+    for(i=0;i<tcc_builtin_resources_count;++i){
+        const TCCBuiltinResource* resource=&tcc_builtin_resources[i];
+        if(!tcc_vfs_catalog_selected(resource,compiler))continue;
+        for(j=0;j<resource->span_count;++j){
+            const TCCBuiltinSpan* span=&tcc_builtin_spans[resource->first_span+j];
+            tcc_vfs_source_format(&w,"{%u,%u,%u},\n",map[span->blob_index],span->offset,span->size);
         }
-        tcc_vfs_source_format(&w,"\",vs%llu,%u,%llu},\n",(unsigned long long)i,r->span_count,(unsigned long long)r->size);
     }
-    if(!b)tcc_vfs_source_format(&w,"{0}\n");
-    tcc_vfs_source_format(&w,"};\nconst unsigned int tcc_builtin_resources_count=%llu;\n",(unsigned long long)b);
-    free(blobs);*size=w.used;
-    if(!w.ok) { errno=EOVERFLOW; return 0; }
-    if(buffer) {
-        if(capacity<=w.used) { errno=ENOSPC; return 0; }
-        buffer[w.used]=0;
+    if(!span_count)tcc_vfs_source_format(&w,"{0}\n");
+    tcc_vfs_source_format(&w,"};\nconst unsigned int tcc_builtin_spans_count=%llu;\nconst char tcc_builtin_names[]=\n",(unsigned long long)span_count);
+    for(i=0;i<tcc_builtin_resources_count;++i){
+        const TCCBuiltinResource* resource=&tcc_builtin_resources[i];
+        if(!tcc_vfs_catalog_selected(resource,compiler))continue;
+        tcc_vfs_source_format(&w,"\"");tcc_vfs_source_name(&w,tcc_builtin_resource_name(resource));
+        tcc_vfs_source_format(&w,"\\000\"\n");
     }
+    if(!resource_count)tcc_vfs_source_format(&w,"\"\"\n");
+    tcc_vfs_source_format(&w,";\nconst unsigned int tcc_builtin_names_size=%llu;\nconst TCCBuiltinResource tcc_builtin_resources[]={\n",(unsigned long long)(name_bytes+1));
+    span_count=0;name_bytes=0;
+    for(i=0;i<tcc_builtin_resources_count;++i){
+        const TCCBuiltinResource* resource=&tcc_builtin_resources[i];
+        if(!tcc_vfs_catalog_selected(resource,compiler))continue;
+        tcc_vfs_source_format(&w,"{%lluull,%lluu,%lluu,%u},\n",(unsigned long long)resource->size,(unsigned long long)name_bytes,(unsigned long long)span_count,resource->span_count);
+        span_count+=resource->span_count;name_bytes+=strlen(tcc_builtin_resource_name(resource))+1;
+    }
+    if(!resource_count)tcc_vfs_source_format(&w,"{0}\n");
+    tcc_vfs_source_format(&w,"};\nconst unsigned int tcc_builtin_resources_count=%llu;\n",(unsigned long long)resource_count);
+    free(map);*size=w.used;
+    if(!w.ok){errno=EOVERFLOW;return 0;}
+    if(buffer){if(capacity<=w.used){errno=ENOSPC;return 0;}buffer[w.used]=0;}
     return 1;
+failed:
+    free(map);return 0;
 }

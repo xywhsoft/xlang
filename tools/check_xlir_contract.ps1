@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$Root = "",
     [string]$PublicDirectory = ""
 )
@@ -21,7 +21,7 @@ function Read-Utf8([string]$relative)
 $header = Read-Utf8 "src\ir\xl6_ir.h"
 $source = Read-Utf8 "src\ir\xl6_ir.c"
 $lower = Read-Utf8 "src\ir\xl6_ir_lower.c"
-$directBridge = Read-Utf8 "src\ir\xl6_ir_direct_bridge.c"
+$directBridge = (Read-Utf8 "src\ir\xl6_ir_direct_bridge.c") + (Read-Utf8 "src\ir\xl6_ir_direct_bridge_declarations.inc") + (Read-Utf8 "src\ir\xl6_ir_direct_bridge_types.h")
 $xlangBridge = Read-Utf8 "src\ir\xl6_ir_xlang_bridge.c"
 $directBridgeUnit = Read-Utf8 "test\cases\xlir_direct_bridge_unit.c"
 $cgenUnit = Read-Utf8 "test\cases\xlir_cgen.c"

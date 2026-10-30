@@ -33,6 +33,8 @@ require_tool "$CC"
 require_tool "$MAKE"
 require_tool "$PYTHON"
 
+"$PYTHON" "$ROOT/tools/generate_ir_contract_catalog.py" --root "$ROOT" --cc "$CC" --directory "$BUILD_DIR/ir-contract-catalog"
+
 "$PYTHON" "$ROOT/tools/check_stdlib_shipping_sources.py" --root "$ROOT"
 
 mkdir -p "$BUILD_DIR" "$TCC_DIST_DIR/include" "$TCC_DIST_DIR/lib" "$ROOT/release"
@@ -81,7 +83,8 @@ printf 'Building Linux XRT object and VFS packer...\n'
     -o "$PACK_TOOL"
 
 "$PYTHON" "$ROOT/tools/precompile_builtin.py" --root "$ROOT" --tcc "$BUILD_DIR/tcc" \
-    --tcc-dist "$TCC_DIST_DIR" --output "$BUILD_DIR/precompiled" --triplet "$TCC_CONFIGURED_TRIPLET"
+    --tcc-dist "$TCC_DIST_DIR" --output "$BUILD_DIR/precompiled" --triplet "$TCC_CONFIGURED_TRIPLET" \
+    --native-cc "$(command -v "$CC")"
 
 printf 'Generating Linux embedded TCC resources...\n'
 "$PYTHON" "$ROOT/tools/gen_tcc_vfs_resources.py" \
@@ -109,7 +112,7 @@ COMMON_FLAGS=(
     -Wno-unused-variable
     -Wno-unused-but-set-variable
     -Wno-format-truncation
-    -Os
+    -O2
     -fPIC
     -ffunction-sections
     -fdata-sections
@@ -169,7 +172,7 @@ printf 'Building libxlc.so...\n'
     -o "$ROOT/release/libxlc.so"
 
 printf 'Building xl command line tool...\n'
-"$CC" -std=c11 -D_GNU_SOURCE -Wall -Os -s -I"$ROOT" -I"$ROOT/release" \
+"$CC" -std=c11 -D_GNU_SOURCE -Wall -O2 -s -ffunction-sections -fdata-sections -Wl,--gc-sections -I"$ROOT" -I"$ROOT/release" \
     "$ROOT/src/driver/xl6_xlc_shell.c" \
     "$ROOT/src/common/xl6_console.c" \
     -L"$ROOT/release" -lxlc \

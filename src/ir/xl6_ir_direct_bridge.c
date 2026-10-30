@@ -1,18 +1,6 @@
-/* Included by xl6_ir.c after the canonical ABI predicates. Both lowering and
- * verification consume these closed value/resource descriptors. Cgen receives
- * explicit native-field projections, never symbol-dependent algorithms. */
-typedef struct XL6_IrNumericEnumMemberContract {
-    const char* name;
-    uint64 magnitude;
-    int negative;
-} XL6_IrNumericEnumMemberContract;
-typedef struct XL6_IrNumericEnumContract {
-    const char* declarationName;
-    XL6_IrCAbi cAbi;
-    XL6_IrIntegerTarget integerTarget;
-    const XL6_IrNumericEnumMemberContract* members;
-    size_t memberCount;
-} XL6_IrNumericEnumContract;
+/* Closed resident contracts are generated once into immutable, deduplicated
+ * records. Runtime lookup never parses declarations or allocates a view. */
+#include "xl6_ir_direct_bridge_types.h"
 
 /* Opt-in nominal scalar contracts, not a general permission to substitute
  * enums for integers. Canonical declaration/layout identity, representation
@@ -51,929 +39,12 @@ static int xl6IrDirectNumericEnumMatches(const XL6_IrModule* module,
     }
     return 1;
 }
-#include "xl6_ir_signature_hash_enum.inc"
-#include "xl6_ir_rsa_enums.inc"
-#include "xl6_ir_x509_records_enums.inc"
-#include "xl6_ir_x509_profiles_enums.inc"
-#include "xl6_ir_x509_crl_profiles_enums.inc"
-#include "xl6_ir_x509_verify_enums.inc"
-#include "xl6_ir_x509_crl_policy_enums.inc"
-#include "xl6_ir_x509_path_enums.inc"
-#include "xl6_ir_tls_identity_enums.inc"
-#include "xl6_ir_tls_parameters_enums.inc"
-#include "xl6_ir_tls_session_enums.inc"
-#include "xl6_ir_tls_transport_enums.inc"
-#include "xl6_ir_net_backend_enum.inc"
-#include "xl6_ir_net_engine_state_enum.inc"
-#include "xl6_ir_net_socket_enums.inc"
-#include "xl6_ir_net_frame_status_enum.inc"
-#include "xl6_ir_net_proxy_enums.inc"
-#include "xl6_ir_tcp_options_enums.inc"
-#include "xl6_ir_udp_enums.inc"
-#include "xl6_ir_tcp_enums.inc"
-#include "xl6_ir_tcp_server_enums.inc"
-#include "xl6_ir_http_enums.inc"
-#include "xl6_ir_ws_enums.inc"
-/* Closed resident signatures include full transport constructors. This is
- * compiler descriptor capacity, not a limit on ordinary language functions.
- * All per-parameter profiles share one bound and lookup rejects overflow. */
-enum { XL6_IR_DIRECT_BRIDGE_PARAMETER_CAPACITY = 16 };
-typedef struct XL6_IrDirectBridgeContract {
-    const char* name;
-    XL6_IrRuntimeBridgeKind kind;
-    XL6_IrCAbi result;
-    size_t parameterCount;
-    XL6_IrCAbi parameters[XL6_IR_DIRECT_BRIDGE_PARAMETER_CAPACITY];
-    XL6_IrCAbi resultArrayItemAbi;
-    XL6_IrIntegerTarget resultIntegerTarget;
-    XL6_IrCAbi parameterArrayItemAbis[XL6_IR_DIRECT_BRIDGE_PARAMETER_CAPACITY];
-    const char* resultOwner;
-    const char* parameterOwners[XL6_IR_DIRECT_BRIDGE_PARAMETER_CAPACITY];
-    int nullableResult;
-    /* Physical char* owns an XRT heap allocation; @owned admits string. */
-    int ownedStringResult;
-    int noRaise;
-    XL6_IrNativeProductAbi resultProductAbi;
-    /* Exact synchronous checked closure profiles. A closure pointer alone is
-     * not a callable signature; zero means this parameter is not a closure. */
-    XL6_IrCAbi parameterNullaryCallableResultAbis[XL6_IR_DIRECT_BRIDGE_PARAMETER_CAPACITY];
-    /* Collections and dynamic borrows are sealed per entry, not inferred from
-     * the common xvalue* C representation. Zero preserves the array profile. */
-    XL6_IrCollectionAbi resultCollectionAbi;
-    unsigned char parameterDynamicBorrows[XL6_IR_DIRECT_BRIDGE_PARAMETER_CAPACITY];
-    unsigned char pure;
-    unsigned char nonblocking;
-    /* Future is a managed generic carrier, never an unchecked pointer or
-     * builtin. Its resident producer must publish this exact element ABI. */
-    XL6_IrCAbi resultFutureElementAbi;
-    XL6_IrAsyncResultAbi resultFutureAbi;
-    /* Seals Future<NumericEnum> to its full nominal/value contract, not just
-     * the integer payload shared with unrelated enums and ordinary int. */
-    const XL6_IrNumericEnumContract* resultFutureEnum;
-    const char* nativeHandlePolicy;
-    XL6_IrCallNativeArrayResultAbi nativeArrayResultAbi;
-    XL6_IrCallErrorPhysicalAbi errorPhysicalAbi;
-    /* Closed owning records are not PODs or arbitrary foreign structs. The
-     * same permanent native-value profile authorizes argument borrows and
-     * independent owned results; emission uses the ordinary call ABI. */
-    XL6_IrNativeValueAbi resultNativeValueAbi;
-    XL6_IrNativeValueAbi parameterNativeValueAbis[XL6_IR_DIRECT_BRIDGE_PARAMETER_CAPACITY];
-    XL6_IrCallNativeContextAbi nativeContext;
-    unsigned nativeServicesRequired;
-    unsigned char genericFutureResult;
-    /* One-based logical parameter index; zero means no slot-address input. */
-    unsigned char genericValueParameter;
-    unsigned char genericChannelParameter;
-    unsigned char nativeClassArrayParameter;
-    const char* nativeClassArrayOwner;
-    unsigned char nativeVoidCallbackArrayParameter;
-    XL6_IrCallNativeResultAbi nativeResultAbi;
-    unsigned char managedHandleResult;
-    unsigned char nativeClassParameter;
-    const char* nativeClassOwner;
-    /* Exact native class produced by Future<T>, without a source-language
-     * placeholder object parameter or an executable result mapper. */
-    const char* nativeClassResultOwner;
-    unsigned char nativeClassCallbackParameter;
-    const char *nativeClassCallbackArgumentOwner,*nativeClassCallbackResultOwner;
-    /* Exact generic resource T, not just its common xvalue* representation. */
-    unsigned char genericResourceResult;
-    unsigned char genericResourceParameter;
-    /* Nullary checked callable returns precisely this call's Future<T>.
-     * Its one-based parameter selects a structural relation, not a pointer
-     * ABI or a nominal class-name exception. No temporary resource for T. */
-    unsigned char genericFutureStarterParameter;
-    /* Nullary checked callback produces Future<T>'s exact T, directly into
-     * its owned result slot, rather than returning an existing Future<T>. */
-    unsigned char genericFutureValueCallbackParameter;
-    /* Resident result stores a Sequence representation, not a Future<T>'s
-     * logical invocation representation. This selects the shared codec plan. */
-    unsigned char sequenceValueResult;
-    const XL6_IrNumericEnumContract* resultEnum;
-    const XL6_IrNumericEnumContract* parameterEnums[XL6_IR_DIRECT_BRIDGE_PARAMETER_CAPACITY];
-    const XL6_IrNumericEnumContract* resultProductEnums[3];
-    const XL6_IrNumericEnumContract* parameterArrayItemEnums[XL6_IR_DIRECT_BRIDGE_PARAMETER_CAPACITY];
-} XL6_IrDirectBridgeContract;
+#include "xl6_ir_direct_bridge_enums.inc"
+#include "xl6_ir_direct_bridge_data.inc"
 
-static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
-    {"xl6_xlang_context_destroy",XL6_IR_RUNTIME_BRIDGE_XLANG,XL6_IR_C_ABI_VOID,1,
-        {XL6_IR_C_ABI_RUNTIME_XVALUE_PTR},.parameterOwners={"xl6_xlang_context_destroy"},.noRaise=1,
-        .nativeHandlePolicy="xl6XlangContextHandlePolicyV1Get"},
-#define S XL6_IR_C_ABI_MANAGED_STRING
-#define I XL6_IR_C_ABI_I64
-#define T XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE
-#define B XL6_IR_C_ABI_BOOL
-#define C XL6_IR_C_ABI_CHAR_U32
-#define V XL6_IR_C_ABI_RUNTIME_XVALUE_PTR
-#define Y XL6_IR_C_ABI_MANAGED_BYTES
-#define F XL6_IR_C_ABI_F64
-#define U XL6_IR_C_ABI_U64
-#define M XL6_IR_C_ABI_TIME_I64
-    {"xl6_xrt_os_args",T,V,0,{0}},
-#include "xl6_ir_atomic_contracts.inc"
-#include "xl6_ir_net_address_contracts.inc"
-#include "xl6_ir_net_resolver_contracts.inc"
-#include "xl6_ir_net_buffer_contracts.inc"
-#include "xl6_ir_net_proxy_contracts.inc"
-#include "xl6_ir_tcp_options_contracts.inc"
-#include "xl6_ir_udp_config_contracts.inc"
-#include "xl6_ir_udp_contracts.inc"
-#include "xl6_ir_udp_future_contracts.inc"
-#include "xl6_ir_udp_transfer_contracts.inc"
-#include "xl6_ir_tcp_contracts.inc"
-#include "xl6_ir_net_file_contracts.inc"
-#include "xl6_ir_tcp_server_contracts.inc"
-#include "xl6_ir_tcp_proxy_contracts.inc"
-#include "xl6_ir_tcp_data_contracts.inc"
-#include "xl6_ir_net_bytes_contracts.inc"
-#include "xl6_ir_tcp_recv_owned_contracts.inc"
-#include "xl6_ir_net_interfaces_contracts.inc"
-#include "xl6_ir_net_backends_contracts.inc"
-#include "xl6_ir_concurrent_contracts.inc"
-#include "xl6_ir_executor_contracts.inc"
-#include "xl6_ir_net_engine_contracts.inc"
-#include "xl6_ir_net_socket_contracts.inc"
-#include "xl6_ir_net_datagram_direct_contracts.inc"
-#include "xl6_ir_net_datagram_error_contracts.inc"
-#include "xl6_ir_net_batch_contracts.inc"
-#include "xl6_ir_task_pool_contracts.inc"
-#include "xl6_ir_channel_case_contracts.inc"
-#define XL6_GENERIC_CREATE(Name,Owner) {Name,T,V,0,{0},.resultOwner=Owner,.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1}
-#define XL6_GENERIC_CREATE_PARENT(Name,Owner) {Name,T,V,1,{V},.resultOwner=Owner,.parameterOwners={"xl6CancellationTokenDestroyV1"},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1}
-#define XL6_GENERIC_DESTROY(Name,Owner) {Name,T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={Owner},.nativeHandlePolicy="xl6PromiseHandlePolicyV1Get",.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE}
-#define XL6_GENERIC_FUTURE(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,1,{V},.parameterOwners={Owner},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1,.genericFutureResult=1}
-#define XL6_GENERIC_RESOLVE(Name,Owner) {Name,T,B,2,{V,0},.parameterOwners={Owner},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1,.genericValueParameter=2}
-#define XL6_GENERIC_REJECT(Name,Owner) {Name,T,B,2,{V,XL6_IR_C_ABI_RUNTIME_ERROR_PTR},.parameterOwners={Owner},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE}
-#define XL6_GENERIC_CANCEL(Name,Owner) {Name,T,B,1,{V},.parameterOwners={Owner},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE}
-#define XL6_GENERIC_CLOSE(Name,Owner) XL6_GENERIC_CANCEL(Name,Owner)
-#define XL6_GENERIC_DONE(Name,Owner) {Name,T,B,1,{V},.parameterOwners={Owner},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE}
-#define XL6_GENERIC_REQUESTED(Name,Owner) XL6_GENERIC_DONE(Name,Owner)
-#define XL6_GENERIC_TASK_GROUP_START(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,2,{V,XL6_IR_C_ABI_CLOSURE_PTR},.parameterOwners={Owner},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1,.genericFutureResult=1,.genericFutureStarterParameter=2}
-#define XL6_GENERIC_TASK_POOL_SUBMIT(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,2,{V,XL6_IR_C_ABI_CLOSURE_PTR},.parameterOwners={Owner},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1,.genericFutureResult=1,.genericFutureValueCallbackParameter=2}
-#define XL6_GENERIC_TASK_POOL_SUBMIT_CANCEL(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,3,{V,XL6_IR_C_ABI_CLOSURE_PTR,V},.parameterOwners={Owner,NULL,"xl6CancellationTokenDestroyV1"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1,.genericFutureResult=1,.genericFutureValueCallbackParameter=2}
-#define XL6_GENERIC_NET_TASK_SUBMIT(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,3,{V,XL6_IR_C_ABI_CLOSURE_PTR,U},.parameterOwners={Owner},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1,.genericFutureResult=1,.genericFutureValueCallbackParameter=2}
-#define XL6_GENERIC_NET_TASK_SUBMIT_CANCEL(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,4,{V,XL6_IR_C_ABI_CLOSURE_PTR,V,U},.parameterOwners={Owner,NULL,"xl6CancellationTokenDestroyV1"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1,.genericFutureResult=1,.genericFutureValueCallbackParameter=2}
-#define XL6_GENERIC_NET_TASK_AFTER(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,4,{V,I,XL6_IR_C_ABI_CLOSURE_PTR,U},.parameterOwners={Owner},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1,.genericFutureResult=1,.genericFutureValueCallbackParameter=3}
-#define XL6_GENERIC_NET_TASK_AFTER_CANCEL(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,5,{V,I,XL6_IR_C_ABI_CLOSURE_PTR,V,U},.parameterOwners={Owner,NULL,NULL,"xl6CancellationTokenDestroyV1"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1,.genericFutureResult=1,.genericFutureValueCallbackParameter=3}
-#define XL6_GENERIC_NET_TASK_UNTIL(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,4,{V,U,XL6_IR_C_ABI_CLOSURE_PTR,U},.parameterOwners={Owner},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1,.genericFutureResult=1,.genericFutureValueCallbackParameter=3}
-#define XL6_GENERIC_NET_TASK_UNTIL_CANCEL(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,5,{V,U,XL6_IR_C_ABI_CLOSURE_PTR,V,U},.parameterOwners={Owner,NULL,NULL,"xl6CancellationTokenDestroyV1"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1,.genericFutureResult=1,.genericFutureValueCallbackParameter=3}
-#define XL6_GENERIC_CHANNEL_CASE_RECEIVE(Name,Owner) {Name,T,V,1,{V},.resultOwner=Owner,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CHANNEL_SCHEMA_V1,.genericChannelParameter=1}
-#define XL6_GENERIC_CHANNEL_CASE_SEND(Name,Owner) {Name,T,V,2,{V,0},.resultOwner=Owner,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CHANNEL_SCHEMA_V1,.genericChannelParameter=1,.genericValueParameter=2}
-#define XL6_GENERIC_CHANNEL_SELECTION_VALUE(Name,Owner) {Name,T,0,3,{V,V,V},.parameterOwners={Owner,"xl6ChannelCaseDestroyV1"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CHANNEL_SCHEMA_V1,.genericChannelParameter=3,.nativeResultAbi=XL6_IR_CALL_NATIVE_RESULT_VALUE_SLOT_V1}
-#define XL6_GENERIC_CHANNEL_SEND_CREATE(Name,Owner) {Name,T,V,2,{V,0},.resultOwner=Owner,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CHANNEL_SCHEMA_V1,.genericChannelParameter=1,.genericValueParameter=2,.genericResourceResult=1}
-#define XL6_GENERIC_CHANNEL_RECEIVE_CREATE(Name,Owner) {Name,T,V,1,{V},.resultOwner=Owner,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CHANNEL_SCHEMA_V1,.genericChannelParameter=1,.genericResourceResult=1}
-#define XL6_GENERIC_CHANNEL_SEND_BUILDER_DESTROY(Name,Owner) {Name,T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={Owner},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeHandlePolicy="xl6ChannelSendFutureBuilderHandlePolicyV1Get"}
-#define XL6_GENERIC_CHANNEL_RECEIVE_BUILDER_DESTROY(Name,Owner) {Name,T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={Owner},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeHandlePolicy="xl6ChannelReceiveFutureBuilderHandlePolicyV1Get"}
-#define XL6_GENERIC_CHANNEL_RECEIVE_DESTROY(Name,Owner) {Name,T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={Owner},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeHandlePolicy="xl6ChannelReceiveResultHandlePolicyV1Get"}
-#define XL6_GENERIC_CHANNEL_SEND_START(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,1,{V},.parameterOwners={Owner},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeServicesRequired=XL6_IR_CALL_NATIVE_SERVICE_EXECUTOR_V1,.resultFutureElementAbi=I,.genericResourceParameter=1}
-#define XL6_GENERIC_CHANNEL_SEND_START_CANCEL(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,2,{V,V},.parameterOwners={Owner,"xl6CancellationTokenDestroyV1"},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeServicesRequired=XL6_IR_CALL_NATIVE_SERVICE_EXECUTOR_V1,.resultFutureElementAbi=I,.genericResourceParameter=1}
-#define XL6_GENERIC_CHANNEL_RECEIVE_HANDLE(Name,Owner) {Name,T,V,1,{V},.resultOwner=Owner,.parameterOwners={"xl6ChannelReceiveFutureBuilderDestroyV1"},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.managedHandleResult=1,.genericResourceResult=1,.genericResourceParameter=1}
-#define XL6_GENERIC_CHANNEL_RECEIVE_STATUS(Name,Owner) {Name,T,I,1,{V},.parameterOwners={Owner},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE}
-#define XL6_GENERIC_CHANNEL_RECEIVE_VALUE(Name,Owner) {Name,T,0,1,{V},.parameterOwners={Owner},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1,.nativeResultAbi=XL6_IR_CALL_NATIVE_RESULT_VALUE_SLOT_V1,.sequenceValueResult=1}
-#define XL6_GENERIC_CHANNEL_RECEIVE_START(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,2,{V,V},.parameterOwners={Owner},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1,.nativeServicesRequired=XL6_IR_CALL_NATIVE_SERVICE_EXECUTOR_V1,.nativeClassParameter=2,.nativeClassOwner="xl6ChannelReceiveResultDestroyV1",.genericFutureResult=1,.genericResourceParameter=1}
-#define XL6_GENERIC_CHANNEL_RECEIVE_START_CANCEL(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,3,{V,V,V},.parameterOwners={Owner,NULL,"xl6CancellationTokenDestroyV1"},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1,.nativeServicesRequired=XL6_IR_CALL_NATIVE_SERVICE_EXECUTOR_V1,.nativeClassParameter=2,.nativeClassOwner="xl6ChannelReceiveResultDestroyV1",.genericFutureResult=1,.genericResourceParameter=1}
-#define XL6_NATIVE_GENERIC_BRIDGE(Name,Owner,Role) XL6_GENERIC_##Role(Name,Owner),
-#define XL6_GENERIC_CHANNEL_DEADLINE_SEND_FOR(Name,Owner) {Name,T,V,3,{V,0,I},.resultOwner=Owner,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CHANNEL_SCHEMA_V1,.genericChannelParameter=1,.genericValueParameter=2,.genericResourceResult=1}
-#define XL6_GENERIC_CHANNEL_DEADLINE_SEND_UNTIL(Name,Owner) {Name,T,V,3,{V,0,U},.resultOwner=Owner,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CHANNEL_SCHEMA_V1,.genericChannelParameter=1,.genericValueParameter=2,.genericResourceResult=1}
-#define XL6_GENERIC_CHANNEL_DEADLINE_RECEIVE_FOR(Name,Owner) {Name,T,V,2,{V,I},.resultOwner=Owner,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CHANNEL_SCHEMA_V1,.genericChannelParameter=1,.genericResourceResult=1}
-#define XL6_GENERIC_CHANNEL_DEADLINE_RECEIVE_UNTIL(Name,Owner) {Name,T,V,2,{V,U},.resultOwner=Owner,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CHANNEL_SCHEMA_V1,.genericChannelParameter=1,.genericResourceResult=1}
-#define XL6_GENERIC_CHANNEL_DEADLINE_SEND_DESTROY(Name,Owner) {Name,T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={Owner},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeHandlePolicy="xl6ChannelDeadlineSendBuilderHandlePolicyV1Get"}
-#define XL6_GENERIC_CHANNEL_DEADLINE_RECEIVE_DESTROY(Name,Owner) {Name,T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={Owner},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeHandlePolicy="xl6ChannelDeadlineReceiveBuilderHandlePolicyV1Get"}
-#define XL6_GENERIC_CHANNEL_DEADLINE_RECEIVE_HANDLE(Name,Owner) {Name,T,V,1,{V},.resultOwner=Owner,.parameterOwners={"xl6ChannelDeadlineReceiveBuilderDestroyV1"},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.managedHandleResult=1,.genericResourceResult=1,.genericResourceParameter=1}
-#define XL6_FINITE_SERVICES (XL6_IR_CALL_NATIVE_SERVICE_EXECUTOR_V1|XL6_IR_CALL_NATIVE_SERVICE_DEADLINE_V1)
-#define XL6_GENERIC_CHANNEL_DEADLINE_SEND_START(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,1,{V},.parameterOwners={Owner},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeServicesRequired=XL6_FINITE_SERVICES,.resultFutureElementAbi=I,.genericResourceParameter=1}
-#define XL6_GENERIC_CHANNEL_DEADLINE_SEND_START_CANCEL(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,2,{V,V},.parameterOwners={Owner,"xl6CancellationTokenDestroyV1"},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeServicesRequired=XL6_FINITE_SERVICES,.resultFutureElementAbi=I,.genericResourceParameter=1}
-#define XL6_GENERIC_CHANNEL_DEADLINE_RECEIVE_START(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,2,{V,V},.parameterOwners={Owner},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1,.nativeServicesRequired=XL6_FINITE_SERVICES,.nativeClassParameter=2,.nativeClassOwner="xl6ChannelReceiveResultDestroyV1",.genericFutureResult=1,.genericResourceParameter=1}
-#define XL6_GENERIC_CHANNEL_DEADLINE_RECEIVE_START_CANCEL(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,3,{V,V,V},.parameterOwners={Owner,NULL,"xl6CancellationTokenDestroyV1"},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1,.nativeServicesRequired=XL6_FINITE_SERVICES,.nativeClassParameter=2,.nativeClassOwner="xl6ChannelReceiveResultDestroyV1",.genericFutureResult=1,.genericResourceParameter=1}
-#include "src/abi/xl6_native_generic_contracts.inc"
-#undef XL6_NATIVE_GENERIC_BRIDGE
-#undef XL6_GENERIC_TASK_GROUP_START
-#undef XL6_GENERIC_TASK_POOL_SUBMIT
-#undef XL6_GENERIC_TASK_POOL_SUBMIT_CANCEL
-#undef XL6_GENERIC_NET_TASK_SUBMIT
-#undef XL6_GENERIC_NET_TASK_SUBMIT_CANCEL
-#undef XL6_GENERIC_NET_TASK_AFTER
-#undef XL6_GENERIC_NET_TASK_AFTER_CANCEL
-#undef XL6_GENERIC_NET_TASK_UNTIL
-#undef XL6_GENERIC_NET_TASK_UNTIL_CANCEL
-#undef XL6_GENERIC_CHANNEL_DEADLINE_SEND_FOR
-#undef XL6_GENERIC_CHANNEL_DEADLINE_SEND_UNTIL
-#undef XL6_GENERIC_CHANNEL_DEADLINE_RECEIVE_FOR
-#undef XL6_GENERIC_CHANNEL_DEADLINE_RECEIVE_UNTIL
-#undef XL6_GENERIC_CHANNEL_DEADLINE_SEND_DESTROY
-#undef XL6_GENERIC_CHANNEL_DEADLINE_RECEIVE_DESTROY
-#undef XL6_GENERIC_CHANNEL_DEADLINE_RECEIVE_HANDLE
-#undef XL6_GENERIC_CHANNEL_DEADLINE_SEND_START
-#undef XL6_GENERIC_CHANNEL_DEADLINE_SEND_START_CANCEL
-#undef XL6_GENERIC_CHANNEL_DEADLINE_RECEIVE_START
-#undef XL6_GENERIC_CHANNEL_DEADLINE_RECEIVE_START_CANCEL
-#undef XL6_FINITE_SERVICES
-#undef XL6_GENERIC_CREATE
-#undef XL6_GENERIC_CREATE_PARENT
-#undef XL6_GENERIC_DESTROY
-#undef XL6_GENERIC_FUTURE
-#undef XL6_GENERIC_RESOLVE
-#undef XL6_GENERIC_REJECT
-#undef XL6_GENERIC_CANCEL
-#undef XL6_GENERIC_CLOSE
-#undef XL6_GENERIC_DONE
-#undef XL6_GENERIC_REQUESTED
-#undef XL6_GENERIC_CHANNEL_CASE_RECEIVE
-#undef XL6_GENERIC_CHANNEL_CASE_SEND
-#undef XL6_GENERIC_CHANNEL_SELECTION_VALUE
-#undef XL6_GENERIC_CHANNEL_SEND_CREATE
-#undef XL6_GENERIC_CHANNEL_RECEIVE_CREATE
-#undef XL6_GENERIC_CHANNEL_SEND_BUILDER_DESTROY
-#undef XL6_GENERIC_CHANNEL_RECEIVE_BUILDER_DESTROY
-#undef XL6_GENERIC_CHANNEL_RECEIVE_DESTROY
-#undef XL6_GENERIC_CHANNEL_SEND_START
-#undef XL6_GENERIC_CHANNEL_SEND_START_CANCEL
-#undef XL6_GENERIC_CHANNEL_RECEIVE_HANDLE
-#undef XL6_GENERIC_CHANNEL_RECEIVE_STATUS
-#undef XL6_GENERIC_CHANNEL_RECEIVE_VALUE
-#undef XL6_GENERIC_CHANNEL_RECEIVE_START
-#undef XL6_GENERIC_CHANNEL_RECEIVE_START_CANCEL
-#include "xl6_ir_asn1_contracts.inc"
-#include "xl6_ir_crypto_contracts.inc"
-#include "xl6_ir_key_contracts.inc"
-#include "xl6_ir_x509_contracts.inc"
-#include "xl6_ir_x509_records_contracts.inc"
-#include "xl6_ir_x509_profiles_contracts.inc"
-#include "xl6_ir_x509_crl_profiles_contracts.inc"
-#include "xl6_ir_x509_verify_contracts.inc"
-#include "xl6_ir_x509_crl_policy_contracts.inc"
-#include "xl6_ir_x509_path_contracts.inc"
-#include "xl6_ir_x509_store_contracts.inc"
-#include "xl6_ir_x509_identity_contracts.inc"
-#include "xl6_ir_tls_identity_contracts.inc"
-#include "xl6_ir_tls_parameters_contracts.inc"
-#include "xl6_ir_tls_verifier_contracts.inc"
-#include "xl6_ir_tls_role_context_contracts.inc"
-#include "xl6_ir_tls_session_contracts.inc"
-#include "xl6_ir_tls_stream_options_contracts.inc"
-#include "xl6_ir_tls_transport_contracts.inc"
-#include "xl6_ir_tls_metadata_contracts.inc"
-#include "xl6_ir_tls_selector_contracts.inc"
-#include "xl6_ir_tls_resume_contracts.inc"
-#include "xl6_ir_tls_ticket_contracts.inc"
-#include "xl6_ir_tls_transport_ticket_contracts.inc"
-#include "xl6_ir_tls_resume_lookup_contracts.inc"
-#include "xl6_ir_tls_io_contracts.inc"
-#include "xl6_ir_tls_data_contracts.inc"
-#include "xl6_ir_tls_dial_options_contracts.inc"
-#include "xl6_ir_tls_dial_contracts.inc"
-#include "xl6_ir_http_contracts.inc"
-#include "xl6_ir_ws_contracts.inc"
-#include "xl6_ir_foundation_contracts.inc"
-#include "xl6_ir_compress_contracts.inc"
-#include "xl6_ir_template_contracts.inc"
-    {"xl6Crc32StringV1",T,I,3,{U,S,I},.resultIntegerTarget=XL6_IR_INTEGER_TARGET_UNSIGNED_32,.pure=1,.nonblocking=1},
-    {"xl6CodecHexTextV1",T,S,3,{S,I,I},.pure=1,.nonblocking=1},
-    {"xl6CodecHexBytesV1",T,S,3,{Y,I,I},.pure=1,.nonblocking=1},
-    {"xl6CodecHexBytesSpanV1",T,S,3,{XL6_IR_C_ABI_C_BYTES,I,I},.pure=1,.nonblocking=1},
-    {"xl6CodecHexDecodeV1",T,Y,3,{S,I,I},.pure=1,.nonblocking=1},
-    {"xl6CodecBase64TextV1",T,S,5,{S,I,I,S,I},.pure=1,.nonblocking=1},
-    {"xl6CodecBase64BytesV1",T,S,5,{Y,I,I,S,I},.pure=1,.nonblocking=1},
-    {"xl6CodecBase64BytesSpanV1",T,S,5,{XL6_IR_C_ABI_C_BYTES,I,I,S,I},.pure=1,.nonblocking=1},
-    {"xl6CodecBase64DecodeV1",T,Y,5,{S,I,I,S,I},.pure=1,.nonblocking=1},
-    {"xl6CodecPercentTextV1",T,S,6,{S,I,S,B,B,I},.pure=1,.nonblocking=1},
-    {"xl6CodecPercentBytesV1",T,S,6,{Y,I,S,B,B,I},.pure=1,.nonblocking=1},
-    {"xl6CodecPercentBytesSpanV1",T,S,6,{XL6_IR_C_ABI_C_BYTES,I,S,B,B,I},.pure=1,.nonblocking=1},
-    {"xl6CodecPercentDecodeV1",T,Y,3,{S,I,B},.pure=1,.nonblocking=1},
-    {"xl6Crc32BytesV1",T,I,3,{U,Y,I},.resultIntegerTarget=XL6_IR_INTEGER_TARGET_UNSIGNED_32,.pure=1,.nonblocking=1},
-    {"xl6Crc32BytesSpanV1",T,I,3,{U,XL6_IR_C_ABI_C_BYTES,I},.resultIntegerTarget=XL6_IR_INTEGER_TARGET_UNSIGNED_32,.pure=1,.nonblocking=1},
-    {"xl6Crc32BufferV1",T,I,3,{U,V,I},.resultIntegerTarget=XL6_IR_INTEGER_TARGET_UNSIGNED_32,.parameterOwners={NULL,"xl6BufferDestroyV1"},.nonblocking=1},
-    {"xl6DictValueRemoveV1",T,B,2,{V,S},.parameterDynamicBorrows={1,0}},
-    /* Printing borrows one dynamic argument array and can allocate or fail I/O.
-     * Checked calls propagate the original thread error before the language
-     * wrapper considers its boolean-only I/O fallback. */
-    {"xl6_xrt_print",XL6_IR_RUNTIME_BRIDGE_PRINT,B,2,{V,B},.parameterDynamicBorrows={1,0}},
-    {"xl6_xrt_dynamic_fields_create",T,V,0,{0},.resultOwner="xl6_xrt_dynamic_fields_destroy"},
-    {"xl6_xrt_dynamic_fields_wrap",T,V,1,{XL6_IR_C_ABI_RAW_POINTER},.resultOwner="xl6_xrt_dynamic_fields_destroy"},
-    {"xl6_xrt_dynamic_fields_from_value",T,V,1,{V},.resultOwner="xl6_xrt_dynamic_fields_destroy",.parameterDynamicBorrows={1},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6_xrt_dynamic_fields_destroy",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6_xrt_dynamic_fields_destroy"},.nativeHandlePolicy="xl6DynamicFieldsHandlePolicyV1Get",.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6_xrt_dynamic_fields_native_handle",T,XL6_IR_C_ABI_RAW_POINTER,1,{V},.parameterOwners={"xl6_xrt_dynamic_fields_destroy"}},
-    {"xl6_xrt_dynamic_fields_count",T,I,1,{V},.parameterOwners={"xl6_xrt_dynamic_fields_destroy"}},
-    {"xl6_xrt_dynamic_fields_capacity",T,I,1,{V},.parameterOwners={"xl6_xrt_dynamic_fields_destroy"}},
-    {"xl6_xrt_dynamic_fields_reserve",T,B,2,{V,I},.parameterOwners={"xl6_xrt_dynamic_fields_destroy"}},
-    {"xl6_xrt_dynamic_fields_trim",T,B,1,{V},.parameterOwners={"xl6_xrt_dynamic_fields_destroy"}},
-    {"xl6_xrt_dynamic_fields_clear",T,B,1,{V},.parameterOwners={"xl6_xrt_dynamic_fields_destroy"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6_xrt_dynamic_fields_has",T,B,2,{V,S},.parameterOwners={"xl6_xrt_dynamic_fields_destroy"}},
-    {"xl6_xrt_dynamic_fields_get",T,V,2,{V,S},.parameterOwners={"xl6_xrt_dynamic_fields_destroy"}},
-    {"xl6_xrt_dynamic_fields_copy",T,V,2,{V,S},.parameterOwners={"xl6_xrt_dynamic_fields_destroy"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6_xrt_dynamic_fields_set",T,B,3,{V,S,V},.parameterOwners={"xl6_xrt_dynamic_fields_destroy"},.parameterDynamicBorrows={0,0,1},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6_xrt_dynamic_fields_remove",T,B,2,{V,S},.parameterOwners={"xl6_xrt_dynamic_fields_destroy"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6_xrt_dynamic_fields_take",T,V,2,{V,S},.parameterOwners={"xl6_xrt_dynamic_fields_destroy"}},
-    {"xl6_xrt_dynamic_fields_keys",T,V,1,{V},.parameterOwners={"xl6_xrt_dynamic_fields_destroy"}},
-    {"xl6_xrt_dynamic_fields_values",T,V,1,{V},.parameterOwners={"xl6_xrt_dynamic_fields_destroy"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6_xrt_dynamic_fields_items",T,V,1,{V},.parameterOwners={"xl6_xrt_dynamic_fields_destroy"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6_xrt_dynamic_fields_to_value",T,V,1,{V},.parameterOwners={"xl6_xrt_dynamic_fields_destroy"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6_xrt_dynamic_fields_merge",T,B,3,{V,V,B},.parameterOwners={"xl6_xrt_dynamic_fields_destroy","xl6_xrt_dynamic_fields_destroy"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6_xrt_dynamic_fields_clone",T,V,1,{V},.resultOwner="xl6_xrt_dynamic_fields_destroy",.parameterOwners={"xl6_xrt_dynamic_fields_destroy"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6ForeignDataSnapshotV1",T,V,1,{V},.parameterDynamicBorrows={1}},
-    {"xl6ForeignResourceCreateV1",T,V,2,{XL6_IR_C_ABI_RAW_POINTER,V},.parameterDynamicBorrows={0,1}},
-    {"xl6ForeignResourcePointerV1",T,XL6_IR_C_ABI_RAW_POINTER,1,{V},.parameterDynamicBorrows={1}},
-    {"xl6ForeignNetEngineOwnerV1",T,V,1,{V},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1,.nativeClassParameter=1,.nativeClassOwner="xl6NetEngineDestroyV1"},
-    {"xl6ForeignTlsClientOwnerV1",T,V,1,{V},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1,.nativeClassParameter=1,.nativeClassOwner="xl6TlsClientContextDestroyV1"},
-    {"xl6ForeignGraphDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6ForeignGraphDestroyV1"},.nativeHandlePolicy="xl6ForeignGraphHandlePolicyV1Get",.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-#include "xl6_ir_xacme_bridge.inc"
-    {"xl6BufferCreateV1",T,V,0,{0},.resultOwner="xl6BufferDestroyV1"},
-    {"xl6BufferCreateReserveV1",T,V,1,{I},.resultOwner="xl6BufferDestroyV1"},
-    {"xl6BufferAdoptV1",T,V,1,{XL6_IR_C_ABI_RAW_POINTER},.resultOwner="xl6BufferDestroyV1"},
-    {"xl6BufferDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6BufferDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6BufferHandlePolicyV1Get"},
-    {"xl6BufferLengthV1",T,I,1,{V},.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6BufferCapacityV1",T,I,1,{V},.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6BufferReserveV1",T,B,2,{V,I},.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6BufferClearV1",T,B,1,{V},.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6BufferAppendRawV1",T,B,3,{V,XL6_IR_C_ABI_RAW_POINTER,I},.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6BufferInsertRawV1",T,B,4,{V,I,XL6_IR_C_ABI_RAW_POINTER,I},.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6BufferAppendByteV1",T,B,2,{V,I},.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6BufferByteAtV1",T,I,2,{V,I},.resultIntegerTarget=XL6_IR_INTEGER_TARGET_UNSIGNED_8,.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6BufferSetByteV1",T,B,3,{V,I,I},.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6BufferCopyFromV1",T,B,5,{V,I,V,I,I},.parameterOwners={"xl6BufferDestroyV1",NULL,"xl6BufferDestroyV1"}},
-    {"xl6BufferCopyWithinV1",T,B,4,{V,I,I,I},.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6BufferFillV1",T,B,4,{V,I,I,I},.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6BufferCompareV1",T,I,4,{V,V,I,I},.parameterOwners={"xl6BufferDestroyV1","xl6BufferDestroyV1"}},
-    {"xl6BufferIndexOfV1",T,I,5,{V,V,I,I,I},.parameterOwners={"xl6BufferDestroyV1","xl6BufferDestroyV1"}},
-    {"xl6BufferDataV1",T,XL6_IR_C_ABI_RAW_POINTER,1,{V},.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6BufferHandleV1",T,XL6_IR_C_ABI_RAW_POINTER,1,{V},.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6BufferFromTextV1",T,V,2,{S,I},.resultOwner="xl6BufferDestroyV1"},
-    {"xl6BufferFromBytesV1",T,V,2,{Y,I},.resultOwner="xl6BufferDestroyV1"},
-    {"xl6BufferFromBytesSpanV1",T,V,2,{XL6_IR_C_ABI_C_BYTES,I},.resultOwner="xl6BufferDestroyV1"},
-    {"xl6BufferCopyV1",T,V,2,{V,I},.resultOwner="xl6BufferDestroyV1",.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6BufferFromHexV1",T,V,3,{S,I,I},.resultOwner="xl6BufferDestroyV1"},
-    {"xl6BufferHexV1",T,S,3,{V,I,I},.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6BufferFromBase64V1",T,V,5,{S,I,S,I,I},.resultOwner="xl6BufferDestroyV1"},
-    {"xl6BufferBase64V1",T,S,5,{V,I,S,I,I},.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6BufferResizeV1",T,B,3,{V,I,I},.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6BufferTrimV1",T,B,1,{V},.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6BufferAssignTextV1",T,B,3,{V,S,I},.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6BufferAssignBytesV1",T,B,3,{V,Y,I},.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6BufferAssignBytesSpanV1",T,B,3,{V,XL6_IR_C_ABI_C_BYTES,I},.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6BufferAssignBufferV1",T,B,3,{V,V,I},.parameterOwners={"xl6BufferDestroyV1","xl6BufferDestroyV1"}},
-    {"xl6BufferAppendTextV1",T,B,3,{V,S,I},.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6BufferAppendBytesV1",T,B,3,{V,Y,I},.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6BufferAppendBytesSpanV1",T,B,3,{V,XL6_IR_C_ABI_C_BYTES,I},.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6BufferAppendBufferV1",T,B,3,{V,V,I},.parameterOwners={"xl6BufferDestroyV1","xl6BufferDestroyV1"}},
-    {"xl6BufferInsertTextV1",T,B,4,{V,I,S,I},.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6BufferInsertBytesV1",T,B,4,{V,I,Y,I},.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6BufferInsertBytesSpanV1",T,B,4,{V,I,XL6_IR_C_ABI_C_BYTES,I},.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6BufferInsertBufferV1",T,B,4,{V,I,V,I},.parameterOwners={"xl6BufferDestroyV1",NULL,"xl6BufferDestroyV1"}},
-    {"xl6BufferRemoveV1",T,B,3,{V,I,I},.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6BufferBytesV1",T,Y,2,{V,I},.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6BufferTextV1",T,S,2,{V,I},.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6BufferIteratorCreateV1",T,V,2,{V,I},.resultOwner="xl6BufferIteratorDestroyV1",.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6BufferIteratorDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6BufferIteratorDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6BufferIteratorHandlePolicyV1Get"},
-    {"xl6BufferIteratorHasNextV1",T,B,1,{V},.parameterOwners={"xl6BufferIteratorDestroyV1"}},
-    {"xl6BufferIteratorNextV1",T,I,1,{V},.resultIntegerTarget=XL6_IR_INTEGER_TARGET_UNSIGNED_8,.parameterOwners={"xl6BufferIteratorDestroyV1"}},
-    {"xl6BufferIteratorCloseV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6BufferIteratorDestroyV1"}},
-    {"xl6BufferIteratorClosedV1",T,B,1,{V},.parameterOwners={"xl6BufferIteratorDestroyV1"}},
-    {"xl6ProcessPipelineCreateV1",T,V,0,{0},.resultOwner="xl6ProcessPipelineDestroyV1"},
-    {"xl6ProcessPipelineDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6ProcessPipelineDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6ProcessPipelineHandlePolicyV1Get"},
-    {"xl6ProcessPipelineAddV1",T,XL6_IR_C_ABI_VOID,2,{V,V},.parameterOwners={"xl6ProcessPipelineDestroyV1","xl6ProcessCommandDestroyV1"}},
-    {"xl6ProcessPipelineClearV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6ProcessPipelineDestroyV1"}},
-    {"xl6ProcessPipelineCountV1",T,I,1,{V},.parameterOwners={"xl6ProcessPipelineDestroyV1"}},
-    {"xl6ProcessPipelineRunV1",T,V,4,{V,V,Y,I},.resultOwner="xl6PipelineResultDestroyV1",.parameterOwners={"xl6ProcessPipelineDestroyV1","xl6ProcessRunOptionsDestroyV1"}},
-    {"xl6PipelineResultDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6PipelineResultDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6PipelineResultHandlePolicyV1Get"},
-    {"xl6PipelineResultSuccessV1",T,B,1,{V},.parameterOwners={"xl6PipelineResultDestroyV1"}},
-    {"xl6PipelineResultTimedOutV1",T,B,1,{V},.parameterOwners={"xl6PipelineResultDestroyV1"}},
-    {"xl6PipelineResultCancelledV1",T,B,1,{V},.parameterOwners={"xl6PipelineResultDestroyV1"}},
-    {"xl6PipelineResultWaitV1",T,I,1,{V},.parameterOwners={"xl6PipelineResultDestroyV1"}},
-    {"xl6PipelineResultCountV1",T,I,1,{V},.parameterOwners={"xl6PipelineResultDestroyV1"}},
-    {"xl6PipelineResultCompletedV1",T,I,1,{V},.parameterOwners={"xl6PipelineResultDestroyV1"}},
-    {"xl6PipelineResultFailedIndexV1",T,I,1,{V},.parameterOwners={"xl6PipelineResultDestroyV1"}},
-    {"xl6PipelineResultExitCodeV1",T,I,1,{V},.parameterOwners={"xl6PipelineResultDestroyV1"}},
-    {"xl6PipelineResultInputWrittenV1",T,U,1,{V},.parameterOwners={"xl6PipelineResultDestroyV1"}},
-    {"xl6PipelineResultDurationV1",T,U,1,{V},.parameterOwners={"xl6PipelineResultDestroyV1"}},
-    {"xl6PipelineResultStdoutTruncatedV1",T,B,1,{V},.parameterOwners={"xl6PipelineResultDestroyV1"}},
-    {"xl6PipelineResultStdoutV1",T,Y,2,{V,I},.parameterOwners={"xl6PipelineResultDestroyV1"}},
-    {"xl6PipelineResultStdoutTextV1",T,S,2,{V,I},.parameterOwners={"xl6PipelineResultDestroyV1"}},
-    {"xl6PipelineResultStageV1",T,V,2,{V,I},.resultOwner="xl6ProcessStageDestroyV1",.parameterOwners={"xl6PipelineResultDestroyV1"}},
-    {"xl6ProcessStageDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6ProcessStageDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6ProcessStageHandlePolicyV1Get"},
-    {"xl6ProcessStageSuccessV1",T,B,1,{V},.parameterOwners={"xl6ProcessStageDestroyV1"}},
-    {"xl6ProcessStageExitCodeV1",T,I,1,{V},.parameterOwners={"xl6ProcessStageDestroyV1"}},
-    {"xl6ProcessStageStderrTruncatedV1",T,B,1,{V},.parameterOwners={"xl6ProcessStageDestroyV1"}},
-    {"xl6ProcessStageStderrV1",T,Y,2,{V,I},.parameterOwners={"xl6ProcessStageDestroyV1"}},
-    {"xl6ProcessStageStderrTextV1",T,S,2,{V,I},.parameterOwners={"xl6ProcessStageDestroyV1"}},
-    {"xl6ProcessStageStatusV1",T,V,1,{V},.resultOwner="xl6ProcessStatusDestroyV1",.parameterOwners={"xl6ProcessStageDestroyV1"}},
-    {"xl6ProcessOpenV1",T,B,2,{S,I}},
-    {"xl6ProcessSpawnV1",T,V,1,{V},.resultOwner="xl6ProcessDestroyV1",.parameterOwners={"xl6ProcessCommandDestroyV1"}},
-    {"xl6ProcessDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6ProcessDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6ProcessHandlePolicyV1Get"},
-    {"xl6ProcessIdV1",T,U,1,{V},.parameterOwners={"xl6ProcessDestroyV1"}},
-    {"xl6ProcessStateV1",T,I,1,{V},.parameterOwners={"xl6ProcessDestroyV1"}},
-    {"xl6ProcessRunningV1",T,B,1,{V},.parameterOwners={"xl6ProcessDestroyV1"}},
-    {"xl6ProcessCloseV1",T,B,2,{V,I},.parameterOwners={"xl6ProcessDestroyV1"}},
-    {"xl6ProcessResizeV1",T,B,3,{V,I,I},.parameterOwners={"xl6ProcessDestroyV1"}},
-    {"xl6ProcessInterruptV1",T,B,1,{V},.parameterOwners={"xl6ProcessDestroyV1"}},
-    {"xl6ProcessTerminateV1",T,B,1,{V},.parameterOwners={"xl6ProcessDestroyV1"}},
-    {"xl6ProcessKillV1",T,B,1,{V},.parameterOwners={"xl6ProcessDestroyV1"}},
-    {"xl6ProcessKillTreeV1",T,B,1,{V},.parameterOwners={"xl6ProcessDestroyV1"}},
-    {"xl6ProcessWaitReadyV1",T,B,2,{V,I},.parameterOwners={"xl6ProcessDestroyV1"}},
-    {"xl6ProcessWaitReadyAsyncV1",T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,1,{V},.parameterOwners={"xl6ProcessDestroyV1"},.nonblocking=1,.resultFutureElementAbi=B},
-    {"xl6ProcessLiveStatusV1",T,V,1,{V},.resultOwner="xl6ProcessStatusDestroyV1",.parameterOwners={"xl6ProcessDestroyV1"}},
-    {"xl6ProcessReaderV1",T,V,2,{V,I},.resultOwner="xl6_xrt_io_reader_destroy",.parameterOwners={"xl6ProcessDestroyV1"}},
-    {"xl6ProcessWriterV1",T,V,1,{V},.resultOwner="xl6_xrt_io_writer_destroy",.parameterOwners={"xl6ProcessDestroyV1"}},
-    {"xl6ProcessTerminalSupportedV1",T,B,0,{0},.noRaise=1},
-    {"xl6ProcessCommandShellV1",T,V,2,{S,I},.resultOwner="xl6ProcessCommandDestroyV1"},
-    {"xl6ProcessCommandDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6ProcessCommandDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6ProcessCommandHandlePolicyV1Get"},
-    {"xl6ProcessCommandWorkDirV1",T,XL6_IR_C_ABI_VOID,3,{V,S,I},.parameterOwners={"xl6ProcessCommandDestroyV1"}},
-    {"xl6ProcessCommandArg0V1",T,XL6_IR_C_ABI_VOID,3,{V,S,I},.parameterOwners={"xl6ProcessCommandDestroyV1"}},
-    {"xl6ProcessCommandRemoveEnvV1",T,XL6_IR_C_ABI_VOID,3,{V,S,I},.parameterOwners={"xl6ProcessCommandDestroyV1"}},
-    {"xl6ProcessCommandEnvV1",T,XL6_IR_C_ABI_VOID,5,{V,S,S,I,I},.parameterOwners={"xl6ProcessCommandDestroyV1"}},
-    {"xl6ProcessCommandClearEnvV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6ProcessCommandDestroyV1"}},
-    {"xl6ProcessCommandInheritEnvV1",T,XL6_IR_C_ABI_VOID,2,{V,B},.parameterOwners={"xl6ProcessCommandDestroyV1"}},
-    {"xl6ProcessCommandNewConsoleV1",T,XL6_IR_C_ABI_VOID,2,{V,B},.parameterOwners={"xl6ProcessCommandDestroyV1"}},
-    {"xl6ProcessCommandProcessGroupV1",T,XL6_IR_C_ABI_VOID,2,{V,B},.parameterOwners={"xl6ProcessCommandDestroyV1"}},
-    {"xl6ProcessCommandHideWindowV1",T,XL6_IR_C_ABI_VOID,2,{V,B},.parameterOwners={"xl6ProcessCommandDestroyV1"}},
-    {"xl6ProcessCommandTerminalV1",T,XL6_IR_C_ABI_VOID,2,{V,B},.parameterOwners={"xl6ProcessCommandDestroyV1"}},
-    {"xl6ProcessCommandTerminalSizeV1",T,XL6_IR_C_ABI_VOID,3,{V,I,I},.parameterOwners={"xl6ProcessCommandDestroyV1"}},
-    {"xl6ProcessCommandStdioV1",T,XL6_IR_C_ABI_VOID,3,{V,I,I},.parameterOwners={"xl6ProcessCommandDestroyV1"}},
-    {"xl6ProcessCommandFileV1",T,XL6_IR_C_ABI_VOID,3,{V,I,V},.parameterOwners={"xl6ProcessCommandDestroyV1",NULL,"xl6_xrt_fs_file_destroy"}},
-    {"xl6ProcessRunOptionsCreateV1",T,V,6,{I,I,I,I,I,U},.resultOwner="xl6ProcessRunOptionsDestroyV1"},
-    {"xl6ProcessRunOptionsDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6ProcessRunOptionsDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6ProcessRunOptionsHandlePolicyV1Get"},
-    {"xl6ProcessRunOptionsCancelV1",T,B,1,{V},.parameterOwners={"xl6ProcessRunOptionsDestroyV1"}},
-    {"xl6ProcessRunOptionsRequestedV1",T,B,1,{V},.parameterOwners={"xl6ProcessRunOptionsDestroyV1"}},
-    {"xl6ProcessRunV1",T,V,4,{V,V,Y,I},.resultOwner="xl6ProcessResultDestroyV1",.parameterOwners={"xl6ProcessCommandDestroyV1","xl6ProcessRunOptionsDestroyV1"}},
-    {"xl6ProcessResultDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6ProcessResultDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6ProcessResultHandlePolicyV1Get"},
-    {"xl6ProcessResultSuccessV1",T,B,1,{V},.parameterOwners={"xl6ProcessResultDestroyV1"}},
-    {"xl6ProcessResultTimedOutV1",T,B,1,{V},.parameterOwners={"xl6ProcessResultDestroyV1"}},
-    {"xl6ProcessResultCancelledV1",T,B,1,{V},.parameterOwners={"xl6ProcessResultDestroyV1"}},
-    {"xl6ProcessResultWaitV1",T,I,1,{V},.parameterOwners={"xl6ProcessResultDestroyV1"}},
-    {"xl6ProcessResultInputWrittenV1",T,U,1,{V},.parameterOwners={"xl6ProcessResultDestroyV1"}},
-    {"xl6ProcessResultDurationV1",T,U,1,{V},.parameterOwners={"xl6ProcessResultDestroyV1"}},
-    {"xl6ProcessResultStdoutTruncatedV1",T,B,1,{V},.parameterOwners={"xl6ProcessResultDestroyV1"}},
-    {"xl6ProcessResultStderrTruncatedV1",T,B,1,{V},.parameterOwners={"xl6ProcessResultDestroyV1"}},
-    {"xl6ProcessResultExitCodeV1",T,I,1,{V},.parameterOwners={"xl6ProcessResultDestroyV1"}},
-    {"xl6ProcessResultStdoutV1",T,Y,2,{V,I},.parameterOwners={"xl6ProcessResultDestroyV1"}},
-    {"xl6ProcessResultStderrV1",T,Y,2,{V,I},.parameterOwners={"xl6ProcessResultDestroyV1"}},
-    {"xl6ProcessResultStdoutTextV1",T,S,2,{V,I},.parameterOwners={"xl6ProcessResultDestroyV1"}},
-    {"xl6ProcessResultStderrTextV1",T,S,2,{V,I},.parameterOwners={"xl6ProcessResultDestroyV1"}},
-    {"xl6ProcessResultStatusV1",T,V,1,{V},.resultOwner="xl6ProcessStatusDestroyV1",.parameterOwners={"xl6ProcessResultDestroyV1"}},
-    {"xl6ProcessStatusDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6ProcessStatusDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6ProcessStatusHandlePolicyV1Get"},
-    {"xl6ProcessStatusKindV1",T,I,1,{V},.parameterOwners={"xl6ProcessStatusDestroyV1"}},
-    {"xl6ProcessStatusCodeV1",T,I,1,{V},.parameterOwners={"xl6ProcessStatusDestroyV1"}},
-    {"xl6ProcessStatusSignalV1",T,I,1,{V},.parameterOwners={"xl6ProcessStatusDestroyV1"}},
-    {"xl6ProcessStatusStopV1",T,I,1,{V},.parameterOwners={"xl6ProcessStatusDestroyV1"}},
-    {"xl6ProcessStatusCoreDumpedV1",T,B,1,{V},.parameterOwners={"xl6ProcessStatusDestroyV1"}},
-    {"xl6SignalSupportedV1",T,B,1,{I}},
-    {"xl6SignalNameV1",T,S,1,{I}},
-    {"xl6SignalIgnoreV1",T,B,1,{I}},
-    {"xl6SignalRestoreV1",T,B,1,{I}},
-    {"xl6SignalRestoreAllV1",T,B,0,{0}},
-    {"xl6SignalRaiseV1",T,B,1,{I}},
-    {"xl6SignalCountV1",T,U,1,{I}},
-    {"xl6SignalReceivedV1",T,B,1,{I}},
-    {"xl6SignalClearV1",T,XL6_IR_C_ABI_VOID,1,{I}},
-    {"xl6SignalHealthyV1",T,B,0,{0}},
-    {"xl6SignalResetV1",T,XL6_IR_C_ABI_VOID,0,{0}},
-    {"xl6SignalQueueCreateV1",T,V,3,{I,B,I},.resultOwner="xl6SignalQueueDestroyV1"},
-    {"xl6SignalQueueDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6SignalQueueDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6SignalQueueHandlePolicyV1Get"},
-    {"xl6SignalQueueCheckOwnerV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6SignalQueueDestroyV1"}},
-    {"xl6SignalQueueCloseV1",T,B,1,{V},.parameterOwners={"xl6SignalQueueDestroyV1"}},
-    {"xl6SignalQueueActiveV1",T,B,1,{V},.parameterOwners={"xl6SignalQueueDestroyV1"}},
-    {"xl6SignalQueueCodeV1",T,I,1,{V},.parameterOwners={"xl6SignalQueueDestroyV1"}},
-    {"xl6SignalQueuePendingV1",T,I,1,{V},.parameterOwners={"xl6SignalQueueDestroyV1"}},
-    {"xl6SignalQueueClosedV1",T,B,1,{V},.parameterOwners={"xl6SignalQueueDestroyV1"}},
-    {"xl6SignalQueuePrepareV1",T,B,2,{V,I},.parameterOwners={"xl6SignalQueueDestroyV1"}},
-    {"xl6SignalQueueSnapshotV1",T,V,1,{V},.resultOwner="xl6SignalEventDestroyV1",.parameterOwners={"xl6SignalQueueDestroyV1"}},
-    {"xl6SignalQueueConsumeV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6SignalQueueDestroyV1"}},
-    {"xl6SignalEventDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6SignalEventDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6SignalEventHandlePolicyV1Get"},
-    {"xl6SignalEventCodeV1",T,I,1,{V},.parameterOwners={"xl6SignalEventDestroyV1"}},
-    {"xl6SignalEventSystemCodeV1",T,I,1,{V},.parameterOwners={"xl6SignalEventDestroyV1"}},
-    {"xl6SignalEventCountV1",T,U,1,{V},.parameterOwners={"xl6SignalEventDestroyV1"}},
-    {"xl6SignalEventTotalV1",T,U,1,{V},.parameterOwners={"xl6SignalEventDestroyV1"}},
-    {"xl6SignalEventTimeV1",T,M,1,{V},.parameterOwners={"xl6SignalEventDestroyV1"}},
-    {"xl6SignalEventCoalescedV1",T,B,1,{V},.parameterOwners={"xl6SignalEventDestroyV1"}},
-    {"xl6SignalEventSaturatedV1",T,B,1,{V},.parameterOwners={"xl6SignalEventDestroyV1"}},
-    {"xl6SignalEventNameV1",T,S,1,{V},.parameterOwners={"xl6SignalEventDestroyV1"}},
-    {"xl6TaskGroupCreateLanguageV1",T,V,2,{I,I},.resultOwner="xl6SignalTaskGroupDestroyV1",.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6TaskGroupCreateCancelLanguageV1",T,V,3,{V,I,I},.resultOwner="xl6SignalTaskGroupDestroyV1",.parameterOwners={"xl6CancellationTokenDestroyV1"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6TaskGroupChildLanguageV1",T,V,3,{V,I,I},.resultOwner="xl6SignalTaskGroupDestroyV1",.parameterOwners={"xl6SignalTaskGroupDestroyV1"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6TaskGroupValidLanguageV1",T,B,1,{V},.parameterOwners={"xl6SignalTaskGroupDestroyV1"},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6TaskGroupCountLanguageV1",T,U,1,{V},.parameterOwners={"xl6SignalTaskGroupDestroyV1"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6TaskGroupReapLanguageV1",T,U,1,{V},.parameterOwners={"xl6SignalTaskGroupDestroyV1"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6TaskGroupTokenLanguageV1",T,V,1,{V},.resultOwner="xl6CancellationTokenDestroyV1",.parameterOwners={"xl6SignalTaskGroupDestroyV1"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6TaskGroupThrowLanguageV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6SignalTaskGroupDestroyV1"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6TaskGroupSnapshotLanguageV1",T,V,1,{V},.resultOwner="xl6TaskGroupSnapshotDestroyV1",.parameterOwners={"xl6SignalTaskGroupDestroyV1"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6TaskGroupSnapshotDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6TaskGroupSnapshotDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6TaskGroupSnapshotHandlePolicyV1Get"},
-    {"xl6TaskGroupUntilLanguageV1",T,B,2,{V,U},.parameterOwners={"xl6SignalTaskGroupDestroyV1"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6TaskGroupTimeoutLanguageV1",T,B,2,{V,I},.parameterOwners={"xl6SignalTaskGroupDestroyV1"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6TaskGroupWaitCancelLanguageV1",T,B,2,{V,V},.parameterOwners={"xl6SignalTaskGroupDestroyV1","xl6CancellationTokenDestroyV1"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6TaskGroupUntilCancelLanguageV1",T,B,3,{V,U,V},.parameterOwners={"xl6SignalTaskGroupDestroyV1",NULL,"xl6CancellationTokenDestroyV1"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6TaskGroupTimeoutCancelLanguageV1",T,B,3,{V,I,V},.parameterOwners={"xl6SignalTaskGroupDestroyV1",NULL,"xl6CancellationTokenDestroyV1"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6TaskGroupSnapshotActiveV1",T,U,1,{V},.parameterOwners={"xl6TaskGroupSnapshotDestroyV1"},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6TaskGroupSnapshotAddedV1",T,U,1,{V},.parameterOwners={"xl6TaskGroupSnapshotDestroyV1"},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6TaskGroupSnapshotCompletedV1",T,U,1,{V},.parameterOwners={"xl6TaskGroupSnapshotDestroyV1"},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6TaskGroupSnapshotSucceededV1",T,U,1,{V},.parameterOwners={"xl6TaskGroupSnapshotDestroyV1"},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6TaskGroupSnapshotFailedV1",T,U,1,{V},.parameterOwners={"xl6TaskGroupSnapshotDestroyV1"},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6TaskGroupSnapshotCancelledV1",T,U,1,{V},.parameterOwners={"xl6TaskGroupSnapshotDestroyV1"},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6TaskGroupSnapshotClosedV1",T,U,1,{V},.parameterOwners={"xl6TaskGroupSnapshotDestroyV1"},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6TaskGroupSnapshotRejectedV1",T,U,1,{V},.parameterOwners={"xl6TaskGroupSnapshotDestroyV1"},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6TaskGroupSnapshotFirstIndexV1",T,U,1,{V},.parameterOwners={"xl6TaskGroupSnapshotDestroyV1"},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6TaskGroupSnapshotFirstStateV1",T,I,1,{V},.parameterOwners={"xl6TaskGroupSnapshotDestroyV1"},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6TaskGroupSnapshotHasFirstV1",T,B,1,{V},.parameterOwners={"xl6TaskGroupSnapshotDestroyV1"},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6TaskGroupSnapshotAcceptingV1",T,B,1,{V},.parameterOwners={"xl6TaskGroupSnapshotDestroyV1"},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6TaskGroupSnapshotCancellingV1",T,B,1,{V},.parameterOwners={"xl6TaskGroupSnapshotDestroyV1"},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6SignalTaskGroupCreateV1",T,V,0,{0},.resultOwner="xl6SignalTaskGroupDestroyV1",.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6SignalTaskGroupDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6SignalTaskGroupDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6TaskGroupHandlePolicyV1Get"},
-    {"xl6SignalTaskGroupCloseV1",T,B,1,{V},.parameterOwners={"xl6SignalTaskGroupDestroyV1"}},
-    {"xl6SignalTaskGroupCancelV1",T,B,1,{V},.parameterOwners={"xl6SignalTaskGroupDestroyV1"}},
-    {"xl6_xrt_task_group_wrap",T,V,1,{XL6_IR_C_ABI_RAW_POINTER},.resultOwner="xl6SignalTaskGroupDestroyV1"},
-    {"xl6_xrt_task_group_child",T,XL6_IR_C_ABI_RAW_POINTER,1,{V},.parameterOwners={"xl6SignalTaskGroupDestroyV1"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6_xrt_task_group_add",T,B,2,{V,V},.parameterOwners={"xl6SignalTaskGroupDestroyV1"},.parameterDynamicBorrows={0,1},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6_xrt_task_group_bind_parent",T,B,2,{V,V},.parameterOwners={"xl6SignalTaskGroupDestroyV1"},.parameterDynamicBorrows={0,1},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6_xrt_task_group_count",T,XL6_IR_C_ABI_C_INT,1,{V},.parameterOwners={"xl6SignalTaskGroupDestroyV1"}},
-    {"xl6_xrt_task_group_reap",T,XL6_IR_C_ABI_C_INT,1,{V},.parameterOwners={"xl6SignalTaskGroupDestroyV1"}},
-    {"xl6_xrt_task_group_join",T,B,1,{V},.parameterOwners={"xl6SignalTaskGroupDestroyV1"}},
-    {"xl6_xrt_task_group_join_timeout",T,B,2,{V,I},.parameterOwners={"xl6SignalTaskGroupDestroyV1"}},
-    {"xl6_xrt_task_group_join_until",T,B,2,{V,I},.parameterOwners={"xl6SignalTaskGroupDestroyV1"}},
-    {"xl6_xrt_task_group_wait",T,B,1,{V},.parameterOwners={"xl6SignalTaskGroupDestroyV1"}},
-    {"xl6_xrt_task_group_wait_timeout",T,B,2,{V,I},.parameterOwners={"xl6SignalTaskGroupDestroyV1"}},
-    {"xl6_xrt_task_group_wait_until",T,B,2,{V,I},.parameterOwners={"xl6SignalTaskGroupDestroyV1"}},
-    {"xl6_xrt_task_group_join_async",T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,1,{V},
-        .parameterOwners={"xl6SignalTaskGroupDestroyV1"},.resultFutureAbi=XL6_IR_ASYNC_RESULT_VOID,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
-    {"xl6EnvGetV1",T,S,2,{S,I},.nullableResult=1},
-    {"xl6EnvHasV1",T,B,2,{S,I}},
-    {"xl6EnvSetV1",T,XL6_IR_C_ABI_VOID,4,{S,S,I,I}},
-    {"xl6EnvRemoveV1",T,XL6_IR_C_ABI_VOID,2,{S,I}},
-    {"xl6TimeFormatV1",T,S,4,{M,S,I,I}},
-    {"xl6TimeRFC3339V1",T,S,2,{M,I}},
-    {"xl6TimeHTTPDateV1",T,S,1,{M}},
-    {"xl6TimeParsePatternV1",T,M,4,{S,S,I,I}},
-    {"xl6TimeTryParsePatternV1",T,XL6_IR_C_ABI_PRODUCT,4,{S,S,I,I},.resultProductAbi=XL6_IR_NATIVE_PRODUCT_BOOLTIME_V1},
-    {"xl6TimeParseAnyV1",T,M,2,{S,I}},
-    {"xl6TimeTryParseAnyV1",T,XL6_IR_C_ABI_PRODUCT,2,{S,I},.resultProductAbi=XL6_IR_NATIVE_PRODUCT_BOOLTIME_V1},
-    {"xl6TimeParseRFC3339V1",T,M,2,{S,I}},
-    {"xl6TimeTryParseRFC3339V1",T,XL6_IR_C_ABI_PRODUCT,2,{S,I},.resultProductAbi=XL6_IR_NATIVE_PRODUCT_BOOLTIME_V1},
-    {"xl6TimeParseHTTPDateV1",T,M,2,{S,I}},
-    {"xl6TimeTryParseHTTPDateV1",T,XL6_IR_C_ABI_PRODUCT,2,{S,I},.resultProductAbi=XL6_IR_NATIVE_PRODUCT_BOOLTIME_V1},
-    {"xl6DateTimeParseV1",T,V,4,{S,S,I,I},.resultOwner="xl6DateTimeDestroyV1"},
-    {"xl6DateTimeFormatV1",T,S,3,{V,S,I},.parameterOwners={"xl6DateTimeDestroyV1"}},
-    {"xl6TimeYearV1",T,I,1,{M},.noRaise=1,.pure=1,.nonblocking=1},
-    {"xl6TimeMonthV1",T,I,1,{M},.noRaise=1,.pure=1,.nonblocking=1},
-    {"xl6TimeDayV1",T,I,1,{M},.noRaise=1,.pure=1,.nonblocking=1},
-    {"xl6TimeHourV1",T,I,1,{M},.noRaise=1,.pure=1,.nonblocking=1},
-    {"xl6TimeMinuteV1",T,I,1,{M},.noRaise=1,.pure=1,.nonblocking=1},
-    {"xl6TimeSecondV1",T,I,1,{M},.noRaise=1,.pure=1,.nonblocking=1},
-    {"xl6TimeWeekdayV1",T,I,1,{M},.noRaise=1,.pure=1,.nonblocking=1},
-    {"xl6TimeDayOfYearV1",T,I,1,{M},.noRaise=1,.pure=1,.nonblocking=1},
-    {"xl6TimeQuarterV1",T,I,1,{M},.noRaise=1,.pure=1,.nonblocking=1},
-    {"xl6TimeLeapV1",T,B,1,{I},.pure=1,.nonblocking=1},
-    {"xl6TimeDaysInYearV1",T,I,1,{I},.pure=1,.nonblocking=1},
-    {"xl6TimeDaysInMonthV1",T,I,2,{I,I}},
-    {"xl6TimeDatePartV1",T,M,1,{M}},
-    {"xl6TimeTimePartV1",T,I,1,{M},.noRaise=1,.pure=1,.nonblocking=1},
-    {"xl6TimeSameDayV1",T,B,2,{M,M},.noRaise=1,.pure=1,.nonblocking=1},
-    {"xl6TimeSameMonthV1",T,B,2,{M,M},.noRaise=1,.pure=1,.nonblocking=1},
-    {"xl6TimeSameYearV1",T,B,2,{M,M},.noRaise=1,.pure=1,.nonblocking=1},
-    {"xl6TimeInV1",T,B,3,{M,M,M},.noRaise=1,.pure=1,.nonblocking=1},
-    {"xl6TimeOverlapV1",T,B,4,{M,M,M,M},.noRaise=1,.pure=1,.nonblocking=1},
-    {"xl6TimeTimerV1",T,F,0,{0}},
-    {"xl6TimeSleepV1",T,XL6_IR_C_ABI_VOID,1,{I}},
-    {"xl6TimeMonthRangeV1",T,XL6_IR_C_ABI_PRODUCT,1,{M},.resultProductAbi=XL6_IR_NATIVE_PRODUCT_TIMEX2_V1},
-    {"xl6TimeYearRangeV1",T,XL6_IR_C_ABI_PRODUCT,1,{M},.resultProductAbi=XL6_IR_NATIVE_PRODUCT_TIMEX2_V1},
-    {"xl6TimeWeekRangeV1",T,XL6_IR_C_ABI_PRODUCT,2,{M,I},.resultProductAbi=XL6_IR_NATIVE_PRODUCT_TIMEX2_V1},
-    {"xl6TimeISOWeekV1",T,XL6_IR_C_ABI_PRODUCT,1,{M},.resultProductAbi=XL6_IR_NATIVE_PRODUCT_I64X3_V1},
-    {"xl6DateTimeSplitV1",T,V,2,{M,I},.resultOwner="xl6DateTimeDestroyV1"},
-    {"xl6DateTimeFieldsV1",T,V,8,{I,I,I,I,I,I,I,I},.resultOwner="xl6DateTimeDestroyV1"},
-    {"xl6DateTimeDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6DateTimeDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6DateTimeHandlePolicyV1Get"},
-    {"xl6DateTimeYearV1",T,I,1,{V},.parameterOwners={"xl6DateTimeDestroyV1"},.noRaise=1,.pure=1,.nonblocking=1},
-    {"xl6DateTimeMonthV1",T,I,1,{V},.parameterOwners={"xl6DateTimeDestroyV1"},.noRaise=1,.pure=1,.nonblocking=1},
-    {"xl6DateTimeDayV1",T,I,1,{V},.parameterOwners={"xl6DateTimeDestroyV1"},.noRaise=1,.pure=1,.nonblocking=1},
-    {"xl6DateTimeHourV1",T,I,1,{V},.parameterOwners={"xl6DateTimeDestroyV1"},.noRaise=1,.pure=1,.nonblocking=1},
-    {"xl6DateTimeMinuteV1",T,I,1,{V},.parameterOwners={"xl6DateTimeDestroyV1"},.noRaise=1,.pure=1,.nonblocking=1},
-    {"xl6DateTimeSecondV1",T,I,1,{V},.parameterOwners={"xl6DateTimeDestroyV1"},.noRaise=1,.pure=1,.nonblocking=1},
-    {"xl6DateTimeMillisecondV1",T,I,1,{V},.parameterOwners={"xl6DateTimeDestroyV1"},.noRaise=1,.pure=1,.nonblocking=1},
-    {"xl6DateTimeOffsetV1",T,I,1,{V},.parameterOwners={"xl6DateTimeDestroyV1"},.noRaise=1,.pure=1,.nonblocking=1},
-    {"xl6DateTimeWeekdayV1",T,I,1,{V},.parameterOwners={"xl6DateTimeDestroyV1"},.noRaise=1,.pure=1,.nonblocking=1},
-    {"xl6DateTimeDayOfYearV1",T,I,1,{V},.parameterOwners={"xl6DateTimeDestroyV1"},.noRaise=1,.pure=1,.nonblocking=1},
-    {"xl6DateTimeIsDSTV1",T,I,1,{V},.parameterOwners={"xl6DateTimeDestroyV1"},.noRaise=1,.pure=1,.nonblocking=1},
-    {"xl6DateTimeToTimeV1",T,M,1,{V},.parameterOwners={"xl6DateTimeDestroyV1"}},
-    {"xl6DateTimeLocalV1",T,V,2,{M,B},.resultOwner="xl6DateTimeDestroyV1"},
-    {"xl6TimeFromLocalV1",T,M,2,{V,I},.parameterOwners={"xl6DateTimeDestroyV1"}},
-    {"xl6TimeTimezoneOffsetV1",T,I,1,{M}},
-    {"xl6TimeFromDateTimeV1",T,M,8,{I,I,I,I,I,I,I,I}},
-    {"xl6TimeFromDateV1",T,M,3,{I,I,I}},
-    {"xl6TimeFromTimeV1",T,M,4,{I,I,I,I}},
-    {"xl6TimeFromUnixV1",T,M,1,{I}},
-    {"xl6TimeFromUnixMsV1",T,M,1,{I}},
-    {"xl6TimeUnixV1",T,I,1,{M},.noRaise=1,.pure=1,.nonblocking=1},
-    {"xl6TimeUnixMsV1",T,I,1,{M},.pure=1,.nonblocking=1},
-    {"xl6TimeMillisecondV1",T,I,1,{M},.noRaise=1,.pure=1,.nonblocking=1},
-    {"xl6TimeNowV1",T,M,0,{0}},
-    {"xl6TimeMonotonicV1",T,U,0,{0}},
-    {"xl6TimeSleepUntilV1",T,XL6_IR_C_ABI_VOID,1,{U}},
-    {"xl6TimeNearV1",T,B,3,{M,M,U},.noRaise=1,.pure=1,.nonblocking=1},
-    {"xl6TimeAddV1",T,M,3,{M,I,I}},
-    {"xl6TimeDiffV1",T,I,3,{M,M,I}},
-#undef M
-#define XL6_NATIVE_COLLECTION_BRIDGE(Name,...) {Name,__VA_ARGS__},
-#include "src/abi/xl6_native_collection_contracts.inc"
-#undef XL6_NATIVE_COLLECTION_BRIDGE
-#define XL6_NATIVE_VALUE_BRIDGE(Name,...) {Name,__VA_ARGS__},
-#include "src/abi/xl6_native_value_contracts.inc"
-#undef XL6_NATIVE_VALUE_BRIDGE
-    {"xl6TextLowerV1",T,S,2,{S,I}},
-    {"xl6TextUpperV1",T,S,2,{S,I}},
-    {"xl6TextTrimV1",T,S,4,{S,S,I,I}},
-    {"xl6TextLTrimV1",T,S,4,{S,S,I,I}},
-    {"xl6TextRTrimV1",T,S,4,{S,S,I,I}},
-    {"xl6TextFilterV1",T,S,4,{S,S,I,I}},
-    {"xl6TextReplaceV1",T,S,6,{S,S,S,I,I,I}},
-    {"xl6TextSliceV1",T,S,4,{S,I,I,I}},
-    {"xl6TextLeftV1",T,S,3,{S,I,I}},
-    {"xl6TextRightV1",T,S,3,{S,I,I}},
-    {"xl6TextRepeatV1",T,S,3,{S,I,I}},
-    {"xl6TextReverseV1",T,S,2,{S,I}},
-    {"xl6TextRemoveAtV1",T,S,4,{S,I,I,I}},
-    {"xl6TextInsertV1",T,S,5,{S,I,S,I,I}},
-    {"xl6TextRemoveV1",T,S,5,{S,S,B,I,I}},
-    {"xl6TextPadLeftV1",T,S,5,{S,I,S,I,I}},
-    {"xl6TextPadRightV1",T,S,5,{S,I,S,I,I}},
-    {"xl6TextPadCenterV1",T,S,5,{S,I,S,I,I}},
-    {"xl6TextLengthV1",T,I,2,{S,I}},
-    {"xl6TextByteLengthV1",T,I,2,{S,I}},
-    {"xl6TextByteAtV1",T,I,3,{S,I,I},0,XL6_IR_INTEGER_TARGET_UNSIGNED_8},
-    {"xl6TextCharAtV1",T,C,3,{S,I,I}},
-    {"xl6TextBytesV1",T,Y,2,{S,I}},
-    {"xl6TextCompareV1",T,I,5,{S,S,B,I,I}},
-    {"xl6TextEqualsV1",T,B,5,{S,S,B,I,I}},
-    {"xl6TextContainsV1",T,B,5,{S,S,B,I,I}},
-    {"xl6TextIndexOfV1",T,I,5,{S,S,B,I,I}},
-    {"xl6TextLastIndexOfV1",T,I,5,{S,S,B,I,I}},
-    {"xl6TextCountV1",T,I,5,{S,S,B,I,I}},
-    {"xl6TextStartsWithV1",T,B,5,{S,S,B,I,I}},
-    {"xl6TextEndsWithV1",T,B,5,{S,S,B,I,I}},
-    {"xl6TextHasAnyV1",T,B,4,{S,S,I,I}},
-    {"xl6TextIsEmptyV1",T,B,2,{S,I}},
-    {"xl6TextIsBlankV1",T,B,2,{S,I}},
-    {"xl6TextIsUtf8V1",T,B,2,{S,I}},
-    {"xl6TextLikeV1",T,B,5,{S,S,B,I,I}},
-    {"xl6TextGlobV1",T,B,5,{S,S,I,I,I}},
-    {"xl6TextDistanceV1",T,I,5,{S,S,I,I,I}},
-    {"xl6TextSimilarityV1",T,F,4,{S,S,I,I}},
-    {"xl6TextApproxV1",T,B,5,{S,S,F,I,I}},
-    {"xl6TextIteratorCreateV1",T,V,5,{S,S,I,I,I},.resultOwner="xl6TextIteratorDestroyV1"},
-    {"xl6TextIteratorDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6TextIteratorDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6TextIteratorHandlePolicyV1Get"},
-    {"xl6TextIteratorNextV1",T,S,1,{V},.parameterOwners={"xl6TextIteratorDestroyV1"},.nullableResult=1},
-    {"xl6TextIteratorCloseV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6TextIteratorDestroyV1"}},
-    {"xl6TextIteratorClosedV1",T,B,1,{V},.parameterOwners={"xl6TextIteratorDestroyV1"}},
-    {"xl6NumberIntFormatV1",T,S,3,{I,S,I}},
-    {"xl6NumberUIntFormatV1",T,S,3,{U,S,I}},
-    {"xl6NumberFloatFormatV1",T,S,3,{F,S,I}},
-    {"xl6NumberBufferIntFormatV1",T,B,4,{V,I,S,I},.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6NumberBufferUIntFormatV1",T,B,4,{V,U,S,I},.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6NumberBufferFloatFormatV1",T,B,4,{V,F,S,I},.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6NumberIntParseV1",T,I,4,{S,I,I,I}},
-    {"xl6NumberInt64ParseV1",T,I,4,{S,I,I,I}},
-    {"xl6NumberUIntParseV1",T,U,4,{S,I,I,I}},
-    {"xl6NumberInt8ParseV1",T,I,4,{S,I,I,I},.resultIntegerTarget=XL6_IR_INTEGER_TARGET_SIGNED_8},
-    {"xl6NumberInt16ParseV1",T,I,4,{S,I,I,I},.resultIntegerTarget=XL6_IR_INTEGER_TARGET_SIGNED_16},
-    {"xl6NumberInt32ParseV1",T,I,4,{S,I,I,I},.resultIntegerTarget=XL6_IR_INTEGER_TARGET_SIGNED_32},
-    {"xl6NumberUInt8ParseV1",T,I,4,{S,I,I,I},.resultIntegerTarget=XL6_IR_INTEGER_TARGET_UNSIGNED_8},
-    {"xl6NumberUInt16ParseV1",T,I,4,{S,I,I,I},.resultIntegerTarget=XL6_IR_INTEGER_TARGET_UNSIGNED_16},
-    {"xl6NumberUInt32ParseV1",T,I,4,{S,I,I,I},.resultIntegerTarget=XL6_IR_INTEGER_TARGET_UNSIGNED_32},
-    {"xl6NumberFloatParseV1",T,F,3,{S,I,I}},
-    {"xl6NumberIntStringV1",T,S,3,{I,I,I}},
-    {"xl6NumberUIntStringV1",T,S,3,{U,I,I}},
-    {"xl6NumberFloatStringV1",T,S,2,{F,I}},
-    {"xl6NumberBufferIntStringV1",T,B,4,{V,I,I,I},.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6NumberBufferUIntStringV1",T,B,4,{V,U,I,I},.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6NumberBufferFloatStringV1",T,B,3,{V,F,I},.parameterOwners={"xl6BufferDestroyV1"}},
-    {"xl6UnicodeScalarV1",T,B,1,{I}},
-    {"xl6UnicodeCharStringV1",T,S,1,{C}},
-    {"xl6UnicodeInvalidTextV1",T,I,2,{S,I}},
-    {"xl6UnicodeInvalidBytesV1",T,I,2,{Y,I}},
-    {"xl6UnicodeInvalidBytesSpanV1",T,I,2,{XL6_IR_C_ABI_C_BYTES,I}},
-    {"xl6UnicodeByteOffsetV1",T,I,3,{S,I,I}},
-    {"xl6UnicodeScalarIndexV1",T,I,3,{S,I,I}},
-    {"xl6UnicodeValidatorCreateV1",T,V,0,{0},.resultOwner="xl6UnicodeValidatorDestroyV1"},
-    {"xl6UnicodeValidatorDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6UnicodeValidatorDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6UnicodeValidatorHandlePolicyV1Get"},
-    {"xl6UnicodeValidatorFeedV1",T,I,4,{V,Y,B,I},.parameterOwners={"xl6UnicodeValidatorDestroyV1"}},
-    {"xl6UnicodeValidatorFeedSpanV1",T,I,4,{V,XL6_IR_C_ABI_C_BYTES,B,I},.parameterOwners={"xl6UnicodeValidatorDestroyV1"}},
-    {"xl6UnicodeValidatorResetV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6UnicodeValidatorDestroyV1"}},
-    {"xl6UnicodeValidatorErrorV1",T,I,1,{V},.parameterOwners={"xl6UnicodeValidatorDestroyV1"}},
-    {"xl6UnicodeValidatorTotalV1",T,I,1,{V},.parameterOwners={"xl6UnicodeValidatorDestroyV1"}},
-    {"xl6UnicodeValidatorFinishedV1",T,B,1,{V},.parameterOwners={"xl6UnicodeValidatorDestroyV1"}},
-    {"xl6HtmlEscapeTextV1",T,S,2,{S,I}},
-    {"xl6HtmlEscapeAttributeV1",T,S,2,{S,I}},
-    {"xl6EncodingEncodeV1",T,Y,5,{S,I,B,I,I}},
-    {"xl6EncodingDecodeV1",T,S,5,{Y,I,I,I,I}},
-    {"xl6EncodingDecodeSpanV1",T,S,5,{XL6_IR_C_ABI_C_BYTES,I,I,I,I}},
-    {"xl6EncodingTranscodeV1",T,Y,6,{Y,I,I,I,I,I}},
-    {"xl6EncodingTranscodeSpanV1",T,Y,6,{XL6_IR_C_ABI_C_BYTES,I,I,I,I,I}},
-    {"xl6EncodingBomV1",T,I,2,{Y,I}},
-    {"xl6EncodingBomSpanV1",T,I,2,{XL6_IR_C_ABI_C_BYTES,I}},
-    {"xl6EncodingBomSizeV1",T,I,2,{Y,I}},
-    {"xl6EncodingBomSizeSpanV1",T,I,2,{XL6_IR_C_ABI_C_BYTES,I}},
-    {"xl6EncodingBomBytesV1",T,Y,1,{I}},
-    {"xl6EncodingUnitSizeV1",T,I,1,{I}},
-    {"xl6EncodingNameV1",T,S,1,{I}},
-    {"xl6EncodingRepairTextV1",T,S,2,{S,I}},
-    {"xl6EncodingGuessTextV1",T,XL6_IR_C_ABI_PRODUCT,2,{S,I},.resultProductAbi=XL6_IR_NATIVE_PRODUCT_I64X3_V1},
-    {"xl6EncodingGuessBytesV1",T,XL6_IR_C_ABI_PRODUCT,2,{Y,I},.resultProductAbi=XL6_IR_NATIVE_PRODUCT_I64X3_V1},
-    {"xl6EncodingGuessBytesSpanV1",T,XL6_IR_C_ABI_PRODUCT,2,{XL6_IR_C_ABI_C_BYTES,I},.resultProductAbi=XL6_IR_NATIVE_PRODUCT_I64X3_V1},
-    {"xl6RegexCreateV1",T,V,5,{S,I,I,I,I},.resultOwner="xl6RegexDestroyV1"},
-    {"xl6RegexDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6RegexDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6RegexHandlePolicyV1Get"},
-    {"xl6RegexPatternV1",T,S,1,{V},.parameterOwners={"xl6RegexDestroyV1"}},
-    {"xl6RegexFlagsV1",T,I,1,{V},.parameterOwners={"xl6RegexDestroyV1"}},
-    {"xl6RegexCaptureCountV1",T,I,1,{V},.parameterOwners={"xl6RegexDestroyV1"}},
-    {"xl6RegexCaptureNameV1",T,S,2,{V,I},.parameterOwners={"xl6RegexDestroyV1"}},
-    {"xl6RegexCaptureIndexV1",T,I,3,{V,S,I},.parameterOwners={"xl6RegexDestroyV1"}},
-    {"xl6RegexEscapeV1",T,S,2,{S,I}},
-    {"xl6RegexMatchCreateV1",T,V,5,{V,S,I,I,I},.resultOwner="xl6RegexMatchDestroyV1",.parameterOwners={"xl6RegexDestroyV1"}},
-    {"xl6RegexMatchDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6RegexMatchDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6RegexMatchHandlePolicyV1Get"},
-    {"xl6RegexTestV1",T,B,4,{V,S,B,I},.parameterOwners={"xl6RegexDestroyV1"}},
-    {"xl6RegexMatchMatchedV1",T,B,1,{V},.parameterOwners={"xl6RegexMatchDestroyV1"}},
-    {"xl6RegexMatchCountV1",T,I,1,{V},.parameterOwners={"xl6RegexMatchDestroyV1"}},
-    {"xl6RegexMatchTextV1",T,S,2,{V,I},.parameterOwners={"xl6RegexMatchDestroyV1"},.nullableResult=1},
-    {"xl6RegexMatchGroupMatchedV1",T,B,2,{V,I},.parameterOwners={"xl6RegexMatchDestroyV1"}},
-    {"xl6RegexMatchStartV1",T,I,2,{V,I},.parameterOwners={"xl6RegexMatchDestroyV1"}},
-    {"xl6RegexMatchEndV1",T,I,2,{V,I},.parameterOwners={"xl6RegexMatchDestroyV1"}},
-    {"xl6RegexMatchNameV1",T,S,2,{V,I},.parameterOwners={"xl6RegexMatchDestroyV1"}},
-    {"xl6RegexMatchIndexV1",T,I,3,{V,S,I},.parameterOwners={"xl6RegexMatchDestroyV1"}},
-    {"xl6RegexMatchInputV1",T,S,1,{V},.parameterOwners={"xl6RegexMatchDestroyV1"}},
-    {"xl6RegexIteratorCreateV1",T,V,5,{V,S,I,I,I},.resultOwner="xl6RegexIteratorDestroyV1",.parameterOwners={"xl6RegexDestroyV1"}},
-    {"xl6RegexIteratorDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6RegexIteratorDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6RegexIteratorHandlePolicyV1Get"},
-    {"xl6RegexIteratorHasNextV1",T,B,1,{V},.parameterOwners={"xl6RegexIteratorDestroyV1"}},
-    {"xl6RegexIteratorSnapshotV1",T,V,1,{V},.resultOwner="xl6RegexMatchDestroyV1",.parameterOwners={"xl6RegexIteratorDestroyV1"}},
-    {"xl6RegexIteratorConsumeV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6RegexIteratorDestroyV1"}},
-    {"xl6RegexIteratorCloseV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6RegexIteratorDestroyV1"}},
-    {"xl6RegexIteratorClosedV1",T,B,1,{V},.parameterOwners={"xl6RegexIteratorDestroyV1"}},
-    {"xl6RegexReplaceV1",T,S,6,{V,S,S,I,I,I},.parameterOwners={"xl6RegexDestroyV1"}},
-    {"xl6RegexReplaceBufferV1",T,I,7,{V,V,S,S,I,I,I},.parameterOwners={"xl6RegexDestroyV1","xl6BufferDestroyV1"}},
-    {"xl6RegexSplitCreateV1",T,V,5,{V,S,I,I,I},.resultOwner="xl6RegexSplitDestroyV1",.parameterOwners={"xl6RegexDestroyV1"}},
-    {"xl6RegexSplitDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6RegexSplitDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6RegexSplitHandlePolicyV1Get"},
-    {"xl6RegexSplitHasNextV1",T,B,1,{V},.parameterOwners={"xl6RegexSplitDestroyV1"}},
-    {"xl6RegexSplitSnapshotV1",T,V,1,{V},.resultOwner="xl6RegexSplitPartDestroyV1",.parameterOwners={"xl6RegexSplitDestroyV1"}},
-    {"xl6RegexSplitConsumeV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6RegexSplitDestroyV1"}},
-    {"xl6RegexSplitCloseV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6RegexSplitDestroyV1"}},
-    {"xl6RegexSplitClosedV1",T,B,1,{V},.parameterOwners={"xl6RegexSplitDestroyV1"}},
-    {"xl6RegexSplitPartDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6RegexSplitPartDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6RegexSplitPartHandlePolicyV1Get"},
-    {"xl6RegexSplitPartTextV1",T,S,1,{V},.parameterOwners={"xl6RegexSplitPartDestroyV1"},.nullableResult=1},
-    {"xl6RegexSplitPartMatchedV1",T,B,1,{V},.parameterOwners={"xl6RegexSplitPartDestroyV1"}},
-    {"xl6RegexSplitPartCaptureV1",T,I,1,{V},.parameterOwners={"xl6RegexSplitPartDestroyV1"}},
-    {"xl6RegexSplitPartStartV1",T,I,1,{V},.parameterOwners={"xl6RegexSplitPartDestroyV1"}},
-    {"xl6RegexSplitPartEndV1",T,I,1,{V},.parameterOwners={"xl6RegexSplitPartDestroyV1"}},
-    {"xl6RegexSetDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6RegexSetDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6RegexSetHandlePolicyV1Get"},
-    {"xl6RegexSetCountV1",T,I,1,{V},.parameterOwners={"xl6RegexSetDestroyV1"}},
-    {"xl6RegexSetPatternV1",T,S,2,{V,I},.parameterOwners={"xl6RegexSetDestroyV1"}},
-    {"xl6RegexSetFirstV1",T,I,4,{V,S,I,I},.parameterOwners={"xl6RegexSetDestroyV1"}},
-    {"xl6RegexSetTestV1",T,B,4,{V,S,I,I},.parameterOwners={"xl6RegexSetDestroyV1"}},
-    {"xl6RegexReplacerCreateV1",T,V,4,{V,S,I,I},.resultOwner="xl6RegexReplacerDestroyV1",.parameterOwners={"xl6RegexDestroyV1"}},
-    {"xl6RegexReplacerDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6RegexReplacerDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6RegexReplacerHandlePolicyV1Get"},
-    {"xl6RegexReplacerSnapshotV1",T,V,1,{V},.resultOwner="xl6RegexMatchDestroyV1",.parameterOwners={"xl6RegexReplacerDestroyV1"}},
-    {"xl6RegexReplacerRunV1",T,S,2,{V,XL6_IR_C_ABI_CLOSURE_PTR},.parameterOwners={"xl6RegexReplacerDestroyV1"},.parameterNullaryCallableResultAbis={0,S}},
-    {"xl6RegexReplacerRunBufferV1",T,I,3,{V,V,XL6_IR_C_ABI_CLOSURE_PTR},.parameterOwners={"xl6RegexReplacerDestroyV1","xl6BufferDestroyV1"},.parameterNullaryCallableResultAbis={0,0,S}},
-    {"xl6RegexErrorOffsetV1",T,I,1,{XL6_IR_C_ABI_RUNTIME_ERROR_PTR},.noRaise=1},
-    {"xl6RegexErrorIndexV1",T,I,1,{XL6_IR_C_ABI_RUNTIME_ERROR_PTR},.noRaise=1},
-    {"xl6PatternOptionsCreateV1",T,V,7,{S,I,I,I,I,I,I},.resultOwner="xl6PatternOptionsDestroyV1"},
-    {"xl6PatternOptionsDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6PatternOptionsDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6PatternOptionsHandlePolicyV1Get"},
-    {"xl6PatternOptionsSeparatorsV1",T,S,1,{V},.parameterOwners={"xl6PatternOptionsDestroyV1"}},
-    {"xl6PatternOptionsBytesV1",T,I,1,{V},.parameterOwners={"xl6PatternOptionsDestroyV1"}},
-    {"xl6PatternOptionsPatternsV1",T,I,1,{V},.parameterOwners={"xl6PatternOptionsDestroyV1"}},
-    {"xl6PatternOptionsCapturesV1",T,I,1,{V},.parameterOwners={"xl6PatternOptionsDestroyV1"}},
-    {"xl6PatternOptionsStatesV1",T,I,1,{V},.parameterOwners={"xl6PatternOptionsDestroyV1"}},
-    {"xl6PatternOptionsCompiledV1",T,I,1,{V},.parameterOwners={"xl6PatternOptionsDestroyV1"}},
-    {"xl6PatternCreateV1",T,V,2,{S,I},.resultOwner="xl6PatternDestroyV1"},
-    {"xl6PatternCreateOptionsV1",T,V,3,{V,S,I},.resultOwner="xl6PatternDestroyV1",.parameterOwners={"xl6PatternOptionsDestroyV1"}},
-    {"xl6PatternDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6PatternDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6PatternHandlePolicyV1Get"},
-    {"xl6PatternCountV1",T,I,1,{V},.parameterOwners={"xl6PatternDestroyV1"}},
-    {"xl6PatternCompiledBytesV1",T,I,1,{V},.parameterOwners={"xl6PatternDestroyV1"}},
-    {"xl6PatternSeparatorsV1",T,S,1,{V},.parameterOwners={"xl6PatternDestroyV1"}},
-    {"xl6PatternSourceV1",T,S,2,{V,I},.parameterOwners={"xl6PatternDestroyV1"}},
-    {"xl6PatternIdV1",T,U,2,{V,I},.parameterOwners={"xl6PatternDestroyV1"}},
-    {"xl6PatternTagKeyV1",T,I,2,{V,I},.parameterOwners={"xl6PatternDestroyV1"}},
-    {"xl6PatternCaptureCountV1",T,I,2,{V,I},.parameterOwners={"xl6PatternDestroyV1"}},
-    {"xl6PatternCaptureNameV1",T,S,3,{V,I,I},.parameterOwners={"xl6PatternDestroyV1"}},
-    {"xl6PatternCaptureIndexV1",T,I,4,{V,S,I,I},.parameterOwners={"xl6PatternDestroyV1"}},
-    {"xl6PatternFirstV1",T,I,3,{V,S,I},.parameterOwners={"xl6PatternDestroyV1"}},
-    {"xl6PatternTestV1",T,B,3,{V,S,I},.parameterOwners={"xl6PatternDestroyV1"}},
-    {"xl6PatternErrorOffsetV1",T,I,1,{XL6_IR_C_ABI_RUNTIME_ERROR_PTR},.noRaise=1},
-    {"xl6PatternErrorIndexV1",T,I,1,{XL6_IR_C_ABI_RUNTIME_ERROR_PTR},.noRaise=1},
-    {"xl6PatternMatchCreateV1",T,V,3,{V,S,I},.resultOwner="xl6PatternMatchDestroyV1",.parameterOwners={"xl6PatternDestroyV1"}},
-    {"xl6PatternMatchDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6PatternMatchDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6PatternMatchHandlePolicyV1Get"},
-    {"xl6PatternMatchMatchedV1",T,B,1,{V},.parameterOwners={"xl6PatternMatchDestroyV1"}},
-    {"xl6PatternMatchCountV1",T,I,1,{V},.parameterOwners={"xl6PatternMatchDestroyV1"}},
-    {"xl6PatternMatchPatternIndexV1",T,I,1,{V},.parameterOwners={"xl6PatternMatchDestroyV1"}},
-    {"xl6PatternMatchIdV1",T,U,1,{V},.parameterOwners={"xl6PatternMatchDestroyV1"}},
-    {"xl6PatternMatchInputV1",T,S,1,{V},.parameterOwners={"xl6PatternMatchDestroyV1"}},
-    {"xl6PatternMatchSourceV1",T,S,1,{V},.parameterOwners={"xl6PatternMatchDestroyV1"}},
-    {"xl6PatternMatchTextV1",T,S,2,{V,I},.parameterOwners={"xl6PatternMatchDestroyV1"}},
-    {"xl6PatternMatchStartV1",T,I,2,{V,I},.parameterOwners={"xl6PatternMatchDestroyV1"}},
-    {"xl6PatternMatchEndV1",T,I,2,{V,I},.parameterOwners={"xl6PatternMatchDestroyV1"}},
-    {"xl6PatternMatchNameV1",T,S,2,{V,I},.parameterOwners={"xl6PatternMatchDestroyV1"}},
-    {"xl6PatternMatchIndexV1",T,I,3,{V,S,I},.parameterOwners={"xl6PatternMatchDestroyV1"}},
-    {"xl6PatternBuilderCreateV1",T,V,0,{0},.resultOwner="xl6PatternBuilderDestroyV1"},
-    {"xl6PatternBuilderOptionsV1",T,V,1,{V},.resultOwner="xl6PatternBuilderDestroyV1",.parameterOwners={"xl6PatternOptionsDestroyV1"}},
-    {"xl6PatternBuilderDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6PatternBuilderDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6PatternBuilderHandlePolicyV1Get"},
-    {"xl6PatternBuilderCountV1",T,I,1,{V},.parameterOwners={"xl6PatternBuilderDestroyV1"}},
-    {"xl6PatternBuilderVersionV1",T,U,1,{V},.parameterOwners={"xl6PatternBuilderDestroyV1"}},
-    {"xl6PatternBuilderIdentityV1",T,V,1,{V},.parameterOwners={"xl6PatternBuilderDestroyV1"}},
-    {"xl6PatternStateCreateV1",T,V,1,{V},.parameterDynamicBorrows={1}},
-    {"xl6PatternBuilderReserveV1",T,XL6_IR_C_ABI_VOID,2,{V,I},.parameterOwners={"xl6PatternBuilderDestroyV1"}},
-    {"xl6PatternBuilderContainsV1",T,B,2,{V,V},.parameterOwners={"xl6PatternBuilderDestroyV1","xl6PatternKeyDestroyV1"}},
-    {"xl6PatternBuilderCompileV1",T,V,1,{V},.resultOwner="xl6PatternDestroyV1",.parameterOwners={"xl6PatternBuilderDestroyV1"}},
-    {"xl6PatternEditAddV1",T,V,4,{V,S,I,I},.resultOwner="xl6PatternEditDestroyV1",.parameterOwners={"xl6PatternBuilderDestroyV1"}},
-    {"xl6PatternEditSetV1",T,V,5,{V,V,S,I,I},.resultOwner="xl6PatternEditDestroyV1",.parameterOwners={"xl6PatternBuilderDestroyV1","xl6PatternKeyDestroyV1"}},
-    {"xl6PatternEditRemoveV1",T,V,2,{V,V},.resultOwner="xl6PatternEditDestroyV1",.parameterOwners={"xl6PatternBuilderDestroyV1","xl6PatternKeyDestroyV1"}},
-    {"xl6PatternEditClearV1",T,V,1,{V},.resultOwner="xl6PatternEditDestroyV1",.parameterOwners={"xl6PatternBuilderDestroyV1"}},
-    {"xl6PatternEditDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6PatternEditDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6PatternEditHandlePolicyV1Get"},
-    {"xl6PatternEditCountV1",T,I,1,{V},.parameterOwners={"xl6PatternEditDestroyV1"}},
-    {"xl6PatternEditCancelV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6PatternEditDestroyV1"}},
-    {"xl6PatternEditApplyV1",T,XL6_IR_C_ABI_VOID,3,{V,V,V},.parameterOwners={"xl6PatternEditDestroyV1"},.parameterDynamicBorrows={0,1,1}},
-    {"xl6PatternKeyCreateV1",T,V,2,{V,I},.resultOwner="xl6PatternKeyDestroyV1",.parameterOwners={"xl6PatternEditDestroyV1"}},
-    {"xl6PatternKeyDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6PatternKeyDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6PatternKeyHandlePolicyV1Get"},
-    {"xl6PatternKeyIdV1",T,U,1,{V},.parameterOwners={"xl6PatternKeyDestroyV1"}},
-#undef U
-#undef F
-#undef Y
-#undef V
-#undef C
-#undef B
-#undef S
-#undef I
-#undef T
-    { "xl6_xrt_write", XL6_IR_RUNTIME_BRIDGE_TEXT_WRITE, XL6_IR_C_ABI_C_BOOL,
-      1, { XL6_IR_C_ABI_MANAGED_STRING }, .noRaise=1 },
-    { "xl6_xrt_writeln", XL6_IR_RUNTIME_BRIDGE_TEXT_WRITELN, XL6_IR_C_ABI_C_BOOL,
-      1, { XL6_IR_C_ABI_MANAGED_STRING }, .noRaise=1 },
-    { "xl6_xrt_console_error", XL6_IR_RUNTIME_BRIDGE_TEXT_ERROR, XL6_IR_C_ABI_C_BOOL,
-      1, { XL6_IR_C_ABI_MANAGED_STRING }, .noRaise=1 },
-    { "xl6_xrt_console_error_line", XL6_IR_RUNTIME_BRIDGE_TEXT_ERRORLN, XL6_IR_C_ABI_C_BOOL,
-      1, { XL6_IR_C_ABI_MANAGED_STRING }, .noRaise=1 },
-    { "xl6_xrt_console_flush", XL6_IR_RUNTIME_BRIDGE_TEXT_FLUSH, XL6_IR_C_ABI_C_BOOL,
-      1, { XL6_IR_C_ABI_C_INT }, .noRaise=1 },
-    { "xl6_xrt_dir_list", XL6_IR_RUNTIME_BRIDGE_DIR_LIST, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR,
-      3, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_C_BOOL, XL6_IR_C_ABI_C_INT }, .noRaise=1 },
-    { "xl6_xrt_dir_glob", XL6_IR_RUNTIME_BRIDGE_DIR_GLOB, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR,
-      4, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_C_BOOL, XL6_IR_C_ABI_C_INT }, .noRaise=1 },
-    { "xl6_xrt_dir_entries", XL6_IR_RUNTIME_BRIDGE_DIR_ENTRIES, XL6_IR_C_ABI_RUNTIME_XVALUE_PTR,
-      5, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_C_BOOL, XL6_IR_C_ABI_C_BOOL, XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_C_INT }, .noRaise=1 },
-    { "xl6_xrt_dir_is_empty", XL6_IR_RUNTIME_BRIDGE_DIR_IS_EMPTY, XL6_IR_C_ABI_C_BOOL,
-      1, { XL6_IR_C_ABI_MANAGED_STRING }, .noRaise=1 },
-    { "xl6_xrt_dir_count", XL6_IR_RUNTIME_BRIDGE_DIR_COUNT, XL6_IR_C_ABI_I64,
-      3, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_C_BOOL, XL6_IR_C_ABI_C_INT }, .noRaise=1 },
-    { "xl6_xrt_dir_size", XL6_IR_RUNTIME_BRIDGE_DIR_SIZE, XL6_IR_C_ABI_I64,
-      2, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_C_BOOL }, .noRaise=1 },
-    { "xl6_xrt_hash32_string", XL6_IR_RUNTIME_BRIDGE_HASH_STRING, XL6_IR_C_ABI_C_UINT,
-      2, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_I64 }, .noRaise=1 },
-    { "xl6_xrt_hash32_string_seed", XL6_IR_RUNTIME_BRIDGE_HASH_STRING, XL6_IR_C_ABI_C_UINT,
-      3, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_C_UINT, XL6_IR_C_ABI_I64 }, .noRaise=1 },
-    { "xl6_xrt_hash64_string", XL6_IR_RUNTIME_BRIDGE_HASH_STRING, XL6_IR_C_ABI_C_ULONGLONG,
-      2, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_I64 }, .noRaise=1 },
-    { "xl6_xrt_hash64_string_seed", XL6_IR_RUNTIME_BRIDGE_HASH_STRING, XL6_IR_C_ABI_C_ULONGLONG,
-      3, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_C_ULONGLONG, XL6_IR_C_ABI_I64 }, .noRaise=1 },
-    { "xl6_xrt_hash32_bytes", XL6_IR_RUNTIME_BRIDGE_HASH_BYTES, XL6_IR_C_ABI_C_UINT,
-      2, { XL6_IR_C_ABI_MANAGED_BYTES, XL6_IR_C_ABI_I64 }, .noRaise=1 },
-    { "xl6_xrt_hash32_bytes_seed", XL6_IR_RUNTIME_BRIDGE_HASH_BYTES, XL6_IR_C_ABI_C_UINT,
-      3, { XL6_IR_C_ABI_MANAGED_BYTES, XL6_IR_C_ABI_C_UINT, XL6_IR_C_ABI_I64 }, .noRaise=1 },
-    { "xl6_xrt_hash64_bytes", XL6_IR_RUNTIME_BRIDGE_HASH_BYTES, XL6_IR_C_ABI_C_ULONGLONG,
-      2, { XL6_IR_C_ABI_MANAGED_BYTES, XL6_IR_C_ABI_I64 }, .noRaise=1 },
-    { "xl6_xrt_hash64_bytes_seed", XL6_IR_RUNTIME_BRIDGE_HASH_BYTES, XL6_IR_C_ABI_C_ULONGLONG,
-      3, { XL6_IR_C_ABI_MANAGED_BYTES, XL6_IR_C_ABI_C_ULONGLONG, XL6_IR_C_ABI_I64 }, .noRaise=1 },
-    { "xl6_xrt_hash32_raw", XL6_IR_RUNTIME_BRIDGE_HASH_RAW, XL6_IR_C_ABI_C_UINT,
-      3, { XL6_IR_C_ABI_RAW_POINTER, XL6_IR_C_ABI_C_SIZE, XL6_IR_C_ABI_I64 }, .noRaise=1 },
-    { "xl6_xrt_hash32_raw_seed", XL6_IR_RUNTIME_BRIDGE_HASH_RAW, XL6_IR_C_ABI_C_UINT,
-      4, { XL6_IR_C_ABI_RAW_POINTER, XL6_IR_C_ABI_C_SIZE, XL6_IR_C_ABI_C_UINT, XL6_IR_C_ABI_I64 }, .noRaise=1 },
-    { "xl6_xrt_hash64_raw", XL6_IR_RUNTIME_BRIDGE_HASH_RAW, XL6_IR_C_ABI_C_ULONGLONG,
-      3, { XL6_IR_C_ABI_RAW_POINTER, XL6_IR_C_ABI_C_SIZE, XL6_IR_C_ABI_I64 }, .noRaise=1 },
-    { "xl6_xrt_hash64_raw_seed", XL6_IR_RUNTIME_BRIDGE_HASH_RAW, XL6_IR_C_ABI_C_ULONGLONG,
-      4, { XL6_IR_C_ABI_RAW_POINTER, XL6_IR_C_ABI_C_SIZE, XL6_IR_C_ABI_C_ULONGLONG, XL6_IR_C_ABI_I64 }, .noRaise=1 },
-    { "xl6_xrt_siphash64_string", XL6_IR_RUNTIME_BRIDGE_SIPHASH_STRING, XL6_IR_C_ABI_C_ULONGLONG,
-      3, { XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_C_ABI_MANAGED_BYTES, XL6_IR_C_ABI_I64 }, .noRaise=1 },
-    { "xl6_xrt_siphash64_bytes", XL6_IR_RUNTIME_BRIDGE_SIPHASH_BYTES, XL6_IR_C_ABI_C_ULONGLONG,
-      3, { XL6_IR_C_ABI_MANAGED_BYTES, XL6_IR_C_ABI_MANAGED_BYTES, XL6_IR_C_ABI_I64 }, .noRaise=1 },
-    { "xl6_xrt_siphash64_raw", XL6_IR_RUNTIME_BRIDGE_SIPHASH_RAW, XL6_IR_C_ABI_C_ULONGLONG,
-      4, { XL6_IR_C_ABI_RAW_POINTER, XL6_IR_C_ABI_C_SIZE, XL6_IR_C_ABI_MANAGED_BYTES, XL6_IR_C_ABI_I64 }, .noRaise=1 }
-};
 
-static const XL6_IrDirectBridgeContract* xl6IrDirectBridgeContract(const char* name)
-{
-    size_t i;
-    if (name == NULL) return NULL;
-    for (i = 0; i < sizeof(xl6IrDirectBridgeContracts) / sizeof(xl6IrDirectBridgeContracts[0]); ++i)
-        if (xl6IrDirectBridgeContracts[i].parameterCount <= XL6_IR_DIRECT_BRIDGE_PARAMETER_CAPACITY &&
-            strcmp(name, xl6IrDirectBridgeContracts[i].name) == 0)
-            return &xl6IrDirectBridgeContracts[i];
-    return NULL;
-}
+#include "xl6_ir_direct_bridge_lookup.inc"
 
-/* Typed declarations retain a quoted linkage token; Lowered targets already
- * carry the canonical identifier. Both select the same exact registry row. */
-static const XL6_IrDirectBridgeContract* xl6IrDirectBridgeContractSpelling(const char* name)
-{
-    const XL6_IrDirectBridgeContract* result=xl6IrDirectBridgeContract(name);
-    if (result || !name) return result;
-    size_t length=strlen(name);
-    if (length>=2 && name[0]=='"' && name[length-1]=='"')
-        for(size_t i=0;i<sizeof(xl6IrDirectBridgeContracts)/sizeof(xl6IrDirectBridgeContracts[0]);++i) {
-            const XL6_IrDirectBridgeContract* row=&xl6IrDirectBridgeContracts[i];
-            if(row->parameterCount<=XL6_IR_DIRECT_BRIDGE_PARAMETER_CAPACITY &&
-                strlen(row->name)==length-2 && !memcmp(name+1,row->name,length-2))return row;
-        }
-    return NULL;
-}
 static int xl6IrInternNativeCallValueSchemas(XL6_IrModule* module)
 {
     if (!module) return 0;
@@ -981,7 +52,7 @@ static int xl6IrInternNativeCallValueSchemas(XL6_IrModule* module)
         const XL6_IrNode* method=&module->nodes[n];
         if(method->kind!=XL6_IR_NODE_FUNC_DECL)continue;
         const XL6_IrDirectBridgeContract* row=xl6IrDirectBridgeContractSpelling(method->text);
-        if(!row || !row->sequenceValueResult)continue;
+        if(!row || !row->details->sequenceValueResult)continue;
         XL6_IrNodeId owner=method->parent;
         while(owner) {
             const XL6_IrNode* node=xl6IrNodeGet(module,owner);
@@ -1010,25 +81,13 @@ XL6_IrRuntimeBridgeKind xl6IrRuntimeDirectBridgeKind(const char* name)
 XL6_IrCallNativeArrayResultAbi xl6IrRuntimeDirectBridgeNativeArrayResultAbi(const char* name)
 {
     const XL6_IrDirectBridgeContract* contract = xl6IrDirectBridgeContract(name);
-    return contract ? contract->nativeArrayResultAbi : XL6_IR_CALL_NATIVE_ARRAY_RESULT_NONE;
+    return contract ? contract->details->nativeArrayResultAbi : XL6_IR_CALL_NATIVE_ARRAY_RESULT_NONE;
 }
 
 const char* xl6IrRuntimeNativeHandlePolicyForName(const char* name)
 {
-    const XL6_IrDirectBridgeContract* contract = xl6IrDirectBridgeContract(name);
-    if (contract != NULL) return contract->nativeHandlePolicy;
-    /* Typed declarations retain the quoted C linkage literal; lowered targets
-     * store its canonical identifier. Match the SAME exact registry entry
-     * without allocating, interpreting escapes or recognizing name prefixes. */
-    if (name != NULL) {
-        size_t length = strlen(name);
-        if (length >= 2 && name[0] == '"' && name[length-1] == '"')
-            for (size_t i=0;i<sizeof(xl6IrDirectBridgeContracts)/sizeof(xl6IrDirectBridgeContracts[0]);++i) {
-                contract=&xl6IrDirectBridgeContracts[i];
-                if (contract->nativeHandlePolicy != NULL && strlen(contract->name) == length-2 &&
-                    memcmp(name+1,contract->name,length-2) == 0) return contract->nativeHandlePolicy;
-            }
-    }
+    const XL6_IrDirectBridgeContract* contract=xl6IrDirectBridgeContractSpelling(name);
+    if(contract)return contract->details->nativeHandlePolicy;
     /* Dedicated bridge families use the same exact resource declaration as
      * direct calls. This is linkage metadata, not Cgen symbol heuristics. */
     if(name){
@@ -1046,56 +105,56 @@ const char* xl6IrRuntimeNativeHandlePolicyForName(const char* name)
 }
 
 int xl6IrRuntimeDirectBridgeFactory(const char* name)
-{ const XL6_IrDirectBridgeContract* c = xl6IrDirectBridgeContract(name); return c && c->resultOwner; }
+{ const XL6_IrDirectBridgeContract* c = xl6IrDirectBridgeContract(name); return c && c->details->resultOwner; }
 int xl6IrRuntimeDirectBridgeOwnsString(const char* name)
 { const XL6_IrDirectBridgeContract* c=xl6IrDirectBridgeContract(name);
-  return c && c->ownedStringResult && c->result==XL6_IR_C_ABI_RAW_POINTER && !c->resultOwner; }
+  return c && c->details->ownedStringResult && c->result==XL6_IR_C_ABI_RAW_POINTER && !c->details->resultOwner; }
 XL6_IrErrorAbi xl6IrRuntimeDirectBridgeErrorAbi(const char* name)
 {
     const XL6_IrDirectBridgeContract* c = xl6IrDirectBridgeContract(name);
-    return c && !c->noRaise
+    return c && !c->details->noRaise
         ? XL6_IR_ERROR_ABI_MAY_RAISE : XL6_IR_ERROR_ABI_NO_RAISE;
 }
 XL6_IrCallErrorPhysicalAbi xl6IrRuntimeDirectBridgeErrorPhysicalAbi(const char* name)
 {
     const XL6_IrDirectBridgeContract* c = xl6IrDirectBridgeContract(name);
     if (!c) return XL6_IR_CALL_ERROR_PHYSICAL_INVALID;
-    if (c->noRaise) return XL6_IR_CALL_ERROR_PHYSICAL_NONE;
-    if (c->errorPhysicalAbi) return c->errorPhysicalAbi;
-    return c->nativeArrayResultAbi ? XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT
+    if (c->details->noRaise) return XL6_IR_CALL_ERROR_PHYSICAL_NONE;
+    if (c->details->errorPhysicalAbi) return c->details->errorPhysicalAbi;
+    return c->details->nativeArrayResultAbi ? XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT
         : XL6_IR_CALL_ERROR_PHYSICAL_XRT_THREAD_ERROR;
 }
 const char* xl6IrRuntimeDirectBridgeParameterOwner(const char* name, size_t index)
 {
     const XL6_IrDirectBridgeContract* c = xl6IrDirectBridgeContract(name);
-    return c && index < c->parameterCount ? c->parameterOwners[index] : NULL;
+    return c && index < c->parameterCount ? c->parameters[index].owner : NULL;
 }
 int xl6IrRuntimeDirectBridgeCheckedClosureParameter(const char* name,size_t index)
 {
     const XL6_IrDirectBridgeContract* c=xl6IrDirectBridgeContract(name);
     return c && index<c->parameterCount &&
-        (c->parameterNullaryCallableResultAbis[index]!=0 || c->genericFutureStarterParameter==index+1 ||
-         c->nativeClassCallbackParameter==index+1);
+        (c->parameters[index].nullaryCallableResultAbi!=0 || c->details->genericFutureStarterParameter==index+1 ||
+         c->details->nativeClassCallbackParameter==index+1);
 }
 int xl6IrRuntimeDirectBridgeResultClosureParameter(const char* name,size_t index)
 {
     const XL6_IrDirectBridgeContract* c=xl6IrDirectBridgeContract(name);
-    return c&&index<c->parameterCount&&c->genericFutureValueCallbackParameter==index+1;
+    return c&&index<c->parameterCount&&c->details->genericFutureValueCallbackParameter==index+1;
 }
 int xl6IrRuntimeDirectBridgeValueAddressParameter(const char* name,size_t index)
 {
     const XL6_IrDirectBridgeContract* c=xl6IrDirectBridgeContractSpelling(name);
-    return c && c->genericValueParameter==index+1;
+    return c && c->details->genericValueParameter==index+1;
 }
 XL6_IrCallNativeResultAbi xl6IrRuntimeDirectBridgeNativeResultAbi(const char* name)
 {
     const XL6_IrDirectBridgeContract* c=xl6IrDirectBridgeContract(name);
-    return c ? c->nativeResultAbi : XL6_IR_CALL_NATIVE_RESULT_NONE;
+    return c ? c->details->nativeResultAbi : XL6_IR_CALL_NATIVE_RESULT_NONE;
 }
 int xl6IrRuntimeDirectBridgeManagedHandleResult(const char* name)
 {
     const XL6_IrDirectBridgeContract* c=xl6IrDirectBridgeContract(name);
-    return c && c->resultOwner && c->managedHandleResult;
+    return c && c->details->resultOwner && c->details->managedHandleResult;
 }
 XL6_IrTypeId xl6IrNativeContextElementType(const XL6_IrModule* module,const XL6_IrCallTarget* target)
 {
@@ -1109,36 +168,36 @@ XL6_IrTypeId xl6IrNativeContextElementType(const XL6_IrModule* module,const XL6_
 const XL6_IrClassField* xl6IrNativeClassArrayContextField(const XL6_IrModule* module,const XL6_IrCallTarget* target)
 {
     const XL6_IrDirectBridgeContract* c=target ? xl6IrDirectBridgeContract(target->cName) : NULL;
-    if(!module || !c || !c->nativeClassArrayOwner || !c->nativeClassArrayParameter ||
-        c->nativeClassArrayParameter>target->parameterCount || !target->parameterTypes)return NULL;
-    XL6_IrTypeId id=target->parameterTypes[c->nativeClassArrayParameter-1];
+    if(!module || !c || !c->details->nativeClassArrayOwner || !c->details->nativeClassArrayParameter ||
+        c->details->nativeClassArrayParameter>target->parameterCount || !target->parameterTypes)return NULL;
+    XL6_IrTypeId id=target->parameterTypes[c->details->nativeClassArrayParameter-1];
     const XL6_IrType* array=xl6IrTypeGet(&module->types,id);
     if(!array || array->collectionAbi!=XL6_IR_COLLECTION_ARRAY || array->paramCount!=1 || !array->params ||
         !xl6IrSequenceConstructionRecipe(module,id,XL6_IR_SEQUENCE_ROLE_ARRAY,NULL))return NULL;
-    return xl6IrResidentNativeResourceField(module,array->params[0],c->nativeClassArrayOwner);
+    return xl6IrResidentNativeResourceField(module,array->params[0],c->details->nativeClassArrayOwner);
 }
 const XL6_IrClassField* xl6IrNativeClassContextField(const XL6_IrModule* module,const XL6_IrCallTarget* target)
 {
     const XL6_IrDirectBridgeContract* c=target?xl6IrDirectBridgeContract(target->cName):NULL;
-    if(!module || !c || !c->nativeClassOwner || !c->nativeClassParameter ||
-        c->nativeClassParameter>target->parameterCount || !target->parameterTypes)return NULL;
+    if(!module || !c || !c->details->nativeClassOwner || !c->details->nativeClassParameter ||
+        c->details->nativeClassParameter>target->parameterCount || !target->parameterTypes)return NULL;
     return xl6IrResidentNativeResourceField(module,
-        target->parameterTypes[c->nativeClassParameter-1],c->nativeClassOwner);
+        target->parameterTypes[c->details->nativeClassParameter-1],c->details->nativeClassOwner);
 }
 unsigned xl6IrRuntimeDirectBridgeServices(const char* name)
 {
     const XL6_IrDirectBridgeContract* c=xl6IrDirectBridgeContract(name);
-    return c ? c->nativeServicesRequired : XL6_IR_CALL_NATIVE_SERVICE_NONE;
+    return c ? c->details->nativeServicesRequired : XL6_IR_CALL_NATIVE_SERVICE_NONE;
 }
 
 static XL6_IrTypeId xl6IrNativeClassResultType(const XL6_IrModule* module,
     const XL6_IrCallTarget* target,const XL6_IrDirectBridgeContract* c)
 {
-    if(!module||!target||!c||c->nativeContext!=XL6_IR_CALL_NATIVE_CONTEXT_CLASS_RESULT_V1||
-        !c->nativeClassResultOwner)return XL6_IR_TYPE_INVALID;
+    if(!module||!target||!c||c->details->nativeContext!=XL6_IR_CALL_NATIVE_CONTEXT_CLASS_RESULT_V1||
+        !c->details->nativeClassResultOwner)return XL6_IR_TYPE_INVALID;
     const XL6_IrType* result=xl6IrTypeGet(&module->types,target->returnType);
-    if(c->genericFutureResult){
-        if(c->nativeResultAbi!=XL6_IR_CALL_NATIVE_RESULT_NONE||!result||result->kind!=XL6_IR_TYPE_GENERIC_INSTANCE||
+    if(c->details->genericFutureResult){
+        if(c->details->nativeResultAbi!=XL6_IR_CALL_NATIVE_RESULT_NONE||!result||result->kind!=XL6_IR_TYPE_GENERIC_INSTANCE||
             result->cAbi!=XL6_IR_C_ABI_RUNTIME_FUTURE_PTR||result->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED||
             result->nullAbi!=XL6_IR_NULL_ABI_POINTER_SENTINEL||result->collectionAbi!=XL6_IR_COLLECTION_NONE||
             result->paramCount!=1||!result->params||result->returnCount)return XL6_IR_TYPE_INVALID;
@@ -1147,7 +206,7 @@ static XL6_IrTypeId xl6IrNativeClassResultType(const XL6_IrModule* module,
     /* The same sealed recipe may construct a synchronous owned class directly
      * into the existing checked output-slot ABI. No language placeholder or
      * post-effect class allocation is required. */
-    if(c->nativeResultAbi!=XL6_IR_CALL_NATIVE_RESULT_VALUE_SLOT_V1||c->resultOwner||c->result||c->noRaise||
+    if(c->details->nativeResultAbi!=XL6_IR_CALL_NATIVE_RESULT_VALUE_SLOT_V1||c->details->resultOwner||c->result||c->details->noRaise||
         !result||result->kind!=XL6_IR_TYPE_CLASS||result->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR||
         result->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED||result->nullAbi!=XL6_IR_NULL_ABI_XVALUE_SENTINEL||
         result->collectionAbi!=XL6_IR_COLLECTION_NONE||result->paramCount||result->returnCount)return XL6_IR_TYPE_INVALID;
@@ -1158,7 +217,7 @@ const XL6_IrClassField* xl6IrNativeClassResultContextField(const XL6_IrModule* m
     const XL6_IrDirectBridgeContract* c=target?xl6IrDirectBridgeContract(target->cName):NULL;
     XL6_IrTypeId type=xl6IrNativeClassResultType(module,target,c);
     if(!type)return NULL;
-    const XL6_IrClassField* field=xl6IrResidentNativeResourceField(module,type,c->nativeClassResultOwner);
+    const XL6_IrClassField* field=xl6IrResidentNativeResourceField(module,type,c->details->nativeClassResultOwner);
     const XL6_IrClassLayout* layout=field?xl6IrBuildClassLayoutByType(module,type):NULL;
     if(!layout||layout->baseType||layout->baseDeclaration!=XL6_IR_NODE_INVALID||layout->fieldCount!=1||
         layout->destroyFunction||layout->destroyStepCount||layout->persistenceFormatMask||
@@ -1186,12 +245,12 @@ int xl6IrNativeClassCallbackPlanBuild(const XL6_IrModule* module,const XL6_IrCal
     XL6_IrNativeClassCallbackPlan* output)
 {
     const XL6_IrDirectBridgeContract* c=target?xl6IrDirectBridgeContract(target->cName):NULL;
-    if(!module||!c||!xl6IrNativeContextIsClassCallback(c->nativeContext)||
-        !c->nativeClassCallbackParameter||c->nativeClassCallbackParameter>target->parameterCount||
-        !target->parameterTypes||!c->nativeClassCallbackArgumentOwner)return 0;
-    int predicate=c->nativeContext==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_PREDICATE_V1;
-    if(predicate?c->nativeClassCallbackResultOwner!=NULL:c->nativeClassCallbackResultOwner==NULL)return 0;
-    XL6_IrTypeId signature=target->parameterTypes[c->nativeClassCallbackParameter-1];
+    if(!module||!c||!xl6IrNativeContextIsClassCallback(c->details->nativeContext)||
+        !c->details->nativeClassCallbackParameter||c->details->nativeClassCallbackParameter>target->parameterCount||
+        !target->parameterTypes||!c->details->nativeClassCallbackArgumentOwner)return 0;
+    int predicate=c->details->nativeContext==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_PREDICATE_V1;
+    if(predicate?c->details->nativeClassCallbackResultOwner!=NULL:c->details->nativeClassCallbackResultOwner==NULL)return 0;
+    XL6_IrTypeId signature=target->parameterTypes[c->details->nativeClassCallbackParameter-1];
     const XL6_IrType* f=xl6IrTypeGet(&module->types,signature);
     if(!f||f->kind!=XL6_IR_TYPE_FUNCTION||f->cAbi!=XL6_IR_C_ABI_CLOSURE_PTR||
         f->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED||f->nullAbi!=XL6_IR_NULL_ABI_POINTER_SENTINEL||
@@ -1206,7 +265,7 @@ int xl6IrNativeClassCallbackPlanBuild(const XL6_IrModule* module,const XL6_IrCal
             r->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_TRIVIAL||r->nullAbi!=XL6_IR_NULL_ABI_NONE||
             r->paramCount||r->returnCount||r->collectionAbi!=XL6_IR_COLLECTION_NONE)return 0;
         XL6_IrNativeClassCallbackPlan plan={signature,f->params[0],f->returns[0],
-            xl6IrNativeCallbackClassField(module,f->params[0],c->nativeClassCallbackArgumentOwner),NULL};
+            xl6IrNativeCallbackClassField(module,f->params[0],c->details->nativeClassCallbackArgumentOwner),NULL};
         if(!plan.argumentField)return 0;
         if(output)*output=plan;
         return 1;
@@ -1215,8 +274,8 @@ int xl6IrNativeClassCallbackPlanBuild(const XL6_IrModule* module,const XL6_IrCal
         r->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR||r->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED||
         r->nullAbi!=XL6_IR_NULL_ABI_XVALUE_SENTINEL||r->collectionAbi!=XL6_IR_COLLECTION_NONE)return 0;
     XL6_IrNativeClassCallbackPlan plan={signature,f->params[0],r->params[0],
-        xl6IrNativeCallbackClassField(module,f->params[0],c->nativeClassCallbackArgumentOwner),
-        xl6IrNativeCallbackClassField(module,r->params[0],c->nativeClassCallbackResultOwner)};
+        xl6IrNativeCallbackClassField(module,f->params[0],c->details->nativeClassCallbackArgumentOwner),
+        xl6IrNativeCallbackClassField(module,r->params[0],c->details->nativeClassCallbackResultOwner)};
     if(!plan.argumentField||!plan.resultField)return 0;
     if(output)*output=plan;
     return 1;
@@ -1224,9 +283,9 @@ int xl6IrNativeClassCallbackPlanBuild(const XL6_IrModule* module,const XL6_IrCal
 static const XL6_IrType* xl6IrNativeVoidCallbackArrayType(const XL6_IrModule* module,
     const XL6_IrCallTarget* target,const XL6_IrDirectBridgeContract* contract)
 {
-    if(!module||!target||!contract||!contract->nativeVoidCallbackArrayParameter||!target->parameterTypes||
-        contract->nativeVoidCallbackArrayParameter>target->parameterCount)return NULL;
-    XL6_IrTypeId id=target->parameterTypes[contract->nativeVoidCallbackArrayParameter-1];
+    if(!module||!target||!contract||!contract->details->nativeVoidCallbackArrayParameter||!target->parameterTypes||
+        contract->details->nativeVoidCallbackArrayParameter>target->parameterCount)return NULL;
+    XL6_IrTypeId id=target->parameterTypes[contract->details->nativeVoidCallbackArrayParameter-1];
     const XL6_IrType* array=xl6IrTypeGet(&module->types,id);
     if(!array||array->kind!=XL6_IR_TYPE_GENERIC_INSTANCE||array->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR||
         array->collectionAbi!=XL6_IR_COLLECTION_ARRAY||array->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED||
@@ -1252,20 +311,20 @@ int xl6IrNativeCallValuePlanBuild(const XL6_IrModule* module,const XL6_IrCallTar
     if (!module || !target) return 0;
     XL6_IrNativeCallValuePlan plan={0};
     const XL6_IrDirectBridgeContract* c=xl6IrDirectBridgeContract(target->cName);
-    if (c && (c->genericChannelParameter || c->sequenceValueResult)) {
+    if (c && (c->details->genericChannelParameter || c->details->sequenceValueResult)) {
         if (!target->parameterTypes || target->parameterCount!=c->parameterCount ||
-            c->errorPhysicalAbi!=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE) return 0;
-        if (c->genericChannelParameter) {
-            if (c->genericChannelParameter>target->parameterCount ||
-                !xl6IrChannelValuePlanBuild(module,target->parameterTypes[c->genericChannelParameter-1],&plan.value)) return 0;
+            c->details->errorPhysicalAbi!=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE) return 0;
+        if (c->details->genericChannelParameter) {
+            if (c->details->genericChannelParameter>target->parameterCount ||
+                !xl6IrChannelValuePlanBuild(module,target->parameterTypes[c->details->genericChannelParameter-1],&plan.value)) return 0;
         } else {
             const XL6_IrType* owner=xl6IrTypeGet(&module->types,target->parameterTypes[0]);
             if (!owner || owner->kind!=XL6_IR_TYPE_CLASS || owner->paramCount!=1 || !owner->params ||
                 !xl6IrChannelValuePlanFromSchema(module,
                     xl6IrArraySchemaTypeForElement(&module->types,owner->params[0]),&plan.value)) return 0;
         }
-        plan.inputParameter=c->genericValueParameter;
-        plan.output=c->nativeResultAbi==XL6_IR_CALL_NATIVE_RESULT_VALUE_SLOT_V1;
+        plan.inputParameter=c->details->genericValueParameter;
+        plan.output=c->details->nativeResultAbi==XL6_IR_CALL_NATIVE_RESULT_VALUE_SLOT_V1;
         if ((plan.inputParameter && (plan.inputParameter>target->parameterCount ||
              target->parameterTypes[plan.inputParameter-1]!=plan.value.elementType)) ||
             (plan.output && target->returnType!=plan.value.elementType)) return 0;
@@ -1280,19 +339,19 @@ int xl6IrRuntimeDirectBridgeContext(const XL6_IrModule* module,const XL6_IrCallT
     if(!module || !target || !context || !type || !payload)return 0;
     *context=XL6_IR_CALL_NATIVE_CONTEXT_NONE;*type=XL6_IR_TYPE_INVALID;*payload=XL6_IR_ASYNC_RESULT_INVALID;
     const XL6_IrDirectBridgeContract* c=xl6IrDirectBridgeContract(target->cName);
-    if(!c || !c->nativeContext)return 1;
-    if(xl6IrNativeContextIsClassCallback(c->nativeContext)){
+    if(!c || !c->details->nativeContext)return 1;
+    if(xl6IrNativeContextIsClassCallback(c->details->nativeContext)){
         XL6_IrNativeClassCallbackPlan plan={0};
         if(!xl6IrNativeClassCallbackPlanBuild(module,target,&plan))return 0;
-        *context=c->nativeContext;*type=plan.signature;return 1;
+        *context=c->details->nativeContext;*type=plan.signature;return 1;
     }
-    if(c->nativeContext==XL6_IR_CALL_NATIVE_CONTEXT_NULLARY_VOID_ARRAY_V1){
+    if(c->details->nativeContext==XL6_IR_CALL_NATIVE_CONTEXT_NULLARY_VOID_ARRAY_V1){
         if(!xl6IrNativeVoidCallbackArrayType(module,target,c))return 0;
-        *context=c->nativeContext;*type=target->parameterTypes[c->nativeVoidCallbackArrayParameter-1];return 1;
+        *context=c->details->nativeContext;*type=target->parameterTypes[c->details->nativeVoidCallbackArrayParameter-1];return 1;
     }
-    if(c->genericFutureStarterParameter||c->genericFutureValueCallbackParameter) {
+    if(c->details->genericFutureStarterParameter||c->details->genericFutureValueCallbackParameter) {
         const XL6_IrType* future=xl6IrTypeGet(&module->types,target->returnType);
-        if(c->nativeContext!=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1 || !c->genericFutureResult ||
+        if(c->details->nativeContext!=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1 || !c->details->genericFutureResult ||
            !future || future->kind!=XL6_IR_TYPE_GENERIC_INSTANCE ||
            future->cAbi!=XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
            future->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED ||
@@ -1302,46 +361,46 @@ int xl6IrRuntimeDirectBridgeContext(const XL6_IrModule* module,const XL6_IrCallT
         const XL6_IrType* value=xl6IrTypeGet(&module->types,future->params[0]);
         XL6_IrAsyncResultAbi abi=xl6IrBuildAsyncResultAbi(module,future->params[0]);
         if(!value || !value->typeValueId || abi==XL6_IR_ASYNC_RESULT_INVALID)return 0;
-        *context=c->nativeContext;*type=future->params[0];*payload=abi;return 1;
+        *context=c->details->nativeContext;*type=future->params[0];*payload=abi;return 1;
     }
-    if(c->nativeContext==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1) {
+    if(c->details->nativeContext==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1) {
         if(!xl6IrNativeClassContextField(module,target))return 0;
-        *context=c->nativeContext;*type=target->parameterTypes[c->nativeClassParameter-1];
+        *context=c->details->nativeContext;*type=target->parameterTypes[c->details->nativeClassParameter-1];
         *payload=xl6IrBuildAsyncResultAbi(module,*type);
         return *payload==XL6_IR_ASYNC_RESULT_RETAINED_XVALUE;
     }
-    if(c->nativeContext==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_RESULT_V1) {
+    if(c->details->nativeContext==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_RESULT_V1) {
         if(!xl6IrNativeClassResultContextField(module,target))return 0;
-        *context=c->nativeContext;*type=xl6IrNativeClassResultType(module,target,c);*payload=xl6IrBuildAsyncResultAbi(module,*type);
+        *context=c->details->nativeContext;*type=xl6IrNativeClassResultType(module,target,c);*payload=xl6IrBuildAsyncResultAbi(module,*type);
         return *payload==XL6_IR_ASYNC_RESULT_RETAINED_XVALUE;
     }
-    if(c->nativeContext==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_ARRAY_V1) {
+    if(c->details->nativeContext==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_ARRAY_V1) {
         if(!xl6IrNativeClassArrayContextField(module,target))return 0;
-        *context=c->nativeContext;*type=target->parameterTypes[c->nativeClassArrayParameter-1];return 1;
+        *context=c->details->nativeContext;*type=target->parameterTypes[c->details->nativeClassArrayParameter-1];return 1;
     }
-    if(c->nativeContext==XL6_IR_CALL_NATIVE_CONTEXT_CHANNEL_SCHEMA_V1) {
-        if(!c->genericChannelParameter || c->genericChannelParameter>target->parameterCount || !target->parameterTypes)
+    if(c->details->nativeContext==XL6_IR_CALL_NATIVE_CONTEXT_CHANNEL_SCHEMA_V1) {
+        if(!c->details->genericChannelParameter || c->details->genericChannelParameter>target->parameterCount || !target->parameterTypes)
             return 0;
-        XL6_IrTypeId owner=target->parameterTypes[c->genericChannelParameter-1];
+        XL6_IrTypeId owner=target->parameterTypes[c->details->genericChannelParameter-1];
         XL6_IrNativeCallValuePlan message={0};
         if(!xl6IrNativeCallValuePlanBuild(module,target,&message))return 0;
-        *context=c->nativeContext;*type=owner;return 1;
+        *context=c->details->nativeContext;*type=owner;return 1;
     }
-    XL6_IrTypeId ownerId=c->resultOwner?target->returnType:
+    XL6_IrTypeId ownerId=c->details->resultOwner?target->returnType:
         target->parameterCount && target->parameterTypes?target->parameterTypes[0]:XL6_IR_TYPE_INVALID;
     const XL6_IrType* owner=xl6IrTypeGet(&module->types,ownerId);
     if(!owner || owner->kind!=XL6_IR_TYPE_CLASS || owner->paramCount!=1 || !owner->params)return 0;
     const XL6_IrType* value=xl6IrTypeGet(&module->types,owner->params[0]);
     if(!value || !value->typeValueId)return 0;
     XL6_IrAsyncResultAbi abi=xl6IrBuildAsyncResultAbi(module,owner->params[0]);
-    if (c->sequenceValueResult) {
+    if (c->details->sequenceValueResult) {
         XL6_IrNativeCallValuePlan message={0};
         if (!xl6IrNativeCallValuePlanBuild(module,target,&message)) return 0;
         if (message.value.codecAbi!=XL6_IR_SEQUENCE_CODEC_DIRECT)
             abi=XL6_IR_ASYNC_RESULT_RETAINED_XVALUE;
     }
     if(abi==XL6_IR_ASYNC_RESULT_INVALID)return 0;
-    *context=c->nativeContext;*type=owner->params[0];*payload=abi;return 1;
+    *context=c->details->nativeContext;*type=owner->params[0];*payload=abi;return 1;
 }
 static int xl6IrDirectBridgeResourceMatches(const XL6_IrModule* module,
     XL6_IrTypeId id, XL6_IrNodeId fieldId, XL6_SymbolId destroyId, const char* owner)
@@ -1370,11 +429,11 @@ static int xl6IrDirectBridgeResultResourceMatches(const XL6_IrModule* module,
 {
     XL6_IrTypeId owner = target->returnType;
     const XL6_IrType* type = xl6IrTypeGet(&module->types, owner);
-    if (!type || (type->kind == XL6_IR_TYPE_NULLABLE) != !!contract->nullableResult) return 0;
-    if (contract->nullableResult) {
+    if (!type || (type->kind == XL6_IR_TYPE_NULLABLE) != !!contract->details->nullableResult) return 0;
+    if (contract->details->nullableResult) {
         /* NULL is an ordinary success value, never an error discriminator.
          * A separate checked outcome is mandatory for optional owners. */
-        if (contract->managedHandleResult || type->paramCount != 1 || !type->params ||
+        if (contract->details->managedHandleResult || type->paramCount != 1 || !type->params ||
             type->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
             type->nullAbi != XL6_IR_NULL_ABI_XVALUE_SENTINEL ||
             type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
@@ -1383,7 +442,7 @@ static int xl6IrDirectBridgeResultResourceMatches(const XL6_IrModule* module,
         owner = type->params[0];
     }
     return xl6IrDirectBridgeResourceMatches(module, owner,
-        target->resultPhysicalFieldDeclaration, target->resultPhysicalDestroySymbol, contract->resultOwner);
+        target->resultPhysicalFieldDeclaration, target->resultPhysicalDestroySymbol, contract->details->resultOwner);
 }
 
 static int xl6IrDirectBridgeCollectionMatches(const XL6_IrModule* module,
@@ -1424,16 +483,16 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
     size_t i;
     if (module == NULL || target == NULL ||
         (contract = xl6IrDirectBridgeContract(target->cName)) == NULL ||
-        target->kind != (contract->resultOwner ? XL6_IR_CALL_TARGET_NATIVE_FACTORY : XL6_IR_CALL_TARGET_EXTERN_C) ||
+        target->kind != (contract->details->resultOwner ? XL6_IR_CALL_TARGET_NATIVE_FACTORY : XL6_IR_CALL_TARGET_EXTERN_C) ||
         target->runtimeBridge != contract->kind || target->errorAbi !=
             xl6IrRuntimeDirectBridgeErrorAbi(contract->name) ||
-        target->nativeArrayResultAbi != contract->nativeArrayResultAbi ||
-        target->nativeResultAbi != contract->nativeResultAbi ||
-        target->nativeServicesRequired != contract->nativeServicesRequired ||
+        target->nativeArrayResultAbi != contract->details->nativeArrayResultAbi ||
+        target->nativeResultAbi != contract->details->nativeResultAbi ||
+        target->nativeServicesRequired != contract->details->nativeServicesRequired ||
         (target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID &&
          target->errorPhysicalAbi != xl6IrRuntimeDirectBridgeErrorPhysicalAbi(contract->name)) ||
-        (contract->resultOwner
-            ? (target->resultPhysicalAbi != (contract->managedHandleResult
+        (contract->details->resultOwner
+            ? (target->resultPhysicalAbi != (contract->details->managedHandleResult
                     ? XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_HANDLE_VALUE_TAKE
                     : XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_FIELD_TAKE) ||
                !target->resultPhysicalDestroySymbol ||
@@ -1452,32 +511,32 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
            context!=target->nativeContextAbi || type!=target->nativeContextType ||
            payload!=target->nativeContextPayloadAbi)return 0;
     }
-    if(contract->genericResourceResult || contract->genericResourceParameter) {
+    if(contract->details->genericResourceResult || contract->details->genericResourceParameter) {
         XL6_IrTypeId expected=target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_NONE
             ? result && result->kind==XL6_IR_TYPE_CLASS && result->paramCount==1 && result->params
                 ? result->params[0] : XL6_IR_TYPE_INVALID
             : xl6IrNativeContextElementType(module,target);
         if(!expected && target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_NONE &&
-            contract->genericResourceParameter &&
-            contract->genericResourceParameter<=target->parameterCount) {
+            contract->details->genericResourceParameter &&
+            contract->details->genericResourceParameter<=target->parameterCount) {
             const XL6_IrType* resource=xl6IrTypeGet(&module->types,
-                target->parameterTypes[contract->genericResourceParameter-1]);
+                target->parameterTypes[contract->details->genericResourceParameter-1]);
             if(resource && resource->kind==XL6_IR_TYPE_CLASS && resource->paramCount==1 && resource->params)
                 expected=resource->params[0];
         }
-        if(contract->genericResourceResult && (!expected || !result || result->kind!=XL6_IR_TYPE_CLASS ||
+        if(contract->details->genericResourceResult && (!expected || !result || result->kind!=XL6_IR_TYPE_CLASS ||
             result->paramCount!=1 || !result->params || result->params[0]!=expected))return 0;
-        if(contract->genericResourceParameter) {
-            size_t index=contract->genericResourceParameter-1;
+        if(contract->details->genericResourceParameter) {
+            size_t index=contract->details->genericResourceParameter-1;
             const XL6_IrType* resource=index<target->parameterCount
                 ? xl6IrTypeGet(&module->types,target->parameterTypes[index]):NULL;
             if(!resource || resource->kind!=XL6_IR_TYPE_CLASS || resource->paramCount!=1 || !resource->params ||
                 !expected || resource->params[0]!=expected)return 0;
         }
     }
-    if (contract->nativeArrayResultAbi) {
+    if (contract->details->nativeArrayResultAbi) {
         if (!result || !result->typeValueId || result->paramCount != 1 || !result->params ||
-            !xl6IrDirectBridgeCollectionMatches(module, result, contract->resultArrayItemAbi, XL6_IR_COLLECTION_ARRAY,NULL)) return 0;
+            !xl6IrDirectBridgeCollectionMatches(module, result, contract->details->resultArrayItemAbi, XL6_IR_COLLECTION_ARRAY,NULL)) return 0;
         const XL6_IrType* item = xl6IrTypeGet(&module->types, result->params[0]);
         XL6_IrSequenceLayout expected = xl6IrSequenceLayoutForType(&module->types, result);
         if (!item || !item->typeValueId || expected.abi != XL6_IR_SEQUENCE_LAYOUT_PRIMITIVE_V2 ||
@@ -1487,49 +546,49 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
     if (contract->kind == XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE ||
         contract->kind == XL6_IR_RUNTIME_BRIDGE_PRINT) {
         const XL6_IrNode* declaration = xl6IrNodeGet(module, target->declaration);
-        if (target->effectAbi != (contract->pure ? XL6_IR_CALL_EFFECT_PURE : XL6_IR_CALL_EFFECT_CONSERVATIVE) ||
-            target->executionBoundaryAbi != (contract->nonblocking
+        if (target->effectAbi != (contract->details->pure ? XL6_IR_CALL_EFFECT_PURE : XL6_IR_CALL_EFFECT_CONSERVATIVE) ||
+            target->executionBoundaryAbi != (contract->details->nonblocking
                 ? XL6_IR_CALL_EXECUTION_FOREIGN_NONBLOCKING : XL6_IR_CALL_EXECUTION_FOREIGN_MAY_BLOCK) ||
-            !declaration || (!contract->noRaise && (declaration->flags & XL6_AST_FLAG_FOREIGN_NO_RAISE))) return 0;
+            !declaration || (!contract->details->noRaise && (declaration->flags & XL6_AST_FLAG_FOREIGN_NO_RAISE))) return 0;
         if (contract->result == XL6_IR_C_ABI_I64 && (!result ||
-            result->integerTarget != (contract->resultIntegerTarget ? contract->resultIntegerTarget
+            result->integerTarget != (contract->details->resultIntegerTarget ? contract->details->resultIntegerTarget
                 : XL6_IR_INTEGER_TARGET_SIGNED_64))) return 0;
         if (contract->result == XL6_IR_C_ABI_U64 && (!result ||
             result->integerTarget != XL6_IR_INTEGER_TARGET_UNSIGNED_64)) return 0;
     }
-    if (contract->nativeResultAbi==XL6_IR_CALL_NATIVE_RESULT_VALUE_SLOT_V1) {
+    if (contract->details->nativeResultAbi==XL6_IR_CALL_NATIVE_RESULT_VALUE_SLOT_V1) {
         if(!result || target->returnType!=xl6IrNativeContextElementType(module,target) ||
-            contract->resultOwner || contract->noRaise || contract->result ||
+            contract->details->resultOwner || contract->details->noRaise || contract->result ||
             target->errorPhysicalAbi==XL6_IR_CALL_ERROR_PHYSICAL_NONE)return 0;
     } else if (contract->result == XL6_IR_C_ABI_VOID) {
         if (target->returnType != XL6_IR_TYPE_INVALID) return 0;
-    } else if (!contract->resultOwner) {
+    } else if (!contract->details->resultOwner) {
         const XL6_IrNode* declaration=xl6IrNodeGet(module,target->declaration);
         if (declaration && (declaration->flags & XL6_AST_FLAG_FOREIGN_OWNED_STRING)) {
             if (!xl6IrRuntimeDirectBridgeOwnsString(target->cName) || !result ||
                 result->kind!=XL6_IR_TYPE_BUILTIN || result->cAbi!=XL6_IR_C_ABI_MANAGED_STRING ||
                 result->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED) return 0;
-        } else if(contract->resultEnum) {
-            if(contract->nullableResult||contract->resultProductAbi||contract->resultArrayItemAbi||
-                contract->resultFutureElementAbi||contract->resultFutureAbi||
-                contract->resultNativeValueAbi||contract->resultEnum->cAbi!=contract->result||
-                !xl6IrDirectNumericEnumMatches(module,target->returnType,contract->resultEnum)||
+        } else if(contract->details->resultEnum) {
+            if(contract->details->nullableResult||contract->details->resultProductAbi||contract->details->resultArrayItemAbi||
+                contract->details->resultFutureElementAbi||contract->details->resultFutureAbi||
+                contract->details->resultNativeValueAbi||contract->details->resultEnum->cAbi!=contract->result||
+                !xl6IrDirectNumericEnumMatches(module,target->returnType,contract->details->resultEnum)||
                 !xl6IrBufferRuntimeBridgeResultMatches(result,contract->result))return 0;
-        } else if (contract->resultNativeValueAbi) {
+        } else if (contract->details->resultNativeValueAbi) {
             if (contract->result != XL6_IR_C_ABI_NATIVE_VALUE ||
                 !xl6IrNativeValuePlanForType(result) ||
-                result->nativeValueAbi != contract->resultNativeValueAbi ||
-                contract->nullableResult || contract->resultProductAbi ||
-                contract->resultArrayItemAbi || contract->resultFutureElementAbi || contract->resultFutureAbi) return 0;
-        } else if (contract->resultProductAbi) {
+                result->nativeValueAbi != contract->details->resultNativeValueAbi ||
+                contract->details->nullableResult || contract->details->resultProductAbi ||
+                contract->details->resultArrayItemAbi || contract->details->resultFutureElementAbi || contract->details->resultFutureAbi) return 0;
+        } else if (contract->details->resultProductAbi) {
             if (!result || result->cAbi != XL6_IR_C_ABI_PRODUCT ||
-                result->nativeProductAbi != contract->resultProductAbi ||
-                xl6IrNativeProductAbiForShape(&module->types,result) != contract->resultProductAbi ||
-                result->ownershipAbi != xl6IrNativeProductOwnershipAbi(contract->resultProductAbi) ||
+                result->nativeProductAbi != contract->details->resultProductAbi ||
+                xl6IrNativeProductAbiForShape(&module->types,result) != contract->details->resultProductAbi ||
+                result->ownershipAbi != xl6IrNativeProductOwnershipAbi(contract->details->resultProductAbi) ||
                 result->nullAbi != XL6_IR_NULL_ABI_NONE ||
-                strcmp(result->cName,xl6IrNativeProductAbiCName(contract->resultProductAbi)) != 0) return 0;
+                strcmp(result->cName,xl6IrNativeProductAbiCName(contract->details->resultProductAbi)) != 0) return 0;
             for(size_t p=0;p<3;++p){
-                const XL6_IrNumericEnumContract* expected=contract->resultProductEnums[p];
+                const XL6_IrNumericEnumContract* expected=contract->details->resultProductEnums[p];
                 if(expected){
                     if(p>=result->paramCount||!xl6IrDirectNumericEnumMatches(module,result->params[p],expected))return 0;
                 }else if(p<result->paramCount){
@@ -1537,14 +596,14 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
                     if(!item||item->kind!=XL6_IR_TYPE_BUILTIN)return 0;
                 }
             }
-        } else if(contract->genericFutureResult) {
+        } else if(contract->details->genericFutureResult) {
             if(!result || result->kind!=XL6_IR_TYPE_GENERIC_INSTANCE ||
                result->cAbi!=XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
                result->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED ||
                result->nullAbi!=XL6_IR_NULL_ABI_POINTER_SENTINEL ||
                result->collectionAbi!=XL6_IR_COLLECTION_NONE || result->returnCount ||
                result->paramCount!=1 || !result->params || result->params[0]!=target->nativeContextType)return 0;
-        } else if (contract->resultFutureElementAbi || contract->resultFutureAbi || contract->resultFutureEnum) {
+        } else if (contract->details->resultFutureElementAbi || contract->details->resultFutureAbi || contract->details->resultFutureEnum) {
             const XL6_IrType* element = result && result->paramCount == 1 && result->params
                 ? xl6IrTypeGet(&module->types, result->params[0]) : NULL;
             if (contract->result != XL6_IR_C_ABI_RUNTIME_FUTURE_PTR || !result ||
@@ -1555,37 +614,37 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
                 result->collectionAbi != XL6_IR_COLLECTION_NONE || result->returnCount ||
                 !element || element->paramCount || element->returnCount ||
                 element->collectionAbi != XL6_IR_COLLECTION_NONE) return 0;
-            if(contract->resultFutureEnum){
-                XL6_IrAsyncResultAbi payload=contract->resultFutureElementAbi==XL6_IR_C_ABI_I64?
-                    XL6_IR_ASYNC_RESULT_COPY_I64:contract->resultFutureElementAbi==XL6_IR_C_ABI_U64?
+            if(contract->details->resultFutureEnum){
+                XL6_IrAsyncResultAbi payload=contract->details->resultFutureElementAbi==XL6_IR_C_ABI_I64?
+                    XL6_IR_ASYNC_RESULT_COPY_I64:contract->details->resultFutureElementAbi==XL6_IR_C_ABI_U64?
                     XL6_IR_ASYNC_RESULT_COPY_U64:XL6_IR_ASYNC_RESULT_INVALID;
-                if(contract->resultFutureAbi||contract->nullableResult||
-                    contract->resultFutureElementAbi!=contract->resultFutureEnum->cAbi||
-                    !xl6IrDirectNumericEnumMatches(module,result->params[0],contract->resultFutureEnum)||
+                if(contract->details->resultFutureAbi||contract->details->nullableResult||
+                    contract->details->resultFutureElementAbi!=contract->details->resultFutureEnum->cAbi||
+                    !xl6IrDirectNumericEnumMatches(module,result->params[0],contract->details->resultFutureEnum)||
                     payload==XL6_IR_ASYNC_RESULT_INVALID||
                     xl6IrBuildAsyncResultAbi(module,result->params[0])!=payload)return 0;
             }else if(element->kind!=XL6_IR_TYPE_BUILTIN)return 0;
-            else if(contract->resultFutureAbi){
+            else if(contract->details->resultFutureAbi){
                 /* A managed codec alone may describe several builtins. An
                  * explicit element C ABI additionally seals its logical
                  * family (for example bytes, not arbitrary xvalue). */
-                if((contract->resultFutureElementAbi&&element->cAbi!=contract->resultFutureElementAbi) ||
-                    xl6IrBuildAsyncResultAbi(module,result->params[0])!=contract->resultFutureAbi)return 0;
-            }else if(element->cAbi!=contract->resultFutureElementAbi ||
+                if((contract->details->resultFutureElementAbi&&element->cAbi!=contract->details->resultFutureElementAbi) ||
+                    xl6IrBuildAsyncResultAbi(module,result->params[0])!=contract->details->resultFutureAbi)return 0;
+            }else if(element->cAbi!=contract->details->resultFutureElementAbi ||
                 element->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
                 element->nullAbi!=XL6_IR_NULL_ABI_NONE ||
-                (contract->resultFutureElementAbi==XL6_IR_C_ABI_I64 && element->integerTarget!=
-                    (contract->resultIntegerTarget?contract->resultIntegerTarget:XL6_IR_INTEGER_TARGET_SIGNED_64)) ||
-                (contract->resultFutureElementAbi==XL6_IR_C_ABI_U64 && element->integerTarget!=
+                (contract->details->resultFutureElementAbi==XL6_IR_C_ABI_I64 && element->integerTarget!=
+                    (contract->details->resultIntegerTarget?contract->details->resultIntegerTarget:XL6_IR_INTEGER_TARGET_SIGNED_64)) ||
+                (contract->details->resultFutureElementAbi==XL6_IR_C_ABI_U64 && element->integerTarget!=
                     XL6_IR_INTEGER_TARGET_UNSIGNED_64))return 0;
-        } else if (contract->resultArrayItemAbi) {
-            if (!xl6IrDirectBridgeCollectionMatches(module, result, contract->resultArrayItemAbi,
-                contract->resultCollectionAbi ? contract->resultCollectionAbi : XL6_IR_COLLECTION_ARRAY,NULL)) return 0;
+        } else if (contract->details->resultArrayItemAbi) {
+            if (!xl6IrDirectBridgeCollectionMatches(module, result, contract->details->resultArrayItemAbi,
+                contract->details->resultCollectionAbi ? contract->details->resultCollectionAbi : XL6_IR_COLLECTION_ARRAY,NULL)) return 0;
         } else {
-            if (result == NULL || result->kind != (contract->nullableResult ? XL6_IR_TYPE_NULLABLE : XL6_IR_TYPE_BUILTIN) ||
+            if (result == NULL || result->kind != (contract->details->nullableResult ? XL6_IR_TYPE_NULLABLE : XL6_IR_TYPE_BUILTIN) ||
                 result->collectionAbi != XL6_IR_COLLECTION_NONE || result->returnCount != 0 ||
-                result->paramCount != (contract->nullableResult ? 1 : 0)) return 0;
-            if (contract->nullableResult) {
+                result->paramCount != (contract->details->nullableResult ? 1 : 0)) return 0;
+            if (contract->details->nullableResult) {
                 const XL6_IrType* base = result->params ? xl6IrTypeGet(&module->types, result->params[0]) : NULL;
                 if (!base || base->kind != XL6_IR_TYPE_BUILTIN || base->cAbi != contract->result ||
                     base->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED || base->paramCount ||
@@ -1603,7 +662,7 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
     }
     for (i = 0; i < contract->parameterCount; ++i) {
         const XL6_IrType* type = xl6IrTypeGet(&module->types, target->parameterTypes[i]);
-        XL6_IrCAbi abi = contract->parameters[i];
+        XL6_IrCAbi abi = contract->parameters[i].abi;
         if(abi==XL6_IR_C_ABI_C_BYTES || abi==XL6_IR_C_ABI_C_STRING) {
             if(!xl6IrTypeIsCOwned(type) || type->kind!=XL6_IR_TYPE_BUILTIN || type->cAbi!=abi ||
                 target->parameterAbis[i]!=XL6_IR_PARAMETER_ABI_BORROW ||
@@ -1612,16 +671,16 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
                 target->parameterPhysicalFieldDeclarations[i]!=XL6_IR_NODE_INVALID)return 0;
             continue;
         }
-        if(contract->parameterEnums[i]) {
-            if(contract->parameterEnums[i]->cAbi!=abi||
-                !xl6IrDirectNumericEnumMatches(module,target->parameterTypes[i],contract->parameterEnums[i])||
+        if(contract->parameters[i].numericEnum) {
+            if(contract->parameters[i].numericEnum->cAbi!=abi||
+                !xl6IrDirectNumericEnumMatches(module,target->parameterTypes[i],contract->parameters[i].numericEnum)||
                 target->parameterConstraintAbis[i]!=XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE||
                 target->parameterPhysicalFieldDeclarations[i]!=XL6_IR_NODE_INVALID||
                 !xl6IrBufferRuntimeBridgeParameterMatches(module,target,i,abi,
                     XL6_IR_PARAMETER_ABI_VALUE,XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT))return 0;
             continue;
         }
-        if(contract->genericValueParameter==i+1) {
+        if(contract->details->genericValueParameter==i+1) {
             if(!type || target->parameterTypes[i]!=xl6IrNativeContextElementType(module,target) ||
                target->parameterAbis[i]!=xl6IrParameterAbiForMode(type,XL6_IR_PARAMETER_MODE_DEFAULT) ||
                target->parameterPhysicalAbis[i]!=xl6IrNativeValueParameterPhysicalAbi(module,target->parameterTypes[i]) ||
@@ -1629,7 +688,7 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
                target->parameterPhysicalFieldDeclarations[i]!=XL6_IR_NODE_INVALID)return 0;
             continue;
         }
-        if(contract->genericChannelParameter==i+1) {
+        if(contract->details->genericChannelParameter==i+1) {
             if(!type || target->parameterTypes[i]!=target->nativeContextType ||
                 target->parameterAbis[i]!=XL6_IR_PARAMETER_ABI_BORROW ||
                 target->parameterPhysicalAbis[i]!=XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT ||
@@ -1637,7 +696,7 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
                 target->parameterPhysicalFieldDeclarations[i]!=XL6_IR_NODE_INVALID)return 0;
             continue;
         }
-        if(contract->nativeVoidCallbackArrayParameter==i+1){
+        if(contract->details->nativeVoidCallbackArrayParameter==i+1){
             if(!type||target->parameterTypes[i]!=target->nativeContextType||
                 !xl6IrNativeVoidCallbackArrayType(module,target,contract)||
                 target->parameterAbis[i]!=XL6_IR_PARAMETER_ABI_BORROW||
@@ -1646,7 +705,7 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
                 target->parameterPhysicalFieldDeclarations[i]!=XL6_IR_NODE_INVALID)return 0;
             continue;
         }
-        if(contract->nativeClassArrayParameter==i+1) {
+        if(contract->details->nativeClassArrayParameter==i+1) {
             if(!type || target->parameterTypes[i]!=target->nativeContextType ||
                 !xl6IrNativeClassArrayContextField(module,target) ||
                 target->parameterAbis[i]!=XL6_IR_PARAMETER_ABI_BORROW ||
@@ -1655,7 +714,7 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
                 target->parameterPhysicalFieldDeclarations[i]!=XL6_IR_NODE_INVALID)return 0;
             continue;
         }
-        if(contract->nativeClassParameter==i+1) {
+        if(contract->details->nativeClassParameter==i+1) {
             if(!type || target->parameterTypes[i]!=target->nativeContextType ||
                 !xl6IrNativeClassContextField(module,target) ||
                 target->parameterAbis[i]!=XL6_IR_PARAMETER_ABI_BORROW ||
@@ -1664,18 +723,18 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
                 target->parameterPhysicalFieldDeclarations[i]!=XL6_IR_NODE_INVALID)return 0;
             continue;
         }
-        if (contract->parameterNativeValueAbis[i]) {
+        if (contract->parameters[i].nativeValueAbi) {
             if (abi != XL6_IR_C_ABI_NATIVE_VALUE || !xl6IrNativeValuePlanForType(type) ||
-                type->nativeValueAbi != contract->parameterNativeValueAbis[i] ||
+                type->nativeValueAbi != contract->parameters[i].nativeValueAbi ||
                 target->parameterAbis[i] != XL6_IR_PARAMETER_ABI_BORROW ||
                 target->parameterPhysicalAbis[i] != XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT ||
                 target->parameterConstraintAbis[i] != XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE ||
                 target->parameterPhysicalFieldDeclarations[i] != XL6_IR_NODE_INVALID ||
-                contract->parameterOwners[i] || contract->parameterDynamicBorrows[i] ||
-                contract->parameterArrayItemAbis[i] || contract->parameterNullaryCallableResultAbis[i]) return 0;
+                contract->parameters[i].owner || contract->parameters[i].dynamicBorrow ||
+                contract->parameters[i].arrayItemAbi || contract->parameters[i].nullaryCallableResultAbi) return 0;
             continue;
         }
-        if(contract->nativeClassCallbackParameter==i+1){
+        if(contract->details->nativeClassCallbackParameter==i+1){
             XL6_IrNativeClassCallbackPlan plan={0};
             if(!xl6IrNativeClassCallbackPlanBuild(module,target,&plan)||target->nativeContextType!=plan.signature||
                 target->parameterAbis[i]!=XL6_IR_PARAMETER_ABI_BORROW||
@@ -1684,7 +743,7 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
                 target->parameterPhysicalFieldDeclarations[i]!=XL6_IR_NODE_INVALID)return 0;
             continue;
         }
-        if(contract->genericFutureValueCallbackParameter==i+1){
+        if(contract->details->genericFutureValueCallbackParameter==i+1){
             const XL6_IrType* future=xl6IrTypeGet(&module->types,target->returnType);
             XL6_IrTypeId element=future&&future->paramCount==1&&future->params?future->params[0]:XL6_IR_TYPE_INVALID;
             int returnsValue=type&&type->returnCount==1&&type->returns&&type->returns[0]==element&&
@@ -1702,13 +761,13 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
                 target->parameterPhysicalFieldDeclarations[i]!=XL6_IR_NODE_INVALID)return 0;
             continue;
         }
-        if (contract->parameterNullaryCallableResultAbis[i] || contract->genericFutureStarterParameter==i+1) {
-            XL6_IrCAbi resultAbi = contract->parameterNullaryCallableResultAbis[i];
+        if (contract->parameters[i].nullaryCallableResultAbi || contract->details->genericFutureStarterParameter==i+1) {
+            XL6_IrCAbi resultAbi = contract->parameters[i].nullaryCallableResultAbi;
             const XL6_IrType* returned=type && type->returnCount==1 && type->returns
                 ? xl6IrTypeGet(&module->types,type->returns[0]):NULL;
-            int resultMatches = contract->genericFutureStarterParameter==i+1
+            int resultMatches = contract->details->genericFutureStarterParameter==i+1
                 ? returned && type->callableResultType==target->returnType &&
-                    type->returns[0]==target->returnType && !contract->parameterNullaryCallableResultAbis[i]
+                    type->returns[0]==target->returnType && !contract->parameters[i].nullaryCallableResultAbi
                 : resultAbi == XL6_IR_C_ABI_VOID
                 ? type && !type->returnCount && !type->returns && type->callableResultType == XL6_IR_TYPE_INVALID
                 : returned && type->callableResultType == type->returns[0] && returned->kind == XL6_IR_TYPE_BUILTIN &&
@@ -1741,15 +800,15 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
                 target->parameterPhysicalFieldDeclarations[i]!=XL6_IR_NODE_INVALID) return 0;
             continue;
         }
-        if (contract->parameterOwners[i]) {
+        if (contract->parameters[i].owner) {
             if (target->parameterAbis[i] != XL6_IR_PARAMETER_ABI_BORROW ||
                 target->parameterPhysicalAbis[i] != XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW ||
                 target->parameterConstraintAbis[i] != XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE ||
                 !xl6IrDirectBridgeResourceMatches(module, target->parameterTypes[i],
-                    target->parameterPhysicalFieldDeclarations[i], 0, contract->parameterOwners[i])) return 0;
+                    target->parameterPhysicalFieldDeclarations[i], 0, contract->parameters[i].owner)) return 0;
             continue;
         }
-        if (contract->parameterDynamicBorrows[i]) {
+        if (contract->parameters[i].dynamicBorrow) {
             if (abi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR || !xl6IrSerializationBridgeDynamicValueType(type) ||
                 target->parameterAbis[i] != XL6_IR_PARAMETER_ABI_BORROW ||
                 target->parameterPhysicalAbis[i] != XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT ||
@@ -1757,8 +816,8 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
                 target->parameterPhysicalFieldDeclarations[i] != XL6_IR_NODE_INVALID) return 0;
             continue;
         }
-        if (contract->parameterArrayItemAbis[i]) {
-            if (!xl6IrDirectBridgeCollectionMatches(module, type, contract->parameterArrayItemAbis[i], XL6_IR_COLLECTION_ARRAY,contract->parameterArrayItemEnums[i]) ||
+        if (contract->parameters[i].arrayItemAbi) {
+            if (!xl6IrDirectBridgeCollectionMatches(module, type, contract->parameters[i].arrayItemAbi, XL6_IR_COLLECTION_ARRAY,contract->parameters[i].arrayItemEnum) ||
                 target->parameterConstraintAbis[i] != XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE ||
                 target->parameterPhysicalFieldDeclarations[i] != XL6_IR_NODE_INVALID ||
                 !xl6IrBufferRuntimeBridgeParameterMatches(module, target, i, abi,
