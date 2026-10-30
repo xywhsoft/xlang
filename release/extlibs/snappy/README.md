@@ -1,6 +1,28 @@
 # snappy
 
-## 当前验收（2026-10-30）
+## 当前验收（2026-10-31）
+
+修复四条 Reader/Writer 失败路径丢失模块分类、backend 和消息的
+问题；原 XRT 首错对象保持，不改变语言异常分派。最终 C 夹具
+30 场景在 Windows GCC/TCC 与 Linux sanitizer 均旧 32 条失败断言→0，
+含两种真实 Writer 扩容 OOM、立即恢复、偏移、关闭归属和内存快照。
+
+打开态文件事务改为借用已有句柄、关闭前回滚。96 组 Windows
+旧 8 红→新 0；新旧目标、原始 cause、七项内存快照保持。Linux
+新旧均通过。新文件事务双语例验证 UTF-8 路径、取消/回调错误保护
+旧目标和立即重试，两平台五条执行路径与黄金输出一致。
+
+**整包仍未签收**：Windows 默认 88 阶段中 86 项符合要求，关闭态
+回滚 OOM 仍有两组临时残留（RFS），另有顶层 M2；Linux 默认只剩
+M2。原379空块场景、26实际原型、新旧双语、各17条普通独立程序
+路径和独立 Python 标准流互通通过，不替代最终失败边界。
+未改主线、vendor、冻结 XRT 或 API/ABI，详[本轮审查](docs/io-file-audit-2026-10-31.md)。
+
+普通 C Reader/Writer 流使用 xrtprogressproc，native 文件 ABI 则
+使用 XRT callable，不是普通 C 函数指针；示例见 examples/README.md。
+下方日期结果仅指各次现场，不是当前完整发布签收。
+
+## 2026-10-30 标准空块审查
 
 修复标准 framing 空数据块被误拒绝：未压缩空块只有四字节 CRC，
 压缩空块的 raw Snappy 可声明零长度。两者仍校验 CRC、raw 指令和
@@ -76,14 +98,14 @@ C 侧直接调用 `xrtSnappyCompress` / `xrtSnappyDecompress`，示例见 `examp
 
 framing 没有结束标记，因此末尾 chunk 不完整会报错，但在完整 chunk 边界提前结束无法检测。校验采用 masked CRC32C。数据块原文上限 64 KiB；未知可跳过 chunk 会跳过，未知不可跳过 chunk 会拒绝。
 
-测试：`test/test_snappy.c` 覆盖固定格式样本、增量输入、资源上限、校验、截断、跳过 chunk 与串联流。`test/file_ops.xl` 覆盖 UTF-8 文件往返、进度回调、覆盖拒绝、取消清理与限额失败时的既有目标保护；中央 XLang 用例在 `test/cases/extlib_snappy.xl` 和 `extlib_snappy_progress.xl`。Linux 包级门禁同次运行 C ASan/UBSan、上述语言用例的 JIT/七条独立 EXE AOT 与 C/XLang 基础范例逐字节对照。
-Windows 从仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/snappy/test/check.ps1`，同次检查严格 GCC、TCC C、私有成员精确拒绝、XLang 主用例/进度/文件操作、实际生成 ABI、双语同输出和 13 条正常 AOT。当前最后仍因 M2 返回失败；`-SkipAot` 仅用于开发，不用于发布签收。每个进程有上限，并保留命令、真实状态和输出；输入/工具前后指纹不变才有效。失败保留独占现场，全部通过才清理。Linux 默认门禁有相同的新回归及失败留档。
+测试：`test_snappy.c`、`empty_chunks_c.c` 覆盖格式、状态、限额、空块、校验/截断与串联，`io_errors_c.c` 覆盖首因和真实 Writer OOM，`file_rollback_c.c` 覆盖 native 文件双故障。`file_ops.xl` 和中央 `extlib_snappy*.xl` 覆盖语言调用。Linux 包级门禁包含 ASan/UBSan/泄漏与各17条普通独立程序路径。
+Windows 从仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/snappy/test/check.ps1`，同次检查严格 GCC、TCC C、私有成员精确拒绝、XLang、实际生成 ABI、双语黄金输出与普通 AOT，最后独立收集关闭态 RFS 和顶层 M2 真实失败；Linux 此轮关闭态过但仍 M2。`-SkipAot` 仅用于开发，不用于发布签收。每个进程有上限，保留命令、真实状态/输出与前后指纹；失败保留现场，全部通过才清理。
 
 包清单现公开 `include/` 并声明六个直接 XRT/XRuntime 模块。
 `tools/run_extlib_c.ps1 -Package snappy -Source release/extlibs/snappy/examples/basic.c`
 可直接运行 C 范例；按清单模块独立编译运行时、三份包 C 源和范例后，
-Windows 严格 GCC 构建及运行通过。裁剪运行时对象为 292,981 字节，
-不是最终 `xl build` 应用体积。包内未使用的 varint 长度函数已移除。
+Windows 严格 GCC 构建及运行通过。对象大小依赖模块和编译配置，
+不能代替最终应用体积。包内未使用的 varint 长度函数已移除。
 
 旧发布物的 Buffer 单字节异或曾有共享 XLIR 诊断，最小复现见
 `dev/extlib_blockers/argon2_byteat_sub.md`；完整 AOT 曾缺

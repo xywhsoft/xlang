@@ -41,6 +41,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;"><a href="../extlibs.html" style="color:var(--brand);text-decoration:none;">扩展库</a><span style="margin:0 6px;">/</span><span style="color:var(--text-soft);">snappy</span></p>
     <div class="extlib-title-row"><h1>snappy</h1><span class="extlib-cat-badge">压缩归档</span></div>
     <p>2026-10-30 修复标准空数据块误拒绝：Windows/Linux 同一 C 回归 379 场景、10 个真实 XRT OOM，旧源 352 条失败断言变为 0。26 个实际桥接声明、新旧双语及各 13 条正常 AOT 通过；默认门禁最后仍因 M2 顶层对象退役返回 1，不作整包发布签收，也不提前销毁或移动全局对象绕开。</p>
+    <p>2026-10-31 修四条 C Reader/Writer 错误结构丢失首因，30 场景同夹具两平台旧32条断言失败→0；保留原始错误对象。打开态文件双故障96组Win旧8红→0，关闭态仍两组残留（RFS）。新旧双语、实际ABI、各17条普通AOT与独立格式互通过；默认Win88阶段86符合，最后RFS/M2分别失败，Linux此轮只剩M2，不作整包签收。</p>
     <div class="extlib-badges"><span class="extlib-badge">v1.0.0</span><span class="extlib-badge hot">C 混编</span><span class="extlib-badge">0 依赖</span><span class="extlib-badge">ABI 1</span></div>
     <p class="extlib-lead">标准 Snappy framed stream 压缩。纯 C codec 与 xlang API 提供二进制安全的 <code>Buffer</code> 一次性、文件及 <code>update → drain → finish</code> 增量流式处理；输出可与遵循官方 framing 格式的工具互通。</p>
   </div>
@@ -86,7 +87,7 @@ end</pre></div></div>
       <li><strong>分段输入</strong> — 压缩按 64 KiB 原文块处理；解压的大输入分段解析，可跳过 chunk 不缓存主体</li>
       <li><strong>进度回显</strong> — <code>inputBytes</code>/<code>outputBytes</code> 字节计数器</li>
       <li><strong>串联流</strong> — <code>members</code> 统计 stream identifier；C 选项的 <code>iMaxEntries</code> 限制其数量，<code>finished</code> 表示 <code>finish()</code> 成功</li>
-      <li><strong>文件提交</strong> — 同目录临时文件 + 重命名；本轮未穷尽全部故障点的回滚清理</li>
+      <li><strong>文件提交</strong> — 同目录临时文件，处理与flush/close成功才重命名；Windows关闭态回滚OOM仍开放，不等于断电持久性保证</li>
     </ul>
     <h2>包信息</h2>
     <table class="ext-kv">
@@ -108,7 +109,8 @@ end</pre></div></div>
 <span class="kw">export func</span> <span class="fn">compressor</span>(...) <span class="kw">as</span> <span class="type">SnappyCompressor</span>
 <span class="kw">export func</span> <span class="fn">decompressor</span>(...) <span class="kw">as</span> <span class="type">SnappyDecompressor</span></div>
     <p>提供一次性、文件级、增量流式三种接口。流式类提供 update/drain/finish + inputBytes/outputBytes/finished/members。framing 没有结束标记：不完整的末尾 chunk 会报错，但无法检测完整 chunk 边界处的提前终止。</p>
-      <div class="api-note">文件接口末尾支持可空 <code>onProgress(inputBytes, totalBytes, outputBytes)</code>。含 NUL 的源/目标路径报 <code>ValueError</code>；返回 false 删除临时输出并抛 <code>CancelledError</code>；回调异常原样传播。C 层对应 <code>xrtprogressproc</code> + <code>void* userData</code>。C 流式接口的进度从 Reader 当前读取位置起算；无法同时取得总长和当前位置时不设置 <code>TOTAL_KNOWN</code>。</div>
+      <div class="api-note">文件接口末尾支持可空 <code>onProgress(inputBytes, totalBytes, outputBytes)</code>，false 取消，回调错误保留首因；含 NUL 路径报 ValueError。native 文件 ABI 使用 XRT callable（三个 uint64、bool返回，无FINAL参数），普通 C Reader/Writer 流才用 xrtprogressproc + userData。C 流进度从 Reader 当前位置起算，无法同时取得总长/当前位置时不置 TOTAL_KNOWN。Windows 关闭态回滚 OOM 缺口仍在。</div>
+      <div class="api-note">C 的 Reader 失败和 drain Writer 失败保留可识别参数、内存、限额、状态、取消或 IO 类别，以及原始 backend、消息和生成计数；XRT 首错对象不替换。调用方持有的 Reader/Writer 不被 codec 关闭；生成计数不等于已交付字节。</div>
       <div class="api-note">Snappy 为固定策略算法，<strong>无级别/质量参数</strong>，因此也不导出调优常量。当前固定发布物在 native checked 边界将损坏/截断报告为 <code>IOError</code>，内存失败为 <code>MemoryError</code>；不能只依据包装层 fallback 声称必为 CompressionError。本轮只更正文档事实，不修改异常分派。</div>
     </div>
   </div>
@@ -152,6 +154,8 @@ assert packed.len() &lt; redundant.len()
 assert snappy.decompress(packed) == redundant</pre></div></div>
     <h3>3. 双语串联记录</h3>
     <p><code>extlibs/snappy/examples/framed_records.xl</code> 与 <code>framed_records_c.c</code> 读取同一条 59 字节标准流，逐字节 update/drain，跨过两种空块和第二个 identifier，完整结果为 <code>abcabc</code>、members=2、bytes=6。输入与结果所有权、运行命令和清理责任见包内 <code>examples/README.md</code>。教学收集有追加复制，不冒称零复制或吞吐基准。</p>
+    <h3>4. 双语文件事务</h3>
+    <p><code>extlibs/snappy/examples/file_transaction.xl</code> 与 <code>file_transaction_c.c</code> 使用 UTF-8 文件名，在取消/业务回调失败时保护旧目标，然后立即重试恢复正文。五条执行路径与三行黄金输出一致，独占目录由例子清理；不将普通回调通过代替双故障OOM验收。</p>
     <h3>运行范例</h3>
     <div class="code-block"><div class="code-header"><span>终端（仓库根目录）</span></div><div class="code-body"><pre>release\xl.exe run release\examples\extlibs\snappy.xl
 release\xl.exe run release\extlibs\snappy\examples\basic.c</pre></div></div>
@@ -159,6 +163,7 @@ release\xl.exe run release\extlibs\snappy\examples\basic.c</pre></div></div>
 
   <div class="ext-panel" id="panel-tests">
     <h2>测试覆盖</h2>
+    <p>2026-10-31：新增IO四路径×七类别、两种真实Writer扩容OOM、错误位置/身份/关闭归属/七项内存快照及立即恢复；两平台旧32断言失败→0。打开态96组全过，关闭态16组Windows仍两组残留；Linux同例过，但M2继续开放。各17条普通独立程序路径与旧格式/ABI/独立oracle通过。完整证据见包内 docs/io-file-audit-2026-10-31.md，旧日期数字不覆盖当前新增边界。</p>
     <p>2026-10-30：原 C/XLang、进度、文件及内存边界保留。新增 <code>test/empty_chunks_c.c</code> 覆盖全部二分切点/前段 drain、流包装、CRC/畸形/截断拒绝、输入/输出/item/成员限额、真实 OOM 和立即恢复；Windows/Linux 均 379 场景零失败，Linux 含 ASan/UBSan/泄漏。<code>abi_surface.xl</code> 使用两种 update 和所有计数 getter，实际 26 个生成原型与 C 头一致；错误返回类型负例确实被拒绝。</p>
     <p>独立 python-snappy 0.7.3 / cramjam 2.14.0 两平台验证原四载荷双向互通及新增八组空块流；Python/wheels 仅用于测试，不进入发布运行依赖。两平台各 13 条正常独立程序路径通过，最后顶层 M2 仍红；不能将 68/69 阶段符合要求称为完整包通过。输入/工具指纹、原始退出码和失败现场均保留，详包内 <code>docs/empty-chunks-audit-2026-10-30.md</code>。32 位、TSan、长期压力及全部文件事务故障仍未签收。</p>
     <p><code>test/test_allocations.c</code> 和 <code>test/allocations.xl</code> 验证 XRT 分配失败时的空结果、释放平衡、恢复和语言层 MemoryError 分类；不覆盖上游 Snappy 内部 allocator。</p>

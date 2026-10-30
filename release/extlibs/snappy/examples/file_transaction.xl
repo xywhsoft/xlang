@@ -1,0 +1,47 @@
+import snappy
+
+// 失败保留旧目标；取消和回调抛错后都能立即重试。
+func main(...) as int
+    string work = dir.temp(prefix = "xlang-snappy-transaction-")
+    string source = path.join(work, "输入.txt")
+    string packed = path.join(work, "output.snappy")
+    string restored = path.join(work, "restored.txt")
+    try
+        assert file.writeText(source, "hello snappy")
+        assert file.writeText(packed, "keep")
+        bool cancelled = false
+        try
+            snappy.compressFile(source, packed, onProgress = func(int inputBytes,
+                int totalBytes, int outputBytes) as bool
+                return false
+            end)
+        catch CancelledError e
+            cancelled = true
+        end
+        assert cancelled and file.readText(packed) == "keep"
+
+        bool rejected = false
+        try
+            snappy.compressFile(source, packed, onProgress = func(int inputBytes,
+                int totalBytes, int outputBytes) as bool
+                throw ValueError "stop requested"
+            end)
+        catch ValueError e
+            rejected = true
+        end
+        assert rejected and file.readText(packed) == "keep"
+
+        snappy.compressFile(source, packed)
+        snappy.decompressFile(packed, restored)
+        assert file.readText(restored) == "hello snappy"
+        println("cancelled: true")
+        println("callback error: true")
+        println("restored: hello snappy")
+    finally
+        if file.exists(source) then assert file.delete(source) end
+        if file.exists(packed) then assert file.delete(packed) end
+        if file.exists(restored) then assert file.delete(restored) end
+        assert dir.delete(work)
+    end
+    return 0
+end
