@@ -1,5 +1,31 @@
 # ini
 
+## 2026-10-30 修改入口的单项限额
+
+原先仅解析器检查 maxItem，set 可写入超限节名、键名或值，甚至覆盖旧值，
+生成的文本随后无法按相同限额重新读取。现于修改任何节/键之前检查三项
+UTF-8 字节长度；不增加副本、分配或公开接口，解析器原位置诊断保持不变。
+这不是增加新的 INI 语法：原有写出时 FORMAT 拒绝规则仍然有效。
+
+新增 test_set_limits.c：108 组大小写、ASCII/UTF-8、上限前/等于/超过、
+空配置/具名节/全局节组合；失败核对借用值、顺序、拼写、计数与规范文本。
+另验空值、多行分隔字节、C 零限额和 UINT64_MAX，三种新增/覆盖操作跨过
+节表或键表扩容点的 12 个分配失败点逐点恢复，核对活动内存和非法释放。
+最终同一 C 回归在两平台旧模型 183 条断言失败，修复后为 0；语言新增
+set_limits.xl 分类捕获与恢复，登记到 coverage.tests。
+
+新 examples/bounded_updates.xl / bounded_updates_c.c 采用同一四行黄金输出，
+展示六字节中文值、超限覆盖不改旧值、继续修改以及同限额规范写回读取。
+Windows 默认完整门禁 89 项、55 个输入/工具指纹通过，18 份 AOT 构建和运行；
+Linux 原生快照默认门禁通过 C ASan/UBSan、Python configparser 互通、
+既有及新 C/XLang JIT/AOT（18 份独立程序），59 个复制源与三个工具指纹不变。
+PowerShell 7 另复验实际门禁 Run 的十结果自测；门禁后仅补本节与官网证据说明。
+
+Windows 报告 build/test/ini_guard_99e42cc3501b43019dedd07251339283.report.json；
+Linux /var/tmp/xlang-ini-audit-HDv75RvS 保留门禁跟踪、新旧红绿与输入清单；
+本地证据 build/test/ini_audit_1793333389932。历史 GCC ICE 未定位，仍保持 R；
+未改编译器、XRT 或八件冻结发布物，不以本轮绿跑签收整个长期任务。
+
 ## 2026-10-30 Windows 门禁进程收口
 
 Windows 门禁所有子进程统一复用现有 Invoke-ExtlibSmokeProcess，默认
@@ -210,7 +236,15 @@ XLang Buffer 副本；原生读取器在复制正文前检查 `maxInput`，并�
 向新节写入失败会撤销本次创建的节，保留原配置与错误信息。
 `Config.save` / `xrtIniSave` 先写目标目录中的临时文件，再由 XRT 替换目标；
 写入中途失败不会截断已有配置文件。
-`set()` 可以在内存中保留任意合法 UTF-8 文本；`stringify()` / `save()`
+`maxItem` / C 的 `iMaxItemBytes` 同时限制解析与 `set()` 的节名、键名和值，
+按 UTF-8 字节计算，等于上限允许，换行分隔字节也计入值的长度。超限修改
+报 `LIMIT` / `ConfigError`，不改变原值、顺序、计数或留下新节；后续有效修改可恢复。
+C 的 0 表示不限，XLang 参数 0 仍表示使用默认限额，不是解除限额。
+包内 `examples/bounded_updates.xl` / `bounded_updates_c.c` 成对演示：
+六字节中文值成功、超限覆盖保留旧值、继续修改与同限额写回读取，四行输出一致。
+在仓库根目录运行 `release/xl.exe run release/extlibs/ini/examples/bounded_updates.xl`
+或把文件名替换为 `bounded_updates_c.c`；Linux 使用 `release/xl`。
+`set()` 可以在限额内保留任意合法 UTF-8 文本；`stringify()` / `save()`
 只写当前 INI 语法能无损表示的内容。节名、键名及值含换行或首尾空白等
 歧义时，明确报 `XRT_INI_ERROR_FORMAT`（XLang 抛 `ConfigError`），
 不会写出一份再次读取后改变数据的文件。多行值可用 `\n` 分隔非空续行，

@@ -41,7 +41,7 @@ sha256sum "${inputs[@]}" > "$work/inputs.before.sha256"
 "$cc" --version > "$work/compiler.txt"
 printf '[ini] C sanitizer gate\n'
 "$cc" "${flags[@]}" -c release/extlibs/ini/test/xrt_runtime.c -o "$work/xrt.o"
-for name in test_ini test_updates test_output_limits test_interpolation_refs test_owned_text test_stream_errors; do
+for name in test_ini test_updates test_output_limits test_interpolation_refs test_owned_text test_stream_errors test_set_limits; do
     "$cc" "${flags[@]}" "release/extlibs/ini/test/$name.c" \
         "$work/xrt.o" -lm -ldl -o "$work/$name"
     timeout 90s "$work/$name"
@@ -52,6 +52,11 @@ timeout 90s "$work/ini_c" > "$work/gcc_example.txt"
 "$cc" "${flags[@]}" release/extlibs/ini/examples/profiles_c.c \
     "$work/xrt.o" -lm -ldl -o "$work/profiles_c"
 timeout 90s "$work/profiles_c" > "$work/profiles_gcc.txt"
+"$cc" "${flags[@]}" release/extlibs/ini/examples/bounded_updates_c.c \
+    "$work/xrt.o" -lm -ldl -o "$work/bounded_updates_c"
+printf 'oversized update rejected\n你好\n8080\nbounded configuration round-trip: OK\n' > "$work/bounded_golden.txt"
+timeout 90s "$work/bounded_updates_c" > "$work/bounded_gcc.txt"
+diff -u "$work/bounded_golden.txt" "$work/bounded_gcc.txt"
 printf '[ini] C/Python interoperability gate\n'
 "$cc" "${flags[@]}" release/extlibs/ini/test/interop.c \
     "$work/xrt.o" -lm -ldl -o "$work/ini_interop"
@@ -63,10 +68,12 @@ timeout 90s ./release/xl run release/extlibs/ini/test/test_output_limits.c
 timeout 90s ./release/xl run release/extlibs/ini/test/test_interpolation_refs.c
 timeout 90s ./release/xl run release/extlibs/ini/test/test_owned_text.c
 timeout 90s ./release/xl run release/extlibs/ini/test/test_stream_errors.c
+timeout 90s ./release/xl run release/extlibs/ini/test/test_set_limits.c
 timeout 90s ./release/xl run test/cases/extlib_ini.xl
 timeout 90s ./release/xl run release/extlibs/ini/test/boundaries.xl
 timeout 90s ./release/xl run release/extlibs/ini/test/updates.xl
 timeout 90s ./release/xl run release/extlibs/ini/test/output_limits.xl
+timeout 90s ./release/xl run release/extlibs/ini/test/set_limits.xl
 timeout 90s ./release/xl run release/extlibs/ini/test/interpolation_refs.xl
 timeout 90s ./release/xl run release/extlibs/ini/test/owned_results.xl
 timeout 90s ./release/xl run release/extlibs/ini/test/owned_probe.xl
@@ -87,6 +94,10 @@ timeout 90s ./release/xl run release/extlibs/ini/examples/profiles_c.c > "$work/
 timeout 90s ./release/xl run release/extlibs/ini/examples/profiles.xl > "$work/profiles_xl.txt"
 diff -u "$work/profiles_gcc.txt" "$work/profiles_direct_c.txt"
 diff -u "$work/profiles_gcc.txt" "$work/profiles_xl.txt"
+for source in bounded_updates_c.c bounded_updates.xl; do
+    timeout 90s ./release/xl run "release/extlibs/ini/examples/$source" > "$work/$source.direct.txt"
+    diff -u "$work/bounded_golden.txt" "$work/$source.direct.txt"
+done
 if timeout 90s ./release/xl check release/extlibs/ini/test/private_native.xl > "$work/private_native.txt" 2>&1; then
     printf 'ini: native methods must not be public\n' >&2
     exit 1
@@ -113,12 +124,12 @@ timeout 90s ./release/xl run release/examples/extlibs/ini.xl \
 diff -u "$work/c_example.txt" "$work/xl_example.txt"
 diff -u "$work/gcc_example.txt" "$work/c_example.txt"
 printf '[ini] XLang AOT gate\n'
-for name in aot_float_core boundaries updates output_limits interpolation_refs owned_results owned_probe; do
+for name in aot_float_core boundaries updates output_limits interpolation_refs owned_results owned_probe set_limits; do
     timeout 180s ./release/xl build "release/extlibs/ini/test/$name.xl" \
         -o "$work/ini_$name"
     timeout 90s "$work/ini_$name"
 done
-for name in test_owned_text test_stream_errors; do
+for name in test_owned_text test_stream_errors test_set_limits; do
     timeout 180s ./release/xl build "release/extlibs/ini/test/$name.c" -o "$work/$name.c.aot"
     timeout 90s "$work/$name.c.aot"
 done
@@ -138,6 +149,12 @@ for source in profiles.xl profiles_c.c; do
     timeout 180s ./release/xl build "release/extlibs/ini/examples/$source" -o "$target"
     timeout 90s "$target" > "$work/${source//./_}.txt"
     diff -u "$work/profiles_gcc.txt" "$work/${source//./_}.txt"
+done
+for source in bounded_updates.xl bounded_updates_c.c; do
+    target="$work/${source//./_}"
+    timeout 180s ./release/xl build "release/extlibs/ini/examples/$source" -o "$target"
+    timeout 90s "$target" > "$work/$source.aot.txt"
+    diff -u "$work/bounded_golden.txt" "$work/$source.aot.txt"
 done
 sha256sum -c "$work/inputs.before.sha256" > "$work/inputs.checked.txt"
 printf 'ini Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\n'

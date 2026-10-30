@@ -581,9 +581,18 @@ XRT_API bool xrtIniSet(xrtiniconfig* pConfig, str sSection, str sKey, str sValue
 {
 	xrt_ini_section* pSection;
 	bool bNewSection;
+	uint64 iMaxItem;
 	if ( pConfig == NULL || sKey == NULL || sValue == NULL ) { return false; }
 	__xrtIniClearError(pConfig);
 	sSection = sSection != NULL ? sSection : (str)"";
+	/* 修改与解析使用同一字节限额，先拒绝再动节表，避免留下半次写入。 */
+	iMaxItem = pConfig->Options.tLimits.iMaxItemBytes;
+	if ( iMaxItem != 0u && (strlen((const char*)sSection) > iMaxItem ||
+		strlen((const char*)sKey) > iMaxItem || strlen((const char*)sValue) > iMaxItem) ) {
+		__xrtIniSetError(pConfig, XRT_INI_ERROR_LIMIT, 0u, 0u, 0u,
+			"INI section, key or value exceeds the configured item limit");
+		return false;
+	}
 	pSection = __xrtIniFindSection(pConfig, (const char*)sSection);
 	bNewSection = pSection == NULL;
 	if ( pSection == NULL ) {

@@ -38,7 +38,8 @@ typedef struct {
 	bool bStrictDuplicates;
 	bool bInterpolation;
 	bool bReserved;
-	/* iMaxEntries 限制所有节的键总数；iMaxOutputBytes 同时约束拥有型
+	/* iMaxItemBytes 同时约束解析和 set 的节名、键名、值的 UTF-8 字节数。
+	 * iMaxEntries 限制所有节的键总数；iMaxOutputBytes 同时约束拥有型
 	 * get 与序列化文本的字节数，0 为不限。压缩倍率、标志不适用。 */
 	xrtresourcelimits tLimits;
 } xrtinioptions;
@@ -78,6 +79,7 @@ XRT_API bool xrtIniGetInt(const xrtiniconfig* pConfig, str sSection, str sKey, i
 XRT_API bool xrtIniGetFloat(const xrtiniconfig* pConfig, str sSection, str sKey, double* pValue);
 XRT_API bool xrtIniGetBool(const xrtiniconfig* pConfig, str sSection, str sKey, bool* pValue);
 
+/* 超过单项限额返回 LIMIT；失败保留原内容、顺序和计数，不留下新增节。 */
 XRT_API bool xrtIniSet(xrtiniconfig* pConfig, str sSection, str sKey, str sValue);
 XRT_API bool xrtIniRemove(xrtiniconfig* pConfig, str sSection, str sKey);
 XRT_API bool xrtIniRemoveSection(xrtiniconfig* pConfig, str sSection);

@@ -33,6 +33,7 @@ assert config.getInt("server", "port") == 9090
 println(config.stringify())</code></pre>
     <p>完整的 C/XLang 对照范例还演示 <code>create</code>、<code>save</code>、<code>load</code>：在独占临时目录中保存配置并读回核对，运行结束即清理。Windows 严格 GCC 与 TCC、Linux ASan/UBSan 的输出均和 XLang 对照。</p>
     <p>包内 <code>examples/profiles.xl</code> / <code>profiles_c.c</code> 另成对演示部署配置覆盖、多行值和读取时插值。可直接 <code>xl run</code>，不需要服务或数据文件；写回后可重新按默认严格模式读取。</p>
+    <p><code>examples/bounded_updates.xl</code> / <code>bounded_updates_c.c</code> 演示按 UTF-8 字节限制修改：六字节中文值成功、超限覆盖保留旧值，随后可继续修改并用相同限额重新解析。两个范例无需文件或外部服务，输出完全一致。</p>
     <p>插值的 <code>${.scheme}</code> 可读取全局键；首个点分隔节名与键名，其余点保留为键的一部分，如 <code>${s.a.b}</code> 读取 s 节的 a.b。空键引用报 ConfigError，空值本身合法；缺键、循环与真正的内存失败保持各自错误分类。</p>
   </section>
   <section id="api">
@@ -40,7 +41,7 @@ println(config.stringify())</code></pre>
     <table class="ext-kv"><thead><tr><th>入口</th><th>用途</th></tr></thead><tbody>
       <tr><td><code>create / parse / load</code></td><td>创建空配置、解析文本或加载 UTF-8 路径。</td></tr>
       <tr><td><code>Config.get / getOr / getInt / getFloat / getBool</code></td><td>读取值并按需转换类型；<code>get</code> 直接接管原生分配并返回普通 <code>string</code>，<code>getOr</code> 提供默认值；<code>getInt</code> 严格解析完整十进制值，<code>getFloat</code> 固定点号十进制、不受区域设置影响；失败抛出 <code>ConfigError</code>。</td></tr>
-      <tr><td><code>Config.set / remove / removeSection</code></td><td>修改键或节。</td></tr>
+      <tr><td><code>Config.set / remove / removeSection</code></td><td>修改键或节。<code>set</code> 与解析共享 <code>maxItem</code> 节名、键名和值的 UTF-8 字节限额（含值内换行）；等于上限允许，超限抛 <code>ConfigError</code>，保留原内容、顺序和计数，不留下空节。</td></tr>
       <tr><td><code>Config.sectionNames / keys / has / hasSection</code></td><td>枚举和查询节、键。</td></tr>
       <tr><td><code>Config.stringify / save</code></td><td>直接接管原生文本并返回普通 <code>string</code>，或原子保存到文件；无法无损表示的节名、键名或值会明确报错，不会静默改变数据；写入失败不截断旧文件。</td></tr>
       <tr><td><code>Config.errorCode / errorLine / errorColumn / errorOffset</code></td><td>读取最近一次原生操作的错误信息；非法 UTF-8 指向首个错误字节，偏移包含 BOM，首行列号不计 BOM。</td></tr>
@@ -52,6 +53,7 @@ println(config.stringify())</code></pre>
   </section>
   <section id="verify">
     <h2>验证与边界</h2>
+    <p>2026-10-30：修复 <code>set</code> 绕过单项字节限额的问题；在修改节/键之前检查节名、键名和值，避免覆盖旧内容或留下空节。C 新增108组限额组合、12个分配失败点与恢复、多行/空值和完整 uint64 预算，两平台同一回归旧模型183条断言失败→修复后0。新 C/XLang 限额范例使用同一四行黄金输出；Windows默认89项检查、Linux原生快照ASan/UBSan与默认整包门禁通过，两平台均含18份独立程序及Python互通。输入/工具指纹保持；历史GCC ICE仍未定位，保持R，不据此升级发布状态。没有改动主线或XRT。</p>
     <p>2026-10-30：Windows 门禁子进程统一限时并保留原始状态、退出码、工作目录及 stdout/stderr，两个私有访问负例须实际退出 1。门禁自测直接从 AST 取得同一个 Run，在 PowerShell 5.1/7 核对十个子进程结果，覆盖缺程序、无输出失败、预期非零、意外成功、空参数、双输出流、独立 CR、相对目录和超时；旧实现能抛缺程序异常，但缺少进程记录，不将此夸大成已证明的假绿。默认完整 Windows 门禁的73项子进程检查通过，含14份独立程序；实际工具与输入指纹、结构化报告会保留。历史 GCC ICE 根因仍未知，保持 R，不靠换优化级别、自动重试或旧对象签收。此轮不重复宣称新的 Linux 完整回归。</p>
     <p>2026-10-29：修复关闭回调覆盖 XRT 正文首因、Reader 关闭内存错误误报 IO 的问题。新增 <code>test/test_stream_errors.c</code> 的14个组合先有13项失败，修复后核对读取/写入/刷新/关闭复合失败、格式/限额/选项/构造失败、对象与线程错误的类型/域/码/消息、关闭次数及活动分配恢复。新 C 用例在两平台严格编译、TCC 直跑和独立 EXE 通过；Linux 另有 ASan/UBSan。默认完整门禁保留旧所有权、分配预算、Python互通及双语JIT/AOT并全部通过，未改主线或 XRT。历史 GCC ICE 仍未定位，保持 R。</p>
     <p>2026-10-28：诊断、get 与 stringify 的三处返回复制已移除，缺失键的 ConfigError、合法空值和内存错误保持区别。C 18 组、XLang 20 组固定预算和名称列表 57 个逐点故障/成功预算通过；完整生成夹具仍保留必要的默认值快照，名称列表的后续装箱复制也未消除，不称整条链路零开销。双平台默认门禁含 Linux ASan/UBSan、Python configparser 互通和双语 JIT/AOT；主线/XRT 未改，旧 GCC ICE 的 R 风险仍保留。</p>

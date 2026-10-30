@@ -67,7 +67,7 @@ try {
     $runtime = Join-Path $work 'xrt.o'
     $null = Run 'shared C runtime compile' $gcc ($flags + @('-c',
         'release/extlibs/ini/test/xrt_runtime.c', '-o', $runtime))
-    foreach ($name in @('test_ini', 'test_updates', 'test_output_limits', 'test_interpolation_refs', 'test_owned_text', 'test_stream_errors')) {
+    foreach ($name in @('test_ini', 'test_updates', 'test_output_limits', 'test_interpolation_refs', 'test_owned_text', 'test_stream_errors', 'test_set_limits')) {
         $target = Join-Path $work "$name.exe"
         $null = Run "GCC $name build" $gcc ($flags + @(
             "release/extlibs/ini/test/$name.c", $runtime, '-o', $target) + $links)
@@ -81,6 +81,13 @@ try {
     $null = Run 'GCC profiles build' $gcc ($flags + @(
         'release/extlibs/ini/examples/profiles_c.c', $runtime, '-o', $profilesExe) + $links)
     $profilesOutput = Run 'GCC profiles' $profilesExe @()
+    $boundedExe = Join-Path $work 'bounded_updates_c.exe'
+    $null = Run 'GCC bounded updates build' $gcc ($flags + @(
+        'release/extlibs/ini/examples/bounded_updates_c.c', $runtime, '-o', $boundedExe) + $links)
+    $boundedOutput = Run 'GCC bounded updates' $boundedExe @()
+    $boundedGolden = @('oversized update rejected', '你好', '8080',
+        'bounded configuration round-trip: OK') -join "`n"
+    if ($boundedOutput -cne $boundedGolden) { throw 'INI bounded updates differ from golden output' }
     $interopExe = Join-Path $work 'ini_interop.exe'
     $null = Run 'independent INI interoperability build' $gcc ($flags + @(
         'release/extlibs/ini/test/interop.c', $runtime, '-o', $interopExe) + $links)
@@ -95,9 +102,11 @@ try {
         $null = Run 'C reference errors direct run' $xl @('run', 'extlibs/ini/test/test_interpolation_refs.c')
         $null = Run 'C owned text direct run' $xl @('run', 'extlibs/ini/test/test_owned_text.c')
         $null = Run 'C stream first-cause direct run' $xl @('run', 'extlibs/ini/test/test_stream_errors.c')
+        $null = Run 'C item limits direct run' $xl @('run', 'extlibs/ini/test/test_set_limits.c')
         $null = Run 'XLang boundaries' $xl @('run', 'extlibs/ini/test/boundaries.xl')
         $null = Run 'XLang updates' $xl @('run', 'extlibs/ini/test/updates.xl')
         $null = Run 'XLang output limits' $xl @('run', 'extlibs/ini/test/output_limits.xl')
+        $null = Run 'XLang item limits' $xl @('run', 'extlibs/ini/test/set_limits.xl')
         $null = Run 'XLang reference errors' $xl @('run', 'extlibs/ini/test/interpolation_refs.xl')
         $null = Run 'XLang owned text and defaults' $xl @('run', 'extlibs/ini/test/owned_results.xl')
         $null = Run 'XLang ownership probe' $xl @('run', 'extlibs/ini/test/owned_probe.xl')
@@ -105,6 +114,10 @@ try {
         $profilesXl = Run 'XLang profiles' $xl @('run', 'extlibs/ini/examples/profiles.xl')
         if ($profilesC -cne $profilesOutput -or $profilesXl -cne $profilesOutput) {
             throw 'INI profile GCC/C/XLang outputs differ'
+        }
+        foreach ($source in @('bounded_updates_c.c', 'bounded_updates.xl')) {
+            $output = Run "direct $source" $xl @('run', "extlibs/ini/examples/$source")
+            if ($output -cne $boundedGolden) { throw "INI $source differs from golden output" }
         }
         $generated = Join-Path $work 'owned_text.c'
         $null = Run 'direct-text cgen' $xl @('cgen',
@@ -178,13 +191,13 @@ try {
             if ($cAotOutput -cne $gccOutput) {
                 throw '[ini] AOT C example output differs from GCC'
             }
-            foreach ($name in @('updates', 'output_limits', 'interpolation_refs', 'owned_results', 'owned_probe')) {
+            foreach ($name in @('updates', 'output_limits', 'interpolation_refs', 'owned_results', 'owned_probe', 'set_limits')) {
                 $target = Join-Path $work "$name.exe"
                 $null = Run "AOT $name build" $xl @('build',
                     "extlibs/ini/test/$name.xl", '-o', $target)
                 $null = Run "AOT $name" $target @()
             }
-            foreach ($name in @('test_owned_text', 'test_stream_errors')) {
+            foreach ($name in @('test_owned_text', 'test_stream_errors', 'test_set_limits')) {
                 $nativeTest = Join-Path $work "$name.c.exe"
                 $null = Run "AOT C $name build" $xl @('build',
                     "extlibs/ini/test/$name.c", '-o', $nativeTest)
@@ -196,6 +209,12 @@ try {
                     "extlibs/ini/examples/$source", '-o', $profileAot)
                 $output = Run "AOT $source" $profileAot @()
                 if ($output -cne $profilesOutput) { throw "INI $source AOT output differs from GCC" }
+            }
+            foreach ($source in @('bounded_updates.xl', 'bounded_updates_c.c')) {
+                $target = Join-Path $work ($source.Replace('.', '_') + '.exe')
+                $null = Run "AOT $source build" $xl @('build', "extlibs/ini/examples/$source", '-o', $target)
+                $output = Run "AOT $source" $target @()
+                if ($output -cne $boundedGolden) { throw "INI $source AOT differs from golden output" }
             }
         }
     } finally { Pop-Location }
