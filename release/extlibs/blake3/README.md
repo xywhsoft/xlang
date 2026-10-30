@@ -1,5 +1,26 @@
 # blake3
 
+2026-10-30：文件哈希保留 Reader/回调的线程错误对象和消息，但原来未
+填写 C 快照的 `iBackendCode`。两处直接记录原码后，同一最终 C 回归
+在 Windows/Linux 均旧36处缺失→0。96组覆盖 Reader/回调、早/晚失败、
+IO/MEMORY/VALUE、0/42/INT_MIN/INT_MAX、空/非空快照；首因建立后禁止
+再分配，验证错误身份/域/消息/偏移、摘要不变、Reader借用和立即恢复。
+模块分类保持原合同：读取 MEMORY/IO，回调中断 CANCELLED；具体用户
+异常仍以保留的线程错误为准。无新正常路径、包装、分配或扫描。
+
+最终 Windows 默认门禁60项58过，末两项M3/M2仍失败；Linux原生完整
+门禁的C ASan/UBSan、向量/分配/关闭/线程、语言和双语黄金输出过，
+新补普通AOT，两平台各8份通过。23条实际生成原型与错改owned返回值
+负例过；私有接管只做编译负例，仍被接受，未执行伪造句柄。全局哈希器
+JIT/构建0，EXE打印同摘要后退出1，不能签收完整发布级。
+
+门禁失败现在保留独占现场；Windows按PATH选首个GCC，避免多编译器
+路径合并造成启动/报告失败。Windows真实入口raw37/outer1、Linux37/127
+均验证。外围ABI验证起初漏带核心头路径和清单VALUE选择，原失败保留，
+修正夹具后通过，未改产品来适应错误夹具。完整 Windows53输入/三工具、
+Linux60复制源/两工具在各自验证阶段不变；最后仅补文档/官网源，官网
+隔离生成、不部署。主线/XRT/vendor及8件冻结物未改，M2/M3仍开放。
+
 2026-10-27：拥有型 hex 返回值改为 `@owned string?` 直接接管，Windows 严格 C、
 官方向量、分配故障、进度回调、生成原型、C/XLang 范例及其 JIT/AOT 均通过。
 门禁现将包外私有构造器和顶层 hasher 的独立 EXE 也列为最终签收条件；
@@ -10,6 +31,9 @@ BLAKE3 普通哈希、原生 keyed hash 和密钥派生。使用随包 portable 
 [VENDOR.md](VENDOR.md)。
 
 ## 快速使用
+
+包内可运行入口、共同官方黄金输出与 Reader 错误演示见
+[examples/README.md](examples/README.md)。
 
 ```xlang
 import blake3

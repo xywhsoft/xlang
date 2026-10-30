@@ -26,6 +26,8 @@
     <p><a href="../extlibs.html">扩展库</a> / blake3</p>
     <div class="extlib-title-row"><h1>blake3</h1><span class="extlib-cat-badge">哈希校验</span></div>
     <p class="extlib-lead">普通哈希、原生 keyed hash、密钥派生与可扩展长度摘要。内嵌 portable C 后端，复用宿主 XRT/xruntime，无需额外 BLAKE3 DLL。</p>
+    <p>2026-10-30：修复Reader/回调的C错误快照丢失原后端码，仅补两处赋值，不改变算法、正常路径或ABI。96组验证原错误身份、分类/域/码/消息/偏移、摘要不变、Reader借用、首因后的禁止分配及立即恢复；两平台同一回归旧36红→0。回调中断的模块分类仍为CANCELLED，具体用户异常从原线程错误读取。</p>
+    <p>Windows默认60项58通过；Linux原生ASan/UBSan、向量/分配/关闭/线程、双语黄金输出及两平台各8份普通独立程序通过，23条实际生成原型和错改返回值负例过。M3私有接管仍被接受，M2全局对象仍在EXE打印后退出1，均保留为发布阻断，不签收整包。Windows首个GCC选择和失败保留已压实，真实入口raw37/outer1、Linux37/127验证过；主线、XRT及vendor未修改。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api">
     <h2 id="api">一次性与文件 API</h2>
@@ -108,8 +110,7 @@ println(hash.digestHex(16))</code></pre>
     薄绑定的 maxInput=0 则表示默认值，不等于核心 C 配置的无限制。</p>
     <p>File 借用 reader 从当前游标读到 EOF，保留 C 进度帧的 TOTAL_KNOWN/FINAL 标志。
     C 调用方须检查 Reader 的关闭结果；XLang 文件哈希自行关闭文件，关闭失败不返回摘要。
-    薄绑定头为 <code>include/blake3_native.h</code>；hex 返回值借用 XRT 临时区，
-    清理或回退后失效，长期保留须复制。原始摘要是拥有型 xbuffer，由 C 调用方销毁。</p>
+    薄绑定头为 <code>include/blake3_native.h</code>；不带_owned的hex接口借用XRT临时区，清理或回退后失效；带_owned的char*由调用方xrtFree，XLang公开文本路径直接接管。原始摘要是拥有型xbuffer，由C调用方销毁。错误快照的iBackendCode保留Reader或回调原XRT码，读取诊断后再由调用方关闭Reader。</p>
     <p>教学：<code>examples/extlibs/blake3.xl</code>。双语对照：
     <code>examples/extlibs/blake3_basic.xl</code> 与 <code>extlibs/blake3/examples/basic.c</code>，
     共同黄金输出为 <code>examples/extlibs/blake3_basic.expected.txt</code>。
@@ -120,7 +121,7 @@ println(hash.digestHex(16))</code></pre>
     C/xlang JIT/AOT/GCC、Reader 与回调、Unicode、分配故障、独立四线程和双语黄金输出。
     Linux 联合门禁同次运行 C ASan/UBSan 与泄漏检查、三组 XLang JIT 用例及 C/XLang 范例逐字节黄金输出对照。实际运行的输入内容及文件集合在门禁前后比对。</p>
     <p>入口：<code>tools/check_extlib_blake3.ps1</code>、<code>tools/check_extlib_blake3.sh</code> 和 <code>tools/check_extlib_linux_xl.sh blake3</code>。
-    不代表 Linux AOT、32 位/ARM、共享可变对象并发、SIMD 吞吐或密码学审计认证。
+    旧记录不包含Linux AOT；本轮普通独立程序范围见上文。仍不代表32位/ARM、共享可变对象并发、SIMD吞吐或密码学审计认证。
     来源锁定为上游 1.5.0，commit <code>5aa53f07f7188a569cadfc5daf1522972d9a9630</code>；
     文件哈希、本地零初始化补丁和 CC0/Apache-2.0 许可证见包内 VENDOR.md 与 third_party。</p>
     <p>2026-10-18：文件哈希的 Reader 关闭失败红绿负例、Windows 严格 C/JIT 与 Linux ASan/UBSan/XLang 双语联合门禁通过。当前完整 AOT 构建缺主线 <code>xl6NativeHandleTraceLeaf</code>，不签收发布级。</p>

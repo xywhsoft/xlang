@@ -26,6 +26,7 @@ typedef enum {
 
 typedef struct {
 	int iCode;
+	/* Reader/进度回调已有 XRT 错误时，保留其原始数字码。 */
 	int iBackendCode;
 	uint64 iInputOffset;
 	uint64 iOutputOffset;
