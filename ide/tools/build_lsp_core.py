@@ -107,8 +107,8 @@ def prepare_native_ir(frontend: Path, output: Path) -> tuple[Path, Path, dict]:
     """Index iteration candidates without changing shared cleanup/verify rules."""
     original = frontend / 'src/ir/xl6_ir.c'
     body = original.read_bytes()
-    from native_current_ir_overlay import derive as current_ir,PHASE_IR_SHA256
-    if hashlib.sha256(body).hexdigest()==PHASE_IR_SHA256:
+    from native_current_ir_overlay import derive as current_ir,PHASE_IR_DIGESTS
+    if hashlib.sha256(body).hexdigest() in PHASE_IR_DIGESTS:
         # Admit the corrected current IR only with its complete audited
         # AST/parser/index/type/XRT cohort. Other service guards are separate.
         return current_ir(frontend,output,phases=True)
@@ -149,17 +149,21 @@ def prepare_native_sem(frontend: Path, output: Path, *, _current_unit_probe=Fals
     """Keep function rules in their original TU, add opt-in immutable memos."""
     original = frontend / 'src/sem/xl6_sem.c'
     body = original.read_bytes()
+    cohort_dependencies = {}
     if _current_unit_probe:
         from native_index_overlay import profile
         profile(frontend)
     # Reuse depends on the checker's side effects and cross-declaration reads,
     # not just stable patch locations. Require an explicit audit on upgrades.
     audited = 'd4f19af32f1732126913b99717a6b1b2d38d92f343b60828786b62d2a7d8183a'
-    current = _current_unit_probe and sha(original)=='407ca4e51cbc7889b535cbe591f7f823f59131cd179aa285073c034c6796e0b0'
+    current = sha(original)=='407ca4e51cbc7889b535cbe591f7f823f59131cd179aa285073c034c6796e0b0'
     if current:
-        # Qualification of representation/key/fact units only. The normal
-        # server path never passes this flag; current semantic admission also
-        # requires a separate audit of every new checker read/side effect.
+        # Normal admission binds the audited reads, declaration effects and
+        # registry records to their whole current include/SDK cohort. Private
+        # historical component probes retain their separately recorded assets.
+        if not _current_unit_probe:
+            from native_current_semantic_profile import profile
+            cohort_dependencies = profile(frontend)
         audited = '407ca4e51cbc7889b535cbe591f7f823f59131cd179aa285073c034c6796e0b0'
     if hashlib.sha256(body).hexdigest() != audited:
         raise ValueError('shared semantic checker changed; audit memo context/identity/side-effect assumptions')
@@ -335,8 +339,9 @@ def prepare_native_sem(frontend: Path, output: Path, *, _current_unit_probe=Fals
         deferredBodyViewBytes=64 * 1024 * 1024,
         overloadCandidateBytes=8 * 1024 * 1024,
         syntheticTypeOrigins='eight explicit at-node constructors retain original AST source/ranges;original type rules unchanged',
-        observedTypeQueries=type_queries, currentUnitProbe=current, declarationEffects=effect_overlay,
-        auditedDependencies={str(registry): registry_sha, str(registry_header):registry_header_sha, str(ast): ast_sha})
+        observedTypeQueries=type_queries, currentUnitProbe=bool(current and _current_unit_probe), declarationEffects=effect_overlay,
+        semanticCohort='current-2084f8ac' if cohort_dependencies else None,
+        auditedDependencies={**cohort_dependencies, str(registry): registry_sha, str(registry_header):registry_header_sha, str(ast): ast_sha})
 
 
 def prepare_native_completion(frontend: Path, output: Path, namespaced: Path, *, _current_unit_probe=False) -> tuple[Path, Path, dict]:
@@ -643,6 +648,13 @@ def main() -> None:
     inputs[str(Path(__file__).with_name('native_ir_scan_overlay.py').resolve())] = sha(Path(__file__).with_name('native_ir_scan_overlay.py'))
     inputs[str(Path(__file__).with_name('native_current_ir_overlay.py').resolve())] = sha(Path(__file__).with_name('native_current_ir_overlay.py'))
     inputs[str(Path(__file__).with_name('native_current_ir_profile.py').resolve())] = sha(Path(__file__).with_name('native_current_ir_profile.py'))
+    for name in ('native_current_semantic_profile.py','native_semantic_effects_overlay.py'):
+        controller=Path(__file__).with_name(name).resolve()
+        inputs[str(controller)]=sha(controller)
+    for overlay in (ir_overlay,sem_overlay):
+        inputs.update(overlay.get('auditedDependencies',{}))
+    if sem_overlay.get('declarationEffects'):
+        inputs.update(sem_overlay['declarationEffects']['auditedDependencies'])
     inputs[str(Path(__file__).with_name('native_type_source_overlay.py').resolve())] = sha(Path(__file__).with_name('native_type_source_overlay.py'))
     inputs[str(Path(__file__).with_name('native_raw_body_overlay.py').resolve())] = sha(Path(__file__).with_name('native_raw_body_overlay.py'))
     inputs[str(Path(__file__).with_name('native_ast_overlay.py').resolve())] = sha(Path(__file__).with_name('native_ast_overlay.py'))

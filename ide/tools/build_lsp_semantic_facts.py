@@ -1,7 +1,8 @@
 """Qualify semantic facts,native queries and IR against a verified semantic base.
 
-Current frontend derivation is an explicit private unit probe. This target does
-not open normal semantic/IR server guards,build a service,or publish binaries.
+This target verifies standalone components,including the admitted current
+semantic path with its whole SDK cohort. It does not build a service or publish
+binaries; historical component probes retain their independent private gates.
 """
 from pathlib import Path
 import argparse
@@ -25,12 +26,12 @@ def main():
     ap.add_argument('--base-source-revision')
     ap.add_argument('--ir-phases',action='store_true',help='Qualify current IR phase optimizations and cooperative cancellation in the private IR fixture')
     ap.add_argument('--ir-source',type=Path,help='Audited shared IR source with the C-vararg arena-bounds correction; private phase qualification only')
-    ap.add_argument('--fixture',default='analysis_sem_metadata_probe.inc',choices=['analysis_sem_metadata_probe.inc','analysis_sem_effects_probe.inc','analysis_sem_queries_probe.inc','analysis_ir_current_probe.inc'])
+    ap.add_argument('--fixture',default='analysis_sem_metadata_probe.inc',choices=['analysis_sem_metadata_probe.inc','analysis_sem_effects_probe.inc','analysis_sem_queries_probe.inc','analysis_sem_registry_probe.inc','analysis_ir_current_probe.inc'])
     args=ap.parse_args()
     if args.ir_phases and args.fixture!='analysis_ir_current_probe.inc':ap.error('--ir-phases requires analysis_ir_current_probe.inc')
     if bool(args.ir_source)!=args.ir_phases:ap.error('--ir-phases and --ir-source must be provided together')
     base=args.base.resolve(strict=True);out=args.output.resolve();out.mkdir(parents=True,exist_ok=False)
-    real_query=args.fixture in ('analysis_sem_queries_probe.inc','analysis_ir_current_probe.inc')
+    real_query=args.fixture in ('analysis_sem_queries_probe.inc','analysis_sem_registry_probe.inc','analysis_ir_current_probe.inc')
     original=json.loads((base/'build-result.json').read_text('utf8'))
     if original['status']!='passed':raise ValueError('base must have passed its complete build')
     archive=base/'xlang-semantic-substrate.a'
@@ -65,9 +66,19 @@ def main():
             raise ValueError('base input changed; rebuild the base: '+raw)
         report['baseReceipt']=str(base/'build-result.json');report['baseArchiveSha256']=sha(archive)
         frontend=Path(original['sourceOverlay']['source']).parents[2]
+        if args.fixture=='analysis_sem_registry_probe.inc':
+            from native_current_semantic_profile import profile
+            report['inputs'].update(profile(frontend))
+            controller=ide/'tools/native_current_semantic_profile.py';report['inputs'][str(controller)]=sha(controller)
+            manifest_path=frontend.parent/'source-manifest.json';manifest=json.loads(manifest_path.read_text(encoding='utf8'))
+            if manifest.get('sourceRevision')!='2084f8acbae2774d930b7caae0cd7947b14cc7ae':raise ValueError('registry qualification requires the whole current committed source snapshot')
+            for rel,digest in manifest['files'].items():
+                if sha(frontend/rel)!=digest:raise ValueError('current snapshot changed: '+rel)
+            report['frozenFrontendFiles']=len(manifest['files']);report['inputs'][str(manifest_path)]=sha(manifest_path)
         (out/'frontend').mkdir()
-        _,sem,overlay=prepare_native_sem(frontend,out,_current_unit_probe=True)
+        _,sem,overlay=prepare_native_sem(frontend,out,_current_unit_probe=args.fixture!='analysis_sem_registry_probe.inc')
         report['semanticOverlay']=overlay
+        report['inputs'].update(overlay['auditedDependencies'])
         if overlay.get('declarationEffects'):
             report['inputs'].update(overlay['declarationEffects']['auditedDependencies'])
         wrapper=out/'semantic_facts_probe.c'
@@ -108,7 +119,7 @@ def main():
             from native_current_ir_overlay import derive
             manifest_path=frontend.parent/'source-manifest.json'
             manifest=json.loads(manifest_path.read_text(encoding='utf8'))
-            if manifest.get('sourceRevision')!='9192a99f96ecd83bd57ca6e53df6dfcdda7d2f15':raise ValueError('current IR fixture requires frozen committed frontend manifest')
+            if manifest.get('sourceRevision') not in ('9192a99f96ecd83bd57ca6e53df6dfcdda7d2f15','2084f8acbae2774d930b7caae0cd7947b14cc7ae'):raise ValueError('current IR fixture requires frozen committed frontend manifest')
             for rel,digest in manifest['files'].items():
                 if sha(frontend/rel)!=digest:raise ValueError('frozen frontend changed: '+rel)
             report['inputs'][str(manifest_path)]=sha(manifest_path)
@@ -170,9 +181,11 @@ def main():
         libs=['-lm']+(['-lws2_32','-lwinhttp','-liphlpapi','-lgdi32','-luser32','-lshell32','-lole32','-lwinmm','-lavrt','-lversion','-lbcrypt','-ladvapi32'] if os.name=='nt' else ['-pthread','-ldl'])
         wraps=['-Wl,--wrap=xrtStrDupN']
         if args.ir_phases:wraps+=['-Wl,--wrap=xrtArrayReserve']
-        if args.fixture in ('analysis_sem_effects_probe.inc','analysis_sem_queries_probe.inc'):wraps+=['-Wl,--wrap=xrtStrBufReserve','-Wl,--wrap=xrtArrayReserve']
+        if args.fixture in ('analysis_sem_effects_probe.inc','analysis_sem_queries_probe.inc','analysis_sem_registry_probe.inc'):wraps+=['-Wl,--wrap=xrtStrBufReserve','-Wl,--wrap=xrtArrayReserve']
         run([cc,*[str(p) for p in objects],str(archive),'-Wl,--gc-sections',*wraps,*libs,'-o',str(program)],'link')
         p=run([str(program)],'run');print(p.stdout.decode('utf8'),flush=True)
+        if (args.fixture.removesuffix('.inc')+' passed:').encode() not in p.stdout:
+            raise ValueError('missing fixture completion receipt: '+args.fixture)
         if any(sha(p)!=h for p,h in report['inputs'].items()):raise ValueError('probe input changed during qualification')
         report['outputs']={p.name:sha(p) for p in [*objects,program]};report['status']='passed'
     except BaseException as error:

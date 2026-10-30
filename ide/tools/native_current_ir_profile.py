@@ -188,3 +188,13 @@ PINS = {'lib/xrt/xrt.h': 'd8c4d3cb7da7d91c35b38cdb22be516425d3cbd2ed69ddb90b59ec
     'src/type/xl6_semantic_plan.h': '655fc01fc7e6a9bd3edb3c949fc3437f2f132adaf5150502c607432a227a0e31',
     'src/type/xl6_type_id.h': '662ae3b34d48ef626c5973db765d7d6007475692aa2448d82245ee74a9ffbde7',
     'src/type/xl6_type_model.h': '4b1e9c0302a3df75fbe32956819c3e8148555bf2393276a0d5f812b3d904e612'}
+
+
+# Whole cohorts; do not independently mix resource-policy/bridge revisions.
+PROFILES = {
+    "current-9192a99f": PINS,
+    "current-2084f8ac": {**PINS,
+        'src/ir/xl6_ir_direct_bridge.c': '351405d1bb667aa889a02725693fa1756af2d18c9244277260369762b5fdd574',
+        'src/runtime/xl6_native_resource_policies.inc': 'f09e5bb181829f4cf6aeaab2b1ff5750aa5f457fa7a79df72d0004bb9dbbcaea',
+    },
+}

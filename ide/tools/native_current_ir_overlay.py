@@ -3,7 +3,7 @@ from pathlib import Path
 import hashlib
 from native_index_overlay import profile as index_profile
 from native_ir_memo_overlay import derive as raw_memo
-from native_current_ir_profile import PINS as IR_DEPENDENCIES
+from native_current_ir_profile import PINS as IR_DEPENDENCIES,PROFILES as IR_PROFILES
 
 PINS={
     'src/ir/xl6_ir.c':'fb1c73cb62d95540fac8f524b74b518f928e1668f531c87f7cd37f31e3f0353e',
@@ -15,6 +15,10 @@ PINS={
 # Shared bounds correction ee9a87a73; frozen ABI cohort remains independently
 # pinned above. The phase target compiles this exact original source as oracle.
 PHASE_IR_SHA256='e1ea31c336278b6729369e9f6a1bb4d86a4e945018a88f8c672c0a643e089628'
+# Git archive's configured checkout conversion produces this exact CRLF copy.
+# Both constants name the same committed correction; arbitrary normalization
+# must not admit otherwise unknown source contents.
+PHASE_IR_DIGESTS=(PHASE_IR_SHA256,'5c7a46e13b8f774c0fd27c3d66fc9c064aafc73b20386d2e9a448e9df7d78e6a')
 
 
 def derive(frontend:Path,output:Path,*,phases=False,ir_source=None):
@@ -24,11 +28,14 @@ def derive(frontend:Path,output:Path,*,phases=False,ir_source=None):
         raise ValueError('current IR unit requires its current AST/parser/type/XRT cohort')
     for rel,digest in PINS.items():
         p=frontend/rel
-        if rel=='src/ir/xl6_ir.c' and p.is_file() and hashlib.sha256(p.read_bytes()).hexdigest()==PHASE_IR_SHA256:digest=PHASE_IR_SHA256
+        if rel=='src/ir/xl6_ir.c' and p.is_file() and hashlib.sha256(p.read_bytes()).hexdigest() in PHASE_IR_DIGESTS:digest=hashlib.sha256(p.read_bytes()).hexdigest()
         if not p.is_file() or hashlib.sha256(p.read_bytes()).hexdigest()!=digest:
             raise ValueError('current IR asset changed; audit representation and phase contracts: '+rel)
         audited[str(p)]=digest
-    for rel,digest in IR_DEPENDENCIES.items():
+    dependency_cohort=next((name for name,values in IR_PROFILES.items()
+        if all((frontend/rel).is_file() and hashlib.sha256((frontend/rel).read_bytes()).hexdigest()==digest for rel,digest in values.items())),None)
+    if dependency_cohort is None:raise ValueError('current IR include cohort changed or mixed; audit phase contracts')
+    for rel,digest in IR_PROFILES[dependency_cohort].items():
         p=frontend/rel
         if not p.is_file() or hashlib.sha256(p.read_bytes()).hexdigest()!=digest:
             raise ValueError('current IR included dependency changed; audit phase contracts: '+rel)
@@ -38,10 +45,11 @@ def derive(frontend:Path,output:Path,*,phases=False,ir_source=None):
     original=frontend/'src/ir/xl6_ir.c'
     selected=original
     if phases:
-        if ir_source is None and audited[str(original)]!=PHASE_IR_SHA256:raise ValueError('current phase qualification requires the audited shared C-vararg bounds correction')
+        if ir_source is None and audited[str(original)] not in PHASE_IR_DIGESTS:raise ValueError('current phase qualification requires the audited shared C-vararg bounds correction')
         selected=Path(ir_source).resolve(strict=True) if ir_source is not None else original
-        if hashlib.sha256(selected.read_bytes()).hexdigest()!=PHASE_IR_SHA256:raise ValueError('corrected current IR source changed; audit phase and ownership contracts')
-        audited[str(selected)]=PHASE_IR_SHA256
+        selected_digest=hashlib.sha256(selected.read_bytes()).hexdigest()
+        if selected_digest not in PHASE_IR_DIGESTS:raise ValueError('corrected current IR source changed; audit phase and ownership contracts')
+        audited[str(selected)]=selected_digest
     elif ir_source is not None:raise ValueError('IR source override is private to phase qualification')
     source=selected.read_text(encoding='utf8')
     if phases:
@@ -58,6 +66,7 @@ def derive(frontend:Path,output:Path,*,phases=False,ir_source=None):
         baseFrontendSource=str(original),baseFrontendSourceSha256=audited[str(original)],
         compiledSource=str(compiled),compiledSha256=hashlib.sha256(compiled.read_bytes()).hexdigest(),
         auditedDependencies=audited,phaseQualification=phases,
+        irDependencyCohort=dependency_cohort,
         auditedScanSeams=seams if phases else 0,
         originalAncestorContainmentPreserved=phases,
         scope=('private current complete module phases/scans/initializer/cancellation qualification; original bounded ancestor containment retained'
