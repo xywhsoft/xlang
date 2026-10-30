@@ -256,7 +256,9 @@ static const char* xsqlite_column_text_view(void* stmt, int column)
 
 XSQLITE_EXPORT const char* xsqlite3_column_text_native(void* stmt, int column)
 {
-    return xsqlite_text(xsqlite_column_text_view(stmt, column));
+    const char* text = xsqlite_column_text_view(stmt, column);
+    /* 与拥有型出口一致：首错已经发布时，不再分配空临时文本覆盖它。 */
+    return xrtGetError() == NULL ? xsqlite_text(text) : "";
 }
 
 /* 语言侧直接接管这一次复制，原 C 借用入口保持不变。 */
@@ -298,7 +300,8 @@ static const char* xsqlite_column_name_view(void* stmt, int column)
 
 XSQLITE_EXPORT const char* xsqlite3_column_name_native(void* stmt, int column)
 {
-    return xsqlite_text(xsqlite_column_name_view(stmt, column));
+    const char* name = xsqlite_column_name_view(stmt, column);
+    return xrtGetError() == NULL ? xsqlite_text(name) : "";
 }
 
 XSQLITE_EXPORT char* xsqlite3_column_name_owned_native(void* stmt, int column)

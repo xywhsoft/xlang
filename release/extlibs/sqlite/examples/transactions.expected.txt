@@ -1,0 +1,6 @@
+constraint: rejected
+rollback: rows=0
+busy-close: retained
+before-row: rejected
+commit: rows=1 total=7
+snapshot: 7

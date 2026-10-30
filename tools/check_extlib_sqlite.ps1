@@ -1,10 +1,11 @@
-param([string]$Root = '')
+﻿param([string]$Root = '')
 $ErrorActionPreference = 'Stop'
 if (!$Root) { $Root = Split-Path -Parent $PSScriptRoot }
 $Root = (Resolve-Path -LiteralPath $Root).Path
 . (Join-Path $PSScriptRoot 'extlib_smoke_process.ps1')
 $xl = Join-Path $Root 'release/xl.exe'
 $gcc = (Get-Command gcc -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+$gccHash = (Get-FileHash -LiteralPath $gcc).Hash
 $workParent = Join-Path $Root 'build/test/sqlite_guard'
 $runId = [guid]::NewGuid().ToString('N')
 $work = Join-Path $workParent ("run_$runId")
@@ -25,14 +26,15 @@ function InputPaths {
       'test/phase1_extlibs.json','test/suites/12_phase1_extlibs.bat','test/cases/extlib_sqlite.xl',
       'release/examples/extlibs/sqlite.xl','release/examples/extlibs/sqlite_basic.xl',
       'release/examples/extlibs/sqlite_basic.expected.txt')
-    Get-ChildItem (Join-Path $Root $pkg) -Recurse -File | Where-Object Extension -in @('.c','.h','.xl','.json') |
+    Get-ChildItem (Join-Path $Root $pkg) -Recurse -File |
         ForEach-Object { $_.FullName.Substring($Root.Length + 1).Replace('\','/') }
 }
 foreach ($path in @(InputPaths | Sort-Object -Unique)) { $hashes[$path] = (Get-FileHash -LiteralPath (Join-Path $Root $path)).Hash }
 function Check([string]$Name, [string]$Program, [string[]]$Arguments, [int]$Seconds = 120) {
+    if ($null -eq $Arguments) { $Arguments = @() }
     $r = Invoke-ExtlibSmokeProcess $Program $Arguments $Root $Seconds
     $checks.Add([ordered]@{name=$Name;program=$Program;arguments=$Arguments;status=$r.status;exitCode=$r.exitCode;elapsedMs=$r.elapsedMs;stdout=$r.stdout;stderr=$r.stderr})
-    if ($r.status -ne 'pass') { throw "$Name failed: $($r.stderr)`n$($r.stdout)" }
+    if ($r.status -ne 'pass') { throw "$Name failed: status=$($r.status), exit=$($r.exitCode)`n$($r.stderr)`n$($r.stdout)" }
     Write-Host "[sqlite] ${Name}: PASS"
     return $r.stdout.Replace("`r`n","`n").TrimEnd("`n")
 }
@@ -42,18 +44,21 @@ $native = Join-Path $work 'native.o'
 $vendor = Join-Path $work 'sqlite3.o'
 $objects = @($native,$vendor,$runtime,'-lAdvapi32','-lWs2_32','-lm')
 $outcome = 'failed'
+$failure = ''
 $decls = @()
 $constants = @()
 try {
+    $null = Check 'compiler-info' $gcc @('--version')
     $null = Check 'runtime' $gcc ($flags + @('-c','test/support/extlib_sqlite_runtime.c','-o',$runtime))
-    $null = Check 'bridge' $gcc ($flags + @('-c',"$pkg/sqlite_native.c",'-o',$native))
+    $null = Check 'bridge' $gcc ($flags + @('-Wmissing-prototypes','-c',"$pkg/sqlite_native.c",'-o',$native))
     $null = Check 'sqlite-vendor' $gcc @('-std=c11','-O2','-c',"$pkg/third_party/sqlite3.c",'-o',$vendor) 240
-    foreach ($name in @('test_sqlite','test_sqlite_alloc','test_sqlite_threads')) {
+    foreach ($name in @('test_sqlite','test_sqlite_alloc','test_sqlite_threads','test_sqlite_error_priority')) {
         $binary = Join-Path $work "$name.exe"
         $testFlags = if ($name -eq 'test_sqlite_threads') { @('-DNDEBUG') } else { @() }
         $null = Check "$name-build" $gcc ($flags + $testFlags + @("$pkg/test/$name.c") + $objects + @('-o',$binary))
         $null = Check $name $binary @()
     }
+    # 分配器钩子仅在独立原生进程测试，不能让脚本卸载后宿主仍引用其回调。
     foreach ($name in @('test_sqlite','test_sqlite_threads')) {
         $null = Check "$name-jit" $xl (@('run',"$pkg/test/$name.c") + $sources + @('--inc-path','lib/xrt'))
     }
@@ -102,6 +107,7 @@ try {
     $paired = [ordered]@{
         text_bytes = "TEXT: 3 bytes`nBLOB: 3 bytes`nmiddle byte: 0"
         column_storage = "text: 你好`ninteger: 9223372036854775807`nutf8 bytes: 6`nzero blob: 4096"
+        transactions = [IO.File]::ReadAllText((Join-Path $Root "$pkg/examples/transactions.expected.txt")).Replace("`r`n","`n").TrimEnd("`n")
     }
     foreach ($name in $paired.Keys) {
         $exampleSource = "$pkg/examples/${name}_c.c"
@@ -129,8 +135,14 @@ try {
     foreach ($path in $hashes.Keys) { if ((Get-FileHash -LiteralPath (Join-Path $Root $path)).Hash -ne $hashes[$path]) { throw "Input changed: $path" } }
     if (@(InputPaths | Where-Object { !$hashes.Contains($_) }).Count -ne 0) { throw 'Inputs added during gate' }
     $outcome = 'passed'
-} finally {
-    $report = [ordered]@{date=(Get-Date).ToString('o');outcome=$outcome;scope='SQLite wrapper ABI/constants, C/state/allocator/thread tests, xlang JIT/AOT/file locks and paired examples';generatedPrototypes=$decls.Count;constants=$constants.Count;inputs=$hashes;checks=@($checks.ToArray())}
+} catch { $failure = $_.Exception.Message; throw } finally {
+    $changed = @($hashes.Keys | Where-Object {
+        !(Test-Path -LiteralPath (Join-Path $Root $_)) -or (Get-FileHash -LiteralPath (Join-Path $Root $_)).Hash -ne $hashes[$_]
+    })
+    $changed += @(InputPaths | Where-Object { !$hashes.Contains($_) })
+    $compilerChanged = !(Test-Path -LiteralPath $gcc) -or (Get-FileHash -LiteralPath $gcc).Hash -ne $gccHash
+    if ($changed.Count -or $compilerChanged) { $outcome = 'changed-inputs' }
+    $report = [ordered]@{date=(Get-Date).ToString('o');outcome=$outcome;failure=$failure;scope='SQLite wrapper ABI/constants, C/state/allocator/thread tests, xlang JIT/AOT/file locks and paired examples';generatedPrototypes=$decls.Count;constants=$constants.Count;inputs=$hashes;changedInputs=$changed;compiler=[ordered]@{path=$gcc;sha256=$gccHash;changed=$compilerChanged};checks=@($checks.ToArray())}
     [IO.File]::WriteAllText($reportPath,($report | ConvertTo-Json -Depth 8),$utf8)
     $parentPath = [IO.Path]::GetFullPath($workParent).TrimEnd('\', '/') + '\'
     $workPath = [IO.Path]::GetFullPath($work)
@@ -149,3 +161,4 @@ try {
     }
     Write-Host "[sqlite] report: $reportPath"
 }
+if ($outcome -ne 'passed') { throw "SQLite gate outcome: $outcome" }

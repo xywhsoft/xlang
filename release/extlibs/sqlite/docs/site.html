@@ -26,6 +26,9 @@
     <p><a href="../extlibs.html">扩展库</a> / sqlite</p>
     <div class="extlib-title-row"><h1>sqlite</h1><span class="extlib-cat-badge">数据库</span></div>
     <p class="extlib-lead">内置 SQLite 的本地数据库，提供 Database、Statement、精确状态码及 C 接口。支持内存库、UTF-8 文件路径、事务与二进制数据，不依赖额外数据库 DLL。</p>
+    <p>2026-10-30：修复两个 C 借用型列出口在首错后继续分配空文本、二次 OOM 覆盖首错的问题。
+    与已有拥有型出口使用相同检查；公开 ABI、正常复制和释放责任不变。
+    Windows复跑72项、Linux71阶段及44原型/45常量通过；历史Linux无诊断退出及本轮一次Windows AOT截断仍待定位，保持R，不据此签收完整发布。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="quick">
     <h2 id="quick">参数绑定与查询</h2>
@@ -76,6 +79,12 @@ assert bytes.len() == 3 and bytes[0] == 0</code></pre>
     SQL NULL 与零长度 BLOB 不同，使用 column_type 或 value 区分。大结果集用 Statement 逐行读取，query 会物化全部行。</p>
     <p>对象赋值共享身份，不复制句柄，不声明 copy/clone 能力。Database(point) 和 Statement(point) 接管原始句柄，
     不增加引用；不得重复接管或从 C 再次释放。同一对象的多步操作由调用方串行化，不支持一边读列一边并发关闭/step/reset。</p>
+    <p>新增 transactions.xl/transactions_c.c 六行固定输出：唯一约束失败、reset 的上一轮错误码、清空绑定、
+    显式回滚、语句复用、busy close 保留所有权、无当前行拒绝及关闭后的拥有型文本。C 和 XLang 均可直接 xl run/build，
+    不自动重试或隐式提交失败事务。两平台GCC、C直跑/独立EXE、XLang JIT/AOT与同一六行golden一致；Linux C另含ASan/UBSan/泄漏检查。</p>
+    <p>独立 C 首错测试共18组错误与5组正常输出 OOM：旧代码9项错误覆盖，新代码归零；
+    空 TEXT、SQL NULL 和空列名仍为成功内容，不能用“空串不分配”代替错误状态检查。
+    钩子仅用于独立原生进程，分配器回调必须活到所有内存释放，不能当成可卸载脚本范例。</p>
     <h2 id="low-level">模块级接口</h2>
     <p>sqlite3_* 使用薄绑定。普通 int 参数进入 C int 前检查范围，SQLITE_* 常量只读。
     模块级 last_error/sqlite3_last_error 只读取当前 XRT 错误；SQL 状态码对应的诊断使用连接/语句 last_error。</p>
