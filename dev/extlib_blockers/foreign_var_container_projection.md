@@ -1,5 +1,16 @@
 # 当前源码的 var 容器传入原生扩展失败
 
+2026-10-30 根目录布局复验 `rss`：注册链接关系修复后的默认 Windows
+门禁前55项符合预期（含一个ABI类型冲突负例），第56原中央
+`rss.buildRSS(channel, [])` 仍报 ValueError；Linux sanitizer、JIT/AOT
+和双语例完成相同前置后同样失败。独立复现从仓库根执行
+`release/xl.exe run dev/extlib_blockers/rss_build_var_object_projection.xl`
+（Linux 用 `release/xl`），两平台JIT和AOT均先打印 native roundtrip:
+PASS，再在同形语言字典/数组处失败、退出1。包不识别编译器私有句柄，
+不以原生 parse 对象替代原生成验收。修复仍应在共享 foreign 参数投影
+中保留 XRT 对象/数组类型、嵌套元素和所有权，覆盖失败回滚及重复调用；
+之后重跑该最小源、原中央用例和默认双平台门禁。
+
 2026-10-30 根目录布局复验 `srt`：三个文本返回改为 @owned 直接接管后，
 Windows/Linux 默认门禁分别完成 39/41 项可运行前置验证（含 C/XL 各
 22 预算、六条生成原型、新旧双语及七条独立程序），最后原语言 cue
