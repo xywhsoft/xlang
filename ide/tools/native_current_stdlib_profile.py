@@ -2,6 +2,7 @@
 from pathlib import Path
 import hashlib
 from native_index_overlay import profile as index_profile
+from native_current_retirement_profile import role_pins
 
 PINS = {'lib/xrt/xrt.h': 'd8c4d3cb7da7d91c35b38cdb22be516425d3cbd2ed69ddb90b59ec5dfb5714cc',
  'release/include/xl_clock.h': 'a203f88a96bf8db9a90144d628fee5db3e1bcb3168e28eb3e97b7f95bf69bb18',
@@ -138,7 +139,7 @@ PINS = {'lib/xrt/xrt.h': 'd8c4d3cb7da7d91c35b38cdb22be516425d3cbd2ed69ddb90b59ec
 
 def profile(frontend:Path):
     audited=index_profile(frontend)
-    for rel,digest in PINS.items():
+    for rel,digest in role_pins(frontend,PINS).items():
         path=frontend/rel
         if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest()!=digest:
             raise ValueError('current stdlib producer/declaration cohort changed; audit expansion,scope and raw feature contracts: '+rel)

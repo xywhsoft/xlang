@@ -86,6 +86,7 @@ CORE_TESTS = ("analysis_raw_signature_test", "analysis_raw_native_test", "analys
 CORE_TESTS = ("analysis_typed_module_test", "analysis_typed_module_fault_test", "analysis_ir_persistent_test", "analysis_ir_persistent_fault_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_current_loader_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_callsite_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_current_provider_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_selection_test", "analysis_selection_projection_test", *CORE_TESTS)
 HOST_TESTS += ("navigation_cache_test", "semantic_reference_shard_test", "project_references_test", "project_reference_budget_test", "reference_path_index_test")
 HOST_TESTS += ("path_identity_batch_test", "reference_capture_test")
@@ -626,6 +627,10 @@ def main() -> None:
         runtime_overlay = derive_process_runtime(frontend / 'lib/xrt/xrt.h', output / 'native_xrt/xrt.h')
     except ValueError as error:
         parser.error(str(error))
+    if not args.skip_tests and ir_overlay.get('irDependencyCohort')=='current-ed78373d':
+        # Original backend builds populated targets for the provider verifier
+        # fixture only; the analysis service still uses its existing raw IR.
+        sources.append((frontend/'src/ir/xl6_ir_lower.c',False))
     raw_owner_fixture=None
     if not args.skip_tests:
         raw_owner_fixture=output/'frontend/syntax_raw_fixture.c'
@@ -660,6 +665,7 @@ def main() -> None:
     # Debug keeps the diagnostic allocator. This does not change analysis or
     # source/provenance validation and does not touch the XGE-owned GUI runtime.
     common += ["-O2", "-DXRT_EXCLUDE_MEMORY_DEBUG="] if args.configuration == "Release" else ["-O0", "-g"]
+    if ir_overlay.get('irDependencyCohort')=='current-ed78373d':common+=['-DXLS_NATIVE_IR_PROVIDER_FIELDS=1']
     index_budget_flag = "-DXL6_INDEX_BYTES=" + str(NATIVE_INDEX_BYTES) + "u"
     common += [index_budget_flag]
     common += args.cflag
@@ -685,6 +691,7 @@ def main() -> None:
     inputs[str(Path(__file__).with_name('native_ir_scan_overlay.py').resolve())] = sha(Path(__file__).with_name('native_ir_scan_overlay.py'))
     inputs[str(Path(__file__).with_name('native_current_ir_overlay.py').resolve())] = sha(Path(__file__).with_name('native_current_ir_overlay.py'))
     inputs[str(Path(__file__).with_name('native_current_ir_profile.py').resolve())] = sha(Path(__file__).with_name('native_current_ir_profile.py'))
+    inputs[str(Path(__file__).with_name('native_current_retirement_profile.py').resolve())] = sha(Path(__file__).with_name('native_current_retirement_profile.py'))
     for name in ('native_current_semantic_profile.py','native_semantic_effects_overlay.py','native_current_stdlib_profile.py','native_current_context_profile.py'):
         controller=Path(__file__).with_name(name).resolve()
         inputs[str(controller)]=sha(controller)
@@ -780,6 +787,7 @@ def main() -> None:
         for name in (() if args.skip_tests else tests):
             program = output / (name + suffix)
             extra = [str(objects["document_sync"])] if name in ("document_sync_test", "diagnostic_stream_test") else []
+            if name=='analysis_current_provider_test' and ir_overlay.get('irDependencyCohort')=='current-ed78373d':extra+=[str(objects['xl6_ir_lower'])]
             if name=='analysis_current_loader_test' and loader_references:
                 extra += [str(objects[p.stem]) for p in loader_references]+['-Wl,--wrap=xrtMalloc']
             if name=='analysis_ir_callsite_test':extra+=['-Wl,--wrap=xrtArrayReserve']
