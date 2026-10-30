@@ -1,5 +1,27 @@
 # zstd
 
+2026-10-30：修复后端 OOM 分类。一次性、增量和 Reader/Writer 接口
+原将 Zstd 实际分配失败误报成坏数据；一次性输出容量小于上界时还会
+误报成输出超限。现统一按后端错误码保留 MEMORY，只有实际目标容量
+不足才报告 LIMIT；原后端码、消息及偏移不丢失。正常路径不新增分配、
+复制或扫描，生产仍使用原分配策略，vendor、公开 ABI、XRT 未修改。
+
+新 C 夹具使用 Zstd 正式 customMem 触发实际申请失败，而非伪造错误码；
+9 条路径/18 故障点及逐次重试、原始后端诊断、XRT 与后端内存平衡过。
+同一最终回归在 Windows/Linux 均旧 9 处误分类→修复后 0；真实输出
+超限与损坏校验和仍保持原分类。补齐公开头遗漏的两条 text view 声明，
+独立 C 以含 NUL/中文文本验证一次性和流式输入；旧头编译失败、新头
+通过，原生源 `-Wmissing-prototypes` 与20条实际生成原型校验均过。
+
+默认完整门禁仍在已有 M2 失败：Windows 前54项过、末项顶层生命周期
+返回1；Linux 同样 JIT/构建0、顶层 EXE 打印后退出1，不能宣称整包通过。
+原C/分配/文件/帧/双语用例及新增 bounded_stream 同五行golden均过，
+普通独立程序 Windows12份、Linux11份通过，Linux 含ASan/UBSan。
+门禁后追加的C头/文本回归已聚焦复验，未重复签收整个默认门禁。
+Python Zstandard0.25.0/C双向四份标准帧互通过（本轮Windows）。
+失败进程限时、保留原始状态与现场，Windows raw37/outer1、Linux37/127
+负例均过；官网只隔离生成、不部署。M2 保持开放，本包仍为 M。
+
 2026-10-29 新增 `test/top_level.xl`：全局持有一个真实压缩器，main
 内校验有效性，退出时自然析构。固定发布版 Windows/Linux JIT 均
 退出0；独立 EXE 均打印 PASS 后在退出期报状态错误并退出1，确认
@@ -68,12 +90,26 @@ XLang 内部返回 `cstring` 共享所有权，通过公开 C 导出时按普通
 
 ## C 接口与所有权
 
+薄桥的 `xzstd_compress_text(xstrview, ...)` 与
+`xzstd_compressor_update_text(handle, xstrview)` 借用完整字节视图，包括
+内嵌 NUL，不先扫描成 C 字符串；正式头已完整声明这两个实现入口。
+后端内存不足由核心报告 `XRT_ZSTD_ERROR_MEMORY`，薄桥发布
+`XERR_MEMORY`，语言层沿用 `MemoryError` 分类。不能根据是否配置了
+`maxOutput` 猜测失败原因。`test/test_backend_oom.c` 的自定义分配器
+仅存在于测试编译单元，不会改变正式库如何创建 Zstd 上下文。
+
 `include/xrt_zstd.h` 可由独立 C 编译单元直接包含，声明所需 XRT Buffer/IO 模块。`xrtZstdCompress`、`xrtZstdDecompress` 成功时返回拥有型 `xbuffer*`，调用方负责 `xrtBufferDestroy`；失败时输出为空，并填写 `xrtzstderror`。流对象分别用 `xrtZstdCompressorDestroy`、`xrtZstdDecompressorDestroy` 释放。`include/zstd_native.h` 是 XLang 的薄 ABI 桥，C 调用方通常直接使用 XRT 风格接口。
 
 所有 C 编解码入口在读取选项前校验 `xrtzstdoptions` 与内嵌 `xrtresourcelimits` 的版本、完整结构长度和保留字段；不接受未知版本或截断结构。一次性和文件流接口报告 `XRT_ZSTD_ERROR_ARGUMENT`；流对象构造器保留错误状态供 `...Error()` 查询。无效选项不会消费文件流输入或写出结果。
 资源配置的 `iMaxEntries` 限制串联解压帧数，`iMaxItemBytes` 限制每帧原文大小；两者为零时不设该项上限。节点数、深度和未知标志不适用于 Zstd，默认清零，显式非零报参数错误。后续帧在解码前检查数量限额。
 
 ## 验证与当前限制
+
+新增分段二进制编码、drain、finish、限额拒绝与恢复的双语例见
+[examples/README.md](examples/README.md)。后端 OOM 夹具可直接
+`release/xl.exe run release/extlibs/zstd/test/test_backend_oom.c`，亦可
+独立 build；包门禁另外以正式 GCC 和 Linux sanitizer 验证。该夹具
+包含自己的核心/桥接测试编译单元，不要再通过 `-Package zstd` 重复链接。
 
 从仓库根目录运行：
 

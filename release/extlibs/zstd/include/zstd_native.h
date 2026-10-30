@@ -19,6 +19,8 @@ bool xzstd_last_error_is_memory(void);
 bool xzstd_last_error_is_range(void);
 bool xzstd_last_error_is_value(void);
 void* xzstd_compress(void* pData, size_t iSize, int iLevel, unsigned long long iMaxInput, unsigned long long iMaxOutput);
+/* 长度随 view 传递，借用完整文本字节，包括内嵌 NUL。 */
+void* xzstd_compress_text(xstrview text, int level, unsigned long long maxInput, unsigned long long maxOutput);
 void* xzstd_decompress(void* pData, size_t iSize, unsigned long long iMaxInput, unsigned long long iMaxOutput, unsigned int iMaxRatio);
 /* text_size 保留内嵌 NUL；text_take 销毁缓冲并移交 xrtFree 所有权。 */
 void* xzstd_decompress_text(void*, size_t, unsigned long long, unsigned long long, unsigned int);
@@ -29,6 +31,7 @@ int xzstd_decompress_file(const char* sSource, const char* sDestination, bool bO
 void* xzstd_compressor_create(int iLevel, unsigned long long iMaxInput, unsigned long long iMaxOutput);
 void xzstd_compressor_destroy(void* pHandle);
 bool xzstd_compressor_update(void* pHandle, void* pData, size_t iSize);
+bool xzstd_compressor_update_text(void* handle, xstrview text);
 bool xzstd_compressor_finish(void* pHandle);
 void* xzstd_compressor_drain(void* pHandle);
 unsigned long long xzstd_compressor_input_bytes(void* pHandle);

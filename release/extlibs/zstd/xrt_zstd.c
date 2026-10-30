@@ -58,6 +58,13 @@ static void __xrtZstdCopyError(xrtzstderror* pDst, const xrtzstderror* pSrc)
 	*pDst = *pSrc;
 }
 
+/* 后端的真实 OOM 不能变成坏帧/状态错误，或被配置的输出限额遮盖。 */
+static int __xrtZstdBackendError(size_t iResult, int iDefault)
+{
+	return ZSTD_getErrorCode(iResult) == ZSTD_error_memory_allocation ?
+		XRT_ZSTD_ERROR_MEMORY : iDefault;
+}
+
 static bool __xrtZstdOverRatio(const xrtresourcelimits* pLimits, uint64 iInput, uint64 iOutput)
 {
 	uint64 iRatio = pLimits->iMaxCompressionRatio;
@@ -104,7 +111,8 @@ static bool __xrtZstdConfigureCompressor(ZSTD_CCtx* pContext, int iLevel,
 			ZSTD_c_enableLongDistanceMatching, 2 /* ZSTD_ps_disable */);
 	}
 	if ( ZSTD_isError(tResult) ) {
-		__xrtZstdSetError(pError, XRT_ZSTD_ERROR_STATE, (int)tResult,
+		__xrtZstdSetError(pError,
+			__xrtZstdBackendError(tResult, XRT_ZSTD_ERROR_STATE), (int)tResult,
 			0u, 0u, "%s", ZSTD_getErrorName(tResult));
 		return false;
 	}
@@ -203,7 +211,8 @@ static bool __xrtZstdCompressRun(xrtzstdcompressor* pCompressor, const uint8* pD
 		tOutput.pos = 0u;
 		tRemaining = ZSTD_compressStream2(pCompressor->Stream, &tOutput, &tInput, tMode);
 		if ( ZSTD_isError(tRemaining) ) {
-			__xrtZstdSetError(&pCompressor->Error, XRT_ZSTD_ERROR_DATA, (int)tRemaining,
+			__xrtZstdSetError(&pCompressor->Error,
+				__xrtZstdBackendError(tRemaining, XRT_ZSTD_ERROR_DATA), (int)tRemaining,
 				pCompressor->InputBytes, pCompressor->OutputBytes, "%s", ZSTD_getErrorName(tRemaining));
 			pCompressor->Failed = true;
 			return false;
@@ -353,7 +362,8 @@ XRT_API xrtzstddecompressor* xrtZstdDecompressorCreate(const xrtzstdoptions* pOp
 	}
 	tResult = ZSTD_initDStream(pDecompressor->Stream);
 	if ( ZSTD_isError(tResult) ) {
-		__xrtZstdSetError(&pDecompressor->Error, XRT_ZSTD_ERROR_STATE, (int)tResult, 0, 0,
+		__xrtZstdSetError(&pDecompressor->Error,
+			__xrtZstdBackendError(tResult, XRT_ZSTD_ERROR_STATE), (int)tResult, 0, 0,
 			"%s", ZSTD_getErrorName(tResult));
 		pDecompressor->Failed = true;
 		return pDecompressor;
@@ -392,7 +402,8 @@ static bool __xrtZstdDecompressRun(xrtzstddecompressor* pDecompressor, const uin
 		tOutput.pos = 0u;
 		tResult = ZSTD_decompressStream(pDecompressor->Stream, &tOutput, &tInput);
 		if ( ZSTD_isError(tResult) ) {
-			__xrtZstdSetError(&pDecompressor->Error, XRT_ZSTD_ERROR_DATA, (int)tResult,
+			__xrtZstdSetError(&pDecompressor->Error,
+				__xrtZstdBackendError(tResult, XRT_ZSTD_ERROR_DATA), (int)tResult,
 				pDecompressor->InputBytes, pDecompressor->OutputBytes, "%s", ZSTD_getErrorName(tResult));
 			pDecompressor->Failed = true;
 			return false;
@@ -443,7 +454,8 @@ static bool __xrtZstdDecompressRun(xrtzstddecompressor* pDecompressor, const uin
 				if ( !__xrtZstdAllowNextFrame(pDecompressor) ) { return false; }
 				size_t tReset = ZSTD_initDStream(pDecompressor->Stream);
 				if ( ZSTD_isError(tReset) ) {
-					__xrtZstdSetError(&pDecompressor->Error, XRT_ZSTD_ERROR_STATE, (int)tReset,
+					__xrtZstdSetError(&pDecompressor->Error,
+						__xrtZstdBackendError(tReset, XRT_ZSTD_ERROR_STATE), (int)tReset,
 						pDecompressor->InputBytes, pDecompressor->OutputBytes, "%s", ZSTD_getErrorName(tReset));
 					pDecompressor->Failed = true;
 					return false;
@@ -491,7 +503,8 @@ XRT_API bool xrtZstdDecompressorUpdate(xrtzstddecompressor* pDecompressor, const
 		if ( !__xrtZstdAllowNextFrame(pDecompressor) ) { return false; }
 		tReset = ZSTD_initDStream(pDecompressor->Stream);
 		if ( ZSTD_isError(tReset) ) {
-			__xrtZstdSetError(&pDecompressor->Error, XRT_ZSTD_ERROR_STATE, (int)tReset,
+			__xrtZstdSetError(&pDecompressor->Error,
+				__xrtZstdBackendError(tReset, XRT_ZSTD_ERROR_STATE), (int)tReset,
 				pDecompressor->InputBytes, pDecompressor->OutputBytes,
 				"%s", ZSTD_getErrorName(tReset));
 			pDecompressor->Failed = true;
@@ -642,11 +655,12 @@ XRT_API bool xrtZstdCompress(const void* pData, size_t iSize, const xrtzstdoptio
 		pData == NULL ? "" : pData, iSize);
 	ZSTD_freeCCtx(pCtx);
 	if ( ZSTD_isError(tWritten) ) {
-		if ( tCapacity < tBound ) {
+		if ( tCapacity < tBound && ZSTD_getErrorCode(tWritten) == ZSTD_error_dstSize_tooSmall ) {
 			__xrtZstdSetError(pError, XRT_ZSTD_ERROR_LIMIT, (int)tWritten, iSize, 0,
 				"zstd output exceeds maxOutput limit");
 		} else {
-			__xrtZstdSetError(pError, XRT_ZSTD_ERROR_DATA, (int)tWritten, iSize, 0,
+			__xrtZstdSetError(pError,
+				__xrtZstdBackendError(tWritten, XRT_ZSTD_ERROR_DATA), (int)tWritten, iSize, 0,
 				"%s", ZSTD_getErrorName(tWritten));
 		}
 		xrtFree(pBuffer);
