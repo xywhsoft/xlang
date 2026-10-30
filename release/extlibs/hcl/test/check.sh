@@ -65,6 +65,11 @@ run c-test-run timeout 90s "$work/test_hcl"
 run c-expression-compile "$cc" "${flags[@]}" -DXRT_IMPLEMENTATION -no-pie \
     "$pkg/test/test_expression_strings.c" -lm -ldl -o "$work/hcl_expressions"
 run c-expression-run timeout 90s "$work/hcl_expressions"
+run c-query-compile "$cc" "${flags[@]}" -DXRT_IMPLEMENTATION -no-pie \
+    "$pkg/examples/query_comments_c.c" -lm -ldl -o "$work/hcl_query"
+printf 'port: 8080\n[\n  "api.example", // note: "retired\n  "admin.example"\n]\nHCL query comments: OK\n' > "$work/query.golden"
+run c-query-run timeout 90s "$work/hcl_query" > "$work/query.c.txt"
+run parity-query-gcc diff -u "$work/query.golden" "$work/query.c.txt"
 
 # 复用已有四线程用例，只带入查询器和线程实际需要的 XRT 模块。
 run c-threads-compile "$cc" "${flags[@]}" -DXRT_IMPLEMENTATION \
@@ -91,6 +96,18 @@ run jit-boundaries timeout 90s "$xl" run release/extlibs/hcl/test/boundaries.xl
 run jit-allocations timeout 90s "$xl" run release/extlibs/hcl/test/allocations.xl
 run jit-expressions timeout 90s "$xl" run "$pkg/test/expression_strings.xl"
 run jit-c-expressions timeout 90s "$xl" run "$pkg/test/test_expression_strings.c"
+run generated-c timeout 90s "$xl" cgen "$pkg/test/boundaries.xl" --emit "$work/generated.c"
+grep -E '^extern .*\bxhcl_[a-z_]+\([^;]*\);$' "$work/generated.c" > "$work/generated.prototypes"
+if [[ $(wc -l < "$work/generated.prototypes") -ne 12 ]]; then
+    printf 'hcl cgen must declare all 12 C functions\n' >&2
+    exit 1
+fi
+{ printf '#include "hcl_native.h"\n'; cat "$work/generated.prototypes"; } > "$work/generated_abi.c"
+run generated-abi "$cc" "${flags[@]}" -I"$pkg/include" -fsyntax-only "$work/generated_abi.c"
+for source in query_comments.xl query_comments_c.c; do
+    run "jit-$source" timeout 90s "$xl" run "$pkg/examples/$source" > "$work/$source.jit.txt"
+    run "parity-jit-$source" diff -u "$work/query.golden" "$work/$source.jit.txt"
+done
 run jit-example timeout 90s "$xl" run release/examples/extlibs/hcl.xl > "$work/hcl_xl.txt"
 run jit-c-example timeout 90s "$xl" run release/examples/extlibs/hcl_c.c > "$work/hcl_direct_c.txt"
 run parity-xl diff -u "$work/hcl_c.txt" "$work/hcl_xl.txt"
@@ -111,6 +128,11 @@ run aot-c-example-build timeout 120s "$xl" build release/examples/extlibs/hcl_c.
     -o "$work/hcl_example_c_aot"
 run aot-c-example-run timeout 45s "$work/hcl_example_c_aot" > "$work/hcl_c_aot.txt"
 run parity-aot-c diff -u "$work/hcl_c.txt" "$work/hcl_c_aot.txt"
+for source in query_comments.xl query_comments_c.c; do
+    run "aot-$source-build" timeout 120s "$xl" build "$pkg/examples/$source" -o "$work/$source.exe"
+    run "aot-$source-run" timeout 90s "$work/$source.exe" > "$work/$source.aot.txt"
+    run "parity-aot-$source" diff -u "$work/query.golden" "$work/$source.aot.txt"
+done
 run fingerprint-after sha256sum "${inputs[@]}" > /dev/null
 run inputs-unchanged diff -u "$work/fingerprint.stdout" "$work/fingerprint-after.stdout"
 printf 'hcl Linux C ASan/UBSan, XLang JIT/AOT and parity gate: PASS\n'

@@ -26,6 +26,23 @@ func main(...) as int
     checkValue("\"line\\nnext\"", "line\nnext")
     checkValue("\"/* literal */\"", "/* literal */")
 
+    // 行注释里的引号和无效转义仅为文本，不能被 get 的尾注释扫描再次解释。
+    array<string> starts = ["[1,", "(1 +", "{ a = 1,"]
+    array<string> ends = ["2]", "2)", "b = 2 }"]
+    array<string> markers = ["#", "//"]
+    array<string> payloads = ["\"unterminated", "'unterminated", "\"bad\\q\"", "\"\\uD800\"", "/* [ ) }"]
+    array<string> newlines = ["\n", "\r\n"]
+    for shape in range(3)
+        for marker in markers
+            for payload in payloads
+                for newline in newlines
+                    string expression = starts[shape] + " " + marker + " " + payload + newline + "  " + ends[shape]
+                    checkValue(expression, expression)
+                end
+            end
+        end
+    end
+
     // 复合表达式不解码 \u0000；真正解码单字符串时仍不能返回内嵌 NUL。
     bool rejected = false
     try
@@ -34,13 +51,21 @@ func main(...) as int
         rejected = true
     end
     assert rejected
-    rejected = false
-    try
-        hcl.get("value = \"1\" == \"1\"" + "\nbroken {", "value")
-    catch ValueError error
-        rejected = true
+    array<string> invalid = [
+        "value = \"1\" == \"1\"\nbroken {",
+        "value = [1, # ignored \"\n  2]\nbroken {",
+        "value = [1, // ignored \"\n  \"bad\\q\"]",
+        "value = [1, # ignored \"\n  2"
+    ]
+    for source in invalid
+        rejected = false
+        try
+            hcl.get(source, "value")
+        catch ValueError error
+            rejected = true
+        end
+        assert rejected, "raw expression handling must still validate the complete source"
     end
-    assert rejected, "raw expression handling must still validate the complete source"
-    println("HCL string/expression boundaries: 17 cases PASS")
+    println("HCL string/expression boundaries: 77 cases PASS")
     return 0
 end

@@ -22,6 +22,8 @@
     <p>2026-10-28 当前固定发布版复验：Windows/Linux 默认完整门禁通过。覆盖严格 C、两平台四线程查询、Linux ASan/UBSan、XLang JIT、核心/边界/分配/范例独立 EXE；公开 C 范例的 GCC、TCC、C AOT 与 XLang JIT/AOT 输出一致。Linux 更早的一次无诊断退出仍未查明根因，不将本轮通过当成该历史风险已修复；门禁现保留失败命令、原始退出码、两条输出流及输入指纹。</p>
     <p>HCL 正文最多 8 MiB UTF-8 字节；超过上限时所有查询和 <code>validate</code> 都在解析前报告 <code>RangeError</code>，C 侧报告 <code>XERR_RANGE</code>。属性声明和块头支持 <code>/* ... */</code> 行内注释，不会把注释两侧的标识符拼接；<code>get</code> 忽略值末尾注释，<code>getRaw</code> 保留原文。</p>
     <p><code>get</code> 仅解码完整的单个双引号字符串。<code>v = "a" == "b"</code> 仍返回 <code>"a" == "b"</code>，不会去引号或解码表达式中的转义；<code>"\u0000" == "x"</code> 也按原文返回。真正解码单个字符串中的 NUL 才报错。2026-10-29 新增 C/XLang 17 组边界、逐分配点失败和恢复测试，双语范例展示同一规则；Windows/Linux 默认完整门禁通过，含 Linux ASan/UBSan、四线程及双语 JIT/AOT。不增加表达式求值能力，也不据此关闭历史偶发退出风险。</p>
+    <p>嵌套表达式内部的 <code>#</code>、<code>//</code> 行注释和块注释保持原文。注释中的引号、转义和括号只是文本，<code>get</code> 不会再次解释它们。包内 <code>examples/query_comments.xl</code> / <code>query_comments_c.c</code> 演示含运维注释的列表表达式、端口及块标签查询；二者各自断言并输出相同六行，不把列表表达式求值为容器。</p>
+    <p>2026-10-30：修复行注释的二次解释，原17组字符串边界扩为77组，新增60组行注释、括号和LF/CRLF组合及逐分配点恢复。两平台同一最终C回归旧60组取值错误→修复后全部通过；Windows默认完整门禁、Linux原生57阶段含ASan/UBSan、四线程与各9份独立程序通过，新增双语范例使用同一六行golden。实际生成的12个函数声明与公开C头一致，故意改错bool返回时两平台均拒绝。源与工具指纹保持，不增加分配或扫描轮次。历史Linux偶发退出根因仍未知，保持R，不扩大为完整HCL或Terraform能力。</p>
   </header>
   <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
     <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>

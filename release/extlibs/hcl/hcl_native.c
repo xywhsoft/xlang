@@ -278,9 +278,11 @@ static bool xhcl_trim_value(xhclinput Input, xhclspan* pSpan, bool* pString)
         if (xhcl_space(cValue)) {
             if (iTrivia == Input.Size) iTrivia = i;
             ++i;
-        } else if (cValue == '/' && i + 1u < Input.Size && Input.Data[i + 1u] == '*') {
+        } else if (cValue == '#' || (cValue == '/' && i + 1u < Input.Size &&
+                   (Input.Data[i + 1u] == '/' || Input.Data[i + 1u] == '*'))) {
             if (iTrivia == Input.Size) iTrivia = i;
-            if (!xhcl_skip_block_comment(Input, &i)) return false;
+            /* 与表达式边界扫描一致：行注释内的引号、转义不再当作 token。 */
+            if (!xhcl_skip_comment(Input, &i)) return false;
         } else if (cValue == '"' || cValue == '\'') {
             bool bFirstString = cValue == '"' && i == pSpan->Begin;
             if (!xhcl_skip_string(Input, &i)) return false;

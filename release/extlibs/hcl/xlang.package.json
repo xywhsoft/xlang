@@ -33,5 +33,5 @@
 
                  ],
     "abiVersion":  "1",
-    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl"] }
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl", "test/expression_strings.xl"] }
 }

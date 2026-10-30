@@ -39,12 +39,48 @@ static int allocation_sweep(cstr expression, cstr expected)
             value != NULL && xrtGetError() == NULL && strcmp(value, expected) == 0;
         xrtFree(value);
         xrtClearError();
+        if (triggered) {
+            value = xhcl_get(source, "value");
+            ok &= value != NULL && xrtGetError() == NULL && strcmp(value, expected) == 0;
+            xrtFree(value);
+            xrtClearError();
+        }
         xrtMemDebugSnapshot(&after);
-        ok &= before.LiveCount == after.LiveCount && before.LiveBytes == after.LiveBytes;
+        ok &= before.LiveCount == after.LiveCount && before.LiveBytes == after.LiveBytes &&
+            before.InvalidFreeCount == after.InvalidFreeCount &&
+            before.OverflowCount == after.OverflowCount && before.UnderflowCount == after.UnderflowCount &&
+            before.UseAfterFreeCount == after.UseAfterFreeCount;
         if (!ok) { fprintf(stderr, "HCL expression allocation: %s budget=%u\n", expression, budget); return 0; }
         if (!triggered) return budget > 0;
     }
     return 0;
+}
+
+/* 注释里的引号、转义和括号不是表达式 token；LF/CRLF 与三类嵌套边界一致。 */
+static int line_comment_matrix(void)
+{
+    static const char* const starts[] = {"[1,", "(1 +", "{ a = 1,"};
+    static const char* const ends[] = {"2]", "2)", "b = 2 }"};
+    static const char* const markers[] = {"#", "//"};
+    static const char* const payloads[] = {
+        "\"unterminated", "'unterminated", "\"bad\\q\"", "\"\\uD800\"", "/* [ ) }"
+    };
+    static const char* const newlines[] = {"\n", "\r\n"};
+    int ok = 1;
+    for (unsigned shape = 0; shape < 3; ++shape) {
+        for (unsigned marker = 0; marker < 2; ++marker) {
+            for (unsigned payload = 0; payload < 5; ++payload) {
+                for (unsigned newline = 0; newline < 2; ++newline) {
+                    char expression[256];
+                    (void)snprintf(expression, sizeof(expression), "%s %s %s%s  %s",
+                        starts[shape], markers[marker], payloads[payload], newlines[newline], ends[shape]);
+                    ok &= check_value(expression, expression);
+                    ok &= allocation_sweep(expression, expression);
+                }
+            }
+        }
+    }
+    return ok;
 }
 
 int main(void)
@@ -74,13 +110,27 @@ int main(void)
         ok &= check_value(cases[i].expression, cases[i].value);
         ok &= allocation_sweep(cases[i].expression, cases[i].value);
     }
+    ok &= line_comment_matrix();
     char* value = xhcl_get("value = \"\\u0000\"", "value");
     ok &= value == NULL && xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_VALUE;
     xrtFree(value);
-    value = xhcl_get("value = \"1\" == \"1\"\nbroken {", "value");
-    ok &= value == NULL && xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_VALUE;
-    xrtFree(value);
+    static const char* const invalid[] = {
+        "value = \"1\" == \"1\"\nbroken {",
+        "value = [1, # ignored \"\n  2]\nbroken {",
+        "value = [1, // ignored \"\n  \"bad\\q\"]",
+        "value = [1, # ignored \"\n  2",
+        "value = [1, # \xff\n  2]"
+    };
+    for (size_t i = 0; i < sizeof(invalid) / sizeof(invalid[0]); ++i) {
+        ok &= !xhcl_validate(invalid[i]) && xrtGetError() && xrtErrorKind(xrtGetError()) == XERR_VALUE;
+        value = xhcl_get(invalid[i], "value");
+        ok &= value == NULL && xrtGetError() && xrtErrorKind(xrtGetError()) == XERR_VALUE;
+        xrtFree(value);
+        value = xhcl_get_raw(invalid[i], "value");
+        ok &= value == NULL && xrtGetError() && xrtErrorKind(xrtGetError()) == XERR_VALUE;
+        xrtFree(value);
+    }
     xrtClearError();
-    if (ok) puts("HCL string/expression boundaries: 17 cases PASS");
+    if (ok) puts("HCL string/expression boundaries: 77 cases PASS");
     return ok ? 0 : 1;
 }
