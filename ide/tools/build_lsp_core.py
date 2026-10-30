@@ -790,7 +790,7 @@ def main() -> None:
             if name=='analysis_current_provider_test' and ir_overlay.get('irDependencyCohort')=='current-ed78373d':extra+=[str(objects['xl6_ir_lower'])]
             if name=='analysis_current_loader_test' and loader_references:
                 extra += [str(objects[p.stem]) for p in loader_references]+['-Wl,--wrap=xrtMalloc']
-            if name=='analysis_ir_callsite_test':extra+=['-Wl,--wrap=xrtArrayReserve']
+            if name=='analysis_ir_callsite_test':extra+=['-Wl,--wrap=xrtArrayReserve','-Wl,--wrap=xrtArrayResize']
             if name=='analysis_selection_test':extra+=['-Wl,--wrap=xrtCalloc','-Wl,--wrap=xrtArrayInit','-Wl,--wrap=xrtArrayPush']
             if name == "analysis_index_limit_test":
                 extra.append(str(limited_index))

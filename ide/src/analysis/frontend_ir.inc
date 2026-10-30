@@ -132,6 +132,9 @@ typedef struct xls_ir_call_scan {
     const XL6_IrCallSite* source;
     size_t count,budget;
     xarray calls,positions;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    xarray first;
+#endif
     int attempted,ready;
     struct xls_ir_call_scan* previous;
 } xls_ir_call_scan;
@@ -147,6 +150,9 @@ static void xlsIrCallScanBegin(xls_ir_call_scan* scan,const XL6_IrModule* module
 static void xlsIrCallScanDone(xls_ir_call_scan* scan)
 {
     xlsActiveCallScan=scan->previous; xrtArrayUnit(&scan->calls); xrtArrayUnit(&scan->positions);
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    xrtArrayUnit(&scan->first);
+#endif
 }
 static int xlsIrCallCompare(const void* a,const void* b)
 {
@@ -154,6 +160,27 @@ static int xlsIrCallCompare(const void* a,const void* b)
     if(left->origin!=right->origin) return left->origin<right->origin ? -1 : 1;
     return left->index<right->index ? -1 : left->index!=right->index;
 }
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+/* Optional first-record addresses for compact origin domains. Keep the
+ * existing sorted successor index and share its aggregate byte budget.
+ * No node/argument/type predicates belong here: arbitrary uint32 origins,
+ * including invalid ones, keep the original first physical match. Sparse
+ * domains, insufficient bytes and allocation failure use the sorted path. */
+static void xlsIrCallDirectBuild(xls_ir_call_scan* scan,const XL6_IrModule* module,uint64_t* bytes)
+{
+    size_t maximum=0;
+    for(size_t i=0;i<module->callSiteCount;++i)
+        if(module->callSites[i].origin>maximum)maximum=module->callSites[i].origin;
+    size_t available=scan->budget-(size_t)*bytes;
+    if(maximum>=available/(2*sizeof(size_t)) || !xrtArrayInit(&scan->first,sizeof(size_t)) ||
+       !xrtArrayResize(&scan->first,maximum+1))goto failed;
+    if(scan->first.Capacity>available/sizeof(size_t))goto failed;
+    size_t* first=(size_t*)scan->first.Data;
+    for(size_t i=module->callSiteCount;i;--i)first[module->callSites[i-1].origin]=i;
+    *bytes+=(uint64_t)scan->first.Capacity*sizeof(size_t);++xlsIrCallWork.directIndexes;return;
+failed:xrtArrayUnit(&scan->first);
+}
+#endif
 static const xls_ir_call_scan* xlsIrCallScan(const XL6_IrModule* module)
 {
     xls_ir_call_scan* scan=xlsActiveCallScan;
@@ -182,6 +209,9 @@ static const xls_ir_call_scan* xlsIrCallScan(const XL6_IrModule* module)
             *(size_t*)xrtArrayGet(&scan->positions,item->index)=i;
         }
         scan->source=module->callSites; scan->count=count; scan->ready=1;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+        xlsIrCallDirectBuild(scan,module,&bytes);
+#endif
         ++xlsIrCallWork.indexes; xlsIrCallWork.records+=count;
         if(bytes>xlsIrCallWork.peakBytes) xlsIrCallWork.peakBytes=bytes;
     }
@@ -194,6 +224,14 @@ static size_t xlsIrFirstCallCandidate(const XL6_IrModule* module,XL6_IrNodeId or
     ++xlsIrCallWork.queries;
     const xls_ir_call_scan* scan=xlsIrCallScan(module);
     if(!scan) { if(module->callSiteCount) ++xlsIrCallWork.linearVisits; return 0; }
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    if(scan->first.Data){
+        ++xlsIrCallWork.directQueries;
+        const size_t* first=xrtArrayConstGet(&scan->first,origin);
+        if(!first || !*first)return module->callSiteCount;
+        ++xlsIrCallWork.indexedVisits;return *first-1;
+    }
+#endif
     size_t low=0,high=scan->calls.Count;
     while(low<high) {
         size_t mid=low+(high-low)/2;
@@ -216,7 +254,7 @@ static size_t xlsIrNextCallCandidate(const XL6_IrModule* module,XL6_IrNodeId ori
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
 const XL6_IrCallSite* xl6IrCallSiteGet(const XL6_IrModule* module,XL6_IrNodeId origin)
 {
-    /* The sorted key retains physical ordinals,so duplicate origins still
+    /* Both indexes retain physical ordinals,so duplicate origins still
      * select the first original record. ABI/argument fields remain live. */
     if(!module || !origin || !xlsIrCallScan(module))return xlsIrCallSiteGetOriginal(module,origin);
     size_t first=xlsIrFirstCallCandidate(module,origin);

@@ -47,6 +47,9 @@ void xlsFrontendIrScopeProofReset(void);
 xls_ir_scope_proof_work xlsFrontendIrScopeProofWork(void);
 typedef struct xls_ir_call_scan_work {
     uint64_t indexes,records,queries,indexedVisits,linearVisits,peakBytes;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    uint64_t directIndexes,directQueries;
+#endif
 } xls_ir_call_scan_work;
 typedef struct xls_ir_region_work {
     uint64_t indexes,records,queries,indexedVisits,linearVisits,peakBytes,rootVisits;
