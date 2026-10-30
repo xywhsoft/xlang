@@ -48,6 +48,11 @@ def main():
     directory = (args.directory or root / "build/test/release-native-owners").resolve()
     directory.mkdir(parents=True, exist_ok=True)
     (root / "build/test").mkdir(parents=True, exist_ok=True)
+    # The handler ownership fixture loads this child through a nested compiler.
+    # It is an executed dependency, rather than an independently run script.
+    handler_child = root / "test/cases/stdlib_xlang_handler_child.xl"
+    if not handler_child.is_file():
+        raise FileNotFoundError(handler_child)
     env = dict(os.environ)
     env["PATH"] = str(products) + os.pathsep + env.get("PATH", "")
     env["XLANG_PACKAGE_PATH"] = str(root / "release/extlibs")
@@ -124,7 +129,7 @@ def main():
             if os.name!="nt":catalog_command += ["-Wl,-rpath,"+str(products)]
             if run(library.stem+"-boundary-catalog-build",catalog_command):run(library.stem+"-boundary-catalog",[catalog_binary])
             self_binary=directory/(library.stem+"_self_retirement"+(".exe" if os.name=="nt" else ""))
-            self_command=[args.cc,"-std=c11","-Wall","-Wextra","-Werror","-I"+str(root),"-I"+str(root/"release"),
+            self_command=[args.cc,"-std=c11","-Wall","-Wextra","-Werror","-I"+str(root),"-I"+str(root/"release"),"-I"+str(root/"release/include"),
                           root/"test/cases/xlir_task_pool_self_retirement.c",link,"-o",self_binary]
             if os.name!="nt":self_command += ["-Wl,-rpath,"+str(products)]
             if run(library.stem+"-self-retirement-build",self_command):run(library.stem+"-self-retirement",[self_binary])

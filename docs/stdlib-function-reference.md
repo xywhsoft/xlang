@@ -663,7 +663,7 @@ jsonl.writeTo(var value, func(var) as bool sink, var options = null) as bool
 log.asyncSink(LogSink target, LogAsyncOptions? options = null) as LogSink
 log.consoleSink(LogConsoleOptions? options = null) as LogSink
 log.create(string name = "xlang", LogLevel level = LogLevel.info) as Logger
-log.customSink(func(LogRecord) as LogResult write, string name = "custom", LogLevel level = LogLevel.trace, func() as bool flush = null) as LogSink
+log.customSink(func(LogRecord) as LogResult write, string name = "custom", LogLevel level = LogLevel.trace, (func() as bool)? flush = null) as LogSink
 log.debug(string message, int size = -1) as LogResult
 log.default() as Logger?
 log.error(string message, int size = -1) as LogResult
