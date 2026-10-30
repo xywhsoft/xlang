@@ -16,6 +16,18 @@ xls_ir_result* xlsFrontendIrResultBuildPersistent(const XL6_AstNode*,XL6_DiagLis
     const xls_ir_result*,size_t rawBytes,size_t ownerBytes,size_t persistentBytes);
 xls_ir_persistent_work xlsFrontendIrResultPersistentWork(const xls_ir_result*);
 struct xls_typed_module;
+typedef struct xls_ir_input_work {
+    uint64_t encoded,reused,captured,declined,avoidedBytes,copiedBytes,bytes;
+} xls_ir_input_work;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+struct xls_sem_memo;
+/* Current validated check only. Bind its unpublished semantic memo to the
+ * independently owned immutable typed input before reading final receipts.
+ * Ordinary mutable-AST/typed APIs keep their complete key path. */
+xls_ir_result* xlsFrontendIrResultBuildTypedChecked(struct xls_typed_module*,XL6_DiagList*,
+    const xls_ir_result*,size_t,const struct xls_entity_view*,size_t,struct xls_sem_memo*);
+xls_ir_input_work xlsFrontendIrResultInputWork(const xls_ir_result*);
+#endif
 /* Caller holds result lifetime. Concurrent preparation never waits:one owner
  * builds metadata;other callers use the original route. 2=new,1=ready,0=decline.
  * Only an independently owned typed input may prepare a published result. */

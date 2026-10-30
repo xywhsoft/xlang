@@ -16,9 +16,21 @@ typedef struct xls_ir_unit {
     uint64_t identity;
     size_t startNode,startChild,nodes,children,bytes,textNodes,textBytes;
 } xls_ir_unit;
-struct xls_ir_memo {xstrbuf context;xarray entries;size_t bytes;xls_entity_view* entities;};
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+typedef struct xls_ir_input_proof xls_ir_input_proof;
+static void xlsIrInputProofRelease(xls_ir_input_proof*);
+#endif
+struct xls_ir_memo {xstrbuf context;xarray entries;size_t bytes;xls_entity_view* entities;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    xarray inputs;xls_ir_input_work inputWork;
+#endif
+};
 typedef struct xls_ir_capture {xls_ir_unit* unit;xmap dependencies,writes,globals;int okay;const xls_lexical_symbols* symbols;const xls_entity_view* entities;} xls_ir_capture;
-typedef struct xls_ir_function {uint64_t identity;const xls_ir_unit* unit;} xls_ir_function;
+typedef struct xls_ir_function {uint64_t identity;const xls_ir_unit* unit;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    size_t slot;
+#endif
+} xls_ir_function;
 typedef struct xls_ir_entity_scope {struct xls_ir_entity_scope* previous;const XL6_AstNode* root;const xls_entity_view* entities;} xls_ir_entity_scope;
 static _Thread_local xls_ir_entity_scope* xlsActiveIrEntities;
 typedef struct xls_ir_memo_build {
@@ -154,6 +166,10 @@ void xlsFrontendIrMemoDestroy(xls_ir_memo* memo)
 {
     if(!memo)return;
     for(size_t i=0;i<memo->entries.Count;++i)xlsIrUnitRelease(*(xls_ir_unit**)xrtArrayGet(&memo->entries,i));
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    for(size_t i=0;i<memo->inputs.Count;++i)xlsIrInputProofRelease(*(xls_ir_input_proof**)xrtArrayGet(&memo->inputs,i));
+    xrtArrayUnit(&memo->inputs);
+#endif
     xrtArrayUnit(&memo->entries);xrtStrBufFree(&memo->context);xlsEntityViewRelease(memo->entities);xrtFree(memo);
 }
 static xbytesview xlsIrSymbolKey(const XL6_SymbolId* symbol)
@@ -187,9 +203,28 @@ static int xlsIrFunctionsBuild(xarray* rows,const xls_ir_memo* memo)
     const size_t bytes=1024u*1024u;
     if(!xrtArrayInit(rows,sizeof(xls_ir_function)))return 0;
     for(size_t i=0;i<memo->entries.Count;++i){const xls_ir_unit* u=*(xls_ir_unit* const*)xrtArrayConstGet(&memo->entries,i);if(!u || !u->identity)continue;
-        xls_ir_function row={u->identity,u};if(rows->Count>=bytes/sizeof(row) || !xrtArrayPush(rows,&row) || rows->Capacity>bytes/sizeof(row))return 0;}
+        xls_ir_function row={u->identity,u
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+            ,i
+#endif
+        };if(rows->Count>=bytes/sizeof(row) || !xrtArrayPush(rows,&row) || rows->Capacity>bytes/sizeof(row))return 0;}
     return xrtArraySort(rows,xlsIrFunctionCompare);
 }
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+static const xls_ir_unit* xlsIrPreviousFunctionSlot(const xls_ir_memo_build* build,uint64_t identity,size_t child,size_t* slot)
+{
+    *slot=SIZE_MAX;if(!build->baseline)return NULL;
+    if(identity && build->functionsReady){
+        size_t lo=0,hi=build->functions.Count;
+        while(lo<hi){size_t mid=lo+(hi-lo)/2;const xls_ir_function* r=xrtArrayConstGet(&build->functions,mid);if(r->identity<identity)lo=mid+1;else hi=mid;}
+        const xls_ir_function *r=xrtArrayConstGet(&build->functions,lo),*next=xrtArrayConstGet(&build->functions,lo+1);
+        if(!r || r->identity!=identity || (next && next->identity==identity))return NULL;
+        *slot=r->slot;return r->unit;
+    }
+    if(build->baseline->entries.Count!=build->memo->entries.Count)return NULL;
+    *slot=child;return *(xls_ir_unit* const*)xrtArrayConstGet(&build->baseline->entries,child);
+}
+#else
 static const xls_ir_unit* xlsIrPreviousFunction(const xls_ir_memo_build* build,uint64_t identity,size_t child)
 {
     if(!build->baseline)return NULL;
@@ -201,6 +236,7 @@ static const xls_ir_unit* xlsIrPreviousFunction(const xls_ir_memo_build* build,u
     }
     return build->baseline->entries.Count==build->memo->entries.Count ? *(xls_ir_unit* const*)xrtArrayConstGet(&build->baseline->entries,child) : NULL;
 }
+#endif
 static void xlsIrMemoDependency(XL6_IrModule* module,XL6_SymbolId symbol)
 {
     xls_ir_memo_build* build=xlsActiveIrMemo;xls_ir_capture* c=build && build->module==module ? build->capture : NULL;
@@ -468,6 +504,9 @@ static int xlsIrMemoCapture(xls_ir_capture* capture,const XL6_IrModule* module,s
         unit->dependencies.Capacity*sizeof(xls_ir_dependency)+unit->writes.Capacity*sizeof(xls_ir_write)+unit->globals.Capacity*sizeof(xls_ir_global);
     return unit->nodes && unit->bytes<=limit;
 }
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+#include "analysis/frontend_ir_input.inc"
+#endif
 static XL6_IrNodeId xl6IrBuildAstNode(XL6_IrModule* module,const XL6_AstNode* root,const XL6_AstNode* source,
     const XL6_AstNode* parent,size_t childIndex,XL6_DiagList* diags,int* okay)
 {
@@ -479,19 +518,35 @@ static XL6_IrNodeId xl6IrBuildAstNode(XL6_IrModule* module,const XL6_AstNode* ro
     size_t limit=build->limit-build->memo->bytes;
     xstrbuf key={0},types={0};XL6_IrNodeId result=0;
     xls_lexical_symbols symbols={0};
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    uint64_t identity=xlsEntityViewSymbol(build->memo->entities,source->semanticDeclaredSymbolId);
+    size_t oldSlot=SIZE_MAX;const xls_ir_unit* old=xlsIrPreviousFunctionSlot(build,identity,childIndex,&oldSlot);
+    xls_ir_input_key inputKey={0};
+    int usable=limit>sizeof(xls_ir_unit) && xlsLexicalSymbolsBuild(&symbols,source,XLS_LEXICAL_SYMBOL_BYTES) &&
+        xlsIrInputKeyBegin(&inputKey,build,source,childIndex,old,oldSlot,&symbols,&key) &&
+        key.Capacity<limit && xlsIrMemoTypes(&module->types,&types,limit-key.Capacity);
+#else
     int usable=limit>sizeof(xls_ir_unit) && xlsLexicalSymbolsBuild(&symbols,source,XLS_LEXICAL_SYMBOL_BYTES) &&
         xlsFrontendIrAstKeyEntities(&key,source,&symbols,build->memo->entities) && key.Capacity<limit && xlsIrMemoTypes(&module->types,&types,limit-key.Capacity);
     uint64_t identity=xlsEntityViewSymbol(build->memo->entities,source->semanticDeclaredSymbolId);
     const xls_ir_unit* old=xlsIrPreviousFunction(build,identity,childIndex);
+#endif
     if(usable && old && old->bytes<=limit && xlsIrMemoEqual(&old->key,&key) && xlsIrMemoEqual(&old->types,&types)){
         result=xlsIrMemoRestore(old,module,source,&symbols,build->memo->entities);
         if(result){
             *(xls_ir_unit**)xrtArrayGet(&build->memo->entries,childIndex)=xlsIrUnitRetain((xls_ir_unit*)old);
             build->memo->bytes+=old->bytes;++build->work.reused;build->work.nodesReused+=old->nodes;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+            xlsIrInputKeyPublish(&inputKey,build,childIndex,&symbols);
+            xlsIrInputKeyEnd(&inputKey,build,&key);
+#endif
             xrtStrBufFree(&key);xrtStrBufFree(&types);xlsLexicalSymbolsClear(&symbols);return result;
         }
     }
     ++build->work.checked;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    if(usable && !xlsIrInputKeyOwn(&inputKey,build,&key,limit))usable=0;
+#endif
     xls_ir_unit* unit=usable ? xrtCalloc(1,sizeof(*unit)) : NULL;
     xls_ir_capture capture={.unit=unit,.symbols=&symbols,.entities=build->memo->entities};
     if(unit){
@@ -508,9 +563,15 @@ static XL6_IrNodeId xl6IrBuildAstNode(XL6_IrModule* module,const XL6_AstNode* ro
         if(result && *okay && (!diags || !diags->count) && capture.okay && !xlsFrontendCancelObserved() &&
            xlsIrMemoTypes(&module->types,&after,limit) && xlsIrMemoEqual(&unit->types,&after) && xlsIrMemoCapture(&capture,module,limit)){
             *(xls_ir_unit**)xrtArrayGet(&build->memo->entries,childIndex)=unit;build->memo->bytes+=unit->bytes;++build->work.captured;unit=NULL;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+            xlsIrInputKeyPublish(&inputKey,build,childIndex,&symbols);
+#endif
         }else ++build->work.declined;
         xrtStrBufFree(&after);xrtMapUnit(&capture.dependencies);xrtMapUnit(&capture.writes);xrtMapUnit(&capture.globals);xlsIrUnitRelease(unit);
     }else ++build->work.declined;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    xlsIrInputKeyEnd(&inputKey,build,&key);
+#endif
     xrtStrBufFree(&key);xrtStrBufFree(&types);xlsLexicalSymbolsClear(&symbols);return result;
 }
 int xlsFrontendIrBuildMemo(XL6_IrModule* module,const XL6_AstNode* root,XL6_DiagList* diags,
@@ -530,6 +591,9 @@ int xlsFrontendIrBuildMemo(XL6_IrModule* module,const XL6_AstNode* root,XL6_Diag
         else memo->bytes=sizeof(*memo)+memo->context.Capacity+memo->entries.Capacity*sizeof(xls_ir_unit*);
     }
     if(!memo)return xl6IrBuildModuleFromAst(module,root,diags);
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    xlsIrInputBeginMemo(memo,root,bytes);
+#endif
     xls_ir_memo_build build={.previous=xlsActiveIrMemo,.root=root,.module=module,.memo=memo,.limit=bytes};
     int sameEntities=previous && ((!memo->entities && !previous->entities) ||
         (memo->entities && previous->entities && xlsEntityViewStore(memo->entities)==xlsEntityViewStore(previous->entities) &&
