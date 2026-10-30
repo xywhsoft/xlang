@@ -210,8 +210,13 @@ static xrtplistnode* __xrtPlistBinaryObject(xrtplistbinaryreader* pReader,
 	} else if ( iKind == 0xau || iKind == 0xdu ) {
 		uint64 iReferenceCount;
 		if ( !__xrtPlistBinaryLength(pReader, iOffset, iInfo, &iLength,
-			&iHeader) || (pReader->Context.Options.tLimits.iMaxEntries != 0u &&
-			iLength > pReader->Context.Options.tLimits.iMaxEntries) ) { goto invalid; }
+			&iHeader) ) { goto invalid; }
+		if ( pReader->Context.Options.tLimits.iMaxEntries != 0u &&
+			iLength > pReader->Context.Options.tLimits.iMaxEntries ) {
+			__xrtPlistSetError(pReader->Context.Error, XRT_PLIST_ERROR_LIMIT,
+				0u, 0u, iOffset, "binary plist container exceeds the entry limit");
+			return NULL;
+		}
 		iReferenceCount = iKind == 0xdu ? iLength * 2u : iLength;
 		if ( (iKind == 0xdu && iLength > UINT64_MAX / 2u) ||
 			iReferenceCount > UINT64_MAX / pReader->iReferenceSize ||
@@ -259,8 +264,13 @@ static xrtplistnode* __xrtPlistBinaryObject(xrtplistbinaryreader* pReader,
 
 invalid:
 	if ( pReader->Context.Error->iCode == XRT_PLIST_OK ) {
-		__xrtPlistSetError(pReader->Context.Error, XRT_PLIST_ERROR_FORMAT,
-			0u, 0u, iOffset, "invalid or unsupported binary plist object");
+		/* 节点、字节副本和 UTF-16 转换都可能耗尽内存，不能统一当作格式错。 */
+		const xerror* pCause = xrtGetError();
+		bool bMemory = pCause != NULL && xrtErrorKind(pCause) == XERR_MEMORY;
+		__xrtPlistSetError(pReader->Context.Error,
+			bMemory ? XRT_PLIST_ERROR_MEMORY : XRT_PLIST_ERROR_FORMAT,
+			0u, 0u, iOffset, bMemory ? "could not allocate binary plist object" :
+			"invalid or unsupported binary plist object");
 	}
 	return NULL;
 }

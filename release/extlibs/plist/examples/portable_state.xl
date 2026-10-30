@@ -1,0 +1,37 @@
+import plist
+
+func main(...) as int
+    var state = {"player": "阿青", "score": 42, "enabled": true}
+    // 普通配置可用 XML；UID 和 null 明确属于 binary plist 的能力。
+    string xml = plist.stringify(state, false, true)
+    var restored = plist.loads(xml)
+    assert restored["player"] == "阿青" and restored["score"] == 42 and restored["enabled"]
+    state["token"] = plist.uid(42)
+    state["checkpoint"] = null
+    Buffer binary = plist.dumps(state, "binary")
+    restored = plist.loads(binary)
+    assert plist.isUid(restored["token"]) and plist.uidValue(restored["token"]) == 42
+    assert restored["checkpoint"] == null and restored["player"] == "阿青"
+
+    bool typeRejected = false
+    try
+        plist.stringify(state)
+    catch PlistError error
+        assert plist.errorCode() == 4
+        typeRejected = true
+    end
+    bool limitRejected = false
+    try
+        plist.loads(binary, maxEntries = 1)
+    catch PlistError error
+        assert plist.errorCode() == 5
+        limitRejected = true
+    end
+    assert typeRejected and limitRejected
+    assert plist.loads(binary)["score"] == 42
+    println("player=阿青; score=42")
+    println("encoding=xml,binary; uid=42; checkpoint=null")
+    println("type rejected=true; entry limit=true; recovery=true")
+    println("plist portable state: OK")
+    return 0
+end

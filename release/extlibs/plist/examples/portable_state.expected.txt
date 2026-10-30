@@ -1,0 +1,4 @@
+player=阿青; score=42
+encoding=xml,binary; uid=42; checkpoint=null
+type rejected=true; entry limit=true; recovery=true
+plist portable state: OK

@@ -122,9 +122,10 @@ static xrtplistnode* __xrtPlistXmlValue(xrtplistdocument* pDocument,
 		uint32 i;
 		if ( !__xrtPlistXmlContainerElements(pElement, &pChildren, &iCount,
 			pContext->Error) ) { return NULL; }
+		/* 比较实际条目数，不将 uint64 上限乘二；奇数子项仍沿原规则取上整。 */
+		uint64 iEntries = strcmp(sName, "dict") == 0 ? ((uint64)iCount + 1u) / 2u : iCount;
 		if ( pContext->Options.tLimits.iMaxEntries != 0u &&
-			(uint64)iCount > pContext->Options.tLimits.iMaxEntries *
-			(strcmp(sName, "dict") == 0 ? 2u : 1u) ) {
+			iEntries > pContext->Options.tLimits.iMaxEntries ) {
 			__xrtPlistSetError(pContext->Error, XRT_PLIST_ERROR_LIMIT,
 				0u, 0u, 0u, "plist container exceeds the configured entry limit");
 			goto container_cleanup;

@@ -1,0 +1,32 @@
+import plist
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    int budget = 0
+    if arg.length == 2 then budget = int(string(arg[1])) end
+    assert budget >= 0 and budget <= 127
+    string source = "<plist><string>value</string></plist>"
+    bool memory = false
+    bool wrong = false
+    bool parsed = false
+    bool injected = false
+    assert failAfter(uint64(budget))
+    try
+        var value = plist.loads(source)
+        parsed = value == "value"
+    catch MemoryError error
+        memory = true
+    catch PlistError error
+        wrong = true
+    finally
+        injected = failTriggered()
+        failClear()
+    end
+    assert not wrong and (injected and memory or not injected and parsed)
+    assert plist.loads(source) == "value", "冷启动故障解除后必须能恢复"
+    println("plist cold XLang: budget=", budget, " injected=", injected, " PASS")
+    return 0
+end

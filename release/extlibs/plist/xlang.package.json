@@ -41,7 +41,7 @@
             "abiVersion": "1"
         }
     ],
-    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl", "test/owned_results.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl", "test/owned_results.xl", "test/cold_start.xl", "test/binary_errors.xl"] },
     "native": {
         "singleton": false,
         "loadName": "",
