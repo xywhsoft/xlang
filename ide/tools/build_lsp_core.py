@@ -428,9 +428,15 @@ def prepare_native_stdlib(frontend: Path, output: Path) -> tuple[Path, Path, dic
     """Reject only absent spellings; positive decisions keep the shared rules."""
     original = frontend / 'src/stdlib/xl6_stdlib.c'
     body = original.read_bytes()
-    if hashlib.sha256(body).hexdigest() != 'bf863afd1bdef637388e6e4198813484f90e4eb8f1399580d75304e70a110919':
+    digest=hashlib.sha256(body).hexdigest()
+    current=digest=='e45f88b2e1dba9bad5cf4caab928eccf6d04cf0dcc9c7b694141609cc7e0ef10'
+    audited={}
+    if current:
+        from native_current_stdlib_profile import profile
+        audited=profile(frontend)
+    elif digest != 'bf863afd1bdef637388e6e4198813484f90e4eb8f1399580d75304e70a110919':
         raise ValueError('shared stdlib changed; audit scope producers/name lifetimes/free paths and exact-text discovery predicates')
-    source = verify_domains(body.decode('utf-8').replace('\r\n', '\n'))
+    source = verify_domains(body.decode('utf-8').replace('\r\n', '\n'),frontend=frontend,current=current)
     changes = {
         '#include <stdio.h>': '#include <stdio.h>\n#include "analysis/frontend_stdlib.inc"',
         '    size_t capacity;\n} XL6_StdlibNameScope;':
@@ -452,6 +458,9 @@ def prepare_native_stdlib(frontend: Path, output: Path) -> tuple[Path, Path, dic
         '    ok = builder.ok && xl6StdlibMergeGeneratedDecls(root, builder.data, diags);':
             '    xlsStdlibScanEnd();\n    ok = builder.ok && xl6StdlibMergeGeneratedDecls(root, builder.data, diags);',
     }
+    if current:
+        changes.pop('    xl6StdlibApplyDeps(used);\n    needsCoreClass =')
+        changes['    xl6StdlibApplyDeps(used);\n    /* Resolve the whole declaration island']='    xl6StdlibApplyDeps(used);\n    xlsStdlibScanBegin(root);\n    /* Resolve the whole declaration island'
     for old, new in changes.items():
         if source.count(old) != 1:
             raise ValueError('shared stdlib scan seam changed; audit: ' + old)
@@ -461,6 +470,7 @@ def prepare_native_stdlib(frontend: Path, output: Path) -> tuple[Path, Path, dic
     compiled.write_text(source, encoding='utf-8', newline='\n')
     return original, compiled, dict(source=str(original), sourceSha256=hashlib.sha256(body).hexdigest(),
         compiledSource=str(compiled), compiledSha256=sha(compiled), auditedSeams=len(changes),
+        auditedDependencies=audited,stdlibCohort='current-2084f8ac' if current else 'legacy',
         change='bounded private scope-name candidates and exact spelling absence filter; original matching/parent rules retained',
         indexBytes=8 * 1024 * 1024)
 
@@ -648,10 +658,10 @@ def main() -> None:
     inputs[str(Path(__file__).with_name('native_ir_scan_overlay.py').resolve())] = sha(Path(__file__).with_name('native_ir_scan_overlay.py'))
     inputs[str(Path(__file__).with_name('native_current_ir_overlay.py').resolve())] = sha(Path(__file__).with_name('native_current_ir_overlay.py'))
     inputs[str(Path(__file__).with_name('native_current_ir_profile.py').resolve())] = sha(Path(__file__).with_name('native_current_ir_profile.py'))
-    for name in ('native_current_semantic_profile.py','native_semantic_effects_overlay.py'):
+    for name in ('native_current_semantic_profile.py','native_semantic_effects_overlay.py','native_current_stdlib_profile.py'):
         controller=Path(__file__).with_name(name).resolve()
         inputs[str(controller)]=sha(controller)
-    for overlay in (ir_overlay,sem_overlay):
+    for overlay in (ir_overlay,sem_overlay,stdlib_overlay):
         inputs.update(overlay.get('auditedDependencies',{}))
     if sem_overlay.get('declarationEffects'):
         inputs.update(sem_overlay['declarationEffects']['auditedDependencies'])
