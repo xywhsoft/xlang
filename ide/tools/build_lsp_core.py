@@ -93,6 +93,7 @@ CORE_TESTS = ("analysis_ir_sparse_decode_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_typed_identity_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_semantic_final_input_test", *CORE_TESTS)
 CORE_TESTS = ("analysis_ir_input_test", *CORE_TESTS)
+CORE_TESTS = ("analysis_semantic_alias_reads_test", *CORE_TESTS)
 HOST_TESTS += ("navigation_cache_test", "semantic_reference_shard_test", "project_references_test", "project_reference_budget_test", "reference_path_index_test")
 HOST_TESTS += ("path_identity_batch_test", "reference_capture_test")
 HOST_TESTS += ("project_reference_parallel_test",)
@@ -227,6 +228,22 @@ def prepare_native_sem(frontend: Path, output: Path, *, _current_unit_probe=Fals
     if source.count('xl6TypeRegistryFind(')!=type_queries:
         raise ValueError('semantic type lookup calls changed; audit declaration read coverage')
     source=source.replace('xl6TypeRegistryFind(', 'xlsSemReadTypeFind(')
+    if current:
+        # This consumer reads kind and an alias declaration target only. All
+        # other callers retain complete live TypeInfo observations.
+        alias_start=source.index('static const XL6_AstNode* xl6SemAliasTargetType(')
+        alias_end=source.index('\nstatic ',alias_start+1)
+        alias=source[alias_start:alias_end]
+        lookup='xlsSemReadTypeFind(&ctx->types, typeNode->text)'
+        if alias.count(lookup)!=1:
+            raise ValueError('native alias target reads changed; audit projected dependencies')
+        line='    typeInfo = '+lookup+';'
+        if alias.count(line)!=1:
+            raise ValueError('native alias target statement changed')
+        projected=('#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS\n'
+                   '    typeInfo = xlsSemReadAliasFind(&ctx->types, typeNode->text);\n'
+                   '#else\n'+line+'\n#endif')
+        source=source[:alias_start]+alias.replace(line,projected,1)+source[alias_end:]
     start = source.index('static int xl6SemCheckOverloadConflicts(XL6_SemContext* ctx)\n{')
     end = source.index('\nstatic int xl6SemIsExternCDecl(', start)
     conflict = source[start:end]
@@ -348,7 +365,8 @@ def prepare_native_sem(frontend: Path, output: Path, *, _current_unit_probe=Fals
         deferredBodyViewBytes=64 * 1024 * 1024,
         overloadCandidateBytes=8 * 1024 * 1024,
         syntheticTypeOrigins='eight explicit at-node constructors retain original AST source/ranges;original type rules unchanged',
-        observedTypeQueries=type_queries, currentUnitProbe=bool(current and _current_unit_probe), declarationEffects=effect_overlay,
+        observedTypeQueries=type_queries, projectedAliasQueries=1 if current else 0,
+        currentUnitProbe=bool(current and _current_unit_probe), declarationEffects=effect_overlay,
         semanticCohort='current-2084f8ac' if cohort_dependencies else None,
         auditedDependencies={**cohort_dependencies, str(registry): registry_sha, str(registry_header):registry_header_sha, str(ast): ast_sha})
 
@@ -603,7 +621,8 @@ def main() -> None:
         # their native warning profile. Their objects never enter core/server.
         sources += [(ide / "tests" / (name + ".c"), name not in
                      ("analysis_semantic_read_front_test", "analysis_ir_sparse_decode_test",
-                      "analysis_semantic_final_input_test", "analysis_ir_input_test")) for name in tests]
+                      "analysis_semantic_final_input_test", "analysis_ir_input_test",
+                      "analysis_semantic_alias_reads_test")) for name in tests]
     if args.server:
         if os.name != "nt":
             parser.error("the current host still uses Windows transport/process adapters; the standalone core is separate")
@@ -823,6 +842,9 @@ def main() -> None:
                 extra += ["-Wl,--wrap=" + function for function in (
                     "xlsFrontendIrResultBuildTypedChecked", "xrtCalloc", "xrtFree", "xrtArrayResize",
                     "xrtArrayUnit", "xrtStrBufReserve", "xrtStrBufFree", "xrtMapSet")]
+            if name == "analysis_semantic_alias_reads_test":
+                extra += ["-Wl,--wrap=" + function for function in (
+                    "xrtStrDup", "xrtStrBufReserve", "xrtArrayPush", "xrtArrayResize")]
             if name in ("analysis_ir_persistent_fault_test", "analysis_typed_module_fault_test"):
                 extra += ["-Wl,--wrap=" + function for function in (
                     "xrtMalloc", "xrtCalloc", "xrtRealloc", "xrtFree", "xrtStrBufReserve", "xrtStrBufFree",

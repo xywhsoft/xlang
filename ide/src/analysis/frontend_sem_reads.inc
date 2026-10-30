@@ -7,7 +7,11 @@ static int xlsSemReadHeaderKey(XL6_SemContext*,const char*,xstrbuf*,size_t*);
  * query with the same spelling are different original compiler reads. */
 #include "analysis/frontend_sem_read_values.h"
 #include "analysis/frontend_sem_headers.inc"
-typedef struct xls_sem_read {char* name;xstrbuf key;size_t count;int type;} xls_sem_read;
+typedef struct xls_sem_read {char* name;xstrbuf key;size_t count;int type;
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+ int aliasReady,aliasPresent,aliasHasDecl;XL6_TypeKind aliasKind;
+#endif
+} xls_sem_read;
 struct xls_sem_reads {xarray items;size_t bytes;int complete;};
 struct xls_sem_read_context {xatomic32 references;xstrbuf key;size_t bytes;};
 typedef struct xls_sem_read_capture {
@@ -16,7 +20,7 @@ typedef struct xls_sem_read_capture {
  xarray values;size_t valueStrings,valueBytes;int valuesReady;
  xarray headers;size_t headerBytes;int headersReady;
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
- size_t typedSlots[32];uint64_t frontComparisons;
+ size_t typedSlots[32],aliasSlots[32];uint64_t frontComparisons,aliasComparisons,aliasFrontComparisons,aliasUpgrades;
 #endif
 } xls_sem_read_capture;
 typedef struct xls_sem_read_cached {xstrbuf key;size_t count;uint64_t epoch;} xls_sem_read_cached;
@@ -109,8 +113,33 @@ static int xlsSemReadTypeKey(XL6_SemContext* ctx,const char* name,xstrbuf* key,s
   xlsSemKeyNumber(key,info->kind) && xlsSemKeyNumber(key,info->allowGeneric) &&
   xlsSemKeyNumber(key,info->genericArity) && xlsSemKeyNode(key,info->decl,0,0);
 }
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+/* AliasTargetType reads kind and (only for aliases) the declaration target.
+ * Keep a separate query namespace until a real full-type read subsumes it.
+ * Native lookup still executes on every query; no registry value is cached. */
+static int xlsSemReadAliasActual(const XL6_TypeInfo* info,xstrbuf* key,size_t* count)
+{
+ uint64_t fields[]={info!=NULL,info ? (uint64_t)info->kind : 0};
+ *count=info!=NULL;
+ return xlsSemKeyBytes(key,fields,sizeof(fields)) &&
+  (!info || info->kind!=XL6_TYPE_ALIAS || xlsSemKeyNode(key,info->decl,0,0));
+}
+static int xlsSemReadAliasKey(XL6_SemContext* ctx,const char* name,xstrbuf* key,size_t* count)
+{return xlsSemReadAliasActual(xl6TypeRegistryFind(&ctx->types,name),key,count);}
+static void xlsSemReadAliasProjection(xls_sem_read* read,const XL6_TypeInfo* actual)
+{
+ read->aliasReady=1;read->aliasPresent=actual!=NULL;
+ read->aliasKind=actual ? actual->kind : XL6_TYPE_BUILTIN;
+ read->aliasHasDecl=actual && actual->decl;
+}
+#endif
 static int xlsSemReadKey(XL6_SemContext* ctx,const char* name,int type,xstrbuf* key,size_t* count)
-{return type ? xlsSemReadTypeKey(ctx,name,key,count) : xlsSemReadHeaderKey(ctx,name,key,count);}
+{
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+ if(type==2)return xlsSemReadAliasKey(ctx,name,key,count);
+#endif
+ return type ? xlsSemReadTypeKey(ctx,name,key,count) : xlsSemReadHeaderKey(ctx,name,key,count);
+}
 static void xlsSemReadsUnknown(XL6_SemContext* ctx)
 {(void)ctx;if(xlsActiveSemReads && xlsActiveSemReads->reads)xlsActiveSemReads->reads->complete=0;}
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
@@ -198,7 +227,11 @@ static void XLS_SEM_READ_OBSERVER(XL6_SemContext* ctx,const char* name,int type,
  xls_sem_reads* reads=c->reads;size_t n=name ? strlen(name) : 0;
  if(ctx!=c->context || !n || n>256 || reads->items.Count>=256){reads->complete=0;return;}
  for(size_t i=0;i<reads->items.Count;++i){const xls_sem_read* r=xrtArrayConstGet(&reads->items,i);if(r->type==type && !strcmp(r->name,name)){
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+   const xls_sem_read_value* value=type==1 && i<c->values.Count ? xrtArrayConstGet(&c->values,i) : NULL;
+#else
    const xls_sem_read_value* value=type && i<c->values.Count ? xrtArrayConstGet(&c->values,i) : NULL;
+#endif
    if(value && value->ready){++c->typedComparisons;if(!xlsSemReadValueEqual(value,actual))reads->complete=0;
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
     else xlsSemReadFrontRemember(c,i,actual);
@@ -213,15 +246,23 @@ static void XLS_SEM_READ_OBSERVER(XL6_SemContext* ctx,const char* name,int type,
  if(!xlsSemReadKey(ctx,name,type,&key,&count)){reads->complete=0;xrtStrBufFree(&key);return;}
  size_t limit=xlsSemReadBudget();if(limit>1024u*1024u)limit=1024u*1024u;
  xls_sem_read next={.key=key,.count=count,.type=type};next.name=xrtStrDup(name);
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+ if(type==1 || type==2)xlsSemReadAliasProjection(&next,actual);
+#endif
  size_t added=sizeof(next)+n+1+key.Capacity;
  if(!next.name || reads->bytes>limit || added>limit-reads->bytes || !xrtArrayPush(&reads->items,&next)){
   xrtFree(next.name);xrtStrBufFree(&key);reads->complete=0;return;}
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+ if(type==2){ /* The exact projected key owns this observation. */ }
+ else
+#endif
  if(type)xlsSemReadValueRemember(c,reads->items.Count-1,actual);
  else xlsSemReadHeaderRemember(c,reads->items.Count-1,name,&key,count);
  reads->bytes+=added;++c->build->memo->readWork.recorded;if(!count)++c->build->memo->readWork.negative;
 }
 #undef XLS_SEM_READ_OBSERVER
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+#include "analysis/frontend_sem_alias_reads.inc"
 /* Stack-only candidate positions survive vector growth. An exact owned-name
  * match proves the original nonempty/256-byte name bound. Context,record cap,
  * presence and EVERY original live value field still run,including both name
@@ -242,6 +283,7 @@ static void xlsSemReadsObserve(XL6_SemContext* ctx,const char* name,int type,con
 {
  xls_sem_read_capture* c=xlsActiveSemReads;
  if(c && c->reads && c->reads->complete && xlsSemReadFront(c,ctx,name,type,actual))return;
+ if(c && c->reads && c->reads->complete && type==1 && xlsSemAliasUpgrade(c,ctx,name,actual))return;
  xlsSemReadsObserveSlow(ctx,name,type,actual);
 }
 #endif
@@ -257,6 +299,15 @@ static const XL6_TypeInfo* xlsSemReadTypeFind(const XL6_TypeRegistry* registry,c
  if(c){if(registry!=&c->context->types)xlsSemReadsUnknown(c->context);else xlsSemReadsObserve(c->context,name,1,info);}
  return info;
 }
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+/* Only the pinned native AliasTargetType consumer uses this projection. */
+static const XL6_TypeInfo* xlsSemReadAliasFind(const XL6_TypeRegistry* registry,const char* name)
+{
+ const XL6_TypeInfo* info=xl6TypeRegistryFind(registry,name);xls_sem_read_capture* c=xlsActiveSemReads;
+ if(c){if(registry!=&c->context->types)xlsSemReadsUnknown(c->context);else xlsSemAliasObserve(c,c->context,name,info);}
+ return info;
+}
+#endif
 static XL6_Symbol* xlsSemScopeFindLocalOriginal(XL6_Scope*,const char*);
 static XL6_Symbol* xl6ScopeFindLocal(XL6_Scope* scope,const char* name)
 {
