@@ -5,6 +5,44 @@
 `TcpStream`，由 `command` 组合 `send`、`wait`、`recv` 完成命令调用。
 不包含连接池、自动重连、订阅模式或事务编排。
 
+## 2026-10-30 Windows 门禁与失败现场
+
+本轮未确认新的 RESP/客户端缺陷，也没有修改原生编解码、语言层、公开头、
+manifest 或范例源。修正的是 Windows 验收入口：旧 Run 缺程序会抛异常，
+不是已证实的假绿，但没有结构化启动状态；旧流程也不保留完整失败现场，
+输出管道还会改变正文中的独立 CR。现复用已有进程帮助函数，记录实际
+程序/参数、工作目录、原始退出码、两条输出流及耗时，不沿用 LASTEXITCODE。
+普通子进程限时120秒，可选十万次复用限时600秒；不改变 Linux 既有门禁限时。
+PowerShell C 运行器也在独立进程运行。输出只统一 CRLF，保留独立 CR。
+
+新增 check_gate_diagnostics.ps1 从实际 Run 的 AST 验证11个子进程结果，
+包含缺程序、静默37、预期非零、意外成功、空参数、双流、独立CR、相对
+目录、超时及PowerShell脚本退出。PS5.1/7的同一自测均先在旧Run因缺少
+记录失败，再于新Run通过。另从真实check.ps1入口注入静默退出37的
+编译器，两种Shell均得到raw37/outer1，保留failure.txt、report.json、
+commands.log、inputs.before.json；不只验证一个脱离入口的相似函数。
+
+默认完整Windows门禁33项、44输入/工具指纹通过，含C边界/分配/线程、
+TCP分片/错误/期限/500次复用和六份独立程序。新增真正的GCC C范例
+构建与运行，再与C运行器、xl run、XLang JIT/AOT对照；原C运行器本来
+使用TCC，不再仅凭其输出来声称GCC验证。首次新增检查因测试运行时
+漏启MEMORY_DEBUG而缺少FreeAt等符号，按现有Linux夹具统一宏后通过，
+没有改XRT或增加stub，失败现场保留。成功保留redis_guard_*.report.json，
+只删除本次临时产物；失败保留原目录与全部记录。
+
+Linux本轮仅验证新增C进程夹具的六种模式与源/工具指纹，未重跑完整
+协议门禁、真Redis或挂载盘AOT，也未重复旧十万次压力。本地证据
+build/test/redis_audit_1793335454335；最终报告
+build/test/redis_guard_86061a8deb514f3ab7e9c97b2a4b2dec.report.json。
+Linux夹具现场/var/tmp/xlang-redis-probe-nf2eH6tL。主线/XRT/八件冻结
+发布物未变，挂载盘构建风险仍开放，Redis保持R，非整包新增发布签收。
+
+从仓库根目录运行门禁自测：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/redis/test/check_gate_diagnostics.ps1
+```
+
 ## 2026-10-28 复核
 
 本轮修复增量扫描器将已不可能补齐的数组/大块回复继续视为不完整的问题：
