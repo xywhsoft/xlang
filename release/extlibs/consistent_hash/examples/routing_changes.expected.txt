@@ -1,0 +1,5 @@
+nodes: 3
+moved: 46
+restored: true
+snapshot survives: true
+empty ring: true

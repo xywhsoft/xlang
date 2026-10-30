@@ -1,0 +1,14 @@
+// 单独检查整套绑定的真实生成代码，不把用户数组保存所需的复制混进来。
+import consistent_hash
+
+func main(...) as int
+    consistent_hash.ConsistentHash ring = consistent_hash.create(8)
+    assert ring.valid and ring.nodeCount == 0 and ring.vnodeCount == 0
+    assert ring.getNode("") == ""
+    ring.addNode("node")
+    assert ring.nodeCount == 1 and ring.vnodeCount == 8
+    assert ring.getNode("key") == "node"
+    ring.removeNode("node")
+    assert ring.nodeCount == 0 and ring.getNode("key") == ""
+    return 0
+end

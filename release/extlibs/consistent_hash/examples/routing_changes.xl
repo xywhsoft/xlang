@@ -1,0 +1,40 @@
+// 分片扩容只迁往新增节点；删除该节点后恢复原映射，读取结果是独立快照。
+import consistent_hash
+
+func main(...) as int
+    consistent_hash.ConsistentHash ring = consistent_hash.create(64)
+    ring.addNode("east")
+    ring.addNode("west")
+    array<string> before = []
+    for i in range(128)
+        before.append(ring.getNode("request-" + string(i)))
+    end
+    ring.addNode("central")
+    ring.addNode("central")
+    assert ring.nodeCount == 3 and ring.vnodeCount == 192
+    int moved = 0
+    for i in range(128)
+        string current = ring.getNode("request-" + string(i))
+        if current != before[i] then
+            assert current == "central"
+            moved += 1
+        end
+    end
+    assert moved > 0 and moved < 128
+    println("nodes:", ring.nodeCount)
+    println("moved:", moved)
+    ring.removeNode("central")
+    for i in range(128)
+        assert ring.getNode("request-" + string(i)) == before[i]
+    end
+    println("restored: true")
+    string held = ring.getNode("saved")
+    ring.removeNode("east")
+    ring.removeNode("west")
+    ring.removeNode("missing")
+    assert ring.nodeCount == 0 and ring.vnodeCount == 0 and ring.getNode("key") == ""
+    assert held == "east" or held == "west"
+    println("snapshot survives: true")
+    println("empty ring: true")
+    return 0
+end
