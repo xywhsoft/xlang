@@ -47,8 +47,8 @@ def compile_snapshot(options, root, report):
     compiler = shutil.which('gcc', path=environment.get('PATH'))
     if not compiler or not shutil.which('objdump', path=environment.get('PATH')):
         raise ValueError('gcc and objdump are required; set PATH or -ToolchainDirectory')
-    if options.tests and not shutil.which('windres', path=environment.get('PATH')):
-        raise ValueError('windres is required when building tests')
+    if not shutil.which('windres', path=environment.get('PATH')):
+        raise ValueError('windres is required to embed the IDE application icon')
     # build.ps1 invokes Python for pinned font verification; use this same runtime.
     environment['PATH'] = str(Path(sys.executable).parent) + os.pathsep + environment.get('PATH', '')
     frontend = options.frontend_root

@@ -12,6 +12,7 @@ $sdkRoot = Join-Path $ideRoot 'third_party\xge_sdk'
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'verify_xge_sdk.ps1') -SdkRoot $sdkRoot
 if ($LASTEXITCODE -ne 0) { throw 'SDK verification failed.' }
 $compiler = (Get-Command gcc -ErrorAction Stop).Source
+$resourceCompiler = (Get-Command windres -ErrorAction Stop).Source
 $objectRoot = Join-Path $ideRoot ('build\' + $Configuration)
 # Development tests stay private; the shared runtime never receives fixtures.
 $releaseRoot = if ($ReleaseDirectory) { [IO.Path]::GetFullPath($ReleaseDirectory) } elseif ($Tests) { Join-Path $objectRoot 'release' } else { Join-Path (Split-Path -Parent $ideRoot) 'release' }
@@ -71,12 +72,17 @@ $guardPaths=@(Get-ChildItem -LiteralPath (Join-Path $ideRoot 'src') -Recurse -Fi
 $guardPaths+=Join-Path $sdkRoot 'sdk_manifest.json'
 $guardPaths+=@($sdkManifest.files | ForEach-Object { Join-Path $sdkRoot $_.path })
 $guardPaths+=$PSCommandPath
+$guardPaths+=Join-Path $ideRoot 'data\xlang_ide.rc'
+$guardPaths+=Join-Path $ideRoot 'data\xlang_ide.ico'
 foreach($guardPath in $guardPaths) { $buildInputs[$guardPath]=Get-XideSha256 $guardPath }
 function Assert-XideBuildInputs([hashtable]$Inputs) {
     foreach($inputPath in $Inputs.Keys) {
         if((Get-XideSha256 $inputPath) -ne $Inputs[$inputPath]) { throw "IDE input changed during compilation; publication stopped: $inputPath" }
     }
 }
+$appResources = Join-Path $objectRoot 'xlang_ide.res.o'
+& $resourceCompiler '-I' (Join-Path $ideRoot 'data') '-i' (Join-Path $ideRoot 'data\xlang_ide.rc') '-O' 'coff' '-o' $appResources
+if ($LASTEXITCODE -ne 0) { throw 'Application icon resource compilation failed.' }
 foreach ($source in $sources) {
     $object = Join-Path $objectRoot (($source.Replace('\','_')) + '.o')
     & $compiler @flags -c (Join-Path $ideRoot $source) -o $object
@@ -115,10 +121,10 @@ $nativeReport=Join-Path $nativeRoot 'build-result.json'
 }
 $consoleExe = Join-Path $releaseRoot 'xlang_ide_console.exe'
 $consoleStaging=Join-Path $objectRoot 'xlang_ide_console.link.exe'
-& $compiler @flags (Join-Path $ideRoot 'src\main.c') @objects @libraries -o $consoleStaging
+& $compiler @flags (Join-Path $ideRoot 'src\main.c') @objects $appResources @libraries -o $consoleStaging
 if ($LASTEXITCODE -ne 0) { throw 'Console link failed.' }
 $guiStaging=Join-Path $objectRoot 'xlang_ide.link.exe'
-& $compiler @flags '-DXIDE_GUI=1' -mwindows (Join-Path $ideRoot 'src\main.c') @objects @libraries -o $guiStaging
+& $compiler @flags '-DXIDE_GUI=1' -mwindows (Join-Path $ideRoot 'src\main.c') @objects $appResources @libraries -o $guiStaging
 if ($LASTEXITCODE -ne 0) { throw 'GUI link failed.' }
 Assert-XideBuildInputs $buildInputs
 if (Test-Path -LiteralPath $consoleExe) { [IO.File]::Replace($consoleStaging,$consoleExe,(Join-Path $objectRoot 'xlang_ide_console.previous.exe')) } else { [IO.File]::Move($consoleStaging,$consoleExe) }
@@ -129,7 +135,7 @@ $releaseDll=Join-Path $releaseRoot 'xge.dll'
 if (-not (Test-Path -LiteralPath $releaseDll) -or (Get-XideSha256 $sdkDll) -ne (Get-XideSha256 $releaseDll)) {
     Copy-Item -LiteralPath $sdkDll -Destination $releaseDll -Force
 }
-@{configuration=$Configuration;cLspEnabled=[bool]$EnableCLsp;compiler=$compiler;flags=$flags;libraries=$libraries;objects=$objects;inputs=$buildInputs;release=$releaseRoot;outputs=@{xlang_ide=(Get-XideSha256 $guiExe);xlang_ide_console=(Get-XideSha256 $consoleExe);xlang_ls=(Get-XideSha256 (Join-Path $releaseRoot 'xlang-ls.exe'));xge=(Get-XideSha256 $releaseDll)}} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $objectRoot 'gui-build-inputs.json') -Encoding utf8
+@{configuration=$Configuration;cLspEnabled=[bool]$EnableCLsp;compiler=$compiler;resourceCompiler=$resourceCompiler;flags=$flags;libraries=$libraries;objects=$objects;resources=@($appResources);inputs=$buildInputs;release=$releaseRoot;outputs=@{xlang_ide=(Get-XideSha256 $guiExe);xlang_ide_console=(Get-XideSha256 $consoleExe);xlang_ls=(Get-XideSha256 (Join-Path $releaseRoot 'xlang-ls.exe'));xge=(Get-XideSha256 $releaseDll)}} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $objectRoot 'gui-build-inputs.json') -Encoding utf8
 [void](New-Item -ItemType Directory -Path (Join-Path $releaseRoot 'data') -Force)
 & python -X utf8 (Join-Path $PSScriptRoot 'check_catalog_coverage.py') --root (Split-Path -Parent $ideRoot) --catalog (Join-Path $ideRoot 'data\commands.json')
 if ($LASTEXITCODE -ne 0) { throw 'IDE catalog is stale; regenerate it against the current accepted compiler release.' }

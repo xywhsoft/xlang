@@ -14,6 +14,7 @@ typedef struct xide_window_state {
     int ready,blocked;
 } xide_window_state;
 int xideWindowDpi(void* window);
+int xideWindowSetApplicationIcon(void* window);
 int xideWindowCapture(void* window,xide_window_geometry* geometry,xide_model_error* error);
 int xideWindowRestore(void* window,const xide_window_geometry* geometry,xide_model_error* error);
 int xideWindowPlan(const xide_window_geometry* geometry,xide_window_rect work,int dpi,int minWidth,int minHeight,xide_window_rect* rectangle);

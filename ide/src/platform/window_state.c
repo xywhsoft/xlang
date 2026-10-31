@@ -1,5 +1,6 @@
 #define _WIN32_WINNT 0x0601
 #include "platform/window_state.h"
+#include "platform/app_resources.h"
 #include "platform/path.h"
 #include <windows.h>
 #include <stdlib.h>
@@ -37,6 +38,24 @@ int xideWindowDpi(void* handle)
     if(dpi>=48 && dpi<=768) return (int)dpi;
     HDC dc=GetDC(window); int fallback=dc ? GetDeviceCaps(dc,LOGPIXELSX) : 96; if(dc) ReleaseDC(window,dc);
     return fallback>=48 && fallback<=768 ? fallback : 96;
+}
+int xideWindowSetApplicationIcon(void* handle)
+{
+    HWND window=(HWND)handle;
+    if(!window) return 0;
+    typedef int (WINAPI *get_metric)(int,UINT);
+    get_metric metric=(get_metric)(uintptr_t)GetProcAddress(GetModuleHandleW(L"user32.dll"),"GetSystemMetricsForDpi");
+    UINT dpi=(UINT)xideWindowDpi(window);
+    const int metrics[]={SM_CXICON,SM_CYICON,SM_CXSMICON,SM_CYSMICON}; int sizes[4];
+    for(int i=0;i<4;++i) sizes[i]=metric ? metric(metrics[i],dpi) : GetSystemMetrics(metrics[i]);
+    HINSTANCE module=GetModuleHandleW(NULL);
+    /* Shared resource handles remain valid for the process lifetime. */
+    HICON large=(HICON)LoadImageW(module,MAKEINTRESOURCEW(XIDE_RESOURCE_APP_ICON),IMAGE_ICON,sizes[0],sizes[1],LR_SHARED);
+    HICON small=(HICON)LoadImageW(module,MAKEINTRESOURCEW(XIDE_RESOURCE_APP_ICON),IMAGE_ICON,sizes[2],sizes[3],LR_SHARED);
+    if(!large || !small) return 0;
+    SendMessageW(window,WM_SETICON,ICON_BIG,(LPARAM)large);
+    SendMessageW(window,WM_SETICON,ICON_SMALL,(LPARAM)small);
+    return 1;
 }
 static void minimum(HWND window,int dpi,int* width,int* height)
 {
