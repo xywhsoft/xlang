@@ -167,7 +167,7 @@ foreach ($fixture in @(@('analysis_context_test','analysis-context'),@('analysis
     if ($nativeExit -ne 0) { throw "$($fixture[0]) failed with native exit code $nativeExit." }
 }
 $workdirArguments=@('--fixture',(Join-Path $releaseRoot 'process_workdir_test.exe'),'--output',(Join-Path $testRoot 'process-workdir'))
-if ($BuildInputCompilerPath) { $workdirArguments += @('--ide',(Join-Path $releaseRoot 'xlang_ide_console.exe'),'--compiler',$BuildInputCompilerPath) }
+if ($BuildInputCompilerPath) { $workdirArguments += @('--ide',(Join-Path $releaseRoot 'xlang_ide.exe'),'--compiler',$BuildInputCompilerPath) }
 & python -X utf8 (Join-Path $PSScriptRoot 'check_process_workdir.py') @workdirArguments
 if ($LASTEXITCODE -ne 0) { throw 'Native existing-short-path working directory and genuine no-alias failure gate failed.' }
 & python -X utf8 (Join-Path $PSScriptRoot 'check_font_fallback.py') --fixture (Join-Path $releaseRoot 'font_fallback_test.exe') --output (Join-Path $testRoot 'font-fallback')
@@ -178,7 +178,7 @@ $noAliasArguments=@('--fixture',(Join-Path $releaseRoot 'startup_alias_test.exe'
 if ($BuildInputCompilerPath) { $noAliasArguments += @('--compiler',$BuildInputCompilerPath) }
 & python -X utf8 (Join-Path $PSScriptRoot 'check_startup_noalias.py') @noAliasArguments
 if ($LASTEXITCODE -ne 0) { throw 'Native no-usable-short-alias startup gate failed.' }
-& python (Join-Path $PSScriptRoot 'check_runtime_failure.py') --fixture (Join-Path $releaseRoot 'runtime_failure_test.exe') --gui (Join-Path $releaseRoot 'xlang_ide.exe') --console (Join-Path $releaseRoot 'xlang_ide_console.exe') --output (Join-Path $testRoot 'runtime-failure')
+& python (Join-Path $PSScriptRoot 'check_runtime_failure.py') --fixture (Join-Path $releaseRoot 'runtime_failure_test.exe') --gui (Join-Path $releaseRoot 'xlang_ide.exe') --output (Join-Path $testRoot 'runtime-failure')
 if ($LASTEXITCODE -ne 0) { throw 'Native GUI error visibility and bounded diagnostics gate failed.' }
 & python (Join-Path $PSScriptRoot 'check_frame_failure_recovery.py') --fixture (Join-Path $releaseRoot 'frame_failure_test.exe') --output (Join-Path $testRoot 'frame-failure')
 if ($LASTEXITCODE -ne 0) { throw 'Native frame failure checkpoint and separate-process recovery gate failed.' }
@@ -235,7 +235,7 @@ if ($BuildInputCompilerPath) {
     if (-not (Test-Path -LiteralPath $BuildInputCompilerPath -PathType Leaf)) { throw 'BuildInputCompilerPath must name a real compiler executable.' }
     & (Join-Path $releaseRoot 'build_inputs_test.exe') (Join-Path $testRoot 'build-input-receipts') $BuildInputCompilerPath
     if ($LASTEXITCODE -ne 0) { throw 'Real compiler build input receipt task gate failed.' }
-    & python -X utf8 (Join-Path $PSScriptRoot 'check_build_targets.py') --ide (Join-Path $releaseRoot 'xlang_ide_console.exe') --compiler $BuildInputCompilerPath --output (Join-Path $testRoot ('build-targets-'+[Guid]::NewGuid().ToString('N')))
+    & python -X utf8 (Join-Path $PSScriptRoot 'check_build_targets.py') --ide (Join-Path $releaseRoot 'xlang_ide.exe') --compiler $BuildInputCompilerPath --output (Join-Path $testRoot ('build-targets-'+[Guid]::NewGuid().ToString('N')))
     if ($LASTEXITCODE -ne 0) { throw 'Standalone file/project/workspace main-entry gate failed.' }
     & (Join-Path $releaseRoot 'task_path_test.exe') (Join-Path $testRoot 'task-paths-receipts') $BuildInputCompilerPath
     if ($LASTEXITCODE -ne 0) { throw 'Real C/xlang task long path I/O and receipt gate failed.' }
@@ -246,7 +246,7 @@ if ($BuildInputCompilerPath) {
 } else { Write-Output 'Actual build input receipt gates omitted: BuildInputCompilerPath was not supplied.' }
 function Test-NativeRender([string[]]$Arguments,[string]$ImagePath,[switch]$ExpectTaskFailure) {
     $started=[DateTime]::UtcNow
-    $renderOutput=& (Join-Path $releaseRoot 'xlang_ide_console.exe') --hidden --frames 3 @Arguments --screenshot $ImagePath 2>&1
+    $renderOutput=& (Join-Path $releaseRoot 'xlang_ide.exe') --hidden --frames 3 @Arguments --screenshot $ImagePath 2>&1
     $renderExit=$LASTEXITCODE
     $renderOutput | Write-Output
     if ($ExpectTaskFailure) {

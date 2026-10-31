@@ -34,7 +34,7 @@
     "reusedQualifiedProducts": true
   },
   "ide": {
-    "languageServer": "Native xlang-ls 0.100 is unchanged. The default IDE disables C LSP and excludes clangd; see release/provenance/ide-c-lsp-disabled-20261031.json.",
+    "languageServer": "Native xlang-ls 0.100 is unchanged. The default IDE disables C LSP and excludes clangd; see dev/release-materials/provenance/ide-c-lsp-disabled-20261031.json.",
     "guiTranslationUnits": 100,
     "compiler": "GCC 16.2.0",
     "warnings": [
@@ -44,7 +44,7 @@
     ],
     "optimization": "-O2",
     "configuration": "Release",
-    "buildRunnerSha256": "b224785669d3b3ba1959f22a805ebe3e3031a05bd49b42ed603fdfebeaedbffd",
+    "buildRunnerSha256": "c411b6bb9fc0c167cf1e106a82cfe2222238a9258e7bda01d62eaf0b641c5183",
     "buildCommand": "pwsh -NoProfile -File ide/tools/build.ps1 -Configuration Release -GuiOnly -LanguageServerPath D:/GIT/x-lang/release/xlang-ls.exe -ReleaseDirectory D:/GIT/x-lang/release",
     "defaultFont": {
       "path": "Consolas-with-Yahei_Nerd_Font.ttf",
@@ -59,14 +59,15 @@
     },
     "fontChangeSourceParent": "b16a95bbf022efcafc7b965d1bd9b5b945c0d881",
     "currentSourceRevision": "75efc805bbe4999d0f6b40ff514a3e72a8627e8a",
-    "currentBuildProvenance": "release/provenance/ide-icon-font-portability-20261031.json",
+    "currentBuildProvenance": "docs/reports/release-materials-migration-20261031.json",
     "cLspEnabled": false,
     "applicationIcon": {
       "source": "ide/data/xlang_ide.ico",
       "sha256": "ac6e594e8f009733760afb658b1ee5536dc0df6828d40b17e9098189486743d9",
       "embedded": true
     },
-    "resourceCompiler": "E:\\software\\w64devkit\\bin\\windres.exe"
+    "resourceCompiler": "E:\\software\\w64devkit\\bin\\windres.exe",
+    "consoleFrontend": false
   },
   "catalog": {
     "status": "passed",
@@ -3129,12 +3130,6 @@
       "origin": "rebuilt-current-gui-with-embedded-icon"
     },
     {
-      "sha256": "9f04789465ab523dbe768049a3d3e05da60c1893b8a4da438c175b18b579cbeb",
-      "bytes": 1792975,
-      "path": "release/xlang_ide_console.exe",
-      "origin": "rebuilt-current-gui-with-embedded-icon"
-    },
-    {
       "sha256": "8bc80fe50cc4a5856630003eb47a59426a5225e4b2d8d076a6486f56dab4339d",
       "bytes": 10210363,
       "path": "release/xlang-ls.exe",
@@ -3247,15 +3242,20 @@
     "installedGuiDpi200": "passed: actual primary release, 3 frames, isolated settings, native screenshot",
     "cLspDisabled": {
       "status": "focused-functional-and-default-package-checks-passed",
-      "provenance": "release/provenance/ide-c-lsp-disabled-20261031.json",
+      "provenance": "dev/release-materials/provenance/ide-c-lsp-disabled-20261031.json",
       "additionalFileDialogEscapeCase": "unqualified",
       "wholeLspPerformanceAccepted": false
     },
     "iconAndFontPortability": {
       "status": "passed",
-      "provenance": "release/provenance/ide-icon-font-portability-20261031.json",
+      "provenance": "dev/release-materials/provenance/ide-icon-font-portability-20261031.json",
       "fontDirectoryRelocation": true,
       "differentMachineTested": false
+    },
+    "runtimeMaterialsLayout": {
+      "status": "passed",
+      "report": "docs/reports/release-materials-migration-20261031.json",
+      "consoleFrontend": false
     }
   },
   "remaining": {
@@ -3278,5 +3278,7 @@
     "validationEvidenceDirectory": "D:\\GIT\\x-lang\\build\\release-cleanup-20261031\\validation",
     "runtimeUnchanged": true,
     "userSettingsUnchanged": true
-  }
+  },
+  "developmentMaterialsDirectory": "dev/release-materials",
+  "materialsMigration": "docs/reports/release-materials-migration-20261031.json"
 }

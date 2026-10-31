@@ -1,5 +1,6 @@
 *.sh text eol=lf
 /release/data/** -text
+/dev/release-materials/provenance/*.json -text whitespace=cr-at-eol
 /release/data/catalog-sources/*.source -whitespace
 # Pinned upstream font metadata keeps its original distribution bytes.
 /release/data/fonts/* whitespace=cr-at-eol

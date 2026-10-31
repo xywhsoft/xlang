@@ -24,7 +24,7 @@ FORMAT = "xlang-ide-portable-1"
 MAX_FILES = 10000
 MAX_FILE = 256 * 1024 * 1024
 MAX_TOTAL = 1024 * 1024 * 1024
-CORE = ("xlang_ide.exe", "xlang_ide_console.exe", "xlang-ls.exe", "xge.dll",
+CORE = ("xlang_ide.exe", "xlang-ls.exe", "xge.dll",
         "xl.exe", "xl.dll", "xlc.dll")
 SYSTEM_DLLS = set("advapi32.dll bcrypt.dll comdlg32.dll dbghelp.dll gdi32.dll imm32.dll iphlpapi.dll kernel32.dll msvcrt.dll ntdll.dll ole32.dll oleaut32.dll shell32.dll user32.dll version.dll winhttp.dll winmm.dll ws2_32.dll wsock32.dll".split())
 RESERVED = {"con", "prn", "aux", "nul", *(f"com{i}" for i in range(10)), *(f"lpt{i}" for i in range(10))}
@@ -154,9 +154,9 @@ def pe_imports(path):
         result.append(name)
     raise PackageError(f"Unterminated PE imports: {path}")
 
-def check_core(root, with_c_lsp=False):
+def check_core(root, with_c_lsp=False, with_console=False):
     inventory = {}
-    for name in (*CORE, *(("toolchains/clangd/bin/clangd.exe",) if with_c_lsp else ())):
+    for name in (*CORE, *(("xlang_ide_console.exe",) if with_console else ()), *(("toolchains/clangd/bin/clangd.exe",) if with_c_lsp else ())):
         path = Path(root) / name
         plain(path)
         imports = pe_imports(path)
@@ -179,6 +179,48 @@ def check_features(manifest, paths):
         require(not any(p.casefold().startswith(("toolchains/clangd/", "sources/clangd-adaptation/", "notices/clangd/", "provenance/clangd-adaptation/")) or p.casefold()=="provenance/clangd-inputs.json" for p in paths), "Disabled C LSP has server assets")
     return enabled
 
+def check_development_layout(manifest, paths):
+    descriptor = manifest.get("developmentMaterials")
+    if descriptor is None:  # Historical candidates kept their materials inside.
+        return
+    require(isinstance(descriptor, dict) and descriptor.get("directory") == "../development-materials" and
+            descriptor.get("manifest") == "materials-manifest.json", "Invalid development materials location")
+    digest = descriptor.get("sha256")
+    require(isinstance(digest, str) and len(digest) == 64 and all(c in '0123456789abcdef' for c in digest), "Invalid development materials digest")
+    require(not any(p.casefold().startswith(("sources/", "provenance/")) for p in paths), "Development materials remain in runtime payload")
+    require("xlang_ide_console.exe" not in {p.casefold() for p in paths}, "Console frontend remains in runtime payload")
+
+def verify_development_materials(payload, manifest=None):
+    """Check the sibling developer bundle; runtime extraction never needs it."""
+    payload = Path(payload)
+    manifest = manifest if manifest is not None else verify_payload(payload)
+    if "developmentMaterials" not in manifest:
+        return payload
+    check_development_layout(manifest, {row["path"] for row in manifest["files"]})
+    plain(payload.parent, True)
+    root = payload.parent / "development-materials"
+    plain(root, True)
+    index = root / "materials-manifest.json"
+    plain(index)
+    require(sha(index) == manifest["developmentMaterials"]["sha256"], "Development materials manifest mismatch")
+    data = load_json(index)
+    require(data.get("format") == "xlang-ide-development-materials-1", "Invalid development materials manifest")
+    rows = data.get("files")
+    require(isinstance(rows, list) and 0 < len(rows) < MAX_FILES, "Invalid development materials inventory")
+    expected, keys, total = {"materials-manifest.json"}, {"materials-manifest.json"}, 0
+    for row in rows:
+        name = safe_name(row["path"])
+        require(name.startswith(("sources/", "provenance/")) and name.casefold() not in keys, "Invalid or duplicate development material path")
+        keys.add(name.casefold()); expected.add(name)
+        require(type(row["size"]) is int and 0 <= row["size"] <= MAX_FILE, "Invalid development material size")
+        total += row["size"]; require(total <= MAX_TOTAL, "Oversize development materials")
+        plain(root / name)
+        require((root / name).stat().st_size == row["size"] and sha(root / name) == row["sha256"], "Development material mismatch: " + name)
+    check_hierarchy(expected)
+    require({p.relative_to(root).as_posix() for p in tree(root)} == expected, "Unlisted development material files")
+    require(data.get("runtimeArtifacts") == {name: sha(payload/name) for name in CORE}, "Development materials belong to a different runtime")
+    return root
+
 def verify_payload(root, allow_user_state=False):
     root = Path(root)
     manifest = load_json(root / "package-manifest.json")
@@ -199,11 +241,12 @@ def verify_payload(root, allow_user_state=False):
         mutable = allow_user_state and name.startswith("option/")
         require(mutable or (attrs.st_size == item["size"] and sha(root/name) == item["sha256"]), f"Payload mismatch: {name}")
     require(set(CORE).issubset(paths), "Core files missing from manifest")
+    check_development_layout(manifest, paths)
     check_hierarchy(paths)
     actual = {p.relative_to(root).as_posix() for p in tree(root)}
     extras = actual - paths
     require(not extras or (allow_user_state and all(p.startswith("option/") for p in extras)), f"Unlisted payload files: {sorted(extras)[:5]}")
-    require(check_core(root, check_features(manifest, paths)) == manifest["corePE"], "Core PE metadata mismatch")
+    require(check_core(root, check_features(manifest, paths), "xlang_ide_console.exe" in paths) == manifest["corePE"], "Core PE metadata mismatch")
     return manifest
 
 def inspect_zip(archive):
@@ -243,6 +286,7 @@ def inspect_zip(archive):
             require(digest.hexdigest() == record["sha256"], f"ZIP content mismatch: {name}")
         require(set(names) == expected, "ZIP contains unlisted files")
         check_features(manifest, expected)
+        check_development_layout(manifest, expected)
     return manifest
 
 def extract_verified(archive, destination):
@@ -294,7 +338,7 @@ def current_build_release(ide, report_path):
     require(report.get('sdkManifestSha256') == sha(ide/'third_party/xge_sdk/sdk_manifest.json'),
             'Current SDK differs from the built SDK')
     outputs = report.get('outputs', {})
-    for name in CORE[:4]:
+    for name in CORE[:3]:
         relative = 'release/' + name
         require(relative in outputs, 'Current build output receipt is incomplete: ' + name)
         plain(root/relative)
@@ -343,7 +387,7 @@ def assemble(args):
         source_plan.append((source, name, actual, attrs.st_size))
     sdk_info = load_json(sdk / "sdk_manifest.json")
     sdk_dll_hash = next(p["sha256"] for p in sdk_info["files"] if p["path"] == "xge.dll")
-    for name in CORE[:4]:
+    for name in CORE[:3]:
         add(release/name, name, sdk_dll_hash if name == "xge.dll" else None)
     add(ide / "data/commands.json", "data/commands.json")
     require(sha(release / "data/commands.json") == sha(ide / "data/commands.json"), "Release command catalog is stale")
@@ -421,14 +465,20 @@ def assemble(args):
     stage = destination.parent / (".portable-stage-" + uuid.uuid4().hex)
     stage.mkdir()
     payload = stage/"xlang-ide"; payload.mkdir()
+    development = stage/"development-materials"; development.mkdir()
     for source, name, digest, size in source_plan:
-        target = payload/name; target.parent.mkdir(parents=True, exist_ok=True)
+        root = development if name.startswith(("sources/", "provenance/")) else payload
+        target = root/name; target.parent.mkdir(parents=True, exist_ok=True)
         with source.open("rb") as input_file, target.open("xb") as output:
             shutil.copyfileobj(input_file, output, 1024*1024)
         require(target.stat().st_size == size and sha(target) == digest and sha(source) == digest, f"Input changed while copying: {source}")
     if compiler_sources["copiedFiles"]:
-        write_json(payload/"sources/xlang/SOURCE-MATERIALS.json", compiler_sources)
-        (payload/"sources/COMPILER-REBUILD.md").write_text(REBUILD_README, encoding="utf8")
+        write_json(development/"sources/xlang/SOURCE-MATERIALS.json", compiler_sources)
+        (development/"sources/COMPILER-REBUILD.md").write_text(REBUILD_README, encoding="utf8")
+    material_files = [{"path": p.relative_to(development).as_posix(), "size": p.stat().st_size, "sha256": sha(p)} for p in tree(development)]
+    write_json(development/"materials-manifest.json", {"format": "xlang-ide-development-materials-1", "files": material_files,
+        "runtimeArtifacts": {name: sha(payload/name) for name in CORE}})
+    development_descriptor = {"directory": "../development-materials", "manifest": "materials-manifest.json", "sha256": sha(development/"materials-manifest.json")}
     settings = {"format": "xlang-ide-settings-1", "toolchain": {"compiler": "../xl.exe"}}
     if with_c_lsp:
         settings["toolchain"]["cServer"] = "../toolchains/clangd/bin/clangd.exe"
@@ -436,6 +486,8 @@ def assemble(args):
     write_json(payload/"option/settings.json", settings)
     write_json(payload/"notices/material-index.json", {
         "materials": notices, "status": "release-candidate-materials-incomplete",
+        "developmentMaterials": development_descriptor,
+        "sourceAndProvenancePathsRelativeTo": "developmentMaterials",
         "cServerSources": c_server_materials, "sdkMaterials": sdk_materials, "tccMaterials": tcc_materials, "compilerSources": compiler_sources,
         "extensionMaterials": [p for p in sorted(selected_c) if Path(p).name.lower().startswith(("license", "copying"))],
         "remaining": ([] if sdk_materials["sourceFiles"] else ["Supply the exact pinned SDK source snapshot"]) + (["Supply corresponding frozen compiler source and build materials"] if not compiler_sources["copiedFiles"] else []) + ["SDK complete distribution terms review, including XGE and xlayout", "TCC corresponding source/relink obligations review", "Extension assets distribution review", "IDE and xlang project distribution terms confirmation"],
@@ -450,6 +502,9 @@ def assemble(args):
         quickstart = quickstart.replace("包内 xlang 与 clangd 工具", "包内 xlang 工具")
     if c_server_materials['inputTraceProtocol'] == 1:
         quickstart += '\n默认 C 语言服务器带实际输入观察扩展：已读取的间接头文件、缺失探测和搜索候选变化会撤下旧语义结果，再重新分析。未列入项目的已观察头可用 F12 打开。可在偏好中选择普通 clangd；它继续使用显式输入守护。sources/clangd-adaptation 和 provenance/clangd-adaptation 保留扩展源码差异与构建记录，notices/clangd 保留运行库材料。本扩展不宣告 TCC/Clang 预处理或 ABI 全面等价。\n'
+    quickstart = quickstart.replace("查看 package-manifest.json 的载荷摘要与 provenance 的来源快照。", "查看 package-manifest.json 的运行载荷摘要。源码和构建来源记录单独保存在候选旁的 development-materials，运行 ZIP 不包含 sources 或 provenance。")
+    quickstart = quickstart.replace("在 provenance 与 sources/xge 中保留", "在独立开发资料的 provenance 与 sources/xge 中保留")
+    quickstart = quickstart.replace("提供源码参数时，sources/COMPILER-REBUILD.md", "提供源码参数时，独立开发资料中的 sources/COMPILER-REBUILD.md")
     (payload/"QUICKSTART.md").write_text(quickstart, encoding="utf-8")
     files = []
     for path in tree(payload):
@@ -462,11 +517,13 @@ def assemble(args):
         "catalog": {"commands": len(catalog["entries"]), "documents": len(catalog["documents"]), "compilerSha256": catalog["compilerSha256"], "embeddedMarkdown": True},
         "toolchains": {"xlang": {"path": "xl.exe", "sha256": sha(payload/"xl.exe"), "provenance": "provenance/compiler-inputs.json"}},
         "features": {"cLsp": with_c_lsp},
+        "developmentMaterials": development_descriptor,
         "sdk": sdk_info["provenance"], "fonts": font_materials, "releaseMaterials": "notices/material-index.json"}
     if with_c_lsp:
         manifest["toolchains"]["clangd"] = {"tag": server_info.get("tag"), "sha256": sha(payload/"toolchains/clangd/bin/clangd.exe"), "provenance": "provenance/clangd-inputs.json", "inputTraceProtocol": c_server_materials["inputTraceProtocol"]}
     write_json(payload/"package-manifest.json", manifest)
     verify_payload(payload)
+    verify_development_materials(payload, manifest)
     archive = stage/"xlang-ide-windows-x64.zip"
     with zipfile.ZipFile(archive, "x", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as bundle:
         for path in tree(payload):
@@ -490,6 +547,7 @@ def assemble(args):
     receipt = {"format": "xlang-ide-package-receipt-1", "destination": str(destination), "inputFiles": len(source_plan),
         "files": len(files)+1, "bytes": sum(item["size"] for item in files), "archiveSha256": sha(archive),
         "manifestSha256": sha(payload/"package-manifest.json"), "inputs": [{"path": str(p), "sha256": digest} for p, _, digest, _ in source_plan]}
+    receipt["developmentMaterials"] = {**development_descriptor, "files": len(material_files)+1, "bytes": sum(p["size"] for p in material_files)}
     write_json(stage/"package-receipt.json", receipt)
     require(not destination.exists(), "Candidate destination appeared during assembly")
     stage.rename(destination)

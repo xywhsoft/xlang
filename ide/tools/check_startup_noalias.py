@@ -16,7 +16,7 @@ from check_startup_alias import native, logical, sha
 def check(fixture, output, compiler=None):
     fixture=Path(fixture).absolute();release=fixture.parent
     proof=Path(output).absolute()/('startup-noalias-'+uuid.uuid4().hex);proof.mkdir(parents=True)
-    sources=[fixture,release/'xlang_ide.exe',release/'xlang_ide_console.exe',release/'xlang-ls.exe',release/'xge.dll',release/'data/commands.json',*sorted((release/'data/fonts').iterdir())]
+    sources=[fixture,release/'xlang_ide.exe',release/'xlang-ls.exe',release/'xge.dll',release/'data/commands.json',*sorted((release/'data/fonts').iterdir())]
     inputs={str(p):sha(p) for p in sources};directory=proof/'deep-program'
     k=ctypes.WinDLL('kernel32',use_last_error=True)
     k.CreateFileW.restype=ctypes.c_void_p;k.CreateFileW.argtypes=[ctypes.c_wchar_p,ctypes.c_ulong,ctypes.c_ulong,ctypes.c_void_p,ctypes.c_ulong,ctypes.c_ulong,ctypes.c_void_p]
@@ -87,7 +87,7 @@ def check(fixture, output, compiler=None):
     protected={str(settings):sha(settings)}
     for kind,text in {'c':'// 中文注释\nint main(void) { return 0; }\n','xlang':'#doc\n描述：无可用短名启动\n#end\nfunc main(...) as int\n    var 值 as int = 1\n    return 值 - 1\nend\n'}.items():
         p=directory/('编辑文件.'+('c' if kind=='c' else 'xl'));native(p).write_text(text,encoding='utf8');protected[str(p)]=sha(p)
-    for name,program,kind in [('console-c','xlang_ide_console.exe','c'),('console-xl','xlang_ide_console.exe','xlang'),('gui-xl','xlang_ide.exe','xlang')]:
+    for name,program,kind in [('gui-c','xlang_ide.exe','c'),('gui-xl-primary','xlang_ide.exe','xlang'),('gui-xl','xlang_ide.exe','xlang')]:
         image=proof/(name+'.png');source=directory/('编辑文件.'+('c' if kind=='c' else 'xl'))
         text,row=invoke(name,[str(native(directory/program)),'--frames','3','--no-session','--open-file',str(source),'--demo',kind,'--command','c:keyword:inline' if kind=='c' else 'language:func','--screenshot',str(image)])
         assert 'rendered 3 frames' in text and 'C and xlang registered' in text
@@ -101,7 +101,7 @@ def check(fixture, output, compiler=None):
         for name,body in materials.items():p=projectDirectory/name;native(p).write_bytes(body.encode('utf8'));protected[str(p)]=sha(p)
         for task in ('build','run'):
             image=proof/('mixed-'+task+'.png')
-            text,_=invoke('mixed-'+task,[str(native(directory/'xlang_ide_console.exe')),'--frames','3','--no-session','--project',str(project),'--open-file',str(projectDirectory/'main.xl'),'--task',task,'--wait-task','--screenshot',str(image)])
+            text,_=invoke('mixed-'+task,[str(native(directory/'xlang_ide.exe')),'--frames','3','--no-session','--project',str(project),'--open-file',str(projectDirectory/'main.xl'),'--task',task,'--wait-task','--screenshot',str(image)])
             assert 'built=1' in text and ('ran=1' if task=='run' else 'ran=0') in text and 'code=0' in text
             assert native(projectDirectory/'build/app.exe').is_file()
             checks+=4

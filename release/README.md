@@ -1,36 +1,124 @@
-# xlang 统一运行与发布目录
+# xlang 用户指南
 
-xlang 工具链版本为 **0.6.0**，版本代号 **`0x00000600`**，C 嵌入 ABI 为 1。当前仍有发布阻塞，见 [0.6.0 发布前检查](../docs/prerelease-0.6.0.md)；本轮工具链检查不签收并行开发中的 IDE 产品。
+xlang 是一门支持静态类型、原生编译和 C 互操作的编程语言。同一份 xlang 源码既可以直接运行，也可以编译为独立程序；还可以与 C 代码一起构建。
 
-IDE、语言服务、工具和 xlang 引擎统一放在仓库根目录的 `release/`，不再使用 `ide/release/`。编译器源码已从 `demo6/` 移到仓库根目录。
+以下应用和工具可以配合用于 xlang 开发：
 
-直接运行 `xlang_ide.exe`。IDE 默认使用同目录的 `xl.exe`，共享 `xl.dll`、`xlc.dll`、`include/`、`extlibs/` 和范例。C LSP 默认关闭，发布目录不含 clangd；C／xlang 语法编辑和通过 xlang 编译运行继续可用，xlang 的语言服务由 `xlang-ls.exe` 提供。`data/` 保存命令帮助和字体，`option/` 保存可迁移的 IDE 设置和会话。保留代码与构建开关见 [C LSP 构建选项](../ide/docs/c-lsp-build-option.md)。
+| 程序 | 用途 |
+| --- | --- |
+| **xlang IDE** · `xlang_ide.exe` | 编写代码、管理项目、查看命令帮助、构建和运行程序 |
+| **xlang 命令行** · `xl.exe` | 在终端中检查、运行和编译 xlang／C 源码及项目 |
+| **mdo（墨斗）** · `mdo.exe` | xlang 官方 Agent 程序，通过模型对话和工具协助完成开发任务 |
 
-`ide/build_current.bat` 的隔离输出位于 `ide/build/cb-*/release/`。`ide/build.bat` 普通构建更新本目录；带 `-Tests` 的构建和 `ide/test.bat` 使用 `ide/build/<配置>/release/`，避免混入测试程序。显式 `-ReleaseDirectory` 可选择其他构建输出位置。详见 [统一发布目录](../ide/docs/unified-release.md)。
+本目录中的程序可以直接启动，无需先从源码构建。本版桌面 IDE 面向 Windows。mdo 也可独立获取和更新；如果软件包未附带 `mdo.exe`，可从下方的官方项目入口获取。
 
-## 常见产物
+## 从 IDE 开始
 
-- `xlang_ide.exe`、`xlang_ide_console.exe`：IDE 图形入口和控制台入口。
-- `xlang-ls.exe`：xlang 语言服务。
-- `xge.dll`：IDE 使用的 XGE / XUI 运行库。
-- `xl.exe`：xlang CLI。
-- `xl.dll`：嵌入式运行库 DLL。
-- `xlc.dll`：带编译能力的嵌入式运行库 DLL。
-- `xl.def`：由 `build_dll.bat` 生成的 DLL import definition。
-- `include`：随 `xl.exe` 分发的公开 C API 头文件目录。
-- `examples`：随 `xl.exe` 分发的范例程序。
-- `extlibs`：随 `xl.exe` 分发的 import/package 扩展库资产。
-- `xl`：Linux CLI。
-- `libxl.so`：Linux 嵌入式运行库。
-- `libxlc.so`：Linux 编译版嵌入式运行库。
+双击 **`xlang_ide.exe`**，打开源码文件或项目即可开始开发。不必先创建工作空间。
 
-## 维护规则
+| 打开的内容 | 使用方式 |
+| --- | --- |
+| `.xl` 文件 | 编辑、分析并构建运行当前 xlang 文件 |
+| `.c` 文件 | 编辑并构建运行当前 C 文件 |
+| `.xlp` 项目 | 使用项目配置组织源码、依赖和构建目标 |
+| `.xlw` 工作空间 | 管理多个项目，选择要构建和运行的目标 |
 
-- 不手工修改构建产物来修复问题；应修改源码、构建脚本或工具链配置后重新构建。
-- 如果产物和源码行为不一致，以源码、测试和构建脚本为准。
-- 发布载荷不保存临时产物。正常本机运行验收使用本目录的程序，日志和夹具放在 `ide/build/Release/<本轮目录>`。专项测试使用的临时内容在结束后迁出或删除，包括本轮新建的空 `tmp` 父目录；发布目录不保留验证 EXE。构建对象与长期记录保存在 `ide/build` 或 `build`。
-- 开发示例保留源码，生成的 EXE 放入 `build`；`projects/xs/xs.exe` 是 `start.bat` 直接使用的程序，继续保留。
-- 固定工具链、源码来源与许可材料按清单保留，不按扩展名批量删除 DLL、LIB、PDB 或来源快照。
-- 清理命令：`powershell -NoProfile -ExecutionPolicy Bypass -File tools/clean_release.ps1`（从仓库根目录执行）。清理报告及迁出的验收证据位于 `build/release-cleanup-*`。
-- 清理脚本的隔离安全检查：`powershell -NoProfile -ExecutionPolicy Bypass -File tools/check_release_cleanup.ps1`。
-- `release/libtcc.dll` 不属于发布物；`xl.dll` / `xlc.dll` 均静态链接仓库自带 libtcc。
+IDE 的默认布局便于边写边查：左侧是命令列表，中间是编辑器及下方的命令集成帮助／输出，右侧是工作空间和项目属性。命令帮助可离线查看。
+
+日常开发可以使用：
+
+- **C／xlang 双语法编辑**：语法高亮、查找替换、撤销重做及中文输入。
+- **xlang 语言服务**：自动诊断、语义补全、参数提示、定义跳转、悬浮说明和文档大纲。
+- **工作空间—项目—文件管理**：既可管理多项目，也可直接运行单个文件。
+- **统一构建与运行**：在工具栏确认目标和配置，查看任务、构建输出及程序终端。
+
+当前 C 文件保留语法编辑和编译运行，C 语义语言服务尚未启用。C 与 xlang 的构建运行都由随包 xlang 工具链负责。
+
+常用快捷键：
+
+| 操作 | 快捷键 |
+| --- | --- |
+| 构建当前目标 | `F7` |
+| 构建并运行当前目标 | `F5` |
+| 停止当前任务 | `Shift+F5` |
+| 保存文件 | `Ctrl+S` |
+| 查找／替换 | `Ctrl+F`／`Ctrl+H` |
+| xlang 代码补全 | `Ctrl+Space` |
+| xlang 参数提示 | `Ctrl+Shift+Space` |
+| xlang 定义跳转 | `F12` |
+
+有多个项目时，可在工具栏明确选择当前文件或具体项目及其配置，再执行构建、运行。
+
+## 使用命令行
+
+将本目录加入 `PATH` 后，在你的项目目录执行以下命令；也可以把 `xl` 换成 `xl.exe` 的完整路径。
+
+创建 `hello.xl`：
+
+```xlang
+func main(...) as int
+    println("Hello, xlang!")
+    return 0
+end
+```
+
+运行、检查或编译：
+
+```powershell
+xl run hello.xl
+xl check hello.xl --json
+xl build hello.xl -o hello.exe
+.\hello.exe
+```
+
+C 源文件和 xlang 项目使用相同入口：
+
+```powershell
+xl run hello.c
+xl build hello.c -o hello-c.exe
+xl build app.xlp -o app.exe
+```
+
+执行 `xl --help` 查看完整命令和选项。建议将工程和生成的程序保存在自己的项目目录中。
+
+## 使用官方 Agent：mdo（墨斗）
+
+**mdo 是 xlang 官方 Agent 程序**，适合围绕项目进行代码阅读、问题分析、文件修改和命令执行。它与 IDE 分别启动，可以配合使用：在 IDE 中编辑和运行程序，在 mdo 中组织并推进开发任务。
+
+双击 **`mdo.exe`**，按界面设置要使用的模型服务和凭据，再创建或打开项目、开始会话。
+
+mdo 提供：
+
+- 流式模型对话与工具调用，协助处理开发任务。
+- 项目、会话和项目记忆，组织持续的工作上下文。
+- Skills 与 MCP，按需要扩展工作流程和工具。
+- 计划任务、设备间项目／会话传输及远程控制。
+
+mdo 默认将自己的设置、会话和项目数据保存在程序旁的 **`mdo-home/`**。需要迁移这些数据时，请一并保留该目录。其他平台版本及详细使用说明见 [mdo 项目主页](https://gitee.com/xywhsoft/mdo)。
+
+## 学习与扩展
+
+- [教学示例](examples/tutorial/README.md)：按主题学习语言写法。
+- [全部示例](examples/README.md)：查找语言特性、标准库和应用范例。
+- [扩展库说明](extlibs/README.md)：了解可导入的扩展库及其使用方式。
+- [C 嵌入接口](include/README.md)：在自己的 C 程序中使用 xlang 运行库。
+
+`xl.dll` 和 `xlc.dll` 提供嵌入接口；普通 IDE／命令行使用者无需手工调用它们。`xlang-ls.exe`、`xge.dll` 等组件由相应程序使用，请与应用一并保留。
+
+## 目录与迁移
+
+| 目录 | 内容 |
+| --- | --- |
+| `data/` | IDE 字体、命令列表、离线帮助和源码查看资料 |
+| `option/` | IDE 设置与会话 |
+| `extlibs/` | 扩展库及所需资源 |
+| `include/` | 公开 C API 头文件 |
+| `examples/`、`projects/` | 学习示例和参考项目 |
+| `notices/` | 第三方版权与许可说明 |
+| `mdo-home/` | mdo 使用过程中保存的个人数据，首次保存时按需生成 |
+
+移动到其他目录或机器时，请完整复制软件目录，保留所需的用户数据；存放在其他位置的工程也需要单独迁移。
+
+IDE 默认字体随 `data/fonts/` 提供，设置使用相对路径，不依赖原来的盘符。设置窗口显示的是解析后的实际路径。自行选择的外部字体在新机器上找不到时，会回退到随包字体。
+
+源码快照、构建记录和验收报告独立保存在开发资料中，日常使用不需要这些材料。项目介绍、源码和后续说明见 [xlang 项目主页](https://gitee.com/xywhsoft/x-lang)。

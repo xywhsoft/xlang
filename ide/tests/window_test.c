@@ -93,7 +93,7 @@ static int nativeProcess(window_fixture* fixture,const char* directory,const cha
     wchar_t executable[32768],storage[32768],preferences[32768],picture[32768],command[32768];
     DWORD length=GetModuleFileNameW(NULL,executable,32768); if(!length || length>=32768) return 0;
     wchar_t* separator=wcsrchr(executable,L'\\'); if(!separator || separator-executable+32>=32768) return 0;
-    wcscpy(separator+1,L"xlang_ide_console.exe");
+    wcscpy(separator+1,L"xlang_ide.exe");
     if(!MultiByteToWideChar(CP_UTF8,0,directory,-1,storage,32768) || !MultiByteToWideChar(CP_UTF8,0,fixture->preferences,-1,preferences,32768) ||
        (image && !MultiByteToWideChar(CP_UTF8,0,image,-1,picture,32768))) return 0;
     int count=swprintf(command,32768,L"\"%ls\" --frames 3 --session-root \"%ls\" --settings \"%ls\" %ls %ls%ls%ls",executable,storage,preferences,

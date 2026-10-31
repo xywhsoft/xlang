@@ -25,7 +25,7 @@ def sha(path):
 def check(fixture,output):
     fixture=Path(fixture).absolute();release=fixture.parent
     proof=Path(output).absolute()/('startup-alias-'+uuid.uuid4().hex);proof.mkdir(parents=True)
-    inputs={str(p):sha(p) for p in [fixture,release/'xlang_ide.exe',release/'xlang_ide_console.exe',release/'xge.dll',release/'data/commands.json',*sorted((release/'data/fonts').iterdir())]}
+    inputs={str(p):sha(p) for p in [fixture,release/'xlang_ide.exe',release/'xge.dll',release/'data/commands.json',*sorted((release/'data/fonts').iterdir())]}
     directory=proof/'deep-program-中文'
     while len(str(directory/fixture.name))<350:directory/='真实长路径-0123456789'
     native(directory).mkdir(parents=True)
@@ -65,7 +65,7 @@ def check(fixture,output):
     protected={str(settings):settingsHash}
     for kind,text in sources.items():
         p=directory/('真实编辑文件.'+('c' if kind=='c' else 'xl'));native(p).write_text(text,encoding='utf8');protected[str(p)]=sha(p)
-    for name,program,kind in [('console-xl','xlang_ide_console.exe','xlang'),('console-c','xlang_ide_console.exe','c'),('gui-xl','xlang_ide.exe','xlang')]:
+    for name,program,kind in [('gui-xl-primary','xlang_ide.exe','xlang'),('gui-c','xlang_ide.exe','c'),('gui-xl','xlang_ide.exe','xlang')]:
         image=proof/(name+'.png');source=directory/('真实编辑文件.'+('c' if kind=='c' else 'xl'))
         command=[str(native(directory/program)),'--hidden','--frames','3','--no-session','--settings',str(settings),'--open-file',str(source),'--demo',kind,'--command','c:keyword:inline' if kind=='c' else 'language:func','--screenshot',str(image)]
         text,_,_=invoke(name,command);assert 'rendered 3 frames' in text and 'C and xlang registered' in text
@@ -74,7 +74,7 @@ def check(fixture,output):
     for path,digest in {**inputs,**protected}.items():assert sha(path)==digest,path
     images=[{'path':str(p),'sha256':sha(p),'width':1280,'height':800} for p in sorted(proof.glob('*.png'))];assert len(images)==3
     files=[{'path':logical(p),'sha256':sha(p)} for p in sorted(native(proof).rglob('*')) if p.is_file()]
-    result={'status':'passed','utc':datetime.now(timezone.utc).isoformat(),'inputs':inputs,'protectedFiles':protected,'checks':checks,'fixtureProcesses':3,'guiOrConsoleProcesses':3,'actualAutomaticChildHandoffs':5,'actualCommandHelpVerified':3,'calls':calls,'images':images,'files':files,'actualDeepProgramUtf16Units':len(str(directory/'xlang_ide_console.exe')),'actualCreateProcessWDesktop':True,'actualFixtureDesktopVerified':True,'neverSwitchedDesktop':True,'driverOrSystemChanged':False,'shortAliasAvailableOnThisVolume':True,'shortAliasUnavailableVolumesVerified':False,'goalStatus':'active','formalRelease':False}
+    result={'status':'passed','utc':datetime.now(timezone.utc).isoformat(),'inputs':inputs,'protectedFiles':protected,'checks':checks,'fixtureProcesses':3,'guiOrConsoleProcesses':3,'actualAutomaticChildHandoffs':5,'actualCommandHelpVerified':3,'calls':calls,'images':images,'files':files,'actualDeepProgramUtf16Units':len(str(directory/'xlang_ide.exe')),'actualCreateProcessWDesktop':True,'actualFixtureDesktopVerified':True,'neverSwitchedDesktop':True,'driverOrSystemChanged':False,'shortAliasAvailableOnThisVolume':True,'shortAliasUnavailableVolumesVerified':False,'goalStatus':'active','formalRelease':False}
     (proof/'evidence.json').write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf8')
     print(f'Native automatic startup alias: {checks} checks; 6 launches, 5 child handoffs, 3 images; {proof}',flush=True)
     return result

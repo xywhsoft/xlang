@@ -55,7 +55,7 @@ def compile_snapshot(options, root, report):
     if frontend is None:
         portable = json.loads((IDE / 'data/portable-build-inputs.json').read_text(encoding='utf-8-sig'))
         pinned = (IDE / portable['compiler_root']).parent
-        shipped = IDE.parent / 'release/sources/xlang'
+        shipped = IDE.parent / 'dev/release-materials/sources/xlang'
         frontend = next((path for path in (pinned, shipped, IDE.parent)
                          if (path / 'src/parser/xl6_parser.c').is_file()), IDE.parent)
     frontend = frontend.resolve(strict=True)
