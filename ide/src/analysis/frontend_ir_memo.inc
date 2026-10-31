@@ -19,10 +19,16 @@ typedef struct xls_ir_unit {
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
 typedef struct xls_ir_input_proof xls_ir_input_proof;
 static void xlsIrInputProofRelease(xls_ir_input_proof*);
+#ifdef XLS_NATIVE_IR_DERIVED_PHASES
+typedef struct xls_ir_derived_cache xls_ir_derived_cache;
+#endif
 #endif
 struct xls_ir_memo {xstrbuf context;xarray entries;size_t bytes;xls_entity_view* entities;
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
     xarray inputs;xls_ir_input_work inputWork;
+#ifdef XLS_NATIVE_IR_DERIVED_PHASES
+    xls_ir_derived_cache* derived;xls_ir_derived_work derivedWork;
+#endif
 #endif
 };
 typedef struct xls_ir_capture {xls_ir_unit* unit;xmap dependencies,writes,globals;int okay;const xls_lexical_symbols* symbols;const xls_entity_view* entities;} xls_ir_capture;
@@ -39,6 +45,9 @@ typedef struct xls_ir_memo_build {
     const xls_ir_memo* baseline;xls_ir_memo* memo;
     xls_ir_capture* capture;xls_ir_memo_work work;size_t limit;
     xarray functions;int functionsReady;
+#ifdef XLS_NATIVE_IR_DERIVED_PHASES
+    int derivedRawClean,derivedReady,derivedAttempted;
+#endif
 } xls_ir_memo_build;
 static _Thread_local xls_ir_memo_build* xlsActiveIrMemo;
 static XL6_IrNodeId xlsIrBuildAstNodeOriginal(XL6_IrModule*,const XL6_AstNode*,const XL6_AstNode*,const XL6_AstNode*,size_t,XL6_DiagList*,int*);
@@ -123,6 +132,9 @@ static void xlsIrUnitRelease(xls_ir_unit* unit)
         xrtArrayUnit(&unit->dependencies);xrtArrayUnit(&unit->writes);xrtArrayUnit(&unit->globals);xrtFree(unit);
     }
 }
+#ifdef XLS_NATIVE_IR_DERIVED_PHASES
+#include "analysis/frontend_ir_derived.inc"
+#endif
 static void xlsIrOwnerReset(const XL6_IrModule* module)
 {
     xls_ir_result* owner=xlsActiveIrOwner;if(!owner || &owner->module!=module)return;
@@ -167,6 +179,9 @@ void xlsFrontendIrMemoDestroy(xls_ir_memo* memo)
     if(!memo)return;
     for(size_t i=0;i<memo->entries.Count;++i)xlsIrUnitRelease(*(xls_ir_unit**)xrtArrayGet(&memo->entries,i));
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+#ifdef XLS_NATIVE_IR_DERIVED_PHASES
+    xlsIrDerivedDestroy(memo->derived);
+#endif
     for(size_t i=0;i<memo->inputs.Count;++i)xlsIrInputProofRelease(*(xls_ir_input_proof**)xrtArrayGet(&memo->inputs,i));
     xrtArrayUnit(&memo->inputs);
 #endif
@@ -411,6 +426,9 @@ static int xlsIrMemoDecodePlace(const xls_ir_unit* unit,xls_ir_reader* reader,XL
     node->compiledPackageLink=NULL;
 #endif
     if(!xlsIrMemoDecodeNode(reader,node,borrow,symbols,unit,entities) || node->sourceKind!=source->kind)return 0;
+#ifdef XLS_NATIVE_IR_DERIVED_PHASES
+    xlsIrDerivedObserveRaw(module,node,unit);
+#endif
     if(node->parent){
         if(node->parent<=unit->startNode || node->parent>unit->startNode+unit->nodes)return 0;
         node->parent=(XL6_IrNodeId)(module->nodeCount+node->parent-unit->startNode);
@@ -491,7 +509,11 @@ static int xlsIrMemoCapture(xls_ir_capture* capture,const XL6_IrModule* module,s
     xls_ir_unit* unit=capture->unit;
     unit->nodes=module->nodeCount-unit->startNode;unit->children=module->childCount-unit->startChild;
     for(size_t i=unit->startNode;i<module->nodeCount;++i){
-        const XL6_IrNode* node=&module->nodes[i];if(!xlsIrMemoEncodeNode(&unit->data,node,limit,capture))return 0;
+        const XL6_IrNode* node=&module->nodes[i];
+#ifdef XLS_NATIVE_IR_DERIVED_PHASES
+        xlsIrDerivedObserveRaw(module,node,unit);
+#endif
+        if(!xlsIrMemoEncodeNode(&unit->data,node,limit,capture))return 0;
         if(node->text || node->literalData)++unit->textNodes;
         if(node->text)unit->textBytes+=strlen(node->text)+1;
         if(node->literalData)unit->textBytes+=node->literalSize+1;
@@ -499,6 +521,9 @@ static int xlsIrMemoCapture(xls_ir_capture* capture,const XL6_IrModule* module,s
         if(node->compiledPackageLink){unit->textBytes+=strlen(node->compiledPackageLink)+1;if(!node->text && !node->literalData)++unit->textNodes;}
 #endif
     }
+#ifdef XLS_NATIVE_IR_DERIVED_PHASES
+    xlsIrDerivedObserveChildren(module,unit);
+#endif
     if(unit->children && !xlsIrMemoData(&unit->data,module->children+unit->startChild,unit->children*sizeof(*module->children),limit))return 0;
     unit->bytes=sizeof(*unit)+unit->key.Capacity+unit->types.Capacity+unit->data.Capacity+
         unit->dependencies.Capacity*sizeof(xls_ir_dependency)+unit->writes.Capacity*sizeof(xls_ir_write)+unit->globals.Capacity*sizeof(xls_ir_global);
@@ -519,6 +544,10 @@ static XL6_IrNodeId xl6IrBuildAstNode(XL6_IrModule* module,const XL6_AstNode* ro
     xstrbuf key={0},types={0};XL6_IrNodeId result=0;
     xls_lexical_symbols symbols={0};
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+#ifdef XLS_NATIVE_IR_DERIVED_PHASES
+    size_t derivedStart=module->nodeCount;
+    build->derivedRawClean=1;
+#endif
     uint64_t identity=xlsEntityViewSymbol(build->memo->entities,source->semanticDeclaredSymbolId);
     size_t oldSlot=SIZE_MAX;const xls_ir_unit* old=xlsIrPreviousFunctionSlot(build,identity,childIndex,&oldSlot);
     xls_ir_input_key inputKey={0};
@@ -537,6 +566,9 @@ static XL6_IrNodeId xl6IrBuildAstNode(XL6_IrModule* module,const XL6_AstNode* ro
             *(xls_ir_unit**)xrtArrayGet(&build->memo->entries,childIndex)=xlsIrUnitRetain((xls_ir_unit*)old);
             build->memo->bytes+=old->bytes;++build->work.reused;build->work.nodesReused+=old->nodes;
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+#ifdef XLS_NATIVE_IR_DERIVED_PHASES
+            xlsIrDerivedRecord(build,childIndex,derivedStart,oldSlot);
+#endif
             xlsIrInputKeyPublish(&inputKey,build,childIndex,&symbols);
             xlsIrInputKeyEnd(&inputKey,build,&key);
 #endif
@@ -545,6 +577,9 @@ static XL6_IrNodeId xl6IrBuildAstNode(XL6_IrModule* module,const XL6_AstNode* ro
     }
     ++build->work.checked;
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+#ifdef XLS_NATIVE_IR_DERIVED_PHASES
+    build->derivedRawClean=1;
+#endif
     if(usable && !xlsIrInputKeyOwn(&inputKey,build,&key,limit))usable=0;
 #endif
     xls_ir_unit* unit=usable ? xrtCalloc(1,sizeof(*unit)) : NULL;
@@ -564,6 +599,9 @@ static XL6_IrNodeId xl6IrBuildAstNode(XL6_IrModule* module,const XL6_AstNode* ro
            xlsIrMemoTypes(&module->types,&after,limit) && xlsIrMemoEqual(&unit->types,&after) && xlsIrMemoCapture(&capture,module,limit)){
             *(xls_ir_unit**)xrtArrayGet(&build->memo->entries,childIndex)=unit;build->memo->bytes+=unit->bytes;++build->work.captured;unit=NULL;
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+#ifdef XLS_NATIVE_IR_DERIVED_PHASES
+            xlsIrDerivedRecord(build,childIndex,derivedStart,oldSlot);
+#endif
             xlsIrInputKeyPublish(&inputKey,build,childIndex,&symbols);
 #endif
         }else ++build->work.declined;
@@ -609,6 +647,15 @@ int xlsFrontendIrBuildMemo(XL6_IrModule* module,const XL6_AstNode* root,XL6_Diag
     if(accepted && !xlsFrontendCancelObserved() && result)*result=memo;else xlsFrontendIrMemoDestroy(memo);
     return accepted;
 }
+
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+xls_ir_derived_work xlsFrontendIrResultDerivedWork(const xls_ir_result* result)
+#ifdef XLS_NATIVE_IR_DERIVED_PHASES
+{return result && result->memo ? result->memo->derivedWork : (xls_ir_derived_work){0};}
+#else
+{(void)result;return (xls_ir_derived_work){0};}
+#endif
+#endif
 
 
 #include "analysis/frontend_ir_persistent.inc"

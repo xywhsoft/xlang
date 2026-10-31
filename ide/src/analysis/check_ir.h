@@ -9,6 +9,13 @@ typedef struct xls_check_ir_work {
     uint64_t textNodes,textBytes,ownerBytes;
 } xls_check_ir_work;
 xls_check_ir_work xlsSemanticCheckIrWork(const xls_semantic_check* result);
+/* Creation provenance of native pure postpass units,not whole final-IR reuse
+ * or current-query work. Logical additional bytes are already in raw memo
+ * bytes. Exact-result hits keep the producing check's counters. */
+typedef struct xls_check_ir_derived_work {
+    uint64_t contexts,checked,reused,captured,declined,nodesSkipped,rowsApplied,bytes;
+} xls_check_ir_derived_work;
+xls_check_ir_derived_work xlsSemanticCheckIrDerivedWork(const xls_semantic_check*);
 /* Successful optional-owner creation provenance,not current-query work.
  * Exact-result hits retain it. Fresh/non-owner paths report zero. Metadata
  * bounds exclude model/node/raw payload,transients,allocator overhead andRSS. */

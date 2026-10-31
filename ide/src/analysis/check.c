@@ -369,6 +369,15 @@ xls_check_ir_work xlsSemanticCheckIrWork(const xls_semantic_check* r)
     xls_ir_memo_work w=xlsFrontendIrResultWork(r ? r->cachedIr : NULL);
     return (xls_check_ir_work){w.checked,w.reused,w.captured,w.nodesReused,w.bytes,w.declined,w.textNodes,w.textBytes,w.ownerBytes};
 }
+xls_check_ir_derived_work xlsSemanticCheckIrDerivedWork(const xls_semantic_check* r)
+{
+#ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
+    xls_ir_derived_work w=xlsFrontendIrResultDerivedWork(r ? r->cachedIr : NULL);
+    return (xls_check_ir_derived_work){w.contexts,w.checked,w.reused,w.captured,w.declined,w.nodesSkipped,w.rowsApplied,w.bytes};
+#else
+    (void)r;return (xls_check_ir_derived_work){0};
+#endif
+}
 xls_check_ir_persistent_work xlsSemanticCheckIrPersistentWork(const xls_semantic_check* r)
 {
     xls_ir_persistent_work w=xlsFrontendIrResultPersistentWork(r ? r->cachedIr : NULL);
