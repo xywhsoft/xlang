@@ -67,9 +67,9 @@
   "privateCandidate": true,
   "formalRelease": false,
   "provenance": {
-    "builtAtUtc": "2026-10-31T07:30:48.570329+00:00",
+    "builtAtUtc": "2026-10-31T08:21:33.885205+00:00",
     "sourceRepository": "https://gitee.com/xywhsoft/xge",
-    "sourceCommit": "93b446cf83ce20284f41aa794ed61e3302348ac4",
+    "sourceCommit": "6176f6f8d6ce36c9253f0fb5b8459a65b7a985d1",
     "sourceWorktreeDirty": true,
     "upstreamArchiveClean": true,
     "version": "3.0.0",
@@ -120,8 +120,8 @@
         }
       ]
     },
-    "sourceBuildReportSha256": "1ef5e7593028f54821b44ec4cbe67e026c5395bcd9d4d3bcf2ce3a52b9904196",
-    "sourceBuildManifestSha256": "04b3265f75bb13ebbb4b848ba361bd6f1f9e78e40cc7e1df970341e88d591e0d"
+    "sourceBuildReportSha256": "0fbd0a39bd646f45b8ca032b3e341397c1c3821632ad4e88c2a46a0fd549b248",
+    "sourceBuildManifestSha256": "d46e4a963c1b7349d46504f4c5d768658d39254b70f9933b335d5b9cd6b922b3"
   },
   "files": [
     {
@@ -194,7 +194,7 @@
     },
     {
       "path": "provenance/compatibility-patches/patch-manifest.json",
-      "sha256": "1b5b7f10c1d5de649376f359d9d0e344e2e40e2fe96685b957263cabab59358c"
+      "sha256": "50f287112eca501a65799edb608bcf3ad98a58b590a38dcc886bec8745e07b83"
     },
     {
       "path": "provenance/compatibility-patches/upstream.json",
@@ -238,23 +238,23 @@
     },
     {
       "path": "provenance/parent-sdk-manifest.json",
-      "sha256": "74d7283421bc9376de5fbd4b20d6fd2653eadaec1cf13b2c971e8f8ceaf63106"
+      "sha256": "17c4321c04c6a42a8f60de228cb589c8feec9ac5637256bcb634b8f429d8b65b"
     },
     {
       "path": "provenance/source-build-manifest.json",
-      "sha256": "04b3265f75bb13ebbb4b848ba361bd6f1f9e78e40cc7e1df970341e88d591e0d"
+      "sha256": "d46e4a963c1b7349d46504f4c5d768658d39254b70f9933b335d5b9cd6b922b3"
     },
     {
       "path": "provenance/source-build-report.json",
-      "sha256": "1ef5e7593028f54821b44ec4cbe67e026c5395bcd9d4d3bcf2ce3a52b9904196"
+      "sha256": "0fbd0a39bd646f45b8ca032b3e341397c1c3821632ad4e88c2a46a0fd549b248"
     },
     {
       "path": "xge-source-files.json",
-      "sha256": "04b3265f75bb13ebbb4b848ba361bd6f1f9e78e40cc7e1df970341e88d591e0d"
+      "sha256": "d46e4a963c1b7349d46504f4c5d768658d39254b70f9933b335d5b9cd6b922b3"
     },
     {
       "path": "xge.dll",
-      "sha256": "80ce35f25496e8e5162a3a9adee885fa6a7a0310237ee50c7c96a89f6c270455"
+      "sha256": "faf58673f831ba8a58d6e3c2166094f76fbb71548469724fa5a11eca011782a0"
     },
     {
       "path": "xge.h",
@@ -262,7 +262,7 @@
     },
     {
       "path": "xge.lib",
-      "sha256": "ed1ad882214a10141d49ee7e781792dc13a38c16a2ae6f8991975a6e173901d8"
+      "sha256": "744096c7ff00d925dacfcc96679a90e897bf70f10efe90c05b388236edfcafc3"
     },
     {
       "path": "xge_build_config.h",

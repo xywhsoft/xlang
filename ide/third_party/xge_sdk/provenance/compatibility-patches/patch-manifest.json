@@ -1,6 +1,6 @@
 {
   "format": "xlang-ide-xge-source-patches-1",
-  "baseCommit": "93b446cf83ce20284f41aa794ed61e3302348ac4",
+  "baseCommit": "6176f6f8d6ce36c9253f0fb5b8459a65b7a985d1",
   "reason": "Retain IDE Unicode escape validation, indexed background indicators, stable wrapped scrolling/caret and XRT process-tree cleanup; rebased on current upstream transactional annotation semantics",
   "publicHeadersChanged": false,
   "files": [
