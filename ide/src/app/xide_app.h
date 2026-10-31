@@ -1,5 +1,6 @@
 #ifndef XLANG_IDE_APP_H
 #define XLANG_IDE_APP_H
+#include "app/features.h"
 #include "app_xrt.h"
 #include "app/actions.h"
 #include "xge.h"

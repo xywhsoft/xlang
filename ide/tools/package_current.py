@@ -19,9 +19,11 @@ def package(profile_path, output=None):
             'Latest build failed or is unfinished; run build_current.bat before packaging')
     report = Path(pointer['report'])
     require(sha(report) == pointer['reportSha256'], 'Current build receipt changed')
-    options = dict(output=str(output) if output else None, build_report=str(report))
+    options = dict(output=str(output) if output else None, build_report=str(report), with_c_lsp=bool(profile.get("c_lsp_enabled", False)))
     for key in ('compiler_root', 'c_server_root', 'compiler_manifest', 'c_server_manifest',
                 'sdk_source_root', 'compiler_source_manifest', 'compiler_source_build_report'):
+        if key.startswith("c_server_") and not options["with_c_lsp"]:
+            continue
         relative = safe_name(profile[key])
         path = IDE/relative
         if key in ('compiler_manifest', 'c_server_manifest', 'compiler_source_manifest', 'compiler_source_build_report'):

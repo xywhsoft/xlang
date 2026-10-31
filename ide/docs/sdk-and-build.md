@@ -1,5 +1,7 @@
 # 构建与 SDK
 
+2026-10-31 更新：GUI 默认以 `XIDE_ENABLE_C_LSP=0` 编译，不包含 C LSP 后端或 clangd，C 编辑／编译运行与 xlang-ls 保留。显式开发开关、当前构建命令和验证范围见 [C LSP 构建选项](c-lsp-build-option.md)；以下 C 服务相关阶段记录按原日期保留。
+
 ## 固定依赖
 
 本项目使用 `third_party/xge_sdk/` 中的成套 SDK。2026-10-31 更新到 XGE 3.0.0 提交 `6176f6f8d6ce36c9253f0fb5b8459a65b7a985d1`，在 Label 多约束测量缓存、滚动位移与 CodeEdit 光标布局失效修复之上，修复弹出菜单内部重复焦点边框。隔离构建保留 IDE 的五份明确列举的兼容补丁；公开头、生成配置、DLL、导入库及来源记录整体匹配，XRT 使用 XGE 随附的匹配快照。当前说明见[编辑器 minimap 与菜单边框](editor-minimap.md)和[帮助交互性能](xge-help-performance.md)，历史版本和代理迁移见[XGE 3 更新](xge3-upgrade.md)。最初的 AutoTestIDE SDK 及 SDK67 等阶段属于历史记录；下文相应阶段的数量和限制不代表当前版本。

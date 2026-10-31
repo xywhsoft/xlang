@@ -16,10 +16,14 @@
 #include "ui/resource_view.h"
 #include "ui/toolchain_view.h"
 #include "ui/language_view.h"
+#if XIDE_ENABLE_C_LSP
 #include "ui/c_language_view.h"
+#endif
 #include "ui/catalog_view.h"
 #include "ui/completion_view.h"
+#if XIDE_ENABLE_C_LSP
 #include "ui/c_completion_view.h"
+#endif
 #include "services/session.h"
 #include "services/editor_font.h"
 #include "services/ui_font.h"
@@ -133,7 +137,11 @@ int xideAppCreate(xide_app* app)
 }
 void xideAppDestroy(xide_app* app)
 {
-    xideCLanguageViewStop(app); xideCCompletionViewStop(app); xideCompletionViewStop(app); xideLanguageViewStop(app);
+
+#if XIDE_ENABLE_C_LSP
+ xideCLanguageViewStop(app); xideCCompletionViewStop(app);
+#endif
+ xideCompletionViewStop(app); xideLanguageViewStop(app);
     xideToolchainViewStop(app);
     if(app->context) xideFileDialogDestroy(app);
     xideFileSyncStop(app);
@@ -148,7 +156,11 @@ void xideAppDestroy(xide_app* app)
     xideActionsDestroy(app);
     xideMainToolbarDestroy(app);xideExecutionReset(app);
     xideCatalogViewDestroy(app); xideCatalogClear(&app->catalog);
-    xideCLanguageViewDestroy(app); xideCCompletionViewDestroy(app); xideCompletionViewDestroy(app); xideLanguageViewDestroy(app); xideToolchainViewDestroy(app); xideFileChangesViewDestroy(app); xideRecoveryViewDestroy(app); xideFontViewDestroy(app); xideGotoViewDestroy(app); xideTemplateViewDestroy(app); xideRenameViewDestroy(app); xideResourceViewDestroy(app); xideReferencesViewDestroy(app); xideConfigurationViewDestroy(app); xideTaskViewDestroy(app); xideWorkspaceViewDestroy(app); xideWorkspaceClear(&app->workspaceModel); free(app->selectedProject); app->selectedProject=NULL;
+
+#if XIDE_ENABLE_C_LSP
+ xideCLanguageViewDestroy(app); xideCCompletionViewDestroy(app);
+#endif
+ xideCompletionViewDestroy(app); xideLanguageViewDestroy(app); xideToolchainViewDestroy(app); xideFileChangesViewDestroy(app); xideRecoveryViewDestroy(app); xideFontViewDestroy(app); xideGotoViewDestroy(app); xideTemplateViewDestroy(app); xideRenameViewDestroy(app); xideResourceViewDestroy(app); xideReferencesViewDestroy(app); xideConfigurationViewDestroy(app); xideTaskViewDestroy(app); xideWorkspaceViewDestroy(app); xideWorkspaceClear(&app->workspaceModel); free(app->selectedProject); app->selectedProject=NULL;
     if (app->codeFont && app->codeFont != app->uiFont) app->proxy.fontDestroy(&app->proxy, app->codeFont);
     if (app->uiFont) app->proxy.fontDestroy(&app->proxy, app->uiFont);
     if (app->target) app->proxy.surfaceDestroy(&app->proxy, app->target);
@@ -187,7 +199,11 @@ static int frame(void* user)
         app->viewportWidth = width; app->viewportHeight = height;
         TRY(xuiInputViewport(app->context, (float)width, (float)height));
     }
-    TRY(xidePlatformHandleInput(app)); TRY(xuiDispatchPendingEvents(app->context)); xideFileDialogPoll(app); xideMessagePoll(app); xideEditorPoll(app); xideFileSyncPoll(app); xideFileChangesViewPoll(app); xideTaskViewPoll(app); xideLanguageViewPoll(app); xideCLanguageViewPoll(app); xideToolchainViewPoll(app); xideRecoveryViewPoll(app);
+    TRY(xidePlatformHandleInput(app)); TRY(xuiDispatchPendingEvents(app->context)); xideFileDialogPoll(app); xideMessagePoll(app); xideEditorPoll(app); xideFileSyncPoll(app); xideFileChangesViewPoll(app); xideTaskViewPoll(app); xideLanguageViewPoll(app);
+#if XIDE_ENABLE_C_LSP
+ xideCLanguageViewPoll(app);
+#endif
+ xideToolchainViewPoll(app); xideRecoveryViewPoll(app);
     xideWorkbenchLayout(app); TRY(xuiLayout(app->context)); xideCatalogViewLayout(app); TRY(xuiLayout(app->context)); TRY(xuiTerminalFit(app->panels[XIDE_TERMINAL]));
     if(app->initialChapterRequested && app->frames==0) {
         if(!xideHelpJump(xideCatalogHelpDocument(app),(size_t)app->initialChapter)) return XUI_ERROR_INVALID_ARGUMENT;

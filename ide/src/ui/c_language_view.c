@@ -1,3 +1,5 @@
+#include "app/features.h"
+#if XIDE_ENABLE_C_LSP
 #include "ui/c_language_view.h"
 #include "ui/c_analysis_inputs.h"
 #include "ui/c_completion_view.h"
@@ -85,7 +87,7 @@ static int cvrequest(xide_c_language_view* v,cv_query* q,enum xide_c_query kind,
 {
  if(!xideCLanguageViewCanQuery(v->app,kind)) return 0;
  cvcancelQuery(v,q); xide_document* d=v->app->activeDocument;
- *q=(cv_query){.token=xideCAnalysisJobRequest(v->job,kind,d->id,offset),.id=d->id,.version=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(d->editor)),.document=d,.offset=offset}; 
+ *q=(cv_query){.token=xideCAnalysisJobRequest(v->job,kind,d->id,offset),.id=d->id,.version=xuiCodeDocumentGetVersion(xuiCodeEditGetDocument(d->editor)),.document=d,.offset=offset};
  return q->token!=0;
 }
 static int cvselect(xide_app* app,xide_document* d,int start,int end)
@@ -399,3 +401,5 @@ void xideCLanguageViewPoll(xide_app* app)
 }
 
 int xideCLanguageViewHintOpen(xide_app* app) { return app && app->cLanguageView && xuiPopupIsOpen(app->cLanguageView->hoverPopup); }
+
+#endif /* XIDE_ENABLE_C_LSP */

@@ -8,12 +8,17 @@
 #include <windows.h>
 #include <shellapi.h>
 #include <math.h>
+#if XIDE_ENABLE_C_LSP
+#define XIDE_C_SERVER_HELP "  --c-server PATH.exe  select clangd for C completion\n"
+#else
+#define XIDE_C_SERVER_HELP ""
+#endif
 static int parseArguments(xide_app* app, int argc, char** argv)
 {
     int positional=0;
     for (int i = 1; i < argc; ++i) {
         if (!strcmp(argv[i], "--help")) {
-            puts("xlang IDE development workbench\n  [file.c|file.xl|project.xlp|workspace.xlw]  open a build target\n  --size WIDTH HEIGHT  initial window size\n  --dpi-scale N  diagnostic render scale (0.5-8)\n  --frames N  bounded render smoke test\n  --hidden    hide this program's smoke-test window\n  --screenshot PATH.png  capture the final bounded frame\n  --workspace PATH.xlw  open a workspace\n  --project PATH.xlp    open a standalone project\n  --open-file PATH  open an editable UTF-8 file\n  --select-project ID   initially selected project\n  --demo xlang|c  initially selected syntax example\n  --catalog PATH.json  use an explicit command catalog\n  --command ID         initially selected command help\n  --help-chapter N      initially scroll to a help chapter (0-based)\n  --command-search TEXT filter command catalog\n  --compiler PATH.exe  select xlang toolchain\n  --c-server PATH.exe  select clangd for C completion\n  --settings PATH.json  use an explicit preferences file\n  --session-root PATH  isolate session and recovery storage\n  --diagnostic-root PATH  isolate fatal error reports\n  --no-session         disable session restore and persistence\n  --no-auto-diagnostics use explicit xlang checks\n  --configuration ID   select project build configuration\n  --font-settings open code font preferences\n  --ui-font-settings open interface font preferences\n  --recovery-manager open session and recovery manager\n  --edit-configurations open selected project configuration editor\n  --task build|run|build-file|run-file|test  start a task\n  --wait-task          wait up to 30s before bounded render exits\n  --theme classic-light|graphite-dark|warm-white|ocean"); return 1;
+            puts("xlang IDE development workbench\n  [file.c|file.xl|project.xlp|workspace.xlw]  open a build target\n  --size WIDTH HEIGHT  initial window size\n  --dpi-scale N  diagnostic render scale (0.5-8)\n  --frames N  bounded render smoke test\n  --hidden    hide this program's smoke-test window\n  --screenshot PATH.png  capture the final bounded frame\n  --workspace PATH.xlw  open a workspace\n  --project PATH.xlp    open a standalone project\n  --open-file PATH  open an editable UTF-8 file\n  --select-project ID   initially selected project\n  --demo xlang|c  initially selected syntax example\n  --catalog PATH.json  use an explicit command catalog\n  --command ID         initially selected command help\n  --help-chapter N      initially scroll to a help chapter (0-based)\n  --command-search TEXT filter command catalog\n  --compiler PATH.exe  select xlang toolchain\n" XIDE_C_SERVER_HELP "  --settings PATH.json  use an explicit preferences file\n  --session-root PATH  isolate session and recovery storage\n  --diagnostic-root PATH  isolate fatal error reports\n  --no-session         disable session restore and persistence\n  --no-auto-diagnostics use explicit xlang checks\n  --configuration ID   select project build configuration\n  --font-settings open code font preferences\n  --ui-font-settings open interface font preferences\n  --recovery-manager open session and recovery manager\n  --edit-configurations open selected project configuration editor\n  --task build|run|build-file|run-file|test  start a task\n  --wait-task          wait up to 30s before bounded render exits\n  --theme classic-light|graphite-dark|warm-white|ocean"); return 1;
         }
         if (!strcmp(argv[i], "--hidden")) app->hidden = 1;
         else if(!strcmp(argv[i],"--dpi-scale") && i+1<argc) { char* end; float scale=strtof(argv[++i],&end); if(*end || !isfinite(scale) || scale<0.5f || scale>8) return -1; app->dpiOverride=scale; }
@@ -36,7 +41,11 @@ static int parseArguments(xide_app* app, int argc, char** argv)
         else if (!strcmp(argv[i], "--command") && i + 1 < argc) app->initialCommand=argv[++i];
         else if (!strcmp(argv[i], "--command-search") && i + 1 < argc) app->initialCommandSearch=argv[++i];
         else if (!strcmp(argv[i], "--help-chapter") && i + 1 < argc) { char* end; long chapter=strtol(argv[++i],&end,10); if(*end || chapter<0 || chapter>4096) return -1; app->initialChapter=(int)chapter; app->initialChapterRequested=1; }
-        else if (!strcmp(argv[i], "--c-server") && i + 1 < argc) app->cServerPath=argv[++i];
+
+#if XIDE_ENABLE_C_LSP
+ else if (!strcmp(argv[i], "--c-server") && i + 1 < argc) app->cServerPath=argv[++i];
+#endif
+
         else if (!strcmp(argv[i], "--compiler") && i + 1 < argc) app->compilerPath=argv[++i];
         else if (!strcmp(argv[i], "--session-root") && i + 1 < argc) app->sessionRoot=argv[++i];
         else if (!strcmp(argv[i], "--no-session")) app->noSession=1;

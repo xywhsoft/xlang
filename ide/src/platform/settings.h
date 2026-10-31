@@ -1,11 +1,14 @@
 #ifndef XLANG_IDE_SETTINGS_H
 #define XLANG_IDE_SETTINGS_H
+#include "app/features.h"
 #include "model/workspace.h"
 typedef struct xide_settings { char *path,*compiler,*cServer,*editorFont,*uiFont; int editorFontSize,uiFontSize; xvalue* source; int existed; } xide_settings;
 char* xideSettingsDefaultPath(void);
 int xideSettingsLoad(xide_settings* settings,const char* path,xide_model_error* error);
 int xideSettingsSetCompiler(xide_settings* settings,const char* compiler,xide_model_error* error);
+#if XIDE_ENABLE_C_LSP
 int xideSettingsSetCServer(xide_settings* settings,const char* server,xide_model_error* error);
+#endif
 int xideSettingsSetEditorFont(xide_settings* settings,const char* path,int size,xide_model_error* error);
 int xideSettingsSetUiFont(xide_settings* settings,const char* path,int size,xide_model_error* error);
 int xideSettingsRememberOpen(xide_settings* settings,const char* path,xide_model_error* error);

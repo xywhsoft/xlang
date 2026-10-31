@@ -52,7 +52,7 @@ static int verify(void* user)
  CHECK(root && entry && dep && native && light && dark && xrtDirCreateAll(root) && writeText(entry,saved) && writeText(dep,helper) && writeText(native,"int helper(void) { return 1; }\n"));
  cold=xidePathResolve(root,"on-demand-hover.png"); CHECK(cold);
  app.hidden=1; app.noSession=1; app.compilerPath=f->compiler; CHECK(xideAppCreate(&app)==XUI_OK && xgeBegin()==XGE_OK); began=1;
- CHECK(xideActionCount()==75 && xideActionNamed("language.outline")->id==74 && xideActionNamed("language.hover")->id==75 && !xideLanguageViewCanHover(&app));
+ CHECK(!!xideActionFind(XIDE_ACTION_C_SERVER)==XIDE_ENABLE_C_LSP && xideActionNamed("language.outline")->id==74 && xideActionNamed("language.hover")->id==75 && !xideLanguageViewCanHover(&app));
  CHECK(xuiDockPanelGetPaneActiveWindow(app.dock,app.helpPane)==app.windows[XIDE_HELP]);
  state=xideLayoutCapture(&app,&error); CHECK(state && legacyRemove(state) && xideLayoutRestore(&app,state,&error) && settle(&app)); xrtValueRelease(state); state=NULL;
  xui_dock_window_info_t help={.iSize=sizeof(help)},left={.iSize=sizeof(left)},right={.iSize=sizeof(right)};

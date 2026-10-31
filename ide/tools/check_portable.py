@@ -105,10 +105,15 @@ def check(args):
         # Reject existing destinations before reading/copying inputs, including a
         # target whose seed settings have already been changed by a user.
         compiler_proof = load_json(candidate/"xlang-ide/provenance/compiler-inputs.json")
-        clangd_proof = load_json(candidate/"xlang-ide/provenance/clangd-inputs.json")
         compiler_root = Path(compiler_proof["compiler"]).parent
-        server_root = Path(clangd_proof["directory"])/next(iter(clangd_proof["files"])).split("/")[0]
-        options = argparse.Namespace(compiler_root=str(compiler_root), c_server_root=str(server_root), compiler_manifest=str(candidate/"xlang-ide/provenance/compiler-inputs.json"), c_server_manifest=str(candidate/"xlang-ide/provenance/clangd-inputs.json"), output=str(candidate))
+        with_c_lsp = manifest.get("features", {}).get("cLsp", False)
+        options = argparse.Namespace(compiler_root=str(compiler_root), compiler_manifest=str(candidate/"xlang-ide/provenance/compiler-inputs.json"), output=str(candidate), with_c_lsp=with_c_lsp)
+        if with_c_lsp:
+            clangd_proof = load_json(candidate/"xlang-ide/provenance/clangd-inputs.json")
+            options.c_server_root = str(Path(clangd_proof["directory"])/next(iter(clangd_proof["files"])).split("/")[0])
+            options.c_server_manifest = str(candidate/"xlang-ide/provenance/clangd-inputs.json")
+        else:
+            require("clangd" not in manifest["toolchains"] and not (candidate/"xlang-ide/toolchains/clangd").exists(), "C LSP assets remain in the default package")
         record["negative"].append(expect_reject("existing-candidate", lambda: assemble(options), "overwrite existing"))
         outside_options = argparse.Namespace(**vars(options)); outside_options.output=str(proof/"outside-dist")
         record["negative"].append(expect_reject("output-outside-dist", lambda: assemble(outside_options), "within ide/dist"))
@@ -151,7 +156,7 @@ def check(args):
                 del env[key]
         record["runtimeEnvironment"] = {"PATH": env["PATH"], "compilerOverridePresent": any(k.upper()=="XLANG_COMPILER" for k in env)}
         evidence = proof/"独立运行 证据"; evidence.mkdir()
-        help_command = next(p["id"] for p in load_json(catalog)["entries"] if p.get("sections"))
+        help_command = next(p["id"] for p in load_json(catalog, limit=64 * 1024 * 1024)["entries"] if p.get("sections"))
         for phase in ("initial", "moved"):
             verify_payload(payload, allow_user_state=True)
             # Test EXE is deliberately injected only into the private extraction,
@@ -187,7 +192,10 @@ def check(args):
             expected = payload if value["moved"] else Path(record["initialRootRemoved"])
             require(Path(value["program"]).resolve() == expected.resolve(), "Fixture used an external program directory")
             require(Path(value["compiler"]).resolve() == (expected/"xl.exe").resolve(), "Fixture used an external compiler")
-            require(Path(value["cServer"]).resolve() == (expected/"toolchains/clangd/bin/clangd.exe").resolve(), "Fixture used an external C server")
+            if with_c_lsp:
+                require(Path(value["cServer"]).resolve() == (expected/"toolchains/clangd/bin/clangd.exe").resolve(), "Fixture used an external C server")
+            else:
+                require("cServer" not in value, "Default fixture unexpectedly used a C server")
         record["renders"]=[{"path":str(p),"sha256":sha(p),"size":p.stat().st_size} for p in proof.rglob("*.png")]
         require(len(record["renders"])==12, "Expected eight native fixture and four packaged executable renders")
         # Assembly and use of disposable copies must leave the delivered candidate

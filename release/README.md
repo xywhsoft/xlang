@@ -4,7 +4,7 @@ xlang 工具链版本为 **0.6.0**，版本代号 **`0x00000600`**，C 嵌入 AB
 
 IDE、语言服务、工具和 xlang 引擎统一放在仓库根目录的 `release/`，不再使用 `ide/release/`。编译器源码已从 `demo6/` 移到仓库根目录。
 
-直接运行 `xlang_ide.exe`。IDE 默认使用同目录的 `xl.exe`，共享 `xl.dll`、`xlc.dll`、`include/`、`extlibs/` 和范例；C 语言分析工具位于 `toolchains/clangd/`，不再复制一套 `toolchains/xlang/`。`data/` 保存命令帮助和字体，`option/` 保存可迁移的 IDE 设置和会话。
+直接运行 `xlang_ide.exe`。IDE 默认使用同目录的 `xl.exe`，共享 `xl.dll`、`xlc.dll`、`include/`、`extlibs/` 和范例。C LSP 默认关闭，发布目录不含 clangd；C／xlang 语法编辑和通过 xlang 编译运行继续可用，xlang 的语言服务由 `xlang-ls.exe` 提供。`data/` 保存命令帮助和字体，`option/` 保存可迁移的 IDE 设置和会话。保留代码与构建开关见 [C LSP 构建选项](../ide/docs/c-lsp-build-option.md)。
 
 `ide/build_current.bat` 的隔离输出位于 `ide/build/cb-*/release/`。`ide/build.bat` 普通构建更新本目录；带 `-Tests` 的构建和 `ide/test.bat` 使用 `ide/build/<配置>/release/`，避免混入测试程序。显式 `-ReleaseDirectory` 可选择其他构建输出位置。详见 [统一发布目录](../ide/docs/unified-release.md)。
 

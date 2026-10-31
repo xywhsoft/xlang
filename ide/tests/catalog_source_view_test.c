@@ -94,7 +94,7 @@ static int verify(void* user)
     app.hidden=1; app.noSession=1; app.highDpi=1; app.dpiOverride=1.25f; app.settingsPath=settings; app.catalogPath=catalog;
     CHECK(settings && catalog && folder && xideAppCreate(&app)==XUI_OK && xgeBegin()==XGE_OK); began=1; CHECK(settle(&app));
     CHECK(allSources(&app,folder,&error)>=335);
-    CHECK(xideActionCount()==75 && !xideCatalogSourceIsOpen(&app) && !xideCatalogSourceEditor(&app));
+    CHECK(!!xideActionFind(XIDE_ACTION_C_SERVER)==XIDE_ENABLE_C_LSP && !xideCatalogSourceIsOpen(&app) && !xideCatalogSourceEditor(&app));
     CHECK(xideActionNamed("help.sourceDeclaration")->id==90 && xideActionNamed("help.sourceDocument")->id==91);
     xide_document* draft=xideDocumentNew(&app.documents,"xlang",&error); CHECK(draft && xideEditorShow(&app,draft)==XUI_OK);
     CHECK(xuiCodeEditingInsertText(xuiCodeEditGetDocument(draft->editor),xuiCodeEditGetSelection(draft->editor),"int 草稿 = 42; // 保留\n",0)==XUI_OK && settle(&app) && draft->dirty);

@@ -1,12 +1,16 @@
 #include "ui/editor_view.h"
 #include "ui/language_view.h"
+#if XIDE_ENABLE_C_LSP
 #include "ui/c_language_view.h"
+#endif
 #include "services/file_sync.h"
 #include "services/file_rebind.h"
 #include "ui/reading_state.h"
 #include "ui/catalog_view.h"
 #include "ui/completion_view.h"
+#if XIDE_ENABLE_C_LSP
 #include "ui/c_completion_view.h"
+#endif
 #include "platform/path.h"
 #include "theme/theme.h"
 #include "ui/workspace_view.h"
@@ -175,7 +179,11 @@ int xideEditorApplyTheme(xide_app* app)
 int xideEditorShow(xide_app* app,xide_document* document)
 {
     if(!document || !document->open) return XUI_ERROR_INVALID_ARGUMENT;
-    TRY(xideCatalogBindEditor(app,document->editor)); TRY(xideActionsBindEditor(app,document->editor)); TRY(xideLanguageViewBindEditor(app,document->editor)); TRY(xideCompletionViewBindEditor(app,document->editor)); TRY(xideCCompletionViewBindEditor(app,document->editor)); TRY(xideCLanguageViewBindEditor(app,document->editor));
+    TRY(xideCatalogBindEditor(app,document->editor)); TRY(xideActionsBindEditor(app,document->editor)); TRY(xideLanguageViewBindEditor(app,document->editor)); TRY(xideCompletionViewBindEditor(app,document->editor));
+#if XIDE_ENABLE_C_LSP
+ TRY(xideCCompletionViewBindEditor(app,document->editor)); TRY(xideCLanguageViewBindEditor(app,document->editor));
+#endif
+
     if(document->window<0) {
         TRY(xuiDockPanelAddWindow(app->dock,document->title,document->editor,&document->window));
         TRY(xuiDockPanelSetWindowFlags(app->dock,document->window,1,1));
@@ -342,7 +350,11 @@ static void statusPosition(xide_app* app,xide_document* document,int* line,int* 
 }
 void xideEditorPoll(xide_app* app)
 {
-    xideCatalogViewPoll(app); xideCompletionViewPoll(app); xideCCompletionViewPoll(app);
+    xideCatalogViewPoll(app); xideCompletionViewPoll(app);
+#if XIDE_ENABLE_C_LSP
+ xideCCompletionViewPoll(app);
+#endif
+
     if(app->reopenDocument) { xide_document* document=app->reopenDocument; app->reopenDocument=NULL; xideEditorShow(app,document); }
     xide_document* document=app->activeDocument; char* status=app->editorStatus;
     if(document && document->open) {
@@ -381,7 +393,11 @@ int xideEditorAction(xide_app* app,int action)
         } else if(action==XIDE_ACTION_EDITOR_COMPLETE) {
             xuiSetFocusWidget(app->context,document->editor);
             xui_code_selection_t selection={0}; xuiCodeSelectionGetState(xuiCodeEditGetSelection(document->editor),&selection);
-            xideCompletionViewRequest(app,document->editor,selection.iCaretOffset,1); xideCCompletionViewRequest(app,document->editor,selection.iCaretOffset,1); xuiCodeEditShowCompletion(document->editor);
+            xideCompletionViewRequest(app,document->editor,selection.iCaretOffset,1);
+#if XIDE_ENABLE_C_LSP
+ xideCCompletionViewRequest(app,document->editor,selection.iCaretOffset,1);
+#endif
+ xuiCodeEditShowCompletion(document->editor);
         } else {
             xuiSetFocusWidget(app->context,document->editor);
             xui_event_t event={0}; event.iSize=sizeof(event); event.iType=XUI_EVENT_COMMAND; event.pTarget=document->editor; event.iCommand=definition ? definition->codeCommand : 0;

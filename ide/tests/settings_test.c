@@ -39,6 +39,7 @@ int main(int argc,char** argv)
     CHECK(xrtValueObjectGet(ui,(xstrview){"futureUi",8}) && xrtValueObjectGet(uiFont,(xstrview){"futureFont",10}));
     CHECK(!xideSettingsSetUiFont(&settings,font,7,&error) && error.code==XIDE_MODEL_INVALID);
     CHECK(writeText(path,"{\"format\":\"xlang-ide-settings-1\",\"ui\":{\"font\":{\"size\":41}}}") && !xideSettingsLoad(&settings,path,&error) && loaded.uiFontSize==28);
+#if XIDE_ENABLE_C_LSP
     /* C-server preferences share the existing atomic, conflict-aware store. */
     CHECK(writeText(path,"{\"format\":\"xlang-ide-settings-1\",\"future\":7,\"toolchain\":{\"cServer\":\"编译器 空格.exe\",\"futureToolchain\":true}}"));
     CHECK(xideSettingsLoad(&settings,path,&error) && settings.cServer && xidePathEqual(settings.cServer,compiler));
@@ -59,7 +60,19 @@ int main(int argc,char** argv)
     CHECK(writeText(path,"{\"format\":\"xlang-ide-settings-1\",\"toolchain\":{\"cServer\":7}}") && !xideSettingsLoad(&settings,path,&error) && xidePathEqual(loaded.cServer,compiler));
     CHECK(writeText(path,"{broken") && !xideSettingsSetCServer(&loaded,compiler,&error));
     content=xrtFileReadAllLimit(path,256,&length); CHECK(content && length==7 && !memcmp(content,"{broken",7)); xrtFree(content);
-    puts("settings_test passed: Unicode compiler/C-server/font preferences, relative server path, nested unknown fields, sequential updates, restart, range/paths, external conflict, malformed preservation, shared repair writer lock and locked-file atomic failure.");
+#else
+    /* A retired key must not enable a server or block other preferences. */
+    CHECK(writeText(path,"{\"format\":\"xlang-ide-settings-1\",\"future\":7,\"toolchain\":{\"cServer\":7,\"futureToolchain\":true}}"));
+    CHECK(xideSettingsLoad(&settings,path,&error) && !settings.cServer);
+    CHECK(xideSettingsSetCompiler(&settings,compiler,&error) && xideSettingsSetEditorFont(&settings,font,21,&error) && xideSettingsSetUiFont(&settings,font,23,&error));
+    CHECK(xideSettingsLoad(&loaded,path,&error) && !loaded.cServer && xidePathEqual(loaded.compiler,compiler));
+    xvalue* toolchain=xrtValueObjectGet(loaded.source,(xstrview){"toolchain",9});
+    CHECK(!xrtValueObjectGet(toolchain,(xstrview){"cServer",7}) && xrtValueObjectGet(toolchain,(xstrview){"futureToolchain",15}) && xrtValueObjectGet(loaded.source,(xstrview){"future",6}));
+    CHECK(writeText(path,"{\"format\":\"xlang-ide-settings-1\",\"external\":true}") && !xideSettingsSetCompiler(&settings,compiler,&error) && error.code==XIDE_MODEL_CONFLICT);
+    CHECK(writeText(path,"{broken") && !xideSettingsSetCompiler(&loaded,compiler,&error));
+    content=xrtFileReadAllLimit(path,256,&length); CHECK(content && length==7 && !memcmp(content,"{broken",7)); xrtFree(content);
+#endif
+    puts("settings_test passed: Unicode compiler/font preferences, nested unknown fields, sequential updates, restart, range/paths, external conflict and malformed preservation; feature-dependent C-server preferences.");
 cleanup:
     xideSettingsClear(&settings); xideSettingsClear(&loaded); free(root); free(path); free(compiler); free(defaultPath); free(font); return failed;
 }

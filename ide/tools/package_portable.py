@@ -25,8 +25,7 @@ MAX_FILES = 10000
 MAX_FILE = 256 * 1024 * 1024
 MAX_TOTAL = 1024 * 1024 * 1024
 CORE = ("xlang_ide.exe", "xlang_ide_console.exe", "xlang-ls.exe", "xge.dll",
-        "xl.exe", "xl.dll", "xlc.dll",
-        "toolchains/clangd/bin/clangd.exe")
+        "xl.exe", "xl.dll", "xlc.dll")
 SYSTEM_DLLS = set("advapi32.dll bcrypt.dll comdlg32.dll dbghelp.dll gdi32.dll imm32.dll iphlpapi.dll kernel32.dll msvcrt.dll ntdll.dll ole32.dll oleaut32.dll shell32.dll user32.dll version.dll winhttp.dll winmm.dll ws2_32.dll wsock32.dll".split())
 RESERVED = {"con", "prn", "aux", "nul", *(f"com{i}" for i in range(10)), *(f"lpt{i}" for i in range(10))}
 
@@ -44,8 +43,8 @@ def sha(path):
             value.update(chunk)
     return value.hexdigest()
 
-def load_json(path):
-    require(Path(path).stat().st_size <= 16 * 1024 * 1024, f"Oversize JSON: {path}")
+def load_json(path, limit=16 * 1024 * 1024):
+    require(Path(path).stat().st_size <= limit, f"Oversize JSON: {path}")
     return json.loads(Path(path).read_text(encoding="utf-8-sig"))
 
 def write_json(path, value):
@@ -155,9 +154,9 @@ def pe_imports(path):
         result.append(name)
     raise PackageError(f"Unterminated PE imports: {path}")
 
-def check_core(root):
+def check_core(root, with_c_lsp=False):
     inventory = {}
-    for name in CORE:
+    for name in (*CORE, *(("toolchains/clangd/bin/clangd.exe",) if with_c_lsp else ())):
         path = Path(root) / name
         plain(path)
         imports = pe_imports(path)
@@ -169,6 +168,16 @@ def check_core(root):
             require(nearby.is_file() or shared.is_file(), f"Missing local core dependency {dependency}: {name}")
         inventory[name] = {"machine": "AMD64", "imports": imports}
     return inventory
+
+def check_features(manifest, paths):
+    enabled = manifest.get("features", {}).get("cLsp", "clangd" in manifest.get("toolchains", {}))
+    require(type(enabled) is bool, "Invalid C LSP feature flag")
+    if enabled:
+        require("toolchains/clangd/bin/clangd.exe" in paths, "C LSP runtime missing")
+    else:
+        require("clangd" not in manifest.get("toolchains", {}), "Disabled C LSP has a server toolchain")
+        require(not any(p.casefold().startswith(("toolchains/clangd/", "sources/clangd-adaptation/", "notices/clangd/", "provenance/clangd-adaptation/")) or p.casefold()=="provenance/clangd-inputs.json" for p in paths), "Disabled C LSP has server assets")
+    return enabled
 
 def verify_payload(root, allow_user_state=False):
     root = Path(root)
@@ -194,7 +203,7 @@ def verify_payload(root, allow_user_state=False):
     actual = {p.relative_to(root).as_posix() for p in tree(root)}
     extras = actual - paths
     require(not extras or (allow_user_state and all(p.startswith("option/") for p in extras)), f"Unlisted payload files: {sorted(extras)[:5]}")
-    require(check_core(root) == manifest["corePE"], "Core PE metadata mismatch")
+    require(check_core(root, check_features(manifest, paths)) == manifest["corePE"], "Core PE metadata mismatch")
     return manifest
 
 def inspect_zip(archive):
@@ -233,6 +242,7 @@ def inspect_zip(archive):
                     digest.update(block)
             require(digest.hexdigest() == record["sha256"], f"ZIP content mismatch: {name}")
         require(set(names) == expected, "ZIP contains unlisted files")
+        check_features(manifest, expected)
     return manifest
 
 def extract_verified(archive, destination):
@@ -299,8 +309,12 @@ def assemble(args):
     current_build = None
     if build_report:
         release, current_build, current_build_hash = current_build_release(ide, build_report)
-    compiler, server = Path(args.compiler_root).absolute(), Path(args.c_server_root).absolute()
-    plain(compiler, True); plain(server, True)
+    with_c_lsp = bool(getattr(args, "with_c_lsp", False))
+    compiler = Path(args.compiler_root).absolute(); plain(compiler, True)
+    server = None
+    if with_c_lsp:
+        require(getattr(args, "c_server_root", None) and getattr(args, "c_server_manifest", None), "Optional C LSP needs an explicit server and manifest")
+        server = Path(args.c_server_root).absolute(); plain(server, True)
     dist = ide / "dist"
     if dist.exists():
         plain(dist, True)
@@ -313,7 +327,8 @@ def assemble(args):
         if parent.exists():
             plain(parent, True)
     compiler_info, compiler_base, compiler_expected, expected_c = expected_inputs(args.compiler_manifest, compiler)
-    server_info, server_base, _, expected_s = expected_inputs(args.c_server_manifest, server)
+    if with_c_lsp:
+        server_info, server_base, _, expected_s = expected_inputs(args.c_server_manifest, server)
     source_plan = []
     destinations = set()
     def add(source, target, digest=None):
@@ -351,12 +366,13 @@ def assemble(args):
     selected_c = {p.relative_to(compiler).as_posix() for p in compiler_files}
     frozen_c = {p for p in expected_c if p in ("xl.exe", "xl.dll", "xlc.dll") or p.startswith(("include/", "extlibs/"))}
     require(selected_c == frozen_c, "Frozen compiler runtime inventory differs")
-    server_files = [server/"LICENSE.TXT", *tree(server/"bin"), *tree(server/"lib")]
-    selected_s = {p.relative_to(server).as_posix() for p in server_files}
-    require(selected_s == set(expected_s), "Frozen clangd runtime inventory differs")
-    for source in server_files:
-        rel = source.relative_to(server).as_posix()
-        add(source, "toolchains/clangd/"+rel, expected_s[rel])
+    if with_c_lsp:
+        server_files = [server/"LICENSE.TXT", *tree(server/"bin"), *tree(server/"lib")]
+        selected_s = {p.relative_to(server).as_posix() for p in server_files}
+        require(selected_s == set(expected_s), "Frozen clangd runtime inventory differs")
+        for source in server_files:
+            rel = source.relative_to(server).as_posix()
+            add(source, "toolchains/clangd/"+rel, expected_s[rel])
     add(sdk/"sdk_manifest.json", "provenance/sdk_manifest.json")
     add(sdk/"xge-source-files.json", "provenance/xge-source-files.json")
     # Preserve the matched SDK's own source-build and patch provenance.
@@ -371,7 +387,8 @@ def assemble(args):
         add(build_report, 'provenance/ide-source-build-report.json', current_build_hash)
 
     add(args.compiler_manifest, "provenance/compiler-inputs.json")
-    add(args.c_server_manifest, "provenance/clangd-inputs.json")
+    if with_c_lsp:
+        add(args.c_server_manifest, "provenance/clangd-inputs.json")
     notices = []
     notices.append({"path": "data/fonts/LICENSE", "copyright": "data/fonts/COPYRIGHT.txt",
                     "provenance": "data/fonts/source.json", "status": "pinned-unmodified-OFL-font"})
@@ -394,9 +411,11 @@ def assemble(args):
     compiler_sources = collect_compiler_materials(getattr(args, "compiler_source_manifest", None),
         getattr(args, "compiler_source_build_report", None), compiler_base, expected_c,
         add=add, load_json=load_json, plain=plain, safe_name=safe_name, sha=sha, require=require, max_files=MAX_FILES)
-    from c_server_materials import collect_c_server_materials
-    c_server_materials = collect_c_server_materials(server_info, server_base, expected_s,
-        add=add, load_json=load_json, plain=plain, safe_name=safe_name, sha=sha, require=require)
+    c_server_materials = {"enabled": False, "inputTraceProtocol": 0}
+    if with_c_lsp:
+        from c_server_materials import collect_c_server_materials
+        c_server_materials = collect_c_server_materials(server_info, server_base, expected_s,
+            add=add, load_json=load_json, plain=plain, safe_name=safe_name, sha=sha, require=require)
     require(len(source_plan) < MAX_FILES and sum(p[3] for p in source_plan) <= MAX_TOTAL, "Package input budget exceeded")
     destination.parent.mkdir(parents=True, exist_ok=True)
     stage = destination.parent / (".portable-stage-" + uuid.uuid4().hex)
@@ -410,12 +429,14 @@ def assemble(args):
     if compiler_sources["copiedFiles"]:
         write_json(payload/"sources/xlang/SOURCE-MATERIALS.json", compiler_sources)
         (payload/"sources/COMPILER-REBUILD.md").write_text(REBUILD_README, encoding="utf8")
-    settings = {"format": "xlang-ide-settings-1", "toolchain": {"compiler": "../xl.exe", "cServer": "../toolchains/clangd/bin/clangd.exe"}}
+    settings = {"format": "xlang-ide-settings-1", "toolchain": {"compiler": "../xl.exe"}}
+    if with_c_lsp:
+        settings["toolchain"]["cServer"] = "../toolchains/clangd/bin/clangd.exe"
     (payload/"option").mkdir()
     write_json(payload/"option/settings.json", settings)
     write_json(payload/"notices/material-index.json", {
         "materials": notices, "status": "release-candidate-materials-incomplete",
-        "clangdMaterial": "toolchains/clangd/LICENSE.TXT", "cServerSources": c_server_materials, "sdkMaterials": sdk_materials, "tccMaterials": tcc_materials, "compilerSources": compiler_sources,
+        "cServerSources": c_server_materials, "sdkMaterials": sdk_materials, "tccMaterials": tcc_materials, "compilerSources": compiler_sources,
         "extensionMaterials": [p for p in sorted(selected_c) if Path(p).name.lower().startswith(("license", "copying"))],
         "remaining": ([] if sdk_materials["sourceFiles"] else ["Supply the exact pinned SDK source snapshot"]) + (["Supply corresponding frozen compiler source and build materials"] if not compiler_sources["copiedFiles"] else []) + ["SDK complete distribution terms review, including XGE and xlayout", "TCC corresponding source/relink obligations review", "Extension assets distribution review", "IDE and xlang project distribution terms confirmation"],
         "note": "Files are provenance and inspection materials; candidate assembly does not establish formal release readiness."})
@@ -424,21 +445,26 @@ def assemble(args):
     if sdk_info['provenance'].get('compatibilityPatchFiles'):
         sdk_description += '，并包含 provenance/compatibility-patches 中记录的 IDE 兼容补丁'
     quickstart = quickstart.replace('本候选 SDK 来自成套的 SDK62 严格构建', sdk_description)
+    if not with_c_lsp:
+        quickstart = quickstart.replace("在 C 导出调用处使用 F12 可定位 xlang 声明。", "xlang 由 xlang-ls 提供语言服务；C 保留语法编辑和编译运行，不启用 C LSP。")
+        quickstart = quickstart.replace("包内 xlang 与 clangd 工具", "包内 xlang 工具")
     if c_server_materials['inputTraceProtocol'] == 1:
         quickstart += '\n默认 C 语言服务器带实际输入观察扩展：已读取的间接头文件、缺失探测和搜索候选变化会撤下旧语义结果，再重新分析。未列入项目的已观察头可用 F12 打开。可在偏好中选择普通 clangd；它继续使用显式输入守护。sources/clangd-adaptation 和 provenance/clangd-adaptation 保留扩展源码差异与构建记录，notices/clangd 保留运行库材料。本扩展不宣告 TCC/Clang 预处理或 ABI 全面等价。\n'
     (payload/"QUICKSTART.md").write_text(quickstart, encoding="utf-8")
     files = []
     for path in tree(payload):
         files.append({"path": path.relative_to(payload).as_posix(), "size": path.stat().st_size, "sha256": sha(path)})
-    catalog = load_json(payload/"data/commands.json")
+    catalog = load_json(payload/"data/commands.json", limit=64 * 1024 * 1024)
     manifest = {"format": FORMAT, "platform": "windows-x64", "status": "development-candidate",
         "createdUtc": datetime.now(timezone.utc).isoformat(), "files": files,
         "mutableState": {"directory": "option/", "initialSeedHashed": True, "userDataNotCopied": True},
-        "corePE": check_core(payload), "coreDependencyScope": "Declared core binaries only; extension modules/assets preserved but not all exercised",
+        "corePE": check_core(payload, with_c_lsp), "coreDependencyScope": "Declared core binaries only; extension modules/assets preserved but not all exercised",
         "catalog": {"commands": len(catalog["entries"]), "documents": len(catalog["documents"]), "compilerSha256": catalog["compilerSha256"], "embeddedMarkdown": True},
-        "toolchains": {"xlang": {"path": "xl.exe", "sha256": sha(payload/"xl.exe"), "provenance": "provenance/compiler-inputs.json"},
-            "clangd": {"tag": server_info.get("tag"), "sha256": sha(payload/"toolchains/clangd/bin/clangd.exe"), "provenance": "provenance/clangd-inputs.json", "inputTraceProtocol": c_server_materials['inputTraceProtocol']}},
+        "toolchains": {"xlang": {"path": "xl.exe", "sha256": sha(payload/"xl.exe"), "provenance": "provenance/compiler-inputs.json"}},
+        "features": {"cLsp": with_c_lsp},
         "sdk": sdk_info["provenance"], "fonts": font_materials, "releaseMaterials": "notices/material-index.json"}
+    if with_c_lsp:
+        manifest["toolchains"]["clangd"] = {"tag": server_info.get("tag"), "sha256": sha(payload/"toolchains/clangd/bin/clangd.exe"), "provenance": "provenance/clangd-inputs.json", "inputTraceProtocol": c_server_materials["inputTraceProtocol"]}
     write_json(payload/"package-manifest.json", manifest)
     verify_payload(payload)
     archive = stage/"xlang-ide-windows-x64.zip"
@@ -452,8 +478,10 @@ def assemble(args):
                 shutil.copyfileobj(source, target, 1024*1024)
     inspect_zip(archive)
     current_c = {p.relative_to(compiler).as_posix() for directory in ("include", "extlibs") for p in tree(compiler/directory)} | {"xl.exe", "xl.dll", "xlc.dll"}
-    current_s = {p.relative_to(server).as_posix() for directory in ("bin", "lib") for p in tree(server/directory)} | {"LICENSE.TXT"}
-    require(current_c == selected_c and current_s == selected_s, "Toolchain inventory changed before publication")
+    require(current_c == selected_c, "Compiler inventory changed before publication")
+    if with_c_lsp:
+        current_s = {p.relative_to(server).as_posix() for directory in ("bin", "lib") for p in tree(server/directory)} | {"LICENSE.TXT"}
+        require(current_s == selected_s, "C server inventory changed before publication")
     for source, _, digest, _ in source_plan:
         require(sha(source) == digest, f"Input changed before candidate publication: {source}")
     if current_build is not None:
@@ -471,9 +499,10 @@ def assemble(args):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--compiler-root", required=True)
-    parser.add_argument("--c-server-root", required=True)
+    parser.add_argument("--with-c-lsp", action="store_true", help="Explicit legacy C LSP package;default packages omit it")
+    parser.add_argument("--c-server-root")
     parser.add_argument("--compiler-manifest", required=True)
-    parser.add_argument("--c-server-manifest", required=True)
+    parser.add_argument("--c-server-manifest")
     parser.add_argument("--sdk-source-root", help="Exact source snapshot matching the pinned SDK; current repository sources are not substituted")
     parser.add_argument("--compiler-source-manifest", help="Explicit frozen compiler sources and build input closure")
     parser.add_argument("--compiler-source-build-report", help="Matching actual independent source build evidence")

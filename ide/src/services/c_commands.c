@@ -1,3 +1,5 @@
+#include "app/features.h"
+#if XIDE_ENABLE_C_LSP
 #include "services/c_commands.h"
 #include "platform/path.h"
 #include <windows.h>
@@ -67,3 +69,5 @@ int xideCCommandsAddContextFile(xvalue* database,const char* origin,const char* 
  size_t size=0; char* encoded=okay ? xrtJsonStringify(database,false,&size) : NULL; okay=encoded && size<=4u*1024u*1024u; xrtFree(encoded);
  return okay ? 1 : ccfail(e,"Cannot add a bounded C navigation command.");
 }
+
+#endif /* XIDE_ENABLE_C_LSP */

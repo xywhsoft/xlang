@@ -9,17 +9,16 @@ release/
   include/、extlibs/、examples/、projects/、res/
   data/                  命令帮助、离线字体
   option/                IDE 设置及会话
-  toolchains/clangd/     C 语言分析工具
   notices/、provenance/、sources/
 ```
 
-IDE 与命令行共用根目录现有引擎和 SDK。迁移不使用旧 IDE 包的引擎、头文件和扩展库覆盖根目录资产。旧 `toolchains/xlang/` 随迁移前目录保存在 `ide/build/` 的可恢复备份中。默认编译器为相对 `option/settings.json` 的 `../xl.exe`，clangd 为 `../toolchains/clangd/bin/clangd.exe`；用户明确选择的外部工具仍使用原配置。
+IDE 与命令行共用根目录现有引擎和 SDK。迁移不使用旧 IDE 包的引擎、头文件和扩展库覆盖根目录资产。旧 `toolchains/xlang/` 随迁移前目录保存在 `ide/build/` 的可恢复备份中。默认编译器为相对 `option/settings.json` 的 `../xl.exe`。2026-10-31 起 C LSP 默认关闭，clangd 及专用材料已移除，xlang-ls 和 C 编译运行保留，见 [C LSP 构建选项](c-lsp-build-option.md)。
 
 `ide/build_current.bat -Configuration Release -Tests` 继续生成独立源码快照与收据，输出位于 `ide/build/cb-*/release/`。`ide/build.bat` 普通构建输出根 `release/`；带 `-Tests` 时输出 `ide/build/<配置>/release/`。`ide/test.bat` 使用同一测试目录。两个 PowerShell 入口均支持 `-ReleaseDirectory`，供隔离构建与验收使用。
 
 LSP 原生前端保留独立源码摘要守卫。默认优先使用开发配置中固定的前端源码；固定目录不存在时，使用随包的 `release/sources/xlang/`，最后才尝试仓库根源码。源码不匹配仍会拒绝构建；目录合并不放宽检查。可通过 `-FrontendRoot` 显式指定前端。
 
-便携打包同样采用同层布局：IDE、语言服务、引擎位于载荷根目录，头文件与扩展库直接位于 `include/`、`extlibs/`。打包继续验证显式固定的编译器、SDK、clangd 材料；它与本地目录迁移是独立操作。
+便携打包同样采用同层布局：IDE、语言服务、引擎位于载荷根目录，头文件与扩展库直接位于 `include/`、`extlibs/`。打包继续验证显式固定的编译器和 SDK；默认不读取 C 服务器或其清单。它与本地目录迁移是独立操作。
 
 迁移工具为 `ide/tools/merge_release.py`。它检查冲突、保留根目录已有引擎，只更新 IDE 自有文件，保留设置中的未知字段，并记录安装摘要与引擎绑定。迁移前清单保存在 `release/provenance/ide-original-package-manifest.json`，仅用于追溯历史包；当前引擎以根目录二进制及迁移收据摘要为准。
 

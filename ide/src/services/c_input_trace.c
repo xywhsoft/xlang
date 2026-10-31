@@ -1,3 +1,5 @@
+#include "app/features.h"
+#if XIDE_ENABLE_C_LSP
 #include "services/c_input_trace.h"
 #include "platform/path.h"
 #include "../../tools/clangd_input_trace/NativeInput.h"
@@ -123,3 +125,5 @@ int xideCInputTraceSnapshot(xide_c_input_trace* t,const char* path,xide_file_sna
  else for(size_t i=0;i<t->count;++i) { const ct_record* r=&t->records[i]; if(r->kind==1 && r->hashed && xidePathLexicalEqual(path,r->path)) { *out=r->stamp; yes=1; break; } }
  LeaveCriticalSection(&t->lock); return yes;
 }
+
+#endif /* XIDE_ENABLE_C_LSP */

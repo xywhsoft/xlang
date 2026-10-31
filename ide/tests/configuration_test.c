@@ -57,7 +57,8 @@ int main(int argc,char** argv)
     xuiEditSetText(xideConfigurationViewControl(&app,XIDE_CONFIG_KEY),"TEMP_ITEM"); CHECK(click(&app,XIDE_CONFIG_ADD) && click(&app,XIDE_CONFIG_REMOVE));
     CHECK(xuiListViewGetItemCount(xideConfigurationViewControl(&app,XIDE_CONFIG_LIST))==1);
     CHECK(choose(&app,XIDE_CONFIG_CATEGORY,0)); xuiEditSetText(xideConfigurationViewControl(&app,XIDE_CONFIG_VALUE),"include 空格"); CHECK(click(&app,XIDE_CONFIG_ADD));
-    CHECK(xuiComboBoxGetItemCount(xideConfigurationViewControl(&app,XIDE_CONFIG_CATEGORY))==11);
+    CHECK(xuiComboBoxGetItemCount(xideConfigurationViewControl(&app,XIDE_CONFIG_CATEGORY))==(XIDE_ENABLE_C_LSP ? 11 : 7));
+#if XIDE_ENABLE_C_LSP
     const char* cValues[]={"system 中文","generated/module.h","C_ANSWER=42","_CRT_SECURE_NO_WARNINGS"};
     for(int category=5;category<9;++category) {
         CHECK(choose(&app,XIDE_CONFIG_CATEGORY,category));
@@ -65,11 +66,14 @@ int main(int argc,char** argv)
         CHECK(xuiListViewGetItemCount(xideConfigurationViewControl(&app,XIDE_CONFIG_LIST))==1);
     }
     xuiEditSetText(xideConfigurationViewControl(&app,XIDE_CONFIG_VALUE),"BAD=value"); CHECK(click(&app,XIDE_CONFIG_ADD));
+#endif
     CHECK(xuiListViewGetItemCount(xideConfigurationViewControl(&app,XIDE_CONFIG_LIST))==1);
     CHECK(xideConfigurationViewApply(&app,&error) && project->configurationCount==2 && !xideConfigurationViewIsOpen(&app));
     CHECK(!project->configurations[0].arguments.count && !project->configurations[0].includePaths.count && !xrtValueCount(project->configurations[0].environment));
     CHECK(!strcmp(project->configurations[1].name,"发布 中文配置") && !strcmp(project->activeConfiguration,project->configurations[1].id));
+#if XIDE_ENABLE_C_LSP
     CHECK(project->configurations[1].cAnalysis.systemIncludes.count==1 && project->configurations[1].cAnalysis.forcedIncludes.count==1 && !strcmp(project->configurations[1].cAnalysis.defines.items[0],"C_ANSWER=42") && !strcmp(project->configurations[1].cAnalysis.undefines.items[0],"_CRT_SECURE_NO_WARNINGS"));
+#endif
     CHECK(project->configurations[1].arguments.count==2 && !strcmp(project->configurations[1].arguments.items[0],"含 空格与\"引号\"\\尾部\\") && !*project->configurations[1].arguments.items[1]);
     xstrview environment; CHECK(xrtValueGetString(get(project->configurations[1].environment,"XLANG_SAMPLE"),&environment) && environment.Size==strlen("中文=值"));
     CHECK(xideWorkspaceSaveAll(&app,workspacePath,&error) && xideProjectLoad(&loaded,projectPath,&error) && !strcmp(loaded.activeConfiguration,loaded.configurations[1].id));
@@ -93,7 +97,9 @@ int main(int argc,char** argv)
     char* copyDirectory=xidePathDirectory(copyPath); CHECK(copyDirectory && xrtDirCreateAll(copyDirectory)); free(copyDirectory);
     CHECK(xideProjectSave(&loaded,copyPath,&error) && xideProjectLoad(&loaded,copyPath,&error));
     CHECK(xidePathEqual(loaded.configurations[1].includePaths.items[0],project->configurations[1].includePaths.items[0]));
+#if XIDE_ENABLE_C_LSP
     CHECK(xidePathLexicalEqual(loaded.configurations[1].cAnalysis.systemIncludes.items[0],project->configurations[1].cAnalysis.systemIncludes.items[0]) && xidePathLexicalEqual(loaded.configurations[1].cAnalysis.forcedIncludes.items[0],project->configurations[1].cAnalysis.forcedIncludes.items[0]) && !strcmp(loaded.configurations[1].cAnalysis.defines.items[0],"C_ANSWER=42"));
+#endif
     CHECK(xideWorkspaceAddProject(&app.workspaceModel,copyPath,"beta",&error) && xideWorkspaceViewRefresh(&app)==XUI_OK && xideWorkspaceViewSelectProject(&app,"beta"));
     CHECK(!strcmp(xideWorkspaceFindProject(&app.workspaceModel,"alpha")->activeConfiguration,"development") && strcmp(xideWorkspaceFindProject(&app.workspaceModel,"beta")->activeConfiguration,"development"));
     CHECK(xideWorkspaceSaveAll(&app,workspacePath,&error));
