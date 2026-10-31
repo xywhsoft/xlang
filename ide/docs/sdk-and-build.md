@@ -2,7 +2,7 @@
 
 ## 固定依赖
 
-本项目使用 `third_party/xge_sdk/` 中的成套 SDK。2026-10-31 更新到 XGE 3.0.0 提交 `93b446cf83ce20284f41aa794ed61e3302348ac4`，包含 Label 多约束测量缓存、滚动位移与 CodeEdit 光标的布局失效修复。隔离构建保留 IDE 的五份明确列举的兼容补丁；公开头、生成配置、DLL、导入库及来源记录整体匹配，XRT 使用 XGE 随附的匹配快照。当前说明见[帮助交互性能](xge-help-performance.md)，历史版本和代理迁移见[XGE 3 更新](xge3-upgrade.md)。最初的 AutoTestIDE SDK 及 SDK67 等阶段属于历史记录；下文相应阶段的数量和限制不代表当前版本。
+本项目使用 `third_party/xge_sdk/` 中的成套 SDK。2026-10-31 更新到 XGE 3.0.0 提交 `6176f6f8d6ce36c9253f0fb5b8459a65b7a985d1`，在 Label 多约束测量缓存、滚动位移与 CodeEdit 光标布局失效修复之上，修复弹出菜单内部重复焦点边框。隔离构建保留 IDE 的五份明确列举的兼容补丁；公开头、生成配置、DLL、导入库及来源记录整体匹配，XRT 使用 XGE 随附的匹配快照。当前说明见[编辑器 minimap 与菜单边框](editor-minimap.md)和[帮助交互性能](xge-help-performance.md)，历史版本和代理迁移见[XGE 3 更新](xge3-upgrade.md)。最初的 AutoTestIDE SDK 及 SDK67 等阶段属于历史记录；下文相应阶段的数量和限制不代表当前版本。
 
 构建前 `tools/verify_xge_sdk.ps1` 检查所有受保护文件 SHA-256、共享运行时策略、XRT 声明头来源、预处理后的模块配置和 DLL 导出。更新 SDK 必须整体替换头文件、导入库、DLL 及来源记录，再重建全部程序。测试在独立副本中修改头文件，确认混用会被拒绝。
 

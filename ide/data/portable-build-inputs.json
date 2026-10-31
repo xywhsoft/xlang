@@ -8,10 +8,10 @@
   "compiler_manifest_sha256": "0ead73fe0acd30c1d45786aa5c8519179ff39ee1cd37bcfc2d9219ea475df097",
   "c_server_manifest": "build/c-trace-provider-manifest-v1.json",
   "c_server_manifest_sha256": "0a5b65ab174a2a14a16899dbdd0ca781dec8e63b418adf2e70338a3246de2fce",
-  "sdk_source_root": "F:\\xge-help-20261031\\source",
+  "sdk_source_root": "F:/xge-help-20261031/source",
   "compiler_source_manifest": "build/compiler-c-extension-source-materials-manifest-v1.json",
   "compiler_source_manifest_sha256": "5d28f6054e752bdb81accbc518f1aa73e6348f468d5eed808b932426cc499621",
   "compiler_source_build_report": "build/compiler-c-extension-source-materials-build-report-v1.json",
   "compiler_source_build_report_sha256": "d08fb9f8384b14b511fbf774b4ea322f25ab5ebba80a289899ead7460ff0cbbf",
-  "xgeCommit": "93b446cf83ce20284f41aa794ed61e3302348ac4"
+  "xgeCommit": "6176f6f8d6ce36c9253f0fb5b8459a65b7a985d1"
 }

@@ -1,7 +1,7 @@
 {
   "format": "xlang-ide-sdk-materials-1",
-  "sourceManifestSha256": "04b3265f75bb13ebbb4b848ba361bd6f1f9e78e40cc7e1df970341e88d591e0d",
-  "sdkDllSha256": "80ce35f25496e8e5162a3a9adee885fa6a7a0310237ee50c7c96a89f6c270455",
+  "sourceManifestSha256": "d46e4a963c1b7349d46504f4c5d768658d39254b70f9933b335d5b9cd6b922b3",
+  "sdkDllSha256": "faf58673f831ba8a58d6e3c2166094f76fbb71548469724fa5a11eca011782a0",
   "sourceScope": "XGE 3.0.0 IDE-profile compiler dependency closure, build inputs, public headers and notices; explicit compatibility patches recorded in provenance",
   "translationUnits": [
     "single/xge.c",
@@ -4057,13 +4057,13 @@
     },
     {
       "path": "src/xui/controls/xui_dock_panel.c",
-      "sha256": "b4d5137b1ee8dee8f03cba414cab308e6d1e61f3fee010fd8751e1a38cdf2733",
-      "size": 325122
+      "sha256": "35bd55bad0a48732133931cc4937b2a306859371994eac4d9acb754ab2b9ad7b",
+      "size": 324840
     },
     {
       "path": "src/xui/controls/xui_file_dialog.c",
-      "sha256": "8e88fd8f2aa263dcd7f62452218b81591292719a9576cb1348774485fd4ca35c",
-      "size": 122158
+      "sha256": "9253baa4a4df827d68ecb14ba3c92702788c72af56548335f56ccac87d705ea7",
+      "size": 121736
     },
     {
       "path": "src/xui/controls/xui_find.c",
@@ -4092,18 +4092,18 @@
     },
     {
       "path": "src/xui/controls/xui_list_view.c",
-      "sha256": "5b8a6acef13b5932e3217003d437f8777cb57941fb926b94d303000cece9aee1",
-      "size": 107253
+      "sha256": "d14aec446691e0be531e6a38d044cfab153e1052459d73f6dfe4410fcda9f15a",
+      "size": 106962
     },
     {
       "path": "src/xui/controls/xui_menu.c",
-      "sha256": "67d36207a7c6fb7eb48a794bc01b15db36da6d6f8ee056e6283ec3b0cf7c8feb",
-      "size": 93525
+      "sha256": "a2c61fc268f8a62f34ecabb9ac94b96df6a9ebdc82edb0495852716081a43f7b",
+      "size": 93737
     },
     {
       "path": "src/xui/controls/xui_menubar.c",
-      "sha256": "8ce0bc77779127d94e381075451a86e34b1fb5a6dc9952a6f996a415c59c80dd",
-      "size": 89782
+      "sha256": "407485ed4df9cd5bc5b79b9581299471ea773c4f2f563a0357367aeea45c5960",
+      "size": 89506
     },
     {
       "path": "src/xui/controls/xui_message_list.c",
@@ -4112,13 +4112,13 @@
     },
     {
       "path": "src/xui/controls/xui_msgbox.c",
-      "sha256": "de9a82104ac9f7e62e1b5033671230746ae6ce3ec134e38bc63d6b1f726f71fe",
-      "size": 73056
+      "sha256": "67e052dc99f12cf15be95ef599410f01b9cf802356fce630b053db5763909807",
+      "size": 72715
     },
     {
       "path": "src/xui/controls/xui_msgtip.c",
-      "sha256": "0709ed501db1ec5d95487c293e24df084af3d3a41ecc48b1f45fbed7dca4a9bb",
-      "size": 39147
+      "sha256": "a1cfb413d1d154c58cb713d89250963a9a7797a151134e27b4c7277758995b91",
+      "size": 38842
     },
     {
       "path": "src/xui/controls/xui_numeric_input.c",
@@ -4237,18 +4237,18 @@
     },
     {
       "path": "src/xui/controls/xui_terminal.c",
-      "sha256": "919c589013b8f83141ec84cdf0c213f0da8947b4a62cee5d3cdd07f0c74047d1",
-      "size": 296346
+      "sha256": "afbe1870199d282300b219518e9a34c4b9a1bc1b6d496ff5a0078b019e4ac520",
+      "size": 295957
     },
     {
       "path": "src/xui/controls/xui_timeline_view.c",
-      "sha256": "edeef85a1deffde47f66e0557fb221ba8f8f5f3bb229c0ee4633c81a2a08eb0e",
-      "size": 178218
+      "sha256": "d282e64e276e968de3cc0ca9dc7020309d40c9cf14e88c8212e2a02404096fda",
+      "size": 177899
     },
     {
       "path": "src/xui/controls/xui_toast.c",
-      "sha256": "682f465f5e4ef19ffa78d1c16dc4ccaf8305b36ffd58e854f8a74481f07e484d",
-      "size": 56610
+      "sha256": "68b6c0e64221cb0274209bbdabf6dd04ea63dad451f9b9f9df75db4ea7552f95",
+      "size": 56317
     },
     {
       "path": "src/xui/controls/xui_toggle.c",
@@ -4322,8 +4322,8 @@
     },
     {
       "path": "src/xui/core/xui_icon_picker.c",
-      "sha256": "f14b4648af1e76ca3d0a023b2169a309559b904f1a948ee563333664b82bc20b",
-      "size": 112397
+      "sha256": "0fe384a3888b42d004a803ffde8709b9e452a5cc7f9e6c1b83276c964b1148cb",
+      "size": 112115
     },
     {
       "path": "src/xui/core/xui_input.c",
@@ -4798,5 +4798,5 @@
   ],
   "legalDistributionReviewComplete": false,
   "formalRelease": false,
-  "sourceCommit": "93b446cf83ce20284f41aa794ed61e3302348ac4"
+  "sourceCommit": "6176f6f8d6ce36c9253f0fb5b8459a65b7a985d1"
 }

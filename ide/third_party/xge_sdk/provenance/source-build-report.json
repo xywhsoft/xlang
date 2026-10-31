@@ -4,9 +4,9 @@
   "profile": "ide",
   "version": "3.0.0",
   "source": "F:\\xge-help-20261031\\source",
-  "sourceCommit": "93b446cf83ce20284f41aa794ed61e3302348ac4",
+  "sourceCommit": "6176f6f8d6ce36c9253f0fb5b8459a65b7a985d1",
   "sourceUnchanged": true,
-  "sourceArchiveSha256": "5f798f790bfa34c0fd93de464614aeec7689d3c1733c7bb94a0653196c19575a",
+  "sourceArchiveSha256": "b362f4a7b040d4f890969757bf9d3538a59e09c525c99b18808218927cf11b98",
   "wholeSdkWerror": false,
   "compiler": "gcc.exe (GCC) 16.2.0",
   "upstreamBuild": {
@@ -309,8 +309,17 @@
       "extlibs/xrt/extlibs/xwork/src/work/xwork_python.c"
     ],
     "compiled": [
-      "src/xui/controls/xui_find.c",
-      "src/xui/code/xui_code_annotation.c"
+      "src/xui/controls/xui_terminal.c",
+      "src/xui/controls/xui_menu.c",
+      "src/xui/controls/xui_menubar.c",
+      "src/xui/controls/xui_list_view.c",
+      "src/xui/controls/xui_msgbox.c",
+      "src/xui/controls/xui_file_dialog.c",
+      "src/xui/controls/xui_msgtip.c",
+      "src/xui/controls/xui_toast.c",
+      "src/xui/core/xui_icon_picker.c",
+      "src/xui/controls/xui_dock_panel.c",
+      "src/xui/controls/xui_timeline_view.c"
     ],
     "reused": [
       "single/xge.c",
@@ -343,7 +352,6 @@
       "src/xui/controls/xui_carousel.c",
       "src/xui/controls/xui_virtual_joystick.c",
       "src/xui/controls/xui_inventory_grid.c",
-      "src/xui/controls/xui_terminal.c",
       "src/xui/controls/xui_separator.c",
       "src/xui/controls/xui_split_layout.c",
       "src/xui/core/xui_scroll_model.c",
@@ -352,44 +360,36 @@
       "src/xui/controls/xui_scroll_view.c",
       "src/xui/controls/xui_canvas.c",
       "src/xui/controls/xui_popup.c",
-      "src/xui/controls/xui_menu.c",
-      "src/xui/controls/xui_menubar.c",
       "src/xui/controls/xui_toolbar.c",
       "src/xui/controls/xui_statusbar.c",
       "src/xui/controls/xui_accordion.c",
-      "src/xui/controls/xui_list_view.c",
       "src/xui/controls/xui_table_view.c",
       "src/xui/controls/xui_table_grid.c",
       "src/xui/controls/xui_tree_view.c",
       "src/xui/controls/xui_tabs.c",
       "src/xui/controls/xui_window_frame.c",
       "src/xui/controls/xui_window.c",
-      "src/xui/controls/xui_msgbox.c",
-      "src/xui/controls/xui_file_dialog.c",
-      "src/xui/controls/xui_msgtip.c",
-      "src/xui/controls/xui_toast.c",
       "src/xui/core/xui_input_widget.c",
       "src/xui/controls/xui_tag_input.c",
       "src/xui/controls/xui_numeric_input.c",
+      "src/xui/controls/xui_find.c",
       "src/xui/core/xui_text_edit.c",
       "src/xui/controls/xui_combobox.c",
       "src/xui/controls/xui_cascader.c",
       "src/xui/controls/xui_color_picker.c",
-      "src/xui/core/xui_icon_picker.c",
       "src/xui/controls/xui_date_picker.c",
       "src/xui/controls/xui_property_grid.c",
-      "src/xui/controls/xui_dock_panel.c",
       "src/xui/controls/xui_chart.c",
       "src/xui/workflow/xui_flow_graph.c",
       "src/xui/workflow/xui_flow_graph_widget.c",
       "src/xui/workflow/xui_workflow.c",
       "src/xui/workflow/xui_workflow_widget.c",
       "src/xui/controls/xui_message_list.c",
-      "src/xui/controls/xui_timeline_view.c",
       "src/xui/code/xui_code_document.c",
       "src/xui/code/xui_code_selection.c",
       "src/xui/code/xui_code_theme.c",
       "src/xui/code/xui_code_fold_state.c",
+      "src/xui/code/xui_code_annotation.c",
       "src/xui/code/xui_code_token_buffer.c",
       "src/xui/code/xui_code_provider.c",
       "src/xui/code/xui_code_margin.c",
@@ -479,13 +479,13 @@
     ],
     "linked": true,
     "runtime_dependencies": [],
-    "seconds": 2.4010664999950677,
-    "runtime_bytes": 10561982,
-    "unstripped_bytes": 12701726
+    "seconds": 17.432755100016948,
+    "runtime_bytes": 10559422,
+    "unstripped_bytes": 12699155
   },
   "compatibilityPatches": {
     "format": "xlang-ide-xge-source-patches-1",
-    "baseCommit": "93b446cf83ce20284f41aa794ed61e3302348ac4",
+    "baseCommit": "6176f6f8d6ce36c9253f0fb5b8459a65b7a985d1",
     "reason": "Retain IDE Unicode escape validation, indexed background indicators, stable wrapped scrolling/caret and XRT process-tree cleanup; rebased on current upstream transactional annotation semantics",
     "publicHeadersChanged": false,
     "files": [
@@ -1003,11 +1003,11 @@
   "outputs": [
     {
       "path": "F:\\xge-help-20261031\\source\\build\\ide\\xge.dll",
-      "sha256": "80ce35f25496e8e5162a3a9adee885fa6a7a0310237ee50c7c96a89f6c270455"
+      "sha256": "faf58673f831ba8a58d6e3c2166094f76fbb71548469724fa5a11eca011782a0"
     },
     {
       "path": "F:\\xge-help-20261031\\source\\build\\ide\\xge.lib",
-      "sha256": "ed1ad882214a10141d49ee7e781792dc13a38c16a2ae6f8991975a6e173901d8"
+      "sha256": "744096c7ff00d925dacfcc96679a90e897bf70f10efe90c05b388236edfcafc3"
     },
     {
       "path": "F:\\xge-help-20261031\\source\\build\\ide\\xge_build_config.h",

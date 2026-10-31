@@ -43,6 +43,7 @@ static int codeEditor(xide_app* app, xui_widget* widget, const char* text, const
     desc.pFont = app->codeFont; desc.sText = text; desc.bReadonly = 1;
     desc.bShowLineNumbers = 1; desc.bShowFoldMargin = 1; desc.iTabColumns = 4; desc.iIndentColumns = 4;
     TRY(xideDpiCodeEditCreate(app->context, widget, &desc));
+    TRY(xuiCodeEditSetMinimap(*widget,1,96.0f));
     TRY(xideRegisterLanguages(xuiCodeEditGetLanguageRegistry(*widget)));
     return xideConfigureEditorLanguage(*widget, language);
 }

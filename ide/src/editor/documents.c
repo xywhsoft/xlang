@@ -89,6 +89,7 @@ static xide_document* acquire(xide_document_store* store,xide_model_error* error
     xui_code_edit_desc_t desc={0}; desc.iSize=sizeof(desc); desc.pFont=store->font;
     desc.bShowLineNumbers=1; desc.bShowFoldMargin=1; desc.iTabColumns=4; desc.iIndentColumns=4;
     int result=xideDpiCodeEditCreate(store->context,&document->editor,&desc);
+    if(result==XUI_OK) result=xuiCodeEditSetMinimap(document->editor,1,96.0f);
     if(result==XUI_OK) result=xideRegisterLanguages(xuiCodeEditGetLanguageRegistry(document->editor));
     if(result!=XUI_OK) {
         if(document->editor) xuiWidgetDestroy(document->editor);

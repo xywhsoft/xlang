@@ -132,7 +132,7 @@ static const color_rules rules[] = {
 	 "progress.fill_color hyperlink.text.color hyperlink.text.hover_color hyperlink.text.active_color msgbox.button.focus_color "
 	 "messagelist.avatar.self_color"},
 	{IDE_SELECTION, "button.checked_color button.active_color msgbox.button.active_color dockpanel.button.active_color dockpanel.float.title_color dockpanel.drag.preview_color "
-	 "textedit.selection.color codeedit.selection.color codeedit.minimap.viewport_color "
+	 "textedit.selection.color codeedit.selection.color "
 	 "terminal.selection.color listview.row.selected_color tableview.row.selected_color treeview.row.selected_color "
 	 "messagelist.row.selected_color messagelist.bubble.self_color messagelist.text.selection_color "
 	 "toolbar.item.checked_color toggle.track.hover_color treeview.expander.selected_background_color "
@@ -343,6 +343,10 @@ int ideThemeInit(xui_context context, int theme)
 	APPEND("listview.scrollbar.", scroll_rules); APPEND("tableview.scrollbar.", scroll_rules);
 	APPEND("treeview.scrollbar.", scroll_rules); APPEND("", extra_rules);
 #undef APPEND
+	if (result == XUI_OK) {
+		if (sheet->count >= COUNT(sheet->props)) result = XUI_ERROR_OUT_OF_MEMORY;
+		else sheet->props[sheet->count++] = token_property("codeedit.minimap.viewport_color", "ide.minimap-viewport");
+	}
 	char ansi_tokens[16][32];
 	for (int i = 0; i < 16 && result == XUI_OK; ++i) {
 		int n = sheet->count++;
@@ -389,6 +393,13 @@ int ideThemeApply(xui_context context, int theme)
 		value.iColor = i < IDE_COLOR_COUNT ? palettes[theme].colors[i] : ansi[palettes[theme].dark][i - IDE_COLOR_COUNT];
 		if (i >= IDE_COLOR_COUNT) snprintf(name, sizeof(name), "ide.ansi.%d", i - IDE_COLOR_COUNT);
 		result = xuiStyleSetToken(context, i < IDE_COLOR_COUNT ? tokens[i] : name, &value);
+	}
+	if (result == XUI_OK) {
+		/* Keep the source strokes visible below the minimap's viewport. */
+		xui_style_value_t value = {0};
+		value.iSize = sizeof(value); value.iType = XUI_STYLE_VALUE_COLOR;
+		value.iColor = (palettes[theme].colors[IDE_ACCENT] & 0xffffff00u) | 46u;
+		result = xuiStyleSetToken(context, "ide.minimap-viewport", &value);
 	}
 	int end = xuiStyleEndUpdate(context);
 	return result != XUI_OK ? result : end;
