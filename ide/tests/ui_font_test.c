@@ -65,7 +65,7 @@ static int bound(xide_app* app)
     if(xuiGetDefaultFont(app->context)!=app->uiFont || xuiMenuBarGetFont(app->menuBar)!=app->uiFont || xuiToolbarGetFont(app->toolbar)!=app->uiFont ||
        xuiStatusBarGetFont(app->statusBar)!=app->uiFont || xuiDockPanelGetFont(app->dock)!=app->uiFont || xuiTreeViewGetFont(app->commands)!=app->uiFont ||
        xuiTreeViewGetFont(app->workspace)!=app->uiFont || xuiLabelGetFont(app->helpTitle)!=app->uiFont || xuiCodeEditGetFont(app->helpExample)!=app->codeFont ||
-       xuiTextEditGetFont(app->panels[XIDE_OUTPUT])!=app->codeFont || xuiTerminalGetFont(app->panels[XIDE_TERMINAL])!=app->codeFont) return 0;
+       xuiCodeEditGetFont(app->panels[XIDE_OUTPUT])!=app->codeFont || xuiTerminalGetFont(app->panels[XIDE_TERMINAL])!=app->codeFont) return 0;
     for(int i=0;i<xuiMenuBarGetItemCount(app->menuBar);++i) { const xui_menubar_item_t* item=xuiMenuBarGetItem(app->menuBar,i); if(item && item->pMenu && xuiMenuGetFont(item->pMenu)!=app->uiFont) return 0; }
     float row=0; if(xuiTreeViewGetMetrics(app->commands,&row,NULL,NULL,NULL)!=XUI_OK || row<xideUiHeight(app,26)-0.01f) return 0;
     xui_font_metrics_t logical={0},physical={0};

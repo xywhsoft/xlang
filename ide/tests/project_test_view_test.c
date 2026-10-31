@@ -81,7 +81,7 @@ static int verify(void* data)
     xide_task* task=xideTaskViewSelected(&app); CHECK(task && !strcmp(xideTaskProjectId(task),"alpha") && !strcmp(app.workspaceModel.startupProject,"beta") && !strcmp(app.selectedProject,"alpha") && !c->dirty && !xl->dirty);
     CHECK(waitTask(&app,task,&info,1) && info.state==XIDE_TASK_SUCCEEDED && info.kind==XIDE_TASK_KIND_TEST && info.tested && !info.built && !info.ran);
     char terminal[32768]={0}; CHECK(xuiTerminalSerializeText(app.panels[XIDE_TERMINAL],terminal,sizeof(terminal))>=0 && strstr(terminal,"ARG[]") && strstr(terminal,"中文 参数") && strstr(terminal,"原生测试输入😀"));
-    CHECK(strstr(xuiTextEditGetText(app.panels[XIDE_OUTPUT]),"Raw test log") && xuiTreeViewGetNodeCount(app.panels[XIDE_TASKS])==1 && capture(&app,outputImage));
+    CHECK(strstr(xuiCodeEditGetText(app.panels[XIDE_OUTPUT]),"Raw test log") && xuiTreeViewGetNodeCount(app.panels[XIDE_TASKS])==1 && capture(&app,outputImage));
     CHECK(xideWorkspaceViewSelectProject(&app,"beta") && !xideActionQuery(&app,XIDE_ACTION_TEST).enabled && xideTasksCount(app.tasks)==1 && xideWorkspaceViewSelectProject(&app,"alpha"));
     CHECK(xideConfigurationViewOpen(&app) && choose(&app,9) && xuiEditSetText(xideConfigurationViewControl(&app,XIDE_CONFIG_TEST_PROGRAM),"")==XUI_OK && click(&app,XIDE_CONFIG_APPLY) && !xideActionQuery(&app,XIDE_ACTION_TEST).enabled && xideTasksCount(app.tasks)==1);
     CHECK(largeImage && xideConfigurationViewOpen(&app) && choose(&app,9) && xuiEditSetText(xideConfigurationViewControl(&app,XIDE_CONFIG_TEST_PROGRAM),"测试 程序.exe")==XUI_OK && xideUiFontApply(&app,app.uiFontPath,40,&error) && resize(&app,700,460));

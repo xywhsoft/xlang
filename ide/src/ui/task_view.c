@@ -9,6 +9,7 @@
 #include "platform/settings.h"
 #include "theme/theme.h"
 #include "services/editor_font.h"
+#include "lang/languages.h"
 #include <windows.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -24,7 +25,7 @@ struct xide_task_view {
     uint64_t omitted;
     size_t textSize,taskTitleCount,problemTitleCount;
     unsigned char pending[4]; size_t pendingCount;
-    int outputChanged,autoTerminal,autoInputProblems,settled,languageProblems,refreshingSelection;
+    int outputChanged,resetOutput,autoTerminal,autoInputProblems,settled,languageProblems,refreshingSelection;
     void* problemOwner; int (*problemJump)(xide_app*,size_t,void*);
     char status[1024];
 };
@@ -103,7 +104,7 @@ xide_task* xideTaskViewSelected(xide_app* app) { return app->taskView ? app->tas
 int xideTaskViewSelect(xide_app* app,xide_task* task)
 {
     xide_task_view* view=app->taskView; if(!view || !xideTasksContains(app->tasks,task)) return XUI_ERROR_INVALID_ARGUMENT;
-    view->languageProblems=0; view->problemOwner=NULL; view->problemJump=NULL; view->autoInputProblems=0; view->selected=task; view->settled=0; view->omitted=0; view->logCursor=view->terminalCursor=0; view->diagnosticCount=SIZE_MAX; view->textSize=view->pendingCount=0; view->text[0]=0; view->outputChanged=1;
+    view->languageProblems=0; view->problemOwner=NULL; view->problemJump=NULL; view->autoInputProblems=0; view->selected=task; view->settled=0; view->omitted=0; view->logCursor=view->terminalCursor=0; view->diagnosticCount=SIZE_MAX; view->textSize=view->pendingCount=0; view->text[0]=0; view->outputChanged=view->resetOutput=1;
     for(size_t i=0;i<xideTasksCount(app->tasks);++i) if(xideTasksAt(app->tasks,i)==task && i<(size_t)xuiTreeViewGetNodeCount(view->list)) {
         view->refreshingSelection=1; xuiTreeViewSetSelected(view->list,(int)i+1); view->refreshingSelection=0; break;
     }
@@ -174,8 +175,11 @@ int xideTaskViewCreate(xide_app* app)
     app->tasks=xideTasksCreate(); view->text=malloc(VIEW_LOG_LIMIT+1); view->display=malloc(VIEW_LOG_LIMIT+512); if(!app->tasks || !view->text || !view->display) return XUI_ERROR_OUT_OF_MEMORY; view->text[0]=0;
     xideAppLoadSettings(app);
     view->compiler=discoverCompiler(app->compilerPath,app->preferences.compiler);
-    xui_text_edit_desc_t output={0}; output.iSize=sizeof(output); output.pFont=app->codeFont; output.sText="构建输出和原始日志将在启动任务后显示。"; output.bReadonly=1; output.iMaxLength=VIEW_LOG_LIMIT+512;
-    TRY(xuiTextEditCreate(app->context,&view->output,&output)); app->panels[XIDE_OUTPUT]=view->output;
+    /* CodeEdit's wrapped viewport lays out visible rows. TextEdit re-shaped
+       the whole retained log on each update, stalling the owner/UI thread. */
+    xui_code_edit_desc_t output={0}; output.iSize=sizeof(output); output.pFont=app->codeFont; output.sText="构建输出和原始日志将在启动任务后显示。"; output.bReadonly=1; output.bWordWrap=1;
+    TRY(xuiCodeEditCreate(app->context,&view->output,&output)); app->panels[XIDE_OUTPUT]=view->output;
+    TRY(xideRegisterLanguages(xuiCodeEditGetLanguageRegistry(view->output))); TRY(xideConfigureEditorLanguage(view->output,"text"));
     xui_terminal_desc_t terminal={0}; terminal.iSize=sizeof(terminal); terminal.pFont=app->codeFont; terminal.iColumns=80; terminal.iRows=24; terminal.iScrollbackLimit=2000; terminal.iParseBudgetBytes=65536; xui_vec2_t cell={9,20}; if(app->codeFont && app->proxy.textMeasure) xideDpiTextMeasure(&app->proxy,app->codeFont," ",&cell); terminal.fCellWidth=cell.fX; terminal.fCellHeight=xideEditorLineHeight(app); terminal.fPadding=4;
     TRY(xuiTerminalCreate(app->context,&view->terminal,&terminal)); TRY(xuiTerminalSetInputCallback(view->terminal,terminalInput,app));
     TRY(xuiTerminalWriteText(view->terminal,"运行程序的管道会话：支持输入、输出与停止；Ctrl+D 关闭输入。\r\n")); app->panels[XIDE_TERMINAL]=view->terminal;
@@ -192,7 +196,8 @@ void xideTaskViewDestroy(xide_app* app)
 int xideTaskViewTheme(xide_app* app)
 {
     xide_task_view* view=app->taskView; if(!view) return XUI_OK;
-    TRY(xuiTextEditSetColors(view->output,ideThemeColor(app->theme,IDE_FIELD),ideThemeColor(app->theme,IDE_TEXT),ideThemeColor(app->theme,IDE_BORDER),ideThemeColor(app->theme,IDE_ACCENT)));
+    xui_code_style_t style={sizeof(style),ideThemeColor(app->theme,IDE_TEXT),ideThemeColor(app->theme,IDE_FIELD),0};
+    TRY(xuiCodeEditSetStyle(view->output,XUI_CODE_STYLE_DEFAULT,&style));
     return xuiTerminalSetColors(view->terminal,ideThemeColor(app->theme,IDE_FIELD),ideThemeColor(app->theme,IDE_TEXT),ideThemeColor(app->theme,IDE_TEXT),ideThemeColor(app->theme,IDE_SELECTION),ideThemeColor(app->theme,IDE_TEXT),ideThemeColor(app->theme,IDE_ACCENT),ideThemeColor(app->theme,IDE_ACCENT),ideThemeColor(app->theme,IDE_ACCENT));
 }
 static void refreshTrees(xide_app* app)
@@ -271,10 +276,16 @@ void xideTaskViewPoll(xide_app* app)
         snprintf(view->status,sizeof(view->status),"%s任务 #%llu · %s%s / %s · %llu ms%s%s",kindText(info.kind),(unsigned long long)info.id,stateText(info.state),coverage,phaseText(info.phase),(unsigned long long)info.durationMs,*info.error ? " · " : "",info.error);
         xuiStatusBarSetItemText(app->statusBar,0,view->status);
     }
-    if(view->outputChanged) {
+    int selectionStart=0,selectionEnd=0;
+    int selecting=xuiGetFocusWidget(app->context)==view->output &&
+        xuiCodeSelectionGetRange(xuiCodeEditGetSelection(view->output),&selectionStart,&selectionEnd)==XUI_OK && selectionStart!=selectionEnd;
+    /* Keep the visible snapshot stable while the user selects/copies it. Raw
+       capture and the bounded tail continue; clearing selection resumes it. */
+    if(view->outputChanged && (!selecting || view->resetOutput)) {
         size_t prefix=view->omitted ? (size_t)snprintf(view->display,512,"[显示已省略 %llu 字节；完整输出保存在任务原始日志]\n",(unsigned long long)view->omitted) : 0;
         memcpy(view->display+prefix,view->text,view->textSize+1);
-        xuiTextEditSetText(view->output,view->textSize ? view->display : "等待任务输出…"); view->outputChanged=0;
+        if(xuiCodeEditSetText(view->output,view->textSize ? view->display : "等待任务输出…")==XUI_OK &&
+           xideRefreshEditorSyntax(view->output)==XUI_OK) view->outputChanged=view->resetOutput=0;
     }
     if(busy) xgeRenderRequest();
 }
