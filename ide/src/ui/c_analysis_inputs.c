@@ -2,6 +2,7 @@
 #include "ui/c_completion_view.h"
 #include "ui/task_view.h"
 #include "services/c_commands.h"
+#include "services/execution_target.h"
 #include "platform/path.h"
 #include "platform/file_watch.h"
 #include <windows.h>
@@ -22,7 +23,8 @@ static xvalue* ccmodel(xide_app* a)
  xvalue *root=xrtValueObject(),*projects=xrtValueArray(); int ok=root && projects && ccput(root,"selected",xrtValueString(ccsv(a->selectedProject ? a->selectedProject : ""))) && ccput(root,"override",xrtValueString(ccsv(a->configurationId ? a->configurationId : ""))) && ccput(root,"compiler",xrtValueString(ccsv(compiler ? compiler : "")));
  for(size_t i=0;ok && i<a->workspaceModel.projectCount;++i) {
   xide_project* p=&a->workspaceModel.projects[i]; xvalue* item=xrtValueObject(); xvalue* source=p->available ? xideProjectExport(p,NULL) : xrtValueNull();
-  ok=item && source && ccput(item,"id",xrtValueString(ccsv(p->id))) && ccput(item,"manifest",xrtValueString(ccsv(p->manifest))) && ccput(item,"project",source) && xrtValueArrayAppend(projects,item); xrtValueRelease(item);
+  const char* config=xideExecutionConfiguration(a,p);
+  ok=item && source && ccput(item,"id",xrtValueString(ccsv(p->id))) && ccput(item,"manifest",xrtValueString(ccsv(p->manifest))) && ccput(item,"configuration",xrtValueString(ccsv(config ? config : ""))) && ccput(item,"project",source) && xrtValueArrayAppend(projects,item); xrtValueRelease(item);
  }
  if(ok) ok=xrtValueObjectSet(root,ccsv("projects"),projects);
  xrtValueRelease(projects); if(!ok) { xrtValueRelease(root); return NULL; } return root;
@@ -122,7 +124,7 @@ static int ccbridges(xide_c_inputs* b,xide_model_error* e)
   size_t slot=0; while(slot<count && owners[slot]!=owner) ++slot;
   if(slot==count) {
    if(count>=128) { free(origin); okay=0; break; }
-   xide_project* project=&b->app->workspaceModel.projects[owner]; owners[count]=owner; databases[count++]=xideCCommandsCreate(project,b->app->configurationId,NULL,e); if(!databases[slot]) { free(origin); okay=0; break; }
+   xide_project* project=&b->app->workspaceModel.projects[owner]; owners[count]=owner; databases[count++]=xideCCommandsCreate(project,xideExecutionConfiguration(b->app,project),NULL,e); if(!databases[slot]) { free(origin); okay=0; break; }
    if(b->extraCount>=128) { free(origin); okay=0; break; } b->extras[b->extraCount++]=project->manifest;
   }
   if(origin) okay=xideCCommandsAddContextFile(databases[slot],origin,file,e);
@@ -132,7 +134,7 @@ static int ccbridges(xide_c_inputs* b,xide_model_error* e)
  }
  for(size_t slot=0;okay && b->compiler && slot<count;++slot) {
   xide_project* p=&b->app->workspaceModel.projects[owners[slot]]; if(!p->entry || !xidePathHasExtension(p->entry,".xl")) continue;
-  const char* config=b->app->configurationId ? b->app->configurationId : p->activeConfiguration; xide_configuration* c=xideProjectFindConfiguration(p,config); char* directory=xidePathDirectory(p->manifest);
+  const char* config=xideExecutionConfiguration(b->app,p); xide_configuration* c=xideProjectFindConfiguration(p,config); char* directory=xidePathDirectory(p->manifest);
   xvalue *item=xrtValueObject(),*includes=xrtValueArray(),*sources=xrtValueArray(),*files=xrtValueArray(); char* entry=directory ? xidePathResolveLexical(directory,p->entry) : NULL;
   okay=c && directory && entry && item && includes && sources && files && ccaddPaths(includes,directory,&c->includePaths) && ccaddPaths(sources,directory,&p->cSources);
   for(size_t i=0;okay && i<xrtValueCount(b->commands);++i) { const char* file=ccstr(ccget(xrtValueArrayGet(b->commands,i),"file")); char* origin=NULL; if(ccinputOwner(b,file,&origin)==owners[slot]) okay=xrtValueArrayAppendNew(files,xrtValueString(ccsv(file))); free(origin); }
@@ -171,7 +173,7 @@ xide_c_inputs* xideCInputsCapture(xide_app* app,xide_document* root,xide_model_e
   xide_c_input* item=&b->items[i]; char* origin=NULL; int owner=cccontextOwner(app,item->document,&origin);
   if(owner>=0) {
    size_t slot=0; while(slot<ownerCount && owners[slot]!=owner) ++slot;
-   if(slot==ownerCount) { owners[ownerCount]=owner; databases[ownerCount++]=xideCCommandsCreate(&app->workspaceModel.projects[owner],app->configurationId,NULL,e); }
+   if(slot==ownerCount) { owners[ownerCount]=owner; databases[ownerCount++]=xideCCommandsCreate(&app->workspaceModel.projects[owner],xideExecutionConfiguration(app,&app->workspaceModel.projects[owner]),NULL,e); }
    okay=databases[slot] && (!origin || xideCCommandsAddContextFile(databases[slot],origin,item->path,e));
   } else if(owner==-1) { xvalue* addition=ccstandalone(item->path); okay=addition && ccmerge(b->commands,addition); xrtValueRelease(addition); }
   else okay=0;

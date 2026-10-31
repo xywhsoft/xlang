@@ -1,4 +1,5 @@
 #include "ui/task_view.h"
+#include "services/execution_target.h"
 #include "ui/language_view.h"
 #include "ui/completion_view.h"
 #include "ui/c_completion_view.h"
@@ -60,6 +61,7 @@ static const char* stateText(enum xide_task_state state)
 {
     const char* names[]={"排队","执行","取消中","成功","失败","已取消"}; return state>=XIDE_TASK_QUEUED && state<=XIDE_TASK_CANCELLED ? names[state] : "未知";
 }
+int xideTaskViewShow(xide_app* app) { return show(app,xideTaskViewSelected(app) ? XIDE_OUTPUT : XIDE_TASKS); }
 static const char* phaseText(enum xide_task_phase phase)
 {
     const char* names[]={"准备","工具链检查","构建","运行","结束","测试"}; return phase>=XIDE_TASK_PREPARE && phase<=XIDE_TASK_TEST ? names[phase] : "未知";
@@ -301,18 +303,21 @@ int xideTaskViewCanBuildFile(xide_app* app)
 }
 int xideTaskViewAction(xide_app* app,int action)
 {
-    if((action<XIDE_ACTION_BUILD || action>XIDE_ACTION_CLOSE_INPUT) && action!=XIDE_ACTION_TEST && action!=XIDE_ACTION_BUILD_FILE && action!=XIDE_ACTION_RUN_FILE) return 0;
+    if((action<XIDE_ACTION_BUILD || action>XIDE_ACTION_CLOSE_INPUT) && action!=XIDE_ACTION_TEST && action!=XIDE_ACTION_BUILD_FILE && action!=XIDE_ACTION_RUN_FILE && action!=XIDE_ACTION_STOP_ALL) return 0;
     xide_task_view* view=app->taskView; if(!view) return 1;
-    if(action==XIDE_ACTION_STOP) { for(size_t i=0;i<xideTasksCount(app->tasks);++i) xideTaskCancel(xideTasksAt(app->tasks,i)); return 1; }
+    if(action==XIDE_ACTION_STOP) { xideTaskCancel(view->selected); return 1; }
+    if(action==XIDE_ACTION_STOP_ALL) { for(size_t i=0;i<xideTasksCount(app->tasks);++i) xideTaskCancel(xideTasksAt(app->tasks,i)); return 1; }
     if(action==XIDE_ACTION_CLOSE_INPUT) { xideTaskCloseInput(view->selected); return 1; }
     if(action==XIDE_ACTION_COMPILER) {
         char* compiler=xideMessageChoosePath(app,XUI_FILE_DIALOG_MODE_OPEN_FILE,"选择 xlang 编译器","可执行程序|*.exe;*|所有文件|*.*",view->compiler,NULL,UINT64_C(720),0);
         if(compiler) { xide_model_error error={0}; if(!xideSettingsSetCompiler(&app->preferences,compiler,&error)) { report(app,error.message);free(compiler); } else { free(view->compiler); view->compiler=compiler; } } return 1;
     }
     int run=action==XIDE_ACTION_RUN || action==XIDE_ACTION_RUN_FILE,test=action==XIDE_ACTION_TEST;
-    int file=action==XIDE_ACTION_BUILD_FILE || action==XIDE_ACTION_RUN_FILE || (!test && !app->workspaceModel.projectCount);
-    const char* id=run ? app->workspaceModel.startupProject : app->selectedProject;
-    xide_project* project=xideWorkspaceFindProject(&app->workspaceModel,id ? id : ""); xide_model_error error={0};
+    xide_execution_context context;xideExecutionResolve(app,action==XIDE_ACTION_BUILD_FILE || action==XIDE_ACTION_RUN_FILE,&context);
+    xide_action_state allowed=xideExecutionQuery(app,action);
+    if(!allowed.enabled) { report(app,allowed.reason);app->taskExit=1;return 1; }
+    int file=context.file;
+    xide_project* project=context.project;xide_model_error error={0};
     if(file) {
         if(!view->compiler || !*view->compiler || !xideTaskViewCanBuildFile(app)) { report(app,"请打开 C/xlang 源文件并选择编译器。"); app->taskExit=1; return 1; }
         xide_document* document=app->activeDocument;
@@ -326,24 +331,26 @@ int xideTaskViewAction(xide_app* app,int action)
         xideTaskViewSelect(app,task); view->automatic=task; view->autoTerminal=0; view->autoInputProblems=0; app->taskExit=0; show(app,XIDE_OUTPUT); xgeRenderRequest(); return 1;
     }
     if(!project || !project->available || (!test && !view->compiler)) { report(app,test ? "请选择可用项目并配置测试程序。" : "请选择可用项目和 xlang 编译器；运行还需要设置启动项目。"); app->taskExit=1; return 1; }
-    char* selected=malloc(strlen(project->id)+1); if(!selected) { app->taskExit=1; return 1; } strcpy(selected,project->id);
-    if(!xideEditorSaveForProject(app,project)) { free(selected); if(!xideMessagePending(app)) app->taskExit=1; return 1; }
+    char* selected=malloc(strlen(project->id)+1);
+    char* configuration=malloc(strlen(context.configurationId)+1);
+    if(!selected || !configuration) { free(selected);free(configuration);app->taskExit=1;return 1; }
+    strcpy(selected,project->id);strcpy(configuration,context.configurationId);
+    if(!xideEditorSaveForProject(app,project)) { free(selected);free(configuration); if(!xideMessagePending(app)) app->taskExit=1; return 1; }
     project=xideWorkspaceFindProject(&app->workspaceModel,selected); free(selected);
-    if(!project || !project->available) { report(app,"保存清单后，构建项目已被移除或不可用。"); app->taskExit=1; return 1; }
-    if(project->dirty && !xideProjectSave(project,NULL,&error)) { report(app,error.message); app->taskExit=1; return 1; }
+    if(!project || !project->available || !xideProjectFindConfiguration(project,configuration)) { free(configuration);report(app,"保存清单后，目标项目或配置已失效。"); app->taskExit=1; return 1; }
+    if(project->dirty && !xideProjectSave(project,NULL,&error)) { free(configuration);report(app,error.message); app->taskExit=1; return 1; }
     xideWorkspaceViewRefresh(app);
-    const char* configuration=app->configurationId ? app->configurationId : project->activeConfiguration && *project->activeConfiguration ? project->activeConfiguration : NULL;
     xide_strings pending={0};
     if(!test) {
         pending.items=calloc(app->documents.count+1,sizeof(*pending.items));
-        if(!pending.items) { report(app,"无法冻结未保存文档的输入保护；请稍后重试。"); app->taskExit=1; return 1; }
+        if(!pending.items) { free(configuration);report(app,"无法冻结未保存文档的输入保护；请稍后重试。"); app->taskExit=1; return 1; }
         for(size_t i=0;i<app->documents.count;++i) {
             xide_document* d=app->documents.items[i];
             if(d->open && d->dirty && d->path) pending.items[pending.count++]=d->path;
         }
     }
     xide_task* task=test ? xideTasksTest(app->tasks,project,configuration,&error) : xideTasksBuildGuarded(app->tasks,project,configuration,view->compiler,run,&pending,&error);
-    free(pending.items);
+    free(pending.items);free(configuration);
     if(!task) { report(app,error.message); app->taskExit=1; return 1; }
     xideTaskViewSelect(app,task); view->automatic=task; view->autoTerminal=0; view->autoInputProblems=0; app->taskExit=0; show(app,XIDE_OUTPUT); xgeRenderRequest(); return 1;
 }

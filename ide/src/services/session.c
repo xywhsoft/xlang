@@ -3,6 +3,7 @@
 #include "services/migration_journal.h"
 #include "services/recovery.h"
 #include "ui/reading_state.h"
+#include "services/execution_target.h"
 #include "ui/recovery_view.h"
 #include "platform/state_file.h"
 #include "platform/recovery_store.h"
@@ -748,6 +749,7 @@ int xideSessionBeforeWorkspace(xide_app* app,xide_model_error* error)
 }
 void xideSessionAfterWorkspace(xide_app* app)
 {
+    if(!app->session || !app->session->restoring)xideExecutionReset(app);
     if(!app->session || app->session->restoring) return;
     if(configure(app)) restore(app); else report(app,"会话目录初始化失败。");
     app->session->fingerprint=current(app); app->session->due=0;

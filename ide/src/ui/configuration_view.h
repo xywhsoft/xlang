@@ -11,6 +11,7 @@ enum xide_configuration_control {
 int xideConfigurationViewCreate(xide_app* app);
 void xideConfigurationViewDestroy(xide_app* app);
 int xideConfigurationViewOpen(xide_app* app);
+int xideConfigurationViewOpenProject(xide_app* app,const char* projectId);
 int xideConfigurationViewIsOpen(xide_app* app);
 void xideConfigurationViewLayout(xide_app* app);
 xui_widget xideConfigurationViewControl(xide_app* app,int control);

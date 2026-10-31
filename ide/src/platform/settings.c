@@ -134,6 +134,25 @@ int xideSettingsSetCompiler(xide_settings* settings,const char* compiler,xide_mo
 { return setExecutable(settings,compiler,"compiler",error); }
 int xideSettingsSetCServer(xide_settings* settings,const char* server,xide_model_error* error)
 { return setExecutable(settings,server,"cServer",error); }
+int xideSettingsRememberOpen(xide_settings* settings,const char* path,xide_model_error* error)
+{
+    if(error)memset(error,0,sizeof(*error));
+    if(!settings || !settings->path || !settings->source)return fail(error,XIDE_MODEL_INVALID,"Preferences are unavailable.");
+    char* resolved=xidePathResolve(NULL,path);if(!resolved || strlen(resolved)>8192) { free(resolved);return fail(error,XIDE_MODEL_INVALID,"Invalid recent path."); }
+    xvalue *root=xrtValueDeepClone(settings->source),*recent=xrtValueArray();int okay=root && recent;
+    if(okay)okay=xrtValueArrayAppendNew(recent,xrtValueString(sv(resolved)));
+    const xvalue* old=get(settings->source,"recent");
+    for(size_t i=0;okay && xrtValueIs(old,XVALUE_ARRAY) && i<xrtValueCount(old) && i<12 && xrtValueCount(recent)<12;++i) {
+        char* previous=string(xrtValueArrayGet(old,i));
+        if(previous && strlen(previous)<=8192 && !xidePathEqual(previous,resolved))okay=xrtValueArrayAppendNew(recent,xrtValueString(sv(previous)));
+        free(previous);
+    }
+    if(okay)okay=xrtValueObjectSetNew(root,sv("recent"),recent);else xrtValueRelease(recent);
+    if(okay)okay=xrtValueObjectSetNew(root,sv("format"),xrtValueString(sv("xlang-ide-settings-1"))) && writeSettings(settings,root,error);
+    xrtValueRelease(root);free(resolved);
+    if(!okay && error && !error->code)fail(error,XIDE_MODEL_MEMORY,"Cannot save recent paths; the previous list is preserved.");
+    return okay;
+}
 /* Shared settings object retains compiler and unknown JSON members. */
 static int setFont(xide_settings* settings,const char* path,int size,const char* section,xide_model_error* error)
 {

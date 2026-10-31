@@ -16,6 +16,7 @@
 #include "platform/runtime_failure.h"
 typedef struct xide_workspace_view xide_workspace_view;
 typedef struct xide_task_view xide_task_view;
+typedef struct xide_main_toolbar xide_main_toolbar;
 typedef struct xide_configuration_view xide_configuration_view;
 typedef struct xide_references_view xide_references_view;
 typedef struct xide_resource_view xide_resource_view;
@@ -74,6 +75,8 @@ typedef struct xide_app {
     xide_import_view* importView;
     xide_rename_view* renameView;
     xide_tasks* tasks; xide_task_view* taskView;
+    xide_main_toolbar* mainToolbar;
+    xvalue* executionTarget; uint64_t executionRevision;
     const char *compilerPath,*configurationId,*settingsPath,*cServerPath;
     int initialChapter,initialChapterRequested;
     int initialTask,waitTask,taskExit,initialConfigurations; uint64_t taskStartMs;

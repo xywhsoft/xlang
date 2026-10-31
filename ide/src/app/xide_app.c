@@ -9,6 +9,8 @@
 #include "ui/workspace_view.h"
 #include "ui/editor_view.h"
 #include "ui/task_view.h"
+#include "ui/main_toolbar.h"
+#include "services/execution_target.h"
 #include "ui/configuration_view.h"
 #include "ui/references_view.h"
 #include "ui/resource_view.h"
@@ -144,6 +146,7 @@ void xideAppDestroy(xide_app* app)
     xuiCodeFindScopeDestroy(app->editorFindScope); app->editorFindScope=NULL;
     if (app->context) { xideMessageDestroy(app); xideDialogDestroyAll(app); xideDocumentsClear(&app->documents); xuiDestroy(app->context); }
     xideActionsDestroy(app);
+    xideMainToolbarDestroy(app);xideExecutionReset(app);
     xideCatalogViewDestroy(app); xideCatalogClear(&app->catalog);
     xideCLanguageViewDestroy(app); xideCCompletionViewDestroy(app); xideCompletionViewDestroy(app); xideLanguageViewDestroy(app); xideToolchainViewDestroy(app); xideFileChangesViewDestroy(app); xideRecoveryViewDestroy(app); xideFontViewDestroy(app); xideGotoViewDestroy(app); xideTemplateViewDestroy(app); xideRenameViewDestroy(app); xideResourceViewDestroy(app); xideReferencesViewDestroy(app); xideConfigurationViewDestroy(app); xideTaskViewDestroy(app); xideWorkspaceViewDestroy(app); xideWorkspaceClear(&app->workspaceModel); free(app->selectedProject); app->selectedProject=NULL;
     if (app->codeFont && app->codeFont != app->uiFont) app->proxy.fontDestroy(&app->proxy, app->codeFont);

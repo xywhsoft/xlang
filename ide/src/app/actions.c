@@ -9,6 +9,8 @@
 #include "services/ui_font.h"
 #include "ui/workspace_view.h"
 #include "ui/task_view.h"
+#include "services/execution_target.h"
+#include "ui/main_toolbar.h"
 #include "platform/path.h"
 #include "ui/configuration_view.h"
 #include "ui/references_view.h"
@@ -97,7 +99,11 @@ static const action_def definitions[]={
     A(XIDE_ACTION_BUILD_FILE,"task.buildFile","构建当前文件",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,BUILD_FILE,NO_CHECK,xideTaskViewAction),
     A(XIDE_ACTION_RUN_FILE,"task.runFile","构建并运行当前文件",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,BUILD_FILE,NO_CHECK,xideTaskViewAction),
     A(XIDE_ACTION_TEST,"task.test","运行所选项目测试","测试","Ctrl+F7",XUI_KEY_F7,XUI_MOD_CTRL,XIDE_SHORTCUT_GLOBAL,0,TEST,NO_CHECK,xideTaskViewAction),
-    A(XIDE_ACTION_STOP,"task.stop","停止任务","停止","Shift+F5",XUI_KEY_F5,XUI_MOD_SHIFT,XIDE_SHORTCUT_GLOBAL,0,STOP,NO_CHECK,xideTaskViewAction),
+    A(XIDE_ACTION_STOP,"task.stop","停止当前任务","停止","Shift+F5",XUI_KEY_F5,XUI_MOD_SHIFT,XIDE_SHORTCUT_GLOBAL,0,STOP,NO_CHECK,xideTaskViewAction),
+    A(XIDE_ACTION_STOP_ALL,"task.stopAll","停止全部任务",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,STOP,NO_CHECK,xideTaskViewAction),
+    A(XIDE_ACTION_TARGET_CONFIGURATIONS,"task.configurations","编辑目标配置…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,TASK_VIEW,NO_CHECK,xideMainToolbarAction),
+    A(XIDE_ACTION_SHOW_TASKS,"task.show","查看任务与输出",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,TASK_VIEW,NO_CHECK,xideMainToolbarAction),
+    A(XIDE_ACTION_OPEN_RECENT,"file.openRecent","打开最近项目或文件",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,DOCUMENTS,NO_CHECK,xideMainToolbarAction),
     A(XIDE_ACTION_C_SERVER,"language.cServer","选择 C 语言服务器…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,WORKBENCH,NO_CHECK,xideCCompletionViewAction),
     A(XIDE_ACTION_COMPILER,"task.compiler","选择 xlang 编译器…",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,TASK_VIEW,NO_CHECK,xideTaskViewAction),
     A(XIDE_ACTION_CLOSE_INPUT,"task.closeInput","关闭会话输入",NULL,NULL,0,0,XIDE_SHORTCUT_GLOBAL,0,INPUT,NO_CHECK,xideTaskViewAction),
@@ -138,9 +144,14 @@ xide_action_state xideActionQuery(xide_app* a,int id)
     if(d->check==THEME_CHECK) state.checked=a->theme==id-XIDE_ACTION_THEME_CLASSIC;
     else if(d->check==LANGUAGE_CHECK && doc) { const char* modes[]={"c","xlang","text"}; state.checked=!strcmp(doc->language,modes[id-XIDE_ACTION_LANGUAGE_C]); }
     else if(d->check==STARTUP_CHECK) state.checked=project && startup==project;
-    if(id!=XIDE_ACTION_STOP && xideActionsHasModal(a)) { state.reason="请先完成或关闭当前设置窗口"; return state; }
+    if(id!=XIDE_ACTION_STOP && id!=XIDE_ACTION_STOP_ALL && xideActionsHasModal(a)) { state.reason="请先完成或关闭当前设置窗口"; return state; }
     int loaded=a->workspaceView && a->workspaceModel.source,available=project && project->available;
-    int writable=doc && !xuiCodeEditIsReadonly(doc->editor); const char* compiler=xideTaskViewCompiler(a);
+    if(id==XIDE_ACTION_TARGET_CONFIGURATIONS) {
+        xide_execution_context target;xideExecutionResolve(a,0,&target);
+        state.enabled=a->configurationView && target.project && target.project->available;
+        state.reason=state.enabled ? NULL : "请选择可用项目目标后编辑配置";return state;
+    }
+    int writable=doc && !xuiCodeEditIsReadonly(doc->editor);
     switch(d->need) {
     case SOURCE_DECLARATION: state.enabled=xideCatalogSourceAvailable(a,0); state.reason="请先选择命令"; break;
     case SOURCE_DOCUMENT: state.enabled=xideCatalogSourceAvailable(a,1); state.reason="当前命令没有选中的帮助文档"; break;
@@ -178,17 +189,12 @@ xide_action_state xideActionQuery(xide_app* a,int id)
     }
     case SIGNATURE: state.enabled=writable && doc->path && !strcmp(doc->language,"xlang") && a->completionView && xideTaskViewCompiler(a);state.reason="请打开 xlang 源文件并选择编译器";break;
     case COMPLETION: state.enabled=writable && strcmp(doc->language,"text") && a->catalogView; state.reason="当前文档没有目录补全"; break;
-    case BUILD: state.enabled=a->tasks && compiler && *compiler && (available || (!a->workspaceModel.projectCount && xideTaskViewCanBuildFile(a))); state.reason="请打开 C/xlang 文件或可用项目，并选择编译器"; break;
-    case RUN: state.enabled=a->tasks && compiler && *compiler && ((startup && startup->available && !strcmp(startup->kind,"exe")) || (!a->workspaceModel.projectCount && xideTaskViewCanBuildFile(a))); state.reason="请打开 C/xlang 文件或配置可运行的启动项目，并选择编译器"; break;
-    case BUILD_FILE: state.enabled=a->tasks && compiler && *compiler && xideTaskViewCanBuildFile(a); state.reason="请打开 C/xlang 源文件并选择编译器；未命名文件会先另存为"; break;
-    case TEST: {
-        const char* id=a->configurationId ? a->configurationId : available ? project->activeConfiguration : NULL;
-        xide_configuration* config=available ? xideProjectFindConfiguration(project,id) : NULL;
-        if(!config && available && (!id || !*id) && project->configurationCount) config=&project->configurations[0];
-        state.enabled=a->tasks && config && config->test.program && *config->test.program && xidePathHasExtension(config->test.program,".exe");
-        state.reason="请为所选项目的当前配置填写测试程序"; break;
+    case BUILD: case RUN: case BUILD_FILE: case TEST: state=xideExecutionQuery(a,id); break;
+    case STOP: {
+        xide_task* task=xideTaskViewSelected(a);xide_task_info info={0};xideTaskInfo(task,&info);
+        state.enabled=id==XIDE_ACTION_STOP_ALL ? a->tasks && xideTasksBusy(a->tasks) : task && info.state<XIDE_TASK_SUCCEEDED;
+        state.reason=id==XIDE_ACTION_STOP_ALL ? "没有活动或排队任务" : "当前所选任务没有运行；可从任务列表选择其他任务";break;
     }
-    case STOP: state.enabled=a->tasks && xideTasksBusy(a->tasks); state.reason="没有活动或排队任务"; break;
     case INPUT: state.enabled=xideTaskInputOpen(xideTaskViewSelected(a)); state.reason="当前所选任务没有开放的会话输入"; break;
     case TASK_VIEW: state.enabled=a->taskView!=NULL; break;
     case FONT_VIEW: state.enabled=a->fontView!=NULL; break;
