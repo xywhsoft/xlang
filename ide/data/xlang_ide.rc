@@ -1,0 +1,3 @@
+#include "../src/platform/app_resources.h"
+
+XIDE_RESOURCE_APP_ICON ICON "xlang_ide.ico"

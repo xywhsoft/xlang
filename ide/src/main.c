@@ -2,6 +2,7 @@
 #include "theme/theme.h"
 #include "platform/startup_alias.h"
 #include "platform/path.h"
+#include "platform/window_state.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -108,7 +109,7 @@ int main(void)
         desc.iRunMode = XGE_RUN_GAME_LOOP; desc.iTargetFPS = app.maxFrames ? 60 : 30;
         int result = xgeInit(&desc);
         if(result!=XGE_OK)xideFailureSet(&app.failure,XIDE_FAILURE_WINDOW,"XGE",result,"Unable to initialize the window and graphics environment.","xgeInit");
-        if (result == XGE_OK) { xgeRenderRequest(); result = xgeRun(xideAppFrame, &app); }
+        if (result == XGE_OK) { xideWindowSetApplicationIcon(xgePlatformNativeHandle()); xgeRenderRequest(); result = xgeRun(xideAppFrame, &app); }
         if (app.frameError) result = app.frameError;
         if (result == XGE_OK && (app.frames == 0 || (app.maxFrames && app.frames < app.maxFrames))) result = XGE_ERROR;
         if (result != XGE_OK) {
