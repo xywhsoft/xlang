@@ -73,7 +73,8 @@ static int sourceCreate(xide_app* app)
     xui_widget children[]={view->sourceTitle,view->sourceStatus,editor,view->sourceClose};
     for(int i=0;i<4;++i) TRY(xuiWidgetSetSizeMode(children[i],XUI_SIZE_FILL,i==2 ? XUI_SIZE_FILL : XUI_SIZE_FIXED));
     TRY(xuiWidgetAddChild(view->sourceContent,view->sourceClose));
-    TRY(xideDialogSetCancel(view->sourceWindow,sourceClosed,app)); TRY(xideDialogSetChange(view->sourceWindow,sourceChanged,app)); TRY(xideUiFontBindWidget(app,view->sourceWindow));
+    TRY(xideDialogSetCancel(view->sourceWindow,sourceClosed,app)); TRY(xuiWidgetSetCancelAction(editor,sourceClosed,app));
+    TRY(xideDialogSetChange(view->sourceWindow,sourceChanged,app)); TRY(xideUiFontBindWidget(app,view->sourceWindow));
     view->sourceEditor=editor; TRY(sourceTheme(app)); return XUI_OK;
 }
 static const char* selectedSource(xide_app* app,int document,int* line)
@@ -393,6 +394,8 @@ static int identifier(unsigned char c) { return c>=128 || isalnum(c) || c=='_' |
 static int complete(xui_widget editor,int offset,const char* prefix,xui_code_completion_item_t* items,int capacity,int* count,void* user)
 {
     (void)prefix; xide_app* app=user; if(!count) return XUI_ERROR_INVALID_ARGUMENT; *count=0;
+    /* The matched SDK validates the number of initialized output slots. */
+    if(!items || capacity<=0) return XUI_OK;
     const char* text=xuiCodeEditGetText(editor); xui_code_document document=xuiCodeEditGetDocument(editor);
     if(!text || offset<0 || offset>xuiCodeDocumentGetLength(document) || xuiCodeEditIsReadonly(editor) || !app->catalogView) return XUI_OK;
     int open=0; for(size_t i=0;i<app->documents.count;++i) if(app->documents.items[i]->editor==editor && app->documents.items[i]->open) open=1;

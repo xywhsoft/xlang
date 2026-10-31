@@ -1,6 +1,6 @@
 --- a/src/xui/code/xui_code_edit.c
 +++ b/src/xui/code/xui_code_edit.c
-@@ -7,6 +7,11 @@
+@@ -11,6 +11,11 @@
  #include <string.h>
  #include <stdlib.h>
  #include <math.h>
@@ -12,7 +12,7 @@
  
  typedef struct xui_code_completion_owned_item_t {
  	xui_code_completion_item_t tItem;
-@@ -201,6 +206,14 @@
+@@ -209,6 +214,14 @@
  	unsigned char* pWrapMeasured;
  	int iWrapIndexCount;
  	uint32_t iWrapDocumentVersion;
@@ -27,7 +27,7 @@
  	uint32_t iWrapFoldSignature;
  	float fWrapLayoutWidth;
  	xui_font pWrapLayoutFont;
-@@ -2944,8 +2957,24 @@
+@@ -3025,8 +3038,24 @@
  	}
  	if ( fContentWidth < tRect.fW ) fContentWidth = tRect.fW;
  	if ( fContentHeight < tRect.fH ) fContentHeight = tRect.fH;
@@ -54,7 +54,7 @@
  	for ( i = 0; i < 4; i++ ) {
  		tViewport = (xui_rect_t){
  			0.0f,
-@@ -3013,6 +3042,15 @@
+@@ -3094,6 +3123,15 @@
  		pData->bSyncingScrollBars = 0;
  		if ( iRet != XUI_OK ) return iRet;
  	}
@@ -70,7 +70,7 @@
  	return iRet;
  }
  
-@@ -5671,6 +5709,61 @@
+@@ -5874,6 +5912,61 @@
  	return __xuiCodeEditDrawRectFill(pProxy, pDraw, tRect, iColor);
  }
  
@@ -132,7 +132,7 @@
  static int __xuiCodeEditRenderFindResults(xui_proxy pProxy, xui_draw_context pDraw, xui_font pFont, xui_code_edit_data_t* pData, xui_rect_t tContent, int iLineStart, int iLineEnd, float fTextX, float fY, float fColumnWidth, float fLineHeight, uint32_t iResultColor, uint32_t iActiveColor)
  {
  	const xui_find_result_t* pResult;
-@@ -6231,6 +6324,11 @@
+@@ -6440,6 +6533,11 @@
  			if ( iLine == iActiveLine ) {
  				iRet = __xuiCodeEditDrawRectFill(pProxy, pDraw, (xui_rect_t){tTextContent.fX, fY, tTextContent.fW, fLineHeight}, iCurrentLineColor);
  			}
@@ -144,7 +144,7 @@
  			if ( iRet == XUI_OK ) {
  				iRet = __xuiCodeEditRenderFindResults(pProxy, pDraw, pFont, pData,
  					tTextContent, iPaintStart, iPaintEnd, 0.0f, fY,
-@@ -7117,6 +7215,11 @@
+@@ -7330,6 +7428,11 @@
  	}
  
  cleanup:
@@ -156,7 +156,7 @@
  	xrtFree(sText);
  	return iRet;
  }
-@@ -8317,9 +8420,9 @@
+@@ -8522,9 +8625,9 @@
  		if ( pData == NULL ) continue;
  		iCount = 0;
  		iRet = xuiCodeEditFindAll(pEditor, pOptions, &iCount);
@@ -168,7 +168,7 @@
  		for ( j = 0; j < pData->iFindResultCount; j++ ) {
  			__xuiCodeEditFillFindResult(pEditor, pData, &pData->pFindResults[j], &tResult);
  			pScope->pResults[pScope->iResultCount++] = tResult;
-@@ -8327,6 +8430,17 @@
+@@ -8532,6 +8635,17 @@
  	}
  	if ( pResultCount != NULL ) *pResultCount = pScope->iResultCount;
  	return XUI_OK;
@@ -186,7 +186,7 @@
  }
  
  XUI_API int xuiCodeFindScopeGetResultCount(xui_code_find_scope pScope)
-@@ -8617,7 +8731,8 @@
+@@ -8822,7 +8936,8 @@
  		snprintf(sStatus, sizeof(sStatus), xuiTranslate(xuiWidgetGetContext(pCodeEdit), XUI_TR_FIND_MATCHES_FMT), iCount);
  		__xuiCodeEditFindWindowSetStatus(pData, sStatus);
  	} else if ( iRet != XUI_OK ) {
@@ -196,7 +196,7 @@
  	}
  }
  
-@@ -9118,6 +9233,16 @@
+@@ -9335,6 +9450,16 @@
  			tSelection.iCaretOffset, &iCaretVisualRow, NULL, NULL,
  			&fWrapCaretX);
  		if ( iRet != XUI_OK ) return iRet;
@@ -213,7 +213,7 @@
  	}
  	/* Updating the scroll model observes visible lines through sReadBuffer.
  	 * Reacquire the caret line before measuring it; the earlier pointer may
-@@ -9127,7 +9252,8 @@
+@@ -9344,7 +9469,8 @@
  	fCaretX = (fWrapCaretX >= 0.0f) ? fWrapCaretX :
  		__xuiCodeEditLineOffsetX(pProxy, pFont, pData, sText, 0,
  			tSelection.iCaretOffset - iStart, fColumnWidth);

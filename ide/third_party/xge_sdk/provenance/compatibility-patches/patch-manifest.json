@@ -1,27 +1,27 @@
 {
   "format": "xlang-ide-xge-source-patches-1",
-  "baseCommit": "f248fd17192b3eb81c2a29dc34549b696e6e4c43",
-  "reason": "Preserve Unicode find compatibility; render generic BACKGROUND indicators through an indexed visible-range union and existing native glyph layouts; stabilize wrapped scrolling and caret visibility after layout changes",
+  "baseCommit": "93b446cf83ce20284f41aa794ed61e3302348ac4",
+  "reason": "Retain IDE Unicode escape validation, indexed background indicators, stable wrapped scrolling/caret and XRT process-tree cleanup; rebased on current upstream transactional annotation semantics",
   "publicHeadersChanged": false,
   "files": [
     {
       "path": "src/xui/controls/xui_find.c",
-      "upstreamSha256": "fb13dc156f947b4df1ee9c404cfdc7f71137dde2d808daf2ab70213c20532fea",
-      "sha256": "2dd3bde220654d7fa5c34f007f8d5064f34e9fa689cb41c8a8f5c634a6852d81",
+      "upstreamSha256": "69fbc6f26789dc76bd9e7452c900bfcb71b09088b683b65b10b940dbbb6afd22",
+      "sha256": "119950af38e3d0d1617d1b666d2d046b7b2d8d360e0cf60b99b8b7aa91983832",
       "payload": "xui_find.c",
       "diff": "xui_find.patch"
     },
     {
       "path": "src/xui/code/xui_code_edit.c",
-      "upstreamSha256": "45101a68261a89c8e99143157bebb266e9f65978d41a565779e29a16bb278c7e",
-      "sha256": "0bd3593969654dd5e2e13a059a2789470c6226adb654d2c51ac0d340d8aacfc4",
+      "upstreamSha256": "f5de6bd0d5c1ddbe80d8a71fd80f49a3cf0e999da4375bf0b0b1016139f39db1",
+      "sha256": "943ae32753216072fc348b4eae6deb52c1441f8b1da85e0b977fa68c4b57d401",
       "payload": "xui_code_edit.c",
       "diff": "xui_code_edit.patch"
     },
     {
       "path": "src/xui/code/xui_code_annotation.c",
-      "upstreamSha256": "08eec21cf2b42a2582f5c3ec71ca966aa69c643480c2aaef86bce5495c3a9a42",
-      "sha256": "e477a131fea6c1eb5b33cff656495154fd2e999420cd8b38cf1a4776dbfb1f7c",
+      "upstreamSha256": "b0568d9d2a99261244b4e50253fa483ab70f62f348af240fabd1fea85193a25f",
+      "sha256": "3bd2b3e67c77d6915aa2df0b5df62451e88ca1d025cb7dddc42eaf619d3f4105",
       "payload": "xui_code_annotation.c",
       "diff": "xui_code_annotation.patch"
     },

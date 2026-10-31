@@ -2,6 +2,7 @@
 #if XUI_ENABLE_CODE_EDIT
 #include "xui.h"
 
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -60,59 +61,104 @@ static void __xuiCodeAnnotationFreeDiagnostic(xui_code_diagnostic_t* pDiagnostic
 	memset(pDiagnostic, 0, sizeof(*pDiagnostic));
 }
 
+static int __xuiCodeAnnotationNextCapacity(int iCurrent, int iRequired,
+	size_t iItemSize, int* pCapacity)
+{
+	int iCapacity;
+
+	if ( iCurrent < 0 || iRequired < 0 || iItemSize == 0 || pCapacity == NULL ) {
+		return XUI_ERROR_INVALID_ARGUMENT;
+	}
+	if ( iRequired <= iCurrent ) {
+		*pCapacity = iCurrent;
+		return XUI_OK;
+	}
+	iCapacity = (iCurrent > 0) ? iCurrent : 16;
+	while ( iCapacity < iRequired ) {
+		if ( iCapacity > INT_MAX / 2 ) {
+			iCapacity = iRequired;
+			break;
+		}
+		iCapacity *= 2;
+	}
+	if ( (size_t)iCapacity > SIZE_MAX / iItemSize ) return XUI_ERROR_LIMIT_EXCEEDED;
+	*pCapacity = iCapacity;
+	return XUI_OK;
+}
+
 static int __xuiCodeAnnotationReserveMarkers(xui_code_annotation_store pStore, int iCapacity)
 {
 	xui_code_marker_t* pNew;
+	int iNewCapacity;
+	int iRet;
 
+	if ( pStore == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
 	if ( iCapacity <= pStore->iMarkerCapacity ) return XUI_OK;
-	if ( iCapacity < pStore->iMarkerCapacity * 2 ) iCapacity = pStore->iMarkerCapacity * 2;
-	if ( iCapacity < 16 ) iCapacity = 16;
-	pNew = (xui_code_marker_t*)xrtRealloc(pStore->pMarkers, sizeof(*pNew) * (size_t)iCapacity);
+	iRet = __xuiCodeAnnotationNextCapacity(pStore->iMarkerCapacity, iCapacity,
+		sizeof(*pNew), &iNewCapacity);
+	if ( iRet != XUI_OK ) return iRet;
+	pNew = (xui_code_marker_t*)xrtRealloc(pStore->pMarkers,
+		sizeof(*pNew) * (size_t)iNewCapacity);
 	if ( pNew == NULL ) return XUI_ERROR_OUT_OF_MEMORY;
 	pStore->pMarkers = pNew;
-	pStore->iMarkerCapacity = iCapacity;
+	pStore->iMarkerCapacity = iNewCapacity;
 	return XUI_OK;
 }
 
 static int __xuiCodeAnnotationReserveIndicators(xui_code_annotation_store pStore, int iCapacity)
 {
 	xui_code_indicator_t* pNew;
+	int iNewCapacity;
+	int iRet;
 
+	if ( pStore == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
 	if ( iCapacity <= pStore->iIndicatorCapacity ) return XUI_OK;
-	if ( iCapacity < pStore->iIndicatorCapacity * 2 ) iCapacity = pStore->iIndicatorCapacity * 2;
-	if ( iCapacity < 16 ) iCapacity = 16;
-	pNew = (xui_code_indicator_t*)xrtRealloc(pStore->pIndicators, sizeof(*pNew) * (size_t)iCapacity);
+	iRet = __xuiCodeAnnotationNextCapacity(pStore->iIndicatorCapacity, iCapacity,
+		sizeof(*pNew), &iNewCapacity);
+	if ( iRet != XUI_OK ) return iRet;
+	pNew = (xui_code_indicator_t*)xrtRealloc(pStore->pIndicators,
+		sizeof(*pNew) * (size_t)iNewCapacity);
 	if ( pNew == NULL ) return XUI_ERROR_OUT_OF_MEMORY;
 	pStore->pIndicators = pNew;
-	pStore->iIndicatorCapacity = iCapacity;
+	pStore->iIndicatorCapacity = iNewCapacity;
 	return XUI_OK;
 }
 
 static int __xuiCodeAnnotationReserveDiagnostics(xui_code_annotation_store pStore, int iCapacity)
 {
 	xui_code_diagnostic_t* pNew;
+	int iNewCapacity;
+	int iRet;
 
+	if ( pStore == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
 	if ( iCapacity <= pStore->iDiagnosticCapacity ) return XUI_OK;
-	if ( iCapacity < pStore->iDiagnosticCapacity * 2 ) iCapacity = pStore->iDiagnosticCapacity * 2;
-	if ( iCapacity < 16 ) iCapacity = 16;
-	pNew = (xui_code_diagnostic_t*)xrtRealloc(pStore->pDiagnostics, sizeof(*pNew) * (size_t)iCapacity);
+	iRet = __xuiCodeAnnotationNextCapacity(pStore->iDiagnosticCapacity, iCapacity,
+		sizeof(*pNew), &iNewCapacity);
+	if ( iRet != XUI_OK ) return iRet;
+	pNew = (xui_code_diagnostic_t*)xrtRealloc(pStore->pDiagnostics,
+		sizeof(*pNew) * (size_t)iNewCapacity);
 	if ( pNew == NULL ) return XUI_ERROR_OUT_OF_MEMORY;
 	pStore->pDiagnostics = pNew;
-	pStore->iDiagnosticCapacity = iCapacity;
+	pStore->iDiagnosticCapacity = iNewCapacity;
 	return XUI_OK;
 }
 
 static int __xuiCodeAnnotationReserveDiagnosticIndex(xui_code_annotation_store pStore, int iCapacity)
 {
 	xui_code_annotation_index_t* pNew;
+	int iNewCapacity;
+	int iRet;
 
+	if ( pStore == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
 	if ( iCapacity <= pStore->iDiagnosticIndexCapacity ) return XUI_OK;
-	if ( iCapacity < pStore->iDiagnosticIndexCapacity * 2 ) iCapacity = pStore->iDiagnosticIndexCapacity * 2;
-	if ( iCapacity < 16 ) iCapacity = 16;
-	pNew = (xui_code_annotation_index_t*)xrtRealloc(pStore->pDiagnosticIndex, sizeof(*pNew) * (size_t)iCapacity);
+	iRet = __xuiCodeAnnotationNextCapacity(pStore->iDiagnosticIndexCapacity,
+		iCapacity, sizeof(*pNew), &iNewCapacity);
+	if ( iRet != XUI_OK ) return iRet;
+	pNew = (xui_code_annotation_index_t*)xrtRealloc(pStore->pDiagnosticIndex,
+		sizeof(*pNew) * (size_t)iNewCapacity);
 	if ( pNew == NULL ) return XUI_ERROR_OUT_OF_MEMORY;
 	pStore->pDiagnosticIndex = pNew;
-	pStore->iDiagnosticIndexCapacity = iCapacity;
+	pStore->iDiagnosticIndexCapacity = iNewCapacity;
 	return XUI_OK;
 }
 
@@ -126,13 +172,15 @@ static int __xuiCodeAnnotationIsBackground(const xui_code_indicator_t* pItem)
 static int __xuiCodeAnnotationReserveBackgroundIndex(xui_code_annotation_store pStore, int iCapacity)
 {
     xui_code_annotation_index_t* pNew;
+    int iNewCapacity, iRet;
     if ( iCapacity <= pStore->iBackgroundIndexCapacity ) return XUI_OK;
-    if ( iCapacity < pStore->iBackgroundIndexCapacity * 2 ) iCapacity = pStore->iBackgroundIndexCapacity * 2;
-    if ( iCapacity < 16 ) iCapacity = 16;
-    pNew = (xui_code_annotation_index_t*)xrtRealloc(pStore->pBackgroundIndex, sizeof(*pNew) * (size_t)iCapacity);
+    iRet = __xuiCodeAnnotationNextCapacity(pStore->iBackgroundIndexCapacity, iCapacity,
+        sizeof(*pNew), &iNewCapacity);
+    if ( iRet != XUI_OK ) return iRet;
+    pNew = (xui_code_annotation_index_t*)xrtRealloc(pStore->pBackgroundIndex, sizeof(*pNew) * (size_t)iNewCapacity);
     if ( pNew == NULL ) return XUI_ERROR_OUT_OF_MEMORY;
     pStore->pBackgroundIndex = pNew;
-    pStore->iBackgroundIndexCapacity = iCapacity;
+    pStore->iBackgroundIndexCapacity = iNewCapacity;
     return XUI_OK;
 }
 static void __xuiCodeAnnotationBackgroundCompacted(xui_code_annotation_store pStore)
@@ -160,6 +208,8 @@ static int __xuiCodeAnnotationRebuildDiagnosticIndex(xui_code_annotation_store p
 	int iMaxEnd;
 	int iRet;
 
+	if ( pStore == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
+	if ( pStore->iDiagnosticCount == 0 ) return XUI_OK;
 	iRet = __xuiCodeAnnotationReserveDiagnosticIndex(pStore, pStore->iDiagnosticCount);
 	if ( iRet != XUI_OK ) return iRet;
 	for ( i = 0; i < pStore->iDiagnosticCount; i++ ) {
@@ -175,6 +225,30 @@ static int __xuiCodeAnnotationRebuildDiagnosticIndex(xui_code_annotation_store p
 		pStore->pDiagnosticIndex[i].iPrefixMaxEnd = iMaxEnd;
 	}
 	return XUI_OK;
+}
+
+static void __xuiCodeAnnotationBumpDiagnosticVersion(xui_code_annotation_store pStore)
+{
+	if ( pStore == NULL ) return;
+	pStore->iDiagnosticVersion++;
+	if ( pStore->iDiagnosticVersion == 0u ) pStore->iDiagnosticVersion = 1u;
+}
+
+static void __xuiCodeAnnotationFreeDiagnosticStorage(xui_code_annotation_store pStore)
+{
+	int i;
+
+	if ( pStore == NULL ) return;
+	for ( i = 0; i < pStore->iDiagnosticCount; i++ ) {
+		__xuiCodeAnnotationFreeDiagnostic(&pStore->pDiagnostics[i]);
+	}
+	xrtFree(pStore->pDiagnostics);
+	xrtFree(pStore->pDiagnosticIndex);
+	pStore->pDiagnostics = NULL;
+	pStore->pDiagnosticIndex = NULL;
+	pStore->iDiagnosticCount = 0;
+	pStore->iDiagnosticCapacity = 0;
+	pStore->iDiagnosticIndexCapacity = 0;
 }
 
 static int __xuiCodeAnnotationRangeFirst(const xui_code_annotation_index_t* pIndex, int iCount, int iStart)
@@ -248,6 +322,26 @@ static int __xuiCodeAnnotationRangeContains(const xui_code_range_t* pRange, int 
 	return pRange->iStart <= iOffset && iOffset < pRange->iEnd;
 }
 
+static int __xuiCodeAnnotationStringEquals(const char* sLeft, const char* sRight)
+{
+	if ( sLeft == sRight ) return 1;
+	if ( sLeft == NULL || sRight == NULL ) return 0;
+	return strcmp(sLeft, sRight) == 0;
+}
+
+static int __xuiCodeAnnotationDiagnosticEquals(
+	const xui_code_diagnostic_t* pLeft, const xui_code_diagnostic_t* pRight)
+{
+	if ( pLeft == NULL || pRight == NULL ) return 0;
+	return pLeft->tRange.iStart == pRight->tRange.iStart &&
+		pLeft->tRange.iEnd == pRight->tRange.iEnd &&
+		pLeft->iSeverity == pRight->iSeverity &&
+		pLeft->iUserData == pRight->iUserData &&
+		__xuiCodeAnnotationStringEquals(pLeft->sCode, pRight->sCode) &&
+		__xuiCodeAnnotationStringEquals(pLeft->sMessage, pRight->sMessage) &&
+		__xuiCodeAnnotationStringEquals(pLeft->sSource, pRight->sSource);
+}
+
 static void __xuiCodeAnnotationCopyMarkerOut(xui_code_marker_t* pOut, const xui_code_marker_t* pMarker)
 {
 	*pOut = *pMarker;
@@ -293,9 +387,11 @@ XUI_API void xuiCodeAnnotationStoreDestroy(xui_code_annotation_store pStore)
 
 XUI_API void xuiCodeAnnotationStoreClear(xui_code_annotation_store pStore)
 {
+	int bHadDiagnostics;
 	int i;
 
 	if ( pStore == NULL ) return;
+	bHadDiagnostics = pStore->iDiagnosticCount > 0;
 	for ( i = 0; i < pStore->iMarkerCount; i++ ) __xuiCodeAnnotationFreeMarker(&pStore->pMarkers[i]);
 	for ( i = 0; i < pStore->iDiagnosticCount; i++ ) __xuiCodeAnnotationFreeDiagnostic(&pStore->pDiagnostics[i]);
 	pStore->iMarkerCount = 0;
@@ -303,7 +399,7 @@ XUI_API void xuiCodeAnnotationStoreClear(xui_code_annotation_store pStore)
 	pStore->iBackgroundCount = 0;
 	pStore->bBackgroundIndexDirty = 0;
 	pStore->iDiagnosticCount = 0;
-	pStore->iDiagnosticVersion++;
+	if ( bHadDiagnostics ) __xuiCodeAnnotationBumpDiagnosticVersion(pStore);
 }
 
 XUI_API int xuiCodeAnnotationSetMarker(xui_code_annotation_store pStore, int iLine, int iMarker, uint32_t iFlags, const char* sTooltip, uintptr_t iUserData)
@@ -324,6 +420,10 @@ XUI_API int xuiCodeAnnotationSetMarker(xui_code_annotation_store pStore, int iLi
 			pStore->pMarkers[i].iUserData = iUserData;
 			return XUI_OK;
 		}
+	}
+	if ( pStore->iMarkerCount == INT_MAX ) {
+		xrtFree(sCopy);
+		return XUI_ERROR_LIMIT_EXCEEDED;
 	}
 	iRet = __xuiCodeAnnotationReserveMarkers(pStore, pStore->iMarkerCount + 1);
 	if ( iRet != XUI_OK ) {
@@ -359,19 +459,29 @@ XUI_API int xuiCodeAnnotationClearMarker(xui_code_annotation_store pStore, int i
 
 XUI_API int xuiCodeAnnotationClearMarkers(xui_code_annotation_store pStore, int iLine)
 {
+	int iOriginalCount;
+	int iWrite;
 	int i;
 	int iCleared;
 
 	if ( (pStore == NULL) || (iLine < -1) ) return XUI_ERROR_INVALID_ARGUMENT;
+	iOriginalCount = pStore->iMarkerCount;
 	iCleared = 0;
-	for ( i = pStore->iMarkerCount - 1; i >= 0; i-- ) {
+	iWrite = 0;
+	for ( i = 0; i < iOriginalCount; i++ ) {
 		if ( iLine < 0 || pStore->pMarkers[i].iLine == iLine ) {
 			__xuiCodeAnnotationFreeMarker(&pStore->pMarkers[i]);
-			memmove(&pStore->pMarkers[i], &pStore->pMarkers[i + 1], sizeof(pStore->pMarkers[i]) * (size_t)(pStore->iMarkerCount - i - 1));
-			pStore->iMarkerCount--;
 			iCleared++;
+			continue;
 		}
+		if ( iWrite != i ) pStore->pMarkers[iWrite] = pStore->pMarkers[i];
+		iWrite++;
 	}
+	if ( iWrite < iOriginalCount ) {
+		memset(&pStore->pMarkers[iWrite], 0,
+			sizeof(*pStore->pMarkers) * (size_t)(iOriginalCount - iWrite));
+	}
+	pStore->iMarkerCount = iWrite;
 	return (iCleared > 0) ? XUI_OK : XUI_ERROR_UNSUPPORTED;
 }
 
@@ -380,7 +490,10 @@ XUI_API int xuiCodeAnnotationGetMarkers(xui_code_annotation_store pStore, int iL
 	int i;
 	int iCount;
 
-	if ( (pStore == NULL) || (iLine < 0) || (pMarkerCount == NULL) ) return XUI_ERROR_INVALID_ARGUMENT;
+	if ( (pStore == NULL) || (iLine < 0) || (pMarkerCount == NULL) ||
+	     iMarkerCapacity < 0 || (pMarkers == NULL && iMarkerCapacity > 0) ) {
+		return XUI_ERROR_INVALID_ARGUMENT;
+	}
 	iCount = 0;
 	for ( i = 0; i < pStore->iMarkerCount; i++ ) {
 		if ( pStore->pMarkers[i].iLine != iLine ) continue;
@@ -396,6 +509,7 @@ XUI_API int xuiCodeAnnotationSetIndicator(xui_code_annotation_store pStore, int 
     xui_code_indicator_t* pIndicator;
     int iRet, bBackground;
     if ( pStore == NULL || iIndicator <= 0 || iStart < 0 || iEnd <= iStart ) return XUI_ERROR_INVALID_ARGUMENT;
+    if ( pStore->iIndicatorCount == INT_MAX ) return XUI_ERROR_LIMIT_EXCEEDED;
     iRet = __xuiCodeAnnotationReserveIndicators(pStore, pStore->iIndicatorCount + 1);
     if ( iRet != XUI_OK ) return iRet;
     bBackground = iStyle == XUI_CODE_INDICATOR_BACKGROUND && iIndicator != XUI_CODE_INDICATOR_SEARCH_RESULT;
@@ -427,24 +541,114 @@ XUI_API int xuiCodeAnnotationSetIndicator(xui_code_annotation_store pStore, int 
 
 XUI_API int xuiCodeAnnotationClearIndicator(xui_code_annotation_store pStore, int iIndicator, int iStart, int iEnd)
 {
+	xui_code_indicator_t* pNew;
+	xui_code_indicator_t tIndicator;
+	xui_code_indicator_t tRight;
+	int iOriginalCount;
+	int iFinalCount;
+	int iSplitCount;
+	int iRemoveCount;
 	int iWrite;
 	int i;
 	int iCleared;
+	int iBackgroundFinalCount, iRet;
 
 	if ( (pStore == NULL) || (iIndicator <= 0) || (iStart < 0) || (iEnd <= iStart) ) return XUI_ERROR_INVALID_ARGUMENT;
 	iCleared = 0;
-	iWrite = 0;
+	iSplitCount = 0;
+	iRemoveCount = 0;
 	for ( i = 0; i < pStore->iIndicatorCount; i++ ) {
 		if ( pStore->pIndicators[i].iIndicator == iIndicator && __xuiCodeAnnotationRangeOverlaps(pStore->pIndicators[i].tRange.iStart, pStore->pIndicators[i].tRange.iEnd, iStart, iEnd) ) {
 			iCleared++;
+			if ( iStart <= pStore->pIndicators[i].tRange.iStart &&
+			     iEnd >= pStore->pIndicators[i].tRange.iEnd ) {
+				iRemoveCount++;
+			} else if ( iStart > pStore->pIndicators[i].tRange.iStart &&
+			            iEnd < pStore->pIndicators[i].tRange.iEnd ) {
+				iSplitCount++;
+			}
+		}
+	}
+	if ( iCleared == 0 ) return XUI_ERROR_UNSUPPORTED;
+	if ( iSplitCount == 0 ) {
+		iWrite = 0;
+		for ( i = 0; i < pStore->iIndicatorCount; i++ ) {
+			tIndicator = pStore->pIndicators[i];
+			if ( tIndicator.iIndicator != iIndicator ||
+			     !__xuiCodeAnnotationRangeOverlaps(tIndicator.tRange.iStart,
+				tIndicator.tRange.iEnd, iStart, iEnd) ) {
+				pStore->pIndicators[iWrite++] = tIndicator;
+				continue;
+			}
+			if ( iStart <= tIndicator.tRange.iStart &&
+			     iEnd >= tIndicator.tRange.iEnd ) continue;
+			if ( iStart <= tIndicator.tRange.iStart ) {
+				tIndicator.tRange.iStart = iEnd;
+			} else {
+				tIndicator.tRange.iEnd = iStart;
+			}
+			pStore->pIndicators[iWrite++] = tIndicator;
+		}
+		pStore->iIndicatorCount = iWrite;
+		__xuiCodeAnnotationBackgroundCompacted(pStore);
+		return XUI_OK;
+	}
+	if ( iSplitCount > INT_MAX - pStore->iIndicatorCount ) return XUI_ERROR_LIMIT_EXCEEDED;
+	iOriginalCount = pStore->iIndicatorCount;
+	iFinalCount = iOriginalCount - iRemoveCount + iSplitCount;
+	if ( (size_t)iFinalCount > SIZE_MAX / sizeof(*pNew) ) return XUI_ERROR_LIMIT_EXCEEDED;
+	pNew = NULL;
+	if ( iFinalCount > 0 ) {
+		pNew = (xui_code_indicator_t*)xrtMalloc(sizeof(*pNew) * (size_t)iFinalCount);
+		if ( pNew == NULL ) return XUI_ERROR_OUT_OF_MEMORY;
+	}
+	iWrite = 0;
+	for ( i = 0; i < iOriginalCount; i++ ) {
+		tIndicator = pStore->pIndicators[i];
+		if ( tIndicator.iIndicator != iIndicator ||
+		     !__xuiCodeAnnotationRangeOverlaps(tIndicator.tRange.iStart,
+			 tIndicator.tRange.iEnd, iStart, iEnd) ) {
+			pNew[iWrite++] = tIndicator;
 			continue;
 		}
-		if ( iWrite != i ) pStore->pIndicators[iWrite] = pStore->pIndicators[i];
-		iWrite++;
+		if ( iStart <= tIndicator.tRange.iStart && iEnd >= tIndicator.tRange.iEnd ) {
+			continue;
+		}
+		if ( iStart <= tIndicator.tRange.iStart ) {
+			tIndicator.tRange.iStart = iEnd;
+			pNew[iWrite++] = tIndicator;
+			continue;
+		}
+		if ( iEnd >= tIndicator.tRange.iEnd ) {
+			tIndicator.tRange.iEnd = iStart;
+			pNew[iWrite++] = tIndicator;
+			continue;
+		}
+		tRight = tIndicator;
+		tIndicator.tRange.iEnd = iStart;
+		tRight.tRange.iStart = iEnd;
+		pNew[iWrite++] = tIndicator;
+		pNew[iWrite++] = tRight;
 	}
-	pStore->iIndicatorCount = iWrite;
-	if ( iCleared > 0 ) __xuiCodeAnnotationBackgroundCompacted(pStore);
-	return (iCleared > 0) ? XUI_OK : XUI_ERROR_UNSUPPORTED;
+	if ( iWrite != iFinalCount ) {
+		xrtFree(pNew);
+		return XUI_ERROR_INVALID_STATE;
+	}
+    iBackgroundFinalCount = 0;
+    for ( i = 0; i < iFinalCount; ++i ) {
+        if ( __xuiCodeAnnotationIsBackground(&pNew[i]) ) ++iBackgroundFinalCount;
+    }
+    iRet = __xuiCodeAnnotationReserveBackgroundIndex(pStore, iBackgroundFinalCount);
+    if ( iRet != XUI_OK ) {
+        xrtFree(pNew);
+        return iRet;
+    }
+	xrtFree(pStore->pIndicators);
+	pStore->pIndicators = pNew;
+	pStore->iIndicatorCount = iFinalCount;
+	pStore->iIndicatorCapacity = iFinalCount;
+	__xuiCodeAnnotationBackgroundCompacted(pStore);
+	return XUI_OK;
 }
 
 XUI_API int xuiCodeAnnotationClearIndicators(xui_code_annotation_store pStore, int iIndicator)
@@ -474,7 +678,10 @@ XUI_API int xuiCodeAnnotationGetIndicatorsAt(xui_code_annotation_store pStore, i
 	int i;
 	int iCount;
 
-	if ( (pStore == NULL) || (iOffset < 0) || (pIndicatorCount == NULL) ) return XUI_ERROR_INVALID_ARGUMENT;
+	if ( (pStore == NULL) || (iOffset < 0) || (pIndicatorCount == NULL) ||
+	     iIndicatorCapacity < 0 || (pIndicators == NULL && iIndicatorCapacity > 0) ) {
+		return XUI_ERROR_INVALID_ARGUMENT;
+	}
 	iCount = 0;
 	for ( i = 0; i < pStore->iIndicatorCount; i++ ) {
 		if ( !__xuiCodeAnnotationRangeContains(&pStore->pIndicators[i].tRange, iOffset) ) continue;
@@ -487,6 +694,7 @@ XUI_API int xuiCodeAnnotationGetIndicatorsAt(xui_code_annotation_store pStore, i
 
 XUI_API int xuiCodeAnnotationSetDiagnostics(xui_code_annotation_store pStore, const xui_code_diagnostic_t* pDiagnostics, int iDiagnosticCount)
 {
+	xui_code_annotation_store_t tNew;
 	xui_code_diagnostic_t* pDiagnostic;
 	char* sCode;
 	char* sMessage;
@@ -496,11 +704,30 @@ XUI_API int xuiCodeAnnotationSetDiagnostics(xui_code_annotation_store pStore, co
 
 	if ( (pStore == NULL) || (iDiagnosticCount < 0) || (iDiagnosticCount > 0 && pDiagnostics == NULL) ) return XUI_ERROR_INVALID_ARGUMENT;
 	for ( i = 0; i < iDiagnosticCount; i++ ) {
-		if ( pDiagnostics[i].tRange.iStart < 0 || pDiagnostics[i].tRange.iEnd <= pDiagnostics[i].tRange.iStart ) return XUI_ERROR_INVALID_ARGUMENT;
+		if ( (pDiagnostics[i].iSize != 0u &&
+		     pDiagnostics[i].iSize < sizeof(pDiagnostics[i])) ||
+		     pDiagnostics[i].tRange.iStart < 0 ||
+		     pDiagnostics[i].tRange.iEnd <= pDiagnostics[i].tRange.iStart ) {
+			return XUI_ERROR_INVALID_ARGUMENT;
+		}
 	}
-	xuiCodeAnnotationClearDiagnostics(pStore);
-	iRet = __xuiCodeAnnotationReserveDiagnostics(pStore, iDiagnosticCount);
-	if ( iRet != XUI_OK ) return iRet;
+	if ( iDiagnosticCount == 0 && pStore->iDiagnosticCount == 0 ) return XUI_OK;
+	if ( iDiagnosticCount == pStore->iDiagnosticCount ) {
+		for ( i = 0; i < iDiagnosticCount; i++ ) {
+			if ( !__xuiCodeAnnotationDiagnosticEquals(
+			     &pStore->pDiagnostics[i], &pDiagnostics[i]) ) break;
+		}
+		if ( i == iDiagnosticCount ) return XUI_OK;
+	}
+	memset(&tNew, 0, sizeof(tNew));
+	iRet = __xuiCodeAnnotationReserveDiagnostics(&tNew, iDiagnosticCount);
+	if ( iRet == XUI_OK ) {
+		iRet = __xuiCodeAnnotationReserveDiagnosticIndex(&tNew, iDiagnosticCount);
+	}
+	if ( iRet != XUI_OK ) {
+		__xuiCodeAnnotationFreeDiagnosticStorage(&tNew);
+		return iRet;
+	}
 	for ( i = 0; i < iDiagnosticCount; i++ ) {
 		sCode = __xuiCodeAnnotationStrDup(pDiagnostics[i].sCode);
 		sMessage = __xuiCodeAnnotationStrDup(pDiagnostics[i].sMessage);
@@ -509,10 +736,10 @@ XUI_API int xuiCodeAnnotationSetDiagnostics(xui_code_annotation_store pStore, co
 			xrtFree(sCode);
 			xrtFree(sMessage);
 			xrtFree(sSource);
-			xuiCodeAnnotationClearDiagnostics(pStore);
+			__xuiCodeAnnotationFreeDiagnosticStorage(&tNew);
 			return XUI_ERROR_OUT_OF_MEMORY;
 		}
-		pDiagnostic = &pStore->pDiagnostics[pStore->iDiagnosticCount++];
+		pDiagnostic = &tNew.pDiagnostics[tNew.iDiagnosticCount++];
 		memset(pDiagnostic, 0, sizeof(*pDiagnostic));
 		*pDiagnostic = pDiagnostics[i];
 		pDiagnostic->iSize = sizeof(*pDiagnostic);
@@ -520,12 +747,20 @@ XUI_API int xuiCodeAnnotationSetDiagnostics(xui_code_annotation_store pStore, co
 		pDiagnostic->sMessage = sMessage;
 		pDiagnostic->sSource = sSource;
 	}
-	iRet = __xuiCodeAnnotationRebuildDiagnosticIndex(pStore);
+	iRet = __xuiCodeAnnotationRebuildDiagnosticIndex(&tNew);
 	if ( iRet != XUI_OK ) {
-		xuiCodeAnnotationClearDiagnostics(pStore);
+		__xuiCodeAnnotationFreeDiagnosticStorage(&tNew);
 		return iRet;
 	}
-	pStore->iDiagnosticVersion++;
+	__xuiCodeAnnotationFreeDiagnosticStorage(pStore);
+	pStore->pDiagnostics = tNew.pDiagnostics;
+	pStore->iDiagnosticCount = tNew.iDiagnosticCount;
+	pStore->iDiagnosticCapacity = tNew.iDiagnosticCapacity;
+	pStore->pDiagnosticIndex = tNew.pDiagnosticIndex;
+	pStore->iDiagnosticIndexCapacity = tNew.iDiagnosticIndexCapacity;
+	tNew.pDiagnostics = NULL;
+	tNew.pDiagnosticIndex = NULL;
+	__xuiCodeAnnotationBumpDiagnosticVersion(pStore);
 	return XUI_OK;
 }
 
@@ -534,9 +769,10 @@ XUI_API int xuiCodeAnnotationClearDiagnostics(xui_code_annotation_store pStore)
 	int i;
 
 	if ( pStore == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
+	if ( pStore->iDiagnosticCount == 0 ) return XUI_OK;
 	for ( i = 0; i < pStore->iDiagnosticCount; i++ ) __xuiCodeAnnotationFreeDiagnostic(&pStore->pDiagnostics[i]);
 	pStore->iDiagnosticCount = 0;
-	pStore->iDiagnosticVersion++;
+	__xuiCodeAnnotationBumpDiagnosticVersion(pStore);
 	return XUI_OK;
 }
 
@@ -554,6 +790,7 @@ XUI_API int xuiCodeAnnotationGetDiagnostic(xui_code_annotation_store pStore, int
 
 XUI_API int xuiCodeAnnotationGetDiagnosticsAt(xui_code_annotation_store pStore, int iOffset, xui_code_diagnostic_t* pDiagnostics, int iDiagnosticCapacity, int* pDiagnosticCount)
 {
+	if ( iOffset < 0 || iOffset == INT_MAX ) return XUI_ERROR_INVALID_ARGUMENT;
 	return xuiCodeAnnotationGetDiagnosticsInRange(pStore, iOffset, iOffset + 1, pDiagnostics, NULL, iDiagnosticCapacity, pDiagnosticCount);
 }
 
@@ -564,7 +801,11 @@ XUI_API int xuiCodeAnnotationGetDiagnosticsInRange(xui_code_annotation_store pSt
 	int iCount;
 	int iIndex;
 
-	if ( (pStore == NULL) || (iStart < 0) || (iEnd <= iStart) || (iDiagnosticCapacity < 0) || (pDiagnosticCount == NULL) ) return XUI_ERROR_INVALID_ARGUMENT;
+	if ( (pStore == NULL) || (iStart < 0) || (iEnd <= iStart) ||
+	     (iDiagnosticCapacity < 0) || (pDiagnosticCount == NULL) ||
+	     (pDiagnostics == NULL && pIndices == NULL && iDiagnosticCapacity > 0) ) {
+		return XUI_ERROR_INVALID_ARGUMENT;
+	}
 	iCount = 0;
 	i = __xuiCodeAnnotationRangeFirst(pStore->pDiagnosticIndex, pStore->iDiagnosticCount, iStart);
 	for ( ; i < pStore->iDiagnosticCount; i++ ) {
@@ -587,47 +828,104 @@ XUI_API uint32_t xuiCodeAnnotationGetDiagnosticVersion(xui_code_annotation_store
 	return (pStore != NULL) ? pStore->iDiagnosticVersion : 0u;
 }
 
-static void __xuiCodeAnnotationTrackRange(xui_code_range_t* pRange, int iStartOffset, int iEndOffset, int iNewEndOffset)
+static int __xuiCodeAnnotationTrackRange(xui_code_range_t* pRange,
+	int iStartOffset, int iEndOffset, int iNewEndOffset, int bApply)
 {
-	int iDelta;
+	int64_t iDelta;
+	int64_t iStart;
+	int64_t iEnd;
 
-	iDelta = iNewEndOffset - iEndOffset;
-	if ( pRange->iEnd <= iStartOffset ) return;
+	if ( pRange == NULL ) return XUI_ERROR_INVALID_ARGUMENT;
+	iDelta = (int64_t)iNewEndOffset - (int64_t)iEndOffset;
+	iStart = pRange->iStart;
+	iEnd = pRange->iEnd;
+	if ( iEnd <= iStartOffset ) return XUI_OK;
 	if ( pRange->iStart >= iEndOffset ) {
-		pRange->iStart += iDelta;
-		pRange->iEnd += iDelta;
-		return;
+		iStart += iDelta;
+		iEnd += iDelta;
+	} else {
+		if ( iStart >= iStartOffset ) iStart = iStartOffset;
+		if ( iEnd <= iEndOffset ) iEnd = iNewEndOffset;
+		else iEnd += iDelta;
+		if ( iEnd <= iStart ) iEnd = iStart + 1;
 	}
-	if ( pRange->iStart > iStartOffset ) pRange->iStart = iStartOffset;
-	pRange->iEnd = iNewEndOffset;
-	if ( pRange->iEnd <= pRange->iStart ) pRange->iEnd = pRange->iStart + 1;
+	if ( iStart < 0 || iEnd <= iStart || iStart > INT_MAX || iEnd > INT_MAX ) {
+		return XUI_ERROR_LIMIT_EXCEEDED;
+	}
+	if ( bApply ) {
+		pRange->iStart = (int)iStart;
+		pRange->iEnd = (int)iEnd;
+	}
+	return XUI_OK;
 }
 
 XUI_API int xuiCodeAnnotationTrackEdit(xui_code_annotation_store pStore, int iStartOffset, int iEndOffset, int iNewEndOffset, int iStartLine, int iEndLine, int iNewEndLine)
 {
+	xui_code_range_t tTrackedRange;
+	int64_t iLineDelta;
+	int64_t iNewLine;
+	int bDiagnosticRangeChanged;
+	int bDiagnosticTouched;
 	int i;
-	int iLineDelta;
+	int iRet;
 
 	if ( (pStore == NULL) || (iStartOffset < 0) || (iEndOffset < iStartOffset) || (iNewEndOffset < iStartOffset) || (iStartLine < 0) || (iEndLine < iStartLine) || (iNewEndLine < iStartLine) ) {
 		return XUI_ERROR_INVALID_ARGUMENT;
 	}
-	iLineDelta = iNewEndLine - iEndLine;
+	iLineDelta = (int64_t)iNewEndLine - (int64_t)iEndLine;
+	bDiagnosticRangeChanged = 0;
+	bDiagnosticTouched = 0;
 	for ( i = 0; i < pStore->iMarkerCount; i++ ) {
-		if ( pStore->pMarkers[i].iLine > iEndLine ) pStore->pMarkers[i].iLine += iLineDelta;
+		iNewLine = pStore->pMarkers[i].iLine;
+		if ( iNewLine > iEndLine ) iNewLine += iLineDelta;
+		else if ( iNewLine >= iStartLine ) iNewLine = iStartLine;
+		if ( iNewLine < 0 || iNewLine > INT_MAX ) return XUI_ERROR_LIMIT_EXCEEDED;
+	}
+	for ( i = 0; i < pStore->iIndicatorCount; i++ ) {
+		iRet = __xuiCodeAnnotationTrackRange(&pStore->pIndicators[i].tRange,
+			iStartOffset, iEndOffset, iNewEndOffset, 0);
+		if ( iRet != XUI_OK ) return iRet;
+	}
+	for ( i = 0; i < pStore->iDiagnosticCount; i++ ) {
+		tTrackedRange = pStore->pDiagnostics[i].tRange;
+		iRet = __xuiCodeAnnotationTrackRange(&tTrackedRange,
+			iStartOffset, iEndOffset, iNewEndOffset, 1);
+		if ( iRet != XUI_OK ) return iRet;
+		if ( tTrackedRange.iStart != pStore->pDiagnostics[i].tRange.iStart ||
+		     tTrackedRange.iEnd != pStore->pDiagnostics[i].tRange.iEnd ) {
+			bDiagnosticRangeChanged = 1;
+			bDiagnosticTouched = 1;
+		} else if ( iEndOffset > iStartOffset &&
+		           __xuiCodeAnnotationRangeOverlaps(pStore->pDiagnostics[i].tRange.iStart,
+			   pStore->pDiagnostics[i].tRange.iEnd, iStartOffset, iEndOffset) ) {
+			bDiagnosticTouched = 1;
+		}
+	}
+	if ( bDiagnosticRangeChanged ) {
+		iRet = __xuiCodeAnnotationReserveDiagnosticIndex(pStore,
+			pStore->iDiagnosticCount);
+		if ( iRet != XUI_OK ) return iRet;
+	}
+	for ( i = 0; i < pStore->iMarkerCount; i++ ) {
+		if ( pStore->pMarkers[i].iLine > iEndLine ) {
+			pStore->pMarkers[i].iLine = (int)((int64_t)pStore->pMarkers[i].iLine + iLineDelta);
+		}
 		else if ( pStore->pMarkers[i].iLine >= iStartLine ) pStore->pMarkers[i].iLine = iStartLine;
 	}
 	for ( i = 0; i < pStore->iIndicatorCount; i++ ) {
-		__xuiCodeAnnotationTrackRange(&pStore->pIndicators[i].tRange, iStartOffset, iEndOffset, iNewEndOffset);
+		(void)__xuiCodeAnnotationTrackRange(&pStore->pIndicators[i].tRange,
+			iStartOffset, iEndOffset, iNewEndOffset, 1);
 	}
 	pStore->bBackgroundIndexDirty = pStore->iBackgroundCount > 0;
 	for ( i = 0; i < pStore->iDiagnosticCount; i++ ) {
-		__xuiCodeAnnotationTrackRange(&pStore->pDiagnostics[i].tRange, iStartOffset, iEndOffset, iNewEndOffset);
+		(void)__xuiCodeAnnotationTrackRange(&pStore->pDiagnostics[i].tRange,
+			iStartOffset, iEndOffset, iNewEndOffset, 1);
 	}
-	if ( pStore->iDiagnosticCount > 0 ) {
-		int iRet = __xuiCodeAnnotationRebuildDiagnosticIndex(pStore);
+	if ( bDiagnosticRangeChanged ) {
+		iRet = __xuiCodeAnnotationRebuildDiagnosticIndex(pStore);
 		if ( iRet != XUI_OK ) return iRet;
 	}
-	pStore->iDiagnosticVersion++;
+	if ( bDiagnosticTouched ) __xuiCodeAnnotationBumpDiagnosticVersion(pStore);
 	return XUI_OK;
 }
 

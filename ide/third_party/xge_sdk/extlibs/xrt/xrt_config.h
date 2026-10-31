@@ -33,6 +33,10 @@
 #define XRT_MODULE_THREAD
 #define XRT_MODULE_TIME_TEXT
 
+#if XGE_ENABLE_XUI
+	#define XRT_MODULE_NUMBER_FORMAT
+#endif
+
 /* Preserve the historical public runtime in default, UI and tool profiles. */
 #if XGE_ENABLE_XUI || XGE_ENABLE_PARTICLES || XGE_BUILD_PROFILE == XGE_PROFILE_DEFAULT || XGE_BUILD_PROFILE == XGE_PROFILE_FULL_DEV || defined(XGE_XRT_PROFILE_IDE) || defined(XGE_XRT_PROFILE_MAPGEN)
 #define XRT_MODULE_FILE_TEXT

@@ -75,11 +75,18 @@ static int verify(void)
             CHECK(count<4096 && xuiCodeAnnotationSetIndicator(store,id,style,start,end,0,0)==XUI_OK);model[count++]=(range){start,end,id,style};
         } else {
             int id=1005+(int)(randomValue()%4),start=(int)(randomValue()%480),end=start+1+(int)(randomValue()%32),partial=action==3;
-            int removed=0;size_t used=0;
+            int removed=0;size_t used=0;range next[4096];
             for(size_t i=0;i<count;++i) {
-                if(model[i].id==id && (!partial || (model[i].start<end && start<model[i].end))) ++removed;
-                else model[used++]=model[i];
+                range item=model[i];
+                if(item.id!=id || (partial && !(item.start<end && start<item.end))) next[used++]=item;
+                else {
+                    ++removed;
+                    /* Current XGE clears just the requested byte span. */
+                    if(partial && item.start<start) next[used++]=(range){item.start,start,item.id,item.style};
+                    if(partial && item.end>end) next[used++]=(range){end,item.end,item.id,item.style};
+                }
             }
+            CHECK(used<=4096);memcpy(model,next,used*sizeof(*model));
             count=used;int result=partial ? xuiCodeAnnotationClearIndicator(store,id,start,end) : xuiCodeAnnotationClearIndicators(store,id);
             CHECK(result==(removed ? XUI_OK : XUI_ERROR_UNSUPPORTED));
         }
@@ -99,6 +106,15 @@ static int verify(void)
     for(int i=0;i<16;++i) CHECK(xuiCodeAnnotationSetIndicator(store,1005,5,i*3,i*3+1,0,0)==XUI_OK);
     failCall=reallocCalls+2;CHECK(xuiCodeAnnotationSetIndicator(store,1005,5,99,100,0,0)==XUI_ERROR_OUT_OF_MEMORY);failCall=0;
     int values[2]={0};CHECK(__xuiCodeAnnotationVisitBackgroundRanges(store,0,101,counter,values)==XUI_OK && values[0]==16 && values[1]==46);
+    xuiCodeAnnotationStoreDestroy(store);
+    /* Splitting accepted ranges must reserve their new index before commit. */
+    CHECK(xuiCodeAnnotationStoreCreate(&store)==XUI_OK);
+    for(int i=0;i<16;++i) CHECK(xuiCodeAnnotationSetIndicator(store,1005,5,0,100,0,0)==XUI_OK);
+    failCall=reallocCalls+1;
+    CHECK(xuiCodeAnnotationClearIndicator(store,1005,10,20)==XUI_ERROR_OUT_OF_MEMORY);failCall=0;
+    range whole={0,100,1005,5};CHECK(compare(store,&whole,1,0,101));
+    CHECK(xuiCodeAnnotationClearIndicator(store,1005,10,20)==XUI_OK);
+    range split[]={{0,10,1005,5},{20,100,1005,5}};CHECK(compare(store,split,2,0,101));
     xuiCodeAnnotationStoreDestroy(store);
     for(int reverse=0;reverse<2;++reverse) {
         CHECK(xuiCodeAnnotationStoreCreate(&store)==XUI_OK);

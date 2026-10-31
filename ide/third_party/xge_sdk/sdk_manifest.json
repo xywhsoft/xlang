@@ -67,9 +67,9 @@
   "privateCandidate": true,
   "formalRelease": false,
   "provenance": {
-    "builtAtUtc": "2026-10-23T04:30:53.778091+00:00",
+    "builtAtUtc": "2026-10-31T07:30:48.570329+00:00",
     "sourceRepository": "https://gitee.com/xywhsoft/xge",
-    "sourceCommit": "f248fd17192b3eb81c2a29dc34549b696e6e4c43",
+    "sourceCommit": "93b446cf83ce20284f41aa794ed61e3302348ac4",
     "sourceWorktreeDirty": true,
     "upstreamArchiveClean": true,
     "version": "3.0.0",
@@ -87,7 +87,7 @@
       "provenance/compatibility-patches/upstream.json",
       "provenance/compatibility-patches/upstream.json.patch"
     ],
-    "compiler": "gcc.EXE (GCC) 16.2.0",
+    "compiler": "gcc.exe (GCC) 16.2.0",
     "xrt": {
       "source_repository": "D:\\GIT\\xrt",
       "source_branch": "master",
@@ -120,8 +120,8 @@
         }
       ]
     },
-    "sourceBuildReportSha256": "32a588fd3938300378053fb32234c92c61aa06b8050817cb11f585ac5c51f570",
-    "sourceBuildManifestSha256": "b0e8ab8e95f0a469fe77d8f311ae7e7a4fdf3293048302ffb5f895f50a9717a6"
+    "sourceBuildReportSha256": "1ef5e7593028f54821b44ec4cbe67e026c5395bcd9d4d3bcf2ce3a52b9904196",
+    "sourceBuildManifestSha256": "04b3265f75bb13ebbb4b848ba361bd6f1f9e78e40cc7e1df970341e88d591e0d"
   },
   "files": [
     {
@@ -190,11 +190,11 @@
     },
     {
       "path": "extlibs/xrt/xrt_config.h",
-      "sha256": "b756334bb810255d4a2fde3b5df6029a497326c88f9e50c8a91c6821d6cec0ac"
+      "sha256": "92697cad1ea3205b1cede0bc51811a703949934d5ff23c94140ac20eecb37491"
     },
     {
       "path": "provenance/compatibility-patches/patch-manifest.json",
-      "sha256": "973a7f7e6ea1a6c3ac5ad0b9301b6b8e3387983ba51e1ba23767a10b144f7ab6"
+      "sha256": "1b5b7f10c1d5de649376f359d9d0e344e2e40e2fe96685b957263cabab59358c"
     },
     {
       "path": "provenance/compatibility-patches/upstream.json",
@@ -202,7 +202,7 @@
     },
     {
       "path": "provenance/compatibility-patches/upstream.json.patch",
-      "sha256": "5a2e102b4118448e9f63d3ae4e2fbc2086cf13bd0367d298b0c3576947a21b9b"
+      "sha256": "132c3fbf36b554c61d69629f4e56dc7011057a1b34f3ca4891f7e20de96c3ee1"
     },
     {
       "path": "provenance/compatibility-patches/xrt.h",
@@ -210,71 +210,71 @@
     },
     {
       "path": "provenance/compatibility-patches/xrt.h.patch",
-      "sha256": "d09ce7a4f3aefe579d8083754e311a7f069acd9867cd617f61d724f3f4ed2a88"
+      "sha256": "2437a75331c1804bffb1bcbd389c126b42583b909dfef2a4a60e90ff3e2c676c"
     },
     {
       "path": "provenance/compatibility-patches/xui_code_annotation.c",
-      "sha256": "e477a131fea6c1eb5b33cff656495154fd2e999420cd8b38cf1a4776dbfb1f7c"
+      "sha256": "3bd2b3e67c77d6915aa2df0b5df62451e88ca1d025cb7dddc42eaf619d3f4105"
     },
     {
       "path": "provenance/compatibility-patches/xui_code_annotation.patch",
-      "sha256": "c13ec73640e5c4b418b981416561c8340099eddfc9e6a01723c3e3e61948851e"
+      "sha256": "d2609097c5ae55cfaf398657623966704d5d006d289f8b99dbb4b59e3e44c33a"
     },
     {
       "path": "provenance/compatibility-patches/xui_code_edit.c",
-      "sha256": "0bd3593969654dd5e2e13a059a2789470c6226adb654d2c51ac0d340d8aacfc4"
+      "sha256": "943ae32753216072fc348b4eae6deb52c1441f8b1da85e0b977fa68c4b57d401"
     },
     {
       "path": "provenance/compatibility-patches/xui_code_edit.patch",
-      "sha256": "dcc57ca5f67a8d1388082fe0c237a3733182e9d1fd2d63e5dabede1429f45c94"
+      "sha256": "8ae0baa90cb05400d4b949276a3efc55845c94e56b3705f3f9dbe5b352409b64"
     },
     {
       "path": "provenance/compatibility-patches/xui_find.c",
-      "sha256": "2dd3bde220654d7fa5c34f007f8d5064f34e9fa689cb41c8a8f5c634a6852d81"
+      "sha256": "119950af38e3d0d1617d1b666d2d046b7b2d8d360e0cf60b99b8b7aa91983832"
     },
     {
       "path": "provenance/compatibility-patches/xui_find.patch",
-      "sha256": "04ddcf2e4874d5538c69514a43ade6a0a505f658fdcc54be44edaacec111106f"
+      "sha256": "b61f2531267809547ffdbaff64e8ab2587ac4ff3990bff7c7b59ebbbf4e5d0c0"
     },
     {
       "path": "provenance/parent-sdk-manifest.json",
-      "sha256": "3e69b3ca5cd3be62151ded0a4bebd9deadfb3a89120f696d6ef9ac2da8264958"
+      "sha256": "74d7283421bc9376de5fbd4b20d6fd2653eadaec1cf13b2c971e8f8ceaf63106"
     },
     {
       "path": "provenance/source-build-manifest.json",
-      "sha256": "b0e8ab8e95f0a469fe77d8f311ae7e7a4fdf3293048302ffb5f895f50a9717a6"
+      "sha256": "04b3265f75bb13ebbb4b848ba361bd6f1f9e78e40cc7e1df970341e88d591e0d"
     },
     {
       "path": "provenance/source-build-report.json",
-      "sha256": "32a588fd3938300378053fb32234c92c61aa06b8050817cb11f585ac5c51f570"
+      "sha256": "1ef5e7593028f54821b44ec4cbe67e026c5395bcd9d4d3bcf2ce3a52b9904196"
     },
     {
       "path": "xge-source-files.json",
-      "sha256": "b0e8ab8e95f0a469fe77d8f311ae7e7a4fdf3293048302ffb5f895f50a9717a6"
+      "sha256": "04b3265f75bb13ebbb4b848ba361bd6f1f9e78e40cc7e1df970341e88d591e0d"
     },
     {
       "path": "xge.dll",
-      "sha256": "91ddb616d3c0a65017e686922e377ebdadb104a36eea16491d1fecdc271026c3"
+      "sha256": "80ce35f25496e8e5162a3a9adee885fa6a7a0310237ee50c7c96a89f6c270455"
     },
     {
       "path": "xge.h",
-      "sha256": "5ea8b0cd04f0a0b702b20a91f563393fd4efcc6ac7e23440618f23ec6802d0f2"
+      "sha256": "af3665690124f7db86b6f0f9c9a4523b752364bc6308a78aa557103c66c11e54"
     },
     {
       "path": "xge.lib",
-      "sha256": "675bf40eb235195ee5cb0afee40ffe220eb3f0653b06ae1e7920971e5071123d"
+      "sha256": "ed1ad882214a10141d49ee7e781792dc13a38c16a2ae6f8991975a6e173901d8"
     },
     {
       "path": "xge_build_config.h",
-      "sha256": "0d31f87b4b77f8d1699db4cb6293ed134bfff2218a61b3bb274005976f5a1761"
+      "sha256": "6713605108036db38860a5b509a553dbaa84d534b35510f8ea7556bc3056e365"
     },
     {
       "path": "xge_config.h",
-      "sha256": "e0b1fbf55f6fb50bb14970dc9ff8f356cee38fc42a2353cf82e0559eb8dd33f9"
+      "sha256": "dde3118c2662bc6ba365eb67edf15c12c78f32758828c487e43b9182b6de7a46"
     },
     {
       "path": "xui.h",
-      "sha256": "da0b244785ebb75f1941742b331f6717112ccebcc6f376ba3f647cc2663d5642"
+      "sha256": "59627ccd0341f3e73c9e0ad9d8fee6e07a6a2623ab5278a838257ed4e89261b7"
     },
     {
       "path": "xui_config.h",
@@ -282,7 +282,7 @@
     },
     {
       "path": "xui_document.h",
-      "sha256": "fc7afc9ff1437df91c7413e37a11ae61081223d022da7409d1c6c16eb8188984"
+      "sha256": "34aa2d5280753dfc8770a12ba2c470c9605444d003de94ae5486f8d541c96be4"
     },
     {
       "path": "xui_document_ui.h",

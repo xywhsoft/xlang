@@ -1,5 +1,5 @@
---- extlibs/xrt/xrt.h
-+++ extlibs/xrt/xrt.h
+--- a/extlibs/xrt/xrt.h
++++ b/extlibs/xrt/xrt.h
 @@ -313661,6 +313661,11 @@
  	(void)xrtMutexLock(&pProcess->Lock);
  	if ( pProcess->State == XPROCESS_EXITED ) {

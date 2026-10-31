@@ -64,7 +64,8 @@ int main(void)
     CHECK(xuiInputTextEx(app.context,'s',NULL)==XUI_OK && settle(&app)); CHECK(!xuiCodeEditIsCompletionOpen(doc->editor));
     CHECK(probe(doc->editor,"math.",items,512,&count) && count>10); for(int i=0;i<count;++i) CHECK(!strchr(items[i].sInsertText,'.'));
     CHECK(probe(doc->editor,"math",items,1,&count) && count==1);
-    CHECK(probe(doc->editor,"",NULL,0,&count) && count>100);
+    CHECK(probe(doc->editor,"",NULL,0,&count) && count==0);
+    CHECK(probe(doc->editor,"",items,512,&count) && count>100 && count<=512);
     CHECK(xideDocumentSetLanguage(doc,"c",&error)); CHECK(probe(doc->editor,"math.sq",items,512,&count) && count==0);
     CHECK(probe(doc->editor,"ret",items,512,&count) && count>=40 && contains(items,count,"return"));
     CHECK(xuiSetFocusWidget(app.context,doc->editor)==XUI_OK && settle(&app));
