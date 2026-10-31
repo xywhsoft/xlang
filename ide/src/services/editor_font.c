@@ -143,7 +143,7 @@ static int install(xide_app* app,xui_font font)
     if(result==XUI_OK) result=xideRecoveryViewCodeFont(app);
     if(result==XUI_OK) result=xideFileChangesViewCodeFont(app);
     if(result==XUI_OK) result=xideTemplateViewCodeFont(app);
-    if(result==XUI_OK && app->panels[XIDE_OUTPUT]) result=xuiTextEditSetFont(app->panels[XIDE_OUTPUT],font);
+    if(result==XUI_OK && app->panels[XIDE_OUTPUT]) result=xideCodeWidgetSetFont(app,app->panels[XIDE_OUTPUT],font);
     if(result==XUI_OK && app->panels[XIDE_TERMINAL]) {
         xui_vec2_t cell={0}; xideDpiTextMeasure(&app->proxy,font," ",&cell);
         result=xuiTerminalSetFont(app->panels[XIDE_TERMINAL],font);

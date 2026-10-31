@@ -100,7 +100,7 @@ static int runChecks(int argc,char** argv)
  CHECK(xideTasksCount(app.tasks)==XIDE_TASK_HISTORY_LIMIT+2 && xuiTreeViewGetNodeCount(app.panels[XIDE_TASKS])==(int)xideTasksCount(app.tasks));
  CHECK(xideTaskViewSelected(&app)==first && cDocument==app.activeDocument && cDocument->dirty && !strcmp(cDocument->language,"c") && strstr(xuiCodeEditGetText(cDocument->editor),"44"));
  xide_task* last=xideTasksAt(app.tasks,xideTasksCount(app.tasks)-1); xideTaskInfo(last,&info); CHECK(info.id==newest && xideTaskViewSelect(&app,last)==XUI_OK); xideTaskViewPoll(&app);
- CHECK(strstr(xuiTextEditGetText(app.panels[XIDE_OUTPUT]),"Task") && xideTaskViewSelect(&app,loud)==XUI_ERROR_INVALID_ARGUMENT);
+ CHECK(strstr(xuiCodeEditGetText(app.panels[XIDE_OUTPUT]),"Task") && xideTaskViewSelect(&app,loud)==XUI_ERROR_INVALID_ARGUMENT);
  CHECK(xuiTreeViewGetSelected(app.panels[XIDE_TASKS])==(int)xideTasksCount(app.tasks));
  xide_task* middle=xideTasksAt(app.tasks,10); CHECK(middle && xideTaskViewSelect(&app,middle)==XUI_OK);
  xide_task* next=xideTasksBuild(app.tasks,live,NULL,missing,0,&error); CHECK(next && settled(app.tasks,next,&info)); newest=info.id; xideTaskViewPoll(&app);

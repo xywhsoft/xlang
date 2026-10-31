@@ -91,7 +91,7 @@ static int verify(void* user)
     CHECK(xideSettingsLoad(&loaded,settings,&error) && loaded.editorFontSize==24 && xidePathEqual(loaded.editorFont,font) && xidePathEqual(loaded.compiler,compiler));
     CHECK(xrtValueObjectGet(loaded.source,sv("future")) && xrtValueObjectGet(xrtValueObjectGet(loaded.source,sv("editor")),sv("futureEditor")));
     float cellWidth=0,cellHeight=0,padding=0; xui_vec2_t measured={0}; CHECK(xuiTerminalGetMetrics(app.panels[XIDE_TERMINAL],&cellWidth,&cellHeight,&padding)==XUI_OK && xideDpiTextMeasure(&app.proxy,app.codeFont," ",&measured)==XUI_OK);
-    CHECK(fabsf(cellWidth-roundf(measured.fX))<0.01f && fabsf(cellHeight-roundf(xideEditorLineHeight(&app)))<0.01f && xuiTextEditGetFont(app.panels[XIDE_OUTPUT])==app.codeFont);
+    CHECK(fabsf(cellWidth-roundf(measured.fX))<0.01f && fabsf(cellHeight-roundf(xideEditorLineHeight(&app)))<0.01f && xuiCodeEditGetFont(app.panels[XIDE_OUTPUT])==app.codeFont);
     xide_document* fresh=xideDocumentNew(&app.documents,"xlang",&error); CHECK(fresh && xuiCodeEditGetFont(fresh->editor)==app.codeFont);
     xideWorkbenchShowHelp(&app,0); CHECK(settle(&app) && xuiCodeEditGetFont(app.helpExample)==app.codeFont);
     CHECK(xideFontViewOpen(&app) && click(&app,XIDE_FONT_RESET) && !strcmp(xuiEditGetText(xideFontViewControl(&app,XIDE_FONT_SIZE)),"16") && app.codeFontSize==24);
