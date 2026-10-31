@@ -2,6 +2,8 @@
 
 2026-10-31：当前运行目录统一为仓库根目录 `release/`。发布清理已迁出验收夹具、移除临时编译缓存与开发示例生成的 EXE，保留源码、用户设置、固定工具链和许可来源材料。当前规则以 [IDE 构建约定](../AGENTS.md) 和 [发布目录说明](../../release/README.md) 为准；清理结果见 [本次记录](../../docs/reports/release-cleanup-20261031.json)。
 
+源码快照和交付／验收报告已从 `release/sources`、`release/provenance` 迁到 [dev/release-materials](../../dev/release-materials/README.md)，完整保留，不属于可删除的构建缓存。日常程序和项目编译不需要这两个目录；重建与打包工具使用新路径。
+
 清理使用仓库 `tools/clean_release.ps1`，只处理明确的生成文件，检查路径边界和重解析点，并校验保留内容及迁出证据的哈希。运行验收使用根 `release/` 的真实程序，日志及夹具默认放在 `ide/build/Release/<本轮目录>/`，不为验证材料创建 `release/tmp`。专项临时文件测试结束后清理自有内容，以及本轮新建的空父目录。此前清理迁出的证据按报告中的映射在 `build/release-cleanup-*` 查找。
 
 以下为 2026-10-22 及之前的历史记录，候选名称与绝对路径保留原文。

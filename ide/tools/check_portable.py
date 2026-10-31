@@ -12,7 +12,7 @@ import subprocess
 import sys
 import uuid
 import zipfile
-from package_portable import PackageError, assemble, extract_verified, inspect_zip, load_json, require, sha, tree, verify_payload, write_json
+from package_portable import PackageError, assemble, extract_verified, inspect_zip, load_json, require, sha, tree, verify_payload, verify_development_materials, write_json
 
 
 def run(arguments, log, env=None, cwd=None, timeout=240):
@@ -89,6 +89,7 @@ def check(args):
     archive = candidate/"xlang-ide-windows-x64.zip"
     require(sha(archive) == receipt["archiveSha256"] and sha(candidate/"xlang-ide/package-manifest.json") == receipt["manifestSha256"], "Candidate receipt mismatch")
     manifest = verify_payload(candidate/"xlang-ide")
+    materials = verify_development_materials(candidate/"xlang-ide", manifest)
     inspect_zip(archive)
     fixture = Path(args.fixture).resolve()
     private = fixture.is_relative_to(ide/"build") or (ide.parent.name == "build" and fixture.is_relative_to(ide/"release"))
@@ -104,14 +105,14 @@ def check(args):
         record["negative"].append(expect_reject("existing-extraction", lambda: extract_verified(archive, proof), "already exists"))
         # Reject existing destinations before reading/copying inputs, including a
         # target whose seed settings have already been changed by a user.
-        compiler_proof = load_json(candidate/"xlang-ide/provenance/compiler-inputs.json")
+        compiler_proof = load_json(materials/"provenance/compiler-inputs.json")
         compiler_root = Path(compiler_proof["compiler"]).parent
         with_c_lsp = manifest.get("features", {}).get("cLsp", False)
-        options = argparse.Namespace(compiler_root=str(compiler_root), compiler_manifest=str(candidate/"xlang-ide/provenance/compiler-inputs.json"), output=str(candidate), with_c_lsp=with_c_lsp)
+        options = argparse.Namespace(compiler_root=str(compiler_root), compiler_manifest=str(materials/"provenance/compiler-inputs.json"), output=str(candidate), with_c_lsp=with_c_lsp)
         if with_c_lsp:
-            clangd_proof = load_json(candidate/"xlang-ide/provenance/clangd-inputs.json")
+            clangd_proof = load_json(materials/"provenance/clangd-inputs.json")
             options.c_server_root = str(Path(clangd_proof["directory"])/next(iter(clangd_proof["files"])).split("/")[0])
-            options.c_server_manifest = str(candidate/"xlang-ide/provenance/clangd-inputs.json")
+            options.c_server_manifest = str(materials/"provenance/clangd-inputs.json")
         else:
             require("clangd" not in manifest["toolchains"] and not (candidate/"xlang-ide/toolchains/clangd").exists(), "C LSP assets remain in the default package")
         record["negative"].append(expect_reject("existing-candidate", lambda: assemble(options), "overwrite existing"))
@@ -173,7 +174,8 @@ def check(args):
             settings = load_json(payload/"option/settings.json")
             require(settings["toolchain"] == seed["toolchain"] and settings["packageFixture"] == seed["packageFixture"], "Tool defaults/unknown preferences were not retained")
             require(settings["ui"]["font"]["size"] == 18 and settings["editor"]["font"]["size"] == 18, "User font sizes were not retained")
-            for binary in ("xlang_ide.exe", "xlang_ide_console.exe"):
+            frontends = [name for name in ("xlang_ide.exe", "xlang_ide_console.exe") if name in manifest["corePE"]]
+            for binary in frontends:
                 screenshot = proof/(phase+"-"+binary+".png")
                 command = [payload/binary,"--frames","3","--hidden","--no-session","--settings",payload/"option/settings.json","--command",help_command,"--screenshot",screenshot]
                 record["native"].append(run(command, proof/(phase+"-"+binary+".log"), env, proof, timeout=60))
@@ -197,10 +199,11 @@ def check(args):
             else:
                 require("cServer" not in value, "Default fixture unexpectedly used a C server")
         record["renders"]=[{"path":str(p),"sha256":sha(p),"size":p.stat().st_size} for p in proof.rglob("*.png")]
-        require(len(record["renders"])==12, "Expected eight native fixture and four packaged executable renders")
+        require(len(record["renders"])==8+2*len(frontends), "Expected native fixture and packaged frontend renders")
         # Assembly and use of disposable copies must leave the delivered candidate
         # and the original frozen providers unchanged.
         verify_payload(candidate/"xlang-ide")
+        verify_development_materials(candidate/"xlang-ide", manifest)
         require(sha(archive) == receipt["archiveSha256"], "Candidate archive changed")
         changed = [p["path"] for p in receipt["inputs"] if sha(p["path"]) != p["sha256"]]
         require(not changed, f"Original package inputs changed: {changed[:3]}")
@@ -208,7 +211,7 @@ def check(args):
         record["status"]="passed"; record["payloadFiles"]=len(manifest["files"])+1
         record["negativeGates"]=len(record["negative"])
         write_json(proof/"portable-verification.json",record); write_json(proof_path,record)
-        print(f"Portable acceptance passed: {record['payloadFiles']} payload files, {record['negativeGates']} actual artifact/extraction rejection gates, 2 default native runs with relocation, 4 packaged executable runs, 12 fresh PNGs; evidence {proof}")
+        print(f"Portable acceptance passed: {record['payloadFiles']} payload files, {record['negativeGates']} actual artifact/extraction rejection gates, 2 default native runs with relocation, {2*len(frontends)} packaged executable runs, {len(record['renders'])} fresh PNGs; evidence {proof}")
     except Exception as error:
         record["status"]="failed"; record["error"]=str(error)
         write_json(proof/"portable-verification.json",record); write_json(proof_path,record)

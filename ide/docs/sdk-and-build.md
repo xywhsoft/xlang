@@ -1,5 +1,7 @@
 # 构建与 SDK
 
+当前发行只提供图形 IDE `xlang_ide.exe`，自动化诊断也使用该程序；旧阶段记录中的控制台副本不再构建或打包。源码和来源材料位于仓库的 `dev/release-materials/`。
+
 2026-10-31 更新：GUI 默认以 `XIDE_ENABLE_C_LSP=0` 编译，不包含 C LSP 后端或 clangd，C 编辑／编译运行与 xlang-ls 保留。显式开发开关、当前构建命令和验证范围见 [C LSP 构建选项](c-lsp-build-option.md)；以下 C 服务相关阶段记录按原日期保留。
 
 ## 固定依赖

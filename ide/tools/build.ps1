@@ -97,7 +97,7 @@ if (-not $FrontendRoot) {
         if ($portableConfig.compiler_root) { $candidateFrontend=Split-Path -Parent (Join-Path $ideRoot $portableConfig.compiler_root); if (Test-Path -LiteralPath (Join-Path $candidateFrontend 'src\parser\xl6_parser.c')) { $FrontendRoot=$candidateFrontend } }
     }
     if (-not $FrontendRoot) {
-        $shippedFrontend=Join-Path (Split-Path -Parent $ideRoot) 'release\sources\xlang'
+        $shippedFrontend=Join-Path (Split-Path -Parent $ideRoot) 'dev\release-materials\sources\xlang'
         $FrontendRoot=if (Test-Path -LiteralPath (Join-Path $shippedFrontend 'src\parser\xl6_parser.c')) { $shippedFrontend } else { Split-Path -Parent $ideRoot }
     }
 }
@@ -119,15 +119,10 @@ Copy-Item -LiteralPath (Join-Path $nativeRoot 'xlang-ls.exe') -Destination (Join
 $nativeReport=Join-Path $nativeRoot 'build-result.json'
 [pscustomobject]@{report=$nativeReport;reportSha256=(Get-XideSha256 $nativeReport);frontendRoot=[IO.Path]::GetFullPath($FrontendRoot)} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $objectRoot 'language-server-build.json') -Encoding utf8
 }
-$consoleExe = Join-Path $releaseRoot 'xlang_ide_console.exe'
-$consoleStaging=Join-Path $objectRoot 'xlang_ide_console.link.exe'
-& $compiler @flags (Join-Path $ideRoot 'src\main.c') @objects $appResources @libraries -o $consoleStaging
-if ($LASTEXITCODE -ne 0) { throw 'Console link failed.' }
 $guiStaging=Join-Path $objectRoot 'xlang_ide.link.exe'
 & $compiler @flags '-DXIDE_GUI=1' -mwindows (Join-Path $ideRoot 'src\main.c') @objects $appResources @libraries -o $guiStaging
 if ($LASTEXITCODE -ne 0) { throw 'GUI link failed.' }
 Assert-XideBuildInputs $buildInputs
-if (Test-Path -LiteralPath $consoleExe) { [IO.File]::Replace($consoleStaging,$consoleExe,(Join-Path $objectRoot 'xlang_ide_console.previous.exe')) } else { [IO.File]::Move($consoleStaging,$consoleExe) }
 $guiExe=Join-Path $releaseRoot 'xlang_ide.exe'
 if (Test-Path -LiteralPath $guiExe) { [IO.File]::Replace($guiStaging,$guiExe,(Join-Path $objectRoot 'xlang_ide.previous.exe')) } else { [IO.File]::Move($guiStaging,$guiExe) }
 $sdkDll=Join-Path $sdkRoot 'xge.dll'
@@ -135,7 +130,7 @@ $releaseDll=Join-Path $releaseRoot 'xge.dll'
 if (-not (Test-Path -LiteralPath $releaseDll) -or (Get-XideSha256 $sdkDll) -ne (Get-XideSha256 $releaseDll)) {
     Copy-Item -LiteralPath $sdkDll -Destination $releaseDll -Force
 }
-@{configuration=$Configuration;cLspEnabled=[bool]$EnableCLsp;compiler=$compiler;resourceCompiler=$resourceCompiler;flags=$flags;libraries=$libraries;objects=$objects;resources=@($appResources);inputs=$buildInputs;release=$releaseRoot;outputs=@{xlang_ide=(Get-XideSha256 $guiExe);xlang_ide_console=(Get-XideSha256 $consoleExe);xlang_ls=(Get-XideSha256 (Join-Path $releaseRoot 'xlang-ls.exe'));xge=(Get-XideSha256 $releaseDll)}} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $objectRoot 'gui-build-inputs.json') -Encoding utf8
+@{configuration=$Configuration;cLspEnabled=[bool]$EnableCLsp;compiler=$compiler;resourceCompiler=$resourceCompiler;flags=$flags;libraries=$libraries;objects=$objects;resources=@($appResources);inputs=$buildInputs;release=$releaseRoot;outputs=@{xlang_ide=(Get-XideSha256 $guiExe);xlang_ls=(Get-XideSha256 (Join-Path $releaseRoot 'xlang-ls.exe'));xge=(Get-XideSha256 $releaseDll)}} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $objectRoot 'gui-build-inputs.json') -Encoding utf8
 [void](New-Item -ItemType Directory -Path (Join-Path $releaseRoot 'data') -Force)
 & python -X utf8 (Join-Path $PSScriptRoot 'check_catalog_coverage.py') --root (Split-Path -Parent $ideRoot) --catalog (Join-Path $ideRoot 'data\commands.json')
 if ($LASTEXITCODE -ne 0) { throw 'IDE catalog is stale; regenerate it against the current accepted compiler release.' }

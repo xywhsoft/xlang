@@ -1,5 +1,7 @@
 # IDE build and validation
 
+- Release source snapshots and delivery/acceptance provenance live in repository-root `dev/release-materials/`, outside the runtime. Build and packaging tools must not recreate `release/sources/` or `release/provenance/`; portable runtime archives keep the developer bundle separate. Preserve dependency-owned metadata in the matched SDK and extension packages.
+
 - Use the repository root `release/` for normal local IDE and language-server builds and runtime validation. Keep compiler objects in `ide/build/Release/` and validation logs or temporary fixtures in a dedicated run subdirectory; do not create `release/tmp/` just to hold verification evidence. Executables under test still load the real root release libraries and tools.
 - When a test explicitly exercises compiler temporary paths, preserve pre-existing user data and remove its owned temporary entries afterward, including a newly created empty `release/tmp/` parent. Remove an empty parent non-recursively so concurrent contents cannot be deleted.
 - Create a separate runtime environment only for a concrete need, such as a version comparison, fault injection or protecting the user's running session. Explain that need. Test-only desktop windows do not require a separate runtime directory.

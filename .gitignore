@@ -14,9 +14,6 @@
 !/release/xge.dll
 !/release/data/
 !/release/data/**
-!/release/provenance/
-/release/provenance/*
-!/release/provenance/current-delivery.json
 !/release/README.md
 !/release/include/
 !/release/include/**
@@ -41,6 +38,11 @@
 /op_*_capture.bmp
 
 # xlang workspace-only output
+/dev/release-materials/sources/
+/dev/release-materials/provenance/*
+!/dev/release-materials/provenance/current-delivery.json
+!/dev/release-materials/provenance/ide-c-lsp-disabled-20261031.json
+!/dev/release-materials/provenance/ide-icon-font-portability-20261031.json
 /out/
 /tmp/
 /logs/

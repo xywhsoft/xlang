@@ -15,7 +15,7 @@ import uuid
 
 IDE = Path(__file__).resolve().parents[1]
 REPO = IDE.parent
-APPLICATIONS = ('xlang_ide.exe', 'xlang_ide_console.exe', 'xlang-ls.exe', 'xge.dll')
+APPLICATIONS = ('xlang_ide.exe', 'xlang-ls.exe', 'xge.dll')
 ENGINE = ('xl.exe', 'xl.dll', 'xlc.dll')
 
 
@@ -95,13 +95,18 @@ def merge(source, application_release, output, language_server=None):
         if name not in protected:
             raise ValueError('Shared engine missing: ' + name)
     applications = application_release.resolve(strict=True) if application_release else source
-    selected = {}
+    selected, development = {}, {}
+    material_root = REPO / 'dev/release-materials'
     for name, digest in original.items():
+        if name == 'xlang_ide_console.exe':
+            continue
         if name.startswith(('toolchains/xlang/', 'toolchains/clangd/', 'sources/clangd-adaptation/', 'notices/clangd/', 'provenance/clangd-adaptation/')) or name == 'provenance/clangd-inputs.json':
             continue
         if name == 'package-manifest.json':
             name = 'provenance/ide-original-package-manifest.json'
-            selected[name] = (source / 'package-manifest.json', digest)
+            development[name] = (source / 'package-manifest.json', digest)
+        elif name.startswith(('sources/', 'provenance/')):
+            development[name] = (source / name, digest)
         else:
             selected[name] = (source / name, digest)
     for name in APPLICATIONS:
@@ -112,7 +117,7 @@ def merge(source, application_release, output, language_server=None):
         for name, digest in files(applications / 'data').items():
             selected['data/' + name] = (applications / 'data' / name, digest)
     allowed = {'QUICKSTART.md', *APPLICATIONS}
-    namespaces = ('data/', 'option/', 'sources/', 'notices/', 'provenance/')
+    namespaces = ('data/', 'option/', 'notices/')
     for name, (path, digest) in selected.items():
         if name not in allowed and not name.startswith(namespaces):
             raise ValueError('Unexpected IDE runtime asset: ' + name)
@@ -120,6 +125,13 @@ def merge(source, application_release, output, language_server=None):
             raise ValueError('Input changed: ' + str(path))
         if name in protected and protected[name] != digest and name not in APPLICATIONS and not name.startswith('option/'):
             raise ValueError('Shared release conflict: ' + name)
+    for name, (path, digest) in development.items():
+        destination = material_root / name
+        if sha(path) != digest or (destination.exists() and sha(destination) != digest):
+            raise ValueError('Development materials conflict: ' + name)
+        for parent in (destination, *destination.parents):
+            if parent.exists() and (parent.is_symlink() or getattr(parent.stat(), 'st_file_attributes', 0) & 0x400):
+                raise ValueError('Reparse development materials destination: ' + str(parent))
     settings = 'option/settings.json'
     prior_settings = target / settings if (target / settings).is_file() else source / settings
     value = json.loads(prior_settings.read_text(encoding='utf-8-sig'))
@@ -129,10 +141,20 @@ def merge(source, application_release, output, language_server=None):
                   createdUtc=datetime.now(timezone.utc).isoformat(), applicationRelease=str(applications),
                   languageServerSource=str(selected['xlang-ls.exe'][0]),
                   previousFiles=original, protectedFiles=protected, installed={},
+                  developmentMaterials=dict(directory=str(material_root), installed={}),
                   engine={name: protected[name] for name in ENGINE},
                   oldCompilerRuntimeCopied=False, archive=str(output / 'previous-ide-release'),
                   note='Historical IDE compiler materials do not describe the existing shared engine; its exact binding is recorded separately.')
     write(output / 'merge-receipt.json', report)
+    for name, (path, digest) in development.items():
+        destination = material_root / name
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        if not destination.exists():
+            with path.open('rb') as incoming, destination.open('xb') as outgoing:
+                shutil.copyfileobj(incoming, outgoing)
+        if sha(destination) != digest:
+            raise ValueError('Development material copy differs: ' + name)
+        report['developmentMaterials']['installed'][name] = digest
     for name, (path, digest) in selected.items():
         destination = target / name
         # Existing user state wins; only known bundled paths are rebased below.
@@ -157,7 +179,7 @@ def merge(source, application_release, output, language_server=None):
     report['status'] = 'installed-awaiting-runtime-verification'
     write(output / 'merge-receipt.json', report)
     write(target / 'ide-install-receipt.json', dict(format=report['format'], createdUtc=report['createdUtc'],
-          engine=report['engine'], installed=report['installed'], sourceReceipt=str(output / 'merge-receipt.json')))
+          engine=report['engine'], installed=report['installed'], developmentMaterials=report['developmentMaterials'], sourceReceipt=str(output / 'merge-receipt.json')))
     print(json.dumps(dict(status=report['status'], target=str(target), installed=len(report['installed']),
                           protected=len(protected), receipt=str(output / 'merge-receipt.json')), ensure_ascii=False))
 

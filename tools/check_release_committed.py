@@ -7,7 +7,7 @@ import subprocess
 
 
 def check(root):
-    receipt = root / 'release/provenance/current-delivery.json'
+    receipt = root / 'dev/release-materials/provenance/current-delivery.json'
     data = json.loads(receipt.read_text(encoding='utf-8'))
     rows = data['products'] + data['dataFiles']
     paths = [row['path'] for row in rows]

@@ -16,10 +16,12 @@ def sha(path):
 
 
 def check(fixture, gui, console, output):
-    fixture, gui, console = (Path(p).resolve(strict=True) for p in (fixture, gui, console))
+    fixture, gui = (Path(p).resolve(strict=True) for p in (fixture, gui))
+    console = Path(console).resolve(strict=True) if console else None
     proof = Path(output).resolve() / ("native-failures-" + uuid.uuid4().hex)
     proof.mkdir(parents=True)
-    originals = [fixture, gui, console, gui.parent / "xge.dll", gui.parent / "data/commands.json"]
+    originals = [fixture, gui, gui.parent / "xge.dll", gui.parent / "data/commands.json",
+                 *sorted((gui.parent / "data/fonts").iterdir())] + ([console] if console else [])
     inputs = {str(p): sha(p) for p in originals}
     calls, images, seeds = [], [], []
     checks = 0
@@ -58,9 +60,10 @@ def check(fixture, gui, console, output):
         return row
 
     status = "failed"
+    modes = ("missing", "session", "arguments", "hidden", "blocked", "default", "fallback", "quota") + (("console",) if console else ())
     try:
         invoke("storage", ["--storage", proof / "storage"])
-        for mode in ("missing", "session", "arguments", "hidden", "console", "blocked", "default", "fallback", "quota"):
+        for mode in modes:
             directory = proof / mode
             directory.mkdir()
             executable = console if mode == "console" else gui
@@ -69,6 +72,7 @@ def check(fixture, gui, console, output):
             shutil.copy2(gui.parent / "xge.dll", directory / "xge.dll")
             (directory / "data").mkdir()
             shutil.copy2(gui.parent / "data/commands.json", directory / "data/commands.json")
+            shutil.copytree(gui.parent / "data/fonts", directory / "data/fonts")
             root = directory / "诊断 文件 😀"
             if mode == "blocked":
                 root.write_bytes(b"preserve existing root file")
@@ -120,7 +124,7 @@ def check(fixture, gui, console, output):
                     image.save(png)
                     images.append({"path": str(png), "sha256": sha(png), "width": image.width, "height": image.height})
             print("Passed real native failure", mode, "dialogs=" + str(row["dialogs"]), flush=True)
-        assert len(calls) == 10 and len(images) == 7
+        assert len(calls) == 1+len(modes) and len(images) == 7
         for row in seeds:
             assert sha(row["path"]) == row["sha256"], row["path"]
         for path, digest in inputs.items():
@@ -130,12 +134,12 @@ def check(fixture, gui, console, output):
         result = {"status": status, "utc": datetime.now(timezone.utc).isoformat(), "inputs": inputs,
                   "checks": checks, "fixtureProcesses": len(calls), "actualGuiOrConsoleChildren": sum("childPid" in row for row in calls),
                   "privateDesktopNeverSwitched": True, "boundedFiles": 64, "boundedBytes": 524288,
-                  "noAutomaticDeletion": True, "userSourcesSaved": False, "cases": 9,
+                  "noAutomaticDeletion": True, "userSourcesSaved": False, "cases": len(modes),
                   "calls": calls, "images": images, "protectedFiles": seeds,
                   "formalRelease": False, "goalStatus": "active"}
         result["files"] = [{"path": str(p), "sha256": sha(p)} for p in sorted(proof.rglob("*")) if p.is_file()]
         (proof / "evidence.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf8")
-    print("Native GUI error visibility:", checks, "checks, 9 real launches, 7 native dialog images;", proof / "evidence.json", flush=True)
+    print("Native GUI error visibility:", checks, "checks,", len(modes), "real launches, 7 native dialog images;", proof / "evidence.json", flush=True)
     return result
 
 
@@ -143,7 +147,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--fixture", required=True)
     parser.add_argument("--gui", required=True)
-    parser.add_argument("--console", required=True)
+    parser.add_argument("--console", help="Optional historical console executable")
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
     check(args.fixture, args.gui, args.console, args.output)

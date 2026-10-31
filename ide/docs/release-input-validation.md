@@ -8,7 +8,7 @@
 
 本轮没有修改输入逻辑。重建前后 `xlang-ls.exe` 和 `xge.dll` 的 SHA-256 均不变，变化的是两个 IDE 程序。因此，不能将故障直接归因于新 LSP，也不能声称已经修复了一个确定的 LSP 输入缺陷。原故障未在自动化用例中复现，旧进程的精确触发状态仍未知。已确认的验收缺口是：上轮验证了独立服务，却没有对发布目录中的 GUI 与新服务完成配套联调；本轮已补做。
 
-GUI、服务、SDK、引擎与测试记录绑定在 `release/provenance/ide-native-lsp-integration-20261031.json`；原始日志和旧程序保存在 `release/tmp/ide-input-20261031/`。本轮没有推送远端或重新生成发行 ZIP。
+GUI、服务、SDK、引擎与测试记录绑定在 `dev/release-materials/provenance/ide-native-lsp-integration-20261031.json`；原始日志和旧程序保存在 `release/tmp/ide-input-20261031/`。本轮没有推送远端或重新生成发行 ZIP。
 
 本轮运行文件 SHA-256：
 

@@ -15,7 +15,7 @@ import time
 import uuid
 
 from native_desktop import NativeDesktopProcess
-from package_portable import PackageError, load_json, plain, require, safe_name, sha, verify_payload
+from package_portable import PackageError, load_json, plain, require, safe_name, sha, tree, verify_payload, verify_development_materials
 
 PROBE_NAME = 'tcc_xlang_relink_probe_v1'
 PROBE_VALUE = 0x584C4931
@@ -120,7 +120,11 @@ def check(args) -> Path:
         for row in manifest['files']:
             protected[str(package / row['path'])] = row['sha256']
         protected[str(package / 'package-manifest.json')] = sha(package / 'package-manifest.json')
-        materials = load_json(package / 'sources/xlang/SOURCE-MATERIALS.json')
+        material_root = verify_development_materials(package, manifest)
+        if material_root != package:
+            for path in tree(material_root):
+                protected[str(path)] = sha(path)
+        materials = load_json(material_root / 'sources/xlang/SOURCE-MATERIALS.json')
         require(materials.get('sourceFiles') == 1521 and materials.get('rootBuildScripts') == 11,
             'This gate expects the published 1532-input compiler source contract')
         if prior:
@@ -166,7 +170,7 @@ def check(args) -> Path:
                 name = safe_name(row['path'])
                 require(name.casefold() not in names, 'Duplicate compiler source path')
                 names.add(name.casefold())
-                original = package / 'sources/xlang' / name
+                original = material_root / 'sources/xlang' / name
                 plain(original)
                 require(sha(original) == row['sha256'], 'Packaged source differs from its materials record')
                 target = source / name

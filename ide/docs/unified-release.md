@@ -4,23 +4,31 @@
 
 ```text
 release/
-  xlang_ide.exe、xlang_ide_console.exe、xlang-ls.exe、xge.dll
+  xlang_ide.exe、xlang-ls.exe、xge.dll
   xl.exe、xl.dll、xlc.dll
   include/、extlibs/、examples/、projects/、res/
   data/                  命令帮助、离线字体
   option/                IDE 设置及会话
-  notices/、provenance/、sources/
+  notices/               第三方通知与许可说明
+
+dev/release-materials/
+  sources/               原有编译器、SDK 与 TCC 源码快照
+  provenance/            来源、构建与验收报告
 ```
 
 IDE 与命令行共用根目录现有引擎和 SDK。迁移不使用旧 IDE 包的引擎、头文件和扩展库覆盖根目录资产。旧 `toolchains/xlang/` 随迁移前目录保存在 `ide/build/` 的可恢复备份中。默认编译器为相对 `option/settings.json` 的 `../xl.exe`。2026-10-31 起 C LSP 默认关闭，clangd 及专用材料已移除，xlang-ls 和 C 编译运行保留，见 [C LSP 构建选项](c-lsp-build-option.md)。
 
 `ide/build_current.bat -Configuration Release -Tests` 继续生成独立源码快照与收据，输出位于 `ide/build/cb-*/release/`。`ide/build.bat` 普通构建输出根 `release/`；带 `-Tests` 时输出 `ide/build/<配置>/release/`。`ide/test.bat` 使用同一测试目录。两个 PowerShell 入口均支持 `-ReleaseDirectory`，供隔离构建与验收使用。
 
-LSP 原生前端保留独立源码摘要守卫。默认优先使用开发配置中固定的前端源码；固定目录不存在时，使用随包的 `release/sources/xlang/`，最后才尝试仓库根源码。源码不匹配仍会拒绝构建；目录合并不放宽检查。可通过 `-FrontendRoot` 显式指定前端。
+LSP 原生前端保留独立源码摘要守卫。默认优先使用开发配置中固定的前端源码；固定目录不存在时，使用 `dev/release-materials/sources/xlang/`，最后才尝试仓库根源码。源码不匹配仍会拒绝构建；目录迁移不放宽检查。可通过 `-FrontendRoot` 显式指定前端。
 
 便携打包同样采用同层布局：IDE、语言服务、引擎位于载荷根目录，头文件与扩展库直接位于 `include/`、`extlibs/`。打包继续验证显式固定的编译器和 SDK；默认不读取 C 服务器或其清单。它与本地目录迁移是独立操作。
 
-迁移工具为 `ide/tools/merge_release.py`。它检查冲突、保留根目录已有引擎，只更新 IDE 自有文件，保留设置中的未知字段，并记录安装摘要与引擎绑定。迁移前清单保存在 `release/provenance/ide-original-package-manifest.json`，仅用于追溯历史包；当前引擎以根目录二进制及迁移收据摘要为准。
+2026-10-31 起，`sources` 和 `provenance` 从根 `release` 原样迁入 `dev/release-materials`。便携候选拆分为 `xlang-ide/` 运行载荷及相邻的 `development-materials/`，运行 ZIP 仅包含前者。独立材料清单记录逐文件摘要，并绑定同批运行程序；校验器同时支持旧候选的内嵌材料布局。历史源码和报告记录当时的路径，不批量改写。
+
+当前 IDE 只发行图形入口 `xlang_ide.exe`，不再生成或打包控制台副本。隐藏、有限帧、截图等诊断参数继续由图形程序提供；命令行语言工具仍为 `xl.exe`。
+
+迁移工具为 `ide/tools/merge_release.py`。它检查冲突、保留根目录已有引擎，只更新 IDE 自有文件，保留设置中的未知字段，并记录安装摘要与引擎绑定。迁移前清单保存在 `dev/release-materials/provenance/ide-original-package-manifest.json`，仅用于追溯历史包；当前引擎以根目录二进制及迁移收据摘要为准。
 
 旧目录在新入口验证后移入 `ide/build/release-unify-*/previous-ide-release/`，不会直接删除。源码、测试、构建中间文件和运行日志仍留在 `ide/` 与 `ide/build/`。
 
@@ -36,4 +44,4 @@ LSP 原生前端保留独立源码摘要守卫。默认优先使用开发配置�
 
 本轮以已发布的传统 IDE / CLI 语言服务功能基线重新构建 88 个模块，补入同目录引擎发现和上述兼容修复。XGE DLL 保持原文件；开发中的原生分析服务仍在隔离目录，本次语言服务继续为 CLI 后端的 0.4 功能线。重建输入、派生导入库及原发布 SDK 的头文件、配置和 DLL 绑定均记录在验收目录。
 
-旧、新引擎分别通过 111 项真实构建输入检查，包含损坏收据、时间单位不匹配、身份替换和构建期间变更；语言服务通过 57 项源码快照及异常响应边界检查。7 个真实 IDE 入口场景覆盖 C / xlang 单文件、独立项目、工作空间、显式文件覆盖和会话恢复；另验收无编译器参数的同目录发现及中文空格路径搬迁。验收资料位于 `ide/build/release-compat-20261030-a6c17d92/`，正式安装记录放在根 `release/provenance/ide-receipt-compatibility.json`。
+旧、新引擎分别通过 111 项真实构建输入检查，包含损坏收据、时间单位不匹配、身份替换和构建期间变更；语言服务通过 57 项源码快照及异常响应边界检查。7 个真实 IDE 入口场景覆盖 C / xlang 单文件、独立项目、工作空间、显式文件覆盖和会话恢复；另验收无编译器参数的同目录发现及中文空格路径搬迁。验收资料位于 `ide/build/release-compat-20261030-a6c17d92/`，正式安装记录放在根 `dev/release-materials/provenance/ide-receipt-compatibility.json`。

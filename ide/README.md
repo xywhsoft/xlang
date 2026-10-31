@@ -1,6 +1,8 @@
 # xlang IDE
 
-IDE 已接入 xserver 的 `xx_exe.ico`，图标嵌入两个 EXE 并用于窗口，构建不依赖外部路径，见 [应用图标](docs/application-icon.md)。字体设置页显示解析后的绝对路径，随包字体实际以相对路径保存，完整发布目录可以迁移，见 [字体与迁移](docs/font-fallback.md)。
+运行目录的 `sources` 与 `provenance` 已迁到仓库 [dev/release-materials](../dev/release-materials/README.md)。源码与历史记录完整保留，IDE 和引擎仍从根 `release` 运行；默认便携包将开发材料单独保存，不再装入运行 ZIP。
+
+IDE 已接入 xserver 的 `xx_exe.ico`，图标嵌入图形程序并用于窗口，构建不依赖外部路径，见 [应用图标](docs/application-icon.md)。发行只提供 `xlang_ide.exe`；图形程序仍支持有界诊断参数。字体设置页显示解析后的绝对路径，随包字体实际以相对路径保存，完整发布目录可以迁移，见 [字体与迁移](docs/font-fallback.md)。
 
 2026-10-31：默认关闭 C LSP，移除随包 clangd，保留实现代码，以 `XIDE_ENABLE_C_LSP` 宏控制。C／xlang 编辑与通过 xlang 编译运行继续保留；`xlang-ls.exe` 不变。根 `release/` 的 IDE 已重编，设置和默认打包流程同步，见 [C LSP 构建选项](docs/c-lsp-build-option.md)。下面的 C 服务器能力说明属于历史阶段。
 

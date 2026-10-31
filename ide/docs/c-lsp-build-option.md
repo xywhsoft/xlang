@@ -25,7 +25,7 @@ python -X utf8 -B ide/tools/check_c_lsp_disabled.py --output ide/build/Release/c
 
 本轮同源 Release 构建通过 `-Wall -Wextra -Werror`，100 个 GUI 翻译单元；共享代码宏 0／1 的 20 项语法检查及保留的 8 个 C 专用模块宏 1 语法检查通过。已在根 release 运行输入／IME、设置、项目配置、项目测试、工具栏、恢复、xlang 自动诊断、补全帧、定义和符号视图回归。原有夹具中的菜单位置、动作总数和执行目标假设同步为当前工具栏语义。
 
-这次回归不代表完整性能验收或实体 IME／混合 DPI 验收。既有 LSP 整体性能未通过项继续有效。详细来源和验证范围见 `release/provenance/ide-c-lsp-disabled-20261031.json`；原始记录保留于 `ide/build/Release/no-c-lsp-20261031/`。
+这次回归不代表完整性能验收或实体 IME／混合 DPI 验收。既有 LSP 整体性能未通过项继续有效。详细来源和验证范围见 `dev/release-materials/provenance/ide-c-lsp-disabled-20261031.json`；原始记录保留于 `ide/build/Release/no-c-lsp-20261031/`。
 
 额外运行的通用文件选择回归停在“导入窗口选择目录后按 Escape 关闭”断言；目录选择与原文件保护已通过，尚未确定该失败原因，不记为该整套用例通过。C 服务入口不存在、旧配置移除及 C 编译运行由独立的 45 项实际 GUI 检查覆盖。
 
