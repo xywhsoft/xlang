@@ -2,6 +2,7 @@
 #define XLANG_ANALYSIS_INDEX_H
 #include <stddef.h>
 #include <stdint.h>
+#include "analysis/index_kind.h"
 
 /* Read-only checked-compilation facts. No frontend AST, transport, JSON or
  * GUI runtime types escape this boundary. All pointers borrow the owning
@@ -23,4 +24,9 @@ typedef struct xls_index_fact {
 } xls_index_fact;
 size_t xlsSemanticIndexCount(const xls_semantic_index* index);
 int xlsSemanticIndexFact(const xls_semantic_index* index,size_t at,xls_index_fact* fact);
+/* Same immutable fact,with classification from the native AST enum. The
+ * shared string-category table preserves compatibility without reparsing
+ * every kind name in hot whole-index scans. Existing fact ABI is unchanged. */
+typedef struct xls_index_point_fact {xls_index_fact fact;enum xls_index_point_kind kind;} xls_index_point_fact;
+int xlsSemanticIndexPointFact(const xls_semantic_index* index,size_t at,xls_index_point_fact* fact);
 #endif

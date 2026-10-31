@@ -39,7 +39,10 @@ xide_semantic_definitions* __wrap_xideSemanticNavigationResolve(const xide_navig
   if(WaitForSingleObject(r,10000)!=WAIT_OBJECT_0)ExitProcess(92);
   CloseHandle(e);CloseHandle(r);
  }
- return __real_xideSemanticNavigationResolve(snapshot,store,lease,work,error);
+ xide_semantic_definitions* result=__real_xideSemanticNavigationResolve(snapshot,store,lease,work,error);
+ wchar_t complete[128];DWORD n=GetEnvironmentVariableW(L"XLS_TEST_NAV_COMPLETE",complete,128);
+ if(n){if(n>=128)ExitProcess(95);HANDLE e=OpenEventW(EVENT_MODIFY_STATE,FALSE,complete);if(!e || !SetEvent(e))ExitProcess(96);CloseHandle(e);}
+ return result;
 }
 '''
 
@@ -84,10 +87,10 @@ def main():
                         if generation:ref.change(dep,body,2)
                         value=checked(ref,dep,generation+1);assert value['ok'];q=params(body,generation+1,value['checkId']);hover=ref.call('textDocument/hover',q);symbols=ref.call('textDocument/documentSymbol',q);assert hover and symbols;answers.append(dict(check={key:v for key,v in value.items() if key not in ['analysis','durationMs','checkId']},hover=hover,symbols=symbols))
                 finally:assert not ref.stop() and ref.process.returncode==0
-                token=uuid.uuid4().hex;enter_name='Local\\xls-nav-enter-'+token;release_name='Local\\xls-nav-release-'+token;capture_name='Local\\xls-nav-capture-'+token;e=k.CreateEventW(None,True,False,enter_name);release=k.CreateEventW(None,True,False,release_name);captured=k.CreateEventW(None,True,False,capture_name);assert e and release and captured;handles += [e,release,captured]
-                old={key:os.environ.get(key) for key in ['XLS_TEST_NAV_ENTER','XLS_TEST_NAV_RELEASE','XLS_TEST_NAV_CAPTURE']}
+                token=uuid.uuid4().hex;enter_name='Local\\xls-nav-enter-'+token;release_name='Local\\xls-nav-release-'+token;capture_name='Local\\xls-nav-capture-'+token;complete_name='Local\\xls-nav-complete-'+token;e=k.CreateEventW(None,True,False,enter_name);release=k.CreateEventW(None,True,False,release_name);captured=k.CreateEventW(None,True,False,capture_name);complete=k.CreateEventW(None,True,False,complete_name);assert e and release and captured and complete;handles += [e,release,captured,complete]
+                old={key:os.environ.get(key) for key in ['XLS_TEST_NAV_ENTER','XLS_TEST_NAV_RELEASE','XLS_TEST_NAV_CAPTURE','XLS_TEST_NAV_COMPLETE']}
                 try:
-                    os.environ.update(XLS_TEST_NAV_ENTER=enter_name,XLS_TEST_NAV_RELEASE=release_name,XLS_TEST_NAV_CAPTURE=capture_name);c=AutomaticClient(server,folder/'absent/xl.exe',folder);clients.append(c)
+                    os.environ.update(XLS_TEST_NAV_ENTER=enter_name,XLS_TEST_NAV_RELEASE=release_name,XLS_TEST_NAV_CAPTURE=capture_name,XLS_TEST_NAV_COMPLETE=complete_name);c=AutomaticClient(server,folder/'absent/xl.exe',folder);clients.append(c)
                 finally:
                     for key,value in old.items():
                         if value is None:os.environ.pop(key,None)
@@ -109,16 +112,18 @@ def main():
                     if opened:c.open(entry,main_text,1)
                     c.open(dep,bodies[0],1);value=checked(c,dep,1);assert {key:v for key,v in value.items() if key not in ['analysis','durationMs','checkId']}==answers[0]['check'];assert value['analysis']['navigation']['deferred']
                     assert k.WaitForSingleObject(captured,0)==0 and k.ResetEvent(captured)
-                    q=params(bodies[0],1,value['checkId']);c.send('textDocument/hover',q,700);assert k.WaitForSingleObject(e,5000)==0,'Navigation did not enter its actual resolver.'
+                    assert value['analysis']['navigation']['points']['ready']
+                    q=params(bodies[0],1,value['checkId']);c.send('textDocument/documentSymbol',q,700);assert k.WaitForSingleObject(e,5000)==0,'Full navigation did not enter its actual resolver.'
                     c.send('xlang/inputState',{},800);ping=take(800,forbidden=[700]);assert 'error' not in ping
+                    c.send('textDocument/hover',q,702);assert take(702,forbidden=[700]).get('result')==answers[0]['hover'],'Native point query waited for the unrelated full projection.'
                     if mode=='cancel-one':
                         c.send('textDocument/documentSymbol',q,701);c.send('$/cancelRequest',dict(id=700));cancelled=take(700,forbidden=[701]);assert cancelled['error']['code']==-32800;assert k.SetEvent(release);v=take(701);assert v.get('result')==answers[0]['symbols'],v
                     elif mode=='source-change':
-                        c.change(dep,bodies[1],2);cancelled=take(700);assert cancelled['error']['code']==-32801;c.send('xlang/check',dict(textDocument=dict(uri=dep.as_uri()),version=2),900);assert k.WaitForSingleObject(captured,5000)==0,'New capture did not overtake held old navigation.';assert k.SetEvent(release);reply=take(900,timeout=30);assert 'error' not in reply,reply;current=checked(c,dep,2);assert {key:v for key,v in current.items() if key not in ['analysis','durationMs','checkId']}==answers[1]['check'];assert current['analysis']['navigation']['published']==value['analysis']['navigation']['published'],'Old cancelled work repopulated the new bank.';assert c.call('textDocument/hover',params(bodies[1],2,current['checkId']))==answers[1]['hover']
+                        c.change(dep,bodies[1],2);cancelled=take(700);assert cancelled['error']['code']==-32801;c.send('xlang/check',dict(textDocument=dict(uri=dep.as_uri()),version=2),900);assert k.WaitForSingleObject(captured,5000)==0,'New capture did not overtake held old navigation.';assert k.SetEvent(release);assert k.WaitForSingleObject(complete,5000)==0,'Old resolver did not finish before publication accounting.';reply=take(900,timeout=30);assert 'error' not in reply,reply;assert reply['result']['analysis']['navigation']['points']['builds']==1;current=checked(c,dep,2);assert {key:v for key,v in current.items() if key not in ['analysis','durationMs','checkId']}==answers[1]['check'];assert current['analysis']['navigation']['published']==value['analysis']['navigation']['published']+1,'Old cancelled work repopulated the new bank beyond the one new native point view.';assert c.call('textDocument/hover',params(bodies[1],2,current['checkId']))==answers[1]['hover']
                     elif mode=='batch-replaced':
-                        c.send('xlang/check',dict(textDocument=dict(uri=dep.as_uri()),version=1),900);cancelled=take(700);assert cancelled['error']['code']==-32801;assert k.WaitForSingleObject(captured,5000)==0,'Replacement capture did not overtake held old navigation.';assert k.SetEvent(release);reply=take(900,timeout=30);assert 'error' not in reply,reply;current=checked(c,dep,1);assert current['analysis']['navigation']['published']==value['analysis']['navigation']['published'],'Superseded batch repopulated the new bank.';assert c.call('textDocument/hover',params(bodies[0],1,current['checkId']))==answers[0]['hover']
+                        c.send('xlang/check',dict(textDocument=dict(uri=dep.as_uri()),version=1),900);cancelled=take(700);assert cancelled['error']['code']==-32801;assert k.WaitForSingleObject(captured,5000)==0,'Replacement capture did not overtake held old navigation.';assert k.SetEvent(release);assert k.WaitForSingleObject(complete,5000)==0,'Superseded resolver did not finish before publication accounting.';reply=take(900,timeout=30);assert 'error' not in reply,reply;assert reply['result']['analysis']['navigation']['points']['cacheHits']==1;current=checked(c,dep,1);assert current['analysis']['navigation']['published']==value['analysis']['navigation']['published'],'Superseded batch repopulated the new bank.';assert c.call('textDocument/hover',params(bodies[0],1,current['checkId']))==answers[0]['hover']
                     else:
-                        assert k.SetEvent(release);v=take(700);assert v.get('result')==answers[0]['hover'],v
+                        assert k.SetEvent(release);v=take(700);assert v.get('result')==answers[0]['symbols'],v
                     # A completed demand and a later owner-loop fence must not
                     # emit a second response for an already cancelled request.
                     c.send('xlang/inputState',{},801);assert 'error' not in take(801)
@@ -126,7 +131,7 @@ def main():
                 finally:
                     k.SetEvent(release);stderr=c.stop();(folder/'candidate-stderr.log').write_text(stderr,encoding='utf8');(folder/'candidate-transcript.json').write_text(json.dumps(c.transcript,ensure_ascii=False,indent=2),encoding='utf8');(folder/'reference-transcript.json').write_text(json.dumps(ref.transcript,ensure_ascii=False,indent=2),encoding='utf8')
                 assert not stderr and c.process.returncode==0 and not dep.exists()
-                k.CloseHandle(e);k.CloseHandle(release);k.CloseHandle(captured);handles.remove(e);handles.remove(release);handles.remove(captured)
+                k.CloseHandle(e);k.CloseHandle(release);k.CloseHandle(captured);k.CloseHandle(complete);handles.remove(e);handles.remove(release);handles.remove(captured);handles.remove(complete)
         assert len(record['cases'])==8 and all(sha(path)==digest for path,digest in protected.items());record['status']='passed'
     except BaseException as exc:record.update(status='failed',error=repr(exc));raise
     finally:

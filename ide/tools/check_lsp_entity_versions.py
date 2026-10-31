@@ -43,12 +43,13 @@ def main():
                 if phase=='exact':assert interfaces==first['analysis']['entityInterfaces'] and r['analysis']['builds']==first['analysis']['builds'],r
                 if okay:
                     nav=r['analysis']['navigation'];assert nav['deferred'] and not nav['builds'] and not nav['cacheHits'] and nav['deferredBytes']>0,nav
+                    expected_hit=int(phase=='exact');assert nav['points']['ready'] and nav['points']['cacheHits']==expected_hit and nav['points']['builds']==1-expected_hit,nav
                     params=dict(textDocument=dict(uri=dep.as_uri()),version=version,checkId=r['checkId'],position=position(source,source.index('return value')+len('return ')))
                     definition=c.call('textDocument/definition',params);assert definition['uri']==dep.as_uri() and definition['range']['start']==position(source,source.index('value)')),definition
                     hover=c.call('textDocument/hover',params);assert hover and hover['contents'],hover
-                    current=read_check();after=current['analysis']['navigation'];expected_hit=int(phase=='exact')
+                    current=read_check();after=current['analysis']['navigation']
                     assert current['analysis']['entityInterfaces']==interfaces and current['analysis']['builds']==r['analysis']['builds'],current
-                    assert after['storeHits']==nav['storeHits']+expected_hit and after['published']==nav['published']+1-expected_hit and after['residentBytes']>0,(nav,after)
+                    assert after['points']['cacheHits']==1 and after['storeHits']==nav['storeHits']+1 and after['published']==nav['published'] and after['residentBytes']>0,(nav,after)
                 cases.append(dict(name=('opened-' if opened else 'disk-')+phase,passed=True,interfaces=interfaces,version=version))
             c.stop();assert not c.process.returncode and not dep.exists()
         assert len(cases)==12 and all(sha(p)==h for p,h in protected.items());report['status']='passed'

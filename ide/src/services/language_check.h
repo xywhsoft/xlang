@@ -36,6 +36,10 @@ xide_language_check* xideLanguageCheckStartCompletionSnapshotsEx(xide_toolchains
  * No navigation work or disk validation runs on this caller. */
 int xideLanguageCheckPrepareNavigation(xide_language_check* check,const char* path,
     int version,char* message,size_t capacity);
+/* Definition/hover can use an already prepared immutable native point view.
+ * If optional preparation declined,this queues the original background view. */
+int xideLanguageCheckPreparePointNavigation(xide_language_check* check,const char* path,
+    int version,char* message,size_t capacity);
 /* Standalone native host only. Captures immutable text references, labels and
    wire versions without copying/revalidating entire bodies or doing physical
    alias I/O on the caller. target is the entry's document key. A static check

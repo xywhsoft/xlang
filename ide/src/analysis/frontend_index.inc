@@ -109,3 +109,16 @@ int xlsSemanticIndexFact(const xls_semantic_index* index,size_t at,xls_index_fac
         .selectionRange=xlsFrontendRange(b->report,f->selectionSource,f->selection ? &f->selection->tokenRange : NULL)};
     return 1;
 }
+int xlsSemanticIndexPointFact(const xls_semantic_index* index,size_t at,xls_index_point_fact* out)
+{
+    if(!out)return 0;
+    *out=(xls_index_point_fact){0};
+    if(!xlsSemanticIndexFact(index,at,&out->fact))return 0;
+    switch(index->build.facts[at].node->kind){
+#define XLS_INDEX_NATIVE_KIND(name,text) case XL6_AST_##name:out->kind=XLS_INDEX_POINT_##name;break;
+        XLS_INDEX_POINT_NATIVE_KINDS(XLS_INDEX_NATIVE_KIND)
+#undef XLS_INDEX_NATIVE_KIND
+        default:out->kind=XLS_INDEX_POINT_OTHER;break;
+    }
+    return 1;
+}

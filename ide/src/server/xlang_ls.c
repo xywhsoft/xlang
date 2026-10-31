@@ -575,7 +575,7 @@ static xvalue* semanticResult(server* s,semantic_request* request)
  document* d=&s->docs[request->document];
  if(s->catalog && (d->binding<0 || ((!request->bound || d->binding==XIDE_ANALYSIS_PROJECT) && !xideLanguageCheckMatchesContext(s->guard,d->context)))) return NULL;
 #ifdef XLS_COMPILER_XRT
- int prepared=xideLanguageCheckPrepareNavigation(s->guard,d->path,request->version,NULL,0);
+ int prepared=request->kind<2 ? xideLanguageCheckPreparePointNavigation(s->guard,d->path,request->version,NULL,0) : xideLanguageCheckPrepareNavigation(s->guard,d->path,request->version,NULL,0);
  if(prepared!=1){request->waitingNavigation=prepared==0;request->navigationFailed=prepared==-1;return NULL;}
 #endif
  return request->kind==3 ? xideLanguageCheckDocumentHighlights(s->guard,d->path,request->version,request->line,request->character) :

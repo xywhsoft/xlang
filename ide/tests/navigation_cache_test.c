@@ -3,12 +3,14 @@
 #include <xrt.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 static unsigned checks;
 #define CHECK(v) do{++checks;if(!(v)){fprintf(stderr,"navigation_cache_test:%d:%s\n",__LINE__,#v);return 0;}}while(0)
-static unsigned captureFaultKind;static size_t captureFaultAt,captureVisits,captureRetains;static int captureFaultActive;
-static int captureRefuse(unsigned kind){return captureFaultActive && captureFaultKind==kind && captureVisits++==captureFaultAt;}
+static unsigned captureFaultKind;static size_t captureFaultAt,captureVisits,captureRetains,captureRefusals;static int captureFaultActive;
+static _Thread_local unsigned pointCrtIndirect;
+static int captureRefuse(unsigned kind){if(captureFaultActive && captureFaultKind==kind && captureVisits++==captureFaultAt){++captureRefusals;return 1;}return 0;}
 void* __real_xrtCalloc(size_t,size_t);
-void* __wrap_xrtCalloc(size_t n,size_t size){return captureRefuse(1) ? NULL : __real_xrtCalloc(n,size);}
+void* __wrap_xrtCalloc(size_t n,size_t size){if(captureRefuse(1))return NULL;++pointCrtIndirect;void* p=__real_xrtCalloc(n,size);--pointCrtIndirect;return p;}
 char* __real_xrtStrDup(const char*);
 char* __wrap_xrtStrDup(const char* text){return captureRefuse(2) ? NULL : __real_xrtStrDup(text);}
 xls_semantic_check* __real_xlsSemanticCheckRetain(xls_semantic_check*);
@@ -33,6 +35,7 @@ static int allQueries(xide_semantic_definitions* a,xide_semantic_definitions* b,
   }xrtStrBufFree(&text);
  }return 1;
 }
+#include "navigation_point_faults.inc"
 typedef struct reader {xide_semantic_definitions* table;const char* path;int okay;} reader;
 static int32 readTable(void* user)
 {reader* r=user;r->okay=1;for(unsigned i=0;i<32;++i){xvalue* symbols=xideSemanticDocumentSymbols(r->table,r->path);if(!symbols || !xrtValueCount(symbols))r->okay=0;xrtValueRelease(symbols);}return 0;}
@@ -40,6 +43,43 @@ static int deferred(xls_semantic_check* checked,const xide_semantic_source* sour
  const xls_semantic_input* inputs,xide_semantic_definitions* reference)
 {
  xide_model_error error={0};xls_projection* lease=NULL;xide_navigation_work work;
+ CHECK(pointFaults(checked,sources,reference));
+ /* Point queries read checked native facts through the shared selection and
+  * binding engine. Every scalar endpoint must match the original full view. */
+ xls_projection_store* pointsStore=xlsProjectionStoreCreate(XLS_PROJECTION_STORE_BYTES);CHECK(pointsStore);
+ xide_navigation_snapshot* points=xideSemanticNavigationCapture(checked,sources,2,&error);CHECK(points);xideSemanticNavigationBind(points,pointsStore);
+ CHECK(xideSemanticNavigationPreparePoints(points,&error)==1 && !error.code && xideSemanticNavigationPointsReady(points));
+ xide_navigation_work pointWork=xideSemanticNavigationPointWork(points);CHECK(pointWork.built && !pointWork.hit && pointWork.bytes>0);
+ const xls_semantic_index* pointIndex=xlsSemanticCheckTypedIndex(checked);
+ for(size_t i=0;i<xlsSemanticIndexCount(pointIndex);++i){xls_index_point_fact point;CHECK(xlsSemanticIndexPointFact(pointIndex,i,&point) && point.fact.id==i+1 && point.kind==xlsIndexPointKindParse(point.fact.kind));}
+ for(size_t source=0;source<2;++source){
+  const char* text=sources[source].text;size_t size=strlen(text);int line=0,character=sources[source].utf16Prefix;
+  for(size_t offset=0;;){
+   CHECK(equalValue(xideSemanticNavigationPointDefinition(points,sources[source].path,line,character),xideSemanticDefinition(reference,sources[source].path,line,character)));
+   CHECK(equalValue(xideSemanticNavigationPointHover(points,sources[source].path,line,character),xideSemanticHover(reference,sources[source].path,line,character)));
+   if(offset==size)break;
+   unsigned char c=(unsigned char)text[offset];size_t length=c<128 ? 1 : c<0xe0 ? 2 : c<0xf0 ? 3 : 4;
+   if(c=='\r' && offset+1<size && text[offset+1]=='\n')length=2;
+   if(c=='\r' || c=='\n'){++line;character=0;}else character+=length==4 ? 2 : 1;
+   offset+=length;
+  }
+ }
+ xide_navigation_snapshot* pointHit=xideSemanticNavigationCapture(checked,sources,2,&error);CHECK(pointHit);xideSemanticNavigationBind(pointHit,pointsStore);CHECK(xideSemanticNavigationPreparePoints(pointHit,&error)==1);pointWork=xideSemanticNavigationPointWork(pointHit);CHECK(pointWork.hit && !pointWork.built);
+ xide_semantic_source prefixSources[2]={sources[0],sources[1]};prefixSources[1].utf16Prefix=0;
+ xide_semantic_definitions* prefixReference=xideSemanticDefinitionsCreateTyped(pointIndex,prefixSources,2,&error);CHECK(prefixReference);
+ xide_navigation_snapshot* prefix=xideSemanticNavigationCapture(checked,prefixSources,2,&error);CHECK(prefix);xideSemanticNavigationBind(prefix,pointsStore);CHECK(xideSemanticNavigationPreparePoints(prefix,&error)==1);pointWork=xideSemanticNavigationPointWork(prefix);CHECK(pointWork.built && !pointWork.hit && pointOracle(prefix,prefixReference,prefixSources,2));xideSemanticNavigationDestroy(prefix);xideSemanticDefinitionsDestroy(prefixReference);
+ xlsProjectionStoreDestroy(pointsStore);
+ CHECK(pointThreads(points,reference,sources[1].path));
+ CHECK(equalValue(xideSemanticNavigationPointHover(points,sources[0].path,0,0),xideSemanticHover(reference,sources[0].path,0,0)));xideSemanticNavigationDestroy(points);xideSemanticNavigationDestroy(pointHit);
+ CHECK(pointLargeFallback(sources[0].path));
+ pointsStore=xlsProjectionStoreCreate(XLS_PROJECTION_STORE_BYTES);CHECK(pointsStore);
+ points=xideSemanticNavigationCapture(checked,sources,2,&error);CHECK(points);xideSemanticNavigationBind(points,pointsStore);
+ xls_semantic_check* newerOwner=xlsSemanticCheckCreate(inputs[0].path,inputs,2,1,NULL,NULL,NULL,0);CHECK(newerOwner && xlsSemanticCheckInfo(newerOwner).accepted);
+ xide_navigation_snapshot* currentPoints=xideSemanticNavigationCapture(newerOwner,sources,2,&error);CHECK(currentPoints);xideSemanticNavigationBind(currentPoints,pointsStore);CHECK(xideSemanticNavigationPreparePoints(currentPoints,&error)==1);
+ CHECK(xideSemanticNavigationPreparePoints(points,&error)==1 && pointOracle(points,reference,sources,2));
+ xls_projection_stats pointStats;xlsProjectionStoreStats(pointsStore,&pointStats);CHECK(pointStats.entries==1 && pointStats.published==1 && pointStats.declined==1);
+ xide_navigation_snapshot* currentHit=xideSemanticNavigationCapture(newerOwner,sources,2,&error);CHECK(currentHit);xideSemanticNavigationBind(currentHit,pointsStore);CHECK(xideSemanticNavigationPreparePoints(currentHit,&error)==1);pointWork=xideSemanticNavigationPointWork(currentHit);CHECK(pointWork.hit && !pointWork.built);
+ xideSemanticNavigationDestroy(points);xideSemanticNavigationDestroy(currentPoints);xideSemanticNavigationDestroy(currentHit);xlsSemanticCheckDestroy(newerOwner);xlsProjectionStoreDestroy(pointsStore);
  xls_semantic_check* noIndex=xlsSemanticCheckCreate(inputs[0].path,inputs,2,0,NULL,NULL,NULL,0);CHECK(noIndex && xlsSemanticCheckInfo(noIndex).accepted && !xlsSemanticCheckInfo(noIndex).hasIndex);
  CHECK(!xideSemanticNavigationCapture(noIndex,sources,2,&error) && error.code==XIDE_MODEL_INVALID);xlsSemanticCheckDestroy(noIndex);error=(xide_model_error){0};
  captureFaultKind=0;captureRetains=0;captureFaultActive=1;
@@ -71,6 +111,7 @@ static int deferred(xls_semantic_check* checked,const xide_semantic_source* sour
  xide_semantic_source copied[2];for(size_t i=0;i<2;++i){xls_input_source row;CHECK(xlsSemanticCheckSource(owned,i,&row));copied[i]=(xide_semantic_source){xrtStrDup(row.path),xrtStrDup(row.text),row.kind,1};CHECK(copied[i].path && copied[i].text);}
  error=(xide_model_error){0};snapshot=xideSemanticNavigationCapture(owned,copied,2,&error);CHECK(snapshot && !error.code);
  for(size_t i=0;i<2;++i){memset((void*)copied[i].path,'x',strlen(copied[i].path));memset((void*)copied[i].text,'x',strlen(copied[i].text));xrtFree((void*)copied[i].path);xrtFree((void*)copied[i].text);}memset(copied,0,sizeof(copied));xlsSemanticCheckDestroy(owned);
+ CHECK(xideSemanticNavigationPreparePoints(snapshot,&error)==1 && !error.code && pointOracle(snapshot,reference,sources,2));
  xide_semantic_definitions* resolved=xideSemanticNavigationResolve(snapshot,NULL,&lease,&work,&error);CHECK(resolved && !lease && work.built);xideSemanticNavigationDestroy(snapshot);CHECK(allQueries(resolved,reference,sources,2));xideSemanticDefinitionsReleaseTyped(resolved,lease);
  xls_projection_store* store=xlsProjectionStoreCreate(XLS_PROJECTION_STORE_BYTES);CHECK(store);
  snapshot=xideSemanticNavigationCapture(checked,sources,2,&error);CHECK(snapshot);resolved=xideSemanticNavigationResolve(snapshot,store,&lease,&work,&error);CHECK(resolved && lease && work.built && !work.hit);xideSemanticNavigationDestroy(snapshot);
@@ -85,7 +126,10 @@ static int deferred(xls_semantic_check* checked,const xide_semantic_source* sour
  xls_projection* ordinary=NULL;same=xideSemanticDefinitionsAcquireTyped(store,checked,sources,2,&ordinary,&work,&error);xlsProjectionStoreStats(store,&stats);CHECK(same && ordinary && stats.entries==1 && stats.published==1);xideSemanticDefinitionsReleaseTyped(same,ordinary);
  same=xideSemanticNavigationResolve(newer,store,&hit,&work,&error);xlsProjectionStoreStats(store,&stats);CHECK(same && hit && work.built && stats.entries==1 && stats.published==2 && allQueries(same,reference,sources,2));xideSemanticNavigationDestroy(newer);xlsSemanticCheckDestroy(owned);xlsProjectionStoreDestroy(store);xideSemanticDefinitionsReleaseTyped(resolved,lease);xideSemanticDefinitionsReleaseTyped(same,hit);
  char* disk=xrtPathAbs("build/navigation-cache/stale.xl");const char* text="func main(...) as int\n return 0\nend\n";CHECK(disk && xrtFileWriteAtomic(disk,(xbytesview){(const unsigned char*)text,strlen(text)}));owned=xlsSemanticCheckCreate(disk,NULL,0,1,NULL,NULL,NULL,0);CHECK(owned && xlsSemanticCheckInfo(owned).accepted);xls_input_source row;CHECK(xlsSemanticCheckSource(owned,0,&row));xide_semantic_source source={row.path,row.text,row.kind,0};error=(xide_model_error){0};snapshot=xideSemanticNavigationCapture(owned,&source,1,&error);CHECK(snapshot && !error.code);
- CHECK(xrtFileWriteAtomic(disk,(xbytesview){(const unsigned char*)text,strlen(text)}) && !xlsSemanticCheckValidate(owned));resolved=xideSemanticNavigationResolve(snapshot,NULL,&lease,&work,&error);CHECK(!resolved && !lease && error.code==XIDE_MODEL_INVALID);xideSemanticNavigationDestroy(snapshot);xlsSemanticCheckDestroy(owned);xrtFree(disk);return 1;
+ CHECK(xideSemanticNavigationPreparePoints(snapshot,&error)==1 && !error.code);
+ CHECK(xrtFileWriteAtomic(disk,(xbytesview){(const unsigned char*)text,strlen(text)}) && !xlsSemanticCheckValidate(owned));
+ CHECK(!xideSemanticNavigationPointsReady(snapshot) && !xideSemanticNavigationPointHover(snapshot,disk,1,2) && xideSemanticNavigationPreparePoints(snapshot,&error)==-1 && error.code==XIDE_MODEL_INVALID);
+ error=(xide_model_error){0};resolved=xideSemanticNavigationResolve(snapshot,NULL,&lease,&work,&error);CHECK(!resolved && !lease && error.code==XIDE_MODEL_INVALID);xideSemanticNavigationDestroy(snapshot);xlsSemanticCheckDestroy(owned);xrtFree(disk);return 1;
 }
 static int run(void)
 {
