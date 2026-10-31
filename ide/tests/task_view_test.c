@@ -48,7 +48,7 @@ int main(int argc,char** argv)
     CHECK(SetEnvironmentVariableW(L"XLANG_COMPILER",previousCompiler)); environmentChanged=0;
     CHECK(xideWorkspaceOpen(&app,workspacePath,0,&error) && xideWorkspaceViewSelectProject(&app,"beta")); xideTaskViewPoll(&app);
     for(int i=XIDE_HELP;i<=XIDE_TASKS;++i) CHECK(xuiDockPanelHideWindow(app.dock,app.windows[i])==XUI_OK);
-    xideDispatchAction(&app,XIDE_ACTION_BUILD); xide_task* task=xideTaskViewSelected(&app); CHECK(task && !strcmp(xideTaskProjectId(task),"beta") && !strcmp(xideTaskConfigurationId(task),"dev"));
+    xideDispatchAction(&app,XIDE_ACTION_BUILD); xide_task* task=xideTaskViewSelected(&app); CHECK(task && !strcmp(xideTaskProjectId(task),"alpha") && !strcmp(xideTaskConfigurationId(task),"runtime"));
     CHECK(waitTask(&app,task,&info,10000,0) && info.state==XIDE_TASK_SUCCEEDED && info.built && !info.ran);
     xui_dock_window_info_t dock={0}; dock.iSize=sizeof(dock); CHECK(xuiDockPanelGetWindowInfo(app.dock,app.windows[XIDE_OUTPUT],&dock)==XUI_OK && dock.iRegion==XUI_DOCK_PANEL_REGION_DOCUMENT && dock.iState==XUI_DOCK_PANEL_WINDOW_DOCKED);
     CHECK(strstr(xuiCodeEditGetText(app.panels[XIDE_OUTPUT]),"Build succeeded") && xuiTreeViewGetNodeCount(app.panels[XIDE_TASKS])==1);
@@ -62,7 +62,7 @@ int main(int argc,char** argv)
     CHECK(xideTaskViewJump(&app,0)); int start=0,end=0,lineStart=0,lineEnd=0;
     CHECK(xuiCodeSelectionGetRange(xuiCodeEditGetSelection(app.activeDocument->editor),&start,&end)==XUI_OK && xuiCodeDocumentGetLineRange(xuiCodeEditGetDocument(app.activeDocument->editor),2,&lineStart,&lineEnd)==XUI_OK);
     CHECK(start==lineStart+(int)strlen("中文😀a") && end==start);
-    CHECK(xideTaskViewSelect(&app,xideTasksAt(app.tasks,0))==XUI_OK); xideTaskViewPoll(&app); CHECK(strstr(xuiCodeEditGetText(app.panels[XIDE_OUTPUT]),"Beta 构建项目") && xuiTreeViewGetNodeCount(app.panels[XIDE_PROBLEMS])==0);
+    CHECK(xideTaskViewSelect(&app,xideTasksAt(app.tasks,0))==XUI_OK); xideTaskViewPoll(&app); CHECK(strstr(xuiCodeEditGetText(app.panels[XIDE_OUTPUT]),"Alpha 运行项目") && xuiTreeViewGetNodeCount(app.panels[XIDE_PROBLEMS])==0);
     CHECK(xuiCodeEditSetText(app.activeDocument->editor,"FAKE_OK\n")==XUI_OK && xuiDispatchPendingEvents(app.context)==XUI_OK);
     xide_project* running=xideWorkspaceFindProject(&app.workspaceModel,"alpha"); CHECK(running);
     CHECK(xrtValueObjectSetNew(xideProjectFindConfiguration(running,running->activeConfiguration)->environment,(xstrview){"XIDE_TASK_MODE",14},xrtValueString((xstrview){"flood",5}))); running->dirty=1;
@@ -96,7 +96,7 @@ int main(int argc,char** argv)
     CHECK(xideWorkbenchReset(&app)==XUI_OK && xuiLayout(app.context)==XUI_OK);
     CHECK(xideDocumentSave(cDocument,NULL,0,&error));
     CHECK(xideWorkspaceOpen(&app,alpha,1,&error) && app.workspaceModel.projectCount==1 && !strcmp(app.workspaceModel.startupProject,app.workspaceModel.projects[0].id));
-    puts("task_view_test passed: native build/run actions, selected versus startup project, save before build, restored center-only bottom, task history, terminal input Unicode diagnostic jump, bounded binary/Unicode output standalone startup, restored compiler preferences and independent active build/run configurations.");
+    puts("task_view_test passed: native build/run actions, unified execution target independent of tree selection, save before build, restored center-only bottom, task history, terminal input Unicode diagnostic jump, bounded binary/Unicode output standalone startup, restored compiler preferences and independent active build/run configurations.");
 cleanup:
     if(environmentChanged) SetEnvironmentVariableW(L"XLANG_COMPILER",previousCompiler);
     free(previousCompiler); free(preferences); xideSettingsClear(&preference); xideProjectClear(&configured); xrtValueRelease(configurations);

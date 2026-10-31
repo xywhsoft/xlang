@@ -2,6 +2,7 @@
 #include "ui/rename_view.h"
 #include "services/project_migration.h"
 #include "ui/workspace_view.h"
+#include "services/execution_target.h"
 #include "ui/reading_state.h"
 #include "services/ui_font.h"
 #include "services/session.h"
@@ -144,7 +145,8 @@ static void syncProperties(xide_app* app)
     }
     if(view->configuration) {
         size_t count=enabled ? project->configurationCount : 0; char** names=calloc(count+1,sizeof(*names)); int ok=names && count<=INT_MAX,active=0;
-        for(size_t i=0;ok && i<count;++i) { names[i]=duplicate(project->configurations[i].name); ok=names[i]!=NULL; if(!strcmp(project->configurations[i].id,project->activeConfiguration)) active=(int)i; }
+        const char* effective=xideExecutionConfiguration(app,project);
+        for(size_t i=0;ok && i<count;++i) { names[i]=duplicate(project->configurations[i].name); ok=names[i]!=NULL; if(effective && !strcmp(project->configurations[i].id,effective)) active=(int)i; }
         view->syncing=1;
         if(ok && xuiComboBoxSetItems(view->configuration,(const char**)names,(int)count)==XUI_OK) {
             for(size_t i=0;i<view->configurationNameCount;++i) free(view->configurationNames[i]);
@@ -481,6 +483,7 @@ int xideWorkspaceAction(xide_app* app,int action)
         path=chooseFile(app,0,action==XIDE_ACTION_OPEN_PROJECT ? 1 : 0);
         app->sessionSwitchConfirmed=1;
         if(path) ok=xideWorkspaceOpen(app,path,action==XIDE_ACTION_OPEN_PROJECT,&error);
+        if(path && ok && app->preferencesInitialized) { xide_model_error recent={0};if(!xideSettingsRememberOpen(&app->preferences,path,&recent))xuiStatusBarSetItemText(app->statusBar,0,recent.message); }
         app->sessionSwitchConfirmed=0;
     } else if(action==XIDE_ACTION_SAVE_WORKSPACE || action==XIDE_ACTION_SAVE_WORKSPACE_AS) {
         saveWithDialog(app,action==XIDE_ACTION_SAVE_WORKSPACE_AS); return 1;
@@ -524,6 +527,7 @@ int xideWorkspaceViewSelectConfiguration(xide_app* app,const char* id,xide_model
     xide_project* project=selectedProject(app);
     if(project && !manifestDocumentClean(app,project->manifest,error)) return 0;
     if(!xideProjectSetActiveConfiguration(project,id,error)) return 0;
+    if(!xideExecutionSelectConfiguration(app,project->id,id))return 0;
     return xideWorkspaceViewRefresh(app)==XUI_OK;
 }
 char* xideWorkspaceTreeKey(xide_app* app,int id)

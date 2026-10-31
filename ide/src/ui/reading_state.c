@@ -1,6 +1,7 @@
 #include "ui/reading_state.h"
 #include "ui/workspace_view.h"
 #include "ui/catalog_view.h"
+#include "services/execution_target.h"
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -69,7 +70,7 @@ static int treeValid(const xvalue* v)
 int xideReadingValid(const xvalue* v)
 {
     if(!v) return 1;
-    if(!xrtValueIs(v,XVALUE_OBJECT) || xideReadingNumber(get(v,"version"),0)!=1 || !treeValid(get(v,"workspace")) || !treeValid(get(v,"commands"))) return 0;
+    if(!xrtValueIs(v,XVALUE_OBJECT) || xideReadingNumber(get(v,"version"),0)!=1 || !treeValid(get(v,"workspace")) || !treeValid(get(v,"commands")) || !xideExecutionValid(get(v,"execution"))) return 0;
     const xvalue* properties=get(v,"properties"),*help=get(v,"help"),*position=get(help,"position");
     if(properties && (!xrtValueIs(properties,XVALUE_OBJECT) || !numberField(properties,"scrollY",10000000))) return 0;
     if(help && (!xrtValueIs(help,XVALUE_OBJECT) || !textField(help,"command",8192))) return 0;
@@ -111,6 +112,7 @@ xvalue* xideReadingCapture(xide_app* app,const xvalue* old)
     xvalue *root=object(old),*workspace=captureTree(app,app->workspace,xideWorkspaceTreeKey,get(old,"workspace")),*commands=captureTree(app,app->commands,xideCatalogTreeKey,get(old,"commands"));
     if(!root || !workspace || !commands) { xrtValueRelease(root); xrtValueRelease(workspace); xrtValueRelease(commands); return NULL; }
     int okay=put(root,"version",xrtValueInt(1));
+    okay=put(root,"execution",xideExecutionCapture(app)) && okay;
     okay=put(root,"workspace",workspace) && okay; okay=put(root,"commands",commands) && okay;
     xvalue* properties=object(get(old,"properties")); float y=0; xuiScrollViewGetOffset(app->properties,NULL,&y);
     if(properties && put(properties,"scrollY",xrtValueFloat(y))) okay=put(root,"properties",properties) && okay;
@@ -150,6 +152,7 @@ int xideReadingRestore(xide_app* app,const xvalue* value,int afterLayout)
 {
     if(!value) return 1;
     if(!xideReadingValid(value)) return 0;
+    if(!afterLayout && !xideExecutionRestore(app,get(value,"execution")))return 0;
     int explicitProject=app->frames==0 && app->initialSelectedProject;
     int explicitCommand=app->frames==0 && (app->initialCommand || app->initialCommandSearch);
     if(!afterLayout || !explicitProject) restoreTree(app,app->workspace,xideWorkspaceTreeKey,get(value,"workspace"),afterLayout,1);
@@ -164,6 +167,7 @@ int xideReadingRestore(xide_app* app,const xvalue* value,int afterLayout)
 }
 uint64_t xideReadingFingerprint(xide_app* app,uint64_t h)
 {
+    h=hash(h,&app->executionRevision,sizeof(app->executionRevision));
     xui_widget trees[]={app->commands,app->workspace};
     for(int i=0;i<2;++i) { int changes=xuiTreeViewGetChangeCount(trees[i]),selected=xuiTreeViewGetSelected(trees[i]); float y=xuiTreeViewGetScroll(trees[i]); h=hash(h,&changes,sizeof(changes)); h=hash(h,&selected,sizeof(selected)); h=hash(h,&y,sizeof(y)); }
     xui_widget scrolls[]={app->help,app->properties};

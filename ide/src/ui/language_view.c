@@ -1,6 +1,7 @@
 #include "platform/receipt_time.h"
 #include "ui/language_view.h"
 #include "services/analysis_configuration.h"
+#include "services/execution_target.h"
 #include "editor/lsp_coordinates.h"
 #include "ui/c_language_view.h"
 #include "ui/editor_view.h"
@@ -191,7 +192,7 @@ void xideLanguageViewConfigurationChanged(xide_app* app)
     any semantic configuration. Compare the complete canonical catalog,not
     an epoch/hash or display metadata,before discarding a live client. Disk
     sources and import probes continue through their original guards. */
- if(v->analysisCatalog){char* package=NULL;xide_model_error error={0};xvalue* packet=xideLanguageCheckPackagePath(&package,&error) ? xideAnalysisConfigurationPacket(&app->workspaceModel,app->selectedProject,app->configurationId,package,1,&error) : NULL;free(package);int same=packet && xrtValueEqual(v->analysisCatalog,get(packet,"catalog"));xrtValueRelease(packet);if(same)return;}
+ if(v->analysisCatalog){char* package=NULL;xide_model_error error={0};xvalue* packet=xideLanguageCheckPackagePath(&package,&error) ? xideExecutionAnalysisPacket(app,package,1,&error) : NULL;free(package);int same=packet && xrtValueEqual(v->analysisCatalog,get(packet,"catalog"));xrtValueRelease(packet);if(same)return;}
  if(v->client || v->snapshotResult || v->autoProbed) reset(app);
  xgeRenderRequest();
 }
@@ -280,7 +281,7 @@ static int connectClient(xide_app* app,xide_document* d)
   if(!v->client) { snprintf(v->message,sizeof(v->message),"%s",*e.message ? e.message : "无法启动 xlang-ls；请重新构建 IDE。"); free(directory); return 0; }
   xideLanguageClientSetWake(v->client,languageWake,app);
   if(!referenceReceiverInstall(v)){reset(app);free(directory);return 0;}
-  xvalue* configuration=xideAnalysisConfigurationPacket(&app->workspaceModel,app->selectedProject,app->configurationId,v->packagePath,1,&e);
+  xvalue* configuration=xideExecutionAnalysisPacket(app,v->packagePath,1,&e);
   if(!configuration) {snprintf(v->message,sizeof(v->message),"%s",*e.message ? e.message : "无法准备工程分析配置。");reset(app);free(directory);return 0;}
   v->analysisCatalog=xrtValueRetain(get(configuration,"catalog"));
   v->analysisRequired=xrtValueCount(get(get(configuration,"catalog"),"projects"))>0;

@@ -365,7 +365,10 @@ int xideEditorAction(xide_app* app,int action)
     if(action==XIDE_ACTION_NEW_FILE) {
         document=xideDocumentNew(&app->documents,"xlang",&error); ok=document && xideEditorShow(app,document)==XUI_OK;
     } else if(action==XIDE_ACTION_OPEN_FILE) {
-        path=choosePath(app,0,NULL); if(path) ok=xideEditorOpen(app,path,&error);
+        path=choosePath(app,0,NULL); if(path) {
+            ok=xideEditorOpen(app,path,&error);
+            if(ok && app->preferencesInitialized) { xide_model_error recent={0};if(!xideSettingsRememberOpen(&app->preferences,path,&recent))xuiStatusBarSetItemText(app->statusBar,0,recent.message); }
+        }
     } else if(action==XIDE_ACTION_SAVE_ALL_FILES) {
         for(size_t i=0;i<app->documents.count;++i) if(app->documents.items[i]->open && app->documents.items[i]->dirty && !saveDocument(app,app->documents.items[i],0)) break;
     } else if(document && document->open) {

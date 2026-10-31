@@ -3,6 +3,7 @@
 #include "ui/editor_view.h"
 #include "ui/workspace_view.h"
 #include "ui/task_view.h"
+#include "ui/main_toolbar.h"
 #include "ui/configuration_view.h"
 #include "services/file_sync.h"
 #include "services/ui_font.h"
@@ -177,7 +178,7 @@ static int verify(void* user)
     CHECK(xideWorkspaceCreate(&ws,"动作验收",&error) && xideWorkspaceAddProject(&ws,alpha,"alpha",&error) && xideWorkspaceAddProject(&ws,beta,"beta",&error) && xideWorkspaceSetStartup(&ws,"alpha",&error) && xideWorkspaceSave(&ws,workspace,&error));
     app.hidden=1; app.noSession=1; app.highDpi=1; app.dpiOverride=1.25f; app.settingsPath=settings; app.compilerPath=f->compiler;
     CHECK(xideAppCreate(&app)==XUI_OK && xgeBegin()==XGE_OK); began=1;
-    CHECK(settle(&app) && allStates(&app) && xideActionCount()==75 && !xideActionAt(xideActionCount()) && !xideActionNamed(NULL) && !xideActionNamed("missing.action") && xideActionExecute(&app,999)==XIDE_ACTION_UNKNOWN);
+    CHECK(settle(&app) && allStates(&app) && xideActionNamed("task.stopAll") && xideActionNamed("task.configurations") && !xideActionAt(xideActionCount()) && !xideActionNamed(NULL) && !xideActionNamed("missing.action") && xideActionExecute(&app,999)==XIDE_ACTION_UNKNOWN);
     for(size_t i=0;i<xideActionCount();++i) { const xide_action_info* a=xideActionAt(i); CHECK(a && a->name && a->title && xideActionNamed(a->name)==a && xideActionFind(a->id)==a); for(size_t j=i+1;j<xideActionCount();++j) { const xide_action_info* b=xideActionAt(j); CHECK(a->id!=b->id && strcmp(a->name,b->name) && (!a->key || a->key!=b->key || a->modifiers!=b->modifiers || (a->shortcutScope!=b->shortcutScope && a->shortcutScope!=XIDE_SHORTCUT_GLOBAL && b->shortcutScope!=XIDE_SHORTCUT_GLOBAL))); } }
     CHECK(!xideActionQuery(&app,XIDE_ACTION_SAVE_FILE).enabled && !xideActionQuery(&app,XIDE_ACTION_STOP).enabled && xideActionExecute(&app,XIDE_ACTION_RELOAD_FILE)==XIDE_ACTION_DISABLED && captureMenu(&app,0,emptyImage));
     CHECK(key(&app,'N',XUI_MOD_CTRL) && app.activeDocument && !app.activeDocument->path && !xideActionQuery(&app,XIDE_ACTION_RELOAD_FILE).enabled && xideActionQuery(&app,XIDE_ACTION_SAVE_FILE).enabled && !xideActionQuery(&app,XIDE_ACTION_EDITOR_UNDO).enabled);
@@ -205,7 +206,7 @@ static int verify(void* user)
     xui_font previousFont=app.uiFont; int blocked=!xideUiFontApply(&app,app.uiFontPath,20,&error); CloseHandle(lock);
     CHECK(blocked && app.uiFont==previousFont && app.uiFontSize==16 && xuiMenuGetFont(nativeMenu)==previousFont && settle(&app));
     CHECK(xideEditorShow(&app,cd)==XUI_OK && settle(&app));
-    xui_rect_t saveRect=xuiToolbarGetItemRect(app.toolbar,1),toolbarWorld=xuiWidgetGetWorldRect(app.toolbar); saveRect.fX+=toolbarWorld.fX; saveRect.fY+=toolbarWorld.fY;
+    xui_rect_t saveRect=xuiWidgetGetWorldRect(xideMainToolbarControl(&app,XIDE_TB_SAVE));
     CHECK(pointer(&app,saveRect) && !cd->dirty);
 
     CHECK(xideEditorOpen(&app,entry,&error) && settle(&app)); xide_document* xd=app.activeDocument;
@@ -217,7 +218,7 @@ static int verify(void* user)
     xui_widget reordered=NULL; xui_menu_desc_t md={0}; md.iSize=sizeof(md); md.pFont=app.uiFont; md.pOwner=app.root; const int order[]={XIDE_ACTION_RELOAD_FILE,XIDE_ACTION_RUN,0,XIDE_ACTION_SAVE_FILE,XIDE_ACTION_THEME_GRAPHITE};
     CHECK(xuiMenuCreate(app.context,&reordered,&md)==XUI_OK && xideActionsMenu(&app,reordered,order,5)==XUI_OK);
     CHECK(xideWorkspaceSetStartup(&app.workspaceModel,"beta",&error) && settle(&app) && !xideActionQuery(&app,XIDE_ACTION_RUN).enabled && !(xuiMenuGetItemState(reordered,1)&XUI_MENU_ITEM_ENABLED));
-    size_t tasks=xideTasksCount(app.tasks); CHECK(xuiMenuSetItemState(app.fileMenu,7,XUI_MENU_ITEM_ENABLED,XUI_MENU_ITEM_ENABLED)==XUI_OK && xideActionExecute(&app,XIDE_ACTION_RUN)==XIDE_ACTION_DISABLED && key(&app,XUI_KEY_F5,0) && xideTasksCount(app.tasks)==tasks && allStates(&app));
+    size_t tasks=xideTasksCount(app.tasks); CHECK(xuiMenuSetItemState(reordered,1,XUI_MENU_ITEM_ENABLED,XUI_MENU_ITEM_ENABLED)==XUI_OK && xideActionExecute(&app,XIDE_ACTION_RUN)==XIDE_ACTION_DISABLED && key(&app,XUI_KEY_F5,0) && xideTasksCount(app.tasks)==tasks && allStates(&app));
     CHECK(xideWorkspaceSetStartup(&app.workspaceModel,"alpha",&error) && xideWorkspaceViewRefresh(&app)==XUI_OK && settle(&app));
     xui_widget name=find(app.properties,xuiWidgetFindType(app.context,"input"),NULL),apply=find(app.properties,xuiWidgetFindType(app.context,"button"),"应用项目属性"),configure=find(app.properties,xuiWidgetFindType(app.context,"button"),"编辑构建、运行与测试配置…"); CHECK(name && apply && configure);
     CHECK(!xideActionQuery(&app,XIDE_ACTION_APPLY_PROPERTIES).enabled && !xuiWidgetGetEnabled(apply));
@@ -232,7 +233,7 @@ static int verify(void* user)
     CHECK(!strcmp(app.selectedProject,"beta"));
     CHECK(waitPhase(&app,task,1));
     CHECK(xideActionQuery(&app,XIDE_ACTION_CLOSE_INPUT).enabled && allStates(&app));
-    CHECK(xuiTerminalInputText(app.panels[XIDE_TERMINAL],"动作输入\n")==XUI_OK && menuAction(&app,app.fileMenu,XIDE_ACTION_CLOSE_INPUT) && !xideTaskInputOpen(task) && !xideActionQuery(&app,XIDE_ACTION_CLOSE_INPUT).enabled && !xideTaskWrite(task,"late",4) && waitPhase(&app,task,0));
+    CHECK(xuiTerminalInputText(app.panels[XIDE_TERMINAL],"动作输入\n")==XUI_OK && menuAction(&app,xuiMenuBarGetItem(app.menuBar,3)->pMenu,XIDE_ACTION_CLOSE_INPUT) && !xideTaskInputOpen(task) && !xideActionQuery(&app,XIDE_ACTION_CLOSE_INPUT).enabled && !xideTaskWrite(task,"late",4) && waitPhase(&app,task,0));
     xide_task_info info={0}; xideTaskInfo(task,&info); CHECK(info.state==XIDE_TASK_SUCCEEDED && info.built && info.ran && !xideActionQuery(&app,XIDE_ACTION_STOP).enabled);
     CHECK(key(&app,XUI_KEY_F5,0)); task=xideTaskViewSelected(&app); CHECK(task && waitPhase(&app,task,1) && xideActionQuery(&app,XIDE_ACTION_STOP).enabled);
     CHECK(xuiScrollViewEnsureChildVisible(app.properties,configure)==XUI_OK && settle(&app) && pointer(&app,xuiWidgetGetWorldRect(configure)) && xideConfigurationViewIsOpen(&app) && !xideActionQuery(&app,XIDE_ACTION_BUILD).enabled && xideActionQuery(&app,XIDE_ACTION_STOP).enabled && allStates(&app));
@@ -245,7 +246,7 @@ static int verify(void* user)
     CHECK(xideActionExecute(&app,XIDE_ACTION_REMOVE_FILE)==XIDE_ACTION_DISPATCHED && settle(&app) && owner->files.count==fileCount && xrtFileExists(cPath) && cd->open);
 
     CHECK(editorCommands(&app));
-    puts("actions_test passed: unique stable action IDs, native menu/context/toolbar state and actual row/save clicks, reordered binding, keyboard and targeted CodeEdit commands without reinjection, C/xlang checks and undo, read-only/unnamed/DLL guards, plain-field undo isolation, native-menu UIFont rebind/locked-save rollback, property/configuration buttons and reference-only removal, selected/startup separation, real child task stdin closure and modal Stop, 125% DPI and three native menu screenshots");
+    puts("actions_test passed: unique stable action IDs, native menu/context/toolbar state and actual row/save clicks, reordered binding, keyboard and targeted CodeEdit commands without reinjection, C/xlang checks and undo, read-only/unnamed/DLL guards, plain-field undo isolation, native-menu UIFont rebind/locked-save rollback, property/configuration buttons and reference-only removal, explicit execution target independent of tree selection, real child task stdin closure and modal Stop, 125% DPI and three native menu screenshots");
 cleanup:
     if(began) xgeEnd();
     xideAppDestroy(&app); xideWorkspaceClear(&ws); free(root); free(entry); free(cPath); free(alpha); free(beta); free(workspace); free(settings); free(emptyImage); free(editImage); free(languageImage); xgeQuit(); return XGE_OK;

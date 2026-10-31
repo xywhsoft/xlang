@@ -267,9 +267,10 @@ int xideConfigurationViewCreate(xide_app* app)
     TRY(button(app,XIDE_CONFIG_APPLY,"应用",(xui_rect_t){520,580,100,32})); TRY(button(app,XIDE_CONFIG_CANCEL,"取消",(xui_rect_t){636,580,100,32}));
     return xideUiLayoutCapture(&view->layout,view->content);
 }
-int xideConfigurationViewOpen(xide_app* app)
+int xideConfigurationViewOpen(xide_app* app) { return xideConfigurationViewOpenProject(app,app->selectedProject); }
+int xideConfigurationViewOpenProject(xide_app* app,const char* projectId)
 {
-    xide_configuration_view* view=app->configurationView; xide_project* project=xideWorkspaceFindProject(&app->workspaceModel,app->selectedProject);
+    xide_configuration_view* view=app->configurationView; xide_project* project=xideWorkspaceFindProject(&app->workspaceModel,projectId);
     if(!view || !project || !project->available || xideToolchainViewIsOpen(app) || xideResourceViewIsOpen(app) || xideImportViewIsOpen(app) || xideRenameViewIsOpen(app) || xideTemplateViewIsOpen(app) || xideReferencesViewIsOpen(app) || xideFontViewIsOpen(app) || xideRecoveryViewIsOpen(app) || xideFileChangesViewIsOpen(app)) return 0;
     xvalue *drafts=xideProjectConfigurationsJson(project),*baseline=drafts ? xrtValueDeepClone(drafts) : NULL; char *id=copy(project->id),*manifest=copy(project->manifest);
     if(!drafts || !baseline || !id || !manifest) { xrtValueRelease(drafts); xrtValueRelease(baseline); free(id); free(manifest); return 0; }
