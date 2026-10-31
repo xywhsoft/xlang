@@ -34,8 +34,8 @@
     "reusedQualifiedProducts": true
   },
   "ide": {
-    "languageServer": "Native language server is installed; validation scope and known independent C issue are recorded in release/provenance/ide-native-lsp-integration-20261031.json.",
-    "guiTranslationUnits": 109,
+    "languageServer": "Native xlang-ls 0.100 is unchanged. The default IDE disables C LSP and excludes clangd; see release/provenance/ide-c-lsp-disabled-20261031.json.",
+    "guiTranslationUnits": 100,
     "compiler": "GCC 16.2.0",
     "warnings": [
       "-Wall",
@@ -44,8 +44,8 @@
     ],
     "optimization": "-O2",
     "configuration": "Release",
-    "buildRunnerSha256": "d7285eca289b5539ae0eb44d0bda298fc445fbe3bff8a07796e97572049baa5c",
-    "buildCommand": "powershell -NoProfile -ExecutionPolicy Bypass -File ide/tools/build.ps1 -Configuration Release -FrontendRoot . -GuiOnly -LanguageServerPath release/xlang-ls.exe",
+    "buildRunnerSha256": "e6023751160514f853b1006e637b6e09c05b83faeef638d0551eb3521f45a8c5",
+    "buildCommand": "pwsh -NoProfile -File ide/tools/build.ps1 -Configuration Release -GuiOnly -LanguageServerPath D:/GIT/x-lang/release/xlang-ls.exe -ReleaseDirectory D:/GIT/x-lang/release",
     "defaultFont": {
       "path": "Consolas-with-Yahei_Nerd_Font.ttf",
       "sha256": "35a7074585fe4af3763db2aaa7635aabffb8995b6f52e61cd46c0a53e560b16b",
@@ -58,8 +58,9 @@
       "licenseUrl": "http://www.microsoft.com/typography/fonts/default.aspx"
     },
     "fontChangeSourceParent": "b16a95bbf022efcafc7b965d1bd9b5b945c0d881",
-    "currentSourceRevision": "130c24e81ff94d774717e85be935f1660104ab95",
-    "currentBuildProvenance": "release/provenance/ide-toolbar-20261031.json"
+    "currentSourceRevision": "c2c791d3bb522055686a6903f93f7f86b0718a8b",
+    "currentBuildProvenance": "release/provenance/ide-c-lsp-disabled-20261031.json",
+    "cLspEnabled": false
   },
   "catalog": {
     "status": "passed",
@@ -3116,16 +3117,16 @@
       "origin": "accepted-0.6.0-no-runtime-source-change"
     },
     {
-      "sha256": "ce0d08a5dec0df66c918069bc183ee3ecacb796b81f5afa538b2989a88426222",
-      "bytes": 1897915,
+      "sha256": "64b9262405eb87bc878b220c6fd4f3797ff34d9c729118a91b43b47e8854328c",
+      "bytes": 1741618,
       "path": "release/xlang_ide.exe",
-      "origin": "rebuilt-current-gui"
+      "origin": "rebuilt-current-gui-c-lsp-disabled"
     },
     {
-      "sha256": "ba2d188ec07c49ead960b4332bb4d547928492c778a2c10a2aafc0183520058d",
-      "bytes": 1897915,
+      "sha256": "d8db9b069d41b70d55eb97abc6470b954996f710f6b9c0195102c28f06fdd036",
+      "bytes": 1741618,
       "path": "release/xlang_ide_console.exe",
-      "origin": "rebuilt-current-gui"
+      "origin": "rebuilt-current-gui-c-lsp-disabled"
     },
     {
       "sha256": "8bc80fe50cc4a5856630003eb47a59426a5225e4b2d8d076a6486f56dab4339d",
@@ -3237,11 +3238,17 @@
         }
       ]
     },
-    "installedGuiDpi200": "passed: actual primary release, 3 frames, isolated settings, native screenshot"
+    "installedGuiDpi200": "passed: actual primary release, 3 frames, isolated settings, native screenshot",
+    "cLspDisabled": {
+      "status": "focused-functional-and-default-package-checks-passed",
+      "provenance": "release/provenance/ide-c-lsp-disabled-20261031.json",
+      "additionalFileDialogEscapeCase": "unqualified",
+      "wholeLspPerformanceAccepted": false
+    }
   },
   "remaining": {
     "toml": "Existing M1 foreign dict/var projection blocks the original central TOML JIT case: TypeError: TOML document root must be a dict. New C and XLang calendar boundary tests pass.",
-    "concurrentChanges": "This cleanup changes no compiler or IDE source behavior; current executable identities are recorded in products and their component provenance."
+    "concurrentChanges": "Existing compiler and unrelated example work preserved; current GUI identities and focused validation limits are recorded by component provenance."
   },
   "persistence": {
     "ignoredBuildArtifactsRequiredForUsingRelease": false,
