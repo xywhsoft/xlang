@@ -21,6 +21,15 @@ typedef struct xls_ir_input_work {
 } xls_ir_input_work;
 #ifdef XLS_NATIVE_AST_PACKAGE_FIELDS
 struct xls_sem_memo;
+/* Immutable per-function results of pure native postpasses. Reuse requires
+ * the same proved raw unit, actual clean raw fields and an exact complete
+ * native type/runtime/union-layout environment. The original verifier runs.
+ * Counts describe phase units,not fully incremental final modules. Storage is
+ * charged to the existing raw memo byte limit;no previous result is retained. */
+typedef struct xls_ir_derived_work {
+    uint64_t contexts,checked,reused,captured,declined,nodesSkipped,rowsApplied,bytes;
+} xls_ir_derived_work;
+xls_ir_derived_work xlsFrontendIrResultDerivedWork(const xls_ir_result*);
 /* Current validated check only. Bind its unpublished semantic memo to the
  * independently owned immutable typed input before reading final receipts.
  * Ordinary mutable-AST/typed APIs keep their complete key path. */

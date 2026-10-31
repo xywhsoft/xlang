@@ -58,9 +58,14 @@ def derive(frontend:Path,output:Path,*,phases=False,ir_source=None):
         from native_ir_scan_overlay import derive as scans
         from native_cancellation_overlay import ir_cancellation
         from native_initializer_overlay import derive as initializers
+        from native_ir_derived_overlay import derive as derived
         source,seams=scans(source,current=True)
         source=ir_cancellation(source,current=True)
         source=initializers(source)
+        source,derived_overlay=derived(source,output,hashlib.sha256(selected.read_bytes()).hexdigest(),audited[str(frontend/'src/ir/xl6_ir.h')])
+        for name in ('native_ir_derived_overlay.py','check_native_bridge_catalog.py'):
+            dependency=Path(__file__).with_name(name)
+            audited[str(dependency)]=hashlib.sha256(dependency.read_bytes()).hexdigest()
     source=raw_memo(source,current=True)
     compiled=output/'frontend/xl6_ir.c';compiled.parent.mkdir(parents=True,exist_ok=True)
     compiled.write_text(source,encoding='utf8',newline='\n')
@@ -69,6 +74,7 @@ def derive(frontend:Path,output:Path,*,phases=False,ir_source=None):
         compiledSource=str(compiled),compiledSha256=hashlib.sha256(compiled.read_bytes()).hexdigest(),
         auditedDependencies=audited,phaseQualification=phases,
         irDependencyCohort=dependency_cohort,
+        derivedPhases=derived_overlay if phases else None,
         auditedScanSeams=seams if phases else 0,
         originalAncestorContainmentPreserved=phases,
         scope=('private current complete module phases/scans/initializer/cancellation qualification; original bounded ancestor containment retained'
