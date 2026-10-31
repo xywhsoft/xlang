@@ -41,7 +41,8 @@ dev/<tool_name>/
 ```bat
 cd /d D:\GIT\x-lang\release
 xl run projects\dev\<tool_name>\<tool_name>.xl
-xl build projects\dev\<tool_name>\<tool_name>.xl -o projects\dev\<tool_name>\<tool_name>.exe
+mkdir ..\build\examples
+xl build projects\dev\<tool_name>\<tool_name>.xl -o ..\build\examples\<tool_name>.exe
 ```
 
 每个工具通过 `xl run` 和 `xl build` 两条路径验证。
