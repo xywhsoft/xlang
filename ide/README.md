@@ -1,5 +1,7 @@
 # xlang IDE
 
+2026-10-31：日常构建和联调默认使用仓库根 `release/`。本轮已重编 IDE 并接入同目录的原生 LSP 0.100，C／xlang 编辑输入经用户确认恢复；自动诊断、补全、定义、悬浮、大纲和参数提示完成相关功能验证。整体性能与独立 C 引擎配置导出问题仍有未通过项，见[发布目录输入恢复与 LSP 联调](docs/release-input-validation.md)。后续仅在明确需要版本对照、故障注入或保护运行会话时建立隔离环境。
+
 2026-10-29 起，运行与发布目录统一为仓库根目录的 `../release/`：[启动 IDE](../release/xlang_ide.exe)。IDE 默认使用同目录的 `xl.exe`，共享引擎的 `include/` 和 `extlibs/`；clangd 保留在 `toolchains/clangd/`。不再生成 `ide/release/` 或重复的 `toolchains/xlang/`。测试产物留在 `ide/build/`，详见[统一发布目录](docs/unified-release.md)。以下带日期的候选记录保留其当时的验收范围。
 
 2026-10-22 已支持 C／xlang 单文件、独立 `.xlp` 和 `.xlw` 工作空间构建运行。无项目时 F7／F5 使用当前源文件；项目上下文保持所选／启动目标规则，新增“项目 → 构建当前文件／构建并运行当前文件”。显式源文件启动优先于历史工作空间恢复。严格构建 `cb-bd75b462` 为 88 个编译对象／109 项产物，构建期间源码变化为空。20 个相关原生 fixture、40 项单文件断言、7 次真实主程序入口与便携验收通过；发布目录已更新。SDK、默认编译器和 C 服务器沿用上一候选。本轮为相关范围回归，未重复全量标准／ABI 专项。见 [四种构建形态](docs/standalone-builds.md) 和 [当前候选](CURRENT-CANDIDATE.md)。

@@ -81,6 +81,20 @@ static int verify(void* user)
     CHECK(xgeBegin()==XGE_OK); began=1;
     CHECK(pump(&app));
     uint64_t dropped=xgeInputEventDroppedCount();
+    /* A responsive workbench must return keyboard input to either editor
+       after a pointer click; showing a tab alone does not prove this route. */
+    for(int language=0;language<2;++language) {
+        xide_document* target=newDocument(&app,language ? "c" : "xlang",&error); CHECK(target);
+        xui_code_document targetCore=xuiCodeEditGetDocument(target->editor);
+        CHECK(!xuiCodeEditIsReadonly(target->editor) && xuiSetFocusWidget(app.context,app.commands)==XUI_OK && pump(&app));
+        xui_rect_t area=xuiWidgetGetWorldRect(target->editor);
+        int x=(int)((area.fX+100)*app.dpiScale),y=(int)((area.fY+20)*app.dpiScale);
+        uint32_t before=xuiCodeDocumentGetVersion(targetCore);
+        CHECK(pointer(XGE_EVENT_MOUSE_DOWN,x,y,XGE_MOUSE_LEFT,XGE_MOUSE_LEFT,0) && pointer(XGE_EVENT_MOUSE_UP,x,y,XGE_MOUSE_LEFT,0,0) &&
+              post(XGE_EVENT_TEXT,0,0,'z',NULL,0) && pump(&app));
+        CHECK(xuiGetFocusWidget(app.context)==target->editor && !strcmp(xuiCodeEditGetText(target->editor),"z") && xuiCodeDocumentGetVersion(targetCore)>before);
+        CHECK(chord('Z',XGE_KEY_MOD_CTRL) && pump(&app) && !*xuiCodeEditGetText(target->editor));
+    }
     xide_document* doc=newDocument(&app,"xlang",&error); CHECK(doc);
     xui_code_document core=xuiCodeEditGetDocument(doc->editor);
     /* All three events arrive in one frame: text, delete, text. */
