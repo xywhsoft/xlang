@@ -28,7 +28,7 @@ IDE、语言服务、工具和 xlang 引擎统一放在仓库根目录的 `relea
 
 - 不手工修改构建产物来修复问题；应修改源码、构建脚本或工具链配置后重新构建。
 - 如果产物和源码行为不一致，以源码、测试和构建脚本为准。
-- 发布载荷不保存临时产物。正常本机运行验收使用本目录，期间日志和夹具可写入 `release/tmp`；发布清理时迁出验收证据、删除编译缓存和验证 EXE。构建对象与长期记录保存在 `ide/build` 或 `build`。
+- 发布载荷不保存临时产物。正常本机运行验收使用本目录的程序，日志和夹具放在 `ide/build/Release/<本轮目录>`。专项测试使用的临时内容在结束后迁出或删除，包括本轮新建的空 `tmp` 父目录；发布目录不保留验证 EXE。构建对象与长期记录保存在 `ide/build` 或 `build`。
 - 开发示例保留源码，生成的 EXE 放入 `build`；`projects/xs/xs.exe` 是 `start.bat` 直接使用的程序，继续保留。
 - 固定工具链、源码来源与许可材料按清单保留，不按扩展名批量删除 DLL、LIB、PDB 或来源快照。
 - 清理命令：`powershell -NoProfile -ExecutionPolicy Bypass -File tools/clean_release.ps1`（从仓库根目录执行）。清理报告及迁出的验收证据位于 `build/release-cleanup-*`。

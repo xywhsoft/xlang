@@ -18,7 +18,7 @@
 
 ```powershell
 ide/build.bat -Configuration Release -GuiOnly -LanguageServerPath D:\GIT\x-lang\release\xlang-ls.exe -ReleaseDirectory D:\GIT\x-lang\release
-python -X utf8 -B ide/tools/check_c_lsp_disabled.py --output release/tmp/c-lsp-disabled-check
+python -X utf8 -B ide/tools/check_c_lsp_disabled.py --output ide/build/Release/c-lsp-disabled-check
 ```
 
 验证工具使用 `ide/build/Release/gui-build-inputs.json` 中的同一组头文件、编译参数和对象，检查实际发布程序不含 C 后端符号及参数，启动真实 XUI 应用验证输入／撤销和通过 xlang 编译运行 C 单文件。夹具程序运行于根 `release/`，仅使用测试桌面保护用户窗口，结束后移出发布根目录。重复运行需选择新的证据目录。
